@@ -78,7 +78,7 @@ export const LICH_SU_DOI_TAC_AN = [
   "trip_reason_added", "trip_reason_updated", "transfer_template_set", "trip_passengers_synced", "trip_stops_synced", "trip_order_synced", "trip_created", "trip_edited",
   "trip_cancelled", "trip_allocated", "trip_allocation_removed", "trip_allocation_moved", "trip_departed", "trip_stop_arrived", "trip_passenger_boarded",
   "trip_passenger_no_show", "trip_passenger_cancelled_at_stop", "trip_passenger_dropped", "trip_stops_reordered", "trip_ended", "trip_ended_interrupted",
-  "trip_stop_added_running", "trip_allocation_office_cancelled", "trip_passenger_named", "trip_allocation_corrected", "trip_departure_revoked", "trip_transfer_sent",
+  "trip_stop_added_running", "trip_allocation_office_cancelled", "trip_passenger_named", "trip_allocation_corrected", "trip_departure_revoked", "trip_departure_waived", "trip_transfer_sent",
   "trip_transfer_withdrawn", "trip_transfer_declined", "trip_transfer_expired", "trip_transfer_escalated", "trip_transfer_confirmed", "trip_transfer_rejected",
   "trip_driver_refused", "trip_appt_called", "trip_appt_call_undone", "trip_cost_adjusted", "trip_cost_reversed", "trip_cost_snapshot", "trip_cost_agreed",
   "rental_rate_added", "rental_rate_closed", "route_saved", "vehicle_size_saved",
@@ -93,10 +93,13 @@ export const LICH_SU_DOI_TAC_AN = [
   "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
   // ADR-0153 (đề xuất): giữ chỗ / trả vé điện tử — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại. Trang Nhật ký (Toàn quyền) vẫn đọc được.
   "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo",
+  "ve_xoa_anh_het_han", // ADR-0186 Đ4: tác nhân DON_ANH_VE ghi, không gắn đơn — ẩn; Toàn quyền đọc ở trang Nhật ký
   // ADR-0168: hạn mức Trả sau — việc nội bộ của Toàn quyền, ẩn khỏi lịch sử Đối tác.
   "credit_limit_set", "credit_limit_stopped",
   // ADR-0172, ADR-0173: mức tối đa, số gợi ý, ân hạn đơn, tin nhắc — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại; trang Nhật ký (Toàn quyền) vẫn đọc được.
   "partner_channel_set", "credit_ceiling_set", "credit_tier_default_set", "credit_due_extended", "credit_due_soon_reminded", "credit_overdue_reminded",
+  // ADR-0187 Đ3 mức (a): soát dòng tiền tự ghi đơn mình lập — việc nội bộ của Kế toán, ẩn khỏi lịch sử Đối tác.
+  "ledger_self_write_reviewed",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

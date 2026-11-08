@@ -119,6 +119,13 @@ test("409 thieu_nguoi_lon (ADR-0114 D3): nguy hiểm, tiêu đề là ĐÚNG câ
   for (const cu of ["stale", "not_editable", "invalid_transition", "short_notice_required", "catalog_changed"]) assert.equal(LOI_409_KHONG_CU.has(cu), false, `${cu} vẫn là màn hình đã cũ`);
 });
 
+test("409 doi_tac_chua_co_vai_tro (ADR-0185 Đ1): tiêu đề là ĐÚNG câu máy chủ gửi, không nút tải lại — ba câu chủ chọn đã nói việc cần làm, tải lại không gán được vai trò", () => {
+  const cau = "Câu máy chủ gửi, đã nói đủ việc cần làm.";
+  const b = e(409, "doi_tac_chua_co_vai_tro", cau);
+  assert.deepEqual([b.tone, b.title, b.action, b.lines], ["danger", cau, "none", []]);
+  assert.equal(LOI_409_KHONG_CU.has("doi_tac_chua_co_vai_tro"), true, "trang đơn / Việc của bạn không đổi thành «Tải lại đơn»");
+});
+
 test("409 pickup_choice_required (ADR-0134 Đ2): cảnh báo, tiêu đề = câu máy chủ, cuộn tới đúng thẻ (Dịch vụ thứ n → chỉ số n−1), không nút tải lại", () => {
   const b = e(409, "pickup_choice_required", "Dịch vụ thứ 2 chưa chọn Đón hay Không đón.");
   assert.deepEqual([b.tone, b.title, b.action, b.focusService], ["warning", "Dịch vụ thứ 2 chưa chọn Đón hay Không đón.", "none", 1]);

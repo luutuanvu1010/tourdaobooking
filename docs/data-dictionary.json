@@ -29,7 +29,7 @@
       "module": "audit",
       "kind": "table",
       "legacy": true,
-      "note": "acting_role (ADR-0180, migration 0145): mã vai đang đóng lúc ghi dòng, rỗng ngoài đóng vai; chỉ mã vai, không dữ liệu cá nhân"
+      "note": "acting_role (ADR-0180, migration 0145): mã vai đang đóng lúc ghi dòng, rỗng ngoài đóng vai; chỉ mã vai, không dữ liệu cá nhân. agent_code (ADR-0186, migration 0148): mã tác nhân tự động ghi dòng (DONG_BO_DANH_MUC, NHAC_HAN_TRA_SAU, DON_ANH_VE — danh sách kiểm ở mã), khi đó staff_id rỗng; dòng của người để rỗng; không bao giờ có cả hai. Không gửi về trình duyệt. tu_ghi_don_minh_lap (ADR-0187 Đ3 mức a, migration 0150): 1 khi hành động thuộc tập ghi tiền HANH_DONG_GHI_TIEN và người làm là người lập đơn — insertStatement điền tự động; rỗng = không dấu"
     },
     {
       "name": "catalog_item",
@@ -683,7 +683,14 @@
     {
       "name": "vc_trip_departure_check_item",
       "module": "van-chuyen",
-      "kind": "table"
+      "kind": "table",
+      "note": "dòng con bản chụp. Từ 0147 (ADR-0184): cột waiver_id trỏ dòng cho phép chạy thiếu giấy tờ; chỉ dòng DIEU_KIEN mới có (waiver_item_kind); dòng DIEU_KIEN dưới bản chụp ĐẠT bắt buộc trỏ dòng cho phép khớp chuyến, xe, loại giấy, và điều kiện phải của xe (lc05_thieu_giay_chua_cho_phep); dòng cho phép đã dùng ở bản chụp khác thì không dùng lại (waiver_da_dung)"
+    },
+    {
+      "name": "vc_trip_departure_waiver",
+      "module": "van-chuyen",
+      "kind": "table",
+      "note": "dòng cho phép chạy thiếu giấy tờ (ADR-0184; migration 0147), chỉ thêm: mỗi loại giấy một dòng, gắn chuyến chưa chạy và đúng xe hiện tại của chuyến; hiệu lực một chuyến, một lần xuất bến. Kiểm định và Bảo hiểm trách nhiệm dân sự chỉ Toàn quyền cấp; Quản trị bắt buộc có lý do (nhóm CHO_CHAY_THIEU_GIAY: Giấy đang gia hạn, Xe thay thế khẩn cấp, Khác); ghi chú tự do 10–200 ký tự, không vào nhật ký, tin, DTO tài xế, lịch chung, Bảng tin — chỉ hiện (cùng nhãn lý do) ở chi tiết chuyến của văn phòng (P12). Không có cột số giấy tờ"
     },
     {
       "name": "vc_trip_manifest",
@@ -762,7 +769,7 @@
       "name": "bil_posting",
       "module": "billing",
       "kind": "table",
-      "note": "phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành; request_id (0094, ADR-0115) = yêu cầu điều chỉnh đã duyệt của phiếu ADJUSTMENT — trigger cấm chèn ADJUSTMENT thiếu yêu cầu đã duyệt do người KHÁC tạo (phiếu cũ trước 0094 được miễn), mỗi yêu cầu một phiếu; 0112 (sổ đại lý đợt 2): gross_snapshot = Σ thành tiền trước giảm chụp lúc Đã giao (ADR-0079 điều 6) — CHECK chỉ phiếu DELIVERED, ≥ 0; NULL ở phiếu Đã giao cũ và KHÔNG có trigger đòi phiếu mới phải có (Ruling R-P8: đường lùi wrangler rollback); trigger bil_posting_delivered_terms chặn phiếu Đã giao khi đơn còn dòng dịch vụ chưa chụp (v_ord_terms_uncaptured) hoặc bản chụp thiếu mức / thiếu người bán (v_ord_terms_missing); loại COUNTERPARTY_CONFIRMED «Bên kia đã nhận» (ADR-0132) là phiếu một đơn"
+      "note": "phiếu sổ (ADR-0026 đ3), CHỈ-THÊM; due_snapshot = phải thu chụp lúc Đã giao (Q4); trigger kiểm tiền trong lô Đã giao / Hoàn thành; request_id (0094, ADR-0115) = yêu cầu điều chỉnh đã duyệt của phiếu ADJUSTMENT — trigger cấm chèn ADJUSTMENT thiếu yêu cầu đã duyệt do người KHÁC tạo (phiếu cũ trước 0094 được miễn), mỗi yêu cầu một phiếu; 0112 (sổ đại lý đợt 2): gross_snapshot = Σ thành tiền trước giảm chụp lúc Đã giao (ADR-0079 điều 6) — CHECK chỉ phiếu DELIVERED, ≥ 0; NULL ở phiếu Đã giao cũ và KHÔNG có trigger đòi phiếu mới phải có (Ruling R-P8: đường lùi wrangler rollback); trigger bil_posting_delivered_terms chặn phiếu Đã giao khi đơn còn dòng dịch vụ chưa chụp (v_ord_terms_uncaptured) hoặc bản chụp thiếu mức / thiếu người bán (v_ord_terms_missing); loại COUNTERPARTY_CONFIRMED «Bên kia đã nhận» (ADR-0132) là phiếu một đơn; tu_ghi_don_minh_lap (ADR-0187 Đ3 mức a, migration 0150): 1 khi phiếu do route nhóm ghi tiền tạo và created_by là người lập đơn — câu chèn điền tự động; phiếu nộp gộp (order_id NULL) không dấu"
     },
     {
       "name": "bil_attribution",
@@ -829,6 +836,12 @@
       "module": "billing",
       "kind": "table",
       "note": "sổ tin nhắc Trả sau đã gửi (ADR-0173 Đ3 mục 2; migration 0143): khoá (order_id, kind, due_at) để Cron 15 phút không gửi lặp; kind = sap_den_han (trước hạn 6 giờ) hoặc qua_han; due_at là mốc đang nhắc nên sau Ân hạn có dịp nhắc mới; order_id chỉ là mã chụp (máy chủ lấy từ v_ord_don_tra_sau); chỉ thêm, chặn sửa/xoá"
+    },
+    {
+      "name": "bil_soat_tu_ghi",
+      "module": "billing",
+      "kind": "table",
+      "note": "sổ soát «tự ghi đơn mình lập» (ADR-0187 Đ3 mức a; migration 0150): mỗi dòng nhật ký có dấu (v_aud_tu_ghi) được một Kế toán khác hoặc Toàn quyền soát đúng MỘT lần (khoá chính audit_id); trigger: chỉ soát dòng có dấu và người soát khác người ghi; chỉ thêm, chặn sửa/xoá; order_id chỉ là mã chụp để lọc"
     },
     {
       "name": "bil_credit_guard",
@@ -1243,6 +1256,17 @@
       ]
     },
     {
+      "name": "v_aud_tu_ghi",
+      "module": "audit",
+      "columns": [
+        "id",
+        "order_id",
+        "staff_id",
+        "action",
+        "created_at"
+      ]
+    },
+    {
       "name": "v_aud_order_change",
       "module": "audit",
       "columns": [
@@ -1581,7 +1605,7 @@
     }
   ],
   "hangDuLieu": {
-    "audit_log": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "target_type": "N1", "target_id": "N1", "detail": "N2", "created_at": "N1", "acting_role": "N1" },
+    "audit_log": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "target_type": "N1", "target_id": "N1", "detail": "N2", "created_at": "N1", "acting_role": "N1", "agent_code": "N1", "tu_ghi_don_minh_lap": "N1" },
     "aut_mfa_email_code": { "id": "N1", "staff_id": "N1", "purpose": "N1", "email_hash": "N2", "code_hash": "N4", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "expires_at": "N1", "attempts": "N1", "used_at": "N1", "revoked_at": "N1" },
     "aut_mfa_factor": { "id": "N1", "staff_id": "N1", "kind": "N1", "secret_enc": "N4", "email": "N2", "last_totp_step": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "aut_mfa_recovery_code": { "id": "N1", "staff_id": "N1", "batch_id": "N1", "code_hash": "N4", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "used_at": "N1", "revoked_at": "N1" },
@@ -1606,7 +1630,7 @@
     "bil_outside_refund": { "id": "N1", "order_id": "N1", "kind_code": "N1", "amount": "N1", "reason": "N2", "target_id": "N1", "occurred_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_payment_method": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "bil_payment_receipt": { "id": "N1", "order_id": "N1", "kind_code": "N1", "amount": "N1", "collector_party_id": "N1", "collector_role_code": "N1", "method_code": "N1", "collected_for_party_id": "N1", "stage_code": "N1", "occurred_date": "N1", "reverses_id": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "approval_id": "N1", "transfer_of_id": "N1", "replacement_id": "N1", "attribution_id": "N1" },
-    "bil_posting": { "id": "N1", "kind_code": "N1", "order_id": "N1", "reason": "N2", "reverses_posting_id": "N1", "occurred_date": "N1", "due_snapshot": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "request_id": "N1", "gross_snapshot": "N1" },
+    "bil_posting": { "id": "N1", "kind_code": "N1", "order_id": "N1", "reason": "N2", "reverses_posting_id": "N1", "occurred_date": "N1", "due_snapshot": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "request_id": "N1", "gross_snapshot": "N1", "tu_ghi_don_minh_lap": "N1" },
     "bil_posting_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "bil_receipt_bank_txn": { "id": "N1", "receipt_id": "N1", "txn_code": "N1", "transferred_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_receipt_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
@@ -1799,7 +1823,8 @@
     "vc_trip_allocation": { "id": "N1", "trip_id": "N1", "kind": "N1", "leg_id": "N1", "passenger_key": "N2", "crew_party_id": "N1", "board_stop_id": "N1", "alight_stop_id": "N1", "status": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "close_reason": "N1", "closed_by": "N1", "added_after_departure": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "opened_cmd_id": "N1", "closed_cmd_id": "N1", "office_cancel_at": "N1", "office_cancel_by": "N1", "office_cancel_reason_code": "N1", "corrects_allocation_id": "N1", "transfer_id": "N1", "closed_transfer_id": "N1" },
     "vc_trip_cost_line": { "id": "N1", "trip_id": "N1", "carrier_party_id": "N1", "kind": "N1", "amount": "N1", "rate_id": "N1", "route_code_snapshot": "N1", "vehicle_size_code_snapshot": "N1", "passenger_capacity_snapshot": "N1", "unit_amount_snapshot": "N1", "reason_code": "N1", "note": "N2", "reverses_id": "N1", "occurred_date": "N1", "cmd_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vc_trip_departure_check": { "id": "N1", "trip_id": "N1", "cmd_id": "N1", "policy_id": "N1", "ket_qua": "N1", "vehicle_id": "N1", "plate_number": "N1", "passenger_capacity": "N1", "owner_party_id": "N1", "driver_party_id": "N1", "rest_minutes_used": "N1", "checked_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "vc_trip_departure_check_item": { "id": "N1", "check_id": "N1", "item_kind": "N1", "vehicle_document_id": "N1", "person_document_id": "N1", "document_type_code": "N1", "license_class_code": "N1", "expiry_date": "N1", "rule_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "vc_trip_departure_check_item": { "id": "N1", "check_id": "N1", "item_kind": "N1", "vehicle_document_id": "N1", "person_document_id": "N1", "document_type_code": "N1", "license_class_code": "N1", "expiry_date": "N1", "rule_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "waiver_id": "N1" },
+    "vc_trip_departure_waiver": { "id": "N1", "trip_id": "N1", "cmd_id": "N1", "vehicle_id": "N1", "document_type_code": "N1", "expiry_date": "N1", "reason_code": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vc_trip_driver": { "id": "N1", "trip_id": "N1", "driver_party_id": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "close_reason": "N1", "closed_by": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "refuse_reason_code": "N1", "closed_by_party_id": "N1" },
     "vc_trip_event": { "id": "N1", "trip_id": "N1", "related_trip_id": "N1", "kind": "N1", "stop_id": "N1", "allocation_id": "N1", "count": "N1", "request_id": "N1", "client_at": "N1", "decided_mode": "N1", "override_rule_code": "N1", "override_reason_code": "N1", "policy_id": "N1", "occurred_at": "N1", "occurred_ms": "N1", "occurred_source": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "reason_code": "N1" },
     "vc_trip_manifest": { "id": "N1", "trip_id": "N1", "check_id": "N1", "allocation_id": "N1", "passenger_row_id": "N1", "crew_party_id": "N1", "added_after_departure": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -1814,6 +1839,8 @@
     "vdt_delivery": { "id": "N1", "allocation_id": "N1", "channel": "N1", "delivered_by": "N1", "delivered_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_guest_link": { "id": "N1", "order_id": "N1", "token_hash": "N2", "expires_at": "N1", "revoked_at": "N1", "opened_count": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_setting": { "id": "N1", "batch_limit": "N1", "version": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "vdt_ticket": { "id": "N1", "batch_id": "N1", "ticket_code": "N2", "valid_from": "N1", "valid_to": "N1", "slot_time": "N1", "storage_key": "N2", "content_kind": "N1", "byte_size": "N1", "content_hash": "N2", "status": "N1", "stored_at": "N1", "purged_at": "N1", "r2_deleted_at": "N1", "withdrawn_at": "N1", "opened_at": "N1", "opened_by": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" }
+    "vdt_ticket": { "id": "N1", "batch_id": "N1", "ticket_code": "N2", "valid_from": "N1", "valid_to": "N1", "slot_time": "N1", "storage_key": "N2", "content_kind": "N1", "byte_size": "N1", "content_hash": "N2", "status": "N1", "stored_at": "N1", "purged_at": "N1", "r2_deleted_at": "N1", "withdrawn_at": "N1", "opened_at": "N1", "opened_by": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "bil_soat_tu_ghi": { "audit_id": "N1", "order_id": "N1", "soat_boi": "N1", "soat_luc": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "v_aud_tu_ghi": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" }
   }
 }

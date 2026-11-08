@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { app, seedStaff } from "../tests/audit/harness.mjs";
+import { tacNhan } from "./shared/permissions.ts";
 import { A, ACC, ADM, PARTNER, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
 
 const AT = "2026-10-01T00:00:00.000Z";
@@ -17,7 +18,6 @@ type W = ReturnType<typeof setup>;
 function dung(): W {
   const w = setup();
   seedStaff(w.sqlite, { id: DT, phone: "0900000021", name: "Đối Tác Hưởng", perms: ["PARTNER"] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT}`, BEN, AT, AT);
   return w;
 }
 async function chuanBi(w: W): Promise<void> {
@@ -56,7 +56,8 @@ const noDon = async (w: W): Promise<[string, number][]> =>
 const moc = (w: W, id: string) => w.q("SELECT credit_due_at AS h, credit_grace_until AS g, delivered_at AS d FROM orders WHERE id = ?", id)[0] as { h: string; g: string; d: string | null };
 const congGio = (iso: string, gio: number) => new Date(Date.parse(iso) + gio * 3_600_000).toISOString();
 const anHan = (w: W, as: string, id: string, body: unknown) => w.call("POST", `/api/tra-sau/don/${id}/an-han`, { as, body });
-const nhacHanTraSau = (db: unknown, bayGio: string): Promise<number> => app.nhacHanTraSau(db, bayGio);
+// ADR-0186: hàm nhắc hạn nhận bên phát lệnh — Cron dùng tác nhân NHAC_HAN_TRA_SAU, bài này gọi cùng tác nhân.
+const nhacHanTraSau = (db: unknown, bayGio: string): Promise<number> => app.nhacHanTraSau(db, tacNhan("NHAC_HAN_TRA_SAU"), bayGio);
 const tinNhac = async (w: W, as: string): Promise<string[]> =>
   ((await w.call("GET", "/api/thong-bao?ngan=cua-toi", { as })).json.tin as { cau: string }[]).map((t) => t.cau).filter((c) => /trả sau/.test(c));
 
@@ -81,6 +82,10 @@ test("ADR-0181 tiêu chí 1: đơn đã tới bước Khách đã trả đủ c�
   assert.deepEqual(await tinNhac(w, ACC), [`Đơn trả sau ${maDon} đã quá hạn trả mà còn nợ.`], "Kế toán nhận tin quá hạn");
   assert.deepEqual(await tinNhac(w, PARTNER), [], "đối tác khác không nhận");
   assert.deepEqual(w.q("SELECT order_id FROM bil_credit_reminder").map((r: { order_id: string }) => r.order_id), [id, id], "sổ nhắc chỉ có đơn còn nợ");
+  // ADR-0186 (đặc tả N5): mọi dòng nhật ký nhắc hạn do tác nhân NHAC_HAN_TRA_SAU ghi — có mã tác nhân, không rỗng người làm.
+  const nhatKyNhac = w.q("SELECT * FROM audit_log WHERE action IN ('credit_due_soon_reminded', 'credit_overdue_reminded')") as Record<string, unknown>[];
+  assert.ok(nhatKyNhac.length >= 3, "tin trước hạn cho đối tác, tin quá hạn cho đối tác và Kế toán");
+  assert.deepEqual([...new Set(nhatKyNhac.map((d) => `${String(d.agent_code)}|${String(d.staff_id)}`))], ["NHAC_HAN_TRA_SAU|null"]);
 });
 
 test("ADR-0181 tiêu chí 2: «Ân hạn» đơn đã tới bước Khách đã trả đủ còn nợ — 200, nhật ký có mốc cũ, mốc mới, lý do; giữ số giờ ân hạn; mọi cột khác giữ nguyên; màn đơn có nút cho Quản trị", async () => {

@@ -10,6 +10,8 @@ import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 
 const U = (n: number) => `${String(n).repeat(8)}-${String(n).repeat(4)}-4${String(n).repeat(3)}-8${String(n).repeat(3)}-${String(n).repeat(12)}`;
 const SALES = U(1), ADMIN = U(2), SUPER = U(3), PARTNER = U(4), INTERN = U(5), INTERN_SALES = U(6), INTERN_ADMIN = U(7), INTERN_FIELD = U(8), PARTNER_INTERN = U(9);
+// Đối tác kiểu cũ (hồ sơ không vai trò đối tác ⇒ đơn không người hưởng): giữ ca «Đối tác giảm giá ⇒ câu của Đối tác» sau khi seedStaff cho Đối tác vai mặc định (ADR-0185).
+const PARTNER_CU = "10101010-1010-4010-8010-101010101010";
 const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
 const GIA = 500000; // giá danh mục người lớn của ZA1
 const catalogSvc = (unitPrice?: number) => ({
@@ -30,6 +32,7 @@ function setup() {
     [INTERN_FIELD, "0900000008", ["FIELD", "INTERN"]], [PARTNER_INTERN, "0900000009", ["PARTNER", "INTERN"]],
   ];
   for (const [id, phone, perms] of ai) seedStaff(w.sqlite, { id, phone, name: `NV ${phone.slice(-1)}`, perms });
+  seedStaff(w.sqlite, { id: PARTNER_CU, phone: "0900000010", name: "NV kiểu cũ", perms: ["PARTNER"], kieuCu: true });
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
   return w;
 }
@@ -57,6 +60,15 @@ const BI_AP: [string, string, { gia: string; giam: string }][] = [
   ["Thực tập + HDV", INTERN_FIELD, { gia: CAU_THUC_TAP, giam: CAU_THUC_TAP }],
   ["Thực tập + Đối tác", PARTNER_INTERN, { gia: CAU_GIA_DOI_TAC, giam: CAU_GIAM_DOI_TAC }],
 ];
+/**
+ * Bước XÁC NHẬN: tài khoản lai Thực tập + Đối tác không mang được vai trò đối tác (LC-1) nên đơn của nó luôn «không người hưởng» — ADR-0185 chặn ở cổng vai trò (ngay sau luật bán,
+ * TRƯỚC cổng giá). Hai bài xác nhận chạy luật giá với các tài khoản còn lại; tài khoản lai có khẳng định riêng (`laiBiChan`).
+ */
+const BI_AP_XAC_NHAN = BI_AP.filter(([, who]) => who !== PARTNER_INTERN);
+const laiBiChan = (r: { status: number; json: any; text: string }, ten: string) => {
+  assert.equal(r.status, 409, `${ten}: ${r.text}`);
+  assert.equal(r.json.error.code, "doi_tac_chua_co_vai_tro", ten);
+};
 const chan = (r: { status: number; json: any; text: string }, cau: string, ten: string) => {
   assert.equal(r.status, 403, `${ten}: ${r.text}`);
   assert.equal(r.json.error.code, "forbidden", ten);
@@ -103,9 +115,13 @@ test("(iii)(v) sửa nháp: Thực tập sửa sang giá lệch hoặc thêm gi�
   }
 });
 
-test("(iv)(v) xác nhận: đơn nháp CŨ của Thực tập có dòng lệch giá, hoặc giảm giá đã lưu > 0 (chèn thẳng bằng SQL) → 403, đơn vẫn nháp; sửa về đúng thì xác nhận 200", async () => {
+test("(iv)(v) xác nhận: đơn nháp CŨ của Thực tập có dòng lệch giá, hoặc giảm giá đã lưu > 0 (chèn thẳng bằng SQL) → 403, đơn vẫn nháp; sửa về đúng thì xác nhận 200 (lai Thực tập + Đối tác: 409 ADR-0185)", async () => {
   const w = setup();
-  for (const [ten, who, cau] of BI_AP) {
+  const lai = (await tao(w, PARTNER_INTERN)).json.order;
+  lamLechGia(w, lai.id, 10000);
+  laiBiChan(await xacNhan(w, PARTNER_INTERN, lai.id), "Thực tập + Đối tác: nháp cũ lệch giá — cổng vai trò đứng trước cổng giá");
+  assert.equal(trangThai(w, lai.id), "draft");
+  for (const [ten, who, cau] of BI_AP_XAC_NHAN) {
     const lech = (await tao(w, who)).json.order;
     lamLechGia(w, lech.id, 10000);
     chan(await xacNhan(w, who, lech.id), cau.gia, `${ten}: xác nhận nháp cũ lệch giá`);
@@ -125,9 +141,12 @@ test("(iv)(v) xác nhận: đơn nháp CŨ của Thực tập có dòng lệch g
   }
 });
 
-test("(vi) xác nhận: Thực tập tự xác nhận đơn mình lập đúng giá danh mục, không giảm → 200 (ADR-0100 Đ5: giữ nguyên việc tự xác nhận)", async () => {
+test("(vi) xác nhận: Thực tập tự xác nhận đơn mình lập đúng giá danh mục, không giảm → 200 (ADR-0100 Đ5: giữ nguyên việc tự xác nhận; lai Thực tập + Đối tác: 409 ADR-0185)", async () => {
   const w = setup();
-  for (const [ten, who] of BI_AP) {
+  const lai = await tao(w, PARTNER_INTERN);
+  assert.equal(lai.status, 201, lai.text);
+  laiBiChan(await xacNhan(w, PARTNER_INTERN, lai.json.order.id), "Thực tập + Đối tác: đơn đúng giá");
+  for (const [ten, who] of BI_AP_XAC_NHAN) {
     const t = await tao(w, who);
     assert.equal(t.status, 201, `${ten}: ${t.text}`);
     const xn = await xacNhan(w, who, t.json.order.id);
@@ -148,10 +167,12 @@ test("(vii) đối chứng: Bán hàng, Quản trị, Toàn quyền vẫn đặt
     assert.equal(xn.status, 200, `${ten}: ${xn.text}`);
   }
   chan(await tao(w, PARTNER, catalogSvc(100000)), CAU_GIA_DOI_TAC, "Đối tác: lệch giá");
-  chan(await tao(w, PARTNER, catalogSvc(), { discount: 1 }), CAU_GIAM_DOI_TAC, "Đối tác: giảm giá");
+  // Câu giảm giá của Đối tác chỉ còn cho đơn KHÔNG người hưởng (đơn có người hưởng: trần = hoa hồng — tran-giam-gia-don.test.ts): ca này dùng tài khoản kiểu cũ, chỉ lập và sửa nháp.
+  chan(await tao(w, PARTNER_CU, catalogSvc(), { discount: 1 }), CAU_GIAM_DOI_TAC, "Đối tác: giảm giá");
+  const cu = (await tao(w, PARTNER_CU)).json.order;
+  chan(await sua(w, PARTNER_CU, cu, catalogSvc(), { discount: 1000 }), CAU_GIAM_DOI_TAC, "Đối tác: PUT giảm giá");
   const dt = (await tao(w, PARTNER)).json.order;
-  chan(await sua(w, PARTNER, dt, catalogSvc(), { discount: 1000 }), CAU_GIAM_DOI_TAC, "Đối tác: PUT giảm giá");
   lamLechGia(w, dt.id, 10000);
   chan(await xacNhan(w, PARTNER, dt.id), CAU_GIA_DOI_TAC, "Đối tác: xác nhận nháp cũ lệch giá");
-  assert.equal(soDon(w), 3 + 1, "ba đơn nội bộ + một đơn nháp của Đối tác");
+  assert.equal(soDon(w), 3 + 2, "ba đơn nội bộ + hai đơn nháp của Đối tác");
 });

@@ -149,9 +149,9 @@ assert.deepEqual(r.body.staff.permissions, ["PARTNER"], "vai Cộng tác viên �
 const P = (await login(phone, r.body.pin)).cookie;
 const P_PARTY = r.body.staff.partyId; // hồ sơ cá nhân mang vai Cộng tác viên (vai được hưởng) ⇒ đơn của P luôn CÓ người hưởng (sổ đại lý đợt 1, bên đặt bị ép)
 // Sổ đại lý đợt 2, Task 7 (ADR-0079 điều 9, C8 = A): trần giảm giá nay xét theo NGƯỜI HƯỞNG của đơn. Luật R3 «Đối tác không giảm được» chỉ còn cho đơn KHÔNG người hưởng ⇒ các
-// mục R3 dưới (4, 5, 6b) dùng tài khoản Đối tác P0 mà hồ sơ KHÔNG mang vai được hưởng (gieo SQL như mục 8 — vai hồ sơ STAFF), để vẫn canh đúng vá DK-T3-01; mục 4b thử trần
-// hoa hồng trên đơn của P.
-const P0 = (await gieoTaiKhoanLai(`Đối Tác Khách Lẻ ${tag}`, ["PARTNER"])).cookie;
+// mục R3 dưới (4, 5, 6b) dùng tài khoản Đối tác P0 mà hồ sơ KHÔNG mang vai được hưởng (gieo SQL như mục 8 — kiểu cũ, vai hồ sơ STAFF), để vẫn canh đúng vá DK-T3-01 ở
+// bước LƯU; mục 4b thử trần hoa hồng trên đơn của P. ADR-0185: P0 Gửi đơn nay 409 `doi_tac_chua_co_vai_tro` (cổng đứng trước luật giảm giá ở bước xác nhận).
+const P0 = (await gieoTaiKhoanLai(`Đối Tác Khách Lẻ ${tag}`, ["PARTNER"], { kieuCu: true })).cookie;
 // KHÔNG gọi GET /api/catalog ở đây: kịch bản này chạy TRƯỚC catalog.mjs trên D1 chưa từng đồng bộ — lời gọi đầu tiên tự kéo Sheet thật
 // (CHANGE-GUIDE §4 mục 23) và ẩn danh mục giả ZE*. Quyền đọc danh mục của Đối tác/Thực tập (ADR-0028) do catalog.mjs kiểm.
 const partnerCount = async (name, who = P) => (await call(who, "GET", `/api/orders?q=${encodeURIComponent(name)}`)).body.orders.length;
@@ -227,8 +227,9 @@ r = await put(P0, po, [catalogAsStored(po.services[0])], { discount: 0, customer
 assert.equal(r.status, 200, JSON.stringify(r.body));
 po = r.body.order;
 r = await confirm(P0, po);
-assert.equal(r.status, 200, `Đối tác tự xác nhận đơn đúng giá danh mục, không giảm giá → 200: ${JSON.stringify(r.body)}`);
-console.log("✓ R2+R3: Đối tác PUT hạ đơn giá → 403; PUT thêm giảm giá → 403 (đơn không đổi); giữ giá + không giảm → 200; tự xác nhận → 200");
+assert.equal(r.status, 409, `ADR-0185: Đối tác chưa có vai trò đối tác Gửi đơn → 409: ${JSON.stringify(r.body)}`);
+assert.equal(r.body.error.code, "doi_tac_chua_co_vai_tro");
+console.log("✓ R2+R3: Đối tác PUT hạ đơn giá → 403; PUT thêm giảm giá → 403 (đơn không đổi); giữ giá + không giảm → 200; Gửi đơn khi chưa có vai trò đối tác → 409 (ADR-0185)");
 
 // 6) XÁC NHẬN đơn nháp CŨ của Đối tác có dòng lệch giá (dựng bằng SQL — trước bản vá API từng nhận) → 403, đơn vẫn nháp
 r = await call(P, "POST", "/api/orders", orderInput({ customerName: `ĐT nháp cũ lệch giá ${tag}`, services: [catalogService({ pax: { adult: 2 } })] }));
@@ -250,8 +251,9 @@ r = await put(P, pLeg, [catalogAsStored(pLeg.services[0])]);
 assert.equal(r.status, 200, JSON.stringify(r.body));
 console.log("✓ R2: Đối tác xác nhận nháp cũ lệch giá → 403 (vẫn nháp); nháp cũ có nhập tay: xác nhận/sửa 403, xoá dịch vụ nhập tay → 200");
 
-// 6b) R3 ở XÁC NHẬN: đơn nháp của Đối tác đúng giá nhưng CÓ giảm giá đã lưu (dựng bằng SQL — trước bản vá API từng nhận) → 403, đơn vẫn nháp.
-//     Cách gỡ: Đối tác sửa giảm giá về 0 (PUT → 200) rồi xác nhận → 200.
+// 6b) XÁC NHẬN đơn nháp của Đối tác đúng giá nhưng CÓ giảm giá đã lưu (dựng bằng SQL — trước bản vá API từng nhận), đơn KHÔNG người hưởng: từ ADR-0185 cổng «chưa có vai
+//     trò đối tác» đứng trước luật giảm giá ⇒ 409 `doi_tac_chua_co_vai_tro`, đơn vẫn nháp; sửa giảm giá về 0 (PUT → 200) vẫn chưa gửi được. Câu giảm giá ở bước xác nhận
+//     (DK-T3-01) còn canh ở đơn CÓ người hưởng: so-dai-ly-dot-2 mục 6, bài I-1 của src/modules/orders/tran-giam-gia-don.test.ts.
 r = await call(P0, "POST", "/api/orders", orderInput({ customerName: `ĐT nháp cũ có giảm giá ${tag}`, services: [catalogService({ pax: { adult: 2 } })] }));
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const disc = r.body.order;
@@ -259,15 +261,15 @@ await sql(`UPDATE orders SET discount = 5000, total = subtotal - 5000, remaining
 const discStored = await get(P0, disc.id);
 assert.deepEqual([discStored.discount, discStored.total], [5000, 2 * ZE1 - 5000], "đơn nháp cũ dựng đúng");
 r = await confirm(P0, discStored);
-assert.equal(r.status, 403, `R3 ở xác nhận: ${JSON.stringify(r.body)}`);
-assert.equal(r.body.error.code, "forbidden");
-assert.match(r.body.error.message, NO_DISCOUNT);
+assert.equal(r.status, 409, `ADR-0185 ở xác nhận: ${JSON.stringify(r.body)}`);
+assert.equal(r.body.error.code, "doi_tac_chua_co_vai_tro");
 assert.equal((await get(P0, disc.id)).status, "draft", "đơn vẫn là nháp");
 r = await put(P0, discStored, [catalogAsStored(discStored.services[0])], { discount: 0 });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 r = await confirm(P0, r.body.order);
-assert.equal(r.status, 200, JSON.stringify(r.body));
-console.log("✓ R3: Đối tác xác nhận nháp cũ có giảm giá đã lưu → 403 (vẫn nháp); sửa giảm giá về 0 → 200, xác nhận → 200");
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "doi_tac_chua_co_vai_tro");
+console.log("✓ Đối tác chưa có vai trò đối tác xác nhận nháp cũ có giảm giá đã lưu → 409 (vẫn nháp, ADR-0185); sửa giảm giá về 0 → 200, vẫn 409");
 
 // 7) Nhân viên bán hàng (luật R2/R3 chỉ áp cho Đối tác): CÙNG thân yêu cầu với đơn giá thoả thuận → 201, xác nhận → 200; CÙNG thân yêu cầu có giảm giá
 //    mà Đối tác vừa bị 403 ở mục 4 → 201; sửa thêm giảm giá → 200; xác nhận → 200.

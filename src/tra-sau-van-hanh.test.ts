@@ -3,6 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { app, seedStaff } from "../tests/audit/harness.mjs";
+import { tacNhan } from "./shared/permissions.ts";
 import { A, ACC, ADM, PARTNER, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
 import { cachBayGio, datMocTraSau, datQuaHan } from "../tests/audit/tra-sau-moc.mjs";
 
@@ -15,7 +16,6 @@ type W = ReturnType<typeof setup>;
 function dung(): W {
   const w = setup();
   seedStaff(w.sqlite, { id: DT, phone: "0900000021", name: "Đối Tác Hưởng", perms: ["PARTNER"] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT}`, BEN, AT, AT);
   return w;
 }
 const hanMuc = (w: W, so: number, gioTra = 36, gioAnHan = 12) => w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN, hanMuc: so, gioTra, gioAnHan, lyDo: "thử" } });
@@ -124,7 +124,8 @@ test("ADR-0173 tiêu chí 4, Đ2 mục 3–4: hết ân hạn — đơn trả tr
 });
 
 // ---- ADR-0173 Đ3 mục 2, tiêu chí 6: tin nhắc ----------------------------------------------------------------------------------------------------------
-const nhacHanTraSau = (db: unknown, bayGio: string): Promise<number> => app.nhacHanTraSau(db, bayGio);
+// ADR-0186: hàm nhắc hạn nhận bên phát lệnh — Cron dùng tác nhân NHAC_HAN_TRA_SAU, bài này gọi cùng tác nhân.
+const nhacHanTraSau = (db: unknown, bayGio: string): Promise<number> => app.nhacHanTraSau(db, tacNhan("NHAC_HAN_TRA_SAU"), bayGio);
 const tinNhac = async (w: W, as: string): Promise<string[]> =>
   ((await w.call("GET", "/api/thong-bao?ngan=cua-toi", { as })).json.tin as { cau: string }[]).map((t) => t.cau).filter((c) => /trả sau/.test(c));
 

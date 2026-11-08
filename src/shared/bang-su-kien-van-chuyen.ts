@@ -278,6 +278,16 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
     luat: "chưa có sự kiện tiến độ sau xuất bến; về Chưa chạy", bang: [...LO_CHUNG], suKien: "DEPARTURE_REVOKED", nhatKy: "trip_departure_revoked", lo: "loThuHoiXuatBen",
     bao: "route", tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "thu_hoi_xuat_ben" }, { ai: DIEU_PHOI, loai: "dieu_chinh" }] }, bangTin: "sua", nguon: "ADR-0097 Đ3, Đ5",
   },
+  // ADR-0184 (chủ chọn D1=b, D2): văn phòng cấp DÒNG CHO PHÉP chạy thiếu giấy tờ xe cho chuyến CHƯA chạy. Ô `trip.override` (Quản trị, Toàn quyền); thêm ô
+  // `trip.override.giay_to_cung` (chỉ Toàn quyền) cho Kiểm định / Bảo hiểm và bỏ trống lý do — route hỏi ô thứ hai ở thân. Chủ quyết 2026-11-08: BÁO tài xế đang
+  // được giao chuyến (QT1; ADR-0184 D3 — tài xế chịu phạt tại chỗ nên phải biết): tin «Chuyến <mã>: Xe thiếu <tên loại> — đã cho chạy», Bảng tin loại "sua".
+  {
+    id: "cho-chay-thieu-giay", ten: "Cho chạy dù thiếu giấy tờ", loai: "ke_hoach", trangThai: "co_ma",
+    routes: [vp("/api/van-chuyen/chuyen/:id/cho-chay-thieu-giay", "trip.override", O_VUOT, "lenhChoChayThieu")], trangThaiChuyen: ["PLANNED"], vuot: [],
+    luat: "chỉ xe thiếu loại giấy đó; Kiểm định / Bảo hiểm chỉ Toàn quyền; Quản trị bắt buộc lý do; mỗi cho phép chỉ dùng cho một lần cho xe chạy",
+    bang: [...LO_CHUNG, "vc_trip_departure_waiver"], suKien: "DOCS_WAIVED", nhatKy: "trip_departure_waived", lo: "loChoChayThieu",
+    bao: "route", tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "cho_chay_thieu" }] }, bangTin: "sua", nguon: "ADR-0184",
+  },
 
   // Lệnh đơn làm MÁY đổi chuyến theo đơn — ADR-0104 Đ2.4 (tám điểm gọi). Máy chỉ ghi chuyến chưa chạy (Đ2.7).
   ...([

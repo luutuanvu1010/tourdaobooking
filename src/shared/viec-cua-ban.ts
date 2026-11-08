@@ -3,15 +3,17 @@
 // Đợt 1: bốn vai văn phòng. Thẻ "Đề nghị chuyển khách" bỏ (đặc tả §9.3). Thẻ "Cọc cần chi hoàn" bỏ vì CHƯA có trang web nào
 // dùng GET /api/ledger/coc để làm đích cho nút (nợ ở docs/BACKLOG.md). Không vẽ số giả: số lấy từ nguồn đã có.
 import { vndShort } from "./money.ts";
+import { NHAN_CAN_SOAT, NUT_SOAT, PHU_CAN_SOAT } from "./tach-nhiem-vu.ts";
 import type { PHAM_VI_O_TRANG_CHU } from "./pham-vi-so.ts";
 import { can, holdsPartner, seesAllOrders } from "./permissions.ts";
 import { coKhoiChoDoiChieu } from "./ben-kia-hien-thi.ts";
 import { coKhoiThuTruoc, NGAY_NHAC_DUYET_HIEN_THI } from "./thu-truoc-hien-thi.ts";
 import { NGAY_NHAC_DOI_CHIEU_HIEN_THI } from "./doi-chieu-hien-thi.ts";
 import type { PermissionHolder } from "./permissions.ts";
+import { thaySoChoChayThieu } from "./cho-chay-thieu-giay.ts";
 import { cachThayTheCanhBao } from "./ban-hang-phu-trach.ts";
 
-export type KhoaThe = "xemLai" | "dieuChinh" | "nhap" | "conThieu" | "chuaPhuTrach" | "chuaBanHang" | "chuyenHomNay" | "gopY" | "donCho" | "doiChieu" | "thuTruoc";
+export type KhoaThe = "xemLai" | "dieuChinh" | "nhap" | "conThieu" | "chuaPhuTrach" | "chuaBanHang" | "chuyenHomNay" | "gopY" | "donCho" | "doiChieu" | "thuTruoc" | "tuGhi" | "choChayThieu";
 
 /** Số đã tải; `null` = nguồn lỗi (thẻ hiện "—" + Thử lại), KHÔNG phải 0. Khoá vắng = người này không dùng nguồn đó. */
 export interface NguonSo {
@@ -31,6 +33,10 @@ export interface NguonSo {
   /** Trang chủ Phương án A (31/10): số khoản «Chờ đối chiếu» và «Thu trước của đơn huỷ» — hai khối chi tiết cũ của Trang chủ nay có dòng trong thẻ «Đang chờ bạn». Cổng giữ NGUYÊN (`coKhoiChoDoiChieu`, `coKhoiThuTruoc`). */
   readonly doiChieu?: number | null;
   readonly thuTruoc?: number | null;
+  /** ADR-0187 Đ3 mức (a): số dòng tiền do chính người lập đơn ghi, chưa có người thứ hai soát (`GET /api/ledger/tu-ghi/dem`). */
+  readonly tuGhi?: number | null;
+  /** ADR-0184: số chuyến hôm nay chưa kết thúc mà nhãn «Xe thiếu giấy tờ — đã cho chạy» đang hiện (`GET /api/van-chuyen/cho-chay-thieu/dem`, ô `trip.override`). */
+  readonly choChayThieu?: number | null;
   /** Vòng 2 (31/10): số khoản đối chiếu QUÁ hạn và chi tiết thu trước (từ `/api/ledger/coc/dem`) — để dòng «Đang chờ bạn» mang tín hiệu quá hạn mà dòng «Cần xem lại» tương ứng (ẩn ở máy tính) từng báo. */
   readonly doiChieuQuaHan?: number | null;
   readonly thuTruocChiTiet?: { readonly canChi: number; readonly qua7Ngay: number; readonly sapHetHan: number; readonly conNguoiGiu: number } | null;
@@ -66,7 +72,7 @@ const TOI_DA = 4;
 
 /** Khoá thẻ → khoá phạm vi trong `PHAM_VI_O_TRANG_CHU` (bảng chung; CHANGE-GUIDE bẫy 59(3): ô số khác phạm vi đứng cạnh nhau phải mang nhãn "Toàn công ty" / "Của tôi"). */
 export const KHOA_PHAM_VI: Readonly<Record<KhoaThe, keyof typeof PHAM_VI_O_TRANG_CHU>> = {
-  xemLai: "xemLai", dieuChinh: "dieuChinh", nhap: "donNhap", conThieu: "conThieu", chuaPhuTrach: "chuaPhuTrach", chuaBanHang: "chuaBanHang", chuyenHomNay: "chuyenHomNay", gopY: "gopY", donCho: "donCho", doiChieu: "doiChieu", thuTruoc: "thuTruoc",
+  xemLai: "xemLai", dieuChinh: "dieuChinh", nhap: "donNhap", conThieu: "conThieu", chuaPhuTrach: "chuaPhuTrach", chuaBanHang: "chuaBanHang", chuyenHomNay: "chuyenHomNay", gopY: "gopY", donCho: "donCho", doiChieu: "doiChieu", thuTruoc: "thuTruoc", tuGhi: "tuGhi", choChayThieu: "choChayThieu",
 };
 
 interface MoTa {
@@ -96,6 +102,9 @@ export const coOSoCuaToi = (who: PermissionHolder): boolean => can(who, "order.c
 const THE: readonly MoTa[] = [
   { khoa: "xemLai", uuTien: () => 1, hien: quanTri, nhan: "Cần xem lại", nut: () => "Xem lại", href: "#dash-review", tone: "cat", chot: khong,
     phu: () => "Những điều Nền tảng đang nhắc Quản trị" },
+  // ADR-0184: xe đã được cho chạy dù thiếu giấy tờ — chỉ người có ô `trip.override` (Quản trị, Toàn quyền); số do route của van-chuyen đếm CÙNG hàm với nhãn ở chuyến.
+  { khoa: "choChayThieu", uuTien: () => 1.4, hien: thaySoChoChayThieu, nhan: "Xe thiếu giấy tờ — đã cho chạy", nut: () => "Xem chuyến", href: "/dieu-phoi", tone: "cat", chot: khong,
+    phu: () => "Xe chạy hôm nay dù thiếu giấy tờ" },
   // ADR-0136 Đ9: người giữ ô xét duyệt — KHÔNG đòi xem được mọi đơn (hướng dẫn viên chưa phụ trách cũng kiểm vé); đứng sau "Cần xem lại" vì là việc có hạn 15 phút.
   { khoa: "donCho", uuTien: () => 1.5, hien: (w) => can(w, "order.confirm.review"), nhan: "Đơn chờ xác nhận", nut: () => "Kiểm vé", href: "/cho-xac-nhan", tone: "cat", chot: khong,
     phu: () => "Đơn đã gửi, chờ kiểm vé" }, // ADR-0142: «quá hạn» nay hiện ở thẻ «Đơn chưa có người phụ trách»
@@ -107,6 +116,9 @@ const THE: readonly MoTa[] = [
     phu: (n) => phuDoiChieu(n.doiChieuQuaHan) },
   { khoa: "thuTruoc", uuTien: () => 1.7, hien: (w) => coKhoiThuTruoc(w), nhan: "Thu trước đơn huỷ", nut: () => "Xử lý", href: "#dash-thu-truoc", tone: "xanh", chot: khong,
     phu: (n) => phuThuTruoc(n.thuTruocChiTiet) },
+  // ADR-0187 Đ3 mức (a): dòng tiền do chính người lập đơn ghi, chờ Kế toán KHÁC / Toàn quyền soát — người soát được (ô ledger.write, không Đối tác) mới thấy; mở Sổ công nợ ở bộ lọc «Cần người thứ hai soát».
+  { khoa: "tuGhi", uuTien: () => 1.8, hien: (w) => can(w, "ledger.write") && !holdsPartner(w), nhan: NHAN_CAN_SOAT, nut: () => NUT_SOAT, href: "/so-cong-no#tu-ghi", tone: "cat", chot: khong,
+    phu: () => PHU_CAN_SOAT },
   { khoa: "dieuChinh", uuTien: (w) => (quanTri(w) ? 8 : 2), hien: (w) => can(w, "ledger.adjust.approve") && !holdsPartner(w), nhan: "Điều chỉnh công nợ chờ duyệt", nut: () => "Duyệt",
     href: "/dieu-chinh-cong-no", tone: "xanh", chot: khong, phu: () => "Yêu cầu đang chờ bạn duyệt" },
   // Số đơn nháp là của CHÍNH người xem (ADR-0135 Đ3: nháp là vùng riêng của người lập): nút chốt (san hô) "Xác nhận đơn" cho người xác nhận được mọi đơn; vai khác "Xem đơn nháp".

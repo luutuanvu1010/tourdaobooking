@@ -39,15 +39,14 @@ async function setup(): Promise<W> {
     [SALES, "0900000001", ["SALES"]], [ADMIN, "0900000002", ["ADMIN"]], [KT, "0900000003", ["ACCOUNTING"]], [DT, "0900000004", ["PARTNER"]],
     [DT0, "0900000005", ["PARTNER"]], [LAI, "0900000006", ["SALES", "PARTNER"]], [INTERN, "0900000007", ["INTERN"]],
   ];
-  for (const [id, phone, perms] of ai) seedStaff(w.sqlite, { id, phone, name: `NV ${phone.slice(-1)}`, perms });
+  for (const [id, phone, perms] of ai) seedStaff(w.sqlite, { id, phone, name: `NV ${phone.slice(-1)}`, perms, ...(id === DT0 ? { kieuCu: true } : {}) });
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 790000, 1, '2026-01-01', '2026-01-01')");
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA2', 'Tour lặn', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
   toChuc(w, DLA, "Đại lý A");
   toChuc(w, DLB, "Đại lý B");
   toChuc(w, DLC, "Đại lý C");
   toChuc(w, DLD, "Đại lý D");
-  // Đối tác DT: hồ sơ cá nhân mang vai được hưởng ⇒ bên đặt luôn là chính hồ sơ đó (sổ đại lý đợt 1). DT0, LAI: hồ sơ không mang vai được hưởng ⇒ đơn khách lẻ.
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT}`, `pty-${DT}`, AT, AT);
+  // Đối tác DT: hồ sơ cá nhân mang vai được hưởng ⇒ bên đặt luôn là chính hồ sơ đó (sổ đại lý đợt 1). DT0 (tài khoản Đối tác kiểu cũ — ADR-0185), LAI: hồ sơ không mang vai được hưởng ⇒ đơn khách lẻ.
   await muc(w, DLA, 1000);
   await muc(w, DLB, 1000);
   await muc(w, DLC, 1500);
@@ -141,12 +140,16 @@ test("Xác nhận: tính bản chụp TRƯỚC, kiểm trần SAU — nháp khá
   assert.equal(dem(w, "SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?", id), 1);
 });
 
-test("Xác nhận: Đối tác (đơn khách lẻ) có giảm giá đã lưu ⇒ 403 câu cũ (vá DK-T3-01 ở cổng xác nhận giữ nguyên)", async () => {
+// ADR-0185 Đ1: đơn khách lẻ của Đối tác là đơn «không người hưởng» — cổng vai trò đứng ngay sau luật bán, TRƯỚC trần giảm giá ⇒ 409 thay cho 403 câu cũ. Câu cũ (DK-T3-01) ở bước
+// xác nhận vẫn canh ở bài I-1 dưới (đơn có đại lý KHÁC làm bên đặt — qua cổng vai trò); ở lập đơn / lưu nháp vẫn như cũ.
+test("Xác nhận: Đối tác kiểu cũ (đơn khách lẻ) có giảm giá đã lưu ⇒ 409 doi_tac_chua_co_vai_tro (cổng vai trò đứng trước trần giảm giá), đơn vẫn nháp", async () => {
   const w = await setup();
   const r0 = await lap(w, DT0, C5);
   assert.equal(r0.status, 201, r0.text);
   datGiam(w, r0.json.order.id, 5000);
-  cam(await xacNhan(w, r0.json.order.id, DT0), CAU_GIAM_DOI_TAC);
+  const xn = await xacNhan(w, r0.json.order.id, DT0);
+  assert.equal(xn.status, 409, xn.text);
+  assert.equal(xn.json.error.code, "doi_tac_chua_co_vai_tro");
   assert.equal(w.q("SELECT status FROM orders WHERE id = ?", r0.json.order.id)[0].status, "draft");
 });
 
@@ -266,7 +269,6 @@ const dongTinhTay = (d: DauVaoVang) => d.dich_vu.map((x) => {
 async function setupVuot(d: DauVaoVang): Promise<W> {
   const w = await setup();
   seedStaff(w.sqlite, { id: DTV, phone: "0900000008", name: "NV 8", perms: ["PARTNER"] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DTV}`, `pty-${DTV}`, AT, AT);
   toChuc(w, DLE, "Đại lý E");
   for (const x of d.dich_vu) {
     w.sqlite.prepare("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES (?, ?, 'perPax', ?, 1, '2026-01-01', '2026-01-01')").run(x.ma, x.ten, x.gia_moi_khach);

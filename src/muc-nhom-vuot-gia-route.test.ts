@@ -23,7 +23,7 @@ async function dung(): Promise<W> {
   const w = setup();
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Đại lý F', 1, ?, ?)").run(DLF, AT, AT);
   for (const p of [DLF, BEN_DT]) {
-    w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${p}`, p, AT, AT);
+    if (p === DLF) w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${p}`, p, AT, AT);
     const m = await w.call("POST", "/api/pricing/hoa-hong", { as: ACC, body: { tuNgay: "2026-01-01", doiTuong: { loai: "DOI_TAC", partyId: p }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 } });
     assert.equal(m.status, 201, m.text);
   }

@@ -309,8 +309,12 @@ await new Promise((r) => setTimeout(r, 3000));
 r = await call(TOAN_QUYEN, "GET", "/api/audit?action=catalog_synced&limit=1");
 assert.equal(r.body.entries[0].staffName, "Hệ thống (tự động)");
 assert.match(r.body.entries[0].detail, new RegExp(MA3));
+assert.equal("agentCode" in r.body.entries[0], false, "ADR-0186 Đ4: mã tác nhân không gửi về trình duyệt");
+// ADR-0186 (đóng HC-5.11): dòng do Cron ghi mang mã tác nhân DONG_BO_DANH_MUC, không mang mã người.
+const [dongCron] = await sqlRows("SELECT staff_id, agent_code FROM audit_log WHERE action = 'catalog_synced' ORDER BY created_at DESC, rowid DESC LIMIT 1");
+assert.deepEqual([dongCron.staff_id, dongCron.agent_code], [null, "DONG_BO_DANH_MUC"], "dòng nhật ký của Cron mang mã tác nhân");
 assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === MA3).prices.child, sheetTD103.prices.child);
-console.log("✓ Cron tự kéo, nhật ký ghi 'Hệ thống (tự động)'");
+console.log("✓ Cron tự kéo dưới tác nhân DONG_BO_DANH_MUC, màn Nhật ký vẫn ghi 'Hệ thống (tự động)'");
 
 // --- chốt chặn: Sheet 'mất' hơn nửa dịch vụ. Số mã giả tính theo Sheet THẬT lúc chạy (số dòng hợp lệ đổi theo thời gian: 61 → 133
 // ngày 2026-09-27): `syncGuard` chặn khi số sẽ ẩn × 2 > số đang có trong Sheet, tức cần số mã giả > số dịch vụ thật.

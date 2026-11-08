@@ -8,6 +8,21 @@ import type { MucBoQua, ViecQuanTrong } from "./bang-tham-chieu.ts";
 
 export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   {
+    nhom: "Tách nhiệm vụ (tiền)",
+    manHinh: "Sổ công nợ › bộ lọc «Cần người thứ hai soát»",
+    ten: "Đã soát",
+    thatSuLam: "Ghi nhận rằng BẠN (Kế toán khác hoặc Toàn quyền) đã xem một dòng tiền do chính người lập đơn ghi. Không đổi số tiền. Máy chủ và CSDL cùng chặn nếu bạn chính là người đã ghi dòng đó (403), hay dòng đã có người soát (409).",
+    hoiLai: "không",
+    hoanTac: "không: dòng soát chỉ-thêm; soát nhầm thì báo Kế toán trưởng (nhật ký còn tên người soát)",
+    duongLenh: ["/api/ledger/tu-ghi/:x/da-soat"],
+    maNhatKy: ["ledger_self_write_reviewed"],
+    noiDat: [
+      { tep: "web/so-cong-no.ts", chu: "Đã soát" },
+    ],
+    trangThai: "da-chot",
+    nguonTen: "ADR-0187 Đ3 mức (a), chủ duyệt 2026-11-08 «Duyệt, mức a» — chữ nguyên văn ADR",
+  },
+  {
     nhom: "Kiểm vé đơn chờ",
     manHinh: "Đơn chờ xác nhận (danh sách thẻ)",
     ten: "Kiểm vé",
@@ -2122,6 +2137,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
+    nhom: "Tiến độ chuyến (văn phòng bấm thay)",
+    manHinh: "Chi tiết chuyến (chuyến chưa chạy, xe còn thiếu giấy tờ) › nút «Cho chạy dù thiếu giấy tờ» › hộp cùng tên; cũng mở từ nút cùng tên ở «Cần xử lý» của Điều phối xe",
+    ten: "Cho chạy dù thiếu giấy tờ",
+    thatSuLam: "Quản trị hoặc Toàn quyền cho phép MỘT chuyến chưa chạy được cho xe chạy dù xe thiếu hoặc hết hạn một loại giấy tờ. Chọn từng loại giấy; Kiểm định và Bảo hiểm trách nhiệm dân sự chỉ Toàn quyền cho được. Quản trị bắt buộc chọn lý do, Toàn quyền không bắt buộc; chọn «Khác» thì phải ghi chú. Cho phép chỉ dùng một lần cho chuyến này và xe này; đổi xe thì không áp cho xe mới. Chuyến có nhãn vàng «Xe thiếu … — đã cho chạy»; tài xế được giao nhận tin báo. Giấy tờ của tài xế (bằng lái) vẫn chặn như cũ.",
+    hoiLai: "có hộp (chọn loại giấy, lý do, ghi chú)",
+    hoanTac: "chưa có nút gỡ cho phép (ghi nợ ADR-0184); cho phép hết tác dụng khi xe đã chạy; đổi sang xe khác thì cho phép không áp cho xe mới, đổi về xe cũ trước giờ chạy thì cho phép áp lại",
+    duongLenh: ["/api/van-chuyen/chuyen/:x/cho-chay-thieu-giay"],
+    maNhatKy: ["trip_departure_waived"],
+    noiDat: [
+      { tep: "web/chuyen.ts", chu: "Cho chạy dù thiếu giấy tờ" },
+    ],
+    trangThai: "da-chot",
+    nguonTen: "chủ chọn tên nút 2026-11-07 (chat, ADR-0184)",
+  },
+  {
     nhom: "Sửa kết quả đón / trả khách",
     manHinh: "Chi tiết chuyến (xe đang chạy) › cạnh tên khách đã có kết quả › hộp «Điều chỉnh kết quả»",
     ten: "Điều chỉnh…",
@@ -3916,7 +3946,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Đồng bộ danh mục từ Google Sheet",
-    manHinh: "Dịch vụ & giá (đầu trang) · hộp hỏi của trình duyệt khi Sheet làm ẩn nhiều dịch vụ",
+    manHinh: "Dịch vụ & giá (đầu trang; cả màn của Quản lý bán hàng — ADR-0186) · hộp hỏi của trình duyệt khi Sheet làm ẩn nhiều dịch vụ",
     ten: "Đồng bộ ngay từ Google Sheet",
     thatSuLam: "Đọc ngay Google Sheet (việc mà máy cũng tự làm mỗi 15 phút). Dịch vụ mới được thêm; dịch vụ đã có và không bị ghi đè giá thì lấy luôn giá, tên, đơn vị mới của Sheet; dịch vụ không còn trong Sheet thì bị đánh dấu «Không còn trong Sheet» và người lập đơn không thấy nữa. Giá đã ghi đè không bao giờ bị đè (ghi đè nằm ở bảng riêng); đơn đã lập giữ giá lúc lập.",
     hoiLai: "không (chỉ có hộp hỏi của trình duyệt khi máy chủ báo sắp ẩn quá nhiều)",
@@ -3925,7 +3955,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     maNhatKy: ["catalog_synced"],
     noiDat: [
       { tep: "public/catalog.html", chu: "Đồng bộ ngay từ Google Sheet" },
-      { tep: "web/catalog.ts", chu: "‹…› Chỉ tiếp tục nếu bạn chắc chắn Sheet đúng. Vẫn đồng bộ và ẩn các dịch vụ đó?" },
+      { tep: "web/catalog-kiem-ve.ts", chu: "Đồng bộ ngay từ Google Sheet" },
+      { tep: "web/catalog-kiem-ve.ts", chu: "‹…› Chỉ tiếp tục nếu bạn chắc chắn Sheet đúng. Vẫn đồng bộ và ẩn các dịch vụ đó?" },
     ],
     trangThai: "da-chot",
     nguonTen: "chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)",
@@ -4951,7 +4982,7 @@ export const BO_QUA: readonly MucBoQua[] = [
   { tep: "web/hoa-hong-tra-nhanh.ts", chu: "Bỏ chọn", lyDo: "«Bỏ chọn» của ô tra nhanh, chỉ xoá lựa chọn trên màn" },
   { tep: "web/hoa-hong-tra-nhanh.ts", chu: "Đóng", lyDo: "nút «Đóng» hộp tra nhanh" },
   { tep: "web/so-dai-ly-ui.ts", chu: "Bỏ chọn", lyDo: "«Bỏ chọn» của ô chọn dịch vụ" },
-  { tep: "web/so-cong-no.ts", chu: "‹…› (‹…›)", lyDo: "dòng lọc của Sổ công nợ, chỉ đọc" },
+  { tep: "web/so-cong-no.ts", chu: "‹…› (‹…›)", lyDo: "dòng lọc của Sổ công nợ, chỉ đọc (gồm chip «Cần người thứ hai soát (n)» — ADR-0187 Đ3 mức (a))" },
   { tep: "web/so-cong-no.ts", chu: "‹ Danh sách", lyDo: "«‹ Danh sách» của Sổ công nợ, chỉ quay lại" },
   { tep: "web/hoa-hong-lich-su.ts", chu: "⟪nhanNutLichSu(ds.length, false)⟫", lyDo: "«Xem lịch sử (n)» mở danh sách, chỉ đọc" },
   { tep: "web/hoa-hong-tra-nhanh.ts", chu: "Xem mức này ↓", lyDo: "«Xem mức này ↓» chỉ cuộn tới dòng trên trang, không ghi" },

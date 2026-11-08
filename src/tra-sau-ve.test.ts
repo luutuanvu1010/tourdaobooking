@@ -26,7 +26,6 @@ async function nhapKho(w: any, soVe: number) {
 function dung() {
   const w = setup();
   seedStaff(w.sqlite, { id: DT, phone: "0900000031", name: "Đối Tác Hưởng", perms: ["PARTNER"] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT}`, BEN, AT, AT);
   return w;
 }
 /** Đơn Trả sau đã xác nhận: 2 người lớn ZA1 (777.000 × 2 = 1.554.000), bên đặt BEN, hạn mức đủ rộng. */

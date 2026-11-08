@@ -12,7 +12,7 @@ import { canhBaoDoiNhom } from "../src/shared/dac-diem-hien-thi";
 import { CAU_HOI_BO_GHI_DE_GIA } from "../src/shared/catalog-nut";
 import { caNhomCanKiem, kiemVeCua } from "../src/shared/dich-vu-kiem-ve";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
-import { taoKiemVe, veManHep } from "./catalog-kiem-ve";
+import { dongBoTuSheet, taoKiemVe, veManHep } from "./catalog-kiem-ve";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -855,26 +855,8 @@ async function load(): Promise<void> {
   render();
 }
 
-async function pull(force: boolean): Promise<void> {
-  pullBtn.disabled = true;
-  noticeEl.hidden = true;
-  showError(errorEl, null);
-  try {
-    const r = await api<Api.CatalogSyncResponse>("/api/catalog/sync", { method: "POST", body: { force } });
-    noticeEl.textContent = `Đã đồng bộ xong: thêm ${r.added}, đổi ${r.changed}, ẩn ${r.hidden}, giữ nguyên ${r.unchanged}.${r.problems.length ? ` ${r.problems.length} dòng bị bỏ qua.` : ""}${r.warnings.length ? ` Cảnh báo: ${r.warnings.map((w) => w.message).join("; ")}.` : ""}`;
-    noticeEl.hidden = false;
-  } catch (err) {
-    if (err instanceof ApiError && err.code === "sync_guard" && confirm(`${err.message}\n\nChỉ tiếp tục nếu bạn chắc chắn Sheet đúng. Vẫn đồng bộ và ẩn các dịch vụ đó?`)) {
-      pullBtn.disabled = false;
-      return pull(true);
-    }
-    fail(err);
-  }
-  pullBtn.disabled = false;
-  await load();
-}
-
-pullBtn.addEventListener("click", () => void pull(false));
+// ADR-0186 Đ5: cùng một hàm với nút ở màn hẹp của Quản lý bán hàng.
+pullBtn.addEventListener("click", () => void dongBoTuSheet({ nut: pullBtn, thongBaoEl: noticeEl, errorEl, sauKhi: load }));
 qEl.addEventListener("input", render);
 filterEl.addEventListener("change", render);
 
@@ -882,9 +864,10 @@ const staff = await initShell();
 if (!can(staff, "admin.manage")) {
   // ADR-0169 Đ4: Quản lý bán hàng dùng màn hẹp; còn lại máy chủ từ chối, trang báo lỗi.
   byId("man-du").hidden = true;
-  if (dungManHepDichVu(staff)) await veManHep(byId("man-hep"), errorEl);
+  if (dungManHepDichVu(staff)) await veManHep(byId("man-hep"), errorEl, can(staff, "catalog.sync") ? noticeEl : null);
   else showError(errorEl, "Tài khoản này không vào được trang này.");
 } else {
+  pullBtn.hidden = !can(staff, "catalog.sync");
   await kiemVe.tai().catch((err) => fail(err));
   renderTuKiem();
   duocSuaDuaDon = can(staff, "admin.manage");

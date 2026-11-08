@@ -17,6 +17,48 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0185 (chủ duyệt 8/11: Đ1 a, Đ2 a, Đ3): chặn đơn của tài khoản Đối tác chưa gán vai trò (T-01). Migration 0149. Ngày đặt lại ở bước A.0 của lần triển khai; đổi số 2.77 → 2.78 khi gộp ADR-0184 (nhập và triển khai trước, giữ 2.77), rồi 2.78 → 2.79 khi gộp ADR-0186 (nhập trước theo phiên điều phối, giữ 2.78).
+    version: "2.79",
+    date: "2026-11-08",
+    items: [
+      { kind: "doi", text: "Tài khoản Đối tác chưa được gán vai trò đối tác vẫn lập và lưu nháp được, nhưng chưa Gửi đơn được; trang lập đơn có dải vàng báo trước." },
+      { kind: "doi", text: "Tài khoản Đối tác, Tài xế đối tác chỉ tạo được bằng cách chọn vai trò ở màn Quản lý tài khoản, không qua khối «Quyền cũ»." },
+    ],
+  },
+  {
+    // ADR-0186 (chủ duyệt 8/11, đóng HC-5.11): ba việc định giờ chạy dưới tác nhân có định danh riêng; Quản lý bán hàng được đồng bộ danh mục. Migration 0148.
+    // Bước A.0 ngày 8/11 trên nhánh claude/pensive-keller-274010. SỐ TẠM: 2.76 (ADR-0187 Đ3) và 2.77 (ADR-0184) đã lên production trước nên đổi 2.76 → 2.77 → 2.78
+    // theo hai lần nhập đó; bản sửa ADR-0185 nhập sau lấy 2.79 (phiên điều phối 8/11). Nhánh khác nhập trước mà cũng lấy 2.78 thì phiên phát hành đánh lại số.
+    version: "2.78",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Quản lý bán hàng có nút «Đồng bộ ngay từ Google Sheet» ở màn Dịch vụ & giá để lấy giá mới ngay, không phải nhờ Quản trị. Nền tảng vẫn tự đồng bộ mỗi 15 phút.", bai: { id: "quan-ly-ban-hang/lay-bang-gia-moi-tu-google-sheet", ten: "Lấy bảng giá mới từ Google Sheet" } },
+      { kind: "doi", text: "Toàn quyền thấy thêm dòng «Xoá ảnh vé hết hạn lưu» ở trang Nhật ký mỗi lần Nền tảng tự xoá ảnh vé của lô đã huỷ khi quá hạn lưu; dòng chỉ ghi số ảnh." },
+    ],
+  },
+  {
+    // ADR-0184 (chủ duyệt 7/11, chọn chữ 7–8/11): cho chạy dù thiếu giấy tờ xe, kèm nhãn vàng. Migration 0147. Bước A.0 ngày 8/11; đổi số 2.76 → 2.77 khi gộp ADR-0187 (nhập trước, giữ 2.76).
+    version: "2.77",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Quản trị và Toàn quyền nay cho chạy được một lần chuyến có xe thiếu hoặc hết hạn giấy tờ: bấm «Cho chạy dù thiếu giấy tờ» ở chi tiết chuyến." },
+      { kind: "moi", text: "Riêng Kiểm định và Bảo hiểm thì chỉ Toàn quyền cho chạy được. Mỗi lần cho phép chỉ dùng cho đúng chuyến và đúng xe đó." },
+      { kind: "moi", text: "Chuyến được cho chạy mang nhãn vàng «Xe thiếu … — đã cho chạy» ở chi tiết chuyến, Điều phối xe và cuốc của tài xế; tài xế nhận tin báo." },
+      { kind: "moi", text: "Văn phòng xem được lý do và ghi chú của lần cho chạy ngay dưới nhãn vàng ở chi tiết chuyến." },
+      { kind: "moi", text: "Trang chủ của Quản trị và Toàn quyền có thẻ «Xe thiếu giấy tờ — đã cho chạy», đếm số chuyến hôm nay chưa kết thúc đã được cho chạy dù thiếu giấy tờ." },
+      { kind: "doi", text: "Xe thiếu Kiểm định hoặc Bảo hiểm thì dòng «Ai xử lý» ghi «Quản trị, Toàn quyền»." },
+    ],
+  },
+  {
+    // ADR-0187 Đ3 mức (a) (chủ duyệt 8/11 «Duyệt, mức a»): tách nhiệm vụ — đánh dấu, không chặn. Migration 0150. Ngày đặt lại ở bước A.0 của lần triển khai.
+    version: "2.76",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Người vừa lập đơn vừa ghi tiền cho đơn đó vẫn ghi được, nhưng dòng tiền mang dấu «Tự ghi đơn mình lập» để người thứ hai soát." },
+      { kind: "moi", text: "Sổ công nợ có bộ lọc «Cần người thứ hai soát»; Kế toán khác hoặc Toàn quyền bấm «Đã soát». Trang chủ của người soát được có thẻ số dòng chưa soát." },
+    ],
+  },
+  {
     // Chủ dự án 8/11: «Xem như vai trò khác» chuyển từ trang Tôi vào menu tên tài khoản. Không migration.
     version: "2.75",
     date: "2026-11-08",

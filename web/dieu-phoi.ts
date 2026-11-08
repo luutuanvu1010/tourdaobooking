@@ -25,6 +25,7 @@ import {
   type HangXe, type KhoiChuyen, type ViecCanXuLy,
 } from "../src/shared/dieu-phoi-man";
 import type { BanTaiXeResponse, ChangLichDto, ChuyenChiTietResponse, ChuyenTomTatDto, CapNhatDiemResponse, CapNhatKhachResponse, GoiBaoChangDto, LichChungResponse, NhacGoiKhachResponse, TaiXeChonDto } from "../src/shared/contracts";
+import { nhanChoChayThieu } from "../src/shared/cho-chay-thieu-giay";
 import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach } from "../src/shared/ly-do-giu";
 import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
 import { ApiError } from "./api";
@@ -56,7 +57,7 @@ const nutMoi = byId<HTMLAnchorElement>("dp-moi");
 
 const staff = await initShell();
 // ADR-0104 Đ1 mục 9: khoá theo mốc chỉ hỏi ô điều chỉnh khẩn cấp (vượt mốc luôn thuộc lớp này); lớp phá lệ do 409 `lop` quyết.
-const co = { dieuPhoi: can(staff, "trip.dispatch"), khanCap: can(staff, "trip.urgent_adjust"), quanLyXe: can(staff, "vehicle.manage") };
+const co = { dieuPhoi: can(staff, "trip.dispatch"), khanCap: can(staff, "trip.urgent_adjust"), quanLyXe: can(staff, "vehicle.manage"), choChayThieu: can(staff, "trip.override") };
 const homNay = vnToday(new Date());
 const tu = new URLSearchParams(location.search).get("ngay");
 let ngay = tu && isISODate(tu) ? tu : homNay;
@@ -393,8 +394,8 @@ function khoi(k: KhoiChuyen): HTMLElement {
   const muc = c.trangThai === "PLANNED" || c.trangThai === "RUNNING" ? mucTai(c.tai, c.xe.soCho) : null;
   const el = h(
     "button",
-    { type: "button", class: `dp-khoi is-${k.kieu}${muc ? ` ${lopTai(muc)}` : ""}${chon === k.id ? " is-chon" : ""}`, "data-chuyen": k.id, "aria-pressed": String(chon === k.id), "aria-label": `${k.ma}, ${k.gio}, ${k.nhan}, tải ${k.tai}${muc ? ` (${NHAN_MUC_TAI[muc].toLowerCase()})` : ""}${k.khoa ? ", đang khoá" : ""}`, title: `${k.ma} · ${k.gio} · ${k.tai}${muc ? ` · ${NHAN_MUC_TAI[muc]}` : ""}` },
-    h("span", { class: "dp-khoi-t" }, h("span", { class: "dp-khoi-ma" }, k.maNgan, k.khoa ? icon("lock", 10) : null), h("span", { class: "dp-khoi-tai" }, k.tai)),
+    { type: "button", class: `dp-khoi is-${k.kieu}${muc ? ` ${lopTai(muc)}` : ""}${chon === k.id ? " is-chon" : ""}`, "data-chuyen": k.id, "aria-pressed": String(chon === k.id), "aria-label": `${k.ma}, ${k.gio}, ${k.nhan}, tải ${k.tai}${muc ? ` (${NHAN_MUC_TAI[muc].toLowerCase()})` : ""}${k.khoa ? ", đang khoá" : ""}${k.choChayThieu ? ", " + nhanChoChayThieu(c.choChayThieu.map((x) => x.ten)) : ""}`, title: `${k.ma} · ${k.gio} · ${k.tai}${muc ? ` · ${NHAN_MUC_TAI[muc]}` : ""}` },
+    h("span", { class: "dp-khoi-t" }, h("span", { class: "dp-khoi-ma" }, k.maNgan, k.khoa ? icon("lock", 10) : null, k.choChayThieu ? icon("alert", 10, 2) : null), h("span", { class: "dp-khoi-tai" }, k.tai)),
     h("span", { class: "dp-khoi-diem", "aria-hidden": "true" }, ...k.diem.map((d) => h("span", { class: d === "PICKUP" ? "dp-dot is-don" : "dp-dot is-tra" }))),
     muc ? h("span", { class: "dp-khoi-bar", "aria-hidden": "true" }) : null,
   );
@@ -444,7 +445,7 @@ function theChon(): HTMLElement | null {
   return h(
     "section",
     { class: "vc-card dp-chon", "aria-label": `Chuyến đang chọn ${c.ma}` },
-    h("div", { class: "dp-chon-head" }, h("span", { class: "dp-chon-ma" }, c.ma), chip(k.nhan, TONE_KIEU[k.kieu]), c.khanCap ? chip(NHAN_KHAN_CAP, "warn") : null, muc === "GAN_DAY" || muc === "DAY" ? chip(NHAN_MUC_TAI[muc], "warn") : muc === "VUOT" ? chip(NHAN_MUC_TAI[muc], "danger") : null, h("span", { class: "dp-chon-tag" }, "Đang chọn")),
+    h("div", { class: "dp-chon-head" }, h("span", { class: "dp-chon-ma" }, c.ma), chip(k.nhan, TONE_KIEU[k.kieu]), c.khanCap ? chip(NHAN_KHAN_CAP, "warn") : null, c.choChayThieu.length ? chip(nhanChoChayThieu(c.choChayThieu.map((x) => x.ten)), "warn") : null, muc === "GAN_DAY" || muc === "DAY" ? chip(NHAN_MUC_TAI[muc], "warn") : muc === "VUOT" ? chip(NHAN_MUC_TAI[muc], "danger") : null, h("span", { class: "dp-chon-tag" }, "Đang chọn")),
     h("div", { class: "dp-chon-line" }, `${c.xe.bienSo} · ${c.xe.soCho} chỗ · ${c.taiXe?.ten ?? "Chưa có tài xế"} · `, gioChuyen(c), " · tải ", h("strong", null, `${c.tai}/${c.xe.soCho}`)),
     tuyen.length ? h("div", { class: "dp-route" }, ...tuyen) : null,
     c.trangThai === "PLANNED" && c.lyDoGiu.length ? h("div", { class: "dp-chon-giu" }, c.lyDoGiu.map((x) => x.loiNhan).join("; ")) : null,

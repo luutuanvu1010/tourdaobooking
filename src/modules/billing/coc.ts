@@ -285,7 +285,7 @@ export async function ghiChiHoan(db: D1Database, input: { orderId: string; raw: 
   const dong = sinhDongHoanKhach({ nguoiTraPartyId: tra.value, congTyId: d.congTyId, so: so.value });
   if (dong.length > 0) {
     const postingId = crypto.randomUUID();
-    stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REFUND", orderId: input.orderId, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, receiptId));
+    stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REFUND", orderId: input.orderId, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId, ghiTien: input.ai.ghiTien }, receiptId));
     for (const x of dong) stmts.push(lineIfPostingStatement(db, lineOf(x, postingId, input.orderId, receiptId, at, input.ai.staffId)));
   }
   const lo = await chayLo(db, stmts, [ngay.value]);
@@ -343,13 +343,13 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
   const ra = sinhDongHoanKhach({ nguoiTraPartyId: giu.value, congTyId: d.congTyId, so: so.value });
   if (ra.length > 0) {
     const p = crypto.randomUUID();
-    stmts.push(postingIfReceiptStatement(db, { id: p, kind: "REFUND", orderId: input.orderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, raId));
+    stmts.push(postingIfReceiptStatement(db, { id: p, kind: "REFUND", orderId: input.orderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId, ghiTien: input.ai.ghiTien }, raId));
     for (const x of ra) stmts.push(lineIfPostingStatement(db, lineOf(x, p, input.orderId, raId, at, input.ai.staffId)));
   }
   const vao = sinhDongLanThu({ kind: "CUSTOMER_PAYMENT", amount: so.value, collectorRole: role, collectorPartyId: giu.value, nguoiGhiPartyId: input.ai.partyId ?? d.congTyId, nguoiGhiLaKeToan: true, congTyId: d.congTyId });
   if (vao.length > 0) {
     const p = crypto.randomUUID();
-    stmts.push(postingIfReceiptStatement(db, { id: p, kind: "RECEIPT", orderId: goc.targetOrderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, vaoId));
+    stmts.push(postingIfReceiptStatement(db, { id: p, kind: "RECEIPT", orderId: goc.targetOrderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId, ghiTien: input.ai.ghiTien }, vaoId));
     for (const x of vao) stmts.push(lineIfPostingStatement(db, lineOf(x, p, goc.targetOrderId, vaoId, at, input.ai.staffId)));
   }
   // ADR-0168 Đ2 mục 4 (kế hoạch 2026-11-05 Task 2, nợ 1): đơn NHẬN là Trả sau ⇒ tăng phiên bản bên đặt của nó trong cùng lô (lệnh xác nhận / sửa tăng đang chờ thua).

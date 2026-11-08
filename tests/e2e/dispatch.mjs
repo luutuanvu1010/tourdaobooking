@@ -6,7 +6,7 @@
 // (tự nhiên, không cần SQL); mục nào cần đơn ĐÃ có người thì Nhận/Giao tường minh ngay sau khi lập. Hướng dẫn viên (ADR-0030 lượt 1): nhận đơn chờ nhận,
 // đua hai HDV, hàng chờ phần hẹp, tách ba đường xem đơn — mục 15 cuối tệp.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, login, makeLegacyManual, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, login, makeLegacyManual, orderInput, randomPhone, session, sql, sqlRows, thanQuyenTaiKhoan, vnDate } from "./lib.mjs";
 
 // Chạy SAU catalog.mjs (lần đồng bộ Sheet thật đặt in_sheet = 0 cho mã giả) → phải bật lại danh mục giả ZE* mà orderInput() mặc định dùng.
 await ensureFakeCatalog();
@@ -22,7 +22,7 @@ const [a, b, adm, acc, fld] = [await me(A), await me(B), await me(ADMIN), await 
 // Tài khoản dùng một lần: C (SALES, không liên quan tới các đơn), D (SALES nhưng đã ngưng hoạt động), P (CHỈ Đối tác — PARTNER, ADR-0014).
 async function makeStaff(name, active = true, permissions = ["SALES"]) {
   const phone = randomPhone();
-  const r = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, permissions });
+  const r = await call(SUPER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, ...thanQuyenTaiKhoan(permissions) }); // ADR-0185: Đối tác thuần tạo qua vai
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const cookie = (await login(phone, r.body.pin)).cookie;
   if (!active) assert.equal((await call(ADMIN, "PATCH", `/api/staff/${r.body.staff.id}`, { active: false })).status, 200);

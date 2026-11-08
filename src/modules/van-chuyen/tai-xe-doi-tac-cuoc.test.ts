@@ -143,3 +143,24 @@ test("A4 CAO-1 (phiếu kiểm độc lập 12/10): thân 409 của Xuất bến
     tat();
   }
 });
+
+test("Q (ADR-0184, đợt sửa 1): tài xế đối tác thấy nhãn vàng ở danh sách và chi tiết cuốc — chỉ tên loại giấy; không số giấy, không ghi chú, không lý do, không khoá mới của văn phòng", async () => {
+  const tat = batDongHo();
+  try {
+    const { w, xe1 } = theGioi();
+    const a = await chuyenSan(w, { taiXe: DRIVER_PARTNER, xe: xe1 });
+    w.sqlite.prepare("INSERT INTO vc_departure_rule (id, min_capacity, subject, vehicle_document_type_code, valid_from_at, created_at, updated_at) VALUES (?, 1, 'VEHICLE', 'REGISTRATION', ?, ?, ?)").run(uuid(), AT, AT, AT); // xe thiếu Đăng ký xe
+    w.sqlite.prepare(`INSERT INTO vc_trip_departure_waiver (id, trip_id, cmd_id, vehicle_id, document_type_code, expiry_date, reason_code, note, created_at, created_by, updated_at, updated_by)
+      VALUES (?, ?, ?, ?, 'REGISTRATION', NULL, 'THIEU_GIAY_GIA_HAN', 'GHICHUDAUHIEU-chờ-cấp-lại', ?, ?, ?, ?)`).run(uuid(), a.id, uuid(), xe1, AT, SUP, AT, SUP);
+    denGio("12:40");
+    const ds = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi?tu=${NGAY}&den=${NGAY}`, { as: DRIVER_PARTNER });
+    assert.equal(ds.status, 200, ds.text);
+    assert.deepEqual(ds.json.chuyen.find((c: any) => c.id === a.id).choChayThieu, [{ ten: "Đăng ký xe" }], "danh sách cuốc");
+    const ct = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: DRIVER_PARTNER });
+    assert.equal(ct.status, 200, ct.text);
+    assert.deepEqual(ct.json.choChayThieu, [{ ten: "Đăng ký xe" }], "chi tiết cuốc");
+    for (const x of [ds, ct]) assert.doesNotMatch(x.text, /GHICHUDAUHIEU|Giấy đang gia hạn|choChayThieuChiTiet|document_number|soGiay/, "không ghi chú, lý do, khoá văn phòng, số giấy");
+  } finally {
+    tat();
+  }
+});

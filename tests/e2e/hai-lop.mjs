@@ -7,7 +7,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { insertStaffSql } from "../../scripts/staff-lib.mjs";
 import { createFakeAuthenticator } from "./fake-authenticator.mjs";
 import { base32Encode, maHoaKhoa, totp } from "./fake-totp.mjs";
-import { ACCOUNTS, BASE, TURNSTILE_TEST, call, datHanAnHan, freshIp, gieoTaiKhoanLai, randomPhone, session, sql, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, BASE, TURNSTILE_TEST, call, datHanAnHan, freshIp, gieoTaiKhoanLai, randomPhone, session, sql, sqlRows, thanQuyenTaiKhoan } from "./lib.mjs";
 
 const KHOA = process.env.E2E_MFA_KEY;
 if (!KHOA) throw new Error("Thiếu E2E_MFA_KEY (run.mjs truyền cùng giá trị --var MFA_ENCRYPTION_KEY cho wrangler dev)");
@@ -357,7 +357,7 @@ console.log("✓ T6. hết ân hạn mà chưa bật → 403 mfa_setup_required"
 
 const taoMoi = async (permissions) => {
   const phone = randomPhone();
-  const t = await call(TQ, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Tạo Mới Hai Lớp", phone, permissions });
+  const t = await call(TQ, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Tạo Mới Hai Lớp", phone, ...thanQuyenTaiKhoan(permissions) }); // ADR-0185: Đối tác thuần tạo qua vai
   assert.equal(t.status, 201, JSON.stringify(t.body));
   return (await sqlRows(`SELECT mfa_grace_until FROM staff WHERE phone = '${phone}'`))[0].mfa_grace_until;
 };
@@ -366,7 +366,8 @@ assert.ok(Math.abs(Date.parse(hanMoi) - (Date.now() + 14 * 86_400_000)) < 120_00
 assert.equal(await taoMoi(["PARTNER"]), null, "Đối tác mới: không ân hạn (không bắt buộc)");
 console.log("✓ T6. tạo tài khoản nội bộ mới → ân hạn ≈ 14 ngày; Đối tác mới → NULL");
 
-const E = await gieoTaiKhoanLai("Đối Tác Thành Nội Bộ", ["PARTNER"]);
+// ADR-0185: đường quyền cũ (PUT …/permissions) chỉ cho tài khoản chưa gán vai — Đối tác ở đây là kiểu cũ (hồ sơ không vai trò đối tác), như trước ADR-0185.
+const E = await gieoTaiKhoanLai("Đối Tác Thành Nội Bộ", ["PARTNER"], { kieuCu: true });
 r = await call(TQ, "PUT", `/api/staff/${E.id}/permissions`, { permissions: ["SALES"] });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 const hanE = (await sqlRows(`SELECT mfa_grace_until FROM staff WHERE id = '${E.id}'`))[0].mfa_grace_until;

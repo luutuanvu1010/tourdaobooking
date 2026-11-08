@@ -268,6 +268,20 @@ export const CHECKS = [
        AND EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code <> 'DRIVER_PARTNER')`,
     level: "fail",
   },
+  // LC-1c (ADR-0185 Đ2 (a) mục 3, Đ3 mục 3 — chủ duyệt 2026-11-08; phát hiện T-01): tài khoản Đối tác mà hồ sơ không mang vai trò đối tác thì máy chủ không ép được
+  // bên đặt ⇒ hoa hồng «không người hưởng» im lặng. CÙNG điều kiện với trigger lc1c_stf_permission_partner_needs_role (migration 0149 — chỉ canh INSERT) và câu
+  // đọc của chủ (scripts/cau-doc-doi-tac-thieu-vai-tro.mjs); đọc qua view công bố của parties như trigger. Bài đối chiếu ba nơi theo hành vi ở
+  // src/audit-invariants.test.ts (H4). Lưới cho dữ liệu cũ, vai trò bị đóng về sau, SQL gõ tay. Đếm TÀI KHOẢN. Ca lọt có ghi (kế hoạch K5): hồ sơ chỉ mang vai
+  // Tài xế đối tác. Chỉ phát hành SAU khi chủ soát xong tài khoản kiểu cũ trên bản thật (Đ3 mục 1) — còn tài khoản đó thì kiểm này đỏ ở bước kiểm sau triển khai.
+  {
+    code: "R-LC-1c",
+    what: "tài khoản đang hoạt động giữ quyền Đối tác có hồ sơ mang vai trò đối tác (vai nhóm bên ngoài hoặc vai trò do Kế toán thêm)",
+    sql: `SELECT count(DISTINCT s.id) FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.permission_type_code = 'PARTNER' AND p.valid_to_at IS NULL
+     WHERE s.active = 1
+       AND NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id = s.party_id AND g.role_group = 'EXTERNAL')
+       AND NOT EXISTS (SELECT 1 FROM v_pty_party_partner_label l WHERE l.party_id = s.party_id)`,
+    level: "fail",
+  },
   {
     code: "R-LC-3",
     what: "một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài đang mở",
@@ -1181,7 +1195,7 @@ export const CHECKS = [
           WHERE v.status <> 'retired' AND NOT EXISTS (
             SELECT 1 FROM vc_vehicle_document d WHERE d.vehicle_id = v.id AND d.document_type_code = r.vehicle_document_type_code AND ${HIEN_HANH_GIAY_TO_XE})`,
     level: "warn",
-    note: "cảnh báo: xe này sẽ bị giữ ở cổng xuất bến — Quản trị thêm giấy tờ còn thiếu",
+    note: "cảnh báo: xe này bị giữ ở cổng xuất bến, trừ khi Quản trị / Toàn quyền cho chạy dù thiếu giấy tờ — Quản trị thêm giấy tờ còn thiếu",
   },
   {
     code: "R-VC-15",
@@ -1544,6 +1558,26 @@ export const CHECKS = [
             AND (f.status <> 'RUNNING' OR t.status NOT IN ('PLANNED', 'RUNNING')
               OR (r.scope = 'STOP' AND (SELECT s.status FROM vc_trip_stop s WHERE s.id = r.from_stop_id) IS NOT 'PENDING'))`,
     level: "fail",
+  },
+
+  // R-VC-36 (ADR-0184; kế hoạch gọi là R-VC-17 nhưng R-VC-17 đã là kiểm mốc giờ hẹn ADR-0051 nên lấy số trống kế tiếp): lưới thứ hai cho trigger 0147.
+  // (a) bản chụp ĐẠT có dòng con DIEU_KIEN mà không trỏ dòng cho phép khớp chuyến + xe (của bản chụp) + loại giấy, hoặc điều kiện không phải điều kiện của XE;
+  // (b) dòng cho phép Kiểm định / Bảo hiểm, hoặc dòng không có lý do, mà người ghi không có trong v_stf_toan_quyen (hôm nay: quyền hiện tại — ai đã mất Toàn quyền
+  // sau đó cũng bị báo; chỉ đọc, mức warn). Câu mới ở bảng của 0147: trên D1 chưa áp 0147 thì "no such table" → script thoát mã 2.
+  {
+    code: "R-VC-36",
+    what: "xuất bến thiếu giấy tờ không có dòng cho phép khớp, hoặc dòng cho phép Kiểm định / Bảo hiểm / không lý do do người không phải Toàn quyền ghi",
+    sql: `SELECT (SELECT count(*) FROM vc_trip_departure_check_item i JOIN vc_trip_departure_check c ON c.id = i.check_id
+                  WHERE i.item_kind = 'DIEU_KIEN' AND c.ket_qua = 'DAT' AND NOT EXISTS (
+                    SELECT 1 FROM vc_trip_departure_waiver w JOIN vc_departure_rule r ON r.id = i.rule_id
+                     WHERE w.id = i.waiver_id AND w.trip_id = c.trip_id AND w.vehicle_id = c.vehicle_id
+                       AND w.document_type_code = i.document_type_code AND r.subject = 'VEHICLE'
+                       AND r.vehicle_document_type_code = i.document_type_code))
+          + (SELECT count(*) FROM vc_trip_departure_waiver w
+                  WHERE (w.document_type_code IN ('INSPECTION', 'TPL_INSURANCE') OR w.reason_code IS NULL)
+                    AND NOT EXISTS (SELECT 1 FROM v_stf_toan_quyen q WHERE q.staff_id = w.created_by))`,
+    level: "warn",
+    note: "cảnh báo: có chuyến xuất bến thiếu giấy tờ mà dòng cho phép không khớp, hoặc dòng cho phép vượt quyền Quản trị — xem nhật ký chuyến (ADR-0184)",
   },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----

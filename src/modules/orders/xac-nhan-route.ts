@@ -22,12 +22,12 @@ import { CAU_BAO_GUI_DON } from "../../shared/gui-don-cau-bao";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
 import { canhBaoMocCua, type XetDatGapSua } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
-import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
+import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, nguoiLapGiuDoiTac, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, type DauDatGapMoi } from "./chang-hanh-khach-repo";
 import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { congHuyTraSau, VE_CHUA_SOAN_DUOC } from "./tra-sau-cong";
 import { CAU_VUOT_TONG_NGUOI_XET } from "../../shared/dat-coc-truoc";
-import { MOC_CHUA_CO, RACED, STALE, canChotGioCuaNguoiLap, chanDoanXacNhan, chayLoNoiChuyen, cocChoXacNhan, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, tinhCanXacNhan, viCuaYeuCau } from "./xac-nhan-chung";
+import { MOC_CHUA_CO, RACED, STALE, canChotGioCuaNguoiLap, chanDoanXacNhan, chayLoNoiChuyen, cocChoXacNhan, congDoiTacChuaCoVaiTro, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, nguoiLapLaNguoiBam, tinhCanXacNhan, viCuaYeuCau, type NguoiLapDoiTac } from "./xac-nhan-chung";
 import { confirmGaps, confirmWindow } from "./service-rules";
 import { congLuatBan } from "./cong-ban";
 
@@ -211,7 +211,8 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     const gio = await docKhungGio(banHang); // ADR-0142: khung giờ hành chính MỘT lần mỗi request
     if ("loi" in gio) return gio.loi;
     const nowMs = Date.now();
-    const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc, traSau: { kiemTraSau, cauGacPhienBanTraSau } });
+    // ADR-0185 Đ1: người bấm là người lập — `nguoiLapLaNguoiBam` xét bộ quyền hiệu lực của phiên; cổng vai trò đứng TRƯỚC phân nhánh nên chặn cả nhánh A (không mở yêu cầu) lẫn nhánh B.
+    const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc, nguoiLapDoiTac: nguoiLapLaNguoiBam(staff), traSau: { kiemTraSau, cauGacPhienBanTraSau } });
     if ("loi" in cong) return cong.loi;
     // ADR-0159: cổng lời khai đứng TRƯỚC phân nhánh — lời khai sai không vào hàng chờ của người xét. Nhánh A bỏ câu dựng ra (Còn vé dựng lại); nhánh B ghi trong lô xác nhận bên dưới.
     const cocXn = await cocChoXacNhan(cauCocKhiXacNhan, { order, nguoiBamId: staff.id, chup: cong.chup, today: cong.today });
@@ -391,6 +392,11 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     // `kiemCongXacNhan` bên dưới gọi lại — chỉ đọc.)
     const chanBanXd = await congLuatBan(env.DB, { bookerPartyId: order.bookerPartyId, dong: order.services });
     if (chanBanXd) return chanBanXd;
+    // ADR-0185 Đ1 (kế hoạch K2, K3): người LẬP (không phải người bấm) giữ quyền Đối tác theo quyền THẬT (`v_stf_quyen_mo`; vai «xem như» không nằm trong bảng đó) mà đơn ra «không
+    // người hưởng» ⇒ 409 NGAY SAU luật bán — không đẩy người xét đi bỏ lượt, ghi giờ hay đặt gấp cho một đơn không xác nhận được (cùng lý do R-7). `kiemCongXacNhan` gọi lại (lưới).
+    const nguoiLapDoiTac: NguoiLapDoiTac = (await nguoiLapGiuDoiTac(env.DB, meta.staffId)) ? { cua: "xet-duyet" } : null;
+    const vaiTroXd = await congDoiTacChuaCoVaiTro(env.DB, { nguoiLap: nguoiLapDoiTac, order, today: homNay });
+    if ("loi" in vaiTroXd) return vaiTroXd.loi;
     const tatDuaDon = await congNhomTatDuaDon(env.DB, order, "xet-duyet");
     if (tatDuaDon) return tatDuaDon;
     const daDatGap = new Set((await legDatGapByOrder(env.DB, id)).map((r) => r.id));
@@ -424,7 +430,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       return json({ error: { code: "short_notice_required", message: "Có lượt đưa đón mà giờ đón đã qua hạn chốt — cần đặt gấp trước khi xác nhận.", legs: duoi.map((d) => ({ legId: d.legKey, phutConLai: d.phutConLai })) } } satisfies ShortNoticeRequiredBody, 409);
     }
     // Các cổng còn lại (R2 giá, người lớn, nhóm tắt đưa đón, chọn đón, R3 trần) xét theo NGƯỜI BẤM Còn vé — như hôm nay; mốc đã kiểm ở trên.
-    const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc, cuaDuaDon: "xet-duyet", traSau: { kiemTraSau, cauGacPhienBanTraSau } });
+    const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc, cuaDuaDon: "xet-duyet", nguoiLapDoiTac, traSau: { kiemTraSau, cauGacPhienBanTraSau } });
     if ("loi" in cong) return cong.loi;
     // ADR-0159 Đ1 mục 3, 4: người LẬP là người thu dù người xét bấm; người xét không sửa được số khai nên câu vượt tổng nói phải trả đơn. `cong.chup` là bản chụp của CHÍNH lô này.
     const cocXn = await cocChoXacNhan(cauCocKhiXacNhan, { order, nguoiBamId: staff.id, chup: cong.chup, today: cong.today, cauVuot: CAU_VUOT_TONG_NGUOI_XET });

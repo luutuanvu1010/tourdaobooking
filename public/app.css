@@ -928,6 +928,12 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
 .scn-nhom-dau { display: flex; justify-content: space-between; gap: var(--s3); margin: 0 0 var(--s2); padding-bottom: var(--s2); font-size: var(--fs-label); border-bottom: 2px solid var(--c-border); }
 .scn-nhom[data-nhom="dangGiu"] .scn-nhom-dau strong { color: var(--c-primary); }
 .scn-nhom[data-nhom="congTyNo"] .scn-nhom-dau strong { color: var(--c-sand-text); }
+/* ADR-0187 Đ3 mức (a): danh sách «Cần người thứ hai soát» trong Sổ công nợ */
+.scn-soat-dong { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s3) var(--s2); border-bottom: 1px solid var(--c-line); }
+.scn-soat-than { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; overflow-wrap: anywhere; }
+.scn-soat-ma { font-weight: var(--fw-bold); }
+.scn-soat-cho { color: var(--c-sand-text); font-weight: var(--fw-bold); }
+.scn-soat-dong .nut { flex: none; }
 .scn-don { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s1) var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--c-line); }
 .scn-don-ma { font-weight: var(--fw-bold); }
 .scn-don-tien { grid-row: 1; grid-column: 2; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -2898,6 +2904,7 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 .dp-cond-mark { display: flex; flex: none; align-items: center; justify-content: center; width: var(--dp-cond-mark); height: var(--dp-cond-mark); font-size: var(--fs-dp-mark); font-weight: var(--fw-heavy); border-radius: var(--radius-pill); }
 .dp-cond-mark.is-dat { color: var(--c-green-text); background: var(--c-green-soft); }
 .dp-cond-mark.is-chua { color: var(--c-danger-text); background: var(--c-danger-soft); }
+.dp-cond-mark.is-canh-bao { color: var(--c-sand-text); background: var(--c-sand-soft); }
 .dp-cond-mark.is-khong-can { color: var(--c-text-muted); background: none; border: 1px solid var(--c-border); }
 .dp-cond-text { display: flex; flex-direction: column; min-width: 0; }
 .dp-cond-nhan { font-weight: var(--fw-semibold); }
@@ -3037,6 +3044,13 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 .dp-cxl-khoa, .dp-cxl-actions { margin-top: var(--s1); }
 .dp-cxl-btn { font-size: var(--fs-label); }
 .dp-radio-text { display: flex; flex-direction: column; }
+/* ADR-0184: hộp «Cho chạy dù thiếu giấy tờ» — danh sách loại giấy (ô chọn + tên + hạn; «Chỉ Toàn quyền» dồn phải); nhãn vàng ở đầu chuyến xếp icon + chữ cùng dòng. */
+.dp-ccc-ds { display: flex; flex-direction: column; }
+.dp-ccc-hang .chip { margin-left: auto; }
+.dp-ct-cho-chay { display: flex; flex-direction: column; gap: var(--s2); margin-bottom: var(--s3); font-size: var(--fs-label); color: var(--c-text-muted); }
+.dp-ct-cho-chay-ten { font-weight: var(--fw-semibold); }
+.dp-ct-cho-chay-ghi-chu { overflow-wrap: anywhere; white-space: pre-wrap; }
+.chip.dp-chip-warn[data-khoi="cho-chay-thieu"] { display: inline-flex; align-items: center; gap: var(--s1); white-space: normal; }
 .dp-radio-sub { font-size: var(--fs-badge); font-weight: var(--fw-semibold); color: var(--c-sand-text); }
 .dp-sheet-xep .vc-reason { min-height: var(--h-dp-row); }
 @media (max-width: 640px) {

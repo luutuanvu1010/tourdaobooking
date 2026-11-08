@@ -1,7 +1,7 @@
 // Bản đồ quyền ADR-0007 trên route thật: FIELD chỉ thấy đơn mình phụ trách + hàng chờ nhận (ADR-0030; không lập/sửa đơn, hồ sơ), ACCOUNTING xem nhưng không lập đơn,
 // SALES chỉ nhật ký đơn của mình, ADMIN mọi thứ; quyền đổi có hiệu lực ngay; tài khoản nhiều quyền hợp các ô.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, ensureFakeCatalog, login, orderInput, randomPhone, session } from "./lib.mjs";
+import { ACCOUNTS, call, ensureFakeCatalog, login, orderInput, randomPhone, session, thanQuyenTaiKhoan } from "./lib.mjs";
 
 await ensureFakeCatalog(); // orderInput() dùng dịch vụ danh mục giả ZE1 (API không nhận dịch vụ nhập tay mới — 2026-09-26)
 
@@ -77,7 +77,7 @@ console.log("✓ FIELD: danh sách đơn 200 (không có đơn người khác), 
 // Đối tác và Thực tập chỉ thấy đơn của mình ⇒ 403 (không phải 200 với số toàn công ty); Bán hàng vẫn 200.
 for (const [perm, nhan] of [["PARTNER", "Đối tác"], ["INTERN", "Thực tập"]]) {
   const p = randomPhone();
-  r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${nhan} Trang Chủ Thử`, phone: p, permissions: [perm] });
+  r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${nhan} Trang Chủ Thử`, phone: p, ...thanQuyenTaiKhoan([perm]) }); // ADR-0185: Đối tác qua vai
   assert.equal(r.status, 201, `${nhan}: ${JSON.stringify(r.body)}`);
   const cookie = (await login(p, r.body.pin)).cookie;
   r = await call(cookie, "GET", "/api/orders/dashboard");
@@ -180,7 +180,7 @@ console.log("✓ nhiều quyền + hiệu lực ngay");
   await ensureFakeCatalog();
   const duoi = String(Date.now()).slice(-6);
   const taoTheoQuyen = async (permissions, ten) => {
-    const x = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${ten} ${duoi}`, phone: randomPhone(), permissions });
+    const x = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${ten} ${duoi}`, phone: randomPhone(), ...thanQuyenTaiKhoan(permissions) }); // ADR-0185: Đối tác thuần tạo qua vai
     assert.equal(x.status, 201, JSON.stringify(x.body));
     return { id: x.body.staff.id, ten: `${ten} ${duoi}`, cookie: (await login(x.body.staff.phone, x.body.pin)).cookie };
   };
@@ -231,7 +231,7 @@ console.log("✓ nhiều quyền + hiệu lực ngay");
 {
   const duoi = String(Date.now()).slice(-6).replace(/\d/g, (d) => "ABCDEGHKLM"[d]);
   const theoQuyen = async (permissions, ten) => {
-    const x = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${ten} ${duoi}`, phone: randomPhone(), permissions });
+    const x = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `${ten} ${duoi}`, phone: randomPhone(), ...thanQuyenTaiKhoan(permissions) }); // ADR-0185: Đối tác thuần tạo qua vai
     assert.equal(x.status, 201, JSON.stringify(x.body));
     return (await login(x.body.staff.phone, x.body.pin)).cookie;
   };
@@ -267,7 +267,7 @@ console.log("✓ nhiều quyền + hiệu lực ngay");
 // (tài khoản Đối tác dùng đường hẹp `con-duoc-dung` bị ÉP về hồ sơ của phiên); chưa đăng nhập 401. Đường hẹp: Bán hàng (có order.create) 200, Hướng dẫn viên 403.
 {
   const duoi = String(Date.now()).slice(-6).replace(/\d/g, (d) => "ABCDEGHKLM"[d]);
-  const x = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Đối Tác Hạn Mức ${duoi}`, phone: randomPhone(), permissions: ["PARTNER"] });
+  const x = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Đối Tác Hạn Mức ${duoi}`, phone: randomPhone(), ...thanQuyenTaiKhoan(["PARTNER"]) });
   assert.equal(x.status, 201, JSON.stringify(x.body));
   const DT = (await login(x.body.staff.phone, x.body.pin)).cookie;
   const khongXem = [[SALES, "Bán hàng"], [FIELD, "Hướng dẫn viên"], [DT, "Đối tác"]];

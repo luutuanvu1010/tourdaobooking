@@ -2,10 +2,10 @@
 // khái niệm này (K9) — máy chủ và màn hình cùng dùng; không lưu cột "giữ", tính lại mỗi lần đọc.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { AI_XU_LY, MA_GIU, NHAN_AI_XU_LY, NUT_CAP_NHAT_KHACH, isMaGiu, lyDoGiu, lyDoTheoMoc } from "./ly-do-giu.ts";
+import { AI_XU_LY, MA_GIU, NHAN_AI_XU_LY, NUT_CAP_NHAT_KHACH, VAI_AI_XU_LY, isMaGiu, lyDoGiu, lyDoTheoMoc, nhanAiXuLy } from "./ly-do-giu.ts";
 
 test("mỗi mã giữ có câu tiếng Việt (không lộ mã kỹ thuật) và đúng một 'ai xử lý' thuộc tập đóng", () => {
-  assert.deepEqual([...AI_XU_LY], ["VAN_PHONG", "QUAN_TRI", "TOAN_QUYEN"]);
+  assert.deepEqual([...AI_XU_LY], ["VAN_PHONG", "QUAN_TRI", "QUAN_TRI_TOAN_QUYEN", "TOAN_QUYEN"]);
   for (const a of AI_XU_LY) assert.ok(NHAN_AI_XU_LY[a].trim().length > 0);
   const ma = Object.keys(MA_GIU);
   assert.ok(ma.length >= 25, `bộ mã giữ phải đủ các luật của lượt 1, thấy ${ma.length}`);
@@ -68,4 +68,18 @@ test("R-P29 (chủ lần 16): KHACH_DA_DOI — khách trong xe không còn trong
   assert.equal(NUT_CAP_NHAT_KHACH, "Cập nhật khách theo đơn");
   assert.deepEqual({ ...MA_GIU.KHACH_DA_DOI }, { loiNhan: "Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn", aiXuLy: "VAN_PHONG" });
   assert.deepEqual(lyDoGiu("KHACH_DA_DOI", "ĐH-1024"), { ma: "KHACH_DA_DOI", loiNhan: "Khách trong xe không còn trong đơn — bấm Cập nhật khách theo đơn: ĐH-1024", aiXuLy: "VAN_PHONG" });
+});
+
+test("ADR-0184 P10: «Ai xử lý» mỗi giá trị có danh sách vai; chữ gom bỏ trùng theo VAI, thứ tự Văn phòng → Quản trị → Toàn quyền; chỉ cặp Kiểm định / Bảo hiểm mang hai vai", () => {
+  assert.deepEqual(VAI_AI_XU_LY.QUAN_TRI_TOAN_QUYEN, ["QUAN_TRI", "TOAN_QUYEN"]);
+  for (const a of AI_XU_LY) assert.ok(VAI_AI_XU_LY[a].length >= 1, a);
+  assert.equal(NHAN_AI_XU_LY.QUAN_TRI_TOAN_QUYEN, "Quản trị, Toàn quyền");
+  assert.equal(nhanAiXuLy(["QUAN_TRI_TOAN_QUYEN"]), "Quản trị, Toàn quyền");
+  assert.equal(nhanAiXuLy(["QUAN_TRI", "QUAN_TRI_TOAN_QUYEN"]), "Quản trị, Toàn quyền", "không lặp «Quản trị»");
+  assert.equal(nhanAiXuLy(["QUAN_TRI_TOAN_QUYEN", "QUAN_TRI"]), "Quản trị, Toàn quyền");
+  assert.equal(nhanAiXuLy(["TOAN_QUYEN", "VAN_PHONG", "QUAN_TRI"]), "Văn phòng, Quản trị, Toàn quyền", "thứ tự cố định theo vai, không theo thứ tự vào");
+  assert.equal(nhanAiXuLy(["QUAN_TRI_TOAN_QUYEN", "TOAN_QUYEN"]), "Quản trị, Toàn quyền");
+  assert.equal(nhanAiXuLy(["VAN_PHONG", "VAN_PHONG"]), "Văn phòng");
+  const hai = Object.entries(MA_GIU).filter(([, v]) => v.aiXuLy === "QUAN_TRI_TOAN_QUYEN").map(([k]) => k);
+  assert.deepEqual(hai, ["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"]);
 });

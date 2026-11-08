@@ -64,6 +64,7 @@ async function veDanhSach(): Promise<void> {
                 { class: `vc-card dp-cuoc-the${t.moChay ? " is-chay" : ""}`, href: `/cuoc-chuyen?id=${encodeURIComponent(t.id)}`, "data-chuyen": t.id },
                 h("span", { class: "dp-cuoc-top" }, h("span", { class: "dp-cuoc-gio" }, t.gio), h("span", { class: "dp-cuoc-ma" }, t.ma), chip(t.chip.nhan, t.chip.tone)),
                 t.nhanNgay ? h("span", { class: "dp-cuoc-xb-ngay" }, t.nhanNgay) : null,
+                t.nhanVang ? h("span", { class: "chip dp-chip-warn", "data-khoi": "cho-chay-thieu" }, icon("alert", 14, 2), t.nhanVang) : null, // ADR-0184
                 h("span", { class: "dp-cuoc-dong" }, t.dong),
                 ...t.canhBao.map((c) => h("span", { class: "dp-cuoc-canh-bao" }, icon("alert", 16, 2), h("span", null, c))),
                 t.moChay ? h("span", { class: "vc-btn btn btn-primary dp-cuoc-mo" }, "Mở chuyến đang chạy") : null,

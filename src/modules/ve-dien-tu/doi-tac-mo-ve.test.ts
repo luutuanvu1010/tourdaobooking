@@ -13,7 +13,6 @@ const TONG = 600000;
 
 function dung() {
   const w = setup();
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${PARTNER}`, `pty-${PARTNER}`, AT, AT);
   return w;
 }
 async function moDon(w: any, as: string) {

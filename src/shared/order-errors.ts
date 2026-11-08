@@ -50,10 +50,11 @@ export const banner = (tone: BannerTone, title: string, extra: Partial<Omit<Bann
 /**
  * 409 mà MÀN HÌNH KHÔNG CŨ: lỗi nghiệp vụ người dùng sửa ngay tại chỗ (ADR-0114 D3: "thieu_nguoi_lon" — thêm người lớn rồi lưu lại; ADR-0134 Đ2:
  * "pickup_choice_required" — chọn Đón / Không đón cho dịch vụ được nêu rồi lưu lại; ADR-0118 Đ3: "transfer_disabled" — nhóm dịch vụ đã tắt đưa đón, câu máy chủ
- * nói rõ bỏ lượt nào / nhờ ai bật lại). Nơi gọi thường đổi mọi 409 thành
+ * nói rõ bỏ lượt nào / nhờ ai bật lại; ADR-0185 Đ1: "doi_tac_chua_co_vai_tro" — ba câu chủ chọn nói ai gán vai trò, bấm nút nào; tải lại không gán được vai trò).
+ * Nơi gọi thường đổi mọi 409 thành
  * nút "Tải lại đơn" (đơn vừa đổi ở nơi khác); với mã trong tập này thì KHÔNG: tải lại sẽ xoá số khách vừa nhập, và câu máy chủ gửi đã nói đủ việc cần làm.
  */
-export const LOI_409_KHONG_CU: ReadonlySet<string> = new Set(["thieu_nguoi_lon", "pickup_choice_required", "transfer_disabled"]);
+export const LOI_409_KHONG_CU: ReadonlySet<string> = new Set(["thieu_nguoi_lon", "pickup_choice_required", "transfer_disabled", "doi_tac_chua_co_vai_tro"]);
 
 export const NETWORK_BANNER: Banner = banner("danger", "Không kết nối được máy chủ.", { lines: [{ text: "Dữ liệu bạn đã nhập vẫn còn — kiểm tra kết nối rồi bấm Lưu lại." }] });
 
