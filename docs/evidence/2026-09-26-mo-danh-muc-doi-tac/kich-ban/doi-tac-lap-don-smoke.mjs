@@ -371,24 +371,36 @@ try {
     console.log(`    đơn ${o.orderCode} (${o.status}): tạm tính ${o.subtotal}, giảm giá ${o.discount}, tổng ${o.total}, dòng ${JSON.stringify(items)}, ngày đi ${o.services[0].departDate}`);
   });
 
-  // 3v (ADR-0185 Đ1): trên trang nháp vừa lưu, Đối tác kiểu cũ bấm «Gửi đơn» → máy chủ 409 `doi_tac_chua_co_vai_tro`; khung lỗi đầu trang (#error) hiện ĐÚNG câu máy chủ
-  //     (ca 1) và KHÔNG có nút «Tải lại đơn» (mã nằm trong LOI_409_KHONG_CU — tải lại không gán được vai trò); đơn vẫn nháp.
-  await step("3v", "Đối tác kiểu cũ (điện thoại 390): trang nháp vừa lưu, bấm «Gửi đơn» → khung lỗi hiện câu «chưa được gán vai trò đối tác», không nút «Tải lại đơn», đơn vẫn nháp", async () => {
-    const orderId = await mob.ev("new URLSearchParams(location.search).get('id')");
-    assert.ok(orderId, "đang ở trang nháp của bước 3");
-    const NUT = `document.querySelector('#actions [data-action="gui-don"]')`;
-    await mob.waitFor(`!!(${NUT}) && !(${NUT}).disabled`, "nút Gửi đơn hiện và bấm được", 10000);
-    await mob.ev(`(${NUT}).click(); true`);
-    await mob.waitFor(`!document.getElementById('error').hidden && document.querySelector('#error .banner-title')?.textContent === ${JSON.stringify(CAU_GUI_DON_CA_1)}`, "khung lỗi hiện câu ca 1", 10000);
-    const bao = await mob.ev(`(() => { const e = document.getElementById('error'); return { cls: e.className, nut: [...e.querySelectorAll('button')].map((b) => b.textContent.trim()), hien: e.getClientRects().length > 0 }; })()`);
-    assert.deepEqual(bao, { cls: "banner banner-danger", nut: [], hien: true }, `khung lỗi nguy hiểm, không nút nào (không «Tải lại đơn») — ${JSON.stringify(bao)}`);
-    const r = await call(PARTNER, "GET", `/api/orders/${orderId}`);
-    assert.equal(r.json?.order?.status, "draft", `đơn vẫn nháp — ${JSON.stringify(r.json?.order?.status)}`);
-    assert.deepEqual(await mob.ev("window.__dialogs"), [], "không bật hộp thoại confirm/alert nào");
-    assert.deepEqual(mob.consoleErrors.filter((t) => !/409/.test(t)), [], `lỗi console (ngoài dòng 409 của chính lệnh bị chặn): ${mob.consoleErrors}`);
-    await mob.shot(join(OUT, "anh", "doi-tac-chua-co-vai-tro-gui-don.png"));
-  });
+  // 3v (ADR-0185 Đ1): Đối tác kiểu cũ mở nháp vừa lưu ở bước 3, bấm «Gửi đơn» → máy chủ 409 `doi_tac_chua_co_vai_tro`; khung lỗi đầu trang (#error) hiện ĐÚNG câu máy chủ
+  //     (ca 1) và KHÔNG có nút «Tải lại đơn» (mã nằm trong LOI_409_KHONG_CU — tải lại không gán được vai trò); đơn vẫn nháp. Mở TRANG MỚI, không bấm trên `mob`: bước 3
+  //     đã gọi API bằng chính tài khoản này (`call` = một lần đăng nhập mới) mà mỗi tài khoản chỉ giữ MỘT phiên (từ 2026-10-01) — phiên của `mob` đã bị thay; bấm trên đó
+  //     nhận 401 «Bị thay bởi máy khác» và bị đưa về trang đăng nhập (đã đo 8/11). Trạng thái đơn đọc thẳng CSDL tạm, không qua `call`, để không thay phiên của trang đang kiểm.
+  const idNhap3 = await mob.ev("new URLSearchParams(location.search).get('id')").catch(() => null);
   mob.close();
+  await step("3v", "Đối tác kiểu cũ (điện thoại 390): mở nháp vừa lưu, bấm «Gửi đơn» → khung lỗi hiện câu «chưa được gán vai trò đối tác», không nút «Tải lại đơn», đơn vẫn nháp", async () => {
+    assert.ok(idNhap3, "bước 3 đã chuyển sang trang nháp (/order?id=…)");
+    const p = await openAs(PARTNER, `/order?id=${encodeURIComponent(idNhap3)}`, MOB);
+    const NUT = `document.querySelector('#actions [data-action="gui-don"]')`;
+    await p.waitFor(`!!(${NUT}) && !(${NUT}).disabled`, "nút Gửi đơn hiện và bấm được", 15000);
+    const truocBam = p.requests.length;
+    await p.ev(`(${NUT}).click(); true`);
+    try {
+      await p.waitFor(`!document.getElementById('error').hidden && document.querySelector('#error .banner-title')?.textContent === ${JSON.stringify(CAU_GUI_DON_CA_1)}`, "khung lỗi hiện câu ca 1", 10000);
+    } catch (e) {
+      const thay = await p.ev(`(() => { const e = document.getElementById('error'); return { hidden: e?.hidden, title: e?.querySelector('.banner-title')?.textContent ?? null, href: location.href }; })()`);
+      const yc = p.requests.slice(truocBam).map((r) => `${r.method} ${r.url.replace(/^https?:\/\/[^/]+/, "")}`);
+      throw new Error(`${e.message} — khung lỗi đang có: ${JSON.stringify(thay)} — yêu cầu sau khi bấm: ${JSON.stringify(yc)}`);
+    }
+    const bao = await p.ev(`(() => { const e = document.getElementById('error'); return { cls: e.className, nut: [...e.querySelectorAll('button')].map((b) => b.textContent.trim()), hien: e.getClientRects().length > 0 }; })()`);
+    assert.deepEqual(bao, { cls: "banner banner-danger", nut: [], hien: true }, `khung lỗi nguy hiểm, không nút nào (không «Tải lại đơn») — ${JSON.stringify(bao)}`);
+    const trangThai = env.sql(`SELECT status FROM orders WHERE id = '${idNhap3}'`).map((x) => x.status);
+    assert.deepEqual(trangThai, ["draft"], `đơn vẫn nháp — ${JSON.stringify(trangThai)}`);
+    assert.deepEqual(await p.ev("window.__dialogs"), [], "không bật hộp thoại confirm/alert nào");
+    assert.deepEqual(p.consoleErrors.filter((t) => !/409/.test(t)), [], `lỗi console (ngoài dòng 409 của chính lệnh bị chặn): ${p.consoleErrors}`);
+    await p.shot(join(OUT, "anh", "doi-tac-chua-co-vai-tro-gui-don.png"));
+    noteErrorLogs(p, "Đối tác kiểu cũ /order Gửi đơn");
+    p.close();
+  });
 
   // 3g (Task 1, §4.2): mở lại nháp CŨ — lập bằng API với giờ khởi hành 08:00, có mặt 07:30 tại «Cảng Vinpearl», ghi chú «Đón 7h sáng» (như nháp lập từ máy văn phòng, trước khi có form gọn).
   // Form gọn ẩn khối chuyến nhưng không được làm mất ba giá trị đó: sửa mỗi ghi chú rồi Lưu thay đổi → đơn mang ghi chú mới, giờ khởi hành, giờ có mặt, nơi có mặt còn NGUYÊN.
@@ -616,18 +628,18 @@ try {
     const HANG = `[...document.querySelectorAll('tr')].find((tr) => (tr.querySelector('td')?.textContent ?? '').startsWith(${JSON.stringify(PARTNER.name)}))`;
     await p.waitFor(`!!(${HANG})`, "hàng của tài khoản Đối tác kiểu cũ hiện", 15000);
     await p.ev(`[...(${HANG}).querySelectorAll('button')].find((b) => b.textContent.trim() === 'Sửa').click(); true`);
-    await p.waitFor("!document.getElementById('edit').hidden && !!document.querySelector('#edit details > summary')", "hộp Sửa có khối Quyền cũ", 10000);
-    await p.ev("document.querySelector('#edit details').open = true; true");
+    // Hộp Sửa có HAI khối gập: «Chỉnh riêng cho người này» của bảng chọn vai trò (web/role-picker.ts — đứng TRƯỚC) và «Quyền cũ» (web/staff.ts). Tìm theo tiêu đề.
+    const KHOI = `[...document.querySelectorAll('#edit details')].filter((d) => d.querySelector(':scope > summary')?.textContent === 'Quyền cũ (chỉ dùng khi chưa gán vai trò)')`;
+    await p.waitFor(`!document.getElementById('edit').hidden && (${KHOI}).length === 1`, "hộp Sửa có đúng một khối Quyền cũ", 10000);
+    await p.ev(`(${KHOI})[0].open = true; true`);
     const s = await p.ev(`(() => {
       const e = document.getElementById('edit');
-      const d = e.querySelector('details');
+      const d = (${KHOI})[0];
       return {
         dai: [...e.querySelectorAll('p.alert.warn')].map((x) => x.textContent),
-        tieuDe: d.querySelector('summary').textContent,
         oQuyen: [...d.querySelectorAll('label.check')].map((l) => l.textContent.trim()),
       };
     })()`);
-    assert.equal(s.tieuDe, "Quyền cũ (chỉ dùng khi chưa gán vai trò)", `khối Quyền cũ hiện cho Toàn quyền — ${JSON.stringify(s)}`);
     assert.ok(s.dai.some((t) => t.includes("đang dùng quyền cũ: Đối tác.")), `dải «chưa gán vai trò, đang dùng quyền cũ: Đối tác» — ${JSON.stringify(s.dai)}`);
     assert.ok(s.oQuyen.includes("Bán hàng"), `khối Quyền cũ còn ô quyền nội bộ — ${JSON.stringify(s.oQuyen)}`);
     for (const cam of ["Đối tác", "Tài xế đối tác"]) assert.ok(!s.oQuyen.includes(cam), `KHÔNG có ô «${cam}» — ${JSON.stringify(s.oQuyen)}`);
