@@ -146,6 +146,7 @@ export const veDienTuModule: AppModule = {
   routes: [
     // Thống kê kho (tiêu chí D5): theo dịch vụ + nhóm khách; chỉ ĐẾM, không mã vé, không khoá kho.
     route("GET", "/api/ve/kho", "office", async ({ env, staff }) => {
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN(); // cửa thô; từng nguồn lọc tiếp bằng nguonDuocXem
       const nguon = nguonDuocXem(staff, true);
       if (nguon.length === 0) return KHONG_QUYEN();
       const hom = new Date();
@@ -194,6 +195,7 @@ export const veDienTuModule: AppModule = {
 
     // Các lô còn huỷ được (ADR-0156 Đ2 mục 3): đang dở hoặc đã vào kho nhưng chưa vé nào từng được giữ chỗ. Chỉ nhãn và số đếm, không mã vé, không khoá kho.
     route("GET", "/api/ve/lo", "office", async ({ env, staff }) => {
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN(); // cửa thô; từng nguồn lọc tiếp bằng nguonDuocXem
       const nguon = nguonDuocXem(staff, true);
       if (nguon.length === 0) return KHONG_QUYEN();
       const ds = await dsLoBoDuoc(env.DB, TOI_DA_DS_LO, nguon);
@@ -205,6 +207,7 @@ export const veDienTuModule: AppModule = {
 
     // Lô đã huỷ gần đây (chủ quyết 2/11/2026): để tra cứu; chỉ 4 số cuối mã, không khoá kho. Ảnh mở bằng hai route dưới: mở lần đầu thì khoá hẳn vé, vì ảnh mang QR dùng được như vé thật.
     route("GET", "/api/ve/lo-da-huy", "office", async ({ env, staff, nhanNhanVien }) => {
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN(); // cửa thô; từng nguồn lọc tiếp bằng nguonDuocXem
       const nguon = nguonDuocXem(staff, false);
       if (nguon.length === 0) return KHONG_QUYEN();
       const dong = await dsLoDaHuy(env.DB, mocLoHuy(), TOI_DA_DS_LO, nguon);
