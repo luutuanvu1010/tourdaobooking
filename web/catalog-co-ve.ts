@@ -56,14 +56,22 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
     const lua = (["HANG_NGOAI", "TOUR_DAO"] as const).map((v) => {
       const nut = h("button", { type: "button", role: "radio", "aria-checked": String(dang === v), tabindex: dang === v ? 0 : -1, "data-action": "nguon-ve" }, NHAN_NGUON_VE[v]) as HTMLButtonElement;
       nut.addEventListener("click", () => {
-        if (v !== dang) void luuNguonVe(nut, { ma, nguon: v }, v === "TOUR_DAO" ? `${ten}: Vé Tour Đảo.` : `${ten}: Vé hãng ngoài.`);
+        if (v === dang) return;
+        const luu = (): Promise<void> => luuNguonVe(nut, { ma, nguon: v }, v === "TOUR_DAO" ? `${ten}: Vé Tour Đảo.` : `${ten}: Vé hãng ngoài.`);
+        if (v !== "TOUR_DAO") return void luu();
+        // Chọn «Vé Tour Đảo» đổi cách máy giữ vé của dịch vụ này, nên phải hỏi trước (rà soát độc lập Đợt 1, 9/11/2026).
+        void hoiXacNhan({
+          tieuDe: `Chuyển «${ten}» sang Vé Tour Đảo?`,
+          hauQua: "Đơn mới của dịch vụ này chỉ được giữ vé từ lô do Tour Đảo tạo, không lấy vé hãng ngoài nữa; tin thiếu vé chuyển sang Kế toán. Vé đơn đã giữ vẫn còn. Chỉ bật khi đã có lô vé Tour Đảo và đã có cách quét vé.",
+          nhanNguyHiem: "Chuyển sang Vé Tour Đảo",
+          opener: nut,
+        }).then((dongY) => (dongY ? luu() : undefined));
       });
       nut.addEventListener("keydown", (e: KeyboardEvent) => {
         if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
         e.preventDefault();
         const khac = lua.find((x) => x !== nut);
-        khac?.focus();
-        khac?.click();
+        khac?.focus(); // chỉ dời tiêu điểm; đổi lựa chọn phải bấm (Enter/Space), vì chọn Vé Tour Đảo có hộp xác nhận
       });
       return nut;
     });
