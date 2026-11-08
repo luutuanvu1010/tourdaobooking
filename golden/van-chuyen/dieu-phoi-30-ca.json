@@ -563,10 +563,11 @@
    ],
    "cau_hoi": "Xuất bến được không?",
    "dap_an": [
-    "BỊ GIỮ, lý do «xe thiếu giấy tờ bắt buộc» (mã DIEU_KIEN_GIAY_TO_XE), Quản trị xử lý."
+    "BỊ GIỮ, lý do «xe thiếu giấy tờ bắt buộc» (mã DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN), Quản trị, Toàn quyền xử lý."
    ],
    "co_so": "may",
    "trang_thai": "da_xac_nhan",
+   "ghi_chu_chu": "2026-11-08: chủ chọn \"Quản trị và toàn quyền\" cho «Ai xử lý» khi xe thiếu Kiểm định / Bảo hiểm (ADR-0184, P10).",
    "kiem_may": [
     {
      "loai": "mau_buoc",
@@ -594,10 +595,10 @@
      "ky_vong": {
       "quyet_dinh": "GIU",
       "ma_luat": [
-       "DIEU_KIEN_GIAY_TO_XE"
+       "DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"
       ],
       "ai_xu_ly": [
-       "QUAN_TRI"
+       "QUAN_TRI_TOAN_QUYEN"
       ]
      }
     }

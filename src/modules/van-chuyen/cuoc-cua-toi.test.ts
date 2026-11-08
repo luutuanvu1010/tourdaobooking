@@ -20,7 +20,7 @@ test("route 19 (R-P17): tài xế thấy ĐÚNG chuyến mình đang lái — m�
     assert.deepEqual([r.json.tu, r.json.den], [NGAY, "2027-03-17"]);
     assert.equal(r.json.chuyen.length, 1, "chỉ chuyến của mình");
     const c = r.json.chuyen[0];
-    assert.deepEqual(Object.keys(c).sort(), ["bienSo", "dieuKienConThieu", "gioXuatBen", "id", "ma", "soDiemDon", "soDiemTra", "soKhach", "trangThai", "trangThaiNhan"]);
+    assert.deepEqual(Object.keys(c).sort(), ["bienSo", "choChayThieu", "dieuKienConThieu", "gioXuatBen", "id", "ma", "soDiemDon", "soDiemTra", "soKhach", "trangThai", "trangThaiNhan"]);
     assert.deepEqual([c.id, c.ma, c.gioXuatBen, c.trangThai, c.soKhach, c.soDiemDon, c.soDiemTra], [a.id, a.ma, { ngay: NGAY, gio: "12:30" }, "PLANNED", 3, 1, 1]);
     assert.ok(c.dieuKienConThieu.some((x: any) => x.ma === "THIEU_TEN"), JSON.stringify(c.dieuKienConThieu));
     for (const x of c.dieuKienConThieu) assert.deepEqual(Object.keys(x).sort(), ["aiXuLy", "loiNhan", "ma"]);

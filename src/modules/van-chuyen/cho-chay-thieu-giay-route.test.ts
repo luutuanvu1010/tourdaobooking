@@ -1,0 +1,541 @@
+// ADR-0184 việc 3 — lệnh «Cho chạy dù thiếu giấy tờ» (POST /api/van-chuyen/chuyen/:id/cho-chay-thieu-giay). Chạy CẢ ứng dụng trên SQLite thật, đồng hồ giả (ngày chạy 2027-03-11).
+// Kiểm: Quản trị + loại mềm có lý do → 200 và dòng ghi đúng; Quản trị không lý do → 400; Quản trị + Kiểm định / Bảo hiểm → 403 không ghi gì; Toàn quyền → qua, có hay không lý do;
+// Bán hàng 403; chuyến đang chạy 409; loại không thiếu 409; cho lại cùng loại 409; gửi lại cùng requestId; ghi chú chỉ khoảng trắng (Trọng tâm 5); nhật ký KHÔNG chứa ghi chú tự do (P5).
+// Lớp máy chủ chặn ĐỘC LẬP với lớp CSDL: hai bài gỡ trigger waiver_* của bản thử rồi gọi lại (nếu chỉ còn lưới CSDL thì bài đỏ). Tên, ghi chú GIẢ.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
+import { ADM, DRIVER, SALES, SUP, ACC, NGAY, batDongHo, chiTiet, chuyenSan, denGio, setup, tienDo, uuid } from "../../../tests/audit/dieu-phoi-khung.mjs";
+
+const AT = "2026-09-01T00:00:00.000Z";
+let so = 700;
+/** Xe công ty chủ 15 chỗ; `con` = các loại giấy còn hạn. Thêm điều kiện xuất bến cho Đăng ký xe (bản thử chỉ có sẵn Kiểm định + Bảo hiểm). */
+function xeCo(w: any, con: string[]): string {
+  const id = uuid();
+  const chu = w.q("SELECT party_id FROM v_pty_owner_company")[0].party_id;
+  const bien = `79V${String(++so).padStart(5, "0")}`;
+  w.sqlite.prepare(`INSERT INTO vc_vehicle (id, plate_number, plate_key, chassis_number, chassis_key, name, model_year, passenger_capacity, owner_party_id, status, valid_from_date, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, 'Xe thử cho chạy', 2020, 15, ?, 'active', '2026-09-01', ?, ?)`).run(id, bien, bien, `KHUNGV${so}`, `KHUNGV${so}`, chu, AT, AT);
+  for (const loai of con) w.sqlite.prepare("INSERT INTO vc_vehicle_document (id, vehicle_id, document_type_code, expiry_date, created_at, updated_at) VALUES (?, ?, ?, '2030-12-31', ?, ?)").run(uuid(), id, loai, AT, AT);
+  return id;
+}
+/** `id` CỐ ĐỊNH (không uuid ngẫu nhiên): thứ tự điều kiện theo id từng làm bài đỏ ngẫu nhiên ~10% (so với điều kiện Kiểm định gieo sẵn `1a6f3c52-…`). */
+const ID_DK_DANG_KY = "0aaaaaaa-0000-4000-8000-000000000001";
+function themDieuKienDangKy(w: any, id: string = ID_DK_DANG_KY): void {
+  w.sqlite.prepare(`INSERT INTO vc_departure_rule (id, min_capacity, subject, vehicle_document_type_code, valid_from_at, created_at, updated_at) VALUES (?, 1, 'VEHICLE', 'REGISTRATION', ?, ?, ?)`).run(id, AT, AT, AT);
+}
+const DU = ["INSPECTION", "TPL_INSURANCE", "REGISTRATION"];
+async function chuyenXe(w: any, con: string[]) {
+  const xeId = xeCo(w, con);
+  const t = await chuyenSan(w, { xe: xeId });
+  return { t, xeId };
+}
+const choChay = async (w: any, tripId: string, as: string, body: Record<string, unknown>) => {
+  const version = body.version ?? (await chiTiet(w, tripId, as)).chuyen.version;
+  return w.call("POST", `/api/van-chuyen/chuyen/${tripId}/cho-chay-thieu-giay`, { as, body: { version, requestId: uuid(), lyDo: null, ghiChu: null, ...body } });
+};
+const dongCho = (w: any, tripId: string) => w.q("SELECT * FROM vc_trip_departure_waiver WHERE trip_id = ? ORDER BY document_type_code", tripId);
+const khongGhiGi = (w: any, tripId: string) => {
+  assert.equal(dongCho(w, tripId).length, 0, "không dòng cho phép nào");
+  assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind = 'DOCS_WAIVED'")[0].n, 0, "không sự kiện");
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'trip_departure_waived'")[0].n, 0, "không nhật ký");
+};
+
+test("Quản trị + Đăng ký xe + lý do «Giấy đang gia hạn» + ghi chú → 201; một dòng cho phép đúng chuyến, xe, loại, người; một sự kiện; một nhật ký KHÔNG chứa ghi chú; xuất bến sau đó đạt", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t, xeId } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    denGio("12:40");
+    const ghiChu = "Đang chờ cấp lại cà vẹt tại đăng kiểm";
+    const r = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN", ghiChu });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    const d = dongCho(w, t.id);
+    assert.equal(d.length, 1);
+    assert.equal(d[0].vehicle_id, xeId);
+    assert.equal(d[0].document_type_code, "REGISTRATION");
+    assert.equal(d[0].reason_code, "THIEU_GIAY_GIA_HAN");
+    assert.equal(d[0].note, ghiChu);
+    assert.equal(d[0].expiry_date, null);
+    assert.equal(d[0].created_by, ADM);
+    const ev = w.q("SELECT kind, trip_id FROM vc_trip_event WHERE kind = 'DOCS_WAIVED'");
+    assert.equal(ev.length, 1);
+    assert.equal(ev[0].trip_id, t.id);
+    const nk = w.q("SELECT detail, target_id FROM audit_log WHERE action = 'trip_departure_waived'");
+    assert.equal(nk.length, 1);
+    assert.equal(nk[0].target_id, t.id);
+    assert.match(nk[0].detail, /cho chạy dù thiếu giấy tờ · xe 79V\d+ · Đăng ký xe \(REGISTRATION, hạn chưa có\) · lý do Giấy đang gia hạn · có ghi chú$/);
+    assert.doesNotMatch(nk[0].detail, /cà vẹt|đăng kiểm/, "ghi chú tự do không vào nhật ký (P5)");
+    assert.equal(r.json.chuyen.id, t.id, "phản hồi là chi tiết chuyến");
+    // dòng cho phép được cổng xuất bến dùng
+    assert.deepEqual((await chiTiet(w, t.id, ADM)).chuyen.lyDoGiu.map((l: any) => l.ma), []);
+    assert.equal((await tienDo(w, "tai-xe", t.id, "xuat-ben")).status, 200);
+  } finally {
+    tat();
+  }
+});
+
+test("Quản trị không chọn lý do → 400, không ghi gì (máy chủ chặn)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    const r = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"] });
+    assert.equal(r.status, 400, r.text);
+    assert.match(r.json.error.message, /Chọn lý do/);
+    khongGhiGi(w, t.id);
+  } finally {
+    tat();
+  }
+});
+
+test("Quản trị chọn lý do ngoài nhóm → 400; chọn «Khác» mà không ghi chú → 400; không ghi gì", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    const a = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "DIEU_CHINH_BAM_NHAM" });
+    assert.equal(a.status, 400, a.text);
+    const b = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_KHAC", ghiChu: "ngắn" });
+    assert.equal(b.status, 400, b.text);
+    khongGhiGi(w, t.id);
+  } finally {
+    tat();
+  }
+});
+
+test("Quản trị + Kiểm định / Bảo hiểm → 403, không ghi gì (kể cả chọn kèm loại mềm)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["TPL_INSURANCE"]); // thiếu Kiểm định + Đăng ký xe
+    const a = await choChay(w, t.id, ADM, { loaiGiayTo: ["INSPECTION"], lyDo: "THIEU_GIAY_GIA_HAN" });
+    assert.equal(a.status, 403, a.text);
+    assert.equal(a.json.error.message, "Thiếu Kiểm định hoặc Bảo hiểm chỉ Toàn quyền cho chạy được.");
+    const b = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION", "INSPECTION"], lyDo: "THIEU_GIAY_GIA_HAN" });
+    assert.equal(b.status, 403, b.text);
+    khongGhiGi(w, t.id);
+  } finally {
+    tat();
+  }
+});
+
+test("lớp máy chủ chặn ĐỘC LẬP với CSDL: gỡ trigger quyền / lý do của bản thử → Quản trị vẫn bị 403 (Kiểm định) và 400 (không lý do), không ghi gì", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["TPL_INSURANCE"]);
+    w.sqlite.exec("DROP TRIGGER vc_trip_departure_waiver_toan_quyen_only; DROP TRIGGER vc_trip_departure_waiver_reason_required;");
+    assert.equal((await choChay(w, t.id, ADM, { loaiGiayTo: ["INSPECTION"], lyDo: "THIEU_GIAY_GIA_HAN" })).status, 403);
+    assert.equal((await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"] })).status, 400);
+    khongGhiGi(w, t.id);
+  } finally {
+    tat();
+  }
+});
+
+test("Toàn quyền + Bảo hiểm, không lý do → 200; dòng ghi không có lý do; nhật ký «không nêu lý do»; hạn = hạn dòng giấy gần nhất khi giấy hết hạn", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { t, xeId } = await chuyenXe(w, ["INSPECTION"]);
+    // Bảo hiểm có nhưng đã hết hạn trước ngày chạy → vẫn là «thiếu», hạn ghi lại để nhãn nói đúng.
+    w.sqlite.prepare("INSERT INTO vc_vehicle_document (id, vehicle_id, document_type_code, expiry_date, created_at, updated_at) VALUES (?, ?, 'TPL_INSURANCE', '2027-03-01', ?, ?)").run(uuid(), xeId, AT, AT);
+    const r = await choChay(w, t.id, SUP, { loaiGiayTo: ["TPL_INSURANCE"] });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    const d = dongCho(w, t.id);
+    assert.equal(d.length, 1);
+    assert.equal(d[0].document_type_code, "TPL_INSURANCE");
+    assert.equal(d[0].reason_code, null);
+    assert.equal(d[0].expiry_date, "2027-03-01");
+    assert.equal(d[0].created_by, SUP);
+    const nk = w.q("SELECT detail FROM audit_log WHERE action = 'trip_departure_waived'")[0].detail as string;
+    assert.match(nk, /Bảo hiểm trách nhiệm dân sự \(TPL_INSURANCE, hạn 01\/03\/2027\) · lý do không nêu lý do$/);
+  } finally {
+    tat();
+  }
+});
+
+test("Toàn quyền cho cả Kiểm định và Bảo hiểm một lần → hai dòng, MỘT sự kiện, MỘT nhật ký", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { t } = await chuyenXe(w, []);
+    const r = await choChay(w, t.id, SUP, { loaiGiayTo: ["INSPECTION", "TPL_INSURANCE"] });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    assert.deepEqual(dongCho(w, t.id).map((d: any) => d.document_type_code), ["INSPECTION", "TPL_INSURANCE"]);
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind = 'DOCS_WAIVED'")[0].n, 1);
+    assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'trip_departure_waived'")[0].n, 1);
+  } finally {
+    tat();
+  }
+});
+
+test("Trọng tâm 5: Toàn quyền gửi ghi chú chỉ khoảng trắng → coi như không ghi chú (200, cột ghi chú trống)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { t } = await chuyenXe(w, ["INSPECTION"]);
+    const r = await choChay(w, t.id, SUP, { loaiGiayTo: ["TPL_INSURANCE"], ghiChu: "      " });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    assert.equal(dongCho(w, t.id)[0].note, null);
+    assert.doesNotMatch(w.q("SELECT detail FROM audit_log WHERE action = 'trip_departure_waived'")[0].detail, /có ghi chú/);
+  } finally {
+    tat();
+  }
+});
+
+test("Toàn quyền chọn «Khác» mà không ghi chú → 400 (đã chọn «Khác» thì phải ghi chú)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { t } = await chuyenXe(w, ["INSPECTION"]);
+    const r = await choChay(w, t.id, SUP, { loaiGiayTo: ["TPL_INSURANCE"], lyDo: "THIEU_GIAY_KHAC" });
+    assert.equal(r.status, 400, r.text);
+    khongGhiGi(w, t.id);
+  } finally {
+    tat();
+  }
+});
+
+test("Bán hàng → 403 dù chọn loại mềm có lý do (chỉ ô trip.override mới qua cổng; CSDL không chặn nên đây là lớp máy chủ), không ghi gì", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    const r = await choChay(w, t.id, SALES, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN" });
+    assert.equal(r.status, 403, r.text);
+    khongGhiGi(w, t.id);
+  } finally {
+    tat();
+  }
+});
+
+test("chuyến ĐANG CHẠY → 409; loại xe không thiếu → 409; không ghi gì", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { t } = await chuyenXe(w, DU);
+    const khong = await choChay(w, t.id, SUP, { loaiGiayTo: ["INSPECTION"] });
+    assert.equal(khong.status, 409, khong.text);
+    assert.equal(khong.json.error.message, "Xe không còn thiếu loại giấy này — tải lại trang.");
+    denGio("12:40");
+    assert.equal((await tienDo(w, "tai-xe", t.id, "xuat-ben")).status, 200);
+    const r = await choChay(w, t.id, SUP, { loaiGiayTo: ["INSPECTION"] });
+    assert.equal(r.status, 409, r.text);
+    khongGhiGi(w, t.id);
+  } finally {
+    tat();
+  }
+});
+
+test("cho lại cùng loại khi dòng chưa dùng → 409 «Chuyến này đã được cho chạy dù thiếu <tên>.»; vẫn một dòng", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    const a = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_XE_THAY" });
+    assert.ok(a.status === 200 || a.status === 201, a.text);
+    const b = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_XE_THAY" });
+    assert.equal(b.status, 409, b.text);
+    assert.equal(b.json.error.message, "Chuyến này đã được cho chạy dù thiếu Đăng ký xe.");
+    assert.equal(dongCho(w, t.id).length, 1);
+  } finally {
+    tat();
+  }
+});
+
+test("gửi lại cùng requestId → trả lại kết quả cũ (200), không ghi thêm dòng, sự kiện, nhật ký", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    const version = (await chiTiet(w, t.id, ADM)).chuyen.version;
+    const body = { version, requestId: uuid(), loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN", ghiChu: null };
+    const a = await w.call("POST", `/api/van-chuyen/chuyen/${t.id}/cho-chay-thieu-giay`, { as: ADM, body });
+    assert.equal(a.status, 201, a.text);
+    const b = await w.call("POST", `/api/van-chuyen/chuyen/${t.id}/cho-chay-thieu-giay`, { as: ADM, body });
+    assert.equal(b.status, 200, b.text);
+    assert.equal(dongCho(w, t.id).length, 1);
+    assert.equal(w.q("SELECT count(*) n FROM vc_trip_event WHERE kind = 'DOCS_WAIVED'")[0].n, 1);
+    assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'trip_departure_waived'")[0].n, 1);
+  } finally {
+    tat();
+  }
+});
+
+test("phiên bản chuyến cũ → 409 (cổng version), không ghi gì; thân sai (không loại giấy, mã lạ) → 400", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    const cu = await choChay(w, t.id, ADM, { version: 1, loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN" });
+    assert.equal(cu.status, 409, cu.text);
+    assert.equal((await choChay(w, t.id, ADM, { loaiGiayTo: [] })).status, 400);
+    assert.equal((await choChay(w, t.id, ADM, { loaiGiayTo: ["registration; DROP"] })).status, 400);
+    khongGhiGi(w, t.id);
+  } finally {
+    tat();
+  }
+});
+
+test("báo tài xế: lệnh thắng gọi baoThayDoiChuyen đúng MỘT lần cho đúng chuyến; 403 / 400 / 409 / gửi lại cùng requestId thì không", async () => {
+  const tat = batDongHo();
+  try {
+    const goi: { tripId: string; requestId: string }[] = [];
+    const w = setup({ ghiDe: { baoThayDoiChuyen: async (_env: unknown, _a: unknown, e: { tripId: string; requestId: string }) => void goi.push(e) } });
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    await new Promise((r) => setImmediate(r));
+    const truoc = goi.length; // tạo + xếp chuyến đã báo
+    assert.equal((await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"] })).status, 400);
+    assert.equal((await choChay(w, t.id, SALES, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN" })).status, 403);
+    assert.equal((await choChay(w, t.id, ADM, { loaiGiayTo: ["INSPECTION"], lyDo: "THIEU_GIAY_GIA_HAN" })).status, 409);
+    await new Promise((r) => setImmediate(r));
+    assert.equal(goi.length, truoc, "lỗi không bắn tin");
+    const version = (await chiTiet(w, t.id, ADM)).chuyen.version;
+    const body = { version, requestId: uuid(), loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN", ghiChu: null };
+    assert.equal((await w.call("POST", `/api/van-chuyen/chuyen/${t.id}/cho-chay-thieu-giay`, { as: ADM, body })).status, 201);
+    assert.equal((await w.call("POST", `/api/van-chuyen/chuyen/${t.id}/cho-chay-thieu-giay`, { as: ADM, body })).status, 200);
+    await new Promise((r) => setImmediate(r));
+    assert.deepEqual(goi.slice(truoc), [{ tripId: t.id, requestId: body.requestId }], "một tin cho đúng chuyến, lần lặp không bắn thêm");
+  } finally {
+    tat();
+  }
+});
+
+test("hộp thông báo thật: tài xế đang được giao chuyến nhận đúng câu «Chuyến <mã>: Xe thiếu … — đã cho chạy» (không số giấy, không ghi chú, không tên người cho phép); người cho phép, Bán hàng, Kế toán không nhận", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    w.sqlite.prepare("UPDATE vc_vehicle_document SET document_number = 'SOGIAY-DANHDAU-55' WHERE document_type_code = 'INSPECTION'").run();
+    const tinCua = async (as: string) => (await w.call("GET", "/api/thong-bao", { as })).json.tin.filter((x: any) => x.loai === "chuyen" && /đã cho chạy/.test(x.cau));
+    assert.equal((await tinCua(DRIVER)).length, 0);
+    const r = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN", ghiChu: "GHICHU-DANHDAU-0905123456" });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    const tin = await tinCua(DRIVER);
+    assert.equal(tin.length, 1, JSON.stringify(tin));
+    assert.equal(tin[0].cau, `Chuyến ${t.ma}: Xe thiếu Đăng ký xe — đã cho chạy`);
+    assert.doesNotMatch(JSON.stringify(tin), /DANHDAU|0905123456|Quản Trị/);
+    for (const as of [ADM, SALES, ACC, SUP]) assert.equal((await tinCua(as)).length, 0, `${as} không nhận`);
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0184 việc 4 — DTO màn: chi tiết chuyến có giayToThieu (không số giấy) + choChayThieu; trước lệnh nhãn rỗng, sau lệnh có nhãn (chi tiết VÀ lịch chung); sau xuất bến nhãn còn, giayToThieu rỗng", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["TPL_INSURANCE"]); // thiếu Kiểm định (chỉ Toàn quyền) + Đăng ký xe
+    const truoc = await chiTiet(w, t.id, ADM);
+    assert.deepEqual(truoc.giayToThieu.map((g: any) => [g.documentTypeCode, g.ten, g.expiryDate, g.chiToanQuyen]), [["REGISTRATION", "Đăng ký xe", null, false], ["INSPECTION", "Kiểm định", null, true]]);
+    assert.deepEqual(truoc.chuyen.choChayThieu, []);
+    assert.ok(truoc.lyDo.some((l: any) => l.nhom === "CHO_CHAY_THIEU_GIAY"), "danh sách lý do kèm nhóm mới cho hộp chọn");
+    assert.doesNotMatch(JSON.stringify(truoc), /KHUNGV|chassis/i);
+    const r = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN" });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    assert.deepEqual(r.json.chuyen.choChayThieu, [{ ten: "Đăng ký xe" }], "phản hồi lệnh đã có nhãn");
+    const sau = await chiTiet(w, t.id, ADM);
+    assert.deepEqual(sau.chuyen.choChayThieu, [{ ten: "Đăng ký xe" }]);
+    assert.deepEqual(sau.giayToThieu.map((g: any) => g.documentTypeCode), ["REGISTRATION", "INSPECTION"], "loại đã cho phép vẫn là «thiếu» tới khi giấy được bổ sung (thứ tự danh mục)");
+    const lich = (await w.call("GET", `/api/van-chuyen/lich?ngay=${NGAY}`, { as: ADM })).json;
+    assert.deepEqual(lich.chuyen.find((c: any) => c.id === t.id).choChayThieu, [{ ten: "Đăng ký xe" }], "dòng chuyến của lịch điều phối");
+    // Toàn quyền cho nốt Kiểm định → xe chạy được; sau xuất bến nhãn lấy từ bản chụp ĐẠT, giayToThieu rỗng.
+    const r2 = await choChay(w, t.id, SUP, { loaiGiayTo: ["INSPECTION"] });
+    assert.ok(r2.status === 200 || r2.status === 201, r2.text);
+    denGio("12:40");
+    assert.equal((await tienDo(w, "tai-xe", t.id, "xuat-ben")).status, 200);
+    const chay = await chiTiet(w, t.id, ADM);
+    assert.equal(chay.chuyen.trangThai, "RUNNING");
+    assert.deepEqual(chay.giayToThieu, []);
+    assert.deepEqual(chay.chuyen.choChayThieu.map((x: any) => x.ten), ["Đăng ký xe", "Kiểm định"], "đã chạy: CÙNG thứ tự danh mục với lúc chưa chạy");
+    const lich2 = (await w.call("GET", `/api/van-chuyen/lich?ngay=${NGAY}`, { as: ADM })).json;
+    assert.equal(lich2.chuyen.find((c: any) => c.id === t.id).choChayThieu.length, 2);
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0184 việc 5 — tài xế đang lái thấy nhãn (danh sách cuốc VÀ chi tiết, trước và sau xuất bến) chỉ gồm tên loại; số trên Trang chủ đếm đúng chuyến chưa kết thúc, chỉ người có ô trip.override", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]); // thiếu Đăng ký xe
+    const dem = async (as: string) => w.call("GET", "/api/van-chuyen/cho-chay-thieu/dem", { as });
+    const cuoc = async () => (await w.call("GET", `/api/van-chuyen/cuoc-cua-toi?tu=${NGAY}&den=${NGAY}`, { as: DRIVER })).json.chuyen.find((c: any) => c.id === t.id);
+    const ct = async () => (await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${t.id}`, { as: DRIVER })).json;
+    assert.deepEqual((await cuoc()).choChayThieu, []);
+    assert.deepEqual((await ct()).choChayThieu, []);
+    assert.equal((await dem(ADM)).json.count, 0);
+    const r = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN", ghiChu: "Đang chờ cấp lại cà vẹt tại đăng kiểm" });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    assert.deepEqual((await cuoc()).choChayThieu, [{ ten: "Đăng ký xe" }], "danh sách cuốc");
+    const chiTietTx = await ct();
+    assert.deepEqual(chiTietTx.choChayThieu, [{ ten: "Đăng ký xe" }], "chi tiết cuốc");
+    assert.doesNotMatch(JSON.stringify(chiTietTx.choChayThieu), /cà vẹt|đăng kiểm|KHUNGV|Quản Trị/);
+    // Số Trang chủ: Quản trị và Toàn quyền thấy 1; Bán hàng, Kế toán 403.
+    assert.equal((await dem(ADM)).json.count, 1);
+    assert.equal((await dem(SUP)).json.count, 1);
+    for (const as of [SALES, ACC]) assert.equal((await dem(as)).status, 403, as);
+    // Sau xuất bến (đang chạy): nhãn lấy từ bản chụp ĐẠT; số vẫn tính (chưa kết thúc).
+    denGio("12:40");
+    assert.equal((await tienDo(w, "tai-xe", t.id, "xuat-ben")).status, 200);
+    assert.deepEqual((await cuoc()).choChayThieu, [{ ten: "Đăng ký xe" }]);
+    assert.deepEqual((await ct()).choChayThieu, [{ ten: "Đăng ký xe" }]);
+    assert.equal((await dem(ADM)).json.count, 1);
+    // Nhật ký chuyến của văn phòng: sự kiện DOCS_WAIVED kèm tên loại.
+    const nk = (await chiTiet(w, t.id, ADM)).nhatKy.find((e: any) => e.loai === "DOCS_WAIVED");
+    assert.deepEqual(nk.loaiGiayTo, ["Đăng ký xe"]);
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0184 việc 5 — chuyến không có cho phép: số Trang chủ bằng 0 và cuốc tài xế không có nhãn", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    assert.equal((await w.call("GET", "/api/van-chuyen/cho-chay-thieu/dem", { as: ADM })).json.count, 0);
+    const c = (await w.call("GET", `/api/van-chuyen/cuoc-cua-toi?tu=${NGAY}&den=${NGAY}`, { as: DRIVER })).json.chuyen.find((x: any) => x.id === t.id);
+    assert.deepEqual(c.choChayThieu, []);
+  } finally {
+    tat();
+  }
+});
+
+test("L6 (đợt sửa 1): ghi chú 201 ký tự → 400 với câu «tối đa 200 ký tự» ở ngay thân lệnh (ngưỡng đầu và câu báo khớp); đúng 200 ký tự qua", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    denGio("12:40");
+    const dai = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_KHAC", ghiChu: "a".repeat(201) });
+    assert.equal(dai.status, 400, dai.text);
+    assert.equal(dai.json.error.message, "Ghi chú dài tối đa 200 ký tự.");
+    khongGhiGi(w, t.id);
+    const vua = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_KHAC", ghiChu: "a".repeat(200) });
+    assert.ok(vua.status === 200 || vua.status === 201, vua.text);
+  } finally {
+    tat();
+  }
+});
+
+test("P12 / L7 (đợt sửa 1): lý do + ghi chú của dòng cho phép CHỈ hiện ở chi tiết chuyến của văn phòng (GET và phản hồi lệnh); KHÔNG ở cuốc tài xế, lịch chung, tin, nhật ký, Bảng tin", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    const xe2 = xeCo(w, ["TPL_INSURANCE"]); // thiếu Kiểm định + Đăng ký xe; chuyến thứ hai, giờ khác, để Toàn quyền cho Kiểm định không lý do
+    const t2 = await chuyenSan(w, { xe: xe2, bd: "15:30", kt: "17:00", gio: "16:00" });
+    denGio("12:40");
+    const DAU = "DAUHIEUGHICHU-Doi-cap-lai-cavet";
+    const r = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN", ghiChu: DAU });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    const mong = [{ ten: ["Đăng ký xe"], lyDo: "Giấy đang gia hạn", ghiChu: DAU }];
+    assert.deepEqual(r.json.choChayThieuChiTiet, mong, "phản hồi lệnh (cùng DTO chi tiết văn phòng)");
+    for (const as of [ADM, SUP, SALES, ACC]) {
+      const ct = await w.call("GET", `/api/van-chuyen/chuyen/${t.id}`, { as });
+      if (ct.status === 200) assert.deepEqual(ct.json.choChayThieuChiTiet, mong, `${as}: chi tiết văn phòng`);
+    }
+    // KHÔNG ở: cuốc tài xế (danh sách + chi tiết), lịch chung, tin, nhật ký, Bảng tin
+    const cuoc = await w.call("GET", "/api/van-chuyen/cuoc-cua-toi", { as: DRIVER });
+    assert.equal(cuoc.status, 200, cuoc.text);
+    assert.ok(cuoc.json.chuyen.some((c: any) => c.choChayThieu.length === 1), "chống bài rỗng: cuốc có nhãn vàng");
+    const cuocCt = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${t.id}`, { as: DRIVER });
+    assert.equal(cuocCt.status, 200, cuocCt.text);
+    const lich = await w.call("GET", `/api/van-chuyen/lich?tuNgay=${NGAY}&denNgay=${NGAY}`, { as: ADM });
+    assert.equal(lich.status, 200, lich.text);
+    const tin = await w.call("GET", "/api/thong-bao", { as: DRIVER });
+    const bangTin = await w.call("GET", "/api/bang-tin", { as: ADM });
+    for (const [ten, x] of [["cuốc tài xế (danh sách)", cuoc], ["cuốc tài xế (chi tiết)", cuocCt], ["lịch chung", lich], ["hộp tin", tin], ["Bảng tin", bangTin]] as const) {
+      assert.doesNotMatch(x.text, /DAUHIEUGHICHU|choChayThieuChiTiet/, `${ten}: không có ghi chú, không khoá mới`);
+      // lịch chung có sẵn DANH MỤC lý do (mọi nhóm) nên chữ «Giấy đang gia hạn» ở đó không nói lô nào đã chọn lý do này; chỗ khác thì không được có.
+      if (ten !== "lịch chung") assert.doesNotMatch(x.text, /Giấy đang gia hạn/, `${ten}: không có lý do của lô`);
+    }
+    assert.ok(!JSON.stringify(cuocCt.json).includes("choChayThieuChiTiet"), "DTO tài xế không có khoá mới");
+    const nk = w.q("SELECT detail FROM audit_log").map((x: any) => x.detail).join("\n");
+    assert.doesNotMatch(nk, /DAUHIEUGHICHU/, "nhật ký không có ghi chú tự do (P5 giữ nguyên)");
+    // lý do bỏ trống (Toàn quyền): vẫn có mục, lyDo / ghiChu null
+    const tq = await choChay(w, t2.id, SUP, { loaiGiayTo: ["INSPECTION"], lyDo: null, ghiChu: null });
+    assert.ok(tq.status === 200 || tq.status === 201, tq.text);
+    assert.deepEqual((await chiTiet(w, t2.id, ADM)).choChayThieuChiTiet, [{ ten: ["Kiểm định"], lyDo: null, ghiChu: null }]);
+    assert.deepEqual((await chiTiet(w, t.id, ADM)).choChayThieuChiTiet, mong, "chuyến kia không bị lẫn");
+  } finally {
+    tat();
+  }
+});
+
+test("M (đợt sửa 1): thứ tự tên loại giấy theo danh mục (sort_order), KHÔNG theo id điều kiện — id điều kiện Đăng ký xe ở HAI phía của id điều kiện Kiểm định gieo sẵn cho cùng kết quả; chuyến chưa chạy và đã chạy cùng thứ tự", async () => {
+  for (const id of ["0aaaaaaa-0000-4000-8000-000000000002", "faaaaaaa-0000-4000-8000-000000000003"]) {
+    const tat = batDongHo();
+    try {
+      const w = setup();
+      themDieuKienDangKy(w, id);
+      const { t } = await chuyenXe(w, ["TPL_INSURANCE"]); // thiếu Đăng ký xe (sort 1) + Kiểm định (sort 2)
+      denGio("12:40");
+      const truoc = (await chiTiet(w, t.id, ADM)).giayToThieu.map((g: any) => g.ten);
+      assert.deepEqual(truoc, ["Đăng ký xe", "Kiểm định"], `id điều kiện ${id}: hộp chọn loại giấy`);
+      const r = await choChay(w, t.id, SUP, { loaiGiayTo: ["INSPECTION", "REGISTRATION"], lyDo: null, ghiChu: null }); // gửi ngược thứ tự
+      assert.ok(r.status === 200 || r.status === 201, r.text);
+      assert.deepEqual(r.json.chuyen.choChayThieu.map((x: any) => x.ten), ["Đăng ký xe", "Kiểm định"], "nhãn vàng chuyến chưa chạy");
+      assert.deepEqual(r.json.choChayThieuChiTiet.map((x: any) => x.ten), [["Đăng ký xe", "Kiểm định"]], "mục lô");
+      assert.match(w.q("SELECT detail FROM audit_log WHERE action = 'trip_departure_waived'")[0].detail, /Đăng ký xe \(REGISTRATION[^)]*\), Kiểm định \(INSPECTION/, "nhật ký lệnh cho phép");
+      assert.equal((await tienDo(w, "tai-xe", t.id, "xuat-ben")).status, 200);
+      assert.deepEqual((await chiTiet(w, t.id, ADM)).chuyen.choChayThieu.map((x: any) => x.ten), ["Đăng ký xe", "Kiểm định"], "đã chạy: cùng thứ tự");
+      const cuoc = (await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${t.id}`, { as: DRIVER })).json;
+      assert.deepEqual((cuoc.choChayThieu ?? cuoc.chuyen.choChayThieu).map((x: any) => x.ten), ["Đăng ký xe", "Kiểm định"], "cuốc tài xế");
+      assert.match(w.q("SELECT detail FROM audit_log WHERE action = 'trip_departed' ORDER BY rowid DESC LIMIT 1")[0].detail, /Đăng ký xe, Kiểm định/, "nhật ký xuất bến");
+    } finally {
+      tat();
+    }
+  }
+});
+
+test("O (đợt sửa 1): số Trang chủ chỉ tính chuyến HÔM NAY và CHƯA KẾT THÚC — chuyến đã kết thúc → 0; chuyến ngày mai có cho phép → không tính", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const dem = async () => (await w.call("GET", "/api/van-chuyen/cho-chay-thieu/dem", { as: ADM })).json.count;
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    const NGAY_MAI = "2027-03-12";
+    const xeMai = xeCo(w, ["INSPECTION", "TPL_INSURANCE"]);
+    const mai = await chuyenSan(w, { xe: xeMai, ngay: NGAY_MAI });
+    assert.equal((await choChay(w, mai.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN" })).status < 300, true, "cho phép chuyến ngày mai");
+    assert.equal(await dem(), 0, "chuyến ngày mai có cho phép không tính");
+    assert.equal((await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN" })).status < 300, true);
+    assert.equal(await dem(), 1, "hôm nay, chưa chạy");
+    denGio("12:40");
+    assert.equal((await tienDo(w, "tai-xe", t.id, "xuat-ben")).status, 200);
+    assert.equal(await dem(), 1, "đang chạy vẫn tính");
+    // Kết thúc chuyến (đã có cho phép ở bản chụp ĐẠT): số về 0. Dọn khách và điểm trực tiếp trên CSDL thử rồi đặt trạng thái (đường thật cần đi hết điểm — bài này chỉ canh vế lọc «chưa kết thúc»).
+    const ct = await chiTiet(w, t.id, ADM);
+    const gio = new Date().toISOString();
+    w.sqlite.prepare("UPDATE vc_trip_allocation SET status = 'NO_SHOW' WHERE trip_id = ? AND valid_to_at IS NULL AND status IN ('WAITING', 'BOARDED')").run(t.id);
+    w.sqlite.prepare("UPDATE vc_trip_stop SET status = 'ARRIVED', arrived_at = ? WHERE trip_id = ? AND status = 'PENDING'").run(new Date().toISOString(), t.id);
+    w.sqlite.prepare("UPDATE vc_trip_stop SET status = 'DONE', done_at = ? WHERE trip_id = ? AND status = 'ARRIVED'").run(new Date().toISOString(), t.id);
+    w.sqlite.prepare("UPDATE vc_trip SET status = 'ENDED', ended_at = ?, ended_ms = ?, version = version + 1, last_cmd_id = ? WHERE id = ?").run(gio, Date.parse(gio), uuid(), t.id);
+    assert.equal(w.q("SELECT status s FROM vc_trip WHERE id = ?", t.id)[0].s, "ENDED");
+    assert.ok(ct.chuyen.choChayThieu.length === 1, "chống bài rỗng: trước khi kết thúc có nhãn");
+    assert.equal(await dem(), 0, "chuyến đã kết thúc không tính dù còn nhãn");
+  } finally {
+    tat();
+  }
+});

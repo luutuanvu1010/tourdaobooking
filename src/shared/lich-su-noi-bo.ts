@@ -94,7 +94,7 @@ export const LICH_SU_NOI_BO_AN = [
   "trip_created", "trip_edited", "trip_cancelled", "trip_allocated", "trip_allocation_removed", "trip_allocation_moved", "trip_departed",
   "trip_stop_arrived", "trip_passenger_boarded", "trip_passenger_no_show", "trip_passenger_cancelled_at_stop", "trip_passenger_dropped",
   "trip_stops_reordered", "trip_ended", "trip_ended_interrupted", "trip_stop_added_running", "trip_allocation_office_cancelled", "trip_passenger_named",
-  "trip_allocation_corrected", "trip_departure_revoked", "trip_transfer_sent", "trip_transfer_withdrawn", "trip_transfer_declined",
+  "trip_allocation_corrected", "trip_departure_revoked", "trip_departure_waived", "trip_transfer_sent", "trip_transfer_withdrawn", "trip_transfer_declined",
   "trip_transfer_expired", "trip_transfer_escalated", "trip_transfer_confirmed", "trip_transfer_rejected", "trip_driver_refused", "trip_appt_called",
   "trip_appt_call_undone", "trip_cost_adjusted", "trip_cost_reversed", "trip_cost_snapshot", "trip_cost_agreed", "rental_rate_added",
   "rental_rate_closed", "route_saved", "vehicle_size_saved", "location_created", "location_updated", "maintenance_changed",

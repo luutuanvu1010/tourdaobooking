@@ -7,6 +7,7 @@
 //   điểm danh mục, CHỈ cho chuỗi đích "Chỉ đường" của DTO tài xế, ADR-0105).
 // - Câu GHI sau câu cổng đều mang `EXISTS (SELECT 1 FROM vc_trip WHERE id = ?T AND last_cmd_id = ?cmd)` (bài thứ tự lô — Task A14). Mỗi suất MỘT câu INSERT
 //   (trigger sức chứa theo dòng — kế hoạch mục 4 điểm 3). Không câu DELETE nào (không xoá cứng).
+import { sapTheoThuTuLoai } from "../../shared/cho-chay-thieu-giay.ts";
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { ChuyenChoTin, HoiChuyenChoTin } from "../../shared/tin-chuyen.ts";
 
@@ -326,6 +327,82 @@ const DIEU_KIEN_HIEN_HANH = defineSql(
 );
 export async function dieuKienHienHanh(db: D1Database, nowIso: string): Promise<{ id: string; min_capacity: number; subject: "VEHICLE" | "DRIVER"; vehicle_document_type_code: string | null; person_document_type_code: string | null }[]> {
   return (await db.prepare(DIEU_KIEN_HIEN_HANH).bind(nowIso).all<{ id: string; min_capacity: number; subject: "VEHICLE" | "DRIVER"; vehicle_document_type_code: string | null; person_document_type_code: string | null }>()).results;
+}
+/**
+ * ADR-0184: dòng cho phép chạy thiếu giấy tờ CHƯA DÙNG (chưa dòng con bản chụp nào trỏ tới) của chuyến CHƯA CHẠY. Dùng một lần: thu hồi xuất bến đưa chuyến về
+ * PLANNED nhưng dòng đã dùng không hiện lại. Kèm tên loại giấy (cho nhãn / nhật ký). Không số giấy tờ, không ghi chú tự do.
+ */
+const CHO_PHEP_THIEU_CHUA_DUNG = defineSql(
+  "van-chuyen",
+  "cho_phep_thieu_chua_dung",
+  `SELECT w.id, w.trip_id, w.vehicle_id, w.document_type_code, t.name AS type_name
+   FROM vc_trip_departure_waiver w
+   JOIN vc_trip tr ON tr.id = w.trip_id AND tr.status = 'PLANNED'
+   LEFT JOIN vc_vehicle_document_type t ON t.code = w.document_type_code
+   WHERE NOT EXISTS (SELECT 1 FROM vc_trip_departure_check_item i WHERE i.waiver_id = w.id)
+   ORDER BY w.created_at, w.id`,
+);
+export interface ChoPhepThieuRow { id: string; trip_id: string; vehicle_id: string; document_type_code: string; type_name: string | null }
+export async function choPhepThieuChuaDung(db: D1Database): Promise<ChoPhepThieuRow[]> {
+  return (await db.prepare(CHO_PHEP_THIEU_CHUA_DUNG).all<ChoPhepThieuRow>()).results;
+}
+/**
+ * ADR-0184 (P12): MỌI dòng cho phép của MỘT chuyến kèm tên loại giấy, nhãn lý do, ghi chú và hai cờ dùng — chỉ để dựng mục «Lý do / Ghi chú» ở chi tiết chuyến của văn phòng
+ * (`gomLoChoChayThieu`). Chỉ đọc bảng của chính module. Ghi chú tự do chỉ ra khỏi câu này tới DTO văn phòng, không tới tin, nhật ký hay DTO tài xế.
+ */
+const CHO_PHEP_THIEU_CUA_CHUYEN = defineSql(
+  "van-chuyen",
+  "cho_phep_thieu_cua_chuyen",
+  `SELECT w.id, w.cmd_id, w.vehicle_id, w.document_type_code, t.name AS type_name, r.label AS reason_label, w.note,
+     (SELECT count(*) FROM vc_trip_departure_check_item i WHERE i.waiver_id = w.id) AS da_dung,
+     (SELECT count(*) FROM vc_trip_departure_check_item i JOIN vc_trip_departure_check c ON c.id = i.check_id
+       WHERE i.waiver_id = w.id AND c.ket_qua = 'DAT'
+         AND c.id = (SELECT c2.id FROM vc_trip_departure_check c2 WHERE c2.trip_id = w.trip_id AND c2.ket_qua = 'DAT' ORDER BY c2.checked_at DESC, c2.id DESC LIMIT 1)) AS trong_ban_chup_cuoi
+   FROM vc_trip_departure_waiver w
+   LEFT JOIN vc_vehicle_document_type t ON t.code = w.document_type_code
+   LEFT JOIN vc_reason r ON r.code = w.reason_code
+   WHERE w.trip_id = ?1
+   ORDER BY w.created_at, w.id`,
+);
+export interface ChoPhepThieuCuaChuyenRow {
+  id: string; cmd_id: string; vehicle_id: string; document_type_code: string; type_name: string | null; reason_label: string | null; note: string | null;
+  da_dung: number; trong_ban_chup_cuoi: number;
+}
+export async function choPhepThieuCuaChuyen(db: D1Database, tripId: string): Promise<ChoPhepThieuCuaChuyenRow[]> {
+  return (await db.prepare(CHO_PHEP_THIEU_CUA_CHUYEN).bind(tripId).all<ChoPhepThieuCuaChuyenRow>()).results;
+}
+/**
+ * ADR-0184: loại giấy đã được cho chạy dù thiếu của chuyến ĐÃ chạy / kết thúc = dòng con `DIEU_KIEN` có `waiver_id` trong bản chụp ĐẠT MỚI NHẤT của mỗi chuyến
+ * (nhận nhiều chuyến một lần — danh sách điều phối, Trang chủ, cuốc tài xế). Mỗi (chuyến, loại) một dòng; chỉ mã + tên loại, không số giấy / ghi chú / lý do.
+ */
+const CHO_CHAY_THIEU_DA_DUNG = defineSql(
+  "van-chuyen",
+  "cho_chay_thieu_da_dung",
+  `SELECT c.trip_id, i.document_type_code, t.name AS type_name, t.sort_order AS type_sort
+   FROM vc_trip_departure_check_item i
+   JOIN vc_trip_departure_check c ON c.id = i.check_id
+   LEFT JOIN vc_vehicle_document_type t ON t.code = i.document_type_code
+   WHERE i.waiver_id IS NOT NULL AND c.ket_qua = 'DAT' AND c.trip_id IN (SELECT value FROM json_each(?1))
+     AND c.id = (SELECT c2.id FROM vc_trip_departure_check c2 WHERE c2.trip_id = c.trip_id AND c2.ket_qua = 'DAT' ORDER BY c2.checked_at DESC, c2.id DESC LIMIT 1)
+   GROUP BY c.trip_id, i.document_type_code
+   ORDER BY c.trip_id, i.document_type_code`,
+);
+export interface ChoChayThieuDaDungRow { trip_id: string; document_type_code: string; type_name: string | null; type_sort: number | null }
+/** `tripId` → danh sách `{ ten }` (tên loại giấy; thiếu tên danh mục thì dùng mã). Chuyến không có dòng nào: không có khoá. */
+export async function choChayThieuDaDung(db: D1Database, tripIds: readonly string[]): Promise<Map<string, { ten: string }[]>> {
+  const out = new Map<string, { ten: string }[]>();
+  if (tripIds.length === 0) return out;
+  const rows = (await db.prepare(CHO_CHAY_THIEU_DA_DUNG).bind(JSON.stringify(tripIds)).all<ChoChayThieuDaDungRow>()).results;
+  const thuTu = new Map(rows.map((r) => [r.document_type_code, r.type_sort ?? Number.MAX_SAFE_INTEGER]));
+  for (const r of sapTheoThuTuLoai(rows, (x) => x.document_type_code, thuTu)) out.set(r.trip_id, [...(out.get(r.trip_id) ?? []), { ten: r.type_name ?? r.document_type_code }]); // thứ tự danh mục, như chuyến chưa chạy (M)
+  return out;
+}
+/** ADR-0184: id sự kiện `DOCS_WAIVED` (= dấu lệnh của dòng cho phép) → tên các loại giấy đã cho chạy thiếu, theo thứ tự danh mục. Chỉ tên loại. */
+export async function tenGiayCuaSuKien(db: D1Database, suKienIds: readonly string[]): Promise<Map<string, string[]>> {
+  const out = new Map<string, string[]>();
+  if (suKienIds.length === 0) return out;
+  for (const r of (await db.prepare(THIEU_GIAY_CHO_TIN).bind(JSON.stringify([...new Set(suKienIds)])).all<{ id: string; ten: string }>()).results) out.set(r.id, [...(out.get(r.id) ?? []), r.ten]);
+  return out;
 }
 /** Lý do ĐANG DÙNG (mã + nhãn + nhóm) — đi kèm phản hồi lịch / chi tiết chuyến (I5). */
 const LY_DO_DANG_DUNG = defineSql("van-chuyen", "ly_do_dang_dung", "SELECT code, reason_group, label FROM vc_reason WHERE active = 1 ORDER BY reason_group, sort_order, code");
@@ -650,6 +727,17 @@ export const TRIP_THU_HOI_XUAT_BEN = defineSql(
   "trip_thu_hoi_xuat_ben",
   "UPDATE vc_trip SET status = 'PLANNED', departed_at = NULL, departed_ms = NULL, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND last_cmd_id = ?2",
 );
+/**
+ * ADR-0184: một DÒNG CHO PHÉP chạy thiếu giấy tờ (mỗi loại giấy một dòng) — đứng sau câu cổng, gác dấu lệnh của lô. ?1 id, ?2 chuyến, ?3 dấu lệnh (= `cmd_id` của dòng),
+ * ?4 xe HIỆN TẠI, ?5 loại giấy, ?6 hạn dòng giấy gần nhất (hoặc NULL), ?7 mã lý do (hoặc NULL — chỉ Toàn quyền), ?8 ghi chú đã trim (hoặc NULL), ?9 lúc, ?10 người
+ * (trigger 0147 xét quyền THẬT của người này qua v_stf_toan_quyen).
+ */
+export const WAIVER_INSERT = defineSql(
+  "van-chuyen",
+  "waiver_insert",
+  `INSERT INTO vc_trip_departure_waiver (id, trip_id, cmd_id, vehicle_id, document_type_code, expiry_date, reason_code, note, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?9, ?10 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?3)`,
+);
 /** Câu CHUYỂN "xe đã tới điểm" — đứng ĐẦU lô, tự gác: điểm PENDING của chuyến đang chạy. ?1 điểm, ?2 chuyến, ?3 giờ xảy ra (chuỗi), ?4 lúc, ?5 người. */
 export const STOP_DA_TOI = defineSql(
   "van-chuyen",
@@ -690,14 +778,14 @@ export const CHECK_INSERT = defineSql(
 );
 /**
  * Dòng con bản chụp (không số giấy tờ). ?1 id, ?2 bản chụp, ?3 loại dòng, ?4 giấy tờ xe, ?5 giấy tờ người, ?6 mã loại giấy tờ, ?7 hạng, ?8 hạn, ?9 điều kiện,
- * ?10 lúc, ?11 người, ?12 chuyến, ?13 dấu lệnh.
+ * ?10 lúc, ?11 người, ?12 chuyến, ?13 dấu lệnh, ?14 dòng cho phép chạy thiếu giấy tờ (ADR-0184; NULL ở mọi dòng khác).
  */
 export const CHECK_ITEM_INSERT = defineSql(
   "van-chuyen",
   "check_item_insert",
   `INSERT INTO vc_trip_departure_check_item (id, check_id, item_kind, vehicle_document_id, person_document_id, document_type_code, license_class_code, expiry_date,
-     rule_id, created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?10, ?11 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?12 AND last_cmd_id = ?13)`,
+     rule_id, created_at, created_by, updated_at, updated_by, waiver_id)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?10, ?11, ?14 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?12 AND last_cmd_id = ?13)`,
 );
 /** Bản chốt danh sách lúc xuất bến — trỏ DÒNG hành khách đã dùng (không chép tên). ?1 id, ?2 chuyến, ?3 bản chụp, ?4 suất, ?5 dòng hành khách, ?6 người đi kèm, ?7 lúc, ?8 người, ?9 dấu lệnh. */
 export const MANIFEST_INSERT = defineSql(
@@ -1171,6 +1259,11 @@ const VANG_CHO_TIN = defineSql("van-chuyen", "vang_cho_tin", `
 const KHAN_CAP_CHO_TIN = defineSql("van-chuyen", "khan_cap_cho_tin",
   `SELECT e.id, CASE WHEN e.kind = 'ALLOCATION_MOVED' THEN e.related_trip_id END AS nguon, e.override_rule_code = 'MOC_TOI_THIEU' AS moc FROM vc_trip_event e
    WHERE e.id IN (SELECT value FROM json_each(?1)) AND e.override_rule_code IS NOT NULL`);
+// ADR-0184: tên loại giấy xe của sự kiện «Cho chạy dù thiếu giấy tờ» — id sự kiện = dấu lệnh = `cmd_id` của dòng cho phép. Chỉ tên loại (không số giấy, không ghi chú).
+const THIEU_GIAY_CHO_TIN = defineSql("van-chuyen", "thieu_giay_cho_tin",
+  `SELECT w.cmd_id AS id, COALESCE(t.name, w.document_type_code) AS ten FROM vc_trip_departure_waiver w
+   LEFT JOIN vc_vehicle_document_type t ON t.code = w.document_type_code
+   WHERE w.cmd_id IN (SELECT value FROM json_each(?1)) ORDER BY t.sort_order, w.document_type_code`);
 // MQ-07 (ADR-0052 D6.2): MỌI suất khách (mở lẫn đã đóng — kèm khoảng hiệu lực) của các chặng được hỏi; thongbao lọc "mở lúc sự kiện" bằng hàm thuần.
 const SUAT_CHANG_CHO_TIN = defineSql("van-chuyen", "suat_chang_cho_tin", `
   SELECT a.leg_id, a.trip_id, a.valid_from_at AS tu, a.valid_to_at AS den FROM vc_trip_allocation a
@@ -1187,12 +1280,13 @@ export async function chuyenChoTinTheoId(db: D1Database, q: HoiChuyenChoTin): Pr
     : null;
   const tj = JSON.stringify([...new Set([...q.tripIds, ...(suat ?? []).map((x) => x.trip_id)])]);
   const sk = JSON.stringify([...new Set(q.suKienIds)]);
-  const [t, l, v, k, ck] = await Promise.all([
+  const [t, l, v, k, ck, tg] = await Promise.all([
     db.prepare(CHUYEN_CHO_TIN).bind(tj, sk).all<{ trip_id: string; ma: string; ngay_chay: string; xuat_ben: string | null }>(),
     db.prepare(LAI_CHO_TIN).bind(tj, sk).all<{ trip_id: string; party_id: string; tu: string; den: string | null }>(),
     q.suKienIds.length ? db.prepare(VANG_CHO_TIN).bind(sk).all<{ su_kien_id: string; order_id: string }>() : Promise.resolve({ results: [] }),
     q.suKienIds.length ? db.prepare(KHAN_CAP_CHO_TIN).bind(sk).all<{ id: string; nguon: string | null; moc: number }>() : Promise.resolve({ results: [] }),
     q.suKienIds.length ? db.prepare(CHUYEN_KHACH_CHO_TIN).bind(sk).all<{ id: string; nguon: string }>() : Promise.resolve({ results: [] }),
+    q.suKienIds.length ? db.prepare(THIEU_GIAY_CHO_TIN).bind(sk).all<{ id: string; ten: string }>() : Promise.resolve({ results: [] }),
   ]);
   return {
     chuyen: t.results.map((c) => ({ tripId: c.trip_id, ma: c.ma, ngayChay: c.ngay_chay, xuatBen: c.xuat_ben,
@@ -1202,6 +1296,7 @@ export async function chuyenChoTinTheoId(db: D1Database, q: HoiChuyenChoTin): Pr
     vuotMoc: k.results.filter((x) => x.moc === 1).map((x) => x.id),
     khanCapNguon: k.results.flatMap((x) => (x.nguon ? [{ suKienId: x.id, tripId: x.nguon }] : [])),
     chuyenKhachNguon: ck.results.map((x) => ({ suKienId: x.id, tripId: x.nguon })),
+    thieuGiay: [...new Set(tg.results.map((x) => x.id))].map((id) => ({ suKienId: id, ten: tg.results.filter((x) => x.id === id).map((x) => x.ten) })),
     ...(suat ? { suatChang: suat.map((x) => ({ legId: x.leg_id, tripId: x.trip_id, tu: x.tu, den: x.den })) } : {}),
   };
 }

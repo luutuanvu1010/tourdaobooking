@@ -916,7 +916,11 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
     const layChuaBanHang = canTai.includes("chuaBanHang")
       ? api<Api.ChuaCoBanHangResponse>("/api/orders/chua-co-ban-hang").then((r) => r.don.length + r.soDonChoXacNhanAn, () => null)
       : Promise.resolve(undefined);
-    const [data, review, unpaid, ngoai, dsDonCho, soDoiChieu, soThuTruoc, soChuaBanHang] = await Promise.all([
+    // ADR-0184: thẻ «Xe thiếu giấy tờ — đã cho chạy» (chỉ người có ô trip.override). Lỗi → null ("—" + Thử lại), không phải 0.
+    const layChoChayThieu = canTai.includes("choChayThieu")
+      ? api<Api.ChoChayThieuDemResponse>("/api/van-chuyen/cho-chay-thieu/dem").then((r) => r.count, () => null)
+      : Promise.resolve(undefined);
+    const [data, review, unpaid, ngoai, dsDonCho, soDoiChieu, soThuTruoc, soChuaBanHang, soChoChayThieu] = await Promise.all([
       layDashboard(),
       lamMoi ? undefined : loadReview(staff, taiMoi || soXemLaiGanNhat === null),
       api<Api.UnpaidSummaryResponse>("/api/ledger/unpaid-summary").catch(() => null), // sổ tiền lượt 1: ô "Còn thiếu tiền" rời dashboard của orders
@@ -933,6 +937,7 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
       taiDoiChieu(staff, lamMoi), // số cho dòng «Chờ đối chiếu» (khối chi tiết cũ vẫn dựng ở đây); cổng giữ nguyên
       taiThuTruoc(staff, lamMoi),
       layChuaBanHang,
+      layChoChayThieu,
     ]);
     const donCho = dsDonCho === undefined ? undefined : dsDonCho === null ? null : { count: dsDonCho.length, quaHan: dsDonCho.filter((d) => d.quaHan).length };
     datDaiDonChoDienThoai(donCho);
@@ -954,7 +959,7 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
     }
     // Dựng khối "Việc của bạn" SAU renderReview (thẻ "Cần xem lại" cuộn tới khối đó nên khối phải hiện cùng nguồn) và TRƯỚC dòng tóm tắt (nó lấy câu từ thẻ).
     const nguon: NguonSo = {
-      nhap: data.draftCount, chuaPhuTrach: data.unassignedCount, chuaBanHang: soChuaBanHang, conThieu: unpaid, xemLai: soXemLaiGanNhat,
+      nhap: data.draftCount, chuaPhuTrach: data.unassignedCount, chuaBanHang: soChuaBanHang, choChayThieu: soChoChayThieu, conThieu: unpaid, xemLai: soXemLaiGanNhat,
       dieuChinh: soNgoaiGanNhat.dieuChinh, gopY: soNgoaiGanNhat.gopY, tuGhi: soNgoaiGanNhat.tuGhi, donCho, doiChieu: soDoiChieu, thuTruoc: soThuTruoc, doiChieuQuaHan: quaHanGanNhat.doiChieu, thuTruocChiTiet: quaHanGanNhat.thuTruoc,
     }; // `chuyenHomNay` không còn nguồn: «Đơn đi hôm nay» là chính thẻ Chuyến đón (Phương án A)
     // Dải lỗi chung (thiếu số "Còn thiếu"): máy tính mà thẻ "Đơn còn thiếu tiền" đang hiện "—" + Thử lại thì thẻ là chỗ thử lại DUY NHẤT (không cộng nút ở dải); điện thoại (thẻ ẩn) vẫn dùng dải.

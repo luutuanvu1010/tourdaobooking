@@ -748,7 +748,14 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-THAM-CHIEU-DOT-2** — bảng tham chiếu ngôn ngữ, đợt 2 (ADR-0167): trình chủ theo lô 102 việc chờ chọn, trả lời «theo khuyến nghị» được. Đọc tay cột đường lệnh: hàng còn trống (đường ghép từ hàm như Vận chuyển) và hàng chưa đối chiếu. `kiemNguonTen` nhận mọi nguồn có chữ «chủ», kể cả câu phủ định; phép kiểm khái niệm đã chốt chỉ kiểm dạng ngày kèm nguồn, chưa đọc nguồn của Hướng dẫn, Việc của nhóm, Đơn đi và các khái niệm nguồn là bàn giao. Để sau nữa: trang giải nghĩa cho nhân viên, Trợ lý Mai đọc bảng.
 - **BL-KB-CHU-DOT-2** — đưa vào đợt 2 của bảng tham chiếu (đặc tả `docs/superpowers/specs/2026-11-04-bang-tham-chieu-ngon-ngu-design.md`): hộp hỏi của nút «Xác nhận đơn» của người lập nói ít hậu quả hơn hộp «Còn vé, xác nhận đơn»; ô «Đơn nháp» ở Trang chủ gọi cùng loại đơn bằng tên khác; chữ «ẩn» trong thông báo đồng bộ Sheet giữ nguyên vì nói về dịch vụ đã rời Sheet, khác «Ngừng bán» do người bấm.
 
-## 65. Nhà cung cấp và giá mua vé (mã `BL-VE-VON`, 2026-11-05)
+## 65. Nợ của «Cho xe thiếu giấy tờ xuất bến» (mã `BL-CC-…`, ADR-0184, 2026-11-07)
+
+- **Trạng thái:** `để sau` · Ghi khi thi công ADR-0184; chưa việc nào có kế hoạch.
+- **BL-CC-RUT-LAI** — nút rút lại sự cho phép chạy thiếu giấy tờ trước giờ xe chạy. Chủ chọn «Chưa cần, để sau» ngày 2026-11-07. Hôm nay dòng cho phép chỉ-thêm và không có lệnh thu hồi: cho nhầm thì chỉ còn cách đổi xe. Làm thì cần một dòng «đã rút» mới (không sửa, không xoá dòng cũ) và cổng xuất bến bỏ qua dòng đã rút.
+- **BL-CC-DOI-XE-VE-CU** — đổi xe rồi đổi về xe cũ: dòng cho phép cũ của xe đó áp lại, vì trigger chỉ kiểm dòng ghi đúng xe hiện tại lúc cấp, còn lúc xuất bến chỉ so chuyến + xe + loại giấy. Có thể chấp nhận (sự cho phép vẫn là của đúng chuyến, đúng xe); chủ xem lại nếu muốn bắt cho chạy lại sau mỗi lần đổi xe.
+- **BL-KB-CHINH-SACH-DIEU-PHOI** — kịch bản Chrome `chinh-sach-dieu-phoi-smoke` đỏ 6/14 bước từ trước ADR-0184 (thanh bên, chữ «Đang áp dụng», quyền xem chính sách); không do ADR-0184. Cùng nhóm với `BL-KB-DO-SAN` ở mục 64.
+
+## 66. Nhà cung cấp và giá mua vé (mã `BL-VE-VON`, 2026-11-05)
 
 - **Trạng thái:** `để sau` · Chủ 5/11, nguyên văn: «à không cần, cái đó sẽ nằm trong phân hệ kế toán, làm về sau».
 - **Việc:** ghi mua vé của ai, giá mua bao nhiêu theo từng lô; từ đó có số tiền mua theo nhà cung cấp, vốn và chênh lệch. Phân hệ vé điện tử chỉ quản lý số lượng, không làm phần này (đề xuất `docs/superpowers/specs/2026-11-05-ve-dien-tu-danh-sach-man.md`).

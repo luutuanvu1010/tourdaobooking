@@ -17,6 +17,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0184 (chủ duyệt 7/11, chọn chữ 7–8/11): cho chạy dù thiếu giấy tờ xe, kèm nhãn vàng. Migration 0147. Bước A.0 ngày 8/11; đổi số 2.76 → 2.77 khi gộp ADR-0187 (nhập trước, giữ 2.76).
+    version: "2.77",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Quản trị và Toàn quyền nay cho chạy được một lần chuyến có xe thiếu hoặc hết hạn giấy tờ: bấm «Cho chạy dù thiếu giấy tờ» ở chi tiết chuyến." },
+      { kind: "moi", text: "Riêng Kiểm định và Bảo hiểm thì chỉ Toàn quyền cho chạy được. Mỗi lần cho phép chỉ dùng cho đúng chuyến và đúng xe đó." },
+      { kind: "moi", text: "Chuyến được cho chạy mang nhãn vàng «Xe thiếu … — đã cho chạy» ở chi tiết chuyến, Điều phối xe và cuốc của tài xế; tài xế nhận tin báo." },
+      { kind: "moi", text: "Văn phòng xem được lý do và ghi chú của lần cho chạy ngay dưới nhãn vàng ở chi tiết chuyến." },
+      { kind: "moi", text: "Trang chủ của Quản trị và Toàn quyền có thẻ «Xe thiếu giấy tờ — đã cho chạy», đếm số chuyến hôm nay chưa kết thúc đã được cho chạy dù thiếu giấy tờ." },
+      { kind: "doi", text: "Xe thiếu Kiểm định hoặc Bảo hiểm thì dòng «Ai xử lý» ghi «Quản trị, Toàn quyền»." },
+    ],
+  },
+  {
     // ADR-0187 Đ3 mức (a) (chủ duyệt 8/11 «Duyệt, mức a»): tách nhiệm vụ — đánh dấu, không chặn. Migration 0150. Ngày đặt lại ở bước A.0 của lần triển khai.
     version: "2.76",
     date: "2026-11-08",
