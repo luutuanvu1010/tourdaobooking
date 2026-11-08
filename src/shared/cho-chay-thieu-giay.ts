@@ -55,3 +55,20 @@ export function kiemChoChayThieu(v: {
   if (ghiChu !== null && (ghiChu.length < GHI_CHU_TOI_THIEU || ghiChu.length > GHI_CHU_TOI_DA)) return { ok: false, ma: "thieu_ghi_chu" };
   return { ok: true, ghiChu };
 }
+
+/** Một dòng cho phép của chuyến, đủ để gom lô (câu `cho_phep_thieu_cua_chuyen`). */
+export interface DongChoPhepDoc { cmdId: string; tenLoai: string; lyDoNhan: string | null; ghiChu: string | null }
+/**
+ * ADR-0184 (P12): gom các dòng cho phép ĐANG TẠO NHÃN VÀNG thành MỖI LÔ (`cmd_id`) một mục — tên các loại giấy (bỏ trùng, giữ thứ tự), nhãn lý do, ghi chú (null = trống).
+ * Việc chọn dòng nào đang áp (chuyến chưa chạy: chưa dùng, đúng xe, loại còn thiếu; đã chạy: dòng đã dùng ở bản chụp cuối) do nơi gọi làm; hàm này thuần.
+ */
+export function gomLoChoChayThieu(dong: readonly DongChoPhepDoc[]): { ten: string[]; lyDo: string | null; ghiChu: string | null }[] {
+  const lo = new Map<string, { ten: string[]; lyDo: string | null; ghiChu: string | null }>();
+  for (const d of dong) {
+    const cu = lo.get(d.cmdId);
+    if (cu) {
+      if (!cu.ten.includes(d.tenLoai)) cu.ten.push(d.tenLoai);
+    } else lo.set(d.cmdId, { ten: [d.tenLoai], lyDo: d.lyDoNhan, ghiChu: d.ghiChu });
+  }
+  return [...lo.values()];
+}

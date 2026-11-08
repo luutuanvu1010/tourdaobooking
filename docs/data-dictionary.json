@@ -690,7 +690,7 @@
       "name": "vc_trip_departure_waiver",
       "module": "van-chuyen",
       "kind": "table",
-      "note": "dòng cho phép chạy thiếu giấy tờ (ADR-0184; migration 0147), chỉ thêm: mỗi loại giấy một dòng, gắn chuyến chưa chạy và đúng xe hiện tại của chuyến; hiệu lực một chuyến, một lần xuất bến. Kiểm định và Bảo hiểm trách nhiệm dân sự chỉ Toàn quyền cấp; Quản trị bắt buộc có lý do (nhóm CHO_CHAY_THIEU_GIAY: Giấy đang gia hạn, Xe thay thế khẩn cấp, Khác); ghi chú tự do 10–200 ký tự, không vào nhật ký. Không có cột số giấy tờ"
+      "note": "dòng cho phép chạy thiếu giấy tờ (ADR-0184; migration 0147), chỉ thêm: mỗi loại giấy một dòng, gắn chuyến chưa chạy và đúng xe hiện tại của chuyến; hiệu lực một chuyến, một lần xuất bến. Kiểm định và Bảo hiểm trách nhiệm dân sự chỉ Toàn quyền cấp; Quản trị bắt buộc có lý do (nhóm CHO_CHAY_THIEU_GIAY: Giấy đang gia hạn, Xe thay thế khẩn cấp, Khác); ghi chú tự do 10–200 ký tự, không vào nhật ký, tin, DTO tài xế, lịch chung, Bảng tin — chỉ hiện (cùng nhãn lý do) ở chi tiết chuyến của văn phòng (P12). Không có cột số giấy tờ"
     },
     {
       "name": "vc_trip_manifest",

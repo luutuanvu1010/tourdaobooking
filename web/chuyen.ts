@@ -163,6 +163,15 @@ function ve(): void {
     h("span", { class: "dp-ct-when" }, `${thuNgay(ngay)} · ${gioHien(c.batDau, ngay)}–${gioHien(c.ketThuc, ngay)}`),
     h("div", { class: "dp-ct-actions" }, nutSua, nutChoChay("vc-btn-ghost-primary"), nutXuatBen("vc-btn-ghost-primary"), nutThuHoi("vc-btn-ghost-primary"), nutHuy("vc-btn-danger")),
   );
+  // ADR-0184 (P12): dưới nhãn vàng — lý do và ghi chú của từng lô cho phép (chỉ chi tiết chuyến của văn phòng). Lô không có lý do lẫn ghi chú (Toàn quyền bỏ trống) thì không dòng.
+  const loCoChu = r.choChayThieuChiTiet.filter((lo) => lo.lyDo !== null || lo.ghiChu !== null);
+  const lyDoChoChay = loCoChu.length
+    ? h("div", { class: "dp-ct-cho-chay", "data-khoi": "cho-chay-thieu-ly-do" }, ...loCoChu.map((lo) => h("div", { class: "dp-ct-cho-chay-lo" },
+        loCoChu.length > 1 ? h("div", { class: "dp-ct-cho-chay-ten" }, lo.ten.join(", ")) : null,
+        lo.lyDo !== null ? h("div", null, `Lý do: ${lo.lyDo}`) : null,
+        lo.ghiChu !== null ? h("div", { class: "dp-ct-cho-chay-ghi-chu" }, `Ghi chú: ${lo.ghiChu}`) : null,
+      )))
+    : null;
   // Mốc tiến độ đã có (thành phần B): xuất bến / kết thúc — một giờ, hoặc hai giờ khi văn phòng khai.
   const moc = c.xuatBen || c.ketThucThat
     ? h("div", { class: "dp-ct-moc" }, dongMoc("Xe chạy", c.xuatBen, ngay), c.ketThucThat ? dongMoc(c.trangThai === "ENDED_INTERRUPTED" ? "Kết thúc gián đoạn" : "Kết thúc", c.ketThucThat, ngay) : null)
@@ -324,6 +333,7 @@ function ve(): void {
   replaceChildren(
     trangEl,
     head,
+    lyDoChoChay,
     moc,
     khoa,
     baoCao,

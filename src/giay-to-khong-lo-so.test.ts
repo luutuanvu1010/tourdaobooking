@@ -473,7 +473,10 @@ test("ADR-0184: cho chạy dù thiếu giấy tờ — thân trả về, câu l�
     than.push(c.text);
     const ok = await goi(SUP, { loaiGiayTo: ["TPL_INSURANCE"], ghiChu: GHI_CHU });
     assert.ok(ok.status === 200 || ok.status === 201, ok.text);
-    than.push(ok.text);
+    // P12 (đợt sửa 1, chủ 2026-11-08): phản hồi thành công là chi tiết chuyến của VĂN PHÒNG nên CÓ ghi chú — đúng một chỗ, mục `choChayThieuChiTiet`; số giấy tờ thì vẫn không.
+    assert.equal(ok.json.choChayThieuChiTiet[0].ghiChu, GHI_CHU, "ghi chú ở mục riêng của chi tiết chuyến văn phòng");
+    assert.equal(ok.text.split(GHI_CHU).length - 1, 1, "ghi chú chỉ xuất hiện một lần ở phản hồi");
+    assert.ok(!ok.text.includes(SO_KD), "phản hồi thành công không có số giấy tờ");
     const lai = await goi(SUP, { loaiGiayTo: ["TPL_INSURANCE"], ghiChu: GHI_CHU, version: version + 1 });
     assert.equal(lai.status, 409, lai.text);
     than.push(lai.text);

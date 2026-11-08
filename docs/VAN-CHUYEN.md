@@ -36,8 +36,8 @@ Nguồn quyết định: ADR-0128 và ADR-0129, chủ duyệt 17/10/2026 khi rà
 ### 0.1b Xe thiếu giấy tờ vẫn xuất bến (ADR-0184)
 
 - **Mặc định vẫn giữ xe:** xe thiếu hoặc hết hạn giấy tờ thì cổng xuất bến giữ lại, như trước.
-- **Cho chạy ngoại lệ:** Quản trị hoặc Toàn quyền bấm **«Cho chạy dù thiếu giấy tờ»** trên đúng chuyến, chọn loại giấy đang thiếu và lý do. Sau đó xe xuất bến được, chuyến hiện nhãn vàng «Xe thiếu … — đã cho chạy» và tài xế nhận tin.
-- **Ai được cho chạy loại nào:** thiếu Kiểm định hoặc Bảo hiểm chỉ Toàn quyền cho chạy được (được bỏ trống lý do); các loại giấy xe còn lại Quản trị cũng làm được nhưng phải chọn lý do. Giấy tờ của tài xế thì không có lối cho chạy.
+- **Cho chạy ngoại lệ:** Quản trị hoặc Toàn quyền bấm **«Cho chạy dù thiếu giấy tờ»** trên đúng chuyến, chọn loại giấy đang thiếu và lý do. Sau đó xe xuất bến được, chuyến hiện nhãn vàng «Xe thiếu … — đã cho chạy» và tài xế nhận tin. Ở chi tiết chuyến của văn phòng, ngay dưới nhãn vàng hiện thêm «Lý do: …» và «Ghi chú: …» của lần cho chạy (Toàn quyền bỏ trống lý do thì không có dòng lý do). Lý do và ghi chú chỉ hiện ở đó: không có ở màn tài xế, lịch chung, tin báo, nhật ký hay Bảng tin.
+- **Ai được cho chạy loại nào:** thiếu Kiểm định hoặc Bảo hiểm chỉ Toàn quyền cho chạy được (được bỏ trống lý do); các loại giấy xe còn lại Quản trị cũng làm được nhưng phải chọn lý do. Giấy tờ của tài xế thì không có lối cho chạy. Màn «Ai xử lý» của xe thiếu Kiểm định hoặc Bảo hiểm ghi «Quản trị, Toàn quyền» (Quản trị nhập giấy mới để gỡ giữ, Toàn quyền cho chạy); bốn loại còn lại ghi «Quản trị».
 - **Chỉ áp cho đúng chuyến và đúng xe:** đổi sang xe khác thì phải cho chạy lại; mỗi lần cho chạy chỉ dùng cho một lần xuất bến. Chưa có nút rút lại sự cho phép trước giờ chạy (ghi ở danh sách việc để sau).
 
 ### 0.2 Xe riêng — không bao giờ ghép khách lẻ

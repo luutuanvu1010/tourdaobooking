@@ -1859,6 +1859,8 @@ export interface BanChupDto {
   soNguoiChot: number;
 }
 /** GET /api/van-chuyen/chuyen/:id (và phản hồi mọi lệnh ghi của văn phòng). */
+/** ADR-0184 (P12): một lô cho phép chạy thiếu giấy tờ ở chi tiết chuyến của văn phòng. */
+export interface ChoChayThieuLoDto { ten: string[]; lyDo: string | null; ghiChu: string | null }
 export interface ChuyenChiTietResponse {
   /** `tuyen` (Đợt 4 G3 — trường đọc thêm cho form sửa chuyến): mã + TÊN tuyến đang gắn (kể cả tuyến đã ngưng dùng), null = chưa chọn. Không có tiền. */
   chuyen: ChuyenTomTatDto & { nghiPhaLe: boolean; lyDoHuy: string | null; lyDoKetThuc: string | null; tuyen: { ma: string; ten: string } | null };
@@ -1891,6 +1893,12 @@ export interface ChuyenChiTietResponse {
    * dù thiếu giấy tờ». `chiToanQuyen` = Kiểm định / Bảo hiểm (chỉ Toàn quyền cho chạy được). `expiryDate` null = xe chưa có giấy. KHÔNG số giấy tờ.
    */
   giayToThieu: { documentTypeCode: string; ten: string; expiryDate: string | null; chiToanQuyen: boolean }[];
+  /**
+   * ADR-0184 (P12, chủ 2026-11-08 «Có, làm luôn lần này»): LÝ DO + GHI CHÚ của các lô cho phép đang tạo nhãn vàng — mỗi lô (một lần bấm «Cho chạy dù thiếu giấy tờ») một mục:
+   * tên các loại giấy, nhãn lý do (null = Toàn quyền bỏ trống), ghi chú (null = không ghi). Chuyến chưa chạy: dòng đang áp; đã chạy / kết thúc: dòng đã dùng. Tách khỏi
+   * `chuyen.choChayThieu` vì chỗ đó dùng chung với DTO tài xế và lịch chung — những nơi đó KHÔNG có trường này (lý do, ghi chú chỉ ở chi tiết chuyến của văn phòng; không vào tin, nhật ký, Bảng tin).
+   */
+  choChayThieuChiTiet: ChoChayThieuLoDto[];
   /**
    * CHỈ ở phản hồi lệnh xếp (`POST …/chuyen/:id/phan-bo`) khi có: cảnh báo sớm CHUA_CO_NOI_TRA / THIEU_TEN của chặng vừa xếp (cùng luật cổng xuất bến —
    * `lyDoNoiTra` / `lyDoThieuTen` ở src/shared/dieu-phoi-kiem.ts). Chỉ nhắc — lệnh đã chạy. Mã đơn + số tên thiếu, không tên khách.

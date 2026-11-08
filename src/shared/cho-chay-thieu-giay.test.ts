@@ -1,7 +1,7 @@
 // ADR-0184: luật thuần «Cho chạy dù thiếu giấy tờ» — quyền theo loại giấy, lý do, ghi chú, nhãn vàng.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GIAY_TO_XE_CHI_TOAN_QUYEN, kiemChoChayThieu, laGiayToChiToanQuyen, nhanChoChayThieu, NUT_CHO_CHAY_THIEU_GIAY } from "./cho-chay-thieu-giay.ts";
+import { GIAY_TO_XE_CHI_TOAN_QUYEN, gomLoChoChayThieu, kiemChoChayThieu, laGiayToChiToanQuyen, nhanChoChayThieu, NUT_CHO_CHAY_THIEU_GIAY } from "./cho-chay-thieu-giay.ts";
 import type { GiayToXeThieu } from "./dieu-phoi-kieu.ts";
 
 const thieu = (...codes: string[]): GiayToXeThieu[] => codes.map((c, i) => ({ documentTypeCode: c, expiryDate: null, ruleId: `r${i}` }));
@@ -52,4 +52,17 @@ test("kiemChoChayThieu: từng mã lỗi", () => {
   assert.equal(ma({ ...goc, lyDo: "THIEU_GIAY_KHAC", ghiChu: "  ngắn   " }), "thieu_ghi_chu", "«Khác» ghi chú < 10 ký tự sau trim");
   assert.equal(ma({ ...goc, coOToanQuyen: true, lyDo: "THIEU_GIAY_KHAC", ghiChu: null }), "thieu_ghi_chu", "Toàn quyền đã chọn «Khác» vẫn cần ghi chú");
   assert.equal(ma({ ...goc, ghiChu: "x".repeat(201) }), "thieu_ghi_chu", "ghi chú quá dài (CHECK CSDL 200)");
+});
+
+test("gomLoChoChayThieu (ADR-0184 P12): mỗi lô (cmd) một mục — tên loại bỏ trùng giữ thứ tự, lý do và ghi chú của lô, null giữ nguyên", () => {
+  assert.deepEqual(gomLoChoChayThieu([]), []);
+  assert.deepEqual(
+    gomLoChoChayThieu([
+      { cmdId: "a", tenLoai: "Đăng ký xe", lyDoNhan: "Giấy đang gia hạn", ghiChu: "chờ cấp lại" },
+      { cmdId: "a", tenLoai: "Bảo hiểm", lyDoNhan: "Giấy đang gia hạn", ghiChu: "chờ cấp lại" },
+      { cmdId: "a", tenLoai: "Bảo hiểm", lyDoNhan: "Giấy đang gia hạn", ghiChu: "chờ cấp lại" },
+      { cmdId: "b", tenLoai: "Kiểm định", lyDoNhan: null, ghiChu: null },
+    ]),
+    [{ ten: ["Đăng ký xe", "Bảo hiểm"], lyDo: "Giấy đang gia hạn", ghiChu: "chờ cấp lại" }, { ten: ["Kiểm định"], lyDo: null, ghiChu: null }],
+  );
 });

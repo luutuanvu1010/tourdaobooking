@@ -633,7 +633,8 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
           version: f.chuyen.version, requestId: rid(), loaiGiayTo: ["REGISTRATION"], lyDo: null, ghiChu: "Ghi chú tự do không được lộ ra",
         }, 201);
         assert.equal(r.chuyen.choChayThieu.length, 1, "chống bài rỗng: có nhãn «đã cho chạy»");
-        assert.doesNotMatch(JSON.stringify(r), /Ghi chú tự do không được lộ ra/, "ghi chú tự do không vào phản hồi");
+        assert.deepEqual(r.choChayThieuChiTiet, [{ ten: ["Đăng ký xe"], lyDo: null, ghiChu: "Ghi chú tự do không được lộ ra" }], "P12 (đợt sửa 1): phản hồi lệnh là chi tiết chuyến của văn phòng nên CÓ ghi chú ở mục riêng (không lộ ở đâu khác, không kèm tên khách)");
+        assert.equal(JSON.stringify(r).split("Ghi chú tự do không được lộ ra").length - 1, 1, "ghi chú chỉ xuất hiện đúng một lần: ở choChayThieuChiTiet");
       },
       [`${R}/tu-choi`]: async () => {
         await goi(`${R}/tu-choi`, "tài xế công ty bấm Từ chối (403)", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/tu-choi`, DRIVER, { requestId: rid(), lyDo: "TCC_KHAC" }, 403);

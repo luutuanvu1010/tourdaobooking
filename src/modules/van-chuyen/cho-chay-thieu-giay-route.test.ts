@@ -433,3 +433,49 @@ test("L6 (đợt sửa 1): ghi chú 201 ký tự → 400 với câu «tối đa 
     tat();
   }
 });
+
+test("P12 / L7 (đợt sửa 1): lý do + ghi chú của dòng cho phép CHỈ hiện ở chi tiết chuyến của văn phòng (GET và phản hồi lệnh); KHÔNG ở cuốc tài xế, lịch chung, tin, nhật ký, Bảng tin", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    const xe2 = xeCo(w, ["TPL_INSURANCE"]); // thiếu Kiểm định + Đăng ký xe; chuyến thứ hai, giờ khác, để Toàn quyền cho Kiểm định không lý do
+    const t2 = await chuyenSan(w, { xe: xe2, bd: "15:30", kt: "17:00", gio: "16:00" });
+    denGio("12:40");
+    const DAU = "DAUHIEUGHICHU-Doi-cap-lai-cavet";
+    const r = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN", ghiChu: DAU });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    const mong = [{ ten: ["Đăng ký xe"], lyDo: "Giấy đang gia hạn", ghiChu: DAU }];
+    assert.deepEqual(r.json.choChayThieuChiTiet, mong, "phản hồi lệnh (cùng DTO chi tiết văn phòng)");
+    for (const as of [ADM, SUP, SALES, ACC]) {
+      const ct = await w.call("GET", `/api/van-chuyen/chuyen/${t.id}`, { as });
+      if (ct.status === 200) assert.deepEqual(ct.json.choChayThieuChiTiet, mong, `${as}: chi tiết văn phòng`);
+    }
+    // KHÔNG ở: cuốc tài xế (danh sách + chi tiết), lịch chung, tin, nhật ký, Bảng tin
+    const cuoc = await w.call("GET", "/api/van-chuyen/cuoc-cua-toi", { as: DRIVER });
+    assert.equal(cuoc.status, 200, cuoc.text);
+    assert.ok(cuoc.json.chuyen.some((c: any) => c.choChayThieu.length === 1), "chống bài rỗng: cuốc có nhãn vàng");
+    const cuocCt = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${t.id}`, { as: DRIVER });
+    assert.equal(cuocCt.status, 200, cuocCt.text);
+    const lich = await w.call("GET", `/api/van-chuyen/lich?tuNgay=${NGAY}&denNgay=${NGAY}`, { as: ADM });
+    assert.equal(lich.status, 200, lich.text);
+    const tin = await w.call("GET", "/api/thong-bao", { as: DRIVER });
+    const bangTin = await w.call("GET", "/api/bang-tin", { as: ADM });
+    for (const [ten, x] of [["cuốc tài xế (danh sách)", cuoc], ["cuốc tài xế (chi tiết)", cuocCt], ["lịch chung", lich], ["hộp tin", tin], ["Bảng tin", bangTin]] as const) {
+      assert.doesNotMatch(x.text, /DAUHIEUGHICHU|choChayThieuChiTiet/, `${ten}: không có ghi chú, không khoá mới`);
+      // lịch chung có sẵn DANH MỤC lý do (mọi nhóm) nên chữ «Giấy đang gia hạn» ở đó không nói lô nào đã chọn lý do này; chỗ khác thì không được có.
+      if (ten !== "lịch chung") assert.doesNotMatch(x.text, /Giấy đang gia hạn/, `${ten}: không có lý do của lô`);
+    }
+    assert.ok(!JSON.stringify(cuocCt.json).includes("choChayThieuChiTiet"), "DTO tài xế không có khoá mới");
+    const nk = w.q("SELECT detail FROM audit_log").map((x: any) => x.detail).join("\n");
+    assert.doesNotMatch(nk, /DAUHIEUGHICHU/, "nhật ký không có ghi chú tự do (P5 giữ nguyên)");
+    // lý do bỏ trống (Toàn quyền): vẫn có mục, lyDo / ghiChu null
+    const tq = await choChay(w, t2.id, SUP, { loaiGiayTo: ["INSPECTION"], lyDo: null, ghiChu: null });
+    assert.ok(tq.status === 200 || tq.status === 201, tq.text);
+    assert.deepEqual((await chiTiet(w, t2.id, ADM)).choChayThieuChiTiet, [{ ten: ["Kiểm định"], lyDo: null, ghiChu: null }]);
+    assert.deepEqual((await chiTiet(w, t.id, ADM)).choChayThieuChiTiet, mong, "chuyến kia không bị lẫn");
+  } finally {
+    tat();
+  }
+});

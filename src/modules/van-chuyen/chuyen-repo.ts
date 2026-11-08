@@ -346,6 +346,31 @@ export async function choPhepThieuChuaDung(db: D1Database): Promise<ChoPhepThieu
   return (await db.prepare(CHO_PHEP_THIEU_CHUA_DUNG).all<ChoPhepThieuRow>()).results;
 }
 /**
+ * ADR-0184 (P12): MỌI dòng cho phép của MỘT chuyến kèm tên loại giấy, nhãn lý do, ghi chú và hai cờ dùng — chỉ để dựng mục «Lý do / Ghi chú» ở chi tiết chuyến của văn phòng
+ * (`gomLoChoChayThieu`). Chỉ đọc bảng của chính module. Ghi chú tự do chỉ ra khỏi câu này tới DTO văn phòng, không tới tin, nhật ký hay DTO tài xế.
+ */
+const CHO_PHEP_THIEU_CUA_CHUYEN = defineSql(
+  "van-chuyen",
+  "cho_phep_thieu_cua_chuyen",
+  `SELECT w.id, w.cmd_id, w.vehicle_id, w.document_type_code, t.name AS type_name, r.label AS reason_label, w.note,
+     (SELECT count(*) FROM vc_trip_departure_check_item i WHERE i.waiver_id = w.id) AS da_dung,
+     (SELECT count(*) FROM vc_trip_departure_check_item i JOIN vc_trip_departure_check c ON c.id = i.check_id
+       WHERE i.waiver_id = w.id AND c.ket_qua = 'DAT'
+         AND c.id = (SELECT c2.id FROM vc_trip_departure_check c2 WHERE c2.trip_id = w.trip_id AND c2.ket_qua = 'DAT' ORDER BY c2.checked_at DESC, c2.id DESC LIMIT 1)) AS trong_ban_chup_cuoi
+   FROM vc_trip_departure_waiver w
+   LEFT JOIN vc_vehicle_document_type t ON t.code = w.document_type_code
+   LEFT JOIN vc_reason r ON r.code = w.reason_code
+   WHERE w.trip_id = ?1
+   ORDER BY w.created_at, w.id`,
+);
+export interface ChoPhepThieuCuaChuyenRow {
+  id: string; cmd_id: string; vehicle_id: string; document_type_code: string; type_name: string | null; reason_label: string | null; note: string | null;
+  da_dung: number; trong_ban_chup_cuoi: number;
+}
+export async function choPhepThieuCuaChuyen(db: D1Database, tripId: string): Promise<ChoPhepThieuCuaChuyenRow[]> {
+  return (await db.prepare(CHO_PHEP_THIEU_CUA_CHUYEN).bind(tripId).all<ChoPhepThieuCuaChuyenRow>()).results;
+}
+/**
  * ADR-0184: loại giấy đã được cho chạy dù thiếu của chuyến ĐÃ chạy / kết thúc = dòng con `DIEU_KIEN` có `waiver_id` trong bản chụp ĐẠT MỚI NHẤT của mỗi chuyến
  * (nhận nhiều chuyến một lần — danh sách điều phối, Trang chủ, cuốc tài xế). Mỗi (chuyến, loại) một dòng; chỉ mã + tên loại, không số giấy / ghi chú / lý do.
  */

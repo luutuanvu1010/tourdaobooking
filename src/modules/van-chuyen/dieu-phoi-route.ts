@@ -6,7 +6,7 @@ import { sdtChinhCuaHoSo } from "../parties";
 import type { ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiItemDto, GoiBaoChangDto, LenhChuyenLoiBody } from "../../shared/contracts";
 import { docGoiBao, goiBaoChang, nguoiBamGoiBao, type QuyenGoiBao } from "./goi-bao-lenh";
 import { giayToXeConThieu, kiemXuatBen, type KiemXuatBenVao } from "../../shared/dieu-phoi-kiem";
-import { laGiayToChiToanQuyen } from "../../shared/cho-chay-thieu-giay";
+import { gomLoChoChayThieu, laGiayToChiToanQuyen } from "../../shared/cho-chay-thieu-giay";
 import type { KetQuaKiem, LoaiSuKienChuyen, MaLuatPhaLe, NhacXuatBen, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error, json } from "../../shared/http";
@@ -17,7 +17,7 @@ import { daoMoiSauDoi, diemDonChuaToiCuaDiemTra, sapDonTruocTra } from "../../sh
 import { msToVnLocal, ngayNgan } from "../../shared/vn-date";
 import { findRoute } from "./tien-xe-repo";
 import {
-  allocsByTrips, banChupCuoi, choChayThieuDaDung, eventByRequest, eventsByTrips, legFlags, stopsByTrips, tenGiayCuaSuKien, tenNguoiDiKem, tripsByDate, type AllocRow, type StopRow, type SuKienYeuCauRow, type TripRow, type XeDieuPhoiRow,
+  allocsByTrips, banChupCuoi, choChayThieuDaDung, choPhepThieuCuaChuyen, eventByRequest, eventsByTrips, legFlags, stopsByTrips, tenGiayCuaSuKien, tenNguoiDiKem, tripsByDate, type AllocRow, type StopRow, type SuKienYeuCauRow, type TripRow, type XeDieuPhoiRow,
 } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi, SuKienCuaLo } from "./dieu-phoi";
 import {
@@ -428,7 +428,21 @@ export async function chiTietChuyen(
       ...(xemLyDoTuChoi ? { lyDo: r.reason_label ?? "Lý do khác" } : {}),
     })),
     giayToThieu: await giayToThieuDto(db, t, xeRow, c),
+    choChayThieuChiTiet: await choChayThieuChiTietDto(db, t, xeRow, c),
   };
+}
+
+/**
+ * ADR-0184 (P12): lý do + ghi chú của các lô cho phép đang tạo nhãn vàng ở chi tiết chuyến của văn phòng. Cùng quy tắc chọn dòng với nhãn: chuyến chưa chạy → dòng chưa dùng,
+ * đúng xe hiện tại, loại còn thiếu thật (`giayToXeConThieu`); đã chạy / kết thúc → dòng đã dùng ở bản chụp ĐẠT cuối. Chỉ DTO văn phòng gọi hàm này.
+ */
+async function choChayThieuChiTietDto(db: D1Database, t: TripRow, xe: XeDieuPhoiRow | undefined, c: DuLieuChung): Promise<ChuyenChiTietResponse["choChayThieuChiTiet"]> {
+  if (t.status === "CANCELLED") return [];
+  const dong = await choPhepThieuCuaChuyen(db, t.id);
+  if (dong.length === 0) return [];
+  const conThieu = t.status === "PLANNED" && xe ? new Set(giayToXeConThieu(xeVao(xe, c.giayToXe), c.dieuKien, t.planned_end_ms).map((g) => g.documentTypeCode)) : null;
+  const ap = dong.filter((r) => (t.status === "PLANNED" ? conThieu !== null && r.da_dung === 0 && r.vehicle_id === t.vehicle_id && conThieu.has(r.document_type_code) : r.trong_ban_chup_cuoi > 0));
+  return gomLoChoChayThieu(ap.map((r) => ({ cmdId: r.cmd_id, tenLoai: r.type_name ?? r.document_type_code, lyDoNhan: r.reason_label, ghiChu: r.note })));
 }
 
 /** ADR-0184: loại giấy tờ XE đang thiếu của chuyến CHƯA chạy (tên loại từ danh mục; không số giấy) — cho hộp «Cho chạy dù thiếu giấy tờ». Khác PLANNED: rỗng. */
