@@ -179,3 +179,24 @@ test("guard-remote: script móc thật chặn sửa tệp luật bằng dòng l�
     assert.equal(r.stdout, "", `phải im lặng với: ${command}`);
   }
 });
+
+test("guard-luat (ADR-0179 Đ2.6): .github/workflows/ là TỆP LUẬT (sửa bằng dòng lệnh bị chặn); .git/tourdao-kiem/ (bản ghi kết luận kiểm) AI không ghi được", () => {
+  for (const [cmd, cwd] of [["sed -i '' 's/a/b/' .github/workflows/kiem.yml"], ["echo x > .github/workflows/kiem.yml"], ["rm .github/workflows/kiem.yml", WT], ["cp /tmp/x.yml .github/workflows/"], ["git checkout -- .github/workflows/kiem.yml"]] as [string, string?][]) {
+    const v = danhGia(cmd, cwd);
+    assert.equal(v.deny, true, `phải CHẶN: ${cmd}`);
+    if (v.deny) assert.equal(v.rule, "sua-luat-bang-lenh");
+  }
+  for (const [cmd, cwd] of [["echo '{}' > .git/tourdao-kiem/abc.json"], ["cp /tmp/x.json .git/tourdao-kiem/"], ["tee /repo/.git/tourdao-kiem/abc.json < /tmp/x", WT], ["rm -rf .git/tourdao-kiem"], ["sed -i '' 's/do/xanh/' ../../../.git/tourdao-kiem/abc.json", WT]] as [string, string?][]) {
+    const v = danhGia(cmd, cwd);
+    assert.equal(v.deny, true, `phải CHẶN: ${cmd}`);
+    if (v.deny) {
+      assert.equal(v.rule, "ghi-ban-ghi-kiem");
+      assert.match(v.reason, /npm run day-len/);
+    }
+  }
+  for (const cmd of ["cat .github/workflows/kiem.yml", "git add .github/workflows/kiem.yml", "ls .git/tourdao-kiem", "cat .git/tourdao-kiem/abc.json", "git diff origin/main main -- .github/workflows"]) {
+    assert.equal(danhGia(cmd).deny, false, `phải CHO QUA: ${cmd}`);
+  }
+  const s = read(".claude/settings.json");
+  assert.ok(s.includes('"Edit(.github/workflows/**)"'), "settings.json: sửa quy trình GitHub bằng công cụ sửa tệp phải HỎI chủ");
+});

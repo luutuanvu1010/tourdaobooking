@@ -27,6 +27,12 @@ export interface StaffProfile {
   partyId: string | null;
   /** Quyền trong app (ADR-0005), đọc từ stf_permission — KHÔNG phải vai trò hồ sơ (HDV, tài xế…). */
   permissions: PermissionCode[];
+  /**
+   * ADR-0180 Đ1: mã quyền Toàn quyền đang "xem như" ở phiên này. Chỉ có khi đang đóng vai; lúc đó `permissions` = `[actingRole]` (bộ hiệu lực, do
+   * `currentStaff` tính ở MỘT chỗ) và `realPermissions` = quyền thật của tài khoản (cổng bảo trì, route thoát đóng vai xét bộ này).
+   */
+  actingRole?: PermissionCode;
+  realPermissions?: PermissionCode[];
 }
 
 /** Hồ sơ đầy đủ cho màn hình quản trị. */
@@ -58,7 +64,9 @@ export interface StaffRolesResponse { roles: RoleCode[]; adds: PermissionCode[];
  * `benDatCuaToi` chỉ có ở `GET /api/auth/me` (sổ đại lý đợt 1, Task 11; Ruling 21): khác null khi và chỉ khi máy chủ SẼ ép bên đặt của đơn mới về chính hồ sơ của tài khoản này — tài khoản giữ quyền
  * Đối tác, có hồ sơ, và hồ sơ đang mang ít nhất một vai trong danh sách được hưởng hoa hồng (cùng điều kiện `benDatChoTaiKhoan`). Giao diện chỉ ĐỌC trường này để hiện dòng "Bên đặt: <tên>"; chỉ id + tên, không liên hệ.
  */
-export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto; benDatCuaToi?: { partyId: string; ten: string } | null }
+export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto; benDatCuaToi?: { partyId: string; ten: string } | null;
+  /** ADR-0180: vai đang đóng của phiên này (chỉ có khi Toàn quyền đang xem như vai khác); cùng giá trị `staff.actingRole`. */
+  actingRole?: PermissionCode }
 /**
  * `POST /api/auth/login` khi PIN đúng nhưng CHƯA cấp phiên (ADR-0074 điều 2–3): kèm cookie chờ `td_mfa_pending` (5 phút, chỉ mở `/api/auth/mfa/*`).
  * - `next: "mfa"`: nhập mã ở bước hai (`POST /api/auth/mfa/verify`); `factors` = các cách đang có (luôn kèm "RECOVERY" — mã dự phòng); `emailMask` = email đã che
@@ -347,8 +355,10 @@ export interface OrderDto {
   declaredDeposit: number;
   /** Hình thức thanh toán (ADR-0168): `PREPAID` (mặc định) hoặc `CREDIT` (Trả sau). Nhãn hiện cho người dùng: `NHAN_HINH_THUC` (src/shared/tra-sau.ts). */
   paymentTerm: HinhThucThanhToan;
-  /** Hạn trả của đơn Trả sau đã xác nhận (YYYY-MM-DD, giờ Việt Nam); `null` ở đơn Trả trước hoặc đơn chưa xác nhận. */
+  /** Hạn trả của đơn Trả sau đã xác nhận (mốc ISO UTC, hiện theo giờ Việt Nam — ADR-0172 Đ3); `null` ở đơn Trả trước hoặc đơn chưa xác nhận. */
   hanTra: string | null;
+  /** Hết ân hạn (mốc ISO UTC); `null` như `hanTra`. */
+  hetAnHan: string | null;
   createdAt: string;
   updatedAt: string;
   confirmedAt: string | null;
@@ -673,6 +683,11 @@ export interface OrderDetailResponse {
   banHangMoi?: { staffId: string; name: string } | null;
   /** ADR-0170 Đ3: đơn có vé đã mở (hoặc không đọc được). CHỈ có khi người xem giữ quyền Đối tác (kể cả lai); giao diện ẩn nút Huỷ theo cờ này, máy chủ vẫn chặn. */
   coVeDaMo?: boolean;
+  /**
+   * ADR-0172 Đ3 mục 3, ADR-0173 Đ1 mục 3: Trả sau của đơn đã xác nhận — số còn nợ, trạng thái hạn tại lúc đọc, và người xem có bấm «Ân hạn» được không (cờ máy chủ).
+   * Chỉ có ở đơn Trả sau đã xác nhận (người xem đã qua `money.view`); null = không đọc được số nợ.
+   */
+  traSau?: { no: number; trangThai: TrangThaiHanTraSau; coQuyenAnHan: boolean } | null;
 }
 /**
  * `yeuCau` = yêu cầu xác nhận ĐANG MỞ của đơn (null = chưa gửi / đã rút). `canXacNhan` = đơn thuộc diện phải qua bước xác nhận (chỉ tính cho người lập; người khác false).
@@ -1317,6 +1332,8 @@ export interface ExpiringItemDto {
   /** ADR-0048 D1: tên nhà xe (xe của nhà xe; tài xế đối tác: tên các nhà xe nối ", "); null = của công ty chủ hiện tại / tài xế công ty. Chỉ tên. */
   ownerLabel: string | null;
 }
+/** GET /api/van-chuyen/cho-chay-thieu/dem (ADR-0184) — số chuyến hôm nay (giờ Việt Nam) chưa kết thúc mà nhãn «Xe thiếu giấy tờ — đã cho chạy» đang hiện; chỉ ô trip.override. */
+export interface ChoChayThieuDemResponse { count: number }
 /** GET /api/van-chuyen/sap-het-han — `count` = số dòng (đã hết + sắp hết) cho huy hiệu trên menu (R15 điểm 2). */
 export interface ExpiringListResponse { warnDays: number; count: number; items: ExpiringItemDto[] }
 /** ADR-0048 D1: một nhà xe đang hợp tác — tên, loại hồ sơ, số xe CHƯA NGỪNG, số tài xế "thuộc". Không liên hệ, không MST. */
@@ -1639,8 +1656,8 @@ export interface TripReasonUpdateRequest { label: string; sortOrder: number; act
 // ADR-0050 VK1-B), SĐT (trừ `lienHe` của DTO tài xế trong ngày chạy — A15). Giờ hiển thị luôn là giờ VN.
 /** Ngày + giờ VN ("YYYY-MM-DD", "HH:MM"). */
 export interface GioVnDto { ngay: string; gio: string }
-/** Một lý do giữ / chặn (src/shared/ly-do-giu.ts — chỗ sống duy nhất); `aiXuLyNhan` = nhãn "Văn phòng" / "Quản trị" / "Toàn quyền". */
-export interface LyDoGiuDto { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" | "QUAN_TRI" | "TOAN_QUYEN"; aiXuLyNhan: string }
+/** Một lý do giữ / chặn (src/shared/ly-do-giu.ts — chỗ sống duy nhất); `aiXuLyNhan` = nhãn "Văn phòng" / "Quản trị" / "Toàn quyền" / "Quản trị, Toàn quyền" (`nhanAiXuLy`). */
+export interface LyDoGiuDto { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" | "QUAN_TRI" | "QUAN_TRI_TOAN_QUYEN" | "TOAN_QUYEN"; aiXuLyNhan: string }
 /**
  * Một mốc tiến độ (ADR-0050 VK1-A — bảng "Nơi dùng giờ nào"): giờ XẢY RA + giờ GHI NHẬN; `vanPhongKhai` = văn phòng bấm thay khai giờ; `nguoiBam` = TÊN
  * HIỂN THỊ người bấm, CHỈ có khi `vanPhongKhai` (R-P11: chuỗi tên, không SĐT, không id).
@@ -1713,6 +1730,11 @@ export interface ChuyenTomTatDto {
    * `legFlags`). Chuyến không chạy → false. Chỉ cờ — không mã đơn, không tên.
    */
   coKhachDonHuy: boolean;
+  /**
+   * ADR-0184: nhãn vàng «Xe thiếu <loại> — đã cho chạy» — chuyến CHƯA chạy: các loại xe hiện tại còn thiếu thật VÀ đang có dòng cho phép áp; chuyến đã chạy /
+   * kết thúc: các loại có dòng con `waiver_id` trong bản chụp ĐẠT mới nhất. Chỉ tên loại giấy — không số giấy, không ghi chú, không lý do. Chỉ DTO văn phòng.
+   */
+  choChayThieu: { ten: string }[];
 }
 export interface ChangLichDto {
   legId: string;
@@ -1826,6 +1848,8 @@ export interface NhatKyChuyenDto {
   phaLe: { luat: string; lyDoNhan: string } | null;
   /** Sự kiện ghi ở CHUYẾN KHÁC mà chuyến này là chuyến liên quan (dời / chuyển khách đi — ADR-0111 Đ5; luật "đã có tiến độ sau xuất bến"). */
   chuyenKhac: boolean;
+  /** ADR-0184: với sự kiện `DOCS_WAIVED` — tên các loại giấy tờ xe đã cho chạy thiếu (chỉ tên loại); các sự kiện khác vắng. */
+  loaiGiayTo?: string[];
 }
 export interface BanChupDto {
   ketQua: "DAT" | "KHONG_DAT";
@@ -1837,6 +1861,8 @@ export interface BanChupDto {
   muc: { loai: string; loaiGiayTo: string | null; hang: string | null; hetHan: string | null }[];
   soNguoiChot: number;
 }
+/** ADR-0184 (P12): một lô cho phép chạy thiếu giấy tờ ở chi tiết chuyến của văn phòng. Ghi chú hiện qua `maskLongDigits` (dãy từ 8 chữ số bị che lúc hiện; dữ liệu đã ghi không đổi). */
+export interface ChoChayThieuLoDto { ten: string[]; lyDo: string | null; ghiChu: string | null }
 /** GET /api/van-chuyen/chuyen/:id (và phản hồi mọi lệnh ghi của văn phòng). */
 export interface ChuyenChiTietResponse {
   /** `tuyen` (Đợt 4 G3 — trường đọc thêm cho form sửa chuyến): mã + TÊN tuyến đang gắn (kể cả tuyến đã ngưng dùng), null = chưa chọn. Không có tiền. */
@@ -1865,6 +1891,17 @@ export interface ChuyenChiTietResponse {
    * không lý do). Không SĐT, không id hồ sơ.
    */
   tuChoi: TuChoiChuyenDto[];
+  /**
+   * ADR-0184: loại giấy tờ XE đang thiếu của chuyến CHƯA chạy (cùng định nghĩa `giayToXeConThieu` với cổng xuất bến); chuyến khác trạng thái: rỗng. Cho hộp «Cho chạy
+   * dù thiếu giấy tờ». `chiToanQuyen` = Kiểm định / Bảo hiểm (chỉ Toàn quyền cho chạy được). `expiryDate` null = xe chưa có giấy. KHÔNG số giấy tờ.
+   */
+  giayToThieu: { documentTypeCode: string; ten: string; expiryDate: string | null; chiToanQuyen: boolean }[];
+  /**
+   * ADR-0184 (P12, chủ 2026-11-08 «Có, làm luôn lần này»): LÝ DO + GHI CHÚ của các lô cho phép đang tạo nhãn vàng — mỗi lô (một lần bấm «Cho chạy dù thiếu giấy tờ») một mục:
+   * tên các loại giấy, nhãn lý do (null = Toàn quyền bỏ trống), ghi chú (null = không ghi). Chuyến chưa chạy: dòng đang áp; đã chạy / kết thúc: dòng đã dùng. Tách khỏi
+   * `chuyen.choChayThieu` vì chỗ đó dùng chung với DTO tài xế và lịch chung — những nơi đó KHÔNG có trường này (lý do, ghi chú chỉ ở chi tiết chuyến của văn phòng; không vào tin, nhật ký, Bảng tin).
+   */
+  choChayThieuChiTiet: ChoChayThieuLoDto[];
   /**
    * CHỈ ở phản hồi lệnh xếp (`POST …/chuyen/:id/phan-bo`) khi có: cảnh báo sớm CHUA_CO_NOI_TRA / THIEU_TEN của chặng vừa xếp (cùng luật cổng xuất bến —
    * `lyDoNoiTra` / `lyDoThieuTen` ở src/shared/dieu-phoi-kiem.ts). Chỉ nhắc — lệnh đã chạy. Mã đơn + số tên thiếu, không tên khách.
@@ -1939,6 +1976,12 @@ export interface XepRequest {
   /** ADR-0056 VK3-A: phá lệ cam kết xe riêng / số chỗ (cũng dùng cho thêm điểm khi xe đang chạy). */
   camKetPhaLe?: PhaLeRequest;
 }
+/**
+ * ADR-0184: «Cho chạy dù thiếu giấy tờ» — `loaiGiayTo` = mã loại giấy xe đang thiếu (mỗi loại một dòng cho phép); `lyDo` = mã nhóm CHO_CHAY_THIEU_GIAY (Quản trị bắt
+ * buộc, Toàn quyền được null); `ghiChu` = chữ tự do ≤ 200 ký tự (chỉ ở dòng cho phép, KHÔNG vào nhật ký; chọn «Khác» thì ≥ 10 ký tự). Phản hồi: `ChuyenChiTietResponse`.
+ * Lỗi: 403 chỉ Toàn quyền (Kiểm định / Bảo hiểm); 400 thiếu / sai lý do, ghi chú; 409 chuyến không còn chưa chạy, xe không còn thiếu loại đó, đã cho chạy.
+ */
+export interface ChoChayThieuGiayRequest { version: number; requestId: string; loaiGiayTo: string[]; lyDo: string | null; ghiChu: string | null }
 export interface RutRequest { version: number; requestId: string; suatIds: string[]; phaLe?: PhaLeRequest }
 export interface DoiRequest { version: number; requestId: string; denChuyenId: string; denVersion: number; suatIds: string[]; phaLe?: PhaLeRequest; camKetPhaLe?: PhaLeRequest }
 export interface HuyChuyenRequest { version: number; requestId: string; lyDo: string; phaLe?: PhaLeRequest }
@@ -2076,7 +2119,7 @@ export interface DoiThuTuRequest { requestId: string; diem: { id: string; thuTu:
  * đang chạy đã xuất bến từ ngày chạy trở đi — ADR-0053 D7.2, Q-L3-B; xuất bến tối hôm trước không mở sớm) — ngoài ngày chạy các khoá đó VẮNG MẶT (không phải chuỗi rỗng). `lienHe` chỉ ở `GET /cuoc-cua-toi/:id` (phản hồi lệnh tiến độ không kèm —
  * màn tải lại chi tiết).
  */
-export interface DieuKienConThieuDto { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" | "QUAN_TRI" | "TOAN_QUYEN" }
+export interface DieuKienConThieuDto { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" | "QUAN_TRI" | "QUAN_TRI_TOAN_QUYEN" | "TOAN_QUYEN" }
 /** Route 19 — một chuyến của "Cuốc của tôi" (R-P17): không tên, không SĐT. */
 export interface CuocCuaToiItemDto {
   id: string;
@@ -2089,6 +2132,8 @@ export interface CuocCuaToiItemDto {
   soDiemDon: number;
   soDiemTra: number;
   dieuKienConThieu: DieuKienConThieuDto[];
+  /** ADR-0184: loại giấy tờ xe đã được cho chạy dù thiếu (chỉ tên loại — không số giấy, không người cho phép); rỗng = không có nhãn vàng. */
+  choChayThieu: { ten: string }[];
 }
 export interface CuocCuaToiResponse { tu: string; den: string; chuyen: CuocCuaToiItemDto[] }
 /**
@@ -2108,6 +2153,8 @@ export interface XeCuaDonChangDto { legId: string; xe: XeCuaDonXeDto[] }
 export interface XeCuaDonResponse { chang: XeCuaDonChangDto[] }
 /** Route 20 (và phản hồi lệnh tiến độ của tài xế) — chi tiết một chuyến mình đang lái. */
 export interface CuocChiTietResponse {
+  /** ADR-0184: như `CuocCuaToiItemDto.choChayThieu`. */
+  choChayThieu: { ten: string }[];
   chuyen: {
     id: string;
     ma: string;
@@ -2281,6 +2328,13 @@ export interface OrderPaymentsResponse {
    * người xem không ghi khoản thu được, đơn không còn ghi khoản thu được (nháp, chưa chụp, đã giao, huỷ), hoặc đơn không có bên nào.
    */
   benKia: BenKiaLuaChonDto | null;
+  /**
+   * ADR-0178 Đ1 mục 2 (Task A5): đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt. null = đơn không mang dấu Tắt (dấu Bật hoặc đơn văn phòng lập) — giữ như cũ.
+   * Không gác theo quyền ghi (khác `benKia`): người chỉ xem tiền cũng phải biết đơn không có QR công ty. `nguoiLapTen` = tên hồ sơ của tài khoản đã lập đơn (null khi chưa
+   * gắn hồ sơ); `nguoiLapLaBenDatHuong` = hồ sơ đó đúng là bên đặt được hưởng của đơn (CÙNG `benDatHuong` của lựa chọn «Khách trả cho đại lý ‹tên›», ADR-0132).
+   * `nguoiLapPartyId` = id hồ sơ đó (null khi chưa gắn) — giá trị duy nhất của ô người thu «Sửa khoản thu đã ghi» / «Ghi bù khoản thu» của Kế toán ở đơn này.
+   */
+  kenhThu: { congTyThu: boolean; nguoiLapTen: string | null; nguoiLapLaBenDatHuong: boolean; nguoiLapPartyId: string | null } | null;
 }
 
 /** Bên đặt (đại lý được hưởng — chỉ tên; máy chủ tự lấy hồ sơ khi nhận `"ben_dat"`) và các quầy nhà cung cấp (id + tên, cho `{ nhaCungCapPartyId }` và «thu cho»). */
@@ -2466,6 +2520,26 @@ export interface SoCongNoResponse {
   chuaRo: { receiptId: string; orderId: string; maDon: string | null; soTien: number; ngay: string }[];
 }
 
+/** ADR-0187 Đ3 mức (a): một dòng tiền do CHÍNH người lập đơn ghi (dấu «tự ghi đơn mình lập» ở nhật ký) — chờ hoặc đã có người thứ hai soát. Không số tiền, không SĐT. */
+export interface TuGhiDongDto {
+  /** id dòng nhật ký mang dấu — khoá của lệnh «Đã soát». */
+  auditId: string;
+  orderId: string | null;
+  maDon: string | null;
+  /** Tài khoản đã ghi (giao diện ẩn nút «Đã soát» khi là chính người xem; máy chủ vẫn kiểm). */
+  nguoiGhiId: string | null;
+  nguoiGhi: string;
+  /** Nhãn tiếng Việt của hành động (ví dụ «Hoàn thành», «Xác nhận công ty đã nhận»). */
+  hanhDong: string;
+  luc: string;
+  nguoiSoat: string | null;
+  soatLuc: string | null;
+}
+/** `GET /api/ledger/tu-ghi` (ledger.view, không Đối tác): dòng chưa soát (hết) + dòng đã soát 30 ngày gần nhất. */
+export interface TuGhiListResponse { dong: TuGhiDongDto[]; soChuaSoat: number }
+/** `GET /api/ledger/tu-ghi/dem` — số dòng chưa soát cho thẻ Trang chủ. */
+export interface TuGhiDemResponse { chuaSoat: number }
+
 /** Một đơn trong chi tiết một bên của màn «Sổ công nợ» — `soTien` luôn DƯƠNG, dấu nói bằng nhóm chứa nó; đơn cộng ra 0 không có mặt. */
 export interface SoCongNoDonDto {
   /** null = dòng sổ không gắn đơn. */
@@ -2571,6 +2645,8 @@ export interface ReceiptLineDto {
   unitPrice: number;
   lineTotal: number;
 }
+/** Mẫu in biên nhận do MÁY CHỦ quyết (HD-02-DT): «noi_bo» hay «doi_tac» (đơn của Đối tác — bên đặt là đối tác hoặc người lập là Đối tác thuần). */
+export type MauBienNhan = "noi_bo" | "doi_tac";
 export interface ReceiptServiceDto {
   name: string;
   /** Đơn vị (để in số khách "2 người lớn" hay "N khách"); "manual" = nhập tay. */
@@ -2583,9 +2659,13 @@ export interface ReceiptServiceDto {
   checkinDate: string | null;
   checkinTime: string | null;
   checkinPlace: string | null;
+  /** Máy chủ so đơn giá với giá danh mục rồi chỉ gửi CỜ này (đúng = có dòng khác giá công bố hoặc không có giá danh mục); không mang số giá danh mục. */
+  giaKhacCongBo: boolean;
   items: ReceiptLineDto[];
 }
 export interface ReceiptDto {
+  /** Mẫu in do máy chủ quyết (`mauBienNhan`); giao diện chỉ đọc, không tự suy. */
+  mau: MauBienNhan;
   company: CompanyDto;
   orderCode: string;
   /** Khoá (chọn màu huy hiệu) + nhãn tiếng Việt (`trangThaiHienThi`). */
@@ -2683,6 +2763,10 @@ export interface QrThanhToanDto {
 }
 export interface QrThanhToanResponse {
   qr: QrThanhToanDto;
+}
+/** `GET /api/orders/:id/qr-thanh-toan` của đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (ADR-0178 Đ1 mục 2): không có QR vào tài khoản công ty. Đơn khác giữ `QrThanhToanResponse`. */
+export interface QrKhongCoResponse {
+  coQr: false;
 }
 
 // ---- Trợ lý Hỗ trợ (ADR-0066, module tro-ly) ----
@@ -3124,43 +3208,70 @@ export interface CaiDatXacNhanResponse {
 }
 export type CaiDatXacNhanInput = { pham: "SERVICE" | "GROUP"; ma: string; canXacNhan: boolean } | { tuXacNhanNoiBo: boolean };
 
-// ---- Trả sau theo hạn mức (ADR-0168; billing) ----
-/** Một hồ sơ trên màn «Hạn mức trả sau». `coHanMuc` false = hồ sơ còn đơn Trả sau đang nợ nhưng hạn mức đã ngừng. Số tiền VNĐ, tính ở máy chủ. */
+// ---- Trả sau theo hạn mức (ADR-0168, ADR-0172, ADR-0173; billing) ----
+/** Trạng thái hạn của một đơn Trả sau còn nợ (ADR-0172 Đ3 mục 3): trong hạn, trong ân hạn (chỉ báo), quá hạn (hết ân hạn — chặn). Nhãn: `NHAN_TRANG_THAI_HAN`. */
+export type TrangThaiHanTraSau = "trong_han" | "an_han" | "qua_han";
+/** Một hồ sơ trên danh sách đang nợ. `coHanMuc` false = hồ sơ còn đơn Trả sau đang nợ nhưng Trả sau đã ngừng. Số tiền VNĐ, tính ở máy chủ. Giờ: số giờ. */
 export interface HanMucTraSauDto {
   partyId: string;
   ten: string;
   coHanMuc: boolean;
   hanMuc: number | null;
-  soNgay: number | null;
+  gioTra: number | null;
+  gioAnHan: number | null;
   tuNgay: string | null;
   dangNo: number;
   conDuocDung: number | null;
   soDonNo: number;
+  /** Đơn đang trong ân hạn (chỉ báo). */
+  soDonAnHan: number;
+  /** Đơn đã hết ân hạn còn nợ (đang chặn). */
   soDonQuaHan: number;
 }
 export interface HanMucTraSauListResponse {
   danhSach: HanMucTraSauDto[];
-  /** Toàn quyền sửa được; Kế toán chỉ xem. */
+  /** Quản trị, Toàn quyền đặt được (ở màn Cấp độ đại lý); Kế toán chỉ xem. */
   coQuyenSua: boolean;
+  /** Mức tối đa Quản trị được cấp hiện hành; null = chưa đặt (Quản trị chưa bật được Trả sau). */
+  mucToiDa: number | null;
+  /** Người xem đặt được mức tối đa (chỉ Toàn quyền) — cũng là người không bị mức tối đa giới hạn. */
+  coQuyenDatMucToiDa: boolean;
 }
 export interface DonNoTraSauDto {
   orderId: string;
   maDon: string;
-  /** Ngày hạn trả (YYYY-MM-DD, giờ Việt Nam). */
+  /** Hạn trả, mốc ISO UTC (hiện theo giờ Việt Nam). */
   hanTra: string | null;
+  /** Hết ân hạn, mốc ISO UTC. */
+  hetAnHan: string | null;
   no: number;
-  quaHan: boolean;
+  trangThai: TrangThaiHanTraSau;
 }
 export interface DonNoTraSauResponse {
   partyId: string;
   ten: string;
   don: DonNoTraSauDto[];
 }
+/** Bật / đổi Trả sau cho một đại lý (ADR-0172 Đ1, Đ3). `gioTra` ≥ 1, `gioAnHan` ≥ 0, tối đa 8760 giờ mỗi số. */
 export interface DatHanMucTraSauInput {
   partyId: string;
   hanMuc: number;
-  soNgay: number;
+  gioTra: number;
+  gioAnHan: number;
   lyDo?: string;
+}
+/** Số gợi ý theo cấp (ADR-0172 Đ2): chỉ điền sẵn bảng bật, không cho ai Trả sau. */
+export interface GoiYTraSauDto { cap: string; hanMuc: number; gioTra: number; gioAnHan: number }
+export interface GoiYTraSauResponse { goiY: GoiYTraSauDto[]; coQuyenSua: boolean }
+/** Trả sau của MỘT hồ sơ (ô ở màn Cấp độ đại lý): hạn mức đang bật (null = chưa bật), số gợi ý của cấp hiện hành để điền sẵn. */
+export interface TraSauHoSoResponse {
+  partyId: string;
+  hanMuc: number | null;
+  gioTra: number | null;
+  gioAnHan: number | null;
+  dangNo: number;
+  conDuocDung: number | null;
+  coQuyenSua: boolean;
 }
 /** Đường đọc hẹp cho người lập đơn: chỉ số còn được dùng của đúng bên đặt, không kèm danh sách đơn. */
 export interface ConDuocDungTraSauResponse {
@@ -3168,6 +3279,18 @@ export interface ConDuocDungTraSauResponse {
   conDuocDung: number;
   coDonQuaHan: boolean;
 }
+/** «Trả sau của tôi» (ADR-0173 Đ3 mục 3): chỉ hồ sơ của phiên. */
+export interface TraSauCuaToiResponse {
+  coHanMuc: boolean;
+  hanMuc: number | null;
+  gioTra: number | null;
+  gioAnHan: number | null;
+  dangNo: number;
+  conDuocDung: number | null;
+  don: DonNoTraSauDto[];
+}
+/** Lùi hạn trả một đơn (ADR-0173 Đ1 mục 3): `hanMoi` mốc ISO; `lyDo` bắt buộc. */
+export interface NoiHanTraSauInput { hanMoi: string; lyDo: string }
 // ---- Bán hàng phụ trách đơn (ADR-0142) ------------------------------------------------------------------------------------------------------------------
 /** `GET /api/dispatch/ban-hang-moi`: người mời được làm Bán hàng phụ trách — CHỈ mã tài khoản + tên (không SĐT, không email). */
 export interface BanHangMoiResponse { banHang: { staffId: string; name: string }[] }
@@ -3202,3 +3325,5 @@ export interface TheDonDto {
 export interface ChuaCoBanHangResponse { don: TheDonDto[]; soDonChoXacNhanAn: number }
 /** `GET`/`POST /api/cai-dat/ban-hang-phu-trach`: dòng chính sách hiện hành. `doiDuoc` = người gọi giữ `settings.ops`. */
 export interface BanHangChinhSachResponse { phutUuTien: number; tuPhut: number; denPhut: number; mocPhatHanh: string | null; doiDuoc: boolean }
+/** `GET`/`POST /api/kenh-thu-doi-tac` (ADR-0178 Đ1 mục 1): công tắc «Khách của đối tác trả cho Công ty». `congTyThu` = Bật; `tuLuc` = lúc dòng hiện hành có hiệu lực (null = chưa ai đổi, mặc định Bật). `lichSu` mới nhất trước. */
+export interface KenhThuDoiTacDto { congTyThu: boolean; tuLuc: string | null; lichSu: { congTyThu: boolean; tuLuc: string; nguoiDoi: string }[] }

@@ -16,10 +16,12 @@ import {
   conLaiCuaKhoan, hoanNgoaiTrangThai, kiemChi, kiemDuyet, kiemGhiHoanNgoai, kiemHuyDuyet, kiemXacNhanHoanNgoai, METHOD_CODES, nhacCoc, nhacDoiChieu, sinhDongHoanKhach, sinhDongLanThu,
   soDuTheoBen, soTienCoc, type DuyetRow, type HoanNgoaiRow, type KiemCoc, type SoTienCoc,
 } from "./rules";
+import { cauTangChoDon } from "./tra-sau-tang";
+import { kiemNguoiThuKenh } from "./kenh-thu";
 import { CHUA_CO_CONG_TY, PARTY_ID_RE, loaiCho, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, toDoiChieuRow, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
 
 /** Kiểm độc lập vòng 2 CAO-1: đơn nhận đổi trạng thái giữa lúc duyệt chuyển và lúc chuyển. */
-const CAU_DON_NHAN_HONG = "Đơn nhận đã huỷ hoặc đã xong và đủ tiền — huỷ khoản duyệt chuyển rồi duyệt lại sang đơn khác.";
+const CAU_DON_NHAN_HONG = "Đơn nhận đã huỷ hoặc đã tới bước Khách đã trả đủ — huỷ khoản duyệt chuyển rồi duyệt lại sang đơn khác.";
 
 /**
  * Tự quyết (ADR-0159 Hệ quả «chưa kiểm», ADR-0089 đ7): đơn nhận đã có khoản «Khách đặt cọc trước» do đối tác khai thì không nhận thêm tiền chuyển — rất có thể cùng một số tiền, chuyển sang là tính hai lần
@@ -38,7 +40,7 @@ const CAU_TRIGGER: [string, string][] = [
   ["coc_unclassified", "Lý do huỷ chưa được phân loại — Quản trị phân loại lý do trước khi duyệt hoàn thu trước."],
   ["coc_deadline", "Đã quá hạn hoàn thu trước."],
   ["coc_exceeds_paid", "Vượt số tiền còn giữ của đơn — số tiền vừa thay đổi, tải lại rồi thử lại."],
-  ["coc_bad_target", "Đơn nhận phải còn hiệu lực và chưa tới bước Xong và đủ tiền."],
+  ["coc_bad_target", "Đơn nhận phải còn hiệu lực và chưa tới bước Khách đã trả đủ."],
   ["coc_void_exceeds_unspent", "Chỉ huỷ được phần chưa chi của khoản duyệt — tải lại rồi thử lại."],
   ["coc_void_mismatch", "Khoản duyệt không thuộc đơn này."],
   ["coc_needs_approval", "Đơn huỷ: hoàn qua “Duyệt hoàn thu trước” rồi “Ghi chi hoàn”."],
@@ -201,7 +203,7 @@ export async function ghiDuyet(db: D1Database, input: { orderId: string; raw: un
     if (!nhan) return loi(400, "invalid_input", "Không tìm thấy đơn nhận tiền.");
     // ADR-0135 Đ1: mã đơn NHÁP không lộ qua billing — đơn nháp coi như không tìm thấy (ở lệnh chuyển, đơn nhận nháp bị chặn riêng, xem `ghiChuyen`).
     if (nhan.status === "draft") return loi(400, "invalid_input", "Không tìm thấy đơn nhận tiền.");
-    if (nhan.id === input.orderId || nhan.status === "cancelled" || nhan.delivered_at) return loi(409, "coc_bad_target", "Đơn nhận phải là đơn khác, còn hiệu lực và chưa tới bước Xong và đủ tiền.");
+    if (nhan.id === input.orderId || nhan.status === "cancelled" || nhan.delivered_at) return loi(409, "coc_bad_target", "Đơn nhận phải là đơn khác, còn hiệu lực và chưa tới bước Khách đã trả đủ.");
     if (await coKhoanLoiKhai(db, nhan.id)) return DON_NHAN_CO_LOI_KHAI();
     donNhanId = nhan.id;
   }
@@ -283,7 +285,7 @@ export async function ghiChiHoan(db: D1Database, input: { orderId: string; raw: 
   const dong = sinhDongHoanKhach({ nguoiTraPartyId: tra.value, congTyId: d.congTyId, so: so.value });
   if (dong.length > 0) {
     const postingId = crypto.randomUUID();
-    stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REFUND", orderId: input.orderId, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, receiptId));
+    stmts.push(postingIfReceiptStatement(db, { id: postingId, kind: "REFUND", orderId: input.orderId, reason: ghiChu.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId, ghiTien: input.ai.ghiTien }, receiptId));
     for (const x of dong) stmts.push(lineIfPostingStatement(db, lineOf(x, postingId, input.orderId, receiptId, at, input.ai.staffId)));
   }
   const lo = await chayLo(db, stmts, [ngay.value]);
@@ -317,6 +319,9 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
   if (await coKhoanLoiKhai(db, goc.targetOrderId)) return DON_NHAN_CO_LOI_KHAI();
   const giu = await docBen(db, b.nguoiGiu, d.congTyId, "Chọn ai đang cầm khoản tiền này (Công ty, hoặc nhân viên chưa nộp về công ty).");
   if (!giu.ok) return giu;
+  // ADR-0178 Đ1 mục 2: nửa «thu» ở đơn nhận là khoản khách trả mới — đơn nhận mang dấu Tắt chỉ qua khi người đang giữ là hồ sơ người lập đơn nhận (có chủ ý).
+  const kenh = await kiemNguoiThuKenh(db, goc.targetOrderId, giu.value);
+  if (kenh) return { ok: false, res: kenh };
   // ADR-0171 Đ3 mục 2: «Công ty giữ» chỉ hợp lệ khi KHÔNG còn ai chưa nộp trên đơn cũ — giao diện tự chọn đúng người, máy chủ vẫn chặn khi gọi API trực tiếp.
   if (giu.value === d.congTyId && [...d.soDu].some(([id, v]) => id !== d.congTyId && v > 0)) return loi(409, "coc_con_nguoi_giu", CAU_CON_NGUOI_GIU);
   const tc = tuChoi(kiemChi({
@@ -338,15 +343,18 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
   const ra = sinhDongHoanKhach({ nguoiTraPartyId: giu.value, congTyId: d.congTyId, so: so.value });
   if (ra.length > 0) {
     const p = crypto.randomUUID();
-    stmts.push(postingIfReceiptStatement(db, { id: p, kind: "REFUND", orderId: input.orderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, raId));
+    stmts.push(postingIfReceiptStatement(db, { id: p, kind: "REFUND", orderId: input.orderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId, ghiTien: input.ai.ghiTien }, raId));
     for (const x of ra) stmts.push(lineIfPostingStatement(db, lineOf(x, p, input.orderId, raId, at, input.ai.staffId)));
   }
   const vao = sinhDongLanThu({ kind: "CUSTOMER_PAYMENT", amount: so.value, collectorRole: role, collectorPartyId: giu.value, nguoiGhiPartyId: input.ai.partyId ?? d.congTyId, nguoiGhiLaKeToan: true, congTyId: d.congTyId });
   if (vao.length > 0) {
     const p = crypto.randomUUID();
-    stmts.push(postingIfReceiptStatement(db, { id: p, kind: "RECEIPT", orderId: goc.targetOrderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId }, vaoId));
+    stmts.push(postingIfReceiptStatement(db, { id: p, kind: "RECEIPT", orderId: goc.targetOrderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by: input.ai.staffId, ghiTien: input.ai.ghiTien }, vaoId));
     for (const x of vao) stmts.push(lineIfPostingStatement(db, lineOf(x, p, goc.targetOrderId, vaoId, at, input.ai.staffId)));
   }
+  // ADR-0168 Đ2 mục 4 (kế hoạch 2026-11-05 Task 2, nợ 1): đơn NHẬN là Trả sau ⇒ tăng phiên bản bên đặt của nó trong cùng lô (lệnh xác nhận / sửa tăng đang chờ thua).
+  // Chỉ đơn nhận: đơn huỷ đã hết nợ; hai đơn cùng bên đặt cũng chỉ tăng một lần.
+  stmts.push(...(await cauTangChoDon(db, goc.targetOrderId, at)));
   const lo = await chayLo(db, stmts, [ngay.value]);
   if (!lo.ok) return lo;
   if ((lo.kq[1]!.meta.changes ?? 0) === 0) {

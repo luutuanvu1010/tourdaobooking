@@ -1,0 +1,41 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // BẢN DEVELOPMENT (ADR-0162 Đ1): một Worker riêng ở dev.tourdao.vn, độc lập hoàn toàn với bản chính thức (`wrangler.jsonc`).
+  // Mọi tên và mã tài nguyên ở đây KHÁC bản chính thức; bài src/moi-truong-lib.test.ts so hai tệp và đỏ khi trùng hoặc lệch bộ tài nguyên.
+  // Ngoại lệ duy nhất được trùng: SERVICES_SHEET_ID (Nền tảng chỉ ĐỌC Sheet). Chỉ chú thích CẢ DÒNG (luật của tệp cấu hình).
+  "name": "tourdao-sales-dev",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "observability": { "enabled": true },
+  "placement": { "mode": "smart" },
+  "routes": [{ "pattern": "dev.tourdao.vn", "custom_domain": true }],
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "vars": {
+    "SERVICES_SHEET_ID": "1XPx1g0JVTdevdX35MeCpt6Cc6Dgxdmfer6okEWleD3s",
+    "PASSKEY_RP_ID": "dev.tourdao.vn",
+    "PASSKEY_ORIGIN": "https://dev.tourdao.vn",
+    "VAPID_SUB": "https://dev.tourdao.vn",
+    "MOI_TRUONG": "development",
+    // Chỗ trống: chủ tạo cặp khoá VAPID riêng cho bản Development rồi thay giá trị này.
+    "VAPID_PUBLIC_KEY": "CHUA_TAO"
+  },
+  // Thư mục tĩnh riêng của bản Development (không dùng ./public của bản chính thức); không có khối `build`.
+  "assets": { "directory": "./dist-dev", "binding": "ASSETS", "run_worker_first": ["/api/*", "/giao-dien.css", "/ve/*", "/__scheduled"], "not_found_handling": "404-page" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tourdao-sales-dev-db",
+      // Chỗ trống: chủ chạy `wrangler d1 create tourdao-sales-dev-db` rồi thay bằng mã thật.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "HO_SO", "bucket_name": "tourdao-sales-dev-ho-so" },
+    { "binding": "HO_TRO", "bucket_name": "tourdao-sales-dev-ho-tro" },
+    { "binding": "VE_DIEN_TU", "bucket_name": "tourdao-sales-dev-ve-dien-tu" }
+  ],
+  "send_email": [{ "name": "EMAIL" }],
+  "durable_objects": { "bindings": [{ "name": "BANG_TIN", "class_name": "BangTin" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BangTin"] }]
+}

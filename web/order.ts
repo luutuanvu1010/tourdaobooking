@@ -1,6 +1,7 @@
 import { ApiError, api, vuaLamBoiTabNay, type Api, type AuditEntry, type Order, type Staff } from "./api";
 import { NHAN_DAT_COC_CHO } from "../src/shared/dat-coc-truoc";
 import { nhanHinhThucDon } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { dongTraSauDon } from "./an-han-tra-sau";
 import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
@@ -29,6 +30,7 @@ import type { DiemChon } from "./khoi-dua-don";
 import { openSheetDuaDon } from "./sheet-dua-don";
 import { openSheetHanhKhach } from "./sheet-hanh-khach";
 import { openSheetSoKhach } from "./sheet-so-khach";
+import { canhBaoQuaTen } from "../src/shared/hanh-khach";
 import { CAU_CAN_NOI_TRA, canhBaoXacNhan, cauThieuTen, thieuNoiTra } from "../src/shared/canh-bao-xac-nhan";
 import { dongThongTinQr } from "../src/shared/qr-thong-tin";
 import { PAX_LABEL } from "../src/shared/order-lines";
@@ -39,7 +41,7 @@ import { GHI_CHU_HUY_TOI_DA, NHOM_HUY_NHAN, luaChonLyDo, nhanNhomHuy } from "../
 import { nhanTienDaTra as nhanTienLuat } from "../src/shared/nhan-tien";
 import { ngayDayDu } from "../src/shared/vn-date";
 import { cauNhacKhoan, quaHanDoiChieu, soNgayCho } from "../src/shared/doi-chieu-hien-thi";
-import { NHAN_O_THU_CHO, cauBenKiaDaNhan, cauCanhBaoGiamGia, cauChoKeToan, laBenKia, luaChonNguoiThu, luaChonThuCho, lyDoCanTaiLai, nguoiThuTuGiaTri, oThuCho } from "../src/shared/ben-kia-hien-thi";
+import { CAU_DOI_TAC_TU_GHI, NHAN_O_THU_CHO, luaChonNguoiThuSoKeToan, cauBenKiaDaNhan, cauCanhBaoGiamGia, cauChoKeToan, laBenKia, luaChonNguoiThu, luaChonThuCho, lyDoCanTaiLai, nguoiThuTuGiaTri, oThuCho } from "../src/shared/ben-kia-hien-thi";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_VALUE } from "../src/shared/booker";
 import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay, nhanBenDat } from "../src/shared/phan-doi-tac-hien-thi";
@@ -289,12 +291,14 @@ function khoiDuaDonDon(order: Order, vanPhong: boolean, nut: HTMLElement | null)
 function khoiHanhKhachDon(ds: Api.PassengerListResponse, nut: HTMLElement | null, khongCan: boolean): HTMLElement {
   const du = ds.soNguoiCoTen;
   const mau = ds.soKhachDoan;
+  const quaTen = canhBaoQuaTen(du, mau);
   return h(
     "section",
     { class: "card hk-card-don", "data-khoi": "hanh-khach" },
     h("h2", null, "Hành khách"),
     h("div", { class: "hk-dem" }, h("span", { class: "hk-dem-icon" }, icon("guests", 18)), h("span", { class: "hk-dem-so" }, `${du}/${mau}`), h("span", { class: "hk-dem-chu" }, "khách đã có tên")),
     du > 0 && du < mau ? h("p", { class: "alert warn hk-nhac-don" }, icon("alert", 16), cauThieuTen(mau - du, khongCan)) : null,
+    quaTen ? h("p", { class: "alert warn hk-nhac-don", "data-canh-bao": "qua-ten" }, icon("alert", 16), quaTen) : null,
     du === 0 ? h("p", { class: "muted" }, "Chưa có hành khách nào.") : null,
     du > 0
       ? h(
@@ -392,6 +396,8 @@ let banHang: Api.BanHangDonDto | undefined;
 let laBanHang = false;
 /** ADR-0170 Đ3: máy chủ báo đơn đã mở vé (chỉ gửi cho người giữ quyền Đối tác) ⇒ ẩn nút Huỷ, nói vì sao. Máy chủ vẫn chặn. */
 let coVeDaMo = false;
+/** Khối Trả sau của đơn Trả sau đã xác nhận (ADR-0172 Đ3, ADR-0173 Đ1 mục 3); null = không phải đơn đó. */
+let traSauDon: Api.OrderDetailResponse["traSau"] = null;
 let banHangMoiNhap: { staffId: string; name: string } | null = null;
 /** KHÔNG ném lỗi: 403 / lỗi mạng / thiếu khoá → undefined, đơn vẫn hiển thị. */
 async function loadBanHang(orderId: string): Promise<Api.BanHangDonDto | undefined> {
@@ -630,7 +636,7 @@ function tienCard(order: Order): HTMLElement {
     rows.push(kv(nhanTienDaTra(order).nhan, vnd(t.daThu)));
     rows.push(t.du > 0 ? kv("Khách trả dư", `${vnd(t.du)} — chờ Kế toán hoàn`, "strong") : kv("Còn lại", vnd(t.conLai), "strong"));
   } else rows.push(kv("Đã thu / còn lại", "Chưa tải được"));
-  if (order.paymentTerm === "CREDIT") rows.push(kv("Hình thức thanh toán", nhanHinhThucDon(order.paymentTerm, order.hanTra)));
+  if (order.paymentTerm === "CREDIT") rows.push(kv("Hình thức thanh toán", nhanHinhThucDon(order.paymentTerm, order.hanTra)), ...dongTraSauDon(order, traSauDon ?? null, () => load(true)));
   rows.push(kv("Ghi chú thanh toán", order.paymentNote));
   // ADR-0063 D1 + ADR-0109 QĐ3: bớt khách tới mức giảm giá lớn hơn tạm tính KHÔNG bị chặn — câu cảnh báo hiện thường trực trên khối tiền (phải thu đã kẹp 0).
   // ADR-0114 D1: thêm câu nhắc khuyến mại MÀU ĐỎ (máy chủ gửi `canhBaoKhuyenMai`) cạnh câu vàng cũ — hai câu có thể cùng hiện. Hiện đúng chỗ trang đã hiện giảm giá (khối này), không thêm cổng quyền.
@@ -670,8 +676,13 @@ function tienCard(order: Order): HTMLElement {
   const coc = t?.coc ? khoiCoc(order, t.coc) : null;
   const nut: HTMLElement[] = [];
   // ADR-0108 đ3 (đặc tả §4.2): QR khi đọc được tiền của đơn (route payments đã hỏi order.view + money.view), đơn chưa Đã giao, còn lại > 0. ADR-0135 Đ8: chỉ đơn ĐÃ XÁC NHẬN. Máy chủ kiểm lại.
-  if (t && !t.coc && !t.deliveredAt && t.conLai > 0 && order.status === "confirmed") nut.push(nutQr(order, t));
-  if (t?.coTheGhiThu) nut.push(nutGhiThu(order, t));
+  // ADR-0178 Đ1 mục 2: đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt ⇒ không QR vào tài khoản công ty (máy chủ cũng trả «không có QR»).
+  if (t && !t.coc && !t.deliveredAt && t.conLai > 0 && order.status === "confirmed" && t.kenhThu?.congTyThu !== false) nut.push(nutQr(order, t));
+  // Cùng luật: người thu chỉ là hồ sơ người lập — Đối tác chỉ «Tôi thu»; văn phòng chỉ «Khách trả cho đại lý ‹tên›» hoặc không lựa chọn nào (khi đó KHÔNG dựng form: ô chọn
+  // rỗng sẽ gửi «Công ty» và nhận 409 — thay bằng câu đối tác tự ghi).
+  const luaChon = t ? luaChonNguoiThu(t.benKia, t.kenhThu, holdsPartner(staff!)) : [];
+  const doiTacTuGhi = t?.coTheGhiThu && luaChon.length === 0 ? h("p", { class: "muted", "data-khoi": "doi-tac-tu-ghi" }, CAU_DOI_TAC_TU_GHI) : null;
+  if (t?.coTheGhiThu && luaChon.length > 0) nut.push(nutGhiThu(order, t, luaChon));
   if (t && t.quyenGiao && !t.deliveredAt && order.status === "confirmed") nut.push(nutChot(order, "delivered", t));
   if (t && t.quyenHoanThanh && t.deliveredAt && !t.completedAt) nut.push(nutChot(order, "completed", t));
   return h(
@@ -685,6 +696,7 @@ function tienCard(order: Order): HTMLElement {
     keToan,
     t ? khoiPhanDinh(order, t) : null,
     giu,
+    doiTacTuGhi,
     nut.length ? h("div", { class: "handler-actions" }, ...nut) : null,
   );
 }
@@ -983,22 +995,22 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
   // ADR-0088 đ2, đ3: "Sửa khoản thu đã ghi" — đường sửa sai của khoản thu (sau Đã giao là đường DUY NHẤT; "Đảo" đơn lẻ bị máy chủ chặn nên ẩn). Một khoản thu cũ → một
   // khoản thu đúng (API nhận N → M; màn này làm ca hay gặp). Đơn huỷ đi qua khối cọc.
   // Người kiểm I-1 (19/10): tài khoản giữ quyền Đối tác không thấy «Sửa khoản thu» — máy chủ chặn cùng luật (`ghiSoNoiBo`).
-  if (ghiSoNoiBo(staff!, "ledger.write") && hienNutSuaKhoanThu(l, { choXacNhan: t.keToan!.choXacNhan, donDaHuy: order.status === "cancelled" })) {
+  // ADR-0178 Đ1 mục 2: đơn mang dấu Tắt — ô người thu chỉ có hồ sơ người lập (`luaChonNguoiThuSoKeToan`); người lập chưa gắn hồ sơ ⇒ không có lựa chọn ⇒ ẩn thao tác.
+  const laCongTy = l.nguoiThu === "Công ty";
+  const chonSua = luaChonNguoiThuSoKeToan(t.kenhThu, [
+    { value: "cong_ty", nhan: "Công ty" },
+    ...(!laCongTy && l.nguoiThuPartyId ? [{ value: l.nguoiThuPartyId, nhan: `${l.nguoiThu} (người thu tiền cũ)` }] : []),
+    ...t.keToan!.dangGiu.filter((d) => d.partyId !== l.nguoiThuPartyId).map((d) => ({ value: d.partyId, nhan: d.ten })),
+  ]);
+  if (chonSua.length > 0 && ghiSoNoiBo(staff!, "ledger.write") && hienNutSuaKhoanThu(l, { choXacNhan: t.keToan!.choXacNhan, donDaHuy: order.status === "cancelled" })) {
     const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(l.soTien) }) as HTMLInputElement;
     regroupMoney(so);
     so.addEventListener("input", () => regroupMoney(so));
     // Kiểm độc lập vòng 3: mặc định ĐÚNG hình thức và người thu của khoản thu cũ — chỉ sửa số tiền thì không vô tình đổi người thu (đổi sang "Công ty" xoá khoản
     // nhân viên đang giữ).
     const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m, selected: METHOD_LABEL[m] === l.hinhThuc }, METHOD_LABEL[m]))) as HTMLSelectElement;
-    const laCongTy = l.nguoiThu === "Công ty";
-    const nguoiKhac = t.keToan!.dangGiu.filter((d) => d.partyId !== l.nguoiThuPartyId);
-    const nguoiThu = h(
-      "select",
-      null,
-      h("option", { value: "cong_ty", selected: laCongTy }, "Công ty"),
-      !laCongTy && l.nguoiThuPartyId ? h("option", { value: l.nguoiThuPartyId, selected: true }, `${l.nguoiThu} (người thu tiền cũ)`) : null,
-      ...nguoiKhac.map((d) => h("option", { value: d.partyId }, d.ten)),
-    ) as HTMLSelectElement;
+    const macDinh = laCongTy ? "cong_ty" : (l.nguoiThuPartyId ?? "");
+    const nguoiThu = h("select", { "data-khoi": "sua-nguoi-thu" }, ...chonSua.map((c) => h("option", { value: c.value, selected: c.value === macDinh }, c.nhan))) as HTMLSelectElement;
     const lyDoThay = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao sửa (ít nhất 10 ký tự)" }) as HTMLInputElement;
     // ADR-0092 Đ6: khoản thu mới CK – Công ty thu cần mã — điền sẵn mã + số thực chuyển của khoản thu cũ (thay một-đổi-một); máy chủ không tự chép.
     const maThay = oMaGiaoDich({ ma: l.maGiaoDich, soThucChuyen: l.soThucChuyen });
@@ -1009,7 +1021,7 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
     nut.push(
       hangXacNhan({
         nhan: "Sửa khoản thu đã ghi", action: "thay-lan-thu", nutGhi: "Lưu khoản thu đúng",
-        cau: `Sửa khoản ${vnd(l.soTien)} (người thu tiền: ${l.nguoiThu}): khoản cũ được ghi «đã huỷ» và khoản đúng được ghi thay, cùng một lần. Chỉ đổi người thu tiền khi tiền thật sự đang ở người khác (đổi sang Công ty thì người thu tiền cũ không còn phải nộp khoản này).${t.deliveredAt ? " Đơn đã xong và đủ tiền: tổng đã thu phải giữ nguyên." : ""}`,
+        cau: `Sửa khoản ${vnd(l.soTien)} (người thu tiền: ${l.nguoiThu}): khoản cũ được ghi «đã huỷ» và khoản đúng được ghi thay, cùng một lần. Chỉ đổi người thu tiền khi tiền thật sự đang ở người khác (đổi sang Công ty thì người thu tiền cũ không còn phải nộp khoản này).${t.deliveredAt ? " Đơn đã tới bước Khách đã trả đủ: tổng đã thu phải giữ nguyên." : ""}`,
         o: [h("label", null, "Số tiền đúng (₫)", so), h("label", null, "Hình thức", hinhThuc), h("label", null, "Người thu tiền đúng", nguoiThu), ...maThay.o, h("label", null, "Lý do", lyDoThay)],
         kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDoThay.value.trim().length < 10 ? "Lý do ít nhất 10 ký tự." : loiCuaMa(maThay.doc())),
         ghi: async () => {
@@ -1056,7 +1068,7 @@ function khoiPhanDinh(order: Order, t: Api.OrderPaymentsResponse): HTMLElement |
   return h("div", { class: "pay-inline", "data-khoi": "phan-dinh" },
     hangXacNhan({
       nhan: "Đề nghị phân định", action: "de-nghi-phan-dinh", nutGhi: "Gửi đề nghị",
-      cau: "Khách cần được hoàn hoặc bồi thường, hoặc sổ đã ghi nhầm sau khi đơn đã xong và đủ tiền: gửi đề nghị để Quản trị hoặc Toàn quyền phân định ai chịu.",
+      cau: "Khách cần được hoàn hoặc bồi thường, hoặc sổ đã ghi nhầm sau khi đơn đã tới bước Khách đã trả đủ: gửi đề nghị để Quản trị hoặc Toàn quyền phân định ai chịu.",
       o: [h("label", null, "Số tiền đề nghị (₫)", so), h("label", null, "Lý do", lyDo)],
       kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDo.value.trim().length < 10 ? "Lý do ít nhất 10 ký tự." : null),
       ghi: () => api("/api/ledger/phan-dinh", { method: "POST", body: { orderId: order.id, soTien: parseMoney(so.value), lyDo: lyDo.value.trim() } }),
@@ -1110,12 +1122,13 @@ function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | n
   }
   // ADR-0088 đ2 + kiểm độc lập vòng 3: đơn đã ở bước Đã giao mà đã thu < phải thu (dữ liệu lệch từ trước bản vá) — ghi bù bằng lệnh sửa khoản thu KHÔNG khoản thu cũ.
   let bu: HTMLElement | null = null;
-  if (t.deliveredAt && t.conLai > 0 && order.status !== "cancelled" && ghiSoNoiBo(staff!, "ledger.write")) {
+  const chonBu = luaChonNguoiThuSoKeToan(t.kenhThu, [{ value: "cong_ty", nhan: "Công ty" }, ...kt.dangGiu.map((d) => ({ value: d.partyId, nhan: d.ten }))]); // ADR-0178 Đ1 mục 2
+  if (t.deliveredAt && t.conLai > 0 && order.status !== "cancelled" && ghiSoNoiBo(staff!, "ledger.write") && chonBu.length > 0) {
     const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(t.conLai) }) as HTMLInputElement;
     regroupMoney(so);
     so.addEventListener("input", () => regroupMoney(so));
     const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement;
-    const nguoiThu = h("select", null, h("option", { value: "cong_ty" }, "Công ty"), ...kt.dangGiu.map((d) => h("option", { value: d.partyId }, d.ten))) as HTMLSelectElement;
+    const nguoiThu = h("select", { "data-khoi": "bu-nguoi-thu" }, ...chonBu.map((c) => h("option", { value: c.value }, c.nhan))) as HTMLSelectElement;
     const lyDo = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao thiếu (ít nhất 10 ký tự)" }) as HTMLInputElement;
     // ADR-0092 Đ6: khoản thu bù CK – Công ty thu cũng cần mã (cùng đường Thay, không có khoản thu cũ để điền sẵn).
     const maBu = oMaGiaoDich();
@@ -1125,7 +1138,7 @@ function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | n
     capNhatMaBu();
     bu = hangXacNhan({
       nhan: "Ghi bù khoản thu", action: "ghi-bu-lan-thu", nutGhi: "Ghi bù",
-      cau: `Đơn đã ở bước Xong và đủ tiền nhưng sổ còn thiếu ${vnd(t.conLai)} (dữ liệu cũ). Ghi khoản thu bù để đã thu bằng phải thu:`,
+      cau: `Đơn đã ở bước Khách đã trả đủ nhưng sổ còn thiếu ${vnd(t.conLai)} (dữ liệu cũ). Ghi khoản thu bù để đã thu bằng phải thu:`,
       o: [h("label", null, "Số tiền (₫)", so), h("label", null, "Hình thức", hinhThuc), h("label", null, "Người thu tiền", nguoiThu), ...maBu.o, h("label", null, "Lý do", lyDo)],
       kiem: () => (parseMoney(so.value) <= 0 ? "Nhập số tiền." : lyDo.value.trim().length < 10 ? "Lý do ít nhất 10 ký tự." : loiCuaMa(maBu.doc())),
       ghi: async () => {
@@ -1163,11 +1176,11 @@ function nutTaiLaiDon(): HTMLButtonElement {
 /** "Đã giao – đã thu đủ" / "Hoàn thành": nút TẮT khi máy chủ báo chưa đủ điều kiện (lý do hiện ngay trên); bấm → hỏi xác nhận → route billing → tải lại. */
 function nutChot(order: Order, loai: "delivered" | "completed", t: Api.OrderPaymentsResponse): HTMLButtonElement {
   const giao = loai === "delivered";
-  const btn = h("button", { type: "button", class: giao ? "btn btn-accent" : "btn btn-primary", "data-action": giao ? "da-giao" : "hoan-thanh" }, giao ? "Xác nhận xong và đủ tiền" : "Hoàn thành");
+  const btn = h("button", { type: "button", class: giao ? "btn btn-accent" : "btn btn-primary", "data-action": giao ? "da-giao" : "hoan-thanh" }, giao ? "Xác nhận khách đã trả đủ" : "Hoàn thành");
   btn.disabled = giao ? !t.coTheGiao : !t.coTheHoanThanh;
   btn.addEventListener("click", async () => {
     const cau = giao
-      ? `Xác nhận xong và đủ tiền? Từ lúc này đơn bị khoá, không sửa, huỷ hay đổi người phụ trách được nữa.${t.banDangGiu > 0 ? ` Bạn còn ${vnd(t.banDangGiu)} chưa nộp về công ty — nhớ nộp.` : ""}`
+      ? `Xác nhận khách đã trả đủ? Từ lúc này đơn bị khoá, không sửa, huỷ hay đổi người phụ trách được nữa.${t.banDangGiu > 0 ? ` Bạn còn ${vnd(t.banDangGiu)} chưa nộp về công ty — nhớ nộp.` : ""}`
       : "Xác nhận Hoàn thành đơn này? Không mở lại được.";
     if (!confirm(cau)) return;
     btn.disabled = true;
@@ -1175,7 +1188,7 @@ function nutChot(order: Order, loai: "delivered" | "completed", t: Api.OrderPaym
     try {
       await api(`/api/orders/${encodeURIComponent(order.id)}/${loai}`, { method: "POST", body: {} });
       await load();
-      if (bannerEl.hidden) show(banner("info", giao ? "Xong và đủ tiền. Đơn đã khoá." : "Đơn đã Hoàn thành."));
+      if (bannerEl.hidden) show(banner("info", giao ? "Khách đã trả đủ. Đơn đã khoá." : "Đơn đã Hoàn thành."));
     } catch (err) {
       const b = errorBanner(err);
       await load(true);
@@ -1187,7 +1200,7 @@ function nutChot(order: Order, loai: "delivered" | "completed", t: Api.OrderPaym
 
 /** "Ghi khoản thu" (ADR-0026 đ2): số tiền, hình thức (mặc định Chuyển khoản — chủ duyệt 30/9), người nhận (Công ty / tôi); Kế toán chọn được ngày phát sinh và nhập
  * mã giao dịch ngân hàng khi CK – Công ty thu (ADR-0092 Đ6). `moGhiThu(soTien)` mở form có điền sẵn (nút "Khách đã chuyển khoản" của bảng QR — đặc tả §4.2). */
-function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse): HTMLElement {
+function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse, luaChon: readonly { value: string; nhan: string }[]): HTMLElement {
   const wrap = h("div", { class: "pay-inline" });
   const mo = h("button", { type: "button", class: "btn", "data-action": "ghi-lan-thu" }, "Ghi khoản thu");
   const moForm = (soTienSan: number | null) => {
@@ -1196,7 +1209,7 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse): HTMLElement {
     if (soTienSan !== null) setMoneyValue(soTien, soTienSan);
     const hinhThuc = h("select", null, ...(["BANK_TRANSFER", "CASH", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement;
     // Sổ đại lý đợt 2 (ADR-0132; đặc tả P4): hai lựa chọn mới chỉ khi máy chủ gửi `benKia` (đơn có đại lý được hưởng / quầy nhà cung cấp; không bao giờ với Đối tác).
-    const nguoi = h("select", { id: "lan-thu-nguoi-thu" }, ...luaChonNguoiThu(t.benKia).map((c) => h("option", { value: c.value }, c.nhan))) as HTMLSelectElement;
+    const nguoi = h("select", { id: "lan-thu-nguoi-thu" }, ...luaChon.map((c) => h("option", { value: c.value }, c.nhan))) as HTMLSelectElement;
     const thuCho = t.benKia ? (h("select", { id: "lan-thu-thu-cho" }, ...luaChonThuCho(t.benKia).map((c) => h("option", { value: c.value }, c.nhan))) as HTMLSelectElement) : null;
     const oThuChoEl = thuCho ? h("label", { "data-khoi": "thu-cho" }, NHAN_O_THU_CHO, thuCho) : null;
     const choKeToan = h("p", { class: "muted", "data-khoi": "cho-ke-toan", hidden: true });
@@ -1333,8 +1346,15 @@ function moBangQr(order: Order, t: Api.OrderPaymentsResponse, opener: HTMLElemen
     canvas.hidden = true;
     replaceChildren(dong);
     try {
-      const r = await api<Api.QrThanhToanResponse>(`/api/orders/${encodeURIComponent(order.id)}/qr-thanh-toan${so > 0 ? `?soTien=${so}` : ""}`);
+      const r = await api<Api.QrThanhToanResponse | Api.QrKhongCoResponse>(`/api/orders/${encodeURIComponent(order.id)}/qr-thanh-toan${so > 0 ? `?soTien=${so}` : ""}`);
       if (lanNay !== lan) return;
+      // ADR-0178 Đ1 mục 2: đơn mang dấu Tắt (khách trả cho đối tác đã lập đơn) ⇒ máy chủ trả «không có QR»; trang vừa đổi thì nói ra, không vẽ gì.
+      if (!("qr" in r)) {
+        datTrangThai("");
+        loiEl.textContent = "Đơn này khách trả cho đối tác đã lập đơn nên không có mã QR vào tài khoản công ty. Tải lại trang để xem đúng.";
+        loiEl.hidden = false;
+        return;
+      }
       // Ô hiện ĐÚNG số máy chủ đã dùng (trống / 0 ⇒ số còn lại hiện hành). Không bắn `input` nên không đụng bộ đếm `lan` và hai nút; phản hồi cũ đã bị chặn ở dòng trên.
       setMoneyValue(soTien, r.qr.soTien);
       veMaQr(canvas, r.qr.payload);
@@ -1448,7 +1468,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
     cho?.dangCho && xacNhan?.yeuCau ? daiChoXacNhan(xacNhan.yeuCau, Date.now()) : null,
     h("p", { class: "muted" }, `Lập ${dateTime(order.createdAt)} bởi ${order.staffName}`, order.confirmedAt && ` · Xác nhận ${dateTime(order.confirmedAt)}`),
     order.deliveredAt
-      ? h("p", { class: "lock-note" }, icon("lock", 18), order.completedAt ? "Đơn đã Hoàn thành — đơn đã khoá." : "Đơn đã ở bước Xong và đủ tiền — đơn đã khoá, không sửa, huỷ hay đổi người phụ trách được nữa.")
+      ? h("p", { class: "lock-note" }, icon("lock", 18), order.completedAt ? "Đơn đã Hoàn thành — đơn đã khoá." : "Đơn đã ở bước Khách đã trả đủ — đơn đã khoá, không sửa, huỷ hay đổi người phụ trách được nữa.")
       : a.locked
         ? h("p", { class: "lock-note" }, icon("lock", 18), cauKhoaXacNhan(a.editTrip, suaKhach, nguonSoKhach !== null)) // D5 (bản vẽ M3): câu khoá theo những gì người xem còn sửa được
         : null,
@@ -1725,7 +1745,7 @@ async function load(quiet = false): Promise<void> {
   const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
-    const [{ order, history, canModify, mocToiThieuPhut, suaSoKhach: soKhach, canhBaoKhuyenMai: nhacKhuyenMai, canhBaoGiamGia: canhBaoHoaHong, lichSuSoKhach: lichSu, xacNhan: xn, laBanHangPhuTrach, banHangMoi, coVeDaMo: veDaMo }, handler, banHangDon, tienDon, xe, nhapKtDon, khach] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), loadBanHang(id!), layTien(id!), layXe(id!), layNhapKt(id!), layKhach(id!)]);
+    const [{ order, history, canModify, mocToiThieuPhut, suaSoKhach: soKhach, canhBaoKhuyenMai: nhacKhuyenMai, canhBaoGiamGia: canhBaoHoaHong, lichSuSoKhach: lichSu, xacNhan: xn, laBanHangPhuTrach, banHangMoi, coVeDaMo: veDaMo, traSau: ts }, handler, banHangDon, tienDon, xe, nhapKtDon, khach] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), loadBanHang(id!), layTien(id!), layXe(id!), layNhapKt(id!), layKhach(id!)]);
     if (seq !== loadSeq) return;
     mocPhut = mocToiThieuPhut;
     suaSoKhach = soKhach;
@@ -1739,6 +1759,7 @@ async function load(quiet = false): Promise<void> {
     xacNhan = xn ?? null;
     banHang = banHangDon;
     coVeDaMo = veDaMo === true;
+    traSauDon = ts ?? null;
     laBanHang = laBanHangPhuTrach === true; // `=== true`: máy chủ cũ không gửi khoá
     banHangMoiNhap = banHangMoi ?? null;
     show(null);

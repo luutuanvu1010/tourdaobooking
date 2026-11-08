@@ -10,9 +10,10 @@
 // - ADR-0050: nơi hẹn đổi sau khi xếp → giữ NOI_HEN_DOI (so KHOÁ so sánh nơi của chặng với `placeKey` của điểm — `noiLechCuaSuat`, MỘT hàm cho cả lý do giữ
 //   lẫn cảnh báo lịch chung K-02); khoảng nghỉ lúc xuất bến đo từ giờ XẢY RA xuất bến (`xuatBenMs`), không từ lúc bấm (I37).
 import type {
-  BanChup, ChangVao, ChinhSachVao, ChuyenVao, DieuKienVao, DiemVao, GanTen, HangBangVao, KetQuaKiem, KetQuaXuatBen, KhungBanVao, KhungChuyen, MucChup, NhacXuatBen, SuatVao, TaiXeVao,
+  BanChup, ChangVao, ChinhSachVao, ChoPhepThieuVao, ChuyenVao, DieuKienVao, DiemVao, GanTen, GiayToXeThieu, GiayToXeVao, HangBangVao, KetQuaKiem, KetQuaXuatBen, KhungBanVao, KhungChuyen, MucChup, NhacXuatBen, SuatVao, TaiXeVao,
   TrangThaiChuyen, XeVao,
 } from "./dieu-phoi-kieu.ts";
+import { laGiayToChiToanQuyen } from "./cho-chay-thieu-giay.ts";
 import { xetKetThuc } from "./ket-thuc-chuyen.ts";
 import { kiemCamKet, tachLyDoCamKet, type KetQuaCamKet } from "./cam-ket-xe.ts";
 import { LOAI_CO_DINH } from "./giay-to.ts";
@@ -366,6 +367,33 @@ export interface KiemXuatBenVao {
    * luôn trong cửa sổ — nên màn chi tiết chuyến / cuốc tài xế truyền GIỜ THẬT ở đây để lý do hiện ngay khi đọc (Đ2.5).
    */
   cuaSoXetMs?: number;
+  /**
+   * ADR-0184: dòng cho phép chạy thiếu giấy tờ CHƯA DÙNG của chuyến này (mọi xe — cổng chỉ nhận dòng đúng xe hiện tại). BẮT BUỘC (không `?`): nơi gọi nào quên
+   * thì typecheck bắt, không lặng lẽ hiểu là «chưa ai cho phép» (màn và cổng thật phải cho CÙNG kết quả).
+   */
+  choPhepThieu: readonly ChoPhepThieuVao[];
+}
+
+/** Dòng giấy HIỆN HÀNH còn dùng được của xe cho loại `code` tới hết chuyến, hoặc undefined. MỘT định nghĩa «còn giấy» cho `kiemXuatBen` và `giayToXeConThieu`. */
+function giayXeConDung(xe: XeVao, code: string, ketThucMs: number): GiayToXeVao | undefined {
+  return xe.giayTo.find((x) => x.typeCode === code && conHanToiHet(x.expiryDate, ketThucMs));
+}
+
+/**
+ * ADR-0184: các loại giấy tờ XE đang thiếu theo điều kiện xuất bến đang hiệu lực (điều kiện của xe, áp cho xe từ `minCapacity` chỗ): xe không có dòng hiện hành
+ * của loại đó còn hạn tới hết chuyến. MỖI LOẠI MỘT PHẦN TỬ (hai điều kiện cùng loại giấy gộp một; `ruleId` = điều kiện đầu tiên). `expiryDate` = hạn của dòng giấy
+ * hiện hành gần nhất khi có (hết hạn), null = xe chưa có giấy. Giấy tờ của tài xế không tính ở đây.
+ */
+export function giayToXeConThieu(xe: XeVao, dieuKien: readonly DieuKienVao[], ketThucMs: number): GiayToXeThieu[] {
+  const out: GiayToXeThieu[] = [];
+  for (const dk of dieuKien) {
+    if (dk.subject !== "VEHICLE" || xe.soCho < dk.minCapacity) continue;
+    if (giayXeConDung(xe, dk.documentTypeCode, ketThucMs)) continue;
+    if (out.some((t) => t.documentTypeCode === dk.documentTypeCode)) continue;
+    const gan = xe.giayTo.filter((x) => x.typeCode === dk.documentTypeCode && x.expiryDate !== null).map((x) => x.expiryDate as string).sort().pop() ?? null;
+    out.push({ documentTypeCode: dk.documentTypeCode, expiryDate: gan, ruleId: dk.id });
+  }
+  return out;
 }
 
 /**
@@ -417,7 +445,7 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQua
   const c = v.chuyen;
   const cs = v.chinhSach;
   const muc: MucChup[] = [];
-  const mucRong = { vehicleDocumentId: null, personDocumentId: null, documentTypeCode: null, licenseClassCode: null, expiryDate: null, ruleId: null };
+  const mucRong = { vehicleDocumentId: null, personDocumentId: null, documentTypeCode: null, licenseClassCode: null, expiryDate: null, ruleId: null, waiverId: null };
   if (!cs) lyDo.push(lyDoGiu("CHINH_SACH_RONG"));
   else if (cs.requireContract) lyDo.push(lyDoGiu("HOP_DONG"));
   // ADR-0096 Đ2 (LC-20): cửa sổ xuất bến của chính sách đang dùng — không phá lệ. Lớp CSDL: trigger vc_trip_departure_window (0084).
@@ -436,13 +464,22 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQua
   // ADR-0057 C5: chuyến xe thuê phải có nguồn giá (giá bảng đã chụp hoặc giá thoả thuận) — không ai phá lệ (lớp CSDL: trigger vc_trip_thieu_gia).
   if (c.thue && !c.coNguonGia) lyDo.push(lyDoGiu("THIEU_GIA", c.ma));
   // Điều kiện xuất bến đang hiệu lực, áp cho xe từ minCapacity chỗ.
+  const choChayThieu: { documentTypeCode: string; waiverId: string }[] = [];
   for (const dk of v.dieuKien.filter((d) => c.xe.soCho >= d.minCapacity)) {
     if (dk.subject === "VEHICLE") {
-      const g = c.xe.giayTo.find((x) => x.typeCode === dk.documentTypeCode && conHanToiHet(x.expiryDate, c.ketThucMs));
+      const g = giayXeConDung(c.xe, dk.documentTypeCode, c.ketThucMs);
       if (g) muc.push({ ...mucRong, loai: "GIAY_TO_XE", vehicleDocumentId: g.rowId, documentTypeCode: g.typeCode, expiryDate: g.expiryDate, ruleId: dk.id });
       else {
-        lyDo.push(lyDoGiu("DIEU_KIEN_GIAY_TO_XE", c.xe.bienSo));
-        muc.push({ ...mucRong, loai: "DIEU_KIEN", documentTypeCode: dk.documentTypeCode, ruleId: dk.id });
+        // ADR-0184: loại giấy thiếu có dòng cho phép (chưa dùng) ĐÚNG XE HIỆN TẠI của chuyến → qua, dòng con DIEU_KIEN trỏ dòng cho phép. Hai điều kiện cùng loại
+        // giấy (xe từ 1 chỗ và từ 16 chỗ) cùng trỏ MỘT dòng. Không có → giữ: Kiểm định / Bảo hiểm chỉ Toàn quyền, bốn loại còn lại Quản trị.
+        const cho = v.choPhepThieu.find((w) => w.xeId === c.xe.id && w.documentTypeCode === dk.documentTypeCode);
+        if (cho) {
+          if (!choChayThieu.some((x) => x.documentTypeCode === cho.documentTypeCode)) choChayThieu.push({ documentTypeCode: cho.documentTypeCode, waiverId: cho.id });
+          muc.push({ ...mucRong, loai: "DIEU_KIEN", documentTypeCode: dk.documentTypeCode, ruleId: dk.id, waiverId: cho.id });
+        } else {
+          lyDo.push(lyDoGiu(laGiayToChiToanQuyen(dk.documentTypeCode) ? "DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN" : "DIEU_KIEN_GIAY_TO_XE", c.xe.bienSo));
+          muc.push({ ...mucRong, loai: "DIEU_KIEN", documentTypeCode: dk.documentTypeCode, ruleId: dk.id });
+        }
       }
     } else if (c.taiXe) {
       const g = c.taiXe.giayTo.find((x) => x.typeCode === dk.documentTypeCode && conHanToiHet(x.expiryDate, c.ketThucMs));
@@ -531,7 +568,7 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen & { camKet: KetQua
     muc,
   };
   const ds = khongTrung(lyDo);
-  return { dat: ds.length === 0, lyDo: ds, chup, ganTen, camKet, nhac };
+  return { dat: ds.length === 0, lyDo: ds, chup, ganTen, camKet, nhac, choChayThieu };
 }
 
 // ---- Kết thúc (LC-16), "trong ngày chạy" -----------------------------------------------------------------------------------------------------------------

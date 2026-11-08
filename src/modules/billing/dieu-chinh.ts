@@ -12,6 +12,7 @@ import {
 } from "./dieu-chinh-repo";
 import { lineIfPostingStatement, linesOfOrder, orderOwners, orderState, ownerCompanyId, partyLabels, receiptsOfOrder } from "./repository";
 import { HAN_YEU_CAU_NGAY, LOAI_DONG_THUONG_MAI, LY_DO_DIEU_CHINH_TOI_THIEU, conLai, dong, hetHanYeuCau, kiemDieuChinh, soDuCap, type DebtKind } from "./rules";
+import { cauTangChoDon } from "./tra-sau-tang";
 import { PARTY_ID_RE, docLyDo, docNgay, docSoTien, layKyDaKhoa, lineOf, loi, loiKhoaKy, loiTrigger, toLineRow, toReceiptRow, type KetQua, type NguoiGoi } from "./service";
 
 // Sổ đại lý đợt 2 (Task 6; ADR-0079 7b1, đặc tả P6): điều chỉnh có duyệt nhận thêm ba loại dòng thương mại — Kế toán bổ sung giá vốn / sửa hoa hồng sau «Đã giao»
@@ -60,7 +61,7 @@ async function kiemTheoSoLieuHienTai(
   // Ruling R-P15 (người kiểm Task 6): loại dòng thương mại chỉ cho đơn ĐÃ «Đã giao» — trước đó lô «Đã giao» còn tự sinh dòng gốc, điều chỉnh sớm thành TRÙNG
   // (đơn đại lý: yêu cầu hoa hồng 100.000 duyệt trước rồi «Đã giao» ⇒ Tour Đảo nợ 200.000). Kiểm ở cả lúc tạo lẫn lúc duyệt (cùng hàm này).
   if (LOAI_DONG_THUONG_MAI.has(y.loaiDong) && !(await orderState(db, y.orderId))?.delivered_at) {
-    return loi(409, "commercial_before_delivered", "Đơn chưa tới bước Xong và đủ tiền — chưa bổ sung được khoản này; chờ bước Xong và đủ tiền rồi tạo yêu cầu.");
+    return loi(409, "commercial_before_delivered", "Đơn chưa tới bước Khách đã trả đủ — chưa bổ sung được khoản này; chờ bước Khách đã trả đủ rồi tạo yêu cầu.");
   }
   const dongSo = dongDon.map(toLineRow);
   const bo = base.get(y.orderId);
@@ -168,6 +169,8 @@ export async function duyetYeuCau(db: D1Database, input: { yeuCauId: string; ai:
   for (const nv of [...new Set(bi)]) {
     stmts.push(auditStatement(db, { orderId: y.order_id, staffId: by, action: "ledger_adjustment_affected", at, targetType: "staff", targetId: nv, detail: "Số dư của bạn trên đơn vừa được điều chỉnh" }, "changes() > 0"));
   }
+  // ADR-0168 Đ2 mục 4 («mọi đường làm nợ tăng đều tăng phiên bản»): dòng điều chỉnh vừa duyệt có thể làm nợ đơn Trả sau tăng ⇒ tăng phiên bản bên đặt cùng lô (thấy khi dựng bảng ĐƯỜNG GHI, Task 2).
+  stmts.push(...(await cauTangChoDon(db, y.order_id, at)));
   let kq: D1Result[];
   try {
     kq = await db.batch(stmts);

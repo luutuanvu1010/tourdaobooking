@@ -53,7 +53,7 @@ Mỗi dòng đã có bài ở task sở hữu.
 - [x] **Step 4: Viết** (đã làm 5/11, commit 66618a26). `noTheoDon` lấy `dangDoiChieu`, `benDatDangGiu` từ `soChuaVeCongTy` với `nguoiLapPartyId` = bên đặt, bỏ phép tính riêng; `noMotDon` giữ chữ ký. Cổng đường dẫn khách đổi sang `moVeDuoc`.
 - [x] **Step 5: Chạy, xanh** gồm `src/modules/billing/*.test.ts`, `src/modules/ve-dien-tu/*.test.ts`, `src/tra-sau-*.test.ts`, `src/architecture.test.ts`, `npm run typecheck`. Commit. (Đã chạy xanh 5/11, commit 66618a26 và các commit sau trên nhánh.)
 
-### Task 2: Huỷ đơn và đường làm nợ tăng
+### Task 2: Huỷ đơn và đường làm nợ tăng — THI CÔNG XONG 2026-11-06, CHỜ KIỂM ĐỘC LẬP (nhánh `claude/festive-payne-7371a2`, commit 93176bfb và bản sửa thứ tự câu gác ở lô huỷ)
 
 Đóng nợ 1, 2, 4.
 
@@ -65,13 +65,13 @@ Mỗi dòng đã có bài ở task sở hữu.
 - Produces: `congHuyTraSau(...)` trả `{ loi: Response } | { qua: QuaCongHuy }`, trong đó `qua.chanVeDaMo: boolean` và `qua.kem: (at) => D1PreparedStatement[]`. Tương tự `QuaCongDoiBen`, `QuaCongSuaTang`. Ba kiểu mang nhãn riêng (`unique symbol`), chỉ cổng tạo được.
 - `soanHuyDon`, `changeBooker`, `soanSuaSoKhach` bắt buộc nhận kiểu nhãn tương ứng ở tham số. Câu chặn vé trong lô dùng lại `soanTraVeKhiHuy({ chanVeDaMo })`, cờ = `holdsPartner(actor) || qua.chanVeDaMo`.
 
-- [ ] **Step 1: Bài đỏ:** «vé mở chen giữa lúc kiểm và lúc huỷ, đơn Trả sau còn nợ, người bấm là văn phòng» ở cả `/status` và `handler-cancel`, dùng `chenTruocLo`: 409 `tra_sau_con_no_da_mo_ve`, đơn còn `confirmed`, số dòng `bil_*`, `audit_log` không đổi. Bảng bài `DUONG_GHI` chạy thật, mỗi dòng khẳng định phiên bản bên đặt tăng đúng 1: hoàn tiền, đảo khoản, sửa khoản, huỷ dòng giữ hộ, huỷ dòng nộp, chuyển cọc sang đơn Trả sau, ghi theo phân định, đảo khoản phân định.
-- [ ] **Step 2: Chạy, đỏ.**
-- [ ] **Step 3: Viết.** Nối `cauTangChoDon` vào lô `ghiChuyen`, `ghiTheoPhanDinh`, `daoKhoan`. Đổi chữ ký ba hàm sang kiểu nhãn; huỷ khi hết nợ cũng gác phiên bản qua `qua.kem`. Câu bảo vệ thắng trong lô thì dịch ra cùng câu `CAU_HUY_CON_NO`.
-- [ ] **Step 4: Xoá ba bài `QUÉT` đọc chữ** cho `soanHuyDon`, `changeBooker`, `soanSuaSoKhach` vì `npm run typecheck` đã buộc; xoá bài đếm `cauTangChoDon` vì bảng đã chạy thật. Thử phá: gọi `soanHuyDon` không kiểu nhãn thì typecheck đỏ; bỏ `cauTangChoDon` ở `ghiChuyen` thì bảng đỏ; hoàn nguyên. Ghi `docs/SO-HANG-RAO.md`.
-- [ ] **Step 5: Chạy, xanh** gồm `src/tra-sau-*.test.ts`, `npm run typecheck`. Commit.
+- [x] **Step 1: Bài đỏ:** «vé mở chen giữa lúc kiểm và lúc huỷ, đơn Trả sau còn nợ, người bấm là văn phòng» ở cả `/status` và `handler-cancel`, dùng `chenTruocLo`: 409 `tra_sau_con_no_da_mo_ve`, đơn còn `confirmed`, số dòng `bil_*`, `audit_log` không đổi. Bảng bài `DUONG_GHI` chạy thật, mỗi dòng khẳng định phiên bản bên đặt tăng đúng 1: hoàn tiền, đảo khoản, sửa khoản, huỷ dòng giữ hộ, huỷ dòng nộp, chuyển cọc sang đơn Trả sau, ghi theo phân định, đảo khoản phân định.
+- [x] **Step 2: Chạy, đỏ.** (3 bài đua đỏ: đơn bị huỷ 200; bảng đỏ ở chuyển cọc, ghi theo phân định, và đường bảng tự tìm ra: duyệt điều chỉnh sổ.)
+- [x] **Step 3: Viết.** Nối `cauTangChoDon` vào lô `ghiChuyen`, `ghiTheoPhanDinh`, `daoKhoan`. Đổi chữ ký ba hàm sang kiểu nhãn; huỷ khi hết nợ cũng gác phiên bản qua `qua.kem`. Câu bảo vệ thắng trong lô thì dịch ra cùng câu `CAU_HUY_CON_NO`. (Thực tế: thêm `duyetYeuCau` và nhánh đổi bên chịu; `daoKhoan` đã tăng qua `chuanBiLoThay` nên không nối thêm. Kiểu nhãn đặt ở `insertMoneyAdjustment` — câu ghi duy nhất của `soanSuaSoKhach` — vì tổng mới chỉ biết bên trong hàm đó; `cancelOrder` xoá.)
+- [x] **Step 4: Xoá ba bài `QUÉT` đọc chữ** cho `soanHuyDon`, `changeBooker`, `soanSuaSoKhach` vì `npm run typecheck` đã buộc; xoá bài đếm `cauTangChoDon` vì bảng đã chạy thật. Thử phá: gọi `soanHuyDon` không kiểu nhãn thì typecheck đỏ; bỏ `cauTangChoDon` ở `ghiChuyen` thì bảng đỏ; hoàn nguyên. Ghi `docs/SO-HANG-RAO.md`.
+- [x] **Step 5: Chạy, xanh** gồm `src/tra-sau-*.test.ts`, `npm run typecheck`. Commit.
 
-### Task 3: Cổng sửa tăng, gộp hồ sơ, hai mục ghim
+### Task 3: Cổng sửa tăng, gộp hồ sơ, hai mục ghim — THI CÔNG XONG 2026-11-06, CHỜ KIỂM ĐỘC LẬP (commit c3725654; chặn gộp hồ sơ còn nợ đã có ở Task 4b)
 
 Đóng nợ 3, 5, 6, 7.
 
@@ -83,18 +83,18 @@ Mỗi dòng đã có bài ở task sở hữu.
 - Consumes: `traSauCuaDon(orderId): { no, hanTra, benDat, version } | null`.
 - Produces: `GopHoSoNoi.conNoTraSau` thành bắt buộc, không còn dấu `?`.
 
-- [ ] **Step 1: Bài đỏ.**
+- [x] **Step 1: Bài đỏ.**
   - Hạn mức 500.000, đơn 600.000 đã về công ty 400.000 (nợ 200.000), sửa tăng lên 800.000: 200 (nợ mới 400.000). Tăng lên 1.000.000: 409 `vuot_han_muc`, câu nói đúng phần còn được dùng.
   - Đọc nợ trả `null` khi sửa tăng: 503 `tra_sau_chua_dung_duoc`.
   - Gộp: `conNoTraSau` ném lỗi thì xem trước và lệnh gộp không ghi; hồ sơ giữ nguyên.
   - Ghim nợ 6: tài khoản giữ quyền Đối tác gửi `benDat` của người khác vẫn nhận số của mình; `FIELD` 403; phản hồi chỉ có đúng ba khoá `coHanMuc`, `conDuocDung`, `coDonQuaHan`.
   - Ghim nợ 5: hạ hạn mức xuống dưới số đang nợ thì màn danh sách trả đúng cảnh báo và đơn mới bị chặn; đơn cũ không đổi.
-- [ ] **Step 2: Chạy, đỏ.** Hai mục ghim có thể xanh ngay: ghi rõ trong sổ là bài ghim, không phải sửa lỗi.
-- [ ] **Step 3: Viết.** `congSuaTangTraSau` đọc `traSauCuaDon`, gọi `kiemDon` với `total = no + tongMoi − order.total`. Bỏ `?.` và `?? Promise.resolve([])` ở `parties/index.ts`, `router.ts`; sửa khung thử nếu chưa tiêm.
-- [ ] **Step 4: Thử phá** công thức tăng và đường gộp, đỏ rồi hoàn nguyên. Ghi sổ hàng rào: R-CRD-3 «chỉ cảnh báo, dựa vào người xem», có lý do từ `scripts/audit-checks.mjs`.
-- [ ] **Step 5: Chạy, xanh.** Commit.
+- [x] **Step 2: Chạy, đỏ.** Hai mục ghim có thể xanh ngay: ghi rõ trong sổ là bài ghim, không phải sửa lỗi. (Đỏ: bài 500.000/600.000/400.000, bài 503, câu báo bài văn phòng. Xanh ngay = bài ghim: nợ 5, nợ 6, gộp hồ sơ lỗi đọc nợ.)
+- [x] **Step 3: Viết.** `congSuaTangTraSau` đọc `traSauCuaDon`, gọi `kiemDon` với `total = no + tongMoi − order.total`. (Thực tế: gửi PHẦN TĂNG, không `boQuaDon` — cùng bất đẳng thức, câu 409 nói đúng «đang nợ» gồm nợ của đơn; gác phiên bản bằng số `traSauCuaDon` đọc trước.) Bỏ `?.` và `?? Promise.resolve([])` ở `parties/index.ts`, `router.ts`; sửa khung thử nếu chưa tiêm.
+- [x] **Step 4: Thử phá** công thức tăng và đường gộp, đỏ rồi hoàn nguyên. Ghi sổ hàng rào: R-CRD-3 «chỉ cảnh báo, dựa vào người xem», có lý do từ `scripts/audit-checks.mjs`.
+- [x] **Step 5: Chạy, xanh.** Commit.
 
-### Task 4: Cài đặt công nợ theo ADR-0172
+### Task 4: Cài đặt công nợ theo ADR-0172 — XONG 2026-11-06 (nhánh `claude/cong-no-0172-0173-372c0c`, kiểm độc lập ĐẠT)
 
 **Files:**
 - Create: migration theo số kế tiếp
@@ -113,7 +113,7 @@ Mỗi dòng đã có bài ở task sở hữu.
 - [ ] **Step 5: Giao diện.** `web/o-cong-no.ts` theo khuôn `web/cot-cap-dai-ly.ts`, không `innerHTML`, ô gõ 16px; `/han-muc-tra-sau` bỏ phần ghi; nút điều hướng tới `/cap-dai-ly`. Đo `src/goi-trang-nhe.test.ts`. Trang màn đơn hiện hạn trả có giờ.
 - [ ] **Step 6: Thử phá** từng luật giờ và ô quyền, đỏ rồi hoàn nguyên; dòng sổ hàng rào. Chạy các tệp bài bị đụng, `npm run typecheck`, `npm run build:web`. Commit.
 
-### Task 4b: Luật vận hành theo ADR-0173
+### Task 4b: Luật vận hành theo ADR-0173 — XONG 2026-11-06 (cùng nhánh)
 
 **Files:**
 - Modify: `src/shared/permissions.ts`, `src/shared/permissions.test.ts`, `src/modules/billing/tra-sau.ts`, `src/modules/billing/tra-sau-repo.ts`, `src/modules/billing/index.ts`, `src/modules/parties/index.ts`, `src/index.ts`, migration mới của Task 4, `web/o-cong-no.ts`, `web/order.ts`, chỗ tính kỳ trả hoa hồng (tra `docs/CHANGE-GUIDE.md`), chỗ gửi tin Nền tảng hiện có
@@ -126,16 +126,33 @@ Mỗi dòng đã có bài ở task sở hữu.
 - [ ] **Step 4: Đ3.** Kiểm trước cách kỳ trả hoa hồng đang chọn đơn; thêm điều kiện còn nợ bằng 0. Nhắc nợ gắn vào lịch chạy định kỳ hiện có, khoá chống lặp theo đơn và mốc; chưa có lịch chạy thì dừng báo điều phối vì đây là cấu hình triển khai. Đường đại lý xem lấy `partyId` từ phiên. Luật ngừng hồ sơ đi qua hàm tiêm bắt buộc, lỗi thì chặn.
 - [ ] **Step 5: Thử phá** từng điều, đỏ rồi hoàn nguyên, ghi sổ hàng rào. Chạy các tệp bài bị đụng, `npm run typecheck`, `npm run build:web`. Commit.
 
-### Task 5: Việc chưa làm, tên nút, kiểm tổng
+### Task 5: Việc chưa làm, tên nút, kiểm tổng — MỘT PHẦN (tên nút «Ân hạn», «Trả sau», «Mức tối đa Quản trị được cấp», «Trả sau của tôi» chủ chọn 6/11; kiểm tổng của Task 4/4b đã chạy)
 
 **Files:**
 - Modify: `tests/e2e/tra-sau.mjs`, `src/shared/bang-tham-chieu*.ts`, `docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md`, `docs/HANDOFF-N1.md`, sổ thi công Trả sau
 
-- [ ] **Step 1: e2e vé của đơn Trả sau**, gieo kho theo `moLo`, `themVe` ở `tests/e2e/ve-dien-tu.mjs`: xác nhận, đối tác mở và gửi; nộp một phần vẫn còn nợ; đường dẫn khách thấy đủ vé; không huỷ được khi còn nợ và đã mở; thu đủ rồi «Xong và đủ tiền». Bộ `run.mjs` đã chạy `audit-invariants` ở cuối nên đóng mục đó, không viết thêm.
-- [ ] **Bài còn thiếu từ Task 1 (người kiểm 5/11):** thêm vào `src/tra-sau-no-doi-tac.test.ts` hai ca: đại lý khác giữ tiền «Bên kia đã nhận» thì vẫn còn nợ; khoản `toi` cùng khoản khai của người khác. Task 1 Step 2 đánh dấu xong trước khi có hai bài này.
-- [ ] **Step 2: Lệch bảng từ.** Chạy `node --test src/bang-tham-chieu.test.ts`; còn đỏ ở `web/hoa-hong-cap.ts:149` thì xem có do nhánh này không, không phải thì ghi sổ nợ chung, không sửa ở đây.
-- [ ] **Step 3: Tên nút.** Điều phối hỏi chủ MỘT lần về «Đặt hạn mức», «Ngừng hạn mức», «Hạn mức trả sau», «Còn được dùng» và tên ô công nợ (chữ «Công nợ» đang trùng «Sổ công nợ»), kèm hai chữ «Thời hạn trả», «Ân hạn»: mỗi tên kèm 2–3 phương án, có khuyến nghị. Ghi lời chủ vào nguồn bảng từ bằng Edit, `npm run tham-chieu`. Tên «Xong và đủ tiền» đã chốt, không hỏi lại.
-- [ ] **Step 4: Tài liệu.** Sổ thi công: đánh dấu đóng từng mục nợ kèm commit. `HANDOFF-N1`: mục chờ phát hành nêu migration, «không chờ diễn tập theo ADR-0172», số bản đặt lúc phát hành. Hướng dẫn bài «Cấp hạn mức trả sau cho đối tác» đổi theo màn mới.
+- [x] **Step 1: e2e vé của đơn Trả sau** (6/11: xanh; nợ sau «Xong và đủ tiền» đã bù hoa hồng theo sổ đại lý — chủ chọn «Khớp sổ đại lý», ADR-0177 proposed; xem sổ thi công.), gieo kho theo `moLo`, `themVe` ở `tests/e2e/ve-dien-tu.mjs`: xác nhận, đối tác mở và gửi; nộp một phần vẫn còn nợ; đường dẫn khách thấy đủ vé; không huỷ được khi còn nợ và đã mở; thu đủ rồi «Xong và đủ tiền». Bộ `run.mjs` đã chạy `audit-invariants` ở cuối nên đóng mục đó, không viết thêm.
+- [x] **Bài còn thiếu từ Task 1 (người kiểm 5/11):** (XONG 2026-11-06, commit 30bbb103, bài ghim; «đại lý khác» làm bằng quầy nhà cung cấp cầm tiền.) thêm vào `src/tra-sau-no-doi-tac.test.ts` hai ca: đại lý khác giữ tiền «Bên kia đã nhận» thì vẫn còn nợ; khoản `toi` cùng khoản khai của người khác. Task 1 Step 2 đánh dấu xong trước khi có hai bài này.
+- [x] **Step 2: Lệch bảng từ.** (6/11: xanh 25/25, chỗ lệch `web/hoa-hong-cap.ts:149` không còn.) Chạy `node --test src/bang-tham-chieu.test.ts`; còn đỏ ở `web/hoa-hong-cap.ts:149` thì xem có do nhánh này không, không phải thì ghi sổ nợ chung, không sửa ở đây.
+- [x] **Step 3: Tên nút.** (XONG 6/11, commit 32dfbabc: chủ chọn «Cấp hạn mức» / «Điều chỉnh hạn mức» / «Đóng hạn mức», «Hạn mức trả sau», «Chưa cấp», «Hạn mức khả dụng»; ghi bảng từ, sinh lại BANG-THAM-CHIEU.md. Tên ô công nợ chưa hỏi — xem báo cáo.) Điều phối hỏi chủ MỘT lần về «Đặt hạn mức», «Ngừng hạn mức», «Hạn mức trả sau», «Còn được dùng» và tên ô công nợ (chữ «Công nợ» đang trùng «Sổ công nợ»), kèm hai chữ «Thời hạn trả», «Ân hạn»: mỗi tên kèm 2–3 phương án, có khuyến nghị. Ghi lời chủ vào nguồn bảng từ bằng Edit, `npm run tham-chieu`. Tên «Xong và đủ tiền» đã chốt, không hỏi lại.
+- [x] **Step 4: Tài liệu.** (6/11: sổ thi công, HANDOFF-N1 mục chờ phát hành ADR-0172/0173, CHANGE-GUIDE bẫy 92, SYSTEM-DESIGN dòng `traVeKhiHuy`, bài Hướng dẫn đổi tên «Cấp hạn mức trả sau cho đối tác».) Sổ thi công: đánh dấu đóng từng mục nợ kèm commit. `HANDOFF-N1`: mục chờ phát hành nêu migration, «không chờ diễn tập theo ADR-0172», số bản đặt lúc phát hành. Hướng dẫn bài «Cấp hạn mức trả sau cho đối tác» đổi theo màn mới.
 - [ ] **Step 5: Một lần duy nhất:** `npm test`, `npm run typecheck`, `npm run test:e2e`, kịch bản `tra-sau-smoke` khổ 390 và 1440 kèm `AXE_JS`. Đọc đầu ra, ghi sổ.
 - [ ] **Step 6: `nguoi-kiem-doc-lap`** đọc toàn nhánh theo ADR-0168, 0170, 0171, 0172, 0173, chạy lại, tự thử phá. Chỉ báo đạt theo báo cáo đó.
 - [ ] **Step 7: Đưa lệnh.** Đạt thì đưa chủ lệnh `npm run day-len` và `npm run trien-khai`, kèm câu cần thử trên iPhone thật. Không tự chạy.
+
+---
+
+## Đối chiếu ADR-0172, ADR-0173 (phiên thi công 2026-11-06)
+
+ADR thắng kế hoạch khi lệch. Các điểm đã chốt trước khi viết mã:
+
+1. **Migration `0143`** (`0142` đã thuộc nhánh «Có vé» chưa nhập). Chỉ mở rộng: thêm `term_hours`, `grace_hours` (`bil_credit_limit`), `credit_due_at`, `credit_grace_until` (`orders`); GIỮ và vẫn ghi `term_days` (= trần giờ/24, kẹp 1..365) và `credit_due_date` (= ngày Việt Nam của `credit_due_at`) để lùi về 2.68 vẫn an toàn và luật `audit-checks` cũ vẫn xanh. Bỏ hai cột cũ để lần phát hành sau (ghi `HANDOFF-N1`). Dựng lại `bil_credit_limit_close_only`, `v_ord_don_tra_sau`, `orders_delivered_lock`. Trigger mới: hai mốc giờ của đơn chỉ đi về sau, khoảng ân hạn giữ nguyên. Bảng mới: `bil_credit_setting` (mức tối đa Quản trị được cấp, chỉ thêm), `bil_credit_tier_default` (số gợi ý theo cấp), `bil_credit_reminder` (chống gửi lặp tin nhắc, khoá đơn + loại + mốc).
+2. **Giờ.** Hai mốc tính trong lô xác nhận từ CHÍNH `at` của lô (bằng `confirmed_at`), không dùng `today`. So chuỗi chỉ đúng khi cả hai bên là `toISOString()`. Nới hạn: hết ân hạn mới = hạn mới + (hết ân hạn cũ − hạn cũ) của chính đơn.
+3. **Hai nghĩa «quá hạn».** Trong ân hạn: chỉ báo. Hết ân hạn: chặn đơn Trả sau mới và vé chưa mở. `coDonQuaHan` = hết ân hạn. Đường hẹp `con-duoc-dung` giữ đúng ba khoá.
+4. **Lệch kế hoạch theo ADR.** (a) Nới hạn ghi cột của `orders` nên route nằm ở `orders` (SQL ở tệp nửa nghiêm), không ở `billing`. (b) Đại lý xem nợ: ADR nói «mục nhỏ trong trang của đối tác» nên là một mục trong trang có sẵn, không tạo `web/cong-no-cua-toi.ts`. (c) Đã có Cron 15 phút nên tin nhắc gắn vào `scheduled()`; bỏ câu «chưa có lịch chạy thì dừng». «Lúc quá hạn» = lúc tới hạn trả (ADR-0172 gọi khoảng ân hạn là quá hạn). Đại lý chưa có tài khoản thì không có người nhận tin (giả định, ghi lại).
+5. **Hoa hồng (ADR-0173 Đ3.1).** Dòng hoa hồng chỉ sinh ở bước «Xong và đủ tiền», mà đơn Trả sau còn nợ bị giữ ở bước đó (ADR-0168 Đ3 mục 2) nên điều này đã có sẵn theo cấu trúc: làm bài ghim + thử phá, không dựng cơ chế mới.
+6. **Ngừng hồ sơ còn nợ.** Phủ mọi đường kết thúc đại lý: gỡ vai được hưởng cuối cùng, ngưng tài khoản / bỏ quyền Đối tác, gộp hồ sơ, phiếu xoá. `conNoTraSau` thành bắt buộc (đóng mục nợ của Task 3), lỗi thì chặn.
+7. **Quyền.** `credit.limit.write` → Quản trị + Toàn quyền; `credit.limit.view` thêm Quản trị (ADR-0172 trang ghép (2) ghi người xem gồm Quản trị; bảng cũ thiếu). Ô mới: `credit.ceiling.write` (chỉ Toàn quyền), `credit.due.extend` (Quản trị, Toàn quyền), `credit.own.view` (Đối tác, phạm vi `own`). Tự đặt cho chính hồ sơ mình: 403. Quản trị vượt mức tối đa hoặc chưa có mức tối đa: 403.
+8. **Tên (chủ chọn 2026-11-06 trong hộp hỏi):** ô ở màn Cấp độ đại lý «Trả sau»; nút lùi hạn trả «Ân hạn» (lưu ý: trùng chữ với số giờ ân hạn, đã báo chủ một lần); con số giới hạn «Mức tối đa Quản trị được cấp»; mục của đại lý «Trả sau của tôi». «Thời hạn trả», «Ân hạn» (số giờ) dùng nguyên chữ của ADR.
+9. **Điều kiện «xây trên lỗ đang hở».** Bản sửa nộp một phần (Task 1) đã nằm trong lịch sử của nhánh này nên không thể lên production thiếu nó; không chặn.
+10. **Thứ tự:** Task 4 → 4b, rồi Task 2, 3 nếu còn sức; phần chưa làm ghi rõ ở báo cáo.

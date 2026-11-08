@@ -1,6 +1,6 @@
 // Luật THUẦN của biên nhận (module receipt — ADR-0024 đ1, ADR-0026 đ11; kế hoạch Task 8): dựng `ReceiptDto` theo DANH SÁCH TRẮNG — chép TỪNG trường được
 // phép, KHÔNG BAO GIỜ trải đối tượng nguồn (`...order`), nên thêm một trường bí mật vào đơn/sổ sau này không thể tự lọt ra biên nhận. Không I/O.
-import type { CompanyDto, OrderDetailDto, QrThanhToanDto, ReceiptDto, ReceiptPhanDto } from "../../shared/contracts.ts";
+import type { CompanyDto, MauBienNhan, OrderDetailDto, QrThanhToanDto, ReceiptDto, ReceiptPhanDto } from "../../shared/contracts.ts";
 import { chiaPhanNguoiBan, nguoiBanCuaDong } from "../../shared/chia-phan-nguoi-ban.ts";
 import type { BanChup } from "../../shared/hoa-hong-dong.ts";
 import { noiDungChuyenKhoan } from "../../shared/noi-dung-chuyen-khoan.ts";
@@ -103,8 +103,14 @@ export function chiaPhanBienNhan(order: OrderDetailDto, tenCongTy: string, ban: 
   }));
 }
 
-export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: TienBienNhan, ban: NguoiBanChoBienNhan | null): ReceiptDto {
+/** Mẫu in biên nhận (HD-02-DT): đơn của đối tác khi bên đặt là đối tác HOẶC người lập là Đối tác thuần; còn lại mẫu nội bộ. Luật thuần; hai cờ do route đọc. */
+export function mauBienNhan(i: { bookerLaDoiTac: boolean; nguoiLapDoiTacThuan: boolean }): MauBienNhan {
+  return i.bookerLaDoiTac || i.nguoiLapDoiTacThuan ? "doi_tac" : "noi_bo";
+}
+
+export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: TienBienNhan, ban: NguoiBanChoBienNhan | null, nguoiLapDoiTacThuan: boolean): ReceiptDto {
   return {
+    mau: mauBienNhan({ bookerLaDoiTac: order.bookerLaDoiTac, nguoiLapDoiTacThuan }),
     company: { name: company.name, taxCode: company.taxCode, address: company.address, hotline: company.hotline, email: company.email },
     orderCode: order.orderCode,
     // Chữ KHÁCH đọc (biên nhận, ảnh gửi khách): đơn nháp luôn «Chờ xác nhận», KHÔNG đi theo nhãn nội bộ «Chưa xác nhận» (ADR-0166 câu 5) — khách không cần biết
@@ -126,6 +132,8 @@ export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: T
       checkinDate: s.checkinDate,
       checkinTime: s.checkinTime,
       checkinPlace: s.checkinPlace,
+      // Chỉ CỜ, không chép giá danh mục (ADR-0026 đ11): dòng nhập tay (không có giá danh mục) cũng tính là khác giá công bố.
+      giaKhacCongBo: s.items.some((it) => it.catalogPrice === null || it.unitPrice !== it.catalogPrice),
       items: s.items.map((it) => ({ description: it.description, detail: it.detail, quantity: it.quantity, unitPrice: it.unitPrice, lineTotal: it.lineTotal })),
     })),
     subtotal: order.subtotal,
@@ -150,7 +158,7 @@ export type KiemSoTienQr = { ok: true; soTien: number } | { ok: false; status: 4
 
 /** Thứ tự: đơn đã giao (kể cả đơn lệch cũ còn lại > 0) → hết tiền cần thu → số gõ. Thiếu số ⇒ bằng còn lại. */
 export function kiemSoTienQr(i: { daGiao: boolean; conLai: number; soTienRaw: string | null }): KiemSoTienQr {
-  if (i.daGiao) return { ok: false, status: 409, ma: "order_delivered", cau: "Đơn đã xong và đủ tiền — không thu thêm." };
+  if (i.daGiao) return { ok: false, status: 409, ma: "order_delivered", cau: "Đơn đã tới bước Khách đã trả đủ — không thu thêm." };
   if (i.conLai <= 0) return { ok: false, status: 409, ma: "nothing_due", cau: "Đơn không còn tiền cần thu." };
   if (i.soTienRaw === null || i.soTienRaw === "") return { ok: true, soTien: i.conLai };
   if (!SO_TIEN_QR_RE.test(i.soTienRaw)) return { ok: false, status: 400, ma: "invalid_input", cau: "Số tiền phải là số nguyên dương (đồng)." };

@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { seedStaff } from "../../../tests/audit/harness.mjs";
 import { A, ACC, ADM, LAI, PARTNER, SUP, inDays, setup, svc } from "../../../tests/audit/xac-nhan-khung.mjs";
+import { datQuaHan } from "../../../tests/audit/tra-sau-moc.mjs";
 
 const AT = "2026-10-01T00:00:00.000Z";
 const PF = "88888888-8888-4888-8888-888888888889"; // Đối tác + Hướng dẫn viên (lai), đang phụ trách
@@ -218,7 +219,7 @@ test("Đ2: đơn của nhân viên văn phòng cũng theo cổng tiền (không 
 // ===== I-C (sau kiểm độc lập lần hai): đường dẫn khách của đơn Trả sau theo `veMoDuoc`, không theo tiền đã thu =====
 async function donTraSauCoDuongDan(w: any) {
   await nhapKho(w, 8);
-  assert.equal((await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: `pty-${PARTNER}`, hanMuc: 50_000_000, soNgay: 7, lyDo: "thử" } })).status, 201);
+  assert.equal((await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: `pty-${PARTNER}`, hanMuc: 50_000_000, gioTra: 168, gioAnHan: 0, lyDo: "thử" } })).status, 201);
   const r = await w.call("POST", "/api/orders", { as: PARTNER, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc("ZA1", inDays(3))], paymentTerm: "CREDIT" } });
   assert.equal(r.status, 201, r.text);
   const id = r.json.order.id as string;
@@ -243,7 +244,7 @@ test("I-C: đơn Trả sau quá hạn còn nợ: vé đã mở vẫn xem, vé ch
   const w = dung();
   const { id, token } = await donTraSauCoDuongDan(w);
   assert.equal((await suaKhach(w, id, ADM, 4)).status, 200);
-  w.sqlite.prepare("UPDATE orders SET credit_due_date = '2020-01-01' WHERE id = ?").run(id);
+  datQuaHan(w.sqlite, id);
   const nk = Number(w.q("SELECT count(*) AS n FROM audit_log")[0].n);
   const t = await trang(w, token);
   assert.deepEqual(slotTrang(t.text), [1, 2]);

@@ -1,10 +1,11 @@
 // ADR-0156 phía máy chủ qua ứng dụng THẬT (tests/audit/harness.mjs): chặn trùng theo dấu vân tệp (Đ2), vé chưa từng phát ra nhập lại được, lệnh Bỏ lô, trần lô do Toàn quyền đặt (Đ3).
-import { test } from "node:test";
+import { mock, test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { app, world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { readFileSync } from "node:fs";
 import { donHangChoXoa } from "./kho-tep.ts";
+import { tacNhan } from "../../shared/permissions.ts";
 
 const U = (n: number) => `${String(n).repeat(8)}-${String(n).repeat(4)}-4${String(n).repeat(3)}-8${String(n).repeat(3)}-${String(n).repeat(12)}`;
 const SALES = U(1), SUPER = U(2), KT = U(3), ADMIN = U(5);
@@ -257,8 +258,8 @@ test("phản hồi và nhật ký không chứa chuỗi QR 36 số đầy đủ"
 // ---- Phát hiện của người kiểm độc lập 2/11 ------------------------------------------------------------------------------------------------------------
 const hangCho = (w: any) => w.q("SELECT count(*) AS n FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL")[0].n;
 
-/** Việc định kỳ chạy như thể đã qua `ngay` ngày kể từ bây giờ. */
-const chaySau = (w: any, ngay: number) => donHangChoXoa(w.env.DB, w.env.VE_DIEN_TU, 50, () => new Date(Date.now() + ngay * 864e5).toISOString());
+/** Việc định kỳ chạy như thể đã qua `ngay` ngày kể từ bây giờ — dưới tác nhân DON_ANH_VE như Cron (ADR-0186). */
+const chaySau = (w: any, ngay: number) => donHangChoXoa(w.env.DB, w.env.VE_DIEN_TU, tacNhan("DON_ANH_VE"), 50, () => new Date(Date.now() + ngay * 864e5).toISOString());
 
 test("Bỏ lô chen giữa lúc đang gửi ảnh: vé không được tính đã lưu; ảnh vừa đặt bị xoá khi hết hạn lưu, không nằm lại vĩnh viễn", async () => {
   const w = setup();
@@ -310,6 +311,49 @@ test("ảnh của lô đã huỷ: còn nguyên trong 3 ngày; quá hạn thì vi
   assert.equal(w.r2VeDienTu.co(khoaBan), true, "ảnh của lô đang bán không bị đụng, dù đã qua hạn");
   await chaySau(w, 3.1);
   assert.equal(hangCho(w), 0);
+});
+
+test("ADR-0186 (đặc tả N6): việc định kỳ xoá ảnh vé dưới tác nhân DON_ANH_VE — một dòng nhật ký «Xoá ảnh vé hết hạn lưu» mang mã tác nhân, không chứa mã vé", async () => {
+  const w = setup();
+  const loHuy = (await taoLo(w)).json.loId;
+  await them(w, loHuy, [ve(1), ve(2)]);
+  await xacNhan(w, loHuy);
+  const khoa = w.q("SELECT storage_key FROM vdt_ticket").map((x: any) => x.storage_key);
+  assert.equal((await bo(w, loHuy)).status, 200);
+  // Dấu thu hồi chỉ ghi một lần (trigger vdt_append_only) nên không lùi được ngày: cho đồng hồ chạy tới 3,1 ngày sau rồi gọi đúng `scheduled` của Worker.
+  const cho: Promise<unknown>[] = [];
+  mock.timers.enable({ apis: ["Date"], now: Date.now() + 3.1 * 864e5 });
+  try {
+    await app.default.scheduled({ cron: "*/15 * * * *", scheduledTime: Date.now() }, w.env, { waitUntil: (p: Promise<unknown>) => void cho.push(p), passThroughOnException() {} });
+    await Promise.all(cho);
+  } finally {
+    mock.timers.reset();
+  }
+  assert.deepEqual(khoa.map((k: string) => w.r2VeDienTu.co(k)), [false, false], "ảnh hết hạn lưu đã xoá như trước");
+  assert.equal(hangCho(w), 0);
+  const nk = w.q("SELECT * FROM audit_log WHERE action = 've_xoa_anh_het_han'");
+  assert.equal(nk.length, 1, "một dòng cho cả lượt xoá");
+  assert.equal(nk[0].agent_code, "DON_ANH_VE");
+  assert.equal(nk[0].staff_id, null);
+  assert.match(nk[0].detail, /2/, "chi tiết có số ảnh đã xoá");
+  assert.ok(!JSON.stringify(nk).includes(QR(1)) && !JSON.stringify(nk).includes(khoa[0]), "không mã vé, không khoá kho");
+});
+
+test("ADR-0186 Đ3 (đặc tả N3): hàm dọn ảnh vé tự hỏi cổng — bên không giữ ve.kho.purge (Quản trị, tác nhân việc khác) ⇒ không xoá ảnh nào, không ném; tác nhân DON_ANH_VE thì xoá", async () => {
+  const w = setup();
+  const loHuy = (await taoLo(w)).json.loId;
+  await them(w, loHuy, [ve(1)]);
+  await xacNhan(w, loHuy);
+  const khoa = w.q("SELECT storage_key FROM vdt_ticket")[0].storage_key;
+  assert.equal((await bo(w, loHuy)).status, 200);
+  for (const ben of [{ id: ADMIN, permissions: ["ADMIN"] }, tacNhan("DONG_BO_DANH_MUC"), tacNhan("NHAC_HAN_TRA_SAU")]) {
+    const so = await donHangChoXoa(w.env.DB, w.env.VE_DIEN_TU, ben, 50, () => new Date(Date.now() + 3.1 * 864e5).toISOString());
+    assert.equal(so, 0, `${ben.id}: bị từ chối, không xoá ảnh nào`);
+    assert.equal(w.r2VeDienTu.co(khoa), true, `${ben.id}: ảnh còn nguyên trong kho`);
+    assert.equal(hangCho(w), 1, `${ben.id}: dòng vé vẫn ở hàng chờ`);
+  }
+  assert.equal(await chaySau(w, 3.1), 1, "tác nhân DON_ANH_VE thì xoá được");
+  assert.equal(w.r2VeDienTu.co(khoa), false);
 });
 
 // ---- Khối «Lô đã huỷ gần đây» (chủ quyết 2/11/2026) ------------------------------------------------------------------------------

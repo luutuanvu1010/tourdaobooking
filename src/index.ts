@@ -17,7 +17,7 @@ import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
 import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
-import { billingModule, cauDatCocKhiXacNhan, cauGacPhienBan, chanKhaiCocLai, daThuCuaDon, kiemTraSau, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi, noCuaBenDat, traSauCuaDon } from "./modules/billing";
+import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan, chanKhaiCocLai, daThuCuaDon, kiemTraSau, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi, noCuaBenDat, traSauCuaDon, kenhThuHienTai, coHanMucTraSauMo, cauDongHanMucKhiHetVai } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
@@ -236,6 +236,9 @@ const APP_OPTIONS: AppOptions = {
       // ADR-0168 Đ2 mục 6: orders liệt kê đơn của hồ sơ, billing cho biết đơn nào Trả sau còn nợ — gốc lắp ráp ghép (hai module không import nhau).
       donNguoiDat: (partyId) => donCuaNguoiDat(env.DB, partyId),
       conNoTraSau: async (partyId) => (await noCuaBenDat(env.DB, partyId)).don.map((d) => d.maDon),
+      // ADR-0181 Đ2 (b): gỡ vai được hưởng cuối cùng (parties, accounts) đóng hạn mức Trả sau trong cùng lô — billing dựng câu, hai module kia không ghi bảng bil_.
+      coHanMucTraSauMo: (partyId) => coHanMucTraSauMo(env.DB, partyId),
+      cauDongHanMucKhiHetVai: (partyId, at, by) => cauDongHanMucKhiHetVai(env.DB, partyId, at, by),
       cauDoiDon: (tu, sang, at) => cauDoiNguoiDat(env.DB, tu, sang, at),
       soDongNo: (partyId) => soDongNoCuaNguoi(env.DB, partyId),
       soDangNhap: () => soDangNhapTheoHoSo(env.DB),
@@ -256,6 +259,8 @@ const APP_OPTIONS: AppOptions = {
     cauGacPhienBanTraSau: (env, partyId, version, at) => cauGacPhienBan(env.DB, partyId, version, at),
     traSauCuaDon: (env, id) => traSauCuaDon(env.DB, id),
     veDaMoCuaDon: (env, id) => veDaMoCuaDon(env.DB, id),
+    // KÊNH THU ĐỐI TÁC (ADR-0178 Đ1): `orders` không import billing — gốc lắp ráp tiêm hàm đọc công tắc «Khách của đối tác trả cho Công ty» (chụp lên đơn lúc lập).
+    kenhThuHienTai: (env) => kenhThuHienTai(env.DB),
     chanKhaiCocLai: (env, staffId) => chanKhaiCocLai(env.DB, staffId),
     // KHO VÉ ĐIỆN TỬ (ADR-0153 Đ1 mục 4): `orders` và `ve-dien-tu` không import nhau — gốc lắp ráp đọc dịch vụ qua hàm công bố của orders (số khách hiệu lực) rồi đưa sang kho vé.
     // Cấp / cân bằng chạy SAU lô của lệnh và NUỐT lỗi (lệnh đã thắng; thiếu vé là suy ra lúc đọc); câu trả vé khi huỷ nối vào CHÍNH lô huỷ. Log chỉ ghi mã đơn lỗi, không mã vé.
@@ -264,8 +269,12 @@ const APP_OPTIONS: AppOptions = {
     capVeSauXacNhan: async (env, actor, orderId) => {
       try { await capVeChoDon(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString()); } catch (e) { console.error("ve_cap_loi", orderId, e instanceof Error ? e.name : "loi"); }
     },
-    traVeKhiHuy: async (env, actor, orderId, lyDo) => {
-      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()), chanVeDaMo: holdsPartner(actor) }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return []; }
+    // Cờ câu bảo vệ «vé vừa mở» (ADR-0170 Đ3; kế hoạch 2026-11-05 Task 2): người giữ quyền Đối tác HOẶC cổng huỷ Trả sau đòi. Có cờ (lô huỷ) mà soạn lỗi thì trả null — nơi gọi
+    // trả 503 và KHÔNG chạy lô (Task 5 việc B; trước đó NÉM ra 500 thô). Nuốt lỗi ở đây sẽ bỏ mất câu bảo vệ (mở cửa); không cờ thì nuốt như cũ (thiếu câu trả vé chỉ để lại
+    // vé giữ thừa, suy ra lúc đọc). RUT_XAC_NHAN không mang câu bảo vệ nên không bao giờ null.
+    traVeKhiHuy: async (env, actor, orderId, lyDo, chanVeDaMoTraSau) => {
+      const chanVeDaMo = holdsPartner(actor) || chanVeDaMoTraSau;
+      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()), chanVeDaMo }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return chanVeDaMo && lyDo === "DON_HUY" ? null : []; }
     },
     canBangVeSauSuaKhach: async (env, actor, orderId) => {
       try { await canBangVeTheoSoKhach(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString(), vnToday(new Date())); } catch (e) { console.error("ve_can_bang_loi", orderId, e instanceof Error ? e.name : "loi"); }
@@ -289,9 +298,10 @@ export function taoAppChoKhungThu(ghiDe: Partial<AppOptions["injected"]>): Retur
 
 export default {
   fetch: app.fetch,
-  // Cron Trigger (wrangler.jsonc "triggers.crons"): tự đồng bộ danh mục dịch vụ từ Google Sheet; dọn ảnh vé còn ở hàng chờ xoá (ADR-0156).
+  // Cron Trigger (wrangler.jsonc "triggers.crons"): tự đồng bộ danh mục dịch vụ từ Google Sheet; dọn ảnh vé còn ở hàng chờ xoá (ADR-0156); nhắc hạn trả sau (ADR-0173 Đ3 mục 2).
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(runScheduledSync(env));
     ctx.waitUntil(donHangChoXoaVe(env));
+    ctx.waitUntil(nhacHanTraSauAnToan(env));
   },
 } satisfies ExportedHandler<Env>;

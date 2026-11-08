@@ -108,8 +108,8 @@ test("Cấp độ đại lý (đặc tả 2026-11-04-man-cap-dai-ly): hiện cho
   for (const p of [["SALES"], ["HR"], ["PARTNER"], ["DRIVER_PARTNER"], ["FIELD"], ["INTERN"], ["DRIVER"], ["ACCOUNTING", "PARTNER"]] as PermissionCode[][]) assert.equal(co(p), false, p.join("+"));
 });
 
-test("Hạn mức trả sau (ADR-0168): hiện cho Kế toán và Toàn quyền; không hiện cho Bán hàng, Quản trị, Hành chính nhân sự, Đối tác, Tài xế đối tác, tài khoản lai Kế toán + Đối tác", () => {
+test("Hạn mức trả sau (ADR-0168; ADR-0172 trang ghép (2): Quản trị xem): hiện cho Kế toán, Quản trị và Toàn quyền; không hiện cho Bán hàng, Hành chính nhân sự, Đối tác, Tài xế đối tác, tài khoản lai Kế toán + Đối tác", () => {
   const co = (p: PermissionCode[]) => thanhBen({ staff: holder(p) }, "/").flatMap((g) => g.muc).some((m) => m.trang === "hanMucTraSau");
-  for (const p of [["ACCOUNTING"], ["SUPER_ADMIN"]] as PermissionCode[][]) assert.equal(co(p), true, p.join("+"));
-  for (const p of [["SALES"], ["ADMIN"], ["HR"], ["PARTNER"], ["DRIVER_PARTNER"], ["FIELD"], ["INTERN"], ["DRIVER"], ["ACCOUNTING", "PARTNER"]] as PermissionCode[][]) assert.equal(co(p), false, p.join("+"));
+  for (const p of [["ACCOUNTING"], ["ADMIN"], ["SUPER_ADMIN"]] as PermissionCode[][]) assert.equal(co(p), true, p.join("+"));
+  for (const p of [["SALES"], ["HR"], ["PARTNER"], ["DRIVER_PARTNER"], ["FIELD"], ["INTERN"], ["DRIVER"], ["ACCOUNTING", "PARTNER"]] as PermissionCode[][]) assert.equal(co(p), false, p.join("+"));
 });

@@ -102,6 +102,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/auth/logout", access: "public" },
   { method: "POST", path: "/api/auth/session-ended", access: "public" }, // lý do máy này vừa bị đăng xuất (ADR-0075) — chỉ trả khi chữ ký token đúng
   { method: "GET", path: "/api/auth/me", access: "staff" },
+  { method: "POST", path: "/api/auth/xem-nhu-vai", access: "staff" }, // ADR-0180: Toàn quyền bật xem như vai trò khác — cổng xét quyền THẬT trong handler (module accounts)
+  { method: "DELETE", path: "/api/auth/xem-nhu-vai", access: "staff" }, // ADR-0180: thoát chế độ đó
   { method: "POST", path: "/api/auth/passkey/login", access: "public" }, // đăng nhập bằng Face ID (ADR-0016) — tự gọi maintenanceBlock, không qua cổng bảo trì của router
   { method: "POST", path: "/api/auth/passkey/options", access: "public" }, // xin thách thức WebAuthn để đăng nhập
   { method: "POST", path: "/api/auth/mfa/verify", access: "public" }, // bước hai của đăng nhập PIN (ADR-0074) — cổng là cookie chờ td_mfa_pending (khoá ký riêng, 5 phút); tự gọi maintenanceBlock
@@ -131,7 +133,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "PUT", path: "/api/catalog/groups/:code/dac-diem/:attr", access: "admin" },
   { method: "PUT", path: "/api/catalog/:code/dac-diem/:attr", access: "office" },
   { method: "GET", path: "/api/catalog/dem-xung-dot", access: "admin" }, // huy hiệu thanh bên: CHỈ số dịch vụ lệch giá; cùng ô admin.manage (dem-xung-dot.test.ts)
-  { method: "POST", path: "/api/catalog/sync", access: "admin" },
+  { method: "POST", path: "/api/catalog/sync", access: "office" }, // ADR-0186 (chủ duyệt 8/11): cổng office + ô catalog.sync trong thân route
   // ADR-0058 Đ4 (2026-09-30, Task A3): năm route nhóm dịch vụ — cổng admin + can(admin.manage) dòng đầu thân
   { method: "GET", path: "/api/catalog/groups", access: "admin" },
   { method: "POST", path: "/api/catalog/groups", access: "admin" },
@@ -204,6 +206,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/ledger/unpaid-summary", access: "orders" }, // order.view + money.view không ngữ cảnh (khuôn Trang chủ)
   { method: "GET", path: "/api/ledger/mine", access: "staff" }, // ledger.view own — HDV không qua cổng office
   { method: "GET", path: "/api/ledger", access: "office" }, // ledger.view any
+  { method: "GET", path: "/api/ledger/tu-ghi", access: "office" }, // ADR-0187 Đ3 mức (a): ledger.view any, không Đối tác — dòng tiền tự ghi đơn mình lập
+  { method: "GET", path: "/api/ledger/tu-ghi/dem", access: "office" }, // ADR-0187 Đ3 mức (a): ledger.view any — số chưa soát cho Trang chủ
+  { method: "POST", path: "/api/ledger/tu-ghi/:auditId/da-soat", access: "office" }, // ADR-0187 Đ3 mức (a): ledger.write, người soát ≠ người ghi (máy chủ + trigger 0150)
   { method: "GET", path: "/api/ledger/ben/:partyId", access: "office" }, // ledger.view any — chi tiết một bên của màn Sổ công nợ (kế hoạch 2026-10-24 P1), chỉ đọc
   { method: "POST", path: "/api/ledger/company-receipts/:receiptId/confirm", access: "office" }, // ledger.write
   { method: "POST", path: "/api/ledger/counterparty-receipts/:receiptId/confirm", access: "office" }, // ledger.write — «Bên kia đã nhận» (ADR-0132 điều 2)
@@ -442,6 +447,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/van-chuyen/loai-giay-to-xe", access: "admin" }, // danh mục loại giấy tờ xe — admin.manage viết thẳng (luật 4)
   { method: "PUT", path: "/api/van-chuyen/loai-giay-to-xe/:code", access: "admin" }, // như trên
   { method: "POST", path: "/api/van-chuyen/nguong-het-han", access: "admin" }, // ngưỡng "sắp hết hạn" (dòng chính sách mới) — CHỈ settings.ops (Toàn quyền), viết thẳng (luật 4)
+  { method: "GET", path: "/api/van-chuyen/cho-chay-thieu/dem", access: "office" }, // ADR-0184: số chuyến hôm nay có nhãn «đã cho chạy dù thiếu giấy tờ» (thẻ Trang chủ Quản trị); thân hỏi trip.override
   { method: "GET", path: "/api/van-chuyen/sap-het-han", access: "office" }, // danh sách giấy tờ sắp hết hạn (xe + tài xế, KHÔNG số) + count (R15); thân hỏi vehicle.manage
   { method: "GET", path: "/api/van-chuyen/nha-xe", access: "office" }, // ADR-0048 D1: nhà xe đang hợp tác + công ty chủ + số xe, số tài xế; thân hỏi vehicle.manage
   // ADR-0057 T1 (kế hoạch Đợt 4 Task 4): bảng giá thuê xe — thân hỏi transport.rate.view / transport.rate.manage; tuyến, cỡ xe: đọc trip.dispatch HOẶC rate.view.
@@ -499,6 +505,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/phan-bo/:aid/bao-huy", access: "office" }, // Đợt 5 ADR-0052 D5.2 — văn phòng báo khách huỷ (trip.dispatch)
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/phan-bo/:aid/dieu-chinh", access: "office" }, // ADR-0097 Đ2 (gói A1) — văn phòng điều chỉnh kết quả một khách (trip.progress)
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/thu-hoi-xuat-ben", access: "office" }, // ADR-0097 Đ3 (gói A1) — văn phòng thu hồi xuất bến nhầm (trip.progress)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/cho-chay-thieu-giay", access: "office" }, // ADR-0184 — Quản trị / Toàn quyền cho chạy dù thiếu giấy tờ xe (trip.override; Kiểm định, Bảo hiểm: trip.override.giay_to_cung)
   { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi", access: "staff" }, // ADR-0049 Task A15 route 19 — tài xế (ô trip.view assigned)
   { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi/:id", access: "staff" }, // route 20
   { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/hanh-khach", access: "staff" }, // Đợt 5 A-1b ADR-0052 D5b — tài xế bổ sung tên (trip.passenger.add) — chủ duyệt 5/10
@@ -555,9 +562,17 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/ve/lo/:id/bo", access: "office" }, // ADR-0156 Đ2 mục 3: Bỏ lô; thân hỏi ve.kho.manage
   { method: "GET", path: "/api/ve/cai-dat", access: "admin" }, // ADR-0156 Đ3: trần lô; thân hỏi settings.ops (chỉ Toàn quyền)
   { method: "PUT", path: "/api/ve/cai-dat", access: "admin" }, // ADR-0156 Đ3: như trên
-  { method: "GET", path: "/api/tra-sau/han-muc", access: "office" }, // ADR-0168 Đ1: credit.limit.view (Kế toán, Toàn quyền), không Đối tác
+  { method: "GET", path: "/api/tra-sau/han-muc", access: "office" }, // ADR-0168 Đ1: credit.limit.view (Kế toán, Quản trị, Toàn quyền — ADR-0172), không Đối tác
   { method: "GET", path: "/api/tra-sau/han-muc/:partyId/don", access: "office" }, // như trên
-  { method: "POST", path: "/api/tra-sau/han-muc", access: "office" }, // credit.limit.write (chỉ Toàn quyền)
+  { method: "GET", path: "/api/tra-sau/han-muc/:partyId", access: "office" }, // ADR-0172 Đ1: ô Trả sau ở Cấp độ đại lý — credit.limit.view
+  { method: "POST", path: "/api/tra-sau/muc-toi-da", access: "office" }, // ADR-0172: credit.ceiling.write (chỉ Toàn quyền)
+  { method: "GET", path: "/api/kenh-thu-doi-tac", access: "office" }, // ADR-0178 Đ1 mục 1: billing.partner_channel.view (Kế toán, Quản trị, Toàn quyền), không Đối tác
+  { method: "POST", path: "/api/kenh-thu-doi-tac", access: "office" }, // ADR-0178 Đ1 mục 1: billing.partner_channel.write (chỉ Toàn quyền)
+  { method: "GET", path: "/api/tra-sau/goi-y", access: "office" }, // ADR-0172 Đ2: credit.limit.view
+  { method: "PUT", path: "/api/tra-sau/goi-y/:cap", access: "office" }, // ADR-0172 Đ2: credit.limit.write (Quản trị, Toàn quyền)
+  { method: "GET", path: "/api/tra-sau/cua-toi", access: "orders" }, // ADR-0173 Đ3 mục 3: credit.own.view (Đối tác, own)
+  { method: "POST", path: "/api/tra-sau/don/:id/an-han", access: "office" }, // ADR-0173 Đ1 mục 3: credit.due.extend (Quản trị, Toàn quyền), không giữ quyền Đối tác
+  { method: "POST", path: "/api/tra-sau/han-muc", access: "office" }, // credit.limit.write (Quản trị, Toàn quyền — ADR-0172)
   { method: "POST", path: "/api/tra-sau/han-muc/:partyId/ngung", access: "office" }, // như trên
   { method: "GET", path: "/api/tra-sau/con-duoc-dung", access: "orders" }, // đường đọc hẹp cho người lập đơn: order.create; Đối tác bị ép về hồ sơ của phiên
   { method: "GET", path: "/api/ve/don/:orderId", access: "orders" }, // ADR-0153 Đ3 (Task 6); thân hỏi order.view rồi isOffice hoặc ve.cap.send (ADR-0170 Đ1: cổng orders mở cho Đối tác; FIELD, INTERN vẫn 403)
@@ -595,7 +610,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 443 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 469 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -737,7 +752,14 @@ test("mức truy cập của 443 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-05 (ADR-0142, Task 5): + GET /api/orders/chua-co-ban-hang, POST /api/orders/:id/ban-hang/nhan, POST …/ban-hang/tu-choi, PUT /api/orders/:id/ban-hang (orders; dispatch.sales.*), GET /api/dispatch/ban-hang-moi, GET /api/dispatch/ban-hang (orders), GET, POST /api/cai-dat/ban-hang-phu-trach (admin; settings.ops) = 451.
   // 2026-11-05 (ADR-0169 Đ5): + GET /api/catalog/quan-ly-ban, PUT /api/catalog/:code/ngung-ban (office; thân hỏi ô, chặn Đối tác) = 451.
   // 2026-11-05 (ADR-0168, Trả sau): thêm năm route hạn mức trả sau của billing = 456.
-  // 2026-11-05 (ADR-0174 Đ4): + GET, POST /api/catalog/co-ve (office; thân hỏi catalog.ticket_flag.write, chặn Đối tác) = 458.
-  assert.equal(actual.length, 458, "số route thực tế lệch 458 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 458, "SNAPSHOT phải có đúng 458 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-06 (ADR-0172, ADR-0173): + GET /api/tra-sau/han-muc/:partyId, POST /api/tra-sau/muc-toi-da, GET /api/tra-sau/goi-y, PUT /api/tra-sau/goi-y/:cap (office), GET /api/tra-sau/cua-toi (orders; credit.own.view), POST /api/tra-sau/don/:id/an-han (office, ở orders) = 462.
+  // 2026-11-06 (ADR-0178 Đ1 mục 1, Task A2): + GET, POST /api/kenh-thu-doi-tac (office; billing.partner_channel.view / .write) = 464.
+  // 2026-11-07 (ADR-0180 Đ1): + POST, DELETE /api/auth/xem-nhu-vai (staff; module accounts; thân hỏi ô settings.ops theo quyền THẬT) = 466.
+  // 2026-11-07 (ADR-0184 việc 3): + POST /api/van-chuyen/chuyen/:id/cho-chay-thieu-giay (office; trip.override, thân hỏi thêm trip.override.giay_to_cung) = 467.
+  // 2026-11-08 (ADR-0184 việc 5): + GET /api/van-chuyen/cho-chay-thieu/dem (office; thân hỏi trip.override — số cho thẻ Trang chủ) = 468.
+  // 2026-11-08 (ADR-0187 Đ3 mức (a)): + GET /api/ledger/tu-ghi, GET /api/ledger/tu-ghi/dem, POST /api/ledger/tu-ghi/:auditId/da-soat (office; billing; ledger.view / ledger.write, không Đối tác) = 469 trên main.
+  // 2026-11-08 (gộp ADR-0187 vào nhánh ADR-0184): 466 + 2 route của ADR-0184 + 3 route của ADR-0187 = 471.
+  // 2026-11-08 (nối ADR-0174 vào main): + GET, POST /api/catalog/co-ve (office; thân hỏi catalog.ticket_flag.write, chặn Đối tác) = 473.
+  assert.equal(actual.length, 473, "số route thực tế lệch 473 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 473, "SNAPSHOT phải có đúng 473 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -30,7 +30,7 @@ export const XEP: Readonly<Record<string, XepNhom>> = {
     "Bắt đầu": [["Menu của bạn", null], ["Thông báo", null]],
     "Đơn của tôi": [
       ["Nhận một đơn đang chờ", "donHang"], ["Xem và lo đơn của mình", "donHang"], ["Sửa số khách", DON], ["Huỷ đơn", DON], ["Trả đơn (Từ chối)", DON],
-      ["Thu tiền và bấm Xác nhận xong và đủ tiền", DON], ["Đơn của đối tác chờ xác nhận: kiểm vé", "choXacNhan"],
+      ["Thu tiền và bấm Xác nhận khách đã trả đủ", DON], ["Đơn của đối tác chờ xác nhận: kiểm vé", "choXacNhan"],
     ],
     "Khi vướng": VUONG("Tình huống hay gặp", "Điều bạn không làm được — hỏi ai", "Câu hỏi thường gặp"),
     "Bảo mật": [["Bật bảo mật hai lớp", "toi"], ["Nhận mã đăng nhập qua email", "toi"]],
@@ -63,7 +63,7 @@ export const XEP: Readonly<Record<string, XepNhom>> = {
     "Bảo mật": [["Bật bảo mật hai lớp", "toi"], ["Nhận mã đăng nhập qua email", "toi"]],
   },
   "quan-ly-ban-hang": {
-    "Dịch vụ & giá": [["Menu của bạn", null], ["Chọn vé cần kiểm vé", "dichVu"], ["Ngừng bán, mở bán lại", "dichVu"], ["Việc cần nhờ người khác", null]],
+    "Dịch vụ & giá": [["Menu của bạn", null], ["Chọn vé cần kiểm vé", "dichVu"], ["Ngừng bán, mở bán lại", "dichVu"], ["Lấy bảng giá mới từ Google Sheet", "dichVu"], ["Việc cần nhờ người khác", null]],
   },
   "nhan-su": {
     "Tài khoản": [["Menu của bạn", null], ["Tạo tài khoản", "taiKhoan"], ["Đổi vai trò, sửa tên hoặc số điện thoại, nghỉ việc", "taiKhoan"]],

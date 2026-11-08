@@ -29,7 +29,7 @@ export function cauKhongDoiDuocTrangThai(tu: OrderStatus, sang: OrderStatus): st
 export type KhoaTrangThai = OrderStatus | "delivered" | "completed";
 export function trangThaiHienThi(o: { status: OrderStatus; deliveredAt?: string | null; completedAt?: string | null; dangCho?: boolean | null }): { khoa: KhoaTrangThai; nhan: string } {
   if (o.status === "confirmed" && o.completedAt) return { khoa: "completed", nhan: "Hoàn thành" };
-  if (o.status === "confirmed" && o.deliveredAt) return { khoa: "delivered", nhan: "Xong và đủ tiền" };
+  if (o.status === "confirmed" && o.deliveredAt) return { khoa: "delivered", nhan: "Khách đã trả đủ" };
   // Cờ chỉ có nghĩa với đơn nháp; `khoa` vẫn `draft` (lớp CSS, màu không đổi). Viết gọn một lệnh vì hàm này nằm trong gói trang Đơn hàng, đang sát trần dung lượng.
   return { khoa: o.status, nhan: o.status === "draft" && o.dangCho ? NHAN_DANG_CHO_XAC_NHAN : STATUS_LABEL[o.status] };
 }

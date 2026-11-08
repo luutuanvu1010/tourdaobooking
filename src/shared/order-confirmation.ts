@@ -2,7 +2,7 @@
 // CÁCH BỘ VẼ (web/confirmation-image.ts) ĐỌC: đi qua `blocks` theo thứ tự và `switch (block.kind)`. Mọi chuỗi đã sẵn sàng để vẽ (tiền "1.350.000 ₫", ngày
 // "dd/mm/yyyy", giờ "HH:MM", số khách "2 người lớn, 1 trẻ em") và dòng rỗng đã bị bỏ lúc dựng — bộ vẽ chỉ đo chữ, ngắt dòng, vẽ; KHÔNG tự định dạng hay tự lọc.
 // Chuỗi có thể chứa "\n" (ghi chú nhiều dòng): tách theo "\n" rồi mới ngắt theo chiều rộng. `SummaryRow.emphasis` chỉ nói "nổi bật" (Tổng cộng, Còn lại →
-// bộ vẽ tô `--c-accent`); mô hình không mang màu. `title.status.code` để bộ vẽ chọn màu huy hiệu. Logo do bộ vẽ tự vẽ ở đầu khối "header".
+// bộ vẽ tô `--c-accent`); mô hình không mang màu. `title.status.code` để bộ vẽ chọn màu huy hiệu. Logo do bộ vẽ tự vẽ ở đầu khối "header" CHỈ KHI `HeaderBlock.logo` có (mẫu nội bộ); mẫu đối tác HD-02-DT (`ReceiptDto.mau === "doi_tac"`) không có logo, thay bằng thương hiệu + khẩu hiệu + mã mẫu.
 // Bảng dịch vụ: bốn cột cố định description | quantity | unitPrice | lineTotal (tiêu đề ở `columns`; ba cột sau căn phải); `detail` là dòng phụ nhỏ dưới mô tả.
 // `ServiceBlock.subtotal` (chỉ khi dịch vụ có ≥ 2 dòng tiền) mang cả NHÃN ("Cộng dịch vụ") lẫn giá trị: bộ vẽ vẽ MỌI dịch vụ có `subtotal` giống hệt nhau — nhãn
 // căn phải ngay trái giá trị, giá trị thẳng cột "Thành tiền" — không tự đặt nhãn riêng, không tự cộng.
@@ -10,7 +10,8 @@
 // hồ sơ công ty) đã bỏ ký tự điều khiển, NUL, DEL, ký tự bidi (U+202A–202E, U+2066–2069), tab → dấu cách, dấu ngắt dòng lạ (VT, FF, NEL, U+2028, U+2029) → "\n", và gộp dấu
 // gõ rời về dạng dựng sẵn (NFC). Bộ vẽ có thể đưa thẳng vào canvas; nó chỉ cần tách theo "\n".
 // Đơn nháp CHƯA có ngày khởi hành thì dịch vụ đó KHÔNG có dòng "Khởi hành" (ảnh gửi khách không mang cảnh báo nội bộ "Chưa có ngày khởi hành" của trang đơn).
-// CỐ Ý KHÔNG có trong mô hình (đặc tả "Nội dung"): ghi chú vận hành của dịch vụ, nhãn khác giá danh mục, mã danh mục, giá danh mục, id, đơn vị thô, ghi chú thanh toán, cách cọc.
+// CỐ Ý KHÔNG có trong mô hình (đặc tả "Nội dung"): ghi chú vận hành của dịch vụ, mã danh mục, giá danh mục, id, đơn vị thô, ghi chú thanh toán, cách cọc.
+// Giá danh mục KHÔNG BAO GIỜ in; mẫu đối tác báo giá bị sửa khác giá công bố CHỈ qua nhãn cột «Đơn giá» (thay «Giá công bố»; chủ dự án Q6, 2026-11-06), mẫu nội bộ không có tín hiệu nào.
 // Tiền lấy NGUYÊN từ biên nhận máy chủ dựng (ReceiptDto — danh sách trắng, sổ tiền lượt 1); chỉ "tổng dịch vụ" được cộng ở đây.
 // NGƯỜI LẬP ĐƠN (`order.staffName`) KHÔNG BAO GIỜ được in trong vai "Nhân viên phụ trách" (quyết định chủ dự án 2026-09-28, sửa lỗi hiển thị sai sự thật khi đơn do
 // Đối tác/HDV lập chưa có ai phụ trách — cùng gốc với ADR-0020 điều 9/ADR-0030 S20-4: đơn mới không tự gắn người lập làm người phụ trách): đơn CHƯA có
@@ -26,6 +27,10 @@ export interface LabelValue { label: string; value: string }
 
 export interface HeaderBlock {
   kind: "header";
+  /** Có vẽ logo không (mẫu nội bộ: true; HD-02-DT: false). */
+  logo: boolean;
+  /** Mã mẫu in góc phải phần đầu ("Mẫu HD-02-DT"); null = không in (mẫu nội bộ). */
+  maMau: string | null;
   companyName: string;
   /** Mỗi phần tử một dòng logic (MST; địa chỉ; hotline · email); dòng dài do bộ vẽ tự ngắt. */
   lines: string[];
@@ -89,6 +94,10 @@ export type HandlerInput = string | null | typeof HANDLER_HIDDEN;
 
 const COLUMNS: ServiceColumns = { description: "Mô tả", quantity: "SL", unitPrice: "Đơn giá", lineTotal: "Thành tiền" };
 const SUBTOTAL_LABEL = "Cộng dịch vụ";
+/** Mẫu biên nhận cho đơn của đối tác (đặc tả 2026-11-06-bien-nhan-don-doi-tac §3). */
+export const MA_MAU_DOI_TAC = "Mẫu HD-02-DT";
+export const THUONG_HIEU = "Tour Đảo Nha Trang";
+export const KHAU_HIEU = "Trải nghiệm biển đảo tuyệt vời tại Khánh Hòa";
 
 // ---- định dạng chữ ----------------------------------------------------------------------------------------------------
 
@@ -161,9 +170,16 @@ function headerBlock(company: CompanyDto): HeaderBlock {
   const contact = joinDot([labelled("Hotline", company.hotline), labelled("Email", company.email)]);
   return {
     kind: "header",
+    logo: true,
+    maMau: null,
     companyName: clean(company.name),
     lines: [labelled("MST", company.taxCode) ?? "", clean(company.address), contact].filter((l) => l !== ""),
   };
+}
+
+/** Phần đầu mẫu HD-02-DT: không logo, không MST/địa chỉ/email; thương hiệu + khẩu hiệu + Hotline (thiếu Hotline thì bỏ dòng). */
+function headerDoiTac(company: CompanyDto): HeaderBlock {
+  return { kind: "header", logo: false, maMau: MA_MAU_DOI_TAC, companyName: THUONG_HIEU, lines: [KHAU_HIEU, labelled("Hotline", company.hotline) ?? ""].filter((l) => l !== "") };
 }
 
 function titleBlock(order: ReceiptDto, handler: HandlerInput): TitleBlock {
@@ -188,6 +204,50 @@ function customerBlock(order: ReceiptDto): CustomerBlock {
     heading: "Thông tin khách hàng",
     rows: rowsOf([["Họ tên", order.customerName], ["Số điện thoại", order.customerPhone], ["Email", order.customerEmail], ["Ghi chú / yêu cầu", order.customerNote]]),
   };
+}
+
+// ---- mẫu HD-02-DT (đơn của đối tác) ----
+/** Các điểm đón khác rỗng của mọi dịch vụ, mỗi nơi một lần (so sau khi làm sạch). */
+const diemDon = (order: ReceiptDto): string[] => [...new Set(order.services.map((s) => clean(s.pickupPlace)).filter((p) => p !== ""))];
+
+function customerDoiTac(order: ReceiptDto): CustomerBlock {
+  const noi = diemDon(order);
+  return {
+    kind: "customer",
+    heading: "Thông tin khách hàng",
+    rows: rowsOf([["Họ tên khách", order.customerName], ["Số điện thoại", order.customerPhone], ["Địa chỉ", noi.length === 1 ? noi[0] : null], ["Ghi chú", order.customerNote]]),
+  };
+}
+
+function serviceDoiTac(s: ReceiptServiceDto, index: number, nhieuDiemDon: boolean): ServiceBlock {
+  return {
+    kind: "service",
+    index,
+    name: clean(s.name),
+    details: rowsOf([
+      ["Số lượng", guestText(s.pax, s.unit)], ["Khởi hành", departureText(s)], ["Giờ đón", s.pickupTime],
+      ["Địa chỉ đón", nhieuDiemDon ? s.pickupPlace : null], ["Khách có mặt", checkinText(s)],
+    ]),
+    columns: { description: parseUnit(s.unit).kind === "perPax" ? "Loại khách" : "Mô tả", quantity: "SL", unitPrice: s.giaKhacCongBo ? "Đơn giá" : "Giá công bố", lineTotal: "Thành tiền" },
+    lines: s.items.map((it) => ({
+      description: clean(it.description),
+      detail: clean(it.detail) === "" ? null : clean(it.detail),
+      quantity: String(it.quantity),
+      unitPrice: money(it.unitPrice),
+      lineTotal: money(it.lineTotal),
+    })),
+    subtotal: s.items.length >= 2 ? { label: SUBTOTAL_LABEL, value: money(s.items.reduce((sum, it) => sum + it.lineTotal, 0)) } : null,
+  };
+}
+
+function summaryDoiTac(order: ReceiptDto): SummaryBlock {
+  const daGiao = order.status.khoa === "delivered" || order.status.khoa === "completed";
+  const rows: SummaryRow[] = [{ label: order.services.some((s) => s.giaKhacCongBo) ? "Tạm tính" : "Tổng giá công bố", value: money(order.subtotal), emphasis: false }];
+  if (order.discount !== 0) rows.push({ label: "Giảm giá", value: money(order.discount > 0 ? -order.discount : order.discount), emphasis: false });
+  if (order.giamTru) rows.push({ label: "Giảm sau khi giao", value: money(-order.giamTru), emphasis: false });
+  if (order.daTra !== 0) rows.push({ label: daGiao ? "Đã thu" : "Khách đã trả trước", value: money(order.daTra), emphasis: false }); // khác 0 (không chỉ > 0) để các dòng luôn cộng khớp khi hoàn nhiều hơn thu
+  rows.push({ label: "Phải thu", value: money(order.conLai), emphasis: true }, ...dongPhan(order));
+  return { kind: "summary", rows };
 }
 
 function serviceBlock(s: ReceiptServiceDto, index: number): ServiceBlock {
@@ -297,16 +357,16 @@ function fileNameOf(orderCode: string): string {
 export function buildConfirmation(receipt: ReceiptDto, handlerName: HandlerInput): ConfirmationModel {
   const order = receipt;
   const company = receipt.company;
+  const doiTac = receipt.mau === "doi_tac";
+  const dau = doiTac ? headerDoiTac(company) : headerBlock(company);
+  // Đơn huỷ: thân = thông báo huỷ của mẫu nội bộ cho cả hai mẫu; chỉ phần đầu khác.
+  const thanNoiBo = !doiTac || order.status.khoa === "cancelled";
+  const nhieuDiemDon = diemDon(order).length >= 2;
   return {
     orderCode: clean(order.orderCode),
     fileName: fileNameOf(order.orderCode),
-    blocks: [
-      headerBlock(company),
-      titleBlock(order, handlerName),
-      customerBlock(order),
-      ...order.services.map((s, i) => serviceBlock(s, i + 1)),
-      summaryBlock(order),
-      footerBlock(company, order),
-    ],
+    blocks: thanNoiBo
+      ? [dau, titleBlock(order, handlerName), customerBlock(order), ...order.services.map((s, i) => serviceBlock(s, i + 1)), summaryBlock(order), footerBlock(company, order)]
+      : [dau, titleBlock(order, handlerName), customerDoiTac(order), ...order.services.map((s, i) => serviceDoiTac(s, i + 1, nhieuDiemDon)), summaryDoiTac(order), footerBlock(company, order)],
   };
 }

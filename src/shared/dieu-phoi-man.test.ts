@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 const NGAY = "2026-09-30";
 const ms = (gio: string, ngay = NGAY) => vnLocalToMs(ngay, gio)!;
 const g = (gio: string, ngay = NGAY) => ({ ngay, gio });
-const ly = (ma: string, loiNhan: string, aiXuLy: LyDoGiuDto["aiXuLy"] = "VAN_PHONG"): LyDoGiuDto => ({ ma, loiNhan, aiXuLy, aiXuLyNhan: { VAN_PHONG: "Văn phòng", QUAN_TRI: "Quản trị", TOAN_QUYEN: "Toàn quyền" }[aiXuLy] });
+const ly = (ma: string, loiNhan: string, aiXuLy: LyDoGiuDto["aiXuLy"] = "VAN_PHONG"): LyDoGiuDto => ({ ma, loiNhan, aiXuLy, aiXuLyNhan: { VAN_PHONG: "Văn phòng", QUAN_TRI: "Quản trị", QUAN_TRI_TOAN_QUYEN: "Quản trị, Toàn quyền", TOAN_QUYEN: "Toàn quyền" }[aiXuLy] });
 const chang = (o: Partial<ChangLichDto> = {}): ChangLichDto => ({
   legId: "l1", orderId: "o1", maDon: "TD-1", tenDichVu: "Tour", chieu: "OUT", ngayDon: NGAY, gioDon: "10:15", noiDon: "Sunrise Nha Trang", noiTra: "Ga cáp treo Vinpearl", soNguoi: 4,
   soNguoiCoTen: 4, soHieuChuyenBay: null, xeRieng: false, choToiThieu: null, datGap: false, trangThai: "CHUA_XEP", trangThaiNhan: "Chưa xếp", nhan: [], soDaXep: 0, soDaDon: 0, soDaTra: 0, soVang: 0, soKhachHuy: 0, chuyen: [], ...o,
@@ -507,4 +507,46 @@ test("nối dây ADR-0154 Đ3.3: trang đơn không còn chép tay câu thiếu 
   assert.match(od, /cauThieuTen\(/, "khối Hành khách của trang đơn lấy câu từ cauThieuTen");
   assert.match(od, /khoiHanhKhachDon\([^;]*manifestExempt\)/, "khối Hành khách nhận dấu miễn của đơn");
   assert.match(od, /canhBaoXacNhan\([^;]*manifestExempt\)/, "cảnh báo lúc xác nhận cũng theo dấu của đơn");
+});
+
+test("ADR-0184: Cần xử lý — nút «Cho chạy dù thiếu giấy tờ» chỉ khi chuyến bị giữ vì giấy tờ xe (Quản trị hoặc Toàn quyền) và người xem có ô trip.override", () => {
+  const L = lich({
+    chuyen: [
+      chuyen({ lyDoGiu: [ly("DIEU_KIEN_GIAY_TO_XE", "Xe thiếu Đăng ký xe", "QUAN_TRI")] }),
+      chuyen({ id: "t2", ma: "CX-3009-08", lyDoGiu: [ly("DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN", "Xe thiếu Bảo hiểm", "QUAN_TRI_TOAN_QUYEN")] }),
+      chuyen({ id: "t3", ma: "CX-3009-09", lyDoGiu: [ly("THIEU_TEN", "Thiếu tên")] }),
+    ],
+  });
+  const nut = (co: Parameters<typeof viecCanXuLy>[1]) => viecCanXuLy(L, co).map((x) => x.hanhDong.filter((h) => h.nhan === "Cho chạy dù thiếu giấy tờ").map((h) => (h as { href: string }).href));
+  assert.deepEqual(nut({ dieuPhoi: true, khanCap: false, quanLyXe: true, choChayThieu: true }), [["/chuyen?id=t1&mo=cho-chay-thieu"], ["/chuyen?id=t2&mo=cho-chay-thieu"], []]);
+  assert.deepEqual(nut({ dieuPhoi: true, khanCap: true, quanLyXe: true }), [[], [], []], "thiếu ô trip.override (Bán hàng) → không nút");
+  assert.deepEqual(nut({ dieuPhoi: true, khanCap: true, quanLyXe: true, choChayThieu: false }), [[], [], []]);
+});
+
+test("ADR-0184: dongNhatKy — «Cho chạy dù thiếu giấy tờ» đếm LOẠI giấy, không đếm khách", () => {
+  const n = (o: Partial<NhatKyChuyenDto>): NhatKyChuyenDto => ({ id: "e", loai: "DOCS_WAIVED", nhan: "Cho chạy dù thiếu giấy tờ", gioXayRa: g("06:10"), gioGhiNhan: g("06:10"), vanPhongKhai: false, nguoiBam: "Hoa", may: false, soNguoi: 2, phaLe: null, chuyenKhac: false, ...o });
+  assert.equal(dongNhatKy(n({}), NGAY).noiDung, "Cho chạy dù thiếu giấy tờ · 2 loại giấy tờ");
+  assert.equal(dongNhatKy(n({ soNguoi: null }), NGAY).noiDung, "Cho chạy dù thiếu giấy tờ");
+  // Có tên loại thì ghi tên (nối bằng «, »), không ghi số loại.
+  assert.equal(dongNhatKy(n({ loaiGiayTo: ["Đăng ký xe", "Bảo hiểm"] }), NGAY).noiDung, "Cho chạy dù thiếu giấy tờ · Đăng ký xe, Bảo hiểm");
+});
+
+test("ADR-0184: dieuKienXuatBen — «Giấy tờ xe» qua nhờ cho phép: dấu cảnh báo + nhãn «Xe thiếu …», không dấu xanh trơn; không cho phép thì như cũ", () => {
+  const dk = dieuKienXuatBen([], [], [{ ten: "Đăng ký xe" }]);
+  assert.deepEqual(dk[0], { nhan: "Giấy tờ xe", dat: true, chiTiet: "Xe thiếu Đăng ký xe — đã cho chạy", khongCan: false, choChay: true });
+  assert.deepEqual(dieuKienXuatBen([])[0], { nhan: "Giấy tờ xe", dat: true, chiTiet: "", khongCan: false });
+});
+
+test("ADR-0184 P10: chữ «Ai xử lý» của Cần xử lý và khung điều kiện — gom theo VAI, không lặp tên, thứ tự Văn phòng → Quản trị → Toàn quyền", () => {
+  const L = lich({
+    chuyen: [
+      chuyen({ lyDoGiu: [ly("DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN", "Xe thiếu Kiểm định", "QUAN_TRI_TOAN_QUYEN")] }),
+      chuyen({ id: "t2", ma: "CX-3009-08", lyDoGiu: [ly("DIEU_KIEN_GIAY_TO_XE", "Xe thiếu Đăng ký xe", "QUAN_TRI"), ly("DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN", "Xe thiếu Kiểm định", "QUAN_TRI_TOAN_QUYEN")] }),
+      chuyen({ id: "t3", ma: "CX-3009-09", lyDoGiu: [ly("DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN", "Xe thiếu Kiểm định", "QUAN_TRI_TOAN_QUYEN"), ly("THIEU_TEN", "Thiếu tên")] }),
+    ],
+  });
+  const v = viecCanXuLy(L, { dieuPhoi: true, khanCap: false, quanLyXe: true });
+  assert.deepEqual(v.map((x) => x.aiXuLy), ["Quản trị, Toàn quyền", "Quản trị, Toàn quyền", "Văn phòng, Quản trị, Toàn quyền"]);
+  const dk = dieuKienXuatBen([ly("DIEU_KIEN_GIAY_TO_XE", "Xe thiếu Đăng ký xe", "QUAN_TRI"), ly("DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN", "Xe thiếu Kiểm định", "QUAN_TRI_TOAN_QUYEN")]);
+  assert.match(dk[0]!.chiTiet, /Ai xử lý: Quản trị, Toàn quyền$/);
 });

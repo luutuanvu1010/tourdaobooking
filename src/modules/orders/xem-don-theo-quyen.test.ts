@@ -308,7 +308,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "order.confirm.review": "none", // ADR-0136 Đ4: Đối tác không xét duyệt xác nhận
     "order.submit": "own", // ADR-0136 Đ13.6: «Gửi đơn» của Đối tác — đơn của mình
     "order.service.manual": "none", // ADR-0061 điều 2: Đối tác không bao giờ nhập tay (máy chủ còn chặn mọi tài khoản có quyền Đối tác — holdsPartner)
-    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none", // ADR-0049 D3: Đối tác không thấy lịch xe (C1); ADR-0052 D5b: không bổ sung tên
+    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.override.giay_to_cung": "none", /* ADR-0184 */ "trip.urgent_adjust": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none", // ADR-0049 D3: Đối tác không thấy lịch xe (C1); ADR-0052 D5b: không bổ sung tên
     "trip.refuse": "none", // ADR-0053 D8 (kế hoạch A4 T3): Đối tác không lái chuyến, không Từ chối
     "unavailability.self": "none", // ADR-0053 D9 (kế hoạch A4 T8): Đối tác không báo bận tài xế
     "trip.transfer": "none", // ADR-0052 D4 / ADR-0111: Đối tác không điều xe
@@ -317,11 +317,16 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: Đối tác không thấy bảng mức, người bán (ADR-0077 điều 11; tỷ lệ chỉ văn phòng)
     "credit.limit.write": "none", // ADR-0168: hạn mức trả sau do Toàn quyền đặt
     "credit.limit.view": "none",
+    "credit.ceiling.write": "none", // ADR-0172: chỉ Toàn quyền
+    "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0178 Đ1 mục 1: công tắc kênh thu không phải việc của Đối tác
+    "credit.due.extend": "none", // ADR-0173 Đ1 mục 3: Ân hạn là việc của Quản trị, Toàn quyền
+    "credit.own.view": "own", // ADR-0173 Đ3 mục 3: «Trả sau của tôi» — chỉ hồ sơ của phiên
     "sales.block.write": "none", // ADR-0146 Đ5: Đối tác không đặt / gỡ luật bán (luật chặn chính họ)
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: Đối tác không gắn đặc điểm (đổi được kết quả luật bán)
     "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", // ADR-0169 Đ1: Đối tác không dùng, kể cả tài khoản kiêm (route chặn thêm)
     "catalog.ticket_flag.write": "none", // ADR-0174 Đ4
     "order.terms.view": "own", "order.terms.override": "none", // Task 5: Đối tác xem phần đối tác của ĐƠN CỦA MÌNH (DTO hẹp: chỉ số tiền hoa hồng — holdsPartner ở route); không ghi mức tay
+    "catalog.sync": "none", "credit.due.remind": "none", "ve.kho.purge": "none", // ADR-0186: đồng bộ danh mục là việc văn phòng; hai ô kia là việc Nền tảng tự làm
   };
   const actual = Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].PARTNER]));
   assert.deepEqual(actual, PARTNER_ROW);

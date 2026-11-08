@@ -19,7 +19,7 @@ const KHOA_DIEM = ["daToi", "gioHen", "gioXeToi", "id", "loai", "soNguoi", "tenN
 // ADR-0105 (nới có tên, G12): đúng MỘT khoá thêm, CHỈ GET chi tiết trong ngày chạy.
 const KHOA_DIEM_CHI_DUONG = [...KHOA_DIEM, "diaChiChiDuong"].sort();
 const KHOA_SUAT = ["daDon", "daTra", "diemLen", "diemXuong", "id", "loai", "maDon", "soHieuChuyenBay", "trangThai", "vanPhongBaoHuy"];
-const KHOA_GOC = ["chuyen", "diem", "dieuKienConThieu", "lyDo", "suat", "trongNgayChay", "tuChoiDuoc"].sort();
+const KHOA_GOC = ["choChayThieu", "chuyen", "diem", "dieuKienConThieu", "lyDo", "suat", "trongNgayChay", "tuChoiDuoc"].sort();
 /** Chuỗi KHÔNG BAO GIỜ được thấy trong DTO tài xế: tiền, ghi chú đơn, ghi chú thanh toán, người lập (tên Bán hàng), số / nơi cấp GPLX, khoá nơi, SĐT người bấm. */
 const CAM = /777000|Ghi chú đơn Dò Tìm|Thanh toán Dò Tìm|"An"|7911000000|Nơi cấp Dò Tìm|2030-12-31|\b[LT]:[0-9a-f-]{8,}|0900000001/;
 // ADR-0055 A4 + kế hoạch Đợt 3 Review Focus 4: DTO tài xế KHÔNG có khung bận (của xe hay của tài xế) — khoá khungBan*, unavailab*, lyDoBan.

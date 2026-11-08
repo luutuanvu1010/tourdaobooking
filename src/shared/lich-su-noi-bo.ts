@@ -76,9 +76,11 @@ export const LICH_SU_NOI_BO_AN = [
   "order_accounting_entry_marked", "order_accounting_entry_unmarked", "exported_png", "exported_pdf", "ledger_settlement", "prc_commission_rule_added",
   "prc_commission_rule_closed", "prc_supply_term_added", "prc_supply_term_closed", "prc_partner_type_added", "prc_partner_type_off",
   "prc_partner_type_on", "prc_partner_type_renamed", "prc_partner_type_note", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_rate_tier_renamed", "prc_rate_tier_note", "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed",
-  "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "prc_entry_limit_changed", "credit_limit_set", "credit_limit_stopped", "ledger_period_closed", "ledger_receipt_collector_changed", "ledger_duplicate_overridden", "attribution_requested", "attribution_ruled", "attribution_posted", "attribution_reassigned", "attribution_reversed", "attribution_responded", /* ADR-0116, ADR-0092 Đ6a: chi tiết có lý do, số tiền; chưa có trong bản chủ duyệt nên ẩn */ "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed",
+  "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "prc_entry_limit_changed", "credit_limit_set", "credit_limit_stopped",
+  // ADR-0172, ADR-0173: mức tối đa, số gợi ý, ân hạn đơn, tin nhắc — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại; trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "partner_channel_set", "credit_ceiling_set", "credit_tier_default_set", "credit_due_extended", "credit_due_soon_reminded", "credit_overdue_reminded", "ledger_period_closed", "ledger_receipt_collector_changed", "ledger_duplicate_overridden", "attribution_requested", "attribution_ruled", "attribution_posted", "attribution_reassigned", "attribution_reversed", "attribution_responded", /* ADR-0116, ADR-0092 Đ6a: chi tiết có lý do, số tiền; chưa có trong bản chủ duyệt nên ẩn */ "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed",
   "passkey_added", "passkey_removed", "pin_set_by_passkey", "login_unlocked", "staff_synced", "permission_changed", "account_roles_changed",
-  "session_policy_changed", "session_revoked", "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened",
+  "session_policy_changed", "session_revoked", "acting_role_set", "acting_role_cleared", "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened",
   "mfa_exception_set", "party_created", "party_updated", "party_contact_changed", "party_role_added", "party_role_ended", "party_relationship_changed",
   "party_merged", "party_document_added", "party_document_renewed", "party_document_corrected", "party_document_number_viewed",
   "party_document_catalog_changed", "party_bank_account_changed", "party_attachment_added", "party_attachment_viewed", "party_attachment_purged",
@@ -92,7 +94,7 @@ export const LICH_SU_NOI_BO_AN = [
   "trip_created", "trip_edited", "trip_cancelled", "trip_allocated", "trip_allocation_removed", "trip_allocation_moved", "trip_departed",
   "trip_stop_arrived", "trip_passenger_boarded", "trip_passenger_no_show", "trip_passenger_cancelled_at_stop", "trip_passenger_dropped",
   "trip_stops_reordered", "trip_ended", "trip_ended_interrupted", "trip_stop_added_running", "trip_allocation_office_cancelled", "trip_passenger_named",
-  "trip_allocation_corrected", "trip_departure_revoked", "trip_transfer_sent", "trip_transfer_withdrawn", "trip_transfer_declined",
+  "trip_allocation_corrected", "trip_departure_revoked", "trip_departure_waived", "trip_transfer_sent", "trip_transfer_withdrawn", "trip_transfer_declined",
   "trip_transfer_expired", "trip_transfer_escalated", "trip_transfer_confirmed", "trip_transfer_rejected", "trip_driver_refused", "trip_appt_called",
   "trip_appt_call_undone", "trip_cost_adjusted", "trip_cost_reversed", "trip_cost_snapshot", "trip_cost_agreed", "rental_rate_added",
   "rental_rate_closed", "route_saved", "vehicle_size_saved", "location_created", "location_updated", "maintenance_changed",
@@ -110,6 +112,9 @@ export const LICH_SU_NOI_BO_AN = [
   "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
   // ADR-0153 (đề xuất): giữ chỗ / trả vé điện tử — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại. Trang Nhật ký (Toàn quyền) vẫn đọc được.
   "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo",
+  "ve_xoa_anh_het_han", // ADR-0186 Đ4: tác nhân DON_ANH_VE ghi, không gắn đơn — ẩn; Toàn quyền đọc ở trang Nhật ký
+  // ADR-0187 Đ3 mức (a): soát dòng tiền tự ghi đơn mình lập — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; Sổ công nợ và trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "ledger_self_write_reviewed",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nội bộ nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

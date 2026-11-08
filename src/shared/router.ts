@@ -15,6 +15,7 @@ import { dongBoDiThang, type DongBoTheoDon, type VaoDongBoTheoDon } from "./dong
 import type { ChuyenChoTin, HoiChuyenChoTin } from "./tin-chuyen.ts";
 import type { KetQuaLoiMoi, KhungGioHanhChinh } from "./ban-hang-phu-trach.ts";
 import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate, type PermissionCode } from "./permissions.ts";
+import { quyenThat } from "./xem-nhu-vai.ts";
 
 /**
  * public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); orders: văn phòng HOẶC Đối tác (ADR-0014);
@@ -106,7 +107,12 @@ export interface GopHoSoNoi {
   viecCua: (partyId: string) => Promise<ViecCuaHoSo>;
   donNguoiDat: (partyId: string) => Promise<DonCuaNguoiDatTom>;
   /** ADR-0168 Đ2 mục 6: mã các đơn Trả sau còn nợ của hồ sơ — `orders` không biết nợ (billing tính), gốc lắp ráp điền. Tách khỏi `donNguoiDat` để hàng chờ phiếu xoá không tốn thêm truy vấn mỗi dòng. */
-  conNoTraSau?: (partyId: string) => Promise<string[]>;
+  /** BẮT BUỘC (ADR-0173 Đ3 mục 5, trang ghép (3)): không đọc được nợ thì hàm NÉM — mọi đường ngừng hồ sơ chặn theo (không đoán «hết nợ»). */
+  conNoTraSau: (partyId: string) => Promise<string[]>;
+  /** ADR-0181 Đ2 (b): hồ sơ có dòng hạn mức Trả sau đang mở. BẮT BUỘC — không đọc được thì NÉM (route gỡ vai chặn, không bỏ qua bước đóng hạn mức). */
+  coHanMucTraSauMo: (partyId: string) => Promise<boolean>;
+  /** ADR-0181 Đ2 (b): câu chưa chạy của billing đóng hạn mức khi hồ sơ hết vai được hưởng — nối SAU câu đóng vai trong cùng `db.batch()`. Câu tự kiểm điều kiện. */
+  cauDongHanMucKhiHetVai: (partyId: string, at: string, by: string) => D1PreparedStatement[];
   cauDoiDon: (tuPartyId: string, sangPartyId: string, at: string) => D1PreparedStatement;
   soDongNo: (partyId: string) => Promise<number>;
   soDangNhap: () => Promise<{ partyId: string; phone: string }[]>;
@@ -286,25 +292,29 @@ export interface Ctx<A extends Access = Access> {
    * ADR-0168 Đ2 mục 3, 4: cổng hạn mức Trả sau do billing dựng (`orders` không import billing). `null` = không tiêm: đơn Trả sau bị chặn 503, KHÔNG đoán «đủ hạn mức».
    * `cauGacPhienBanTraSau` dựng câu gác phiên bản của lô xác nhận (không tiêm ⇒ rỗng; chỉ dùng sau khi `kiemTraSau` đã trả `ok`). `traSauCuaDon`: hạn trả và nợ của MỘT đơn (`null` = không phải Trả sau / không đọc được).
    */
-  kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string }) => Promise<KetQuaKiemTraSau | null>;
+  kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" }) => Promise<KetQuaKiemTraSau | null>;
   cauGacPhienBanTraSau: (partyId: string, version: number, at: string) => D1PreparedStatement[];
-  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; no: number; benDat?: string | null; version?: number } | null>;
+  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
   /** ADR-0168 Đ3 mục 3: đơn đã có vé bị mở (lộ) cho khách chưa — `ve-dien-tu` trả lời, `orders` không import nó. `null` = không tiêm / không đọc được ⇒ cổng huỷ đơn Trả sau còn nợ chặn 503. */
   veDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
+  /** ADR-0178 Đ1: công tắc «Khách của đối tác trả cho Công ty» hiện hành (1 = Bật, 0 = Tắt). Gốc lắp ráp KHÔNG tiêm ⇒ 1 (như trước khi có công tắc); đã tiêm mà đọc lỗi ⇒ `null` ⇒ route lập đơn của tài khoản Đối tác trả 503 (không đoán). */
+  kenhThuHienTai: () => Promise<0 | 1 | null>;
   /** ADR-0089 đ7 + ADR-0159: người lập còn giữ tiền của đơn huỷ để lập lại ⇒ không khai lại. Không tiêm ⇒ câu chặn 503 (không đoán «không có»). */
   chanKhaiCocLai: (nguoiLapId: string) => Promise<ChanKhaiLai>;
   /**
    * KHO VÉ ĐIỆN TỬ (ADR-0153 Đ1 mục 4) — ba hàm do gốc lắp ráp tiêm (`ve-dien-tu` ghép với `orders.dichVuChoVe`; `orders` KHÔNG import `ve-dien-tu`, khuôn `daThuCuaDon`).
    * `capVeSauXacNhan`: gọi SAU lô xác nhận ở cả ba đường (`/status`, `quyet-dinh` CON_VE, `gui-don` nhánh B), KHÔNG nằm trong lô xác nhận và KHÔNG qua `baoThayDoi`; lỗi bị nuốt
-   * (xác nhận đã thắng — thiếu vé là suy ra lúc đọc). `traVeKhiHuy`: trả CÂU chưa chạy để nối vào lô huỷ / rút xác nhận (cùng nguyên tử); lỗi → mảng rỗng. `canBangVeSauSuaKhach`:
+   * (xác nhận đã thắng — thiếu vé là suy ra lúc đọc). `traVeKhiHuy`: trả CÂU chưa chạy để nối vào lô huỷ / rút xác nhận (cùng nguyên tử); lỗi → mảng rỗng, trừ khi lô huỷ phải mang câu bảo vệ «vé vừa mở» thì → null (nơi gọi trả 503). `canBangVeSauSuaKhach`:
    * gọi SAU lô sửa số khách (`money-edit`, `handler-money-edit`) — trả bớt vé chưa lộ, cấp thêm; lỗi bị nuốt. Môi trường không tiêm (khung thử cố ý) → không làm gì (an toàn: không cấp).
    */
   capVeSauXacNhan: (orderId: string) => Promise<void>;
   /** Các dịch vụ của đơn có thể giữ vé + số khách HIỆU LỰC (`orders.dichVuChoVe`) — cho route xem vé của `ve-dien-tu`. KHÔNG tự kiểm quyền: route hỏi `can(` trước. Không tiêm ⇒ rỗng. */
   dichVuChoVe: (orderId: string) => Promise<{ serviceId: string; catalogCode: string; ngayDi: string; coVe: boolean; pax: { adult: number; child: number; senior: number; infant: number } }[]>;
   /** {số tính «thu đủ», phải thu, số khai chưa nộp, số chờ Kế toán xác nhận, thông tin Trả sau} (`billing.tienDonVe`; `daThu` đã trừ `choNop`, ADR-0159 Đ2, và `choXacNhan`, ADR-0170 Đ2) — để so ở một hàm thuần. Không tiêm / không đọc được ⇒ `null` (KHÔNG mở khoá). */
-  tienDonVe: (orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; no: number } | null } | null>;
-  traVeKhiHuy: (orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN") => Promise<D1PreparedStatement[]>;
+  tienDonVe: (orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; hetAnHan: string | null; no: number } | null } | null>;
+  /** `chanVeDaMoTraSau` (BẮT BUỘC, kế hoạch 2026-11-05 Task 2): `qua.chanVeDaMo` của cổng huỷ Trả sau — lô mang câu bảo vệ «vé vừa mở» kể cả khi người bấm không giữ quyền Đối tác. */
+  /** `null` (Task 5 việc B): lô huỷ phải mang câu bảo vệ mà không soạn được câu trả vé ⇒ nơi gọi trả 503 `VE_CHUA_SOAN_DUOC`, KHÔNG chạy lô (bỏ câu bảo vệ = mở cửa). */
+  traVeKhiHuy: (orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN", chanVeDaMoTraSau: boolean) => Promise<D1PreparedStatement[] | null>;
   canBangVeSauSuaKhach: (orderId: string) => Promise<void>;
   /**
    * «DÒNG NÀY ĐÃ ĐƯỢC CHỤP CHƯA» (ADR-0148 Đ1) — do gốc lắp ráp tiêm (`orders.ngayChupGanNhat`; `pricing` KHÔNG đọc bảng `ord_`, không phụ thuộc `orders` — sẽ thành vòng; khuôn
@@ -360,7 +370,7 @@ const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
  * Chặn yêu cầu ghi không đến từ chính trang này (CSRF). Cookie SameSite=Lax đã chặn site khác; lớp này chặn thêm trang
  * cùng site (*.tourdao.vn) và form `enctype="text/plain"` giả JSON. Trả Response lỗi, hoặc null nếu hợp lệ.
  */
-function checkWriteRequest(request: Request, url: URL): Response | null {
+export function checkWriteRequest(request: Request, url: URL): Response | null {
   if (!WRITE_METHODS.has(request.method)) return null;
   const origin = request.headers.get("origin");
   const sameOrigin = origin ? origin === url.origin : request.headers.get("sec-fetch-site") === "same-origin";
@@ -459,19 +469,21 @@ export interface AppOptions {
     /** ADR-0159. BẮT BUỘC trong mã chạy thật (`src/index.ts`: billing); thiếu (khung thử cố ý) → `null` / câu chặn 503. */
     cauCocKhiXacNhan: (env: Env, i: VaoCauCoc) => Promise<CauCocXacNhan>;
     /** ADR-0168. BẮT BUỘC trong mã chạy thật (`src/index.ts`: billing); thiếu (khung thử cố ý) → `null` (đơn Trả sau bị chặn 503) / câu gác rỗng. */
-    kiemTraSau: (env: Env, i: { benDat: string; soTienDon: number; boQuaDon?: string }) => Promise<KetQuaKiemTraSau>;
+    kiemTraSau: (env: Env, i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" }) => Promise<KetQuaKiemTraSau>;
     cauGacPhienBanTraSau: (env: Env, partyId: string, version: number, at: string) => D1PreparedStatement[];
-    traSauCuaDon: (env: Env, orderId: string) => Promise<{ hanTra: string | null; no: number; benDat?: string | null; version?: number } | null>;
+    traSauCuaDon: (env: Env, orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
     /** ADR-0168 Đ3 mục 3, ADR-0170 Đ3: BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu`); `null` = không đọc được ⇒ người giữ quyền Đối tác KHÔNG huỷ / sửa số khách được (chặn, không đoán). */
     veDaMoCuaDon: (env: Env, orderId: string) => Promise<boolean | null>;
+    /** ADR-0178 Đ1. Mã chạy thật (`src/index.ts`: billing) PHẢI tiêm (bài `src/modules/orders/kenh-thu-chup.test.ts` ca «đường thật»); thiếu (khung thử) → router trả 1; ném lỗi → `null`. */
+    kenhThuHienTai: (env: Env) => Promise<0 | 1>;
     chanKhaiCocLai: (env: Env, nguoiLapId: string) => Promise<ChanKhaiLai>;
     /** ADR-0153 Đ1 mục 4. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu` + `dichVuChoVe` của orders); thiếu (khung thử cố ý) → router không cấp / không trả vé. Tự nuốt lỗi. */
     capVeSauXacNhan: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
-    traVeKhiHuy: (env: Env, actor: StaffProfile, orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN") => Promise<D1PreparedStatement[]>;
+    traVeKhiHuy: (env: Env, actor: StaffProfile, orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN", chanVeDaMoTraSau: boolean) => Promise<D1PreparedStatement[] | null>;
     canBangVeSauSuaKhach: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
     /** ADR-0153 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `orders.dichVuChoVe`, `billing.tienDonVe`); thiếu (khung thử cố ý) → rỗng / null. */
     dichVuChoVe: (env: Env, orderId: string) => Promise<{ serviceId: string; catalogCode: string; ngayDi: string; coVe: boolean; pax: { adult: number; child: number; senior: number; infant: number } }[]>;
-    tienDonVe: (env: Env, orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; no: number } | null } | null>;
+    tienDonVe: (env: Env, orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; hetAnHan: string | null; no: number } | null } | null>;
     /** ADR-0148 Đ1. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ngayChupGanNhat` của orders); thiếu (khung thử cố ý) → router trả `null` (route Sửa / Đổi / Ngừng của pricing 503). */
     hoiDaChup: (env: Env, q: HoiDaChup) => Promise<string | null>;
     /** TIN CHUYẾN (ADR-0052 D6.3). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `chuyenChoTinTheoId` của van-chuyen); thiếu (khung thử cố ý) → router trả `null`. */
@@ -568,7 +580,9 @@ export function createApp(opts: AppOptions) {
       staff = cur.staff;
       sessionId = cur.sessionId;
       baoTri = cur.baoTri;
-      const maintenance = await opts.injected.maintenanceBlock(env, staff, baoTri);
+      // ADR-0180 Đ3: cổng bảo trì xét quyền THẬT — Toàn quyền đang "xem như" vai khác vẫn được miễn (không bao giờ tự khoá mình). Các cổng dưới theo bộ HIỆU LỰC.
+      const staffThat: StaffProfile = { ...staff, permissions: [...quyenThat(staff)] };
+      const maintenance = await opts.injected.maintenanceBlock(env, staffThat, baoTri);
       if (maintenance) return maintenance;
       // ADR-0014 điều 2: SUPER_ADMIN = any ở mọi thao tác, kể cả admin.manage — không thay thế ADMIN, nên tài khoản chỉ giữ SUPER_ADMIN (không giữ ADMIN)
       // vẫn phải dùng được route access "admin" (bản đồ quyền — MATRIX — đã cho phép; cổng thô này chỉ đi theo, không siết chặt hơn).
@@ -635,7 +649,9 @@ export function createApp(opts: AppOptions) {
       gopHoSo: {
         viecCua: (id) => opts.injected.gopHoSo(envH).viecCua(id),
         donNguoiDat: (id) => opts.injected.gopHoSo(envH).donNguoiDat(id),
-        conNoTraSau: (id) => opts.injected.gopHoSo(envH).conNoTraSau?.(id) ?? Promise.resolve([]),
+        conNoTraSau: (id) => opts.injected.gopHoSo(envH).conNoTraSau(id),
+        coHanMucTraSauMo: (id) => opts.injected.gopHoSo(envH).coHanMucTraSauMo(id),
+        cauDongHanMucKhiHetVai: (id, at, by) => opts.injected.gopHoSo(envH).cauDongHanMucKhiHetVai(id, at, by),
         cauDoiDon: (tu, sang, at) => opts.injected.gopHoSo(envH).cauDoiDon(tu, sang, at),
         soDongNo: (id) => opts.injected.gopHoSo(envH).soDongNo(id),
         soDangNhap: () => opts.injected.gopHoSo(envH).soDangNhap(),
@@ -648,6 +664,15 @@ export function createApp(opts: AppOptions) {
       kiemTraSau: (i) => (typeof opts.injected.kiemTraSau !== "function" ? Promise.resolve(null) : opts.injected.kiemTraSau(envH, i)),
       cauGacPhienBanTraSau: (partyId, version, at) => (typeof opts.injected.cauGacPhienBanTraSau !== "function" ? [] : opts.injected.cauGacPhienBanTraSau(envH, partyId, version, at)),
       traSauCuaDon: (id) => (typeof opts.injected.traSauCuaDon !== "function" ? Promise.resolve(null) : opts.injected.traSauCuaDon(envH, id)),
+      kenhThuHienTai: async () => {
+        if (typeof opts.injected.kenhThuHienTai !== "function") return 1;
+        try {
+          const v = await opts.injected.kenhThuHienTai(envH);
+          return v === 0 || v === 1 ? v : null;
+        } catch {
+          return null;
+        }
+      },
       veDaMoCuaDon: (id) => (typeof opts.injected.veDaMoCuaDon !== "function" ? Promise.resolve(null) : opts.injected.veDaMoCuaDon(envH, id)),
       chanKhaiCocLai: (id) =>
         typeof opts.injected.chanKhaiCocLai !== "function"
@@ -657,7 +682,7 @@ export function createApp(opts: AppOptions) {
       capVeSauXacNhan: async (id) => { if (who && typeof opts.injected.capVeSauXacNhan === "function") await opts.injected.capVeSauXacNhan(envH, who, id); },
       dichVuChoVe: async (id) => (typeof opts.injected.dichVuChoVe === "function" ? opts.injected.dichVuChoVe(envH, id) : []),
       tienDonVe: async (id) => (typeof opts.injected.tienDonVe === "function" ? opts.injected.tienDonVe(envH, id) : null),
-      traVeKhiHuy: async (id, lyDo) => (who && typeof opts.injected.traVeKhiHuy === "function" ? opts.injected.traVeKhiHuy(envH, who, id, lyDo) : []),
+      traVeKhiHuy: async (id, lyDo, chanVeDaMoTraSau) => (who && typeof opts.injected.traVeKhiHuy === "function" ? opts.injected.traVeKhiHuy(envH, who, id, lyDo, chanVeDaMoTraSau) : []),
       canBangVeSauSuaKhach: async (id) => { if (who && typeof opts.injected.canBangVeSauSuaKhach === "function") await opts.injected.canBangVeSauSuaKhach(envH, who, id); },
       hoiDaChup: (q) => (typeof opts.injected.hoiDaChup !== "function" ? Promise.resolve(null) : opts.injected.hoiDaChup(envH, q).then((ngay) => ({ ngay }))),
       chuyenChoTin: (q) =>
@@ -756,7 +781,7 @@ export function createApp(opts: AppOptions) {
         const msg = e instanceof Error ? e.message : String(e);
         if (/\border_(delivered|completed):/.test(msg)) {
           console.warn(JSON.stringify({ level: "warn", event: "order_delivered_race", requestId, method: request.method, path: new URL(request.url).pathname }));
-          return json({ error: { code: "order_delivered", message: "Đơn đã ở bước Xong và đủ tiền (vừa có người bấm) — không sửa được nữa. Tải lại để xem đơn mới nhất." } }, 409);
+          return json({ error: { code: "order_delivered", message: "Đơn đã ở bước Khách đã trả đủ (vừa có người bấm) — không sửa được nữa. Tải lại để xem đơn mới nhất." } }, 409);
         }
         const err = e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : { message: String(e) };
         console.error(JSON.stringify({ level: "error", event: "unhandled", requestId, method: request.method, path: new URL(request.url).pathname, error: err }));
