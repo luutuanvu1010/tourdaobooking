@@ -145,6 +145,7 @@ Chữ theo ngữ cảnh: người đọc thấy đối tượng ngay cạnh nút
 | Thôi | Trong hộp hỏi lại: không làm việc đang hỏi và đóng hộp; câu hỏi đứng ngay cạnh nút. |
 | Thử lại | Làm lại lần tải vừa lỗi; dòng báo lỗi đứng ngay cạnh nói lỗi gì. |
 | Lưu | Ghi những gì đang nhập trong hộp hoặc biểu mẫu đang mở; tiêu đề hộp nói đang sửa gì. |
+| Về mặc định | Bỏ phần đã tự chỉnh của đúng khối đứng cạnh, quay về giá trị Nền tảng đặt sẵn (một dòng ở màn Giao diện; các nút đã chọn ở mục «Nút thanh dưới» của trang Tôi); tiêu đề khối nói đang trả về cái gì. |
 | Đổi | Đứng ngay cạnh giá trị đang chọn (người phụ trách, người hưởng, số khách theo hạng) và mở khung chọn lại đúng giá trị đó. |
 | Đổi tên | Đứng trên dòng của mục có tên (nhóm dịch vụ, tuyến, cỡ xe) và đổi tên đúng mục đó. |
 | Tắt | Đứng trên dòng của mục có tên (nhóm dịch vụ, đặc điểm, thông báo) và tắt đúng mục đó. |
