@@ -428,14 +428,15 @@ export const veDienTuModule: AppModule = {
       if (chu === null || !can(staff, "order.view", { ownerId: chu, assigned })) return DON_KHONG_THAY();
       // ADR-0170 Đ1 mục 4: cổng `orders` cho cả FIELD, INTERN đi qua và `order.view` của họ ≠ none — chỉ văn phòng hoặc người có ô gửi vé trên đơn này được xem tiếp.
       if (!isOffice(staff) && !can(staff, "ve.cap.send", { ownerId: chu, assigned })) return KHONG_QUYEN_GUI();
-      const dv = await dichVuChoVe(orderId);
+      const [dv, trangThai] = await Promise.all([dichVuChoVe(orderId), docTrangThaiDon(env.DB, orderId)]);
       const homNay = vnToday(new Date());
       const dichVu = [];
       for (const d of dv) {
         const can_ = canVe(d.pax);
         const giu = await veDangGiu(env.DB, d.serviceId);
         // ADR-0174 Đ3, Đ7: chỉ dịch vụ Có vé, ngày đi chưa qua mới báo thiếu. Còn lại chỉ hiện vé đang giữ (nếu có).
-        const baoThieu = d.coVe && d.ngayDi >= homNay;
+        // Kế hoạch vé Tour Đảo Task 5: đơn đã huỷ không báo thiếu (vé đã trả về kho khi huỷ, không còn cần giữ).
+        const baoThieu = d.coVe && d.ngayDi >= homNay && trangThai !== "cancelled";
         const nhom = (["ADULT", "CHILD", "SENIOR"] as const).filter((n) => (baoThieu && can_[n] > 0) || giu[n] > 0).map((n) => ({ nhom: n, nhan: NHAN_NHOM[n], can: can_[n], giu: giu[n], thieu: baoThieu ? Math.max(0, can_[n] - giu[n]) : 0 }));
         dichVu.push({ serviceId: d.serviceId, catalogCode: d.catalogCode, nhom });
       }

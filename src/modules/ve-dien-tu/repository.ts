@@ -21,7 +21,7 @@ const GIU_VE = defineSql(
   `UPDATE vdt_ticket SET status = 'ALLOCATED', updated_at = ?6, updated_by = ?7
    WHERE id IN (
      SELECT t.id FROM vdt_ticket t JOIN vdt_batch b ON b.id = t.batch_id
-     WHERE b.catalog_code = ?1 AND b.pax_group IN (?2, 'ALL') AND b.status = 'ACTIVE' AND t.status = 'AVAILABLE' AND t.stored_at IS NOT NULL AND t.valid_from <= ?3 AND t.valid_to >= ?3
+     WHERE b.catalog_code = ?1 AND b.pax_group IN (?2, 'ALL') AND b.source = ?8 AND b.status = 'ACTIVE' AND t.status = 'AVAILABLE' AND t.stored_at IS NOT NULL AND t.valid_from <= ?3 AND t.valid_to >= ?3
      ORDER BY b.pax_group = 'ALL', t.valid_to, t.id
      LIMIT max(0, ?4 - (SELECT count(*) FROM vdt_allocation a WHERE a.order_service_id = ?5 AND a.pax_group = ?2 AND a.released_at IS NULL)))`,
 );
@@ -44,10 +44,11 @@ const DEM_DANG_GIU = defineSql(
   "SELECT pax_group, count(*) AS so FROM vdt_allocation WHERE order_service_id = ?1 AND released_at IS NULL GROUP BY pax_group",
 );
 
-export interface GiuChoVe { catalogCode: string; nhom: string; ngayDi: string; can: number; orderId: string; serviceId: string; at: string; by: string | null }
+/** `nguonVe`: ô «Vé do ai phát» của dịch vụ LÚC GIỮ (ADR-0175 Đ1.5) — chỉ giữ vé từ lô cùng nguồn. Bắt buộc, không có mặc định ở module này. */
+export interface GiuChoVe { catalogCode: string; nhom: string; ngayDi: string; can: number; orderId: string; serviceId: string; at: string; by: string | null; nguonVe: NguonVe }
 
 /** Câu UPDATE vé: AVAILABLE → ALLOCATED (chưa chạy). */
-export const cauGiuVe = (db: D1Database, p: GiuChoVe): D1PreparedStatement => db.prepare(GIU_VE).bind(p.catalogCode, p.nhom, p.ngayDi, p.can, p.serviceId, p.at, p.by);
+export const cauGiuVe = (db: D1Database, p: GiuChoVe): D1PreparedStatement => db.prepare(GIU_VE).bind(p.catalogCode, p.nhom, p.ngayDi, p.can, p.serviceId, p.at, p.by, p.nguonVe);
 /** Câu INSERT phân bổ cho mọi vé vừa chuyển ALLOCATED mà chưa có chỗ (chưa chạy). */
 export const cauGhiPhanBo = (db: D1Database, p: GiuChoVe): D1PreparedStatement => db.prepare(GHI_PHAN_BO).bind(p.catalogCode, p.nhom, p.orderId, p.serviceId, p.at, p.by, p.can);
 

@@ -6,7 +6,7 @@ import { soanCapVe } from "./cap-ve.ts";
 import { AT, chayLo, d1That, dem, nhatKyThu, taoCsdl, themLo, themVe } from "../../khung-thu-ve.test.ts";
 
 const mot = { adult: 1, child: 0, senior: 0, infant: 0 };
-const dich = (orderId: string, serviceId: string) => ({ orderId, serviceId, catalogCode: "V2D", ngayDi: "2026-10-24", pax: mot });
+const dich = (orderId: string, serviceId: string) => ({ orderId, serviceId, catalogCode: "V2D", ngayDi: "2026-10-24", pax: mot, nguonVe: "HANG_NGOAI" as const });
 
 test("haiLoCungGiuMotVe_chiMotThang: vé cuối cùng chỉ thuộc một dịch vụ", async () => {
   const d = taoCsdl();

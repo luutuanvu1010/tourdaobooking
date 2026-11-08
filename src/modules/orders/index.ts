@@ -30,7 +30,8 @@ import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, slotPolicy, slotPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
   servicePaxByIds, servicePaxByOrder, serviceChoVe, passengerInsertDriver, nguoiDaLapDon, type DauChepNhap, type DauDatGapMoi,
 } from "./chang-hanh-khach-repo";
-import { coVeTheoMa } from "../catalog";
+import { coVeTheoMa, nguonVeTheoMa } from "../catalog";
+import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
 import { mocTraSauCuaDon, noiHanTraSauStatement } from "./chang-hanh-khach-repo";
 import { kiemNoiHan, ngayCuaMoc, trangThaiHan } from "../../shared/tra-sau";
 import { khoaNoi } from "../../shared/khoa-noi";
@@ -396,12 +397,13 @@ export async function soKhachHieuLuc(db: D1Database, serviceIds: readonly string
  * đưa dữ liệu sang `ve-dien-tu` (hai module không import nhau). Chỉ khoá + mã danh mục + ngày đi + số khách — không tên khách, không tiền.
  * KHÔNG tự kiểm quyền — chỉ gọi từ hàm tiêm của gốc lắp ráp, ngay trong thân route đã qua `can()`.
  */
-export interface DichVuChoVe { orderId: string; serviceId: string; catalogCode: string; ngayDi: string; pax: PaxCounts; /** ADR-0174: ô «Có vé» theo giá trị hiện tại (Đ7 cách a). Nơi dùng quyết việc giữ vé, báo thiếu. */ coVe: boolean }
+export interface DichVuChoVe { orderId: string; serviceId: string; catalogCode: string; ngayDi: string; pax: PaxCounts; /** ADR-0174: ô «Có vé» theo giá trị hiện tại (Đ7 cách a). Nơi dùng quyết việc giữ vé, báo thiếu. */ coVe: boolean; /** ADR-0175 Đ1.5: ô «Vé do ai phát» theo giá trị hiện tại; không có dòng là hãng ngoài (`nguonVeCua`). */ nguonVe: NguonVe }
 export async function dichVuChoVe(db: D1Database, orderId: string): Promise<DichVuChoVe[]> {
   const rows = await serviceChoVe(db, orderId);
   if (rows.length === 0) return [];
-  const [pax, coVe] = await Promise.all([effectivePax(db, rows), coVeTheoMa(db, rows.map((r) => r.catalog_code))]);
-  return rows.map((r) => ({ orderId, serviceId: r.id, catalogCode: r.catalog_code, ngayDi: r.depart_date, coVe: coVe.get(r.catalog_code) === true, pax: pax.get(r.id) ?? { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior, infant: r.pax_infant } }));
+  const ma = rows.map((r) => r.catalog_code);
+  const [pax, coVe, nguon] = await Promise.all([effectivePax(db, rows), coVeTheoMa(db, ma), nguonVeTheoMa(db, ma)]);
+  return rows.map((r) => ({ orderId, serviceId: r.id, catalogCode: r.catalog_code, ngayDi: r.depart_date, coVe: coVe.get(r.catalog_code) === true, nguonVe: nguonVeCua(r.catalog_code, nguon), pax: pax.get(r.id) ?? { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior, infant: r.pax_infant } }));
 }
 
 /**
