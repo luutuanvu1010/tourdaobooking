@@ -42,6 +42,7 @@ Gom một lần hỏi (CLAUDE.md §3). Hết giờ thì lấy phương án khuy�
 
 - [ ] **Tên giao diện** (Hiến chương 5.27): khuyến nghị «Vé do ai phát», «Vé hãng ngoài», «Vé Tour Đảo», «Tạo vé», «Quét vé», «Bỏ lượt quét», «Đã dùng», «Đối chiếu vé». Ghi vào bảng tham chiếu ở task dùng tên đó.
 - [ ] **Bước 0 — thử camera trên iPhone thật** làm ở đầu Task 14 (cần mã), không chặn Đợt 1.
+- [ ] **An toàn giữa hai đợt (chạm tiền):** khuyến nghị — phát hành Đợt 1 nhưng **giữ mọi dịch vụ ở «Vé hãng ngoài»** tới khi Đợt 2 (quét) lên; chỉ chuyển dịch vụ sang «Vé Tour Đảo» khi đã quét được. Đây là mặc định sẵn, nên rủi ro chỉ bắt đầu khi có người gạt ô.
 - [ ] Câu «Vé này không phải hóa đơn» vẫn chờ kế toán; Task 9 in đúng câu đó, đổi chữ sau không cần đổi mã khác ngoài hằng.
 
 ## Đợt 1 — Tạo vé, giữ vé, mở vé (một lần phát hành)
@@ -62,7 +63,7 @@ Gom một lần hỏi (CLAUDE.md §3). Hết giờ thì lấy phương án khuy�
 - [ ] **Step 4:** Chạy lại bài + `npm run dict` + `node --test src/migrations-n1.test.ts` → PASS.
 - [ ] **Step 5: Commit** «Thêm nguồn vé cho lô và ô Vé do ai phát (migration)».
 
-### Task 2: Bốn ô quyền mới
+### Task 2: Ô quyền tạo vé
 
 **Files:**
 - Modify: `src/shared/permissions.ts` (khối `ve.*` cạnh dòng `ve.kho.manage`)
@@ -71,14 +72,12 @@ Gom một lần hỏi (CLAUDE.md §3). Hết giờ thì lấy phương án khuy�
 **Interfaces:**
 - Produces (thứ tự cột `row(SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, INTERN, DRIVER, DRIVER_PARTNER, HR, SALES_MANAGER)`):
   - `"ve.phat-hanh": row("none","any","any","none","none","any","none","none","none","none","any")`
-  - `"ve.quet.tinh": row("any","any","any","any","none","any","none","none","none","none","any")`
-  - `"ve.quet.xem":  row("any","any","any","any","none","any","none","any","none","none","any")`
-  - `"ve.doi-chieu.view": row("none","any","any","none","none","any","none","none","none","none","any")`
+  - Ba ô còn lại thêm cùng route của chúng, không thêm ở đợt này (bài `permission-enforcement` đòi mỗi ô có route hỏi): `ve.quet.tinh`, `ve.quet.xem` ở Task 12; `ve.doi-chieu.view` ở Task 15.
 
-- [ ] **Step 1:** Thêm bốn dòng vào `ADR` của bài ghim và vào ba bài ghim nguyên dòng → `node --test src/shared/permissions.test.ts` FAIL.
-- [ ] **Step 2:** Thêm bốn khoá vào `MATRIX` kèm chú thích `// ADR-0175 Đ1.3 / Đ3.2`.
-- [ ] **Step 3:** `node --test src/shared/permissions.test.ts src/permission-enforcement.test.ts src/giao-dien-hoi-bang-quyen.test.ts` → PASS (bài sau có thể đòi khai ô chưa có route: khai «route ở Task 4/12» theo khuôn của tệp đó).
-- [ ] **Step 4: Commit** «Thêm bốn ô quyền vé Tour Đảo (ADR-0175)».
+- [ ] **Step 1:** Thêm dòng vào `ADR` của bài ghim và vào ba bài ghim nguyên dòng → `node --test src/shared/permissions.test.ts` FAIL.
+- [ ] **Step 2:** Thêm khoá vào `MATRIX` kèm chú thích `// ADR-0175 Đ1.3`.
+- [ ] **Step 3:** `node --test src/shared/permissions.test.ts src/permission-enforcement.test.ts src/giao-dien-hoi-bang-quyen.test.ts` → PASS (ô này có route hỏi từ Task 4; nếu bài đòi route ngay thì gộp Task 2 vào Task 4).
+- [ ] **Step 4: Commit** «Thêm ô quyền tạo vé Tour Đảo (ADR-0175)».
 
 ### Task 3: Ô «Vé do ai phát» ở Dịch vụ & giá
 
@@ -111,13 +110,13 @@ Gom một lần hỏi (CLAUDE.md §3). Hết giờ thì lấy phương án khuy�
   - `src/shared/ma-ve-tour-dao.ts`: `export const DANG_MA_VE_TD = /^TD1\.[A-Z2-7]{26}$/;` `export function taoMaVeTourDao(ngauNhien: (n: number) => Uint8Array): string` (16 byte → 26 ký tự base32, bỏ đệm).
   - `kiemLo` nhận thêm `nguon: NguonVe` (thiếu → `HANG_NGOAI`); `kiemVeMoi(raw, nguon: NguonVe)`: `TOUR_DAO` đòi `DANG_MA_VE_TD`, `HANG_NGOAI` từ chối mã bắt đầu `TD1.`.
   - `LoRow` thêm `source: NguonVe`; `cauChenLo(db, p & { nguon: NguonVe })`.
-  - Trong `index.ts`: `const coQuyenLo = (staff, nguon: NguonVe, chiXem = false): boolean` — `HANG_NGOAI`: `ve.kho.manage`; `TOUR_DAO`: `ve.phat-hanh`, hoặc khi `chiXem` thì thêm `ve.kho.manage`. Route danh sách (`GET /kho`, `GET /lo`, `GET /lo-da-huy`) lọc: chỉ trả nguồn mà người gọi `coQuyenLo(…, chiXem=true)`; không nguồn nào → 403.
+  - Trong `index.ts`: `const coQuyenLo = (staff, nguon: NguonVe, chiXem = false): boolean` — `HANG_NGOAI`: `ve.kho.manage`; `TOUR_DAO`: `ve.phat-hanh`, hoặc khi `chiXem` thì thêm `ve.kho.manage`. Route danh sách `GET /kho`, `GET /lo` lọc: chỉ trả nguồn mà người gọi `coQuyenLo(…, chiXem=true)`. `GET /lo-da-huy` lọc theo `coQuyenLo(…)` **không** `chiXem` (ADR Đ1.4: lô Tour Đảo chỉ `ve.phat-hanh`). Không nguồn nào → 403.
   - Route lô có `:id` đọc `docLo` trước rồi kiểm `coQuyenLo(staff, lo.source)`; `POST /api/ve/lo` kiểm theo `nguon` trong thân.
 
 - [ ] **Step 1: Bài đỏ** `nguon-lo-route.test.ts` (khung `src/khung-thu-ve.test.ts`):
   - Bán hàng `POST /api/ve/lo {nguon:"TOUR_DAO"}` → 403; Quản lý bán hàng, Kế toán, Quản trị → 200.
   - Kế toán `GET /api/ve/kho` không thấy dòng lô `HANG_NGOAI`; `POST /api/ve/lo/:idHangNgoai/xac-nhan` → 403.
-  - Bán hàng `GET /api/ve/lo` thấy số lượng lô `TOUR_DAO`; `POST /api/ve/lo/:idTD/bo` → 403.
+  - Bán hàng `GET /api/ve/lo` thấy số lượng lô `TOUR_DAO`; `POST /api/ve/lo/:idTD/bo` → 403; `GET /api/ve/lo-da-huy` không trả lô `TOUR_DAO` cho Bán hàng.
   - Lô `TOUR_DAO` nhận vé mã `ABC123` → 400; lô `HANG_NGOAI` nhận `TD1.AAAA…` → 400.
   - `taoMaVeTourDao(() => new Uint8Array(16))` = `"TD1." + "A".repeat(26)`; kết quả luôn khớp `DANG_MA_VE_TD`.
 - [ ] **Step 2:** Chạy → FAIL.
@@ -149,10 +148,10 @@ Gom một lần hỏi (CLAUDE.md §3). Hết giờ thì lấy phương án khuy�
 - Produces:
   - Ctx: `donThieuVe: (catalogCode: string) => Promise<string[]>` — id các đơn `confirmed` có dòng dịch vụ mã đó, «Có vé», còn thiếu, ngày đi ≥ hôm nay giờ Việt Nam, sắp theo ngày đi tăng dần. Gán ở `src/index.ts` từ `orders`.
   - Sau khi lô chuyển `ACTIVE`: lần lượt `ctx.capVeSauXacNhan(orderId)` cho từng đơn của `donThieuVe(lo.catalog_code)`; trả thêm `capBu: number` (số đơn được cấp) trong phản hồi.
-  - Nhật ký mới `ve_thieu` (detail: `catalogCode`, `nguon`, `thieu: number`; không mã vé, không tên khách) ghi khi `capVeSauXacNhan` vẫn để lại thiếu. `locHopThongBao`: `nguon TOUR_DAO` → người có `ve.phat-hanh`; `HANG_NGOAI` → `ve.kho.manage`.
+  - Nhật ký mới `ve_thieu` (detail: `catalogCode`, `nguon`, `thieu: number`; không mã vé, không tên khách) ghi **bên trong** `capVeChoDon` (đường của `capVeSauXacNhan`) mỗi khi giữ vé xong mà còn thiếu — nên báo cả lúc xác nhận đơn thiếu vé, không chỉ lúc cấp bù. `locHopThongBao`: `nguon TOUR_DAO` → người có `ve.phat-hanh`; `HANG_NGOAI` → `ve.kho.manage`.
   - Tạo lô cho dịch vụ đang «Không vé» hoặc khác nguồn: không chặn; phản hồi xác nhận lô thêm `canhBaoNguon: true` để web hiện câu «Lô chưa được cấp cho ai tới khi Quản trị đổi ô».
 
-- [ ] **Step 1: Bài đỏ** `cap-bu.test.ts`: hai đơn đã xác nhận thiếu vé (ngày đi 10/11 và 12/11), lô 1 vé vào kho → đơn 10/11 nhận vé, đơn 12/11 vẫn thiếu, có một dòng `ve_thieu`; Kế toán thấy tin trong hộp thư khi nguồn `TOUR_DAO`, Bán hàng không; nguồn `HANG_NGOAI` thì ngược lại.
+- [ ] **Step 1: Bài đỏ** `cap-bu.test.ts`: hai đơn đã xác nhận thiếu vé (ngày đi 10/11 và 12/11), lô 1 vé vào kho → đơn 10/11 nhận vé, đơn 12/11 vẫn thiếu, có một dòng `ve_thieu`; xác nhận một đơn mới khi kho rỗng cũng sinh `ve_thieu`; Kế toán thấy tin trong hộp thư khi nguồn `TOUR_DAO`, Bán hàng không; nguồn `HANG_NGOAI` thì ngược lại.
 - [ ] **Step 2:** FAIL → cài → PASS.
 - [ ] **Step 3: Commit** «Cấp bù vé khi lô vào kho và báo thiếu vé».
 
@@ -166,11 +165,11 @@ Gom một lần hỏi (CLAUDE.md §3). Hết giờ thì lấy phương án khuy�
 **Interfaces:**
 - Produces:
   - Ctx: `dienDoiTacCuaDon: (orderId: string) => Promise<{ doiTacLap: boolean; benDatDoiTac: boolean } | null>` — `doiTacLap`: người lập giữ quyền PARTNER (ADR-0170 Đ2); `benDatDoiTac`: cùng nghĩa `bookerLaDoiTac` của DTO đơn (`orders/repository.ts`). Gán ở `src/index.ts`. Lỗi đọc → `null` → coi như diện đối tác (an toàn).
-  - `src/shared/mo-ve-theo-ve.ts`: `export function veMoDuocTheoVe(v: { nguon: NguonVe; daMo: boolean }, d: { trangThai: string | null; dienDoiTac: boolean; moTheoTien: boolean }): boolean` — `trangThai === "cancelled"` → false; `HANG_NGOAI` → `moTheoTien`; `TOUR_DAO`: `trangThai === "confirmed"` và (`!dienDoiTac` hoặc `moTheoTien`). `moTheoTien` là kết quả `moVeDuoc` hiện hành (vé đã mở vẫn true như cũ).
+  - `src/shared/mo-ve-theo-ve.ts`: `export function veMoDuocTheoVe(v: { nguon: NguonVe; daMo: boolean }, d: { trangThai: string | null; dienDoiTac: boolean; moTheoTien: boolean }): boolean` — `HANG_NGOAI` → đúng `moTheoTien` như hôm nay (không thêm điều kiện nào); `TOUR_DAO`: `trangThai === "confirmed"` và (`!dienDoiTac` hoặc `moTheoTien`). Trạng thái đơn chỉ có `draft | confirmed | cancelled` (`OrderStatus`, `contracts.ts`); «Khách đã trả đủ» là cờ riêng, đơn vẫn `confirmed`. `moTheoTien` là kết quả `moVeDuoc` hiện hành (vé đã mở vẫn true như cũ).
   - Sáu đường lọc theo từng vé (ADR-0175 Đ2.5): `GET /api/ve/anh/:allocationId`, `POST /api/ve/giao`, `POST /api/ve/duong-dan`, `veXem` + `thuDu` ở `GET /api/ve/don/:orderId`, danh sách và ảnh ở `/ve/:token`, `/api/ve-khach/:token/anh/:slot`. `cauDanhDauLo` chỉ được gọi trên vé đã qua `veMoDuocTheoVe`.
   - `GET /api/ve/don/:orderId` thêm `veTourDaoMoSom: boolean` để web biết hiện nút trước khi thu đủ.
 
-- [ ] **Step 1: Bài đỏ** `mo-ve-theo-ve.test.ts` — bảng ADR-0175 Đ2.2 thành bốn ca: nội bộ đã xác nhận chưa thu đủ → `TOUR_DAO` true, `HANG_NGOAI` false; đối tác lập chưa thu → cả hai false; bên đặt đối tác Trả sau trong hạn → true (qua `moTheoTien`); đơn huỷ → false mọi loại.
+- [ ] **Step 1: Bài đỏ** `mo-ve-theo-ve.test.ts` — bảng ADR-0175 Đ2.2 thành bốn ca: nội bộ đã xác nhận chưa thu đủ → `TOUR_DAO` true, `HANG_NGOAI` false; đối tác lập chưa thu → cả hai false; bên đặt đối tác Trả sau trong hạn → true (qua `moTheoTien`); đơn huỷ → `TOUR_DAO` false; đơn `confirmed` đã đánh dấu «Khách đã trả đủ» → `TOUR_DAO` vẫn true, vé đã mở vẫn xem được.
 - [ ] **Step 2: Bài đỏ** `mo-ve-tour-dao.test.ts`: đơn nội bộ có 1 vé Tour Đảo + 1 vé hãng ngoài, chưa thu đủ: `POST /api/ve/duong-dan` thành công; sau đó `revealed_at` của vé hãng ngoài vẫn `NULL`; trang `/ve/:token` liệt kê đúng 1 vé; `GET /api/ve/anh/<phân bổ hãng ngoài>` → câu `CHUA_THU_DU`. Đơn tài khoản Đối tác lập cùng tình huống: vé Tour Đảo không mở. Phản hồi không chứa mã vé.
 - [ ] **Step 3:** FAIL → cài (đổi chữ ký và mọi điểm gọi, không thêm nhánh rời) → PASS; toàn bộ `src/modules/ve-dien-tu/` xanh, gồm `doi-tac-mo-ve.test.ts`, `adr-0171.test.ts`.
 - [ ] **Step 4:** Web `web/ve-don.ts`: điều kiện hiện câu khoá đổi thành `!res.thuDu && res.veXem.length === 0 && !res.veTourDaoMoSom`; nút mở vé hiện cho vé Tour Đảo khi `veXem.length > 0`.
@@ -191,6 +190,7 @@ Gom một lần hỏi (CLAUDE.md §3). Hết giờ thì lấy phương án khuy�
 
 - [ ] **Step 1: Bài đỏ:** văn phòng huỷ đơn Trả sau còn nợ chỉ có vé Tour Đảo đã mở → 200, vé thành `VOID`; có vé hãng ngoài đã mở → 409 `tra_sau_con_no_da_mo_ve`; tài khoản Đối tác huỷ đơn chỉ có vé Tour Đảo đã mở → 409 (cả `status` và `handler-cancel`); Đối tác sửa số khách cùng đơn → 409.
 - [ ] **Step 2:** FAIL → cài → PASS; chạy `node --test src/modules/orders/ src/modules/dispatch/ src/modules/ve-dien-tu/`.
+- [ ] **Step 2b:** Đọc `web/order.ts` (chỗ dựng nút «Huỷ đơn» của văn phòng, dữ liệu `traSau`, `coVeDaMo`): nếu nút bị ẩn khi Trả sau còn nợ và có vé đã mở, đổi điều kiện để chỉ ẩn khi có vé **hãng ngoài** đã mở (máy chủ trả thêm cờ `coVeHangNgoaiDaMo`); nếu chỉ có 409 của máy chủ thì ghi một dòng vào nhật ký thi công. Nút của đối tác giữ nguyên.
 - [ ] **Step 3: Commit** «Tách chặn huỷ: Trả sau bỏ vé Tour Đảo, đối tác giữ nguyên».
 
 ### Task 9: Màn tạo vé Tour Đảo và ảnh vé
@@ -222,7 +222,7 @@ Gom một lần hỏi (CLAUDE.md §3). Hết giờ thì lấy phương án khuy�
 - Test: `src/modules/ve-dien-tu/migration.test.ts`, `src/modules/ve-dien-tu/bat-bien.test.ts`
 
 **Interfaces:**
-- Produces: bảng `vdt_scan (id, ticket_id, allocation_id, order_id, order_service_id, ket_qua CHECK IN ('DA_TINH','CHI_XEM','TU_CHOI'), ly_do TEXT, so_khach INTEGER NOT NULL DEFAULT 1, xac_nhan_lech_ngay INTEGER, xac_nhan_chua_thu INTEGER, xac_nhan_vuot_khach INTEGER, scanned_at, scanned_by, voided_at, voided_by, void_reason, created_at, created_by, updated_at, updated_by)`; trigger chỉ cho UPDATE ba cột `voided_*` một lần; cấm DELETE; chỉ mục duy nhất một phần `vdt_scan_mot_lan ON vdt_scan(ticket_id) WHERE ket_qua='DA_TINH' AND voided_at IS NULL AND so_khach = 1` (chừa vé đoàn). Bất biến `R-VDT-7` (fail): lượt `DA_TINH` chưa bỏ chỉ trên vé lô `TOUR_DAO` có `revealed_at`. `R-VDT-8` (fail): vé có `DA_TINH` chưa bỏ không ở trạng thái `AVAILABLE`.
+- Produces: bảng `vdt_scan (id, ticket_id, allocation_id, order_id, order_service_id, ket_qua CHECK IN ('DA_TINH','CHI_XEM','TU_CHOI'), ly_do TEXT, so_khach INTEGER NOT NULL DEFAULT 1, xac_nhan_lech_ngay INTEGER, xac_nhan_chua_thu INTEGER, xac_nhan_vuot_khach INTEGER, scanned_at, scanned_by, voided_at, voided_by, void_reason, ve_doan INTEGER NOT NULL DEFAULT 0 CHECK (ve_doan IN (0,1)), created_at, created_by, updated_at, updated_by)`; trigger chỉ cho UPDATE ba cột `voided_*` một lần; cấm DELETE; chỉ mục duy nhất một phần `vdt_scan_mot_lan ON vdt_scan(ticket_id) WHERE ket_qua='DA_TINH' AND voided_at IS NULL AND ve_doan = 0` (chừa vé đoàn: lượt quét vé đoàn ghi `ve_doan = 1`, kể cả lượt một khách). Bất biến `R-VDT-7` (fail): lượt `DA_TINH` chưa bỏ chỉ trên vé lô `TOUR_DAO` có `revealed_at`. `R-VDT-8` (fail): vé có `DA_TINH` chưa bỏ không ở trạng thái `AVAILABLE`.
 
 - [ ] **Step 1:** Bài đỏ: hai `DA_TINH` chưa bỏ cùng vé → lỗi UNIQUE; bỏ lượt rồi chèn lại được; sửa `ket_qua` → lỗi; bất biến báo vi phạm trên dữ liệu gieo sai.
 - [ ] **Step 2:** FAIL → cài → PASS + `npm run dict`.
@@ -250,6 +250,7 @@ Gom một lần hỏi (CLAUDE.md §3). Hết giờ thì lấy phương án khuy�
 **Interfaces:**
 - Consumes: `ketQuaQuet` (Task 11), `vdt_scan` (Task 10), `veMoDuocTheoVe` (Task 7).
 - Produces:
+  - Ô quyền (bài ghim `permissions.test.ts` như Task 2): `"ve.quet.tinh": row("any","any","any","any","none","any","none","none","none","none","any")`, `"ve.quet.xem": row("any","any","any","any","none","any","none","any","none","none","any")`.
   - Ctx `donChoQuet: (orderId: string, serviceId: string, staffId: string) => Promise<{ trangThai: string; ngayDi: string | null; soKhachHieuLuc: number; maDon: string | null; xemTien: boolean } | null>` — `maDon` chỉ khi người quét có `order.view` trên đơn; `xemTien` theo `money.view`.
   - `POST /api/ve/quet`, access `staff`, cần `ve.quet.tinh` hoặc `ve.quet.xem`; thân `{ ma: string; xacNhan?: { lechNgay?: boolean; chuaThu?: boolean; vuotKhach?: boolean } }`; trả `{ mau, cau, dichVu, nhomKhach, ngayDi, soCuoi: string, maDon?: string, lanQuetId?: string }`. Không trả tên khách, số điện thoại, giá.
   - Ghi: một `db.batch` — câu chèn có gác + nhật ký `ve_quet` gác `changes() > 0` (detail: `ketQua`, `soCuoi`; không mã đủ). Thua UNIQUE → đọc lại lượt thắng, trả `DA_DUNG` kèm giờ và tên người.
@@ -295,7 +296,7 @@ Gom một lần hỏi (CLAUDE.md §3). Hết giờ thì lấy phương án khuy�
 - Test: `src/modules/ve-dien-tu/doi-chieu-route.test.ts`
 
 **Interfaces:**
-- Produces: `GET /api/ve/doi-chieu` → `{ dong: { dichVu: string; soKhachTheoDon: number; daDung: number; chenhLech: number }[] }` (chỉ đơn `confirmed`, không đơn huỷ); `GET /api/ve/nguoi-quet` → `{ dong: { nguoi: string; daTinh: number; chiXem: number; tuChoi: number; daBo: number }[] }`; sổ vé Tour Đảo `{ daTao, trongKho, daCapChuaMo, daMoChuaDung, daDung, daHuy }` với `daTao` = tổng năm ô. Bất biến `R-VDT-9` kiểm đẳng thức sổ vé.
+- Produces: ô `"ve.doi-chieu.view": row("none","any","any","none","none","any","none","none","none","none","any")` (bài ghim như Task 2). `GET /api/ve/doi-chieu` → `{ dong: { dichVu: string; soKhachTheoDon: number; daDung: number; chenhLech: number }[] }` (chỉ đơn `confirmed`, không đơn huỷ); `GET /api/ve/nguoi-quet` → `{ dong: { nguoi: string; daTinh: number; chiXem: number; tuChoi: number; daBo: number }[] }`; sổ vé Tour Đảo `{ daTao, trongKho, daCapChuaMo, daMoChuaDung, daDung, daHuy }` với `daTao` = tổng năm ô. Bất biến `R-VDT-9` kiểm đẳng thức sổ vé.
 
 - [ ] **Step 1: Bài đỏ:** Kế toán thấy đối chiếu, Bán hàng thường 403; số liệu khớp dữ liệu gieo; đẳng thức sổ vé đúng sau một vé bị huỷ đơn khi đã mở (thuộc «đã huỷ»).
 - [ ] **Step 2:** FAIL → cài → PASS; web khối vé trên đơn hiện «Đã dùng x/y» theo dịch vụ.
@@ -322,7 +323,7 @@ Không thuộc kế hoạch này; ADR riêng theo spec mục 2.8.
 ## Lựa chọn của người viết kế hoạch (chủ sửa được)
 
 - «Tên tiếng Anh» của dịch vụ không lưu, chỉ gõ lúc tạo vé và in lên ảnh (YAGNI; ảnh đã lưu ở kho).
-- Hai đợt phát hành riêng: Đợt 1 dùng được ngay (tạo, giữ, gửi vé); Đợt 2 thêm quét. Giữa hai đợt, vé Tour Đảo chưa quét được nên chưa chặn huỷ theo vé đã dùng.
+- Hai đợt phát hành riêng: Đợt 1 (tạo, giữ, gửi vé), Đợt 2 (quét). Cách dùng giữa hai đợt là câu hỏi chủ ở Task 0.
 - Cấp bù chạy ngay trong lệnh xác nhận lô, không qua Cron.
 - Ba màn trong danh sách màn để lượt sau, không làm ở kế hoạch này: màn 1 «Tổng quan vé», màn 9 «Tra cứu một vé», phần ngưỡng báo thiếu và lời lưu ý trên vé của màn 13 «Cài đặt vé» (ngưỡng tạm là báo khi thiếu từ 1 vé). Màn 12 «Doanh thu và sổ vé» chờ kế toán.
 - Mục menu: Hướng dẫn viên và Tài xế công ty chỉ thấy «Quét vé» (Task 14).
