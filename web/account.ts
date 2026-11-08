@@ -1,6 +1,6 @@
 import { ApiError, api, type Api } from "./api";
 import { chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
-import { PERMISSION_LABEL, can, hasPermission, type PermissionCode } from "../src/shared/permissions";
+import { PERMISSION_LABEL, can, hasPermission } from "../src/shared/permissions";
 import { initTraSauCuaToi } from "./tra-sau-cua-toi";
 import { CAU_CHI_UNG_DUNG_XAC_THUC } from "../src/shared/hai-lop-hien-thi";
 import { coPhanTaiXe } from "../src/shared/start-page";
@@ -23,7 +23,6 @@ import { chipEl } from "./giay-to-ui";
 import { demSapHetHan } from "./vc-dem";
 import { initViecCuaToi } from "./viec-cua-toi";
 import { initHoSoCuaToi } from "./ho-so-cua-toi";
-import { CAU_GOI_Y_XEM_NHU, NHAN_CHON_XEM_NHU, NHAN_XEM_NHU, TIEU_DE_XEM_NHU, hienMucXemNhuVai, luaChonXemNhu } from "../src/shared/xem-nhu-vai-hien-thi";
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -393,36 +392,6 @@ async function renderPush(): Promise<void> {
   pushEl.hidden = false;
 }
 void renderPush();
-
-/** Bật "xem như vai trò khác" rồi tải lại trang bằng `location.replace` (menu / tab dựng lại từ /api/auth/me mới). Lỗi: câu tiếng Việt của máy chủ. */
-async function doiXemNhuVai(ma: PermissionCode): Promise<string | null> {
-  try {
-    await api<Api.MeResponse>("/api/auth/xem-nhu-vai", { method: "POST", body: { role: ma } });
-  } catch (err) {
-    return err instanceof ApiError ? err.message : "Không đổi được. Kiểm tra mạng rồi thử lại.";
-  }
-  location.replace(location.pathname + location.search);
-  return null;
-}
-
-// ---- Xem như vai trò khác (ADR-0180 Đ2): chỉ Toàn quyền THẬT (kể cả lúc đang xem như vai trò khác, để còn đổi / thoát). Máy chủ vẫn là cổng thật (route đòi Toàn quyền thật).
-if (hienMucXemNhuVai(staff)) {
-  const chon = h("select", { id: "xem-nhu-chon", "aria-label": NHAN_CHON_XEM_NHU }, ...luaChonXemNhu().map((x) => h("option", { value: x.ma }, x.nhan)));
-  const loi = h("div", { class: "alert", role: "alert", hidden: true });
-  const xem = h("button", { id: "xem-nhu-xem", class: "btn btn-primary", type: "button" }, NHAN_XEM_NHU);
-  xem.addEventListener("click", () => {
-    xem.disabled = true;
-    void doiXemNhuVai((chon as HTMLSelectElement).value as PermissionCode).then((e) => {
-      if (e) {
-        showError(loi, e);
-        xem.disabled = false;
-      }
-    });
-  });
-  byId("links").before(
-    h("section", { id: "xem-nhu-vai", class: "card", "aria-labelledby": "xem-nhu-heading" }, h("h2", { id: "xem-nhu-heading" }, TIEU_DE_XEM_NHU), h("p", { class: "muted" }, CAU_GOI_Y_XEM_NHU), loi, h("label", null, NHAN_CHON_XEM_NHU, chon), h("div", { class: "actions" }, xem)),
-  );
-}
 
 // ---- Phiên đăng nhập của tôi (ADR-0075 điều 9; đặc tả §5b "Bảo mật đăng nhập"): 30 phiên gần nhất của CHÍNH MÌNH, dòng máy đang dùng ghi "Máy này", nút Đăng xuất.
 // Trạng thái, cách đăng nhập: nhãn lời thường do máy chủ tính (không lộ mã thô). Lỗi mạng: mục giữ ẩn, không ảnh hưởng phần còn lại của trang.
