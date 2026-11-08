@@ -12,21 +12,16 @@ export const AI_XU_LY = ["VAN_PHONG", "QUAN_TRI", "QUAN_TRI_TOAN_QUYEN", "TOAN_Q
 /** Chữ NÚT của lệnh "Cập nhật khách theo đơn" (R-P29, chủ lần 16 — route `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach`) — màn và câu lý do giữ dùng CHUNG. */
 export const NUT_CAP_NHAT_KHACH = "Cập nhật khách theo đơn";
 export type AiXuLy = (typeof AI_XU_LY)[number];
-export type VaiXuLy = "VAN_PHONG" | "QUAN_TRI" | "TOAN_QUYEN";
-/** Thứ tự VAI khi ghép chữ: Văn phòng → Quản trị → Toàn quyền. */
-const THU_TU_VAI: readonly VaiXuLy[] = ["VAN_PHONG", "QUAN_TRI", "TOAN_QUYEN"];
-const TEN_VAI: Readonly<Record<VaiXuLy, string>> = { VAN_PHONG: "Văn phòng", QUAN_TRI: "Quản trị", TOAN_QUYEN: "Toàn quyền" };
+/** Tên VAI; thứ tự khai báo = thứ tự khi ghép chữ: Văn phòng → Quản trị → Toàn quyền. */
+const TEN_VAI = { VAN_PHONG: "Văn phòng", QUAN_TRI: "Quản trị", TOAN_QUYEN: "Toàn quyền" } as const;
+export type VaiXuLy = keyof typeof TEN_VAI;
 export const VAI_AI_XU_LY: Readonly<Record<AiXuLy, readonly VaiXuLy[]>> = {
   VAN_PHONG: ["VAN_PHONG"], QUAN_TRI: ["QUAN_TRI"], QUAN_TRI_TOAN_QUYEN: ["QUAN_TRI", "TOAN_QUYEN"], TOAN_QUYEN: ["TOAN_QUYEN"],
 };
 /** MỘT hàm chữ "Ai xử lý" cho máy chủ và giao diện: gom một hay nhiều giá trị, bỏ trùng theo vai, thứ tự Văn phòng → Quản trị → Toàn quyền, nối bằng dấu phẩy. */
-export function nhanAiXuLy(ds: readonly AiXuLy[]): string {
-  const co = new Set<VaiXuLy>(ds.flatMap((a) => VAI_AI_XU_LY[a]));
-  return THU_TU_VAI.filter((v) => co.has(v)).map((v) => TEN_VAI[v]).join(", ");
-}
-export const NHAN_AI_XU_LY: Readonly<Record<AiXuLy, string>> = {
-  VAN_PHONG: nhanAiXuLy(["VAN_PHONG"]), QUAN_TRI: nhanAiXuLy(["QUAN_TRI"]), QUAN_TRI_TOAN_QUYEN: nhanAiXuLy(["QUAN_TRI_TOAN_QUYEN"]), TOAN_QUYEN: nhanAiXuLy(["TOAN_QUYEN"]),
-};
+export const nhanAiXuLy = (ds: readonly AiXuLy[]): string =>
+  (Object.keys(TEN_VAI) as VaiXuLy[]).filter((v) => ds.some((a) => VAI_AI_XU_LY[a].includes(v))).map((v) => TEN_VAI[v]).join(", ");
+export const NHAN_AI_XU_LY = Object.fromEntries(AI_XU_LY.map((a) => [a, nhanAiXuLy([a])])) as Readonly<Record<AiXuLy, string>>;
 
 /**
  * Bộ mã ĐÓNG (thêm mã = sửa tệp này, có test). "Ai xử lý" = ai gỡ được: giấy tờ (GPLX, giấy tờ theo điều kiện xuất bến) → Quản trị (người giữ hồ sơ,
