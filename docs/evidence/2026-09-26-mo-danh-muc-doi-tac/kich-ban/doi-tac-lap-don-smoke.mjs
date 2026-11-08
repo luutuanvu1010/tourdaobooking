@@ -330,6 +330,7 @@ try {
     assert.equal(await mob.ev("location.pathname"), "/order-form", "vẫn ở form (chưa lưu)");
     assert.equal(await mob.ev("document.querySelector('.dd-chon-don')?.getAttribute('aria-invalid')"), "true", "nhóm nút Đón / Không đón có aria-invalid");
     assert.equal(await mob.ev("!!document.querySelector('.dd-chon-don')?.getAttribute('aria-describedby')"), true, "nhóm nút nối dòng lỗi");
+    await mob.shot(join(OUT, "anh", "doi-tac-thieu-chon-don-dien-thoai.png"));
   });
 
   // 2c (Việc 9, nợ T6): máy chủ từ chối lưu (400 không chỉ ra ô) ⇒ form mở MỌI khối gập (`moMoiKhoiGap`). Khối "Sửa giá" của Đối tác không được mở theo: họ không có nút để đóng

@@ -27,3 +27,12 @@ Kế hoạch: `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (ch�
 ## Kiểm cuối
 
 Xem mục «Kiểm cuối» ở cuối tệp (điền sau khi chạy `npm test`, `typecheck`, e2e, kịch bản Chrome).
+
+## Kiểm cuối (mục điền sau khi chạy)
+
+- `npm test`: thoát 0 (cả hai bước). `npm run typecheck`: 0 lỗi. e2e: 88/88.
+- Soát độc lập (trợ lý chỉ đọc, đọc diff cả nhánh): ĐẠT, hai điểm thấp; điểm 1 (tiêu điểm nhóm Đón/Không đón) đã sửa.
+- Kịch bản Chrome 390/1280 xanh trên phần đổi: doi-tac-lap-don (bước 2b2 và các bước gửi đơn), ql-ban-hang, ve-qr. Ảnh ở `docs/evidence/2026-11-09-dot-1/anh/`.
+- Kịch bản còn đỏ sẵn đã đối chiếu bằng bản gốc (không do Đợt 1): ghi ở `docs/BACKLOG.md` mục 67.
+- Chưa có ảnh riêng cho nút «Điền thông tin đối tác», ô ghi chú ẩn và lưới Trang chủ điện thoại của Quản lý bán hàng; ba chỗ này được khoá bằng bài máy.
+- Chưa thử iPhone thật. Số phiên bản 2.81 là tạm.

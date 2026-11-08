@@ -1,4 +1,5 @@
 // Kịch bản Chrome — nhập vé bằng QR, trần lô, Bỏ lô (ADR-0156, tiêu chí nghiệm thu 1, 3, 4, 5, 8, 9).
+// Sửa 2026-11-09 (Đợt 1, N4): các khẳng định «Đã nhập N vé vào kho.» nay so phần đầu câu — từ ADR-0174 («Có vé») máy nối thêm câu nói dịch vụ đang tắt ô «Có vé» khi dịch vụ thử chưa bật ô đó.
 // Rào DUY NHẤT cho phần đọc QR trên trình duyệt (Đ1): `npm test` và e2e không mở trang, nên không biết bộ đọc có chạy trong gói thật không.
 // Ảnh thử do bộ vẽ QR có sẵn (web/vendor/qrcode.js) vẽ NGAY TRONG TRANG thành tệp thật; không có ảnh vé thật trong kho mã. Riêng khối «anh-that» (tuỳ chọn) đọc ảnh thật trên máy,
 // chặn mọi lời gọi ghi trong trang nên ảnh và mã không rời trình duyệt, không chụp màn hình, không in chuỗi nào.
@@ -98,6 +99,8 @@ const dien = (p, sel, v) => p.ev(`(() => { const e = document.querySelector(${JS
 const choFormVe = (p) => p.waitFor("!!document.querySelector('#vk-form') && document.querySelectorAll('#vk-dich-vu .catalog-row').length > 1 && !document.getElementById('vk-kho').textContent.includes('Đang tải')", "trang nhập lô đã dựng xong");
 /** Khai lô (dịch vụ, loại khách, tên riêng để tìm lại trong danh sách, ngày). */
 const khaiLo = async (p, tenSp) => {
+  // Lô bị loại hết (bước 6…) không xoá lựa chọn: khung còn thu lại ở dòng đã chọn → bấm «Đổi» để chọn lại, như người dùng thật.
+  if (await p.ev("!!document.querySelector('#vk-dich-vu .catalog-da-chon')")) assert.equal(await bam(p, "#vk-dich-vu [data-action=doi-dich-vu]"), true, "nút Đổi của dịch vụ đã chọn");
   assert.equal(await bam(p, `#vk-dich-vu .catalog-row[data-ma="${DICH_VU}"] .catalog-pick`), true, "chạm dòng dịch vụ trong khung chọn");
   await p.waitFor(`!!document.querySelector('#vk-dich-vu .catalog-da-chon[data-ma="${DICH_VU}"]')`, "khung thu lại thành dòng dịch vụ đã chọn");
   assert.equal(await chonO(p, "#vk-nhom", "ADULT"), true, "chọn loại khách");
@@ -235,12 +238,12 @@ try {
     await buoc(`${kho}.5`, "Hai ảnh tốt + ảnh không có mã + tệp không phải ảnh: hai vé vào kho, hai tệp bị loại kèm tên", async () => {
       await bocucSach(p, "Bán hàng /ve-kho");
       await axeKiem(p, "/ve-kho");
-      assert.equal(await p.ev("!!document.querySelector('#vk-form [id*=ma-ve], #vk-form input[placeholder*=mã]')"), false, "không còn ô gõ mã");
+      assert.equal(await p.ev("!!document.querySelector('#vk-form [id*=ma-ve], #vk-form input[placeholder*=mã]:not(#catalog-q)')"), false, "không còn ô gõ mã");
       await khaiLo(p, loDau);
       await chonAnh(p, [anhTot(tien + 1, "ve-a.png"), { ten: "khong-ma.png" }, anhTot(tien + 2, "ve-b.png"), { ten: "khong-phai-anh.jpg", rac: true }]);
       await guiLo(p);
       const tt = await docTrang(p);
-      assert.equal(tt.ok, "Đã nhập 2 vé vào kho.", JSON.stringify(tt));
+      assert.ok(tt.ok.startsWith("Đã nhập 2 vé vào kho."), JSON.stringify(tt));
       assert.match(tt.loi, /khong-ma\.png: Không đọc được mã QR trên ảnh\./);
       assert.match(tt.loi, /khong-phai-anh\.jpg: Không đọc được mã QR trên ảnh\./);
       assert.equal(await conTrong(p), dem + 2);
@@ -267,7 +270,7 @@ try {
       await chonAnh(p, [anhTot(tien + 3, "ve-c.png"), banNenLai(tien + 3, "ve-c-nen.jpg")]);
       await guiLo(p);
       const tt = await docTrang(p);
-      assert.equal(tt.ok, "Đã nhập 1 vé vào kho.", JSON.stringify(tt));
+      assert.ok(tt.ok.startsWith("Đã nhập 1 vé vào kho."), JSON.stringify(tt));
       assert.match(tt.loi, /ve-c-nen\.jpg: Trùng vé với ảnh ve-c\.png đã chọn\./);
       dem += 1;
       assert.equal(await conTrong(p), dem);
@@ -292,7 +295,7 @@ try {
       await chonAnh(p, [anhTot(tien + 1, "ve-a.png"), anhTot(tien + 2, "ve-b.png")]);
       await guiLo(p);
       const tt = await docTrang(p);
-      assert.equal(tt.ok, "Đã nhập 2 vé vào kho.", JSON.stringify(tt));
+      assert.ok(tt.ok.startsWith("Đã nhập 2 vé vào kho."), JSON.stringify(tt));
       assert.equal(tt.loi, "");
       dem += 2;
       assert.equal(await conTrong(p), dem);
@@ -316,7 +319,7 @@ try {
       await khaiLo(p, `Nhập lại lô dở ${kho}`);
       await chonAnh(p, [anhTot(tien + 4, "ve-d.png")]);
       await guiLo(p);
-      assert.equal((await docTrang(p)).ok, "Đã nhập 1 vé vào kho.");
+      assert.ok((await docTrang(p)).ok.startsWith("Đã nhập 1 vé vào kho."));
       dem += 1;
       await bocucSach(p, "Bán hàng /ve-kho sau nhập");
       await axeKiem(p, "/ve-kho sau nhập");
@@ -328,7 +331,7 @@ try {
       await khaiLo(p, tenMo);
       await chonAnh(p, [anhTot(tien + 5, "ve-e.png")]);
       await guiLo(p);
-      assert.equal((await docTrang(p)).ok, "Đã nhập 1 vé vào kho.");
+      assert.ok((await docTrang(p)).ok.startsWith("Đã nhập 1 vé vào kho."));
       await boLo(p, tenMo);
       assert.equal(await conTrong(p), dem, "lô đã huỷ không tính vào kho");
       const dong = `[...document.querySelectorAll('[data-khoi=lo-da-huy] li')].find((x) => x.textContent.includes(${JSON.stringify(tenMo)}))`;
@@ -363,7 +366,7 @@ try {
         const do_ = await p.ev("(() => { clearInterval(window.__nhip); return { gap: Math.round(window.__gap), buoc: window.__tienDo.size }; })()");
         console.log(`    50 ảnh: ${giay.toFixed(1)} giây, khoảng đứng hình lâu nhất ${do_.gap} ms, ${do_.buoc} lần đổi dòng tiến độ`);
         const tt = await docTrang(p);
-        assert.equal(tt.ok, "Đã nhập 50 vé vào kho.", JSON.stringify(tt));
+        assert.ok(tt.ok.startsWith("Đã nhập 50 vé vào kho."), JSON.stringify(tt));
         dem += 50;
         assert.equal(await conTrong(p), dem);
         assert.ok(do_.gap < 3000, `đứng hình ${do_.gap} ms`);
