@@ -14,6 +14,10 @@ Nhánh `claude/adr-0184-thi-cong`, tách từ `main` 5f641781 (đã có ADR-0184
 - Chữ thẻ Trang chủ: giữ **«Xem chuyến»** (nút) và **«Xe chạy hôm nay dù thiếu giấy tờ»** (dòng phụ) — hai chữ trợ lý đặt nay là chữ chủ chọn.
 - Lý do và ghi chú khi cho chạy: **«Có, làm luôn lần này»** — hiện dưới nhãn vàng ở chi tiết chuyến cho văn phòng, không vào nhật ký (xem P12).
 
+## Câu trả lời của chủ (chat 2026-11-08, tờ duyệt trước khi nhập)
+
+- Câu hỏi «Duyệt cả tờ duyệt ADR-0184 theo khuyến nghị?» (tờ năm mục, gửi kèm 8/11): chủ bấm **«Duyệt hết»**. Phạm vi: (1) sáu dòng mới của bảng tham chiếu (bị ghi bằng python ở đợt sửa 1 — chủ duyệt sau), câu «hoàn tác» mới, câu thêm vào giải nghĩa nhãn vàng «Lý do và ghi chú chỉ hiện ở chi tiết chuyến cho văn phòng, ngay dưới nhãn.», tên thẻ Trang chủ «Xe thiếu giấy tờ — đã cho chạy»; (2) ba chỗ nới hàng rào: N3 hai route, trần gói Đơn hàng 109.451, cạnh `van-chuyen → staff` (view `v_stf_toan_quyen`); (3) P14 giữ đếm 10 ký tự, không đổi mã; (4) dòng lịch sử ADR-0184; (5) chữ do trợ lý viết, gồm nhật ký thay đổi 2.76.
+
 ## Phán quyết
 
 P1–P8 ghi ở mục «Phán quyết của điều phối» của kế hoạch (một nơi). Cái giá nếu sai:
@@ -85,6 +89,9 @@ Phán quyết thêm ngày 2026-11-08 (sau kiểm độc lập lượt 1):
 - Kiểm độc lập lượt 4 (dải `6a2ecf6aa..26b0ac42f`) — **ĐẠT: Cao 0, Trung 0, Thấp 0**. Bốn mục đã sửa đúng; người kiểm tự phá cả bốn (NT-3(e) thử cả đường `import *` từ module khác) đều đỏ đúng chỗ; dải không chứa tệp `.obs.jsonl`, tệp luật hay migration nào. Ba điểm chữ không tính mức: điều phối sửa hai (dòng NT-3 của sổ hàng rào ghi đủ năm bài quét và đưa ngày quan sát NT-3(e) về đúng cột; `docs/VAN-CHUYEN.md` nói ghi chú đã che dãy số dài); điểm thứ ba (NT-3(e) không có vế chống bài rỗng) để nợ vì NT-3(b) đã che gián tiếp.
 - `npm test` đầy đủ ở `26b0ac42f` (điều phối chạy, 10:32–10:50): **8397 bài, 8393 xanh, 0 đỏ, 4 todo**; bước đo giờ của hook xanh. Cây sạch sau khi chạy.
 - Còn lại trước khi trình chủ lệnh nhập: gộp `main` mới vào nhánh (đang chờ lệnh `day-len` của nhánh ADR-0185 chạy từ 09:30 — main máy đi trước GitHub; gộp sớm thì lệnh nhập ADR-0184 sẽ đẩy luôn phần ADR-0185 chưa qua kiểm), đo lại trần gói Đơn hàng sau khi gộp, mục nhật ký thay đổi (bước A.0), hai sửa chữ bảng tham chiếu và dòng lịch sử ADR khi chủ duyệt.
+- Gộp `main` (origin/main `27c77e759`, menu tên tài khoản 2.75) vào nhánh — `62a353669` (10:59). Xung đột duy nhất ở chú thích + trần gói Đơn hàng: đặt tạm trần cũ của `main` cho bài đo để đọc số đo thật 109.351 (108.702 của `main` + 649 của ADR-0184), trần 109.451. Gộp từ GitHub chứ không từ `main` máy, vì `main` máy đang có phần ADR-0185 chờ lệnh `day-len` từ 09:30.
+- Bước A.0 — `0b88079a1` (11:00): mục 2.76 của nhật ký thay đổi (sáu gạch, mỗi gạch tối đa 160 ký tự); bài dòng phiên bản đổi theo.
+- Chủ duyệt tờ duyệt (8/11, «Duyệt hết», xem mục câu trả lời ở trên): câu thêm vào giải nghĩa nhãn vàng ở `bang-tham-chieu-khai-niem.ts` và dòng «Lịch sử» ở đầu ADR-0184 — cả hai bằng công cụ sửa tệp (đường có hộp hỏi chủ); sinh lại `docs/BANG-THAM-CHIEU.md`; dấu «chờ duyệt» ở sổ hàng rào (cạnh `van-chuyen → staff`, N3), §16 và chú thích trần gói Đơn hàng đổi thành «chủ duyệt 2026-11-08». P14 giữ «10 ký tự», không đổi mã.
 
 ## Nợ (không chặn phát hành)
 

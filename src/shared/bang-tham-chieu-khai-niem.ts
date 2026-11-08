@@ -717,7 +717,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   // ---- Cho xe chạy dù thiếu giấy tờ (ADR-0184) ----
   KN({
     ten: "Xe thiếu <tên loại giấy> — đã cho chạy",
-    giaiNghia: "Nhãn vàng hiện ở chuyến, ở cuốc của tài xế và ở lịch chung khi Quản trị hoặc Toàn quyền đã cho phép chuyến chạy dù xe thiếu hoặc hết hạn giấy tờ. Chỉ nêu tên các loại giấy đã cho phép, không nêu số giấy, người cho phép hay lý do.",
+    giaiNghia: "Nhãn vàng hiện ở chuyến, ở cuốc của tài xế và ở lịch chung khi Quản trị hoặc Toàn quyền đã cho phép chuyến chạy dù xe thiếu hoặc hết hạn giấy tờ. Chỉ nêu tên các loại giấy đã cho phép, không nêu số giấy, người cho phép hay lý do. Lý do và ghi chú chỉ hiện ở chi tiết chuyến cho văn phòng, ngay dưới nhãn.",
     khacVoi: "Khác lý do giữ «Xe thiếu hoặc hết hạn giấy tờ bắt buộc»: lý do giữ nghĩa là xe chưa được chạy, nhãn vàng nghĩa là xe được chạy một lần dù thiếu giấy.",
     chuDaLoai: [],
     maNoiBo: ["nhanChoChayThieu", "choChayThieu", "vc_trip_departure_waiver"],
