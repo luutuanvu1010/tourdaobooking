@@ -1,6 +1,6 @@
 # ADR-0175 — Vé Tour Đảo: tạo vé, cho mở vé từ lúc xác nhận, quét vé
 
-- **Trạng thái:** **proposed** — chưa có hiệu lực, chờ chủ dự án duyệt. Chủ đã duyệt đề xuất 2026-11-05, nguyên văn: *«Duyệt, soạn ADR»*; câu đó không phải lời duyệt ADR này.
+- **Trạng thái:** **accepted** 2026-11-08 — chủ dự án duyệt nguyên văn *«Duyệt như hiện nay»*, sau khi được báo bốn điểm: vé Tour Đảo mở từ lúc xác nhận dù chưa thu đủ (trừ đơn diện đối tác), bảy điểm người viết tự chọn ở mục «Điều chủ duyệt khi đọc» (giữ nguyên cả bảy), phải chờ ADR-0174 nhập và diễn tập khôi phục mới phát hành, câu hỏi kế toán và thử camera iPhone chặn ngày phát hành chứ không chặn duyệt. Đề xuất được duyệt 2026-11-05 (*«Duyệt, soạn ADR»*).
 - **Ngày:** 2026-11-05   **Loại:** việc lớn (dữ liệu, quyền, cổng tiền ở mức đọc).
 - **Cửa:** một chiều mềm với dữ liệu (cột `source`, bảng lượt quét chỉ thêm và ở lại). Hai chiều với hành vi: tắt được bằng cách không chọn vé Tour Đảo cho dịch vụ nào.
 - **Số:** 0175, đã soát mọi nhánh 5/11. `0170`–`0173` ở nhánh ADR-0170, `0174` ở nhánh `claude/interesting-hodgkin-cde2fd`.
