@@ -200,6 +200,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     trangThai: "da-chot",
     chuChon: "2026-11-08 (ADR-0175)",
   }),
+  KN({
+    ten: "Tạo vé",
+    giaiNghia: "Người có quyền vẽ và đưa một lô vé Tour Đảo vào kho; máy sinh mã riêng cho từng vé.",
+    khacVoi: "«Nhập lô vé» là đưa ảnh vé hãng ngoài vào kho.",
+    chuDaLoai: [],
+    maNoiBo: ["ve.phat-hanh"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-08 (ADR-0175)",
+  }),
   // ---- Người, hồ sơ, tài khoản ----
   KN({
     ten: "Hồ sơ",

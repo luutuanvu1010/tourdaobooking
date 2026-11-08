@@ -121,8 +121,8 @@ export const TRANG = {
   nguoiBan: { duong: "/nguoi-ban", hien: vk("supply.terms.view") },
   // Chụp bù mức (sổ đại lý đợt 2, Task 12; ADR-0079 điều 7 b2): CÙNG cổng route `GET /api/orders/cho-chup-bu` — ô order.terms.override và không giữ quyền Đối tác (kể cả lai).
   chupBu: { duong: "/chup-bu", hien: vk("order.terms.override") },
-  // Kho vé điện tử (ADR-0153; Task 9a): CÙNG cổng route `GET /api/ve/kho` — ô ve.kho.manage (Bán hàng, Quản trị, Toàn quyền).
-  veKho: { duong: "/ve-kho", hien: ve("ve.kho.manage") },
+  // Kho vé điện tử (ADR-0153; Task 9a; ADR-0175 Đ1.4): CÙNG cổng route `GET /api/ve/kho` — ô ve.kho.manage (Bán hàng, Quản trị, Toàn quyền) hoặc ve.phat-hanh (thêm Kế toán, Quản lý bán hàng), và cổng `office` của route.
+  veKho: { duong: "/ve-kho", hien: (s) => isOffice(s) && (can(s, "ve.kho.manage") || can(s, "ve.phat-hanh")) },
   // Cài đặt vé điện tử (ADR-0156 Đ3): CÙNG cổng route `GET /api/ve/cai-dat` — ô settings.ops (chỉ Toàn quyền).
   veCaiDat: { duong: "/ve-cai-dat", hien: ve("settings.ops") },
   // Dịch vụ cần kiểm vé (ADR-0136 Đ1, Đ5): cờ đọc ở `GET /api/cai-dat/xac-nhan-don` (settings.ops), danh sách dịch vụ ở `GET /api/catalog/dac-diem` (chặn tài khoản giữ quyền Đối tác) ⇒ cùng hàm cho mục và trang.

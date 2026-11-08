@@ -1268,6 +1268,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
+    nhom: "Vé điện tử: kho",
+    manHinh: "Kho vé điện tử › khối «Tạo vé Tour Đảo» (chỉ người giữ ô ve.phat-hanh: Kế toán, Quản lý bán hàng, Quản trị, Toàn quyền)",
+    ten: "Tạo vé",
+    thatSuLam: "Mở một lô vé Tour Đảo, vẽ từng vé với mã riêng do máy sinh, tự đọc lại mã trên từng ảnh; chỉ khi mọi vé đều đọc lại đúng mới gửi ảnh lên kho rồi đưa lô vào kho và cấp bù cho đơn đang thiếu. Một vé hỏng thì huỷ cả lô, không vé nào vào kho. Người tạo không thấy mã vé.",
+    hoiLai: "không",
+    hoanTac: "được: «Huỷ lô» cho tới khi có vé được giữ cho đơn",
+    duongLenh: ["/api/ve/lo","/api/ve/lo/:x/ve","/api/ve/lo/:x/xac-nhan","/api/ve/lo/:x/bo"],
+    maNhatKy: ["ve_nhap_lo","ve_xac_nhan_lo","ve_bo_lo"],
+    noiDat: [
+      { tep: "web/ve-tao.ts", chu: "Tạo vé" },
+    ],
+    trangThai: "da-chot",
+    nguonTen: "kế hoạch vé Tour Đảo Task 0, chủ 2026-11-08 «Duyệt cả 8» (ADR-0175)",
+  },
+  {
     nhom: "Hoa hồng: mức riêng của MỘT đối tác",
     manHinh: "Hoa hồng đối tác › nút đầu trang (máy tính) và thanh dính đáy (điện thoại) › hộp «Thêm mức hoa hồng»",
     ten: "＋ Thêm mức riêng cho đối tác",

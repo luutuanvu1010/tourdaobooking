@@ -23,6 +23,9 @@
 // bật tay đúng 768 bit của chuỗi «Chính sách điều phối» ở thanh bên, trang Tôi, Trang chủ cho mọi tập CÓ quyền ADMIN (768 = số tập có ADMIN mà trước đó chưa có SUPER_ADMIN). Mọi chuỗi khác giữ nguyên.
 // Chụp lại 2026-11-05 (ADR-0169, mã quyền thứ 11; chủ duyệt trong chat): `node scripts/chup-muc-giao-dien.mjs --ghi src/muc-giao-dien-hien-trang.json` từ cây làm việc (mặt nạ 2048 bit). So với mã ở HEAD 085e621b
 // (`--rev HEAD`) trên 1024 tập không có SALES_MANAGER: chỉ mất «Dịch vụ cần kiểm vé» ở thanh bên và trang Tôi, mỗi nơi 256 tập; không tập nào đổi gì khác. Từ điển nay có thêm các mục mới trước đây bài bỏ qua, nên ghim chặt hơn.
+// Chụp lại 2026-11-09 (ADR-0175 Đ1.4, kế hoạch vé Tour Đảo Task 9 «hiện trang khi ve.kho.manage hoặc ve.phat-hanh»): chỉ thay ô `thanh-ben` bằng bản chụp cây làm việc và bật
+// mặt nạ «Vé điện tử» ở `trang-toi`. So bản cũ: «Vé điện tử» thêm đúng 128 tập (đều giữ ACCOUNTING, không SALES/ADMIN/SUPER_ADMIN), không tập nào mất; thanh bên ghim thêm
+// «Hạn mức trả sau» (mục có từ trước, chỉ siết). Các ô khác giữ nguyên (bản chụp mới còn lệch sẵn ở «Đơn chờ xác nhận» của trang Tôi, không do việc này — không lấy).
 // Riêng `ngoaiTuyen.thanhTab` GIỮ NGUYÊN giá trị cũ: lệnh chụp, kể cả `--rev HEAD`, ra mảng rỗng ở ô này (lệch từ trước, không do ADR-0169), còn bài mất mạng dưới đây vẫn đọc bốn tab cơ bản từ bảng.
 import { test } from "node:test";
 import assert from "node:assert/strict";
