@@ -9,7 +9,6 @@ import type {
 } from "../../shared/contracts";
 import { MA_LOAI_GIAY_TO_RE, TRANG_THAI_XE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
-import { O_SO_CHO_CHAY_THIEU } from "../../shared/cho-chay-thieu-giay";
 import { PARTY_ID_RE } from "../../shared/party-id";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
@@ -1075,7 +1074,7 @@ export const vanChuyenModule: AppModule = {
 
     // ADR-0184 — số cho thẻ Trang chủ «Xe thiếu giấy tờ — đã cho chạy»: chuyến hôm nay chưa kết thúc mà nhãn vàng đang hiện. Chỉ ô `trip.override`; không tên, không số giấy.
     route("GET", "/api/van-chuyen/cho-chay-thieu/dem", "office", async ({ env, staff }) => {
-      if (!can(staff, O_SO_CHO_CHAY_THIEU)) return FORBIDDEN();
+      if (!can(staff, "trip.override")) return FORBIDDEN();
       return json({ count: await demChoChayThieuHomNay(env.DB, Date.now()) } satisfies ChoChayThieuDemResponse);
     }),
 

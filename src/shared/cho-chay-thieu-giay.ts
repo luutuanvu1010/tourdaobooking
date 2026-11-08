@@ -9,9 +9,8 @@ import { can, type PermissionHolder } from "./permissions.ts";
 export const GIAY_TO_XE_CHI_TOAN_QUYEN = ["INSPECTION", "TPL_INSURANCE"] as const;
 export const laGiayToChiToanQuyen = (code: string): boolean => (GIAY_TO_XE_CHI_TOAN_QUYEN as readonly string[]).includes(code);
 
-/** Ai thấy số chuyến «đã cho chạy dù thiếu giấy tờ» ở Trang chủ: người giữ ô `trip.override` (Quản trị, Toàn quyền) — cùng ô với nút «Cho chạy dù thiếu giấy tờ». Một hàm cho thẻ Trang chủ và route đếm. */
-export const O_SO_CHO_CHAY_THIEU = "trip.override" as const; // hằng riêng để tệp của van-chuyen không viết thẳng chuỗi ô (bài NT-3(b) ở lop-vuot.test.ts)
-export const thaySoChoChayThieu = (who: PermissionHolder): boolean => can(who, O_SO_CHO_CHAY_THIEU);
+/** Ai thấy số chuyến «đã cho chạy dù thiếu giấy tờ» ở Trang chủ: người giữ ô `trip.override` (Quản trị, Toàn quyền) — cùng ô với nút «Cho chạy dù thiếu giấy tờ». Giao diện chỉ ẩn / hiện; route đếm ở van-chuyen hỏi thẳng cùng ô (nới có tên N3 ở `lop-vuot.test.ts`). */
+export const thaySoChoChayThieu = (who: PermissionHolder): boolean => can(who, "trip.override");
 
 /** Nhóm lý do (`vc_reason.reason_group`) của việc cho chạy thiếu giấy tờ. */
 export const NHOM_LY_DO_THIEU_GIAY = "CHO_CHAY_THIEU_GIAY";
