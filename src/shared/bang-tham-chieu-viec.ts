@@ -2125,7 +2125,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Tiến độ chuyến (văn phòng bấm thay)",
     manHinh: "Chi tiết chuyến (chuyến chưa chạy, xe còn thiếu giấy tờ) › nút «Cho chạy dù thiếu giấy tờ» › hộp cùng tên; cũng mở từ nút cùng tên ở «Cần xử lý» của Điều phối xe",
     ten: "Cho chạy dù thiếu giấy tờ",
-    thatSuLam: "Quản trị hoặc Toàn quyền cho phép MỘT chuyến chưa chạy được xuất bến dù xe thiếu hoặc hết hạn một loại giấy tờ. Chọn từng loại giấy; Kiểm định và Bảo hiểm trách nhiệm dân sự chỉ Toàn quyền cho được. Quản trị bắt buộc chọn lý do, Toàn quyền không bắt buộc; chọn «Khác» thì phải ghi chú. Cho phép chỉ dùng một lần cho chuyến này và xe này; đổi xe thì không áp cho xe mới. Chuyến có nhãn vàng «Xe thiếu … — đã cho chạy»; tài xế được giao nhận tin báo. Giấy tờ của tài xế (bằng lái) vẫn chặn như cũ.",
+    thatSuLam: "Quản trị hoặc Toàn quyền cho phép MỘT chuyến chưa chạy được cho xe chạy dù xe thiếu hoặc hết hạn một loại giấy tờ. Chọn từng loại giấy; Kiểm định và Bảo hiểm trách nhiệm dân sự chỉ Toàn quyền cho được. Quản trị bắt buộc chọn lý do, Toàn quyền không bắt buộc; chọn «Khác» thì phải ghi chú. Cho phép chỉ dùng một lần cho chuyến này và xe này; đổi xe thì không áp cho xe mới. Chuyến có nhãn vàng «Xe thiếu … — đã cho chạy»; tài xế được giao nhận tin báo. Giấy tờ của tài xế (bằng lái) vẫn chặn như cũ.",
     hoiLai: "có hộp (chọn loại giấy, lý do, ghi chú)",
     hoanTac: "chưa có nút gỡ cho phép (ghi nợ ADR-0184); cho phép hết tác dụng khi xe đã chạy hoặc đổi xe",
     duongLenh: ["/api/van-chuyen/chuyen/:x/cho-chay-thieu-giay"],

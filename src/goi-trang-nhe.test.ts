@@ -55,7 +55,8 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 105.667 → 105.804 (ADR-0178 Đ1 mục 1, Task A2, 6/11/2026): hai ô quyền mới billing.partner_channel.write / .view vào bản đồ quyền dùng chung (chỉ dữ liệu, +37 byte đo thật 105.704). Không mã giao diện nào vào gói Đơn hàng. Trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
 // Nới 105.804 → 106.093 (ADR-0180, 7/11/2026): thanh báo xem như vai trò khác dùng chung ở khung nên vào gói mọi trang. Đã thu gọn còn một hàm trong web/shell.ts (dùng lại PERMISSION_LABEL và dải chung), phần bật chuyển sang web/account.ts; đo thật 105.993 byte, trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
 // Nới 106.093 → 106.223 (ADR-0180, vòng sửa 1, 7/11/2026): thanh báo dùng hàm chung `hienThanhXemNhu` (một nguồn chữ, có test) và thêm đuôi « · Đang bảo trì» khi bảo trì bật (dải bảo trì bị thanh che); đo thật 106.123 byte (đuôi bảo trì tốn 41 byte; bỏ đuôi thì 106.082 vừa trần cũ), trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
-const TRAN_ORDERS = 106_223;
+// Nới 106.223 → 106.459 (ADR-0184, 8/11/2026): ô quyền mới trip.override.giay_to_cung vào bản đồ quyền dùng chung và hai mã lý do giữ mới (DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN…) vào bảng chữ dùng chung — chỉ dữ liệu, không mã giao diện nào vào gói Đơn hàng; đo thật 106.359 byte, trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này (điều phối cần trình chủ).
+const TRAN_ORDERS = 106_459;
 
 function dung(trang: string) {
   const r = buildSync({

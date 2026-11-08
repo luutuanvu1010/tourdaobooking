@@ -623,6 +623,18 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       },
       // A4 T7 (ADR-0053 D8): Từ chối chuyến trả ĐÚNG { daTuChoi: true } khi thành công (khoá ở tu-choi.test.ts — bài đó theo luật đồng hồ giờ thật). Ở đây
       // (đồng hồ NOW_GIA — không đi đường thành công, tránh bom hẹn giờ B8.3) gọi bằng tài xế công ty → 403: thân lỗi cũng được quét "không lộ tên".
+      // ADR-0184: «Cho chạy dù thiếu giấy tờ» — lệnh văn phòng trả chi tiết chuyến (mảng `suat`) nên cũng phải KHÔNG kèm tên, năm sinh (phép (2) quét thân; phép «có suất đã gắn tên»
+      // ở dưới đòi chuyến F có suất tên). Thêm điều kiện «Đăng ký xe» (xe thử không có giấy này) để F có loại «đang thiếu»; Toàn quyền cho chạy; phản hồi và nhật ký không số giấy, không ghi chú.
+      "POST /api/van-chuyen/chuyen/:id/cho-chay-thieu-giay": async () => {
+        const f = await ct(T.F.chuyen.id);
+        const luc = "2026-09-01T00:00:00.000Z";
+        w.sqlite.prepare("INSERT INTO vc_departure_rule (id, min_capacity, subject, vehicle_document_type_code, valid_from_at, created_at, updated_at) VALUES (?, 1, 'VEHICLE', 'REGISTRATION', ?, ?, ?)").run(uuid(), luc, luc, luc);
+        const r = await goi("POST /api/van-chuyen/chuyen/:id/cho-chay-thieu-giay", "Toàn quyền cho F chạy dù thiếu Đăng ký xe", "POST", `/api/van-chuyen/chuyen/${T.F.chuyen.id}/cho-chay-thieu-giay`, SUP, {
+          version: f.chuyen.version, requestId: rid(), loaiGiayTo: ["REGISTRATION"], lyDo: null, ghiChu: "Ghi chú tự do không được lộ ra",
+        }, 201);
+        assert.equal(r.chuyen.choChayThieu.length, 1, "chống bài rỗng: có nhãn «đã cho chạy»");
+        assert.doesNotMatch(JSON.stringify(r), /Ghi chú tự do không được lộ ra/, "ghi chú tự do không vào phản hồi");
+      },
       [`${R}/tu-choi`]: async () => {
         await goi(`${R}/tu-choi`, "tài xế công ty bấm Từ chối (403)", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/tu-choi`, DRIVER, { requestId: rid(), lyDo: "TCC_KHAC" }, 403);
       },
@@ -653,7 +665,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       // A4 T7: Từ chối trả { daTuChoi: true } hoặc thân lỗi — không mảng suất.
       `${R}/de-nghi`, `${V}/cuu-ho`, `${R}/tu-choi`]);
     const phaiCoCaiDeLo = TUYEN_VC_THAT.filter((k) => /^(POST|PUT) \/api\/van-chuyen\/(chuyen\/:id|cuoc-cua-toi\/:id)(\/|$)/.test(k) && !KHONG_THE_LO.has(k));
-    assert.equal(phaiCoCaiDeLo.length, 26, "6 lệnh kế hoạch (sửa, xếp, rút, dời, cập nhật điểm, cập nhật khách — R-P29) + 8 lệnh tài xế + 8 lệnh văn phòng bấm thay + 2 lệnh xe đang chạy (thêm điểm, báo huỷ — Đợt 5) + 2 lệnh điều chỉnh (điều chỉnh khách, thu hồi xuất bến — ADR-0097)");
+    assert.equal(phaiCoCaiDeLo.length, 27, "ADR-0184: + 1 lệnh «cho chạy dù thiếu giấy tờ» (trả chi tiết chuyến, suất có tên) — 6 lệnh kế hoạch (sửa, xếp, rút, dời, cập nhật điểm, cập nhật khách — R-P29) + 8 lệnh tài xế + 8 lệnh văn phòng bấm thay + 2 lệnh xe đang chạy (thêm điểm, báo huỷ — Đợt 5) + 2 lệnh điều chỉnh (điều chỉnh khách, thu hồi xuất bến — ADR-0097)");
     for (const r of phaiCoCaiDeLo) assert.ok(than.some((t) => t.route === r && t.coCaiDeLo), `${r}: không lần gọi nào có suất đã gắn tên — phép "không lộ tên" vô nghĩa ở route này`);
 
     // (3) NHẬT KÝ + cột chữ vc_* — mọi cột, bỏ mã UUID.
@@ -757,7 +769,7 @@ test("khối van-chuyen (bài 3, quét mã — K2a V2): chỉ GET /chuyen/:id tr
     }
   }
   assert.deepEqual(loi, []);
-  assert.deepEqual(dem, { chiTiet: 22, cuoc: 10 }, "chống bài rỗng: 22 nơi gọi chiTietChuyen (1 GET + 21 lệnh — thêm cập nhật khách R-P29, thêm điểm + báo huỷ Đợt 5, điều chỉnh khách + thu hồi xuất bến ADR-0097), 10 nơi gọi cuocChiTiet (1 GET + 9 lệnh tài xế)");
+  assert.deepEqual(dem, { chiTiet: 23, cuoc: 10 }, "chống bài rỗng: 23 nơi gọi chiTietChuyen (1 GET + 22 lệnh — ADR-0184 thêm «cho chạy dù thiếu giấy tờ»; thêm cập nhật khách R-P29, thêm điểm + báo huỷ Đợt 5, điều chỉnh khách + thu hồi xuất bến ADR-0097), 10 nơi gọi cuocChiTiet (1 GET + 9 lệnh tài xế)");
 });
 
 // ADR-0052 tiêu chí 12 (D6 — Đợt 2 Vận chuyển): tin chuyến ở hộp thông báo không mang tên, năm sinh, SĐT, chữ nơi tự do có dãy số, khoá nơi.

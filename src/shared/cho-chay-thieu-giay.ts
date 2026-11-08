@@ -10,7 +10,8 @@ export const GIAY_TO_XE_CHI_TOAN_QUYEN = ["INSPECTION", "TPL_INSURANCE"] as cons
 export const laGiayToChiToanQuyen = (code: string): boolean => (GIAY_TO_XE_CHI_TOAN_QUYEN as readonly string[]).includes(code);
 
 /** Ai thấy số chuyến «đã cho chạy dù thiếu giấy tờ» ở Trang chủ: người giữ ô `trip.override` (Quản trị, Toàn quyền) — cùng ô với nút «Cho chạy dù thiếu giấy tờ». Một hàm cho thẻ Trang chủ và route đếm. */
-export const thaySoChoChayThieu = (who: PermissionHolder): boolean => can(who, "trip.override");
+export const O_SO_CHO_CHAY_THIEU = "trip.override" as const; // hằng riêng để tệp của van-chuyen không viết thẳng chuỗi ô (bài NT-3(b) ở lop-vuot.test.ts)
+export const thaySoChoChayThieu = (who: PermissionHolder): boolean => can(who, O_SO_CHO_CHAY_THIEU);
 
 /** Nhóm lý do (`vc_reason.reason_group`) của việc cho chạy thiếu giấy tờ. */
 export const NHOM_LY_DO_THIEU_GIAY = "CHO_CHAY_THIEU_GIAY";

@@ -15,7 +15,7 @@ import { chinhSachHienHanh } from "./repository";
 import { lyDoGiu } from "../../shared/ly-do-giu";
 import { giayToXeConThieu } from "../../shared/dieu-phoi-kiem";
 import { kiemChoChayThieu, MA_LY_DO_THIEU_GIAY_KHAC, NHOM_LY_DO_THIEU_GIAY } from "../../shared/cho-chay-thieu-giay";
-import { msToVnLocal } from "../../shared/vn-date";
+import { msToVnLocal, ngayDayDu } from "../../shared/vn-date";
 import { boSungXe, docChung, xeVao } from "./dieu-phoi-doc";
 import { CAU_CHI_TOAN_QUYEN_GIAY_TO } from "./rules";
 import { listVehicleDocumentTypes } from "./repository";
@@ -102,7 +102,7 @@ export async function lenhThuHoiXuatBen(db: D1Database, nen: NenChuyen, b: ThuHo
 }
 
 /** "2027-03-11" → "11/03/2027" (chỉ để ghi nhật ký). */
-const ngayVn = (d: string): string => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+const ngayVn = ngayDayDu;
 /**
  * ADR-0184 — «Cho chạy dù thiếu giấy tờ». Văn phòng (Quản trị: `trip.override`; Toàn quyền: thêm `trip.override.giay_to_cung` = `coOToanQuyen`) cấp dòng cho phép
  * cho chuyến CHƯA chạy. Kiểm: chuyến PLANNED (409); thiếu tính LẠI lúc lệnh chạy bằng `giayToXeConThieu` của xe HIỆN TẠI (cùng định nghĩa với cổng xuất bến);

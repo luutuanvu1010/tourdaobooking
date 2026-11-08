@@ -43,7 +43,7 @@ import { xetKetThuc } from "../src/shared/ket-thuc-chuyen";
 import { CAU_THU_TU_DAO, doiThuTuDuoc, giuTenKhach, viecNguoiDiKem, type BuocDiem, type KhachDiem } from "../src/shared/tien-do-man";
 import { coTienDoSauXuatBen, dichDieuChinh, nhanDichDieuChinh, nhanTrangThaiDieuChinh } from "../src/shared/dieu-chinh-suat";
 import type { GioVnDto, GoiBaoChangDto } from "../src/shared/contracts";
-import { ngayNgan, vnToday } from "../src/shared/vn-date";
+import { ngayDayDu, ngayNgan, vnToday } from "../src/shared/vn-date";
 import { canhBaoNgayChay } from "../src/shared/xac-nhan-xuat-ben";
 import { cauCapNhatDiem, chonThemDiem, dongDeNghiVanPhong, dongXeNhan, khachDangCho, theCuuHo, type KhachChoDong, type LuaChonThemDiem } from "../src/shared/xe-dang-chay-man";
 import { counter } from "./counter";
@@ -518,7 +518,7 @@ const CAU_CHO_CHAY: Partial<Record<MaLoiChoChayThieu, string>> = {
   thieu_ly_do: "Chọn một lý do.",
   thieu_ghi_chu: `Ghi chú dài từ ${GHI_CHU_TOI_THIEU} đến ${GHI_CHU_TOI_DA} ký tự.`,
 };
-const ngayDayDuVn = (d: string): string => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+const ngayDayDuVn = ngayDayDu;
 /**
  * ADR-0184: hộp «Cho chạy dù thiếu giấy tờ» — chọn loại giấy (loại chỉ Toàn quyền khoá với người thiếu ô `trip.override.giay_to_cung`), lý do nhóm
  * CHO_CHAY_THIEU_GIAY (Toàn quyền không bắt buộc), ghi chú (bắt buộc khi «Khác»). Luật kiểm ở src/shared/cho-chay-thieu-giay.ts (`kiemChoChayThieu`, cùng hàm máy

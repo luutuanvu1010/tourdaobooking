@@ -284,7 +284,7 @@ export const BANG_SU_KIEN_VAN_CHUYEN: readonly DongSuKien[] = [
   {
     id: "cho-chay-thieu-giay", ten: "Cho chạy dù thiếu giấy tờ", loai: "ke_hoach", trangThai: "co_ma",
     routes: [vp("/api/van-chuyen/chuyen/:id/cho-chay-thieu-giay", "trip.override", O_VUOT, "lenhChoChayThieu")], trangThaiChuyen: ["PLANNED"], vuot: [],
-    luat: "chỉ xe thiếu loại giấy đó; Kiểm định / Bảo hiểm chỉ Toàn quyền; Quản trị bắt buộc lý do; dùng một lần ở một lần xuất bến",
+    luat: "chỉ xe thiếu loại giấy đó; Kiểm định / Bảo hiểm chỉ Toàn quyền; Quản trị bắt buộc lý do; dùng một lần cho một lần cho xe chạy",
     bang: [...LO_CHUNG, "vc_trip_departure_waiver"], suKien: "DOCS_WAIVED", nhatKy: "trip_departure_waived", lo: "loChoChayThieu",
     bao: "route", tin: { nhom: "thuong", nhan: [{ ai: TX_LUC, loai: "cho_chay_thieu" }] }, bangTin: "sua", nguon: "ADR-0184",
   },
