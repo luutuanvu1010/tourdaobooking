@@ -78,6 +78,11 @@ export interface KhoiDuaDon {
    * TRƯỚC khi mở (nơi gọi cuộn tới ô khi `daAn`, vì khi đó người lập chưa thể thấy nó); không lỗi / `show = false` → null.
    */
   showIssues(show: boolean): { o: HTMLElement; daAn: boolean } | null;
+  /**
+   * G-02 (Gửi đơn của Đối tác): đánh dấu nhóm nút Đón / Không đón đang thiếu — viền lỗi, `aria-invalid`, dòng lỗi nối `aria-describedby`. `cau` null = gỡ dấu. Trả nhóm nút (ô để cuộn tới / đặt tiêu điểm)
+   * khi có dấu, không thì null. Chỉ form có `chonDon`.
+   */
+  danhDauThieuChon(cau: string | null): HTMLElement | null;
   /** Chặng đã lưu người dùng bỏ (bảng sửa sau xác nhận) kèm lý do. */
   daBo(): { leg: ChangNhap; lyDo: LyDoDongChang }[];
 }
@@ -89,6 +94,10 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
   let legs = o.legs;
   let taoSan = o.taoSan;
   let daLuu = false;
+  /** G-02: câu lỗi «chưa chọn Đón / Không đón» đang hiện (null = không); dựng lại khối thì dựng lại cùng dấu. */
+  let cauThieuChon: string | null = null;
+  let nhomChon: HTMLElement | null = null;
+  let loiChon: HTMLElement | null = null;
   /** Chặng đang mở hộp "Bỏ chặng" (bảng): key → lý do đang chọn ("" = chưa chọn) + đã bấm Bỏ mà chưa chọn. */
   const boMo = new Map<string, { lyDo: LyDoDongChang | ""; loi: boolean }>();
   const boXong: { leg: ChangNhap; lyDo: LyDoDongChang }[] = [];
@@ -557,7 +566,13 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
         b.addEventListener("click", () => cd.dat(v));
         return b;
       };
-      items.push(h("div", { class: "dd-chon-don", role: "group", "aria-labelledby": `${o.ma}-dd-nhan` }, nut("DON"), nut("KHONG_DON")));
+      nhomChon = h("div", { class: "dd-chon-don", role: "group", "aria-labelledby": `${o.ma}-dd-nhan` }, nut("DON"), nut("KHONG_DON"));
+      loiChon = h("p", { class: "field-error", role: "alert", id: `${o.ma}-dd-loi-chon` });
+      items.push(nhomChon, loiChon);
+      datThieuChon();
+    } else {
+      nhomChon = null;
+      loiChon = null;
     }
     if (taoSan && legs.length > 0) items.push(h("p", { class: "dd-ghi-tao" }, taoSan));
     if (cd && legs.length === 0) {
@@ -583,6 +598,15 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     moi?.focus();
     if (moLaiDs && moi?.getAttribute("role") === "combobox") moi.click();
   }
+
+  function datThieuChon(): void {
+    if (!nhomChon || !loiChon) return;
+    const cau = cd_coChon() ? null : cauThieuChon; // đã chọn xong thì dấu tự gỡ
+    datLoi(loiChon, nhomChon, cau);
+    if (cau) nhomChon.setAttribute("aria-describedby", loiChon.id);
+    else nhomChon.removeAttribute("aria-describedby");
+  }
+  const cd_coChon = (): boolean => o.chonDon?.lay() != null;
 
   function refresh(): void {
     const ngayDi = o.ngayDi();
@@ -636,6 +660,11 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
         if (e.choToiThieu !== null) r?.gapChiTiet?.mo();
       });
       return dau;
+    },
+    danhDauThieuChon(cau) {
+      cauThieuChon = cau;
+      datThieuChon();
+      return cau && nhomChon ? nhomChon : null;
     },
     daBo: () => [...boXong],
   };

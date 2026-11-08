@@ -6,6 +6,7 @@ import type { AssigneeDto, CatalogServiceDto } from "../src/shared/contracts";
 import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
 import { chipDatGap, theMoKhiNap } from "../src/shared/dong-gap-the";
 import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
+import { dichVuThieuChonDon, cauThieuChonDon } from "../src/shared/cong-chon-don";
 import { boChangKhiTatDuaDon, cauBoChangNhomTat, chonDonTheoNhom, diemChonNhanh, type DiemNhanh } from "../src/shared/chon-nhanh";
 import { cauDoiNgay, changTaoSan, doiNgayDi, giuDatGapNhap, legsGuiFormGon, type ChangNhap } from "../src/shared/chang-form";
 import { canHienLaiKhoiKhach } from "../src/shared/an-thong-tin-khach";
@@ -562,7 +563,7 @@ function loiTienForm(): { cau: string[] } {
 }
 
 /** `cacO` = mọi ô / khối có lỗi: nơi gọi mở khối gập chứa chúng (`moKhoiChua`) — lỗi không bao giờ nằm trong khối đóng. */
-function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] } | null {
+function validate(guiDon: boolean): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] } | null {
   const lines: string[] = [];
   const focusables: HTMLElement[] = [];
   const need = (id: string, message: string) => {
@@ -586,6 +587,14 @@ function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] }
     }
   });
   lines.push(...orderIssues(drafts()));
+  // G-02: «Gửi đơn» của Đối tác bị máy chủ chặn khi chưa chọn Đón / Không đón → báo ngay ở trình duyệt, chỉ ra dịch vụ nào và nhóm nút nào. «Lưu đơn (chưa xác nhận)» của nhân viên không bị chặn.
+  const thieuDon = guiDon ? dichVuThieuChonDon(entries.map((e) => ({ choPhep: coDuaDon(e.draft), pickupChoice: e.draft.pickupChoice, soChang: e.draft.legs.length }))) : [];
+  entries.forEach((e, i) => {
+    const o = e.card.danhDauThieuChonDon(thieuDon.includes(i) ? cauThieuChonDon(i) : null);
+    if (!thieuDon.includes(i)) return;
+    lines.push(cauThieuChonDon(i));
+    focusables.push(o ?? e.card.root);
+  });
   if (hk) {
     const loiKhach = loiDanhSachKhach(hk.rows(), today);
     lines.push(...loiKhach);
@@ -743,7 +752,7 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
   assigneeErrorShown = false;
   const loiChangCuaThe = entries.map((en) => en.card.showIssues(true)); // mở chặng gọn / khối chi tiết chứa ô lỗi; nhớ ô lỗi đầu tiên của từng thẻ + ô đó có đang nằm trong khối đóng không
   hk?.showIssues(true);
-  const invalid = validate();
+  const invalid = validate(!editId && guiDonKhiLuu && !datGap);
   if (invalid) {
     renderBanner(saveErrorEl, invalid.banner);
     gapChiTietKhiLoi();

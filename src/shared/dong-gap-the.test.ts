@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { TU_DO, themChangDi, themChieuVe, type ChangNhap } from "./chang-form.ts";
 import {
-  CHIP_CHUA_CHON_DON, CHIP_DA_DUYET_DAT_GAP, CHIP_DAT_GAP, KHONG_DUA_DON, canhBaoChuyenThe, chipThieu, chipTuCanhBao, chipDatGap, coLoiChanLuuDangHien, donGon, dongGapThe, soKhachGon, theMoKhiNap,
+  CHIP_CHUA_CHON_DON, CHIP_DA_DUYET_DAT_GAP, CHIP_DAT_GAP, KHONG_DUA_DON, canhBaoChuyenThe, chipThieu, chipTuCanhBao, chipDatGap, coLoiChanLuuDangHien, donGon, dongGapThe, nhanDuaDonTrangDon, soKhachGon, theMoKhiNap,
 } from "./dong-gap-the.ts";
 import type { CatalogService } from "./order-lines.ts";
 import { newCatalogDraft, newManualDraft, setGuests, setPax, setUnitPrice, type CatalogDraft } from "./service-form.ts";
@@ -198,4 +198,10 @@ test("ADR-0134: dòng gập — chưa chọn Đón / Không đón → chip «Ch�
   const co = dongGapThe(td2({ adult: 2 }, [changDu()]), { today: HOM_NAY, nhanTheoId });
   assert.equal(co.don, "đón 07:30 KS Biển Xanh");
   assert.equal(co.chips.includes(CHIP_CHUA_CHON_DON), false);
+});
+
+test("G-02: nhanDuaDonTrangDon — nháp chưa chọn → «Chưa chọn đón»; đã chọn Không đón → «Không đưa đón»; đơn đã xác nhận → «Không đưa đón»", () => {
+  assert.equal(nhanDuaDonTrangDon({ status: "draft", pickupChoice: null, soChang: 0 }), CHIP_CHUA_CHON_DON);
+  assert.equal(nhanDuaDonTrangDon({ status: "draft", pickupChoice: "KHONG_DON", soChang: 0 }), KHONG_DUA_DON);
+  assert.equal(nhanDuaDonTrangDon({ status: "confirmed", pickupChoice: null, soChang: 0 }), KHONG_DUA_DON);
 });
