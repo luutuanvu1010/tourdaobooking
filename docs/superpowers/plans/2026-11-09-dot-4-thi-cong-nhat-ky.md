@@ -68,3 +68,5 @@ Nhánh mang theo 23 lần lưu tài liệu của nhánh prompt rà soát (xem «
 - Ngoài phạm vi, ghi để điều phối xem: số thô `/payments daThu`, `receipt.daTra` của đơn huỷ còn gồm chuyển khoản chưa xác nhận; G9 (nút Từ chối gửi mã `busy`); biên nhận nháp tiêu đề «XÁC NHẬN ĐƠN DỊCH VỤ [Chờ xác nhận]»; ba chỗ sát ranh giới HC-4.2 ở phác đặc tả §3.
 
 - Gộp bản chính `a5330137a` (phiên soạn ADR lượt A, B; chỉ tài liệu, không trùng tệp) vào nhánh sau kiểm cuối; chạy lại 167 bài đọc sổ hạn, ADR, hàng rào: 167 đạt / 0 đỏ. Bộ đầy đủ 8468 bài chạy trước lần gộp này.
+
+- Chủ 9/11 (ô bước tiếp theo), nguyên văn «Để khoảng 20/11»: HC-4.2 chưa dời hạn; chủ quyết khoảng 20/11 (đề xuất 31/1/2027). Hạn 30/11 còn nguyên.
