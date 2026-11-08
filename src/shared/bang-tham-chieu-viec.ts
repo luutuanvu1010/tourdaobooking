@@ -632,7 +632,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Sửa đơn đã xác nhận",
     manHinh: "Chi tiết đơn › nhóm nút đầu trang (đơn đã xác nhận) › bảng sửa chuyến",
     ten: "Sửa thông tin chuyến",
-    thatSuLam: "Sửa các trường vận hành của đơn đã xác nhận (ngày giờ khởi hành, đón, ghi chú). Không đổi khách và không đổi tiền. Dưới hạn chốt phải đặt gấp.",
+    thatSuLam: "Đơn đã xác nhận: mở bảng sửa ngày khởi hành của cả đơn; giờ khởi hành, ngày giờ và nơi khách có mặt, ghi chú của từng dịch vụ. Đổi ngày khởi hành thì ngày đón các lượt đưa đón dời theo cùng số ngày. Không đổi khách, số khách, dịch vụ hay tiền; giờ và nơi đón sửa ở «Sửa đưa đón». Lượt dưới hạn chốt phải đặt gấp.",
     hoiLai: "không (bấm Lưu thông tin chuyến trong bảng)",
     hoanTac: "được: sửa lại bằng chính nút này",
     duongLenh: ["/api/orders/:x/trip"],
