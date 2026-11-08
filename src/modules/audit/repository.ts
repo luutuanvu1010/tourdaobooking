@@ -2,6 +2,7 @@ import { AUDIT_ACTIONS, HANH_DONG_GHI_TIEN, SILENT_AUDIT_ACTIONS, isAuditAction,
 import type { AuditEntryDto, AuditListResponse, AuditRecordDto } from "../../shared/contracts";
 import { mauLikeChua } from "../../shared/http";
 import { HAN_XEM_NHU_VAI_PHUT } from "../../shared/xem-nhu-vai";
+import { laMaTacNhan, type MaTacNhan } from "../../shared/permissions";
 
 export { isAuditAction, type AuditAction, type AuditTargetType };
 
@@ -12,8 +13,10 @@ export interface AuditInput {
    * "UPDATE của chính tôi đã thắng" — khác với so mốc thời gian, có thể trùng khi hai request cùng mili-giây. Bỏ trống = tự sinh.
    */
   id?: string;
-  /** Người thao tác; bỏ trống (null) = hệ thống tự làm (vd Cron đồng bộ Sheet). */
+  /** Người thao tác. Việc máy tự làm: để trống và ghi `agentCode` (ADR-0186); dòng rỗng cả hai chỉ còn ở lịch sử trước bản đó. */
   staffId?: string | null;
+  /** ADR-0186 Đ4: mã tác nhân tự động khi máy làm. Một dòng chỉ có MỘT người làm: người (`staffId`) HOẶC tác nhân — có cả hai thì từ chối dựng câu. */
+  agentCode?: MaTacNhan | null;
   action: AuditAction;
   at: string;
   orderId?: string; // hành động thuộc một đơn
@@ -68,16 +71,19 @@ const TU_GHI_SUBQUERY = `(CASE WHEN ?4 IN (${HANH_DONG_GHI_TIEN.map((a) => `'${a
 export function insertStatement(db: D1Database, e: AuditInput, onlyIf?: string): D1PreparedStatement {
   // SQL không còn CHECK liệt kê (0007) → chốt ở đây để giá trị lạ không bao giờ vào nhật ký.
   if (!isAuditAction(e.action)) throw new Error(`Hành động nhật ký không hợp lệ: ${String(e.action)}`);
+  // ADR-0186 Đ4: mã tác nhân lạ, hoặc dòng vừa có người vừa có tác nhân, không bao giờ vào nhật ký.
+  if (e.agentCode != null && !laMaTacNhan(e.agentCode)) throw new Error(`Mã tác nhân nhật ký không hợp lệ: ${String(e.agentCode)}`);
+  if (e.agentCode != null && e.staffId != null) throw new Error("Một dòng nhật ký chỉ có một người làm: người hoặc tác nhân tự động.");
   const targetType = e.targetType ?? (e.orderId ? "order" : null);
   const targetId = e.targetId ?? e.orderId ?? null;
   // Mốc hạn tính theo đồng hồ máy chủ lúc dựng câu, cùng cách currentStaff tính mốc xoá vai hết hạn, lùi thêm khoảng nới AN_HAN_NHAT_KY_MS.
   const mocHan = new Date(Date.now() - HAN_XEM_NHU_VAI_PHUT * 60 * 1000 - AN_HAN_NHAT_KY_MS).toISOString();
   return db
     .prepare(
-      `INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at, acting_role, tu_ghi_don_minh_lap)
-       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ${ACTING_ROLE_SUBQUERY}, ${TU_GHI_SUBQUERY} ${onlyIf ? `WHERE ${onlyIf}` : ""}`,
+      `INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at, acting_role, tu_ghi_don_minh_lap, agent_code)
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ${ACTING_ROLE_SUBQUERY}, ${TU_GHI_SUBQUERY}, ?10 ${onlyIf ? `WHERE ${onlyIf}` : ""}`,
     )
-    .bind(e.id ?? crypto.randomUUID(), e.orderId ?? null, e.staffId ?? null, e.action, targetType, targetId, e.detail ?? null, e.at, mocHan);
+    .bind(e.id ?? crypto.randomUUID(), e.orderId ?? null, e.staffId ?? null, e.action, targetType, targetId, e.detail ?? null, e.at, mocHan, e.agentCode ?? null);
 }
 
 export const SYSTEM_ACTOR_NAME = "Hệ thống (tự động)";

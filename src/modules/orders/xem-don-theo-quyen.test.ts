@@ -325,6 +325,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: Đối tác không gắn đặc điểm (đổi được kết quả luật bán)
     "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", // ADR-0169 Đ1: Đối tác không dùng, kể cả tài khoản kiêm (route chặn thêm)
     "order.terms.view": "own", "order.terms.override": "none", // Task 5: Đối tác xem phần đối tác của ĐƠN CỦA MÌNH (DTO hẹp: chỉ số tiền hoa hồng — holdsPartner ở route); không ghi mức tay
+    "catalog.sync": "none", "credit.due.remind": "none", "ve.kho.purge": "none", // ADR-0186: đồng bộ danh mục là việc văn phòng; hai ô kia là việc Nền tảng tự làm
   };
   const actual = Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].PARTNER]));
   assert.deepEqual(actual, PARTNER_ROW);

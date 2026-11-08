@@ -34,6 +34,7 @@ export const AUDIT_ACTIONS = {
   ve_mo_anh_lo_huy: { label: "Mở ảnh vé của lô đã huỷ", group: "ve" }, // chủ quyết 2/11/2026; detail không chứa mã; target_id = mã dòng vé
   ve_bo_lo: { label: "Huỷ lô vé điện tử", group: "ve" }, // ADR-0156 Đ2 mục 3; detail: nhãn nhóm khách (KHÔNG mã vé)
   ve_doi_tran_lo: { label: "Đổi số vé tối đa mỗi lô", group: "ve" }, // ADR-0156 Đ3; detail: số cũ → số mới
+  ve_xoa_anh_het_han: { label: "Xoá ảnh vé hết hạn lưu", group: "ve" }, // ADR-0186 Đ4 (tên chủ chọn 8/11); tác nhân DON_ANH_VE ghi, một dòng mỗi lượt có xoá; detail: CHỈ số ảnh (KHÔNG mã vé, KHÔNG khoá kho)
   updated: { label: "Sửa đơn", group: "order" },
   trip_updated: { label: "Sửa thông tin chuyến", group: "order" },
   // ADR-0047 A1: chặng đưa đón sau xác nhận — `detail` "Chiều đi · <tên dịch vụ>: giờ đón 06:30 → 07:00; nơi đón A → B" (chữ tự do che dãy số — moTaChang).

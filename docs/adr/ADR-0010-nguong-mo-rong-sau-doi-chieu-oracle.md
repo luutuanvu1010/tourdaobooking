@@ -1,6 +1,6 @@
 # ADR-0010 — Ngưỡng mở rộng sau đối chiếu Oracle TCA: phạm vi theo nơi, hoá đơn là bản chụp, tác nhân tự động
 
-- **Trạng thái:** **accepted** — chủ dự án duyệt ngày 2026-09-21 ("2- Duyệt"). Sau khi accepted chỉ sửa trạng thái, thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Trạng thái:** **accepted** — chủ dự án duyệt ngày 2026-09-21 ("2- Duyệt"). Sau khi accepted chỉ sửa trạng thái, thay đổi nội dung = ADR mới trỏ về ADR này. **Điều 3, câu «Ngoại lệ đã có, giữ nguyên» (Cron đồng bộ danh mục ghi `staff_id` NULL): thay bởi ADR-0186** (accepted 2026-11-08) — mọi tác nhân tự động có định danh riêng và đi qua `can()`.
 - **Ngày:** 2026-09-21   **Người phê chuẩn:** chủ dự án (duyệt ngày 2026-09-21)
 - **Loại quyết định:** **cửa hai chiều** — không đổi mã hay cấu trúc dữ liệu ngay; ghi lại ngưỡng (điều kiện) để quyết định sau này khi làm N3/tích hợp AI, có thể đảo lại nếu điều kiện thay đổi
 - **Liên quan:** ADR-0004 (mở rộng phạm vi thu tiền/hoá đơn; ADR N3 sẽ kế thừa), ADR-0007 (bản đồ quyền → thao tác, `Scope` của `src/shared/permissions.ts`), báo cáo đối chiếu `docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md` §6.5 (P-6, P-7, P-11)

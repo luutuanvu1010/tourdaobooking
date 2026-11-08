@@ -3946,7 +3946,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Đồng bộ danh mục từ Google Sheet",
-    manHinh: "Dịch vụ & giá (đầu trang) · hộp hỏi của trình duyệt khi Sheet làm ẩn nhiều dịch vụ",
+    manHinh: "Dịch vụ & giá (đầu trang; cả màn của Quản lý bán hàng — ADR-0186) · hộp hỏi của trình duyệt khi Sheet làm ẩn nhiều dịch vụ",
     ten: "Đồng bộ ngay từ Google Sheet",
     thatSuLam: "Đọc ngay Google Sheet (việc mà máy cũng tự làm mỗi 15 phút). Dịch vụ mới được thêm; dịch vụ đã có và không bị ghi đè giá thì lấy luôn giá, tên, đơn vị mới của Sheet; dịch vụ không còn trong Sheet thì bị đánh dấu «Không còn trong Sheet» và người lập đơn không thấy nữa. Giá đã ghi đè không bao giờ bị đè (ghi đè nằm ở bảng riêng); đơn đã lập giữ giá lúc lập.",
     hoiLai: "không (chỉ có hộp hỏi của trình duyệt khi máy chủ báo sắp ẩn quá nhiều)",
@@ -3955,7 +3955,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     maNhatKy: ["catalog_synced"],
     noiDat: [
       { tep: "public/catalog.html", chu: "Đồng bộ ngay từ Google Sheet" },
-      { tep: "web/catalog.ts", chu: "‹…› Chỉ tiếp tục nếu bạn chắc chắn Sheet đúng. Vẫn đồng bộ và ẩn các dịch vụ đó?" },
+      { tep: "web/catalog-kiem-ve.ts", chu: "Đồng bộ ngay từ Google Sheet" },
+      { tep: "web/catalog-kiem-ve.ts", chu: "‹…› Chỉ tiếp tục nếu bạn chắc chắn Sheet đúng. Vẫn đồng bộ và ẩn các dịch vụ đó?" },
     ],
     trangThai: "da-chot",
     nguonTen: "chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)",

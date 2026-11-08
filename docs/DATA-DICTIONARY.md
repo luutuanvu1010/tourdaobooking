@@ -6,7 +6,7 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
-| `audit_log` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2); acting_role (ADR-0180, migration 0145): mã vai đang đóng lúc ghi dòng, rỗng ngoài đóng vai; chỉ mã vai, không dữ liệu cá nhân; tu_ghi_don_minh_lap (ADR-0187 Đ3 mức a, migration 0150): 1 khi hành động thuộc tập ghi tiền HANH_DONG_GHI_TIEN và người làm là người lập đơn — insertStatement điền tự động; rỗng = không dấu |
+| `audit_log` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2); acting_role (ADR-0180, migration 0145): mã vai đang đóng lúc ghi dòng, rỗng ngoài đóng vai; chỉ mã vai, không dữ liệu cá nhân. agent_code (ADR-0186, migration 0148): mã tác nhân tự động ghi dòng (DONG_BO_DANH_MUC, NHAC_HAN_TRA_SAU, DON_ANH_VE — danh sách kiểm ở mã), khi đó staff_id rỗng; dòng của người để rỗng; không bao giờ có cả hai. Không gửi về trình duyệt. tu_ghi_don_minh_lap (ADR-0187 Đ3 mức a, migration 0150): 1 khi hành động thuộc tập ghi tiền HANH_DONG_GHI_TIEN và người làm là người lập đơn — insertStatement điền tự động; rỗng = không dấu |
 | `v_aud_order_event` | view công bố | cột: id, order_id, staff_id, action, created_at |
 | `v_aud_trip_event` | view công bố | cột: id, trip_id, staff_id, action, created_at |
 | `v_aud_account_event` | view công bố | cột: id, account_id, staff_id, action, created_at |

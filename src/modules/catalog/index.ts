@@ -2,7 +2,7 @@
 // Sheet là nguồn chính; Admin có thể ghi đè giá/ẩn dịch vụ (ghi đè không bị lần đồng bộ sau đè mất). App KHÔNG BAO GIỜ ghi ngược vào Sheet.
 import { auditStatement, type AuditAction } from "../audit";
 import { error, json, readJson } from "../../shared/http";
-import { can, holdsPartner, isOffice } from "../../shared/permissions";
+import { can, holdsPartner, isOffice, tacNhan } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import type {
   CatalogNgungBanResponse,
@@ -21,6 +21,9 @@ import { choPhepDuaDon, kiemLoGan, kiemTenNhom, moTaDoiNhom, nhomChoForm } from 
 import { tenCuaGiaTri } from "./dac-diem-repo";
 import { dacDiemRoutes } from "./dac-diem-route";
 import { isQuyTacDuaDon, moTaDoiQuyTac, type QuyTacDuaDon } from "../../shared/dua-don-dich-vu";
+
+/** Tác nhân tự động của việc đồng bộ danh mục (ADR-0186 Đ1): Cron 15 phút và đồng bộ lần đầu chạy dưới định danh này, qua cùng cổng `catalog.sync` với nút. */
+const DONG_BO_DANH_MUC = tacNhan("DONG_BO_DANH_MUC");
 
 export type { EffectiveService };
 
@@ -146,7 +149,7 @@ async function catalogForOrderForm(
   { showSyncError, biChan }: { showSyncError: boolean; biChan?: (codes: readonly string[]) => Promise<ReadonlySet<string>> },
 ): Promise<CatalogPublicResponse> {
   try {
-    await bootstrapIfNeverSynced(env);
+    await bootstrapIfNeverSynced(env, DONG_BO_DANH_MUC);
   } catch {
     /* Sheet lỗi ở lần đầu: vẫn trả danh mục rỗng + cảnh báo bên dưới */
   }
@@ -383,12 +386,13 @@ export const catalogModule: AppModule = {
       return json({ item: await adminItemKemNhom(env.DB, item) } satisfies CatalogItemResponse);
     }),
 
-    route("POST", "/api/catalog/sync", "admin", async ({ env, request, staff }) => {
-      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+    // ADR-0186 Đ3: cổng office + ô catalog.sync (Quản lý bán hàng, Quản trị, Toàn quyền); CÙNG hàm lệnh với Cron và đồng bộ lần đầu.
+    route("POST", "/api/catalog/sync", "office", async ({ env, request, staff }) => {
+      if (!can(staff, "catalog.sync")) return error(403, "forbidden", "Tài khoản này không được bấm «Đồng bộ ngay từ Google Sheet».");
       const body = await readJson(request);
-      const result = await syncCatalog(env, staff.id, { force: body?.force === true });
+      const result = await syncCatalog(env, staff, { force: body?.force === true });
       if (result.ok) return json(result satisfies CatalogSyncResponse);
-      return error(result.code === "sheet_unreachable" ? 502 : result.code === "sync_guard" ? 409 : 424, result.code, result.message);
+      return error(result.code === "forbidden" ? 403 : result.code === "sheet_unreachable" ? 502 : result.code === "sync_guard" ? 409 : 424, result.code, result.message);
     }),
 
     // Ghi đè giá / ẩn / hiện
@@ -461,7 +465,10 @@ export const catalogModule: AppModule = {
   ],
 };
 
-/** Cron Trigger: đồng bộ Sheet định kỳ, không có người thao tác (nhật ký ghi là "Hệ thống"). Lỗi chỉ ghi vào trạng thái, không ném ra. */
+/**
+ * Cron Trigger: đồng bộ Sheet định kỳ dưới tác nhân DONG_BO_DANH_MUC (ADR-0186) — cùng hàm lệnh, cùng cổng với nút; nhật ký mang mã tác nhân, màn Nhật ký
+ * vẫn hiện «Hệ thống (tự động)». Lỗi Sheet và bị từ chối chỉ ghi vào trạng thái đồng bộ, không ném ra.
+ */
 export async function runScheduledSync(env: Env): Promise<void> {
-  await syncCatalog(env, null);
+  await syncCatalog(env, DONG_BO_DANH_MUC);
 }
