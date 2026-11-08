@@ -17,6 +17,21 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 1 «sửa nhỏ» của kế hoạch sửa sau rà soát lần 2 (9/11), KHÔNG migration. SỐ TẠM 2.81: 2.80 («Có vé», ADR-0174) đang chờ trên main; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.81",
+    date: "2026-11-09",
+    items: [
+      { kind: "sua", text: "Khi Nền tảng báo lỗi hệ thống, câu báo có kèm mã lỗi để bạn chụp gửi Quản trị." },
+      { kind: "doi", text: "Đối tác bấm «Gửi đơn» mà chưa chọn Đón hay Không đón thì đơn chưa được lưu; Nền tảng chỉ ra dịch vụ nào còn thiếu. Trang đơn chưa xác nhận ghi «Chưa chọn đón»." },
+      { kind: "doi", text: "Khi lập đơn qua đối tác, nhân viên văn phòng có thêm nút «Điền thông tin đối tác» để điền sẵn tên và số của đối tác vào khung Khách hàng." },
+      { kind: "doi", text: "Ở ô chọn cách thanh toán khi lập đơn cho đối tác có hạn mức, chữ «Trả trước» đổi thành «Thanh toán ngay»." },
+      { kind: "doi", text: "Trang Vé điện tử chọn dịch vụ bằng ô tìm và hàng nút nhóm giống màn Tạo đơn, thay cho hộp thả xuống dài." },
+      { kind: "sua", text: "Quản lý bán hàng có ô «Dịch vụ & giá» ở Trang chủ trên điện thoại." },
+      { kind: "sua", text: "Dịch vụ không có đưa đón thì Đối tác không còn dòng ghi chú về giờ đón." },
+      { kind: "sua", text: "Các bài hướng dẫn ghi đúng tên tab và mục menu mà bạn đang thấy." },
+    ],
+  },
+  {
     // Ô «Có vé» theo nhóm và dịch vụ (ADR-0174), CÓ migration 0142. Số tạm 8/11: 2.78 (ADR-0186) đang chờ, 2.79 giữ cho ADR-0185, nên lấy 2.80; bước A.0 đặt lại nếu cần.
     version: "2.80",
     date: "2026-11-08",
