@@ -44,3 +44,25 @@ Kiểm sau khi sửa sổ: `python3 -m json.tool` hợp lệ; `node --test src/p
 
 - **Không thi công — dừng hỏi chủ.** Kế hoạch 9/11 khuyến nghị bỏ, nhưng không nhắc rằng việc bỏ đúng hai ô này đã được trình một lần: ADR-0086 (1/10) bị chủ **bác** («giữ lại đi, tiếp»), và ADR-0019 điều 5 (đã duyệt) chủ ý giữ hai ô. Bỏ ô bây giờ là đổi nghĩa một ADR đã duyệt, nên cần ADR mới chủ duyệt (CLAUDE.md §2 «không tự hoà giải»; N3). Lời duyệt kế hoạch tự ghi «không thay cho duyệt từng ADR». Đưa vào câu hỏi gom: gia hạn (giữ đúng quyết định 1/10) hoặc soạn ADR mới thay ADR-0086.
 - Đã dò phạm vi nếu bỏ: `src/shared/permissions.ts` (hai dòng + chú thích), `src/shared/permissions.test.ts`, `src/modules/orders/xem-don-theo-quyen.test.ts`, `src/shared/tro-ly-cau-truc-ten.ts`, `src/shared/tro-ly-cau-truc.test.ts`, chú thích `src/modules/dispatch/rules.ts`, `docs/quyen-hoan.json`, `docs/SYSTEM-DESIGN.md`. Không migration, không trigger, không chỗ giao diện ẩn/hiện, không có trong bảng tham chiếu.
+
+## Kiểm cuối đợt (9/11)
+
+- Người kiểm độc lập cho phần sửa sổ (`43de00e01`): **ĐẠT** — chỉ ba mục đổi `han` đúng ngày; HC-4.2 và mọi mục khác không đổi trường nào; `ke_hoach` mới bắt đầu bằng đúng chuỗi cũ; mọi `xay_tren_cho_phep*`, `gia_han_*` giữ nguyên; câu nối kiểm được là đúng; 19/19 bài sổ xanh.
+- `npm test` thoát 0 (8468 bài, 8464 đạt, 0 đỏ; bước đo giờ hook 1/1). `npm run typecheck` thoát 0.
+- Không chạy e2e, kịch bản Chrome: đợt này không đổi mã, API, migration hay giao diện (chỉ tài liệu, bằng chứng và `docs/quyen-hoan.json`). Không cần mục nhật ký thay đổi (`changelog.ts`) vì người dùng không thấy gì mới; **không cần triển khai** sau khi nhập.
+
+## Nhập vào bản chính (chủ chạy, Phần X bước 6)
+
+Đứng ở bất kỳ đâu, chép nguyên khối (lệnh tự từ chối khi còn lệnh nhập/triển khai khác hoặc bản chính vừa đổi):
+
+```bash
+cd /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales && if pgrep -f 'scripts/day-le[n].mjs' > /dev/null; then echo "CHƯA CHẠY: còn một lệnh nhập khác đang chạy hoặc đang chờ bạn gõ c. Trả lời lệnh đó trước."; elif pgrep -f 'scripts/trien-kha[i].mjs' > /dev/null; then echo "CHƯA CHẠY: lệnh triển khai đang chạy. Chờ nó xong rồi chạy lại khối này."; elif git fetch origin && [ "$(git rev-parse main)" = "$(git rev-parse origin/main)" ] && git merge-base --is-ancestor main claude/dot-4-han-30-11-7d0bdb; then npm run day-len -- claude/dot-4-han-30-11-7d0bdb; else echo "CHƯA CHẠY: bản chính vừa có thay đổi mới. Báo AI gộp lại rồi chạy lại khối này."; fi
+```
+
+Nhánh mang theo 23 lần lưu tài liệu của nhánh prompt rà soát (xem «Mốc đầu phiên»). Nếu phiên khác nhập kế hoạch 9/11 trước, lần lưu trùng sẽ tự khớp.
+
+## Việc còn treo
+
+- **HC-4.2 hạn 30/11** chưa dời (chủ chọn chưa ghi sổ). Trước 0 giờ 1/12: chủ ra lệnh dời (đề xuất 31/1/2027) hoặc làm xong đợt 2 ADR-0115 theo phác đặc tả.
+- TNV-G1 (hạn mới 31/12): năm ca vàng chờ chủ/Kế toán; ca 07 chờ duyệt đặc tả phiếu chi; chủ chạy `node scripts/audit-invariants.mjs --db remote`.
+- Ngoài phạm vi, ghi để điều phối xem: số thô `/payments daThu`, `receipt.daTra` của đơn huỷ còn gồm chuyển khoản chưa xác nhận; G9 (nút Từ chối gửi mã `busy`); biên nhận nháp tiêu đề «XÁC NHẬN ĐƠN DỊCH VỤ [Chờ xác nhận]»; ba chỗ sát ranh giới HC-4.2 ở phác đặc tả §3.
