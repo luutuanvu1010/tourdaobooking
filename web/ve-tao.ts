@@ -182,8 +182,8 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
       trangThai.hidden = true;
       if (bi.length > 0) baoLoi(bi.join(" "));
       // ADR-0175 Đ1.5a: dịch vụ đang tắt «Có vé» hoặc dùng vé của nguồn khác ⇒ lô chưa được cấp cho ai.
-      const canh = xn.dichVuKhongVe ? " Dịch vụ này đang tắt ô «Có vé» nên máy chưa giữ vé cho đơn. Hãy báo Quản trị bật ô này ở màn Dịch vụ & giá."
-        : xn.canhBaoNguon ? " Lô chưa được cấp cho ai tới khi Quản trị đổi ô «Vé do ai phát»." : "";
+      // Máy chủ đặt canhBaoNguon = dichVuKhongVe || nguồn lệch, nên trang không phân biệt được hai trường hợp: câu nguồn luôn hiện khi có cờ, câu «Có vé» thêm vào chứ không thay.
+      const canh = `${xn.canhBaoNguon ? " Lô chưa được cấp cho ai tới khi Quản trị đổi ô «Vé do ai phát»." : ""}${xn.dichVuKhongVe ? " Dịch vụ này cũng đang tắt ô «Có vé»: Quản trị cần bật ô này ở màn Dịch vụ & giá." : ""}`;
       o.hienOk(`Đã tạo ${them} vé vào kho.${xn.capBu > 0 ? ` Máy đã cấp bù vé cho ${xn.capBu} đơn đang thiếu.` : ""}${xn.conDonChuaXet ? " Còn đơn đang thiếu vé chưa được cấp bù trong lần này." : ""}${canh}`);
       form.reset();
       replaceChildren(khuMau);
