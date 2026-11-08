@@ -2,7 +2,19 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.75 ĐÃ LÊN PRODUCTION (menu tên tài khoản: «Xem như vai trò khác» chuyển từ trang Tôi vào menu, ngay trên «Đăng xuất» — chủ dự án 8/11) — không migration — triển khai 2026-11-08 08:25 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.76 ĐÃ LÊN PRODUCTION (ADR-0187 Đ3 mức (a): tách nhiệm vụ — dòng tiền do chính người lập đơn ghi mang dấu «Tự ghi đơn mình lập»; Sổ công nợ có bộ lọc «Cần người thứ hai soát» và nút «Đã soát»; thẻ Trang chủ) — migration `0150` — triển khai 2026-11-08 14:10 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy (phiên `claude/keen-ishizaka-248ee0` đọc ô Terminal) và lệnh chỉ đọc sau đó (`GET /api/auth/config` trả `2.76`; `wrangler d1 migrations list --remote`: không còn migration chờ; `wrangler deployments list`: 100% bản dưới; hai route `/api/ledger/tu-ghi*` trả 401 khi chưa đăng nhập; gói `so-cong-no.js`, `home.js` có phần mới).
+- Commit: `6d378b10d` Merge branch 'main' into claude/keen-ishizaka-248ee0 (mã ở `248e5102a`…`126d97cd0`).
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-08T07:07:55Z — https://github.com/luutuanvu1010/tourdaobooking/actions/runs/42456911231. Có đổi quy trình kiểm (tệp `tests/e2e/danh-sach.mjs`: thêm kịch bản `tach-nhiem-vu`); lý do chủ gõ: «quy trình kiểm có vẻ ổn thôi».
+- Migration đã áp: `0150_tach_nhiem_vu_tu_ghi.sql`. Điểm khôi phục Time Travel trước khi áp: `000025c1-00000000-0000511d-7ce2c6fea4909e1345bb5b12529cbbab`.
+- Worker Version ID: `03c6db3f-3890-464b-9f2f-974e24a29f22`. Kiểm dữ liệu (audit-invariants --db remote): ĐẠT, 3 cảnh báo cũ (R-VC-14, R-ORD-9, R-CTL-1) không liên quan.
+- Cổng phiên bản trước deploy: ĐẠT; sau deploy: ĐẠT.
+- Thời gian: day-len 8 phút 59 giây (chờ GitHub kiểm 8 phút 53 giây), trien-khai 0 phút 55 giây, tổng 9 phút 54 giây.
+- Điểm quay lại: Worker `995dcad9-f9a9-4dca-8059-4fc6163044a4` (2.75) — lưu ý migration 0150 chỉ mở rộng (cột nullable, view, bảng mới), Worker cũ vẫn chạy được trên CSDL mới.
+- Chưa thử trên iPhone / Chrome thật; chưa ai bấm «Đã soát» trên production. Việc chờ chủ quyết: `docs/superpowers/plans/2026-11-08-tach-nhiem-vu-muc-a-thi-cong-nhat-ky.md` mục «Chờ chủ quyết».
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.75 ĐÃ LÊN PRODUCTION (menu tên tài khoản: «Xem như vai trò khác» chuyển từ trang Tôi vào menu, ngay trên «Đăng xuất» — chủ dự án 8/11) — không migration — triển khai 2026-11-08 08:25 giờ Việt Nam
 
 - Commit: `27c77e759` Nhật ký thay đổi 2.75: menu tên tài khoản (bước A.0); mã ở `5ce36e3eb`.
 - Kiểm đủ bộ (GitHub): XANH lúc 2026-11-08T01:21:43Z — https://github.com/luutuanvu1010/tourdaobooking/actions/runs/42433253174
