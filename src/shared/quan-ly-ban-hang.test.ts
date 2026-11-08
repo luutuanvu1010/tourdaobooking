@@ -30,7 +30,8 @@ test("Đ1: vai sinh Bán hàng + Quản lý bán hàng; nội bộ; không quy�
 test("Đ1 + ADR-0186: cột mới chỉ có ba ô nghiệp vụ và các ô tự phục vụ; không ô đơn, tiền, tài khoản, sửa giá nào", () => {
   const co = Object.entries(MATRIX).filter(([, r]) => r.SALES_MANAGER !== "none").map(([o]) => o).sort();
   assert.deepEqual(co, [
-    "assistant.ask", "catalog.confirm_flag.write", "catalog.hidden.write", "catalog.sync", "feedback.submit", "feedback.view", "party.document.view", "party.erasure.request", "party.self.submit",
+    "assistant.ask", "catalog.confirm_flag.write", "catalog.hidden.write", "catalog.sync", "feedback.submit", "feedback.view", "me.favorites.write", "party.document.view", "party.erasure.request",
+    "party.self.submit",
     "party.self.view",
   ]);
 });
