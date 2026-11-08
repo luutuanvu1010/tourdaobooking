@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0187 Đ2.3 (accepted 8/11): người dùng tự chọn nút thanh dưới điện thoại, lưu ở máy chủ. Migration 0153. Số tạm 2.81 (production 2.80); nhánh claude/ve-tour-dao-thi-cong
+    // chưa nhập cũng có thể lấy 2.81 — nhánh nào nhập sau thì đánh lại số ở bước A.0.
+    version: "2.81",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Trang Tôi trên điện thoại có mục «Nút thanh dưới»: tự chọn tối đa 4 trang mình hay dùng cho thanh dưới; nút Tôi luôn có." },
+      { kind: "moi", text: "Lựa chọn lưu theo tài khoản nên đổi máy vẫn còn. Bấm «Về mặc định» để quay lại cách Nền tảng tự xếp." },
+    ],
+  },
+  {
     // Ô «Có vé» theo nhóm và dịch vụ (ADR-0174), CÓ migration 0142. Số tạm 8/11: 2.78 (ADR-0186) đang chờ, 2.79 giữ cho ADR-0185, nên lấy 2.80; bước A.0 đặt lại nếu cần.
     version: "2.80",
     date: "2026-11-08",
