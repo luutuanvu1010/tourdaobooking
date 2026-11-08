@@ -1,44 +1,49 @@
-# ADR-0186 — Tác nhân tự động có định danh riêng: tự đồng bộ danh mục đi qua cùng cổng quyền
+# ADR-0186 — Tác nhân tự động có định danh riêng, đi qua cùng cổng quyền; Quản lý bán hàng được đồng bộ danh mục
 
-- **Trạng thái:** **proposed** 2026-11-08 — chờ chủ dự án duyệt. Chưa có hiệu lực; luật ADR-0010 điều 3 (chừa Cron đồng bộ danh mục) vẫn áp tới khi ADR này được duyệt và mã mới qua tiêu chí nghiệm thu.
-- **Ngày:** 2026-11-08. **Loại:** việc lớn (quyền, nhật ký, migration) — thi công xong cần người kiểm độc lập chỉ đọc (`CLAUDE.md` §3).
-- **Cửa:** hai chiều về hành vi (bỏ định danh thì về như cũ); một chiều ở chỗ cột mới của nhật ký và các dòng nhật ký đã ghi ở lại (nhật ký chỉ-thêm).
-- **Thay / sửa:** thay câu «Ngoại lệ đã có, giữ nguyên» của ADR-0010 điều 3, **chỉ cho** tự đồng bộ danh mục và đồng bộ lần đầu. Không sửa nguyên văn ADR-0010.
-- **Liên quan:** Hiến chương 5.11, 5.12, 5.15 (Phần I `docs/ARCHITECTURE.md`; bản chung ở kho luật gốc); ADR-0007, ADR-0019 (bản đồ quyền, `can()`); mục `HC-5.11` trong `docs/quyen-hoan.json`; đặc tả `docs/superpowers/specs/2026-11-08-tac-nhan-dong-bo-danh-muc.md`; trang ghép `docs/superpowers/specs/2026-11-08-trang-ghep-tac-nhan-nhat-ky.md`.
-- **Xây trên lỗ đang hở:** không (đã đọc các mục còn mở của sổ: `TNV-G1`, `HC-4.2`, `HC-5.19` và các ô hoãn — không mục nào thuộc vùng định danh, nhật ký).
-- **Số quyết định chủ cần chốt:** 2 — D1 (duyệt cách làm dưới đây), D2 (hai Cron còn lại làm sau hay làm luôn).
+- **Trạng thái:** **proposed** 2026-11-08 (bản sửa lần 1, theo hai câu trả lời của chủ ở dòng dưới) — chờ chủ dự án duyệt. Chưa có hiệu lực; ADR-0010 điều 3 (chừa Cron đồng bộ danh mục) và ADR-0169 Đ4 (màn hẹp không đồng bộ) vẫn áp tới khi ADR này được duyệt và mã mới qua tiêu chí nghiệm thu.
+- **Chủ đã chọn (hộp hỏi 2026-11-08, nguyên văn):** câu «duyệt ADR-0186?» — «Để cho nút Đồng Bộ hiển thị và hoạt động với Quản lý bán hàng, Quản trị và Toàn quyền. Để khi cần thì chủ động đồng bộ bảng giá từ Sheet»; câu «hai tác vụ còn lại làm luôn hay để sau?» — «Làm luôn trong đợt này». Đây là câu trả lời, chưa phải lệnh «Duyệt». AI hiểu như sau (chủ sửa nếu sai): (1) Quản lý bán hàng bấm được «Đồng bộ ngay từ Google Sheet» ở màn hẹp, nút làm y như của Quản trị, kể cả hộp hỏi khi Sheet sắp làm ẩn hơn nửa dịch vụ; (2) đợt này làm cả ba tác vụ tự động.
+- **Ngày:** 2026-11-08. **Loại:** việc lớn (quyền, nhật ký, migration, giao diện) — thi công xong cần người kiểm độc lập chỉ đọc (`CLAUDE.md` §3).
+- **Cửa:** hai chiều về hành vi; một chiều ở chỗ cột mới của nhật ký và các dòng nhật ký đã ghi ở lại (nhật ký chỉ-thêm).
+- **Thay / sửa:** câu «Ngoại lệ đã có, giữ nguyên» của ADR-0010 điều 3; chữ «đồng bộ» trong câu «Không có giá ghi đè, đồng bộ, sửa nhóm» của ADR-0169 Đ4; câu «route `POST /api/catalog/sync` hỏi `admin.manage`» (hiện trạng mã). Không sửa nguyên văn các ADR đó.
+- **Liên quan:** Hiến chương 5.11, 5.12, 5.15 (Phần I `docs/ARCHITECTURE.md`; bản chung ở kho luật gốc); ADR-0007, ADR-0014 điều 2, ADR-0019, ADR-0156, ADR-0169, ADR-0173; mục `HC-5.11` của `docs/quyen-hoan.json`; đặc tả và trang ghép cùng ngày ở `docs/superpowers/specs/`.
+- **Xây trên lỗ đang hở:** không. Các mục còn mở (`TNV-G1`, `HC-4.2`, `HC-5.19`, các ô hoãn) không thuộc vùng định danh, nhật ký; tác vụ nhắc hạn chỉ đổi người làm trong nhật ký, không đổi cách tính nợ.
+- **Số quyết định chủ cần chốt:** 2 — duyệt bản sửa này; chọn tên dòng nhật ký mới của việc dọn ảnh vé (Đ4).
 
 ## Bối cảnh
 
-Cron mỗi 15 phút gọi `syncCatalog(env, null)`: ghi `catalog_item` không qua `can()`, nhật ký `catalog_synced` có `staff_id` rỗng. Đồng bộ lần đầu (`bootstrapIfNeverSynced`) cũng vậy. Hiến chương 5.11 không chừa tác nhân nào; ADR-0010 điều 3 chừa riêng Cron này từ 2026-09-21. Chủ dự án đưa lỗ này vào sổ dừng dây chuyền ngày 2026-10-05 (hạn 2026-11-15) và ngày 2026-11-08 chọn sửa thay vì gia hạn.
+Cron mỗi 15 phút chạy ba việc ghi dữ liệu không có định danh: đồng bộ danh mục (`syncCatalog(env, null)`, nhật ký `staff_id` rỗng), nhắc hạn trả sau (nhật ký `staff_id` rỗng), dọn ảnh vé của lô đã huỷ (không nhật ký). Đồng bộ lần đầu khi danh mục chưa từng đồng bộ cũng ghi rỗng. Không việc nào qua `can()`. Hiến chương 5.11 không chừa tác nhân nào.
 
 ## Quyết định
 
-1. **Định danh tác nhân.** Mỗi tác nhân tự động có một mã cố định, khai ở **một** nơi trong mã nguồn kèm tên lời thường. Tác nhân đầu tiên: `DONG_BO_DANH_MUC` (tự đồng bộ danh mục từ Google Sheet). Tác nhân không phải tài khoản đăng nhập: không số điện thoại, không PIN, không phiên, không hiện ở danh sách tài khoản, không có đường đăng nhập nào.
-2. **Quyền riêng, cổng chung.** Thêm ô `catalog.sync` vào bản đồ quyền. Với người, ô này cho Quản trị và Toàn quyền, đúng bằng ai bấm được «Đồng bộ ngay» hôm nay; không ai được thêm hay mất quyền. Mỗi tác nhân có danh sách ô riêng trong `src/shared/permissions.ts`; `DONG_BO_DANH_MUC` chỉ có `catalog.sync`. `can()` là cổng chung cho cả người lẫn tác nhân. Tác nhân không bao giờ giữ ô ghi tiền (`O_GHI_TIEN`), không giữ `admin.manage`; bài kiểm chặn cả hai.
-3. **Cùng đường.** Một hàm lệnh «đồng bộ danh mục» dùng chung cho nút «Đồng bộ ngay» (route `POST /api/catalog/sync`), Cron và đồng bộ lần đầu. Hàm hỏi `can(người phát lệnh, "catalog.sync")` trước khi ghi. Route giữ nguyên lời hỏi `admin.manage` đứng trước như hôm nay.
-4. **Nhật ký.** Migration `0148` thêm cột `audit_log.agent_code` (chữ, rỗng được). Dòng do tác nhân ghi có mã tác nhân ở cột này và `staff_id` rỗng; mã lạ hoặc dòng có cả hai thì máy chủ từ chối dựng câu ghi. Màn Nhật ký vẫn hiện «Hệ thống (tự động)»; mã tác nhân không vào dữ liệu trả về trình duyệt.
-5. **Lỗi không ném ra.** Tác nhân bị từ chối hay đồng bộ hỏng thì ghi vào trạng thái đồng bộ (`catalog_sync`), như các lỗi đồng bộ hôm nay.
-6. **Chế độ bảo trì** không chặn tác nhân (giữ như hôm nay; chế độ bảo trì chặn theo số điện thoại đăng nhập, tác nhân không đăng nhập).
-7. **Phần còn nợ, có tên.** Cron nhắc hạn trả sau (ADR-0173: ghi `bil_credit_reminder`, nhật ký `staff_id` rỗng) và Cron dọn ảnh vé (ADR-0156: ghi `vdt_ticket.r2_deleted_at`, không nhật ký) chưa có định danh. Theo D2, mặc định làm ở đợt sau; ghi ở dòng 1 tờ khai `docs/kernel-18.md`.
-8. **Bước siết ở lần phát hành sau.** Sau khi bản này đã lên production: trigger cơ sở dữ liệu từ chối dòng `catalog_synced` mới thiếu người làm (expand–contract; không làm ở đợt này vì Worker cũ vẫn ghi rỗng).
+1. **Định danh tác nhân.** Mỗi tác nhân có một mã cố định khai ở `src/shared/permissions.ts`: `DONG_BO_DANH_MUC` (đồng bộ danh mục, kể cả lần đầu), `NHAC_HAN_TRA_SAU` (nhắc hạn trả sau), `DON_ANH_VE` (xoá ảnh vé hết hạn lưu). Tác nhân không phải tài khoản đăng nhập: không số điện thoại, không PIN, không phiên, không hiện ở danh sách tài khoản. Chỉ mã định giờ (và đồng bộ lần đầu) được dùng tác nhân; bài kiểm canh chỗ dùng.
+2. **Quyền riêng, cổng chung.** Ba ô mới trong bản đồ quyền, mỗi tác nhân giữ đúng một ô:
+   - `catalog.sync` — người: Quản lý bán hàng, Quản trị, Toàn quyền; tác nhân `DONG_BO_DANH_MUC`.
+   - `credit.due.remind` — tác nhân `NHAC_HAN_TRA_SAU`; với người chỉ Toàn quyền có trên bảng (ADR-0014 điều 2 bắt Toàn quyền có mọi ô), không có nút hay route nào cho người.
+   - `ve.kho.purge` — tác nhân `DON_ANH_VE`; như trên.
+   `can()` là cổng chung cho người lẫn tác nhân. Tác nhân không giữ mã quyền nào của người, nên mọi cổng router đều từ chối nó. Tác nhân không bao giờ giữ ô ghi tiền (`O_GHI_TIEN`) hay `admin.manage`; bài kiểm chặn.
+3. **Cùng đường.** Đồng bộ danh mục: một hàm lệnh dùng chung cho nút, Cron và đồng bộ lần đầu, hỏi `can(người phát lệnh, "catalog.sync")` trước khi ghi. Route `POST /api/catalog/sync` chuyển từ cổng `admin` sang `office` và hỏi `catalog.sync` thay cho `admin.manage`, để Quản lý bán hàng qua được; Bán hàng thường, Kế toán vẫn bị từ chối. Nhắc hạn và dọn ảnh chỉ máy làm: hàm của mỗi việc hỏi `can(tác nhân, ô)` trước khi ghi.
+4. **Nhật ký.** Migration `0148` thêm cột `audit_log.agent_code` (chữ, rỗng được). Dòng do tác nhân ghi có mã tác nhân ở cột này, `staff_id` rỗng; mã lạ hoặc dòng có cả hai thì máy chủ từ chối dựng câu ghi. Đồng bộ và nhắc hạn giữ nguyên các dòng nhật ký hôm nay, chỉ thêm mã tác nhân. Dọn ảnh vé thêm **một** dòng nhật ký mới mỗi lượt có xoá (chỉ số ảnh, không mã vé, không khoá kho); tên dòng do chủ chọn. Màn Nhật ký vẫn hiện «Hệ thống (tự động)» ở cột người làm; mã tác nhân không gửi về trình duyệt.
+5. **Màn hẹp của Quản lý bán hàng** có nút «Đồng bộ ngay từ Google Sheet» (cùng tên, cùng câu báo kết quả, cùng hộp hỏi như màn của Quản trị). Bài hướng dẫn của Quản lý bán hàng sửa câu «không đồng bộ danh mục».
+6. **Lỗi không ném ra.** Đồng bộ bị từ chối hay hỏng thì ghi vào trạng thái đồng bộ (`catalog_sync`); nhắc hạn và dọn ảnh bị từ chối thì chỉ ghi một dòng log máy chủ, như lỗi của hai việc này hôm nay.
+7. **Chế độ bảo trì** không chặn tác nhân (giữ như hôm nay; bảo trì chặn theo số điện thoại đăng nhập).
+8. **Bước siết ở lần phát hành sau.** Khi bản này đã lên production và một lệnh chỉ đọc cho thấy không còn dòng nhật ký mới nào thiếu người làm, thêm trigger từ chối mọi dòng nhật ký mới thiếu cả `staff_id` lẫn `agent_code` (expand–contract; đợt này chưa làm vì Worker cũ vẫn ghi rỗng).
 
-**Cách hiểu Hiến chương 5.11 (chủ duyệt cùng ADR này).** «Có tài khoản riêng» được hiểu là có **định danh riêng có quyền riêng**, đúng chữ của bản Hiến chương chung (kho luật gốc), không bắt một tài khoản đăng nhập. «Gọi qua route có kiểm quyền như người» được hiểu, với tác nhân chạy ngay trong Worker, là gọi **đúng hàm lệnh mà route gọi**, qua cùng cổng `can()`.
+**Cách hiểu Hiến chương 5.11 (chủ duyệt cùng ADR này).** «Có tài khoản riêng» = có **định danh riêng có quyền riêng**, đúng chữ bản Hiến chương chung, không bắt tài khoản đăng nhập. «Gọi qua route có kiểm quyền như người», với tác nhân chạy ngay trong Worker = gọi **đúng hàm lệnh mà route gọi** (việc có nút) hoặc hàm lệnh duy nhất của việc (việc chỉ máy làm), qua cùng cổng `can()`.
 
 ## Lý do
 
-Ba thuộc tính 5.11 cần (biết ai làm, quyền tối thiểu, không có lối tắt quanh cổng) đạt được mà không mở đường đăng nhập mới cho máy. Nút «Đồng bộ ngay» và Cron dùng chung một hàm, nên sau này ai sửa luật đồng bộ đều sửa một chỗ.
+Đạt ba điều 5.11 cần (biết ai làm, quyền tối thiểu, không lối tắt quanh cổng) mà không mở đường đăng nhập mới cho máy. Nút và Cron dùng chung một hàm, sửa luật đồng bộ chỉ sửa một chỗ.
 
 ## Phương án bị loại
 
-- **Tài khoản `staff` riêng cho Cron:** bảng `staff` bắt buộc số điện thoại duy nhất và mã PIN, nên phải bịa cả hai; tài khoản này hiện ra ở danh sách tài khoản, hộp chọn, số đếm; thêm một bề mặt đăng nhập.
-- **Chỉ ghi chữ «Cron» vào nhật ký, không qua cổng:** không đạt «quyền riêng» và «cùng đường» của 5.11.
-- **Cron gọi route HTTP thật bằng phiên máy:** phải dựng đường xác thực mới không qua Turnstile (ADR-0010 hệ quả (i)); thêm rủi ro, không thêm an toàn.
-- **Cho tác nhân ô `admin.manage`:** thừa quyền.
+- **Tài khoản `staff` riêng cho Cron:** bảng `staff` bắt buộc số điện thoại duy nhất và PIN, phải bịa cả hai; tài khoản hiện ra ở danh sách, hộp chọn, số đếm; thêm bề mặt đăng nhập.
+- **Chỉ ghi chữ «Cron» vào nhật ký, không qua cổng:** không đạt «quyền riêng», «cùng đường».
+- **Cron gọi route HTTP bằng phiên máy:** phải dựng đường xác thực mới không qua Turnstile (ADR-0010 hệ quả (i)).
+- **Cho tác nhân ô sẵn có rộng hơn (`admin.manage`, `ve.kho.manage`):** thừa quyền.
 
 ## Hệ quả
 
-- Thêm một ô quyền (`catalog.sync`), một cột nhật ký, một danh sách tác nhân; không đổi quyền của người nào, không có chữ mới trên màn hình.
-- Xoá mục `HC-5.11` khỏi `docs/quyen-hoan.json` trong cùng lần sửa; cập nhật dòng 1 `docs/kernel-18.md`, dòng 5.11 bảng thi hành Hiến chương, `docs/SO-HANG-RAO.md`.
-- Khi ADR này được duyệt, dòng Trạng thái của ADR-0010 thêm trỏ: «điều 3, câu ngoại lệ Cron: thay bởi ADR-0186».
+- Ba ô quyền, một cột nhật ký, một danh sách tác nhân, một dòng nhật ký mới; quyền người đổi đúng một chỗ: Quản lý bán hàng được đồng bộ danh mục. Gói trang Đơn hàng nhúng bản đồ quyền nên trần dung lượng nới đúng số đo (`src/goi-trang-nhe.test.ts`).
+- Xoá mục `HC-5.11` khỏi `docs/quyen-hoan.json` trong cùng lần sửa; cập nhật dòng 1 `docs/kernel-18.md`, dòng 5.11 bảng thi hành Hiến chương, `docs/SO-HANG-RAO.md`, bảng tham chiếu cho nút ở màn hẹp.
+- Khi ADR này được duyệt: dòng Trạng thái của ADR-0010 và ADR-0169 thêm trỏ về ADR-0186.
 - Tiêu chí nghiệm thu: mục 4 của đặc tả.
