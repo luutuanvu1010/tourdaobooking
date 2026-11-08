@@ -99,6 +99,7 @@ Phán quyết thêm ngày 2026-11-08 (sau kiểm độc lập lượt 1):
 - `npm test` đầy đủ ở `bb8a808af` (điều phối chạy, 14:18–14:37): **8411 bài, 8407 xanh, 0 đỏ, 4 todo**; bước đo giờ của hook xanh.
 - Gộp `main` `c91f81af6` (phiên ADR-0187 ghi trạng thái triển khai 2.76; chỉ `docs/HANDOFF-N1.md` và nhật ký thi công ADR-0187) — `438a7c5d2`, không vướng. Ba bài có nhắc `HANDOFF-N1.md` chỉ nhắc tên tệp, không đọc nội dung, nên lần chạy đủ bộ ở trên vẫn đúng cho bản này.
 - Kiểm độc lập lượt 6 (`dd8a9cb61` phần tự gỡ vướng + `bb8a808af`) — **ĐẠT: Cao 0, Trung 0, Thấp 0** (báo cáo nháp `adr0184-kiem-doc-lap-luot-6.md`). Người kiểm đổi tạm từng con số 471, 268, 13 trong thư mục kiểm, cả ba bài đỏ đúng chỗ rồi hoàn nguyên; số «cùng tăng giống hệt» chỉ có 267, `KHOA_PHAM_VI` 11 → 12 và dòng phiên bản 2.75 → 2.76, cả ba đã sửa; `npm run tham-chieu` và `npm run dict` không đổi gì; 886 + 1032 bài liên quan xanh.
+- Lệnh nhập của nhánh «một người nhiều vai trò» (Hiến chương 5.28, chỉ đổi `docs/ARCHITECTURE.md`) xong; `main` = `origin/main` = `d577c0b89`. Gộp vào nhánh — `e0b3677ba`, không vướng. Bài duy nhất đọc nội dung Hiến chương (`src/goi-ma-tro-ly-may.test.ts`) 21/21 xanh; bài khác chỉ nhắc tên tệp trong chú thích.
 - Còn lại: chủ chạy `npm run day-len -- claude/adr-0184-thi-cong` (lệnh sẽ báo «đổi quy trình kiểm» vì nhánh đổi `tests/e2e/danh-sach.mjs` và `scripts/audit-checks.mjs`, đòi gõ lý do), rồi `npm run trien-khai` (bản 2.77, migration `0147`); sau đó ghi trạng thái triển khai.
 
 ## Nợ (không chặn phát hành)
