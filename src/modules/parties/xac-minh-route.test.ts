@@ -24,6 +24,10 @@ const GUI = "2026-10-16T08:00:00.000Z";
 const SO = "079 000 000 111";
 const KHOA_SO = "079000000111";
 const uid = () => crypto.randomUUID();
+/** Che mọi UUID (id phiếu, id hồ sơ… sinh ngẫu nhiên) trước khi dò giá trị khai trong thân trả lời: UUID có thể tình cờ chứa «0111»
+ *  (GitHub 8/11/2026: id `62aaa940-0111-…` làm bài đỏ dù máy chủ trả đúng). Khuôn giống `src/hanh-khach-khong-lo-ten.test.ts`. */
+const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+const boUuid = (text: string) => text.replace(UUID, "<id>");
 const pty = (id: string) => `pty-${id}`;
 
 function setup() {
@@ -187,7 +191,7 @@ test("(r5) DTO hàng chờ / chi tiết: tập khoá ĐÚNG như contracts; khô
   assert.equal(c.json.daGop, false);
   for (const r of [hang, c]) {
     assert.ok(!r.text.includes(KHOA_SO) && !r.text.includes(SO), "không số đủ");
-    assert.doesNotMatch(r.text, /0900000\d{3}|@|DRIVER|SALES|PARTNER/, "không SĐT, email, vai");
+    assert.doesNotMatch(boUuid(r.text), /0900000\d{3}|@|DRIVER|SALES|PARTNER/, "không SĐT, email, vai");
   }
   // Có dòng cùng loại đang hiện hành + số này đang ở hồ sơ khác.
   w.sqlite.prepare("INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, created_at, updated_at) VALUES (?, ?, 'CCCD', '079000000999', '079000000999', ?, ?)").run(uid(), pty(DT), AT, AT);
@@ -300,7 +304,7 @@ test("(r7b) vòng sửa 1 (I-3): người KHÔNG xác minh được (bị tách 
     assert.equal(c.json.ngaySinh, null);
     assert.equal(c.json.diaChi, null);
     assert.equal(c.json.giayTo, null);
-    assert.doesNotMatch(c.text, /1990-05-06|Đường Thử|0111|Cục thử|trungHoSoKhac/, "không giá trị khai nào trong thân trả lời");
+    assert.doesNotMatch(boUuid(c.text), /1990-05-06|Đường Thử|0111|Cục thử|trungHoSoKhac/, "không giá trị khai nào trong thân trả lời");
   };
   chiLoai(await ct(w, HR, pNS), "NGAY_SINH", "Nhân Viên Hai");
   chiLoai(await ct(w, HR, pDC), "DIA_CHI", "Nhân Viên Hai");
