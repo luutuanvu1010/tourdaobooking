@@ -22,7 +22,8 @@
 // ADR-0185 Đ1 (8/11/2026): tài khoản Đối tác của kịch bản CỐ Ý chưa có vai trò đối tác («không hưởng» — câu PARTNER_NOTE bước 2, 2m) nên dựng KIỂU CŨ bằng SQL (Nền
 //   tảng không còn tạo được tài khoản như vậy: POST /api/staff theo quyền → 400; insertStaffSql đòi `vai`). Thêm: dải vàng «chưa được gán vai trò đối tác» ở đầu thẻ Khách
 //   hàng (bước 2, 2m; Bán hàng bước 4 và Thực tập không có); bước 3v bấm «Gửi đơn» trên trang nháp → khung lỗi hiện đúng câu máy chủ, KHÔNG nút «Tải lại đơn»; đơn đã xác
-//   nhận của bước 6 dựng bằng văn phòng làm thay (Gửi đơn của tài khoản kiểu cũ nay 409 — khẳng định trước).
+//   nhận của bước 6 dựng bằng văn phòng làm thay (Gửi đơn của tài khoản kiểu cũ nay 409 — khẳng định trước); bước 11: Toàn quyền mở hộp Sửa của tài khoản này ở
+//   màn Quản lý tài khoản — khối «Quyền cũ» không có ô Đối tác, Tài xế đối tác (ADR-0185 Đ2, K9).
 // Dùng lại cơ chế CDP của A2 (startEnv()/ACCOUNTS/ok/sleep/vnDate/setInput từ ../../2026-09-20-a2/kich-ban/a2-cdp.mjs) và mẫu step()/openAs()/call() của
 // ../../2026-09-26-va-3-loi-kiem-toan/kich-ban/va3-smoke.mjs. Danh mục là danh mục GIẢ của a2-cdp (TD101 "Tour 4 đảo Nha Trang", người lớn 1.350.000).
 // Chạy từ GỐC repo (worktree), sau `npm run build:web`:
@@ -606,6 +607,37 @@ try {
       p.close();
     });
   }
+
+  // 11 (ADR-0185 Đ2, kế hoạch K9): màn Quản lý tài khoản — Toàn quyền mở hộp «Sửa» của tài khoản Đối tác KIỂU CŨ: dải «chưa gán vai trò, đang dùng quyền cũ: Đối tác»;
+  //     khối «Quyền cũ» KHÔNG có ô Đối tác, Tài xế đối tác (đường quyền cũ không cấp quyền bên ngoài, máy chủ cũng chặn) nhưng còn ô quyền nội bộ. Chỉ mở rồi Đóng, không
+  //     lưu. Mở SAU CÙNG (kho cookie chung).
+  await step("11", "Toàn quyền (máy tính 1040): Quản lý tài khoản › Sửa tài khoản Đối tác kiểu cũ — khối «Quyền cũ» không có ô Đối tác, Tài xế đối tác", async () => {
+    const p = await openAs(ACCOUNTS.chu, "/staff", DESK);
+    const HANG = `[...document.querySelectorAll('tr')].find((tr) => (tr.querySelector('td')?.textContent ?? '').startsWith(${JSON.stringify(PARTNER.name)}))`;
+    await p.waitFor(`!!(${HANG})`, "hàng của tài khoản Đối tác kiểu cũ hiện", 15000);
+    await p.ev(`[...(${HANG}).querySelectorAll('button')].find((b) => b.textContent.trim() === 'Sửa').click(); true`);
+    await p.waitFor("!document.getElementById('edit').hidden && !!document.querySelector('#edit details > summary')", "hộp Sửa có khối Quyền cũ", 10000);
+    await p.ev("document.querySelector('#edit details').open = true; true");
+    const s = await p.ev(`(() => {
+      const e = document.getElementById('edit');
+      const d = e.querySelector('details');
+      return {
+        dai: [...e.querySelectorAll('p.alert.warn')].map((x) => x.textContent),
+        tieuDe: d.querySelector('summary').textContent,
+        oQuyen: [...d.querySelectorAll('label.check')].map((l) => l.textContent.trim()),
+      };
+    })()`);
+    assert.equal(s.tieuDe, "Quyền cũ (chỉ dùng khi chưa gán vai trò)", `khối Quyền cũ hiện cho Toàn quyền — ${JSON.stringify(s)}`);
+    assert.ok(s.dai.some((t) => t.includes("đang dùng quyền cũ: Đối tác.")), `dải «chưa gán vai trò, đang dùng quyền cũ: Đối tác» — ${JSON.stringify(s.dai)}`);
+    assert.ok(s.oQuyen.includes("Bán hàng"), `khối Quyền cũ còn ô quyền nội bộ — ${JSON.stringify(s.oQuyen)}`);
+    for (const cam of ["Đối tác", "Tài xế đối tác"]) assert.ok(!s.oQuyen.includes(cam), `KHÔNG có ô «${cam}» — ${JSON.stringify(s.oQuyen)}`);
+    await p.shot(join(OUT, "anh", "quan-ly-tai-khoan-quyen-cu.png"));
+    await p.ev("[...document.querySelectorAll('#edit .actions button')].find((b) => b.textContent.trim() === 'Đóng').click(); true");
+    await p.waitFor("document.getElementById('edit').hidden", "Đóng hộp, không lưu", 5000);
+    assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
+    noteErrorLogs(p, "Toàn quyền /staff");
+    p.close();
+  });
 } finally {
   for (const p of pages) try { p.close(); } catch { /* đã đóng */ }
   await env.stop();
