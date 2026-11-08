@@ -28,7 +28,7 @@ Kết quả rỗng = chưa ai kiêm. Có dòng = từ bản này trở đi mỗi
 ## 3. Không làm
 - Không chặn (mức b), không đổi ô nào của bản đồ quyền, không thêm mã quyền.
 - Không gắn dấu cho `payment.receive` (Bán hàng khai khoản thu đơn mình là luồng bình thường, không thuộc `O_GHI_TIEN`). Hệ quả có tên: khoản thu lên **đơn đã huỷ** (nhánh `ledger.write` của `POST /api/orders/:id/payments`) có cờ trong phản hồi và dấu trên phiếu sổ, nhưng dòng nhật ký `payment_recorded` **không** mang dấu (hành động dùng chung với luồng thường).
-- Phiếu nộp gộp nhiều đơn (`SETTLEMENT`, `order_id` NULL) không mang dấu ở phiếu; dấu nằm ở từng dòng nhật ký theo đơn.
+- Nộp / trả tiền theo bên (`POST /api/ledger/settlements`): phiếu `SETTLEMENT` mang dấu CHỈ khi gộp đúng một đơn (`order_id` có); gộp nhiều đơn `order_id` NULL ⇒ không dấu phiếu. Dòng nhật ký `ledger_settlement` ghi theo BÊN (không có mã đơn) nên **không bao giờ mang dấu** ⇒ nộp/trả do chính người lập đơn ghi KHÔNG vào danh sách «Cần người thứ hai soát» dù thân phản hồi vẫn trả cờ (kiểm độc lập 8/11 phát hiện; chờ chủ quyết — nhật ký thi công «Chờ chủ» 3).
 - Không làm Đ2.2, Đ2.3, Đ1-vào-Hiến-chương của ADR-0187 (các bước sau).
 
 ## 4. Trang ghép (CLAUDE.md §9)
