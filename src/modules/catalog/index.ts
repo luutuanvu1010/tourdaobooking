@@ -23,6 +23,9 @@ import { dacDiemRoutes } from "./dac-diem-route";
 import { coVeCua } from "../../shared/co-ve";
 import { coVeHienHanh } from "./co-ve-repo";
 import { coVeRoutes } from "./co-ve-route";
+import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve";
+import { nguonVeHienHanh } from "./nguon-ve-repo";
+import { nguonVeRoutes } from "./nguon-ve-route";
 import { isQuyTacDuaDon, moTaDoiQuyTac, type QuyTacDuaDon } from "../../shared/dua-don-dich-vu";
 
 /** Tác nhân tự động của việc đồng bộ danh mục (ADR-0186 Đ1): Cron 15 phút và đồng bộ lần đầu chạy dưới định danh này, qua cùng cổng `catalog.sync` với nút. */
@@ -49,6 +52,13 @@ export async function coVeTheoMa(db: D1Database, codes: readonly string[]): Prom
   if (codes.length === 0) return new Map();
   const [co, nhomCua] = await Promise.all([coVeHienHanh(db), nhomHienHanhTheoMa(db)]);
   return new Map(codes.map((ma) => [ma, coVeCua(ma, nhomCua.get(ma) ?? null, co).coVe]));
+}
+
+/** ADR-0175 Đ1.2: ô «Vé do ai phát» của các mã trong `codes` (không có dòng là `HANG_NGOAI`). Một nguồn cho `ve-dien-tu` qua hàm tiêm. KHÔNG tự kiểm quyền. */
+export async function nguonVeTheoMa(db: D1Database, codes: readonly string[]): Promise<Map<string, NguonVe>> {
+  if (codes.length === 0) return new Map();
+  const hienHanh = await nguonVeHienHanh(db);
+  return new Map(codes.map((ma) => [ma, nguonVeCua(ma, hienHanh)]));
 }
 
 export async function tenNhomHienHanh(db: D1Database, codes: readonly string[]): Promise<Map<string, string>> {
@@ -206,6 +216,7 @@ export const catalogModule: AppModule = {
 
     // ---- Đặc điểm dịch vụ (ADR-0152; kế hoạch 2026-10-30 T7) — khai TRƯỚC mọi route `/api/catalog/:code…` ----------------------------
     ...coVeRoutes,
+    ...nguonVeRoutes, // ADR-0175 Đ1.2: ô «Vé do ai phát»
     ...dacDiemRoutes,
 
     // ---- Admin -----------------------------------------------------------------------------

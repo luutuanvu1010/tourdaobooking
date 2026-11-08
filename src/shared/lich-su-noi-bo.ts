@@ -99,7 +99,7 @@ export const LICH_SU_NOI_BO_AN = [
   "trip_appt_call_undone", "trip_cost_adjusted", "trip_cost_reversed", "trip_cost_snapshot", "trip_cost_agreed", "rental_rate_added",
   "rental_rate_closed", "route_saved", "vehicle_size_saved", "location_created", "location_updated", "maintenance_changed",
   "manual_service_policy_changed", "pickup_slot_policy_changed", "confirm_flag_changed", "confirm_policy_changed", "sales_policy_changed", "partner_customer_policy_changed", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body", "catalog_synced", "catalog_overridden",
-  "catalog_override_cleared", "catalog_hidden", "catalog_unhidden", "catalog_group_created", "catalog_group_updated", "catalog_group_assigned", "ticket_flag_changed",
+  "catalog_override_cleared", "catalog_hidden", "catalog_unhidden", "catalog_group_created", "catalog_group_updated", "catalog_group_assigned", "ticket_flag_changed", "ticket_source_changed",
   "catalog_groups_seeded", "catalog_service_transfer_set", "ctl_attribute_created", "ctl_attribute_updated", "ctl_attribute_value_created", "ctl_attribute_value_updated", "ctl_service_attribute_set", "ctl_group_attribute_set", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned", "feedback_claimed",
   "feedback_team_changed", "feedback_priority_changed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent",
   "notice_revoked", "notice_acknowledged",

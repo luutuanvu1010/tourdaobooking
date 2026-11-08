@@ -342,6 +342,7 @@ export const AUDIT_ACTIONS = {
   catalog_group_updated: { label: "Sửa nhóm dịch vụ", group: "catalog" },
   catalog_group_assigned: { label: "Đổi nhóm của dịch vụ", group: "catalog" },
   ticket_flag_changed: { label: "Đổi ô Có vé", group: "catalog" }, // ADR-0174
+  ticket_source_changed: { label: "Đổi ô Vé do ai phát", group: "catalog" }, // ADR-0175 Đ1.2: targetId = mã dịch vụ, detail «Dịch vụ <mã>: Vé hãng ngoài | Vé Tour Đảo»
   catalog_groups_seeded: { label: "Gieo nhóm dịch vụ", group: "catalog" }, // do migration 0055 ghi một lần (detail "gieo 14 nhóm, N dịch vụ")
   // ADR-0149 Đ1: ô «Được đón không» của một dịch vụ — targetId = mã dịch vụ, detail "Theo nhóm → Không đón" (nhãn; không dữ liệu cá nhân).
   catalog_service_transfer_set: { label: "Đổi đưa đón của dịch vụ", group: "catalog" },

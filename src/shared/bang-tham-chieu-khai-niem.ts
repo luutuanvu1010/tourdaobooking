@@ -173,6 +173,33 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     trangThai: "da-chot",
     chuChon: "2026-11-05 (ADR-0174)",
   }),
+  KN({
+    ten: "Vé do ai phát",
+    giaiNghia: "Ô trên từng dịch vụ: vé của dịch vụ này do hãng ngoài phát hay do Tour Đảo tự phát.",
+    khacVoi: "«Có vé» nói dịch vụ có vé hay không; «Người bán dịch vụ» nói ai cung cấp dịch vụ.",
+    chuDaLoai: [],
+    maNoiBo: ["ctl_service_ticket_source", "vdt_batch.source", "nguonVe"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-08 (ADR-0175)",
+  }),
+  KN({
+    ten: "Vé hãng ngoài",
+    giaiNghia: "Vé do bên khác phát, như Vinpearl; công ty nhập ảnh vé vào kho.",
+    khacVoi: "Công ty không quyết được vé hãng ngoài còn giá trị hay không.",
+    chuDaLoai: [],
+    maNoiBo: ["HANG_NGOAI"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-08 (ADR-0175)",
+  }),
+  KN({
+    ten: "Vé Tour Đảo",
+    giaiNghia: "Vé do công ty tự tạo; máy chủ của công ty quyết vé còn giá trị hay không.",
+    khacVoi: "Huỷ đơn là vé chết; mở được từ lúc xác nhận đơn.",
+    chuDaLoai: [],
+    maNoiBo: ["TOUR_DAO"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-08 (ADR-0175)",
+  }),
   // ---- Người, hồ sơ, tài khoản ----
   KN({
     ten: "Hồ sơ",

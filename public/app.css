@@ -4555,6 +4555,8 @@ main select { max-width: 100%; }
 /* ADR-0169 Đ4: công tắc kiểm vé ở màn Dịch vụ & giá; khối đặt riêng trống thì ẩn */
 .kv-tu-kiem-the:empty { display: none; }
 .kv-o { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--s2); }
+/* ADR-0175 Đ1.2: ô «Vé do ai phát» xuống dòng riêng dưới công tắc «Có vé». */
+.kv-nguon-ve { flex-basis: 100%; display: grid; gap: var(--s1); padding-bottom: var(--s2); }
 .kv-the { border-top: 1px solid var(--c-border); }
 .kv-viec { display: flex; flex: none; align-items: center; gap: var(--s2); }
 
