@@ -26,7 +26,6 @@ async function setup(): Promise<W> {
     [SALES, "0900000001", "An Bán", ["SALES"]], [HDV, "0900000002", "Nam HDV", ["FIELD"]], [SUPER, "0900000003", "Chủ", ["SUPER_ADMIN"]],
     [KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]], [LAI, "0900000006", "Lai Bán", ["SALES", "PARTNER"]], [PT, "0900000008", "Đại Lý A", ["PARTNER"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('ptr-lc-dl', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`pty-${PT}`, AT, AT);
   const m = await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 } });
   assert.equal(m.status, 201, m.text);
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(NCC, AT, AT);
@@ -53,8 +52,10 @@ function nhap(w: W, o: { owner?: string; booker?: string | null; iresort?: boole
   });
   return id;
 }
-async function xacNhan(w: W, id: string): Promise<void> {
-  const xn = await w.xacNhanDon(id, String((w.sqlite.prepare("SELECT staff_id AS s FROM orders WHERE id = ?").get(id) as any).s)); // ADR-0135: người lập xác nhận
+/** `cu`: đơn của Đối tác cho khách lẻ (không người hưởng) — ADR-0185 không cho xác nhận nữa, chỉ còn là dữ liệu cũ ⇒ dựng bằng `xacNhanDonCu` (Bán hàng xác nhận thay). */
+async function xacNhan(w: W, id: string, cu = false): Promise<void> {
+  const nguoiLap = String((w.sqlite.prepare("SELECT staff_id AS s FROM orders WHERE id = ?").get(id) as any).s);
+  const xn = cu ? await w.xacNhanDonCu(id, nguoiLap, SALES) : await w.xacNhanDon(id, nguoiLap); // ADR-0135: người lập xác nhận
   assert.equal(xn.status, 200, xn.text);
   w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)
     VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, NULL, ?, NULL)`).run(uuid(), id, `pty-${HDV}`, AT, AT, AT);
@@ -132,7 +133,7 @@ test("kenhThu: đơn Đối tác lập dấu Tắt, người lập là bên đ�
 test("kenhThu: đơn Đối tác lập dấu Tắt cho khách lẻ ⇒ người lập không phải bên đặt được hưởng; dấu Bật và đơn văn phòng ⇒ null", async () => {
   const w = await setup();
   const le = nhap(w, { owner: PT, booker: null, dau: 0, iresort: false });
-  await xacNhan(w, le);
+  await xacNhan(w, le, true);
   assert.deepEqual((await tien(w, le, KT)).json.kenhThu, { congTyThu: false, nguoiLapTen: "Đại Lý A", nguoiLapLaBenDatHuong: false, nguoiLapPartyId: `pty-${PT}` });
   const bat = nhap(w, { owner: PT, dau: 1, iresort: false });
   await xacNhan(w, bat);

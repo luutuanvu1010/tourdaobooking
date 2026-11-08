@@ -28,9 +28,6 @@ async function setup(): Promise<W> {
     [PT, "0900000008", "Đại Lý A", ["PARTNER"]], [PT2, "0900000018", "Đại Lý B", ["PARTNER"]], [ADMIN, "0900000010", "Quản Trị", ["ADMIN"]],
     [INTERN, "0900000011", "Thực Tập", ["INTERN"]], [HR, "0900000012", "Nhân Sự", ["HR"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  for (const p of [PT, PT2]) {
-    w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`ptr-${p}`, `pty-${p}`, AT, AT);
-  }
   return w;
 }
 const datHanMuc = (w: W, partyId: string, hanMuc = 50_000_000, gioTra = 168, as = SUPER, gioAnHan = 0) =>

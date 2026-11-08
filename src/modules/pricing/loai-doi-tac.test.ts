@@ -460,6 +460,8 @@ test("N-9: cờ bookerLaDoiTac của đơn, /api/auth/me (bên đặt máy chủ
   const ma = await themLoai(w);
   await ganOk(w, ORG, ma);
   await ganOk(w, `pty-${DT}`, ma);
+  // Đối tác đổi loại: kết thúc vai Công ty lữ hành khung thử gieo sẵn (ADR-0185) để người hưởng của DT chỉ còn đến từ loại mới.
+  w.sqlite.prepare("UPDATE pty_party_role SET valid_to_date = '2026-01-02' WHERE id = ?").run(`r-${DT}`);
   assert.equal((await mucVai(w, ma)).status, 201);
   const id = nhap(w, ORG);
   const co = async () => (await w.call("GET", `/api/orders/${id}`, { as: SALES })).json.order.bookerLaDoiTac;

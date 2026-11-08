@@ -77,9 +77,13 @@ test("(4b) tài khoản lai chỉ bị chặn khi CHÍNH họ là người lập
   const ok = await w.call("POST", `/api/orders/${cua.id}/quyet-dinh`, { as: LAI, body: { ketQua: "CON_VE", yeuCauId: y.id, updatedAt: w.q("SELECT updated_at FROM orders WHERE id = ?", cua.id)[0].updated_at } });
   assert.equal(ok.status, 200, ok.text);
   assert.equal(trangThai(w, cua.id), "confirmed");
-  // đơn chờ của chính LAI (gửi bằng Gửi đơn) → LAI không tự quyết
+  // đơn chờ của chính LAI → LAI không tự quyết. ADR-0185: tài khoản lai (kiểu cũ, không vai trò đối tác) Gửi đơn bên đặt trống nay bị chặn 409 — đơn chờ của chính nó chỉ còn là
+  // dữ liệu cũ (Bán hàng gửi kiểm vé thay rồi trả người lập, `guiKiemVeCu`).
   const rieng = await lap(w, LAI);
-  assert.equal((await guiDon(w, rieng.id, LAI)).status, 201);
+  const biChan = await guiDon(w, rieng.id, LAI);
+  assert.equal(biChan.status, 409, biChan.text);
+  assert.equal(biChan.json.error.code, "doi_tac_chua_co_vai_tro");
+  assert.equal((await w.guiKiemVeCu(rieng.id, LAI, A)).status, 201);
   const yr = mo(w, rieng.id)[0];
   const tu = await w.call("POST", `/api/orders/${rieng.id}/quyet-dinh`, { as: LAI, body: { ketQua: "CON_VE", yeuCauId: yr.id, updatedAt: w.q("SELECT updated_at FROM orders WHERE id = ?", rieng.id)[0].updated_at } });
   assert.equal(tu.status, 403, tu.text);

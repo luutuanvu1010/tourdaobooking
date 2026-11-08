@@ -275,7 +275,6 @@ async function dung(o: { tenHdv?: string; tyLeMuaBp?: number; hoaHong?: { kieu: 
     [R_SALES, "0900000001", "An Bán", ["SALES"]], [R_HDV, "0900000002", o.tenHdv ?? "Nam HDV", ["FIELD"]], [R_SUPER, "0900000003", "Chủ", ["SUPER_ADMIN"]],
     [R_KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]], [R_PT, "0900000008", "Hương Lễ Tân", ["PARTNER"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('ptr-bn-dl', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`pty-${R_PT}`, R_AT, R_AT);
   const hh = o.hoaHong ?? { kieu: "RATE", tyLeBp: 1000 };
   const m = await w.call("POST", "/api/pricing/hoa-hong", { as: R_KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", ...hh } });
   assert.equal(m.status, 201, m.text);

@@ -26,7 +26,7 @@ function setup(): W {
     [PT, "0900000008", "Đại Lý A", ["PARTNER"]], [PT2, "0900000018", "Đại Lý B", ["PARTNER"]], [ADMIN, "0900000010", "Quản Trị", ["ADMIN"]],
     [HR, "0900000012", "Nhân Sự", ["HR"]], [SM, "0900000013", "Quản Lý Bán", ["SALES_MANAGER", "SALES"]], [ADMIN_DL, "0900000014", "Quản Trị Kiêm Đại Lý", ["ADMIN"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  for (const p of [PT, PT2, ADMIN_DL]) {
+  for (const p of [ADMIN_DL]) { // PT, PT2: seedStaff đã mở vai trò Công ty lữ hành (ADR-0185)
     w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`ptr-${p}`, `pty-${p}`, AT, AT);
   }
   return w;

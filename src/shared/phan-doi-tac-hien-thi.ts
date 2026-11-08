@@ -43,6 +43,14 @@ export function khoiBenDatForm(staff: PermissionHolder, benDatCuaToi: BenDatChon
   return coODatQuaDoiTac(staff) ? { kieu: "tra-sdt-va-dat-qua" } : { kieu: "tra-sdt" };
 }
 
+/** ADR-0185 Đ1 (chủ chọn chữ 8/11): dải vàng ở đầu thẻ Khách hàng của form lập đơn. Một hằng; đổi chữ chỉ sửa ở đây. */
+export const CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO = "Tài khoản của bạn chưa được gán vai trò đối tác: lập và lưu nháp được, nhưng chưa gửi được đơn. Vui lòng báo Tour Đảo.";
+/**
+ * ADR-0185 Đ1 (kế hoạch K10): tài khoản giữ quyền Đối tác mà máy chủ KHÔNG ép bên đặt (trường `benDatCuaToi` của `/api/auth/me` rỗng — giao diện không suy từ vai trò) ⇒ đơn của nó sẽ ra
+ * «không người hưởng» và Gửi đơn bị máy chủ chặn (`congDoiTacChuaCoVaiTro`). Báo trước để đối tác biết trước khi gõ; lập và lưu nháp vẫn được. Chỉ ẩn / hiện — máy chủ vẫn chặn.
+ */
+export const doiTacThieuVaiTro = (staff: PermissionHolder, benDatCuaToi: BenDatChon | null | undefined): boolean => holdsPartner(staff) && !benDatCuaToi;
+
 /** Điều ô tra hồ sơ khách theo SĐT gửi kèm đơn (`bookerPayload` của booker.ts): hoặc gắn hồ sơ có sẵn / bỏ gắn, hoặc tạo hồ sơ cá nhân mới. */
 export type BenDatGui = { bookerPartyId: string | null } | { newBooker: { fullName: string; phone: string } };
 

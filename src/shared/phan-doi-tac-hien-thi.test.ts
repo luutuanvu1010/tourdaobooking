@@ -4,8 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import {
-  CAU_CHO_CAI_MUC, MOI_KHACH_TOI_DA, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, demLyDo, docThanGhiTay,
-  docTienTay, docTyLeTay, duocGhiTay, ghiChuTrangThai, gopBenDat, hienNutGhiTay, khoiBenDatForm, nhanBenDat, nhanNguoiHuong, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type FormGhiTay,
+  CAU_CHO_CAI_MUC, CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, MOI_KHACH_TOI_DA, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, demLyDo, docThanGhiTay,
+  doiTacThieuVaiTro, docTienTay, docTyLeTay, duocGhiTay, ghiChuTrangThai, gopBenDat, hienNutGhiTay, khoiBenDatForm, nhanBenDat, nhanNguoiHuong, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type FormGhiTay,
 } from "./phan-doi-tac-hien-thi.ts";
 
 const staff = (...permissions: PermissionCode[]) => ({ id: "s1", permissions });
@@ -25,6 +25,16 @@ test("coODatQuaDoiTac: người lập đơn KHÔNG giữ quyền Đối tác —
   assert.equal(coODatQuaDoiTac(staff("ACCOUNTING")), false, "Kế toán không lập đơn");
   assert.equal(coODatQuaDoiTac(staff("FIELD")), false);
   assert.equal(coODatQuaDoiTac(staff("HR")), false);
+});
+
+test("doiTacThieuVaiTro (ADR-0185 Đ1, K10): giữ quyền Đối tác mà máy chủ không ép bên đặt (`benDatCuaToi` rỗng) ⇒ hiện dải vàng; có bên đặt, hoặc không giữ quyền Đối tác ⇒ không", () => {
+  assert.equal(doiTacThieuVaiTro(staff("PARTNER"), null), true);
+  assert.equal(doiTacThieuVaiTro(staff("PARTNER"), undefined), true, "/me chưa trả trường");
+  assert.equal(doiTacThieuVaiTro(staff("SALES", "PARTNER"), null), true, "tài khoản lai kiểu cũ");
+  assert.equal(doiTacThieuVaiTro(staff("PARTNER"), AGENCY), false);
+  assert.equal(doiTacThieuVaiTro(staff("SALES"), null), false);
+  assert.equal(doiTacThieuVaiTro(staff("SUPER_ADMIN"), null), false);
+  assert.equal(CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, "Tài khoản của bạn chưa được gán vai trò đối tác: lập và lưu nháp được, nhưng chưa gửi được đơn. Vui lòng báo Tour Đảo.");
 });
 
 test("khoiBenDatForm: Đối tác được hưởng ⇒ dòng chỉ đọc; Đối tác khác / lai ⇒ ô tra SĐT như cũ; văn phòng ⇒ ô tra SĐT + ô Đặt qua đối tác", () => {

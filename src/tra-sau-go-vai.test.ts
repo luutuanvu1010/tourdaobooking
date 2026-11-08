@@ -19,7 +19,6 @@ const homQua = (): string => inDays(-1);
 function dung(): W {
   const w = setup();
   seedStaff(w.sqlite, { id: DT, phone: "0900000021", name: "Đối Tác Hưởng", perms: ["PARTNER"] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT}`, BEN, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Đại Lý Không Tài Khoản', 1, ?, ?)").run(KTK, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_organization (party_id, created_at, updated_at) VALUES (?, ?, ?)").run(KTK, AT, AT);
   for (const [rid, ma] of [[R_DL, "TRAVEL_AGENCY"], [R_CTV, "COLLABORATOR"]]) {

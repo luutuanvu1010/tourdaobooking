@@ -37,7 +37,7 @@ import { route, type AppModule, type Ctx } from "../../shared/router";
 import { laToanQuyenThat, laVaiChonDuoc, quyenHieuLuc, quyenThat } from "../../shared/xem-nhu-vai";
 import {
   TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc as datLaiPinDuocTheoDong, highPermissionProblem, tatHaiLopDuoc, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
-  rolesLabelTheo, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, type RoleCode, type RoleProblem,
+  rolesLabelTheo, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, quyenNgoaiDuongCuProblem, CAU_DUONG_CU_QUYEN_NGOAI, CAU_GO_QUAN_TRI_SANG_DOI_TAC, type RoleCode, type RoleProblem,
 } from "../../shared/roles";
 import { vnDateTimeText, vnToday } from "../../shared/vn-date";
 import { cauConNoTraSau } from "../../shared/tra-sau";
@@ -98,6 +98,8 @@ function ruleViolation(e: unknown): Response | null {
   if (/lc1_external_account_permission/.test(m)) return error(409, "account_rule", "Tài khoản bên ngoài chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác).");
   // LC-1b (ADR-0048 B2.2): lớp CSDL — chỉ tới đây khi lời kiểm máy chủ (taiKhoanLaiProblem / roleAssignmentProblem, 400 invalid_input) bị vượt.
   if (/lc1b_driver_partner_alone/.test(m)) return error(409, "account_rule", "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác.");
+  // ADR-0185 Đ2 mục 3: trigger lc1c (mở quyền Đối tác khi hồ sơ chưa mang vai trò đối tác) — chỉ tới đây khi lời kiểm máy chủ (quyenNgoaiDuongCuProblem, K6) bị vượt.
+  if (/lc1c_partner_needs_role/.test(m)) return error(409, "account_rule", CAU_DUONG_CU_QUYEN_NGOAI);
   // ADR-0117 điều 4: hồ sơ mang loại đối tác được hưởng không nhận vai / quyền nội bộ (trigger *_partner_label_conflict ở vai hồ sơ và ở quyền). Câu KHÔNG nêu
   // tên loại: người gọi có thể là Nhân sự (không xem Danh bạ). Lưới cuối cho PUT …/permissions kiểu cũ và lô hai của PUT …/roles.
   if (/partner_label_conflict/.test(m)) return error(409, "account_rule", KHONG_NHAN_VAI_NOI_BO);
@@ -529,8 +531,9 @@ export const accountsModule: AppModule = {
       // LC-4 (ADR-0018 điều 5): chỉ Toàn quyền cấp Quản trị/Toàn quyền — thay luật cũ chỉ chặn SUPER_ADMIN (trước đây Quản trị cấp được Quản trị).
       const high = highPermissionProblem(actorIsSuper, [], perms.value!, can(admin, "admin.manage"));
       if (high) return problemResponse(high);
-      // LC-1b (ADR-0048 B2.2) rồi chặn lai nội bộ + bên ngoài (ADR-0083 điều 1b): đường cũ không qua roleAssignmentProblem.
-      const lai = taiKhoanLaiProblem(perms.value!) ?? laiNoiBoBenNgoaiProblem(perms.value!);
+      // LC-1b (ADR-0048 B2.2) rồi chặn lai nội bộ + bên ngoài (ADR-0083 điều 1b): đường cũ không qua roleAssignmentProblem. Rồi ADR-0185 Đ2: đường cũ không
+      // cấp quyền bên ngoài — tài khoản Đối tác, Tài xế đối tác tạo theo vai trò (K7: tài khoản lai giữ câu cũ).
+      const lai = taiKhoanLaiProblem(perms.value!) ?? laiNoiBoBenNgoaiProblem(perms.value!) ?? quyenNgoaiDuongCuProblem(perms.value!);
       if (lai) return problemResponse(lai);
       if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
       if (body?.taoHoSoMoi !== true) {
@@ -641,7 +644,8 @@ export const accountsModule: AppModule = {
       if (problem) return error(409, "account_rule", problem);
       const high = highPermissionProblem(actorIsSuper, t.permissions, next, can(admin, "admin.manage")); // LC-4 (ADR-0018 điều 5), thay luật riêng cho SUPER_ADMIN
       if (high) return problemResponse(high);
-      const lai = taiKhoanLaiProblem(next) ?? laiNoiBoBenNgoaiProblem(next); // LC-1b (ADR-0048 B2.2) rồi chặn lai nội bộ + bên ngoài (ADR-0083 điều 1b)
+      // LC-1b (ADR-0048 B2.2) rồi chặn lai nội bộ + bên ngoài (ADR-0083 điều 1b), rồi ADR-0185 Đ2: đường cũ không cấp quyền bên ngoài (K7).
+      const lai = taiKhoanLaiProblem(next) ?? laiNoiBoBenNgoaiProblem(next) ?? quyenNgoaiDuongCuProblem(next);
       if (lai) return problemResponse(lai);
 
       const at = new Date().toISOString();
@@ -718,6 +722,9 @@ export const accountsModule: AppModule = {
       if (noiBo) return error(409, "account_rule", noiBo);
       const accountProblem = checkAccountChange(admin.id, t, { permissions: change.next }, await countActiveAdmins(db));
       if (accountProblem) return error(409, "account_rule", accountProblem);
+      // ADR-0185 K6: nhánh gỡ Quản trị chạy quyền TRƯỚC vai trò (hai lô — câu vai của parties không mang được điều kiện «còn quản trị viên khác»), nên quyền Đối
+      // tác mở ở lô một khi hồ sơ chưa có vai trò đối tác ⇒ trigger lc1c huỷ lô. Kiểm thuần TRƯỚC lô một, câu chỉ đường hai bước; không xếp lại lô.
+      if (change.permissions.guarded && change.next.includes("PARTNER") && !t.permissions.includes("PARTNER")) return error(409, "account_rule", CAU_GO_QUAN_TRI_SANG_DOI_TAC);
       // ADR-0173 Đ3 mục 5: bỏ quyền Đối tác của hồ sơ còn đơn Trả sau chưa trả ⇒ 409 nêu mã đơn.
       if (t.permissions.includes("PARTNER") && !change.next.includes("PARTNER")) {
         const conNo = await ctx.gopHoSo.conNoTraSau(t.partyId);
