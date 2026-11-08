@@ -2,11 +2,11 @@
 // Phụ thuộc: audit (nhật ký — chỉ số lượng và nhãn nhóm, KHÔNG BAO GIỜ mã vé), catalog (kiểm mã tour qua hàm công bố). Cạnh tới staff / thongbao / orders (chỉ đọc view)
 // thêm khi dùng (ADR-0153 Đ1 mục 2). Chiều orders → ve-dien-tu KHÔNG có cạnh: gốc lắp ráp (src/index.ts) tiêm hàm cấp / trả vé vào ctx.
 // Module khác CHỈ import từ file này.
-import { auditStatement } from "../audit";
+import { auditStatement, nguoiLam } from "../audit";
 import { clearAttempts, reserveAttempts } from "../auth";
 import { getEffectiveServices } from "../catalog";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
-import { MATRIX, can, holdsPartner, isOffice } from "../../shared/permissions";
+import { MATRIX, can, holdsPartner, isOffice, tacNhan } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, taoKhoaNgauNhien, type LoaiTep } from "../../shared/tep-dinh-kem";
 import { vnToday } from "../../shared/vn-date";
@@ -88,9 +88,22 @@ const mocLoHuy = (): string => new Date(Date.now() - NGAY_LUU_ANH_LO_HUY * 864e5
 const VE_DA_NHAP_LAI = () => error(409, "ve_da_nhap_lai", "Vé này đã được nhập lại vào kho nên không mở được ảnh cũ.");
 const KHO_CHUA_BAT = () => error(503, "storage_unavailable", "Kho vé điện tử chưa được bật. Vui lòng báo người phụ trách hệ thống.");
 
-/** Cron ở gốc lắp ráp: xoá ảnh ở hàng «chờ xoá» đã quá hạn lưu. Tắt kho thì không làm gì. KHÔNG BAO GIỜ NÉM, để lỗi ở đây không kéo theo việc định kỳ khác. */
+/** Tác nhân tự động của việc dọn ảnh vé (ADR-0186 Đ1): chỉ Cron dùng; giữ đúng ô `ve.kho.purge`, không có nút hay route nào cho người. */
+const DON_ANH_VE = tacNhan("DON_ANH_VE");
+
+/**
+ * Cron ở gốc lắp ráp: xoá ảnh ở hàng «chờ xoá» đã quá hạn lưu, dưới tác nhân DON_ANH_VE (ADR-0186). Tắt kho thì không làm gì. Lượt có xoá ghi MỘT dòng nhật ký
+ * «Xoá ảnh vé hết hạn lưu» mang mã tác nhân — chỉ số ảnh, không mã vé, không khoá kho (ADR-0186 Đ4). KHÔNG BAO GIỜ NÉM, để lỗi ở đây không kéo theo việc định kỳ khác.
+ */
 export async function donHangChoXoaVe(env: Pick<Env, "DB"> & { VE_DIEN_TU?: R2Bucket }): Promise<void> {
-  if (env.VE_DIEN_TU) await donHangChoXoa(env.DB, env.VE_DIEN_TU, TOI_DA_DON_MOI_LAN, () => new Date().toISOString());
+  if (!env.VE_DIEN_TU) return;
+  const daXoa = await donHangChoXoa(env.DB, env.VE_DIEN_TU, DON_ANH_VE, TOI_DA_DON_MOI_LAN, () => new Date().toISOString());
+  if (daXoa === 0) return;
+  try {
+    await auditStatement(env.DB, { ...nguoiLam(DON_ANH_VE), action: "ve_xoa_anh_het_han", at: new Date().toISOString(), targetType: "system", targetId: "ve-dien-tu", detail: `${daXoa} ảnh` }).run();
+  } catch (e) {
+    console.error(JSON.stringify({ level: "error", event: "ve_dien_tu_nhat_ky_xoa_anh_loi", loi: e instanceof Error ? e.name : "unknown" }));
+  }
 }
 
 export const veDienTuModule: AppModule = {

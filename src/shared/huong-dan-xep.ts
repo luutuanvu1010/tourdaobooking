@@ -63,7 +63,7 @@ export const XEP: Readonly<Record<string, XepNhom>> = {
     "Bảo mật": [["Bật bảo mật hai lớp", "toi"], ["Nhận mã đăng nhập qua email", "toi"]],
   },
   "quan-ly-ban-hang": {
-    "Dịch vụ & giá": [["Menu của bạn", null], ["Chọn vé cần kiểm vé", "dichVu"], ["Ngừng bán, mở bán lại", "dichVu"], ["Việc cần nhờ người khác", null]],
+    "Dịch vụ & giá": [["Menu của bạn", null], ["Chọn vé cần kiểm vé", "dichVu"], ["Ngừng bán, mở bán lại", "dichVu"], ["Lấy bảng giá mới từ Google Sheet", "dichVu"], ["Việc cần nhờ người khác", null]],
   },
   "nhan-su": {
     "Tài khoản": [["Menu của bạn", null], ["Tạo tài khoản", "taiKhoan"], ["Đổi vai trò, sửa tên hoặc số điện thoại, nghỉ việc", "taiKhoan"]],

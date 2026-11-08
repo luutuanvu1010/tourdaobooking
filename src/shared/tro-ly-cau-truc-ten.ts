@@ -108,6 +108,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "partner.commission.write": { ten: "đặt mức hoa hồng đối tác", moTa: "Thêm mức hoa hồng mới, đóng mức cũ (không sửa, không xoá)." },
   "catalog.confirm_flag.write": { ten: "bật, tắt cần kiểm vé", moTa: "Chọn vé hoặc cả nhóm vé phải chờ người kiểm vé trước khi đơn được xác nhận." },
   "catalog.hidden.write": { ten: "ngừng bán, mở bán lại dịch vụ", moTa: "Tạm không cho lập đơn với một dịch vụ, rồi mở lại khi bán được." },
+  "catalog.sync": { ten: "đồng bộ danh mục từ Google Sheet ngay", moTa: "Bấm Đồng bộ ngay từ Google Sheet để lấy bảng giá mới nhất, không đợi lượt Nền tảng tự đồng bộ mỗi 15 phút. Quản lý bán hàng, Quản trị và Toàn quyền." },
   "catalog.attribute.assign": { ten: "gắn đặc điểm cho dịch vụ", moTa: "Chọn giá trị đặc điểm (ví dụ có gồm vận chuyển hay không) cho từng dịch vụ, hoặc để dịch vụ theo giá trị chung của nhóm." },
   "sales.block.write": { ten: "đặt và kết thúc luật bán theo vai người dùng", moTa: "Thêm luật «vai trò này không được đặt dịch vụ, nhóm hoặc đặc điểm này», đặt ngày kết thúc luật (không sửa, không xoá)." },
   "credit.limit.write": { ten: "bật, đổi và ngừng Trả sau của đại lý", moTa: "Bật, đổi hoặc ngừng Trả sau của một đối tác: hạn mức, thời hạn trả và ân hạn tính bằng giờ, cả số gợi ý. Quản trị chỉ tới mức tối đa Toàn quyền đặt." },
@@ -116,6 +117,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "billing.partner_channel.view": { ten: "xem công tắc «Khách của đối tác trả cho Công ty»", moTa: "Xem công tắc đang Bật hay Tắt, từ lúc nào và ai đã đổi." },
   "credit.due.extend": { ten: "ân hạn đơn trả sau", moTa: "Lùi hạn trả của một đơn trả sau đã xác nhận về sau, bắt buộc ghi lý do; không rút ngắn được." },
   "credit.own.view": { ten: "xem Trả sau của mình", moTa: "Đại lý xem hạn mức, số đang nợ, hạn mức khả dụng và từng đơn nợ kèm hạn trả của chính hồ sơ mình." },
+  "credit.due.remind": { ten: "nhắc hạn trả sau (Nền tảng tự làm)", moTa: "Nền tảng tự gửi tin nhắc đại lý trước hạn trả 6 giờ và lúc quá hạn, mỗi 15 phút xét một lượt. Không có nút cho người bấm." },
   "credit.limit.view": { ten: "xem hạn mức trả sau và nợ", moTa: "Xem hạn mức, số đang nợ, hạn mức khả dụng và các đơn trả sau còn nợ của từng đối tác." },
   "supply.terms.view": { ten: "xem người bán dịch vụ", moTa: "Xem dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán và tỷ lệ mua lại." },
   "supply.terms.write": { ten: "đặt người bán dịch vụ", moTa: "Thêm điều khoản người bán mới, đóng điều khoản cũ." },
@@ -143,6 +145,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "dispatch.policy.lead": { ten: "đặt hạn chốt", moTa: "Đổi hạn chốt trước giờ đón và cảnh báo sắp tới hạn chốt (Quản trị, Toàn quyền); các cài đặt điều phối khác chỉ Toàn quyền." },
   "ve.kho.manage": { ten: "nhập và quản lý vé điện tử", moTa: "Nhập lô vé ảnh của nhà cung cấp, xem còn bao nhiêu vé theo từng loại, thu hồi vé hỏng. Bán hàng, Quản trị và Toàn quyền." },
   "ve.cap.send": { ten: "giữ chỗ và gửi vé điện tử cho khách", moTa: "Bấm cấp vé khi còn thiếu, xem ảnh vé và gửi cho khách khi khách đã trả đủ. Bán hàng chỉ với khách của mình hoặc được giao; Quản trị và Toàn quyền với mọi khách." },
+  "ve.kho.purge": { ten: "xoá ảnh vé hết hạn lưu (Nền tảng tự làm)", moTa: "Nền tảng tự xoá ảnh vé của lô đã huỷ khi quá hạn lưu, rồi ghi một dòng Xoá ảnh vé hết hạn lưu vào nhật ký. Không có nút cho người bấm." },
   "settings.ops": { ten: "cài đặt vận hành", moTa: "Bảo trì, chính sách điều phối, trợ lý Hỗ trợ và các cài đặt chung." },
   "order.pool.view": { ten: "xem hàng chờ nhận", moTa: "Xem các đơn chưa có người phụ trách để bấm nhận." },
   "notice.send": { ten: "gửi thông báo thủ công", moTa: "Gửi, thu hồi thông báo và xem ai đã bấm Đã hiểu." },
@@ -185,6 +188,14 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
  * "none" (ô hẹp chỉ được THU HẸP, không được mở rộng). Khi route rộng được làm: xoá dòng ở đây trong cùng commit.
  */
 export const O_HEP: Readonly<Partial<Record<OperationCode, { readonly chiVai: readonly PermissionCode[]; readonly lyDo: string }>>> = {
+  "credit.due.remind": {
+    chiVai: [],
+    lyDo: "ADR-0186 Đ2: chỉ tác nhân NHAC_HAN_TRA_SAU (Cron) dùng; Toàn quyền có ô chỉ vì ADR-0014 điều 2, không có nút hay route nào cho người.",
+  },
+  "ve.kho.purge": {
+    chiVai: [],
+    lyDo: "ADR-0186 Đ2: chỉ tác nhân DON_ANH_VE (Cron) dùng; Toàn quyền có ô chỉ vì ADR-0014 điều 2, không có nút hay route nào cho người.",
+  },
   "order.service.manual": {
     chiVai: ["SALES", "ADMIN", "SUPER_ADMIN"],
     lyDo: "permissions.ts: ô 'any' của Kế toán CHƯA có tác dụng — Kế toán không lập / sửa đơn (order.create, order.modify = none); chờ việc C2.",

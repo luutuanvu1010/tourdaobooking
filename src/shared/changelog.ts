@@ -17,6 +17,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0186 (chủ duyệt 8/11, đóng HC-5.11): ba việc định giờ chạy dưới tác nhân có định danh riêng; Quản lý bán hàng được đồng bộ danh mục. Migration 0148.
+    // Bước A.0 ngày 8/11 trên nhánh claude/pensive-keller-274010. SỐ TẠM: 2.74 (chưa lên production) đi cùng lần triển khai này thì giữ hai mục riêng
+    // (tiền lệ 2.70–2.72); nhánh khác nhập trước mà cũng lấy 2.75 thì phiên phát hành đánh lại số.
+    version: "2.75",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Quản lý bán hàng có nút «Đồng bộ ngay từ Google Sheet» ở màn Dịch vụ & giá để lấy giá mới ngay, không phải nhờ Quản trị. Nền tảng vẫn tự đồng bộ mỗi 15 phút.", bai: { id: "quan-ly-ban-hang/lay-bang-gia-moi-tu-google-sheet", ten: "Lấy bảng giá mới từ Google Sheet" } },
+      { kind: "doi", text: "Nhật ký có thêm dòng «Xoá ảnh vé hết hạn lưu» mỗi lần Nền tảng tự xoá ảnh vé của lô đã huỷ khi quá hạn lưu; dòng chỉ ghi số ảnh, không ghi mã vé." },
+    ],
+  },
+  {
     // ADR-0180 (chủ duyệt 7/11): Toàn quyền xem như vai trò khác. Migration 0145. Bước A.0 ngày 7/11.
     version: "2.74",
     date: "2026-11-07",
