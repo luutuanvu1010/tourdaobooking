@@ -1,6 +1,7 @@
 // SQL của kho vé điện tử (`vdt_*`, migration 0131, ADR-0153 Đ1 — đã duyệt 31/10). Câu tĩnh qua defineSql (module nghiêm).
 // Mã vé, nội dung QR, khoá kho KHÔNG bao giờ vào nhật ký / phản hồi ghi / câu lỗi: hàm đọc ở đây không có bản trả mã vé thô ra ngoài module.
 import { defineSql } from "../../shared/sql-registry.ts";
+import type { NguonVe } from "../../shared/nguon-ve.ts";
 
 const DEM_VE_THEO_TRANG_THAI = defineSql("ve-dien-tu", "dem_ve_theo_trang_thai", "SELECT status, count(*) AS so FROM vdt_ticket GROUP BY status");
 
@@ -139,9 +140,9 @@ export const danhDauDaXoaR2 = async (db: D1Database, id: string, at: string): Pr
 const CHEN_LO = defineSql(
   "ve-dien-tu",
   "chen_lo",
-  `INSERT INTO vdt_batch (id, catalog_code, pax_group, printed_name, status, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, 'PENDING', ?5, ?6, ?5, ?6)`,
+  `INSERT INTO vdt_batch (id, catalog_code, pax_group, printed_name, status, source, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, 'PENDING', ?7, ?5, ?6, ?5, ?6)`,
 );
-const DOC_LO = defineSql("ve-dien-tu", "doc_lo", "SELECT id, catalog_code, pax_group, printed_name, status FROM vdt_batch WHERE id = ?1");
+const DOC_LO = defineSql("ve-dien-tu", "doc_lo", "SELECT id, catalog_code, pax_group, printed_name, status, source FROM vdt_batch WHERE id = ?1");
 const CHEN_VE = defineSql(
   "ve-dien-tu",
   "chen_ve",
@@ -178,10 +179,10 @@ const RUT_VE_CUA_LO = defineSql(
 const DS_LO_BO_DUOC = defineSql(
   "ve-dien-tu",
   "ds_lo_bo_duoc",
-  `SELECT b.id, b.catalog_code, b.pax_group, b.printed_name, b.status, b.created_at,
+  `SELECT b.id, b.catalog_code, b.pax_group, b.printed_name, b.status, b.source, b.created_at,
           (SELECT count(*) FROM vdt_ticket t WHERE t.batch_id = b.id AND t.stored_at IS NOT NULL AND t.purged_at IS NULL) AS so_ve
    FROM vdt_batch b
-   WHERE b.status <> 'VOID' AND NOT EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE t.batch_id = b.id)
+   WHERE b.status <> 'VOID' AND b.source IN (SELECT value FROM json_each(?2)) AND NOT EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE t.batch_id = b.id)
    ORDER BY (b.status = 'PENDING') DESC, b.created_at DESC, b.id LIMIT ?1`,
 );
 // Lô đã huỷ gần đây (chủ quyết 2/11/2026): để tra cứu. Mã đầy đủ KHÔNG ra khỏi câu đọc; không khoá kho, không dấu vân. Vé chưa từng vào kho (`stored_at` rỗng) không tính; lô không có vé nào vào kho (trang tự huỷ lô nhập hỏng hết) không hiện vì không có gì để tra.
@@ -189,12 +190,12 @@ const DS_LO_BO_DUOC = defineSql(
 const DS_LO_DA_HUY = defineSql(
   "ve-dien-tu",
   "ds_lo_da_huy",
-  `SELECT b.id, b.catalog_code, b.pax_group, b.printed_name, b.updated_at AS huy_luc, b.updated_by AS huy_boi,
+  `SELECT b.id, b.catalog_code, b.pax_group, b.printed_name, b.source, b.updated_at AS huy_luc, b.updated_by AS huy_boi,
           t.id AS ve_id, CASE WHEN length(t.ticket_code) > 4 THEN substr(t.ticket_code, -4) ELSE '' END AS duoi_ma, t.valid_from, t.valid_to, t.opened_at, t.r2_deleted_at,
           (EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND s.ticket_code = t.ticket_code)
            OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND s.content_hash = t.content_hash)
            OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND (length(s.ticket_code) = 36 AND length(t.ticket_code) = 36 AND s.ticket_code NOT GLOB '*[^0-9]*' AND t.ticket_code NOT GLOB '*[^0-9]*' AND substr(s.ticket_code, -12) = substr(t.ticket_code, -12)))) AS da_nhap_lai
-   FROM (SELECT * FROM vdt_batch x WHERE x.status = 'VOID' AND x.updated_at >= ?1 AND EXISTS (SELECT 1 FROM vdt_ticket v WHERE v.batch_id = x.id AND v.stored_at IS NOT NULL) ORDER BY x.updated_at DESC, x.id LIMIT ?2) b
+   FROM (SELECT * FROM vdt_batch x WHERE x.status = 'VOID' AND x.updated_at >= ?1 AND x.source IN (SELECT value FROM json_each(?3)) AND EXISTS (SELECT 1 FROM vdt_ticket v WHERE v.batch_id = x.id AND v.stored_at IS NOT NULL) ORDER BY x.updated_at DESC, x.id LIMIT ?2) b
    JOIN vdt_ticket t ON t.batch_id = b.id AND t.stored_at IS NOT NULL
    ORDER BY b.updated_at DESC, b.id, t.valid_from, t.id`,
 );
@@ -203,7 +204,7 @@ const DS_LO_DA_HUY = defineSql(
 const DOC_VE_LO_HUY = defineSql(
   "ve-dien-tu",
   "doc_ve_lo_huy",
-  `SELECT t.id, t.storage_key, t.content_kind, t.opened_at,
+  `SELECT t.id, t.storage_key, t.content_kind, t.opened_at, b.source,
           (EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND s.ticket_code = t.ticket_code)
            OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND s.content_hash = t.content_hash)
            OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND (length(s.ticket_code) = 36 AND length(t.ticket_code) = 36 AND s.ticket_code NOT GLOB '*[^0-9]*' AND t.ticket_code NOT GLOB '*[^0-9]*' AND substr(s.ticket_code, -12) = substr(t.ticket_code, -12)))) AS da_nhap_lai
@@ -241,21 +242,21 @@ const SUA_MA_TOUR = defineSql("ve-dien-tu", "sua_ma_tour", "UPDATE vdt_batch SET
 const THONG_KE_KHO = defineSql(
   "ve-dien-tu",
   "thong_ke_kho",
-  `SELECT b.catalog_code AS catalog_code, b.pax_group AS pax_group,
+  `SELECT b.catalog_code AS catalog_code, b.pax_group AS pax_group, b.source AS source,
           sum(t.status = 'AVAILABLE' AND t.stored_at IS NOT NULL AND t.valid_to >= ?1) AS con_trong,
           sum(t.status = 'AVAILABLE' AND t.stored_at IS NOT NULL AND t.valid_to >= ?1 AND t.valid_to <= ?2) AS sap_het_han,
           sum(t.status = 'ALLOCATED') AS da_giu,
           sum(EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_delivery d ON d.allocation_id = a.id WHERE a.ticket_id = t.id)) AS da_giao
    FROM vdt_ticket t JOIN vdt_batch b ON b.id = t.batch_id
-   WHERE b.status = 'ACTIVE' GROUP BY b.catalog_code, b.pax_group ORDER BY b.catalog_code, b.pax_group`,
+   WHERE b.status = 'ACTIVE' AND b.source IN (SELECT value FROM json_each(?3)) GROUP BY b.catalog_code, b.pax_group, b.source ORDER BY b.catalog_code, b.pax_group, b.source`,
 );
 
-export interface LoRow { id: string; catalog_code: string; pax_group: string; printed_name: string; status: string }
+export interface LoRow { id: string; catalog_code: string; pax_group: string; printed_name: string; status: string; source: NguonVe }
 export interface VeMoi { id: string; batchId: string; maVe: string; tuNgay: string; denNgay: string; gio: string | null; khoa: string; loaiNoiDung: string; coBytes: number; bam: string; at: string; by: string | null }
-export interface DongKho { catalog_code: string; pax_group: string; con_trong: number; sap_het_han: number; da_giu: number; da_giao: number }
+export interface DongKho { catalog_code: string; pax_group: string; source: NguonVe; con_trong: number; sap_het_han: number; da_giu: number; da_giao: number }
 
-export const cauChenLo = (db: D1Database, p: { id: string; catalogCode: string; nhom: string; tenSanPham: string; at: string; by: string | null }): D1PreparedStatement =>
-  db.prepare(CHEN_LO).bind(p.id, p.catalogCode, p.nhom, p.tenSanPham, p.at, p.by);
+export const cauChenLo = (db: D1Database, p: { id: string; catalogCode: string; nhom: string; tenSanPham: string; at: string; by: string | null; nguon: NguonVe }): D1PreparedStatement =>
+  db.prepare(CHEN_LO).bind(p.id, p.catalogCode, p.nhom, p.tenSanPham, p.at, p.by, p.nguon);
 export const docLo = (db: D1Database, id: string): Promise<LoRow | null> => db.prepare(DOC_LO).bind(id).first<LoRow>();
 /** Chèn một vé vào lô PENDING; trùng mã vé hoặc lô không còn PENDING ⇒ câu không chèn gì (changes 0). */
 export const cauChenVe = (db: D1Database, v: VeMoi): D1PreparedStatement =>
@@ -271,12 +272,13 @@ export const bamDaMo = async (db: D1Database, bam: readonly string[]): Promise<S
 /** `lenh`: dấu lệnh của lần Bỏ lô này; câu rút vé chỉ chạy khi chính lệnh này thắng (khuôn `last_cmd_id`, không so mốc thời gian). */
 export const cauBoLo = (db: D1Database, id: string, at: string, by: string | null, lenh: string): D1PreparedStatement => db.prepare(BO_LO).bind(id, at, by, lenh);
 export const cauRutVeCuaLo = (db: D1Database, id: string, at: string, by: string | null, lenh: string): D1PreparedStatement => db.prepare(RUT_VE_CUA_LO).bind(id, at, by, lenh);
-export interface LoBoDuoc { id: string; catalog_code: string; pax_group: string; printed_name: string; status: string; created_at: string; so_ve: number }
-export const dsLoBoDuoc = async (db: D1Database, gioiHan: number): Promise<LoBoDuoc[]> => (await db.prepare(DS_LO_BO_DUOC).bind(gioiHan).all<LoBoDuoc>()).results;
+export interface LoBoDuoc { id: string; catalog_code: string; pax_group: string; printed_name: string; status: string; source: NguonVe; created_at: string; so_ve: number }
+/** `nguon`: chỉ các nguồn người gọi được xem (lọc NGAY TRONG câu, để giới hạn số dòng không bị lô nguồn khác chiếm chỗ). */
+export const dsLoBoDuoc = async (db: D1Database, gioiHan: number, nguon: readonly NguonVe[]): Promise<LoBoDuoc[]> => (await db.prepare(DS_LO_BO_DUOC).bind(gioiHan, JSON.stringify(nguon)).all<LoBoDuoc>()).results;
 /** Mỗi dòng một vé. */
-export interface DongLoDaHuy { id: string; catalog_code: string; pax_group: string; printed_name: string; huy_luc: string; huy_boi: string | null; ve_id: string; duoi_ma: string; valid_from: string; valid_to: string; opened_at: string | null; r2_deleted_at: string | null; da_nhap_lai: number }
-export const dsLoDaHuy = async (db: D1Database, tuLuc: string, gioiHan: number): Promise<DongLoDaHuy[]> => (await db.prepare(DS_LO_DA_HUY).bind(tuLuc, gioiHan).all<DongLoDaHuy>()).results;
-export interface VeLoHuy { id: string; storage_key: string; content_kind: string; opened_at: string | null; da_nhap_lai: number }
+export interface DongLoDaHuy { id: string; catalog_code: string; pax_group: string; printed_name: string; source: NguonVe; huy_luc: string; huy_boi: string | null; ve_id: string; duoi_ma: string; valid_from: string; valid_to: string; opened_at: string | null; r2_deleted_at: string | null; da_nhap_lai: number }
+export const dsLoDaHuy = async (db: D1Database, tuLuc: string, gioiHan: number, nguon: readonly NguonVe[]): Promise<DongLoDaHuy[]> => (await db.prepare(DS_LO_DA_HUY).bind(tuLuc, gioiHan, JSON.stringify(nguon)).all<DongLoDaHuy>()).results;
+export interface VeLoHuy { id: string; storage_key: string; content_kind: string; opened_at: string | null; source: NguonVe; da_nhap_lai: number }
 export const docVeLoHuy = (db: D1Database, id: string, tuLuc: string): Promise<VeLoHuy | null> => db.prepare(DOC_VE_LO_HUY).bind(id, tuLuc).first<VeLoHuy>();
 export const cauMoAnhVe = (db: D1Database, id: string, at: string, by: string, tuLuc: string): D1PreparedStatement => db.prepare(MO_ANH_VE).bind(id, at, by, tuLuc);
 export const docCaiDatVe = (db: D1Database): Promise<{ batch_limit: number; version: number } | null> => db.prepare(DOC_TRAN_LO).first<{ batch_limit: number; version: number }>();
@@ -287,7 +289,7 @@ export const demVeCuaLo = async (db: D1Database, id: string): Promise<{ tong: nu
   return { tong: r?.tong ?? 0, daLuu: r?.da_luu ?? 0 };
 };
 export const cauSuaMaTour = (db: D1Database, id: string, maTour: string, at: string, by: string | null): D1PreparedStatement => db.prepare(SUA_MA_TOUR).bind(id, maTour, at, by);
-export const thongKeKho = async (db: D1Database, homNay: string, hanSapHet: string): Promise<DongKho[]> => (await db.prepare(THONG_KE_KHO).bind(homNay, hanSapHet).all<DongKho>()).results;
+export const thongKeKho = async (db: D1Database, homNay: string, hanSapHet: string, nguon: readonly NguonVe[]): Promise<DongKho[]> => (await db.prepare(THONG_KE_KHO).bind(homNay, hanSapHet, JSON.stringify(nguon)).all<DongKho>()).results;
 
 // ===== Xem ảnh và giao vé (ADR-0153 Đ3; Task 6). Câu đọc KHÔNG trả mã vé / nội dung QR: ảnh đọc từ kho theo `storage_key` rồi trả thẳng thân phản hồi. =============
 const PHAN_BO_DE_XEM = defineSql(

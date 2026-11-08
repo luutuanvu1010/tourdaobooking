@@ -1,5 +1,5 @@
 // KHO VÉ ĐIỆN TỬ trên API THẬT (wrangler dev, D1 local tạm + R2 local; ADR-0153). Ca: nhập lô → xác nhận lô → lập + xác nhận đơn (giữ vé qua D1 THẬT, db.batch) →
-// huỷ đơn (trả vé về kho) → chưa thu đủ thì ảnh 403 → đường dẫn khách sai token 404 → Kế toán 403. Dùng RIÊNG mã danh mục giả ZVD1; mọi vé của kịch bản nằm trong lô riêng.
+// huỷ đơn (trả vé về kho) → chưa thu đủ thì ảnh 403 → đường dẫn khách sai token 404 → Kế toán không thấy lô hãng ngoài. Dùng RIÊNG mã danh mục giả ZVD1; mọi vé của kịch bản nằm trong lô riêng.
 // ADR-0156: chống trùng theo mã + dấu vân tệp, trần lô (chỉ Toàn quyền đổi, khoá lạc quan, đợt sau cộng dồn), Bỏ lô rồi nhập lại đúng ảnh đó, lô từng giữ chỗ không bỏ được.
 import assert from "node:assert/strict";
 import { ACCOUNTS, BASE, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
@@ -19,8 +19,11 @@ const PNG = (n) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47
 const tag = Date.now().toString(36);
 const den = vnDate(60);
 
-// 1. Kế toán không vào được kho vé
-assert.equal((await call(KT, "GET", "/api/ve/kho")).status, 403);
+// 1. Kế toán không thấy, không tạo lô vé hãng ngoài (ADR-0175 Đ1.4: Kế toán giữ `ve.phat-hanh` nên GET /kho trả 200, nhưng chỉ có dòng lô Tour Đảo)
+const khoKT = await call(KT, "GET", "/api/ve/kho");
+assert.equal(khoKT.status, 200, JSON.stringify(khoKT.body));
+assert.ok(khoKT.body.kho.every((d) => d.nguon === "TOUR_DAO"), "Kế toán không thấy dòng lô hãng ngoài");
+assert.equal((await call(KT, "POST", "/api/ve/lo", { catalogCode: "ZVD1", nhomKhach: "ADULT", tenSanPham: "Vé thử e2e" })).status, 403);
 
 // 2. nhập lô 3 vé + xác nhận lô
 const lo = await call(SALES, "POST", "/api/ve/lo", { catalogCode: "ZVD1", nhomKhach: "ADULT", tenSanPham: "Vé thử e2e" });

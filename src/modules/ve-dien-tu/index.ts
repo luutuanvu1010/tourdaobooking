@@ -8,6 +8,7 @@ import { coVeTheoMa, getEffectiveServices } from "../catalog";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
 import { MATRIX, can, holdsPartner, isOffice, tacNhan } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
+import { NGUON_VE, type NguonVe } from "../../shared/nguon-ve.ts";
 import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, taoKhoaNgauNhien, type LoaiTep } from "../../shared/tep-dinh-kem";
 import { vnToday } from "../../shared/vn-date";
 import { CAU_VE_QUA_HAN_TRA_SAU, CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC, moVeDuoc } from "../../shared/tra-sau";
@@ -42,6 +43,15 @@ const TOI_DA_DON_MOI_LAN = 50;
 const docTranLo = async (db: D1Database): Promise<number> => (await docCaiDatVe(db))?.batch_limit ?? TRAN_LO_MAC_DINH;
 
 const KHONG_QUYEN = () => error(403, "forbidden", "Bạn không có quyền quản lý kho vé điện tử.");
+type NguoiHoi = Parameters<typeof can>[0];
+/**
+ * ADR-0175 Đ1.4: MỘT cửa quyết quyền trên lô theo nguồn của lô. Lô hãng ngoài: `ve.kho.manage`. Lô Tour Đảo: `ve.phat-hanh`; riêng xem số lượng
+ * (`chiXem` — GET /api/ve/kho, GET /api/ve/lo) thêm `ve.kho.manage`. Lô đã huỷ và ảnh của nó KHÔNG phải xem số lượng (chiXem = false).
+ */
+const coQuyenLo = (staff: NguoiHoi, nguon: NguonVe, chiXem = false): boolean =>
+  nguon === "HANG_NGOAI" ? can(staff, "ve.kho.manage") : can(staff, "ve.phat-hanh") || (chiXem && can(staff, "ve.kho.manage"));
+/** Các nguồn người gọi được thấy ở một danh sách; rỗng ⇒ route trả 403. */
+const nguonDuocXem = (staff: NguoiHoi, chiXem: boolean): NguonVe[] => NGUON_VE.filter((n) => coQuyenLo(staff, n, chiXem));
 const KHONG_THAY = () => error(404, "not_found", "Không tìm thấy lô vé.");
 const BAD_JSON = () => error(400, "invalid_input", "Nội dung gửi lên không hợp lệ.");
 /** Mã phân bổ do D1 sinh (`lower(hex(randomblob(16)))`), không phải UUID. */
@@ -111,11 +121,12 @@ export const veDienTuModule: AppModule = {
   routes: [
     // Thống kê kho (tiêu chí D5): theo dịch vụ + nhóm khách; chỉ ĐẾM, không mã vé, không khoá kho.
     route("GET", "/api/ve/kho", "office", async ({ env, staff }) => {
-      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
+      const nguon = nguonDuocXem(staff, true);
+      if (nguon.length === 0) return KHONG_QUYEN();
       const hom = new Date();
       const homNay = vnToday(hom);
       const hanSap = vnToday(new Date(hom.getTime() + 7 * 24 * 3600 * 1000));
-      const dong = await thongKeKho(env.DB, homNay, hanSap);
+      const dong = await thongKeKho(env.DB, homNay, hanSap, nguon);
       const ten = await getEffectiveServices(env.DB, [...new Set(dong.map((d) => d.catalog_code))]);
       return json({
         tranLo: await docTranLo(env.DB),
@@ -123,6 +134,7 @@ export const veDienTuModule: AppModule = {
           catalogCode: d.catalog_code,
           tenDichVu: ten.get(d.catalog_code)?.name ?? null,
           nhomKhach: d.pax_group,
+          nguon: d.source,
           conTrong: d.con_trong ?? 0,
           sapHetHan: d.sap_het_han ?? 0,
           daGiu: d.da_giu ?? 0,
@@ -157,18 +169,20 @@ export const veDienTuModule: AppModule = {
 
     // Các lô còn huỷ được (ADR-0156 Đ2 mục 3): đang dở hoặc đã vào kho nhưng chưa vé nào từng được giữ chỗ. Chỉ nhãn và số đếm, không mã vé, không khoá kho.
     route("GET", "/api/ve/lo", "office", async ({ env, staff }) => {
-      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
-      const ds = await dsLoBoDuoc(env.DB, TOI_DA_DS_LO);
+      const nguon = nguonDuocXem(staff, true);
+      if (nguon.length === 0) return KHONG_QUYEN();
+      const ds = await dsLoBoDuoc(env.DB, TOI_DA_DS_LO, nguon);
       const ten = await getEffectiveServices(env.DB, [...new Set(ds.map((d) => d.catalog_code))]);
       return json({
-        lo: ds.map((d) => ({ loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, trangThai: d.status, soVe: d.so_ve, taoLuc: d.created_at })),
+        lo: ds.map((d) => ({ loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, nguon: d.source, trangThai: d.status, soVe: d.so_ve, taoLuc: d.created_at })),
       });
     }),
 
     // Lô đã huỷ gần đây (chủ quyết 2/11/2026): để tra cứu; chỉ 4 số cuối mã, không khoá kho. Ảnh mở bằng hai route dưới: mở lần đầu thì khoá hẳn vé, vì ảnh mang QR dùng được như vé thật.
     route("GET", "/api/ve/lo-da-huy", "office", async ({ env, staff, nhanNhanVien }) => {
-      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
-      const dong = await dsLoDaHuy(env.DB, mocLoHuy(), TOI_DA_DS_LO);
+      const nguon = nguonDuocXem(staff, false);
+      if (nguon.length === 0) return KHONG_QUYEN();
+      const dong = await dsLoDaHuy(env.DB, mocLoHuy(), TOI_DA_DS_LO, nguon);
       const ten = await getEffectiveServices(env.DB, [...new Set(dong.map((d) => d.catalog_code))]);
       const nguoi = await nhanNhanVien([...new Set(dong.flatMap((d) => (d.huy_boi ? [d.huy_boi] : [])))]);
       const lo = new Map<string, { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: { veId: string; duoiMa: string; tuNgay: string; denNgay: string; trangThaiAnh: "CHUA_MO" | "DA_MO" | "DA_NHAP_LAI" | "HET_ANH" }[] }>();
@@ -182,7 +196,7 @@ export const veDienTuModule: AppModule = {
 
     // Mở ảnh vé của lô đã huỷ (chủ quyết 2/11/2026): khoá hẳn vé rồi mới xem được, để không có chuyện gửi ảnh cho khách A rồi nhập lại bán cho khách B. Hỏi kho TRƯỚC khi khoá: kho hỏng hay mất ảnh thì không làm mất vé.
     route("POST", "/api/ve/lo-da-huy/:veId/mo", "office", async ({ env, staff, params }) => {
-      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const kho = env.VE_DIEN_TU;
       if (!kho) return KHO_CHUA_BAT();
       const veId = params.veId ?? "";
@@ -190,6 +204,7 @@ export const veDienTuModule: AppModule = {
       const moc = mocLoHuy();
       const ve = await docVeLoHuy(env.DB, veId, moc);
       if (!ve) return VE_KHONG_THAY();
+      if (!coQuyenLo(staff, ve.source)) return KHONG_QUYEN();
       if (ve.opened_at) return json({ veId, trangThaiAnh: "DA_MO" });
       if (ve.da_nhap_lai) return VE_DA_NHAP_LAI();
       let coAnh: boolean;
@@ -217,13 +232,14 @@ export const veDienTuModule: AppModule = {
     route("GET", "/api/ve/lo-da-huy/:veId/anh", "office", async ({ request, env, staff, params }) => {
       const sfs = request.headers.get("sec-fetch-site");
       if (sfs !== null && sfs !== "same-origin" && sfs !== "none") return error(403, "forbidden", "Không mở ảnh vé từ trang khác.");
-      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const kho = env.VE_DIEN_TU;
       if (!kho) return KHO_CHUA_BAT();
       const veId = params.veId ?? "";
       if (!UUID_RE.test(veId)) return VE_KHONG_THAY();
       const ve = await docVeLoHuy(env.DB, veId, mocLoHuy());
       if (!ve) return VE_KHONG_THAY();
+      if (!coQuyenLo(staff, ve.source)) return KHONG_QUYEN();
       if (!ve.opened_at) return error(409, "ve_chua_mo", "Vé này chưa được mở ảnh.");
       await env.DB.batch([auditStatement(env.DB, { staffId: staff.id, action: "ve_mo_anh_lo_huy", at: new Date().toISOString(), targetType: "ve", targetId: veId, detail: "Xem ảnh vé của lô đã huỷ" })]);
       let obj: R2ObjectBody | null;
@@ -240,11 +256,12 @@ export const veDienTuModule: AppModule = {
 
     // Tạo lô (PENDING): một dịch vụ + một nhóm khách + tên sản phẩm in trên vé, chọn một lần cho cả lô. Vượt trần ⇒ 400 và KHÔNG tạo lô dở.
     route("POST", "/api/ve/lo", "office", async ({ request, env, staff }) => {
-      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const raw = await readJson(request);
       if (!raw) return BAD_JSON();
       const v = kiemLo(raw);
       if (!v.ok) return error(400, "invalid_input", v.message);
+      if (!coQuyenLo(staff, v.value.nguon)) return KHONG_QUYEN();
       if (raw.soVeDuKien !== undefined) {
         if (!Number.isInteger(raw.soVeDuKien) || (raw.soVeDuKien as number) < 1) return error(400, "invalid_input", "Số ảnh dự kiến không hợp lệ.");
         const tran = await docTranLo(env.DB);
@@ -255,7 +272,7 @@ export const veDienTuModule: AppModule = {
       const id = crypto.randomUUID();
       const at = new Date().toISOString();
       await env.DB.batch([
-        cauChenLo(env.DB, { id, catalogCode: v.value.catalogCode, nhom: v.value.nhomKhach, tenSanPham: v.value.tenSanPham, at, by: staff.id }),
+        cauChenLo(env.DB, { id, catalogCode: v.value.catalogCode, nhom: v.value.nhomKhach, tenSanPham: v.value.tenSanPham, at, by: staff.id, nguon: v.value.nguon }),
         auditStatement(env.DB, { staffId: staff.id, action: "ve_nhap_lo", at, targetType: "ve", targetId: v.value.catalogCode, detail: `Mở lô vé · ${NHAN_NHOM_LO[v.value.nhomKhach]}` }),
       ]);
       return kemLocation(json({ loId: id }, 201), `/ve-kho?lo=${id}`);
@@ -263,7 +280,7 @@ export const veDienTuModule: AppModule = {
 
     // Thêm một đợt vé vào lô PENDING. D1 TRƯỚC (dòng vé + nhật ký), kho SAU; lỗi kho không làm hỏng yêu cầu (vé chưa lưu thì không bao giờ được giữ chỗ).
     route("POST", "/api/ve/lo/:id/ve", "office", async ({ request, env, params, staff }) => {
-      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const loId = params.id ?? "";
       if (!UUID_RE.test(loId)) return KHONG_THAY();
       if (Number(request.headers.get("content-length") ?? "0") > TOI_DA_THAN_DOT) return error(413, "file_too_large", `Mỗi đợt tối đa ${TOI_DA_VE_MOI_DOT} ảnh, mỗi ảnh tối đa 3 MB.`);
@@ -274,6 +291,7 @@ export const veDienTuModule: AppModule = {
       if (raw.ve.length < 1 || raw.ve.length > TOI_DA_VE_MOI_DOT) return error(400, "invalid_input", `Mỗi đợt thêm từ 1 đến ${TOI_DA_VE_MOI_DOT} vé.`);
       const lo = await docLo(env.DB, loId);
       if (!lo) return KHONG_THAY();
+      if (!coQuyenLo(staff, lo.source)) return KHONG_QUYEN();
       if (lo.status !== "PENDING") return error(409, "batch_closed", "Lô này đã đưa vào kho hoặc đã vô hiệu, không thêm vé được nữa.");
       const tran = await docTranLo(env.DB);
       if ((await demVeCuaLo(env.DB, loId)).tong + raw.ve.length > tran) return error(400, "batch_limit", `Một lô tối đa ${tran} vé.`);
@@ -284,7 +302,7 @@ export const veDienTuModule: AppModule = {
       const bamTrongDot = new Set<string>();
       for (const [i, x] of raw.ve.entries()) {
         const r = (x && typeof x === "object" ? x : {}) as Record<string, unknown>;
-        const k = kiemVeMoi(r);
+        const k = kiemVeMoi(r, lo.source);
         if (!k.ok) { loi.push({ thuTu: i, lyDo: k.message }); continue; }
         const bytes = giaiBase64(r.noiDung);
         if (!bytes) { loi.push({ thuTu: i, lyDo: "Ảnh không đọc được." }); continue; }
@@ -339,11 +357,12 @@ export const veDienTuModule: AppModule = {
 
     // Đưa lô vào kho (PENDING → ACTIVE): chỉ khi lô có ít nhất một vé đã lưu kho.
     route("POST", "/api/ve/lo/:id/xac-nhan", "office", async ({ env, params, staff }) => {
-      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const loId = params.id ?? "";
       if (!UUID_RE.test(loId)) return KHONG_THAY();
       const lo = await docLo(env.DB, loId);
       if (!lo) return KHONG_THAY();
+      if (!coQuyenLo(staff, lo.source)) return KHONG_QUYEN();
       const at = new Date().toISOString();
       const kq = await env.DB.batch([
         cauKichHoatLo(env.DB, loId, at, staff.id),
@@ -357,11 +376,12 @@ export const veDienTuModule: AppModule = {
 
     // Huỷ lô (nút «Huỷ lô»; ADR-0156 Đ2 mục 3): lô chưa có vé nào TỪNG được giữ chỗ. Một lô D1 nguyên khối. Vé mang dấu rút nên nhập lại được. Ảnh KHÔNG xoá ngay: lưu `NGAY_LUU_ANH_LO_HUY` ngày rồi việc định kỳ xoá (chủ quyết 2/11).
     route("POST", "/api/ve/lo/:id/bo", "office", async ({ env, params, staff }) => {
-      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const loId = params.id ?? "";
       if (!UUID_RE.test(loId)) return KHONG_THAY();
       const lo = await docLo(env.DB, loId);
       if (!lo) return KHONG_THAY();
+      if (!coQuyenLo(staff, lo.source)) return KHONG_QUYEN();
       const at = new Date().toISOString();
       const lenh = crypto.randomUUID();
       const kq = await env.DB.batch([
@@ -375,7 +395,7 @@ export const veDienTuModule: AppModule = {
 
     // Sửa dịch vụ (mã tour) của lô — chỉ khi CHƯA vé nào của lô được giữ chỗ (trigger vdt_batch_code_locked canh ở cơ sở dữ liệu).
     route("POST", "/api/ve/lo/:id/sua-ma-tour", "office", async ({ request, env, params, staff }) => {
-      if (!can(staff, "ve.kho.manage")) return KHONG_QUYEN();
+      if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const loId = params.id ?? "";
       if (!UUID_RE.test(loId)) return KHONG_THAY();
       const raw = await readJson(request);
@@ -383,6 +403,7 @@ export const veDienTuModule: AppModule = {
       if (!raw || ma.length < 1 || ma.length > 40) return BAD_JSON();
       const lo = await docLo(env.DB, loId);
       if (!lo) return KHONG_THAY();
+      if (!coQuyenLo(staff, lo.source)) return KHONG_QUYEN();
       if (!(await getEffectiveServices(env.DB, [ma])).has(ma)) return error(400, "invalid_input", "Dịch vụ không có trong danh mục.");
       const at = new Date().toISOString();
       try {
