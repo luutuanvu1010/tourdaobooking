@@ -1,6 +1,8 @@
 # Chạy lại điều kiện 5 của TNV-G1 (ADR-0089) trên `main` — 9/11/2026
 
-Một trợ lý chạy, 9/11 khoảng 00:29–00:40 giờ VN (máy chạy múi +07; giờ tệp `may/k09.json` 00:29, `nhat-ky/audit-kt.log` 00:39). **Chưa có người kiểm thứ hai.** Không sửa tệp nào trong kho, không commit, không đụng D1 thật, không deploy, không push.
+Một trợ lý chạy, 9/11 khoảng 00:29–00:40 giờ VN (máy chạy múi +07; giờ tệp `may/k09.json` 00:29, `nhat-ky/audit-kt.log` 00:39). **Người kiểm thứ hai (chỉ đọc, 9/11): ĐẠT cho điều kiện 5** — đối chiếu tệp thô với bảng, diff bản chép với bản gốc, không chạy lại máy thử (tóm tắt ở `docs/superpowers/plans/2026-11-09-dot-4-thi-cong-nhat-ky.md`).
+
+> Ghi chú khi chép vào kho (9/11): chỉ `README.md`, `ket-qua/`, `nhat-ky/` (bỏ `wrangler-*.log`) nằm trong kho. Bản chép kịch bản, `may-chu.mjs`, `chay.sh`, `may/` cất NGOÀI kho ở thư mục ghi chú chung của nhóm phiên, thư mục con `g1-chay-lai-2026-11-09/` (có thể mất khi dọn). Trường `ket_luan` trong các tệp `.jsonl` là nhãn tự sinh theo dấu hiệu lỗi CŨ, chưa chấm lại — ví dụ HD06, HD08, QT05 ghi «LỖI LOGIC» là sai; kết luận đúng là bảng dưới, chấm theo `thuc_te`. Không sửa tệp nào trong kho, không commit, không đụng D1 thật, không deploy, không push.
 
 ## Mã đã chạy
 - `git archive main` = **fa3fd859a6fd9888ed51751fa4e289abd19d8d06** (trùng `origin/main` trong kho, không fetch). Commit: «Gộp main mới nhất (ô «Có vé») vào nhánh sửa bài xác minh tự khai», 8/11 21:10.

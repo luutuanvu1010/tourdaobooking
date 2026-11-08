@@ -16,7 +16,20 @@
   2. Nhãn tiền, ảnh thông báo huỷ, ô đếm Trang chủ: đã lên ở 2.42.
   3. Người kiểm độc lập: ĐẠT 28/10 (ghi ở sổ).
   4. Sổ vàng: `node --test src/so-vang-don-huy.test.ts` 9/11 xanh; 7 ca đã xác nhận khớp từng đồng; 6 ca chờ (01, 02, 04, 07, 08, 13) đều «khớp mã». Ca 07 còn vướng đặc tả phiếu chi (bản nháp 28/10, chưa duyệt).
-  5. Chạy lại tám tình huống G1 trên `main` hiện tại: giao trợ lý chạy nền (bản chép kịch bản 28/10 đã mất, dựng lại từ bản gốc ngoài kho). **Kết quả 9/11 00:29–00:40: cả tám ca «hết» như 28/10**, `audit-invariants --strict` thoát 0 trên bảy D1 tạm (mỗi D1 một cảnh báo R-CTL-1 không liên quan); mã ADR-0174/0181/0185/0186 không làm hỏng ca nào. Bằng chứng: `docs/evidence/2026-11-09-dot-4-g1-chay-lai/README.md` (bảng, chỗ sửa bản chép, điều ngoài G1); bản chép kịch bản cất ngoài kho ở thư mục ghi chú chung của nhóm phiên, thư mục con `g1-chay-lai-2026-11-09/`. Lẫn dữ liệu ở máy thử `hd` (một lần chạy hỏng tạo thêm 4 đơn, đã bỏ kết quả lần đó; chỉ làm «Sổ của tôi» HDV A 80.000 → 160.000). Chỉ tầng API, không Chrome. Người kiểm thứ hai: _(điền khi có)_.
+  5. Chạy lại tám tình huống G1 trên `main` hiện tại: giao trợ lý chạy nền (bản chép kịch bản 28/10 đã mất, dựng lại từ bản gốc ngoài kho). **Kết quả 9/11 00:29–00:40: cả tám ca «hết» như 28/10**, `audit-invariants --strict` thoát 0 trên bảy D1 tạm (mỗi D1 một cảnh báo R-CTL-1 không liên quan); mã ADR-0174/0181/0185/0186 không làm hỏng ca nào. Bằng chứng: `docs/evidence/2026-11-09-dot-4-g1-chay-lai/README.md` (bảng, chỗ sửa bản chép, điều ngoài G1); bản chép kịch bản cất ngoài kho ở thư mục ghi chú chung của nhóm phiên, thư mục con `g1-chay-lai-2026-11-09/`. Lẫn dữ liệu ở máy thử `hd` (một lần chạy hỏng tạo thêm 4 đơn, đã bỏ kết quả lần đó; chỉ làm «Sổ của tôi» HDV A 80.000 → 160.000). Chỉ tầng API, không Chrome. **Người kiểm thứ hai (`nguoi-kiem-doc-lap`, chỉ đọc): ĐẠT cho điều kiện 5** — số và mã HTTP của cả tám ca khớp tệp thô; diff bản chép với bản gốc không có chỗ làm yếu phép thử (chỉ thích nghi API: `lyDo`, thu sau xác nhận, `pickupChoice`, Gửi đơn, bộ lọc ca); `audit-*.log` đều kết thúc «Mọi bất biến đạt» (thoát 0 suy từ nội dung, nhật ký không ghi mã thoát); lẫn dữ liệu máy `hd` chỉ chạm số tổng hợp, không chạm số chấm. Năm điểm nhỏ không chặn: chứng cứ tái hiện ngoài kho; nhãn `ket_luan` cũ trong `.jsonl` (đã thêm hai dòng chú thích vào README bằng chứng); chấm bằng mắt như 28/10; BS5 CK muộn chưa thấy thu thành công (400 `bank_txn_required`), BS15 vắng; số thô `/payments daThu`, `receipt.daTra` vẫn gồm CK chưa xác nhận (chỗ người dùng đọc đã tách).
+
+## Lời chủ trong hộp hỏi gom (9/11)
+
+| Câu | Chủ chọn (nguyên văn) | Việc đã làm |
+|---|---|---|
+| Năm ca vàng 01, 02, 04, 08, 13 | «Chưa, tôi đọc sau (Recommended)» | không đổi trạng thái ca nào |
+| TNV-G1 nếu không kịp 30/11 | «Dời hạn tới 31/12 ngay» | `docs/quyen-hoan.json`: `han` 2026-12-31 + câu GIA HẠN 2026-11-09 nối vào `ke_hoach`; các dòng cho phép cũ giữ nguyên văn |
+| HC-4.2 | «Chỉ chuẩn bị, chưa ghi sổ (Recommended)» | không đổi sổ; hạn vẫn 2026-11-30 — chủ phải quyết trước 0 giờ 1/12 (đề xuất 31/1/2027) |
+| Hai ô quyền | «Giữ, dời hạn tới 30/6/2027 ngay» | `docs/quyen-hoan.json`: `han` 2027-06-30 cho `task.progress` và `dispatch.guides.view`, câu GIA HẠN nối vào `ke_hoach`; KHÔNG sửa `permissions.ts` |
+
+Kiểm sau khi sửa sổ: `python3 -m json.tool` hợp lệ; `node --test src/phat-hien-han.test.ts src/permission-enforcement.test.ts src/route-write-guard.test.ts src/shared/tro-ly-cau-truc.test.ts` → 40 đạt / 0 đỏ.
+
+**Còn lại trước 0 giờ 1/12:** chỉ HC-4.2 (hạn 30/11). Chủ ra lệnh dời hạn hoặc đợt 2 ADR-0115 xong trước đó; không thì `npm test` đỏ.
 
 ## 4.2 HC-4.2
 
