@@ -23,7 +23,7 @@ import { maDonTuNoiDung } from "../../shared/noi-dung-chuyen-khoan";
 import { dungLichSuSoKhach } from "../../shared/lich-su-so-khach";
 import { editablePaxCodesOf, effectiveMoney, effectiveSubtotal, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
 import {
-  addLeg, changeBooker, daXacNhan, soanDoiKhach, soanHuyDon, soanXacNhan, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getGiamGia, getLatestAdjustment, getMeta, getOrderRef, nextStamp,
+  addLeg, changeBooker, daXacNhan, soanDoiKhach, soanHuyDon, soanXacNhan, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getGiamGia, getLatestAdjustment, getMeta, getOrderRef, bookerLaDoiTacCuaDon, nextStamp,
   chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredPax, getStoredServices, insertMoneyAdjustment, listAdjustments, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
 import {
@@ -404,6 +404,18 @@ export async function dichVuChoVe(db: D1Database, orderId: string): Promise<Dich
   const ma = rows.map((r) => r.catalog_code);
   const [pax, coVe, nguon] = await Promise.all([effectivePax(db, rows), coVeTheoMa(db, ma), nguonVeTheoMa(db, ma)]);
   return rows.map((r) => ({ orderId, serviceId: r.id, catalogCode: r.catalog_code, ngayDi: r.depart_date, coVe: coVe.get(r.catalog_code) === true, nguonVe: nguonVeCua(r.catalog_code, nguon), pax: pax.get(r.id) ?? { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior, infant: r.pax_infant } }));
+}
+
+/**
+ * API công khai cho GỐC LẮP RÁP (ADR-0175 Đ2.2, Đ2.4) — diện đối tác của MỘT đơn cho cổng mở vé Tour Đảo: `doiTacLap` = người lập HIỆN GIỮ quyền Đối tác (ADR-0170 Đ2,
+ * cùng hàm `nguoiLapGiuDoiTac`); `benDatDoiTac` = cùng nghĩa `bookerLaDoiTac` của chi tiết đơn. `null` = không có đơn. KHÔNG tự kiểm quyền: chỉ gọi từ hàm tiêm, trong
+ * thân route vé (route đã hỏi `can(` hoặc là đường dẫn khách đã qua băm token).
+ */
+export async function dienDoiTacCuaDon(db: D1Database, orderId: string): Promise<{ doiTacLap: boolean; benDatDoiTac: boolean } | null> {
+  const ref = await getOrderRef(db, orderId);
+  if (!ref) return null;
+  const [doiTacLap, benDatDoiTac] = await Promise.all([nguoiLapGiuDoiTac(db, ref.staffId), bookerLaDoiTacCuaDon(db, orderId)]);
+  return { doiTacLap, benDatDoiTac };
 }
 
 /**

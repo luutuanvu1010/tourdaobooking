@@ -296,8 +296,8 @@ export const thongKeKho = async (db: D1Database, homNay: string, hanSapHet: stri
 const PHAN_BO_DE_XEM = defineSql(
   "ve-dien-tu",
   "phan_bo_de_xem",
-  `SELECT a.id, a.order_id, a.order_service_id, a.slot_no, a.revealed_at, t.storage_key, t.content_kind FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
-   WHERE a.id = ?1 AND a.released_at IS NULL AND t.stored_at IS NOT NULL AND t.purged_at IS NULL`,
+  `SELECT a.id, a.order_id, a.order_service_id, a.slot_no, a.revealed_at, t.storage_key, t.content_kind, b.source AS nguon FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
+   JOIN vdt_batch b ON b.id = t.batch_id WHERE a.id = ?1 AND a.released_at IS NULL AND t.stored_at IS NOT NULL AND t.purged_at IS NULL`,
 );
 // Câu bảo vệ NỐI VÀO lô huỷ của người giữ quyền Đối tác (ADR-0170 Đ3): có vé đã mở thì `json_extract` với đường dẫn hỏng ném lỗi ⇒ cả lô lui. Đường dẫn là dấu nhận ra lỗi (`DAU_LOI_VE_DA_MO`).
 const CHAN_VE_DA_MO = defineSql("ve-dien-tu", "chan_ve_da_mo", "SELECT json_extract('{}', 'don_da_mo_ve') WHERE EXISTS (SELECT 1 FROM vdt_allocation WHERE order_id = ?1 AND revealed_at IS NOT NULL)");
@@ -314,7 +314,8 @@ const PHAN_BO_MO_CUA_DON = defineSql(
 const PHAN_BO_MO_KEM_LO = defineSql(
   "ve-dien-tu",
   "phan_bo_mo_kem_lo",
-  "SELECT id, revealed_at IS NOT NULL AS lo FROM vdt_allocation WHERE order_id = ?1 AND released_at IS NULL AND (?2 IS NULL OR order_service_id = ?2) ORDER BY order_service_id, pax_group, slot_no",
+  `SELECT a.id, a.revealed_at IS NOT NULL AS lo, b.source AS nguon FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id JOIN vdt_batch b ON b.id = t.batch_id
+   WHERE a.order_id = ?1 AND a.released_at IS NULL AND (?2 IS NULL OR a.order_service_id = ?2) ORDER BY a.order_service_id, a.pax_group, a.slot_no`,
 );
 const DANH_DAU_LO = defineSql("ve-dien-tu", "danh_dau_lo", "UPDATE vdt_allocation SET revealed_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND revealed_at IS NULL AND released_at IS NULL");
 const CHEN_GIAO = defineSql(
@@ -323,15 +324,15 @@ const CHEN_GIAO = defineSql(
   "INSERT OR IGNORE INTO vdt_delivery (id, allocation_id, channel, delivered_by, delivered_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?5, ?3, ?4, ?4, ?3, ?4, ?3)",
 );
 
-export interface PhanBoDeXem { id: string; order_id: string; order_service_id: string; slot_no: number; revealed_at: string | null; storage_key: string; content_kind: string }
+export interface PhanBoDeXem { id: string; order_id: string; order_service_id: string; slot_no: number; revealed_at: string | null; storage_key: string; content_kind: string; nguon: NguonVe }
 export const docPhanBoDeXem = (db: D1Database, id: string): Promise<PhanBoDeXem | null> => db.prepare(PHAN_BO_DE_XEM).bind(id).first<PhanBoDeXem>();
 /** Người lập đơn (view công bố của orders) — để hỏi `can(…, { ownerId })`. null = không có đơn. */
 export const docChuDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(CHU_DON).bind(orderId).first<{ staff_id: string }>())?.staff_id ?? null;
 export const docPhanBoMoCuaDon = async (db: D1Database, orderId: string, serviceId: string | null): Promise<string[]> =>
   (await db.prepare(PHAN_BO_MO_CUA_DON).bind(orderId, serviceId).all<{ id: string }>()).results.map((r) => r.id);
-/** Như `docPhanBoMoCuaDon` nhưng kèm cờ «đã lộ» của từng phân bổ — để cổng `moVeDuoc` biết vé nào đã mở (ADR-0168 Đ3 mục 1). */
-export const docPhanBoMoKemLo = async (db: D1Database, orderId: string, serviceId: string | null): Promise<{ id: string; lo: boolean }[]> =>
-  (await db.prepare(PHAN_BO_MO_KEM_LO).bind(orderId, serviceId).all<{ id: string; lo: number }>()).results.map((r) => ({ id: r.id, lo: r.lo === 1 }));
+/** Như `docPhanBoMoCuaDon` nhưng kèm cờ «đã lộ» và nguồn vé (lô) của từng phân bổ — để cổng mở vé quyết theo từng vé (ADR-0168 Đ3 mục 1, ADR-0175 Đ2.5). */
+export const docPhanBoMoKemLo = async (db: D1Database, orderId: string, serviceId: string | null): Promise<{ id: string; lo: boolean; nguon: NguonVe }[]> =>
+  (await db.prepare(PHAN_BO_MO_KEM_LO).bind(orderId, serviceId).all<{ id: string; lo: number; nguon: NguonVe }>()).results.map((r) => ({ id: r.id, lo: r.lo === 1, nguon: r.nguon }));
 /** Đóng dấu «đã lộ» MỘT LẦN (dòng đã có dấu thì câu không đổi gì). */
 export const cauDanhDauLo = (db: D1Database, allocId: string, at: string, by: string | null): D1PreparedStatement => db.prepare(DANH_DAU_LO).bind(allocId, at, by);
 export const cauChenGiao = (db: D1Database, p: { id: string; allocId: string; by: string | null; at: string; kenh: "ZALO" | "LINK" }): D1PreparedStatement =>
@@ -352,8 +353,8 @@ const HAN_CUOI_CUA_DON = defineSql(
 const VE_CUA_LINK = defineSql(
   "ve-dien-tu",
   "ve_cua_link",
-  `SELECT a.id, a.pax_group, a.revealed_at, t.valid_from, t.valid_to, t.storage_key, t.content_kind FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
-   WHERE a.order_id = ?1 AND a.released_at IS NULL AND t.stored_at IS NOT NULL AND t.purged_at IS NULL ORDER BY a.order_service_id, a.pax_group, a.slot_no`,
+  `SELECT a.id, a.pax_group, a.revealed_at, t.valid_from, t.valid_to, t.storage_key, t.content_kind, b.source AS nguon FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id
+   JOIN vdt_batch b ON b.id = t.batch_id WHERE a.order_id = ?1 AND a.released_at IS NULL AND t.stored_at IS NOT NULL AND t.purged_at IS NULL ORDER BY a.order_service_id, a.pax_group, a.slot_no`,
 );
 
 export interface LinkKhach { id: string; order_id: string; token_hash: string; expires_at: string; revoked_at: string | null }
@@ -366,7 +367,7 @@ export const cauDemMoLink = (db: D1Database, id: string, at: string): D1Prepared
 export const docLinkCuaDon = async (db: D1Database, orderId: string): Promise<{ id: string; expires_at: string; revoked_at: string | null; opened_count: number }[]> =>
   (await db.prepare(DS_LINK_CUA_DON).bind(orderId).all<{ id: string; expires_at: string; revoked_at: string | null; opened_count: number }>()).results;
 export const docHanCuoiCuaDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(HAN_CUOI_CUA_DON).bind(orderId).first<{ den: string | null }>())?.den ?? null;
-export interface VeCuaLink { id: string; pax_group: string; revealed_at: string | null; valid_from: string; valid_to: string; storage_key: string; content_kind: string }
+export interface VeCuaLink { id: string; pax_group: string; revealed_at: string | null; valid_from: string; valid_to: string; storage_key: string; content_kind: string; nguon: NguonVe }
 export const docVeCuaLink = async (db: D1Database, orderId: string): Promise<VeCuaLink[]> => (await db.prepare(VE_CUA_LINK).bind(orderId).all<VeCuaLink>()).results;
 
 const GIU_CUA_DON = defineSql("ve-dien-tu", "giu_cua_don", "SELECT count(*) AS n FROM vdt_allocation WHERE order_id = ?1 AND released_at IS NULL");

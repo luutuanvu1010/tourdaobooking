@@ -30,7 +30,7 @@ import { canBangVeTheoSoKhach, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyT
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
 import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
-import { cauDoiNguoiDat, dichVuChoVe, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
+import { cauDoiNguoiDat, dichVuChoVe, dienDoiTacCuaDon, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
@@ -279,6 +279,8 @@ const APP_OPTIONS: AppOptions = {
     canBangVeSauSuaKhach: async (env, actor, orderId) => {
       try { await canBangVeTheoSoKhach(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString(), vnToday(new Date())); } catch (e) { console.error("ve_can_bang_loi", orderId, e instanceof Error ? e.name : "loi"); }
     },
+    // DIỆN ĐỐI TÁC CỦA ĐƠN (ADR-0175 Đ2.4): kho vé không đọc orders — gốc lắp ráp gọi hàm công bố; router bọc lỗi thành null (diện đối tác).
+    dienDoiTacCuaDon: (env, orderId) => dienDoiTacCuaDon(env.DB, orderId),
     // CẤP BÙ KHI LÔ VÀO KHO (ADR-0175 Đ1.5a): orders cho ứng viên (đơn đã xác nhận có dòng mã đó, ngày đi chưa qua, gần trước); kho vé lọc đơn còn thiếu ở đúng dòng mã đó.
     donThieuVe: async (env, code) => {
       const homNay = vnToday(new Date());

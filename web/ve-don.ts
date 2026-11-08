@@ -21,6 +21,8 @@ interface VeDonRes {
   traSauQuaHan?: boolean;
   duongDan: { id: string; hetHan: string; daThuHoi: boolean; luotMo: number }[];
   veXem: { id: string; stt: number }[];
+  /** ADR-0175 Đ2.2: có vé Tour Đảo mở được trước khi thu đủ (đơn nội bộ đã xác nhận) — `veXem` đã chỉ gồm vé mở được, theo từng vé. */
+  veTourDaoMoSom?: boolean;
 }
 /** ADR-0166 câu 3: nói trước khi bấm — mở vé hoặc tạo đường dẫn là coi mọi vé của đơn đã lộ, vé đã lộ không về lại kho. */
 const CAU_VE_KHONG_VE_KHO = "Bấm là coi như vé đã giao cho khách: vé của đơn này sẽ không quay về kho nữa, kể cả khi khách huỷ. Chưa chắc khách lấy thì đừng bấm.";
@@ -63,7 +65,7 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
   });
   const khoi: (Node | null)[] = [h("h2", null, "Vé điện tử"), tongThieu > 0 ? h("p", { class: "muted" }, res.nguoiXemLaDoiTac ? `Còn thiếu ${tongThieu} vé. Bấm Cấp vé; nếu vẫn thiếu, báo văn phòng.` : `Còn thiếu ${tongThieu} vé. Nhập thêm vé vào kho rồi bấm Cấp vé.`) : null, danhSach, nutCap ? h("div", { class: "handler-actions" }, nutCap) : null];
 
-  if (!res.thuDu && res.veXem.length === 0) {
+  if (!res.thuDu && res.veXem.length === 0 && !res.veTourDaoMoSom) {
     khoi.push(h("p", { class: "muted" }, res.traSauQuaHan ? (res.nguoiXemLaDoiTac ? CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC : CAU_VE_QUA_HAN_TRA_SAU) : res.choDoiTacNop ? (res.nguoiXemLaDoiTac ? "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé." : "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé.") : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé."));
   } else if (vao.coQuyenGui && res.veXem.length > 0) {
     // ---- Gửi Zalo / tải ảnh -------------------------------------------------------------------------------------------------------------------------------
