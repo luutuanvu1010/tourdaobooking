@@ -14,6 +14,7 @@ import {
   sangTaiMuc,
   thanhBen,
   thanhTab,
+  ghimHieuLuc,
   thanhTren,
   thietLapMoSan,
   TRANG,
@@ -59,7 +60,7 @@ function khongSangMuc(): boolean {
  */
 function tabBar(n: NguoiXem, path: string): HTMLElement {
   const khongSang = khongSangMuc();
-  const tabs = thanhTab(n);
+  const tabs = thanhTab(n, "staff" in n ? ghimHieuLuc(n.staff) : null); // ADR-0187 Đ2.3: khung thật vẽ nút người dùng đã chọn; khung tạm luôn mặc định
   const tabHien = tabs.map((t) => t.trang);
   return h(
     "nav",

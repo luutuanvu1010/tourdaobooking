@@ -292,7 +292,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (315)
+## Việc quan trọng (317)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -566,6 +566,13 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
 | **Lưu** | Cài đặt vé điện tử | Lưu «Số vé tối đa mỗi lô» (từ giới hạn nhỏ nhất đến lớn nhất). Số mới chỉ áp cho các lô nhập từ lúc đó, vé đã nhập giữ nguyên. | không | được: lưu lại số cũ | `/api/ve/cai-dat`<br>nhật ký `ve_doi_tran_lo` | `web/ve-cai-dat.ts`: Lưu | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
+
+### Trang Tôi
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Lưu** | Tôi › mục «Nút thanh dưới» (chỉ điện thoại) | Lưu các trang đang đánh dấu (tối đa 4) làm nút thanh dưới điện thoại của chính tài khoản, theo thứ tự trong danh sách; nút «Tôi» luôn có ở cuối. Lưu ở máy chủ nên đổi máy vẫn còn. Máy chủ từ chối trang mình không mở được, và không cho đổi khi Toàn quyền đang xem như vai trò khác. Trang nào sau này không còn mở được thì tự mất khỏi thanh dưới. | không | được: lưu lại cách khác hoặc bấm «Về mặc định» | `/api/account/thanh-duoi`<br>nhật ký `bottom_tabs_changed` | `web/thanh-duoi-cai-dat.ts`: Lưu | đã chốt (chữ dùng chung «Lưu»; tên mục «Nút thanh dưới» chủ chọn 2026-11-09 trong hộp hỏi (ADR-0187 Đ2.3)) |
+| **Về mặc định** | Tôi › mục «Nút thanh dưới» (chỉ hiện khi đã tự chọn) | Bỏ các trang đã tự chọn: thanh dưới quay về cách Nền tảng tự xếp theo quyền như trước. Không xoá gì khác. | không | được: chọn lại rồi bấm «Lưu» | `/api/account/thanh-duoi`<br>nhật ký `bottom_tabs_changed` | `web/thanh-duoi-cai-dat.ts`: Về mặc định | đã chốt (chủ chọn 2026-11-09 trong hộp hỏi (ADR-0187 Đ2.3)) |
 
 ### Vé điện tử: đơn
 

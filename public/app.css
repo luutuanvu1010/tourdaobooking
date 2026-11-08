@@ -4576,3 +4576,8 @@ button.bar-avatar { padding: 0; border: 0; font-family: inherit; cursor: pointer
 @media (hover: hover) { .menu-tk-muc:hover, .menu-tk-vai:hover { background: var(--c-surface-alt); } }
 .menu-tk-ds { display: grid; gap: var(--s1); }
 .menu-tk-goi-y { margin: 0; padding: 0 var(--s3); font-size: var(--fs-step-2); color: var(--c-text-muted); }
+
+/* Mục «Nút thanh dưới» ở trang Tôi (ADR-0187 Đ2.3, web/thanh-duoi-cai-dat.ts): chỉ điện thoại — máy tính không có thanh dưới nên ẩn ở ≥ 900. Chỉ token. */
+#thanh-duoi .td-o { display: flex; align-items: center; gap: var(--s2); min-height: var(--h-control); }
+#thanh-duoi .td-nut { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
+@media (min-width: 900px) { #thanh-duoi { display: none; } }

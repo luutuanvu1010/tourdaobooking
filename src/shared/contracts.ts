@@ -70,6 +70,7 @@ export interface StaffRolesResponse { roles: RoleCode[]; adds: PermissionCode[];
  * Đối tác, có hồ sơ, và hồ sơ đang mang ít nhất một vai trong danh sách được hưởng hoa hồng (cùng điều kiện `benDatChoTaiKhoan`). Giao diện chỉ ĐỌC trường này để hiện dòng "Bên đặt: <tên>"; chỉ id + tên, không liên hệ.
  */
 /** `PUT /api/account/thanh-duoi` (ADR-0187 Đ2.3): danh sách trang đã lưu (rỗng = về mặc định). Lỗi: 400 invalid_body / too_many, 403 forbidden / acting_role. */
+export interface ThanhDuoiRequest { trang: string[] }
 export interface ThanhDuoiResponse { trang: string[] }
 export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto; benDatCuaToi?: { partyId: string; ten: string } | null;
   /** ADR-0180: vai đang đóng của phiên này (chỉ có khi Toàn quyền đang xem như vai khác); cùng giá trị `staff.actingRole`. */
