@@ -16,7 +16,7 @@ import { soKhachDoan } from "../src/shared/hanh-khach";
 import { banHangSuaDuoc, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { can as canNv } from "../src/shared/permissions";
 import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
-import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, doiTacThieuVaiTro, gopBenDat, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
+import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieuVaiTro, gopBenDat, hienNutDienDoiTac, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
 import { GOI_Y_GIAM_GIA_DOI_TAC, formGonDoiTac } from "../src/shared/form-dat-ve";
@@ -1049,7 +1049,15 @@ function datBenDat(chon: BenDatChon | null): void {
   if (chon !== null) canhBao.hien(null, ""); // đã chọn đối tác thì hết điều để hỏi
   else if (truoc !== null) bookerPicker.kiemLai(); // vừa bỏ đối tác: số khách đang gõ có thể là của một đối tác — hỏi lại (nợ T4(2), Việc 9)
   datNhanKhach(chon !== null);
+  capNhatNutDienDoiTac();
   void napTraSau();
+}
+/** N5: nút «Điền thông tin đối tác» hiện theo luật thuần `hienNutDienDoiTac`; đổi đối tác thì câu báo cũ bị xoá. */
+function capNhatNutDienDoiTac(): void {
+  byId("use-partner").hidden = !hienNutDienDoiTac(staff, daChonBenDat);
+  const bao = byId("use-partner-bao");
+  bao.hidden = true;
+  bao.textContent = "";
 }
 /** Nhãn nổi của hai ô khách theo việc đã chọn đối tác (luật chữ ở `src/shared/phan-doi-tac-hien-thi.ts`): đã chọn thì SĐT ghi rõ là của khách, không phải của đối tác. */
 function datNhanKhach(daChonDoiTac: boolean): void {
@@ -1139,6 +1147,31 @@ byId("use-mine").addEventListener("click", () => {
     const el = field(id);
     el.value = value;
     el.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+});
+// N5: «Điền thông tin đối tác» — lấy tên + số điện thoại chính từ hồ sơ đối tác đã chọn (GET /api/parties/:id, cổng văn phòng + party.view) rồi điền như «Điền thông tin của tôi».
+// Đối tác chưa có số → báo nhẹ, không điền rỗng, không xoá ô đang có.
+byId("use-partner").addEventListener("click", async () => {
+  const chon = daChonBenDat;
+  if (!hienNutDienDoiTac(staff, chon)) return;
+  const bao = byId("use-partner-bao");
+  try {
+    const { party } = await api<Api.PartyResponse>(`/api/parties/${encodeURIComponent(chon!.partyId)}`);
+    if (daChonBenDat?.partyId !== chon!.partyId) return; // người lập đã đổi đối tác trong lúc chờ
+    if (!party.primaryPhone) {
+      bao.textContent = CAU_DOI_TAC_CHUA_CO_SDT;
+      bao.hidden = false;
+      return;
+    }
+    bao.hidden = true;
+    for (const [id, value] of [["customerName", party.displayName], ["customerPhone", party.primaryPhone]] as const) {
+      const el = field(id);
+      el.value = value;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  } catch (e) {
+    bao.textContent = e instanceof ApiError ? e.message : "Không lấy được thông tin đối tác.";
+    bao.hidden = false;
   }
 });
 // ADR-0047 Phần B: điểm danh mục cho ô Nơi đón / Nơi trả (cổng staff — mọi tài khoản) và mẫu chặng theo dịch vụ (chỉ người lập đơn). Lỗi → rỗng.

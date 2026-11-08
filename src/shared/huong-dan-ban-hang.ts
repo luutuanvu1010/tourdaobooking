@@ -37,7 +37,7 @@ Thanh tab dưới đáy: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Da
 3. Khối [[Khách hàng]]: điền **Tên khách đi tour**, [[Số điện thoại]] (bắt buộc). Ghi [[Email]] hoặc [[Ghi chú / yêu cầu đặc biệt]] thì bấm [[Email, ghi chú]].
    - Gõ xong số điện thoại sẽ hiện hồ sơ trùng số: đúng người thì bấm [[Dùng hồ sơ này]], khách mới thì [[Tạo hồ sơ mới]]; không chọn vẫn lưu được.
    - Nút [[Điền thông tin của tôi]] điền tên và số của chính bạn.
-   - Khách đặt qua đại lý hoặc cộng tác viên: ở hàng [[Đơn của]] bấm [[Qua đối tác]] (mặc định [[Khách lẻ]]), rồi chọn người đó để tính hoa hồng.
+   - Khách qua đại lý, cộng tác viên: ở hàng [[Đơn của]] bấm [[Qua đối tác]] (mặc định [[Khách lẻ]]), chọn người đó để tính hoa hồng; [[Điền thông tin đối tác]] điền sẵn tên, số.
 4. Ở khối [[Dịch vụ]], gõ vào ô [[Tìm theo tên hoặc mã dịch vụ]] (ví dụ "4 đảo"), rồi chạm dịch vụ đúng: dòng hiện "✓ đã thêm" và thẻ dịch vụ hiện ra.
    - Danh mục dài: chạm một nhóm dưới ô tìm ([[Tất cả]] để xem lại). Dịch vụ gắn ☆ nằm ở mục "★ Hay dùng".
    - Dịch vụ mờ, ghi "chưa có giá" hoặc "chưa hỗ trợ", không chọn được — báo Quản trị.

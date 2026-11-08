@@ -292,7 +292,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (315)
+## Việc quan trọng (317)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -443,6 +443,13 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
 | **Lưu đơn (chưa xác nhận) (đơn mới, người không giữ quyền Đối tác) · Lưu thay đổi (đang sửa đơn nháp) · Gửi đơn (đơn mới, người giữ quyền Đối tác)** | Tạo đơn / Sửa đơn nháp (form lập đơn) | Với Bán hàng, Quản trị, Toàn quyền, Thực tập: chỉ lưu đơn ở dạng nháp. Không gửi cho ai, không xác nhận, không báo ai (tin Bảng tin chỉ làm mới màn hình), nhật ký ghi «Tạo đơn». Màn hình tự chuyển sang trang đơn và mở hộp «Ảnh gửi khách» (hộp này chỉ dựng ảnh gửi khách, chưa xác nhận gì); người lập phải đóng hộp rồi tự bấm «Xác nhận đơn» (hoặc «Gửi kiểm vé» nếu đơn thuộc diện cần xét). Với người giữ quyền Đối tác thì nút này tên «Gửi đơn», lưu rồi gọi tiếp lệnh gửi: máy chủ hoặc mở yêu cầu xác nhận (đơn chờ nhân viên xét «Còn vé, xác nhận đơn»), hoặc tự xác nhận luôn nếu đơn không cần xét (khi đó đơn thành «Đã xác nhận» ngay và chuyển cho chuyên viên phụ trách). Lưu xong mà gửi hỏng thì đơn vẫn còn ở nháp. | không | một phần: nháp sửa được bằng «Lưu thay đổi»; đơn Đối tác đã gửi rút lại được bằng «Rút lại»; nhánh tự xác nhận thì dịch vụ và đơn giá bị khoá | `/api/orders`<br>`/api/orders/:x`<br>nhật ký `created` | `public/order-form.html`: Lưu đơn (chưa xác nhận) | đã chốt (ADR-0166 câu 5) |
+
+### Lập đơn: điền sẵn khách
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Điền thông tin của tôi** | Tạo đơn / Sửa đơn nháp (form lập đơn) › khung Khách hàng | Chép tên và số điện thoại của chính tài khoản đang đăng nhập vào hai ô tên khách và số điện thoại khách. Chưa lưu gì; người lập sửa lại ô được. | không | được: sửa lại hai ô | (chưa nối) | `public/order-form.html`: Điền thông tin của tôi | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-09: tên đang hiện) |
+| **Điền thông tin đối tác** | Tạo đơn / Sửa đơn nháp (form lập đơn) › khung Khách hàng (nhân viên văn phòng, sau khi chọn «Qua đối tác») | Đọc hồ sơ của đối tác đã chọn rồi chép tên và số điện thoại chính của đối tác vào hai ô tên khách và số điện thoại khách. Chưa lưu gì. Đối tác chưa có số điện thoại thì chỉ báo «Đối tác này chưa có số điện thoại.», không điền rỗng và không xoá ô đang có. Chỉ hiện với nhân viên văn phòng được xem hồ sơ; tài khoản Thực tập không thấy. | không | được: sửa lại hai ô | (chưa nối) | `public/order-form.html`: Điền thông tin đối tác | đã chốt (chủ chọn tên 2026-11-08 (yêu cầu của chủ, kế hoạch sửa sau rà soát lần 2, Phụ lục A)) |
 
 ### Lập đơn: lối vào
 
