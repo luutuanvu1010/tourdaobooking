@@ -41,7 +41,7 @@
 Gom một lần hỏi (CLAUDE.md §3). Hết giờ thì lấy phương án khuyến nghị; tất cả đảo ngược được.
 
 - [x] **Cách thi công:** chủ 2026-11-08 chọn «Mỗi việc một trợ lý + kiểm» (superpowers:subagent-driven-development).
-- [ ] **Tên giao diện** (Hiến chương 5.27): chủ 2026-11-08 muốn «một bộ danh mục thuật ngữ chuyên nghiệp, bài bản». Bộ đó đã có là bảng tham chiếu ngôn ngữ (ADR-0167, `docs/BANG-THAM-CHIEU.md`, 113 khái niệm, mỗi khái niệm có nghĩa, khác với, chữ đã loại, mã nội bộ, ai chốt). Việc ở đây: soạn đủ mục cho từng thuật ngữ vé dưới đây, kèm tên tiếng Anh chuẩn ngành dùng trên vé, để chủ duyệt một lần; chưa duyệt thì khai trạng thái «chờ chọn» và vẫn thi công được phần máy chủ (Task 1, 2, 4–8).
+- [x] **Tên giao diện** (Hiến chương 5.27): **chủ 2026-11-08 duyệt cả 8 thuật ngữ dưới đây, nguyên văn «Duyệt cả 8»**; ghi vào `src/shared/bang-tham-chieu-khai-niem.ts` trạng thái `da-chot`, `chuChon: "2026-11-08 (ADR-0175)"`, ở task đầu tiên dùng tên đó (Task 3 cho ba tên đầu, Task 9 cho «Tạo vé», Task 14 cho ba tên quét, Task 15 cho «Đối chiếu vé»). Chủ muốn «một bộ danh mục thuật ngữ chuyên nghiệp, bài bản». Bộ đó đã có là bảng tham chiếu ngôn ngữ (ADR-0167, `docs/BANG-THAM-CHIEU.md`, 113 khái niệm, mỗi khái niệm có nghĩa, khác với, chữ đã loại, mã nội bộ, ai chốt). Việc ở đây: soạn đủ mục cho từng thuật ngữ vé dưới đây, kèm tên tiếng Anh chuẩn ngành dùng trên vé, để chủ duyệt một lần; chưa duyệt thì khai trạng thái «chờ chọn» và vẫn thi công được phần máy chủ (Task 1, 2, 4–8).
 
   | Tên đề xuất | Nghĩa (một câu) | Khác với | Tiếng Anh trên vé / chuẩn ngành |
   |---|---|---|---|
