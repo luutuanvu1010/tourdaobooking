@@ -415,3 +415,21 @@ test("ADR-0184 việc 5 — chuyến không có cho phép: số Trang chủ bằ
     tat();
   }
 });
+
+test("L6 (đợt sửa 1): ghi chú 201 ký tự → 400 với câu «tối đa 200 ký tự» ở ngay thân lệnh (ngưỡng đầu và câu báo khớp); đúng 200 ký tự qua", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    denGio("12:40");
+    const dai = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_KHAC", ghiChu: "a".repeat(201) });
+    assert.equal(dai.status, 400, dai.text);
+    assert.equal(dai.json.error.message, "Ghi chú dài tối đa 200 ký tự.");
+    khongGhiGi(w, t.id);
+    const vua = await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_KHAC", ghiChu: "a".repeat(200) });
+    assert.ok(vua.status === 200 || vua.status === 201, vua.text);
+  } finally {
+    tat();
+  }
+});

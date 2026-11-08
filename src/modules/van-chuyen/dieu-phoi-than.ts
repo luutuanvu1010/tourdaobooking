@@ -1,5 +1,6 @@
 // ĐỌC THÂN YÊU CẦU của các lệnh chuyến xe (kế hoạch mục 1.7; contracts: TaoChuyenRequest …). Danh sách TRẮNG từng khoá — khoá lạ bị bỏ qua, không bao giờ
 // nhận chữ tự do cho lý do (I18: chỉ MÃ lý do), không nhận giờ ghi nhận / dấu lệnh / khoá nơi từ trình duyệt. Logic thuần (không I/O), trả lời báo tiếng Việt.
+import { GHI_CHU_TOI_DA } from "../../shared/cho-chay-thieu-giay";
 import { TOI_DA_CHANG_MOT_LAN } from "../../shared/dieu-phoi-loc";
 import { UUID_RE } from "../../shared/http";
 import { vnLocalToMs } from "../../shared/vn-date";
@@ -223,7 +224,7 @@ export function docChoChayThieu(body: Record<string, unknown> | null): KetQua<Ch
   const lyDo = body.lyDo === undefined || body.lyDo === null ? null : body.lyDo;
   if (lyDo !== null && (typeof lyDo !== "string" || !MA_RE.test(lyDo))) return fail("Chọn lý do trong danh mục.");
   const ghiChu = body.ghiChu === undefined || body.ghiChu === null ? null : body.ghiChu;
-  if (ghiChu !== null && (typeof ghiChu !== "string" || ghiChu.length > 2000)) return fail("Ghi chú dài tối đa 200 ký tự.");
+  if (ghiChu !== null && (typeof ghiChu !== "string" || ghiChu.length > GHI_CHU_TOI_DA)) return fail(`Ghi chú dài tối đa ${GHI_CHU_TOI_DA} ký tự.`);
   return { ok: true, value: { version: v.value, requestId: rid.value, loaiGiayTo: [...new Set(ds as string[])], lyDo, ghiChu } };
 }
 
