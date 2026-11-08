@@ -207,7 +207,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (79)
+## Việc chờ chọn (81)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -237,6 +237,8 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Nhận · Đang nhận… | `web/viec-cua-toi.ts`: Nhận | Việc của tôi: nhận đơn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Sửa số khách | `web/viec-cua-toi.ts`: Sửa số khách<br>`web/viec-cua-toi.ts`: Xác nhận<br>`web/viec-cua-toi.ts`: Đóng | Việc của tôi: sửa số khách (hướng dẫn viên) | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Huỷ đơn | `web/viec-cua-toi.ts`: Huỷ đơn<br>`web/viec-cua-toi.ts`: Không huỷ | Việc của tôi: huỷ đơn | rà soát 2026-11-04: chưa rõ, chờ chủ |
+| Lưu | `web/thanh-duoi-cai-dat.ts`: Lưu | Trang Tôi | AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới») |
+| Về mặc định | `web/thanh-duoi-cai-dat.ts`: Về mặc định | Trang Tôi | AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới») |
 | Gửi Zalo | `web/ve-don.ts`: Gửi Zalo | Vé điện tử: giao vé | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Tạo đường dẫn cho khách · Sao chép | `web/ve-don.ts`: Tạo đường dẫn cho khách<br>`web/ve-don.ts`: Sao chép | Vé điện tử: giao vé | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Ngừng | `web/hoa-hong-hop.ts`: ⟪o.nhan⟫<br>`web/hoa-hong-cap.ts`: ⟪nhanViec(v, loai)⟫ | Hoa hồng: ngừng một dòng mức | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -572,8 +574,8 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| **Lưu** | Tôi › mục «Nút thanh dưới» (chỉ điện thoại) | Lưu các trang đang đánh dấu (tối đa 4) làm nút thanh dưới điện thoại của chính tài khoản, theo thứ tự trong danh sách; nút «Tôi» luôn có ở cuối. Lưu ở máy chủ nên đổi máy vẫn còn. Máy chủ từ chối trang mình không mở được, và không cho đổi khi Toàn quyền đang xem như vai trò khác. Trang nào sau này không còn mở được thì tự mất khỏi thanh dưới. | không | được: lưu lại cách khác hoặc bấm «Về mặc định» | `/api/account/thanh-duoi`<br>nhật ký `bottom_tabs_changed` | `web/thanh-duoi-cai-dat.ts`: Lưu | đã chốt (chữ dùng chung «Lưu»; tên mục «Nút thanh dưới» chủ chọn 2026-11-09 trong hộp hỏi (ADR-0187 Đ2.3)) |
-| **Về mặc định** | Tôi › mục «Nút thanh dưới» (chỉ hiện khi đã tự chọn) | Bỏ các trang đã tự chọn: thanh dưới quay về cách Nền tảng tự xếp theo quyền như trước. Không xoá gì khác. | không | được: chọn lại rồi bấm «Lưu» | `/api/account/thanh-duoi`<br>nhật ký `bottom_tabs_changed` | `web/thanh-duoi-cai-dat.ts`: Về mặc định | đã chốt (chủ chọn 2026-11-09 trong hộp hỏi (ADR-0187 Đ2.3)) |
+| **Lưu** | Tôi › mục «Nút thanh dưới» (chỉ điện thoại) | Lưu các trang đang đánh dấu (tối đa 4) làm nút thanh dưới điện thoại của chính tài khoản, theo thứ tự trong danh sách; nút «Tôi» luôn có ở cuối. Lưu ở máy chủ nên đổi máy vẫn còn. Máy chủ từ chối trang mình không mở được, và không cho đổi khi Toàn quyền đang xem như vai trò khác. Trang nào sau này không còn mở được thì tự mất khỏi thanh dưới. | không | được: lưu lại cách khác hoặc bấm «Về mặc định» | `/api/account/thanh-duoi`<br>nhật ký `bottom_tabs_changed` | `web/thanh-duoi-cai-dat.ts`: Lưu | chờ chọn (AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới»)) |
+| **Về mặc định** | Tôi › mục «Nút thanh dưới» (chỉ hiện khi đã tự chọn) | Bỏ các trang đã tự chọn: thanh dưới quay về cách Nền tảng tự xếp theo quyền như trước. Không xoá gì khác. | không | được: chọn lại rồi bấm «Lưu» | `/api/account/thanh-duoi`<br>nhật ký `bottom_tabs_changed` | `web/thanh-duoi-cai-dat.ts`: Về mặc định | chờ chọn (AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới»)) |
 
 ### Vé điện tử: đơn
 

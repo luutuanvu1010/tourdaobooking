@@ -1141,8 +1141,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/thanh-duoi-cai-dat.ts", chu: "Lưu" },
     ],
-    trangThai: "da-chot",
-    nguonTen: "chữ dùng chung «Lưu»; tên mục «Nút thanh dưới» chủ chọn 2026-11-09 trong hộp hỏi (ADR-0187 Đ2.3)",
+    trangThai: "cho-chon",
+    nguonTen: 'AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới»)',
   },
   {
     nhom: "Trang Tôi",
@@ -1156,8 +1156,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/thanh-duoi-cai-dat.ts", chu: "Về mặc định" },
     ],
-    trangThai: "da-chot",
-    nguonTen: "chủ chọn 2026-11-09 trong hộp hỏi (ADR-0187 Đ2.3)",
+    trangThai: "cho-chon",
+    nguonTen: 'AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới»)',
   },
   {
     nhom: "Vé điện tử: đơn",

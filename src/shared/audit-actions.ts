@@ -387,7 +387,7 @@ export const AUDIT_ACTIONS = {
   // ADR-0180 Đ1: Toàn quyền bật / thoát chế độ "xem như vai khác". `detail` CHỈ là mã quyền của vai (ví dụ "SALES") — không SĐT, email, tên.
   acting_role_set: { label: "Bắt đầu xem như vai trò khác", group: "staff" },
   acting_role_cleared: { label: "Thoát chế độ xem như vai trò khác", group: "staff" },
-  // ADR-0187 Đ2.3: người dùng đổi nút thanh dưới điện thoại của chính mình. `detail` = nhãn các trang đã chọn hoặc «Về mặc định» — không dữ liệu cá nhân. Tên chủ chọn 9/11.
+  // ADR-0187 Đ2.3: người dùng đổi nút thanh dưới điện thoại của chính mình. `detail` = nhãn các trang đã chọn hoặc «Về mặc định» — không dữ liệu cá nhân. Tên AI chọn theo lời chủ 9/11 «không cần hỏi, làm theo phương án tốt nhất» — chờ chủ xem lại.
   bottom_tabs_changed: { label: "Đổi nút thanh dưới", group: "staff" },
   mfa_reset: { label: "Tắt bảo mật hai lớp của tài khoản", group: "staff" },
   // ADR-0121 đ4, đ7 + ADR-0125 đ5: TÊN đặt trước ở lát H-4 (chưa route nào ghi). Lát ADR-0121 PHẢI ghi đúng hai tên này, target_type 'staff', target_id = tài khoản,

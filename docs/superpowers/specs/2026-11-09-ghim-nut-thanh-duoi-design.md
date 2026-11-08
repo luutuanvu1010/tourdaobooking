@@ -19,7 +19,7 @@ Thanh dưới điện thoại có 5 chỗ, máy tự xếp theo `THANH_TAB` (`sr
 | 7 | Đang «Xem như vai trò khác»: thanh dưới dùng mặc định của vai đang xem, không đổi được | giao việc |
 | 8 | Không thêm trường vào bản nhớ khung tạm (ADR-0035): khung tạm vẽ mặc định, khung thật vẽ nút đã chọn | giao việc |
 
-## 3. Chữ giao diện (chủ chọn 9/11 trong hộp hỏi — có thể là phương án khuyến nghị tự chọn khi hết giờ)
+## 3. Chữ giao diện (AI chọn phương án khuyến nghị 9/11; chủ nhắn qua phiên điều phối «không cần hỏi, làm theo phương án tốt nhất» — khai «chờ chọn» ở Bảng tham chiếu để chủ xem lại)
 - Tên mục ở trang Tôi: **«Nút thanh dưới»**. Nút lưu: **«Lưu»** (chữ dùng chung đã có trong Bảng tham chiếu). Nút trả về: **«Về mặc định»**.
 - Nhãn nhật ký: **«Đổi nút thanh dưới»**.
 - Phạm vi: chỉ **các trang đã có dòng ở `THANH_TAB`** (có biểu tượng sẵn): Trang chủ, Đơn hàng, Tạo đơn, Tài khoản, Sổ công nợ, Danh bạ, Thiết lập, Cuốc của tôi, Báo bận, Hỗ trợ (trang Trang chủ của tài xế cùng tên «Trang chủ»). Nhãn và biểu tượng lấy từ dòng `THANH_TAB`; **bỏ qua `chiKhi` của dòng** (chính `chiKhi` làm mất «Sổ công nợ»).
