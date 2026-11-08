@@ -928,6 +928,12 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
 .scn-nhom-dau { display: flex; justify-content: space-between; gap: var(--s3); margin: 0 0 var(--s2); padding-bottom: var(--s2); font-size: var(--fs-label); border-bottom: 2px solid var(--c-border); }
 .scn-nhom[data-nhom="dangGiu"] .scn-nhom-dau strong { color: var(--c-primary); }
 .scn-nhom[data-nhom="congTyNo"] .scn-nhom-dau strong { color: var(--c-sand-text); }
+/* ADR-0187 Đ3 mức (a): danh sách «Cần người thứ hai soát» trong Sổ công nợ */
+.scn-soat-dong { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s3) var(--s2); border-bottom: 1px solid var(--c-line); }
+.scn-soat-than { display: flex; flex-direction: column; gap: var(--s1); min-width: 0; overflow-wrap: anywhere; }
+.scn-soat-ma { font-weight: var(--fw-bold); }
+.scn-soat-cho { color: var(--c-sand-text); font-weight: var(--fw-bold); }
+.scn-soat-dong .nut { flex: none; }
 .scn-don { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s1) var(--s3); padding: var(--s2) 0; border-bottom: 1px solid var(--c-line); }
 .scn-don-ma { font-weight: var(--fw-bold); }
 .scn-don-tien { grid-row: 1; grid-column: 2; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }

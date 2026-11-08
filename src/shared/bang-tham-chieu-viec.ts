@@ -8,6 +8,21 @@ import type { MucBoQua, ViecQuanTrong } from "./bang-tham-chieu.ts";
 
 export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   {
+    nhom: "Tách nhiệm vụ (tiền)",
+    manHinh: "Sổ công nợ › bộ lọc «Cần người thứ hai soát»",
+    ten: "Đã soát",
+    thatSuLam: "Ghi nhận rằng BẠN (Kế toán khác hoặc Toàn quyền) đã xem một dòng tiền do chính người lập đơn ghi. Không đổi số tiền. Máy chủ và CSDL cùng chặn nếu bạn chính là người đã ghi dòng đó (403), hay dòng đã có người soát (409).",
+    hoiLai: "không",
+    hoanTac: "không: dòng soát chỉ-thêm; soát nhầm thì báo Kế toán trưởng (nhật ký còn tên người soát)",
+    duongLenh: ["/api/ledger/tu-ghi/:x/da-soat"],
+    maNhatKy: ["ledger_self_write_reviewed"],
+    noiDat: [
+      { tep: "web/so-cong-no.ts", chu: "Đã soát" },
+    ],
+    trangThai: "da-chot",
+    nguonTen: "ADR-0187 Đ3 mức (a), chủ duyệt 2026-11-08 «Duyệt, mức a» — chữ nguyên văn ADR",
+  },
+  {
     nhom: "Kiểm vé đơn chờ",
     manHinh: "Đơn chờ xác nhận (danh sách thẻ)",
     ten: "Kiểm vé",
@@ -4951,7 +4966,7 @@ export const BO_QUA: readonly MucBoQua[] = [
   { tep: "web/hoa-hong-tra-nhanh.ts", chu: "Bỏ chọn", lyDo: "«Bỏ chọn» của ô tra nhanh, chỉ xoá lựa chọn trên màn" },
   { tep: "web/hoa-hong-tra-nhanh.ts", chu: "Đóng", lyDo: "nút «Đóng» hộp tra nhanh" },
   { tep: "web/so-dai-ly-ui.ts", chu: "Bỏ chọn", lyDo: "«Bỏ chọn» của ô chọn dịch vụ" },
-  { tep: "web/so-cong-no.ts", chu: "‹…› (‹…›)", lyDo: "dòng lọc của Sổ công nợ, chỉ đọc" },
+  { tep: "web/so-cong-no.ts", chu: "‹…› (‹…›)", lyDo: "dòng lọc của Sổ công nợ, chỉ đọc (gồm chip «Cần người thứ hai soát (n)» — ADR-0187 Đ3 mức (a))" },
   { tep: "web/so-cong-no.ts", chu: "‹ Danh sách", lyDo: "«‹ Danh sách» của Sổ công nợ, chỉ quay lại" },
   { tep: "web/hoa-hong-lich-su.ts", chu: "⟪nhanNutLichSu(ds.length, false)⟫", lyDo: "«Xem lịch sử (n)» mở danh sách, chỉ đọc" },
   { tep: "web/hoa-hong-tra-nhanh.ts", chu: "Xem mức này ↓", lyDo: "«Xem mức này ↓» chỉ cuộn tới dòng trên trang, không ghi" },
