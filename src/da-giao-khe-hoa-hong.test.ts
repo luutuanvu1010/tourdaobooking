@@ -33,7 +33,6 @@ function setup(): W {
   seedStaff(w.sqlite, { id: ADMIN, phone: "0900000006", name: "Quản trị", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: HR, phone: "0900000007", name: "Nhân sự", perms: ["HR"] });
   seedStaff(w.sqlite, { id: PT, phone: "0900000008", name: "Đối tác Lan", perms: ["PARTNER"] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('ptr-66666666-6666-4666-8666-6666666666aa', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`pty-${PT}`, AT, AT);
   return w;
 }
 function nhap(w: W, booker: string | null, tong = 2_000_000): string {

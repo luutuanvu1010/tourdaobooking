@@ -17,7 +17,6 @@ const IP = (n: number) => ({ "cf-connecting-ip": `203.0.113.${n}` });
 
 function dung() {
   const w = setup();
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${PARTNER}`, `pty-${PARTNER}`, AT, AT);
   seedStaff(w.sqlite, { id: PF, phone: "0900000018", name: "Lai PF", perms: ["PARTNER", "FIELD"] });
   return w;
 }

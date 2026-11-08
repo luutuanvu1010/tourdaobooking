@@ -17,7 +17,6 @@ type W = ReturnType<typeof setup>;
 function dung(): W {
   const w = setup();
   seedStaff(w.sqlite, { id: DT, phone: "0900000021", name: "Đối Tác Hưởng", perms: ["PARTNER"] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT}`, BEN, AT, AT);
   return w;
 }
 async function chuanBi(w: W): Promise<void> {

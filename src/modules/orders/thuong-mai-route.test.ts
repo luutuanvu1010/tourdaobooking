@@ -40,7 +40,7 @@ function setup(): W {
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
   // Vai bên ngoài chèn SAU quyền (trigger LC-1 chặn quyền nội bộ trên hồ sơ đã mang vai bên ngoài). Tài khoản lai Bán hàng + Đối tác (LAI_BAN) cũng được chèn vai sau quyền:
   // đường quản trị cũ gán PARTNER cùng quyền nội bộ mà LC-1 không chạy, nên dữ liệu thật CÓ thể có tài khoản như vậy (xem holdsPartner) — cần để thử "đơn do chính hồ sơ mình hưởng".
-  for (const [r, p] of [["r-dta", DT_A], ["r-dtb", DT_B], ["r-lai", LAI_BAN]] as const) {
+  for (const [r, p] of [["r-lai", LAI_BAN]] as const) {
     w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(r, `pty-${p}`, AT, AT);
   }
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-dla', 'ORGANIZATION', 'Đại lý C', 1, ?, ?)").run(AT, AT);

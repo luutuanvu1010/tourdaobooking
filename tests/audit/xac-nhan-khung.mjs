@@ -25,6 +25,7 @@ export function setup(tuyChon = {}) {
   seedStaff(w.sqlite, { id: B, phone: "0900000002", name: "Bình", perms: ["SALES"] });
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: H, phone: "0900000004", name: "Hướng Dẫn", perms: ["FIELD"] });
+  // Tài khoản lai Bán hàng + Đối tác chỉ còn trong dữ liệu cũ (ADR-0083 1c): seedStaff dựng theo hình dạng kiểu cũ, không vai trò đối tác (ADR-0185).
   seedStaff(w.sqlite, { id: LAI, phone: "0900000006", name: "Lai", perms: ["SALES", "PARTNER"] });
   seedStaff(w.sqlite, { id: ACC, phone: "0900000005", name: "Kế toán", perms: ["ACCOUNTING"] });
   seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });

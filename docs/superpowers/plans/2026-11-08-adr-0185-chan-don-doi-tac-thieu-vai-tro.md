@@ -85,13 +85,13 @@ Kết luận cho thiết kế:
 **Interfaces:**
 - Produces: trigger `lc1c_stf_permission_partner_needs_role`, câu lỗi mở đầu `lc1c_partner_needs_role:` (Task 2 ánh xạ); `seedStaff(sqlite, { id, phone, name, perms, vai?, kieuCu? })`, `VAI_DOI_TAC_MAC_DINH`; vai kiểu cũ `r-<id>-cu` (đã đóng), vai STAFF `r-<id>-staff`.
 
-- [ ] **Step 1: Viết bài đỏ** `src/migrations-lc1c.test.ts` trên CSDL dựng từ mọi `migrations/*.sql` (khuôn các bài `src/migrations-*.test.ts`), mỗi ca một tài khoản mới:
+- [x] **Step 1: Viết bài đỏ** `src/migrations-lc1c.test.ts` trên CSDL dựng từ mọi `migrations/*.sql` (khuôn các bài `src/migrations-*.test.ts`), mỗi ca một tài khoản mới:
   - mở PARTNER khi hồ sơ chỉ mang vai `STAFF` → `assert.throws(…, /lc1c_partner_needs_role/)`; khi tài khoản chưa gắn hồ sơ (`party_id` NULL) → cũng ném
   - hồ sơ mở `TRAVEL_AGENCY` → không ném; vai do Kế toán thêm (nhóm OTHER, `is_partner_label = 1`) → không ném; vai `DRIVER_EXTERNAL` → không ném (ca lọt có ghi, K5)
   - dòng PARTNER chèn sẵn `valid_to_at` → không ném; quyền `SALES` trên hồ sơ không vai → không ném
   - `seedStaff` kiểu cũ (`kieuCu: true`) và lai (`["SALES","PARTNER"]`): còn PARTNER mở, không vai nhóm EXTERNAL mở, có vai `STAFF` mở
-- [ ] **Step 2:** `node --test src/migrations-lc1c.test.ts` → FAIL (ca đầu không ném; ca seedStaff lai ném lc1_external… nếu chưa sửa gieo).
-- [ ] **Step 3: Tạo migration 0149**, đúng điều kiện K5 (view công bố của `parties`, như LC-1):
+- [x] **Step 2:** `node --test src/migrations-lc1c.test.ts` → FAIL (ca đầu không ném; ca seedStaff lai ném lc1_external… nếu chưa sửa gieo).
+- [x] **Step 3: Tạo migration 0149**, đúng điều kiện K5 (view công bố của `parties`, như LC-1):
 
 ```sql
 CREATE TRIGGER lc1c_stf_permission_partner_needs_role BEFORE INSERT ON stf_permission
@@ -101,16 +101,16 @@ WHEN NEW.valid_to_at IS NULL AND NEW.permission_type_code = 'PARTNER'
 BEGIN SELECT RAISE(ABORT, 'lc1c_partner_needs_role: tài khoản Đối tác phải có hồ sơ mang vai trò đối tác'); END;
 ```
 
-- [ ] **Step 4:** chạy lại Step 2 → PASS.
-- [ ] **Step 5: Gieo** (đã làm trong lúc đo, soát lại khi commit): `seedStaff` theo K8; `setup()` bỏ `kieuCu` của LAI (lai tự dựng); `build()` dựng `s-lai` kiểu cũ (`r-lai-cu` mở → PARTNER → đóng); `schemaWithoutGuards` gỡ thêm trigger lc1c; bỏ dòng vai thừa ở 25 tệp.
-- [ ] **Step 6:** chạy danh sách tệp của lần đo D (`node --test <84 tệp>`) → xanh, trừ đúng một bài chờ mã Task 2 (`quyen-kieu-cu` «tập một phía vẫn 201»: tạo Đối tác bằng đường cũ nay ra 500 vì trigger chưa được dịch). Quyết định từng bài đổi nghĩa (đã làm):
+- [x] **Step 4:** chạy lại Step 2 → PASS.
+- [x] **Step 5: Gieo** (đã làm trong lúc đo, soát lại khi commit): `seedStaff` theo K8; `setup()` bỏ `kieuCu` của LAI (lai tự dựng); `build()` dựng `s-lai` kiểu cũ (`r-lai-cu` mở → PARTNER → đóng); `schemaWithoutGuards` gỡ thêm trigger lc1c; bỏ dòng vai thừa ở 25 tệp.
+- [x] **Step 6:** chạy danh sách tệp của lần đo D (`node --test <84 tệp>`) → xanh, trừ đúng một bài chờ mã Task 2 (`quyen-kieu-cu` «tập một phía vẫn 201»: tạo Đối tác bằng đường cũ nay ra 500 vì trigger chưa được dịch). Quyết định từng bài đổi nghĩa (đã làm):
   - Chỉ lập / sửa / đọc mà cần Đối tác «không bị ép bên đặt» ⇒ thêm tài khoản kiểu cũ riêng `DT_CU` / `PARTNER_CU` (`an-khach-route` (n), (n4); `thuc-tap-gia-route` (vii) phần giảm giá; `tran-giam-gia-don` DT0 dựng `kieuCu`).
   - Có bước Gửi đơn / Còn vé ⇒ giữ Đối tác có vai, đổi khẳng định theo luật mới (`an-khach-route` (f), (g), RF5, (n3), (n7), (g3): bên đặt = hồ sơ của chính Đối tác; `dat-coc-route` (b1): vai `BOOKER`; (d2): gieo mức 15% để trần giảm giá không chặn trước cổng lời khai).
   - Ca vai `STAFF` của lời khai đặt cọc chỉ còn tới qua tài khoản đã thôi quyền Đối tác ⇒ `dat-coc-route` (b3), (b5) và sổ vàng `SV-DC-01`, `SV-DC-03` đi đường đó (sổ vàng giữ nguyên số; `SV-DC-04` Hết vé dùng Đối tác có vai — không dòng sổ nào).
   - Đếm hồ sơ được hưởng ⇒ tính thêm hồ sơ của Đối tác (`cap-hien-hanh-route` (f2), (f3)); loại bị tắt ⇒ kết thúc vai mặc định trước (`loai-doi-tac` N-9); vai đóng ngày ⇒ UPDATE vai mặc định (`ben-dat-cua-toi`).
   - Đường quyền cũ (PUT `…/permissions`) chỉ còn cho tài khoản chưa gán vai trò ⇒ tài khoản đi đường đó dựng `kieuCu` (`hai-lop-email-bat`, `quyen-kieu-cu`, `tai-khoan-lai`, `tat-hai-lop`); Đối tác «hồ sơ mang loại» gieo `vai` là loại đó (`loai-doi-tac-noi-bo` N-7 (b)); trở lại Đối tác bằng đường cũ bị cấm ⇒ đi bằng vai trò (`tat-hai-lop` vòng sửa 1).
-- [ ] **Step 7: Phép phá H3:** đổi tạm tên tệp `migrations/0149_…sql` thành `.bak` → `node --test src/migrations-lc1c.test.ts` ĐỎ ở ca «chỉ mang vai STAFF» → trả tên → XANH. Ghi ngày + lệnh để Task 6 chép vào sổ hàng rào.
-- [ ] **Step 8:** `npm run typecheck` (0 lỗi) rồi commit: «ADR-0185 Task 1: trigger lc1c và dữ liệu thử có vai trò đối tác».
+- [x] **Step 7: Phép phá H3:** đổi tạm tên tệp `migrations/0149_…sql` thành `.bak` → `node --test src/migrations-lc1c.test.ts` ĐỎ ở ca «chỉ mang vai STAFF» → trả tên → XANH. Ghi ngày + lệnh để Task 6 chép vào sổ hàng rào. **Đã làm 8/11 09:59:** bỏ tệp ⇒ 4/8 bài đỏ (gồm ca «chỉ mang vai STAFF», «chưa gắn hồ sơ», «vai đã kết thúc»); trả tên ⇒ 8/8 xanh.
+- [x] **Step 8:** `npm run typecheck` (0 lỗi) rồi commit: «ADR-0185 Task 1: trigger lc1c và dữ liệu thử có vai trò đối tác».
 
 ### Task 2: Đ2 — đường quyền cũ từ chối quyền bên ngoài (H2), khối «Quyền cũ», công cụ khẩn cấp
 

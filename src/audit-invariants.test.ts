@@ -75,8 +75,12 @@ function build(): DatabaseSync {
   db.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at)
            SELECT 'stp-cuu-field', 's-cuu', 'FIELD', valid_from_at, created_at, updated_at FROM stf_permission WHERE staff_id = 's-cuu'`);
   // Lai: còn SALES (backfill) THÊM quyền Đối tác (PARTNER) — tài khoản LAI, không đủ điều kiện làm người phụ trách dù còn SALES (ADR-0030 S20-5).
+  // ADR-0185 Đ2: trigger lc1c chỉ cho mở PARTNER khi hồ sơ mang vai trò đối tác — dựng hình dạng KIỂU CŨ bằng đường hợp lệ (cùng khuôn seedStaff của khung thử):
+  // mở vai Công ty lữ hành, mở PARTNER, kết thúc vai đó. Tài khoản lai chỉ còn trong dữ liệu cũ (ADR-0083 1c).
+  db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-lai-cu', 'pty-s-lai', 'TRAVEL_AGENCY', '2025-01-01', '${T1}', '${T1}')`);
   db.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at)
            SELECT 'stp-lai-partner', 's-lai', 'PARTNER', valid_from_at, created_at, updated_at FROM stf_permission WHERE staff_id = 's-lai'`);
+  db.exec(`UPDATE pty_party_role SET valid_to_date = '2025-01-01' WHERE id = 'r-lai-cu'`);
   db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-xa', 'PERSON', 'Lê Văn Xa', 1, '${T1}', '${T1}')`);
   db.exec(`INSERT INTO pty_person (party_id, family_name, middle_name, given_name, created_at, updated_at) VALUES ('pty-xa', 'Lê', 'Văn', 'Xa', '${T1}', '${T1}')`);
   return db;
@@ -698,7 +702,11 @@ test("R-AUT-MFA-1: tài khoản đã ngưng, tài khoản chỉ quyền bên ngo
   const db = build();
   boHan(db, "s-binh"); // đã ngưng
   db.exec(`INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at) VALUES
-           ('s-dt', '', '0901000009', 'x', 'sales', 1, '${T1}'), ('s-tx', '', '0901000011', 'x', 'sales', 1, '${T1}'), ('s-rong', '', '0901000010', 'x', 'sales', 1, '${T1}')`);
+           ('s-tx', '', '0901000011', 'x', 'sales', 1, '${T1}'), ('s-rong', '', '0901000010', 'x', 'sales', 1, '${T1}')`);
+  // ADR-0185 Đ2 (trigger lc1c): tài khoản Đối tác phải có hồ sơ mang vai trò đối tác — gieo hồ sơ + vai Công ty lữ hành TRƯỚC quyền.
+  db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-s-dt', 'PERSON', 'Đối Tác', 1, '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-s-dt', 'pty-s-dt', 'TRAVEL_AGENCY', '2026-01-01', '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES ('s-dt', '', '0901000009', 'x', 'sales', 1, '${T1}', 'pty-s-dt')`);
   db.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES
            ('p-dt', 's-dt', 'PARTNER', '${T1}', '${T1}', '${T1}'), ('p-tx', 's-tx', 'DRIVER_PARTNER', '${T1}', '${T1}', '${T1}')`);
   assert.equal(violations(db, one("R-AUT-MFA-1")), 0);
@@ -767,6 +775,7 @@ function schemaWithoutGuards(): DatabaseSync {
   for (const f of FILES) db.exec(sqlText(f));
   db.exec("DROP TRIGGER lc1_stf_permission_external_partner_only; DROP TRIGGER pty_party_role_group_conflict_ins; DROP TRIGGER pty_party_role_group_conflict_upd;");
   db.exec("DROP TRIGGER lc1b_stf_permission_driver_partner_alone;");
+  db.exec("DROP TRIGGER lc1c_stf_permission_partner_needs_role;"); // ADR-0185 Đ2: dựng được tài khoản Đối tác thiếu vai trò (R-LC-1c phải bắt)
   return db;
 }
 function guardSeed(db: DatabaseSync, id: string, roles: string[], perms: string[]): void {

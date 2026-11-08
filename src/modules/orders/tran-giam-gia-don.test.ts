@@ -39,15 +39,14 @@ async function setup(): Promise<W> {
     [SALES, "0900000001", ["SALES"]], [ADMIN, "0900000002", ["ADMIN"]], [KT, "0900000003", ["ACCOUNTING"]], [DT, "0900000004", ["PARTNER"]],
     [DT0, "0900000005", ["PARTNER"]], [LAI, "0900000006", ["SALES", "PARTNER"]], [INTERN, "0900000007", ["INTERN"]],
   ];
-  for (const [id, phone, perms] of ai) seedStaff(w.sqlite, { id, phone, name: `NV ${phone.slice(-1)}`, perms });
+  for (const [id, phone, perms] of ai) seedStaff(w.sqlite, { id, phone, name: `NV ${phone.slice(-1)}`, perms, ...(id === DT0 ? { kieuCu: true } : {}) });
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 790000, 1, '2026-01-01', '2026-01-01')");
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA2', 'Tour lặn', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
   toChuc(w, DLA, "Đại lý A");
   toChuc(w, DLB, "Đại lý B");
   toChuc(w, DLC, "Đại lý C");
   toChuc(w, DLD, "Đại lý D");
-  // Đối tác DT: hồ sơ cá nhân mang vai được hưởng ⇒ bên đặt luôn là chính hồ sơ đó (sổ đại lý đợt 1). DT0, LAI: hồ sơ không mang vai được hưởng ⇒ đơn khách lẻ.
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT}`, `pty-${DT}`, AT, AT);
+  // Đối tác DT: hồ sơ cá nhân mang vai được hưởng ⇒ bên đặt luôn là chính hồ sơ đó (sổ đại lý đợt 1). DT0 (tài khoản Đối tác kiểu cũ — ADR-0185), LAI: hồ sơ không mang vai được hưởng ⇒ đơn khách lẻ.
   await muc(w, DLA, 1000);
   await muc(w, DLB, 1000);
   await muc(w, DLC, 1500);
@@ -266,7 +265,6 @@ const dongTinhTay = (d: DauVaoVang) => d.dich_vu.map((x) => {
 async function setupVuot(d: DauVaoVang): Promise<W> {
   const w = await setup();
   seedStaff(w.sqlite, { id: DTV, phone: "0900000008", name: "NV 8", perms: ["PARTNER"] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DTV}`, `pty-${DTV}`, AT, AT);
   toChuc(w, DLE, "Đại lý E");
   for (const x of d.dich_vu) {
     w.sqlite.prepare("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES (?, ?, 'perPax', ?, 1, '2026-01-01', '2026-01-01')").run(x.ma, x.ten, x.gia_moi_khach);

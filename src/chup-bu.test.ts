@@ -40,7 +40,6 @@ function setup(): W {
     [KT, "0900000004", "Lan Kế Toán", ["ACCOUNTING"]], [SUPER, "0900000005", "Chủ", ["SUPER_ADMIN"]], [PT, "0900000006", "Đại Lý A", ["PARTNER"]],
     [LAI_KT, "0900000007", "Khoa Lai Kế", ["ACCOUNTING", "PARTNER"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-pt', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`pty-${PT}`, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Đại lý C', 1, ?, ?)").run(DAI_LY, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-dlc', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(DAI_LY, AT, AT);
   return w;

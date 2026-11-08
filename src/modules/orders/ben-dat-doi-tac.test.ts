@@ -44,8 +44,8 @@ function setup(): W {
   seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An Bán", perms: ["SALES"] });
   seedStaff(w.sqlite, { id: KT, phone: "0900000005", name: "Lan Kế Toán", perms: ["ACCOUNTING"] });
   seedStaff(w.sqlite, { id: DT, phone: "0900000008", name: "Đối Tác Một", perms: ["PARTNER"] });
-  seedStaff(w.sqlite, { id: DT2, phone: "0900000009", name: "Đối Tác Hai", perms: ["PARTNER"] });
-  seedStaff(w.sqlite, { id: DT3, phone: "0900000010", name: "Đối Tác Ba", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: DT2, phone: "0900000009", name: "Đối Tác Hai", perms: ["PARTNER"], kieuCu: true }); // hồ sơ không vai trò đối tác (ADR-0185: dựng kiểu cũ)
+  seedStaff(w.sqlite, { id: DT3, phone: "0900000010", name: "Đối Tác Ba", perms: ["PARTNER"], kieuCu: true });
   seedStaff(w.sqlite, { id: LAI, phone: "0900000011", name: "Lai Bán Đối Tác", perms: ["SALES", "PARTNER"] });
   // Đối tác phải dùng đúng giá danh mục (R2): hai mã danh mục giả.
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
@@ -55,7 +55,6 @@ function setup(): W {
   toChuc(w, KXH, "Công ty Không Hưởng", "SUPPLIER");
   caNhan(w, KHACH, "Khách Lẻ", "CUSTOMER");
   caNhan(w, HDV, "Hướng Dẫn Tự Do", "GUIDE_FREELANCE");
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT}`, `pty-${DT}`, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'CUSTOMER', '2026-01-01', ?, ?)").run(`r-${DT2}`, `pty-${DT2}`, AT, AT);
   w.sqlite.prepare("UPDATE staff SET party_id = NULL WHERE id = ?").run(DT3);
   return w;

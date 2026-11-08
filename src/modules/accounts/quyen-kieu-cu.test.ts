@@ -19,7 +19,7 @@ function setup() {
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: HR, phone: "0900000004", name: "Nhân sự", perms: ["HR"] });
   seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
-  seedStaff(w.sqlite, { id: CU, phone: "0900000009", name: "Đối tác cũ", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: CU, phone: "0900000009", name: "Đối tác cũ", perms: ["PARTNER"], kieuCu: true }); // chưa gán vai trò (ADR-0185: hình dạng kiểu cũ)
   seedStaff(w.sqlite, { id: BH, phone: "0900000008", name: "Bán hàng cũ", perms: ["SALES"] });
   return w;
 }
