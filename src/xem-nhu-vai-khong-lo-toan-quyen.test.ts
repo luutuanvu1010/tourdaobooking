@@ -59,7 +59,7 @@ const MODULES: readonly [string, string][] = [
   ["locations", "locationsModule"], ["maintenance", "maintenanceModule"], ["orders", "ordersModule"], ["parties", "partiesModule"], ["pricing", "pricingModule"],
   ["receipt", "receiptModule"], ["thongbao", "thongbaoModule"], ["van-chuyen", "vanChuyenModule"], ["tro-ly", "troLyModule"], ["ve-dien-tu", "veDienTuModule"],
 ];
-const SO_ROUTE = 469; // 2026-11-08 ADR-0187 Đ3 mức (a): + 3 route /api/ledger/tu-ghi* (khớp SNAPSHOT của route-access.test.ts)
+const SO_ROUTE = 471; // = số khoá ở route-access.test.ts (SNAPSHOT). ADR-0184: +1 GET /api/van-chuyen/cho-chay-thieu/dem (đọc, office); ADR-0187 Đ3 mức (a): +3 route /api/ledger/tu-ghi*; gộp hai nhánh 8/11 = 471
 
 let routesCache: R[] | null = null;
 async function bangRoute(): Promise<R[]> {

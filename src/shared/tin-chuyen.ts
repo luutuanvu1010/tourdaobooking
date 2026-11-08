@@ -4,6 +4,7 @@
 import { can, type PermissionHolder } from "./permissions.ts";
 import type { ThayDoiChuyen } from "./bang-tin.ts";
 import { msToVnLocal, ngayNgan } from "./vn-date.ts";
+import { nhanChoChayThieu } from "./cho-chay-thieu-giay.ts";
 
 /**
  * ADR-0104 Đ1 mục 6: ba lệnh khách (xếp / rút / dời) — sinh tin CÓ ĐIỀU KIỆN (sự kiện mang luật bị bỏ qua — CAO-C, lời chủ 2026-10-08 "Báo mọi lệnh có bỏ qua
@@ -39,6 +40,9 @@ export const HANH_DONG_TIN_CHUYEN = [
   // ADR-0112 (accepted 2026-10-09; văn bản cho phép mở danh sách đóng): nút tay "Cập nhật khách theo đơn" báo tài xế đang lái khi xe CHƯA chạy ("khach_doi",
   // cùng câu với máy đồng bộ); nhóm tin THƯỜNG, không thuộc ba lệnh khách. `trip_stops_synced` đã ở danh sách — Đ2 thêm nhánh xe chưa chạy trong `loaiCho`.
   "trip_passengers_synced",
+  // ADR-0184 (chủ quyết 2026-11-08, QT1 + D3): cho xe chạy dù thiếu giấy tờ → tài xế đang được giao chuyến (công ty lẫn đối tác) nhận tin "cho_chay_thieu" — họ chịu
+  // phạt tại chỗ nên phải biết. Nhóm THƯỜNG. Câu mang tên loại giấy (không số giấy, không ghi chú, không tên người cho phép).
+  "trip_departure_waived",
 ] as const;
 /** Phiếu kiểm D1 CAO-3: hành động sinh tin NGOÀI ba lệnh khách — nhóm cũ của hộp thông báo (trần riêng, không bị dòng xếp / rút / dời đẩy ra). */
 export const HANH_DONG_TIN_THUONG: readonly string[] = HANH_DONG_TIN_CHUYEN.filter((a) => !(HANH_DONG_TIN_KHACH as readonly string[]).includes(a));
@@ -51,7 +55,7 @@ export const HANH_DONG_TIN_THUONG: readonly string[] = HANH_DONG_TIN_CHUYEN.filt
 export const MOC_TIN_CAP_NHAT = "2026-10-12T23:00:00.000Z";
 export const laHanhDongTinChuyen = (a: string): boolean => (HANH_DONG_TIN_CHUYEN as readonly string[]).includes(a);
 export type LoaiTinChuyen =
-  | "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi" | "thu_hoi_xuat_ben" | "dieu_chinh" | "khan_cap" | "khach_doi" | "tu_choi"
+  | "xep_lai" | "go_lai" | "doi_chuyen" | "huy_chuyen" | "gian_doan" | "khach_vang" | "xe_chay_doi" | "thu_hoi_xuat_ben" | "dieu_chinh" | "khan_cap" | "khach_doi" | "tu_choi" | "cho_chay_thieu"
   // ADR-0111 (gói A5): xe nhận có đề nghị tới; kết quả đề nghị (xe nhận / xe nhờ); đề nghị leo thang chờ duyệt (trip.override).
   | "de_nghi_toi" | "de_nghi_ket_qua" | "de_nghi_can_duyet";
 /**
@@ -66,7 +70,7 @@ const CAU_KHAN_CAP: Readonly<Record<string, string>> = {
 };
 /** Dòng cần hỏi dữ kiện THEO SỰ KIỆN (`HoiChuyenChoTin.suKienIds`): khách vắng (đơn của suất) và lệnh khách có thể bỏ qua luật (cờ khanCap, vuotMoc). */
 const HANH_DONG_KHAN_CAP: ReadonlySet<string> = new Set(HANH_DONG_TIN_KHACH);
-export const canHoiTheoSuKien = (action: string): boolean => action === "trip_passenger_no_show" || HANH_DONG_KHAN_CAP.has(action) || action.startsWith("trip_transfer_");
+export const canHoiTheoSuKien = (action: string): boolean => action === "trip_passenger_no_show" || action === "trip_departure_waived" || HANH_DONG_KHAN_CAP.has(action) || action.startsWith("trip_transfer_");
 
 export interface KhoangLai { partyId: string; tu: string; den: string | null }
 export interface DonCuaTin { orderId: string; maDon: string; ownerId: string; handlerStaffId: string | null }
@@ -84,6 +88,8 @@ export interface ChuyenChoTin {
   khanCap?: string[];
   /** CAO-C: tập con của `khanCap` mang `MOC_TOI_THIEU` — câu "điều chỉnh khẩn cấp"; còn lại câu trung tính. Vắng = không có. */
   vuotMoc?: string[];
+  /** ADR-0184: tên loại giấy xe (không số giấy) của sự kiện «Cho chạy dù thiếu giấy tờ» (id trong `suKienIds` được hỏi). Vắng = không có. */
+  thieuGiay?: { suKienId: string; ten: string[] }[];
   /**
    * Phiếu kiểm D1 CAO-2 (ADR-0104 Đ1.6 :95, :232): sự kiện DỜI có bỏ qua luật (id trong `khanCap`) → chuyến NGUỒN (`related_trip_id`; sự kiện ghi ở đích).
    * Chuyến nguồn có mặt trong `chuyen` (kèm khoảng lái). Vắng = không có.
@@ -110,6 +116,8 @@ export interface DongChuyen extends DongChuyenTho {
   khanCap: boolean;
   /** CAO-C: luật bị bỏ qua là `MOC_TOI_THIEU` — câu "Văn phòng vừa điều chỉnh khẩn cấp …"; false → câu trung tính "Văn phòng vừa điều chỉnh …". */
   vuotMoc: boolean;
+  /** ADR-0184: tên loại giấy xe được cho chạy thiếu (chỉ dòng `trip_departure_waived`). Vắng = không có. */
+  thieuGiay?: readonly string[];
   /** Phiếu kiểm D1 CAO-2: dời có bỏ qua luật — chuyến NGUỒN (mã, ngày, khoảng lái) cho tin "chuyển khách đi" của tài xế nguồn. Vắng / null = không có. */
   nguon?: ChuyenCuaChang | null;
 }
@@ -133,6 +141,7 @@ function loaiCho(n: NguoiNhanChuyen, d: DongChuyen): LoaiTinChuyen | null {
     if (d.action === "trip_edited") return k.den === d.luc ? "go_lai" : k.tu === d.luc ? "xep_lai" : "doi_chuyen";
     if (HANH_DONG_XE_CHAY.has(d.action) && dangChayLucSuKien(d)) return "xe_chay_doi";
     if (d.action === "trip_departure_revoked") return "thu_hoi_xuat_ben";
+    if (d.action === "trip_departure_waived") return "cho_chay_thieu"; // ADR-0184: chỉ tài xế đang được giao chuyến; văn phòng không nhận
     if (d.khanCap && HANH_DONG_KHAN_CAP.has(d.action)) return "khan_cap"; // ADR-0104 Đ1 mục 6 + CAO-C (mọi luật bị bỏ qua): chỉ tài xế đang lái; văn phòng không nhận
     if (d.action === "trip_order_synced") return "khach_doi"; // ADR-0104 Đ2.10: chỉ tài xế đang lái; người sửa đơn (E3) và văn phòng không nhận
     // ADR-0112 Đ1, Đ2, Đ5: hai nút tay của văn phòng khi xe CHƯA chạy (xe đang chạy đã trả `xe_chay_doi` ở trên) — cùng nhánh người nhận với máy đồng bộ, chỉ từ mốc phát hành.
@@ -229,6 +238,7 @@ export function tinChuyenCho(n: NguoiNhanChuyen, d: DongChuyen): { loai: LoaiTin
       const cau = d.action === "trip_departure_revoked" ? `${hoa(c)} vừa được thu hồi lệnh cho xe chạy — mở để xem` : `${hoa(c)}: văn phòng vừa điều chỉnh kết quả một khách — mở để xem`;
       return { loai, cau, lienKet: `/chuyen?id=${id}` };
     }
+    case "cho_chay_thieu": return { loai, cau: `Chuyến ${d.maChuyen}: ${nhanChoChayThieu(d.thieuGiay && d.thieuGiay.length > 0 ? d.thieuGiay : ["giấy tờ"])}`, lienKet: `/cuoc-chuyen?id=${id}` };
     case "tu_choi": return { loai, cau: `Tài xế đã từ chối ${c} — cần xếp người khác`, lienKet: `/chuyen?id=${id}` };
     case "khach_vang": {
       const ma = d.don.find((x) => x.ownerId === n.id || x.handlerStaffId === n.id)!.maDon;
@@ -280,6 +290,7 @@ export function dungDongChuyen(tho: readonly DongChuyenTho[], f: ChuyenChoTin, d
   const donTheoId = new Map(don.map((x) => [x.orderId, x]));
   const khanCap = new Set(f.khanCap ?? []);
   const vuotMoc = new Set(f.vuotMoc ?? []);
+  const thieuGiay = new Map((f.thieuGiay ?? []).map((x) => [x.suKienId, x.ten]));
   const nguonCua = new Map([...(f.khanCapNguon ?? []), ...(f.chuyenKhachNguon ?? [])].map((x) => [x.suKienId, x.tripId]));
   const out: DongChuyen[] = [];
   for (const t of tho) {
@@ -288,7 +299,7 @@ export function dungDongChuyen(tho: readonly DongChuyenTho[], f: ChuyenChoTin, d
     const ds = f.vang.filter((v) => v.suKienId === t.id).map((v) => donTheoId.get(v.orderId)).filter((x): x is DonCuaTin => x !== undefined);
     const n = chuyen.get(nguonCua.get(t.id) ?? "");
     const nguon = n ? { tripId: n.tripId, ma: n.ma, ngayChay: n.ngayChay, lai: n.lai } : null;
-    out.push({ ...t, maChuyen: c.ma, ngayChay: c.ngayChay, lai: c.lai, don: ds, xuatBen: c.xuatBen ?? null, khanCap: khanCap.has(t.id), vuotMoc: vuotMoc.has(t.id), nguon });
+    out.push({ ...t, maChuyen: c.ma, ngayChay: c.ngayChay, lai: c.lai, don: ds, xuatBen: c.xuatBen ?? null, khanCap: khanCap.has(t.id), vuotMoc: vuotMoc.has(t.id), thieuGiay: thieuGiay.get(t.id), nguon });
   }
   return out;
 }
@@ -315,6 +326,8 @@ const THAY_DOI_CUA: Record<string, ThayDoiChuyen> = {
   trip_transfer_confirmed: "doi",
   // ADR-0053 D8.4 (kế hoạch A4 T7): tài xế từ chối — chuyến đổi (mất tài xế) → "sua" (loại sẵn có tin — chuông văn phòng gọi lại).
   trip_driver_refused: "sua",
+  // ADR-0184: cho chạy dù thiếu giấy tờ — chuyến chưa chạy đổi (xe được phép xuất bến) → "sua" (loại sẵn có tin — chuông tài xế gọi lại).
+  trip_departure_waived: "sua",
 };
 /** `dangChay` (Đợt 5): chuyến đã xuất bến lúc sự kiện — ba hành động xe đang chạy mang loại `xe_chay` (chuông tài xế gọi lại); còn lại như cũ. */
 export const thayDoiCuaHanhDongChuyen = (action: string, dangChay = false): ThayDoiChuyen =>

@@ -683,7 +683,14 @@
     {
       "name": "vc_trip_departure_check_item",
       "module": "van-chuyen",
-      "kind": "table"
+      "kind": "table",
+      "note": "dòng con bản chụp. Từ 0147 (ADR-0184): cột waiver_id trỏ dòng cho phép chạy thiếu giấy tờ; chỉ dòng DIEU_KIEN mới có (waiver_item_kind); dòng DIEU_KIEN dưới bản chụp ĐẠT bắt buộc trỏ dòng cho phép khớp chuyến, xe, loại giấy, và điều kiện phải của xe (lc05_thieu_giay_chua_cho_phep); dòng cho phép đã dùng ở bản chụp khác thì không dùng lại (waiver_da_dung)"
+    },
+    {
+      "name": "vc_trip_departure_waiver",
+      "module": "van-chuyen",
+      "kind": "table",
+      "note": "dòng cho phép chạy thiếu giấy tờ (ADR-0184; migration 0147), chỉ thêm: mỗi loại giấy một dòng, gắn chuyến chưa chạy và đúng xe hiện tại của chuyến; hiệu lực một chuyến, một lần xuất bến. Kiểm định và Bảo hiểm trách nhiệm dân sự chỉ Toàn quyền cấp; Quản trị bắt buộc có lý do (nhóm CHO_CHAY_THIEU_GIAY: Giấy đang gia hạn, Xe thay thế khẩn cấp, Khác); ghi chú tự do 10–200 ký tự, không vào nhật ký, tin, DTO tài xế, lịch chung, Bảng tin — chỉ hiện (cùng nhãn lý do) ở chi tiết chuyến của văn phòng (P12). Không có cột số giấy tờ"
     },
     {
       "name": "vc_trip_manifest",
@@ -1816,7 +1823,8 @@
     "vc_trip_allocation": { "id": "N1", "trip_id": "N1", "kind": "N1", "leg_id": "N1", "passenger_key": "N2", "crew_party_id": "N1", "board_stop_id": "N1", "alight_stop_id": "N1", "status": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "close_reason": "N1", "closed_by": "N1", "added_after_departure": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "opened_cmd_id": "N1", "closed_cmd_id": "N1", "office_cancel_at": "N1", "office_cancel_by": "N1", "office_cancel_reason_code": "N1", "corrects_allocation_id": "N1", "transfer_id": "N1", "closed_transfer_id": "N1" },
     "vc_trip_cost_line": { "id": "N1", "trip_id": "N1", "carrier_party_id": "N1", "kind": "N1", "amount": "N1", "rate_id": "N1", "route_code_snapshot": "N1", "vehicle_size_code_snapshot": "N1", "passenger_capacity_snapshot": "N1", "unit_amount_snapshot": "N1", "reason_code": "N1", "note": "N2", "reverses_id": "N1", "occurred_date": "N1", "cmd_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vc_trip_departure_check": { "id": "N1", "trip_id": "N1", "cmd_id": "N1", "policy_id": "N1", "ket_qua": "N1", "vehicle_id": "N1", "plate_number": "N1", "passenger_capacity": "N1", "owner_party_id": "N1", "driver_party_id": "N1", "rest_minutes_used": "N1", "checked_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "vc_trip_departure_check_item": { "id": "N1", "check_id": "N1", "item_kind": "N1", "vehicle_document_id": "N1", "person_document_id": "N1", "document_type_code": "N1", "license_class_code": "N1", "expiry_date": "N1", "rule_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "vc_trip_departure_check_item": { "id": "N1", "check_id": "N1", "item_kind": "N1", "vehicle_document_id": "N1", "person_document_id": "N1", "document_type_code": "N1", "license_class_code": "N1", "expiry_date": "N1", "rule_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "waiver_id": "N1" },
+    "vc_trip_departure_waiver": { "id": "N1", "trip_id": "N1", "cmd_id": "N1", "vehicle_id": "N1", "document_type_code": "N1", "expiry_date": "N1", "reason_code": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vc_trip_driver": { "id": "N1", "trip_id": "N1", "driver_party_id": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "close_reason": "N1", "closed_by": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "refuse_reason_code": "N1", "closed_by_party_id": "N1" },
     "vc_trip_event": { "id": "N1", "trip_id": "N1", "related_trip_id": "N1", "kind": "N1", "stop_id": "N1", "allocation_id": "N1", "count": "N1", "request_id": "N1", "client_at": "N1", "decided_mode": "N1", "override_rule_code": "N1", "override_reason_code": "N1", "policy_id": "N1", "occurred_at": "N1", "occurred_ms": "N1", "occurred_source": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "reason_code": "N1" },
     "vc_trip_manifest": { "id": "N1", "trip_id": "N1", "check_id": "N1", "allocation_id": "N1", "passenger_row_id": "N1", "crew_party_id": "N1", "added_after_departure": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

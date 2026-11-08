@@ -308,7 +308,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "order.confirm.review": "none", // ADR-0136 Đ4: Đối tác không xét duyệt xác nhận
     "order.submit": "own", // ADR-0136 Đ13.6: «Gửi đơn» của Đối tác — đơn của mình
     "order.service.manual": "none", // ADR-0061 điều 2: Đối tác không bao giờ nhập tay (máy chủ còn chặn mọi tài khoản có quyền Đối tác — holdsPartner)
-    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.urgent_adjust": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none", // ADR-0049 D3: Đối tác không thấy lịch xe (C1); ADR-0052 D5b: không bổ sung tên
+    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.override.giay_to_cung": "none", /* ADR-0184 */ "trip.urgent_adjust": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none", // ADR-0049 D3: Đối tác không thấy lịch xe (C1); ADR-0052 D5b: không bổ sung tên
     "trip.refuse": "none", // ADR-0053 D8 (kế hoạch A4 T3): Đối tác không lái chuyến, không Từ chối
     "unavailability.self": "none", // ADR-0053 D9 (kế hoạch A4 T8): Đối tác không báo bận tài xế
     "trip.transfer": "none", // ADR-0052 D4 / ADR-0111: Đối tác không điều xe

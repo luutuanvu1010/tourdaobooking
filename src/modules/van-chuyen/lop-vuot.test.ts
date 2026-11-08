@@ -3,10 +3,14 @@
 //       `lop === "KHAN_CAP" ? can(staff, "trip.urgent_adjust") : can(staff, "trip.override")` — để hàng rào "mỗi ô phải được máy chủ hỏi"
 //       (src/permission-enforcement.test.ts) đếm được cả hai ô;
 //   (b) ngoài bảy dòng đó, KHÔNG tệp nào khác của src/modules/van-chuyen/ (trừ bài thử) viết chuỗi ô "trip.override" / "trip.urgent_adjust" — không route
-//       nào tự hỏi ô vượt luật mà bỏ qua hàm lớp. NỚI CÓ TÊN N2 (ADR-0111 mục "Hàng rào nới"; docs/SO-HANG-RAO.md): ĐÚNG hai dòng
+//       nào tự hỏi ô vượt luật mà bỏ qua hàm lớp. NỚI CÓ TÊN N3 (ADR-0184, hai route): xem dưới. NỚI CÓ TÊN N2 (ADR-0111 mục "Hàng rào nới"; docs/SO-HANG-RAO.md): ĐÚNG hai dòng
 //       `if (!can(staff, "trip.override")) return CAN_DUYET_DE_NGHI();` — mỗi dòng ở thân route DUYỆT / BÁC đề nghị chuyển khách (không có "dưới mốc / ngoài
 //       mốc" để xếp lớp: duyệt / bác luôn là ô vượt luật của Quản trị, Toàn quyền); không dòng nào trong đó có "trip.urgent_adjust". Bài bù: Bán hàng duyệt / bác
 //       → 403 (chuyen-khach-route.test.ts NT-A5-11, -12);
+//       NỚI CÓ TÊN N3 «hai route của ADR-0184» (đợt sửa 1, P13): route cho chạy dù thiếu giấy tờ (`if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();`)
+//       và route đếm cho thẻ Trang chủ (`if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();`) — mỗi route ĐÚNG MỘT dòng hỏi thẳng, tổng đúng hai, không kèm
+//       "trip.urgent_adjust"; không còn hằng riêng để đi vòng bài này;
+//   (d) (L2) chuỗi ô mới `"trip.override.giay_to_cung"` xuất hiện ĐÚNG MỘT lần trong mã (không phải bài) của module, và nằm trong thân route cho chạy;
 //   (c) mọi lời gọi `quyenVuot(…)` (module van-chuyen + src/shared/moc-toi-thieu.ts) nhận đối số là lời gọi hàm lớp `lopVuotMoc(` / `lopVuotNghiCamKet(` /
 //       `lopCuaLuat(` — không lớp viết tay; `lopCuaLuat` chỉ dựng từ hai hàm lớp.
 import { test } from "node:test";
@@ -48,6 +52,11 @@ test("NT-3 (a): bảy route nhận cờ vượt — mỗi route đúng MỘT bi�
 /** Nới N2 (ADR-0111): hai route duyệt / bác đề nghị chuyển khách hỏi THẲNG ô trip.override, đúng một dòng mỗi route, đúng câu này. */
 const N2_ROUTE: [string, string][] = [["POST", "/api/van-chuyen/de-nghi/:rid/duyet"], ["POST", "/api/van-chuyen/de-nghi/:rid/bac"]];
 const N2_DONG = 'if (!can(staff, "trip.override")) return CAN_DUYET_DE_NGHI();';
+/** Nới N3 (ADR-0184, hai route): «Cho chạy dù thiếu giấy tờ» và «đếm cho thẻ Trang chủ» hỏi THẲNG ô trip.override (không phải luật cấu hình có lớp mốc), mỗi route đúng một dòng, đúng câu của nó. */
+const N3_ROUTE: { m: string; duong: string; dong: string }[] = [
+  { m: "POST", duong: "/api/van-chuyen/chuyen/:id/cho-chay-thieu-giay", dong: 'if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();' },
+  { m: "GET", duong: "/api/van-chuyen/cho-chay-thieu/dem", dong: 'if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();' },
+];
 /** Khoảng dòng (đánh số từ 1) của thân route `m duong` trong index.ts đã che chú thích. */
 function dongCuaRoute(src: string, m: string, duong: string): [number, number] {
   const dau = src.indexOf(`route("${m}", "${duong}",`);
@@ -57,12 +66,15 @@ function dongCuaRoute(src: string, m: string, duong: string): [number, number] {
   return [dongDau, sau < 0 ? Infinity : src.slice(0, sau).split("\n").length];
 }
 
-test("NT-3 (b): ngoài bảy dòng đổi lớp, không tệp nào của module van-chuyen viết chuỗi ô trip.override / trip.urgent_adjust (trừ nới N2: đúng hai dòng của duyệt / bác)", () => {
+test("NT-3 (b): ngoài bảy dòng đổi lớp, không tệp nào của module van-chuyen viết chuỗi ô trip.override / trip.urgent_adjust (trừ nới N2: đúng hai dòng của duyệt / bác; nới N3: đúng hai dòng của hai route ADR-0184 — cho chạy và đếm)", () => {
   const thay: string[] = [];
   let tong = 0;
   let n2 = 0;
+  let n3 = 0;
   const idx = khongChuThich(join(DIR, "index.ts"));
   const khoangN2 = N2_ROUTE.map(([m, d]) => dongCuaRoute(idx, m, d));
+  const khoangN3 = N3_ROUTE.map((r) => dongCuaRoute(idx, r.m, r.duong));
+  const demN3 = N3_ROUTE.map(() => 0);
   for (const f of tepMa) {
     khongChuThich(join(DIR, f)).split("\n").forEach((dong, i) => {
       if (!/"trip\.(override|urgent_adjust)"/.test(dong)) return;
@@ -74,17 +86,56 @@ test("NT-3 (b): ngoài bảy dòng đổi lớp, không tệp nào của module 
         n2++;
         return;
       }
+      if (f === "index.ts") {
+        const k = N3_ROUTE.findIndex((r, j) => dong.trim() === r.dong && i + 1 > khoangN3[j]![0] && i + 1 < khoangN3[j]![1]);
+        if (k >= 0) {
+          n3++;
+          demN3[k]!++;
+          return;
+        }
+      }
       thay.push(`${f}:${i + 1}`);
     });
   }
   assert.deepEqual(thay, [], "chuỗi ô vượt luật ngoài biểu thức đổi lớp");
   assert.equal(tong, BAY_ROUTE.length, "chống bài rỗng: đủ bảy dòng đổi lớp");
   assert.equal(n2, N2_ROUTE.length, "nới N2: đúng một dòng hỏi thẳng trip.override ở MỖI route duyệt / bác (không hơn, không thiếu)");
-  for (const [a, b] of khoangN2) {
+  assert.equal(n3, N3_ROUTE.length, "nới N3 (ADR-0184): đúng hai dòng hỏi thẳng trip.override — một ở route cho chạy, một ở route đếm");
+  assert.deepEqual(demN3, [1, 1], "nới N3: MỖI route đúng một dòng (không hơn, không thiếu)");
+  for (const [a, b] of [...khoangN2, ...khoangN3]) {
     const than = idx.split("\n").slice(a - 1, b - 1).join("\n");
     assert.equal(demChuoi(than, '"trip.urgent_adjust"'), 0, "nới N2 không kèm ô điều chỉnh khẩn cấp");
     assert.equal(demChuoi(than, '"trip.override"'), 1, "nới N2: thân route duyệt / bác hỏi trip.override đúng một lần");
   }
+});
+
+test("NT-3 (d, ADR-0184 L2): chuỗi ô \"trip.override.giay_to_cung\" xuất hiện ĐÚNG MỘT lần trong mã của module van-chuyen, và nằm trong thân route cho chạy dù thiếu giấy tờ", () => {
+  const O = '"trip.override.giay_to_cung"';
+  const noi: string[] = [];
+  for (const f of tepMa) {
+    const ma = khongChuThich(join(DIR, f));
+    for (let i = ma.indexOf(O); i >= 0; i = ma.indexOf(O, i + 1)) noi.push(`${f}:${ma.slice(0, i).split("\n").length}`);
+  }
+  assert.equal(noi.length, 1, `đúng một lần ở mã (thấy: ${noi.join(", ")})`);
+  const idx = khongChuThich(join(DIR, "index.ts"));
+  const [a, b] = dongCuaRoute(idx, N3_ROUTE[0]!.m, N3_ROUTE[0]!.duong);
+  const dong = Number(noi[0]!.split(":")[1]);
+  assert.equal(noi[0]!.split(":")[0], "index.ts");
+  assert.ok(dong > a && dong < b, `nằm trong thân route cho chạy (dòng ${a}–${b}), thấy dòng ${dong}`);
+});
+
+test("NT-3 (e, ADR-0184 đợt sửa 2, Thấp 2): không tệp mã nào của src/modules/** nhắc hàm bọc thaySoChoChayThieu — hàm bọc ở src/shared không được thành đường vòng quanh bài quét ô vượt luật", () => {
+  const goc = fileURLToPath(new URL("../", import.meta.url)); // src/modules/
+  const thay: string[] = [];
+  const duyet = (dir: string) => {
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const p = join(dir, e.name);
+      if (e.isDirectory()) duyet(p);
+      else if (e.name.endsWith(".ts") && !e.name.endsWith(".test.ts") && khongChuThich(p).includes("thaySoChoChayThieu")) thay.push(p.slice(goc.length));
+    }
+  };
+  duyet(goc);
+  assert.deepEqual(thay, [], "hàm bọc thaySoChoChayThieu không được gọi trong mã của module");
 });
 
 test("NT-3 (c): mọi lời gọi quyenVuot(…) nhận đối số là hàm lớp (lopVuotMoc / lopVuotNghiCamKet / lopCuaLuat); lopCuaLuat dựng từ hai hàm lớp", () => {

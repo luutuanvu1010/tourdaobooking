@@ -4572,3 +4572,58 @@ test("R-KT-1: đơn dấu Tắt có khoản khách trả còn hiệu lực với
   lanThuBil(db, { id: "kt-null-dao", order: tat2, amount: 10000, role: "UNKNOWN", reverses: "kt-null" });
   assert.equal(violations(db, c), 0, "khoản đã đảo không còn hiệu lực");
 });
+
+test("R-VC-36 (ADR-0184): xuất bến thiếu giấy tờ phải có dòng cho phép khớp chuyến / xe / loại, Kiểm định + Bảo hiểm + không lý do chỉ do Toàn quyền ghi → sạch 0; lệch (a) và vượt quyền (b) → đếm (warn)", () => {
+  const c = one("R-VC-36");
+  assert.equal(c.level, "warn");
+  const db = tho(); // tho() đã gỡ trigger vc_trip% (kể cả bảng cho phép và dòng con) — ca đỏ gieo thẳng
+  db.exec(`INSERT INTO vc_departure_rule (id, min_capacity, subject, vehicle_document_type_code, person_document_type_code, valid_from_at, created_at, updated_at)
+           VALUES ('ru-xe', 1, 'VEHICLE', 'INSPECTION', NULL, '${T1}', '${T1}', '${T1}'), ('ru-dk', 1, 'VEHICLE', 'REGISTRATION', NULL, '${T1}', '${T1}', '${T1}'), ('ru-tx', 1, 'DRIVER', NULL, 'GPLX', '${T1}', '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('stp-admin-sa36', 's-admin', 'SUPER_ADMIN', '${T1}', '${T1}', '${T1}')`);
+  const t = chuyenTho(db);
+  const t2 = chuyenTho(db, { xe: "xe-2" });
+  const chup = (trip: string, xeId: string, ketQua = "DAT") => {
+    const id = `ck36-${++soVc}`;
+    db.prepare(`INSERT INTO vc_trip_departure_check (id, trip_id, cmd_id, policy_id, ket_qua, vehicle_id, plate_number, passenger_capacity, owner_party_id, driver_party_id,
+        rest_minutes_used, checked_at, created_at, updated_at) VALUES (?, ?, ?, 'pol', ?, ?, '79B-000.36', 15, 'p-cty', 'p-cty', 0, ?, ?, ?)`).run(id, trip, "c".repeat(36), ketQua, xeId, T2, T2, T2);
+    return id;
+  };
+  const dong = (ck: string, rule: string, loai: string, waiver: string | null) =>
+    db.prepare(`INSERT INTO vc_trip_departure_check_item (id, check_id, item_kind, document_type_code, rule_id, waiver_id, created_at, updated_at) VALUES (?, ?, 'DIEU_KIEN', ?, ?, ?, ?, ?)`)
+      .run(`it36-${++soVc}`, ck, loai, rule, waiver, T2, T2);
+  const cho = (trip: string, xeId: string, o: { loai?: string; ly?: string | null; nguoi?: string | null } = {}) => {
+    const id = `wv36-${++soVc}`;
+    db.prepare(`INSERT INTO vc_trip_departure_waiver (id, trip_id, cmd_id, vehicle_id, document_type_code, reason_code, created_at, created_by, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(id, trip, "d".repeat(36), xeId, o.loai ?? "REGISTRATION", o.ly === undefined ? "THIEU_GIAY_GIA_HAN" : o.ly, T2, o.nguoi === undefined ? "s-an" : o.nguoi, T2);
+    return id;
+  };
+  assert.equal(violations(db, c), 0, "chưa có gì");
+  // Sạch: Quản trị (có lý do) cho Đăng ký; Toàn quyền cho Kiểm định không lý do; bản chụp KHÔNG ĐẠT có dòng điều kiện không cần dòng cho phép.
+  const w1 = cho(t, "xe-1");
+  dong(chup(t, "xe-1"), "ru-dk", "REGISTRATION", w1);
+  cho(t, "xe-1", { loai: "INSPECTION", ly: null, nguoi: "s-admin" });
+  dong(chup(t, "xe-1", "KHONG_DAT"), "ru-xe", "INSPECTION", null);
+  assert.equal(violations(db, c), 0, "ca sạch");
+  // (a) dòng điều kiện của bản chụp ĐẠT: không trỏ / trỏ lệch loại / lệch xe / lệch chuyến / điều kiện của tài xế.
+  dong(chup(t, "xe-1"), "ru-dk", "REGISTRATION", null);
+  assert.equal(violations(db, c), 1, "(a) không trỏ dòng cho phép");
+  dong(chup(t, "xe-1"), "ru-xe", "INSURANCE_X", w1);
+  assert.equal(violations(db, c), 2, "(a) trỏ lệch loại giấy");
+  dong(chup(t, "xe-2"), "ru-dk", "REGISTRATION", w1);
+  assert.equal(violations(db, c), 3, "(a) trỏ lệch xe");
+  dong(chup(t2, "xe-2"), "ru-dk", "REGISTRATION", cho(t, "xe-2"));
+  assert.equal(violations(db, c), 4, "(a) trỏ dòng của chuyến khác");
+  dong(chup(t, "xe-1"), "ru-tx", "REGISTRATION", w1);
+  assert.equal(violations(db, c), 5, "(a) điều kiện của tài xế không được dòng cho phép cho qua");
+  dong(chup(t, "xe-1"), "ru-xe", "REGISTRATION", w1);
+  assert.equal(violations(db, c), 6, "(a, đợt sửa 1) dòng con ghi loại giấy khác loại của điều kiện (điều kiện Kiểm định, dòng con ghi Đăng ký xe)");
+  // (b) vượt quyền: Quản trị cho Kiểm định / Bảo hiểm; dòng không lý do của Quản trị; người ghi trống (hệ thống).
+  cho(t, "xe-1", { loai: "TPL_INSURANCE" });
+  assert.equal(violations(db, c), 7, "(b) Quản trị cho Bảo hiểm");
+  cho(t, "xe-1", { ly: null });
+  assert.equal(violations(db, c), 8, "(b) Quản trị không nêu lý do");
+  cho(t, "xe-1", { loai: "INSPECTION", nguoi: null });
+  assert.equal(violations(db, c), 9, "(b) Kiểm định do người ghi trống (hệ thống) — không phải Toàn quyền");
+  cho(t, "xe-1", { nguoi: null });
+  assert.equal(violations(db, c), 9, "dòng mềm có lý do, người ghi trống: trigger 0147 cho qua nên lưới này cũng không báo");
+});

@@ -18,13 +18,26 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // ADR-0186 (chủ duyệt 8/11, đóng HC-5.11): ba việc định giờ chạy dưới tác nhân có định danh riêng; Quản lý bán hàng được đồng bộ danh mục. Migration 0148.
-    // Bước A.0 ngày 8/11 trên nhánh claude/pensive-keller-274010. SỐ TẠM: 2.75 đã lên production; 2.76 (ADR-0187 Đ3) nhập trước — chưa lên thì đi cùng lần
-    // triển khai này, giữ các mục riêng (tiền lệ 2.70–2.72); nhánh khác nhập trước mà cũng lấy 2.77 thì phiên phát hành đánh lại số.
-    version: "2.77",
+    // Bước A.0 ngày 8/11 trên nhánh claude/pensive-keller-274010. SỐ TẠM: 2.76 (ADR-0187 Đ3) và 2.77 (ADR-0184) đã lên production trước nên đổi 2.76 → 2.77 → 2.78
+    // theo hai lần nhập đó; bản sửa ADR-0185 nhập sau lấy 2.79 (phiên điều phối 8/11). Nhánh khác nhập trước mà cũng lấy 2.78 thì phiên phát hành đánh lại số.
+    version: "2.78",
     date: "2026-11-08",
     items: [
       { kind: "moi", text: "Quản lý bán hàng có nút «Đồng bộ ngay từ Google Sheet» ở màn Dịch vụ & giá để lấy giá mới ngay, không phải nhờ Quản trị. Nền tảng vẫn tự đồng bộ mỗi 15 phút.", bai: { id: "quan-ly-ban-hang/lay-bang-gia-moi-tu-google-sheet", ten: "Lấy bảng giá mới từ Google Sheet" } },
       { kind: "doi", text: "Toàn quyền thấy thêm dòng «Xoá ảnh vé hết hạn lưu» ở trang Nhật ký mỗi lần Nền tảng tự xoá ảnh vé của lô đã huỷ khi quá hạn lưu; dòng chỉ ghi số ảnh." },
+    ],
+  },
+  {
+    // ADR-0184 (chủ duyệt 7/11, chọn chữ 7–8/11): cho chạy dù thiếu giấy tờ xe, kèm nhãn vàng. Migration 0147. Bước A.0 ngày 8/11; đổi số 2.76 → 2.77 khi gộp ADR-0187 (nhập trước, giữ 2.76).
+    version: "2.77",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Quản trị và Toàn quyền nay cho chạy được một lần chuyến có xe thiếu hoặc hết hạn giấy tờ: bấm «Cho chạy dù thiếu giấy tờ» ở chi tiết chuyến." },
+      { kind: "moi", text: "Riêng Kiểm định và Bảo hiểm thì chỉ Toàn quyền cho chạy được. Mỗi lần cho phép chỉ dùng cho đúng chuyến và đúng xe đó." },
+      { kind: "moi", text: "Chuyến được cho chạy mang nhãn vàng «Xe thiếu … — đã cho chạy» ở chi tiết chuyến, Điều phối xe và cuốc của tài xế; tài xế nhận tin báo." },
+      { kind: "moi", text: "Văn phòng xem được lý do và ghi chú của lần cho chạy ngay dưới nhãn vàng ở chi tiết chuyến." },
+      { kind: "moi", text: "Trang chủ của Quản trị và Toàn quyền có thẻ «Xe thiếu giấy tờ — đã cho chạy», đếm số chuyến hôm nay chưa kết thúc đã được cho chạy dù thiếu giấy tờ." },
+      { kind: "doi", text: "Xe thiếu Kiểm định hoặc Bảo hiểm thì dòng «Ai xử lý» ghi «Quản trị, Toàn quyền»." },
     ],
   },
   {

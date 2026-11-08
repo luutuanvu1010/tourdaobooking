@@ -285,6 +285,8 @@ export const AUDIT_ACTIONS = {
   // thu hồi (không tên khách, không SĐT — Đ2.6).
   trip_allocation_corrected: { label: "Văn phòng điều chỉnh kết quả khách", group: "trip" },
   trip_departure_revoked: { label: "Văn phòng thu hồi lệnh cho xe chạy", group: "trip" },
+  // ADR-0184: cho xe chạy dù thiếu giấy tờ — detail: mã chuyến, biển số, tên + mã loại giấy, hạn, nhãn lý do, «có ghi chú» (KHÔNG ghi chú tự do, KHÔNG số giấy tờ — P5).
+  trip_departure_waived: { label: "Cho chạy dù thiếu giấy tờ", group: "trip" },
   // ADR-0111 (gói A5): đề nghị chuyển khách giữa hai xe — target = chuyến ĐÍCH; detail chỉ mã hai chuyến, phạm vi, SỐ khách, nhãn lý do, mã điều kiện không
   // đạt (không tên khách, năm sinh, SĐT, chữ nơi gặp, khoá nơi — LC-18).
   trip_transfer_sent: { label: "Gửi đề nghị chuyển khách", group: "trip" },
