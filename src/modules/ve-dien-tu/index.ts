@@ -19,7 +19,7 @@ import { NHAN_NHOM, NHAN_NHOM_LO, soanCapVe, soanTraVe, veDangGiu, type GhiNhatK
 import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, tranLoHopLe } from "../../shared/ve-nhap-lo";
 import { datVeVaoKho, donHangChoXoa, type VeChuanBi } from "./kho-tep.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
-import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
+import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
 import { veDaMoCuaDon as docVeDaMoCuaDon, veHangNgoaiDaMoCuaDon as docVeHangNgoaiDaMoCuaDon } from "./repository.ts";
@@ -400,12 +400,20 @@ export const veDienTuModule: AppModule = {
       const dichVuKhongVe = coVe.get(lo.catalog_code) !== true;
       const canhBaoNguon = dichVuKhongVe || nguonVeCua(lo.catalog_code, nguon) !== lo.source;
       // Cấp bù NGAY trong lệnh (không qua Cron): từng đơn đã xác nhận còn thiếu, ngày đi gần trước; mỗi đơn đi đúng đường cấp sau xác nhận (giữ vé + báo thiếu nếu vẫn thiếu).
+      // Lô đã vào kho và đã thắng: lỗi ở đây KHÔNG được thành 500 (bấm lại sẽ nhận 409 «đã đưa vào kho») — nuốt, ghi mã đơn, trả số đơn đã cấp tới lúc đó. Dừng khi lô hết vé.
       let capBu = 0;
       if (!canhBaoNguon) {
-        for (const orderId of await donThieuVe(lo.catalog_code)) {
-          const truoc = await demGiuCuaDon(env.DB, orderId);
-          await capVeSauXacNhan(orderId);
-          if ((await demGiuCuaDon(env.DB, orderId)) > truoc) capBu++;
+        let dangCap: string | null = null;
+        try {
+          for (const orderId of await donThieuVe(lo.catalog_code)) {
+            if ((await conTrongCuaLo(env.DB, loId)) === 0) break;
+            dangCap = orderId;
+            const truoc = await demGiuCuaDon(env.DB, orderId);
+            await capVeSauXacNhan(orderId);
+            if ((await demGiuCuaDon(env.DB, orderId)) > truoc) capBu++;
+          }
+        } catch (e) {
+          console.error(JSON.stringify({ level: "error", event: "ve_cap_bu_loi", loId, orderId: dangCap, loi: e instanceof Error ? e.name : "khong_ro" }));
         }
       }
       return json({ loId, trangThai: "ACTIVE", veTrongLo: (await demVeCuaLo(env.DB, loId)).daLuu, dichVuKhongVe, canhBaoNguon, capBu });

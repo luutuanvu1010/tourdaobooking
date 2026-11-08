@@ -33,27 +33,29 @@ const hopThu = async (w: any, as: string) => {
   return (r.json.tin as { cau: string; maDon: string | null }[]).filter((t) => /thiếu vé/i.test(t.cau));
 };
 
-test("Tour Đảo: xác nhận đơn khi kho rỗng ghi ve_thieu; lô 1 vé vào kho cấp bù đơn ngày đi gần trước, đơn sau vẫn thiếu và có thêm đúng một dòng ve_thieu", async () => {
+test("Tour Đảo: xác nhận đơn khi kho rỗng ghi ve_thieu; lô 2 vé vào kho cấp bù đơn ngày đi gần trước trước, đơn sau nhận phần còn lại, vẫn thiếu và có thêm đúng một dòng ve_thieu", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
     datNguon(w, "TOUR_DAO");
-    const sau = await don(w, { soNguoi: 1, ngay: NGAY_SAU });
+    const sau = await don(w, { soNguoi: 2, ngay: NGAY_SAU });
     const truoc = await don(w, { soNguoi: 1, ngay: NGAY });
     const luc0 = dongThieu(w);
     assert.equal(luc0.length, 2, "mỗi đơn xác nhận khi kho rỗng có một dòng ve_thieu");
     assert.deepEqual(luc0.map((d) => [d.order_id, d.target_type, d.target_id]), [[sau.id, "ve", "TOUR_DAO"], [truoc.id, "ve", "TOUR_DAO"]]);
     assert.match(luc0[0]!.detail, /ZA1/);
-    assert.match(luc0[0]!.detail, /thiếu 1/);
-    const kq = await loVaoKho(w, ACC, "TOUR_DAO", 1);
-    assert.equal(kq.capBu, 1);
+    assert.match(luc0[0]!.detail, /thiếu 2/);
+    const kq = await loVaoKho(w, ACC, "TOUR_DAO", 2);
+    assert.equal(kq.capBu, 2);
     assert.equal(kq.canhBaoNguon, false);
-    assert.equal(soVeGiu(w, truoc.id), 1, "đơn ngày đi gần nhận vé");
-    assert.equal(soVeGiu(w, sau.id), 0, "đơn ngày đi sau vẫn thiếu");
+    assert.equal(soVeGiu(w, truoc.id), 1, "đơn ngày đi gần nhận đủ vé trước");
+    assert.equal(soVeGiu(w, sau.id), 1, "đơn ngày đi sau nhận phần còn lại, vẫn thiếu 1");
     const moi = dongThieu(w).slice(luc0.length);
     assert.equal(moi.length, 1, "lần cấp bù chỉ thêm một dòng ve_thieu (cho đơn còn thiếu)");
     assert.equal(moi[0]!.order_id, sau.id);
+    assert.equal(moi[0]!.staff_id, ACC);
     assert.equal(moi[0]!.target_id, "TOUR_DAO");
+    assert.match(moi[0]!.detail, /thiếu 1/);
     for (const d of dongThieu(w)) assert.doesNotMatch(d.detail, /TD1\.|Khách/, "nhật ký không mã vé, không tên khách");
     // Hộp thư: Kế toán (ve.phat-hanh) thấy; Bán hàng thường (chỉ ve.kho.manage) không thấy tin thiếu vé Tour Đảo.
     const keToan = await hopThu(w, ACC);
@@ -66,16 +68,31 @@ test("hãng ngoài: tin thiếu vé tới người giữ ve.kho.manage (Bán hà
   const tat = batDongHo();
   try {
     const w = setup();
-    const sau = await don(w, { soNguoi: 1, ngay: NGAY_SAU });
+    const sau = await don(w, { soNguoi: 2, ngay: NGAY_SAU });
     const truoc = await don(w, { soNguoi: 1, ngay: NGAY });
-    const kq = await loVaoKho(w, ADM, "HANG_NGOAI", 1);
-    assert.equal(kq.capBu, 1);
+    const kq = await loVaoKho(w, ADM, "HANG_NGOAI", 2);
+    assert.equal(kq.capBu, 2);
     assert.equal(soVeGiu(w, truoc.id), 1);
     const moi = dongThieu(w).filter((d) => d.staff_id === ADM);
     assert.deepEqual(moi.map((d) => [d.order_id, d.target_id]), [[sau.id, "HANG_NGOAI"]]);
     const banHang = await hopThu(w, SALES);
     assert.ok(banHang.some((t) => t.maDon === sau.code), JSON.stringify(banHang));
     assert.deepEqual(await hopThu(w, ACC), []);
+  } finally { tat(); }
+});
+
+test("lô hết vé thì dừng cấp bù: đơn sau không được xét lại, không thêm dòng ve_thieu (đã báo lúc xác nhận)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const sau = await don(w, { soNguoi: 1, ngay: NGAY_SAU });
+    const truoc = await don(w, { soNguoi: 1, ngay: NGAY });
+    const luc0 = dongThieu(w).length;
+    const kq = await loVaoKho(w, ADM, "HANG_NGOAI", 1);
+    assert.equal(kq.capBu, 1);
+    assert.equal(soVeGiu(w, truoc.id), 1);
+    assert.equal(soVeGiu(w, sau.id), 0);
+    assert.equal(dongThieu(w).length, luc0, "lô hết vé sau đơn đầu: vòng dừng");
   } finally { tat(); }
 });
 

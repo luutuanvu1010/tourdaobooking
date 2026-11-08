@@ -379,6 +379,9 @@ export const docHanCuoiCuaDon = async (db: D1Database, orderId: string): Promise
 export interface VeCuaLink { id: string; pax_group: string; revealed_at: string | null; valid_from: string; valid_to: string; storage_key: string; content_kind: string; nguon: NguonVe }
 export const docVeCuaLink = async (db: D1Database, orderId: string): Promise<VeCuaLink[]> => (await db.prepare(VE_CUA_LINK).bind(orderId).all<VeCuaLink>()).results;
 
+const CON_TRONG_CUA_LO = defineSql("ve-dien-tu", "con_trong_cua_lo", "SELECT count(*) AS n FROM vdt_ticket WHERE batch_id = ?1 AND status = 'AVAILABLE' AND stored_at IS NOT NULL AND purged_at IS NULL");
+/** Số vé còn trống (chưa giữ) của MỘT lô — vòng cấp bù dừng khi lô hết vé. */
+export const conTrongCuaLo = async (db: D1Database, batchId: string): Promise<number> => (await db.prepare(CON_TRONG_CUA_LO).bind(batchId).first<{ n: number }>())?.n ?? 0;
 const GIU_CUA_DON = defineSql("ve-dien-tu", "giu_cua_don", "SELECT count(*) AS n FROM vdt_allocation WHERE order_id = ?1 AND released_at IS NULL");
 /** Số phân bổ đơn đang giữ (đếm trước / sau một lần cấp bù để biết đơn có được cấp thêm không). */
 export const demGiuCuaDon = async (db: D1Database, orderId: string): Promise<number> => (await db.prepare(GIU_CUA_DON).bind(orderId).first<{ n: number }>())?.n ?? 0;
