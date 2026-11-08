@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Ô «Có vé» theo nhóm và dịch vụ (ADR-0174), CÓ migration 0142. Số tạm 8/11: 2.78 (ADR-0186) đang chờ, 2.79 giữ cho ADR-0185, nên lấy 2.80; bước A.0 đặt lại nếu cần.
+    version: "2.80",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Màn Dịch vụ & giá có ô «Có vé» cho từng nhóm và từng dịch vụ; Quản trị và Toàn quyền bật tắt được." },
+      { kind: "sua", text: "Dịch vụ không dùng vé không còn hiện «Thiếu vé» và nút «Cấp vé» trên trang đơn." },
+    ],
+  },
+  {
     // ADR-0185 (chủ duyệt 8/11: Đ1 a, Đ2 a, Đ3): chặn đơn của tài khoản Đối tác chưa gán vai trò (T-01). Migration 0149. Ngày đặt lại ở bước A.0 của lần triển khai; đổi số 2.77 → 2.78 khi gộp ADR-0184 (nhập và triển khai trước, giữ 2.77), rồi 2.78 → 2.79 khi gộp ADR-0186 (nhập trước theo phiên điều phối, giữ 2.78).
     version: "2.79",
     date: "2026-11-08",

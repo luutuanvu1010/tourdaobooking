@@ -142,6 +142,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   // ADR-0169 Đ1 (chủ duyệt 2026-11-05): Quản lý bán hàng, Quản trị, Toàn quyền; thay một phần ADR-0136 Đ1. Mọi cột khác, kể cả Bán hàng thường, không có.
   "catalog.confirm_flag.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any"],
   "catalog.hidden.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any"],
+  "catalog.ticket_flag.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0174 Đ4
   "catalog.sync": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any"], // ADR-0186 Đ2 (chủ 8/11): «Đồng bộ ngay từ Google Sheet» — Quản lý bán hàng, Quản trị, Toàn quyền
 };
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR", "SALES_MANAGER"];
@@ -441,7 +442,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
     "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
-    "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền
+    "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", "catalog.ticket_flag.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền; ADR-0174 Đ4: chỉ Quản trị, Toàn quyền
     "catalog.sync": "none", "credit.due.remind": "none", "ve.kho.purge": "none", // ADR-0186 Đ2
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: tài xế không xem phần đối tác của đơn
   };
@@ -503,7 +504,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
     "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
-    "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền
+    "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", "catalog.ticket_flag.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền; ADR-0174 Đ4: chỉ Quản trị, Toàn quyền
     "catalog.sync": "none", "credit.due.remind": "none", "ve.kho.purge": "none", // ADR-0186 Đ2
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: tài xế đối tác không thấy phần đối tác của đơn
   };
@@ -559,7 +560,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
     "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
-    "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền
+    "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", "catalog.ticket_flag.write": "none", // ADR-0169 Đ1: chỉ Quản lý bán hàng, Quản trị, Toàn quyền; ADR-0174 Đ4: chỉ Quản trị, Toàn quyền
     "catalog.sync": "none", "credit.due.remind": "none", "ve.kho.purge": "none", // ADR-0186 Đ2
     "order.terms.view": "none", "order.terms.override": "none", // Task 5: Nhân sự không thấy phần đối tác của đơn
   };

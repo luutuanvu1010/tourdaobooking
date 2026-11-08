@@ -841,6 +841,9 @@ export interface CatalogItemResponse { item: CatalogAdminItemDto }
 export interface CatalogQuanLyBanResponse { dichVu: { code: string; ten: string; dangBan: boolean; groupCode: string | null }[]; nhom: { code: string; ten: string }[] }
 /** `PUT /api/catalog/:code/ngung-ban` (ADR-0169 Đ5). */
 export interface CatalogNgungBanInput { ngungBan: boolean }
+/** ADR-0174: ô «Có vé». `nguon`: dòng riêng của dịch vụ, theo nhóm, hay chưa ai khai. */
+export interface CatalogCoVeResponse { dichVu: { code: string; coVe: boolean; nguon: "SERVICE" | "GROUP" | "CHUA_KHAI" }[]; nhom: { code: string; coVe: boolean }[] }
+export interface CatalogCoVeInput { pham: "SERVICE" | "GROUP"; ma: string; coVe: boolean }
 export interface CatalogNgungBanResponse { code: string; ngungBan: boolean }
 export interface CatalogSyncResponse {
   ok: true;
