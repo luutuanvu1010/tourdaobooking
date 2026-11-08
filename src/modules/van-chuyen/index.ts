@@ -1074,7 +1074,7 @@ export const vanChuyenModule: AppModule = {
 
     // ADR-0184 — số cho thẻ Trang chủ «Xe thiếu giấy tờ — đã cho chạy»: chuyến hôm nay chưa kết thúc mà nhãn vàng đang hiện. Chỉ ô `trip.override`; không tên, không số giấy.
     route("GET", "/api/van-chuyen/cho-chay-thieu/dem", "office", async ({ env, staff }) => {
-      if (!can(staff, "trip.override")) return FORBIDDEN();
+      if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();
       return json({ count: await demChoChayThieuHomNay(env.DB, Date.now()) } satisfies ChoChayThieuDemResponse);
     }),
 

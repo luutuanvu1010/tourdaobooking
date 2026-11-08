@@ -1371,3 +1371,27 @@ test("ADR-0184 (siết bù cho cạnh van-chuyen → staff đang CHỜ CHỦ DUY
   }
   assert.deepEqual(sai, [], "van-chuyen chỉ được đọc staff ở tầng trigger (migration), không ở mã TS / SQL của module");
 });
+
+test("ADR-0184 (đợt sửa 1, N): mọi lời gọi `can(` trong mã (không phải bài) của src/modules/** nhận ô là CHUỖI viết thẳng — không biến, không hằng, không ghép chuỗi (bài hàng rào «mỗi ô phải được máy chủ hỏi» đếm theo chuỗi)", () => {
+  const ds = (d: string): string[] => readdirSync(d).flatMap((f) => { const p = join(d, f); return statSync(p).isDirectory() ? ds(p) : p.endsWith(".ts") && !p.endsWith(".test.ts") ? [p] : []; });
+  const sai: string[] = [];
+  let tong = 0;
+  for (const p of ds(join(SRC, "modules"))) {
+    const ma = maskSource(readFileSync(p, "utf8"), { strings: false, comments: true });
+    for (const m of ma.matchAll(/(?<![\w.$])can\(/g)) {
+      tong++;
+      let sau = 0;
+      let dau = -1;
+      for (let i = m.index! + m[0].length; i < ma.length; i++) {
+        const c = ma[i]!;
+        if ("([{".includes(c)) sau++;
+        else if (")]}".includes(c)) { if (sau === 0) break; sau--; }
+        else if (c === "," && sau === 0) { dau = i; break; }
+      }
+      const sauPhay = dau < 0 ? "" : ma.slice(dau + 1).trimStart();
+      if (!/^"[^"\n]*"\s*[,)]/.test(sauPhay)) sai.push(`${relative(ROOT, p)}:${ma.slice(0, m.index).split("\n").length}: ${ma.slice(m.index, m.index! + 80).replace(/\n/g, " ")}`);
+    }
+  }
+  assert.ok(tong >= 400, `chống bài rỗng: thấy ${tong} lời gọi can(`);
+  assert.deepEqual(sai, [], "ô viết thẳng ở mọi lời gọi can( của mã module");
+});

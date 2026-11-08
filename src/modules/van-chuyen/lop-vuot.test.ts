@@ -8,7 +8,7 @@
 //       mốc" để xếp lớp: duyệt / bác luôn là ô vượt luật của Quản trị, Toàn quyền); không dòng nào trong đó có "trip.urgent_adjust". Bài bù: Bán hàng duyệt / bác
 //       → 403 (chuyen-khach-route.test.ts NT-A5-11, -12);
 //       NỚI CÓ TÊN N3 «hai route của ADR-0184» (đợt sửa 1, P13): route cho chạy dù thiếu giấy tờ (`if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();`)
-//       và route đếm cho thẻ Trang chủ (`if (!can(staff, "trip.override")) return FORBIDDEN();`) — mỗi route ĐÚNG MỘT dòng hỏi thẳng, tổng đúng hai, không kèm
+//       và route đếm cho thẻ Trang chủ (`if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();`) — mỗi route ĐÚNG MỘT dòng hỏi thẳng, tổng đúng hai, không kèm
 //       "trip.urgent_adjust"; không còn hằng riêng để đi vòng bài này;
 //   (d) (L2) chuỗi ô mới `"trip.override.giay_to_cung"` xuất hiện ĐÚNG MỘT lần trong mã (không phải bài) của module, và nằm trong thân route cho chạy;
 //   (c) mọi lời gọi `quyenVuot(…)` (module van-chuyen + src/shared/moc-toi-thieu.ts) nhận đối số là lời gọi hàm lớp `lopVuotMoc(` / `lopVuotNghiCamKet(` /
@@ -55,7 +55,7 @@ const N2_DONG = 'if (!can(staff, "trip.override")) return CAN_DUYET_DE_NGHI();';
 /** Nới N3 (ADR-0184, hai route): «Cho chạy dù thiếu giấy tờ» và «đếm cho thẻ Trang chủ» hỏi THẲNG ô trip.override (không phải luật cấu hình có lớp mốc), mỗi route đúng một dòng, đúng câu của nó. */
 const N3_ROUTE: { m: string; duong: string; dong: string }[] = [
   { m: "POST", duong: "/api/van-chuyen/chuyen/:id/cho-chay-thieu-giay", dong: 'if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();' },
-  { m: "GET", duong: "/api/van-chuyen/cho-chay-thieu/dem", dong: 'if (!can(staff, "trip.override")) return FORBIDDEN();' },
+  { m: "GET", duong: "/api/van-chuyen/cho-chay-thieu/dem", dong: 'if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();' },
 ];
 /** Khoảng dòng (đánh số từ 1) của thân route `m duong` trong index.ts đã che chú thích. */
 function dongCuaRoute(src: string, m: string, duong: string): [number, number] {
