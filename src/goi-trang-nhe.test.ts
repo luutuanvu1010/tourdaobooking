@@ -65,7 +65,7 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // trên mã đã nhập (bản chính một mình 109.351, +326), trần = số đo + 100. Chủ dự án duyệt phần tăng +326 byte này ngày 8/11/2026 (ở phiên điều phối), nguyên văn «Duyệt 326 byte».
 // Nới 109.777 → 110.358 (ADR-0187 Đ2.3, 9/11/2026): thanh dưới vẽ nút người dùng tự chọn ở KHUNG mọi trang (web/shell.ts → thanhTab(n, ghimHieuLuc(staff))): ô quyền
 // me.favorites.write, `ghimDuoc` / `ghimHieuLuc` và nhánh chọn của `thanhTab` (đã thu gọn: phần dựng danh sách chọn, đọc cột lưu, kiểm thân ở ngoài gói khung —
-// chỉ trang Tôi / máy chủ). Gốc đo 109.750 byte; đo thật 110.258 byte, trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+// chỉ trang Tôi / máy chủ). Gốc đo 109.750 byte; đo thật 110.258 byte, trần = số đo + 100. Chủ dự án DUYỆT 9/11/2026 (qua phiên điều phối: «Chủ đã đồng ý nới trần gói Đơn hàng thêm 581 byte»).
 const TRAN_ORDERS = 110_358;
 
 function dung(trang: string) {

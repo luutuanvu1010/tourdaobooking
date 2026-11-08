@@ -23,7 +23,7 @@
 
 ## Việc chờ chủ
 1. Xem ảnh trước / sau (375) và chữ R1; đổi câu báo nếu muốn.
-2. Duyệt con số trần gói 110.358 (R8) — các lần nới trước chủ có lúc duyệt riêng.
+2. ~~Duyệt con số trần gói 110.358 (R8)~~ — **chủ ĐÃ DUYỆT 9/11** (+581 byte, lời chủ chuyển qua phiên điều phối).
 3. Số bản 2.81 trùng được với nhánh `claude/ve-tour-dao-thi-cong` chưa nhập — nhánh nào nhập sau đánh lại số ở bước A.0.
 4. Chạy `npm run day-len -- claude/adr-0187-ghim-nut-9c2e31` rồi `npm run trien-khai` (có migration 0153).
 
@@ -34,3 +34,4 @@
 - Kịch bản Chrome bắt buộc: `mat-mang-smoke` ĐẠT (có axe). `dot-0-smoke` đỏ bước 20 («900: Đăng xuất ở chân thanh bên») và `dot-c-smoke` đỏ («.account-layout phải display:grid») — **cả hai đỏ sẵn trên mã gốc fa3fd859a**: bước 20 chạy riêng trên bản sao tạm của gốc đỏ y hệt; `dot-c` đỏ vì `public/app.css` [10] (30/10, 67a4a0dc9) đổi trang Tôi máy tính sang kiểu chia cột mà kịch bản chưa sửa. Không do việc này; nợ kịch bản, ghi để phiên khác dọn.
   - `dot-c` dừng ở kiểm ĐẦU TIÊN nên các kiểm sau chưa chạy. Đã thêm `#thanh-duoi` vào thứ tự DOM ghim (19060bc58). Chạy thử một lần với bản sửa tạm (không lưu, đã hoàn nguyên): tắt kiểm lưới + cột, thêm `#tra-sau-cua-toi` còn thiếu ⇒ «Tôi máy tính 1040» và «Tôi điện thoại 390» ĐẠT (thứ tự DOM có `#thanh-duoi`, không tràn ngang, axe không critical/serious). Kịch bản rồi dừng ở bước Góp ý máy tính («hết giờ chờ: luồng đã mở») — trang không do việc này sửa; khung chung khi chưa chọn nút vẽ y như cũ; **chưa so trên mã gốc** nên ghi là chưa kiểm, các bước sau đó của `dot-c` chưa chạy.
 - Kiểm độc lập (`nguoi-kiem-doc-lap`, 9/11): **ĐẠT**, không phát hiện mức cao; kiểm bổ sung 5a6b8801c + 19060bc58 cũng ĐẠT (xếp `bottom_tabs_changed` vào KHONG_CHAM đúng tầng, view 0107 không cần đổi); tự chạy typecheck + 187 bài + phép phá `ghimDuoc` (đỏ 4 bài). Mức vừa: trần gói +581 byte chưa có lời chủ duyệt (= việc chờ chủ 2). Mức thấp: bấm «Lưu» không đổi gì vẫn ghi một dòng nhật ký — chấp nhận (nhật ký chỉ thừa dòng, không sai quyền/dữ liệu).
+- Gộp main a5330137a (9/11, theo lệnh phiên điều phối sau khi day-len báo «không tiến thẳng được»): main chỉ thêm tài liệu (74 tệp docs/, không mã, không migration — main dừng ở 0150, phiên bản 2.80), không xung đột ⇒ giữ số migration 0153 và bản 2.81.
