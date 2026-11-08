@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0185 (chủ duyệt 8/11: Đ1 a, Đ2 a, Đ3): chặn đơn của tài khoản Đối tác chưa gán vai trò (T-01). Migration 0149. Ngày đặt lại ở bước A.0 của lần triển khai.
+    version: "2.77",
+    date: "2026-11-08",
+    items: [
+      { kind: "doi", text: "Tài khoản Đối tác chưa được gán vai trò đối tác vẫn lập và lưu nháp được, nhưng chưa Gửi đơn được; trang lập đơn có dải vàng báo trước." },
+      { kind: "doi", text: "Tài khoản Đối tác, Tài xế đối tác chỉ tạo được bằng cách chọn vai trò ở màn Quản lý tài khoản, không qua khối «Quyền cũ»." },
+    ],
+  },
+  {
     // ADR-0187 Đ3 mức (a) (chủ duyệt 8/11 «Duyệt, mức a»): tách nhiệm vụ — đánh dấu, không chặn. Migration 0150. Ngày đặt lại ở bước A.0 của lần triển khai.
     version: "2.76",
     date: "2026-11-08",
