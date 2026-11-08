@@ -14,7 +14,7 @@
 // S20-9) — CA 4 đếm cả tin đó và khoá thêm: văn phòng sửa/xác nhận/huỷ đơn HDV khác đang phụ trách thì field không nhận thêm khung nào.
 import assert from "node:assert/strict";
 import { laSuKienHopLe } from "../../src/shared/bang-tin.ts";
-import { ACCOUNTS, BASE, batTay, call, cho, ensureFakeCatalog, gieoTaiKhoanLai, login, moBangTin, orderInput, randomPhone, session, sql } from "./lib.mjs";
+import { ACCOUNTS, BASE, batTay, call, cho, ensureFakeCatalog, gieoTaiKhoanLai, login, moBangTin, orderInput, randomPhone, session, sql, thanQuyenTaiKhoan } from "./lib.mjs";
 
 await ensureFakeCatalog(); // "catalog" (Sheet thật) chạy trước "bangtin" trong ALL và đặt in_sheet = 0 cho mã giả — orderInput() dùng ZE1.
 const ADMIN = await session(ACCOUNTS.admin);
@@ -54,7 +54,7 @@ function doiToiDa(promise, ms) {
  * các kịch bản khác (đặc biệt `passkey.mjs`, chạy cuối cùng) cần giữ nguyên trạng. */
 async function taoTaiKhoanDungMotLan(name, permissions = ["SALES"]) {
   const phone = randomPhone();
-  const r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, permissions });
+  const r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, ...thanQuyenTaiKhoan(permissions) }); // ADR-0185: Đối tác thuần tạo qua vai
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const cookie = await session({ phone, pin: r.body.pin });
   return { id: r.body.staff.id, phone, pin: r.body.pin, cookie };

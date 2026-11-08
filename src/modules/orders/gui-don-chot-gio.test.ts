@@ -86,14 +86,16 @@ test("(k) chỉ có chiều về, không giờ → nhánh A (lượt đầu củ
   assert.deepEqual(r.json.yeuCau.vi, ["CHOT_GIO"]);
 });
 
-test("(q) tài khoản lai Bán hàng + Đối tác, Đón không giờ → nhánh A, cờ = 1 (luật theo QUYỀN Đối tác của người lập, kể cả lai)", async () => {
+// ADR-0185 Đ1 (chủ duyệt 2026-11-08, phần «Mất»): tài khoản lai Bán hàng + Đối tác không mang được vai trò đối tác (LC-1) nên đơn của nó luôn «không người hưởng» — Gửi đơn bị cổng
+// `congDoiTacChuaCoVaiTro` chặn TRƯỚC phân nhánh. Trước ADR-0185 bài này khẳng định nhánh A, cờ = 1 (ADR-0154 Đ1.2 «kể cả lai»); luật `canChotGioCuaNguoiLap` không đổi, chỉ đường tới nó đã đóng.
+test("(q) tài khoản lai Bán hàng + Đối tác, Đón không giờ → 409 doi_tac_chua_co_vai_tro (ADR-0185), không mở yêu cầu", async () => {
   const w = setup();
   const o = await lap(w, LAI, [dichVuDon(null)]);
   const r = await guiDon(w, o.id, LAI);
-  assert.equal(r.status, 201, r.text);
-  assert.equal(r.json.nhanh, "A");
-  assert.deepEqual(r.json.yeuCau.vi, ["CHOT_GIO"]);
-  assert.equal(mo(w, o.id)[0].pickup_time_required, 1);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "doi_tac_chua_co_vai_tro");
+  assert.equal(mo(w, o.id).length, 0);
+  assert.equal(trangThai(w, o.id), "draft");
 });
 
 test("(q2) lượt đầu CÓ giờ qua API (cách ≥ 3 ngày, qua cổng 6 giờ) → nhánh B, không mở yêu cầu, không cờ (ADR-0154 Đ1.7: không phải lỗ)", async () => {

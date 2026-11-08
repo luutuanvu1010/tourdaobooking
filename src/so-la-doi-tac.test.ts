@@ -34,7 +34,7 @@ function setup(): W {
     [SALES, "0900000001", "An Bán", ["SALES"]], [KT, "0900000004", "Lan Kế Toán", ["ACCOUNTING"]], [SUP, "0900000006", "Chủ", ["SUPER_ADMIN"]],
     [DT_A, "0900000007", "Đại Lý A", ["PARTNER"]], [DT_B, "0900000008", "Đại Lý B", ["PARTNER"]], [LAI_BAN, "0900000012", "Sơn Lai Bán", ["SALES", "PARTNER"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  for (const [r, p] of [["r-dta", DT_A], ["r-dtb", DT_B], ["r-lai", LAI_BAN]] as const) { // r-lai: tài khoản lai cũng có thể mang vai này (quyền gán bằng đường cũ không qua LC-1) — để thử đơn do CHÍNH hồ sơ họ hưởng
+  for (const [r, p] of [["r-lai", LAI_BAN]] as const) { // r-lai: tài khoản lai cũng có thể mang vai này (quyền gán bằng đường cũ không qua LC-1) — để thử đơn do CHÍNH hồ sơ họ hưởng
     w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(r, `pty-${p}`, AT, AT);
   }
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(AT, AT);

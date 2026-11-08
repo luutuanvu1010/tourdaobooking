@@ -22,7 +22,6 @@ function setup(): W {
     [KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]], [DT, "0900000006", "Đại Lý A", ["PARTNER"]], [HR, "0900000008", "Hà Nhân Sự", ["HR"]], [SA, "0900000007", "Chủ", ["SUPER_ADMIN"]],
     [SP, "0900000009", "Sơn Lai Bán", ["SALES", "PARTNER"]], [KP, "0900000010", "Khoa Lai Kế", ["ACCOUNTING", "PARTNER"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-dt', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`pty-${DT}`, NOW, NOW);
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(NOW, NOW);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-ncc', 'pty-ncc', 'SUPPLIER', '2026-01-01', ?, ?)").run(NOW, NOW);
   // Danh mục có sẵn mã IRESORT: route kiểm mã dịch vụ qua danh mục, không bỏ kiểm.

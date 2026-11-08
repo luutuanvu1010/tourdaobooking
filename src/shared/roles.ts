@@ -324,6 +324,20 @@ export function laiNoiBoBenNgoaiProblem(perms: readonly PermissionCode[]): RoleP
     : null;
 }
 
+/** ADR-0185 Đ2 (chữ chủ chọn 8/11): câu của đường ghi quyền kiểu cũ khi danh sách có quyền bên ngoài — cũng là câu khi trigger lc1c chặn. */
+export const CAU_DUONG_CU_QUYEN_NGOAI = "Tài khoản Đối tác hoặc Tài xế đối tác phải tạo bằng cách chọn vai trò.";
+/** ADR-0185 K6: nhánh gỡ Quản trị của PUT /api/staff/:id/roles chạy quyền TRƯỚC vai trò (hai lô), nên không mở được quyền Đối tác cùng lần — câu chỉ đường hai bước. */
+export const CAU_GO_QUAN_TRI_SANG_DOI_TAC = "Tài khoản này đang giữ quyền Quản trị: đổi sang một vai trò nội bộ khác và lưu trước, rồi mới gán vai trò đối tác.";
+
+/**
+ * ADR-0185 Đ2 mục 1, 4 — MỘT hàm thuần cho MỌI đường ghi quyền KHÔNG qua vai trò (POST /api/staff không `roles`, PUT /api/staff/:id/permissions): danh sách có quyền
+ * bên ngoài (isExternalPermission: Đối tác, Tài xế đối tác) ⇒ 400 — tài khoản bên ngoài tạo bằng cách chọn vai trò, để hồ sơ luôn mang vai trò đối tác (phát hiện T-01:
+ * Đối tác không vai trò ⇒ đơn ra hoa hồng 0 im lặng). Gọi SAU taiKhoanLaiProblem và laiNoiBoBenNgoaiProblem (K7: tài khoản lai giữ câu cũ). Lớp CSDL: trigger lc1c.
+ */
+export function quyenNgoaiDuongCuProblem(perms: readonly PermissionCode[]): RoleProblem | null {
+  return perms.some(isExternalPermission) ? { forbidden: false, message: CAU_DUONG_CU_QUYEN_NGOAI } : null;
+}
+
 /** Nhãn lời thường — dùng cho nhật ký và giao diện. */
 export const rolesLabel = (roles: readonly RoleCode[]): string => rolesLabelTheo(roles);
 /**

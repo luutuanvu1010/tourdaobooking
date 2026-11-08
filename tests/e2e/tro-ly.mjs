@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import * as esbuild from "esbuild";
-import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, call, login, randomPhone, session, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, call, login, randomPhone, session, sqlRows, thanQuyenTaiKhoan } from "./lib.mjs";
 
 const PORT = Number(process.env.E2E_OPENAI_PORT);
 if (!PORT) throw new Error("Thiếu E2E_OPENAI_PORT (chạy qua npm run test:e2e -- tro-ly)");
@@ -232,7 +232,7 @@ try {
   const cacMa = [["SALES"], ["ACCOUNTING"], ["ADMIN"], ["FIELD"], ["PARTNER"], ["SUPER_ADMIN"], ["INTERN"], ["DRIVER"]];
   const taiKhoan = [];
   for (const permissions of cacMa) {
-    const t = await call(OWNER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Trợ Lý ${permissions[0]} E2E`, phone: randomPhone(), permissions });
+    const t = await call(OWNER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Trợ Lý ${permissions[0]} E2E`, phone: randomPhone(), ...thanQuyenTaiKhoan(permissions) }); // ADR-0185: Đối tác qua vai
     assert.equal(t.status, 201, `${permissions}: ${JSON.stringify(t.body)}`);
     taiKhoan.push([permissions[0], t.body]);
   }

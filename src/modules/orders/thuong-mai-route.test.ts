@@ -40,7 +40,7 @@ function setup(): W {
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
   // Vai bên ngoài chèn SAU quyền (trigger LC-1 chặn quyền nội bộ trên hồ sơ đã mang vai bên ngoài). Tài khoản lai Bán hàng + Đối tác (LAI_BAN) cũng được chèn vai sau quyền:
   // đường quản trị cũ gán PARTNER cùng quyền nội bộ mà LC-1 không chạy, nên dữ liệu thật CÓ thể có tài khoản như vậy (xem holdsPartner) — cần để thử "đơn do chính hồ sơ mình hưởng".
-  for (const [r, p] of [["r-dta", DT_A], ["r-dtb", DT_B], ["r-lai", LAI_BAN]] as const) {
+  for (const [r, p] of [["r-lai", LAI_BAN]] as const) {
     w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(r, `pty-${p}`, AT, AT);
   }
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-dla', 'ORGANIZATION', 'Đại lý C', 1, ?, ?)").run(AT, AT);
@@ -67,10 +67,14 @@ function nhap(w: W, chu: string, booker: string | null, dv: [string | null, numb
 }
 const dv = (id: string, i = 0) => `${id}-s${i}`;
 const xacNhan = (w: W, id: string, as = SALES) => w.xacNhanDon(id, as); // ADR-0136 Đ13.5: Đối tác «Gửi đơn», người khác /status
-/** Đơn đã xác nhận (có bản chụp) của SALES. */
+/**
+ * Đơn đã xác nhận (có bản chụp) của SALES. ADR-0185: đơn khách lẻ (không người hưởng) của tài khoản giữ quyền Đối tác (thuần hay lai) không xác nhận được nữa, chỉ còn là dữ liệu cũ
+ * ⇒ Bán hàng xác nhận thay rồi trả người lập (`xacNhanDonCu`).
+ */
 async function daXacNhan(w: W, booker: string | null, dvs: [string | null, number][], chu = SALES): Promise<string> {
   const id = nhap(w, chu, booker, dvs);
-  const r = await xacNhan(w, id, chu);
+  const giuDoiTac = w.q("SELECT 1 FROM stf_permission WHERE staff_id = ? AND permission_type_code = 'PARTNER' AND valid_to_at IS NULL", chu).length > 0;
+  const r = booker === null && giuDoiTac ? await w.xacNhanDonCu(id, chu, SALES) : await xacNhan(w, id, chu);
   assert.equal(r.status, 200, r.text);
   return id;
 }

@@ -264,9 +264,6 @@ async function gieo(w: W): Promise<Gieo> {
   THUAN.forEach((t, i) => { if (!KHUNG[t.permissions[0]!]) seedStaff(w.sqlite, { id: t.id, phone: `0911000${String(i).padStart(3, "0")}`, name: `Thuần ${t.permissions[0]}`, perms: t.permissions }); });
   LAI.forEach((t, i) => seedStaff(w.sqlite, { id: t.id, phone: `0912000${String(i).padStart(3, "0")}`, name: `Lai ${t.permissions[0]}`, perms: t.permissions }));
   seedStaff(w.sqlite, { id: DT_B, phone: "0913000001", name: "Đại Lý Bê", perms: ["PARTNER"] });
-  for (const [r, p] of [["r-sl-a", `pty-${PARTNER}`], ["r-sl-b", PTY_B]] as const) {
-    w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(r, p, AT, AT);
-  }
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'Nhà cung cấp Lạ', 1, ?, ?)").run(AT, AT);
   w.sqlite.prepare("INSERT INTO pty_organization (party_id, legal_name, created_at, updated_at) VALUES ('pty-ncc', 'Nhà cung cấp Lạ', ?, ?)").run(AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-sl-ncc', 'pty-ncc', 'SUPPLIER', '2026-01-01', ?, ?)").run(AT, AT);

@@ -22,14 +22,13 @@ function setup() {
   seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An Bán", perms: ["SALES"] });
   seedStaff(w.sqlite, { id: KT, phone: "0900000005", name: "Lan Kế Toán", perms: ["ACCOUNTING"] });
   seedStaff(w.sqlite, { id: DT, phone: "0900000008", name: "Đối Tác Một", perms: ["PARTNER"] });
-  seedStaff(w.sqlite, { id: DT2, phone: "0900000009", name: "Đối Tác Hai", perms: ["PARTNER"] });
-  seedStaff(w.sqlite, { id: DT3, phone: "0900000010", name: "Đối Tác Ba", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: DT2, phone: "0900000009", name: "Đối Tác Hai", perms: ["PARTNER"], kieuCu: true }); // hồ sơ không vai trò đối tác (ADR-0185: dựng kiểu cũ)
+  seedStaff(w.sqlite, { id: DT3, phone: "0900000010", name: "Đối Tác Ba", perms: ["PARTNER"], kieuCu: true });
   seedStaff(w.sqlite, { id: LAI, phone: "0900000011", name: "Lai Không Vai", perms: ["SALES", "PARTNER"] });
   seedStaff(w.sqlite, { id: LAI2, phone: "0900000012", name: "Lai Có Vai", perms: ["SALES", "PARTNER"] });
   seedStaff(w.sqlite, { id: SALES2, phone: "0900000014", name: "Bán Hàng Có Vai", perms: ["SALES"] });
   const vai = (id: string, party: string, code: string, tu = "2026-01-01", den: string | null = null) =>
     w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, valid_to_date, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)").run(id, party, code, tu, den, AT, AT);
-  vai(`r-${DT}`, `pty-${DT}`, "TRAVEL_AGENCY");
   vai(`r-${DT2}`, `pty-${DT2}`, "CUSTOMER");
   vai(`r-${LAI2}`, `pty-${LAI2}`, "TRAVEL_AGENCY");
   vai(`r-${SALES2}`, `pty-${SALES2}`, "TRAVEL_AGENCY");
@@ -65,10 +64,11 @@ test("tài khoản lai mà hồ sơ mang vai được hưởng ⇒ khác null (c
 });
 
 test("vai được hưởng bị đóng ngày, hoặc loại vai bị tắt khỏi danh sách được hưởng ⇒ null", async () => {
-  const { w, vai } = setup();
+  const { w } = setup();
   const DT4 = "66666666-6666-4666-8666-66666666666b";
   seedStaff(w.sqlite, { id: DT4, phone: "0900000013", name: "Đối Tác Bốn", perms: ["PARTNER"] });
-  vai(`r-${DT4}`, `pty-${DT4}`, "TRAVEL_AGENCY", "2026-01-01", "2026-02-01"); // đã đóng
+  // seedStaff mở vai Công ty lữ hành trước quyền (ADR-0185); kết thúc vai đó về sau — dữ liệu sửa tay, trigger chỉ canh lúc mở quyền.
+  w.sqlite.prepare("UPDATE pty_party_role SET valid_to_date = '2026-02-01' WHERE id = ?").run(`r-${DT4}`);
   assert.equal((await me(w, DT4)).json.benDatCuaToi, null, "vai đóng ngày");
   assert.deepEqual((await me(w, DT)).json.benDatCuaToi, { partyId: `pty-${DT}`, ten: "Đối Tác Một" }, "đối chứng: vai còn mở thì khác null");
   w.sqlite.prepare("UPDATE prc_beneficiary_role SET active = 0 WHERE role_type_code = 'TRAVEL_AGENCY'").run();

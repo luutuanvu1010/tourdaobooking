@@ -20,7 +20,6 @@ function dung(tuyChon: Record<string, unknown> = {}): W {
   const w = setup(tuyChon);
   for (const [id, phone, ten] of [[DT, "0900000021", "Đối Tác Hưởng"], [DT2, "0900000022", "Đối Tác Khác"]] as const) {
     seedStaff(w.sqlite, { id, phone, name: ten, perms: ["PARTNER"] });
-    w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${id}`, `pty-${id}`, AT, AT);
   }
   return w;
 }

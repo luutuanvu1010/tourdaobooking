@@ -15,7 +15,7 @@ import { soKhachDoan } from "../src/shared/hanh-khach";
 import { banHangSuaDuoc, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { can as canNv } from "../src/shared/permissions";
 import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
-import { gopBenDat, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
+import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, doiTacThieuVaiTro, gopBenDat, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
 import { GOI_Y_GIAM_GIA_DOI_TAC, formGonDoiTac } from "../src/shared/form-dat-ve";
@@ -1026,6 +1026,9 @@ duocDatGap = can(staff, "order.leg.short_notice");
 // Quyết định hiện gì do `khoiBenDatForm` (src/shared/phan-doi-tac-hien-thi.ts): Đối tác mà máy chủ ÉP bên đặt (trường `benDatCuaToi` của /api/auth/me — giao diện không suy) → dòng chỉ đọc "Bên đặt: <tên>"
 // thay ô tra hồ sơ khách; văn phòng (người lập đơn, KHÔNG giữ quyền Đối tác) → thêm ô "Đặt qua đối tác"; còn lại → ô tra SĐT như hôm nay. Dựng TRƯỚC loadOrder (nạp nháp cần biết có ô nào).
 const khoiBenDat = khoiBenDatForm(staff, benDatCuaToi());
+// ADR-0185 Đ1 (kế hoạch K10): giữ quyền Đối tác mà máy chủ không ép bên đặt ⇒ Gửi đơn sẽ bị chặn — báo trước bằng dải vàng ở ĐẦU thẻ Khách hàng. Đặt trong dòng «Ngày khởi hành»
+// vì công tắc «Ẩn thông tin khách» (ADR-0154 Đ2.2, áp cho đối tác) chỉ để lại dòng đó của khối; đặt chỗ khác thì đối tác bị ẩn khách không thấy dải.
+if (doiTacThieuVaiTro(staff, benDatCuaToi())) khoiKhach.querySelector(".khach-ngay")?.prepend(h("p", { class: "alert warn", role: "status" }, CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO));
 bookerPicker.datCoODatQuaDoiTac(khoiBenDat.kieu === "tra-sdt-va-dat-qua"); // câu cạnh hồ sơ tổ chức chỉ trỏ tới ô «Đặt qua đối tác» khi ô đó CÓ ở form này (Task 14, nợ (d))
 let datQua: DatQuaDoiTac | null = null;
 let daChonBenDat: BenDatChon | null = null;

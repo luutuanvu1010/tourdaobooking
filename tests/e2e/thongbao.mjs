@@ -8,7 +8,7 @@
 // ADR-0030 Task 1.3 (chọn HDV lúc lập ghi created + order_handler_changed CÙNG mốc) chưa lên main. Thêm khi nhánh đó gộp.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { ACCOUNTS, BASE, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, BASE, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, thanQuyenTaiKhoan, vnDate } from "./lib.mjs";
 
 const A = await session(ACCOUNTS.salesA), B = await session(ACCOUNTS.salesB), KT = await session(ACCOUNTS.accountant), TQ = await session(ACCOUNTS.superAdmin);
 assert.equal((await call(null, "GET", "/api/thong-bao")).status, 401);
@@ -132,9 +132,9 @@ await revoke(tin1);
 
 // Task 6: Toàn quyền gửi, thu hồi, xem đã gửi, xem ai đã hiểu (ADR-0034 điều 5–9)
 const ADMIN = await session(ACCOUNTS.admin);
-// Tài khoản CHỈ Đối tác: tạo thẳng bằng permissions ["PARTNER"] (thay cách đổi vai — rà soát trước thi công, mục R6).
+// Tài khoản CHỈ Đối tác: tạo thẳng một lần (rà soát trước thi công, mục R6) — qua vai trò đối tác vì đường danh sách quyền không cấp quyền Đối tác nữa (ADR-0185 Đ2).
 const dtPhone = randomPhone();
-let rr = await call(TQ, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Đối Tác ${Date.now().toString(36)}`, phone: dtPhone, permissions: ["PARTNER"] });
+let rr = await call(TQ, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Đối Tác ${Date.now().toString(36)}`, phone: dtPhone, ...thanQuyenTaiKhoan(["PARTNER"]) });
 assert.equal(rr.status, 201, JSON.stringify(rr.body));
 const DT = (await login(dtPhone, rr.body.pin)).cookie;
 const than = (o = {}) => ({
