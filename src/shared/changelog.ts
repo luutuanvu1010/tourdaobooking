@@ -18,13 +18,21 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // ADR-0186 (chủ duyệt 8/11, đóng HC-5.11): ba việc định giờ chạy dưới tác nhân có định danh riêng; Quản lý bán hàng được đồng bộ danh mục. Migration 0148.
-    // Bước A.0 ngày 8/11 trên nhánh claude/pensive-keller-274010. SỐ TẠM: 2.74 (chưa lên production) đi cùng lần triển khai này thì giữ hai mục riêng
-    // (tiền lệ 2.70–2.72); nhánh khác nhập trước mà cũng lấy 2.75 thì phiên phát hành đánh lại số.
-    version: "2.75",
+    // Bước A.0 ngày 8/11 trên nhánh claude/pensive-keller-274010. SỐ TẠM: nhánh menu tên tài khoản nhập trước, lấy 2.75; 2.74, 2.75 chưa lên production thì đi
+    // cùng lần triển khai này, giữ các mục riêng (tiền lệ 2.70–2.72); nhánh khác nhập trước mà cũng lấy 2.76 thì phiên phát hành đánh lại số.
+    version: "2.76",
     date: "2026-11-08",
     items: [
       { kind: "moi", text: "Quản lý bán hàng có nút «Đồng bộ ngay từ Google Sheet» ở màn Dịch vụ & giá để lấy giá mới ngay, không phải nhờ Quản trị. Nền tảng vẫn tự đồng bộ mỗi 15 phút.", bai: { id: "quan-ly-ban-hang/lay-bang-gia-moi-tu-google-sheet", ten: "Lấy bảng giá mới từ Google Sheet" } },
       { kind: "doi", text: "Toàn quyền thấy thêm dòng «Xoá ảnh vé hết hạn lưu» ở trang Nhật ký mỗi lần Nền tảng tự xoá ảnh vé của lô đã huỷ khi quá hạn lưu; dòng chỉ ghi số ảnh." },
+    ],
+  },
+  {
+    // Chủ dự án 8/11: «Xem như vai trò khác» chuyển từ trang Tôi vào menu tên tài khoản. Không migration.
+    version: "2.75",
+    date: "2026-11-08",
+    items: [
+      { kind: "doi", text: "Bấm tên tài khoản (chân menu trái trên máy tính, ô chữ cái góc trên trên điện thoại) mở menu nhỏ: «Đăng xuất», và với Toàn quyền thêm «Xem như vai trò khác»." },
     ],
   },
   {

@@ -3241,14 +3241,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Xem như vai trò khác",
-    manHinh: "Tôi › Xem như vai trò khác (chỉ Toàn quyền); thanh «Đang xem như vai trò …» trên mọi trang có khung, nút «Thoát»",
-    ten: "Xem · Thoát",
-    thatSuLam: "«Xem» đưa phiên của Toàn quyền vào chế độ xem như người giữ quyền đã chọn: menu, trang và thao tác theo đúng quyền đó, dữ liệu ghi là dữ liệu thật tính cho tài khoản Toàn quyền. «Thoát» (ở thanh báo) trả phiên về quyền thật. Phiên tự thoát khi quá 60 phút không hoạt động.",
+    manHinh: "Menu tên tài khoản › Xem như vai trò khác › tên vai trò (chỉ Toàn quyền; chủ dự án 8/11 chuyển từ trang Tôi vào menu, ngay trên «Đăng xuất»); thanh «Đang xem như vai trò …» trên mọi trang có khung, nút «Thoát»",
+    ten: "‹tên vai trò› · Thoát",
+    thatSuLam: "Bấm tên một vai trò đưa phiên của Toàn quyền vào chế độ xem như người giữ quyền đã chọn: menu, trang và thao tác theo đúng quyền đó, dữ liệu ghi là dữ liệu thật tính cho tài khoản Toàn quyền. «Thoát» (ở thanh báo) trả phiên về quyền thật. Phiên tự thoát khi quá 60 phút không hoạt động.",
     hoiLai: "không",
     hoanTac: "được: bấm «Thoát», hoặc đợi phiên hết hạn",
     duongLenh: ["/api/auth/xem-nhu-vai"],
     maNhatKy: ["acting_role_set", "acting_role_cleared"],
-    noiDat: [{ tep: "web/account.ts", chu: "Xem" }],
+    noiDat: [{ tep: "web/menu-tai-khoan.ts", chu: "⟪x.nhan⟫" }],
     trangThai: "cho-chon",
     nguonTen: "ADR-0180 (6/11): chủ chọn «Xem như vai khác» / «Đang xem như vai khác» / «Thoát vai»; đã đổi thành «vai trò» để theo ADR-0130, chờ chủ xem lại",
   },
@@ -4633,7 +4633,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Khung chung: tài khoản",
-    manHinh: "Thanh bên máy tính (chân thanh); trang Tôi cũng có nút riêng",
+    manHinh: "Menu tên tài khoản (bấm tên ở chân thanh bên máy tính, hoặc ô chữ cái đầu ở thanh trên điện thoại — chủ dự án 8/11); khung tạm chưa có tên vẫn có nút ở chân thanh bên; trang Tôi cũng có nút riêng",
     ten: "Đăng xuất",
     thatSuLam: "Đăng xuất MÁY NÀY (máy khác của cùng tài khoản vẫn đăng nhập), tắt thông báo đẩy của máy này, xoá bản nhớ khung giao diện rồi về trang đăng nhập. Nếu máy chủ lỗi thì máy này vẫn thoát ra.",
     hoiLai: "không",
@@ -4642,6 +4642,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     maNhatKy: [],
     noiDat: [
       { tep: "web/shell.ts", chu: "Đăng xuất" },
+      { tep: "web/menu-tai-khoan.ts", chu: "Đăng xuất" },
     ],
     trangThai: "da-chot",
     nguonTen: "rà soát 2026-11-04: tên đúng; «Đăng xuất máy này» là tên chủ chọn cho nút ở danh sách máy đang đăng nhập (2026-10-18, lượt 2); nút «Đăng xuất» ở thanh bên làm cùng việc cho máy đang cầm nên tên ngắn vẫn đúng.",
@@ -4920,6 +4921,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
 
 /** Nút máy dò là ghi dữ liệu hay nút chính nhưng không phải việc quan trọng (chỉ tải lại, chỉ ẩn khung…); mỗi mục có lý do. */
 export const BO_QUA: readonly MucBoQua[] = [
+  { tep: "web/shell.ts", chu: "⟪nho.tat⟫", lyDo: "ô chữ cái đầu ở thanh trên (điện thoại): chỉ mở menu tên tài khoản, không ghi gì; việc ghi nằm ở các mục trong menu (web/menu-tai-khoan.ts). Khung tạm từ bản nhớ không dựng nút này" },
+  { tep: "web/shell.ts", chu: "⟪initials(staff.fullName)⟫", lyDo: "ô chữ cái đầu ở thanh trên (điện thoại): chỉ mở menu tên tài khoản, không ghi gì; việc ghi nằm ở các mục trong menu (web/menu-tai-khoan.ts)" },
   { tep: "web/banner.ts", chu: "Tải lại đơn", lyDo: "Tải lại đơn: chỉ tải lại, không ghi gì" },
   { tep: "web/banner.ts", chu: "Tải lại trang", lyDo: "Tải lại trang: chỉ tải lại" },
   { tep: "web/canh-bao-doi-tac.ts", chu: "Không", lyDo: "«Không» của khung cảnh báo trùng số: chỉ ẩn khung" },

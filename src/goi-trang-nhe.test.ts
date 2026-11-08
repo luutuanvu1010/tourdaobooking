@@ -55,9 +55,11 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 105.667 → 105.804 (ADR-0178 Đ1 mục 1, Task A2, 6/11/2026): hai ô quyền mới billing.partner_channel.write / .view vào bản đồ quyền dùng chung (chỉ dữ liệu, +37 byte đo thật 105.704). Không mã giao diện nào vào gói Đơn hàng. Trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
 // Nới 105.804 → 106.093 (ADR-0180, 7/11/2026): thanh báo xem như vai trò khác dùng chung ở khung nên vào gói mọi trang. Đã thu gọn còn một hàm trong web/shell.ts (dùng lại PERMISSION_LABEL và dải chung), phần bật chuyển sang web/account.ts; đo thật 105.993 byte, trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
 // Nới 106.093 → 106.223 (ADR-0180, vòng sửa 1, 7/11/2026): thanh báo dùng hàm chung `hienThanhXemNhu` (một nguồn chữ, có test) và thêm đuôi « · Đang bảo trì» khi bảo trì bật (dải bảo trì bị thanh che); đo thật 106.123 byte (đuôi bảo trì tốn 41 byte; bỏ đuôi thì 106.082 vừa trần cũ), trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
-// Nới 106.223 → 106.557 (ADR-0186, 8/11/2026): ba ô quyền mới (catalog.sync, credit.due.remind, ve.kho.purge), danh sách tác nhân tự động và nhánh tác nhân trong `can()`
-// của bản đồ quyền dùng chung, cùng nhãn nhật ký «Xoá ảnh vé hết hạn lưu» (chỉ dữ liệu quyền / nhãn, không mã giao diện mới vào gói này). Đo thật 106.457 byte, trần = số đo + 100.
-const TRAN_ORDERS = 106_557;
+// Nới 106.223 → 108.802 (menu tên tài khoản, chủ dự án 8/11/2026: «Xem như vai trò khác» chuyển từ trang Tôi vào menu con của tên tài khoản, ngay trên «Đăng xuất»): menu nằm ở khung nên vào gói mọi trang (web/menu-tai-khoan.ts ~1,8 KB + chữ và danh sách vai trò dùng chung ~0,5 KB; chữ có dấu thành \uXXXX nên tốn gấp mấy lần). Không dùng bảng trượt để khỏi kéo thêm mã. Đo thật 108.702 byte, trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+// Nới 108.802 → 109.128 (ADR-0186, 8/11/2026, đo lại sau khi nhập bản chính có menu tên tài khoản): ba ô quyền mới (catalog.sync, credit.due.remind, ve.kho.purge), danh sách tác nhân tự động
+// và nhánh tác nhân trong `can()` của bản đồ quyền dùng chung, cùng nhãn nhật ký «Xoá ảnh vé hết hạn lưu» (chỉ dữ liệu quyền / nhãn, không mã giao diện mới vào gói này). Đo thật 109.028 byte
+// trên mã đã nhập (bản chính một mình 108.702, +326), trần = số đo + 100. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+const TRAN_ORDERS = 109_128;
 
 function dung(trang: string) {
   const r = buildSync({

@@ -35,6 +35,7 @@ import { registerServiceWorker } from "./pwa";
 import { ganThongBao } from "./thong-bao-ui";
 import { KHOA_GAN_PHIEN_THONG_BAO, thietBiTu } from "./push-ui";
 import { ganTroLy } from "./tro-ly";
+import { ganMenuTaiKhoan } from "./menu-tai-khoan";
 import { daiNhacHaiLop, tongDaiNhacHaiLop } from "../src/shared/hai-lop-hien-thi";
 
 // MỤC NÀO HIỆN CHO AI (thanh bên, thanh tab, thanh trên) KHAI Ở MỘT NƠI: src/shared/muc-giao-dien.ts — tệp này chỉ vẽ danh sách bảng đó trả về, không tự hỏi quyền.
@@ -327,8 +328,23 @@ function sidebar(n: NguoiXem, path: string, staff: Staff | null, loaders: (() =>
     .filter((g): g is HTMLElement => g !== null);
   // `staff` null = khung tạm từ bản nhớ (ADR-0035): chân thanh chỉ có chữ cái đầu, tên/vai điền khi /api/auth/me về.
   const roleLabel = staff ? staff.permissions.map((p) => PERMISSION_LABEL[p]).join(" · ") || "Chưa có quyền" : "";
-  const logoutBtn = h("button", { class: "sidebar-logout", type: "button" }, "Đăng xuất");
-  logoutBtn.addEventListener("click", () => void logout());
+  // Khung thật: tên người dùng là NÚT mở menu tên tài khoản («Xem như vai trò khác» của Toàn quyền, rồi «Đăng xuất» — chủ dự án 8/11). Khung tạm (chưa biết staff,
+  // có thể kẹt lại khi mất mạng) giữ nút «Đăng xuất» đứng riêng như cũ.
+  const nguoi = [
+    h("span", { class: "sidebar-avatar", "aria-hidden": "true" }, staff ? initials(staff.fullName) : tat),
+    h("span", { class: "sidebar-who" }, h("span", { class: "sidebar-name" }, staff?.fullName ?? ""), h("span", { class: "sidebar-role" }, roleLabel)),
+  ];
+  let user: HTMLElement;
+  let logoutBtn: HTMLElement | null = null;
+  if (staff) {
+    const nut = h("button", { class: "sidebar-user", type: "button" }, ...nguoi);
+    ganMenuTaiKhoan(nut, staff, () => void logout());
+    user = nut;
+  } else {
+    user = h("div", { class: "sidebar-user" }, ...nguoi);
+    logoutBtn = h("button", { class: "sidebar-logout", type: "button" }, "Đăng xuất");
+    logoutBtn.addEventListener("click", () => void logout());
+  }
   return h(
     "nav",
     { id: "sidebar", "aria-label": "Điều hướng chính" },
@@ -342,12 +358,7 @@ function sidebar(n: NguoiXem, path: string, staff: Staff | null, loaders: (() =>
       "div",
       { class: "sidebar-foot" },
       h("div", { class: "sidebar-group-items" }, ...chan.muc.map((m) => sidebarItem(m, path, loaders, seesAll))),
-      h(
-        "div",
-        { class: "sidebar-user" },
-        h("span", { class: "sidebar-avatar", "aria-hidden": "true" }, staff ? initials(staff.fullName) : tat),
-        h("span", { class: "sidebar-who" }, h("span", { class: "sidebar-name" }, staff?.fullName ?? ""), h("span", { class: "sidebar-role" }, roleLabel)),
-      ),
+      user,
       logoutBtn,
     ),
   );
@@ -472,8 +483,15 @@ export async function initShell(): Promise<Staff> {
     theoDoiThanhDinh();
   };
   /** Thanh công việc: avatar (điện thoại) + ô tìm + nút "Tạo đơn" — cùng một cách dựng cho khung tạm và khung thật. */
-  const thanhCongViec = (tat: string, n: NguoiXem, tam: boolean) => {
-    const nodes: HTMLElement[] = [h("span", { class: "bar-avatar", "aria-hidden": "true" }, tat)];
+  const thanhCongViec = (tat: string, n: NguoiXem, tam: boolean, st: Staff | null = null) => {
+    // Khung thật: ô chữ cái đầu là NÚT mở menu tên tài khoản (cùng menu với tên ở chân thanh bên — chủ dự án 8/11); khung tạm giữ ô trang trí như cũ.
+    let avatar: HTMLElement;
+    if (st) {
+      const nut = h("button", { class: "bar-avatar", type: "button", "aria-label": `Tài khoản: ${st.fullName}` }, tat);
+      ganMenuTaiKhoan(nut, st, () => void logout());
+      avatar = nut;
+    } else avatar = h("span", { class: "bar-avatar", "aria-hidden": "true" }, tat);
+    const nodes: HTMLElement[] = [avatar];
     // Ô tìm đơn / nút "Tạo đơn": ai thấy do `thanhTren()` của bảng mục quyết (THANH_TREN) — cùng đối tượng với mục "Trang chủ" / "Tạo đơn" của thanh bên.
     for (const m of thanhTren(n)) {
       if (m.kieu === "o-tim") {
@@ -523,7 +541,7 @@ export async function initShell(): Promise<Staff> {
   // Gỡ khung tạm (nếu có) rồi vẽ khung thật trong CÙNG một lượt chạy — trình duyệt không vẽ khung trống ở giữa.
   for (const el of document.querySelectorAll("[data-khung-tam]")) el.remove();
   document.body.classList.remove("has-sidebar", "has-tabbar");
-  thanhCongViec(initials(staff.fullName), { staff }, false);
+  thanhCongViec(initials(staff.fullName), { staff }, false, staff);
   ganThongBao(byId("topbar"), staff); // ADR-0034: chỉ khung THẬT có chuông (khung tạm chưa biết soChuaDoc) — ngay sau thanhCongViec(), trước addNav() (R7)
 
   addNav({ staff }, staff, null);
