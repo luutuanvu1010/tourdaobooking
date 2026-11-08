@@ -507,3 +507,35 @@ test("M (đợt sửa 1): thứ tự tên loại giấy theo danh mục (sort_or
     }
   }
 });
+
+test("O (đợt sửa 1): số Trang chủ chỉ tính chuyến HÔM NAY và CHƯA KẾT THÚC — chuyến đã kết thúc → 0; chuyến ngày mai có cho phép → không tính", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themDieuKienDangKy(w);
+    const dem = async () => (await w.call("GET", "/api/van-chuyen/cho-chay-thieu/dem", { as: ADM })).json.count;
+    const { t } = await chuyenXe(w, ["INSPECTION", "TPL_INSURANCE"]);
+    const NGAY_MAI = "2027-03-12";
+    const xeMai = xeCo(w, ["INSPECTION", "TPL_INSURANCE"]);
+    const mai = await chuyenSan(w, { xe: xeMai, ngay: NGAY_MAI });
+    assert.equal((await choChay(w, mai.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN" })).status < 300, true, "cho phép chuyến ngày mai");
+    assert.equal(await dem(), 0, "chuyến ngày mai có cho phép không tính");
+    assert.equal((await choChay(w, t.id, ADM, { loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN" })).status < 300, true);
+    assert.equal(await dem(), 1, "hôm nay, chưa chạy");
+    denGio("12:40");
+    assert.equal((await tienDo(w, "tai-xe", t.id, "xuat-ben")).status, 200);
+    assert.equal(await dem(), 1, "đang chạy vẫn tính");
+    // Kết thúc chuyến (đã có cho phép ở bản chụp ĐẠT): số về 0. Dọn khách và điểm trực tiếp trên CSDL thử rồi đặt trạng thái (đường thật cần đi hết điểm — bài này chỉ canh vế lọc «chưa kết thúc»).
+    const ct = await chiTiet(w, t.id, ADM);
+    const gio = new Date().toISOString();
+    w.sqlite.prepare("UPDATE vc_trip_allocation SET status = 'NO_SHOW' WHERE trip_id = ? AND valid_to_at IS NULL AND status IN ('WAITING', 'BOARDED')").run(t.id);
+    w.sqlite.prepare("UPDATE vc_trip_stop SET status = 'ARRIVED', arrived_at = ? WHERE trip_id = ? AND status = 'PENDING'").run(new Date().toISOString(), t.id);
+    w.sqlite.prepare("UPDATE vc_trip_stop SET status = 'DONE', done_at = ? WHERE trip_id = ? AND status = 'ARRIVED'").run(new Date().toISOString(), t.id);
+    w.sqlite.prepare("UPDATE vc_trip SET status = 'ENDED', ended_at = ?, ended_ms = ?, version = version + 1, last_cmd_id = ? WHERE id = ?").run(gio, Date.parse(gio), uuid(), t.id);
+    assert.equal(w.q("SELECT status s FROM vc_trip WHERE id = ?", t.id)[0].s, "ENDED");
+    assert.ok(ct.chuyen.choChayThieu.length === 1, "chống bài rỗng: trước khi kết thúc có nhãn");
+    assert.equal(await dem(), 0, "chuyến đã kết thúc không tính dù còn nhãn");
+  } finally {
+    tat();
+  }
+});

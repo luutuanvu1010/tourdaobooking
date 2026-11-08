@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ADM, SALES, SUP, NGAY, batDongHo, chiTiet, chuyenSan, denGio, setup, tienDo, uuid } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ADM, DRIVER, SALES, SUP, NGAY, batDongHo, chiTiet, chuyenSan, denGio, setup, tienDo, uuid } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const AT = "2026-09-01T00:00:00.000Z";
 let so = 900;
@@ -185,6 +185,32 @@ test("L3 (đợt sửa 1): cho phép Đăng ký xe cho xe X, ĐỔI sang xe Y (c
     const x = await tienDo(w, "van-phong", t.id, "xuat-ben");
     assert.equal(x.status, 409, x.text);
     assert.equal(w.q("SELECT status s FROM vc_trip WHERE id = ?", t.id)[0].s, "PLANNED");
+  } finally {
+    tat();
+  }
+});
+
+test("P (đợt sửa 1): nhãn vàng đúng CHUYẾN và đúng XE — hai chuyến cùng xe, cho phép chuyến 1 → cuốc tài xế chuyến 2 không nhãn, số Trang chủ = 1; cho phép rồi đổi xe → nhãn rỗng, số = 0", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const xeX = xeThieuKiemDinh(w);
+    const xeY = xeThieuKiemDinh(w);
+    const t1 = await chuyenSan(w, { xe: xeX });
+    const t2 = await chuyenSan(w, { xe: xeX, bd: "15:30", kt: "17:00", gio: "16:00" });
+    choPhep(w, t1.id, xeX);
+    const nhanCuoc = async (): Promise<Record<string, string[]>> => {
+      const r = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi?tu=${NGAY}&den=${NGAY}`, { as: DRIVER });
+      assert.equal(r.status, 200, r.text);
+      return Object.fromEntries(r.json.chuyen.map((c: any) => [c.id, c.choChayThieu.map((x: any) => x.ten)]));
+    };
+    const dem = async (): Promise<number> => (await w.call("GET", "/api/van-chuyen/cho-chay-thieu/dem", { as: ADM })).json.count;
+    assert.deepEqual(await nhanCuoc(), { [t1.id]: ["Kiểm định"], [t2.id]: [] }, "cuốc: nhãn chỉ ở chuyến được cho phép");
+    assert.equal(await dem(), 1, "số Trang chủ: chỉ chuyến 1");
+    const doi = await w.call("PUT", `/api/van-chuyen/chuyen/${t1.id}`, { as: SALES, body: { version: (await chiTiet(w, t1.id, ADM)).chuyen.version, requestId: uuid(), xeId: xeY } });
+    assert.equal(doi.status, 200, doi.text);
+    assert.deepEqual(await nhanCuoc(), { [t1.id]: [], [t2.id]: [] }, "đổi xe: nhãn rỗng (cho phép chỉ áp cho xe cũ)");
+    assert.equal(await dem(), 0, "đổi xe: số Trang chủ = 0");
   } finally {
     tat();
   }
