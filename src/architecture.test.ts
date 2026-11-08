@@ -1356,3 +1356,18 @@ test("ADR-0024 điều 5: thân MỌI trigger của schema chỉ đọc bảng c
   const problems = trig.flatMap((t) => triggerBodyViolations(tb, t.name, t.sql));
   assert.deepEqual(problems, [], "trigger chỉ đọc bảng của module mình hoặc view công bố của module được phép phụ thuộc (ADR-0024 điều 5)");
 });
+
+test("ADR-0184 (siết bù cho cạnh van-chuyen → staff đang CHỜ CHỦ DUYỆT): mã TS của van-chuyen không import module staff và không chuỗi SQL nào nhắc view v_stf_ — cạnh chỉ để TRIGGER 0147 đọc v_stf_toan_quyen", () => {
+  const dir = join(SRC, "modules", "van-chuyen");
+  const tep = readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
+  assert.ok(tep.length >= 10, `chống bài rỗng: thấy ${tep.length} tệp mã`);
+  const sai: string[] = [];
+  for (const f of tep) {
+    const ma = maskSource(readFileSync(join(dir, f), "utf8"), { strings: false, comments: true });
+    ma.split("\n").forEach((dong, i) => {
+      if (/\bfrom\s+["'](?:\.\.\/)+(?:modules\/)?staff(?:\/[^"']*)?["']/.test(dong) || /\bimport\s*\(\s*["'](?:\.\.\/)+(?:modules\/)?staff/.test(dong)) sai.push(`${f}:${i + 1}: nhập module staff`);
+      if (/\bv_stf_/.test(dong)) sai.push(`${f}:${i + 1}: nhắc view v_stf_*`);
+    });
+  }
+  assert.deepEqual(sai, [], "van-chuyen chỉ được đọc staff ở tầng trigger (migration), không ở mã TS / SQL của module");
+});
