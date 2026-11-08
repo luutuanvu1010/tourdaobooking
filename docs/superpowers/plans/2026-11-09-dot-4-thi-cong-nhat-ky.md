@@ -4,7 +4,7 @@
 
 ## Mốc đầu phiên (9/11)
 
-- `main` = `origin/main` = `fa3fd859a`. Nhánh này cắt từ nhánh prompt rà soát nên mang theo 24 lần lưu chưa có trên `main`: hồ sơ rà soát trước ngày dùng thật lần 2 (nhánh `claude/kind-wu-98f2cd`), prompt rà soát, kế hoạch sửa sau rà soát và lời duyệt 9/11 (`4ec5e1965`, `2c6b7e70c`). Toàn là tài liệu và một kịch bản Chrome (`52fd54557`); khi chủ `day-len` nhánh này thì các lần lưu đó vào `main` cùng lúc.
+- `main` = `origin/main` = `fa3fd859a`. Nhánh này cắt từ nhánh prompt rà soát nên mang theo 23 lần lưu chưa có trên `main`: hồ sơ rà soát trước ngày dùng thật lần 2 (nhánh `claude/kind-wu-98f2cd`), prompt rà soát, kế hoạch sửa sau rà soát và lời duyệt 9/11 (`4ec5e1965`, `2c6b7e70c`). Toàn là tài liệu và một kịch bản Chrome (`52fd54557`); khi chủ `day-len` nhánh này thì các lần lưu đó vào `main` cùng lúc.
 - Production (kiểm chỉ đọc 9/11): `GET /api/auth/config` → `version 2.80`; `wrangler d1 migrations list tourdao-sales-db --remote` → «No migrations to apply!» (đã áp tới `0150`).
 - Số migration lớn nhất trên `main`: `0150`. Đợt này **không thêm migration**.
 
@@ -20,7 +20,12 @@
 
 ## 4.2 HC-4.2
 
-- Giao `nguoi-kiem-doc-lap` (chỉ đọc) đối chiếu ADR-0115, ADR-0092 với mã: _(điền khi có)_.
+- Giao `nguoi-kiem-doc-lap` (chỉ đọc) đối chiếu ADR-0115, ADR-0092 với mã. **Kết luận 9/11: KHÔNG đóng được.** Người kiểm chạy `node --test src/modules/billing/dieu-chinh-duyet-route.test.ts src/migrations-dieu-chinh-duyet.test.ts src/modules/billing/tach-nhiem-vu-khung.test.ts` → 52 đạt / 0 đỏ; không làm phép thử phá cố ý.
+  - **Đã tách hai người (có hàng rào):** điều chỉnh công nợ `dieu_chinh` (tạo yêu cầu `src/modules/billing/index.ts` route `/api/ledger/adjustments` → duyệt `/api/ledger/adjustment-requests/:id/approve`; máy chủ `dieu-chinh.ts`; trigger `bil_adjustment_request_same_person`, `bil_posting_adjustment_approved`, `bil_debt_line_adjustment_match` ở `migrations/0094_bil_dieu_chinh_duyet.sql`; bài `TC2`, `src/migrations-dieu-chinh-duyet.test.ts`; `docs/SO-HANG-RAO.md` ngày quan sát 13/10), kể cả ba loại dòng HOA_HONG / GIAM_GIA_BEN_DAT / GIA_VON; phân định (`bil_attribution_same_person`, `0135`); đường cọc đơn huỷ (`0079`).
+  - **Phần hở chưa làm (đợt 2 ADR-0115 điều 3, chủ đã duyệt nguyên tắc):** «Điều chỉnh chi phí xe thuê» `POST /api/van-chuyen/chuyen/:id/chi-phi/dieu-chinh` (`src/modules/van-chuyen/tien-xe-chi-phi.ts` `lenhDieuChinh`, ô `transport.cost.adjust`) một người ghi ngay; `git grep vc_trip_cost_request -- migrations src` = 0 (tự kiểm lại 9/11). Trần 1 tỷ mỗi lệnh, không cộng dồn, có nhật ký `trip_cost_adjusted`, không tin báo. `docs/HANDOFF-N1.md` (mục 1.92) đã ghi «HC-4.2 mới giảm một nửa».
+  - **Chủ ý một người theo ADR-0115 điều 3 («dựa vào kỷ luật»):** `dao_lan_thu` («Huỷ khoản thu» — bài dò 8/11 đúng, bài ghim ở `dieu-chinh-duyet-route.test.ts` «lệnh đảo … KHÔNG qua duyệt»), `dao_dong` («Huỷ dòng sổ»), «Sửa khoản thu đã ghi», đảo / chụp lại / giá thoả thuận chi phí chuyến. Ba chỗ sát ranh giới (huỷ dòng của điều chỉnh đã duyệt; cổng `commercial_line_needs_approval` chỉ máy chủ; giá thoả thuận nhập tay) ghi ở phác đặc tả §3.
+  - **Ghi chú sổ đã cũ:** `ly_do` của mục còn nói ADR-0092 «chưa triển khai»; ghi chú 17/10 «đã giải phần lớn» chỉ đúng cho công nợ.
+  - Phác đặc tả đợt 2: `docs/superpowers/specs/2026-11-09-hc-4-2-phac-dac-ta-dot-2.md`. Đề xuất gia hạn: trang hỏi chủ Phần B.
 
 ## 4.3 Hai ô quyền chưa có route (`task.progress`, `dispatch.guides.view`)
 
