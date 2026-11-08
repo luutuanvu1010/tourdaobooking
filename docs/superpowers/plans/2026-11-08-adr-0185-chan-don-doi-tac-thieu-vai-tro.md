@@ -123,26 +123,26 @@ BEGIN SELECT RAISE(ABORT, 'lc1c_partner_needs_role: tài khoản Đối tác ph�
 
 **Interfaces:**
 - Consumes: câu lỗi `lc1c_partner_needs_role:` (Task 1).
-- Produces: `CAU_DUONG_CU_QUYEN_NGOAI`, `quyenNgoaiDuongCuProblem(perms: readonly PermissionCode[]): RoleProblem | null` (`src/shared/roles.ts`); `CAU_GO_QUAN_TRI_SANG_DOI_TAC` (`src/modules/accounts/index.ts`); `insertStaffSql({ name, phone, pin, permissions, active?, vai? })`.
+- Produces: `CAU_DUONG_CU_QUYEN_NGOAI`, `CAU_GO_QUAN_TRI_SANG_DOI_TAC`, `quyenNgoaiDuongCuProblem(perms: readonly PermissionCode[]): RoleProblem | null` (cả ba ở `src/shared/roles.ts` — tệp thuần để bài kiểm nhập được); `insertStaffSql({ name, phone, pin, permissions, active?, vai? })` — `vai` phải là vai trò nhóm bên ngoài mà quyền mặc định của nó chứa mọi quyền được xin (không dựng hồ sơ chỉ Tài xế đối tác mà giữ Đối tác — ca lọt K5).
 
-- [ ] **Step 1: Bài đỏ hàm thuần** (`roles.test.ts`): `quyenNgoaiDuongCuProblem(["PARTNER"])` và `(["DRIVER_PARTNER"])` → `{ forbidden: false, message: CAU_DUONG_CU_QUYEN_NGOAI }`; `(["SALES","ADMIN"])`, `([])` → `null`.
-- [ ] **Step 2: Bài đỏ route** (`duong-cu-quyen-ngoai.test.ts`, khung `world()` + `seedStaff`, gọi bằng Toàn quyền):
+- [x] **Step 1: Bài đỏ hàm thuần** (`roles.test.ts`): `quyenNgoaiDuongCuProblem(["PARTNER"])` và `(["DRIVER_PARTNER"])` → `{ forbidden: false, message: CAU_DUONG_CU_QUYEN_NGOAI }`; `(["SALES","ADMIN"])`, `([])` → `null`.
+- [x] **Step 2: Bài đỏ route** (`duong-cu-quyen-ngoai.test.ts`, khung `world()` + `seedStaff`, gọi bằng Toàn quyền):
   - `POST /api/staff {taoHoSoMoi, fullName, phone, permissions:["PARTNER"]}` → 400 `invalid_input`, `message === CAU_DUONG_CU_QUYEN_NGOAI`; không có tài khoản nào mang SĐT đó. Cùng ca với `["DRIVER_PARTNER"]`.
   - `POST /api/staff {…, permissions:["SALES","PARTNER"]}` → 400 `invalid_input` và câu KHÁC `CAU_DUONG_CU_QUYEN_NGOAI` (K7: câu lai cũ giữ nguyên).
   - `PUT /api/staff/:id/permissions {permissions:["PARTNER"]}` với tài khoản nội bộ chưa gán vai trò → 400 `invalid_input`; quyền không đổi.
   - `PUT /api/staff/:id/roles {roles:["TRAVEL_AGENCY"]}` với tài khoản đang giữ ADMIN (gieo `seedStaff` vai `DIRECTOR`, quyền `["ADMIN"]`) → 409 `account_rule`, `message === CAU_GO_QUAN_TRI_SANG_DOI_TAC`; quyền và vai không đổi.
   - Tiêu chí 8: `POST /api/staff {…, roles:["TRAVEL_AGENCY"]}` → 201, tài khoản giữ PARTNER, hồ sơ mở `TRAVEL_AGENCY`.
-- [ ] **Step 3: Bài đỏ công cụ khẩn cấp** (`staff-lib-doi-tac.test.ts`): `insertStaffSql({…, permissions:["PARTNER"]})` → reject, câu có chữ «vai»; `vai: "SALES_STAFF"` → reject (không phải vai nhóm bên ngoài); `vai: "TRAVEL_AGENCY"` → câu SQL chạy được trên `world()`, tài khoản giữ PARTNER, hồ sơ mở `TRAVEL_AGENCY`, KHÔNG có vai `STAFF`; `permissions:["SALES"]` không `vai` → như hôm nay (vai `STAFF`).
-- [ ] **Step 4:** `node --test src/shared/roles.test.ts src/modules/accounts/duong-cu-quyen-ngoai.test.ts src/staff-lib-doi-tac.test.ts` → FAIL.
-- [ ] **Step 5: Mã.**
+- [x] **Step 3: Bài đỏ công cụ khẩn cấp** (`staff-lib-doi-tac.test.ts`): `insertStaffSql({…, permissions:["PARTNER"]})` → reject, câu có chữ «vai»; `vai: "SALES_STAFF"` → reject (không phải vai nhóm bên ngoài); `vai: "TRAVEL_AGENCY"` → câu SQL chạy được trên `world()`, tài khoản giữ PARTNER, hồ sơ mở `TRAVEL_AGENCY`, KHÔNG có vai `STAFF`; `permissions:["SALES"]` không `vai` → như hôm nay (vai `STAFF`).
+- [x] **Step 4:** `node --test src/shared/roles.test.ts src/modules/accounts/duong-cu-quyen-ngoai.test.ts src/staff-lib-doi-tac.test.ts` → FAIL.
+- [x] **Step 5: Mã.**
   - `quyenNgoaiDuongCuProblem`: có `isExternalPermission` ⇒ vấn đề. Gọi theo K7 ở `POST /api/staff` nhánh cũ và `PUT …/permissions`.
   - `ruleViolation`: `/lc1c_partner_needs_role/` → 409 `account_rule`, `CAU_DUONG_CU_QUYEN_NGOAI`.
   - `PUT …/roles` (K6): sau `checkAccountChange`, `change.permissions.guarded && change.next.includes("PARTNER") && !t.permissions.includes("PARTNER")` ⇒ 409 `account_rule` `CAU_GO_QUAN_TRI_SANG_DOI_TAC`, TRƯỚC lô một.
   - `insertStaffSql`: thêm `vai` vào `ALLOWED_KEYS`; `vai` phải là `isRoleCode` nhóm `EXTERNAL` (`ROLES[vai].group`); PARTNER không `vai` ⇒ ném; có `vai` thì chèn vai đó THAY `STAFF`. `scripts/create-staff.mjs` nhận thêm đối số `vai` tuỳ chọn, ghi trong câu hướng dẫn dùng.
   - `web/staff.ts` (K9): `permissionBoxes` không vẽ nhãn cho mã `isExternalPermission` (ô vẫn trong `boxes`, trạng thái tích theo `s.permissions`).
-- [ ] **Step 6:** chạy lại Step 4 → PASS; chạy các bài accounts đỏ ở lần đo D → sửa theo mục Files.
-- [ ] **Step 7: Phép phá H2** (mỗi đường một lần, đỏ rồi hoàn nguyên): bỏ lời gọi ở `POST` → bài POST ĐỎ với 409 `account_rule` (trigger qua `ruleViolation`, KHÔNG 500); bỏ ở `PUT …/permissions` → bài PUT ĐỎ; bỏ câu ném trong `insertStaffSql` → bài công cụ ĐỎ. Ghi ngày.
-- [ ] **Step 8:** typecheck, commit «ADR-0185 Task 2: đường quyền cũ không cấp quyền bên ngoài».
+- [x] **Step 6:** chạy lại Step 4 → PASS; chạy các bài accounts đỏ ở lần đo D → sửa theo mục Files.
+- [x] **Step 7: Phép phá H2** (mỗi đường một lần, đỏ rồi hoàn nguyên): bỏ lời gọi ở `POST` → bài POST ĐỎ với 409 `account_rule` (trigger qua `ruleViolation`, KHÔNG 500); bỏ ở `PUT …/permissions` → bài PUT ĐỎ; bỏ câu ném trong `insertStaffSql` → bài công cụ ĐỎ. Ghi ngày. **Đã làm 8/11 10:08:** bỏ ở POST ⇒ bài POST đỏ với 409 `account_rule` của trigger (không 500); bỏ ở PUT ⇒ bài PUT đỏ (409); bỏ câu ném ⇒ bài công cụ đỏ; bỏ kiểm K6 ⇒ bài K6 đỏ; trả lại ⇒ 9/9 xanh.
+- [x] **Step 8:** typecheck, commit «ADR-0185 Task 2: đường quyền cũ không cấp quyền bên ngoài».
 
 ### Task 3: Đ1 — cổng chặn đơn của Đối tác chưa có vai trò (H1) + dải báo trên form
 

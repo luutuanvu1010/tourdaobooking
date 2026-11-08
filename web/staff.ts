@@ -1,6 +1,6 @@
 import { ApiError, api, type StaffAccount, type Api } from "./api";
 import { NHAN_LY_DO_KHOP } from "../src/shared/ho-so-trung";
-import { PERMISSION_CODES, PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
+import { PERMISSION_CODES, PERMISSION_LABEL, can, isExternalPermission, type PermissionCode } from "../src/shared/permissions";
 import { ROLE_CODES, canManageAccount, rolesLabelTheo, tuDoiQuyenCuaMinh } from "../src/shared/roles";
 import { chonLocHopLe, locTheoVai, nutLocVai } from "../src/shared/loc-tai-khoan";
 import { byId, h, replaceChildren } from "./dom";
@@ -318,7 +318,9 @@ async function openEdit(s: StaffAccount): Promise<void> {
   const permissionBoxes = PERMISSION_CODES.map((code) => {
     const box = h("input", { type: "checkbox", checked: s.permissions.includes(code), disabled: isMe, style: "width:auto;display:inline;margin:0 6px 0 0" });
     boxes.set(code, box);
-    return meSuper || code !== "SUPER_ADMIN" ? h("label", { class: "check" }, box, PERMISSION_LABEL[code]) : null; // ADR-0042: vai ẩn
+    // ADR-0042: vai ẩn. ADR-0185 Đ2 (K9): không vẽ ô quyền bên ngoài — đường quyền cũ không cấp Đối tác, Tài xế đối tác (máy chủ cũng chặn). Ô vẫn ở `boxes`, tích theo
+    // s.permissions: tài khoản kiểu cũ đang giữ quyền đó chỉ đổi tên / số thì không gửi PUT quyền làm rơi quyền.
+    return (meSuper || code !== "SUPER_ADMIN") && !isExternalPermission(code) ? h("label", { class: "check" }, box, PERMISSION_LABEL[code]) : null;
   });
   const save = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Lưu");
   const cancel = h("button", { type: "button", class: "btn" }, "Đóng");
