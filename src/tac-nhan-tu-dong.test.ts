@@ -75,6 +75,32 @@ test("N7: chỉ ba việc định giờ dựng tác nhân — không route, khô
   assert.deepEqual(co, CHO_DUNG_TAC_NHAN);
 });
 
+// Góp ý của người kiểm độc lập 8/11: bài trên chỉ canh lời gọi `tacNhan(`. Bài này canh thêm cách dựng tác nhân KHÔNG qua hàm: viết tay đối tượng có
+// khoá `tacNhan` (kể cả khoá viết trong chuỗi, khoá viết gọn `{ tacNhan }`), đặt bí danh cho hàm, nhập hàm dưới tên khác, nhập hàm ở tệp không được dựng.
+// Đọc trường `.tacNhan` (nhật ký đọc mã tác nhân) thì được. Còn hở, dựa vào kỷ luật: cố ý lách bằng khoá tính toán hay `import * as` rồi đặt bí danh.
+test("N7: ngoài bản đồ quyền không chỗ nào viết tay đối tượng tác nhân, đặt bí danh hay nhập hàm tacNhan dưới tên khác", () => {
+  const dong = (s: string, i: number) => s.slice(0, i).split("\n").length;
+  const vi: string[] = [];
+  for (const f of [...walk(join(ROOT, "src")), ...walk(join(ROOT, "web"))]) {
+    const ten = relative(ROOT, f).split("\\").join("/");
+    if (ten === "src/shared/permissions.ts") continue;
+    const goc = readFileSync(f, "utf8");
+    const khongChuThich = maskSource(goc, { strings: false, comments: true });
+    for (const m of khongChuThich.matchAll(/["'`]tacNhan["'`]\s*[:\]]/g)) vi.push(`${ten}:${dong(goc, m.index!)}: khoá "tacNhan" viết trong chuỗi`);
+    const che = maskSource(goc, { strings: true, comments: true });
+    const vungNhap = [...che.matchAll(/\bimport\s+(?:type\s+)?\{[^}]*\}/g)].map((m) => [m.index!, m.index! + m[0].length] as const);
+    for (const m of che.matchAll(/(?<![\w$.])tacNhan(?![\w$])/g)) {
+      const i = m.index!;
+      const sau = che.slice(i + m[0].length);
+      if (/^\s*\(/.test(sau)) continue; // lời gọi tacNhan("…"): bài trên giữ danh sách tệp được gọi
+      const nhapDungTen = vungNhap.some(([a, b]) => i >= a && i < b) && !/^\s+as\b/.test(sau);
+      if (nhapDungTen && CHO_DUNG_TAC_NHAN.includes(ten)) continue;
+      vi.push(`${ten}:${dong(goc, i)}: «${goc.slice(i, i + 40).split("\n")[0]}»`);
+    }
+  }
+  assert.deepEqual(vi, [], "chỉ hàm tacNhan() trong src/shared/permissions.ts dựng được tác nhân");
+});
+
 // ---- Chạy thật trên khung thử ---------------------------------------------------------------------------------------------------------------------------
 const SHEET = "1XPx1g0JVTdevdX35MeCpt6Cc6Dgxdmfer6okEWleD3s"; // dạng id hợp lệ; không gọi mạng — fetch bị thay bằng Sheet giả
 const HEADER = "Mã tour,Tên tour,Khoá giá,Đường dẫn,Đơn vị,Giá người lớn,Giá trẻ em,Ghi chú trẻ em,Giá người cao tuổi,Ghi chú người cao tuổi,Giá em bé,Ghi chú em bé,Ghi chú nội bộ";

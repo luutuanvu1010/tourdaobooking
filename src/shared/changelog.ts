@@ -24,7 +24,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-11-08",
     items: [
       { kind: "moi", text: "Quản lý bán hàng có nút «Đồng bộ ngay từ Google Sheet» ở màn Dịch vụ & giá để lấy giá mới ngay, không phải nhờ Quản trị. Nền tảng vẫn tự đồng bộ mỗi 15 phút.", bai: { id: "quan-ly-ban-hang/lay-bang-gia-moi-tu-google-sheet", ten: "Lấy bảng giá mới từ Google Sheet" } },
-      { kind: "doi", text: "Nhật ký có thêm dòng «Xoá ảnh vé hết hạn lưu» mỗi lần Nền tảng tự xoá ảnh vé của lô đã huỷ khi quá hạn lưu; dòng chỉ ghi số ảnh, không ghi mã vé." },
+      { kind: "doi", text: "Toàn quyền thấy thêm dòng «Xoá ảnh vé hết hạn lưu» ở trang Nhật ký mỗi lần Nền tảng tự xoá ảnh vé của lô đã huỷ khi quá hạn lưu; dòng chỉ ghi số ảnh." },
     ],
   },
   {
