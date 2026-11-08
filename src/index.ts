@@ -267,8 +267,16 @@ const APP_OPTIONS: AppOptions = {
     // Cấp / cân bằng chạy SAU lô của lệnh và NUỐT lỗi (lệnh đã thắng; thiếu vé là suy ra lúc đọc); câu trả vé khi huỷ nối vào CHÍNH lô huỷ. Log chỉ ghi mã đơn lỗi, không mã vé.
     dichVuChoVe: (env, orderId) => dichVuChoVe(env.DB, orderId),
     tienDonVe: (env, orderId) => tienDonVe(env.DB, orderId),
-    capVeSauXacNhan: async (env, actor, orderId) => {
-      try { await capVeChoDon(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString()); } catch (e) { console.error("ve_cap_loi", orderId, e instanceof Error ? e.name : "loi"); }
+    // `chiBaoMa` (cấp bù khi lô vào kho): đơn không còn thiếu ở đúng mã của lô ⇒ không chạy lô giữ vé (lọc dần, vòng sửa 1 I-1); có thiếu thì giữ vé, chỉ báo thiếu mã đó (I-2).
+    capVeSauXacNhan: async (env, actor, orderId, chiBaoMa) => {
+      try {
+        const dichVu = await dichVuChoVe(env.DB, orderId);
+        if (chiBaoMa !== undefined) {
+          const homNay = vnToday(new Date());
+          if (!(await conThieuVe(env.DB, dichVu.filter((d) => d.catalogCode === chiBaoMa && d.ngayDi >= homNay)))) return;
+        }
+        await capVeChoDon(env.DB, dichVu, actor.id, nhatKyThat(env.DB), new Date().toISOString(), chiBaoMa);
+      } catch (e) { console.error("ve_cap_loi", orderId, e instanceof Error ? e.name : "loi"); }
     },
     // Cờ câu bảo vệ «vé vừa mở» (ADR-0170 Đ3; kế hoạch 2026-11-05 Task 2): người giữ quyền Đối tác HOẶC cổng huỷ Trả sau đòi. Có cờ (lô huỷ) mà soạn lỗi thì trả null — nơi gọi
     // trả 503 và KHÔNG chạy lô (Task 5 việc B; trước đó NÉM ra 500 thô). Nuốt lỗi ở đây sẽ bỏ mất câu bảo vệ (mở cửa); không cờ thì nuốt như cũ (thiếu câu trả vé chỉ để lại
@@ -283,14 +291,11 @@ const APP_OPTIONS: AppOptions = {
     },
     // DIỆN ĐỐI TÁC CỦA ĐƠN (ADR-0175 Đ2.4): kho vé không đọc orders — gốc lắp ráp gọi hàm công bố; router bọc lỗi thành null (diện đối tác).
     dienDoiTacCuaDon: (env, orderId) => dienDoiTacCuaDon(env.DB, orderId),
-    // CẤP BÙ KHI LÔ VÀO KHO (ADR-0175 Đ1.5a): orders cho ứng viên (đơn đã xác nhận có dòng mã đó, ngày đi chưa qua, gần trước); kho vé lọc đơn còn thiếu ở đúng dòng mã đó.
-    donThieuVe: async (env, code) => {
-      const homNay = vnToday(new Date());
-      const ra: string[] = [];
-      for (const id of await donXacNhanTheoMa(env.DB, code, homNay)) {
-        if (await conThieuVe(env.DB, (await dichVuChoVe(env.DB, id)).filter((d) => d.catalogCode === code && d.ngayDi >= homNay))) ra.push(id);
-      }
-      return ra;
+    // CẤP BÙ KHI LÔ VÀO KHO (ADR-0175 Đ1.5a): orders cho tối đa `toiDa` ứng viên (đơn đã xác nhận có dòng mã đó, ngày đi chưa qua, gần trước) — một câu; kho vé lọc «còn thiếu»
+    // dần trong vòng lặp của route (vòng sửa 1 I-1: trước đây lọc trước cả 200 đơn, ~5 câu mỗi đơn, vượt trần câu D1).
+    donChoCapBu: async (env, code, toiDa) => {
+      const ids = await donXacNhanTheoMa(env.DB, code, vnToday(new Date()), toiDa + 1);
+      return { ids: ids.slice(0, toiDa), conNua: ids.length > toiDa };
     },
     // «ĐÃ CHỤP CHƯA» (ADR-0148 Đ1): pricing không đọc bảng ord_, không phụ thuộc orders — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của orders (bài siết architecture.test.ts).
     hoiDaChup: (env, q) => ngayChupGanNhat(env.DB, q),

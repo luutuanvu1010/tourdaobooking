@@ -47,6 +47,11 @@ test("đơn nội bộ, chưa thu đủ, có cả hai loại vé: tạo đườn
     assert.equal(xem.json.thuDu, false, "cổng tiền của vé hãng ngoài chưa đạt");
     assert.equal(xem.json.veTourDaoMoSom, true);
     assert.deepEqual(xem.json.veXem.map((v: { id: string }) => v.id), [cua(w, d.id, "TOUR_DAO").id], "veXem chỉ có vé Tour Đảo");
+    // Vòng sửa 1 (Minor): Kế toán xem được đơn nhưng không có ô gửi vé ⇒ không có vé để mở, cờ «mở sớm» tắt.
+    const kt = await w.call("GET", `/api/ve/don/${d.id}`, { as: ACC });
+    assert.equal(kt.status, 200, kt.text);
+    assert.deepEqual(kt.json.veXem, []);
+    assert.equal(kt.json.veTourDaoMoSom, false);
     const dd = await w.call("POST", "/api/ve/duong-dan", { as: SALES, body: { orderId: d.id } });
     assert.equal(dd.status, 200, dd.text);
     assert.doesNotMatch(dd.text, MA_TD);

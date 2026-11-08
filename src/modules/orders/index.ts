@@ -422,7 +422,7 @@ export async function dienDoiTacCuaDon(db: D1Database, orderId: string): Promise
  * API công khai cho GỐC LẮP RÁP (ADR-0175 Đ1.5a, cấp bù khi lô vào kho): id các đơn ĐÃ XÁC NHẬN có dòng dịch vụ mã `catalogCode`, ngày đi ≥ `tuNgay` (hôm nay giờ Việt Nam),
  * ngày đi gần trước. Chỉ khoá đơn — «Có vé» và «còn thiếu» gốc lắp ráp lọc tiếp. KHÔNG tự kiểm quyền: chỉ gọi từ hàm tiêm, trong thân route đã qua cửa quyền của lô.
  */
-export const donXacNhanTheoMa = (db: D1Database, catalogCode: string, tuNgay: string): Promise<string[]> => docDonXacNhanTheoMa(db, catalogCode, tuNgay, 200);
+export const donXacNhanTheoMa = (db: D1Database, catalogCode: string, tuNgay: string, gioiHan: number): Promise<string[]> => docDonXacNhanTheoMa(db, catalogCode, tuNgay, gioiHan);
 
 /**
  * Đợt 5 A-1b (ADR-0052 D5b): câu ghi MỘT hành khách do tài xế nhập — van-chuyen đặt câu này vào lô của mình (sau dòng nhật ký `auditId`). Số tối đa = số khách

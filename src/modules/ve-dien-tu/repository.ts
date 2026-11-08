@@ -382,6 +382,14 @@ export const docVeCuaLink = async (db: D1Database, orderId: string): Promise<VeC
 const CON_TRONG_CUA_LO = defineSql("ve-dien-tu", "con_trong_cua_lo", "SELECT count(*) AS n FROM vdt_ticket WHERE batch_id = ?1 AND status = 'AVAILABLE' AND stored_at IS NOT NULL AND purged_at IS NULL");
 /** Số vé còn trống (chưa giữ) của MỘT lô — vòng cấp bù dừng khi lô hết vé. */
 export const conTrongCuaLo = async (db: D1Database, batchId: string): Promise<number> => (await db.prepare(CON_TRONG_CUA_LO).bind(batchId).first<{ n: number }>())?.n ?? 0;
+const DA_BAO_THIEU = defineSql(
+  "ve-dien-tu",
+  "da_bao_thieu_ve_gan_day",
+  "SELECT 1 AS co FROM v_aud_ledger_event WHERE order_id = ?1 AND action = 've_thieu' AND target_type = 've' AND target_id = ?2 AND created_at >= ?3 LIMIT 1",
+);
+/** Đơn đã có tin «thiếu vé» của nguồn này từ mốc `tu` (đọc view công bố của audit — chống lặp tin, vòng sửa 1 I-2). */
+export const daBaoThieuVeGanDay = async (db: D1Database, orderId: string, nguon: string, tu: string): Promise<boolean> =>
+  (await db.prepare(DA_BAO_THIEU).bind(orderId, nguon, tu).first<{ co: number }>()) !== null;
 const GIU_CUA_DON = defineSql("ve-dien-tu", "giu_cua_don", "SELECT count(*) AS n FROM vdt_allocation WHERE order_id = ?1 AND released_at IS NULL");
 /** Số phân bổ đơn đang giữ (đếm trước / sau một lần cấp bù để biết đơn có được cấp thêm không). */
 export const demGiuCuaDon = async (db: D1Database, orderId: string): Promise<number> => (await db.prepare(GIU_CUA_DON).bind(orderId).first<{ n: number }>())?.n ?? 0;

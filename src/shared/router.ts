@@ -310,7 +310,8 @@ export interface Ctx<A extends Access = Access> {
    * (xác nhận đã thắng — thiếu vé là suy ra lúc đọc). `traVeKhiHuy`: trả CÂU chưa chạy để nối vào lô huỷ / rút xác nhận (cùng nguyên tử); lỗi → mảng rỗng, trừ khi lô huỷ phải mang câu bảo vệ «vé vừa mở» thì → null (nơi gọi trả 503). `canBangVeSauSuaKhach`:
    * gọi SAU lô sửa số khách (`money-edit`, `handler-money-edit`) — trả bớt vé chưa lộ, cấp thêm; lỗi bị nuốt. Môi trường không tiêm (khung thử cố ý) → không làm gì (an toàn: không cấp).
    */
-  capVeSauXacNhan: (orderId: string) => Promise<void>;
+  /** `chiBaoMa` (cấp bù khi lô vào kho, vòng sửa 1 I-1/I-2): chỉ xét / báo thiếu dịch vụ đúng mã của lô — đơn không còn thiếu ở mã đó thì không chạy lô giữ vé nào. */
+  capVeSauXacNhan: (orderId: string, chiBaoMa?: string) => Promise<void>;
   /** Các dịch vụ của đơn có thể giữ vé + số khách HIỆU LỰC (`orders.dichVuChoVe`) — cho route xem vé của `ve-dien-tu`. KHÔNG tự kiểm quyền: route hỏi `can(` trước. Không tiêm ⇒ rỗng. */
   dichVuChoVe: (orderId: string) => Promise<{ serviceId: string; catalogCode: string; ngayDi: string; coVe: boolean; nguonVe: NguonVe; pax: { adult: number; child: number; senior: number; infant: number } }[]>;
   /** {số tính «thu đủ», phải thu, số khai chưa nộp, số chờ Kế toán xác nhận, thông tin Trả sau} (`billing.tienDonVe`; `daThu` đã trừ `choNop`, ADR-0159 Đ2, và `choXacNhan`, ADR-0170 Đ2) — để so ở một hàm thuần. Không tiêm / không đọc được ⇒ `null` (KHÔNG mở khoá). */
@@ -320,10 +321,11 @@ export interface Ctx<A extends Access = Access> {
   traVeKhiHuy: (orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN", chanVeDaMoTraSau: boolean) => Promise<D1PreparedStatement[] | null>;
   canBangVeSauSuaKhach: (orderId: string) => Promise<void>;
   /**
-   * ADR-0175 Đ1.5a (cấp bù khi lô vào kho): id các đơn ĐÃ XÁC NHẬN có dòng dịch vụ mã `catalogCode` «Có vé», còn thiếu vé, ngày đi ≥ hôm nay giờ Việt Nam, ngày đi gần trước
-   * (`orders.donXacNhanTheoMa` lọc tiếp bằng `ve-dien-tu.conThieuVe` ở gốc lắp ráp). KHÔNG tự kiểm quyền: route hỏi cửa quyền của lô trước. Không tiêm ⇒ rỗng (không cấp bù).
+   * ADR-0175 Đ1.5a (cấp bù khi lô vào kho): tối đa `toiDa` id ỨNG VIÊN — đơn ĐÃ XÁC NHẬN có dòng dịch vụ mã `catalogCode`, ngày đi ≥ hôm nay giờ Việt Nam, ngày đi gần trước
+   * (`orders.donXacNhanTheoMa`); `conNua` = còn ứng viên sau `toiDa`. CHƯA lọc «còn thiếu»: route lọc dần trong vòng lặp (qua `capVeSauXacNhan(id, mã)`) và dừng khi lô hết vé —
+   * giữ lệnh dưới trần số câu D1 mỗi lần gọi (vòng sửa 1, I-1). KHÔNG tự kiểm quyền: route hỏi cửa quyền của lô trước. Không tiêm ⇒ rỗng (không cấp bù).
    */
-  donThieuVe: (catalogCode: string) => Promise<string[]>;
+  donChoCapBu: (catalogCode: string, toiDa: number) => Promise<{ ids: string[]; conNua: boolean }>;
   /**
    * ADR-0175 Đ2.2, Đ2.4: diện đối tác của đơn cho cổng mở vé Tour Đảo — `doiTacLap` (người lập giữ quyền Đối tác, ADR-0170 Đ2), `benDatDoiTac` (cùng nghĩa `bookerLaDoiTac`
    * của chi tiết đơn). Không tiêm / không có đơn / lỗi đọc ⇒ `null` — nơi dùng coi như diện đối tác (an toàn: vé Tour Đảo chờ cổng tiền).
@@ -493,11 +495,11 @@ export interface AppOptions {
     kenhThuHienTai: (env: Env) => Promise<0 | 1>;
     chanKhaiCocLai: (env: Env, nguoiLapId: string) => Promise<ChanKhaiLai>;
     /** ADR-0153 Đ1 mục 4. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu` + `dichVuChoVe` của orders); thiếu (khung thử cố ý) → router không cấp / không trả vé. Tự nuốt lỗi. */
-    capVeSauXacNhan: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
+    capVeSauXacNhan: (env: Env, actor: StaffProfile, orderId: string, chiBaoMa?: string) => Promise<void>;
     traVeKhiHuy: (env: Env, actor: StaffProfile, orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN", chanVeDaMoTraSau: boolean) => Promise<D1PreparedStatement[] | null>;
     canBangVeSauSuaKhach: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
-    /** ADR-0175 Đ1.5a. Mã chạy thật (`src/index.ts`: `orders.donXacNhanTheoMa` + `ve-dien-tu.conThieuVe`); thiếu (khung thử cố ý) → rỗng. */
-    donThieuVe: (env: Env, catalogCode: string) => Promise<string[]>;
+    /** ADR-0175 Đ1.5a. Mã chạy thật (`src/index.ts`: `orders.donXacNhanTheoMa`); thiếu (khung thử cố ý) → rỗng. */
+    donChoCapBu: (env: Env, catalogCode: string, toiDa: number) => Promise<{ ids: string[]; conNua: boolean }>;
     /** ADR-0175 Đ2.4. Mã chạy thật (`src/index.ts`: `orders.dienDoiTacCuaDon`); thiếu (khung thử cố ý) hoặc ném lỗi → `null` (diện đối tác). */
     dienDoiTacCuaDon: (env: Env, orderId: string) => Promise<{ doiTacLap: boolean; benDatDoiTac: boolean } | null>;
     /** ADR-0153 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `orders.dichVuChoVe`, `billing.tienDonVe`); thiếu (khung thử cố ý) → rỗng / null. */
@@ -699,12 +701,12 @@ export function createApp(opts: AppOptions) {
           ? Promise.resolve({ status: 503 as const, code: "dat_coc_chua_kiem", message: "Chưa kiểm được tiền đặt cọc của đơn cũ — báo người phụ trách hệ thống." })
           : opts.injected.chanKhaiCocLai(envH, id),
       // ADR-0153: câu của kho vé đi vào CHÍNH lô của lệnh (huỷ) hoặc lô riêng sau lệnh ⇒ dùng `envH` như `dongBoChuyen`.
-      capVeSauXacNhan: async (id) => { if (who && typeof opts.injected.capVeSauXacNhan === "function") await opts.injected.capVeSauXacNhan(envH, who, id); },
+      capVeSauXacNhan: async (id, chiBaoMa) => { if (who && typeof opts.injected.capVeSauXacNhan === "function") await opts.injected.capVeSauXacNhan(envH, who, id, chiBaoMa); },
       dichVuChoVe: async (id) => (typeof opts.injected.dichVuChoVe === "function" ? opts.injected.dichVuChoVe(envH, id) : []),
       tienDonVe: async (id) => (typeof opts.injected.tienDonVe === "function" ? opts.injected.tienDonVe(envH, id) : null),
       traVeKhiHuy: async (id, lyDo, chanVeDaMoTraSau) => (who && typeof opts.injected.traVeKhiHuy === "function" ? opts.injected.traVeKhiHuy(envH, who, id, lyDo, chanVeDaMoTraSau) : []),
       canBangVeSauSuaKhach: async (id) => { if (who && typeof opts.injected.canBangVeSauSuaKhach === "function") await opts.injected.canBangVeSauSuaKhach(envH, who, id); },
-      donThieuVe: async (ma) => (typeof opts.injected.donThieuVe === "function" ? opts.injected.donThieuVe(envH, ma) : []),
+      donChoCapBu: async (ma, toiDa) => (typeof opts.injected.donChoCapBu === "function" ? opts.injected.donChoCapBu(envH, ma, toiDa) : { ids: [], conNua: false }),
       dienDoiTacCuaDon: async (id) => {
         if (typeof opts.injected.dienDoiTacCuaDon !== "function") return null;
         try { return await opts.injected.dienDoiTacCuaDon(envH, id); } catch { return null; }
