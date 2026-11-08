@@ -66,3 +66,5 @@ Nhánh mang theo 23 lần lưu tài liệu của nhánh prompt rà soát (xem «
 - **HC-4.2 hạn 30/11** chưa dời (chủ chọn chưa ghi sổ). Trước 0 giờ 1/12: chủ ra lệnh dời (đề xuất 31/1/2027) hoặc làm xong đợt 2 ADR-0115 theo phác đặc tả.
 - TNV-G1 (hạn mới 31/12): năm ca vàng chờ chủ/Kế toán; ca 07 chờ duyệt đặc tả phiếu chi; chủ chạy `node scripts/audit-invariants.mjs --db remote`.
 - Ngoài phạm vi, ghi để điều phối xem: số thô `/payments daThu`, `receipt.daTra` của đơn huỷ còn gồm chuyển khoản chưa xác nhận; G9 (nút Từ chối gửi mã `busy`); biên nhận nháp tiêu đề «XÁC NHẬN ĐƠN DỊCH VỤ [Chờ xác nhận]»; ba chỗ sát ranh giới HC-4.2 ở phác đặc tả §3.
+
+- Gộp bản chính `a5330137a` (phiên soạn ADR lượt A, B; chỉ tài liệu, không trùng tệp) vào nhánh sau kiểm cuối; chạy lại 167 bài đọc sổ hạn, ADR, hàng rào: 167 đạt / 0 đỏ. Bộ đầy đủ 8468 bài chạy trước lần gộp này.
