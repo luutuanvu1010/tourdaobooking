@@ -1557,7 +1557,8 @@ export const CHECKS = [
                   WHERE i.item_kind = 'DIEU_KIEN' AND c.ket_qua = 'DAT' AND NOT EXISTS (
                     SELECT 1 FROM vc_trip_departure_waiver w JOIN vc_departure_rule r ON r.id = i.rule_id
                      WHERE w.id = i.waiver_id AND w.trip_id = c.trip_id AND w.vehicle_id = c.vehicle_id
-                       AND w.document_type_code = i.document_type_code AND r.subject = 'VEHICLE'))
+                       AND w.document_type_code = i.document_type_code AND r.subject = 'VEHICLE'
+                       AND r.vehicle_document_type_code = i.document_type_code))
           + (SELECT count(*) FROM vc_trip_departure_waiver w
                   WHERE (w.document_type_code IN ('INSPECTION', 'TPL_INSURANCE') OR w.reason_code IS NULL)
                     AND NOT EXISTS (SELECT 1 FROM v_stf_toan_quyen q WHERE q.staff_id = w.created_by))`,

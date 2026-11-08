@@ -64,7 +64,7 @@ WHEN NEW.item_kind = 'DIEU_KIEN'
       JOIN vc_trip_departure_check c ON c.id = NEW.check_id
       JOIN vc_departure_rule r ON r.id = NEW.rule_id
      WHERE w.id = NEW.waiver_id AND w.trip_id = c.trip_id AND w.vehicle_id = c.vehicle_id
-       AND w.document_type_code = NEW.document_type_code AND r.subject = 'VEHICLE')
+       AND w.document_type_code = NEW.document_type_code AND r.subject = 'VEHICLE' AND r.vehicle_document_type_code = NEW.document_type_code)
 BEGIN SELECT RAISE(ABORT, 'lc05_thieu_giay_chua_cho_phep: bản chụp đạt chỉ có dòng điều kiện khi đã có dòng cho phép chạy thiếu giấy tờ khớp chuyến, xe, loại giấy'); END;
 -- Dùng một lần: dòng cho phép đã được bản chụp KHÁC dùng thì không dùng lại (cùng bản chụp có nhiều dòng điều kiện cùng loại giấy vẫn qua).
 CREATE TRIGGER vc_trip_departure_check_item_waiver_once BEFORE INSERT ON vc_trip_departure_check_item

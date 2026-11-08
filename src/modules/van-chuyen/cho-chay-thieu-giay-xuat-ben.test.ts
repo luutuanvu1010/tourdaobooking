@@ -137,3 +137,55 @@ test("văn phòng bấm thay xuất bến đi CÙNG cổng với tài xế: có 
     tat();
   }
 });
+
+test("T1 (đợt sửa 1): hai chuyến CÙNG XE thiếu Kiểm định — cho phép chuyến 1 KHÔNG mở chuyến 2: màn (chi tiết, lịch chung) vẫn giữ, xuất bến chuyến 2 → 409", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const xeId = xeThieuKiemDinh(w);
+    const t1 = await chuyenSan(w, { xe: xeId });
+    const t2 = await chuyenSan(w, { xe: xeId, bd: "15:30", kt: "17:00", gio: "16:00" });
+    choPhep(w, t1.id, xeId); // Toàn quyền cho phép CHUYẾN 1
+    denGio("15:20");
+    assert.deepEqual(await lyDoMa(w, t1.id), [], "chuyến 1 đã được cho phép");
+    assert.deepEqual(await lyDoMa(w, t2.id), ["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"], "chi tiết chuyến 2 vẫn giữ");
+    assert.deepEqual(await lichGiu(w, t2.id), ["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"], "lịch chung chuyến 2 vẫn giữ");
+    const x = await tienDo(w, "tai-xe", t2.id, "xuat-ben");
+    assert.equal(x.status, 409, x.text);
+    assert.equal(w.q("SELECT status s FROM vc_trip WHERE id = ?", t2.id)[0].s, "PLANNED");
+  } finally {
+    tat();
+  }
+});
+
+test("L3 (đợt sửa 1): cho phép Đăng ký xe cho xe X, ĐỔI sang xe Y (cũng thiếu Đăng ký xe) bằng route đổi chuyến thật → xuất bến bằng route thật bị 409, không nhãn vàng", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    w.sqlite.prepare(`INSERT INTO vc_departure_rule (id, min_capacity, subject, vehicle_document_type_code, valid_from_at, created_at, updated_at) VALUES (?, 1, 'VEHICLE', 'REGISTRATION', ?, ?, ?)`).run(uuid(), AT, AT, AT);
+    const xeDu2 = (): string => {
+      const id = xeThieuKiemDinh(w); // chỉ có Bảo hiểm
+      w.sqlite.prepare("INSERT INTO vc_vehicle_document (id, vehicle_id, document_type_code, expiry_date, created_at, updated_at) VALUES (?, ?, 'INSPECTION', '2030-12-31', ?, ?)").run(uuid(), id, AT, AT);
+      return id; // Bảo hiểm + Kiểm định, thiếu Đăng ký xe
+    };
+    const xeX = xeDu2();
+    const xeY = xeDu2();
+    const t = await chuyenSan(w, { xe: xeX }); // đổi xe làm TRƯỚC khi vào vùng mốc 6 giờ (không cần điều chỉnh khẩn cấp)
+    const cho = await w.call("POST", `/api/van-chuyen/chuyen/${t.id}/cho-chay-thieu-giay`, {
+      as: ADM, body: { version: (await chiTiet(w, t.id, ADM)).chuyen.version, requestId: uuid(), loaiGiayTo: ["REGISTRATION"], lyDo: "THIEU_GIAY_GIA_HAN", ghiChu: null },
+    });
+    assert.ok(cho.status === 200 || cho.status === 201, cho.text);
+    assert.deepEqual((await chiTiet(w, t.id, ADM)).chuyen.choChayThieu, [{ ten: "Đăng ký xe" }], "xe X: có nhãn vàng");
+    const doi = await w.call("PUT", `/api/van-chuyen/chuyen/${t.id}`, { as: SALES, body: { version: (await chiTiet(w, t.id, ADM)).chuyen.version, requestId: uuid(), xeId: xeY } });
+    assert.equal(doi.status, 200, doi.text);
+    denGio("12:40");
+    const sau = (await chiTiet(w, t.id, ADM)).chuyen;
+    assert.deepEqual(sau.choChayThieu, [], "xe Y: không nhãn vàng");
+    assert.deepEqual(sau.lyDoGiu.map((l: any) => l.ma), ["DIEU_KIEN_GIAY_TO_XE"], "xe Y bị giữ vì thiếu Đăng ký xe");
+    const x = await tienDo(w, "van-phong", t.id, "xuat-ben");
+    assert.equal(x.status, 409, x.text);
+    assert.equal(w.q("SELECT status s FROM vc_trip WHERE id = ?", t.id)[0].s, "PLANNED");
+  } finally {
+    tat();
+  }
+});

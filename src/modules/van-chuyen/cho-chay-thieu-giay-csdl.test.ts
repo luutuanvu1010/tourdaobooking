@@ -53,12 +53,12 @@ function xe(db: Db): string {
      created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'Xe thử', 2020, 15, ?, 'active', '2026-09-01', ?, ?)`, id, `79B${String(n).padStart(5, "0")}`, `79B${String(n).padStart(5, "0")}`, `KHUNG${n}`, `KHUNG${n}`, chu, AT, AT);
   return id;
 }
-function chuyen(db: Db, vehicleId?: string): { id: string; xe: string } {
+function chuyen(db: Db, vehicleId?: string, gio: [string, string] = ["07:00", "09:00"]): { id: string; xe: string } {
   const chu = one<{ party_id: string }>(db, "SELECT party_id FROM v_pty_owner_company").party_id;
   const v = vehicleId ?? xe(db);
   const id = nid("tr");
   run(db, `INSERT INTO vc_trip (id, code, vehicle_id, carrier_party_id, service_date, planned_start_ms, planned_end_ms, earliest_start_ms, rest_minutes_snapshot, last_cmd_id,
-     created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 30, ?, ?, ?)`, id, `CX-${id}`, v, chu, DAY, ms("07:00"), ms("09:00"), ms("07:00"), randomUUID(), AT, AT);
+     created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 30, ?, ?, ?)`, id, `CX-${id}`, v, chu, DAY, ms(gio[0]), ms(gio[1]), ms(gio[0]), randomUUID(), AT, AT);
   run(db, "INSERT INTO vc_trip_driver (id, trip_id, driver_party_id, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)", nid("dr"), id, hoSo(db, "Tài xế"), AT, AT, AT);
   return { id, xe: v };
 }
@@ -176,6 +176,22 @@ test("lc05_thieu_giay_chua_cho_phep: DIEU_KIEN dưới bản chụp ĐẠT khôn
   const w = cho(db, t, { loai: "INSPECTION", ly: null, nguoi: tq });
   loi(() => dongDieuKien(db, chup(db, t, "DAT", xe(db)), RULE_KIEM_DINH, "INSPECTION", w), /lc05_thieu_giay_chua_cho_phep/, "bản chụp ghi xe khác với dòng cho phép");
   dongDieuKien(db, chup(db, t, "KHONG_DAT"), RULE_KIEM_DINH, "INSPECTION", null); // không đạt: dòng giữ như cũ
+});
+
+test("lc05 (T1, đợt sửa 1): hai chuyến CÙNG MỘT XE — bản chụp ĐẠT của chuyến 2 trỏ dòng cho phép của chuyến 1 → chặn (vế khớp chuyến)", () => {
+  const db = openDb();
+  const t1 = chuyen(db);
+  const t2 = chuyen(db, t1.xe, ["12:00", "14:00"]);
+  const w1 = cho(db, t1, { loai: "INSPECTION", ly: null, nguoi: nhanVien(db, true) });
+  loi(() => dongDieuKien(db, chup(db, t2), RULE_KIEM_DINH, "INSPECTION", w1), /lc05_thieu_giay_chua_cho_phep/);
+  dongDieuKien(db, chup(db, t1), RULE_KIEM_DINH, "INSPECTION", w1); // đúng chuyến → qua
+});
+
+test("lc05 (P11, đợt sửa 1): dòng con ghi loại giấy khác loại của ĐIỀU KIỆN (Đăng ký xe cho điều kiện Kiểm định) → chặn", () => {
+  const db = openDb();
+  const t = chuyen(db);
+  const w = cho(db, t, { loai: "REGISTRATION", nguoi: nhanVien(db, false) });
+  loi(() => dongDieuKien(db, chup(db, t), RULE_KIEM_DINH, "REGISTRATION", w), /lc05_thieu_giay_chua_cho_phep/);
 });
 
 test("lc05: DIEU_KIEN của điều kiện TÀI XẾ dưới bản chụp ĐẠT → chặn dù trỏ dòng cho phép hợp lệ (giấy tài xế không cho qua)", () => {
