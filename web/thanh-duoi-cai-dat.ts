@@ -15,8 +15,8 @@ export function ganNutThanhDuoi(el: HTMLElement, staff: PermissionHolder & { rea
   const dangCo = new Set<string>(daChon ?? thanhTab({ staff }).map((t) => t.trang).filter((k) => k !== "toi"));
   const loi = h("p", { class: "alert", role: "alert", hidden: true });
   const o = luaChonGhim(staff).map((m) => {
-    const hop = h("input", { type: "checkbox", value: m.trang, checked: dangCo.has(m.trang) });
-    return { hop, dong: h("label", { class: "td-o" }, hop, m.nhan) };
+    const hop = h("input", { type: "checkbox", class: "o-tick", value: m.trang, checked: dangCo.has(m.trang) });
+    return { hop, dong: h("label", { class: "check" }, hop, m.nhan) };
   });
   const capNhat = (): void => {
     const du = o.filter((x) => x.hop.checked).length >= GHIM_TOI_DA;
