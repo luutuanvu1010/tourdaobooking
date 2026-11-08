@@ -17,6 +17,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Chủ dự án 8/11: «Xem như vai trò khác» chuyển từ trang Tôi vào menu tên tài khoản. Không migration.
+    version: "2.75",
+    date: "2026-11-08",
+    items: [
+      { kind: "doi", text: "Bấm tên tài khoản (chân menu trái trên máy tính, ô chữ cái góc trên trên điện thoại) mở menu nhỏ: «Đăng xuất», và với Toàn quyền thêm «Xem như vai trò khác»." },
+    ],
+  },
+  {
     // ADR-0180 (chủ duyệt 7/11): Toàn quyền xem như vai trò khác. Migration 0145. Bước A.0 ngày 7/11.
     version: "2.74",
     date: "2026-11-07",
