@@ -28,7 +28,7 @@ export const nhanAnHan = (soDon: number): string | null => (soDon > 0 ? `${soDon
 /** Nhãn ba trạng thái hạn (ADR-0172 Đ3 mục 3): trong ân hạn chỉ báo, quá hạn (hết ân hạn) thì chặn. */
 export const NHAN_TRANG_THAI_HAN: Record<TrangThaiHan, string> = { trong_han: "Trong hạn", an_han: "Quá hạn, đang trong ân hạn", qua_han: "Quá hạn" };
 
-/** Nhãn hình thức thanh toán ở chi tiết đơn: «Trả trước», «Trả sau · hạn trả 16:00 10/11/2026» (giờ Việt Nam). */
+/** Nhãn hình thức thanh toán ở chi tiết đơn: «Thanh toán ngay», «Trả sau · hạn trả 16:00 10/11/2026» (giờ Việt Nam). */
 export const nhanHinhThucDon = (hinh: HinhThucThanhToan, hanTra: string | null): string =>
   hinh === "CREDIT" && hanTra ? `${NHAN_HINH_THUC.CREDIT} · hạn trả ${vnDateTimeText(hanTra)}` : NHAN_HINH_THUC[hinh];
 
@@ -86,7 +86,7 @@ export function docHanMuc(raw: string): { ok: true; dong: number } | { ok: false
   return Number(s) > HAN_MUC_TOI_DA ? { ok: false, message: `Hạn mức không quá ${dongTien(HAN_MUC_TOI_DA)}.` } : { ok: true, dong: Number(s) };
 }
 
-export const CAU_VE_TRA_TRUOC = "Bên đặt không còn hạn mức trả sau dùng được nên đơn này chuyển về Trả trước. Kiểm lại rồi lưu.";
+export const CAU_VE_TRA_TRUOC = "Bên đặt không còn hạn mức trả sau dùng được nên đơn này chuyển về Thanh toán ngay. Kiểm lại rồi lưu.";
 
 /**
  * Sau khi biết hạn mức của bên đặt, đơn đang chọn hình thức nào: dùng được thì giữ nguyên; không dùng được (không hạn mức, hoặc còn đơn quá hạn)

@@ -5,7 +5,7 @@ import { vnToday } from "./vn-date.ts";
 export type HinhThucThanhToan = "PREPAID" | "CREDIT";
 
 /** Nhãn hiện cho người dùng (trạng thái thô không lộ ra giao diện). */
-export const NHAN_HINH_THUC: Record<HinhThucThanhToan, string> = { PREPAID: "Trả trước", CREDIT: "Trả sau" };
+export const NHAN_HINH_THUC: Record<HinhThucThanhToan, string> = { PREPAID: "Thanh toán ngay", CREDIT: "Trả sau" };
 
 export interface HanMucHieuLuc {
   readonly hanMuc: number;
@@ -105,7 +105,7 @@ export type KetQuaKiemTraSau = { ok: true; hanMuc: HanMucHieuLuc; version: numbe
 /** Lý do một đơn không được xác nhận theo Trả sau (ADR-0168 Đ2 mục 3); `null` = được. */
 /** `loai: "sua_tang"` (kế hoạch 2026-11-05 Task 3): `soTienDon` là PHẦN TĂNG của một lần sửa số khách đơn đã xác nhận, `noHienTai` gồm cả nợ của chính đơn đó — câu nói «số tiền tăng thêm». */
 export function lyDoKhongTraSau(i: { hanMuc: HanMucHieuLuc | null; noHienTai: number; soTienDon: number; coDonQuaHan: boolean; loai?: "sua_tang" }): { ma: MaKhongTraSau; cau: string } | null {
-  if (!i.hanMuc) return { ma: "khong_co_han_muc", cau: "Bên đặt chưa có hạn mức trả sau còn hiệu lực. Hãy chọn trả trước, hoặc nhờ Quản trị hay Toàn quyền cấp hạn mức trả sau cho bên đặt." };
+  if (!i.hanMuc) return { ma: "khong_co_han_muc", cau: "Bên đặt chưa có hạn mức trả sau còn hiệu lực. Hãy chọn thanh toán ngay, hoặc nhờ Quản trị hay Toàn quyền cấp hạn mức trả sau cho bên đặt." };
   if (i.coDonQuaHan) return { ma: "co_don_qua_han", cau: "Bên đặt còn đơn trả sau quá hạn chưa thanh toán. Cần thanh toán đủ các đơn đó trước khi đặt thêm đơn trả sau." };
   const conLai = Math.max(0, i.hanMuc.hanMuc - i.noHienTai);
   if (i.soTienDon > conLai) {

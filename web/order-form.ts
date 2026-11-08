@@ -43,6 +43,7 @@ import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
 import { CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
 import { cauChonTraSau, quyetHinhThuc } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { NHAN_HINH_THUC } from "../src/shared/tra-sau";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
@@ -1070,6 +1071,8 @@ function datNhanKhach(daChonDoiTac: boolean): void {
 const khoiTraSau = byId("tra-sau-khoi");
 let traSauHien = false;
 const oHinhThuc = (v: string): HTMLInputElement => khoiTraSau.querySelector<HTMLInputElement>(`input[name="paymentTerm"][value="${v}"]`)!;
+// Chữ hai nút chọn hình thức đến từ MỘT hằng (NHAN_HINH_THUC), không gõ cứng ở HTML (đổi «Trả trước» → «Thanh toán ngay», 9/11/2026).
+for (const v of ["PREPAID", "CREDIT"] as const) khoiTraSau.querySelector(`[data-nhan-hinh-thuc="${v}"]`)!.textContent = NHAN_HINH_THUC[v];
 const hinhThucChon = (): "PREPAID" | "CREDIT" => (oHinhThuc("CREDIT").checked ? "CREDIT" : "PREPAID");
 function anHienDatCoc(): void {
   const an = traSauHien && hinhThucChon() === "CREDIT"; // Trả sau thì không có «Khách đặt cọc trước»
