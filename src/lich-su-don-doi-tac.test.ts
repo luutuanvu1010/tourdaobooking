@@ -265,7 +265,8 @@ test("Sổ đại lý đợt 2 (Task 14 Step 1, Ruling R-P4): hai hành động 
   const m = await import("./shared/lich-su-doi-tac.ts");
   const moi = [["ord_terms_backfilled", "Chụp bù mức hoa hồng", "order"], ["ledger_counterparty_confirmed", "Xác nhận bên kia đã nhận", "ledger"]] as const;
   for (const [a, nhan, nhom] of moi) {
-    assert.deepEqual({ ...(AUDIT_ACTIONS as Record<string, { label: string; group: string }>)[a] }, { label: nhan, group: nhom }, `${a}: nhãn / nhóm ở audit-actions.ts`);
+    const { label, group } = (AUDIT_ACTIONS as Record<string, { label: string; group: string }>)[a]!; // chỉ so nhãn / nhóm (ADR-0187: `ledger_counterparty_confirmed` còn mang cờ `ghiTien`)
+    assert.deepEqual({ label, group }, { label: nhan, group: nhom }, `${a}: nhãn / nhóm ở audit-actions.ts`);
     assert.ok((m.LICH_SU_DOI_TAC_AN as readonly string[]).includes(a), `${a} phải nằm ở LICH_SU_DOI_TAC_AN`);
     assert.ok(!Object.hasOwn(m.LICH_SU_DOI_TAC_CHO_PHEP, a), `${a} không được nằm ở danh sách cho phép`);
   }

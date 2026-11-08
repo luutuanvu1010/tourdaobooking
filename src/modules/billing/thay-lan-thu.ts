@@ -179,7 +179,7 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
     });
     if (dongMoi.length > 0) {
       const p = crypto.randomUUID();
-      stmts.push(postingIfReceiptStatement(db, { id: p, kind: "RECEIPT", orderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }, rid));
+      stmts.push(postingIfReceiptStatement(db, { id: p, kind: "RECEIPT", orderId, reason: null, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by, ghiTien: input.ai.ghiTien }, rid));
       for (const d of dongMoi) stmts.push(lineIfPostingStatement(db, lineOf(d, p, orderId, rid, at, by)));
     }
   }
@@ -190,7 +190,7 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
     for (const l of await linesOfReceipt(db, r.id)) if (l.reverses_line_id === null && !(await lineReversed(db, l.id))) song.push(l);
     if (song.length > 0) {
       const p = crypto.randomUUID();
-      stmts.push(postingPlainStatement(db, { id: p, kind: "REVERSAL", orderId, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }));
+      stmts.push(postingPlainStatement(db, { id: p, kind: "REVERSAL", orderId, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by, ghiTien: input.ai.ghiTien }));
       for (const l of song) stmts.push(lineIfPostingStatement(db, lineOf(sinhDongDao(toLineRow(l)), p, orderId, r.id, at, by)));
     }
   }
@@ -200,7 +200,7 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
     if (m.gd) stmts.push(...cauGanMa(db, { receiptId: ridMoi[i]!, orderId, gd: m.gd, at, by }));
   });
   // 3. phiếu đánh dấu (trigger kiểm I1) — 4. nhật ký (chỉ khi phiếu đã chèn)
-  stmts.push(postingPlainStatement(db, { id: markerId, kind: "REPLACEMENT", orderId, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by }));
+  stmts.push(postingPlainStatement(db, { id: markerId, kind: "REPLACEMENT", orderId, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by, ghiTien: input.ai.ghiTien }));
   // Đổi người thu (vd nhân viên → Công ty) xoá khoản người cũ đang giữ — ghi rõ trong nhật ký để Kế toán xem lại (kiểm độc lập vòng 3).
   const nguoiCu = new Set(cuRows.map((r) => r.collector_party_id));
   const doiNguoi = moi.some((m) => !nguoiCu.has(m.lt.collectorPartyId));

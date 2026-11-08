@@ -87,7 +87,7 @@ export async function cauDatCocKhiXacNhan(db: D1Database, i: VaoCauCoc): Promise
           stage: "PREPAID",
           congTyId,
           at,
-          ai: { staffId: i.nguoiLapId, partyId, laKeToan: false, laDoiTac: true },
+          ai: { staffId: i.nguoiLapId, partyId, laKeToan: false, laDoiTac: true, ghiTien: false },
           lt: { soTien: i.soTien, hinhThuc: "CASH", collectorRole: partyId === benDat ? "BOOKER" : "STAFF", collectorPartyId: partyId, collectedForPartyId: null, ngayPhatSinh: i.homNay, ghiChu: GHI_CHU_KHOAN_LOI_KHAI },
           nhatKy: { staffId: i.nguoiBamId, detail: `Khách đặt cọc trước ${dong(i.soTien)} · ${i.orderCode}` },
         },

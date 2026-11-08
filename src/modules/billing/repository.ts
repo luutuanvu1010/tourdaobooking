@@ -367,24 +367,29 @@ export const receiptRefundStatement = (db: D1Database, r: NewReceipt) => bindRec
 export const receiptReversalStatement = (db: D1Database, i: { id: string; occurredDate: string; note: string | null; at: string; by: string; reversesId: string; chuaXacNhan?: boolean }) =>
   db.prepare(i.chuaXacNhan ? RECEIPT_REVERSAL_CHUA_XAC_NHAN : RECEIPT_REVERSAL).bind(i.id, i.occurredDate, i.note, i.at, i.by, i.reversesId);
 
-const POSTING_COLS = "id, kind_code, order_id, reason, reverses_posting_id, occurred_date, due_snapshot, created_at, created_by, updated_at, updated_by";
-const POSTING_VALUES = "?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9";
-/** Phiếu kèm khoản thu ?10 — chỉ áp khi khoản thu đó đã được chèn (câu trước có lính gác). */
-const POSTING_IF_RECEIPT = defineSql("billing", "posting_if_receipt", `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM bil_payment_receipt WHERE id = ?10)`);
 /**
- * Phiếu "Đã giao" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?10; trigger `bil_posting_delivered_paid` kiểm tiền, `bil_posting_delivered_terms` kiểm bản chụp
- * (RAISE ⇒ cả lô huỷ). ?11 = `gross_snapshot` (thành tiền trước giảm của đơn lúc giao — sổ đại lý đợt 2, Ruling R-P8: MỌI phiếu Đã giao mới đều mang, kể cả đơn khách lẻ).
+ * ADR-0187 Đ3 mức (a) — dấu «tự ghi đơn mình lập» trên phiếu (`tu_ghi_don_minh_lap`, migration 0150): ?10 = 1 khi người gọi đi qua route của nhóm ghi tiền
+ * (`NguoiGoi.ghiTien`, route đặt); dấu = ?10 = 1 VÀ người lập đơn (view công bố `v_ord_order_owner`) là created_by (?9); còn lại NULL. Điền trong câu chèn — không chỗ nào ghi tay.
+ * Tham số thêm của từng câu đứng từ ?11.
+ */
+const POSTING_COLS = "id, kind_code, order_id, reason, reverses_posting_id, occurred_date, due_snapshot, created_at, created_by, updated_at, updated_by, tu_ghi_don_minh_lap";
+const POSTING_VALUES = "?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9, (CASE WHEN ?10 = 1 AND EXISTS (SELECT 1 FROM v_ord_order_owner o WHERE o.id = ?3 AND o.staff_id = ?9) THEN 1 END)";
+/** Phiếu kèm khoản thu ?11 — chỉ áp khi khoản thu đó đã được chèn (câu trước có lính gác). */
+const POSTING_IF_RECEIPT = defineSql("billing", "posting_if_receipt", `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM bil_payment_receipt WHERE id = ?11)`);
+/**
+ * Phiếu "Đã giao" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?11; trigger `bil_posting_delivered_paid` kiểm tiền, `bil_posting_delivered_terms` kiểm bản chụp
+ * (RAISE ⇒ cả lô huỷ). ?12 = `gross_snapshot` (thành tiền trước giảm của đơn lúc giao — sổ đại lý đợt 2, Ruling R-P8: MỌI phiếu Đã giao mới đều mang, kể cả đơn khách lẻ).
  */
 const POSTING_IF_DELIVERED_AT = defineSql(
   "billing",
   "posting_if_delivered_at",
-  `INSERT INTO bil_posting (${POSTING_COLS}, gross_snapshot) SELECT ${POSTING_VALUES}, ?11 WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?3 AND delivered_at = ?10)`,
+  `INSERT INTO bil_posting (${POSTING_COLS}, gross_snapshot) SELECT ${POSTING_VALUES}, ?12 WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?3 AND delivered_at = ?11)`,
 );
-/** Phiếu "Hoàn thành" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?10; trigger `bil_posting_completed_settled` kiểm còn ai nợ công ty. */
+/** Phiếu "Hoàn thành" — chỉ áp khi câu `orders` của chính lô đã đặt mốc ?11; trigger `bil_posting_completed_settled` kiểm còn ai nợ công ty. */
 const POSTING_IF_COMPLETED_AT = defineSql(
   "billing",
   "posting_if_completed_at",
-  `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?3 AND completed_at = ?10)`,
+  `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?3 AND completed_at = ?11)`,
 );
 /** Phiếu sổ của Kế toán (xác nhận công ty đã nhận, nộp/trả, hoàn, điều chỉnh, đảo) — không điều kiện mốc. */
 const POSTING_PLAIN = defineSql("billing", "posting_plain", `INSERT INTO bil_posting (${POSTING_COLS}) VALUES (${POSTING_VALUES})`);
@@ -399,13 +404,15 @@ export interface NewPosting {
   dueSnapshot: number | null;
   at: string;
   by: string;
+  /** ADR-0187 Đ3: người gọi đi qua route của nhóm ghi tiền (`NguoiGoi.ghiTien`) — cùng câu chèn tự quyết có dấu hay không. Vắng = không. */
+  ghiTien?: boolean;
 }
 const bindPosting = (db: D1Database, sql: string, p: NewPosting, ...extra: string[]) =>
-  db.prepare(sql).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, ...extra);
+  db.prepare(sql).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, p.ghiTien ? 1 : 0, ...extra);
 export const postingIfReceiptStatement = (db: D1Database, p: NewPosting, receiptId: string) => bindPosting(db, POSTING_IF_RECEIPT, p, receiptId);
 /** Phiếu "Đã giao": `grossSnapshot` BẮT BUỘC (kiểu, không mặc định) — CSDL không đòi cột này (giữ đường lùi), nên chính chữ ký là chỗ không quên được (R-P8). */
 export const postingIfDeliveredAtStatement = (db: D1Database, p: NewPosting & { kind: "DELIVERED"; dueSnapshot: number; grossSnapshot: number }, deliveredAt: string) =>
-  db.prepare(POSTING_IF_DELIVERED_AT).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, deliveredAt, p.grossSnapshot);
+  db.prepare(POSTING_IF_DELIVERED_AT).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, p.ghiTien ? 1 : 0, deliveredAt, p.grossSnapshot);
 export const postingIfCompletedAtStatement = (db: D1Database, p: NewPosting, completedAt: string) => bindPosting(db, POSTING_IF_COMPLETED_AT, p, completedAt);
 /** Phiếu không điều kiện mốc. KHÔNG nhận loại «Đã giao» (kiểu — M-1 của người kiểm Task 3+4): phiếu đó chỉ ghi qua `postingIfDeliveredAtStatement`, nơi `grossSnapshot` bắt
  * buộc (R-P8 không có lớp CSDL đòi cột này; kiểm định kỳ R-BIL-17 là lưới cuối). */

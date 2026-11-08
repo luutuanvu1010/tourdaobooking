@@ -291,7 +291,13 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (314)
+## Việc quan trọng (315)
+
+### Tách nhiệm vụ (tiền)
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Đã soát** | Sổ công nợ › bộ lọc «Cần người thứ hai soát» | Ghi nhận rằng BẠN (Kế toán khác hoặc Toàn quyền) đã xem một dòng tiền do chính người lập đơn ghi. Không đổi số tiền. Máy chủ và CSDL cùng chặn nếu bạn chính là người đã ghi dòng đó (403), hay dòng đã có người soát (409). | không | không: dòng soát chỉ-thêm; soát nhầm thì báo Kế toán trưởng (nhật ký còn tên người soát) | `/api/ledger/tu-ghi/:x/da-soat`<br>nhật ký `ledger_self_write_reviewed` | `web/so-cong-no.ts`: Đã soát | đã chốt (ADR-0187 Đ3 mức (a), chủ duyệt 2026-11-08 «Duyệt, mức a» — chữ nguyên văn ADR) |
 
 ### Kiểm vé đơn chờ
 
@@ -1694,7 +1700,7 @@ Nút máy dò là ghi dữ liệu hay nút chính nhưng thực ra không phải
 | `web/hoa-hong-tra-nhanh.ts` | Bỏ chọn | «Bỏ chọn» của ô tra nhanh, chỉ xoá lựa chọn trên màn |
 | `web/hoa-hong-tra-nhanh.ts` | Đóng | nút «Đóng» hộp tra nhanh |
 | `web/so-dai-ly-ui.ts` | Bỏ chọn | «Bỏ chọn» của ô chọn dịch vụ |
-| `web/so-cong-no.ts` | ‹…› (‹…›) | dòng lọc của Sổ công nợ, chỉ đọc |
+| `web/so-cong-no.ts` | ‹…› (‹…›) | dòng lọc của Sổ công nợ, chỉ đọc (gồm chip «Cần người thứ hai soát (n)» — ADR-0187 Đ3 mức (a)) |
 | `web/so-cong-no.ts` | ‹ Danh sách | «‹ Danh sách» của Sổ công nợ, chỉ quay lại |
 | `web/hoa-hong-lich-su.ts` | ⟪nhanNutLichSu(ds.length, false)⟫ | «Xem lịch sử (n)» mở danh sách, chỉ đọc |
 | `web/hoa-hong-tra-nhanh.ts` | Xem mức này ↓ | «Xem mức này ↓» chỉ cuộn tới dòng trên trang, không ghi |
