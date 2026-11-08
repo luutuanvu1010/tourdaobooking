@@ -28,4 +28,7 @@
 4. Chạy `npm run day-len -- claude/adr-0187-ghim-nut-9c2e31` rồi `npm run trien-khai` (có migration 0153).
 
 ## Kết quả cuối
-(điền sau khi chạy đủ)
+- `npm run typecheck`: 0 lỗi (9/11).
+- `npm test` lần 1: 8478 bài, 8 đỏ — toàn bài ghim danh sách chưa cập nhật (số route ghi 268→269 ở `lan-gui-phu-route.test.ts`; `bottom_tabs_changed` chưa xếp tầng ở `cham-tai-khoan.ts`; ô mới chưa ghim ở dòng Đối tác `xem-don-theo-quyen.test.ts` và cột Quản lý bán hàng `quan-ly-ban-hang.test.ts`; route mới thiếu dòng ở `BANG_STAFF` của `tai-xe-cong.test.ts` (3 bài); bản sao CSS bộ v2 chưa sinh lại). Đã sửa, 6 tệp chạy lại 50/50 xanh. `npm test` lần 2: **8478 bài, 8474 đạt, 0 đỏ** (bước đo giờ 1/1), sau lần lưu 5a6b8801c.
+- Kịch bản Chrome bắt buộc: `mat-mang-smoke` ĐẠT (có axe). `dot-0-smoke` đỏ bước 20 («900: Đăng xuất ở chân thanh bên») và `dot-c-smoke` đỏ («.account-layout phải display:grid») — **cả hai đỏ sẵn trên mã gốc fa3fd859a**: bước 20 chạy riêng trên bản sao tạm của gốc đỏ y hệt; `dot-c` đỏ vì `public/app.css` [10] (30/10, 67a4a0dc9) đổi trang Tôi máy tính sang kiểu chia cột mà kịch bản chưa sửa. Không do việc này; nợ kịch bản, ghi để phiên khác dọn.
+- Kiểm độc lập (`nguoi-kiem-doc-lap`, 9/11): **ĐẠT**, không phát hiện mức cao; tự chạy typecheck + 187 bài + phép phá `ghimDuoc` (đỏ 4 bài). Mức vừa: trần gói +581 byte chưa có lời chủ duyệt (= việc chờ chủ 2). Mức thấp: bấm «Lưu» không đổi gì vẫn ghi một dòng nhật ký — chấp nhận (nhật ký chỉ thừa dòng, không sai quyền/dữ liệu).
