@@ -275,7 +275,7 @@ function ve(): void {
         x.khongCan
           ? h("span", { class: "dp-cond-mark is-khong-can", "aria-label": "Không cần" }, "–")
           : x.choChay
-            ? h("span", { class: "dp-cond-mark is-canh-bao", "aria-label": "Cảnh báo" }, icon("alert", 12, 2))
+            ? h("span", { class: "dp-cond-mark is-canh-bao", role: "img", "aria-label": "Cảnh báo" }, icon("alert", 12, 2))
             : h("span", { class: x.dat ? "dp-cond-mark is-dat" : "dp-cond-mark is-chua", "aria-label": x.dat ? "Đạt" : "Chưa đạt" }, x.dat ? "✓" : "✕"),
         h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, x.nhan), x.chiTiet ? h("span", { class: "dp-cond-sub" }, x.chiTiet) : null))),
     );
