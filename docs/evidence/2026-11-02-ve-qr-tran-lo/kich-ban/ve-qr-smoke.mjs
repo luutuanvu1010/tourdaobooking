@@ -94,10 +94,12 @@ const chonAnh = async (p, ds) => {
   assert.equal(await coGio(120000, "dựng ảnh thử trong trang", p.ev(`__datAnh(${JSON.stringify(ds)})`)), ds.length, "số tệp đã đặt vào ô chọn");
 };
 const dien = (p, sel, v) => p.ev(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return false; e.value = ${JSON.stringify(v)}; e.dispatchEvent(new Event('input', { bubbles: true })); return e.value === ${JSON.stringify(v)}; })()`);
-const choFormVe = (p) => p.waitFor("!!document.querySelector('#vk-form') && document.querySelectorAll('#vk-dich-vu option').length > 1 && !document.getElementById('vk-kho').textContent.includes('Đang tải')", "trang nhập lô đã dựng xong");
+// N4 (9/11/2026): dịch vụ chọn bằng khung của Tạo đơn (ô tìm + hàng nhóm + danh sách dòng), không còn hộp thả xuống `#vk-dich-vu option`: đợi có dòng `.catalog-row`, chọn bằng cách chạm dòng theo mã.
+const choFormVe = (p) => p.waitFor("!!document.querySelector('#vk-form') && document.querySelectorAll('#vk-dich-vu .catalog-row').length > 1 && !document.getElementById('vk-kho').textContent.includes('Đang tải')", "trang nhập lô đã dựng xong");
 /** Khai lô (dịch vụ, loại khách, tên riêng để tìm lại trong danh sách, ngày). */
 const khaiLo = async (p, tenSp) => {
-  assert.equal(await chonO(p, "#vk-dich-vu", DICH_VU), true, "chọn dịch vụ");
+  assert.equal(await bam(p, `#vk-dich-vu .catalog-row[data-ma="${DICH_VU}"] .catalog-pick`), true, "chạm dòng dịch vụ trong khung chọn");
+  await p.waitFor(`!!document.querySelector('#vk-dich-vu .catalog-da-chon[data-ma="${DICH_VU}"]')`, "khung thu lại thành dòng dịch vụ đã chọn");
   assert.equal(await chonO(p, "#vk-nhom", "ADULT"), true, "chọn loại khách");
   assert.equal(await dien(p, "#vk-ten-sp", tenSp), true, "tên sản phẩm");
   assert.equal(await dien(p, "#vk-tu-ngay", vnDate(-1)), true, "từ ngày");
