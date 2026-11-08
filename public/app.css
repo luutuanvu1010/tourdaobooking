@@ -79,6 +79,7 @@
   --price-field: 112px;       /* ô đơn giá trong dòng tiền */
   --focus-ring: 3px;         /* vòng :focus-visible */
   --w-sheet: 520px;           /* bề rộng tối đa bảng trượt / hộp thoại ở màn hình rộng */
+  --w-menu-tk: 280px;         /* bề rộng menu tên tài khoản (chủ dự án 8/11) */
   --c-scrim: rgba(15, 23, 42, 0.45); /* lớp phủ sau bảng trượt */
   /* THANG CỠ CHỮ (rà soát 2026-09-30): mọi cỡ chữ của app là MỘT bậc dưới đây; token cỡ chữ theo vai (--fs-ui, --fs-hdv-*, --fs-vc-*, --fs-dp-*…)
      chỉ trỏ var(--fs-step-N), không ghi số riêng (src/phong-chu.test.ts canh). Bậc nhỏ nhất 12px: dưới đó dấu tiếng Việt chồng hai tầng (ấ, ở, ễ)
@@ -4554,4 +4555,18 @@ main select { max-width: 100%; }
 /* ---------- ADR-0180: thanh «Đang xem như vai trò …» dính khi cuộn (chỉ token; dải chung `.dai` ở web/dai.ts) ---------- */
 #strips:has(> .dai[data-loai="xem-nhu-vai"]) { position: sticky; top: 0; z-index: var(--z-dinh); }
 @media (max-width: 899px) { #strips:has(> .dai[data-loai="xem-nhu-vai"]) { top: calc(var(--bar-h) + env(safe-area-inset-top)); } body.trang-chu #strips:has(> .dai[data-loai="xem-nhu-vai"]) { top: env(safe-area-inset-top); } }
-#xem-nhu-chon { margin-bottom: var(--s3); }
+
+/* ---------- Menu tên tài khoản (chủ dự án 8/11): bấm tên ở chân thanh bên / ô chữ cái ở thanh trên. Vị trí do web/menu-tai-khoan.ts đặt theo nút lúc mở. ---------- */
+button.sidebar-user { width: 100%; font: inherit; color: inherit; text-align: left; background: none; border: 0; border-top: 1px solid var(--c-sidebar-border); border-radius: 0; cursor: pointer; padding-bottom: var(--s1); }
+@media (hover: hover) { button.sidebar-user:hover { background: var(--c-sidebar-hover); } }
+button.sidebar-user:focus-visible { outline: var(--bw-indicator) solid var(--c-sidebar-text-on); outline-offset: calc(var(--bw-indicator) * -1); }
+.sidebar-foot > button.sidebar-user { grid-column: 1 / -1; }
+button.bar-avatar { padding: 0; border: 0; font-family: inherit; cursor: pointer; }
+.menu-tk { position: fixed; z-index: var(--z-phu); width: min(var(--w-menu-tk), calc(100% - var(--s4) * 2)); max-height: 70vh; overflow-y: auto; display: grid; gap: var(--s1); padding: var(--s2); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); }
+.menu-tk[hidden], .menu-tk-ds[hidden] { display: none; }
+.menu-tk-muc, .menu-tk-vai { min-height: var(--h-muc-nho); padding: var(--s2) var(--s3); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-medium); text-align: left; color: var(--c-text); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+.menu-tk-vai { padding-left: var(--s5); font-weight: var(--fw-regular); }
+.menu-tk-ra { color: var(--c-danger-text); border-top: 1px solid var(--c-border); border-radius: 0; }
+@media (hover: hover) { .menu-tk-muc:hover, .menu-tk-vai:hover { background: var(--c-surface-alt); } }
+.menu-tk-ds { display: grid; gap: var(--s1); }
+.menu-tk-goi-y { margin: 0; padding: 0 var(--s3); font-size: var(--fs-step-2); color: var(--c-text-muted); }

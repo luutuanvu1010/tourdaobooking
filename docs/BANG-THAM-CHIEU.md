@@ -260,7 +260,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Ngưng dùng / Dùng lại · (cỡ xe còn giá đang áp) xác nhận «Vẫn ngưng» | `web/bang-gia-xe.ts`: Ngưng dùng / Dùng lại<br>`web/bang-gia-xe.ts`: Vẫn ngưng | Bảng giá thuê xe: ngưng dùng / dùng lại tuyến, cỡ xe | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Sửa (dòng) · Lưu (trong khung «Sửa: <mã>») | `web/danh-muc-giay-to-khoi.ts`: Lưu<br>`web/danh-muc-giay-to-khoi.ts`: Sửa | Danh mục loại giấy tờ: sửa, ngưng dùng | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Đăng xuất | `web/account.ts`: Đăng xuất<br>`web/maintenance-screen.ts`: Đăng xuất | Đăng xuất | rà soát 2026-11-04: chưa rõ, chờ chủ |
-| Xem · Thoát | `web/account.ts`: Xem | Xem như vai trò khác | ADR-0180 (6/11): chủ chọn «Xem như vai khác» / «Đang xem như vai khác» / «Thoát vai»; đã đổi thành «vai trò» để theo ADR-0130, chờ chủ xem lại |
+| ‹tên vai trò› · Thoát | `web/menu-tai-khoan.ts`: ⟪x.nhan⟫ | Xem như vai trò khác | ADR-0180 (6/11): chủ chọn «Xem như vai khác» / «Đang xem như vai khác» / «Thoát vai»; đã đổi thành «vai trò» để theo ADR-0130, chờ chủ xem lại |
 | Xác nhận bằng Face ID | `web/account.ts`: Xác nhận bằng Face ID | Đặt PIN mới bằng Face ID | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Gỡ | `web/account.ts`: Gỡ | Gỡ Face ID một máy | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Quên máy này | `web/account.ts`: Quên máy này | Máy được tin | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -1229,7 +1229,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| **Xem · Thoát** | Tôi › Xem như vai trò khác (chỉ Toàn quyền); thanh «Đang xem như vai trò …» trên mọi trang có khung, nút «Thoát» | «Xem» đưa phiên của Toàn quyền vào chế độ xem như người giữ quyền đã chọn: menu, trang và thao tác theo đúng quyền đó, dữ liệu ghi là dữ liệu thật tính cho tài khoản Toàn quyền. «Thoát» (ở thanh báo) trả phiên về quyền thật. Phiên tự thoát khi quá 60 phút không hoạt động. | không | được: bấm «Thoát», hoặc đợi phiên hết hạn | `/api/auth/xem-nhu-vai`<br>nhật ký `acting_role_set`<br>nhật ký `acting_role_cleared` | `web/account.ts`: Xem | chờ chọn (ADR-0180 (6/11): chủ chọn «Xem như vai khác» / «Đang xem như vai khác» / «Thoát vai»; đã đổi thành «vai trò» để theo ADR-0130, chờ chủ xem lại) |
+| **‹tên vai trò› · Thoát** | Menu tên tài khoản › Xem như vai trò khác › tên vai trò (chỉ Toàn quyền; chủ dự án 8/11 chuyển từ trang Tôi vào menu, ngay trên «Đăng xuất»); thanh «Đang xem như vai trò …» trên mọi trang có khung, nút «Thoát» | Bấm tên một vai trò đưa phiên của Toàn quyền vào chế độ xem như người giữ quyền đã chọn: menu, trang và thao tác theo đúng quyền đó, dữ liệu ghi là dữ liệu thật tính cho tài khoản Toàn quyền. «Thoát» (ở thanh báo) trả phiên về quyền thật. Phiên tự thoát khi quá 60 phút không hoạt động. | không | được: bấm «Thoát», hoặc đợi phiên hết hạn | `/api/auth/xem-nhu-vai`<br>nhật ký `acting_role_set`<br>nhật ký `acting_role_cleared` | `web/menu-tai-khoan.ts`: ⟪x.nhan⟫ | chờ chọn (ADR-0180 (6/11): chủ chọn «Xem như vai khác» / «Đang xem như vai khác» / «Thoát vai»; đã đổi thành «vai trò» để theo ADR-0130, chờ chủ xem lại) |
 
 ### Đặt PIN mới bằng Face ID
 
@@ -1599,7 +1599,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| **Đăng xuất** | Thanh bên máy tính (chân thanh); trang Tôi cũng có nút riêng | Đăng xuất MÁY NÀY (máy khác của cùng tài khoản vẫn đăng nhập), tắt thông báo đẩy của máy này, xoá bản nhớ khung giao diện rồi về trang đăng nhập. Nếu máy chủ lỗi thì máy này vẫn thoát ra. | không | được: đăng nhập lại; riêng thông báo đẩy của máy này phải bật lại ở mục Thông báo trang Tôi | `/api/auth/logout` | `web/shell.ts`: Đăng xuất | đã chốt (rà soát 2026-11-04: tên đúng; «Đăng xuất máy này» là tên chủ chọn cho nút ở danh sách máy đang đăng nhập (2026-10-18, lượt 2); nút «Đăng xuất» ở thanh bên làm cùng việc cho máy đang cầm nên tên ngắn vẫn đúng.) |
+| **Đăng xuất** | Menu tên tài khoản (bấm tên ở chân thanh bên máy tính, hoặc ô chữ cái đầu ở thanh trên điện thoại — chủ dự án 8/11); khung tạm chưa có tên vẫn có nút ở chân thanh bên; trang Tôi cũng có nút riêng | Đăng xuất MÁY NÀY (máy khác của cùng tài khoản vẫn đăng nhập), tắt thông báo đẩy của máy này, xoá bản nhớ khung giao diện rồi về trang đăng nhập. Nếu máy chủ lỗi thì máy này vẫn thoát ra. | không | được: đăng nhập lại; riêng thông báo đẩy của máy này phải bật lại ở mục Thông báo trang Tôi | `/api/auth/logout` | `web/shell.ts`: Đăng xuất<br>`web/menu-tai-khoan.ts`: Đăng xuất | đã chốt (rà soát 2026-11-04: tên đúng; «Đăng xuất máy này» là tên chủ chọn cho nút ở danh sách máy đang đăng nhập (2026-10-18, lượt 2); nút «Đăng xuất» ở thanh bên làm cùng việc cho máy đang cầm nên tên ngắn vẫn đúng.) |
 
 ### Khung chung: thanh trên
 
@@ -1657,12 +1657,14 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | **Dùng bản này** | Trợ lý Hỗ trợ › phần «Lời dặn» › «Lịch sử bản» | Lưu ngay câu chào và câu hỏi mẫu của bản cũ thành bản mới, dùng ngay cho khung Trợ lý. Không hỏi lại. | không | được: quay lại bản trước nữa | `/api/tro-ly/bo-nao`<br>`/api/tro-ly/loi-dan`<br>nhật ký `tro_ly_settings_changed` | `web/tro-ly-cai-dat.ts`: Dùng bản này | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 | **Thêm đoạn / (khi sửa) Lưu thành bản mới** | Trợ lý Hỗ trợ › phần «Ngữ cảnh bổ sung» (thêm hoặc sửa đoạn) | Thêm một đoạn chữ để trợ lý đọc như một mục hướng dẫn (tối đa vài chục đoạn). Đoạn đang bật được gửi kèm cho OpenAI khi nhân viên hỏi câu khớp nội dung. Sửa đoạn cũ thì lưu thành bản mới của đoạn đó. Ô «Đang dùng» bật/tắt ngay, không cần lưu. | không | một phần: tắt ô «Đang dùng» là đủ; lịch sử bản giữ lại | `/api/tro-ly/ngu-canh`<br>`/api/tro-ly/ngu-canh/:x`<br>nhật ký `tro_ly_settings_changed` | `web/tro-ly-cai-dat.ts`: Thêm đoạn<br>`web/tro-ly-cai-dat.ts`: Huỷ sửa<br>`web/tro-ly-cai-dat.ts`: Sửa | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 
-## Mục bỏ qua (66)
+## Mục bỏ qua (68)
 
 Nút máy dò là ghi dữ liệu hay nút chính nhưng thực ra không phải; mỗi mục có lý do.
 
 | Tệp | Nút | Lý do |
 |---|---|---|
+| `web/shell.ts` | ⟪nho.tat⟫ | ô chữ cái đầu ở thanh trên (điện thoại): chỉ mở menu tên tài khoản, không ghi gì; việc ghi nằm ở các mục trong menu (web/menu-tai-khoan.ts). Khung tạm từ bản nhớ không dựng nút này |
+| `web/shell.ts` | ⟪initials(staff.fullName)⟫ | ô chữ cái đầu ở thanh trên (điện thoại): chỉ mở menu tên tài khoản, không ghi gì; việc ghi nằm ở các mục trong menu (web/menu-tai-khoan.ts) |
 | `web/banner.ts` | Tải lại đơn | Tải lại đơn: chỉ tải lại, không ghi gì |
 | `web/banner.ts` | Tải lại trang | Tải lại trang: chỉ tải lại |
 | `web/canh-bao-doi-tac.ts` | Không | «Không» của khung cảnh báo trùng số: chỉ ẩn khung |

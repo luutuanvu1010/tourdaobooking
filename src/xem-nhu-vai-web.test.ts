@@ -66,7 +66,7 @@ test("hienMucXemNhuVai chính là laToanQuyenThat (không viết lại)", () => 
 // Nguồn: không dựng được DOM của initShell trong bài thuần, nên khoá ở mức MÃ NGUỒN của khung chung (web/shell.ts) — chọn cách này, nói rõ.
 test("khung chung: thanh báo dùng đúng hàm chung, Thoát = DELETE rồi tải lại thật, không chép chữ", () => {
   const shell = readFileSync(new URL("../web/shell.ts", import.meta.url), "utf8");
-  const account = readFileSync(new URL("../web/account.ts", import.meta.url), "utf8");
+  const account = readFileSync(new URL("../web/menu-tai-khoan.ts", import.meta.url), "utf8"); // chủ dự án 8/11: mục chọn chuyển từ trang Tôi vào menu tên tài khoản
   assert.match(shell, /import \{ hienThanhXemNhu \} from "\.\.\/src\/shared\/xem-nhu-vai-thanh"/);
   assert.match(shell, /const t = hienThanhXemNhu\(me\);\s*\n\s*if \(t\) datDai\("xem-nhu-vai", \{ cau: t\.cau, nut: \{ nhan: t\.nutThoat,/);
   assert.match(shell, /"\/api\/auth\/xem-nhu-vai", \{ method: "DELETE" \}\)\.finally\(taiLai\)/);
