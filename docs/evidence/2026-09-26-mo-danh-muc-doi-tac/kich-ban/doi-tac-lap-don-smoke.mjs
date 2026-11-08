@@ -19,12 +19,17 @@
 //   nhãn nổi «Ghi chú» luôn thu nhỏ, chữ gợi ý «Thời gian đón»), ô giảm giá không còn nhãn nổi «Giảm giá (₫)» mà có chữ gợi ý + aria-label «Giảm giá cho khách» (bước 2, 2m); gõ ghi chú rồi Lưu → đơn
 //   mang ghi chú đó (bước 3); mở lại NHÁP CŨ (lập bằng API, đã có giờ khởi hành, giờ và nơi có mặt) → dòng ghi chú hiện chữ đã lưu, sửa mỗi ghi chú rồi Lưu thì ba giá trị cũ còn nguyên (bước 3g).
 //   Đối chứng Bán hàng (bước 4): «Thông tin chuyến» hiện, nhãn «Giảm giá (₫)» còn, không có dòng Ghi chú gọn.
+// ADR-0185 Đ1 (8/11/2026): tài khoản Đối tác của kịch bản CỐ Ý chưa có vai trò đối tác («không hưởng» — câu PARTNER_NOTE bước 2, 2m) nên dựng KIỂU CŨ bằng SQL (Nền
+//   tảng không còn tạo được tài khoản như vậy: POST /api/staff theo quyền → 400; insertStaffSql đòi `vai`). Thêm: dải vàng «chưa được gán vai trò đối tác» ở đầu thẻ Khách
+//   hàng (bước 2, 2m; Bán hàng bước 4 và Thực tập không có); bước 3v bấm «Gửi đơn» trên trang nháp → khung lỗi hiện đúng câu máy chủ, KHÔNG nút «Tải lại đơn»; đơn đã xác
+//   nhận của bước 6 dựng bằng văn phòng làm thay (Gửi đơn của tài khoản kiểu cũ nay 409 — khẳng định trước).
 // Dùng lại cơ chế CDP của A2 (startEnv()/ACCOUNTS/ok/sleep/vnDate/setInput từ ../../2026-09-20-a2/kich-ban/a2-cdp.mjs) và mẫu step()/openAs()/call() của
 // ../../2026-09-26-va-3-loi-kiem-toan/kich-ban/va3-smoke.mjs. Danh mục là danh mục GIẢ của a2-cdp (TD101 "Tour 4 đảo Nha Trang", người lớn 1.350.000).
 // Chạy từ GỐC repo (worktree), sau `npm run build:web`:
 //   CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-09-26-mo-danh-muc-doi-tac/kich-ban/doi-tac-lap-don-smoke.mjs
 // AXE_JS=<…/axe.min.js> (tuỳ chọn) → thêm bước axe RIÊNG (không gộp vào bước 1–4). Ghi ảnh vào $OUT/anh/*.png (mặc định thư mục bằng chứng này).
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -49,6 +54,8 @@ const GOI_Y_GHI_CHU = "Thời gian đón"; // GOI_Y_GHI_CHU_DOI_TAC
 const NHAN_GHI_CHU = "Ghi chú"; // NHAN_GHI_CHU_DOI_TAC
 const GHI_CHU_GON = "Đón 7h sáng"; // ghi chú gõ ở dòng Ghi chú gọn (bước 3)
 const O_GHI_CHU_GON = `document.querySelector('input[data-trip-gon="note"]')`;
+const DAI_VANG = "Tài khoản của bạn chưa được gán vai trò đối tác: lập và lưu nháp được, nhưng chưa gửi được đơn. Vui lòng báo Tour Đảo."; // src/shared/phan-doi-tac-hien-thi.ts: CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO
+const CAU_GUI_DON_CA_1 = "Tài khoản của bạn chưa được gán vai trò đối tác nên chưa gửi được đơn. Đơn vẫn được giữ ở dạng nháp. Vui lòng báo Tour Đảo, rồi bấm Gửi đơn lại."; // src/modules/orders/xac-nhan-chung.ts: CAU_DOI_TAC_CHUA_CO_VAI_TRO
 
 let passed = 0;
 let failures = 0;
@@ -106,21 +113,18 @@ try {
     for (const e of p.logEntries.filter((x) => x.level === "error")) anomalies.push(`${where}: [${e.source}] ${e.text} ${e.url ?? ""}`.trim());
   };
 
-  // ---- Tài khoản Đối tác: tạo qua API quản trị (vai Cộng tác viên → quyền PARTNER), như e2e nhap-tay-va-gia-doi-tac.mjs ----
+  // ---- Tài khoản Đối tác KIỂU CŨ (ADR-0185): quyền Đối tác, hồ sơ chỉ còn vai STAFF — dữ liệu trước ADR, như các tài khoản T-01 trên bản thật. Dựng bằng đường hợp lệ, không
+  //      gỡ trigger, cùng cách `gieoTaiKhoanLai(…, { kieuCu: true })` của tests/e2e/lib.mjs: vai trò đối tác → quyền Đối tác → kết thúc vai đó → mở vai STAFF (trigger lc1c
+  //      chỉ canh lúc MỞ quyền Đối tác). Máy chủ không ép bên đặt cho nó (benDatCuaToi rỗng) ⇒ câu PARTNER_NOTE và dải vàng hiện. ----
   const partnerPhone = "0900000271";
-  let PARTNER;
-  const createdStaff = await call(ACCOUNTS.admin, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đối Tác Lập Đơn", phone: partnerPhone, roles: ["COLLABORATOR"] });
-  if (createdStaff.status === 201) {
-    assert.deepEqual(createdStaff.json.staff.permissions, ["PARTNER"], `vai Cộng tác viên → chỉ quyền Đối tác: ${JSON.stringify(createdStaff.json.staff)}`);
-    PARTNER = { name: "Đối Tác Lập Đơn", phone: partnerPhone, pin: createdStaff.json.pin };
-    console.log(`  (dữ liệu: tài khoản Đối tác ${partnerPhone} tạo qua POST /api/staff roles=["COLLABORATOR"] → quyền ${JSON.stringify(createdStaff.json.staff.permissions)})`);
-  } else {
-    // Dự phòng: gieo thẳng quyền PARTNER (holdsPartner chỉ xét quyền nên vẫn hợp lệ cho kiểm giao diện).
-    console.log(`  (POST /api/staff trả ${createdStaff.status} ${JSON.stringify(createdStaff.json)} → gieo PARTNER bằng staff-lib)`);
-    anomalies.push(`POST /api/staff roles=["COLLABORATOR"] bằng tài khoản ADMIN trả ${createdStaff.status}: ${JSON.stringify(createdStaff.json)}`);
-    PARTNER = { name: "Đối Tác Lập Đơn", phone: partnerPhone, pin: "246871", permissions: ["PARTNER"] };
+  const PARTNER = { name: "Đối Tác Lập Đơn", phone: partnerPhone, pin: "246871", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" };
+  {
     const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
-    for (const stmt of (await insertStaffSql(PARTNER)).split("\n")) env.sql(stmt);
+    for (const stmt of (await insertStaffSql(PARTNER)).split("\n").filter(Boolean)) env.sql(stmt);
+    const at = new Date().toISOString();
+    env.sql(`UPDATE pty_party_role SET valid_to_date = valid_from_date, updated_at = '${at}' WHERE party_id = (SELECT party_id FROM staff WHERE phone = '${partnerPhone}') AND valid_to_date IS NULL`);
+    env.sql(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) SELECT '${randomUUID()}', party_id, 'STAFF', '${vnDate(0)}', '${at}', '${at}' FROM staff WHERE phone = '${partnerPhone}'`);
+    console.log(`  (dữ liệu: tài khoản Đối tác KIỂU CŨ ${partnerPhone} — quyền Đối tác, hồ sơ chỉ vai STAFF, gieo SQL)`);
   }
   // ADR-0033 (2026-09-27): form lập đơn đọc danh mục qua GET /api/catalog/for-order; GET /api/catalog về cổng office (Đối tác nhận 403 ở đó).
   const catRes = await call(PARTNER, "GET", "/api/catalog/for-order");
@@ -181,6 +185,7 @@ try {
         nhapTay: hien(document.getElementById('add-manual')),
         congTac: !!document.getElementById('dat-qua-doi-tac'),
         chiDoc: document.getElementById('ben-dat-chi-doc')?.textContent ?? null,
+        daiVang: (() => { const x = [...document.querySelectorAll('p.alert.warn')].find((e) => e.textContent === ${JSON.stringify(DAI_VANG)}); return x ? { hien: hien(x), role: x.getAttribute('role'), trongNgay: !!x.closest('.khach-ngay') } : null; })(),
         tagShown: card ? [...card.querySelectorAll('.tag-price')].some(hien) : null,
         tripKhoi: card ? { hien: hien(card.querySelector('details.trip')) } : null,
         ghiChuGon: ghiChuGon ? { hien: hien(ghiChuGon), placeholder: ghiChuGon.placeholder, value: ghiChuGon.value, maxLength: ghiChuGon.maxLength, mauGoiY: getComputedStyle(ghiChuGon, '::placeholder').color,
@@ -233,6 +238,7 @@ try {
     assert.deepEqual(s.oGiaHien, [], `khối “Sửa giá” đóng: chưa có ô đơn giá nào hiện — ${JSON.stringify(s.oGiaHien)}`);
     assert.equal(s.nhapTay, true, "Bán hàng thấy “+ Dịch vụ nhập tay”");
     assert.equal(s.congTac, true, "Bán hàng có công tắc “Đơn của”");
+    assert.equal(s.daiVang, null, `Bán hàng KHÔNG có dải vàng của Đối tác chưa có vai trò — ${JSON.stringify(s.daiVang)}`);
     await p.ev(`(${CARD}).querySelector('.svc-sua-gia').click(); true`);
     await p.waitFor(`(${ADULT_PRICE}).getClientRects().length > 0`, "bấm Sửa giá → ô đơn giá hiện");
     const s2 = await formState(p);
@@ -276,6 +282,8 @@ try {
     kiemFormGon(s, "Đối tác 1040");
     assert.equal(s.congTac, false, "Đối tác KHÔNG có công tắc “Đơn của”");
     assert.equal(s.chiDoc, BEN_DAT ? `Bên đặt: ${BEN_DAT.ten}` : null, `dòng chỉ đọc “Bên đặt” theo đúng benDatCuaToi của máy chủ — ${JSON.stringify(s.chiDoc)}`);
+    assert.equal(BEN_DAT, null, "tài khoản kiểu cũ: máy chủ không ép bên đặt (benDatCuaToi rỗng)");
+    assert.deepEqual(s.daiVang, { hien: true, role: "status", trongNgay: true }, `ADR-0185: dải vàng «chưa được gán vai trò đối tác» hiện ở dòng Ngày khởi hành đầu thẻ Khách hàng — ${JSON.stringify(s.daiVang)}`);
     assert.equal(s.nhapTay, false, "Đối tác KHÔNG thấy “+ Dịch vụ nhập tay” (công tắc đang bật, Bán hàng thấy ở bước 4)");
     assert.equal(s.discountReadOnly, true, `ô giảm giá readOnly — ${JSON.stringify(s)}`);
     assert.equal(s.note?.visible, true, `có dòng “${PARTNER_NOTE}” đang hiện — ${JSON.stringify(s.note)}`);
@@ -297,6 +305,7 @@ try {
     const s = await formState(mob);
     kiemKhongSuaGia(s, "Đối tác 390");
     kiemFormGon(s, "Đối tác 390");
+    assert.deepEqual(s.daiVang, { hien: true, role: "status", trongNgay: true }, `ADR-0185: dải vàng hiện ở điện thoại — ${JSON.stringify(s.daiVang)}`);
     assert.equal(s.nhapTay, false, "Đối tác KHÔNG thấy “+ Dịch vụ nhập tay”");
     assert.equal(s.discountReadOnly, true, `ô giảm giá readOnly — ${JSON.stringify(s)}`);
     assert.equal(s.note?.visible, true, `có dòng “${PARTNER_NOTE}” đang hiện — ${JSON.stringify(s.note)}`);
@@ -360,6 +369,24 @@ try {
     noteErrorLogs(mob, "Đối tác /order-form → /order điện thoại");
     console.log(`    đơn ${o.orderCode} (${o.status}): tạm tính ${o.subtotal}, giảm giá ${o.discount}, tổng ${o.total}, dòng ${JSON.stringify(items)}, ngày đi ${o.services[0].departDate}`);
   });
+
+  // 3v (ADR-0185 Đ1): trên trang nháp vừa lưu, Đối tác kiểu cũ bấm «Gửi đơn» → máy chủ 409 `doi_tac_chua_co_vai_tro`; khung lỗi đầu trang (#error) hiện ĐÚNG câu máy chủ
+  //     (ca 1) và KHÔNG có nút «Tải lại đơn» (mã nằm trong LOI_409_KHONG_CU — tải lại không gán được vai trò); đơn vẫn nháp.
+  await step("3v", "Đối tác kiểu cũ (điện thoại 390): trang nháp vừa lưu, bấm «Gửi đơn» → khung lỗi hiện câu «chưa được gán vai trò đối tác», không nút «Tải lại đơn», đơn vẫn nháp", async () => {
+    const orderId = await mob.ev("new URLSearchParams(location.search).get('id')");
+    assert.ok(orderId, "đang ở trang nháp của bước 3");
+    const NUT = `document.querySelector('#actions [data-action="gui-don"]')`;
+    await mob.waitFor(`!!(${NUT}) && !(${NUT}).disabled`, "nút Gửi đơn hiện và bấm được", 10000);
+    await mob.ev(`(${NUT}).click(); true`);
+    await mob.waitFor(`!document.getElementById('error').hidden && document.querySelector('#error .banner-title')?.textContent === ${JSON.stringify(CAU_GUI_DON_CA_1)}`, "khung lỗi hiện câu ca 1", 10000);
+    const bao = await mob.ev(`(() => { const e = document.getElementById('error'); return { cls: e.className, nut: [...e.querySelectorAll('button')].map((b) => b.textContent.trim()), hien: e.getClientRects().length > 0 }; })()`);
+    assert.deepEqual(bao, { cls: "banner banner-danger", nut: [], hien: true }, `khung lỗi nguy hiểm, không nút nào (không «Tải lại đơn») — ${JSON.stringify(bao)}`);
+    const r = await call(PARTNER, "GET", `/api/orders/${orderId}`);
+    assert.equal(r.json?.order?.status, "draft", `đơn vẫn nháp — ${JSON.stringify(r.json?.order?.status)}`);
+    assert.deepEqual(await mob.ev("window.__dialogs"), [], "không bật hộp thoại confirm/alert nào");
+    assert.deepEqual(mob.consoleErrors.filter((t) => !/409/.test(t)), [], `lỗi console (ngoài dòng 409 của chính lệnh bị chặn): ${mob.consoleErrors}`);
+    await mob.shot(join(OUT, "anh", "doi-tac-chua-co-vai-tro-gui-don.png"));
+  });
   mob.close();
 
   // 3g (Task 1, §4.2): mở lại nháp CŨ — lập bằng API với giờ khởi hành 08:00, có mặt 07:30 tại «Cảng Vinpearl», ghi chú «Đón 7h sáng» (như nháp lập từ máy văn phòng, trước khi có form gọn).
@@ -415,12 +442,22 @@ try {
       services: [{ kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: TD101_ADULT }, departDate: vnDate(3), departTime: "", pickupTime: "07:30", pickupPlace: "Khách sạn Biển Xanh", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }],
     });
     assert.equal(r.status, 201, `lập đơn: ${JSON.stringify(r.json)}`);
-    // ADR-0135/0136: tài khoản giữ quyền Đối tác KHÔNG xác nhận bằng `/status` (409 partner_submit_required) mà bằng nút Gửi đơn = `/gui-don`; đơn không cờ cần xác nhận, giờ đón xa hơn mốc ⇒ nhánh B (xác nhận ngay).
-    const c = ai === PARTNER
-      ? await call(ai, "POST", `/api/orders/${r.json.order.id}/gui-don`)
-      : await call(ai, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" });
+    // ADR-0135/0136: tài khoản giữ quyền Đối tác KHÔNG xác nhận bằng `/status` (409 partner_submit_required) mà bằng nút Gửi đơn = `/gui-don`. ADR-0185: tài khoản Đối tác
+    // KIỂU CŨ của kịch bản Gửi đơn → 409 `doi_tac_chua_co_vai_tro` (khẳng định); đơn đã xác nhận của nó chỉ còn là dữ liệu trước ADR — dựng như `xacNhanDonCu` của
+    // tests/e2e/lib.mjs: đổi tạm người lập sang Bán hàng, xác nhận qua route thật, trả người lập. Ý bước 6 là trang đơn ĐÃ xác nhận, không phải đường gửi.
+    const id = r.json.order.id;
+    let c;
+    if (ai === PARTNER) {
+      const g = await call(ai, "POST", `/api/orders/${id}/gui-don`);
+      assert.deepEqual([g.status, g.json?.error?.code], [409, "doi_tac_chua_co_vai_tro"], `ADR-0185: Đối tác kiểu cũ Gửi đơn bị chặn: ${JSON.stringify(g.json)}`);
+      env.sql(`UPDATE orders SET staff_id = (SELECT id FROM staff WHERE phone = '${ACCOUNTS.salesA.phone}') WHERE id = '${id}'`);
+      try {
+        c = await call(ACCOUNTS.salesA, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
+      } finally {
+        env.sql(`UPDATE orders SET staff_id = (SELECT id FROM staff WHERE phone = '${partnerPhone}') WHERE id = '${id}'`);
+      }
+    } else c = await call(ai, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
     assert.equal(c.status, 200, `xác nhận đơn: ${c.status} ${JSON.stringify(c.json)}`);
-    if (ai === PARTNER) assert.equal(c.json?.nhanh, "B", `Gửi đơn tự xác nhận (nhánh B): ${JSON.stringify(c.json)}`);
     // Đối chứng máy chủ: sửa chuyến / đổi khách của đơn này bị từ chối (403) — đúng lý do giao diện phải ẩn hai nút.
     const trip = await call(ai, "PUT", `/api/orders/${r.json.order.id}/booker`, { expectedUpdatedAt: "x" });
     assert.equal(trip.status, 403, `máy chủ từ chối đổi khách: ${trip.status}`);
@@ -520,6 +557,7 @@ try {
     assert.ok(s.note.rows >= 1 && s.note.rows <= rowsMax, `${nhan}: dòng báo tối đa ${rowsMax} hàng — ${JSON.stringify(s.note)}`);
     assert.ok(s.note.id && s.discountDescribedBy === s.note.id, `${nhan}: ô giảm giá trỏ tới dòng báo bằng aria-describedby — ${s.discountDescribedBy} / ${JSON.stringify(s.note)}`);
     assert.equal(s.partnerNoteAnywhere, false, `${nhan}: KHÔNG có câu của Đối tác “${PARTNER_NOTE}” (Thực tập không phải «tạm») — ${JSON.stringify(s)}`);
+    assert.equal(s.daiVang, null, `${nhan}: KHÔNG có dải vàng của Đối tác chưa có vai trò — ${JSON.stringify(s.daiVang)}`);
     assert.equal(s.catalogErrAnywhere, false, `${nhan}: không có “${CATALOG_ERR}”`);
     assert.match(s.subtotal ?? "", /2\.700\.000/, `${nhan}: tạm tính 2.700.000 — ${s.subtotal}`);
     assert.deepEqual(p.consoleErrors, [], `${nhan}: lỗi console: ${p.consoleErrors}`);

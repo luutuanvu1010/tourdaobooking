@@ -11,7 +11,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { insertStaffSql } from "../../scripts/staff-lib.mjs";
-import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, TURNSTILE_TEST } from "./lib.mjs";
+import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, TURNSTILE_TEST, cauNgungTaiKhoanKieuCu } from "./lib.mjs";
 import { GHI_NHIEU_LAN } from "../../src/shared/lan-gui-no.ts";
 
 const execFileAsync = promisify(execFile);
@@ -166,6 +166,14 @@ async function batMotLan(may) {
   console.log(`wrangler dev${nhan(may.k)}: ${base}`);
 }
 
+/** ADR-0185 kế hoạch K12: ngưng ĐÚNG các tài khoản kiểu cũ bộ thử đã dựng trên D1 tạm này (câu ở `cauNgungTaiKhoanKieuCu` của lib.mjs). Trả số tài khoản đã ngưng. */
+async function ngungTaiKhoanKieuCu(persist) {
+  const n = cauNgungTaiKhoanKieuCu(persist);
+  if (!n) return 0;
+  await wrangler(["d1", "execute", "tourdao-sales-db", "--local", "--persist-to", persist, "--command", n.cau]);
+  return n.so;
+}
+
 // Chạy các kịch bản của MỘT nhóm, lần lượt, rồi các bước kiểm cuối trên chính máy chủ / D1 của nhóm đó.
 async function chayNhom(may) {
   const { k } = may;
@@ -191,6 +199,8 @@ async function chayNhom(may) {
     }
   }
   // Sau mọi kịch bản: bất biến dữ liệu N1 phải còn nguyên trên D1 tạm CỦA NHÓM (chỉ khi chạy đủ bộ — chạy lẻ có thể để dữ liệu dở).
+  // ADR-0185 (K12): trước đó ngưng các tài khoản kiểu cũ bộ thử tự dựng — R-LC-1c (mức fail) đếm đúng chúng; tài khoản Nền tảng tự sinh sai vẫn bị bắt.
+  if (coAudit) console.log(`▶ ngưng ${await ngungTaiKhoanKieuCu(may.persist)} tài khoản kiểu cũ do bộ thử dựng${nhan(k)}`);
   if (coAudit) {
     console.log(`▶ audit-invariants${nhan(k)}`);
     const r = await chay("node", [join(ROOT, "scripts", "audit-invariants.mjs"), "--db", "local", "--persist-to", may.persist, "--strict"], { env: process.env, stream });

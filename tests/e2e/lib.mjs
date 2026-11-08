@@ -2,13 +2,25 @@
 // Chạy lẻ một kịch bản: đặt E2E_BASE_URL (server đang chạy) và E2E_PERSIST_TO (thư mục D1 local của server đó).
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { request as httpRequest } from "node:http";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
 export const BASE = process.env.E2E_BASE_URL ?? "http://localhost:8787";
 const PERSIST = process.env.E2E_PERSIST_TO;
+
+/** ADR-0185 (kế hoạch K8): vai trò đối tác mặc định của dữ liệu thử — dữ liệu thử mặc định là dữ liệu ĐÚNG (cùng giá trị `VAI_DOI_TAC_MAC_DINH` của tests/audit/harness.mjs). */
+export const VAI_DOI_TAC_MAC_DINH = "TRAVEL_AGENCY";
+/** Tệp trong thư mục D1 tạm ghi id tài khoản kiểu cũ do `gieoTaiKhoanLai` dựng — run.mjs ngưng ĐÚNG các tài khoản này trước audit-invariants cuối máy (kế hoạch K12). */
+export const TEP_TAI_KHOAN_KIEU_CU = "tai-khoan-kieu-cu.txt";
+/**
+ * Phần quyền / vai của thân `POST /api/staff` khi kịch bản tạo tài khoản theo danh sách quyền: Đối tác thuần đi qua vai trò đối tác mặc định, vì đường danh sách
+ * quyền không cấp quyền bên ngoài nữa (ADR-0185 Đ2 — 400 `invalid_input`). Mọi danh sách khác giữ nguyên.
+ */
+export const thanQuyenTaiKhoan = (permissions) => (permissions.length === 1 && permissions[0] === "PARTNER" ? { roles: [VAI_DOI_TAC_MAC_DINH] } : { permissions });
 
 /** Tài khoản test cố định — run.mjs nạp chúng vào D1 tạm. Chỉ có ý nghĩa ở local. */
 export const ACCOUNTS = {
@@ -109,11 +121,6 @@ export async function sql(q) {
 }
 
 /**
- * ADR-0083 điều 1b: API không còn tạo tài khoản LAI (quyền bên ngoài — Đối tác, Tài xế đối tác — kèm quyền nội bộ) ở mọi đường không qua vai. Dữ liệu lai
- * cũ vẫn có thể còn (điều 1c: không sửa dữ liệu đã có), nên ca thử HÀNH VI của tài khoản lai gieo thẳng vào D1 local tạm bằng `insertStaffSql` (cùng hàm
- * run.mjs gieo tài khoản dùng chung) rồi đăng nhập thật. Trả `{ id, partyId, phone, pin, cookie }`.
- */
-/**
  * ADR-0074 điều 1 (Phần B Task 6): đặt hạn ân hạn bảo mật hai lớp (`staff.mfa_grace_until`) của tài khoản theo SĐT — `iso` = chuỗi ISO UTC hoặc null. Dùng để thử
  * "hết ân hạn mà chưa bật → 403". Chỉ dùng trên tài khoản DÙNG MỘT LẦN (gieoTaiKhoanLai): đặt hạn quá khứ cho salesA/salesB làm `session()` của kịch bản khác hỏng.
  */
@@ -139,13 +146,76 @@ export async function gieoMaEmail(staffId, email, code, purpose = "login") {
   return id;
 }
 
-export async function gieoTaiKhoanLai(name, permissions) {
+/**
+ * Gieo thẳng một tài khoản vào D1 local tạm bằng `insertStaffSql` (cùng hàm run.mjs gieo tài khoản dùng chung) rồi đăng nhập thật. Trả `{ id, partyId, phone, pin, cookie }`.
+ * ADR-0083 điều 1b: API không còn tạo tài khoản LAI (quyền bên ngoài kèm quyền nội bộ); dữ liệu lai cũ vẫn có thể còn (điều 1c), nên ca thử hành vi của nó gieo ở đây.
+ * ADR-0185 (kế hoạch K8, K12) — cùng luật `seedStaff` của khung thử:
+ *  - Đối tác thuần ⇒ hồ sơ mang vai trò đối tác (`vai`, mặc định Công ty lữ hành);
+ *  - tài khoản lai (Đối tác kèm quyền nội bộ — chỉ có một hình dạng hợp lệ) hoặc `kieuCu: true` ⇒ hình dạng KIỂU CŨ dựng bằng đường hợp lệ, không gỡ trigger: vai trò
+ *    đối tác → quyền Đối tác → kết thúc vai đó → vai STAFF → các quyền còn lại (trigger lc1c chỉ canh lúc mở quyền Đối tác; LC-1 chỉ canh lúc mở quyền nội bộ khi
+ *    hồ sơ đang mở vai bên ngoài). Id ghi vào `TEP_TAI_KHOAN_KIEU_CU` để run.mjs ngưng trước audit-invariants (R-LC-1c đúng là đếm các tài khoản này).
+ *    `ghiNgung: false` khi chính kịch bản sửa tài khoản cho đúng (gán vai trò đối tác) — để audit cuối máy thật sự kiểm trạng thái cuối của nó.
+ */
+export async function gieoTaiKhoanLai(name, permissions, { vai, kieuCu = false, ghiNgung = true } = {}) {
   const { insertStaffSql } = await import("../../scripts/staff-lib.mjs");
   const phone = randomPhone();
   const pin = String(100000 + Math.floor(Math.random() * 900000));
-  await sql((await insertStaffSql({ name, phone, pin, permissions })).replace(/\n/g, " "));
+  const coDoiTac = permissions.includes("PARTNER");
+  const cu = coDoiTac && (kieuCu || permissions.some((p) => p !== "PARTNER"));
+  const dau = cu ? ["PARTNER"] : permissions;
+  await sql((await insertStaffSql({ name, phone, pin, permissions: dau, ...(coDoiTac ? { vai: vai ?? VAI_DOI_TAC_MAC_DINH } : {}) })).replace(/\n/g, " "));
   const [row] = await sqlRows(`SELECT id, party_id FROM staff WHERE phone = '${phone}'`);
+  if (cu) {
+    const { mfaGraceOnCreate } = await import("../../src/modules/staff/rules.ts");
+    const at = new Date().toISOString();
+    const han = mfaGraceOnCreate(permissions, Date.now()); // ân hạn hai lớp theo bộ quyền ĐẦY ĐỦ, như lô tạo tài khoản lai cũ
+    await sql([
+      `UPDATE pty_party_role SET valid_to_date = valid_from_date, updated_at = '${at}' WHERE party_id = '${row.party_id}' AND valid_to_date IS NULL;`,
+      `INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('${randomUUID()}', '${row.party_id}', 'STAFF', '${vnDate(0)}', '${at}', '${at}');`,
+      ...permissions.filter((p) => p !== "PARTNER").map(
+        (p) => `INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('${randomUUID()}', '${row.id}', '${p}', '${at}', '${at}', '${at}');`,
+      ),
+      `UPDATE staff SET mfa_grace_until = ${han === null ? "NULL" : `'${han}'`} WHERE id = '${row.id}';`,
+    ].join(" "));
+    if (PERSIST && ghiNgung) appendFileSync(join(PERSIST, TEP_TAI_KHOAN_KIEU_CU), `${row.id}\n`);
+  }
   return { id: row.id, partyId: row.party_id, phone, pin, cookie: await session({ phone, pin }) };
+}
+
+/**
+ * ADR-0185 kế hoạch K12 — MỘT nguồn cho run.mjs (cuối mỗi máy) và kịch bản tự chạy audit-invariants giữa chừng: câu SQL ngưng ĐÚNG các tài khoản kiểu cũ do
+ * `gieoTaiKhoanLai` dựng (id ở `TEP_TAI_KHOAN_KIEU_CU` trong thư mục D1 tạm `persist`), kèm kết thúc phiên của chúng như lô ngưng của máy chủ (R-AUT-SESSION-2 cấm
+ * phiên sống của tài khoản đã ngưng). KHÔNG ngưng theo điều kiện «vi phạm R-LC-1c»: làm thế che lỗi thật nếu Nền tảng tự sinh tài khoản sai.
+ * Trả `{ so, cau }`, hoặc `null` khi chưa có tài khoản nào.
+ */
+export function cauNgungTaiKhoanKieuCu(persist) {
+  const tep = join(persist, TEP_TAI_KHOAN_KIEU_CU);
+  if (!existsSync(tep)) return null;
+  const ids = [...new Set(readFileSync(tep, "utf8").split("\n").map((s) => s.trim()).filter(Boolean))];
+  if (!ids.length) return null;
+  const la = ids.filter((id) => !/^[0-9a-f-]{36}$/.test(id));
+  if (la.length) throw new Error(`${TEP_TAI_KHOAN_KIEU_CU} có dòng không phải mã tài khoản: ${la.join(", ")}`);
+  const ds = ids.map((id) => `'${id}'`).join(", ");
+  const at = new Date().toISOString();
+  return {
+    so: ids.length,
+    cau: `UPDATE staff SET active = 0 WHERE id IN (${ds}); UPDATE aut_session SET ended_at = '${at}', end_reason = 'ngung', updated_at = '${at}' WHERE staff_id IN (${ds}) AND ended_at IS NULL;`,
+  };
+}
+
+/**
+ * ADR-0185: đơn ĐÃ XÁC NHẬN của tài khoản giữ quyền Đối tác mà không người hưởng (tài khoản lai, kiểu cũ) chỉ còn là dữ liệu trước ADR-0185 — Gửi đơn nay 409
+ * `doi_tac_chua_co_vai_tro`. Dựng như `xacNhanDonCu` của khung thử (tests/audit/harness.mjs): đổi tạm người lập sang tài khoản văn phòng `vanPhong` ({ phone, pin }),
+ * xác nhận qua route thật, rồi trả người lập. Chỉ cho kịch bản mà ý bài nằm ở việc SAU khi đơn đã xác nhận; không dùng cho bài thử chính đường xác nhận.
+ */
+export async function xacNhanDonCu(orderId, nguoiLapId, vanPhong) {
+  const [vp] = await sqlRows(`SELECT id FROM staff WHERE phone = '${vanPhong.phone}'`);
+  await sql(`UPDATE orders SET staff_id = '${vp.id}' WHERE id = '${orderId}'`);
+  try {
+    return await call(await session(vanPhong), "POST", `/api/orders/${orderId}/status`, { status: "confirmed" });
+  } finally {
+    await sql(`UPDATE orders SET staff_id = '${nguoiLapId}' WHERE id = '${orderId}'`);
+  }
 }
 
 /** Như sql() nhưng trả các dòng kết quả của câu SELECT (wrangler --json). */
