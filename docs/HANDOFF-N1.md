@@ -2,7 +2,19 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.76 ĐÃ LÊN PRODUCTION (ADR-0187 Đ3 mức (a): tách nhiệm vụ — dòng tiền do chính người lập đơn ghi mang dấu «Tự ghi đơn mình lập»; Sổ công nợ có bộ lọc «Cần người thứ hai soát» và nút «Đã soát»; thẻ Trang chủ) — migration `0150` — triển khai 2026-11-08 14:10 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.77 ĐÃ LÊN PRODUCTION (ADR-0184: Quản trị / Toàn quyền cho MỘT chuyến chạy dù xe thiếu hoặc hết hạn giấy tờ — nút «Cho chạy dù thiếu giấy tờ», nhãn vàng «Xe thiếu … — đã cho chạy», tài xế nhận tin, thẻ Trang chủ «Xe thiếu giấy tờ — đã cho chạy»; Kiểm định / Bảo hiểm chỉ Toàn quyền cho chạy) — migration `0147` — triển khai 2026-11-08 15:43 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy (phiên `claude/adr-0184-thi-cong` đọc ô Terminal 3) và lệnh chỉ đọc sau đó (`GET /api/auth/config` trả `2.77`; `wrangler d1 migrations list --remote`: không còn migration chờ; `wrangler deployments list`: 100% bản dưới; route mới `GET /api/van-chuyen/cho-chay-thieu/dem` trả 401 khi chưa đăng nhập).
+- Commit: `56dab66e5` Sổ ADR-0184: ghi phần kiểm thứ tự migration trên production (từng lần lưu mã: `docs/superpowers/plans/2026-11-07-adr-0184-thi-cong-nhat-ky.md`).
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-08T08:39:46Z — https://github.com/luutuanvu1010/tourdaobooking/actions/runs/42463290315. Có đổi quy trình kiểm (`scripts/audit-checks.mjs`: thêm kiểm định kỳ `R-VC-36`; `tests/e2e/danh-sach.mjs`: thêm kịch bản `cho-chay-thieu-giay`); lý do chủ gõ: «da kiem xong ròi».
+- Migration đã áp: `0147_cho_chay_thieu_giay.sql` — áp SAU `0150` (có từ 2.76), ngược thứ tự mọi lần thử; trước khi đưa lệnh đã kiểm hai tệp không chung đối tượng và áp hai thứ tự ra CSDL giống hệt (nhật ký thi công). Điểm khôi phục Time Travel trước khi áp: `000025d0-00000000-0000511d-685dca4e6a4bcd80bb5045e936922686`.
+- Worker Version ID: `c6da1c17-7d83-4ab7-b942-cf223608557e`. Kiểm dữ liệu (audit-invariants --db remote): ĐẠT, gồm kiểm mới `R-VC-36` (đạt); 3 cảnh báo cũ (R-VC-14 — 7 vi phạm, R-ORD-9, R-CTL-1) không do bản này.
+- Cổng phiên bản trước deploy: ĐẠT; sau deploy: ĐẠT.
+- Thời gian: day-len 8 phút 47 giây (chờ GitHub kiểm 8 phút 40 giây), trien-khai 0 phút 49 giây, tổng 9 phút 36 giây.
+- Điểm quay lại: Worker `03c6db3f-3890-464b-9f2f-974e24a29f22` (2.76) — migration 0147 chỉ mở rộng (bảng mới, cột `waiver_id` để trống; ba trigger mới ở bảng dòng con bản chụp chỉ chạy khi có `waiver_id` hoặc có dòng điều kiện dưới bản chụp ĐẠT — điều Worker cũ không bao giờ ghi), Worker cũ vẫn chạy được trên CSDL mới.
+- Chưa thử trên iPhone / Chrome thật; chưa ai bấm «Cho chạy dù thiếu giấy tờ» trên production. Nợ còn lại (gồm chưa có nút rút lại sự cho phép): nhật ký thi công mục «Nợ».
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.76 ĐÃ LÊN PRODUCTION (ADR-0187 Đ3 mức (a): tách nhiệm vụ — dòng tiền do chính người lập đơn ghi mang dấu «Tự ghi đơn mình lập»; Sổ công nợ có bộ lọc «Cần người thứ hai soát» và nút «Đã soát»; thẻ Trang chủ) — migration `0150` — triển khai 2026-11-08 14:10 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy (phiên `claude/keen-ishizaka-248ee0` đọc ô Terminal) và lệnh chỉ đọc sau đó (`GET /api/auth/config` trả `2.76`; `wrangler d1 migrations list --remote`: không còn migration chờ; `wrangler deployments list`: 100% bản dưới; hai route `/api/ledger/tu-ghi*` trả 401 khi chưa đăng nhập; gói `so-cong-no.js`, `home.js` có phần mới).
 - Commit: `6d378b10d` Merge branch 'main' into claude/keen-ishizaka-248ee0 (mã ở `248e5102a`…`126d97cd0`).
