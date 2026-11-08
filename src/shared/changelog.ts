@@ -25,7 +25,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Riêng Kiểm định và Bảo hiểm thì chỉ Toàn quyền cho chạy được. Mỗi lần cho phép chỉ dùng cho đúng chuyến và đúng xe đó." },
       { kind: "moi", text: "Chuyến được cho chạy mang nhãn vàng «Xe thiếu … — đã cho chạy» ở chi tiết chuyến, Điều phối xe và cuốc của tài xế; tài xế nhận tin báo." },
       { kind: "moi", text: "Văn phòng xem được lý do và ghi chú của lần cho chạy ngay dưới nhãn vàng ở chi tiết chuyến." },
-      { kind: "moi", text: "Trang chủ của Quản trị và Toàn quyền có thẻ «Xe thiếu giấy tờ — đã cho chạy», đếm số chuyến hôm nay chưa kết thúc đang chạy nhờ cho phép." },
+      { kind: "moi", text: "Trang chủ của Quản trị và Toàn quyền có thẻ «Xe thiếu giấy tờ — đã cho chạy», đếm số chuyến hôm nay chưa kết thúc đã được cho chạy dù thiếu giấy tờ." },
       { kind: "doi", text: "Xe thiếu Kiểm định hoặc Bảo hiểm thì dòng «Ai xử lý» ghi «Quản trị, Toàn quyền»." },
     ],
   },

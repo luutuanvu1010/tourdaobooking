@@ -71,7 +71,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // + ky-so (ADR-0080 D1, sổ đại lý đợt 1): tháng đã khoá cho ngày ghi đảo và trigger `vc_trip_cost_line_period_closed` (đọc view v_ky_closed_period).
   // NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
   // + staff (ADR-0184, việc 1/7): trigger `vc_trip_departure_waiver_*` đọc view v_stf_toan_quyen để biết người cho chạy thiếu giấy tờ có phải Toàn quyền. CHỈ trigger, không import mã.
-  // NỚI hàng rào (Điều 9.4) — CHỜ CHỦ DUYỆT, ghi ở báo cáo việc 1.
+  // NỚI hàng rào đã duyệt (Điều 9.4) — chủ dự án duyệt 2026-11-08 (tờ duyệt ADR-0184, trả lời «Duyệt hết»).
   "van-chuyen": ["parties", "audit", "orders", "locations", "ky-so", "staff"],
   // ADR-0066: trợ lý Hỗ trợ (kho tri thức là tệp thuần ở src/shared/). ADR-0069 (accepted 2026-09-30) kéo theo hai cạnh: `audit` — ghi `tro_ly_settings_changed`
   // cùng lô với bản cài đặt mới (điều 5: "ai đổi lúc nào", không nội dung); `staff` — CHỈ ở tầng SQL, tên người hỏi / người lưu qua view công bố
@@ -1105,7 +1105,7 @@ test("ADR-0127 (siết, R3): không tệp nào dưới src/modules/feedback/** (
 const VIEW_CHO_TRIGGER_VC = [
   "v_ord_leg_key", "v_ord_order_flag", "v_ord_passenger_key", "v_ord_passenger_row", "v_pty_carrier_driver", "v_pty_carrier", "v_pty_owner_company",
   "v_ky_closed_period",
-  "v_stf_toan_quyen", // ADR-0184 (CHỜ CHỦ DUYỆT — nới Điều 9.4): trigger dòng cho phép chạy thiếu giấy tờ xét Toàn quyền thật của người ghi
+  "v_stf_toan_quyen", // ADR-0184 (nới Điều 9.4, chủ dự án duyệt 2026-11-08): trigger dòng cho phép chạy thiếu giấy tờ xét Toàn quyền thật của người ghi
 ] as const;
 /** Tên bảng / view (khác `vc_*` và khác tám view đã liệt kê ở VIEW_CHO_TRIGGER_VC) xuất hiện trong thân một trigger — câu báo trong dấu nháy đơn bỏ qua. */
 function triggerDocNgoai(sql: string, objects: readonly string[]): string[] {
@@ -1358,7 +1358,7 @@ test("ADR-0024 điều 5: thân MỌI trigger của schema chỉ đọc bảng c
   assert.deepEqual(problems, [], "trigger chỉ đọc bảng của module mình hoặc view công bố của module được phép phụ thuộc (ADR-0024 điều 5)");
 });
 
-test("ADR-0184 (siết bù cho cạnh van-chuyen → staff đang CHỜ CHỦ DUYỆT): mã TS của van-chuyen không import module staff và không chuỗi SQL nào nhắc view v_stf_ — cạnh chỉ để TRIGGER 0147 đọc v_stf_toan_quyen", () => {
+test("ADR-0184 (siết bù cho cạnh van-chuyen → staff, chủ dự án duyệt 2026-11-08): mã TS của van-chuyen không import module staff và không chuỗi SQL nào nhắc view v_stf_ — cạnh chỉ để TRIGGER 0147 đọc v_stf_toan_quyen", () => {
   const dir = join(SRC, "modules", "van-chuyen");
   const tep = readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
   assert.ok(tep.length >= 10, `chống bài rỗng: thấy ${tep.length} tệp mã`);
