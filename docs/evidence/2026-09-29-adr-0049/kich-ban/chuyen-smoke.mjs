@@ -247,7 +247,7 @@ try {
     assert.equal(await pm.ev(txt(".dp-stop[data-diem] .dp-stop-noi strong")), "Đón · Amiana Resort");
     const dk = (await pm.ev(dieuKien)).filter((x) => !x.dat && x.nhan !== "Trong giờ được cho xe chạy"); // NGAY_XA ngoài cửa sổ xuất bến (ADR-0096 Đ2) — bước 1 kiểm câu
     assert.deepEqual(dk, [
-      { dat: false, nhan: "Giấy tờ xe", sub: "Xe thiếu hoặc hết hạn giấy tờ bắt buộc: 79A-222.22 · Ai xử lý: Toàn quyền" },
+      { dat: false, nhan: "Giấy tờ xe", sub: "Xe thiếu hoặc hết hạn giấy tờ bắt buộc: 79A-222.22 · Ai xử lý: Quản trị, Toàn quyền" },
       { dat: false, nhan: "Đủ tên khách", sub: `Chưa đủ tên khách: ${d.O2.ma} thiếu 1 tên · Ai xử lý: Văn phòng` },
     ]);
     assert.equal(await pm.ev(shown(".dp-ct-actions")), false);
@@ -353,12 +353,13 @@ try {
     await qm.waitFor(`!!document.querySelector('.sheet [data-action="cho-chay-thieu-gui"]')`, "hộp mở");
     assert.equal(await qm.ev(txt(".sheet .sheet-title")), `${CCC} — ${d.T2.ma}`);
     // Điều kiện «Đăng ký xe» vừa thêm (bước 9) nên xe cũng thiếu loại thường: Bảo hiểm khoá + không chọn; Đăng ký xe chọn sẵn.
-    assert.deepEqual(await qm.ev(hangCcc), ["Bảo hiểm trách nhiệm dân sự chưa có Chỉ Toàn quyền", "Đăng ký xe chưa có"]);
-    assert.deepEqual(await qm.ev(`[...document.querySelectorAll('.sheet .dp-ccc-hang input')].map((x) => [x.dataset.loai, x.disabled, x.checked])`), [["TPL_INSURANCE", true, false], ["REGISTRATION", false, true]]);
+    assert.deepEqual(await qm.ev(hangCcc), ["Đăng ký xe chưa có", "Bảo hiểm trách nhiệm dân sự chưa có Chỉ Toàn quyền"]);
+    assert.deepEqual(await qm.ev(`[...document.querySelectorAll('.sheet .dp-ccc-hang input')].map((x) => [x.dataset.loai, x.disabled, x.checked])`), [["REGISTRATION", false, true], ["TPL_INSURANCE", true, false]]);
     assert.equal(await qm.ev(guiCcc), true, "chưa chọn lý do → khoá");
     assert.equal(await qm.ev(goiYCcc), "Chọn một lý do.");
     assert.equal(await qm.ev(`getComputedStyle(document.querySelector('#ccc-ghi-chu')).fontSize`), "16px", "ô gõ 16px");
     assert.ok(await qm.ev(noOverflowX));
+    await sleep(600); // chờ hộp hết chuyển động trước khi đo tương phản
     await axe(qm, "hộp cho chạy dù thiếu giấy tờ 390 (Bảo hiểm khoá)");
     await shotView(qm, "adr0184-hop-bao-hiem-khoa-dien-thoai.png");
     await qm.ev(`[...document.querySelectorAll('.sheet button')].find((x) => x.textContent.trim() === 'Quay lại').click()`);
@@ -392,6 +393,7 @@ try {
     assert.equal(await qd.ev(guiCcc), false);
     assert.equal(await qd.ev(txt('[data-action="cho-chay-thieu-gui"]')), CCC);
     assert.ok(await qd.ev(noOverflowX));
+    await sleep(600);
     await axe(qd, "hộp cho chạy dù thiếu giấy tờ 1040");
     await shotView(qd, "adr0184-hop-cho-chay-may-tinh.png");
     await qd.ev(click('[data-action="cho-chay-thieu-gui"]'));
