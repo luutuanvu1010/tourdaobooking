@@ -96,6 +96,10 @@ Phán quyết thêm ngày 2026-11-08 (sau kiểm độc lập lượt 1):
 - Lần chạy đủ bộ ở `593cf29b0` bị điều phối dừng giữa chừng (14:04 → 14:10) khi chủ bắt đầu lệnh triển khai ADR-0187, vì tưởng hai bên tranh máy; thật ra từ ADR-0179 lệnh nhập và lệnh triển khai kiểm trên máy GitHub. Lần chạy đó không có kết quả.
 - ADR-0185 nhập `main` 14:04; ADR-0187 Đ3 mức (a) nhập `main` 14:08 (giữ số bản 2.76, migration 0150). Gộp `main` `6d378b10d` vào nhánh — `dd8a9cb61`: 12 tệp vướng, đều do hai bên cùng thêm vào một danh sách, gỡ bằng cách giữ cả hai; số route 466 + 2 + 3 = 471; route ghi có đăng nhập 266 + 1 + 1 = 268 (hai bên cùng ghi 267 nên git không báo vướng ở dòng số); số khoá thẻ Trang chủ 13; mục nhật ký thay đổi của ADR-0184 đổi 2.76 → 2.77. 930 bài liên quan xanh, typecheck 0 lỗi.
 - Sửa ba phát hiện lượt 5, cùng một dấu «cần chủ duyệt» còn sót ở dòng «Trigger 0147» của sổ hàng rào (cả điều phối lẫn người kiểm đều tìm bằng mẫu «chờ chủ» nên trượt chữ «cần chủ duyệt» và chữ hoa «CHỜ CHỦ DUYỆT»).
+- `npm test` đầy đủ ở `bb8a808af` (điều phối chạy, 14:18–14:37): **8411 bài, 8407 xanh, 0 đỏ, 4 todo**; bước đo giờ của hook xanh.
+- Gộp `main` `c91f81af6` (phiên ADR-0187 ghi trạng thái triển khai 2.76; chỉ `docs/HANDOFF-N1.md` và nhật ký thi công ADR-0187) — `438a7c5d2`, không vướng. Ba bài có nhắc `HANDOFF-N1.md` chỉ nhắc tên tệp, không đọc nội dung, nên lần chạy đủ bộ ở trên vẫn đúng cho bản này.
+- Kiểm độc lập lượt 6 (`dd8a9cb61` phần tự gỡ vướng + `bb8a808af`) — **ĐẠT: Cao 0, Trung 0, Thấp 0** (báo cáo nháp `adr0184-kiem-doc-lap-luot-6.md`). Người kiểm đổi tạm từng con số 471, 268, 13 trong thư mục kiểm, cả ba bài đỏ đúng chỗ rồi hoàn nguyên; số «cùng tăng giống hệt» chỉ có 267, `KHOA_PHAM_VI` 11 → 12 và dòng phiên bản 2.75 → 2.76, cả ba đã sửa; `npm run tham-chieu` và `npm run dict` không đổi gì; 886 + 1032 bài liên quan xanh.
+- Còn lại: chủ chạy `npm run day-len -- claude/adr-0184-thi-cong` (lệnh sẽ báo «đổi quy trình kiểm» vì nhánh đổi `tests/e2e/danh-sach.mjs` và `scripts/audit-checks.mjs`, đòi gõ lý do), rồi `npm run trien-khai` (bản 2.77, migration `0147`); sau đó ghi trạng thái triển khai.
 
 ## Nợ (không chặn phát hành)
 
