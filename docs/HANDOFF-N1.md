@@ -2,7 +2,17 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Mã «Toàn quyền xem như vai trò khác» (ADR-0180) ĐÃ LÊN PRODUCTION, số phiên bản còn hiện 2.73 — migration `0145` — triển khai 2026-11-07 22:04 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.75 ĐÃ LÊN PRODUCTION (menu tên tài khoản: «Xem như vai trò khác» chuyển từ trang Tôi vào menu, ngay trên «Đăng xuất» — chủ dự án 8/11) — không migration — triển khai 2026-11-08 08:25 giờ Việt Nam
+
+- Commit: `27c77e759` Nhật ký thay đổi 2.75: menu tên tài khoản (bước A.0); mã ở `5ce36e3eb`.
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-08T01:21:43Z — https://github.com/luutuanvu1010/tourdaobooking/actions/runs/42433253174
+- Migration đã áp: không có. Worker Version ID: `995dcad9-f9a9-4dca-8059-4fc6163044a4`. Kiểm dữ liệu (audit-invariants --db remote): ĐẠT.
+- Cổng phiên bản trước deploy: ĐẠT; sau deploy: ĐẠT. Kiểm lại chỉ đọc 8/11: `GET /api/auth/config` trả `2.75`; gói trang có menu mới, trang Tôi không còn thẻ cũ.
+- Thời gian: day-len 9 phút 29 giây, trien-khai 0 phút 58 giây, tổng 10 phút 27 giây — vượt mục tiêu ~10 phút (ADR-0179 Đ1.1), chủ yếu chờ GitHub kiểm 9 phút 23 giây; không chặn.
+- Lần lên 2.74 (chỉ thêm mục nhật ký thay đổi cho mã ADR-0180) không ghi riêng: Cloudflare ghi một lần triển khai 2026-11-07T22:55Z (05:55 sáng 8/11 giờ Việt Nam), Worker `52201158-037e-48c6-ba24-752d4bc85d3a`; đoạn in của lần đó không được dán lại.
+- Điểm quay lại: Worker `52201158…` (2.74). Chưa thử trên iPhone thật.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Mã «Toàn quyền xem như vai trò khác» (ADR-0180) ĐÃ LÊN PRODUCTION, số phiên bản còn hiện 2.73 — migration `0145` — triển khai 2026-11-07 22:04 giờ Việt Nam
 
 Ghi 7/11/2026 từ đầu ra `npm run trien-khai` do chủ chạy (phiên `claude/multi-role-admin-view-8030d2` đọc ô Terminal) và lệnh chỉ đọc sau đó (`wrangler d1 migrations list --remote`: không còn migration chờ; `wrangler deployments list`: 100% bản dưới).
 - Commit `origin/main`: `5f641781`. Worker Version ID: `0b880fc7-af45-48fd-9e99-f1c10ff79667`.
@@ -137,11 +147,11 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 
 ## ĐANG CHỜ NHẬP: Tác nhân tự động có định danh riêng — ADR-0186, đóng mục HC-5.11 (hạn 15/11); migration `0148_audit_agent_code.sql`; mục nhật ký 2.76 (số tạm)
 
-Ghi 8/11/2026, nhánh `claude/pensive-keller-274010` (đã nhập bản chính `27c77e759` có menu tên tài khoản). Chưa làm bước nào trên production. Người kiểm độc lập 8/11 (ba vòng, chỉ đọc): ĐẠT cho toàn nhánh; hai góp ý vòng đầu (hàng rào chỗ dựng tác nhân, câu nhật ký thay đổi về dòng dọn ảnh vé) đã sửa. Kiểm trên mã cuối: typecheck 0 lỗi; `npm test` chạy một lần, đỏ 4 bài ghim luật trước ADR-0186, đã cập nhật (bốn tệp chạy lại 40/40); e2e 85/85 xanh (kể cả `audit-invariants`).
+Ghi 8/11/2026, nhánh `claude/pensive-keller-274010` (đã nhập bản chính `e4843fbce`: menu tên tài khoản, ADR-0185, ADR-0187 — hai ADR chỉ tài liệu). Chưa làm bước nào trên production. Người kiểm độc lập 8/11 (ba vòng, chỉ đọc): ĐẠT cho toàn nhánh; hai góp ý vòng đầu (hàng rào chỗ dựng tác nhân, câu nhật ký thay đổi về dòng dọn ảnh vé) đã sửa. Kiểm trên mã cuối: typecheck 0 lỗi; `npm test` chạy một lần, đỏ 4 bài ghim luật trước ADR-0186, đã cập nhật (bốn tệp chạy lại 40/40); e2e 85/85 xanh (kể cả `audit-invariants`).
 - **Cần `npm run trien-khai` TRƯỚC 15/11/2026.** Sổ `docs/quyen-hoan.json` đã xoá mục HC-5.11 trong cùng lần sửa nên `npm test` không còn đỏ vì mục này; nhưng production chỉ đúng như sổ khi bản này đã lên.
 - **Migration `0148`** chỉ thêm cột rỗng được `audit_log.agent_code` (mở rộng). Mã cũ không đọc cột này ⇒ quay lại Worker trước vẫn chạy (dòng nhật ký của Cron lại rỗng người làm như cũ). Trigger bắt mọi dòng mới có người làm để lần phát hành sau (ADR-0186 Đ8), khi một lệnh chỉ đọc cho thấy không còn dòng mới nào thiếu người làm.
 - **Số migration lúc thi công** (8/11, `git ls-tree` mọi nhánh và `ls migrations` mọi worktree): `0147` ở nhánh `claude/adr-0184-thi-cong`, `0149` ở một worktree khác chưa lưu (chặn đơn Đối tác thiếu vai trò) — ai nhập sau kiểm lại số.
-- **Số phiên bản:** mục 2.76 ngày 2026-11-08 đứng trên 2.75 (menu tên tài khoản, nhập trước) và 2.74 (lên ở lượt sau lần 7/11 22:04). Mục nào chưa lên production thì đi cùng lần triển khai này, giữ các mục riêng — phiên phát hành kiểm bằng lệnh, không tin dòng này. `src/shared/app-info.test.ts` ghim 2.76.
+- **Số phiên bản:** mục 2.76 ngày 2026-11-08 đứng trên 2.75 (menu tên tài khoản; 2.74 và 2.75 đã lên production theo mục trạng thái ở đầu tệp). Lần triển khai này chỉ mang 2.76 — phiên phát hành vẫn kiểm bằng lệnh, không tin dòng này. `src/shared/app-info.test.ts` ghim 2.76.
 - **Quyền người đổi đúng một chỗ:** Quản lý bán hàng bấm được «Đồng bộ ngay từ Google Sheet» (route `POST /api/catalog/sync` từ cổng `admin` sang `office` + ô `catalog.sync`). Quản trị, Toàn quyền như cũ; Bán hàng thường, Kế toán vẫn bị từ chối.
 - **Không bí mật mới, không đổi `wrangler.jsonc`.** Gói trang Đơn hàng nới trần dung lượng theo số đo (`src/goi-trang-nhe.test.ts`): đo lại trên mã đã nhập bản chính 109.028 byte, +326 so với bản chính một mình (dữ liệu bản đồ quyền); chưa có lời duyệt riêng của chủ cho con số này.
 - **Sau triển khai:** lệnh chỉ đọc kiểm dòng nhật ký Cron MỚI (chỉ sinh khi Sheet có đổi, nên có thể phải chờ) mang `agent_code = 'DONG_BO_DANH_MUC'` (ví dụ `wrangler d1 execute tourdao-sales-db --remote --command "SELECT action, staff_id, agent_code, created_at FROM audit_log WHERE action = 'catalog_synced' ORDER BY created_at DESC LIMIT 3"` — lệnh ĐỌC, chủ chạy).
