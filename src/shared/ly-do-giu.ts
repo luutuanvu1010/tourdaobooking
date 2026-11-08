@@ -4,11 +4,29 @@
 // Logic thuần, không I/O, không import module. Câu chữ không bao giờ chứa tên khách, năm sinh, SĐT, số giấy tờ (LC-18); phần `chiTiet` chỉ là mã đơn,
 // mã chuyến, biển số, con số.
 
-export const AI_XU_LY = ["VAN_PHONG", "QUAN_TRI", "TOAN_QUYEN"] as const;
+/**
+ * "Ai xử lý" = tập ĐÓNG bốn giá trị (không chữ tự do). Mỗi giá trị ứng với một DANH SÁCH VAI (`VAI_AI_XU_LY`); giá trị `QUAN_TRI_TOAN_QUYEN` (ADR-0184, chủ 2026-11-08
+ * «Quản trị và toàn quyền» — xe thiếu Kiểm định / Bảo hiểm) ứng với HAI vai. Chữ hiện ra luôn đi qua `nhanAiXuLy` — gom nhiều lý do, bỏ trùng theo VAI rồi mới đổi ra tên.
+ */
+export const AI_XU_LY = ["VAN_PHONG", "QUAN_TRI", "QUAN_TRI_TOAN_QUYEN", "TOAN_QUYEN"] as const;
 /** Chữ NÚT của lệnh "Cập nhật khách theo đơn" (R-P29, chủ lần 16 — route `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach`) — màn và câu lý do giữ dùng CHUNG. */
 export const NUT_CAP_NHAT_KHACH = "Cập nhật khách theo đơn";
 export type AiXuLy = (typeof AI_XU_LY)[number];
-export const NHAN_AI_XU_LY: Readonly<Record<AiXuLy, string>> = { VAN_PHONG: "Văn phòng", QUAN_TRI: "Quản trị", TOAN_QUYEN: "Toàn quyền" };
+export type VaiXuLy = "VAN_PHONG" | "QUAN_TRI" | "TOAN_QUYEN";
+/** Thứ tự VAI khi ghép chữ: Văn phòng → Quản trị → Toàn quyền. */
+const THU_TU_VAI: readonly VaiXuLy[] = ["VAN_PHONG", "QUAN_TRI", "TOAN_QUYEN"];
+const TEN_VAI: Readonly<Record<VaiXuLy, string>> = { VAN_PHONG: "Văn phòng", QUAN_TRI: "Quản trị", TOAN_QUYEN: "Toàn quyền" };
+export const VAI_AI_XU_LY: Readonly<Record<AiXuLy, readonly VaiXuLy[]>> = {
+  VAN_PHONG: ["VAN_PHONG"], QUAN_TRI: ["QUAN_TRI"], QUAN_TRI_TOAN_QUYEN: ["QUAN_TRI", "TOAN_QUYEN"], TOAN_QUYEN: ["TOAN_QUYEN"],
+};
+/** MỘT hàm chữ "Ai xử lý" cho máy chủ và giao diện: gom một hay nhiều giá trị, bỏ trùng theo vai, thứ tự Văn phòng → Quản trị → Toàn quyền, nối bằng dấu phẩy. */
+export function nhanAiXuLy(ds: readonly AiXuLy[]): string {
+  const co = new Set<VaiXuLy>(ds.flatMap((a) => VAI_AI_XU_LY[a]));
+  return THU_TU_VAI.filter((v) => co.has(v)).map((v) => TEN_VAI[v]).join(", ");
+}
+export const NHAN_AI_XU_LY: Readonly<Record<AiXuLy, string>> = {
+  VAN_PHONG: nhanAiXuLy(["VAN_PHONG"]), QUAN_TRI: nhanAiXuLy(["QUAN_TRI"]), QUAN_TRI_TOAN_QUYEN: nhanAiXuLy(["QUAN_TRI_TOAN_QUYEN"]), TOAN_QUYEN: nhanAiXuLy(["TOAN_QUYEN"]),
+};
 
 /**
  * Bộ mã ĐÓNG (thêm mã = sửa tệp này, có test). "Ai xử lý" = ai gỡ được: giấy tờ (GPLX, giấy tờ theo điều kiện xuất bến) → Quản trị (người giữ hồ sơ,
@@ -58,8 +76,9 @@ export const MA_GIU = {
   GPLX_THIEU_HANG: { loiNhan: "Giấy phép lái xe chưa ghi hạng", aiXuLy: "QUAN_TRI" },
   GPLX_HET_HAN: { loiNhan: "Giấy phép lái xe hết hạn trước khi chuyến kết thúc", aiXuLy: "QUAN_TRI" },
   DIEU_KIEN_GIAY_TO_XE: { loiNhan: "Xe thiếu hoặc hết hạn giấy tờ bắt buộc", aiXuLy: "QUAN_TRI" },
-  // ADR-0184 (P3): xe thiếu Kiểm định / Bảo hiểm trách nhiệm dân sự — chỉ Toàn quyền cho chạy được (D1=b); bốn loại còn lại giữ mã trên (Quản trị). Cùng lời nhắn.
-  DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN: { loiNhan: "Xe thiếu hoặc hết hạn giấy tờ bắt buộc", aiXuLy: "TOAN_QUYEN" },
+  // ADR-0184 (P3, P10): xe thiếu Kiểm định / Bảo hiểm trách nhiệm dân sự — chỉ Toàn quyền cho chạy được (D1=b); bốn loại còn lại giữ mã trên (Quản trị). Cùng lời nhắn.
+  // Ai xử lý: «Quản trị, Toàn quyền» (chủ 2026-11-08) — Quản trị vẫn là người nhập giấy mới để gỡ giữ, Toàn quyền là người cho chạy.
+  DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN: { loiNhan: "Xe thiếu hoặc hết hạn giấy tờ bắt buộc", aiXuLy: "QUAN_TRI_TOAN_QUYEN" },
   DIEU_KIEN_GIAY_TO_TAI_XE: { loiNhan: "Tài xế thiếu hoặc hết hạn giấy tờ bắt buộc", aiXuLy: "QUAN_TRI" },
   // ADR-0057 C5 (chủ lần 18 "chưa có giá thì không được chạy"): chuyến xe thuê chưa có giá bảng đã chụp / giá thoả thuận — KHÔNG ai phá lệ (không thuộc
   // MA_LUAT_PHA_LE). aiXuLy giữ tập đóng AI_XU_LY (G-T5): Quản trị; lời nhắn nói rõ Kế toán cũng làm được. Không kèm số tiền (G-T4).

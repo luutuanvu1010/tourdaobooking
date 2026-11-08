@@ -319,12 +319,12 @@ test("giayToXeConThieu: thiếu hẳn (hạn null), hết hạn trước giờ k
   assert.deepEqual(giayToXeConThieu(xe({ giayTo: [giayXe("INSPECTION", "2026-09-30")] }), [DK_INS], ms("2026-10-01", "01:00")), [{ documentTypeCode: "INSPECTION", expiryDate: "2026-09-30", ruleId: "dk-ins" }], "chuyến qua nửa đêm: hết hạn trước giờ kết thúc");
 });
 
-test("kiemXuatBen + ADR-0184: thiếu Đăng ký không cho phép → DIEU_KIEN_GIAY_TO_XE (Quản trị); thiếu Kiểm định → DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN (Toàn quyền)", () => {
+test("kiemXuatBen + ADR-0184: thiếu Đăng ký không cho phép → DIEU_KIEN_GIAY_TO_XE (Quản trị); thiếu Kiểm định → DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN (Quản trị, Toàn quyền)", () => {
   const reg = kiemXuatBen(xb({ dieuKien: [DK_REG] }));
   assert.deepEqual(ai(reg.lyDo), ["DIEU_KIEN_GIAY_TO_XE:QUAN_TRI"]);
   assert.deepEqual(reg.choChayThieu, []);
   const ins = kiemXuatBen(xb({ dieuKien: [DK_INS] }));
-  assert.deepEqual(ai(ins.lyDo), ["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN:TOAN_QUYEN"]);
+  assert.deepEqual(ai(ins.lyDo), ["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN:QUAN_TRI_TOAN_QUYEN"]);
   const tpl = kiemXuatBen(xb({ dieuKien: [{ id: "dk-tpl", minCapacity: 1, subject: "VEHICLE", documentTypeCode: "TPL_INSURANCE" }] }));
   assert.deepEqual(ma(tpl.lyDo), ["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"]);
   assert.equal(ins.chup.muc.every((m) => m.waiverId === null), true);

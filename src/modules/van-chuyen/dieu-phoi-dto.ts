@@ -10,7 +10,7 @@ import { NHAN_SU_KIEN_CHUYEN, NHAN_TRANG_THAI_CHUYEN, isNhomLyDo, type ChangVao,
 import { giayToXeConThieu, noiLechCuaSuat } from "../../shared/dieu-phoi-kiem";
 import { NHAN_CANH_BAO_LICH, type CanhBaoLich } from "../../shared/dieu-phoi-lich-chung";
 import { NHAN_TRANG_THAI_CHANG, type TrangThaiChangRa } from "../../shared/dieu-phoi-trang-thai";
-import { NHAN_AI_XU_LY, lyDoTheoMoc, type LyDoGiu } from "../../shared/ly-do-giu";
+import { nhanAiXuLy, lyDoTheoMoc, type LyDoGiu } from "../../shared/ly-do-giu";
 import { chuyenDuoiMoc, gioXetMocXep } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
 import { chuoiDichChiDuong } from "../../shared/chi-duong";
@@ -33,7 +33,7 @@ export function lyDoGiuCuaChuyen(t: TripRow, lyDo: readonly LyDoGiu[], bayGioMs:
   const duoiMoc = chuyenDuoiMoc({ dangChay: t.status === "RUNNING", gioXetMs: gioXetMocXep({ batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms }) }, bayGioMs, phut);
   return lyDo.map((l) => lyDoTheoMoc(l, duoiMoc));
 }
-export const lyDoGiuDto = (l: LyDoGiu): LyDoGiuDto => ({ ma: l.ma, loiNhan: l.loiNhan, aiXuLy: l.aiXuLy, aiXuLyNhan: NHAN_AI_XU_LY[l.aiXuLy] });
+export const lyDoGiuDto = (l: LyDoGiu): LyDoGiuDto => ({ ma: l.ma, loiNhan: l.loiNhan, aiXuLy: l.aiXuLy, aiXuLyNhan: nhanAiXuLy([l.aiXuLy]) });
 export const canhBaoDto = (c: CanhBaoLich): CanhBaoLichDto => ({ loai: c.loai, nhan: NHAN_CANH_BAO_LICH[c.loai], legId: c.legId, tripId: c.tripId, maDon: c.orderCode });
 /** Tên nơi của điểm: tên danh mục, hoặc chữ tự do ĐÃ CHE dãy số (lưu đã che — che lần nữa cho chắc). */
 export const tenNoi = (s: StopRow): string => s.location_name ?? maskLongDigits(s.place_text ?? "");

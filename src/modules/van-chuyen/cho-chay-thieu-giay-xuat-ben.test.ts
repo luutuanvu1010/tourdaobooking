@@ -40,7 +40,7 @@ const lichGiu = async (w: any, tripId: string): Promise<string[]> => {
   return c.lyDoGiu.map((l: any) => l.ma);
 };
 
-test("thiếu Kiểm định, chưa ai cho phép → màn và cổng đều GIỮ DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN (Toàn quyền xử lý); tài xế bấm xuất bến 409, không ghi bản chụp", async () => {
+test("thiếu Kiểm định, chưa ai cho phép → màn và cổng đều GIỮ DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN (Quản trị, Toàn quyền xử lý); tài xế bấm xuất bến 409, không ghi bản chụp", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -50,7 +50,7 @@ test("thiếu Kiểm định, chưa ai cho phép → màn và cổng đều GI�
     assert.deepEqual(await lichGiu(w, t.id), ["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"]);
     const x = await tienDo(w, "tai-xe", t.id, "xuat-ben");
     assert.equal(x.status, 409, x.text);
-    assert.deepEqual(x.json.error.lyDo.map((l: any) => [l.ma, l.aiXuLy]), [["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN", "TOAN_QUYEN"]]);
+    assert.deepEqual(x.json.error.lyDo.map((l: any) => [l.ma, l.aiXuLy]), [["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN", "QUAN_TRI_TOAN_QUYEN"]]);
     assert.equal(w.q("SELECT count(*) n FROM vc_trip_departure_check WHERE trip_id = ?", t.id)[0].n, 0);
   } finally {
     tat();

@@ -70,7 +70,7 @@ try {
     const v = await p.ev(viec);
     const giu = v.filter((x) => x.loai === "CHUYẾN BỊ GIỮ");
     assert.deepEqual(giu.map((x) => [x.tieuDe, x.ai, x.nut]), [
-      [`${d.T2.ma} · 07:30 · 79A-222.22`, "Ai xử lý: Toàn quyền, Văn phòng", []], // ADR-0184 P3: xe thiếu Kiểm định / Bảo hiểm → mã giữ DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN
+      [`${d.T2.ma} · 07:30 · 79A-222.22`, "Ai xử lý: Văn phòng, Quản trị, Toàn quyền", []], // ADR-0184 P3, P10: xe thiếu Kiểm định / Bảo hiểm → mã giữ DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN, «Quản trị, Toàn quyền»; chữ gom theo vai (Văn phòng → Quản trị → Toàn quyền)
       [`${d.T3.ma} · 14:30 · 79A-111.11`, "Ai xử lý: Văn phòng", ["Cập nhật điểm theo đơn"]],
     ]);
     assert.ok(!v.some((x) => x.tieuDe.startsWith(`${d.T3.ma} · TD-`)), "không mục 'nơi hẹn khác điểm' trùng với chuyến bị giữ");

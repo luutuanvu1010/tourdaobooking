@@ -2,13 +2,13 @@
 // bản vẽ docs/design/van-chuyen-dieu-phoi/project/01–03 + dp-*; bản đối chiếu DOI-CHIEU-2026-09-29.md (2.1, 2.2, 2.3, 2.7, 2.9, 2.12, 2.13, H6–H8, H10, H11,
 // H14, H17–H19). Không I/O, không DOM; import kèm đuôi .ts. Test: dieu-phoi-man.test.ts.
 // - Chỉ HIỂN THỊ dữ liệu máy chủ trả (LichChungResponse, ChuyenChiTietResponse). Không tự tính khoá theo mốc: "đang khoá" = `khoaMoc.dangKhoa` (R-P13); vạch mốc
-//   trên dòng thời gian dùng `mocToiThieuPhut` (R-P12) chỉ để vẽ. Câu lý do giữ lấy nguyên `loiNhan`; ai xử lý lấy `aiXuLyNhan` (H14).
+//   trên dòng thời gian dùng `mocToiThieuPhut` (R-P12) chỉ để vẽ. Câu lý do giữ lấy nguyên `loiNhan`; ai xử lý gom bằng `nhanAiXuLy` (bỏ trùng theo vai; H14).
 // - Nút / lối tắt theo CỜ quyền truyền vào (can() ở trang), không theo tên vai.
 import { nhanThoiLuong } from "./chinh-sach-hien-thi.ts";
 import type { CanhBaoLichDto, ChangLichDto, ChuyenTomTatDto, DiemChuyenDto, GioHenDto, GioVnDto, GoiBaoChangDto, LichChungResponse, LyDoGiuDto, MucNhacGoiDto, NhatKyChuyenDto } from "./contracts.ts";
 import { AI_XU_LY_GIO_HEN_DOI, NHAN_GIO_HEN_DOI, moTaDoiGio } from "./goi-bao.ts";
 import { NUT_CHO_CHAY_THIEU_GIAY, nhanChoChayThieu } from "./cho-chay-thieu-giay.ts";
-import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach } from "./ly-do-giu.ts";
+import { NUT_CAP_NHAT_KHACH, giuCapNhatKhach, nhanAiXuLy } from "./ly-do-giu.ts";
 import type { LopVuot } from "./moc-toi-thieu.ts";
 import { can, type PermissionHolder } from "./permissions.ts";
 import { maskLongDigits } from "./text-guards.ts";
@@ -206,7 +206,7 @@ export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; khanC
       tieuDe: `${c.ma} · ${gioHien(c.batDau, l.ngay)} · ${c.xe.bienSo}`,
       href: `/chuyen?id=${encodeURIComponent(c.id)}`,
       noiDung: c.lyDoGiu.map((x) => x.loiNhan).join("; "),
-      aiXuLy: [...new Set(c.lyDoGiu.map((x) => x.aiXuLyNhan))].join(", "),
+      aiXuLy: nhanAiXuLy(c.lyDoGiu.map((x) => x.aiXuLy)),
       khoa: null,
       hanhDong,
     });
@@ -337,7 +337,7 @@ const NHOM_DIEU_KIEN: readonly { nhan: string; ma: readonly string[]; nhac?: str
   { nhan: "Đón trước trả", ma: ["TRA_TRUOC_DON"] },
   { nhan: "Trong giờ được cho xe chạy", ma: ["NGOAI_CUA_SO_XUAT_BEN"] },
 ];
-const chiTietLoi = (ds: readonly LyDoGiuDto[]): string => `${ds.map((d) => d.loiNhan).join("; ")} · Ai xử lý: ${[...new Set(ds.map((d) => d.aiXuLyNhan))].join(", ")}`;
+const chiTietLoi = (ds: readonly LyDoGiuDto[]): string => `${ds.map((d) => d.loiNhan).join("; ")} · Ai xử lý: ${nhanAiXuLy(ds.map((d) => d.aiXuLy))}`;
 /**
  * "Điều kiện xuất bến" của chi tiết chuyến (bản vẽ 02): danh mục cố định; chưa đạt = có lý do giữ thuộc nhóm (câu + ai xử lý); đạt không kèm chi tiết.
  * ADR-0154 Đ3: `nhac` (phản hồi chi tiết chuyến của văn phòng) = đơn mang dấu miễn danh sách đang thiếu tên. Dòng «Đủ tên khách»: còn lý do giữ (THIEU_TEN của đơn khác, KHACH_DA_DOI) thì

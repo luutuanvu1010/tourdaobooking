@@ -1653,8 +1653,8 @@ export interface TripReasonUpdateRequest { label: string; sortOrder: number; act
 // ADR-0050 VK1-B), SĐT (trừ `lienHe` của DTO tài xế trong ngày chạy — A15). Giờ hiển thị luôn là giờ VN.
 /** Ngày + giờ VN ("YYYY-MM-DD", "HH:MM"). */
 export interface GioVnDto { ngay: string; gio: string }
-/** Một lý do giữ / chặn (src/shared/ly-do-giu.ts — chỗ sống duy nhất); `aiXuLyNhan` = nhãn "Văn phòng" / "Quản trị" / "Toàn quyền". */
-export interface LyDoGiuDto { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" | "QUAN_TRI" | "TOAN_QUYEN"; aiXuLyNhan: string }
+/** Một lý do giữ / chặn (src/shared/ly-do-giu.ts — chỗ sống duy nhất); `aiXuLyNhan` = nhãn "Văn phòng" / "Quản trị" / "Toàn quyền" / "Quản trị, Toàn quyền" (`nhanAiXuLy`). */
+export interface LyDoGiuDto { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" | "QUAN_TRI" | "QUAN_TRI_TOAN_QUYEN" | "TOAN_QUYEN"; aiXuLyNhan: string }
 /**
  * Một mốc tiến độ (ADR-0050 VK1-A — bảng "Nơi dùng giờ nào"): giờ XẢY RA + giờ GHI NHẬN; `vanPhongKhai` = văn phòng bấm thay khai giờ; `nguoiBam` = TÊN
  * HIỂN THỊ người bấm, CHỈ có khi `vanPhongKhai` (R-P11: chuỗi tên, không SĐT, không id).
@@ -2108,7 +2108,7 @@ export interface DoiThuTuRequest { requestId: string; diem: { id: string; thuTu:
  * đang chạy đã xuất bến từ ngày chạy trở đi — ADR-0053 D7.2, Q-L3-B; xuất bến tối hôm trước không mở sớm) — ngoài ngày chạy các khoá đó VẮNG MẶT (không phải chuỗi rỗng). `lienHe` chỉ ở `GET /cuoc-cua-toi/:id` (phản hồi lệnh tiến độ không kèm —
  * màn tải lại chi tiết).
  */
-export interface DieuKienConThieuDto { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" | "QUAN_TRI" | "TOAN_QUYEN" }
+export interface DieuKienConThieuDto { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" | "QUAN_TRI" | "QUAN_TRI_TOAN_QUYEN" | "TOAN_QUYEN" }
 /** Route 19 — một chuyến của "Cuốc của tôi" (R-P17): không tên, không SĐT. */
 export interface CuocCuaToiItemDto {
   id: string;

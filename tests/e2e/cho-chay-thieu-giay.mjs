@@ -1,6 +1,6 @@
 // CHO CHẠY DÙ THIẾU GIẤY TỜ (ADR-0184 việc 3) trên API THẬT (wrangler dev, D1 local tạm). Xe công ty 15 chỗ chỉ có Kiểm định, THIẾU Bảo hiểm trách nhiệm dân sự;
 // chuyến NGÀY MAI (cửa sổ xuất bến 48 giờ), một đơn đã xác nhận, tài khoản tài xế thật:
-//   (1) chưa ai cho phép → chi tiết chuyến giữ DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN (Toàn quyền xử lý); tài xế bấm xuất bến → 409;
+//   (1) chưa ai cho phép → chi tiết chuyến giữ DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN (Quản trị, Toàn quyền xử lý); tài xế bấm xuất bến → 409;
 //   (2) Quản trị cho chạy Bảo hiểm (kèm lý do) → 403 «chỉ Toàn quyền», không dòng nào ghi; Bán hàng, Kế toán → 403;
 //   (3) Toàn quyền cho chạy, không lý do → 200 / 201; dòng cho phép + một sự kiện + một nhật ký (không số giấy tờ, không ghi chú); chi tiết hết giữ;
 //   (4) gửi lại cùng requestId → 200, không ghi thêm; cho lại cùng loại → 409;
@@ -59,7 +59,7 @@ const soDong = () => dem(`SELECT count(*) AS n FROM vc_trip_departure_waiver WHE
 
 // --- (1) Chưa ai cho phép: giữ mã Toàn quyền; tài xế xuất bến 409 ---
 let ct = await chiTiet();
-assert.ok(ct.lyDoGiu.some((l) => l.ma === "DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN" && l.aiXuLy === "TOAN_QUYEN"), JSON.stringify(ct.lyDoGiu));
+assert.ok(ct.lyDoGiu.some((l) => l.ma === "DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN" && l.aiXuLy === "QUAN_TRI_TOAN_QUYEN" && l.aiXuLyNhan === "Quản trị, Toàn quyền"), JSON.stringify(ct.lyDoGiu));
 r = await call(TX, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/xuat-ben`, { requestId: uuid() });
 assert.equal(r.status, 409, JSON.stringify(r.body));
 assert.ok(r.body.error.lyDo.some((l) => l.ma === "DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"), JSON.stringify(r.body.error.lyDo));
