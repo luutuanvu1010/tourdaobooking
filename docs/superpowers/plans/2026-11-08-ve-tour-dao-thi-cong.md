@@ -40,9 +40,21 @@
 
 Gom một lần hỏi (CLAUDE.md §3). Hết giờ thì lấy phương án khuyến nghị; tất cả đảo ngược được.
 
-- [ ] **Tên giao diện** (Hiến chương 5.27): khuyến nghị «Vé do ai phát», «Vé hãng ngoài», «Vé Tour Đảo», «Tạo vé», «Quét vé», «Bỏ lượt quét», «Đã dùng», «Đối chiếu vé». Ghi vào bảng tham chiếu ở task dùng tên đó.
+- [x] **Cách thi công:** chủ 2026-11-08 chọn «Mỗi việc một trợ lý + kiểm» (superpowers:subagent-driven-development).
+- [ ] **Tên giao diện** (Hiến chương 5.27): chủ 2026-11-08 muốn «một bộ danh mục thuật ngữ chuyên nghiệp, bài bản». Bộ đó đã có là bảng tham chiếu ngôn ngữ (ADR-0167, `docs/BANG-THAM-CHIEU.md`, 113 khái niệm, mỗi khái niệm có nghĩa, khác với, chữ đã loại, mã nội bộ, ai chốt). Việc ở đây: soạn đủ mục cho từng thuật ngữ vé dưới đây, kèm tên tiếng Anh chuẩn ngành dùng trên vé, để chủ duyệt một lần; chưa duyệt thì khai trạng thái «chờ chọn» và vẫn thi công được phần máy chủ (Task 1, 2, 4–8).
+
+  | Tên đề xuất | Nghĩa (một câu) | Khác với | Tiếng Anh trên vé / chuẩn ngành |
+  |---|---|---|---|
+  | Vé do ai phát | Ô trên từng dịch vụ: vé của dịch vụ này do hãng ngoài phát hay do Tour Đảo tự phát | «Có vé» nói có vé hay không; «Người bán dịch vụ» nói ai cung cấp dịch vụ | Ticket issuer |
+  | Vé hãng ngoài | Vé do bên khác phát (Vinpearl…), công ty nhập ảnh vé vào kho | Công ty không quyết được vé này còn giá trị hay không | Third-party ticket |
+  | Vé Tour Đảo | Vé do công ty tự tạo, máy chủ của công ty quyết còn giá trị hay không | Huỷ đơn là vé chết; mở được từ lúc xác nhận | Tour Đảo e-ticket |
+  | Tạo vé | Người có quyền vẽ và đưa một lô vé Tour Đảo vào kho | «Nhập lô vé» là đưa ảnh vé hãng ngoài vào kho | Issue tickets |
+  | Quét vé | Đưa mã QR của khách vào máy để máy chủ trả lời vé dùng được không | Khác «Kiểm vé» (hỏi còn chỗ trước khi xác nhận đơn) | Scan / validate |
+  | Đã dùng | Vé đã có một lượt quét được tính, không dùng lại được | «Đã mở» là vé đã gửi cho khách xem | Redeemed |
+  | Bỏ lượt quét | Huỷ một lượt quét đã tính, có lý do, vé trở lại chưa dùng | Không phải huỷ vé | Void scan |
+  | Đối chiếu vé | Màn so số khách theo đơn với số vé đã dùng theo ngày | Không sửa đơn, chỉ báo | Reconciliation |
 - [ ] **Bước 0 — thử camera trên iPhone thật** làm ở đầu Task 14 (cần mã), không chặn Đợt 1.
-- [ ] **An toàn giữa hai đợt (chạm tiền):** khuyến nghị — phát hành Đợt 1 nhưng **giữ mọi dịch vụ ở «Vé hãng ngoài»** tới khi Đợt 2 (quét) lên; chỉ chuyển dịch vụ sang «Vé Tour Đảo» khi đã quét được. Đây là mặc định sẵn, nên rủi ro chỉ bắt đầu khi có người gạt ô.
+- [x] **An toàn giữa hai đợt (chạm tiền):** chủ 2026-11-08 chọn «Chờ quét rồi mới bật» — phát hành Đợt 1 nhưng **giữ mọi dịch vụ ở «Vé hãng ngoài»** tới khi Đợt 2 (quét) lên; chỉ chuyển dịch vụ sang «Vé Tour Đảo» khi đã quét được. Đây là mặc định sẵn, nên rủi ro chỉ bắt đầu khi có người gạt ô.
 - [ ] Câu «Vé này không phải hóa đơn» vẫn chờ kế toán; Task 9 in đúng câu đó, đổi chữ sau không cần đổi mã khác ngoài hằng.
 
 ## Đợt 1 — Tạo vé, giữ vé, mở vé (một lần phát hành)
