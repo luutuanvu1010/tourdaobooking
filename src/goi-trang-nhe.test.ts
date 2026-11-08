@@ -63,7 +63,7 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 109.451 → 109.777 (ADR-0186, 8/11/2026, đo lại sau khi nhập bản chính 56dab66e5 có ADR-0184): ba ô quyền mới (catalog.sync, credit.due.remind, ve.kho.purge), danh sách tác nhân tự động
 // và nhánh tác nhân trong `can()` của bản đồ quyền dùng chung, cùng nhãn nhật ký «Xoá ảnh vé hết hạn lưu» (chỉ dữ liệu quyền / nhãn, không mã giao diện mới vào gói này). Đo thật 109.677 byte
 // trên mã đã nhập (bản chính một mình 109.351, +326), trần = số đo + 100. Chủ dự án duyệt phần tăng +326 byte này ngày 8/11/2026 (ở phiên điều phối), nguyên văn «Duyệt 326 byte».
-// Nới 109.777 → 109.935 (ADR-0175 Đợt 1, 9/11/2026): menu «Vé điện tử» cho Kế toán (`muc-giao-dien.ts`) và hàng quyền mới `ve.phat-hanh` trong bản đồ quyền dùng chung đều nằm trong gói Đơn hàng; không có mã giao diện mới vào gói này. Đo thật 109.835 byte, trần = số đo + 100. Do người điều phối tự nới theo thông lệ, CHƯA có lời duyệt riêng của chủ dự án: chủ xem lại ở báo cáo.
+// Nới 109.777 → 109.935 (ADR-0175 Đợt 1, 9/11/2026): menu «Vé điện tử» cho Kế toán (`muc-giao-dien.ts`) và hàng quyền mới `ve.phat-hanh` trong bản đồ quyền dùng chung đều nằm trong gói Đơn hàng; không có mã giao diện mới vào gói này. Đo thật 109.835 byte, trần = số đo + 100. Chủ dự án duyệt 9/11/2026 («quyết theo khuyến nghị» của người điều phối: giữ mức nới +158 byte).
 const TRAN_ORDERS = 109_935;
 
 function dung(trang: string) {
