@@ -11,7 +11,7 @@ import { docQrTuTep } from "./qr-doc-ve";
 import { veAnhTourDao } from "./ve-anh-tour-dao";
 
 interface ThemVeRes { themDuoc: number; chuaLuuVaoKho: number; loai: { thuTu: number; lyDo: string }[] }
-interface XacNhanRes { veTrongLo: number; dichVuKhongVe: boolean; canhBaoNguon: boolean; capBu: number }
+interface XacNhanRes { veTrongLo: number; dichVuKhongVe: boolean; canhBaoNguon: boolean; capBu: number; conDonChuaXet?: boolean }
 
 /** Mã giả cho vé mẫu: đúng dạng nhưng không bao giờ gửi máy chủ. */
 const MA_MAU = `TD1.${"A".repeat(22)}MAUV`;
@@ -184,7 +184,7 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
       // ADR-0175 Đ1.5a: dịch vụ đang tắt «Có vé» hoặc dùng vé của nguồn khác ⇒ lô chưa được cấp cho ai.
       const canh = xn.dichVuKhongVe ? " Dịch vụ này đang tắt ô «Có vé» nên máy chưa giữ vé cho đơn. Hãy báo Quản trị bật ô này ở màn Dịch vụ & giá."
         : xn.canhBaoNguon ? " Lô chưa được cấp cho ai tới khi Quản trị đổi ô «Vé do ai phát»." : "";
-      o.hienOk(`Đã tạo ${them} vé vào kho.${xn.capBu > 0 ? ` Máy đã cấp bù vé cho ${xn.capBu} đơn đang thiếu.` : ""}${canh}`);
+      o.hienOk(`Đã tạo ${them} vé vào kho.${xn.capBu > 0 ? ` Máy đã cấp bù vé cho ${xn.capBu} đơn đang thiếu.` : ""}${xn.conDonChuaXet ? " Còn đơn đang thiếu vé chưa được cấp bù trong lần này." : ""}${canh}`);
       form.reset();
       replaceChildren(khuMau);
       await o.sauKhiTao();
