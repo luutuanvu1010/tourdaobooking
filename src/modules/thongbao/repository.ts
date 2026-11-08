@@ -292,10 +292,11 @@ export async function listTinTaiKhoan(db: D1Database, tu: string): Promise<TinTa
 const LIST_TIN_DIEU_CHINH = defineSql("thongbao", "list_tin_dieu_chinh", `
   SELECT e.id, o.order_code AS ma_don, e.action, e.target_type AS muc_loai, e.target_id AS muc_id, e.staff_id AS actor_id, s.label AS ten_nguoi_lam, e.created_at AS luc
   FROM v_aud_ledger_event e JOIN v_ord_order_label o ON o.id = e.order_id LEFT JOIN v_stf_staff_label s ON s.id = e.staff_id
-  WHERE e.created_at >= ?1 AND ((e.target_type = 'staff' AND e.target_id = ?2) OR (?3 = 1 AND e.target_type = 'ledger'))
+  WHERE e.created_at >= ?1 AND ((e.target_type = 'staff' AND e.target_id = ?2) OR (?3 = 1 AND e.target_type = 'ledger') OR (?4 = 1 AND e.target_type = 've'))
   ORDER BY e.created_at DESC LIMIT 200`);
-export async function listTinDieuChinh(db: D1Database, tu: string, staffId: string, coODuyet: boolean): Promise<DongDieuChinh[]> {
-  const r = (await db.prepare(LIST_TIN_DIEU_CHINH).bind(tu, staffId, coODuyet ? 1 : 0).all<{
+/** `coOVe` (ADR-0175 Đ1.5a): người giữ `ve.phat-hanh` hoặc `ve.kho.manage` kéo thêm dòng khoá 've' (tin thiếu vé); `locHopThongBao` chọn đúng theo nguồn vé. */
+export async function listTinDieuChinh(db: D1Database, tu: string, staffId: string, coODuyet: boolean, coOVe = false): Promise<DongDieuChinh[]> {
+  const r = (await db.prepare(LIST_TIN_DIEU_CHINH).bind(tu, staffId, coODuyet ? 1 : 0, coOVe ? 1 : 0).all<{
     id: string; ma_don: string; action: string; muc_loai: string; muc_id: string; actor_id: string | null; ten_nguoi_lam: string | null; luc: string;
   }>()).results;
   return r.map((x) => ({ id: x.id, maDon: x.ma_don, action: x.action, mucLoai: x.muc_loai, mucId: x.muc_id, actorId: x.actor_id, tenNguoiLam: x.ten_nguoi_lam, luc: x.luc }));

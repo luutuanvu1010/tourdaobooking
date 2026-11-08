@@ -8,7 +8,7 @@ import type { NguonVe } from "../../shared/nguon-ve.ts";
 import { cauGhiPhanBo, cauGiuVe, cauTraPhanBo, cauVeVeKho, demDangGiu, demTraTheoNhom } from "./repository.ts";
 
 /** Dòng nhật ký của kho vé. Gốc của module (index.ts) nối vào `auditStatement`; bài thử nối vào bảng giả. Không có chỗ cho mã vé. */
-export interface NhatKyVe { staffId: string | null; action: "ve_giu_cho" | "ve_tra_ve" | "ve_xem_anh" | "ve_giao"; at: string; orderId: string; targetType: "ve"; targetId: string; detail: string }
+export interface NhatKyVe { staffId: string | null; action: "ve_giu_cho" | "ve_tra_ve" | "ve_xem_anh" | "ve_giao" | "ve_thieu"; at: string; orderId: string; targetType: "ve"; targetId: string; detail: string }
 export type GhiNhatKy = (entry: NhatKyVe, onlyIf: string) => D1PreparedStatement;
 export type LyDoTraVe = "DON_HUY" | "GIAM_SO_KHACH" | "RUT_XAC_NHAN";
 export const NHAN_NHOM: Record<Nhom, string> = { ADULT: "Người lớn", CHILD: "Trẻ em", SENIOR: "Cao tuổi" };

@@ -293,3 +293,25 @@ test("tin chuyến: chỉ ở hộp của người nhận (cuaToi), loại 'chuy
   const cu = locHopThongBao({ id: "tx", permissions: ["DRIVER"], partyId: "p-b" }, { don: [], thuCong: [], chuyen: [{ ...d, luc: "2027-01-01T00:00:00.000Z", lai: [{ partyId: "p-b", tu: "2027-01-01T00:00:00.000Z", den: null }] }], docDenLuc: now, now, ngan: "cua-toi" });
   assert.equal(cu.tin.length, 0);
 });
+
+// ADR-0175 Đ1.5a (kế hoạch vé Tour Đảo Task 6): tin «thiếu vé» — khoá ('ve', nguồn). Vé Tour Đảo → người giữ `ve.phat-hanh`; vé hãng ngoài → người giữ `ve.kho.manage`; không Đối tác.
+test("tin thiếu vé: Tour Đảo tới Kế toán, không tới Bán hàng thường; hãng ngoài ngược lại; không bao giờ tới tài khoản giữ quyền Đối tác; người làm không tự nhận", () => {
+  const thieu = (nguon: string, o: Partial<DongDieuChinh> = {}): DongDieuChinh =>
+    ({ id: "v" + Math.random(), maDon: "TD-20260927-0009", action: "ve_thieu", mucLoai: "ve", mucId: nguon, actorId: "hung", tenNguoiLam: "Hùng", luc: "2026-09-27T02:00:00.000Z", ...o });
+  const hop = (s: ReturnType<typeof ai>, d: DongDieuChinh) => locHopThongBao(s, { don: [], thuCong: [], dieuChinh: [d], docDenLuc: "2026-09-26T00:00:00.000Z", now: NOW, ngan: "cua-toi" }).tin;
+  const td = hop(MAI, thieu("TOUR_DAO"));
+  assert.equal(td.length, 1);
+  assert.equal(td[0]!.cau, "Đơn TD-20260927-0009 còn thiếu vé Tour Đảo — cần nhập thêm vé vào kho.");
+  assert.equal(td[0]!.lienKet, "/ve-kho");
+  assert.equal(td[0]!.cuaToi, true);
+  assert.equal(hop(LAN, thieu("TOUR_DAO")).length, 0, "Bán hàng thường không giữ ve.phat-hanh");
+  assert.equal(hop(LAN, thieu("HANG_NGOAI")).length, 1, "Bán hàng giữ ve.kho.manage");
+  assert.equal(hop(MAI, thieu("HANG_NGOAI")).length, 0, "Kế toán không giữ ve.kho.manage");
+  assert.equal(hop(VU, thieu("TOUR_DAO")).length, 1);
+  for (const n of ["TOUR_DAO", "HANG_NGOAI"]) {
+    assert.equal(hop(BX, thieu(n)).length, 0, `Đối tác ${n}`);
+    assert.equal(hop(LAI, thieu(n)).length, 0, `tài khoản lai Bán hàng + Đối tác ${n}`);
+  }
+  assert.equal(hop(LAN, thieu("HANG_NGOAI", { actorId: "lan" })).length, 0, "người làm không tự nhận tin của mình");
+  assert.equal(hop(MAI, thieu("KHAC")).length, 0, "nguồn lạ: không ai nhận");
+});

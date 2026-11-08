@@ -369,6 +369,9 @@ export const docHanCuoiCuaDon = async (db: D1Database, orderId: string): Promise
 export interface VeCuaLink { id: string; pax_group: string; revealed_at: string | null; valid_from: string; valid_to: string; storage_key: string; content_kind: string }
 export const docVeCuaLink = async (db: D1Database, orderId: string): Promise<VeCuaLink[]> => (await db.prepare(VE_CUA_LINK).bind(orderId).all<VeCuaLink>()).results;
 
+const GIU_CUA_DON = defineSql("ve-dien-tu", "giu_cua_don", "SELECT count(*) AS n FROM vdt_allocation WHERE order_id = ?1 AND released_at IS NULL");
+/** Số phân bổ đơn đang giữ (đếm trước / sau một lần cấp bù để biết đơn có được cấp thêm không). */
+export const demGiuCuaDon = async (db: D1Database, orderId: string): Promise<number> => (await db.prepare(GIU_CUA_DON).bind(orderId).first<{ n: number }>())?.n ?? 0;
 const TRANG_THAI_DON = defineSql("ve-dien-tu", "trang_thai_don", "SELECT status FROM v_ord_order_state WHERE id = ?1");
 /** Trạng thái đơn (view công bố của orders); null = không có đơn. */
 const VE_DA_MO = defineSql("ve-dien-tu", "ve_da_mo_cua_don", "SELECT 1 AS co FROM vdt_allocation WHERE order_id = ?1 AND revealed_at IS NOT NULL LIMIT 1");

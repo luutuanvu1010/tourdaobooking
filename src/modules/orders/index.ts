@@ -28,7 +28,7 @@ import {
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, slotPolicy, slotPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
-  servicePaxByIds, servicePaxByOrder, serviceChoVe, passengerInsertDriver, nguoiDaLapDon, type DauChepNhap, type DauDatGapMoi,
+  servicePaxByIds, servicePaxByOrder, serviceChoVe, donXacNhanTheoMa as docDonXacNhanTheoMa, passengerInsertDriver, nguoiDaLapDon, type DauChepNhap, type DauDatGapMoi,
 } from "./chang-hanh-khach-repo";
 import { coVeTheoMa, nguonVeTheoMa } from "../catalog";
 import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
@@ -405,6 +405,12 @@ export async function dichVuChoVe(db: D1Database, orderId: string): Promise<Dich
   const [pax, coVe, nguon] = await Promise.all([effectivePax(db, rows), coVeTheoMa(db, ma), nguonVeTheoMa(db, ma)]);
   return rows.map((r) => ({ orderId, serviceId: r.id, catalogCode: r.catalog_code, ngayDi: r.depart_date, coVe: coVe.get(r.catalog_code) === true, nguonVe: nguonVeCua(r.catalog_code, nguon), pax: pax.get(r.id) ?? { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior, infant: r.pax_infant } }));
 }
+
+/**
+ * API công khai cho GỐC LẮP RÁP (ADR-0175 Đ1.5a, cấp bù khi lô vào kho): id các đơn ĐÃ XÁC NHẬN có dòng dịch vụ mã `catalogCode`, ngày đi ≥ `tuNgay` (hôm nay giờ Việt Nam),
+ * ngày đi gần trước. Chỉ khoá đơn — «Có vé» và «còn thiếu» gốc lắp ráp lọc tiếp. KHÔNG tự kiểm quyền: chỉ gọi từ hàm tiêm, trong thân route đã qua cửa quyền của lô.
+ */
+export const donXacNhanTheoMa = (db: D1Database, catalogCode: string, tuNgay: string): Promise<string[]> => docDonXacNhanTheoMa(db, catalogCode, tuNgay, 200);
 
 /**
  * Đợt 5 A-1b (ADR-0052 D5b): câu ghi MỘT hành khách do tài xế nhập — van-chuyen đặt câu này vào lô của mình (sau dòng nhật ký `auditId`). Số tối đa = số khách

@@ -318,6 +318,11 @@ export interface Ctx<A extends Access = Access> {
   traVeKhiHuy: (orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN", chanVeDaMoTraSau: boolean) => Promise<D1PreparedStatement[] | null>;
   canBangVeSauSuaKhach: (orderId: string) => Promise<void>;
   /**
+   * ADR-0175 Đ1.5a (cấp bù khi lô vào kho): id các đơn ĐÃ XÁC NHẬN có dòng dịch vụ mã `catalogCode` «Có vé», còn thiếu vé, ngày đi ≥ hôm nay giờ Việt Nam, ngày đi gần trước
+   * (`orders.donXacNhanTheoMa` lọc tiếp bằng `ve-dien-tu.conThieuVe` ở gốc lắp ráp). KHÔNG tự kiểm quyền: route hỏi cửa quyền của lô trước. Không tiêm ⇒ rỗng (không cấp bù).
+   */
+  donThieuVe: (catalogCode: string) => Promise<string[]>;
+  /**
    * «DÒNG NÀY ĐÃ ĐƯỢC CHỤP CHƯA» (ADR-0148 Đ1) — do gốc lắp ráp tiêm (`orders.ngayChupGanNhat`; `pricing` KHÔNG đọc bảng `ord_`, không phụ thuộc `orders` — sẽ thành vòng; khuôn
    * `mocToiThieu`). `{ ngay }` = ngày chụp gần nhất, `ngay: null` = chưa có bản chụp nào (mở đường huỷ hẳn dòng). `null` = môi trường không tiêm ⇒ route TỪ CHỐI KÍN (503),
    * KHÔNG BAO GIỜ đoán «chưa chụp». MỘT truy vấn mỗi lần gọi.
@@ -482,6 +487,8 @@ export interface AppOptions {
     capVeSauXacNhan: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
     traVeKhiHuy: (env: Env, actor: StaffProfile, orderId: string, lyDo: "DON_HUY" | "RUT_XAC_NHAN", chanVeDaMoTraSau: boolean) => Promise<D1PreparedStatement[] | null>;
     canBangVeSauSuaKhach: (env: Env, actor: StaffProfile, orderId: string) => Promise<void>;
+    /** ADR-0175 Đ1.5a. Mã chạy thật (`src/index.ts`: `orders.donXacNhanTheoMa` + `ve-dien-tu.conThieuVe`); thiếu (khung thử cố ý) → rỗng. */
+    donThieuVe: (env: Env, catalogCode: string) => Promise<string[]>;
     /** ADR-0153 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `orders.dichVuChoVe`, `billing.tienDonVe`); thiếu (khung thử cố ý) → rỗng / null. */
     dichVuChoVe: (env: Env, orderId: string) => Promise<{ serviceId: string; catalogCode: string; ngayDi: string; coVe: boolean; nguonVe: NguonVe; pax: { adult: number; child: number; senior: number; infant: number } }[]>;
     tienDonVe: (env: Env, orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; hetAnHan: string | null; no: number } | null } | null>;
@@ -685,6 +692,7 @@ export function createApp(opts: AppOptions) {
       tienDonVe: async (id) => (typeof opts.injected.tienDonVe === "function" ? opts.injected.tienDonVe(envH, id) : null),
       traVeKhiHuy: async (id, lyDo, chanVeDaMoTraSau) => (who && typeof opts.injected.traVeKhiHuy === "function" ? opts.injected.traVeKhiHuy(envH, who, id, lyDo, chanVeDaMoTraSau) : []),
       canBangVeSauSuaKhach: async (id) => { if (who && typeof opts.injected.canBangVeSauSuaKhach === "function") await opts.injected.canBangVeSauSuaKhach(envH, who, id); },
+      donThieuVe: async (ma) => (typeof opts.injected.donThieuVe === "function" ? opts.injected.donThieuVe(envH, ma) : []),
       hoiDaChup: (q) => (typeof opts.injected.hoiDaChup !== "function" ? Promise.resolve(null) : opts.injected.hoiDaChup(envH, q).then((ngay) => ({ ngay }))),
       chuyenChoTin: (q) =>
         // Không hỏi chuyến NÀO và không hỏi chặng nào → không truy vấn. Hỏi CHỈ chặng (MQ-07) vẫn phải gọi hàm thật — chuyến suy từ suất của chặng.

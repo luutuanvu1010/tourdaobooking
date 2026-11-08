@@ -4,11 +4,11 @@
 // Module khác CHỈ import từ file này.
 import { auditStatement, nguoiLam } from "../audit";
 import { clearAttempts, reserveAttempts } from "../auth";
-import { coVeTheoMa, getEffectiveServices } from "../catalog";
+import { coVeTheoMa, getEffectiveServices, nguonVeTheoMa } from "../catalog";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
 import { MATRIX, can, holdsPartner, isOffice, tacNhan } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
-import { NGUON_VE, type NguonVe } from "../../shared/nguon-ve.ts";
+import { NGUON_VE, nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
 import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, taoKhoaNgauNhien, type LoaiTep } from "../../shared/tep-dinh-kem";
 import { vnToday } from "../../shared/vn-date";
 import { CAU_VE_QUA_HAN_TRA_SAU, CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC, moVeDuoc } from "../../shared/tra-sau";
@@ -18,7 +18,7 @@ import { NHAN_NHOM, NHAN_NHOM_LO, soanCapVe, soanTraVe, veDangGiu, type GhiNhatK
 import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, tranLoHopLe } from "../../shared/ve-nhap-lo";
 import { datVeVaoKho, donHangChoXoa, type VeChuanBi } from "./kho-tep.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
-import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
+import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
 import { veDaMoCuaDon as docVeDaMoCuaDon } from "./repository.ts";
@@ -30,7 +30,7 @@ export const veDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boo
 /** Nối nhật ký thật (module audit) vào các hàm soạn câu của cap-ve.ts. Gốc lắp ráp dùng khi tiêm (Task 5). */
 export const nhatKyThat = (db: D1Database): GhiNhatKy => (e: NhatKyVe, onlyIf: string) => auditStatement(db, e, onlyIf);
 export { NHAN_NHOM, soanCapVe, soanTraVe, veDangGiu };
-export { canBangVeTheoSoKhach, capVeChoDon, soanTraVeKhiHuy } from "./noi-orders.ts";
+export { canBangVeTheoSoKhach, capVeChoDon, conThieuVe, soanTraVeKhiHuy } from "./noi-orders.ts";
 
 const MAX_BYTE_ANH = TOI_DA_BYTE_ANH;
 /** Cỡ thân một đợt thêm vé: 10 ảnh × 3 MB base64 + dư. */
@@ -356,7 +356,7 @@ export const veDienTuModule: AppModule = {
     }),
 
     // Đưa lô vào kho (PENDING → ACTIVE): chỉ khi lô có ít nhất một vé đã lưu kho.
-    route("POST", "/api/ve/lo/:id/xac-nhan", "office", async ({ env, params, staff }) => {
+    route("POST", "/api/ve/lo/:id/xac-nhan", "office", async ({ env, params, staff, donThieuVe, capVeSauXacNhan }) => {
       if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const loId = params.id ?? "";
       if (!UUID_RE.test(loId)) return KHONG_THAY();
@@ -369,9 +369,21 @@ export const veDienTuModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "ve_xac_nhan_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Đưa lô vé vào kho · ${NHAN_NHOM_LO[lo.pax_group as keyof typeof NHAN_NHOM_LO]}` }, "changes() > 0"),
       ]);
       if ((kq[0]?.meta?.changes ?? 0) === 0) return error(409, "batch_not_ready", "Lô chưa có vé nào lưu được vào kho, hoặc đã được đưa vào kho trước đó.");
-      // ADR-0174 Đ6: không chặn nhập lô; dịch vụ đang Không vé thì báo để người nhập nhờ Quản trị bật ô.
-      const coVe = await coVeTheoMa(env.DB, [lo.catalog_code]);
-      return json({ loId, trangThai: "ACTIVE", veTrongLo: (await demVeCuaLo(env.DB, loId)).daLuu, dichVuKhongVe: coVe.get(lo.catalog_code) !== true });
+      // ADR-0174 Đ6, ADR-0175 Đ1.5a: không chặn nhập lô; dịch vụ đang «Không vé» hoặc ô «Vé do ai phát» khác nguồn của lô thì báo người nhập (`canhBaoNguon`): lô chưa được cấp
+      // cho ai tới khi Quản trị đổi ô — và KHÔNG cấp bù (vé của lô này không giữ được cho dịch vụ đó).
+      const [coVe, nguon] = await Promise.all([coVeTheoMa(env.DB, [lo.catalog_code]), nguonVeTheoMa(env.DB, [lo.catalog_code])]);
+      const dichVuKhongVe = coVe.get(lo.catalog_code) !== true;
+      const canhBaoNguon = dichVuKhongVe || nguonVeCua(lo.catalog_code, nguon) !== lo.source;
+      // Cấp bù NGAY trong lệnh (không qua Cron): từng đơn đã xác nhận còn thiếu, ngày đi gần trước; mỗi đơn đi đúng đường cấp sau xác nhận (giữ vé + báo thiếu nếu vẫn thiếu).
+      let capBu = 0;
+      if (!canhBaoNguon) {
+        for (const orderId of await donThieuVe(lo.catalog_code)) {
+          const truoc = await demGiuCuaDon(env.DB, orderId);
+          await capVeSauXacNhan(orderId);
+          if ((await demGiuCuaDon(env.DB, orderId)) > truoc) capBu++;
+        }
+      }
+      return json({ loId, trangThai: "ACTIVE", veTrongLo: (await demVeCuaLo(env.DB, loId)).daLuu, dichVuKhongVe, canhBaoNguon, capBu });
     }),
 
     // Huỷ lô (nút «Huỷ lô»; ADR-0156 Đ2 mục 3): lô chưa có vé nào TỪNG được giữ chỗ. Một lô D1 nguyên khối. Vé mang dấu rút nên nhập lại được. Ảnh KHÔNG xoá ngay: lưu `NGAY_LUU_ANH_LO_HUY` ngày rồi việc định kỳ xoá (chủ quyết 2/11).

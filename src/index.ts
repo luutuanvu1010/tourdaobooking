@@ -26,11 +26,11 @@ import { giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
-import { canBangVeTheoSoKhach, capVeChoDon, donHangChoXoaVe, nhatKyThat, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule } from "./modules/ve-dien-tu";
+import { canBangVeTheoSoKhach, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
 import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
-import { cauDoiNguoiDat, dichVuChoVe, donChuaXacNhanCua, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
+import { cauDoiNguoiDat, dichVuChoVe, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
@@ -278,6 +278,15 @@ const APP_OPTIONS: AppOptions = {
     },
     canBangVeSauSuaKhach: async (env, actor, orderId) => {
       try { await canBangVeTheoSoKhach(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString(), vnToday(new Date())); } catch (e) { console.error("ve_can_bang_loi", orderId, e instanceof Error ? e.name : "loi"); }
+    },
+    // CẤP BÙ KHI LÔ VÀO KHO (ADR-0175 Đ1.5a): orders cho ứng viên (đơn đã xác nhận có dòng mã đó, ngày đi chưa qua, gần trước); kho vé lọc đơn còn thiếu ở đúng dòng mã đó.
+    donThieuVe: async (env, code) => {
+      const homNay = vnToday(new Date());
+      const ra: string[] = [];
+      for (const id of await donXacNhanTheoMa(env.DB, code, homNay)) {
+        if (await conThieuVe(env.DB, (await dichVuChoVe(env.DB, id)).filter((d) => d.catalogCode === code && d.ngayDi >= homNay))) ra.push(id);
+      }
+      return ra;
     },
     // «ĐÃ CHỤP CHƯA» (ADR-0148 Đ1): pricing không đọc bảng ord_, không phụ thuộc orders — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của orders (bài siết architecture.test.ts).
     hoiDaChup: (env, q) => ngayChupGanNhat(env.DB, q),
