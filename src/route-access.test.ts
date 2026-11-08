@@ -122,6 +122,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "DELETE", path: "/api/catalog/:code/override", access: "admin" },
   { method: "GET", path: "/api/catalog/admin", access: "admin" },
   // ADR-0152 Đ3 (T7): đọc / gắn cho một dịch vụ cổng office (catalog.attribute.assign hoặc admin.manage, không Đối tác); định nghĩa và gắn theo nhóm cổng admin.
+  { method: "GET", path: "/api/catalog/co-ve", access: "office" }, // ADR-0174 Đ4; thân hỏi catalog.ticket_flag.write
+  { method: "POST", path: "/api/catalog/co-ve", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem/dem-chua-khai", access: "office" },
   { method: "POST", path: "/api/catalog/dac-diem", access: "admin" },
@@ -757,6 +759,7 @@ test("mức truy cập của 469 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-08 (ADR-0184 việc 5): + GET /api/van-chuyen/cho-chay-thieu/dem (office; thân hỏi trip.override — số cho thẻ Trang chủ) = 468.
   // 2026-11-08 (ADR-0187 Đ3 mức (a)): + GET /api/ledger/tu-ghi, GET /api/ledger/tu-ghi/dem, POST /api/ledger/tu-ghi/:auditId/da-soat (office; billing; ledger.view / ledger.write, không Đối tác) = 469 trên main.
   // 2026-11-08 (gộp ADR-0187 vào nhánh ADR-0184): 466 + 2 route của ADR-0184 + 3 route của ADR-0187 = 471.
-  assert.equal(actual.length, 471, "số route thực tế lệch 471 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 471, "SNAPSHOT phải có đúng 471 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-08 (nối ADR-0174 vào main): + GET, POST /api/catalog/co-ve (office; thân hỏi catalog.ticket_flag.write, chặn Đối tác) = 473.
+  assert.equal(actual.length, 473, "số route thực tế lệch 473 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 473, "SNAPSHOT phải có đúng 473 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -197,6 +197,14 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
 
+## ĐANG CHỜ NHẬP: Ô «Có vé» theo nhóm và dịch vụ (ADR-0174); migration `0142_o_co_ve`; mục nhật ký 2.80 (số tạm)
+
+Ghi 5/11/2026, nối lại bản chính 8/11, nhánh `claude/interesting-hodgkin-cde2fd`. **CÓ migration `0142_o_co_ve`:** bảng chỉ thêm `ctl_service_ticket_flag`, gieo Có vé cho mã có lô `PENDING` hoặc `ACTIVE`. Số `0142` không trùng (main có `0141`, `0143` đến `0150`); wrangler theo dõi theo TÊN nên áp sau `0143` vẫn được. Số bản: 2.78 và 2.79 đã lên production 8/11 18:28, nên bản này lấy 2.80; nhánh khác nhập trước mà cũng lấy 2.80 thì phiên phát hành đánh lại số.
+
+- **Điều người dùng sẽ thấy khác:** dịch vụ không dùng vé hết nhãn «Thiếu vé» và nút «Cấp vé». Dịch vụ dùng vé nhưng chưa có lô sẽ là Không vé cho tới khi Quản trị bật ô, nên phải bật trước khi nhập lô.
+- **Việc sau triển khai:** Quản trị rà màn Dịch vụ & giá, bật ô cho dịch vụ sắp dùng vé; thử trên iPhone thật.
+- **Chưa kiểm:** số đơn đang bị báo sai trên production, vì AI không được chạy `d1 execute --remote`.
+
 ## ĐÃ PHÁT HÀNH 8/11/2026 18:28 (mục nhật ký 2.78, lên cùng bản 2.79): Tác nhân tự động có định danh riêng — ADR-0186, đóng mục HC-5.11 (hạn 15/11); migration `0148_audit_agent_code.sql` — đoạn dưới viết lúc chờ phát hành
 
 Ghi 8/11/2026, nhánh `claude/pensive-keller-274010`. Chưa làm bước nào trên production. Người kiểm độc lập 8/11 (ba vòng, chỉ đọc): ĐẠT cho toàn nhánh; hai góp ý vòng đầu (hàng rào chỗ dựng tác nhân, câu nhật ký thay đổi về dòng dọn ảnh vé) đã sửa. Kiểm trên mã lúc đó (đã nhập bản chính `e4843fbce`: menu tên tài khoản, ADR-0185, ADR-0187 — hai ADR chỉ tài liệu): typecheck 0 lỗi; `npm test` chạy một lần, đỏ 4 bài ghim luật trước ADR-0186, đã cập nhật (bốn tệp chạy lại 40/40); e2e 85/85 xanh (kể cả `audit-invariants`).

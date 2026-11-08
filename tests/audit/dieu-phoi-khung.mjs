@@ -122,6 +122,8 @@ export function setup(tuyChon = {}) {
   thanhTaiXe(w, `pty-${DRIVER}`);
   thanhTaiXe(w, `pty-${DRIVER2}`);
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 777000, 1, '2026-01-01', '2026-01-01')");
+  // ADR-0174: ZA1 mặc định Có vé để các bài kho vé không phải tự khai; bài của chính ô này truyền `chuaKhaiCoVe`.
+  if (!tuyChon.chuaKhaiCoVe) w.sqlite.exec("INSERT INTO ctl_service_ticket_flag (id, scope, code, has_ticket, valid_from_at, created_at, updated_at) VALUES ('co-ve-za1', 'SERVICE', 'ZA1', 1, '2026-01-01T00:00:00.000Z', '2026-01-01', '2026-01-01')");
   return w;
 }
 

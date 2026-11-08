@@ -806,6 +806,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     maNhatKy: ["confirm_flag_changed"],
     noiDat: [
       { tep: "web/catalog-kiem-ve.ts", chu: "Bật cả nhóm / Tắt cả nhóm" },
+      { tep: "web/catalog-co-ve.ts", chu: "Bật cả nhóm / Tắt cả nhóm" }, // ADR-0174: cùng tên, nhưng cho ô «Có vé»
     ],
     trangThai: "cho-chon",
     nguonTen: "tên mới 2026-11-04, chờ chủ chọn",

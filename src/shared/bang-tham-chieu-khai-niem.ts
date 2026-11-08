@@ -164,6 +164,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     trangThai: "da-chot",
     chuChon: "2026-11-05 (ADR-0169)",
   }),
+  KN({
+    ten: "Có vé",
+    giaiNghia: "Ô trên nhóm hoặc từng dịch vụ, nói dịch vụ có phát vé điện tử hay không. Máy chỉ giữ vé và báo thiếu vé cho dịch vụ đang bật ô này.",
+    khacVoi: "«Cần kiểm vé» hỏi còn chỗ không trước khi xác nhận đơn; «Còn vé» là câu trả lời của người kiểm vé. «Có vé» không nói ai cung cấp dịch vụ.",
+    chuDaLoai: [],
+    maNoiBo: ["ctl_service_ticket_flag", "coVe"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-05 (ADR-0174)",
+  }),
   // ---- Người, hồ sơ, tài khoản ----
   KN({
     ten: "Hồ sơ",

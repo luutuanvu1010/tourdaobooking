@@ -12,6 +12,7 @@ import { canhBaoDoiNhom } from "../src/shared/dac-diem-hien-thi";
 import { CAU_HOI_BO_GHI_DE_GIA } from "../src/shared/catalog-nut";
 import { caNhomCanKiem, kiemVeCua } from "../src/shared/dich-vu-kiem-ve";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
+import { taoCoVe, type CoVe } from "./catalog-co-ve";
 import { dongBoTuSheet, taoKiemVe, veManHep } from "./catalog-kiem-ve";
 import { initShell, showError } from "./shell";
 
@@ -32,6 +33,8 @@ const kiemVe = taoKiemVe(errorEl, () => {
   renderNhom();
   render();
 });
+/** Công tắc «Có vé» (ADR-0174 Đ4): `coVe` gán sau khi có `staff`, vẽ chỉ sau lúc đó. */
+let coVe: CoVe;
 /** Công tắc «Cần kiểm vé» của một dòng dịch vụ (ADR-0169 Đ4): vé đặt riêng hay đang theo nhóm thì câu phụ nói rõ. */
 const oKiemVe = (it: CatalogAdminItem): HTMLElement => {
   const kv = kiemVeCua(it.code, it.groupCode, kiemVe.dongCo());
@@ -125,7 +128,7 @@ function row(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "row-off" : "", "data-code": it.code },
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
-    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it)),
+    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it), coVe.oDichVu(it.code, it.name)),
     h("td", { class: "nhom-o" }, tenNhomCua(it)),
     h("td", { class: "muted" }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
@@ -168,7 +171,7 @@ function card(it: CatalogAdminItem): HTMLElement {
     h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, " · ", unitLabel(it.unit))),
     h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", { class: "nhom-o muted" }, `Nhóm: ${tenNhomCua(it)}`),
-    h("div", { class: "kv-the" }, oKiemVe(it)),
+    h("div", { class: "kv-the" }, oKiemVe(it), coVe.oDichVu(it.code, it.name)),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:var(--fw-bold)", title: "Có giá ghi đè" }, " ✎")),
     it.conflicts.length > 0 && h("div", { class: "alert warn" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`),
     h(
@@ -368,6 +371,7 @@ function dongNhom(g: Nhom, i: number): HTMLElement {
     !g.active && h("span", { class: "badge badge-cancelled" }, "Đã tắt"),
     congTacDuaDon(g),
     h("div", { class: "nhom-dua-don" }, h("span", { class: "nhom-so" }, "Cần kiểm vé"), kiemVe.congTacNhom(g.code, g.name, caNhomCanKiem(g.code, kiemVe.dongCo())), h("span", { class: "nhom-so", "aria-hidden": "true" }, caNhomCanKiem(g.code, kiemVe.dongCo()) ? "Bật" : "Tắt")),
+    coVe.oNhom(g.code, g.name),
     h(
       "div",
       { class: "nhom-nut" },
@@ -868,7 +872,11 @@ if (!can(staff, "admin.manage")) {
   else showError(errorEl, "Tài khoản này không vào được trang này.");
 } else {
   pullBtn.hidden = !can(staff, "catalog.sync");
-  await kiemVe.tai().catch((err) => fail(err));
+  coVe = taoCoVe(errorEl, can(staff, "catalog.ticket_flag.write"), () => {
+    renderNhom();
+    render();
+  });
+  await Promise.all([kiemVe.tai(), coVe.tai()]).catch((err) => fail(err));
   renderTuKiem();
   duocSuaDuaDon = can(staff, "admin.manage");
   tenNguoi = api<Api.StaffListResponse>("/api/staff")

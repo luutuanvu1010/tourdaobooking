@@ -20,6 +20,9 @@ import {
 import { choPhepDuaDon, kiemLoGan, kiemTenNhom, moTaDoiNhom, nhomChoForm } from "./nhom-rules";
 import { tenCuaGiaTri } from "./dac-diem-repo";
 import { dacDiemRoutes } from "./dac-diem-route";
+import { coVeCua } from "../../shared/co-ve";
+import { coVeHienHanh } from "./co-ve-repo";
+import { coVeRoutes } from "./co-ve-route";
 import { isQuyTacDuaDon, moTaDoiQuyTac, type QuyTacDuaDon } from "../../shared/dua-don-dich-vu";
 
 /** Tác nhân tự động của việc đồng bộ danh mục (ADR-0186 Đ1): Cron 15 phút và đồng bộ lần đầu chạy dưới định danh này, qua cùng cổng `catalog.sync` với nút. */
@@ -41,6 +44,13 @@ export async function getEffectiveServices(db: D1Database, codes?: readonly stri
  * ADR-0118 Đ2 / Ruling R-C: tên NHÓM HIỆN HÀNH của các mã dịch vụ, cho `orders` viết câu báo «nhóm này không có đưa đón». Hàm công bố hẹp (chỉ tên, chỉ mã được hỏi); CỔNG chặn/không
  * chặn của `orders` đọc view `v_ctl_service_transfer`, không dựa vào hàm này. Chưa phân loại / chưa gán: không có khoá.
  */
+/** ADR-0174 Đ2: mã nào trong `codes` đang Có vé. Một nguồn cho `orders` (giữ vé, báo thiếu) và `ve-dien-tu` (báo lúc xác nhận lô). KHÔNG tự kiểm quyền. */
+export async function coVeTheoMa(db: D1Database, codes: readonly string[]): Promise<Map<string, boolean>> {
+  if (codes.length === 0) return new Map();
+  const [co, nhomCua] = await Promise.all([coVeHienHanh(db), nhomHienHanhTheoMa(db)]);
+  return new Map(codes.map((ma) => [ma, coVeCua(ma, nhomCua.get(ma) ?? null, co).coVe]));
+}
+
 export async function tenNhomHienHanh(db: D1Database, codes: readonly string[]): Promise<Map<string, string>> {
   return tenNhomCuaCacMa(db, codes);
 }
@@ -195,6 +205,7 @@ export const catalogModule: AppModule = {
     }),
 
     // ---- Đặc điểm dịch vụ (ADR-0152; kế hoạch 2026-10-30 T7) — khai TRƯỚC mọi route `/api/catalog/:code…` ----------------------------
+    ...coVeRoutes,
     ...dacDiemRoutes,
 
     // ---- Admin -----------------------------------------------------------------------------

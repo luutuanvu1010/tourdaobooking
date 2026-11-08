@@ -144,6 +144,8 @@ console.log("✓ 4) Huỷ đơn nợ ⇒ nợ về 0; ngừng hạn mức ⇒ đ
   const moLo = async () => { const x = await call(A, "POST", "/api/ve/lo", { catalogCode: "ZTS1", nhomKhach: "ADULT", tenSanPham: "Vé thử e2e Trả sau" }); assert.equal(x.status, 201, JSON.stringify(x.body)); return x.body.loId; };
   const themVe = (loId, ve) => call(A, "POST", `/api/ve/lo/${loId}/ve`, { ve });
   const veThu = (n) => ({ noiDung: PNG(n), maVe: `E2E.TS.${tag}.${n}`, tuNgay: vnDate(-1), denNgay: vnDate(60) });
+  // ADR-0174: máy chỉ giữ vé cho dịch vụ Có vé — bật ô cho ZTS1 (gửi đúng giá trị đang có cũng 200, nên chạy lại trên cùng D1 vẫn được)
+  assert.equal((await call(SA, "POST", "/api/catalog/co-ve", { pham: "SERVICE", ma: "ZTS1", coVe: true })).status, 200);
   const lo = await moLo(); // 2 vé một lô: không vượt trần lô dù kịch bản khác để trần thấp
   assert.equal((await themVe(lo, [veThu(1), veThu(2)])).body?.themDuoc, 2);
   assert.equal((await call(A, "POST", `/api/ve/lo/${lo}/xac-nhan`, {})).status, 200);

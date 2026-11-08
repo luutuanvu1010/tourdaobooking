@@ -11,6 +11,8 @@ await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,pric
   ON CONFLICT(code) DO UPDATE SET name = excluded.name, price_adult = excluded.price_adult, in_sheet = 1`);
 
 const SALES = await session(ACCOUNTS.salesA);
+// ADR-0174: dịch vụ phải Có vé thì máy mới giữ vé. Chưa khai: kiểm ở ca 11b bằng mã riêng.
+assert.equal((await call(await session(ACCOUNTS.admin), "POST", "/api/catalog/co-ve", { pham: "SERVICE", ma: "ZVD1", coVe: true })).status, 200);
 const KT = await session(ACCOUNTS.accountant);
 // Nhúng `tag`: từ ADR-0156 cùng ảnh là trùng, nên chạy lại trên cùng D1 cũng phải là ảnh khác.
 const PNG = (n) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); u.set(new TextEncoder().encode(tag), 20); return Buffer.from(u).toString("base64"); };
@@ -168,6 +170,7 @@ assert.equal(await conTrong(), 3);
 await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES
   ('ZVD2','Vé dùng chung thử','perPax',100000,50000,NULL,NULL,NULL,NULL,NULL,97,1,${AT},${AT})
   ON CONFLICT(code) DO UPDATE SET name = excluded.name, price_adult = excluded.price_adult, price_child = excluded.price_child, in_sheet = 1`);
+assert.equal((await call(await session(ACCOUNTS.admin), "POST", "/api/catalog/co-ve", { pham: "SERVICE", ma: "ZVD2", coVe: true })).status, 200);
 const loChung = await call(SALES, "POST", "/api/ve/lo", { catalogCode: "ZVD2", nhomKhach: "ALL", tenSanPham: "Vé dùng chung e2e" });
 assert.equal(loChung.status, 201, JSON.stringify(loChung.body));
 const themChung = await call(SALES, "POST", `/api/ve/lo/${loChung.body.loId}/ve`, { ve: [71, 72, 73].map((i) => ({ noiDung: PNG(i), maVe: `E2E.${tag}.chung.${i}`, tuNgay: vnDate(-1), denNgay: den })) });
@@ -180,6 +183,23 @@ const suatChung = await sqlRows(`SELECT pax_group FROM vdt_allocation WHERE orde
 assert.deepEqual(suatChung.map((r) => r.pax_group), ["ADULT", "CHILD"]);
 const khoChung = (await call(SALES, "GET", "/api/ve/kho")).body.kho.find((d) => d.catalogCode === "ZVD2");
 assert.deepEqual([khoChung.nhomKhach, khoChung.conTrong, khoChung.daGiu], ["ALL", 1, 2]);
+
+// 11b. ADR-0174: đơn đã xác nhận trên dịch vụ chưa khai ô «Có vé» không báo thiếu vé (D1 thật); bật ô thì báo đúng, tắt lại thì hết
+await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES
+  ('ZVD3','Dịch vụ không vé thử','perPax',100000,NULL,NULL,NULL,NULL,NULL,NULL,98,1,${AT},${AT})
+  ON CONFLICT(code) DO UPDATE SET name = excluded.name, price_adult = excluded.price_adult, in_sheet = 1`);
+const donKhongVe = await call(SALES, "POST", "/api/orders", orderInput({ customerName: `Khách Không Vé ${tag}`, customerPhone: "0913571359", services: [catalogService({ catalogCode: "ZVD3", catalogPriceSeen: { adult: 100000 }, pax: { adult: 2 }, departDate: vnDate(14) })] }));
+assert.equal(donKhongVe.status, 201, JSON.stringify(donKhongVe.body));
+assert.equal((await call(SALES, "POST", `/api/orders/${donKhongVe.body.order.id}/status`, { status: "confirmed" })).status, 200);
+const nhomKhongVe = async () => (await call(SALES, "GET", `/api/ve/don/${donKhongVe.body.order.id}`)).body.dichVu.flatMap((d) => d.nhom);
+const coZvd3 = (await call(QT, "GET", "/api/catalog/co-ve")).body.dichVu.find((d) => d.code === "ZVD3");
+if (coZvd3.coVe) assert.equal((await call(QT, "POST", "/api/catalog/co-ve", { pham: "SERVICE", ma: "ZVD3", coVe: false })).status, 200); // chạy lại trên cùng D1
+assert.deepEqual(await nhomKhongVe(), []);
+assert.equal((await call(QT, "POST", "/api/catalog/co-ve", { pham: "SERVICE", ma: "ZVD3", coVe: true })).status, 200);
+assert.deepEqual((await nhomKhongVe()).map((n) => [n.can, n.giu, n.thieu]), [[2, 0, 2]]);
+assert.equal((await call(QT, "POST", "/api/catalog/co-ve", { pham: "SERVICE", ma: "ZVD3", coVe: false })).status, 200);
+assert.deepEqual(await nhomKhongVe(), []);
+assert.equal((await call(SALES, "POST", "/api/catalog/co-ve", { pham: "SERVICE", ma: "ZVD3", coVe: true })).status, 403);
 
 // 11c. ADR-0170 Đ1 + Đ3 trên API THẬT: đối tác xem và gửi vé của đơn MÌNH lập, sau khi Kế toán ghi tiền về công ty; đơn người khác không mở; đã mở vé thì không tự huỷ.
 {

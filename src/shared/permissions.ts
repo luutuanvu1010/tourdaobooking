@@ -200,6 +200,8 @@ export const MATRIX = {
   // ADR-0169 Đ1 (chủ duyệt 2026-11-05): bật, tắt «cần kiểm vé» theo vé và cả nhóm (thay một phần ADR-0136 Đ1); Ngừng bán, Mở bán lại. Bán hàng thường không có. Route còn chặn tài khoản giữ Đối tác.
   "catalog.confirm_flag.write": quanLyBanHang(),
   "catalog.hidden.write": quanLyBanHang(),
+  // ADR-0174 Đ4 (chủ duyệt 2026-11-05): đặt ô «Có vé» theo dịch vụ và nhóm. Chỉ Quản trị, Toàn quyền; Quản lý bán hàng không có việc này.
+  "catalog.ticket_flag.write": quanTri(),
   // ADR-0186 Đ2, Đ3 (chủ duyệt 2026-11-08): «Đồng bộ ngay từ Google Sheet» — Quản lý bán hàng, Quản trị, Toàn quyền (trước: admin.manage); tác nhân DONG_BO_DANH_MUC
   // (Cron 15 phút, đồng bộ lần đầu) giữ đúng ô này. Một hàm lệnh cho cả ba đường: syncCatalog (src/modules/catalog/service.ts) hỏi ô này trước khi ghi.
   "catalog.sync": quanLyBanHang(),
