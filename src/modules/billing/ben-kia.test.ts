@@ -60,16 +60,18 @@ function nhap(w: W, o: { owner?: string; booker?: string | null; dichVu?: DvNhap
   });
   return { id, svc };
 }
-async function xacNhan(w: W, id: string): Promise<void> {
-  const xn = await w.xacNhanDon(id, String((w.sqlite.prepare("SELECT staff_id AS s FROM orders WHERE id = ?").get(id) as any).s)); // ADR-0135: nháp chỉ người lập xác nhận
+/** `cu`: đơn của Đối tác cho khách lẻ (không người hưởng) — ADR-0185 không cho xác nhận nữa, chỉ còn là dữ liệu cũ ⇒ dựng bằng `xacNhanDonCu` (Bán hàng xác nhận thay). */
+async function xacNhan(w: W, id: string, cu = false): Promise<void> {
+  const nguoiLap = String((w.sqlite.prepare("SELECT staff_id AS s FROM orders WHERE id = ?").get(id) as any).s);
+  const xn = cu ? await w.xacNhanDonCu(id, nguoiLap, SALES) : await w.xacNhanDon(id, nguoiLap); // ADR-0135: nháp chỉ người lập xác nhận
   assert.equal(xn.status, 200, xn.text);
 }
 const phanCong = (w: W, id: string) => w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)
   VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, NULL, ?, NULL)`).run(uuid(), id, `pty-${HDV}`, AT, AT, AT);
 /** Đơn ĐÃ XÁC NHẬN qua route (máy chủ chụp bản chụp), HDV phụ trách. */
-async function donXacNhan(w: W, o: Parameters<typeof nhap>[1] = {}): Promise<{ id: string; svc: string[] }> {
+async function donXacNhan(w: W, o: Parameters<typeof nhap>[1] & { cu?: boolean } = {}): Promise<{ id: string; svc: string[] }> {
   const d = nhap(w, o);
-  await xacNhan(w, d.id);
+  await xacNhan(w, d.id, o.cu);
   phanCong(w, d.id);
   return d;
 }
@@ -348,7 +350,7 @@ test("Đối tác chỉ tự ghi chính mình (người kiểm Task 5 I-2; Rulin
   const minh = await donXacNhan(w, { owner: PT, dichVu: hai });
   await tuChoi(PT, minh.id, { nhaCungCapPartyId: NCC }, "Đối tác chọn quầy nhà cung cấp");
   await tuChoi(PT, minh.id, { nhaCungCapPartyId: `pty-${SALES}` }, "hồ sơ không bán dòng nào: CÙNG câu — 400 không dò được ai là nhà cung cấp");
-  const le = await donXacNhan(w, { owner: PT, booker: null });
+  const le = await donXacNhan(w, { owner: PT, booker: null, cu: true });
   await tuChoi(PT, le.id, "ben_dat", "đơn khách lẻ");
   const khac = await donXacNhan(w, { owner: PT, booker: DLB });
   await tuChoi(PT, khac.id, "ben_dat", "bên đặt là đại lý khác");

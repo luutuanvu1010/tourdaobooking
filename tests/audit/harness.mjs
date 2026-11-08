@@ -416,5 +416,18 @@ export function world(tuyChon = {}) {
     const laDoiTac = sqlite.prepare("SELECT 1 FROM stf_permission WHERE staff_id = ? AND permission_type_code = 'PARTNER' AND valid_to_at IS NULL").get(as) !== undefined;
     return laDoiTac ? call("POST", `/api/orders/${id}/gui-don`, { as, body: {} }) : call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
   };
-  return { sqlite, env, r2, r2HoTro, r2VeDienTu, call, xacNhanDon, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
+  /**
+   * ADR-0185 (cổng `congDoiTacChuaCoVaiTro`): đơn do tài khoản giữ quyền Đối tác lập mà người hưởng ra «không người hưởng» (tài khoản kiểu cũ, tài khoản lai; bên đặt là khách lẻ hay trống)
+   * KHÔNG còn Gửi đơn / xác nhận được. Đơn như thế ở trạng thái đã xác nhận hay đang chờ kiểm vé chỉ còn là DỮ LIỆU CŨ (trước ADR-0185 — ADR Đ3 mục 2), hoặc do văn phòng «Đổi khách» sau đó.
+   * Bài cần trạng thái đó (sổ tiền, kênh thu, trang đơn…) dựng bằng hai trợ giúp dưới: văn phòng `vanPhong` làm THAY (người lập tạm là văn phòng — nháp chỉ người lập ghi được, ADR-0135 Đ2),
+   * rồi trả người lập về `nguoiLap` bằng SQL như dữ liệu cũ. Khác đường thật: nhật ký, bản chụp, yêu cầu ghi người bấm là văn phòng; lời khai đặt cọc (nếu có) thành khoản của văn phòng —
+   * đừng dùng cho đơn có lời khai. KHÔNG dùng cho bài kiểm chính đường xác nhận / Gửi đơn (bài đó phải thấy 409 `doi_tac_chua_co_vai_tro`).
+   */
+  async function quaVanPhong(id, nguoiLap, vanPhong, goi) {
+    sqlite.prepare("UPDATE orders SET staff_id = ? WHERE id = ?").run(vanPhong, id);
+    try { return await goi(); } finally { sqlite.prepare("UPDATE orders SET staff_id = ? WHERE id = ?").run(nguoiLap, id); }
+  }
+  const xacNhanDonCu = (id, nguoiLap, vanPhong) => quaVanPhong(id, nguoiLap, vanPhong, () => call("POST", `/api/orders/${id}/status`, { as: vanPhong, body: { status: "confirmed" } }));
+  const guiKiemVeCu = (id, nguoiLap, vanPhong) => quaVanPhong(id, nguoiLap, vanPhong, () => call("POST", `/api/orders/${id}/gui-xac-nhan`, { as: vanPhong, body: {} }));
+  return { sqlite, env, r2, r2HoTro, r2VeDienTu, call, xacNhanDon, xacNhanDonCu, guiKiemVeCu, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }

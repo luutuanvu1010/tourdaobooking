@@ -33,7 +33,9 @@ async function donDaXacNhan(w: any, dat: string, handler?: string) {
   const r = await w.call("POST", "/api/orders", { as: dat, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc("ZA1", inDays(3))] } });
   assert.equal(r.status, 201, r.text);
   const id = r.json.order.id as string;
-  const x = await w.xacNhanDon(id, dat); // người giữ quyền Đối tác (kể cả lai) đi đường «Gửi đơn»
+  // người giữ quyền Đối tác đi đường «Gửi đơn». ADR-0185: tài khoản lai (kiểu cũ, không vai trò đối tác) không Gửi đơn được nữa — đơn đã xác nhận của nó chỉ còn là
+  // dữ liệu cũ ⇒ Bán hàng xác nhận thay rồi trả người lập (`xacNhanDonCu`); vé vẫn cấp sau lô xác nhận như đường thật.
+  const x = dat === LAI ? await w.xacNhanDonCu(id, dat, A) : await w.xacNhanDon(id, dat);
   assert.equal(x.status, 200, x.text);
   if (handler) w.sqlite.prepare("INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, updated_at) VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, ?)").run(crypto.randomUUID(), id, `pty-${handler}`, AT, AT, AT);
   return id;

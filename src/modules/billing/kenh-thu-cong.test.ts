@@ -49,7 +49,8 @@ async function don(w: W, o: { owner?: string; booker?: string | null; dau?: 0 | 
   w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, 'IRESORT', 'adult', 'Người lớn', 1, ?, ?, ?)`)
     .run(`${id}-i`, id, `${id}-s`, tong, tong, tong);
   if (o.xacNhan !== false) {
-    const xn = await w.xacNhanDon(id, owner);
+    // ADR-0185: đơn của Đối tác cho khách lẻ (không người hưởng) không xác nhận được nữa, chỉ còn là dữ liệu cũ ⇒ Bán hàng xác nhận thay rồi trả người lập (`xacNhanDonCu`).
+    const xn = o.booker === null && owner === PT ? await w.xacNhanDonCu(id, owner, SALES) : await w.xacNhanDon(id, owner);
     assert.equal(xn.status, 200, xn.text);
   }
   w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)

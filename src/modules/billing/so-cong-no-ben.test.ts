@@ -55,9 +55,11 @@ function nhap(w: W, o: { owner?: string; booker?: string | null; dichVu?: DvNhap
   });
   return id;
 }
-async function donXacNhan(w: W, o: Parameters<typeof nhap>[1] = {}): Promise<string> {
+/** `cu`: đơn của Đối tác cho khách lẻ (không người hưởng) — ADR-0185 không cho xác nhận nữa, chỉ còn là dữ liệu cũ ⇒ dựng bằng `xacNhanDonCu` (Bán hàng xác nhận thay). */
+async function donXacNhan(w: W, o: Parameters<typeof nhap>[1] & { cu?: boolean } = {}): Promise<string> {
   const id = nhap(w, o);
-  const xn = await w.xacNhanDon(id, String((w.sqlite.prepare("SELECT staff_id AS s FROM orders WHERE id = ?").get(id) as any).s)); // ADR-0135: người lập xác nhận
+  const nguoiLap = String((w.sqlite.prepare("SELECT staff_id AS s FROM orders WHERE id = ?").get(id) as any).s);
+  const xn = o.cu ? await w.xacNhanDonCu(id, nguoiLap, SALES) : await w.xacNhanDon(id, nguoiLap); // ADR-0135: người lập xác nhận
   assert.equal(xn.status, 200, xn.text);
   w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)
     VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, NULL, ?, NULL)`).run(uuid(), id, `pty-${HDV}`, AT, AT, AT);
@@ -80,7 +82,7 @@ async function kichBan() {
   for (const [id, phone, name, perms] of [[ADMIN, "0900000010", "Quản Trị", ["ADMIN"]], [INTERN, "0900000011", "Thực Tập", ["INTERN"]]] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
   const a = await donXacNhan(w, { owner: PT });
   assert.equal((await thu(w, PT, a, mat(300_000, "toi"))).status, 201);
-  const b = await donXacNhan(w, { owner: PT, booker: null, dichVu: [{ ...HT, donGia: 500_000 }] });
+  const b = await donXacNhan(w, { owner: PT, booker: null, dichVu: [{ ...HT, donGia: 500_000 }], cu: true });
   assert.equal((await thu(w, HDV, b, mat(500_000, "toi"))).status, 201);
   assert.equal((await giao(w, b)).status, 200);
   const c = await donXacNhan(w, { owner: PT });

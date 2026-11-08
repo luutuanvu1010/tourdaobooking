@@ -50,8 +50,10 @@ test("Đối tác / tài khoản lai lập: đang chờ vẫn thấy yêu cầu 
   const xp = (await xem(w, p.id, PARTNER)).json.xacNhan;
   assert.equal(xp.yeuCau.id, idYeuCau(w, p.id));
   assert.equal(xp.quyetDinhDuoc, false);
+  // ADR-0185: tài khoản lai (kiểu cũ, không vai trò đối tác) Gửi đơn bên đặt trống nay bị chặn — đơn chờ của chính nó chỉ còn là dữ liệu cũ (Bán hàng gửi kiểm vé thay, `guiKiemVeCu`).
   const l = await lap(w, LAI);
-  assert.equal((await w.call("POST", `/api/orders/${l.id}/gui-don`, { as: LAI, body: {} })).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${l.id}/gui-don`, { as: LAI, body: {} })).json.error.code, "doi_tac_chua_co_vai_tro");
+  assert.equal((await w.guiKiemVeCu(l.id, LAI, A)).status, 201);
   assert.equal((await xem(w, l.id, LAI)).json.xacNhan.quyetDinhDuoc, false);
   assert.equal((await xem(w, l.id, B)).json.xacNhan.quyetDinhDuoc, true);
   // công tắc tắt

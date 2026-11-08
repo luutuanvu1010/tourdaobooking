@@ -60,6 +60,15 @@ const BI_AP: [string, string, { gia: string; giam: string }][] = [
   ["Thực tập + HDV", INTERN_FIELD, { gia: CAU_THUC_TAP, giam: CAU_THUC_TAP }],
   ["Thực tập + Đối tác", PARTNER_INTERN, { gia: CAU_GIA_DOI_TAC, giam: CAU_GIAM_DOI_TAC }],
 ];
+/**
+ * Bước XÁC NHẬN: tài khoản lai Thực tập + Đối tác không mang được vai trò đối tác (LC-1) nên đơn của nó luôn «không người hưởng» — ADR-0185 chặn ở cổng vai trò (ngay sau luật bán,
+ * TRƯỚC cổng giá). Hai bài xác nhận chạy luật giá với các tài khoản còn lại; tài khoản lai có khẳng định riêng (`laiBiChan`).
+ */
+const BI_AP_XAC_NHAN = BI_AP.filter(([, who]) => who !== PARTNER_INTERN);
+const laiBiChan = (r: { status: number; json: any; text: string }, ten: string) => {
+  assert.equal(r.status, 409, `${ten}: ${r.text}`);
+  assert.equal(r.json.error.code, "doi_tac_chua_co_vai_tro", ten);
+};
 const chan = (r: { status: number; json: any; text: string }, cau: string, ten: string) => {
   assert.equal(r.status, 403, `${ten}: ${r.text}`);
   assert.equal(r.json.error.code, "forbidden", ten);
@@ -106,9 +115,13 @@ test("(iii)(v) sửa nháp: Thực tập sửa sang giá lệch hoặc thêm gi�
   }
 });
 
-test("(iv)(v) xác nhận: đơn nháp CŨ của Thực tập có dòng lệch giá, hoặc giảm giá đã lưu > 0 (chèn thẳng bằng SQL) → 403, đơn vẫn nháp; sửa về đúng thì xác nhận 200", async () => {
+test("(iv)(v) xác nhận: đơn nháp CŨ của Thực tập có dòng lệch giá, hoặc giảm giá đã lưu > 0 (chèn thẳng bằng SQL) → 403, đơn vẫn nháp; sửa về đúng thì xác nhận 200 (lai Thực tập + Đối tác: 409 ADR-0185)", async () => {
   const w = setup();
-  for (const [ten, who, cau] of BI_AP) {
+  const lai = (await tao(w, PARTNER_INTERN)).json.order;
+  lamLechGia(w, lai.id, 10000);
+  laiBiChan(await xacNhan(w, PARTNER_INTERN, lai.id), "Thực tập + Đối tác: nháp cũ lệch giá — cổng vai trò đứng trước cổng giá");
+  assert.equal(trangThai(w, lai.id), "draft");
+  for (const [ten, who, cau] of BI_AP_XAC_NHAN) {
     const lech = (await tao(w, who)).json.order;
     lamLechGia(w, lech.id, 10000);
     chan(await xacNhan(w, who, lech.id), cau.gia, `${ten}: xác nhận nháp cũ lệch giá`);
@@ -128,9 +141,12 @@ test("(iv)(v) xác nhận: đơn nháp CŨ của Thực tập có dòng lệch g
   }
 });
 
-test("(vi) xác nhận: Thực tập tự xác nhận đơn mình lập đúng giá danh mục, không giảm → 200 (ADR-0100 Đ5: giữ nguyên việc tự xác nhận)", async () => {
+test("(vi) xác nhận: Thực tập tự xác nhận đơn mình lập đúng giá danh mục, không giảm → 200 (ADR-0100 Đ5: giữ nguyên việc tự xác nhận; lai Thực tập + Đối tác: 409 ADR-0185)", async () => {
   const w = setup();
-  for (const [ten, who] of BI_AP) {
+  const lai = await tao(w, PARTNER_INTERN);
+  assert.equal(lai.status, 201, lai.text);
+  laiBiChan(await xacNhan(w, PARTNER_INTERN, lai.json.order.id), "Thực tập + Đối tác: đơn đúng giá");
+  for (const [ten, who] of BI_AP_XAC_NHAN) {
     const t = await tao(w, who);
     assert.equal(t.status, 201, `${ten}: ${t.text}`);
     const xn = await xacNhan(w, who, t.json.order.id);

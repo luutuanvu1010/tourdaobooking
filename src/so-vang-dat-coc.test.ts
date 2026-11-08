@@ -39,7 +39,14 @@ for (const c of cases) {
     const lap = await w.call("POST", "/api/orders", { as: nguoi, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc("ZB1", inDays(d.sau === "da_giao" ? 0 : 3))], declaredDeposit: d.khai } });
     assert.equal(lap.status, 201, lap.text);
     const id = lap.json.order.id as string;
-    if (thoiQuyen) w.sqlite.prepare("UPDATE stf_permission SET permission_type_code = 'SALES' WHERE staff_id = ? AND permission_type_code = 'PARTNER'").run(nguoi);
+    if (thoiQuyen) {
+      // ĐƯỜNG GỐC của ca (Đối tác không phải người hưởng tự Gửi đơn) nay bị cổng ADR-0185 chặn — khẳng định bằng máy để việc đổi đường dựng (thôi quyền rồi tự xác nhận) không che
+      // một thay đổi hành vi. Sổ vàng còn chờ chủ xác nhận lại ca này (báo cáo ADR-0185, mục «Cần bạn quyết»). Cổng không ghi gì nên đơn vẫn nháp cho bước sau.
+      const goc = await w.call("POST", `/api/orders/${id}/gui-don`, { as: nguoi, body: {} });
+      assert.equal(goc.status, 409, goc.text);
+      assert.equal(goc.json.error.code, "doi_tac_chua_co_vai_tro", c.ma);
+      w.sqlite.prepare("UPDATE stf_permission SET permission_type_code = 'SALES' WHERE staff_id = ? AND permission_type_code = 'PARTNER'").run(nguoi);
+    }
     const gui = thoiQuyen
       ? await w.call("POST", `/api/orders/${id}/status`, { as: nguoi, body: { status: "confirmed" } })
       : await w.call("POST", `/api/orders/${id}/gui-don`, { as: nguoi, body: {} });

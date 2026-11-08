@@ -140,12 +140,16 @@ test("Xác nhận: tính bản chụp TRƯỚC, kiểm trần SAU — nháp khá
   assert.equal(dem(w, "SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?", id), 1);
 });
 
-test("Xác nhận: Đối tác (đơn khách lẻ) có giảm giá đã lưu ⇒ 403 câu cũ (vá DK-T3-01 ở cổng xác nhận giữ nguyên)", async () => {
+// ADR-0185 Đ1: đơn khách lẻ của Đối tác là đơn «không người hưởng» — cổng vai trò đứng ngay sau luật bán, TRƯỚC trần giảm giá ⇒ 409 thay cho 403 câu cũ. Câu cũ (DK-T3-01) ở bước
+// xác nhận vẫn canh ở bài I-1 dưới (đơn có đại lý KHÁC làm bên đặt — qua cổng vai trò); ở lập đơn / lưu nháp vẫn như cũ.
+test("Xác nhận: Đối tác kiểu cũ (đơn khách lẻ) có giảm giá đã lưu ⇒ 409 doi_tac_chua_co_vai_tro (cổng vai trò đứng trước trần giảm giá), đơn vẫn nháp", async () => {
   const w = await setup();
   const r0 = await lap(w, DT0, C5);
   assert.equal(r0.status, 201, r0.text);
   datGiam(w, r0.json.order.id, 5000);
-  cam(await xacNhan(w, r0.json.order.id, DT0), CAU_GIAM_DOI_TAC);
+  const xn = await xacNhan(w, r0.json.order.id, DT0);
+  assert.equal(xn.status, 409, xn.text);
+  assert.equal(xn.json.error.code, "doi_tac_chua_co_vai_tro");
   assert.equal(w.q("SELECT status FROM orders WHERE id = ?", r0.json.order.id)[0].status, "draft");
 });
 

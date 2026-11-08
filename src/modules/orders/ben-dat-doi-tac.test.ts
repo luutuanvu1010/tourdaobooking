@@ -295,7 +295,8 @@ test("ca 3e (K1): tài khoản lai gửi đại lý ở CẢ BA đường — l�
   assert.deepEqual(dauVet(w), truocNhap);
   const xn = await lap(w, LAI, {});
   const idXn = xn.json.order.id as string;
-  assert.equal((await xacNhan(w, idXn, LAI)).status, 200);
+  // ADR-0185: đơn khách lẻ của tài khoản lai không xác nhận được nữa — đơn đã xác nhận của nó chỉ còn là dữ liệu cũ (Bán hàng xác nhận thay rồi trả người lập, `xacNhanDonCu`).
+  assert.equal((await w.xacNhanDonCu(idXn, LAI, SALES)).status, 200);
   const truocXn = dauVet(w);
   laCam(await doiBen(w, idXn, DLA, LAI));
   assert.deepEqual(dauVet(w), truocXn, "không bản chụp mới, không nhật ký đổi khách / chụp lại");
