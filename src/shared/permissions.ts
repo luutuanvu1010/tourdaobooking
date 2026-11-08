@@ -191,12 +191,18 @@ export const MATRIX = {
   "credit.due.extend": quanTri(),
   // ADR-0173 Đ3 mục 3: đại lý xem Trả sau của CHÍNH hồ sơ mình (hạn mức, đang nợ, còn được dùng, từng đơn nợ) — Đối tác phạm vi `own`; hồ sơ lấy từ phiên, không nhận từ trình duyệt.
   "credit.own.view": row("none", "none", "none", "none", "own", "any", "none", "none", "none", "none"), // Toàn quyền `any` theo luật ADR-0014 điều 2; route vẫn chỉ đọc hồ sơ của phiên
+  // ADR-0186 Đ2: gửi tin nhắc hạn trả sau — chỉ tác nhân NHAC_HAN_TRA_SAU dùng (Cron, src/modules/billing/tra-sau-nhac.ts); không route cho người. Toàn quyền có ô
+  // chỉ vì ADR-0014 điều 2 (Toàn quyền `any` ở mọi ô); Trợ lý không kể ô này là việc người làm được (O_HEP ở tro-ly-cau-truc-ten.ts).
+  "credit.due.remind": chiToanQuyen(),
   // ADR-0152 Đ3: gắn / đổi / bỏ giá trị ĐẶC ĐIỂM cho MỘT dịch vụ (route PUT /api/catalog/:code/dac-diem/:attr, cổng office) và xem màn Đặc điểm dịch vụ (cùng admin.manage) —
   // Bán hàng, Quản trị, Toàn quyền. Không rộng hơn sales.block.write ở cột nào (hàng rào (i), permissions.test.ts). Định nghĩa đặc điểm, gắn theo nhóm: admin.manage.
   "catalog.attribute.assign": banHangQuanTri(),
   // ADR-0169 Đ1 (chủ duyệt 2026-11-05): bật, tắt «cần kiểm vé» theo vé và cả nhóm (thay một phần ADR-0136 Đ1); Ngừng bán, Mở bán lại. Bán hàng thường không có. Route còn chặn tài khoản giữ Đối tác.
   "catalog.confirm_flag.write": quanLyBanHang(),
   "catalog.hidden.write": quanLyBanHang(),
+  // ADR-0186 Đ2, Đ3 (chủ duyệt 2026-11-08): «Đồng bộ ngay từ Google Sheet» — Quản lý bán hàng, Quản trị, Toàn quyền (trước: admin.manage); tác nhân DONG_BO_DANH_MUC
+  // (Cron 15 phút, đồng bộ lần đầu) giữ đúng ô này. Một hàm lệnh cho cả ba đường: syncCatalog (src/modules/catalog/service.ts) hỏi ô này trước khi ghi.
+  "catalog.sync": quanLyBanHang(),
   "supply.terms.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // Bán hàng KHÔNG xem tỷ lệ mua lại của nhà cung cấp
   "supply.terms.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // Phần đối tác của đơn (đặc tả §6; Task 5): xem = bằng `order.view` ở MỌI cột (supply.terms.view ⊆ order.terms.view ⊆ money.view — bài khoá ở permissions.test.ts), nhưng tài khoản giữ
@@ -241,6 +247,9 @@ export const MATRIX = {
   // (số lượng, không ảnh, không mã) đi theo quyền xem đơn `order.view` nên Kế toán thấy. Xem ảnh còn bị cổng thu đủ chặn ở máy chủ, không chỉ ô này.
   "ve.kho.manage": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   "ve.cap.send": row("ownOrAssigned", "none", "any", "none", "own", "any", "none", "none", "none", "none"), // ADR-0170 Đ1: Đối tác chỉ đơn do chính tài khoản lập (`orders.staff_id`); mở vé còn qua cổng tiền Đ2
+  // ADR-0186 Đ2: xoá ảnh vé đã hết hạn lưu khỏi kho — chỉ tác nhân DON_ANH_VE dùng (Cron, src/modules/ve-dien-tu/kho-tep.ts); hẹp hơn ve.kho.manage; không route
+  // cho người. Toàn quyền có ô chỉ vì ADR-0014 điều 2; Trợ lý không kể ô này là việc người làm được.
+  "ve.kho.purge": chiToanQuyen(),
   "settings.ops": chiToanQuyen(), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
   // hàng chờ nhận — PHẦN HẸP của đơn chưa có người phụ trách (ADR-0030 S23-1, S23-2; route GET /api/orders/pool, module orders, còn chặn tài khoản có quyền
   // Đối tác). ADMIN "none": Quản trị đã thấy đủ mọi đơn qua order.view. Nơi đón/giờ đón ở phần hẹp là NGOẠI LỆ CÓ TÊN của chú thích ô contact.view (không
@@ -380,6 +389,30 @@ export interface OperationContext {
 }
 
 /**
+ * ADR-0186 Đ1 (đóng HC-5.11): TÁC NHÂN TỰ ĐỘNG — mỗi việc định giờ một mã; không phải tài khoản đăng nhập (không số điện thoại, PIN, phiên). Chỉ ba việc
+ * định giờ (và đồng bộ lần đầu) dựng tác nhân — bài src/tac-nhan-tu-dong.test.ts canh chỗ gọi hàm dựng. Dòng nhật ký của tác nhân mang `audit_log.agent_code`.
+ */
+export const MA_TAC_NHAN = ["DONG_BO_DANH_MUC", "NHAC_HAN_TRA_SAU", "DON_ANH_VE"] as const;
+export type MaTacNhan = (typeof MA_TAC_NHAN)[number];
+export const laMaTacNhan = (v: unknown): v is MaTacNhan => typeof v === "string" && (MA_TAC_NHAN as readonly string[]).includes(v);
+/** ADR-0186 Đ2: quyền riêng của mỗi tác nhân — đúng ô nó cần. Không bao giờ ô ghi tiền (`O_GHI_TIEN`), không `admin.manage` (bài canh). */
+export const QUYEN_TAC_NHAN: Readonly<Record<MaTacNhan, readonly OperationCode[]>> = {
+  DONG_BO_DANH_MUC: ["catalog.sync"],
+  NHAC_HAN_TRA_SAU: ["credit.due.remind"],
+  DON_ANH_VE: ["ve.kho.purge"],
+};
+/** Người phát lệnh là tác nhân: không giữ mã quyền nào của người, nên mọi cổng router từ chối nó; `can()` chỉ tra `QUYEN_TAC_NHAN`. */
+export interface TacNhan extends PermissionHolder {
+  readonly id: MaTacNhan;
+  readonly permissions: readonly [];
+  readonly tacNhan: MaTacNhan;
+}
+export function tacNhan(ma: MaTacNhan): TacNhan {
+  return Object.freeze({ id: ma, permissions: [] as const, tacNhan: ma });
+}
+export const laTacNhan = (who: PermissionHolder): who is TacNhan => laMaTacNhan((who as { readonly tacNhan?: unknown }).tacNhan);
+
+/**
  * ADR-0042: Toàn quyền là vai ẩn — người xem không giữ Toàn quyền thấy tài khoản Toàn quyền như Quản trị thường (SUPER_ADMIN → ADMIN,
  * bỏ trùng, giữ thứ tự chuẩn). Chỉ dùng cho dữ liệu TRẢ VỀ người khác xem; không dùng để quyết quyền.
  */
@@ -411,6 +444,7 @@ function allows(scope: Scope | undefined, whoId: string, ctx: OperationContext):
 export function can(who: PermissionHolder, op: OperationCode, ctx: OperationContext = {}): boolean {
   const cells = (MATRIX as Record<string, Row | undefined>)[op];
   if (!cells) return false;
+  if (laTacNhan(who)) return QUYEN_TAC_NHAN[who.tacNhan].includes(op); // ADR-0186 Đ2: tác nhân chỉ có ô của nó, không xét phạm vi người
   return who.permissions.some((p) => allows(cells[p], who.id, ctx));
 }
 

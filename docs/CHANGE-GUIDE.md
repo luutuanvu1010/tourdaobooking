@@ -402,7 +402,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 **Bản đồ `src/modules/catalog/`:**
 - `sheet.ts`: `parseCatalogSheet` đọc CSV thuần. Cột đọc: "Mã tour", "Tên tour", "Đơn vị", "Giá người lớn/trẻ em/người cao tuổi/em bé", "Ghi chú trẻ em/…". CỐ Ý không đọc "Khoá giá", "Đường dẫn", "Ghi chú nội bộ".
 - `rules.ts`: `planSync`; `syncGuard` (ẩn > 50% khi ≥ 4 dịch vụ, hoặc Sheet rỗng → 409 `sync_guard`; `force: true` để bỏ qua); `applyOverride`/`patchOverride`/`acknowledge`/`toEffective`.
-- `service.ts`: `syncCatalog`, `bootstrapIfNeverSynced`.
+- `service.ts`: `syncCatalog(env, nguoiPhat, opts)` (MỘT hàm lệnh cho nút, Cron, đồng bộ lần đầu; tự hỏi `can(nguoiPhat, "catalog.sync")` trước khi gọi Sheet — ADR-0186), `bootstrapIfNeverSynced(env, tácNhân)`.
 - `repository.ts`: `applySync` chỉ chạm `catalog_item`, KHÔNG đụng `catalog_override`; ghi theo lô `CHUNK` = 40 câu, không nguyên tử xuyên lô (lần sau tự lành).
 - `index.ts`: route + `getEffectiveServices` (đường DUY NHẤT `orders` đọc giá hiệu lực).
 - `nhom-repo.ts` (tệp SQL "nửa nghiêm", `defineSql`) + `nhom-rules.ts` (luật thuần): nhóm dịch vụ (ADR-0058) — hai bảng `ctl_group`, `ctl_service_group` (lịch sử chỉ thêm, dòng `seq` lớn nhất = nhóm hiện hành).
@@ -429,9 +429,9 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 
 **Cron:**
 - Lịch ở `wrangler.jsonc` `triggers.crons` (hiện `*/15 * * * *`); ID Sheet ở `vars.SERVICES_SHEET_ID`.
-- `src/index.ts` `scheduled(_event, env, ctx)` gọi `ctx.waitUntil(runScheduledSync(env))`.
-- Thêm bước: export `runXxx(env)` từ `index.ts` của module (tự bắt lỗi, không ném — như `runScheduledSync`); gọi bằng `ctx.waitUntil` RIÊNG để một bước lỗi không huỷ bước khác; nhiều lịch → phân biệt bằng `event.cron`.
-- Người thao tác `null` → nhật ký hiện "Hệ thống (tự động)" (`SYSTEM_ACTOR_NAME`).
+- `src/index.ts` `scheduled(_event, env, ctx)` gọi ba `ctx.waitUntil`: `runScheduledSync(env)`, `donHangChoXoaVe(env)`, `nhacHanTraSauAnToan(env)`.
+- **Tác nhân tự động (ADR-0186):** mỗi việc định giờ chạy dưới một tác nhân khai ở `MA_TAC_NHAN` / `QUYEN_TAC_NHAN` (`src/shared/permissions.ts`), giữ đúng MỘT ô quyền riêng; dựng bằng `tacNhan("<MÃ>")` CHỈ ở tệp của việc đó (danh sách chỗ cho phép ở `src/tac-nhan-tu-dong.test.ts`). Hàm lệnh của việc nhận `nguoiPhat` và tự hỏi `can(nguoiPhat, "<ô>")` trước khi đọc hay ghi; nhật ký ghi `...nguoiLam(nguoiPhat)` (module `audit`) → tác nhân thì `agent_code`, người thì `staff_id`. Màn Nhật ký vẫn hiện "Hệ thống (tự động)" (`SYSTEM_ACTOR_NAME`) cho dòng không có `staff_id`.
+- Thêm bước: thêm mã tác nhân + ô quyền mới (`chiToanQuyen()` nếu không người nào bấm, kèm dòng `O_HEP` `chiVai: []` ở `src/shared/tro-ly-cau-truc-ten.ts`), export `runXxx(env)` từ `index.ts` của module (tự bắt lỗi, không ném — như `runScheduledSync`); gọi bằng `ctx.waitUntil` RIÊNG để một bước lỗi không huỷ bước khác; nhiều lịch → phân biệt bằng `event.cron`. Sửa bài khoá `MA_TAC_NHAN`, `QUYEN_TAC_NHAN`, `CHO_DUNG_TAC_NHAN` cùng lúc.
 - Thử: e2e bật `--test-scheduled`; `tests/e2e/catalog.mjs` gọi `/__scheduled?cron=*/15+*+*+*+*`.
 
 **Kiểm:** `node --test src/modules/catalog/sheet.test.ts src/modules/catalog/rules.test.ts` → `npm test` → `npm run test:e2e -- catalog admin`.

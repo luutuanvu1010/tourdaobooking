@@ -1,7 +1,8 @@
 // Công tắc «Cần kiểm vé» của màn Dịch vụ & giá (ADR-0169 Đ4, thay trang riêng của ADR-0136 Đ1, Đ5). Gọi:
 //   GET  /api/cai-dat/xac-nhan-don → cờ theo dịch vụ / nhóm + công tắc tự kiểm;
 //   POST /api/cai-dat/xac-nhan-don { pham, ma, canXacNhan } | { tuXacNhanNoiBo };
-//   GET  /api/catalog/quan-ly-ban, PUT /api/catalog/:code/ngung-ban → màn hẹp của Quản lý bán hàng.
+//   GET  /api/catalog/quan-ly-ban, PUT /api/catalog/:code/ngung-ban → màn hẹp của Quản lý bán hàng;
+//   POST /api/catalog/sync → «Đồng bộ ngay từ Google Sheet» (ADR-0186 Đ5), một hàm cho cả màn của Quản trị và màn hẹp.
 // Ẩn/hiện hỏi `can()`; máy chủ kiểm lại. Luật ở src/shared/dich-vu-kiem-ve.ts. Không innerHTML.
 import { TEN_CHUA_PHAN_LOAI, demKiemVe, locNhomKiemVe, nhanNguonKiemVe, xepNhomKiemVe, type DongDichVuKiemVe, type NhomKiemVe } from "../src/shared/dich-vu-kiem-ve";
 import { ApiError, api, type Api } from "./api";
@@ -91,8 +92,34 @@ export function taoKiemVe(errorEl: HTMLElement, sauKhiDoi: () => void): KiemVe {
   };
 }
 
-/** Màn hẹp của Quản lý bán hàng (ADR-0169 Đ4): tên vé theo nhóm, ô tìm, công tắc kiểm vé, Ngừng bán / Mở bán lại. Không giá, không đồng bộ, không sửa nhóm. */
-export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement): Promise<void> {
+/**
+ * «Đồng bộ ngay từ Google Sheet» (ADR-0186 Đ5): MỘT hàm cho màn của Quản trị và màn hẹp của Quản lý bán hàng — cùng câu báo kết quả, cùng hộp hỏi của trình
+ * duyệt khi máy chủ dừng vì Sheet sắp làm ẩn nhiều dịch vụ (`sync_guard`). Máy chủ hỏi ô `catalog.sync`; trang chỉ vẽ nút khi `can(staff, "catalog.sync")`.
+ */
+export async function dongBoTuSheet(o: { nut: HTMLButtonElement; thongBaoEl: HTMLElement; errorEl: HTMLElement; sauKhi: () => Promise<void>; force?: boolean }): Promise<void> {
+  o.nut.disabled = true;
+  o.thongBaoEl.hidden = true;
+  showError(o.errorEl, null);
+  try {
+    const r = await api<Api.CatalogSyncResponse>("/api/catalog/sync", { method: "POST", body: { force: o.force === true } });
+    o.thongBaoEl.textContent = `Đã đồng bộ xong: thêm ${r.added}, đổi ${r.changed}, ẩn ${r.hidden}, giữ nguyên ${r.unchanged}.${r.problems.length ? ` ${r.problems.length} dòng bị bỏ qua.` : ""}${r.warnings.length ? ` Cảnh báo: ${r.warnings.map((w) => w.message).join("; ")}.` : ""}`;
+    o.thongBaoEl.hidden = false;
+  } catch (err) {
+    if (err instanceof ApiError && err.code === "sync_guard" && confirm(`${err.message}\n\nChỉ tiếp tục nếu bạn chắc chắn Sheet đúng. Vẫn đồng bộ và ẩn các dịch vụ đó?`)) {
+      o.nut.disabled = false;
+      return dongBoTuSheet({ ...o, force: true });
+    }
+    showError(o.errorEl, lyDo(err));
+  }
+  o.nut.disabled = false;
+  await o.sauKhi();
+}
+
+/**
+ * Màn hẹp của Quản lý bán hàng (ADR-0169 Đ4): tên vé theo nhóm, ô tìm, công tắc kiểm vé, Ngừng bán / Mở bán lại. Không giá, không sửa nhóm.
+ * `thongBaoEl` khác null (người xem giữ ô `catalog.sync`) ⇒ có thêm nút «Đồng bộ ngay từ Google Sheet» ở đầu màn (ADR-0186 Đ5, lời chủ 8/11).
+ */
+export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, thongBaoEl: HTMLElement | null): Promise<void> {
   let dm: Api.CatalogQuanLyBanResponse | null = null;
   let tuKhoa = "";
   const nhomMo = new Set<string>();
@@ -154,6 +181,21 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement): Pr
     return the;
   };
 
+  const khoiDongBo = (): HTMLElement | null => {
+    if (!thongBaoEl) return null;
+    const nut = h("button", { type: "button", class: "btn btn-primary", "data-action": "dong-bo" }, "Đồng bộ ngay từ Google Sheet") as HTMLButtonElement;
+    const taiLai = async (): Promise<void> => {
+      try {
+        dm = await api<Api.CatalogQuanLyBanResponse>("/api/catalog/quan-ly-ban");
+        veDs();
+      } catch (err) {
+        showError(errorEl, lyDo(err));
+      }
+    };
+    nut.addEventListener("click", () => void dongBoTuSheet({ nut, thongBaoEl, errorEl, sauKhi: taiLai }));
+    return h("section", { class: "card" }, h("p", { class: "hint" }, "Nguồn chính là Google Sheet. Nền tảng tự đồng bộ mỗi 15 phút; cần lấy giá mới ngay thì bấm nút dưới."), nut);
+  };
+
   try {
     const [, ds] = await Promise.all([kv.tai(), api<Api.CatalogQuanLyBanResponse>("/api/catalog/quan-ly-ban")]);
     dm = ds;
@@ -162,7 +204,7 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement): Pr
       tuKhoa = oTim.value;
       veDs();
     });
-    replaceChildren(noiDungEl, h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "kv-tim" }, "Tìm vé"), oTim), dsEl);
+    replaceChildren(noiDungEl, khoiDongBo(), h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "kv-tim" }, "Tìm vé"), oTim), dsEl);
     veDs();
     noiDungEl.hidden = false;
   } catch (err) {

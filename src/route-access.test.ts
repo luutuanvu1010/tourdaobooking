@@ -131,7 +131,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "PUT", path: "/api/catalog/groups/:code/dac-diem/:attr", access: "admin" },
   { method: "PUT", path: "/api/catalog/:code/dac-diem/:attr", access: "office" },
   { method: "GET", path: "/api/catalog/dem-xung-dot", access: "admin" }, // huy hiệu thanh bên: CHỈ số dịch vụ lệch giá; cùng ô admin.manage (dem-xung-dot.test.ts)
-  { method: "POST", path: "/api/catalog/sync", access: "admin" },
+  { method: "POST", path: "/api/catalog/sync", access: "office" }, // ADR-0186 (chủ duyệt 8/11): cổng office + ô catalog.sync trong thân route
   // ADR-0058 Đ4 (2026-09-30, Task A3): năm route nhóm dịch vụ — cổng admin + can(admin.manage) dòng đầu thân
   { method: "GET", path: "/api/catalog/groups", access: "admin" },
   { method: "POST", path: "/api/catalog/groups", access: "admin" },

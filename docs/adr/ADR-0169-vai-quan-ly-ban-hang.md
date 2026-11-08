@@ -1,6 +1,6 @@
 # ADR-0169 — Vai «Quản lý bán hàng»; công tắc kiểm vé và Ngừng bán về màn Dịch vụ & giá
 
-- **Trạng thái:** **accepted** — chủ dự án duyệt trong chat 2026-11-05. Số 0169: đã soát mọi nhánh, 0168 đang ở nhánh Trả sau, chưa ai dùng 0169.
+- **Trạng thái:** **accepted** — chủ dự án duyệt trong chat 2026-11-05. Số 0169: đã soát mọi nhánh, 0168 đang ở nhánh Trả sau, chưa ai dùng 0169. **Đ4, chữ «đồng bộ» trong câu «Không có giá ghi đè, đồng bộ, sửa nhóm»: thay bởi ADR-0186** (accepted 2026-11-08) — màn hẹp có nút «Đồng bộ ngay từ Google Sheet», ô `catalog.sync`.
 - **Ngày:** 2026-11-05   **Loại:** **hai chiều** về quyền (đổi ô bằng ADR sau); **một chiều một phần** về dữ liệu (thêm mã quyền, mã vai bằng migration, chỉ thêm).
 - **Lời chủ dự án (chat 2026-11-05, AI ghi lại, không tự quyết):**
   - Câu gốc về màn hình: *"vị trí của Dịch vụ cần kiểm vé, có nên chăng là đưa chung vào trong dan sách dịch vụ và giá không, ở đó có luôn toggle bật cần kiểm hoặc không cần kiểm dành cho danh mục vé hoặc vé đơn lẻ ? thay vì 1 trang riêng thế này"*.

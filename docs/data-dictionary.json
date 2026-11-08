@@ -29,7 +29,7 @@
       "module": "audit",
       "kind": "table",
       "legacy": true,
-      "note": "acting_role (ADR-0180, migration 0145): mã vai đang đóng lúc ghi dòng, rỗng ngoài đóng vai; chỉ mã vai, không dữ liệu cá nhân; tu_ghi_don_minh_lap (ADR-0187 Đ3 mức a, migration 0150): 1 khi hành động thuộc tập ghi tiền HANH_DONG_GHI_TIEN và người làm là người lập đơn — insertStatement điền tự động; rỗng = không dấu"
+      "note": "acting_role (ADR-0180, migration 0145): mã vai đang đóng lúc ghi dòng, rỗng ngoài đóng vai; chỉ mã vai, không dữ liệu cá nhân. agent_code (ADR-0186, migration 0148): mã tác nhân tự động ghi dòng (DONG_BO_DANH_MUC, NHAC_HAN_TRA_SAU, DON_ANH_VE — danh sách kiểm ở mã), khi đó staff_id rỗng; dòng của người để rỗng; không bao giờ có cả hai. Không gửi về trình duyệt. tu_ghi_don_minh_lap (ADR-0187 Đ3 mức a, migration 0150): 1 khi hành động thuộc tập ghi tiền HANH_DONG_GHI_TIEN và người làm là người lập đơn — insertStatement điền tự động; rỗng = không dấu"
     },
     {
       "name": "catalog_item",
@@ -1605,7 +1605,7 @@
     }
   ],
   "hangDuLieu": {
-    "audit_log": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "target_type": "N1", "target_id": "N1", "detail": "N2", "created_at": "N1", "acting_role": "N1", "tu_ghi_don_minh_lap": "N1" },
+    "audit_log": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "target_type": "N1", "target_id": "N1", "detail": "N2", "created_at": "N1", "acting_role": "N1", "agent_code": "N1", "tu_ghi_don_minh_lap": "N1" },
     "aut_mfa_email_code": { "id": "N1", "staff_id": "N1", "purpose": "N1", "email_hash": "N2", "code_hash": "N4", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "expires_at": "N1", "attempts": "N1", "used_at": "N1", "revoked_at": "N1" },
     "aut_mfa_factor": { "id": "N1", "staff_id": "N1", "kind": "N1", "secret_enc": "N4", "email": "N2", "last_totp_step": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "aut_mfa_recovery_code": { "id": "N1", "staff_id": "N1", "batch_id": "N1", "code_hash": "N4", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "used_at": "N1", "revoked_at": "N1" },

@@ -60,7 +60,10 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 106.459 → 106.880 (ADR-0184 đợt sửa 1, 8/11/2026): «Ai xử lý» của xe thiếu Kiểm định / Bảo hiểm là «Quản trị, Toàn quyền» — `ly-do-giu.ts` thêm bảng vai (`VAI_AI_XU_LY`) và MỘT hàm chữ dùng chung `nhanAiXuLy` (máy chủ và giao diện cùng gọi, bỏ trùng theo vai);
 // đã thu gọn còn một bảng + một hàm (thử giữ nhỏ trước), đo thật 106.780 byte (+421 so với 106.359 trước đợt sửa), trần = số đo + 100. Chỉ luật thuần dùng chung, không mã giao diện nào vào gói Đơn hàng. Số trung gian, đã được thay bằng trần sau gộp ở dòng cuối (chủ dự án duyệt trần đó 8/11/2026).
 // Gộp main vào nhánh ADR-0184 (8/11/2026): hai lần nới trên (menu tên tài khoản; ADR-0184) cùng tính từ 106.223 — đo lại gói đã gộp: 109.351 byte (108.702 của main + 649 của ADR-0184), trần = số đo + 100. Chủ dự án duyệt trần 109.451 ngày 8/11/2026 (tờ duyệt ADR-0184 mục 2.2, trả lời «Duyệt hết»).
-const TRAN_ORDERS = 109_451;
+// Nới 109.451 → 109.777 (ADR-0186, 8/11/2026, đo lại sau khi nhập bản chính 56dab66e5 có ADR-0184): ba ô quyền mới (catalog.sync, credit.due.remind, ve.kho.purge), danh sách tác nhân tự động
+// và nhánh tác nhân trong `can()` của bản đồ quyền dùng chung, cùng nhãn nhật ký «Xoá ảnh vé hết hạn lưu» (chỉ dữ liệu quyền / nhãn, không mã giao diện mới vào gói này). Đo thật 109.677 byte
+// trên mã đã nhập (bản chính một mình 109.351, +326), trần = số đo + 100. Chủ dự án duyệt phần tăng +326 byte này ngày 8/11/2026 (ở phiên điều phối), nguyên văn «Duyệt 326 byte».
+const TRAN_ORDERS = 109_777;
 
 function dung(trang: string) {
   const r = buildSync({

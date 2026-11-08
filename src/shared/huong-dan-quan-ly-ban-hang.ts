@@ -5,7 +5,7 @@ export const HD_QUAN_LY_BAN_HANG: NhomHuongDan = {
   id: "quan-ly-ban-hang",
   tieuDe: "Quản lý bán hàng",
   quyen: ["SALES_MANAGER"],
-  gioiThieu: "Bạn làm được mọi việc của Bán hàng (xem nhóm Bán hàng), thêm hai việc: chọn vé nào phải chờ kiểm vé, và ngừng bán hoặc mở bán lại một dịch vụ. Bạn không sửa giá, không đồng bộ danh mục, không sửa nhóm dịch vụ: các việc đó của Quản trị.",
+  gioiThieu: "Bạn làm được mọi việc của Bán hàng (xem nhóm Bán hàng), thêm ba việc: chọn vé nào phải chờ kiểm vé, ngừng bán hoặc mở bán lại một dịch vụ, và lấy ngay bảng giá mới từ Google Sheet. Bạn không sửa giá, không sửa nhóm dịch vụ: các việc đó của Quản trị.",
   batDauNhanh: `1. Mở [[Dịch vụ & giá]].
 2. Gõ tên vé ở ô **Tìm vé**, ví dụ «buffet».
 3. Gạt công tắc **Cần kiểm vé** ở dòng vé đó, hoặc bấm [[Ngừng bán]] nếu tạm không bán dịch vụ này.`,
@@ -30,8 +30,16 @@ Vé được bật phải chờ người kiểm vé báo còn vé rồi đơn m�
 3. Khi bán lại được, bấm [[Mở bán lại]].`,
     },
     {
+      tieuDe: "Lấy bảng giá mới từ Google Sheet",
+      noiDung: `1. Vào [[Dịch vụ & giá]].
+2. Bấm [[Đồng bộ ngay từ Google Sheet]] ở đầu màn. Xong, Nền tảng báo số dịch vụ được thêm, đổi, ẩn.
+3. Nếu Sheet sắp làm ẩn nhiều dịch vụ, trình duyệt hỏi lại: chỉ đồng ý khi bạn chắc Sheet đúng.
+
+Không bấm thì Nền tảng vẫn tự đồng bộ mỗi 15 phút. Giá Quản trị đã ghi đè không bị đổi.`,
+    },
+    {
       tieuDe: "Việc cần nhờ người khác",
-      noiDung: `- Sửa giá, đồng bộ danh mục, sửa nhóm dịch vụ: nhờ Quản trị.
+      noiDung: `- Sửa giá, sửa nhóm dịch vụ: nhờ Quản trị.
 - Công tắc **Nhân viên tự kiểm vé đơn mình lập**: nhờ người giữ Toàn quyền.
 - Gán hoặc gỡ vai trò Quản lý bán hàng cho người khác: chỉ Quản trị hoặc Toàn quyền làm được, Nhân sự không làm được.`,
     },

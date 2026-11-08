@@ -74,7 +74,10 @@ test("Đ5, nghiệm thu 2, 4: màn hẹp không có giá; Ngừng bán, Mở bá
 
   assert.equal((await w.call("GET", "/api/catalog/admin", { as: QL })).status, 403);
   assert.equal((await w.call("PATCH", `/api/catalog/${ma}`, { as: QL, body: { hidden: true } })).status, 403);
-  assert.equal((await w.call("POST", "/api/catalog/sync", { as: QL, body: {} })).status, 403);
+  // ADR-0186 (chủ duyệt 8/11): Quản lý bán hàng được «Đồng bộ ngay từ Google Sheet» — qua cổng, tới bước đọc Sheet (khung thử không khai Sheet nên 424).
+  const dongBo = await w.call("POST", "/api/catalog/sync", { as: QL, body: {} });
+  assert.notEqual(dongBo.status, 403, "Quản lý bán hàng không bị cổng quyền chặn ở tuyến đồng bộ");
+  assert.notEqual(dongBo.json?.error?.code, "forbidden");
   assert.equal((await w.call("GET", "/api/catalog/quan-ly-ban", { as: BH })).status, 403);
   assert.equal((await w.call("GET", "/api/catalog/quan-ly-ban", { as: QT })).status, 200);
 });
