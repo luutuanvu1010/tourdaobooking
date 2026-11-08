@@ -53,6 +53,7 @@ const nut = `[...document.querySelectorAll('main button, main a.vc-btn')].filter
 const kv = `[...document.querySelectorAll('.dp-kv')].map((k) => k.innerText.replace(/\\s+/g, ' ').trim())`;
 const diem = `[...document.querySelectorAll('.dp-stop[data-diem]')].map((r) => ({ so: r.querySelector('.dp-stop-so').innerText.trim(), noi: r.querySelector('.dp-stop-noi strong').innerText.replace(/\\s+/g, ' ').trim(), tt: r.querySelector('.dp-stop-tt').innerText.trim(), lech: r.classList.contains('is-lech'), note: r.querySelector('.dp-stop-note')?.innerText ?? '' }))`;
 const dieuKien = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r) => ({ dat: r.dataset.dat === 'true', nhan: r.querySelector('.dp-cond-nhan').innerText, sub: r.querySelector('.dp-cond-sub')?.innerText ?? '' }))`;
+const dieuKienVang = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r) => ({ nhan: r.querySelector('.dp-cond-nhan').innerText, canhBao: r.dataset.canhBao === 'true', dauHieu: r.querySelector('.dp-cond-mark')?.className ?? '', sub: r.querySelector('.dp-cond-sub')?.innerText ?? '' }))`;
 const nhatKy = `[...document.querySelectorAll('.dp-log')].map((r) => ({ ai: r.querySelector('.dp-log-who').innerText, may: r.querySelector('.dp-log-who').classList.contains('is-may'), text: r.lastElementChild.innerText }))`;
 const KHONG_CO = ["Kết thúc gián đoạn", "Mở màn Cho xe chạy ›"];
 // Nhật ký giao diện 13.7: nút KHOÁ đặt thẳng trên nền trang phải trông rõ là nút bị khoá — nền khác nền trang (không lẫn thành chữ thường) và mờ theo khuôn nút
@@ -399,9 +400,14 @@ try {
     assert.deepEqual([goi[0].loaiGiayTo, goi[0].lyDo, goi[0].ghiChu], [["REGISTRATION"], "THIEU_GIAY_GIA_HAN", "Đang chờ cấp lại giấy đăng ký"]);
     assert.deepEqual(await qd.ev(chipVang), ["Xe thiếu Đăng ký xe — đã cho chạy"]);
     assert.ok(!(await qd.ev(nut)).includes(CCC), "đã cho chạy hết loại thiếu → không còn nút");
-    assert.ok((await qd.ev(dieuKien)).find((x) => x.nhan === "Giấy tờ xe").dat, "dòng Giấy tờ xe đạt");
+    // ADR-0184 việc 5 (3a): «Giấy tờ xe» qua nhờ cho phép → dấu CẢNH BÁO vàng + chữ «Xe thiếu …», KHÔNG dấu xanh «đạt».
+    const gt = (await qd.ev(dieuKienVang)).find((x) => x.nhan === "Giấy tờ xe");
+    assert.equal(gt.canhBao, true, "dòng Giấy tờ xe mang dấu cảnh báo");
+    assert.ok(gt.dauHieu.includes("is-canh-bao") && !gt.dauHieu.includes("is-dat"), `dấu vàng, không dấu xanh: ${gt.dauHieu}`);
+    assert.equal(gt.sub, "Xe thiếu Đăng ký xe — đã cho chạy");
+    assert.equal(await qd.ev(`getComputedStyle(document.querySelector('.dp-cond[data-canh-bao] .dp-cond-mark')).backgroundColor !== getComputedStyle(document.querySelector('.dp-cond-mark.is-dat') ?? document.body).backgroundColor`), true);
     const nk = await qd.ev(nhatKy);
-    assert.deepEqual(nk.at(-1), { ai: "Quản Trị", may: false, text: `${CCC} · 1 loại giấy tờ` });
+    assert.deepEqual(nk.at(-1), { ai: "Quản Trị", may: false, text: `${CCC} · Đăng ký xe` }); // ADR-0184 việc 5 (3b): tên loại, không «1 loại giấy tờ'
     assert.equal(await qd.ev(noCode), "");
     assert.ok(await qd.ev(noOverflowX));
     await axe(qd, "chi tiết chuyến có nhãn vàng 1040");

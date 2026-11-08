@@ -51,7 +51,8 @@ const dungChuyenBamThay = async () => {
     assert.equal(gt.status, 201, `giấy ${typeCode} 79A-555.55: ${gt.text}`);
   }
   const don = async (gio, noiDon, ten, sdt) => {
-    const o = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
+    // 8/11/2026 (ADR-0135 Đ3): đơn nháp là vùng riêng của người lập — Quản trị lập luôn để chính họ đặt gấp rồi xác nhận (trước đây Bán hàng lập thì Quản trị nhận 404).
+    const o = await call(ACCOUNTS.admin, "POST", "/api/orders", {
       customerName: `Khách Điều Phối ${noiDon}`, customerPhone: sdt, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
       services: [{
         kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: ten.length, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
@@ -96,7 +97,8 @@ const dungChuyenHomNay = async () => {
   const gioVn = new Date(Date.now() + 7 * 3600_000).toISOString().slice(11, 16);
   assert.ok(gioVn < "22:50", `kịch bản cần chạy trước 22:50 giờ VN (chuyến hôm nay 23:00) — bây giờ ${gioVn}`);
   const homNay = vnDate(0);
-  const o = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
+  // 8/11/2026 (ADR-0135 Đ3): Quản trị lập luôn (đơn nháp là vùng riêng của người lập).
+  const o = await call(ACCOUNTS.admin, "POST", "/api/orders", {
     customerName: LIEN_HE_OH, customerPhone: SDT_OH, customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
     services: [{
       kind: "catalog", pickupChoice: "DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 },
@@ -146,7 +148,7 @@ try {
     assert.match(the[1].text, new RegExp(`^14:00 ${T6.ma} Bị giữ 79A-222\\.22 · 0 khách · 0 điểm đón · 0 điểm trả .*\\(văn phòng lo\\)`));
     const h = await html(p);
     for (const x of [...TEN_O4, SDT_O4]) assert.ok(!h.includes(x), `không tên / SĐT khách ở Cuốc của tôi: ${x}`);
-    assert.deepEqual(await tt(p), [["/tai-xe", "Trang chủ", null], ["/cuoc", "Cuốc của tôi", "page"], ["/account", "Tôi", null]]);
+    assert.deepEqual(await tt(p), [["/tai-xe", "Trang chủ", null], ["/cuoc", "Cuốc của tôi", "page"], ["/huong-dan", "Hỗ trợ", null], ["/account", "Tôi", null]]);
     assert.deepEqual(apiCalls(p).filter((r) => r.path.startsWith("/api/van-chuyen") && !r.path.startsWith("/api/van-chuyen/cuoc-cua-toi")), [], "chỉ route tài xế");
     assert.equal(await p.ev(noCode), "");
     assert.ok(await p.ev(noOverflowX));
@@ -169,6 +171,29 @@ try {
     assert.equal(await p.ev(txt(".bar-title")), `Cho xe chạy ${T6.ma}`);
     assert.equal(await p.ev(khongBiChe("#cc-day .vc-btn")), "ok", "390: nút Xuất bến dính đáy không bị thanh tab che");
     await shotFull(p, "b6-xuat-ben-chua-dat-dien-thoai.png");
+  });
+
+  // ADR-0184 việc 5: Toàn quyền cho T6 chạy dù thiếu giấy tờ (đường thật) → tài xế An thấy nhãn vàng ở màn chuyến VÀ ở danh sách cuốc; chỉ tên loại, không số giấy.
+  await b.step("2b", `ADR-0184 390 tài xế: T6 được cho chạy dù thiếu giấy tờ → nhãn vàng «Xe thiếu … — đã cho chạy» ở màn chuyến và ở thẻ trong danh sách cuốc; không số giấy, không tên người cho phép`, async () => {
+    const ct = await call(ACCOUNTS.chu, "GET", `/api/van-chuyen/chuyen/${T6.id}`);
+    assert.equal(ct.status, 200, ct.text);
+    const loai = ct.json.giayToThieu.map((g) => g.documentTypeCode);
+    assert.ok(loai.length >= 1, `T6 phải đang thiếu giấy tờ: ${ct.text}`);
+    const r = await call(ACCOUNTS.chu, "POST", `/api/van-chuyen/chuyen/${T6.id}/cho-chay-thieu-giay`, { version: ct.json.chuyen.version, requestId: randomUUID(), loaiGiayTo: loai, lyDo: null, ghiChu: null });
+    assert.ok(r.status === 200 || r.status === 201, r.text);
+    await p.send("Page.navigate", { url: `${env.base}/cuoc-chuyen?id=${T6.id}` });
+    await p.waitFor(`!!document.querySelector('.dp-cc-meta') && !!document.querySelector('.chip[data-khoi="cho-chay-thieu"]')`, "nhãn vàng ở màn chuyến");
+    const nhan = await p.ev(txt('.chip[data-khoi="cho-chay-thieu"]'));
+    assert.match(nhan, /^Xe thiếu .+ — đã cho chạy$/, nhan);
+    const trang = await html(p);
+    assert.ok(!/-79A-222\.22|Chủ Điều Phối|Quản Trị/.test(await p.ev(txt('.chip[data-khoi="cho-chay-thieu"]'))), "nhãn chỉ có tên loại");
+    assert.ok(!trang.includes("INSPECTION-") && !trang.includes("TPL_INSURANCE-"), "không số giấy tờ ở màn tài xế");
+    assert.equal(await p.ev("document.documentElement.scrollWidth <= document.documentElement.clientWidth"), true, "390: nhãn không tràn ngang");
+    await shotFull(p, "adr0184-cuoc-nhan-vang-dien-thoai.png");
+    await p.send("Page.navigate", { url: `${env.base}/cuoc` });
+    await p.waitFor(`!!document.querySelector('.dp-cuoc-the[data-chuyen="${T6.id}"] .chip[data-khoi="cho-chay-thieu"]')`, "nhãn vàng ở thẻ cuốc");
+    assert.equal(await p.ev(txt(`.dp-cuoc-the[data-chuyen="${T6.id}"] .chip[data-khoi="cho-chay-thieu"]`)), nhan, "thẻ cuốc và màn chuyến cùng chữ");
+    assert.equal(await p.ev(`document.querySelectorAll('.dp-cuoc-the:not([data-chuyen="${T6.id}"]) .chip[data-khoi="cho-chay-thieu"]').length`), 0, "chuyến khác không có nhãn");
   });
 
   await b.step("3", `6c → 5a 390, Q-L3-B phía "không tên": chuyến NGÀY MAI (T4) đủ điều kiện ("Đủ điều kiện xuất bến"), trước xuất bến KHÔNG tên khách; bấm "Xuất bến" (không ô giờ, thân không có xayRaLuc) = xuất bến SỚM → đang chạy nhưng màn hiện "Khách N", KHÔNG tên, năm sinh, liên hệ`, async () => {
