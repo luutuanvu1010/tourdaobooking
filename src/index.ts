@@ -26,7 +26,7 @@ import { giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
-import { canBangVeTheoSoKhach, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule } from "./modules/ve-dien-tu";
+import { canBangVeTheoSoKhach, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule, veHangNgoaiDaMoCuaDon } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
 import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
@@ -259,6 +259,7 @@ const APP_OPTIONS: AppOptions = {
     cauGacPhienBanTraSau: (env, partyId, version, at) => cauGacPhienBan(env.DB, partyId, version, at),
     traSauCuaDon: (env, id) => traSauCuaDon(env.DB, id),
     veDaMoCuaDon: (env, id) => veDaMoCuaDon(env.DB, id),
+    veHangNgoaiDaMoCuaDon: (env, id) => veHangNgoaiDaMoCuaDon(env.DB, id), // ADR-0175 Đ2.6: cổng huỷ Trả sau còn nợ chỉ tính vé hãng ngoài
     // KÊNH THU ĐỐI TÁC (ADR-0178 Đ1): `orders` không import billing — gốc lắp ráp tiêm hàm đọc công tắc «Khách của đối tác trả cho Công ty» (chụp lên đơn lúc lập).
     kenhThuHienTai: (env) => kenhThuHienTai(env.DB),
     chanKhaiCocLai: (env, staffId) => chanKhaiCocLai(env.DB, staffId),
@@ -272,9 +273,10 @@ const APP_OPTIONS: AppOptions = {
     // Cờ câu bảo vệ «vé vừa mở» (ADR-0170 Đ3; kế hoạch 2026-11-05 Task 2): người giữ quyền Đối tác HOẶC cổng huỷ Trả sau đòi. Có cờ (lô huỷ) mà soạn lỗi thì trả null — nơi gọi
     // trả 503 và KHÔNG chạy lô (Task 5 việc B; trước đó NÉM ra 500 thô). Nuốt lỗi ở đây sẽ bỏ mất câu bảo vệ (mở cửa); không cờ thì nuốt như cũ (thiếu câu trả vé chỉ để lại
     // vé giữ thừa, suy ra lúc đọc). RUT_XAC_NHAN không mang câu bảo vệ nên không bao giờ null.
+    // ADR-0175 Đ2.6: câu bảo vệ tách theo mục đích — người giữ quyền Đối tác: mọi loại vé (ADR-0170 Đ3); cổng huỷ Trả sau còn nợ của văn phòng: chỉ vé hãng ngoài (ADR-0168 Đ3 mục 3).
     traVeKhiHuy: async (env, actor, orderId, lyDo, chanVeDaMoTraSau) => {
-      const chanVeDaMo = holdsPartner(actor) || chanVeDaMoTraSau;
-      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()), chanVeDaMo }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return chanVeDaMo && lyDo === "DON_HUY" ? null : []; }
+      const chan = holdsPartner(actor) ? "MOI_VE" : chanVeDaMoTraSau ? "HANG_NGOAI" : null;
+      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()), chan }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return chan !== null && lyDo === "DON_HUY" ? null : []; }
     },
     canBangVeSauSuaKhach: async (env, actor, orderId) => {
       try { await canBangVeTheoSoKhach(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString(), vnToday(new Date())); } catch (e) { console.error("ve_can_bang_loi", orderId, e instanceof Error ? e.name : "loi"); }

@@ -156,3 +156,24 @@ test("baiKienTruc_ordersKhongImportVeDienTu: orders và dispatch không import m
     assert.doesNotMatch(src, /from\s+["'][^"']*ve-dien-tu/, f);
   }
 });
+
+// ADR-0175 Đ2.6 (kế hoạch vé Tour Đảo Task 8): câu bảo vệ của lô huỷ tách theo mục đích — đối tác: mọi loại vé; Trả sau còn nợ (văn phòng): chỉ vé hãng ngoài.
+test("soanTraVeKhiHuy: chan MOI_VE ⇒ câu bảo vệ mọi vé đứng đầu; HANG_NGOAI ⇒ câu chỉ lô hãng ngoài; null hoặc rút xác nhận ⇒ không câu bảo vệ", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await don(w, { soNguoi: 1 });
+    const nhatKy = (() => ({ sql: "nhat_ky" })) as never;
+    const soan = (chan: "MOI_VE" | "HANG_NGOAI" | null, lyDo: "DON_HUY" | "RUT_XAC_NHAN" = "DON_HUY") =>
+      soanTraVeKhiHuy(w.env.DB, { orderId: d.id, lyDo, by: SALES, at: new Date().toISOString(), homNay: "2027-03-11", chan }, nhatKy) as Promise<unknown[]>;
+    const sqlDau = async (chan: "MOI_VE" | "HANG_NGOAI" | null, lyDo?: "DON_HUY" | "RUT_XAC_NHAN") => String(((await soan(chan, lyDo))[0] as { sql?: string; statement?: string }).sql ?? "");
+    const moi = await sqlDau("MOI_VE");
+    assert.match(moi, /don_da_mo_ve/);
+    assert.doesNotMatch(moi, /HANG_NGOAI/);
+    const hn = await sqlDau("HANG_NGOAI");
+    assert.match(hn, /don_da_mo_ve/);
+    assert.match(hn, /b\.source = 'HANG_NGOAI'/);
+    assert.doesNotMatch(await sqlDau(null), /don_da_mo_ve/);
+    assert.doesNotMatch(await sqlDau("MOI_VE", "RUT_XAC_NHAN"), /don_da_mo_ve/);
+  } finally { tat(); }
+});
