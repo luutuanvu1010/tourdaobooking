@@ -195,14 +195,14 @@ BEGIN SELECT RAISE(ABORT, 'lc1c_partner_needs_role: tài khoản Đối tác ph�
 **Interfaces:**
 - Produces: kiểm `R-LC-1c` (mức `fail`); `CAU_DOC_TAI_KHOAN` (= câu đọc của ADR Đ3 mục 1, nguyên văn), `CAU_DOC_DON` (K11) — hai hằng của `scripts/cau-doc-doi-tac-thieu-vai-tro.mjs`; chạy thẳng tệp thì in hai lệnh `npx wrangler d1 execute tourdao-sales-db --remote --command "…"` chỉ đọc cho chủ (AI không chạy).
 
-- [ ] **Step 1: Bài đỏ** (`audit-invariants.test.ts`, trên `schemaWithoutGuards`):
+- [x] **Step 1: Bài đỏ** (`audit-invariants.test.ts`, trên `schemaWithoutGuards`):
   - `R-LC-1c` mức `fail`; tài khoản giữ PARTNER, hồ sơ chỉ `STAFF` → 1; mở `TRAVEL_AGENCY` → 0; tài khoản ngưng (`active = 0`) → 0; dòng PARTNER đã đóng → 0; vai nhãn đối tác (OTHER, cờ) → 0; `DRIVER_EXTERNAL` → 0 (K5).
   - H4 đối chiếu ba nơi theo hành vi: dựng năm hình dạng trên; với mỗi hình dạng, `R-LC-1c` đếm 1 ⇔ `CAU_DOC_TAI_KHOAN` trả đúng tài khoản đó ⇔ trên CSDL CÓ trigger, chèn PARTNER cho hồ sơ cùng hình dạng thì ném.
   - «dữ liệu khoẻ»: đóng PARTNER của `s-lai` trước khi kiểm (tài khoản lai kiểu cũ đúng là vi phạm R-LC-1c), tên bài giữ nguyên.
-- [ ] **Step 2: Bài đỏ câu đọc đơn + Đổi khách** (`cau-doc-doi-tac-thieu-vai-tro.test.ts`, khung `setup()`): `A` lập đơn khách lẻ, `/status` xác nhận (bản chụp NONE), `UPDATE orders SET staff_id = DT_CU` (dữ liệu cũ) → `CAU_DOC_DON` trả đơn đó; Toàn quyền gán `TRAVEL_AGENCY` cho `DT_CU`; `A` `PUT /api/orders/:id/booker` sang `pty-<DT_CU>` → bản chụp mới mang người hưởng `pty-<DT_CU>`, dòng cũ bị thay; `CAU_DOC_DON` không còn trả đơn đó; `CAU_DOC_TAI_KHOAN` trả `DT_CU` trước khi gán, không trả sau khi gán.
-- [ ] **Step 3:** FAIL → thêm `R-LC-1c` (cùng điều kiện trigger, đọc view, `s.active = 1`, đếm tài khoản) và tệp câu đọc → PASS.
-- [ ] **Step 4: Phép phá H4:** bỏ vế «vai trò do Kế toán thêm» khỏi `R-LC-1c` → bài đối chiếu ĐỎ → hoàn nguyên. Ghi ngày.
-- [ ] **Step 5:** commit «ADR-0185 Task 4: câu kiểm R-LC-1c và câu đọc cho chủ».
+- [x] **Step 2: Bài đỏ câu đọc đơn + Đổi khách** (`cau-doc-doi-tac-thieu-vai-tro.test.ts`, khung `setup()`): `A` lập đơn khách lẻ, `/status` xác nhận (bản chụp NONE), `UPDATE orders SET staff_id = DT_CU` (dữ liệu cũ) → `CAU_DOC_DON` trả đơn đó; Toàn quyền gán `TRAVEL_AGENCY` cho `DT_CU`; `A` `PUT /api/orders/:id/booker` sang `pty-<DT_CU>` → bản chụp mới mang người hưởng `pty-<DT_CU>`, dòng cũ bị thay; `CAU_DOC_DON` không còn trả đơn đó; `CAU_DOC_TAI_KHOAN` trả `DT_CU` trước khi gán, không trả sau khi gán. **Đã làm, lệch có ghi:** dữ liệu cũ dựng bằng `xacNhanDonCu` của khung thử (Task 3: `DT_CU` lập nháp, văn phòng xác nhận thay rồi trả người lập — cùng ý `UPDATE staff_id`); «Đổi khách» do Quản trị bấm vì Bán hàng chỉ đổi được đơn của mình hoặc đơn mình phụ trách (ô `order.trip.edit`). Thêm: đối chứng (nháp chưa xác nhận, đơn khách lẻ của văn phòng không vào danh sách), đơn vẫn trong danh sách sau khi gán vai trò (gán chưa đủ), câu tài khoản so nguyên văn với tệp ADR, chạy tệp in đúng hai lệnh.
+- [x] **Step 3:** FAIL → thêm `R-LC-1c` (cùng điều kiện trigger, đọc view, `s.active = 1`, đếm tài khoản) và tệp câu đọc → PASS. (Đỏ: hai bài «phải có đúng một kiểm R-LC-1c»; xanh: 212/212 bài của hai tệp.)
+- [x] **Step 4: Phép phá H4:** bỏ vế «vai trò do Kế toán thêm» khỏi `R-LC-1c` → bài đối chiếu ĐỎ → hoàn nguyên. Ghi ngày. **Đã làm 8/11 11:01:** bỏ vế ⇒ bài R-LC-1c đỏ «2 !== 1» và bài H4 đỏ ở hình dạng «vai trò do Kế toán thêm»; trả nguyên ⇒ xanh. Phá phụ: bỏ điều kiện «bản chụp hiện hành» khỏi `CAU_DOC_DON` ⇒ ca Đổi khách đỏ.
+- [x] **Step 5:** commit «ADR-0185 Task 4: câu kiểm R-LC-1c và câu đọc cho chủ». (Trước commit: 40 tệp kiểm có dùng danh sách kiểm bất biến hoặc nhắc R-LC-1 — 821 bài, 0 đỏ.)
 
 ### Task 5: Bộ thử toàn luồng (H5)
 

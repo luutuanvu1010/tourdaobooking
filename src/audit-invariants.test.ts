@@ -31,6 +31,8 @@ const { CHECKS, COT_N3_NHAT_KY, demViPham } = (await import(new URL("../scripts/
   COT_N3_NHAT_KY: Record<string, { kiem: string; chuanHoa?: boolean }>;
   demViPham: (c: Check, rows: unknown[]) => number;
 };
+// ADR-0185 Đ3 mục 1: câu đọc NGUYÊN VĂN của chủ — bài R-LC-1c và bài đối chiếu ba nơi (H4) chạy chính hằng này.
+const { CAU_DOC_TAI_KHOAN } = (await import(new URL("../scripts/cau-doc-doi-tac-thieu-vai-tro.mjs", import.meta.url).href)) as { CAU_DOC_TAI_KHOAN: string };
 
 const DIR = new URL("../migrations/", import.meta.url);
 const FILES = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
@@ -132,6 +134,8 @@ test("danh sách kiểm: một nguồn duy nhất (script import scripts/audit-c
 
 test("dữ liệu khoẻ: MỌI kiểm (N1 và dispatch) chạy được trên schema đầy đủ và cho 0 vi phạm — kể cả khi mọi đơn có người phụ trách hợp lệ", () => {
   const db = build();
+  // ADR-0185 Đ3: tài khoản lai kiểu cũ s-lai (giữ Đối tác, hồ sơ không còn vai trò đối tác) ĐÚNG là vi phạm R-LC-1c — dữ liệu khoẻ là dữ liệu đã soát: đóng dòng Đối tác.
+  db.exec("UPDATE stf_permission SET valid_to_at = valid_from_at WHERE staff_id = 's-lai' AND permission_type_code = 'PARTNER'");
   withHandler(db, "pty-s-an", "o-1");
   withHandler(db, "pty-s-admin", "o-2");
   assert.deepEqual(CHECKS.map((c) => [c.code, c.what, violations(db, c)]).filter((r) => r[2] !== 0), []);
@@ -813,6 +817,85 @@ test("R-LC-1b (ADR-0048 B2.2, B2.3): tài khoản giữ Tài xế đối tác k�
   // Dòng quyền ĐÃ ĐÓNG không tính (LC-1b chỉ đếm dòng đang mở — khớp trigger).
   db.prepare("UPDATE stf_permission SET valid_to_at = ? WHERE staff_id = '43' AND permission_type_code = 'PARTNER'").run(T2);
   assert.equal(violations(db, c), 1);
+});
+
+// ---- LC-1c (ADR-0185 Đ2 (a) mục 3, Đ3 — chủ duyệt 2026-11-08). Trigger lc1c (migration 0149) chặn lúc MỞ quyền Đối tác; R-LC-1c là lưới cho dữ liệu cũ, vai trò
+// bị đóng về sau, SQL gõ tay; câu đọc của chủ (scripts/cau-doc-doi-tac-thieu-vai-tro.mjs) là lối soát một lần. Ba nơi một điều kiện (kế hoạch K5) — bài H4 đối chiếu
+// theo HÀNH VI. Hàng rào H4 (docs/SO-HANG-RAO.md): bỏ vế «vai trò do Kế toán thêm» khỏi R-LC-1c ⇒ hai bài dưới ĐỎ.
+/** Mã tài khoản (đã xếp) mà câu đọc của chủ trả về. */
+const cauDocTaiKhoan = (db: DatabaseSync): string[] => (db.prepare(CAU_DOC_TAI_KHOAN).all() as { id: string }[]).map((r) => r.id).sort();
+const NHAN_THU = "NHAN_LC1C"; // vai trò do Kế toán thêm (nhóm OTHER, cờ nhãn đối tác) — chèn thẳng bảng loại vai như src/migrations-lc1c.test.ts
+const themLoaiNhan = (db: DatabaseSync) =>
+  db.prepare("INSERT INTO pty_role_type (code, name, sort_order, role_group, is_partner_label) VALUES (?, 'Loại thử LC-1c', 90, 'OTHER', 1)").run(NHAN_THU);
+
+test("R-LC-1c (ADR-0185 Đ3): tài khoản đang hoạt động giữ Đối tác mà hồ sơ không mở vai nhóm bên ngoài, không mang vai trò do Kế toán thêm → vi phạm (đếm tài khoản); câu đọc của chủ trả đúng các tài khoản đó", () => {
+  const c = one("R-LC-1c");
+  assert.equal(c.level, "fail");
+  const db = schemaWithoutGuards();
+  themLoaiNhan(db);
+  const thay = (n: number, ids: string[], ly: string) => {
+    assert.equal(violations(db, c), n, ly);
+    assert.deepEqual(cauDocTaiKhoan(db), ids, `câu đọc của chủ: ${ly}`);
+  };
+  guardSeed(db, "51", ["STAFF"], ["PARTNER"]);
+  thay(1, ["51"], "hồ sơ chỉ vai STAFF (hình dạng tài khoản kiểu cũ)");
+  guardSeed(db, "52", ["TRAVEL_AGENCY"], ["PARTNER"]);
+  guardSeed(db, "53", [NHAN_THU], ["PARTNER"]);
+  guardSeed(db, "54", ["DRIVER_EXTERNAL"], ["PARTNER"]);
+  thay(1, ["51"], "Công ty lữ hành, vai trò do Kế toán thêm, chỉ Tài xế đối tác (ca lọt có ghi, K5) không tính");
+  guardSeed(db, "55", ["STAFF"], ["PARTNER", "SALES"]);
+  thay(2, ["51", "55"], "tài khoản lai kiểu cũ: MỘT vi phạm dù giữ nhiều quyền");
+  db.prepare("UPDATE staff SET active = 0 WHERE id = '51'").run();
+  thay(1, ["55"], "tài khoản đã ngưng không tính");
+  db.prepare("UPDATE stf_permission SET valid_to_at = ? WHERE staff_id = '55' AND permission_type_code = 'PARTNER'").run(T2);
+  thay(0, [], "dòng Đối tác đã đóng không tính");
+  db.prepare("UPDATE pty_party_role SET valid_to_date = '2026-10-01' WHERE party_id = 'p-52'").run();
+  thay(1, ["52"], "vai trò đối tác bị kết thúc SAU khi mở quyền (trigger chỉ canh lúc mở) — kiểm này bắt");
+});
+
+test("H4 (ADR-0185, kế hoạch K5): trigger lc1c, R-LC-1c và câu đọc của chủ cùng MỘT điều kiện — với mỗi hình dạng hồ sơ: kiểm đếm ⇔ câu đọc trả tài khoản ⇔ CSDL có trigger từ chối mở Đối tác", () => {
+  const HINH: { ten: string; vai: string[]; dongVai?: boolean; khongHoSo?: boolean; viPham: boolean }[] = [
+    { ten: "hồ sơ chỉ vai STAFF (kiểu cũ)", vai: ["STAFF"], viPham: true },
+    { ten: "tài khoản chưa gắn hồ sơ", vai: [], khongHoSo: true, viPham: true },
+    { ten: "vai trò đối tác đã kết thúc", vai: ["TRAVEL_AGENCY"], dongVai: true, viPham: true },
+    { ten: "Công ty lữ hành đang mở", vai: ["TRAVEL_AGENCY"], viPham: false },
+    { ten: "vai trò do Kế toán thêm (nhóm OTHER, cờ nhãn đối tác)", vai: [NHAN_THU], viPham: false },
+    { ten: "chỉ Tài xế đối tác (ca lọt có ghi, K5)", vai: ["DRIVER_EXTERNAL"], viPham: false },
+  ];
+  const khongGac = schemaWithoutGuards();
+  const coGac = new DatabaseSync(":memory:"); // schema đầy đủ, GIỮ mọi trigger
+  coGac.exec("PRAGMA foreign_keys = ON");
+  for (const f of FILES) coGac.exec(sqlText(f));
+  for (const db of [khongGac, coGac]) themLoaiNhan(db);
+  /** Hồ sơ + vai theo hình dạng (đóng vai nếu cần) + tài khoản; CHƯA có quyền nào. */
+  const dung = (db: DatabaseSync, id: string, h: (typeof HINH)[number]) => {
+    db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', ?, 1, ?, ?)").run(`p-${id}`, id, T1, T1);
+    db.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(`p-${id}`, id, T1, T1);
+    h.vai.forEach((v, i) => db.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, NULL, '2026-09-20', ?, ?)").run(`r-${id}-${i}`, `p-${id}`, v, T1, T1));
+    if (h.dongVai) db.prepare("UPDATE pty_party_role SET valid_to_date = '2026-10-01' WHERE party_id = ?").run(`p-${id}`);
+    db.prepare("INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES (?, '', ?, 'x', 'sales', 1, ?, ?)").run(id, `09${id.padStart(8, "0")}`, T1, h.khongHoSo ? null : `p-${id}`);
+  };
+  const moDoiTac = (db: DatabaseSync, id: string) =>
+    db.prepare("INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES (?, ?, 'PARTNER', ?, ?, ?)").run(`g-${id}`, id, T1, T1, T1);
+  let truoc = 0;
+  HINH.forEach((h, i) => {
+    const id = `6${i}`;
+    dung(khongGac, id, h);
+    moDoiTac(khongGac, id);
+    const dem = violations(khongGac, one("R-LC-1c"));
+    const kiemDem = dem - truoc === 1;
+    truoc = dem;
+    const cauDocTra = cauDocTaiKhoan(khongGac).includes(id);
+    dung(coGac, id, h);
+    let triggerChan = false;
+    try {
+      moDoiTac(coGac, id);
+    } catch (e) {
+      assert.match(String(e), /lc1c_partner_needs_role/, `${h.ten}: chặn phải do trigger lc1c`);
+      triggerChan = true;
+    }
+    assert.deepEqual({ kiemDem, cauDocTra, triggerChan }, { kiemDem: h.viPham, cauDocTra: h.viPham, triggerChan: h.viPham }, h.ten);
+  });
 });
 
 test("R-LC-3: một hồ sơ giữ cùng lúc vai nội bộ và vai bên ngoài đang mở → vi phạm", () => {
