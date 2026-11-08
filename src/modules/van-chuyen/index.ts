@@ -41,7 +41,7 @@ import {
 
 // ADR-0049 D1–D3 (Task A13): chuyến xe — hàm hẹp của orders (chỉ gọi trong THÂN route, sau can() — bài src/orders-cong-bo.test.ts), đọc / dựng lô / DTO.
 import { cauThemHanhKhachTaiXe, hanhKhachChoChuyen, kiemHanhKhachTaiXe, lichChungChang, lienHeChoTaiXe } from "../orders";
-import type { CapNhatDiemResponse, CuuHoResponse, HuongDanVienListResponse, CapNhatKhachResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile, TuChoiResponse } from "../../shared/contracts";
+import type { CapNhatDiemResponse, CuuHoResponse, HuongDanVienListResponse, CapNhatKhachResponse, ChoChayThieuDemResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile, TuChoiResponse } from "../../shared/contracts";
 import { kiemTaoSuaChuyen, mocMoKhung, trongKhungXemKhach } from "../../shared/dieu-phoi-kiem";
 import { coSuatChuyenVao, hanTuChoiCuaCap } from "./han-tu-choi-repo";
 import type { KhungTaiXe } from "./tai-xe-dto";
@@ -53,13 +53,13 @@ import { cuuHoTu } from "./cuu-ho";
 import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao, type NenChuyen } from "./dieu-phoi-doc";
 import { CAU_LY_DO_VUOT_LA, dungLichNgay, lenhBaoHuy, lenhBoSungTen, lenhCapNhatDiem, lenhCapNhatKhach, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhThemDiemDangChay, lenhXep } from "./dieu-phoi-lenh";
 import {
-  CAN_DIEU_PHOI, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chanCoVuot, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
+  CAN_DIEU_PHOI, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chanCoVuot, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, demChoChayThieuHomNay, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
   gioKhanCapNhatKy, traLenhLap, vuotLenh, type QuyenVuot, MA_LENH_DUNG_LAI,
 } from "./dieu-phoi-route";
 import { lenhTuChoi } from "./tu-choi";
 import { suKienTheoYeuCau } from "./han-tu-choi-repo";
 import {
-  docBaoHuy, docBoSungTen, docCapNhatDiem, docDieuChinhSuat, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docThemDiem, docThuHoiXuatBen,
+  docBaoHuy, docBoSungTen, docChoChayThieu, docCapNhatDiem, docDieuChinhSuat, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docThemDiem, docThuHoiXuatBen,
   docTienDo, docXep, docTuChoi, requestIdLong,
 } from "./dieu-phoi-than";
 // Task A15: lệnh tiến độ — MỘT hàm mỗi lệnh cho cả route tài xế lẫn route văn phòng bấm thay (R-P1).
@@ -67,7 +67,7 @@ import {
   lenhDaDon, lenhDaToi, lenhDaTra, lenhDoiThuTu, lenhKetThuc, lenhKetThucGianDoan, lenhKhachHuy, lenhVang, lenhXuatBen, type NguoiBam,
 } from "./dieu-phoi-tien-do";
 // ADR-0097 (gói A1, V3-B): hai lệnh điều chỉnh CHỈ văn phòng — tệp riêng (không phải cặp route tiến độ).
-import { lenhDieuChinhSuat, lenhThuHoiXuatBen } from "./dieu-phoi-dieu-chinh";
+import { lenhChoChayThieu, lenhDieuChinhSuat, lenhThuHoiXuatBen } from "./dieu-phoi-dieu-chinh";
 import type { GoiBaoChangDto, LyDoDangDungDto, NhacGoiKhachResponse } from "../../shared/contracts";
 // Mẫu đưa đón theo dịch vụ (ADR-0054 D10.1; ADR nháp nơi trả mặc định — kế hoạch 2026-10-01-may-chu-o-moi-chang Task 6, 7).
 import type { MauChangBanDto, MauChangFormResponse, MauChangLichSuResponse } from "../../shared/contracts";
@@ -161,6 +161,7 @@ async function phanHoiGui(db: D1Database, b: GuiThan, bayGioMs: number): Promise
 }
 const CAN_XEM_XE_DON = () => error(403, "forbidden", "Tài khoản này không xem được xe đón khách của đơn.");
 const CAN_XEM_CUOC = () => error(403, "forbidden", "Tài khoản này không có cuốc xe.");
+const CAN_CHO_CHAY_THIEU = () => error(403, "forbidden", "Tài khoản này không cho chạy dù thiếu giấy tờ được.");
 const CAN_BAM_THAY = () => error(403, "forbidden", "Tài khoản này không bấm thay tiến độ chuyến được.");
 /** `assigned` của route tài xế (kế hoạch mục 1.2): người gọi có hồ sơ và là tài xế ĐANG MỞ dòng lái của chuyến. */
 const dangLai = (nen: NenChuyen | null, staff: StaffProfile): boolean => nen !== null && staff.partyId !== null && nen.trip.driver_party_id === staff.partyId;
@@ -1069,6 +1070,12 @@ export const vanChuyenModule: AppModule = {
         ownerCompany: congTy ? { partyId: congTy.partyId, name: congTy.displayName } : null,
         carriers: nhaXe.map((c) => ({ partyId: c.partyId, name: c.displayName, kind: c.kind, vehicleCount: soXe.get(c.partyId) ?? 0, driverCount: c.driverCount })),
       } satisfies CarrierListResponse);
+    }),
+
+    // ADR-0184 — số cho thẻ Trang chủ «Xe thiếu giấy tờ — đã cho chạy»: chuyến hôm nay chưa kết thúc mà nhãn vàng đang hiện. Chỉ ô `trip.override`; không tên, không số giấy.
+    route("GET", "/api/van-chuyen/cho-chay-thieu/dem", "office", async ({ env, staff }) => {
+      if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();
+      return json({ count: await demChoChayThieuHomNay(env.DB, Date.now()) } satisfies ChoChayThieuDemResponse);
     }),
 
     route("GET", "/api/van-chuyen/sap-het-han", "office", async ({ env, staff }) => {
@@ -2352,6 +2359,29 @@ export const vanChuyenModule: AppModule = {
         const r = await lenhThuHoiXuatBen(env.DB, nen, b, nguoiBamVanPhong(staff, nen), bayGioMs);
         if (r) return r;
         baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0097 Đ5
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      const body = (await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, false, nhanNhanVien, quyenGoiBaoCua(staff, giaoChoGoiBao(isAssigned, isSalesOwner)), bayGioMs, can(staff, "trip.dispatch"))) satisfies ChuyenChiTietResponse;
+      return json(body, lap ? 200 : 201, { location: `/chuyen?id=${nen2.trip.id}` });
+    }),
+    // ADR-0184: «Cho chạy dù thiếu giấy tờ» — ô đầu `trip.override` (Quản trị, Toàn quyền); ô `trip.override.giay_to_cung` (chỉ Toàn quyền) hỏi tiếp ở lệnh cho Kiểm định /
+    // Bảo hiểm và cho bỏ trống lý do. Chuyến chưa chạy; báo tài xế đang được giao chuyến (chủ quyết 2026-11-08, QT1).
+    route("POST", "/api/van-chuyen/chuyen/:id/cho-chay-thieu-giay", "office", async ({ env, request, params, staff, nhanNhanVien, isAssigned, isSalesOwner, baoThayDoiChuyen }) => {
+      if (!can(staff, "trip.override")) return CAN_CHO_CHAY_THIEU();
+      const than = docChoChayThieu(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const b = than.value;
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      const lap = await traLenhLap(env.DB, b.requestId, { tripId: nen.trip.id, loai: ["DOCS_WAIVED"] });
+      if (lap instanceof Response) return lap;
+      if (!lap) {
+        const r = await lenhChoChayThieu(env.DB, nen, b, nguoiBamVanPhong(staff, nen), bayGioMs, can(staff, "trip.override.giay_to_cung"));
+        if (r) return r;
+        baoThayDoiChuyen({ tripId: nen.trip.id, requestId: b.requestId }); // ADR-0184 (chủ quyết 2026-11-08): tin cho tài xế đang được giao chuyến (tin-chuyen.ts)
       }
       const nen2 = (await docNen(env.DB, nen.trip.id))!;
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);

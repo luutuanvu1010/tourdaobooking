@@ -124,7 +124,7 @@ test("cauConKhach: 409 con_khach_chua_xong → câu có số + gợi ý 'Kết t
 test("nhomCuoc: 'Hôm nay' + 'Ngày mai' + 'Ngày kia' (luôn có ba nhóm, trống vẫn hiện — góp ý T3), theo giờ xuất bến; thẻ: số điểm đón / trả, trạng thái, điều kiện còn thiếu '(văn phòng lo)'", () => {
   const it = (id: string, ngay: string, gio: string, x: Partial<{ trangThai: string; dieuKienConThieu: { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" }[] }> = {}) => ({
     id, ma: `CX-${id}`, gioXuatBen: { ngay, gio }, trangThai: (x.trangThai ?? "PLANNED") as "PLANNED", trangThaiNhan: "Đã lên kế hoạch", bienSo: "79B-123.45", soKhach: 9, soDiemDon: 2, soDiemTra: 1,
-    dieuKienConThieu: x.dieuKienConThieu ?? [],
+    dieuKienConThieu: x.dieuKienConThieu ?? [], choChayThieu: [] as { ten: string }[],
   });
   const g = nhomCuoc([it("b", "2026-09-30", "09:00", { dieuKienConThieu: [{ ma: "THIEU_TEN", loiNhan: "Chưa đủ tên khách: TD-1 thiếu 2 tên", aiXuLy: "VAN_PHONG" }] }), it("a", "2026-09-30", "06:40", { trangThai: "RUNNING" })], "2026-09-30");
   assert.deepEqual(g.map((x) => [x.tieuDe, x.ngay, x.the.length]), [["Hôm nay", "Thứ Tư 30/09", 2], ["Ngày mai", "Thứ Năm 01/10", 0], ["Ngày kia", "Thứ Sáu 02/10", 0]]);
@@ -147,7 +147,7 @@ test("nhomCuoc: 'Hôm nay' + 'Ngày mai' + 'Ngày kia' (luôn có ba nhóm, tr�
 test("nhomCuoc HT-24 (kiểm theo vai 2/10): chuyến ĐANG CHẠY có ngày xuất bến khác ba ngày đang xem (qua nửa đêm, hoặc xuất bến sớm) vẫn vào 'Hôm nay', đứng ĐẦU, kèm nhãn 'Xuất bến dd/mm'", () => {
   const it = (id: string, ngay: string, gio: string, trangThai = "PLANNED") => ({
     id, ma: `CX-${id}`, gioXuatBen: { ngay, gio }, trangThai: trangThai as "PLANNED", trangThaiNhan: "Đã lên kế hoạch", bienSo: "79B-123.45", soKhach: 2, soDiemDon: 1, soDiemTra: 1,
-    dieuKienConThieu: [],
+    dieuKienConThieu: [], choChayThieu: [] as { ten: string }[],
   });
   // Tái hiện của báo cáo: CX-0210-03 ngày chạy 02/10 23:40, đang chạy; mở /cuoc lúc 00:01 ngày 03/10.
   const g = nhomCuoc([it("x", "2026-10-02", "23:40", "RUNNING")], "2026-10-03");
@@ -304,4 +304,12 @@ test("soKhachTaiDiem: «Khách i» theo điểm lên — thứ tự máy chủ g
   const kem: SuatVao = { id: "k2", loai: "CREW", diemLen: "d1", diemXuong: null, trangThai: "WAITING", daDon: null, daTra: null };
   const khongDiem: SuatVao = { ...s("n0", "d1", "d3", "WAITING"), diemLen: null };
   assert.deepEqual([...soKhachTaiDiem([kem, khongDiem, s("a8", "d1", "d3", "WAITING")])], [["a8", 1]], "người đi kèm có điểm lên, khách không có điểm lên: không lấy số, không đẩy số của khách khác");
+});
+
+// ADR-0184 việc 5: thẻ cuốc của tài xế có nhãn vàng khi chuyến được cho chạy dù thiếu giấy tờ; chuyến thường không có khoá.
+test("nhomCuoc: nhãn vàng «Xe thiếu … — đã cho chạy» chỉ khi có loại giấy được cho chạy (chỉ tên loại)", () => {
+  const c = { id: "a", ma: "CX-a", gioXuatBen: { ngay: "2026-09-30", gio: "06:40" }, trangThai: "PLANNED" as const, trangThaiNhan: "Đã lên kế hoạch", bienSo: "79B-123.45", soKhach: 1, soDiemDon: 1, soDiemTra: 1, dieuKienConThieu: [] };
+  const the = (choChayThieu: { ten: string }[]) => nhomCuoc([{ ...c, choChayThieu }], "2026-09-30")[0]!.the[0]!;
+  assert.equal(the([{ ten: "Đăng ký xe" }, { ten: "Bảo hiểm" }]).nhanVang, "Xe thiếu Đăng ký xe, Bảo hiểm — đã cho chạy");
+  assert.equal("nhanVang" in the([]), false);
 });

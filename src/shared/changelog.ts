@@ -17,12 +17,25 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // ADR-0185 (chủ duyệt 8/11: Đ1 a, Đ2 a, Đ3): chặn đơn của tài khoản Đối tác chưa gán vai trò (T-01). Migration 0149. Ngày đặt lại ở bước A.0 của lần triển khai.
-    version: "2.77",
+    // ADR-0185 (chủ duyệt 8/11: Đ1 a, Đ2 a, Đ3): chặn đơn của tài khoản Đối tác chưa gán vai trò (T-01). Migration 0149. Ngày đặt lại ở bước A.0 của lần triển khai; đổi số 2.77 → 2.78 khi gộp ADR-0184 (nhập và triển khai trước, giữ 2.77).
+    version: "2.78",
     date: "2026-11-08",
     items: [
       { kind: "doi", text: "Tài khoản Đối tác chưa được gán vai trò đối tác vẫn lập và lưu nháp được, nhưng chưa Gửi đơn được; trang lập đơn có dải vàng báo trước." },
       { kind: "doi", text: "Tài khoản Đối tác, Tài xế đối tác chỉ tạo được bằng cách chọn vai trò ở màn Quản lý tài khoản, không qua khối «Quyền cũ»." },
+    ],
+  },
+  {
+    // ADR-0184 (chủ duyệt 7/11, chọn chữ 7–8/11): cho chạy dù thiếu giấy tờ xe, kèm nhãn vàng. Migration 0147. Bước A.0 ngày 8/11; đổi số 2.76 → 2.77 khi gộp ADR-0187 (nhập trước, giữ 2.76).
+    version: "2.77",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Quản trị và Toàn quyền nay cho chạy được một lần chuyến có xe thiếu hoặc hết hạn giấy tờ: bấm «Cho chạy dù thiếu giấy tờ» ở chi tiết chuyến." },
+      { kind: "moi", text: "Riêng Kiểm định và Bảo hiểm thì chỉ Toàn quyền cho chạy được. Mỗi lần cho phép chỉ dùng cho đúng chuyến và đúng xe đó." },
+      { kind: "moi", text: "Chuyến được cho chạy mang nhãn vàng «Xe thiếu … — đã cho chạy» ở chi tiết chuyến, Điều phối xe và cuốc của tài xế; tài xế nhận tin báo." },
+      { kind: "moi", text: "Văn phòng xem được lý do và ghi chú của lần cho chạy ngay dưới nhãn vàng ở chi tiết chuyến." },
+      { kind: "moi", text: "Trang chủ của Quản trị và Toàn quyền có thẻ «Xe thiếu giấy tờ — đã cho chạy», đếm số chuyến hôm nay chưa kết thúc đã được cho chạy dù thiếu giấy tờ." },
+      { kind: "doi", text: "Xe thiếu Kiểm định hoặc Bảo hiểm thì dòng «Ai xử lý» ghi «Quản trị, Toàn quyền»." },
     ],
   },
   {

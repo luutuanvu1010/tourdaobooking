@@ -70,7 +70,9 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // ở docs/superpowers/plans/2026-09-29-adr-0049-de-xuat-luat.md mục 1.
   // + ky-so (ADR-0080 D1, sổ đại lý đợt 1): tháng đã khoá cho ngày ghi đảo và trigger `vc_trip_cost_line_period_closed` (đọc view v_ky_closed_period).
   // NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
-  "van-chuyen": ["parties", "audit", "orders", "locations", "ky-so"],
+  // + staff (ADR-0184, việc 1/7): trigger `vc_trip_departure_waiver_*` đọc view v_stf_toan_quyen để biết người cho chạy thiếu giấy tờ có phải Toàn quyền. CHỈ trigger, không import mã.
+  // NỚI hàng rào đã duyệt (Điều 9.4) — chủ dự án duyệt 2026-11-08 (tờ duyệt ADR-0184, trả lời «Duyệt hết»).
+  "van-chuyen": ["parties", "audit", "orders", "locations", "ky-so", "staff"],
   // ADR-0066: trợ lý Hỗ trợ (kho tri thức là tệp thuần ở src/shared/). ADR-0069 (accepted 2026-09-30) kéo theo hai cạnh: `audit` — ghi `tro_ly_settings_changed`
   // cùng lô với bản cài đặt mới (điều 5: "ai đổi lúc nào", không nội dung); `staff` — CHỈ ở tầng SQL, tên người hỏi / người lưu qua view công bố
   // v_stf_staff_label (điều 5: lịch sử "ai hỏi"; mẫu `feedback`). Không module nào import tro-ly. NỚI cạnh (Điều 9.4): ĐÃ DUYỆT 2026-09-30 (chủ chọn 'Đồng ý cả hai' sau báo cáo kiểm độc lập ADR-0069).
@@ -1103,6 +1105,7 @@ test("ADR-0127 (siết, R3): không tệp nào dưới src/modules/feedback/** (
 const VIEW_CHO_TRIGGER_VC = [
   "v_ord_leg_key", "v_ord_order_flag", "v_ord_passenger_key", "v_ord_passenger_row", "v_pty_carrier_driver", "v_pty_carrier", "v_pty_owner_company",
   "v_ky_closed_period",
+  "v_stf_toan_quyen", // ADR-0184 (nới Điều 9.4, chủ dự án duyệt 2026-11-08): trigger dòng cho phép chạy thiếu giấy tờ xét Toàn quyền thật của người ghi
 ] as const;
 /** Tên bảng / view (khác `vc_*` và khác tám view đã liệt kê ở VIEW_CHO_TRIGGER_VC) xuất hiện trong thân một trigger — câu báo trong dấu nháy đơn bỏ qua. */
 function triggerDocNgoai(sql: string, objects: readonly string[]): string[] {
@@ -1353,4 +1356,43 @@ test("ADR-0024 điều 5: thân MỌI trigger của schema chỉ đọc bảng c
   assert.ok(trig.length >= 130, `chống bài rỗng: phải có ≥ 130 trigger (0001–0043 có 135), thấy ${trig.length}`);
   const problems = trig.flatMap((t) => triggerBodyViolations(tb, t.name, t.sql));
   assert.deepEqual(problems, [], "trigger chỉ đọc bảng của module mình hoặc view công bố của module được phép phụ thuộc (ADR-0024 điều 5)");
+});
+
+test("ADR-0184 (siết bù cho cạnh van-chuyen → staff, chủ dự án duyệt 2026-11-08): mã TS của van-chuyen không import module staff và không chuỗi SQL nào nhắc view v_stf_ — cạnh chỉ để TRIGGER 0147 đọc v_stf_toan_quyen", () => {
+  const dir = join(SRC, "modules", "van-chuyen");
+  const tep = readdirSync(dir).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
+  assert.ok(tep.length >= 10, `chống bài rỗng: thấy ${tep.length} tệp mã`);
+  const sai: string[] = [];
+  for (const f of tep) {
+    const ma = maskSource(readFileSync(join(dir, f), "utf8"), { strings: false, comments: true });
+    ma.split("\n").forEach((dong, i) => {
+      if (/\bfrom\s+["'](?:\.\.\/)+(?:modules\/)?staff(?:\/[^"']*)?["']/.test(dong) || /\bimport\s*\(\s*["'](?:\.\.\/)+(?:modules\/)?staff/.test(dong)) sai.push(`${f}:${i + 1}: nhập module staff`);
+      if (/\bv_stf_/.test(dong)) sai.push(`${f}:${i + 1}: nhắc view v_stf_*`);
+    });
+  }
+  assert.deepEqual(sai, [], "van-chuyen chỉ được đọc staff ở tầng trigger (migration), không ở mã TS / SQL của module");
+});
+
+test("ADR-0184 (đợt sửa 1, N): mọi lời gọi `can(` trong mã (không phải bài) của src/modules/** nhận ô là CHUỖI viết thẳng — không biến, không hằng, không ghép chuỗi (bài hàng rào «mỗi ô phải được máy chủ hỏi» đếm theo chuỗi)", () => {
+  const ds = (d: string): string[] => readdirSync(d).flatMap((f) => { const p = join(d, f); return statSync(p).isDirectory() ? ds(p) : p.endsWith(".ts") && !p.endsWith(".test.ts") ? [p] : []; });
+  const sai: string[] = [];
+  let tong = 0;
+  for (const p of ds(join(SRC, "modules"))) {
+    const ma = maskSource(readFileSync(p, "utf8"), { strings: false, comments: true });
+    for (const m of ma.matchAll(/(?<![\w.$])can\(/g)) {
+      tong++;
+      let sau = 0;
+      let dau = -1;
+      for (let i = m.index! + m[0].length; i < ma.length; i++) {
+        const c = ma[i]!;
+        if ("([{".includes(c)) sau++;
+        else if (")]}".includes(c)) { if (sau === 0) break; sau--; }
+        else if (c === "," && sau === 0) { dau = i; break; }
+      }
+      const sauPhay = dau < 0 ? "" : ma.slice(dau + 1).trimStart();
+      if (!/^"[^"\n]*"\s*[,)]/.test(sauPhay)) sai.push(`${relative(ROOT, p)}:${ma.slice(0, m.index).split("\n").length}: ${ma.slice(m.index, m.index! + 80).replace(/\n/g, " ")}`);
+    }
+  }
+  assert.ok(tong >= 400, `chống bài rỗng: thấy ${tong} lời gọi can(`);
+  assert.deepEqual(sai, [], "ô viết thẳng ở mọi lời gọi can( của mã module");
 });

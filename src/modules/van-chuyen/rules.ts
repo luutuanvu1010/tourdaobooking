@@ -156,11 +156,18 @@ export const CAU_CHAN_TU_CHOI_KHACH_CHUYEN_VAO = "Chuyến này đang có khách
 export const CAU_GIO_HEN_VUA_DOI = "Giờ hẹn vừa đổi hoặc đã có người báo — tải lại.";
 /** ADR-0097 Đ3.2: thu hồi xuất bến khi chuyến đã có tiến độ (lớp CSDL — trigger vc_trip_revoke_no_progress). */
 export const CAU_THU_HOI_DA_CO_TIEN_DO = "Chuyến vừa có tiến độ sau lúc xe chạy nên không thu hồi được — tải lại, rồi sửa từng khách bằng \"Điều chỉnh…\" hoặc \"Kết thúc gián đoạn\".";
+/** ADR-0184: lớp CSDL của «Cho chạy dù thiếu giấy tờ» (trigger waiver_* ở 0147) — câu của từng lỗi; lớp máy chủ (`lenhChoChayThieu`) đã kiểm trước. */
+export const CAU_CHI_TOAN_QUYEN_GIAY_TO = "Thiếu Kiểm định hoặc Bảo hiểm chỉ Toàn quyền cho chạy được.";
 export function loiRangBuocChuyen(message: string): { status: number; code: string; message: string } | null {
   // ADR-0096 (0084): trigger cổng xuất bến LC-19 / LC-20 — lớp máy chủ (`kiemXuatBen`) đã kiểm trước; tới đây là dữ liệu đổi giữa lúc đọc và lúc ghi → câu
   // của đúng lý do giữ (không câu chung), đường khắc phục đi kèm.
   if (/\blc19_/.test(message)) return { status: 409, code: "trip_rule", message: `${MA_GIU.TRA_TRUOC_DON.loiNhan}.` };
   if (/\blc20_/.test(message)) return { status: 409, code: "trip_rule", message: `${MA_GIU.NGOAI_CUA_SO_XUAT_BEN.loiNhan}. Xe thật sự chạy sớm thì văn phòng sửa giờ chuyến.` };
+  // ADR-0184 (0147): dòng cho phép chạy thiếu giấy tờ. Chuyến / xe vừa đổi giữa lúc đọc và lúc ghi → câu chung "tải lại"; lý do, quyền: câu riêng.
+  if (/\bwaiver_toan_quyen_only:/.test(message)) return { status: 403, code: "forbidden", message: CAU_CHI_TOAN_QUYEN_GIAY_TO };
+  if (/\bwaiver_reason_required:/.test(message)) return { status: 400, code: "invalid_input", message: "Chọn lý do cho chạy dù thiếu giấy tờ." };
+  if (/\bwaiver_reason_group:/.test(message)) return { status: 400, code: "invalid_input", message: "Lý do không có trong danh mục lý do cho chạy dù thiếu giấy tờ." };
+  if (/\b(waiver_(trip_not_planned|vehicle_mismatch|da_dung|item_kind)|lc05_thieu_giay_chua_cho_phep):/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
   // ADR-0097 (0085): sự kiện điều chỉnh — lớp máy chủ (`lenhThuHoiXuatBen`, `lenhDieuChinh`) đã kiểm trước; tới đây là chuyến vừa có tiến độ giữa lúc đọc và lúc
   // ghi (câu chỉ đường riêng) hoặc lô sai hình (câu chung "tải lại").
   if (/\bdc_revoke_progress:/.test(message)) return { status: 409, code: "trip_rule", message: CAU_THU_HOI_DA_CO_TIEN_DO };
