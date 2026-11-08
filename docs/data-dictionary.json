@@ -503,6 +503,12 @@
       "kind": "lookup"
     },
     {
+      "name": "stf_thanh_duoi",
+      "module": "staff",
+      "kind": "table",
+      "note": "ADR-0187 Đ2.3 (migration 0153): nút thanh dưới điện thoại người dùng tự chọn — một dòng mỗi tài khoản, ghi đè tại chỗ (sở thích hiển thị, không phải quyền; lịch sử ở nhật ký bottom_tabs_changed). trang = khoá trang cách nhau dấu phẩy theo thứ tự chọn, tối đa 4 (nút Tôi luôn có, không lưu); rỗng = về mặc định. Khoá hợp lệ và quyền mở trang kiểm ở mã (ghimDuoc của src/shared/muc-giao-dien.ts), lọc lại lúc vẽ."
+    },
+    {
       "name": "gd_setting",
       "module": "giao-dien",
       "kind": "table"
@@ -1758,6 +1764,7 @@
     "stf_permission": { "id": "N1", "staff_id": "N1", "permission_type_code": "N1", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "stf_permission_adjustment": { "id": "N1", "staff_id": "N1", "permission_type_code": "N1", "direction": "N1", "reason": "N2", "valid_from_at": "N1", "valid_to_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "stf_permission_type": { "code": "N1", "name": "N1", "description": "N1", "sort_order": "N1", "active": "N1" },
+    "stf_thanh_duoi": { "staff_id": "N1", "trang": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "tl_bo_nao": { "id": "N1", "mau": "N1", "muc_suy_nghi": "N1", "do_dai": "N1", "token_ra_toi_da": "N1", "loi_nhac": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "tl_cai_dat": { "id": "N1", "bat": "N1", "tran_thang_micro_usd": "N1", "tran_ngay": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "tl_hoi_dap": { "id": "N1", "luot_id": "N1", "staff_id": "N1", "vai": "N1", "ngay_vn": "N1", "cau_hoi": "N2", "tra_loi": "N2", "nguon": "N1", "chi_phi_micro_usd": "N1", "ket_qua": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "cuoc_tro_chuyen": "N1" },

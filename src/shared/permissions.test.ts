@@ -109,6 +109,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "party.self.submit": ["own", "own", "own", "own", "own", "any", "own", "own", "own", "own", "own"], // ADR-0124 đ1, đ3, đ4: gửi / rút phiếu tự khai, đồng ý / rút đồng ý chính sách — của chính mình
   "party.privacy.policy": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0126 đ1: đăng chính sách riêng tư — chỉ Toàn quyền
   "party.erasure.request": ["own", "own", "own", "own", "own", "any", "own", "own", "own", "own", "own"], // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5): gửi / rút yêu cầu xoá dữ liệu của CHÍNH MÌNH — mọi tài khoản (kể cả Tài xế đối tác, Nhân sự)
+  "me.favorites.write": ["own", "own", "own", "own", "own", "any", "own", "own", "none", "own", "own"], // ADR-0187 Đ2.3: tự chọn nút thanh dưới của CHÍNH MÌNH — mọi mã quyền trừ Tài xế đối tác (chủ 8/11: chỉ hai trang, không chọn)
   "party.erasure.process": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0126 đ2 (lát H-5): xử lý phiếu yêu cầu xoá dữ liệu — Quản trị, Toàn quyền (còn hỏi cấp bậc ở route)
   "party.verify": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "none"], // ADR-0125 đ1, đ2 (lát H-4): hàng chờ xác minh phiếu tự khai — Quản trị, Toàn quyền, Nhân sự (HR vẫn party.view = none)
   "party.verify.attachment": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "none"], // ADR-0125 đ1: xem đủ số của phiếu ĐANG CHỜ — nhật ký trước, không số trong nhật ký
@@ -324,6 +325,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "party.attachment.view", // ADR-0124 đ4: mở ảnh giấy tờ chỉ Toàn quyền — Quản trị ghi giấy tờ nhưng không mở ảnh (ruling Q1 kế hoạch H-2 kho tệp)
   "party.self.view", "party.self.submit", // ADR-0124 đ4: ô `own` — Quản trị chỉ hồ sơ của chính mình (ngữ cảnh ownerId người khác → không)
   "party.erasure.request", // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5): ô `own` — gửi / rút yêu cầu xoá dữ liệu của chính mình
+  "me.favorites.write", // ADR-0187 Đ2.3: ô `own` — chỉ nút thanh dưới của chính mình
   "party.privacy.policy", // ADR-0126 đ1: đăng chính sách riêng tư chỉ Toàn quyền
   "trip.passenger.add", // ADR-0052 D5b (Đợt 5 A-1b): chỉ tài xế đang lái bổ sung tên — văn phòng nhập tên ở đơn (không route văn phòng)
   "trip.refuse", // ADR-0053 D8.3 (kế hoạch A4 T3): Từ chối chuyến chỉ tài xế đang lái — văn phòng không từ chối thay (đổi người bằng xếp xe; N-TU-CHOI)
@@ -418,6 +420,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "party.self.view": "own", "party.self.submit": "own", // ADR-0124 đ4 (lát H-3): ngoại lệ có tên — hồ sơ của CHÍNH MÌNH, như mọi tài khoản
     "party.privacy.policy": "none", // ADR-0126 đ1
     "party.erasure.request": "own", // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5): ngoại lệ có tên — yêu cầu xoá dữ liệu của CHÍNH MÌNH, như mọi tài khoản
+    "me.favorites.write": "own", // ADR-0187 Đ2.3: tài xế công ty tự chọn nút thanh dưới của chính mình
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): xử lý phiếu xoá dữ liệu của người khác — không
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
@@ -478,6 +481,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "party.self.view": "own", "party.self.submit": "own", // ADR-0124 đ4 (lát H-3): ngoại lệ có tên — hồ sơ của CHÍNH MÌNH, như mọi tài khoản
     "party.privacy.policy": "none", // ADR-0126 đ1
     "party.erasure.request": "own", // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5): ngoại lệ có tên — yêu cầu xoá dữ liệu của CHÍNH MÌNH, như mọi tài khoản
+    "me.favorites.write": "none", // ADR-0187 Đ2.3: chủ 8/11 — tài xế đối tác chỉ có hai trang, không tự chọn nút thanh dưới
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): xử lý phiếu xoá dữ liệu của người khác — không
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
@@ -546,6 +550,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "party.self.view": "own", "party.self.submit": "own", // ADR-0124 đ4 (lát H-3): ngoại lệ có tên — hồ sơ của CHÍNH MÌNH, như mọi tài khoản
     "party.privacy.policy": "none", // ADR-0126 đ1
     "party.erasure.request": "own", // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5): ngoại lệ có tên — yêu cầu xoá dữ liệu của CHÍNH MÌNH, như mọi tài khoản
+    "me.favorites.write": "own", // ADR-0187 Đ2.3: tự chọn nút thanh dưới của chính mình, như mọi tài khoản nội bộ
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): Nhân sự không xử lý phiếu xoá — chỉ Quản trị, Toàn quyền
     "party.verify": "any", "party.verify.attachment": "any", // ADR-0125 đ1
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
@@ -852,4 +857,19 @@ test("(i) ADR-0152 Đ6: catalog.attribute.assign ≠ none ⇒ sales.block.write 
     if (MATRIX["catalog.attribute.assign"][p] !== "none") assert.notEqual(MATRIX["sales.block.write"][p], "none", `${p}: catalog.attribute.assign ${MATRIX["catalog.attribute.assign"][p]} mà sales.block.write = none`);
   assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["catalog.attribute.assign"][p] !== "none"), ["SALES", "ADMIN", "SUPER_ADMIN"]);
   for (const p of ["SALES", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(MATRIX["catalog.attribute.assign"][p], "any", p);
+});
+
+test("ADR-0187 Đ2.3: me.favorites.write — chính mình với mọi tập quyền có ít nhất một mã khác Tài xế đối tác; người khác chỉ Toàn quyền; trên cả 2048 tập con", () => {
+  assert.deepEqual(MATRIX["me.favorites.write"], { SALES: "own", ACCOUNTING: "own", ADMIN: "own", FIELD: "own", PARTNER: "own", SUPER_ADMIN: "any", INTERN: "own", DRIVER: "own", DRIVER_PARTNER: "none", HR: "own", SALES_MANAGER: "own" });
+  let count = 0;
+  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
+    const permissions = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    const who = { id: "u1", permissions };
+    const coSup = permissions.includes("SUPER_ADMIN");
+    const ten = permissions.join("+") || "(không quyền)";
+    assert.equal(can(who, "me.favorites.write", { ownerId: "u1" }), permissions.some((p) => p !== "DRIVER_PARTNER"), `chính mình: ${ten}`);
+    assert.equal(can(who, "me.favorites.write", { ownerId: "u2" }), coSup, `người khác: ${ten}`);
+    count++;
+  }
+  assert.equal(count, 2048);
 });

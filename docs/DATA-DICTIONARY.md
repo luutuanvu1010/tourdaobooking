@@ -225,6 +225,7 @@
 | `stf_permission` | bảng |  |
 | `stf_permission_adjustment` | bảng |  |
 | `stf_permission_type` | bảng tra cứu |  |
+| `stf_thanh_duoi` | bảng | ADR-0187 Đ2.3 (migration 0153): nút thanh dưới điện thoại người dùng tự chọn — một dòng mỗi tài khoản, ghi đè tại chỗ (sở thích hiển thị, không phải quyền; lịch sử ở nhật ký bottom_tabs_changed). trang = khoá trang cách nhau dấu phẩy theo thứ tự chọn, tối đa 4 (nút Tôi luôn có, không lưu); rỗng = về mặc định. Khoá hợp lệ và quyền mở trang kiểm ở mã (ghimDuoc của src/shared/muc-giao-dien.ts), lọc lại lúc vẽ. |
 | `v_stf_staff_label` | view công bố | cột: id, label, active, party_id |
 | `v_stf_toan_quyen` | view công bố | cột: staff_id |
 | `v_stf_quyen_mo` | view công bố | cột: staff_id, permission_code |

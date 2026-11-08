@@ -80,7 +80,7 @@ export const LICH_SU_NOI_BO_AN = [
   // ADR-0172, ADR-0173: mức tối đa, số gợi ý, ân hạn đơn, tin nhắc — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại; trang Nhật ký (Toàn quyền) vẫn đọc được.
   "partner_channel_set", "credit_ceiling_set", "credit_tier_default_set", "credit_due_extended", "credit_due_soon_reminded", "credit_overdue_reminded", "ledger_period_closed", "ledger_receipt_collector_changed", "ledger_duplicate_overridden", "attribution_requested", "attribution_ruled", "attribution_posted", "attribution_reassigned", "attribution_reversed", "attribution_responded", /* ADR-0116, ADR-0092 Đ6a: chi tiết có lý do, số tiền; chưa có trong bản chủ duyệt nên ẩn */ "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed",
   "passkey_added", "passkey_removed", "pin_set_by_passkey", "login_unlocked", "staff_synced", "permission_changed", "account_roles_changed",
-  "session_policy_changed", "session_revoked", "acting_role_set", "acting_role_cleared", "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened",
+  "session_policy_changed", "session_revoked", "acting_role_set", "acting_role_cleared", "bottom_tabs_changed", "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened",
   "mfa_exception_set", "party_created", "party_updated", "party_contact_changed", "party_role_added", "party_role_ended", "party_relationship_changed",
   "party_merged", "party_document_added", "party_document_renewed", "party_document_corrected", "party_document_number_viewed",
   "party_document_catalog_changed", "party_bank_account_changed", "party_attachment_added", "party_attachment_viewed", "party_attachment_purged",

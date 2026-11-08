@@ -59,7 +59,7 @@ const MODULES: readonly [string, string][] = [
   ["locations", "locationsModule"], ["maintenance", "maintenanceModule"], ["orders", "ordersModule"], ["parties", "partiesModule"], ["pricing", "pricingModule"],
   ["receipt", "receiptModule"], ["thongbao", "thongbaoModule"], ["van-chuyen", "vanChuyenModule"], ["tro-ly", "troLyModule"], ["ve-dien-tu", "veDienTuModule"],
 ];
-const SO_ROUTE = 473; // = số khoá ở route-access.test.ts (SNAPSHOT). ADR-0174: +2 GET, POST /api/catalog/co-ve; ADR-0184: +1 GET /api/van-chuyen/cho-chay-thieu/dem (đọc, office); ADR-0187 Đ3 mức (a): +3 route /api/ledger/tu-ghi*; gộp hai nhánh 8/11 = 471
+const SO_ROUTE = 474; // = số khoá ở route-access.test.ts (SNAPSHOT). ADR-0187 Đ2.3: +1 PUT /api/account/thanh-duoi; ADR-0174: +2 GET, POST /api/catalog/co-ve; ADR-0184: +1 GET /api/van-chuyen/cho-chay-thieu/dem (đọc, office); ADR-0187 Đ3 mức (a): +3 route /api/ledger/tu-ghi*; gộp hai nhánh 8/11 = 471
 
 let routesCache: R[] | null = null;
 async function bangRoute(): Promise<R[]> {
@@ -88,6 +88,8 @@ const MIEN: readonly { khoa: string; vai: readonly PermissionCode[] | null; lyDo
   // Đ3 câu cuối: chính sách hai lớp theo quyền THẬT (accounts/index.ts dùng quyenThat) — Toàn quyền không dùng được email làm yếu tố (409), dù đang đóng vai cho phép email.
   { khoa: "POST /api/account/mfa/email/start", vai: null, lyDo: "Đ3: email chỉ cho vai nhỏ — xét theo quyền THẬT (Toàn quyền 409)" },
   { khoa: "POST /api/account/mfa/email/confirm", vai: null, lyDo: "Đ3: như trên" },
+  // ADR-0187 Đ2.3 (giao việc 9/11): đang đóng vai thì KHÔNG đổi được nút thanh dưới (403 acting_role) — để Toàn quyền xem đúng giao diện người thật, không ghi đè lựa chọn của chính mình.
+  { khoa: "PUT /api/account/thanh-duoi", vai: null, lyDo: "Đ2.3: cố ý chặn mọi lệnh đổi nút thanh dưới khi đang đóng vai; tài khoản thật thì 400 (thân rỗng) hoặc 403 (Tài xế đối tác)" },
 ];
 
 async function quet(vai: PermissionCode, dongVai: boolean, routes: readonly R[]): Promise<Map<string, string>> {

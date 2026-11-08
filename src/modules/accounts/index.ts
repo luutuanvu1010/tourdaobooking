@@ -19,12 +19,12 @@ import {
   KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
   generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, mfaDeadlinesOf, normalizePhone, renameAccountStatements, roleChangeStatements,
   setPermissionStatements, setPinStatement, tenVaiTaiKhoan, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
-  MFA_ENROLL_WINDOW_MS, mfaEnrollWindowStatement, mfaGraceIfNullStatement, mfaSauDoiQuyen, mfaGraceOnReactivate, mfaGraceTheoId,
+  MFA_ENROLL_WINDOW_MS, mfaEnrollWindowStatement, mfaGraceIfNullStatement, mfaSauDoiQuyen, mfaGraceOnReactivate, mfaGraceTheoId, datThanhDuoiStatement,
 } from "../staff";
 import type {
   AccountMfaResponse, MfaEmailStartResponse, MfaRecoveryCodesResponse, MfaTotpConfirmResponse, MfaTotpStartResponse, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
   PhienCuAnDanhKetQua, PhienCuAnDanhResponse,
-  SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, StaffAccountDto, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
+  SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, ThanhDuoiResponse, StaffAccountDto, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
@@ -33,6 +33,7 @@ import {
   QUYEN_DAT_DUOC, docTapNhieuMayThamSo, kiemThayDoiChinhSach, moTaThayDoiChinhSach, tapNhieuMaySau, type QuyenDatDuoc,
 } from "../../shared/chinh-sach-dang-nhap";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
+import { kiemGhim, luaChonGhim } from "../../shared/muc-giao-dien";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import { laToanQuyenThat, laVaiChonDuoc, quyenHieuLuc, quyenThat } from "../../shared/xem-nhu-vai";
 import {
@@ -914,6 +915,25 @@ export const accountsModule: AppModule = {
       ]);
       const { realPermissions: _a, actingRole: _b, ...goc } = ctx.staff;
       return dungMeResponse(ctx, { ...goc, permissions: [...quyenThat(ctx.staff)] });
+    }),
+
+    // ---- Nút thanh dưới điện thoại của CHÍNH MÌNH (ADR-0187 Đ2.3; đặc tả docs/superpowers/specs/2026-11-09-ghim-nut-thanh-duoi-design.md). Ở accounts vì lô ghi kèm nhật ký
+    // (staff không import audit). Thân `{ trang: string[] }` (tối đa 4, thứ tự chọn; mảng rỗng = «Về mặc định»). Thứ tự cổng: đang xem như vai trò khác → ô
+    // me.favorites.write (own, Tài xế đối tác không có) → thân (kiemGhim) → từng trang ghimDuoc (CÙNG hàm với giao diện). Đọc: đi kèm GET /api/auth/me (StaffProfile.thanhDuoi).
+    route("PUT", "/api/account/thanh-duoi", "staff", async ({ request, env, staff }) => {
+      if (staff.actingRole) return error(403, "acting_role", "Đang xem như vai trò khác nên không đổi nút thanh dưới được.");
+      if (!can(staff, "me.favorites.write", { ownerId: staff.id })) return error(403, "forbidden", "Tài khoản này không đổi được nút thanh dưới.");
+      const kq = kiemGhim(await readJson(request), staff);
+      if ("loi" in kq) return error(kq.loi.status, kq.loi.code, kq.loi.message);
+      const db = env.DB;
+      const at = new Date().toISOString();
+      const nhan = new Map(luaChonGhim(staff).map((m) => [m.trang as string, m.nhan]));
+      // detail = nhãn các trang đã chọn (không dữ liệu cá nhân); rỗng ghi «Về mặc định». Thứ tự lô: nhật ký → trạng thái.
+      await db.batch([
+        auditStatement(db, { staffId: staff.id, action: "bottom_tabs_changed", at, targetType: "staff", targetId: staff.id, detail: kq.trang.length ? kq.trang.map((k) => nhan.get(k) ?? k).join(", ") : "Về mặc định" }),
+        datThanhDuoiStatement(db, staff.id, kq.trang, at),
+      ]);
+      return json({ trang: kq.trang } satisfies ThanhDuoiResponse);
     }),
 
     // ---- Sổ phiên đăng nhập (ADR-0075 điều 7–8). Ở module accounts vì gỡ phiên ghi nhật ký trong cùng lô (auth không import audit). ----
