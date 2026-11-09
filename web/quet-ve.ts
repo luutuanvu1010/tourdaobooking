@@ -56,7 +56,7 @@ if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) {
     if (ganDay.length === 0) { replaceChildren(ganDayEl, h("p", { class: "muted" }, "Chưa quét vé nào trong lần mở trang này.")); return; }
     replaceChildren(ganDayEl, ...ganDay.map((l) => {
       const trongHan = !l.daBo && Date.now() - l.luc <= PHUT_TU_BO * 60_000;
-      const gio = new Date(l.luc).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+      const gio = new Date(l.luc).toLocaleTimeString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", hour: "2-digit", minute: "2-digit" });
       const dong = h("div", { class: "qv-luot", "data-mau": l.mau },
         h("p", { class: "qv-luot-chu" }, h("strong", null, `${CHU_LON[l.mau].dau} ${CHU_LON[l.mau].chu}`), ` · ${gio} · ${l.dichVu} · số cuối ${l.soCuoi}`, l.daBo ? " · đã bỏ" : ""),
         h("p", { class: "muted" }, l.cau));
