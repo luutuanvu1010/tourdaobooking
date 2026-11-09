@@ -280,7 +280,7 @@ test("lyDoChuaGiaoDuoc (NT-F1, NT-F6c, M1 = A): thứ tự lý do cố định, 
   const thieuNgay = lyDoChuaGiaoDuoc({ ...base, ngayDi: ["2026-10-09", null], dichVuThieuNgay: ["Vé Hòn Tằm"], so: du(1, 1) })!;
   assert.deepEqual([thieuNgay.ma, thieuNgay.cau, thieuNgay.aiXuLy], ["missing_date", "Dịch vụ Vé Hòn Tằm chưa có ngày đi — sửa đơn trước.", "Người lập đơn"]);
   const som = lyDoChuaGiaoDuoc({ ...base, homNay: "2026-10-09", so: du(1, 1) })!;
-  assert.deepEqual([som.ma, som.cau], ["before_departure", "Chưa tới ngày đi (10/10/2026) — bấm từ ngày đi trở đi."], "ngày đi MUỘN NHẤT");
+  assert.deepEqual([som.ma, som.cau], ["before_departure", "Chưa tới ngày đi (10/10/2026). Từ ngày đi trở đi mới bấm được «Xác nhận khách đã trả đủ»."], "ngày đi MUỘN NHẤT");
   // ĐẢO CÓ CHỦ ĐÍCH (sổ đại lý đợt 2, Task 3 — ADR-0079 điều 1): lý do `booker_partner` («đơn của đối tác — chưa bấm Đã giao được») BỎ; ở chỗ của nó là
   // lý do thương mại (`terms_missing` / `booker_not_beneficiary` / `terms_exceed_price`). Đơn có người hưởng đủ mức nay KHÔNG bị giữ.
   const doiTac = lyDoChuaGiaoDuoc({ ...base, thuongMai: { trangThai: "THIEU", ma: "terms_missing", dichVu: ["Tour đảo"], canChupBu: true }, so: du(1, 1) })!;

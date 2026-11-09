@@ -968,7 +968,7 @@ export function lyDoChuaGiaoDuoc(input: {
   }
   const muonNhat = [...(input.ngayDi as string[])].sort().at(-1)!;
   if (input.homNay < muonNhat) {
-    return { ma: "before_departure", cau: `Chưa tới ngày đi (${ngayVn(muonNhat)}) — bấm từ ngày đi trở đi.`, aiXuLy: "Hướng dẫn viên" };
+    return { ma: "before_departure", cau: `Chưa tới ngày đi (${ngayVn(muonNhat)}). Từ ngày đi trở đi mới bấm được «Xác nhận khách đã trả đủ».`, aiXuLy: "Hướng dẫn viên" };
   }
   const thuongMai = lyDoGiuThuongMai(input.thuongMai, input.anGiaVon);
   if (thuongMai) return thuongMai;
