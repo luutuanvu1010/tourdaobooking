@@ -18,7 +18,8 @@ test("không có cờ: mọi vé không cần; bỏ dịch vụ ngưng bán và 
   assert.deepEqual(r[0]!.dichVu.map((d) => d.ma), ["VB350", "VTC"]);
   assert.ok(r.every((n) => n.soCan === 0 && !n.caNhomCan));
   assert.equal(demKiemVe(r[0]!), "Không có vé cần kiểm");
-  assert.equal(nhanNguonKiemVe(r[2]!.dichVu[0]!), "Chưa đặt", "vé chưa phân loại không ghi «Theo nhóm»");
+  assert.equal(nhanNguonKiemVe(r[2]!.dichVu[0]!), "Mặc định: không cần kiểm", "vé chưa phân loại không ghi «Theo nhóm»; chữ B-4 thay «Chưa đặt»");
+  assert.equal(nhanNguonKiemVe({ rieng: false, coNhom: false }), "Mặc định: không cần kiểm", "màn đủ gọi bằng hai cờ, không cần dựng cả dòng");
 });
 
 test("dòng riêng bật một vé: chỉ vé đó cần, nhãn nguồn đúng", () => {

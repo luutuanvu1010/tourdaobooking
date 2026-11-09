@@ -10,7 +10,7 @@ import { QUY_TAC_DUA_DON, type QuyTacDuaDon } from "../src/shared/dua-don-dich-v
 import { dongLichSuMauChang, nhanCheDoCua } from "../src/shared/lich-su-mau-chang";
 import { canhBaoDoiNhom } from "../src/shared/dac-diem-hien-thi";
 import { CAU_HOI_BO_GHI_DE_GIA } from "../src/shared/catalog-nut";
-import { caNhomCanKiem, kiemVeCua } from "../src/shared/dich-vu-kiem-ve";
+import { caNhomCanKiem, kiemVeCua, nhanNguonKiemVe } from "../src/shared/dich-vu-kiem-ve";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { taoCoVe, type CoVe } from "./catalog-co-ve";
 import { dongBoTuSheet, taoKiemVe, veManHep } from "./catalog-kiem-ve";
@@ -38,7 +38,7 @@ let coVe: CoVe;
 /** Công tắc «Cần kiểm vé» của một dòng dịch vụ (ADR-0169 Đ4): vé đặt riêng hay đang theo nhóm thì câu phụ nói rõ. */
 const oKiemVe = (it: CatalogAdminItem): HTMLElement => {
   const kv = kiemVeCua(it.code, it.groupCode, kiemVe.dongCo());
-  return h("div", { class: "kv-o" }, h("span", { class: "hint" }, `Cần kiểm vé · ${kv.rieng ? "Đặt riêng" : it.groupCode === null ? "Chưa đặt" : "Theo nhóm"}`), kiemVe.congTacVe(it.code, it.name, kv.can));
+  return kiemVe.oKiemVe(it.code, it.name, kv.can, nhanNguonKiemVe({ rieng: kv.rieng, coNhom: it.groupCode !== null }));
 };
 function renderTuKiem(): void {
   if (can(staff, "settings.ops")) replaceChildren(byId("kv-tu-kiem"), kiemVe.khoiTuKiem());
