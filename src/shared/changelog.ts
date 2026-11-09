@@ -17,13 +17,28 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Vé Tour Đảo Đợt 2 (ADR-0175): quét vé và đối chiếu. KHÔNG có migration mới ngoài 0155_ve_quet. Bước A.0 ngày 9/11 (sau 2.82 của ADR-0187). Mọi dịch vụ vẫn «Vé hãng ngoài» cho tới khi chủ gạt ô «Vé do ai phát».
-    version: "2.83",
+    // Vé Tour Đảo Đợt 2 (ADR-0175): quét vé và đối chiếu. KHÔNG có migration mới ngoài 0155_ve_quet. Bước A.0 ngày 9/11 (sau 2.83 của Đợt 1 sửa nhỏ). Mọi dịch vụ vẫn «Vé hãng ngoài» cho tới khi chủ gạt ô «Vé do ai phát».
+    version: "2.84",
     date: "2026-11-09",
     items: [
       { kind: "moi", text: "Trang «Quét vé»: Hướng dẫn viên, Tài xế dùng camera quét mã vé Tour Đảo; xanh cho đi, vàng cần xác nhận, đỏ từ chối; có nút chụp ảnh dự phòng." },
       { kind: "moi", text: "Đơn có ô «Đã dùng» theo từng dịch vụ; màn «Đối chiếu vé» so số khách theo đơn với số vé đã dùng trong ngày; Quản trị bỏ được lượt quét nhầm." },
       { kind: "doi", text: "Đơn đã có vé Tour Đảo được quét thì không huỷ được và không giảm số khách xuống dưới số vé đã dùng; muốn huỷ thì bỏ lượt quét trước." },
+    ],
+  },
+  {
+    // Đợt 1 «sửa nhỏ» của kế hoạch sửa sau rà soát lần 2 (9/11), KHÔNG migration. SỐ TẠM 2.83: production/main đang 2.82; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.83",
+    date: "2026-11-09",
+    items: [
+      { kind: "sua", text: "Khi Nền tảng báo lỗi hệ thống, câu báo có kèm mã lỗi để bạn chụp gửi Quản trị." },
+      { kind: "doi", text: "Đối tác bấm «Gửi đơn» mà chưa chọn Đón hay Không đón thì đơn chưa được lưu; Nền tảng chỉ ra dịch vụ nào còn thiếu. Trang đơn chưa xác nhận ghi «Chưa chọn đón»." },
+      { kind: "doi", text: "Khi lập đơn qua đối tác, nhân viên văn phòng có thêm nút «Điền thông tin đối tác» để điền sẵn tên và số của đối tác vào khung Khách hàng." },
+      { kind: "doi", text: "Ở ô chọn cách thanh toán khi lập đơn cho đối tác có hạn mức, chữ «Trả trước» đổi thành «Thanh toán ngay»." },
+      { kind: "doi", text: "Trang Vé điện tử chọn dịch vụ bằng ô tìm và hàng nút nhóm giống màn Tạo đơn, thay cho hộp thả xuống dài." },
+      { kind: "sua", text: "Quản lý bán hàng có ô «Dịch vụ & giá» ở Trang chủ trên điện thoại." },
+      { kind: "sua", text: "Dịch vụ không có đưa đón thì Đối tác không còn dòng ghi chú về giờ đón." },
+      { kind: "sua", text: "Các bài hướng dẫn ghi đúng tên tab và mục menu mà bạn đang thấy." },
     ],
   },
   {

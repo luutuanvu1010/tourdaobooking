@@ -21,3 +21,8 @@ export function cauLoiMayChu(loi: unknown, hetGio: boolean): string {
   if (loi instanceof Error && typeof (loi as { status?: unknown }).status === "number" && loi.message) return loi.message;
   return hetGio ? "Máy chủ không trả lời trong 45 giây." : "Máy chủ không trả lời. Thử lại sau ít phút.";
 }
+
+/** Câu 500 của máy chủ (V-01): kèm mã lỗi thật để người dùng chụp gửi Quản trị. Không đưa chữ gốc của lỗi vào câu. */
+export function cauLoiHeThong(ma: string): string {
+  return `Có lỗi hệ thống. Thử lại sau; nếu còn lỗi, báo quản trị viên kèm mã ${ma}.`;
+}

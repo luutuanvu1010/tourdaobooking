@@ -6,6 +6,7 @@ import type { AssigneeDto, CatalogServiceDto } from "../src/shared/contracts";
 import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
 import { chipDatGap, theMoKhiNap } from "../src/shared/dong-gap-the";
 import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
+import { dichVuThieuChonDon, cauThieuChonDon } from "../src/shared/cong-chon-don";
 import { boChangKhiTatDuaDon, cauBoChangNhomTat, chonDonTheoNhom, diemChonNhanh, type DiemNhanh } from "../src/shared/chon-nhanh";
 import { cauDoiNgay, changTaoSan, doiNgayDi, giuDatGapNhap, legsGuiFormGon, type ChangNhap } from "../src/shared/chang-form";
 import { canHienLaiKhoiKhach } from "../src/shared/an-thong-tin-khach";
@@ -15,7 +16,7 @@ import { soKhachDoan } from "../src/shared/hanh-khach";
 import { banHangSuaDuoc, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { can as canNv } from "../src/shared/permissions";
 import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
-import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, doiTacThieuVaiTro, gopBenDat, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
+import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieuVaiTro, gopBenDat, hienNutDienDoiTac, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
 import { GOI_Y_GIAM_GIA_DOI_TAC, formGonDoiTac } from "../src/shared/form-dat-ve";
@@ -42,6 +43,7 @@ import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
 import { CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
 import { cauChonTraSau, quyetHinhThuc } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { NHAN_HINH_THUC } from "../src/shared/tra-sau";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
@@ -562,7 +564,7 @@ function loiTienForm(): { cau: string[] } {
 }
 
 /** `cacO` = mọi ô / khối có lỗi: nơi gọi mở khối gập chứa chúng (`moKhoiChua`) — lỗi không bao giờ nằm trong khối đóng. */
-function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] } | null {
+function validate(guiDon: boolean): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] } | null {
   const lines: string[] = [];
   const focusables: HTMLElement[] = [];
   const need = (id: string, message: string) => {
@@ -586,6 +588,14 @@ function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] }
     }
   });
   lines.push(...orderIssues(drafts()));
+  // G-02: «Gửi đơn» của Đối tác bị máy chủ chặn khi chưa chọn Đón / Không đón → báo ngay ở trình duyệt, chỉ ra dịch vụ nào và nhóm nút nào. «Lưu đơn (chưa xác nhận)» của nhân viên không bị chặn.
+  const thieuDon = guiDon ? dichVuThieuChonDon(entries.map((e) => ({ choPhep: coDuaDon(e.draft), pickupChoice: e.draft.pickupChoice, soChang: e.draft.legs.length }))) : [];
+  entries.forEach((e, i) => {
+    const o = e.card.danhDauThieuChonDon(thieuDon.includes(i) ? cauThieuChonDon(i) : null);
+    if (!thieuDon.includes(i)) return;
+    lines.push(cauThieuChonDon(i));
+    focusables.push(o ?? e.card.root);
+  });
   if (hk) {
     const loiKhach = loiDanhSachKhach(hk.rows(), today);
     lines.push(...loiKhach);
@@ -743,7 +753,7 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
   assigneeErrorShown = false;
   const loiChangCuaThe = entries.map((en) => en.card.showIssues(true)); // mở chặng gọn / khối chi tiết chứa ô lỗi; nhớ ô lỗi đầu tiên của từng thẻ + ô đó có đang nằm trong khối đóng không
   hk?.showIssues(true);
-  const invalid = validate();
+  const invalid = validate(!editId && guiDonKhiLuu && !datGap);
   if (invalid) {
     renderBanner(saveErrorEl, invalid.banner);
     gapChiTietKhiLoi();
@@ -1040,7 +1050,15 @@ function datBenDat(chon: BenDatChon | null): void {
   if (chon !== null) canhBao.hien(null, ""); // đã chọn đối tác thì hết điều để hỏi
   else if (truoc !== null) bookerPicker.kiemLai(); // vừa bỏ đối tác: số khách đang gõ có thể là của một đối tác — hỏi lại (nợ T4(2), Việc 9)
   datNhanKhach(chon !== null);
+  capNhatNutDienDoiTac();
   void napTraSau();
+}
+/** N5: nút «Điền thông tin đối tác» hiện theo luật thuần `hienNutDienDoiTac`; đổi đối tác thì câu báo cũ bị xoá. */
+function capNhatNutDienDoiTac(): void {
+  byId("use-partner").hidden = !hienNutDienDoiTac(staff, daChonBenDat);
+  const bao = byId("use-partner-bao");
+  bao.hidden = true;
+  bao.textContent = "";
 }
 /** Nhãn nổi của hai ô khách theo việc đã chọn đối tác (luật chữ ở `src/shared/phan-doi-tac-hien-thi.ts`): đã chọn thì SĐT ghi rõ là của khách, không phải của đối tác. */
 function datNhanKhach(daChonDoiTac: boolean): void {
@@ -1053,6 +1071,8 @@ function datNhanKhach(daChonDoiTac: boolean): void {
 const khoiTraSau = byId("tra-sau-khoi");
 let traSauHien = false;
 const oHinhThuc = (v: string): HTMLInputElement => khoiTraSau.querySelector<HTMLInputElement>(`input[name="paymentTerm"][value="${v}"]`)!;
+// Chữ hai nút chọn hình thức đến từ MỘT hằng (NHAN_HINH_THUC), không gõ cứng ở HTML (đổi «Trả trước» → «Thanh toán ngay», 9/11/2026).
+for (const v of ["PREPAID", "CREDIT"] as const) khoiTraSau.querySelector(`[data-nhan-hinh-thuc="${v}"]`)!.textContent = NHAN_HINH_THUC[v];
 const hinhThucChon = (): "PREPAID" | "CREDIT" => (oHinhThuc("CREDIT").checked ? "CREDIT" : "PREPAID");
 function anHienDatCoc(): void {
   const an = traSauHien && hinhThucChon() === "CREDIT"; // Trả sau thì không có «Khách đặt cọc trước»
@@ -1130,6 +1150,31 @@ byId("use-mine").addEventListener("click", () => {
     const el = field(id);
     el.value = value;
     el.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+});
+// N5: «Điền thông tin đối tác» — lấy tên + số điện thoại chính từ hồ sơ đối tác đã chọn (GET /api/parties/:id, cổng văn phòng + party.view) rồi điền như «Điền thông tin của tôi».
+// Đối tác chưa có số → báo nhẹ, không điền rỗng, không xoá ô đang có.
+byId("use-partner").addEventListener("click", async () => {
+  const chon = daChonBenDat;
+  if (!hienNutDienDoiTac(staff, chon)) return;
+  const bao = byId("use-partner-bao");
+  try {
+    const { party } = await api<Api.PartyResponse>(`/api/parties/${encodeURIComponent(chon!.partyId)}`);
+    if (daChonBenDat?.partyId !== chon!.partyId) return; // người lập đã đổi đối tác trong lúc chờ
+    if (!party.primaryPhone) {
+      bao.textContent = CAU_DOI_TAC_CHUA_CO_SDT;
+      bao.hidden = false;
+      return;
+    }
+    bao.hidden = true;
+    for (const [id, value] of [["customerName", party.displayName], ["customerPhone", party.primaryPhone]] as const) {
+      const el = field(id);
+      el.value = value;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  } catch (e) {
+    bao.textContent = e instanceof ApiError ? e.message : "Không lấy được thông tin đối tác.";
+    bao.hidden = false;
   }
 });
 // ADR-0047 Phần B: điểm danh mục cho ô Nơi đón / Nơi trả (cổng staff — mọi tài khoản) và mẫu chặng theo dịch vụ (chỉ người lập đơn). Lỗi → rỗng.

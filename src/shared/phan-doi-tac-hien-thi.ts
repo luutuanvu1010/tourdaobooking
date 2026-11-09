@@ -8,7 +8,7 @@
 // Bài `docTyLeTay / docTienTay` ở phan-doi-tac-hien-thi.test.ts và bài nối `ghi-tay-nhap-noi.test.ts` (đối chiếu `kiemThanGhiTay` của máy chủ) giữ nguyên làm bài canh.
 import type { ThuongMaiDoiTacDto, ThuongMaiVanPhongDto } from "./contracts.ts";
 import { chenhGiamGiaSauGhiTay, dongVuotThanhTien, type MucGhiTay } from "./hoa-hong-dong.ts";
-import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
+import { can, holdsPartner, isOffice, type PermissionHolder } from "./permissions.ts";
 import { CAU_DON_BI_GIU, CAU_THIEU_MUC, NHAN_LY_DO_THIEU } from "./so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA, docTienMoiKhach, docTyLePhanTram } from "./so-dai-ly-nhap.ts";
 import { PHONE_IN_TEXT_MESSAGE, hasLongDigitRun } from "./text-guards.ts";
@@ -29,6 +29,14 @@ export interface BenDatChon {
  * mọi tài khoản lai SALES / ADMIN + PARTNER cũng không thấy). Máy chủ trả 403 ngoài cổng này, nên hiện ô cho người khác là hiện một ô luôn lỗi.
  */
 export const coODatQuaDoiTac = (staff: PermissionHolder): boolean => can(staff, "order.create") && !holdsPartner(staff);
+
+/**
+ * N5: nút «Điền thông tin đối tác» (chủ chọn tên 8/11/2026) — điền tên và số điện thoại của đối tác đã chọn vào khung Khách hàng. Hiện khi ĐÃ chọn «Qua đối tác» VÀ người dùng thuộc văn phòng có ô
+ * `party.view` (cùng cổng với `GET /api/parties/:id` mà nút gọi: Thực tập và tài khoản Đối tác không được xem hồ sơ nên không thấy nút). Chỉ ẩn / hiện — máy chủ vẫn kiểm lại.
+ */
+export const hienNutDienDoiTac = (who: PermissionHolder, daChonBenDat: { partyId: string } | null): boolean => daChonBenDat !== null && isOffice(who) && can(who, "party.view");
+/** Câu báo nhẹ khi đối tác đã chọn chưa có số điện thoại: không điền rỗng, không xoá ô đang có. Một hằng; đổi chữ chỉ sửa ở đây. */
+export const CAU_DOI_TAC_CHUA_CO_SDT = "Đối tác này chưa có số điện thoại.";
 
 export type KhoiBenDatForm =
   /** Tài khoản Đối tác mà máy chủ SẼ ép bên đặt (trường `benDatCuaToi` của `/api/auth/me` — giao diện không suy): dòng chỉ đọc "Bên đặt: <tên>", không ô nào để chọn. */

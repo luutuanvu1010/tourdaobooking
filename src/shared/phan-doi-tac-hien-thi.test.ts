@@ -2,10 +2,10 @@
 // Cổng ẩn/hiện được nối với ROUTE THẬT ở src/modules/pricing/o-dat-qua-noi-cong.test.ts; thân ghi tay được nối với `kiemThanGhiTay` của máy chủ ở src/modules/orders/ghi-tay-nhap-noi.test.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
+import { PERMISSION_CODES, can, isOffice, type PermissionCode } from "./permissions.ts";
 import {
   CAU_CHO_CAI_MUC, CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, MOI_KHACH_TOI_DA, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, demLyDo, docThanGhiTay,
-  doiTacThieuVaiTro, docTienTay, docTyLeTay, duocGhiTay, ghiChuTrangThai, gopBenDat, hienNutGhiTay, khoiBenDatForm, nhanBenDat, nhanNguoiHuong, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type FormGhiTay,
+  CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieuVaiTro, docTienTay, docTyLeTay, duocGhiTay, ghiChuTrangThai, gopBenDat, hienNutDienDoiTac, hienNutGhiTay, khoiBenDatForm, nhanBenDat, nhanNguoiHuong, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type FormGhiTay,
 } from "./phan-doi-tac-hien-thi.ts";
 
 const staff = (...permissions: PermissionCode[]) => ({ id: "s1", permissions });
@@ -256,4 +256,26 @@ test("chuTongGiaDaiLy: có một dòng vượt thì câu cảnh báo dù tổng 
   // Vừa vượt vừa thiếu mức: câu vượt thắng (cụ thể hơn «Chưa đủ mức», và cùng thứ tự với chuGiaDaiLy). Ghi ở sổ thi công.
   assert.equal(chuTongGiaDaiLy({ giaDaiLy: null }, [vuot, { thanhTien: 1, hoaHong: null }], f), CAU_HOA_HONG_VUOT);
   assert.equal(chuTongGiaDaiLy({ giaDaiLy: 0 }, [], f), "0đ", "đơn không dòng nào (không người hưởng): số thật");
+});
+
+// N5 (9/11/2026): nút «Điền thông tin đối tác» — chỉ khi ĐÃ chọn «Qua đối tác» VÀ người dùng thuộc văn phòng có ô party.view (cùng cổng GET /api/parties/:id); Thực tập không thấy.
+test("hienNutDienDoiTac: văn phòng có party.view + đã chọn đối tác → hiện; chưa chọn, Thực tập, Đối tác → ẩn", () => {
+  for (const q of [["SALES"], ["ADMIN"], ["SUPER_ADMIN"]] as PermissionCode[][]) {
+    assert.equal(hienNutDienDoiTac(staff(...q), AGENCY), true, q.join("+"));
+    assert.equal(hienNutDienDoiTac(staff(...q), null), false, `${q.join("+")} chưa chọn đối tác`);
+  }
+  assert.equal(hienNutDienDoiTac(staff("INTERN"), AGENCY), false, "Thực tập không có ô party.view");
+  assert.equal(hienNutDienDoiTac(staff("PARTNER"), AGENCY), false, "tài khoản chỉ giữ quyền Đối tác không thấy nút này");
+  // Tài khoản lai Bán hàng + Đối tác không có ô «Đặt qua đối tác» (coODatQuaDoiTac = false) nên không bao giờ có `daChonBenDat` — nút không tới được dù luật nút chỉ hỏi văn phòng + party.view.
+  assert.equal(coODatQuaDoiTac(staff("SALES", "PARTNER")), false);
+});
+
+test("hienNutDienDoiTac: khớp đúng cổng của GET /api/parties/:id trên mọi tập quyền (văn phòng + party.view)", () => {
+  const n = PERMISSION_CODES.length;
+  for (let mask = 0; mask < 1 << n; mask++) {
+    const q = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    const w = staff(...q);
+    if (hienNutDienDoiTac(w, AGENCY)) assert.ok(isOffice(w) && can(w, "party.view"), q.join("+"));
+  }
+  assert.match(CAU_DOI_TAC_CHUA_CO_SDT, /chưa có số điện thoại/);
 });

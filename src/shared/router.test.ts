@@ -639,7 +639,7 @@ test("ctx.dichVuBiChanChoToi (ADR-0146 Đ4): chuyển env + người gọi + mã
 
 // Sổ tiền lượt 1 (kiểm độc lập T-1; ADR-0025 đ4): hai người đua — route đã đọc "chưa Đã giao" nhưng lô ghi gặp trigger 0044 (`order_delivered:` /
 // `order_completed:`) → 409 câu tiếng Việt, KHÔNG 500 chung. Lỗi khác vẫn 500 như cũ; chữ thô của trigger không lộ ra.
-function buildThrowing(err: unknown) {
+function buildThrowing(err: unknown, headers: Record<string, string> = {}) {
   const mod: AppModule = {
     name: "giả",
     routes: [
@@ -666,7 +666,7 @@ function buildThrowing(err: unknown) {
       lanGui: lanGuiGia().noi, // ADR-0094 T18: route ghi có đăng nhập cần phần tiêm lớp vé
     },
   } as any);
-  return app.fetch(new Request("http://x/api/ghi", { method: "POST", headers: { origin: "http://x" } }), {} as Env, {} as ExecutionContext);
+  return app.fetch(new Request("http://x/api/ghi", { method: "POST", headers: { origin: "http://x", ...headers } }), {} as Env, {} as ExecutionContext);
 }
 
 test("T-1: lỗi trigger 'order_delivered:' / 'order_completed:' trong lô ghi → 409 order_delivered câu tiếng Việt (không 500, không lộ chữ trigger)", async () => {
@@ -685,6 +685,27 @@ test("T-1: lỗi trigger 'order_delivered:' / 'order_completed:' trong lô ghi �
     assert.equal(khac.status, 500, "lỗi khác vẫn 500");
   } finally {
     console.error = orig;
+  }
+});
+
+test("V-01: câu lỗi hệ thống (500) kèm đúng mã lỗi — cf-ray nếu có, không thì UUID; nhật ký cùng mã; không lộ chữ thô", async () => {
+  const dong: string[] = [];
+  const m = mock.method(console, "error", (x: unknown) => void dong.push(String(x)));
+  try {
+    const ray = "8c2f1a3b4d5e6f7a-SIN";
+    const a = await buildThrowing(new Error("D1_ERROR: bí mật"), { "cf-ray": ray });
+    assert.equal(a.status, 500);
+    const ba = (await a.json()) as { error: { code: string; message: string; requestId: string } };
+    assert.equal(ba.error.requestId, ray);
+    assert.ok(ba.error.message.includes(ray), "câu chứa mã cf-ray");
+    assert.doesNotMatch(ba.error.message, /D1_ERROR|bí mật/);
+    assert.ok(dong.some((d) => d.includes('"unhandled"') && d.includes(ray)), "nhật ký mang cùng mã");
+    const b = await buildThrowing(new Error("x"));
+    const bb = (await b.json()) as { error: { message: string; requestId: string } };
+    assert.match(bb.error.requestId, /^[0-9a-f-]{36}$/);
+    assert.ok(bb.error.message.includes(bb.error.requestId), "câu chứa UUID");
+  } finally {
+    m.mock.restore();
   }
 });
 

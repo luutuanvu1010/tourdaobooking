@@ -21,12 +21,12 @@ export const HD_DOI_TAC: NhomHuongDan = {
       noiDung: `### Trên máy tính
 
 Thanh menu dọc bên trái có:
-- Đầu menu: nút nổi bật [[Tạo đơn]], rồi [[Đơn hàng]].
-- Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Hướng dẫn]].
+- Đầu menu: [[Đơn hàng]]. [[Tạo đơn]] ở thanh trên.
+- Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Nhật ký thay đổi]].
 
 ### Trên điện thoại
 
-Thanh tab dưới đáy có [[Đơn hàng]], [[Tạo đơn]] và [[Tôi]].
+Thanh tab dưới đáy: [[Đơn hàng]], [[Tạo đơn]], [[Hỗ trợ]], [[Tôi]].
 
 ### Mở danh sách đơn của bạn
 

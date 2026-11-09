@@ -1,4 +1,5 @@
 // GHI CHÚ 28/10/2026: phần dựng đơn đổi theo luồng hiện hành — đơn nháp là vùng riêng của người lập (ADR-0135 Đ2, Đ6) nên mọi đơn dựng sẵn được XÁC NHẬN rồi mới giao người (và bấm «Không đón», ADR-0134); câu kiểm
+// Sửa 2026-11-09 (Đợt 1 sửa sau rà soát lần 2, G-06): nút «Xem biên nhận» đã đổi tên thành «Xem ảnh gửi khách» ở đợt đổi tên 5/11 (commit 1c1e71603, bảng tham chiếu đợt 2); chỉ đổi chữ tìm nút, không đổi điều kiện kiểm nào.
 // theo đơn đã xác nhận: có «Từ chối đơn», không còn «Sửa» / «Xác nhận đơn». Bước d bỏ phần «người khác sửa đơn nháp»; bước q bỏ ca nháp; bước a ghi NỢ: ở 390px dòng 2 của thẻ xuống 2 hàng khi đơn có «Còn thu».
 // Kiểm giao diện NGƯỜI PHỤ TRÁCH đơn (danh sách + trang đơn + bảng chọn `web/handler-sheet.ts`) bằng Chrome thật. Nằm trong repo, không thêm dependency.
 // Dựa trên môi trường của A2 (`../../2026-09-20-a2/kich-ban/a2-cdp.mjs`: D1 tạm + `wrangler dev` + Chrome headless qua CDP; Turnstile TẮT). Chạy từ GỐC repo, sau `npm run build:web`:
@@ -494,8 +495,8 @@ try {
   await step("c", "ảnh PNG “Xác nhận gửi khách” SAU KHI đổi người in đúng tên B: giống từng byte bản dựng từ tên B, khác bản dựng từ tên A (người lập)", async () => {
     const main = await getMain();
     const p = await openAs(A, `/order?id=${main.id}`, { lib: true });
-    await p.waitFor("document.querySelector('#send button') !== null", "nút Xem biên nhận", 10000);
-    await p.ev(clickText("#send", "Xem biên nhận"));
+    await p.waitFor("document.querySelector('#send button') !== null", "nút Xem ảnh gửi khách", 10000);
+    await p.ev(clickText("#send", "Xem ảnh gửi khách"));
     await p.waitFor("(() => { const i = document.querySelector('.sheet .confirm-img'); return !!i && i.complete && i.naturalWidth > 0; })()", "ảnh xác nhận hiện", 20000);
     const same = (name) => p.ev(`(async () => __t.sameBytes(__t.blobOf(document.querySelector('.sheet a.confirm-download').href), await __lib.renderConfirmationPng(await __t.modelOf(${JSON.stringify(main.id)}, ${JSON.stringify(name)}))))()`);
     assert.equal(await same("Sales Hai"), true, "ảnh phải in tên người phụ trách hiện tại (Sales Hai)");
@@ -530,7 +531,7 @@ try {
     assert.deepEqual(await c.ev(CARD_BUTTONS), [], "C: đơn đã có người → không đổi, không nhận");
     assert.deepEqual(await c.ev(ACTION_BUTTONS), []);
     assert.match(await c.ev("document.getElementById('actions').textContent"), NO_PERM, "câu giải thích quyền phải kể cả người phụ trách");
-    assert.equal(await c.ev("document.querySelector('#send button')?.textContent"), "Xem biên nhận", "ảnh xác nhận vẫn có cho mọi người xem được đơn");
+    assert.equal(await c.ev("document.querySelector('#send button')?.textContent"), "Xem ảnh gửi khách", "ảnh xác nhận vẫn có cho mọi người xem được đơn");
     c.close();
     const acc = await openAs(ACC, `/order?id=${main.id}`);
     await acc.waitFor(CARD_READY, "khối Người phụ trách (kế toán)", 10000);

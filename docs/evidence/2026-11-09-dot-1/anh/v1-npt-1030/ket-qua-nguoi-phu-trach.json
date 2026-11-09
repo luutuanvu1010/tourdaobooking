@@ -1,0 +1,128 @@
+{
+  "ghiChu": "Đo bằng Chrome headless trên wrangler dev cục bộ (D1 tạm, danh mục giả); không phải iPhone thật, không phải WebKit.",
+  "buoc": [
+    {
+      "id": "a",
+      "name": "danh sách đơn: thẻ đóng ba hàng ở 390 và 1040, không cắt tên / SĐT / số khách / còn thu (không lộ người phụ trách; mã đơn trong phần xổ); mở nút xổ thấy “HDV: <tên>”; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện",
+      "dat": false,
+      "loi": "390: đơn TD-20261109-0003\n    + actual - expected\n    \n    + 'Chờ Bán hàng nhận'\n    - 'HDV: Sales Hai'\n    "
+    },
+    {
+      "id": "b",
+      "name": "A đổi người phụ trách sang B bằng bảng chọn: bảng đóng, trang đơn tải lại thấy B + báo, trả focus; danh sách và nhật ký thấy B",
+      "dat": false,
+      "loi": "người lập đã được giao ngay sau khi lập (getMain gọi assignVia) — KHÔNG còn tự gắn mặc định (ADR-0030 S20-4)\n    + actual - expected\n    \n    + 'Chờ Bán hàng nhận'\n    - 'Sales Một'\n    "
+    },
+    {
+      "id": "c",
+      "name": "ảnh PNG “Xác nhận gửi khách” SAU KHI đổi người in đúng tên B: giống từng byte bản dựng từ tên B, khác bản dựng từ tên A (người lập)",
+      "dat": false,
+      "loi": "ảnh phải in tên người phụ trách hiện tại (Sales Hai)\n    \n    false !== true\n    "
+    },
+    {
+      "id": "d",
+      "name": "B (không phải người lập, người phụ trách đơn ĐÃ XÁC NHẬN): thấy “Đổi người phụ trách”, “Huỷ đơn”, không thấy “Nhận phụ trách”, xem được nhật ký",
+      "dat": false,
+      "loi": "Expected values to be strictly equal:\n    + actual - expected\n    \n    + 'Chờ Bán hàng nhận'\n    - 'Sales Hai'\n    "
+    },
+    {
+      "id": "e",
+      "name": "quyền: C không thấy nút đổi/nhận và không có Sửa/Xác nhận/Huỷ; kế toán không nút nào; quản trị và người lập có nút đổi",
+      "dat": false,
+      "loi": "Expected values to be strictly equal:\n    + actual - expected\n    \n    + 'Chờ Bán hàng nhận'\n    - 'Sales Hai'\n    "
+    },
+    {
+      "id": "f",
+      "name": "đơn CHƯA có người: chip ở danh sách (390, 1040) và ở trang đơn; C chỉ thấy “Nhận phụ trách”; người lập/quản trị thấy cả giao và nhận; kế toán không gì; C nhận được rồi sửa được đơn",
+      "dat": false,
+      "loi": "390: đơn chưa có người → chip\n    + actual - expected\n    \n      [\n    +   'Chờ Bán hàng nhận',\n    -   'Chờ nhận',\n    -   true,\n        false,\n    +   false\n      ]\n    "
+    },
+    {
+      "id": "g",
+      "name": "bảng chọn: dialog + aria-modal + tên + nền inert + focus; Esc/chạm nền/✕ đóng và trả focus; danh sách khớp API; KHOÁ khi đang lưu; lỗi tải danh sách → Thử lại",
+      "dat": false,
+      "loi": "hết giờ chờ: bảng chọn hiện danh sách\n    document.querySelector('[role=dialog] .pick input[type=radio]') !== null"
+    },
+    {
+      "id": "h",
+      "name": "đổi song song → tải lại + thông báo: 409 no_change, 409 stale (nhận), 403 (mất quyền); 400 invalid_assignee giữ bảng mở",
+      "dat": false,
+      "loi": "hết giờ chờ: bảng chọn hiện danh sách\n    document.querySelector('[role=dialog] .pick input[type=radio]') !== null"
+    },
+    {
+      "id": "i",
+      "name": "lỗi lời gọi handlers (chặn mạng / 500 / thiếu khoá): danh sách VẪN hiện, không chip sai, không banner; trang đơn hiện đơn + nút Sửa, khối “chưa tải được” + Thử lại, KHÔNG nút nhận/đổi",
+      "dat": false,
+      "loi": "chặn mạng: không dòng người phụ trách, không chip: [[\"Chờ Bán hàng nhận\",false],[\"Chờ Bán hàng nhận\",false],[\"Chờ Bán hàng nhận\",false],[\"Chờ Bán hàng nhận\",false],[\"Chờ Bán hàng nhận\",false],[\"Chờ Bán hàng nhận\",false],[\"Chờ Bán hàng nhận\",false]]"
+    },
+    {
+      "id": "j",
+      "name": "axe 0 vi phạm (mọi mức) ở mọi trạng thái mới; vùng chạm ≥ 44 px; không tràn ngang ở 390 và 1040",
+      "dat": false,
+      "loi": "trạng thái có chip\n    \n    false !== true\n    "
+    },
+    {
+      "id": "k",
+      "name": "ảnh 390×844 và 1040×800: danh sách, trang đơn, bảng chọn, đơn chưa có người",
+      "dat": false,
+      "loi": "hết giờ chờ: bảng chọn hiện danh sách\n    document.querySelector('[role=dialog] .pick input[type=radio]') !== null"
+    },
+    {
+      "id": "m",
+      "name": "tên khách DÀI KHÔNG bị cắt ở 390px (luật khung 30/10) và phần xổ vẫn có ĐÚNG dòng “Khách: <tên đầy đủ>”, ngay trước “Mã đơn”",
+      "dat": true
+    },
+    {
+      "id": "n",
+      "name": "bàn phím THẬT (Input.dispatchKeyEvent qua CDP): Tab từ thẻ đơn tới được nút xổ, Enter VÀ Space đều mở/đóng được (aria-expanded đổi đúng), KHÔNG điều hướng sang trang chi tiết",
+      "dat": true
+    },
+    {
+      "id": "o",
+      "name": "lý do nhiều dòng của “Lịch sử” (order_money_adjusted_by_field, reason có ký tự xuống dòng) hiện ĐÚNG nhiều dòng — đo bằng Range.getClientRects thật, không suy luận từ chiều cao",
+      "dat": true
+    },
+    {
+      "id": "p",
+      "name": "HƯỚNG DẪN VIÊN, danh sách đơn: mỗi thẻ “HDV: <tên mình>” (390 + 1040), KHÔNG gọi GET /api/dispatch/handlers",
+      "dat": false,
+      "loi": "thẻ TD-20261109-0012 (390px) phải hiện “HDV: HDV Phụ Trách” — trước vòng sửa dòng này bị ẩn lặng lẽ (403): {\"id\":\"04845891-1b9e-45e9-b091-266d2791fea4\",\"name\":\"Khách Của HDV (hai)\",\"khach\":\"Khách Của HDV (hai)\",\"code\":\"TD-20261109-0012\",\"pax\":\"03 NL\",\"handler\":\"Chờ Bán hàng nhận\",\"hidden\":false,\"chip\":false}\n    + actual - expected\n    \n      {\n        chip: false,\n    +   handler: 'Chờ Bán hàng nhận',\n    -   handler: 'HDV: HDV Phụ Trách',\n        hidden: false\n      }\n    "
+    },
+    {
+      "id": "q",
+      "name": "HƯỚNG DẪN VIÊN, trang đơn mình phụ trách (đã xác nhận, 390 + 1040): khối “Người phụ trách” là tên mình (không “Chưa tải được”), không nút đổi/nhận/sửa, câu giải thích riêng cho HDV; KHÔNG gọi GET /api/dispatch/handlers",
+      "dat": false,
+      "loi": "trang đơn confirmed (390px): khối “Người phụ trách” phải là tên HDV — trước vòng sửa là “Chưa tải được người phụ trách.”: {\"ten\":\"Chờ Bán hàng nhận\",\"chuaTai\":null}\n    + actual - expected\n    \n      {\n        chuaTai: null,\n    +   ten: 'Chờ Bán hàng nhận'\n    -   ten: 'HDV Phụ Trách'\n      }\n    "
+    },
+    {
+      "id": "l",
+      "name": "console/CSP sạch ở mọi trang đã theo dõi (trừ các dòng mạng đã biết của lỗi cố ý)",
+      "dat": false,
+      "loi": "đã theo dõi 15 trang"
+    }
+  ],
+  "axe": {},
+  "do": {
+    "history-detail-nhieu-dong": {
+      "soDong": 4,
+      "dauDong": [
+        true,
+        true
+      ],
+      "caoDiv": 84,
+      "whiteSpace": "pre-line",
+      "text": "số khách: Tour thử lý do nhiều dòng: người lớn 2 → 3 · lý do: Khách gọi lại xin đổi:\n- Thêm 1 người lớn\n- Đổi giờ đón sang 8:00"
+    },
+    "hdv-xem-don-cua-minh": {}
+  },
+  "anh": {
+    "nguoi-phu-trach-danh-sach-390.png": "390×844",
+    "nguoi-phu-trach-trang-don-390.png": "390×844",
+    "nguoi-phu-trach-lich-su-nhieu-dong.png": "390×844"
+  },
+  "dem": {},
+  "tongKet": {
+    "dat": 3,
+    "hong": 14
+  }
+}

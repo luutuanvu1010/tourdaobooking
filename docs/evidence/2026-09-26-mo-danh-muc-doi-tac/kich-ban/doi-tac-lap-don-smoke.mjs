@@ -318,6 +318,21 @@ try {
     await mob.shot(join(OUT, "anh", "doi-tac-form-dien-thoai.png"));
   });
 
+  // 2b' (G-02, Đợt 1 sửa sau rà soát lần 2, 9/11/2026): «Gửi đơn» của Đối tác khi CHƯA chọn Đón / Không đón → đơn chưa lưu (vẫn ở /order-form, không gọi POST), dải đỏ nói dịch vụ nào thiếu,
+  //     nhóm nút Đón / Không đón có aria-invalid và tiêu điểm. Các bước 2c và 3 sau đó bấm «Không đón» trước khi gửi.
+  await step("2b2", "Đối tác (điện thoại 390): bỏ trống Đón / Không đón → Gửi đơn → vẫn ở /order-form, dải đỏ «chưa chọn Đón hay Không đón», nhóm nút viền lỗi và có tiêu điểm", async () => {
+    await mob.ev(setInput("document.getElementById('customerName')", CUSTOMER));
+    await mob.ev(setInput("document.getElementById('customerPhone')", "0903 555 777"));
+    await mob.ev(setInput("document.getElementById('orderDate')", vnDate(3)));
+    await sleep(200);
+    await mob.ev("document.getElementById('save').click(); true");
+    await mob.waitFor("document.getElementById('save-error') && !document.getElementById('save-error').hidden && document.getElementById('save-error').textContent.includes('chưa chọn Đón hay Không đón')", "dải đỏ thiếu Đón / Không đón", 10000);
+    assert.equal(await mob.ev("location.pathname"), "/order-form", "vẫn ở form (chưa lưu)");
+    assert.equal(await mob.ev("document.querySelector('.dd-chon-don')?.getAttribute('aria-invalid')"), "true", "nhóm nút Đón / Không đón có aria-invalid");
+    assert.equal(await mob.ev("!!document.querySelector('.dd-chon-don')?.getAttribute('aria-describedby')"), true, "nhóm nút nối dòng lỗi");
+    await mob.shot(join(OUT, "anh", "doi-tac-thieu-chon-don-dien-thoai.png"));
+  });
+
   // 2c (Việc 9, nợ T6): máy chủ từ chối lưu (400 không chỉ ra ô) ⇒ form mở MỌI khối gập (`moMoiKhoiGap`). Khối "Sửa giá" của Đối tác không được mở theo: họ không có nút để đóng
   // (trước đây kẹt mở, ô đơn giá chỉ đọc lộ ra tới khi tải lại trang). Giả MỘT lần POST /api/orders trả 400 bằng thay fetch (thân lỗi đúng dạng máy chủ); bước 3 lưu thật sau đó.
   await step("2c", "Đối tác (điện thoại 390): Lưu bị máy chủ từ chối (400 giả một lần) → khung lỗi hiện, khối “Sửa giá” KHÔNG mở, không ô đơn giá nào hiện", async () => {
@@ -325,6 +340,7 @@ try {
     await mob.ev(setInput("document.getElementById('customerPhone')", "0903 555 777"));
     await mob.ev(setInput("document.getElementById('orderDate')", vnDate(3)));
     await sleep(200);
+    await mob.ev("document.querySelector('[data-action=\"chon-khong-don\"]')?.click(); true"); // G-02: Gửi đơn đòi chọn Đón / Không đón
     await mob.ev(`(() => { const f = window.fetch; let mot = true; window.fetch = (u, o) => { if (mot && String(u).endsWith('/api/orders') && o?.method === 'POST') { mot = false;
       return Promise.resolve(new Response(JSON.stringify({ error: { code: 'invalid_input', message: 'Dữ liệu đơn chưa hợp lệ.' } }), { status: 400, headers: { 'content-type': 'application/json' } })); } return f(u, o); }; return true; })()`);
     await mob.ev("document.getElementById('save').click(); true");
@@ -341,6 +357,7 @@ try {
     await mob.ev(setInput("document.getElementById('customerPhone')", "0903 555 777"));
     await mob.ev(setInput("document.getElementById('orderDate')", vnDate(3)));
     await mob.ev(setInput(O_GHI_CHU_GON, GHI_CHU_GON));
+    await mob.ev("document.querySelector('[data-action=\"chon-khong-don\"]')?.click(); true"); // G-02: Gửi đơn đòi chọn Đón / Không đón
     await sleep(200);
     await mob.ev("document.getElementById('save').click(); true");
     try {

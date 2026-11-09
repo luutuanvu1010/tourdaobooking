@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { KHOA_CO_TAB, NHOM_O, O_DIEN_THOAI, O_TOI, TOI_DA_O, loiTatMayTinh, luoiDienThoai, mauO, nhomMayTinh, oTrangChu, type KhoaO } from "./trang-chu-o.ts";
+import { NHOM_O, khoaCoTab, O_DIEN_THOAI, O_TOI, TOI_DA_O, loiTatMayTinh, luoiDienThoai, mauO, nhomMayTinh, oTrangChu, type KhoaO } from "./trang-chu-o.ts";
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import { PAGES } from "./sw-policy.ts";
 
@@ -160,13 +160,31 @@ test("Điện thoại 1.73, mọi tổ hợp quyền: không ô nào đã có ta
   for (const ma of moiToHop()) {
     const r = luoiDienThoai(who(...ma));
     const goc = oTrangChu(who(...ma));
-    const conLai = goc.nhom.flatMap((g) => khoa(g.o)).filter((k) => !KHOA_CO_TAB.includes(k));
-    for (const k of khoa(r.luoi)) assert.ok(!KHOA_CO_TAB.includes(k), `${ma.join("+")}: ô ${k} đã có tab`);
+    const conLai = goc.nhom.flatMap((g) => khoa(g.o)).filter((k) => !khoaCoTab(who(...ma)).has(k));
+    for (const k of khoa(r.luoi)) assert.ok(!khoaCoTab(who(...ma)).has(k), `${ma.join("+")}: ô ${k} đã có tab`);
     assert.ok(r.luoi.length + (r.coTatCa ? 1 : 0) <= O_DIEN_THOAI, ma.join("+"));
     assert.equal(r.coTatCa, conLai.length > O_DIEN_THOAI, ma.join("+"));
     if (!r.coTatCa) assert.deepEqual(new Set(khoa(r.luoi)), new Set(conLai), ma.join("+"));
     assert.deepEqual(r.nhom, goc.nhom, `${ma.join("+")}: bảng trượt không đổi`);
   }
+});
+
+// G-04 (9/11/2026): bảng «mọi ô chạm được trên điện thoại». Lỗi cũ: danh sách tĩnh bốn khoá «có tab» giả định «có ô thì có tab» — Quản lý bán hàng có ô Dịch vụ & giá (ADR-0169) mà KHÔNG có tab.
+test("G-04, mọi tổ hợp quyền: mọi ô của bảng trượt chạm được trên điện thoại (qua tab, lưới hoặc ô Tất cả)", () => {
+  for (const ma of moiToHop()) {
+    const w = who(...ma);
+    const r = luoiDienThoai(w);
+    const coTab = khoaCoTab(w);
+    for (const k of oTrangChu(w).nhom.flatMap((g) => khoa(g.o))) assert.ok(coTab.has(k) || khoa(r.luoi).includes(k) || r.coTatCa, `${ma.join("+")}: ô ${k} không có lối nào trên điện thoại`);
+  }
+});
+
+test("G-04: Bán hàng + Quản lý bán hàng — lưới điện thoại = Danh bạ | Điều phối xe | Dịch vụ & giá | Tất cả; khoaCoTab chỉ giữ tab THẬT", () => {
+  const r = luoiDienThoai(who("SALES", "SALES_MANAGER"));
+  assert.deepEqual(khoa(r.luoi), ["danh-ba", "dieu-phoi", "dich-vu"]);
+  assert.equal(r.coTatCa, true);
+  assert.ok(!khoaCoTab(who("SALES", "SALES_MANAGER")).has("dich-vu"));
+  assert.ok(khoaCoTab(who("ADMIN")).has("dich-vu") && khoaCoTab(who("ADMIN")).has("tai-khoan"), "Quản trị có tab Thiết lập / Tài khoản dẫn tới hai ô này");
 });
 
 test("Máy tính 1.73: Lối tắt Quản trị / Toàn quyền đúng 7 ô bản vẽ 1a, 1b + Tất cả", () => {

@@ -1,6 +1,6 @@
 # ADR-0071 — Vai "Hành chính nhân sự" nhập tài khoản; gỡ đồng bộ nhân viên từ Google Sheet; bảo trì miễn trừ theo Toàn quyền
 
-- **Trạng thái:** **accepted** — chủ dự án duyệt trong chat 2026-10-01 ("4-ok"), kèm ba câu trả lời ở mục "Câu hỏi đã được chủ trả lời". Số 0071: đã soát mọi nhánh cục bộ, chưa ai dùng 0071 trở lên; đã báo phiên điều phối.
+- **Trạng thái:** **accepted** — chủ dự án duyệt trong chat 2026-10-01 ("4-ok"), kèm ba câu trả lời ở mục "Câu hỏi đã được chủ trả lời". Số 0071: đã soát mọi nhánh cục bộ, chưa ai dùng 0071 trở lên; đã báo phiên điều phối. **Điều 1f: tài khoản xem mọi khách do Nhân sự tạo không nhận PIN đầu trong phản hồi, và Nhân sự không gán thêm vai xem mọi khách — bởi ADR-0191** (accepted 2026-11-09); nguyên văn → mới ở bảng "Câu ADR bị thay" của ADR-0191.
 - **Ngày:** 2026-10-01   **Loại:** **một chiều một phần** — gỡ hẳn đồng bộ Sheet (mã bị xoá; dữ liệu giữ nguyên); thêm mã quyền + mã vai bằng migration (chỉ thêm).
 - **Lời chủ dự án (chat 2026-10-01, AI ghi lại, không tự quyết):**
   - Câu gốc: *"hạn chế bớt quyền của Admin (không phải Super Admin): không cho phép gửi thông báo, không cho phép đọc Góp ý, báo lỗi, không được đổi những cấu hình quan trọng, tức không can thiệp về mặt kỹ thuật, chỉ cho quyền liên quan đến kinh doanh thôi"* — phần gửi thông báo, Góp ý, Nhật ký, bật/tắt bảo trì **đã có** trên `main` (ADR-0034 điều 7, ADR-0038, ADR-0019); ADR này chỉ lo phần còn hở.

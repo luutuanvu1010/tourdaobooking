@@ -385,7 +385,7 @@ try {
       assert.equal(await q.ev("document.getElementById('tra-sau-bao').hidden"), false, "câu báo vẫn còn");
       const k = await khoiHien(q);
       assert.equal(k.hien, false, "khối ẩn");
-      assert.ok(k.bao.includes("chuyển về Trả trước"), k.bao);
+      assert.ok(k.bao.includes("chuyển về Thanh toán ngay"), k.bao);
       await chup(q, "lap-don-het-han-muc-1440");
       await luuRoiChoChuyenTrang(q);
     } catch (e) { await chanDoan(q, "F4"); throw e; } finally { q.close(); trangHienTai = null; }

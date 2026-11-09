@@ -5,7 +5,7 @@
 // KHÔNG đổi bản đồ quyền: mỗi ô trỏ tới MỘT trang của bảng mục (src/shared/muc-giao-dien.ts — TRANG): đường trang và ai thấy lấy từ đó, cùng câu mà thanh bên
 // máy tính và trang Tôi hỏi; ô hẹp hơn trang thì khai `chiKhi` (bài rào src/muc-hien-mo-duoc-{1,2,3}.test.ts đòi ghi lý do). Máy chủ vẫn kiểm lại ở từng trang; lưới chỉ
 // là lối vào.
-import { TRANG, coHien, type ChoDat } from "./muc-giao-dien.ts";
+import { THANH_BEN, TRANG, coHien, thanhTab, type ChoDat, type ChoThanhBen } from "./muc-giao-dien.ts";
 import type { PermissionHolder } from "./permissions.ts";
 import { chiTaiXe } from "./start-page.ts";
 
@@ -96,14 +96,30 @@ export function oTrangChu(who: PermissionHolder, tuyChon: { bo?: readonly KhoaO[
 }
 
 /**
- * Ô có tab riêng ở thanh tab điện thoại (THANH_TAB của bảng mục): tab và ô cùng trỏ một trang của bảng mục, không dòng nào hẹp hơn trang — nên người có ô thì
- * luôn có tab, lưới điện thoại không lặp lại (bản vẽ "Trang chu Quan tri.dc.html" 1c, 1d, bản 1.73).
+ * Các ô CÓ THỂ có tab riêng ở thanh tab điện thoại (THANH_TAB của bảng mục): tab "Đơn hàng", "Tạo đơn", "Tài khoản", hoặc tab "Thiết lập" (dẫn tới các trang nhóm THIẾT LẬP).
+ * Chỉ là danh sách ứng viên: người nào THẬT có tab thì hỏi `khoaCoTab` (G-04 — Quản lý bán hàng có ô Dịch vụ & giá mà không có tab nào dẫn tới nó).
  */
-export const KHOA_CO_TAB: readonly KhoaO[] = ["tao-don", "don-hang", "dich-vu", "tai-khoan"];
+const UNG_VIEN_CO_TAB: readonly KhoaO[] = ["tao-don", "don-hang", "dich-vu", "tai-khoan"];
+
+/**
+ * Trong các ô ứng viên, những ô người này THẬT có lối vào trên thanh tab: tab của chính trang đó, hoặc tab «Thiết lập» khi trang nằm trong nhóm THIẾT LẬP của thanh bên và người này
+ * thấy trang đó ở nhóm ấy. Không đổi quyền, không đổi bảng mục — chỉ hỏi đúng thanh tab mà người đó đang thấy.
+ */
+export function khoaCoTab(who: PermissionHolder): ReadonlySet<string> {
+  const tab = thanhTab({ staff: who }).map((t) => t.trang);
+  const coThietLap = tab.includes("thietLap");
+  return new Set(
+    UNG_VIEN_CO_TAB.filter((k) => {
+      const trang = DS.find((o) => o.khoa === k)!.trang;
+      if (tab.includes(trang)) return true;
+      return coThietLap && (THANH_BEN as readonly ChoThanhBen[]).some((c) => c.nhom === "THIẾT LẬP" && c.trang === trang && coHien(c, { staff: who }));
+    }),
+  );
+}
 /** Lưới điện thoại 1.73: một hàng 4 chỗ (3 ô + "Tất cả" khi thừa). */
 export const O_DIEN_THOAI = 4;
 export function luoiDienThoai(who: PermissionHolder): LuoiTrangChu {
-  return oTrangChu(who, { bo: KHOA_CO_TAB, toiDa: O_DIEN_THOAI });
+  return oTrangChu(who, { bo: [...khoaCoTab(who)] as KhoaO[], toiDa: O_DIEN_THOAI });
 }
 /** Thẻ "Lối tắt" máy tính 1.73: 7 ô + "Tất cả"; bỏ "Tạo đơn" vì thanh trên máy tính đã có nút "Tạo đơn" (bản vẽ 1a, 1b). */
 export function loiTatMayTinh(who: PermissionHolder): LuoiTrangChu {

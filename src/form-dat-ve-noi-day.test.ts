@@ -23,6 +23,15 @@ test("thẻ dịch vụ: ẩn khối Thông tin chuyến theo cờ và dựng d�
   assert.match(the, /"data-trip-gon":\s*"note"/, "ô ghi chú gọn có data-trip-gon=note (kịch bản Chrome dựa vào)");
 });
 
+// N7a (9/11/2026): dịch vụ không có đưa đón thì dòng «Ghi chú — Thời gian đón» của Đối tác không còn nghĩa → ẩn theo ĐÚNG điều kiện của khối Đưa đón, ở cả lúc dựng lẫn lúc đổi dịch vụ.
+test("N7a: dòng ghi chú gọn ẩn theo cùng điều kiện coDuaDon() === false với khối Đưa đón, ở cả hai chỗ cập nhật", () => {
+  const the = doc("web/service-card.ts");
+  const chiTim = the.match(/dongGhiChuGon\.hidden\s*=\s*o\.duaDon\.coDuaDon\?\.\(\)\s*===\s*false/g) ?? [];
+  assert.ok(chiTim.length >= 2, `dongGhiChuGon.hidden phải đặt theo coDuaDon() ở lúc dựng VÀ lúc đổi dịch vụ — thấy ${chiTim.length} chỗ`);
+  const khoiDuaDon = the.match(/duaDon\.root\.hidden\s*=\s*o\.duaDon\.coDuaDon\?\.\(\)\s*===\s*false/g) ?? [];
+  assert.equal(chiTim.length, khoiDuaDon.length, "mỗi chỗ ẩn khối Đưa đón có chỗ ẩn dòng ghi chú đi kèm");
+});
+
 test("ô giảm giá của form lập đơn dùng chữ gợi ý của luật thuần", () => {
   assert.match(doc("web/order-form.ts"), /placeholder\s*=\s*GOI_Y_GIAM_GIA_DOI_TAC/, "ô giảm giá đặt placeholder bằng GOI_Y_GIAM_GIA_DOI_TAC (không chỉ import)");
 });

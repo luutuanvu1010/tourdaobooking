@@ -1547,10 +1547,14 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .catalog-gia-so { font-weight: var(--fw-bold); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .catalog-gia-dv { font-size: var(--fs-badge); color: var(--c-text-muted); } /* chỉ dịch vụ tính theo nhóm: "theo nhóm 5 khách/lượt" */
 .catalog-empty { padding: var(--s3); color: var(--c-text-muted); }
+/* «Chọn một» (N4, trang Nhập lô vé): chọn xong thì khung thu lại thành một dòng tên dịch vụ + nút «Đổi». */
+.catalog.is-da-chon > :not(.catalog-da-chon):not(.catalog-bao) { display: none; }
+.catalog-da-chon { display: flex; align-items: center; gap: var(--s3); min-height: var(--tap-min); padding: var(--s2) var(--s3); background: var(--c-surface-alt); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+.catalog-da-chon-ten { display: flex; flex: 1 1 auto; flex-direction: column; gap: var(--s1); min-width: 0; font-weight: var(--fw-semibold); overflow-wrap: anywhere; }
 
 /* ---------- A2: trang lập/sửa đơn — chỉ token ---------- */
 .pay-note { margin-top: var(--s3); }
-#use-mine { margin-bottom: var(--s3); }
+#use-mine, #use-partner { margin-bottom: var(--s3); }
 .summary-note { margin: 0; }
 .form-cols { display: contents; } /* dưới 960px: như không có lớp bọc — thanh Lưu vẫn dính đáy theo form */
 .form-side { display: contents; } /* điện thoại: các khối của cột phải nằm xen kẽ trong luồng; thanh Lưu vẫn là con trực tiếp của form để dính đáy */
@@ -3767,6 +3771,8 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .khach-ngay p { margin: var(--s1) 0 0; }
 .khach-dau { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
 .khach-dau h2 { margin: 0; }
+.khach-dau { flex-wrap: wrap; }
+.khach-dau-nut { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); justify-content: flex-end; } /* N5: hai nút điền sẵn («của tôi», «đối tác») xuống dòng được ở khổ hẹp */
 .khach-dau .btn-link { color: var(--c-primary); }
 .buoc[data-an-khach] > :not(.khach-ngay) { display: none; } /* ADR-0154 Đ2.2: công tắc «Ẩn thông tin khách» áp cho đối tác — chỉ còn dòng «Ngày khởi hành» của khối Khách */
 .buoc[data-an-khach] .khach-ngay { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }

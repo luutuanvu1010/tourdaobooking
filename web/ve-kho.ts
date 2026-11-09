@@ -16,6 +16,7 @@ import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
 import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, cauVuotTran, locAnhDaDoc } from "../src/shared/ve-nhap-lo";
 import { hoiXacNhan } from "./bang-truot";
+import { createCatalogPicker } from "./catalog-picker";
 import { byId, h, replaceChildren } from "./dom";
 import { docQrTuTep } from "./qr-doc-ve";
 import { initShell, showError } from "./shell";
@@ -177,14 +178,17 @@ if (!nhapLo && !taoVe) {
   }
 
   async function dungForm(): Promise<void> {
-    let dichVu: { code: string; name: string }[] = [];
     let loiDanhMuc: string | null = null;
+    // N4: chọn dịch vụ bằng CHÍNH khung của Tạo đơn (ô tìm + hàng nút nhóm + ★ Hay dùng), chế độ «chọn một»; vé không cần giá nên dòng chưa có giá vẫn chọn được; nhớ nhóm bằng khoá riêng của trang này.
+    let maDichVu = "";
+    const khungDv = createCatalogPicker({ cheDo: "chon-mot", khongYeuCauGia: true, khoaNho: "ve-kho", onPick: (c) => { maDichVu = c.code; }, onDoi: () => { maDichVu = ""; } });
     try {
       const r = await api<Api.CatalogPublicResponse>("/api/catalog");
-      dichVu = r.items.map((i) => ({ code: i.code, name: i.name })).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+      khungDv.setGroups(r.groups);
+      khungDv.setItems(r.items);
     } catch (err) { loiDanhMuc = lyDoLoi(err); }
-
-    const chonDv = h("select", { class: "o", id: "vk-dich-vu", required: true }, h("option", { value: "" }, "Chọn dịch vụ…"), ...dichVu.map((d) => h("option", { value: d.code }, d.name)));
+    khungDv.setTaiKhoan(staff.id);
+    const chonDv = h("div", { id: "vk-dich-vu", class: "vk-dich-vu", role: "group", "aria-labelledby": "vk-dich-vu-nhan" }, khungDv.root);
     const chonNhom = h("select", { class: "o", id: "vk-nhom" }, ...Object.entries(NHAN_NHOM).map(([ma, ten]) => h("option", { value: ma }, ten)));
     const tenSp = h("input", { type: "text", class: "o", id: "vk-ten-sp", maxLength: 120, required: true, placeholder: "Tên sản phẩm in trên vé" });
     const tuNgay = h("input", { type: "date", class: "o", id: "vk-tu-ngay", required: true });
@@ -198,7 +202,7 @@ if (!nhapLo && !taoVe) {
 
     const form = h("form", { id: "vk-form", novalidate: false },
       loiDanhMuc ? h("p", { class: "alert", role: "alert" }, loiDanhMuc) : null,
-      truong("Dịch vụ", "vk-dich-vu", chonDv), truong("Loại khách", "vk-nhom", chonNhom), truong("Tên sản phẩm in trên vé", "vk-ten-sp", tenSp),
+      h("div", { class: "lb-truong" }, h("span", { class: "nhan", id: "vk-dich-vu-nhan" }, "Dịch vụ"), chonDv), truong("Loại khách", "vk-nhom", chonNhom), truong("Tên sản phẩm in trên vé", "vk-ten-sp", tenSp),
       truong("Dùng từ ngày (chung cho cả lô)", "vk-tu-ngay", tuNgay), truong("Dùng đến ngày (chung cho cả lô)", "vk-den-ngay", denNgay),
       truong(`Ảnh vé (JPG hoặc PNG, mỗi ảnh tối đa 3 MB, mỗi lô tối đa ${tranLo} ảnh)`, "vk-tep", tep),
       h("p", { class: "muted" }, "Máy tự đọc mã QR trên từng ảnh để chống trùng, nhưng không đọc ngày hay loại vé. Mỗi lô chỉ chọn vé cùng một sản phẩm, cùng loại khách và cùng ngày dùng. Chọn «Mọi loại khách» khi vé dùng được cho cả người lớn, trẻ em và người cao tuổi."),
@@ -214,6 +218,7 @@ if (!nhapLo && !taoVe) {
       ev.preventDefault();
       loi.hidden = true; hienOk(null);
       const tepDs = [...(tep.files ?? [])];
+      if (maDichVu === "") { baoLoi("Chọn dịch vụ cho lô vé."); return; }
       if (tepDs.length === 0) { baoLoi("Chọn ít nhất một ảnh vé."); return; }
       if (tepDs.length > tranLo) { baoLoi(cauVuotTran(tranLo, tepDs.length)); return; }
       nutGui.disabled = true;
@@ -231,7 +236,7 @@ if (!nhapLo && !taoVe) {
         for (const b of loc.bi) bi.push(`${b.ten}: ${b.lyDo}`);
         if (loc.hop.length === 0) { baoLoi(bi.join(" ")); trangThai.textContent = "Chưa có vé nào vào kho. Chưa tạo lô."; return; }
 
-        const lo = await api<{ loId: string }>("/api/ve/lo", { method: "POST", body: { catalogCode: chonDv.value, nhomKhach: chonNhom.value, tenSanPham: tenSp.value, soVeDuKien: loc.hop.length } });
+        const lo = await api<{ loId: string }>("/api/ve/lo", { method: "POST", body: { catalogCode: maDichVu, nhomKhach: chonNhom.value, tenSanPham: tenSp.value, soVeDuKien: loc.hop.length } });
         try {
           let them = 0;
           for (let i = 0; i < loc.hop.length; i += TOI_DA_VE_MOI_DOT) {
@@ -256,6 +261,8 @@ if (!nhapLo && !taoVe) {
           hienOk(xn.dichVuKhongVe ? `Đã nhập ${them} vé vào kho. Dịch vụ này đang tắt ô «Có vé» nên máy chưa giữ vé cho đơn. Hãy báo Quản trị bật ô này ở màn Dịch vụ & giá.`
             : xn.canhBaoNguon ? `Đã nhập ${them} vé vào kho. Lô chưa được cấp cho ai tới khi Quản trị đổi ô «Vé do ai phát» ở màn Dịch vụ & giá.` : `Đã nhập ${them} vé vào kho.`);
           form.reset();
+          khungDv.xoaChon();
+          maDichVu = "";
           await Promise.all([taiKho(), taiCacLo(), taiLoDaHuy()]);
         } catch (err) {
           // Lô đã tạo mà gửi dở: chỉ đường ra thay vì để vé kẹt không ai thấy (ADR-0156 Đ2 mục 3).

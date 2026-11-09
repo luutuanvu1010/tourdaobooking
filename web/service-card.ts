@@ -79,6 +79,8 @@ export interface ServiceCard {
    * mà chỉ có lỗi cấp thẻ thì trả ô lỗi đầu tiên của thẻ với `daAn: true` (thẻ vừa mở — trang cuộn tới ô đó và đặt tiêu điểm).
    */
   showIssues(show: boolean): { o: HTMLElement; daAn: boolean } | null;
+  /** G-02: đánh dấu thiếu Đón / Không đón (xem `KhoiDuaDon.danhDauThieuChon`); `cau` null = gỡ. Trả nhóm nút khi có dấu. */
+  danhDauThieuChonDon(cau: string | null): HTMLElement | null;
   /** Mở thẻ, mở khối chuyến và cuộn tới thẻ. */
   reveal(): void;
   hasIssues(): boolean;
@@ -190,6 +192,8 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     : null;
   if (oGhiChuGon) oGhiChuGon.addEventListener("input", () => commit({ ...draft, trip: { ...draft.trip, note: oGhiChuGon.value } }));
   const dongGhiChuGon = oGhiChuGon ? h("label", { class: "o-noi" }, khungNhanNoi(NHAN_GHI_CHU_DOI_TAC, oGhiChuGon, { khungClass: "o-hien-goi-y" })) : null;
+  // N7a: dịch vụ không có đưa đón thì dòng «Ghi chú — Thời gian đón» không còn nghĩa → ẩn (chữ đã gõ vẫn giữ trong bản nháp và vẫn gửi lên nguyên).
+  if (dongGhiChuGon) dongGhiChuGon.hidden = o.duaDon.coDuaDon?.() === false;
 
   const than = h(
     "div",
@@ -569,6 +573,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       if (structKey(d, o.duocNhapTay === true) !== before) rebuildBody();
       if (legsDoi) duaDon.update(d.legs, d.taoSan);
       duaDon.root.hidden = o.duaDon.coDuaDon?.() === false; // cờ nhóm có thể vừa đổi (form tải lại danh mục sau 409 `transfer_disabled`)
+      if (dongGhiChuGon) dongGhiChuGon.hidden = o.duaDon.coDuaDon?.() === false;
       refresh();
       refreshLimits(); // thân có thể vừa được dựng lại: nút "+ Thêm dòng" mới mặc định bật
     },
@@ -582,6 +587,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       // Thẻ đang GẬP có lỗi cấp thẻ (vd "Nhập số khách."): chính thẻ không bao giờ "ẩn" (chỉ thân ẩn) nên trang không tự biết — trả ô lỗi đầu tiên, đánh dấu vừa nằm trong khối đóng.
       return gap.laMo() ? { o: oLoiThe() ?? root, daAn: true } : null;
     },
+    danhDauThieuChonDon: (cau) => duaDon.danhDauThieuChon(cau),
     reveal() {
       gap.mo();
       if (o.formGonDoiTac !== true) tripDetails.open = true; // form gọn: khối chuyến đang ẩn, không có gì để mở
