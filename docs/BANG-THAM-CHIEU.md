@@ -303,7 +303,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (321)
+## Việc quan trọng (323)
 
 ### Tách nhiệm vụ (tiền)
 

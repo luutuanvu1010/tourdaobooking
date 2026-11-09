@@ -21,7 +21,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "2.84",
     date: "2026-11-09",
     items: [
-      { kind: "moi", text: "Toàn quyền có thể chọn trường nào hiện, ẩn hoặc bắt buộc theo từng quyền ở màn Tạo đơn và vài cột phụ ở danh sách dịch vụ, tài khoản, đối tác. Chỉnh ngay trong trang Giao diện, có nút khôi phục mặc định." },
+      { kind: "moi", text: "Toàn quyền chọn trường nào hiện, ẩn hay bắt buộc theo từng quyền ở màn Tạo đơn và vài cột phụ. Chỉnh trong trang Giao diện, có nút khôi phục mặc định." },
     ],
   },
   {
