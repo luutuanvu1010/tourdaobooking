@@ -452,3 +452,20 @@ test("cổng tiền khi quét: đơn Trả sau QUÁ hạn còn nợ → VÀNG «
     assert.equal(luot(w).length, 0, "vàng chưa xác nhận thì không ghi");
   } finally { tat(); }
 });
+
+test("GET /api/ve/don/:id: lỗi đọc số vé đã dùng không làm hỏng cả khối vé — vẫn 200, «đã dùng» về 0", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await donDaMo(w);
+    const loi = mock.method(console, "error", () => {});
+    const goc = w.sqlite.prepare.bind(w.sqlite);
+    w.sqlite.prepare = (sql: string) => { if (/vdt_scan/.test(sql)) throw new Error("đọc hỏng"); return goc(sql); };
+    const r = await w.call("GET", `/api/ve/don/${d.id}`, { as: ADM });
+    w.sqlite.prepare = goc;
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.dichVu[0].daDung, 0);
+    assert.ok(loi.mock.calls.some((c: any) => c.arguments[0] === "ve_da_dung_loi"), "chống bài rỗng: lỗi có bị đọc (đã ghi log) chứ không phải nhánh khác");
+    loi.mock.restore();
+  } finally { tat(); }
+});

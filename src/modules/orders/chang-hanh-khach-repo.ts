@@ -67,7 +67,7 @@ export async function donXacNhanTheoMa(db: D1Database, catalogCode: string, tuNg
 
 /**
  * ADR-0175 §2.7 (màn đối chiếu): dịch vụ có mã danh mục của đơn ĐÃ XÁC NHẬN đi đúng ngày ?1 (không đơn nháp, chờ xác nhận, huỷ). Chỉ tên dịch vụ và số khách đã lưu: không tên khách, không SĐT, không tiền.
- * Trần 5.000 dòng (một ngày không tới được; vượt thì bị cắt, hàm gọi báo).
+ * Trần 5.000 dòng (một ngày không tới được; vượt thì bị cắt lặng lẽ: route đối chiếu chưa báo, dựa vào việc một ngày không tới số này).
  */
 const DICH_VU_XAC_NHAN_THEO_NGAY = defineSql(
   "orders",

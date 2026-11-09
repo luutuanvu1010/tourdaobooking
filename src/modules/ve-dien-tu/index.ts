@@ -515,7 +515,7 @@ export const veDienTuModule: AppModule = {
       const [dv, trangThai] = await Promise.all([dichVuChoVe(orderId), docTrangThaiDon(env.DB, orderId)]);
       const homNay = vnToday(new Date());
       const dichVu = [];
-      const daDungTheoDv = await docSoVeDaDung(env.DB, orderId); // ADR-0175 §2.7: «Đã dùng x/y» — chỉ con số, không người quét, không mã vé
+      const daDungTheoDv = (await soVeDaDungTheoDichVu(env.DB, orderId)) ?? new Map<string, number>(); // ADR-0175 §2.7: «Đã dùng x/y» — chỉ con số, không người quét, không mã vé; lỗi đọc ⇒ rỗng, không làm hỏng cả khối vé
       for (const d of dv) {
         const can_ = canVe(d.pax);
         const giu = await veDangGiu(env.DB, d.serviceId);
