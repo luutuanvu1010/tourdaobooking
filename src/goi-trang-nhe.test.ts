@@ -74,7 +74,7 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // thanhTab(n, ghimHieuLuc(staff))): ô quyền me.favorites.write, `ghimDuoc` / `ghimHieuLuc` và nhánh chọn của `thanhTab` (phần dựng danh sách chọn, đọc cột lưu,
 // kiểm thân ở ngoài gói khung). Đo thật 110.343 byte, trần = số đo + 100 (+508 so với trần bản chính). Chủ dự án DUYỆT 9/11/2026 nới tối đa +581 byte (qua phiên
 // điều phối: «Chủ đã đồng ý nới trần gói Đơn hàng thêm 581 byte»).
-// Gộp main (ADR-0187) vào nhánh vé Tour Đảo Đợt 2 (9/11/2026): trần = tổng hai khoản nới đã được chủ duyệt (110.610 của vé Đợt 2 + 508 của ADR-0187 trên 109.935); xem số đo thật ở báo cáo gộp.
+// Gộp main (ADR-0187) vào nhánh vé Tour Đảo Đợt 2 (9/11/2026): trần = tổng hai khoản nới đã được chủ duyệt (110.610 của vé Đợt 2 + 508 của ADR-0187 trên 109.935); xem số đo thật ở báo cáo gộp. Chủ dự án duyệt trần gộp 111.118 ngày 9/11/2026 nguyên văn «duyệt trần».
 const TRAN_ORDERS = 111_118;
 
 function dung(trang: string) {
