@@ -796,7 +796,7 @@ function oSo(iconName: IconName, nhan: string, phamVi: PhamVi, giaTri: string, p
   );
 }
 
-/** Thứ tự bản vẽ: Còn thiếu · Doanh thu của tôi · Chờ xác nhận · Chưa phụ trách — cùng số với thẻ số liệu máy tính (renderSoMayTinh), số rút gọn. */
+/** Thứ tự bản vẽ: Còn thiếu · Doanh thu của tôi · Chờ xác nhận · Chưa phụ trách — cùng số với thẻ số liệu máy tính (renderSoMayTinh), tiền viết đủ kiểu «2.800.000 ₫» (G-06d). */
 function renderSoDienThoai(staff: Staff, data: Api.DashboardResponse, unpaid: Api.UnpaidSummaryResponse | null): void {
   const rev = data.revenueWeek;
   // Hai ô «Của tôi» chỉ cho người lập được đơn (coOSoCuaToi, chủ 28/10); Kế toán còn hai ô «Còn thiếu», «Chưa phụ trách» trên một hàng.
@@ -804,11 +804,11 @@ function renderSoDienThoai(staff: Staff, data: Api.DashboardResponse, unpaid: Ap
   replaceChildren(
     byId("dash-so"),
     unpaid
-      ? oSo("money", "Còn thiếu", PHAM_VI_O_TRANG_CHU.conThieu, `${vndShort(unpaid.total)} ₫`, unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn`, "dash-so-thieu")
+      ? oSo("money", "Còn thiếu", PHAM_VI_O_TRANG_CHU.conThieu, vnd(unpaid.total), unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn`, "dash-so-thieu")
       : oSo("money", "Còn thiếu", PHAM_VI_O_TRANG_CHU.conThieu, "—", "Chưa tải được số"),
     ...(cuaToi
       ? [
-          oSo("chart", "Doanh thu của tôi", PHAM_VI_O_TRANG_CHU.doanhThu, `${vndShort(rev.total)} ₫`, `Tuần này · ${rev.count} đơn`, "dash-so-doanh-thu"),
+          oSo("chart", "Doanh thu của tôi", PHAM_VI_O_TRANG_CHU.doanhThu, vnd(rev.total), `Tuần này · ${rev.count} đơn`, "dash-so-doanh-thu"),
           oSo("doc-check", "Đơn nháp", PHAM_VI_O_TRANG_CHU.donNhap, String(data.draftCount), "Nháp của bạn, chưa xác nhận"),
         ]
       : []),

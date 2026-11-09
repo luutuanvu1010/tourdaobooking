@@ -149,3 +149,11 @@ test("khối số máy tính chỉ còn ô Doanh thu; điện thoại vẫn đ�
   const dt = home.slice(home.indexOf("function renderSoDienThoai"), home.indexOf("const LOI_SO_LIEU"));
   for (const nhan of ["Còn thiếu", "Doanh thu của tôi", "Đơn nháp", "Chưa phụ trách"]) assert.ok(dt.includes(`"${nhan}"`), nhan);
 });
+
+test("G-06(d): ô số Trang chủ điện thoại viết tiền đủ (vnd), không rút gọn vndShort; hai ô tiền có đúng một lời gọi vnd", () => {
+  const dt = home.slice(home.indexOf("function renderSoDienThoai"), home.indexOf("const LOI_SO_LIEU"));
+  assert.doesNotMatch(dt, /vndShort\(/, "ô số không dùng vndShort");
+  assert.match(dt, /vnd\(unpaid\.total\)/);
+  assert.match(dt, /vnd\(rev\.total\)/);
+  assert.equal((dt.match(/\bvnd\(/g) ?? []).length, 2);
+});

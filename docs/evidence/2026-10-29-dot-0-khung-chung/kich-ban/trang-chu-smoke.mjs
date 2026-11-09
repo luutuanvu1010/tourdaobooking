@@ -543,7 +543,7 @@ try {
       assert.equal(m.soShown, true, `${label}: khối số liệu 2×2 (#dash-so) phải hiển thị thật — ${JSON.stringify(m)}`);
       // Ô thứ ba «Đơn nháp» / «Nháp của bạn, chưa xác nhận» (đổi từ «Chờ xác nhận» ở commit 00ecef1f, ADR-0135 nháp riêng tư, 26/10).
       assert.deepEqual(m.so.map((s) => s.label), ["Còn thiếu", "Doanh thu của tôi", "Đơn nháp", "Chưa phụ trách"], `${label}: bốn ô số liệu đúng thứ tự bản vẽ — ${JSON.stringify(m.so)}`);
-      assert.deepEqual(m.so.map((s) => s.value), ["12,34tr ₫", "12,64tr ₫", "1", String(data.unassignedCount)], `${label}: giá trị bốn ô (tiền rút gọn vndShort; số đơn nháp; số chưa phụ trách khớp API) — ${JSON.stringify(m.so)}`);
+      assert.deepEqual(m.so.map((s) => s.value), ["12.345.000 ₫", "12.645.000 ₫", "1", String(data.unassignedCount)], `${label}: giá trị bốn ô (tiền đủ kiểu vnd, G-06d; số đơn nháp; số chưa phụ trách khớp API) — ${JSON.stringify(m.so)}`);
       assert.deepEqual(m.so.map((s) => s.sub), ["1 đơn", "Tuần này · 2 đơn", "Nháp của bạn, chưa xác nhận", "Chờ người nhận"], `${label}: dòng phụ bốn ô — ${JSON.stringify(m.so)}`);
       assert.ok(m.so.every((s) => s.shown && s.href === "/orders"), `${label}: bốn ô hiển thị thật và dẫn tới /orders — ${JSON.stringify(m.so)}`);
       assert.deepEqual(m.so.filter((s) => s.wrapped), [], `${label}: số của ô (.dash-so-gt) không được xuống dòng ("₫" rơi khỏi số — kiểm gộp I-3) — ${JSON.stringify(m.so)}`);
