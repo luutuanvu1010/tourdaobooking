@@ -18,9 +18,9 @@ export const HD_BAN_HANG: NhomHuongDan = {
       tieuDe: "Menu của bạn",
       noiDung: `### Trên máy tính (thanh bên trái)
 
-- **Đầu menu**: [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn chưa xác nhận), [[Danh bạ]].
+- **Đầu menu**: [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn chưa xác nhận), [[Danh bạ]], [[Quét vé]].
 - Nhóm **VẬN CHUYỂN**: [[Điều phối xe]], [[Xe đang chạy]].
-- Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]] (chỉ xem), [[Luật bán]], [[Đặc điểm dịch vụ]].
+- Nhóm **THIẾT LẬP** (bấm để mở): [[Hoa hồng đối tác]] (chỉ xem), [[Luật bán]], [[Đặc điểm dịch vụ]].
 - **Chân menu**: [[Của tôi]], [[Hỗ trợ]], [[Nhật ký thay đổi]]. Nút [[Đăng xuất]] ở dưới cùng.
 - Thanh trên cùng: ô tìm đơn, nút [[Tạo đơn]] và cái chuông thông báo.
 
