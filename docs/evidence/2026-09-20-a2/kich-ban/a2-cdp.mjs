@@ -55,6 +55,29 @@ export async function taoCapKhoaVapidThu() {
   return { publicB64u, privateJwk };
 }
 
+/** ADR-0185: tài khoản LAI (PARTNER + quyền nội bộ) không dựng thẳng được bằng `insertStaffSql` nữa (hàng rào cố ý ở scripts/staff-lib.mjs, cộng trigger LC-1/LC-1c).
+ * Dữ liệu thử kiểu cũ dựng như `gieoTaiKhoanLai` của tests/e2e/lib.mjs: gieo Đối tác thuần kèm vai `TRAVEL_AGENCY`, rồi đóng vai bên ngoài, gán vai STAFF và thêm quyền nội bộ.
+ * Tài khoản không phải lai: giữ nguyên `insertStaffSql` (Đối tác thuần phải tự khai `vai`). Trả MỘT chuỗi nhiều câu SQL, ngăn cách bằng xuống dòng. */
+export async function insertStaffSqlThu(account) {
+  const { insertStaffSql } = await import(pathToFileURL(join(ROOT, "scripts", "staff-lib.mjs")).href);
+  const perms = account.permissions ?? ["SALES"];
+  if (!(perms.includes("PARTNER") && perms.some((p) => p !== "PARTNER"))) return insertStaffSql(account);
+  const { mfaGraceOnCreate } = await import(pathToFileURL(join(ROOT, "src", "modules", "staff", "rules.ts")).href);
+  const goc = await insertStaffSql({ ...account, permissions: ["PARTNER"], vai: account.vai ?? "TRAVEL_AGENCY" });
+  const at = new Date().toISOString();
+  const nay = `${at.slice(0, 10)}`;
+  const staffId = `(SELECT id FROM staff WHERE phone = '${account.phone}')`;
+  const partyId = `(SELECT party_id FROM staff WHERE phone = '${account.phone}')`;
+  const han = mfaGraceOnCreate(perms, Date.now());
+  return [
+    goc,
+    `UPDATE pty_party_role SET valid_to_date = valid_from_date, updated_at = '${at}' WHERE party_id = ${partyId} AND valid_to_date IS NULL;`,
+    `INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('${randomUUID()}', ${partyId}, 'STAFF', '${nay}', '${at}', '${at}');`,
+    ...perms.filter((p) => p !== "PARTNER").map((p) => `INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('${randomUUID()}', ${staffId}, '${p}', '${at}', '${at}', '${at}');`),
+    `UPDATE staff SET mfa_grace_until = ${han === null ? "NULL" : `'${han}'`} WHERE phone = '${account.phone}';`,
+  ].join("\n");
+}
+
 /** `vapid: true` → máy chủ BẬT Web Push màn hình khoá (ADR-0036) bằng một cặp khoá VAPID sinh riêng cho lần chạy này (xem
  * `taoCapKhoaVapidThu`); mặc định TẮT (rỗng, cùng lý do B-22 với `turnstile`/`passkey`: không lộ cho các kịch bản Chrome
  * cũ không chủ đích kiểm mục này). Trả thêm `vapidPublicKey` trong kết quả `startEnv()` để kịch bản đối chiếu/log. */

@@ -35,7 +35,7 @@ try {
   const nhanVien = ACCOUNTS.salesA, keToan = ACCOUNTS.accounting;
   const taoDoiTac = async (ten, phone) => {
     const t = phai(await call(ACCOUNTS.chu, "POST", "/api/staff", { taoHoSoMoi: true, fullName: ten, phone, roles: ["COLLABORATOR"] }), 201, "tạo đối tác");
-    return { name: ten, phone: t.staff.phone, pin: t.pin, permissions: ["PARTNER"] };
+    return { name: ten, phone: t.staff.phone, pin: t.pin, permissions: ["PARTNER"], vai: "COLLABORATOR" };
   };
   const DT = await taoDoiTac("Đối Tác Thử Một", "0900000311");
   const DT2 = await taoDoiTac("Đối Tác Thử Hai", "0900000312");

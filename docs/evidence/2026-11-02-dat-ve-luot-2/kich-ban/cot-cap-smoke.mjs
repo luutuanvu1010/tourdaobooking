@@ -27,7 +27,7 @@ const { ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, dungMoi
 
 const NHAN_SU = { name: "Nhân Sự Cột Cấp", phone: "0900000551", pin: "246551", permissions: ["HR"] };
 // Tài khoản có quyền Đối tác nhưng hồ sơ chưa mang vai nào được hưởng (dựng thẳng bằng SQL như các kịch bản tài khoản khác).
-const CHUA_VAI = { name: "Đại Lý Chưa Vai", phone: "0900000552", pin: "246552", permissions: ["PARTNER"] };
+const CHUA_VAI = { name: "Đại Lý Chưa Vai", phone: "0900000552", pin: "246552", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" };
 const TEN = { rieng: "Đại Lý Riêng", theoVai: "Đại Lý Theo Vai", chuaCap: "Đại Lý Chưa Cấp", haiVai: "Đại Lý Hai Vai" };
 const SDT = { rieng: "0900000553", theoVai: "0900000554", chuaCap: "0900000555", haiVai: "0900000556" };
 const CAP = { mot: "Cấp một Chrome", hai: "Cấp hai Chrome", ba: "Cấp ba Chrome" };

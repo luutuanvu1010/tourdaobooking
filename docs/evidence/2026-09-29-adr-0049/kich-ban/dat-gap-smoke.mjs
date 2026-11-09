@@ -11,7 +11,7 @@ import {
 } from "./dp-lib.mjs";
 import { chonNoiJs } from "../../2026-10-18-tao-don-thiet-ke-lai/kich-ban/cham-that.mjs";
 
-const DOI_TAC = { name: "Đối Tác Đặt Gấp", phone: "0900000432", pin: "246432", permissions: ["PARTNER"] };
+const DOI_TAC = { name: "Đối Tác Đặt Gấp", phone: "0900000432", pin: "246432", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" };
 const { env, call } = await dungMoiTruong([CHU, DOI_TAC]);
 const b = boDem("DAT GAP SMOKE");
 const MAI = vnDate(1);

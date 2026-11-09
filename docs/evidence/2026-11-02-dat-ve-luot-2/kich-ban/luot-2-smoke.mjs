@@ -34,7 +34,7 @@ const { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT } = await import("../../../../src/sh
 const { CAU_VAN_PHONG_BAO_GIO } = await import("../../../../src/shared/chang-form.ts");
 const { cauThieuTen } = await import("../../../../src/shared/canh-bao-xac-nhan.ts");
 
-const DOITAC = { name: "Đối Tác Lượt Hai", phone: "0900000621", pin: "246621", permissions: ["PARTNER"] };
+const DOITAC = { name: "Đối Tác Lượt Hai", phone: "0900000621", pin: "246621", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" };
 const LAI = { name: "Đối Tác Kiêm Bán Hàng", phone: "0900000622", pin: "246622", permissions: ["PARTNER", "SALES"] };
 const KHACH = { ten: "Khách Thử Lượt Hai", sdt: "0903261777" };
 const GHI_CHU = "Đón 7h cổng khách sạn, SĐT khách 0903261777";
