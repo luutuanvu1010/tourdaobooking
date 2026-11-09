@@ -125,7 +125,7 @@ export function ghiChuTrangThai(d: Pick<ThuongMaiVanPhongDto, "duKien" | "chuaCh
   return null;
 }
 
-/** Câu cảnh báo (màu đỏ) của dòng thiếu mức. `daChup` (đơn đã chụp mức lúc xác nhận): câu «cài mức mới không gỡ được…» thay đuôi «cần cài mức». Chưa có mức: «Chưa có mức cho đối tác này — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Đã giao.»; lý do khác (hai mức xung đột…): giữ lý do của máy chủ rồi nối cùng đuôi. */
+/** Câu cảnh báo (màu đỏ) của dòng thiếu mức. `daChup` (đơn đã chụp mức lúc xác nhận): câu «cài mức mới không gỡ được…» thay đuôi «cần cài mức». Chưa có mức: «Chưa có mức cho đối tác này — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Khách đã trả đủ.»; lý do khác (hai mức xung đột…): giữ lý do của máy chủ rồi nối cùng đuôi. */
 export const canhBaoThieuMuc = (thieu: string | null, daChup = false): string | null => {
   if (thieu === null) return null;
   const dau = thieu === NHAN_LY_DO_THIEU.NO_RULE ? "Chưa có mức cho đối tác này" : thieu;
