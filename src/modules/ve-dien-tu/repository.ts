@@ -311,6 +311,18 @@ const CHAN_VE_HANG_NGOAI_DA_MO = defineSql(
    WHERE a.order_id = ?1 AND a.revealed_at IS NOT NULL AND b.source = 'HANG_NGOAI')`,
 );
 export const cauChanVeHangNgoaiDaMo = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(CHAN_VE_HANG_NGOAI_DA_MO).bind(orderId);
+// ADR-0175 Đ3 mục 3: câu bảo vệ ĐỨNG ĐẦU phần vé của lô huỷ / rút xác nhận — đơn có lượt quét DA_TINH chưa bỏ thì `json_extract` với đường dẫn hỏng ném lỗi ⇒ cả lô lui. Chỉ DA_TINH chưa bỏ chặn
+// (CHI_XEM, TU_CHOI không). Đường dẫn khác `don_da_mo_ve` nên nơi dịch lỗi phân biệt được hai câu (`DAU_LOI_VE_DA_DUNG`).
+const CHAN_VE_DA_DUNG = defineSql("ve-dien-tu", "chan_ve_da_dung", "SELECT json_extract('{}', 'don_co_ve_da_dung') WHERE EXISTS (SELECT 1 FROM vdt_scan WHERE order_id = ?1 AND ket_qua = 'DA_TINH' AND voided_at IS NULL)");
+export const cauChanVeDaDung = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(CHAN_VE_DA_DUNG).bind(orderId);
+// Số khách đã dùng vé theo dòng dịch vụ (lượt DA_TINH chưa bỏ; vé đoàn cộng `so_khach`) — chặn giảm số khách xuống dưới số này.
+const SO_VE_DA_DUNG = defineSql(
+  "ve-dien-tu",
+  "so_ve_da_dung_theo_dich_vu",
+  "SELECT order_service_id AS service_id, sum(so_khach) AS n FROM vdt_scan WHERE order_id = ?1 AND ket_qua = 'DA_TINH' AND voided_at IS NULL AND order_service_id IS NOT NULL GROUP BY order_service_id",
+);
+export const soVeDaDungTheoDichVu = async (db: D1Database, orderId: string): Promise<Map<string, number>> =>
+  new Map((await db.prepare(SO_VE_DA_DUNG).bind(orderId).all<{ service_id: string; n: number }>()).results.map((r) => [r.service_id, r.n]));
 const PHAN_BO_CON_GIU = defineSql("ve-dien-tu", "phan_bo_con_giu", "SELECT 1 AS co FROM vdt_allocation WHERE id = ?1 AND released_at IS NULL");
 /** Phân bổ còn được đơn giữ (chưa trả về kho). Đọc LẠI sau khi đóng dấu lộ để biết lệnh huỷ có chen vào giữa không. */
 export const phanBoConGiu = async (db: D1Database, allocId: string): Promise<boolean> => (await db.prepare(PHAN_BO_CON_GIU).bind(allocId).first()) !== null;

@@ -1,7 +1,7 @@
 // Cổng Trả sau của `orders` (ADR-0168 Đ2): hình thức thanh toán nằm trên đơn, còn HẠN MỨC và SỐ NỢ thuộc `billing` — `orders` chỉ nhận hàm do gốc lắp ráp tiêm vào `ctx`
 // (khuôn `cocChoXacNhan`, ADR-0159). Hai cửa: `congTraSauKhiLuu` (lưu đơn — báo sớm) và `traSauChoXacNhan` (lô xác nhận — chốt thật, kèm câu gác phiên bản và hạn trả).
 // KHÔNG tự kiểm quyền người gọi (route đã làm). Không nhắc bảng `bil_`, không import `billing` (bài src/architecture.test.ts, src/dat-coc-noi-goi.test.ts).
-import { chanVeDaMoTrongLo, laLoiVeDaMoTrongLo } from "../../shared/chan-doi-tac-huy";
+import { chanVeDaDungTrongLo, chanVeDaMoTrongLo, laLoiVeDaDungTrongLo, laLoiVeDaMoTrongLo } from "../../shared/chan-doi-tac-huy";
 import { error } from "../../shared/http";
 import { dongTien, hanTraTu, hetAnHanTu, ngayCuaMoc, type HinhThucThanhToan, type KetQuaKiemTraSau } from "../../shared/tra-sau";
 
@@ -144,6 +144,7 @@ export async function congHuyTraSau(
  * văn phòng ⇒ câu Trả sau còn nợ (cùng câu với lúc kiểm). `null` ⇒ không phải lỗi của hai câu này, nơi gọi ném tiếp.
  */
 export function dichLoiLoHuy(e: unknown, qua: QuaCongHuy, laDoiTac: boolean): Response | null {
+  if (laLoiVeDaDungTrongLo(e)) return chanVeDaDungTrongLo(); // ADR-0175 Đ3 mục 3: đứng trước, mọi người gọi
   if (laLoiVeDaMoTrongLo(e)) return laDoiTac || !qua.chanVeDaMo ? chanVeDaMoTrongLo() : error(409, "tra_sau_con_no_da_mo_ve", CAU_HUY_CON_NO(qua.no));
   return dichLoiTraSau(e);
 }

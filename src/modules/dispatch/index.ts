@@ -349,7 +349,7 @@ export const dispatchModule: AppModule = {
     // giao → 409 `departed` (qua ngày đi — chủ dự án duyệt 2026-09-30 "Cho sửa đến hết ngày đi": cùng `tripDeparted` + `vnToday` với huỷ đơn,
     // DK-T4-02; ĐÚNG ngày đi vẫn sửa được; Toàn quyền KHÔNG bị chặn) → 409/400 do editMoneyAsHandler tự kiểm (không phải đơn đã xác nhận; thân yêu
     // cầu sai/thiếu/thừa dịch vụ; lý do có SĐT — `hasLongDigitRun`) → 409 stale nếu thua khoá lạc quan.
-    route("POST", "/api/orders/:id/handler-money-edit", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach, kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon, veDaMoCuaDon }) => {
+    route("POST", "/api/orders/:id/handler-money-edit", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach, kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon, veDaMoCuaDon, soVeDaDungTheoDichVu }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
@@ -365,7 +365,7 @@ export const dispatchModule: AppModule = {
       if (!hasPermission(staff, "SUPER_ADMIN") && tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return MONEY_EDIT_DEPARTED();
       { const chan = await chanDoiTacSuaSoKhach(staff, orderId, veDaMoCuaDon); if (chan) return chan; } // ADR-0171 Đ1: như route văn phòng
       // ADR-0104 Đ2 (điểm gọi 7): máy đồng bộ chuyến nối vào CHÍNH lô sửa số khách (HDV không có trip.view — phản hồi chỉ câu cố định + cờ, Đ2.13).
-      const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request), { kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon }, (x) => dongBoChuyen(x));
+      const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request), { kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon }, (x) => dongBoChuyen(x), soVeDaDungTheoDichVu);
       if (!result.ok) {
         if (result.code === "trip_rule") return result.res;
         if (result.code === "not_found") return NOT_FOUND();

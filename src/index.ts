@@ -26,7 +26,7 @@ import { giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
-import { canBangVeTheoSoKhach, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule, veHangNgoaiDaMoCuaDon } from "./modules/ve-dien-tu";
+import { canBangVeTheoSoKhach, cauChanVeDaDung, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soVeDaDungTheoDichVu, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule, veHangNgoaiDaMoCuaDon } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
 import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
@@ -259,6 +259,7 @@ const APP_OPTIONS: AppOptions = {
     cauGacPhienBanTraSau: (env, partyId, version, at) => cauGacPhienBan(env.DB, partyId, version, at),
     traSauCuaDon: (env, id) => traSauCuaDon(env.DB, id),
     veDaMoCuaDon: (env, id) => veDaMoCuaDon(env.DB, id),
+    soVeDaDungTheoDichVu: (env, id) => soVeDaDungTheoDichVu(env.DB, id), // ADR-0175 Đ3 mục 3: chặn giảm số khách dưới số vé đã dùng
     veHangNgoaiDaMoCuaDon: (env, id) => veHangNgoaiDaMoCuaDon(env.DB, id), // ADR-0175 Đ2.6: cổng huỷ Trả sau còn nợ chỉ tính vé hãng ngoài
     // KÊNH THU ĐỐI TÁC (ADR-0178 Đ1): `orders` không import billing — gốc lắp ráp tiêm hàm đọc công tắc «Khách của đối tác trả cho Công ty» (chụp lên đơn lúc lập).
     kenhThuHienTai: (env) => kenhThuHienTai(env.DB),
@@ -284,7 +285,8 @@ const APP_OPTIONS: AppOptions = {
     // ADR-0175 Đ2.6: câu bảo vệ tách theo mục đích — người giữ quyền Đối tác: mọi loại vé (ADR-0170 Đ3); cổng huỷ Trả sau còn nợ của văn phòng: chỉ vé hãng ngoài (ADR-0168 Đ3 mục 3).
     traVeKhiHuy: async (env, actor, orderId, lyDo, chanVeDaMoTraSau) => {
       const chan = holdsPartner(actor) ? "MOI_VE" : chanVeDaMoTraSau ? "HANG_NGOAI" : null;
-      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()), chan }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return chan !== null && lyDo === "DON_HUY" ? null : []; }
+      // ADR-0175 Đ3 mục 3: lỗi soạn câu trả vé KHÔNG được làm mất câu chặn «vé đã dùng» (nuốt lỗi mà bỏ câu này là mở cửa huỷ đơn đã quét) — câu chặn dựng riêng, không đọc DB.
+      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()), chan }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return chan !== null && lyDo === "DON_HUY" ? null : [cauChanVeDaDung(env.DB, orderId)]; }
     },
     canBangVeSauSuaKhach: async (env, actor, orderId) => {
       try { await canBangVeTheoSoKhach(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString(), vnToday(new Date())); } catch (e) { console.error("ve_can_bang_loi", orderId, e instanceof Error ? e.name : "loi"); }

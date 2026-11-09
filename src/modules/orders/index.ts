@@ -12,7 +12,7 @@ import type {
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
-import { chanDoiTacHuy, chanDoiTacSuaSoKhach } from "../../shared/chan-doi-tac-huy";
+import { CAU_CHUA_KIEM_DUOC_VE_DA_DUNG, CAU_DUOI_SO_VE_DA_DUNG, chanDoiTacHuy, chanDoiTacSuaSoKhach } from "../../shared/chan-doi-tac-huy";
 import { duocGiaoTheoO, laVaChamOBanHang } from "../../shared/ban-hang-phu-trach";
 import { route, type AppModule, type BanHangNoi } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
@@ -717,6 +717,7 @@ async function soanSuaSoKhach(
   body: Record<string, unknown> | null,
   action: HanhDongDoiSoKhach,
   traSau: HamTraSau & Pick<HamNoTraSau, "traSauCuaDon">,
+  soVeDaDung?: (orderId: string) => Promise<Map<string, number> | null>,
 ): Promise<SoanSuaSoKhach> {
   const [stored, latest, servicesByOrder] = await Promise.all([
     getStoredServices(db, orderId),
@@ -733,6 +734,15 @@ async function soanSuaSoKhach(
   if (!plan.ok) return { ok: false, code: plan.code, message: plan.message };
   if (!plan.write) return { ok: true, ghi: false }; // y nguyên số khách: không ghi dòng điều chỉnh, không đổi tiền (DK-T2-01)
   // ADR-0062 Đ2: đoạn đầu có khuôn "số khách: …" (tên danh mục, hoặc nhãn "dịch vụ nhập tay"), lý do LUÔN ở cuối.
+  // ADR-0175 Đ3 mục 3: không giảm số khách (không tính em bé, miễn vé) xuống dưới số khách đã dùng vé của dòng đó. Không đọc được ⇒ chặn (không đoán «chưa dùng»). Dùng chung mã `tra_sau`
+  // (mã kết quả mang sẵn `res` đã dịch) để không thêm nhánh mới ở hai route.
+  if (soVeDaDung) {
+    const dung = await soVeDaDung(orderId);
+    if (dung === null) return { ok: false, code: "tra_sau", res: error(503, "chua_kiem_duoc_ve", CAU_CHUA_KIEM_DUOC_VE_DA_DUNG) };
+    for (const a of plan.after) {
+      if (a.pax.adult + a.pax.child + a.pax.senior < (dung.get(a.serviceId) ?? 0)) return { ok: false, code: "tra_sau", res: error(409, "duoi_so_ve_da_dung", CAU_DUOI_SO_VE_DA_DUNG) };
+    }
+  }
   const detail = ghepLyDo(doanSoKhach(plan.before, plan.after, services), plan.reason);
   // ADR-0168 Đ2 mục 5: cùng MỘT cổng hạn mức cho cả hai route, đứng TRƯỚC câu ghi: `insertMoneyAdjustment` đòi kiểu `QuaCongSuaTang` mà chỉ cổng tạo được (kế hoạch 2026-11-05 Task 2).
   // Chỉ đơn Trả sau mới tốn thêm câu đọc tiền; câu gác phiên bản (nếu có) nối CUỐI phần câu đơn.
@@ -787,11 +797,12 @@ function sauSuaSoKhach(trangThai: string, chang: readonly ChangSoNguoi[], truoc:
 
 export async function editMoneyAsHandler(
   db: D1Database, orderId: string, staffId: string, body: Record<string, unknown> | null, traSau: HamTraSau & Pick<HamNoTraSau, "traSauCuaDon">, noiChuyen: NoiChuyen,
+  soVeDaDung?: (orderId: string) => Promise<Map<string, number> | null>,
 ): Promise<MoneyEditResult> {
   const meta = await getMeta(db, orderId);
   if (!meta) return { ok: false, code: "not_found" };
   if (meta.status !== "confirmed") return { ok: false, code: "not_confirmed" };
-  const soan = await soanSuaSoKhach(db, orderId, staffId, body, "order_money_adjusted_by_field", traSau);
+  const soan = await soanSuaSoKhach(db, orderId, staffId, body, "order_money_adjusted_by_field", traSau, soVeDaDung);
   if (!soan.ok) return soan.code === "tra_sau" ? { ok: false, code: "trip_rule", res: soan.res } : { ok: false, code: soan.code, message: soan.message };
   if (!soan.ghi) return { ok: true };
   // ADR-0104 Đ2 (điểm gọi 7): route dispatch truyền `noiChuyen` = ctx.dongBoChuyen; MỘT lô câu đơn + khúc chuyến (Q-2 = a: chỉ mở tối đa số vừa tăng).
@@ -1761,7 +1772,7 @@ export const ordersModule: AppModule = {
     // thân; trigger 0044 là lưới cuối) → 409 nháp / huỷ → 400 thân (lý do MÃ ĐÓNG ADR-0023 điều 4, không chữ tự gõ, không số tiền) → 409 stale. KHÔNG chặn theo
     // ngày đi; KHÔNG chặn giảm giá vượt tạm tính (chỉ cảnh báo — ADR-0109; phải thu kẹp 0 ở effectiveMoney). Tiền: `planMoneyEdit` (một luật với đường HDV) — không bao giờ tin số từ trình duyệt. Đây không phải đường
     // thêm / sửa dịch vụ nhập tay (chỉ số khách của dịch vụ danh mục đã có — ADR-0061 điều 5 không áp, câu duyệt của chủ).
-    route("POST", "/api/orders/:id/money-edit", "office", async ({ env, request, params, staff, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach, kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon, veDaMoCuaDon }) => {
+    route("POST", "/api/orders/:id/money-edit", "office", async ({ env, request, params, staff, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach, kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon, veDaMoCuaDon, soVeDaDungTheoDichVu }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const meta = await getMeta(env.DB, id);
@@ -1775,7 +1786,7 @@ export const ordersModule: AppModule = {
       const than = docThanSuaSoKhach(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       // Lý do đi vào luật chung dưới dạng NHÃN cố định do máy chủ chọn (planMoneyEdit nhận `reason` chữ — cùng bộ đọc với đường HDV).
-      const soan = await soanSuaSoKhach(env.DB, id, staff.id, { reason: than.nhan, services: than.services }, "order_money_adjusted", { kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon });
+      const soan = await soanSuaSoKhach(env.DB, id, staff.id, { reason: than.nhan, services: than.services }, "order_money_adjusted", { kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon }, soVeDaDungTheoDichVu);
       if (!soan.ok && soan.code === "tra_sau") return soan.res; // ADR-0168 Đ2 mục 5
       if (!soan.ok) return soan.code === "thieu_nguoi_lon" ? error(409, "thieu_nguoi_lon", soan.message) : error(400, "invalid_input", soan.message); // ADR-0114 D3: 409, cùng mã với đường hướng dẫn viên
       if (!soan.ghi) {

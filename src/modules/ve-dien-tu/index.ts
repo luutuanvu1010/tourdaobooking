@@ -23,7 +23,8 @@ import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
 import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho, cauBoLuotQuet, cauChenLuotQuet, coLuotQuet, demLuotDaTinh, docLuotDaTinh, docLuotQuet, docVeQuet } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
-import { veDaMoCuaDon as docVeDaMoCuaDon, veHangNgoaiDaMoCuaDon as docVeHangNgoaiDaMoCuaDon } from "./repository.ts";
+import { veDaMoCuaDon as docVeDaMoCuaDon, veHangNgoaiDaMoCuaDon as docVeHangNgoaiDaMoCuaDon, soVeDaDungTheoDichVu as docSoVeDaDung, cauChanVeDaDung } from "./repository.ts";
+export { cauChanVeDaDung };
 /** ADR-0170 Đ3: «đơn có vé đã mở không» (MỌI loại vé) cho gốc lắp ráp tiêm. Không đọc được ⇒ `null` (bên gọi CHẶN, không đoán «chưa mở»). */
 export const veDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boolean | null> => {
   try { return await docVeDaMoCuaDon(db, orderId); } catch (e) { console.error("ve_da_mo_loi", orderId, e instanceof Error ? e.name : "loi"); return null; }
@@ -31,6 +32,11 @@ export const veDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boo
 /** ADR-0175 Đ2.6: «đơn có vé HÃNG NGOÀI đã mở không» — cho cổng huỷ đơn Trả sau còn nợ (văn phòng). Không đọc được ⇒ `null` (cổng chặn 503). */
 export const veHangNgoaiDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boolean | null> => {
   try { return await docVeHangNgoaiDaMoCuaDon(db, orderId); } catch (e) { console.error("ve_hang_ngoai_da_mo_loi", orderId, e instanceof Error ? e.name : "loi"); return null; }
+};
+
+/** ADR-0175 Đ3 mục 3: số khách đã dùng vé theo dòng dịch vụ của đơn (lượt quét DA_TINH chưa bỏ) — chặn sửa số khách xuống dưới số này. Không đọc được ⇒ `null` (bên gọi chặn, không đoán «chưa dùng»). */
+export const soVeDaDungTheoDichVu = async (db: D1Database, orderId: string): Promise<Map<string, number> | null> => {
+  try { return await docSoVeDaDung(db, orderId); } catch (e) { console.error("ve_da_dung_loi", orderId, e instanceof Error ? e.name : "loi"); return null; }
 };
 
 /** Nối nhật ký thật (module audit) vào các hàm soạn câu của cap-ve.ts. Gốc lắp ráp dùng khi tiêm (Task 5). */

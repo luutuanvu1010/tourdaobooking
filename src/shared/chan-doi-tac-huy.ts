@@ -13,6 +13,15 @@ export const DAU_LOI_VE_DA_MO = "don_da_mo_ve";
 export const laLoiVeDaMoTrongLo = (e: unknown): boolean => (e instanceof Error ? e.message : String(e)).includes(DAU_LOI_VE_DA_MO);
 export const chanVeDaMoTrongLo = (): Response => error(409, "don_da_mo_ve", CAU_DON_DA_MO_VE);
 
+// ADR-0175 Đ3 mục 3: vé đã DÙNG (lượt quét DA_TINH chưa bỏ) chặn mọi đường huỷ và rút xác nhận, mọi người gọi (không riêng Đối tác). Câu bảo vệ `cauChanVeDaDung` đứng đầu lô; dấu nhận ra lỗi là
+// đường dẫn `json_extract` hỏng, KHÁC `DAU_LOI_VE_DA_MO` (không chứa nhau) để nơi dịch lỗi không nhầm.
+export const CAU_DON_CO_VE_DA_DUNG = "Đơn có vé đã dùng. Bỏ lượt quét trước khi huỷ.";
+export const DAU_LOI_VE_DA_DUNG = "don_co_ve_da_dung";
+export const laLoiVeDaDungTrongLo = (e: unknown): boolean => (e instanceof Error ? e.message : String(e)).includes(DAU_LOI_VE_DA_DUNG);
+export const chanVeDaDungTrongLo = (): Response => error(409, "don_co_ve_da_dung", CAU_DON_CO_VE_DA_DUNG);
+export const CAU_DUOI_SO_VE_DA_DUNG = "Số khách mới ít hơn số vé đã dùng của dịch vụ này. Bỏ lượt quét trước khi giảm khách.";
+export const CAU_CHUA_KIEM_DUOC_VE_DA_DUNG = "Chưa kiểm tra được vé đã dùng của đơn này nên chưa sửa số khách được. Bạn thử lại sau.";
+
 // ADR-0171 Đ1: CÙNG lõi cho «sửa số khách» (`money-edit`, `handler-money-edit`): tăng hay giảm đều chặn khi đơn đã mở vé; chưa mở thì thôi.
 export const CAU_DON_DA_MO_VE_SUA_KHACH = "Đơn đã mở vé nên bạn không tự sửa số khách được. Liên hệ văn phòng.";
 export const CAU_CHUA_KIEM_DUOC_VE_SUA_KHACH = "Chưa kiểm tra được vé của đơn này nên chưa sửa số khách được. Bạn thử lại sau.";

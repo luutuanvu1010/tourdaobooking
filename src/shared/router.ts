@@ -300,6 +300,8 @@ export interface Ctx<A extends Access = Access> {
   veDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
   /** ADR-0175 Đ2.6: như `veDaMoCuaDon` nhưng CHỈ vé hãng ngoài — cổng huỷ đơn Trả sau còn nợ của văn phòng (`congHuyTraSau`). `null` = không tiêm / không đọc được ⇒ cổng chặn 503. */
   veHangNgoaiDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
+  /** ADR-0175 Đ3 mục 3: số khách đã dùng vé (lượt quét DA_TINH chưa bỏ) theo id dòng dịch vụ của đơn — chặn sửa số khách xuống dưới số này. Không tiêm ⇒ bảng rỗng (khung thử không có kho vé); `null` = đã tiêm mà không đọc được ⇒ route chặn 503. */
+  soVeDaDungTheoDichVu: (orderId: string) => Promise<Map<string, number> | null>;
   /** ADR-0178 Đ1: công tắc «Khách của đối tác trả cho Công ty» hiện hành (1 = Bật, 0 = Tắt). Gốc lắp ráp KHÔNG tiêm ⇒ 1 (như trước khi có công tắc); đã tiêm mà đọc lỗi ⇒ `null` ⇒ route lập đơn của tài khoản Đối tác trả 503 (không đoán). */
   kenhThuHienTai: () => Promise<0 | 1 | null>;
   /** ADR-0089 đ7 + ADR-0159: người lập còn giữ tiền của đơn huỷ để lập lại ⇒ không khai lại. Không tiêm ⇒ câu chặn 503 (không đoán «không có»). */
@@ -496,6 +498,8 @@ export interface AppOptions {
     veDaMoCuaDon: (env: Env, orderId: string) => Promise<boolean | null>;
     /** ADR-0175 Đ2.6: BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu`); thiếu → `null` ⇒ cổng huỷ Trả sau chặn 503. */
     veHangNgoaiDaMoCuaDon: (env: Env, orderId: string) => Promise<boolean | null>;
+    /** ADR-0175 Đ3 mục 3: BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu`). */
+    soVeDaDungTheoDichVu: (env: Env, orderId: string) => Promise<Map<string, number> | null>;
     /** ADR-0178 Đ1. Mã chạy thật (`src/index.ts`: billing) PHẢI tiêm (bài `src/modules/orders/kenh-thu-chup.test.ts` ca «đường thật»); thiếu (khung thử) → router trả 1; ném lỗi → `null`. */
     kenhThuHienTai: (env: Env) => Promise<0 | 1>;
     chanKhaiCocLai: (env: Env, nguoiLapId: string) => Promise<ChanKhaiLai>;
@@ -702,6 +706,7 @@ export function createApp(opts: AppOptions) {
         }
       },
       veDaMoCuaDon: (id) => (typeof opts.injected.veDaMoCuaDon !== "function" ? Promise.resolve(null) : opts.injected.veDaMoCuaDon(envH, id)),
+      soVeDaDungTheoDichVu: (id) => (typeof opts.injected.soVeDaDungTheoDichVu !== "function" ? Promise.resolve(new Map<string, number>()) : opts.injected.soVeDaDungTheoDichVu(envH, id)),
       veHangNgoaiDaMoCuaDon: (id) => (typeof opts.injected.veHangNgoaiDaMoCuaDon !== "function" ? Promise.resolve(null) : opts.injected.veHangNgoaiDaMoCuaDon(envH, id)),
       chanKhaiCocLai: (id) =>
         typeof opts.injected.chanKhaiCocLai !== "function"
