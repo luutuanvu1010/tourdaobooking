@@ -17,8 +17,12 @@
         </div>
         <div class="khach-dau">
           <h2 id="khach-title">Khách hàng</h2>
-          <button id="use-mine" class="btn btn-link" type="button">Điền thông tin của tôi</button>
+          <span class="khach-dau-nut">
+            <button id="use-mine" class="btn btn-link" type="button">Điền thông tin của tôi</button>
+            <button id="use-partner" class="btn btn-link" type="button" hidden>Điền thông tin đối tác</button>
+          </span>
         </div>
+        <p class="muted" id="use-partner-bao" role="status" hidden></p>
         <div id="don-cua-slot"></div>
         <div class="grid two">
           <label class="o-noi"><span class="o-noi-khung"><input id="customerName" type="text" maxlength="200" autocomplete="off" placeholder=" " required aria-describedby="customerName-loi"><span class="o-noi-chu">Tên khách đi tour *</span></span><span class="field-error" id="customerName-loi" hidden></span></label>
@@ -43,8 +47,8 @@
         <h2 id="pay-title">Thanh toán</h2>
         <fieldset id="tra-sau-khoi" class="tra-sau-khoi" hidden>
           <legend>Hình thức thanh toán</legend>
-          <label><input type="radio" name="paymentTerm" value="PREPAID" checked> Trả trước</label>
-          <label><input type="radio" name="paymentTerm" value="CREDIT" aria-describedby="tra-sau-cau"> Trả sau</label>
+          <label><input type="radio" name="paymentTerm" value="PREPAID" checked> <span data-nhan-hinh-thuc="PREPAID"></span></label>
+          <label><input type="radio" name="paymentTerm" value="CREDIT" aria-describedby="tra-sau-cau"> <span data-nhan-hinh-thuc="CREDIT"></span></label>
           <p id="tra-sau-cau" class="muted" role="status"></p>
         </fieldset>
         <p id="tra-sau-bao" class="alert" role="status" hidden></p>

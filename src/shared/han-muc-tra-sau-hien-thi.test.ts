@@ -30,7 +30,7 @@ test("nhãn hạn mức và nhãn quá hạn", () => {
 });
 
 test("nhãn hình thức trên chi tiết đơn: Trả sau kèm giờ và ngày hạn trả theo giờ Việt Nam (ADR-0172 Đ3 mục 4); Trả trước không kèm gì", () => {
-  assert.equal(nhanHinhThucDon("PREPAID", null), "Trả trước");
+  assert.equal(nhanHinhThucDon("PREPAID", null), "Thanh toán ngay");
   assert.equal(nhanHinhThucDon("CREDIT", "2026-11-10T09:00:00.000Z"), "Trả sau · hạn trả 16:00 10/11/2026");
   assert.equal(nhanHinhThucDon("CREDIT", "2026-11-10T20:30:00.000Z"), "Trả sau · hạn trả 03:30 11/11/2026", "qua nửa đêm giờ Việt Nam thì sang ngày sau");
   assert.equal(nhanHinhThucDon("CREDIT", null), "Trả sau");
@@ -90,7 +90,7 @@ test("quyết hình thức sau khi biết hạn mức của bên đặt: giữ l
   assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c: khong }), { chon: "PREPAID", bao: null }, "đang Trả trước thì không có gì để báo");
   assert.deepEqual(quyetHinhThuc({ dangChon: "CREDIT", c: khong }), { chon: "PREPAID", bao: CAU_VE_TRA_TRUOC });
   assert.deepEqual(quyetHinhThuc({ dangChon: "CREDIT", c: quaHan }), { chon: "PREPAID", bao: CAU_VE_TRA_TRUOC });
-  assert.ok(CAU_VE_TRA_TRUOC.includes("Trả trước") && CAU_VE_TRA_TRUOC.includes("hạn mức"));
+  assert.ok(CAU_VE_TRA_TRUOC.includes("Thanh toán ngay") && CAU_VE_TRA_TRUOC.includes("hạn mức"));
 });
 
 test("bên đặt CHƯA nạp xong (đang mở nháp): không đổi lựa chọn, không báo — tránh đổi âm thầm Trả sau về Trả trước", () => {

@@ -17,6 +17,29 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0194 đợt 1 (accepted 9/11): bảng điều khiển hiện/ẩn/bắt buộc trường của Toàn quyền. Migration 0154. SỐ TẠM 2.84: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.84",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Toàn quyền có thể chọn trường nào hiện, ẩn hoặc bắt buộc theo từng quyền ở màn Tạo đơn và vài cột phụ ở danh sách dịch vụ, tài khoản, đối tác. Chỉnh ngay trong trang Giao diện, có nút khôi phục mặc định." },
+    ],
+  },
+  {
+    // Đợt 1 «sửa nhỏ» của kế hoạch sửa sau rà soát lần 2 (9/11), KHÔNG migration. SỐ TẠM 2.83: production/main đang 2.82; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.83",
+    date: "2026-11-09",
+    items: [
+      { kind: "sua", text: "Khi Nền tảng báo lỗi hệ thống, câu báo có kèm mã lỗi để bạn chụp gửi Quản trị." },
+      { kind: "doi", text: "Đối tác bấm «Gửi đơn» mà chưa chọn Đón hay Không đón thì đơn chưa được lưu; Nền tảng chỉ ra dịch vụ nào còn thiếu. Trang đơn chưa xác nhận ghi «Chưa chọn đón»." },
+      { kind: "doi", text: "Khi lập đơn qua đối tác, nhân viên văn phòng có thêm nút «Điền thông tin đối tác» để điền sẵn tên và số của đối tác vào khung Khách hàng." },
+      { kind: "doi", text: "Ở ô chọn cách thanh toán khi lập đơn cho đối tác có hạn mức, chữ «Trả trước» đổi thành «Thanh toán ngay»." },
+      { kind: "doi", text: "Trang Vé điện tử chọn dịch vụ bằng ô tìm và hàng nút nhóm giống màn Tạo đơn, thay cho hộp thả xuống dài." },
+      { kind: "sua", text: "Quản lý bán hàng có ô «Dịch vụ & giá» ở Trang chủ trên điện thoại." },
+      { kind: "sua", text: "Dịch vụ không có đưa đón thì Đối tác không còn dòng ghi chú về giờ đón." },
+      { kind: "sua", text: "Các bài hướng dẫn ghi đúng tên tab và mục menu mà bạn đang thấy." },
+    ],
+  },
+  {
     // ADR-0187 Đ2.3 (accepted 8/11): người dùng tự chọn nút thanh dưới điện thoại, lưu ở máy chủ. Migration 0153. Ban đầu lấy tạm 2.81; vé Tour Đảo Đợt 1 nhập
     // bản chính trước và lên production bản 2.81 (9/11) nên khi gộp bản chính ngày 9/11 đánh lại thành 2.82.
     version: "2.82",

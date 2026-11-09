@@ -1,3 +1,4 @@
+import { CHIP_CHUA_CHON_DON, KHONG_DUA_DON, nhanDuaDonTrangDon } from "../src/shared/dong-gap-the";
 import { ApiError, api, vuaLamBoiTabNay, type Api, type AuditEntry, type Order, type Staff } from "./api";
 import { NHAN_DAT_COC_CHO } from "../src/shared/dat-coc-truoc";
 import { nhanHinhThucDon } from "../src/shared/han-muc-tra-sau-hien-thi";
@@ -278,11 +279,13 @@ function dongChang(l: Api.LegDto, vanPhong: boolean): HTMLElement {
 
 function khoiDuaDonDon(order: Order, vanPhong: boolean, nut: HTMLElement | null): HTMLElement {
   const coChang = order.services.filter((s) => s.legs.length > 0);
+  // G-02: đơn nháp có dịch vụ chưa chọn Đón / Không đón thì nói «Chưa chọn đón», không «Không đưa đón».
+  const nhan = order.services.some((s) => nhanDuaDonTrangDon({ status: order.status, pickupChoice: s.pickupChoice, soChang: s.legs.length }) === CHIP_CHUA_CHON_DON) ? CHIP_CHUA_CHON_DON : KHONG_DUA_DON;
   return h(
     "section",
     { class: "card dd-card", "data-khoi": "dua-don" },
     h("h2", null, "Đưa đón"),
-    coChang.length === 0 ? h("p", { class: "muted" }, "Không đưa đón") : null,
+    coChang.length === 0 ? h("p", { class: "muted" }, nhan) : null,
     ...coChang.map((s) => h("div", { class: "dd-dv" }, h("span", { class: "dd-dv-ten" }, s.name), ...s.legs.map((l) => dongChang(l, vanPhong)))),
     nut,
   );

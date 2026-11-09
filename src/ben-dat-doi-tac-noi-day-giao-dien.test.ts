@@ -107,6 +107,11 @@ test("nhãn tên / SĐT khách ở form lập đơn đi qua luật thuần theo 
   const html = readFileSync(fileURLToPath(new URL("../public/order-form.html", import.meta.url)), "utf8");
   assert.match(html, /Tên khách đi tour \*/);
   assert.match(html, /id="use-mine"[^>]*>Điền thông tin của tôi</);
+  // N5 (9/11/2026): nút «Điền thông tin đối tác» — ẩn sẵn trong HTML, hiện theo luật thuần, bấm gọi hồ sơ đối tác rồi điền hai ô khách.
+  assert.match(html, /id="use-partner"[^>]*\bhidden\b[^>]*>Điền thông tin đối tác</);
+  assert.match(form, /hienNutDienDoiTac\(staff,\s*daChonBenDat\)/, "nút hiện theo luật thuần, không điều kiện gõ tay");
+  assert.match(form, /byId\("use-partner"\)\.addEventListener\("click"/, "nút có xử lý bấm");
+  assert.match(form, /\/api\/parties\/\$\{encodeURIComponent\(chon!\.partyId\)\}/, "bấm gọi đúng hồ sơ đối tác đã chọn");
   assert.match(html, /Áp cho mọi dịch vụ trong đơn/);
   assert.match(html, />Khách hàng</);
   // Việc 9 (nợ T3): trước đây một điều kiện HOẶC (`/Email, ghi chú|id="don-cua-slot"/` trên HTML) gần như luôn đúng — chữ «Email, ghi chú» không hề ở HTML (nút gập dựng trong

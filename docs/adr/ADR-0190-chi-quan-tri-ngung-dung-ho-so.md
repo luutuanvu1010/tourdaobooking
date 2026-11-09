@@ -1,6 +1,6 @@
 # ADR-0190 — Chỉ Quản trị, Toàn quyền ngừng dùng hoặc dùng lại hồ sơ không gắn tài khoản; nhật ký ghi rõ (phát hiện R3d)
 
-- **Trạng thái:** proposed 2026-11-09 — AI soạn theo kế hoạch `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (chủ duyệt kế hoạch 9/11, Phần V mục 2.3), thuộc **ADR lượt A** (trang ghép `docs/superpowers/specs/2026-11-09-trang-ghep-adr-luot-a.md`). Người kiểm độc lập chỉ đọc kiểm một vòng bản nháp: ĐẠT. Chưa có mã.
+- **Trạng thái:** **accepted** 2026-11-09 — chủ dự án, nguyên văn: *«Duyệt cả A và B»* (nút ở khung bước tiếp theo, trả lời câu «Bạn duyệt lượt nào?»), hiểu theo câu duyệt mẫu ở trang trình lượt A (theo khuyến nghị). Lịch sử: proposed 2026-11-09 — AI soạn theo kế hoạch `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (chủ duyệt kế hoạch 9/11, Phần V mục 2.3), thuộc **ADR lượt A** (trang ghép `docs/superpowers/specs/2026-11-09-trang-ghep-adr-luot-a.md`). Người kiểm độc lập chỉ đọc kiểm một vòng bản nháp: ĐẠT. Chưa có mã.
 - **Số:** 0190 (soát như ADR-0188).
 - **Nguồn:** hồ sơ rà soát `docs/superpowers/specs/2026-11-07-ra-soat-truoc-launch-lan-2/phu-luc/02-quyen-doi-tac-ve-xe.md` (R3d: Bán hàng khác ngưng hồ sơ khách đang là người đặt đơn nháp của đồng nghiệp ⇒ đồng nghiệp sửa đơn bị 400; nhật ký chỉ ghi «cá nhân»). Lời chủ lượt 1 ngày 8/11, phương án chọn: «ADR: Quản trị ngưng». Dẫn chứng mã đọc lại trên `main` @`fa3fd859a`.
 - **Ngày:** 2026-11-09. **Loại:** việc lớn (quyền) — người kiểm độc lập chỉ đọc sau thi công.

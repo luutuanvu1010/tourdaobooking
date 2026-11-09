@@ -26,5 +26,5 @@ test("lyDoKhongTraSau: vừa đủ qua, hơn một đồng bị chặn, thiếu 
 });
 
 test("nhãn hình thức dùng tiếng Việt", () => {
-  assert.deepEqual(NHAN_HINH_THUC, { PREPAID: "Trả trước", CREDIT: "Trả sau" });
+  assert.deepEqual(NHAN_HINH_THUC, { PREPAID: "Thanh toán ngay", CREDIT: "Trả sau" });
 });

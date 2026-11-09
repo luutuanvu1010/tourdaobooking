@@ -1,4 +1,5 @@
 // GHI CHÚ 27/10/2026 (ADR-0135/0136): đỏ từ 27/10: dựng đơn bằng ô «Thanh toán trước» / ghi thu lên nháp (ADR-0135 Đ7: màn Tạo đơn không còn ô này, nháp không ghi thu được). Thay bằng `docs/evidence/2026-10-26-xac-nhan-don/kich-ban/xac-nhan-smoke.mjs` (ảnh xác nhận chỉ sau khi đơn đã xác nhận); sửa dựng dữ liệu nếu cần kiểm PNG (ghi nợ).
+// Sửa 2026-11-09 (Đợt 1 sửa sau rà soát lần 2, G-06): nút «Xem biên nhận» đã đổi tên thành «Xem ảnh gửi khách» ở đợt đổi tên 5/11 (commit 1c1e71603, bảng tham chiếu đợt 2); chỉ đổi chữ tìm nút, không đổi điều kiện kiểm nào.
 // Kiểm ẢNH XÁC NHẬN ĐƠN (PNG dựng bằng canvas ở trình duyệt) + hộp thoại "Ảnh gửi khách" bằng Chrome thật. Nằm trong repo, không thêm dependency (dùng esbuild
 // đã có ở devDependencies để đóng gói bộ vẽ + mô hình thuần thành một script chạy được trong trang, phục vụ đối chiếu byte và đo bố cục).
 // Dựa trên môi trường của A2 (`../../2026-09-20-a2/kich-ban/a2-cdp.mjs`: D1 tạm + `wrangler dev` + Chrome headless qua CDP; Turnstile TẮT). Chạy từ GỐC repo, sau `npm run build:web`:
@@ -209,11 +210,11 @@ async function ensureTools(p) {
 const SEND_BTN = "document.querySelector('#send button')";
 const READY = "(() => { const i = document.querySelector('.sheet .confirm-img'); return !!i && i.complete && i.naturalWidth > 0; })()";
 const DIALOG = "document.querySelector('[role=dialog]')";
-const waitButton = (p) => p.waitFor(`${SEND_BTN} !== null`, "nút “Xem biên nhận” trên trang đơn", 7000);
+const waitButton = (p) => p.waitFor(`${SEND_BTN} !== null`, "nút “Xem ảnh gửi khách” trên trang đơn", 7000);
 async function openDialog(p, ms = 20000) {
   await waitButton(p);
   const t0 = Date.now();
-  await p.ev(clickText("#send", "Xem biên nhận"));
+  await p.ev(clickText("#send", "Xem ảnh gửi khách"));
   try {
     await p.waitFor(READY, "hộp thoại hiện ảnh xác nhận", ms);
   } catch (e) {
@@ -496,7 +497,7 @@ await step("e", "tải lại trang không bật lại hộp thoại (URL sạch 
   await p.send("Page.reload");
   await p.waitFor("document.readyState === 'complete' && document.querySelector('#order h1') !== null", "trang đơn nạp lại");
   await sleep(1500);
-  assert.deepEqual(await p.ev(`({ dialog: ${DIALOG} !== null, search: location.search, btn: ${SEND_BTN}?.textContent })`), { dialog: false, search: `?id=${ui.id}`, btn: "Xem biên nhận" });
+  assert.deepEqual(await p.ev(`({ dialog: ${DIALOG} !== null, search: location.search, btn: ${SEND_BTN}?.textContent })`), { dialog: false, search: `?id=${ui.id}`, btn: "Xem ảnh gửi khách" });
   // đơn mở thẳng, không có moi
   const f = await fx();
   const q = await openAs(ACCOUNTS.salesA, `/order?id=${f.multi.id}`);
@@ -589,7 +590,7 @@ await step("g", "người phụ trách BA trạng thái (chủ dự án 2026-09-
   for (const mode of ["404", "500", "network", "missing-key", "bad-name", "blank-name"]) {
     await p.ev(`window.__h.mode = ${JSON.stringify(mode)}; true`);
     await waitButton(p);
-    await p.ev(clickText("#send", "Xem biên nhận"));
+    await p.ev(clickText("#send", "Xem ảnh gửi khách"));
     await p.waitFor("document.querySelector('.sheet .confirm-error') !== null", `${mode}: thông báo lỗi hiện`, 10000);
     const st = await errState();
     assert.equal(st.role, "alert", `${mode}: vùng lỗi role=alert`);
@@ -602,7 +603,7 @@ await step("g", "người phụ trách BA trạng thái (chủ dự án 2026-09-
   await p.ev("window.__h.mode = 'slow'; true");
   const t0 = Date.now();
   await waitButton(p);
-  await p.ev(clickText("#send", "Xem biên nhận"));
+  await p.ev(clickText("#send", "Xem ảnh gửi khách"));
   await p.waitFor("document.querySelector('.sheet .confirm-error') !== null", "slow: thông báo lỗi hiện sau khi hết giờ 3 giây", 8000);
   const slowMs = Date.now() - t0;
   const stSlow = await errState();
@@ -701,7 +702,7 @@ await step("i", "vẽ lỗi (công ty lỗi, phông lỗi, phông treo, toBlob t
   for (const [flag, pattern, ms] of cases) {
     await p.ev(`window.__fail.${flag} = true; true`);
     await waitButton(p);
-    await p.ev(clickText("#send", "Xem biên nhận"));
+    await p.ev(clickText("#send", "Xem ảnh gửi khách"));
     await p.waitFor("document.querySelector('.sheet .confirm-error') !== null", `${flag}: thông báo lỗi hiện`, ms);
     const st = await errorState(p);
     assert.equal(st.role, "alert", `${flag}: vùng lỗi là role=alert`);
@@ -722,7 +723,7 @@ await step("i", "vẽ lỗi (công ty lỗi, phông lỗi, phông treo, toBlob t
   }
   // Esc đóng được ngay khi đang tạo ảnh (trạng thái "đang tạo"), không lỗi muộn sau đó
   await p.ev("window.__fail.hang = true; true");
-  await p.ev(clickText("#send", "Xem biên nhận"));
+  await p.ev(clickText("#send", "Xem ảnh gửi khách"));
   await p.waitFor("document.querySelector('.sheet .confirm-status') !== null", "đang tạo ảnh", 4000);
   await closeDialog(p);
   await p.ev("window.__fail.hang = false; true");
@@ -791,7 +792,7 @@ await step("j", "hộp thoại: role=dialog + aria-modal + tên, nền inert, fo
     if (label === "390") {
       // (thông tin công ty đã được lưu tạm sau lần mở thành công nên dùng lỗi phông để dựng trạng thái lỗi)
       await p.ev("(() => { document.fonts.load = () => Promise.reject(new DOMException('mô phỏng', 'NetworkError')); return true; })()");
-      await p.ev(clickText("#send", "Xem biên nhận"));
+      await p.ev(clickText("#send", "Xem ảnh gửi khách"));
       await p.waitFor("document.querySelector('.sheet .confirm-error') !== null", "trạng thái lỗi", 8000);
       const ve = await axeRun(p, "hop-thoai-390-loi");
       assert.deepEqual(ve, [], `axe (lỗi): ${JSON.stringify(ve)}`);

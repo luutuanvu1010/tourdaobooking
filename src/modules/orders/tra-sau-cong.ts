@@ -16,7 +16,7 @@ export interface HamTraSau {
   cauGacPhienBanTraSau: (partyId: string, version: number, at: string) => D1PreparedStatement[];
 }
 
-export const CAU_TRA_SAU_KHONG_COC = "Đơn trả sau không nhận tiền khách đặt cọc trước. Hãy để trống ô đặt cọc hoặc chọn trả trước.";
+export const CAU_TRA_SAU_KHONG_COC = "Đơn trả sau không nhận tiền khách đặt cọc trước. Hãy để trống ô đặt cọc hoặc chọn thanh toán ngay.";
 export const CAU_TRA_SAU_THIEU_BEN_DAT = "Đơn trả sau cần chọn bên đặt là đối tác có hạn mức trả sau.";
 /**
  * Lô huỷ phải mang câu bảo vệ «vé vừa mở» mà gốc lắp ráp không soạn được câu trả vé (`ctx.traVeKhiHuy` trả null) ⇒ không chạy lô, 503 (kế hoạch 2026-11-05 Task 5 việc B).

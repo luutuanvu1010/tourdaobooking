@@ -1,4 +1,5 @@
 // GHI CHÚ 5/11 (ADR-0142, Task 7; chủ dự án: hai vai khác nhau trên mỗi đơn): khối này ở form nay tên «Hướng dẫn viên» (nút «Chọn Hướng dẫn viên», aria «Đổi Hướng dẫn viên, đang chọn …»,
+// Sửa 2026-11-09 (Đợt 1 sửa sau rà soát lần 2, G-06): nút lưu của tài khoản Đối tác đã đổi tên «Lưu đơn (chưa xác nhận)» → «Gửi đơn» ở ADR-0136 (commit 5717e8796, lưu rồi gửi); tài khoản Thực tập vẫn «Lưu đơn (chưa xác nhận)». Chỉ đổi chữ ghim, không đổi điều kiện kiểm nào.
 //   bảng «Chọn Hướng dẫn viên» CHỈ nhóm Hướng dẫn viên); khối «Người phụ trách» (#ban-hang-card, mời Bán hàng) là khối mới, thay bằng ban-hang-phu-trach-smoke.mjs bước 1. Các chữ trong tệp này
 //   đã sửa theo nhãn mới nhưng CHƯA chạy lại (giới hạn của Task 7). Các bước kiểm nhóm Bán hàng / Quản trị trong bảng chọn (bước 3, 4) không còn đúng: bảng chỉ còn nhóm Hướng dẫn viên.
 // Kịch bản Chrome (bằng chứng giao diện) cho Task 1.8 phần b ADR-0030 — chọn người phụ trách (hướng dẫn viên) NGAY TRONG FORM LẬP ĐƠN, dựng theo bản
@@ -461,7 +462,7 @@ try {
   // ==================================================================================================
   await step("11", "Đối tác thuần (390): khối “Người phụ trách” KHÔNG hiện (không phải hiện rồi báo lỗi), không gọi /api/dispatch/assignees; form vẫn dùng được", async () => {
     const q = await openAs(PARTNER, "/order-form", MOB);
-    await q.waitFor("!!document.getElementById('catalog-q') && document.getElementById('save').textContent === 'Lưu đơn (chưa xác nhận)'", "form Đối tác dựng xong", 10000);
+    await q.waitFor("!!document.getElementById('catalog-q') && document.getElementById('save').textContent === 'Gửi đơn'", "form Đối tác dựng xong", 10000);
     await sleep(500);
     const s = await ownerState(q);
     assert.deepEqual([s.hidden, s.shown, s.buttons.length], [true, false, 0], JSON.stringify(s));

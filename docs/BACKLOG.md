@@ -759,3 +759,9 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 
 - **Trạng thái:** `để sau` · Chủ 5/11, nguyên văn: «à không cần, cái đó sẽ nằm trong phân hệ kế toán, làm về sau».
 - **Việc:** ghi mua vé của ai, giá mua bao nhiêu theo từng lô; từ đó có số tiền mua theo nhà cung cấp, vốn và chênh lệch. Phân hệ vé điện tử chỉ quản lý số lượng, không làm phần này (đề xuất `docs/superpowers/specs/2026-11-05-ve-dien-tu-danh-sach-man.md`).
+
+## 67. Hàng rào chữ nút trong kịch bản Chrome và kịch bản đỏ sẵn (mã `BL-KB-…`, Đợt 1 sửa nhỏ, 2026-11-09)
+
+- **Trạng thái:** `để sau` · Chỉ làm khi chủ xin.
+- **BL-KB-QUET-CHU-NUT** — bài tự quét: mọi chữ nút/nhãn mà kịch bản Chrome gõ cứng phải có trong `docs/BANG-THAM-CHIEU.md` hoặc trong mã giao diện. Mỗi đợt đổi tên nút (ADR-0166 và sau) làm vài kịch bản đỏ vì lệch chữ; hôm nay chỉ sửa tay (Task 1.9).
+- **BL-KB-DO-SAN-DOT-1** — còn đỏ sẵn trên bản chính, không do Đợt 1 (đã đối chiếu bằng bản gốc): doi-tac-lap-don bước 6 và 7, a2-form, a2-order, trang-chu, quyen-thieu phần C, huong-dan a/b/e, dot-0 #20, v1-npt-1030, và vài bước của tra-sau, xac-nhan, chup-anh, chon-hdv, v1-xac-nhan-png.

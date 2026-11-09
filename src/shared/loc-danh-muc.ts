@@ -18,6 +18,15 @@ export function locDanhMuc<T extends { code: string; name: string }>(ds: readonl
   return ds.filter((c) => !kim || c.name.toLowerCase().includes(kim) || c.code.toLowerCase().includes(kim));
 }
 
+/**
+ * Dòng có chọn được không. Mặc định (form Tạo đơn): dịch vụ phải được hỗ trợ VÀ có giá người lớn. `khongYeuCauGia` (trang Nhập lô vé, N4): vé gắn với dịch vụ chứ không với giá nên mọi dòng
+ * của danh mục đều chọn được — dịch vụ chưa có giá vẫn có thể có vé.
+ */
+export const chonDuocDichVu = (c: { supported: boolean; prices: { adult: number | null } }, khongYeuCauGia = false): boolean => khongYeuCauGia || (c.supported && c.prices.adult !== null);
+
+/** Chế độ «chọn một»: dịch vụ đang chọn theo mã, nếu còn trong danh mục (danh mục tải lại mà mất mã đó thì khung bỏ chọn). */
+export const timDichVuDaChon = <T extends { code: string }>(ds: readonly T[], ma: string | null): T | null => (ma === null ? null : (ds.find((c) => c.code === ma) ?? null));
+
 /** Bật / tắt sao một dịch vụ. Thêm vượt TOI_DA_GHIM thì bỏ mã cũ nhất (mã mới giữ), để lúc đọc lại không cắt mất mã vừa gắn. */
 export const doiGhim = (ghim: readonly string[], code: string): string[] => (ghim.includes(code) ? ghim.filter((c) => c !== code) : [...ghim, code].slice(-TOI_DA_GHIM));
 

@@ -5,6 +5,7 @@ import type { StaffProfile } from "./contracts";
 import type { ThayDoiDon, TrangThaiPhuTrach } from "./bang-tin.ts";
 import { NGUONG_MAC_DINH } from "./giay-to-hien-thi.ts";
 import { error, json } from "./http.ts";
+import { cauLoiHeThong } from "./trang-thai-he-thong-chu.ts";
 import { bocDb } from "./lan-gui-boc.ts";
 import { HEADER_PHAT_LAI, HEADER_VE, ketQuaDeLuu, kiemKhoa, phanLoai, thanPhatLai, type DongVe } from "./lan-gui-luat.ts";
 import { laMienLanGui } from "./lan-gui-mien.ts";
@@ -830,7 +831,7 @@ export function createApp(opts: AppOptions) {
         }
         const err = e instanceof Error ? { name: e.name, message: e.message, stack: e.stack } : { message: String(e) };
         console.error(JSON.stringify({ level: "error", event: "unhandled", requestId, method: request.method, path: new URL(request.url).pathname, error: err }));
-        return json({ error: { code: "internal", message: "Có lỗi hệ thống. Thử lại sau; nếu còn lỗi, báo quản trị viên kèm mã này.", requestId } }, 500);
+        return json({ error: { code: "internal", message: cauLoiHeThong(requestId), requestId } }, 500);
       }
     },
   };

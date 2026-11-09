@@ -18,15 +18,15 @@ export const HD_BAN_HANG: NhomHuongDan = {
       tieuDe: "Menu của bạn",
       noiDung: `### Trên máy tính (thanh bên trái)
 
-- **Đầu menu**: [[Tạo đơn]], [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn chưa xác nhận), [[Danh bạ]].
+- **Đầu menu**: [[Trang chủ]], [[Đơn hàng]] (số nhỏ bên cạnh là số đơn chưa xác nhận), [[Danh bạ]].
 - Nhóm **VẬN CHUYỂN**: [[Điều phối xe]], [[Xe đang chạy]].
 - Nhóm **THIẾT LẬP** (bấm để mở, thu gọn): [[Hoa hồng đối tác]] (chỉ xem), [[Luật bán]], [[Đặc điểm dịch vụ]].
-- **Chân menu**: [[Của tôi]], [[Hỗ trợ]], [[Hướng dẫn]]. Nút [[Đăng xuất]] ở dưới cùng.
+- **Chân menu**: [[Của tôi]], [[Hỗ trợ]], [[Nhật ký thay đổi]]. Nút [[Đăng xuất]] ở dưới cùng.
 - Thanh trên cùng: ô tìm đơn, nút [[Tạo đơn]] và cái chuông thông báo.
 
 ### Trên điện thoại (thanh dưới đáy)
 
-Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong trang [[Tôi]] có [[Danh bạ]], [[Điều phối xe]], [[Hỗ trợ]], [[Hướng dẫn]], [[Đăng xuất]] và nút [[Bật thông báo trên điện thoại]].`,
+Thanh tab dưới đáy: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Danh bạ]], [[Tôi]]. Trong trang [[Tôi]] có [[Điều phối xe]], [[Hỗ trợ]], [[Hướng dẫn]], [[Đăng xuất]] và nút [[Bật thông báo trên điện thoại]].`,
     },
     {
       tieuDe: "Lập đơn mới",
@@ -37,7 +37,7 @@ Bốn tab: [[Trang chủ]], [[Đơn hàng]], [[Tạo đơn]], [[Tôi]]. Trong tr
 3. Khối [[Khách hàng]]: điền **Tên khách đi tour**, [[Số điện thoại]] (bắt buộc). Ghi [[Email]] hoặc [[Ghi chú / yêu cầu đặc biệt]] thì bấm [[Email, ghi chú]].
    - Gõ xong số điện thoại sẽ hiện hồ sơ trùng số: đúng người thì bấm [[Dùng hồ sơ này]], khách mới thì [[Tạo hồ sơ mới]]; không chọn vẫn lưu được.
    - Nút [[Điền thông tin của tôi]] điền tên và số của chính bạn.
-   - Khách đặt qua đại lý hoặc cộng tác viên: ở hàng [[Đơn của]] bấm [[Qua đối tác]] (mặc định [[Khách lẻ]]), rồi chọn người đó để tính hoa hồng.
+   - Khách qua đại lý, cộng tác viên: ở hàng [[Đơn của]] bấm [[Qua đối tác]] (mặc định [[Khách lẻ]]), chọn người đó để tính hoa hồng; [[Điền thông tin đối tác]] điền sẵn tên, số.
 4. Ở khối [[Dịch vụ]], gõ vào ô [[Tìm theo tên hoặc mã dịch vụ]] (ví dụ "4 đảo"), rồi chạm dịch vụ đúng: dòng hiện "✓ đã thêm" và thẻ dịch vụ hiện ra.
    - Danh mục dài: chạm một nhóm dưới ô tìm ([[Tất cả]] để xem lại). Dịch vụ gắn ☆ nằm ở mục "★ Hay dùng".
    - Dịch vụ mờ, ghi "chưa có giá" hoặc "chưa hỗ trợ", không chọn được — báo Quản trị.
