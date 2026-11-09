@@ -330,6 +330,10 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/cai-dat/xac-nhan-don", access: "office" }, // ADR-0169 Đ5: thân có tuXacNhanNoiBo hỏi settings.ops; thân cờ hỏi catalog.confirm_flag.write
   { method: "GET", path: "/api/cai-dat/an-thong-tin-khach", access: "orders" }, // ADR-0154 Đ2: công tắc «Ẩn thông tin khách khi đối tác đặt vé» — thân hỏi can(order.create); trả apChoToi của người gọi
   { method: "POST", path: "/api/cai-dat/an-thong-tin-khach", access: "admin" }, // như trên; bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
+  { method: "GET", path: "/api/cai-dat/giao-dien", access: "staff" }, // ADR-0194 đợt 1: chính sách hiện/ẩn/bắt buộc ÁP CHO CHÍNH NGƯỜI GỌI (mọi tài khoản đăng nhập; no-store) — tự phục vụ, mục trong TU_PHUC_VU_STAFF
+  { method: "GET", path: "/api/cai-dat/giao-dien/tat-ca", access: "admin" }, // ADR-0194: danh mục + mọi dòng — thân hỏi can(settings.ops) (chỉ Toàn quyền)
+  { method: "POST", path: "/api/cai-dat/giao-dien", access: "admin" }, // ADR-0194: đổi một lô dòng của một màn — thân hỏi can(settings.ops)
+  { method: "POST", path: "/api/cai-dat/giao-dien/khoi-phuc", access: "admin" }, // ADR-0194: khôi phục mặc định một màn — thân hỏi can(settings.ops)
   { method: "GET", path: "/api/cai-dat/khung-gio-don", access: "orders" }, // ADR-0134 Đ6: bộ khung giờ đón — thân hỏi can(order.create) hoặc can(order.confirm.review) (ADR-0154 Đ1.5)
   { method: "POST", path: "/api/cai-dat/khung-gio-don", access: "admin" }, // ADR-0134 Đ6: đổi khung / câu lưu ý — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/parties", access: "office" },
@@ -760,11 +764,12 @@ test("mức truy cập của 469 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-07 (ADR-0180 Đ1): + POST, DELETE /api/auth/xem-nhu-vai (staff; module accounts; thân hỏi ô settings.ops theo quyền THẬT) = 466.
   // 2026-11-07 (ADR-0184 việc 3): + POST /api/van-chuyen/chuyen/:id/cho-chay-thieu-giay (office; trip.override, thân hỏi thêm trip.override.giay_to_cung) = 467.
   // 2026-11-08 (ADR-0184 việc 5): + GET /api/van-chuyen/cho-chay-thieu/dem (office; thân hỏi trip.override — số cho thẻ Trang chủ) = 468.
+  // 2026-11-09 (ADR-0194 đợt 1): + GET (staff), GET …/tat-ca, POST, POST …/khoi-phuc (admin; settings.ops) /api/cai-dat/giao-dien = 480.
   // 2026-11-08 (ADR-0187 Đ3 mức (a)): + GET /api/ledger/tu-ghi, GET /api/ledger/tu-ghi/dem, POST /api/ledger/tu-ghi/:auditId/da-soat (office; billing; ledger.view / ledger.write, không Đối tác) = 469 trên main.
   // 2026-11-08 (gộp ADR-0187 vào nhánh ADR-0184): 466 + 2 route của ADR-0184 + 3 route của ADR-0187 = 471.
   // 2026-11-08 (nối ADR-0174 vào main): + GET, POST /api/catalog/co-ve (office; thân hỏi catalog.ticket_flag.write, chặn Đối tác) = 473.
   // 2026-11-08 (ADR-0175 Đ1.2, vé Tour Đảo Task 3): + GET, POST /api/catalog/nguon-ve (office; thân hỏi catalog.ticket_flag.write, chặn Đối tác) = 475.
   // 2026-11-09 (ADR-0187 Đ2.3, gộp bản chính có vé Tour Đảo): + PUT /api/account/thanh-duoi (staff; thân hỏi me.favorites.write rồi ghimDuoc) = 476.
-  assert.equal(actual.length, 476, "số route thực tế lệch 476 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 476, "SNAPSHOT phải có đúng 476 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 480, "số route thực tế lệch 480 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 480, "SNAPSHOT phải có đúng 480 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

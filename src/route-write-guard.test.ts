@@ -395,6 +395,7 @@ const TU_PHUC_VU_STAFF: Record<string, string> = {
   "GET /api/auth/me": "phiên đăng nhập của CHÍNH MÌNH (tên, quyền để màn chọn trang) — không dữ liệu người khác",
   "GET /api/bang-tin": "bắt tay Bảng tin — chỉ nhận tin gửi cho CHÍNH MÌNH; nhãn nhận tin tính bằng can() trong hàm dựng nhãn (tat-ca / cho-nhan / nguoi:<mình>)",
   "GET /api/feedback/mine": "góp ý / báo lỗi CỦA CHÍNH MÌNH (ADR-0038) — không đọc góp ý người khác",
+  "GET /api/cai-dat/giao-dien": "chính sách hiện/ẩn/bắt buộc áp cho CHÍNH NGƯỜI GỌI (ADR-0194 đợt 1) — chỉ mã màn/trường, không dữ liệu khách; mọi tài khoản đăng nhập cần đọc để form dựng đúng (kể cả Hành chính nhân sự, Kế toán — không có ô 'any' chung nào hợp nghĩa)",
   "GET /api/locations": "tên địa điểm danh mục — không nhạy cảm, mọi tài khoản đăng nhập (kể cả người làm hiện trường) cần đọc",
   "GET /api/thong-bao": "hộp thông báo gửi cho CHÍNH MÌNH (ADR-0034) — lọc theo người nhận ở câu SQL",
   "GET /api/thong-bao/tom-tat": "số tin chưa đọc của CHÍNH MÌNH (ADR-0034)",
