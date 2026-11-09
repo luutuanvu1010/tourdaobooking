@@ -98,6 +98,9 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "settings.ops": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0019: chỉ Toàn quyền (chế độ bảo trì)
   "ve.kho.manage": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0153 Đ3: nhập lô, kho, thu hồi — Bán hàng, Quản trị, Toàn quyền
   "ve.phat-hanh": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"], // ADR-0175 Đ1.3: tạo và thao tác lô vé Tour Đảo — Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng; Bán hàng thường không
+  "ve.quet.tinh": ["any", "any", "any", "any", "none", "any", "none", "none", "none", "none", "any"], // ADR-0175 Đ3, §2.9: tính vé đã dùng — Hướng dẫn viên, Bán hàng, Quản lý bán hàng, Kế toán, Quản trị, Toàn quyền
+  "ve.doi-chieu.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"], // ADR-0175 §2.7: đối chiếu và theo dõi người quét — như ve.phat-hanh
+  "ve.quet.xem": ["any", "any", "any", "any", "none", "any", "none", "any", "none", "none", "any"], // ADR-0175 Đ3: chỉ xem — như ve.quet.tinh, thêm Tài xế công ty
   "ve.cap.send": ["ownOrAssigned", "none", "any", "none", "own", "any", "none", "none", "none", "none", "none"], // ADR-0153 Đ3: cấp vé, xem ảnh, gửi — Bán hàng chỉ đơn của mình / được giao; ADR-0170 Đ1: Đối tác chỉ đơn mình lập (own)
   "ve.kho.purge": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0186 Đ2: chỉ tác nhân DON_ANH_VE dùng; Toàn quyền có ô chỉ vì ADR-0014 điều 2
   "order.pool.view": ["none", "none", "none", "any", "none", "any", "none", "none", "none", "none", "none"], // ADR-0030 S23-1: thao tác MỚI — hàng chờ nhận (phần hẹp); Quản trị KHÔNG có (xem mọi đơn qua order.view)
@@ -409,6 +412,8 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "order.confirm.review": "none", "order.submit": "none", // ADR-0136 Đ4, Đ13.6: không xét duyệt, không «Gửi đơn»
     "order.service.manual": "none", // ADR-0061 điều 2: tài xế không nhập tay
     "ve.phat-hanh": "none", // ADR-0175 Đ1.3: chỉ Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng tạo vé Tour Đảo
+    "ve.doi-chieu.view": "none", // ADR-0175 §2.7: tài xế không xem đối chiếu
+    "ve.quet.tinh": "none", "ve.quet.xem": "any", // ADR-0175 Đ3: Tài xế công ty chỉ xem, không tính đã dùng
     "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3: tài xế không đụng kho vé
     "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
@@ -471,6 +476,8 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "order.confirm.review": "none", "order.submit": "none", // ADR-0136 Đ4, Đ13.6: không xét duyệt, không «Gửi đơn»
     "order.service.manual": "none", // ADR-0061 điều 2 × ADR-0048 D2
     "ve.phat-hanh": "none", // ADR-0175 Đ1.3: chỉ Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng tạo vé Tour Đảo
+    "ve.doi-chieu.view": "none", // ADR-0175 §2.7
+    "ve.quet.tinh": "none", "ve.quet.xem": "none", // ADR-0175 Đ3: không có ô quét
     "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3
     "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
@@ -535,6 +542,8 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "dispatch.sales.claim": "none", "dispatch.sales.assign": "none", "dispatch.sales.invitees": "none", // ADR-0142: tài xế / Nhân sự không dính Bán hàng phụ trách
     "order.confirm.review": "none", "order.submit": "none", // ADR-0136 Đ4, Đ13.6: Nhân sự không xét duyệt, không «Gửi đơn»
     "ve.phat-hanh": "none", // ADR-0175 Đ1.3: chỉ Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng tạo vé Tour Đảo
+    "ve.doi-chieu.view": "none", // ADR-0175 §2.7
+    "ve.quet.tinh": "none", "ve.quet.xem": "none", // ADR-0175 Đ3: không có ô quét
     "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3
     "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none", "dispatch.guides.view": "none", "dispatch.refuse": "none",
     "payment.receive": "none", "payment.refund": "none", "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",

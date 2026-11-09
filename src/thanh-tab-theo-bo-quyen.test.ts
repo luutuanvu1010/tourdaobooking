@@ -13,9 +13,9 @@ const BO: [string, PermissionCode[], string[]][] = [
   ["BH", ["SALES"], ["Trang chủ", "Đơn hàng", "Tạo đơn", "Danh bạ", "Tôi"]],
   ["TT", ["INTERN"], ["Đơn hàng", "Tạo đơn", "Hỗ trợ", "Tôi"]],
   ["ĐT", ["PARTNER"], ["Đơn hàng", "Tạo đơn", "Hỗ trợ", "Tôi"]],
-  ["HDV", ["FIELD"], ["Đơn hàng", "Hỗ trợ", "Tôi"]],
+  ["HDV", ["FIELD"], ["Đơn hàng", "Quét vé", "Hỗ trợ", "Tôi"]], // ADR-0175 Đ3: Quét vé là việc chính của Hướng dẫn viên trên điện thoại
   ["NS", ["HR"], ["Tài khoản", "Hỗ trợ", "Tôi"]],
-  ["TX", ["DRIVER"], ["Trang chủ", "Cuốc của tôi", "Hỗ trợ", "Tôi"]],
+  ["TX", ["DRIVER"], ["Trang chủ", "Quét vé", "Cuốc của tôi", "Hỗ trợ", "Tôi"]], // ADR-0175 Đ3: Quét vé đứng sau Trang chủ (đứng trước Tạo đơn trong bảng tab)
   ["TXĐT", ["DRIVER_PARTNER"], ["Trang chủ", "Cuốc của tôi", "Báo bận", "Hỗ trợ", "Tôi"]],
 ];
 for (const [ten, p, mong] of BO) test(`thanh tab của ${ten}`, () => assert.deepEqual(nhan(p), mong));

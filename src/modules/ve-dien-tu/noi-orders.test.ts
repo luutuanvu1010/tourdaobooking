@@ -166,7 +166,12 @@ test("soanTraVeKhiHuy: chan MOI_VE ⇒ câu bảo vệ mọi vé đứng đầu;
     const nhatKy = (() => ({ sql: "nhat_ky" })) as never;
     const soan = (chan: "MOI_VE" | "HANG_NGOAI" | null, lyDo: "DON_HUY" | "RUT_XAC_NHAN" = "DON_HUY") =>
       soanTraVeKhiHuy(w.env.DB, { orderId: d.id, lyDo, by: SALES, at: new Date().toISOString(), homNay: "2027-03-11", chan }, nhatKy) as Promise<unknown[]>;
-    const sqlDau = async (chan: "MOI_VE" | "HANG_NGOAI" | null, lyDo?: "DON_HUY" | "RUT_XAC_NHAN") => String(((await soan(chan, lyDo))[0] as { sql?: string; statement?: string }).sql ?? "");
+    // ADR-0175 Đ3 mục 3: câu chặn «vé đã dùng» LUÔN đứng đầu (mọi người gọi, cả huỷ lẫn rút xác nhận); câu bảo vệ «vé vừa mở» (nếu có) ngay sau nó.
+    const sqlDau = async (chan: "MOI_VE" | "HANG_NGOAI" | null, lyDo?: "DON_HUY" | "RUT_XAC_NHAN") => {
+      const cau = (await soan(chan, lyDo)) as { sql?: string }[];
+      assert.match(String(cau[0]!.sql), /don_co_ve_da_dung/);
+      return String(cau[1]!.sql ?? "");
+    };
     const moi = await sqlDau("MOI_VE");
     assert.match(moi, /don_da_mo_ve/);
     assert.doesNotMatch(moi, /HANG_NGOAI/);

@@ -63,6 +63,8 @@ const quanTriNhanSu = (): Row => row("none", "none", "any", "none", "none", "any
  * KHÔNG nới; thêm ô `sales.block.write` 30/10). Giá trị y như viết tay `row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none")`; bài ghim từng ô ở permissions.test.ts canh. */
 /** ADR-0169 Đ1: Quản lý bán hàng + Quản trị + Toàn quyền. */
 const quanLyBanHang = (): Row => row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any");
+/** ADR-0175 §2.9: hàng quét vé — mọi vai nội bộ có ô quét trừ Nhân sự, Thực tập; chỉ ô DRIVER (Tài xế công ty) đổi giữa «tính đã dùng» (none) và «chỉ xem» (any). Giá trị y như viết tay từng ô (bài ghim canh). */
+const quetVe = (taiXe: Scope): Row => row("any", "any", "any", "any", "none", "any", "none", taiXe, "none", "none", "any");
 const banHangQuanTri = (): Row => row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none");
 
 /**
@@ -251,6 +253,12 @@ export const MATRIX = {
   // (số lượng, không ảnh, không mã) đi theo quyền xem đơn `order.view` nên Kế toán thấy. Xem ảnh còn bị cổng thu đủ chặn ở máy chủ, không chỉ ô này.
   "ve.kho.manage": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   "ve.phat-hanh": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"), // ADR-0175 Đ1.3: tạo và thao tác lô vé Tour Đảo; Bán hàng thường không dù có ve.kho.manage
+  // ADR-0175 Đ3, §2.9: quét vé Tour Đảo. `ve.quet.tinh` = tính đã dùng (Hướng dẫn viên, Bán hàng, Quản lý bán hàng, Kế toán, Quản trị, Toàn quyền); `ve.quet.xem` = chỉ xem, thêm Tài xế công ty.
+  // Tài xế đối tác, Thực tập, Nhân sự, Đối tác không có ô quét. Quét không mở quyền xem đơn: tên, SĐT, giá không đi qua; mã đơn chỉ khi người quét có `order.view` trên đơn.
+  "ve.quet.tinh": quetVe("none"),
+  "ve.quet.xem": quetVe("any"),
+  // ADR-0175 §2.7: màn đối chiếu khách thực tế và theo dõi người quét — cùng bốn vai với `ve.phat-hanh` (Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng).
+  "ve.doi-chieu.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"),
   "ve.cap.send": row("ownOrAssigned", "none", "any", "none", "own", "any", "none", "none", "none", "none"), // ADR-0170 Đ1: Đối tác chỉ đơn do chính tài khoản lập (`orders.staff_id`); mở vé còn qua cổng tiền Đ2
   // ADR-0186 Đ2: xoá ảnh vé đã hết hạn lưu khỏi kho — chỉ tác nhân DON_ANH_VE dùng (Cron, src/modules/ve-dien-tu/kho-tep.ts); hẹp hơn ve.kho.manage; không route
   // cho người. Toàn quyền có ô chỉ vì ADR-0014 điều 2; Trợ lý không kể ô này là việc người làm được.

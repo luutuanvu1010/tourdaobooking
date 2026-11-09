@@ -17,14 +17,24 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Đợt 2 kế hoạch sửa sau rà soát lần 2: ADR-0188 (T-03), ADR-0189 (Q-05), ADR-0190 (R3d), chủ duyệt 9/11. KHÔNG migration. SỐ TẠM 2.84: main có 2.83 (Đợt 1) chưa
-    // triển khai; bước A.0 đặt lại số và ngày nếu nhánh khác (Đợt 3) nhập trước.
-    version: "2.84",
+    // Đợt 2 kế hoạch sửa sau rà soát lần 2: ADR-0188 (T-03), ADR-0189 (Q-05), ADR-0190 (R3d), chủ duyệt 9/11. KHÔNG migration. Số 2.85: main đã có 2.84 (vé Tour Đảo
+    // Đợt 2, gộp 9/11); bước A.0 đặt lại số và ngày nếu nhánh khác (Đợt 3) nhập trước.
+    version: "2.85",
     date: "2026-11-09",
     items: [
       { kind: "doi", text: "Đơn trả sau đã xác nhận chỉ đổi bên đặt sang đối tác có hạn mức trả sau còn hiệu lực, không có đơn quá hạn; gộp hồ sơ có đơn trả sau cũng vậy." },
       { kind: "doi", text: "Tài xế quên bấm «Kết thúc»: từ 0 giờ ngày thứ hai sau ngày xe chạy, màn chuyến ẩn tên, số liên hệ của khách và nhắc bấm «Kết thúc»." },
       { kind: "doi", text: "Chỉ Quản trị, Toàn quyền ngừng dùng hoặc dùng lại hồ sơ khách, đại lý; Bán hàng, Kế toán vẫn sửa tên, liên hệ. Nhật ký ghi rõ «ngừng dùng», «dùng lại»." },
+    ],
+  },
+  {
+    // Vé Tour Đảo Đợt 2 (ADR-0175): quét vé và đối chiếu. KHÔNG có migration mới ngoài 0155_ve_quet. Bước A.0 ngày 9/11 (sau 2.83 của Đợt 1 sửa nhỏ). Mọi dịch vụ vẫn «Vé hãng ngoài» cho tới khi chủ gạt ô «Vé do ai phát».
+    version: "2.84",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Trang «Quét vé»: Hướng dẫn viên, Tài xế dùng camera quét mã vé Tour Đảo; xanh cho đi, vàng cần xác nhận, đỏ từ chối; có nút chụp ảnh dự phòng." },
+      { kind: "moi", text: "Đơn có ô «Đã dùng» theo từng dịch vụ; màn «Đối chiếu vé» so số khách theo đơn với số vé đã dùng trong ngày; Quản trị bỏ được lượt quét nhầm." },
+      { kind: "doi", text: "Đơn đã có vé Tour Đảo được quét thì không huỷ được và không giảm số khách xuống dưới số vé đã dùng; muốn huỷ thì bỏ lượt quét trước." },
     ],
   },
   {
