@@ -140,8 +140,8 @@ const SO_NHAC = `[...document.querySelectorAll('#cc-trang .banner .banner-title'
 const CO_CHU_NHAC = `document.querySelector('main').innerText.includes('Chuyến chưa bấm Kết thúc')`;
 const TEN_TREN_MAN = `[...document.querySelectorAll('.dp-khach-ten')].map((x) => x.innerText.trim())`;
 const MAIN_TEXT = `document.querySelector('main').innerText`;
-/** Nút Kết thúc còn trên màn (nút chính dính đáy, nút khoá cuối danh sách, hoặc Kết thúc gián đoạn). */
-const NUT_KET_THUC = `[...document.querySelectorAll('[data-action="ket-thuc"], [data-action="ket-thuc-gian-doan"]')].filter((x) => x.getClientRects().length > 0).map((x) => x.textContent.trim())`;
+/** Chữ các nút «Kết thúc chuyến» đang hiện (nút chính dính đáy hoặc nút khoá cuối danh sách — không tính «Kết thúc gián đoạn»). */
+const NUT_KET_THUC = `[...document.querySelectorAll('[data-action="ket-thuc"]')].filter((x) => x.getClientRects().length > 0).map((x) => x.textContent.trim())`;
 
 try {
 if (dungXong) {
@@ -158,8 +158,7 @@ if (dungXong) {
       const chu = await p.ev(MAIN_TEXT);
       for (const [ten] of TEN_KHACH_Q) assert.ok(!chu.includes(ten), `màn lộ tên khách "${ten}"`);
       assert.ok(!(await p.ev(TEN_TREN_MAN)).some((t) => TEN_KHACH_Q.some(([x]) => t.includes(x))), "dòng khách không có tên");
-      const nut = await p.ev(NUT_KET_THUC);
-      assert.ok(nut.length > 0, "còn nút Kết thúc");
+      assert.ok((await p.ev(NUT_KET_THUC)).includes("Kết thúc chuyến"), "còn nút «Kết thúc chuyến» (khoá hay mở đều được)");
       assert.equal(await p.ev(noCode), "");
       assert.equal(await p.ev(noOverflowX), true, "390 không tràn ngang");
       await axe(p, "quên Kết thúc 390");
@@ -172,7 +171,7 @@ if (dungXong) {
       assert.equal(await p.ev(SO_NHAC), 1);
       const chu = await p.ev(MAIN_TEXT);
       for (const [ten] of TEN_KHACH_Q) assert.ok(!chu.includes(ten), `màn lộ tên khách "${ten}"`);
-      assert.ok((await p.ev(NUT_KET_THUC)).length > 0, "còn nút Kết thúc");
+      assert.ok((await p.ev(NUT_KET_THUC)).includes("Kết thúc chuyến"), "còn nút «Kết thúc chuyến»");
       assert.equal(await p.ev(noOverflowX), true, "1280 không tràn ngang");
       await axe(p, "quên Kết thúc 1280");
       loiConsole(p, "A2");
@@ -239,7 +238,8 @@ if (dungXong) {
     p.close();
 
     // Quản trị mở SAU CÙNG (kho cookie chung).
-    const TEN_SAU = `${TEN_HO_SO} Sửa`;
+    // Tên hiện hành đọc từ D1 (B2 hỏng thì B3, B4 vẫn kiểm được ô của Quản trị, không đỏ dây chuyền).
+    const TEN_SAU = env.sql(`SELECT display_name FROM pty_party WHERE id = '${HO_SO}'`)[0].display_name;
     const MO_HO_SO_2 = MO_HO_SO.replace(JSON.stringify(TEN_HO_SO), JSON.stringify(TEN_SAU));
     p = await env.as(ACCOUNTS.admin, `/parties?id=${HO_SO}`, MOB);
     await b.step("B3", `390 Quản trị mở cùng hồ sơ: ô «Đang dùng» MỞ, ô Họ và tên sửa được${axeNote()}`, async () => {
