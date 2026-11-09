@@ -123,7 +123,7 @@ export async function dungBangDieuKhienTruong(goc: HTMLElement, baoLoi: (cau: st
     dsTruong,
     xemTruoc,
     loi,
-    h("div", { class: "form-actions" }, luu, bo, khoiPhuc),
+    h("div", { class: "form-actions thanh-hanh-dong-cuoi" }, luu, bo, khoiPhuc),
   );
   veTruong();
   goc.hidden = false;

@@ -73,8 +73,10 @@ export const giaoDienModule: AppModule = {
       return json({ tokens, version: (version as number) + 1 } satisfies GiaoDienDto);
     }),
     // ---- Chính sách hiện / ẩn / bắt buộc theo màn × trường × quyền (ADR-0194 đợt 1) — khuôn `/api/cai-dat/an-thong-tin-khach` ----
-    // ĐỌC phần áp cho CHÍNH người gọi: cổng `staff` (mọi tài khoản đăng nhập, kể cả Đối tác — form của họ cũng đọc); `no-store`. Ẩn nhầm không chặn lập đơn: trường luật nền cần không khai ẩn được.
-    route("GET", "/api/cai-dat/giao-dien", "staff", async ({ env, staff }) => {
+    // ĐỌC phần áp cho CHÍNH người gọi: cổng `orders` + một trong bốn ô mở bốn màn (Đối tác lập đơn cũng đọc); `no-store`. Ẩn nhầm không chặn lập đơn: trường luật nền cần không khai ẩn được.
+    route("GET", "/api/cai-dat/giao-dien", "orders", async ({ env, staff }) => {
+      // Cổng `orders` (văn phòng hoặc Đối tác) + MỘT trong bốn ô mở được bốn màn của đợt 1; người khác 403 (giao diện của họ rơi về mặc định đầy đủ, và họ không thấy các màn này).
+      if (!(can(staff, "order.create") || can(staff, "admin.manage") || can(staff, "account.view") || can(staff, "party.view"))) return error(403, "forbidden", "Tài khoản này không xem được cài đặt này.");
       return json({ truong: await chinhSachChoNguoi(env.DB, staff.permissions) } satisfies ChinhSachGiaoDienDto);
     }),
     route("GET", "/api/cai-dat/giao-dien/tat-ca", "admin", async ({ env, staff }) => {

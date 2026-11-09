@@ -13,9 +13,10 @@ Căn cứ: `docs/adr/ADR-0194-bang-dieu-khien-giao-dien-toan-quyen.md` (accepted
 ## Giả định và quyết định của người thi công (đảo ngược được trước khi phát hành; chủ xem lại)
 - **Tên bảng `gd_field_policy` thay vì `ui_field_policy`** (kế hoạch / ADR ghi `ui_`): `src/architecture.test.ts` chưa khai tiền tố `ui_`, nới là việc của chủ; module `giao-dien` đã có tiền tố `gd_` và là nơi tự nhiên. Chưa phát hành nên đổi tên còn rẻ.
 - **Khối chỉnh nằm TRONG trang Giao diện** (`/giao-dien`, đã ở khu Thiết lập, ô `settings.ops`), KHÔNG tạo trang mới: trang mới kéo theo thêm mục vào `muc-giao-dien.ts` (`TRANG`, `THANH_BEN`, `TRANG_TOI`), `PAGES`, bài hiện trang, và làm gói trang Đơn hàng vượt trần dung lượng (`src/goi-trang-nhe.test.ts` — nới trần là việc của chủ). Chủ muốn trang riêng thì làm ở lượt sau.
-- **Đọc chính sách của chính mình dùng cổng `staff`** và thêm MỘT mục «tự phục vụ» vào `TU_PHUC_VU_STAFF` ở `src/route-write-guard.test.ts` (kèm lý do). Đây là nới hàng rào theo đúng cơ chế tệp đó mô tả («thêm mục = nới, người kiểm soi») — chủ / người kiểm cần soi. Lý do: mọi tài khoản (kể cả Hành chính nhân sự, Kế toán) phải đọc được; không có ô «any» chung hợp nghĩa, thêm ô mới thì phải nới nhiều bài ghim hàng quyền.
+- **Đọc chính sách của chính mình dùng cổng `orders`** (văn phòng hoặc Đối tác) kèm kiểm một trong bốn ô `order.create`, `admin.manage`, `account.view`, `party.view` (mở bốn màn); người khác 403 và giao diện của họ rơi về mặc định đầy đủ. KHÔNG thêm mục nào vào hàng rào `TU_PHUC_VU_STAFF` (đã thử, người kiểm tư vấn bỏ). Hệ quả: tài khoản chỉ giữ Nhân sự (nếu không qua cổng `orders`) chưa nhận được chính sách ở màn Danh sách tài khoản — vẫn thấy đầy đủ (an toàn); ghi nợ.
 - **Chế độ và ý nghĩa:** `HIEN` = mặc định; `AN` chỉ khi mục `anDuoc`; `BAT_BUOC` chỉ cho ô nhập tuỳ chọn mà chủ coi là phụ (mục `anDuoc` và `nhap`); `TUY_CHON` (bỏ bắt buộc) chỉ cho mục `boBatBuocDuoc` — đợt 1 KHÔNG có mục nào (customerName / customerPhone do máy chủ bắt buộc), nên chưa dùng. Cộng gộp nhiều quyền: ẩn chỉ khi MỌI quyền ẩn; trường mặc định tuỳ chọn chỉ bắt buộc khi MỌI quyền đòi; trường mặc định bắt buộc chỉ được bỏ khi MỌI quyền bỏ (khớp ADR Đợt 1).
 - **Ba màn còn lại chỉ có cột phụ kiểu «xem»** (ẩn ở giao diện, dữ liệu vẫn theo quyền xem; máy chủ không phải bỏ gì): Danh sách dịch vụ: Nhóm, Đơn vị; Danh sách tài khoản: Tạo lúc, Đăng nhập gần nhất; Quản lý đối tác: Công việc hôm nay. Mọi ô nhập, tiền, mã, tên, trạng thái, SĐT: «không được ẩn» theo nguyên tắc nghi ngờ thì để không.
+- **Giao diện luôn gửi giá trị của ô email / ghi chú dù đang ẩn** (ô đã nạp giá trị đang lưu): máy chủ quyết; nhờ vậy chủ bỏ ẩn giữa chừng thì lưu nháp không xoá mất giá trị.
 - **Ẩn trường lúc SỬA nháp:** email / ghi chú khách / ghi chú thanh toán giữ giá trị ĐANG LƯU (máy chủ đọc thêm `orders` một câu, chỉ khi có trường ẩn thuộc diện này); `passengers` bỏ khoá ⇒ danh sách giữ nguyên. Lúc LẬP: các trường chữ ẩn thành rỗng, hành khách không có.
 - **Bắt buộc `passengers`:** lúc sửa nháp mà không gửi khoá thì tính theo số khách đang lưu (một câu đếm ở `chang-hanh-khach-repo.ts`).
 - **Công tắc ADR-0154 đang áp cho tài khoản ⇒ chính sách giao diện KHÔNG chen vào** (một nơi quyết mỗi trường lúc chuyển; việc chuyển công tắc vào bảng mới là phát hành sau).
@@ -39,9 +40,10 @@ Căn cứ: `docs/adr/ADR-0194-bang-dieu-khien-giao-dien-toan-quyen.md` (accepted
 - Trường nhập của ba màn còn lại (ghi chú, email phụ, địa chỉ phụ) chưa khai: cần máy chủ bỏ khoá ở module `parties` / `accounts` / `catalog` — đợt sau nếu chủ muốn.
 - Chuyển công tắc ADR-0154 / ADR-0193 vào bảng mới: phát hành sau (expand–contract), đợt 2–4 chưa mở.
 - Trần dung lượng gói: không đổi (đã né nới).
+- Bài hướng dẫn «Đổi giao diện công ty» chưa nói về khối mới (đã đọc lại bài và ghi dấu vân `huong-dan:xem-lai`, vì bài chỉ nói về màu): nên thêm mục sau khi chủ chọn tên nút.
 
 ## Câu hỏi gộp một lần cho chủ
 1. Giữ khối chỉnh trong trang Giao diện (không trang mới) hay muốn trang riêng ở khu Thiết lập (kèm nới trần dung lượng gói Đơn hàng)?
 2. Đổi tên bảng về `ui_field_policy` (cần khai tiền tố `ui_` ở bài kiến trúc) hay giữ `gd_field_policy`?
 3. Chọn tên cho hai nút, tên khối và câu báo thiếu ở mục «Tên tạm».
-4. Chấp thuận mục «tự phục vụ» thêm vào `TU_PHUC_VU_STAFF` (hàng rào ghi), hay muốn cách khác (ô quyền «any» riêng, nới nhiều bài ghim)?
+4. Bảng `gd_field_policy` lệch tên so với ADR-0194 (`ui_field_policy`) — đã ghi ở `docs/SYSTEM-DESIGN.md` §16, chờ chủ.
