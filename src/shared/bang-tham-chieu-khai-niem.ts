@@ -873,6 +873,7 @@ export const CHU_DUNG_CHUNG: readonly ChuDungChung[] = [
   { chu: "Thôi", vi: "Trong hộp hỏi lại: không làm việc đang hỏi và đóng hộp; câu hỏi đứng ngay cạnh nút." },
   { chu: "Thử lại", vi: "Làm lại lần tải vừa lỗi; dòng báo lỗi đứng ngay cạnh nói lỗi gì." },
   { chu: "Lưu", vi: "Ghi những gì đang nhập trong hộp hoặc biểu mẫu đang mở; tiêu đề hộp nói đang sửa gì." },
+  { chu: "Về mặc định", vi: "Bỏ phần đã tự chỉnh của đúng khối đứng cạnh, quay về giá trị Nền tảng đặt sẵn (một dòng ở màn Giao diện; các nút đã chọn ở mục «Nút thanh dưới» của trang Tôi); tiêu đề khối nói đang trả về cái gì." },
   { chu: "Đổi", vi: "Đứng ngay cạnh giá trị đang chọn (người phụ trách, người hưởng, số khách theo hạng) và mở khung chọn lại đúng giá trị đó." },
   { chu: "Đổi tên", vi: "Đứng trên dòng của mục có tên (nhóm dịch vụ, tuyến, cỡ xe) và đổi tên đúng mục đó." },
   { chu: "Tắt", vi: "Đứng trên dòng của mục có tên (nhóm dịch vụ, đặc điểm, thông báo) và tắt đúng mục đó." },

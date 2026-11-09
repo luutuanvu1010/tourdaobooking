@@ -153,6 +153,7 @@ Chữ theo ngữ cảnh: người đọc thấy đối tượng ngay cạnh nút
 | Thôi | Trong hộp hỏi lại: không làm việc đang hỏi và đóng hộp; câu hỏi đứng ngay cạnh nút. |
 | Thử lại | Làm lại lần tải vừa lỗi; dòng báo lỗi đứng ngay cạnh nói lỗi gì. |
 | Lưu | Ghi những gì đang nhập trong hộp hoặc biểu mẫu đang mở; tiêu đề hộp nói đang sửa gì. |
+| Về mặc định | Bỏ phần đã tự chỉnh của đúng khối đứng cạnh, quay về giá trị Nền tảng đặt sẵn (một dòng ở màn Giao diện; các nút đã chọn ở mục «Nút thanh dưới» của trang Tôi); tiêu đề khối nói đang trả về cái gì. |
 | Đổi | Đứng ngay cạnh giá trị đang chọn (người phụ trách, người hưởng, số khách theo hạng) và mở khung chọn lại đúng giá trị đó. |
 | Đổi tên | Đứng trên dòng của mục có tên (nhóm dịch vụ, tuyến, cỡ xe) và đổi tên đúng mục đó. |
 | Tắt | Đứng trên dòng của mục có tên (nhóm dịch vụ, đặc điểm, thông báo) và tắt đúng mục đó. |
@@ -214,7 +215,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (83)
+## Việc chờ chọn (85)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -244,6 +245,8 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Nhận · Đang nhận… | `web/viec-cua-toi.ts`: Nhận | Việc của tôi: nhận đơn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Sửa số khách | `web/viec-cua-toi.ts`: Sửa số khách<br>`web/viec-cua-toi.ts`: Xác nhận<br>`web/viec-cua-toi.ts`: Đóng | Việc của tôi: sửa số khách (hướng dẫn viên) | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Huỷ đơn | `web/viec-cua-toi.ts`: Huỷ đơn<br>`web/viec-cua-toi.ts`: Không huỷ | Việc của tôi: huỷ đơn | rà soát 2026-11-04: chưa rõ, chờ chủ |
+| Lưu | `web/thanh-duoi-cai-dat.ts`: Lưu | Trang Tôi | AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới») |
+| Về mặc định | `web/thanh-duoi-cai-dat.ts`: Về mặc định | Trang Tôi | AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới») |
 | Gửi Zalo | `web/ve-don.ts`: Gửi Zalo | Vé điện tử: giao vé | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Tạo đường dẫn cho khách · Sao chép | `web/ve-don.ts`: Tạo đường dẫn cho khách<br>`web/ve-don.ts`: Sao chép | Vé điện tử: giao vé | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Bật camera · Tắt camera | `public/quet-ve.html`: Bật camera | Vé điện tử: quét | người thi công đặt 2026-11-09 (ADR-0175 Đợt 2 Task 14), chờ chủ chọn |
@@ -304,7 +307,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (322)
+## Việc quan trọng (324)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -579,6 +582,13 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
 | **Lưu** | Cài đặt vé điện tử | Lưu «Số vé tối đa mỗi lô» (từ giới hạn nhỏ nhất đến lớn nhất). Số mới chỉ áp cho các lô nhập từ lúc đó, vé đã nhập giữ nguyên. | không | được: lưu lại số cũ | `/api/ve/cai-dat`<br>nhật ký `ve_doi_tran_lo` | `web/ve-cai-dat.ts`: Lưu | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
+
+### Trang Tôi
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Lưu** | Tôi › mục «Nút thanh dưới» (chỉ điện thoại) | Lưu các trang đang đánh dấu (tối đa 4) làm nút thanh dưới điện thoại của chính tài khoản, theo thứ tự trong danh sách; nút «Tôi» luôn có ở cuối. Lưu ở máy chủ nên đổi máy vẫn còn. Máy chủ từ chối trang mình không mở được, và không cho đổi khi Toàn quyền đang xem như vai trò khác. Trang nào sau này không còn mở được thì tự mất khỏi thanh dưới. | không | được: lưu lại cách khác hoặc bấm «Về mặc định» | `/api/account/thanh-duoi`<br>nhật ký `bottom_tabs_changed` | `web/thanh-duoi-cai-dat.ts`: Lưu | chờ chọn (AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới»)) |
+| **Về mặc định** | Tôi › mục «Nút thanh dưới» (chỉ hiện khi đã tự chọn) | Bỏ các trang đã tự chọn: thanh dưới quay về cách Nền tảng tự xếp theo quyền như trước. Không xoá gì khác. | không | được: chọn lại rồi bấm «Lưu» | `/api/account/thanh-duoi`<br>nhật ký `bottom_tabs_changed` | `web/thanh-duoi-cai-dat.ts`: Về mặc định | chờ chọn (AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới»)) |
 
 ### Vé điện tử: đơn
 

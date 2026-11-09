@@ -17,13 +17,23 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Vé Tour Đảo Đợt 2 (ADR-0175): quét vé và đối chiếu. KHÔNG có migration mới ngoài 0153_ve_quet. Bước A.0 ngày 9/11 (sau 2.81). Mọi dịch vụ vẫn «Vé hãng ngoài» cho tới khi chủ gạt ô «Vé do ai phát».
-    version: "2.82",
+    // Vé Tour Đảo Đợt 2 (ADR-0175): quét vé và đối chiếu. KHÔNG có migration mới ngoài 0155_ve_quet. Bước A.0 ngày 9/11 (sau 2.82 của ADR-0187). Mọi dịch vụ vẫn «Vé hãng ngoài» cho tới khi chủ gạt ô «Vé do ai phát».
+    version: "2.83",
     date: "2026-11-09",
     items: [
       { kind: "moi", text: "Trang «Quét vé»: Hướng dẫn viên, Tài xế dùng camera quét mã vé Tour Đảo; xanh cho đi, vàng cần xác nhận, đỏ từ chối; có nút chụp ảnh dự phòng." },
       { kind: "moi", text: "Đơn có ô «Đã dùng» theo từng dịch vụ; màn «Đối chiếu vé» so số khách theo đơn với số vé đã dùng trong ngày; Quản trị bỏ được lượt quét nhầm." },
       { kind: "doi", text: "Đơn đã có vé Tour Đảo được quét thì không huỷ được và không giảm số khách xuống dưới số vé đã dùng; muốn huỷ thì bỏ lượt quét trước." },
+    ],
+  },
+  {
+    // ADR-0187 Đ2.3 (accepted 8/11): người dùng tự chọn nút thanh dưới điện thoại, lưu ở máy chủ. Migration 0153. Ban đầu lấy tạm 2.81; vé Tour Đảo Đợt 1 nhập
+    // bản chính trước và lên production bản 2.81 (9/11) nên khi gộp bản chính ngày 9/11 đánh lại thành 2.82.
+    version: "2.82",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Trang Tôi trên điện thoại có mục «Nút thanh dưới»: tự chọn tối đa 4 trang mình hay dùng cho thanh dưới; nút Tôi luôn có." },
+      { kind: "moi", text: "Lựa chọn lưu theo tài khoản nên đổi máy vẫn còn. Bấm «Về mặc định» để quay lại cách Nền tảng tự xếp." },
     ],
   },
   {

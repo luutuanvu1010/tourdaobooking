@@ -239,7 +239,7 @@ test("0151: ctl_service_ticket_source chỉ thêm, view lấy dòng mới nhất
   assert.throws(() => d.prepare(`DELETE FROM ctl_service_ticket_source WHERE id = 'n1'`).run(), /ctl_service_ticket_source_append_only/);
 });
 
-// ---- Lượt quét vé Tour Đảo (migration 0153, ADR-0175 Đ3 mục 1) ----
+// ---- Lượt quét vé Tour Đảo (migration 0155, ADR-0175 Đ3 mục 1) ----
 const quet = (d: DatabaseSync, ticket: string, o: { kq?: string; doan?: number; luc?: string; soKhach?: number } = {}) => {
   const id = `q-${++n}`;
   d.prepare(
@@ -250,10 +250,10 @@ const quet = (d: DatabaseSync, ticket: string, o: { kq?: string; doan?: number; 
 const boLuot = (d: DatabaseSync, id: string) =>
   d.prepare(`UPDATE vdt_scan SET voided_at = ?, voided_by = 'u-2', void_reason = 'quét nhầm', updated_at = ? WHERE id = ?`).run(SAU, SAU, id);
 
-test("migration lượt quét: đúng MỘT tệp `*_ve_quet.sql`, số ≥ 0153, chỉ thêm", () => {
+test("migration lượt quét: đúng MỘT tệp `*_ve_quet.sql`, số ≥ 0155, chỉ thêm", () => {
   const m = files.filter((f) => f.endsWith("_ve_quet.sql"));
   assert.equal(m.length, 1);
-  assert.ok(m[0]! >= "0153", m[0]);
+  assert.ok(m[0]! >= "0155", m[0]);
   assert.doesNotMatch(sqlOf(m[0]!).replace(/--[^\n]*/g, ""), /DELETE\s+FROM|ALTER\s+TABLE|DROP\s+TABLE|UPDATE\s+\w+\s+SET/i);
 });
 

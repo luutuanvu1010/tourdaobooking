@@ -10,7 +10,7 @@ import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
-  insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, taiKhoanChoXacMinhRows, touchCredentialsStatement, updateStaffStatement,
+  insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, taiKhoanChoXacMinhRows, touchCredentialsStatement, updateStaffStatement, upsertThanhDuoiStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import {
@@ -20,6 +20,7 @@ import {
 import type { PartyMatchResponse, StaffAccount, StaffProfile } from "../../shared/contracts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions";
 import { ROLES, ROLE_CODES, effectivePermissions, rolesLabelTheo, groupOf, isRoleCode, type RoleAssignment, type RoleCode } from "../../shared/roles";
+import { docGhim } from "../../shared/muc-giao-dien";
 import { addDays, vnToday } from "../../shared/vn-date";
 
 export type { StaffAccount, StaffProfile };
@@ -109,8 +110,17 @@ export async function getActiveStaff(db: D1Database, id: string, sessionIssuedAt
   const staff = await findById(db, id);
   if (!staff || !staff.active) return null;
   if (sessionIssuedAt !== undefined && staff.credentials_changed_at !== null && staff.credentials_changed_at > sessionIssuedAt) return null;
-  return toProfile(staff);
+  // ADR-0187 Đ2.3: nút thanh dưới đã chọn đi kèm hồ sơ của phiên (không thêm câu đọc). Chỉ khi có; quyền mở từng trang lọc lại lúc vẽ (ghimDuoc).
+  const thanhDuoi = docGhim(staff.thanh_duoi);
+  return thanhDuoi.length ? { ...toProfile(staff), thanhDuoi } : toProfile(staff);
 }
+
+/**
+ * Câu (CHƯA chạy) ghi nút thanh dưới của CHÍNH tài khoản `staffId` (ADR-0187 Đ2.3) — `accounts` gộp cùng nhật ký trong một lô. `trang` đã qua kiemGhim
+ * (src/shared/muc-giao-dien.ts) ở route; mảng rỗng = «Về mặc định» (cột NULL, không xoá dòng).
+ */
+export const datThanhDuoiStatement = (db: D1Database, staffId: string, trang: readonly string[], at: string): D1PreparedStatement =>
+  upsertThanhDuoiStatement(db, staffId, trang.length ? trang.join(",") : null, at);
 
 /**
  * HÀM CÔNG BỐ (ADR-0074) — module auth gọi ở cổng lớp hai của đăng nhập PIN: hạn ân hạn 14 ngày (`mfa_grace_until`) và cửa sổ bật lại 24 giờ sau khi

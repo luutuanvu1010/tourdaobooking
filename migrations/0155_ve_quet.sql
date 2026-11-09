@@ -1,7 +1,7 @@
--- Migration 0153 — LƯỢT QUÉT VÉ TOUR ĐẢO (ADR-0175 Đ3 mục 1, đặc tả docs/superpowers/specs/2026-11-05-ve-tour-dao-design.md §2.5; kế hoạch Task 10).
+-- Migration 0155 — LƯỢT QUÉT VÉ TOUR ĐẢO (ADR-0175 Đ3 mục 1, đặc tả docs/superpowers/specs/2026-11-05-ve-tour-dao-design.md §2.5; kế hoạch Task 10).
 -- Chỉ THÊM bảng `vdt_scan` (chỉ thêm, ở lại): mỗi lượt quét có vé thật ghi một dòng; mã lạ và vé hãng ngoài KHÔNG ghi. Ba kết quả: DA_TINH (tính đã dùng), CHI_XEM, TU_CHOI.
 -- «Vé đã dùng» = vé có lượt DA_TINH chưa bỏ; không thêm trạng thái vào `vdt_ticket`. Mã vé không bao giờ nằm ở bảng này (chỉ khoá `ticket_id`).
--- Số 0153: 0152 là `0152_hop_thu_thieu_ve`; không nhánh chưa gộp nào giữ số lớn hơn.
+-- Số 0155: main đã có 0153_thanh_duoi_ghim và nhánh chưa gộp claude/vigilant-euler-751c3a giữ 0154_chinh_sach_giao_dien (kiểm 9/11).
 -- CSDL chặn hai lượt DA_TINH chưa bỏ trên một vé từng khách (chỉ mục duy nhất một phần); vé đoàn (`ve_doan = 1`, kể cả lượt một khách) được chừa để quét nhiều đợt.
 -- Bỏ lượt quét: chỉ ghi ba cột `voided_*` MỘT lần; mọi cột khác bất biến; không xoá.
 -- HOÀN TÁC: bảng rỗng không ảnh hưởng mã cũ; đã có lượt thì không xoá, chỉ bỏ lượt (`voided_*`).

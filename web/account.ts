@@ -15,6 +15,7 @@ import { icon } from "./icons";
 import { renderMaintenanceMessage } from "./maintenance-screen";
 import { ganCaiDatNhapTay } from "./nhap-tay-cai-dat";
 import { ganCaiDatAnKhach } from "./an-khach-cai-dat";
+import { ganNutThanhDuoi } from "./thanh-duoi-cai-dat";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { b64uSangBytes, thietBiTu } from "./push-ui";
 import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError, xoaDaiNhacHaiLop } from "./shell";
@@ -857,6 +858,8 @@ if (can(staff, "settings.ops")) void ganCaiDatNhapTay(byId("nhap-tay-cai-dat"));
 
 // ---- Ẩn thông tin khách khi đối tác đặt vé (ADR-0154 Đ2.1): công tắc bật / tắt — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại), cạnh «Dịch vụ nhập tay» ----
 if (can(staff, "settings.ops")) void ganCaiDatAnKhach(byId("an-khach-cai-dat"));
+// ADR-0187 Đ2.3: mục «Nút thanh dưới» (chỉ điện thoại). Ai thấy: ô me.favorites.write và không đang xem như vai trò khác — hàm tự hỏi bảng quyền.
+ganNutThanhDuoi(byId("thanh-duoi"), staff);
 
 // ---- Việc của tôi (hướng dẫn viên — ADR-0014 điều 6/11, ADR-0030; bản thiết kế "Viec cua toi - HDV v2" của chủ dự án, Task 1.8) ----------------
 // Toàn bộ khối ở web/viec-cua-toi.ts: hàng chờ nhận + nút Nhận, đơn mình phụ trách (có Tổng tiền/Đã cọc/Còn thu), bảng sửa số khách, bảng huỷ đơn.

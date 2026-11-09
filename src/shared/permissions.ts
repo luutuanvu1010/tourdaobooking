@@ -299,6 +299,10 @@ export const MATRIX = {
   // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5 Gói 2): GỬI / RÚT yêu cầu xoá dữ liệu của CHÍNH MÌNH — mọi tài khoản (kể cả Tài xế đối tác, Nhân sự — kế hoạch H-5 sự thật 1).
   // Phạm vi own = staff.partyId của PHIÊN. Không đòi đồng ý chính sách. Route: POST /api/parties/cua-toi/phieu-xoa, POST …/phieu-xoa/:id/rut (cổng staff).
   "party.erasure.request": tuPhucVu(),
+  // ADR-0187 Đ2.3 (accepted 2026-11-08): TỰ CHỌN NÚT THANH DƯỚI điện thoại của CHÍNH MÌNH (bảng stf_thanh_duoi) — mọi mã quyền có khung, TRỪ Tài xế đối tác (chủ 8/11: chỉ hai
+  // trang, không chọn). Viết tay, KHÔNG dùng tuPhucVu() (hàm đó cho DRIVER_PARTNER own). Route PUT /api/account/thanh-duoi (cổng staff) hỏi { ownerId: staff.id }; trang chọn được
+  // còn phải qua ghimDuoc (src/shared/muc-giao-dien.ts) — CÙNG hàm với giao diện.
+  "me.favorites.write": row("own", "own", "own", "own", "own", "any", "own", "own", "none", "own", "own"),
   // ADR-0126 đ2 (lát H-5 Gói 2): XỬ LÝ phiếu yêu cầu xoá của NGƯỜI KHÁC (xem hàng chờ, xem trước, thực hiện ẩn danh hoá, từ chối, chạy lại) — Quản trị, Toàn quyền; route cổng admin
   // hỏi admin.manage rồi ô này, còn hỏi cấp bậc và tách người gửi / người xử lý (xoa-an-danh.ts). Nhân sự KHÔNG có. Route: /api/parties/phieu-xoa*.
   "party.erasure.process": quanTri(),

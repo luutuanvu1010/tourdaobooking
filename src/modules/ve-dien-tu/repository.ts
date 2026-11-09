@@ -428,7 +428,7 @@ const VE_HANG_NGOAI_DA_MO = defineSql(
 export const veHangNgoaiDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boolean> => (await db.prepare(VE_HANG_NGOAI_DA_MO).bind(orderId).first()) !== null;
 export const docTrangThaiDon = async (db: D1Database, orderId: string): Promise<string | null> => (await db.prepare(TRANG_THAI_DON).bind(orderId).first<{ status: string }>())?.status ?? null;
 
-// ---- Quét vé Tour Đảo (ADR-0175 Đ3; migration 0153) ----------------------------------------------------------------------------------------------------------------
+// ---- Quét vé Tour Đảo (ADR-0175 Đ3; migration 0155) ----------------------------------------------------------------------------------------------------------------
 /** Vé theo MÃ (tham số, không vào chuỗi SQL): vé + lô + phân bổ MỚI NHẤT (vé trả về kho rồi cấp lại có nhiều phân bổ). Trả cả vé hãng ngoài: luật thuần gộp «lạ» và «hãng ngoài» thành một câu. */
 const DOC_VE_QUET = defineSql(
   "ve-dien-tu",

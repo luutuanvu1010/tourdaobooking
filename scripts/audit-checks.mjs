@@ -2282,7 +2282,7 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL AND purged_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-4 days')`,
     level: "warn",
   },
-  // R-VDT-7, R-VDT-8 (ADR-0175 Đ3 mục 1; migration 0153): lượt quét tính đã dùng chỉ có nghĩa trên vé Tour Đảo đã giao cho khách, và vé đã dùng không bao giờ về kho.
+  // R-VDT-7, R-VDT-8 (ADR-0175 Đ3 mục 1; migration 0155): lượt quét tính đã dùng chỉ có nghĩa trên vé Tour Đảo đã giao cho khách, và vé đã dùng không bao giờ về kho.
   {
     code: "R-VDT-7",
     what: "lượt quét DA_TINH chưa bỏ chỉ nằm trên vé lô TOUR_DAO đã lộ (có phân bổ revealed_at)",
