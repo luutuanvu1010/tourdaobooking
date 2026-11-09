@@ -20,6 +20,7 @@ import { khoiLichSuGan } from "./hoa-hong-lich-su";
 import { icon } from "./icons";
 import { dungKhoiPhieuXoa } from "./phieu-xoa";
 import { initShell, showError } from "./shell";
+import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
 
 const errorEl = byId("error");
 const listEl = byId("list");
@@ -81,6 +82,9 @@ const button = (label: string, onclick: (b: HTMLButtonElement) => void, cls = "b
   b.addEventListener("click", () => onclick(b));
   return b;
 };
+/** ADR-0194 đợt 1: cột phụ «Công việc hôm nay» Toàn quyền có thể ẩn — chỉ hiển thị; lỗi tải = mặc định đầy đủ. Tải TRƯỚC lần vẽ đầu. */
+let chinhSach: ChinhSachUi = CHINH_SACH_DAY_DU;
+const anCot = (truong: string): boolean => chinhSach.an("quan-ly-doi-tac", truong);
 const field = (label: string, input: Child): HTMLElement => h("label", null, label, input);
 const input = (value = "", extra: Record<string, unknown> = {}) => h("input", { type: "text", value, ...extra });
 /** Ô chọn; mặc định chọn MỤC ĐẦU (gán value = "" khi không có mục rỗng sẽ không chọn gì và select.value trả ""). */
@@ -121,7 +125,7 @@ function card(p: Api.PartyListItemDto): HTMLElement {
       "div",
       { style: "flex:1" },
       h("div", null, p.displayName, !p.active && h("span", { class: "badge badge-cancelled" }, " Ngưng")),
-      h("div", { class: "muted" }, p.primaryPhone ?? "—", " · ", p.roleCodes.map(roleLabel).join(", ") || "—"),
+      h("div", { class: "muted" }, p.primaryPhone ?? "—", ...(anCot("roleCodes") ? [] : [" · ", p.roleCodes.map(roleLabel).join(", ") || "—"])),
       h("div", { class: "muted" }, KIND_LABEL[p.kind]),
     ),
     icon("next", 20),
@@ -135,7 +139,7 @@ async function search(reset = true): Promise<void> {
   const r = await act(() => api<Api.PartyListResponse>(`/api/parties?${queryString({ offset: String(offset) })}`));
   if (!r) return;
   const rows = r.parties.map((p) => {
-    const tr = h("tr", { class: p.active ? "" : "row-off", style: "cursor:pointer" }, h("td", null, p.displayName, !p.active && h("span", { class: "badge badge-cancelled" }, "Ngưng")), h("td", null, KIND_LABEL[p.kind]), h("td", null, p.primaryPhone ?? ""), h("td", null, p.roleCodes.map(roleLabel).join(", ")));
+    const tr = h("tr", { class: p.active ? "" : "row-off", style: "cursor:pointer" }, h("td", null, p.displayName, !p.active && h("span", { class: "badge badge-cancelled" }, "Ngưng")), h("td", null, KIND_LABEL[p.kind]), h("td", null, p.primaryPhone ?? ""), h("td", { hidden: anCot("roleCodes") }, p.roleCodes.map(roleLabel).join(", ")));
     tr.addEventListener("click", () => void openDetail(p.id));
     return tr;
   });
@@ -973,6 +977,8 @@ if (m) meta = m;
 if (l) locations = l.locations;
 replaceChildren(byId("role"), h("option", { value: "" }, "Tất cả"), ...meta.roleTypes.map((t) => h("option", { value: t.code }, t.name)));
 replaceChildren(byId("location"), h("option", { value: "" }, "Tất cả"), ...locations.filter((x) => x.active).map((x) => h("option", { value: x.id }, x.name)));
+chinhSach = await taiChinhSach();
+for (const th of document.querySelectorAll<HTMLElement>("th[data-cot]")) anPhanTu(anCot(th.dataset.cot ?? ""), th);
 await search();
 // Mở thẳng một hồ sơ theo ?id= (màn 06 "Giấy tờ sắp hết hạn" bấm dòng người → hồ sơ ở Danh bạ). Máy chủ kiểm quyền và id như mọi lần mở hồ sơ.
 const moTheoId = new URLSearchParams(location.search).get("id");

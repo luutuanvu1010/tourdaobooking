@@ -84,3 +84,37 @@ export function giaiChinhSach(dong: readonly DongChinhSach[], quyen: readonly st
   }
   return ra;
 }
+
+/** Bảng tra cho giao diện: từ danh sách đã giải (`GET /api/cai-dat/giao-dien`) tra «đang ẩn / bắt buộc không» theo (màn, trường). Không có ⇒ false (mặc định đầy đủ). */
+export function traCuuChinhSach(ds: readonly TruongDaGiai[]): { an: (man: ManUi, truong: string) => boolean; batBuoc: (man: ManUi, truong: string) => boolean } {
+  const tim = (man: string, truong: string): TruongDaGiai | undefined => ds.find((d) => d.man === man && d.truong === truong);
+  return { an: (man, truong) => tim(man, truong)?.an === true, batBuoc: (man, truong) => tim(man, truong)?.batBuoc === true };
+}
+
+/**
+ * Tên tiếng Việt của màn và của trường để màn chỉnh hiển thị (không lộ mã thô). Tên màn theo ADR-0194; tên trường theo chữ đang hiện ở màn thật. Chữ MỚI cho chế độ (`NHAN_CHE_DO`) là TÊN TẠM —
+ * chờ chủ chọn (nhật ký thi công ADR-0194 đợt 1). Bài (e) ở ui-truong.test.ts ép: mọi mục chỉnh được có tên, tên không lộ mã.
+ */
+export const NHAN_MAN: Readonly<Record<ManUi, string>> = {
+  "tao-don": "Tạo đơn",
+  "danh-sach-dich-vu": "Danh sách dịch vụ",
+  "danh-sach-tai-khoan": "Danh sách tài khoản",
+  "quan-ly-doi-tac": "Quản lý đối tác",
+};
+const NHAN_TRUONG: Readonly<Record<string, string>> = {
+  "tao-don/customerEmail": "Email khách",
+  "tao-don/customerNote": "Ghi chú khách",
+  "tao-don/passengers": "Danh sách khách",
+  "tao-don/paymentNote": "Ghi chú thanh toán",
+  "danh-sach-dich-vu/groupCode": "Nhóm",
+  "danh-sach-dich-vu/unit": "Đơn vị",
+  "danh-sach-tai-khoan/createdAt": "Tạo lúc",
+  "danh-sach-tai-khoan/lastLoginAt": "Đăng nhập gần nhất",
+  "quan-ly-doi-tac/roleCodes": "Công việc hôm nay",
+};
+export const nhanTruong = (man: string, truong: string): string | undefined => NHAN_TRUONG[`${man}/${truong}`];
+export const NHAN_CHE_DO: Readonly<Record<CheDo, string>> = { HIEN: "Hiện", AN: "Ẩn", BAT_BUOC: "Bắt buộc", TUY_CHON: "Không bắt buộc" };
+/** Các chế độ ô này cho chọn (luôn có HIEN) — màn chỉnh chỉ liệt kê đúng những gì cờ cho. */
+export const cheDoChoChon = (m: MucTruong): CheDo[] => CHE_DO.filter((c) => laCheDoHopLe(m.man, m.truong, c));
+/** Mục có ít nhất một chế độ ngoài HIEN — chỉ những mục này hiện ở màn chỉnh. */
+export const mucChinhDuoc = (man: string): MucTruong[] => DANH_MUC_UI.filter((m) => m.man === man && cheDoChoChon(m).length > 1);

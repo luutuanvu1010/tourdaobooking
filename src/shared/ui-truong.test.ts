@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { CHE_DO, DANH_MUC_UI, MAN_UI, giaiChinhSach, laCheDoHopLe, timMuc, type DongChinhSach } from "./ui-truong.ts";
+import { CHE_DO, DANH_MUC_UI, MAN_UI, giaiChinhSach, laCheDoHopLe, timMuc, traCuuChinhSach, mucChinhDuoc, nhanTruong, NHAN_MAN, NHAN_CHE_DO, cheDoChoChon, type DongChinhSach } from "./ui-truong.ts";
 import { PERMISSION_CODES } from "./permissions.ts";
 
 const CONTRACTS = readFileSync(new URL("./contracts.ts", import.meta.url), "utf8");
@@ -122,4 +122,30 @@ test("(c7) hợp của mọi quyền: kết quả không phụ thuộc thứ t�
   assert.deepEqual(a, b);
   assert.deepEqual(a.map((x) => x.truong), ["passengers"]);
   assert.ok(PERMISSION_CODES.length > 0);
+});
+
+test("(d) traCuuChinhSach: tra an / batBuoc theo (màn, trường); không có ⇒ false; danh sách rỗng ⇒ mặc định đầy đủ", () => {
+  const rong = traCuuChinhSach([]);
+  assert.equal(rong.an("tao-don", "passengers"), false);
+  assert.equal(rong.batBuoc("tao-don", "customerEmail"), false);
+  const t = traCuuChinhSach([{ man: "tao-don", truong: "passengers", an: true, batBuoc: false }, { man: "tao-don", truong: "customerEmail", an: false, batBuoc: true }]);
+  assert.equal(t.an("tao-don", "passengers"), true);
+  assert.equal(t.an("danh-sach-dich-vu", "passengers"), false, "khác màn");
+  assert.equal(t.batBuoc("tao-don", "customerEmail"), true);
+  assert.equal(t.batBuoc("tao-don", "passengers"), false);
+});
+
+test("(e) mọi mục chỉnh được có tên tiếng Việt, không lộ mã thô; mọi màn và chế độ có tên; mục không chỉnh được không xuất hiện ở màn chỉnh", () => {
+  for (const man of MAN_UI) {
+    assert.ok(NHAN_MAN[man].length > 0);
+    for (const m of mucChinhDuoc(man)) {
+      const ten = nhanTruong(m.man, m.truong);
+      assert.ok(ten && ten.length > 0, `${m.man}/${m.truong} chưa có tên`);
+      assert.doesNotMatch(ten, /[a-z][A-Z]|_|\b(?:id|code|passengers|customer)\b/, `tên ${ten} lộ mã`);
+    }
+  }
+  for (const c of CHE_DO) assert.ok(NHAN_CHE_DO[c].length > 0);
+  assert.deepEqual(mucChinhDuoc("tao-don").map((m) => m.truong).sort(), ["customerEmail", "customerNote", "passengers", "paymentNote"]);
+  assert.deepEqual(cheDoChoChon(timMuc("tao-don", "customerName")!), ["HIEN"], "không chỉnh được ⇒ chỉ HIEN");
+  assert.deepEqual(cheDoChoChon(timMuc("danh-sach-tai-khoan", "createdAt")!), ["HIEN", "AN"], "cột xem: không có BAT_BUOC");
 });

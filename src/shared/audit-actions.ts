@@ -333,7 +333,7 @@ export const AUDIT_ACTIONS = {
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).
   giao_dien_changed: { label: "Đổi giao diện", group: "system" },
   // ADR-0194 đợt 1: Toàn quyền đổi chính sách hiện / ẩn / bắt buộc của một màn (POST /api/cai-dat/giao-dien, …/khoi-phuc) — không gắn đơn; detail chỉ mã màn, mã trường, quyền, chế độ (không giá trị cá nhân).
-  ui_policy_changed: { label: "Đổi chính sách hiển thị trường", group: "system" },
+  ui_policy_changed: { label: "Đổi cài đặt hiển thị trường", group: "system" },
   // ADR-0047 §6 (Đợt 8): máy còn gửi thân đơn / thông tin chuyến KIỂU CŨ — dòng ĐẾM cho cổng cắt; order_id NULL, detail = nhãn màn hình, không nội dung thân.
   client_outdated_body: { label: "Máy dùng Nền tảng bản cũ", group: "system" },
   catalog_synced: { label: "Đồng bộ dịch vụ từ Sheet", group: "catalog" },

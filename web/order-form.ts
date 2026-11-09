@@ -55,6 +55,7 @@ import { goiSom } from "./goi-som";
 import { icon } from "./icons";
 import { layKhungNho } from "./khung-nho";
 import { benDatCuaToi, initShell, setBarTitle } from "./shell";
+import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
 
 const params = new URLSearchParams(location.search);
 const editId = params.get("id");
@@ -254,6 +255,13 @@ let formGon = false;
  * Áp thì khối Khách hàng (trừ Ngày khởi hành) và khối Hành khách ẩn, và thân gửi lên không có các khoá khách (máy chủ điền lại). Chỉ ẩn / hiện: máy chủ viết lại thân theo công tắc HIỆN HÀNH.
  */
 let anKhach = false;
+/**
+ * ADR-0194 đợt 1: chính sách hiện / ẩn / bắt buộc của Toàn quyền cho màn Tạo đơn (Email, Ghi chú khách, Hành khách, Ghi chú thanh toán). Tải TRƯỚC khi dựng khối; lỗi tải = mặc định đầy đủ.
+ * Chỉ ẩn / hiện / đánh dấu — MÁY CHỦ quyết lại (bỏ khoá trường ẩn, giữ giá trị đang lưu, 400 khi thiếu trường bắt buộc). Công tắc ADR-0154 đang áp thì nó quyết các trường khách (không chen vào).
+ */
+let chinhSach: ChinhSachUi = CHINH_SACH_DAY_DU;
+const anTruong = (t: string): boolean => !anKhach && chinhSach.an("tao-don", t);
+const batBuocTruong = (t: string): boolean => !anKhach && !chinhSach.an("tao-don", t) && chinhSach.batBuoc("tao-don", t);
 // ADR-0061: người dùng được nhập tay (công tắc BẬT, có ô order.service.manual, không mang quyền Đối tác) — MÁY CHỦ quyết (`duocDung` của
 // GET /api/cai-dat/nhap-tay), giao diện không tự tính luật. Đọc TRƯỚC khi dựng thẻ đã lưu (loadOrder); lỗi / 403 → false (ẩn nút, thẻ chỉ xem).
 let duocNhapTay = false;
@@ -578,6 +586,10 @@ function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] }
     need("customerName", "Nhập tên khách."); // khối khách ẩn (ADR-0154 Đ2.2): không còn ô để nhập, máy chủ điền từ tài khoản
     need("customerPhone", "Nhập số điện thoại khách.");
   }
+  // ADR-0194: trường Toàn quyền đòi bắt buộc (máy chủ kiểm lại, trả 400 nếu thiếu). Chữ câu báo: tên tạm theo khuôn «Nhập tên khách.» — chờ chủ chọn (nhật ký thi công ADR-0194).
+  if (batBuocTruong("customerEmail")) need("customerEmail", "Nhập email khách.");
+  if (batBuocTruong("customerNote")) need("customerNote", "Nhập ghi chú khách.");
+  if (batBuocTruong("paymentNote")) need("paymentNote", "Nhập ghi chú thanh toán.");
   if (entries.length === 0) lines.push("Thêm ít nhất một dịch vụ.");
   entries.forEach((e, i) => {
     for (const issue of draftIssues(e.draft)) {
@@ -586,6 +598,10 @@ function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] }
     }
   });
   lines.push(...orderIssues(drafts()));
+  if (hk && batBuocTruong("passengers") && passengersNhap(hk.rows()).length === 0) {
+    lines.push("Thêm ít nhất một khách vào danh sách khách.");
+    focusables.push(hkCard);
+  }
   if (hk) {
     const loiKhach = loiDanhSachKhach(hk.rows(), today);
     lines.push(...loiKhach);
@@ -602,14 +618,14 @@ function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] }
 }
 
 /** Thân gửi lên khi khối khách đang ẩn: KHÔNG có tên, SĐT, email, ghi chú khách, danh sách hành khách, hồ sơ khách (`bookerPartyId`, `newBooker`) — máy chủ điền lại / giữ bản đang lưu (ADR-0154 Đ2.3). */
-type OrderInputAn = Omit<OrderInput, "customerName" | "customerPhone" | "customerEmail" | "customerNote" | "passengers" | "bookerPartyId" | "newBooker">;
+type OrderInputAn = Omit<OrderInput, "customerName" | "customerPhone" | "customerEmail" | "customerNote" | "passengers" | "bookerPartyId" | "newBooker" | "paymentNote"> & { paymentNote?: string };
 
 function collect(): OrderInput | OrderInputAn {
   const chung: OrderInputAn = {
     // Form gọn của Đối tác (ADR-0154 Đ1.1): lượt đầu của dịch vụ luôn gửi trống giờ (`legsGuiFormGon`); form khác giữ nguyên.
     services: entries.map((e) => toServiceInput({ ...e.draft, legs: formGon ? legsGuiFormGon(e.draft.legs, orderDate) : e.draft.legs, pickupChoice: chonDonTheoNhom(coDuaDon(e.draft), e.draft.pickupChoice) }, suaSoVe)), // Ruling R-M
     discount: num("discount"),
-    paymentNote: field("paymentNote").value,
+    ...(anTruong("paymentNote") ? {} : { paymentNote: field("paymentNote").value }), // ADR-0194: trường ẩn không gửi — máy chủ giữ giá trị đang lưu
     // Trả sau (ADR-0168): khối chỉ hiện khi bên đặt có hạn mức; Trả sau không kèm tiền đặt cọc (gửi 0 để máy chủ không giữ số cũ).
     paymentTerm: hinhThucChon(), // luôn gửi: khối ẩn thì là Trả trước, để PUT không giữ Trả sau cũ mà không còn chỗ chọn lại
     ...(coODatCoc ? { declaredDeposit: traSauHien && hinhThucChon() === "CREDIT" ? 0 : num("declaredDeposit") } : {}),
@@ -624,8 +640,8 @@ function collect(): OrderInput | OrderInputAn {
     ...chung,
     customerName: field("customerName").value,
     customerPhone: field("customerPhone").value,
-    customerEmail: field("customerEmail").value,
-    customerNote: field("customerNote").value,
+    ...(anTruong("customerEmail") ? {} : { customerEmail: field("customerEmail").value }), // ADR-0194: trường ẩn không gửi
+    ...(anTruong("customerNote") ? {} : { customerNote: field("customerNote").value }),
     // ADR-0047 R1: khoá `passengers` CHỈ khi khối hành khách đang dựng (có ô + đã tải được danh sách) — vắng = máy chủ giữ danh sách đang lưu.
     ...(hk ? { passengers: passengersNhap(hk.rows()) } : {}),
     // Bên đặt (sổ đại lý đợt 1, Task 11): dòng chỉ đọc của Đối tác hoặc đại lý đã chọn ở ô "Đặt qua đối tác" thắng ô tra SĐT; không thì như hôm nay.
@@ -867,7 +883,7 @@ function fill(o: Api.OrderDetailDto): string[] {
   napBenDat(o);
   field("customerEmail").value = o.customerEmail ?? "";
   field("customerNote").value = o.customerNote ?? "";
-  if (field("customerEmail").value !== "" || field("customerNote").value.trim() !== "") gapKhach.mo(); // nháp đã có email / ghi chú: khối gập tự mở — không giấu giá trị đang có
+  if (field("customerEmail").value !== "" || field("customerNote").value.trim() !== "") gapKhach.mo(); // nháp đã có email / ghi chú: khối gập tự mở — không giấu giá trị đang có (ô bị chính sách ẩn tự ẩn; khối trống vô hại) // nháp đã có email / ghi chú: khối gập tự mở — không giấu giá trị đang có
   (field("discount") as HTMLInputElement).value = o.discount ? grouped(o.discount) : "";
   field("paymentNote").value = o.paymentNote ?? "";
   (field("declaredDeposit") as HTMLInputElement).value = o.declaredDeposit ? grouped(o.declaredDeposit) : "";
@@ -918,7 +934,7 @@ async function loadOrder(): Promise<void> {
     // Lời mời chỉ của người lập (máy chủ trả `banHangMoi` cho người lập nháp); người khác sửa hộ nháp thì khối ẩn và không gửi khoá.
     banHangEl.hidden = banHangAn || order.staffId !== staff.id;
     if (!banHangEl.hidden) { banHangPick = banHangMoi ? { staffId: banHangMoi.staffId, partyId: "", name: banHangMoi.name, roleLabel: "Bán hàng" } : null; renderBanHang(); }
-    if (suaKhachCuaNhap && !anKhach) {
+    if (suaKhachCuaNhap && !anKhach && !anTruong("passengers")) {
       try {
         const ds = await api<Api.PassengerListResponse>(`/api/orders/${encodeURIComponent(order.id)}/passengers`);
         dungKhoiKhach(ds.passengers.map((x) => dongTuDto(x, newKey(), false)));
@@ -968,11 +984,29 @@ function datAnKhach(an: boolean): void {
   anKhach = an;
   khoiKhach.toggleAttribute("data-an-khach", an);
   if (an) hkCard.hidden = true;
+  apChinhSach();
   capNhatBuoc();
+}
+/** Ẩn / hiện ô theo chính sách (ADR-0194) và đánh dấu «*» ô bắt buộc. Gọi lại được (công tắc ADR-0154 đổi ⇒ chính sách không còn / lại chen vào). */
+function apChinhSach(): void {
+  const o = (id: string) => field(id).closest("label");
+  anPhanTu(anTruong("customerEmail"), o("customerEmail"));
+  anPhanTu(anTruong("customerNote"), o("customerNote"));
+  anPhanTu(anTruong("customerEmail") && anTruong("customerNote"), gapKhach.nut);
+  anPhanTu(anTruong("paymentNote"), o("paymentNote"));
+  if (anTruong("passengers")) {
+    hk = null;
+    hkCard.hidden = true;
+  }
+  for (const t of ["customerEmail", "customerNote", "paymentNote"]) {
+    const chu = o(t)?.querySelector(".o-noi-chu");
+    if (chu && batBuocTruong(t) && !(chu.textContent ?? "").endsWith("*")) chu.textContent = `${chu.textContent} *`;
+  }
 }
 /** Hiện lại khối «Hành khách» sau khi công tắc tắt: lập mới → khối trống (nếu có ô); sửa nháp → tải danh sách đang lưu (tải hỏng thì KHÔNG dựng, KHÔNG gửi `passengers`). */
 async function dungLaiKhoiKhach(): Promise<void> {
   if (hk) return;
+  if (anTruong("passengers")) return; // ADR-0194: chính sách ẩn khối hành khách
   if (!editId) {
     if (can(staff, "order.passenger.write", { ownerId: staff.id, assigned: false })) dungKhoiKhach([]);
     return;
@@ -1158,7 +1192,8 @@ const layKhung = can(staff, "order.create") && !formGon // form gọn của Đ�
   : Promise.resolve(khungGio);
 // ADR-0154 Đ2.2: chỉ tài khoản giữ quyền Đối tác mới có thể bị áp công tắc (`apCongTacAnKhach` ⊂ `holdsPartner`) nên người khác không hỏi. Lỗi mạng → không ẩn (máy chủ vẫn quyết lại ở lần lưu).
 const layAnKhach = formGon ? docCongTacAnKhach() : Promise.resolve(null);
-const [viTri, mauVe, khungVe, anKhachMay] = await Promise.all([layDiem, layMau, layKhung, layAnKhach]);
+const [viTri, mauVe, khungVe, anKhachMay, chinhSachMay] = await Promise.all([layDiem, layMau, layKhung, layAnKhach, taiChinhSach()]);
+chinhSach = chinhSachMay; // ADR-0194: trước khi dựng khối / nạp đơn; lỗi tải đã thành mặc định đầy đủ
 datAnKhach(anKhachMay === true);
 diem = viTri.diem;
 diemNhanh = viTri.nhanh;
@@ -1178,7 +1213,7 @@ if (editId) {
 } else {
   // Lập đơn mới: người lập là chủ đơn (phạm vi "own").
   suaSoVe = can(staff, "order.trip.edit", { ownerId: staff.id, assigned: false });
-  if (!anKhach && can(staff, "order.passenger.write", { ownerId: staff.id, assigned: false })) dungKhoiKhach([]); // khối khách ẩn (ADR-0154 Đ2.2): không dựng khối Hành khách
+  if (!anKhach && !anTruong("passengers") && can(staff, "order.passenger.write", { ownerId: staff.id, assigned: false })) dungKhoiKhach([]); // khối khách ẩn (ADR-0154 Đ2.2): không dựng khối Hành khách
 }
 donDaNap = true; // nháp (nếu có) đã nạp xong, kể cả bên đặt
 void napTraSau();

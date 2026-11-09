@@ -211,7 +211,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (81)
+## Việc chờ chọn (83)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -284,6 +284,8 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Ngưng / Kích hoạt lại | `web/staff.ts`: Ngưng / Kích hoạt lại<br>`web/staff.ts`: Ngưng tài khoản ‹…›? Họ sẽ bị đăng xuất ngay. | Ngưng / kích hoạt lại tài khoản | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Chấp nhận | `web/xac-minh-hang-cho.ts`: Chấp nhận | Xác minh phiếu tự khai | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Từ chối → Gửi từ chối | `web/xac-minh-hang-cho.ts`: Từ chối<br>`web/xac-minh-hang-cho.ts`: Gửi từ chối | Xác minh phiếu tự khai | rà soát 2026-11-04: chưa rõ, chờ chủ |
+| Lưu cho màn này | `web/bang-dieu-khien-truong.ts`: Lưu cho màn này | Giao diện công ty | ADR-0194 đợt 1: tên tạm do AI đặt, chờ chủ chọn (phương án khác: «Lưu màn này», «Lưu cài đặt màn») |
+| Khôi phục mặc định | `web/bang-dieu-khien-truong.ts`: Khôi phục mặc định | Giao diện công ty | ADR-0194 đợt 1: chữ «Khôi phục mặc định» do ADR nêu; chủ chưa chọn riêng tên nút (phương án khác: «Về mặc định», «Đặt lại màn này») |
 | Gửi thông báo | `web/gui-thong-bao.ts`: [biểu tượng megaphone] / Gửi thông báo | Gửi thông báo | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Thu hồi | `web/gui-thong-bao.ts`: Thu hồi | Gửi thông báo | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Thêm công việc | `web/parties.ts`: Thêm công việc<br>`web/parties.ts`: Đặt hồ sơ này làm công ty chủ? Trang đăng nhập và biên nhận sẽ dùng thông tin của hồ sơ này từ hôm nay (tên, mã số thuế, địa chỉ, liên hệ ghi chú “Hotline”, email). Công ty chủ hiện tại sẽ thôi giữ công việc này. Sau khi đổi, kiểm lại mục “Tài khoản nhận tiền” của hồ sơ mới — chưa cài thì mã QR thanh toán báo lỗi. | Vai trò hồ sơ · công ty chủ | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -299,7 +301,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (319)
+## Việc quan trọng (321)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -1501,6 +1503,8 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
 | **Áp dụng cho mọi người** | Giao diện (đáy trang) › hộp xác nhận ngay trên trang | Lưu bản màu, phông, cỡ chữ đang chỉnh làm giao diện chung của cả công ty; mọi tài khoản thấy ở lần mở trang kế tiếp. Chỉnh thử chỉ hiện trên máy này cho tới khi bấm nút này. | có: Áp dụng giao diện này cho mọi người? | được: chỉnh lại rồi Áp dụng, hoặc Về mặc định toàn bộ rồi Áp dụng | `/api/giao-dien`<br>nhật ký `giao_dien_changed` | `public/giao-dien.html`: Áp dụng cho mọi người<br>`web/giao-dien.ts`: Áp dụng | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
+| **Lưu cho màn này** | Giao diện › khối «Hiển thị trường theo màn hình» | Lưu các lựa chọn Hiện, Ẩn, Bắt buộc đã đổi cho MỘT màn (Tạo đơn, Danh sách dịch vụ, Danh sách tài khoản, Quản lý đối tác), theo từng nhóm quyền. Máy chủ chỉ nhận trường nằm trong danh mục cho phép; tên, số điện thoại, dịch vụ, tiền, ngày đi không ẩn được. Người giữ nhiều quyền chỉ bị ẩn một trường khi mọi quyền của họ cùng ẩn. Chỉ Toàn quyền; có hiệu lực ở lần mở màn kế tiếp. | không | được: chọn lại Hiện rồi Lưu, hoặc «Khôi phục mặc định»; dòng cũ giữ trong bảng chỉ-thêm | `/api/cai-dat/giao-dien`<br>nhật ký `ui_policy_changed` | `web/bang-dieu-khien-truong.ts`: Lưu cho màn này | chờ chọn (ADR-0194 đợt 1: tên tạm do AI đặt, chờ chủ chọn (phương án khác: «Lưu màn này», «Lưu cài đặt màn»)) |
+| **Khôi phục mặc định** | Giao diện › khối «Hiển thị trường theo màn hình» › hộp xác nhận | Đặt lại MỌI trường của một màn, cho mọi nhóm quyền, về hiện đầy đủ như trước khi chỉnh. Các màn khác không đổi. | có: Khôi phục mặc định màn «…»? | được: chỉnh lại từng trường rồi Lưu | `/api/cai-dat/giao-dien/khoi-phuc`<br>nhật ký `ui_policy_changed` | `web/bang-dieu-khien-truong.ts`: Khôi phục mặc định | chờ chọn (ADR-0194 đợt 1: chữ «Khôi phục mặc định» do ADR nêu; chủ chưa chọn riêng tên nút (phương án khác: «Về mặc định», «Đặt lại màn này»)) |
 
 ### Gửi thông báo
 
