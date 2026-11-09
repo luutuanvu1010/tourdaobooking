@@ -59,6 +59,8 @@ const vk = (o: OperationCode) => (s: PermissionHolder): boolean => can(s, o) && 
  */
 /** Trang chỉ Toàn quyền (ô settings.ops) và không Đối tác: bảng mục (`hien`) và trang (`moTrang`) dùng CHUNG hàm này. */
 const chiToanQuyenKhongDoiTac = (s: PermissionHolder): boolean => can(s, "settings.ops") && !holdsPartner(s);
+/** Có ô quản trị (một chỗ gọi, gói Đơn hàng có trần dung lượng). */
+const quanTri = (s: PermissionHolder): boolean => can(s, "admin.manage");
 const vaoSoDieuChinh = (s: PermissionHolder): boolean => (can(s, "ledger.write") || can(s, "ledger.adjust.approve")) && !holdsPartner(s);
 export const TRANG = {
   trangChu: { duong: "/", hien: seesAllOrders, tam: (k) => k.seesAll },
@@ -73,7 +75,7 @@ export const TRANG = {
   },
   taoDon: { duong: "/order-form", hien: ve("order.create"), tam: (k) => k.canCreate },
   danhBa: { duong: "/parties", hien: isOffice, tam: (k) => k.office },
-  dichVu: { duong: "/catalog", hien: (s) => can(s, "admin.manage") || dungManHepDichVu(s), tam: (k) => k.admin }, // ADR-0169 Đ4
+  dichVu: { duong: "/catalog", hien: (s) => quanTri(s) || dungManHepDichVu(s), tam: (k) => k.admin }, // ADR-0169 Đ4
   // ADR-0071: ô account.view (Quản trị, Nhân sự, Toàn quyền). Bản nhớ khung không có cờ này (ADR-0035): khung tạm dùng `admin` — Nhân sự thiếu mục một nhịp.
   taiKhoan: { duong: "/staff", hien: ve("account.view"), tam: (k) => k.admin },
   phien: { duong: "/sessions", hien: ve("auth.session.viewAll") }, // ADR-0075 điều 7
@@ -91,13 +93,13 @@ export const TRANG = {
   lichXeBan: { duong: "/lich-xe-ban", hien: quanLyXe }, // ADR-0055 VK2-A
   sapHetHan: { duong: "/giay-to-sap-het-han", hien: quanLyXe },
   // Danh mục loại giấy tờ xe: thêm ô admin.manage (route sửa danh mục hỏi ô này).
-  loaiGiayToXe: { duong: "/loai-giay-to-xe", hien: (s) => quanLyXe(s) && can(s, "admin.manage") },
+  loaiGiayToXe: { duong: "/loai-giay-to-xe", hien: (s) => quanLyXe(s) && quanTri(s) },
   chinhSachDieuPhoi: {
     duong: "/chinh-sach-dieu-phoi",
     cungSang: ["/dieu-kien-xuat-ben"],
     hien: (s) => quanLyXe(s) && (can(s, "settings.ops") || can(s, "dispatch.policy.lead")), // ADR-0128 Q1: Quản trị vào để đặt mốc ra lệnh (chế độ hẹp)
   },
-  lyDoDieuPhoi: { duong: "/ly-do-dieu-phoi", hien: (s) => quanLyXe(s) && can(s, "admin.manage") },
+  lyDoDieuPhoi: { duong: "/ly-do-dieu-phoi", hien: (s) => quanLyXe(s) && quanTri(s) },
   // Khoá sổ tháng (sổ đại lý đợt 1 Task 12): ô ledger.view không ngữ cảnh — Kế toán, Toàn quyền.
   khoaThang: { duong: "/khoa-thang", hien: ve("ledger.view") },
   // Sổ công nợ theo đối tác (kế hoạch 2026-10-24 P1; bản vẽ 2a): CÙNG ô với route GET /api/ledger — ledger.view không ngữ cảnh (Kế toán, Toàn quyền). Chỉ đọc.
@@ -117,7 +119,7 @@ export const TRANG = {
   // Luật bán theo loại đối tác (ADR-0146 Đ5; kế hoạch 2026-10-30 T11): CÙNG điều kiện ba route `/api/pricing/luat-ban` — ô sales.block.write và không giữ quyền Đối tác (Q-2 (a)).
   luatBan: { duong: "/luat-ban", hien: vk("sales.block.write") },
   // Đặc điểm dịch vụ (ADR-0152 Đ3, Đ5; T12): CÙNG điều kiện route `GET /api/catalog/dac-diem` — catalog.attribute.assign hoặc admin.manage, không giữ quyền Đối tác (Q-2 (a)).
-  dacDiem: { duong: "/dac-diem-dich-vu", hien: (s) => (can(s, "catalog.attribute.assign") || can(s, "admin.manage")) && !holdsPartner(s) },
+  dacDiem: { duong: "/dac-diem-dich-vu", hien: (s) => (can(s, "catalog.attribute.assign") || quanTri(s)) && !holdsPartner(s) },
   nguoiBan: { duong: "/nguoi-ban", hien: vk("supply.terms.view") },
   // Chụp bù mức (sổ đại lý đợt 2, Task 12; ADR-0079 điều 7 b2): CÙNG cổng route `GET /api/orders/cho-chup-bu` — ô order.terms.override và không giữ quyền Đối tác (kể cả lai).
   chupBu: { duong: "/chup-bu", hien: vk("order.terms.override") },
@@ -215,8 +217,8 @@ export const THANH_BEN = [
   { nhom: "HẰNG NGÀY", trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
   { nhom: "HẰNG NGÀY", trang: "donHang", nhan: "Đơn hàng", bieuTuong: "orders" },
   { nhom: "HẰNG NGÀY", trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card" },
-  // Quét vé (đặc tả §2.10: Hướng dẫn viên, Tài xế công ty, Kế toán và văn phòng): mọi người có ô quét thấy, TRỪ Toàn quyền — trần 10 khối hiện sẵn của Toàn quyền đã đầy nên họ vào qua trang Tôi (ADR-0175 Đ3).
-  { nhom: "HẰNG NGÀY", trang: "quetVe", nhan: "Quét vé", bieuTuong: "doc-check", chiKhi: { that: (s: PermissionHolder) => !can(s, "audit.view") } },
+  // Quét vé (đặc tả §2.10: Hướng dẫn viên, Tài xế công ty, Kế toán và văn phòng): mọi người có ô quét thấy, TRỪ tập quyền có cả Quản trị lẫn sổ công nợ (Toàn quyền, Kế toán + Quản trị) — trần 10 khối hiện sẵn của các tập ấy đã đầy nên họ vào qua trang Tôi (ADR-0175 Đ3).
+  { nhom: "HẰNG NGÀY", trang: "quetVe", nhan: "Quét vé", bieuTuong: "doc-check", chiKhi: { that: (s: PermissionHolder) => !(quanTri(s) && can(s, "ledger.view")) } },
   { nhom: "HẰNG NGÀY", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
   { nhom: "HẰNG NGÀY", trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
   { nhom: "VẬN CHUYỂN", trang: "dieuPhoi", nhan: "Điều phối xe", bieuTuong: "truck", nhomGap: DIEU_PHOI },
@@ -267,14 +269,14 @@ export const THANH_TAB = [
   { trang: "trangChu", nhan: "Trang chủ", bieuTuong: "home" },
   { trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
   { trang: "donHang", nhan: "Đơn hàng", bieuTuong: "orders" },
+  // Quét vé là việc chính của Hướng dẫn viên và Tài xế công ty trên điện thoại (đặc tả §2.10): tab cho người không xem mọi đơn, đứng NGAY SAU «Đơn hàng», trước «Tạo đơn», để «Tạo đơn» vẫn ở vị trí 3/5 khi đủ 5 tab (Hướng dẫn viên kiêm Đối tác); không hiện ở tab cho tập có quyền Nhân sự (hình «Đơn hàng, Tạo đơn, Tài khoản, Hỗ trợ, Tôi» của bài thanh-tab-theo-bo-quyen đã khoá), vẫn còn ở thanh bên và trang Tôi.
+  { trang: "quetVe", nhan: "Quét vé", bieuTuong: "doc-check", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) && !(can(s, "account.view") && !quanTri(s)) } },
   { trang: "taoDon", nhan: "Tạo đơn", bieuTuong: "plus" },
-  { trang: "taiKhoan", nhan: "Tài khoản", bieuTuong: "staff", chiKhi: { that: (s: PermissionHolder) => !can(s, "admin.manage") } },
+  { trang: "taiKhoan", nhan: "Tài khoản", bieuTuong: "staff", chiKhi: { that: (s: PermissionHolder) => !quanTri(s) } },
   { trang: "soCongNo", nhan: "Sổ công nợ", bieuTuong: "lock", chiKhi: { that: (s: PermissionHolder) => !can(s, "order.create") } },
-  { trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card", chiKhi: { that: (s: PermissionHolder) => can(s, "order.create") && !can(s, "admin.manage") } },
+  { trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card", chiKhi: { that: (s: PermissionHolder) => can(s, "order.create") && !quanTri(s) } },
   { trang: "thietLap", nhan: "Thiết lập", bieuTuong: "settings" },
   { trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign", chiKhi: { that: chiTaiXe } },
-  // Quét vé là việc chính của Hướng dẫn viên và Tài xế công ty trên điện thoại (đặc tả §2.10): tab cho người không xem mọi đơn, trước «Báo bận» và «Hỗ trợ» khi trần 5 tab cắt.
-  { trang: "quetVe", nhan: "Quét vé", bieuTuong: "doc-check", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) } },
   { trang: "ban", nhan: "Báo bận", bieuTuong: "clock" },
   { trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "handset", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) } },
   { trang: "toi", nhan: "Tôi", bieuTuong: "me" },
@@ -517,7 +519,7 @@ export function trangToi(s: PermissionHolder): { dau: MucHien[]; vanChuyen: MucH
 
 /** Bốn cờ ghi vào bản nhớ khung (ADR-0035) — hỏi CÙNG bảng quyền như khung thật. */
 export function coKhungNho(s: PermissionHolder): CoKhungNho {
-  return { admin: can(s, "admin.manage"), seesAll: seesAllOrders(s), office: isOffice(s), canCreate: can(s, "order.create") };
+  return { admin: quanTri(s), seesAll: seesAllOrders(s), office: isOffice(s), canCreate: can(s, "order.create") };
 }
 
 /** KHÔNG CÒN DÙNG ở shell (Đợt 0 Task 13: mất mạng thì không dựng điều hướng đoán mò); giữ xuất cho bài ảnh chụp và kịch bản `--so-sanh`. Cũ: mất mạng lúc mở trang, chưa có bản nhớ khung (QA2 Q2-04): không biết vai — bốn tab cơ bản để còn điều hướng; không dựng thanh bên. */

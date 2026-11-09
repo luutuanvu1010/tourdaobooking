@@ -53,9 +53,9 @@ test("MỌI tập quyền: bảng thanh bên (kể cả gom) khớp điều ki�
     const sau = toiDuoc(p);
     for (const k of truoc) assert.ok(sau.has(k), `${p.join("+")}: mất lối vào ${k}`);
     for (const k of sau) if (k !== "quetVe") assert.ok(truoc.has(k), `${p.join("+")}: thấy thêm ${k}`);
-    // Quét vé (ADR-0175 Đ3, đặc tả §2.10) hẹp hơn điều kiện trang có chủ đích: mọi người có ô quét thấy ở thanh bên TRỪ Toàn quyền (trần 10 khối hiện sẵn đã đầy; vào qua trang Tôi). Ghi ở DUOC_MA_AN của bài rào.
+    // Quét vé (ADR-0175 Đ3, đặc tả §2.10) hẹp hơn điều kiện trang có chủ đích: mọi người có ô quét thấy ở thanh bên TRỪ tập có cả Quản trị lẫn sổ công nợ (Toàn quyền, Kế toán + Quản trị: trần 10 khối hiện sẵn đã đầy; vào qua trang Tôi). Ghi ở DUOC_MA_AN của bài rào.
     const quet = TRANG.quetVe.hien(holder(p));
-    assert.equal(sau.has("quetVe"), quet && !can(holder(p), "audit.view"), `${p.join("+")}: Quét vé ở thanh bên`);
+    assert.equal(sau.has("quetVe"), quet && !(can(holder(p), "admin.manage") && can(holder(p), "ledger.view")), `${p.join("+")}: Quét vé ở thanh bên`);
   }
 });
 
