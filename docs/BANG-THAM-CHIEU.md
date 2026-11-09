@@ -37,6 +37,7 @@ Mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn. 
 | **Quét vé** | Mở camera hoặc chụp ảnh mã trên vé Tour Đảo của khách để biết vé còn dùng được không; người có quyền tính thì lượt quét ghi vé là «Đã dùng». | Chỉ quét được vé Tour Đảo; vé hãng ngoài không quét ở đây. |  | `ve.quet.tinh` `ve.quet.xem` `vdt_scan` | đã chốt | 2026-11-08 (ADR-0175) |
 | **Đã dùng** | Vé Tour Đảo đã được quét và tính cho một khách; quét lại cùng vé báo đỏ «Đã dùng». | Khác «Đã mở»: vé đã mở là đã giao cho khách nhưng chưa quét. |  | `DA_DUNG` `DA_TINH` | đã chốt | 2026-11-08 (ADR-0175) |
 | **Bỏ lượt quét** | Huỷ một lượt quét đã ghi nhầm kèm lý do, để vé không còn bị tính «Đã dùng». Người quét tự bỏ trong 5 phút; sau đó nhờ Quản trị. | Khác huỷ đơn: chỉ gỡ lượt quét, không đổi đơn hay vé. |  | `ve_bo_luot_quet` `voided_at` | đã chốt | 2026-11-08 (ADR-0175) |
+| **Đối chiếu vé** | Màn so số khách theo đơn với số vé đã dùng theo ngày đi, kèm số lượt của từng người quét và sổ vé Tour Đảo. | Không sửa đơn hay vé, chỉ báo chênh lệch. Tiếng Anh: Reconciliation. |  | `ve.doi-chieu.view` `doiChieu` | đã chốt | 2026-11-08 (ADR-0175) |
 | **Hồ sơ** | Một mục trong màn Danh bạ: một người hoặc một tổ chức mà công ty làm việc cùng (khách, đại lý, hướng dẫn viên, nhà xe…). | Hồ sơ khác tài khoản: tài khoản là chỗ đăng nhập, mỗi tài khoản trỏ đúng một hồ sơ, còn hồ sơ thì không nhất thiết có tài khoản. |  | `pty_party` `party` | chờ chọn | chưa có lời chủ chọn riêng; dùng từ bản 1.10 (2026-09-25) |
 | **Tài khoản** | Chỗ để một người đăng nhập Nền tảng (số điện thoại, mã PIN, Face ID), kèm vai trò và quyền. Quản lý ở màn «Quản lý tài khoản». | Không phải hồ sơ trong Danh bạ. Trang cá nhân của người đang đăng nhập tên là «Tôi». Màn này từng tên «Nhân viên» nhưng nay quản lý cả tài khoản của đối tác. |  | `staff` `accounts` | chờ chọn | chưa có lời chủ chọn riêng; dùng từ bản 1.10 (2026-09-25) |
 | **Công việc tại đâu** | Mục trên hồ sơ ghi hồ sơ đó làm việc gì và ở đâu (hướng dẫn viên, tài xế, nhà xe…). Chỉ để phân loại và tìm kiếm. | Không bao giờ dùng để cho hay chặn một thao tác. Việc cho phép nằm ở quyền của tài khoản. |  | `vai trò hồ sơ` | chờ chọn |  |
@@ -213,7 +214,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (82)
+## Việc chờ chọn (83)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -247,6 +248,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tạo đường dẫn cho khách · Sao chép | `web/ve-don.ts`: Tạo đường dẫn cho khách<br>`web/ve-don.ts`: Sao chép | Vé điện tử: giao vé | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Bật camera · Tắt camera | `public/quet-ve.html`: Bật camera | Vé điện tử: quét | người thi công đặt 2026-11-09 (ADR-0175 Đợt 2 Task 14), chờ chủ chọn |
 | Xác nhận cho đi | `web/quet-ve.ts`: Xác nhận cho đi | Vé điện tử: quét | người thi công đặt 2026-11-09 (ADR-0175 Đợt 2 Task 14), chờ chủ chọn |
+| Chụp ảnh mã vé | `public/quet-ve.html`: Chụp ảnh mã vé | Vé điện tử: quét | người thi công đặt 2026-11-09 (ADR-0175 Đợt 2 Task 14), chờ chủ chọn |
 | Quét tiếp | `web/quet-ve.ts`: Quét tiếp | Vé điện tử: quét | người thi công đặt 2026-11-09 (ADR-0175 Đợt 2 Task 14), chờ chủ chọn |
 | Ngừng | `web/hoa-hong-hop.ts`: ⟪o.nhan⟫<br>`web/hoa-hong-cap.ts`: ⟪nhanViec(v, loai)⟫ | Hoa hồng: ngừng một dòng mức | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Sửa | `web/hoa-hong-cap.ts`: Sửa<br>`web/hoa-hong-loai.ts`: Sửa<br>`web/hoa-hong-hop.ts`: Mở lại<br>`web/hoa-hong-hop.ts`: Lưu | Hoa hồng: sửa tên và ghi chú của một cấp hoặc một vai trò | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -302,7 +304,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (321)
+## Việc quan trọng (322)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -608,6 +610,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 |---|---|---|---|---|---|---|---|
 | **Bật camera · Tắt camera** | Quét vé › camera (và nút chụp ảnh dự phòng) | Mở hoặc đóng camera sau của máy để đọc mã vé; chưa ghi gì. Mỗi lần đọc được mã thì Nền tảng tự gửi lên kiểm (xem «Xác nhận cho đi»). Trình duyệt hỏi quyền camera lần đầu; không cho thì dùng nút chụp ảnh. | không | được: bấm lại để tắt | (chưa nối) | `public/quet-ve.html`: Bật camera | chờ chọn (người thi công đặt 2026-11-09 (ADR-0175 Đợt 2 Task 14), chờ chủ chọn) |
 | **Xác nhận cho đi** | Quét vé › kết quả vàng «Cần xác nhận» | Gửi lại cùng mã vé kèm lời xác nhận cảnh báo vàng (ngày đi khác hôm nay, đơn chưa thu đủ, hoặc số vé đã dùng đủ số khách). Quét lại với lời xác nhận thì vé hợp lệ được ghi là «Đã dùng» (người chỉ xem thì không ghi đã dùng). Máy chủ vẫn kiểm lại từng điều. | không | được: «Bỏ lượt quét» trong 5 phút | `/api/ve/quet`<br>nhật ký `ve_quet` | `web/quet-ve.ts`: Xác nhận cho đi | chờ chọn (người thi công đặt 2026-11-09 (ADR-0175 Đợt 2 Task 14), chờ chủ chọn) |
+| **Chụp ảnh mã vé** | Quét vé › camera | Mở máy ảnh (hoặc chọn ảnh) để chụp mã trên vé, dùng khi camera trong trang không mở được. Nền tảng đọc mã ngay trên máy rồi gửi lên kiểm như khi quét bằng camera; ảnh không rời khỏi máy. | không | không áp dụng (chỉ đọc mã); lượt quét đã ghi thì «Bỏ lượt quét» | `/api/ve/quet`<br>nhật ký `ve_quet` | `public/quet-ve.html`: Chụp ảnh mã vé | chờ chọn (người thi công đặt 2026-11-09 (ADR-0175 Đợt 2 Task 14), chờ chủ chọn) |
 | **Quét tiếp** | Quét vé › màn kết quả | Đóng màn kết quả để quét vé kế tiếp. Không ghi gì thêm: lượt quét đã được ghi từ lúc kết quả hiện ra. | không | không áp dụng (chỉ đóng màn kết quả) | (chưa nối) | `web/quet-ve.ts`: Quét tiếp | chờ chọn (người thi công đặt 2026-11-09 (ADR-0175 Đợt 2 Task 14), chờ chủ chọn) |
 | **Bỏ lượt quét** | Quét vé › «Năm lượt quét gần nhất» › mỗi lượt trong 5 phút có nút «Bỏ lượt quét» | Huỷ lượt quét vừa ghi (nhầm vé, quét nhầm) kèm lý do ít nhất 5 ký tự, không chứa số điện thoại hay mã vé. Vé không còn bị tính «Đã dùng» và quét lại được. Người quét tự bỏ trong 5 phút; sau đó chỉ Quản trị, Toàn quyền bỏ được. Ghi nhật ký kèm lý do. | có: ô nhập lý do mở ra dưới lượt quét; bấm «Bỏ lượt quét» lần hai mới gửi | không: bỏ rồi thì quét lại vé để ghi lượt mới | `/api/ve/quet/:x/bo`<br>nhật ký `ve_bo_luot_quet` | `web/quet-ve.ts`: Bỏ lượt quét | đã chốt (chủ chọn tên 2026-11-08 (ADR-0175 mục tên)) |
 

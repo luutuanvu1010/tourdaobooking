@@ -6,6 +6,7 @@ import { ApiError, api } from "./api";
 import { can } from "../src/shared/permissions";
 import { byId, h, replaceChildren } from "./dom";
 import { docQrTuKhung, docQrTuTep } from "./qr-doc-ve";
+import { batDauDong, xetDocLap, type DauDocCuoi } from "../src/shared/chong-doc-lap";
 import { initShell, showError } from "./shell";
 
 type Mau = "XANH" | "VANG" | "DO";
@@ -17,7 +18,6 @@ const CHU_LON: Record<Mau, { dau: string; chu: string }> = { XANH: { dau: "✓",
 /** Mã kết quả vàng → cờ xác nhận gửi lại (khớp `XacNhanQuet` của máy chủ). */
 const CO_XAC_NHAN: Record<string, "lechNgay" | "chuaThu" | "vuotKhach"> = { LECH_NGAY: "lechNgay", CHUA_THU_DU: "chuaThu", VUOT_KHACH: "vuotKhach" };
 const CHU_KY_DOC_MS = 250;
-const CHONG_LAP_MS = 3000;
 const PHUT_TU_BO = 5;
 const TOI_DA_GAN_DAY = 5;
 
@@ -27,6 +27,7 @@ const videoEl = byId<HTMLVideoElement>("qv-video");
 const trangThaiEl = byId("qv-trang-thai");
 const nutBat = byId<HTMLButtonElement>("qv-bat");
 const anhEl = byId<HTMLInputElement>("qv-anh");
+byId("qv-chup").addEventListener("click", () => anhEl.click());
 const ketQuaEl = byId("qv-ket-qua");
 const ganDayEl = byId("qv-gan-day");
 
@@ -45,8 +46,7 @@ if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) {
   let dangGui = false;
   /** Đang hiện kết quả: tạm ngừng đọc để không quét thêm lượt khác. */
   let dangHien = false;
-  let maCuoi = "";
-  let lucCuoi = 0;
+  let cuoi: DauDocCuoi = null;
   const ganDay: LuotGanDay[] = [];
   const canvas = document.createElement("canvas");
 
@@ -96,7 +96,7 @@ if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) {
 
   function dongKetQua(): void {
     dangHien = false; ketQuaEl.hidden = true; replaceChildren(ketQuaEl);
-    maCuoi = ""; lucCuoi = 0; // quét tiếp đúng vé đó sau khi đã đóng là chủ ý: không chặn nữa
+    cuoi = batDauDong(cuoi, Date.now()); // cửa sổ 3 giây tính từ lúc ĐÓNG: vé còn trước ống kính không bị đọc lại ngay
   }
 
   function hienKetQua(kq: KetQuaQuet, ma: string, xn: { lechNgay?: boolean; chuaThu?: boolean; vuotKhach?: boolean }): void {
@@ -135,17 +135,16 @@ if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) {
       baoTrangThai(luong ? "Camera đang đọc." : "");
     } catch (err) {
       baoTrangThai(lyDoLoi(err));
-      dangHien = false; maCuoi = ""; lucCuoi = 0; // lỗi mạng/máy chủ: cho quét lại ngay
+      dangHien = false; cuoi = null; // lỗi mạng/máy chủ: cho quét lại ngay
     } finally { dangGui = false; }
   }
 
   /** Mã từ camera hoặc ảnh. Cùng mã trong 3 giây chỉ gửi một lần (camera đọc nhiều khung liên tiếp cùng một mã). */
   function nhanMa(ma: string): void {
-    const bay = Date.now();
     if (dangGui || dangHien) return;
-    if (ma === maCuoi && bay - lucCuoi < CHONG_LAP_MS) return;
-    maCuoi = ma; lucCuoi = bay;
-    void gui(ma);
+    const x = xetDocLap(cuoi, ma, Date.now());
+    cuoi = x.cuoi;
+    if (x.gui) void gui(ma);
   }
 
   function docKhung(): void {

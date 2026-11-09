@@ -524,7 +524,7 @@ export const veDienTuModule: AppModule = {
         const baoThieu = d.coVe && d.ngayDi >= homNay && trangThai !== "cancelled";
         const nhom = (["ADULT", "CHILD", "SENIOR"] as const).filter((n) => (baoThieu && can_[n] > 0) || giu[n] > 0).map((n) => ({ nhom: n, nhan: NHAN_NHOM[n], can: can_[n], giu: giu[n], thieu: baoThieu ? Math.max(0, can_[n] - giu[n]) : 0 }));
         const dung = daDungTheoDv.get(d.serviceId) ?? 0;
-        dichVu.push({ serviceId: d.serviceId, catalogCode: d.catalogCode, nhom, ...(d.nguonVe === "TOUR_DAO" || dung > 0 ? { daDung: dung } : {}) });
+        dichVu.push({ serviceId: d.serviceId, catalogCode: d.catalogCode, nhom, ...(d.nguonVe === "TOUR_DAO" || dung > 0 ? { daDung: dung, soKhach: can_.ADULT + can_.CHILD + can_.SENIOR } : {}) });
       }
       const duongDan = (await docLinkCuaDon(env.DB, orderId)).map((l) => ({ id: l.id, hetHan: l.expires_at, daThuHoi: l.revoked_at !== null, luotMo: l.opened_count })); // KHÔNG token (chỉ lưu băm)
       const d = await docDonVe(env.DB, { tienDonVe, dienDoiTacCuaDon }, orderId);

@@ -236,6 +236,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     trangThai: "da-chot",
     chuChon: "2026-11-08 (ADR-0175)",
   }),
+  KN({
+    ten: "Đối chiếu vé",
+    giaiNghia: "Màn so số khách theo đơn với số vé đã dùng theo ngày đi, kèm số lượt của từng người quét và sổ vé Tour Đảo.",
+    khacVoi: "Không sửa đơn hay vé, chỉ báo chênh lệch. Tiếng Anh: Reconciliation.",
+    chuDaLoai: [],
+    maNoiBo: ["ve.doi-chieu.view", "doiChieu"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-08 (ADR-0175)",
+  }),
   // ---- Người, hồ sơ, tài khoản ----
   KN({
     ten: "Hồ sơ",

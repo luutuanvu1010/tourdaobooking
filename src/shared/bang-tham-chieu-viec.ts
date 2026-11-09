@@ -1315,6 +1315,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Vé điện tử: quét",
+    manHinh: "Quét vé › camera",
+    ten: "Chụp ảnh mã vé",
+    thatSuLam: "Mở máy ảnh (hoặc chọn ảnh) để chụp mã trên vé, dùng khi camera trong trang không mở được. Nền tảng đọc mã ngay trên máy rồi gửi lên kiểm như khi quét bằng camera; ảnh không rời khỏi máy.",
+    hoiLai: "không",
+    hoanTac: "không áp dụng (chỉ đọc mã); lượt quét đã ghi thì «Bỏ lượt quét»",
+    duongLenh: ["/api/ve/quet"],
+    maNhatKy: ["ve_quet"],
+    noiDat: [
+      { tep: "public/quet-ve.html", chu: "Chụp ảnh mã vé" },
+    ],
+    trangThai: "cho-chon",
+    nguonTen: "người thi công đặt 2026-11-09 (ADR-0175 Đợt 2 Task 14), chờ chủ chọn",
+  },
+  {
+    nhom: "Vé điện tử: quét",
     manHinh: "Quét vé › màn kết quả",
     ten: "Quét tiếp",
     thatSuLam: "Đóng màn kết quả để quét vé kế tiếp. Không ghi gì thêm: lượt quét đã được ghi từ lúc kết quả hiện ra.",
