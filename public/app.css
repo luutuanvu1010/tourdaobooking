@@ -187,6 +187,7 @@
   --w-confirm: 640px;       /* bề rộng hộp thoại "Xác nhận đơn để gửi khách" ở màn hình rộng: ảnh xem trước (khổ 720) chỉ thu nhỏ nhẹ nên chữ còn đọc được */
   --fs-stat: var(--fs-step-12);          /* Trang chủ mới: cỡ chữ số liệu lớn (ô số liệu, doanh thu) */
   --fs-stat-sm: var(--fs-step-9);       /* Trang chủ mới (kiểm gộp I-3): cỡ chữ số liệu ở khổ điện thoại hẹp (lưới 2 cột ≤639px) — 26px làm "₫" rơi xuống dòng riêng với số tiền lớn */
+  --so-gt-cqi: 14cqi;       /* Trang chủ điện thoại (G-06d): cỡ chữ số tiền ở ô số = min(--fs-step-10, đây) tính theo bề rộng nội dung ô (container .dash-so-o). Số đủ «999.999.999 ₫» (13 ký tự) rộng ≈ 7,05 × cỡ chữ; ô hẹp nhất 360px có vùng nội dung 131px ⇒ cỡ ≤ 18,6px ≈ 14,2cqi, lấy 14cqi để chừa lề */
   --w-time-col: 76px;       /* Trang chủ mới: bề rộng cụm giờ đón + nơi đón (cùng dịch vụ quyết định) trong danh sách "Chuyến đón hôm nay" */
   --h-chart: 56px;          /* Đợt D Task 2: chiều cao vùng 7 cột biểu đồ "Doanh thu của tôi" */
   --icon-badge: 30px;       /* Đợt D Task 3: ô vuông bo góc quanh icon cảnh báo của khối "Cần xem lại" */
@@ -1980,11 +1981,11 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
 
   /* Khối số liệu (bản vẽ 1a): MỘT thẻ chia 2×2 bằng đường kẻ 1px (nền viền lộ qua khe). */
   .dash-so { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1px; overflow: hidden; background: var(--c-border); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
-  .dash-so-o { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s1); min-width: 0; padding: var(--s4); color: var(--c-text); text-decoration: none; background: var(--c-card); }
+  .dash-so-o { display: flex; container-type: inline-size; flex-direction: column; align-items: flex-start; gap: var(--s1); min-width: 0; padding: var(--s4); color: var(--c-text); text-decoration: none; background: var(--c-card); }
   .dash-so-o:active { filter: brightness(.94); }
   .dash-so-nhan { display: flex; align-items: center; gap: var(--s1); color: var(--c-primary); }
   .dash-so-nhan span { font-size: var(--fs-step-2); font-weight: var(--fw-semibold, 600); color: var(--c-text-muted); }
-  .dash-so-gt { font-size: var(--fs-step-10); font-weight: var(--fw-heavy, 800); line-height: var(--lh-30); color: var(--c-text); white-space: nowrap; }
+  .dash-so-gt { font-size: min(var(--fs-step-10), var(--so-gt-cqi)); font-weight: var(--fw-heavy, 800); line-height: var(--lh-30); color: var(--c-text); white-space: nowrap; }
   .dash-so-thieu { color: var(--c-danger); }
   .dash-so-doanh-thu { color: var(--c-primary); }
   .dash-so-phu { font-size: var(--fs-step-2); font-weight: var(--fw-medium, 500); line-height: var(--lh-18); color: var(--c-text-muted); }
