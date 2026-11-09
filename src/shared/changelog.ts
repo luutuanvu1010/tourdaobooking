@@ -30,7 +30,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Nút đặt gấp đổi tên thành «Ghi đặt gấp»." },
       { kind: "sua", text: "Một số câu khó hiểu được viết lại: câu chờ kiểm vé, câu chưa tới ngày đi, câu danh sách đơn trống, câu loại đối tác tạo trước 31/10/2026." },
       { kind: "doi", text: "Trang chủ trên điện thoại viết số tiền đầy đủ, ví dụ «2.800.000 ₫»." },
-      { kind: "sua", text: "Hết phiên đăng nhập giữa chừng thì trang đăng nhập nói phiên đã hết." },
+      { kind: "sua", text: "Bị đăng xuất giữa chừng vì hết hạn đăng nhập thì trang đăng nhập báo rõ để bạn đăng nhập lại." },
     ],
   },
   {

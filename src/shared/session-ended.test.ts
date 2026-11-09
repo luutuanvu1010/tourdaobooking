@@ -28,7 +28,7 @@ test("dauHetPhien: khi nào ghi dấu — có lý do thì ghi lý do; không lý
 
 test("cauTuDauNho: chuỗi rỗng ra câu hết phiên; lý do ra câu cũ; sai dạng ra null", () => {
   assert.equal(cauTuDauNho(""), CAU_HET_PHIEN);
-  assert.equal(CAU_HET_PHIEN, "Phiên đăng nhập đã hết. Đăng nhập lại để tiếp tục.");
+  assert.equal(CAU_HET_PHIEN, "Máy này đã bị đăng xuất. Đăng nhập lại để tiếp tục.");
   assert.equal(cauTuDauNho(JSON.stringify({ reason: "Bị đặt lại PIN", endedAt: null })), "Máy này đã bị đăng xuất. Lý do: Bị đặt lại PIN.");
   assert.equal(cauTuDauNho("{hỏng"), null);
   assert.equal(cauTuDauNho(DAU_KHONG_BAO), null, "máy chưa từng đăng nhập: không câu nào");

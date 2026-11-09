@@ -26,7 +26,7 @@ export function sessionEndedMessage(n: SessionEndedNotice): string {
 }
 
 /** Câu dự phòng khi hết phiên mà không có lý do cụ thể (B-7). Chỉ hiện cho máy từng có người đăng nhập (xem `dauHetPhien`). */
-export const CAU_HET_PHIEN = "Phiên đăng nhập đã hết. Đăng nhập lại để tiếp tục.";
+export const CAU_HET_PHIEN = "Máy này đã bị đăng xuất. Đăng nhập lại để tiếp tục.";
 
 /** Dấu "không có gì để báo": ghi đè khoá cũ còn sót, trang đăng nhập đọc ra null. */
 export const DAU_KHONG_BAO = "-";
