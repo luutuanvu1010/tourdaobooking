@@ -547,7 +547,7 @@ try {
       assert.deepEqual(m.so.map((s) => s.sub), ["1 đơn", "Tuần này · 2 đơn", "Nháp của bạn, chưa xác nhận", "Chờ người nhận"], `${label}: dòng phụ bốn ô — ${JSON.stringify(m.so)}`);
       assert.ok(m.so.every((s) => s.shown && s.href === "/orders"), `${label}: bốn ô hiển thị thật và dẫn tới /orders — ${JSON.stringify(m.so)}`);
       assert.deepEqual(m.so.filter((s) => s.wrapped), [], `${label}: số của ô (.dash-so-gt) không được xuống dòng ("₫" rơi khỏi số — kiểm gộp I-3) — ${JSON.stringify(m.so)}`);
-      assert.deepEqual(m.so.filter((s) => s.tran), [], `${label}: số của ô (.dash-so-gt) TRÀN vùng nội dung ô (mép phải số > mép phải ô trừ padding phải, sai số 0,5px; nowrap + overflow hidden nên bị cắt/che) — ${JSON.stringify(m.so.map((s) => ({ nhan: s.label, gt: s.value, phaiSo: s.phaiSo, phaiVung: s.phaiVung })))}`);
+      assert.deepEqual(m.so.filter((s) => s.tran), [], `${label}: số của ô (.dash-so-gt) TRÀN vùng nội dung ô (mép phải số > mép phải ô trừ padding phải, sai số 0,5px; số nowrap, còn phần tràn bị cắt/che vì ô cha .dash-so có overflow hidden) — ${JSON.stringify(m.so.map((s) => ({ nhan: s.label, gt: s.value, phaiSo: s.phaiSo, phaiVung: s.phaiVung })))}`);
 
       // Đợt D Task 2 — mockup mobile (390px) KHÔNG có biểu đồ trong ô "Doanh thu của tôi" (chỉ 1 trong 4 ô rút gọn của
       // lưới 2×2): biểu đồ vẫn còn trong DOM (không xoá — giữ đơn giản, không dựng hai bản) nhưng PHẢI ẩn bằng CSS.
