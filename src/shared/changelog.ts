@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vé Tour Đảo Đợt 2 (ADR-0175): quét vé và đối chiếu. KHÔNG có migration mới ngoài 0153_ve_quet. Bước A.0 ngày 9/11 (sau 2.81). Mọi dịch vụ vẫn «Vé hãng ngoài» cho tới khi chủ gạt ô «Vé do ai phát».
+    version: "2.82",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Trang «Quét vé»: Hướng dẫn viên, Tài xế dùng camera điện thoại quét mã vé Tour Đảo của khách; màu xanh cho đi, vàng cần xác nhận, đỏ từ chối. Có nút chụp ảnh mã vé khi camera không mở được." },
+      { kind: "moi", text: "Đơn có ô «Đã dùng» theo từng dịch vụ; màn «Đối chiếu vé» so số khách theo đơn với số vé đã dùng trong ngày; Quản trị bỏ được lượt quét nhầm." },
+      { kind: "doi", text: "Đơn đã có vé Tour Đảo được quét thì không huỷ được và không giảm số khách xuống dưới số vé đã dùng; muốn huỷ thì bỏ lượt quét trước." },
+    ],
+  },
+  {
     // Vé Tour Đảo Đợt 1 (ADR-0175), CÓ migration 0151, 0152. Bước A.0 ngày 9/11: production đang 2.80 nên lấy 2.81. Mọi dịch vụ vẫn «Vé hãng ngoài» tới khi Đợt 2 (quét vé) xong.
     version: "2.81",
     date: "2026-11-09",
