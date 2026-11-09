@@ -24,3 +24,26 @@ export function sessionEndedMessage(n: SessionEndedNotice): string {
   }
   return `Máy này đã bị đăng xuất. Lý do: ${n.reason}.`;
 }
+
+/** Câu dự phòng khi hết phiên mà không có lý do cụ thể (B-7). Chỉ hiện cho máy từng có người đăng nhập (xem `dauHetPhien`). */
+export const CAU_HET_PHIEN = "Phiên đăng nhập đã hết. Đăng nhập lại để tiếp tục.";
+
+/** Dấu "không có gì để báo": ghi đè khoá cũ còn sót, trang đăng nhập đọc ra null. */
+export const DAU_KHONG_BAO = "-";
+
+/** Giá trị ghi vào `SESSION_ENDED_KEY` khi bị đá ra: có lý do → ghi lý do; không lý do mà máy có bản nhớ khung (từng có người đăng nhập) → chuỗi rỗng; còn lại (liên kết sâu trên máy lạ) → `DAU_KHONG_BAO` (không câu nào). */
+export function dauHetPhien(body: unknown, coKhungNho: boolean): string {
+  const notice = parseSessionEnded(body);
+  return notice ? JSON.stringify(notice) : coKhungNho ? "" : DAU_KHONG_BAO;
+}
+
+/** Đọc giá trị đã ghi ở `SESSION_ENDED_KEY` → câu hiện ở trang đăng nhập, hoặc null. */
+export function cauTuDauNho(raw: string): string | null {
+  if (raw === "") return CAU_HET_PHIEN;
+  try {
+    const n = parseSessionEnded(JSON.parse(raw));
+    return n ? sessionEndedMessage(n) : null;
+  } catch {
+    return null;
+  }
+}

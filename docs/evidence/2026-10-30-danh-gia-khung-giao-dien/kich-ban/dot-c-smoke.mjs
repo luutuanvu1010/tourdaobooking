@@ -78,6 +78,7 @@ try {
     await p.waitFor("document.readyState === 'complete'", "trang /login tải xong (máy tính)");
     await p.waitFor("!!document.querySelector('#phone')", "form đăng nhập đã dựng (máy tính)");
     assert.deepEqual(await measureLogin(p), expectOne, "Đăng nhập (máy tính): một cột giữa, không cột thương hiệu, không cuộn ngang, form dùng được");
+    assert.equal(await p.ev("document.getElementById('session-ended-banner').hidden"), true, "Đăng nhập (máy tính): người chưa từng đăng nhập không thấy câu «phiên đã hết» (G-03a)");
     assert.deepEqual(p.consoleErrors, [], `lỗi console (đăng nhập máy tính): ${p.consoleErrors}`);
     await shot(p, "dang-nhap-may-tinh.png");
     await axe(p, "đăng nhập máy tính");
