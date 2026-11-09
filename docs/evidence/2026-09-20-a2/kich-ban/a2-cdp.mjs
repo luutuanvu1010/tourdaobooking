@@ -90,7 +90,7 @@ export async function startEnv({ turnstile = false, passkey = false, vapid = fal
   const wrangler = (args) => execFileSync("npx", ["wrangler", ...args], { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", maxBuffer: 64 * 1024 * 1024, env: { ...process.env, CI: "1" } }); // 64 MB: bảng tiến độ của `migrations apply` vượt 1 MB mặc định từ 56 migration (ENOBUFS 1/10)
   wrangler(["d1", "migrations", "apply", "tourdao-sales-db", "--local", "--persist-to", persist]);
   const seed = join(persist, "seed.sql");
-  writeFileSync(seed, [...(await Promise.all(Object.values(ACCOUNTS).map((a) => insertStaffSql(a)))), CATALOG_SQL].join("\n"));
+  writeFileSync(seed, [...(await Promise.all(Object.values(ACCOUNTS).map((a) => insertStaffSqlThu(a)))), CATALOG_SQL].join("\n"));
   wrangler(["d1", "execute", "tourdao-sales-db", "--local", "--persist-to", persist, "--file", seed]);
 
   const [port, inspector] = [await freePort(), await freePort()];
