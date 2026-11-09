@@ -20,7 +20,7 @@ import { UUID_RE, error, intParam, mauLikeChua, json, kemLocation, readJson } fr
 import { can, holdsPartner, type PermissionCode } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule, type Ctx } from "../../shared/router";
-import { cauConNoTraSau } from "../../shared/tra-sau";
+import { cauConNoTraSau, laLoiPhienBanTraSau, type MaKhongTraSau } from "../../shared/tra-sau";
 import type { DonCuaNguoiDatTom, GopHoSoNoi, PartyAccountVerdict, TaiKhoanXacMinh, ViecDoKhiThoiVai } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { gioiTinhHopLe } from "../../shared/xung-ho";
@@ -378,7 +378,11 @@ const intoParam = (b: Record<string, unknown> | null): string | null =>
   typeof b?.intoPartyId === "string" && PARTY_ID_RE.test(b.intoPartyId) ? b.intoPartyId : null;
 
 interface HoSoDoc { hs: HoSoGop; giayToDu: GopDocRow[]; acc: PartyAccountVerdict }
-interface TinhGop { A: HoSoDoc; B: HoSoDoc; ke: KeHoachGop; don: DonCuaNguoiDatTom; soNo: number; homNay: string }
+/** `gacTraSau`: phiên bản hạn mức của hồ sơ chính đã đọc ở cổng ADR-0188 4(a) — lô gộp gác đúng số này (null = hồ sơ phụ không có đơn Trả sau đã xác nhận, không gác). */
+interface TinhGop { A: HoSoDoc; B: HoSoDoc; ke: KeHoachGop; don: DonCuaNguoiDatTom; soNo: number; homNay: string; gacTraSau: number | null }
+/** Mã không đạt của `kiemTraSau` → lý do chặn gộp. `vuot_han_muc` không xảy ra với `soTienDon: 0`; nếu có, hồ sơ chính cũng không nhận thêm được ⇒ như không có hạn mức. */
+const MA_CHAN_TRA_SAU: Record<MaKhongTraSau, "merge_credit_no_limit" | "merge_credit_overdue"> = { khong_co_han_muc: "merge_credit_no_limit", co_don_qua_han: "merge_credit_overdue", vuot_han_muc: "merge_credit_no_limit" };
+const TRA_SAU_CHUA_KIEM = () => error(503, "tra_sau_chua_dung_duoc", "Chưa kiểm được hạn mức trả sau của hồ sơ chính nên chưa gộp được — báo người phụ trách hệ thống.");
 
 async function docHoSoGop(ctx: Ctx<"admin">, id: string, nhom: ReadonlyMap<string, NhomVai>, nhan: ReadonlySet<string>, homNay: string): Promise<HoSoDoc | null> {
   const db = ctx.env.DB;
@@ -424,8 +428,19 @@ async function tinhGop(ctx: Ctx<"admin">, aId: string, bId: string, homNay: stri
   if (!A || !B) return NOT_FOUND();
   // G12: hồ sơ chính gắn tài khoản mà người gộp không quản được (Quản trị khác / Toàn quyền) → 403 — luật cấp bậc có sẵn (staff tính qua ctx.partyAccount).
   if (B.acc.linked && !B.acc.manageable) return MERGE_FORBIDDEN();
-  const [viec, don, soNo, conNo] = await Promise.all([ctx.gopHoSo.viecCua(aId), ctx.gopHoSo.donNguoiDat(aId), ctx.gopHoSo.soDongNo(aId), ctx.gopHoSo.conNoTraSau(aId)]);
+  const [viec, don, soNo, conNo, donTraSau] = await Promise.all([
+    ctx.gopHoSo.viecCua(aId), ctx.gopHoSo.donNguoiDat(aId), ctx.gopHoSo.soDongNo(aId), ctx.gopHoSo.conNoTraSau(aId), ctx.gopHoSo.donTraSauDaXacNhan(aId),
+  ]);
   const ke = keHoachGop(A.hs, B.hs, { ...viec, donLechTien: don.lechTien, donConNoTraSau: conNo }, homNay);
+  // ADR-0188 mục 4(a): hồ sơ phụ có đơn Trả sau đã xác nhận (kể cả hết nợ) chỉ gộp vào hồ sơ chính có hạn mức còn hiệu lực, không đơn quá hạn — cùng cổng `kiemTraSau` của
+  // đường đổi bên đặt (`soTienDon: 0`). Không kiểm được ⇒ 503 (không đoán «đủ hạn mức»). Qua ⇒ giữ phiên bản đã đọc để lô gộp gác.
+  let gacTraSau: number | null = null;
+  if (donTraSau.length > 0 && aId !== bId) {
+    const kq = await ctx.kiemTraSau({ benDat: bId, soTienDon: 0, loai: "doi_ben" });
+    if (!kq) return TRA_SAU_CHUA_KIEM();
+    if (!kq.ok) ke.chan.push(chanCo(MA_CHAN_TRA_SAU[kq.ma]));
+    else gacTraSau = kq.version;
+  }
   // ADR-0126 (ruling R16): hồ sơ đang có / đã thực hiện phiếu xoá thì không gộp (hồ sơ phụ gộp vào hồ sơ đã ẩn danh sẽ mang dữ liệu thật vào hồ sơ "đã xoá"). Đứng ĐẦU danh sách
   // chặn để câu trả lời của route là câu này, kể cả khi hồ sơ đã xoá là hồ sơ phụ có tài khoản.
   if (await coPhieuXoaChoHoacDa(ctx.env.DB, aId, bId)) ke.chan.unshift(chanCo("merge_erasure"));
@@ -434,7 +449,7 @@ async function tinhGop(ctx: Ctx<"admin">, aId: string, bId: string, homNay: stri
     const v = await ctx.partyAccount(khac);
     if (v.linked && !v.manageable) return MERGE_FORBIDDEN();
   }
-  return { A, B, ke, don, soNo, homNay };
+  return { A, B, ke, don, soNo, homNay, gacTraSau };
 }
 
 const NHAN_BO_VAI = { DA_CO: "hồ sơ chính đã có", VUA_KET_THUC: "hồ sơ chính vừa kết thúc công việc này hôm nay" } as const;
@@ -1926,12 +1941,16 @@ export const partiesModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "party_merged", at, targetType: "party", targetId: id, detail }, "changes() > 0"),
         auditStatement(env.DB, { staffId: staff.id, action: "party_merged", at, targetType: "party", targetId: into, detail }, "changes() > 0"),
         ...lo.sauNhatKy,
+        // ADR-0188 mục 4(a): câu gác phiên bản hạn mức của hồ sơ chính nối CUỐI lô (iLat đếm từ đầu nên không lệch) — hạn mức / nợ của hồ sơ chính đổi chen giữa ⇒ cả lô thua.
+        ...(t.gacTraSau === null ? [] : ctx.cauGacPhienBanTraSau(into, t.gacTraSau, at)),
       ];
       let results: D1Result[];
       try {
         results = await env.DB.batch(stmts);
       } catch (e) {
         if (/party_merge_erasure/.test(e instanceof Error ? e.message : "")) { const c = chanCo("merge_erasure"); return error(409, c.code, c.message); } // phiếu xoá vừa được gửi giữa lúc tính và lúc ghi (trigger 0108)
+        // ADR-0188 mục 4(a): phiên bản hạn mức hồ sơ chính vừa đổi (cả lô đã lui) — nói đúng lý do, không gộp vào MERGE_STALE chung.
+        if (laLoiPhienBanTraSau(e)) return error(409, "credit_version_stale", "Hạn mức trả sau của hồ sơ chính vừa thay đổi — mở lại rồi thử gộp lại.");
         // Hợp đồng lỗi của lô (phán quyết điều phối): mọi lệch giữa lúc tính và lúc ghi (lô thua có giấy tờ, dòng mở mới của A, giấy tờ / liên hệ chính đổi
         // trong khe…) làm trigger / chỉ mục / NOT NULL huỷ CẢ lô — không dòng nào đổi. Không bao giờ 500, không lộ câu lỗi CSDL.
         // Phán quyết Task 6 Minor 2 (như kiểm trước ở trên): chỉ "thua cuộc đua" khi A vừa gộp vào ĐÚNG hồ sơ chính này; gộp vào hồ sơ khác → merge_inactive.

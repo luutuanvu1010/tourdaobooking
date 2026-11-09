@@ -68,6 +68,12 @@ export async function noCacBenDat(db: D1Database, partyIds: readonly string[], b
 export const noCuaBenDat = async (db: D1Database, partyId: string, bayGio: string = bayGioMacDinh()): Promise<NoBenDat> =>
   (await noCacBenDat(db, [partyId], bayGio)).get(partyId)!;
 
+/**
+ * ADR-0188 mục 4(a): mã các đơn Trả sau ĐÃ XÁC NHẬN (chưa huỷ — kể cả đã hết nợ, kể cả đã «Xong») mà hồ sơ đứng tên bên đặt. Cửa gộp hồ sơ dùng để biết có phải hỏi cổng hạn mức
+ * của hồ sơ chính không. Không đọc được thì NÉM (không đoán «không có đơn»).
+ */
+export const maDonTraSauDaXacNhan = async (db: D1Database, partyId: string): Promise<string[]> => (await donTraSauCuaCacBen(db, [partyId])).map((d) => d.order_code);
+
 /** Hạn trả và nợ của MỘT đơn; `null` = đơn không phải Trả sau. */
 export async function traSauCuaDon(db: D1Database, orderId: string): Promise<{ hanTra: string | null; hetAnHan: string | null; no: number; benDat: string | null; version: number } | null> {
   const d = await donTraSauTheoId(db, orderId);
