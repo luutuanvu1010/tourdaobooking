@@ -204,6 +204,16 @@ export async function thongTinKhachDangLuu(
 }
 
 /**
+ * Ba trường chữ tuỳ chọn ĐANG LƯU của đơn (email, ghi chú khách, ghi chú thanh toán) — để `PUT` nháp giữ nguyên chúng khi chính sách giao diện ẨN trường (ADR-0194 đợt 1). Dữ liệu cá nhân:
+ * chỉ trả cho nơi gọi đã qua cổng quyền của đơn, không bao giờ vào nhật ký. Không có đơn → `null`.
+ */
+const TUY_CHON_DANG_LUU = defineSql("orders", "order_optional_text_stored", `SELECT customer_email, customer_note, payment_note FROM orders WHERE id = ?1`);
+export async function tuyChonDangLuu(db: D1Database, orderId: string): Promise<{ customerEmail: string | null; customerNote: string | null; paymentNote: string | null } | null> {
+  const r = await db.prepare(TUY_CHON_DANG_LUU).bind(orderId).first<{ customer_email: string | null; customer_note: string | null; payment_note: string | null }>();
+  return r === null ? null : { customerEmail: r.customer_email, customerNote: r.customer_note, paymentNote: r.payment_note };
+}
+
+/**
  * Tài khoản `staffId` HIỆN GIỮ quyền Đối tác không (ADR-0154 Đ1.6, câu đã áp số 3): đọc qua view công bố `v_stf_quyen_mo` của `staff` (chỉ khoá + mã quyền còn hiệu lực), không thêm cột
  * «người lập là đối tác» vào đơn. Hệ quả chấp nhận: người lập đã thôi quyền thì ghi chú đơn của họ không còn bị che. Mã `PARTNER` là điều kiện DỮ LIỆU của lớp che, không phải điều kiện cho phép.
  */

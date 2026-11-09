@@ -32,7 +32,7 @@ import {
 } from "./chang-hanh-khach-repo";
 import { coVeTheoMa, nguonVeTheoMa } from "../catalog";
 import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
-import { mocTraSauCuaDon, noiHanTraSauStatement } from "./chang-hanh-khach-repo";
+import { mocTraSauCuaDon, noiHanTraSauStatement, soHanhKhachDangLuu } from "./chang-hanh-khach-repo";
 import { kiemNoiHan, ngayCuaMoc, trangThaiHan } from "../../shared/tra-sau";
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP, type LyDoDatGap } from "../../shared/chang-dua-don";
@@ -73,7 +73,8 @@ import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { congLuatBan } from "./cong-ban";
 import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu, dichLoiLoHuy, dichLoiTraSau, VE_CHUA_SOAN_DUOC, type HamNoTraSau, type HamTraSau } from "./tra-sau-cong";
 import { thanLapDonKhiAn, thanNhapKhiAn } from "./an-thong-tin-khach";
-import { anKhachBat, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, yeuCauMoCuaDon } from "./xac-nhan-repo";
+import { thanKhiAnTruong, thieuBatBuoc, truongTaoDon } from "./an-truong-giao-dien";
+import { anKhachBat, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { cauKhepLoiMoi, docKhungGio, soanGhiNhan } from "./ban-hang-ghi-nhan";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
@@ -1231,7 +1232,7 @@ export const ordersModule: AppModule = {
     // tuỳ chọn); không chọn → đơn chờ người nhận. Thứ tự: 403 (không lập đơn được) → đọc thân → 403 (có chọn người mà không có `dispatch.assign` trên đơn
     // của chính mình — Thực tập, Đối tác: G4; đứng TRƯỚC mọi 400 và mọi đọc CSDL) → 400 (dạng mã người được chọn) → 400/409 (đơn: validateOrder,
     // priceGuard, người đặt) → 400 `invalid_assignee` (người được chọn không đủ điều kiện — `dispatch` xét bằng `checkAssignee`; KHÔNG tạo đơn) → ghi.
-    route("POST", "/api/orders", "orders", async ({ env, request, staff, newOrderHandler, baoThayDoi, mocToiThieu, chanKhaiCocLai, banHang, kiemTraSau, kenhThuHienTai }) => {
+    route("POST", "/api/orders", "orders", async ({ env, request, staff, newOrderHandler, baoThayDoi, mocToiThieu, chanKhaiCocLai, banHang, kiemTraSau, kenhThuHienTai, chinhSachGiaoDien }) => {
       if (!can(staff, "order.create")) return CANNOT_CREATE();
       const thanGui = await readJson(request);
       // ADR-0047 A2: thân có khoá `passengers` (danh sách khách của đơn nháp — Ruling R1) → hỏi thêm ô nhập tên khách trên đơn của chính mình.
@@ -1244,7 +1245,9 @@ export const ordersModule: AppModule = {
       // ADR-0178 Đ1 mục 2: tài khoản Đối tác (kể cả lai) lập đơn thì công tắc «Khách của đối tác trả cho Công ty» đọc ĐÚNG MỘT lần, chụp lên đơn; không đọc được ⇒ 503, không đoán.
       const kenhThu = holdsPartner(staff) ? await kenhThuHienTai() : null;
       if (holdsPartner(staff) && kenhThu === null) return KENH_THU_CHUA_DOC();
-      const body = an ? thanLapDonKhiAn(thanGui, { fullName: staff.fullName, phone: staff.phone }) : thanGui;
+      // ADR-0194 đợt 1: chính sách hiện / ẩn / bắt buộc của Toàn quyền (đọc ĐÚNG MỘT lần; bảng rỗng ⇒ [] ⇒ không đổi gì). Công tắc ADR-0154 đang áp ⇒ nó quyết các trường khách, chính sách không chen vào.
+      const cs = an ? { an: new Set<string>(), batBuoc: new Set<string>() } : truongTaoDon(await chinhSachGiaoDien());
+      const body = an ? thanLapDonKhiAn(thanGui, { fullName: staff.fullName, phone: staff.phone }) : thanKhiAnTruong(thanGui, cs.an, null);
       if (laThanDonCu(body)) await demThanCu(env.DB, staff.id, "lap_don"); // ADR-0047 §6 — đếm máy cũ (cổng Đợt 8); sau 403, trước 400
       const pick = parseHandlerPick(body);
       if (!pick.ok) return error(400, "invalid_input", pick.message);
@@ -1254,6 +1257,7 @@ export const ordersModule: AppModule = {
       const ctx = await validationContext(env.DB, null);
       const parsed = validateOrder(body, ctx);
       if (!parsed.ok) return failure(parsed);
+      { const thieu = thieuBatBuoc(parsed.value, cs.batBuoc, null); if (thieu) return error(400, "invalid_input", thieu); } // ADR-0194: trường chính sách đòi bắt buộc
       const guard = priceGuard(staff, parsed.value, ctx, (await manualPolicy(env.DB, new Date().toISOString())).bat); // ADR-0061: công tắc đọc một lần
       if (guard) return guard;
       // ADR-0047 (R7, R3): điểm danh mục của chặng phải đang dùng; đặt hai khoá cũ = dẫn xuất từ chặng (ghi kép vào cột cũ).
@@ -1377,7 +1381,7 @@ export const ordersModule: AppModule = {
       } satisfies OrderDetailResponse);
     }),
 
-    route("PUT", "/api/orders/:id", "orders", async ({ env, request, params, staff, isAssigned, isSalesOwner, baoThayDoi, mocToiThieu, chanKhaiCocLai, banHang, kiemTraSau }) => {
+    route("PUT", "/api/orders/:id", "orders", async ({ env, request, params, staff, isAssigned, isSalesOwner, baoThayDoi, mocToiThieu, chanKhaiCocLai, banHang, kiemTraSau, chinhSachGiaoDien }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [meta, assigned, laBanHang] = await Promise.all([getMeta(env.DB, id), isAssigned(id), isSalesOwner(id)]);
@@ -1394,7 +1398,10 @@ export const ordersModule: AppModule = {
       const an = apCongTacAnKhach(staff) && (await anKhachBat(env.DB, new Date().toISOString()));
       const dangLuu = an ? await thongTinKhachDangLuu(env.DB, id) : null;
       if (an && !dangLuu) return NOT_FOUND();
-      const body = dangLuu ? thanNhapKhiAn(thanGui, dangLuu) : thanGui;
+      // ADR-0194 đợt 1: như ở lập đơn; ẨN lúc SỬA ⇒ giữ giá trị đang lưu (email, ghi chú) / danh sách khách đang lưu. Chỉ đọc đơn thêm khi có trường ẩn thuộc diện cần giá trị lưu.
+      const cs = an ? { an: new Set<string>(), batBuoc: new Set<string>() } : truongTaoDon(await chinhSachGiaoDien());
+      const luuTuyChon = !an && ["customerEmail", "customerNote", "paymentNote"].some((k) => cs.an.has(k)) ? await tuyChonDangLuu(env.DB, id) : null;
+      const body = dangLuu ? thanNhapKhiAn(thanGui, dangLuu) : thanKhiAnTruong(thanGui, cs.an, luuTuyChon);
       // ADR-0047 A2: thân có khoá `passengers` → hỏi thêm ô nhập tên khách với phạm vi CỦA ĐƠN NÀY (trước validateOrder).
       const giao = duocGiaoTheoO("order.passenger.write", { laNguoiPhuTrach: assigned, laBanHangPhuTrach: laBanHang }); // ADR-0142: danh sách trắng (tính ra biến trước — bài bang-su-kien-van-chuyen quét thân `can(` tới dấu `}` đầu)
       if (hasPassengersKey(body) && !can(staff, "order.passenger.write", { ownerId: meta.staffId, assigned: giao })) return CANNOT_WRITE_PASSENGERS();
@@ -1406,6 +1413,7 @@ export const ordersModule: AppModule = {
       const ctx = await validationContext(env.DB, id);
       const parsed = validateOrder(body, ctx);
       if (!parsed.ok) return failure(parsed);
+      { const thieu = thieuBatBuoc(parsed.value, cs.batBuoc, cs.batBuoc.has("passengers") ? await soHanhKhachDangLuu(env.DB, id) : null); if (thieu) return error(400, "invalid_input", thieu); } // ADR-0194
       const guard = priceGuard(staff, parsed.value, ctx, (await manualPolicy(env.DB, new Date().toISOString())).bat); // ADR-0061: công tắc đọc một lần
       if (guard) return guard;
       const placed0 = await resolveLegPlaces(env.DB, parsed.value, ctx); // ADR-0047 (R7, R3); ADR-0118 Đ3: cũng là chốt chặn «nhóm tắt đưa đón»
