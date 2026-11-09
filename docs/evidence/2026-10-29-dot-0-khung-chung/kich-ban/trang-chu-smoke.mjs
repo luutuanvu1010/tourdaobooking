@@ -326,7 +326,7 @@ try {
       });
       const grid = document.querySelector('#dash-grid');
       // Bản vẽ "Trang chu Quan tri.dc.html" (1.73): MỘT thẻ số liệu #dash-so-mt, bốn ô — Còn thiếu tiền, Chờ xác nhận, Chưa phụ trách, Doanh thu của tôi
-      // (chữ phụ "Tuần này · dd/mm–dd/mm · N đơn" + biểu đồ bên phải). Số ĐẦY ĐỦ ("12.345.000 ₫"); điện thoại vẫn dùng #dash-so (số rút gọn).
+      // (chữ phụ "Tuần này · dd/mm–dd/mm · N đơn" + biểu đồ bên phải). Số ĐẦY ĐỦ ("12.345.000 ₫"); điện thoại #dash-so cũng viết số đủ từ G-06d (trước đó rút gọn).
       const statsMt = [...document.querySelectorAll('#dash-so-mt .dash-smt-o')].map((el) => {
         const valueEl = el.querySelector('.dash-smt-gt');
         const cs = getComputedStyle(valueEl);
