@@ -124,6 +124,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   // ADR-0152 Đ3 (T7): đọc / gắn cho một dịch vụ cổng office (catalog.attribute.assign hoặc admin.manage, không Đối tác); định nghĩa và gắn theo nhóm cổng admin.
   { method: "GET", path: "/api/catalog/co-ve", access: "office" }, // ADR-0174 Đ4; thân hỏi catalog.ticket_flag.write
   { method: "POST", path: "/api/catalog/co-ve", access: "office" },
+  { method: "GET", path: "/api/catalog/nguon-ve", access: "office" }, // ADR-0175 Đ1.2; thân hỏi catalog.ticket_flag.write, chặn Đối tác
+  { method: "POST", path: "/api/catalog/nguon-ve", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem/dem-chua-khai", access: "office" },
   { method: "POST", path: "/api/catalog/dac-diem", access: "admin" },
@@ -394,6 +396,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/staff/:id/unlock", access: "admin" },
   { method: "POST", path: "/api/staff/:id/mfa-reset", access: "admin" }, // ADR-0074 đ5 (Phần B Task 6): tắt lớp hai của người khác — GIỮ cổng admin như đặt lại PIN (ADR-0071 đ1e: HCNS không)
   { method: "GET", path: "/api/account/sessions", access: "staff" }, // ADR-0075 điều 7: lịch sử phiên của CHÍNH MÌNH (tự phục vụ)
+  { method: "PUT", path: "/api/account/thanh-duoi", access: "staff" }, // ADR-0187 Đ2.3: nút thanh dưới của CHÍNH MÌNH — thân hỏi me.favorites.write (own; Tài xế đối tác không) rồi ghimDuoc; đang đóng vai 403
   // ADR-0074 điều 5 (Phần B Task 5): bảo mật hai lớp của CHÍNH MÌNH — tự phục vụ, id lấy từ phiên; đổi khoá / gỡ / tạo lại mã dự phòng cần mã yếu tố hiện có.
   { method: "GET", path: "/api/account/mfa", access: "staff" },
   { method: "POST", path: "/api/account/mfa/totp/start", access: "staff" },
@@ -760,6 +763,8 @@ test("mức truy cập của 469 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-08 (ADR-0187 Đ3 mức (a)): + GET /api/ledger/tu-ghi, GET /api/ledger/tu-ghi/dem, POST /api/ledger/tu-ghi/:auditId/da-soat (office; billing; ledger.view / ledger.write, không Đối tác) = 469 trên main.
   // 2026-11-08 (gộp ADR-0187 vào nhánh ADR-0184): 466 + 2 route của ADR-0184 + 3 route của ADR-0187 = 471.
   // 2026-11-08 (nối ADR-0174 vào main): + GET, POST /api/catalog/co-ve (office; thân hỏi catalog.ticket_flag.write, chặn Đối tác) = 473.
-  assert.equal(actual.length, 473, "số route thực tế lệch 473 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 473, "SNAPSHOT phải có đúng 473 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-08 (ADR-0175 Đ1.2, vé Tour Đảo Task 3): + GET, POST /api/catalog/nguon-ve (office; thân hỏi catalog.ticket_flag.write, chặn Đối tác) = 475.
+  // 2026-11-09 (ADR-0187 Đ2.3, gộp bản chính có vé Tour Đảo): + PUT /api/account/thanh-duoi (staff; thân hỏi me.favorites.write rồi ghimDuoc) = 476.
+  assert.equal(actual.length, 476, "số route thực tế lệch 476 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 476, "SNAPSHOT phải có đúng 476 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

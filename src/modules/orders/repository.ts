@@ -429,6 +429,11 @@ export async function getGiamGia(db: D1Database, id: string): Promise<number> {
   return (await db.prepare("SELECT discount FROM orders WHERE id = ?").bind(id).first<{ discount: number }>())?.discount ?? 0;
 }
 
+/** ADR-0175 Đ2.4: cờ «bên đặt là đối tác» của MỘT đơn — cùng câu `BOOKER_LA_DOI_TAC` với `bookerLaDoiTac` của chi tiết đơn (một nguồn). Không đơn / không bên đặt ⇒ false. */
+export async function bookerLaDoiTacCuaDon(db: D1Database, id: string): Promise<boolean> {
+  return Number((await db.prepare(BOOKER_LA_DOI_TAC).bind(id).first<{ la: number }>())?.la ?? 0) === 1;
+}
+
 /** Mã đơn + người lập — chỉ hai trường này (Bảng tin, ADR-0022 điều 4: sự kiện không mang tên/SĐT khách, không tiền). null nếu không có đơn. */
 export async function getOrderRef(db: D1Database, id: string): Promise<{ staffId: string; orderCode: string; status: OrderStatus } | null> {
   const row = await db.prepare("SELECT staff_id, order_code, status FROM orders WHERE id = ?").bind(id).first<{ staff_id: string; order_code: string; status: OrderStatus }>();

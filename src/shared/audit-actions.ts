@@ -34,6 +34,9 @@ export const AUDIT_ACTIONS = {
   ve_mo_anh_lo_huy: { label: "Mở ảnh vé của lô đã huỷ", group: "ve" }, // chủ quyết 2/11/2026; detail không chứa mã; target_id = mã dòng vé
   ve_bo_lo: { label: "Huỷ lô vé điện tử", group: "ve" }, // ADR-0156 Đ2 mục 3; detail: nhãn nhóm khách (KHÔNG mã vé)
   ve_doi_tran_lo: { label: "Đổi số vé tối đa mỗi lô", group: "ve" }, // ADR-0156 Đ3; detail: số cũ → số mới
+  // ADR-0175 Đ1.5a: giữ vé xong mà dịch vụ còn thiếu (lúc xác nhận đơn, cấp bằng tay, cấp bù khi lô vào kho). target = ('ve', nguồn vé 'TOUR_DAO' | 'HANG_NGOAI') — hộp thư chọn người nhận
+  // theo khoá này (v_aud_ledger_event); detail = «Thiếu vé · <mã dịch vụ> · <nguồn> · thiếu N» (KHÔNG mã vé, KHÔNG tên khách).
+  ve_thieu: { label: "Báo thiếu vé", group: "ve" },
   ve_xoa_anh_het_han: { label: "Xoá ảnh vé hết hạn lưu", group: "ve" }, // ADR-0186 Đ4 (tên chủ chọn 8/11); tác nhân DON_ANH_VE ghi, một dòng mỗi lượt có xoá; detail: CHỈ số ảnh (KHÔNG mã vé, KHÔNG khoá kho)
   updated: { label: "Sửa đơn", group: "order" },
   trip_updated: { label: "Sửa thông tin chuyến", group: "order" },
@@ -342,6 +345,7 @@ export const AUDIT_ACTIONS = {
   catalog_group_updated: { label: "Sửa nhóm dịch vụ", group: "catalog" },
   catalog_group_assigned: { label: "Đổi nhóm của dịch vụ", group: "catalog" },
   ticket_flag_changed: { label: "Đổi ô Có vé", group: "catalog" }, // ADR-0174
+  ticket_source_changed: { label: "Đổi ô Vé do ai phát", group: "catalog" }, // ADR-0175 Đ1.2: targetId = mã dịch vụ, detail «Dịch vụ <mã>: Vé hãng ngoài | Vé Tour Đảo»
   catalog_groups_seeded: { label: "Gieo nhóm dịch vụ", group: "catalog" }, // do migration 0055 ghi một lần (detail "gieo 14 nhóm, N dịch vụ")
   // ADR-0149 Đ1: ô «Được đón không» của một dịch vụ — targetId = mã dịch vụ, detail "Theo nhóm → Không đón" (nhãn; không dữ liệu cá nhân).
   catalog_service_transfer_set: { label: "Đổi đưa đón của dịch vụ", group: "catalog" },
@@ -387,6 +391,8 @@ export const AUDIT_ACTIONS = {
   // ADR-0180 Đ1: Toàn quyền bật / thoát chế độ "xem như vai khác". `detail` CHỈ là mã quyền của vai (ví dụ "SALES") — không SĐT, email, tên.
   acting_role_set: { label: "Bắt đầu xem như vai trò khác", group: "staff" },
   acting_role_cleared: { label: "Thoát chế độ xem như vai trò khác", group: "staff" },
+  // ADR-0187 Đ2.3: người dùng đổi nút thanh dưới điện thoại của chính mình. `detail` = nhãn các trang đã chọn hoặc «Về mặc định» — không dữ liệu cá nhân. Tên AI chọn theo lời chủ 9/11 «không cần hỏi, làm theo phương án tốt nhất» — chờ chủ xem lại.
+  bottom_tabs_changed: { label: "Đổi nút thanh dưới", group: "staff" },
   mfa_reset: { label: "Tắt bảo mật hai lớp của tài khoản", group: "staff" },
   // ADR-0121 đ4, đ7 + ADR-0125 đ5: TÊN đặt trước ở lát H-4 (chưa route nào ghi). Lát ADR-0121 PHẢI ghi đúng hai tên này, target_type 'staff', target_id = tài khoản,
   // staff_id = người làm, CÙNG LÔ với thay đổi — nếu không, vế "vĩnh viễn" của luật tách nhiệm vụ xác minh hở (view v_aud_cham_tai_khoan). KHÔNG chi tiết.

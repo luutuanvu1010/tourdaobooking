@@ -3,9 +3,9 @@
 <body data-khuon="bieu-mau" data-title="Vé điện tử" data-back="/account">
 <header id="topbar"></header>
 <main>
-  <!-- Kho vé điện tử (ADR-0153; Task 9a). Ô ve.kho.manage. web/ve-kho.ts dựng nội dung: thống kê kho và nhập lô. -->
+  <!-- Kho vé điện tử (ADR-0153; Task 9a; ADR-0175). Ô ve.kho.manage hoặc ve.phat-hanh. web/ve-kho.ts dựng nội dung: thống kê kho, nhập lô (vé hãng ngoài), tạo vé Tour Đảo (web/ve-tao.ts). -->
   <h1>Vé điện tử</h1>
-  <p class="muted">Nhập vé ảnh của nhà cung cấp vào kho. Mỗi lô là một dịch vụ và một loại khách, hoặc mọi loại khách nếu vé không phân biệt; vé tự được giữ chỗ cho đơn khi đơn xác nhận.</p>
+  <p class="muted">Nhập vé ảnh của nhà cung cấp, hoặc tạo vé Tour Đảo, vào kho. Mỗi lô là một dịch vụ và một loại khách, hoặc mọi loại khách nếu vé không phân biệt; vé tự được giữ chỗ cho đơn khi đơn xác nhận.</p>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="ok" class="alert ok" role="status" hidden></div>
   <section id="vk-noi-dung" hidden>
@@ -13,7 +13,11 @@
       <h2 id="vk-kho-tieu-de">Số vé còn</h2>
       <div id="vk-kho"></div>
     </section>
-    <section class="card" aria-labelledby="vk-lo-tieu-de">
+    <section class="card" id="vk-khoi-tao" aria-labelledby="vk-tao-tieu-de" hidden>
+      <h2 id="vk-tao-tieu-de">Tạo vé Tour Đảo</h2>
+      <div id="vk-tao"></div>
+    </section>
+    <section class="card" id="vk-khoi-lo" aria-labelledby="vk-lo-tieu-de" hidden>
       <h2 id="vk-lo-tieu-de">Nhập lô mới</h2>
       <div id="vk-lo"></div>
     </section>

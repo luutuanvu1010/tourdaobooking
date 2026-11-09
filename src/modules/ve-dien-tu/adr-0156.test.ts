@@ -180,7 +180,10 @@ test("danh sách lô bỏ được: có lô đang dở và lô chưa giữ chỗ
   assert.deepEqual([mot.tenDichVu, mot.nhomKhach, mot.trangThai, mot.soVe], ["Vinwonders 2 ngày", "ADULT", "PENDING", 1]);
   assert.doesNotMatch(r.text, /vdt\/[0-9a-f]{32}/);
   assert.ok(!r.text.includes(QR(1)));
-  assert.equal((await w.call("GET", "/api/ve/lo", { as: KT })).status, 403);
+  // ADR-0175 Đ1.4: Kế toán giữ `ve.phat-hanh` nên vào được danh sách, nhưng chỉ thấy lô Tour Đảo — lô hãng ngoài không lộ.
+  const kt = await w.call("GET", "/api/ve/lo", { as: KT });
+  assert.equal(kt.status, 200, kt.text);
+  assert.deepEqual(kt.json.lo, [], "Kế toán không thấy lô hãng ngoài nào");
 });
 
 // ---- Đ3: trần lô ---------------------------------------------------------------------------------------------------------------------------------------
@@ -369,7 +372,10 @@ test("lô đã huỷ: Bán hàng, Quản trị, Toàn quyền xem được, Kế
   const nho = w.q("SELECT storage_key, content_hash, ticket_code FROM vdt_ticket");
   assert.equal((await bo(w, loId)).status, 200);
   for (const as of [SALES, ADMIN, SUPER]) assert.equal((await daHuy(w, as)).status, 200);
-  assert.equal((await daHuy(w, KT)).status, 403);
+  // ADR-0175 Đ1.4: Kế toán vào được (giữ `ve.phat-hanh`) nhưng chỉ thấy lô Tour Đảo đã huỷ — lô hãng ngoài không lộ.
+  const kt = await daHuy(w, KT);
+  assert.equal(kt.status, 200, kt.text);
+  assert.deepEqual(kt.json.lo, [], "Kế toán không thấy lô hãng ngoài đã huỷ");
 
   const r = await daHuy(w);
   assert.equal(r.json.hanLuuNgay, 3);
@@ -852,6 +858,10 @@ test("hàng rào tĩnh: route xem ảnh lô đã huỷ theo thứ tự quyền �
   assert.ok(vi(xem, /can\(staff, "ve\.kho\.manage"\)/) !== -1 && vi(xem, /can\(staff, "ve\.kho\.manage"\)/) < vi(xem, /auditStatement/) && vi(xem, /auditStatement/) < vi(xem, /kho\.get\(/));
   const mo = than('route("POST", "/api/ve/lo-da-huy/:veId/mo"');
   assert.ok(vi(mo, /can\(staff, "ve\.kho\.manage"\)/) < vi(mo, /kho\.head\(/) && vi(mo, /kho\.head\(/) !== -1 && vi(mo, /kho\.head\(/) < vi(mo, /cauMoAnhVe/));
+  // ADR-0175 Đ1.4: cổng đầu chỉ là điều kiện cần; quyền THEO NGUỒN của lô (`coQuyenLo(staff, ve.source)`) phải đứng trước nhật ký / trước khi hỏi kho.
+  const nguon = /coQuyenLo\(staff, ve\.source\)/;
+  assert.ok(vi(xem, nguon) !== -1 && vi(xem, nguon) < vi(xem, /auditStatement/), "route xem ảnh: quyền theo nguồn trước nhật ký");
+  assert.ok(vi(mo, nguon) !== -1 && vi(mo, nguon) < vi(mo, /kho\.head\(/), "route khoá vé: quyền theo nguồn trước khi hỏi kho");
 });
 
 test("việc dọn hàng chờ thật sự được gắn vào lịch chạy định kỳ của Nền tảng", () => {

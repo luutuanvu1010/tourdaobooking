@@ -51,6 +51,20 @@ export async function serviceChoVe(db: D1Database, orderId: string): Promise<Ser
   return (await db.prepare(SERVICE_CHO_VE).bind(orderId).all<ServiceChoVeRow>()).results;
 }
 
+/**
+ * ADR-0175 Đ1.5a (cấp bù khi lô vào kho): đơn ĐÃ XÁC NHẬN có dòng dịch vụ mã ?1 ngày đi từ ?2 (hôm nay giờ Việt Nam), sắp theo ngày đi GẦN NHẤT của dòng mã đó rồi theo id.
+ * Chỉ khoá đơn; «Có vé» và «còn thiếu» do gốc lắp ráp lọc tiếp (ô của catalog, phân bổ của ve-dien-tu). Trần ?3 dòng.
+ */
+const DON_XAC_NHAN_THEO_MA = defineSql(
+  "orders",
+  "confirmed_orders_by_catalog_code",
+  `SELECT s.order_id, min(s.depart_date) AS ngay FROM order_service s JOIN orders o ON o.id = s.order_id
+   WHERE o.status = 'confirmed' AND s.catalog_code = ?1 AND s.depart_date >= ?2 GROUP BY s.order_id ORDER BY ngay, s.order_id LIMIT ?3`,
+);
+export async function donXacNhanTheoMa(db: D1Database, catalogCode: string, tuNgay: string, gioiHan: number): Promise<string[]> {
+  return (await db.prepare(DON_XAC_NHAN_THEO_MA).bind(catalogCode, tuNgay, gioiHan).all<{ order_id: string }>()).results.map((r) => r.order_id);
+}
+
 /** Số khách ĐÃ LƯU của mọi dịch vụ của MỘT đơn (cờ "danh sách nhiều hơn số khách" — R9). */
 const SERVICE_PAX_BY_ORDER = defineSql("orders", "service_pax_by_order", `SELECT id, order_id, pax_adult, pax_child, pax_senior, pax_infant FROM order_service WHERE order_id = ?1`);
 export async function servicePaxByOrder(db: D1Database, orderId: string): Promise<ServicePaxRow[]> {

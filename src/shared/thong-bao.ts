@@ -82,6 +82,8 @@ export const cauNhacTraSau = (action: "credit_due_soon_reminded" | "credit_overd
     : choKeToan
       ? `Đơn trả sau ${maDon} đã quá hạn trả mà còn nợ.`
       : `Đơn trả sau ${maDon} đã quá hạn trả mà còn nợ. Hãy thanh toán phần còn nợ cho công ty.`;
+/** Câu tin thiếu vé (ADR-0175 Đ1.5a). Không số khách, không tên khách; chỉ mã đơn và loại vé. */
+export const cauThieuVe = (maDon: string, tourDao: boolean): string => `Đơn ${maDon} còn thiếu ${tourDao ? "vé Tour Đảo" : "vé hãng ngoài"} — cần nhập thêm vé vào kho.`;
 export const CAU_DIEU_CHINH: Record<string, { coTen: (ten: string, ma: string) => string; khongTen: (ma: string) => string }> = {
   ledger_adjustment_requested: { coTen: (t, m) => `${t} gửi yêu cầu điều chỉnh công nợ đơn ${m} — chờ bạn duyệt`, khongTen: (m) => `Có yêu cầu điều chỉnh công nợ đơn ${m} — chờ bạn duyệt` },
   ledger_adjustment_withdrawn: { coTen: (t, m) => `${t} đã rút yêu cầu điều chỉnh công nợ đơn ${m}`, khongTen: (m) => `Yêu cầu điều chỉnh công nợ đơn ${m} đã được rút` },
@@ -368,6 +370,18 @@ export function locHopThongBao(
         tat.push({
           id: d.id, loai: "dieu_chinh", cau: cauNhacTraSau(d.action, d.maDon, choKeToan), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
           lienKet: choKeToan ? "/order" : "/account", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
+        });
+      }
+      continue;
+    }
+    // ADR-0175 Đ1.5a: tin thiếu vé (kho vé ghi khi giữ vé xong mà dịch vụ còn thiếu). Khoá ('ve', nguồn): vé Tour Đảo → người giữ `ve.phat-hanh`; vé hãng ngoài → người giữ
+    // `ve.kho.manage`; không tài khoản giữ quyền Đối tác. Câu chỉ mã đơn + nguồn, mở màn kho vé.
+    if (d.action === "ve_thieu") {
+      const denToi = d.mucLoai === "ve" && !holdsPartner(staff) && (d.mucId === "TOUR_DAO" ? can(staff, "ve.phat-hanh") : d.mucId === "HANG_NGOAI" && can(staff, "ve.kho.manage"));
+      if (denToi) {
+        tat.push({
+          id: d.id, loai: "dieu_chinh", cau: cauThieuVe(d.maDon, d.mucId === "TOUR_DAO"), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+          lienKet: "/ve-kho", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
         });
       }
       continue;

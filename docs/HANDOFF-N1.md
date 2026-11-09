@@ -2,7 +2,25 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.79 ĐÃ LÊN PRODUCTION (ADR-0185: tài khoản Đối tác chưa được gán vai trò đối tác lập và lưu nháp được nhưng chưa Gửi đơn được; tài khoản Đối tác / Tài xế đối tác chỉ tạo bằng cách chọn vai trò. Kèm mục 2.78 — ADR-0186, đóng HC-5.11: ba việc định giờ chạy dưới tác nhân có định danh riêng; Quản lý bán hàng bấm được «Đồng bộ ngay từ Google Sheet») — migration `0148`, `0149` — triển khai 2026-11-08 18:28 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.81 ĐÃ LÊN PRODUCTION (ADR-0175 Đợt 1: vé do chính Tour Đảo phát hành — ô «Vé do ai phát» trên từng dịch vụ, lô «Vé Tour Đảo» trong kho vé có mã QR, ô quyền «ve.phat-hanh», Kế toán chỉ thấy lô Tour Đảo, cấp bù vé và tin thiếu vé theo nguồn; MỌI dịch vụ vẫn «Vé hãng ngoài» tới khi Đợt 2 — quét vé — xong) — migration `0151`, `0152` — triển khai 2026-11-09 12:41 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy (chủ gửi cho phiên thi công; chưa thử iPhone thật, chưa chạy kịch bản Chrome cho màn kho vé / tạo vé).
+
+Khối máy in ra (nguyên văn, rút gọn phần thời gian):
+- Ngày giờ: 2026-11-09 12:41 (giờ Việt Nam)
+- Commit: 35d922543 Bài app-info: dòng phiên bản mới nhất theo mục 2.81
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-09T05:23:58Z (có đổi quy trình kiểm — lý do của chủ: GitHub xanh 21/21, chưa có lượt kiểm của main để so, vé Tour Đảo Đợt 1)
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/42566235384
+- Migration đã áp: 0151_ve_tour_dao_nguon.sql, 0152_hop_thu_thieu_ve.sql
+- Điểm khôi phục Time Travel trước khi áp: 0000269a-00000000-0000511e-9cb465db04f303297af0b6cacb880a2e
+- Worker Version ID: 9fe364fc-31a3-411a-8f39-e6ed004ba4ad
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (2 cảnh báo)
+- Phiên bản: 2.81 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: day-len 8 phút 45 giây; trien-khai 0 phút 47 giây; tổng 9 phút 32 giây
+
+Việc còn treo: Đợt 2 (quét vé bằng điện thoại, đối chiếu, chặn huỷ khi vé đã dùng); chọn chữ giao diện còn chờ chủ (câu cảnh báo lô chưa cấp, hộp «Huỷ lô vé này?», chữ trang kho vé cho lô Tour Đảo, tên tin thiếu vé).
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.79 ĐÃ LÊN PRODUCTION (ADR-0185: tài khoản Đối tác chưa được gán vai trò đối tác lập và lưu nháp được nhưng chưa Gửi đơn được; tài khoản Đối tác / Tài xế đối tác chỉ tạo bằng cách chọn vai trò. Kèm mục 2.78 — ADR-0186, đóng HC-5.11: ba việc định giờ chạy dưới tác nhân có định danh riêng; Quản lý bán hàng bấm được «Đồng bộ ngay từ Google Sheet») — migration `0148`, `0149` — triển khai 2026-11-08 18:28 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy ở một cửa sổ khác (phiên điều phối đọc ô Terminal của chủ và chuyển nguyên văn sang phiên `claude/elated-clarke-9ef3d0`) và lệnh chỉ đọc sau đó (`GET /api/auth/config` trả `2.79`; `wrangler d1 migrations list --remote`: không còn migration chờ; `wrangler deployments list`: 100% bản dưới, tạo 2026-11-08T11:28:12Z). Production đi thẳng 2.77 → 2.79: mục 2.78 (ADR-0186, đóng HC-5.11) chưa từng lên riêng; mục HC-5.11 không còn trong `docs/quyen-hoan.json` trên origin/main.
 

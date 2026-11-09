@@ -69,9 +69,9 @@ test("hướng dẫn viên: có Đơn hàng + chân menu, không có nhóm khác
   assert.deepEqual(g[0].muc.map((m) => m.nhan), ["Đơn hàng"]);
 });
 
-test("Kế toán: Hoa hồng đối tác, Cấp độ đại lý (đặc tả 2026-11-04-man-cap-dai-ly), Hạn mức trả sau (ADR-0168), Người bán dịch vụ (chủ duyệt 14/10) và Chụp bù mức (sổ đại lý đợt 2) nằm trong Thiết lập", () => {
+test("Kế toán: Hoa hồng đối tác, Cấp độ đại lý (đặc tả 2026-11-04-man-cap-dai-ly), Hạn mức trả sau (ADR-0168), Người bán dịch vụ (chủ duyệt 14/10), Chụp bù mức (sổ đại lý đợt 2) và Vé điện tử (ADR-0175 Đ1.4: tạo vé Tour Đảo) nằm trong Thiết lập", () => {
   const tl = thanhBen({ staff: holder(["ACCOUNTING"]) }, "/").find((x) => x.nhom === "THIẾT LẬP");
-  assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Cấp độ đại lý", "Hạn mức trả sau", "Người bán dịch vụ", "Chụp bù mức"]);
+  assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Cấp độ đại lý", "Hạn mức trả sau", "Người bán dịch vụ", "Chụp bù mức", "Vé điện tử"]);
 });
 
 test("Quản trị chưa có Phiên đăng nhập, Nhật ký (chỉ Toàn quyền); có Chính sách điều phối để đặt mốc (ADR-0128 Q1)", () => {

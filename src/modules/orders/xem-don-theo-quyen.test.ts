@@ -284,13 +284,14 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "party.write": "none", "party.staff.write": "none",
     "party.personal.view": "none", // ADR-0122 đ5: Đối tác không xem ngày sinh / địa chỉ người khác
     "admin.manage": "none", "admin.manage.superadmin": "none", "feedback.submit": "any", "feedback.view": "own",
-    "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "dispatch.policy.lead": "none", "order.pool.view": "none", "ve.kho.manage": "none", "ve.cap.send": "own", /* ADR-0170 Đ1 (NỚI có chủ ý, chủ duyệt 5/11): Đối tác xem và gửi vé của đơn do chính mình lập; ADR-0153 Đ3 trước đó là none */ "account.access.manage": "none", "audit.view": "none", "notice.send": "none",
+    "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "dispatch.policy.lead": "none", "order.pool.view": "none", "ve.kho.manage": "none", "ve.phat-hanh": "none" /* ADR-0175 Đ1.3 */, "ve.cap.send": "own", /* ADR-0170 Đ1 (NỚI có chủ ý, chủ duyệt 5/11): Đối tác xem và gửi vé của đơn do chính mình lập; ADR-0153 Đ3 trước đó là none */ "account.access.manage": "none", "audit.view": "none", "notice.send": "none",
     "account.create": "none", "account.view": "none", "account.edit": "none", // ADR-0071: Quản lý tài khoản — Đối tác không
     "company.legal.write": "none", // T2b (ADR-0024 6.4 + ADR-0038 điều 7): ô mới, chỉ Toàn quyền — thêm khi gộp main 356084a vào nhánh T2b (D19)
     "party.document.view": "none", "party.document.write": "none", "party.document.reveal": "none", "party.attachment.view": "none", // ADR-0040 D2, ADR-0124 đ4: Đối tác không có giấy tờ / ảnh của người khác
     "party.self.view": "own", "party.self.submit": "own", // ADR-0124 đ4 + Hệ quả: NỚI có chủ ý — Đối tác xem / tự khai hồ sơ của CHÍNH MÌNH
     "party.privacy.policy": "none", // ADR-0126 đ1
     "party.erasure.request": "own", // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5): Đối tác gửi / rút yêu cầu xoá dữ liệu của CHÍNH MÌNH
+    "me.favorites.write": "own", // ADR-0187 Đ2.3: Đối tác tự chọn nút thanh dưới của CHÍNH MÌNH (ô tự phục vụ, không chạm đơn / tiền)
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): Đối tác không xử lý phiếu xoá dữ liệu của người khác
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1: Đối tác không xác minh hồ sơ
     "vehicle.manage": "none", // ADR-0040 D1: quản lý xe chỉ Quản trị + Toàn quyền

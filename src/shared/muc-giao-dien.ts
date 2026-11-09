@@ -121,8 +121,8 @@ export const TRANG = {
   nguoiBan: { duong: "/nguoi-ban", hien: vk("supply.terms.view") },
   // Chụp bù mức (sổ đại lý đợt 2, Task 12; ADR-0079 điều 7 b2): CÙNG cổng route `GET /api/orders/cho-chup-bu` — ô order.terms.override và không giữ quyền Đối tác (kể cả lai).
   chupBu: { duong: "/chup-bu", hien: vk("order.terms.override") },
-  // Kho vé điện tử (ADR-0153; Task 9a): CÙNG cổng route `GET /api/ve/kho` — ô ve.kho.manage (Bán hàng, Quản trị, Toàn quyền).
-  veKho: { duong: "/ve-kho", hien: ve("ve.kho.manage") },
+  // Kho vé điện tử (ADR-0153; Task 9a; ADR-0175 Đ1.4): CÙNG cổng route `GET /api/ve/kho` — ô ve.kho.manage (Bán hàng, Quản trị, Toàn quyền) hoặc ve.phat-hanh (thêm Kế toán, Quản lý bán hàng), và cổng `office` của route.
+  veKho: { duong: "/ve-kho", hien: (s) => isOffice(s) && (can(s, "ve.kho.manage") || can(s, "ve.phat-hanh")) },
   // Cài đặt vé điện tử (ADR-0156 Đ3): CÙNG cổng route `GET /api/ve/cai-dat` — ô settings.ops (chỉ Toàn quyền).
   veCaiDat: { duong: "/ve-cai-dat", hien: ve("settings.ops") },
   // Dịch vụ cần kiểm vé (ADR-0136 Đ1, Đ5): cờ đọc ở `GET /api/cai-dat/xac-nhan-don` (settings.ops), danh sách dịch vụ ở `GET /api/catalog/dac-diem` (chặn tài khoản giữ quyền Đối tác) ⇒ cùng hàm cho mục và trang.
@@ -429,9 +429,57 @@ export interface MucHien {
 }
 const hienRa = (c: ChoDat): MucHien => ({ trang: c.trang, nhan: c.nhan, href: TRANG[c.trang].duong });
 
-/** Tối đa 5 tab: nhiều hơn thì giữ 4 mục đầu + "Tôi"; "Tạo đơn" đứng giữa nhờ thứ tự khai (bài thanh-tab-theo-bo-quyen). */
-export function thanhTab(n: NguoiXem): (MucHien & { readonly bieuTuong: string })[] {
-  const t = (THANH_TAB as readonly ChoThanhTab[]).filter((c) => coHien(c, n)).map((c) => ({ ...hienRa(c), bieuTuong: c.bieuTuong }));
+// ---------------------------------------------------------------------------------------------------------------------------------------------------------
+// Nút thanh dưới người dùng tự chọn (ADR-0187 Đ2.3; đặc tả docs/superpowers/specs/2026-11-09-ghim-nut-thanh-duoi-design.md). Chọn được: trang có dòng
+// THANH_TAB (có biểu tượng sẵn — chủ chọn 9/11), khác "Tôi", và người đó MỞ được (hien VÀ moTrang — moTrang một mình đúng cho mọi trang không khai nó).
+// MỘT hàm `ghimDuoc` cho máy chủ (PUT /api/account/thanh-duoi), danh sách chọn ở trang Tôi và bộ lọc lúc vẽ. Bài: src/thanh-duoi-ghim.test.ts.
+
+/** Số trang chọn tối đa: 5 nút trừ "Tôi" (luôn có, đứng cuối). */
+export const GHIM_TOI_DA = 4;
+// Gọn có chủ ý: phần dưới đây (tới `thanhTab`) vào gói MỌI trang qua web/shell.ts (trần gói Đơn hàng, src/goi-trang-nhe.test.ts).
+const dongTab = (k: string): ChoThanhTab | undefined => k === "toi" ? undefined : (THANH_TAB as readonly ChoThanhTab[]).find((c) => c.trang === k);
+const tabRa = (c: ChoThanhTab) => ({ ...hienRa(c), bieuTuong: c.bieuTuong });
+
+export function ghimDuoc(k: string, s: PermissionHolder): boolean {
+  return !!dongTab(k) && TRANG[k as KhoaTrang].hien(s) && moTrang(k as KhoaTrang, s);
+}
+
+/** Danh sách đã chọn có hiệu lực cho khung: đang "xem như vai trò khác" (ADR-0180) hoặc không có ô me.favorites.write ⇒ null (máy xếp mặc định). */
+export function ghimHieuLuc(s: PermissionHolder & { readonly actingRole?: string; readonly thanhDuoi?: readonly string[] }): readonly string[] | null {
+  return s.actingRole || !s.thanhDuoi || !can(s, "me.favorites.write", { ownerId: s.id }) ? null : s.thanhDuoi;
+}
+
+/** Khoá trang chọn được (chưa xét quyền), theo thứ tự THANH_TAB. Không vào gói khung (chỉ trang Tôi, máy chủ, bài kiểm dùng). */
+export const KHOA_GHIM: readonly KhoaTrang[] = /* @__PURE__ */ (() => [...new Set((THANH_TAB as readonly ChoThanhTab[]).map((c) => c.trang))].filter((k) => k !== "toi"))();
+
+/** Đọc cột lưu (khoá cách nhau dấu phẩy): bỏ khoá lạ, trùng, "Tôi"; giữ thứ tự; tối đa GHIM_TOI_DA. Không xét quyền (việc của lúc vẽ). */
+export function docGhim(chu: string | null | undefined): KhoaTrang[] {
+  return [...new Set((chu ?? "").split(","))].filter((k): k is KhoaTrang => (KHOA_GHIM as readonly string[]).includes(k)).slice(0, GHIM_TOI_DA);
+}
+
+/** Các trang người này chọn được, kèm nhãn và biểu tượng của dòng THANH_TAB — danh sách ô chọn ở trang Tôi. */
+export function luaChonGhim(s: PermissionHolder): (MucHien & { readonly bieuTuong: string })[] {
+  return KHOA_GHIM.filter((k) => ghimDuoc(k, s)).map((k) => tabRa(dongTab(k)!));
+}
+
+/** Kiểm thân PUT /api/account/thanh-duoi (máy chủ). Câu báo AI soạn (đặc tả §3, bề mặt — chủ đổi được). Mảng rỗng = «Về mặc định». */
+export function kiemGhim(than: unknown, s: PermissionHolder): { trang: KhoaTrang[] } | { loi: { status: 400 | 403; code: string; message: string } } {
+  const t = (than as { trang?: unknown } | null)?.trang;
+  if (!Array.isArray(t) || t.some((k) => typeof k !== "string") || new Set(t).size !== t.length) return { loi: { status: 400, code: "invalid_body", message: "Danh sách trang không hợp lệ." } };
+  if (t.length > GHIM_TOI_DA) return { loi: { status: 400, code: "too_many", message: `Chọn tối đa ${GHIM_TOI_DA} trang (nút Tôi luôn có).` } };
+  if (t.some((k) => !(KHOA_GHIM as readonly string[]).includes(k))) return { loi: { status: 400, code: "invalid_body", message: "Danh sách trang không hợp lệ." } };
+  if (t.some((k) => !ghimDuoc(k, s))) return { loi: { status: 403, code: "forbidden", message: "Bạn không mở được trang này nên không đặt lên thanh dưới được." } };
+  return { trang: t as KhoaTrang[] };
+}
+
+/**
+ * Tối đa 5 tab: nhiều hơn thì giữ 4 mục đầu + "Tôi"; "Tạo đơn" đứng giữa nhờ thứ tự khai (bài thanh-tab-theo-bo-quyen).
+ * `ghim` (ADR-0187 Đ2.3, chỉ khung thật): các trang người dùng đã chọn còn `ghimDuoc` theo thứ tự + "Tôi" — bỏ qua `chiKhi` của dòng; lọc xong rỗng ⇒ mặc định.
+ */
+export function thanhTab(n: NguoiXem, ghim?: readonly string[] | null): (MucHien & { readonly bieuTuong: string })[] {
+  const t = (THANH_TAB as readonly ChoThanhTab[]).filter((c) => coHien(c, n)).map(tabRa);
+  const g = "staff" in n ? [...new Set(ghim)].filter((k) => ghimDuoc(k, n.staff)).slice(0, GHIM_TOI_DA).map((k) => tabRa(dongTab(k)!)) : [];
+  if (g.length) return g.concat(t.slice(-1));
   return t.length > 5 ? t.slice(0, 4).concat(t.slice(-1)) : t;
 }
 

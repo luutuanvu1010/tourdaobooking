@@ -115,7 +115,7 @@ test("veDaGiuKhongBiThuLai: chuyển sang Không vé: vé đã giữ còn nguyê
     assert.equal(giu(w, d.id), 1, "không thu lại");
     assert.deepEqual((await nhomCua(w, d.id)).map((n) => [n.giu, n.thieu]), [[1, 0]]);
     const serviceId = w.q("SELECT id FROM order_service WHERE order_id = ?", d.id)[0].id as string;
-    const dv = { orderId: d.id, serviceId, catalogCode: "ZA1", ngayDi: "2027-03-11", coVe: false, pax: { adult: 0, child: 0, senior: 0, infant: 0 } };
+    const dv = { orderId: d.id, serviceId, catalogCode: "ZA1", ngayDi: "2027-03-11", coVe: false, nguonVe: "HANG_NGOAI" as const, pax: { adult: 0, child: 0, senior: 0, infant: 0 } };
     await canBangVeTheoSoKhach(w.env.DB, [dv], SALES, (() => w.env.DB.prepare("SELECT 1")) as any, "2027-03-11T00:00:00.000Z", "2027-03-11");
     assert.equal(giu(w, d.id), 0, "giảm khách vẫn trả vé dù ô đang Không vé");
     await canBangVeTheoSoKhach(w.env.DB, [{ ...dv, pax: { ...dv.pax, adult: 2 } }], SALES, (() => w.env.DB.prepare("SELECT 1")) as any, "2027-03-11T00:00:00.000Z", "2027-03-11");

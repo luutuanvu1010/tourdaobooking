@@ -149,6 +149,9 @@ test("hàng rào tĩnh: route đọc ảnh theo thứ tự quyền → mở đư
   assert.ok(vi(/can\(staff, "ve\.cap\.send"/) !== -1 && vi(/veMoDuoc\(/) !== -1 && vi(/auditStatement|nhatKy/) !== -1 && vi(/kho\.get\(/) !== -1);
   assert.ok(vi(/can\(staff, "ve\.cap\.send"/) < vi(/veMoDuoc\(/) && vi(/veMoDuoc\(/) < vi(/auditStatement|nhatKy/) && vi(/auditStatement|nhatKy/) < vi(/kho\.get\(/));
   // MỘT cửa: bốn route vé không so `thuDu(` trực tiếp, chỉ `veMoDuoc` (bọc `moVeDuoc`) — đường vé mới không lách được luật Trả sau.
-  assert.equal([...src.matchAll(/\bthuDu\(/g)].length, 1, "thuDu( chỉ còn trong thân veMoDuoc");
-  assert.match(src, /const veMoDuoc = [^\n]*moVeDuoc\(/);
+  assert.equal([...src.matchAll(/\bthuDu\(/g)].length, 1, "thuDu( chỉ còn trong thân moTheoTien");
+  // ADR-0175 Đ2.1: một cửa theo từng vé — `veMoDuoc` bọc `veMoDuocTheoVe` với cổng tiền `moTheoTien` (bọc `moVeDuoc`); không route nào gọi `moVeDuoc(` thẳng.
+  assert.match(src, /const moTheoTien = [^\n]*moVeDuoc\(/);
+  assert.match(src, /const veMoDuoc = [^\n]*veMoDuocTheoVe\([^\n]*moTheoTien\(/);
+  assert.equal([...src.matchAll(/\bmoVeDuoc\(/g)].length, 1, "moVeDuoc( chỉ còn trong thân moTheoTien");
 });

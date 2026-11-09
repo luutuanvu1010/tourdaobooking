@@ -23,14 +23,15 @@ import { maDonTuNoiDung } from "../../shared/noi-dung-chuyen-khoan";
 import { dungLichSuSoKhach } from "../../shared/lich-su-so-khach";
 import { editablePaxCodesOf, effectiveMoney, effectiveSubtotal, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
 import {
-  addLeg, changeBooker, daXacNhan, soanDoiKhach, soanHuyDon, soanXacNhan, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getGiamGia, getLatestAdjustment, getMeta, getOrderRef, nextStamp,
+  addLeg, changeBooker, daXacNhan, soanDoiKhach, soanHuyDon, soanXacNhan, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getGiamGia, getLatestAdjustment, getMeta, getOrderRef, bookerLaDoiTacCuaDon, nextStamp,
   chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredPax, getStoredServices, insertMoneyAdjustment, listAdjustments, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, slotPolicy, slotPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
-  servicePaxByIds, servicePaxByOrder, serviceChoVe, passengerInsertDriver, nguoiDaLapDon, type DauChepNhap, type DauDatGapMoi,
+  servicePaxByIds, servicePaxByOrder, serviceChoVe, donXacNhanTheoMa as docDonXacNhanTheoMa, passengerInsertDriver, nguoiDaLapDon, type DauChepNhap, type DauDatGapMoi,
 } from "./chang-hanh-khach-repo";
-import { coVeTheoMa } from "../catalog";
+import { coVeTheoMa, nguonVeTheoMa } from "../catalog";
+import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
 import { mocTraSauCuaDon, noiHanTraSauStatement } from "./chang-hanh-khach-repo";
 import { kiemNoiHan, ngayCuaMoc, trangThaiHan } from "../../shared/tra-sau";
 import { khoaNoi } from "../../shared/khoa-noi";
@@ -396,13 +397,32 @@ export async function soKhachHieuLuc(db: D1Database, serviceIds: readonly string
  * đưa dữ liệu sang `ve-dien-tu` (hai module không import nhau). Chỉ khoá + mã danh mục + ngày đi + số khách — không tên khách, không tiền.
  * KHÔNG tự kiểm quyền — chỉ gọi từ hàm tiêm của gốc lắp ráp, ngay trong thân route đã qua `can()`.
  */
-export interface DichVuChoVe { orderId: string; serviceId: string; catalogCode: string; ngayDi: string; pax: PaxCounts; /** ADR-0174: ô «Có vé» theo giá trị hiện tại (Đ7 cách a). Nơi dùng quyết việc giữ vé, báo thiếu. */ coVe: boolean }
+export interface DichVuChoVe { orderId: string; serviceId: string; catalogCode: string; ngayDi: string; pax: PaxCounts; /** ADR-0174: ô «Có vé» theo giá trị hiện tại (Đ7 cách a). Nơi dùng quyết việc giữ vé, báo thiếu. */ coVe: boolean; /** ADR-0175 Đ1.5: ô «Vé do ai phát» theo giá trị hiện tại; không có dòng là hãng ngoài (`nguonVeCua`). */ nguonVe: NguonVe }
 export async function dichVuChoVe(db: D1Database, orderId: string): Promise<DichVuChoVe[]> {
   const rows = await serviceChoVe(db, orderId);
   if (rows.length === 0) return [];
-  const [pax, coVe] = await Promise.all([effectivePax(db, rows), coVeTheoMa(db, rows.map((r) => r.catalog_code))]);
-  return rows.map((r) => ({ orderId, serviceId: r.id, catalogCode: r.catalog_code, ngayDi: r.depart_date, coVe: coVe.get(r.catalog_code) === true, pax: pax.get(r.id) ?? { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior, infant: r.pax_infant } }));
+  const ma = rows.map((r) => r.catalog_code);
+  const [pax, coVe, nguon] = await Promise.all([effectivePax(db, rows), coVeTheoMa(db, ma), nguonVeTheoMa(db, ma)]);
+  return rows.map((r) => ({ orderId, serviceId: r.id, catalogCode: r.catalog_code, ngayDi: r.depart_date, coVe: coVe.get(r.catalog_code) === true, nguonVe: nguonVeCua(r.catalog_code, nguon), pax: pax.get(r.id) ?? { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior, infant: r.pax_infant } }));
 }
+
+/**
+ * API công khai cho GỐC LẮP RÁP (ADR-0175 Đ2.2, Đ2.4) — diện đối tác của MỘT đơn cho cổng mở vé Tour Đảo: `doiTacLap` = người lập HIỆN GIỮ quyền Đối tác (ADR-0170 Đ2,
+ * cùng hàm `nguoiLapGiuDoiTac`); `benDatDoiTac` = cùng nghĩa `bookerLaDoiTac` của chi tiết đơn. `null` = không có đơn. KHÔNG tự kiểm quyền: chỉ gọi từ hàm tiêm, trong
+ * thân route vé (route đã hỏi `can(` hoặc là đường dẫn khách đã qua băm token).
+ */
+export async function dienDoiTacCuaDon(db: D1Database, orderId: string): Promise<{ doiTacLap: boolean; benDatDoiTac: boolean } | null> {
+  const ref = await getOrderRef(db, orderId);
+  if (!ref) return null;
+  const [doiTacLap, benDatDoiTac] = await Promise.all([nguoiLapGiuDoiTac(db, ref.staffId), bookerLaDoiTacCuaDon(db, orderId)]);
+  return { doiTacLap, benDatDoiTac };
+}
+
+/**
+ * API công khai cho GỐC LẮP RÁP (ADR-0175 Đ1.5a, cấp bù khi lô vào kho): id các đơn ĐÃ XÁC NHẬN có dòng dịch vụ mã `catalogCode`, ngày đi ≥ `tuNgay` (hôm nay giờ Việt Nam),
+ * ngày đi gần trước. Chỉ khoá đơn — «Có vé» và «còn thiếu» gốc lắp ráp lọc tiếp. KHÔNG tự kiểm quyền: chỉ gọi từ hàm tiêm, trong thân route đã qua cửa quyền của lô.
+ */
+export const donXacNhanTheoMa = (db: D1Database, catalogCode: string, tuNgay: string, gioiHan: number): Promise<string[]> => docDonXacNhanTheoMa(db, catalogCode, tuNgay, gioiHan);
 
 /**
  * Đợt 5 A-1b (ADR-0052 D5b): câu ghi MỘT hành khách do tài xế nhập — van-chuyen đặt câu này vào lô của mình (sau dòng nhật ký `auditId`). Số tối đa = số khách
@@ -1892,7 +1912,7 @@ export const ordersModule: AppModule = {
       return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
     }),
 
-    route("POST", "/api/orders/:id/status", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu, dongBoChuyen, capVeSauXacNhan, traVeKhiHuy, cauCocKhiXacNhan, banHang, kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon, veDaMoCuaDon }) => {
+    route("POST", "/api/orders/:id/status", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu, dongBoChuyen, capVeSauXacNhan, traVeKhiHuy, cauCocKhiXacNhan, banHang, kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon, veDaMoCuaDon, veHangNgoaiDaMoCuaDon }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const body = await readJson(request);
@@ -1916,7 +1936,7 @@ export const ordersModule: AppModule = {
         const lyDo = docLyDoHuy(body, { coTheChonCongTy: can(staff, "order.cancel.classify") });
         if (!lyDo.ok) return error(lyDo.status, lyDo.status === 403 ? "forbidden" : "invalid_input", lyDo.message);
         // ADR-0168 Đ3 mục 3: đơn Trả sau còn nợ mà vé đã mở thì không huỷ được (đứng TRƯỚC mọi câu soạn lô huỷ).
-        const congHuy = await congHuyTraSau({ traSauCuaDon, veDaMoCuaDon, cauGacPhienBanTraSau }, { id, paymentTerm: meta.paymentTerm, status: from });
+        const congHuy = await congHuyTraSau({ traSauCuaDon, veHangNgoaiDaMoCuaDon, cauGacPhienBanTraSau }, { id, paymentTerm: meta.paymentTerm, status: from });
         if ("loi" in congHuy) return congHuy.loi;
         // ADR-0104 Đ2 (điểm gọi 1): lô huỷ (câu đơn đứng đầu) + khúc chuyến của máy đồng bộ — MỘT db.batch. Chỉ nhánh huỷ nối máy (xác nhận không đụng chuyến).
         const huy = soanHuyDon(env.DB, id, staff.id, from, meta.updatedAt, lyDo.lyDo, congHuy.qua);

@@ -18,7 +18,11 @@ test("APP_NAME trùng tên ứng dụng khai ở manifest (nguồn khai của t�
 });
 
 test("formatReleaseLine: dòng phiên bản của bản mới nhất", () => {
-  assert.equal(formatReleaseLine(), "Phiên bản 2.81 · ngày 9 tháng 11 năm 2026");
+  // Lấy số phiên bản và ngày từ mục đầu nhật ký (không gõ cứng: mỗi lần phát hành đổi số sẽ làm bài này đỏ oan); khuôn chữ vẫn bị khoá.
+  const dau = CHANGELOG[0];
+  assert.ok(dau);
+  assert.equal(formatReleaseLine(), `Phiên bản ${dau.version} · ngày ${formatLongDate(dau.date)}`);
+  assert.match(formatReleaseLine(), /^Phiên bản \d+\.\d+ · ngày \d{1,2} tháng \d{1,2} năm \d{4}$/);
 });
 
 test("formatReleaseLine: nhận số phiên bản và ngày khác (kể cả số 1 chữ số và 2 chữ số)", () => {

@@ -248,6 +248,7 @@ export const MATRIX = {
   // Kế toán không). `ve.cap.send` = nút Cấp vé, xem ảnh vé, gửi Zalo, tạo / thu hồi đường dẫn khách: Bán hàng chỉ đơn của mình hoặc được giao, Quản trị, Toàn quyền. Danh sách vé của đơn
   // (số lượng, không ảnh, không mã) đi theo quyền xem đơn `order.view` nên Kế toán thấy. Xem ảnh còn bị cổng thu đủ chặn ở máy chủ, không chỉ ô này.
   "ve.kho.manage": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "ve.phat-hanh": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"), // ADR-0175 Đ1.3: tạo và thao tác lô vé Tour Đảo; Bán hàng thường không dù có ve.kho.manage
   "ve.cap.send": row("ownOrAssigned", "none", "any", "none", "own", "any", "none", "none", "none", "none"), // ADR-0170 Đ1: Đối tác chỉ đơn do chính tài khoản lập (`orders.staff_id`); mở vé còn qua cổng tiền Đ2
   // ADR-0186 Đ2: xoá ảnh vé đã hết hạn lưu khỏi kho — chỉ tác nhân DON_ANH_VE dùng (Cron, src/modules/ve-dien-tu/kho-tep.ts); hẹp hơn ve.kho.manage; không route
   // cho người. Toàn quyền có ô chỉ vì ADR-0014 điều 2; Trợ lý không kể ô này là việc người làm được.
@@ -290,6 +291,10 @@ export const MATRIX = {
   // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5 Gói 2): GỬI / RÚT yêu cầu xoá dữ liệu của CHÍNH MÌNH — mọi tài khoản (kể cả Tài xế đối tác, Nhân sự — kế hoạch H-5 sự thật 1).
   // Phạm vi own = staff.partyId của PHIÊN. Không đòi đồng ý chính sách. Route: POST /api/parties/cua-toi/phieu-xoa, POST …/phieu-xoa/:id/rut (cổng staff).
   "party.erasure.request": tuPhucVu(),
+  // ADR-0187 Đ2.3 (accepted 2026-11-08): TỰ CHỌN NÚT THANH DƯỚI điện thoại của CHÍNH MÌNH (bảng stf_thanh_duoi) — mọi mã quyền có khung, TRỪ Tài xế đối tác (chủ 8/11: chỉ hai
+  // trang, không chọn). Viết tay, KHÔNG dùng tuPhucVu() (hàm đó cho DRIVER_PARTNER own). Route PUT /api/account/thanh-duoi (cổng staff) hỏi { ownerId: staff.id }; trang chọn được
+  // còn phải qua ghimDuoc (src/shared/muc-giao-dien.ts) — CÙNG hàm với giao diện.
+  "me.favorites.write": row("own", "own", "own", "own", "own", "any", "own", "own", "none", "own", "own"),
   // ADR-0126 đ2 (lát H-5 Gói 2): XỬ LÝ phiếu yêu cầu xoá của NGƯỜI KHÁC (xem hàng chờ, xem trước, thực hiện ẩn danh hoá, từ chối, chạy lại) — Quản trị, Toàn quyền; route cổng admin
   // hỏi admin.manage rồi ô này, còn hỏi cấp bậc và tách người gửi / người xử lý (xoa-an-danh.ts). Nhân sự KHÔNG có. Route: /api/parties/phieu-xoa*.
   "party.erasure.process": quanTri(),

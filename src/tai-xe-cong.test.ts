@@ -81,6 +81,7 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "GET /api/auth/me": { ma: 200, ly_do: "phiên của chính mình (đăng nhập — D3)" },
   "POST /api/auth/xem-nhu-vai": { ma: 403, ly_do: "ADR-0180: chỉ Toàn quyền (quyền thật) bật xem như vai trò khác; tài xế → 403" },
   "DELETE /api/auth/xem-nhu-vai": { ma: 403, ly_do: "như trên; không phải Toàn quyền → 403" },
+  "PUT /api/account/thanh-duoi": { DRIVER: { ma: 400, ly_do: "ADR-0187 Đ2.3: tự phục vụ nút thanh dưới của chính mình (ô me.favorites.write = own); thân rỗng → 400" }, DRIVER_PARTNER: { ma: 403, ly_do: "ADR-0187 Đ2.3: Tài xế đối tác không có ô me.favorites.write → 403" } },
   "GET /api/bang-tin": { ma: 426, ly_do: "bắt tay Bảng tin; nhãn nhận tin tính bằng can() — DRIVER không có tat-ca/cho-nhan, chỉ nguoi:<mình>; thiếu Upgrade → 426" },
   "GET /api/dispatch/mine": { ma: 403, ly_do: "việc của hướng dẫn viên — ô contact.view / money.view của DRIVER là none" },
   "POST /api/feedback": { ma: 400, ly_do: "gửi góp ý (feedback.submit any — Ruling R2, như mọi tài khoản); thân rỗng → 400" },

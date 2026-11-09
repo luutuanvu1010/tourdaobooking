@@ -30,6 +30,10 @@ Mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn. 
 | **Nhân sự** | Quyền của người làm hành chính nhân sự: tạo, xem và sửa tài khoản nhân viên. Không đơn, không tiền, không Danh bạ, không danh mục. | Tên vai đầy đủ là «Hành chính nhân sự»; «Nhân sự» là tên của quyền sinh ra từ vai đó. |  | `HR` `vai HR_STAFF` | đã chốt | 2026-10-01 (ADR-0071) |
 | **Quản lý bán hàng** | Người làm được mọi việc của Bán hàng, thêm bật, tắt cần kiểm vé và Ngừng bán, Mở bán lại dịch vụ. Không sửa giá, không đồng bộ Sheet, không sửa nhóm. | Bán hàng không có hai việc thêm đó. Quản trị làm được thêm giá, Sheet, nhóm và tài khoản. |  | `SALES_MANAGER` | đã chốt | 2026-11-05 (ADR-0169) |
 | **Có vé** | Ô trên nhóm hoặc từng dịch vụ, nói dịch vụ có phát vé điện tử hay không. Máy chỉ giữ vé và báo thiếu vé cho dịch vụ đang bật ô này. | «Cần kiểm vé» hỏi còn chỗ không trước khi xác nhận đơn; «Còn vé» là câu trả lời của người kiểm vé. «Có vé» không nói ai cung cấp dịch vụ. |  | `ctl_service_ticket_flag` `coVe` | đã chốt | 2026-11-05 (ADR-0174) |
+| **Vé do ai phát** | Ô trên từng dịch vụ: vé của dịch vụ này do hãng ngoài phát hay do Tour Đảo tự phát. | «Có vé» nói dịch vụ có vé hay không; «Người bán dịch vụ» nói ai cung cấp dịch vụ. |  | `ctl_service_ticket_source` `vdt_batch.source` `nguonVe` | đã chốt | 2026-11-08 (ADR-0175) |
+| **Vé hãng ngoài** | Vé do bên khác phát, như Vinpearl; công ty nhập ảnh vé vào kho. | Công ty không quyết được vé hãng ngoài còn giá trị hay không. |  | `HANG_NGOAI` | đã chốt | 2026-11-08 (ADR-0175) |
+| **Vé Tour Đảo** | Vé do công ty tự tạo; máy chủ của công ty quyết vé còn giá trị hay không. | Huỷ đơn là vé chết; mở được từ lúc xác nhận đơn. |  | `TOUR_DAO` | đã chốt | 2026-11-08 (ADR-0175) |
+| **Tạo vé** | Người có quyền vẽ và đưa một lô vé Tour Đảo vào kho; máy sinh mã riêng cho từng vé. | «Nhập lô vé» là đưa ảnh vé hãng ngoài vào kho. |  | `ve.phat-hanh` | đã chốt | 2026-11-08 (ADR-0175) |
 | **Hồ sơ** | Một mục trong màn Danh bạ: một người hoặc một tổ chức mà công ty làm việc cùng (khách, đại lý, hướng dẫn viên, nhà xe…). | Hồ sơ khác tài khoản: tài khoản là chỗ đăng nhập, mỗi tài khoản trỏ đúng một hồ sơ, còn hồ sơ thì không nhất thiết có tài khoản. |  | `pty_party` `party` | chờ chọn | chưa có lời chủ chọn riêng; dùng từ bản 1.10 (2026-09-25) |
 | **Tài khoản** | Chỗ để một người đăng nhập Nền tảng (số điện thoại, mã PIN, Face ID), kèm vai trò và quyền. Quản lý ở màn «Quản lý tài khoản». | Không phải hồ sơ trong Danh bạ. Trang cá nhân của người đang đăng nhập tên là «Tôi». Màn này từng tên «Nhân viên» nhưng nay quản lý cả tài khoản của đối tác. |  | `staff` `accounts` | chờ chọn | chưa có lời chủ chọn riêng; dùng từ bản 1.10 (2026-09-25) |
 | **Công việc tại đâu** | Mục trên hồ sơ ghi hồ sơ đó làm việc gì và ở đâu (hướng dẫn viên, tài xế, nhà xe…). Chỉ để phân loại và tìm kiếm. | Không bao giờ dùng để cho hay chặn một thao tác. Việc cho phép nằm ở quyền của tài khoản. |  | `vai trò hồ sơ` | chờ chọn |  |
@@ -147,6 +151,7 @@ Chữ theo ngữ cảnh: người đọc thấy đối tượng ngay cạnh nút
 | Thôi | Trong hộp hỏi lại: không làm việc đang hỏi và đóng hộp; câu hỏi đứng ngay cạnh nút. |
 | Thử lại | Làm lại lần tải vừa lỗi; dòng báo lỗi đứng ngay cạnh nói lỗi gì. |
 | Lưu | Ghi những gì đang nhập trong hộp hoặc biểu mẫu đang mở; tiêu đề hộp nói đang sửa gì. |
+| Về mặc định | Bỏ phần đã tự chỉnh của đúng khối đứng cạnh, quay về giá trị Nền tảng đặt sẵn (một dòng ở màn Giao diện; các nút đã chọn ở mục «Nút thanh dưới» của trang Tôi); tiêu đề khối nói đang trả về cái gì. |
 | Đổi | Đứng ngay cạnh giá trị đang chọn (người phụ trách, người hưởng, số khách theo hạng) và mở khung chọn lại đúng giá trị đó. |
 | Đổi tên | Đứng trên dòng của mục có tên (nhóm dịch vụ, tuyến, cỡ xe) và đổi tên đúng mục đó. |
 | Tắt | Đứng trên dòng của mục có tên (nhóm dịch vụ, đặc điểm, thông báo) và tắt đúng mục đó. |
@@ -208,7 +213,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (79)
+## Việc chờ chọn (81)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -238,6 +243,8 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Nhận · Đang nhận… | `web/viec-cua-toi.ts`: Nhận | Việc của tôi: nhận đơn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Sửa số khách | `web/viec-cua-toi.ts`: Sửa số khách<br>`web/viec-cua-toi.ts`: Xác nhận<br>`web/viec-cua-toi.ts`: Đóng | Việc của tôi: sửa số khách (hướng dẫn viên) | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Huỷ đơn | `web/viec-cua-toi.ts`: Huỷ đơn<br>`web/viec-cua-toi.ts`: Không huỷ | Việc của tôi: huỷ đơn | rà soát 2026-11-04: chưa rõ, chờ chủ |
+| Lưu | `web/thanh-duoi-cai-dat.ts`: Lưu | Trang Tôi | AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới») |
+| Về mặc định | `web/thanh-duoi-cai-dat.ts`: Về mặc định | Trang Tôi | AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới») |
 | Gửi Zalo | `web/ve-don.ts`: Gửi Zalo | Vé điện tử: giao vé | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Tạo đường dẫn cho khách · Sao chép | `web/ve-don.ts`: Tạo đường dẫn cho khách<br>`web/ve-don.ts`: Sao chép | Vé điện tử: giao vé | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Ngừng | `web/hoa-hong-hop.ts`: ⟪o.nhan⟫<br>`web/hoa-hong-cap.ts`: ⟪nhanViec(v, loai)⟫ | Hoa hồng: ngừng một dòng mức | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -294,7 +301,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (317)
+## Việc quan trọng (321)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -465,6 +472,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 |---|---|---|---|---|---|---|---|
 | **Bật ẩn thông tin khách · Tắt ẩn thông tin khách** | Tôi (trang cá nhân) › khối «Ẩn thông tin khách khi đối tác đặt vé» | Đổi công tắc chung. Khi bật, form Tạo đơn của tài khoản Đối tác thuần không còn ô tên, số điện thoại và danh sách khách, và đơn lập lúc bật không cần danh sách khách để xe chạy. Đơn đã lập không đổi, đơn của Bán hàng không đổi, thông tin khách đã có không bị che đi. | không | được: bấm Tắt ẩn thông tin khách (đơn lập lúc đang bật vẫn giữ dấu miễn danh sách) | `/api/cai-dat/an-thong-tin-khach`<br>nhật ký `partner_customer_policy_changed` | `web/an-khach-cai-dat.ts`: Tắt ẩn thông tin khách / Bật ẩn thông tin khách | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
 | **Bật cả nhóm · Tắt cả nhóm** | Dịch vụ & giá › Nhóm dịch vụ › công tắc «Cần kiểm vé» › hộp hỏi lại | Đổi cài đặt kiểm vé cho mọi vé của một nhóm dịch vụ. Bật thì đơn mới có vé thuộc nhóm phải chờ người kiểm vé báo còn vé rồi mới được xác nhận; tắt thì xác nhận như thường. Vé đã đặt riêng không đổi; đơn đã xác nhận không đổi. | có: hộp nói rõ hậu quả trước khi đổi | được: gạt ngược lại | `/api/cai-dat/xac-nhan-don`<br>nhật ký `confirm_flag_changed` | `web/catalog-kiem-ve.ts`: Bật cả nhóm / Tắt cả nhóm<br>`web/catalog-co-ve.ts`: Bật cả nhóm / Tắt cả nhóm | chờ chọn (tên mới 2026-11-04, chờ chủ chọn) |
+| **Vé hãng ngoài · Vé Tour Đảo** | Dịch vụ & giá › dòng dịch vụ đang «Có vé» › ô «Vé do ai phát» | Chọn vé của dịch vụ này do hãng ngoài phát (công ty nhập ảnh vé vào kho) hay do Tour Đảo tự phát. Chỉ đổi lô mà máy dùng để giữ vé từ lúc đổi; vé đơn đã giữ không đổi. Chỉ hiện khi dịch vụ đang «Có vé»; chưa chọn là vé hãng ngoài. Chỉ Quản trị, Toàn quyền. | có khi chọn «Vé Tour Đảo»: hộp nói rõ hậu quả; chọn «Vé hãng ngoài» thì không hỏi | được: bấm lựa chọn kia | `/api/catalog/nguon-ve`<br>nhật ký `ticket_source_changed` | `web/catalog-co-ve.ts`: ⟪NHAN_NGUON_VE[v]⟫<br>`web/catalog-co-ve.ts`: Chuyển sang Vé Tour Đảo | đã chốt (ADR-0175, chủ duyệt tám thuật ngữ vé Tour Đảo 2026-11-08) |
 | **Bật dịch vụ nhập tay · Tắt dịch vụ nhập tay** | Tôi (trang cá nhân) › khối «Dịch vụ nhập tay» | Đổi công tắc chung. Bật thì Bán hàng, Quản trị, Toàn quyền thêm được dịch vụ gõ tên và giá tay khi lập, sửa đơn nháp; Đối tác thì không bao giờ dùng được. Tắt thì dịch vụ nhập tay đã có trên đơn vẫn giữ, chỉ xem. | không | được: bấm nút ngược lại | `/api/cai-dat/nhap-tay`<br>nhật ký `manual_service_policy_changed` | `web/nhap-tay-cai-dat.ts`: Tắt dịch vụ nhập tay / Bật dịch vụ nhập tay | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 
 ### Sửa đơn đã xác nhận: khách và bên đặt
@@ -576,6 +584,13 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 |---|---|---|---|---|---|---|---|
 | **Lưu** | Cài đặt vé điện tử | Lưu «Số vé tối đa mỗi lô» (từ giới hạn nhỏ nhất đến lớn nhất). Số mới chỉ áp cho các lô nhập từ lúc đó, vé đã nhập giữ nguyên. | không | được: lưu lại số cũ | `/api/ve/cai-dat`<br>nhật ký `ve_doi_tran_lo` | `web/ve-cai-dat.ts`: Lưu | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 
+### Trang Tôi
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Lưu** | Tôi › mục «Nút thanh dưới» (chỉ điện thoại) | Lưu các trang đang đánh dấu (tối đa 4) làm nút thanh dưới điện thoại của chính tài khoản, theo thứ tự trong danh sách; nút «Tôi» luôn có ở cuối. Lưu ở máy chủ nên đổi máy vẫn còn. Máy chủ từ chối trang mình không mở được, và không cho đổi khi Toàn quyền đang xem như vai trò khác. Trang nào sau này không còn mở được thì tự mất khỏi thanh dưới. | không | được: lưu lại cách khác hoặc bấm «Về mặc định» | `/api/account/thanh-duoi`<br>nhật ký `bottom_tabs_changed` | `web/thanh-duoi-cai-dat.ts`: Lưu | chờ chọn (AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới»)) |
+| **Về mặc định** | Tôi › mục «Nút thanh dưới» (chỉ hiện khi đã tự chọn) | Bỏ các trang đã tự chọn: thanh dưới quay về cách Nền tảng tự xếp theo quyền như trước. Không xoá gì khác. | không | được: chọn lại rồi bấm «Lưu» | `/api/account/thanh-duoi`<br>nhật ký `bottom_tabs_changed` | `web/thanh-duoi-cai-dat.ts`: Về mặc định | chờ chọn (AI chọn theo lời chủ 9/11 "không cần hỏi, làm theo phương án tốt nhất" (ADR-0187 Đ2.3; tên mục «Nút thanh dưới», nhãn nhật ký «Đổi nút thanh dưới»)) |
+
 ### Vé điện tử: đơn
 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
@@ -598,6 +613,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | **Mở ảnh · Xem ảnh (vé đã mở)** | Kho vé điện tử › khối «Lô đã huỷ gần đây» › mỗi vé có nút «Mở ảnh»; vé đã mở có nút «Xem ảnh» | Mở ảnh của một vé trong lô đã huỷ. Lần mở đầu tiên khoá hẳn vé: không nhập lại vào kho để bán được nữa, không hoàn tác được, ghi nhật ký. Từ lần sau chỉ «Xem ảnh». | có: Mở ảnh vé này? — «Vé đã mở sẽ bị khoá hẳn: không nhập lại vào kho để bán được nữa và không hoàn tác được. Lần mở được ghi vào nhật ký.» | không: «không hoàn tác được» | `/api/ve/lo-da-huy/:x/mo`<br>nhật ký `ve_mo_anh_lo_huy` | `web/ve-kho.ts`: Mở ảnh<br>`web/ve-kho.ts`: Xem ảnh | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 | **Huỷ lô** | Kho vé điện tử › khối «Các lô» › mỗi lô một nút «Huỷ lô» | Gỡ cả lô vé khỏi kho (chỉ lô chưa có vé nào từng được giữ cho đơn). Ảnh được lưu thêm vài ngày rồi tự xoá. Muốn dùng lại thì nhập đúng các ảnh đó trong lô mới. | có: Huỷ lô vé này? — «<N> vé của lô sẽ bị gỡ khỏi kho. Ảnh được lưu thêm <số> ngày rồi tự xoá. Muốn dùng lại thì nhập đúng các ảnh đó trong lô mới.» | một phần: nhập lại các ảnh trong lô mới trong thời hạn lưu ảnh | `/api/ve/lo/:x/bo`<br>nhật ký `ve_bo_lo` | `web/ve-kho.ts`: Huỷ lô | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 | **Nhập lô vé** | Kho vé điện tử › khối nhập lô | Đọc mã QR của từng ảnh ngay trên máy, loại ảnh hỏng hoặc trùng, tạo lô, gửi các ảnh lên kho rồi đưa lô vào kho để bán. Ảnh nào bị loại thì báo kèm tên tệp. Lô gửi dở thì để lại trong danh sách «Các lô» để bấm «Huỷ lô». | không | được: «Huỷ lô» cho tới khi có vé được giữ cho đơn | `/api/ve/lo`<br>`/api/ve/lo/:x/ve`<br>`/api/ve/lo/:x/xac-nhan`<br>nhật ký `ve_nhap_lo`<br>nhật ký `ve_xac_nhan_lo` | `web/ve-kho.ts`: Nhập lô vé | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
+| **Tạo vé** | Kho vé điện tử › khối «Tạo vé Tour Đảo» (chỉ người giữ ô ve.phat-hanh: Kế toán, Quản lý bán hàng, Quản trị, Toàn quyền) | Mở một lô vé Tour Đảo, vẽ từng vé với mã riêng do máy sinh, tự đọc lại mã trên từng ảnh; chỉ khi mọi vé đều đọc lại đúng mới gửi ảnh lên kho rồi đưa lô vào kho và cấp bù cho đơn đang thiếu. Một vé hỏng thì huỷ cả lô, không vé nào vào kho. Người tạo không thấy mã vé. | không | được: «Huỷ lô» cho tới khi có vé được giữ cho đơn | `/api/ve/lo`<br>`/api/ve/lo/:x/ve`<br>`/api/ve/lo/:x/xac-nhan`<br>`/api/ve/lo/:x/bo`<br>nhật ký `ve_nhap_lo`<br>nhật ký `ve_xac_nhan_lo`<br>nhật ký `ve_bo_lo` | `web/ve-tao.ts`: Tạo vé | đã chốt (kế hoạch vé Tour Đảo Task 0, chủ 2026-11-08 «Duyệt cả 8» (ADR-0175)) |
 
 ### Hoa hồng: mức riêng của MỘT đối tác
 

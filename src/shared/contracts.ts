@@ -33,6 +33,11 @@ export interface StaffProfile {
    */
   actingRole?: PermissionCode;
   realPermissions?: PermissionCode[];
+  /**
+   * ADR-0187 Đ2.3: khoá các trang người dùng đã chọn cho thanh dưới điện thoại (tối đa 4, thứ tự chọn; «Tôi» luôn có nên không nằm đây). Chỉ có trong hồ sơ của
+   * PHIÊN khi đã chọn và KHÔNG đang đóng vai (`currentStaff` bỏ). Khung dùng qua `ghimHieuLuc` — không đọc thẳng.
+   */
+  thanhDuoi?: string[];
 }
 
 /** Hồ sơ đầy đủ cho màn hình quản trị. */
@@ -64,6 +69,9 @@ export interface StaffRolesResponse { roles: RoleCode[]; adds: PermissionCode[];
  * `benDatCuaToi` chỉ có ở `GET /api/auth/me` (sổ đại lý đợt 1, Task 11; Ruling 21): khác null khi và chỉ khi máy chủ SẼ ép bên đặt của đơn mới về chính hồ sơ của tài khoản này — tài khoản giữ quyền
  * Đối tác, có hồ sơ, và hồ sơ đang mang ít nhất một vai trong danh sách được hưởng hoa hồng (cùng điều kiện `benDatChoTaiKhoan`). Giao diện chỉ ĐỌC trường này để hiện dòng "Bên đặt: <tên>"; chỉ id + tên, không liên hệ.
  */
+/** `PUT /api/account/thanh-duoi` (ADR-0187 Đ2.3): danh sách trang đã lưu (rỗng = về mặc định). Lỗi: 400 invalid_body / too_many, 403 forbidden / acting_role. */
+export interface ThanhDuoiRequest { trang: string[] }
+export interface ThanhDuoiResponse { trang: string[] }
 export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto; benDatCuaToi?: { partyId: string; ten: string } | null;
   /** ADR-0180: vai đang đóng của phiên này (chỉ có khi Toàn quyền đang xem như vai khác); cùng giá trị `staff.actingRole`. */
   actingRole?: PermissionCode }
@@ -844,6 +852,9 @@ export interface CatalogNgungBanInput { ngungBan: boolean }
 /** ADR-0174: ô «Có vé». `nguon`: dòng riêng của dịch vụ, theo nhóm, hay chưa ai khai. */
 export interface CatalogCoVeResponse { dichVu: { code: string; coVe: boolean; nguon: "SERVICE" | "GROUP" | "CHUA_KHAI" }[]; nhom: { code: string; coVe: boolean }[] }
 export interface CatalogCoVeInput { pham: "SERVICE" | "GROUP"; ma: string; coVe: boolean }
+/** ADR-0175 Đ1.2: ô «Vé do ai phát», chỉ trên từng dịch vụ. GET trả mọi dịch vụ của danh mục kèm giá trị hiện hành (chưa đặt là `HANG_NGOAI`). */
+export interface CatalogNguonVeResponse { dichVu: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }[] }
+export interface CatalogNguonVeInput { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }
 export interface CatalogNgungBanResponse { code: string; ngungBan: boolean }
 export interface CatalogSyncResponse {
   ok: true;

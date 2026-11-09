@@ -62,7 +62,7 @@ export const LICH_SU_DOI_TAC_AN = [
   // Không gắn đơn: tài khoản, hồ sơ
   "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed", "passkey_added", "passkey_removed",
   "pin_set_by_passkey", "login_unlocked", "staff_synced", "permission_changed", "account_roles_changed", "session_policy_changed", "session_revoked",
-  "acting_role_set", "acting_role_cleared", "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened", "mfa_exception_set",
+  "acting_role_set", "acting_role_cleared", "bottom_tabs_changed", "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened", "mfa_exception_set",
   "party_created", "party_updated", "party_contact_changed", "party_role_added", "party_role_ended", "party_relationship_changed", "party_merged", "party_document_added",
   "party_document_renewed", "party_document_corrected", "party_document_number_viewed", "party_document_catalog_changed", "party_bank_account_changed",
   "party_attachment_added", "party_attachment_viewed", "party_attachment_purged", "party_attachment_purge_retried", // ADR-0123: ảnh giấy tờ — không gắn đơn
@@ -85,14 +85,14 @@ export const LICH_SU_DOI_TAC_AN = [
   // Địa điểm, danh mục, hệ thống, góp ý, thông báo
   "location_created", "location_updated", "maintenance_changed", "manual_service_policy_changed", "pickup_slot_policy_changed", "confirm_flag_changed", "confirm_policy_changed", "sales_policy_changed", "sales_invited", "sales_owner_claimed", "sales_owner_changed", "sales_invite_refused", "partner_customer_policy_changed", "order_confirm_requested", "order_confirm_withdrawn", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body",
   "catalog_synced", "catalog_overridden", "catalog_override_cleared", "catalog_hidden", "catalog_unhidden", "catalog_group_created", "catalog_group_updated",
-  "catalog_group_assigned", "ticket_flag_changed", "catalog_groups_seeded", "catalog_service_transfer_set", "ctl_attribute_created", "ctl_attribute_updated", "ctl_attribute_value_created", "ctl_attribute_value_updated", "ctl_service_attribute_set", "ctl_group_attribute_set", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned",
+  "catalog_group_assigned", "ticket_flag_changed", "ticket_source_changed", "catalog_groups_seeded", "catalog_service_transfer_set", "ctl_attribute_created", "ctl_attribute_updated", "ctl_attribute_value_created", "ctl_attribute_value_updated", "ctl_service_attribute_set", "ctl_group_attribute_set", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned",
   "feedback_claimed", "feedback_team_changed", "feedback_priority_changed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent", "notice_revoked",
   "feedback_attachment_added", "feedback_attachment_viewed", "feedback_attachment_purged", "feedback_attachment_purge_retried", // ADR-0144: tệp kèm vé — không gắn đơn
   "notice_acknowledged",
   // ADR-0032 (hạn mức Từ chối — G3 kế hoạch 2026-10-23): ẩn như lớp nội bộ.
   "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
   // ADR-0153 (đề xuất): giữ chỗ / trả vé điện tử — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại. Trang Nhật ký (Toàn quyền) vẫn đọc được.
-  "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo",
+  "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo", "ve_thieu",
   "ve_xoa_anh_het_han", // ADR-0186 Đ4: tác nhân DON_ANH_VE ghi, không gắn đơn — ẩn; Toàn quyền đọc ở trang Nhật ký
   // ADR-0168: hạn mức Trả sau — việc nội bộ của Toàn quyền, ẩn khỏi lịch sử Đối tác.
   "credit_limit_set", "credit_limit_stopped",

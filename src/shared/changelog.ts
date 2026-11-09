@@ -17,8 +17,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Đợt 1 «sửa nhỏ» của kế hoạch sửa sau rà soát lần 2 (9/11), KHÔNG migration. SỐ TẠM 2.81: 2.80 («Có vé», ADR-0174) đang chờ trên main; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "2.81",
+    // Đợt 1 «sửa nhỏ» của kế hoạch sửa sau rà soát lần 2 (9/11), KHÔNG migration. SỐ TẠM 2.83: production/main đang 2.82; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.83",
     date: "2026-11-09",
     items: [
       { kind: "sua", text: "Khi Nền tảng báo lỗi hệ thống, câu báo có kèm mã lỗi để bạn chụp gửi Quản trị." },
@@ -29,6 +29,25 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Quản lý bán hàng có ô «Dịch vụ & giá» ở Trang chủ trên điện thoại." },
       { kind: "sua", text: "Dịch vụ không có đưa đón thì Đối tác không còn dòng ghi chú về giờ đón." },
       { kind: "sua", text: "Các bài hướng dẫn ghi đúng tên tab và mục menu mà bạn đang thấy." },
+    ],
+  },
+  {
+    // ADR-0187 Đ2.3 (accepted 8/11): người dùng tự chọn nút thanh dưới điện thoại, lưu ở máy chủ. Migration 0153. Ban đầu lấy tạm 2.81; vé Tour Đảo Đợt 1 nhập
+    // bản chính trước và lên production bản 2.81 (9/11) nên khi gộp bản chính ngày 9/11 đánh lại thành 2.82.
+    version: "2.82",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Trang Tôi trên điện thoại có mục «Nút thanh dưới»: tự chọn tối đa 4 trang mình hay dùng cho thanh dưới; nút Tôi luôn có." },
+      { kind: "moi", text: "Lựa chọn lưu theo tài khoản nên đổi máy vẫn còn. Bấm «Về mặc định» để quay lại cách Nền tảng tự xếp." },
+    ],
+  },
+  {
+    // Vé Tour Đảo Đợt 1 (ADR-0175), CÓ migration 0151, 0152. Bước A.0 ngày 9/11: production đang 2.80 nên lấy 2.81. Mọi dịch vụ vẫn «Vé hãng ngoài» tới khi Đợt 2 (quét vé) xong.
+    version: "2.81",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Màn Dịch vụ & giá có ô «Vé do ai phát» cho từng dịch vụ: «Vé hãng ngoài» (như cũ) hoặc «Vé Tour Đảo». Hiện mọi dịch vụ vẫn là «Vé hãng ngoài»." },
+      { kind: "moi", text: "Kho vé có thêm lô «Vé Tour Đảo»; Kế toán, Quản trị, Toàn quyền và Quản lý bán hàng tạo được vé có mã QR, còn Kế toán chỉ thấy lô Tour Đảo." },
     ],
   },
   {

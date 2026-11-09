@@ -101,7 +101,9 @@ export async function currentStaff(request: Request, env: Env, exec?: ExecutionC
   const coVai = row.acting_role !== null && row.acting_role !== undefined;
   const hetHan = coVai && daHetHan(row.last_seen_at, now);
   const vai = coVai && !hetHan && staff.permissions.includes("SUPER_ADMIN") && laVaiChonDuoc(row.acting_role) ? row.acting_role as PermissionCode : null;
-  const hieuLuc: StaffProfile = vai === null ? staff : { ...staff, permissions: quyenHieuLuc(staff.permissions, vai), actingRole: vai, realPermissions: [...staff.permissions] };
+  // ADR-0187 Đ2.3: đang đóng vai thì bỏ nút thanh dưới đã chọn của Toàn quyền — khung vẽ mặc định của vai đang xem (xem đúng giao diện người thật).
+  const { thanhDuoi: _boGhim, ...khongGhim } = staff;
+  const hieuLuc: StaffProfile = vai === null ? staff : { ...khongGhim, permissions: quyenHieuLuc(staff.permissions, vai), actingRole: vai, realPermissions: [...staff.permissions] };
   const canCham = Date.parse(row.last_seen_at) < now - SESSION_TOUCH_MS;
   if (canCham || hetHan) {
     // Ghi mốc hoạt động Ở NỀN (không chặn phản hồi): câu có điều kiện `last_seen_at < ?` nên lặp hay chậm đều vô hại; phiên đã bị lưới `credentials_changed_at` giết

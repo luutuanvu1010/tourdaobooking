@@ -11,7 +11,7 @@ import { AT, chayLo, d1That, dem, nhatKyThu, taoCsdl, themLo, themVe } from "../
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 
 type Pax = { adult?: number; child?: number; senior?: number; infant?: number };
-const dich = (pax: Pax, orderId = "o-1", serviceId = "s-1") => ({ orderId, serviceId, catalogCode: "V2D", ngayDi: "2026-10-24", pax: { adult: 0, child: 0, senior: 0, infant: 0, ...pax } });
+const dich = (pax: Pax, orderId = "o-1", serviceId = "s-1") => ({ orderId, serviceId, catalogCode: "V2D", ngayDi: "2026-10-24", pax: { adult: 0, child: 0, senior: 0, infant: 0, ...pax }, nguonVe: "HANG_NGOAI" as const });
 const cap = (d: DatabaseSync, x: ReturnType<typeof dich>, at = AT) => chayLo(d, soanCapVe(d1That(d), x, "s-1", at, nhatKyThu(d1That(d))).cau);
 const suat = (d: DatabaseSync, serviceId = "s-1") =>
   d.prepare("SELECT a.pax_group AS nhom, a.slot_no AS so, a.ticket_id AS ve, t.batch_id AS lo FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE a.order_service_id = ? AND a.released_at IS NULL ORDER BY a.pax_group, a.slot_no").all(serviceId) as { nhom: string; so: number; ve: string; lo: string }[];

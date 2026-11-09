@@ -1,6 +1,6 @@
 # Nhật ký thi công Đợt 1 — sửa nhỏ sau rà soát lần 2
 
-Kế hoạch: `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (chủ duyệt 2026-11-09), Phần IV. Nhánh `claude/dot-1-sua-nho-498d1f`, cắt từ nhánh tài liệu chứa kế hoạch (đã chứa `main` `fa3fd859a`). Không migration; số phiên bản tạm **2.81** (main còn mục 2.80 «Có vé» chưa triển khai).
+Kế hoạch: `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (chủ duyệt 2026-11-09), Phần IV. Nhánh `claude/dot-1-sua-nho-498d1f`, cắt từ nhánh tài liệu chứa kế hoạch (đã chứa `main` `fa3fd859a`). Không migration; số phiên bản tạm **2.83** (main đã có 2.81 vé Tour Đảo và 2.82 nút thanh dưới; đánh lại ngày 9/11 khi gộp main lần hai).
 
 ## Các task và commit
 
@@ -15,7 +15,7 @@ Kế hoạch: `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (ch�
 | 1.7 | N4 Nhập lô vé dùng khung chọn dịch vụ | `createCatalogPicker` thêm `cheDo: "chon-mot"`, `khongYeuCauGia`, `khoaNho`, `onDoi`, `xoaChon`; luật thuần `chonDuocDichVu`, `timDichVuDaChon` ở `loc-danh-muc.ts` |
 | 1.8 | «Trả trước» → «Thanh toán ngay» | Radio nhận chữ từ `NHAN_HINH_THUC` qua `data-nhan-hinh-thuc`; bài khoá cả hai phía (`doi-chu-thanh-toan-ngay.test.ts`); bảng tham chiếu thêm «Thanh toán ngay» và «Trả sau» (khái niệm) |
 | 1.9 | Ba kịch bản Chrome đỏ sẵn | «Xem biên nhận» → «Xem ảnh gửi khách» (commit đổi tên 1c1e71603, 5/11); «Lưu đơn (chưa xác nhận)» → «Gửi đơn» cho Đối tác (ADR-0136) |
-| mục nhật ký | `changelog.ts` 2.81 | Số tạm; bước A.0 đặt lại nếu nhánh khác nhập trước |
+| mục nhật ký | `changelog.ts` 2.83 | Số tạm; bước A.0 đặt lại nếu nhánh khác nhập trước |
 
 ## Điều lệch hoặc đáng ghi
 
@@ -35,4 +35,8 @@ Xem mục «Kiểm cuối» ở cuối tệp (điền sau khi chạy `npm test`,
 - Kịch bản Chrome 390/1280 xanh trên phần đổi: doi-tac-lap-don (bước 2b2 và các bước gửi đơn), ql-ban-hang, ve-qr. Ảnh ở `docs/evidence/2026-11-09-dot-1/anh/`.
 - Kịch bản còn đỏ sẵn đã đối chiếu bằng bản gốc (không do Đợt 1): ghi ở `docs/BACKLOG.md` mục 67.
 - Chưa có ảnh riêng cho nút «Điền thông tin đối tác», ô ghi chú ẩn và lưới Trang chủ điện thoại của Quản lý bán hàng; ba chỗ này được khoá bằng bài máy.
-- Chưa thử iPhone thật. Số phiên bản 2.81 là tạm.
+- Chưa thử iPhone thật. Số phiên bản 2.83 là tạm.
+
+## Gộp main lần hai (9/11, main 9445ac80d)
+
+Main đã lên vé Tour Đảo 2.81 và nút thanh dưới 2.82 nên mục nhật ký của Đợt 1 đánh lại thành **2.83**. Xung đột chỉ ở `changelog.ts`, `app-info.test.ts`, `huong-dan-dau-van.ts` và `BANG-THAM-CHIEU.md` (sinh lại). Hai bài hướng dẫn «Kho vé điện tử» và «Cấp hạn mức trả sau» đọc lại, nội dung vẫn đúng, ghi dấu vân bản 2.83. Bộ kiểm đầy đủ chạy lại sau gộp (xem dòng dưới).
