@@ -456,8 +456,8 @@ const CO_LUOT_QUET = defineSql("ve-dien-tu", "co_luot_quet", "SELECT 1 AS co FRO
 /** Lượt quét mang mã này đã vào sổ chưa (sau lô: biết mình thắng hay thua cạnh tranh mà không dựa vào `changes()` của máy chủ D1). */
 export const coLuotQuet = async (db: D1Database, id: string): Promise<boolean> => (await db.prepare(CO_LUOT_QUET).bind(id).first()) !== null;
 
-const DOC_LUOT_QUET = defineSql("ve-dien-tu", "doc_luot_quet", "SELECT id, order_id, scanned_by, scanned_at, voided_at FROM vdt_scan WHERE id = ?1");
-export interface LuotQuetRow { id: string; order_id: string | null; scanned_by: string | null; scanned_at: string; voided_at: string | null }
+const DOC_LUOT_QUET = defineSql("ve-dien-tu", "doc_luot_quet", "SELECT id, order_id, scanned_by, scanned_at, voided_at, voided_by FROM vdt_scan WHERE id = ?1");
+export interface LuotQuetRow { id: string; order_id: string | null; scanned_by: string | null; scanned_at: string; voided_at: string | null; voided_by: string | null }
 export const docLuotQuet = (db: D1Database, id: string): Promise<LuotQuetRow | null> => db.prepare(DOC_LUOT_QUET).bind(id).first<LuotQuetRow>();
 
 const BO_LUOT_QUET = defineSql("ve-dien-tu", "bo_luot_quet", "UPDATE vdt_scan SET voided_at = ?2, voided_by = ?3, void_reason = ?4, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND voided_at IS NULL");

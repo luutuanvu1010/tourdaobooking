@@ -2,7 +2,8 @@
 import { test, mock } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ACC, ADM, DRIVER, DRIVER_PARTNER, FIELD, INTERN, NGAY_SAU, PARTNER, SALES, batDongHo, don, setup } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ACC, ADM, DRIVER, DRIVER_PARTNER, FIELD, INTERN, NGAY_SAU, PARTNER, SALES, SUP, batDongHo, don, donDoiTac, setup } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { seedStaff } from "../../../tests/audit/harness.mjs";
 
 const PNG = (n: number) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); return Buffer.from(u).toString("base64"); };
 const AT = "2026-01-01T00:00:00.000Z";
@@ -19,17 +20,31 @@ async function loVaoKho(w: any, nguon: "TOUR_DAO" | "HANG_NGOAI", soVe: number, 
   assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/ve`, { as, body: { ve } })).json.themDuoc, soVe);
   assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/xac-nhan`, { as, body: {} })).status, 200);
 }
-/** Kho Tour Đảo 4 vé, đơn 2 khách đã xác nhận (giữ 2 vé), vé đã mở (giao). `ngay` = ngày đi. */
-async function donDaMo(w: any, ngay?: string, mo = true) {
+/** Kho Tour Đảo 4 vé, đơn 2 khách đã xác nhận (giữ 2 vé), vé đã mở (giao). `ngay` = ngày đi. `thu` = đã thu ĐỦ tiền (mặc định có: đặc tả 2.5 báo vàng «chưa thu đủ» theo cổng tiền, nên ca xanh phải gieo đơn thu đủ). */
+async function donDaMo(w: any, ngay?: string, mo = true, thu = true) {
   NGUON(w, "TOUR_DAO");
   await loVaoKho(w, "TOUR_DAO", 4, 0);
   const d = await don(w, { soNguoi: 2, ...(ngay ? { ngay } : {}) });
+  if (thu) {
+    const tong = (await w.call("GET", `/api/orders/${d.id}`, { as: SALES })).json.order.total as number;
+    assert.equal((await w.call("POST", `/api/orders/${d.id}/payments`, { as: ADM, body: { soTien: tong, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
+  }
   if (mo) assert.equal((await w.call("POST", "/api/ve/giao", { as: SALES, body: { orderId: d.id, requestId: crypto.randomUUID() } })).status, 200);
   return d;
 }
 const maCuaDon = (w: any, id: string): string[] =>
   w.q("SELECT t.ticket_code AS ma FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE a.order_id = ? AND a.released_at IS NULL ORDER BY a.slot_no", id).map((r: { ma: string }) => r.ma);
 const quet = (w: any, as: string, ma: string, xacNhan?: object) => w.call("POST", "/api/ve/quet", { as, body: { ma, ...(xacNhan ? { xacNhan } : {}) } });
+/** Chen một lượt DA_TINH của người khác thẳng vào sổ (mô phỏng hai máy quét cùng lúc). */
+const chenDaTinh = (w: any, ticketId: string, by = SALES) =>
+  w.sqlite.prepare(`INSERT INTO vdt_scan (id, ticket_id, ket_qua, scanned_at, scanned_by, created_at, updated_at) VALUES (?, ?, 'DA_TINH', ?, ?, ?, ?)`).run(crypto.randomUUID(), ticketId, new Date(Date.now() - 1000).toISOString(), by, "2027-03-11T00:00:00.000Z", "2027-03-11T00:00:00.000Z");
+/** Chạy `viec` MỘT lần ngay trước câu SQL khớp `mau` đầu tiên của route (giữa lúc route đọc và lúc ghi). */
+function truocCau(w: any, mau: RegExp, viec: () => void) {
+  const goc = w.sqlite.prepare.bind(w.sqlite);
+  let xong = false;
+  w.sqlite.prepare = (sql: string) => { if (!xong && mau.test(sql)) { xong = true; viec(); } return goc(sql); };
+}
+const veId = (w: any, ma: string) => w.q("SELECT id FROM vdt_ticket WHERE ticket_code = ?", ma)[0].id as string;
 const luot = (w: any, kq?: string): any[] => w.q(`SELECT * FROM vdt_scan ${kq ? "WHERE ket_qua = ?" : ""} ORDER BY scanned_at, id`, ...(kq ? [kq] : []));
 
 test("Hướng dẫn viên quét vé đã mở hợp lệ → xanh, một DA_TINH; quét lại → đỏ «Đã dùng»; không lộ tên khách, SĐT, giá, mã vé", async () => {
@@ -237,5 +252,145 @@ test("nhật ký quét và mọi phản hồi không chứa mã vé đủ; nhậ
     for (const t of texts) assert.doesNotMatch(t, MA_TD);
     assert.match(nk.find((r: any) => r.action === "ve_quet").detail, new RegExp(`số cuối ${ma!.slice(-4)}`));
     assert.equal(w.q("SELECT count(*) AS n FROM vdt_scan WHERE ticket_id IN (SELECT id FROM vdt_ticket WHERE ticket_code = ?)", ma)[0].n, 3);
+  } finally { tat(); }
+});
+
+test("vàng «chưa thu đủ» theo cổng tiền: người có money.view thấy số còn thiếu, người khác chỉ thấy câu chung; xác nhận rồi mới ghi", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await donDaMo(w, undefined, true, false);
+    const [m1] = maCuaDon(w, d.id);
+    const cu = await quet(w, FIELD, m1!);
+    assert.equal(cu.json.mau, "VANG");
+    assert.equal(cu.json.ma, "CHUA_THU_DU");
+    assert.equal(cu.json.cau, "Đơn chưa thu đủ, báo văn phòng trước khi thu khách", "Hướng dẫn viên không có money.view: không thấy số tiền");
+    const co = await quet(w, SALES, m1!);
+    assert.equal(co.json.ma, "CHUA_THU_DU");
+    assert.match(co.json.cau, /^Đơn chưa thu đủ, còn thiếu [\d.]+ đ, báo văn phòng/);
+    assert.equal(luot(w).length, 0, "vàng chưa xác nhận thì chưa ghi");
+    const x = await quet(w, FIELD, m1!, { chuaThu: true });
+    assert.equal(x.json.mau, "XANH");
+    const [l] = luot(w, "DA_TINH");
+    assert.equal(l.xac_nhan_chua_thu, 1);
+    assert.equal(l.xac_nhan_lech_ngay, 0);
+  } finally { tat(); }
+});
+
+test("đơn đối tác chưa thu: vé chưa được mở nên ra «chưa giao» trước, không phải vàng", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    NGUON(w, "TOUR_DAO");
+    await loVaoKho(w, "TOUR_DAO", 2, 0);
+    const d = await donDoiTac(w, { soNguoi: 2 });
+    const [ma] = maCuaDon(w, d.id);
+    assert.ok(ma, "chống bài rỗng: đơn đối tác có vé Tour Đảo");
+    const r = await quet(w, FIELD, ma!);
+    assert.equal(r.json.ma, "CHUA_GIAO");
+    assert.equal(r.json.mau, "DO");
+  } finally { tat(); }
+});
+
+test("thua cạnh tranh (có chỉ mục): lượt DA_TINH của người khác chen giữa lúc đọc và lúc ghi → bên thua nhận «Đã dùng lúc … bởi …», không lanQuetId, không nhật ký", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await donDaMo(w);
+    const [ma] = maCuaDon(w, d.id);
+    truocCau(w, /INSERT OR IGNORE INTO vdt_scan/, () => chenDaTinh(w, veId(w, ma!)));
+    const r = await quet(w, FIELD, ma!);
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.ma, "DA_DUNG");
+    assert.match(r.json.cau, /^Đã dùng lúc \d\d:\d\d ngày \d\d\/\d\d bởi An$/);
+    assert.equal(r.json.lanQuetId, undefined);
+    assert.equal(luot(w, "DA_TINH").length, 1, "chỉ lượt của bên thắng");
+    assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 've_quet'")[0].n, 0, "gác changes() > 0: bên thua không có dòng nhật ký");
+  } finally { tat(); }
+});
+
+test("thua cạnh tranh (gác chèn đứng một mình, chỉ mục bị gỡ): vẫn một DA_TINH, không nhật ký", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await donDaMo(w);
+    const [ma] = maCuaDon(w, d.id);
+    w.sqlite.exec("DROP INDEX vdt_scan_mot_lan");
+    truocCau(w, /INSERT OR IGNORE INTO vdt_scan/, () => chenDaTinh(w, veId(w, ma!)));
+    const r = await quet(w, FIELD, ma!);
+    assert.equal(r.json.ma, "DA_DUNG");
+    assert.equal(r.json.lanQuetId, undefined);
+    assert.equal(luot(w, "DA_TINH").length, 1);
+    assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 've_quet'")[0].n, 0);
+  } finally { tat(); }
+});
+
+test("gác chèn: vé vừa bị vô hiệu giữa lúc đọc và lúc ghi → 409, không có lượt, không nhật ký, không lanQuetId", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await donDaMo(w);
+    const [ma] = maCuaDon(w, d.id);
+    truocCau(w, /INSERT OR IGNORE INTO vdt_scan/, () => w.sqlite.prepare("UPDATE vdt_ticket SET status = 'VOID', updated_at = ? WHERE ticket_code = ?").run("2027-03-11T00:00:00.000Z", ma));
+    const r = await quet(w, FIELD, ma!);
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.lanQuetId, undefined);
+    assert.equal(luot(w).length, 0);
+    assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 've_quet'")[0].n, 0);
+  } finally { tat(); }
+});
+
+test("gác nhật ký bỏ lượt: hai người cùng bỏ một lượt, bên thua nhận 409 và không có dòng nhật ký thứ hai", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await donDaMo(w);
+    const [ma] = maCuaDon(w, d.id);
+    const q = await quet(w, FIELD, ma!);
+    truocCau(w, /UPDATE vdt_scan SET voided_at/, () => w.sqlite.prepare("UPDATE vdt_scan SET voided_at = ?, voided_by = ?, void_reason = 'bỏ trước', updated_at = ?, updated_by = ? WHERE id = ?").run("2027-03-11T00:00:00.000Z", ADM, "2027-03-11T00:00:00.000Z", ADM, q.json.lanQuetId));
+    const r = await w.call("POST", `/api/ve/quet/${q.json.lanQuetId}/bo`, { as: FIELD, body: { lyDo: "quét nhầm vé" } });
+    assert.equal(r.status, 409, r.text);
+    assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 've_bo_luot_quet'")[0].n, 0, "gác changes() > 0");
+    assert.equal(luot(w)[0].voided_by, ADM);
+  } finally { tat(); }
+});
+
+test("lý do bỏ lượt: không chứa mã vé (cả khi tách hoặc viết thường) hay chuỗi 9 chữ số trở lên", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const d = await donDaMo(w);
+    const [ma] = maCuaDon(w, d.id);
+    const q = await quet(w, FIELD, ma!);
+    const bo = (lyDo: string) => w.call("POST", `/api/ve/quet/${q.json.lanQuetId}/bo`, { as: FIELD, body: { lyDo } });
+    const tach = ma!.toLowerCase().replace(/(.{6})/g, "$1 - ");
+    for (const lyDo of [`nhầm ${ma}`, `nhầm ${ma!.toLowerCase()}`, `nhầm ${tach}`, "khách đọc số 0912 345 678", "số 091-234-5678 nhầm"]) {
+      const r = await bo(lyDo);
+      assert.equal(r.status, 400, lyDo);
+      assert.equal(r.json.error.message, "Lý do không được chứa số điện thoại hoặc mã vé.");
+    }
+    assert.equal((await bo("nhầm 12345678 chữ số")).status, 200, "8 chữ số thì được");
+  } finally { tat(); }
+});
+
+test("ranh giới 5 phút: đúng 5:00 người quét bỏ được, 5:01 thì không; Toàn quyền bất kỳ lúc nào; Quản lý bán hàng và Nhân sự bỏ lượt người khác → 403", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    for (const [id, phone, perms] of [["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", "0900000041", ["SALES_MANAGER", "SALES"]], ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2", "0900000042", ["HR"]]] as [string, string, string[]][]) seedStaff(w.sqlite, { id, phone, name: `NV ${phone.slice(-2)}`, perms });
+    const QLBH = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1";
+    const HCNS = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2";
+    const d = await donDaMo(w);
+    const [m1, m2] = maCuaDon(w, d.id);
+    const bo = (as: string, id: string) => w.call("POST", `/api/ve/quet/${id}/bo`, { as, body: { lyDo: "quét nhầm vé" } });
+    const q1 = await quet(w, FIELD, m1!);
+    const q2 = await quet(w, FIELD, m2!);
+    mock.timers.tick(5 * 60_000);
+    assert.equal((await bo(QLBH, q1.json.lanQuetId)).status, 403, "Quản lý bán hàng bỏ lượt của người khác");
+    assert.equal((await bo(HCNS, q1.json.lanQuetId)).status, 403, "Nhân sự không có ô quét");
+    assert.equal((await bo(FIELD, q1.json.lanQuetId)).status, 200, "đúng 5:00 vẫn trong hạn");
+    mock.timers.tick(1000);
+    assert.equal((await bo(FIELD, q2.json.lanQuetId)).status, 403, "5:01 ngoài hạn");
+    assert.equal((await bo(SUP, q2.json.lanQuetId)).status, 200, "Toàn quyền bất kỳ lúc nào");
   } finally { tat(); }
 });

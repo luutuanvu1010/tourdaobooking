@@ -17,7 +17,7 @@ export type VeQuet = {
   daDung: { luc: string; nguoi: string } | null;
   /** Ngày đi hiện hành của dòng dịch vụ; null = chưa có. */
   ngayDi: string | null;
-  /** Kết quả `veMoDuocTheoVe` (Trả sau trong hạn là true); false = đơn chưa thu đủ. */
+  /** Kết quả cổng tiền `moVeDuoc` (`tra-sau.ts`) với vé chưa mở: Trả trước phải thu đủ, Trả sau trong hạn là true, quá hạn còn nợ là false. false = đơn chưa thu đủ ⇒ vàng. KHÔNG phải `veMoDuocTheoVe` (vé Tour Đảo nội bộ mở không cần tiền, nhưng đặc tả 2.5 vẫn báo vàng khi chưa thu). */
   moTheoTien: boolean;
   soLuotDaTinh: number;
   soKhachHieuLuc: number;

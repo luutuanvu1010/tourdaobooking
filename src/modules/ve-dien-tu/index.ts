@@ -54,7 +54,11 @@ const gioVn = (iso: string): string => {
   return `${t.slice(11, 16)} ngày ${t.slice(8, 10)}/${t.slice(5, 7)}`;
 };
 const NHAN_GHI_QUET = { DA_TINH: "tính đã dùng", CHI_XEM: "chỉ xem", TU_CHOI: "từ chối" } as const;
-const DANG_MA_TRONG_CHU = /TD1\.[A-Z2-7]{26}/;
+/** Lý do bỏ lượt không được mang mã vé hay số điện thoại: so SAU khi bỏ khoảng trắng, gạch ngang, dấu chấm và đổi hoa (chống tách chuỗi để lọt). */
+const chuaMaHoacSdt = (chu: string): boolean => {
+  const gon = chu.replace(/[\s\-._]/g, "").toUpperCase();
+  return /TD1[A-Z2-7]{26}/.test(gon) || /\d{9,}/.test(gon);
+};
 /** Người quét tự bỏ lượt trong khoảng này kể từ lúc quét (ADR-0175 Đ3 mục 7); Quản trị, Toàn quyền bất kỳ lúc nào. */
 const PHUT_TU_BO_LUOT = 5;
 const dauNghin = (n: number): string => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -673,7 +677,7 @@ export const veDienTuModule: AppModule = {
       const ve: VeQuet = {
         nguon: row.nguon, trangThaiVe: row.ve_status, trangThaiDon: dich?.trangThai ?? null, daMo: row.revealed_at !== null, tuNgay: row.valid_from, denNgay: row.valid_to,
         daDung: daDung ? { luc: daDung.scanned_at, nguoi: await tenNguoiQuet(daDung.scanned_by) } : null, ngayDi: dich?.ngayDi ?? null,
-        moTheoTien: don ? veMoDuoc(don, { nguon: row.nguon, daMo: false }) : true, soLuotDaTinh, soKhachHieuLuc: dich?.soKhachHieuLuc ?? 0,
+        moTheoTien: don ? moTheoTien(don, false) : true, soLuotDaTinh, soKhachHieuLuc: dich?.soKhachHieuLuc ?? 0,
       };
       const kq = ketQuaQuet(ve, { homNay, quyenTinh, xacNhan });
       const nhomKhach = NHAN_NHOM_LO[(row.nhom ?? row.nhom_lo) as keyof typeof NHAN_NHOM_LO] ?? "";
@@ -694,8 +698,9 @@ export const veDienTuModule: AppModule = {
         }),
         auditStatement(env.DB, { staffId: staff.id, action: "ve_quet", at, orderId: row.order_id ?? undefined, targetType: "ve", targetId: row.order_service_id ?? row.ticket_id, detail: `Quét vé · ${NHAN_GHI_QUET[kq.ghi]} · số cuối ${row.cuoi}` }, "changes() > 0"),
       ]);
-      if (kq.ghi === "DA_TINH" && !(await coLuotQuet(env.DB, id))) {
-        const thang = await docLuotDaTinh(env.DB, row.ticket_id);
+      // Lượt của mình KHÔNG vào sổ (thua cạnh tranh, hoặc gác chèn từ chối vì vé vừa đổi trạng thái): không bao giờ trả `lanQuetId` của dòng không có.
+      if (!(await coLuotQuet(env.DB, id))) {
+        const thang = kq.ghi === "DA_TINH" ? await docLuotDaTinh(env.DB, row.ticket_id) : null;
         if (thang === null) return error(409, "ve_vua_doi", "Vé vừa đổi trạng thái, hãy quét lại.");
         return phanHoi("DO", "DA_DUNG", null, cauDaDung({ luc: thang.scanned_at, nguoi: await tenNguoiQuet(thang.scanned_by) }));
       }
@@ -711,7 +716,7 @@ export const veDienTuModule: AppModule = {
       if (raw === null) return BAD_JSON();
       const lyDo = typeof raw.lyDo === "string" ? raw.lyDo.trim() : "";
       if (lyDo.length < 5 || lyDo.length > 300) return error(400, "invalid_input", "Hãy ghi lý do bỏ lượt quét (từ 5 đến 300 ký tự).");
-      if (DANG_MA_TRONG_CHU.test(lyDo)) return error(400, "invalid_input", "Lý do không được chứa mã vé.");
+      if (chuaMaHoacSdt(lyDo)) return error(400, "invalid_input", "Lý do không được chứa số điện thoại hoặc mã vé.");
       const luot = await docLuotQuet(env.DB, id);
       if (luot === null) return error(404, "not_found", "Không tìm thấy lượt quét.");
       if (luot.voided_at !== null) return error(409, "da_bo", "Lượt quét này đã được bỏ.");
@@ -722,6 +727,9 @@ export const veDienTuModule: AppModule = {
         cauBoLuotQuet(env.DB, id, at, staff.id, lyDo),
         auditStatement(env.DB, { staffId: staff.id, action: "ve_bo_luot_quet", at, orderId: luot.order_id ?? undefined, targetType: "ve", targetId: id, detail: `Bỏ lượt quét · lý do: ${lyDo}` }, "changes() > 0"),
       ]);
+      // Hai người cùng bỏ một lượt: bên thua (câu cập nhật không đổi dòng nào, nhật ký không ghi) nhận 409, không báo «đã bỏ» thay người khác.
+      const sau = await docLuotQuet(env.DB, id);
+      if (sau?.voided_at !== at || sau.voided_by !== staff.id) return error(409, "da_bo", "Lượt quét này đã được bỏ.");
       return json({ ok: true });
     }),
 
