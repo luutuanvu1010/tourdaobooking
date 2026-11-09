@@ -97,7 +97,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 5. Camera không mở được thì bấm **Chụp ảnh mã vé** và chụp mã trên vé.
 
 ### Điều dễ sai
-- Tài xế công ty chỉ xem vé có hợp lệ không, quét không tính «Đã dùng».
+- Tài xế công ty chỉ xem vé có hợp lệ không; lượt quét của họ không tính vào số vé đã đi.
 - Quét nhầm thì bấm [[Bỏ lượt quét]] ở danh sách năm lượt gần nhất, ghi lý do. Đừng gõ số điện thoại hay mã vé vào lý do.
 - Vé đỏ «Đã dùng» hiện giờ và tên người đã quét trước đó; đừng cho khách đi lần hai.`,
   },
