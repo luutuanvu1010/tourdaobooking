@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ACC, ADM, DRIVER, FIELD, SALES, batDongHo, don, setup } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ACC, ADM, DRIVER, FIELD, LOC, NGAY, SALES, batDongHo, don, setup } from "../../../tests/audit/dieu-phoi-khung.mjs";
 import * as XN from "../../../tests/audit/xac-nhan-khung.mjs";
 
 const PNG = (n: number) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); return Buffer.from(u).toString("base64"); };
@@ -204,3 +204,110 @@ test("rut-xac-nhan và quyet-dinh (Huỷ) 409 đúng câu khi đơn có lượt 
   gieoLuotDaTinh(w, c, true);
   assert.equal((await rut(w, c)).status, 200, "lượt đã bỏ không chặn");
 });
+
+// ===== Củng cố Task 13: đúng dòng dịch vụ, em bé không tính, và câu gác trong lô chống quét chen giữa lúc đọc và lúc ghi =====
+/** Chèn thẳng một lượt DA_TINH (một khách) của vé còn lại cho đúng dòng dịch vụ — mô phỏng máy quét khác chen vào (khuôn bài 14/15 của quet-route.test.ts, nhưng chèn đúng trước LÔ ghi vì D1 giả soạn câu lúc chạy lô). */
+const chenLuotDaTinh = (w: any, orderId: string, ticketCode: string, serviceId: string) => {
+  const ve = w.q("SELECT id FROM vdt_ticket WHERE ticket_code = ?", ticketCode)[0].id as string;
+  w.sqlite.prepare("INSERT INTO vdt_scan (id, ticket_id, order_id, order_service_id, so_khach, ket_qua, scanned_at, scanned_by, created_at, updated_at) VALUES (?, ?, ?, ?, 1, 'DA_TINH', ?, ?, ?, ?)")
+    .run(crypto.randomUUID(), ve, orderId, serviceId, AT, FIELD, AT, AT);
+};
+const soKhachLuu = (w: any, id: string) => w.q("SELECT count(*) AS n FROM order_money_adjustment WHERE order_id = ?", id)[0].n as number;
+
+
+/** Đơn ĐÃ XÁC NHẬN hai dòng dịch vụ: A = ZA1 (có vé, 2 khách, chặng đón), B = ZB1 (không vé, 2 khách). Đã thu đủ, đã giao vé dòng A. */
+async function donHaiDong(w: any) {
+  const lap = (code: string, gia: number, dongA: boolean) => ({
+    kind: "catalog", catalogCode: code, pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: gia }, departDate: NGAY,
+    pickupChoice: dongA ? "DON" : "KHONG_DON",
+    legs: dongA ? [{ direction: "OUT", pickupDate: NGAY, pickupTime: "13:00", pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" }] : [],
+  });
+  const r = await w.call("POST", "/api/orders", {
+    as: SALES,
+    body: { customerName: "Khách Hai Dòng", customerPhone: "0912345678", services: [lap("ZA1", 777000, true), lap("ZB1", 300000, false)], passengers: Array.from({ length: 4 }, (_x, i) => ({ fullName: `Khách Hai Dòng ${i + 1}`, birthYear: 1990 + i, paxCode: "adult" })) },
+  });
+  assert.equal(r.status, 201, r.text);
+  const id = r.json.order.id as string;
+  assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  const tong = (await w.call("GET", `/api/orders/${id}`, { as: SALES })).json.order.total as number;
+  assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: ADM, body: { soTien: tong, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
+  assert.equal((await w.call("POST", "/api/ve/giao", { as: SALES, body: { orderId: id, requestId: crypto.randomUUID() } })).status, 200);
+  const dv = (ma: string) => w.q("SELECT id FROM order_service WHERE order_id = ? AND catalog_code = ?", id, ma)[0].id as string;
+  return { id, a: dv("ZA1"), b: dv("ZB1") };
+}
+
+test("đơn hai dòng: vé đã dùng ở dòng A không chặn giảm khách dòng B; giảm dòng A xuống dưới số đã dùng vẫn bị chặn", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    await khoVe(w);
+    w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZB1', 'Tour bờ', 'perPax', 300000, 1, '2026-01-01', '2026-01-01')");
+    w.sqlite.exec("INSERT INTO ctl_service_ticket_flag (id, scope, code, has_ticket, valid_from_at, created_at, updated_at) VALUES ('co-ve-zb1', 'SERVICE', 'ZB1', 0, '2026-01-01T00:00:00.000Z', '2026-01-01', '2026-01-01')");
+    const d = await donHaiDong(w);
+    await quetTinh(w, d.id, FIELD, 0);
+    await quetTinh(w, d.id, FIELD, 1); // dòng A đã dùng 2
+    const body = (a: number, b: number) => ({ lyDo: "BOT_NGUOI", services: [{ id: d.a, pax: pax(a) }, { id: d.b, pax: pax(b) }] });
+    const hai = await w.call("POST", `/api/orders/${d.id}/money-edit`, { as: SALES, body: body(2, 1) });
+    assert.equal(hai.status, 200, hai.text); // B 2 → 1: B không có vé đã dùng, dù cả đơn đã dùng 2
+    const chan = await w.call("POST", `/api/orders/${d.id}/money-edit`, { as: SALES, body: body(1, 1) });
+    assert.equal(chan.status, 409, chan.text);
+    assert.equal(chan.json.error.code, "duoi_so_ve_da_dung");
+  } finally { tat(); }
+});
+
+test("dịch vụ có giá em bé: em bé không tính vào số khách so với vé đã dùng", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    await khoVe(w);
+    w.sqlite.exec("UPDATE catalog_item SET price_infant = 100000 WHERE code = 'ZA1'");
+    // bản chụp giá lúc lập đơn phải có giá em bé thì sau này mới sửa thêm em bé được: lập đơn với 1 em bé
+    const r = await w.call("POST", "/api/orders", {
+      as: SALES,
+      body: {
+        customerName: "Khách Em Bé", customerPhone: "0912345678",
+        services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 1 }, catalogPriceSeen: { adult: 777000, infant: 100000 }, departDate: NGAY, pickupChoice: "DON",
+          legs: [{ direction: "OUT", pickupDate: NGAY, pickupTime: "13:00", pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" }] }],
+        passengers: [{ fullName: "Khách Em Bé 1", birthYear: 1990, paxCode: "adult" }, { fullName: "Khách Em Bé 2", birthYear: 1991, paxCode: "adult" }, { fullName: "Bé Một", birthYear: 2026, paxCode: "infant" }],
+      },
+    });
+    assert.equal(r.status, 201, r.text);
+    const d = { id: r.json.order.id as string };
+    assert.equal((await w.call("POST", `/api/orders/${d.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+    const tong = (await w.call("GET", `/api/orders/${d.id}`, { as: SALES })).json.order.total as number;
+    assert.equal((await w.call("POST", `/api/orders/${d.id}/payments`, { as: ADM, body: { soTien: tong, hinhThuc: "CASH", nguoiThu: "cong_ty" } })).status, 201);
+    assert.equal((await w.call("POST", "/api/ve/giao", { as: SALES, body: { orderId: d.id, requestId: crypto.randomUUID() } })).status, 200);
+    await quetTinh(w, d.id, FIELD, 0);
+    await quetTinh(w, d.id, FIELD, 1); // đã dùng 2
+    const them = await suaKhach(w, d.id, 2, 1); // giữ 2 người lớn, thêm 1 em bé: không dưới số đã dùng
+    assert.equal(them.status, 200, them.text);
+    const chan = await suaKhach(w, d.id, 1, 3); // 1 người lớn + 3 em bé: em bé không tính nên 1 < 2 vẫn chặn
+    assert.equal(chan.status, 409, chan.text);
+    assert.equal(chan.json.error.code, "duoi_so_ve_da_dung");
+  } finally { tat(); }
+});
+
+for (const [ten, sua] of [["money-edit", suaKhach], ["handler-money-edit", suaKhachHdv]] as const) {
+  test(`cạnh tranh: lượt quét chen giữa lúc đọc và lúc ghi ${ten} → 409 duoi_so_ve_da_dung, số khách không đổi, không ghi dòng điều chỉnh`, async () => {
+    const tat = batDongHo();
+    try {
+      const w = setup();
+      await khoVe(w);
+      const d = await donDaMo(w, 2);
+      giaoViec(w, d.id);
+      await quetTinh(w, d.id, FIELD, 0); // đã dùng 1: giảm xuống 1 qua phép kiểm lúc đọc
+      const truocDong = soKhachLuu(w, d.id);
+      const truocNhatKy = Number(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ?", d.id)[0].n);
+      const ma2 = maCuaDon(w, d.id)[1]!;
+      w.chenTruocLo((stmts: any[]) => stmts.some((x) => /INSERT INTO order_money_adjustment/.test(x.sql)), () => chenLuotDaTinh(w, d.id, ma2, dichVuId(w, d.id))); // lô ghi đã soạn xong, chưa chạy: lượt quét chen vào đúng khe
+      const r = await sua(w, d.id, 1);
+      assert.equal(r.status, 409, r.text);
+      assert.equal(r.json.error.code, "duoi_so_ve_da_dung");
+      assert.equal(r.json.error.message, CAU_GIAM);
+      assert.doesNotMatch(r.text, MA_TD);
+      assert.equal(w.q("SELECT count(*) AS n FROM vdt_scan WHERE ket_qua = 'DA_TINH'")[0].n, 2, "lượt chen vẫn còn (bài có thật)");
+      assert.equal(soKhachLuu(w, d.id), truocDong, "không có dòng điều chỉnh mới");
+      assert.equal(Number(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ?", d.id)[0].n), truocNhatKy, "không nhật ký");
+    } finally { tat(); }
+  });
+}

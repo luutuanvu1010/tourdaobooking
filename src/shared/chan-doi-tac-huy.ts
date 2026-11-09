@@ -20,6 +20,10 @@ export const DAU_LOI_VE_DA_DUNG = "don_co_ve_da_dung";
 export const laLoiVeDaDungTrongLo = (e: unknown): boolean => (e instanceof Error ? e.message : String(e)).includes(DAU_LOI_VE_DA_DUNG);
 export const chanVeDaDungTrongLo = (): Response => error(409, "don_co_ve_da_dung", CAU_DON_CO_VE_DA_DUNG);
 export const CAU_DUOI_SO_VE_DA_DUNG = "Số khách mới ít hơn số vé đã dùng của dịch vụ này. Bỏ lượt quét trước khi giảm khách.";
+/** Dấu lỗi của câu gác `cauChanDuoiSoDaDung` trong lô sửa số khách (đường dẫn `json_extract` hỏng; không chứa, và không nằm trong, hai dấu trên). */
+export const DAU_LOI_DUOI_SO_VE_DA_DUNG = "duoi_so_ve_da_dung";
+export const dichLoiDuoiSoVeDaDung = (e: unknown): Response | null =>
+  (e instanceof Error ? e.message : String(e)).includes(DAU_LOI_DUOI_SO_VE_DA_DUNG) ? error(409, "duoi_so_ve_da_dung", CAU_DUOI_SO_VE_DA_DUNG) : null;
 export const CAU_CHUA_KIEM_DUOC_VE_DA_DUNG = "Chưa kiểm tra được vé đã dùng của đơn này nên chưa sửa số khách được. Bạn thử lại sau.";
 
 // ADR-0171 Đ1: CÙNG lõi cho «sửa số khách» (`money-edit`, `handler-money-edit`): tăng hay giảm đều chặn khi đơn đã mở vé; chưa mở thì thôi.

@@ -26,7 +26,7 @@ import { giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
-import { canBangVeTheoSoKhach, cauChanVeDaDung, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soVeDaDungTheoDichVu, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule, veHangNgoaiDaMoCuaDon } from "./modules/ve-dien-tu";
+import { canBangVeTheoSoKhach, cauChanDuoiSoDaDung, cauChanVeDaDung, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soVeDaDungTheoDichVu, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule, veHangNgoaiDaMoCuaDon } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
 import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
@@ -260,6 +260,7 @@ const APP_OPTIONS: AppOptions = {
     traSauCuaDon: (env, id) => traSauCuaDon(env.DB, id),
     veDaMoCuaDon: (env, id) => veDaMoCuaDon(env.DB, id),
     soVeDaDungTheoDichVu: (env, id) => soVeDaDungTheoDichVu(env.DB, id), // ADR-0175 Đ3 mục 3: chặn giảm số khách dưới số vé đã dùng
+    cauChanDuoiSoDaDung: (env, orderId, serviceId, n) => cauChanDuoiSoDaDung(env.DB, orderId, serviceId, n), // câu gác trong lô sửa số khách (đóng cửa sổ đọc–ghi)
     veHangNgoaiDaMoCuaDon: (env, id) => veHangNgoaiDaMoCuaDon(env.DB, id), // ADR-0175 Đ2.6: cổng huỷ Trả sau còn nợ chỉ tính vé hãng ngoài
     // KÊNH THU ĐỐI TÁC (ADR-0178 Đ1): `orders` không import billing — gốc lắp ráp tiêm hàm đọc công tắc «Khách của đối tác trả cho Công ty» (chụp lên đơn lúc lập).
     kenhThuHienTai: (env) => kenhThuHienTai(env.DB),

@@ -12,7 +12,7 @@ import type {
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
-import { CAU_CHUA_KIEM_DUOC_VE_DA_DUNG, CAU_DUOI_SO_VE_DA_DUNG, chanDoiTacHuy, chanDoiTacSuaSoKhach } from "../../shared/chan-doi-tac-huy";
+import { CAU_CHUA_KIEM_DUOC_VE_DA_DUNG, CAU_DUOI_SO_VE_DA_DUNG, chanDoiTacHuy, chanDoiTacSuaSoKhach, dichLoiDuoiSoVeDaDung } from "../../shared/chan-doi-tac-huy";
 import { duocGiaoTheoO, laVaChamOBanHang } from "../../shared/ban-hang-phu-trach";
 import { route, type AppModule, type BanHangNoi } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
@@ -723,6 +723,7 @@ export type SoanSuaSoKhach =
  * dịch vụ kể cả nhập tay — Hiến chương 5.4 một luật tiền) → `detail` khuôn A3 → câu ghi CHƯA chạy (`insertMoneyAdjustment`). Nơi gọi chạy MỘT `db.batch`
  * (`chayLoSuaSoKhach`). Không tự kiểm quyền / trạng thái đơn — route đã làm trước khi gọi.
  */
+type CauGacDuoiSoVe = (orderId: string, serviceId: string, soKhachMoi: number) => D1PreparedStatement | null;
 async function soanSuaSoKhach(
   db: D1Database,
   orderId: string,
@@ -731,6 +732,7 @@ async function soanSuaSoKhach(
   action: HanhDongDoiSoKhach,
   traSau: HamTraSau & Pick<HamNoTraSau, "traSauCuaDon">,
   soVeDaDung?: (orderId: string) => Promise<Map<string, number> | null>,
+  cauGacDuoiSo?: CauGacDuoiSoVe,
 ): Promise<SoanSuaSoKhach> {
   const [stored, latest, servicesByOrder] = await Promise.all([
     getStoredServices(db, orderId),
@@ -768,7 +770,9 @@ async function soanSuaSoKhach(
   );
   if ("loi" in cong) return { ok: false, code: "tra_sau", res: cong.loi };
   const { auditId, cau } = insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, plan.before, plan.after, plan.subtotalBefore, plan.subtotalAfter, action, detail, cong.qua);
-  return { ok: true, ghi: true, auditId, cau, detail, truoc: plan.before, sau: plan.after };
+  // Câu gác cuối lô (sau các câu cũ nên chỉ số kết quả không đổi): lượt quét chen giữa lúc đọc ở trên và lúc ghi ⇒ cả lô lui, `dichLoiDuoiSoVeDaDung` dịch ra 409.
+  const gac = cauGacDuoiSo ? plan.after.flatMap((a) => cauGacDuoiSo(orderId, a.serviceId, a.pax.adult + a.pax.child + a.pax.senior) ?? []) : [];
+  return { ok: true, ghi: true, auditId, cau: [...cau, ...gac], detail, truoc: plan.before, sau: plan.after };
 }
 
 /**
@@ -811,11 +815,12 @@ function sauSuaSoKhach(trangThai: string, chang: readonly ChangSoNguoi[], truoc:
 export async function editMoneyAsHandler(
   db: D1Database, orderId: string, staffId: string, body: Record<string, unknown> | null, traSau: HamTraSau & Pick<HamNoTraSau, "traSauCuaDon">, noiChuyen: NoiChuyen,
   soVeDaDung?: (orderId: string) => Promise<Map<string, number> | null>,
+  cauGacDuoiSo?: CauGacDuoiSoVe,
 ): Promise<MoneyEditResult> {
   const meta = await getMeta(db, orderId);
   if (!meta) return { ok: false, code: "not_found" };
   if (meta.status !== "confirmed") return { ok: false, code: "not_confirmed" };
-  const soan = await soanSuaSoKhach(db, orderId, staffId, body, "order_money_adjusted_by_field", traSau, soVeDaDung);
+  const soan = await soanSuaSoKhach(db, orderId, staffId, body, "order_money_adjusted_by_field", traSau, soVeDaDung, cauGacDuoiSo);
   if (!soan.ok) return soan.code === "tra_sau" ? { ok: false, code: "trip_rule", res: soan.res } : { ok: false, code: soan.code, message: soan.message };
   if (!soan.ghi) return { ok: true };
   // ADR-0104 Đ2 (điểm gọi 7): route dispatch truyền `noiChuyen` = ctx.dongBoChuyen; MỘT lô câu đơn + khúc chuyến (Q-2 = a: chỉ mở tối đa số vừa tăng).
@@ -827,7 +832,7 @@ export async function editMoneyAsHandler(
   try {
     kq = await chayLoSuaSoKhach(db, dong.lo);
   } catch (e) {
-    const res = dong.dichLoi(e) ?? dichLoiTraSau(e);
+    const res = dong.dichLoi(e) ?? dichLoiDuoiSoVeDaDung(e) ?? dichLoiTraSau(e);
     if (res) return { ok: false, code: "trip_rule", res };
     throw e;
   }
@@ -1785,7 +1790,7 @@ export const ordersModule: AppModule = {
     // thân; trigger 0044 là lưới cuối) → 409 nháp / huỷ → 400 thân (lý do MÃ ĐÓNG ADR-0023 điều 4, không chữ tự gõ, không số tiền) → 409 stale. KHÔNG chặn theo
     // ngày đi; KHÔNG chặn giảm giá vượt tạm tính (chỉ cảnh báo — ADR-0109; phải thu kẹp 0 ở effectiveMoney). Tiền: `planMoneyEdit` (một luật với đường HDV) — không bao giờ tin số từ trình duyệt. Đây không phải đường
     // thêm / sửa dịch vụ nhập tay (chỉ số khách của dịch vụ danh mục đã có — ADR-0061 điều 5 không áp, câu duyệt của chủ).
-    route("POST", "/api/orders/:id/money-edit", "office", async ({ env, request, params, staff, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach, kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon, veDaMoCuaDon, soVeDaDungTheoDichVu }) => {
+    route("POST", "/api/orders/:id/money-edit", "office", async ({ env, request, params, staff, baoThayDoi, dongBoChuyen, canBangVeSauSuaKhach, kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon, veDaMoCuaDon, soVeDaDungTheoDichVu, cauChanDuoiSoDaDung }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const meta = await getMeta(env.DB, id);
@@ -1799,7 +1804,7 @@ export const ordersModule: AppModule = {
       const than = docThanSuaSoKhach(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       // Lý do đi vào luật chung dưới dạng NHÃN cố định do máy chủ chọn (planMoneyEdit nhận `reason` chữ — cùng bộ đọc với đường HDV).
-      const soan = await soanSuaSoKhach(env.DB, id, staff.id, { reason: than.nhan, services: than.services }, "order_money_adjusted", { kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon }, soVeDaDungTheoDichVu);
+      const soan = await soanSuaSoKhach(env.DB, id, staff.id, { reason: than.nhan, services: than.services }, "order_money_adjusted", { kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon }, soVeDaDungTheoDichVu, cauChanDuoiSoDaDung);
       if (!soan.ok && soan.code === "tra_sau") return soan.res; // ADR-0168 Đ2 mục 5
       if (!soan.ok) return soan.code === "thieu_nguoi_lon" ? error(409, "thieu_nguoi_lon", soan.message) : error(400, "invalid_input", soan.message); // ADR-0114 D3: 409, cùng mã với đường hướng dẫn viên
       if (!soan.ghi) {
@@ -1815,7 +1820,7 @@ export const ordersModule: AppModule = {
       try {
         kq = await chayLoSuaSoKhach(env.DB, dong.lo);
       } catch (e) {
-        const loi = dong.dichLoi(e) ?? dichLoiTraSau(e);
+        const loi = dong.dichLoi(e) ?? dichLoiDuoiSoVeDaDung(e) ?? dichLoiTraSau(e);
         if (loi) return loi;
         throw e;
       }

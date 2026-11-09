@@ -323,6 +323,14 @@ const SO_VE_DA_DUNG = defineSql(
 );
 export const soVeDaDungTheoDichVu = async (db: D1Database, orderId: string): Promise<Map<string, number>> =>
   new Map((await db.prepare(SO_VE_DA_DUNG).bind(orderId).all<{ service_id: string; n: number }>()).results.map((r) => [r.service_id, r.n]));
+// Câu gác NỐI VÀO lô sửa số khách (cùng mẹo `json_extract` hỏng như `CHAN_VE_DA_DUNG`): tổng khách đã dùng vé của ĐÚNG dòng dịch vụ lớn hơn số khách mới ⇒ cả lô lui. Đóng cửa sổ giữa
+// lúc đọc (`soVeDaDungTheoDichVu`) và lúc ghi: lượt quét chen vào vẫn bị chặn. Dấu lỗi `duoi_so_ve_da_dung`.
+const CHAN_DUOI_SO_DA_DUNG = defineSql(
+  "ve-dien-tu",
+  "chan_duoi_so_da_dung",
+  "SELECT json_extract('{}', 'duoi_so_ve_da_dung') WHERE (SELECT coalesce(sum(so_khach), 0) FROM vdt_scan WHERE order_id = ?1 AND order_service_id = ?2 AND ket_qua = 'DA_TINH' AND voided_at IS NULL) > ?3",
+);
+export const cauChanDuoiSoDaDung = (db: D1Database, orderId: string, serviceId: string, soKhachMoi: number): D1PreparedStatement => db.prepare(CHAN_DUOI_SO_DA_DUNG).bind(orderId, serviceId, soKhachMoi);
 const PHAN_BO_CON_GIU = defineSql("ve-dien-tu", "phan_bo_con_giu", "SELECT 1 AS co FROM vdt_allocation WHERE id = ?1 AND released_at IS NULL");
 /** Phân bổ còn được đơn giữ (chưa trả về kho). Đọc LẠI sau khi đóng dấu lộ để biết lệnh huỷ có chen vào giữa không. */
 export const phanBoConGiu = async (db: D1Database, allocId: string): Promise<boolean> => (await db.prepare(PHAN_BO_CON_GIU).bind(allocId).first()) !== null;
