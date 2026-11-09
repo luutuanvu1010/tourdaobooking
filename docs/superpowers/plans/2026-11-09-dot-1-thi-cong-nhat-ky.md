@@ -40,3 +40,5 @@ Xem mục «Kiểm cuối» ở cuối tệp (điền sau khi chạy `npm test`,
 ## Gộp main lần hai (9/11, main 9445ac80d)
 
 Main đã lên vé Tour Đảo 2.81 và nút thanh dưới 2.82 nên mục nhật ký của Đợt 1 đánh lại thành **2.83**. Xung đột chỉ ở `changelog.ts`, `app-info.test.ts`, `huong-dan-dau-van.ts` và `BANG-THAM-CHIEU.md` (sinh lại). Hai bài hướng dẫn «Kho vé điện tử» và «Cấp hạn mức trả sau» đọc lại, nội dung vẫn đúng, ghi dấu vân bản 2.83. Bộ kiểm đầy đủ chạy lại sau gộp (xem dòng dưới).
+
+Kết quả sau gộp lần hai: `npm test` thoát 0 (cả hai bước), `npm run typecheck` 0 lỗi. e2e và kịch bản Chrome chưa chạy lại sau lần gộp này (lần trước gộp: e2e 88/88). Trạng thái: nhánh sẵn sàng nhập; chờ chủ chạy lệnh nhập có rào rồi `npm run trien-khai`.
