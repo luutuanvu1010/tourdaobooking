@@ -4552,6 +4552,10 @@ main select { max-width: 100%; }
 #kv-noi-dung, .kv-ds { display: flex; flex-direction: column; gap: var(--s3); }
 .kv-nhom { padding-block: var(--s2); }
 .kv-dau { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--s1) var(--s3); min-height: var(--tap-min); padding-block: var(--s2); cursor: pointer; }
+.kv-dau { list-style: none; }
+.kv-dau::-webkit-details-marker { display: none; }
+.kv-dau::after { content: "▾"; flex: none; color: var(--c-text-muted); transition: transform var(--m-fast); }
+.kv-nhom[open] > .kv-dau::after { transform: rotate(180deg); }
 .kv-dau h2 { margin: 0; font-size: var(--fs-ui); font-weight: var(--fw-bold); }
 .kv-dong { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: var(--tap-min); padding-block: var(--s2); }
 .kv-nhom .kv-dong { border-top: 1px solid var(--c-border); }

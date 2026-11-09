@@ -4,7 +4,7 @@
 //   GET  /api/catalog/quan-ly-ban, PUT /api/catalog/:code/ngung-ban → màn hẹp của Quản lý bán hàng;
 //   POST /api/catalog/sync → «Đồng bộ ngay từ Google Sheet» (ADR-0186 Đ5), một hàm cho cả màn của Quản trị và màn hẹp.
 // Ẩn/hiện hỏi `can()`; máy chủ kiểm lại. Luật ở src/shared/dich-vu-kiem-ve.ts. Không innerHTML.
-import { TEN_CHUA_PHAN_LOAI, demKiemVe, locNhomKiemVe, nhanNguonKiemVe, xepNhomKiemVe, type DongDichVuKiemVe, type NhomKiemVe } from "../src/shared/dich-vu-kiem-ve";
+import { TEN_CHUA_PHAN_LOAI, demKiemVe, locNhomKiemVe, moSanNhomKiemVe, nhanNguonKiemVe, xepNhomKiemVe, type DongDichVuKiemVe, type NhomKiemVe } from "../src/shared/dich-vu-kiem-ve";
 import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
@@ -143,7 +143,7 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
       replaceChildren(dsEl, h("p", { class: "rong" }, tuKhoa.trim() === "" ? "Danh mục chưa có dịch vụ." : "Không có vé khớp từ đang tìm."));
       return;
     }
-    replaceChildren(dsEl, ...ds.map((n) => theNhom(n, tuKhoa.trim() !== "")));
+    replaceChildren(dsEl, ...ds.map((n) => theNhom(n, moSanNhomKiemVe(ds, n, tuKhoa.trim() !== ""))));
   };
   const kv = taoKiemVe(errorEl, veDs);
 
@@ -178,7 +178,7 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
     const khoa = n.ma ?? TEN_CHUA_PHAN_LOAI;
     const the = h(
       "details",
-      { class: "card kv-nhom", "data-nhom": khoa, open: moSan || nhomMo.has(khoa) || n.soCan > 0 },
+      { class: "card kv-nhom", "data-nhom": khoa, open: moSan || nhomMo.has(khoa) },
       h("summary", { class: "kv-dau" }, h("h2", {}, n.ten), h("span", { class: "hint" }, demKiemVe(n))),
       n.ma === null
         ? null

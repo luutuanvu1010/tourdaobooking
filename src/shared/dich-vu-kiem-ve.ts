@@ -66,7 +66,10 @@ export function locNhomKiemVe(ds: readonly NhomKiemVe[], tu: string): NhomKiemVe
 
 /** Chữ nguồn dưới công tắc «Cần kiểm vé», MỘT nơi cho màn hẹp và màn đủ. «Mặc định: không cần kiểm» = chủ chọn B-4 (1), 9/11 (thay «Chưa đặt»). */
 export const nhanNguonKiemVe = (d: Pick<DongDichVuKiemVe, "rieng" | "coNhom">): string => (d.rieng ? "Đặt riêng cho vé này" : d.coNhom ? "Theo nhóm" : "Mặc định: không cần kiểm");
-export const demKiemVe = (n: NhomKiemVe): string => (n.soCan === 0 ? "Không có vé cần kiểm" : `${n.soCan}/${n.dichVu.length} vé cần kiểm`);
+export const demKiemVe = (n: NhomKiemVe): string => (n.soCan === 0 ? `Không có vé cần kiểm (${n.dichVu.length} vé)` : `${n.soCan}/${n.dichVu.length} vé cần kiểm`);
+
+/** Nhóm nào mở sẵn: màn chỉ còn một nhóm, đang tìm, hoặc nhóm có vé cần kiểm. (Nhóm người dùng tự mở thì trang nhớ riêng.) */
+export const moSanNhomKiemVe = (ds: readonly NhomKiemVe[], n: NhomKiemVe, dangTim: boolean): boolean => dangTim || ds.length === 1 || n.soCan > 0;
 
 /** ADR-0169 Đ4: một dòng của màn đủ (Dịch vụ & giá): đang cần kiểm không, do dòng riêng hay theo nhóm. Cùng `canXacNhan` với máy chủ. */
 export function kiemVeCua(ma: string, nhom: string | null, dongCo: readonly DongCoXacNhanDto[]): { can: boolean; rieng: boolean } {
