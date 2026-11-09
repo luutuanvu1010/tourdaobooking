@@ -35,7 +35,7 @@ test("anTruongRiengTu: bỏ KHOÁ birthDate và dòng ADDRESS, giữ SĐT / emai
       { id: "c1", kind: "PHONE", value: "0911222333", label: null, isPrimary: true, validFrom: "2026-10-16", validTo: null },
       { id: "c2", kind: "ADDRESS", value: "12 Trần Phú", label: null, isPrimary: true, validFrom: "2026-10-16", validTo: null },
     ],
-    roles: [], relationships: [], createdAt: "x", updatedAt: "y", accountLinked: false, editable: true, mergedInto: null, mergedFrom: [],
+    roles: [], relationships: [], createdAt: "x", updatedAt: "y", accountLinked: false, editable: true, activeEditable: false, mergedInto: null, mergedFrom: [],
   } satisfies PartyDto;
   const an = anTruongRiengTu(goc);
   assert.equal("birthDate" in an, false);

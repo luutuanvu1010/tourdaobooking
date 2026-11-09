@@ -296,6 +296,8 @@ const NOT_OPEN = () => error(409, "not_open", "Dòng này không còn đang hi�
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không xem được hồ sơ.");
 const FORBIDDEN_WRITE = () => error(403, "forbidden", "Tài khoản này không được sửa hồ sơ này. Hồ sơ của người có tài khoản chỉ quản trị viên cấp trên sửa.");
 const ACTIVE_BY_ACCOUNT = () => error(409, "account_rule", "Người này có tài khoản: muốn thôi dùng thì bấm Ngưng ở màn Quản lý tài khoản.");
+// ADR-0190 (R3d): đổi cờ «Đang dùng» của hồ sơ KHÔNG gắn tài khoản cần ô party.deactivate (Quản trị, Toàn quyền) — một câu cho cả hai chiều.
+const FORBIDDEN_DEACTIVATE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền ngừng dùng hoặc dùng lại hồ sơ.");
 // ADR-0024 6.4 + ADR-0038 điều 7: hồ sơ công ty chủ chỉ người giữ ô company.legal.write sửa. Chữ nói "người phụ trách hệ thống", KHÔNG "Toàn quyền"
 // (Toàn quyền là vai ẩn — ADR-0038 điều 8 / ADR-0042; chỉ đạo D5 của nhật ký thi công T2b).
 const OWNER_COMPANY_FORBIDDEN = () =>
@@ -541,7 +543,7 @@ const toRelationship = (r: RelationshipRow): PartyRelationshipDto => ({
 function toDetail(
   d: { party: PartyRow; contacts: ContactRow[]; roles: RoleRow[]; relationships: RelationshipRow[] },
   today: string,
-  access: { accountLinked: boolean; editable: boolean },
+  access: { accountLinked: boolean; editable: boolean; activeEditable: boolean },
   vao: { id: string; display_name: string; merged_at: string }[],
 ): PartyDto {
   const p = d.party;
@@ -704,8 +706,11 @@ async function respondParty<A extends "office" | "admin">(ctx: Ctx<A>, id: strin
   // ADR-0068 G16: hồ sơ đã gộp chỉ đọc (mọi route ghi trả 409 party_merged).
   const editable = detail.party.merged_into_id === null
     && (chu ? can(ctx.staff, "company.legal.write") : acc.linked ? can(ctx.staff, "party.staff.write") && acc.manageable : can(ctx.staff, "party.write"));
+  // ADR-0190: ô «Đang dùng» — cùng điều kiện route PUT hỏi: sửa được hồ sơ, không gắn tài khoản (đổi ở màn Quản lý tài khoản), không phải công ty chủ
+  // (không ngưng được — Ruling D17), và giữ ô party.deactivate.
+  const activeEditable = editable && !acc.linked && !chu && can(ctx.staff, "party.deactivate");
   const today = vnToday(new Date());
-  const party = toDetail(detail, today, { accountLinked: acc.linked, editable }, vao);
+  const party = toDetail(detail, today, { accountLinked: acc.linked, editable, activeEditable }, vao);
   // ADR-0044 (chủ chọn 28/9): hồ sơ của tài khoản Toàn quyền — người xem không giữ Toàn quyền chỉ thấy vai ĐANG MỞ, không thấy lịch sử vai.
   if (acc.linked && acc.vaiAn && !can(ctx.staff, "admin.manage.superadmin")) party.roles = party.roles.filter((r) => r.validFrom <= today && (r.validTo === null || r.validTo >= today));
   // ADR-0122 đ5: ngày sinh + liên hệ ADDRESS chỉ cho chính chủ hoặc người giữ party.personal.view (Quản trị theo cấp bậc — ruling R6). Mọi phản hồi hồ sơ đi qua đây.
@@ -2019,6 +2024,9 @@ export const partiesModule: AppModule = {
       if (acc.linked && parsed.value.active !== (current.active === 1)) return ACTIVE_BY_ACCOUNT();
       // Ruling D17 (b): hồ sơ công ty chủ không ngưng dùng được (kể cả người giữ ô) — muốn thôi dùng thì đổi công ty chủ trước. PUT là đường DUY NHẤT đặt active.
       if (chu && !parsed.value.active) return OWNER_COMPANY_KEEP_ACTIVE();
+      // ADR-0190: hỏi SAU hai luật trên (giữ nguyên câu, mã của chúng). Cờ không đổi thì không hỏi ô — người bán vẫn sửa tên, liên hệ.
+      const doiDangDung = parsed.value.active !== (current.active === 1);
+      if (doiDangDung && !can(staff, "party.deactivate")) return FORBIDDEN_DEACTIVATE();
       const at = now.toISOString();
       // ADR-0084 Đ1: vắng ô giới tính ⇒ giữ giá trị đang lưu. Nhật ký chỉ ghi "đổi giới tính" — KHÔNG giá trị cũ / mới (cùng lối dữ liệu cá nhân).
       const pv = parsed.value;
@@ -2037,7 +2045,7 @@ export const partiesModule: AppModule = {
       const doiNgaySinh = v.kind === "PERSON" && v.birthDate !== ngaySinhCu;
       const stmts = updatePartyStatements(env.DB, id, v, staff.id, at, doiNgaySinh);
       // Nhật ký chỉ ghi "đổi giới tính" / "đổi ngày sinh" — KHÔNG giá trị (Hiến chương 5.20).
-      const detail = `${KIND_LABEL[current.party_kind]}${doiGioiTinh ? " — đổi giới tính" : ""}${doiNgaySinh ? " — đổi ngày sinh" : ""}`;
+      const detail = `${KIND_LABEL[current.party_kind]}${doiGioiTinh ? " — đổi giới tính" : ""}${doiNgaySinh ? " — đổi ngày sinh" : ""}${doiDangDung ? (parsed.value.active ? " — dùng lại" : " — ngừng dùng") : ""}`;
       const results = await env.DB.batch([...stmts, auditStatement(env.DB, { staffId: staff.id, action: "party_updated", at, targetType: "party", targetId: id, detail }, "changes() > 0")]);
       if ((results[stmts.length - 1]!.meta.changes ?? 0) === 0) return STALE();
       return respondParty(ctx, id);

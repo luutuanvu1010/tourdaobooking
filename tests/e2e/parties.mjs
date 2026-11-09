@@ -110,7 +110,10 @@ assert.equal(after.displayName, (x.status === 200 ? x : y).body.party.displayNam
 console.log("✓ song song: một bên thắng, dữ liệu nhất quán");
 
 // --- ngưng (không xoá): mặc định ẩn khỏi danh sách, includeInactive=1 thì hiện
+// ADR-0190: Bán hàng không ngừng dùng được (403, hồ sơ giữ nguyên); Quản trị ngừng được.
 r = await call(SALES, "PUT", P(B.id), { fullName: B.displayName, active: false, expectedUpdatedAt: B.updatedAt });
+assert.equal(r.status, 403); assert.equal(r.body.error.message, "Chỉ Quản trị hoặc Toàn quyền ngừng dùng hoặc dùng lại hồ sơ.");
+r = await call(ADMIN, "PUT", P(B.id), { fullName: B.displayName, active: false, expectedUpdatedAt: B.updatedAt });
 assert.equal(r.status, 200); assert.equal(r.body.party.active, false);
 assert.ok(!(await call(SALES, "GET", `/api/parties?q=${phone.slice(3)}`)).body.parties.some((p) => p.id === B.id));
 assert.ok((await call(SALES, "GET", `/api/parties?q=${phone.slice(3)}&includeInactive=1`)).body.parties.some((p) => p.id === B.id));

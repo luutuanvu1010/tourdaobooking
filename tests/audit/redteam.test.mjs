@@ -92,17 +92,24 @@ test("R3c PASS authz (ADR-0013, vá 2026-…): SALES không thêm SĐT vào hồ
 
 // Trong phạm vi ADR-0007 CHO PHÉP (SALES sửa hồ sơ khách), nhưng cờ "ngưng" của hồ sơ dùng chung lan sang đơn NHÁP của người khác
 // (resolveBooker từ chối hồ sơ đã ngưng), và nhật ký chỉ ghi "cá nhân" — không nói việc ngưng (F-07, F-09).
-test("R3d FINDING identity: SALES ngưng hồ sơ KHÁCH đang là người đặt của đồng nghiệp → đồng nghiệp không sửa được đơn nháp của mình (400); nhật ký không ghi việc ngưng", async () => {
+// ADR-0190 (chủ duyệt 2026-11-09): R3d đã sửa — bài cũ "FINDING" nay là bài HỒI QUY. Bài hồi quy đầy đủ trong npm test: src/modules/parties/ngung-ho-so.test.ts.
+test("R3d PASS identity (ADR-0190): SALES khác ngưng hồ sơ KHÁCH đang là người đặt của đồng nghiệp → 403, hồ sơ vẫn dùng, đồng nghiệp vẫn sửa được đơn nháp; Quản trị ngưng thì nhật ký ghi rõ", async () => {
   const w = setup();
   const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody({ newBooker: { fullName: "Trần Khách", phone: "0912345678" } }) })).json.order;
   const pid = w.q("SELECT booker_party_id p FROM orders WHERE id = ?", o.id)[0].p;
   const pk = (await w.call("GET", `/api/parties/${pid}`, { as: B })).json.party;
+  assert.equal(pk.activeEditable, false, "Bán hàng thấy ô «Đang dùng» bị khoá");
   const off = await w.call("PUT", `/api/parties/${pid}`, { as: B, body: { familyName: "Trần", middleName: null, givenName: "Khách", active: false, expectedUpdatedAt: pk.updatedAt } });
-  assert.equal(off.status, 200, off.text);
+  assert.equal(off.status, 403, off.text);
+  assert.equal(off.json.error.message, "Chỉ Quản trị hoặc Toàn quyền ngừng dùng hoặc dùng lại hồ sơ.");
+  assert.equal(w.q("SELECT active a FROM pty_party WHERE id = ?", pid)[0].a, 1);
   const edit = await w.call("PUT", `/api/orders/${o.id}`, { as: A, body: { ...orderBody(), bookerPartyId: pid, expectedUpdatedAt: o.updatedAt } });
-  console.log("R3d ngưng", off.status, "→ đồng nghiệp sửa đơn", edit.status, edit.status !== 200 ? edit.text : "");
-  assert.equal(edit.status, 400);
-  assert.equal(w.q("SELECT detail FROM audit_log WHERE target_id = ? ORDER BY rowid DESC LIMIT 1", pid)[0].detail, "cá nhân");
+  assert.equal(edit.status, 200, edit.text);
+  const pk2 = (await w.call("GET", `/api/parties/${pid}`, { as: ADM })).json.party;
+  assert.equal(pk2.activeEditable, true);
+  const offAdm = await w.call("PUT", `/api/parties/${pid}`, { as: ADM, body: { familyName: "Trần", middleName: null, givenName: "Khách", active: false, expectedUpdatedAt: pk2.updatedAt } });
+  assert.equal(offAdm.status, 200, offAdm.text);
+  assert.equal(w.q("SELECT detail FROM audit_log WHERE target_id = ? ORDER BY rowid DESC LIMIT 1", pid)[0].detail, "cá nhân — ngừng dùng");
 });
 
 test("R4 PASS IDOR: SALES khác biết id đơn — xem được (thiết kế: order.view any), mọi đường SỬA → 403, đơn không đổi", async () => {

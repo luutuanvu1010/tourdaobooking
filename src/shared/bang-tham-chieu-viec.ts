@@ -4275,7 +4275,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Hồ sơ Danh bạ",
     manHinh: "Danh bạ › chi tiết hồ sơ › khối thông tin",
     ten: "Lưu thông tin",
-    thatSuLam: "Lưu tên, giới tính (người), tên pháp lý, mã số thuế, địa chỉ, email hoá đơn (tổ chức) và công tắc «Đang dùng». Hồ sơ có tài khoản chỉ Quản trị trở lên sửa; hồ sơ công ty chủ chỉ Toàn quyền sửa. Nếu người khác vừa sửa thì máy nạp lại và nhắc sửa lại.",
+    thatSuLam: "Lưu tên, giới tính (người), tên pháp lý, mã số thuế, địa chỉ, email hoá đơn (tổ chức) và công tắc «Đang dùng». Hồ sơ có tài khoản chỉ Quản trị trở lên sửa; hồ sơ công ty chủ chỉ Toàn quyền sửa. Công tắc «Đang dùng» (ngừng dùng, dùng lại) chỉ Quản trị, Toàn quyền đổi được, người khác thấy ô bị khoá (ADR-0190); nhật ký ghi rõ ngừng dùng hay dùng lại. Nếu người khác vừa sửa thì máy nạp lại và nhắc sửa lại.",
     hoiLai: "không",
     hoanTac: "được: sửa lại",
     duongLenh: ["/api/parties/:x"],

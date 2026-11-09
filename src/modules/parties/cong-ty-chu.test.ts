@@ -207,8 +207,9 @@ test("Ruling D17 (a) của điều phối: đổi sang hồ sơ tổ chức đ�
   const w = setup();
   const CT = congTyChu(w);
   const NGUNG = await toChucDu(w, SALES, "Pháp nhân Ngưng");
+  // ADR-0190: ngừng dùng / dùng lại hồ sơ chỉ Quản trị, Toàn quyền — hai lệnh PUT dưới đi bằng Quản trị.
   const h = hoSo(w, NGUNG);
-  let r = await w.call("PUT", `/api/parties/${NGUNG}`, { as: SALES, body: { displayName: h.display_name, legalName: h.legal_name, taxCode: h.tax_code, address: h.address, invoiceEmail: h.invoice_email, active: false, expectedUpdatedAt: h.updated_at } });
+  let r = await w.call("PUT", `/api/parties/${NGUNG}`, { as: ADM, body: { displayName: h.display_name, legalName: h.legal_name, taxCode: h.tax_code, address: h.address, invoiceEmail: h.invoice_email, active: false, expectedUpdatedAt: h.updated_at } });
   assert.equal(r.status, 200, r.text);
   assert.equal(hoSo(w, NGUNG).active, 0);
   const truoc = { vai: vaiMo(w), log: logCount(w, CT) + logCount(w, NGUNG) };
@@ -219,7 +220,7 @@ test("Ruling D17 (a) của điều phối: đổi sang hồ sơ tổ chức đ�
   assert.doesNotMatch(r.text, /Toàn quyền|SQLITE|constraint/i);
   assert.deepEqual({ vai: vaiMo(w), log: logCount(w, CT) + logCount(w, NGUNG) }, truoc);
   const h2 = hoSo(w, NGUNG);
-  r = await w.call("PUT", `/api/parties/${NGUNG}`, { as: SALES, body: { displayName: h2.display_name, legalName: h2.legal_name, taxCode: h2.tax_code, address: h2.address, invoiceEmail: h2.invoice_email, active: true, expectedUpdatedAt: h2.updated_at } });
+  r = await w.call("PUT", `/api/parties/${NGUNG}`, { as: ADM, body: { displayName: h2.display_name, legalName: h2.legal_name, taxCode: h2.tax_code, address: h2.address, invoiceEmail: h2.invoice_email, active: true, expectedUpdatedAt: h2.updated_at } });
   assert.equal(r.status, 200, r.text);
   r = await ganVai(w, SUP, NGUNG, { roleTypeCode: "OWNER_COMPANY" });
   assert.equal(r.status, 201, r.text);

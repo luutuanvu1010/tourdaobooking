@@ -260,7 +260,8 @@ async function openDetail(id: string): Promise<void> {
   const address = input(p.address ?? "", { maxLength: 300 });
   const invoiceEmail = input(p.invoiceEmail ?? "", { maxLength: 200, type: "email" });
   const active = checkbox(p.active);
-  active.disabled = p.accountLinked;
+  // ADR-0190: chỉ Quản trị, Toàn quyền ngừng dùng / dùng lại hồ sơ — máy chủ tính `activeEditable` (đã gồm hồ sơ gắn tài khoản); máy chủ vẫn kiểm lại.
+  active.disabled = p.accountLinked || !p.activeEditable;
   if (!p.editable) {
     fullName.disabled = true;
     gender.disabled = true;
