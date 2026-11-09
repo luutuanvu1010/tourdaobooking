@@ -37,6 +37,9 @@ export const AUDIT_ACTIONS = {
   // ADR-0175 Đ1.5a: giữ vé xong mà dịch vụ còn thiếu (lúc xác nhận đơn, cấp bằng tay, cấp bù khi lô vào kho). target = ('ve', nguồn vé 'TOUR_DAO' | 'HANG_NGOAI') — hộp thư chọn người nhận
   // theo khoá này (v_aud_ledger_event); detail = «Thiếu vé · <mã dịch vụ> · <nguồn> · thiếu N» (KHÔNG mã vé, KHÔNG tên khách).
   ve_thieu: { label: "Báo thiếu vé", group: "ve" },
+  // ADR-0175 Đ3: quét vé Tour Đảo. `ve_quet`: detail = kết quả + SỐ CUỐI (4 ký tự), KHÔNG mã vé; `ve_bo_luot_quet`: detail = lý do bỏ lượt (đã chặn mã vé ở máy chủ). Tên chờ chủ chọn (ADR-0175 mục tên).
+  ve_quet: { label: "Quét vé Tour Đảo", group: "ve" },
+  ve_bo_luot_quet: { label: "Bỏ lượt quét vé", group: "ve" },
   ve_xoa_anh_het_han: { label: "Xoá ảnh vé hết hạn lưu", group: "ve" }, // ADR-0186 Đ4 (tên chủ chọn 8/11); tác nhân DON_ANH_VE ghi, một dòng mỗi lượt có xoá; detail: CHỈ số ảnh (KHÔNG mã vé, KHÔNG khoá kho)
   updated: { label: "Sửa đơn", group: "order" },
   trip_updated: { label: "Sửa thông tin chuyến", group: "order" },

@@ -19,7 +19,7 @@ export const HD_KE_TOAN: NhomHuongDan = {
       noiDung: `### Trên máy tính
 
 Thanh menu dọc bên trái có:
-- Đầu menu: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]].
+- Đầu menu: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]], [[Quét vé]].
 - Nhóm VẬN CHUYỂN: [[Điều phối xe]], [[Xe đang chạy]], [[Giá & chi phí]].
 - Nhóm TIỀN: [[Điều chỉnh công nợ]], [[Sổ công nợ & khoá sổ]].
 - Nhóm THIẾT LẬP (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]], [[Chụp bù mức]].

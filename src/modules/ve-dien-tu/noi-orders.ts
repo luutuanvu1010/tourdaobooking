@@ -2,7 +2,7 @@
 // gốc lắp ráp (src/index.ts) đọc dịch vụ của đơn qua hàm công bố `orders.dichVuChoVe` (số khách HIỆU LỰC) rồi đưa vào đây. Không SQL thô ở tệp này — mọi câu đi qua cap-ve.ts.
 import { soanCapVe, soanTraVe, veDangGiu, type DichCapVe, type GhiNhatKy } from "./cap-ve.ts";
 import { NHOM_VE, canVe } from "./rules.ts";
-import { cauChanVeDaMo, cauChanVeHangNgoaiDaMo, daBaoThieuVeGanDay } from "./repository.ts";
+import { cauChanVeDaDung, cauChanVeDaMo, cauChanVeHangNgoaiDaMo, daBaoThieuVeGanDay } from "./repository.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import type { NguonVe } from "../../shared/nguon-ve.ts";
 
@@ -85,7 +85,8 @@ export async function soanTraVeKhiHuy(db: D1Database, p: { orderId: string; lyDo
   // Câu bảo vệ ĐỨNG ĐẦU phần của kho vé (vé vừa được mở xen giữa lúc kiểm và lúc ghi làm hỏng cả lô; lô là một giao dịch nên câu đơn lui theo). Tách theo mục đích (ADR-0175 Đ2.6):
   // `MOI_VE` — người giữ quyền Đối tác huỷ (ADR-0170 Đ3: vé loại nào đã mở cũng chặn); `HANG_NGOAI` — văn phòng huỷ đơn Trả sau còn nợ (ADR-0168 Đ3 mục 3: chỉ vé hãng ngoài).
   const chan = p.lyDo !== "DON_HUY" || !p.chan ? [] : [p.chan === "MOI_VE" ? cauChanVeDaMo(db, p.orderId) : cauChanVeHangNgoaiDaMo(db, p.orderId)];
-  return [...chan, ...(await soanTraVe(db, { orderId: p.orderId, lyDo: p.lyDo, at: p.at, by: p.by, homNay: p.homNay, chiKhiDon: p.lyDo === "DON_HUY" ? "cancelled" : "draft" }, nhatKy)).cau];
+  // ADR-0175 Đ3 mục 3: vé đã DÙNG (lượt quét DA_TINH chưa bỏ) chặn cả huỷ lẫn rút xác nhận, mọi người gọi — đứng TRƯỚC mọi câu khác của phần vé.
+  return [cauChanVeDaDung(db, p.orderId), ...chan, ...(await soanTraVe(db, { orderId: p.orderId, lyDo: p.lyDo, at: p.at, by: p.by, homNay: p.homNay, chiKhiDon: p.lyDo === "DON_HUY" ? "cancelled" : "draft" }, nhatKy)).cau];
 }
 
 /**

@@ -558,6 +558,12 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/tro-ly/cai-dat", access: "office" }, // ADR-0066 trang ghép — chỉ Toàn quyền (settings.ops trong thân)
   { method: "POST", path: "/api/tro-ly/cai-dat", access: "office" }, // như trên
   { method: "GET", path: "/api/ve/kho", access: "office" }, // ADR-0153 kho vé điện tử; thân hỏi ve.kho.manage (Bán hàng, Quản trị, Toàn quyền)
+  { method: "POST", path: "/api/ve/quet", access: "staff" }, // ADR-0175 Đ3 quét vé Tour Đảo; thân hỏi ve.quet.tinh / ve.quet.xem (Hướng dẫn viên, Tài xế công ty vào được)
+  { method: "POST", path: "/api/ve/quet/:id/bo", access: "staff" }, // bỏ lượt quét: người quét trong 5 phút, hoặc Quản trị, Toàn quyền
+  { method: "GET", path: "/api/ve/quet/quyen", access: "staff" }, // đường gọi chính của trang /quet-ve; cùng ô quyền với route quét
+  { method: "GET", path: "/api/ve/doi-chieu", access: "office" }, // ADR-0175 §2.7 màn đối chiếu; thân hỏi ve.doi-chieu.view (Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng)
+  { method: "GET", path: "/api/ve/luot-quet", access: "office" }, // danh sách lượt đã dùng để bỏ; thân hỏi ve.doi-chieu.view và cổng Quản trị (Quản trị, Toàn quyền)
+  { method: "GET", path: "/api/ve/nguoi-quet", access: "office" }, // theo dõi người quét; cùng ô ve.doi-chieu.view
   { method: "POST", path: "/api/ve/lo", access: "office" }, // ADR-0153 kho vé điện tử; thân hỏi ve.kho.manage (Bán hàng, Quản trị, Toàn quyền)
   { method: "POST", path: "/api/ve/lo/:id/ve", access: "office" }, // ADR-0153 kho vé điện tử; thân hỏi ve.kho.manage (Bán hàng, Quản trị, Toàn quyền)
   { method: "POST", path: "/api/ve/lo/:id/xac-nhan", access: "office" }, // ADR-0153 kho vé điện tử; thân hỏi ve.kho.manage (Bán hàng, Quản trị, Toàn quyền)
@@ -769,7 +775,11 @@ test("mức truy cập của 469 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-08 (gộp ADR-0187 vào nhánh ADR-0184): 466 + 2 route của ADR-0184 + 3 route của ADR-0187 = 471.
   // 2026-11-08 (nối ADR-0174 vào main): + GET, POST /api/catalog/co-ve (office; thân hỏi catalog.ticket_flag.write, chặn Đối tác) = 473.
   // 2026-11-08 (ADR-0175 Đ1.2, vé Tour Đảo Task 3): + GET, POST /api/catalog/nguon-ve (office; thân hỏi catalog.ticket_flag.write, chặn Đối tác) = 475.
-  // 2026-11-09 (ADR-0187 Đ2.3, gộp bản chính có vé Tour Đảo): + PUT /api/account/thanh-duoi (staff; thân hỏi me.favorites.write rồi ghimDuoc) = 476.
-  assert.equal(actual.length, 480, "số route thực tế lệch 480 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 480, "SNAPSHOT phải có đúng 480 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-09 (ADR-0175 Đ3, Đợt 2): + POST /api/ve/quet, POST /api/ve/quet/:id/bo, GET /api/ve/quet/quyen (staff; thân hỏi ve.quet.tinh / ve.quet.xem) = 478.
+  // 2026-11-09 (ADR-0175 §2.7, Task 15): + GET /api/ve/doi-chieu, GET /api/ve/nguoi-quet (office; thân hỏi ve.doi-chieu.view) = 480.
+  // 2026-11-09 (vòng sửa 1, I-2): + GET /api/ve/luot-quet (office; thân hỏi ve.doi-chieu.view và cổng Quản trị) = 481.
+  // 2026-11-09 (ADR-0187 Đ2.3, gộp bản chính có vé Tour Đảo): + PUT /api/account/thanh-duoi (staff; thân hỏi me.favorites.write rồi ghimDuoc) = 486 (476 của bản chính + 6 của Đợt 2).
+  // 2026-11-09 (ADR-0194 đợt 1, gộp bản chính có vé Tour Đảo Đợt 2): + 4 route /api/cai-dat/giao-dien* (GET, GET tat-ca, POST, POST khoi-phuc) = 486.
+  assert.equal(actual.length, 486, "số route thực tế lệch 486 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 486, "SNAPSHOT phải có đúng 486 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

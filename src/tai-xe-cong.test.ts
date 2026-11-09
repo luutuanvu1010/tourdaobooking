@@ -188,6 +188,19 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
     DRIVER: { ma: 403, ly_do: "ô unavailability.self none → 403 trước mọi truy vấn" },
     DRIVER_PARTNER: { ma: 404, ly_do: "khung lạ / không phải của mình → 404 (SQL lọc driver_party_id của người gọi)" },
   },
+  // ADR-0175 Đ3 (vé Tour Đảo Đợt 2): quét vé — ô ve.quet.xem = any (Tài xế công ty quét chỉ-xem), ô ve.quet.tinh = none; Tài xế đối tác không có ô nào.
+  "GET /api/ve/quet/quyen": {
+    DRIVER: { ma: 200, ly_do: "chỉ báo được tính đã dùng hay không ({ tinh: false }) — không dữ liệu đơn / khách / tiền" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "không có ô quét vé nào → 403 ở bước đầu" },
+  },
+  "POST /api/ve/quet": {
+    DRIVER: { ma: 200, ly_do: "thân rỗng = mã lạ: trả kết quả đỏ «mã lạ», không ghi lượt, không dữ liệu đơn / khách / tiền" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "không có ô quét vé nào → 403 ở bước đầu, trước khi đọc thân" },
+  },
+  "POST /api/ve/quet/:id/bo": {
+    DRIVER: { ma: 400, ly_do: "thân rỗng thiếu lý do → 400 TRƯỚC khi tra lượt quét (không lộ lượt nào có thật); bỏ lượt thật còn bị chặn ở bước sau (không phải người quét / Quản trị)" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "không có ô quét vé nào → 403 ở bước đầu" },
+  },
 };
 const mucCua = (k: string, ma: string): MucBang => {
   const m = BANG_STAFF[k]!;

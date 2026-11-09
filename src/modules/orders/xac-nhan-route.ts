@@ -9,6 +9,7 @@ import { can, holdsIntern, holdsPartner, passesAdminGate } from "../../shared/pe
 import { route } from "../../shared/router";
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
 import { CHIEU_LABEL, LY_DO_DAT_GAP, changDiDau, ghiDatGapNhatKy, thieuGioChangDau, type LyDoDatGap } from "../../shared/chang-dua-don";
+import { chanVeDaDungTrongLo, laLoiVeDaDungTrongLo } from "../../shared/chan-doi-tac-huy";
 import { docLyDoHuy, type LyDoHuy } from "../../shared/ly-do-huy";
 import { KHUNG_MAC_DINH, kiemDanhSachKhung } from "../../shared/khung-gio-don";
 import { duoiMocKhiSua, nguongMocVn } from "../../shared/moc-toi-thieu";
@@ -27,7 +28,7 @@ import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, type DauDatGapMoi } 
 import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { congHuyTraSau, VE_CHUA_SOAN_DUOC } from "./tra-sau-cong";
 import { CAU_VUOT_TONG_NGUOI_XET } from "../../shared/dat-coc-truoc";
-import { MOC_CHUA_CO, RACED, STALE, canChotGioCuaNguoiLap, chanDoanXacNhan, chayLoNoiChuyen, cocChoXacNhan, congDoiTacChuaCoVaiTro, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, nguoiLapLaNguoiBam, tinhCanXacNhan, viCuaYeuCau, type NguoiLapDoiTac } from "./xac-nhan-chung";
+import { MOC_CHUA_CO, RACED, STALE, type KetQuaLenhDon, canChotGioCuaNguoiLap, chanDoanXacNhan, chayLoNoiChuyen, cocChoXacNhan, congDoiTacChuaCoVaiTro, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, nguoiLapLaNguoiBam, tinhCanXacNhan, viCuaYeuCau, type NguoiLapDoiTac } from "./xac-nhan-chung";
 import { confirmGaps, confirmWindow } from "./service-rules";
 import { congLuatBan } from "./cong-ban";
 
@@ -263,13 +264,19 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     if (!y) return error(409, "confirm_not_open", "Đơn này không có yêu cầu xác nhận đang chờ.");
     const at = nextStamp(meta.updatedAt);
     const auditId = crypto.randomUUID();
-    const kq = await env.DB.batch([
+    let kq: D1Result[];
+    try {
+      kq = await env.DB.batch([
       orderTouchDraft(env.DB, id, at, meta.updatedAt),
       auditStatement(env.DB, { id: auditId, orderId: id, staffId: staff.id, action: "order_confirm_withdrawn", at, detail: "Rút lại yêu cầu xác nhận" }, "changes() > 0"),
       cauKhepYeuCau(env.DB, { id: y.id, at, by: staff.id, outcome: "RUT_LAI", ticket: null, note: null, auditId }),
       ...((await traVeKhiHuy(id, "RUT_XAC_NHAN", false)) ?? []), // RUT_XAC_NHAN không mang câu bảo vệ nên gốc lắp ráp không trả null (Task 5 việc B). ADR-0153: phòng thủ — đơn nháp không giữ vé; nếu có thì trả cùng nguyên tử (cổng: đơn còn nháp)
       banHang.cauKhepLoiMoiSauLenhDon({ orderId: id, outcome: "RUT_LAI", at, actorId: staff.id, auditId }), // ADR-0142: khép lời mời đang mở (nếu có); gửi lại là lời mời MỚI. Nối CUỐI: chỉ số kq[0], kq[2] giữ nguyên
-    ]);
+      ]);
+    } catch (e) {
+      if (laLoiVeDaDungTrongLo(e)) return chanVeDaDungTrongLo(); // ADR-0175 Đ3 mục 3: vé đã dùng chặn cả rút xác nhận (câu chặn đứng đầu phần vé của lô)
+      throw e;
+    }
     if ((kq[0]!.meta.changes ?? 0) === 0 || (kq[2]!.meta.changes ?? 0) === 0) {
       // Thua: có người quyết định (hoặc sửa đơn) giữa lúc đọc và lúc ghi — không dòng nào của lô này ghi.
       return error(409, "invalid_transition", "Đơn vừa được người khác đổi trạng thái, hãy tải lại.");
@@ -337,7 +344,8 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       const traVe = await traVeKhiHuy(id, "DON_HUY", cong.qua.chanVeDaMo);
       if (traVe === null) return VE_CHUA_SOAN_DUOC(); // Task 5 việc B
       const dong = await dongBoChuyen({ orderId: id, auditIdDon: huy.auditId, bayGioMs: Date.now(), sau: { trangThai: "cancelled" }, cauDon: [...huy.cau, ...traVe, khep, khepMoi] }); // ADR-0153: trả vé cùng nguyên tử với việc huỷ
-      const r = await chayLoNoiChuyen(env.DB, dong, huy.thang);
+      let r: KetQuaLenhDon;
+      try { r = await chayLoNoiChuyen(env.DB, dong, huy.thang); } catch (e) { if (laLoiVeDaDungTrongLo(e)) return chanVeDaDungTrongLo(); throw e; } // ADR-0175 Đ3 mục 3
       if (r.kq === "loi") return r.res;
       if (r.kq === "thua") return RACED();
       baoThayDoi({ orderId: id, thayDoi: "huy" });

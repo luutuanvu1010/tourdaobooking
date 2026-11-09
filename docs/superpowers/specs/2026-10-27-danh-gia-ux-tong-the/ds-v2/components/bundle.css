@@ -413,6 +413,25 @@ button.bar-avatar { padding: 0; border: 0; font-family: inherit; cursor: pointer
 .menu-tk-ds { display: grid; gap: var(--s1); }
 .menu-tk-goi-y { margin: 0; padding: 0 var(--s3); font-size: var(--fs-step-2); color: var(--c-text-muted); }
 
+/* ---------- Quét vé (ADR-0175 Đ3) — chỉ token ---------- */
+.qv-khung { background: var(--c-surface-alt); border-radius: var(--radius-md); overflow: hidden; }
+.qv-video { display: block; width: 100%; max-height: var(--h-quet-video); object-fit: cover; background: var(--c-surface-alt); }
+.qv-nut { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s3); }
+.qv-anh { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+.qv-luot { padding: var(--s3) 0; border-bottom: 1px solid var(--c-border); }
+.qv-luot:last-child { border-bottom: 0; }
+.qv-luot-chu, .qv-luot .muted { margin: 0; }
+.qv-bo-form { display: flex; flex-direction: column; gap: var(--s2); margin-top: var(--s2); }
+.qv-ket-qua { position: fixed; inset: 0; z-index: var(--z-tren-cung); display: flex; background: var(--c-surface); }
+.qv-ket-than { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s3); padding: max(var(--s5), env(safe-area-inset-top)) var(--s5) max(var(--s5), env(safe-area-inset-bottom)); text-align: center; overflow-y: auto; }
+.qv-ket-than[data-mau="XANH"] { background: var(--c-green-soft); color: var(--c-green-text); }
+.qv-ket-than[data-mau="VANG"] { background: var(--c-sand-soft); color: var(--c-sand-text); }
+.qv-ket-than[data-mau="DO"] { background: var(--c-danger-soft); color: var(--c-danger-text); }
+.qv-ket-dau { margin: 0; font-size: var(--fs-step-14); font-weight: var(--fw-bold); line-height: 1; }
+.qv-ket-chu { margin: 0; font-size: var(--fs-step-14); line-height: var(--lh-heading); }
+.qv-ket-cau { margin: 0; font-size: var(--fs-step-9); font-weight: var(--fw-bold); }
+.qv-ket-ct { margin: 0; font-size: var(--fs-step-5); }
+.qv-ket-nut { display: flex; flex-direction: column; gap: var(--s3); width: 100%; max-width: var(--w-narrow); margin-top: var(--s4); }
 /* Mục «Nút thanh dưới» ở trang Tôi (ADR-0187 Đ2.3, web/thanh-duoi-cai-dat.ts): chỉ điện thoại — máy tính không có thanh dưới nên ẩn ở ≥ 900. Chỉ token. */
 #thanh-duoi label.check { min-height: var(--h-control); }
 #thanh-duoi .td-nut { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }

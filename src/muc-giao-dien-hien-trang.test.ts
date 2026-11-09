@@ -31,7 +31,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { can, PERMISSION_CODES, type PermissionHolder } from "./shared/permissions.ts";
-import { KHUNG_MAT_MANG, coKhungNho, thanhBen, thanhTab, thanhTren, trangToi, type NguoiXem } from "./shared/muc-giao-dien.ts";
+import { KHUNG_MAT_MANG, TRANG, coKhungNho, thanhBen, thanhTab, thanhTren, trangToi, type NguoiXem } from "./shared/muc-giao-dien.ts";
 import { nhomMayTinh } from "./shared/trang-chu-o.ts";
 
 interface AnhChup {
@@ -92,10 +92,18 @@ const tapMatOXet = (khoa: string): number[] => {
   const i = muc.indexOf(phan.join("|"));
   return i < 0 ? [] : TAP.filter((m) => co(tap[i]!, m) && !can(nguoi(m), "order.confirm.review"));
 };
+/** ADR-0175 §2.10: tab «Quét vé» của người không xem mọi đơn chiếm một chỗ trong trần 5 tab; tài khoản gộp nhiều quyền (đã đủ tab) mất tab ảnh chụp từng thấy ở cuối (vd «Hỗ trợ», «Báo bận» — lối vào khác vẫn còn ở thanh bên và trang Tôi). */
+const tapMatTabViQuetVe = (khoa: string): number[] => {
+  const [noi, ...phan] = khoa.split("|");
+  const { muc, tap } = ANH.noi[noi!]!;
+  const i = muc.indexOf(phan.join("|"));
+  return i < 0 ? [] : TAP.filter((m) => co(tap[i]!, m) && TRANG.quetVe.hien(nguoi(m)) && !can(nguoi(m), "order.view") && !chuoiThanhTab({ staff: nguoi(m) }).includes(phan.join("|")));
+};
 const AN_DI: Record<string, readonly number[]> = Object.fromEntries(
   // Ruling R-P18 (sổ đại lý đợt 2, vòng sửa 1 Task 6): route yêu cầu điều chỉnh công nợ chặn tài khoản giữ quyền Đối tác (yêu cầu có thể là giá vốn / hoa hồng của
   // đối tác khác) ⇒ mục «Điều chỉnh công nợ» ẩn với mọi tập có PARTNER mà mã cũ từng hiện (bài src/muc-hien-mo-duoc-*.test.ts: hiện ⇒ đường gọi chính không bị từ chối).
   ["thanh-ben|TIỀN||Điều chỉnh công nợ|/dieu-chinh-cong-no", "trang-toi|links|Điều chỉnh công nợ|/dieu-chinh-cong-no"].map((k) => [k, tapDoiTacTungThay(k)] as [string, number[]])
+    .concat(["thanh-tab|Hỗ trợ|/huong-dan", "thanh-tab|Báo bận|/ban"].map((k) => [k, tapMatTabViQuetVe(k)] as [string, number[]]))
     .concat(["trang-toi|links|Đơn chờ xác nhận|/cho-xac-nhan", "trang-toi|links-top|Đơn chờ xác nhận|/cho-xac-nhan"].map((k) => [k, tapMatOXet(k)] as [string, number[]])),
 );
 

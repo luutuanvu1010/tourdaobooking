@@ -97,6 +97,18 @@ const biCatTab = (s, k) => THANH_TAB.some((c) => c.trang === k && coHien(c, { st
 const DUOC_MA_AN = [
   // Dòng "HDV chỉ-FIELD không thấy mục Đơn hàng" đã BỎ 15/10: chủ quyết hiện mục cho HDV (ADR-0017); trang /orders của HDV = đơn mình phụ trách.
   {
+    noi: ["thanh-ben"],
+    trang: "quetVe",
+    khi: (s) => (can(s, "ve.quet.tinh") || can(s, "ve.quet.xem")) && can(s, "admin.manage") && can(s, "ledger.view"),
+    lyDo: "ADR-0175 Đ3, đặc tả §2.10: mọi người có ô quét thấy «Quét vé» ở thanh bên, TRỪ tập vừa có Quản trị vừa có sổ công nợ (Toàn quyền, Kế toán + Quản trị) — thanh bên của các tập ấy đã đủ trần 10 khối hiện sẵn, nên họ vào qua trang Tôi. Chờ chủ (giữ là hợp lý).",
+  },
+  {
+    noi: ["thanh-tab"],
+    trang: "quetVe",
+    khi: (s) => (can(s, "ve.quet.tinh") || can(s, "ve.quet.xem")) && (seesAllOrders(s) || (can(s, "account.view") && !can(s, "admin.manage")) || biCatTab(s, "quetVe")),
+    lyDo: "ADR-0175 §2.10: tab «Quét vé» là việc chính của Hướng dẫn viên, Tài xế công ty trên điện thoại nên chỉ cho người không xem mọi đơn; Bán hàng, Kế toán, Quản trị, Toàn quyền vào qua thanh bên hoặc trang Tôi. Tab cũng không hiện cho tập có quyền Nhân sự (hình «Đơn hàng, Tạo đơn, Tài khoản, Hỗ trợ, Tôi» đã khoá ở thanh-tab-theo-bo-quyen.test.ts); tài khoản gộp nhiều quyền còn bị cắt bởi trần 5 tab. Chờ chủ (giữ là hợp lý).",
+  },
+  {
     noi: ["thanh-tren"],
     trang: "donHang",
     khi: (s) => canAccessOrders(s) && !seesAllOrders(s),
