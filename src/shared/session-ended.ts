@@ -32,9 +32,9 @@ export const CAU_HET_PHIEN = "Máy này đã bị đăng xuất. Đăng nhập l
 export const DAU_KHONG_BAO = "-";
 
 /** Giá trị ghi vào `SESSION_ENDED_KEY` khi bị đá ra: có lý do → ghi lý do; không lý do mà máy có bản nhớ khung (từng có người đăng nhập) → chuỗi rỗng; còn lại (liên kết sâu trên máy lạ) → `DAU_KHONG_BAO` (không câu nào). */
-export function dauHetPhien(body: unknown, coKhungNho: boolean): string {
+export function dauHetPhien(body: unknown, coKhungNho: unknown): string {
   const notice = parseSessionEnded(body);
-  return notice ? JSON.stringify(notice) : coKhungNho ? "" : DAU_KHONG_BAO;
+  return notice ? JSON.stringify(notice) : coKhungNho ? "" : "-"; // "-" = DAU_KHONG_BAO, viết thẳng để trình nén không giữ thêm một biến (trần gói Đơn hàng); bài session-ended.test.ts so hai giá trị
 }
 
 /** Đọc giá trị đã ghi ở `SESSION_ENDED_KEY` → câu hiện ở trang đăng nhập, hoặc null. */

@@ -39,6 +39,6 @@ test("goLogin (web/api.ts) chặn gọi lặp: hai lời gọi 401 đồng thờ
   const src = readFileSync(new URL("../../web/api.ts", import.meta.url), "utf8");
   const m = src.match(/export (?:async )?function goLogin\(\)[^{]*\{([\s\S]*?)\n\}/);
   assert.ok(m, "tìm thấy goLogin");
-  assert.match(m[1], /if \(dangDi\+\+\) return[^\n]*\n\s*await ghiNhoLyDoDangXuat/, "goLogin phải đặt cờ cấp module (dangDi++) TRƯỚC khi await, để lời gọi sau không chạy lại");
+  assert.match(m[1], /if \(!dangDi\+\+\) \{\s*await ghiNhoLyDoDangXuat/, "goLogin phải đặt cờ cấp module (dangDi++) TRƯỚC khi await, để lời gọi sau không chạy lại");
   assert.equal((src.match(/await ghiNhoLyDoDangXuat\(\)/g) ?? []).length, 1, "ghiNhoLyDoDangXuat chỉ được gọi từ một chỗ");
 });

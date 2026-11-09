@@ -51,7 +51,7 @@ export { safeNext } from "../src/shared/safe-next";
 async function ghiNhoLyDoDangXuat(): Promise<void> {
   try {
     const res = await fetch("/api/auth/session-ended", { method: "POST", credentials: "same-origin", signal: AbortSignal.timeout(3000) });
-    sessionStorage.setItem(SESSION_ENDED_KEY, dauHetPhien(await res.json(), !!layKhungNho())); // phải chạy TRƯỚC xoaKhungNho()
+    sessionStorage.setItem(SESSION_ENDED_KEY, dauHetPhien(await res.json(), layKhungNho())); // phải chạy TRƯỚC xoaKhungNho()
   } catch {
     // bỏ qua
   }
@@ -60,12 +60,12 @@ async function ghiNhoLyDoDangXuat(): Promise<void> {
 let dangDi = 0;
 /** Chuyển về trang đăng nhập rồi giữ lời gọi treo (trang sắp bị thay), tránh chạy tiếp code giả định đã đăng nhập. Chỉ lời gọi 401 ĐẦU đi qua; các lời gọi sau treo luôn (không ghi đè dấu hết phiên khi khung đã bị xoá). */
 export async function goLogin(): Promise<never> {
-  const treo = new Promise<never>(() => undefined);
-  if (dangDi++) return treo;
-  await ghiNhoLyDoDangXuat();
-  xoaKhungNho(); // ADR-0035: hết phiên → người đăng nhập kế tiếp (có thể là người khác) không thấy khung của phiên cũ
-  location.replace(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
-  return treo;
+  if (!dangDi++) {
+    await ghiNhoLyDoDangXuat();
+    xoaKhungNho(); // ADR-0035: hết phiên → người đăng nhập kế tiếp (có thể là người khác) không thấy khung của phiên cũ
+    location.replace(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+  }
+  return new Promise<never>(() => undefined);
 }
 
 /** Hạn chờ một lời gọi API. Máy chủ im lặng (mạng chập chờn) thì báo lỗi mạng thay vì để nút "Đang lưu…" kẹt vĩnh viễn — PWA không có nút tải lại của trình duyệt. */
