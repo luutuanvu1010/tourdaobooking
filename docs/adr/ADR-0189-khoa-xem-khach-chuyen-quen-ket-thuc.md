@@ -1,6 +1,6 @@
 # ADR-0189 — Tài xế không còn thấy khách của chuyến quên bấm «Kết thúc» từ hết ngày hôm sau ngày xuất bến (phát hiện Q-05, phần khoá xem)
 
-- **Trạng thái:** proposed 2026-11-09 — AI soạn theo kế hoạch `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (chủ duyệt kế hoạch 9/11, Phần V mục 2.2), thuộc **ADR lượt A** (trang ghép `docs/superpowers/specs/2026-11-09-trang-ghep-adr-luot-a.md`). Người kiểm độc lập chỉ đọc kiểm một vòng bản nháp: ĐẠT. Chưa có mã.
+- **Trạng thái:** **accepted** 2026-11-09 — chủ dự án, nguyên văn: *«Duyệt cả A và B»* (nút ở khung bước tiếp theo, trả lời câu «Bạn duyệt lượt nào?»), hiểu theo câu duyệt mẫu ở trang trình lượt A (theo khuyến nghị). Lịch sử: proposed 2026-11-09 — AI soạn theo kế hoạch `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (chủ duyệt kế hoạch 9/11, Phần V mục 2.2), thuộc **ADR lượt A** (trang ghép `docs/superpowers/specs/2026-11-09-trang-ghep-adr-luot-a.md`). Người kiểm độc lập chỉ đọc kiểm một vòng bản nháp: ĐẠT. Chưa có mã.
 - **Số:** 0189 (soát như ADR-0188).
 - **Nguồn:** hồ sơ rà soát `docs/superpowers/specs/2026-11-07-ra-soat-truoc-launch-lan-2/` (Q-05, mục cũ E-1: đồng hồ giả, 9 ngày sau tài xế vẫn thấy khách). Lời chủ lượt 1 ngày 8/11, phương án chọn: «ADR khoá + tự kết thúc». Kế hoạch Phần I điều 3, chủ duyệt theo khuyến nghị 9/11: **làm phần khoá xem trước, tách phần tự kết thúc thành quyết định sau**. Dẫn chứng mã đọc lại trên `main` @`fa3fd859a`.
 - **Ngày:** 2026-11-09. **Loại:** việc lớn (quyền đọc dữ liệu cá nhân) — người kiểm độc lập chỉ đọc sau thi công.
