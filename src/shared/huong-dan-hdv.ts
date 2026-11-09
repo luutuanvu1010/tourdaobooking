@@ -17,10 +17,10 @@ export const HD_HDV: NhomHuongDan = {
   muc: [
     {
       tieuDe: "Menu của bạn",
-      noiDung: `Trên điện thoại: thanh tab dưới đáy: [[Đơn hàng]], [[Hỗ trợ]], [[Tôi]].
+      noiDung: `Trên điện thoại: thanh tab dưới đáy: [[Đơn hàng]], [[Quét vé]], [[Hỗ trợ]], [[Tôi]].
 
 Trên máy tính, menu bên trái có:
-- Đầu menu: [[Đơn hàng]] (chỉ đơn bạn đang lo).
+- Đầu menu: [[Đơn hàng]] (chỉ đơn bạn đang lo), [[Quét vé]].
 - Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Nhật ký thay đổi]].
 
 Đơn tự do đang chờ nhận nằm ở [[Của tôi]], không nằm ở [[Đơn hàng]].

@@ -18,8 +18,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đợt 3 «chữ do chủ chọn» của kế hoạch sửa sau rà soát lần 2 (phiếu Phụ lục B, phương án (1); câu khoá vé dùng dự phòng B-2), KHÔNG migration.
-    // SỐ TẠM 2.84: main có 2.83 (Đợt 1); bước A.0 đặt lại số và ngày nếu nhánh khác (Đợt 2) nhập trước.
-    version: "2.84",
+    // SỐ TẠM 2.85: main có 2.84 (vé Tour Đảo Đợt 2); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.85",
     date: "2026-11-09",
     items: [
       { kind: "sua", text: "Khi đơn đang giữ vì thiếu mức hoa hồng, câu báo nói rõ cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng đó." },
@@ -31,6 +31,16 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Một số câu khó hiểu được viết lại: câu chờ kiểm vé, câu chưa tới ngày đi, câu danh sách đơn trống, câu loại đối tác tạo trước 31/10/2026." },
       { kind: "doi", text: "Trang chủ trên điện thoại viết số tiền đầy đủ, ví dụ «2.800.000 ₫»." },
       { kind: "sua", text: "Bị đăng xuất giữa chừng vì hết hạn đăng nhập thì trang đăng nhập báo rõ để bạn đăng nhập lại." },
+    ],
+  },
+  {
+    // Vé Tour Đảo Đợt 2 (ADR-0175): quét vé và đối chiếu. KHÔNG có migration mới ngoài 0155_ve_quet. Bước A.0 ngày 9/11 (sau 2.83 của Đợt 1 sửa nhỏ). Mọi dịch vụ vẫn «Vé hãng ngoài» cho tới khi chủ gạt ô «Vé do ai phát».
+    version: "2.84",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Trang «Quét vé»: Hướng dẫn viên, Tài xế dùng camera quét mã vé Tour Đảo; xanh cho đi, vàng cần xác nhận, đỏ từ chối; có nút chụp ảnh dự phòng." },
+      { kind: "moi", text: "Đơn có ô «Đã dùng» theo từng dịch vụ; màn «Đối chiếu vé» so số khách theo đơn với số vé đã dùng trong ngày; Quản trị bỏ được lượt quét nhầm." },
+      { kind: "doi", text: "Đơn đã có vé Tour Đảo được quét thì không huỷ được và không giảm số khách xuống dưới số vé đã dùng; muốn huỷ thì bỏ lượt quét trước." },
     ],
   },
   {

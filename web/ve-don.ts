@@ -12,7 +12,7 @@ import { cauKhoaVe } from "../src/shared/ve-cau-khoa";
 
 interface NhomVe { nhom: string; nhan: string; can: number; giu: number; thieu: number }
 interface VeDonRes {
-  dichVu: { serviceId: string; catalogCode: string; nhom: NhomVe[] }[];
+  dichVu: { serviceId: string; catalogCode: string; nhom: NhomVe[]; /** ADR-0175 §2.7: số khách đã quét «Đã dùng» (chỉ khi dịch vụ có vé Tour Đảo hoặc đã có lượt quét). */ daDung?: number; /** Số khách hiệu lực của dịch vụ (không em bé): mẫu số của «Đã dùng x/y». */ soKhach?: number }[];
   thuDu: boolean;
   choDoiTacNop?: boolean;
   /** ADR-0170 Đ2 mục 5: người xem giữ quyền Đối tác — nói câu «Công ty chưa xác nhận…». */
@@ -59,7 +59,8 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
   };
   const danhSach = h("ul", { class: "pay-list", "data-khoi": "ve-don" }, ...dong.map((d) =>
     h("li", { "data-service-id": d.serviceId },
-      ...d.nhom.map((x) => h("p", null, `${x.nhan}: ${x.giu}/${x.can} vé`, x.thieu > 0 ? h("span", { class: "huy-hieu", "data-tong": "cat" }, ` Thiếu ${x.thieu} vé`) : null)))));
+      ...d.nhom.map((x) => h("p", null, `${x.nhan}: ${x.giu}/${x.can} vé`, x.thieu > 0 ? h("span", { class: "huy-hieu", "data-tong": "cat" }, ` Thiếu ${x.thieu} vé`) : null)),
+      d.daDung === undefined ? null : h("p", { class: "muted", "data-khoi": "da-dung" }, `Đã dùng ${d.daDung}/${d.soKhach ?? 0}`))));
   const nutCap = tongThieu > 0 ? h("button", { type: "button", class: "btn", "data-action": "cap-ve" }, "Cấp vé") : null;
   nutCap?.addEventListener("click", async () => {
     nutCap.disabled = true; hien(null);

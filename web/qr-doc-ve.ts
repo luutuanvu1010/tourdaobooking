@@ -29,3 +29,12 @@ export async function docQrTuTep(tep: File): Promise<string | null> {
     anh.close();
   }
 }
+
+/** Chuỗi QR đọc được trên MỘT khung hình của camera (trang Quét vé, đọc ~4 lần mỗi giây); null khi chưa thấy mã. Không bao giờ ném. */
+export function docQrTuKhung(khung: ImageData): string | null {
+  try {
+    return jsQR(khung.data, khung.width, khung.height)?.data ?? null;
+  } catch {
+    return null;
+  }
+}

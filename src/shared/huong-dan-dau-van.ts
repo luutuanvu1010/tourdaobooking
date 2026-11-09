@@ -1,7 +1,9 @@
 // SINH bởi scripts/huong-dan-xem-lai.mjs, không sửa tay. Mỗi bài: dấu vân lúc xem lại gần nhất, kèm bản và ngày.
 export interface DauVanBai { readonly neo: string; readonly chu: string; readonly ban: string; readonly ngay: string }
 export const DAU_VAN: Readonly<Record<string, DauVanBai>> = {
-  "kho-ve": {"neo":"0a7948f6e4121c67","chu":"b6be711fed135675","ban":"2.83","ngay":"2026-11-09"},
+  "kho-ve": {"neo":"e9dc6c32e436e040","chu":"dbb458aafae54ae3","ban":"2.85","ngay":"2026-11-09"},
+  "quet-ve": {"neo":"6fd9afff97eb6683","chu":"3832545a5f0470e6","ban":"2.84","ngay":"2026-11-09"},
+  "doi-chieu-ve": {"neo":"088c00e2d14e60d8","chu":"f9153bd203565954","ban":"2.84","ngay":"2026-11-09"},
   "cai-dat-ve": {"neo":"1a9be7c66766df30","chu":"78895cd744fbcb8b","ban":"2.80","ngay":"2026-11-09"},
   "dich-vu-can-kiem-ve": {"neo":"b7f210484a710fae","chu":"b41fe0afa23fe41f","ban":"2.84","ngay":"2026-11-09"},
   "gioi-han-nhap-hoa-hong": {"neo":"5be668561a80de9f","chu":"f2fe829bae2aff80","ban":"2.58","ngay":"2026-11-03"},

@@ -26,11 +26,11 @@ import { giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
-import { canBangVeTheoSoKhach, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule, veHangNgoaiDaMoCuaDon } from "./modules/ve-dien-tu";
+import { canBangVeTheoSoKhach, cauChanDuoiSoDaDung, cauChanVeDaDung, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soVeDaDungTheoDichVu, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule, veHangNgoaiDaMoCuaDon } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
 import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
-import { cauDoiNguoiDat, dichVuChoVe, dienDoiTacCuaDon, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
+import { cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
@@ -38,7 +38,7 @@ import { chuyenChoTinTheoId, dongBoChuyenChoDon, mocToiThieuHienHanh, nguongHetH
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien, nhanSuKienChuyen, type ThayDoiDon } from "./shared/bang-tin";
 import { dangChayLucSuKien, dongCoTheSinhTin, taiXeNhanSuKien, thayDoiCuaHanhDongChuyen } from "./shared/tin-chuyen";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
-import { holdsPartner } from "./shared/permissions";
+import { can, holdsPartner } from "./shared/permissions";
 import { vnToday } from "./shared/vn-date";
 import { createApp, type AppOptions } from "./shared/router";
 
@@ -259,6 +259,8 @@ const APP_OPTIONS: AppOptions = {
     cauGacPhienBanTraSau: (env, partyId, version, at) => cauGacPhienBan(env.DB, partyId, version, at),
     traSauCuaDon: (env, id) => traSauCuaDon(env.DB, id),
     veDaMoCuaDon: (env, id) => veDaMoCuaDon(env.DB, id),
+    soVeDaDungTheoDichVu: (env, id) => soVeDaDungTheoDichVu(env.DB, id), // ADR-0175 Đ3 mục 3: chặn giảm số khách dưới số vé đã dùng
+    cauChanDuoiSoDaDung: (env, orderId, serviceId, n) => cauChanDuoiSoDaDung(env.DB, orderId, serviceId, n), // câu gác trong lô sửa số khách (đóng cửa sổ đọc–ghi)
     veHangNgoaiDaMoCuaDon: (env, id) => veHangNgoaiDaMoCuaDon(env.DB, id), // ADR-0175 Đ2.6: cổng huỷ Trả sau còn nợ chỉ tính vé hãng ngoài
     // KÊNH THU ĐỐI TÁC (ADR-0178 Đ1): `orders` không import billing — gốc lắp ráp tiêm hàm đọc công tắc «Khách của đối tác trả cho Công ty» (chụp lên đơn lúc lập).
     kenhThuHienTai: (env) => kenhThuHienTai(env.DB),
@@ -284,13 +286,23 @@ const APP_OPTIONS: AppOptions = {
     // ADR-0175 Đ2.6: câu bảo vệ tách theo mục đích — người giữ quyền Đối tác: mọi loại vé (ADR-0170 Đ3); cổng huỷ Trả sau còn nợ của văn phòng: chỉ vé hãng ngoài (ADR-0168 Đ3 mục 3).
     traVeKhiHuy: async (env, actor, orderId, lyDo, chanVeDaMoTraSau) => {
       const chan = holdsPartner(actor) ? "MOI_VE" : chanVeDaMoTraSau ? "HANG_NGOAI" : null;
-      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()), chan }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return chan !== null && lyDo === "DON_HUY" ? null : []; }
+      // ADR-0175 Đ3 mục 3: lỗi soạn câu trả vé KHÔNG được làm mất câu chặn «vé đã dùng» (nuốt lỗi mà bỏ câu này là mở cửa huỷ đơn đã quét) — câu chặn dựng riêng, không đọc DB.
+      try { return await soanTraVeKhiHuy(env.DB, { orderId, lyDo, by: actor.id, at: new Date().toISOString(), homNay: vnToday(new Date()), chan }, nhatKyThat(env.DB)); } catch (e) { console.error("ve_tra_loi", orderId, e instanceof Error ? e.name : "loi"); return chan !== null && lyDo === "DON_HUY" ? null : [cauChanVeDaDung(env.DB, orderId)]; }
     },
     canBangVeSauSuaKhach: async (env, actor, orderId) => {
       try { await canBangVeTheoSoKhach(env.DB, await dichVuChoVe(env.DB, orderId), actor.id, nhatKyThat(env.DB), new Date().toISOString(), vnToday(new Date())); } catch (e) { console.error("ve_can_bang_loi", orderId, e instanceof Error ? e.name : "loi"); }
     },
     // DIỆN ĐỐI TÁC CỦA ĐƠN (ADR-0175 Đ2.4): kho vé không đọc orders — gốc lắp ráp gọi hàm công bố; router bọc lỗi thành null (diện đối tác).
     dienDoiTacCuaDon: (env, orderId) => dienDoiTacCuaDon(env.DB, orderId),
+    // QUÉT VÉ (ADR-0175 Đ3): `ve-dien-tu` không import orders — gốc lắp ráp đọc dữ kiện hẹp của dòng dịch vụ rồi tự hỏi quyền của NGƯỜI QUÉT trên đơn đó: mã đơn chỉ khi `order.view`, cờ tiền theo `money.view`.
+    donChoQuet: async (env, actor, orderId, serviceId) => {
+      const d = await donChoQuet(env.DB, orderId, serviceId);
+      if (!d) return null;
+      const ctx = { ownerId: d.ownerId, assigned: await isOrderHandler(env.DB, actor.id, orderId) };
+      return { trangThai: d.trangThai, ngayDi: d.ngayDi, soKhachHieuLuc: d.soKhachHieuLuc, maDon: can(actor, "order.view", ctx) ? d.maDon : null, xemTien: can(actor, "money.view", ctx) };
+    },
+    // ĐỐI CHIẾU KHÁCH THỰC TẾ (ADR-0175 §2.7): `ve-dien-tu` không import orders — orders cho dịch vụ đã xác nhận của một ngày; route đã hỏi `can(ve.doi-chieu.view)`.
+    dichVuChoDoiChieu: (env, ngay) => dichVuChoDoiChieu(env.DB, ngay),
     // CẤP BÙ KHI LÔ VÀO KHO (ADR-0175 Đ1.5a): orders cho tối đa `toiDa` ứng viên (đơn đã xác nhận có dòng mã đó, ngày đi chưa qua, gần trước) — một câu; kho vé lọc «còn thiếu»
     // dần trong vòng lặp của route (vòng sửa 1 I-1: trước đây lọc trước cả 200 đơn, ~5 câu mỗi đơn, vượt trần câu D1).
     donChoCapBu: async (env, code, toiDa) => {

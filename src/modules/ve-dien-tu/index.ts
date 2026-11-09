@@ -6,24 +6,26 @@ import { auditStatement, nguoiLam } from "../audit";
 import { clearAttempts, reserveAttempts } from "../auth";
 import { coVeTheoMa, getEffectiveServices, nguonVeTheoMa } from "../catalog";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
-import { MATRIX, can, holdsPartner, isOffice, tacNhan } from "../../shared/permissions";
+import { MATRIX, can, holdsPartner, isOffice, passesAdminGate, tacNhan } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import { NGUON_VE, nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
 import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, taoKhoaNgauNhien, type LoaiTep } from "../../shared/tep-dinh-kem";
-import { vnToday } from "../../shared/vn-date";
+import { ngayNgan, vnToday } from "../../shared/vn-date";
 import { moVeDuoc } from "../../shared/tra-sau";
 import { cauKhoaVe } from "../../shared/ve-cau-khoa.ts";
 import { veMoDuocTheoVe } from "../../shared/mo-ve-theo-ve.ts";
+import { CAU_HOP_LE, CAU_QUET, canXacNhanQuet, ketQuaQuet, type VeQuet } from "../../shared/ket-qua-quet.ts";
 import { canVe, choDoiTacNop, thuDu } from "./rules.ts";
 import { DANG_TOKEN, bamToken, hanDuongDan, soSanhHangThoiGian, taoToken, trangVeKhach } from "./duong-dan-khach.ts";
 import { NHAN_NHOM, NHAN_NHOM_LO, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
 import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_DON_XET_CAP_BU, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, tranLoHopLe } from "../../shared/ve-nhap-lo";
 import { datVeVaoKho, donHangChoXoa, type VeChuanBi } from "./kho-tep.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
-import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
+import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho, cauBoLuotQuet, cauChenLuotQuet, coLuotQuet, demLuotDaTinh, docLuotDaTinh, docLuotQuet, docVeQuet } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
-import { veDaMoCuaDon as docVeDaMoCuaDon, veHangNgoaiDaMoCuaDon as docVeHangNgoaiDaMoCuaDon } from "./repository.ts";
+import { daDungTheoDichVuLo, luotDaTinhTheoNgay, nguoiQuetTheoNgay, soVeTourDao, veDaMoCuaDon as docVeDaMoCuaDon, veHangNgoaiDaMoCuaDon as docVeHangNgoaiDaMoCuaDon, soVeDaDungTheoDichVu as docSoVeDaDung, cauChanVeDaDung, cauChanDuoiSoDaDung } from "./repository.ts";
+export { cauChanVeDaDung, cauChanDuoiSoDaDung };
 /** ADR-0170 Đ3: «đơn có vé đã mở không» (MỌI loại vé) cho gốc lắp ráp tiêm. Không đọc được ⇒ `null` (bên gọi CHẶN, không đoán «chưa mở»). */
 export const veDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boolean | null> => {
   try { return await docVeDaMoCuaDon(db, orderId); } catch (e) { console.error("ve_da_mo_loi", orderId, e instanceof Error ? e.name : "loi"); return null; }
@@ -31,6 +33,11 @@ export const veDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boo
 /** ADR-0175 Đ2.6: «đơn có vé HÃNG NGOÀI đã mở không» — cho cổng huỷ đơn Trả sau còn nợ (văn phòng). Không đọc được ⇒ `null` (cổng chặn 503). */
 export const veHangNgoaiDaMoCuaDon = async (db: D1Database, orderId: string): Promise<boolean | null> => {
   try { return await docVeHangNgoaiDaMoCuaDon(db, orderId); } catch (e) { console.error("ve_hang_ngoai_da_mo_loi", orderId, e instanceof Error ? e.name : "loi"); return null; }
+};
+
+/** ADR-0175 Đ3 mục 3: số khách đã dùng vé theo dòng dịch vụ của đơn (lượt quét DA_TINH chưa bỏ) — chặn sửa số khách xuống dưới số này. Không đọc được ⇒ `null` (bên gọi chặn, không đoán «chưa dùng»). */
+export const soVeDaDungTheoDichVu = async (db: D1Database, orderId: string): Promise<Map<string, number> | null> => {
+  try { return await docSoVeDaDung(db, orderId); } catch (e) { console.error("ve_da_dung_loi", orderId, e instanceof Error ? e.name : "loi"); return null; }
 };
 
 /** Nối nhật ký thật (module audit) vào các hàm soạn câu của cap-ve.ts. Gốc lắp ráp dùng khi tiêm (Task 5). */
@@ -48,6 +55,28 @@ const TOI_DA_DON_MOI_LAN = 50;
 /** Trần lô đang áp (ADR-0156 Đ3). Thiếu dòng cấu hình ⇒ mặc định, không bỏ giới hạn. */
 const docTranLo = async (db: D1Database): Promise<number> => (await docCaiDatVe(db))?.batch_limit ?? TRAN_LO_MAC_DINH;
 
+/** Ngày `?ngay=` của màn đối chiếu: không có ⇒ hôm nay giờ Việt Nam; có thì phải là ngày thật dạng YYYY-MM-DD, sai ⇒ null. */
+const ngayHoi = (request: Request): string | null => {
+  const n = new URL(request.url).searchParams.get("ngay");
+  if (n === null) return vnToday(new Date());
+  const t = /^\d{4}-\d{2}-\d{2}$/.test(n) ? Date.parse(`${n}T00:00:00Z`) : NaN;
+  return Number.isNaN(t) || new Date(t).toISOString().slice(0, 10) !== n ? null : n;
+};
+
+/** Giờ Việt Nam «HH:mm ngày dd/MM» của một mốc ISO UTC (câu «Đã dùng lúc …»). */
+const gioVn = (iso: string): string => {
+  const [ngay, gio] = new Date(Date.parse(iso) + 7 * 3600e3).toISOString().split("T") as [string, string];
+  return `${gio.slice(0, 5)} ngày ${ngayNgan(ngay, ngay)}`;
+};
+const NHAN_GHI_QUET = { DA_TINH: "tính đã dùng", CHI_XEM: "chỉ xem", TU_CHOI: "từ chối" } as const;
+/** Lý do bỏ lượt không được mang mã vé hay số điện thoại: so SAU khi bỏ khoảng trắng, gạch ngang, dấu chấm và đổi hoa (chống tách chuỗi để lọt). */
+const chuaMaHoacSdt = (chu: string): boolean => {
+  const gon = chu.replace(/[\s\-._]/g, "").toUpperCase();
+  return /TD1[A-Z2-7]{26}/.test(gon) || /\d{9,}/.test(gon);
+};
+/** Người quét tự bỏ lượt trong khoảng này kể từ lúc quét (ADR-0175 Đ3 mục 7); Quản trị, Toàn quyền bất kỳ lúc nào. */
+const PHUT_TU_BO_LUOT = 5;
+const dauNghin = (n: number): string => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 const KHONG_QUYEN = () => error(403, "forbidden", "Bạn không có quyền quản lý kho vé điện tử.");
 type NguoiHoi = Parameters<typeof can>[0];
 /**
@@ -495,6 +524,7 @@ export const veDienTuModule: AppModule = {
       const [dv, trangThai] = await Promise.all([dichVuChoVe(orderId), docTrangThaiDon(env.DB, orderId)]);
       const homNay = vnToday(new Date());
       const dichVu = [];
+      const daDungTheoDv = (await soVeDaDungTheoDichVu(env.DB, orderId)) ?? new Map<string, number>(); // ADR-0175 §2.7: «Đã dùng x/y» — chỉ con số, không người quét, không mã vé; lỗi đọc ⇒ rỗng, không làm hỏng cả khối vé
       for (const d of dv) {
         const can_ = canVe(d.pax);
         const giu = await veDangGiu(env.DB, d.serviceId);
@@ -502,7 +532,8 @@ export const veDienTuModule: AppModule = {
         // Kế hoạch vé Tour Đảo Task 5: đơn đã huỷ không báo thiếu (vé đã trả về kho khi huỷ, không còn cần giữ).
         const baoThieu = d.coVe && d.ngayDi >= homNay && trangThai !== "cancelled";
         const nhom = (["ADULT", "CHILD", "SENIOR"] as const).filter((n) => (baoThieu && can_[n] > 0) || giu[n] > 0).map((n) => ({ nhom: n, nhan: NHAN_NHOM[n], can: can_[n], giu: giu[n], thieu: baoThieu ? Math.max(0, can_[n] - giu[n]) : 0 }));
-        dichVu.push({ serviceId: d.serviceId, catalogCode: d.catalogCode, nhom });
+        const dung = daDungTheoDv.get(d.serviceId) ?? 0;
+        dichVu.push({ serviceId: d.serviceId, catalogCode: d.catalogCode, nhom, ...(d.nguonVe === "TOUR_DAO" || dung > 0 ? { daDung: dung, soKhach: can_.ADULT + can_.CHILD + can_.SENIOR } : {}) });
       }
       const duongDan = (await docLinkCuaDon(env.DB, orderId)).map((l) => ({ id: l.id, hetHan: l.expires_at, daThuHoi: l.revoked_at !== null, luotMo: l.opened_count })); // KHÔNG token (chỉ lưu băm)
       const d = await docDonVe(env.DB, { tienDonVe, dienDoiTacCuaDon }, orderId);
@@ -637,6 +668,144 @@ export const veDienTuModule: AppModule = {
         cauThuHoiLink(env.DB, id, at, staff.id),
         auditStatement(env.DB, { staffId: staff.id, action: "ve_thu_hoi_duong_dan", at, orderId: link.order_id, targetType: "ve", targetId: link.order_id, detail: "Thu hồi đường dẫn vé của khách" }, "changes() > 0"),
       ]);
+      return json({ ok: true });
+    }),
+
+    // QUÉT VÉ TOUR ĐẢO (ADR-0175 Đ3; đặc tả §2.5). Cổng `staff` (Hướng dẫn viên, Tài xế vào được); quyền ở ô `ve.quet.tinh` / `ve.quet.xem`. Mã vé chỉ ở THÂN, không URL; không bao giờ vào nhật ký,
+    // phản hồi hay câu lỗi (chỉ 4 ký tự cuối). Mã lạ và vé hãng ngoài trả CÙNG một câu, KHÔNG ghi lượt (không để dò mã). Không tên khách, SĐT, giá; mã đơn chỉ khi người quét có `order.view` trên đơn.
+    // Một lô D1: câu chèn có gác → nhật ký gác `changes() > 0`. Thua cạnh tranh: đọc lại lượt thắng, trả «Đã dùng».
+    // MÀN ĐỐI CHIẾU (ADR-0175 §2.7; ô `ve.doi-chieu.view`: Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng). Theo NGÀY ĐI: mỗi dịch vụ có vé Tour Đảo, số khách theo đơn ĐÃ XÁC NHẬN (không em bé, không đơn huỷ)
+    // so với số khách đã quét «đã dùng». Chỉ báo, không tự sửa. Kèm sổ vé Tour Đảo (năm ô, toàn kho). Không tên khách, SĐT, giá, mã đơn, mã vé. Không đọc được đơn ⇒ 503 (không đoán «không có khách»).
+    route("GET", "/api/ve/doi-chieu", "office", async ({ env, request, staff, dichVuChoDoiChieu }) => {
+      if (!can(staff, "ve.doi-chieu.view")) return error(403, "forbidden", "Bạn không có quyền xem đối chiếu vé.");
+      const ngay = ngayHoi(request);
+      if (ngay === null) return error(400, "invalid_input", "Ngày không hợp lệ (cần dạng năm-tháng-ngày).");
+      const dv = await dichVuChoDoiChieu(ngay);
+      if (dv === null) return error(503, "khong_doc_duoc_don", "Chưa đọc được đơn của ngày này, hãy thử lại.");
+      const ids = dv.map((d) => d.serviceId);
+      const codes = [...new Set(dv.map((d) => d.catalogCode))];
+      // Lọc theo NGUỒN VÉ của danh mục (như `/api/ve/don`), không theo «đang giữ vé»: dịch vụ Tour Đảo đã xác nhận mà thiếu hết vé vẫn phải hiện (đó chính là chênh lệch cần thấy). Tên theo danh mục, nhất quán theo mã.
+      const [daDung, nguon, ten, soVe] = await Promise.all([daDungTheoDichVuLo(env.DB, ids), nguonVeTheoMa(env.DB, codes), getEffectiveServices(env.DB, codes), soVeTourDao(env.DB)]);
+      const gom = new Map<string, { dichVu: string; soKhachTheoDon: number; daDung: number }>();
+      for (const d of dv) {
+        const dung = daDung.get(d.serviceId) ?? 0;
+        if (nguonVeCua(d.catalogCode, nguon) !== "TOUR_DAO" && dung === 0) continue;
+        const g = gom.get(d.catalogCode) ?? { dichVu: ten.get(d.catalogCode)?.name ?? d.tenDichVu, soKhachTheoDon: 0, daDung: 0 };
+        g.soKhachTheoDon += d.soKhach; g.daDung += dung; gom.set(d.catalogCode, g);
+      }
+      const dong = [...gom.values()].map((g) => ({ ...g, chenhLech: g.soKhachTheoDon - g.daDung })).sort((a, b) => a.dichVu.localeCompare(b.dichVu, "vi"));
+      return json({ ngay, dong, soVe: { daTao: soVe.da_tao, trongKho: soVe.trong_kho, daCapChuaMo: soVe.da_cap_chua_mo, daMoChuaDung: soVe.da_mo_chua_dung, daDung: soVe.da_dung, daHuy: soVe.da_huy } });
+    }),
+
+    // THEO DÕI NGƯỜI QUÉT (ADR-0175 Đ3 mục 6, 7): số lượt của từng người trong một ngày — tính, chỉ xem, từ chối, đã bỏ. Cùng ô quyền với màn đối chiếu. Không mã vé, không khách.
+    route("GET", "/api/ve/nguoi-quet", "office", async ({ env, request, staff, nhanNhanVien }) => {
+      if (!can(staff, "ve.doi-chieu.view")) return error(403, "forbidden", "Bạn không có quyền xem người quét vé.");
+      const ngay = ngayHoi(request);
+      if (ngay === null) return error(400, "invalid_input", "Ngày không hợp lệ (cần dạng năm-tháng-ngày).");
+      const rows = await nguoiQuetTheoNgay(env.DB, ngay);
+      const ten = (await nhanNhanVien(rows.flatMap((r) => (r.nguoi ? [r.nguoi] : [])))) ?? new Map<string, string>();
+      return json({ ngay, coTheBoLuot: passesAdminGate(staff), dong: rows.map((r) => ({ nguoi: (r.nguoi ? ten.get(r.nguoi) : null) || "Không rõ tên", daTinh: r.da_tinh, chiXem: r.chi_xem, tuChoi: r.tu_choi, daBo: r.da_bo })) });
+    }),
+
+    // DANH SÁCH LƯỢT ĐÃ DÙNG ĐỂ BỎ (ADR-0175 Đ3 mục 7): Quản trị, Toàn quyền bỏ lượt quét bất kỳ lúc nào, nên màn theo dõi người quét liệt kê lượt «đã dùng» chưa bỏ của ngày. Người khác 403.
+    // Chỉ id lượt, giờ, tên người quét, tên dịch vụ in trên vé, 4 ký tự cuối: không mã vé, không khách, SĐT, giá. Bỏ lượt đi qua `POST /api/ve/quet/:id/bo` (lý do bắt buộc, nhật ký).
+    route("GET", "/api/ve/luot-quet", "office", async ({ env, request, staff, nhanNhanVien }) => {
+      if (!can(staff, "ve.doi-chieu.view") || !passesAdminGate(staff)) return error(403, "forbidden", "Chỉ Quản trị, Toàn quyền xem danh sách lượt quét để bỏ.");
+      const ngay = ngayHoi(request);
+      if (ngay === null) return error(400, "invalid_input", "Ngày không hợp lệ (cần dạng năm-tháng-ngày).");
+      const rows = await luotDaTinhTheoNgay(env.DB, ngay);
+      const ten = (await nhanNhanVien(rows.flatMap((r) => (r.scanned_by ? [r.scanned_by] : [])))) ?? new Map<string, string>();
+      return json({ ngay, dong: rows.map((r) => ({ id: r.id, luc: r.scanned_at, nguoi: (r.scanned_by ? ten.get(r.scanned_by) : null) || "Không rõ tên", dichVu: r.dich_vu, soCuoi: r.so_cuoi })) });
+    }),
+
+    // Đường gọi chính của trang Quét vé: báo người gọi quét được không và có tính «đã dùng» không. Cùng ô quyền với route quét; không chạm dữ liệu vé.
+    route("GET", "/api/ve/quet/quyen", "staff", async ({ staff }) => {
+      const tinh = can(staff, "ve.quet.tinh");
+      if (!tinh && !can(staff, "ve.quet.xem")) return error(403, "forbidden", "Bạn không có quyền quét vé.");
+      return json({ tinh });
+    }),
+
+    route("POST", "/api/ve/quet", "staff", async ({ env, request, staff, donChoQuet, tienDonVe, dienDoiTacCuaDon, nhanNhanVien }) => {
+      const quyenTinh = can(staff, "ve.quet.tinh");
+      if (!quyenTinh && !can(staff, "ve.quet.xem")) return error(403, "forbidden", "Bạn không có quyền quét vé.");
+      const raw = await readJson(request);
+      if (raw === null) return BAD_JSON();
+      const ma = typeof raw.ma === "string" ? raw.ma.trim() : "";
+      const xn = typeof raw.xacNhan === "object" && raw.xacNhan !== null ? (raw.xacNhan as Record<string, unknown>) : {};
+      const xacNhan = { lechNgay: xn.lechNgay === true, chuaThu: xn.chuaThu === true, vuotKhach: xn.vuotKhach === true };
+      const at = new Date().toISOString();
+      const homNay = vnToday(new Date(at));
+      const row = ma.length > 0 && ma.length <= 100 ? await docVeQuet(env.DB, ma) : null;
+      const rong = { dichVu: "", nhomKhach: "", ngayDi: null, soCuoi: "" };
+      if (row === null || row.nguon === "HANG_NGOAI") {
+        const kq = ketQuaQuet(null, { homNay, quyenTinh, xacNhan });
+        return json({ mau: kq.mau, ma: kq.ma, ghi: null, cau: CAU_QUET[kq.ma], ...rong });
+      }
+      let dich: Awaited<ReturnType<typeof donChoQuet>> = null;
+      let don: DonVe | null = null;
+      if (row.order_id !== null && row.order_service_id !== null) {
+        dich = await donChoQuet(row.order_id, row.order_service_id, staff.id);
+        if (dich === null) return error(503, "khong_doc_duoc_don", "Chưa đọc được đơn của vé này, hãy quét lại.");
+        don = await docDonVe(env.DB, { tienDonVe, dienDoiTacCuaDon }, row.order_id);
+      }
+      const tenNguoiQuet = async (id: string | null): Promise<string> => (id === null ? "" : ((await nhanNhanVien([id]))?.get(id) ?? ""));
+      const [daDung, soLuotDaTinh] = await Promise.all([docLuotDaTinh(env.DB, row.ticket_id), row.order_service_id !== null ? demLuotDaTinh(env.DB, row.order_service_id) : Promise.resolve(0)]);
+      const ve: VeQuet = {
+        nguon: row.nguon, trangThaiVe: row.ve_status, trangThaiDon: dich?.trangThai ?? null, daMo: row.revealed_at !== null, tuNgay: row.valid_from, denNgay: row.valid_to,
+        daDung: daDung ? { luc: daDung.scanned_at, nguoi: await tenNguoiQuet(daDung.scanned_by) } : null, ngayDi: dich?.ngayDi ?? null,
+        moTheoTien: don ? moTheoTien(don, false) : true, soLuotDaTinh, soKhachHieuLuc: dich?.soKhachHieuLuc ?? 0,
+      };
+      const kq = ketQuaQuet(ve, { homNay, quyenTinh, xacNhan });
+      const nhomKhach = NHAN_NHOM_LO[(row.nhom ?? row.nhom_lo) as keyof typeof NHAN_NHOM_LO] ?? "";
+      const chung = { dichVu: row.printed_name, nhomKhach, ngayDi: dich?.ngayDi ?? null, soCuoi: row.cuoi, ...(dich?.maDon ? { maDon: dich.maDon } : {}) };
+      const phanHoi = (mau: typeof kq.mau, maKq: typeof kq.ma, ghi: typeof kq.ghi, cau: string, lanQuetId?: string) => json({ mau, ma: maKq, ghi, cau, ...chung, ...(lanQuetId ? { lanQuetId } : {}) });
+      const cauDaDung = (d: { luc: string; nguoi: string }) => `${CAU_QUET.DA_DUNG} lúc ${gioVn(d.luc)}${d.nguoi ? ` bởi ${d.nguoi}` : ""}`;
+      if (kq.ghi === null) {
+        let cau = CAU_QUET[kq.ma];
+        if (kq.ma === "CHUA_THU_DU" && dich?.xemTien && don?.tien) cau = `Đơn chưa thu đủ, còn thiếu ${dauNghin(Math.max(0, don.tien.phaiThu - don.tien.daThu))} đ, báo văn phòng trước khi thu khách`;
+        return phanHoi(kq.mau, kq.ma, null, cau);
+      }
+      const id = crypto.randomUUID();
+      const can_ = canXacNhanQuet(ve, homNay);
+      await env.DB.batch([
+        cauChenLuotQuet(env.DB, {
+          id, ticketId: row.ticket_id, allocationId: row.allocation_id, orderId: row.order_id, serviceId: row.order_service_id, ketQua: kq.ghi, lyDo: kq.ma,
+          xacNhan: kq.ghi === "TU_CHOI" ? { lechNgay: null, chuaThu: null, vuotKhach: null } : can_, at, by: staff.id,
+        }),
+        auditStatement(env.DB, { staffId: staff.id, action: "ve_quet", at, orderId: row.order_id ?? undefined, targetType: "ve", targetId: row.order_service_id ?? row.ticket_id, detail: `Quét vé · ${NHAN_GHI_QUET[kq.ghi]} · số cuối ${row.cuoi}` }, "changes() > 0"),
+      ]);
+      // Lượt của mình KHÔNG vào sổ (thua cạnh tranh, hoặc gác chèn từ chối vì vé vừa đổi trạng thái): không bao giờ trả `lanQuetId` của dòng không có.
+      if (!(await coLuotQuet(env.DB, id))) {
+        const thang = kq.ghi === "DA_TINH" ? await docLuotDaTinh(env.DB, row.ticket_id) : null;
+        if (thang === null) return error(409, "ve_vua_doi", "Vé vừa đổi trạng thái, hãy quét lại.");
+        return phanHoi("DO", "DA_DUNG", null, cauDaDung({ luc: thang.scanned_at, nguoi: await tenNguoiQuet(thang.scanned_by) }));
+      }
+      return phanHoi(kq.mau, kq.ma, kq.ghi, kq.ghi === "TU_CHOI" ? (kq.ma === "DA_DUNG" && ve.daDung ? cauDaDung(ve.daDung) : CAU_QUET[kq.ma]) : CAU_HOP_LE[kq.ghi], id);
+    }),
+
+    // BỎ LƯỢT QUÉT (ADR-0175 Đ3 mục 7): người quét trong 5 phút kể từ lúc quét, hoặc Quản trị, Toàn quyền bất kỳ lúc nào; bắt buộc lý do (≥ 5 ký tự, không chứa mã vé); nhật ký `ve_bo_luot_quet`.
+    route("POST", "/api/ve/quet/:id/bo", "staff", async ({ env, request, staff, params }) => {
+      if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) return error(403, "forbidden", "Bạn không có quyền quét vé.");
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return error(404, "not_found", "Không tìm thấy lượt quét.");
+      const raw = await readJson(request);
+      if (raw === null) return BAD_JSON();
+      const lyDo = typeof raw.lyDo === "string" ? raw.lyDo.trim() : "";
+      if (lyDo.length < 5 || lyDo.length > 300) return error(400, "invalid_input", "Hãy ghi lý do bỏ lượt quét (từ 5 đến 300 ký tự).");
+      if (chuaMaHoacSdt(lyDo)) return error(400, "invalid_input", "Lý do không được chứa số điện thoại hoặc mã vé.");
+      const luot = await docLuotQuet(env.DB, id);
+      if (luot === null) return error(404, "not_found", "Không tìm thấy lượt quét.");
+      if (luot.voided_at !== null) return error(409, "da_bo", "Lượt quét này đã được bỏ.");
+      const at = new Date().toISOString();
+      const trongHan = luot.scanned_by === staff.id && Date.parse(at) - Date.parse(luot.scanned_at) <= PHUT_TU_BO_LUOT * 60_000;
+      if (!trongHan && !passesAdminGate(staff)) return error(403, "forbidden", `Chỉ người quét bỏ được lượt quét trong ${PHUT_TU_BO_LUOT} phút. Sau đó hãy nhờ Quản trị.`);
+      await env.DB.batch([
+        cauBoLuotQuet(env.DB, id, at, staff.id, lyDo),
+        auditStatement(env.DB, { staffId: staff.id, action: "ve_bo_luot_quet", at, orderId: luot.order_id ?? undefined, targetType: "ve", targetId: id, detail: `Bỏ lượt quét · lý do: ${lyDo}` }, "changes() > 0"),
+      ]);
+      // Hai người cùng bỏ một lượt: bên thua (câu cập nhật không đổi dòng nào, nhật ký không ghi) nhận 409, không báo «đã bỏ» thay người khác.
+      const sau = await docLuotQuet(env.DB, id);
+      if (sau?.voided_at !== at || sau.voided_by !== staff.id) return error(409, "da_bo", "Lượt quét này đã được bỏ.");
       return json({ ok: true });
     }),
 

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Đối chiếu vé — Island Booking System</title></head>
+<body data-khuon="bieu-mau" data-title="Đối chiếu vé" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Đối chiếu vé Tour Đảo (ADR-0175 §2.7). Ô ve.doi-chieu.view; chỉ xem. web/ve-doi-chieu.ts dựng nội dung từ GET /api/ve/doi-chieu và /api/ve/nguoi-quet. -->
+  <h1>Đối chiếu vé</h1>
+  <p class="muted">So số khách theo đơn đã xác nhận với số khách đã quét «Đã dùng», theo ngày đi. Màn này chỉ để xem, Nền tảng không tự sửa gì.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <section id="vdc-noi-dung" hidden>
+    <label class="nhan" for="vdc-ngay">Ngày đi</label>
+    <input id="vdc-ngay" class="o" type="date" required>
+    <section class="card" aria-labelledby="vdc-khach-tieu-de">
+      <h2 id="vdc-khach-tieu-de">Khách theo đơn và vé đã dùng</h2>
+      <div id="vdc-khach" aria-live="polite"></div>
+    </section>
+    <section class="card" aria-labelledby="vdc-nguoi-tieu-de">
+      <h2 id="vdc-nguoi-tieu-de">Người quét trong ngày</h2>
+      <div id="vdc-nguoi" aria-live="polite"></div>
+    </section>
+    <section class="card" id="vdc-khoi-luot" aria-labelledby="vdc-luot-tieu-de" hidden>
+      <h2 id="vdc-luot-tieu-de">Lượt đã dùng có thể bỏ</h2>
+      <p class="muted">Chỉ Quản trị, Toàn quyền thấy và bỏ được lượt quét quá 5 phút. Bỏ lượt thì vé trở lại chưa dùng; phải ghi lý do, không ghi số điện thoại hay mã vé.</p>
+      <div id="vdc-luot" aria-live="polite"></div>
+    </section>
+    <section class="card" aria-labelledby="vdc-so-ve-tieu-de">
+      <h2 id="vdc-so-ve-tieu-de">Sổ vé Tour Đảo</h2>
+      <div id="vdc-so-ve"></div>
+    </section>
+  </section>
+</main>
+<script type="module" src="/js/ve-doi-chieu.js"></script>
+</body></html>

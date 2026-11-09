@@ -64,11 +64,18 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // và nhánh tác nhân trong `can()` của bản đồ quyền dùng chung, cùng nhãn nhật ký «Xoá ảnh vé hết hạn lưu» (chỉ dữ liệu quyền / nhãn, không mã giao diện mới vào gói này). Đo thật 109.677 byte
 // trên mã đã nhập (bản chính một mình 109.351, +326), trần = số đo + 100. Chủ dự án duyệt phần tăng +326 byte này ngày 8/11/2026 (ở phiên điều phối), nguyên văn «Duyệt 326 byte».
 // Nới 109.777 → 109.935 (ADR-0175 Đợt 1, 9/11/2026): menu «Vé điện tử» cho Kế toán (`muc-giao-dien.ts`) và hàng quyền mới `ve.phat-hanh` trong bản đồ quyền dùng chung đều nằm trong gói Đơn hàng; không có mã giao diện mới vào gói này. Đo thật 109.835 byte, trần = số đo + 100. Chủ dự án duyệt 9/11/2026 («quyết theo khuyến nghị» của người điều phối: giữ mức nới +158 byte).
+// Nới 109.935 → 110.075 (ADR-0175 Đợt 2, 9/11/2026): hai hàng quyền mới `ve.quet.tinh`, `ve.quet.xem` trong bản đồ quyền dùng chung (đã gọn bằng một hàm dựng hàng) và một dòng `/api/ve/quet` ở danh sách
+// route bí mật `lan-gui-bi-mat.ts` (thân có mã vé). Đo thật 109.975 byte (+40 so với 109.935 sau khi đã gọn), trần = số đo + 100. Không thêm mã giao diện nào vào gói Đơn hàng. Chủ dự án duyệt 9/11/2026 nguyên văn «duyệt, tiếp tục» (câu hỏi nới trần Đợt 2: tổng 109.935 → 110.610, +675 byte).
+// Nới 110.075 → 110.306 (ADR-0175 Đợt 2 Task 14, 9/11/2026): trang /quet-ve vào `TRANG` / `THANH_BEN` / `TRANG_TOI` của `muc-giao-dien.ts` (chỉ dữ liệu điều hướng, khuôn các lần /ve-kho, /ve-cai-dat). Đo thật 110.206 byte (+131), trần = số đo + 100.
+// Thư viện đọc QR và mã camera chỉ ở gói riêng của trang Quét vé. Chủ dự án duyệt 9/11/2026 nguyên văn «duyệt, tiếp tục» (câu hỏi nới trần Đợt 2: tổng 109.935 → 110.610, +675 byte).
+// Nới 110.306 → 110.610 (ADR-0175 Đợt 2 Task 15, 9/11/2026): trang /ve-doi-chieu vào `TRANG` / `THANH_BEN` / `TRANG_TOI` và hàng quyền `ve.doi-chieu.view` (chỉ dữ liệu điều hướng và quyền). Đo thật 110.510 byte (+304 so với 110.206 của Task 14), trần = số đo + 100.
+// Mã giao diện của trang đối chiếu và «Đã dùng x/y» chỉ ở gói riêng `web/ve-doi-chieu.ts` và `web/ve-don.ts` (gói trang Đơn thật không nhúng `ve-don.ts`). Chủ dự án duyệt 9/11/2026 nguyên văn «duyệt, tiếp tục» (câu hỏi nới trần Đợt 2: tổng 109.935 → 110.610, +675 byte).
 // Nới 109.935 → 110.443 (ADR-0187 Đ2.3, 9/11/2026, gộp bản chính có vé Tour Đảo): thanh dưới vẽ nút người dùng tự chọn ở KHUNG mọi trang (web/shell.ts →
 // thanhTab(n, ghimHieuLuc(staff))): ô quyền me.favorites.write, `ghimDuoc` / `ghimHieuLuc` và nhánh chọn của `thanhTab` (phần dựng danh sách chọn, đọc cột lưu,
 // kiểm thân ở ngoài gói khung). Đo thật 110.343 byte, trần = số đo + 100 (+508 so với trần bản chính). Chủ dự án DUYỆT 9/11/2026 nới tối đa +581 byte (qua phiên
 // điều phối: «Chủ đã đồng ý nới trần gói Đơn hàng thêm 581 byte»).
-const TRAN_ORDERS = 110_443;
+// Gộp main (ADR-0187) vào nhánh vé Tour Đảo Đợt 2 (9/11/2026): trần = tổng hai khoản nới đã được chủ duyệt (110.610 của vé Đợt 2 + 508 của ADR-0187 trên 109.935); xem số đo thật ở báo cáo gộp. Chủ dự án duyệt trần gộp 111.118 ngày 9/11/2026 nguyên văn «duyệt trần».
+const TRAN_ORDERS = 111_118;
 
 function dung(trang: string) {
   const r = buildSync({
