@@ -474,3 +474,59 @@ export const docLuotQuet = (db: D1Database, id: string): Promise<LuotQuetRow | n
 
 const BO_LUOT_QUET = defineSql("ve-dien-tu", "bo_luot_quet", "UPDATE vdt_scan SET voided_at = ?2, voided_by = ?3, void_reason = ?4, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND voided_at IS NULL");
 export const cauBoLuotQuet = (db: D1Database, id: string, at: string, by: string, lyDo: string): D1PreparedStatement => db.prepare(BO_LUOT_QUET).bind(id, at, by, lyDo);
+
+// ---- Đối chiếu, theo dõi người quét, sổ vé Tour Đảo (ADR-0175 §2.7) -----------------------------------------------------------------------------
+/** Số khách đã dùng vé theo dòng dịch vụ, cho cả một lô dòng (mảng JSON ở ?1): lượt DA_TINH chưa bỏ, vé đoàn cộng `so_khach`. */
+const DA_DUNG_THEO_DICH_VU_LO = defineSql(
+  "ve-dien-tu",
+  "da_dung_theo_dich_vu_lo",
+  "SELECT order_service_id AS service_id, sum(so_khach) AS n FROM vdt_scan WHERE ket_qua = 'DA_TINH' AND voided_at IS NULL AND order_service_id IN (SELECT value FROM json_each(?1)) GROUP BY order_service_id",
+);
+export const daDungTheoDichVuLo = async (db: D1Database, serviceIds: readonly string[]): Promise<Map<string, number>> =>
+  serviceIds.length === 0 ? new Map() : new Map((await db.prepare(DA_DUNG_THEO_DICH_VU_LO).bind(JSON.stringify(serviceIds)).all<{ service_id: string; n: number }>()).results.map((r) => [r.service_id, r.n]));
+
+/** Dòng dịch vụ (trong lô ?1) đang giữ vé Tour Đảo — màn đối chiếu chỉ đếm khách ở dịch vụ có vé Tour Đảo, không lẫn dịch vụ không vé hay vé hãng ngoài. */
+const CO_VE_TOUR_DAO_LO = defineSql(
+  "ve-dien-tu",
+  "co_ve_tour_dao_lo",
+  `SELECT DISTINCT a.order_service_id AS service_id FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id JOIN vdt_batch b ON b.id = t.batch_id
+   WHERE b.source = 'TOUR_DAO' AND a.released_at IS NULL AND a.order_service_id IN (SELECT value FROM json_each(?1))`,
+);
+export const dichVuCoVeTourDao = async (db: D1Database, serviceIds: readonly string[]): Promise<Set<string>> =>
+  serviceIds.length === 0 ? new Set() : new Set((await db.prepare(CO_VE_TOUR_DAO_LO).bind(JSON.stringify(serviceIds)).all<{ service_id: string }>()).results.map((r) => r.service_id));
+
+/** Số lượt quét của từng người trong MỘT ngày giờ Việt Nam (?1 = YYYY-MM-DD): đã tính, chỉ xem, từ chối (chưa bỏ) và số lượt đã bỏ. Không mã vé, không tên khách. */
+const NGUOI_QUET_THEO_NGAY = defineSql(
+  "ve-dien-tu",
+  "nguoi_quet_theo_ngay",
+  `SELECT scanned_by AS nguoi,
+          coalesce(sum(voided_at IS NULL AND ket_qua = 'DA_TINH'), 0) AS da_tinh,
+          coalesce(sum(voided_at IS NULL AND ket_qua = 'CHI_XEM'), 0) AS chi_xem,
+          coalesce(sum(voided_at IS NULL AND ket_qua = 'TU_CHOI'), 0) AS tu_choi,
+          coalesce(sum(voided_at IS NOT NULL), 0) AS da_bo
+   FROM vdt_scan WHERE date(scanned_at, '+7 hours') = ?1 GROUP BY scanned_by ORDER BY scanned_by LIMIT 500`,
+);
+export interface NguoiQuetRow { nguoi: string | null; da_tinh: number; chi_xem: number; tu_choi: number; da_bo: number }
+export const nguoiQuetTheoNgay = async (db: D1Database, ngay: string): Promise<NguoiQuetRow[]> => (await db.prepare(NGUOI_QUET_THEO_NGAY).bind(ngay).all<NguoiQuetRow>()).results;
+
+/**
+ * Sổ vé Tour Đảo: mỗi vé của lô đã vào kho hoặc đã huỷ (lô còn «đang soạn» chưa tính) thuộc ĐÚNG MỘT ô — trong kho · đã cấp chưa mở · đã mở chưa dùng · đã dùng · đã huỷ. Vé chết (VOID) thuộc
+ * «đã huỷ» kể cả khi từng mở hay từng quét. `da_tao` đếm riêng, KHÔNG cộng từ năm ô, để bất biến R-VDT-9 có cái để so.
+ */
+const SO_VE_TOUR_DAO = defineSql(
+  "ve-dien-tu",
+  "so_ve_tour_dao",
+  `SELECT count(*) AS da_tao,
+          coalesce(sum(status = 'AVAILABLE'), 0) AS trong_kho,
+          coalesce(sum(status = 'ALLOCATED' AND mo = 1 AND lo = 0), 0) AS da_cap_chua_mo,
+          coalesce(sum(status = 'ALLOCATED' AND mo = 1 AND lo = 1 AND dung = 0), 0) AS da_mo_chua_dung,
+          coalesce(sum(status = 'ALLOCATED' AND mo = 1 AND lo = 1 AND dung = 1), 0) AS da_dung,
+          coalesce(sum(status = 'VOID'), 0) AS da_huy
+   FROM (SELECT t.status AS status,
+                (SELECT count(*) FROM vdt_allocation a WHERE a.ticket_id = t.id AND a.released_at IS NULL) AS mo,
+                (SELECT count(*) FROM vdt_allocation a WHERE a.ticket_id = t.id AND a.released_at IS NULL AND a.revealed_at IS NOT NULL) AS lo,
+                EXISTS (SELECT 1 FROM vdt_scan s WHERE s.ticket_id = t.id AND s.ket_qua = 'DA_TINH' AND s.voided_at IS NULL) AS dung
+         FROM vdt_ticket t JOIN vdt_batch b ON b.id = t.batch_id WHERE b.source = 'TOUR_DAO' AND b.status <> 'PENDING')`,
+);
+export interface SoVeRow { da_tao: number; trong_kho: number; da_cap_chua_mo: number; da_mo_chua_dung: number; da_dung: number; da_huy: number }
+export const soVeTourDao = async (db: D1Database): Promise<SoVeRow> => (await db.prepare(SO_VE_TOUR_DAO).first<SoVeRow>())!;

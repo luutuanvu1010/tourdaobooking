@@ -255,6 +255,8 @@ export const MATRIX = {
   // Tài xế đối tác, Thực tập, Nhân sự, Đối tác không có ô quét. Quét không mở quyền xem đơn: tên, SĐT, giá không đi qua; mã đơn chỉ khi người quét có `order.view` trên đơn.
   "ve.quet.tinh": quetVe("none"),
   "ve.quet.xem": quetVe("any"),
+  // ADR-0175 §2.7: màn đối chiếu khách thực tế và theo dõi người quét — cùng bốn vai với `ve.phat-hanh` (Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng).
+  "ve.doi-chieu.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"),
   "ve.cap.send": row("ownOrAssigned", "none", "any", "none", "own", "any", "none", "none", "none", "none"), // ADR-0170 Đ1: Đối tác chỉ đơn do chính tài khoản lập (`orders.staff_id`); mở vé còn qua cổng tiền Đ2
   // ADR-0186 Đ2: xoá ảnh vé đã hết hạn lưu khỏi kho — chỉ tác nhân DON_ANH_VE dùng (Cron, src/modules/ve-dien-tu/kho-tep.ts); hẹp hơn ve.kho.manage; không route
   // cho người. Toàn quyền có ô chỉ vì ADR-0014 điều 2; Trợ lý không kể ô này là việc người làm được.

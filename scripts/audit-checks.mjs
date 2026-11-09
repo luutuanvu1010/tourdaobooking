@@ -2299,6 +2299,26 @@ export const CHECKS = [
     level: "fail",
     note: "vé đã dùng mà về kho thì có thể cấp lại cho khách khác — chỉ có thể do SQL chạy tay",
   },
+  // R-VDT-9 (ADR-0175 §2.7): sổ vé Tour Đảo — mỗi vé của lô đã vào kho hoặc đã huỷ thuộc ĐÚNG MỘT trong năm ô (trong kho · đã cấp chưa mở · đã mở chưa dùng · đã dùng · đã huỷ), tức «đã tạo» = tổng năm ô.
+  // Năm ô đếm riêng từng câu, «đã tạo» đếm riêng, nên vé rơi khỏi mọi ô (ALLOCATED không còn phân bổ mở, hoặc có hai phân bổ mở) làm hai vế lệch. Lô «đang soạn» (PENDING) chưa tính.
+  {
+    code: "R-VDT-9",
+    what: "sổ vé Tour Đảo lệch: số vé đã tạo khác tổng năm ô (trong kho, đã cấp chưa mở, đã mở chưa dùng, đã dùng, đã huỷ)",
+    sql: `WITH v AS (
+        SELECT t.status AS status,
+               (SELECT count(*) FROM vdt_allocation a WHERE a.ticket_id = t.id AND a.released_at IS NULL) AS mo,
+               (SELECT count(*) FROM vdt_allocation a WHERE a.ticket_id = t.id AND a.released_at IS NULL AND a.revealed_at IS NOT NULL) AS lo,
+               EXISTS (SELECT 1 FROM vdt_scan s WHERE s.ticket_id = t.id AND s.ket_qua = 'DA_TINH' AND s.voided_at IS NULL) AS dung
+        FROM vdt_ticket t JOIN vdt_batch b ON b.id = t.batch_id WHERE b.source = 'TOUR_DAO' AND b.status <> 'PENDING')
+      SELECT abs((SELECT count(*) FROM v)
+        - ((SELECT count(*) FROM v WHERE status = 'AVAILABLE')
+         + (SELECT count(*) FROM v WHERE status = 'ALLOCATED' AND mo = 1 AND lo = 0)
+         + (SELECT count(*) FROM v WHERE status = 'ALLOCATED' AND mo = 1 AND lo = 1 AND dung = 0)
+         + (SELECT count(*) FROM v WHERE status = 'ALLOCATED' AND mo = 1 AND lo = 1 AND dung = 1)
+         + (SELECT count(*) FROM v WHERE status = 'VOID')))`,
+    level: "fail",
+    note: "vé Tour Đảo không thuộc ô nào của sổ (thường là ALLOCATED thiếu hoặc thừa phân bổ mở — xem R-VDT-1) nên số đã tạo không khớp; chỉ có thể do SQL chạy tay hoặc giữ chỗ hỏng giữa chừng; không in mã vé",
+  },
   // R-CRD-1, R-CRD-2 (ADR-0168 Đ2 mục 1, 7; migration 0141): hình thức thanh toán và hạn trả đi cùng nhau. R-CRD-3 («hồ sơ nợ vượt hạn mức hiện hành», chỉ cảnh báo) KHÔNG làm bằng SQL:
   // số nợ tính bằng JS từ phải thu hiện hành (đặc tả «Điểm dễ sai») — màn «Hạn mức trả sau» hiện đang nợ và còn được dùng cho Kế toán xem; chờ chủ quyết cách làm (báo cáo Task 2).
   {

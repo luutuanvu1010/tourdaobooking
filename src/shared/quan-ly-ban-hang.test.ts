@@ -33,6 +33,7 @@ test("Đ1 + ADR-0186: cột mới chỉ có ba ô nghiệp vụ và các ô tự
   assert.deepEqual(co, [
     "assistant.ask", "catalog.confirm_flag.write", "catalog.hidden.write", "catalog.sync", "feedback.submit", "feedback.view", "party.document.view", "party.erasure.request", "party.self.submit",
     "party.self.view",
+    "ve.doi-chieu.view", // ADR-0175 §2.7: Quản lý bán hàng xem đối chiếu và người quét
     "ve.phat-hanh", // ADR-0175 Đ1.3 (chủ duyệt 2026-11-08): Quản lý bán hàng tạo được vé Tour Đảo
     "ve.quet.tinh", "ve.quet.xem", // ADR-0175 Đ3, §2.9: Quản lý bán hàng quét và tính vé Tour Đảo
   ]);

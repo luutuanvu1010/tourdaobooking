@@ -28,7 +28,7 @@ import {
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, slotPolicy, slotPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
-  servicePaxByIds, servicePaxByOrder, serviceChoVe, donXacNhanTheoMa as docDonXacNhanTheoMa, passengerInsertDriver, nguoiDaLapDon, type DauChepNhap, type DauDatGapMoi,
+  servicePaxByIds, servicePaxByOrder, serviceChoVe, dichVuXacNhanTheoNgay, donXacNhanTheoMa as docDonXacNhanTheoMa, passengerInsertDriver, nguoiDaLapDon, type DauChepNhap, type DauDatGapMoi,
 } from "./chang-hanh-khach-repo";
 import { coVeTheoMa, nguonVeTheoMa } from "../catalog";
 import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
@@ -429,6 +429,19 @@ export async function donChoQuet(db: D1Database, orderId: string, serviceId: str
   if (!ref || !dong) return null;
   const p = (await effectivePax(db, [dong])).get(dong.id) ?? { adult: dong.pax_adult, child: dong.pax_child, senior: dong.pax_senior, infant: dong.pax_infant };
   return { ownerId: ref.staffId, trangThai: ref.status, ngayDi: dong.depart_date, soKhachHieuLuc: p.adult + p.child + p.senior, maDon: ref.orderCode };
+}
+
+/**
+ * API công khai cho GỐC LẮP RÁP (ADR-0175 §2.7, màn đối chiếu): dịch vụ của đơn ĐÃ XÁC NHẬN đi ngày `ngay` (dạng YYYY-MM-DD) với số khách hiệu lực KHÔNG gồm em bé (một nguồn với
+ * `dichVuChoVe`). Không tên khách, không SĐT, không tiền. KHÔNG tự kiểm quyền: chỉ gọi từ hàm tiêm `dichVuChoDoiChieu`, trong thân route đã qua `can(ve.doi-chieu.view)`.
+ */
+export async function dichVuChoDoiChieu(db: D1Database, ngay: string): Promise<{ serviceId: string; catalogCode: string; tenDichVu: string; soKhach: number }[]> {
+  const rows = await dichVuXacNhanTheoNgay(db, ngay);
+  const pax = await effectivePax(db, rows);
+  return rows.map((r) => {
+    const p = pax.get(r.id) ?? { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior, infant: r.pax_infant };
+    return { serviceId: r.id, catalogCode: r.catalog_code, tenDichVu: r.ten, soKhach: p.adult + p.child + p.senior };
+  });
 }
 
 /**

@@ -123,6 +123,8 @@ export const TRANG = {
   chupBu: { duong: "/chup-bu", hien: vk("order.terms.override") },
   // Kho vé điện tử (ADR-0153; Task 9a; ADR-0175 Đ1.4): CÙNG cổng route `GET /api/ve/kho` — ô ve.kho.manage (Bán hàng, Quản trị, Toàn quyền) hoặc ve.phat-hanh (thêm Kế toán, Quản lý bán hàng), và cổng `office` của route.
   veKho: { duong: "/ve-kho", hien: (s) => isOffice(s) && (can(s, "ve.kho.manage") || can(s, "ve.phat-hanh")) },
+  // Đối chiếu vé (ADR-0175 §2.7): CÙNG cổng route `GET /api/ve/doi-chieu` — cổng `office` và ô ve.doi-chieu.view (Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng).
+  veDoiChieu: { duong: "/ve-doi-chieu", hien: (s) => isOffice(s) && can(s, "ve.doi-chieu.view") },
   // Quét vé Tour Đảo (ADR-0175 Đ3): CÙNG cổng route `GET /api/ve/quet/quyen` và `POST /api/ve/quet` — ô ve.quet.tinh hoặc ve.quet.xem (cổng `staff`: Hướng dẫn viên, Tài xế công ty vào được).
   quetVe: { duong: "/quet-ve", hien: (s) => can(s, "ve.quet.tinh") || can(s, "ve.quet.xem") },
   // Cài đặt vé điện tử (ADR-0156 Đ3): CÙNG cổng route `GET /api/ve/cai-dat` — ô settings.ops (chỉ Toàn quyền).
@@ -233,6 +235,7 @@ export const THANH_BEN = [
   { nhom: THIET_LAP, trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { nhom: THIET_LAP, trang: "chupBu", nhan: "Chụp bù mức" },
   { nhom: THIET_LAP, trang: "veKho", nhan: "Vé điện tử" },
+  { nhom: THIET_LAP, trang: "veDoiChieu", nhan: "Đối chiếu vé" },
   { nhom: THIET_LAP, trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
   { nhom: THIET_LAP, trang: "hoaHongGioiHan", nhan: "Giới hạn nhập hoa hồng" },
   { nhom: THIET_LAP, trang: "dichVu", nhan: "Dịch vụ & giá" },
@@ -328,6 +331,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
   { phan: "sau", trang: "chupBu", nhan: "Chụp bù mức" },
   { phan: "sau", trang: "veKho", nhan: "Vé điện tử" },
+  { phan: "sau", trang: "veDoiChieu", nhan: "Đối chiếu vé" },
   { phan: "sau", trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
   { phan: "sau", trang: "hoaHongGioiHan", nhan: "Giới hạn nhập hoa hồng" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },

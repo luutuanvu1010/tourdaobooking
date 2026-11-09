@@ -27,6 +27,8 @@ const TRANG_THANH_BEN_CU: readonly KhoaTrang[] = [
   "capDaiLy",
   // Hạn mức trả sau (ADR-0168): ô credit.limit.view, không Đối tác (Kế toán, Toàn quyền).
   "hanMucTraSau",
+  // Đối chiếu vé (ADR-0175 §2.7, 9/11): cổng office + ô ve.doi-chieu.view (Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng); lối vào ở THIẾT LẬP.
+  "veDoiChieu",
 ];
 const holder = (permissions: readonly PermissionCode[]) => ({ id: "x", permissions });
 
@@ -75,7 +77,7 @@ test("hướng dẫn viên: có Đơn hàng + chân menu, không có nhóm khác
 
 test("Kế toán: Hoa hồng đối tác, Cấp độ đại lý (đặc tả 2026-11-04-man-cap-dai-ly), Hạn mức trả sau (ADR-0168), Người bán dịch vụ (chủ duyệt 14/10), Chụp bù mức (sổ đại lý đợt 2) và Vé điện tử (ADR-0175 Đ1.4: tạo vé Tour Đảo) nằm trong Thiết lập", () => {
   const tl = thanhBen({ staff: holder(["ACCOUNTING"]) }, "/").find((x) => x.nhom === "THIẾT LẬP");
-  assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Cấp độ đại lý", "Hạn mức trả sau", "Người bán dịch vụ", "Chụp bù mức", "Vé điện tử"]);
+  assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Cấp độ đại lý", "Hạn mức trả sau", "Người bán dịch vụ", "Chụp bù mức", "Vé điện tử", "Đối chiếu vé"]); // Đối chiếu vé: ADR-0175 §2.7
 });
 
 test("Quản trị chưa có Phiên đăng nhập, Nhật ký (chỉ Toàn quyền); có Chính sách điều phối để đặt mốc (ADR-0128 Q1)", () => {

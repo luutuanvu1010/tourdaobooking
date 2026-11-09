@@ -40,6 +40,7 @@ export const GOI_CHINH = {
   chupBu: "GET /api/orders/cho-chup-bu",
   veKho: "GET /api/ve/kho",
   veCaiDat: "GET /api/ve/cai-dat",
+  veDoiChieu: "GET /api/ve/doi-chieu", // ADR-0175 §2.7: ô ve.doi-chieu.view
   quetVe: "GET /api/ve/quet/quyen", // ADR-0175 Đ3: người có ve.quet.tinh hoặc ve.quet.xem; không dữ liệu vé
   hoaHongGioiHan: "GET /api/pricing/gioi-han-nhap",
   choXacNhan: "GET /api/orders/cho-xac-nhan",

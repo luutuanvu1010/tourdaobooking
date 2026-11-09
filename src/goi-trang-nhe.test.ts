@@ -68,7 +68,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // route bí mật `lan-gui-bi-mat.ts` (thân có mã vé). Đo thật 109.975 byte (+40 so với 109.935 sau khi đã gọn), trần = số đo + 100. Không thêm mã giao diện nào vào gói Đơn hàng. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
 // Nới 110.075 → 110.306 (ADR-0175 Đợt 2 Task 14, 9/11/2026): trang /quet-ve vào `TRANG` / `THANH_BEN` / `TRANG_TOI` của `muc-giao-dien.ts` (chỉ dữ liệu điều hướng, khuôn các lần /ve-kho, /ve-cai-dat). Đo thật 110.206 byte (+131), trần = số đo + 100.
 // Thư viện đọc QR và mã camera chỉ ở gói riêng của trang Quét vé. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
-const TRAN_ORDERS = 110_306;
+// Nới 110.306 → 110.610 (ADR-0175 Đợt 2 Task 15, 9/11/2026): trang /ve-doi-chieu vào `TRANG` / `THANH_BEN` / `TRANG_TOI` và hàng quyền `ve.doi-chieu.view` (chỉ dữ liệu điều hướng và quyền). Đo thật 110.510 byte (+304 so với 110.206 của Task 14), trần = số đo + 100.
+// Mã giao diện của trang đối chiếu và «Đã dùng x/y» chỉ ở gói riêng `web/ve-doi-chieu.ts` và `web/ve-don.ts` (gói trang Đơn thật không nhúng `ve-don.ts`). CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+const TRAN_ORDERS = 110_610;
 
 function dung(trang: string) {
   const r = buildSync({

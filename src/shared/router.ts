@@ -338,6 +338,8 @@ export interface Ctx<A extends Access = Access> {
    * `order.view` trên đơn đó; `xemTien` theo `money.view` trên đơn đó. Không tên khách, không SĐT, không giá. `staffId` phải là người đang gọi, khác ⇒ `null`. Không tiêm / không có dòng ⇒ `null`.
    */
   donChoQuet: (orderId: string, serviceId: string, staffId: string) => Promise<{ trangThai: string; ngayDi: string | null; soKhachHieuLuc: number; maDon: string | null; xemTien: boolean } | null>;
+  /** ADR-0175 §2.7 (màn đối chiếu): dịch vụ của đơn ĐÃ XÁC NHẬN đi ngày `ngay` + số khách hiệu lực (không em bé). Không tên khách, SĐT, tiền. Không tiêm / lỗi ⇒ `null` (route báo 503, không đoán «không có»). */
+  dichVuChoDoiChieu: (ngay: string) => Promise<{ serviceId: string; catalogCode: string; tenDichVu: string; soKhach: number }[] | null>;
   /**
    * «DÒNG NÀY ĐÃ ĐƯỢC CHỤP CHƯA» (ADR-0148 Đ1) — do gốc lắp ráp tiêm (`orders.ngayChupGanNhat`; `pricing` KHÔNG đọc bảng `ord_`, không phụ thuộc `orders` — sẽ thành vòng; khuôn
    * `mocToiThieu`). `{ ngay }` = ngày chụp gần nhất, `ngay: null` = chưa có bản chụp nào (mở đường huỷ hẳn dòng). `null` = môi trường không tiêm ⇒ route TỪ CHỐI KÍN (503),
@@ -513,6 +515,8 @@ export interface AppOptions {
     dienDoiTacCuaDon: (env: Env, orderId: string) => Promise<{ doiTacLap: boolean; benDatDoiTac: boolean } | null>;
     /** ADR-0175 Đ3. Mã chạy thật (`src/index.ts`: `orders.donChoQuet` + `can`); thiếu (khung thử cố ý) hoặc ném lỗi → `null`. */
     donChoQuet: (env: Env, actor: StaffProfile, orderId: string, serviceId: string) => Promise<{ trangThai: string; ngayDi: string | null; soKhachHieuLuc: number; maDon: string | null; xemTien: boolean } | null>;
+    /** ADR-0175 §2.7. Mã chạy thật (`src/index.ts`: `orders.dichVuChoDoiChieu`); thiếu (khung thử cố ý) hoặc ném lỗi → `null`. */
+    dichVuChoDoiChieu: (env: Env, ngay: string) => Promise<{ serviceId: string; catalogCode: string; tenDichVu: string; soKhach: number }[] | null>;
     /** ADR-0153 Đ3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `orders.dichVuChoVe`, `billing.tienDonVe`); thiếu (khung thử cố ý) → rỗng / null. */
     dichVuChoVe: (env: Env, orderId: string) => Promise<{ serviceId: string; catalogCode: string; ngayDi: string; coVe: boolean; nguonVe: NguonVe; pax: { adult: number; child: number; senior: number; infant: number } }[]>;
     tienDonVe: (env: Env, orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; hetAnHan: string | null; no: number } | null } | null>;
@@ -726,6 +730,10 @@ export function createApp(opts: AppOptions) {
       donChoQuet: async (orderId, serviceId, staffId) => {
         if (!who || who.id !== staffId || typeof opts.injected.donChoQuet !== "function") return null;
         try { return await opts.injected.donChoQuet(envH, who, orderId, serviceId); } catch { return null; }
+      },
+      dichVuChoDoiChieu: async (ngay) => {
+        if (typeof opts.injected.dichVuChoDoiChieu !== "function") return null;
+        try { return await opts.injected.dichVuChoDoiChieu(envH, ngay); } catch { return null; }
       },
       hoiDaChup: (q) => (typeof opts.injected.hoiDaChup !== "function" ? Promise.resolve(null) : opts.injected.hoiDaChup(envH, q).then((ngay) => ({ ngay }))),
       chuyenChoTin: (q) =>

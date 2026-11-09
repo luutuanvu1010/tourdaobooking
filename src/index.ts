@@ -30,7 +30,7 @@ import { canBangVeTheoSoKhach, cauChanVeDaDung, capVeChoDon, conThieuVe, donHang
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
 import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
-import { cauDoiNguoiDat, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
+import { cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
 import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
@@ -300,6 +300,8 @@ const APP_OPTIONS: AppOptions = {
       const ctx = { ownerId: d.ownerId, assigned: await isOrderHandler(env.DB, actor.id, orderId) };
       return { trangThai: d.trangThai, ngayDi: d.ngayDi, soKhachHieuLuc: d.soKhachHieuLuc, maDon: can(actor, "order.view", ctx) ? d.maDon : null, xemTien: can(actor, "money.view", ctx) };
     },
+    // ĐỐI CHIẾU KHÁCH THỰC TẾ (ADR-0175 §2.7): `ve-dien-tu` không import orders — orders cho dịch vụ đã xác nhận của một ngày; route đã hỏi `can(ve.doi-chieu.view)`.
+    dichVuChoDoiChieu: (env, ngay) => dichVuChoDoiChieu(env.DB, ngay),
     // CẤP BÙ KHI LÔ VÀO KHO (ADR-0175 Đ1.5a): orders cho tối đa `toiDa` ứng viên (đơn đã xác nhận có dòng mã đó, ngày đi chưa qua, gần trước) — một câu; kho vé lọc «còn thiếu»
     // dần trong vòng lặp của route (vòng sửa 1 I-1: trước đây lọc trước cả 200 đơn, ~5 câu mỗi đơn, vượt trần câu D1).
     donChoCapBu: async (env, code, toiDa) => {
