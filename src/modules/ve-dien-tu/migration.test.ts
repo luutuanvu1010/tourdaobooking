@@ -198,3 +198,43 @@ test("dấu lưu kho / thu hồi / xoá kho ghi một lần; stored_at không v�
   d.prepare(`UPDATE vdt_ticket SET purged_at = ?, status = 'VOID', updated_at = ? WHERE id = ?`).run(SAU, SAU, t);
   assert.throws(() => d.prepare(`UPDATE vdt_ticket SET purged_at = NULL WHERE id = ?`).run(t), /vdt_append_only/);
 });
+
+// ADR-0175 Đ1.1, Đ1.2 (kế hoạch vé Tour Đảo Task 1): nguồn vé của lô + ô «Vé do ai phát». Tệp tìm theo ĐUÔI tên.
+const NGUON = files.find((f) => f.endsWith("_ve_tour_dao_nguon.sql"));
+const truocNguon = () => {
+  assert.ok(NGUON, "cần tệp *_ve_tour_dao_nguon.sql");
+  const d = new DatabaseSync(":memory:");
+  d.exec("PRAGMA foreign_keys = ON");
+  for (const f of files.filter((x) => x < NGUON!)) d.exec(sqlOf(f));
+  return d;
+};
+
+test("0151: lô cũ là HANG_NGOAI, không đổi được source", () => {
+  const d = truocNguon();
+  const cu = lo(d);
+  d.exec(sqlOf(NGUON!));
+  const row = d.prepare(`SELECT source FROM vdt_batch WHERE id = ?`).get(cu) as { source: string };
+  assert.equal(row.source, "HANG_NGOAI");
+  assert.throws(() => d.prepare(`UPDATE vdt_batch SET source = 'TOUR_DAO' WHERE id = ?`).run(cu), /vdt_one_way/);
+  assert.throws(
+    () => d.prepare(`INSERT INTO vdt_batch (id, catalog_code, pax_group, printed_name, status, source, created_at, updated_at) VALUES ('khac', 'V2D', 'ADULT', 'Vé', 'ACTIVE', 'KHAC', ?, ?)`).run(AT, AT),
+    /CHECK/i,
+  );
+  d.prepare(`INSERT INTO vdt_batch (id, catalog_code, pax_group, printed_name, status, source, created_at, updated_at) VALUES ('td', 'V2D', 'ADULT', 'Vé', 'ACTIVE', 'TOUR_DAO', ?, ?)`).run(AT, AT);
+  d.prepare(`UPDATE vdt_batch SET status = 'VOID', updated_at = ? WHERE id = 'td'`).run(SAU); // cột khác vẫn đổi được như cũ
+  assert.equal((d.prepare(`SELECT source FROM vdt_batch WHERE id = 'td'`).get() as { source: string }).source, "TOUR_DAO");
+});
+
+test("0151: ctl_service_ticket_source chỉ thêm, view lấy dòng mới nhất", () => {
+  const d = db();
+  const them = (id: string, source: string, at: string) =>
+    d.prepare(`INSERT INTO ctl_service_ticket_source (id, code, source, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?, 'ZVD1', ?, ?, ?, NULL, ?, NULL)`).run(id, source, at, at, at);
+  them("n1", "TOUR_DAO", AT);
+  them("n2", "HANG_NGOAI", SAU);
+  assert.deepEqual({ ...(d.prepare(`SELECT code, source FROM v_ctl_service_ticket_source`).get() as object) }, { code: "ZVD1", source: "HANG_NGOAI" });
+  assert.equal((d.prepare(`SELECT count(*) AS c FROM v_ctl_service_ticket_source`).get() as { c: number }).c, 1);
+  assert.throws(() => them("n3", "TOUR_DAO", SAU), /UNIQUE/i, "cùng mã, cùng mốc");
+  assert.throws(() => them("n4", "KHAC", "2026-10-31T05:00:00.000Z"), /CHECK/i);
+  assert.throws(() => d.prepare(`UPDATE ctl_service_ticket_source SET source = 'TOUR_DAO' WHERE id = 'n2'`).run(), /ctl_service_ticket_source_append_only/);
+  assert.throws(() => d.prepare(`DELETE FROM ctl_service_ticket_source WHERE id = 'n1'`).run(), /ctl_service_ticket_source_append_only/);
+});

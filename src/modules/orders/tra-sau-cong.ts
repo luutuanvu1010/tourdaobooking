@@ -90,7 +90,8 @@ const KHONG_CAU = (): D1PreparedStatement[] => [];
 /** Hai hàm do gốc lắp ráp tiêm cho huỷ đơn, đổi bên đặt, sửa tăng (xem `ctx.traSauCuaDon`, `ctx.veDaMoCuaDon` ở src/shared/router.ts). Không tiêm ⇒ hàm trả null ⇒ cổng chặn 503 (không đoán). */
 export interface HamNoTraSau {
   traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
-  veDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
+  /** ADR-0175 Đ2.6: cổng huỷ Trả sau còn nợ chỉ tính vé HÃNG NGOÀI đã mở (`ctx.veHangNgoaiDaMoCuaDon`); hai luật chặn đối tác vẫn đọc `veDaMoCuaDon` (mọi loại vé). */
+  veHangNgoaiDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
 }
 
 /**
@@ -117,11 +118,11 @@ export const CAU_HUY_CON_NO = (no: number): string => `Đơn trả sau còn nợ
 export const CAU_DOI_BEN_CON_NO = (no: number): string => `Đơn trả sau còn nợ ${dongTien(no)} nên chưa đổi được bên đặt. Hãy thu đủ tiền trước.`;
 
 /**
- * Huỷ đơn (mọi nơi gọi `soanHuyDon`): đơn Trả sau ĐÃ xác nhận còn nợ mà đã có vé mở thì 409. Còn nợ, vé chưa mở ⇒ qua với `chanVeDaMo` (lô mang câu bảo vệ: vé mở chen giữa lúc kiểm
+ * Huỷ đơn (mọi nơi gọi `soanHuyDon`): đơn Trả sau ĐÃ xác nhận còn nợ mà đã có vé HÃNG NGOÀI mở thì 409 (ADR-0175 Đ2.6: vé Tour Đảo đã mở không tính — huỷ thì vé chết, hết nợ). Còn nợ, vé chưa mở ⇒ qua với `chanVeDaMo` (lô mang câu bảo vệ: vé mở chen giữa lúc kiểm
  * và lúc ghi làm cả lô lui — Task 2, nợ 2). Hết nợ ⇒ qua với câu gác phiên bản bên đặt (khoản thu bị đảo chen giữa làm nợ lại có thì lô thua). Đơn khác ⇒ qua, không câu nào.
  */
 export async function congHuyTraSau(
-  h: Pick<HamNoTraSau, "traSauCuaDon" | "veDaMoCuaDon"> & Pick<HamTraSau, "cauGacPhienBanTraSau">,
+  h: Pick<HamNoTraSau, "traSauCuaDon" | "veHangNgoaiDaMoCuaDon"> & Pick<HamTraSau, "cauGacPhienBanTraSau">,
   d: { id: string; paymentTerm: HinhThucThanhToan; status: string },
 ): Promise<{ loi: Response } | { qua: QuaCongHuy }> {
   if (d.paymentTerm !== "CREDIT" || d.status !== "confirmed") return quaHuy({ chanVeDaMo: false, no: 0, kem: KHONG_CAU });
@@ -132,7 +133,7 @@ export async function congHuyTraSau(
     const { benDat, version } = t;
     return quaHuy({ chanVeDaMo: false, no: 0, kem: benDat === null ? KHONG_CAU : (at) => h.cauGacPhienBanTraSau(benDat, version, at) });
   }
-  const mo = await h.veDaMoCuaDon(d.id);
+  const mo = await h.veHangNgoaiDaMoCuaDon(d.id);
   if (mo === null) return { loi: CHUA_DUNG_DUOC() };
   if (mo) return { loi: error(409, "tra_sau_con_no_da_mo_ve", CAU_HUY_CON_NO(t.no)) };
   return quaHuy({ chanVeDaMo: true, no: t.no, kem: KHONG_CAU });

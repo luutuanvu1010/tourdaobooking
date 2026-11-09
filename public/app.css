@@ -123,6 +123,7 @@
   --w-side: 340px;            /* cột tóm tắt tiền dính ở máy tính (≥ 960px) */
   /* — Riêng của Island Booking System (tên cũ "Tour Đảo Booking"; KHÔNG có trong tourdaovn): kích thước giao diện điện thoại/PWA. Giá trị giao diện mới đi vào đây, không viết cứng trong luật. — */
   --w-main: var(--w-noi-dung-max);        /* bề rộng nội dung tối đa các trang mặc định — chủ dự án duyệt tăng từ 960px (đặc tả §16 mục 3); trang Lập đơn dùng --w-form riêng, không đổi */
+  --w-ve-mau: 360px;        /* ảnh vé Tour Đảo mẫu ở khối «Tạo vé» (ADR-0175 Đ1.7): 1080 × 1920 thu về bề rộng gần một màn điện thoại để xem như khách thấy */
   --h-order-skeleton: 76px; /* Đợt E (vòng sửa 2026-09-24): thẻ đơn đóng đo THẬT 76px ở cả 390px và 1040px (docs/evidence/2026-09-24-dot-e/) — trước là 180-240px cho khung 7 dòng cũ; chỉ là khung xương lúc đang tải, không cần khớp tuyệt đối */
   --c-on-dark: #ffffff;     /* chữ/biểu tượng trên nền primary hoặc accent */
   --tap-min: var(--h-control);         /* vùng chạm tối thiểu */
@@ -881,6 +882,7 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
 
 /* ---------- Kho vé điện tử: ảnh vé của lô đã huỷ — chỉ token ---------- */
 .ve-anh-xem { display: block; max-width: 100%; height: auto; margin-top: var(--s2); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+.ve-anh-xem.ve-mau { width: var(--w-ve-mau); }
 
 /* ---------- Xoá dữ liệu cá nhân (ADR-0126, lát H-5) — chỉ token ---------- */
 .px-hop { margin-top: var(--s3); padding: var(--s2) var(--s3); border: 1px solid var(--c-input-border); border-radius: var(--radius-sm); }
@@ -4555,6 +4557,8 @@ main select { max-width: 100%; }
 /* ADR-0169 Đ4: công tắc kiểm vé ở màn Dịch vụ & giá; khối đặt riêng trống thì ẩn */
 .kv-tu-kiem-the:empty { display: none; }
 .kv-o { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--s2); }
+/* ADR-0175 Đ1.2: ô «Vé do ai phát» xuống dòng riêng dưới công tắc «Có vé». */
+.kv-nguon-ve { flex-basis: 100%; display: grid; gap: var(--s1); padding-bottom: var(--s2); }
 .kv-the { border-top: 1px solid var(--c-border); }
 .kv-viec { display: flex; flex: none; align-items: center; gap: var(--s2); }
 

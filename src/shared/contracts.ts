@@ -852,6 +852,9 @@ export interface CatalogNgungBanInput { ngungBan: boolean }
 /** ADR-0174: ô «Có vé». `nguon`: dòng riêng của dịch vụ, theo nhóm, hay chưa ai khai. */
 export interface CatalogCoVeResponse { dichVu: { code: string; coVe: boolean; nguon: "SERVICE" | "GROUP" | "CHUA_KHAI" }[]; nhom: { code: string; coVe: boolean }[] }
 export interface CatalogCoVeInput { pham: "SERVICE" | "GROUP"; ma: string; coVe: boolean }
+/** ADR-0175 Đ1.2: ô «Vé do ai phát», chỉ trên từng dịch vụ. GET trả mọi dịch vụ của danh mục kèm giá trị hiện hành (chưa đặt là `HANG_NGOAI`). */
+export interface CatalogNguonVeResponse { dichVu: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }[] }
+export interface CatalogNguonVeInput { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }
 export interface CatalogNgungBanResponse { code: string; ngungBan: boolean }
 export interface CatalogSyncResponse {
   ok: true;

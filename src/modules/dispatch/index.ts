@@ -305,7 +305,7 @@ export const dispatchModule: AppModule = {
     // = ngày khởi hành lớn nhất trong các dịch vụ, đã qua ⇔ < hôm nay giờ VN; ngay trong ngày đi vẫn huỷ được; từ hôm sau chỉ văn phòng huỷ qua
     // /status) → 400 (lý do) → ghi. Đổi ngày giữa lúc đọc và lúc ghi (PUT /trip) làm đổi `updated_at` (KHÔNG đổi `status`) → khoá lạc quan của
     // cancelOrderByHandler (khoá theo CẢ `status` VÀ `updated_at`, T1d) thua → 409.
-    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, traVeKhiHuy, traSauCuaDon, veDaMoCuaDon, cauGacPhienBanTraSau }) => {
+    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi, dongBoChuyen, traVeKhiHuy, traSauCuaDon, veDaMoCuaDon, veHangNgoaiDaMoCuaDon, cauGacPhienBanTraSau }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
@@ -334,7 +334,7 @@ export const dispatchModule: AppModule = {
         return traVe === null ? null : [...cauAbort, ...traVe, banHang.cauKhepLoiMoiSauLenhDon(env.DB, { orderId, outcome: "HUY_DON", at: new Date().toISOString(), actorId: staff.id, auditId })];
       };
       // ADR-0170 Đ3: vé vừa mở xen giữa ⇒ cả lô lui; hàm của orders tự dịch lỗi câu bảo vệ / câu gác Trả sau (câu Đối tác khi người bấm giữ quyền Đối tác).
-      const r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, { traSauCuaDon, veDaMoCuaDon, cauGacPhienBanTraSau }, holdsPartner(staff), cauSauHuy, (x) => dongBoChuyen(x));
+      const r = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, lyDoHuyCuaHdv(input.reason, input.note), label, { traSauCuaDon, veHangNgoaiDaMoCuaDon, cauGacPhienBanTraSau }, holdsPartner(staff), cauSauHuy, (x) => dongBoChuyen(x));
       if (r.kq === "loi") return r.res;
       if (r.kq === "thua") {
         const now = await findOrderOwner(env.DB, orderId);

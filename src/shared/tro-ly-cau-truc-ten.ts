@@ -145,6 +145,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "feedback.team.manage": { ten: "quản lý nhóm hỗ trợ", moTa: "Tạo, sửa, ngưng nhóm hỗ trợ và gán, gỡ thành viên nhóm." },
   "dispatch.policy.lead": { ten: "đặt hạn chốt", moTa: "Đổi hạn chốt trước giờ đón và cảnh báo sắp tới hạn chốt (Quản trị, Toàn quyền); các cài đặt điều phối khác chỉ Toàn quyền." },
   "ve.kho.manage": { ten: "nhập và quản lý vé điện tử", moTa: "Nhập lô vé ảnh của nhà cung cấp, xem còn bao nhiêu vé theo từng loại, thu hồi vé hỏng. Bán hàng, Quản trị và Toàn quyền." },
+  "ve.phat-hanh": { ten: "tạo vé Tour Đảo", moTa: "Tạo và thao tác lô vé Tour Đảo (vé do công ty tự phát). Kế toán, Quản trị, Toàn quyền và Quản lý bán hàng; Bán hàng thường không." },
   "ve.cap.send": { ten: "giữ chỗ và gửi vé điện tử cho khách", moTa: "Bấm cấp vé khi còn thiếu, xem ảnh vé và gửi cho khách khi khách đã trả đủ. Bán hàng chỉ với khách của mình hoặc được giao; Quản trị và Toàn quyền với mọi khách." },
   "ve.kho.purge": { ten: "xoá ảnh vé hết hạn lưu (Nền tảng tự làm)", moTa: "Nền tảng tự xoá ảnh vé của lô đã huỷ khi quá hạn lưu, rồi ghi một dòng Xoá ảnh vé hết hạn lưu vào nhật ký. Không có nút cho người bấm." },
   "settings.ops": { ten: "cài đặt vận hành", moTa: "Bảo trì, chính sách điều phối, trợ lý Hỗ trợ và các cài đặt chung." },

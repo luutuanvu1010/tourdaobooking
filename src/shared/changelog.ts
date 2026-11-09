@@ -17,13 +17,22 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // ADR-0187 Đ2.3 (accepted 8/11): người dùng tự chọn nút thanh dưới điện thoại, lưu ở máy chủ. Migration 0153. Số tạm 2.81 (production 2.80); nhánh claude/ve-tour-dao-thi-cong
-    // chưa nhập cũng có thể lấy 2.81 — nhánh nào nhập sau thì đánh lại số ở bước A.0.
-    version: "2.81",
+    // ADR-0187 Đ2.3 (accepted 8/11): người dùng tự chọn nút thanh dưới điện thoại, lưu ở máy chủ. Migration 0153. Ban đầu lấy tạm 2.81; vé Tour Đảo Đợt 1 nhập
+    // bản chính trước và lên production bản 2.81 (9/11) nên khi gộp bản chính ngày 9/11 đánh lại thành 2.82.
+    version: "2.82",
     date: "2026-11-09",
     items: [
       { kind: "moi", text: "Trang Tôi trên điện thoại có mục «Nút thanh dưới»: tự chọn tối đa 4 trang mình hay dùng cho thanh dưới; nút Tôi luôn có." },
       { kind: "moi", text: "Lựa chọn lưu theo tài khoản nên đổi máy vẫn còn. Bấm «Về mặc định» để quay lại cách Nền tảng tự xếp." },
+    ],
+  },
+  {
+    // Vé Tour Đảo Đợt 1 (ADR-0175), CÓ migration 0151, 0152. Bước A.0 ngày 9/11: production đang 2.80 nên lấy 2.81. Mọi dịch vụ vẫn «Vé hãng ngoài» tới khi Đợt 2 (quét vé) xong.
+    version: "2.81",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Màn Dịch vụ & giá có ô «Vé do ai phát» cho từng dịch vụ: «Vé hãng ngoài» (như cũ) hoặc «Vé Tour Đảo». Hiện mọi dịch vụ vẫn là «Vé hãng ngoài»." },
+      { kind: "moi", text: "Kho vé có thêm lô «Vé Tour Đảo»; Kế toán, Quản trị, Toàn quyền và Quản lý bán hàng tạo được vé có mã QR, còn Kế toán chỉ thấy lô Tour Đảo." },
     ],
   },
   {

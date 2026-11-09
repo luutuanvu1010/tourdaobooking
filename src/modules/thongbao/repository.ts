@@ -292,10 +292,14 @@ export async function listTinTaiKhoan(db: D1Database, tu: string): Promise<TinTa
 const LIST_TIN_DIEU_CHINH = defineSql("thongbao", "list_tin_dieu_chinh", `
   SELECT e.id, o.order_code AS ma_don, e.action, e.target_type AS muc_loai, e.target_id AS muc_id, e.staff_id AS actor_id, s.label AS ten_nguoi_lam, e.created_at AS luc
   FROM v_aud_ledger_event e JOIN v_ord_order_label o ON o.id = e.order_id LEFT JOIN v_stf_staff_label s ON s.id = e.staff_id
-  WHERE e.created_at >= ?1 AND ((e.target_type = 'staff' AND e.target_id = ?2) OR (?3 = 1 AND e.target_type = 'ledger'))
+  WHERE e.created_at >= ?1 AND ((e.target_type = 'staff' AND e.target_id = ?2) OR (?3 = 1 AND e.target_type = 'ledger') OR (?4 = 1 AND e.target_type = 've' AND e.target_id = 'TOUR_DAO') OR (?5 = 1 AND e.target_type = 've' AND e.target_id = 'HANG_NGOAI'))
   ORDER BY e.created_at DESC LIMIT 200`);
-export async function listTinDieuChinh(db: D1Database, tu: string, staffId: string, coODuyet: boolean): Promise<DongDieuChinh[]> {
-  const r = (await db.prepare(LIST_TIN_DIEU_CHINH).bind(tu, staffId, coODuyet ? 1 : 0).all<{
+/**
+ * `ve` (ADR-0175 Đ1.5a): tin thiếu vé lọc theo NGUỒN ngay ở SQL — `tourDao` (giữ `ve.phat-hanh`) kéo dòng ('ve','TOUR_DAO'), `hangNgoai` (giữ `ve.kho.manage`) kéo dòng
+ * ('ve','HANG_NGOAI'). Dòng người này không được thấy KHÔNG được chiếm chỗ trong `LIMIT 200` (vòng sửa 1, I-2). `locHopThongBao` vẫn lọc lại (hai lớp).
+ */
+export async function listTinDieuChinh(db: D1Database, tu: string, staffId: string, coODuyet: boolean, ve: { tourDao: boolean; hangNgoai: boolean } = { tourDao: false, hangNgoai: false }): Promise<DongDieuChinh[]> {
+  const r = (await db.prepare(LIST_TIN_DIEU_CHINH).bind(tu, staffId, coODuyet ? 1 : 0, ve.tourDao ? 1 : 0, ve.hangNgoai ? 1 : 0).all<{
     id: string; ma_don: string; action: string; muc_loai: string; muc_id: string; actor_id: string | null; ten_nguoi_lam: string | null; luc: string;
   }>()).results;
   return r.map((x) => ({ id: x.id, maDon: x.ma_don, action: x.action, mucLoai: x.muc_loai, mucId: x.muc_id, actorId: x.actor_id, tenNguoiLam: x.ten_nguoi_lam, luc: x.luc }));

@@ -1,5 +1,6 @@
 // Công tắc «Có vé» của màn Dịch vụ & giá (ADR-0174 Đ4), cạnh «Cần kiểm vé». Gọi GET, POST /api/catalog/co-ve { pham, ma, coVe }.
 // Ẩn/hiện hỏi `can()`; máy chủ kiểm lại. Luật xét ở src/shared/co-ve.ts (máy chủ tính sẵn `nguon`). Không innerHTML.
+// Ô «Vé do ai phát» (ADR-0175 Đ1.2): GET, POST /api/catalog/nguon-ve { ma, nguon }, cùng ô quyền; chỉ hiện dưới dịch vụ đang «Có vé», không có ở nhóm.
 import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
 import { h } from "./dom";
@@ -7,6 +8,8 @@ import { showError } from "./shell";
 import { hienBaoNgan } from "./toast";
 
 const URL_CO_VE = "/api/catalog/co-ve";
+const URL_NGUON_VE = "/api/catalog/nguon-ve";
+const NHAN_NGUON_VE = { HANG_NGOAI: "Vé hãng ngoài", TOUR_DAO: "Vé Tour Đảo" } as const;
 const NHAN_NGUON = { SERVICE: "Đặt riêng", GROUP: "Theo nhóm", CHUA_KHAI: "Chưa đặt" } as const;
 
 export interface CoVe {
@@ -19,6 +22,7 @@ export interface CoVe {
 
 export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () => void): CoVe {
   let duLieu: Api.CatalogCoVeResponse = { dichVu: [], nhom: [] };
+  let nguonVe: Api.CatalogNguonVeResponse = { dichVu: [] };
 
   const luuCoVe = async (nut: HTMLButtonElement, than: Api.CatalogCoVeInput, cauBao: string): Promise<void> => {
     errorEl.hidden = true;
@@ -33,6 +37,46 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
       nut.disabled = false;
     }
   };
+  const luuNguonVe = async (nut: HTMLButtonElement, than: Api.CatalogNguonVeInput, cauBao: string): Promise<void> => {
+    errorEl.hidden = true;
+    nut.disabled = true;
+    try {
+      nguonVe = await api<Api.CatalogNguonVeResponse>(URL_NGUON_VE, { method: "POST", body: than });
+      hienBaoNgan(cauBao);
+      sauKhiDoi();
+    } catch (err) {
+      showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+      errorEl.scrollIntoView({ block: "nearest" });
+      nut.disabled = false;
+    }
+  };
+  /** Hai lựa chọn «Vé hãng ngoài» / «Vé Tour Đảo» của một dịch vụ (radiogroup, phím ← → đổi lựa chọn). Chưa đặt là vé hãng ngoài. */
+  const oNguonVe = (ma: string, ten: string): HTMLElement => {
+    const dang = nguonVe.dichVu.find((x) => x.ma === ma)?.nguon ?? "HANG_NGOAI";
+    const lua = (["HANG_NGOAI", "TOUR_DAO"] as const).map((v) => {
+      const nut = h("button", { type: "button", role: "radio", "aria-checked": String(dang === v), tabindex: dang === v ? 0 : -1, "data-action": "nguon-ve" }, NHAN_NGUON_VE[v]) as HTMLButtonElement;
+      nut.addEventListener("click", () => {
+        if (v === dang) return;
+        const luu = (): Promise<void> => luuNguonVe(nut, { ma, nguon: v }, v === "TOUR_DAO" ? `${ten}: Vé Tour Đảo.` : `${ten}: Vé hãng ngoài.`);
+        if (v !== "TOUR_DAO") return void luu();
+        // Chọn «Vé Tour Đảo» đổi cách máy giữ vé của dịch vụ này, nên phải hỏi trước (rà soát độc lập Đợt 1, 9/11/2026).
+        void hoiXacNhan({
+          tieuDe: `Chuyển «${ten}» sang Vé Tour Đảo?`,
+          hauQua: "Đơn mới của dịch vụ này chỉ được giữ vé từ lô do Tour Đảo tạo, không lấy vé hãng ngoài nữa; tin thiếu vé chuyển sang Kế toán. Vé đơn đã giữ vẫn còn. Chỉ bật khi đã có lô vé Tour Đảo và đã có cách quét vé.",
+          nhanNguyHiem: "Chuyển sang Vé Tour Đảo",
+          opener: nut,
+        }).then((dongY) => (dongY ? luu() : undefined));
+      });
+      nut.addEventListener("keydown", (e: KeyboardEvent) => {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault();
+        const khac = lua.find((x) => x !== nut);
+        khac?.focus(); // chỉ dời tiêu điểm; đổi lựa chọn phải bấm (Enter/Space), vì chọn Vé Tour Đảo có hộp xác nhận
+      });
+      return nut;
+    });
+    return h("div", { class: "kv-nguon-ve" }, h("span", { class: "hint", "aria-hidden": "true" }, "Vé do ai phát"), h("div", { class: "vc-seg", role: "radiogroup", "aria-label": `Vé do ai phát: ${ten}` }, ...lua));
+  };
   const congTac = (nhan: string, bat: boolean, action: string, khiBam: (nut: HTMLButtonElement) => void): HTMLButtonElement => {
     const nut = h("button", { type: "button", role: "switch", class: "dp-switch", "aria-checked": String(bat), "aria-label": nhan, "data-action": action }, h("span", { class: "dp-switch-knob", "aria-hidden": "true" })) as HTMLButtonElement;
     nut.addEventListener("click", () => khiBam(nut));
@@ -41,7 +85,7 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
 
   return {
     tai: async () => {
-      if (coQuyen) duLieu = await api<Api.CatalogCoVeResponse>(URL_CO_VE);
+      if (coQuyen) [duLieu, nguonVe] = await Promise.all([api<Api.CatalogCoVeResponse>(URL_CO_VE), api<Api.CatalogNguonVeResponse>(URL_NGUON_VE)]);
     },
     oDichVu: (ma, ten) => {
       if (!coQuyen) return null;
@@ -52,6 +96,7 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
         { class: "kv-o" },
         h("span", { class: "hint" }, `Có vé · ${NHAN_NGUON[d?.nguon ?? "CHUA_KHAI"]}`),
         congTac(`Có vé: ${ten}`, bat, "co-ve", (nut) => void luuCoVe(nut, { pham: "SERVICE", ma, coVe: !bat }, bat ? `${ten}: không vé.` : `${ten}: có vé.`)),
+        bat && oNguonVe(ma, ten), // ADR-0175 Đ1.2: dịch vụ «Không vé» thì ô này vô nghĩa nên ẩn
       );
     },
     oNhom: (ma, ten) => {

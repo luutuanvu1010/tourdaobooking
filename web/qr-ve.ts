@@ -10,6 +10,14 @@ const TRANG = "#ffffff";
 /** Vùng lề trắng quanh mã: 4 ô (chuẩn QR). */
 const LE_O = 4;
 
+/** Số ô mỗi cạnh ma trận QR của `payload` (cùng mức sửa lỗi M, chế độ Byte như `veMaQr`) — để bên gọi chọn `canhPx = o × (n + 8)` vẽ đúng cỡ ô (ảnh vé Tour Đảo, ADR-0175 Đ1.7). */
+export function soOMaQr(payload: string): number {
+  const qr = qrcode(0, "M");
+  qr.addData(payload, "Byte");
+  qr.make();
+  return qr.getModuleCount();
+}
+
 export function veMaQr(canvas: HTMLCanvasElement, payload: string, canhPx = 560): void {
   const qr = qrcode(0, "M");
   qr.addData(payload, "Byte");

@@ -77,7 +77,7 @@ export const SO_DO_TRANG: readonly TrangSoDo[] = [
   {"duongDan":"/thiet-lap","tieuDe":"Thiết lập","menu":["Thiết lập"],"nhomMenu":[],"nut":["Thiết lập"],"boCuc":[],"khiChay":{"muc":[],"nut":[]}},
   {"duongDan":"/404","tieuDe":"Không có trang","menu":[],"nhomMenu":[],"nut":[],"boCuc":[],"khiChay":{"muc":[],"nut":[]}},
   {"duongDan":"/ngoai-mang","tieuDe":"Ngoài mạng","menu":[],"nhomMenu":[],"nut":[],"boCuc":[],"khiChay":{"muc":[],"nut":[]}},
-  {"duongDan":"/ve-kho","tieuDe":"Vé điện tử","menu":["Vé điện tử"],"nhomMenu":["THIẾT LẬP"],"nut":["Vé điện tử","Số vé còn","Nhập lô mới","Lô có thể huỷ","Lô đã huỷ gần đây","Xem ảnh","Mở ảnh","Huỷ lô","Nhập lô vé"],"boCuc":[{"muc":"Số vé còn","nut":[]},{"muc":"Nhập lô mới","nut":[]},{"muc":"Lô có thể huỷ","nut":[]},{"muc":"Lô đã huỷ gần đây","nut":[]}],"khiChay":{"muc":[],"nut":["Xem ảnh","Mở ảnh","Huỷ lô","Nhập lô vé"]}},
+  {"duongDan":"/ve-kho","tieuDe":"Vé điện tử","menu":["Vé điện tử"],"nhomMenu":["THIẾT LẬP"],"nut":["Vé điện tử","Số vé còn","Tạo vé Tour Đảo","Nhập lô mới","Lô có thể huỷ","Lô đã huỷ gần đây","Xem ảnh","Mở ảnh","Huỷ lô","Nhập lô vé"],"boCuc":[{"muc":"Số vé còn","nut":[]},{"muc":"Tạo vé Tour Đảo","nut":[]},{"muc":"Nhập lô mới","nut":[]},{"muc":"Lô có thể huỷ","nut":[]},{"muc":"Lô đã huỷ gần đây","nut":[]}],"khiChay":{"muc":[],"nut":["Xem ảnh","Mở ảnh","Huỷ lô","Nhập lô vé"]}},
   {"duongDan":"/ve-cai-dat","tieuDe":"Cài đặt vé điện tử","menu":["Cài đặt vé điện tử"],"nhomMenu":["THIẾT LẬP"],"nut":["Cài đặt vé điện tử","Lưu"],"boCuc":[],"khiChay":{"muc":[],"nut":["Lưu"]}},
   {"duongDan":"/hoa-hong-gioi-han","tieuDe":"Giới hạn nhập hoa hồng","menu":["Giới hạn nhập hoa hồng"],"nhomMenu":["THIẾT LẬP"],"nut":["Giới hạn nhập hoa hồng","Lưu"],"boCuc":[],"khiChay":{"muc":[],"nut":["Lưu"]}},
 ];

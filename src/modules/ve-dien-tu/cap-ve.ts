@@ -4,17 +4,19 @@
 // Thứ tự cổng-trước-nhật-ký của van-chuyen không áp nguyên văn ở đây: lô D1 là một giao dịch nên toàn bộ thắng hoặc thua cùng nhau, và cổng là chính trạng thái vé
 // (module nghiêm không đọc `audit_log`). Nhật ký CHỈ ghi nhãn nhóm khách và số cần — KHÔNG BAO GIỜ mã vé, nội dung QR, khoá kho.
 import { NHOM_VE, canVe, type Nhom, type NhomLo } from "./rules.ts";
+import type { NguonVe } from "../../shared/nguon-ve.ts";
 import { cauGhiPhanBo, cauGiuVe, cauTraPhanBo, cauVeVeKho, demDangGiu, demTraTheoNhom } from "./repository.ts";
 
 /** Dòng nhật ký của kho vé. Gốc của module (index.ts) nối vào `auditStatement`; bài thử nối vào bảng giả. Không có chỗ cho mã vé. */
-export interface NhatKyVe { staffId: string | null; action: "ve_giu_cho" | "ve_tra_ve" | "ve_xem_anh" | "ve_giao"; at: string; orderId: string; targetType: "ve"; targetId: string; detail: string }
+export interface NhatKyVe { staffId: string | null; action: "ve_giu_cho" | "ve_tra_ve" | "ve_xem_anh" | "ve_giao" | "ve_thieu"; at: string; orderId: string; targetType: "ve"; targetId: string; detail: string }
 export type GhiNhatKy = (entry: NhatKyVe, onlyIf: string) => D1PreparedStatement;
 export type LyDoTraVe = "DON_HUY" | "GIAM_SO_KHACH" | "RUT_XAC_NHAN";
 export const NHAN_NHOM: Record<Nhom, string> = { ADULT: "Người lớn", CHILD: "Trẻ em", SENIOR: "Cao tuổi" };
 /** Nhãn loại khách của LÔ, gồm lô dùng chung (ADR-0157). Suất phân bổ luôn dùng `NHAN_NHOM`. */
 export const NHAN_NHOM_LO: Record<NhomLo, string> = { ...NHAN_NHOM, ALL: "Mọi loại khách" };
 
-export interface DichCapVe { orderId: string; serviceId: string; catalogCode: string; ngayDi: string; pax: { adult: number; child: number; senior: number; infant: number } }
+/** `nguonVe`: ô «Vé do ai phát» theo giá trị HIỆN TẠI (ADR-0175 Đ1.5). Bắt buộc: gốc lắp ráp điền qua `orders.dichVuChoVe`; module này không tự đoán. */
+export interface DichCapVe { orderId: string; serviceId: string; catalogCode: string; ngayDi: string; nguonVe: NguonVe; pax: { adult: number; child: number; senior: number; infant: number } }
 
 /** Câu giữ chỗ vé cho MỘT dòng dịch vụ theo số khách hiệu lực (em bé = 0 vé). Chạy lại bao nhiêu lần cũng không giữ thừa: số lấy tính trong SQL lúc chạy. */
 export function soanCapVe(db: D1Database, dich: DichCapVe, nguoi: string | null, at: string, nhatKy: GhiNhatKy): { cau: D1PreparedStatement[]; can: Record<Nhom, number> } {
@@ -22,7 +24,7 @@ export function soanCapVe(db: D1Database, dich: DichCapVe, nguoi: string | null,
   const cau: D1PreparedStatement[] = [];
   for (const nhom of NHOM_VE) {
     if (can[nhom] === 0) continue;
-    const p = { catalogCode: dich.catalogCode, nhom, ngayDi: dich.ngayDi, can: can[nhom], orderId: dich.orderId, serviceId: dich.serviceId, at, by: nguoi };
+    const p = { catalogCode: dich.catalogCode, nhom, ngayDi: dich.ngayDi, can: can[nhom], orderId: dich.orderId, serviceId: dich.serviceId, at, by: nguoi, nguonVe: dich.nguonVe };
     cau.push(cauGiuVe(db, p), cauGhiPhanBo(db, p));
     cau.push(nhatKy({ staffId: nguoi, action: "ve_giu_cho", at, orderId: dich.orderId, targetType: "ve", targetId: dich.serviceId, detail: `Giữ chỗ vé · ${NHAN_NHOM[nhom]}: cần ${can[nhom]}` }, "changes() > 0"));
   }

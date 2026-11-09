@@ -1,7 +1,7 @@
 # Nhật ký thi công — Tự chọn nút thanh dưới (ADR-0187 Đ2.3)
 
 - Nhánh `claude/adr-0187-ghim-nut-9c2e31` (worktree `admin-delete-data-decision-31f0fc`). Đặc tả `docs/superpowers/specs/2026-11-09-ghim-nut-thanh-duoi-design.md`, kế hoạch `docs/superpowers/plans/2026-11-09-ghim-nut-thanh-duoi.md`.
-- Có migration `0153_thanh_duoi_ghim.sql` ⇒ sau `npm run day-len` cần `npm run trien-khai`. Bản tạm 2.81.
+- Có migration `0153_thanh_duoi_ghim.sql` ⇒ sau `npm run day-len` cần `npm run trien-khai`. Bản **2.82** (ban đầu tạm 2.81; vé Tour Đảo Đợt 1 lên production 2.81 trước).
 
 ## Ruling (AI quyết, bề mặt hoặc đã có nguyên tắc — ghi lại theo P8)
 - **R1 — Chữ giao diện.** Hỏi chủ một lần (hộp hỏi 9/11, có thể là phương án khuyến nghị tự chọn khi hết 60 giây); sau đó chủ nhắn qua phiên điều phối «không cần hỏi, làm theo phương án tốt nhất» ⇒ hai dòng Bảng tham chiếu để «chờ chọn», nguồn ghi lời đó. Các tên: tên mục «Nút thanh dưới», nút «Về mặc định», nhãn nhật ký «Đổi nút thanh dưới», phạm vi 11 trang có biểu tượng. Nút lưu dùng chữ dùng chung «Lưu». «Về mặc định» thành chữ dùng chung (màn Giao diện đã có nút cùng tên). Ba câu báo lỗi của máy chủ và dòng hướng dẫn «Chọn tối đa 4 trang. Nút Tôi luôn có.» do AI soạn — chủ đổi được.
@@ -24,7 +24,7 @@
 ## Việc chờ chủ
 1. Xem ảnh trước / sau (375) và chữ R1; đổi câu báo nếu muốn.
 2. ~~Duyệt con số trần gói 110.358 (R8)~~ — **chủ ĐÃ DUYỆT 9/11** (+581 byte, lời chủ chuyển qua phiên điều phối).
-3. Số bản 2.81 trùng được với nhánh `claude/ve-tour-dao-thi-cong` chưa nhập — nhánh nào nhập sau đánh lại số ở bước A.0.
+3. ~~Số bản 2.81 trùng với nhánh vé Tour Đảo~~ — đã đánh lại thành 2.82 khi gộp bản chính 3af238942 (9/11).
 4. Chạy `npm run day-len -- claude/adr-0187-ghim-nut-9c2e31` rồi `npm run trien-khai` (có migration 0153).
 
 ## Kết quả cuối
@@ -35,3 +35,4 @@
   - `dot-c` dừng ở kiểm ĐẦU TIÊN nên các kiểm sau chưa chạy. Đã thêm `#thanh-duoi` vào thứ tự DOM ghim (19060bc58). Chạy thử một lần với bản sửa tạm (không lưu, đã hoàn nguyên): tắt kiểm lưới + cột, thêm `#tra-sau-cua-toi` còn thiếu ⇒ «Tôi máy tính 1040» và «Tôi điện thoại 390» ĐẠT (thứ tự DOM có `#thanh-duoi`, không tràn ngang, axe không critical/serious). Kịch bản rồi dừng ở bước Góp ý máy tính («hết giờ chờ: luồng đã mở») — trang không do việc này sửa; khung chung khi chưa chọn nút vẽ y như cũ; **chưa so trên mã gốc** nên ghi là chưa kiểm, các bước sau đó của `dot-c` chưa chạy.
 - Kiểm độc lập (`nguoi-kiem-doc-lap`, 9/11): **ĐẠT**, không phát hiện mức cao; kiểm bổ sung 5a6b8801c + 19060bc58 cũng ĐẠT (xếp `bottom_tabs_changed` vào KHONG_CHAM đúng tầng, view 0107 không cần đổi); tự chạy typecheck + 187 bài + phép phá `ghimDuoc` (đỏ 4 bài). Mức vừa: trần gói +581 byte chưa có lời chủ duyệt (= việc chờ chủ 2). Mức thấp: bấm «Lưu» không đổi gì vẫn ghi một dòng nhật ký — chấp nhận (nhật ký chỉ thừa dòng, không sai quyền/dữ liệu).
 - Gộp main a5330137a (9/11, theo lệnh phiên điều phối sau khi day-len báo «không tiến thẳng được»): main chỉ thêm tài liệu (74 tệp docs/, không mã, không migration — main dừng ở 0150, phiên bản 2.80), không xung đột ⇒ giữ số migration 0153 và bản 2.81.
+- Gộp main 3af238942 (9/11, lần 2, day-len lại báo «không tiến thẳng được» vì vé Tour Đảo Đợt 1 đã nhập và lên production 2.81, migration 0151–0152). Xung đột 7 tệp, gỡ: `changelog.ts` đổi mục của việc này thành **2.82** đứng trên 2.81; `route-access.test.ts` và `xem-nhu-vai-khong-lo-toan-quyen.test.ts` 475 + 1 = **476** route; `SO-HANG-RAO.md` giữ cả dòng hai bên; `app-info.test.ts` lấy bản main (đọc số từ nhật ký thay đổi); `tro-ly-cau-truc.ts` sinh lại bằng `node scripts/sinh-so-do-trang.mjs`; `goi-trang-nhe.test.ts` đo lại 110.343 byte ⇒ trần **110.443** (+508 so với trần main 109.935, trong mức +581 chủ duyệt). Migration 0153 giữ nguyên (main dừng ở 0152). Typecheck 0 lỗi; 10 tệp bài liên quan 133/133 xanh; `npm test` đủ bộ: xem dòng dưới.

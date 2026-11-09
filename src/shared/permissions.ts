@@ -248,6 +248,7 @@ export const MATRIX = {
   // Kế toán không). `ve.cap.send` = nút Cấp vé, xem ảnh vé, gửi Zalo, tạo / thu hồi đường dẫn khách: Bán hàng chỉ đơn của mình hoặc được giao, Quản trị, Toàn quyền. Danh sách vé của đơn
   // (số lượng, không ảnh, không mã) đi theo quyền xem đơn `order.view` nên Kế toán thấy. Xem ảnh còn bị cổng thu đủ chặn ở máy chủ, không chỉ ô này.
   "ve.kho.manage": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "ve.phat-hanh": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"), // ADR-0175 Đ1.3: tạo và thao tác lô vé Tour Đảo; Bán hàng thường không dù có ve.kho.manage
   "ve.cap.send": row("ownOrAssigned", "none", "any", "none", "own", "any", "none", "none", "none", "none"), // ADR-0170 Đ1: Đối tác chỉ đơn do chính tài khoản lập (`orders.staff_id`); mở vé còn qua cổng tiền Đ2
   // ADR-0186 Đ2: xoá ảnh vé đã hết hạn lưu khỏi kho — chỉ tác nhân DON_ANH_VE dùng (Cron, src/modules/ve-dien-tu/kho-tep.ts); hẹp hơn ve.kho.manage; không route
   // cho người. Toàn quyền có ô chỉ vì ADR-0014 điều 2; Trợ lý không kể ô này là việc người làm được.

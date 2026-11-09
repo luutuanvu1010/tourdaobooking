@@ -124,6 +124,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   // ADR-0152 Đ3 (T7): đọc / gắn cho một dịch vụ cổng office (catalog.attribute.assign hoặc admin.manage, không Đối tác); định nghĩa và gắn theo nhóm cổng admin.
   { method: "GET", path: "/api/catalog/co-ve", access: "office" }, // ADR-0174 Đ4; thân hỏi catalog.ticket_flag.write
   { method: "POST", path: "/api/catalog/co-ve", access: "office" },
+  { method: "GET", path: "/api/catalog/nguon-ve", access: "office" }, // ADR-0175 Đ1.2; thân hỏi catalog.ticket_flag.write, chặn Đối tác
+  { method: "POST", path: "/api/catalog/nguon-ve", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem/dem-chua-khai", access: "office" },
   { method: "POST", path: "/api/catalog/dac-diem", access: "admin" },
@@ -761,7 +763,8 @@ test("mức truy cập của 469 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-08 (ADR-0187 Đ3 mức (a)): + GET /api/ledger/tu-ghi, GET /api/ledger/tu-ghi/dem, POST /api/ledger/tu-ghi/:auditId/da-soat (office; billing; ledger.view / ledger.write, không Đối tác) = 469 trên main.
   // 2026-11-08 (gộp ADR-0187 vào nhánh ADR-0184): 466 + 2 route của ADR-0184 + 3 route của ADR-0187 = 471.
   // 2026-11-08 (nối ADR-0174 vào main): + GET, POST /api/catalog/co-ve (office; thân hỏi catalog.ticket_flag.write, chặn Đối tác) = 473.
-  // 2026-11-09 (ADR-0187 Đ2.3): + PUT /api/account/thanh-duoi (staff; thân hỏi me.favorites.write rồi ghimDuoc) = 474.
-  assert.equal(actual.length, 474, "số route thực tế lệch 474 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 474, "SNAPSHOT phải có đúng 474 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-08 (ADR-0175 Đ1.2, vé Tour Đảo Task 3): + GET, POST /api/catalog/nguon-ve (office; thân hỏi catalog.ticket_flag.write, chặn Đối tác) = 475.
+  // 2026-11-09 (ADR-0187 Đ2.3, gộp bản chính có vé Tour Đảo): + PUT /api/account/thanh-duoi (staff; thân hỏi me.favorites.write rồi ghimDuoc) = 476.
+  assert.equal(actual.length, 476, "số route thực tế lệch 476 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 476, "SNAPSHOT phải có đúng 476 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

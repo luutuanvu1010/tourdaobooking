@@ -813,6 +813,22 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Cài đặt vận hành",
+    manHinh: "Dịch vụ & giá › dòng dịch vụ đang «Có vé» › ô «Vé do ai phát»",
+    ten: "Vé hãng ngoài · Vé Tour Đảo",
+    thatSuLam: "Chọn vé của dịch vụ này do hãng ngoài phát (công ty nhập ảnh vé vào kho) hay do Tour Đảo tự phát. Chỉ đổi lô mà máy dùng để giữ vé từ lúc đổi; vé đơn đã giữ không đổi. Chỉ hiện khi dịch vụ đang «Có vé»; chưa chọn là vé hãng ngoài. Chỉ Quản trị, Toàn quyền.",
+    hoiLai: "có khi chọn «Vé Tour Đảo»: hộp nói rõ hậu quả; chọn «Vé hãng ngoài» thì không hỏi",
+    hoanTac: "được: bấm lựa chọn kia",
+    duongLenh: ["/api/catalog/nguon-ve"],
+    maNhatKy: ["ticket_source_changed"],
+    noiDat: [
+      { tep: "web/catalog-co-ve.ts", chu: "⟪NHAN_NGUON_VE[v]⟫" }, // hai chữ «Vé hãng ngoài», «Vé Tour Đảo» ở hằng NHAN_NGUON_VE cùng tệp
+      { tep: "web/catalog-co-ve.ts", chu: "Chuyển sang Vé Tour Đảo" }, // nút xác nhận của hộp hỏi (9/11/2026, tạm: nhắc lại tên đã chốt «Vé Tour Đảo»)
+    ],
+    trangThai: "da-chot",
+    nguonTen: "ADR-0175, chủ duyệt tám thuật ngữ vé Tour Đảo 2026-11-08",
+  },
+  {
+    nhom: "Cài đặt vận hành",
     manHinh: "Tôi (trang cá nhân) › khối «Dịch vụ nhập tay»",
     ten: "Bật dịch vụ nhập tay · Tắt dịch vụ nhập tay",
     thatSuLam: "Đổi công tắc chung. Bật thì Bán hàng, Quản trị, Toàn quyền thêm được dịch vụ gõ tên và giá tay khi lập, sửa đơn nháp; Đối tác thì không bao giờ dùng được. Tắt thì dịch vụ nhập tay đã có trên đơn vẫn giữ, chỉ xem.",
@@ -1281,6 +1297,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     ],
     trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
+  },
+  {
+    nhom: "Vé điện tử: kho",
+    manHinh: "Kho vé điện tử › khối «Tạo vé Tour Đảo» (chỉ người giữ ô ve.phat-hanh: Kế toán, Quản lý bán hàng, Quản trị, Toàn quyền)",
+    ten: "Tạo vé",
+    thatSuLam: "Mở một lô vé Tour Đảo, vẽ từng vé với mã riêng do máy sinh, tự đọc lại mã trên từng ảnh; chỉ khi mọi vé đều đọc lại đúng mới gửi ảnh lên kho rồi đưa lô vào kho và cấp bù cho đơn đang thiếu. Một vé hỏng thì huỷ cả lô, không vé nào vào kho. Người tạo không thấy mã vé.",
+    hoiLai: "không",
+    hoanTac: "được: «Huỷ lô» cho tới khi có vé được giữ cho đơn",
+    duongLenh: ["/api/ve/lo","/api/ve/lo/:x/ve","/api/ve/lo/:x/xac-nhan","/api/ve/lo/:x/bo"],
+    maNhatKy: ["ve_nhap_lo","ve_xac_nhan_lo","ve_bo_lo"],
+    noiDat: [
+      { tep: "web/ve-tao.ts", chu: "Tạo vé" },
+    ],
+    trangThai: "da-chot",
+    nguonTen: "kế hoạch vé Tour Đảo Task 0, chủ 2026-11-08 «Duyệt cả 8» (ADR-0175)",
   },
   {
     nhom: "Hoa hồng: mức riêng của MỘT đối tác",
