@@ -24,9 +24,9 @@ test("dải chờ qua đêm (22:00–06:00 không tính): còn hơn 1 giờ thì
 });
 
 test("không lộ mã thô: lý do cần xác nhận và kết quả đều là chữ đời thường", () => {
-  assert.equal(nhanLyDoCanXacNhan(["DICH_VU"]), "Có dịch vụ cần xác nhận còn vé.");
+  assert.equal(nhanLyDoCanXacNhan(["DICH_VU"]), "Có dịch vụ cần kiểm vé, chờ người kiểm vé báo còn vé.");
   assert.equal(nhanLyDoCanXacNhan(["DAT_GAP"]), "Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.");
-  assert.equal(nhanLyDoCanXacNhan(["DICH_VU", "DAT_GAP"]), "Có dịch vụ cần xác nhận còn vé. Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.");
+  assert.equal(nhanLyDoCanXacNhan(["DICH_VU", "DAT_GAP"]), "Có dịch vụ cần kiểm vé, chờ người kiểm vé báo còn vé. Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.");
   assert.equal(nhanLyDoCanXacNhan([]), "");
   assert.deepEqual(NHAN_KET_QUA, { CON_VE: "Còn vé, xác nhận đơn", HET_VE: "Hết vé", HUY: "Huỷ" });
   assert.equal(NHAN_NUT_XAC_NHAN.send, "Gửi kiểm vé");
