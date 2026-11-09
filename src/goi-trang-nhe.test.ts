@@ -111,3 +111,10 @@ test("build:web truyền --define:__APP_VERSION__ và __APP_RELEASE_DATE__ (lấ
   assert.match(lenhTrang, /--define:__APP_VERSION__=\\*"\$\(node scripts\/in-phien-ban\.mjs version\)\\*"/);
   assert.match(lenhTrang, /--define:__APP_RELEASE_DATE__=\\*"\$\(node scripts\/in-phien-ban\.mjs date\)\\*"/);
 });
+
+// B-12 (G-06e): câu danh sách đơn trống là MỘT câu chung, đúng cả khi chưa lọc lẫn khi đang lọc (nút «Xoá lọc» đã nằm sẵn trên trang). Chữ nằm ở HTML nên 0 byte vào gói.
+test("public/orders.html: câu danh sách đơn trống là «Chưa có đơn nào ở đây.»", () => {
+  const html = readFileSync(new URL("public/orders.html", goc), "utf8");
+  assert.match(html, /id="empty"[^>]*>Chưa có đơn nào ở đây\.</);
+  assert.doesNotMatch(html, /Chưa có đơn nào khớp/);
+});
