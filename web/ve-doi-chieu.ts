@@ -10,6 +10,7 @@ import { initShell, showError } from "./shell";
 
 interface DongKhach { dichVu: string; soKhachTheoDon: number; daDung: number; chenhLech: number }
 interface SoVe { daTao: number; trongKho: number; daCapChuaMo: number; daMoChuaDung: number; daDung: number; daHuy: number }
+interface DongLuot { id: string; luc: string; nguoi: string; dichVu: string; soCuoi: string }
 interface DongNguoi { nguoi: string; daTinh: number; chiXem: number; tuChoi: number; daBo: number }
 
 const errorEl = byId("error");
@@ -18,6 +19,8 @@ const ngayEl = byId<HTMLInputElement>("vdc-ngay");
 const khachEl = byId("vdc-khach");
 const nguoiEl = byId("vdc-nguoi");
 const soVeEl = byId("vdc-so-ve");
+const khoiLuotEl = byId("vdc-khoi-luot");
+const luotEl = byId("vdc-luot");
 
 const staff = await initShell();
 const lyDoLoi = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
@@ -45,7 +48,7 @@ if (!can(staff, "ve.doi-chieu.view")) {
     try {
       const [dc, nq] = await Promise.all([
         api<{ dong: DongKhach[]; soVe: SoVe }>(`/api/ve/doi-chieu?ngay=${encodeURIComponent(ngay)}`),
-        api<{ dong: DongNguoi[] }>(`/api/ve/nguoi-quet?ngay=${encodeURIComponent(ngay)}`),
+        api<{ coTheBoLuot: boolean; dong: DongNguoi[] }>(`/api/ve/nguoi-quet?ngay=${encodeURIComponent(ngay)}`),
       ]);
       if (lan !== lanTai) return; // người dùng đã đổi ngày: bỏ kết quả cũ
       replaceChildren(khachEl, dc.dong.length === 0
@@ -55,6 +58,8 @@ if (!can(staff, "ve.doi-chieu.view")) {
       replaceChildren(nguoiEl, nq.dong.length === 0
         ? h("p", { class: "muted" }, "Ngày này chưa có lượt quét nào.")
         : bang(["Người quét", "Đã dùng", "Chỉ xem", "Từ chối", "Đã bỏ"], nq.dong.map((d) => [d.nguoi, d.daTinh, d.chiXem, d.tuChoi, d.daBo])));
+      khoiLuotEl.hidden = !nq.coTheBoLuot;
+      if (nq.coTheBoLuot) await taiLuot(ngay, lan);
       const s = dc.soVe;
       replaceChildren(soVeEl,
         bang(["Vé Tour Đảo", "Số vé"], [["Đã tạo", s.daTao], ["Trong kho", s.trongKho], ["Đã cấp, chưa mở", s.daCapChuaMo], ["Đã mở, chưa dùng", s.daMoChuaDung], ["Đã dùng", s.daDung], ["Đã huỷ", s.daHuy]]),
@@ -64,6 +69,31 @@ if (!can(staff, "ve.doi-chieu.view")) {
       for (const el of [khachEl, nguoiEl]) replaceChildren(el);
       showError(errorEl, lyDoLoi(err));
     }
+  }
+  const gioVn = (iso: string): string => new Date(new Date(iso).getTime() + 7 * 3600e3).toISOString().slice(11, 16);
+
+  /** Danh sách lượt đã dùng của ngày, mỗi lượt một nút «Bỏ lượt quét» (mở ô lý do). Máy chủ chỉ trả cho Quản trị, Toàn quyền và kiểm lại khi bỏ. */
+  async function taiLuot(ngay: string, lan: number): Promise<void> {
+    const r = await api<{ dong: DongLuot[] }>(`/api/ve/luot-quet?ngay=${encodeURIComponent(ngay)}`);
+    if (lan !== lanTai) return;
+    if (r.dong.length === 0) { replaceChildren(luotEl, h("p", { class: "muted" }, "Ngày này không có lượt đã dùng nào.")); return; }
+    replaceChildren(luotEl, ...r.dong.map((l) => {
+      const loi = h("p", { class: "alert", role: "alert", hidden: true });
+      const o = h("input", { type: "text", class: "o", maxLength: 300, autocomplete: "off", "aria-label": "Lý do bỏ lượt quét" });
+      const nutGui = h("button", { type: "submit", class: "nut", "data-cap": "phu" }, "Bỏ lượt quét");
+      const form = h("form", { class: "qv-bo-form", hidden: true }, o, nutGui, loi);
+      const nutMo = h("button", { type: "button", class: "nut", "data-cap": "loi" }, "Bỏ lượt quét");
+      nutMo.addEventListener("click", () => { form.hidden = !form.hidden; if (!form.hidden) o.focus(); });
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const lyDo = o.value.trim();
+        if (lyDo.length < 5) { loi.hidden = false; loi.textContent = "Hãy ghi lý do bỏ lượt quét (ít nhất 5 ký tự)."; return; }
+        nutGui.disabled = true; loi.hidden = true;
+        try { await api(`/api/ve/quet/${encodeURIComponent(l.id)}/bo`, { method: "POST", body: { lyDo } }); await tai(); }
+        catch (err) { loi.hidden = false; loi.textContent = lyDoLoi(err); nutGui.disabled = false; }
+      });
+      return h("div", { class: "qv-luot" }, h("p", { class: "qv-luot-chu" }, `${gioVn(l.luc)} · ${l.dichVu} · số cuối ${l.soCuoi} · ${l.nguoi}`), h("div", { class: "qv-bo" }, nutMo, form));
+    }));
   }
   ngayEl.addEventListener("change", () => void tai());
   await tai();

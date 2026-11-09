@@ -493,16 +493,6 @@ const DA_DUNG_THEO_DICH_VU_LO = defineSql(
 export const daDungTheoDichVuLo = async (db: D1Database, serviceIds: readonly string[]): Promise<Map<string, number>> =>
   serviceIds.length === 0 ? new Map() : new Map((await db.prepare(DA_DUNG_THEO_DICH_VU_LO).bind(JSON.stringify(serviceIds)).all<{ service_id: string; n: number }>()).results.map((r) => [r.service_id, r.n]));
 
-/** Dòng dịch vụ (trong lô ?1) đang giữ vé Tour Đảo — màn đối chiếu chỉ đếm khách ở dịch vụ có vé Tour Đảo, không lẫn dịch vụ không vé hay vé hãng ngoài. */
-const CO_VE_TOUR_DAO_LO = defineSql(
-  "ve-dien-tu",
-  "co_ve_tour_dao_lo",
-  `SELECT DISTINCT a.order_service_id AS service_id FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id JOIN vdt_batch b ON b.id = t.batch_id
-   WHERE b.source = 'TOUR_DAO' AND a.released_at IS NULL AND a.order_service_id IN (SELECT value FROM json_each(?1))`,
-);
-export const dichVuCoVeTourDao = async (db: D1Database, serviceIds: readonly string[]): Promise<Set<string>> =>
-  serviceIds.length === 0 ? new Set() : new Set((await db.prepare(CO_VE_TOUR_DAO_LO).bind(JSON.stringify(serviceIds)).all<{ service_id: string }>()).results.map((r) => r.service_id));
-
 /** Số lượt quét của từng người trong MỘT ngày giờ Việt Nam (?1 = YYYY-MM-DD): đã tính, chỉ xem, từ chối (chưa bỏ) và số lượt đã bỏ. Không mã vé, không tên khách. */
 const NGUOI_QUET_THEO_NGAY = defineSql(
   "ve-dien-tu",
@@ -538,3 +528,14 @@ const SO_VE_TOUR_DAO = defineSql(
 );
 export interface SoVeRow { da_tao: number; trong_kho: number; da_cap_chua_mo: number; da_mo_chua_dung: number; da_dung: number; da_huy: number }
 export const soVeTourDao = async (db: D1Database): Promise<SoVeRow> => (await db.prepare(SO_VE_TOUR_DAO).first<SoVeRow>())!;
+
+/** Lượt quét tính «đã dùng» chưa bỏ của MỘT ngày giờ Việt Nam (?1) — cho Quản trị, Toàn quyền bỏ lượt quét quá 5 phút. Chỉ 4 ký tự cuối mã, tên dịch vụ in trên vé, người quét, giờ. */
+const LUOT_DA_TINH_THEO_NGAY = defineSql(
+  "ve-dien-tu",
+  "luot_da_tinh_theo_ngay",
+  `SELECT s.id AS id, s.scanned_at AS scanned_at, s.scanned_by AS scanned_by, b.printed_name AS dich_vu, substr(t.ticket_code, -4) AS so_cuoi
+   FROM vdt_scan s JOIN vdt_ticket t ON t.id = s.ticket_id JOIN vdt_batch b ON b.id = t.batch_id
+   WHERE s.ket_qua = 'DA_TINH' AND s.voided_at IS NULL AND date(s.scanned_at, '+7 hours') = ?1 ORDER BY s.scanned_at DESC, s.id LIMIT 200`,
+);
+export interface LuotDaTinhRow { id: string; scanned_at: string; scanned_by: string | null; dich_vu: string; so_cuoi: string }
+export const luotDaTinhTheoNgay = async (db: D1Database, ngay: string): Promise<LuotDaTinhRow[]> => (await db.prepare(LUOT_DA_TINH_THEO_NGAY).bind(ngay).all<LuotDaTinhRow>()).results;

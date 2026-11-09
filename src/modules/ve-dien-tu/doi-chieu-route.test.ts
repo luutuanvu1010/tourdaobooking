@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { ACC, ADM, DRIVER, FIELD, NGAY, SALES, SUP, batDongHo, don, setup } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { ACC, ADM, DRIVER, FIELD, NGAY, PARTNER, SALES, SUP, batDongHo, don, setup } from "../../../tests/audit/dieu-phoi-khung.mjs";
 import { seedStaff } from "../../../tests/audit/harness.mjs";
 import { CHECKS } from "../../../scripts/audit-checks.mjs";
 
@@ -154,5 +154,67 @@ test("GET /api/ve/don/:id: «Đã dùng x/y» theo dịch vụ, chỉ con số",
     assert.equal(r.json.dichVu[0].daDung, 1);
     assert.equal(r.json.dichVu[0].nhom[0].giu, 2);
     assert.doesNotMatch(r.text, MA_TD);
+  } finally { tat(); }
+});
+
+test("I-3: dịch vụ nguồn Tour Đảo đã xác nhận mà kho rỗng (thiếu hết vé) vẫn hiện: đã dùng 0, khách theo đơn n, chênh n; dịch vụ nguồn hãng ngoài không hiện", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    w.sqlite.prepare("INSERT INTO ctl_service_ticket_source (id, code, source, valid_from_at, created_at, updated_at) VALUES (?, 'ZA1', 'TOUR_DAO', ?, ?, ?)").run(crypto.randomUUID(), AT, AT, AT);
+    const a = await don(w, { soNguoi: 3 });
+    assert.ok(a.id);
+    assert.deepEqual((await doiChieu(w, ACC)).json.dong, [{ dichVu: "Tour đảo", soKhachTheoDon: 3, daDung: 0, chenhLech: 3 }]);
+    w.sqlite.prepare("INSERT INTO ctl_service_ticket_source (id, code, source, valid_from_at, created_at, updated_at) VALUES (?, 'ZA1', 'HANG_NGOAI', ?, ?, ?)").run(crypto.randomUUID(), "2026-01-02T00:00:00.000Z", AT, AT);
+    assert.deepEqual((await doiChieu(w, ACC)).json.dong, [], "nguồn hãng ngoài: không thuộc đối chiếu vé Tour Đảo");
+  } finally { tat(); }
+});
+
+test("I-2: Quản trị, Toàn quyền xem danh sách lượt đã dùng và bỏ được lượt quá 5 phút; Kế toán, Bán hàng, Quản lý bán hàng 403; không lộ mã vé, khách", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    themQuanLy(w);
+    await khoVe(w);
+    const a = await donDaMo(w, 2);
+    const [ma] = maCuaDon(w, a.id);
+    const t = await quet(w, FIELD, ma!);
+    const luotId = t.json.lanQuetId as string;
+    w.sqlite.exec("DROP TRIGGER vdt_scan_only_void"); // chỉ để lùi giờ quét trong bài (trigger thật chặn sửa cột khác ngoài dấu bỏ)
+    const ds = (as: string) => w.call("GET", `/api/ve/luot-quet?ngay=${NGAY}`, { as });
+    for (const as of [ACC, SALES, QL, FIELD, DRIVER]) assert.equal((await ds(as)).status, 403, as);
+    for (const as of [ADM, SUP]) assert.equal((await ds(as)).status, 200, as);
+    const r = await ds(ADM);
+    assert.equal(r.json.dong.length, 1);
+    assert.deepEqual(Object.keys(r.json.dong[0]).sort(), ["dichVu", "id", "luc", "nguoi", "soCuoi"]);
+    assert.equal(r.json.dong[0].soCuoi, ma!.slice(-4));
+    assert.equal(r.json.dong[0].nguoi, "Hướng Dẫn");
+    assert.doesNotMatch(r.text, MA_TD);
+    assert.doesNotMatch(r.text, /Khách Dò Tìm|777000|0912345678/);
+    assert.equal((await nguoiQuet(w, ADM)).json.coTheBoLuot, true);
+    assert.equal((await nguoiQuet(w, ACC)).json.coTheBoLuot, false);
+    // Quá 5 phút: người quét hết quyền tự bỏ, Quản trị vẫn bỏ được.
+    w.sqlite.prepare("UPDATE vdt_scan SET scanned_at = ? WHERE id = ?").run(new Date(Date.now() - 10 * 60_000).toISOString(), luotId);
+    const bo = (as: string) => w.call("POST", `/api/ve/quet/${luotId}/bo`, { as, body: { lyDo: "Quét nhầm vé khách khác" } });
+    assert.equal((await bo(FIELD)).status, 403);
+    assert.equal((await bo(ADM)).status, 200);
+    assert.equal((await ds(ADM)).json.dong.length, 0, "đã bỏ thì hết trong danh sách");
+  } finally { tat(); }
+});
+
+test("I-7a: Đối tác không phải chủ đơn xem khối vé → 404 (không lộ đơn có tồn tại); Hướng dẫn viên không có ô vé nhận cùng 403 cho đơn có thật lẫn đơn không có", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    await khoVe(w);
+    const a = await donDaMo(w, 2);
+    const r = await w.call("GET", `/api/ve/don/${a.id}`, { as: PARTNER });
+    assert.equal(r.status, 404, r.text);
+    const khong = crypto.randomUUID();
+    assert.equal((await w.call("GET", `/api/ve/don/${khong}`, { as: PARTNER })).status, 404);
+    const f1 = await w.call("GET", `/api/ve/don/${a.id}`, { as: FIELD });
+    const f2 = await w.call("GET", `/api/ve/don/${khong}`, { as: FIELD });
+    assert.equal(f1.status, 403, "ADR-0170 Đ1 mục 4: ô vé của Hướng dẫn viên là «none», từ chối từ cổng đầu, không tuỳ đơn");
+    assert.equal(f2.status, f1.status, "không phân biệt đơn có thật hay không");
   } finally { tat(); }
 });

@@ -1354,6 +1354,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     maNhatKy: ["ve_bo_luot_quet"],
     noiDat: [
       { tep: "web/quet-ve.ts", chu: "Bỏ lượt quét" },
+      { tep: "web/ve-doi-chieu.ts", chu: "Bỏ lượt quét" },
     ],
     trangThai: "da-chot",
     nguonTen: "chủ chọn tên 2026-11-08 (ADR-0175 mục tên)",

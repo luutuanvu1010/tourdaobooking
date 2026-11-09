@@ -114,7 +114,8 @@ export const BAI_VIEC: readonly BaiViec[] = [
 1. Mở **Đối chiếu vé** rồi chọn **Ngày đi**.
 2. Xem bảng **Khách theo đơn và vé đã dùng**: mỗi dịch vụ có vé Tour Đảo một dòng, gồm khách theo đơn đã xác nhận, khách đã quét «Đã dùng» và chênh lệch.
 3. Xem bảng **Người quét trong ngày** để biết mỗi người quét bao nhiêu lượt, bị từ chối và bỏ bao nhiêu.
-4. Cuối trang, **Sổ vé Tour Đảo** cho biết vé đang ở đâu: trong kho, đã cấp chưa mở, đã mở chưa dùng, đã dùng hay đã huỷ.
+4. Quản trị và Toàn quyền còn thấy **Lượt đã dùng có thể bỏ**: bấm [[Bỏ lượt quét]] ở lượt quét nhầm, ghi lý do rồi bấm lần nữa. Người khác chỉ tự bỏ được lượt của mình trong 5 phút ở màn **Quét vé**.
+5. Cuối trang, **Sổ vé Tour Đảo** cho biết vé đang ở đâu: trong kho, đã cấp chưa mở, đã mở chưa dùng, đã dùng hay đã huỷ.
 
 ### Điều dễ sai
 - Chênh lệch dương không có nghĩa là khách vắng: có thể khách chưa quét hoặc quét chưa kịp. Hỏi người phụ trách trước khi kết luận.
