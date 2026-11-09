@@ -101,7 +101,7 @@ test("R3d PASS identity (ADR-0190): SALES khác ngưng hồ sơ KHÁCH đang là
   assert.equal(pk.activeEditable, false, "Bán hàng thấy ô «Đang dùng» bị khoá");
   const off = await w.call("PUT", `/api/parties/${pid}`, { as: B, body: { familyName: "Trần", middleName: null, givenName: "Khách", active: false, expectedUpdatedAt: pk.updatedAt } });
   assert.equal(off.status, 403, off.text);
-  assert.equal(off.json.error.message, "Chỉ Quản trị hoặc Toàn quyền ngừng dùng hoặc dùng lại hồ sơ.");
+  assert.equal(off.json.error.code, "party_deactivate_forbidden");
   assert.equal(w.q("SELECT active a FROM pty_party WHERE id = ?", pid)[0].a, 1);
   const edit = await w.call("PUT", `/api/orders/${o.id}`, { as: A, body: { ...orderBody(), bookerPartyId: pid, expectedUpdatedAt: o.updatedAt } });
   assert.equal(edit.status, 200, edit.text);

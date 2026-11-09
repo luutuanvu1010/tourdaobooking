@@ -11,7 +11,7 @@ const SM = "99999999-9999-4999-8999-999999999999";
 const ADM = "33333333-3333-4333-8333-333333333333";
 const SUP = "77777777-7777-4777-8777-777777777777";
 const ACC = "55555555-5555-4555-8555-555555555555";
-const CAU_CHAN = "Chỉ Quản trị hoặc Toàn quyền ngừng dùng hoặc dùng lại hồ sơ.";
+const MA_CHAN = "party_deactivate_forbidden";
 
 function setup() {
   const w = world();
@@ -43,7 +43,7 @@ test("ADR-0190: Bán hàng, Quản lý bán hàng, Kế toán ngừng dùng hồ
     const truoc = hang(w, id);
     const r = await sua(w, as, id, "Khách Đổi", false);
     assert.equal(r.status, 403, `${as}: ${r.text}`);
-    assert.equal(r.json.error.message, CAU_CHAN);
+    assert.equal(r.json.error.code, MA_CHAN);
     assert.deepEqual({ ...hang(w, id) }, { ...truoc }, "hồ sơ không đổi (kể cả tên gửi kèm)");
   }
   assert.deepEqual(nhatKy(w, id), []);
@@ -71,7 +71,7 @@ test("ADR-0190: dùng lại hồ sơ đã ngừng — Bán hàng, Quản lý bá
   for (const as of [SALES, SM, ACC]) {
     const r = await sua(w, as, id, "Khách", true);
     assert.equal(r.status, 403, `${as}: ${r.text}`);
-    assert.equal(r.json.error.message, CAU_CHAN);
+    assert.equal(r.json.error.code, MA_CHAN);
     assert.equal(hang(w, id).a, 0);
   }
 });
@@ -82,6 +82,15 @@ test("ADR-0190: cờ không đổi thì không hỏi ô — Bán hàng, Kế to�
   assert.equal((await sua(w, SALES2, id, "Khách Mới", true)).status, 200);
   assert.equal((await sua(w, ACC, id, "Khách Mới Hai", true)).status, 200);
   assert.deepEqual(nhatKy(w, id), ["cá nhân", "cá nhân"]);
+});
+
+// Bài DUY NHẤT so nguyên câu của hằng FORBIDDEN_DEACTIVATE (các bài khác chỉ so mã).
+test("ADR-0190: câu báo của 403 party_deactivate_forbidden", async () => {
+  const w = setup();
+  const id = await khachMoi(w);
+  const r = await sua(w, SALES, id, "Khách", false);
+  assert.equal(r.status, 403, r.text);
+  assert.deepEqual(r.json.error, { ...r.json.error, code: MA_CHAN, message: "Chỉ Quản trị hoặc Toàn quyền ngừng dùng hoặc dùng lại hồ sơ." });
 });
 
 test("ADR-0190: luật hồ sơ gắn tài khoản và luật công ty chủ hỏi TRƯỚC — Quản trị ngừng hồ sơ có tài khoản vẫn 409 account_rule", async () => {

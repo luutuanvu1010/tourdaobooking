@@ -134,7 +134,9 @@ test("hành vi cũ giữ nguyên: SALES tạo, sửa, thêm/đóng liên hệ c�
   const cid = added.json.party.contacts[0].id;
   assert.equal((await w.call("POST", `/api/parties/${id}/contacts/${cid}/end`, { as: ACC, body: {} })).status, 200);
   // ADR-0190 (R3d): ngừng dùng / dùng lại hồ sơ khách nay chỉ Quản trị, Toàn quyền — Bán hàng 403, hồ sơ vẫn đang dùng.
-  assert.equal((await rename(w, SALES2, id, "Khách Mới", false)).status, 403, "Bán hàng không ngưng được hồ sơ khách (ADR-0190)");
+  const ngung = await rename(w, SALES2, id, "Khách Mới", false);
+  assert.equal(ngung.status, 403, "Bán hàng không ngưng được hồ sơ khách (ADR-0190)");
+  assert.equal(ngung.json.error.code, "party_deactivate_forbidden");
   assert.equal(w.q("SELECT active a FROM pty_party WHERE id = ?", id)[0].a, 1);
   assert.equal((await rename(w, ADM, id, "Khách Mới", false)).status, 200, "Quản trị ngưng được");
 });
