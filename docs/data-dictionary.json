@@ -520,6 +520,12 @@
       "kind": "table"
     },
     {
+      "name": "gd_field_policy",
+      "module": "giao-dien",
+      "kind": "table",
+      "note": "chính sách hiện / ẩn / bắt buộc theo màn × trường × mã quyền do Toàn quyền đặt (ADR-0194 đợt 1, migration 0154), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ theo (man, truong, quyen); BẢNG RỖNG khi phát hành = mọi màn giữ hành vi hôm nay; che_do HIEN = đặt lại mặc định; màn/trường được chỉnh khai ở code (src/shared/ui-truong.ts), máy chủ bỏ qua dòng ngoài danh mục; không dữ liệu cá nhân; chỉ ô settings.ops ghi"
+    },
+    {
       "name": "lg_lan_gui",
       "module": "lan-gui",
       "kind": "table",
@@ -1704,6 +1710,7 @@
     "fbk_ticket": { "id": "N1", "seq": "N1", "kind_code": "N1", "status_code": "N1", "title": "N2", "context": "N2", "submitter_id": "N1", "assignee_id": "N1", "client_request_id": "N1", "resolved_in": "N1", "submitter_seen_at": "N1", "admin_seen_at": "N1", "last_activity_at": "N1", "last_public_reply_at": "N1", "notified_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "team_id": "N1", "priority": "N1", "order_id": "N1", "order_code": "N1" },
     "fbk_ticket_event": { "id": "N1", "ticket_id": "N1", "type": "N1", "from_value": "N1", "to_value": "N1", "actor_id": "N1", "at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "fbk_ticket_read": { "ticket_id": "N1", "staff_id": "N1", "seen_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "gd_field_policy": { "id": "N1", "man": "N1", "truong": "N1", "quyen": "N1", "che_do": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "gd_setting": { "id": "N1", "tokens": "N1", "version": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ky_period_close": { "period": "N1", "closed_at": "N1", "closed_by": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "lg_chinh_sach_giu": { "id": "N1", "so_ngay": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
