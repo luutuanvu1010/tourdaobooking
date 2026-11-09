@@ -10,7 +10,7 @@ import { MATRIX, can, holdsPartner, isOffice, passesAdminGate, tacNhan } from ".
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import { NGUON_VE, nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
 import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, taoKhoaNgauNhien, type LoaiTep } from "../../shared/tep-dinh-kem";
-import { vnToday } from "../../shared/vn-date";
+import { ngayNgan, vnToday } from "../../shared/vn-date";
 import { CAU_VE_QUA_HAN_TRA_SAU, CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC, moVeDuoc } from "../../shared/tra-sau";
 import { veMoDuocTheoVe } from "../../shared/mo-ve-theo-ve.ts";
 import { CAU_HOP_LE, CAU_QUET, canXacNhanQuet, ketQuaQuet, type VeQuet } from "../../shared/ket-qua-quet.ts";
@@ -64,8 +64,8 @@ const ngayHoi = (request: Request): string | null => {
 
 /** Giờ Việt Nam «HH:mm ngày dd/MM» của một mốc ISO UTC (câu «Đã dùng lúc …»). */
 const gioVn = (iso: string): string => {
-  const t = new Date(Date.parse(iso) + 7 * 3600e3).toISOString();
-  return `${t.slice(11, 16)} ngày ${t.slice(8, 10)}/${t.slice(5, 7)}`;
+  const [ngay, gio] = new Date(Date.parse(iso) + 7 * 3600e3).toISOString().split("T") as [string, string];
+  return `${gio.slice(0, 5)} ngày ${ngayNgan(ngay, ngay)}`;
 };
 const NHAN_GHI_QUET = { DA_TINH: "tính đã dùng", CHI_XEM: "chỉ xem", TU_CHOI: "từ chối" } as const;
 /** Lý do bỏ lượt không được mang mã vé hay số điện thoại: so SAU khi bỏ khoảng trắng, gạch ngang, dấu chấm và đổi hoa (chống tách chuỗi để lọt). */
