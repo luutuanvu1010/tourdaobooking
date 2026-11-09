@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { ACC, ADM, DRIVER, DRIVER_PARTNER, FIELD, INTERN, NGAY_SAU, PARTNER, SALES, SUP, batDongHo, don, donDoiTac, setup } from "../../../tests/audit/dieu-phoi-khung.mjs";
 import { seedStaff } from "../../../tests/audit/harness.mjs";
+import { datQuaHan } from "../../../tests/audit/tra-sau-moc.mjs";
 
 const PNG = (n: number) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); return Buffer.from(u).toString("base64"); };
 const AT = "2026-01-01T00:00:00.000Z";
@@ -392,5 +393,62 @@ test("ranh giới 5 phút: đúng 5:00 người quét bỏ được, 5:01 thì k
     mock.timers.tick(1000);
     assert.equal((await bo(FIELD, q2.json.lanQuetId)).status, 403, "5:01 ngoài hạn");
     assert.equal((await bo(SUP, q2.json.lanQuetId)).status, 200, "Toàn quyền bất kỳ lúc nào");
+  } finally { tat(); }
+});
+
+// ===== I-4 (người kiểm cuối đợt): cổng tiền khi quét theo ĐƠN TRẢ SAU — `moTheoTien`, không phải `thuDu` =====
+/** Đơn Trả sau của Đối tác (hạn mức do Toàn quyền cấp) đã xác nhận, vé Tour Đảo đã mở (giao). Chưa thu đồng nào. */
+async function donTraSauDaMo(w: any) {
+  NGUON(w, "TOUR_DAO");
+  await loVaoKho(w, "TOUR_DAO", 2, 0);
+  assert.equal((await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: `pty-${PARTNER}`, hanMuc: 50_000_000, gioTra: 168, gioAnHan: 0, lyDo: "thử" } })).status, 201);
+  const r = await w.call("POST", "/api/orders", { as: PARTNER, body: { customerName: "Khách Thử", customerPhone: "0912345678", paymentTerm: "CREDIT",
+    services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: "2027-03-11", pickupChoice: "DON",
+      legs: [{ direction: "OUT", pickupDate: "2027-03-11", pickupTime: null, pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm", dropoffLocationId: null, dropoffPlace: "" }] }] } });
+  assert.equal(r.status, 201, r.text);
+  const id = r.json.order.id as string;
+  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: PARTNER, body: {} });
+  assert.ok(g.status < 300, g.text);
+  const yc = w.q("SELECT id FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id)[0];
+  if (yc) {
+    const moc = w.q("SELECT updated_at u FROM orders WHERE id = ?", id)[0].u;
+    const x = await w.call("POST", `/api/orders/${id}/quyet-dinh`, { as: ADM, body: { yeuCauId: yc.id, updatedAt: moc, ketQua: "CON_VE", gioDon: [{ legId: r.json.order.services[0].legs[0].id, pickupTime: "13:00" }] } });
+    assert.equal(x.status, 200, x.text);
+  }
+  assert.equal(w.q("SELECT payment_term t FROM orders WHERE id = ?", id)[0].t, "CREDIT");
+  assert.equal(w.q("SELECT count(*) n FROM bil_payment_receipt WHERE order_id = ?", id)[0].n, 0, "chưa thu đồng nào");
+  const giao = await w.call("POST", "/api/ve/giao", { as: ADM, body: { orderId: id, requestId: crypto.randomUUID() } });
+  assert.equal(giao.status, 200, giao.text);
+  return id;
+}
+
+test("cổng tiền khi quét: đơn Trả sau TRONG hạn, chưa thu đồng nào → XANH (không vàng «chưa thu đủ»)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const id = await donTraSauDaMo(w);
+    const [ma] = maCuaDon(w, id);
+    assert.ok(ma, "chống bài rỗng: đơn có vé Tour Đảo");
+    const r = await quet(w, FIELD, ma!);
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.ma, "HOP_LE");
+    assert.equal(r.json.mau, "XANH");
+    assert.equal(luot(w, "DA_TINH").length, 1);
+  } finally { tat(); }
+});
+
+test("cổng tiền khi quét: đơn Trả sau QUÁ hạn còn nợ → VÀNG «chưa thu đủ», chưa ghi lượt", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const id = await donTraSauDaMo(w);
+    datQuaHan(w.sqlite, id);
+    const [ma] = maCuaDon(w, id);
+    assert.ok(ma, "chống bài rỗng: đơn có vé Tour Đảo");
+    const r = await quet(w, FIELD, ma!);
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.ma, "CHUA_THU_DU");
+    assert.equal(r.json.mau, "VANG");
+    assert.equal(luot(w).length, 0, "vàng chưa xác nhận thì không ghi");
   } finally { tat(); }
 });
