@@ -97,14 +97,18 @@ export function tinNhacDenLuc(i: { hanTra: string | null; bayGio: string; no: nu
   return Date.parse(i.bayGio) >= Date.parse(i.hanTra) - GIO_NHAC_TRUOC * GIO_MS ? ["TRUOC_HAN"] : [];
 }
 
+/** Lô mang câu gác phiên bản hạn mức thua (trigger `bil_credit_guard_version` — có lệnh khác vừa đổi hạn mức / nợ của cùng bên). MỘT nơi nhận dạng cho mọi module (orders, parties). */
+export const laLoiPhienBanTraSau = (e: unknown): boolean => /\bcredit_version_stale:/.test(e instanceof Error ? e.message : String(e));
+
 export type MaKhongTraSau = "khong_co_han_muc" | "vuot_han_muc" | "co_don_qua_han";
 
 /** Kết quả cổng hạn mức (billing dựng, orders đọc qua `ctx` do gốc lắp ráp tiêm): `version` là phiên bản đã đọc, đưa vào câu gác của lô xác nhận. */
 export type KetQuaKiemTraSau = { ok: true; hanMuc: HanMucHieuLuc; version: number } | { ok: false; ma: MaKhongTraSau; cau: string };
 
 /** Lý do một đơn không được xác nhận theo Trả sau (ADR-0168 Đ2 mục 3); `null` = được. */
+/** `loai: "doi_ben"` (ADR-0188): đổi bên đặt / gộp hồ sơ với `soTienDon: 0` — nơi gọi dùng câu riêng của mình, chỉ đọc `ma`. */
 /** `loai: "sua_tang"` (kế hoạch 2026-11-05 Task 3): `soTienDon` là PHẦN TĂNG của một lần sửa số khách đơn đã xác nhận, `noHienTai` gồm cả nợ của chính đơn đó — câu nói «số tiền tăng thêm». */
-export function lyDoKhongTraSau(i: { hanMuc: HanMucHieuLuc | null; noHienTai: number; soTienDon: number; coDonQuaHan: boolean; loai?: "sua_tang" }): { ma: MaKhongTraSau; cau: string } | null {
+export function lyDoKhongTraSau(i: { hanMuc: HanMucHieuLuc | null; noHienTai: number; soTienDon: number; coDonQuaHan: boolean; loai?: "sua_tang" | "doi_ben" }): { ma: MaKhongTraSau; cau: string } | null {
   if (!i.hanMuc) return { ma: "khong_co_han_muc", cau: "Bên đặt chưa có hạn mức trả sau còn hiệu lực. Hãy chọn thanh toán ngay, hoặc nhờ Quản trị hay Toàn quyền cấp hạn mức trả sau cho bên đặt." };
   if (i.coDonQuaHan) return { ma: "co_don_qua_han", cau: "Bên đặt còn đơn trả sau quá hạn chưa thanh toán. Cần thanh toán đủ các đơn đó trước khi đặt thêm đơn trả sau." };
   const conLai = Math.max(0, i.hanMuc.hanMuc - i.noHienTai);

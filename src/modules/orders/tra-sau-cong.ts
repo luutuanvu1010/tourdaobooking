@@ -3,7 +3,7 @@
 // KHÔNG tự kiểm quyền người gọi (route đã làm). Không nhắc bảng `bil_`, không import `billing` (bài src/architecture.test.ts, src/dat-coc-noi-goi.test.ts).
 import { chanVeDaMoTrongLo, laLoiVeDaMoTrongLo } from "../../shared/chan-doi-tac-huy";
 import { error } from "../../shared/http";
-import { dongTien, hanTraTu, hetAnHanTu, ngayCuaMoc, type HinhThucThanhToan, type KetQuaKiemTraSau } from "../../shared/tra-sau";
+import { dongTien, hanTraTu, hetAnHanTu, laLoiPhienBanTraSau, ngayCuaMoc, type HinhThucThanhToan, type KetQuaKiemTraSau, type MaKhongTraSau } from "../../shared/tra-sau";
 
 /** Phần «câu gác phiên bản và hạn trả» của lô xác nhận. Nơi gọi chỉ lấy từ `traSauChoXacNhan` (bài src/tra-sau-duong-ghi.test.ts). */
 export type KemTraSau = (i: { at: string; auditId: string }) => D1PreparedStatement[];
@@ -12,7 +12,7 @@ export const KHONG_TRA_SAU: KemTraSau = () => [];
 
 /** Hai hàm do gốc lắp ráp tiêm (xem `ctx.kiemTraSau`, `ctx.cauGacPhienBanTraSau` ở src/shared/router.ts). */
 export interface HamTraSau {
-  kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" }) => Promise<KetQuaKiemTraSau | null>;
+  kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" | "doi_ben" }) => Promise<KetQuaKiemTraSau | null>;
   cauGacPhienBanTraSau: (partyId: string, version: number, at: string) => D1PreparedStatement[];
 }
 
@@ -78,7 +78,7 @@ declare const NHAN_DOI_BEN: unique symbol;
 declare const NHAN_SUA_TANG: unique symbol;
 /** Qua cổng huỷ. `chanVeDaMo`: lô huỷ phải mang câu bảo vệ «vé vừa mở» (đơn Trả sau còn nợ, vé CHƯA mở lúc kiểm); `no` để dịch lỗi câu bảo vệ; `kem(at)`: câu gác phiên bản bên đặt (khi hết nợ lúc kiểm). */
 export type QuaCongHuy = { readonly [NHAN_HUY]: true; readonly chanVeDaMo: boolean; readonly no: number; readonly kem: (at: string) => D1PreparedStatement[] };
-/** Qua cổng đổi bên đặt. `kem(at)`: câu gác phiên bản của bên đặt CŨ (đơn Trả sau đã xác nhận hết nợ). */
+/** Qua cổng đổi bên đặt. `kem(at)`: câu gác phiên bản của bên đặt CŨ và bên đặt MỚI (đơn Trả sau đã xác nhận hết nợ — ADR-0188 mục 2). */
 export type QuaCongDoiBen = { readonly [NHAN_DOI_BEN]: true; readonly kem: (at: string) => D1PreparedStatement[] };
 /** Qua cổng sửa số khách. `kem`: câu gác phiên bản (chỉ khi đơn Trả sau đã xác nhận mà tiền TĂNG). */
 export type QuaCongSuaTang = { readonly [NHAN_SUA_TANG]: true; readonly kem: D1PreparedStatement[] };
@@ -148,22 +148,37 @@ export function dichLoiLoHuy(e: unknown, qua: QuaCongHuy, laDoiTac: boolean): Re
   return dichLoiTraSau(e);
 }
 
-/** Đổi bên đặt (mọi nơi gọi `changeBooker`): đơn Trả sau ĐÃ xác nhận còn nợ thì 409; chỉ xét khi bên đặt ĐỔI THẬT. */
+// ADR-0188 mục 3: câu riêng của đường đổi bên đặt. KHÔNG dùng `kq.cau` của billing — câu đó bảo «chọn thanh toán ngay», việc không làm được sau xác nhận (hình thức đã khoá).
+export const CAU_DOI_BEN_KHONG_HAN_MUC = "Đơn trả sau đã xác nhận chỉ đổi được sang bên đặt có hạn mức trả sau còn hiệu lực. Nhờ Quản trị hoặc Toàn quyền cấp hạn mức cho bên mới, hoặc giữ bên đặt cũ.";
+export const CAU_DOI_BEN_QUA_HAN = "Bên đặt mới còn đơn trả sau quá hạn chưa thanh toán nên chưa nhận thêm đơn trả sau.";
+export const CAU_DOI_BEN_KHACH_LE = "Đơn trả sau đã xác nhận phải có bên đặt là đối tác có hạn mức trả sau — không đổi sang khách lẻ được.";
+/** Mã không đạt của `kiemTraSau` → câu của đường đổi bên. `vuot_han_muc` không xảy ra với `soTienDon: 0` (ADR-0188 mục 1.2); nếu có, bên mới cũng không nhận thêm được ⇒ câu a. */
+const CAU_DOI_BEN: Record<MaKhongTraSau, string> = { khong_co_han_muc: CAU_DOI_BEN_KHONG_HAN_MUC, co_don_qua_han: CAU_DOI_BEN_QUA_HAN, vuot_han_muc: CAU_DOI_BEN_KHONG_HAN_MUC };
+
+/**
+ * Đổi bên đặt (mọi nơi gọi `changeBooker`): chỉ xét khi bên đặt ĐỔI THẬT, đơn Trả sau ĐÃ xác nhận. Thứ tự (ADR-0168 Đ2 mục 6, ADR-0188 mục 1): còn nợ ⇒ 409; bên mới rỗng
+ * (khách lẻ) ⇒ 409 câu c; bên mới không qua cổng hạn mức (`soTienDon: 0` — đơn đã hết nợ) ⇒ 409 mã của billing, câu a / b; không kiểm được ⇒ 503.
+ */
 export async function congDoiBenDatTraSau(
-  h: Pick<HamNoTraSau, "traSauCuaDon"> & Pick<HamTraSau, "cauGacPhienBanTraSau">,
-  d: { id: string; paymentTerm: HinhThucThanhToan; status: string; doiThat: boolean },
+  h: Pick<HamNoTraSau, "traSauCuaDon"> & HamTraSau,
+  d: { id: string; paymentTerm: HinhThucThanhToan; status: string; doiThat: boolean; benMoi: string | null },
 ): Promise<{ loi: Response } | { qua: QuaCongDoiBen }> {
   if (!d.doiThat || d.paymentTerm !== "CREDIT" || d.status !== "confirmed") return quaDoiBen(KHONG_CAU);
   const t = await h.traSauCuaDon(d.id);
   if (!t || t.benDat === undefined || t.version === undefined) return { loi: CHUA_DUNG_DUOC() };
   if (t.no > 0) return { loi: error(409, "tra_sau_con_no_doi_ben_dat", CAU_DOI_BEN_CON_NO(t.no)) };
-  // Hết nợ lúc kiểm: gác phiên bản của bên đặt CŨ trong chính lô đổi — khoản thu đảo chen giữa (làm nợ lại có) thì lô thua cả lô, nợ không dời sang bên mới.
+  if (d.benMoi === null) return { loi: error(409, "tra_sau_thieu_ben_dat", CAU_DOI_BEN_KHACH_LE) };
+  const benMoi = d.benMoi;
+  const kq = await h.kiemTraSau({ benDat: benMoi, soTienDon: 0, loai: "doi_ben" });
+  if (!kq) return { loi: CHUA_DUNG_DUOC() };
+  if (!kq.ok) return { loi: error(409, kq.ma, CAU_DOI_BEN[kq.ma]) };
+  // Hai câu gác trong chính lô đổi (ADR-0188 mục 2): bên CŨ bằng số `traSauCuaDon` đọc trước khi tính nợ (khoản thu đảo chen giữa làm nợ lại có ⇒ lô thua, nợ không dời sang bên mới);
+  // bên MỚI bằng đúng số `kiemTraSau` vừa đọc (hạn mức / nợ của bên mới đổi chen giữa ⇒ lô thua). Mỗi bên tăng đúng một phiên bản khi lô qua.
   const { benDat, version } = t;
-  return quaDoiBen(benDat === null ? KHONG_CAU : (at) => h.cauGacPhienBanTraSau(benDat, version, at));
+  return quaDoiBen((at) => [...(benDat === null ? [] : h.cauGacPhienBanTraSau(benDat, version, at)), ...h.cauGacPhienBanTraSau(benMoi, kq.version, at)]);
 }
 
 /** Lô có câu gác phiên bản mà thua (có lệnh khác vừa làm tăng nợ của cùng bên đặt) ⇒ cả lô huỷ; dịch thành 409 cho mọi đường sửa. */
 export function dichLoiTraSau(e: unknown): Response | null {
-  const loi = e instanceof Error ? e.message : String(e);
-  return /\bcredit_version_stale:/.test(loi) ? error(409, "credit_version_stale", "Hạn mức vừa thay đổi, mở lại đơn rồi thử lại.") : null;
+  return laLoiPhienBanTraSau(e) ? error(409, "credit_version_stale", "Hạn mức vừa thay đổi, mở lại đơn rồi thử lại.") : null;
 }
