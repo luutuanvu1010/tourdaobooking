@@ -47,3 +47,7 @@ Căn cứ: `docs/adr/ADR-0194-bang-dieu-khien-giao-dien-toan-quyen.md` (accepted
 2. Đổi tên bảng về `ui_field_policy` (cần khai tiền tố `ui_` ở bài kiến trúc) hay giữ `gd_field_policy`?
 3. Chọn tên cho hai nút, tên khối và câu báo thiếu ở mục «Tên tạm».
 4. Bảng `gd_field_policy` lệch tên so với ADR-0194 (`ui_field_policy`) — đã ghi ở `docs/SYSTEM-DESIGN.md` §16, chờ chủ.
+
+## Chủ đã trả lời (2026-11-09)
+- Câu 1: chủ chọn «Giữ trong trang Giao diện» (nguyên văn). Không làm trang riêng, không nới trần gói Đơn hàng.
+- Câu 2, 3: chưa trả lời; đang giữ `gd_field_policy` và tên tạm theo khuyến nghị, chờ chủ.
