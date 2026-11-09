@@ -33,3 +33,12 @@ test("cauTuDauNho: chuỗi rỗng ra câu hết phiên; lý do ra câu cũ; sai 
   assert.equal(cauTuDauNho("{hỏng"), null);
   assert.equal(cauTuDauNho(DAU_KHONG_BAO), null, "máy chưa từng đăng nhập: không câu nào");
 });
+
+test("goLogin (web/api.ts) chặn gọi lặp: hai lời gọi 401 đồng thời dùng chung MỘT lượt, không để lượt sau ghi đè dấu của lượt đầu", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("../../web/api.ts", import.meta.url), "utf8");
+  const m = src.match(/export (?:async )?function goLogin\(\)[^{]*\{([\s\S]*?)\n\}/);
+  assert.ok(m, "tìm thấy goLogin");
+  assert.match(m[1], /if \(dangDi\+\+\) return[^\n]*\n\s*await ghiNhoLyDoDangXuat/, "goLogin phải đặt cờ cấp module (dangDi++) TRƯỚC khi await, để lời gọi sau không chạy lại");
+  assert.equal((src.match(/await ghiNhoLyDoDangXuat\(\)/g) ?? []).length, 1, "ghiNhoLyDoDangXuat chỉ được gọi từ một chỗ");
+});
