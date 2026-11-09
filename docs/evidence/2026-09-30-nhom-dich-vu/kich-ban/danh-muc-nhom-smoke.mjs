@@ -229,6 +229,9 @@ try {
     assert.equal(await d.ev(soNhom("Hòn Tằm")), "1 dịch vụ");
     // Route một dịch vụ (PATCH /api/catalog/:code — Ngừng bán / Mở bán lại) trả `item` thay vào danh sách: cột Nhóm phải giữ nhóm thật, không rơi về "Chưa phân loại".
     await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].find((b) => b.textContent === 'Ngừng bán').click(); true");
+    // B-5 (9/11): Ngừng bán hỏi lại ở màn đủ; bấm nút «Ngừng bán» trong hộp
+    await d.waitFor("!!document.querySelector('.sheet')", "hộp hỏi Ngừng bán");
+    await d.ev("[...document.querySelectorAll('.sheet-foot button')].find((b) => b.textContent.trim() === 'Ngừng bán').click(); true");
     await d.waitFor("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].some((b) => b.textContent === 'Mở bán lại')", "TD101 đã ngừng bán");
     assert.equal(await d.ev("document.querySelector('#list tr[data-code=\"TD101\"] .nhom-o').textContent"), "Hòn Tằm", "ngừng bán xong vẫn đúng nhóm");
     await d.ev("[...document.querySelectorAll('#list tr[data-code=\"TD101\"] button')].find((b) => b.textContent === 'Mở bán lại').click(); true");

@@ -10,7 +10,7 @@ import { QUY_TAC_DUA_DON, type QuyTacDuaDon } from "../src/shared/dua-don-dich-v
 import { dongLichSuMauChang, nhanCheDoCua } from "../src/shared/lich-su-mau-chang";
 import { canhBaoDoiNhom } from "../src/shared/dac-diem-hien-thi";
 import { CAU_HOI_BO_GHI_DE_GIA } from "../src/shared/catalog-nut";
-import { caNhomCanKiem, kiemVeCua, nhanNguonKiemVe } from "../src/shared/dich-vu-kiem-ve";
+import { cauHoiNgungBan, caNhomCanKiem, kiemVeCua, nhanNguonKiemVe } from "../src/shared/dich-vu-kiem-ve";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { taoCoVe, type CoVe } from "./catalog-co-ve";
 import { dongBoTuSheet, taoKiemVe, veManHep } from "./catalog-kiem-ve";
@@ -42,6 +42,12 @@ const oKiemVe = (it: CatalogAdminItem): HTMLElement => {
 };
 function renderTuKiem(): void {
   if (can(staff, "settings.ops")) replaceChildren(byId("kv-tu-kiem"), kiemVe.khoiTuKiem());
+}
+
+/** Ngừng bán hỏi lại (B-5, chủ duyệt 9/11) — cùng hộp với màn hẹp; Mở bán lại không hỏi. */
+async function doiBan(it: CatalogAdminItem, nut: HTMLButtonElement, update: (path: string, init: { method: string; body?: unknown }) => Promise<void>): Promise<void> {
+  if (!it.hidden && !(await hoiXacNhan({ ...cauHoiNgungBan(it.name), opener: nut }))) return;
+  await update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } });
 }
 
 let items: CatalogAdminItem[] = [];
@@ -110,9 +116,9 @@ function priceCell(it: CatalogAdminItem, code: PaxCode): HTMLElement {
 }
 
 function row(it: CatalogAdminItem): HTMLElement {
-  const btn = (label: string, onclick: () => void, cls = "btn btn-link") => {
-    const b = h("button", { type: "button", class: cls }, label);
-    b.addEventListener("click", onclick);
+  const btn = (label: string, onclick: (b: HTMLButtonElement) => void, cls = "btn btn-link") => {
+    const b = h("button", { type: "button", class: cls }, label) as HTMLButtonElement;
+    b.addEventListener("click", () => onclick(b));
     return b;
   };
   const update = async (path: string, init: { method: string; body?: unknown }) => {
@@ -139,7 +145,7 @@ function row(it: CatalogAdminItem): HTMLElement {
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "bang"))), it.code, "bang"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
       it.overridden.length > 0 && btn("Bỏ ghi đè giá", () => confirm(CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden)) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
-      btn(it.hidden ? "Mở bán lại" : "Ngừng bán", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), it.hidden ? "btn btn-link" : "btn btn-link danger"),
+      btn(it.hidden ? "Mở bán lại" : "Ngừng bán", (nut) => void doiBan(it, nut, update), it.hidden ? "btn btn-link" : "btn btn-link danger"),
     ),
   );
 }
@@ -152,9 +158,9 @@ function priceLine(it: CatalogAdminItem): string {
 }
 
 function card(it: CatalogAdminItem): HTMLElement {
-  const btn = (label: string, onclick: () => void, danger = false) => {
-    const b = h("button", { type: "button", class: danger ? "pill-btn pill-btn-danger" : "pill-btn" }, label);
-    b.addEventListener("click", onclick);
+  const btn = (label: string, onclick: (b: HTMLButtonElement) => void, danger = false) => {
+    const b = h("button", { type: "button", class: danger ? "pill-btn pill-btn-danger" : "pill-btn" }, label) as HTMLButtonElement;
+    b.addEventListener("click", () => onclick(b));
     return b;
   };
   const update = async (path: string, init: { method: string; body?: unknown }) => {
@@ -181,7 +187,7 @@ function card(it: CatalogAdminItem): HTMLElement {
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "the"))), it.code, "the"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
       it.overridden.length > 0 && btn("Bỏ ghi đè giá", () => confirm(CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden)) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
-      btn(it.hidden ? "Mở bán lại" : "Ngừng bán", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), !it.hidden),
+      btn(it.hidden ? "Mở bán lại" : "Ngừng bán", (nut) => void doiBan(it, nut, update), !it.hidden),
     ),
   );
 }

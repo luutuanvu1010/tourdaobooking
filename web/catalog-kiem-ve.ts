@@ -4,7 +4,7 @@
 //   GET  /api/catalog/quan-ly-ban, PUT /api/catalog/:code/ngung-ban → màn hẹp của Quản lý bán hàng;
 //   POST /api/catalog/sync → «Đồng bộ ngay từ Google Sheet» (ADR-0186 Đ5), một hàm cho cả màn của Quản trị và màn hẹp.
 // Ẩn/hiện hỏi `can()`; máy chủ kiểm lại. Luật ở src/shared/dich-vu-kiem-ve.ts. Không innerHTML.
-import { TEN_CHUA_PHAN_LOAI, demKiemVe, locNhomKiemVe, moSanNhomKiemVe, nhanNguonKiemVe, xepNhomKiemVe, type DongDichVuKiemVe, type NhomKiemVe } from "../src/shared/dich-vu-kiem-ve";
+import { TEN_CHUA_PHAN_LOAI, cauHoiNgungBan, demKiemVe, locNhomKiemVe, moSanNhomKiemVe, nhanNguonKiemVe, xepNhomKiemVe, type DongDichVuKiemVe, type NhomKiemVe } from "../src/shared/dich-vu-kiem-ve";
 import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
@@ -148,6 +148,7 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
   const kv = taoKiemVe(errorEl, veDs);
 
   const doiBan = async (d: DongDichVuKiemVe, nut: HTMLButtonElement): Promise<void> => {
+    if (d.dangBan && !(await hoiXacNhan({ ...cauHoiNgungBan(d.ten), opener: nut }))) return;
     errorEl.hidden = true;
     nut.disabled = true;
     try {

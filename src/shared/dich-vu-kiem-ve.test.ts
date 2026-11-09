@@ -1,7 +1,7 @@
 // Luật màn «Dịch vụ cần kiểm vé» (ADR-0136 Đ1): dòng dịch vụ thắng dòng nhóm, không có gì = không cần, chỉ dịch vụ đang bán.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { demKiemVe, locNhomKiemVe, moSanNhomKiemVe, nhanNguonKiemVe, xepNhomKiemVe } from "./dich-vu-kiem-ve.ts";
+import { cauHoiNgungBan, demKiemVe, locNhomKiemVe, moSanNhomKiemVe, nhanNguonKiemVe, xepNhomKiemVe } from "./dich-vu-kiem-ve.ts";
 
 const dv = [
   { code: "VB350", ten: "Vé Vinwonders + buffet 350", dangBan: true, groupCode: "VIN" },
@@ -51,4 +51,13 @@ test("nhóm nào mở sẵn: chỉ còn một nhóm, đang tìm, hoặc nhóm c�
   assert.equal(moSanNhomKiemVe(r, r[1]!, true), true, "đang tìm: mở hết");
   const c = xepNhomKiemVe(dv, nhom, [{ pham: "SERVICE", ma: "SM1", canXacNhan: true }]);
   assert.deepEqual(c.map((n) => moSanNhomKiemVe(c, n, false)), [false, true, false]);
+});
+
+test("hỏi lại trước khi Ngừng bán: đúng chữ chủ chọn (B-5 (1), 9/11), có tên dịch vụ ở tiêu đề", () => {
+  assert.deepEqual(cauHoiNgungBan("Vé Hòn Tằm"), {
+    tieuDe: "Ngừng bán Vé Hòn Tằm?",
+    hauQua: "Người lập đơn không chọn được dịch vụ này nữa, có hiệu lực ngay cho cả công ty. Đơn đã lập không đổi.",
+    nhanNguyHiem: "Ngừng bán",
+    nhanGiu: "Không ngừng",
+  });
 });

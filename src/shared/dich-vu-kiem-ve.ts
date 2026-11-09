@@ -79,3 +79,11 @@ export function kiemVeCua(ma: string, nhom: string | null, dongCo: readonly Dong
 }
 /** Cả nhóm đang đặt «cần kiểm vé» (dòng nhóm, không tính dòng riêng của từng vé). */
 export const caNhomCanKiem = (nhom: string, dongCo: readonly DongCoXacNhanDto[]): boolean => dongCo.some((d) => d.pham === "GROUP" && d.ma === nhom && d.canXacNhan);
+
+/** Hộp hỏi lại trước khi Ngừng bán một dịch vụ, MỘT nơi cho màn hẹp và màn đủ (chủ chọn B-5 (1), 9/11). Mở bán lại không hỏi. */
+export const cauHoiNgungBan = (ten: string): { tieuDe: string; hauQua: string; nhanNguyHiem: string; nhanGiu: string } => ({
+  tieuDe: `Ngừng bán ${ten}?`,
+  hauQua: "Người lập đơn không chọn được dịch vụ này nữa, có hiệu lực ngay cho cả công ty. Đơn đã lập không đổi.",
+  nhanNguyHiem: "Ngừng bán",
+  nhanGiu: "Không ngừng",
+});
