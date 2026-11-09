@@ -157,7 +157,9 @@ try {
     writeFileSync(join(OUT, `${ten}.png`), Buffer.from(s.result.data, "base64"));
   };
   const sangTrang = async (p, path) => { await p.send("Page.navigate", { url: env.base + path }); await sleep(400); await p.waitFor("document.readyState === 'complete'", `trang ${path} tải xong`); };
-  const lyDoChua = "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé.";
+  // Đơn A: đối tác tự ghi «Tôi thu» ⇒ chính người lập còn tiền chờ nộp ⇒ câu Q-07 (phiếu B-2 phương án (2), Task 3.2 Đợt 3), không còn câu «Công ty chưa xác nhận…».
+  const lyDoChua = "Vé mở sau khi Công ty ghi nhận bạn đã nộp tiền.";
+  const lyDoCu = "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé.";
 
   for (const [kho, vp] of KHO) {
     console.log(`\n===== khổ ${kho} =====`);
@@ -167,6 +169,7 @@ try {
       await choKhoi(pt);
       const t = await vanBan(pt);
       assert.ok(t.includes(lyDoChua), `thiếu câu lý do: ${t}`);
+      assert.ok(!t.includes(lyDoCu), `còn câu cũ «Công ty chưa xác nhận…» ở đơn đối tác tự cầm tiền: ${t}`);
       assert.ok(!(await coNut(pt, '#ve-don [data-action="chuan-bi-ve"], #ve-don [data-action="tao-duong-dan"], #ve-don [data-action="gui-zalo"]')), "không được có nút mở/gửi vé");
       assert.ok(t.includes("2/2 vé"), `không thấy số vé giữ: ${t}`);
       assert.ok(await coNut(pt, '[data-action="cancel-order"]'), "đơn chưa mở vé: đối tác còn nút Huỷ đơn");
@@ -228,7 +231,7 @@ try {
       await choKhoi(ps);
       const t = await vanBan(ps);
       assert.ok(t.includes("Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé."), `sai câu cho nhân viên: ${t}`);
-      assert.ok(!t.includes(lyDoChua), "câu của đối tác lọt sang nhân viên");
+      assert.ok(!t.includes(lyDoChua) && !t.includes(lyDoCu), "câu của đối tác lọt sang nhân viên");
       assert.ok(!(await coNut(ps, '#ve-don [data-action="chuan-bi-ve"]')), "không nút mở vé");
       await chung(ps, `${kho}-5`);
       await axeKiem(ps, `${kho}-5`);

@@ -8,7 +8,7 @@
 // máy không chia sẻ được tệp thì có «Tải ảnh về» và «Sao chép đường dẫn». Không innerHTML.
 import { ApiError, api } from "./api";
 import { h, replaceChildren } from "./dom";
-import { CAU_VE_QUA_HAN_TRA_SAU, CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC } from "../src/shared/tra-sau";
+import { cauKhoaVe } from "../src/shared/ve-cau-khoa";
 
 interface NhomVe { nhom: string; nhan: string; can: number; giu: number; thieu: number }
 interface VeDonRes {
@@ -17,6 +17,8 @@ interface VeDonRes {
   choDoiTacNop?: boolean;
   /** ADR-0170 Đ2 mục 5: người xem giữ quyền Đối tác — nói câu «Công ty chưa xác nhận…». */
   nguoiXemLaDoiTac?: boolean;
+  /** Q-07: người xem giữ quyền Đối tác, chính họ lập đơn, còn số chờ nộp, đơn chưa huỷ — máy chủ tính, giao diện chỉ đọc. */
+  nguoiLapCamTien?: boolean;
   /** ADR-0168 Đ3 mục 1: đơn Trả sau quá hạn còn nợ — vé chưa mở chưa xem được, vé đã mở (trong `veXem`) vẫn xem. */
   traSauQuaHan?: boolean;
   duongDan: { id: string; hetHan: string; daThuHoi: boolean; luotMo: number }[];
@@ -66,7 +68,7 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
   const khoi: (Node | null)[] = [h("h2", null, "Vé điện tử"), tongThieu > 0 ? h("p", { class: "muted" }, res.nguoiXemLaDoiTac ? `Còn thiếu ${tongThieu} vé. Bấm Cấp vé; nếu vẫn thiếu, báo văn phòng.` : `Còn thiếu ${tongThieu} vé. Nhập thêm vé vào kho rồi bấm Cấp vé.`) : null, danhSach, nutCap ? h("div", { class: "handler-actions" }, nutCap) : null];
 
   if (!res.thuDu && res.veXem.length === 0 && !res.veTourDaoMoSom) {
-    khoi.push(h("p", { class: "muted" }, res.traSauQuaHan ? (res.nguoiXemLaDoiTac ? CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC : CAU_VE_QUA_HAN_TRA_SAU) : res.choDoiTacNop ? (res.nguoiXemLaDoiTac ? "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé." : "Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé.") : "Đơn chưa thu đủ tiền nên chưa xem hoặc gửi được vé."));
+    khoi.push(h("p", { class: "muted" }, cauKhoaVe({ traSauQuaHan: !!res.traSauQuaHan, nguoiXemLaDoiTac: !!res.nguoiXemLaDoiTac, choDoiTacNop: !!res.choDoiTacNop, nguoiLapCamTien: !!res.nguoiLapCamTien })));
   } else if (vao.coQuyenGui && res.veXem.length > 0) {
     // ---- Gửi Zalo / tải ảnh -------------------------------------------------------------------------------------------------------------------------------
     let tep: File[] = [];

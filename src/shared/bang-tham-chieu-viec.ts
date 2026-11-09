@@ -1224,7 +1224,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Vé điện tử: giao vé",
     manHinh: "Chi tiết đơn › khối «Vé điện tử» (đơn đã thu đủ)",
     ten: "Mở N vé để gửi khách · Tải vé <số>",
-    thatSuLam: "Nút này tải ảnh của MỌI vé của đơn về máy. Mỗi lần tải ảnh, máy chủ ghi nhật ký «Xem ảnh vé» và đóng dấu «đã lộ» cho vé đó ngay lần đầu. Vé đã lộ không bao giờ về lại kho, kể cả khi đơn bị huỷ hoặc số khách giảm. Nút «Tải vé <số>» còn ghi thêm một lần «giao vé qua Zalo» khi bấm dù chỉ là lưu ảnh. Đối tác thấy khối này cho đơn do chính mình lập; vé chỉ mở khi tiền đã về công ty (ADR-0170); khi chưa, đối tác đọc «Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé.»",
+    thatSuLam: "Nút này tải ảnh của MỌI vé của đơn về máy. Mỗi lần tải ảnh, máy chủ ghi nhật ký «Xem ảnh vé» và đóng dấu «đã lộ» cho vé đó ngay lần đầu. Vé đã lộ không bao giờ về lại kho, kể cả khi đơn bị huỷ hoặc số khách giảm. Nút «Tải vé <số>» còn ghi thêm một lần «giao vé qua Zalo» khi bấm dù chỉ là lưu ảnh. Đối tác thấy khối này cho đơn do chính mình lập; vé chỉ mở khi tiền đã về công ty (ADR-0170); khi chưa mà đơn do chính đối tác lập còn tiền chờ nộp, đối tác đọc «Vé mở sau khi Công ty ghi nhận bạn đã nộp tiền.»; tiền đang chờ Kế toán xác nhận thì đọc «Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé.»",
     hoiLai: "không",
     hoanTac: "không: vé đã lộ không về kho",
     duongLenh: ["/api/ve/giao"],
