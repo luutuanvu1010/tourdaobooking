@@ -65,11 +65,11 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // trên mã đã nhập (bản chính một mình 109.351, +326), trần = số đo + 100. Chủ dự án duyệt phần tăng +326 byte này ngày 8/11/2026 (ở phiên điều phối), nguyên văn «Duyệt 326 byte».
 // Nới 109.777 → 109.935 (ADR-0175 Đợt 1, 9/11/2026): menu «Vé điện tử» cho Kế toán (`muc-giao-dien.ts`) và hàng quyền mới `ve.phat-hanh` trong bản đồ quyền dùng chung đều nằm trong gói Đơn hàng; không có mã giao diện mới vào gói này. Đo thật 109.835 byte, trần = số đo + 100. Chủ dự án duyệt 9/11/2026 («quyết theo khuyến nghị» của người điều phối: giữ mức nới +158 byte).
 // Nới 109.935 → 110.075 (ADR-0175 Đợt 2, 9/11/2026): hai hàng quyền mới `ve.quet.tinh`, `ve.quet.xem` trong bản đồ quyền dùng chung (đã gọn bằng một hàm dựng hàng) và một dòng `/api/ve/quet` ở danh sách
-// route bí mật `lan-gui-bi-mat.ts` (thân có mã vé). Đo thật 109.975 byte (+40 so với 109.935 sau khi đã gọn), trần = số đo + 100. Không thêm mã giao diện nào vào gói Đơn hàng. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+// route bí mật `lan-gui-bi-mat.ts` (thân có mã vé). Đo thật 109.975 byte (+40 so với 109.935 sau khi đã gọn), trần = số đo + 100. Không thêm mã giao diện nào vào gói Đơn hàng. Chủ dự án duyệt 9/11/2026 nguyên văn «duyệt, tiếp tục» (câu hỏi nới trần Đợt 2: tổng 109.935 → 110.610, +675 byte).
 // Nới 110.075 → 110.306 (ADR-0175 Đợt 2 Task 14, 9/11/2026): trang /quet-ve vào `TRANG` / `THANH_BEN` / `TRANG_TOI` của `muc-giao-dien.ts` (chỉ dữ liệu điều hướng, khuôn các lần /ve-kho, /ve-cai-dat). Đo thật 110.206 byte (+131), trần = số đo + 100.
-// Thư viện đọc QR và mã camera chỉ ở gói riêng của trang Quét vé. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+// Thư viện đọc QR và mã camera chỉ ở gói riêng của trang Quét vé. Chủ dự án duyệt 9/11/2026 nguyên văn «duyệt, tiếp tục» (câu hỏi nới trần Đợt 2: tổng 109.935 → 110.610, +675 byte).
 // Nới 110.306 → 110.610 (ADR-0175 Đợt 2 Task 15, 9/11/2026): trang /ve-doi-chieu vào `TRANG` / `THANH_BEN` / `TRANG_TOI` và hàng quyền `ve.doi-chieu.view` (chỉ dữ liệu điều hướng và quyền). Đo thật 110.510 byte (+304 so với 110.206 của Task 14), trần = số đo + 100.
-// Mã giao diện của trang đối chiếu và «Đã dùng x/y» chỉ ở gói riêng `web/ve-doi-chieu.ts` và `web/ve-don.ts` (gói trang Đơn thật không nhúng `ve-don.ts`). CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+// Mã giao diện của trang đối chiếu và «Đã dùng x/y» chỉ ở gói riêng `web/ve-doi-chieu.ts` và `web/ve-don.ts` (gói trang Đơn thật không nhúng `ve-don.ts`). Chủ dự án duyệt 9/11/2026 nguyên văn «duyệt, tiếp tục» (câu hỏi nới trần Đợt 2: tổng 109.935 → 110.610, +675 byte).
 const TRAN_ORDERS = 110_610;
 
 function dung(trang: string) {
