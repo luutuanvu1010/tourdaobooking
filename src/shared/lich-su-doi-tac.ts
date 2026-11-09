@@ -92,7 +92,7 @@ export const LICH_SU_DOI_TAC_AN = [
   // ADR-0032 (hạn mức Từ chối — G3 kế hoạch 2026-10-23): ẩn như lớp nội bộ.
   "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
   // ADR-0153 (đề xuất): giữ chỗ / trả vé điện tử — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại. Trang Nhật ký (Toàn quyền) vẫn đọc được.
-  "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo", "ve_thieu",
+  "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo", "ve_thieu", "ve_quet", "ve_bo_luot_quet",
   "ve_xoa_anh_het_han", // ADR-0186 Đ4: tác nhân DON_ANH_VE ghi, không gắn đơn — ẩn; Toàn quyền đọc ở trang Nhật ký
   // ADR-0168: hạn mức Trả sau — việc nội bộ của Toàn quyền, ẩn khỏi lịch sử Đối tác.
   "credit_limit_set", "credit_limit_stopped",

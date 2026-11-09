@@ -39,6 +39,12 @@ export const CAU_QUET: Readonly<Record<MaQuet, string>> = {
   HOP_LE: "Vé hợp lệ",
 };
 
+/** Câu cho vé hợp lệ (xanh): người tính được thì «đã tính», người chỉ xem (Tài xế công ty) thì nói rõ «chưa tính đã dùng». */
+export const CAU_HOP_LE: Readonly<Record<"DA_TINH" | "CHI_XEM", string>> = {
+  DA_TINH: "Vé hợp lệ. Đã tính đã dùng",
+  CHI_XEM: "Vé hợp lệ. Chỉ xem, chưa tính đã dùng",
+};
+
 /** Cảnh báo vàng mà vé này đang gặp (chưa xét người quét đã xác nhận chưa). */
 export function canXacNhanQuet(v: VeQuet, homNay: string): XacNhanQuet {
   return {

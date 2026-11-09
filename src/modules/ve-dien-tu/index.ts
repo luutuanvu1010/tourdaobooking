@@ -6,20 +6,21 @@ import { auditStatement, nguoiLam } from "../audit";
 import { clearAttempts, reserveAttempts } from "../auth";
 import { coVeTheoMa, getEffectiveServices, nguonVeTheoMa } from "../catalog";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
-import { MATRIX, can, holdsPartner, isOffice, tacNhan } from "../../shared/permissions";
+import { MATRIX, can, holdsPartner, isOffice, passesAdminGate, tacNhan } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import { NGUON_VE, nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
 import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, taoKhoaNgauNhien, type LoaiTep } from "../../shared/tep-dinh-kem";
 import { vnToday } from "../../shared/vn-date";
 import { CAU_VE_QUA_HAN_TRA_SAU, CAU_VE_QUA_HAN_TRA_SAU_DOI_TAC, moVeDuoc } from "../../shared/tra-sau";
 import { veMoDuocTheoVe } from "../../shared/mo-ve-theo-ve.ts";
+import { CAU_HOP_LE, CAU_QUET, canXacNhanQuet, ketQuaQuet, type VeQuet } from "../../shared/ket-qua-quet.ts";
 import { canVe, choDoiTacNop, thuDu } from "./rules.ts";
 import { DANG_TOKEN, bamToken, hanDuongDan, soSanhHangThoiGian, taoToken, trangVeKhach } from "./duong-dan-khach.ts";
 import { NHAN_NHOM, NHAN_NHOM_LO, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
 import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_DON_XET_CAP_BU, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, tranLoHopLe } from "../../shared/ve-nhap-lo";
 import { datVeVaoKho, donHangChoXoa, type VeChuanBi } from "./kho-tep.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
-import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho } from "./repository.ts";
+import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho, cauBoLuotQuet, cauChenLuotQuet, coLuotQuet, demLuotDaTinh, docLuotDaTinh, docLuotQuet, docVeQuet } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
 import { veDaMoCuaDon as docVeDaMoCuaDon, veHangNgoaiDaMoCuaDon as docVeHangNgoaiDaMoCuaDon } from "./repository.ts";
@@ -47,6 +48,16 @@ const TOI_DA_DON_MOI_LAN = 50;
 /** Trần lô đang áp (ADR-0156 Đ3). Thiếu dòng cấu hình ⇒ mặc định, không bỏ giới hạn. */
 const docTranLo = async (db: D1Database): Promise<number> => (await docCaiDatVe(db))?.batch_limit ?? TRAN_LO_MAC_DINH;
 
+/** Giờ Việt Nam «HH:mm ngày dd/MM» của một mốc ISO UTC (câu «Đã dùng lúc …»). */
+const gioVn = (iso: string): string => {
+  const t = new Date(Date.parse(iso) + 7 * 3600e3).toISOString();
+  return `${t.slice(11, 16)} ngày ${t.slice(8, 10)}/${t.slice(5, 7)}`;
+};
+const NHAN_GHI_QUET = { DA_TINH: "tính đã dùng", CHI_XEM: "chỉ xem", TU_CHOI: "từ chối" } as const;
+const DANG_MA_TRONG_CHU = /TD1\.[A-Z2-7]{26}/;
+/** Người quét tự bỏ lượt trong khoảng này kể từ lúc quét (ADR-0175 Đ3 mục 7); Quản trị, Toàn quyền bất kỳ lúc nào. */
+const PHUT_TU_BO_LUOT = 5;
+const dauNghin = (n: number): string => String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 const KHONG_QUYEN = () => error(403, "forbidden", "Bạn không có quyền quản lý kho vé điện tử.");
 type NguoiHoi = Parameters<typeof can>[0];
 /**
@@ -627,6 +638,89 @@ export const veDienTuModule: AppModule = {
       await env.DB.batch([
         cauThuHoiLink(env.DB, id, at, staff.id),
         auditStatement(env.DB, { staffId: staff.id, action: "ve_thu_hoi_duong_dan", at, orderId: link.order_id, targetType: "ve", targetId: link.order_id, detail: "Thu hồi đường dẫn vé của khách" }, "changes() > 0"),
+      ]);
+      return json({ ok: true });
+    }),
+
+    // QUÉT VÉ TOUR ĐẢO (ADR-0175 Đ3; đặc tả §2.5). Cổng `staff` (Hướng dẫn viên, Tài xế vào được); quyền ở ô `ve.quet.tinh` / `ve.quet.xem`. Mã vé chỉ ở THÂN, không URL; không bao giờ vào nhật ký,
+    // phản hồi hay câu lỗi (chỉ 4 ký tự cuối). Mã lạ và vé hãng ngoài trả CÙNG một câu, KHÔNG ghi lượt (không để dò mã). Không tên khách, SĐT, giá; mã đơn chỉ khi người quét có `order.view` trên đơn.
+    // Một lô D1: câu chèn có gác → nhật ký gác `changes() > 0`. Thua cạnh tranh: đọc lại lượt thắng, trả «Đã dùng».
+    route("POST", "/api/ve/quet", "staff", async ({ env, request, staff, donChoQuet, tienDonVe, dienDoiTacCuaDon, nhanNhanVien }) => {
+      const quyenTinh = can(staff, "ve.quet.tinh");
+      if (!quyenTinh && !can(staff, "ve.quet.xem")) return error(403, "forbidden", "Bạn không có quyền quét vé.");
+      const raw = await readJson(request);
+      if (raw === null) return BAD_JSON();
+      const ma = typeof raw.ma === "string" ? raw.ma.trim() : "";
+      const xn = typeof raw.xacNhan === "object" && raw.xacNhan !== null ? (raw.xacNhan as Record<string, unknown>) : {};
+      const xacNhan = { lechNgay: xn.lechNgay === true, chuaThu: xn.chuaThu === true, vuotKhach: xn.vuotKhach === true };
+      const at = new Date().toISOString();
+      const homNay = vnToday(new Date(at));
+      const row = ma.length > 0 && ma.length <= 100 ? await docVeQuet(env.DB, ma) : null;
+      const rong = { dichVu: "", nhomKhach: "", ngayDi: null, soCuoi: "" };
+      if (row === null || row.nguon === "HANG_NGOAI") {
+        const kq = ketQuaQuet(null, { homNay, quyenTinh, xacNhan });
+        return json({ mau: kq.mau, ma: kq.ma, ghi: null, cau: CAU_QUET[kq.ma], ...rong });
+      }
+      let dich: Awaited<ReturnType<typeof donChoQuet>> = null;
+      let don: DonVe | null = null;
+      if (row.order_id !== null && row.order_service_id !== null) {
+        dich = await donChoQuet(row.order_id, row.order_service_id, staff.id);
+        if (dich === null) return error(503, "khong_doc_duoc_don", "Chưa đọc được đơn của vé này, hãy quét lại.");
+        don = await docDonVe(env.DB, { tienDonVe, dienDoiTacCuaDon }, row.order_id);
+      }
+      const tenNguoiQuet = async (id: string | null): Promise<string> => (id === null ? "" : ((await nhanNhanVien([id]))?.get(id) ?? ""));
+      const [daDung, soLuotDaTinh] = await Promise.all([docLuotDaTinh(env.DB, row.ticket_id), row.order_service_id !== null ? demLuotDaTinh(env.DB, row.order_service_id) : Promise.resolve(0)]);
+      const ve: VeQuet = {
+        nguon: row.nguon, trangThaiVe: row.ve_status, trangThaiDon: dich?.trangThai ?? null, daMo: row.revealed_at !== null, tuNgay: row.valid_from, denNgay: row.valid_to,
+        daDung: daDung ? { luc: daDung.scanned_at, nguoi: await tenNguoiQuet(daDung.scanned_by) } : null, ngayDi: dich?.ngayDi ?? null,
+        moTheoTien: don ? veMoDuoc(don, { nguon: row.nguon, daMo: false }) : true, soLuotDaTinh, soKhachHieuLuc: dich?.soKhachHieuLuc ?? 0,
+      };
+      const kq = ketQuaQuet(ve, { homNay, quyenTinh, xacNhan });
+      const nhomKhach = NHAN_NHOM_LO[(row.nhom ?? row.nhom_lo) as keyof typeof NHAN_NHOM_LO] ?? "";
+      const chung = { dichVu: row.printed_name, nhomKhach, ngayDi: dich?.ngayDi ?? null, soCuoi: row.cuoi, ...(dich?.maDon ? { maDon: dich.maDon } : {}) };
+      const phanHoi = (mau: typeof kq.mau, maKq: typeof kq.ma, ghi: typeof kq.ghi, cau: string, lanQuetId?: string) => json({ mau, ma: maKq, ghi, cau, ...chung, ...(lanQuetId ? { lanQuetId } : {}) });
+      const cauDaDung = (d: { luc: string; nguoi: string }) => `${CAU_QUET.DA_DUNG} lúc ${gioVn(d.luc)}${d.nguoi ? ` bởi ${d.nguoi}` : ""}`;
+      if (kq.ghi === null) {
+        let cau = CAU_QUET[kq.ma];
+        if (kq.ma === "CHUA_THU_DU" && dich?.xemTien && don?.tien) cau = `Đơn chưa thu đủ, còn thiếu ${dauNghin(Math.max(0, don.tien.phaiThu - don.tien.daThu))} đ, báo văn phòng trước khi thu khách`;
+        return phanHoi(kq.mau, kq.ma, null, cau);
+      }
+      const id = crypto.randomUUID();
+      const can_ = canXacNhanQuet(ve, homNay);
+      await env.DB.batch([
+        cauChenLuotQuet(env.DB, {
+          id, ticketId: row.ticket_id, allocationId: row.allocation_id, orderId: row.order_id, serviceId: row.order_service_id, ketQua: kq.ghi, lyDo: kq.ma,
+          xacNhan: kq.ghi === "TU_CHOI" ? { lechNgay: null, chuaThu: null, vuotKhach: null } : can_, at, by: staff.id,
+        }),
+        auditStatement(env.DB, { staffId: staff.id, action: "ve_quet", at, orderId: row.order_id ?? undefined, targetType: "ve", targetId: row.order_service_id ?? row.ticket_id, detail: `Quét vé · ${NHAN_GHI_QUET[kq.ghi]} · số cuối ${row.cuoi}` }, "changes() > 0"),
+      ]);
+      if (kq.ghi === "DA_TINH" && !(await coLuotQuet(env.DB, id))) {
+        const thang = await docLuotDaTinh(env.DB, row.ticket_id);
+        if (thang === null) return error(409, "ve_vua_doi", "Vé vừa đổi trạng thái, hãy quét lại.");
+        return phanHoi("DO", "DA_DUNG", null, cauDaDung({ luc: thang.scanned_at, nguoi: await tenNguoiQuet(thang.scanned_by) }));
+      }
+      return phanHoi(kq.mau, kq.ma, kq.ghi, kq.ghi === "TU_CHOI" ? (kq.ma === "DA_DUNG" && ve.daDung ? cauDaDung(ve.daDung) : CAU_QUET[kq.ma]) : CAU_HOP_LE[kq.ghi], id);
+    }),
+
+    // BỎ LƯỢT QUÉT (ADR-0175 Đ3 mục 7): người quét trong 5 phút kể từ lúc quét, hoặc Quản trị, Toàn quyền bất kỳ lúc nào; bắt buộc lý do (≥ 5 ký tự, không chứa mã vé); nhật ký `ve_bo_luot_quet`.
+    route("POST", "/api/ve/quet/:id/bo", "staff", async ({ env, request, staff, params }) => {
+      if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) return error(403, "forbidden", "Bạn không có quyền quét vé.");
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return error(404, "not_found", "Không tìm thấy lượt quét.");
+      const raw = await readJson(request);
+      if (raw === null) return BAD_JSON();
+      const lyDo = typeof raw.lyDo === "string" ? raw.lyDo.trim() : "";
+      if (lyDo.length < 5 || lyDo.length > 300) return error(400, "invalid_input", "Hãy ghi lý do bỏ lượt quét (từ 5 đến 300 ký tự).");
+      if (DANG_MA_TRONG_CHU.test(lyDo)) return error(400, "invalid_input", "Lý do không được chứa mã vé.");
+      const luot = await docLuotQuet(env.DB, id);
+      if (luot === null) return error(404, "not_found", "Không tìm thấy lượt quét.");
+      if (luot.voided_at !== null) return error(409, "da_bo", "Lượt quét này đã được bỏ.");
+      const at = new Date().toISOString();
+      const trongHan = luot.scanned_by === staff.id && Date.parse(at) - Date.parse(luot.scanned_at) <= PHUT_TU_BO_LUOT * 60_000;
+      if (!trongHan && !passesAdminGate(staff)) return error(403, "forbidden", `Chỉ người quét bỏ được lượt quét trong ${PHUT_TU_BO_LUOT} phút. Sau đó hãy nhờ Quản trị.`);
+      await env.DB.batch([
+        cauBoLuotQuet(env.DB, id, at, staff.id, lyDo),
+        auditStatement(env.DB, { staffId: staff.id, action: "ve_bo_luot_quet", at, orderId: luot.order_id ?? undefined, targetType: "ve", targetId: id, detail: `Bỏ lượt quét · lý do: ${lyDo}` }, "changes() > 0"),
       ]);
       return json({ ok: true });
     }),

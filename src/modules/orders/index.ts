@@ -419,6 +419,19 @@ export async function dienDoiTacCuaDon(db: D1Database, orderId: string): Promise
 }
 
 /**
+ * API công khai cho GỐC LẮP RÁP (ADR-0175 Đ3, quét vé Tour Đảo) — dữ kiện hẹp của MỘT dòng dịch vụ: người lập đơn (để gốc hỏi `can(order.view, money.view)`), trạng thái đơn, ngày đi hiện
+ * hành, số khách hiệu lực KHÔNG gồm em bé (một nguồn với `dichVuChoVe`), mã đơn. Không tên khách, không SĐT, không tiền. KHÔNG tự kiểm quyền: gốc lắp ráp tự quyết `maDon` nào được
+ * đưa tiếp (chỉ khi người quét có `order.view` trên đơn) — chỉ gọi từ hàm tiêm `donChoQuet`, trong thân route quét đã qua `can(ve.quet.*)`. Dòng không thuộc đơn ⇒ `null`.
+ */
+export async function donChoQuet(db: D1Database, orderId: string, serviceId: string): Promise<{ ownerId: string; trangThai: string; ngayDi: string | null; soKhachHieuLuc: number; maDon: string } | null> {
+  const [ref, rows] = await Promise.all([getOrderRef(db, orderId), serviceChoVe(db, orderId)]);
+  const dong = rows.find((r) => r.id === serviceId);
+  if (!ref || !dong) return null;
+  const p = (await effectivePax(db, [dong])).get(dong.id) ?? { adult: dong.pax_adult, child: dong.pax_child, senior: dong.pax_senior, infant: dong.pax_infant };
+  return { ownerId: ref.staffId, trangThai: ref.status, ngayDi: dong.depart_date, soKhachHieuLuc: p.adult + p.child + p.senior, maDon: ref.orderCode };
+}
+
+/**
  * API công khai cho GỐC LẮP RÁP (ADR-0175 Đ1.5a, cấp bù khi lô vào kho): id các đơn ĐÃ XÁC NHẬN có dòng dịch vụ mã `catalogCode`, ngày đi ≥ `tuNgay` (hôm nay giờ Việt Nam),
  * ngày đi gần trước. Chỉ khoá đơn — «Có vé» và «còn thiếu» gốc lắp ráp lọc tiếp. KHÔNG tự kiểm quyền: chỉ gọi từ hàm tiêm, trong thân route đã qua cửa quyền của lô.
  */
