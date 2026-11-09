@@ -213,7 +213,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (81)
+## Việc chờ chọn (80)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -236,7 +236,6 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Bật ẩn thông tin khách · Tắt ẩn thông tin khách | `web/an-khach-cai-dat.ts`: Tắt ẩn thông tin khách / Bật ẩn thông tin khách | Cài đặt vận hành | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Bật cả nhóm · Tắt cả nhóm | `web/catalog-kiem-ve.ts`: Bật cả nhóm / Tắt cả nhóm<br>`web/catalog-co-ve.ts`: Bật cả nhóm / Tắt cả nhóm | Cài đặt vận hành | tên mới 2026-11-04, chờ chủ chọn |
 | Lưu khách | `web/booker-sheet.ts`: Lưu khách<br>`web/booker-sheet.ts`: [biểu tượng close] | Sửa đơn đã xác nhận: khách và bên đặt | rà soát 2026-11-04: chưa rõ, chờ chủ |
-| Đặt gấp (mở khung) · Duyệt đặt gấp | `web/dat-gap-ui.ts`: Duyệt đặt gấp<br>`web/dat-gap-ui.ts`: Đặt gấp<br>`web/dat-gap-ui.ts`: Đóng | Đặt gấp (dưới hạn chốt) | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Bên kia đã nhận | `web/home.ts`: Xác nhận đã nhận<br>`web/home.ts`: ⟪nutXacNhanDoiChieu(k.loai)⟫ | Đối chiếu tiền | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Bỏ lượt (liên kết) · Bỏ lượt (nút đỏ xác nhận) | `web/khoi-dua-don.ts`: Bỏ lượt<br>`web/khoi-dua-don.ts`: Thôi | Đưa đón: bỏ lượt | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thông tin chuyến | `web/trip-sheet.ts`: Lưu thông tin chuyến<br>`web/trip-sheet.ts`: [biểu tượng close] | Sửa thông tin chuyến | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -439,7 +438,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | **Còn vé, xác nhận đơn** | Chi tiết đơn › bảng «Xác nhận đơn» (đơn đang chờ, người kiểm vé) | Chốt luôn đơn thành đã xác nhận (có thể đổi ngày đi và giờ đón trong cùng lần bấm): giá và dịch vụ bị khoá, mức hoa hồng được chụp, vé điện tử được cấp, khoản khách khai đặt cọc trở thành khoản thu của người lập đơn. Lượt dưới hạn chốt cần đặt gấp (chỉ Bán hàng, Quản trị, Toàn quyền). | có: hộp «Còn vé, xác nhận đơn?» nói bấm là chốt đơn ngay, không hoàn tác được; giá của đơn bị khoá, hoa hồng được chụp lại, vé được cấp nếu kho còn, tiền cọc khách đã khai thành khoản thu. Huỷ hộp thì không gọi máy chủ (ADR-0166 câu 4) | không: không về lại chờ được; chỉ sửa chuyến, số khách có lý do hoặc huỷ đơn | `/api/orders/:x/quyet-dinh`<br>nhật ký `confirmed` | `web/xac-nhan-don-ui.ts`: Còn vé, xác nhận đơn | đã chốt (ADR-0166 câu 4) |
 | **Hết vé** | Chi tiết đơn › bảng «Xác nhận đơn» (người kiểm vé) | Huỷ đơn đang chờ với lý do «Hết chỗ» (nhóm Công ty huỷ, máy chủ tự gán, không cần quyền chọn nhóm). Vé điện tử trả lại, đơn huỷ không hoàn tác được. | có: hộp của trình duyệt (confirm) | không: huỷ không hoàn tác được | `/api/orders/:x/quyet-dinh`<br>nhật ký `cancelled` | `web/xac-nhan-don-ui.ts`: Hết vé<br>`web/xac-nhan-don-ui.ts`: Báo hết vé? Đơn sẽ được huỷ với lý do «hết chỗ». | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 | **Huỷ** | Chi tiết đơn › bảng «Xác nhận đơn» (người kiểm vé) | Huỷ đơn đang chờ kèm lý do chọn trong danh sách (dùng khi cần đổi tiền: người lập tạo lại). Cùng hậu quả với nút «Huỷ đơn», lý do quyết định hoàn tiền; «Công ty huỷ» chỉ Quản trị, Toàn quyền chọn được. | có: hộp chọn lý do ngay dưới nút | không: huỷ không hoàn tác được | `/api/orders/:x/quyet-dinh`<br>nhật ký `cancelled` | `web/xac-nhan-don-ui.ts`: Huỷ<br>`web/xac-nhan-don-ui.ts`: Huỷ đơn | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
-| **Đặt gấp** | Chi tiết đơn › bảng «Xác nhận đơn» › lượt dưới hạn chốt | Trong bảng Còn vé, xác nhận đơn, mở khung chọn lý do đặt gấp cho lượt đón đã qua hạn chốt. Bấm «Duyệt đặt gấp» ở đây chỉ giữ lý do trong bảng, chưa ghi vào Nền tảng; lý do chỉ được ghi khi bấm «Còn vé, xác nhận đơn». | không | được: chưa bấm Còn vé, xác nhận đơn thì chưa ghi gì | `/api/orders/:x/quyet-dinh`<br>nhật ký `order_leg_short_notice` | `web/xac-nhan-don-ui.ts`: Đặt gấp | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
+| **Đặt gấp** | Chi tiết đơn › bảng «Xác nhận đơn» › lượt dưới hạn chốt | Trong bảng Còn vé, xác nhận đơn, mở khung chọn lý do đặt gấp cho lượt đón đã qua hạn chốt. Bấm «Ghi đặt gấp» ở đây chỉ giữ lý do trong bảng, chưa ghi vào Nền tảng; lý do chỉ được ghi khi bấm «Còn vé, xác nhận đơn». | không | được: chưa bấm Còn vé, xác nhận đơn thì chưa ghi gì | `/api/orders/:x/quyet-dinh`<br>nhật ký `order_leg_short_notice` | `web/xac-nhan-don-ui.ts`: Đặt gấp | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
 
 ### Đổi khách
 
@@ -491,7 +490,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
-| **Đặt gấp (mở khung) · Duyệt đặt gấp** | Form Tạo đơn / Sửa đơn nháp, dải cảnh báo dưới hạn chốt; cũng ở Chi tiết đơn và bảng «Sửa đưa đón» | Người lập tự chọn lý do và ghi chú ngắn rồi đóng dấu «đặt gấp» cho lượt đưa đón đang dưới hạn chốt 6 giờ, để xác nhận đơn và xếp xe được. Không có người thứ hai duyệt. Riêng trong form Tạo đơn, nút này lưu luôn cả đơn (cùng lệnh lưu nháp) rồi mới đóng dấu, và chuyển sang trang đơn; nếu đóng dấu hỏng thì đơn vẫn đã lưu. | có hộp nhập: lý do bắt buộc, ghi chú ngắn tuỳ ý | một phần: dấu đặt gấp bị bỏ khi giờ lượt đó được sửa lại thành trên hạn chốt; không có nút gỡ riêng (chưa tìm thấy) | `/api/orders/:x/legs/:x/short-notice`<br>nhật ký `order_leg_short_notice` | `web/dat-gap-ui.ts`: Duyệt đặt gấp<br>`web/dat-gap-ui.ts`: Đặt gấp<br>`web/dat-gap-ui.ts`: Đóng | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
+| **Đặt gấp (mở khung) · Ghi đặt gấp** | Form Tạo đơn / Sửa đơn nháp, dải cảnh báo dưới hạn chốt; cũng ở Chi tiết đơn và bảng «Sửa đưa đón» | Người lập tự chọn lý do và ghi chú ngắn rồi đóng dấu «đặt gấp» cho lượt đưa đón đang dưới hạn chốt 6 giờ, để xác nhận đơn và xếp xe được. Không có người thứ hai duyệt. Riêng trong form Tạo đơn, nút này lưu luôn cả đơn (cùng lệnh lưu nháp) rồi mới đóng dấu, và chuyển sang trang đơn; nếu đóng dấu hỏng thì đơn vẫn đã lưu. | có hộp nhập: lý do bắt buộc, ghi chú ngắn tuỳ ý | một phần: dấu đặt gấp bị bỏ khi giờ lượt đó được sửa lại thành trên hạn chốt; không có nút gỡ riêng (chưa tìm thấy) | `/api/orders/:x/legs/:x/short-notice`<br>nhật ký `order_leg_short_notice` | `web/dat-gap-ui.ts`: Ghi đặt gấp<br>`web/dat-gap-ui.ts`: Đặt gấp<br>`web/dat-gap-ui.ts`: Đóng | đã chốt (ADR-0049 R-P15; chủ duyệt Phụ lục B B-11 (1), 9/11) |
 
 ### Phân công: Hướng dẫn viên
 

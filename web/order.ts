@@ -97,7 +97,7 @@ let canhBaoGiamGia: { vuot: number } | null = null;
 /** Lịch sử số khách đủ dòng (ADR-0114 D2); `null` = người xem không có `order.history.view`. Khối chỉ hiện khi đơn đã có ít nhất một lần sửa (`dongLichSuHienThi`). */
 let lichSuSoKhach: Api.DongLichSuSoKhachDto[] | null = null;
 
-// Biểu mẫu lập đơn "Duyệt đặt gấp" (ADR-0049 R-P15) tự lưu nháp rồi gọi lệnh đặt gấp; lệnh đó hỏng thì chuyển tới đây kèm `datgap=loi` — báo một lần, bỏ tham số
+// Biểu mẫu lập đơn "Ghi đặt gấp" (ADR-0049 R-P15) tự lưu nháp rồi gọi lệnh đặt gấp; lệnh đó hỏng thì chuyển tới đây kèm `datgap=loi` — báo một lần, bỏ tham số
 // NGAY (như `moi`) để tải lại trang không báo lại.
 let baoDatGapLoi = new URLSearchParams(location.search).get("datgap") === "loi";
 if (baoDatGapLoi) {

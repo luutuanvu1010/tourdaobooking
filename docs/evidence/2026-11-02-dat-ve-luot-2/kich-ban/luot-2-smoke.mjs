@@ -193,7 +193,7 @@ try {
     const truoc = apiCalls(p).filter((c) => c.method === "POST").length;
     await p.ev(click('[data-action="duyet-dat-gap"]'));
     await p.waitFor(`document.querySelector('[data-moc="duoi"] .dg-warn-sub')?.innerText.startsWith('Đã chọn lý do đặt gấp')`, "câu đã chọn lý do");
-    assert.equal(apiCalls(p).filter((c) => c.method === "POST").length, truoc, "Duyệt đặt gấp ở bảng chỉ giữ giấy, chưa gọi máy chủ");
+    assert.equal(apiCalls(p).filter((c) => c.method === "POST").length, truoc, "Ghi đặt gấp ở bảng chỉ giữ giấy, chưa gọi máy chủ");
     await shotView(p, "4-ban-hang-dat-gap-1040.png");
     await axe(p, "Bán hàng đặt gấp 1040");
     await p.ev(click('[data-action="quyet-dinh-con-ve"]'));

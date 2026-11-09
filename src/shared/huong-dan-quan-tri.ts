@@ -130,7 +130,7 @@ Lọc: [[Đang ghi đè giá]], [[Sheet đã đổi giá (cần xem)]], [[Đã n
 
 1. Mở đơn, bấm [[Đặt gấp]] ở dải vàng.
 2. Chọn lý do: [[Khách đoàn gọi gấp]], [[Chuyến bay đổi giờ]], [[Đơn bù cho khách bị lỡ chuyến]] hoặc [[Lý do khác]]. Gõ [[Ghi chú ngắn]] nếu cần.
-3. Bấm [[Duyệt đặt gấp]]. Sau đó đơn xác nhận được.
+3. Bấm [[Ghi đặt gấp]]. Sau đó đơn xác nhận được.
 
 Ở màn Tạo đơn, nút Đặt gấp ở thẻ dịch vụ; Nền tảng lưu nháp rồi mới đặt gấp. Trên Điều phối xe có mục [[Đơn nháp chờ duyệt đặt gấp]].`,
     },
