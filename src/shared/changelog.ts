@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vé Tour Đảo Đợt 1 (ADR-0175), CÓ migration 0151, 0152. Bước A.0 ngày 9/11: production đang 2.80 nên lấy 2.81. Mọi dịch vụ vẫn «Vé hãng ngoài» tới khi Đợt 2 (quét vé) xong.
+    version: "2.81",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Màn Dịch vụ & giá có ô «Vé do ai phát» cho từng dịch vụ: «Vé hãng ngoài» (như cũ) hoặc «Vé Tour Đảo». Hiện mọi dịch vụ vẫn là «Vé hãng ngoài»." },
+      { kind: "moi", text: "Kho vé có thêm lô «Vé Tour Đảo»; Kế toán, Quản trị, Toàn quyền và Quản lý bán hàng tạo được vé có mã QR, còn Kế toán chỉ thấy lô Tour Đảo." },
+    ],
+  },
+  {
     // Ô «Có vé» theo nhóm và dịch vụ (ADR-0174), CÓ migration 0142. Số tạm 8/11: 2.78 (ADR-0186) đang chờ, 2.79 giữ cho ADR-0185, nên lấy 2.80; bước A.0 đặt lại nếu cần.
     version: "2.80",
     date: "2026-11-08",
