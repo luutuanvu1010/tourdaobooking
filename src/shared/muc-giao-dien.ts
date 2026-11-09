@@ -215,8 +215,8 @@ export const THANH_BEN = [
   { nhom: "HẰNG NGÀY", trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
   { nhom: "HẰNG NGÀY", trang: "donHang", nhan: "Đơn hàng", bieuTuong: "orders" },
   { nhom: "HẰNG NGÀY", trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card" },
-  // Quét vé ở thanh bên chỉ cho người KHÔNG xem mọi đơn (Hướng dẫn viên, Tài xế công ty…): trần 10 khối của Toàn quyền đã đầy; văn phòng vào qua trang Tôi (ADR-0175 Đ3).
-  { nhom: "HẰNG NGÀY", trang: "quetVe", nhan: "Quét vé", bieuTuong: "doc-check", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) } },
+  // Quét vé (đặc tả §2.10: Hướng dẫn viên, Tài xế công ty, Kế toán và văn phòng): mọi người có ô quét thấy, TRỪ Toàn quyền — trần 10 khối hiện sẵn của Toàn quyền đã đầy nên họ vào qua trang Tôi (ADR-0175 Đ3).
+  { nhom: "HẰNG NGÀY", trang: "quetVe", nhan: "Quét vé", bieuTuong: "doc-check", chiKhi: { that: (s: PermissionHolder) => !can(s, "audit.view") } },
   { nhom: "HẰNG NGÀY", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
   { nhom: "HẰNG NGÀY", trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
   { nhom: "VẬN CHUYỂN", trang: "dieuPhoi", nhan: "Điều phối xe", bieuTuong: "truck", nhomGap: DIEU_PHOI },
@@ -273,6 +273,8 @@ export const THANH_TAB = [
   { trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card", chiKhi: { that: (s: PermissionHolder) => can(s, "order.create") && !can(s, "admin.manage") } },
   { trang: "thietLap", nhan: "Thiết lập", bieuTuong: "settings" },
   { trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign", chiKhi: { that: chiTaiXe } },
+  // Quét vé là việc chính của Hướng dẫn viên và Tài xế công ty trên điện thoại (đặc tả §2.10): tab cho người không xem mọi đơn, trước «Báo bận» và «Hỗ trợ» khi trần 5 tab cắt.
+  { trang: "quetVe", nhan: "Quét vé", bieuTuong: "doc-check", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) } },
   { trang: "ban", nhan: "Báo bận", bieuTuong: "clock" },
   { trang: "gopY", nhan: "Hỗ trợ", bieuTuong: "handset", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) } },
   { trang: "toi", nhan: "Tôi", bieuTuong: "me" },

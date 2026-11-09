@@ -99,8 +99,20 @@ const DUOC_MA_AN = [
   {
     noi: ["thanh-ben"],
     trang: "quetVe",
-    khi: (s) => (can(s, "ve.quet.tinh") || can(s, "ve.quet.xem")) && seesAllOrders(s),
-    lyDo: "ADR-0175 Đ3: người xem mọi đơn (Bán hàng, Kế toán, Quản trị, Toàn quyền…) vào Quét vé qua trang Tôi; thanh bên máy tính đã đủ trần 10 khối của Toàn quyền, nên mục chỉ hiện cho Hướng dẫn viên, Tài xế công ty và người không xem mọi đơn. Chờ chủ (giữ là hợp lý).",
+    khi: (s) => (can(s, "ve.quet.tinh") || can(s, "ve.quet.xem")) && can(s, "audit.view"),
+    lyDo: "ADR-0175 Đ3, đặc tả §2.10: mọi người có ô quét thấy «Quét vé» ở thanh bên, TRỪ Toàn quyền — thanh bên của Toàn quyền đã đủ trần 10 khối hiện sẵn, nên họ vào qua trang Tôi. Chờ chủ (giữ là hợp lý).",
+  },
+  {
+    noi: ["thanh-tab"],
+    trang: "ban",
+    khi: (s) => can(s, "unavailability.self", { ownerId: s.id }) && chiTaiXe(s) && biCatTab(s, "ban"),
+    lyDo: "ADR-0175 §2.10: thêm tab «Quét vé» cho tài khoản tài xế gộp quyền (Tài xế đối tác, Nhân sự…) làm đủ 5 tab, «Báo bận» bị trần cắt; vẫn còn ở thanh bên và trang Tôi. Chờ chủ (giữ là hợp lý).",
+  },
+  {
+    noi: ["thanh-tab"],
+    trang: "quetVe",
+    khi: (s) => (can(s, "ve.quet.tinh") || can(s, "ve.quet.xem")) && (seesAllOrders(s) || biCatTab(s, "quetVe")),
+    lyDo: "ADR-0175 §2.10: tab «Quét vé» là việc chính của Hướng dẫn viên, Tài xế công ty trên điện thoại nên chỉ cho người không xem mọi đơn; Bán hàng, Kế toán, Quản trị, Toàn quyền vào qua thanh bên hoặc trang Tôi; tài khoản gộp nhiều quyền bị cắt bởi trần 5 tab. Chờ chủ (giữ là hợp lý).",
   },
   {
     noi: ["thanh-tren"],
