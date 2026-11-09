@@ -655,6 +655,13 @@ export const veDienTuModule: AppModule = {
     // QUÉT VÉ TOUR ĐẢO (ADR-0175 Đ3; đặc tả §2.5). Cổng `staff` (Hướng dẫn viên, Tài xế vào được); quyền ở ô `ve.quet.tinh` / `ve.quet.xem`. Mã vé chỉ ở THÂN, không URL; không bao giờ vào nhật ký,
     // phản hồi hay câu lỗi (chỉ 4 ký tự cuối). Mã lạ và vé hãng ngoài trả CÙNG một câu, KHÔNG ghi lượt (không để dò mã). Không tên khách, SĐT, giá; mã đơn chỉ khi người quét có `order.view` trên đơn.
     // Một lô D1: câu chèn có gác → nhật ký gác `changes() > 0`. Thua cạnh tranh: đọc lại lượt thắng, trả «Đã dùng».
+    // Đường gọi chính của trang Quét vé: báo người gọi quét được không và có tính «đã dùng» không. Cùng ô quyền với route quét; không chạm dữ liệu vé.
+    route("GET", "/api/ve/quet/quyen", "staff", async ({ staff }) => {
+      const tinh = can(staff, "ve.quet.tinh");
+      if (!tinh && !can(staff, "ve.quet.xem")) return error(403, "forbidden", "Bạn không có quyền quét vé.");
+      return json({ tinh });
+    }),
+
     route("POST", "/api/ve/quet", "staff", async ({ env, request, staff, donChoQuet, tienDonVe, dienDoiTacCuaDon, nhanNhanVien }) => {
       const quyenTinh = can(staff, "ve.quet.tinh");
       if (!quyenTinh && !can(staff, "ve.quet.xem")) return error(403, "forbidden", "Bạn không có quyền quét vé.");

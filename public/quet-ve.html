@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Quét vé — Island Booking System</title></head>
+<body data-khuon="bieu-mau" data-title="Quét vé" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Quét vé Tour Đảo (ADR-0175 Đ3). Ô ve.quet.tinh hoặc ve.quet.xem. Đây là trang DUY NHẤT được mở camera (public/_headers, khối /quet-ve). web/quet-ve.ts dựng nội dung; mã vé chỉ ở bộ nhớ trang, không vào địa chỉ. -->
+  <h1>Quét vé</h1>
+  <p class="muted">Hướng camera vào mã trên vé của khách. Nếu camera không mở được, hãy chụp ảnh mã vé.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <section id="qv-noi-dung" hidden>
+    <section class="card" aria-label="Camera">
+      <div class="qv-khung"><video id="qv-video" class="qv-video" playsinline muted></video></div>
+      <p id="qv-trang-thai" class="muted" role="status"></p>
+      <div class="qv-nut">
+        <button type="button" id="qv-bat" class="nut" data-cap="chinh" data-co="lon">Bật camera</button>
+        <label class="nut" data-cap="phu" data-co="lon" for="qv-anh">Chụp ảnh mã vé</label>
+        <input id="qv-anh" type="file" accept="image/*" capture="environment" class="qv-anh">
+      </div>
+    </section>
+    <section class="card" aria-labelledby="qv-gan-day-tieu-de">
+      <h2 id="qv-gan-day-tieu-de">Năm lượt quét gần nhất</h2>
+      <div id="qv-gan-day"></div>
+    </section>
+  </section>
+  <div id="qv-ket-qua" class="qv-ket-qua" role="alertdialog" aria-live="assertive" aria-modal="true" aria-label="Kết quả quét" hidden></div>
+</main>
+<script type="module" src="/js/quet-ve.js"></script>
+</body></html>

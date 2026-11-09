@@ -97,6 +97,12 @@ const biCatTab = (s, k) => THANH_TAB.some((c) => c.trang === k && coHien(c, { st
 const DUOC_MA_AN = [
   // Dòng "HDV chỉ-FIELD không thấy mục Đơn hàng" đã BỎ 15/10: chủ quyết hiện mục cho HDV (ADR-0017); trang /orders của HDV = đơn mình phụ trách.
   {
+    noi: ["thanh-ben"],
+    trang: "quetVe",
+    khi: (s) => (can(s, "ve.quet.tinh") || can(s, "ve.quet.xem")) && seesAllOrders(s),
+    lyDo: "ADR-0175 Đ3: người xem mọi đơn (Bán hàng, Kế toán, Quản trị, Toàn quyền…) vào Quét vé qua trang Tôi; thanh bên máy tính đã đủ trần 10 khối của Toàn quyền, nên mục chỉ hiện cho Hướng dẫn viên, Tài xế công ty và người không xem mọi đơn. Chờ chủ (giữ là hợp lý).",
+  },
+  {
     noi: ["thanh-tren"],
     trang: "donHang",
     khi: (s) => canAccessOrders(s) && !seesAllOrders(s),

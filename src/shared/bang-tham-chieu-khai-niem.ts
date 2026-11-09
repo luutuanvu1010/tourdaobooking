@@ -209,6 +209,33 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     trangThai: "da-chot",
     chuChon: "2026-11-08 (ADR-0175)",
   }),
+  KN({
+    ten: "Quét vé",
+    giaiNghia: "Mở camera hoặc chụp ảnh mã trên vé Tour Đảo của khách để biết vé còn dùng được không; người có quyền tính thì lượt quét ghi vé là «Đã dùng».",
+    khacVoi: "Chỉ quét được vé Tour Đảo; vé hãng ngoài không quét ở đây.",
+    chuDaLoai: [],
+    maNoiBo: ["ve.quet.tinh", "ve.quet.xem", "vdt_scan"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-08 (ADR-0175)",
+  }),
+  KN({
+    ten: "Đã dùng",
+    giaiNghia: "Vé Tour Đảo đã được quét và tính cho một khách; quét lại cùng vé báo đỏ «Đã dùng».",
+    khacVoi: "Khác «Đã mở»: vé đã mở là đã giao cho khách nhưng chưa quét.",
+    chuDaLoai: [],
+    maNoiBo: ["DA_DUNG", "DA_TINH"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-08 (ADR-0175)",
+  }),
+  KN({
+    ten: "Bỏ lượt quét",
+    giaiNghia: "Huỷ một lượt quét đã ghi nhầm kèm lý do, để vé không còn bị tính «Đã dùng». Người quét tự bỏ trong 5 phút; sau đó nhờ Quản trị.",
+    khacVoi: "Khác huỷ đơn: chỉ gỡ lượt quét, không đổi đơn hay vé.",
+    chuDaLoai: [],
+    maNoiBo: ["ve_bo_luot_quet", "voided_at"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-08 (ADR-0175)",
+  }),
   // ---- Người, hồ sơ, tài khoản ----
   KN({
     ten: "Hồ sơ",

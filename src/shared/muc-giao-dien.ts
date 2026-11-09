@@ -123,6 +123,8 @@ export const TRANG = {
   chupBu: { duong: "/chup-bu", hien: vk("order.terms.override") },
   // Kho vé điện tử (ADR-0153; Task 9a; ADR-0175 Đ1.4): CÙNG cổng route `GET /api/ve/kho` — ô ve.kho.manage (Bán hàng, Quản trị, Toàn quyền) hoặc ve.phat-hanh (thêm Kế toán, Quản lý bán hàng), và cổng `office` của route.
   veKho: { duong: "/ve-kho", hien: (s) => isOffice(s) && (can(s, "ve.kho.manage") || can(s, "ve.phat-hanh")) },
+  // Quét vé Tour Đảo (ADR-0175 Đ3): CÙNG cổng route `GET /api/ve/quet/quyen` và `POST /api/ve/quet` — ô ve.quet.tinh hoặc ve.quet.xem (cổng `staff`: Hướng dẫn viên, Tài xế công ty vào được).
+  quetVe: { duong: "/quet-ve", hien: (s) => can(s, "ve.quet.tinh") || can(s, "ve.quet.xem") },
   // Cài đặt vé điện tử (ADR-0156 Đ3): CÙNG cổng route `GET /api/ve/cai-dat` — ô settings.ops (chỉ Toàn quyền).
   veCaiDat: { duong: "/ve-cai-dat", hien: ve("settings.ops") },
   // Dịch vụ cần kiểm vé (ADR-0136 Đ1, Đ5): cờ đọc ở `GET /api/cai-dat/xac-nhan-don` (settings.ops), danh sách dịch vụ ở `GET /api/catalog/dac-diem` (chặn tài khoản giữ quyền Đối tác) ⇒ cùng hàm cho mục và trang.
@@ -211,6 +213,8 @@ export const THANH_BEN = [
   { nhom: "HẰNG NGÀY", trang: "trangTaiXe", nhan: "Trang chủ", bieuTuong: "home" },
   { nhom: "HẰNG NGÀY", trang: "donHang", nhan: "Đơn hàng", bieuTuong: "orders" },
   { nhom: "HẰNG NGÀY", trang: "danhBa", nhan: "Danh bạ", bieuTuong: "contact-card" },
+  // Quét vé ở thanh bên chỉ cho người KHÔNG xem mọi đơn (Hướng dẫn viên, Tài xế công ty…): trần 10 khối của Toàn quyền đã đầy; văn phòng vào qua trang Tôi (ADR-0175 Đ3).
+  { nhom: "HẰNG NGÀY", trang: "quetVe", nhan: "Quét vé", bieuTuong: "doc-check", chiKhi: { that: (s: PermissionHolder) => !seesAllOrders(s) } },
   { nhom: "HẰNG NGÀY", trang: "cuoc", nhan: "Cuốc của tôi", bieuTuong: "assign" },
   { nhom: "HẰNG NGÀY", trang: "ban", nhan: "Báo bận của tôi", bieuTuong: "clock" },
   { nhom: "VẬN CHUYỂN", trang: "dieuPhoi", nhan: "Điều phối xe", bieuTuong: "truck", nhomGap: DIEU_PHOI },
@@ -298,6 +302,7 @@ export interface ChoTrangToi extends ChoDat {
 export const TRANG_TOI = [
   { phan: "dau", trang: "danhBa", nhan: "Danh bạ", khongSangTabToi: true },
   { phan: "dau", trang: "choXacNhan", nhan: "Đơn chờ xác nhận" },
+  { phan: "dau", trang: "quetVe", nhan: "Quét vé" },
   { phan: "dau", trang: "diaDiem", nhan: "Địa điểm", khongSangTabToi: true },
   { phan: "dau", trang: "loaiGiayToNguoi", nhan: "Loại giấy tờ cá nhân" },
   { phan: "van-chuyen", trang: "dieuPhoi", nhan: "Điều phối xe" },

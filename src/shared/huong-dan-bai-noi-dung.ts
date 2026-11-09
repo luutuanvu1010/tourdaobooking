@@ -80,6 +80,27 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Chống người có quyền cố ý gian lận: chỉ truy lại được một phần qua nhật ký.`,
   },
   {
+    id: "quet-ve",
+    tieuDe: "Quét vé Tour Đảo",
+    nhomViec: "Quét vé",
+    trang: "quetVe",
+    o: ["ve.quet.xem"],
+    gioiHan: ["Người quét tự bỏ lượt quét trong 5 phút; sau đó nhờ Quản trị", "Cùng một mã quét lại trong 3 giây chỉ tính một lần"],
+    neo: ["web/quet-ve.ts", "public/quet-ve.html", "src/shared/ket-qua-quet.ts"],
+    moDau: "Màn hình hiện ba màu kèm chữ lớn: xanh là vé hợp lệ, vàng là cần bạn xác nhận, đỏ là không dùng được. Chỉ quét được vé Tour Đảo.",
+    noiDung: `### Các bước
+1. Mở **Quét vé** rồi bấm [[Bật camera]]. Lần đầu máy hỏi quyền camera, hãy cho phép.
+2. Hướng camera vào mã trên vé của khách. Máy tự đọc và hiện kết quả cả màn hình.
+3. Xanh thì cho khách đi. Vàng thì đọc câu báo; vẫn cho khách đi thì bấm [[Xác nhận cho đi]]. Đỏ thì không cho đi, đọc câu báo để biết lý do.
+4. Bấm [[Quét tiếp]] để quét vé kế tiếp.
+5. Camera không mở được thì bấm **Chụp ảnh mã vé** và chụp mã trên vé.
+
+### Điều dễ sai
+- Tài xế công ty chỉ xem vé có hợp lệ không, quét không tính «Đã dùng».
+- Quét nhầm thì bấm [[Bỏ lượt quét]] ở danh sách năm lượt gần nhất, ghi lý do. Đừng gõ số điện thoại hay mã vé vào lý do.
+- Vé đỏ «Đã dùng» hiện giờ và tên người đã quét trước đó; đừng cho khách đi lần hai.`,
+  },
+  {
     id: "cai-dat-ve",
     tieuDe: "Đổi số vé tối đa mỗi lô",
     nhomViec: "Cài đặt",
