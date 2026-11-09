@@ -23,6 +23,14 @@
 
 > Sửa đổi (G-06(f), 2026-11-09, chủ duyệt …): chữ hiện cho loại tạo trước bản này đổi thành «Tạo trước 31/10/2026 — không rõ người tạo» (phiếu chữ B-13 phương án (1)), vì «chưa có dấu vết» khó hiểu với người dùng.
 
-## 3. `web/CLAUDE.md` — tên nút cũ (đề xuất kèm, không phải ADR)
+## 3. Chữ AI phải tự viết — chờ chủ chọn (mã đang dùng phương án đầu)
+
+Luật dự án: chữ chưa có thì đưa 2–3 tên cho chủ chọn, không tự đặt. Ba chỗ dưới đây phiếu Phụ lục B không có chữ dùng được, nên mã tạm dùng phương án (1); chủ trả lời một dòng, ví dụ «C-1: 2, còn lại giữ».
+
+- **C-1 (thay B-7, trang đăng nhập khi hết hạn đăng nhập):** cả ba phương án B-7 đều có chữ «phiên», mà bảng từ đã duyệt (ADR-0130) cấm trên giao diện (máy kiểm `src/bang-tu-giao-dien.test.ts` đỏ). (1) «Máy này đã bị đăng xuất. Đăng nhập lại để tiếp tục.» — đang dùng, cùng khuôn câu «Máy này đã bị đăng xuất. Lý do: …» đã có. (2) «Đã hết hạn đăng nhập. Đăng nhập lại để tiếp tục.» (3) «Bạn đã bị đăng xuất vì lâu không dùng. Đăng nhập lại để làm tiếp.» (lưu ý: (3) có thể nói sai khi bị đăng xuất vì lý do khác).
+- **C-2 (màn Dịch vụ cần kiểm vé, câu đếm khi nhóm không có vé nào cần kiểm):** (1) «Không có vé cần kiểm (N vé)» — đang dùng. (2) «0/N vé cần kiểm» (cùng khuôn câu khi có vé cần kiểm). (3) «N vé, chưa vé nào cần kiểm».
+- **C-3 (màn đủ «Dịch vụ & giá», chữ nguồn của công tắc vé):** trước ghi «Đặt riêng», nay dùng chung chữ màn hẹp. (1) «Đặt riêng cho vé này» — đang dùng (một khái niệm một tên ở hai màn). (2) giữ «Đặt riêng» ở cả hai màn.
+
+## 4. `web/CLAUDE.md` — tên nút cũ (đề xuất kèm, không phải ADR)
 
 Bảng «đổi gì → chạy kịch bản nào» của `web/CLAUDE.md` (dòng «Mốc 6 giờ + đặt gấp») còn ghi tên nút cũ «Duyệt đặt gấp». Tên nút nay là «Ghi đặt gấp» (phiếu chữ B-11 phương án (1)). Đây là tệp luật nên phiên thi công không tự sửa; đề xuất thay đúng hai chữ đó.

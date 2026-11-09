@@ -17,6 +17,19 @@ Kế hoạch: `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (ch�
 
 Đề xuất «Sửa đổi» cho văn bản đã duyệt (không tự sửa, N9): `docs/superpowers/specs/2026-11-09-de-xuat-sua-doi-dot-3.md` — ADR-0170 Đ2 mục 5, đặc tả 31/10 (B-13), và hai chữ «Duyệt đặt gấp» ở `web/CLAUDE.md`.
 
+## Quyết định phiên điều phối tự đưa ra (chủ sửa được)
+
+| Quyết định | Vì sao | Nếu sai thì mất gì |
+|---|---|---|
+| Phương án (1) ở mọi mục phiếu B, kể cả chữ mới vào bảng tham chiếu: «Ngừng bán ‹tên›?», «Không ngừng», «Ghi đặt gấp» / «Đang ghi…» | Chủ duyệt 9/11 «phương án (1) cho tới khi chủ nói khác» | Đổi chữ một dòng mỗi chỗ |
+| Câu khoá vé dùng dự phòng B-2 (2) | Bước dò của kế hoạch thấy số chờ nộp gộp cọc người khác cầm | Ca hiếm vẫn đọc câu chưa thật đúng (xem dưới) |
+| Không thêm `daHuy` vào `tienDonVe`, dùng trạng thái đơn đã đọc | Tránh chạm phân hệ tiền; hành vi như kế hoạch | Thêm sau nếu cần |
+| Ô tiền Trang chủ điện thoại tự co chữ (container query qua token) | Số 9 chữ số bị cắt ở khổ 360 khi viết đủ | Chữ số tiền nhỏ hơn 22px một chút; bỏ hai dòng CSS là hoàn tác |
+| Câu hết hạn đăng nhập tự viết (C-1 ở tệp đề xuất), không theo B-7 | Bảng từ ADR-0130 cấm «phiên», cả ba phương án B-7 đều có | Chủ chọn câu khác, đổi một hằng |
+| Sửa dữ liệu thử kịch bản Chrome (vai đối tác ADR-0185), không nới `scripts/staff-lib.mjs` | Không sửa thì sáu kịch bản chết lúc dựng | Hoàn tác ba commit kịch bản |
+| Số phiên bản tạm 2.84, giữ chỗ ở sổ chung nhóm phiên | Main có 2.83 | Đánh lại khi gộp nếu Đợt 2 nhập trước |
+| Chạy song song trợ lý thi công với người soát của task trước khi tệp không giao nhau | Rút thời gian | Commit xen kẽ (không xảy ra) |
+
 ## Điều chủ nên biết
 
 - Câu khoá vé dự phòng vẫn chưa thật đúng khi nhân viên khác cầm cọc (người cần nộp là nhân viên đó). Muốn đúng hẳn phải tách phần tiền người lập đang cầm trong `tienDonVe` — chạm phân hệ tiền, cần chủ quyết.
@@ -30,10 +43,11 @@ Kế hoạch: `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (ch�
 
 - `npm run typecheck`: 0 lỗi.
 - `npm test` lượt 1 đỏ 3 bài (bài máy canh Hướng dẫn chưa xem lại; bảng từ cấm «phiên»; bộ v2 chưa sinh lại `bundle.css`) → sửa → lượt 2 **xanh** (8.581 + 1 bài, thoát 0).
-- Người kiểm độc lập (`nguoi-kiem-doc-lap`, cả nhánh, trọng tâm Task 3.5): Task 3.5 **ĐẠT**; cả nhánh KHÔNG ĐẠT vì đúng một mục (bài máy canh Hướng dẫn) — đã sửa ở `8d326ee47`, `npm test` lượt 2 xanh. Bốn lần phá thử đều đỏ đúng chỗ.
+- Người kiểm độc lập (`nguoi-kiem-doc-lap`, cả nhánh, trọng tâm Task 3.5): Task 3.5 **ĐẠT**; cả nhánh KHÔNG ĐẠT vì đúng một mục (bài máy canh Hướng dẫn) — đã sửa ở `8d326ee47`, `npm test` lượt 2 xanh. Bốn lần phá thử đều đỏ đúng chỗ. Lượt kiểm lại phạm vi sau mục nhật ký 2.84 (dấu vân, câu hết hạn đăng nhập, `bundle.css`, sửa dữ liệu thử kịch bản): mã chạy thật đạt, hai lần phá thử đỏ đúng chỗ; một mục Important ở dữ liệu thử `cot-cap-smoke` — đã trả về như cũ (xem dưới). Lượt kiểm lại không chạy Chrome.
+- `npm test` lượt 3 (sau các sửa kịch bản): xanh. `phien.mjs` chạy lại trên bản có `startEnv` mới: xanh 8/8.
 - e2e: **89/89 xanh**.
 - Kịch bản Chrome (có `AXE_JS`) xanh trên phần Đợt 3 đổi: `ql-ban-hang-smoke` 390 + 1040 (màn Dịch vụ cần kiểm vé, Ngừng bán hỏi lại), `danh-muc-nhom-smoke`, `phien.mjs` (ca 1b: xoá cookie → trang đăng nhập có câu; liên kết sâu khi máy chưa có bản nhớ khung → không câu). `xac-nhan-smoke` xanh 8/9 bước, gồm câu chờ kiểm vé mới; bước 3b đỏ sẵn (nút «Xem biên nhận» đã đổi tên 5/11).
 - Ô tiền Trang chủ ở khổ 390/375/360: đo bằng Chrome ẩn trên trang tĩnh dùng `public/app.css` thật (không phải bằng `trang-chu-smoke`, vì kịch bản đó đỏ sẵn ở bước đếm mục thanh bên — 27 mục so với 26 — trước khi tới khổ 390).
-- **Kịch bản đỏ sẵn, không do Đợt 3** (bước đỏ không chạm tệp Đợt 3 đổi; nhiều mục đã có ở `docs/BACKLOG.md` mục 67): `trang-chu-smoke` 29/10, `dot-a-smoke` (/audit), `dot-c-smoke` 30/10 (thứ tự khối trang Tôi), `v1-dang-nhap` 29/10 bước g (đã ghi sẵn) và h (tương phản `#submit-label` lúc lỗi — `login.html` và phần CSS đó không đổi), `the-gap-smoke` (chip «Chưa chọn đón» của Đợt 1; Đợt 3 chỉ đổi chú thích `web/order-form.ts`), `so-dai-ly-smoke` (đếm dòng thiếu mức theo lớp, không theo chữ), `doi-tac-ve-smoke` (`chua_co_ve` lúc dựng dữ liệu), `dat-gap-smoke` (404 lúc dựng đơn), `luot-2-smoke` (Kế toán không xét duyệt xác nhận), `hoa-hong-smoke` (còn chữ «Đã giao»).
-- Sáu kịch bản trên ban đầu chết ngay lúc dựng vì tài khoản Đối tác thử thiếu vai đối tác (ADR-0185, đã lên 8/11). Đã sửa phần dữ liệu thử của kịch bản (`bf63f18ed`, `7e3442f9c`, `ddaf90892` — `doi-tac-ve` bỏ nhóm tài khoản lai vì tài khoản lai không còn gửi đơn được); `scripts/staff-lib.mjs` giữ nguyên. Các bước đỏ còn lại cần một đợt dọn kịch bản riêng.
+- **Kịch bản đỏ, nhận định là đỏ sẵn, không do Đợt 3** — nhận định **suy từ diff** (bước đỏ không chạm tệp Đợt 3 đổi), **chưa đối chiếu bằng chạy trên bản main**; một phần đã có ở `docs/BACKLOG.md` mục 67: `trang-chu-smoke` 29/10, `dot-a-smoke` (/audit), `dot-c-smoke` 30/10 (thứ tự khối trang Tôi), `v1-dang-nhap` 29/10 bước g (đã ghi sẵn) và h (tương phản `#submit-label` lúc lỗi — `login.html` và phần CSS đó không đổi), `the-gap-smoke` (chip «Chưa chọn đón» của Đợt 1; Đợt 3 chỉ đổi chú thích `web/order-form.ts`), `so-dai-ly-smoke` (đếm dòng thiếu mức theo lớp, không theo chữ), `doi-tac-ve-smoke` (`chua_co_ve` lúc dựng dữ liệu), `dat-gap-smoke` (404 lúc dựng đơn), `luot-2-smoke` (Kế toán không xét duyệt xác nhận), `hoa-hong-smoke` (còn chữ «Đã giao»).
+- Sáu kịch bản trên ban đầu chết ngay lúc dựng vì tài khoản Đối tác thử thiếu vai đối tác (ADR-0185, đã lên 8/11). Đã sửa phần dữ liệu thử của chín tệp kịch bản và hai thư viện (`bf63f18ed`, `7e3442f9c`, `ddaf90892`); `scripts/staff-lib.mjs` giữ nguyên. Người kiểm độc lập bắt một chỗ sửa sai: `cot-cap-smoke` có tài khoản CỐ Ý «chưa có vai», gắn vai thì mất ca đó ⇒ đã trả về như cũ (kịch bản này lại dừng lúc dựng như trên bản chính; cần đường gieo kiểu cũ cho Đối tác thuần). `doi-tac-ve` bỏ nhóm tài khoản lai cho gọn; thật ra tài khoản lai kèm vai đối tác vẫn gửi đơn được, nên ca giao diện 8a/8b (nút «Sửa số khách dịch vụ» trên đơn của tài khoản lai) tạm mất phủ Chrome; ca câu khoá vé của tài khoản lai vẫn có bài route phủ. Các bước đỏ còn lại cần một đợt dọn kịch bản riêng.
 - **Hệ quả:** câu thiếu mức hoa hồng (3.1), câu khoá vé (3.2), nút «Ghi đặt gấp» (3.4c) và «Tạo trước 31/10/2026 — không rõ người tạo» (3.4f) **chưa được nhìn bằng Chrome**; chúng được khoá bằng bài thuần, bài route, e2e và người kiểm độc lập. Chưa thử iPhone thật.
