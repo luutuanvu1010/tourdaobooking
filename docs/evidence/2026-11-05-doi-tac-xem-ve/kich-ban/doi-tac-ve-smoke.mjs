@@ -24,6 +24,8 @@ const PNG = (n) => {
 };
 ACCOUNTS.lai = { name: "Lai Bán Đối Tác", phone: "0900000321", pin: "246821", permissions: ["SALES", "PARTNER"] };
 ACCOUNTS.hdv = { name: "Hướng Dẫn Viên Thử", phone: "0900000322", pin: "246822", permissions: ["FIELD"] };
+// ADR-0185: tài khoản lai Bán hàng + Đối tác không còn gửi đơn được (409 doi_tac_chua_co_vai_tro, theo thiết kế) nên nhóm «lai» (8a, 8b) tạm bỏ; số vé kho giảm 4 mỗi khổ.
+const CO_LAI = false;
 const AT = "'2026-01-01T00:00:00.000Z'";
 
 const env = await startEnv();
@@ -92,7 +94,7 @@ try {
     return { id: r.order.id, total: r.order.total };
   };
   const lai = {};
-  for (const [kho] of KHO) {
+  for (const [kho] of CO_LAI ? KHO : []) {
     lai[kho] = { L1: await donLai("Khách Lai Một"), L2: await donLai("Khách Lai Hai") };
     await ghiTien(keToan, lai[kho].L2.id, lai[kho].L2.total, "cong_ty");
     const ds = phai(await call(ACCOUNTS.lai, "GET", `/api/ve/don/${lai[kho].L2.id}`), 200, "lai xem danh sách vé");
@@ -294,6 +296,7 @@ try {
     pk.close();
 
     // ---- nhóm 2: tài khoản lai Bán hàng + Đối tác
+    if (CO_LAI) {
     const pl = await taoMoTrang(env)(ACCOUNTS.lai, `/order?id=${lai[kho].L1.id}`, vp);
     await buoc(`${kho}-8a`, "Tài khoản lai, đơn CHƯA mở vé: vẫn có nút «Sửa số khách dịch vụ»", async () => {
       await pl.waitFor("!!document.querySelector('[data-action=\"sua-so-khach\"]')", "nút Sửa số khách dịch vụ");
@@ -316,6 +319,7 @@ try {
       await chup(pl, `8b-lai-da-mo-ve-${kho}`); await chupKhoi(pl, `8b-lai-da-mo-ve-${kho}-khoi`, "document.querySelector('[data-chan=\"sua-so-khach-da-mo-ve\"]').parentElement");
     });
     pl.close();
+    }
 
     // ---- nhóm 3: trang khách /ve/:token (không đăng nhập)
     // trang khách KHÔNG đăng nhập: mở bằng khung chung (để bước đỏ còn in được trạng thái trang) rồi xoá hết cookie
