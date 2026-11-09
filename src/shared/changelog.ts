@@ -21,7 +21,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "2.82",
     date: "2026-11-09",
     items: [
-      { kind: "moi", text: "Trang «Quét vé»: Hướng dẫn viên, Tài xế dùng camera điện thoại quét mã vé Tour Đảo của khách; màu xanh cho đi, vàng cần xác nhận, đỏ từ chối. Có nút chụp ảnh mã vé khi camera không mở được." },
+      { kind: "moi", text: "Trang «Quét vé»: Hướng dẫn viên, Tài xế dùng camera quét mã vé Tour Đảo; xanh cho đi, vàng cần xác nhận, đỏ từ chối; có nút chụp ảnh dự phòng." },
       { kind: "moi", text: "Đơn có ô «Đã dùng» theo từng dịch vụ; màn «Đối chiếu vé» so số khách theo đơn với số vé đã dùng trong ngày; Quản trị bỏ được lượt quét nhầm." },
       { kind: "doi", text: "Đơn đã có vé Tour Đảo được quét thì không huỷ được và không giảm số khách xuống dưới số vé đã dùng; muốn huỷ thì bỏ lượt quét trước." },
     ],
