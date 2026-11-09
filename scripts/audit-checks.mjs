@@ -2282,6 +2282,23 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM vdt_ticket WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL AND purged_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-4 days')`,
     level: "warn",
   },
+  // R-VDT-7, R-VDT-8 (ADR-0175 Đ3 mục 1; migration 0153): lượt quét tính đã dùng chỉ có nghĩa trên vé Tour Đảo đã giao cho khách, và vé đã dùng không bao giờ về kho.
+  {
+    code: "R-VDT-7",
+    what: "lượt quét DA_TINH chưa bỏ chỉ nằm trên vé lô TOUR_DAO đã lộ (có phân bổ revealed_at)",
+    sql: `SELECT count(*) FROM vdt_scan s JOIN vdt_ticket t ON t.id = s.ticket_id JOIN vdt_batch b ON b.id = t.batch_id
+       WHERE s.ket_qua = 'DA_TINH' AND s.voided_at IS NULL
+         AND (b.source <> 'TOUR_DAO' OR NOT EXISTS (SELECT 1 FROM vdt_allocation a WHERE a.ticket_id = t.id AND a.revealed_at IS NOT NULL))`,
+    level: "fail",
+    note: "vé đã tính dùng mà không phải vé Tour Đảo hoặc chưa từng giao cho khách: lượt quét ghi sai chỗ — chỉ có thể do SQL chạy tay hoặc luật quét bị sửa; không in mã vé",
+  },
+  {
+    code: "R-VDT-8",
+    what: "vé có lượt DA_TINH chưa bỏ không ở trạng thái AVAILABLE",
+    sql: `SELECT count(*) FROM vdt_ticket t WHERE t.status = 'AVAILABLE' AND EXISTS (SELECT 1 FROM vdt_scan s WHERE s.ticket_id = t.id AND s.ket_qua = 'DA_TINH' AND s.voided_at IS NULL)`,
+    level: "fail",
+    note: "vé đã dùng mà về kho thì có thể cấp lại cho khách khác — chỉ có thể do SQL chạy tay",
+  },
   // R-CRD-1, R-CRD-2 (ADR-0168 Đ2 mục 1, 7; migration 0141): hình thức thanh toán và hạn trả đi cùng nhau. R-CRD-3 («hồ sơ nợ vượt hạn mức hiện hành», chỉ cảnh báo) KHÔNG làm bằng SQL:
   // số nợ tính bằng JS từ phải thu hiện hành (đặc tả «Điểm dễ sai») — màn «Hạn mức trả sau» hiện đang nợ và còn được dùng cho Kế toán xem; chờ chủ quyết cách làm (báo cáo Task 2).
   {

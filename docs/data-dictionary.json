@@ -1018,6 +1018,12 @@
       "note": "Đường dẫn riêng cho khách (ADR-0153 Đ2, 0131; dùng ở Task 7 sau khi ADR duyệt): CHỈ lưu băm của mã (`token_hash`), có hạn, thu hồi một lần, đếm lượt mở tăng dần. Không xoá"
     },
     {
+      "name": "vdt_scan",
+      "module": "ve-dien-tu",
+      "kind": "table",
+      "note": "Lượt quét vé Tour Đảo (ADR-0175 Đ3, 0153): mỗi lượt quét có vé thật một dòng; mã lạ và vé hãng ngoài KHÔNG ghi. `ket_qua`: DA_TINH (tính đã dùng), CHI_XEM (tài xế công ty), TU_CHOI (đỏ có vé thật, để phát hiện dùng lại). «Vé đã dùng» = vé có lượt DA_TINH chưa bỏ (`voided_at` trống); không thêm trạng thái vào `vdt_ticket`. Mã vé không có ở bảng này, chỉ khoá `ticket_id`. `order_id`, `order_service_id` là tham chiếu logic. Chỉ mục duy nhất một phần `vdt_scan_mot_lan` chặn hai DA_TINH chưa bỏ trên một vé từng khách; vé đoàn (`ve_doan` = 1) được chừa, `so_khach` là số người của đợt quét. `xac_nhan_*` = người quét đã bấm xác nhận cảnh báo vàng nào. Bỏ lượt: chỉ đặt ba cột `voided_*` một lần, lý do bắt buộc; không xoá, không sửa cột khác (trigger vdt_scan_only_void)"
+    },
+    {
       "name": "vdt_setting",
       "module": "ve-dien-tu",
       "kind": "table",
@@ -1873,6 +1879,7 @@
     "vdt_batch": { "source": "N1", "last_cmd_id": "N1", "id": "N1", "catalog_code": "N1", "pax_group": "N1", "printed_name": "N1", "status": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_delivery": { "id": "N1", "allocation_id": "N1", "channel": "N1", "delivered_by": "N1", "delivered_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_guest_link": { "id": "N1", "order_id": "N1", "token_hash": "N2", "expires_at": "N1", "revoked_at": "N1", "opened_count": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "vdt_scan": { "id": "N1", "ticket_id": "N1", "allocation_id": "N1", "order_id": "N1", "order_service_id": "N1", "ket_qua": "N1", "ly_do": "N1", "so_khach": "N1", "xac_nhan_lech_ngay": "N1", "xac_nhan_chua_thu": "N1", "xac_nhan_vuot_khach": "N1", "scanned_at": "N1", "scanned_by": "N1", "voided_at": "N1", "voided_by": "N1", "void_reason": "N1", "ve_doan": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_setting": { "id": "N1", "batch_limit": "N1", "version": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_ticket": { "id": "N1", "batch_id": "N1", "ticket_code": "N2", "valid_from": "N1", "valid_to": "N1", "slot_time": "N1", "storage_key": "N2", "content_kind": "N1", "byte_size": "N1", "content_hash": "N2", "status": "N1", "stored_at": "N1", "purged_at": "N1", "r2_deleted_at": "N1", "withdrawn_at": "N1", "opened_at": "N1", "opened_by": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_soat_tu_ghi": { "audit_id": "N1", "order_id": "N1", "soat_boi": "N1", "soat_luc": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
