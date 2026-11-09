@@ -103,6 +103,11 @@ test("chữ hiển thị của khối: người hưởng, trạng thái, cảnh 
   assert.equal(canhBaoThieuMuc("Chưa có mức cho dịch vụ này"), "Chưa có mức cho đối tác này — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Khách đã trả đủ.");
   assert.equal(canhBaoThieuMuc("Hai mức khác nhau cùng áp — Kế toán chọn một"), "Hai mức khác nhau cùng áp — Kế toán chọn một — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Khách đã trả đủ.");
   assert.doesNotMatch(canhBaoThieuMuc("Chưa có mức cho dịch vụ này") ?? "", /MISSING|RULE_CONFLICT|NO_RULE/);
+  // T-02 (Đợt 3): đơn ĐÃ chụp mức lúc xác nhận thì cài thêm mức không gỡ được — câu không được bảo «cần cài mức».
+  const daChup = canhBaoThieuMuc("Chưa có mức cho dịch vụ này", true) ?? "";
+  assert.doesNotMatch(daChup, /cần cài mức/);
+  assert.equal(daChup, "Chưa có mức cho đối tác này — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.");
+  assert.equal(canhBaoThieuMuc(null, true), null);
   assert.equal(canhBaoThieuMuc(null), null);
   assert.equal(chuTongHoaHong(null, f), "Chưa đủ mức");
   assert.equal(chuTongHoaHong(0, f), "0đ", "0 là số thật (đơn không người hưởng), không phải thiếu");

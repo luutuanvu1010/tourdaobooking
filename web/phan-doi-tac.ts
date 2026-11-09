@@ -67,8 +67,8 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
   }
 
   // ---- dạng văn phòng ----
-  function dongVanPhong(d: Api.ThuongMaiDongVanPhong, coNut: boolean): HTMLElement {
-    const canh = canhBaoThieuMuc(d.thieu);
+  function dongVanPhong(d: Api.ThuongMaiDongVanPhong, coNut: boolean, daChup: boolean): HTMLElement {
+    const canh = canhBaoThieuMuc(d.thieu, daChup);
     const nut = coNut ? h("button", { type: "button", class: "btn pdt-nut", "data-action": "ghi-tay", "data-service-id": d.serviceId }, "Ghi mức tay") : null;
     nut?.addEventListener("click", () => void moGhiTay(d, nut));
     return h(
@@ -97,12 +97,13 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
     vanPhongHienTai = d;
     const trangThai = ghiChuTrangThai(d);
     const coNut = hienNutGhiTay(v.coGhiTay, d);
+    const daChup = !d.duKien && !d.chuaChup;
     return [
       h("h2", null, TIEU_DE_VAN_PHONG),
       h("p", { class: "pdt-nguoi-huong" }, nhanNguoiHuong(d)),
       trangThai ? h("p", { class: "pdt-trang-thai" }, h("span", { class: "chip chip-muted" }, trangThai)) : null,
       hienNutChupBu(v.coGhiTay, d) ? khoiChupBu() : null,
-      h("div", { class: "pdt-ds" }, ...d.dong.map((x) => dongVanPhong(x, coNut))),
+      h("div", { class: "pdt-ds" }, ...d.dong.map((x) => dongVanPhong(x, coNut, daChup))),
       h(
         "dl",
         { class: "pdt-luoi pdt-tong" },

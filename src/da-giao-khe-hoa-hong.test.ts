@@ -115,8 +115,22 @@ test("3 — đối tác CHƯA có mức hoa hồng (bản chụp «thiếu mức
   await thuDu(w, id);
   const g = await daGiao(w, id);
   assert.equal(g.status, 409);
-  assert.equal(g.json.error.message, "Thiếu mức hoa hồng / người bán cho DV 0 — Kế toán ghi mức tay cho dòng này.", "Task 4: câu lời thường của lý do terms_missing");
+  assert.equal(g.json.error.message, "Thiếu mức hoa hồng / người bán cho DV 0 — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.", "Task 4: câu lời thường của lý do terms_missing");
   assert.equal(w.q("SELECT count(*) AS n FROM bil_posting WHERE order_id = ? AND kind_code = 'DELIVERED'", id)[0].n, 0);
+});
+
+test("3b — T-02: đơn ĐÃ chụp «thiếu mức»; cài mức phủ ngày xác nhận rồi bấm Chụp bù ⇒ 409, «Khách đã trả đủ» ⇒ 409 với câu «không gỡ được» (không bảo cài mức)", async () => {
+  const w = setup();
+  const id = await donDoiTacDaXacNhan(w, false);
+  assert.equal(chup(w, id)[0]!.commission_status, "MISSING");
+  await datMuc(w, { loai: "VAI", code: "TRAVEL_AGENCY" }); // mức phủ ngày xác nhận (tuNgay 2026-01-01)
+  const cb = await w.call("POST", `/api/orders/${id}/chup-bu`, { as: KT });
+  assert.equal(cb.status, 409, cb.text); // đã có bản chụp (dù thiếu mức) nên không chụp bù được
+  await thuDu(w, id);
+  const g = await daGiao(w, id);
+  assert.equal(g.status, 409, g.text);
+  assert.match(g.json.error.message, /cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay/);
+  assert.doesNotMatch(g.json.error.message, /cần cài mức/);
 });
 
 test("4 — loại đối tác nhóm OTHER (tương lai) có người hưởng: bản chụp SET ⇒ «Đã giao» 200 và HOA_HONG cho người hưởng đó dù không thuộc nhóm bên ngoài (ĐẢO CÓ CHỦ ĐÍCH — Task 4)", async () => {
