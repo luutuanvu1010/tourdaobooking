@@ -25,7 +25,7 @@
 2. **Móc chụp không thêm byte vào `web/api.ts`:** trang form nghe `pagehide` và chỉ chụp khi `sessionStorage` có `SESSION_ENDED_KEY`. Chỉ `goLogin` ghi khoá này (ngay trước `location.replace`), chỉ trang đăng nhập đọc rồi xoá nó mỗi lần mở; nên khoá không sót vào lúc rời trang bình thường.
 3. **Chụp giá trị ô:** thân lưu nháp (`collect()`, dạng `OrderInput`) không cùng dạng với dữ liệu `fill()` nhận. Chọn: `collect()` cho ô thường, `drafts()` cho thẻ dịch vụ, `hk.rows()` cho hành khách, cộng đọc tường minh tên bên đặt, đối tác, hồ sơ khách, người phụ trách, lời mời Bán hàng (để «chữ đã gõ còn nguyên» đúng ADR mục 4). Khôi phục qua `fill` tách thành `napO` + `napThe`, hành khách qua `dungKhoiKhach`. Giá dịch vụ lấy lại theo danh mục hiện tại; máy chủ vẫn tính tiền.
 4. **Thời điểm khôi phục khi sửa đơn:** quyết sau khi đơn nạp xong (đã có `updatedAt` máy chủ), xoá khoá ngay sau khi quyết.
-5. **Vòng dọn bọc một `try` chung:** một giá trị hỏng trong kho làm dừng dọn các khoá sau ở lần mở trang đó. Bọc riêng từng khoá tốn +254 byte (vượt 224 chủ cho). Giá trị luôn do `JSON.stringify` ghi; khôi phục vẫn so mã nhân viên nên không lộ.
+5. **Vòng dọn bọc một `try` chung:** một giá trị hỏng trong kho làm dừng dọn các khoá sau; vì `initShell`, đăng xuất và màn bảo trì dùng chung hàm này, khoá hỏng chặn cả việc dọn khi đăng xuất cho tới lúc đóng thẻ (chỉ người tự sửa kho mới tạo được giá trị hỏng). Bọc riêng từng khoá tốn +254 byte (vượt 224 chủ cho). Giá trị luôn do `JSON.stringify` ghi; khôi phục vẫn so mã nhân viên nên không lộ.
 6. **Câu 403 gán vai:** «Vai trò này cho xem thông tin khách — nhờ Quản trị hoặc Toàn quyền gán.» (ADR-0191 mục 3(a) viết «Vai này…»; bảng từ ADR-0130 bắt «vai trò»; ADR mục 5 cho chỉnh chữ theo bảng khi thi công).
 7. **Chặn gán vai đặt sau các kiểm 409** của route: 409 trả trước mọi câu ghi, không đổi dữ liệu.
 
@@ -44,4 +44,7 @@
 ## Kiểm
 
 - Kịch bản Chrome `docs/evidence/2026-11-10-dot-5a/kich-ban/dot-5a-smoke.mjs`: 21/21 bước (cảnh 1–6), ảnh 390 và 1280 ở `anh/`.
-- `npm test`, `npm run typecheck`, `npm run test:e2e`, người kiểm độc lập: ghi ở mục dưới khi có kết quả.
+- Lần chạy đủ bộ đầu (HEAD `ea3fc6cca`): `npm test` đỏ 2 bài cũ lệch theo luật mới (`da-giao-khe-hoa-hong` — Nhân sự đổi vai Bán hàng nay 403; `dua-don-nhom-giao-dien` N-19 — bài đọc mã sau khi tách `fill`); e2e trước đó đỏ `admin.mjs` (đọc PIN khi Nhân sự tạo Bán hàng). Cả ba sửa bài, giữ ý cũ (`4369298f8`, `d4f50e2d4`, `8c07c415e`).
+- Lần chạy đủ bộ sau sửa (HEAD `d4f50e2d4`): `npm run typecheck` 0 lỗi; `npm test` thoát 0 (bước 1: 8.794 bài xanh, 0 đỏ; bước 2 bài đo giờ xanh); `npm run test:e2e` 90/90 kịch bản xanh (kể cả `audit-invariants`).
+- Sau đó chỉ thêm `d66b2e5f0` (một ca bài kiểm, không đổi mã; `node --test src/modules/accounts/hanh-chinh-nhan-su.test.ts` 21/21, đã thấy đỏ thật khi sửa lùi) và nhật ký này.
+- **Người kiểm độc lập (`nguoi-kiem-doc-lap`, HEAD `6b5031d95`): ĐẠT**, 4 điểm Nhỏ: (1) thiếu bài khoá «quyền hiệu lực, không tên vai» → đã thêm `d66b2e5f0`; (2) vòng lặp cũ ở `hanh-chinh-nhan-su.test.ts` khẳng định mềm (bài riêng đã phủ); (3) câu về `try` chung ở mục 5 trên → đã ghi chính xác; (4) dòng «Hệ thống tự sinh PIN…» chờ chủ chọn chữ. Người kiểm tự dò đường vòng của Nhân sự (tạo kèm cộng tay quyền, gán vai nhiều kiểu, PUT permissions, PATCH): không lọt; tự đo trần gói 111.133 → 111.357.
