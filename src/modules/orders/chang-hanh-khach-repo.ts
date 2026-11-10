@@ -545,6 +545,11 @@ const PASSENGER_ROWS_BY_ORDERS = defineSql(
   `SELECT id, order_id, person_key, previous_id, voided_at IS NOT NULL AS voided, full_name AS ten, birth_year, pax_code, updated_at
    FROM ord_passenger WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, created_at, rowid`,
 );
+/** Số dòng hành khách ĐANG LƯU của đơn (chưa huỷ) — cho kiểm «bắt buộc có danh sách khách» khi sửa nháp không gửi khoá `passengers` (ADR-0194 đợt 1). */
+const PASSENGER_COUNT_ACTIVE = defineSql("orders", "passenger_count_active", `SELECT count(*) AS n FROM ord_passenger WHERE order_id = ?1 AND voided_at IS NULL`);
+export async function soHanhKhachDangLuu(db: D1Database, orderId: string): Promise<number> {
+  return (await db.prepare(PASSENGER_COUNT_ACTIVE).bind(orderId).first<{ n: number }>())?.n ?? 0;
+}
 export interface PassengerRow {
   id: string;
   order_id: string;

@@ -15,6 +15,7 @@ import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { taoCoVe, type CoVe } from "./catalog-co-ve";
 import { dongBoTuSheet, taoKiemVe, veManHep } from "./catalog-kiem-ve";
 import { initShell, showError } from "./shell";
+import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
 
 const errorEl = byId("error");
 const noticeEl = byId("notice");
@@ -26,6 +27,9 @@ const qEl = byId<HTMLInputElement>("q");
 const filterEl = byId<HTMLSelectElement>("filter");
 const pullBtn = byId<HTMLButtonElement>("pull");
 const nhomEl = byId("nhom-dv");
+/** ADR-0194 đợt 1: cột phụ (Nhóm, Đơn vị) Toàn quyền có thể ẩn — chỉ hiển thị, dữ liệu vẫn theo quyền xem; lỗi tải = mặc định đầy đủ. Tải TRƯỚC lần vẽ đầu. */
+let chinhSach: ChinhSachUi = CHINH_SACH_DAY_DU;
+const anCot = (truong: string): boolean => chinhSach.an("danh-sach-dich-vu", truong);
 const chonBarEl = byId("chon-bar");
 
 const kiemVe = taoKiemVe(errorEl, () => {
@@ -135,8 +139,8 @@ function row(it: CatalogAdminItem): HTMLElement {
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
     h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it), coVe.oDichVu(it.code, it.name)),
-    h("td", { class: "nhom-o" }, tenNhomCua(it)),
-    h("td", { class: "muted" }, unitLabel(it.unit)),
+    h("td", { class: "nhom-o", hidden: anCot("groupCode") }, tenNhomCua(it)),
+    h("td", { class: "muted", hidden: anCot("unit") }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
     h(
       "td",
@@ -174,9 +178,9 @@ function card(it: CatalogAdminItem): HTMLElement {
   return h(
     "div",
     { class: it.hidden || !it.inSheet ? "card card-col row-off" : "card card-col", "data-code": it.code },
-    h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, " · ", unitLabel(it.unit))),
+    h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, ...(anCot("unit") ? [] : [" · ", unitLabel(it.unit)]))),
     h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
-    h("div", { class: "nhom-o muted" }, `Nhóm: ${tenNhomCua(it)}`),
+    h("div", { class: "nhom-o muted", hidden: anCot("groupCode") }, `Nhóm: ${tenNhomCua(it)}`),
     h("div", { class: "kv-the" }, oKiemVe(it), coVe.oDichVu(it.code, it.name)),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:var(--fw-bold)", title: "Có giá ghi đè" }, " ✎")),
     it.conflicts.length > 0 && h("div", { class: "alert warn" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`),
@@ -882,6 +886,8 @@ if (!can(staff, "admin.manage")) {
     renderNhom();
     render();
   });
+  chinhSach = await taiChinhSach();
+  for (const th of document.querySelectorAll<HTMLElement>("th[data-cot]")) anPhanTu(anCot(th.dataset.cot ?? ""), th);
   await Promise.all([kiemVe.tai(), coVe.tai()]).catch((err) => fail(err));
   renderTuKiem();
   duocSuaDuaDon = can(staff, "admin.manage");

@@ -2,13 +2,30 @@
 // Route: GET/PUT /api/giao-dien (cổng admin + ô settings.ops = chỉ Toàn quyền); GET /giao-dien.css (+ đường cũ /api/giao-dien.css; ADR-0102) (CÔNG KHAI — trang Đăng nhập cần trước khi có phiên;
 // chỉ chứa màu/phông/cỡ, không dữ liệu cá nhân). Phụ thuộc: chỉ `audit`.
 import { auditStatement } from "../audit";
-import type { GiaoDienDto } from "../../shared/contracts";
+import type { ChinhSachGiaoDienDto, ChinhSachGiaoDienTatCaDto, GiaoDienDto } from "../../shared/contracts";
 import { docTokensDaLuu, dungCss, kiemGiaoDien } from "../../shared/giao-dien";
 import { css, error, json, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
-import { chiTietDoi } from "./rules";
-import { findGiaoDien, updateGiaoDienStatement } from "./repository";
+import { PERMISSION_CODES } from "../../shared/permissions";
+import { DANH_MUC_UI, MAN_UI, giaiChinhSach, type TruongDaGiai } from "../../shared/ui-truong";
+import { chiTietChinhSach, chiTietDoi, dongHopLe, kiemYeuCauChinhSach } from "./rules";
+import { chinhSachHieuLuc, chinhSachMoiNhat, findGiaoDien, themChinhSach, updateGiaoDienStatement } from "./repository";
+
+const lanSau = (moiNhat: string | null, now: Date): string => (moiNhat && Date.parse(moiNhat) >= now.getTime() ? new Date(Date.parse(moiNhat) + 1) : now).toISOString();
+
+/**
+ * Phần chính sách giao diện ÁP CHO MỘT NGƯỜI (hợp của mọi quyền — ADR-0194; luật thuần `giaiChinhSach`). Hàm công bố cho gốc lắp ráp tiêm vào `ctx` của `orders`
+ * (`orders` không import `giao-dien`). Bảng rỗng ⇒ []. MỘT truy vấn D1 mỗi lần gọi; lỗi đọc thì ném — nơi gọi quyết (máy chủ lập đơn: không đoán «không ẩn gì»).
+ */
+export async function chinhSachChoNguoi(db: D1Database, quyen: readonly string[], luc: string = new Date().toISOString()): Promise<TruongDaGiai[]> {
+  return giaiChinhSach(await chinhSachHieuLuc(db, luc), quyen);
+}
+
+async function docTatCa(db: D1Database): Promise<ChinhSachGiaoDienTatCaDto> {
+  const dong = dongHopLe(await chinhSachHieuLuc(db, new Date().toISOString()));
+  return { danhMuc: DANH_MUC_UI.map((m) => ({ man: m.man, truong: m.truong, loai: m.loai, anDuoc: m.anDuoc, boBatBuocDuoc: m.boBatBuocDuoc })), dong, quyen: [...PERMISSION_CODES] };
+}
 
 async function phucVuCss({ env, request }: { env: Env; request: Request }): Promise<Response> {
   const row = await findGiaoDien(env.DB);
@@ -55,5 +72,51 @@ export const giaoDienModule: AppModule = {
       if (!upd || upd.meta.changes === 0) return error(409, "stale", "Giao diện vừa được người khác đổi — tải lại để xem bản mới.");
       return json({ tokens, version: (version as number) + 1 } satisfies GiaoDienDto);
     }),
+    // ---- Chính sách hiện / ẩn / bắt buộc theo màn × trường × quyền (ADR-0194 đợt 1) — khuôn `/api/cai-dat/an-thong-tin-khach` ----
+    // ĐỌC phần áp cho CHÍNH người gọi: cổng `orders` + một trong bốn ô mở bốn màn (Đối tác lập đơn cũng đọc); `no-store`. Ẩn nhầm không chặn lập đơn: trường luật nền cần không khai ẩn được.
+    route("GET", "/api/cai-dat/giao-dien", "orders", async ({ env, staff }) => {
+      // Cổng `orders` (văn phòng hoặc Đối tác) + MỘT trong bốn ô mở được bốn màn của đợt 1; người khác 403 (giao diện của họ rơi về mặc định đầy đủ, và họ không thấy các màn này).
+      if (!(can(staff, "order.create") || can(staff, "admin.manage") || can(staff, "account.view") || can(staff, "party.view"))) return error(403, "forbidden", "Tài khoản này không xem được cài đặt này.");
+      return json({ truong: await chinhSachChoNguoi(env.DB, staff.permissions) } satisfies ChinhSachGiaoDienDto);
+    }),
+    route("GET", "/api/cai-dat/giao-dien/tat-ca", "admin", async ({ env, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền xem cài đặt hiển thị trường.");
+      return json(await docTatCa(env.DB));
+    }),
+    // GHI: một lô cho MỘT màn; cả lô hợp lệ mới ghi (một dòng xấu ⇒ 400, không ghi). Ô đã đúng chế độ thì bỏ qua (không dòng, không nhật ký). MỘT db.batch: dòng mới chỉ-thêm + nhật ký.
+    route("POST", "/api/cai-dat/giao-dien", "admin", async ({ env, request, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi cài đặt hiển thị trường.");
+      const k = kiemYeuCauChinhSach(await readJson(request));
+      if (!k.ok) return error(400, "invalid_input", k.message);
+      const hien = new Map((await chinhSachHieuLuc(env.DB, new Date().toISOString())).map((d) => [`${d.man}/${d.truong}/${d.quyen}`, d.cheDo] as const));
+      const canGhi = k.dong.filter((d) => (hien.get(`${k.man}/${d.truong}/${d.quyen}`) ?? "HIEN") !== d.cheDo);
+      return ghiLo(env.DB, staff.id, k.man, canGhi);
+    }),
+    // Khôi phục mặc định MỘT màn: chèn dòng HIEN cho mọi ô đang khác mặc định của đúng màn đó (không động màn khác).
+    route("POST", "/api/cai-dat/giao-dien/khoi-phuc", "admin", async ({ env, request, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi cài đặt hiển thị trường.");
+      const b = (await readJson(request)) as { man?: unknown } | null;
+      if (!b || typeof b.man !== "string" || !(MAN_UI as readonly string[]).includes(b.man)) return error(400, "invalid_input", "Màn hình không có trong danh mục chỉnh được.");
+      const man = b.man;
+      const khac = (await chinhSachHieuLuc(env.DB, new Date().toISOString())).filter((d) => d.man === man && d.cheDo !== "HIEN");
+      return ghiLo(env.DB, staff.id, man, khac.map((d) => ({ truong: d.truong, quyen: d.quyen, cheDo: "HIEN" })));
+    }),
   ],
 };
+
+/** Ghi một lô dòng chỉ-thêm + nhật ký; lô rỗng ⇒ không ghi gì, trả trạng thái hiện tại. Thua mốc (cùng ô, cùng mili-giây) ⇒ 409 `stale`. */
+async function ghiLo(db: D1Database, by: string, man: string, dong: readonly { truong: string; quyen: string; cheDo: string }[]): Promise<Response> {
+  if (dong.length > 0) {
+    const at = lanSau(await chinhSachMoiNhat(db), new Date());
+    try {
+      await db.batch([
+        ...dong.map((d) => themChinhSach(db, { id: crypto.randomUUID(), man, truong: d.truong, quyen: d.quyen, cheDo: d.cheDo, at, by })),
+        auditStatement(db, { staffId: by, action: "ui_policy_changed", at, targetType: "system", detail: chiTietChinhSach(man, dong) }),
+      ]);
+    } catch (e) {
+      if (/UNIQUE constraint failed: gd_field_policy/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Cài đặt vừa được đổi — tải lại rồi thử lại.");
+      throw e;
+    }
+  }
+  return json(await docTatCa(db));
+}
