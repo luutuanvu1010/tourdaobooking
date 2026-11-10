@@ -1,0 +1,87 @@
+# ADR-0197 — Ô tiền khách đặt cọc luôn có trên đơn của Đối tác, kể cả đơn Trả sau; cọc ở tay Đối tác không làm giảm nợ với Công ty (yêu cầu mới N6)
+
+- **Trạng thái:** **proposed** 2026-11-10 — AI soạn theo kế hoạch `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (chủ duyệt kế hoạch 9/11 và chi tiết Phần IX ngày 10/11), thuộc **ADR lượt C** (trang ghép `docs/superpowers/specs/2026-11-10-trang-ghep-adr-luot-c.md`, trang trình `docs/superpowers/specs/2026-11-10-trinh-chu-adr-luot-c.md`). Chờ chủ duyệt; người soạn không tự duyệt (Hiến pháp N3). Chưa có mã. Dẫn chứng mã đọc trên `main` @`9dbfbc131`.
+- **Số:** 0197.
+- **Nguồn:** lời chủ 8/11 (kế hoạch Phụ lục A, nguyên văn): «Luôn có chức năng Đặt cọc trên hóa đơn được tạo bởi đối tác (gửi cho khách lẻ) và đổi tên thành Khách hàng đặt cọc cho đối tác (Dù đối tác chọn thanh toán công nợ cho Công ty chủ quản là Trả ngay hoặc Trả sau )».
+- **Ngày:** 2026-11-10. **Loại:** việc lớn — tiền (khoản thu tự sinh trên đơn Trả sau, luật huỷ), dữ liệu (không migration). Người kiểm độc lập chỉ đọc sau thi công.
+- **Cửa:** hai chiều về mã; khoản cọc đã sinh thì chỉ đảo bằng dòng đảo (như ADR-0159).
+- **Quan hệ với ADR cũ** (nguyên văn → mới ở bảng dưới):
+  - **Sửa** ADR-0168 ở phần sửa ADR-0159 Đ1 mục 1–2 cho đơn Trả sau («không nhận lời khai đặt cọc»): nay đơn Trả sau nhận lời khai đặt cọc.
+  - **Sửa** ADR-0159 Đ1 mục 1, mục 6: tên ô hiển thị đổi theo Đ1 dưới đây. Mọi luật khác của ADR-0159 (lời khai lúc nháp, thành khoản thu tiền mặt của người lập khi xác nhận, chặn vượt tổng, Đ2 mục 1 chặn khai lại khi còn đơn huỷ chưa kết luận, Đ2 mục 2) **giữ nguyên** và nay áp cả cho đơn Trả sau.
+  - **Thêm điều kiện** vào cổng huỷ đơn Trả sau của ADR-0168 Đ3 mục 3 (`congHuyTraSau`): Đ4 dưới đây.
+  - **Giữ** ADR-0089 (luồng tiền đơn huỷ), ADR-0168 Đ2 mục 2 (nợ không trừ khoản bên đặt đang giữ), ADR-0153 Đ3, ADR-0136 Đ6, ADR-0090.
+  - **ADR-0183 (proposed)** Đ2 đã đề xuất cùng hướng với tên «Khách đặt cọc cho đại lý». Cùng ngày người soạn sửa thẳng ADR-0183 (còn proposed) để trỏ về văn bản này cho tên ô và luật cọc của đơn Trả sau — một tên, một luật, một nơi. Nếu ADR-0183 được duyệt trước văn bản này, chỗ sửa ấy chuyển thành dòng «Sửa đổi».
+  - Bảng tham chiếu ngôn ngữ (ADR-0167): định nghĩa «Trả sau» đang ghi «không kèm tiền khách đặt cọc» — sửa khi thi công.
+- **Xây trên lỗ đang hở: TNV-G1** (đơn huỷ còn tiền đã thu, hạn 31/12): đơn Trả sau có cọc mà bị huỷ sẽ đi luồng cọc đơn huỷ (ADR-0089) — tổ hợp Trả sau × cọc × huỷ chưa từng chạy. **Lý do xin phép:** không migration, không thêm loại dòng sổ, không nới luật nào của lỗ; khoản cọc trên đơn Trả sau sinh đúng như khoản cọc của đơn Thanh toán ngay đang chạy từ bản 2.58, và Đ4 chỉ **siết** đường huỷ. Khoá đề xuất ghi vào mục `TNV-G1` của `docs/quyen-hoan.json` **sau khi chủ duyệt** (theo khuôn ADR-0193): `"xay_tren_cho_phep_adr_0197": "Ô CỌC CỦA KHÁCH CHO ĐƠN TRẢ SAU (ADR-0197) — chủ dự án <ngày> (<nơi>): «<nguyên văn, kèm Cho phép, có ghi lý do>». Lý do: không migration, không loại dòng sổ mới; khoản cọc sinh như đơn Thanh toán ngay; đường huỷ chỉ bị siết (Đ4 theo phương án chủ chọn). Điều kiện: <phát hành theo lời chủ>; phần còn lại của lỗ giữ hạn cũ."`. Không có migration nên **không** chạm HC-5.19.
+- **Số quyết định chạm quyền/dữ liệu:** 1, với hai câu con (tên ô, luật huỷ) — cùng lượt với ADR-0196, tổng 2.
+
+## Bối cảnh
+
+Ô «Khách đặt cọc trước» (ADR-0159) chỉ hiện cho tài khoản Đối tác và bị ẩn khi chọn Trả sau (`anHienDatCoc` ở `web/order-form.ts`; lúc lưu form còn ép số cọc về 0 khi chọn Trả sau). Máy chủ chặn thêm: đơn Trả sau có lời khai > 0 ⇒ 409 `tra_sau_khong_nhan_coc` ở cả lúc lưu (`congTraSauKhiLuu`) lẫn lúc xác nhận (`traSauChoXacNhan`), cùng hàm `kiemDon` của `src/modules/orders/tra-sau-cong.ts`.
+
+Chủ muốn ô này luôn có trên đơn Đối tác lập, dù Đối tác trả Công ty ngay hay trả sau, và đổi tên.
+
+Điều đã đúng sẵn trong mã, không phải xây: nợ của đơn Trả sau tính theo `noMotDon` (`src/shared/tra-sau.ts`) đã **không** trừ tiền bên đặt đang giữ (`benDatDangGiu`). Khoản cọc lúc xác nhận sinh với người thu là người lập (vai `BOOKER` khi người lập là bên đặt được hưởng), tức tiền ở tay Đối tác ⇒ nợ với Công ty không giảm. Đúng câu chủ cần.
+
+Điều còn hở: `noMotDon` trả 0 cho đơn đã huỷ. Đơn Trả sau có cọc mà huỷ thì hạn mức nhẹ đi phần cọc, trong khi tiền cọc vẫn ở tay Đối tác — chỉ còn thấy ở sổ giữ hộ và màn cọc đơn huỷ (`/api/ledger/coc`). Đó là lý do có Đ4.
+
+## Quyết định
+
+1. **Tên ô** (câu (b) ở trang trình chủ; Hiến chương 5.27, ADR-0167 — chủ chọn một, một tên cho mọi nơi):
+   - (1) **«Khách đặt cọc cho đối tác»** — khuyến nghị: giữ ý chủ, dùng đúng từ «đối tác» là tên quyền của tài khoản trong bảng tham chiếu, bỏ chữ «hàng» cho gọn trên màn điện thoại.
+   - (2) «Khách hàng đặt cọc cho đối tác» — nguyên văn lời chủ 8/11.
+   - (3) «Khách đặt cọc cho đại lý» — tên ADR-0183 đề xuất 7/11; «đại lý» khác từ tên quyền.
+   - Hết giờ không chọn thì dùng (1). Tên áp cho ô nhập, dòng tóm tắt, dòng «(chờ xác nhận)» lúc nháp, câu hướng dẫn Đối tác, bảng tham chiếu.
+   - **Không đổi** chuỗi ghi chú «Khách đặt cọc trước» lưu trong CSDL (`GHI_CHU_KHOAN_LOI_KHAI` ở `src/modules/billing/coc-repo.ts`): đó là **dấu nhận diện** khoản cọc trên dữ liệu thật (đọc ở `KHOAN_LOI_KHAI_CON_HIEU_LUC`, ở lệnh Sửa khoản thu). Bài mới khoá chuỗi đó không đổi.
+2. **Ô luôn có trên đơn Đối tác lập, kể cả Trả sau:** bỏ ẩn ô khi chọn Trả sau, bỏ ép số về 0 lúc lưu, bỏ 409 `tra_sau_khong_nhan_coc` ở `kiemDon` (cả lúc lưu và lúc xác nhận). Văn phòng vẫn không có ô (ADR-0159 Đ1 mục 1). Mọi luật cọc của ADR-0159 áp nguyên cho đơn Trả sau: lời khai lúc nháp, không vượt tổng sau giảm, khoá khi chờ duyệt, thành **khoản thu tiền mặt của người lập** khi xác nhận trong cùng lô, chặn khai lại khi còn đơn huỷ chưa kết luận (Đ2 mục 1).
+3. **Cọc ở tay Đối tác, không làm giảm nợ với Công ty.** Hạn mức trả sau kiểm trên toàn bộ tổng đơn (như hôm nay — `kiemTraSau` nhận `soTienDon = total`), không trừ cọc. Dưới ô hiện câu (đề xuất, chủ sửa được): **«Tiền cọc ở tay bạn, không làm giảm số nợ với Công ty.»** Tóm tắt vẫn có «Khách còn phải trả» = tổng sau giảm − cọc (số khách còn trả cho Đối tác). **Biên nhận giữ «Khách đã trả trước»** ở lượt này (`src/shared/order-confirmation.ts`); đổi biên nhận là việc của ADR-0183.
+4. **Huỷ đơn Trả sau đã xác nhận mà cọc còn ở tay Đối tác** (câu (c) ở trang trình chủ).
+   - **«Cọc còn ở tay Đối tác»** là trạng thái dữ liệu: đơn có khoản thu còn hiệu lực (chưa bị đảo) mang dấu ghi chú `GHI_CHU_KHOAN_LOI_KHAI`, **và** số dư giữ hộ của người thu khoản đó với Công ty trên đơn còn > 0 (tức Kế toán chưa ghi đủ «Nộp về công ty» cho số đó). Điều kiện chỉ xét **khoản cọc**, không xét tiền «Tôi thu» khác (xem «Phải nói thẳng»).
+   - **Khuyến nghị (c1) — an toàn, không bế tắc:** **Đối tác không tự huỷ** đơn đó (409, câu đề xuất «Đơn trả sau còn tiền cọc của khách ở tay bạn nên bạn chưa tự huỷ được. Hãy nhờ văn phòng huỷ.»). **Văn phòng huỷ được** như đơn Thanh toán ngay có cọc (mọi đường huỷ khác: nút huỷ của người có `order.modify` không giữ quyền Đối tác, đường huỷ của Hướng dẫn viên đang phụ trách `POST /api/orders/:id/handler-cancel`, ô `order.cancel`). Sau khi huỷ, cọc đi đúng luồng ADR-0089 đang chạy: mặc định Công ty giữ cọc, Đối tác còn nợ số đó trên sổ giữ hộ; tiền về thì Kế toán ghi «Nộp về công ty» (`POST /api/ledger/settlements`, ô `ledger.write`); Công ty muốn hoàn khách thì duyệt (`deposit.refund.approve`) rồi chi (`payment.refund`), hai người khác nhau; ADR-0159 Đ2 mục 1 chặn người lập khai cọc mới tới khi Kế toán kết luận. **Không bế tắc** vì văn phòng luôn huỷ được; **an toàn hơn hôm nay** vì có người của Công ty nhìn đơn trước khi tiền cọc ra khỏi hạn mức.
+   - **(c2) Chặn mọi người huỷ tới khi Kế toán ghi «Nộp về công ty» đủ số cọc.** Về mã thì không bế tắc: lệnh `POST /api/ledger/settlements` không kiểm trạng thái đơn nên chạy được trên đơn chưa huỷ; sau đó đơn huỷ được và cọc thành «cọc Công ty giữ» của ADR-0089. Nhưng lối thoát duy nhất **phụ thuộc Đối tác nộp tiền**: Đối tác không nộp thì đơn kẹt ở «Đã xác nhận», xe vẫn được xếp cho chuyến khách đã bỏ. Lệnh «Sửa khoản thu đã ghi» không phải lối thoát (cần ít nhất một khoản mới; không đưa khoản cọc về 0 cho ca Đối tác đã trả lại tiền khách). Khách đổi ý thì tiền phải về Công ty rồi mới duyệt–chi hoàn.
+   - **(c3) Cho huỷ như đơn Thanh toán ngay, kể cả Đối tác tự huỷ.** Không thêm luật nào; hạn mức nhẹ đi phần cọc ngay khi huỷ mà không ai ở Công ty nhìn.
+   - **Cách làm (mọi phương án có chặn):** điều kiện đặt **trong cổng mang nhãn `congHuyTraSau`** (`src/modules/orders/tra-sau-cong.ts`) để mọi nơi gọi `soanHuyDon` — huỷ thường, huỷ để lập lại, huỷ của Hướng dẫn viên — đều qua (quên gọi thì `npm run typecheck` đỏ). Cổng nhận thêm «người huỷ giữ quyền Đối tác» và số cọc còn ở tay người thu; `orders` không đọc bảng `bil_*`: số này do gốc lắp ráp tiêm như `traSauCuaDon`. Luật đơn Trả sau còn nợ mà vé hãng ngoài đã mở thì không huỷ được (ADR-0168 Đ3 mục 3, ADR-0175 Đ2.6) giữ nguyên và vẫn đứng trước.
+5. **Không đổi:** cách ghi khoản cọc lúc xác nhận; luồng tiền đơn huỷ ADR-0089; công thức nợ `noMotDon`; luật mở vé đơn Trả sau (ADR-0168 Đ3 mục 1); biên nhận; ô quyền nào.
+
+## Câu ADR bị thay (nguyên văn → mới)
+
+| ADR | Nguyên văn | Mới |
+|---|---|---|
+| ADR-0168, Quan hệ với ADR cũ | «Sửa cho riêng đơn Trả sau: … ADR-0159 Đ1 mục 1–2 (không nhận lời khai đặt cọc).» | «Sửa cho riêng đơn Trả sau: … ~~ADR-0159 Đ1 mục 1–2 (không nhận lời khai đặt cọc)~~ — **bỏ bởi ADR-0197**: đơn Trả sau nhận lời khai đặt cọc; cọc ở tay Đối tác, không làm giảm nợ.» |
+| ADR-0159 Đ1 mục 1 | «… có ô «Khách đặt cọc trước» ở khối Thanh toán … Tóm tắt thêm hai dòng xem trước: «Khách đặt cọc trước», «Khách còn phải trả».» | tên ô và dòng tóm tắt theo ADR-0197 Đ1 (tên chủ chọn); ô có cả khi chọn Trả sau (ADR-0197 Đ2). |
+| ADR-0159 Đ1 mục 6 | «đơn nháp có dòng «Khách đặt cọc trước (chờ xác nhận)»» | «‹tên ADR-0197 Đ1› (chờ xác nhận)». |
+| ADR-0168 Đ3 mục 3 | «Đơn chưa có vé mở thì huỷ như thường và hết nợ.» | giữ, **thêm**: «Đơn còn cọc ở tay Đối tác thì theo ADR-0197 Đ4 [phương án chủ chọn].» |
+| `docs/BANG-THAM-CHIEU.md`, «Trả sau», cột ghi chú | «Phải có hạn mức trả sau còn hiệu lực mới chọn được; không kèm tiền khách đặt cọc.» | «Phải có hạn mức trả sau còn hiệu lực mới chọn được; khách đặt cọc cho Đối tác được, nhưng cọc không làm giảm nợ với Công ty (ADR-0197).» (sửa tệp nguồn `src/shared/bang-tham-chieu*.ts` khi thi công, rồi `npm run tham-chieu`) |
+
+## Lý do
+
+Đối tác bán lẻ cho khách vẫn cầm cọc dù trả Công ty ngay hay trả sau; ẩn ô ở Trả sau làm Đối tác phải ghi tay hoặc quên. Mã nợ đã không trừ tiền Đối tác giữ, nên mở ô không làm sai số nợ. Chỗ duy nhất đổi rủi ro là huỷ: (c1) giữ một người của Công ty ở đúng chỗ đó mà không làm đơn kẹt.
+
+## Phương án bị loại
+
+- **Cọc làm giảm nợ với Công ty:** Đối tác khai cọc để làm trống hạn mức rồi đặt tiếp (đường ADR-0168 đã loại cho «Tôi thu»).
+- **Đổi luôn chuỗi ghi chú trong CSDL theo tên mới:** dữ liệu cũ mang chuỗi cũ; mọi câu đọc dấu phải biết hai chuỗi — sai một nơi là mất dấu khoản cọc.
+- **Tính cọc của đơn Trả sau đã huỷ vào nợ hạn mức (đổi `noMotDon`):** chạm thẳng công thức nợ và vùng TNV-G1; để sau nếu chủ muốn.
+
+## Bài kiểm (đỏ trước, xanh sau — tổ hợp chưa từng chạy)
+
+- Trả sau × có cọc × lưu nháp và xác nhận: qua; khoản cọc sinh như ADR-0159 (tiền mặt, người thu là người lập); nợ của đơn và của bên đặt **không** giảm; hạn mức kiểm trên tổng.
+- Trả sau × có cọc × huỷ, theo phương án chủ chọn — với (c1): Đối tác tự huỷ ⇒ 409; văn phòng huỷ ⇒ qua, đơn huỷ, cọc hiện ở màn cọc đơn huỷ, duyệt–chi hoặc «Nộp về công ty» chạy được (bài chứng minh không bế tắc); Kế toán đã ghi nộp đủ ⇒ Đối tác tự huỷ được; huỷ để lập lại của Đối tác ⇒ 409.
+- Thanh toán ngay × có cọc: không đổi (bài cũ xanh).
+- Bài khoá `GHI_CHU_KHOAN_LOI_KHAI` = «Khách đặt cọc trước».
+- Bài chữ: tên ô mới ở mọi chỗ người dùng thấy, bảng tham chiếu khớp.
+- Tệp bài: `src/tra-sau-xac-nhan.test.ts`, `src/tra-sau-duong-ghi.test.ts`, `src/modules/billing/dat-coc-route.test.ts`; e2e `tests/e2e/dat-coc.mjs`; kịch bản Chrome đặt cọc và Trả sau, ảnh 390 và 1280.
+
+## Người dùng sẽ thấy
+
+Đối tác lập đơn chọn Trả sau vẫn thấy ô «‹tên chủ chọn›», kèm câu nhắc tiền cọc ở tay Đối tác, không làm giảm nợ với Công ty. Tên ô cũng đổi ở đơn thanh toán ngay. Số nợ ở «Trả sau của tôi» không giảm khi khai cọc. Biên nhận gửi khách vẫn ghi «Khách đã trả trước» như hôm nay. [Theo (c1):] Đơn trả sau còn tiền cọc ở tay Đối tác thì Đối tác không tự huỷ được, phải nhờ văn phòng huỷ.
+
+## Hệ quả
+
+- Không migration; không cần kho mới. Có luật tiền mới nên cần người kiểm độc lập và triển khai.
+- Chữ mới (tên ô, câu dưới ô, câu 409 của Đ4) vào bảng tham chiếu khi thi công với đúng chữ chủ chọn.
+- **Phải nói thẳng:**
+  - Khoản cọc ghi theo lời Đối tác, không ai kiểm tiền thật ở bước này (như ADR-0159).
+  - Kẽ có sẵn, **không** đóng ở đây: đơn Trả sau mà Đối tác «Tôi thu» tiền khách (không phải cọc) rồi tự huỷ khi vé chưa mở thì hạn mức cũng nhẹ đi phần đó. Muốn đóng thì đổi điều kiện Đ4 từ «khoản cọc» sang «mọi tiền bên đặt đang giữ trên đơn» — một quyết định riêng.
+  - Sau khi văn phòng huỷ, số cọc Đối tác còn nợ **không** hiện ở màn «Hạn mức trả sau»; chỉ ở sổ giữ hộ và màn cọc đơn huỷ.
+  - **Chưa kiểm:** huỷ để lập lại với chuyển cọc sang đơn Trả sau mới (ADR-0089 đ6, ADR-0159 «Chưa kiểm») — người thi công phải có bài.
