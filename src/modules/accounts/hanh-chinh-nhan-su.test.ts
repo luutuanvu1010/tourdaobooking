@@ -210,6 +210,16 @@ test("ADR-0191 mục 1: Nhân sự tạo theo đường quyền cũ [SALES] ⇒ 
   await khongDangNhapDuoc(w, r.json.staff.phone);
 });
 
+test("ADR-0191 mục 1: PIN khoá theo QUYỀN HIỆU LỰC, không theo tên vai — Nhân sự tạo Tài xế công ty cộng tay quyền SALES ⇒ pin null", async () => {
+  const w = setup();
+  const r = await w.call("POST", "/api/staff", { as: HR, body: moi({ roles: ["DRIVER_INTERNAL"], adds: ["SALES"], reason: "kiêm bán hàng" }) });
+  assert.equal(r.status, 201, r.text);
+  assert.ok(r.json.staff.permissions.includes("SALES"), "quyền hiệu lực có SALES dù vai là tài xế");
+  assert.equal(r.json.pin, null);
+  assert.equal(r.json.choQuanTriCapPin, true);
+  await khongDangNhapDuoc(w, r.json.staff.phone);
+});
+
 test("ADR-0191: Nhân sự tạo Quản lý bán hàng ⇒ 403 như hôm nay (ADR-0169), không tạo", async () => {
   const w = setup();
   const truoc = staffCount(w);
