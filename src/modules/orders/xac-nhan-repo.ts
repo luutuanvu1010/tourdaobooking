@@ -187,6 +187,29 @@ const AN_KHACH_THEM = defineSql(
 );
 export const cauThemAnKhach = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(AN_KHACH_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
 
+// ---- Công tắc «Bắt buộc giờ đón cho đơn đối tác» (ADR-0193 mục 1, migration 0157) — khuôn `ord_partner_customer_policy`; mặc định BẬT ------------------------------------
+const GIO_DON_HIEN_HANH = defineSql(
+  "orders",
+  "pickup_time_policy_current",
+  `SELECT required FROM ord_pickup_time_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+/**
+ * Công tắc đang hiệu lực lúc `luc`: dòng mới nhất có `valid_from_at <= luc`. KHÔNG có dòng nào (trước ngày gieo của 0157) ⇒ BẬT — đường an toàn là hành vi hôm nay của ADR-0154 Đ1.2,
+ * cùng luật với kiểm định kỳ `R-ORD-17w` (scripts/audit-checks.mjs). Đọc MỘT lần mỗi request, ở route Gửi đơn (chụp tại mốc).
+ */
+export async function docBatBuocGioDon(db: D1Database, luc: string): Promise<boolean> {
+  const r = await db.prepare(GIO_DON_HIEN_HANH).bind(luc).first<{ required: number }>();
+  return r ? r.required === 1 : true;
+}
+const GIO_DON_MOI_NHAT = defineSql("orders", "pickup_time_policy_latest", `SELECT max(valid_from_at) AS moi_nhat FROM ord_pickup_time_policy`);
+export const gioDonMoiNhat = async (db: D1Database): Promise<string | null> => (await db.prepare(GIO_DON_MOI_NHAT).first<{ moi_nhat: string | null }>())?.moi_nhat ?? null;
+const GIO_DON_THEM = defineSql(
+  "orders",
+  "pickup_time_policy_insert",
+  `INSERT INTO ord_pickup_time_policy (id, required, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export const cauThemGioDon = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(GIO_DON_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
+
 /**
  * Bốn trường khách đang lưu của đơn (tên, SĐT, email, ghi chú khách) — để `PUT` nháp lúc công tắc BẬT giữ nguyên chúng (ADR-0154 Đ2.3). Dữ liệu cá nhân: chỉ trả cho
  * nơi gọi đã qua cổng quyền của đơn, không bao giờ vào nhật ký. Không có đơn → `null`.

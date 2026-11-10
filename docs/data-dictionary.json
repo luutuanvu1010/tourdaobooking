@@ -351,6 +351,12 @@
       "note": "công tắc «Ẩn thông tin khách khi đối tác đặt vé» (ADR-0154 Đ2, migration 0133), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ, không có dòng = TẮT; gieo hide_customer_info = 0 (TẮT) nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); đổi công tắc không đổi đơn cũ (dấu orders.manifest_exempt chụp lúc lập đơn)"
     },
     {
+      "name": "ord_pickup_time_policy",
+      "module": "orders",
+      "kind": "table",
+      "note": "công tắc «Bắt buộc giờ đón cho đơn đối tác» (ADR-0193 mục 1, migration 0157), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = BẬT; gieo required = 1 (BẬT = hành vi ADR-0154 Đ1.2, Đ1.3) nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); route Gửi đơn đọc lúc gửi và chụp vào ord_confirm_request.pickup_time_required — đổi công tắc không đổi yêu cầu đang chờ"
+    },
+    {
       "name": "pty_contact_kind",
       "module": "parties",
       "kind": "lookup"
@@ -1739,6 +1745,7 @@
     "ord_service_confirm_flag": { "id": "N1", "scope": "N1", "code": "N1", "required": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_confirm_policy": { "id": "N1", "self_confirm_internal": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_partner_customer_policy": { "id": "N1", "hide_customer_info": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ord_pickup_time_policy": { "id": "N1", "required": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_pickup_slot_policy": { "id": "N1", "slots_json": "N1", "note": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_passenger": { "id": "N1", "order_id": "N1", "full_name": "N2", "birth_year": "N2", "pax_code": "N1", "previous_id": "N1", "person_key": "N2", "voided_at": "N1", "source": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_service_terms": { "id": "N1", "order_id": "N1", "order_service_id": "N1", "beneficiary_party_id": "N1", "commission_status": "N1", "missing_reason": "N1", "commission_kind": "N1", "commission_rate_bp": "N1", "commission_per_pax": "N1", "commission_rule_id": "N1", "supply_status": "N1", "seller_party_id": "N1", "supplier_party_id": "N1", "cost_rate_bp": "N1", "supply_term_id": "N1", "source": "N1", "reason": "N2", "supersedes_id": "N1", "captured_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

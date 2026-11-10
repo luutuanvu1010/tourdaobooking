@@ -22,6 +22,8 @@
     <section id="nhap-tay-cai-dat" class="card" aria-labelledby="nhap-tay-heading" hidden></section>
     <!-- Ẩn thông tin khách khi đối tác đặt vé (ADR-0154 Đ2.1): web/an-khach-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/an-thong-tin-khach trả doiDuoc — ô settings.ops). -->
     <section id="an-khach-cai-dat" class="card" aria-labelledby="an-khach-heading" hidden></section>
+    <!-- Bắt buộc giờ đón cho đơn đối tác (ADR-0193 mục 1): web/gio-don-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/bat-buoc-gio-don trả doiDuoc — ô settings.ops). -->
+    <section id="gio-don-cai-dat" class="card" aria-labelledby="gio-don-heading" hidden></section>
     <!-- Bảo mật đăng nhập (bảo mật hai lớp — ADR-0074 điều 5): web/account.ts hiện sau khi GET /api/account/mfa về; mọi tài khoản có phiên. -->
     <section id="mfa" class="card" aria-labelledby="mfa-heading" hidden></section>
     <!-- Đăng nhập bằng Face ID (ADR-0016): web/account.ts chỉ hiện khi máy chủ bật (GET /api/auth/config → passkey). -->

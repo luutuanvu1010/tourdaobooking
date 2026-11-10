@@ -827,6 +827,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Cài đặt vận hành",
+    manHinh: "Tôi (trang cá nhân) › khối «Bắt buộc giờ đón cho đơn đối tác»",
+    ten: "Tắt bắt buộc giờ đón · Bật bắt buộc giờ đón",
+    thatSuLam: "Đổi công tắc chung. Khi tắt, đơn có đón của đối tác mà chưa có giờ đón vẫn qua văn phòng xét, nhưng văn phòng bấm Còn vé được mà không phải ghi giờ; đơn hiện nhắc «Chưa chốt giờ» và chưa xếp xe được tới khi có giờ. Đơn đang chờ xét giữ nguyên như lúc gửi. Mặc định đang bật.",
+    hoiLai: "không",
+    hoanTac: "được: bấm Bật bắt buộc giờ đón (đơn đã xác nhận lúc tắt giữ nguyên)",
+    duongLenh: ["/api/cai-dat/bat-buoc-gio-don"],
+    maNhatKy: ["pickup_time_policy_changed"],
+    noiDat: [
+      { tep: "web/gio-don-cai-dat.ts", chu: "Tắt bắt buộc giờ đón / Bật bắt buộc giờ đón" },
+    ],
+    trangThai: "da-chot",
+    nguonTen: "ADR-0193 mục 7 phương án (1), chủ duyệt 2026-11-09 «Duyệt cả A và B» — chữ nguyên văn ADR",
+  },
+  {
+    nhom: "Cài đặt vận hành",
     manHinh: "Dịch vụ & giá › Nhóm dịch vụ › công tắc «Cần kiểm vé» › hộp hỏi lại",
     ten: "Bật cả nhóm · Tắt cả nhóm",
     thatSuLam: "Đổi cài đặt kiểm vé cho mọi vé của một nhóm dịch vụ. Bật thì đơn mới có vé thuộc nhóm phải chờ người kiểm vé báo còn vé rồi mới được xác nhận; tắt thì xác nhận như thường. Vé đã đặt riêng không đổi; đơn đã xác nhận không đổi.",

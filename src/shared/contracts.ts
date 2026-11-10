@@ -275,6 +275,14 @@ export interface AnThongTinKhachResponse { bat: boolean; apChoToi: boolean; doiD
 /** Thân `POST /api/cai-dat/an-thong-tin-khach` (chỉ Toàn quyền). */
 export interface AnThongTinKhachRequest { bat: boolean }
 
+/**
+ * `GET`/`POST /api/cai-dat/bat-buoc-gio-don` (ADR-0193 mục 1): `bat` = công tắc «Bắt buộc giờ đón cho đơn đối tác» đang BẬT (mặc định — hành vi ADR-0154 Đ1.2, Đ1.3); `doiDuoc` = người gọi
+ * bật / tắt được (ô `settings.ops`, chỉ Toàn quyền). Công tắc chỉ đổi cờ «cần chốt giờ» của yêu cầu xác nhận chụp SAU lúc đổi; đơn Đối tác chưa giờ vẫn qua văn phòng xét.
+ */
+export interface BatBuocGioDonResponse { bat: boolean; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/bat-buoc-gio-don` (chỉ Toàn quyền). */
+export interface BatBuocGioDonRequest { bat: boolean }
+
 // ---- Khung giờ đón (ADR-0134 Đ5, Đ6; module `orders`) ----
 /** `GET`/`POST /api/cai-dat/khung-gio-don`: bộ khung đang hiệu lực + câu lưu ý; `doiDuoc` = người gọi đổi được (ô `settings.ops` — chỉ Toàn quyền). */
 export interface KhungGioDonResponse { khung: KhungGio[]; luuY: string; doiDuoc: boolean }
