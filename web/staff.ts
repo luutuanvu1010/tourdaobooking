@@ -2,6 +2,7 @@ import { ApiError, api, type StaffAccount, type Api } from "./api";
 import { NHAN_LY_DO_KHOP } from "../src/shared/ho-so-trung";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, isExternalPermission, type PermissionCode } from "../src/shared/permissions";
 import { ROLE_CODES, canManageAccount, rolesLabelTheo, tuDoiQuyenCuaMinh } from "../src/shared/roles";
+import { CAU_CHO_QUAN_TRI_CAP_PIN, CAU_NHAC_DAT_LAI_PIN_SAU_GAN_VAI } from "../src/shared/xem-moi-khach";
 import { chonLocHopLe, locTheoVai, nutLocVai } from "../src/shared/loc-tai-khoan";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
@@ -72,6 +73,24 @@ let locVai: string | null = docLocNho();
 
 const reasonOf = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 const fail = (err: unknown) => showError(errorEl, reasonOf(err));
+
+/** ADR-0191 mục 5: thay hộp «PIN của tài khoản mới» khi máy chủ không trả PIN (`pin: null`). */
+function hienChoCapPin(name: string, phone: string): void {
+  const close = h("button", { type: "button", class: "btn btn-link" }, "Đã rõ, ẩn đi");
+  close.addEventListener("click", () => {
+    secretEl.hidden = true;
+    replaceChildren(secretEl);
+  });
+  replaceChildren(
+    secretEl,
+    h("h2", null, "Tài khoản mới"),
+    h("p", null, `${name} — ${phone}`),
+    h("p", { class: "alert warn" }, CAU_CHO_QUAN_TRI_CAP_PIN),
+    h("div", { class: "actions", style: "margin-top:12px" }, close),
+  );
+  secretEl.hidden = false;
+  secretEl.scrollIntoView({ block: "nearest" });
+}
 
 /** PIN chỉ hiện đúng một lần ở đây; không lưu vào bất kỳ đâu phía client. */
 function showSecrets(title: string, rows: { name: string; phone: string; pin: string }[]): void {
@@ -364,6 +383,7 @@ async function openEdit(s: StaffAccount): Promise<void> {
     legacy && h("p", { class: "alert warn" }, `Tài khoản này chưa gán vai trò, đang dùng quyền cũ: ${permissionsLabel(s.permissions)}. Chọn vai trò để chuyển sang cách mới — xem dòng "Sẽ mất" trước khi lưu.`),
     isMe && h("p", { class: "muted" }, meSuper ? "Bạn chỉ đổi được vai trò của chính mình khi quyền không đổi. Toàn quyền đã làm được mọi việc của mọi vai trò — không cần tự gán thêm vai trò." : "Bạn chỉ đổi được vai trò của chính mình khi quyền không đổi (xem dòng xem trước)."),
     picker.el,
+    !legacy && meQuanTri && h("p", { class: "muted" }, CAU_NHAC_DAT_LAI_PIN_SAU_GAN_VAI), // ADR-0191 mục 3: Quản trị gán được vai xem mọi khách, nhắc đặt lại PIN nếu có người đã biết
     quyenCu && h("details", null, h("summary", null, "Quyền cũ (chỉ dùng khi chưa gán vai trò)"), ...permissionBoxes),
     h("p", { class: "muted" }, "Đổi số điện thoại sẽ đổi tên đăng nhập của người này. Các máy đang đăng nhập vẫn giữ nguyên."),
     h("div", { class: "actions" }, save, cancel),
@@ -522,9 +542,9 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
   if (v.roles.length === 0) return showError(errorEl, "Chọn ít nhất một vai trò.");
   const who = existingPartyId ? { partyId: existingPartyId } : { fullName: addName.value, ...(taoMoi.checked ? { taoHoSoMoi: true } : {}) };
   const body = { phone: addPhone.value, roles: v.roles, adds: v.adds, removes: v.removes, reason: v.reason, ...who };
-  let r: Api.StaffWithPinResponse;
+  let r: Api.TaoTaiKhoanResponse;
   try {
-    r = await api<Api.StaffWithPinResponse>("/api/staff", { method: "POST", body });
+    r = await api<Api.TaoTaiKhoanResponse>("/api/staff", { method: "POST", body });
   } catch (err) {
     // Máy chủ thấy hồ sơ khớp mà lần tra lúc gõ chưa kịp trả (hoặc vừa có hồ sơ mới): hiện khối với danh sách của máy chủ, kèm câu báo của máy chủ.
     if (err instanceof ApiError && err.code === "party_match_exists") {
@@ -539,7 +559,8 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
     }
     return fail(err);
   }
-  showSecrets("Tài khoản mới", [{ name: r.staff.fullName, phone: r.staff.phone, pin: r.pin }]);
+  if (r.pin === null) hienChoCapPin(r.staff.fullName, r.staff.phone); // ADR-0191: tài khoản xem mọi khách do Nhân sự tạo — không có PIN để hiện
+  else showSecrets("Tài khoản mới", [{ name: r.staff.fullName, phone: r.staff.phone, pin: r.pin }]);
   huyTraKhop();
   clearExisting();
   addName.value = addPhone.value = "";
