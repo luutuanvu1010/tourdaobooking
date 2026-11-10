@@ -231,6 +231,20 @@ export interface GiaoDienPutBody { tokens: Record<string, string>; version: numb
 /** Thân lỗi 400 của `PUT /api/giao-dien`: `loi` liệt kê từng ô sai (`khoa` null = lỗi chung, vd cặp màu khó đọc không gắn một ô). */
 export interface GiaoDienLoiBody { error: { code: "invalid_input"; message: string; loi: { khoa: string | null; message: string }[] } }
 
+// ---- Chính sách giao diện theo màn × trường × quyền (ADR-0194 đợt 1; module `giao-dien`) ----
+/** Một trường khác mặc định, đã giải cho CHÍNH người gọi (hợp của mọi quyền của họ). `GET /api/cai-dat/giao-dien` (mọi tài khoản đăng nhập, `no-store`); bảng rỗng ⇒ `truong: []`. */
+export interface ChinhSachGiaoDienDto { truong: { man: string; truong: string; an: boolean; batBuoc: boolean }[] }
+/** Một dòng chính sách đang hiệu lực của một ô (màn × trường × quyền); `cheDo` = HIEN | AN | BAT_BUOC | TUY_CHON. */
+export interface DongChinhSachDto { man: string; truong: string; quyen: string; cheDo: string }
+/** Một mục danh mục (`src/shared/ui-truong.ts`) kèm cờ cho phép — màn chỉnh chỉ cho chọn đúng những gì cờ cho. */
+export interface MucTruongUiDto { man: string; truong: string; loai: "nhap" | "xem"; anDuoc: boolean; boBatBuocDuoc: boolean }
+/** `GET /api/cai-dat/giao-dien/tat-ca` (chỉ Toàn quyền): danh mục, các dòng khác mặc định đang hiệu lực, mã quyền hợp lệ. */
+export interface ChinhSachGiaoDienTatCaDto { danhMuc: MucTruongUiDto[]; dong: DongChinhSachDto[]; quyen: string[] }
+/** Thân `POST /api/cai-dat/giao-dien` (chỉ Toàn quyền): một lô dòng cho MỘT màn; cả lô hợp lệ mới ghi. Trả `ChinhSachGiaoDienTatCaDto`. */
+export interface ChinhSachGiaoDienRequest { man: string; thayDoi: { truong: string; quyen: string; cheDo: string }[] }
+/** Thân `POST /api/cai-dat/giao-dien/khoi-phuc` (chỉ Toàn quyền): đặt lại MẶC ĐỊNH mọi ô của một màn. */
+export interface ChinhSachGiaoDienKhoiPhucRequest { man: string }
+
 // ---- Công tắc "Dịch vụ nhập tay" (ADR-0061 điều 6; module `orders`) ----
 /**
  * `GET`/`POST /api/cai-dat/nhap-tay`: `batNhapTay` = công tắc đang BẬT; `duocDung` = CHÍNH người gọi có được nhập tay không (`duocNhapTay` của máy chủ —

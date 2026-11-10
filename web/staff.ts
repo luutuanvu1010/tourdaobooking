@@ -6,6 +6,7 @@ import { chonLocHopLe, locTheoVai, nutLocVai } from "../src/shared/loc-tai-khoan
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
 import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
+import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
 import { initShell, showError } from "./shell";
 import { nhanHaiLop } from "../src/shared/hai-lop-hien-thi";
 import { dungHangChoXacMinh } from "./xac-minh-hang-cho";
@@ -46,6 +47,9 @@ let capHienHanh: Map<string, CapHienHanhDto> | null | undefined = undefined;
 let lanNapCap = 0; // số thứ tự lần nạp: lần nạp cũ về muộn không ghi đè lần mới hơn
 let daVeLanDau = false; // đã vẽ bảng từ danh sách chưa — cấp về trước thì để `load` vẽ, về sau thì vẽ lại
 const cotCapEl = byId("cot-cap");
+/** ADR-0194 đợt 1: hai cột phụ (Tạo lúc, Đăng nhập gần nhất) Toàn quyền có thể ẩn — chỉ hiển thị; lỗi tải = mặc định đầy đủ. Tải TRƯỚC lần vẽ đầu. */
+let chinhSach: ChinhSachUi = CHINH_SACH_DAY_DU;
+const anCot = (truong: string): boolean => chinhSach.an("danh-sach-tai-khoan", truong);
 
 // Bộ lọc theo vai trò (đặt vé của đối tác, lượt 1, Task 4; đặc tả §4.4): lọc ngay trên danh sách ĐÃ NẠP (`accounts`), cả bảng máy tính lẫn thẻ điện thoại; bấm nút chỉ vẽ lại, không gọi máy chủ.
 // Lựa chọn nhớ theo phiên (sessionStorage — có thể bị chặn / không có: bọc try/catch, trang vẫn chạy với «Tất cả»). Luật chọn nút / lọc / giữ lựa chọn ở src/shared/loc-tai-khoan.ts.
@@ -197,8 +201,8 @@ function row(s: Api.StaffListRowDto): HTMLElement {
     h("td", null, s.phone),
     h("td", null, accessLabel(s)),
     hienCotCap && h("td", null, oCapCuaS(s)),
-    h("td", { class: "muted" }, dateTime(s.createdAt)),
-    h("td", { class: "muted" }, s.lastLoginAt ? dateTime(s.lastLoginAt) : "Chưa ghi nhận"),
+    h("td", { class: "muted", hidden: anCot("createdAt") }, dateTime(s.createdAt)),
+    h("td", { class: "muted", hidden: anCot("lastLoginAt") }, s.lastLoginAt ? dateTime(s.lastLoginAt) : "Chưa ghi nhận"),
     h(
       "td",
       { class: "row-actions" },
@@ -258,7 +262,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
     h("div", null, nhanHaiLopEl(s)),
     h("div", { class: "muted" }, s.phone, " · ", accessLabel(s)),
     oCapThe && h("div", null, h("span", { class: "muted" }, `${CHU_CAP.nhanCot}: `), oCapThe),
-    h("div", { class: "muted" }, s.lastLoginAt ? `Đăng nhập gần nhất ${dateTime(s.lastLoginAt)}` : "Chưa ghi nhận đăng nhập"),
+    h("div", { class: "muted", hidden: anCot("lastLoginAt") }, s.lastLoginAt ? `Đăng nhập gần nhất ${dateTime(s.lastLoginAt)}` : "Chưa ghi nhận đăng nhập"),
     h(
       "div",
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
@@ -564,6 +568,8 @@ else {
   }
   // ADR-0125 đ6: hàng chờ xác minh phiếu tự khai — ô party.verify (Quản trị, Nhân sự, Toàn quyền); khối tự dựng và hiện, máy chủ kiểm lại từng route.
   if (can(staff, "party.verify")) dungHangChoXacMinh(byId("xac-minh"), staff);
+  chinhSach = await taiChinhSach();
+  for (const th of document.querySelectorAll<HTMLElement>("th")) anPhanTu(anCot(th.textContent === "Tạo lúc" ? "createdAt" : th.textContent === "Đăng nhập gần nhất" ? "lastLoginAt" : ""), th);
   await load();
   // Task 3b: khối vai dựng SAU lần nạp đầu để ô vai mang tên hiện hành (tenVai) từ máy chủ.
   if (can(staff, "account.create")) setupAddForm();

@@ -18,6 +18,7 @@ import type { ChuyenChoTin, HoiChuyenChoTin } from "./tin-chuyen.ts";
 import type { KetQuaLoiMoi, KhungGioHanhChinh } from "./ban-hang-phu-trach.ts";
 import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate, type PermissionCode } from "./permissions.ts";
 import { quyenThat } from "./xem-nhu-vai.ts";
+import type { TruongDaGiai } from "./ui-truong.ts";
 
 /**
  * public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); orders: văn phòng HOẶC Đối tác (ADR-0014);
@@ -221,6 +222,12 @@ export interface Ctx<A extends Access = Access> {
    * tiêm hàm (khung thử cố ý) → route CHẶN lệnh cần mốc (503 `moc_toi_thieu_chua_co`), KHÔNG đoán con số. Không phụ thuộc người đang gọi.
    */
   mocToiThieu: () => Promise<MocToiThieu | null>;
+  /**
+   * CHÍNH SÁCH GIAO DIỆN ÁP CHO NGƯỜI GỌI (ADR-0194 đợt 1) — do gốc lắp ráp tiêm (`giao-dien.chinhSachChoNguoi`; `orders` KHÔNG import `giao-dien`, khuôn `mocToiThieu`). Hợp của mọi quyền
+   * của người gọi, chỉ trường KHÁC mặc định. Không tiêm (khung thử cũ) HOẶC không đăng nhập HOẶC đọc lỗi ⇒ `[]` = hành vi hôm nay (mặc định đầy đủ — không ẩn, không bắt buộc thêm).
+   * MỘT truy vấn D1 mỗi lần gọi; route gọi đúng một lần mỗi request.
+   */
+  chinhSachGiaoDien: () => Promise<readonly TruongDaGiai[]>;
   /**
    * ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1) — do gốc lắp ráp tiêm (`van-chuyen.dongBoChuyenChoDon`; orders / dispatch KHÔNG import van-chuyen). Nhận câu đơn ĐÃ
    * SOẠN chưa chạy, trả danh sách đầy đủ `[câu đơn…, khúc chuyến…]` để điểm gọi chạy MỘT `db.batch`. `sauKhiGhi(kq)` (gọi khi lệnh đơn thắng) trả phần "chuyến"
@@ -469,6 +476,8 @@ export interface AppOptions {
      * router trả `null` ⇒ `orders` chặn lệnh cần mốc (khuôn `isAssigned`: không bao giờ lặng lẽ "không có mốc").
      */
     mocToiThieu: (env: Env) => Promise<MocToiThieu | null>;
+    /** CHÍNH SÁCH GIAO DIỆN (ADR-0194 đợt 1). Bản thật ở `src/index.ts` (`chinhSachChoNguoi` của giao-dien); thiếu (khung thử cũ) ⇒ `[]` — không đổi hành vi. */
+    chinhSachGiaoDien?: (env: Env, actor: StaffProfile) => Promise<TruongDaGiai[]>;
     /** ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `dongBoChuyenChoDon` của van-chuyen); thiếu (khung thử cố ý) → `dongBoDiThang`. */
     dongBoChuyen: (env: Env, actor: StaffProfile, x: VaoDongBoTheoDon) => Promise<DongBoTheoDon>;
     /** Mốc sắp hết hạn (ADR-0040 D1). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguongHetHanHienHanh(env.DB)`). */
@@ -663,6 +672,15 @@ export function createApp(opts: AppOptions) {
       giaoLoDay: (ds) => opts.injected.giaoLoDay(env, ds),
       // Thiếu hàm tiêm (khung thử cố ý) → null: route chặn, không đoán (I25). Kiểm lúc GỌI, không lúc dựng app (typeof — JS không kiểm kiểu).
       mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(envH) : Promise.resolve(null)),
+      chinhSachGiaoDien: async () => {
+        if (!who || typeof opts.injected.chinhSachGiaoDien !== "function") return [];
+        try {
+          return await opts.injected.chinhSachGiaoDien(envH, who);
+        } catch (e) {
+          console.error("chinh_sach_giao_dien_doc_loi", e instanceof Error ? e.message : "?"); // chính sách là bề mặt: đọc hỏng ⇒ mặc định đầy đủ, không chặn lập đơn
+          return [];
+        }
+      },
       // ADR-0104 Đ2.1: `sauKhiGhi` bọc thêm việc báo Bảng tin / tin chuyến cho từng khúc thắng (khuôn baoThayDoiChuyen bên trên — bắn-và-quên, env gốc).
       dongBoChuyen: async (x) => {
         if (!who || typeof opts.injected.dongBoChuyen !== "function") return dongBoDiThang(x);
