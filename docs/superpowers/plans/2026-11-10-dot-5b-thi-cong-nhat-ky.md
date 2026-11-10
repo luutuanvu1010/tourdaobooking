@@ -41,7 +41,8 @@ Xây trên lỗ đang hở: **HC-5.19** (khoá `xay_tren_cho_phep_adr_0193`).
 
 ## Kết quả kiểm (2026-11-10, trên đỉnh nhánh `17db1ce1d`)
 
-- `npm test` đủ bộ: 8790/8795 qua, 1 đỏ duy nhất là `src/modules/parties/xac-minh-route.test.ts` (r7, «nhật ký không chứa số») — bài đỏ giả đã biết khi số ngẫu nhiên chứa dãy trùng (bộ nhớ `reference-bai-r7b-do-gia-0111`), chạy lại riêng 3 lần + người kiểm 1 lần đều 30/30 xanh; nằm ở phân hệ hồ sơ, không chạm nhánh này. Lần chạy đầu có 7 bài đỏ thật (bảng route chưa khai hai route mới, TC-23 theo hành vi cũ, chữ «Còn vé» đơn lẻ, gạch nhật ký thay đổi quá 160 ký tự) — đã sửa ở `f7ab7720c`.
+- `npm test` đủ bộ (lần 2): 8795 bài, 8790 qua, 4 «todo» (bài chờ chủ quyết có từ trước: gộp hồ sơ hoa hồng N-11, bảo mật hai lớp ADR-0090, sổ đại lý SV-TA-07/08 — không thuộc nhánh), 1 đỏ duy nhất là `src/modules/parties/xac-minh-route.test.ts` (r7, «nhật ký không chứa số») — bài đỏ giả đã biết khi số ngẫu nhiên chứa dãy trùng (bộ nhớ `reference-bai-r7b-do-gia-0111`), chạy lại riêng 3 lần + người kiểm 1 lần đều 30/30 xanh; nằm ở phân hệ hồ sơ, không chạm nhánh này. Lần chạy đầu có 7 bài đỏ thật (bảng route chưa khai hai route mới, TC-23 theo hành vi cũ, chữ «Còn vé» đơn lẻ, gạch nhật ký thay đổi quá 160 ký tự) — đã sửa ở `f7ab7720c`.
+- `npm test` chạy lại lần 3 (sau khi sang ngày 11/11, trước lần lưu này): **thoát 0** — 8795 bài, 8791 qua, 0 đỏ, 4 todo như trên; bài r7 lần này xanh (xác nhận là đỏ giả).
 - `npm run typecheck`: 0 lỗi.
 - `npm run test:e2e`: **90/90 kịch bản xanh** (799 giây), kể cả `audit-invariants`.
 - Kịch bản Chrome `docs/evidence/2026-11-10-dot-5b-gio-don/kich-ban/gio-don-smoke.mjs` (có `AXE_JS`): **5/5 bước**, ảnh 390 + 1280 ở `…/anh/`.
