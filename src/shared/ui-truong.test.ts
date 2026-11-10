@@ -217,7 +217,8 @@ test("(b4) bốn ô giờ đợt này KHÔNG ẩn được (chủ đưa ra 10/11
     assert.deepEqual(timMuc(man, truong)?.dieuKien ?? [], [], `${man}/${truong}: màn chỉ xem không có điều kiện`);
   }
   assert.equal(laCheDoHopLe("dich-vu-trong-don", "paxOverride", "BAT_BUOC"), false, "số người chiều về không bắt buộc được (chỉ chặng VỀ)");
-  assert.equal(laCheDoHopLe("dich-vu-trong-don", "flightCode", "BAT_BUOC"), true);
+  // Người kiểm độc lập 10/11: máy chủ đòi số hiệu ở MỌI chặng khi «Bắt buộc», giao diện chỉ có ô ở chặng sân bay ⇒ chưa cho bắt buộc (tránh kẹt người lập).
+  assert.equal(laCheDoHopLe("dich-vu-trong-don", "flightCode", "BAT_BUOC"), false, "số hiệu chuyến bay chưa bắt buộc được (chặng không ở sân bay không có ô)");
   assert.equal(laCheDoHopLe("dich-vu-trong-don", "departTime", "AN"), false);
 });
 

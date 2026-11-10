@@ -69,7 +69,7 @@ export const DANH_MUC_UI: readonly MucTruong[] = [
   // Danh sách tài khoản: «trạng thái khoá» = `active` (StaffAccount), số Face ID = `passkeyCount` (StaffAccountDto). Chỉ ẩn hiển thị; quyền xem vẫn ở permissions.ts.
   xem("danh-sach-tai-khoan", "StaffAccount", "active"), xem("danh-sach-tai-khoan", "StaffAccountDto", "passkeyCount"),
   // Dịch vụ trong đơn (cấp DỊCH VỤ; máy chủ áp lúc lập / sửa nháp). Nhóm 2: số hiệu chuyến bay, số người chiều về, ghi chú dịch vụ — ẩn được, nhận hai điều kiện.
-  dichVu("flightCode", "LegInput", true, { dieuKien: DIEU_KIEN }), dichVu("paxOverride", "LegInput", true, { dieuKien: DIEU_KIEN, khongBatBuoc: true }), dichVu("note", "TripInput", true, { dieuKien: DIEU_KIEN }),
+  dichVu("flightCode", "LegInput", true, { dieuKien: DIEU_KIEN, khongBatBuoc: true }), dichVu("paxOverride", "LegInput", true, { dieuKien: DIEU_KIEN, khongBatBuoc: true }), dichVu("note", "TripInput", true, { dieuKien: DIEU_KIEN }),
   // Luật nền cần (máy chủ bắt buộc / vận hành / biên nhận): KHÔNG ẩn được. Bốn ô giờ (`departTime`, `checkinDate/Time/Place`) chủ đưa ra khỏi đợt này ngày 10/11 — biên nhận, ảnh xác nhận, «Việc của tôi» còn dùng.
   dichVu("departDate", "TripInput", false), dichVu("pickupChoice", "ServiceInput", false),
   dichVu("departTime", "TripInput", false), dichVu("checkinDate", "TripInput", false), dichVu("checkinTime", "TripInput", false), dichVu("checkinPlace", "TripInput", false),
