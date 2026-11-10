@@ -765,3 +765,10 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **Trạng thái:** `để sau` · Chỉ làm khi chủ xin.
 - **BL-KB-QUET-CHU-NUT** — bài tự quét: mọi chữ nút/nhãn mà kịch bản Chrome gõ cứng phải có trong `docs/BANG-THAM-CHIEU.md` hoặc trong mã giao diện. Mỗi đợt đổi tên nút (ADR-0166 và sau) làm vài kịch bản đỏ vì lệch chữ; hôm nay chỉ sửa tay (Task 1.9).
 - **BL-KB-DO-SAN-DOT-1** — còn đỏ sẵn trên bản chính, không do Đợt 1 (đã đối chiếu bằng bản gốc): doi-tac-lap-don bước 6 và 7, a2-form, a2-order, trang-chu, quyen-thieu phần C, huong-dan a/b/e, dot-0 #20, v1-npt-1030, và vài bước của tra-sau, xac-nhan, chup-anh, chon-hdv, v1-xac-nhan-png.
+
+## 68. Nối cột ẩn/hiện vào Danh sách đơn và số Face ID (mã `BL-GD-…`, ADR-0195, 2026-11-10)
+
+- **Trạng thái:** `để sau` · Chủ 10/11, nguyên văn: «Để sau (khuyến nghị)».
+- **BL-GD-DS-DON** — màn `danh-sach-don` (ghi chú khách, điểm đón, người lập, giờ lập, số khách) đã có trong danh mục và máy chủ, nhưng giao diện chưa nối: nối vào thì gói trang Đơn hàng vượt trần 111.118 byte khoảng 261 byte. Hai cách mở: chủ nâng trần, hoặc một lượt thi công tách `traCuuChinhSach` khỏi `ui-truong.ts` thành tệp nhỏ. Bản vá cũ chỉ nằm ở thư mục tạm của phiên, không còn đáng tin; làm lại từ danh mục.
+- **BL-GD-FACE-ID** — ẩn số Face ID ở danh sách tài khoản: con số nằm trong chữ nút «Gỡ Face ID (N)» mà bài bảng tham chiếu canh; ẩn tức là đổi tên nút (chủ chọn tên).
+- **BL-GD-NHO** — hai lỗi nhỏ do người kiểm độc lập nêu, chưa sửa: (1) màn chỉnh: đặt dòng điều kiện khi dòng «Mọi dịch vụ» đang đổi mà chưa lưu thì ô bật lại theo dòng chính; (2) ẩn ô số người chiều về mà lỗi chặn Lưu về số vé vẫn hiện.
