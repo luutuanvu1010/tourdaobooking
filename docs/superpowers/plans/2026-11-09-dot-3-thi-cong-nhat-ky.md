@@ -64,3 +64,8 @@ Kế hoạch: `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (ch�
 
 - Lệnh nhập lần trước dừng vì `main` đổi (ADR-0194 đợt 1 nhập, lấy số 2.85); production chưa có chữ Đợt 3 (dò `/js/login.js`). Chủ ra lệnh gộp lại.
 - Gộp `origin/main` d87c9cf8b: vướng `changelog.ts` (Đợt 3 đổi số tạm **2.86**, ngày 10/11) và `docs/BANG-THAM-CHIEU.md` (sinh lại). Typecheck 0 lỗi; gói Đơn hàng dưới trần; `npm test` xanh hết (8695 + 1, thoát 0).
+
+## Gộp lần ba (2026-11-10): Đợt 2 sửa sau rà soát nhập trước
+
+- Đợt 2 nhập trước, lấy số 2.86; production chưa có chữ Đợt 3. Gộp `origin/main` c06dd777d: chỉ vướng `changelog.ts` (Đợt 3 đổi số tạm **2.87**). Typecheck 0 lỗi; máy canh Hướng dẫn xanh.
+- Gói Đơn hàng 111.133 > trần 111.118 (+15): phần Đợt 3 còn trong gói chỉ là Task 3.6 (đo metafile: `session-ended.ts`, `web/api.ts`), không gọt thêm được. Chủ duyệt 10/11 nguyên văn «Nâng lên 111.168» → `TRAN_ORDERS = 111_168` kèm chú thích ở `src/goi-trang-nhe.test.ts`.
