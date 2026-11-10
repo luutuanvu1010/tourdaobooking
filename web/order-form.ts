@@ -32,6 +32,8 @@ import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "../src/shared/trip-rules";
 import { coGiaTriChuyen } from "../src/shared/trip-form";
 import { buocXong } from "../src/shared/buoc-tao-don";
 import { vnToday } from "../src/shared/vn-date";
+import { SESSION_ENDED_KEY } from "../src/shared/session-ended";
+import { docBanChup, khoaNhapTam, quyetKhoiPhuc, type BanChup } from "../src/shared/nhap-tam-don";
 import { ApiError, api, vuaLamBoiTabNay, type Api, type OrderInput } from "./api";
 import { openAssigneePicker } from "./assignee-picker";
 import { renderBanner } from "./banner";
@@ -775,6 +777,19 @@ formEl.addEventListener("submit", (e) => {
 const laLuuBangCham = nhoChamKichHoat(saveBtn);
 
 /**
+ * ADR-0192 mục 6: Đối tác bấm «Gửi đơn» = lưu rồi gửi. Mã đơn vừa lưu nằm ở đây suốt lời gọi gửi; lời gọi gửi gặp 401 thì `goLogin` không bao giờ trả về (khối `catch` không chạy),
+ * nên `pagehide` đọc biến này để ghi bản chụp «đơn đã tạo» — đăng nhập lại thì về trang đơn đó, không mở lại form (tránh đơn trùng). Gửi xong / gửi hỏng vì lý do khác ⇒ null.
+ */
+let donVuaTao: string | null = null;
+/** ADR-0192 mục 4, 5: xoá bản chụp của người đang đăng nhập (đã khôi phục / bỏ, hoặc lưu thành công). sessionStorage bị chặn → bỏ qua. */
+function xoaNhapTam(): void {
+  try {
+    sessionStorage.removeItem(khoaNhapTam(staff.id));
+  } catch {
+    // bỏ qua
+  }
+}
+/**
  * Lưu đơn nháp. `datGap` (ADR-0049 R-P15 — nút "Ghi đặt gấp" trên thẻ): lưu xong gọi lệnh đặt gấp cho đúng chặng `legKey` của dịch vụ đó (thứ tự
  * dịch vụ trong phản hồi = thứ tự thẻ). Lệnh đặt gấp hỏng thì đơn VẪN đã lưu → vẫn chuyển sang trang đơn, kèm `datgap=loi` để trang đơn báo và cho duyệt lại.
  */
@@ -808,6 +823,7 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
     const { order } = editId
       ? await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(editId)}`, { method: "PUT", body: collect() })
       : await api<Api.OrderResponse>("/api/orders", { method: "POST", body: collect() });
+    xoaNhapTam(); // ADR-0192 mục 5: lưu thành công — bản chụp (nếu còn) không còn cần
     let datGapLoi = "";
     if (datGap) {
       const chang = changDaLuu(order.services[entries.indexOf(datGap.entry)]?.legs ?? [], datGap.entry.draft.legs, datGap.legKey);
@@ -824,10 +840,13 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
     // không ở lại form — bấm lần hai trên form sẽ POST /api/orders lần hai (nháp trùng). Thành công: chỉ MỘT CHỮ CÁI nhánh (`gui=A|B`) lên địa chỉ — trang đơn dựng câu báo từ `CAU_BAO_GUI_DON`.
     if (!editId && guiDonKhiLuu && !datGap) {
       let thamSo = "";
+      donVuaTao = order.id; // ADR-0192 mục 6: gửi hết phiên (401) ⇒ pagehide ghi bản chụp «đơn đã tạo»
       try {
         const r = await api<Api.GuiDonResponse>(`/api/orders/${encodeURIComponent(order.id)}/gui-don`, { method: "POST", body: {} });
+        donVuaTao = null;
         thamSo = `&gui=${r.nhanh}${r.nhanh === "B" ? "&moi=1" : ""}`;
       } catch (e) {
+        donVuaTao = null; // gửi hỏng vì lý do khác 401: rẽ sang trang nháp kèm câu lỗi như cũ
         try { sessionStorage.setItem(`gui-don-loi:${order.id}`, e instanceof ApiError ? e.message : ""); } catch { /* không có sessionStorage: trang đơn nói câu chung */ }
         thamSo = "&guiloi=1";
       }
@@ -1065,6 +1084,36 @@ async function hienLaiKhoiKhachNeuCan(err: unknown): Promise<void> {
 const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.CatalogPublicResponse>("/api/catalog/for-order")) : () => api<Api.CatalogPublicResponse>("/api/catalog/for-order");
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
+// ---- ADR-0192: bản chụp tạm form đơn lúc hết phiên (sessionStorage, gắn mã nhân viên, 30 phút, một lần) ----
+// Chụp: chỉ khi trang bị rời VÌ `goLogin` (401) — `goLogin` ghi `SESSION_ENDED_KEY` trước khi chuyển về /login, và /login đọc rồi xoá khoá đó mỗi lần mở, nên lúc
+// rời form theo cách thường khoá không có. Lời gọi session-ended hỏng (mất mạng) thì không có dấu ⇒ không chụp (chỉ là không khôi phục được). Hiện chỉ chụp «đơn đã tạo»
+// của Đối tác (mục 6); giá trị các ô chờ chủ chọn cách chụp / khôi phục.
+window.addEventListener("pagehide", () => {
+  try {
+    if (sessionStorage.getItem(SESSION_ENDED_KEY) !== null && donVuaTao !== null) {
+      const b: BanChup = { loai: "da-tao", staffId: staff.id, at: Date.now(), orderId: donVuaTao };
+      sessionStorage.setItem(khoaNhapTam(staff.id), JSON.stringify(b));
+    }
+  } catch {
+    // sessionStorage bị chặn / đầy: bỏ qua, không bao giờ cản việc về trang đăng nhập
+  }
+});
+{
+  // Khôi phục MỘT lần: đọc rồi xoá ngay, dù kết quả là gì (ADR-0192 mục 4).
+  let raw: string | null = null;
+  try {
+    raw = sessionStorage.getItem(khoaNhapTam(staff.id));
+  } catch {
+    // bỏ qua
+  }
+  xoaNhapTam();
+  const kq = quyetKhoiPhuc(docBanChup(raw), staff.id, Date.now(), editId, null);
+  if (kq.lam === "chuyen") {
+    // Đơn đã lưu nhưng lời gọi gửi hết phiên: về trang nháp đó như nhánh «gửi hỏng» (câu chung «chưa gửi được… bấm Gửi đơn lại»), không mở lại form — tránh đơn trùng.
+    location.replace(`/order?id=${encodeURIComponent(kq.orderId)}&guiloi=1`);
+    await new Promise<never>(() => undefined); // trang sắp bị thay: không nạp danh mục / đơn
+  }
+}
 guiDonKhiLuu = holdsPartner(staff);
 coODatCoc = holdsPartner(staff);
 byId("dat-coc-o").hidden = !coODatCoc;
