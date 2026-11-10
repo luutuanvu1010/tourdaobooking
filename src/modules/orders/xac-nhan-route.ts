@@ -23,7 +23,7 @@ import { CAU_BAO_GUI_DON } from "../../shared/gui-don-cau-bao";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
 import { canhBaoMocCua, type XetDatGapSua } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
-import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, docBatBuocGioDon, gioDonMoiNhat, nguoiLapGiuDoiTac, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
+import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, cauThemGioDon, docBatBuocGioDon, gioDonMoiNhat, nguoiLapGiuDoiTac, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, type DauDatGapMoi } from "./chang-hanh-khach-repo";
 import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { congHuyTraSau, VE_CHUA_SOAN_DUOC } from "./tra-sau-cong";
@@ -31,7 +31,7 @@ import { CAU_VUOT_TONG_NGUOI_XET } from "../../shared/dat-coc-truoc";
 import { MOC_CHUA_CO, RACED, STALE, type KetQuaLenhDon, canChotGioCuaNguoiLap, chanDoanXacNhan, chayLoNoiChuyen, cocChoXacNhan, congDoiTacChuaCoVaiTro, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, nguoiLapLaNguoiBam, tinhCanXacNhan, viCuaYeuCau, type NguoiLapDoiTac } from "./xac-nhan-chung";
 import { confirmGaps, confirmWindow } from "./service-rules";
 import { congLuatBan } from "./cong-ban";
-import { coChotGio, lenhGhiBatBuocGioDon } from "./gio-don-cai-dat";
+import { coChotGio } from "./gio-don-cai-dat";
 
 const NHAN_VI: Record<LyDoCanXacNhan, string> = { DICH_VU: "dịch vụ cần xác nhận", DAT_GAP: "lượt đón dưới hạn chốt, cần đặt gấp", CHOT_GIO: "có lượt đưa đón chưa có giờ đón" };
 const dtoYeuCau = (y: YeuCauRow, vi: LyDoCanXacNhan[], nowMs: number): YeuCauXacNhanDto => ({ id: y.id, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, nowMs), vi });
@@ -57,6 +57,17 @@ async function docAnKhach(db: D1Database, staff: StaffProfile, luc: string): Pro
 }
 
 /**
+ * MỘT lô đổi công tắc «Bắt buộc giờ đón cho đơn đối tác» (ADR-0193 mục 1): dòng chính sách mới (chỉ-thêm, `valid_from_at = at`) rồi nhật ký `pickup_time_policy_changed` không gắn đơn. Câu chèn
+ * hoặc chèn được hoặc NÉM lỗi UNIQUE (không có đường «đổi 0 dòng») và lô D1 lui trọn khi một câu ném lỗi, nên thua mốc thì không để lại nhật ký.
+ */
+export function lenhGhiBatBuocGioDon(db: D1Database, v: { bat: boolean; at: string; by: string }): D1PreparedStatement[] {
+  return [
+    cauThemGioDon(db, { id: crypto.randomUUID(), bat: v.bat, at: v.at, by: v.by }),
+    auditStatement(db, { staffId: v.by, action: "pickup_time_policy_changed", at: v.at, targetType: "system", detail: v.bat ? "Bật bắt buộc giờ đón cho đơn đối tác" : "Tắt bắt buộc giờ đón cho đơn đối tác" }),
+  ];
+}
+
+/**
  * MỞ YÊU CẦU xác nhận (Đ3) — MỘT lô: đẩy mốc đơn nháp (khoá lạc quan) → nhật ký `order_confirm_requested` → dòng yêu cầu. DÙNG CHUNG cho `gui-xac-nhan` và nhánh A của `gui-don` (Task 3.4).
  * Nơi gọi đã kiểm mọi cổng; hàm này chỉ ghi. Thua khoá (người khác vừa đổi đơn) → STALE; va ràng buộc «một yêu cầu mở» → 409 `confirm_already_open`.
  */
@@ -71,7 +82,7 @@ async function moYeuCau(db: D1Database, i: { id: string; staffId: string; partyI
     const gn = await soanGhiNhan({ db, banHang: i.banHang, orderId: i.id, nguoiLap: { id: i.staffId, partyId: i.partyId }, at, auditId, canKiem: true, khung: i.khung });
     kq = await db.batch([
       orderTouchDraft(db, i.id, at, i.meta.updatedAt),
-      auditStatement(db, { id: auditId, orderId: i.id, staffId: i.staffId, action: "order_confirm_requested", at, detail: `Gửi kiểm vé · ${i.vi.map((v) => NHAN_VI[v]).join("; ")}` }, "changes() > 0"),
+      auditStatement(db, { id: auditId, orderId: i.id, staffId: i.staffId, action: "order_confirm_requested", at, detail: ["Gửi kiểm vé", i.vi.map((v) => NHAN_VI[v]).join("; ")].filter(Boolean).join(" · ") }, "changes() > 0"),
       cauMoYeuCau(db, { id: yeuCauId, orderId: i.id, at, by: i.staffId, han, auditId, canChotGio: i.canChotGio }),
       ...gn.cau,
     ]);
@@ -116,7 +127,8 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
         yeuCauId: y.id, orderId: o.id, orderCode: o.orderCode, dichVu: o.services.map((s) => s.name), ngayDi: ngay,
         soKhach: o.services.reduce((t, s) => t + (s.pax.adult ?? 0) + (s.pax.child ?? 0) + (s.pax.senior ?? 0), 0),
         // yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.7): lượt đầu CHƯA có giờ — giờ gợi ý của chiều về (hay lượt khác) không được trông như giờ đón của cả đơn.
-        gioDon: y.pickup_time_required === 1 ? null : dau ? (dau.pickupSlotEnd ? `${dau.pickupTime}–${dau.pickupSlotEnd}` : dau.pickupTime) : null,
+        // ADR-0193: cờ = 0 khi công tắc Tắt nên xét thẳng «lượt đầu còn thiếu giờ», không chỉ dựa vào cờ.
+        gioDon: y.pickup_time_required === 1 || thieuGioChangDau(o.services).length > 0 ? null : dau ? (dau.pickupSlotEnd ? `${dau.pickupTime}–${dau.pickupSlotEnd}` : dau.pickupTime) : null,
         tong: o.total, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, nowMs), canDatGap: vi.includes("DAT_GAP"), vi,
       });
     }
@@ -222,12 +234,15 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     const canXN = await tinhCanXacNhan(env.DB, order, moc, nowMs);
     // ADR-0154 Đ1.2: người lập giữ quyền Đối tác (kể cả lai) mà LƯỢT ĐẦU của một dịch vụ chọn Đón chưa có giờ → luôn nhánh A, dù dịch vụ không «cần xác nhận». Luật đứng ở ĐÂY, không trong
     // `tinhCanXacNhan` (đơn văn phòng, `/status`, Gửi xác nhận không đổi); cờ chụp vào yêu cầu để Còn vé biết phải đòi giờ. Lượt có giờ gửi thẳng qua API vẫn qua cổng 6 giờ (Đ1.7).
+    // ADR-0193 câu (i): `canChot` (đi nhánh A vì thiếu giờ) KHÔNG phụ thuộc công tắc — Tắt vẫn qua văn phòng xét. Công tắc đọc MỘT lần mỗi request, chỉ quyết cờ chụp + lý do `CHOT_GIO`
+    // (`coChotGio`); chụp tại mốc: đổi công tắc sau lúc này không đổi cờ của yêu cầu. Chỉ route này đọc công tắc — khối `xacNhan` của chi tiết đơn lấy lý do từ cờ đã chụp (`viCuaYeuCau`).
     const canChot = canChotGioCuaNguoiLap(staff, order.services);
     if (canXN.can || canChot) {
       const chan = await chanKhoanThu(daThuCuaDon, id);
       if (chan) return chan;
-      const vi: LyDoCanXacNhan[] = canChot ? [...canXN.vi, "CHOT_GIO"] : canXN.vi;
-      const mo = await moYeuCau(env.DB, { id, staffId: staff.id, partyId: staff.partyId, meta, vi, nowMs, canChotGio: canChot, banHang, khung: gio.khung });
+      const chot = coChotGio(canChot, canChot ? await docBatBuocGioDon(env.DB, new Date(nowMs).toISOString()) : true);
+      const vi: LyDoCanXacNhan[] = chot ? [...canXN.vi, "CHOT_GIO"] : canXN.vi; // Tắt + dịch vụ không cần xét ⇒ `vi` rỗng (vào nhánh A chỉ vì thiếu giờ)
+      const mo = await moYeuCau(env.DB, { id, staffId: staff.id, partyId: staff.partyId, meta, vi, nowMs, canChotGio: chot, banHang, khung: gio.khung });
       if ("loi" in mo) return mo.loi;
       baoThayDoi({ orderId: id, thayDoi: "cho_xac_nhan" });
       return json({ nhanh: "A", thongBao: CAU_BAO_GUI_DON.A, yeuCau: mo.yeuCau } satisfies GuiDonResponse, 201, { location: trangDon(id) });
