@@ -1168,6 +1168,8 @@ const staff = await initShell();
 // Chụp: chỉ khi trang bị rời VÌ `goLogin` (401) — `goLogin` ghi `SESSION_ENDED_KEY` trước khi chuyển về /login, và /login đọc rồi xoá khoá đó mỗi lần mở, nên lúc
 // rời form theo cách thường khoá không có. Lời gọi session-ended hỏng (mất mạng) thì không có dấu ⇒ không chụp (chỉ là không khôi phục được). Form chưa nạp xong hoặc đã
 // khoá (không sửa được) thì không chụp giá trị ô.
+/** Đã mở xong nháp (hoặc form trắng): từ đây «chưa có bên đặt» mới là thật, không còn là bên đặt chưa kịp nạp; `pagehide` cũng chỉ chụp giá trị ô từ lúc này. Khai TRƯỚC `pagehide` (tránh vùng chết của `let`). */
+let donDaNap = false;
 window.addEventListener("pagehide", () => {
   try {
     if (sessionStorage.getItem(SESSION_ENDED_KEY) !== null && (donVuaTao !== null || (donDaNap && !formLocked))) {
@@ -1196,6 +1198,7 @@ if (banChup?.loai !== "form") {
     location.replace(`/order?id=${encodeURIComponent(kq.orderId)}&guiloi=1`);
     await new Promise<never>(() => undefined); // trang sắp bị thay: không nạp danh mục / đơn
   }
+  banChup = null; // đã quyết và xoá: bước quyết muộn không xét lại
 }
 guiDonKhiLuu = holdsPartner(staff);
 coODatCoc = holdsPartner(staff);
@@ -1278,8 +1281,6 @@ function benDatId(): string | null {
   return (bookerPicker.payload() as { bookerPartyId?: string | null }).bookerPartyId ?? null;
 }
 let traSauLuot = 0;
-/** Đã mở xong nháp (hoặc form trắng): từ đây «chưa có bên đặt» mới là thật, không còn là bên đặt chưa kịp nạp. */
-let donDaNap = false;
 async function napTraSau(): Promise<void> {
   const luot = ++traSauLuot;
   const id = benDatId();

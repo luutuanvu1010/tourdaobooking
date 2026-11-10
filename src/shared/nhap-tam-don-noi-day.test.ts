@@ -1,6 +1,5 @@
 // ADR-0192: hàng rào NỐI DÂY của bản chụp form đơn lúc hết phiên. Luật thuần ở ./nhap-tam-don.test.ts; bài này đọc mã nguồn giao diện để khẳng định các chỗ nối còn đó
-// (bỏ một lời gọi ⇒ đỏ). Nó KHÔNG chứng minh hành vi trên trình duyệt — việc đó do kịch bản Chrome (Task 5A.4). Ca «initShell gọi nenXoaKhiMoTrang» và «logout xoá»
-// chờ chủ chọn chỗ dọn (trần gói trang Đơn hàng), sẽ thêm ở bước sau.
+// (bỏ một lời gọi ⇒ đỏ). Nó KHÔNG chứng minh hành vi trên trình duyệt — việc đó do kịch bản Chrome (Task 5A.4).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -89,6 +88,31 @@ test("đơn đã tạo chuyển trang NGAY khi mở form; quyetKhoiPhuc cho bả
   assert.ok(muon > orderForm.indexOf("await loadOrder()"), "bản chụp của đơn đang sửa phải quyết SAU khi nạp đơn (có updatedAt máy chủ)");
   assert.ok(muon < orderForm.indexOf("donDaNap = true;"), "phải quyết trước khi đánh dấu form đã nạp xong");
   assert.match(orderForm, /fill\(o: Api\.OrderDetailDto\): string\[\] \{[\s\S]*?orderUpdatedAt = o\.updatedAt/, "fill phải đặt orderUpdatedAt từ máy chủ");
+});
+
+// ---- Dọn (ADR-0192 mục 5; chủ chọn dọn ở khung, nới trần gói Đơn hàng 10/11) ----
+const donNhapTam = (): string => thanHam(ma("web/nhap-tam-don.ts"), "donNhapTam");
+
+test("hàm dọn: chỉ duyệt khoá có TIEN_TO_NHAP_TAM trong sessionStorage; có mã nhân viên thì hỏi nenXoaKhiMoTrang, mã rỗng thì xoá hết", () => {
+  const d = donNhapTam();
+  assert.match(d, /sessionStorage/);
+  assert.doesNotMatch(d, /localStorage/);
+  assert.match(d, /startsWith\(TIEN_TO_NHAP_TAM\)/);
+  assert.match(d, /nenXoaKhiMoTrang\(/);
+  assert.match(d, /removeItem\(/);
+  assert.match(d, /try \{[\s\S]*\} catch/, "mọi lời gọi sessionStorage phải trong try/catch");
+});
+
+test("initShell (mọi trang) gọi dọn với mã người đang đăng nhập ⇒ nenXoaKhiMoTrang", () => {
+  assert.match(thanHam(ma("web/shell.ts"), "initShell"), /donNhapTam\(staff\.id\)/);
+});
+
+test("logout xoá mọi khoá có TIEN_TO_NHAP_TAM", () => {
+  assert.match(thanHam(ma("web/shell.ts"), "logout"), /donNhapTam\(""\)/);
+});
+
+test("màn bảo trì chặn thì xoá mọi khoá có TIEN_TO_NHAP_TAM", () => {
+  assert.match(thanHam(ma("web/maintenance-screen.ts"), "showMaintenanceScreen"), /donNhapTam\(""\)/);
 });
 
 test("không tệp web/ nào ghi bản chụp vào localStorage (chỉ sessionStorage — ADR-0192 mục 2)", () => {

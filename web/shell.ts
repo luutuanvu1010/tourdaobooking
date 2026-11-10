@@ -31,6 +31,7 @@ import { helpHasNews, newDot } from "./help-seen";
 import { APP_NAME } from "./phien-ban"; // bản sao nhẹ của app-info (app-info kéo cả nhật ký thay đổi vào gói mọi trang); tests/e2e/pwa.mjs đối chiếu brand với manifest
 import { icon, type IconName } from "./icons";
 import { layKhungNho, luuKhungNho, xoaKhungNho } from "./khung-nho";
+import { donNhapTam } from "./nhap-tam-don";
 import { demSapHetHan } from "./vc-dem";
 import { registerServiceWorker } from "./pwa";
 import { ganThongBao } from "./thong-bao-ui";
@@ -152,6 +153,7 @@ function ganThanhXemNhu(me: Api.MeResponse): void {
 
 export async function logout(): Promise<void> {
   xoaKhungNho(); // ADR-0035: máy dùng chung — người sau không thấy khung của người trước
+  donNhapTam(""); // ADR-0192 mục 5: đăng xuất xoá mọi bản chụp form đơn
   await Promise.race([tatThongBaoMayNay(), new Promise((resolve) => setTimeout(resolve, 2000))]);
   await api("/api/auth/logout", { method: "POST" }).catch(() => undefined);
   location.assign("/login");
@@ -534,6 +536,7 @@ export async function initShell(): Promise<Staff> {
   }
   const { staff } = me;
   benDatMayChuEp = me.benDatCuaToi ?? null;
+  donNhapTam(staff.id); // ADR-0192 mục 5: xoá bản chụp form đơn của người khác / quá 30 phút
   datNguoiDangNhap(staff.id); // ADR-0094: vé chống ghi trùng giữ qua "tải lại trang" theo ngăn của tài khoản này
   ganThanhXemNhu(me);
   if (me.maintenance?.on) setMaintenanceStrip(true, me.maintenance.endsAt);

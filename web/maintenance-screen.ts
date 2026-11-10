@@ -6,6 +6,7 @@ import { maintenanceMessageParts } from "../src/shared/maintenance";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
 import { xoaKhungNho } from "./khung-nho";
+import { donNhapTam } from "./nhap-tam-don";
 
 const SCREEN_ID = "maintenance-screen";
 /** Khoảng hỏi lại xem chế độ bảo trì đã tắt chưa (GET /api/auth/config — công khai, một truy vấn nhẹ). */
@@ -66,6 +67,7 @@ export function renderMaintenanceMessage(container: HTMLElement, endsAt: string 
  */
 export function showMaintenanceScreen(endsAt: string | null): Promise<never> {
   if (!document.getElementById(SCREEN_ID)) {
+    donNhapTam(""); // ADR-0192 mục 5: màn bảo trì chặn ⇒ xoá mọi bản chụp form đơn
     const message = h("p", { class: "maint-msg", id: "maintenance-message" });
     let poll: ReturnType<typeof setInterval> | null = null;
     const checkReopened = (): void => {
