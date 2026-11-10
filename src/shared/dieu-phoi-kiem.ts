@@ -22,7 +22,7 @@ import { chongNuaMo, nhanKhoangGio, nhanTuDen } from "./khung-ban.ts";
 import { lyDoGiu, type LyDoGiu } from "./ly-do-giu.ts";
 import { gioXetSuaChuyen, kiemMocXep, type LenhXep } from "./moc-toi-thieu.ts";
 import { suatTraTruocDon } from "./thu-tu-diem.ts";
-import { msToVnLocal, ngayNgan, vnToday } from "./vn-date.ts";
+import { addDays, msToVnLocal, ngayNgan, vnToday } from "./vn-date.ts";
 
 const PHUT = 60_000;
 const NGAY_MS = 24 * 3600e3;
@@ -579,13 +579,18 @@ export function kiemKetThuc(v: { suat: SuatVao[]; diem: DiemVao[] }): { duoc: tr
 }
 
 /**
- * "Trong ngày chạy" (ADR-0049 D3, câu thay ở ADR-0053 D7.2 — Q-L3-B a, đóng kẽ G3-9): hôm nay (ngày VN) là ngày chạy của chuyến, HOẶC chuyến đang chạy
- * VÀ ngày VN của giờ xuất bến (giờ xảy ra, `departed_ms`) ≥ ngày chạy — vế sau chỉ để phủ chuyến qua nửa đêm. Bấm Xuất bến tối hôm trước KHÔNG mở tên,
- * SĐT khách sớm. Ngoài khoảng đó DTO tài xế không có tên, SĐT. Một hàm cho mọi tài xế (vế "sau hạn Từ chối" của tài xế đối tác thêm ở lượt 3 — D7.2).
+ * "Trong ngày chạy" (ADR-0049 D3, câu thay ở ADR-0053 D7.2 — Q-L3-B a, đóng kẽ G3-9; vế "đang chạy" có hạn từ ADR-0189 — Q-05): hôm nay (ngày VN) là ngày
+ * chạy của chuyến, HOẶC chuyến đang chạy VÀ ngày VN của giờ xuất bến (giờ xảy ra, `departed_ms`) ≥ ngày chạy VÀ hôm nay không quá ngày kế sau ngày VN của
+ * giờ xuất bến — vế sau chỉ để phủ chuyến qua nửa đêm; chuyến quên bấm Kết thúc hết khung từ 00:00 ngày thứ hai sau ngày xuất bến (ADR-0189). Bấm Xuất bến
+ * tối hôm trước KHÔNG mở tên, SĐT khách sớm. Ngoài khoảng đó DTO tài xế không có tên, SĐT. Một hàm cho mọi tài xế (vế "sau hạn Từ chối" của tài xế đối tác
+ * thêm ở lượt 3 — D7.2). Ngày dạng "YYYY-MM-DD" so như chuỗi.
  */
-export const trongNgayChay = (chuyen: { ngayChay: string; trangThai: TrangThaiChuyen; xuatBenMs: number | null }, homNay: string): boolean =>
-  chuyen.ngayChay === homNay ||
-  (chuyen.trangThai === "RUNNING" && chuyen.xuatBenMs !== null && vnToday(new Date(chuyen.xuatBenMs)) >= chuyen.ngayChay);
+export const trongNgayChay = (chuyen: { ngayChay: string; trangThai: TrangThaiChuyen; xuatBenMs: number | null }, homNay: string): boolean => {
+  if (chuyen.ngayChay === homNay) return true;
+  if (chuyen.trangThai !== "RUNNING" || chuyen.xuatBenMs === null) return false;
+  const ngayXuatBen = vnToday(new Date(chuyen.xuatBenMs));
+  return ngayXuatBen >= chuyen.ngayChay && homNay <= addDays(ngayXuatBen, 1);
+};
 
 /**
  * KHUNG XEM KHÁCH (ADR-0053 D7.2 — MỘT hàm cho mọi tài xế; kế hoạch A4 T1). Trong khung thì DTO tài xế có họ tên, năm sinh, liên hệ, chuỗi đích chỉ đường

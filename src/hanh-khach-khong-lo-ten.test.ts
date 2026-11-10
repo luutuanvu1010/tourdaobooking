@@ -22,7 +22,7 @@ import { maskSource } from "../scripts/source-mask-lib.mjs";
 import type { AppModule } from "./shared/router.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../tests/audit/harness.mjs";
-import { ACC, ADM, DRIVER, DRIVER2, NGAY, NGAY_SAU, batDongHo, chuyenSan, denGio, don, setup, thanhTaiXe, tienDo, uuid, xe } from "../tests/audit/dieu-phoi-khung.mjs";
+import { ACC, ADM, DRIVER, DRIVER2, DRIVER_PARTNER, NGAY, NGAY_SAU, batDongHo, chuyenSan, denGio, don, nhaXeKhung, setup, thanhTaiXe, tienDo, uuid, xe, xeNhaXe } from "../tests/audit/dieu-phoi-khung.mjs";
 
 async function routesOf(entry: string, exportName: string): Promise<string[]> {
   const built = await esbuild.build({ entryPoints: [new URL(entry, import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false });
@@ -915,6 +915,88 @@ test("khối vế hạn NGOÀI khung (ADR-0113): chuyến nhận khách chuyển
     assert.equal(r.status, 409, r.text);
     assert.equal(r.json.error.code, "refuse_blocked_transferred_in", r.text);
     assert.deepEqual(cam(r.text), [], `thân 409 lộ: ${r.text}`);
+  } finally {
+    tat();
+  }
+});
+
+// ---- ADR-0189 (Q-05, accepted 2026-11-09): chuyến QUÊN bấm «Kết thúc» — từ 00:00 ngày thứ hai sau ngày xuất bến, DTO tài xế (công ty lẫn đối tác) không còn khoá tên,
+// năm sinh, liên hệ, chỉ đường (và mã đơn với tài xế đối tác); route bổ sung tên → như ngoài khung (404); lệnh tiến độ và Kết thúc vẫn 200. Mục E-1 cũ của hồ sơ rà soát
+// (đồng hồ giả: 9 ngày sau tài xế vẫn thấy khách) nay ĐẢO: ca D+9 cũng ngoài khung.
+const NGAY_D2 = "2027-03-13";
+const NGAY_D9 = "2027-03-20";
+const KHOA_KHACH = ["hoTen", "namSinh", "lienHe", "diaChiChiDuong"];
+async function quenKetThuc(w: any, a: { id: string; diemDon: string; diemTra: string; suat: string[]; don: { code: string } }, as: string, doiTac: boolean) {
+  const ben = (path: string) => w.call("POST", `/api/van-chuyen/cuoc-cua-toi/${a.id}/${path}`, { as, body: { requestId: uuid() } });
+  denGio("12:35", NGAY);
+  const xb = await ben("xuat-ben");
+  assert.equal(xb.status, 200, xb.text);
+  // D+1 23:59 — còn trong khung: CÓ tên (chống bài rỗng)
+  denGio("23:59", NGAY_SAU);
+  const trong = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as });
+  assert.equal(trong.json.trongNgayChay, true, `D+1: trong khung ${trong.text}`);
+  assert.ok(moiKhoa(trong.json).has("hoTen"), "chống bài rỗng: D+1 có tên khách");
+  if (doiTac) assert.ok(trong.text.includes(a.don.code), "chống bài rỗng: D+1 tài xế đối tác thấy mã đơn");
+  else assert.equal((await ben("hanh-khach")).status, 400, "chống bài rỗng: D+1 route bổ sung tên đi qua cổng khung (thân thiếu → 400)");
+  // D+2 00:05 — quên Kết thúc: ngoài khung
+  for (const ngay of [NGAY_D2, NGAY_D9]) {
+    denGio("00:05", ngay);
+    const r = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.chuyen.trangThai, "RUNNING", "chống bài rỗng: chuyến vẫn đang chạy (quên Kết thúc)");
+    assert.equal(r.json.trongNgayChay, false, `${ngay}: ngoài khung`);
+    const k = moiKhoa(r.json);
+    for (const khoa of KHOA_KHACH) assert.ok(!k.has(khoa), `${ngay}: DTO còn khoá ${khoa}`);
+    for (const t of TEN_VC) assert.ok(!r.text.includes(t), `${ngay}: DTO lộ tên "${t}"`);
+    if (doiTac) {
+      assert.ok(!k.has("maDon") && !r.text.includes(a.don.code), `${ngay}: tài xế đối tác còn thấy mã đơn`);
+    } else {
+      const bs = await ben("hanh-khach");
+      assert.equal(bs.status, 404, `${ngay}: route bổ sung tên phải như ngoài khung: ${bs.text}`);
+    }
+  }
+  // lệnh tiến độ + Kết thúc vẫn chạy được sau hạn
+  const lenh = [`diem/${a.diemDon}/da-toi`, ...a.suat.map((s) => `phan-bo/${s}/don`), `diem/${a.diemTra}/da-toi`, ...a.suat.map((s) => `phan-bo/${s}/tra`), "ket-thuc"];
+  for (const l of lenh) {
+    const r = await ben(l);
+    assert.equal(r.status, 200, `${l}: ${r.text}`);
+    for (const t of TEN_VC) assert.ok(!r.text.includes(t), `${l}: phản hồi lộ tên`);
+  }
+  const cuoi = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as });
+  assert.equal(cuoi.json.chuyen.trangThai, "ENDED", "Kết thúc sau hạn thành công");
+}
+
+test("ADR-0189: tài xế CÔNG TY quên bấm Kết thúc — D+2, D+9 DTO không tên / năm sinh / liên hệ / chỉ đường; bổ sung tên 404; tiến độ + Kết thúc 200; văn phòng vẫn có tên", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const a = await chuyenSan(w, { taiXe: DRIVER, ngay: NGAY, bd: "12:30", kt: "15:00", gio: "13:00", soNguoi: 2 });
+    await quenKetThuc(w, a, DRIVER, false);
+    const vp = await w.call("GET", `/api/van-chuyen/chuyen/${a.id}`, { as: ADM });
+    assert.equal(vp.status, 200, vp.text);
+    assert.deepEqual(vp.json.suat.filter((s: any) => s.hoTen).map((s: any) => s.hoTen).sort(), TEN_VC.slice(0, 2), "văn phòng không đổi: chi tiết chuyến CÓ tên");
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0189: tài xế ĐỐI TÁC quên bấm Kết thúc — D+2, D+9 DTO không tên / năm sinh / liên hệ / chỉ đường / mã đơn; tiến độ + Kết thúc 200", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const nx = nhaXeKhung(w, "Nhà xe Quên Kết Thúc");
+    const AT = "2026-09-01T00:00:00.000Z";
+    w.sqlite.prepare(`INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at)
+      VALUES (?, ?, ?, 'DRIVES_FOR', '2026-09-01', ?, ?)`).run(uuid(), `pty-${DRIVER_PARTNER}`, nx, AT, AT);
+    w.sqlite.prepare(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, issued_place, license_class_code, expiry_date, created_at, updated_at)
+      VALUES (?, ?, 'GPLX', '793300000189', '793300000189', 'Nơi cấp Dò Tìm', 'D', '2030-12-31', ?, ?)`).run("g-dt-0189", `pty-${DRIVER_PARTNER}`, AT, AT);
+    // chuyến 12:30 ngày D: hạn Từ chối 00:30 ngày D (mặc định 720 phút) — đã qua lúc xuất bến 12:35
+    const a = await chuyenSan(w, { taiXe: DRIVER_PARTNER, xe: xeNhaXe(w, nx), ngay: NGAY, bd: "12:30", kt: "15:00", gio: "13:00", soNguoi: 2 });
+    // xe thuê phải có giá trước khi cho xe chạy (THIEU_GIA) — Kế toán ghi giá thoả thuận
+    const pb = (await w.call("GET", `/api/van-chuyen/chuyen/${a.id}/chi-phi`, { as: ACC })).json.chiPhi.phienBanChiPhi;
+    const gia = await w.call("POST", `/api/van-chuyen/chuyen/${a.id}/chi-phi/gia-thoa-thuan`, { as: ACC, body: { requestId: uuid(), phienBanChiPhi: pb, soTien: 1_000_000, ghiChu: "giá thử" } });
+    assert.equal(gia.status, 201, gia.text);
+    await quenKetThuc(w, a, DRIVER_PARTNER, true);
   } finally {
     tat();
   }

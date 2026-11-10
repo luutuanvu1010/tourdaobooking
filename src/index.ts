@@ -17,7 +17,7 @@ import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
 import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
-import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan, chanKhaiCocLai, daThuCuaDon, kiemTraSau, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi, noCuaBenDat, traSauCuaDon, kenhThuHienTai, coHanMucTraSauMo, cauDongHanMucKhiHetVai } from "./modules/billing";
+import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan, chanKhaiCocLai, daThuCuaDon, kiemTraSau, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi, noCuaBenDat, maDonTraSauDaXacNhan, traSauCuaDon, kenhThuHienTai, coHanMucTraSauMo, cauDongHanMucKhiHetVai } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
@@ -238,6 +238,8 @@ const APP_OPTIONS: AppOptions = {
       // ADR-0168 Đ2 mục 6: orders liệt kê đơn của hồ sơ, billing cho biết đơn nào Trả sau còn nợ — gốc lắp ráp ghép (hai module không import nhau).
       donNguoiDat: (partyId) => donCuaNguoiDat(env.DB, partyId),
       conNoTraSau: async (partyId) => (await noCuaBenDat(env.DB, partyId)).don.map((d) => d.maDon),
+      // ADR-0188 mục 4(a): hồ sơ phụ có đơn Trả sau đã xác nhận (kể cả hết nợ) ⇒ route gộp hỏi cổng hạn mức của hồ sơ chính.
+      donTraSauDaXacNhan: (partyId) => maDonTraSauDaXacNhan(env.DB, partyId),
       // ADR-0181 Đ2 (b): gỡ vai được hưởng cuối cùng (parties, accounts) đóng hạn mức Trả sau trong cùng lô — billing dựng câu, hai module kia không ghi bảng bil_.
       coHanMucTraSauMo: (partyId) => coHanMucTraSauMo(env.DB, partyId),
       cauDongHanMucKhiHetVai: (partyId, at, by) => cauDongHanMucKhiHetVai(env.DB, partyId, at, by),

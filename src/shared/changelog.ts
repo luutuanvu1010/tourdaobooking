@@ -18,8 +18,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đợt 3 «chữ do chủ chọn» của kế hoạch sửa sau rà soát lần 2 (phiếu Phụ lục B, phương án (1); câu khoá vé dùng dự phòng B-2), KHÔNG migration.
-    // SỐ TẠM 2.86: main có 2.85 (ADR-0194 đợt 1); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "2.86",
+    // SỐ TẠM 2.87: main có 2.86 (Đợt 2 sửa sau rà soát); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.87",
     date: "2026-11-10",
     items: [
       { kind: "sua", text: "Khi đơn đang giữ vì thiếu mức hoa hồng, câu báo nói rõ cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng đó." },
@@ -31,6 +31,17 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Một số câu khó hiểu được viết lại: câu chờ kiểm vé, câu chưa tới ngày đi, câu danh sách đơn trống, câu loại đối tác tạo trước 31/10/2026." },
       { kind: "doi", text: "Trang chủ trên điện thoại viết số tiền đầy đủ, ví dụ «2.800.000 ₫»." },
       { kind: "sua", text: "Bị đăng xuất giữa chừng vì hết hạn đăng nhập thì trang đăng nhập báo rõ để bạn đăng nhập lại." },
+    ],
+  },
+  {
+    // Đợt 2 kế hoạch sửa sau rà soát lần 2: ADR-0188 (T-03), ADR-0189 (Q-05), ADR-0190 (R3d), chủ duyệt 9/11. KHÔNG migration. Số 2.86: main đã có 2.84 (vé Tour Đảo
+    // Đợt 2) và 2.85 (ADR-0194 đợt 1); bước A.0 đặt lại số và ngày nếu nhánh khác (Đợt 3) nhập trước.
+    version: "2.86",
+    date: "2026-11-10",
+    items: [
+      { kind: "doi", text: "Đơn trả sau đã xác nhận chỉ đổi bên đặt sang đối tác có hạn mức trả sau còn hiệu lực, không có đơn quá hạn; gộp hồ sơ có đơn trả sau cũng vậy." },
+      { kind: "doi", text: "Tài xế quên bấm «Kết thúc»: từ 0 giờ ngày thứ hai sau ngày xe chạy, màn chuyến ẩn tên, số liên hệ của khách và nhắc bấm «Kết thúc»." },
+      { kind: "doi", text: "Chỉ Quản trị, Toàn quyền ngừng dùng hoặc dùng lại hồ sơ khách, đại lý; Bán hàng, Kế toán vẫn sửa tên, liên hệ. Nhật ký ghi rõ «ngừng dùng», «dùng lại»." },
     ],
   },
   {

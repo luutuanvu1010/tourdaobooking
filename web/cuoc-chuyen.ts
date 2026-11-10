@@ -62,6 +62,7 @@ import { cauChoVang } from "../src/shared/cho-vang";
 import { giuChiDuong, nutChiDuongCuaDiem } from "../src/shared/chi-duong";
 import { nhanChoChayThieu } from "../src/shared/cho-chay-thieu-giay";
 import { cauThayKhach, daiHanTuChoi, loiTuChoi } from "../src/shared/tu-choi-man";
+import { CAU_NHAC_KET_THUC, hienNhacKetThuc } from "../src/shared/nhac-ket-thuc";
 
 const errorEl = byId("error");
 const trangEl = byId("cc-trang");
@@ -504,6 +505,8 @@ function ve(): void {
   document.body.classList.toggle("cc-dang-chay", c.trangThai === "RUNNING");
   if (c.trangThai === "PLANNED") return veXuatBen(dauMang);
   const trenXe = r.suat.filter((s) => s.trangThai === "BOARDED").length;
+  // ADR-0189: chuyến đang chạy đã qua khung xem khách (quên bấm Kết thúc) — nhắc tài xế; khung là cờ máy chủ gửi, hàm thuần chỉ thêm vế "sau ngày chạy".
+  const nhacKetThuc = hienNhacKetThuc({ trangThai: c.trangThai, trongNgayChay: r.trongNgayChay, ngayChay: ngay }, vnToday(new Date())) ? dai("warning", CAU_NHAC_KET_THUC) : null;
   const dauTrang = h(
     "div",
     { class: "dp-cc-head" },
@@ -557,6 +560,7 @@ function ve(): void {
   replaceChildren(
     trangEl,
     dauMang,
+    nhacKetThuc,
     baoCao,
     ...khoiDeNghiToi(),
     daiDiemMoi(),

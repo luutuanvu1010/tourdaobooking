@@ -82,6 +82,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "party.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"],
   "party.write": ["any", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"],
   "party.staff.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0013
+  "party.deactivate": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0190: ngừng dùng / dùng lại hồ sơ không gắn tài khoản
   "party.personal.view": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0122 đ5: ngày sinh + địa chỉ cá nhân của người khác — Quản trị (theo cấp bậc), Toàn quyền
   "admin.manage": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"],
   "admin.manage.superadmin": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0014 điều 2/8: thao tác MỚI
@@ -416,7 +417,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3: tài xế không đụng kho vé
     "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
-    "party.view": "none", "party.write": "none", "party.staff.write": "none",
+    "party.view": "none", "party.write": "none", "party.staff.write": "none", "party.deactivate": "none", // ADR-0190
     "party.personal.view": "none", // ADR-0122 đ5
     "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "account.create": "none", "account.view": "none", "account.edit": "none", "audit.view": "none",
@@ -480,7 +481,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3
     "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
-    "party.view": "none", "party.write": "none", "party.staff.write": "none",
+    "party.view": "none", "party.write": "none", "party.staff.write": "none", "party.deactivate": "none", // ADR-0190
     "party.personal.view": "none", // ADR-0122 đ5
     "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "account.create": "none", "account.view": "none", "account.edit": "none", "audit.view": "none",
@@ -551,7 +552,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "attribution.request": "none", // ADR-0116
     "attribution.decide": "none",
     "invoice.request": "none", "invoice.issue": "none", "accounting.entry.mark": "none", "accounting.entry.view": "none",
-    "party.view": "none", "party.write": "none", "party.staff.write": "none",
+    "party.view": "none", "party.write": "none", "party.staff.write": "none", "party.deactivate": "none", // ADR-0190
     "party.personal.view": "none", // ADR-0122 đ5
     "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", // điều 1e: hỗ trợ đăng nhập vẫn Quản trị + Toàn quyền (ADR-0042)

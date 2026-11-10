@@ -7,6 +7,9 @@ import assert from "node:assert/strict";
 import { seedStaff } from "../tests/audit/harness.mjs";
 import { A, ACC, ADM, H, PARTNER, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
 import { canhBaoVuotHanMuc } from "./shared/han-muc-tra-sau-hien-thi.ts";
+import { cachBayGio, datQuaHan } from "../tests/audit/tra-sau-moc.mjs";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const AT = "2026-10-01T00:00:00.000Z";
 const DT = "88888888-8888-4888-8888-888888888801"; // bên đặt có hạn mức
@@ -24,7 +27,7 @@ function dung(tuyChon: Record<string, unknown> = {}): W {
   return w;
 }
 const hanMuc = (w: W, soTien: number, ben = BEN) => w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: ben, hanMuc: soTien, gioTra: 168, gioAnHan: 0, lyDo: "thử" } });
-const phienBan = (w: W): number | null => w.q("SELECT version FROM bil_credit_guard WHERE party_id = ?", BEN)[0]?.version ?? null;
+const phienBan = (w: W, ben = BEN): number | null => w.q("SELECT version FROM bil_credit_guard WHERE party_id = ?", ben)[0]?.version ?? null;
 const no = async (w: W) => ((await w.call("GET", `/api/tra-sau/han-muc/${BEN}/don`, { as: SUP })).json.don as { no: number }[]).reduce((s, d) => s + d.no, 0);
 /** Đơn Trả sau đã xác nhận (2 người lớn × 300.000 = 600.000) của BEN, do A lập. */
 async function donTS(w: W, ben = BEN): Promise<{ id: string; updatedAt: string }> {
@@ -115,6 +118,7 @@ test("đổi bên đặt: đơn Trả sau đã xác nhận còn nợ 409; hết 
   assert.deepEqual([r.status, r.json.error.code], [409, "tra_sau_con_no_doi_ben_dat"], r.text);
   assert.equal(w.q("SELECT booker_party_id AS b FROM orders WHERE id = ?", d.id)[0].b, BEN, "bên đặt không đổi");
   assert.equal((await thu(w, d.id, T_ZB1)).status, 201);
+  assert.equal((await hanMuc(w, 1_000_000, BEN2)).status, 201); // ADR-0188: hết nợ chỉ đổi sang bên có hạn mức
   const moi = (await w.call("GET", `/api/orders/${d.id}`, { as: A })).json.order;
   const ok = await doi(d.id, moi.updatedAt);
   assert.equal(ok.status, 200, ok.text);
@@ -130,6 +134,7 @@ test("đổi bên đặt: có lệnh làm tăng nợ chen giữa lúc kiểm n�
   assert.equal((await hanMuc(w, 1_000_000)).status, 201);
   const d = await donTS(w);
   assert.equal((await thu(w, d.id, T_ZB1)).status, 201); // nợ 0 ⇒ phép đổi qua cổng
+  assert.equal((await hanMuc(w, 1_000_000, BEN2)).status, 201); // ADR-0188: bên mới phải có hạn mức
   const moi = (await w.call("GET", `/api/orders/${d.id}`, { as: A })).json.order;
   // Ngay trước lô đổi, một lệnh khác (vd đảo khoản thu) vừa làm tăng phiên bản của bên đặt cũ.
   w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => /booker_party_id/.test(s.sql) && /UPDATE orders/.test(s.sql)), () => {
@@ -139,6 +144,127 @@ test("đổi bên đặt: có lệnh làm tăng nợ chen giữa lúc kiểm n�
   assert.deepEqual([r.status, r.json.error.code], [409, "credit_version_stale"], r.text);
   assert.equal(w.q("SELECT booker_party_id AS b FROM orders WHERE id = ?", d.id)[0].b, BEN, "bên đặt không đổi");
   assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'booker_changed'", d.id)[0].n, 0, "không nhật ký đổi nào");
+});
+
+// ---- ADR-0188 (T-03): hết nợ chỉ đổi bên đặt sang bên có hạn mức trả sau còn hiệu lực, không đơn quá hạn; không đổi sang khách lẻ ----
+const DOC_TEP = (tep: string): string => readFileSync(fileURLToPath(new URL(`../${tep}`, import.meta.url)), "utf8");
+const benDatCua = (w: W, id: string): string | null => w.q("SELECT booker_party_id AS b FROM orders WHERE id = ?", id)[0].b;
+const doiBen = (w: W, id: string, updatedAt: string, ben: string | null) =>
+  w.call("PUT", `/api/orders/${id}/booker`, { as: A, body: { customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: ben, expectedUpdatedAt: updatedAt } });
+const capNhat = async (w: W, id: string): Promise<string> => (await w.call("GET", `/api/orders/${id}`, { as: A })).json.order.updatedAt;
+/** Đơn Trả sau của BEN đã xác nhận và đã thu đủ (nợ 0) — sẵn sàng qua điều kiện «hết nợ». */
+async function donHetNo(w: W): Promise<{ id: string; updatedAt: string }> {
+  const d = await donTS(w);
+  assert.equal((await thu(w, d.id, T_ZB1)).status, 201);
+  return { id: d.id, updatedAt: await capNhat(w, d.id) };
+}
+
+test("ADR-0188 câu a, b, c: ba hằng của đường đổi bên đặt đúng nguyên văn ADR (bài DUY NHẤT so nguyên câu)", () => {
+  const tep = DOC_TEP("src/modules/orders/tra-sau-cong.ts");
+  const hang = (ten: string): string => new RegExp(`${ten} = "([^"]+)"`).exec(tep)?.[1] ?? "";
+  assert.equal(hang("CAU_DOI_BEN_KHONG_HAN_MUC"), "Đơn trả sau đã xác nhận chỉ đổi được sang bên đặt có hạn mức trả sau còn hiệu lực. Nhờ Quản trị hoặc Toàn quyền cấp hạn mức cho bên mới, hoặc giữ bên đặt cũ.");
+  assert.equal(hang("CAU_DOI_BEN_QUA_HAN"), "Bên đặt mới còn đơn trả sau quá hạn chưa thanh toán nên chưa nhận thêm đơn trả sau.");
+  assert.equal(hang("CAU_DOI_BEN_KHACH_LE"), "Đơn trả sau đã xác nhận phải có bên đặt là đối tác có hạn mức trả sau — không đổi sang khách lẻ được.");
+});
+
+test("ADR-0188 T3-a: hết nợ, đổi sang bên KHÔNG có hạn mức ⇒ 409 khong_co_han_muc, đơn không đổi, không phiên bản nào tăng", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 1_000_000)).status, 201);
+  const d = await donHetNo(w);
+  const truoc = phienBan(w);
+  const r = await doiBen(w, d.id, d.updatedAt, BEN2);
+  assert.deepEqual([r.status, r.json.error?.code], [409, "khong_co_han_muc"], r.text);
+  assert.doesNotMatch(r.json.error.message, /thanh toán ngay/i, "không mượn câu của cửa xác nhận (bảo chọn thanh toán ngay — việc không làm được)");
+  assert.equal(benDatCua(w, d.id), BEN);
+  assert.equal(phienBan(w), truoc);
+  assert.equal(phienBan(w, BEN2), null);
+});
+
+test("ADR-0188 T3-b: hết nợ, đổi sang khách lẻ (bên đặt rỗng) ⇒ 409 tra_sau_thieu_ben_dat, đơn không đổi", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 1_000_000)).status, 201);
+  const d = await donHetNo(w);
+  const r = await doiBen(w, d.id, d.updatedAt, null);
+  assert.deepEqual([r.status, r.json.error?.code], [409, "tra_sau_thieu_ben_dat"], r.text);
+  assert.equal(benDatCua(w, d.id), BEN);
+});
+
+test("ADR-0188 T3-c: hết nợ, bên mới có hạn mức nhưng còn đơn quá hạn chưa trả ⇒ 409 co_don_qua_han, đơn không đổi", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 1_000_000)).status, 201);
+  assert.equal((await hanMuc(w, 5_000_000, BEN2)).status, 201);
+  const cuaBen2 = await donTS(w, BEN2);
+  datQuaHan(w.sqlite, cuaBen2.id);
+  const d = await donHetNo(w);
+  const r = await doiBen(w, d.id, d.updatedAt, BEN2);
+  assert.deepEqual([r.status, r.json.error?.code], [409, "co_don_qua_han"], r.text);
+  assert.equal(benDatCua(w, d.id), BEN);
+});
+
+test("ADR-0188 T3-d: hết nợ, bên mới có hạn mức ⇒ 200; phiên bản bên cũ và bên mới mỗi bên tăng đúng 1", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 1_000_000)).status, 201);
+  assert.equal((await hanMuc(w, 1_000_000, BEN2)).status, 201);
+  const d = await donHetNo(w);
+  const [cu, moi] = [phienBan(w), phienBan(w, BEN2)];
+  assert.ok(cu !== null && moi !== null);
+  const r = await doiBen(w, d.id, d.updatedAt, BEN2);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(benDatCua(w, d.id), BEN2);
+  assert.deepEqual([phienBan(w), phienBan(w, BEN2)], [cu! + 1, moi! + 1]);
+});
+
+test("ADR-0188 T3-e: lệnh khác làm đổi phiên bản bên MỚI chen giữa lúc kiểm và lúc ghi ⇒ 409 credit_version_stale, bên đặt không đổi", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 1_000_000)).status, 201);
+  assert.equal((await hanMuc(w, 1_000_000, BEN2)).status, 201);
+  const d = await donHetNo(w);
+  let doi = 0;
+  w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => /booker_party_id/.test(s.sql) && /UPDATE orders/.test(s.sql)), () => {
+    doi = Number(w.sqlite.prepare("UPDATE bil_credit_guard SET version = version + 1 WHERE party_id = ?").run(BEN2).changes);
+  });
+  const r = await doiBen(w, d.id, d.updatedAt, BEN2);
+  assert.equal(doi, 1, "lệnh chen giữa đổi thật phiên bản của bên mới");
+  assert.deepEqual([r.status, r.json.error?.code], [409, "credit_version_stale"], r.text);
+  assert.equal(benDatCua(w, d.id), BEN);
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ? AND action = 'booker_changed'", d.id)[0].n, 0);
+});
+
+test("ADR-0188 T3-f: đơn nháp Trả sau và đơn Thanh toán ngay đã xác nhận đổi sang bên KHÔNG hạn mức vẫn 200, không câu gác nào", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 1_000_000)).status, 201);
+  const truoc = phienBan(w);
+  const n = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: BEN, paymentTerm: "CREDIT", services: [svc("ZB1", inDays(3))] } });
+  assert.equal(n.status, 201, n.text);
+  assert.equal((await doiBen(w, n.json.order.id, n.json.order.updatedAt, BEN2)).status, 200);
+  const p = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: BEN, services: [svc("ZB1", inDays(3))] } });
+  assert.equal(p.status, 201, p.text);
+  assert.equal((await w.call("POST", `/api/orders/${p.json.order.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+  const r = await doiBen(w, p.json.order.id, await capNhat(w, p.json.order.id), BEN2);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual([phienBan(w), phienBan(w, BEN2)], [truoc, null], "không câu gác nào");
+});
+
+test("ADR-0188: gốc lắp ráp không tiêm cổng hạn mức (kiemTraSau null) ⇒ đổi bên đặt đơn Trả sau đã xác nhận hết nợ 503; còn nợ vẫn 409 tra_sau_con_no_doi_ben_dat (đứng trước)", async () => {
+  const w = dung({ khongTiemTraSau: true });
+  // Không tiêm cổng thì không lập được đơn Trả sau: lập đơn Thanh toán ngay, xác nhận, rồi lật hình thức thẳng CSDL (gỡ tạm trigger khoá cột, dựng lại đúng câu cũ).
+  const p = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: BEN, services: [svc("ZB1", inDays(3))] } });
+  assert.equal(p.status, 201, p.text);
+  const id = p.json.order.id as string;
+  assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+  const t = w.sqlite.prepare("SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = 'orders_payment_term_locked'").get() as { sql: string };
+  w.sqlite.exec("DROP TRIGGER orders_payment_term_locked");
+  try {
+    w.sqlite.prepare("UPDATE orders SET payment_term = 'CREDIT' WHERE id = ?").run(id);
+  } finally {
+    w.sqlite.exec(t.sql);
+  }
+  const conNo = await doiBen(w, id, await capNhat(w, id), BEN2);
+  assert.deepEqual([conNo.status, conNo.json.error?.code], [409, "tra_sau_con_no_doi_ben_dat"], conNo.text);
+  assert.equal((await thu(w, id, T_ZB1)).status, 201);
+  const r = await doiBen(w, id, await capNhat(w, id), BEN2);
+  assert.deepEqual([r.status, r.json.error?.code], [503, "tra_sau_chua_dung_duoc"], r.text);
+  assert.equal(benDatCua(w, id), BEN);
 });
 
 test("gộp hồ sơ: hồ sơ phụ còn đơn Trả sau còn nợ thì xem trước báo chặn và lệnh gộp 409; hết nợ thì không chặn vì lý do này", async () => {
@@ -541,3 +667,102 @@ test("Task 3 (ghim nợ 5): hạ hạn mức xuống dưới số đang nợ —
 
 // Bốn bài QUÉT chữ cũ (soanHuyDon / changeBooker / soanSuaSoKhach phải có cổng đứng trước; đếm cauTangChoDon) đã XOÁ theo kế hoạch 2026-11-05 Task 2:
 // ba hàm ghi nay đòi kiểu mang nhãn chỉ cổng tạo được (`npm run typecheck` buộc), và bảng ĐƯỜNG GHI ở trên chạy thật từng đường. Sổ: docs/SO-HANG-RAO.md.
+
+// ---- ADR-0188 mục 4(a): cửa gộp hồ sơ — hồ sơ phụ có đơn Trả sau đã xác nhận (kể cả hết nợ) chỉ gộp vào hồ sơ chính có hạn mức, không đơn quá hạn ----
+const TEN_PHU = "Đại Lý Gộp Thử";
+/** Hồ sơ phụ không tài khoản, có hạn mức và MỘT đơn Trả sau đã xác nhận ĐÃ THU ĐỦ; vai đối tác kết thúc sau đó (không bị chặn vì vai). Hồ sơ chính = BEN2 (tài khoản Đối tác). */
+async function nenGop(w: W): Promise<{ aId: string; donId: string }> {
+  const P = await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: TEN_PHU, contacts: [{ kind: "PHONE", value: "0912000333" }] } });
+  assert.equal(P.status, 201, P.text);
+  const aId = P.json.party.id as string;
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-gop-0188', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(aId, AT, AT);
+  assert.equal((await hanMuc(w, 1_000_000, aId)).status, 201);
+  const d = await donTS(w, aId);
+  assert.equal((await thu(w, d.id, T_ZB1)).status, 201);
+  w.sqlite.prepare("UPDATE pty_party_role SET valid_to_date = '2026-06-01' WHERE id = 'r-gop-0188'").run();
+  return { aId, donId: d.id };
+}
+const xemGop = (w: W, aId: string) => w.call("POST", `/api/parties/${aId}/merge/preview`, { as: ADM, body: { intoPartyId: BEN2 } });
+const lenhGop = (w: W, aId: string) => w.call("POST", `/api/parties/${aId}/merge`, { as: ADM, body: { intoPartyId: BEN2, xacNhan: TEN_PHU } });
+const maChan = (r: { json: { chan: { code: string; message: string }[] } }) => r.json.chan.map((c) => c.code);
+
+test("ADR-0188 4(a): hồ sơ phụ có đơn Trả sau đã hết nợ, hồ sơ chính KHÔNG hạn mức ⇒ xem trước báo chặn (câu nói «hồ sơ chính»), lệnh gộp 409; không gì đổi", async () => {
+  const w = dung();
+  const { aId, donId } = await nenGop(w);
+  const xem = await xemGop(w, aId);
+  assert.equal(xem.status, 200, xem.text);
+  assert.deepEqual(maChan(xem), ["merge_credit_no_limit"], JSON.stringify(xem.json.chan));
+  assert.match(xem.json.chan[0].message, /hồ sơ chính/);
+  const r = await lenhGop(w, aId);
+  assert.deepEqual([r.status, r.json.error?.code], [409, "merge_credit_no_limit"], r.text);
+  assert.equal(benDatCua(w, donId), aId, "đơn không bị dời");
+  assert.equal(w.q("SELECT active FROM pty_party WHERE id = ?", aId)[0].active, 1);
+});
+
+test("ADR-0188 4(a): hồ sơ chính có hạn mức nhưng còn đơn quá hạn chưa trả ⇒ chặn ở cả xem trước lẫn lệnh gộp (merge_credit_overdue)", async () => {
+  const w = dung();
+  const { aId, donId } = await nenGop(w);
+  assert.equal((await hanMuc(w, 5_000_000, BEN2)).status, 201);
+  const cuaB = await donTS(w, BEN2);
+  datQuaHan(w.sqlite, cuaB.id);
+  const xem = await xemGop(w, aId);
+  assert.deepEqual(maChan(xem), ["merge_credit_overdue"], JSON.stringify(xem.json.chan));
+  assert.match(xem.json.chan[0].message, /hồ sơ chính/i);
+  const r = await lenhGop(w, aId);
+  assert.deepEqual([r.status, r.json.error?.code], [409, "merge_credit_overdue"], r.text);
+  assert.equal(benDatCua(w, donId), aId);
+});
+
+test("ADR-0188 4(a): hồ sơ chính có hạn mức ⇒ gộp được, đơn sang hồ sơ chính, phiên bản hạn mức hồ sơ chính tăng đúng 1 (lô mang câu gác)", async () => {
+  const w = dung();
+  const { aId, donId } = await nenGop(w);
+  assert.equal((await hanMuc(w, 1_000_000, BEN2)).status, 201);
+  const truoc = phienBan(w, BEN2);
+  assert.ok(truoc !== null);
+  const xem = await xemGop(w, aId);
+  assert.deepEqual(maChan(xem), [], JSON.stringify(xem.json.chan));
+  const r = await lenhGop(w, aId);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(benDatCua(w, donId), BEN2);
+  assert.equal(phienBan(w, BEN2), truoc! + 1);
+});
+
+test("ADR-0188 4(a): phiên bản hạn mức hồ sơ chính đổi chen giữa lúc tính và lúc ghi ⇒ 409 credit_version_stale (không phải merge_stale), không gì đổi", async () => {
+  const w = dung();
+  const { aId, donId } = await nenGop(w);
+  assert.equal((await hanMuc(w, 1_000_000, BEN2)).status, 201);
+  let doi = 0;
+  w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => String(s.sql).includes("merged_into_id = (SELECT")), () => {
+    doi = Number(w.sqlite.prepare("UPDATE bil_credit_guard SET version = version + 1 WHERE party_id = ?").run(BEN2).changes);
+  });
+  const r = await lenhGop(w, aId);
+  assert.equal(doi, 1, "lệnh chen giữa đổi thật phiên bản hồ sơ chính");
+  assert.deepEqual([r.status, r.json.error?.code], [409, "credit_version_stale"], r.text);
+  assert.equal(benDatCua(w, donId), aId);
+  assert.equal(w.q("SELECT active FROM pty_party WHERE id = ?", aId)[0].active, 1);
+});
+
+test("ADR-0188 4(a): gốc lắp ráp không tiêm cổng hạn mức ⇒ xem trước và lệnh gộp hồ sơ có đơn Trả sau đã xác nhận đều 503; hồ sơ không có đơn Trả sau không bị ảnh hưởng", async () => {
+  const w = dung({ khongTiemTraSau: true });
+  const P = await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: TEN_PHU, contacts: [{ kind: "PHONE", value: "0912000333" }] } });
+  assert.equal(P.status, 201, P.text);
+  const aId = P.json.party.id as string;
+  assert.deepEqual(maChan(await xemGop(w, aId)), [], "không đơn Trả sau ⇒ không cần cổng hạn mức");
+  // Đơn Trả sau đã xác nhận dựng thẳng CSDL (không tiêm cổng thì không lập được qua route): đơn Thanh toán ngay rồi lật hình thức (gỡ tạm trigger khoá cột).
+  const p = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Thử", customerPhone: "0912345678", bookerPartyId: BEN, services: [svc("ZB1", inDays(3))] } });
+  assert.equal(p.status, 201, p.text);
+  const id = p.json.order.id as string;
+  assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+  const t = w.sqlite.prepare("SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = 'orders_payment_term_locked'").get() as { sql: string };
+  w.sqlite.exec("DROP TRIGGER orders_payment_term_locked");
+  try {
+    w.sqlite.prepare("UPDATE orders SET payment_term = 'CREDIT', booker_party_id = ? WHERE id = ?").run(aId, id);
+  } finally {
+    w.sqlite.exec(t.sql);
+  }
+  const xem = await xemGop(w, aId);
+  assert.deepEqual([xem.status, xem.json.error?.code], [503, "tra_sau_chua_dung_duoc"], xem.text);
+  const r = await lenhGop(w, aId);
+  assert.deepEqual([r.status, r.json.error?.code], [503, "tra_sau_chua_dung_duoc"], r.text);
+  assert.equal(benDatCua(w, id), aId);
+});

@@ -20,7 +20,7 @@ import { UUID_RE, error, intParam, mauLikeChua, json, kemLocation, readJson } fr
 import { can, holdsPartner, type PermissionCode } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule, type Ctx } from "../../shared/router";
-import { cauConNoTraSau } from "../../shared/tra-sau";
+import { cauConNoTraSau, laLoiPhienBanTraSau, type MaKhongTraSau } from "../../shared/tra-sau";
 import type { DonCuaNguoiDatTom, GopHoSoNoi, PartyAccountVerdict, TaiKhoanXacMinh, ViecDoKhiThoiVai } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { gioiTinhHopLe } from "../../shared/xung-ho";
@@ -296,6 +296,8 @@ const NOT_OPEN = () => error(409, "not_open", "Dòng này không còn đang hi�
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không xem được hồ sơ.");
 const FORBIDDEN_WRITE = () => error(403, "forbidden", "Tài khoản này không được sửa hồ sơ này. Hồ sơ của người có tài khoản chỉ quản trị viên cấp trên sửa.");
 const ACTIVE_BY_ACCOUNT = () => error(409, "account_rule", "Người này có tài khoản: muốn thôi dùng thì bấm Ngưng ở màn Quản lý tài khoản.");
+// ADR-0190 (R3d): đổi cờ «Đang dùng» của hồ sơ KHÔNG gắn tài khoản cần ô party.deactivate (Quản trị, Toàn quyền) — một câu, mã riêng cho cả hai chiều.
+const FORBIDDEN_DEACTIVATE = () => error(403, "party_deactivate_forbidden", "Chỉ Quản trị hoặc Toàn quyền ngừng dùng hoặc dùng lại hồ sơ.");
 // ADR-0024 6.4 + ADR-0038 điều 7: hồ sơ công ty chủ chỉ người giữ ô company.legal.write sửa. Chữ nói "người phụ trách hệ thống", KHÔNG "Toàn quyền"
 // (Toàn quyền là vai ẩn — ADR-0038 điều 8 / ADR-0042; chỉ đạo D5 của nhật ký thi công T2b).
 const OWNER_COMPANY_FORBIDDEN = () =>
@@ -378,7 +380,11 @@ const intoParam = (b: Record<string, unknown> | null): string | null =>
   typeof b?.intoPartyId === "string" && PARTY_ID_RE.test(b.intoPartyId) ? b.intoPartyId : null;
 
 interface HoSoDoc { hs: HoSoGop; giayToDu: GopDocRow[]; acc: PartyAccountVerdict }
-interface TinhGop { A: HoSoDoc; B: HoSoDoc; ke: KeHoachGop; don: DonCuaNguoiDatTom; soNo: number; homNay: string }
+/** `gacTraSau`: phiên bản hạn mức của hồ sơ chính đã đọc ở cổng ADR-0188 4(a) — lô gộp gác đúng số này (null = hồ sơ phụ không có đơn Trả sau đã xác nhận, không gác). */
+interface TinhGop { A: HoSoDoc; B: HoSoDoc; ke: KeHoachGop; don: DonCuaNguoiDatTom; soNo: number; homNay: string; gacTraSau: number | null }
+/** Mã không đạt của `kiemTraSau` → lý do chặn gộp. `vuot_han_muc` không xảy ra với `soTienDon: 0`; nếu có, hồ sơ chính cũng không nhận thêm được ⇒ như không có hạn mức. */
+const MA_CHAN_TRA_SAU: Record<MaKhongTraSau, "merge_credit_no_limit" | "merge_credit_overdue"> = { khong_co_han_muc: "merge_credit_no_limit", co_don_qua_han: "merge_credit_overdue", vuot_han_muc: "merge_credit_no_limit" };
+const TRA_SAU_CHUA_KIEM = () => error(503, "tra_sau_chua_dung_duoc", "Chưa kiểm được hạn mức trả sau của hồ sơ chính nên chưa gộp được — báo người phụ trách hệ thống.");
 
 async function docHoSoGop(ctx: Ctx<"admin">, id: string, nhom: ReadonlyMap<string, NhomVai>, nhan: ReadonlySet<string>, homNay: string): Promise<HoSoDoc | null> {
   const db = ctx.env.DB;
@@ -424,8 +430,19 @@ async function tinhGop(ctx: Ctx<"admin">, aId: string, bId: string, homNay: stri
   if (!A || !B) return NOT_FOUND();
   // G12: hồ sơ chính gắn tài khoản mà người gộp không quản được (Quản trị khác / Toàn quyền) → 403 — luật cấp bậc có sẵn (staff tính qua ctx.partyAccount).
   if (B.acc.linked && !B.acc.manageable) return MERGE_FORBIDDEN();
-  const [viec, don, soNo, conNo] = await Promise.all([ctx.gopHoSo.viecCua(aId), ctx.gopHoSo.donNguoiDat(aId), ctx.gopHoSo.soDongNo(aId), ctx.gopHoSo.conNoTraSau(aId)]);
+  const [viec, don, soNo, conNo, donTraSau] = await Promise.all([
+    ctx.gopHoSo.viecCua(aId), ctx.gopHoSo.donNguoiDat(aId), ctx.gopHoSo.soDongNo(aId), ctx.gopHoSo.conNoTraSau(aId), ctx.gopHoSo.donTraSauDaXacNhan(aId),
+  ]);
   const ke = keHoachGop(A.hs, B.hs, { ...viec, donLechTien: don.lechTien, donConNoTraSau: conNo }, homNay);
+  // ADR-0188 mục 4(a): hồ sơ phụ có đơn Trả sau đã xác nhận (kể cả hết nợ) chỉ gộp vào hồ sơ chính có hạn mức còn hiệu lực, không đơn quá hạn — cùng cổng `kiemTraSau` của
+  // đường đổi bên đặt (`soTienDon: 0`). Không kiểm được ⇒ 503 (không đoán «đủ hạn mức»). Qua ⇒ giữ phiên bản đã đọc để lô gộp gác.
+  let gacTraSau: number | null = null;
+  if (donTraSau.length > 0 && aId !== bId) {
+    const kq = await ctx.kiemTraSau({ benDat: bId, soTienDon: 0, loai: "doi_ben" });
+    if (!kq) return TRA_SAU_CHUA_KIEM();
+    if (!kq.ok) ke.chan.push(chanCo(MA_CHAN_TRA_SAU[kq.ma]));
+    else gacTraSau = kq.version;
+  }
   // ADR-0126 (ruling R16): hồ sơ đang có / đã thực hiện phiếu xoá thì không gộp (hồ sơ phụ gộp vào hồ sơ đã ẩn danh sẽ mang dữ liệu thật vào hồ sơ "đã xoá"). Đứng ĐẦU danh sách
   // chặn để câu trả lời của route là câu này, kể cả khi hồ sơ đã xoá là hồ sơ phụ có tài khoản.
   if (await coPhieuXoaChoHoacDa(ctx.env.DB, aId, bId)) ke.chan.unshift(chanCo("merge_erasure"));
@@ -434,7 +451,7 @@ async function tinhGop(ctx: Ctx<"admin">, aId: string, bId: string, homNay: stri
     const v = await ctx.partyAccount(khac);
     if (v.linked && !v.manageable) return MERGE_FORBIDDEN();
   }
-  return { A, B, ke, don, soNo, homNay };
+  return { A, B, ke, don, soNo, homNay, gacTraSau };
 }
 
 const NHAN_BO_VAI = { DA_CO: "hồ sơ chính đã có", VUA_KET_THUC: "hồ sơ chính vừa kết thúc công việc này hôm nay" } as const;
@@ -526,7 +543,7 @@ const toRelationship = (r: RelationshipRow): PartyRelationshipDto => ({
 function toDetail(
   d: { party: PartyRow; contacts: ContactRow[]; roles: RoleRow[]; relationships: RelationshipRow[] },
   today: string,
-  access: { accountLinked: boolean; editable: boolean },
+  access: { accountLinked: boolean; editable: boolean; activeEditable: boolean },
   vao: { id: string; display_name: string; merged_at: string }[],
 ): PartyDto {
   const p = d.party;
@@ -689,8 +706,11 @@ async function respondParty<A extends "office" | "admin">(ctx: Ctx<A>, id: strin
   // ADR-0068 G16: hồ sơ đã gộp chỉ đọc (mọi route ghi trả 409 party_merged).
   const editable = detail.party.merged_into_id === null
     && (chu ? can(ctx.staff, "company.legal.write") : acc.linked ? can(ctx.staff, "party.staff.write") && acc.manageable : can(ctx.staff, "party.write"));
+  // ADR-0190: ô «Đang dùng» — cùng điều kiện route PUT hỏi: sửa được hồ sơ, không gắn tài khoản (đổi ở màn Quản lý tài khoản), không phải công ty chủ
+  // (không ngưng được — Ruling D17), và giữ ô party.deactivate.
+  const activeEditable = editable && !acc.linked && !chu && can(ctx.staff, "party.deactivate");
   const today = vnToday(new Date());
-  const party = toDetail(detail, today, { accountLinked: acc.linked, editable }, vao);
+  const party = toDetail(detail, today, { accountLinked: acc.linked, editable, activeEditable }, vao);
   // ADR-0044 (chủ chọn 28/9): hồ sơ của tài khoản Toàn quyền — người xem không giữ Toàn quyền chỉ thấy vai ĐANG MỞ, không thấy lịch sử vai.
   if (acc.linked && acc.vaiAn && !can(ctx.staff, "admin.manage.superadmin")) party.roles = party.roles.filter((r) => r.validFrom <= today && (r.validTo === null || r.validTo >= today));
   // ADR-0122 đ5: ngày sinh + liên hệ ADDRESS chỉ cho chính chủ hoặc người giữ party.personal.view (Quản trị theo cấp bậc — ruling R6). Mọi phản hồi hồ sơ đi qua đây.
@@ -1926,12 +1946,16 @@ export const partiesModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "party_merged", at, targetType: "party", targetId: id, detail }, "changes() > 0"),
         auditStatement(env.DB, { staffId: staff.id, action: "party_merged", at, targetType: "party", targetId: into, detail }, "changes() > 0"),
         ...lo.sauNhatKy,
+        // ADR-0188 mục 4(a): câu gác phiên bản hạn mức của hồ sơ chính nối CUỐI lô (iLat đếm từ đầu nên không lệch) — hạn mức / nợ của hồ sơ chính đổi chen giữa ⇒ cả lô thua.
+        ...(t.gacTraSau === null ? [] : ctx.cauGacPhienBanTraSau(into, t.gacTraSau, at)),
       ];
       let results: D1Result[];
       try {
         results = await env.DB.batch(stmts);
       } catch (e) {
         if (/party_merge_erasure/.test(e instanceof Error ? e.message : "")) { const c = chanCo("merge_erasure"); return error(409, c.code, c.message); } // phiếu xoá vừa được gửi giữa lúc tính và lúc ghi (trigger 0108)
+        // ADR-0188 mục 4(a): phiên bản hạn mức hồ sơ chính vừa đổi (cả lô đã lui) — nói đúng lý do, không gộp vào MERGE_STALE chung.
+        if (laLoiPhienBanTraSau(e)) return error(409, "credit_version_stale", "Hạn mức trả sau của hồ sơ chính vừa thay đổi — mở lại rồi thử gộp lại.");
         // Hợp đồng lỗi của lô (phán quyết điều phối): mọi lệch giữa lúc tính và lúc ghi (lô thua có giấy tờ, dòng mở mới của A, giấy tờ / liên hệ chính đổi
         // trong khe…) làm trigger / chỉ mục / NOT NULL huỷ CẢ lô — không dòng nào đổi. Không bao giờ 500, không lộ câu lỗi CSDL.
         // Phán quyết Task 6 Minor 2 (như kiểm trước ở trên): chỉ "thua cuộc đua" khi A vừa gộp vào ĐÚNG hồ sơ chính này; gộp vào hồ sơ khác → merge_inactive.
@@ -2000,6 +2024,9 @@ export const partiesModule: AppModule = {
       if (acc.linked && parsed.value.active !== (current.active === 1)) return ACTIVE_BY_ACCOUNT();
       // Ruling D17 (b): hồ sơ công ty chủ không ngưng dùng được (kể cả người giữ ô) — muốn thôi dùng thì đổi công ty chủ trước. PUT là đường DUY NHẤT đặt active.
       if (chu && !parsed.value.active) return OWNER_COMPANY_KEEP_ACTIVE();
+      // ADR-0190: hỏi SAU hai luật trên (giữ nguyên câu, mã của chúng). Cờ không đổi thì không hỏi ô — người bán vẫn sửa tên, liên hệ.
+      const doiDangDung = parsed.value.active !== (current.active === 1);
+      if (doiDangDung && !can(staff, "party.deactivate")) return FORBIDDEN_DEACTIVATE();
       const at = now.toISOString();
       // ADR-0084 Đ1: vắng ô giới tính ⇒ giữ giá trị đang lưu. Nhật ký chỉ ghi "đổi giới tính" — KHÔNG giá trị cũ / mới (cùng lối dữ liệu cá nhân).
       const pv = parsed.value;
@@ -2018,7 +2045,7 @@ export const partiesModule: AppModule = {
       const doiNgaySinh = v.kind === "PERSON" && v.birthDate !== ngaySinhCu;
       const stmts = updatePartyStatements(env.DB, id, v, staff.id, at, doiNgaySinh);
       // Nhật ký chỉ ghi "đổi giới tính" / "đổi ngày sinh" — KHÔNG giá trị (Hiến chương 5.20).
-      const detail = `${KIND_LABEL[current.party_kind]}${doiGioiTinh ? " — đổi giới tính" : ""}${doiNgaySinh ? " — đổi ngày sinh" : ""}`;
+      const detail = `${KIND_LABEL[current.party_kind]}${doiGioiTinh ? " — đổi giới tính" : ""}${doiNgaySinh ? " — đổi ngày sinh" : ""}${doiDangDung ? (parsed.value.active ? " — dùng lại" : " — ngừng dùng") : ""}`;
       const results = await env.DB.batch([...stmts, auditStatement(env.DB, { staffId: staff.id, action: "party_updated", at, targetType: "party", targetId: id, detail }, "changes() > 0")]);
       if ((results[stmts.length - 1]!.meta.changes ?? 0) === 0) return STALE();
       return respondParty(ctx, id);

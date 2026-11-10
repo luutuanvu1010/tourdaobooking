@@ -38,7 +38,7 @@ export interface NgoaiGop { phuTrachDon: number; laiChuyen: number; toLaiChuyen:
 export type MaChanGop =
   | "merge_same" | "merge_not_person" | "merge_inactive" | "merge_owner_company" | "merge_both_accounts" | "merge_source_has_account" | "merge_source_account_role"
   | "merge_role_group_conflict" | "merge_source_busy" | "merge_source_is_target" | "merge_source_future_row" | "merge_order_invalid" | "merge_source_owns_vehicle"
-  | "merge_partner_label_internal" | "merge_erasure" | "merge_credit_debt";
+  | "merge_partner_label_internal" | "merge_erasure" | "merge_credit_debt" | "merge_credit_no_limit" | "merge_credit_overdue";
 export interface LyDoChan { code: MaChanGop; message: string }
 export interface KeHoachGop {
   chan: LyDoChan[];
@@ -66,6 +66,10 @@ const CAU: Record<Exclude<MaChanGop, "merge_source_busy" | "merge_order_invalid"
   merge_source_owns_vehicle: "Hồ sơ phụ đang đứng tên xe — đổi chủ xe ở mục Xe trước khi gộp.",
   // ADR-0126 (lát H-5): chặn ở route (đọc phiếu xoá của CẢ HAI hồ sơ trước lô) và ở trigger party_merge_erasure; cùng câu.
   merge_erasure: "Hồ sơ đang có hoặc đã thực hiện yêu cầu xoá dữ liệu — không gộp được.",
+  // ADR-0188 mục 4(a): cùng câu a / b của đường đổi bên đặt, đổi «bên đặt mới» thành «hồ sơ chính» (câu a viết lại cho đúng việc gộp). Route tính (cổng hạn mức của billing), không phải luật thuần.
+  merge_credit_no_limit:
+    "Hồ sơ phụ có đơn trả sau đã xác nhận nên chỉ gộp được vào hồ sơ chính có hạn mức trả sau còn hiệu lực. Nhờ Quản trị hoặc Toàn quyền cấp hạn mức cho hồ sơ chính, hoặc chọn hồ sơ chính khác.",
+  merge_credit_overdue: "Hồ sơ chính còn đơn trả sau quá hạn chưa thanh toán nên chưa nhận thêm đơn trả sau.",
 };
 export const chanCo = (code: keyof typeof CAU): LyDoChan => ({ code, message: CAU[code] });
 /**
