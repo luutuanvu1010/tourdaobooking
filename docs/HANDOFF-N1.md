@@ -2,7 +2,14 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.82 ĐÃ LÊN PRODUCTION (ADR-0187 Đ2.3: người dùng tự chọn tối đa 4 nút thanh dưới điện thoại ở trang Tôi, nút «Tôi» luôn có; lưu ở máy chủ theo tài khoản; ô quyền `me.favorites.write` cho mọi vai trò trừ Tài xế đối tác; đang «xem như vai trò khác» thì dùng mặc định) — migration `0153` — triển khai 2026-11-09 14:45 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.88 ĐÃ LÊN PRODUCTION (sửa lời nhắc ở màn chỉnh giao diện của Toàn quyền, ADR-0195; ẩn/hiện trường theo «không đón / có đón» đã lên ở 2.87, migration `0154`–`0156`) — không migration mới — triển khai 2026-11-10 16:52 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy ở Terminal. Các mục 2.83–2.87 do phiên khác triển khai, không ghi lại ở đây.
+- Commit: 35ea0be35 · Kiểm đủ bộ (GitHub): XANH · Worker Version ID: 92b08d3e-0860-4879-8d78-6fd42f4aaaf9
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT · cổng phiên bản trước và sau deploy: ĐẠT
+- Thời gian: tổng 11 phút 08 giây (day-len 10 phút 27 giây; trien-khai 0 phút 41 giây), vượt mục tiêu ~10 phút của ADR-0179 Đ1.1, không chặn.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.82 ĐÃ LÊN PRODUCTION (ADR-0187 Đ2.3: người dùng tự chọn tối đa 4 nút thanh dưới điện thoại ở trang Tôi, nút «Tôi» luôn có; lưu ở máy chủ theo tài khoản; ô quyền `me.favorites.write` cho mọi vai trò trừ Tài xế đối tác; đang «xem như vai trò khác» thì dùng mặc định) — migration `0153` — triển khai 2026-11-09 14:45 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy ở Terminal (phiên thi công đọc ô Terminal; chưa thử iPhone thật).
 
