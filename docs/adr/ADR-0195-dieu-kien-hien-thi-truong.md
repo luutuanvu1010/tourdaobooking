@@ -1,6 +1,6 @@
 # ADR-0195 — Điều kiện hiển thị và mở rộng danh mục trường: ẩn hoặc bắt buộc một trường chỉ khi đơn (hoặc dịch vụ) thoả điều kiện khai sẵn
 
-- **Trạng thái:** **proposed** 2026-11-10 (bản 3, sau khi người kiểm độc lập đọc) — AI soạn theo yêu cầu của chủ dự án trong chat 10/11: chủ chọn «khuyến nghị» cho việc mở ADR này, rồi yêu cầu mở rộng số trường ẩn/hiện ở mọi vai, rồi nói «ok cập nhật ADR… làm theo khuyến nghị» (phạm vi nhóm 1 + nhóm 2, hoãn nhóm 3, như mục «Phạm vi trường» dưới đây). Lời «ok» là chọn phạm vi, **chưa phải lời duyệt ADR**: chưa thi công; cần người kiểm độc lập đọc, rồi chủ duyệt bằng lời rõ.
+- **Trạng thái:** **accepted** 2026-11-10 — chủ dự án duyệt trong chat, nguyên văn: «Duyệt ADR-0195, mở đợt làm», sau bản 3 và sau khi đã chọn đưa bốn ô giờ ra khỏi đợt. Lịch sử: proposed 2026-11-10 (bản 3, sau khi người kiểm độc lập đọc) — AI soạn theo yêu cầu của chủ dự án trong chat 10/11: chủ chọn «khuyến nghị» cho việc mở ADR này, rồi yêu cầu mở rộng số trường ẩn/hiện ở mọi vai, rồi nói «ok cập nhật ADR… làm theo khuyến nghị» (phạm vi nhóm 1 + nhóm 2, hoãn nhóm 3, như mục «Phạm vi trường» dưới đây). Lời «ok» là chọn phạm vi, **chưa phải lời duyệt ADR**: chưa thi công; cần người kiểm độc lập đọc, rồi chủ duyệt bằng lời rõ.
 - **Loại:** việc lớn (dữ liệu, hợp đồng giữa bảng, máy chủ và giao diện). **Cửa:** hai chiều. Mở rộng ADR-0194 (đợt 1, đã duyệt và đã nhập `main`).
 - **Câu chủ hỏi:** «Nếu muốn ẩn trường mà có điều kiện thì thế nào, chẳng hạn ẩn Ghi chú trong đơn Không đón, được tạo bởi Đối tác?»
 
