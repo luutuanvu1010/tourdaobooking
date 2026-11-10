@@ -1,6 +1,6 @@
 # ADR-0196 — Đối tác báo «Công ty thu, chuyển khoản» thì bắt buộc kèm ảnh biên lai; Kế toán xem ảnh tại dòng khoản thu (yêu cầu mới N1)
 
-- **Trạng thái:** **proposed** 2026-11-10 — AI soạn theo kế hoạch `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (chủ duyệt kế hoạch 9/11 và chi tiết Phần IX ngày 10/11), thuộc **ADR lượt C** (trang ghép `docs/superpowers/specs/2026-11-10-trang-ghep-adr-luot-c.md`, trang trình `docs/superpowers/specs/2026-11-10-trinh-chu-adr-luot-c.md`). Chờ chủ duyệt; người soạn không tự duyệt (Hiến pháp N3). Chưa có mã. Dẫn chứng mã đọc trên `main` @`9dbfbc131`.
+- **Trạng thái:** **proposed** 2026-11-10 — AI soạn theo kế hoạch `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (chủ duyệt kế hoạch 9/11 và chi tiết Phần IX ngày 10/11), thuộc **ADR lượt C** (trang ghép `docs/superpowers/specs/2026-11-10-trang-ghep-adr-luot-c.md`, trang trình `docs/superpowers/specs/2026-11-10-trinh-chu-adr-luot-c.md`). Chờ chủ duyệt; người soạn không tự duyệt (Hiến pháp N3). Người kiểm độc lập chỉ đọc kiểm một vòng 10/11 (ĐẠT, không sai sự thật nghiêm trọng); góp ý nhỏ đã đưa vào Hệ quả. Chưa có mã. Dẫn chứng mã đọc trên `main` @`9dbfbc131`.
 - **Số:** 0196 (số lớn nhất trên mọi nhánh và worktree lúc cấp là 0195).
 - **Nguồn:** lời chủ 8/11 (kế hoạch Phụ lục A, nguyên văn): «khi đại lý thực hiện quét mã QR thanh toán, sẽ có chức năng đính kèm ảnh/file biên lai hoặc ảnh mành ình để làm bằng chứng công việc», và câu trả lời trong hộp hỏi: «Bắt buộc đính kèm». Cách hiểu: «ảnh mành ình» = ảnh màn hình; «đại lý» = tài khoản giữ quyền Đối tác.
 - **Ngày:** 2026-11-10. **Loại:** việc lớn — dữ liệu (bảng mới, tệp người dùng, migration), quyền (ô xem mới), tiền (đường ghi khoản thu), triển khai (kho R2 mới do chủ tạo). Người kiểm độc lập chỉ đọc sau thi công.
@@ -69,6 +69,7 @@ Hôm nay Kế toán chỉ có lời khai, phải tự dò sao kê theo số ti�
 
 ## Hệ quả
 
+- Khai binding `BIEN_LAI` trong `wrangler.jsonc` (`r2_buckets`) và kiểu `Env` — cổng 1e đọc tên kho từ `wrangler.jsonc`, thiếu khai thì cổng không thấy kho mới. «Đúng một tệp» phải kiểm riêng (`kiemTepCuaTin` nhận tới 5 tệp); `taoKhoaNgauNhien` nhận thêm tiền tố `bln`. Nút xác nhận ở dòng khoản thu hiện ghi «Xác nhận đã nhận» (`web/order.ts`); «Công ty đã nhận» trong văn bản này chỉ cùng nút đó.
 - Migration số kế tiếp lúc thi công (liệt kê mọi nhánh trước khi đặt số); `docs/data-dictionary.json` + `npm run dict`; hai cột N3 mới vào tập ghim của `src/hang-du-lieu.test.ts`.
 - **Việc của chủ trước lần triển khai có binding `BIEN_LAI`:** tạo kho bằng một lệnh (AI đưa nguyên lệnh và thư mục; lệnh có thể hỏi sửa cấu hình, trả lời «n»). Thiếu kho thì `npm run trien-khai` dừng ở cổng 1e, chưa đổi gì trên bản thật.
 - Hàng rào mới (chỉ `billing` chạm kho; cổng 1e biết kho mới) có dòng ở `docs/SO-HANG-RAO.md` kèm ngày quan sát chặn thật.

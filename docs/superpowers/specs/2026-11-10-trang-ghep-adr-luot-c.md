@@ -47,7 +47,7 @@ Không đổi `MATRIX` ở ô nào ngoài việc thêm `payment.proof.view`.
 | Kho thiếu khi triển khai | cổng 1e `scripts/release-lib.mjs`: `NHAN_KHO.BIEN_LAI`, `HAU_QUA_THIEU_KHO.BIEN_LAI` | 0196 |
 | Lưu đơn có cọc khi chọn Trả sau | `congTraSauKhiLuu` → `kiemDon`: **bỏ** 409 `tra_sau_khong_nhan_coc`; giữ chặn thiếu bên đặt và hạn mức | 0197 |
 | Xác nhận đơn Trả sau có cọc | `traSauChoXacNhan` → `kiemDon` (bỏ 409 như trên); hạn mức kiểm trên tổng; khoản cọc sinh trong cùng lô qua `cauCocKhiXacNhan` như ADR-0159 | 0197 |
-| Huỷ đơn Trả sau còn cọc | cổng mang nhãn `congHuyTraSau` (mọi nơi gọi `soanHuyDon`: `/status`, huỷ để lập lại, `handler-cancel`, huỷ yêu cầu đang chờ): thêm «người huỷ giữ quyền Đối tác» + «cọc còn ở tay người thu» (hàm tiêm) ⇒ 409 theo (c1); luật vé hãng ngoài đã mở còn nợ đứng trước như cũ | 0197 |
+| Huỷ đơn Trả sau còn cọc | cổng mang nhãn `congHuyTraSau` (ba nơi gọi `soanHuyDon`: `/status`, `handler-cancel`, huỷ yêu cầu đang chờ / huỷ để lập lại ở `xac-nhan-route.ts` — nơi thứ ba là đơn chưa xác nhận nên cổng không chặn gì): thêm «người huỷ giữ quyền Đối tác» + «cọc còn ở tay người thu» (hàm tiêm) ⇒ 409 theo (c1), chỉ ở đơn đã xác nhận; luật vé hãng ngoài đã mở còn nợ đứng trước như cũ và chặn cả văn phòng | 0197 |
 
 **Chỗ giao diện ẩn / hiện bị đổi nghĩa** (chủ duyệt 2026-10-01 — không chỉ route máy chủ):
 

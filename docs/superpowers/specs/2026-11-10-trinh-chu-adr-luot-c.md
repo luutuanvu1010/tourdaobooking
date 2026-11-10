@@ -24,7 +24,7 @@ Tên mới áp cho mọi chỗ người dùng thấy. Biên nhận gửi khách 
 
 Tôi đã kiểm trong mã: cách «cấm huỷ tới khi Kế toán xử lý» không làm Nền tảng kẹt hẳn, vì Kế toán ghi được «Đối tác đã nộp về Công ty» trên đơn chưa huỷ. Nhưng lối thoát đó phụ thuộc Đối tác chịu nộp tiền. Nếu Đối tác không nộp thì đơn cứ ở «Đã xác nhận», xe vẫn được xếp cho chuyến khách đã bỏ.
 
-- **(Khuyến nghị) Đối tác không tự huỷ được; văn phòng huỷ được.** Văn phòng huỷ thì tiền cọc đi đúng đường của đơn huỷ đang chạy: mặc định Công ty giữ cọc, Đối tác còn nợ số đó trên sổ; Công ty muốn hoàn cho khách thì một người duyệt, một người khác chi. Trong lúc chờ Kế toán kết luận, Đối tác đó không khai được cọc mới. Có người của Công ty nhìn đơn trước khi huỷ, mà đơn không bao giờ bị kẹt.
+- **(Khuyến nghị) Đối tác không tự huỷ được; văn phòng huỷ được.** Văn phòng huỷ thì tiền cọc đi đúng đường của đơn huỷ đang chạy: mặc định Công ty giữ cọc, Đối tác còn nợ số đó trên sổ; Công ty muốn hoàn cho khách thì một người duyệt, một người khác chi. Trong lúc chờ Kế toán kết luận, Đối tác đó không khai được cọc mới. Có người của Công ty nhìn đơn trước khi huỷ, và không thêm chỗ kẹt mới. Chỉ còn một ca kẹt có sẵn từ trước: đơn Trả sau còn nợ mà vé hãng ngoài đã mở cho khách thì không ai huỷ được, phải thu đủ hoặc Đối tác nộp tiền trước. Vì tiền cọc ở tay Đối tác vẫn tính là nợ, ca này sẽ gặp nhiều hơn một chút.
 - Cấm mọi người huỷ tới khi Kế toán ghi Đối tác đã nộp đủ tiền cọc. Chặt nhất về tiền, nhưng có thể kẹt đơn như đã nói ở trên. Khách đổi ý cũng phải chờ tiền về Công ty rồi mới hoàn được.
 - Cho huỷ như đơn thanh toán ngay, kể cả Đối tác tự huỷ. Không cần thêm luật nào, nhưng không ai ở Công ty nhìn đơn lúc huỷ.
 
