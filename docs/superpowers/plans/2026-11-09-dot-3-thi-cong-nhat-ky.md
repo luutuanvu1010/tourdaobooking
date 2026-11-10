@@ -59,3 +59,8 @@ Kế hoạch: `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (ch�
 - Kiểm sau gộp: xem mục ngay dưới.
 - Kiểm sau gộp: `npm test` lượt 1 đỏ đúng một bài — gói Đơn hàng 111.130 > trần 111.118 (vé Đợt 2 đã dùng gần hết phần dư). Không nâng trần, không đổi chữ chủ chọn; gọn `goLogin`/`dauHetPhien` (hành vi giữ nguyên, khuôn ghim ở `session-ended.test.ts` sửa theo cách viết mới, cờ vẫn đặt trước `await`) → gói về dưới trần. `npm test` lượt 2: 8648 xanh, 1 đỏ là bài r7 «xem đủ số» (`xac-minh-route.test.ts`, đỏ giả đã biết khi mã ngẫu nhiên chứa 0111) — chạy riêng 3 lần đều xanh. Typecheck 0 lỗi. Kịch bản Chrome `phien.mjs` xanh 8/8 trên bản sau gộp.
 - `main` = `origin/main` = 8836f959c, đã nằm trong nhánh. Lệnh nhập giao chủ: khối có rào ở Phần X bước 6 của kế hoạch. Sau nhập cần `npm run trien-khai` (bản tạm 2.85, không migration).
+
+## Gộp lần hai (2026-11-10): ADR-0194 đợt 1 nhập trước
+
+- Lệnh nhập lần trước dừng vì `main` đổi (ADR-0194 đợt 1 nhập, lấy số 2.85); production chưa có chữ Đợt 3 (dò `/js/login.js`). Chủ ra lệnh gộp lại.
+- Gộp `origin/main` d87c9cf8b: vướng `changelog.ts` (Đợt 3 đổi số tạm **2.86**, ngày 10/11) và `docs/BANG-THAM-CHIEU.md` (sinh lại). Typecheck 0 lỗi; gói Đơn hàng dưới trần; `npm test` xanh hết (8695 + 1, thoát 0).
