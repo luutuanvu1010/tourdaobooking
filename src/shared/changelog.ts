@@ -23,7 +23,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-11-10",
     items: [
       { kind: "doi", text: "Nhân sự tạo tài khoản Bán hàng thì không thấy PIN; Quản trị bấm «Đặt lại PIN» rồi giao PIN tận tay cho người mới." },
-      { kind: "doi", text: "Nhân sự không gán thêm vai xem được thông tin khách cho tài khoản có sẵn; nhờ Quản trị hoặc Toàn quyền gán." },
+      { kind: "doi", text: "Nhân sự không gán thêm vai trò xem được thông tin khách cho tài khoản có sẵn; nhờ Quản trị hoặc Toàn quyền gán." },
       { kind: "sua", text: "Hết hạn đăng nhập giữa lúc lập hoặc sửa đơn: đăng nhập lại trong 30 phút, cùng tài khoản, là chữ đã gõ còn nguyên." },
       { kind: "sua", text: "Đối tác bấm «Gửi đơn» đúng lúc hết hạn đăng nhập: đăng nhập lại sẽ về trang đơn vừa tạo, không tạo đơn trùng." },
     ],
