@@ -766,7 +766,13 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-KB-QUET-CHU-NUT** — bài tự quét: mọi chữ nút/nhãn mà kịch bản Chrome gõ cứng phải có trong `docs/BANG-THAM-CHIEU.md` hoặc trong mã giao diện. Mỗi đợt đổi tên nút (ADR-0166 và sau) làm vài kịch bản đỏ vì lệch chữ; hôm nay chỉ sửa tay (Task 1.9).
 - **BL-KB-DO-SAN-DOT-1** — còn đỏ sẵn trên bản chính, không do Đợt 1 (đã đối chiếu bằng bản gốc): doi-tac-lap-don bước 6 và 7, a2-form, a2-order, trang-chu, quyen-thieu phần C, huong-dan a/b/e, dot-0 #20, v1-npt-1030, và vài bước của tra-sau, xac-nhan, chup-anh, chon-hdv, v1-xac-nhan-png.
 
-## 68. Nối cột ẩn/hiện vào Danh sách đơn và số Face ID (mã `BL-GD-…`, ADR-0195, 2026-11-10)
+## 68. Hai phát hiện phụ của lần dò R3d (mã `BL-HS-…`, ADR-0190, 2026-11-09)
+
+- **Trạng thái:** `để sau` · Ghi theo ADR-0190 mục 6 (lần dò 8/11 của hồ sơ rà soát trước ngày dùng thật lần 2); ngoài phạm vi ADR-0190, chưa có kế hoạch.
+- **BL-HS-XAC-NHAN-BEN-NGUNG** — xác nhận đơn nháp có bên đặt (người đặt) đã ngừng dùng vẫn qua: lúc lưu nháp thì máy từ chối hồ sơ đã ngừng, nhưng bước xác nhận không kiểm lại. Từ ADR-0190 chỉ Quản trị, Toàn quyền ngừng dùng được nên ít gặp hơn, nhưng vẫn còn.
+- **BL-HS-TRUNG-SDT** — đơn mới nhập khách mới cùng số điện thoại với hồ sơ đã có (kể cả hồ sơ đã ngừng dùng) thì tạo thêm một hồ sơ trùng, không gợi ý dùng hồ sơ cũ. Dọn bằng gộp hồ sơ (ADR-0068) khi gặp.
+
+## 69. Nối cột ẩn/hiện vào Danh sách đơn và số Face ID (mã `BL-GD-…`, ADR-0195, 2026-11-10)
 
 - **Trạng thái:** `để sau` · Chủ 10/11, nguyên văn: «Để sau (khuyến nghị)».
 - **BL-GD-DS-DON** — màn `danh-sach-don` (ghi chú khách, điểm đón, người lập, giờ lập, số khách) đã có trong danh mục và máy chủ, nhưng giao diện chưa nối: nối vào thì gói trang Đơn hàng vượt trần 111.118 byte khoảng 261 byte. Hai cách mở: chủ nâng trần, hoặc một lượt thi công tách `traCuuChinhSach` khỏi `ui-truong.ts` thành tệp nhỏ. Bản vá cũ chỉ nằm ở thư mục tạm của phiên, không còn đáng tin; làm lại từ danh mục.

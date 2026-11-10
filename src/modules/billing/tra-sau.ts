@@ -68,6 +68,12 @@ export async function noCacBenDat(db: D1Database, partyIds: readonly string[], b
 export const noCuaBenDat = async (db: D1Database, partyId: string, bayGio: string = bayGioMacDinh()): Promise<NoBenDat> =>
   (await noCacBenDat(db, [partyId], bayGio)).get(partyId)!;
 
+/**
+ * ADR-0188 mục 4(a): mã các đơn Trả sau ĐÃ XÁC NHẬN (chưa huỷ — kể cả đã hết nợ, kể cả đã «Xong») mà hồ sơ đứng tên bên đặt. Cửa gộp hồ sơ dùng để biết có phải hỏi cổng hạn mức
+ * của hồ sơ chính không. Không đọc được thì NÉM (không đoán «không có đơn»).
+ */
+export const maDonTraSauDaXacNhan = async (db: D1Database, partyId: string): Promise<string[]> => (await donTraSauCuaCacBen(db, [partyId])).map((d) => d.order_code);
+
 /** Hạn trả và nợ của MỘT đơn; `null` = đơn không phải Trả sau. */
 export async function traSauCuaDon(db: D1Database, orderId: string): Promise<{ hanTra: string | null; hetAnHan: string | null; no: number; benDat: string | null; version: number } | null> {
   const d = await donTraSauTheoId(db, orderId);
@@ -94,7 +100,7 @@ export async function benCoLienQuanTraSau(db: D1Database, ngay: string = vnToday
  * Cổng hạn mức (ADR-0168 Đ2 mục 3): có hạn mức hiệu lực, không đơn quá hạn còn nợ, nợ + đơn này không vượt hạn mức. Đọc PHIÊN BẢN TRƯỚC khi tính nợ: mọi lệnh làm tăng nợ
  * sau đó đều tăng phiên bản, nên lô gác `cauGacPhienBan` của lệnh này sẽ hỏng nếu có ai chen vào. `boQuaDon` = đơn đang xét (khỏi tính nợ của chính nó hai lần).
  */
-export async function kiemTraSau(db: D1Database, i: { benDat: string; soTienDon: number; boQuaDon?: string; bayGio?: string; loai?: "sua_tang" }): Promise<KetQuaKiemTraSau> {
+export async function kiemTraSau(db: D1Database, i: { benDat: string; soTienDon: number; boQuaDon?: string; bayGio?: string; loai?: "sua_tang" | "doi_ben" }): Promise<KetQuaKiemTraSau> {
   const bayGio = i.bayGio ?? bayGioMacDinh();
   const version = await phienBanHienTai(db, i.benDat);
   const [hanMuc, no] = await Promise.all([hanMucHieuLuc(db, i.benDat, vnToday(new Date(bayGio))), noCuaBenDat(db, i.benDat, bayGio)]);

@@ -224,6 +224,8 @@ export const MATRIX = {
   "accounting.entry.view": row("any", "any", "any", "assigned", "none", "any", "own", "none", "none", "none"),
   "party.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // xem hồ sơ khách/đại lý
   "party.write": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // tạo/sửa hồ sơ KHÔNG gắn tài khoản (khách, đại lý, HDV/tài xế chưa có tài khoản) — ADR-0007, ADR-0013
+  // ADR-0190 (chủ duyệt 2026-11-09): ngừng dùng / dùng lại hồ sơ KHÔNG gắn tài khoản — Quản trị, Toàn quyền. Route PUT /api/parties/:id hỏi khi cờ đổi.
+  "party.deactivate": quanTri(),
   "party.staff.write": quanTri(), // sửa hồ sơ GẮN TÀI KHOẢN (tên, liên hệ) — ADR-0013; ADMIN còn phải quản được tài khoản đó (cấp bậc, ADR-0014 điều 8: ctx.partyAccount)
   // ADR-0122 đ5 (accepted 2026-10-16): xem / ghi NGÀY SINH và liên hệ ĐỊA CHỈ (ADDRESS) của hồ sơ người KHÁC — Quản trị + Toàn quyền. party.view (Bán hàng, Kế toán)
   // KHÔNG thấy hai trường này; chính chủ thấy của mình nhưng không ghi trực tiếp (Hiến chương 5.23). Quản trị còn theo luật cấp bậc khi hồ sơ gắn tài khoản

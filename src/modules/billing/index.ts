@@ -858,7 +858,7 @@ export const daThuCuaDon = async (db: D1Database, orderId: string): Promise<numb
 
 export { cauDatCocKhiXacNhan, chanKhaiCocLai, tienDonVe } from "./dat-coc";
 // Trả sau theo hạn mức (ADR-0168): hàm công bố cho gốc lắp ráp tiêm vào `ctx` của orders / ve-dien-tu (orders không import billing).
-export { cauGacPhienBan, cauTangPhienBan, hanMucHieuLuc, kiemTraSau, noCuaBenDat, traSauCuaDon } from "./tra-sau";
+export { cauGacPhienBan, cauTangPhienBan, hanMucHieuLuc, kiemTraSau, maDonTraSauDaXacNhan, noCuaBenDat, traSauCuaDon } from "./tra-sau";
 export { nhacHanTraSau, nhacHanTraSauAnToan } from "./tra-sau-nhac";
 /** ADR-0181 Đ2 (b): hồ sơ có dòng hạn mức ĐANG MỞ (không xét vai) — gốc lắp ráp tiêm cho đường gỡ vai (parties, accounts) để chỉ nối câu đóng khi cần. */
 export const coHanMucTraSauMo = (db: D1Database, partyId: string): Promise<boolean> => hanMucDangMo(db, partyId);

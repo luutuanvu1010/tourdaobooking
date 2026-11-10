@@ -17,6 +17,25 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0195 (accepted 10/11): ẩn/hiện trường theo điều kiện «không đón / có đón» và thêm trường ở Chi tiết đơn, tài khoản, Hỗ trợ. Migration 0156. SỐ TẠM 2.87: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.87",
+    date: "2026-11-10",
+    items: [
+      { kind: "moi", text: "Toàn quyền chọn ẩn ghi chú, số hiệu chuyến bay ở từng dịch vụ, riêng cho dịch vụ không đón hoặc có đón; ẩn thêm vài dòng ở Chi tiết đơn, tài khoản, Hỗ trợ." },
+    ],
+  },
+  {
+    // Đợt 2 kế hoạch sửa sau rà soát lần 2: ADR-0188 (T-03), ADR-0189 (Q-05), ADR-0190 (R3d), chủ duyệt 9/11. KHÔNG migration. Số 2.86: main đã có 2.84 (vé Tour Đảo
+    // Đợt 2) và 2.85 (ADR-0194 đợt 1); bước A.0 đặt lại số và ngày nếu nhánh khác (Đợt 3) nhập trước.
+    version: "2.86",
+    date: "2026-11-10",
+    items: [
+      { kind: "doi", text: "Đơn trả sau đã xác nhận chỉ đổi bên đặt sang đối tác có hạn mức trả sau còn hiệu lực, không có đơn quá hạn; gộp hồ sơ có đơn trả sau cũng vậy." },
+      { kind: "doi", text: "Tài xế quên bấm «Kết thúc»: từ 0 giờ ngày thứ hai sau ngày xe chạy, màn chuyến ẩn tên, số liên hệ của khách và nhắc bấm «Kết thúc»." },
+      { kind: "doi", text: "Chỉ Quản trị, Toàn quyền ngừng dùng hoặc dùng lại hồ sơ khách, đại lý; Bán hàng, Kế toán vẫn sửa tên, liên hệ. Nhật ký ghi rõ «ngừng dùng», «dùng lại»." },
+    ],
+  },
+  {
     // ADR-0194 đợt 1 (accepted 9/11): bảng điều khiển hiện/ẩn/bắt buộc trường của Toàn quyền. Migration 0154. SỐ TẠM 2.85: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.85",
     date: "2026-11-09",

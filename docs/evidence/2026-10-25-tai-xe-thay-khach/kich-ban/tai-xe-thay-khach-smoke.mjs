@@ -97,7 +97,8 @@ const lapDon = async (k, ngay, gioDon) => {
     passengers: o.ten.map(([fullName, birthYear]) => ({ fullName, birthYear, paxCode: null })),
   });
   dung(r, 201, `lập đơn ${k}`);
-  dung(await call(ACCOUNTS.admin, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" }), 200, `xác nhận đơn ${k}`);
+  // ADR-0135: đơn nháp chỉ người lập thấy và xác nhận ⇒ người lập (salesA) xác nhận, như dp-lib.mjs.
+  dung(await call(ACCOUNTS.salesA, "POST", `/api/orders/${r.json.order.id}/status`, { status: "confirmed" }), 200, `xác nhận đơn ${k}`);
   return { legId: r.json.order.services[0].legs[0].id, soSuat: o.soKhach };
 };
 const chuyen = async (xeId, tx, ngay, tu, den, chang) => {

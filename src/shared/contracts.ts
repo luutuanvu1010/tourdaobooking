@@ -1100,6 +1100,9 @@ export interface PartyDto extends PartyListItemDto {
   accountLinked: boolean;
   /** ADR-0013 điều 6: NGƯỜI ĐANG XEM sửa được tên/liên hệ của hồ sơ này (máy chủ tính). Chỉ để ẩn/hiện nút; máy chủ vẫn chặn. */
   editable: boolean;
+  /** ADR-0190: NGƯỜI ĐANG XEM đổi được ô «Đang dùng» (ngừng dùng / dùng lại) của hồ sơ này — máy chủ tính bằng ô party.deactivate; false với hồ sơ gắn tài khoản,
+   *  hồ sơ công ty chủ, hồ sơ đã gộp. Chỉ để khoá ô; máy chủ vẫn chặn. */
+  activeEditable: boolean;
   /** ADR-0068: hồ sơ này đã gộp vào hồ sơ nào (null = chưa gộp). Hồ sơ đã gộp chỉ đọc (`editable` = false). */
   mergedInto: PartyMergeRef | null;
   /** ADR-0068: các hồ sơ đã gộp VÀO hồ sơ này. */

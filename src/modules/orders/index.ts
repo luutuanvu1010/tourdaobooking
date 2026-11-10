@@ -1888,7 +1888,7 @@ export const ordersModule: AppModule = {
       if ((results[0]!.meta.changes ?? 0) === 0) return error(409, "han_vua_doi", "Hạn trả vừa được người khác đổi. Mở lại đơn rồi thử lại.");
       return json({ ok: true, hanTra: kq.hanMoi, hetAnHan: kq.hetAnHanMoi, trangThai: trangThaiHan({ hanTra: kq.hanMoi, hetAnHan: kq.hetAnHanMoi, bayGio: at, no: t.no }) });
     }),
-    route("PUT", "/api/orders/:id/booker", "orders", async ({ env, request, params, staff, isAssigned, isSalesOwner, baoThayDoi, traSauCuaDon, cauGacPhienBanTraSau }) => {
+    route("PUT", "/api/orders/:id/booker", "orders", async ({ env, request, params, staff, isAssigned, isSalesOwner, baoThayDoi, traSauCuaDon, kiemTraSau, cauGacPhienBanTraSau }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [meta, assigned, laBanHang] = await Promise.all([getMeta(env.DB, id), isAssigned(id), isSalesOwner(id)]);
@@ -1922,7 +1922,11 @@ export const ordersModule: AppModule = {
       // xác nhận trước đợt 1 (chưa có bản chụp) KHÔNG chụp — N15, đợt 2 chụp bù; đơn nháp chụp ở lúc xác nhận.
       const benMoi = booker.write.partyId;
       // ADR-0168 Đ2 mục 6: đơn Trả sau đã xác nhận còn nợ thì không đổi bên đặt (nợ không được chuyển sang bên khác); chỉ xét khi bên đặt đổi thật.
-      const congDoiBen = await congDoiBenDatTraSau({ traSauCuaDon, cauGacPhienBanTraSau }, { id, paymentTerm: meta.paymentTerm, status: meta.status, doiThat: benMoi !== meta.bookerPartyId });
+      // ADR-0188: hết nợ thì chỉ đổi sang bên có hạn mức trả sau còn hiệu lực, không đơn quá hạn; không sang khách lẻ. Lô gác phiên bản cả bên cũ lẫn bên mới.
+      const congDoiBen = await congDoiBenDatTraSau(
+        { traSauCuaDon, kiemTraSau, cauGacPhienBanTraSau },
+        { id, paymentTerm: meta.paymentTerm, status: meta.status, doiThat: benMoi !== meta.bookerPartyId, benMoi },
+      );
       if ("loi" in congDoiBen) return congDoiBen.loi;
       let kemChup: ((at: string) => D1PreparedStatement[]) | undefined;
       if (meta.status === "confirmed" && benMoi !== meta.bookerPartyId && (await demBanChup(env.DB, id)) > 0) {
@@ -1952,7 +1956,7 @@ export const ordersModule: AppModule = {
         daDoi = await changeBooker(env.DB, id, staff.id, v, booker.write, detail, congDoiBen.qua, kemChup);
       } catch (e) {
         const loi = e instanceof Error ? e.message : String(e);
-        const traSauThua = dichLoiTraSau(e); // ADR-0168: khoản thu bị đảo chen giữa — phiên bản bên đặt cũ đã tăng
+        const traSauThua = dichLoiTraSau(e); // ADR-0168, ADR-0188: phiên bản bên đặt cũ hoặc mới vừa đổi chen giữa (khoản thu bị đảo, hạn mức đổi…)
         if (traSauThua) return traSauThua;
         // Bảng mức / điều khoản đổi giữa lúc đọc và lúc ghi (trigger terms_rule_stale / terms_term_stale): cả lô rơi, bên đặt cũ giữ nguyên — bấm lại là chụp theo bảng mới.
         if (/\bterms_(rule|term)_stale:/.test(loi)) return error(409, "bang_muc_doi", "Bảng mức vừa đổi — thử lại");

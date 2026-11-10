@@ -414,6 +414,29 @@ test("TC-18 / Q-L3-B trongNgayChay: xuất bến SỚM (tối hôm trước, chu
   assert.equal(trongNgayChay({ ngayChay: "2026-09-29", trangThai: "RUNNING", xuatBenMs: null }, "2026-09-30"), false);
 });
 
+// ADR-0189 (Q-05): vế "đang chạy" có hạn — tới HẾT ngày VN kế sau ngày VN của giờ xuất bến. Chuyến quên bấm Kết thúc hết khung từ 00:00 ngày thứ hai sau ngày xuất bến.
+test("TC-18 / ADR-0189 trongNgayChay: chuyến quên Kết thúc — xuất bến D 12:35 → D, D+1 có; D+2, D+9 không; qua nửa đêm D+1 00:30 → tới hết D+2; xuất bến tối D−1 → chỉ D", () => {
+  const ms = (ngay: string, gio: string) => Date.parse(`${ngay}T${gio}:00+07:00`);
+  const D = "2026-10-20";
+  const c = { ngayChay: D, trangThai: "RUNNING" as const, xuatBenMs: ms(D, "12:35") };
+  assert.equal(trongNgayChay(c, D), true, "D");
+  assert.equal(trongNgayChay(c, "2026-10-21"), true, "D+1");
+  assert.equal(trongNgayChay(c, "2026-10-22"), false, "D+2: quên Kết thúc → hết khung");
+  assert.equal(trongNgayChay(c, "2026-10-29"), false, "D+9 (mục E-1 cũ: 9 ngày sau vẫn thấy) → hết khung");
+  // chuyến qua nửa đêm của ngày chạy D, xuất bến D+1 00:30 → trong khung tới hết D+2, ngoài từ D+3
+  const qua = { ngayChay: D, trangThai: "RUNNING" as const, xuatBenMs: ms("2026-10-21", "00:30") };
+  assert.equal(trongNgayChay(qua, "2026-10-21"), true);
+  assert.equal(trongNgayChay(qua, "2026-10-22"), true, "D+2: ngày kế sau ngày xuất bến");
+  assert.equal(trongNgayChay(qua, "2026-10-23"), false, "D+3");
+  // xuất bến tối D−1 (ngày chạy D): chỉ ngày D (vế "hôm nay là ngày chạy")
+  const som = { ngayChay: D, trangThai: "RUNNING" as const, xuatBenMs: ms("2026-10-19", "21:00") };
+  assert.equal(trongNgayChay(som, "2026-10-19"), false);
+  assert.equal(trongNgayChay(som, D), true);
+  assert.equal(trongNgayChay(som, "2026-10-21"), false);
+  // vế "hôm nay là ngày chạy" giữ nguyên, kể cả khi đã kết thúc
+  assert.equal(trongNgayChay({ ngayChay: D, trangThai: "ENDED", xuatBenMs: ms(D, "12:35") }, D), true);
+});
+
 // ---- ADR-0050 VK1-B (TC-48, luật thuần — khoá GIẢ): giữ NOI_HEN_DOI khi nơi hẹn đổi sau khi xếp; VK1-A (TC-47, I37): nghỉ đo từ giờ XẢY RA xuất bến -------
 test("TC-48 noiLechCuaSuat: khoá nơi của chặng so với placeKey của điểm lên / điểm xuống; chặng có nơi trả mà suất chưa có điểm xuống → lệch (I41); thiếu khoá → lệch (không đoán)", () => {
   const s = suat({ id: "s-1" });

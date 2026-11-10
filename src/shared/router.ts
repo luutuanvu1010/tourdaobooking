@@ -112,6 +112,8 @@ export interface GopHoSoNoi {
   /** ADR-0168 Đ2 mục 6: mã các đơn Trả sau còn nợ của hồ sơ — `orders` không biết nợ (billing tính), gốc lắp ráp điền. Tách khỏi `donNguoiDat` để hàng chờ phiếu xoá không tốn thêm truy vấn mỗi dòng. */
   /** BẮT BUỘC (ADR-0173 Đ3 mục 5, trang ghép (3)): không đọc được nợ thì hàm NÉM — mọi đường ngừng hồ sơ chặn theo (không đoán «hết nợ»). */
   conNoTraSau: (partyId: string) => Promise<string[]>;
+  /** ADR-0188 mục 4(a): mã các đơn Trả sau ĐÃ XÁC NHẬN chưa huỷ (kể cả hết nợ) của hồ sơ đứng tên bên đặt — billing đọc, gốc lắp ráp điền. BẮT BUỘC: không đọc được thì NÉM. */
+  donTraSauDaXacNhan: (partyId: string) => Promise<string[]>;
   /** ADR-0181 Đ2 (b): hồ sơ có dòng hạn mức Trả sau đang mở. BẮT BUỘC — không đọc được thì NÉM (route gỡ vai chặn, không bỏ qua bước đóng hạn mức). */
   coHanMucTraSauMo: (partyId: string) => Promise<boolean>;
   /** ADR-0181 Đ2 (b): câu chưa chạy của billing đóng hạn mức khi hồ sơ hết vai được hưởng — nối SAU câu đóng vai trong cùng `db.batch()`. Câu tự kiểm điều kiện. */
@@ -301,7 +303,7 @@ export interface Ctx<A extends Access = Access> {
    * ADR-0168 Đ2 mục 3, 4: cổng hạn mức Trả sau do billing dựng (`orders` không import billing). `null` = không tiêm: đơn Trả sau bị chặn 503, KHÔNG đoán «đủ hạn mức».
    * `cauGacPhienBanTraSau` dựng câu gác phiên bản của lô xác nhận (không tiêm ⇒ rỗng; chỉ dùng sau khi `kiemTraSau` đã trả `ok`). `traSauCuaDon`: hạn trả và nợ của MỘT đơn (`null` = không phải Trả sau / không đọc được).
    */
-  kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" }) => Promise<KetQuaKiemTraSau | null>;
+  kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" | "doi_ben" }) => Promise<KetQuaKiemTraSau | null>;
   cauGacPhienBanTraSau: (partyId: string, version: number, at: string) => D1PreparedStatement[];
   traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
   /** ADR-0168 Đ3 mục 3: đơn đã có vé bị mở (lộ) cho khách chưa — `ve-dien-tu` trả lời, `orders` không import nó. `null` = không tiêm / không đọc được ⇒ cổng huỷ đơn Trả sau còn nợ chặn 503. */
@@ -505,7 +507,7 @@ export interface AppOptions {
     /** ADR-0159. BẮT BUỘC trong mã chạy thật (`src/index.ts`: billing); thiếu (khung thử cố ý) → `null` / câu chặn 503. */
     cauCocKhiXacNhan: (env: Env, i: VaoCauCoc) => Promise<CauCocXacNhan>;
     /** ADR-0168. BẮT BUỘC trong mã chạy thật (`src/index.ts`: billing); thiếu (khung thử cố ý) → `null` (đơn Trả sau bị chặn 503) / câu gác rỗng. */
-    kiemTraSau: (env: Env, i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" }) => Promise<KetQuaKiemTraSau>;
+    kiemTraSau: (env: Env, i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" | "doi_ben" }) => Promise<KetQuaKiemTraSau>;
     cauGacPhienBanTraSau: (env: Env, partyId: string, version: number, at: string) => D1PreparedStatement[];
     traSauCuaDon: (env: Env, orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
     /** ADR-0168 Đ3 mục 3, ADR-0170 Đ3: BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu`); `null` = không đọc được ⇒ người giữ quyền Đối tác KHÔNG huỷ / sửa số khách được (chặn, không đoán). */
@@ -709,6 +711,7 @@ export function createApp(opts: AppOptions) {
         viecCua: (id) => opts.injected.gopHoSo(envH).viecCua(id),
         donNguoiDat: (id) => opts.injected.gopHoSo(envH).donNguoiDat(id),
         conNoTraSau: (id) => opts.injected.gopHoSo(envH).conNoTraSau(id),
+        donTraSauDaXacNhan: (id) => opts.injected.gopHoSo(envH).donTraSauDaXacNhan(id),
         coHanMucTraSauMo: (id) => opts.injected.gopHoSo(envH).coHanMucTraSauMo(id),
         cauDongHanMucKhiHetVai: (id, at, by) => opts.injected.gopHoSo(envH).cauDongHanMucKhiHetVai(id, at, by),
         cauDoiDon: (tu, sang, at) => opts.injected.gopHoSo(envH).cauDoiDon(tu, sang, at),

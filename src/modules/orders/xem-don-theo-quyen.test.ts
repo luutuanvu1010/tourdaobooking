@@ -281,7 +281,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "order.trip.edit": "none", "task.progress": "assigned", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none",
     "dispatch.guides.view": "any", "dispatch.refuse": "none" /* ADR-0030 điều 1 */, "payment.receive": "own" /* ADR-0026 đ10: thay ô cọc trên form đơn của mình */, "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none" /* ADR-0060 Q-2 "Không": Đối tác không thấy dấu kế toán / số hoá đơn */, "party.view": "none",
-    "party.write": "none", "party.staff.write": "none",
+    "party.write": "none", "party.staff.write": "none", "party.deactivate": "none", // ADR-0190
     "party.personal.view": "none", // ADR-0122 đ5: Đối tác không xem ngày sinh / địa chỉ người khác
     "admin.manage": "none", "admin.manage.superadmin": "none", "feedback.submit": "any", "feedback.view": "own",
     "feedback.triage": "none", "feedback.team.manage": "none", "settings.ops": "none", "dispatch.policy.lead": "none", "order.pool.view": "none", "ve.kho.manage": "none", "ve.phat-hanh": "none" /* ADR-0175 Đ1.3 */, "ve.doi-chieu.view": "none", "ve.quet.tinh": "none", "ve.quet.xem": "none" /* ADR-0175 Đ3: Đối tác không quét */, "ve.cap.send": "own", /* ADR-0170 Đ1 (NỚI có chủ ý, chủ duyệt 5/11): Đối tác xem và gửi vé của đơn do chính mình lập; ADR-0153 Đ3 trước đó là none */ "account.access.manage": "none", "audit.view": "none", "notice.send": "none",
