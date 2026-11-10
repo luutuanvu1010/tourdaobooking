@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Trạng thái:** Phần VIII, IX viết chi tiết 2026-11-10 (đề xuất, chờ chủ đọc). CHỦ ĐÃ DUYỆT 2026-11-09, nguyên văn: «Duyệt, mở thi công toàn bộ , lần lượt từng đợt cho tới khi hoàn thành». Cách hiểu ghi lại (chủ sửa được bằng một câu): Phần I điều 1 duyệt; điều 3 theo khuyến nghị (Q-05 làm khoá xem trước, tự kết thúc tách sau); phiếu chữ Phụ lục B dùng phương án (1) ở mọi mục cho tới khi chủ nói khác; điều 2 (người kiểm buổi sáng) chưa có tên — vẫn chờ chủ. Duyệt kế hoạch KHÔNG thay cho duyệt từng ADR lượt A, B, C (mỗi ADR vẫn trình chủ). Soạn 2026-11-08, phiên lập kế hoạch — phiên này không thi công, P15. Đây là **kế hoạch điều phối**: Đợt 1 có việc chi tiết tới từng bước; Đợt 3 có việc chi tiết nhưng chữ chờ chủ chọn; các đợt cần ADR chỉ ghi phạm vi, điều kiện và chỗ phải kiểm, phần việc chi tiết viết **sau khi** ADR được duyệt (`CLAUDE.md` §9).
+**Trạng thái:** Phần VIII, IX viết chi tiết 2026-11-10, CHỦ DUYỆT cùng ngày, nguyên văn: «Duyệt, mở thi công» (nút ở khung bước tiếp theo, trả lời «Duyệt kế hoạch và mở thi công Đợt 5A, 5B cùng việc soạn ADR Đợt 6?»). Hai câu hỏi của Phần VIII chủ chưa trả lời riêng: áp phương án (a) như kế hoạch ghi — 5B chỉ nhập sau buổi diễn tập khôi phục; câu (ii) xét mọi lượt còn mở. Chủ nói khác thì sửa. CHỦ ĐÃ DUYỆT 2026-11-09, nguyên văn: «Duyệt, mở thi công toàn bộ , lần lượt từng đợt cho tới khi hoàn thành». Cách hiểu ghi lại (chủ sửa được bằng một câu): Phần I điều 1 duyệt; điều 3 theo khuyến nghị (Q-05 làm khoá xem trước, tự kết thúc tách sau); phiếu chữ Phụ lục B dùng phương án (1) ở mọi mục cho tới khi chủ nói khác; điều 2 (người kiểm buổi sáng) chưa có tên — vẫn chờ chủ. Duyệt kế hoạch KHÔNG thay cho duyệt từng ADR lượt A, B, C (mỗi ADR vẫn trình chủ). Soạn 2026-11-08, phiên lập kế hoạch — phiên này không thi công, P15. Đây là **kế hoạch điều phối**: Đợt 1 có việc chi tiết tới từng bước; Đợt 3 có việc chi tiết nhưng chữ chờ chủ chọn; các đợt cần ADR chỉ ghi phạm vi, điều kiện và chỗ phải kiểm, phần việc chi tiết viết **sau khi** ADR được duyệt (`CLAUDE.md` §9).
 
 **Goal:** Đưa các việc tuần đầu của báo cáo rà soát 7/11 và bảy yêu cầu mới của chủ (8/11) lên production theo từng đợt nhỏ, mỗi đợt có kiểm độc lập và kiểm sau triển khai, và không để sổ quyền hoãn làm `npm test` đỏ từ 0 giờ 1/12.
 
@@ -329,7 +329,7 @@ Chạy song song từ ngày duyệt kế hoạch; mục tiêu là chủ quyết 
 
 ## Phần VIII — Đợt 5: ADR lượt B (Q-06, G-03(b), N2)
 
-**Chi tiết thi công viết 2026-11-10** sau khi ADR-0191, ADR-0192, ADR-0193 được duyệt (9/11). Đề xuất, chờ chủ đọc. Ba đoạn 5.1–5.3 dưới đây là phạm vi đã duyệt, giữ nguyên; phần chi tiết theo sau. Người thi công đọc ADR của việc mình trước khi làm.
+**Chi tiết thi công viết 2026-11-10** sau khi ADR-0191, ADR-0192, ADR-0193 được duyệt (9/11). Chủ duyệt 10/11 (xem dòng Trạng thái đầu tệp). Ba đoạn 5.1–5.3 dưới đây là phạm vi đã duyệt, giữ nguyên; phần chi tiết theo sau. Người thi công đọc ADR của việc mình trước khi làm.
 
 Đợt 5 tách hai nhánh: **5A** (ADR-0191, ADR-0192, không migration, phát hành được ngay) và **5B** (ADR-0193, có migration, chờ chủ chọn phát hành trước hay sau diễn tập). Lý do tách: `npm run trien-khai` áp mọi migration chưa áp, nên migration của 5B một khi đã vào `main` sẽ đi theo bất kỳ lần triển khai nào.
 
