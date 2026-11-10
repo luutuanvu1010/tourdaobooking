@@ -15,6 +15,10 @@ export interface BookerPicker {
   payload(): ReturnType<typeof bookerPayload>;
   /** Đặt lựa chọn khi mở đơn đã lưu (null = chưa gắn) rồi tra lại hồ sơ theo SĐT hiện có. */
   set(partyId: string | null, name: string | null): void;
+  /** Lựa chọn hiện tại (ADR-0192: form đơn chụp lại khi hết phiên, kể cả tên hồ sơ và «Tạo hồ sơ mới»). */
+  chon(): BookerChoice;
+  /** Đặt lại đúng lựa chọn đã chụp (ADR-0192: khôi phục form sau khi đăng nhập lại) rồi tra lại theo SĐT đang có — như `set`, không gọi `onDoiBenDat`. */
+  datLuaChon(c: BookerChoice): void;
   /** Tắt hẳn (tài khoản Đối tác mà máy chủ ép bên đặt — sổ đại lý đợt 1, Task 11): thôi tra hồ sơ theo SĐT, `set` không còn tra. Khối đã bị gỡ khỏi trang bởi nơi gọi. */
   tat(): void;
   /** Người đọc CÓ ô «Đặt qua đối tác» không (`coODatQuaDoiTac(staff)`): quyết câu cạnh hồ sơ tổ chức có trỏ tới ô đó không (`matchNote`). Mặc định KHÔNG (câu trung tính); nơi dựng khối trước khi biết tài khoản gọi hàm này sau. */
@@ -149,6 +153,12 @@ export function createBookerPicker(o: BookerPickerOptions): BookerPicker {
     payload: () => bookerPayload(choice, o.name.value, o.phone.value),
     set(partyId, name) {
       choice = partyId ? { kind: "existing", partyId, name: name ?? "" } : { kind: "none" };
+      renderStatus();
+      void lookup();
+    },
+    chon: () => choice,
+    datLuaChon(c) {
+      choice = c;
       renderStatus();
       void lookup();
     },

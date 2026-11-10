@@ -60,6 +60,37 @@ test("lưu thành công thì xoá bản chụp trước mọi lần chuyển tra
   assert.ok((sauLuu.match(/donVuaTao = null/g) ?? []).length >= 2, "gửi xong và nhánh gửi hỏng đều phải trả donVuaTao về null");
 });
 
+test("chụp giá trị ô bằng chính hàm dựng thân lưu nháp (collect), bản nháp thẻ và dòng hành khách — không liệt kê lại ô; «đơn đã tạo» không mang giá trị ô", () => {
+  const chup = thanHam(orderForm, "chupForm");
+  assert.match(chup, /than: collect\(\)/);
+  assert.match(chup, /dv: drafts\(\)/);
+  assert.match(chup, /hk: hk\?\.rows\(\)/);
+  assert.doesNotMatch(chup, /field\(/, "chupForm không tự đọc ô — ô thường đi qua collect()");
+  assert.match(orderForm, /loai: "form", staffId: staff\.id, at: Date\.now\(\), orderId: editId, updatedAt: orderUpdatedAt, o: chupForm\(\)/);
+  assert.doesNotMatch(orderForm.match(/\{ loai: "da-tao"[^}]*\}/)?.[0] ?? "", /\bo:/, "bản «đơn đã tạo» không được mang giá trị ô (ADR-0192 mục 6)");
+});
+
+test("khôi phục đi qua chính đường nạp đơn: fill và apBanChup cùng dùng napO + napThe; hành khách qua dungKhoiKhach", () => {
+  const fill = thanHam(orderForm, "fill");
+  assert.match(fill, /napO\(o, \(\) => napBenDat\(o\)\)/);
+  assert.match(fill, /napThe\(/);
+  const ap = thanHam(orderForm, "apBanChup");
+  assert.match(ap, /napO\(o, /);
+  assert.match(ap, /napThe\(g\.dv\.map/);
+  assert.match(ap, /dungKhoiKhach\(/);
+});
+
+test("đơn đã tạo chuyển trang NGAY khi mở form; quyetKhoiPhuc cho bản chụp giá trị ô (cả đơn đang sửa) gọi SAU khi nạp đơn, rồi xoá khoá", () => {
+  const som = orderForm.search(/if \(banChup\?\.loai !== "form"\) \{\s*xoaNhapTam\(\);\s*const kq = quyetKhoiPhuc\(banChup, staff\.id, Date\.now\(\), editId, null\);/);
+  assert.ok(som > 0, "thiếu bước đọc sớm cho «đơn đã tạo»");
+  assert.ok(som < orderForm.indexOf("await Promise.all("), "bước đọc sớm phải chạy trước khi nạp danh mục / đơn");
+  const muon = orderForm.search(/const kq = quyetKhoiPhuc\(banChup, staff\.id, Date\.now\(\), editId, orderUpdatedAt\);[^\n]*\n\s*xoaNhapTam\(\);/);
+  assert.ok(muon > 0, "thiếu bước quyết bản chụp giá trị ô bằng updatedAt máy chủ, xoá khoá ngay sau");
+  assert.ok(muon > orderForm.indexOf("await loadOrder()"), "bản chụp của đơn đang sửa phải quyết SAU khi nạp đơn (có updatedAt máy chủ)");
+  assert.ok(muon < orderForm.indexOf("donDaNap = true;"), "phải quyết trước khi đánh dấu form đã nạp xong");
+  assert.match(orderForm, /fill\(o: Api\.OrderDetailDto\): string\[\] \{[\s\S]*?orderUpdatedAt = o\.updatedAt/, "fill phải đặt orderUpdatedAt từ máy chủ");
+});
+
 test("không tệp web/ nào ghi bản chụp vào localStorage (chỉ sessionStorage — ADR-0192 mục 2)", () => {
   const vi: string[] = [];
   for (const ten of readdirSync(new URL("../../web/", import.meta.url)).filter((t) => t.endsWith(".ts"))) {
