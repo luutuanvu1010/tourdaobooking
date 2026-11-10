@@ -4451,7 +4451,7 @@ function build17w(): DatabaseSync {
  * Đơn + các dịch vụ `dvs` (mỗi dịch vụ một mảng chặng; id `l17-<n>-<d>-<i>`); `status` đặt sau cùng (gỡ hai trigger «xác nhận cần chuyến / ngày chặng» để dựng được chặng không ngày).
  * Trả `legIds[d][i]` theo đúng thứ tự khai.
  */
-function don17w(db: DatabaseSync, o: { staff: string; dvs: Chang17w[][]; taoLuc?: string; status?: "draft" | "confirmed" }): { order: string; legIds: string[][] } {
+function don17w(db: DatabaseSync, o: { staff: string; dvs: Chang17w[][]; taoLuc?: string; status?: "draft" | "confirmed"; xacNhanLuc?: string }): { order: string; legIds: string[][] } {
   const n = ++so17w;
   const order = `o17-${n}`;
   const luc = o.taoLuc ?? new Date(Date.now() + 60_000).toISOString();
@@ -4468,7 +4468,7 @@ function don17w(db: DatabaseSync, o: { staff: string; dvs: Chang17w[][]; taoLuc?
   if ((o.status ?? "confirmed") === "confirmed") {
     db.exec("DROP TRIGGER IF EXISTS orders_confirm_requires_leg_date");
     db.exec("DROP TRIGGER IF EXISTS orders_confirm_requires_trip");
-    db.prepare("UPDATE orders SET status = 'confirmed' WHERE id = ?").run(order);
+    db.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(o.xacNhanLuc ?? null, order);
   }
   return { order, legIds };
 }
@@ -4547,6 +4547,27 @@ test("R-ORD-17w và changDauCuaDichVu chọn CÙNG lượt: trên mỗi ca xếp
     assert.equal(violations(db, c), mong, `${k.ten} (${order}): máy chủ ${phuMay ? "báo thiếu" : "không báo"} nên kiểm định kỳ phải ${phuMay ? "đếm thêm" : "giữ nguyên"}`);
   }
   assert.ok(mong >= 5 && mong < ca.length, "chống bài rỗng: có ca đếm và có ca không đếm");
+});
+
+test("R-ORD-17w (ADR-0193 mục 6): chỉ đếm đơn xác nhận khi công tắc «Bắt buộc giờ đón» BẬT — dòng chính sách hiệu lực tại confirmed_at; Tắt ⇒ không đếm; không có dòng (xác nhận trước ngày gieo) ⇒ coi là Bật", () => {
+  const c = one("R-ORD-17w");
+  assert.equal(c.level, "warn", "giữ mức cảnh báo");
+  assert.match(c.sql, /ord_pickup_time_policy/, "đọc dòng chính sách hiệu lực tại giờ xác nhận");
+  const db = build17w();
+  const D = "2026-10-05";
+  const sau = (phut: number) => new Date(Date.now() + phut * 60_000).toISOString();
+  const thieuGio = (xacNhanLuc: string) => don17w(db, { staff: "s-lai", dvs: [[{ direction: "OUT", ngay: D, gio: null }]], xacNhanLuc });
+  db.prepare("INSERT INTO ord_pickup_time_policy (id, required, valid_from_at, created_at, updated_at) VALUES ('tat', 0, ?1, ?1, ?1)").run(sau(10));
+  db.prepare("INSERT INTO ord_pickup_time_policy (id, required, valid_from_at, created_at, updated_at) VALUES ('bat-lai', 1, ?1, ?1, ?1)").run(sau(30));
+  assert.equal(violations(db, c), 0);
+  thieuGio(sau(5));
+  assert.equal(violations(db, c), 1, "xác nhận khi còn dòng gieo Bật ⇒ đếm như hôm nay");
+  thieuGio(sau(20));
+  assert.equal(violations(db, c), 1, "xác nhận khi Tắt ⇒ hợp lệ, không đếm");
+  thieuGio(sau(40));
+  assert.equal(violations(db, c), 2, "Bật lại ⇒ đếm");
+  thieuGio("2000-01-01T00:00:00.000Z");
+  assert.equal(violations(db, c), 3, "xác nhận trước ngày gieo (không dòng nào hiệu lực) ⇒ coi là Bật, vẫn đếm (khớp docBatBuocGioDon)");
 });
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
