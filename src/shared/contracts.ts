@@ -749,6 +749,8 @@ export interface MocToiThieuResponse { mocToiThieuPhut: number; canhBaoPhut: num
 export interface ShortNoticeRequiredBody { error: { code: "short_notice_required"; message: string; legs: { legId: string; phutConLai: number }[] } }
 /** 409 Còn vé khi yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.2, Đ1.3) mà lượt đầu của một dịch vụ còn thiếu giờ đón: `legs` = các lượt đầu còn thiếu. Không ghi gì. */
 export interface PickupTimeRequiredBody { error: { code: "pickup_time_required"; message: string; legs: { legId: string }[] } }
+/** 409 `chua_gio_sat_ngay` (ADR-0193 câu (ii)): còn lượt đón CHƯA giờ mà ngày đón đã vào hạn chốt — điền giờ rồi xác nhận lại. `legs` = các lượt chạm luật. */
+export interface ChuaGioSatNgayBody { error: { code: "chua_gio_sat_ngay"; message: string; legs: { legId: string }[] } }
 
 /** Một dịch vụ trong PHẦN HẸP của hàng chờ nhận (ADR-0030 S23-2) — ĐÚNG bốn khoá này. `pickupPlace` (và `name`) đã che mọi dãy từ 8 chữ số. */
 export interface PoolServiceDto {

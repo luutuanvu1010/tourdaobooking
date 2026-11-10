@@ -28,7 +28,7 @@ import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, type DauDatGapMoi } 
 import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { congHuyTraSau, VE_CHUA_SOAN_DUOC } from "./tra-sau-cong";
 import { CAU_VUOT_TONG_NGUOI_XET } from "../../shared/dat-coc-truoc";
-import { MOC_CHUA_CO, RACED, STALE, type KetQuaLenhDon, canChotGioCuaNguoiLap, chanDoanXacNhan, chayLoNoiChuyen, cocChoXacNhan, congDoiTacChuaCoVaiTro, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, nguoiLapLaNguoiBam, tinhCanXacNhan, viCuaYeuCau, type NguoiLapDoiTac } from "./xac-nhan-chung";
+import { MOC_CHUA_CO, RACED, STALE, type KetQuaLenhDon, canChotGioCuaNguoiLap, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, congDoiTacChuaCoVaiTro, congNhomTatDuaDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, nguoiLapLaNguoiBam, tinhCanXacNhan, viCuaYeuCau, type NguoiLapDoiTac } from "./xac-nhan-chung";
 import { confirmGaps, confirmWindow } from "./service-rules";
 import { congLuatBan } from "./cong-ban";
 import { coChotGio } from "./gio-don-cai-dat";
@@ -247,6 +247,9 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       baoThayDoi({ orderId: id, thayDoi: "cho_xac_nhan" });
       return json({ nhanh: "A", thongBao: CAU_BAO_GUI_DON.A, yeuCau: mo.yeuCau } satisfies GuiDonResponse, 201, { location: trangDon(id) });
     }
+    // ADR-0193 câu (ii): nhánh B xác nhận ngay — lượt chưa giờ đã vào hạn chốt ⇒ 409 TRƯỚC khi dựng lô (đơn ở lại nháp, không mở yêu cầu). Xét lượt đang lưu.
+    const chuaGio = chanChuaGioSatNgay(changDangLuu(order.services), nowMs, moc.phut);
+    if (chuaGio) return chuaGio;
     const detail = ["tự xác nhận khi Đối tác gửi đơn", cong.detail].filter(Boolean).join(" | ");
     const xn = soanXacNhan(env.DB, id, staff.id, cong.today, meta.updatedAt, nguongMocVn(nowMs, moc.phut), detail, kemChupXacNhan(env.DB, { orderId: id, staffId: staff.id, today: cong.today, chup: cong.chup }), cocXn.coc, cong.traSau);
     // ADR-0142: điểm ghi nhận «đơn không cần kiểm» — Bán hàng được mời mở lời mời, hoặc người lập tự mời mình thì thành Bán hàng phụ trách ngay; nối CUỐI lô, gác bằng id nhật ký `confirmed`.
@@ -439,6 +442,10 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
         return json({ error: { code: "pickup_time_required", message: "Còn lượt đưa đón chưa có giờ đón. Ghi giờ đón rồi bấm Còn vé, xác nhận đơn.", legs: thieu.map((t) => ({ legId: t.legId })) } } satisfies PickupTimeRequiredBody, 409);
       }
     }
+    // ADR-0193 câu (ii): lượt CHƯA giờ (theo giờ SAU lệnh) mà ngày đón SAU lệnh đã vào hạn chốt ⇒ 409, không ghi gì — đứng trước đặt gấp (lượt chưa giờ không dựng được dấu) và trước
+    // khi dựng lô (ruling R6). `legsMoi.pickupDate` đã thay ngày trống bằng ngày đi SAU lệnh, đúng như câu điền ngày đón sẽ làm trong lô.
+    const chuaGio = chanChuaGioSatNgay(legsMoi.map((l) => ({ ...l, departDate: null })), nowMs, moc.phut);
+    if (chuaGio) return chuaGio;
     // ADR-0154 Đ1.4: giờ nhập dưới hạn chốt — mỗi lượt có `datGap` qua MỘT chỗ canh `xetDatGap` (ô `order.leg.short_notice` 403 → lý do 400 → giờ SAU lệnh phải dưới mốc, không thì 409
     // `short_notice_not_needed`). KHÔNG có `datGap` thì không gọi chỗ canh: đi đúng đường cũ (409 `short_notice_required` bên dưới; người không có ô — Kế toán, HDV nội bộ — vẫn nhận 409 này).
     const dauMoi = new Map<string, { dau: DauDatGapMoi; lyDo: LyDoDatGap }>();

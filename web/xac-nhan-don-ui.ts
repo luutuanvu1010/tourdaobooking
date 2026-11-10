@@ -266,8 +266,9 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
       await c.lamMoi({ tone: "success", text: loiBao });
     } catch (err) {
       baoLoiTaiCho(err);
-      // Hai câu 409 này nói người xét còn thiếu giờ / thiếu đặt gấp (ADR-0154 Đ1.3, Đ1.4), KHÔNG phải đơn vừa đổi: giữ bảng để không mất giờ vừa chọn. 409 / 404 khác: đơn đã đổi → tải lại.
-      const thieuNhapLieu = err instanceof ApiError && (err.code === "pickup_time_required" || err.code === "short_notice_required");
+      // Ba câu 409 này nói người xét còn thiếu giờ / thiếu đặt gấp (ADR-0154 Đ1.3, Đ1.4; ADR-0193 câu (ii) `chua_gio_sat_ngay`), KHÔNG phải đơn vừa đổi: giữ bảng để không mất giờ vừa chọn.
+      // 409 / 404 khác: đơn đã đổi → tải lại.
+      const thieuNhapLieu = err instanceof ApiError && (err.code === "pickup_time_required" || err.code === "short_notice_required" || err.code === "chua_gio_sat_ngay");
       if (err instanceof ApiError && (err.status === 409 || err.status === 404) && !thieuNhapLieu) await c.lamMoi();
     }
   };

@@ -3,7 +3,7 @@
 // `index.ts` và tệp route sau này không import vòng nhau. KHÔNG tự kiểm quyền người gọi (route đã làm); KHÔNG đổi hành vi so với thân nhánh `confirmed` cũ.
 import { auditStatement } from "../audit";
 import { chupDon, docBangChoChup, laNguoiHuong, soKhachTinhHoaHong, type BanChup, type DuLieuChup } from "../pricing";
-import type { DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDto, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile, XacNhanTrenDonDto } from "../../shared/contracts";
+import type { ChuaGioSatNgayBody, DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDto, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile, XacNhanTrenDonDto } from "../../shared/contracts";
 import { can, holdsIntern, holdsPartner, passesAdminGate } from "../../shared/permissions";
 import { error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
@@ -12,7 +12,7 @@ import { parseUnit } from "../../shared/order-lines";
 import type { DongBoTheoDon } from "../../shared/dong-bo-chuyen";
 import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem";
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
-import type { MocToiThieu } from "../../shared/moc-toi-thieu";
+import { cauChuaGioSatNgay, changChuaGioVaoHanChot, type MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canXacNhan, duocQuyetDinh, quaHanXacNhan } from "../../shared/xac-nhan-don";
 import { trangThaiLoiMoi } from "../../shared/ban-hang-phu-trach";
 import type { BanHangNoi } from "../../shared/router";
@@ -221,6 +221,24 @@ export function dichLoiXacNhan(e: unknown): Response | null {
   return null;
 }
 
+/** Một lượt đưa đón theo trạng thái SAU lệnh cho câu (ii) của ADR-0193: `departDate` = ngày đi (sau lệnh) của dịch vụ chứa lượt. */
+export interface ChangXetChuaGio { id: string; pickupDate: string | null; pickupTime: string | null; departDate: string | null }
+/** Lượt (còn mở) của đơn ĐANG LƯU, kèm ngày đi của dịch vụ — đầu vào `chanChuaGioSatNgay` ở cửa không đổi ngày / giờ (`/status`, nhánh B Gửi đơn, chẩn đoán lô thua). */
+export const changDangLuu = (services: readonly { departDate: string | null; legs: readonly { id: string; pickupDate: string | null; pickupTime: string | null }[] }[]): ChangXetChuaGio[] =>
+  services.flatMap((s) => s.legs.map((l) => ({ id: l.id, pickupDate: l.pickupDate, pickupTime: l.pickupTime, departDate: s.departDate })));
+
+/**
+ * ADR-0193 câu (ii), câu hỏi chủ số 2 phương án (a): MỌI lượt còn mở (kể cả chiều về) CHƯA giờ mà ngày đón đã vào hạn chốt ⇒ 409 `chua_gio_sat_ngay` (kèm các lượt chạm luật); không có ⇒ `null`.
+ * Gọi ở MỌI cửa xác nhận TRƯỚC khi dựng lô (ruling R6: lô không lui khi `ORDER_CONFIRM` đổi 0 dòng), trên trạng thái SAU lệnh. Vế SQL cùng luật trong `ORDER_CONFIRM` là lớp chặn cuối.
+ * Câu báo nêu ngày đón sớm nhất trong các lượt chạm luật.
+ */
+export function chanChuaGioSatNgay(chang: readonly ChangXetChuaGio[], nowMs: number, phut: number): Response | null {
+  const cham = chang.filter((l) => changChuaGioVaoHanChot(l, nowMs, phut));
+  if (cham.length === 0) return null;
+  const ngay = cham.map((l) => (l.pickupDate ?? l.departDate)!).sort()[0]!;
+  return json({ error: { code: "chua_gio_sat_ngay", message: cauChuaGioSatNgay(ngay), legs: cham.map((l) => ({ legId: l.id })) } } satisfies ChuaGioSatNgayBody, 409);
+}
+
 /**
  * Lô xác nhận THUA (`daXacNhan` false) → đọc lại để trả đúng lý do (không ghi nhật ký): đơn đã đổi trạng thái → RACED; chưa đủ chuyến → 409 `incomplete_trip`;
  * còn chặng dưới mốc chưa đặt gấp → 409 `short_notice_required`; còn lại (vừa có người sửa, khoá `updated_at`) → STALE.
@@ -233,6 +251,9 @@ export async function chanDoanXacNhan(db: D1Database, i: { id: string; today: st
   if (missing.length > 0) {
     return json({ error: { code: "incomplete_trip", message: "Chưa đủ thông tin chuyến để xác nhận đơn.", missing } } satisfies IncompleteTripBody, 409);
   }
+  // ADR-0193 câu (ii): lô thua vì vế «lượt chưa giờ đã vào hạn chốt» (bị đua: lượt vừa đổi giữa lúc kiểm và lúc ghi) — báo đúng câu bằng cùng hàm thuần.
+  const chuaGio = chanChuaGioSatNgay(changDangLuu(stored.map((s) => ({ departDate: s.trip.departDate, legs: s.legs }))), i.nowMs, i.mocToiThieu.phut);
+  if (chuaGio) return chuaGio;
   const daDatGap = new Set((await legDatGapByOrder(db, i.id)).map((r) => r.id));
   const duoi = canhBaoMocCua(stored.flatMap((s) => s.legs), daDatGap, i.nowMs, i.mocToiThieu.phut);
   if (duoi.length > 0) {

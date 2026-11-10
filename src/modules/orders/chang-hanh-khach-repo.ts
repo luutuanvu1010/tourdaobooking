@@ -475,6 +475,9 @@ export async function legDatGapByOrder(db: D1Database, orderId: string): Promise
  * KHOÁ PHIÊN BẢN (Task 4b — lời chủ 2026-10-08, "báo tải lại, bấm lại"): thêm `updated_at = ?6` = mốc route đã đọc TRƯỚC khi dựng bản chụp mức. Lưu nháp luôn
  * đẩy `updated_at` (`updateDraftOrder`, `changeBooker`, gộp hồ sơ…), nên nếu đơn đổi sau lúc route đọc thì câu này không đổi dòng nào ⇒ cả lô không ghi gì (chuỗi
  * `changes() > 0`) và route trả 409 "vừa được người khác sửa". Không có vế này, bản chụp (bên hưởng, mã dòng danh mục) có thể lệch đơn vừa lưu.
+ * ADR-0193 câu (ii) — vế thứ hai về chặng: không còn chặng MỞ nào CHƯA giờ mà `ngày đón || ' 00:00'` < ?5 (cùng ngưỡng, không thêm tham số). Câu điền ngày đón đứng trước trong lô nên chặng
+ * trống ngày đã mang ngày đi. MỘT luật với `changChuaGioVaoHanChot` (src/shared/moc-toi-thieu.ts; bài khoá hai phía ở chua-gio-sat-ngay.test.ts). Lớp chặn CUỐI: các cửa xác nhận đã kiểm
+ * bằng hàm thuần trước khi dựng lô (ruling R6).
  */
 const ORDER_CONFIRM = defineSql(
   "orders",
@@ -488,6 +491,9 @@ const ORDER_CONFIRM = defineSql(
      AND NOT EXISTS (
        SELECT 1 FROM ord_transfer_leg l WHERE l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NOT NULL
          AND l.short_notice_reason IS NULL AND l.pickup_date || ' ' || l.pickup_time < ?5)
+     AND NOT EXISTS (
+       SELECT 1 FROM ord_transfer_leg l WHERE l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NULL
+         AND l.pickup_date IS NOT NULL AND l.pickup_date || ' 00:00' < ?5)
      AND (?7 IS NULL OR EXISTS (SELECT 1 FROM ord_confirm_request q WHERE q.id = ?7 AND q.order_id = orders.id AND q.decided_at IS NULL))`,
 );
 /**

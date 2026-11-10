@@ -14,7 +14,7 @@
 // - KHOÁ DÍNH (R-P6; chủ trả lời lần 9 "Khoá dính"): chuyến đã vào vùng mốc thì GIỮ khoá dù giờ xuất bến bị dời ra xa. Mốc lúc xếp tính theo
 //   min(giờ xuất bến dự kiến SỚM NHẤT từng có, giờ hiện tại) — cột `vc_trip` của migration lõi chuyến (A12) giữ giờ sớm nhất, câu sửa giờ đặt
 //   `= MIN(cũ, mới)`. Bản thân lệnh dời giờ KHÔNG bị khoá.
-import { msToVnLocal, vnLocalToMs } from "./vn-date.ts";
+import { msToVnLocal, ngayDayDu, vnLocalToMs } from "./vn-date.ts";
 import type { MaLuatPhaLe } from "./dieu-phoi-kieu.ts";
 
 const PHUT = 60_000;
@@ -62,6 +62,21 @@ export function duoiMocKhiSua(cu: { pickupDate: string | null; pickupTime: strin
     l !== null && kiemMocDat({ ngayDon: l.pickupDate, gioDon: l.pickupTime, datGap: false }, bayGioMs, phut).duoiMoc;
   return xet(cu) || xet(moi);
 }
+
+/**
+ * ADR-0193 câu (ii): lượt đón CHƯA có giờ mà ngày đón đã vào hạn chốt ⇒ không xác nhận được tới khi có giờ (409 `chua_gio_sat_ngay`). Luật RIÊNG — không đổi `kiemMocDat` (vẫn `KHONG_GIO`
+ * cho lượt chưa giờ, vì `duoiMocKhiSua`, cảnh báo dưới mốc và lịch điều phối dùng nó). Ngày xét = `pickupDate ?? departDate`, cùng luật câu `legFillDateOnConfirm` chạy trong lô xác nhận
+ * (điền ngày đón trống bằng ngày đi trước câu `ORDER_CONFIRM`). So CÙNG một chuỗi với vế SQL của `ORDER_CONFIRM` (`pickup_date || ' 00:00' < ?5`, ?5 = `nguongMocVn`) để hai phía không lệch
+ * dù `nguongMocVn` làm tròn lên phút. Quy ước «<» của cổng hạn chốt: ADR viết «bây giờ ≥ 00:00 ngày đón − hạn chốt»; khác đúng ở khoảnh khắc 00:00 − hạn chốt + 0 ms (lúc đó chưa chặn,
+ * một mili giây sau thì chặn). Đầu vào là trạng thái SAU lệnh (ngày đi mới, giờ người xét vừa điền).
+ */
+export function changChuaGioVaoHanChot(chang: { pickupDate: string | null; pickupTime: string | null; departDate: string | null }, bayGioMs: number, phut: number): boolean {
+  const ngay = chang.pickupDate ?? chang.departDate;
+  return chang.pickupTime === null && ngay !== null && `${ngay} 00:00` < nguongMocVn(bayGioMs, phut);
+}
+/** Câu báo câu (ii) (ADR-0193 mục 4, chữ đề xuất — chủ sửa được ở đây). `‹ngày›` thay bằng ngày đón dd/mm/yyyy. */
+export const CAU_CHUA_GIO_SAT_NGAY = "Lượt đón ngày ‹ngày› chưa có giờ mà đã sát giờ đón — điền giờ đón trước khi xác nhận.";
+export const cauChuaGioSatNgay = (ngay: string): string => CAU_CHUA_GIO_SAT_NGAY.replace("‹ngày›", ngayDayDu(ngay));
 
 /**
  * Loại lệnh lúc XẾP (một chuyến chưa chạy). `DOI_DI` = dời suất RA khỏi chuyến này; `DOI_DEN` = dời suất VÀO chuyến này (route dời gọi hai lần, mỗi chuyến
