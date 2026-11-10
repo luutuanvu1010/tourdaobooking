@@ -6,17 +6,18 @@
 //   3  Bán hàng gõ form lập đơn (tên khách, SĐT, ghi chú khách, một dịch vụ) → xoá cookie bằng CDP → bấm Lưu → về /login (bản chụp có trong sessionStorage, không có ở
 //      localStorage) → đăng nhập lại CÙNG NGƯỜI qua giao diện đăng nhập, TRÊN CÙNG THẺ (sessionStorage theo thẻ) → về form, chữ còn, kho hết khoá td-nhap-don:*. 390 + 1280.
 //      3E: sửa đơn có sẵn (/order-form?id=…) cùng chu trình ⇒ chữ đã sửa còn; 3F đối chứng: mở sửa đơn bình thường ⇒ nạp đúng dữ liệu máy chủ (bản sửa chưa lưu không lọt).
-//   4  (chỉ chạy khi CANH_4=1 — phụ thuộc phần «dọn» của ADR-0192 mục 5, đang chờ chủ chọn chỗ đặt) hết phiên giữa form rồi NGƯỜI KHÁC đăng nhập cùng thẻ:
-//      4a form trống (đã có nhờ «chỉ khôi phục khi đúng mã nhân viên»); 4b kho không còn khoá của người trước (cần phần dọn).
+//   4  hết phiên giữa form rồi NGƯỜI KHÁC đăng nhập cùng thẻ: form trống; kho không còn khoá của người trước (phần dọn ở initShell, commit 479ea519a). 390 + 1280.
 //   5  Đối tác bấm «Gửi đơn»: lời gọi lưu thành công, lời gọi gửi (…/gui-don) bị giữ lại trong trang cho tới khi xoá xong cookie (CDP) ⇒ máy chủ trả 401 → /login →
 //      đăng nhập lại → về trang đơn đã tạo (/order?id=…&guiloi=1), không mở lại form; danh sách đơn của Đối tác không có đơn trùng; đơn vẫn là nháp. 390 + 1280.
+//   6  6a có bản chụp (hết phiên như cảnh 3), đăng nhập lại cùng người nhưng vào /orders trước ⇒ khoá của chính mình CÒN (trong hạn); 6b bấm «Đăng xuất» ở trang Tôi ⇒
+//      kho hết khoá; 6c đặt tay khoá của chính mình chụp 31 phút trước + khoá mới của người khác, đăng nhập, mở /orders ⇒ initShell xoá cả hai.
 // Cách giữ lời gọi gửi: `openPage` của a2-cdp.mjs không nhận sự kiện CDP Fetch.requestPaused (bộ nghe chỉ giữ vài loại sự kiện, cổng CDP không lộ ra), nên kịch bản
 //   bọc `window.fetch` của trang: lời gọi tới …/gui-don chờ cờ `__tha`; Node thấy cờ `__cho` thì Network.clearBrowserCookies rồi bật `__tha` — cookie gắn lúc gửi thật nên
 //   lời gọi đi KHÔNG có cookie (tương đương xoá cookie ngay sau khi lưu thành công). Bằng chứng máy chủ trả 401: về /login, bản chụp loại «da-tao», đơn vẫn nháp.
-// Kho cookie chung + một phiên mỗi tài khoản (ADR-0075): dựng dữ liệu bằng API TRƯỚC khi mở trang; thứ tự trang Nhân sự → Quản trị → Bán hàng → Đối tác → (cảnh 4).
+// Kho cookie chung + một phiên mỗi tài khoản (ADR-0075): dựng dữ liệu bằng API TRƯỚC khi mở trang; thứ tự trang Nhân sự → Quản trị → Bán hàng → Đối tác → Bán hàng (cảnh 4, 6).
 // Chạy từ GỐC repo (worktree), sau `npm run build:web` (không cần mạng ngoài):
 //   AXE_JS=<…/axe-core/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=docs/evidence/2026-11-10-dot-5a node docs/evidence/2026-11-10-dot-5a/kich-ban/dot-5a-smoke.mjs
-//   (thêm CANH_4=1 để chạy cảnh 4). Thiếu AXE_JS thì bỏ qua kiểm màu (in ghi chú).
+//   Thiếu AXE_JS thì bỏ qua kiểm màu (in ghi chú).
 // Mọi tên, SĐT ở đây là GIẢ (SĐT 0900000951–0900000969).
 process.env.OUT ??= "docs/evidence/2026-11-10-dot-5a";
 import { writeFileSync } from "node:fs";
@@ -386,35 +387,92 @@ if (dungXong) {
     await chuTrinh5(MOB, "a", { ten: "Khách Đối Tác Năm A", sdt: "0900 000 963", note: "Ghi chú đối tác 390", ngay: vnDate(10) });
     await chuTrinh5(DESK, "b", { ten: "Khách Đối Tác Năm B", sdt: "0900 000 964", note: "Ghi chú đối tác 1280", ngay: vnDate(11) });
 
-    // ==== Cảnh 4 (chờ phần dọn): hết phiên rồi người khác đăng nhập cùng thẻ ===================================================================================
-    if (process.env.CANH_4 === "1") {
-      const ID_BH2 = idCua(BH2.phone);
-      p = await env.as(BH1, "/order-form", MOB);
-      let daVe = false;
-      await b.step("4-chuan-bi", "390 Bán hàng 1 gõ form → xoá cookie → Lưu → /login (bản chụp của Bán hàng 1 có trong kho) → Bán hàng 2 đăng nhập trên cùng thẻ → về form", async () => {
-        await dienForm(p, { ten: "Khách Người Trước", sdt: "0900 000 965", note: "Ghi chú của người trước", ngay: vnDate(7) });
-        await p.send("Network.clearBrowserCookies");
-        await luuVaChoLogin(p);
-        assert.equal((await p.ev(docBan(ID_BH1)))?.loai, "form");
-        await dangNhapGiaoDien(p, BH2);
-        await p.waitFor("location.pathname === '/order-form' && !!document.getElementById('catalog-q')", "về form", 15000);
-        await sleep(2000);
-        daVe = true;
-      });
-      await b.step("4a", "form trống với người khác (chỉ khôi phục khi đúng mã nhân viên)", async () => {
-        assert.ok(daVe, "bước chuẩn bị hỏng");
-        assert.deepEqual(await p.ev(`[${giaTri("#customerName")}, ${giaTri("#customerNote")}, ${CARDS}.length]`), ["", "", 0]);
-        await chup(p, "4a-nguoi-khac-form-trong-390", MOB);
-      });
-      await b.step("4b", "kho sessionStorage không còn khoá của người trước (cần phần «dọn» ADR-0192 mục 5)", async () => {
-        assert.ok(daVe, "bước chuẩn bị hỏng");
-        assert.equal(await p.ev(docBan(ID_BH1)), null, `còn khoá của Bán hàng 1: ${JSON.stringify(await p.ev(KHOA_PHIEN))}`);
-        assert.equal(await p.ev(docBan(ID_BH2)), null);
-      });
-      p.close();
-    } else {
-      console.log("· cảnh 4 chưa chạy: chờ phần dọn (đặt CANH_4=1 để chạy)");
-    }
+    // ==== Cảnh 4: hết phiên rồi NGƯỜI KHÁC đăng nhập cùng thẻ (phần dọn ở initShell — commit 479ea519a) ======================================================
+    const ID_BH2 = idCua(BH2.phone);
+    const chuTrinh4 = async (khung, nhan, du) => {
+      const pg = await env.as(BH1, "/order-form", khung);
+      try {
+        let daVe = false;
+        await b.step(`4${nhan}-chuan-bi`, `${khung.width} Bán hàng 1 gõ form → xoá cookie → Lưu → /login (bản chụp của Bán hàng 1 có trong kho) → Bán hàng 2 đăng nhập trên cùng thẻ → về form`, async () => {
+          await dienForm(pg, du);
+          await pg.send("Network.clearBrowserCookies");
+          await luuVaChoLogin(pg);
+          assert.equal((await pg.ev(docBan(ID_BH1)))?.loai, "form", "bản chụp của Bán hàng 1 có trong kho trước khi người khác đăng nhập");
+          await dangNhapGiaoDien(pg, BH2);
+          await pg.waitFor("location.pathname === '/order-form' && !!document.getElementById('catalog-q')", "về form", 15000);
+          await sleep(2000);
+          daVe = true;
+        });
+        await b.step(`4${nhan}-form-trong`, `${khung.width} form trống với người khác (không lọt tên, ghi chú, dịch vụ của người trước)${axeNote()}`, async () => {
+          assert.ok(daVe, "bước chuẩn bị hỏng");
+          assert.deepEqual(await pg.ev(`[${giaTri("#customerName")}, ${giaTri("#customerPhone")}, ${giaTri("#customerNote")}, ${CARDS}.length]`), ["", "", "", 0]);
+          assert.ok(!(await pg.ev("document.querySelector('main').innerText")).includes(du.ten), "chữ của người trước không hiện ở đâu trên trang");
+          assert.equal(await pg.ev(noOverflowX), true);
+          await chup(pg, `4${nhan}-nguoi-khac-form-trong-${khung.width}`, khung);
+          await axe(pg, `form trống người khác ${khung.width}`);
+        });
+        await b.step(`4${nhan}-kho-sach`, `${khung.width} kho sessionStorage không còn khoá của người trước (initShell dọn), cũng không có khoá của người mới`, async () => {
+          assert.ok(daVe, "bước chuẩn bị hỏng");
+          assert.equal(await pg.ev(docBan(ID_BH1)), null, `còn khoá của Bán hàng 1: ${JSON.stringify(await pg.ev(KHOA_PHIEN))}`);
+          assert.deepEqual(await pg.ev(KHOA_PHIEN), []);
+        });
+      } finally {
+        pg.close();
+      }
+    };
+    await chuTrinh4(MOB, "a", { ten: "Khách Người Trước Năm A", sdt: "0900 000 965", note: "Ghi chú của người trước (390)", ngay: vnDate(7) });
+    await chuTrinh4(DESK, "b", { ten: "Khách Người Trước Năm B", sdt: "0900 000 966", note: "Ghi chú của người trước (1280)", ngay: vnDate(8) });
+
+    // ==== Cảnh 6: bản chụp của CHÍNH MÌNH còn khi mở trang khác; Đăng xuất xoá hết; bản quá hạn / của người khác bị initShell xoá ==================================
+    const veLoginNext = async (pg, next) => {
+      await pg.send("Page.navigate", { url: `${env.base}/login?next=${encodeURIComponent(next)}` });
+      await pg.waitFor("location.pathname === '/login' && document.readyState === 'complete' && !!document.getElementById('login-form')", "trang đăng nhập (next khác)", 10000);
+    };
+    const choTrangXong = async (pg, path) => {
+      await pg.waitFor(`location.pathname === ${JSON.stringify(path)} && document.readyState === 'complete' && !!document.querySelector('#topbar *')`, `trang ${path} đã dựng khung`, 15000);
+      await sleep(1500); // initShell (/api/auth/me + dọn) xong
+    };
+    p = await env.as(BH1, "/order-form", MOB);
+    let co6 = false;
+    await b.step("6a", `390 hết phiên giữa form (như cảnh 3) → đăng nhập lại cùng người nhưng vào /orders trước → khoá của chính mình CÒN (trong hạn)${axeNote()}`, async () => {
+      await dienForm(p, { ten: "Khách Cảnh Sáu", sdt: "0900 000 967", note: "Ghi chú cảnh 6", ngay: vnDate(7) });
+      await p.send("Network.clearBrowserCookies");
+      await luuVaChoLogin(p);
+      assert.equal((await p.ev(docBan(ID_BH1)))?.loai, "form");
+      await veLoginNext(p, "/orders"); // cùng thẻ: sessionStorage giữ nguyên
+      await dangNhapGiaoDien(p, BH1);
+      await choTrangXong(p, "/orders");
+      assert.deepEqual(await p.ev(docBan(ID_BH1)), { loai: "form", staffId: ID_BH1, orderId: null, coO: true }, "initShell không xoá bản chụp của chính mình còn trong hạn");
+      assert.equal(await p.ev(noOverflowX), true);
+      await chup(p, "6a-mo-trang-khac-khoa-con-390", MOB);
+      await axe(p, "Đơn hàng sau đăng nhập lại 390");
+      co6 = true;
+    });
+    await b.step("6b", "390 bấm «Đăng xuất» trên giao diện (trang Tôi) → về /login, kho không còn khoá td-nhap-don:*", async () => {
+      assert.ok(co6, "bước 6a hỏng");
+      await p.send("Page.navigate", { url: `${env.base}/account` });
+      await choTrangXong(p, "/account");
+      assert.equal((await p.ev(docBan(ID_BH1)))?.loai, "form", "khoá vẫn còn ngay trước khi đăng xuất (mở trang Tôi không xoá)");
+      const nut = `[...document.querySelectorAll('main button')].find((x) => x.textContent.trim() === 'Đăng xuất' && x.getClientRects().length > 0)`;
+      await p.waitFor(`!!(${nut})`, "nút Đăng xuất ở trang Tôi", 10000);
+      await p.ev(`(${nut}).click(), true`);
+      await p.waitFor("location.pathname === '/login' && document.readyState === 'complete'", "về /login sau Đăng xuất", 15000);
+      assert.deepEqual(await p.ev(KHOA_PHIEN), [], "Đăng xuất xoá mọi khoá td-nhap-don:*");
+      await chup(p, "6b-dang-xuat-kho-sach-390", MOB);
+    });
+    await b.step("6c", "1280 đặt tay hai khoá (của chính mình nhưng chụp 31 phút trước; của người khác, mới) rồi đăng nhập, mở /orders → initShell xoá cả hai", async () => {
+      await doiKhoGiuTrang(p, DESK);
+      const khoa = (id, at) => `sessionStorage.setItem(${JSON.stringify(TIEN_TO_NHAP_TAM)} + ${JSON.stringify(id)}, JSON.stringify({ loai: 'form', staffId: ${JSON.stringify(id)}, at: ${at}, orderId: null, updatedAt: null, o: { than: { customerName: 'Khách Đặt Tay' } } }))`;
+      await p.ev(`${khoa(ID_BH1, "Date.now() - 31 * 60 * 1000")}; ${khoa(ID_BH2, "Date.now()")}; true`);
+      assert.equal((await p.ev(KHOA_PHIEN)).length, 2, "đã đặt hai khoá");
+      await veLoginNext(p, "/orders");
+      assert.equal((await p.ev(KHOA_PHIEN)).length, 2, "trang đăng nhập không xoá khoá");
+      await dangNhapGiaoDien(p, BH1);
+      await choTrangXong(p, "/orders");
+      assert.deepEqual(await p.ev(KHOA_PHIEN), [], `còn khoá: ${JSON.stringify(await p.ev(KHOA_PHIEN))}`);
+      await chup(p, "6c-khoa-qua-han-nguoi-khac-bi-xoa-1280", DESK);
+    });
+    p.close();
   } finally {
     if (Object.keys(tom).length) console.log(`\nghi nhận: ${JSON.stringify(tom)}`);
     b.xong();
