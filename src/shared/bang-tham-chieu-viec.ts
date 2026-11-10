@@ -4275,7 +4275,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Giao diện công ty",
     manHinh: "Giao diện › khối «Hiển thị trường theo màn hình»",
     ten: "Lưu cho màn này",
-    thatSuLam: "Lưu các lựa chọn Hiện, Ẩn, Bắt buộc đã đổi cho MỘT màn (Tạo đơn, Danh sách dịch vụ, Danh sách tài khoản, Quản lý đối tác), theo từng nhóm quyền. Máy chủ chỉ nhận trường nằm trong danh mục cho phép; tên, số điện thoại, dịch vụ, tiền, ngày đi không ẩn được. Người giữ nhiều quyền chỉ bị ẩn một trường khi mọi quyền của họ cùng ẩn. Chỉ Toàn quyền; có hiệu lực ở lần mở màn kế tiếp.",
+    thatSuLam: "Lưu các lựa chọn Hiện, Ẩn, Bắt buộc đã đổi cho MỘT màn (Tạo đơn, Dịch vụ trong đơn, Danh sách dịch vụ, Danh sách tài khoản, Quản lý đối tác, Chi tiết đơn, Danh sách đơn, Hỗ trợ), theo từng nhóm quyền; ở các ô trong thẻ dịch vụ còn chọn được điều kiện «Dịch vụ không đón» hoặc «Dịch vụ có đón» (dòng gắn điều kiện thắng dòng không gắn khi dịch vụ thoả). Ở các màn chỉ xem, ẩn chỉ ẩn chữ trên màn hình, không phải cấm xem. Máy chủ chỉ nhận trường nằm trong danh mục cho phép; tên, số điện thoại, dịch vụ, tiền, ngày đi không ẩn được. Người giữ nhiều quyền chỉ bị ẩn một trường khi mọi quyền của họ cùng ẩn. Chỉ Toàn quyền; có hiệu lực ở lần mở màn kế tiếp.",
     hoiLai: "không",
     hoanTac: "được: chọn lại Hiện rồi Lưu, hoặc «Khôi phục mặc định»; dòng cũ giữ trong bảng chỉ-thêm",
     duongLenh: ["/api/cai-dat/giao-dien"],

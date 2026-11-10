@@ -76,8 +76,8 @@ test("dòng hiệu lực = mốc lớn nhất ≤ bây giờ theo (màn, trườ
   assert.deepEqual(q("2026-11-09T10:00:00.000Z"), [{ quyen: "INTERN", che_do: "AN" }, { quyen: "SALES", che_do: "AN" }]);
 });
 
-test("không có cột nào chứa dữ liệu cá nhân của khách (chỉ mã màn, trường, quyền, chế độ, mốc, người ghi)", () => {
+test("không có cột nào chứa dữ liệu cá nhân của khách (chỉ mã màn, trường, quyền, chế độ, mã điều kiện, mốc, người ghi)", () => {
   const d = open();
   const cot = rows(d, "PRAGMA table_info(gd_field_policy)").map((r) => r.name).sort();
-  assert.deepEqual(cot, ["che_do", "created_at", "created_by", "id", "man", "quyen", "truong", "updated_at", "updated_by", "valid_from_at"]);
+  assert.deepEqual(cot, ["che_do", "created_at", "created_by", "dieu_kien", "id", "man", "quyen", "truong", "updated_at", "updated_by", "valid_from_at"]); // + dieu_kien: ADR-0195, migration 0156
 });

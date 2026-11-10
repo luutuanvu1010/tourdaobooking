@@ -110,10 +110,14 @@ test("GET tất cả: trả danh mục (màn, trường, cờ) + dòng đang hi�
   const r = await w.call("GET", `${U}/tat-ca`, { as: SUP });
   assert.equal(r.status, 200);
   assert.match(r.headers.get("cache-control") ?? "", /no-store/);
-  assert.deepEqual(r.json.dong, [{ man: "tao-don", truong: "passengers", quyen: "SALES", cheDo: "AN" }]);
+  assert.deepEqual(r.json.dong, [{ man: "tao-don", truong: "passengers", quyen: "SALES", cheDo: "AN", dieuKien: null }]);
   assert.ok(r.json.danhMuc.some((m: { man: string; truong: string; anDuoc: boolean }) => m.man === "tao-don" && m.truong === "passengers" && m.anDuoc === true));
   assert.ok(!r.json.danhMuc.some((m: { truong: string; anDuoc: boolean }) => m.truong === "customerName" && m.anDuoc));
   assert.ok(r.json.quyen.includes("SALES"));
+  const note = r.json.danhMuc.find((m: { man: string; truong: string }) => m.man === "dich-vu-trong-don" && m.truong === "note");
+  assert.deepEqual(note.dieuKien, ["DICH_VU_KHONG_DON", "DICH_VU_CO_DON"], "danh mục nói mục nào nhận điều kiện nào");
+  assert.equal(note.khoaGui, "services[].note");
+  assert.deepEqual(r.json.danhMuc.find((m: { truong: string }) => m.truong === "customerEmail").dieuKien, []);
 });
 
 test("dòng ngoài danh mục có sẵn trong bảng (ghi tay / danh mục thu hẹp sau này) bị BỎ QUA khi đọc, không làm vỡ", async () => {
@@ -122,4 +126,78 @@ test("dòng ngoài danh mục có sẵn trong bảng (ghi tay / danh mục thu h
   w.sqlite.prepare("INSERT INTO gd_field_policy (id, man, truong, quyen, che_do, valid_from_at, created_at, updated_at) VALUES ('x1','tao-don','customerName','SALES','AN',?,?,?)").run(at, at, at);
   w.sqlite.prepare("INSERT INTO gd_field_policy (id, man, truong, quyen, che_do, valid_from_at, created_at, updated_at) VALUES ('x2','tao-don','khongCo','SALES','AN',?,?,?)").run(at, at, at);
   assert.deepEqual(await doc(w, A), []);
+});
+
+
+// ---- ADR-0195 Đ2: điều kiện ------------------------------------------------------------------------------------------------------------------------------------------
+const KD = "DICH_VU_KHONG_DON";
+const CD = "DICH_VU_CO_DON";
+const DV = "dich-vu-trong-don";
+const AN_NOTE_KD = [{ truong: "note", quyen: "SALES", cheDo: "AN", dieuKien: KD }];
+
+test("POST có dieuKien: ghi dòng có điều kiện; GET trả mục có dieuKien; dòng không điều kiện giữ riêng; nhật ký ghi MÃ điều kiện, không dữ liệu", async () => {
+  const w = setup();
+  assert.equal((await dat(w, SUP, DV, AN_NOTE_KD)).status, 200);
+  assert.deepEqual(await doc(w, A), [{ man: DV, truong: "note", an: true, batBuoc: false, dieuKien: KD }]);
+  assert.equal(w.q("SELECT dieu_kien AS d FROM gd_field_policy")[0].d, KD);
+  const nk = String(w.q("SELECT detail FROM audit_log WHERE action = 'ui_policy_changed'")[0].detail);
+  assert.match(nk, /note\/SALES/);
+  assert.match(nk, new RegExp(KD));
+  assert.equal((await dat(w, SUP, DV, [{ truong: "note", quyen: "SALES", cheDo: "AN" }])).status, 200, "cùng ô, không điều kiện: dòng RIÊNG, không va chạm UNIQUE dù cùng mốc");
+  assert.equal(soDong(w), 2);
+  assert.deepEqual(await doc(w, A), [{ man: DV, truong: "note", an: true, batBuoc: false }], "mặc định ẩn; dòng KHÔNG ĐÓN trùng kết quả nên không cần mục riêng");
+});
+
+test("POST cùng lô: dòng không điều kiện + dòng có điều kiện của CÙNG một ô và quyền (cùng mốc) ghi được; lặp đúng cả điều kiện thì 400", async () => {
+  const w = setup();
+  const r = await dat(w, SUP, DV, [{ truong: "note", quyen: "SALES", cheDo: "AN" }, { truong: "note", quyen: "SALES", cheDo: "HIEN", dieuKien: CD }]);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(soDong(w), 2);
+  assert.deepEqual(await doc(w, A), [{ man: DV, truong: "note", an: true, batBuoc: false }, { man: DV, truong: "note", an: false, batBuoc: false, dieuKien: CD }], "dòng điều kiện HIEN đè dòng trống AN");
+  assert.equal((await dat(w, SUP, DV, [{ truong: "note", quyen: "SALES", cheDo: "AN", dieuKien: KD }, { truong: "note", quyen: "SALES", cheDo: "HIEN", dieuKien: KD }])).status, 400, "lặp ô + điều kiện");
+});
+
+test("POST từ chối (400, không ghi): điều kiện lạ; điều kiện mà mục không nhận (Tạo đơn/passengers; ô không ẩn được); ẩn ô giờ khởi hành; chế độ không cho", async () => {
+  const w = setup();
+  for (const [man, truong, cheDo, dieuKien] of [
+    [DV, "note", "AN", "DIEU_KIEN_LA"], ["tao-don", "passengers", "AN", KD], [DV, "departTime", "AN", null], [DV, "departTime", "AN", KD], [DV, "pickupChoice", "AN", null],
+    [DV, "departDate", "AN", null], [DV, "checkinPlace", "AN", null], [DV, "paxOverride", "BAT_BUOC", null],
+  ] as const) {
+    assert.equal((await dat(w, SUP, man, [{ truong, quyen: "SALES", cheDo, dieuKien }])).status, 400, `${man}/${truong}/${cheDo}/${dieuKien}`);
+  }
+  assert.equal(soDong(w), 0);
+});
+
+test("Điều kiện chỉ Toàn quyền đặt; Quản trị 403", async () => {
+  const w = setup();
+  assert.equal((await dat(w, ADM, DV, AN_NOTE_KD)).status, 403);
+  assert.equal(soDong(w), 0);
+});
+
+test("cộng gộp quyền ở GET: người giữ Bán hàng + Kế toán chỉ bị ẩn theo điều kiện khi CẢ HAI quyền ẩn cho điều kiện đó", async () => {
+  const w = setup();
+  await dat(w, SUP, DV, AN_NOTE_KD);
+  assert.equal((await doc(w, ACC)).length, 0, "Kế toán không bị ẩn");
+  await dat(w, SUP, DV, [{ truong: "note", quyen: "ACCOUNTING", cheDo: "AN", dieuKien: KD }]);
+  assert.equal((await doc(w, ACC)).length, 1);
+});
+
+test("Khôi phục mặc định một màn: dòng có điều kiện cũng được đặt lại (dòng HIEN CÙNG điều kiện), kết quả mọi điều kiện = hiện đủ", async () => {
+  const w = setup();
+  await dat(w, SUP, DV, [{ truong: "note", quyen: "SALES", cheDo: "AN" }, { truong: "note", quyen: "SALES", cheDo: "AN", dieuKien: KD }]);
+  const r = await w.call("POST", `${U}/khoi-phuc`, { as: SUP, body: { man: DV } });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(await doc(w, A), []);
+  assert.equal(w.q("SELECT count(*) AS n FROM gd_field_policy WHERE dieu_kien = ? AND che_do = 'HIEN'", KD)[0].n, 1);
+});
+
+test("dòng ngoài danh mục có sẵn trong bảng (điều kiện lạ, điều kiện mục không nhận) bị BỎ QUA khi đọc", async () => {
+  const w = setup();
+  const at = new Date(Date.now() - 5000).toISOString();
+  const them = (id: string, man: string, truong: string, dk: string) => w.sqlite.prepare("INSERT INTO gd_field_policy (id, man, truong, quyen, che_do, valid_from_at, created_at, updated_at, dieu_kien) VALUES (?,?,?,'SALES','AN',?,?,?,?)").run(id, man, truong, at, at, at, dk);
+  them("x1", DV, "note", "LA");
+  them("x2", "tao-don", "passengers", KD);
+  them("x3", DV, "departTime", KD);
+  assert.deepEqual(await doc(w, A), []);
+  assert.deepEqual((await w.call("GET", `${U}/tat-ca`, { as: SUP })).json.dong, []);
 });
