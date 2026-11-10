@@ -2,7 +2,25 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.81 ĐÃ LÊN PRODUCTION (ADR-0175 Đợt 1: vé do chính Tour Đảo phát hành — ô «Vé do ai phát» trên từng dịch vụ, lô «Vé Tour Đảo» trong kho vé có mã QR, ô quyền «ve.phat-hanh», Kế toán chỉ thấy lô Tour Đảo, cấp bù vé và tin thiếu vé theo nguồn; MỌI dịch vụ vẫn «Vé hãng ngoài» tới khi Đợt 2 — quét vé — xong) — migration `0151`, `0152` — triển khai 2026-11-09 12:41 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.82 ĐÃ LÊN PRODUCTION (ADR-0187 Đ2.3: người dùng tự chọn tối đa 4 nút thanh dưới điện thoại ở trang Tôi, nút «Tôi» luôn có; lưu ở máy chủ theo tài khoản; ô quyền `me.favorites.write` cho mọi vai trò trừ Tài xế đối tác; đang «xem như vai trò khác» thì dùng mặc định) — migration `0153` — triển khai 2026-11-09 14:45 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy ở Terminal (phiên thi công đọc ô Terminal; chưa thử iPhone thật).
+
+Khối máy in ra (nguyên văn, rút gọn phần thời gian):
+- Ngày giờ: 2026-11-09 14:45 (giờ Việt Nam)
+- Commit: 9445ac80d Nhật ký nút thanh dưới: bài bảng tham chiếu đỏ sau gộp, đã sinh lại
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-09T07:36:35Z (có đổi quy trình kiểm — lý do của chủ: «xong roi»; thay đổi thật: thêm bài e2e `thanh-duoi-ghim` vào `tests/e2e/danh-sach.mjs`, không bỏ bài nào)
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/42579447608
+- Migration đã áp: 0153_thanh_duoi_ghim.sql
+- Điểm khôi phục Time Travel trước khi áp: 000026b0-0000000a-0000511e-10e6fd588d89c09219149b82e5ca632f
+- Worker Version ID: 05caf7c4-a3ca-43fd-b54d-b9eb307d49eb
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (2 cảnh báo)
+- Phiên bản: 2.82 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: day-len 9 phút 46 giây; trien-khai 0 phút 36 giây; tổng 10 phút 22 giây (vượt mục tiêu ~10 phút của ADR-0179 Đ1.1, không chặn)
+
+Việc còn treo: chủ xem lại chữ giao diện «Nút thanh dưới», «Về mặc định» (đang «chờ chọn» ở Bảng tham chiếu); kịch bản Chrome `dot-0-smoke` bước 20 và `dot-c-smoke` đỏ sẵn từ trước (nợ kịch bản, nhật ký thi công `docs/superpowers/plans/2026-11-09-ghim-nut-thanh-duoi-thi-cong-nhat-ky.md`).
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.81 ĐÃ LÊN PRODUCTION (ADR-0175 Đợt 1: vé do chính Tour Đảo phát hành — ô «Vé do ai phát» trên từng dịch vụ, lô «Vé Tour Đảo» trong kho vé có mã QR, ô quyền «ve.phat-hanh», Kế toán chỉ thấy lô Tour Đảo, cấp bù vé và tin thiếu vé theo nguồn; MỌI dịch vụ vẫn «Vé hãng ngoài» tới khi Đợt 2 — quét vé — xong) — migration `0151`, `0152` — triển khai 2026-11-09 12:41 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy (chủ gửi cho phiên thi công; chưa thử iPhone thật, chưa chạy kịch bản Chrome cho màn kho vé / tạo vé).
 

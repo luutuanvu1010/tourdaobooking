@@ -18,8 +18,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đợt 3 «chữ do chủ chọn» của kế hoạch sửa sau rà soát lần 2 (phiếu Phụ lục B, phương án (1); câu khoá vé dùng dự phòng B-2), KHÔNG migration.
-    // SỐ TẠM 2.87: main có 2.86 (Đợt 2 sửa sau rà soát); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "2.87",
+    // SỐ TẠM 2.89: main có 2.88 (ADR-0195 và lời nhắc màn chỉnh); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.89",
     date: "2026-11-10",
     items: [
       { kind: "sua", text: "Khi đơn đang giữ vì thiếu mức hoa hồng, câu báo nói rõ cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng đó." },
@@ -31,6 +31,22 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Một số câu khó hiểu được viết lại: câu chờ kiểm vé, câu chưa tới ngày đi, câu danh sách đơn trống, câu loại đối tác tạo trước 31/10/2026." },
       { kind: "doi", text: "Trang chủ trên điện thoại viết số tiền đầy đủ, ví dụ «2.800.000 ₫»." },
       { kind: "sua", text: "Bị đăng xuất giữa chừng vì hết hạn đăng nhập thì trang đăng nhập báo rõ để bạn đăng nhập lại." },
+    ],
+  },
+  {
+    // Sửa lời nhắc ở màn chỉnh giao diện của Toàn quyền (ADR-0195). KHÔNG migration. Số 2.88: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.88",
+    date: "2026-11-10",
+    items: [
+      { kind: "doi", text: "Màn chỉnh giao diện của Toàn quyền nhắc rõ: ô «Ghi chú của dịch vụ» là chỗ Đối tác ghi giờ đón, chỉ nên ẩn ở dòng «Dịch vụ không đón»." },
+    ],
+  },
+  {
+    // ADR-0195 (accepted 10/11): ẩn/hiện trường theo điều kiện «không đón / có đón» và thêm trường ở Chi tiết đơn, tài khoản, Hỗ trợ. Migration 0156. SỐ TẠM 2.87: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.87",
+    date: "2026-11-10",
+    items: [
+      { kind: "moi", text: "Toàn quyền chọn ẩn ghi chú, số hiệu chuyến bay ở từng dịch vụ, riêng cho dịch vụ không đón hoặc có đón; ẩn thêm vài dòng ở Chi tiết đơn, tài khoản, Hỗ trợ." },
     ],
   },
   {

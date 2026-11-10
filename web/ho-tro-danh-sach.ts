@@ -1,6 +1,7 @@
 // Danh sách bên trái của trang Hỗ trợ (PR 3): thẻ «Yêu cầu của tôi» và «Việc của nhóm» (lọc, tìm, đếm, nhận việc, tải thêm).
 // Dựng khung một lần (ô tìm không bị dựng lại khi gõ), chỉ thay phần động. Mỗi lần tải tăng `doi`: phản hồi của đời cũ bị bỏ (đổi bộ lọc rồi «Tải thêm»
 // không lặp dòng); thêm nữa là dòng gộp theo `id`. Chỉ ẩn/hiện; máy chủ luôn kiểm quyền.
+import { chinhSachHienCo } from "./chinh-sach-giao-dien";
 import { FEEDBACK_STATUS_NAME, SAC_TRANG_THAI, type FeedbackStatus } from "../src/shared/feedback-catalog";
 import { thoiGianTuongDoi } from "../src/shared/thoi-gian-tuong-doi";
 import type { LocHangDoi } from "../src/shared/ve-ho-tro";
@@ -103,7 +104,7 @@ export function veDanhSach(goc: HTMLElement, o: TuyChonDanhSach): { napLai(): vo
         t.unread && h("span", { class: "ht-cham", role: "img", "aria-label": "Có tin mới" }),
         t.title,
         uuTien && h("span", { class: `badge fb-uu-tien is-${uuTien.sac}`, "data-uu-tien": t.priority }, uuTien.chu)),
-      h("span", { class: "ht-phu muted" }, (oHangDoi ? [t.code, t.submitterName, t.orderCode] : [t.code, t.kindName, t.teamName]).filter(Boolean).join(" · ")),
+      h("span", { class: "ht-phu muted" }, (oHangDoi ? [t.code, t.submitterName, chinhSachHienCo().an("ho-tro", "orderCode") ? null : t.orderCode] : [t.code, t.kindName, t.teamName]).filter(Boolean).join(" · ")),
       h("span", { class: "ht-phu" },
         h("span", { class: `badge fb-badge is-${SAC_TRANG_THAI[t.status]}` }, t.statusName || FEEDBACK_STATUS_NAME[t.status]),
         oHangDoi && (chuaAiNhan(t) ? h("span", { class: "badge badge-draft" }, "Chưa ai nhận") : h("span", { class: "muted" }, `${t.assigneeName ?? "?"}${t.assigneeId === o.staffId ? " (tôi)" : ""}`))),

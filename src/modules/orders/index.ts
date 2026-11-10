@@ -73,7 +73,7 @@ import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { congLuatBan } from "./cong-ban";
 import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu, dichLoiLoHuy, dichLoiTraSau, VE_CHUA_SOAN_DUOC, type HamNoTraSau, type HamTraSau } from "./tra-sau-cong";
 import { thanLapDonKhiAn, thanNhapKhiAn } from "./an-thong-tin-khach";
-import { thanKhiAnTruong, thieuBatBuoc, truongTaoDon } from "./an-truong-giao-dien";
+import { apTruongDichVu, thanKhiAnTruong, thieuBatBuoc, traDichVu, truongTaoDon } from "./an-truong-giao-dien";
 import { anKhachBat, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { cauKhepLoiMoi, docKhungGio, soanGhiNhan } from "./ban-hang-ghi-nhan";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
@@ -1288,7 +1288,8 @@ export const ordersModule: AppModule = {
       const kenhThu = holdsPartner(staff) ? await kenhThuHienTai() : null;
       if (holdsPartner(staff) && kenhThu === null) return KENH_THU_CHUA_DOC();
       // ADR-0194 đợt 1: chính sách hiện / ẩn / bắt buộc của Toàn quyền (đọc ĐÚNG MỘT lần; bảng rỗng ⇒ [] ⇒ không đổi gì). Công tắc ADR-0154 đang áp ⇒ nó quyết các trường khách, chính sách không chen vào.
-      const cs = an ? { an: new Set<string>(), batBuoc: new Set<string>() } : truongTaoDon(await chinhSachGiaoDien());
+      const dsCs = an ? [] : await chinhSachGiaoDien(); // ADR-0195: danh sách ĐẦY ĐỦ (kể cả mục theo điều kiện) — đọc ĐÚNG MỘT lần, dùng cho cả cấp đơn lẫn cấp dịch vụ
+      const cs = truongTaoDon(dsCs);
       const body = an ? thanLapDonKhiAn(thanGui, { fullName: staff.fullName, phone: staff.phone }) : thanKhiAnTruong(thanGui, cs.an, null);
       if (laThanDonCu(body)) await demThanCu(env.DB, staff.id, "lap_don"); // ADR-0047 §6 — đếm máy cũ (cổng Đợt 8); sau 403, trước 400
       const pick = parseHandlerPick(body);
@@ -1305,7 +1306,10 @@ export const ordersModule: AppModule = {
       // ADR-0047 (R7, R3): điểm danh mục của chặng phải đang dùng; đặt hai khoá cũ = dẫn xuất từ chặng (ghi kép vào cột cũ).
       const placed0 = await resolveLegPlaces(env.DB, parsed.value, ctx);
       if (!placed0.ok) return loiViTriChang(placed0);
-      const placed = oPhuNhap(staff, { ownerId: staff.id, assigned: false }, placed0.value, []); // kế hoạch ô mới Task 3.3
+      // ADR-0195 Đ4–Đ6: chính sách cấp DỊCH VỤ (ghi chú, số hiệu chuyến bay, số người chiều về) SAU validateOrder: ô ẩn bỏ giá trị gửi lên; ô bắt buộc kiểm. Lập đơn: chưa có gì đang lưu. Công tắc ADR-0154 đang áp ⇒ `dsCs` rỗng.
+      const dvLap = apTruongDichVu(placed0.value, [], traDichVu(dsCs));
+      if (dvLap.thieu) return error(400, "invalid_input", dvLap.thieu);
+      const placed = oPhuNhap(staff, { ownerId: staff.id, assigned: false }, dvLap.order, []); // kế hoạch ô mới Task 3.3
       if (!placed.ok) return placed.res;
       // Sổ đại lý đợt 1 (ADR-0077 đ3 (i), thu hẹp): Đối tác có hồ sơ được hưởng ⇒ bên đặt luôn là hồ sơ của tài khoản, bỏ qua điều trình duyệt gửi.
       const ben = await benDatCuaTaiKhoan(env.DB, staff, placed.value.booker, null);
@@ -1441,7 +1445,8 @@ export const ordersModule: AppModule = {
       const dangLuu = an ? await thongTinKhachDangLuu(env.DB, id) : null;
       if (an && !dangLuu) return NOT_FOUND();
       // ADR-0194 đợt 1: như ở lập đơn; ẨN lúc SỬA ⇒ giữ giá trị đang lưu (email, ghi chú) / danh sách khách đang lưu. Chỉ đọc đơn thêm khi có trường ẩn thuộc diện cần giá trị lưu.
-      const cs = an ? { an: new Set<string>(), batBuoc: new Set<string>() } : truongTaoDon(await chinhSachGiaoDien());
+      const dsCs = an ? [] : await chinhSachGiaoDien(); // ADR-0195: một lần đọc cho cả cấp đơn lẫn cấp dịch vụ
+      const cs = truongTaoDon(dsCs);
       const luuTuyChon = !an && ["customerEmail", "customerNote", "paymentNote"].some((k) => cs.an.has(k)) ? await tuyChonDangLuu(env.DB, id) : null;
       const body = dangLuu ? thanNhapKhiAn(thanGui, dangLuu) : thanKhiAnTruong(thanGui, cs.an, luuTuyChon);
       // ADR-0047 A2: thân có khoá `passengers` → hỏi thêm ô nhập tên khách với phạm vi CỦA ĐƠN NÀY (trước validateOrder).
@@ -1461,7 +1466,10 @@ export const ordersModule: AppModule = {
       const placed0 = await resolveLegPlaces(env.DB, parsed.value, ctx); // ADR-0047 (R7, R3); ADR-0118 Đ3: cũng là chốt chặn «nhóm tắt đưa đón»
       if (!placed0.ok) return loiViTriChang(placed0);
       // Kế hoạch ô mới Task 3.3: số hiệu chuyến bay / số người chiều về — khoá vắng = chép giá trị đang lưu của chặng cùng id; đổi số người cần order.trip.edit.
-      const placed = oPhuNhap(staff, { ownerId: meta.staffId, assigned }, placed0.value, ctx.stored.flatMap((s) => s.legs));
+      // ADR-0195 Đ4–Đ6: như ở lập đơn, giữ giá trị ĐANG LƯU của dịch vụ / chặng cùng id cho ô ẩn.
+      const dvSua = apTruongDichVu(placed0.value, ctx.stored, traDichVu(dsCs));
+      if (dvSua.thieu) return error(400, "invalid_input", dvSua.thieu);
+      const placed = oPhuNhap(staff, { ownerId: meta.staffId, assigned }, dvSua.order, ctx.stored.flatMap((s) => s.legs));
       if (!placed.ok) return placed.res;
       const expected = placed.value.expectedUpdatedAt;
       if (!expected) return error(400, "invalid_input", "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà form đã đọc).");

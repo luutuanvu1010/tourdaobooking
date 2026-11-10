@@ -7,10 +7,18 @@
 //
 // Hai bài canh (src/shared/ui-truong.test.ts): (a) mọi `truong` có thật trong interface `giaoDien` của `contracts.ts`; (b) trường máy chủ bắt buộc có mặt ở đây
 // với hai cờ `false`. Thêm trường vào danh mục: `docs/CHANGE-GUIDE.md`, công thức «thêm trường vào danh mục hiển thị».
+//
+// ADR-0195: thêm bốn màn (`dich-vu-trong-don`, `chi-tiet-don`, `danh-sach-don`, `ho-tro`) và ĐIỀU KIỆN hiển thị (`dieu_kien` của dòng chính sách; danh sách ở `ui-dieu-kien.ts`).
+// Mỗi mục khai điều kiện nào nó nhận (`dieuKien`; mặc định không nhận ⇒ chỉ dòng «không điều kiện» có tác dụng). Với một ô và một quyền: dòng CÓ điều kiện thắng khi dịch vụ thoả điều kiện đó,
+// dòng không điều kiện là mặc định cho phần còn lại; SAU ĐÓ mới cộng gộp nhiều quyền (ẩn chỉ khi MỌI quyền ẩn).
 import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
+import { DIEU_KIEN, laDieuKien, type DieuKien } from "./ui-dieu-kien.ts";
 
-/** Bốn màn của đợt 1. Mã màn là khoá lưu trong CSDL — không đổi tên khi đã có dòng chính sách. */
-export const MAN_UI = ["tao-don", "danh-sach-dich-vu", "danh-sach-tai-khoan", "quan-ly-doi-tac"] as const;
+/**
+ * Tám màn: bốn của đợt 1 (ADR-0194) + bốn của ADR-0195 (`dich-vu-trong-don` = thẻ dịch vụ trong form Tạo đơn, áp ở máy chủ lúc lập / sửa nháp; `chi-tiet-don`, `danh-sach-don`, `ho-tro` = màn chỉ xem,
+ * chỉ ẩn hiển thị). Mã màn là khoá lưu trong CSDL — không đổi tên khi đã có dòng chính sách.
+ */
+export const MAN_UI = ["tao-don", "dich-vu-trong-don", "danh-sach-dich-vu", "danh-sach-tai-khoan", "quan-ly-doi-tac", "chi-tiet-don", "danh-sach-don", "ho-tro"] as const;
 export type ManUi = (typeof MAN_UI)[number];
 
 /** Chế độ của một dòng chính sách (khớp CHECK ở migration): HIEN = như mặc định; AN; BAT_BUOC = hiện và bắt buộc; TUY_CHON = hiện và bỏ bắt buộc. */
@@ -28,9 +36,22 @@ export interface MucTruong {
   anDuoc: boolean;
   /** Trường ĐANG bắt buộc ở form mà luật nền không cần ⇒ được chọn TUY_CHON. Đợt 1 không có mục nào (ca nghi ngờ để false). `true` cũng nghĩa mặc định là bắt buộc. */
   boBatBuocDuoc: boolean;
+  /** ADR-0195 Đ1: các điều kiện dòng chính sách của mục này được mang (mặc định: không — chỉ dòng không điều kiện). Chỉ trường CẤP DỊCH VỤ có điều kiện. */
+  dieuKien?: readonly DieuKien[];
+  /** ADR-0195 Đ3: tên khoá PHẲNG trên đường gửi lên máy chủ khi khác tên giao diện — `services[].<trường>` hoặc `services[].legs[].<trường>` (bài (a4) ép quy ước). */
+  khoaGui?: string;
+  /** Ô nhập ẩn được nhưng KHÔNG chọn được «Bắt buộc» (vd số người chiều về chỉ có ở chặng VỀ). Mặc định false. */
+  khongBatBuoc?: boolean;
 }
 
-const nhap = (truong: string, anDuoc: boolean): MucTruong => ({ man: "tao-don", truong, giaoDien: "OrderInput", loai: "nhap", anDuoc, boBatBuocDuoc: false });
+interface TuyChonNhap { man?: ManUi; giaoDien?: string; khoaGui?: string; dieuKien?: readonly DieuKien[]; khongBatBuoc?: boolean }
+const nhap = (truong: string, anDuoc: boolean, o: TuyChonNhap = {}): MucTruong => ({
+  man: o.man ?? "tao-don", truong, giaoDien: o.giaoDien ?? "OrderInput", loai: "nhap", anDuoc, boBatBuocDuoc: false,
+  ...(o.khoaGui !== undefined ? { khoaGui: o.khoaGui } : {}), ...(o.dieuKien ? { dieuKien: o.dieuKien } : {}), ...(o.khongBatBuoc ? { khongBatBuoc: true } : {}),
+});
+/** Ô nhập trong thẻ dịch vụ (màn `dich-vu-trong-don`): `giaoDien` = TripInput / LegInput / ServiceInput; tên khoá gửi lên theo quy ước. */
+const dichVu = (truong: string, giaoDien: "TripInput" | "LegInput" | "ServiceInput", anDuoc: boolean, o: Pick<TuyChonNhap, "dieuKien" | "khongBatBuoc"> = {}): MucTruong =>
+  nhap(truong, anDuoc, { man: "dich-vu-trong-don", giaoDien, khoaGui: giaoDien === "LegInput" ? `services[].legs[].${truong}` : `services[].${truong}`, ...o });
 const xem = (man: ManUi, giaoDien: string, truong: string): MucTruong => ({ man, truong, giaoDien, loai: "xem", anDuoc: true, boBatBuocDuoc: false });
 
 /**
@@ -44,51 +65,119 @@ export const DANH_MUC_UI: readonly MucTruong[] = [
   xem("danh-sach-dich-vu", "CatalogAdminItemDto", "groupCode"), xem("danh-sach-dich-vu", "CatalogAdminItemDto", "unit"),
   xem("danh-sach-tai-khoan", "StaffAccount", "createdAt"), xem("danh-sach-tai-khoan", "StaffAccount", "lastLoginAt"),
   xem("quan-ly-doi-tac", "PartyListItemDto", "roleCodes"),
+  // ---- ADR-0195 ----
+  // Danh sách tài khoản: «trạng thái khoá» = `active` (StaffAccount), số Face ID = `passkeyCount` (StaffAccountDto). Chỉ ẩn hiển thị; quyền xem vẫn ở permissions.ts.
+  xem("danh-sach-tai-khoan", "StaffAccount", "active"), xem("danh-sach-tai-khoan", "StaffAccountDto", "passkeyCount"),
+  // Dịch vụ trong đơn (cấp DỊCH VỤ; máy chủ áp lúc lập / sửa nháp). Nhóm 2: số hiệu chuyến bay, số người chiều về, ghi chú dịch vụ — ẩn được, nhận hai điều kiện.
+  dichVu("flightCode", "LegInput", true, { dieuKien: DIEU_KIEN, khongBatBuoc: true }), dichVu("paxOverride", "LegInput", true, { dieuKien: DIEU_KIEN, khongBatBuoc: true }), dichVu("note", "TripInput", true, { dieuKien: DIEU_KIEN }),
+  // Luật nền cần (máy chủ bắt buộc / vận hành / biên nhận): KHÔNG ẩn được. Bốn ô giờ (`departTime`, `checkinDate/Time/Place`) chủ đưa ra khỏi đợt này ngày 10/11 — biên nhận, ảnh xác nhận, «Việc của tôi» còn dùng.
+  dichVu("departDate", "TripInput", false), dichVu("pickupChoice", "ServiceInput", false),
+  dichVu("departTime", "TripInput", false), dichVu("checkinDate", "TripInput", false), dichVu("checkinTime", "TripInput", false), dichVu("checkinPlace", "TripInput", false),
+  // Chi tiết đơn (chỉ xem): người lập = `staffName`.
+  xem("chi-tiet-don", "OrderDto", "customerEmail"), xem("chi-tiet-don", "OrderDto", "customerNote"), xem("chi-tiet-don", "OrderDto", "paymentNote"), xem("chi-tiet-don", "OrderDto", "staffName"),
+  // Danh sách đơn (chỉ xem): `pax` = tổng số khách; điểm đón của dịch vụ ĐẦU TIÊN.
+  xem("danh-sach-don", "OrderSummaryDto", "customerNote"), xem("danh-sach-don", "OrderSummaryTripDto", "pickupPlace"), xem("danh-sach-don", "OrderSummaryDto", "staffName"),
+  xem("danh-sach-don", "OrderSummaryDto", "createdAt"), xem("danh-sach-don", "OrderSummaryDto", "pax"),
+  // Hỗ trợ: ô «Đơn liên quan» của phiếu = mã đơn chụp lúc gửi (`orderCode`; `orderId` đi cùng, không khai riêng).
+  xem("ho-tro", "FeedbackTicketDto", "orderCode"),
 ];
 
 export const timMuc = (man: string, truong: string): MucTruong | undefined => DANH_MUC_UI.find((m) => m.man === man && m.truong === truong);
 
-/** Một dòng chính sách ĐANG HIỆU LỰC của một ô (màn × trường × quyền). Giá trị lạ vẫn nhận được kiểu chuỗi — luật dưới bỏ qua. */
-export interface DongChinhSach { man: string; truong: string; quyen: string; cheDo: string }
-/** Kết quả cho MỘT người, chỉ các trường khác mặc định. */
-export interface TruongDaGiai { man: ManUi; truong: string; an: boolean; batBuoc: boolean }
+/** Một dòng chính sách ĐANG HIỆU LỰC của một ô (màn × trường × quyền × điều kiện; `null` = không điều kiện, luôn áp). Giá trị lạ vẫn nhận được kiểu chuỗi — luật dưới bỏ qua. */
+export interface DongChinhSach { man: string; truong: string; quyen: string; cheDo: string; dieuKien?: string | null }
+/**
+ * Kết quả cho MỘT người, chỉ các trường khác mặc định. `dieuKien` có mặt ⇔ đây là kết quả CHO DỊCH VỤ thoả điều kiện đó (khác kết quả không điều kiện); vắng ⇒ kết quả không điều kiện.
+ * Hợp đồng GET `/api/cai-dat/giao-dien`: giao diện tra «điều kiện dịch vụ này đang thoả» trước, không có mục điều kiện thì rơi về mục không điều kiện.
+ */
+export interface TruongDaGiai { man: ManUi; truong: string; an: boolean; batBuoc: boolean; dieuKien?: string }
 
-/** Chế độ này áp được cho mục này không (dùng ở POST và ở luật giải). `HIEN` luôn hợp lệ cho mục có trong danh mục: là cách đặt lại mặc định. */
-export function laCheDoHopLe(man: string, truong: string, cheDo: string): boolean {
+/** Mục này nhận điều kiện này không. */
+export const laDieuKienHopLeChoMuc = (man: string, truong: string, dieuKien: string): boolean => laDieuKien(dieuKien) && !!timMuc(man, truong)?.dieuKien?.includes(dieuKien);
+
+/**
+ * Chế độ này áp được cho mục này không (dùng ở POST và ở luật giải). `HIEN` luôn hợp lệ cho mục có trong danh mục: là cách đặt lại mặc định. `dieuKien` khác null chỉ hợp lệ khi mục
+ * khai điều kiện đó (ADR-0195 Đ1: danh sách cho phép; điều kiện lạ hay điều kiện mục không nhận ⇒ false).
+ */
+export function laCheDoHopLe(man: string, truong: string, cheDo: string, dieuKien: string | null = null): boolean {
   const m = timMuc(man, truong);
   if (!m || !(CHE_DO as readonly string[]).includes(cheDo)) return false;
+  if (dieuKien !== null && !laDieuKienHopLeChoMuc(man, truong, dieuKien)) return false;
   if (cheDo === "HIEN") return true;
   if (cheDo === "AN") return m.anDuoc;
   if (cheDo === "TUY_CHON") return m.boBatBuocDuoc;
-  return m.loai === "nhap" && m.anDuoc && !m.boBatBuocDuoc; // BAT_BUOC: chỉ ô nhập tuỳ chọn mà chủ coi là phụ
+  return m.loai === "nhap" && m.anDuoc && !m.boBatBuocDuoc && m.khongBatBuoc !== true; // BAT_BUOC: chỉ ô nhập tuỳ chọn mà chủ coi là phụ
 }
 
 const laQuyen = (q: string): q is PermissionCode => (PERMISSION_CODES as readonly string[]).includes(q);
+
+/** Chế độ hiệu lực của MỘT quyền với MỘT ô khi dịch vụ thoả điều kiện `dk` (null = không xét điều kiện): dòng có điều kiện `dk` (nếu mục nhận) thắng, rồi dòng không điều kiện, rồi HIEN. */
+function cheDoCuaQuyen(dong: readonly DongChinhSach[], m: MucTruong, q: string, dk: string | null): string {
+  const tim = (dieuKien: string | null): string | undefined =>
+    dong.find((d) => d.man === m.man && d.truong === m.truong && d.quyen === q && (d.dieuKien ?? null) === dieuKien && laCheDoHopLe(m.man, m.truong, d.cheDo, dieuKien))?.cheDo;
+  return (dk !== null ? tim(dk) : undefined) ?? tim(null) ?? "HIEN";
+}
+
+/** Kết quả (ẩn, bắt buộc) của một mục cho người giữ các quyền `cua`, với dịch vụ thoả điều kiện `dk` — cộng gộp nhiều quyền SAU khi mỗi quyền đã chọn dòng theo điều kiện. */
+function giaiMuc(dong: readonly DongChinhSach[], m: MucTruong, cua: readonly PermissionCode[], dk: string | null): { an: boolean; batBuoc: boolean } {
+  const theoQuyen = cua.map((q) => cheDoCuaQuyen(dong, m, q, dk));
+  const an = theoQuyen.every((c) => c === "AN");
+  const doi = (c: string): boolean => (c === "BAT_BUOC" ? true : c === "AN" || c === "TUY_CHON" ? false : m.boBatBuocDuoc);
+  const batBuoc = an ? false : m.boBatBuocDuoc ? theoQuyen.some(doi) : theoQuyen.every(doi);
+  return { an, batBuoc };
+}
 
 /**
  * Giải chính sách cho một người giữ các quyền `quyen` (hợp của mọi ô, Hiến chương 5.28). Mỗi quyền không có dòng ⇒ mặc định (HIEN).
  *  - ẨN chỉ khi MỌI quyền của người đó chọn AN.
  *  - BẮT BUỘC: trường mặc định tuỳ chọn thì chỉ bắt buộc khi MỌI quyền chọn BAT_BUOC; trường mặc định bắt buộc (`boBatBuocDuoc`) thì chỉ bỏ bắt buộc khi MỌI quyền bỏ.
- * Dòng ngoài danh mục, màn/quyền/chế độ lạ, hoặc cờ không cho ⇒ bỏ qua. Trả về chỉ trường KHÁC mặc định; bảng rỗng ⇒ `[]`. Thứ tự: theo danh mục.
+ * Dòng ngoài danh mục, màn/quyền/chế độ lạ, điều kiện mà mục không nhận, hoặc cờ không cho ⇒ bỏ qua. Trả về chỉ trường KHÁC mặc định; bảng rỗng ⇒ `[]`. Thứ tự: theo danh mục.
+ *
+ * Ba cách gọi theo `dieuKien` (ADR-0195 Đ2):
+ *  - vắng (`undefined`): ĐẦY ĐỦ cho giao diện — mục không điều kiện (như đợt 1), rồi với mỗi điều kiện mục nhận, MỘT mục có `dieuKien` NẾU kết quả khác kết quả không điều kiện của ô đó
+ *    (kể cả khi bằng mặc định «hiện» — dòng điều kiện HIEN đè dòng trống AN; thiếu mục ấy giao diện sẽ rơi về mục không điều kiện và ẩn nhầm).
+ *  - `null`: chỉ kết quả không điều kiện (bỏ mọi dòng có điều kiện).
+ *  - một mã điều kiện: kết quả TUYỆT ĐỐI cho dịch vụ thoả điều kiện đó (so với mặc định danh mục), mục có `dieuKien` nếu mục nhận điều kiện; máy chủ lập / sửa đơn dùng cách này.
  */
-export function giaiChinhSach(dong: readonly DongChinhSach[], quyen: readonly string[]): TruongDaGiai[] {
+export function giaiChinhSach(dong: readonly DongChinhSach[], quyen: readonly string[], dieuKien?: string | null): TruongDaGiai[] {
   const cua = [...new Set(quyen)].filter(laQuyen);
   if (cua.length === 0) return [];
   const ra: TruongDaGiai[] = [];
   for (const m of DANH_MUC_UI) {
-    const theoQuyen = cua.map((q) => dong.find((d) => d.man === m.man && d.truong === m.truong && d.quyen === q && laCheDoHopLe(m.man, m.truong, d.cheDo))?.cheDo ?? "HIEN");
-    const an = theoQuyen.every((c) => c === "AN");
-    const doi = (c: string): boolean => (c === "BAT_BUOC" ? true : c === "AN" || c === "TUY_CHON" ? false : m.boBatBuocDuoc);
-    const batBuoc = an ? false : m.boBatBuocDuoc ? theoQuyen.some(doi) : theoQuyen.every(doi);
-    if (an || batBuoc !== m.boBatBuocDuoc) ra.push({ man: m.man, truong: m.truong, an, batBuoc });
+    const mac = giaiMuc(dong, m, cua, null);
+    const khac = (r: { an: boolean; batBuoc: boolean }): boolean => r.an || r.batBuoc !== m.boBatBuocDuoc;
+    if (typeof dieuKien === "string") {
+      const nhan = laDieuKienHopLeChoMuc(m.man, m.truong, dieuKien);
+      const r = giaiMuc(dong, m, cua, nhan ? dieuKien : null);
+      if (khac(r)) ra.push({ man: m.man, truong: m.truong, ...r, ...(nhan ? { dieuKien } : {}) });
+      continue;
+    }
+    if (khac(mac)) ra.push({ man: m.man, truong: m.truong, ...mac });
+    if (dieuKien === null) continue;
+    for (const c of m.dieuKien ?? []) {
+      const r = giaiMuc(dong, m, cua, c);
+      if (r.an !== mac.an || r.batBuoc !== mac.batBuoc) ra.push({ man: m.man, truong: m.truong, ...r, dieuKien: c });
+    }
   }
   return ra;
 }
 
-/** Bảng tra cho giao diện: từ danh sách đã giải (`GET /api/cai-dat/giao-dien`) tra «đang ẩn / bắt buộc không» theo (màn, trường). Không có ⇒ false (mặc định đầy đủ). */
-export function traCuuChinhSach(ds: readonly TruongDaGiai[]): { an: (man: ManUi, truong: string) => boolean; batBuoc: (man: ManUi, truong: string) => boolean } {
-  const tim = (man: string, truong: string): TruongDaGiai | undefined => ds.find((d) => d.man === man && d.truong === truong);
-  return { an: (man, truong) => tim(man, truong)?.an === true, batBuoc: (man, truong) => tim(man, truong)?.batBuoc === true };
+/**
+ * Bảng tra cho giao diện: từ danh sách đã giải (`GET /api/cai-dat/giao-dien`) tra «đang ẩn / bắt buộc không» theo (màn, trường[, điều kiện dịch vụ đang thoả]). `dieuKienHienCo` là một mã hoặc danh sách mã
+ * (theo thứ tự ưu tiên `DIEU_KIEN`): mục có điều kiện khớp thắng, không có thì rơi về mục không điều kiện, không có nữa ⇒ false (mặc định đầy đủ). Không truyền điều kiện ⇒ chỉ mục không điều kiện (gọi cũ).
+ */
+export function traCuuChinhSach(ds: readonly TruongDaGiai[]): {
+  an: (man: ManUi, truong: string, dieuKienHienCo?: string | readonly string[]) => boolean;
+  batBuoc: (man: ManUi, truong: string, dieuKienHienCo?: string | readonly string[]) => boolean;
+} {
+  const tim = (man: string, truong: string, dk?: string | readonly string[]): TruongDaGiai | undefined => {
+    for (const c of dk === undefined ? [] : typeof dk === "string" ? [dk] : dk) {
+      const r = ds.find((d) => d.man === man && d.truong === truong && d.dieuKien === c);
+      if (r) return r;
+    }
+    return ds.find((d) => d.man === man && d.truong === truong && (d.dieuKien === undefined || d.dieuKien === null));
+  };
+  return { an: (man, truong, dk) => tim(man, truong, dk)?.an === true, batBuoc: (man, truong, dk) => tim(man, truong, dk)?.batBuoc === true };
 }
 
 /**
@@ -100,6 +189,11 @@ export const NHAN_MAN: Readonly<Record<ManUi, string>> = {
   "danh-sach-dich-vu": "Danh sách dịch vụ",
   "danh-sach-tai-khoan": "Danh sách tài khoản",
   "quan-ly-doi-tac": "Quản lý đối tác",
+  // ADR-0195: TÊN TẠM, chờ chủ chọn (`cho-chon`; phương án khác: «Thẻ dịch vụ» / «Từng dịch vụ»; «Xem đơn» / «Trang đơn»; «Đơn hàng» / «Các đơn»; «Phiếu hỗ trợ» / «Yêu cầu hỗ trợ»).
+  "dich-vu-trong-don": "Dịch vụ trong đơn",
+  "chi-tiet-don": "Chi tiết đơn",
+  "danh-sach-don": "Danh sách đơn",
+  "ho-tro": "Hỗ trợ",
 };
 const NHAN_TRUONG: Readonly<Record<string, string>> = {
   "tao-don/customerEmail": "Email khách",
@@ -111,6 +205,22 @@ const NHAN_TRUONG: Readonly<Record<string, string>> = {
   "danh-sach-tai-khoan/createdAt": "Tạo lúc",
   "danh-sach-tai-khoan/lastLoginAt": "Đăng nhập gần nhất",
   "quan-ly-doi-tac/roleCodes": "Công việc hôm nay",
+  // ADR-0195 (chữ đang hiện ở màn thật)
+  "danh-sach-tai-khoan/active": "Trạng thái khoá",
+  "danh-sach-tai-khoan/passkeyCount": "Face ID",
+  "dich-vu-trong-don/flightCode": "Số hiệu chuyến bay",
+  "dich-vu-trong-don/paxOverride": "Số người chiều về",
+  "dich-vu-trong-don/note": "Ghi chú của dịch vụ",
+  "chi-tiet-don/customerEmail": "Email khách",
+  "chi-tiet-don/customerNote": "Ghi chú khách",
+  "chi-tiet-don/paymentNote": "Ghi chú thanh toán",
+  "chi-tiet-don/staffName": "Người lập",
+  "danh-sach-don/customerNote": "Ghi chú khách",
+  "danh-sach-don/pickupPlace": "Điểm đón",
+  "danh-sach-don/staffName": "Người lập",
+  "danh-sach-don/createdAt": "Giờ lập",
+  "danh-sach-don/pax": "Số khách",
+  "ho-tro/orderCode": "Đơn liên quan",
 };
 export const nhanTruong = (man: string, truong: string): string | undefined => NHAN_TRUONG[`${man}/${truong}`];
 export const NHAN_CHE_DO: Readonly<Record<CheDo, string>> = { HIEN: "Hiện", AN: "Ẩn", BAT_BUOC: "Bắt buộc", TUY_CHON: "Không bắt buộc" };

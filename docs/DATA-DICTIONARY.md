@@ -129,7 +129,7 @@
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
 | `gd_setting` | bảng |  |
-| `gd_field_policy` | bảng | chính sách hiện / ẩn / bắt buộc theo màn × trường × mã quyền do Toàn quyền đặt (ADR-0194 đợt 1, migration 0154), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ theo (man, truong, quyen); BẢNG RỖNG khi phát hành = mọi màn giữ hành vi hôm nay; che_do HIEN = đặt lại mặc định; màn/trường được chỉnh khai ở code (src/shared/ui-truong.ts), máy chủ bỏ qua dòng ngoài danh mục; không dữ liệu cá nhân; chỉ ô settings.ops ghi |
+| `gd_field_policy` | bảng | chính sách hiện / ẩn / bắt buộc theo màn × trường × mã quyền do Toàn quyền đặt (ADR-0194 đợt 1, migration 0154), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ theo (man, truong, quyen); BẢNG RỖNG khi phát hành = mọi màn giữ hành vi hôm nay; che_do HIEN = đặt lại mặc định; cột dieu_kien (ADR-0195, migration 0156; NULL = luôn áp, khác NULL = chỉ áp cho dịch vụ thoả điều kiện, mã khai ở src/shared/ui-dieu-kien.ts) — dòng có điều kiện thắng khi dịch vụ thoả, dòng trống là mặc định, mỗi (màn, trường, quyền, điều kiện) một dòng hiệu lực; màn/trường được chỉnh khai ở code (src/shared/ui-truong.ts), máy chủ bỏ qua dòng ngoài danh mục; không dữ liệu cá nhân; chỉ ô settings.ops ghi |
 
 ## locations
 

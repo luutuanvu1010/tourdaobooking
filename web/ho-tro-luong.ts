@@ -5,6 +5,7 @@
 import { FEEDBACK_STATUS_NAME, SAC_TRANG_THAI, buocGopY, nhanNutChuyen, statusAfterSubmitterReply } from "../src/shared/feedback-catalog";
 import { CAU_CAN_CHU, CAU_DANG_CHUAN_BI, CAU_DANG_GUI_TEP, HEN_GIO_GUI_TEP_MS, NHAN_GO_TEP, cauTepLoi, tinDoiTep } from "../src/shared/tep-hien-thi";
 import { tomTatThietBi } from "../src/shared/thoi-gian-tuong-doi";
+import { chinhSachHienCo } from "./chinh-sach-giao-dien";
 import { PRIORITIES, PRIORITY_NAME, TEAM_ROLE_NAME, type Priority } from "../src/shared/ve-ho-tro";
 import {
   CAU_DA_CHUYEN_NHOM, CAU_KHONG_CON_TRONG_NHOM, CAU_MO_LAI, CAU_TU_CHOI_LOI_BUOC_2, LAM_MOI_GOI_NGAY_TOI_DA, NHAN_TAI_LAI, buocChoPhep, buocLamMoi, chayTuChoi, chenSuKien, chuKyLamMoi, dauPhieuDoi, gomTin,
@@ -32,6 +33,8 @@ export interface NgCanhLuong {
 
 type Perms = Api.FeedbackDetailResponse["perms"];
 
+/** ADR-0195 (màn `ho-tro`): ô «Đơn liên quan» bị chính sách ẩn cho người xem — chỉ ẩn hiển thị, dữ liệu vẫn có trong API. */
+const anDonLienQuan = (): boolean => chinhSachHienCo().an("ho-tro", "orderCode");
 const wide = (): boolean => window.matchMedia("(min-width: 900px)").matches;
 const TZ = "Asia/Ho_Chi_Minh";
 const when = (iso: string): string => new Date(iso).toLocaleString("vi-VN", { timeZone: TZ, dateStyle: "short", timeStyle: "short" });
@@ -365,7 +368,7 @@ function dungChiTiet(b: Bo): HTMLElement {
     ...(perms.xuLy ? [] : hang("Mức ưu tiên", PRIORITY_NAME[t.priority])),
     ...(t.resolvedIn ? hang("Sửa ở bản", t.resolvedIn) : []),
     ...(t.context.path ? hang("Từ trang", t.context.path) : []),
-    ...(!t.orderCode && t.context.orderCode ? hang("Đơn", t.context.orderCode) : []),
+    ...(!t.orderCode && t.context.orderCode && !anDonLienQuan() ? hang("Đơn", t.context.orderCode) : []),
     ...hang("Thiết bị", tomTatThietBi(thietBi || null), thietBi ? " " : null, thietBi ? nutGoc : null, thietBi ? goc : null),
     ...(t.context.appVersion ? hang("Bản", t.context.appVersion) : []),
     ...(t.mailPending ? hang("Email báo nhóm", "chưa gửi được") : []),
@@ -415,7 +418,7 @@ function dungDau(b: Bo): HTMLElement[] {
   return [
     h("h2", { class: "ht-tieu-de-luong" }, `${t.code} · ${t.title}`),
     chips,
-    h("div", { class: "ht-dong-phu" }, nhom, t.orderId && t.orderCode ? h("a", { id: "fb-don", href: `/order?id=${encodeURIComponent(t.orderId)}` }, `Đơn ${t.orderCode} ›`) : null, nutChiTiet),
+    h("div", { class: "ht-dong-phu" }, nhom, t.orderId && t.orderCode && !anDonLienQuan() ? h("a", { id: "fb-don", href: `/order?id=${encodeURIComponent(t.orderId)}` }, `Đơn ${t.orderCode} ›`) : null, nutChiTiet),
     chiTiet,
   ];
 }

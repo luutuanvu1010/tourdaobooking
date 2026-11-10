@@ -771,3 +771,10 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **Trạng thái:** `để sau` · Ghi theo ADR-0190 mục 6 (lần dò 8/11 của hồ sơ rà soát trước ngày dùng thật lần 2); ngoài phạm vi ADR-0190, chưa có kế hoạch.
 - **BL-HS-XAC-NHAN-BEN-NGUNG** — xác nhận đơn nháp có bên đặt (người đặt) đã ngừng dùng vẫn qua: lúc lưu nháp thì máy từ chối hồ sơ đã ngừng, nhưng bước xác nhận không kiểm lại. Từ ADR-0190 chỉ Quản trị, Toàn quyền ngừng dùng được nên ít gặp hơn, nhưng vẫn còn.
 - **BL-HS-TRUNG-SDT** — đơn mới nhập khách mới cùng số điện thoại với hồ sơ đã có (kể cả hồ sơ đã ngừng dùng) thì tạo thêm một hồ sơ trùng, không gợi ý dùng hồ sơ cũ. Dọn bằng gộp hồ sơ (ADR-0068) khi gặp.
+
+## 69. Nối cột ẩn/hiện vào Danh sách đơn và số Face ID (mã `BL-GD-…`, ADR-0195, 2026-11-10)
+
+- **Trạng thái:** `để sau` · Chủ 10/11, nguyên văn: «Để sau (khuyến nghị)».
+- **BL-GD-DS-DON** — màn `danh-sach-don` (ghi chú khách, điểm đón, người lập, giờ lập, số khách) đã có trong danh mục và máy chủ, nhưng giao diện chưa nối: nối vào thì gói trang Đơn hàng vượt trần 111.118 byte khoảng 261 byte. Hai cách mở: chủ nâng trần, hoặc một lượt thi công tách `traCuuChinhSach` khỏi `ui-truong.ts` thành tệp nhỏ. Bản vá cũ chỉ nằm ở thư mục tạm của phiên, không còn đáng tin; làm lại từ danh mục.
+- **BL-GD-FACE-ID** — ẩn số Face ID ở danh sách tài khoản: con số nằm trong chữ nút «Gỡ Face ID (N)» mà bài bảng tham chiếu canh; ẩn tức là đổi tên nút (chủ chọn tên).
+- **BL-GD-NHO** — hai lỗi nhỏ do người kiểm độc lập nêu, chưa sửa: (1) màn chỉnh: đặt dòng điều kiện khi dòng «Mọi dịch vụ» đang đổi mà chưa lưu thì ô bật lại theo dòng chính; (2) ẩn ô số người chiều về mà lỗi chặn Lưu về số vé vẫn hiện.

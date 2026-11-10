@@ -11,10 +11,12 @@ import { veDanhSach } from "./ho-tro-danh-sach";
 import { moHopGui } from "./ho-tro-gui";
 import { dungLuong, moLuong, type NgCanhLuong } from "./ho-tro-luong";
 import { veNhomHoTro } from "./ho-tro-nhom";
+import { taiChinhSach } from "./chinh-sach-giao-dien";
 import { datThanhTab, initShell, showError } from "./shell";
 
 const errorEl = byId("error");
 const staff = await initShell();
+await taiChinhSach(); // ADR-0195: chính sách ẩn hiển thị của màn Hỗ trợ (ô «Đơn liên quan»); lỗi ⇒ hiện đủ
 const params = new URLSearchParams(location.search);
 
 const fail = (err: unknown) => showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");

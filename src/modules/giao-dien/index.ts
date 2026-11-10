@@ -9,7 +9,7 @@ import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { PERMISSION_CODES } from "../../shared/permissions";
 import { DANH_MUC_UI, MAN_UI, giaiChinhSach, type TruongDaGiai } from "../../shared/ui-truong";
-import { chiTietChinhSach, chiTietDoi, dongHopLe, kiemYeuCauChinhSach } from "./rules";
+import { chiTietChinhSach, chiTietDoi, dongHopLe, kiemYeuCauChinhSach, type DongGhi } from "./rules";
 import { chinhSachHieuLuc, chinhSachMoiNhat, findGiaoDien, themChinhSach, updateGiaoDienStatement } from "./repository";
 
 const lanSau = (moiNhat: string | null, now: Date): string => (moiNhat && Date.parse(moiNhat) >= now.getTime() ? new Date(Date.parse(moiNhat) + 1) : now).toISOString();
@@ -24,7 +24,7 @@ export async function chinhSachChoNguoi(db: D1Database, quyen: readonly string[]
 
 async function docTatCa(db: D1Database): Promise<ChinhSachGiaoDienTatCaDto> {
   const dong = dongHopLe(await chinhSachHieuLuc(db, new Date().toISOString()));
-  return { danhMuc: DANH_MUC_UI.map((m) => ({ man: m.man, truong: m.truong, loai: m.loai, anDuoc: m.anDuoc, boBatBuocDuoc: m.boBatBuocDuoc })), dong, quyen: [...PERMISSION_CODES] };
+  return { danhMuc: DANH_MUC_UI.map((m) => ({ man: m.man, truong: m.truong, loai: m.loai, anDuoc: m.anDuoc, boBatBuocDuoc: m.boBatBuocDuoc, dieuKien: [...(m.dieuKien ?? [])], khoaGui: m.khoaGui ?? null })), dong, quyen: [...PERMISSION_CODES] };
 }
 
 async function phucVuCss({ env, request }: { env: Env; request: Request }): Promise<Response> {
@@ -88,8 +88,9 @@ export const giaoDienModule: AppModule = {
       if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi cài đặt hiển thị trường.");
       const k = kiemYeuCauChinhSach(await readJson(request));
       if (!k.ok) return error(400, "invalid_input", k.message);
-      const hien = new Map((await chinhSachHieuLuc(env.DB, new Date().toISOString())).map((d) => [`${d.man}/${d.truong}/${d.quyen}`, d.cheDo] as const));
-      const canGhi = k.dong.filter((d) => (hien.get(`${k.man}/${d.truong}/${d.quyen}`) ?? "HIEN") !== d.cheDo);
+      const hien = new Map((await chinhSachHieuLuc(env.DB, new Date().toISOString())).map((d) => [`${d.man}/${d.truong}/${d.quyen}/${d.dieuKien ?? ""}`, d.cheDo] as const));
+      // Ô KHÔNG điều kiện chưa có dòng = HIEN (mặc định). Ô CÓ điều kiện chưa có dòng = «theo dòng không điều kiện» (không phải HIEN): chọn HIEN ở đó là một dòng đè thật, nên luôn ghi.
+      const canGhi = k.dong.filter((d) => (hien.get(`${k.man}/${d.truong}/${d.quyen}/${d.dieuKien ?? ""}`) ?? (d.dieuKien === null ? "HIEN" : null)) !== d.cheDo);
       return ghiLo(env.DB, staff.id, k.man, canGhi);
     }),
     // Khôi phục mặc định MỘT màn: chèn dòng HIEN cho mọi ô đang khác mặc định của đúng màn đó (không động màn khác).
@@ -99,18 +100,18 @@ export const giaoDienModule: AppModule = {
       if (!b || typeof b.man !== "string" || !(MAN_UI as readonly string[]).includes(b.man)) return error(400, "invalid_input", "Màn hình không có trong danh mục chỉnh được.");
       const man = b.man;
       const khac = (await chinhSachHieuLuc(env.DB, new Date().toISOString())).filter((d) => d.man === man && d.cheDo !== "HIEN");
-      return ghiLo(env.DB, staff.id, man, khac.map((d) => ({ truong: d.truong, quyen: d.quyen, cheDo: "HIEN" })));
+      return ghiLo(env.DB, staff.id, man, khac.map((d) => ({ truong: d.truong, quyen: d.quyen, cheDo: "HIEN", dieuKien: d.dieuKien })));
     }),
   ],
 };
 
 /** Ghi một lô dòng chỉ-thêm + nhật ký; lô rỗng ⇒ không ghi gì, trả trạng thái hiện tại. Thua mốc (cùng ô, cùng mili-giây) ⇒ 409 `stale`. */
-async function ghiLo(db: D1Database, by: string, man: string, dong: readonly { truong: string; quyen: string; cheDo: string }[]): Promise<Response> {
+async function ghiLo(db: D1Database, by: string, man: string, dong: readonly DongGhi[]): Promise<Response> {
   if (dong.length > 0) {
     const at = lanSau(await chinhSachMoiNhat(db), new Date());
     try {
       await db.batch([
-        ...dong.map((d) => themChinhSach(db, { id: crypto.randomUUID(), man, truong: d.truong, quyen: d.quyen, cheDo: d.cheDo, at, by })),
+        ...dong.map((d) => themChinhSach(db, { id: crypto.randomUUID(), man, truong: d.truong, quyen: d.quyen, cheDo: d.cheDo, at, by, dieuKien: d.dieuKien })),
         auditStatement(db, { staffId: by, action: "ui_policy_changed", at, targetType: "system", detail: chiTietChinhSach(man, dong) }),
       ]);
     } catch (e) {

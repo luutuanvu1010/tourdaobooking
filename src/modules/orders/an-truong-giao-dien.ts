@@ -1,7 +1,8 @@
 // Chính sách giao diện ADR-0194 đợt 1 áp ở MÁY CHỦ cho form Tạo đơn: hai hàm THUẦN (không I/O) — trường ẩn thì bỏ khoá / giữ giá trị đang lưu; trường bắt buộc thì kiểm khi nhận.
 // Máy chủ quyết, không tin trình duyệt (kể cả bản giao diện cũ trong bộ nhớ đệm PWA vẫn gửi trường đã ẩn). KHÔNG chạm luật nền: tên, SĐT, dịch vụ, tiền, ngày đi không nằm trong danh mục ẩn được
 // (`src/shared/ui-truong.ts`); nơi gọi chỉ áp khi công tắc ADR-0154 KHÔNG đang áp cho tài khoản (một nơi quyết mỗi trường lúc chuyển).
-import type { TruongDaGiai } from "../../shared/ui-truong";
+import { dieuKienCuaDichVu } from "../../shared/ui-dieu-kien.ts";
+import { nhanTruong, traCuuChinhSach, type TruongDaGiai } from "../../shared/ui-truong.ts";
 import type { ValidOrder } from "./rules";
 
 const laDoiTuong = (x: unknown): x is Record<string, unknown> => !!x && typeof x === "object" && !Array.isArray(x);
@@ -12,7 +13,7 @@ const CHU_TUY_CHON = ["customerEmail", "customerNote", "paymentNote"] as const;
 
 /** Tách chính sách đã giải của người gọi thành tập trường ẨN và tập trường BẮT BUỘC của màn Tạo đơn. */
 export function truongTaoDon(ds: readonly TruongDaGiai[]): { an: ReadonlySet<string>; batBuoc: ReadonlySet<string> } {
-  const tao = ds.filter((d) => d.man === "tao-don");
+  const tao = ds.filter((d) => d.man === "tao-don" && d.dieuKien === undefined); // ADR-0195: màn Tạo đơn (cấp đơn) không có điều kiện; trường cấp dịch vụ ở màn `dich-vu-trong-don`
   return { an: new Set(tao.filter((d) => d.an).map((d) => d.truong)), batBuoc: new Set(tao.filter((d) => d.batBuoc && !d.an).map((d) => d.truong)) };
 }
 
@@ -42,4 +43,56 @@ export function thieuBatBuoc(v: Pick<ValidOrder, "customerEmail" | "customerNote
     if (so === 0) return `Cần nhập «${NHAN.passengers}».`;
   }
   return null;
+}
+
+
+// ---- ADR-0195 Đ4–Đ6: trường cấp DỊCH VỤ (màn `dich-vu-trong-don`) -------------------------------------------------------------------------------------------------------
+const MAN_DV = "dich-vu-trong-don";
+
+/** Dịch vụ ĐANG LƯU của đơn (từ `ctx.stored` — `StoredServiceRow`): chỉ phần cần để giữ ô ẩn. Lập đơn: danh sách rỗng. */
+export interface DichVuDangLuu { id: string; trip: { note: string | null }; legs: readonly { id: string; flightCode: string | null }[] }
+
+/** Bảng tra «đang ẩn / bắt buộc» của màn `dich-vu-trong-don` theo điều kiện dịch vụ đang thoả (danh sách ĐẦY ĐỦ từ `chinhSachChoNguoi`). */
+export const traDichVu = (ds: readonly TruongDaGiai[]) => traCuuChinhSach(ds);
+
+const co = (v: string | null | undefined): boolean => typeof v === "string" && v.trim() !== "";
+
+/**
+ * ADR-0195 Đ4–Đ6 (gộp): áp chính sách cấp dịch vụ lên đơn ĐÃ QUA `validateOrder` — luật thuần, theo khuôn `giaiOPhuNhap`: ghép với dịch vụ / chặng đang lưu theo `id`.
+ *  - Điều kiện tính từng dịch vụ trên GIÁ TRỊ HIỆU LỰC `pickupChoice` (`validateOrder` đã chép giá trị đang lưu khi khoá vắng). Chưa chọn đón (null) không thoả điều kiện nào.
+ *  - Ô ẨN ⇒ giá trị gửi lên LUÔN bị bỏ, giá trị đang lưu LUÔN được giữ: `note` ⇒ ghi chú đang lưu của dịch vụ cùng id (dịch vụ mới ⇒ null); `flightCode` / `paxOverride` ⇒ để VẮNG (`undefined`) — `giaiOPhuNhap`
+ *    chép giá trị đang lưu của chặng cùng id (chặng mới ⇒ null) và không hỏi quyền đổi số người vì không có gì «đổi». Máy chủ không dựa vào việc trình duyệt có gửi ô ẩn hay không.
+ *  - Ô BẮT BUỘC (hiện và đòi) ⇒ kiểm trên giá trị hiệu lực: `note` có chữ; `flightCode` của MỌI chặng của dịch vụ có số (khoá vắng tính theo số đang lưu; dịch vụ không có chặng thì không đòi). Trả MỘT câu đầu tiên.
+ * Không có chính sách nào áp ⇒ trả đúng đối tượng gốc. Không sửa đối tượng gốc.
+ */
+export function apTruongDichVu(order: ValidOrder, luu: readonly DichVuDangLuu[], tra: ReturnType<typeof traDichVu>): { order: ValidOrder; thieu: string | null } {
+  let doi = false;
+  let thieu: string | null = null;
+  const services = order.services.map((sv, i) => {
+    const dk = dieuKienCuaDichVu({ pickupChoice: sv.pickupChoice });
+    const cu = sv.id === null ? undefined : luu.find((x) => x.id === sv.id);
+    const anBay = tra.an(MAN_DV, "flightCode", dk);
+    const anSo = tra.an(MAN_DV, "paxOverride", dk);
+    const anNote = tra.an(MAN_DV, "note", dk);
+    let ra = sv;
+    if (anNote) { ra = { ...ra, trip: { ...ra.trip, note: cu?.trip.note ?? null } }; doi = true; }
+    if (anBay || anSo) {
+      ra = { ...ra, legs: ra.legs.map((l) => {
+        const m = { ...l };
+        if (anBay) m.flightCode = undefined;
+        if (anSo) m.paxOverride = undefined;
+        return m;
+      }) };
+      doi = true;
+    }
+    if (thieu === null) {
+      if (!anNote && tra.batBuoc(MAN_DV, "note", dk) && !co(ra.trip.note)) thieu = `Dịch vụ ${i + 1}: cần nhập «${nhanTruong(MAN_DV, "note")}».`;
+      else if (!anBay && tra.batBuoc(MAN_DV, "flightCode", dk)) {
+        const luuChang = new Map((cu?.legs ?? []).map((l) => [l.id, l.flightCode] as const));
+        if (ra.legs.some((l) => !co(l.flightCode !== undefined ? l.flightCode : l.id === null ? null : (luuChang.get(l.id) ?? null)))) thieu = `Dịch vụ ${i + 1}: cần nhập «${nhanTruong(MAN_DV, "flightCode")}».`;
+      }
+    }
+    return ra;
+  });
+  return { order: doi ? { ...order, services } : order, thieu };
 }

@@ -197,7 +197,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
   return h(
     "tr",
     { class: s.active ? "" : "row-off" },
-    h("td", null, s.fullName, isMe && h("span", { class: "muted" }, " (bạn)"), !s.active && h("span", { class: "badge badge-cancelled" }, "Ngưng"), s.locked && h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập"), h("div", null, nhanHaiLopEl(s))),
+    h("td", null, s.fullName, isMe && h("span", { class: "muted" }, " (bạn)"), !s.active && !anCot("active") && h("span", { class: "badge badge-cancelled" }, "Ngưng"), s.locked && h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập"), h("div", null, nhanHaiLopEl(s))),
     h("td", null, s.phone),
     h("td", null, accessLabel(s)),
     hienCotCap && h("td", null, oCapCuaS(s)),
@@ -257,7 +257,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
     "div",
     { class: s.active ? "card card-col" : "card card-col row-off" },
     h("div", null, h("strong", null, s.fullName), isMe && h("span", { class: "muted" }, " (bạn)")),
-    !s.active && h("div", null, h("span", { class: "badge badge-cancelled" }, "Ngưng")),
+    !s.active && !anCot("active") && h("div", null, h("span", { class: "badge badge-cancelled" }, "Ngưng")),
     s.locked && h("div", null, h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),
     h("div", null, nhanHaiLopEl(s)),
     h("div", { class: "muted" }, s.phone, " · ", accessLabel(s)),

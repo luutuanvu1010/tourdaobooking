@@ -8,7 +8,7 @@ import { chipDatGap, theMoKhiNap } from "../src/shared/dong-gap-the";
 import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
 import { dichVuThieuChonDon, cauThieuChonDon } from "../src/shared/cong-chon-don";
 import { boChangKhiTatDuaDon, cauBoChangNhomTat, chonDonTheoNhom, diemChonNhanh, type DiemNhanh } from "../src/shared/chon-nhanh";
-import { cauDoiNgay, changTaoSan, doiNgayDi, giuDatGapNhap, legsGuiFormGon, type ChangNhap } from "../src/shared/chang-form";
+import { cauDoiNgay, changTaoSan, coOSoHieu, doiNgayDi, giuDatGapNhap, legsGuiFormGon, type ChangNhap } from "../src/shared/chang-form";
 import { canHienLaiKhoiKhach } from "../src/shared/an-thong-tin-khach";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { dongTuDto, loiDanhSachKhach, passengersNhap, type DongKhach } from "../src/shared/hanh-khach-form";
@@ -57,6 +57,7 @@ import { goiSom } from "./goi-som";
 import { icon } from "./icons";
 import { layKhungNho } from "./khung-nho";
 import { benDatCuaToi, initShell, setBarTitle } from "./shell";
+import { dieuKienCuaDichVu } from "../src/shared/ui-dieu-kien";
 import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
 
 const params = new URLSearchParams(location.search);
@@ -264,6 +265,13 @@ let anKhach = false;
 let chinhSach: ChinhSachUi = CHINH_SACH_DAY_DU;
 const anTruong = (t: string): boolean => !anKhach && chinhSach.an("tao-don", t);
 const batBuocTruong = (t: string): boolean => !anKhach && !chinhSach.an("tao-don", t) && chinhSach.batBuoc("tao-don", t);
+/** ADR-0195: chính sách cho ô cấp dịch vụ; công tắc ẩn thông tin khách (ADR-0154) đang áp ⇒ máy chủ bỏ chính sách ⇒ giao diện cũng hiện đủ (đọc `anKhach` MỖI lần hỏi). */
+const chinhSachDichVu: ChinhSachUi = {
+  an: (m, t, dk) => !anKhach && chinhSach.an(m, t, dk),
+  batBuoc: (m, t, dk) => !anKhach && chinhSach.batBuoc(m, t, dk),
+};
+/** Tên hiện trong câu báo thiếu (chữ đang hiện ở màn thật). */
+const NHAN_O_DICH_VU: Readonly<Record<string, string>> = { flightCode: "Số hiệu chuyến bay", note: "Ghi chú của dịch vụ" };
 // ADR-0061: người dùng được nhập tay (công tắc BẬT, có ô order.service.manual, không mang quyền Đối tác) — MÁY CHỦ quyết (`duocDung` của
 // GET /api/cai-dat/nhap-tay), giao diện không tự tính luật. Đọc TRƯỚC khi dựng thẻ đã lưu (loadOrder); lỗi / 403 → false (ẩn nút, thẻ chỉ xem).
 let duocNhapTay = false;
@@ -281,6 +289,7 @@ function mount(d: ServiceDraft, moThe: boolean, open?: boolean): Entry {
     canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
     retailOnly,
     formGonDoiTac: formGon,
+    chinhSachDichVu: chinhSachDichVu, // ADR-0195: ô cấp dịch vụ theo chính sách + điều kiện «không đón / có đón» của chính dịch vụ
     duocNhapTay,
     duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, diemNhanh: () => diemNhanh, suaSoVe, newKey, khungGio: () => khungGio, coDuaDon: () => coDuaDon(entry.draft) },
     moThe,
@@ -598,6 +607,13 @@ function validate(guiDon: boolean): { banner: Banner; focus: HTMLElement; cacO: 
       lines.push(`${nameOf(e.draft, i)}: ${issue.message}`);
       focusables.push(e.card.root);
     }
+  });
+  // ADR-0195: ô cấp dịch vụ Toàn quyền đòi bắt buộc (theo điều kiện của CHÍNH dịch vụ; máy chủ kiểm lại, 400 nếu thiếu). Số hiệu chuyến bay chỉ đòi ở chặng có ô nhập (đón / trả ở sân bay).
+  entries.forEach((e, i) => {
+    const dk = dieuKienCuaDichVu({ pickupChoice: chonDonTheoNhom(coDuaDon(e.draft), e.draft.pickupChoice) });
+    const can = (t: string) => !chinhSachDichVu.an("dich-vu-trong-don", t, dk) && chinhSachDichVu.batBuoc("dich-vu-trong-don", t, dk);
+    if (can("note") && e.draft.trip.note.trim() === "") { lines.push(`${nameOf(e.draft, i)}: cần nhập «${NHAN_O_DICH_VU.note}».`); focusables.push(e.card.root); }
+    if (can("flightCode") && e.draft.legs.some((l) => coOSoHieu(l, (id) => diem.some((d) => d.id === id && d.sanBay)) && l.flightCode.trim() === "")) { lines.push(`${nameOf(e.draft, i)}: cần nhập «${NHAN_O_DICH_VU.flightCode}».`); focusables.push(e.card.root); }
   });
   lines.push(...orderIssues(drafts()));
   if (hk && batBuocTruong("passengers") && passengersNhap(hk.rows()).length === 0) {
@@ -1000,6 +1016,7 @@ function datAnKhach(an: boolean): void {
 }
 /** Ẩn / hiện ô theo chính sách (ADR-0194) và đánh dấu «*» ô bắt buộc. Gọi lại được (công tắc ADR-0154 đổi ⇒ chính sách không còn / lại chen vào). */
 function apChinhSach(): void {
+  for (const e of entries) e.card.update(e.draft); // ADR-0195: thẻ tính lại ô cấp dịch vụ (công tắc đổi)
   const o = (id: string) => field(id).closest("label");
   anPhanTu(anTruong("customerEmail"), o("customerEmail"));
   anPhanTu(anTruong("customerNote"), o("customerNote"));
