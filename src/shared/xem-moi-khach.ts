@@ -17,7 +17,7 @@ export function coXemMoiKhach(perms: readonly PermissionCode[], matrix: BangXemK
 /** ADR-0191 mục 5: câu thay hộp «PIN của tài khoản mới» khi Nhân sự tạo tài khoản xem mọi khách. */
 export const CAU_CHO_QUAN_TRI_CAP_PIN = "Tài khoản này xem được thông tin khách nên PIN đầu do Quản trị cấp. Nhờ Quản trị bấm Đặt lại PIN rồi giao tận tay.";
 /** ADR-0191 mục 3(a): 403 khi người không giữ Quản trị gán thêm vai xem mọi khách. */
-export const CAU_VAI_XEM_KHACH_NHO_QUAN_TRI = "Vai này cho xem thông tin khách — nhờ Quản trị hoặc Toàn quyền gán.";
+export const CAU_VAI_XEM_KHACH_NHO_QUAN_TRI = "Vai trò này cho xem thông tin khách — nhờ Quản trị hoặc Toàn quyền gán.";
 /** ADR-0191 mục 3 «Rủi ro còn lại»: dòng nhắc ở hộp gán vai của Quản trị. */
 export const CAU_NHAC_DAT_LAI_PIN_SAU_GAN_VAI = "Nếu người khác đã biết PIN của tài khoản này, bấm Đặt lại PIN sau khi gán.";
 /** Hậu tố nhật ký tạo tài khoản (ADR-0191 mục 6). */
