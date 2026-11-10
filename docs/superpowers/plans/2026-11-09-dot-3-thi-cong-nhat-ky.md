@@ -69,3 +69,4 @@ Kế hoạch: `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (ch�
 
 - Đợt 2 nhập trước, lấy số 2.86; production chưa có chữ Đợt 3. Gộp `origin/main` c06dd777d: chỉ vướng `changelog.ts` (Đợt 3 đổi số tạm **2.87**). Typecheck 0 lỗi; máy canh Hướng dẫn xanh.
 - Gói Đơn hàng 111.133 > trần 111.118 (+15): phần Đợt 3 còn trong gói chỉ là Task 3.6 (đo metafile: `session-ended.ts`, `web/api.ts`), không gọt thêm được. Chủ duyệt 10/11 nguyên văn «Nâng lên 111.168» → `TRAN_ORDERS = 111_168` kèm chú thích ở `src/goi-trang-nhe.test.ts`.
+- Lượt bộ kiểm đầy đủ chạy trước khi nâng trần: 8720 xanh, đỏ đúng một bài trần gói; sau khi nâng, bài đó chạy riêng xanh. main = origin/main = c06dd777d, đã nằm trong nhánh. Sau nhập cần triển khai (bản tạm 2.87, không migration).
