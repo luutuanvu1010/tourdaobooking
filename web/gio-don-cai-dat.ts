@@ -33,7 +33,7 @@ export async function ganCaiDatGioDon(el: HTMLElement): Promise<void> {
       el,
       h("h2", { id: "gio-don-heading" }, "Bắt buộc giờ đón cho đơn đối tác"),
       h("p", { id: "gio-don-trang-thai" }, s.bat ? "Đang bật." : "Đang tắt."),
-      h("p", { class: "muted" }, "Khi bật, đơn có đón của đối tác mà chưa có giờ đón thì văn phòng phải ghi giờ rồi mới bấm Còn vé được. Khi tắt, văn phòng vẫn xét đơn nhưng xác nhận được khi chưa có giờ; đơn hiện nhắc «Chưa chốt giờ» và chưa xếp xe được cho tới khi có giờ."),
+      h("p", { class: "muted" }, "Khi bật, đơn có đón của đối tác mà chưa có giờ đón thì văn phòng phải ghi giờ rồi mới bấm «Còn vé, xác nhận đơn» được. Khi tắt, văn phòng vẫn xét đơn nhưng xác nhận được khi chưa có giờ; đơn hiện nhắc «Chưa chốt giờ» và chưa xếp xe được cho tới khi có giờ."),
       loi,
       nut,
     );

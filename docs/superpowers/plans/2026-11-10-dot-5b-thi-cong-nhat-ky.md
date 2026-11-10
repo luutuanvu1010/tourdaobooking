@@ -1,0 +1,44 @@
+# Nhật ký thi công Đợt 5B — công tắc giờ đón cho đơn Đối tác (ADR-0193)
+
+Kế hoạch mẹ: `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` Phần VIII (Đợt 5B, Task 5B.1–5B.5), Phần X. ADR: `docs/adr/ADR-0193-*.md` (accepted 2026-11-09).
+Nhánh: `claude/dot-5b-cong-tac-gio-don-e5da0d` (worktree `admin-delete-data-decision-31f0fc`), cắt từ nhánh kế hoạch, đã chứa `origin/main` lúc bắt đầu (10/11). Vai phiên: THI CÔNG (không tự nghiệm thu, N8).
+Xây trên lỗ đang hở: **HC-5.19** (khoá `xay_tren_cho_phep_adr_0193`).
+
+## Câu hỏi chủ — áp phương án (a) (chủ chưa trả lời riêng; kế hoạch ghi hết giờ theo (a))
+
+1. Phát hành: **chỉ nhập sau buổi diễn tập khôi phục**. Nhánh nằm yên; KHÔNG đưa lệnh nhập.
+2. Câu (ii): xét **mọi lượt còn mở** (`closed_at IS NULL`), kể cả chiều về.
+
+## Số đã đặt
+
+- Migration **0157** `0157_cong_tac_gio_don_doi_tac.sql`: `main` tới 0156, không nhánh / worktree chưa gộp nào có 0157+ (liệt kê `git branch -a --no-merged origin/main` + `git ls-tree`). Giữ chỗ ở thư mục ghi chú chung (`2026-11-10-giu-cho-migration-0157-dot-5b.md`).
+- Nhật ký thay đổi: mục **2.90 (số tạm)**; bước A.0 đặt lại số và ngày lúc nhập (5A có thể nhập trước).
+
+## Commit
+
+| Task | Commit | Việc |
+|---|---|---|
+| 5B.1 | `c2dcef4e0` | migration 0157 + `docBatBuocGioDon` / `gioDonMoiNhat` / `cauThemGioDon` (ở `xac-nhan-repo.ts`) + `GET/POST /api/cai-dat/bat-buoc-gio-don` + nút trang Tôi (`web/gio-don-cai-dat.ts`) + nhật ký `pickup_time_policy_changed` + bảng tham chiếu + từ điển dữ liệu |
+| 5B.2 | `df5d2572d` | `coChotGio` (tệp thuần `gio-don-cai-dat.ts`); route Gửi đơn đọc công tắc một lần; nhật ký «Gửi kiểm vé» bỏ «·» thừa khi `vi` rỗng; danh sách chờ `gioDon = null` khi lượt đầu thiếu giờ cả lúc cờ = 0 |
+| 5B.3 | `1c9b8c40e` | `changChuaGioVaoHanChot` + `CAU_CHUA_GIO_SAT_NGAY` (`moc-toi-thieu.ts`); vế SQL mới của `ORDER_CONFIRM`; `chanChuaGioSatNgay` / `changDangLuu` (`xac-nhan-chung.ts`) ở ba cửa + `chanDoanXacNhan`; bảng Còn vé giữ nguyên khi gặp `chua_gio_sat_ngay` |
+| 5B.4 | `ff063cf74` | `R-ORD-17w` đọc dòng chính sách hiệu lực tại `confirmed_at` (không dòng = Bật) |
+| 5B.5 | (commit cuối nhánh) | nhật ký thay đổi 2.90, kịch bản Chrome, nhật ký này |
+
+## Ruling / cách hiểu ghi lại (người kiểm xác nhận lại)
+
+- **R5B-1 (lệch chữ ADR-0193 mục 1, theo kế hoạch Task 5B.2):** chỉ route Gửi đơn đọc công tắc. Khối `xacNhan` của chi tiết đơn không đọc: `canXN` vẫn dùng `canChotGioCuaNguoiLap` (nhánh A không phụ thuộc công tắc), lý do của yêu cầu đang mở lấy từ cờ đã chụp (`viCuaYeuCau`). Hai nơi vẫn «nói cùng một điều». Bài: `cong-tac-gio-don.test.ts` ca «chi tiết đơn … canXacNhan».
+- **R5B-2 (vị trí tệp):** kế hoạch ghi `gio-don-cai-dat.ts` «đọc / ghi dòng hiện hành». SQL đặt ở `xac-nhan-repo.ts` (đã ở `NUA_NGHIEM`) theo khuôn công tắc ẩn khách, để khỏi khai thêm tệp vào `architecture.test.ts`; `lenhGhiBatBuocGioDon` ở `xac-nhan-route.ts` (cạnh `lanSau`); `gio-don-cai-dat.ts` chỉ còn `coChotGio` (thuần, chạy thẳng `node --test`). Route nằm ở `xac-nhan-route.ts` (chỗ thật của khối `/api/cai-dat/an-thong-tin-khach`), không phải `index.ts` như kế hoạch ghi.
+- **R5B-3 (quy ước «<»):** câu (ii) dùng `${ngay} 00:00 < nguongMocVn(...)`; đúng 23:00:00.000 (hạn chốt 60 phút, đón ngày sau) chưa chặn, 23:00:01 thì chặn. Ghi ở chú thích hàm.
+- **R5B-4 (thứ tự cổng ở Còn vé):** `pickup_time_required` → `chua_gio_sat_ngay` → đặt gấp (`xetDatGap`) → `short_notice_required` → `kiemCongXacNhan` → `confirmGaps`. Câu (ii) đứng trước đặt gấp vì lượt chưa giờ không dựng được dấu.
+- **R5B-5 (409 kèm `legs`):** thân `ChuaGioSatNgayBody` có `legs: [{legId}]` (khuôn `PickupTimeRequiredBody`) để giao diện chỉ chỗ; câu báo nêu ngày đón sớm nhất trong các lượt chạm luật.
+
+## Điều biết trước, không chặn (ghi cho người kiểm và chủ)
+
+- **Đối tác ở nhánh B với lượt chưa giờ trong hạn chốt** nhận 409 bảo «điền giờ đón» mà form Đối tác không có ô giờ. Chỉ xảy ra khi lượt đầu có giờ (gửi thẳng qua API) mà một lượt khác (chiều về) chưa giờ và sát ngày — hiếm. Đối tác báo văn phòng.
+- **R-ORD-17w cảnh báo thừa** khi yêu cầu gửi lúc Tắt (cờ = 0) mà Còn vé bấm sau khi Bật lại: câu kiểm đọc chính sách theo giờ xác nhận, đúng chữ ADR mục 6.
+- **Bảng Còn vé**: lượt không bắt buộc chỉ có các khung giờ đã cài (không có «Giờ khác»). Khi câu (ii) chặn một lượt chiều về, người xét chọn được khung; muốn giờ lẻ thì Hết vé / Huỷ để người lập sửa. Không sửa vì phải chạm luật hiển thị ADR-0154 (ngoài phạm vi).
+- `R-ORD-17w` đọc bảng 0157: D1 chưa áp 0157 thì «no such table» (thoát 2). `npm run trien-khai` chỉ chạy kiểm này SAU khi áp migration (`scripts/release-lib.mjs`).
+
+## Kết quả kiểm
+
+(điền ở cuối nhánh — xem mục dưới)

@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 5B của kế hoạch sửa sau rà soát lần 2 (ADR-0193), CÓ migration 0157 (bảng chính sách chỉ thêm, gieo Bật). Nhánh chỉ nhập SAU buổi diễn tập khôi phục (câu hỏi chủ số 1, phương án a).
+    // SỐ TẠM 2.90: main tới 2.89 lúc soạn; Đợt 5A có thể nhập trước — bước A.0 đặt lại số và ngày lúc nhập.
+    version: "2.90",
+    date: "2026-11-10",
+    items: [
+      { kind: "moi", text: "Toàn quyền có nút «Tắt bắt buộc giờ đón» ở trang Tôi (mặc định đang bật). Khi tắt, văn phòng xác nhận được đơn có đón của đối tác mà chưa cần ghi giờ." },
+      { kind: "doi", text: "Đơn có lượt đón chưa có giờ mà ngày đón đã sát hạn chốt (ví dụ đón ngay hôm nay) thì phải điền giờ đón trước rồi mới xác nhận được." },
+    ],
+  },
+  {
     // Đợt 3 «chữ do chủ chọn» của kế hoạch sửa sau rà soát lần 2 (phiếu Phụ lục B, phương án (1); câu khoá vé dùng dự phòng B-2), KHÔNG migration.
     // SỐ TẠM 2.89: main có 2.88 (ADR-0195 và lời nhắc màn chỉnh); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.89",

@@ -829,7 +829,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Cài đặt vận hành",
     manHinh: "Tôi (trang cá nhân) › khối «Bắt buộc giờ đón cho đơn đối tác»",
     ten: "Tắt bắt buộc giờ đón · Bật bắt buộc giờ đón",
-    thatSuLam: "Đổi công tắc chung. Khi tắt, đơn có đón của đối tác mà chưa có giờ đón vẫn qua văn phòng xét, nhưng văn phòng bấm Còn vé được mà không phải ghi giờ; đơn hiện nhắc «Chưa chốt giờ» và chưa xếp xe được tới khi có giờ. Đơn đang chờ xét giữ nguyên như lúc gửi. Mặc định đang bật.",
+    thatSuLam: "Đổi công tắc chung. Khi tắt, đơn có đón của đối tác mà chưa có giờ đón vẫn qua văn phòng xét, nhưng văn phòng bấm «Còn vé, xác nhận đơn» được mà không phải ghi giờ; đơn hiện nhắc «Chưa chốt giờ» và chưa xếp xe được tới khi có giờ. Đơn đang chờ xét giữ nguyên như lúc gửi. Mặc định đang bật.",
     hoiLai: "không",
     hoanTac: "được: bấm Bật bắt buộc giờ đón (đơn đã xác nhận lúc tắt giữ nguyên)",
     duongLenh: ["/api/cai-dat/bat-buoc-gio-don"],
