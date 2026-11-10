@@ -76,7 +76,7 @@ const fail = (err: unknown) => showError(errorEl, reasonOf(err));
 
 /** ADR-0191 mục 5: thay hộp «PIN của tài khoản mới» khi máy chủ không trả PIN (`pin: null`). */
 function hienChoCapPin(name: string, phone: string): void {
-  const close = h("button", { type: "button", class: "btn btn-link" }, "Đã rõ, ẩn đi");
+  const close = h("button", { type: "button", class: "btn btn-link" }, "Đóng");
   close.addEventListener("click", () => {
     secretEl.hidden = true;
     replaceChildren(secretEl);
