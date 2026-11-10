@@ -39,6 +39,19 @@ Xây trên lỗ đang hở: **HC-5.19** (khoá `xay_tren_cho_phep_adr_0193`).
 - **Bảng Còn vé**: lượt không bắt buộc chỉ có các khung giờ đã cài (không có «Giờ khác»). Khi câu (ii) chặn một lượt chiều về, người xét chọn được khung; muốn giờ lẻ thì Hết vé / Huỷ để người lập sửa. Không sửa vì phải chạm luật hiển thị ADR-0154 (ngoài phạm vi).
 - `R-ORD-17w` đọc bảng 0157: D1 chưa áp 0157 thì «no such table» (thoát 2). `npm run trien-khai` chỉ chạy kiểm này SAU khi áp migration (`scripts/release-lib.mjs`).
 
-## Kết quả kiểm
+## Kết quả kiểm (2026-11-10, trên đỉnh nhánh `17db1ce1d`)
 
-(điền ở cuối nhánh — xem mục dưới)
+- `npm test` đủ bộ: 8790/8795 qua, 1 đỏ duy nhất là `src/modules/parties/xac-minh-route.test.ts` (r7, «nhật ký không chứa số») — bài đỏ giả đã biết khi số ngẫu nhiên chứa dãy trùng (bộ nhớ `reference-bai-r7b-do-gia-0111`), chạy lại riêng 3 lần + người kiểm 1 lần đều 30/30 xanh; nằm ở phân hệ hồ sơ, không chạm nhánh này. Lần chạy đầu có 7 bài đỏ thật (bảng route chưa khai hai route mới, TC-23 theo hành vi cũ, chữ «Còn vé» đơn lẻ, gạch nhật ký thay đổi quá 160 ký tự) — đã sửa ở `f7ab7720c`.
+- `npm run typecheck`: 0 lỗi.
+- `npm run test:e2e`: **90/90 kịch bản xanh** (799 giây), kể cả `audit-invariants`.
+- Kịch bản Chrome `docs/evidence/2026-11-10-dot-5b-gio-don/kich-ban/gio-don-smoke.mjs` (có `AXE_JS`): **5/5 bước**, ảnh 390 + 1280 ở `…/anh/`.
+- **Người kiểm độc lập (`nguoi-kiem-doc-lap`): ĐẠT**, không lỗi chặn, không mục nên sửa; xác nhận cả năm ruling R5B-1…R5B-5; tự chạy typecheck, 10 tệp bài (163/163), bài R-ORD-17w (3/3), và thử đột biến trên bản sao tạm: bỏ vế SQL mới thì bài đua và bài khoá hai phía đỏ. Hai điều nên báo chủ trùng mục «Điều biết trước» ở trên. Người kiểm không chạy e2e, Chrome (dựa vào kết quả người thi công).
+
+## Đề xuất cho chủ — CHƯA ghi (tệp luật chỉ sửa khi chủ nói)
+
+1. **Dòng Trạng thái ADR-0154** (`docs/adr/ADR-0154-*.md`), thêm cuối dòng Trạng thái: «Sửa đổi 2026-11-09 bởi ADR-0193: Đ1.2 (vế cờ) và Đ1.3 chỉ áp khi công tắc «Bắt buộc giờ đón cho đơn đối tác» Bật (mặc định Bật); thêm điều chặn xác nhận cho lượt đón chưa giờ đã vào hạn chốt (đóng phần còn hở của Đ1.7).»
+2. **Phần «Điều kiện» của khoá `xay_tren_cho_phep_adr_0193`** (`docs/quyen-hoan.json`, mục `HC-5.19`), thay cụm «Điều kiện phát hành (trước hay sau diễn tập khôi phục): chủ CHƯA chọn — người phát hành hỏi chủ trước khi đưa migration này lên bản thật.» bằng: «Điều kiện: chỉ phát hành SAU buổi diễn tập khôi phục (phương án (a) của câu hỏi 1, kế hoạch 2026-11-08 Phần VIII — áp mặc định vì chủ chưa trả lời riêng; chủ chọn (b) thì sửa dòng này trước khi nhập).» Cần chủ xác nhận câu chữ trước khi ghi.
+
+## Trạng thái nhánh
+
+Xong thi công Task 5B.1–5B.5. Nhánh **nằm chờ tới sau buổi diễn tập khôi phục** (hẹn 30/11); KHÔNG đưa lệnh nhập. Trước khi nhập: gộp `origin/main` mới, kiểm lại số migration (0157) và số phiên bản (2.90 tạm), chạy lại bộ kiểm.
