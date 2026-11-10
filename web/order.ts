@@ -1,4 +1,5 @@
 import { CHIP_CHUA_CHON_DON, KHONG_DUA_DON, nhanDuaDonTrangDon } from "../src/shared/dong-gap-the";
+import { CHINH_SACH_DAY_DU, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
 import { ApiError, api, vuaLamBoiTabNay, type Api, type AuditEntry, type Order, type Staff } from "./api";
 import { NHAN_DAT_COC_CHO } from "../src/shared/dat-coc-truoc";
 import { nhanHinhThucDon } from "../src/shared/han-muc-tra-sau-hien-thi";
@@ -73,6 +74,9 @@ const root = byId("order");
 const actions = byId("actions");
 const sendEl = byId("send");
 let current: Order | null = null;
+/** ADR-0195: chính sách ẩn hiển thị của màn «Chi tiết đơn» cho người đang xem — CHỈ ẩn trên màn này (dữ liệu vẫn có trong API, biên nhận / ảnh xác nhận không theo). Lỗi tải ⇒ hiện đủ. */
+let chinhSach: ChinhSachUi = CHINH_SACH_DAY_DU;
+const anChiTiet = (truong: string): boolean => chinhSach.an("chi-tiet-don", truong);
 let staff: Staff | null = null; // gán sau `initShell()`; các hàm dưới chỉ chạy sau đó
 /** Mốc tối thiểu đang hiệu lực (phút) từ GET /api/orders/:id (ADR-0049 I31); null = chưa có chính sách (máy chủ trả 503 lúc xác nhận). */
 let mocPhut: number | null = null;
@@ -640,7 +644,7 @@ function tienCard(order: Order): HTMLElement {
     rows.push(t.du > 0 ? kv("Khách trả dư", `${vnd(t.du)} — chờ Kế toán hoàn`, "strong") : kv("Còn lại", vnd(t.conLai), "strong"));
   } else rows.push(kv("Đã thu / còn lại", "Chưa tải được"));
   if (order.paymentTerm === "CREDIT") rows.push(kv("Hình thức thanh toán", nhanHinhThucDon(order.paymentTerm, order.hanTra)), ...dongTraSauDon(order, traSauDon ?? null, () => load(true)));
-  rows.push(kv("Ghi chú thanh toán", order.paymentNote));
+  if (!anChiTiet("paymentNote")) rows.push(kv("Ghi chú thanh toán", order.paymentNote));
   // ADR-0063 D1 + ADR-0109 QĐ3: bớt khách tới mức giảm giá lớn hơn tạm tính KHÔNG bị chặn — câu cảnh báo hiện thường trực trên khối tiền (phải thu đã kẹp 0).
   // ADR-0114 D1: thêm câu nhắc khuyến mại MÀU ĐỎ (máy chủ gửi `canhBaoKhuyenMai`) cạnh câu vàng cũ — hai câu có thể cùng hiện. Hiện đúng chỗ trang đã hiện giảm giá (khối này), không thêm cổng quyền.
   const daXacNhan = order.status === "confirmed";
@@ -1469,7 +1473,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
     h("header", { class: "detail-head" }, h("h1", null, order.orderCode)),
     summaryBand(order),
     cho?.dangCho && xacNhan?.yeuCau ? daiChoXacNhan(xacNhan.yeuCau, Date.now()) : null,
-    h("p", { class: "muted" }, `Lập ${dateTime(order.createdAt)} bởi ${order.staffName}`, order.confirmedAt && ` · Xác nhận ${dateTime(order.confirmedAt)}`),
+    h("p", { class: "muted" }, anChiTiet("staffName") ? `Lập ${dateTime(order.createdAt)}` : `Lập ${dateTime(order.createdAt)} bởi ${order.staffName}`, order.confirmedAt && ` · Xác nhận ${dateTime(order.confirmedAt)}`),
     order.deliveredAt
       ? h("p", { class: "lock-note" }, icon("lock", 18), order.completedAt ? "Đơn đã Hoàn thành — đơn đã khoá." : "Đơn đã ở bước Khách đã trả đủ — đơn đã khoá, không sửa, huỷ hay đổi người phụ trách được nữa.")
       : a.locked
@@ -1491,8 +1495,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
           h("h2", null, "Khách hàng"),
           kv("Tên", order.customerName),
           kv("Số điện thoại", order.customerPhone),
-          kv("Email", order.customerEmail),
-          kv("Ghi chú", order.customerNote),
+          anChiTiet("customerEmail") ? null : kv("Email", order.customerEmail),
+          anChiTiet("customerNote") ? null : kv("Ghi chú", order.customerNote),
           kv(nhanBenDat(order.bookerLaDoiTac), order.bookerName ?? NO_BOOKER_VALUE), // "Bên đặt (đối tác)" khi bên đặt là hồ sơ được hưởng hoa hồng (cờ máy chủ), còn lại "Hồ sơ khách"
           a.editTrip ? bookerButton(order) : null,
         ),
@@ -1837,6 +1841,7 @@ function layNguoiPhuTrach(orderId: string): Promise<Handler> {
   return layNguoiPhuTrachSom ? layNguoiPhuTrachSom() : loadHandler(orderId);
 }
 staff = await initShell();
+chinhSach = await taiChinhSach(); // ADR-0195: trước lần dựng đầu; lỗi tải đã thành mặc định đầy đủ
 if (!id) trangThaiToanTrang("thieu-ma", { doiTuong: "đơn", trangCha: { nhan: "Đơn hàng", href: TRANG.donHang.duong } });
 else {
   await load();

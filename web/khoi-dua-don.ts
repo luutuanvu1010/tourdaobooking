@@ -67,6 +67,11 @@ export interface KhoiDuaDonOptions {
    * nơi gửi xoá giờ lượt đầu bằng `legsGuiFormGon`.
    */
   anGio?: boolean;
+  /**
+   * CHỈ form Tạo/sửa đơn (ADR-0195): chính sách của ô phụ CỦA DỊCH VỤ NÀY (đã tính theo điều kiện «không đón / có đón» của chính dịch vụ), đọc lại mỗi lần dựng khối. `an` = không dựng ô (giá trị vẫn nằm trong
+   * bản nháp, máy chủ bỏ khi lưu); `batBuoc` = thêm «*» vào nhãn. Vắng (bảng «Sửa đưa đón») = hiện đủ như cũ.
+   */
+  chinhSachO?: (truong: "flightCode" | "paxOverride") => { an: boolean; batBuoc: boolean };
 }
 
 export interface KhoiDuaDon {
@@ -430,14 +435,17 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     const phu: HTMLElement[] = [];
     const phuGap: HTMLElement[] = [];
     const themPhu = (el: HTMLElement, gap: boolean) => (nn && gap ? phuGap : phu).push(el);
-    if (coOSoHieu(l, laSanBay)) {
+    const csBay = o.chinhSachO?.("flightCode") ?? { an: false, batBuoc: false };
+    const csVe = o.chinhSachO?.("paxOverride") ?? { an: false, batBuoc: false };
+    const sao = (nhan: string, bb: boolean) => (bb ? `${nhan} *` : nhan);
+    if (coOSoHieu(l, laSanBay) && !csBay.an) {
       const bay = h("input", { id: id("bay"), type: "text", maxLength: 8, autocomplete: "off", autocapitalize: "characters", placeholder: "VD: VN1553", value: l.flightCode, "data-o": `${l.key}:bay` });
       bay.addEventListener("input", () => sua(i, { flightCode: bay.value }, false));
-      themPhu(nn ? h("label", { for: bay.id, class: "o-noi" }, khungNhanNoi("Số hiệu chuyến bay", bay), hint("Tài xế tự tra giờ bay")) : h("label", { for: bay.id }, "Số hiệu chuyến bay", bay, hint("Tài xế tự tra giờ bay")), false);
+      themPhu(nn ? h("label", { for: bay.id, class: "o-noi" }, khungNhanNoi(sao("Số hiệu chuyến bay", csBay.batBuoc), bay), hint("Tài xế tự tra giờ bay")) : h("label", { for: bay.id }, "Số hiệu chuyến bay", bay, hint("Tài xế tự tra giờ bay")), false);
     }
     let soVe: HTMLInputElement | null = null;
     let loiSoVe: HTMLElement | null = null;
-    if (l.direction === "RETURN") {
+    if (l.direction === "RETURN" && !csVe.an) {
       if (o.suaSoVe) {
         soVe = h("input", { id: id("so-ve"), type: "text", inputMode: "numeric", maxLength: 3, autocomplete: "off", placeholder: "Cả đoàn", value: l.soVe, "data-o": `${l.key}:so-ve` });
         soVe.addEventListener("input", () => {

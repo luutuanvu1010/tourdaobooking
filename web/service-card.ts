@@ -20,6 +20,9 @@ import { canhBaoChuyenThe, coLoiChanLuuDangHien, dongGapThe } from "../src/share
 import { GOI_Y_GHI_CHU_DOI_TAC, MAX_GHI_CHU_DICH_VU, NHAN_GHI_CHU_DOI_TAC, ghiChuMotDong } from "../src/shared/form-dat-ve";
 import { tripSummaryLine } from "../src/shared/trip-form";
 import { MAX_LINES_PER_ORDER } from "../src/shared/trip-rules";
+import { dieuKienCuaDichVu } from "../src/shared/ui-dieu-kien";
+import { chonDonTheoNhom } from "../src/shared/chon-nhanh";
+import type { ChinhSachUi } from "./chinh-sach-giao-dien";
 import { counter, type Counter } from "./counter";
 import { h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
@@ -66,6 +69,11 @@ export interface CardOptions {
   onMo?: () => void;
   /** Phần tử trang gắn vào CUỐI thân thẻ (dải đặt gấp của từng chặng) — nằm trong phần gập, cùng ẩn / hiện với thân. */
   cuoiThe?: HTMLElement;
+  /**
+   * ADR-0195 (CHỈ form Tạo/sửa đơn): chính sách hiện / ẩn / bắt buộc của màn «dich-vu-trong-don» cho người đang lập; thẻ tự tính điều kiện «không đón / có đón» của CHÍNH dịch vụ này (kể cả khi nhóm tắt đưa đón
+   * ⇒ «Không đón», như lúc gửi) và tính lại ngay khi lựa chọn đón đổi. Vắng = hiện đủ. Ô ẩn vẫn nằm trong bản nháp, chỉ máy chủ bỏ khi lưu.
+   */
+  chinhSachDichVu?: ChinhSachUi;
 }
 
 export interface ServiceCard {
@@ -165,7 +173,19 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     return cat > 0 ? nhan.slice(0, cat) : nhan;
   };
 
+  /** Chính sách của một ô cấp dịch vụ cho CHÍNH dịch vụ này (ADR-0195); lỗi tải / vắng chính sách = hiện đủ. */
+  const csDichVu = (truong: "flightCode" | "paxOverride" | "note"): { an: boolean; batBuoc: boolean } => {
+    const c = o.chinhSachDichVu;
+    if (!c) return { an: false, batBuoc: false };
+    const dk = dieuKienCuaDichVu({ pickupChoice: chonDonTheoNhom(o.duaDon.coDuaDon?.() !== false, draft.pickupChoice) });
+    const an = c.an("dich-vu-trong-don", truong, dk);
+    return { an, batBuoc: !an && c.batBuoc("dich-vu-trong-don", truong, dk) };
+  };
+  /** Khoá «ô nào đang ẩn / bắt buộc» của dịch vụ này: đổi khoá ⇒ dựng lại khối đưa đón (ô số hiệu chuyến bay / số người chiều về) và tính lại ô ghi chú. */
+  const dkKhoa = (): string => (["flightCode", "paxOverride", "note"] as const).map((t) => { const c = csDichVu(t); return `${c.an ? 1 : 0}${c.batBuoc ? 1 : 0}`; }).join(",");
+
   const duaDon = taoKhoiDuaDon({
+    chinhSachO: o.chinhSachDichVu ? (t) => csDichVu(t) : undefined,
     legs: draft.legs, taoSan: draft.taoSan, che: "form", ma: draft.key, ...o.duaDon, soKhach: () => soKhachNhap(draft), anGio: o.formGonDoiTac === true, // ADR-0154 Đ1.1: form đối tác không nhập giờ đón
     // ADR-0134: còn lượt → "Đón"; bỏ lượt cuối khi đang "Đón" → về chưa chọn (`chonDonSauDoiChang`).
     onChange: (legs, taoSan) => commit({ ...draft, legs, taoSan, pickupChoice: chonDonSauDoiChang(draft.pickupChoice, legs.length) }),
@@ -194,6 +214,19 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   const dongGhiChuGon = oGhiChuGon ? h("label", { class: "o-noi" }, khungNhanNoi(NHAN_GHI_CHU_DOI_TAC, oGhiChuGon, { khungClass: "o-hien-goi-y" })) : null;
   // N7a: dịch vụ không có đưa đón thì dòng «Ghi chú — Thời gian đón» không còn nghĩa → ẩn (chữ đã gõ vẫn giữ trong bản nháp và vẫn gửi lên nguyên).
   if (dongGhiChuGon) dongGhiChuGon.hidden = o.duaDon.coDuaDon?.() === false;
+  /** ADR-0195: ô «Ghi chú dịch vụ» (khối chuyến) và dòng ghi chú gọn của Đối tác theo chính sách; gọi lại khi lựa chọn đón / nhóm đổi. */
+  const apGhiChu = (): void => {
+    if (!o.chinhSachDichVu) return;
+    const cs = csDichVu("note");
+    fields.datGhiChu(cs);
+    if (dongGhiChuGon) {
+      const khongDua = o.duaDon.coDuaDon?.() === false; // cùng điều kiện với khối Đưa đón (N7a)
+      dongGhiChuGon.hidden = khongDua || cs.an;
+      const chu = dongGhiChuGon.querySelector(".o-noi-chu");
+      if (chu) chu.textContent = cs.batBuoc ? `${NHAN_GHI_CHU_DOI_TAC} *` : NHAN_GHI_CHU_DOI_TAC;
+    }
+  };
+  apGhiChu();
 
   const than = h(
     "div",
@@ -529,7 +562,12 @@ export function createServiceCard(o: CardOptions): ServiceCard {
 
   function commit(next: ServiceDraft): void {
     const before = structKey(draft, o.duocNhapTay === true);
+    const dkTruoc = o.chinhSachDichVu ? dkKhoa() : "";
     draft = next;
+    if (o.chinhSachDichVu && dkKhoa() !== dkTruoc) {
+      apGhiChu(); // ADR-0195: đổi lựa chọn đón ⇒ tính lại ngay ô ẩn / bắt buộc của CHÍNH dịch vụ này (khối đưa đón dựng lại để ô số hiệu chuyến bay / số người chiều về đổi theo)
+      duaDon.update(next.legs, next.taoSan);
+    }
     if (structKey(next, o.duocNhapTay === true) !== before) rebuildBody();
     refresh();
     o.onChange(next); // trang cập nhật bản nháp của mình rồi gọi refreshLimits() của MỌI thẻ (trần dòng tính trên cả đơn)
@@ -568,12 +606,15 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     root,
     update(d) {
       const before = structKey(draft, o.duocNhapTay === true);
+      const dkTruoc = o.chinhSachDichVu ? dkKhoa() : "";
       const legsDoi = d.legs !== draft.legs || d.taoSan !== draft.taoSan || d.pickupChoice !== draft.pickupChoice;
       draft = d;
+      const dkDoi = o.chinhSachDichVu !== undefined && dkKhoa() !== dkTruoc;
       if (structKey(d, o.duocNhapTay === true) !== before) rebuildBody();
-      if (legsDoi) duaDon.update(d.legs, d.taoSan);
+      if (legsDoi || dkDoi) duaDon.update(d.legs, d.taoSan);
       duaDon.root.hidden = o.duaDon.coDuaDon?.() === false; // cờ nhóm có thể vừa đổi (form tải lại danh mục sau 409 `transfer_disabled`)
       if (dongGhiChuGon) dongGhiChuGon.hidden = o.duaDon.coDuaDon?.() === false;
+      apGhiChu();
       refresh();
       refreshLimits(); // thân có thể vừa được dựng lại: nút "+ Thêm dòng" mới mặc định bật
     },

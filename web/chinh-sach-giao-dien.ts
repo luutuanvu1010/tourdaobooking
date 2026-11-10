@@ -4,19 +4,25 @@ import { traCuuChinhSach, type ManUi } from "../src/shared/ui-truong";
 import { api, type Api } from "./api";
 
 export interface ChinhSachUi {
-  an: (man: ManUi, truong: string) => boolean;
-  batBuoc: (man: ManUi, truong: string) => boolean;
+  /** `dieuKienHienCo`: các điều kiện dịch vụ đang thoả (`dieuKienCuaDichVu`, ADR-0195); vắng ⇒ chỉ mục không điều kiện. */
+  an: (man: ManUi, truong: string, dieuKienHienCo?: string | readonly string[]) => boolean;
+  batBuoc: (man: ManUi, truong: string, dieuKienHienCo?: string | readonly string[]) => boolean;
 }
 export const CHINH_SACH_DAY_DU: ChinhSachUi = traCuuChinhSach([]);
+
+/** Bản vừa tải gần nhất của trang — cho các tệp dựng giao diện con (vd Hỗ trợ) hỏi mà không phải truyền tay; chưa tải / lỗi ⇒ đầy đủ. */
+let hienCo: ChinhSachUi = CHINH_SACH_DAY_DU;
+export const chinhSachHienCo = (): ChinhSachUi => hienCo;
 
 /** Tải chính sách áp cho CHÍNH người đang đăng nhập. Không bao giờ ném: lỗi ⇒ mặc định đầy đủ. */
 export async function taiChinhSach(): Promise<ChinhSachUi> {
   try {
     const r = await api<Api.ChinhSachGiaoDienDto>("/api/cai-dat/giao-dien");
-    return traCuuChinhSach(Array.isArray(r.truong) ? r.truong.filter((d) => d && typeof d.truong === "string") as never : []);
+    hienCo = traCuuChinhSach(Array.isArray(r.truong) ? r.truong.filter((d) => d && typeof d.truong === "string") as never : []);
   } catch {
-    return CHINH_SACH_DAY_DU;
+    hienCo = CHINH_SACH_DAY_DU;
   }
+  return hienCo;
 }
 
 /** Ẩn / hiện các phần tử bằng thuộc tính `hidden` (`app.css`: `[hidden]` luôn thắng). */
