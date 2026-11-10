@@ -17,6 +17,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa lời nhắc ở màn chỉnh giao diện của Toàn quyền (ADR-0195). KHÔNG migration. Số 2.88: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.88",
+    date: "2026-11-10",
+    items: [
+      { kind: "doi", text: "Màn chỉnh giao diện của Toàn quyền nhắc rõ: ô «Ghi chú của dịch vụ» là chỗ Đối tác ghi giờ đón, chỉ nên ẩn ở dòng «Dịch vụ không đón»." },
+    ],
+  },
+  {
     // ADR-0195 (accepted 10/11): ẩn/hiện trường theo điều kiện «không đón / có đón» và thêm trường ở Chi tiết đơn, tài khoản, Hỗ trợ. Migration 0156. SỐ TẠM 2.87: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.87",
     date: "2026-11-10",
