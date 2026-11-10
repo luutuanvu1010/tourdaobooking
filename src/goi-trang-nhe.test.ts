@@ -75,7 +75,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // kiểm thân ở ngoài gói khung). Đo thật 110.343 byte, trần = số đo + 100 (+508 so với trần bản chính). Chủ dự án DUYỆT 9/11/2026 nới tối đa +581 byte (qua phiên
 // điều phối: «Chủ đã đồng ý nới trần gói Đơn hàng thêm 581 byte»).
 // Gộp main (ADR-0187) vào nhánh vé Tour Đảo Đợt 2 (9/11/2026): trần = tổng hai khoản nới đã được chủ duyệt (110.610 của vé Đợt 2 + 508 của ADR-0187 trên 109.935); xem số đo thật ở báo cáo gộp. Chủ dự án duyệt trần gộp 111.118 ngày 9/11/2026 nguyên văn «duyệt trần».
-const TRAN_ORDERS = 111_118;
+// Nới 111.118 → 111.168 (+50, Đợt 3 «chữ do chủ chọn» gộp main có Đợt 2 sửa sau rà soát, 10/11/2026): Đợt 3 chỉ còn phần báo hết hạn đăng nhập (Task 3.6:
+// `dauHetPhien` ở src/shared/session-ended.ts, cờ `dangDi` của `goLogin` ở web/api.ts) trong gói khung; đo thật 111.133 byte. Chủ dự án duyệt 10/11/2026 nguyên văn «Nâng lên 111.168».
+const TRAN_ORDERS = 111_168;
 
 function dung(trang: string) {
   const r = buildSync({
@@ -117,4 +119,11 @@ test("build:web truyền --define:__APP_VERSION__ và __APP_RELEASE_DATE__ (lấ
   const lenhTrang = kichBan.split("&&").find((c) => c.includes("esbuild web/login.ts"))!;
   assert.match(lenhTrang, /--define:__APP_VERSION__=\\*"\$\(node scripts\/in-phien-ban\.mjs version\)\\*"/);
   assert.match(lenhTrang, /--define:__APP_RELEASE_DATE__=\\*"\$\(node scripts\/in-phien-ban\.mjs date\)\\*"/);
+});
+
+// B-12 (G-06e): câu danh sách đơn trống là MỘT câu chung, đúng cả khi chưa lọc lẫn khi đang lọc (nút «Xoá lọc» đã nằm sẵn trên trang). Chữ nằm ở HTML nên 0 byte vào gói.
+test("public/orders.html: câu danh sách đơn trống là «Chưa có đơn nào ở đây.»", () => {
+  const html = readFileSync(new URL("public/orders.html", goc), "utf8");
+  assert.match(html, /id="empty"[^>]*>Chưa có đơn nào ở đây\.</);
+  assert.doesNotMatch(html, /Chưa có đơn nào khớp/);
 });

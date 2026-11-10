@@ -6,7 +6,7 @@ import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { ACCOUNTS, ok, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { ACCOUNTS, insertStaffSqlThu, ok, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 
 export { ACCOUNTS, assert, sleep, vnDate };
 export const OUT = process.env.OUT ?? "docs/evidence/2026-09-29-adr-0049";
@@ -89,8 +89,7 @@ export const apiCalls = (p) => p.requests.map((r) => ({ method: r.method, path: 
 /** Dựng môi trường + tài khoản thêm + hàm gọi API (khuôn vc-lib.mjs của lượt 1a). */
 export async function dungMoiTruong(extra = []) {
   const env = await startEnv();
-  const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
-  for (const a of extra) for (const stmt of (await insertStaffSql(a)).split("\n")) if (stmt.trim()) env.sql(stmt);
+  for (const a of extra) for (const stmt of (await insertStaffSqlThu(a)).split("\n")) if (stmt.trim()) env.sql(stmt);
   const cookies = new Map();
   const call = async (account, method, path, body) => {
     if (!cookies.has(account.phone)) cookies.set(account.phone, await env.login(account));

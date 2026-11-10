@@ -141,7 +141,7 @@ test("Review Focus 2: đơn đại lý có MỘT dòng nhập tay ⇒ 409, lý d
   const { id, svc } = nhap(w, { dichVu: [{ ten: "Tour đảo", catalog: "HONTAM", khach: 1, donGia: 5_000_000 }, { ten: "Xe đưa đón riêng", catalog: null, khach: 1, donGia: 800_000 }] });
   await xacNhan(w, id);
   await thuCongTy(w, id, 5_800_000);
-  const CAU = "Thiếu mức hoa hồng / người bán cho Xe đưa đón riêng — Kế toán ghi mức tay cho dòng này.";
+  const CAU = "Thiếu mức hoa hồng / người bán cho Xe đưa đón riêng — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.";
   const t = await tien(w, id);
   assert.deepEqual([t.lyDoChuaGiao?.ma, t.lyDoChuaGiao?.cau, t.lyDoChuaGiao?.aiXuLy, t.coTheGiao], ["terms_missing", CAU, "Kế toán", false]);
   const g = await daGiao(w, id);
@@ -236,7 +236,7 @@ test("đơn KHÁCH LẺ có dịch vụ nhập tay chưa ai ghi tay người bá
   await thuCongTy(w, id, 3_000_000);
   const g = await daGiao(w, id);
   assert.equal(g.status, 409, g.text);
-  assert.equal(g.json.error.message, "Thiếu mức hoa hồng / người bán cho Thuê ca nô riêng — Kế toán ghi mức tay cho dòng này.");
+  assert.equal(g.json.error.message, "Thiếu mức hoa hồng / người bán cho Thuê ca nô riêng — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.");
   assert.equal((await tien(w, id)).lyDoChuaGiao?.ma, "terms_missing");
   chuaGiao(w, id);
 });
@@ -302,7 +302,7 @@ test("lớp 2 + dịch lỗi: mã «quên lớp 1» (câu UPDATE không điều 
   const g = await daGiao(w, id);
   assert.ok(daChen, "đã chen đúng lô Đã giao");
   assert.equal(g.status, 409, g.text);
-  assert.deepEqual([g.json.error.code, g.json.error.message], ["not_deliverable", "Thiếu mức hoa hồng / người bán cho một dịch vụ của đơn — Kế toán ghi mức tay cho dòng này."]);
+  assert.deepEqual([g.json.error.code, g.json.error.message], ["not_deliverable", "Thiếu mức hoa hồng / người bán cho một dịch vụ của đơn — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này."]);
   assert.doesNotMatch(g.text, /delivered_terms|SQLITE/);
   chuaGiao(w, id);
 });

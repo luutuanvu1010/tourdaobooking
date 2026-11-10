@@ -53,7 +53,7 @@ test("400 invalid_input: lời của máy chủ, cuộn tới thẻ n khi thông
 });
 
 test("400 catalog_unavailable: nêu dịch vụ và gợi ý chọn lại từ danh mục", () => {
-  const b = e(400, "catalog_unavailable", "Dịch vụ 1: dịch vụ TD101 không còn trong danh mục — hãy chọn dịch vụ khác hoặc nhập tay.");
+  const b = e(400, "catalog_unavailable", "Dịch vụ 1: dịch vụ TD101 đã ngừng bán hoặc không còn trong danh mục — hãy chọn dịch vụ khác.");
   assert.equal(b.tone, "danger");
   assert.equal(b.focusService, 0);
   assert.deepEqual(b.lines.map((l) => l.text), ["Chọn lại dịch vụ này từ danh mục."]);

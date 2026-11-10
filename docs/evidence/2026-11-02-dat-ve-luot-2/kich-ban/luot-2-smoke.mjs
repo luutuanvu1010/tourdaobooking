@@ -34,7 +34,7 @@ const { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT } = await import("../../../../src/sh
 const { CAU_VAN_PHONG_BAO_GIO } = await import("../../../../src/shared/chang-form.ts");
 const { cauThieuTen } = await import("../../../../src/shared/canh-bao-xac-nhan.ts");
 
-const DOITAC = { name: "Đối Tác Lượt Hai", phone: "0900000621", pin: "246621", permissions: ["PARTNER"] };
+const DOITAC = { name: "Đối Tác Lượt Hai", phone: "0900000621", pin: "246621", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" };
 const LAI = { name: "Đối Tác Kiêm Bán Hàng", phone: "0900000622", pin: "246622", permissions: ["PARTNER", "SALES"] };
 const KHACH = { ten: "Khách Thử Lượt Hai", sdt: "0903261777" };
 const GHI_CHU = "Đón 7h cổng khách sạn, SĐT khách 0903261777";
@@ -193,7 +193,7 @@ try {
     const truoc = apiCalls(p).filter((c) => c.method === "POST").length;
     await p.ev(click('[data-action="duyet-dat-gap"]'));
     await p.waitFor(`document.querySelector('[data-moc="duoi"] .dg-warn-sub')?.innerText.startsWith('Đã chọn lý do đặt gấp')`, "câu đã chọn lý do");
-    assert.equal(apiCalls(p).filter((c) => c.method === "POST").length, truoc, "Duyệt đặt gấp ở bảng chỉ giữ giấy, chưa gọi máy chủ");
+    assert.equal(apiCalls(p).filter((c) => c.method === "POST").length, truoc, "Ghi đặt gấp ở bảng chỉ giữ giấy, chưa gọi máy chủ");
     await shotView(p, "4-ban-hang-dat-gap-1040.png");
     await axe(p, "Bán hàng đặt gấp 1040");
     await p.ev(click('[data-action="quyet-dinh-con-ve"]'));

@@ -193,8 +193,8 @@ try {
   DAI_LY.pin = taoDl.pin;
   const DL_ID = taoDl.staff.partyId;
   // Tài khoản lai Bán hàng + Đối tác (dữ liệu cũ — gieo SQL như gieoTaiKhoanLai của tests/e2e/lib.mjs)
-  const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
-  env.sql(await insertStaffSql(LAI));
+  const { insertStaffSqlThu } = await import("../../2026-09-20-a2/kich-ban/a2-cdp.mjs");
+  for (const stmt of (await insertStaffSqlThu(LAI)).split("\n")) env.sql(stmt);
   // Nhà cung cấp: Kế toán tạo hồ sơ tổ chức, Quản trị gán vai «Nhà cung cấp» (nhóm OTHER — gán được ở Danh bạ)
   const ncc = phai(await call(ACCOUNTS.accounting, "POST", "/api/parties", { kind: "ORGANIZATION", displayName: NCC }), 201, "Kế toán tạo hồ sơ nhà cung cấp");
   phai(await call(ACCOUNTS.admin, "POST", `/api/parties/${ncc.party.id}/roles`, { roleTypeCode: "SUPPLIER" }), 201, "Quản trị gán vai Nhà cung cấp");

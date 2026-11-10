@@ -64,8 +64,12 @@ export function locNhomKiemVe(ds: readonly NhomKiemVe[], tu: string): NhomKiemVe
   });
 }
 
-export const nhanNguonKiemVe = (d: DongDichVuKiemVe): string => (d.rieng ? "Đặt riêng cho vé này" : d.coNhom ? "Theo nhóm" : "Chưa đặt");
-export const demKiemVe = (n: NhomKiemVe): string => (n.soCan === 0 ? "Không có vé cần kiểm" : `${n.soCan}/${n.dichVu.length} vé cần kiểm`);
+/** Chữ nguồn dưới công tắc «Cần kiểm vé», MỘT nơi cho màn hẹp và màn đủ. «Mặc định: không cần kiểm» = chủ chọn B-4 (1), 9/11 (thay «Chưa đặt»). */
+export const nhanNguonKiemVe = (d: Pick<DongDichVuKiemVe, "rieng" | "coNhom">): string => (d.rieng ? "Đặt riêng cho vé này" : d.coNhom ? "Theo nhóm" : "Mặc định: không cần kiểm");
+export const demKiemVe = (n: NhomKiemVe): string => (n.soCan === 0 ? `Không có vé cần kiểm (${n.dichVu.length} vé)` : `${n.soCan}/${n.dichVu.length} vé cần kiểm`);
+
+/** Nhóm nào mở sẵn: màn chỉ còn một nhóm, đang tìm, hoặc nhóm có vé cần kiểm. (Nhóm người dùng tự mở thì trang nhớ riêng.) */
+export const moSanNhomKiemVe = (ds: readonly NhomKiemVe[], n: NhomKiemVe, dangTim: boolean): boolean => dangTim || ds.length === 1 || n.soCan > 0;
 
 /** ADR-0169 Đ4: một dòng của màn đủ (Dịch vụ & giá): đang cần kiểm không, do dòng riêng hay theo nhóm. Cùng `canXacNhan` với máy chủ. */
 export function kiemVeCua(ma: string, nhom: string | null, dongCo: readonly DongCoXacNhanDto[]): { can: boolean; rieng: boolean } {
@@ -75,3 +79,11 @@ export function kiemVeCua(ma: string, nhom: string | null, dongCo: readonly Dong
 }
 /** Cả nhóm đang đặt «cần kiểm vé» (dòng nhóm, không tính dòng riêng của từng vé). */
 export const caNhomCanKiem = (nhom: string, dongCo: readonly DongCoXacNhanDto[]): boolean => dongCo.some((d) => d.pham === "GROUP" && d.ma === nhom && d.canXacNhan);
+
+/** Hộp hỏi lại trước khi Ngừng bán một dịch vụ, MỘT nơi cho màn hẹp và màn đủ (chủ chọn B-5 (1), 9/11). Mở bán lại không hỏi. */
+export const cauHoiNgungBan = (ten: string): { tieuDe: string; hauQua: string; nhanNguyHiem: string; nhanGiu: string } => ({
+  tieuDe: `Ngừng bán ${ten}?`,
+  hauQua: "Người lập đơn không chọn được dịch vụ này nữa, có hiệu lực ngay cho cả công ty. Đơn đã lập không đổi.",
+  nhanNguyHiem: "Ngừng bán",
+  nhanGiu: "Không ngừng",
+});

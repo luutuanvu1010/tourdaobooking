@@ -3,7 +3,7 @@
 //    không lọc theo vai ở đây;
 //  - `khoiCanhBaoMoc`: dải cát "Giờ đón cách bây giờ … — dưới mốc 6 giờ" + dòng nói ai làm gì (7a người có ô đặt gấp — Bán hàng, Quản trị, Toàn quyền / 7b
 //    người không có — Đối tác, Thực tập) + nút "Đặt gấp" (chỉ người có ô order.leg.short_notice — nơi gọi quyết) mở khung "Đặt gấp" (lý do + ghi chú ngắn,
-//    "Duyệt đặt gấp" / "Đóng").
+//    "Ghi đặt gấp" / "Đóng").
 // Luật chữ ở src/shared/dat-gap-hien-thi.ts; lý do lấy từ LY_DO_DAT_GAP (R-P18). Mọi nút `type="button"` (khối có thể nằm trong <form> lập đơn).
 import { LUA_CHON_LY_DO_DAT_GAP, nhanDatGap, thanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { GHI_CHU_DAT_GAP_TOI_DA, type LyDoDatGap } from "../src/shared/chang-dua-don";
@@ -31,8 +31,8 @@ export interface KhungDatGap {
 }
 
 /**
- * Khung "Đặt gấp" (khung 7a): ô lý do, ô ghi chú ngắn (đếm /120), "Duyệt đặt gấp", "Đóng". `onDuyet` nhận thân đã kiểm; ném lỗi thì khung giữ nguyên (nơi gọi báo).
- * `nutMo` = nút đã mở khung (trả focus khi đóng). `nutDuyetPhu`: "Duyệt đặt gấp" là nút phụ viền thay vì nút chính — form Tạo đơn, nơi thang nút ba cấp
+ * Khung "Đặt gấp" (khung 7a): ô lý do, ô ghi chú ngắn (đếm /120), "Ghi đặt gấp", "Đóng". `onDuyet` nhận thân đã kiểm; ném lỗi thì khung giữ nguyên (nơi gọi báo).
+ * `nutMo` = nút đã mở khung (trả focus khi đóng). `nutDuyetPhu`: "Ghi đặt gấp" là nút phụ viền thay vì nút chính — form Tạo đơn, nơi thang nút ba cấp
  * chỉ cho "Lưu, chờ xác nhận" là nút chính (thiết kế lại 18/10, việc 8); trang đơn và bảng "Sửa đưa đón" giữ nút chính.
  */
 export function taoKhungDatGap(o: { onDuyet: (than: { lyDo: LyDoDatGap; ghiChu: string | null }) => Promise<void>; nutMo?: () => HTMLElement | null; nutDuyetPhu?: boolean }): KhungDatGap {
@@ -42,7 +42,7 @@ export function taoKhungDatGap(o: { onDuyet: (than: { lyDo: LyDoDatGap; ghiChu: 
   const ghiChu = h("input", { id: `${id}-ghi-chu`, class: "vc-input", type: "text", maxLength: GHI_CHU_DAT_GAP_TOI_DA, autocomplete: "off", "data-dg": "ghi-chu" });
   ghiChu.addEventListener("input", () => (demEl.textContent = `${ghiChu.value.length}/${GHI_CHU_DAT_GAP_TOI_DA}`));
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
-  const duyet = h("button", { type: "button", class: o.nutDuyetPhu ? "vc-btn vc-btn-line" : "vc-btn btn btn-primary", "data-action": "duyet-dat-gap" }, "Duyệt đặt gấp");
+  const duyet = h("button", { type: "button", class: o.nutDuyetPhu ? "vc-btn vc-btn-line" : "vc-btn btn btn-primary", "data-action": "duyet-dat-gap" }, "Ghi đặt gấp");
   const dongNut = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary", "data-action": "dong-dat-gap" }, "Đóng");
   const root = h(
     "div",
@@ -74,14 +74,14 @@ export function taoKhungDatGap(o: { onDuyet: (than: { lyDo: LyDoDatGap; ghiChu: 
     baoLoi(null);
     duyet.disabled = true;
     dongNut.disabled = true;
-    duyet.textContent = "Đang duyệt…";
+    duyet.textContent = "Đang ghi…";
     try {
       await o.onDuyet(r.value);
     } finally {
       if (root.isConnected) {
         duyet.disabled = false;
         dongNut.disabled = false;
-        duyet.textContent = "Duyệt đặt gấp";
+        duyet.textContent = "Ghi đặt gấp";
       }
     }
   });

@@ -9,6 +9,7 @@
 import { chiaPhanNguoiBan, nguoiBanCuaDong } from "../../shared/chia-phan-nguoi-ban.ts";
 import { tinhDongDoiTac, type BanChup } from "../../shared/hoa-hong-dong.ts";
 import { cauKyKhoa, kyCua } from "../../shared/ky-khoa.ts";
+import { CAU_THIEU_MUC_DA_CHUP } from "../../shared/so-dai-ly-nhan.ts";
 import type { NhomHuy } from "../../shared/ly-do-huy.ts";
 import { cauChoDoiTacThanhToan } from "../../shared/tra-sau.ts";
 
@@ -794,7 +795,7 @@ export function lyDoGiuThuongMai(t: TinhTrangThuongMai, anGiaVon?: boolean): LyD
       return { ma: "booker_not_beneficiary", cau: "Bên đặt của đơn không thuộc danh sách được hưởng hoa hồng — Văn phòng sửa bên đặt hoặc Kế toán ghi mức tay.", aiXuLy: "Văn phòng hoặc Kế toán" };
     }
     if (t.canChupBu) return { ma: "terms_missing", cau: "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán cài mức rồi bấm Chụp bù.", aiXuLy: "Kế toán" };
-    return { ma: "terms_missing", cau: `Thiếu mức hoa hồng / người bán cho ${tenDichVu(t.dichVu, "một dịch vụ của đơn")} — Kế toán ghi mức tay cho dòng này.`, aiXuLy: "Kế toán" };
+    return { ma: "terms_missing", cau: `Thiếu mức hoa hồng / người bán cho ${tenDichVu(t.dichVu, "một dịch vụ của đơn")} — ${CAU_THIEU_MUC_DA_CHUP}.`, aiXuLy: "Kế toán" };
   }
   if (t.trangThai === "VUOT") {
     if (anGiaVon) return { ma: "terms_exceed_price", cau: CAU_VUOT_CHUNG, aiXuLy: "Kế toán" };
@@ -968,7 +969,7 @@ export function lyDoChuaGiaoDuoc(input: {
   }
   const muonNhat = [...(input.ngayDi as string[])].sort().at(-1)!;
   if (input.homNay < muonNhat) {
-    return { ma: "before_departure", cau: `Chưa tới ngày đi (${ngayVn(muonNhat)}) — bấm từ ngày đi trở đi.`, aiXuLy: "Hướng dẫn viên" };
+    return { ma: "before_departure", cau: `Chưa tới ngày đi (${ngayVn(muonNhat)}). Từ ngày đi trở đi mới bấm được «Xác nhận khách đã trả đủ».`, aiXuLy: "Hướng dẫn viên" };
   }
   const thuongMai = lyDoGiuThuongMai(input.thuongMai, input.anGiaVon);
   if (thuongMai) return thuongMai;

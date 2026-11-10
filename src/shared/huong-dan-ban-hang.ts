@@ -150,7 +150,7 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
 4. Nền tảng nhắc bản xác nhận đã gửi khách có thể lỗi thời → bấm [[Xem ảnh gửi khách]] và gửi lại ảnh.
 5. Tự gọi hoặc nhắn hướng dẫn viên phụ trách: họ chưa được tự báo khi giờ hoặc nơi đón đổi.
 
-> Lưu ý: nếu giờ đón cũ hoặc mới đã qua hạn chốt, bảng mở khung [[Đặt gấp]]: chọn lý do rồi bấm [[Duyệt đặt gấp]]. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
+> Lưu ý: nếu giờ đón cũ hoặc mới đã qua hạn chốt, bảng mở khung [[Đặt gấp]]: chọn lý do rồi bấm [[Ghi đặt gấp]]. Muốn đổi hồ sơ khách của đơn đã xác nhận thì bấm [[Đổi khách]].
 
 ### Khách đổi số người hoặc dịch vụ sau khi đã xác nhận
 
@@ -167,7 +167,7 @@ Nền tảng tự tính lại tiền (giảm giá giữ nguyên), ghi [[Lịch s
 > Ví dụ: 10 giờ sáng khách gọi đặt đưa đón lúc 13 giờ cùng ngày.
 
 1. Lập đơn như thường. Khi giờ đón đã qua hạn chốt, cuối thẻ dịch vụ hiện dải vàng báo còn bao lâu tới giờ đón, kèm nút [[Đặt gấp]].
-2. Bấm [[Đặt gấp]], chọn lý do, bấm [[Duyệt đặt gấp]]. Nền tảng lưu đơn rồi đóng dấu cho lượt đó.
+2. Bấm [[Đặt gấp]], chọn lý do, bấm [[Ghi đặt gấp]]. Nền tảng lưu đơn rồi đóng dấu cho lượt đó.
 3. Lượt đó mang nhãn "Điều chỉnh khẩn cấp". Lúc này bạn bấm [[Xác nhận đơn]].
 
 > Lưu ý: sửa ngày, giờ hoặc nơi đón của lượt đã đặt gấp thì dấu mất, đặt gấp lại nếu vẫn sát giờ.

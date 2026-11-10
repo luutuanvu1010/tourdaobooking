@@ -24,6 +24,8 @@ const PNG = (n) => {
 };
 ACCOUNTS.lai = { name: "Lai Bán Đối Tác", phone: "0900000321", pin: "246821", permissions: ["SALES", "PARTNER"] };
 ACCOUNTS.hdv = { name: "Hướng Dẫn Viên Thử", phone: "0900000322", pin: "246822", permissions: ["FIELD"] };
+// ADR-0185: tài khoản lai Bán hàng + Đối tác không còn gửi đơn được (409 doi_tac_chua_co_vai_tro, theo thiết kế) nên nhóm «lai» (8a, 8b) tạm bỏ; số vé kho giảm 4 mỗi khổ.
+const CO_LAI = false;
 const AT = "'2026-01-01T00:00:00.000Z'";
 
 const env = await startEnv();
@@ -35,7 +37,7 @@ try {
   const nhanVien = ACCOUNTS.salesA, keToan = ACCOUNTS.accounting;
   const taoDoiTac = async (ten, phone) => {
     const t = phai(await call(ACCOUNTS.chu, "POST", "/api/staff", { taoHoSoMoi: true, fullName: ten, phone, roles: ["COLLABORATOR"] }), 201, "tạo đối tác");
-    return { name: ten, phone: t.staff.phone, pin: t.pin, permissions: ["PARTNER"] };
+    return { name: ten, phone: t.staff.phone, pin: t.pin, permissions: ["PARTNER"], vai: "COLLABORATOR" };
   };
   const DT = await taoDoiTac("Đối Tác Thử Một", "0900000311");
   const DT2 = await taoDoiTac("Đối Tác Thử Hai", "0900000312");
@@ -92,7 +94,7 @@ try {
     return { id: r.order.id, total: r.order.total };
   };
   const lai = {};
-  for (const [kho] of KHO) {
+  for (const [kho] of CO_LAI ? KHO : []) {
     lai[kho] = { L1: await donLai("Khách Lai Một"), L2: await donLai("Khách Lai Hai") };
     await ghiTien(keToan, lai[kho].L2.id, lai[kho].L2.total, "cong_ty");
     const ds = phai(await call(ACCOUNTS.lai, "GET", `/api/ve/don/${lai[kho].L2.id}`), 200, "lai xem danh sách vé");
@@ -157,7 +159,9 @@ try {
     writeFileSync(join(OUT, `${ten}.png`), Buffer.from(s.result.data, "base64"));
   };
   const sangTrang = async (p, path) => { await p.send("Page.navigate", { url: env.base + path }); await sleep(400); await p.waitFor("document.readyState === 'complete'", `trang ${path} tải xong`); };
-  const lyDoChua = "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé.";
+  // Đơn A: đối tác tự ghi «Tôi thu» ⇒ chính người lập còn tiền chờ nộp ⇒ câu Q-07 (phiếu B-2 phương án (2), Task 3.2 Đợt 3), không còn câu «Công ty chưa xác nhận…».
+  const lyDoChua = "Vé mở sau khi Công ty ghi nhận bạn đã nộp tiền.";
+  const lyDoCu = "Công ty chưa xác nhận đã nhận đủ tiền nên chưa mở được vé.";
 
   for (const [kho, vp] of KHO) {
     console.log(`\n===== khổ ${kho} =====`);
@@ -167,6 +171,7 @@ try {
       await choKhoi(pt);
       const t = await vanBan(pt);
       assert.ok(t.includes(lyDoChua), `thiếu câu lý do: ${t}`);
+      assert.ok(!t.includes(lyDoCu), `còn câu cũ «Công ty chưa xác nhận…» ở đơn đối tác tự cầm tiền: ${t}`);
       assert.ok(!(await coNut(pt, '#ve-don [data-action="chuan-bi-ve"], #ve-don [data-action="tao-duong-dan"], #ve-don [data-action="gui-zalo"]')), "không được có nút mở/gửi vé");
       assert.ok(t.includes("2/2 vé"), `không thấy số vé giữ: ${t}`);
       assert.ok(await coNut(pt, '[data-action="cancel-order"]'), "đơn chưa mở vé: đối tác còn nút Huỷ đơn");
@@ -228,7 +233,7 @@ try {
       await choKhoi(ps);
       const t = await vanBan(ps);
       assert.ok(t.includes("Đang chờ đối tác nộp tiền về công ty nên chưa xem hoặc gửi được vé."), `sai câu cho nhân viên: ${t}`);
-      assert.ok(!t.includes(lyDoChua), "câu của đối tác lọt sang nhân viên");
+      assert.ok(!t.includes(lyDoChua) && !t.includes(lyDoCu), "câu của đối tác lọt sang nhân viên");
       assert.ok(!(await coNut(ps, '#ve-don [data-action="chuan-bi-ve"]')), "không nút mở vé");
       await chung(ps, `${kho}-5`);
       await axeKiem(ps, `${kho}-5`);
@@ -291,6 +296,7 @@ try {
     pk.close();
 
     // ---- nhóm 2: tài khoản lai Bán hàng + Đối tác
+    if (CO_LAI) {
     const pl = await taoMoTrang(env)(ACCOUNTS.lai, `/order?id=${lai[kho].L1.id}`, vp);
     await buoc(`${kho}-8a`, "Tài khoản lai, đơn CHƯA mở vé: vẫn có nút «Sửa số khách dịch vụ»", async () => {
       await pl.waitFor("!!document.querySelector('[data-action=\"sua-so-khach\"]')", "nút Sửa số khách dịch vụ");
@@ -313,6 +319,7 @@ try {
       await chup(pl, `8b-lai-da-mo-ve-${kho}`); await chupKhoi(pl, `8b-lai-da-mo-ve-${kho}-khoi`, "document.querySelector('[data-chan=\"sua-so-khach-da-mo-ve\"]').parentElement");
     });
     pl.close();
+    }
 
     // ---- nhóm 3: trang khách /ve/:token (không đăng nhập)
     // trang khách KHÔNG đăng nhập: mở bằng khung chung (để bước đỏ còn in được trạng thái trang) rồi xoá hết cookie

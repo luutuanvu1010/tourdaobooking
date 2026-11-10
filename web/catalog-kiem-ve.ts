@@ -4,7 +4,7 @@
 //   GET  /api/catalog/quan-ly-ban, PUT /api/catalog/:code/ngung-ban → màn hẹp của Quản lý bán hàng;
 //   POST /api/catalog/sync → «Đồng bộ ngay từ Google Sheet» (ADR-0186 Đ5), một hàm cho cả màn của Quản trị và màn hẹp.
 // Ẩn/hiện hỏi `can()`; máy chủ kiểm lại. Luật ở src/shared/dich-vu-kiem-ve.ts. Không innerHTML.
-import { TEN_CHUA_PHAN_LOAI, demKiemVe, locNhomKiemVe, nhanNguonKiemVe, xepNhomKiemVe, type DongDichVuKiemVe, type NhomKiemVe } from "../src/shared/dich-vu-kiem-ve";
+import { TEN_CHUA_PHAN_LOAI, cauHoiNgungBan, demKiemVe, locNhomKiemVe, moSanNhomKiemVe, nhanNguonKiemVe, xepNhomKiemVe, type DongDichVuKiemVe, type NhomKiemVe } from "../src/shared/dich-vu-kiem-ve";
 import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
@@ -21,13 +21,15 @@ export interface KiemVe {
   /** Một công tắc: gạt xong tải lại cờ rồi gọi `sauKhiDoi`. */
   congTac(nhan: string, bat: boolean, duLieu: Record<string, string>, khiBam: (nut: HTMLButtonElement) => void): HTMLButtonElement;
   luu(nut: HTMLButtonElement, than: Api.CaiDatXacNhanInput, cauBao: string): Promise<void>;
-  /** Công tắc của một vé. */
-  congTacVe(ma: string, ten: string, can: boolean): HTMLButtonElement;
+  /** Khối một vé: chữ nhìn thấy «Cần kiểm vé» + chữ nguồn (`nhanNguon`) cạnh công tắc; tên công tắc đọc từ hai chữ đó (aria-labelledby) kèm tên vé ẩn. */
+  oKiemVe(ma: string, ten: string, can: boolean, nhanNguon: string): HTMLElement;
   /** Công tắc cả nhóm, có hộp hỏi lại. */
   congTacNhom(ma: string, ten: string, can: boolean): HTMLButtonElement;
   /** Khối công tắc tự kiểm vé (chỉ Toàn quyền vẽ). */
   khoiTuKiem(): HTMLElement;
 }
+
+let demNhan = 0;
 
 export function taoKiemVe(errorEl: HTMLElement, sauKhiDoi: () => void): KiemVe {
   let caiDat: Api.CaiDatXacNhanResponse = { dongCo: [], tuXacNhanNoiBo: true };
@@ -72,8 +74,18 @@ export function taoKiemVe(errorEl: HTMLElement, sauKhiDoi: () => void): KiemVe {
     },
     congTac,
     luu,
-    congTacVe: (ma, ten, can) =>
-      congTac(`Cần kiểm vé: ${ten}`, can, { "data-action": "kiem-ve" }, (nut) => void luu(nut, { pham: "SERVICE", ma, canXacNhan: !can }, can ? `${ten}: không cần kiểm vé.` : `${ten}: cần kiểm vé.`)),
+    oKiemVe: (ma, ten, can, nhanNguon) => {
+      const id = `kv-nhan-${++demNhan}`;
+      const nut = congTac("", can, { "data-action": "kiem-ve" }, (n) => void luu(n, { pham: "SERVICE", ma, canXacNhan: !can }, can ? `${ten}: không cần kiểm vé.` : `${ten}: cần kiểm vé.`));
+      nut.removeAttribute("aria-label");
+      nut.setAttribute("aria-labelledby", `${id}-ten ${id}-nhan ${id}-nguon`);
+      return h(
+        "div",
+        { class: "kv-o" },
+        h("div", { class: "kv-chu" }, h("span", { class: "visually-hidden", id: `${id}-ten` }, ten), h("span", { class: "kv-ten", id: `${id}-nhan` }, "Cần kiểm vé"), h("span", { class: "hint", id: `${id}-nguon` }, nhanNguon)),
+        nut,
+      );
+    },
     congTacNhom: (ma, ten, can) => congTac(`Cả nhóm cần kiểm vé: ${ten}`, can, { "data-action": "ca-nhom" }, (nut) => void doiCaNhom(ma, ten, !can, nut)),
     khoiTuKiem: () => {
       const bat = caiDat.tuXacNhanNoiBo;
@@ -131,11 +143,12 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
       replaceChildren(dsEl, h("p", { class: "rong" }, tuKhoa.trim() === "" ? "Danh mục chưa có dịch vụ." : "Không có vé khớp từ đang tìm."));
       return;
     }
-    replaceChildren(dsEl, ...ds.map((n) => theNhom(n, tuKhoa.trim() !== "")));
+    replaceChildren(dsEl, ...ds.map((n) => theNhom(n, moSanNhomKiemVe(ds, n, tuKhoa.trim() !== ""))));
   };
   const kv = taoKiemVe(errorEl, veDs);
 
   const doiBan = async (d: DongDichVuKiemVe, nut: HTMLButtonElement): Promise<void> => {
+    if (d.dangBan && !(await hoiXacNhan({ ...cauHoiNgungBan(d.ten), opener: nut }))) return;
     errorEl.hidden = true;
     nut.disabled = true;
     try {
@@ -155,9 +168,10 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
     nutBan.addEventListener("click", () => void doiBan(d, nutBan));
     return h(
       "div",
-      { class: d.dangBan ? "kv-dong" : "kv-dong row-off", "data-ma": d.ma },
-      h("div", { class: "kv-chu" }, h("span", { class: "kv-ten" }, d.ten), !d.dangBan && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), h("span", { class: "hint" }, nhanNguonKiemVe(d))),
-      h("div", { class: "kv-viec" }, nutBan, kv.congTacVe(d.ma, d.ten, d.can)),
+      { class: d.dangBan ? "kv-dong kv-dong-ve" : "kv-dong kv-dong-ve row-off", "data-ma": d.ma },
+      h("div", { class: "kv-chu" }, h("span", { class: "kv-ten" }, d.ten), !d.dangBan && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán")),
+      nutBan,
+      kv.oKiemVe(d.ma, d.ten, d.can, nhanNguonKiemVe(d)),
     );
   };
 
@@ -165,7 +179,7 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
     const khoa = n.ma ?? TEN_CHUA_PHAN_LOAI;
     const the = h(
       "details",
-      { class: "card kv-nhom", "data-nhom": khoa, open: moSan || nhomMo.has(khoa) || n.soCan > 0 },
+      { class: "card kv-nhom", "data-nhom": khoa, open: moSan || nhomMo.has(khoa) },
       h("summary", { class: "kv-dau" }, h("h2", {}, n.ten), h("span", { class: "hint" }, demKiemVe(n))),
       n.ma === null
         ? null

@@ -228,7 +228,7 @@ test("lyDoGiuThuongMai: bốn câu lời thường cố định (task-3-brief) +
   assert.deepEqual(c({ trangThai: "THIEU", ma: "terms_missing", dichVu: ["Tour đảo"], canChupBu: true }),
     ["terms_missing", "Đơn xác nhận trước khi có bảng mức, chưa chụp mức — Kế toán cài mức rồi bấm Chụp bù.", "Kế toán"]);
   assert.deepEqual(c({ trangThai: "THIEU", ma: "terms_missing", dichVu: ["Dịch vụ nhập tay"], canChupBu: false }),
-    ["terms_missing", "Thiếu mức hoa hồng / người bán cho Dịch vụ nhập tay — Kế toán ghi mức tay cho dòng này.", "Kế toán"]);
+    ["terms_missing", "Thiếu mức hoa hồng / người bán cho Dịch vụ nhập tay — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.", "Kế toán"]);
   assert.deepEqual(c({ trangThai: "THIEU", ma: "booker_not_beneficiary", dichVu: ["Tour đảo"], canChupBu: false }),
     ["booker_not_beneficiary", "Bên đặt của đơn không thuộc danh sách được hưởng hoa hồng — Văn phòng sửa bên đặt hoặc Kế toán ghi mức tay.", "Văn phòng hoặc Kế toán"]);
   assert.deepEqual(c({ trangThai: "VUOT", dichVu: ["Vé i-resort"] }), ["terms_exceed_price", "Mức hoa hồng / giá vốn cài cho Vé i-resort vượt giá bán — Kế toán xem lại.", "Kế toán"]);
@@ -238,7 +238,7 @@ test("lyDoGiuThuongMai: bốn câu lời thường cố định (task-3-brief) +
 
 test("cauLoiCsdlThuongMai: dịch lỗi lớp CSDL (0112) ra lời thường — không lộ mã thô; lỗi khác ⇒ null", () => {
   assert.equal(cauLoiCsdlThuongMai(new Error("D1_ERROR: delivered_terms: đơn còn dịch vụ chưa chụp mức hoặc thiếu mức hoa hồng / người bán — Kế toán xử lý: SQLITE_CONSTRAINT")),
-    "Thiếu mức hoa hồng / người bán cho một dịch vụ của đơn — Kế toán ghi mức tay cho dòng này.");
+    "Thiếu mức hoa hồng / người bán cho một dịch vụ của đơn — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.");
   assert.equal(cauLoiCsdlThuongMai(new Error("commercial_exceeds_gross: tổng hoa hồng và giá vốn vượt thành tiền trước giảm của đơn")),
     "Mức hoa hồng / giá vốn cài cho đơn này vượt giá bán — Kế toán xem lại.", "câu của ADR-0079 điều 6 («cho đơn này»)");
   const LOI_MA = "Số hoa hồng / giảm giá bên đặt chịu / giá vốn tính ra không khớp sổ — chưa ghi gì; báo người phụ trách hệ thống.";
@@ -280,7 +280,7 @@ test("lyDoChuaGiaoDuoc (NT-F1, NT-F6c, M1 = A): thứ tự lý do cố định, 
   const thieuNgay = lyDoChuaGiaoDuoc({ ...base, ngayDi: ["2026-10-09", null], dichVuThieuNgay: ["Vé Hòn Tằm"], so: du(1, 1) })!;
   assert.deepEqual([thieuNgay.ma, thieuNgay.cau, thieuNgay.aiXuLy], ["missing_date", "Dịch vụ Vé Hòn Tằm chưa có ngày đi — sửa đơn trước.", "Người lập đơn"]);
   const som = lyDoChuaGiaoDuoc({ ...base, homNay: "2026-10-09", so: du(1, 1) })!;
-  assert.deepEqual([som.ma, som.cau], ["before_departure", "Chưa tới ngày đi (10/10/2026) — bấm từ ngày đi trở đi."], "ngày đi MUỘN NHẤT");
+  assert.deepEqual([som.ma, som.cau], ["before_departure", "Chưa tới ngày đi (10/10/2026). Từ ngày đi trở đi mới bấm được «Xác nhận khách đã trả đủ»."], "ngày đi MUỘN NHẤT");
   // ĐẢO CÓ CHỦ ĐÍCH (sổ đại lý đợt 2, Task 3 — ADR-0079 điều 1): lý do `booker_partner` («đơn của đối tác — chưa bấm Đã giao được») BỎ; ở chỗ của nó là
   // lý do thương mại (`terms_missing` / `booker_not_beneficiary` / `terms_exceed_price`). Đơn có người hưởng đủ mức nay KHÔNG bị giữ.
   const doiTac = lyDoChuaGiaoDuoc({ ...base, thuongMai: { trangThai: "THIEU", ma: "terms_missing", dichVu: ["Tour đảo"], canChupBu: true }, so: du(1, 1) })!;

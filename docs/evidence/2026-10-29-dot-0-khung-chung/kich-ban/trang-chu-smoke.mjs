@@ -322,11 +322,11 @@ try {
         const v = el.querySelector('.dash-so-gt');
         const cs = getComputedStyle(v);
         const oneLine = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
-        return { label: el.querySelector('.dash-so-nhan span').textContent.trim(), value: v.textContent.trim(), sub: el.querySelector('.dash-so-phu').textContent.trim(), shown: vis(el), wrapped: v.getBoundingClientRect().height > oneLine + 1, href: el.getAttribute('href') };
+        return { label: el.querySelector('.dash-so-nhan span').textContent.trim(), value: v.textContent.trim(), sub: el.querySelector('.dash-so-phu').textContent.trim(), shown: vis(el), tran: v.getBoundingClientRect().right > el.getBoundingClientRect().right - parseFloat(getComputedStyle(el).paddingRight) + 0.5, phaiSo: Math.round(v.getBoundingClientRect().right), phaiVung: Math.round(el.getBoundingClientRect().right - parseFloat(getComputedStyle(el).paddingRight)), wrapped: v.getBoundingClientRect().height > oneLine + 1, href: el.getAttribute('href') };
       });
       const grid = document.querySelector('#dash-grid');
       // Bản vẽ "Trang chu Quan tri.dc.html" (1.73): MỘT thẻ số liệu #dash-so-mt, bốn ô — Còn thiếu tiền, Chờ xác nhận, Chưa phụ trách, Doanh thu của tôi
-      // (chữ phụ "Tuần này · dd/mm–dd/mm · N đơn" + biểu đồ bên phải). Số ĐẦY ĐỦ ("12.345.000 ₫"); điện thoại vẫn dùng #dash-so (số rút gọn).
+      // (chữ phụ "Tuần này · dd/mm–dd/mm · N đơn" + biểu đồ bên phải). Số ĐẦY ĐỦ ("12.345.000 ₫"); điện thoại #dash-so cũng viết số đủ từ G-06d (trước đó rút gọn).
       const statsMt = [...document.querySelectorAll('#dash-so-mt .dash-smt-o')].map((el) => {
         const valueEl = el.querySelector('.dash-smt-gt');
         const cs = getComputedStyle(valueEl);
@@ -543,10 +543,11 @@ try {
       assert.equal(m.soShown, true, `${label}: khối số liệu 2×2 (#dash-so) phải hiển thị thật — ${JSON.stringify(m)}`);
       // Ô thứ ba «Đơn nháp» / «Nháp của bạn, chưa xác nhận» (đổi từ «Chờ xác nhận» ở commit 00ecef1f, ADR-0135 nháp riêng tư, 26/10).
       assert.deepEqual(m.so.map((s) => s.label), ["Còn thiếu", "Doanh thu của tôi", "Đơn nháp", "Chưa phụ trách"], `${label}: bốn ô số liệu đúng thứ tự bản vẽ — ${JSON.stringify(m.so)}`);
-      assert.deepEqual(m.so.map((s) => s.value), ["12,34tr ₫", "12,64tr ₫", "1", String(data.unassignedCount)], `${label}: giá trị bốn ô (tiền rút gọn vndShort; số đơn nháp; số chưa phụ trách khớp API) — ${JSON.stringify(m.so)}`);
+      assert.deepEqual(m.so.map((s) => s.value), ["12.345.000 ₫", "12.645.000 ₫", "1", String(data.unassignedCount)], `${label}: giá trị bốn ô (tiền đủ kiểu vnd, G-06d; số đơn nháp; số chưa phụ trách khớp API) — ${JSON.stringify(m.so)}`);
       assert.deepEqual(m.so.map((s) => s.sub), ["1 đơn", "Tuần này · 2 đơn", "Nháp của bạn, chưa xác nhận", "Chờ người nhận"], `${label}: dòng phụ bốn ô — ${JSON.stringify(m.so)}`);
       assert.ok(m.so.every((s) => s.shown && s.href === "/orders"), `${label}: bốn ô hiển thị thật và dẫn tới /orders — ${JSON.stringify(m.so)}`);
       assert.deepEqual(m.so.filter((s) => s.wrapped), [], `${label}: số của ô (.dash-so-gt) không được xuống dòng ("₫" rơi khỏi số — kiểm gộp I-3) — ${JSON.stringify(m.so)}`);
+      assert.deepEqual(m.so.filter((s) => s.tran), [], `${label}: số của ô (.dash-so-gt) TRÀN vùng nội dung ô (mép phải số > mép phải ô trừ padding phải, sai số 0,5px; số nowrap, còn phần tràn bị cắt/che vì ô cha .dash-so có overflow hidden) — ${JSON.stringify(m.so.map((s) => ({ nhan: s.label, gt: s.value, phaiSo: s.phaiSo, phaiVung: s.phaiVung })))}`);
 
       // Đợt D Task 2 — mockup mobile (390px) KHÔNG có biểu đồ trong ô "Doanh thu của tôi" (chỉ 1 trong 4 ô rút gọn của
       // lưới 2×2): biểu đồ vẫn còn trong DOM (không xoá — giữ đơn giản, không dựng hai bản) nhưng PHẢI ẩn bằng CSS.

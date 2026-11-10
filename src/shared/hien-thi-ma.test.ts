@@ -11,8 +11,8 @@ test("nhanMa: loại Có sẵn không lộ mã tiếng Anh; loại tự thêm v�
 });
 
 test("nhanDauVet: chưa có dấu vết tạo ⇒ câu «Tạo trước 31/10/2026»", () => {
-  assert.equal(nhanDauVet(null, null, "tao"), "Tạo trước 31/10/2026 — chưa có dấu vết");
-  assert.equal(nhanDauVet(null, "Lan Kế Toán", "tao"), "Tạo trước 31/10/2026 — chưa có dấu vết");
+  assert.equal(nhanDauVet(null, null, "tao"), "Tạo trước 31/10/2026 — không rõ người tạo");
+  assert.equal(nhanDauVet(null, "Lan Kế Toán", "tao"), "Tạo trước 31/10/2026 — không rõ người tạo");
 });
 
 test("nhanDauVet: có mốc ⇒ người + giờ Việt Nam (UTC+7), kể cả khi qua ngày", () => {

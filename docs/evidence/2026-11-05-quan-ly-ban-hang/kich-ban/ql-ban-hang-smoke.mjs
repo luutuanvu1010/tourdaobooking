@@ -87,6 +87,15 @@ try {
         const nut = `[data-ma="${MA}"] [data-action="ngung-ban"]`;
         assert.equal(await q.ev(`document.querySelector('${nut}').textContent.trim()`), "Ngừng bán");
         assert.equal(await bam(q, nut), true);
+        await choHop(q); // B-5 (9/11): Ngừng bán hỏi lại; «Không ngừng» không ghi, «Ngừng bán» mới ghi
+        assert.match(await q.ev(`document.querySelector('.sheet')?.textContent ?? ''`), /Ngừng bán .+\?/);
+        assert.equal(await bamHop(q, "Không ngừng"), true);
+        await choDongHop(q);
+        assert.equal(await q.ev(`document.querySelector('${nut}').textContent.trim()`), "Ngừng bán", "Không ngừng thì vẫn đang bán");
+        assert.equal(await bam(q, nut), true);
+        await choHop(q);
+        assert.equal(await bamHop(q, "Ngừng bán"), true);
+        await choDongHop(q);
         await q.waitFor(`document.querySelector('${nut}')?.textContent.trim() === 'Mở bán lại'`, "đã ngừng bán");
         assert.match(await q.ev(`document.querySelector('[data-ma="${MA}"]').textContent`), /Đã ngừng bán/);
         await chup(q, `ql-${tenKho}-3-ngung-ban`);

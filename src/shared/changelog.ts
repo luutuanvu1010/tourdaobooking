@@ -17,6 +17,23 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 3 «chữ do chủ chọn» của kế hoạch sửa sau rà soát lần 2 (phiếu Phụ lục B, phương án (1); câu khoá vé dùng dự phòng B-2), KHÔNG migration.
+    // SỐ TẠM 2.89: main có 2.88 (ADR-0195 và lời nhắc màn chỉnh); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.89",
+    date: "2026-11-10",
+    items: [
+      { kind: "sua", text: "Khi đơn đang giữ vì thiếu mức hoa hồng, câu báo nói rõ cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng đó." },
+      { kind: "doi", text: "Đối tác còn tiền khách chưa nộp về Công ty thấy câu «Vé mở sau khi Công ty ghi nhận bạn đã nộp tiền.» thay cho câu cũ." },
+      { kind: "doi", text: "Màn Dịch vụ cần kiểm vé: công tắc có chữ «Cần kiểm vé» kèm dòng nói theo nhóm hay đặt riêng; nhóm có mũi tên và số vé." },
+      { kind: "doi", text: "Bấm «Ngừng bán» một dịch vụ thì Nền tảng hỏi lại trước khi ngừng." },
+      { kind: "sua", text: "Lập đơn có dịch vụ đã ngừng bán thì Nền tảng bảo chọn dịch vụ khác." },
+      { kind: "doi", text: "Nút đặt gấp đổi tên thành «Ghi đặt gấp»." },
+      { kind: "sua", text: "Một số câu khó hiểu được viết lại: câu chờ kiểm vé, câu chưa tới ngày đi, câu danh sách đơn trống, câu loại đối tác tạo trước 31/10/2026." },
+      { kind: "doi", text: "Trang chủ trên điện thoại viết số tiền đầy đủ, ví dụ «2.800.000 ₫»." },
+      { kind: "sua", text: "Bị đăng xuất giữa chừng vì hết hạn đăng nhập thì trang đăng nhập báo rõ để bạn đăng nhập lại." },
+    ],
+  },
+  {
     // Sửa lời nhắc ở màn chỉnh giao diện của Toàn quyền (ADR-0195). KHÔNG migration. Số 2.88: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.88",
     date: "2026-11-10",

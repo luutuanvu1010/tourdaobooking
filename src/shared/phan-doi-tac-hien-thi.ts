@@ -9,7 +9,7 @@
 import type { ThuongMaiDoiTacDto, ThuongMaiVanPhongDto } from "./contracts.ts";
 import { chenhGiamGiaSauGhiTay, dongVuotThanhTien, type MucGhiTay } from "./hoa-hong-dong.ts";
 import { can, holdsPartner, isOffice, type PermissionHolder } from "./permissions.ts";
-import { CAU_DON_BI_GIU, CAU_THIEU_MUC, NHAN_LY_DO_THIEU } from "./so-dai-ly-nhan.ts";
+import { CAU_DON_BI_GIU, CAU_THIEU_MUC, CAU_THIEU_MUC_DA_CHUP, NHAN_LY_DO_THIEU } from "./so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA, docTienMoiKhach, docTyLePhanTram } from "./so-dai-ly-nhap.ts";
 import { PHONE_IN_TEXT_MESSAGE, hasLongDigitRun } from "./text-guards.ts";
 
@@ -125,10 +125,11 @@ export function ghiChuTrangThai(d: Pick<ThuongMaiVanPhongDto, "duKien" | "chuaCh
   return null;
 }
 
-/** Câu cảnh báo (màu đỏ) của dòng thiếu mức. Chưa có mức: «Chưa có mức cho đối tác này — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Đã giao.»; lý do khác (hai mức xung đột…): giữ lý do của máy chủ rồi nối cùng đuôi. */
-export const canhBaoThieuMuc = (thieu: string | null): string | null => {
+/** Câu cảnh báo (màu đỏ) của dòng thiếu mức. `daChup` (đơn đã chụp mức lúc xác nhận): câu «cài mức mới không gỡ được…» thay đuôi «cần cài mức». Chưa có mức: «Chưa có mức cho đối tác này — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Khách đã trả đủ.»; lý do khác (hai mức xung đột…): giữ lý do của máy chủ rồi nối cùng đuôi. */
+export const canhBaoThieuMuc = (thieu: string | null, daChup = false): string | null => {
   if (thieu === null) return null;
   const dau = thieu === NHAN_LY_DO_THIEU.NO_RULE ? "Chưa có mức cho đối tác này" : thieu;
+  if (daChup) return `${dau} — ${CAU_THIEU_MUC_DA_CHUP}.`;
   return `${dau} — ${CAU_THIEU_MUC}; ${CAU_DON_BI_GIU}.`;
 };
 

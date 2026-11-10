@@ -2,10 +2,10 @@ import { HEADER_PHAT_LAI, HEADER_VE } from "../src/shared/lan-gui-luat";
 import { taoVongDoiVe, type VeMo } from "../src/shared/lan-gui-ve";
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
 import { safeNext } from "../src/shared/safe-next";
-import { SESSION_ENDED_KEY, parseSessionEnded } from "../src/shared/session-ended";
+import { SESSION_ENDED_KEY, dauHetPhien } from "../src/shared/session-ended";
 import { donTuDuongDan, laTaoDonMoi, taoSoTuLam } from "./bangtin-logic";
 import { goDaiNgoaiMang } from "./dai";
-import { xoaKhungNho } from "./khung-nho";
+import { layKhungNho, xoaKhungNho } from "./khung-nho";
 import { endsAtFrom, showMaintenanceScreen } from "./maintenance-screen";
 import { hienBaoNgan } from "./toast";
 
@@ -51,20 +51,20 @@ export { safeNext } from "../src/shared/safe-next";
 async function ghiNhoLyDoDangXuat(): Promise<void> {
   try {
     const res = await fetch("/api/auth/session-ended", { method: "POST", credentials: "same-origin", signal: AbortSignal.timeout(3000) });
-    const notice = parseSessionEnded(await res.json());
-    if (notice) sessionStorage.setItem(SESSION_ENDED_KEY, JSON.stringify(notice));
-    else sessionStorage.removeItem(SESSION_ENDED_KEY);
+    sessionStorage.setItem(SESSION_ENDED_KEY, dauHetPhien(await res.json(), layKhungNho())); // phải chạy TRƯỚC xoaKhungNho()
   } catch {
     // bỏ qua
   }
 }
 
-/** Chuyển về trang đăng nhập rồi giữ lời gọi treo (trang sắp bị thay), tránh chạy tiếp code giả định đã đăng nhập. */
+let dangDi = 0;
+/** Chuyển về trang đăng nhập rồi giữ lời gọi treo (trang sắp bị thay), tránh chạy tiếp code giả định đã đăng nhập. Chỉ lời gọi 401 ĐẦU đi qua; các lời gọi sau treo luôn (không ghi đè dấu hết phiên khi khung đã bị xoá). */
 export async function goLogin(): Promise<never> {
-  await ghiNhoLyDoDangXuat();
-  xoaKhungNho(); // ADR-0035: hết phiên → người đăng nhập kế tiếp (có thể là người khác) không thấy khung của phiên cũ
-  const next = location.pathname + location.search;
-  location.replace(`/login?next=${encodeURIComponent(next)}`);
+  if (!dangDi++) {
+    await ghiNhoLyDoDangXuat();
+    xoaKhungNho(); // ADR-0035: hết phiên → người đăng nhập kế tiếp (có thể là người khác) không thấy khung của phiên cũ
+    location.replace(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+  }
   return new Promise<never>(() => undefined);
 }
 

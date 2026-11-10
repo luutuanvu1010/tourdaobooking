@@ -17,7 +17,7 @@ import { join } from "node:path";
 import { ACCOUNTS, CHU, DESK, MOB, OUT, assert, axe, axeNote, boDem, click, dungMoiTruong, fetchTrang, noCode, noOverflowX, sleep, vnDate } from "../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs";
 import { CAU_BAO_GUI_DON } from "../../../../src/shared/gui-don-cau-bao.ts";
 
-const DOITAC = { name: "Đối Tác Gửi Đơn 261", phone: "0900000611", pin: "246611", permissions: ["PARTNER"] };
+const DOITAC = { name: "Đối Tác Gửi Đơn 261", phone: "0900000611", pin: "246611", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" };
 const HDV = { name: "Hướng Dẫn Kiểm Vé 261", phone: "0900000612", pin: "246612", permissions: ["FIELD"] };
 const { env, call } = await dungMoiTruong([CHU, DOITAC, HDV]);
 const b = boDem("XAC NHAN DON (Gui don)");

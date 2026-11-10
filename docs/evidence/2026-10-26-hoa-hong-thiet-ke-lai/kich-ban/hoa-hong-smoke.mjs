@@ -243,7 +243,7 @@ try {
   const phai = (r, status, nhan) => { assert.equal(r.status, status, `${nhan}: ${r.status} ${JSON.stringify(r.json)}`); return r.json; };
 
   // Tài khoản Đối tác (chỉ quyền PARTNER): gieo thẳng bằng staff-lib (Quản trị không còn tạo được tài khoản — ADR-0071), như doi-tac-lap-don-smoke.mjs.
-  const PARTNER = { name: "Đối Tác Hoa Hồng", phone: "0900000281", pin: "246881", permissions: ["PARTNER"] };
+  const PARTNER = { name: "Đối Tác Hoa Hồng", phone: "0900000281", pin: "246881", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" };
   const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
   for (const stmt of (await insertStaffSql(PARTNER)).split("\n")) env.sql(stmt);
 

@@ -206,7 +206,7 @@ function catalogService(s: Record<string, unknown>, at: string, index: number, p
   if (kept) source = kept;
   else {
     const eff = ctx.catalog.get(code);
-    if (!eff || !eff.visible) return fail(`${at}: dịch vụ ${code} không còn trong danh mục — hãy chọn dịch vụ khác hoặc nhập tay.`, { code: "catalog_unavailable" });
+    if (!eff || !eff.visible) return fail(`${at}: dịch vụ ${code} đã ngừng bán hoặc không còn trong danh mục — hãy chọn dịch vụ khác.`, { code: "catalog_unavailable" });
     source = eff;
   }
 

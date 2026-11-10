@@ -6,7 +6,7 @@ import { KHOA_NHAC_HAI_LOP, showError } from "./shell";
 import { APP_RELEASE_DATE, APP_VERSION } from "./phien-ban";
 import { chanTrangCongTy } from "../src/shared/cong-ty-chu";
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
-import { SESSION_ENDED_KEY, parseSessionEnded, sessionEndedMessage } from "../src/shared/session-ended";
+import { SESSION_ENDED_KEY, cauTuDauNho } from "../src/shared/session-ended";
 import { endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
 import { icon } from "./icons";
 import { xoaKhungNho } from "./khung-nho";
@@ -133,11 +133,11 @@ try {
     const raw = sessionStorage.getItem(SESSION_ENDED_KEY);
     if (raw === null) return;
     sessionStorage.removeItem(SESSION_ENDED_KEY);
-    const notice = parseSessionEnded(JSON.parse(raw));
+    const msg = cauTuDauNho(raw);
     const box = document.getElementById("session-ended-banner");
     const text = document.getElementById("session-ended-text");
-    if (!notice || !box || !text) return;
-    text.textContent = sessionEndedMessage(notice);
+    if (!msg || !box || !text) return;
+    text.textContent = msg;
     box.hidden = false;
   } catch {
     // bỏ qua

@@ -91,6 +91,12 @@ test("danh mục: mã sai dạng / không có / đang ẩn → lỗi; ẩn = cat
   assert.equal(bad(catalogInput({ catalogCode: "TD101" }), ctx([], banana)).code, "catalog_unavailable");
 });
 
+test("danh mục: câu 400 dịch vụ không còn bán giữ tiền tố «Dịch vụ N:» (trình duyệt đọc nó để cuộn tới thẻ) và nói cả hai lý do (B-6 (1), 9/11)", () => {
+  const nguyen = "Dịch vụ 1: dịch vụ TD101 đã ngừng bán hoặc không còn trong danh mục — hãy chọn dịch vụ khác.";
+  assert.equal(bad(catalogInput(), ctx([], { ...tour, visible: false })).message, nguyen, "ca ngừng bán");
+  assert.equal(bad(catalogInput({ catalogCode: "TD101" }), ctx([], banana)).message, nguyen, "ca không còn trong Sheet");
+});
+
 test("danh mục: đơn vị chưa hỗ trợ → lỗi rõ", () => {
   assert.match(bad(catalogInput(), ctx([], { ...tour, unit: "perGroup" })).message, /chưa hỗ trợ/);
 });

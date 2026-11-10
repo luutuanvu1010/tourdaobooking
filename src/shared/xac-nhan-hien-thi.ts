@@ -29,7 +29,7 @@ export const HOI_CON_VE = {
 export const CAU_TIEN_KHOA_KHI_CHO = "Đơn đang chờ nên tiền chỉ để xem. Muốn đổi tiền, hãy chọn Huỷ để người lập đơn tạo lại.";
 
 const NHAN_VI: Record<LyDoCanXacNhan, string> = {
-  DICH_VU: "Có dịch vụ cần xác nhận còn vé.",
+  DICH_VU: "Có dịch vụ cần kiểm vé, chờ người kiểm vé báo còn vé.",
   DAT_GAP: "Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.",
   CHOT_GIO: "Có lượt đưa đón chưa có giờ đón, văn phòng cần ghi giờ.",
 };

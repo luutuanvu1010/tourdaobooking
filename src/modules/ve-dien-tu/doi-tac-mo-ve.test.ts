@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { app, seedStaff } from "../../../tests/audit/harness.mjs";
 import { A, ACC, ADM, H, INTERN, LAI, PARTNER, SUP, inDays, setup, svc } from "../../../tests/audit/xac-nhan-khung.mjs";
 import { datQuaHan } from "../../../tests/audit/tra-sau-moc.mjs";
+import { CAU_DOI_TAC_CHO_NOP } from "../../shared/ve-cau-khoa.ts";
 
 const AT = "2026-10-01T00:00:00.000Z";
 const TONG = 600000;
@@ -133,6 +134,91 @@ test("câu nói đúng người nghe: người xem giữ quyền Đối tác (t�
   const lv = await w.call("GET", `/api/ve/don/${id}`, { as: LAI });
   assert.equal(lv.status, 200, lv.text);
   assert.equal(lv.json.nguoiXemLaDoiTac, true);
+});
+
+// ===== Q-07 (Task 3.2 Đợt 3): câu khoá vé cho đối tác đang là người lập và còn số chờ nộp — cờ `nguoiLapCamTien` do máy chủ tính, câu ở `src/shared/ve-cau-khoa.ts` =====
+// Bài DÒ giữ lại làm bài cố định (khẳng định ĐÚNG hành vi đã thấy 9/11, không phải hành vi mong muốn): `choNop` GỘP cả khoản đặt cọc do người KHÁC người lập cầm. Vì vậy câu
+// «Tiền khách ở tay bạn…» (B-2 phương án 1) có thể sai người cầm tiền ⇒ dùng câu dự phòng B-2 (2). Hành vi này đổi thì xem lại câu.
+test("dò Q-07: khoản đặt cọc Kế toán sửa người thu sang Bán hàng A (đối tác không còn cầm đồng nào) vẫn tính vào choNop của đơn đối tác", async () => {
+  const w = dung();
+  const r = await w.call("POST", "/api/orders", { as: PARTNER, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc("ZB1", inDays(3))], declaredDeposit: TONG } });
+  assert.equal(r.status, 201, r.text);
+  const id = r.json.order.id as string;
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: PARTNER, body: {} })).status, 200);
+  assert.equal(w.q("SELECT company_collects_snapshot AS c FROM orders WHERE id = ?", id)[0].c, 1, "công tắc thu tiền đối tác Bật");
+  const dongGoc = String(w.q("SELECT id FROM bil_debt_line WHERE order_id = ? AND kind_code = 'HELD' AND debtor_party_id = ?", id, `pty-${PARTNER}`)[0].id);
+  const s = await w.call("POST", "/api/ledger/receipt-replacements", { as: ACC, body: { orderId: id, cu: [khoanDau(w, id)], moi: [{ soTien: TONG, hinhThuc: "CASH", nguoiThu: { partyId: `pty-${A}` } }], lyDo: "Bán hàng A cầm tiền cọc" } });
+  assert.equal(s.status, 201, s.text);
+  const song = w.q("SELECT collector_party_id AS c, collector_role_code AS v, note FROM bil_payment_receipt r WHERE order_id = ? AND reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt y WHERE y.reverses_id = r.id)", id);
+  assert.deepEqual(song.map((x: any) => [x.c, x.v, x.note]), [[`pty-${A}`, "STAFF", "Khách đặt cọc trước"]], "khoản sống mang dấu khoản khai, người cầm là A");
+  assert.equal(w.q("SELECT count(*) AS n FROM bil_debt_line WHERE order_id = ? AND reverses_line_id = ?", id, dongGoc)[0].n, 1, "dòng giữ hộ gốc của đối tác đã bị đảo");
+  const du = (ben: string) => Number(w.q("SELECT COALESCE(SUM(CASE WHEN debtor_party_id = ? THEN amount WHEN creditor_party_id = ? THEN -amount ELSE 0 END), 0) AS n FROM bil_debt_line WHERE order_id = ?", ben, ben, id)[0].n);
+  assert.equal(du(`pty-${PARTNER}`), 0, "đối tác không còn cầm đồng nào trên đơn");
+  assert.equal(du(`pty-${A}`), TONG, "Bán hàng A cầm đủ tiền");
+  const t = await app.tienDonVe(w.env.DB, id);
+  assert.equal(t.choNop, TONG, "choNop GỘP số người khác cầm (hành vi đã thấy)");
+  const v = await w.call("GET", `/api/ve/don/${id}`, { as: PARTNER });
+  assert.equal(v.status, 200, v.text);
+  assert.equal(v.json.choDoiTacNop, true);
+  assert.equal(v.json.nguoiXemLaDoiTac, true);
+  assert.equal(v.json.nguoiLapCamTien, true, "nên câu cho đối tác phải đúng cả khi tiền ở tay người khác: câu dự phòng B-2 (2)");
+});
+
+const duongDan = (w: any, id: string, as: string) => w.call("POST", "/api/ve/duong-dan", { as, body: { orderId: id } });
+const veCua = async (w: any, id: string, as: string) => { const r = await w.call("GET", `/api/ve/don/${id}`, { as }); assert.equal(r.status, 200, r.text); return r.json; };
+async function khoaCauMoi(w: any, id: string, as: string, moi: boolean, nhan: string) {
+  const c = await duongDan(w, id, as);
+  assert.equal(c.status, 403, `${nhan}: ${c.text}`);
+  assert.equal(c.json.error.code, "chua_thu_du", nhan);
+  if (moi) assert.equal(c.json.error.message, CAU_DOI_TAC_CHO_NOP, nhan);
+  else assert.notEqual(c.json.error.message, CAU_DOI_TAC_CHO_NOP, nhan);
+  assert.equal((await veCua(w, id, as)).nguoiLapCamTien, moi, nhan);
+}
+
+test("Q-07: công tắc Tắt, đối tác «Tôi thu» đủ: câu mới ở cả 403 lẫn cờ GET; Quản trị xem không có cờ", async () => {
+  const w = setup({ kenhThuGia: async () => 0 });
+  const id = await moDon(w, PARTNER);
+  assert.equal(w.q("SELECT company_collects_snapshot AS c FROM orders WHERE id = ?", id)[0].c, 0);
+  assert.equal((await thu(w, id, PARTNER, { nguoiThu: "toi" })).status, 201);
+  await khoaCauMoi(w, id, PARTNER, true, "Tắt + Tôi thu");
+  assert.equal((await veDon(w, id)).nguoiLapCamTien, false, "Quản trị không phải đối tác");
+});
+
+test("Q-07: công tắc Bật, đối tác «Tôi thu» đủ: câu mới", async () => {
+  const w = dung();
+  const id = await moDon(w, PARTNER);
+  assert.equal(w.q("SELECT company_collects_snapshot AS c FROM orders WHERE id = ?", id)[0].c, 1);
+  assert.equal((await thu(w, id, PARTNER, { nguoiThu: "toi" })).status, 201);
+  await khoaCauMoi(w, id, PARTNER, true, "Bật + Tôi thu");
+});
+
+test("Q-07: công tắc Bật, đối tác khai «Công ty thu»: giữ câu «Công ty chưa xác nhận…» (không có số chờ nộp)", async () => {
+  const w = dung();
+  const id = await moDon(w, PARTNER);
+  assert.equal((await thu(w, id, PARTNER, { nguoiThu: "cong_ty" })).status, 201);
+  const v = await veCua(w, id, PARTNER);
+  assert.equal(v.choDoiTacNop, true);
+  await khoaCauMoi(w, id, PARTNER, false, "Bật + Công ty thu");
+});
+
+test("Q-07: đơn đã huỷ mà tiền «Tôi thu» còn ở tay đối tác: không ra câu mới", async () => {
+  const w = dung();
+  const id = await moDon(w, PARTNER);
+  assert.equal((await thu(w, id, PARTNER, { nguoiThu: "toi" })).status, 201);
+  const h = await w.call("POST", `/api/orders/${id}/status`, { as: PARTNER, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+  assert.equal(h.status, 200, h.text);
+  assert.ok(((await app.tienDonVe(w.env.DB, id))?.choNop ?? 0) > 0, "tiền vẫn còn chờ nộp sau khi huỷ");
+  await khoaCauMoi(w, id, PARTNER, false, "đơn huỷ");
+});
+
+test("Q-07: tài khoản lai Bán hàng + Đối tác phụ trách đơn đối tác khác lập: không ra câu mới (không phải người lập)", async () => {
+  const w = dung();
+  const id = await moDon(w, PARTNER);
+  assert.equal((await thu(w, id, PARTNER, { nguoiThu: "toi" })).status, 201);
+  w.sqlite.prepare("INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, updated_at) VALUES (?, ?, 'HANDLE', ?, 'PENDING', ?, ?, ?)").run(crypto.randomUUID(), id, `pty-${LAI}`, AT, AT, AT);
+  assert.equal((await veCua(w, id, LAI)).nguoiXemLaDoiTac, true);
+  await khoaCauMoi(w, id, LAI, false, "tài khoản lai, đơn người khác lập");
+  await khoaCauMoi(w, id, PARTNER, true, "chính người lập vẫn nghe câu mới");
 });
 
 // Đọc không được thì không mở (ADR-0170 Đ2 mục 3): cả hai ca sẽ mở nếu đọc được (Kế toán đã ghi «Công ty thu» đủ tiền).
