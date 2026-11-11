@@ -59,3 +59,11 @@
 ## Đủ bộ `npm test` lần 1 — các bài cũ phải cập nhật có chủ đích
 
 Bản Development (`wrangler.dev.jsonc`) khai kho `tourdao-sales-dev-bien-lai` (bài «hai bản cùng bộ kho»; trang `docs/HUONG-DAN-TAO-BAN-DEVELOPMENT.md` thêm lệnh tạo kho thứ tư); sơ đồ kiến trúc có khối ngoài `BIEN_LAI`; hai cột N3 vào `COT_N3_NHAT_KY` (R-PD-1); route gỡ vào `KHONG_CAN` của bài đồng bộ chuyến; số route 492 ở bài «xem như vai»; route xem ảnh vào danh sách miễn 200 của bài «số lạ toàn Nền tảng»; bài vé điện tử gửi kèm ảnh khi Đối tác ghi «Công ty, chuyển khoản»; bài Trợ lý đo lại 13 → 12.
+
+## Bộ kiểm cuối (2026-11-12, trên nhánh sau mọi sửa)
+
+- `npm run typecheck`: 0 lỗi.
+- `npm test` đủ bộ: 8863 bài, 8859 xanh, 0 đỏ (4 bỏ qua có sẵn); bước đo giờ hook xanh.
+- `npm run test:e2e` đủ bộ: 91/91 kịch bản xanh, kể cả `bien-lai`; H5 xanh; `audit-invariants --strict` ba nhóm thoát 0 (một cảnh báo R-ORD-6a có sẵn, không do Đợt 6A).
+- Kịch bản Chrome `bien-lai-smoke.mjs`: 8/8 bước xanh ở 390 và 1280, axe không vi phạm critical/serious; ảnh ở `docs/evidence/2026-10-08-qr-thanh-toan/anh-bien-lai/`.
+- Người kiểm độc lập: ĐẠT (hai mục VỪA đã sửa, xem trên).
