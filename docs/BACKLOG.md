@@ -778,3 +778,11 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-GD-DS-DON** — màn `danh-sach-don` (ghi chú khách, điểm đón, người lập, giờ lập, số khách) đã có trong danh mục và máy chủ, nhưng giao diện chưa nối: nối vào thì gói trang Đơn hàng vượt trần 111.118 byte khoảng 261 byte. Hai cách mở: chủ nâng trần, hoặc một lượt thi công tách `traCuuChinhSach` khỏi `ui-truong.ts` thành tệp nhỏ. Bản vá cũ chỉ nằm ở thư mục tạm của phiên, không còn đáng tin; làm lại từ danh mục.
 - **BL-GD-FACE-ID** — ẩn số Face ID ở danh sách tài khoản: con số nằm trong chữ nút «Gỡ Face ID (N)» mà bài bảng tham chiếu canh; ẩn tức là đổi tên nút (chủ chọn tên).
 - **BL-GD-NHO** — hai lỗi nhỏ do người kiểm độc lập nêu, chưa sửa: (1) màn chỉnh: đặt dòng điều kiện khi dòng «Mọi dịch vụ» đang đổi mà chưa lưu thì ô bật lại theo dòng chính; (2) ẩn ô số người chiều về mà lỗi chặn Lưu về số vé vẫn hiện.
+
+## 70. Ảnh biên lai chuyển khoản — việc để sau (mã `BL-BL-…`, ADR-0196, Đợt 6A, 2026-11-11)
+
+- **Trạng thái:** `để sau` · ghi khi thi công Đợt 6A; chưa hỏi chủ.
+- **BL-BL-XOA-DLCN** — phiếu yêu cầu xoá dữ liệu cá nhân (ADR-0126) chưa quét kho `BIEN_LAI` (ADR-0196 Hệ quả, cùng nợ với kho vé hỗ trợ).
+- **BL-BL-NUT-GO** — lệnh gỡ ảnh gửi nhầm (`POST …/bien-lai/go`) và hàng chờ dọn kho (`/api/ledger/bien-lai-cho-xoa`) chỉ có đường máy chủ; chưa có nút trên giao diện (ADR không đặt chữ nút). Muốn có nút thì chủ chọn tên.
+- **BL-BL-BO-SUNG** — Đối tác không gửi bổ sung ảnh được khi ảnh tải hỏng hay bị gỡ (ADR-0196 Đ11); muốn có thì là quyết định riêng.
+- **BL-BL-THU-THAT** — chưa thử trên iPhone thật (HEIC từ camera, thu nhỏ trên Safari) và chưa đo bộ nhớ Worker với thân ~14 MB (`BL-TEP-THAN-HAI-LAN`).
