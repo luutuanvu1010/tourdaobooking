@@ -928,7 +928,7 @@ const ngayVn = (iso: string): string => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/
 export type AiXuLy = "Kế toán" | "Hướng dẫn viên" | "Người lập đơn" | "Văn phòng" | "Văn phòng hoặc Kế toán";
 export type MaLyDo =
   | "not_confirmed" | "cancelled" | "already_delivered" | "missing_date" | "before_departure" | "terms_missing" | "booker_not_beneficiary" | "terms_exceed_price"
-  | "unknown_collector" | "reconciling" | "underpaid" | "overpaid" | "stale";
+  | "unknown_collector" | "reconciling" | "underpaid" | "deposit_held" | "overpaid" | "stale";
 export interface LyDoGiu {
   ma: MaLyDo;
   cau: string;
@@ -940,6 +940,15 @@ export interface LyDoGiu {
  * Lý do phần thương mại (`terms_missing` / `booker_not_beneficiary` / `terms_exceed_price` — thay `booker_partner` của lượt 1) đứng sau "chưa tới ngày đi", trước
  * "đang đối chiếu". Máy chủ vẫn kiểm lại TRONG lô (câu `orders` + trigger billing) — hàm này để trả câu dễ hiểu và để màn đơn hiện "đang giữ vì…" (NT-F11).
  */
+/** Câu giữ «Khách đã trả đủ» của đơn Trả sau còn cọc ở tay đối tác (chủ dự án 12/11). Tên khoản theo bảng tham chiếu: «Khách đặt cọc cho đối tác». */
+export const CAU_COC_CHUA_NOP = (soTien: number): string =>
+  `Còn ${dong(soTien)} tiền khách đặt cọc cho đối tác chưa nộp về Công ty — đối tác nộp xong mới bấm Xác nhận khách đã trả đủ được.`;
+
+/** Đơn Trả sau còn bấm «Khách đã trả đủ» được mà KHÔNG tính được số cọc (`cocConGiu` vắng) ⇒ route trả 503, không đoán «hết cọc» (chủ dự án 12/11). */
+export function khongTinhDuocCoc(traSau: { cocConGiu?: number } | null, info: { status: string; deliveredAt: string | null }): boolean {
+  return traSau !== null && traSau.cocConGiu === undefined && info.status === "confirmed" && info.deliveredAt === null;
+}
+
 export function lyDoChuaGiaoDuoc(input: {
   status: "draft" | "confirmed" | "cancelled";
   deliveredAt: string | null;
@@ -958,6 +967,9 @@ export function lyDoChuaGiaoDuoc(input: {
   cumDoiChieu?: readonly string[];
   /** ADR-0168 Đ3 mục 2: đơn Trả sau — còn nợ thì cùng mã `underpaid` nhưng câu khác và Kế toán xử lý. Vắng / false = đơn Trả trước, giữ nguyên chữ. */
   traSau?: boolean;
+  /** Chủ dự án 12/11 «Chặn tới khi nộp» (ADR-0173 Đ3.1 áp cho ô cọc của ADR-0197): đơn Trả sau còn tiền khách đặt cọc ở tay đối tác (`cocConGiu` của `traSauCuaDon`)
+   *  thì chưa «Khách đã trả đủ» — hoa hồng không vào sổ, không cấn trừ trước khi cọc về Công ty. Chỉ xét khi `traSau`; vắng = 0. */
+  cocConGiu?: number;
   so: SoTienDon;
 }): LyDoGiu | null {
   if (input.deliveredAt) return { ma: "already_delivered", cau: "Đơn đã ở bước Khách đã trả đủ.", aiXuLy: "Văn phòng" };
@@ -988,6 +1000,9 @@ export function lyDoChuaGiaoDuoc(input: {
   }
   if (input.so.conLai > 0) {
     return { ma: "underpaid", cau: `Còn thiếu ${dong(input.so.conLai)} — ghi thêm khoản thu hoặc sửa đơn trước.`, aiXuLy: "Hướng dẫn viên" };
+  }
+  if (input.traSau && (input.cocConGiu ?? 0) > 0) {
+    return { ma: "deposit_held", cau: CAU_COC_CHUA_NOP(input.cocConGiu!), aiXuLy: "Kế toán" };
   }
   if (input.so.du > 0) return { ma: "overpaid", cau: `Khách đã trả dư ${dong(input.so.du)} — chờ Kế toán hoàn.`, aiXuLy: "Kế toán" };
   return null;

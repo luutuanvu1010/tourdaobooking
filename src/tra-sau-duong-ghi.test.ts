@@ -766,3 +766,149 @@ test("ADR-0188 4(a): gốc lắp ráp không tiêm cổng hạn mức ⇒ xem tr
   assert.deepEqual([r.status, r.json.error?.code], [503, "tra_sau_chua_dung_duoc"], r.text);
   assert.equal(benDatCua(w, id), aId);
 });
+
+// ---- ADR-0197 Đ4 phương án (c1): Đối tác không tự huỷ đơn Trả sau ĐÃ xác nhận còn cọc ở tay mình; người của Công ty huỷ được; luật cũ đứng trước --------------------------
+// «Cọc còn ở tay Đối tác» = phần khoản khai theo `phanKhaiCuaDon` (dấu ghi chú HOẶC chuyển từ đơn huỷ) còn số dư giữ hộ chưa nộp — CÙNG cách sổ nợ (`noTheoDon`) tính.
+const CAU_CON_COC = "Đơn trả sau còn tiền cọc của khách ở tay bạn nên bạn chưa tự huỷ được. Hãy nhờ Quản trị huỷ.";
+const thanDT = (coc: number, term: "CREDIT" | "PREPAID", ngay = inDays(3)) => ({ customerName: "Khách Thử", customerPhone: "0912345678", paymentTerm: term, declaredDeposit: coc, services: [svc("ZB1", ngay)] });
+/** Đơn do Đối tác DT lập (bên đặt = BEN), khai cọc, tự «Gửi đơn» (nhánh B: xác nhận ngay). */
+async function donDT(w: W, coc: number, term: "CREDIT" | "PREPAID" = "CREDIT", ngay?: string): Promise<{ id: string; orderCode: string; updatedAt: string }> {
+  const r = await w.call("POST", "/api/orders", { as: DT, body: thanDT(coc, term, ngay) });
+  assert.equal(r.status, 201, r.text);
+  const g = await w.call("POST", `/api/orders/${r.json.order.id}/gui-don`, { as: DT, body: {} });
+  assert.equal(g.status, 200, g.text);
+  return (await w.call("GET", `/api/orders/${r.json.order.id}`, { as: DT })).json.order;
+}
+const huyBoi = (w: W, id: string, as: string) => w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+const nopVe = (w: W, id: string, soTien: number) => w.call("POST", "/api/ledger/settlements", { as: ACC, body: { chieu: "nop", partyId: BEN, phanBo: [{ orderId: id, soTien }] } });
+const trangThaiDon = (w: W, id: string): string => w.q("SELECT status FROM orders WHERE id = ?", id)[0].status;
+const noDon = async (w: W, id: string): Promise<number | undefined> =>
+  ((await w.call("GET", `/api/tra-sau/han-muc/${BEN}/don`, { as: SUP })).json.don as { orderId: string; no: number }[]).find((d) => d.orderId === id)?.no;
+
+test("ADR-0197 Đ4 (c1): Đối tác tự huỷ đơn Trả sau còn cọc ⇒ 409 câu «Hãy nhờ Quản trị huỷ»; Kế toán bấm huỷ ⇒ 403; Quản trị huỷ được, cọc hiện ở màn cọc đơn huỷ, «Nộp về công ty» vẫn chạy (không bế tắc)", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 2_000_000)).status, 201);
+  const d = await donDT(w, 200_000);
+  assert.equal(await noDon(w, d.id), T_ZB1, "cọc không làm giảm nợ");
+  const tu = await huyBoi(w, d.id, DT);
+  assert.deepEqual([tu.status, tu.json.error?.code, tu.json.error?.message], [409, "tra_sau_con_coc_o_doi_tac", CAU_CON_COC], tu.text);
+  assert.equal(trangThaiDon(w, d.id), "confirmed");
+  const kt = await huyBoi(w, d.id, ACC);
+  assert.equal(kt.status, 403, "Kế toán không huỷ được đơn (không đổi ô quyền)");
+  assert.equal(trangThaiDon(w, d.id), "confirmed");
+  const qt = await huyBoi(w, d.id, ADM);
+  assert.equal(qt.status, 200, qt.text);
+  assert.equal(trangThaiDon(w, d.id), "cancelled");
+  const coc = await w.call("GET", "/api/ledger/coc", { as: ACC });
+  assert.equal(coc.status, 200, coc.text);
+  assert.ok(coc.text.includes(d.orderCode), "cọc của đơn huỷ hiện ở màn cọc đơn huỷ (luồng ADR-0089)");
+  const nop = await nopVe(w, d.id, 200_000);
+  assert.equal(nop.status, 201, nop.text);
+});
+
+test("ADR-0197 Đ4 (c1): Kế toán ghi «Nộp về công ty» một phần ⇒ vẫn 409; nộp đủ số cọc ⇒ Đối tác tự huỷ được (đơn còn nợ, vé chưa mở)", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 2_000_000)).status, 201);
+  const d = await donDT(w, 200_000);
+  assert.equal((await nopVe(w, d.id, 100_000)).status, 201);
+  const motPhan = await huyBoi(w, d.id, DT);
+  assert.deepEqual([motPhan.status, motPhan.json.error?.code], [409, "tra_sau_con_coc_o_doi_tac"], motPhan.text);
+  assert.equal((await nopVe(w, d.id, 100_000)).status, 201);
+  const du = await huyBoi(w, d.id, DT);
+  assert.equal(du.status, 200, du.text);
+  assert.equal(trangThaiDon(w, d.id), "cancelled");
+});
+
+test("ADR-0197 Đ4 (c1): đơn Trả sau KHÔNG khai cọc mà nhận cọc CHUYỂN từ đơn huỷ (`transfer_of_id`, không mang dấu ghi chú) ⇒ Đối tác tự huỷ vẫn 409; nợ của đơn không giảm (huỷ để lập lại sang đơn Trả sau)", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 2_000_000)).status, 201);
+  const cu = await donDT(w, 200_000, "PREPAID");
+  const h = await w.call("POST", `/api/orders/${cu.id}/status`, { as: DT, body: { status: "cancelled", lyDo: "SAI_THONG_TIN" } });
+  assert.equal(h.status, 200, "đơn Thanh toán ngay có cọc: Đối tác tự huỷ như hôm nay");
+  const moi = await donDT(w, 0);
+  const duyet = await w.call("POST", `/api/orders/${cu.id}/coc/duyet`, { as: ADM, body: { loai: "chuyen", soTien: 200_000, lyDo: "Lập lại đơn cho khách", donNhan: moi.orderCode } });
+  assert.ok(duyet.status === 200 || duyet.status === 201, duyet.text);
+  const chuyen = await w.call("POST", `/api/orders/${cu.id}/coc/chuyen`, { as: ACC, body: { duyetId: duyet.json.duyetId, soTien: 200_000, ngayPhatSinh: inDays(0), nguoiGiu: { partyId: BEN } } });
+  assert.ok(chuyen.status === 200 || chuyen.status === 201, chuyen.text);
+  const khoan = w.q("SELECT note, transfer_of_id FROM bil_payment_receipt WHERE order_id = ? AND reverses_id IS NULL", moi.id) as { note: string | null; transfer_of_id: string | null }[];
+  assert.equal(khoan.length, 1);
+  assert.ok(khoan[0]!.transfer_of_id !== null && khoan[0]!.note !== "Khách đặt cọc trước", "khoản chuyển không mang dấu ghi chú");
+  assert.equal(await noDon(w, moi.id), T_ZB1, "sổ nợ coi cọc chuyển sang là tiền ở tay Đối tác");
+  const tu = await huyBoi(w, moi.id, DT);
+  assert.deepEqual([tu.status, tu.json.error?.code], [409, "tra_sau_con_coc_o_doi_tac"], tu.text);
+  assert.equal((await huyBoi(w, moi.id, ADM)).status, 200, "Quản trị huỷ được");
+});
+
+test("ADR-0197 Đ4: đơn Trả sau có cọc mà vé hãng ngoài đã mở (còn nợ) ⇒ văn phòng 409 tra_sau_con_no_da_mo_ve như cũ; Đối tác gặp lớp chặn ADR-0170 (vé đã mở), không gặp lớp mới", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 2_000_000)).status, 201);
+  const d = await donDT(w, 200_000);
+  moVe(w, d.id);
+  const vp = await huyBoi(w, d.id, ADM);
+  assert.deepEqual([vp.status, vp.json.error?.code], [409, "tra_sau_con_no_da_mo_ve"], vp.text);
+  const dt = await huyBoi(w, d.id, DT);
+  assert.equal(dt.status, 409, dt.text);
+  assert.notEqual(dt.json.error?.code, "tra_sau_con_coc_o_doi_tac", "lớp ADR-0170 đứng trước, hai lớp không đụng nhau");
+  assert.equal(trangThaiDon(w, d.id), "confirmed");
+});
+
+test("ADR-0197 Đ4: Hướng dẫn viên đang phụ trách huỷ được đơn Trả sau còn cọc của Đối tác (handler-cancel)", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 2_000_000)).status, 201);
+  const d = await donDT(w, 200_000);
+  assert.equal((await w.call("PUT", `/api/orders/${d.id}/handler`, { as: ADM, body: { staffId: H } })).status, 200);
+  const r = await w.call("POST", `/api/orders/${d.id}/handler-cancel`, { as: H, body: { reason: "customer_requested" } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(trangThaiDon(w, d.id), "cancelled");
+});
+
+test("ADR-0197 Đ4: đơn Thanh toán ngay có cọc ⇒ Đối tác tự huỷ như hôm nay (lớp mới chỉ áp đơn Trả sau)", async () => {
+  const w = dung();
+  const d = await donDT(w, 200_000, "PREPAID");
+  assert.equal((await huyBoi(w, d.id, DT)).status, 200);
+});
+
+test("ADR-0197 «Chưa kiểm» — sửa số khách làm tổng xuống DƯỚI số cọc: được như đơn Thanh toán ngay; nợ = tổng mới (không âm); Đối tác vẫn không tự huỷ", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 2_000_000)).status, 201);
+  const d = await donDT(w, 500_000); // tổng 600.000, cọc 500.000
+  const giam = await w.call("POST", `/api/orders/${d.id}/money-edit`, { as: ADM, body: { lyDo: "THEM_NGUOI", services: [{ id: svcId(w, d.id), pax: pax(1) }] } });
+  assert.equal(giam.status, 200, giam.text);
+  assert.equal(await noDon(w, d.id), 300_000, "nợ = tổng mới: cọc ở tay Đối tác không trừ, cũng không làm nợ âm");
+  assert.deepEqual([(await huyBoi(w, d.id, DT)).json.error?.code], ["tra_sau_con_coc_o_doi_tac"]);
+});
+
+test("ADR-0197 «Chưa kiểm» — hoa hồng, chủ dự án 12/11 «Chặn tới khi nộp» (ADR-0173 Đ3.1): đơn Trả sau thu đủ nhưng cọc còn ở tay Đối tác ⇒ «Khách đã trả đủ» 409, không dòng hoa hồng; nộp đủ cọc rồi mới giao được, hoa hồng bằng đơn không cọc", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, 5_000_000)).status, 201);
+  assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: ACC, body: { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "PER_PAX", moiKhach: 50_000, tuNgay: "2026-01-01" } })).status, 201);
+  const homNay = inDays(0);
+  const khong = await donDT(w, 0, "CREDIT", homNay);
+  const co = await donDT(w, 200_000, "CREDIT", homNay);
+  const giao = (id: string) => w.call("POST", `/api/orders/${id}/delivered`, { as: SUP, body: {} });
+  const hh = (id: string) => Number(w.q("SELECT COALESCE(SUM(amount), 0) AS n FROM bil_debt_line WHERE order_id = ? AND kind_code = 'HOA_HONG'", id)[0].n);
+  assert.equal((await thu(w, khong.id, T_ZB1)).status, 201);
+  assert.equal((await giao(khong.id)).status, 200);
+  assert.ok(hh(khong.id) > 0, "có hoa hồng");
+  assert.equal((await thu(w, co.id, T_ZB1 - 200_000)).status, 201);
+  // Màn đơn báo trước lý do giữ (cùng một hàm với route ghi).
+  const xem = await w.call("GET", `/api/orders/${co.id}/payments`, { as: SUP });
+  assert.equal(xem.status, 200, xem.text);
+  assert.equal(xem.json.lyDoChuaGiao?.ma, "deposit_held");
+  assert.equal(xem.json.coTheGiao, false);
+  const chan = await giao(co.id);
+  assert.equal(chan.status, 409, chan.text);
+  assert.equal(chan.json.error?.code, "not_deliverable");
+  assert.match(chan.json.error?.message ?? "", /200\.000 ₫/);
+  assert.equal(hh(co.id), 0, "bị chặn ⇒ chưa có dòng hoa hồng");
+  assert.equal(w.q("SELECT delivered_at FROM orders WHERE id = ?", co.id)[0].delivered_at, null, "đơn chưa sang «Khách đã trả đủ»");
+  // Nộp một phần: vẫn chặn.
+  assert.equal((await nopVe(w, co.id, 50_000)).status, 201);
+  assert.equal((await giao(co.id)).status, 409);
+  // Nộp đủ: giao được, hoa hồng bằng đơn không cọc.
+  assert.equal((await nopVe(w, co.id, 150_000)).status, 201);
+  const g = await giao(co.id);
+  assert.equal(g.status, 200, g.text);
+  assert.equal(hh(co.id), hh(khong.id), "cọc không làm đổi hoa hồng");
+  assert.equal(await noDon(w, co.id), undefined, "nộp đủ thì hết nợ (đơn rời danh sách còn nợ)");
+});

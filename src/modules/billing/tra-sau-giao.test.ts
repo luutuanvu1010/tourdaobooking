@@ -2,7 +2,8 @@
 // đơn Trả trước giữ NGUYÊN CHỮ. Thu đủ thì qua như đơn thường.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { conLai, lyDoChuaGiaoDuoc } from "./rules.ts";
+import { readFileSync } from "node:fs";
+import { CAU_COC_CHUA_NOP, conLai, khongTinhDuocCoc, lyDoChuaGiaoDuoc } from "./rules.ts";
 import { cauChoDoiTacThanhToan } from "../../shared/tra-sau.ts";
 
 const KHONG_HUONG = { trangThai: "KHONG_NGUOI_HUONG" } as const;
@@ -27,4 +28,29 @@ test("đơn Trả sau thu đủ thì qua như đơn thường; các lý do đứ
   assert.equal(lyDoChuaGiaoDuoc({ ...base, so: so(1_000_000, 1_000_000), traSau: true }), null);
   assert.equal(lyDoChuaGiaoDuoc({ ...base, homNay: "2026-10-08", so: so(0, 1_000_000), traSau: true })!.ma, "before_departure");
   assert.equal(lyDoChuaGiaoDuoc({ ...base, soKhoanDoiChieu: 1, so: so(0, 1_000_000), traSau: true })!.ma, "reconciling");
+});
+
+test("chủ dự án 12/11 «Chặn tới khi nộp» (ADR-0173 Đ3.1 áp cho ADR-0197): đơn Trả sau thu đủ nhưng cọc còn ở tay đối tác ⇒ mã deposit_held, Kế toán xử lý, câu nêu số cọc", () => {
+  const ly = lyDoChuaGiaoDuoc({ ...base, so: so(1_000_000, 1_000_000), traSau: true, cocConGiu: 200_000 })!;
+  assert.deepEqual([ly.ma, ly.aiXuLy], ["deposit_held", "Kế toán"]);
+  assert.equal(ly.cau, CAU_COC_CHUA_NOP(200_000));
+  assert.match(ly.cau, /200\.000 ₫/);
+  // Hết cọc ⇒ qua; đơn Trả trước (Thanh toán ngay) không xét cọc — giữ hành vi cũ.
+  assert.equal(lyDoChuaGiaoDuoc({ ...base, so: so(1_000_000, 1_000_000), traSau: true, cocConGiu: 0 }), null);
+  assert.equal(lyDoChuaGiaoDuoc({ ...base, so: so(1_000_000, 1_000_000), traSau: false, cocConGiu: 200_000 }), null);
+  // Lý do đứng trước vẫn đứng trước: còn khách nợ thì câu «còn nợ» trước câu cọc.
+  assert.equal(lyDoChuaGiaoDuoc({ ...base, so: so(200_000, 1_000_000), traSau: true, cocConGiu: 200_000 })!.ma, "underpaid");
+});
+
+test("chủ dự án 12/11: đơn Trả sau không tính được số cọc (cocConGiu vắng) ⇒ khongTinhDuocCoc true (route 503), không đoán «hết cọc»; route Đã giao gọi nó trước mọi lần đọc tiền", () => {
+  const cho = { status: "confirmed", deliveredAt: null };
+  assert.equal(khongTinhDuocCoc({}, cho), true);
+  assert.equal(khongTinhDuocCoc({ cocConGiu: 0 }, cho), false);
+  assert.equal(khongTinhDuocCoc({ cocConGiu: 5 }, cho), false, "có số thì để lyDoChuaGiaoDuoc chặn");
+  assert.equal(khongTinhDuocCoc(null, cho), false, "không phải đơn Trả sau");
+  assert.equal(khongTinhDuocCoc({}, { status: "confirmed", deliveredAt: "2026-10-10T00:00:00Z" }), false);
+  assert.equal(khongTinhDuocCoc({}, { status: "draft", deliveredAt: null }), false);
+  const sv = readFileSync(new URL("./service.ts", import.meta.url), "utf8");
+  const than = sv.slice(sv.indexOf("export async function daGiao("), sv.indexOf("const congTyId = await ownerCompanyId(db);", sv.indexOf("export async function daGiao(")));
+  assert.match(than, /if \(khongTinhDuocCoc\(input\.traSau, info\)\) \{\n\s*return loi\(503, "tra_sau_khong_doc_duoc"/, "daGiao trả 503 trước khi đọc CSDL");
 });

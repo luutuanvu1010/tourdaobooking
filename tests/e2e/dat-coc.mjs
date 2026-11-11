@@ -90,6 +90,22 @@ try {
   r = await call(dt, "POST", `/api/orders/${k.id}/gui-don`, {});
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal((await soKhoan(k.id)).length, 0);
+  // ADR-0197: đơn Trả sau nhận lời khai cọc (không còn 409 chặn cọc); cọc thành khoản thu của Đối tác như đơn Thanh toán ngay;
+  // Đối tác tự huỷ đơn Trả sau còn cọc ở tay mình ⇒ 409 (phương án c1); Toàn quyền huỷ được.
+  r = await call(SUPER, "POST", "/api/tra-sau/han-muc", { partyId: DOI_TAC.partyId, hanMuc: 1000000, gioTra: 168, gioAnHan: 0, lyDo: "E2E đặt cọc trả sau" });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  r = await call(dt, "POST", "/api/orders", { ...than("ZDC2", 60000), paymentTerm: "CREDIT" });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const ts = r.body.order;
+  assert.equal(ts.paymentTerm, "CREDIT");
+  r = await call(dt, "POST", `/api/orders/${ts.id}/gui-don`, {});
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  await dungMot(ts.id, 60000, "Trả sau có cọc");
+  r = await call(dt, "POST", `/api/orders/${ts.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "tra_sau_con_coc_o_doi_tac");
+  r = await call(SUPER, "POST", `/api/orders/${ts.id}/status`, { status: "cancelled", lyDo: "KHACH_DOI_Y" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
 } finally {
   await call(SUPER, "POST", URL_CD, { pham: "SERVICE", ma: "ZDC1", canXacNhan: false });
 }

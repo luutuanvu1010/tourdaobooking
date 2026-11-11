@@ -2,7 +2,7 @@
 // một lượt cho cả danh sách đơn (không truy vấn lặp theo từng đơn). Luật thuần ở src/shared/tra-sau.ts. KHÔNG tự kiểm quyền — route hỏi `can(` trước.
 import { lyDoKhongTraSau, noMotDon, quaHan, trangThaiHan, type HanMucHieuLuc, type KetQuaKiemTraSau, type TrangThaiHan } from "../../shared/tra-sau";
 import { addDays, vnToday } from "../../shared/vn-date";
-import { soChuaVeCongTy, type DoiChieuRow, type LineRow } from "./rules";
+import { soChuaVeCongTy, soKhaiChuaNop, type DoiChieuRow, type LineRow } from "./rules";
 import { phanKhaiCuaDon } from "./khoan-khai";
 import { ownerCompanyId, receiptsOfOrders } from "./repository";
 import { tienNhieuDon, toReceiptRow } from "./service";
@@ -21,7 +21,15 @@ const bayGioMacDinh = (): string => new Date().toISOString();
 
 /** Nợ từng đơn Trả sau đã xác nhận (ADR-0168 Đ2 mục 2): phải thu − số đã về công ty, trong đó số đã về công ty không gồm khoản đang đối chiếu và khoản bên đặt tự thu mà chưa nộp. */
 export async function noTheoDon(db: D1Database, dons: readonly DonTraSauRow[]): Promise<Map<string, number>> {
-  const out = new Map<string, number>();
+  return new Map([...(await noVaCocTheoDon(db, dons))].map(([id, x]) => [id, x.no]));
+}
+
+/**
+ * Nợ và «cọc còn ở tay người thu» của từng đơn trong CÙNG một lượt tính (ADR-0197 Đ4): cọc = phần khoản khai theo `phanKhaiCuaDon` (dấu ghi chú HOẶC chuyển từ đơn huỷ) mà người thu
+ * còn số dư giữ hộ với Công ty trên đơn (`soKhaiChuaNop`, đúng hàm của cổng khai lại `dat-coc.ts`). Không viết điều kiện thứ hai: nợ và cọc dùng chung `khai`, `ls`, `congTyId`.
+ */
+export async function noVaCocTheoDon(db: D1Database, dons: readonly DonTraSauRow[]): Promise<Map<string, { no: number; cocConGiu: number }>> {
+  const out = new Map<string, { no: number; cocConGiu: number }>();
   if (dons.length === 0) return out;
   const ids = dons.map((d) => d.id);
   const [tien, receipts, lines, recon, congTyId] = await Promise.all([tienNhieuDon(db, ids), receiptsOfOrders(db, ids), dongCuaCacDon(db, ids), doiChieuCuaCacDon(db, ids), ownerCompanyId(db)]);
@@ -44,7 +52,9 @@ export async function noTheoDon(db: D1Database, dons: readonly DonTraSauRow[]): 
     // ADR-0171 / ADR-0168 Đ2 mục 2: nợ tính bằng ĐÚNG hàm mở vé `soChuaVeCongTy` (một bản, không viết hai) với người lập = BÊN ĐẶT; khoản khai đặt cọc và phần chuyển từ đơn huỷ gộp vào cùng lượt.
     const khai = await phanKhaiCuaDon(db, rcTheoDon.get(d.id) ?? [], new Set([d.id]));
     const v = congTyId ? soChuaVeCongTy({ receipts: rs, lines: ls, doiChieu: dc, nguoiLapPartyId: d.booker_party_id ?? "", congTyId, khaiThem: khai }) : { nguoiLapGiu: t.daThu, choXacNhan: 0 }; // không đọc được công ty ⇒ coi như chưa về (không mở)
-    out.set(d.id, noMotDon({ daHuy: d.status === "cancelled", phaiThu: t.phaiThu, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, benDatDangGiu: v.nguoiLapGiu }));
+    const no = noMotDon({ daHuy: d.status === "cancelled", phaiThu: t.phaiThu, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, benDatDangGiu: v.nguoiLapGiu });
+    // Không đọc được công ty chủ ⇒ coi cả phần khai là còn giữ (chặt hơn, khuôn dòng trên).
+    out.set(d.id, { no, cocConGiu: congTyId ? soKhaiChuaNop(khai, ls, congTyId) : khai.reduce((s, k) => s + k.soTien, 0) });
   }
   return out;
 }
@@ -74,13 +84,15 @@ export const noCuaBenDat = async (db: D1Database, partyId: string, bayGio: strin
  */
 export const maDonTraSauDaXacNhan = async (db: D1Database, partyId: string): Promise<string[]> => (await donTraSauCuaCacBen(db, [partyId])).map((d) => d.order_code);
 
-/** Hạn trả và nợ của MỘT đơn; `null` = đơn không phải Trả sau. */
-export async function traSauCuaDon(db: D1Database, orderId: string): Promise<{ hanTra: string | null; hetAnHan: string | null; no: number; benDat: string | null; version: number } | null> {
+/** Hạn trả, nợ và cọc còn ở tay người thu (ADR-0197 Đ4 — cổng huỷ) của MỘT đơn; `null` = đơn không phải Trả sau. */
+export async function traSauCuaDon(db: D1Database, orderId: string): Promise<{ hanTra: string | null; hetAnHan: string | null; no: number; cocConGiu?: number; benDat: string | null; version: number } | null> {
   const d = await donTraSauTheoId(db, orderId);
   if (!d) return null;
   // Phiên bản của bên đặt đọc TRƯỚC khi tính nợ (khuôn `kiemTraSau`): đường đổi bên đặt gác đúng số này trong lô, nên khoản thu bị đảo chen giữa làm lô thua.
   const version = d.booker_party_id ? await phienBanHienTai(db, d.booker_party_id) : 0;
-  return { hanTra: d.credit_due_at, hetAnHan: d.credit_grace_until, no: (await noTheoDon(db, [d])).get(d.id) ?? 0, benDat: d.booker_party_id, version };
+  const x = (await noVaCocTheoDon(db, [d])).get(d.id);
+  // Không tính được tiền của đơn ⇒ vắng `cocConGiu`: cổng huỷ chặn Đối tác 503 (không đoán «hết cọc»); nợ giữ cách cũ (0).
+  return { hanTra: d.credit_due_at, hetAnHan: d.credit_grace_until, no: x?.no ?? 0, ...(x ? { cocConGiu: x.cocConGiu } : {}), benDat: d.booker_party_id, version };
 }
 
 export async function hanMucHieuLuc(db: D1Database, partyId: string, ngay: string = vnToday(new Date())): Promise<HanMucHieuLuc | null> {

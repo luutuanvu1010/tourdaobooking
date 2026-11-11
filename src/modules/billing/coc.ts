@@ -27,7 +27,7 @@ const CAU_DON_NHAN_HONG = "Đơn nhận đã huỷ hoặc đã tới bước Kh�
  * Tự quyết (ADR-0159 Hệ quả «chưa kiểm», ADR-0089 đ7): đơn nhận đã có khoản «Khách đặt cọc trước» do đối tác khai thì không nhận thêm tiền chuyển — rất có thể cùng một số tiền, chuyển sang là tính hai lần
  * (khách bị báo đã trả gấp đôi, đối tác nợ gấp đôi). Không phải cùng số tiền thì Kế toán đảo khoản khai rồi ghi lại khoản thu thường, sau đó chuyển.
  */
-const DON_NHAN_CO_LOI_KHAI = () => loi(409, "coc_target_has_declared_deposit", "Đơn nhận đã có khoản khách đặt cọc trước do đối tác khai. Chuyển thêm dễ tính hai lần cùng một số tiền — kiểm với đối tác; nếu đúng là cùng số tiền thì huỷ khoản khai rồi chuyển lại.");
+const DON_NHAN_CO_LOI_KHAI = () => loi(409, "coc_target_has_declared_deposit", "Đơn nhận đã có khoản khách đặt cọc cho đối tác do đối tác khai. Chuyển thêm dễ tính hai lần cùng một số tiền — kiểm với đối tác; nếu đúng là cùng số tiền thì huỷ khoản khai rồi chuyển lại.");
 
 const toDuyetRow = (a: ApprovalDbRow): DuyetRow => ({
   id: a.id, kind: a.kind_code, amount: a.amount, voidsId: a.voids_id, targetOrderId: a.target_order_id, createdBy: a.created_by, approvedDate: a.approved_date,

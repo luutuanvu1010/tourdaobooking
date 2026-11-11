@@ -742,3 +742,41 @@ test("Ghi chú Kế toán gõ cho khoản mang dấu: báo rõ 400, không âm t
   assert.equal((await suaGop(w, o.id, [id], [mo(200000, { ghiChu: "Khách đặt cọc trước" })])).status, 201);
   assert.equal(khoanSong(w, o.id)[0].note, "Khách đặt cọc trước");
 });
+
+// ---- ADR-0197 Đ1: tên ô «Khách đặt cọc cho đối tác» ở mọi chỗ người dùng thấy; chuỗi dấu trong CSDL KHÔNG đổi -------------------------------------------------------
+const TEN_MOI = "Khách đặt cọc cho đối tác";
+const docTep = (tep: string): string => readFileSync(new URL(`../../../${tep}`, import.meta.url), "utf8");
+
+test("ADR-0197 Đ1: dấu nhận diện `GHI_CHU_KHOAN_LOI_KHAI` trong CSDL giữ nguyên «Khách đặt cọc trước» (dữ liệu thật mang chuỗi này)", () => {
+  assert.match(docTep("src/modules/billing/coc-repo.ts"), /export const GHI_CHU_KHOAN_LOI_KHAI = "Khách đặt cọc trước";/);
+});
+
+test("ADR-0197 Đ1: tên ô mới ở ô nhập, hai dòng tóm tắt, dòng chờ xác nhận, câu hướng dẫn Đối tác; không còn tên cũ ở chỗ hiển thị", async () => {
+  const { NHAN_DAT_COC, NHAN_DAT_COC_CHO } = await import("../../shared/dat-coc-truoc.ts");
+  assert.equal(NHAN_DAT_COC, TEN_MOI);
+  assert.equal(NHAN_DAT_COC_CHO, `${TEN_MOI} (chờ xác nhận)`);
+  const html = docTep("public/order-form.html");
+  assert.ok(html.includes(`${TEN_MOI} (₫)`), "nhãn ô nhập");
+  assert.equal(html.split(`<span class="muted">${TEN_MOI}</span>`).length - 1, 2, "hai dòng tóm tắt");
+  assert.ok(docTep("src/shared/huong-dan-doi-tac.ts").includes(`**${TEN_MOI}**`), "câu hướng dẫn Đối tác");
+  for (const tep of ["public/order-form.html", "web/order-form.ts", "web/order.ts", "src/shared/huong-dan-doi-tac.ts", "src/shared/dat-coc-truoc.ts"]) {
+    assert.ok(!docTep(tep).includes("Khách đặt cọc trước"), `${tep} còn tên cũ`);
+  }
+});
+
+test("ADR-0197 Đ1: dòng khoản thu mang dấu hiện tên mới (DTO đổi chữ lúc hiển thị, CSDL giữ chuỗi dấu); nhật ký mới ghi tên mới; khoản thu tay gõ tên mới bị chặn như gõ chuỗi dấu", async () => {
+  const w = dung();
+  const o = await lapCoc(w, PARTNER, 200000);
+  assert.equal((await guiDon(w, o.id, PARTNER)).status, 200);
+  assert.equal(khoanThu(w, o.id)[0].note, "Khách đặt cọc trước", "CSDL giữ chuỗi dấu");
+  for (const as of [PARTNER, ACC]) {
+    const t = await w.call("GET", `/api/orders/${o.id}/payments`, { as });
+    assert.equal(t.status, 200, t.text);
+    assert.equal(t.json.lanThu[0].ghiChu, TEN_MOI, `người xem ${as}`);
+  }
+  const nk = w.q("SELECT detail FROM audit_log WHERE detail LIKE ?", `${TEN_MOI}%`);
+  assert.equal(nk.length, 1, "nhật ký mới ghi tên mới");
+  const tay = await w.call("POST", `/api/orders/${o.id}/payments`, { as: PARTNER, body: { soTien: 10_000, hinhThuc: "CASH", nguoiThu: "toi", ghiChu: TEN_MOI } });
+  assert.equal(tay.status, 400, "gõ tay tên mới thì dòng thu tay trông y khoản cọc thật — chặn");
+  assert.match(tay.json.error.message, /dành riêng/);
+});

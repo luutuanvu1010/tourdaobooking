@@ -15,10 +15,9 @@ const doc = (tep: string): string => readFileSync(fileURLToPath(new URL(`../${te
 test("hình thức thanh toán: PREPAID là «Thanh toán ngay» ở nhãn, câu báo và câu nhắc; không còn chữ «Trả trước» ở nghĩa này", () => {
   assert.equal(NHAN_HINH_THUC.PREPAID, "Thanh toán ngay");
   assert.equal(nhanHinhThucDon("PREPAID", null), "Thanh toán ngay");
-  // tra-sau-cong.ts chạy trong Worker (import không đuôi) nên bài đọc chữ từ tệp thay vì import.
-  const cauKhongCoc = /CAU_TRA_SAU_KHONG_COC = "([^"]+)"/.exec(doc("src/modules/orders/tra-sau-cong.ts"))?.[1] ?? "";
-  assert.match(cauKhongCoc, /thanh toán ngay/);
-  for (const cau of [CAU_VE_TRA_TRUOC, cauKhongCoc]) assert.doesNotMatch(cau, /[Tt]rả trước/, cau);
+  // Câu `CAU_TRA_SAU_KHONG_COC` đã bỏ cùng 409 `tra_sau_khong_nhan_coc` (ADR-0197 Đ2: đơn Trả sau nhận lời khai đặt cọc).
+  assert.doesNotMatch(doc("src/modules/orders/tra-sau-cong.ts"), /CAU_TRA_SAU_KHONG_COC|tra_sau_khong_nhan_coc/);
+  assert.doesNotMatch(CAU_VE_TRA_TRUOC, /[Tt]rả trước/, CAU_VE_TRA_TRUOC);
   assert.match(CAU_VE_TRA_TRUOC, /Thanh toán ngay/);
 });
 
