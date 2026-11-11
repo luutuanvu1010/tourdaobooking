@@ -58,3 +58,10 @@ Ghi nhận (không chặn):
 - VỪA: «Khách đã trả đủ» khi cọc còn ở tay Đối tác là hành vi có sẵn (như «Tôi thu»), nhưng mở ô cọc cho Trả sau làm ca này gặp nhiều hơn — đã có bài ghim, báo chủ.
 - THẤP: tài khoản lai giữ quyền Đối tác (kể cả lai với Quản trị nếu có) bị chặn như Đối tác vì dùng đúng vị từ `holdsPartner` của lớp ADR-0170; chưa có bài ghim riêng ca lai.
 - THẤP: chú thích tên cũ ở `public/app.css` — đã sửa.
+
+## Kết quả cuối (sau khi gộp `origin/main`, lần lưu `e02fa8c6e`)
+
+- `npm run typecheck`: 0 lỗi. `npm test`: thoát 0 (8.840 bài qua, 0 đỏ; bài đo giờ chạy riêng xanh). Lần chạy đầu đỏ đúng một bài — A4 «hướng dẫn đọc xong trong 30 phút»: câu thêm vào hướng dẫn Đối tác làm nhóm vượt trần; đã viết gọn mục 6, nhóm Đối tác nay đúng 3.150/3.150 chữ (lần thêm chữ tới sẽ đỏ — phải bớt chỗ khác).
+- `npm run test:e2e`: 90/90 kịch bản xanh, kể cả `audit-invariants`.
+- Kịch bản Chrome đặt cọc: 14/14 (có `AXE_JS`), ảnh `docs/evidence/2026-11-11-dot-6b/anh/`.
+- Kịch bản Chrome Trả sau (`docs/evidence/2026-11-05-tra-sau/kich-ban/tra-sau-smoke.mjs`): đã hỏng sẵn ở bước gieo (tạo tài khoản Đối tác bằng `permissions` — ADR-0185 bắt tạo bằng vai trò); sửa thành `roles: ["TRAVEL_AGENCY"]`. Chạy lại: mọi bước xanh trừ **P1-390** — ba ô tích `.o-tick` 13×13 ở trang Tôi (khối nút thanh dưới tự chọn, ADR-0187, đã có trên `main`, `web/thanh-duoi-cai-dat.ts`) nhỏ hơn vùng chạm 44px. Không thuộc Đợt 6B (nhánh không sửa trang Tôi); ghi làm việc sau. Ảnh `docs/evidence/2026-11-11-dot-6b/tra-sau/`.
