@@ -826,6 +826,12 @@
       "note": "dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống). 0080 (ADR-0092 Đ2, Đ2b): trigger bil_debt_line_settlement_no_flip — dòng quyết toán gốc gắn đơn không làm số dư cặp (bên, công ty chủ) đổi dấu; bil_debt_line_held_once — dòng đảo giữ hộ chỉ khi người giữ hộ còn nợ ≥ số dòng gốc (một dòng giữ hộ tất toán MỘT lần: \"Công ty đã nhận\" HOẶC \"Nộp\"). 0112 (sổ đại lý đợt 2): ba loại HOA_HONG / GIAM_GIA_BEN_DAT / GIA_VON (ADR-0079 điều 2) — order_service_id bắt buộc cho HOA_HONG / GIA_VON gốc của phiếu Đã giao, chỉ mục duy nhất một phần bil_debt_line_one_commercial (phiếu, dòng dịch vụ, loại), trigger bil_debt_line_commercial_service / _direction / _gross / _discount (ADR-0079 điều 6 (i)–(iv); miễn dòng đảo, phiếu điều chỉnh, phiếu Đã giao gross_snapshot NULL); held_once tạo lại chỉ cộng HELD / SETTLEMENT / REFUND của cặp (đặc tả P10)"
     },
     {
+      "name": "bil_receipt_proof",
+      "module": "billing",
+      "kind": "table",
+      "note": "ảnh biên lai chuyển khoản (ảnh / PDF) ở kho R2 riêng BIEN_LAI (ADR-0196; migration 0158), CHỈ-THÊM: khoản «Công ty thu, chuyển khoản» do tài khoản Đối tác (không Kế toán) khai phải kèm đúng một ảnh, ghi CÙNG lô với khoản thu. Mỗi khoản thu tối đa một dòng (UNIQUE receipt_id, kể cả sau khi gỡ); người tải = người ghi khoản thu, khoản là CUSTOMER_PAYMENT; trần 20 ảnh / giờ / tài khoản bằng trigger (chạm trần thì cả lô huỷ). Khoá kho ngẫu nhiên bln/<32 hex>, loại theo chữ ký, cỡ, băm SHA-256; KHÔNG tên tệp gốc; không xoá dòng — ba mốc một chiều stored_at / purged_at (+ lý do TAI_LEN_DO_DANG / GO_TEP, băm về rỗng) / r2_deleted_at. Ảnh không làm khoản được tính là tiền đã về (dấu DECLARED ở bil_receipt_recon giữ nguyên)"
+    },
+    {
       "name": "bil_receipt_recon",
       "module": "billing",
       "kind": "table",
@@ -1689,6 +1695,10 @@
     "bil_posting_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "bil_receipt_bank_txn": { "id": "N1", "receipt_id": "N1", "txn_code": "N1", "transferred_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_receipt_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
+    "bil_receipt_proof": {
+      "id": "N1", "receipt_id": "N1", "storage_key": "N3", "content_kind": "N1", "byte_size": "N1", "content_hash": "N3", "stored_at": "N1",
+      "purged_at": "N1", "purge_reason": "N1", "r2_deleted_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
+    },
     "bil_receipt_recon": { "id": "N1", "receipt_id": "N1", "kind_code": "N1", "occurred_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_receipt_stage": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "catalog_item": { "code": "N1", "name": "N1", "unit": "N1", "price_adult": "N1", "price_child": "N1", "price_senior": "N1", "price_infant": "N1", "note_child": "N1", "note_senior": "N1", "note_infant": "N1", "sheet_row": "N1", "in_sheet": "N1", "first_seen_at": "N1", "updated_at": "N1" },

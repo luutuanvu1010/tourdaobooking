@@ -2,7 +2,7 @@
 // (src/shared/bien-lai.ts), dựng câu chèn dòng ảnh + nhật ký chỉ mã cho CÙNG lô với khoản thu. Việc kho R2 ở kho-bien-lai.ts (chạy SAU lô).
 import { auditStatement } from "../audit";
 import { bamSha256, taoKhoaNgauNhien, TEP_MOI_GIO } from "../../shared/tep-dinh-kem";
-import { canBienLai, kiemBienLai, type BienLaiDaKiem } from "../../shared/bien-lai";
+import { CAU_BIEN_LAI_BAT_BUOC, canBienLai, kiemBienLai, type BienLaiDaKiem } from "../../shared/bien-lai";
 import { canDoiChieu } from "./rules";
 import { chenAnhStatement, demAnhGanDay } from "./bien-lai-repo";
 import { loi, type KetQua, type LanThuHopLe, type NguoiGoi } from "./service";
@@ -10,7 +10,7 @@ import { loi, type KetQua, type LanThuHopLe, type NguoiGoi } from "./service";
 /** Cửa sổ trần ảnh / giờ (ADR-0196 Đ3 — cùng cách đếm với tệp kèm vé hỗ trợ: dòng tạo SAU mốc «bây giờ − 1 giờ»). */
 export const dauCuaSoBienLai = (now: Date): string => new Date(now.getTime() - 60 * 60 * 1000).toISOString();
 
-const BIEN_LAI_REQUIRED = () => loi(400, "bien_lai_required", "Chọn ảnh biên lai chuyển khoản trước khi lưu khoản thu «Công ty thu, chuyển khoản».");
+const BIEN_LAI_REQUIRED = () => loi(400, "bien_lai_required", CAU_BIEN_LAI_BAT_BUOC);
 /** Giả định ghi ở nhật ký thi công 6A: ảnh gửi kèm khoản KHÔNG bắt buộc ⇒ 400 (siết — không lưu tệp ADR không cho). */
 const BIEN_LAI_KHONG_CAN = () => loi(400, "invalid_input", "Khoản thu này không cần ảnh biên lai. Bỏ ảnh rồi lưu lại.");
 export const KHO_BIEN_LAI_CHUA_BAT = () => loi(503, "storage_unavailable", "Chưa lưu được khoản thu vì kho ảnh biên lai chưa sẵn sàng. Hãy báo Kế toán ghi giúp, hoặc thử lại sau.");

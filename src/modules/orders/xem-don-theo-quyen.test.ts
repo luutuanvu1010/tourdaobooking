@@ -279,7 +279,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
   const PARTNER_ROW: Record<string, string> = {
     "order.view": "own", "money.view": "own", "order.history.view": "own", "contact.view": "ownOrAssigned", "order.create": "any", "order.modify": "own",
     "order.trip.edit": "none", "task.progress": "assigned", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none",
-    "dispatch.guides.view": "any", "dispatch.refuse": "none" /* ADR-0030 điều 1 */, "payment.receive": "own" /* ADR-0026 đ10: thay ô cọc trên form đơn của mình */, "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
+    "dispatch.guides.view": "any", "dispatch.refuse": "none" /* ADR-0030 điều 1 */, "payment.receive": "own" /* ADR-0026 đ10: thay ô cọc trên form đơn của mình */, "payment.refund": "none", "payment.proof.view": "own" /* ADR-0196 Đ5: ảnh biên lai khoản mình ghi trên đơn mình */, "payment.proof.purge": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none" /* ADR-0060 Q-2 "Không": Đối tác không thấy dấu kế toán / số hoá đơn */, "party.view": "none",
     "party.write": "none", "party.staff.write": "none", "party.deactivate": "none", // ADR-0190
     "party.personal.view": "none", // ADR-0122 đ5: Đối tác không xem ngày sinh / địa chỉ người khác

@@ -24,6 +24,17 @@ export const TOI_DA_BASE64_BIEN_LAI = doDaiBase64(TOI_DA_BYTE);
 export const TOI_DA_THAN_KHOAN_THU_CO_ANH = TOI_DA_BASE64_BIEN_LAI + 64 * 1024;
 
 export const CAU_BIEN_LAI_QUA_CO = "Ảnh biên lai không được quá 10 MB.";
+/** ADR-0196 Đ1: câu của 400 `bien_lai_required` — MỘT nguồn cho máy chủ và giao diện (giao diện chặn trước khi gửi). */
+export const CAU_BIEN_LAI_BAT_BUOC = "Chọn ảnh biên lai chuyển khoản trước khi lưu khoản thu «Công ty thu, chuyển khoản».";
+// Chữ giao diện (ADR-0196 «Người dùng sẽ thấy», Hệ quả — chữ nguyên văn ADR; chủ có thể đổi).
+export const NHAN_O_BIEN_LAI = "Ảnh biên lai chuyển khoản";
+export const NHAN_XEM_BIEN_LAI = "Xem biên lai";
+/** Câu dưới dòng khoản thu theo trạng thái ảnh (null = có ảnh, hiện nút «Xem biên lai»). */
+export const cauTrangThaiBienLai = (t: TrangThaiBienLai): string | null =>
+  t === "CO" ? null : t === "CHUA_TAI_XONG" ? "ảnh chưa tải xong" : t === "DA_GO" ? "Biên lai đã được gỡ" : "Chưa có biên lai";
+/** Đường xem ảnh qua Worker (ADR-0196 Đ6). */
+export const duongBienLai = (orderId: string, receiptId: string): string =>
+  `/api/orders/${encodeURIComponent(orderId)}/payments/${encodeURIComponent(receiptId)}/bien-lai`;
 const CAU_BIEN_LAI_HONG = "Ảnh biên lai không đọc được. Hãy chọn lại tệp.";
 
 export interface BienLaiDaKiem { bytes: Uint8Array; loai: LoaiTep }

@@ -200,6 +200,10 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   // Sổ tiền lượt 1 (module billing — ADR-0024/0025/0026, kế hoạch §3.4): 12 route; mỗi route tự hỏi can() với ô của MATRIX.
   { method: "GET", path: "/api/orders/:id/payments", access: "orders" }, // order.view + money.view phạm vi đơn
   { method: "POST", path: "/api/orders/:id/payments", access: "orders" }, // payment.receive { ownerId, assigned }
+  { method: "GET", path: "/api/orders/:id/payments/:receiptId/bien-lai", access: "orders" }, // ADR-0196 Đ6: payment.proof.view { ownerId = người lập } — Đối tác chính chủ xem được
+  { method: "POST", path: "/api/orders/:id/payments/:receiptId/bien-lai/go", access: "office" }, // ADR-0196 Đ7: payment.proof.purge (chỉ Toàn quyền)
+  { method: "GET", path: "/api/ledger/bien-lai-cho-xoa", access: "office" }, // ADR-0196 Đ2: payment.proof.purge
+  { method: "POST", path: "/api/ledger/bien-lai-cho-xoa/chay-lai", access: "office" }, // ADR-0196 Đ2: payment.proof.purge — chạy lại dọn kho SAU lô quyết xoá
   { method: "GET", path: "/api/orders/:id/nhap-ke-toan", access: "orders" }, // ADR-0060: order.view + accounting.entry.view phạm vi đơn
   { method: "POST", path: "/api/orders/:id/nhap-ke-toan", access: "office" }, // ADR-0060: accounting.entry.mark (Kế toán, Toàn quyền)
   { method: "POST", path: "/api/orders/:id/delivered", access: "orders" }, // order.handover { assigned } — HDV đang phụ trách, Quản trị, Toàn quyền
@@ -783,6 +787,7 @@ test("mức truy cập của 469 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-09 (vòng sửa 1, I-2): + GET /api/ve/luot-quet (office; thân hỏi ve.doi-chieu.view và cổng Quản trị) = 481.
   // 2026-11-09 (ADR-0187 Đ2.3, gộp bản chính có vé Tour Đảo): + PUT /api/account/thanh-duoi (staff; thân hỏi me.favorites.write rồi ghimDuoc) = 486 (476 của bản chính + 6 của Đợt 2).
   // 2026-11-09 (ADR-0194 đợt 1, gộp bản chính có vé Tour Đảo Đợt 2): + 4 route /api/cai-dat/giao-dien* (GET, GET tat-ca, POST, POST khoi-phuc) = 486.
-  assert.equal(actual.length, 488, "số route thực tế lệch 488 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 488, "SNAPSHOT phải có đúng 488 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-11 (ADR-0196, Đợt 6A): + GET (orders) /api/orders/:id/payments/:receiptId/bien-lai, POST (office) …/bien-lai/go, GET + POST (office) /api/ledger/bien-lai-cho-xoa[/chay-lai] = 492.
+  assert.equal(actual.length, 492, "số route thực tế lệch 492 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 492, "SNAPSHOT phải có đúng 492 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

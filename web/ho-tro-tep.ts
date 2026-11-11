@@ -4,9 +4,10 @@
 import type { FeedbackTepDto, FeedbackTepGuiDto } from "../src/shared/contracts";
 import { CAU_QUA_TONG, CAU_SAI_LOAI, TONG_BYTE_MOI_TIN, nhanLoaiTep, type LoaiTep } from "../src/shared/tep-dinh-kem";
 import {
-  CAU_DANG_CHUAN_BI, CAU_NHAC_GIAY_TO, CHAT_LUONG_JPG, NHAN_DINH_KEM, NHAN_GO_TEP, NHAN_TAI_VE, cauTrangThaiTep, coTep, duongTep, kichThuocThuNho, kiemTepDaChon, maBase64, nhanTep,
+  CAU_DANG_CHUAN_BI, CAU_NHAC_GIAY_TO, NHAN_DINH_KEM, NHAN_GO_TEP, NHAN_TAI_VE, cauTrangThaiTep, coTep, duongTep, kiemTepDaChon, maBase64, nhanTep,
 } from "../src/shared/tep-hien-thi";
 import { h, replaceChildren } from "./dom";
+import { ACCEPT_ANH_PDF, thuNhoAnh } from "./thu-nho-anh";
 import { icon } from "./icons";
 
 /** Một tệp đã chuẩn bị xong (đã thu nhỏ nếu là ảnh mở được, đã mã base64) — nằm trong bản nháp tới khi gửi được. Tên chỉ để người chọn nhận ra, KHÔNG gửi lên. */
@@ -14,39 +15,7 @@ export interface TepNhap { khoa: string; ten: string; loai: LoaiTep; kichThuoc: 
 
 export const thanTep = (ds: readonly TepNhap[]): FeedbackTepGuiDto[] => ds.map((t) => ({ noiDung: t.noiDung }));
 
-const ACCEPT = "image/jpeg,image/png,image/heic,image/heif,.heic,.heif,application/pdf";
-const NEN_TRANG = "#ffffff"; // ảnh PNG trong suốt: tô nền trắng trước khi vẽ ra JPG (JPG không có kênh trong suốt)
-
-/**
- * Vẽ lại ảnh qua khung vẽ: cạnh dài ≤ 2000, JPG 0,85 (ADR-0144 đ7) — bỏ luôn toạ độ chụp và mọi siêu dữ liệu. Giải bằng thẻ `<img>` để trình duyệt tự xoay theo
- * hướng chụp. Không giải được (HEIC trên máy tính) / lỗi bất kỳ ⇒ null: người gọi gửi nguyên tệp.
- */
-async function thuNhoAnh(f: Blob): Promise<Uint8Array | null> {
-  const url = URL.createObjectURL(f);
-  try {
-    const img = new Image();
-    img.src = url;
-    await img.decode();
-    const { rong, cao } = kichThuocThuNho(img.naturalWidth, img.naturalHeight);
-    if (!rong || !cao) return null;
-    const c = document.createElement("canvas");
-    c.width = rong;
-    c.height = cao;
-    const g = c.getContext("2d");
-    if (!g) return null;
-    g.fillStyle = NEN_TRANG;
-    g.fillRect(0, 0, rong, cao);
-    g.drawImage(img, 0, 0, rong, cao);
-    const blob = await new Promise<Blob | null>((res) => c.toBlob(res, "image/jpeg", CHAT_LUONG_JPG));
-    if (!blob) return null;
-    const ra = new Uint8Array(await blob.arrayBuffer());
-    return nhanLoaiTep(ra.subarray(0, 16)) === "jpg" ? ra : null;
-  } catch {
-    return null;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
+const ACCEPT = ACCEPT_ANH_PDF;
 
 /** Đọc + nhận loại theo chữ ký (không tin đuôi tệp) + thu nhỏ ảnh + mã base64. Sai loại / PDF quá trần ⇒ câu báo. */
 async function chuanBiTep(f: File): Promise<TepNhap | { loi: string }> {
