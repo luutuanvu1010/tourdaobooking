@@ -166,6 +166,8 @@ const GHI_SAU_KHOA = (bang) =>
  */
 export const COT_N3_NHAT_KY = {
   "fbk_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0144: băm tệp kèm vé hỗ trợ — nhật ký chỉ mang mã tệp
+  "bil_receipt_proof.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0196: băm ảnh biên lai — nhật ký chỉ mang mã ảnh
+  "bil_receipt_proof.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 biên lai — không bao giờ vào nhật ký
   "fbk_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 vé hỗ trợ — không bao giờ vào nhật ký
   "pty_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0123 (lát H-2 Gói 2): băm ảnh giấy tờ — nhật ký chỉ mang mã tệp
   "pty_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 — không bao giờ vào nhật ký

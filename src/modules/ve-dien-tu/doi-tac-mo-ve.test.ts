@@ -24,7 +24,13 @@ async function moDon(w: any, as: string) {
   assert.equal(x.status, 200, x.text);
   return id;
 }
-const thu = (w: any, id: string, as: string, body: Record<string, unknown>) => w.call("POST", `/api/orders/${id}/payments`, { as, body: { soTien: TONG, hinhThuc: "CASH", ...body } });
+// ADR-0196: Đối tác ghi «Công ty, chuyển khoản» phải kèm MỘT ảnh biên lai — bài này không kiểm ảnh, chỉ gửi kèm PNG giả cho đúng luật ghi.
+const PNG_BL = { noiDung: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d]).toString("base64") };
+const thu = (w: any, id: string, as: string, body: Record<string, unknown>) => {
+  const than: Record<string, unknown> = { soTien: TONG, hinhThuc: "CASH", ...body };
+  if (as === PARTNER && than.hinhThuc === "BANK_TRANSFER" && than.nguoiThu === "cong_ty") than.bienLai = PNG_BL;
+  return w.call("POST", `/api/orders/${id}/payments`, { as, body: than });
+};
 const veDon = async (w: any, id: string) => { const r = await w.call("GET", `/api/ve/don/${id}`, { as: ADM }); assert.equal(r.status, 200, r.text); return r.json; };
 const nop = (w: any, id: string, soTien: number) => w.call("POST", "/api/ledger/settlements", { as: ACC, body: { chieu: "nop", partyId: `pty-${PARTNER}`, phanBo: [{ orderId: id, soTien }] } });
 const khoanDau = (w: any, id: string) => String(w.q("SELECT id FROM bil_payment_receipt WHERE order_id = ? AND reverses_id IS NULL AND kind_code = 'CUSTOMER_PAYMENT' ORDER BY rowid", id)[0].id);

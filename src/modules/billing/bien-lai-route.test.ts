@@ -15,6 +15,7 @@ const demBL1 = (w: W): number => {
 };
 import { TOI_DA_THAN_KHOAN_THU_CO_ANH } from "../../shared/bien-lai.ts";
 import { TEP_MOI_GIO } from "../../shared/tep-dinh-kem.ts";
+import { chenAnhStatement } from "./bien-lai-repo.ts";
 
 const DT = "71717171-7171-4171-8171-717171717171";
 const DT2 = "72727272-7272-4272-8272-727272727272";
@@ -203,6 +204,22 @@ test("đơn vừa «Khách đã trả đủ» xen giữa ⇒ 409 (không 5xx); k
   assert.equal(soKhoan(w, id), 0);
   assert.equal(soAnh(w), 0);
   assert.equal(w.r2BienLai.soLan.put, 0);
+});
+
+test("lính gác cùng lô (ADR-0196 Đ3): câu chèn ảnh chỉ chèn khi khoản thu có thật, do chính người tải ghi, là CUSTOMER_PAYMENT — lớp thứ ba sau khoá ngoại và trigger người tải", async () => {
+  const w = setup();
+  const id = don(w);
+  assert.equal((await thu(w, DT, id, { soTien: 1_000, hinhThuc: "CASH", nguoiThu: "cong_ty" })).status, 201);
+  const rid = khoanCuoi(w, id);
+  // Gỡ hai lớp kia trong CSDL thử: chỉ còn mệnh đề EXISTS của câu chèn canh (đường route không tới được nhánh này — trigger đơn đã giao chặn lô sớm hơn).
+  w.sqlite.exec("PRAGMA foreign_keys = OFF");
+  w.sqlite.exec("DROP TRIGGER bil_receipt_proof_author_ins");
+  const at = new Date().toISOString();
+  const chen = (receiptId: string, by: string) => chenAnhStatement(w.env.DB, { id: uuid(), receiptId, key: `bln/${uuid().replaceAll("-", "").slice(0, 32)}`, loai: "png", kichThuoc: 5, bam: "e".repeat(64), by, at }).run();
+  assert.equal((await chen(uuid(), DT)).meta.changes, 0, "khoản không có thật");
+  assert.equal((await chen(rid, KT)).meta.changes, 0, "người tải khác người ghi khoản");
+  assert.equal(soAnh(w), 0, "không dòng ảnh mồ côi");
+  assert.equal((await chen(rid, DT)).meta.changes, 1, "đúng khoản, đúng người: chèn được (chống bài rỗng)");
 });
 
 test("kho ảnh chưa bật (thiếu binding) mà khoản cần ảnh ⇒ 503, không khoản thu; khoản không cần ảnh vẫn ghi được", async () => {

@@ -33,7 +33,8 @@
   "r2_buckets": [
     { "binding": "HO_SO", "bucket_name": "tourdao-sales-dev-ho-so" },
     { "binding": "HO_TRO", "bucket_name": "tourdao-sales-dev-ho-tro" },
-    { "binding": "VE_DIEN_TU", "bucket_name": "tourdao-sales-dev-ve-dien-tu" }
+    { "binding": "VE_DIEN_TU", "bucket_name": "tourdao-sales-dev-ve-dien-tu" },
+    { "binding": "BIEN_LAI", "bucket_name": "tourdao-sales-dev-bien-lai" }
   ],
   "send_email": [{ "name": "EMAIL" }],
   "durable_objects": { "bindings": [{ "name": "BANG_TIN", "class_name": "BangTin" }] },

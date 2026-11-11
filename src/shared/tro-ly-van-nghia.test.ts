@@ -207,7 +207,9 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // 2026-11-09 (vé Tour Đảo Đợt 2, bài Hướng dẫn «Quét vé Tour Đảo», «Đối chiếu vé», «Kho vé»): đoạn «Điều dễ sai» của bài Quét vé từng có chữ «Đã dùng» hai lần và thành đoạn điểm cao nhất của câu than phiền
   // (số đo rớt xuống 8, dưới trần 12, mất khoá «đúng 12 đoạn» và đoạn Câu hỏi thường gặp). Đã bỏ một chữ «Đã dùng» thừa ở bài (chữ bài, không đổi luật); đo lại bằng chính bài này: 12 / 9 / 49. Số đo, luật không đổi, trần 12 vẫn cắt.
   // 2026-11-09 (ADR-0190, ô quyền `party.deactivate`): bảng tên kho cấu trúc thêm dòng «ngừng dùng, dùng lại hồ sơ trong Danh bạ» (chữ «dùng» hai lần) ⇒ đo lại bằng chính bài này (sau khi gộp main có vé Tour Đảo Đợt 2, 12 → 13): 13 / 9 / 49 — thêm MỘT đoạn sát ngưỡng ở câu than phiền. Số đo, luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [13, 9, 49]);
+  // 2026-11-11 (ADR-0196, Đợt 6A): bảng tên kho cấu trúc thêm hai ô «xem ảnh biên lai chuyển khoản», «gỡ ảnh biên lai gửi nhầm» ⇒ đo lại bằng chính bài này: câu than phiền
+  // 13 → 12 (vẫn bằng trần 12 nên khối tài liệu không đổi số đoạn); hai câu kia giữ nguyên. Luật không đổi.
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [12, 9, 49]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
   assert.equal(thanPhien.length, SO_DOAN_TOI_DA);

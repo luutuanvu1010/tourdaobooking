@@ -104,6 +104,7 @@ const ROUTE_GET: string[] = [...new Set(readdirSync(MODULES).flatMap((m) => {
 const MIEN_200: Record<string, string> = {
   "/api/ve/don/:orderId": "ADR-0153 (kho vé điện tử): danh sách vé của MỘT đơn có vé giữ — bài này không nhập kho vé nên mã đơn lạ ⇒ 404; DTO chỉ SỐ LƯỢNG theo nhóm khách + cờ thu đủ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
   "/api/ve/lo-da-huy/:veId/anh": "Chủ quyết 2/11/2026: thân là byte ảnh vé của lô đã huỷ (không phải JSON, không chở tiền) — cần vé đã mở; bài này không nhập kho; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
+  "/api/orders/:id/payments/:receiptId/bien-lai": "ADR-0196 Đ6: thân là byte ảnh biên lai (không phải JSON, không chở tiền) — cần khoản thu có ảnh đã lưu; bài này không gửi ảnh nên mã khoản lạ ⇒ 404 / 403 (ô payment.proof.view), không bao giờ 200",
   "/api/ve/anh/:allocationId": "ADR-0153 Đ3: thân là byte ảnh vé (không phải JSON, không chở tiền) — cần vé đã giữ cho đơn thu đủ; bài này không nhập kho; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
   "/ve/:token": "ADR-0153 Đ2: trang công khai theo token — không đăng nhập; thân là HTML chỉ có ảnh + nhãn nhóm khách + khoảng ngày (không tên khách, mã đơn, giá); token lạ ⇒ 404 cùng một thân",
   "/api/ve-khach/:token/anh/:slot": "ADR-0153 Đ2: ảnh vé công khai theo token (byte ảnh, không chở tiền); token lạ ⇒ 404 cùng một thân",
