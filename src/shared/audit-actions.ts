@@ -78,6 +78,11 @@ export const AUDIT_ACTIONS = {
   order_delivered: { label: "Khách đã trả đủ", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order", ghiTien: true },
   payment_recorded: { label: "Ghi khoản thu", group: "order" },
+  // ADR-0196 — ảnh biên lai chuyển khoản (nhật ký chỉ mã ảnh, không khoá kho, không nội dung).
+  payment_proof_added: { label: "Gửi ảnh biên lai chuyển khoản", group: "order" },
+  payment_proof_viewed: { label: "Mở ảnh biên lai chuyển khoản", group: "order" },
+  payment_proof_purged: { label: "Gỡ hoặc quyết xoá ảnh biên lai chuyển khoản", group: "order" },
+  payment_proof_purge_retried: { label: "Chạy lại xoá ảnh biên lai khỏi kho", group: "system" },
   // ADR-0060: dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm bil_accounting_entry) — detail = moTaDauNhap (số hoá đơn nguyên văn; lý do đã chặn dãy số dài).
   // Lịch sử đơn BỎ hai hành động này với người không qua ô accounting.entry.view; không vào hộp thông báo (v_aud_order_event là danh sách cho phép).
   order_accounting_entry_marked: { label: "Đánh dấu đã nhập phần mềm kế toán", group: "order", ghiTien: true },

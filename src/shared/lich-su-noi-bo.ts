@@ -115,6 +115,8 @@ export const LICH_SU_NOI_BO_AN = [
   "ve_xoa_anh_het_han", // ADR-0186 Đ4: tác nhân DON_ANH_VE ghi, không gắn đơn — ẩn; Toàn quyền đọc ở trang Nhật ký
   // ADR-0187 Đ3 mức (a): soát dòng tiền tự ghi đơn mình lập — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; Sổ công nợ và trang Nhật ký (Toàn quyền) vẫn đọc được.
   "ledger_self_write_reviewed",
+  // ADR-0196: ảnh biên lai chuyển khoản (gửi, mở, gỡ, chạy lại dọn kho) — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "payment_proof_added", "payment_proof_viewed", "payment_proof_purged", "payment_proof_purge_retried",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nội bộ nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

@@ -2339,7 +2339,20 @@ export interface LanThuDto {
   /** ADR-0092 Đ6: mã giao dịch ngân hàng đã chuẩn hoá + số tiền thực chuyển — CHỈ có khoá này khi người xem giữ `ledger.write` (Kế toán, Toàn quyền). */
   maGiaoDich?: string;
   soThucChuyen?: number;
+  /**
+   * ADR-0196 Đ10: trạng thái ảnh biên lai — CHỈ có khoá này khi khoản có dòng ảnh VÀ người xem giữ ô `payment.proof.view` cho đơn (Kế toán, Toàn quyền, Đối tác lập đơn).
+   * `CO` mở được; `CHUA_TAI_XONG` «ảnh chưa tải xong»; `DA_GO` «Biên lai đã được gỡ»; `CHUA_CO` «Chưa có biên lai». Không bao giờ mang khoá kho.
+   */
+  bienLai?: "CO" | "CHUA_TAI_XONG" | "DA_GO" | "CHUA_CO";
 }
+
+/** `GET /api/ledger/bien-lai-cho-xoa` (ADR-0196 Đ2, chỉ Toàn quyền): ảnh biên lai tải dở dang quá hạn / chờ xoá khỏi kho — chỉ mã, không khoá kho. */
+export interface BienLaiChoXoaResponse {
+  anh: { id: string; orderId: string; trangThai: "TAI_DO_DANG" | "CHO_XOA"; lyDo: string | null; luc: string }[];
+  conNua: boolean;
+}
+/** `POST /api/ledger/bien-lai-cho-xoa/chay-lai` — số đối tượng đã xoá khỏi kho / còn lỗi. */
+export interface BienLaiChayLaiResponse { daXoa: number; conLai: number }
 
 /** `GET /api/orders/:id/payments` — tiền của MỘT đơn + lý do đang giữ + nút nào được hiện (máy chủ vẫn kiểm lại khi bấm). */
 export interface OrderPaymentsResponse {
@@ -2366,6 +2379,8 @@ export interface OrderPaymentsResponse {
   coTheHoanThanh: boolean;
   /** Người xem được chọn người thu khác mình / Công ty, và chọn ngày phát sinh khác hôm nay (Kế toán, Toàn quyền). */
   laKeToan: boolean;
+  /** ADR-0196 Đ1: người xem giữ quyền Đối tác và không giữ quyền Kế toán ⇒ form «Ghi khoản thu» chọn «Công ty» + «Chuyển khoản» phải kèm ảnh biên lai (máy chủ kiểm lại). */
+  bienLaiKhiCongTyCk: boolean;
   /**
    * Thao tác Kế toán đặt TẠM trên trang đơn (điều phối 30/9 — hai màn sổ riêng chờ chủ vẽ lại): CHỈ có khi `laKeToan`, còn lại `null`.
    * `dangGiu` = ai đang giữ tiền của công ty VÌ ĐƠN NÀY (số dư dương của sổ, theo đơn); `choXacNhan` = id khoản thu "Công ty thu" chưa được xác nhận (nút
@@ -2505,6 +2520,8 @@ export interface LanThuInput {
   /** ADR-0092 Đ6 (C1): BẮT BUỘC khi hình thức chuyển khoản + Công ty thu + người ghi là Kế toán / Toàn quyền; người khác gửi ⇒ 400. */
   maGiaoDich?: string;
   soThucChuyen?: number;
+  /** ADR-0196 Đ2: ĐÚNG một ảnh biên lai (base64 chuẩn, không tiền tố `data:`) — bắt buộc khi `bienLaiKhiCongTyCk` và chọn Công ty + Chuyển khoản; khoản khác gửi ⇒ 400. */
+  bienLai?: { noiDung: string };
 }
 
 /** `POST /api/ledger/balances` — tiền từng đơn (chỉ đơn người gọi được xem tiền; đơn khác bị bỏ khỏi kết quả). */

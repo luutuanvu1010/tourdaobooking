@@ -95,6 +95,8 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "dispatch.refuse": { ten: "trả đơn mình đang phụ trách (Từ chối)", moTa: "Người đang phụ trách bấm Từ chối đơn, chọn lý do; đơn về hàng chờ. Không trả được khi đơn đi hôm nay hoặc ngày mai — gọi văn phòng để đổi người." },
   "dispatch.guides.view": { ten: "xem danh sách hướng dẫn viên", moTa: "Danh sách hẹp các hướng dẫn viên nội bộ." },
   "payment.receive": { ten: "ghi khoản thu tiền", moTa: "Ghi số tiền khách đã trả cho đơn ở mục Thanh toán của trang đơn." },
+  "payment.proof.view": { ten: "xem ảnh biên lai chuyển khoản", moTa: "Mở ảnh biên lai Đối tác gửi kèm khoản «Công ty thu, chuyển khoản» ở mục Thanh toán của trang đơn." },
+  "payment.proof.purge": { ten: "gỡ ảnh biên lai gửi nhầm", moTa: "Gỡ ảnh biên lai chuyển khoản gửi nhầm và dọn kho ảnh biên lai." },
   "payment.refund": { ten: "ghi hoàn tiền cho khách", moTa: "Ghi khoản trả lại khách trong sổ." },
   "order.handover": { ten: "bấm Xác nhận khách đã trả đủ", moTa: "Báo đơn đã phục vụ xong và đã thu đủ tiền." },
   "order.complete": { ten: "bấm Hoàn thành", moTa: "Kế toán chốt đơn sau khi đối chiếu tiền." },

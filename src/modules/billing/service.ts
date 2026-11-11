@@ -19,6 +19,10 @@ import { docGiaoDich, kiemMaGiaoDich, type GiaoDich } from "./ma-giao-dich";
 import { phaiThuHienHanh, phaiThuHienHanhNhieuDon } from "./thay-lan-thu-repo";
 import { cauTangChoDon } from "./tra-sau-tang";
 import { kiemNguoiThuKenh } from "./kenh-thu";
+import { cauBienLai, docBienLai, loiTriggerBienLai } from "./bien-lai";
+import { datBienLai } from "./kho-bien-lai";
+import { trangThaiAnhCuaKhoan, type TrangThaiAnhRow } from "./bien-lai-repo";
+import { trangThaiBienLai } from "../../shared/bien-lai";
 import { kenhThuCuaDon } from "./kenh-thu-repo";
 import { donTraSauTheoId } from "./tra-sau-repo";
 import { CAU_HOAN_SAU_GIAO } from "../../shared/phan-dinh";
@@ -332,10 +336,11 @@ const cumCuaKhoan = (receipts: readonly Pick<ReceiptDbRow, "id" | "collector_rol
 export function cauLanThu(
   db: D1Database,
   /** `nhatKy`: người BẤM và chữ nhật ký khi khác người ghi (ADR-0159: người ghi là người lập, người bấm ghi ở nhật ký); vắng ⇒ như cũ. */
-  input: { orderId: string; lt: LanThuHopLe; stage: "PREPAID" | "AT_DELIVERY"; ai: NguoiGoi; congTyId: string; at: string; giaoDich?: GiaoDich | null; nhatKy?: { staffId: string; detail: string } },
+  /** `receiptId`: ADR-0196 — lệnh ghi khoản thu kèm ảnh biên lai cấp mã trước để câu chèn ảnh cùng lô trỏ đúng khoản; vắng ⇒ sinh mới như cũ. */
+  input: { orderId: string; lt: LanThuHopLe; stage: "PREPAID" | "AT_DELIVERY"; ai: NguoiGoi; congTyId: string; at: string; giaoDich?: GiaoDich | null; nhatKy?: { staffId: string; detail: string }; receiptId?: string },
   receiptStmt: (r: NewReceipt) => D1PreparedStatement,
 ): D1PreparedStatement[] {
-  const receiptId = crypto.randomUUID();
+  const receiptId = input.receiptId ?? crypto.randomUUID();
   const r: NewReceipt = {
     id: receiptId, orderId: input.orderId, kind: "CUSTOMER_PAYMENT", amount: input.lt.soTien, collectorPartyId: input.lt.collectorPartyId, collectorRole: input.lt.collectorRole,
     method: input.lt.hinhThuc, stage: input.stage, occurredDate: input.lt.ngayPhatSinh, note: input.lt.ghiChu, at: input.at, by: input.ai.staffId,
@@ -363,6 +368,13 @@ export function cauLanThu(
   }
   return out;
 }
+
+/** ADR-0196 Đ10: thêm khoá `bienLai` (chỉ trạng thái) vào khoản thu có dòng ảnh; `anh` rỗng khi người xem không giữ ô xem ảnh. */
+const ganBienLai = (ds: LanThuDto[], anh: readonly TrangThaiAnhRow[]): LanThuDto[] => {
+  if (anh.length === 0) return ds;
+  const theo = new Map(anh.map((a) => [a.receipt_id, trangThaiBienLai(a)]));
+  return ds.map((l) => (theo.has(l.id) ? { ...l, bienLai: theo.get(l.id)! } : l));
+};
 
 /** Kế toán không hồ sơ ghi "Công ty thu" ⇒ không dòng nào (sinhDongLanThu trả rỗng khi người ghi là Kế toán) — id công ty chỉ để đủ kiểu. */
 const congTyNeuKeToan = (ai: NguoiGoi, congTyId: string): string => (ai.laKeToan ? congTyId : "");
@@ -431,6 +443,8 @@ export interface QuyenXemTien {
   coTheBamHoanThanh: boolean;
   /** Task 9: không được biết có giá vốn (không `supply.terms.view`, hoặc giữ quyền Đối tác) — câu VUOT chung, số dư nhà cung cấp gộp. BẮT BUỘC như `laDoiTac`. */
   anGiaVon: boolean;
+  /** ADR-0196 Đ10: người xem giữ ô `payment.proof.view` cho đơn (route hỏi `can(` với ownerId = người lập) ⇒ khoản thu mang trạng thái ảnh biên lai. BẮT BUỘC. */
+  xemBienLai: boolean;
 }
 
 /**
@@ -480,7 +494,11 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
     conLai: so.conLai,
     du: so.du,
     chuaRo: so.chuaRo,
-    lanThu: lanThuDto(receipts, ai.laKeToan, maDon, quyen.laDoiTac ? { staffId: ai.staffId, partyId: ai.partyId } : null),
+    lanThu: ganBienLai(
+      lanThuDto(receipts, ai.laKeToan, maDon, quyen.laDoiTac ? { staffId: ai.staffId, partyId: ai.partyId } : null),
+      quyen.xemBienLai ? await trangThaiAnhCuaKhoan(db, receipts.map((r) => r.id)) : [],
+    ),
+    bienLaiKhiCongTyCk: ai.laDoiTac && !ai.laKeToan,
     deliveredAt: info.deliveredAt,
     completedAt: info.completedAt,
     lyDoChuaGiao: info.deliveredAt ? null : (lyGiao as LyDoGiuDonDto | null),
@@ -561,7 +579,14 @@ const DA_GIAO = () => loi(409, "order_delivered", "Đơn đã ở bước Khách
 export const CHUA_CO_CONG_TY = () => loi(503, "owner_company_missing", "Chưa có hồ sơ công ty chủ — báo người phụ trách hệ thống.");
 
 /** `phan` = phần thương mại của đơn do ROUTE đọc (`phanThuongMaiCuaDon`, sau `can(`) — quyết bên đặt / nhà cung cấp của lần thu (sổ đại lý đợt 2 Task 5, Ruling R-22). */
-export async function ghiLanThu(db: D1Database, input: { orderId: string; deliveredAt: string | null; phan: PhanThuongMai | null; raw: unknown; ai: NguoiGoi }): Promise<KetQua<null>> {
+/**
+ * ADR-0196 Đ2: `kho` = kho ảnh biên lai (`env.BIEN_LAI`, vắng khi chưa khai binding). Thứ tự: đọc khoản thu → kiểm ảnh (`docBienLai` — bắt buộc / sai loại / quá cỡ /
+ * trần giờ, không ghi gì) → MỘT lô D1: khoản thu, dấu DECLARED, dòng ảnh (chưa lưu), nhật ký chỉ mã → đặt R2 → đánh dấu đã lưu. Đặt R2 hỏng không ném, không 5xx:
+ * khoản thu vẫn ghi, dòng ảnh «tải dở dang» (`bienLaiChuaTaiXong`).
+ */
+export async function ghiLanThu(
+  db: D1Database, input: { orderId: string; deliveredAt: string | null; phan: PhanThuongMai | null; raw: unknown; ai: NguoiGoi; kho?: R2Bucket },
+): Promise<KetQua<{ bienLaiChuaTaiXong: boolean }>> {
   if (input.deliveredAt) return DA_GIAO();
   const congTyId = await ownerCompanyId(db);
   if (!congTyId) return CHUA_CO_CONG_TY();
@@ -583,21 +608,32 @@ export async function ghiLanThu(db: D1Database, input: { orderId: string; delive
     if (!k.ok) return k;
     boQuaMa = k.value;
   }
-  const at = new Date().toISOString();
-  const stmts = cauLanThu(db, { orderId: input.orderId, lt: lt.value, stage: "PREPAID", ai: input.ai, congTyId, at, giaoDich: gd.value }, (r) => receiptBeforeDeliveredStatement(db, r));
+  const now = new Date();
+  const bl = await docBienLai(db, { raw: (input.raw as { bienLai?: unknown } | null | undefined)?.bienLai, lt: lt.value, ai: input.ai, congTyId, coKho: !!input.kho, now });
+  if (!bl.ok) return bl;
+  const at = now.toISOString();
+  const receiptId = crypto.randomUUID();
+  const stmts = cauLanThu(db, { orderId: input.orderId, lt: lt.value, stage: "PREPAID", ai: input.ai, congTyId, at, giaoDich: gd.value, receiptId }, (r) => receiptBeforeDeliveredStatement(db, r));
   for (const bq of [trung.value, boQuaMa]) if (bq) stmts.push(cauBoQuaTrung(db, { orderId: input.orderId, by: input.ai.staffId, at, boQua: bq }, "changes() > 0"));
+  // ADR-0196 Đ3: dòng ảnh ĐỨNG SAU khoản thu trong cùng lô (lính gác EXISTS khoản thu) — khoản thu luôn là câu ĐẦU (kq[0]).
+  const viTriAnh = stmts.length;
+  if (bl.value) stmts.push(...cauBienLai(db, { orderId: input.orderId, receiptId, bl: bl.value, by: input.ai.staffId, at }));
   let kq: D1Result[];
   try {
     kq = await db.batch(stmts);
   } catch (e) {
     const k = await loiKhoaKy(db, e, [lt.value.ngayPhatSinh]);
     if (k) return k;
-    const m = loiMaTrigger(e);
+    const m = loiMaTrigger(e) ?? loiTriggerBienLai(e);
     if (m) return m;
     throw e;
   }
   if ((kq[0]!.meta.changes ?? 0) === 0) return DA_GIAO(); // đơn vừa "Đã giao" giữa lúc đọc và lúc ghi (lính gác của câu khoản thu)
-  return { ok: true, value: null };
+  if (!bl.value) return { ok: true, value: { bienLaiChuaTaiXong: false } };
+  // Khoản thu đã chèn mà dòng ảnh không (không thể khi trigger còn — lưới phòng): báo «chưa tải xong», không 5xx.
+  if ((kq[viTriAnh]!.meta.changes ?? 0) === 0) return { ok: true, value: { bienLaiChuaTaiXong: true } };
+  const daLuu = input.kho ? await datBienLai(db, input.kho, { receiptId, anhId: bl.value.anhId, bytes: bl.value.tep.bytes, loai: bl.value.tep.loai, luc: () => new Date().toISOString() }) : false;
+  return { ok: true, value: { bienLaiChuaTaiXong: !daLuu } };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------

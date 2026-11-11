@@ -144,6 +144,12 @@ export const MATRIX = {
   // module billing). FIELD assigned (HDV đang phụ trách ghi tiền mình thu trước chuyến), PARTNER own, INTERN own — thay ô cọc trên form đơn của mình.
   // Người thu ∈ {chính mình, Công ty} trừ Kế toán/Toàn quyền (kiểm ở route, không phải ô này).
   "payment.receive": row("own", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"),
+  // ADR-0196 Đ5 (accepted 2026-11-11): XEM ảnh biên lai chuyển khoản (route GET /api/orders/:id/payments/:receiptId/bien-lai) — Kế toán any, Toàn quyền any, Đối tác own
+  // (`ownerId` = NGƯỜI LẬP đơn, như payment.receive; Đối tác chỉ ghi khoản thu trên đơn mình). Mọi cột khác none — kể cả Quản trị, Bán hàng, Hướng dẫn viên.
+  "payment.proof.view": row("none", "any", "none", "none", "own", "any", "none", "none", "none", "none"),
+  // ADR-0196 Đ7, Đ2: GỠ ảnh biên lai gửi nhầm và xem / chạy lại hàng chờ dọn kho ảnh — chỉ Toàn quyền. Ô riêng (giả định của người thi công 6A, ghi ở nhật ký
+  // thi công 2026-11-11-dot-6a): ADR chỉ nói «chỉ Toàn quyền», không có ô sẵn mang đúng nghĩa đó; ô này không nới ai.
+  "payment.proof.purge": chiToanQuyen(),
   // Ghi HOÀN KHÁCH (route POST /api/ledger/refunds, module billing) — ADR-0026 điều 10: ADMIN any → none (H4 "Kế toán ghi", thận trọng).
   "payment.refund": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0089 đ4a, đ6, X-1, X-4 (cọc đơn huỷ — migration 0079): DUYỆT hoàn cọc / huỷ duyệt khoản hoàn / XÁC NHẬN hoặc từ chối dòng "đã hoàn

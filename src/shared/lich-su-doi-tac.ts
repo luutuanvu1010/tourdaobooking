@@ -100,6 +100,8 @@ export const LICH_SU_DOI_TAC_AN = [
   "partner_channel_set", "credit_ceiling_set", "credit_tier_default_set", "credit_due_extended", "credit_due_soon_reminded", "credit_overdue_reminded",
   // ADR-0187 Đ3 mức (a): soát dòng tiền tự ghi đơn mình lập — việc nội bộ của Kế toán, ẩn khỏi lịch sử Đối tác.
   "ledger_self_write_reviewed",
+  // ADR-0196: ảnh biên lai chuyển khoản (gửi, mở, gỡ, chạy lại dọn kho) — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "payment_proof_added", "payment_proof_viewed", "payment_proof_purged", "payment_proof_purge_retried",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

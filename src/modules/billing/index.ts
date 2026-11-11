@@ -4,7 +4,7 @@
 // Mỗi route hỏi `can()` với ô của MATRIX TRƯỚC khi đọc thân / ghi (cổng router chỉ lọc thô — ADR-0019). Bảng tin (ADR-0022, ADR-0025 đ8): route ghi dưới
 // /api/orders/* báo `baoThayDoi` ĐÚNG MỘT lần, chỉ ở nhánh thành công, sau khi lô ghi xong (hàng rào src/bang-tin-guard.test.ts phủ tệp này).
 import type {
-  KenhThuDoiTacDto, CocDemResponse, CocDoiChieuResponse, CocListResponse, ConDuocDungTraSauResponse, DonNoTraSauResponse, GoiYTraSauResponse, HanMucTraSauListResponse, TraSauCuaToiResponse, TraSauHoSoResponse, KySoResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, ReceiptDto, SoCongNoBenResponse, SoCongNoResponse, SoCuaToiResponse,
+  BienLaiChayLaiResponse, BienLaiChoXoaResponse, KenhThuDoiTacDto, CocDemResponse, CocDoiChieuResponse, CocListResponse, ConDuocDungTraSauResponse, DonNoTraSauResponse, GoiYTraSauResponse, HanMucTraSauListResponse, TraSauCuaToiResponse, TraSauHoSoResponse, KySoResponse, LedgerBalancesResponse, NhapKeToanResponse, OrderPaymentsResponse, ReceiptDto, SoCongNoBenResponse, SoCongNoResponse, SoCuaToiResponse,
   TaoYeuCauDieuChinhResponse, TuGhiDemResponse, TuGhiListResponse, UnpaidSummaryResponse, YeuCauDieuChinhListResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, json, kemLocation, readJson, trangDon } from "../../shared/http";
@@ -37,6 +37,10 @@ import { ghiThayLanThu } from "./thay-lan-thu";
 import { daoKhoan, danhSachPhanDinh, doiBenChiu, ghiTheoPhanDinh, khoanCuaToi, phanDinh, phanHoi, taoDeNghi } from "./phan-dinh";
 import { phanDinhTheoId } from "./phan-dinh-repo";
 import { danhSachTuGhi, soChuaSoat, soatTuGhi } from "./tu-ghi";
+import { anhChoXoa, anhCuaKhoan, quyetXoaAnhStatement } from "./bien-lai-repo";
+import { xoaBienLaiKhoiKho } from "./kho-bien-lai";
+import { CAU_BIEN_LAI_QUA_CO, LY_DO_GO_BIEN_LAI, TOI_DA_THAN_KHOAN_THU_CO_ANH } from "../../shared/bien-lai";
+import { CHUA_TAI_DUOC_SAU_MS, dauPhanHoiTepChung } from "../../shared/tep-dinh-kem";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
@@ -107,6 +111,13 @@ export const soDongNoCuaNguoi = (db: D1Database, partyId: string): Promise<numbe
 
 const FORBIDDEN_PHAN_DINH = () => error(403, "forbidden", "Màn Phân định trách nhiệm chỉ Kế toán, Quản trị và Toàn quyền dùng được.");
 /** Đơn của một dòng phân định (để đọc phần thương mại sau `can(`) — null nếu id lạ; hàm ghi tự trả 404. */
+// ADR-0196 — ảnh biên lai chuyển khoản.
+const QUA_CO_THAN_BIEN_LAI = () => error(413, "file_too_large", CAU_BIEN_LAI_QUA_CO);
+const KHO_BIEN_LAI_TAT = () => error(503, "storage_unavailable", "Kho ảnh biên lai chưa sẵn sàng. Hãy báo quản trị viên.");
+const BIEN_LAI_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy ảnh biên lai này.");
+const BIEN_LAI_FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không được xem ảnh biên lai này.");
+const BIEN_LAI_TRANG_KHAC = () => error(403, "forbidden", "Không mở được ảnh biên lai từ trang khác. Hãy mở đơn trong Nền tảng rồi bấm «Xem biên lai».");
+const BIEN_LAI_CHI_TOAN_QUYEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống được gỡ ảnh biên lai hay dọn kho ảnh biên lai.");
 const donCuaPhieu = async (db: D1Database, id: string): Promise<string | null> => (await phanDinhTheoId(db, id))?.order_id ?? null;
 
 export const billingModule: AppModule = {
@@ -149,6 +160,7 @@ export const billingModule: AppModule = {
         coTheBamHoanThanh: can(staff, "order.complete"),
         // Task 9 (đặc tả P8; I-1 người kiểm Task 3+4): chỉ người có `supply.terms.view` và KHÔNG giữ quyền Đối tác được biết có giá vốn / số dư nhà cung cấp.
         anGiaVon: anGiaVon(staff),
+        xemBienLai: can(staff, "payment.proof.view", scope), // ADR-0196 Đ5, Đ10: ownerId = người lập đơn
       }, coc);
       return json(body satisfies OrderPaymentsResponse);
     }),
@@ -156,7 +168,10 @@ export const billingModule: AppModule = {
     // Ghi một khoản thu TRƯỚC "Đã giao" (ADR-0026 đ2, đ10): ô `payment.receive` { ownerId, assigned } — Đối tác chỉ đơn mình, HDV chỉ đơn đang phụ trách.
     // Người không phải Kế toán/Toàn quyền chỉ ghi người thu = mình, Công ty, hoặc LỜI KHAI «khách trả cho đại lý / tại quầy nhà cung cấp» (ADR-0132 — 400 khác đi).
     // Sau "Đã giao" → 409 (NT-S3).
+    // ADR-0196 Đ2: thân có thể kèm MỘT ảnh biên lai (base64) — chặn Content-Length TRƯỚC khi đọc thân; ghi D1 trước, đặt kho ảnh sau (ghiLanThu). Bài
+    // src/kho-tep-bien-lai.test.ts (3) ghim thứ tự TOI_DA_THAN_KHOAN_THU_CO_ANH → readJson.
     route("POST", "/api/orders/:id/payments", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+      if (Number(request.headers.get("content-length") ?? "0") > TOI_DA_THAN_KHOAN_THU_CO_ANH) return QUA_CO_THAN_BIEN_LAI();
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [info, assigned] = await Promise.all([thongTinGiaoDon(env.DB, id), isAssigned(id)]);
@@ -172,10 +187,67 @@ export const billingModule: AppModule = {
       const tuGhi = ghiTien && tuGhiDonMinhLap(info.ownerId, staff.id);
       // Sổ đại lý đợt 2 Task 5 (Ruling R-22): bản chụp quyết bên đặt / nhà cung cấp của lần thu — hàm công bố của orders KHÔNG tự kiểm quyền nên chỉ gọi ở đây, SAU `can(`.
       const phan = await phanThuongMaiCuaDon(env.DB, id);
-      const kq = await ghiLanThu(env.DB, { orderId: id, deliveredAt: info.deliveredAt, phan, raw: await readJson(request), ai: nguoiGoi(staff, { ghiTien }) });
+      const kq = await ghiLanThu(env.DB, { orderId: id, deliveredAt: info.deliveredAt, phan, raw: await readJson(request), ai: nguoiGoi(staff, { ghiTien }), kho: env.BIEN_LAI });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: id, thayDoi: "tien" });
-      return json({ ok: true, ...dauTuGhiThan(tuGhi) }, 201, { location: trangDon(id) });
+      return json({ ok: true, ...dauTuGhiThan(tuGhi), ...(kq.value.bienLaiChuaTaiXong ? { bienLaiChuaTaiXong: true } : {}) }, 201, { location: trangDon(id) });
+    }),
+
+    // ---- ẢNH BIÊN LAI CHUYỂN KHOẢN (ADR-0196 Đ6, Đ7; khuôn GET /api/feedback/:id/tep/:tid của ADR-0144) -----------------------------------------------------------
+    // Xem: GET — thẻ ảnh dùng được. Thứ tự: sec-fetch-site (same-origin, none, vắng) → 503 kho → hình dạng mã → đơn → ô payment.proof.view { ownerId = người lập } (403)
+    // → ảnh thuộc khoản thu CỦA ĐÚNG đơn :id, đã lưu, chưa quyết xoá (mọi cách hỏng ⇒ CÙNG một 404) → GHI NHẬT KÝ chỉ mã → đọc kho → thân + header no-store, nosniff,
+    // CSP sandbox. Ghi nhật ký lỗi thì ném lên (500), KHÔNG đọc kho. Bài src/kho-tep-bien-lai.test.ts (2) ghim thứ tự ô → nhật ký → đọc kho (chú thích đừng viết
+    // tên hàm đọc kho kèm ngoặc).
+    route("GET", "/api/orders/:id/payments/:receiptId/bien-lai", "orders", async ({ request, env, staff, params }) => {
+      const sfs = request.headers.get("sec-fetch-site");
+      if (sfs !== null && sfs !== "same-origin" && sfs !== "none") return BIEN_LAI_TRANG_KHAC();
+      const kho = env.BIEN_LAI;
+      if (!kho) return KHO_BIEN_LAI_TAT();
+      const id = params.id!;
+      const rid = params.receiptId!;
+      if (!UUID_RE.test(id) || !UUID_RE.test(rid)) return BIEN_LAI_NOT_FOUND();
+      const info = await thongTinGiaoDon(env.DB, id);
+      if (!info) return BIEN_LAI_NOT_FOUND();
+      if (!can(staff, "payment.proof.view", { ownerId: info.ownerId })) return BIEN_LAI_FORBIDDEN();
+      const anh = await anhCuaKhoan(env.DB, id, rid);
+      if (!anh || anh.stored_at === null || anh.purged_at !== null) return BIEN_LAI_NOT_FOUND();
+      await env.DB.batch([
+        auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "payment_proof_viewed", at: new Date().toISOString(), detail: `ảnh ${anh.id.slice(0, 8)}` }),
+      ]);
+      const obj = await kho.get(anh.storage_key);
+      if (!obj) {
+        console.error(JSON.stringify({ level: "error", event: "bien_lai_thieu_doi_tuong", anhId: anh.id }));
+        return BIEN_LAI_NOT_FOUND();
+      }
+      return new Response(obj.body, { status: 200, headers: dauPhanHoiTepChung({ id: anh.id, loai: anh.content_kind, tenDau: "bien-lai" }) });
+    }),
+    // Gỡ ảnh gửi nhầm (ADR-0196 Đ7): CHỈ Toàn quyền (ô payment.proof.purge), một lệnh có tên, BẮT BUỘC lý do, đi một chiều. Thứ tự: ô → 503 kho → mã → lý do (400) →
+    // ảnh thuộc khoản thu của ĐÚNG đơn (đã quyết xoá ⇒ 409; CHƯA LƯU ⇒ 409 «đang tải», như ADR-0144) → LÔ D1 quyết xoá GO_TEP + nhật ký (gác changes() > 0; câu
+    // đầu không đổi dòng ⇒ 409) → xoá kho SAU lô (kho-bien-lai.ts — lỗi không ném, dòng còn «chờ xoá»). Không đổi khoản thu hay dấu đối chiếu.
+    // Bài src/kho-tep-bien-lai.test.ts (4) ghim thứ tự ô → lô D1 → xoá kho.
+    route("POST", "/api/orders/:id/payments/:receiptId/bien-lai/go", "office", async ({ env, request, staff, params, baoThayDoi }) => {
+      if (!can(staff, "payment.proof.purge")) return BIEN_LAI_CHI_TOAN_QUYEN();
+      const kho = env.BIEN_LAI;
+      if (!kho) return KHO_BIEN_LAI_TAT();
+      const id = params.id!;
+      const rid = params.receiptId!;
+      if (!UUID_RE.test(id) || !UUID_RE.test(rid)) return BIEN_LAI_NOT_FOUND();
+      const lyDo = docLyDo((await readJson(request))?.lyDo, true);
+      if (!lyDo.ok) return lyDo.res;
+      const anh = await anhCuaKhoan(env.DB, id, rid);
+      if (!anh) return BIEN_LAI_NOT_FOUND();
+      const DA_GO = () => error(409, "conflict", "Biên lai này đã được gỡ.");
+      if (anh.purged_at !== null) return DA_GO();
+      if (anh.stored_at === null) return error(409, "uploading", "Ảnh biên lai này đang được tải lên. Thử lại sau ít phút.");
+      const at = new Date().toISOString();
+      const res = await env.DB.batch([
+        quyetXoaAnhStatement(env.DB, { id: anh.id, lyDo: LY_DO_GO_BIEN_LAI.GO_TEP, at, by: staff.id }),
+        auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "payment_proof_purged", at, detail: `ảnh ${anh.id.slice(0, 8)} · gỡ · ${(lyDo.value ?? "").slice(0, 200)}` }, "changes() > 0"),
+      ]);
+      if ((res[0]?.meta.changes ?? 0) === 0) return DA_GO();
+      await xoaBienLaiKhoiKho(env.DB, kho, [{ id: anh.id, storage_key: anh.storage_key }], () => new Date().toISOString());
+      baoThayDoi({ orderId: id, thayDoi: "tien" });
+      return json({ ok: true });
     }),
 
     // ---- CỌC ĐƠN HUỶ (ADR-0089; migration 0079). Mỗi lệnh MỘT lô (ADR-0094 V1), 201 + Location trang đơn (V2). Luật tiền kiểm ở máy chủ (rules.ts) rồi
@@ -437,6 +509,42 @@ export const billingModule: AppModule = {
     route("GET", "/api/ledger/coc/dem", "office", async ({ env, staff }) => {
       if (!can(staff, "ledger.view")) return FORBIDDEN_VIEW();
       return json((await demCoc(env.DB)) satisfies CocDemResponse);
+    }),
+
+    // Hàng chờ dọn kho ảnh biên lai (ADR-0196 Đ2; khuôn GET /api/feedback/tep-cho-xoa của ADR-0144): ảnh tải dở dang quá CHUA_TAI_DUOC_SAU_MS và ảnh đã quyết xoá mà
+    // kho chưa xoá xong. Chỉ Toàn quyền (ô payment.proof.purge). Chỉ mã + trạng thái — không khoá kho.
+    route("GET", "/api/ledger/bien-lai-cho-xoa", "office", async ({ env, staff }) => {
+      if (!can(staff, "payment.proof.purge")) return BIEN_LAI_CHI_TOAN_QUYEN();
+      const { ds, conNua } = await anhChoXoa(env.DB, new Date(Date.now() - CHUA_TAI_DUOC_SAU_MS).toISOString());
+      return json({
+        anh: ds.map((t) => ({ id: t.id, orderId: t.order_id, trangThai: t.purged_at === null ? ("TAI_DO_DANG" as const) : ("CHO_XOA" as const), lyDo: t.purge_reason, luc: t.purged_at ?? t.created_at })),
+        conNua,
+      } satisfies BienLaiChoXoaResponse);
+    }),
+    // Chạy lại (khuôn POST /api/feedback/tep-cho-xoa/chay-lai): (1) ảnh tải dở dang ⇒ MỘT lô quyết xoá TAI_LEN_DO_DANG (câu có điều kiện: còn chưa lưu, còn quá mốc —
+    // ảnh vừa lưu xong trong khe không bị đụng) + nhật ký chỉ mã; (2) ĐỌC LẠI hàng chờ, chỉ lấy dòng ĐÃ quyết xoá; (3) xoá kho rồi đánh dấu (kho-bien-lai.ts — lỗi không
+    // ném). KHÔNG tải lại ảnh: khoản ấy thành «Chưa có biên lai» (ADR-0196 Đ2, Đ11).
+    route("POST", "/api/ledger/bien-lai-cho-xoa/chay-lai", "office", async ({ env, staff }) => {
+      if (!can(staff, "payment.proof.purge")) return BIEN_LAI_CHI_TOAN_QUYEN();
+      const kho = env.BIEN_LAI;
+      if (!kho) return KHO_BIEN_LAI_TAT();
+      const moc = new Date(Date.now() - CHUA_TAI_DUOC_SAU_MS).toISOString();
+      const at = new Date().toISOString();
+      const lyDo = LY_DO_GO_BIEN_LAI.TAI_LEN_DO_DANG;
+      const lo = (await anhChoXoa(env.DB, moc)).ds
+        .filter((t) => t.purged_at === null)
+        .flatMap((t) => [
+          quyetXoaAnhStatement(env.DB, { id: t.id, lyDo, at, by: staff.id, doDangTruoc: moc }),
+          auditStatement(env.DB, { orderId: t.order_id, staffId: staff.id, action: "payment_proof_purged", at, detail: `ảnh ${t.id.slice(0, 8)} · ${lyDo}` }, "changes() > 0"),
+        ]);
+      if (lo.length > 0) await env.DB.batch(lo);
+      const canXoa = (await anhChoXoa(env.DB, moc)).ds.filter((t) => t.purged_at !== null);
+      const kq = await xoaBienLaiKhoiKho(env.DB, kho, canXoa, () => new Date().toISOString());
+      if (lo.length === 0 && canXoa.length === 0) return json({ daXoa: 0, conLai: 0 } satisfies BienLaiChayLaiResponse);
+      await env.DB.batch([
+        auditStatement(env.DB, { staffId: staff.id, action: "payment_proof_purge_retried", at: new Date().toISOString(), targetType: "system", targetId: "bien-lai", detail: `đã xoá ${kq.daXoa}, còn ${kq.loi}` }),
+      ]);
+      return json({ daXoa: kq.daXoa, conLai: kq.loi } satisfies BienLaiChayLaiResponse);
     }),
 
     // Kế toán bấm "Công ty đã nhận" (H3): khoản "Công ty thu" do người khác khai hết tính vào nợ người khai. Ô `ledger.write`.
