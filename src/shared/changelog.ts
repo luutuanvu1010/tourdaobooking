@@ -17,6 +17,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 5A kế hoạch sửa sau rà soát lần 2: ADR-0191 (PIN đầu), ADR-0192 (giữ chữ khi hết phiên), chủ duyệt 9/11. KHÔNG migration.
+    // SỐ TẠM 2.90: main có 2.89; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.90",
+    date: "2026-11-10",
+    items: [
+      { kind: "doi", text: "Nhân sự tạo tài khoản Bán hàng thì không thấy PIN; Quản trị bấm «Đặt lại PIN» rồi giao PIN tận tay cho người mới." },
+      { kind: "doi", text: "Nhân sự không gán thêm vai trò xem được thông tin khách cho tài khoản có sẵn; nhờ Quản trị hoặc Toàn quyền gán." },
+      { kind: "sua", text: "Hết hạn đăng nhập giữa lúc lập hoặc sửa đơn: đăng nhập lại trong 30 phút, cùng tài khoản, là chữ đã gõ còn nguyên." },
+      { kind: "sua", text: "Đối tác bấm «Gửi đơn» đúng lúc hết hạn đăng nhập: đăng nhập lại sẽ về trang đơn vừa tạo, không tạo đơn trùng." },
+    ],
+  },
+  {
     // Đợt 3 «chữ do chủ chọn» của kế hoạch sửa sau rà soát lần 2 (phiếu Phụ lục B, phương án (1); câu khoá vé dùng dự phòng B-2), KHÔNG migration.
     // SỐ TẠM 2.89: main có 2.88 (ADR-0195 và lời nhắc màn chỉnh); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.89",

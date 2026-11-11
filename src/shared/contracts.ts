@@ -298,6 +298,8 @@ export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolea
 export interface StaffListResponse { staff: StaffListRowDto[]; tenVai: Record<string, string> }
 export interface StaffResponse { staff: StaffAccountDto }
 export interface StaffWithPinResponse { staff: StaffAccountDto; pin: string }
+/** `POST /api/staff` (ADR-0191): tài khoản xem mọi khách do Nhân sự tạo thì `pin: null` + `choQuanTriCapPin: true` (Quản trị cấp PIN bằng «Đặt lại PIN»). Đường đặt lại PIN vẫn `StaffWithPinResponse`. */
+export interface TaoTaiKhoanResponse { staff: StaffAccountDto; pin: string | null; choQuanTriCapPin: boolean }
 
 // ---- Đơn hàng ----------------------------------------------------------------
 export type OrderStatus = "draft" | "confirmed" | "cancelled";
