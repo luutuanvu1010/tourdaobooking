@@ -81,7 +81,10 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // quá 30 phút), `logout` và màn bảo trì (xoá hết); một hàm `donNhapTam` (web/nhap-tam-don.ts) + `nenXoaKhiMoTrang` một dòng. Gói trước mọi sửa của Đợt 5A đo 111.133 byte; đo thật sau
 // khi thêm 111.357 byte (+224), đã thu gọn qua bốn lần (+745 → +281 → +226 → +224). Trần = đúng số đo, không làm tròn. Chủ dự án duyệt 10/11/2026 nguyên văn «Nới mức 224 byte» —
 // lời trả lời câu «quá 100 byte thì dừng, hỏi lại chủ» của ADR-0192 mục 7(b).
-const TRAN_ORDERS = 111_357;
+// Nới 111.357 → 111.444 (+87, ADR-0196 Đợt 6A, 11/11/2026): hai ô quyền mới `payment.proof.view` (ADR-0196 Đ5) và `payment.proof.purge` (chỉ Toàn quyền — gỡ ảnh biên lai,
+// hàng chờ dọn kho) trong bản đồ quyền dùng chung mà gói Đơn hàng nhúng; không mã giao diện nào vào gói này. Đo thật 111.474 (+117), thu gọn hàng xem ảnh bằng `{ ...chiToanQuyen(), … }`
+// còn 111.444 (+87); tên hai ô cố định nên không về 0 được. Trần = đúng số đo. Chủ dự án duyệt 11/11/2026 (chuyển qua phiên điều phối), nguyên văn «Duyệt nới 87 byte».
+const TRAN_ORDERS = 111_444;
 
 function dung(trang: string) {
   const r = buildSync({

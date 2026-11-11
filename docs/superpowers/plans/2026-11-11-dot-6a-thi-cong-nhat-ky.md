@@ -41,9 +41,21 @@
 
 ## Cần chủ quyết
 
-- **Trần gói trang Đơn hàng +87 byte** (111.357 → 111.444): toàn bộ ở hai dòng quyền mới trong bảng quyền dùng chung (đã thu gọn từ +117). Đã hỏi qua phiên điều phối 11/11; bài `src/goi-trang-nhe.test.ts` đỏ tới khi có lời duyệt.
+- ~~Trần gói trang Đơn hàng +87 byte~~ — **CHỦ ĐÃ DUYỆT** 11/11/2026 (chuyển qua phiên điều phối), nguyên văn «Duyệt nới 87 byte»; `TRAN_ORDERS` = 111.444 (`src/goi-trang-nhe.test.ts`).
+- Nhánh vẫn NẰM CHỜ tới sau buổi diễn tập khôi phục (25/11).
 
 ## Chưa làm / chưa kiểm
 
 - Chưa thử iPhone thật (HEIC, Safari); chưa đo bộ nhớ Worker với thân ~14 MB; chưa có nút gỡ trên giao diện (BACKLOG §70).
 - Chưa tạo kho R2 thật: chủ chạy trước lần triển khai (ở thư mục `tourdao-sales`; nếu hỏi sửa cấu hình thì trả lời «n»): `npx wrangler r2 bucket create tourdao-sales-bien-lai`.
+
+## Kiểm độc lập (2026-11-11, `nguoi-kiem-doc-lap`, chỉ đọc)
+
+- **Kết luận: ĐẠT.** Không lỗi CAO; không giả định nào lệch chữ ADR (giả định 5 — tách tệp kịch bản Chrome — là lệch chữ nhẹ về chỗ đặt, chủ cần biết).
+- **VỪA 1** (lính gác `EXISTS` của câu chèn ảnh không có bài canh): đã thêm ca «lính gác cùng lô» ở `bien-lai-route.test.ts` (tầng câu lệnh, vì đường route bị trigger đơn đã giao chặn sớm hơn); đột biến `EXISTS` → `1 = 1` nay đỏ. Dòng ở `docs/SO-HANG-RAO.md`.
+- **VỪA 2** (chữ mới chưa vào bảng tham chiếu): đã thêm khái niệm «Ảnh biên lai chuyển khoản» (`cho-chon`, chữ nguyên văn ADR) ở `src/shared/bang-tham-chieu-khai-niem.ts`, `npm run tham-chieu`.
+- **THẤP** (ghi nhận, không sửa): chặn cỡ thân chỉ theo `Content-Length` (khuôn ADR-0144, `BL-TEP-THAN-HAI-LAN`); phản hồi phát lại của lớp vé không mang cờ `bienLaiChuaTaiXong` (chỉ ảnh hưởng dòng chữ nhắc).
+
+## Đủ bộ `npm test` lần 1 — các bài cũ phải cập nhật có chủ đích
+
+Bản Development (`wrangler.dev.jsonc`) khai kho `tourdao-sales-dev-bien-lai` (bài «hai bản cùng bộ kho»; trang `docs/HUONG-DAN-TAO-BAN-DEVELOPMENT.md` thêm lệnh tạo kho thứ tư); sơ đồ kiến trúc có khối ngoài `BIEN_LAI`; hai cột N3 vào `COT_N3_NHAT_KY` (R-PD-1); route gỡ vào `KHONG_CAN` của bài đồng bộ chuyến; số route 492 ở bài «xem như vai»; route xem ảnh vào danh sách miễn 200 của bài «số lạ toàn Nền tảng»; bài vé điện tử gửi kèm ảnh khi Đối tác ghi «Công ty, chuyển khoản»; bài Trợ lý đo lại 13 → 12.
