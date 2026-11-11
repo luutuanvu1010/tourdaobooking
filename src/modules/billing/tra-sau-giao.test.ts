@@ -2,7 +2,7 @@
 // đơn Trả trước giữ NGUYÊN CHỮ. Thu đủ thì qua như đơn thường.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { conLai, lyDoChuaGiaoDuoc } from "./rules.ts";
+import { CAU_COC_CHUA_NOP, conLai, lyDoChuaGiaoDuoc } from "./rules.ts";
 import { cauChoDoiTacThanhToan } from "../../shared/tra-sau.ts";
 
 const KHONG_HUONG = { trangThai: "KHONG_NGUOI_HUONG" } as const;
@@ -27,4 +27,16 @@ test("đơn Trả sau thu đủ thì qua như đơn thường; các lý do đứ
   assert.equal(lyDoChuaGiaoDuoc({ ...base, so: so(1_000_000, 1_000_000), traSau: true }), null);
   assert.equal(lyDoChuaGiaoDuoc({ ...base, homNay: "2026-10-08", so: so(0, 1_000_000), traSau: true })!.ma, "before_departure");
   assert.equal(lyDoChuaGiaoDuoc({ ...base, soKhoanDoiChieu: 1, so: so(0, 1_000_000), traSau: true })!.ma, "reconciling");
+});
+
+test("chủ dự án 12/11 «Chặn tới khi nộp» (ADR-0173 Đ3.1 áp cho ADR-0197): đơn Trả sau thu đủ nhưng cọc còn ở tay đối tác ⇒ mã deposit_held, Kế toán xử lý, câu nêu số cọc", () => {
+  const ly = lyDoChuaGiaoDuoc({ ...base, so: so(1_000_000, 1_000_000), traSau: true, cocConGiu: 200_000 })!;
+  assert.deepEqual([ly.ma, ly.aiXuLy], ["deposit_held", "Kế toán"]);
+  assert.equal(ly.cau, CAU_COC_CHUA_NOP(200_000));
+  assert.match(ly.cau, /200\.000 ₫/);
+  // Hết cọc ⇒ qua; đơn Trả trước (Thanh toán ngay) không xét cọc — giữ hành vi cũ.
+  assert.equal(lyDoChuaGiaoDuoc({ ...base, so: so(1_000_000, 1_000_000), traSau: true, cocConGiu: 0 }), null);
+  assert.equal(lyDoChuaGiaoDuoc({ ...base, so: so(1_000_000, 1_000_000), traSau: false, cocConGiu: 200_000 }), null);
+  // Lý do đứng trước vẫn đứng trước: còn khách nợ thì câu «còn nợ» trước câu cọc.
+  assert.equal(lyDoChuaGiaoDuoc({ ...base, so: so(200_000, 1_000_000), traSau: true, cocConGiu: 200_000 })!.ma, "underpaid");
 });

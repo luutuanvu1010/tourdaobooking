@@ -434,6 +434,8 @@ export interface QuyenXemTien {
   coTheBamHoanThanh: boolean;
   /** Task 9: không được biết có giá vốn (không `supply.terms.view`, hoặc giữ quyền Đối tác) — câu VUOT chung, số dư nhà cung cấp gộp. BẮT BUỘC như `laDoiTac`. */
   anGiaVon: boolean;
+  /** Đơn Trả sau: tiền khách đặt cọc cho đối tác chưa nộp (`traSauCuaDon().cocConGiu`, route tính) — chỉ để chọn lý do giữ (chủ dự án 12/11). Vắng = không xét. */
+  cocConGiu?: number;
 }
 
 /**
@@ -454,6 +456,7 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
     status: info.status, deliveredAt: info.deliveredAt, homNay: vnToday(new Date()), ngayDi: info.ngayDi, dichVuThieuNgay: info.dichVuThieuNgay, thuongMai: thuongMaiCuaDon(phan).tinhTrang,
     soKhoanDoiChieu: dangDoiChieu.size, cumDoiChieu: cumCuaKhoan(receipts, dangDoiChieu, quyen.laDoiTac), so, anGiaVon: quyen.anGiaVon,
     traSau: (await donTraSauTheoId(db, info.orderId)) !== null, // ADR-0168 Đ3 mục 2
+    cocConGiu: quyen.cocConGiu, // chủ dự án 12/11 «Chặn tới khi nộp»
   });
   const soDu = congTyId ? soDuTheoBen(boNoPhanDinh(lines.map(toLineRow)), congTyId) : new Map<string, number>();
   const ten = await partyLabels(db, [...soDu.keys()]);
@@ -612,9 +615,14 @@ export const loiTrigger = (e: unknown, ma: string): boolean => new RegExp(`\\b${
 export async function daGiao(
   db: D1Database,
   /** `laDoiTac` = người bấm giữ quyền Đối tác (`holdsPartner`) — câu giữ «đang đối chiếu» dùng cụm chung, không tên bên kia (ADR-0132 Hệ quả). */
-  input: { orderId: string; info: ThongTinGiaoDon; phan: PhanThuongMai | null; ai: NguoiGoi; canCauBaoVe: boolean; rawLanThu: unknown; laDoiTac: boolean; anGiaVon: boolean },
+  /** `traSau` = `traSauCuaDon` của đơn (null = không phải đơn Trả sau) — BẮT BUỘC: route tính, vì tra-sau.ts đã import tệp này (tránh vòng). */
+  input: { orderId: string; info: ThongTinGiaoDon; phan: PhanThuongMai | null; ai: NguoiGoi; canCauBaoVe: boolean; rawLanThu: unknown; laDoiTac: boolean; anGiaVon: boolean; traSau: { cocConGiu?: number } | null },
 ): Promise<KetQua<null>> {
   const { info, ai } = input;
+  // Chủ dự án 12/11 «Chặn tới khi nộp»: đơn Trả sau mà không tính được số cọc còn ở tay đối tác ⇒ 503, không đoán «hết cọc» (khuôn cổng huỷ của ADR-0197).
+  if (input.traSau && input.traSau.cocConGiu === undefined && info.status === "confirmed" && info.deliveredAt === null) {
+    return loi(503, "tra_sau_khong_doc_duoc", "Chưa tính được tiền cọc của đơn trả sau — thử lại sau ít phút.");
+  }
   const congTyId = await ownerCompanyId(db);
   if (!congTyId) return CHUA_CO_CONG_TY();
   const tm = thuongMaiCuaDon(input.phan);
@@ -658,7 +666,8 @@ export async function daGiao(
   const homNay = vnToday(new Date());
   const ly = lyDoChuaGiaoDuoc({
     status: info.status, deliveredAt: info.deliveredAt, homNay, ngayDi: info.ngayDi, dichVuThieuNgay: info.dichVuThieuNgay, thuongMai: tm.tinhTrang, soKhoanDoiChieu, cumDoiChieu: cum,
-    so: conLai(receipts, info.phaiThu, info.status), anGiaVon: input.anGiaVon, traSau: (await donTraSauTheoId(db, input.orderId)) !== null, // ADR-0168 Đ3 mục 2
+    so: conLai(receipts, info.phaiThu, info.status), anGiaVon: input.anGiaVon, traSau: input.traSau !== null, // ADR-0168 Đ3 mục 2
+    cocConGiu: input.traSau?.cocConGiu, // chủ dự án 12/11 «Chặn tới khi nộp»
   });
   if (ly) return loi(409, ly.ma === "already_delivered" ? "order_delivered" : ly.ma === "stale" ? "stale" : "not_deliverable", ly.cau);
   if (input.canCauBaoVe && !ai.partyId) return loi(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới bấm được Xác nhận khách đã trả đủ.");

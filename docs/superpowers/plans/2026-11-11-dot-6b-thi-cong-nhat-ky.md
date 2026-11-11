@@ -66,3 +66,12 @@ Ghi nhận (không chặn):
 - Kịch bản Chrome đặt cọc: 14/14 (có `AXE_JS`), ảnh `docs/evidence/2026-11-11-dot-6b/anh/`.
 - Kịch bản Chrome Trả sau (`docs/evidence/2026-11-05-tra-sau/kich-ban/tra-sau-smoke.mjs`): đã hỏng sẵn ở bước gieo (tạo tài khoản Đối tác bằng `permissions` — ADR-0185 bắt tạo bằng vai trò); sửa thành `roles: ["TRAVEL_AGENCY"]`. Chạy lại: mọi bước xanh trừ **P1-390** — ba ô tích `.o-tick` 13×13 ở trang Tôi (khối nút thanh dưới tự chọn, ADR-0187, đã có trên `main`, `web/thanh-duoi-cai-dat.ts`) nhỏ hơn vùng chạm 44px. Không thuộc Đợt 6B (nhánh không sửa trang Tôi); ghi làm việc sau. Ảnh `docs/evidence/2026-11-11-dot-6b/tra-sau/`.
 - Sửa sau góp ý: `traSauCuaDon` trước đây trả `cocConGiu: 0` khi không tính được tiền của đơn, nên nhánh 503 của cổng không bao giờ chạy (khai «không đoán» là quá). Nay vắng khoá `cocConGiu` trong ca đó ⇒ Đối tác huỷ bị 503; văn phòng không đọc số này. Chạy lại typecheck + 5 tệp bài liên quan: xanh (178/178).
+
+## Quyết định của chủ dự án 2026-11-12: «Chặn tới khi nộp»
+
+Câu hỏi (hộp kết thúc lượt 11/11): hoa hồng vào sổ khi cọc còn ở tay Đối tác — giữ như cũ hay chặn? Chủ trả lời nguyên văn: «Chặn tới khi nộp». Nguyên tắc có sẵn: ADR-0173 Đ3.1 («đơn công nợ còn nợ thì hoa hồng chưa được trả hay đối trừ») — trước đây hoa hồng cấn trừ ngay lúc «Khách đã trả đủ» nên lệch điều này.
+
+- Phạm vi (tự áp, hẹp nhất khớp câu chủ): CHỈ đơn Trả sau, CHỈ khi `cocConGiu > 0` (tiền khách đặt cọc cho đối tác chưa nộp, tính bằng đúng `noVaCocTheoDon` của cổng huỷ). Đơn Thanh toán ngay và tiền «Tôi thu» của đơn Trả sau KHÔNG đổi (chủ chưa hỏi; mở rộng sang «Tôi thu» là câu riêng).
+- Mã: `lyDoChuaGiaoDuoc` thêm `cocConGiu` → mã giữ `deposit_held`, người xử lý «Kế toán», câu `CAU_COC_CHUA_NOP` nêu số; đứng sau «còn nợ», trước «trả dư». Route Đã giao tính `traSauCuaDon` và truyền vào `daGiao` (`tra-sau.ts` đã import `service.ts`, gọi ngược sẽ thành vòng); không tính được số cọc ⇒ 503 `tra_sau_khong_doc_duoc`. Màn đơn (`GET …/payments`) nhận cùng số ⇒ báo trước, nút ẩn.
+- Đỏ trước: `tra-sau-giao.test.ts` (thiếu `CAU_COC_CHUA_NOP`), bài hoa hồng ở `tra-sau-duong-ghi.test.ts` (mong `deposit_held`, nhận khác) — viết lại bài cũ vốn ghim hành vi «qua dù còn cọc». Bài canh nơi gọi `tra-sau-ve.test.ts` đòi cả hai nơi truyền `cocConGiu`.
+- Giới hạn: chỉ kiểm TRƯỚC lô, không có lớp trigger — khoản nộp cọc bị đảo đúng lúc giữa lần đọc và lô Đã giao thì lọt (hiếm; cùng mức với cổng huỷ). Nhánh 503 chưa có bài (khó dựng lỗi tính tiền trong khung thử).

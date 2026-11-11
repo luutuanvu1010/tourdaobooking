@@ -24,6 +24,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     items: [
       { kind: "doi", text: "Ô «Khách đặt cọc trước» nay tên «Khách đặt cọc cho đối tác» và có cả khi chọn «Trả sau». Tiền cọc ở tay đối tác, không làm giảm số nợ với Công ty." },
       { kind: "doi", text: "Đơn trả sau đã xác nhận còn tiền cọc ở tay đối tác thì đối tác không tự huỷ được; Quản trị, Toàn quyền hoặc Hướng dẫn viên phụ trách đơn huỷ giúp." },
+      { kind: "doi", text: "Đơn trả sau còn tiền cọc ở tay đối tác thì chưa bấm «Xác nhận khách đã trả đủ» được; đối tác nộp cọc về Công ty xong mới bấm được." },
     ],
   },
   {

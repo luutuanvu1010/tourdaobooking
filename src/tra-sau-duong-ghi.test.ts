@@ -878,7 +878,7 @@ test("ADR-0197 «Chưa kiểm» — sửa số khách làm tổng xuống DƯỚ
   assert.deepEqual([(await huyBoi(w, d.id, DT)).json.error?.code], ["tra_sau_con_coc_o_doi_tac"]);
 });
 
-test("ADR-0197 «Chưa kiểm» — hoa hồng: hai đơn Trả sau giống nhau, một có cọc một không, thu đủ rồi «Đã giao» ⇒ cùng số hoa hồng. Ghim hành vi CÓ SẴN (như «Tôi thu»): «Đã giao» xét tiền khách đã trả nên qua dù cọc còn ở tay Đối tác; nợ Trả sau giữ đúng số cọc tới khi nộp", async () => {
+test("ADR-0197 «Chưa kiểm» — hoa hồng, chủ dự án 12/11 «Chặn tới khi nộp» (ADR-0173 Đ3.1): đơn Trả sau thu đủ nhưng cọc còn ở tay Đối tác ⇒ «Khách đã trả đủ» 409, không dòng hoa hồng; nộp đủ cọc rồi mới giao được, hoa hồng bằng đơn không cọc", async () => {
   const w = dung();
   assert.equal((await hanMuc(w, 5_000_000)).status, 201);
   assert.equal((await w.call("POST", "/api/pricing/hoa-hong", { as: ACC, body: { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "PER_PAX", moiKhach: 50_000, tuNgay: "2026-01-01" } })).status, 201);
@@ -886,16 +886,29 @@ test("ADR-0197 «Chưa kiểm» — hoa hồng: hai đơn Trả sau giống nhau
   const khong = await donDT(w, 0, "CREDIT", homNay);
   const co = await donDT(w, 200_000, "CREDIT", homNay);
   const giao = (id: string) => w.call("POST", `/api/orders/${id}/delivered`, { as: SUP, body: {} });
+  const hh = (id: string) => Number(w.q("SELECT COALESCE(SUM(amount), 0) AS n FROM bil_debt_line WHERE order_id = ? AND kind_code = 'HOA_HONG'", id)[0].n);
   assert.equal((await thu(w, khong.id, T_ZB1)).status, 201);
   assert.equal((await giao(khong.id)).status, 200);
+  assert.ok(hh(khong.id) > 0, "có hoa hồng");
   assert.equal((await thu(w, co.id, T_ZB1 - 200_000)).status, 201);
+  // Màn đơn báo trước lý do giữ (cùng một hàm với route ghi).
+  const xem = await w.call("GET", `/api/orders/${co.id}/payments`, { as: SUP });
+  assert.equal(xem.status, 200, xem.text);
+  assert.equal(xem.json.lyDoChuaGiao?.ma, "deposit_held");
+  assert.equal(xem.json.coTheGiao, false);
+  const chan = await giao(co.id);
+  assert.equal(chan.status, 409, chan.text);
+  assert.equal(chan.json.error?.code, "not_deliverable");
+  assert.match(chan.json.error?.message ?? "", /200\.000 ₫/);
+  assert.equal(hh(co.id), 0, "bị chặn ⇒ chưa có dòng hoa hồng");
+  assert.equal(w.q("SELECT delivered_at FROM orders WHERE id = ?", co.id)[0].delivered_at, null, "đơn chưa sang «Khách đã trả đủ»");
+  // Nộp một phần: vẫn chặn.
+  assert.equal((await nopVe(w, co.id, 50_000)).status, 201);
+  assert.equal((await giao(co.id)).status, 409);
+  // Nộp đủ: giao được, hoa hồng bằng đơn không cọc.
+  assert.equal((await nopVe(w, co.id, 150_000)).status, 201);
   const g = await giao(co.id);
   assert.equal(g.status, 200, g.text);
-  const hh = (id: string) => Number(w.q("SELECT COALESCE(SUM(amount), 0) AS n FROM bil_debt_line WHERE order_id = ? AND kind_code = 'HOA_HONG'", id)[0].n);
-  assert.ok(hh(khong.id) > 0, "có hoa hồng");
   assert.equal(hh(co.id), hh(khong.id), "cọc không làm đổi hoa hồng");
-  // Luật có sẵn (I-4 Tự quyết): hoa hồng cấn trừ lúc Đã giao tính là đã nộp phần đó ⇒ nợ còn = cọc − hoa hồng.
-  assert.equal(await noDon(w, co.id), 200_000 - hh(co.id), "sau «Đã giao» Đối tác còn nợ phần cọc chưa cấn trừ");
-  assert.equal((await nopVe(w, co.id, 200_000 - hh(co.id))).status, 201);
   assert.equal(await noDon(w, co.id), undefined, "nộp đủ thì hết nợ (đơn rời danh sách còn nợ)");
 });
