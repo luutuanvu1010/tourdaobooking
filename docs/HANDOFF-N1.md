@@ -2,7 +2,22 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.91 ĐÃ LÊN PRODUCTION (Đợt 5B: ADR-0193 công tắc «Bắt buộc giờ đón cho đơn đối tác» — Toàn quyền Bật/Tắt ở trang Tôi, mặc định Bật; đơn có lượt đón chưa giờ mà ngày đón đã sát hạn chốt thì bị chặn xác nhận) — migration `0157` — triển khai 2026-11-11 16:43 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.92 ĐÃ LÊN PRODUCTION (Đợt 6B: ADR-0197 ô «Khách đặt cọc cho đối tác» có cả ở đơn Trả sau; đối tác không tự huỷ đơn Trả sau còn cọc; chưa «Khách đã trả đủ» khi cọc còn ở tay đối tác) — KHÔNG migration — triển khai 2026-11-12 04:58 giờ Việt Nam
+
+Ghi từ lời báo của phiên điều phối (đầu ra `npm run trien-khai` do chủ chạy). Chưa thử iPhone thật.
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-12 04:58 (giờ Việt Nam)
+- Commit: 4d6ed3b19 Đợt 6B: bài cho nhánh 503 khi không tính được cọc (người kiểm độc lập, mức VỪA)
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-11T21:49:08Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/43104921142
+- Migration đã áp: không có
+- Worker Version ID: c897bbff-551d-4bfb-adda-7e1d7c51f88a
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT
+- Phiên bản: 2.92 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: tổng 11 phút 09 giây (vượt mục tiêu ~10 phút của ADR-0179 Đ1.1, không chặn); lời báo không tách day-len / trien-khai
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.91 ĐÃ LÊN PRODUCTION (Đợt 5B: ADR-0193 công tắc «Bắt buộc giờ đón cho đơn đối tác» — Toàn quyền Bật/Tắt ở trang Tôi, mặc định Bật; đơn có lượt đón chưa giờ mà ngày đón đã sát hạn chốt thì bị chặn xác nhận) — migration `0157` — triển khai 2026-11-11 16:43 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Chủ chọn nhập TRƯỚC buổi diễn tập khôi phục (diễn tập dời sang 25/11/2026); lời cho phép ghi ở khoá `xay_tren_cho_phep_adr_0193` (`docs/quyen-hoan.json`). Chưa thử iPhone thật, chưa bấm nút trên bản thật.
 

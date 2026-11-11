@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa vùng chạm ô tích mục «Nút thanh dưới» (ADR-0187 Đ2.3) — chỉ CSS, KHÔNG migration. Bằng chứng docs/evidence/2026-11-12-o-tick-thanh-duoi/.
+    // SỐ TẠM 2.93: main có 2.92 (Đợt 6B đã lên production 12/11); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.93",
+    date: "2026-11-12",
+    items: [
+      { kind: "sua", text: "Ô chọn ở mục «Nút thanh dưới» trang Tôi to hơn, dễ bấm trên điện thoại." },
+    ],
+  },
+  {
     // Đợt 6B kế hoạch sửa sau rà soát lần 2: ADR-0197 (chủ duyệt 11/11, tên ô phương án 1, luật huỷ phương án c1). KHÔNG migration. Phát hành ngay khi xong (khoá xay_tren_cho_phep_adr_0197).
     // SỐ TẠM 2.92: main có 2.91; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.92",
