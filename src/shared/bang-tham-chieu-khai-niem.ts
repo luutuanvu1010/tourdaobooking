@@ -324,7 +324,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     giaiNghia: "Ảnh chụp (hoặc tệp PDF) biên lai chuyển khoản mà tài khoản Đối tác bắt buộc gửi kèm khi ghi khoản thu «Công ty thu, chuyển khoản». Kế toán mở bằng nút «Xem biên lai» ở dòng khoản thu để đối chiếu nhanh. Dòng khoản thu ghi «ảnh chưa tải xong» khi ảnh chưa lên kho xong, «Biên lai đã được gỡ» khi Toàn quyền gỡ ảnh gửi nhầm, «Chưa có biên lai» khi ảnh tải hỏng đã được dọn.",
     khacVoi: "Ảnh không làm khoản thu thành tiền đã về: khoản vẫn chờ Kế toán bấm «Xác nhận đã nhận» sau khi đối chiếu sao kê. Khác «tệp đính kèm» của yêu cầu hỗ trợ (kho khác, người xem khác).",
     chuDaLoai: [],
-    maNoiBo: ["bil_receipt_proof", "BIEN_LAI", "bien_lai_required", "payment.proof.view", "NHAN_O_BIEN_LAI", "NHAN_XEM_BIEN_LAI", "cauTrangThaiBienLai"],
+    maNoiBo: ["bil_receipt_proof", "bien_lai_required", "payment.proof.view", "NHAN_O_BIEN_LAI", "NHAN_XEM_BIEN_LAI", "cauTrangThaiBienLai"],
     trangThai: "cho-chon",
     chuChon: "chữ nguyên văn ADR-0196 (chủ duyệt ADR 2026-11-11); chủ chưa chọn riêng tên, đổi được",
   }),
