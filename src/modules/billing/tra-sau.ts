@@ -85,13 +85,14 @@ export const noCuaBenDat = async (db: D1Database, partyId: string, bayGio: strin
 export const maDonTraSauDaXacNhan = async (db: D1Database, partyId: string): Promise<string[]> => (await donTraSauCuaCacBen(db, [partyId])).map((d) => d.order_code);
 
 /** Hạn trả, nợ và cọc còn ở tay người thu (ADR-0197 Đ4 — cổng huỷ) của MỘT đơn; `null` = đơn không phải Trả sau. */
-export async function traSauCuaDon(db: D1Database, orderId: string): Promise<{ hanTra: string | null; hetAnHan: string | null; no: number; cocConGiu: number; benDat: string | null; version: number } | null> {
+export async function traSauCuaDon(db: D1Database, orderId: string): Promise<{ hanTra: string | null; hetAnHan: string | null; no: number; cocConGiu?: number; benDat: string | null; version: number } | null> {
   const d = await donTraSauTheoId(db, orderId);
   if (!d) return null;
   // Phiên bản của bên đặt đọc TRƯỚC khi tính nợ (khuôn `kiemTraSau`): đường đổi bên đặt gác đúng số này trong lô, nên khoản thu bị đảo chen giữa làm lô thua.
   const version = d.booker_party_id ? await phienBanHienTai(db, d.booker_party_id) : 0;
   const x = (await noVaCocTheoDon(db, [d])).get(d.id);
-  return { hanTra: d.credit_due_at, hetAnHan: d.credit_grace_until, no: x?.no ?? 0, cocConGiu: x?.cocConGiu ?? 0, benDat: d.booker_party_id, version };
+  // Không tính được tiền của đơn ⇒ vắng `cocConGiu`: cổng huỷ chặn Đối tác 503 (không đoán «hết cọc»); nợ giữ cách cũ (0).
+  return { hanTra: d.credit_due_at, hetAnHan: d.credit_grace_until, no: x?.no ?? 0, ...(x ? { cocConGiu: x.cocConGiu } : {}), benDat: d.booker_party_id, version };
 }
 
 export async function hanMucHieuLuc(db: D1Database, partyId: string, ngay: string = vnToday(new Date())): Promise<HanMucHieuLuc | null> {
