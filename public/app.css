@@ -4214,6 +4214,17 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .nk-muc .huy-hieu { justify-self: start; }
 .nk-lien-bai { display: flex; justify-content: flex-start; padding-left: 0; }
 
+/* Ô tích mục «Nút thanh dưới» ở trang Tôi (ADR-0187 Đ2.3, web/thanh-duoi-cai-dat.ts; phần còn lại của mục ở cuối tệp). Đặt TRƯỚC «Thành phần chung v2» (phần đó chép sang bộ v2).
+   Ô tích tự vẽ: chính ô là vùng chạm --tap-min × --tap-min (kịch bản Chrome đo phần tử input, không đo nhãn), hộp nhìn thấy cỡ --s5 ở giữa; lề âm cho hộp thẳng mép chữ.
+   appearance: none làm luật `input {}` chung hiện ra nên trả hết đệm, viền, nền. Vòng focus dùng luật :focus-visible chung. Các màn khác dùng .o-tick không đổi. */
+#thanh-duoi label.check { padding: 0; }
+#thanh-duoi label.check > input.o-tick { -webkit-appearance: none; appearance: none; position: relative; flex: none; display: block; width: var(--tap-min); height: var(--tap-min); margin: 0 0 0 calc((var(--s5) - var(--tap-min)) / 2); padding: 0; background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+#thanh-duoi input.o-tick::before { content: ""; position: absolute; inset: calc((var(--tap-min) - var(--s5)) / 2); box-sizing: border-box; background: var(--c-surface); border: var(--bw-vc) solid var(--c-check-border); border-radius: var(--s1); }
+#thanh-duoi input.o-tick:checked::before { background: var(--c-primary); border-color: var(--c-primary); }
+#thanh-duoi input.o-tick:checked::after { content: ""; position: absolute; left: 50%; top: 50%; width: var(--s2); height: var(--s3); box-sizing: border-box; border: solid var(--c-on-dark); border-width: 0 var(--bw-vc) var(--bw-vc) 0; transform: translate(-50%, -60%) rotate(45deg); }
+#thanh-duoi input.o-tick:disabled { cursor: default; }
+#thanh-duoi input.o-tick:disabled::before { opacity: .45; }
+
 /* ---------- Thành phần chung v2 (đợt 0, đặc tả mục 8) ----------
    Một tên lớp gốc + biến thể bằng thuộc tính; chỉ token. Lớp cũ giữ nguyên. */
 .nut { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); min-height: var(--h-control); padding: 0 var(--pad-nut); font: inherit; font-size: var(--fs-ui); font-weight: var(--fw-semibold); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-input-border); border-radius: var(--bo-control); cursor: pointer; transition: background-color var(--t-nhanh) var(--ease-out), border-color var(--t-nhanh) var(--ease-out); }
