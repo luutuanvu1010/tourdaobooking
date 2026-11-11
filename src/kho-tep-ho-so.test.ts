@@ -71,9 +71,10 @@ test("(5) khoá kho `xoa/` chỉ xuất hiện trong chepBanNgoai (kho-tep.ts); 
 // (6) ADR-0144: từ khi có kho thứ hai, (4)(5) đếm trong parties — bài này giữ phần "toàn src/" cũ và SIẾT hơn bản cũ (bản cũ chỉ bắt `.put(key` và ba tên biến;
 // người kiểm độc lập 28/10 C1: biến tên khác lọt): ngoài HAI module có kho (parties: HO_SO; feedback: HO_TRO — đếm riêng ở src/kho-tep-ho-tro.test.ts) KHÔNG có
 // lời gọi `.put(` nào, bất kể tên biến / tên khoá. Ngoại lệ có tên duy nhất: kho trạng thái Durable Object của trạm Bảng tin (`this.ctx.storage.put(`, không phải R2).
-test("(6) ngoài parties, feedback và ve-dien-tu không có lời gọi .put( nào (trừ kho trạng thái Durable Object `this.ctx.storage.put(`)", () => {
+test("(6) ngoài parties, feedback, ve-dien-tu và ĐÚNG tệp billing/kho-bien-lai.ts không có lời gọi .put( nào (trừ kho trạng thái Durable Object `this.ctx.storage.put(`)", () => {
   // ADR-0153 Đ1 mục 7 (ĐỀ XUẤT, chờ chủ duyệt): kho thứ ba VE_DIEN_TU, hàng rào riêng ở src/kho-tep-ve-dien-tu.test.ts (đúng MỘT chỗ đặt kho).
-  const ngoai = TEP.filter((f) => !f.p.startsWith("modules/parties/") && !f.p.startsWith("modules/feedback/") && !f.p.startsWith("modules/ve-dien-tu/"))
+  // ADR-0196 Đ4: kho thứ tư BIEN_LAI — miễn ĐÚNG MỘT tệp (không cả module billing), hàng rào riêng ở src/kho-tep-bien-lai.test.ts (đúng MỘT chỗ đặt kho).
+  const ngoai = TEP.filter((f) => !f.p.startsWith("modules/parties/") && !f.p.startsWith("modules/feedback/") && !f.p.startsWith("modules/ve-dien-tu/") && f.p !== "modules/billing/kho-bien-lai.ts")
     .filter((f) => /\.put\(/.test(f.src.replaceAll("this.ctx.storage.put(", ""))).map((f) => f.p);
   assert.deepEqual(ngoai, [], "chỗ đặt vào kho ngoài hai module có kho");
   assert.ok(TEP.some((f) => f.src.includes("this.ctx.storage.put(")), "chống bài rỗng: ngoại lệ còn khớp mã thật (trạm Bảng tin)");

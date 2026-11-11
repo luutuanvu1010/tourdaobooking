@@ -966,6 +966,15 @@ export const CHECKS = [
             OR (purged_at IS NULL AND stored_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'))`,
     level: "warn",
   },
+  // R-BIL-BL1 (ADR-0196 Đ2, Đ7; Hiến chương 5.16): như R-FBK-1 cho ảnh biên lai chuyển khoản (kho BIEN_LAI) — đã quyết xoá mà kho chưa xoá, hoặc tải dở dang quá 1 giờ
+  // (khoản thu vẫn ghi, Kế toán thấy «ảnh chưa tải xong»). Mức warn: thấy được ở mỗi lần audit-invariants, chạy lại bằng POST /api/ledger/bien-lai-cho-xoa/chay-lai.
+  {
+    code: "R-BIL-BL1",
+    what: "ảnh biên lai chuyển khoản chờ xoá khỏi kho R2, hoặc tải lên dở dang quá 1 giờ (chạy lại ở POST /api/ledger/bien-lai-cho-xoa/chay-lai)",
+    sql: `SELECT count(*) FROM bil_receipt_proof WHERE (purged_at IS NOT NULL AND r2_deleted_at IS NULL)
+            OR (purged_at IS NULL AND stored_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'))`,
+    level: "warn",
+  },
   // R-PTY-13 (ADR-0124 đ3, Hiến chương 5.21; lát H-3 Gói 2): phiếu tự khai ĐANG CHỜ mà quyết định đồng ý mới nhất của chủ phiếu với ĐÚNG phiên bản ghi trên phiếu không còn là
   // DONG_Y. Rút đồng ý phải rút phiếu cùng lô (route POST /api/parties/cua-toi/dong-y — ruling Q2). fail: người xác minh (lát H-4) không được xử lý phiếu như vậy.
   {
