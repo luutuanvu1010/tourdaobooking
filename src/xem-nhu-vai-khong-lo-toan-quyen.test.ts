@@ -59,7 +59,7 @@ const MODULES: readonly [string, string][] = [
   ["locations", "locationsModule"], ["maintenance", "maintenanceModule"], ["orders", "ordersModule"], ["parties", "partiesModule"], ["pricing", "pricingModule"],
   ["receipt", "receiptModule"], ["thongbao", "thongbaoModule"], ["van-chuyen", "vanChuyenModule"], ["tro-ly", "troLyModule"], ["ve-dien-tu", "veDienTuModule"],
 ];
-const SO_ROUTE = 486; // = số khoá ở route-access.test.ts (SNAPSHOT). ADR-0194 đợt 1: +4 route /api/cai-dat/giao-dien* = 486. ADR-0175 Đợt 2 (vé Tour Đảo): +6 route /api/ve/quet*, /api/ve/doi-chieu, /api/ve/nguoi-quet, /api/ve/luot-quet = 482 (476 + 6); ADR-0187 Đ2.3: +1 PUT /api/account/thanh-duoi = 476; ADR-0175 Đ1.2: +2 GET, POST /api/catalog/nguon-ve = 475; ADR-0174: +2 GET, POST /api/catalog/co-ve; ADR-0184: +1 GET /api/van-chuyen/cho-chay-thieu/dem (đọc, office); ADR-0187 Đ3 mức (a): +3 route /api/ledger/tu-ghi*; gộp hai nhánh 8/11 = 471
+const SO_ROUTE = 488; // = số khoá ở route-access.test.ts (SNAPSHOT). ADR-0193 mục 1 (Đợt 5B): +2 GET, POST /api/cai-dat/bat-buoc-gio-don = 488. ADR-0194 đợt 1: +4 route /api/cai-dat/giao-dien* = 486. ADR-0175 Đợt 2 (vé Tour Đảo): +6 route /api/ve/quet*, /api/ve/doi-chieu, /api/ve/nguoi-quet, /api/ve/luot-quet = 482 (476 + 6); ADR-0187 Đ2.3: +1 PUT /api/account/thanh-duoi = 476; ADR-0175 Đ1.2: +2 GET, POST /api/catalog/nguon-ve = 475; ADR-0174: +2 GET, POST /api/catalog/co-ve; ADR-0184: +1 GET /api/van-chuyen/cho-chay-thieu/dem (đọc, office); ADR-0187 Đ3 mức (a): +3 route /api/ledger/tu-ghi*; gộp hai nhánh 8/11 = 471
 
 let routesCache: R[] | null = null;
 async function bangRoute(): Promise<R[]> {

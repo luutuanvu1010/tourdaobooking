@@ -77,7 +77,11 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Gộp main (ADR-0187) vào nhánh vé Tour Đảo Đợt 2 (9/11/2026): trần = tổng hai khoản nới đã được chủ duyệt (110.610 của vé Đợt 2 + 508 của ADR-0187 trên 109.935); xem số đo thật ở báo cáo gộp. Chủ dự án duyệt trần gộp 111.118 ngày 9/11/2026 nguyên văn «duyệt trần».
 // Nới 111.118 → 111.168 (+50, Đợt 3 «chữ do chủ chọn» gộp main có Đợt 2 sửa sau rà soát, 10/11/2026): Đợt 3 chỉ còn phần báo hết hạn đăng nhập (Task 3.6:
 // `dauHetPhien` ở src/shared/session-ended.ts, cờ `dangDi` của `goLogin` ở web/api.ts) trong gói khung; đo thật 111.133 byte. Chủ dự án duyệt 10/11/2026 nguyên văn «Nâng lên 111.168».
-const TRAN_ORDERS = 111_168;
+// Nới 111.168 → 111.357 (ADR-0192 mục 5, Task 5A.3, 10/11/2026): dọn bản chụp form đơn trong sessionStorage ở khung chung — `initShell` của mọi trang (xoá bản của người khác /
+// quá 30 phút), `logout` và màn bảo trì (xoá hết); một hàm `donNhapTam` (web/nhap-tam-don.ts) + `nenXoaKhiMoTrang` một dòng. Gói trước mọi sửa của Đợt 5A đo 111.133 byte; đo thật sau
+// khi thêm 111.357 byte (+224), đã thu gọn qua bốn lần (+745 → +281 → +226 → +224). Trần = đúng số đo, không làm tròn. Chủ dự án duyệt 10/11/2026 nguyên văn «Nới mức 224 byte» —
+// lời trả lời câu «quá 100 byte thì dừng, hỏi lại chủ» của ADR-0192 mục 7(b).
+const TRAN_ORDERS = 111_357;
 
 function dung(trang: string) {
   const r = buildSync({

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Trạng thái:** CHỦ ĐÃ DUYỆT 2026-11-09, nguyên văn: «Duyệt, mở thi công toàn bộ , lần lượt từng đợt cho tới khi hoàn thành». Cách hiểu ghi lại (chủ sửa được bằng một câu): Phần I điều 1 duyệt; điều 3 theo khuyến nghị (Q-05 làm khoá xem trước, tự kết thúc tách sau); phiếu chữ Phụ lục B dùng phương án (1) ở mọi mục cho tới khi chủ nói khác; điều 2 (người kiểm buổi sáng) chưa có tên — vẫn chờ chủ. Duyệt kế hoạch KHÔNG thay cho duyệt từng ADR lượt A, B, C (mỗi ADR vẫn trình chủ). Soạn 2026-11-08, phiên lập kế hoạch — phiên này không thi công, P15. Đây là **kế hoạch điều phối**: Đợt 1 có việc chi tiết tới từng bước; Đợt 3 có việc chi tiết nhưng chữ chờ chủ chọn; các đợt cần ADR chỉ ghi phạm vi, điều kiện và chỗ phải kiểm, phần việc chi tiết viết **sau khi** ADR được duyệt (`CLAUDE.md` §9).
+**Trạng thái:** Phần VIII, IX viết chi tiết 2026-11-10, CHỦ DUYỆT cùng ngày, nguyên văn: «Duyệt, mở thi công» (nút ở khung bước tiếp theo, trả lời «Duyệt kế hoạch và mở thi công Đợt 5A, 5B cùng việc soạn ADR Đợt 6?»). Câu 1 của Phần VIII CHỦ ĐÃ TRẢ LỜI 2026-11-11 (chat): trước «không, dời diễn tập qua ngày 25 tháng 11 năm 2026», rồi nói rõ, nguyên văn: «không, nhập nhánh chính luôn, vì diễn tập sẽ dời vào 25 tháng 11» — phương án (b): 5B nhập và phát hành TRƯỚC buổi diễn tập khôi phục (nay hẹn 25/11); lời cho phép ghi ở khoá `xay_tren_cho_phep_adr_0193`, `docs/quyen-hoan.json`. Câu (ii) chủ chưa trả lời riêng: xét mọi lượt còn mở. Chủ nói khác thì sửa. CHỦ ĐÃ DUYỆT 2026-11-09, nguyên văn: «Duyệt, mở thi công toàn bộ , lần lượt từng đợt cho tới khi hoàn thành». Cách hiểu ghi lại (chủ sửa được bằng một câu): Phần I điều 1 duyệt; điều 3 theo khuyến nghị (Q-05 làm khoá xem trước, tự kết thúc tách sau); phiếu chữ Phụ lục B dùng phương án (1) ở mọi mục cho tới khi chủ nói khác; điều 2 (người kiểm buổi sáng) chưa có tên — vẫn chờ chủ. Duyệt kế hoạch KHÔNG thay cho duyệt từng ADR lượt A, B, C (mỗi ADR vẫn trình chủ). Soạn 2026-11-08, phiên lập kế hoạch — phiên này không thi công, P15. Đây là **kế hoạch điều phối**: Đợt 1 có việc chi tiết tới từng bước; Đợt 3 có việc chi tiết nhưng chữ chờ chủ chọn; các đợt cần ADR chỉ ghi phạm vi, điều kiện và chỗ phải kiểm, phần việc chi tiết viết **sau khi** ADR được duyệt (`CLAUDE.md` §9).
 
 **Goal:** Đưa các việc tuần đầu của báo cáo rà soát 7/11 và bảy yêu cầu mới của chủ (8/11) lên production theo từng đợt nhỏ, mỗi đợt có kiểm độc lập và kiểm sau triển khai, và không để sổ quyền hoãn làm `npm test` đỏ từ 0 giờ 1/12.
 
@@ -329,19 +329,445 @@ Chạy song song từ ngày duyệt kế hoạch; mục tiêu là chủ quyết 
 
 ## Phần VIII — Đợt 5: ADR lượt B (Q-06, G-03(b), N2)
 
+**Chi tiết thi công viết 2026-11-10** sau khi ADR-0191, ADR-0192, ADR-0193 được duyệt (9/11). Chủ duyệt 10/11 (xem dòng Trạng thái đầu tệp). Ba đoạn 5.1–5.3 dưới đây là phạm vi đã duyệt, giữ nguyên; phần chi tiết theo sau. Người thi công đọc ADR của việc mình trước khi làm.
+
+Đợt 5 tách hai nhánh: **5A** (ADR-0191, ADR-0192, không migration, phát hành được ngay) và **5B** (ADR-0193, có migration, chờ chủ chọn phát hành trước hay sau diễn tập). Lý do tách: `npm run trien-khai` áp mọi migration chưa áp, nên migration của 5B một khi đã vào `main` sẽ đi theo bất kỳ lần triển khai nào.
+
+
 **5.1 Q-06.** Sửa ADR-0071 điều 1f. Tài khoản có mã «xem mọi khách» (rút từ bảng quyền như ADR-0090: hôm nay là các mã có `contact.view = any`) do người không giữ `admin.manage` tạo thì máy chủ không trả PIN đầu; Quản trị hoặc Toàn quyền bấm «Đặt lại PIN» rồi giao tận tay. Không migration. Bài: sửa `src/modules/accounts/hanh-chinh-nhan-su.test.ts`; Nhân sự tạo tài xế vẫn nhận PIN. Việc lớn (quyền tài khoản).
 
 **5.2 G-03(b).** Ngoại lệ có tên với ADR-0035 Đ3. Khuyến nghị: `sessionStorage`, chỉ ghi lúc mất phiên (móc trong `goLogin` của `web/api.ts`), khoá gắn mã nhân viên, khôi phục một lần khi đúng người, không quá 30 phút và đơn chưa bị sửa ở nơi khác; xoá khi khôi phục, khi lưu, khi đăng xuất, khi bảo trì; `initShell` xoá khoá của người khác hoặc quá hạn; không đặt việc xoá vào `xoaKhungNho`. Với Đối tác, nếu đơn đã tạo xong mà lời gọi gửi mới hết phiên thì bản chụp ghi mã đơn và chuyển tới trang đơn, không mở lại form (tránh đơn trùng). Chưa kiểm: iPhone tắt hẳn ứng dụng có làm mất bản chụp không. Trần gói: sự kiện hết phiên +38 byte, cộng G-03(a) là vượt 5 byte — ADR chọn cách móc 0 byte hoặc chủ duyệt nới trần.
 
 **5.3 N2 — công tắc giờ đón cho Đối tác.** Sửa ADR-0154 Đ1.2, Đ1.3. Với nhân viên văn phòng giờ đón vốn không bắt buộc; chỉ đơn Đối tác bị bắt (luật `canChotGioCuaNguoiLap`, cờ chụp ở yêu cầu kiểm vé). Công tắc nằm ở `orders` (bảng chỉ-thêm theo khuôn bảng công tắc ẩn khách, mặc định Bật = hành vi hôm nay, ô `settings.ops`, nút trên trang Tôi cạnh «Ẩn thông tin khách»). Hai câu cho chủ, khuyến nghị an toàn: (i) khi Tắt, đơn Đối tác vẫn qua văn phòng xét nhưng không bị chặn vì thiếu giờ; (ii) đơn mà ngày đón đã nằm trong hạn chốt và chưa có giờ thì không xác nhận thẳng (coi như dưới hạn chốt — đóng luôn lỗ có sẵn ADR-0154 Đ1.7). Điều phối không đổi: chặng chưa giờ vẫn không xếp được xe, đã có nhắc vàng `CHUA_CO_GIO` và bộ lọc «Chưa chốt giờ». Đường lách «xác nhận khi chưa giờ rồi điền giờ sát giờ chạy» đã bị chặn ở sáu cửa (`duoiMocKhiSua`), không cần vá thêm. Luật kiểm `R-ORD-17w` sẽ báo liên tục khi Tắt: sửa trong cùng đợt.
 
+### Ràng buộc riêng của Đợt 5 và Đợt 6 (cộng thêm Global Constraints ở đầu tệp)
+
+- Mọi ràng buộc ở mục «Global Constraints» và Phần X của kế hoạch mẹ áp nguyên vẹn (ngôn ngữ, bảng tham chiếu ADR-0167, tiền chỉ tính ở máy chủ, không xoá cứng, kiến trúc phân hệ, `h()`, ô gõ 16px, AI không push / không nhập `main` / không triển khai / không tạo kho R2).
+- Số migration, số ADR, số phiên bản lấy **lúc làm**: số lớn nhất trên `main` + 1 sau khi liệt kê mọi nhánh chưa gộp (`git ls-tree --name-only <nhánh> migrations/ docs/adr/`). Hôm soạn: migration lớn nhất `0156`, ADR lớn nhất `0195`, production `2.89`.
+- Trần gói trang Đơn hàng `TRAN_ORDERS` trong `src/goi-trang-nhe.test.ts` (hôm soạn `111_168`). ADR-0192 cho nới **tối đa 100 byte, đúng số đo**, chỉ khi cách 0 byte không làm được; việc khác không được nới.
+- Câu báo là hằng ở đúng một nơi; bài kiểm khẳng định MÃ lỗi, chỉ bài của chính hằng mới so nguyên câu.
+- Chữ mới trên giao diện: tra `docs/BANG-THAM-CHIEU.md`; chưa có thì thêm vào tệp bảng (`src/shared/bang-tham-chieu*.ts`, chỉ sửa bằng công cụ sửa tệp) với đúng chữ ADR đã duyệt, rồi `npm run tham-chieu`.
+- Việc lớn (cả bốn nhánh đều là việc lớn): cuối nhánh giao `nguoi-kiem-doc-lap` đọc cả nhánh; chỉ báo chủ «đạt» theo báo cáo đó cộng kết quả kiểm.
+- Lời duyệt, khoá «Cho phép, có ghi lý do» và dòng «Sửa đổi» của ADR cũ chỉ ghi khi chủ đã nói; tệp ADR, `docs/quyen-hoan.json` sửa bằng công cụ sửa tệp.
+
+### Câu hỏi chủ (gom một lần, không chặn việc khác)
+
+Hai câu dưới chỉ chặn **nhánh 5B**. Nhánh 5A và việc soạn ADR lượt C (6.0) làm ngay, không chờ.
+
+1. **Công tắc giờ đón (ADR-0193) lên Nền tảng lúc nào?** ADR này cần một bảng mới trong cơ sở dữ liệu, mà Nền tảng chưa từng thử dựng lại dữ liệu từ bản sao lưu (diễn tập khôi phục, hẹn 30/11).
+   - (a) **Khuyến nghị:** đợi sau buổi diễn tập. Mã làm xong trước, để sẵn trên bản sửa riêng 5B, chưa nhập vào bản chính.
+   - (b) Lên ngay cùng Đợt 5. Bảng mới chỉ thêm, mặc định giữ đúng hành vi hôm nay.
+   Hết giờ không trả lời thì theo (a).
+2. **Đơn sát ngày đón mà chưa có giờ: xét lượt nào?** Câu (ii) của ADR-0193 chặn xác nhận khi lượt đón chưa có giờ mà ngày đón đã vào hạn chốt. Chữ ADR («chặng có Đón mà chưa có giờ», «mọi đơn có đón mà chưa có giờ») đọc sát là mọi lượt, nhưng chưa nói rõ chiều về.
+   - (a) **Khuyến nghị (an toàn, đúng chữ ADR):** xét **mọi lượt còn mở**, kể cả chiều về. Chặt hơn: đơn có chiều về chưa biết giờ mà ngày về đã vào hạn chốt thì phải điền giờ trước.
+   - (b) Chỉ xét lượt đầu của mỗi dịch vụ, cùng cách đếm với luật «cần chốt giờ» đang chạy. Nhẹ cho văn phòng hơn, nhưng thu hẹp chỗ hở mà ADR định đóng.
+   Hết giờ không trả lời thì theo (a).
+
+### Review Focus
+
+1. Hai người dùng chung một iPhone: người A hết phiên giữa lúc lập đơn, người B đăng nhập. B không được thấy chữ của A, và kho trình duyệt không còn bản chụp của A. Bài nằm ở Task 5A.2 (luật dọn) và Task 5A.4 (kịch bản Chrome).
+2. Đối tác bấm Gửi đơn đúng lúc phiên hết: lời gọi lưu đã thành công, lời gọi gửi nhận 401. Đăng nhập lại phải về trang đơn đã tạo, không mở lại form, không sinh đơn trùng. Bài ở Task 5A.3.
+3. Nhân sự làm lách luật: tạo tài khoản Tài xế (nhận PIN), sau đó gán thêm vai Bán hàng. Máy phải trả 403, vai giữ nguyên. Bài ở Task 5A.1.
+4. Toàn quyền tắt công tắc giờ đón trong lúc một yêu cầu xác nhận đang chờ. Cờ «cần chốt giờ» đã chụp lúc Gửi đơn phải giữ nguyên, bảng Còn vé vẫn đòi giờ cho yêu cầu đó. Bài ở Task 5B.2.
+5. Đối tác chọn «Công ty thu, chuyển khoản» mà không kèm ảnh, hoặc kèm tệp sai loại / quá 10 MB. Máy chủ phải từ chối và không ghi khoản thu. Nếu ghi CSDL hỏng sau khi tệp đã lên kho, tệp mồ côi phải vào hàng chờ xoá. Bài ở Task 6A.2.
+
+
+### Đợt 5A: PIN đầu (ADR-0191) và giữ chữ khi hết phiên (ADR-0192)
+
+Một nhánh `claude/dot-5a-…` cắt từ `main` mới nhất. Không migration. Hai việc không chạm cùng tệp nên có thể giao hai trợ lý song song trong cùng nhánh, miễn là commit riêng.
+
+#### Task 5A.1: Nhân sự tạo tài khoản xem mọi khách thì không nhận PIN; không gán thêm vai xem mọi khách
+
+**Files:**
+- Create: `src/shared/xem-moi-khach.ts` (hàm thuần), `src/shared/xem-moi-khach.test.ts`
+- Modify: `src/modules/accounts/index.ts` (hai chỗ trả `{ staff, pin }` của `POST /api/staff`, quanh hai dòng `satisfies StaffWithPinResponse`; route `PUT /api/staff/:id/roles`; dòng nhật ký tạo tài khoản), `src/shared/contracts.ts` (`StaffWithPinResponse`), `src/shared/roles.ts` (`roleAssignmentProblem`, chỉ khi đặt luật chặn ở đó), giao diện màn Quản lý tài khoản (tệp `web/` đang đọc phản hồi tạo tài khoản, tìm bằng `grep -rn "StaffWithPinResponse\|\.pin\b" web/`)
+- Test: `src/modules/accounts/hanh-chinh-nhan-su.test.ts` (sửa), `src/shared/xem-moi-khach.test.ts`
+
+**Interfaces:**
+- Produces: `export function maXemMoiKhach(matrix = MATRIX): PermissionCode[]` trả các mã có `matrix["contact.view"][ma] === "any"`; `export function coXemMoiKhach(perms: readonly PermissionCode[], matrix = MATRIX): boolean`.
+- Produces: kiểu mới `TaoTaiKhoanResponse = { staff: StaffAccountDto; pin: string | null; choQuanTriCapPin: boolean }` chỉ cho `POST /api/staff`. `StaffWithPinResponse` giữ `pin: string` cho route đặt lại PIN và các chỗ đang đọc nó (`web/staff.ts` hàm hiện PIN `showSecrets`, `web/sessions.ts`). Cách hiểu ghi lại: ADR-0191 mục 4 nói «đổi `StaffWithPinResponse`». Tách kiểu giữ đúng nghĩa của mục đó (phản hồi tạo tài khoản có thể không mang PIN) mà không làm hỏng đường đặt lại PIN.
+- Produces: hằng câu `CAU_CHO_QUAN_TRI_CAP_PIN` (hộp sau khi tạo) và `CAU_VAI_XEM_KHACH_NHO_QUAN_TRI` (403 khi gán vai), mỗi hằng một nơi, chữ đúng như ADR-0191 mục 3(a) và mục 5.
+
+- [ ] **Bước 1: Viết bài đỏ.** Tạo `xem-moi-khach.test.ts`:
+  - hôm nay `maXemMoiKhach()` gồm đúng `SALES, ACCOUNTING, ADMIN, SUPER_ADMIN`, không có `FIELD`, `PARTNER`, `HR`;
+  - bản sao bảng có thêm một mã giả `contact.view = "any"` thì tập có mã đó.
+
+  Sửa `hanh-chinh-nhan-su.test.ts`, mỗi ca một bài:
+  - Nhân sự tạo theo vai `SALES_STAFF` ⇒ 201, `pin === null`, `choQuanTriCapPin === true`; đăng nhập tài khoản đó bằng vài PIN thử (`000000`, `123456`) đều 401;
+  - Nhân sự tạo theo đường quyền `["SALES"]` ⇒ như trên;
+  - Nhân sự tạo `SALES_MANAGER` ⇒ 403 như hôm nay;
+  - Nhân sự tạo tài xế công ty ⇒ 201, `pin` là chuỗi 6 số, `choQuanTriCapPin === false`;
+  - Toàn quyền tạo `SALES_STAFF` ⇒ có PIN;
+  - Quản trị gọi `POST /api/staff/:id/reset-pin` cho tài khoản `pin: null` ⇒ đăng nhập bằng PIN mới được;
+  - Nhân sự gọi `PUT /api/staff/:id/roles` thêm `SALES_STAFF` cho tài khoản tài xế ⇒ 403, vai trong CSDL không đổi;
+  - Quản trị gán cùng vai ⇒ 200;
+  - Nhân sự bỏ bớt vai, hoặc gán vai không xem khách ⇒ 200;
+  - nhật ký tạo tài khoản rơi vào mục 1 có hậu tố «— chờ Quản trị cấp PIN» và không chứa số điện thoại.
+- [ ] **Bước 2: Chạy, thấy đỏ.** Lệnh: `node --test src/shared/xem-moi-khach.test.ts src/modules/accounts/hanh-chinh-nhan-su.test.ts`. Kết quả mong đợi: các ca mới FAIL.
+- [ ] **Bước 3: Viết mã.**
+  - Hàm thuần đặt ở `src/shared/xem-moi-khach.ts`.
+  - Ở hai đường tạo tài khoản: khi người tạo không giữ `admin.manage` và `coXemMoiKhach(quyền hiệu lực của tài khoản mới)`, máy chủ vẫn sinh PIN ngẫu nhiên và ghi như cũ, nhưng phản hồi `pin: null, choQuanTriCapPin: true`.
+  - Quyền hiệu lực tính bằng `effectivePermissions`; không suy từ tên vai.
+  - Chặn gán vai: so quyền hiệu lực trước và sau; chặn khi trước không có mã xem mọi khách mà sau có, và người gọi không giữ `admin.manage`. Luật đặt **ở route `PUT /api/staff/:id/roles`**, không đặt trong `roleAssignmentProblem`. Lý do: `POST /api/staff` cũng gọi hàm đó với `currentRoles: []`, nên đặt luật ở đó sẽ chặn Nhân sự tạo tài khoản Bán hàng, trái ADR-0191 mục 1.
+  - Không thêm route, không thêm ô quyền.
+- [ ] **Bước 4: Giao diện.** Phản hồi `pin === null` thì thay hộp «PIN của tài khoản mới» bằng `CAU_CHO_QUAN_TRI_CAP_PIN`. Hộp gán vai của Quản trị thêm một dòng nhắc theo ADR-0191 mục 3, «Rủi ro còn lại». Chữ chưa có trong bảng tham chiếu thì thêm vào bảng.
+- [ ] **Bước 5: Chạy lại, thấy xanh.** Chạy lệnh ở bước 2 rồi `npm run typecheck`. Kết quả mong đợi: PASS và 0 lỗi.
+- [ ] **Bước 6: Sổ hàng rào.** Đề xuất (chủ duyệt mới ghi) một dòng ở `docs/SO-HANG-RAO.md` cho bài canh tập «xem mọi khách» rút từ bảng quyền, kèm ngày quan sát chặn thật: sửa cố ý thì đỏ, rồi hoàn nguyên.
+- [ ] **Bước 7: Commit.** Tiêu đề: «ADR-0191: tài khoản xem mọi khách do Nhân sự tạo thì PIN đầu do Quản trị cấp».
+
+#### Task 5A.2: Luật thuần của bản chụp form đơn
+
+**Files:**
+- Create: `src/shared/nhap-tam-don.ts`, `src/shared/nhap-tam-don.test.ts`
+
+**Interfaces:**
+- Produces:
+  ```ts
+  export const TIEN_TO_NHAP_TAM = "td-nhap-don:";                     // khoá = tiền tố + mã nhân viên (ADR-0192 mục 3)
+  export const khoaNhapTam = (staffId: string): string => TIEN_TO_NHAP_TAM + staffId;
+  export const HAN_NHAP_TAM_MS = 30 * 60 * 1000;
+  export type BanChup =
+    | { loai: "form"; staffId: string; at: number; orderId: string | null; updatedAt: string | null; o: Record<string, unknown> }
+    | { loai: "da-tao"; staffId: string; at: number; orderId: string };
+  export function docBanChup(raw: string | null): BanChup | null;            // JSON hỏng / thiếu trường ⇒ null
+  export function quyetKhoiPhuc(b: BanChup | null, staffId: string, bayGio: number, orderIdTrang: string | null, updatedAtMayChu: string | null):
+    { lam: "dien"; o: Record<string, unknown> } | { lam: "chuyen"; orderId: string } | { lam: "bo" };
+  export function nenXoaKhiMoTrang(b: BanChup | null, staffId: string, bayGio: number): boolean;
+  ```
+  `orderIdTrang` là đơn form đang mở (null = form lập đơn mới). Bản chụp `form` chỉ điền khi `b.orderId === orderIdTrang`, để bản chụp của đơn A không điền vào form đơn B. Khoá theo đúng chữ ADR-0192 mục 3. Bản chụp vẫn mang `staffId` ở trong giá trị để `quyetKhoiPhuc` so lại. `initShell` duyệt mọi khoá có tiền tố `TIEN_TO_NHAP_TAM` và xoá khoá nào `nenXoaKhiMoTrang` trả true.
+
+- [ ] **Bước 1: Viết bài đỏ.**
+  - `quyetKhoiPhuc`:
+    - cùng người, 29 phút, đơn mới (`orderId null`) ⇒ `dien`;
+    - đúng 30 phút ⇒ `bo` (quá hạn tính từ ≥ 30 phút);
+    - khác người ⇒ `bo`;
+    - đang sửa đơn, `updatedAt` khớp ⇒ `dien`; lệch ⇒ `bo`;
+    - bản chụp của đơn A, form đang mở đơn B ⇒ `bo`; bản chụp đơn mới, form đang sửa đơn A ⇒ `bo`;
+    - `loai: "da-tao"` cùng người trong hạn ⇒ `chuyen` với đúng `orderId`;
+    - `null` ⇒ `bo`.
+  - `nenXoaKhiMoTrang`: khác người ⇒ true; quá hạn ⇒ true; cùng người trong hạn ⇒ false.
+  - `docBanChup('{')` ⇒ null; thiếu `staffId` ⇒ null.
+- [ ] **Bước 2: Chạy, thấy đỏ.** Lệnh: `node --test src/shared/nhap-tam-don.test.ts`. Kết quả mong đợi: FAIL, vì tệp chưa có.
+- [ ] **Bước 3: Viết hàm thuần cho bài xanh.** Tệp này không đụng `sessionStorage`.
+- [ ] **Bước 4: Chạy lại, thấy xanh.** Lệnh như bước 2. Kết quả mong đợi: PASS.
+- [ ] **Bước 5: Commit.** Tiêu đề: «ADR-0192: luật thuần của bản chụp form đơn khi hết phiên».
+
+#### Task 5A.3: Móc chụp, khôi phục, dọn vào trang
+
+**Files:**
+- Modify: `web/order-form.ts` (chụp, khôi phục, xoá khi lưu thành công, biến mã đơn vừa tạo), `web/shell.ts` (`initShell` dọn; `logout` xoá), `web/maintenance-screen.ts` (xoá khi màn bảo trì chặn)
+- Không sửa: `web/api.ts` (`goLogin`) và `web/khung-nho.ts` (`xoaKhungNho`), trừ khi phải dùng phương án (b) ở bước 1
+- Test: `src/shared/nhap-tam-don-noi-day.test.ts` (bài đọc mã nguồn, theo kiểu các bài `*-noi-day.test.ts` có sẵn)
+
+**Interfaces:**
+- Consumes: mọi thứ Task 5A.2 tạo ra; `SESSION_ENDED_KEY` từ `src/shared/session-ended.ts`.
+
+- [ ] **Bước 1: Chọn cách móc, đo trần gói trước.** `goLogin` hôm nay ghi `SESSION_ENDED_KEY` vào `sessionStorage` (khi lời gọi `/api/auth/session-ended` thành công) **trước** `location.replace`. Trang form tự nghe `pagehide`: nếu lúc đó `sessionStorage.getItem(SESSION_ENDED_KEY) !== null` thì ghi bản chụp. Phần **móc** này không thêm byte nào vào `web/api.ts`.
+  - Nhưng phần **dọn** (ADR mục 5: `initShell`, `logout`) nằm ở `web/shell.ts`, mà gói trang Đơn hàng (`web/orders.ts`) import `./shell`. Vì vậy gói Đơn hàng vẫn tăng; tiền lệ ở chú thích `src/goi-trang-nhe.test.ts` là 138 byte cho một lần thêm vào shell. Phần dọn phải viết gọn nhất có thể (một vòng duyệt khoá theo tiền tố, so `staffId` và giờ ngay trong vòng), rồi `npm run build:web` và đo **tổng** số byte gói Đơn hàng tăng thêm.
+  - Tổng ≤ 100 byte: nới `TRAN_ORDERS` đúng số đo theo ADR-0192 mục 7(b), ghi lý do ở chú thích trần và ở commit.
+  - Tổng > 100 byte: dừng, báo người điều phối để hỏi chủ. Phương án sẽ đưa chủ: dời phần dọn sang trang đăng nhập (`web/login.ts`, không thuộc gói Đơn hàng). Lúc đăng nhập thành công, xoá mọi khoá của người khác hoặc quá hạn. Cách này lệch chữ ADR mục 5 nên cần chủ đồng ý.
+  - Hạn chế của cách này: lời gọi `session-ended` hỏng (mất mạng) thì không chụp. Hậu quả chỉ là không khôi phục được, không lộ gì. Ghi điều này vào nhật ký thi công.
+  - Nếu `pagehide` không chạy trước `replace` trên Safari thì móc trong `goLogin`. Byte của phần móc cộng vào tổng ở trên, cùng trần 100 byte.
+- [ ] **Bước 2: Viết bài đọc mã đỏ.**
+  - `xoaKhungNho` không chứa `TIEN_TO_NHAP_TAM`;
+  - `goLogin` vẫn gọi `xoaKhungNho`;
+  - `logout` và `maintenance-screen.ts` xoá mọi khoá có `TIEN_TO_NHAP_TAM`;
+  - `initShell` gọi `nenXoaKhiMoTrang`;
+  - `order-form.ts` gọi `quyetKhoiPhuc` và xoá khoá sau khi lưu thành công;
+  - không tệp `web/` nào ghi khoá `TIEN_TO_NHAP_TAM` vào `localStorage`.
+- [ ] **Bước 3: Chạy, thấy đỏ.** Lệnh: `node --test src/shared/nhap-tam-don-noi-day.test.ts`. Kết quả mong đợi: FAIL.
+- [ ] **Bước 4: Viết mã.**
+  - Bản chụp lấy giá trị các ô bằng chính hàm dựng thân lưu nháp của form; không tự liệt kê ô lại.
+  - Khôi phục dùng chính đường nạp đơn vào form có sẵn.
+  - Đối tác: ngay sau khi lời gọi lưu thành công và trước lời gọi gửi, gán biến trang `donVuaTao = id`. Gửi xong (thành công, hoặc hỏng vì lý do khác 401 và đã rẽ sang nhánh «gửi hỏng») thì gán lại `null`. Trong `pagehide`, nếu `donVuaTao !== null` thì ghi `{ loai: "da-tao", … }`, không ghi giá trị ô.
+  - Khi khôi phục ra `chuyen`, điều hướng tới trang đơn như nhánh «gửi hỏng» có sẵn.
+  - Mọi lời gọi `sessionStorage` bọc `try/catch`. Bị chặn thì bỏ qua, không bao giờ cản việc đăng nhập.
+- [ ] **Bước 5: Chạy lại, thấy xanh.** Lệnh: `node --test src/shared/nhap-tam-don-noi-day.test.ts src/goi-trang-nhe.test.ts && npm run typecheck`. Kết quả mong đợi: PASS và 0 lỗi; trần gói nới đúng số đo (≤ 100 byte) hoặc giữ nguyên.
+- [ ] **Bước 6: Commit.** Tiêu đề: «ADR-0192: giữ chữ đã gõ ở form đơn khi hết phiên (sessionStorage, 30 phút, một lần)».
+
+#### Task 5A.4: Kiểm cuối nhánh 5A và giao chủ
+
+- [ ] Kịch bản Chrome mới ở `docs/evidence/2026-11-10-dot-5a/kich-ban/`, ảnh 390 và 1280:
+  1. Nhân sự tạo tài khoản Bán hàng, màn báo nhờ Quản trị cấp PIN.
+  2. Quản trị bấm «Đặt lại PIN».
+  3. Gõ form đơn, xoá cookie phiên bằng CDP, bấm lưu, đăng nhập lại cùng người: chữ còn.
+  4. Đăng nhập người khác: form trống, `sessionStorage` không còn khoá.
+  5. Đối tác gửi đơn, phiên hết đúng ở bước gửi: về trang đơn, danh sách đơn không có đơn trùng.
+- [ ] `npm test` (thoát 0), `npm run typecheck` (0 lỗi), `npm run test:e2e` (vì chạm API tạo tài khoản).
+- [ ] Mục nhật ký thay đổi trong `src/shared/changelog.ts`, số bản kế tiếp lúc nhập, lời thường. Ví dụ: «Nhân sự tạo tài khoản bán hàng thì Quản trị cấp PIN đầu», «Hết hạn đăng nhập giữa lúc lập đơn: đăng nhập lại là chữ đã gõ còn nguyên».
+- [ ] Giao `nguoi-kiem-doc-lap` đọc cả nhánh. Chỉ báo «đạt» khi người kiểm ĐẠT.
+- [ ] Khi đạt, chủ được đề xuất ghi dòng Trạng thái cho ADR-0071 (trỏ ADR-0191) và ADR-0035 (trỏ ADR-0192); chủ duyệt rồi mới ghi. Đưa chủ lệnh nhập có rào ở Phần X mục 6 của kế hoạch mẹ.
+- [ ] Ghi vào nhật ký thi công: iPhone tắt hẳn Nền tảng có làm mất `sessionStorage` không. Thử trên iPhone thật nếu chủ thử được; chưa thử thì ghi «chưa kiểm».
+
+### Đợt 5B: công tắc giờ đón cho đơn Đối tác (ADR-0193)
+
+Nhánh riêng `claude/dot-5b-…`. Làm mã ngay; **không đưa lệnh nhập** cho tới khi chủ trả lời câu hỏi 1. Câu (ii) làm theo câu trả lời của câu hỏi 2; hết giờ thì theo (a): mọi lượt còn mở.
+
+#### Task 5B.1: Bảng chính sách và route công tắc
+
+**Files:**
+- Create: `migrations/<số kế tiếp>_cong_tac_gio_don_doi_tac.sql`, `src/modules/orders/gio-don-cai-dat.ts` (đọc / ghi dòng hiện hành), `src/migrations-cong-tac-gio-don.test.ts`, `src/modules/orders/gio-don-cai-dat-route.test.ts`
+- Modify: `src/modules/orders/index.ts` (GET và POST `/api/cai-dat/bat-buoc-gio-don`, cạnh khối `/api/cai-dat/an-thong-tin-khach`), `docs/data-dictionary.json` + `npm run dict`, `src/architecture.test.ts` (nếu bảng mới cần khai chủ), `web/account.ts` + tệp web mới `web/gio-don-cai-dat.ts` (nút cạnh «Ẩn thông tin khách»)
+
+**Interfaces:**
+- Produces: bảng `ord_pickup_time_policy` (tên đề xuất, theo khuôn `ord_partner_customer_policy` ở `migrations/0133_chot_gio_va_an_thong_tin_khach.sql`): `id`, `required INTEGER NOT NULL CHECK (required IN (0,1))`, `valid_from_at`, `created_at`, `created_by`, `updated_at`, `updated_by` (đủ cột như khuôn `0133`); trigger chặn UPDATE và DELETE; một dòng gieo `required = 1`.
+- Produces: `export async function docBatBuocGioDon(db: D1Database, luc?: string): Promise<boolean>` (dòng mới nhất có `valid_from_at <= luc`; không có dòng thì `true`); `export function lenhGhiBatBuocGioDon(db, { bat, at, by }): D1PreparedStatement[]` (dòng mới + nhật ký, một lô).
+
+- [ ] **Bước 1: Viết bài đỏ.**
+  - Migration: bảng có, dòng gieo `required = 1`, UPDATE và DELETE bị trigger chặn.
+  - Route:
+    - Quản trị POST ⇒ 403;
+    - Bán hàng POST ⇒ 403;
+    - Toàn quyền POST `{ bat: false }` ⇒ 200, có một dòng nhật ký, GET trả `bat: false`;
+    - gửi đúng trạng thái đang có ⇒ 200, không ghi gì;
+    - thiếu `Origin` ⇒ 403;
+    - thua mốc ⇒ 409 `stale`.
+
+  Bộ bài theo `src/modules/orders/an-khach-route.test.ts`.
+- [ ] **Bước 2: Chạy, thấy đỏ.**
+- [ ] **Bước 3: Viết mã.**
+  - Migration mới, đặt số sau khi liệt kê mọi nhánh.
+  - Hàm đọc / ghi; route theo khuôn ẩn khách (cổng `orders` cho GET, cổng admin + ô `settings.ops` cho POST).
+  - Nút trên trang Tôi chỉ hiện khi `can(staff, "settings.ops")`. Tên nút theo ADR-0193 mục 7, phương án (1): «Tắt bắt buộc giờ đón» / «Bật bắt buộc giờ đón», nhãn «Bắt buộc giờ đón cho đơn đối tác»; thêm vào bảng tham chiếu.
+  - Tệp web mới thì khai ở script `build:web` và `PAGES` nếu là trang (đây chỉ là mảnh của trang Tôi nên thường không cần).
+- [ ] **Bước 4: Chạy lại, thấy xanh; chạy `npm run typecheck`.**
+- [ ] **Bước 5: Commit.** Tiêu đề: «ADR-0193: bảng chính sách và nút công tắc bắt buộc giờ đón (mặc định Bật)».
+
+#### Task 5B.2: Công tắc vào luật nhánh xác nhận, câu (i)
+
+**Files:**
+- Modify: `src/modules/orders/xac-nhan-chung.ts` (`canChotGioCuaNguoiLap` và chỗ gọi trong khối xác nhận của chi tiết đơn), `src/modules/orders/xac-nhan-route.ts` (route `POST /api/orders/:id/gui-xac-nhan`, chỗ gọi `canChotGioCuaNguoiLap`), nơi dựng khối xác nhận của chi tiết đơn (đọc công tắc trước, truyền vào)
+- Test: `src/modules/orders/gui-don-chot-gio.test.ts`, `src/modules/orders/con-ve-chot-gio.test.ts` (sửa hoặc thêm ca), bài thuần mới cạnh `xac-nhan-chung`
+
+**Interfaces:**
+- Consumes: `docBatBuocGioDon` (Task 5B.1).
+- Giữ nguyên `canChotGioCuaNguoiLap(nguoiLap, services)`. Hôm nay hàm này là nguồn **duy nhất** đưa đơn Đối tác chưa giờ vào nhánh A (`xac-nhan-route.ts`: `if (canXN.can || canChot)`; `xac-nhan-chung.ts`: khối `canXN` của chi tiết đơn). Đổi tên ý nghĩa thành «đi nhánh A vì thiếu giờ», **không** phụ thuộc công tắc.
+- Produces: `export const coChotGio = (diNhanhAViThieuGio: boolean, batBuoc: boolean): boolean => diNhanhAViThieuGio && batBuoc`. Giá trị này đi vào `canChotGio` của `moYeuCau` (cờ `pickup_time_required`) và quyết định có thêm `"CHOT_GIO"` vào `vi` hay không. Không được thêm tham số công tắc vào `canChotGioCuaNguoiLap`: làm vậy thì Tắt sẽ đẩy đơn sang nhánh B (tự xác nhận), tức phương án khác của câu (i), không phải phương án đã duyệt.
+
+- [ ] **Bước 1: Viết bài đỏ (bảng ca).**
+  - Bật hoặc Tắt × đơn có Đón mà lượt đầu chưa giờ / đã có giờ / Không đón × người lập là Đối tác / văn phòng.
+  - Kết quả cần đúng:
+    - Bật: Đối tác, chưa giờ ⇒ nhánh A, cờ = 1;
+    - Tắt: Đối tác, chưa giờ ⇒ **vẫn nhánh A**, cờ = 0, Còn vé không 409 `pickup_time_required`;
+    - văn phòng: không đổi.
+  - Chụp tại mốc: Gửi đơn khi Bật, Toàn quyền tắt, Còn vé vẫn 409 vì cờ đã chụp.
+  - Tắt: chi tiết đơn không hiện lý do `CHOT_GIO`.
+- [ ] **Bước 2: Chạy, thấy đỏ.**
+- [ ] **Bước 3: Viết mã.**
+  - Ở route Gửi đơn: điều kiện vào nhánh A vẫn là `canXN.can || canChot`, giữ nguyên. Đọc công tắc **một lần mỗi request**, tính `coChotGio(canChot, batBuoc)`, rồi dùng nó cho `canChotGio` của `moYeuCau` và cho việc thêm `"CHOT_GIO"` vào `vi`.
+  - Ở khối xác nhận của chi tiết đơn (`xac-nhan-chung.ts`): `canXN` vẫn dùng `canChotGioCuaNguoiLap` (quyết định nút «Gửi đơn» hay «Xác nhận»). Lý do hiển thị cho yêu cầu đang mở lấy từ cờ đã chụp, qua `viCuaYeuCau`; `tinhCanXacNhan` không bao giờ trả `CHOT_GIO`. Vì vậy chỗ này **không cần đọc công tắc**.
+  - Cách hiểu ghi lại (lệch chữ ADR-0193 mục 1 «cả hai nơi phải nhận giá trị công tắc»): chỉ route Gửi đơn đọc công tắc. Hai nơi vẫn «nói cùng một điều», vì nhánh A không phụ thuộc công tắc và lý do lấy từ cờ đã chụp. Người kiểm cuối nhánh xác nhận lại điều này; ghi vào trang báo chủ.
+  - Kiểm `moYeuCau` nhận `vi` rỗng (Tắt, dịch vụ không cần xác nhận, chỉ vào nhánh A vì thiếu giờ). Khi `vi` rỗng, dòng nhật ký hôm nay thành «Gửi kiểm vé · » (cụm lý do trống, `xac-nhan-route.ts` chỗ dựng chi tiết nhật ký): sửa để không còn dấu «·» thừa, và thêm bài cho ca này. Nếu `moYeuCau` từ chối `vi` rỗng thì dừng và báo người điều phối, đừng tự thêm lý do mới.
+- [ ] **Bước 4: Chạy lại, thấy xanh; chạy `npm run typecheck`.**
+- [ ] **Bước 5: Commit.** Tiêu đề: «ADR-0193 câu (i): Tắt công tắc thì đơn Đối tác chưa giờ vẫn qua văn phòng nhưng không bị chặn vì thiếu giờ».
+
+#### Task 5B.3: Câu (ii): chặn xác nhận khi lượt đón chưa giờ đã vào hạn chốt
+
+**Files:**
+- Modify: `src/shared/moc-toi-thieu.ts` (hàm thuần mới; **không** đổi `kiemMocDat`, `duoiMocKhiSua`), `src/modules/orders/chang-hanh-khach-repo.ts` (câu `ORDER_CONFIRM` thêm một vế `NOT EXISTS` dùng lại ngưỡng `?5` đã có; không thêm tham số), `src/modules/orders/xac-nhan-route.ts` (kiểm trước lô ở cửa Còn vé), `src/modules/orders/repository.ts` (chỗ gọi `orderConfirm`), nơi dịch kết quả lô xác nhận ra câu báo (`dichLoiXacNhan` / `chanDoanXacNhan` ở `xac-nhan-chung.ts`)
+- Test: `src/shared/moc-toi-thieu.test.ts` (thêm ca), bài khoá hai phía hàm thuần ↔ SQL (theo cặp `kiemMocDat` / SQL có sẵn), bài route của các cửa xác nhận
+
+**Interfaces:**
+- Produces: `export function changChuaGioVaoHanChot(chang: { pickupDate: string | null; pickupTime: string | null }, bayGioMs: number, phut: number): boolean`. Đầu vào thêm `departDate: string | null` (ngày đi của dịch vụ). Ngày dùng để xét là `pickupDate ?? departDate`, cùng luật với câu `legFillDateOnConfirm` chạy trong lô xác nhận (điền ngày đón trống bằng ngày đi trước khi `ORDER_CONFIRM` chạy). Kết quả là true khi `pickupTime === null && ngay !== null && \`${ngay} 00:00\` < nguongMocVn(bayGioMs, phut)`. Hàm thuần so **cùng một chuỗi** với SQL, để hai phía không lệch nhau dù `nguongMocVn` làm tròn lên phút. Cách hiểu ghi lại: ADR viết «bây giờ ≥ 00:00 ngày đón − hạn chốt». Quy ước «<» có sẵn của cổng hạn chốt chỉ khác ADR đúng ở khoảnh khắc 23:00:00.000 (lúc đó chưa chặn, một mili giây sau thì chặn).
+- Produces: hằng câu `CAU_CHUA_GIO_SAT_NGAY` = «Lượt đón ngày ‹ngày› chưa có giờ mà đã sát giờ đón — điền giờ đón trước khi xác nhận.»; mã lỗi `chua_gio_sat_ngay` (409).
+- Lượt bị xét: theo câu hỏi 2.
+  - (a) mặc định: mọi lượt còn mở (`closed_at IS NULL`) của đơn.
+  - (b): chỉ lượt đầu mỗi dịch vụ. Trong SQL dùng đúng thứ tự `ORDER BY (direction <> 'OUT'), (pickup_date IS NULL), pickup_date, (pickup_time IS NULL), pickup_time, id LIMIT 1` như luật kiểm `R-ORD-17w` ở `scripts/audit-checks.mjs`, lọc `closed_at IS NULL`; trong mã dùng `changDauCuaDichVu`.
+
+- [ ] **Bước 1: Viết bài đỏ, với hạn chốt 60 phút, ngày đón 2026-11-12, giờ VN:**
+  - 11/11 lúc 22:00 ⇒ false (xác nhận được);
+  - 11/11 lúc 22:59:00 ⇒ false;
+  - 11/11 lúc 22:59:30 ⇒ false;
+  - 11/11 lúc 23:00:00.000 ⇒ false (quy ước «<», ghi trong chú thích hàm);
+  - 11/11 lúc 23:00:01 ⇒ true;
+  - 11/11 lúc 23:30 ⇒ true;
+  - 12/11 lúc 08:00 ⇒ true;
+  - lượt có giờ ⇒ false;
+  - lượt không có ngày, dịch vụ đi 12/11, lúc 11/11 23:30 ⇒ true (lấy ngày đi); lượt và dịch vụ đều không có ngày ⇒ false.
+
+  Thêm các bài sau:
+  - Bài khoá: `kiemMocDat` với lượt chưa giờ vẫn trả `KHONG_GIO`.
+  - Bài khoá hai phía: cùng bộ ca chạy qua hàm thuần và qua câu `ORDER_CONFIRM` trên D1 tạm cho cùng kết quả.
+  - Bài route: cửa `/status` và cửa Còn vé đều trả 409 `chua_gio_sat_ngay`, đơn giữ `draft`. Điền giờ rồi xác nhận lại thì đi cổng hạn chốt như thường.
+  - Theo câu hỏi 2: với (a), lượt chiều về chưa giờ trong hạn chốt cũng chặn; với (b), không chặn. Lượt đã đóng (`closed_at` có giá trị) không bao giờ chặn.
+  - Bài khoá hai phía phải có cả các ca có giây ở trên.
+- [ ] **Bước 2: Chạy, thấy đỏ.**
+- [ ] **Bước 3: Viết mã.**
+  - **Kiểm trước khi dựng lô, ở mọi cửa xác nhận.** Ruling R6 (chú thích ở `xac-nhan-route.ts`, cửa Còn vé): `db.batch` không hoàn tác khi `ORDER_CONFIRM` đổi 0 dòng. Các câu đổi ngày, đổi giờ, điền ngày chạy trước nó vẫn ghi. Vì vậy mỗi cửa (`/status`, nhánh B của Gửi đơn, Còn vé) phải chạy hàm thuần trên **trạng thái sau lệnh**: ngày đi mới, giờ đón mới người xét vừa điền, ngày đón trống thay bằng ngày đi. Có lượt chạm luật thì trả 409 `chua_gio_sat_ngay` **trước** khi dựng lô, giống cách đoạn R6 đang kiểm `confirmGaps`.
+  - Vế SQL mới là lớp chặn cuối, giống hệt hàm thuần: so `pickup_date || ' 00:00' < ?5` (ngưỡng `nguongMocVn` đã truyền cho cổng hạn chốt). Câu `legFillDateOnConfirm` đứng trước trong lô nên SQL thấy ngày đã điền; hàm thuần dùng `pickupDate ?? departDate` nên hai phía cùng kết quả.
+  - Lô xác nhận không đổi dòng nào (bị đua) thì `chanDoanXacNhan` phân biệt lý do bằng hàm thuần, để báo đúng câu.
+- [ ] **Bước 4: Chạy lại, thấy xanh; chạy `npm run typecheck`.**
+- [ ] **Bước 5: Commit.** Tiêu đề: «ADR-0193 câu (ii): lượt đón chưa giờ đã vào hạn chốt thì phải điền giờ trước khi xác nhận».
+
+#### Task 5B.4: Sửa luật kiểm R-ORD-17w
+
+**Files:**
+- Modify: `scripts/audit-checks.mjs` (khối `R-ORD-17w`), `src/audit-invariants.test.ts` (bài canh `R-ORD-17w`)
+
+- [ ] **Bước 1: Viết bài đỏ.** Đơn Đối tác xác nhận khi công tắc **Tắt**, lượt đầu chưa giờ ⇒ không đếm. Cùng đơn ấy xác nhận khi **Bật** ⇒ vẫn đếm. Các ca cũ giữ nguyên.
+- [ ] **Bước 2: Chạy, thấy đỏ.** Lệnh: `node --test src/audit-invariants.test.ts`.
+- [ ] **Bước 3: Sửa câu SQL.** Không đếm khi dòng chính sách hiệu lực tại `o.confirmed_at` (dòng mới nhất có `valid_from_at <= o.confirmed_at`) có `required = 0`. Không có dòng nào (đơn xác nhận trước ngày gieo) thì coi là Bật, vẫn đếm như hôm nay, khớp `docBatBuocGioDon`. Thêm ca bài cho đơn xác nhận trước ngày gieo. Giữ mức `warn`.
+- [ ] **Bước 4: Chạy lại, thấy xanh.**
+- [ ] **Bước 5: Commit.** Tiêu đề: «R-ORD-17w chỉ đếm đơn xác nhận khi công tắc giờ đón Bật (ADR-0193 mục 6)».
+
+#### Task 5B.5: Kiểm cuối nhánh 5B, giữ chờ chủ
+
+- [ ] Kịch bản Chrome, ảnh 390 và 1280:
+  - Toàn quyền tắt công tắc ở trang Tôi;
+  - Đối tác gửi đơn có đón chưa giờ;
+  - văn phòng bấm Còn vé mà không phải điền giờ;
+  - trang đơn hiện nhắc vàng «Chưa chốt giờ»;
+  - đơn đón hôm nay chưa giờ bị chặn với câu (ii).
+- [ ] `npm test`, `npm run typecheck`, `npm run test:e2e` (chạm migration và API).
+- [ ] Mục nhật ký thay đổi, số bản kế tiếp lúc nhập.
+- [ ] `nguoi-kiem-doc-lap` đọc cả nhánh.
+- [ ] Đề xuất cho chủ, chưa ghi: dòng Trạng thái ADR-0154 trỏ về ADR-0193; điền phần «Điều kiện» của khoá `xay_tren_cho_phep_adr_0193` trong `docs/quyen-hoan.json` theo câu trả lời câu hỏi 1.
+- [ ] **Chỉ đưa lệnh nhập khi chủ đã chọn (b), hoặc khi buổi diễn tập khôi phục đã xong theo (a).** Trước đó, nhánh nằm yên và được gộp `main` mới khi cần.
+
 ## Phần IX — Đợt 6: ADR lượt C (biên lai, đặt cọc, mặc định thanh toán)
+
+### Phạm vi (đã duyệt 9/11)
+
 
 **6.1 N1 — biên lai bắt buộc.** Nền tảng đã có bước Đối tác báo chuyển khoản: form «Ghi khoản thu» chọn người thu «Công ty» + Chuyển khoản tạo phiếu thu kèm dấu «đang đối chiếu», chưa tính là tiền đã về công ty. Biên lai bắt buộc ở đúng bước này (khuyến nghị: chỉ khi Đối tác tự báo Công ty thu bằng chuyển khoản; tiền mặt hay «Tôi thu» không đòi); Kế toán xem ảnh tại dòng khoản thu cạnh nút «Xác nhận đã nhận»; cách ghi nhận tiền không đổi. Theo khuôn tệp kèm ADR-0144: bảng chỉ-thêm mới, kho R2 riêng (chủ tạo bằng một lệnh; cổng kiểm kho của `trien-khai` phải biết kho mới), khoá ngẫu nhiên, không lưu tên gốc, giới hạn loại và cỡ, ảnh thu nhỏ trên máy, tải qua Worker có nhật ký trước, ô quyền xem mới (Kế toán, Toàn quyền, chính Đối tác ghi phiếu). Ảnh HEIC, PDF không xoá được thông tin ẩn — ADR nói thẳng. Hạn lưu: khuyến nghị cùng thời hạn sổ tiền, Toàn quyền gỡ ảnh gửi nhầm bằng một lệnh có nhật ký. Migration mới khi chưa diễn tập khôi phục: **xây trên lỗ đang hở: HC-5.19**; chạm gián tiếp TNV-G1 nếu đơn bị huỷ sau đó.
 
 **6.2 N6 — «Khách hàng đặt cọc cho đối tác».** Tính năng hiện tên «Khách đặt cọc trước» (ADR-0159), ẩn khi chọn Trả sau và máy chủ chặn (409 `tra_sau_khong_nhan_coc`). ADR-0183 (chưa duyệt) đã đề xuất tên khác («Khách đặt cọc cho đại lý») và mở cọc cho Trả sau: phải sửa ADR-0183 theo tên chủ chọn, không để hai tên. Không cần migration: đổi chữ hiển thị (KHÔNG đổi chuỗi ghi chú «Khách đặt cọc trước» đang làm dấu nhận diện trong CSDL), bỏ ẩn và bỏ chặn theo Trả sau, thêm câu «cọc ở tay Đối tác, không làm giảm nợ với Công ty». Câu cho chủ (khuyến nghị an toàn): chặn huỷ đơn trả sau còn cọc chưa nộp tới khi Kế toán xử lý; biên nhận giữ «Khách đã trả trước» ở lượt này. **Xây trên lỗ đang hở: TNV-G1** (đơn huỷ có cọc đi luồng cọc đơn huỷ). Tổ hợp Trả sau × cọc × huỷ chưa từng chạy: bài mới bắt buộc.
 
 **6.3 N3 — mặc định Trả sau hay Thanh toán ngay.** Gác cho tới khi chủ gỡ lời cấm Trả sau (lời cấm là luật vận hành ở `docs/HANDOFF-N1.md`, không có công tắc trong mã; khi chưa có đối tác nào có hạn mức thì cài đặt không có tác dụng). Thiết kế đã dò: bảng chỉ-thêm theo khuôn công tắc kênh thu, thẻ trên màn Cấp độ đại lý, mặc định chỉ áp ở trình duyệt cho đơn mới, máy chủ vẫn mặc định thanh toán ngay khi thiếu khoá.
+
+### Chi tiết thi công (viết 2026-11-10; các việc 6A, 6B chỉ giao sau khi ADR lượt C được duyệt)
+
+
+#### Task 6.0: Soạn ADR lượt C và trình chủ (phiên soạn, không thi công)
+
+**Files:**
+- Create: `docs/adr/ADR-<số>-bien-lai-chuyen-khoan-bat-buoc.md` (N1), `docs/adr/ADR-<số+1>-o-coc-cua-khach-cho-don-tra-sau.md` (N6), `docs/superpowers/specs/2026-11-xx-trang-ghep-adr-luot-c.md`, `docs/superpowers/specs/2026-11-xx-trinh-chu-adr-luot-c.md`
+
+Hôm soạn số ADR kế tiếp là 0196. Hai ADR là hai quyết định chạm tiền hoặc dữ liệu, dưới trần 3 của một lượt duyệt. N3 (mặc định cách thanh toán) **không** vào lượt này: gác tới khi chủ gỡ lời cấm Trả sau.
+
+- [ ] **Bước 1: Đọc lại hiện trạng trên `main`.**
+  - Cho N1: `POST /api/orders/:id/payments` ở `src/modules/billing/index.ts`; dấu `DECLARED` ở `src/modules/billing/service.ts`; khuôn tệp `src/shared/tep-dinh-kem.ts` (base64 trong thân JSON, `TOI_DA_BYTE` 10 MB, loại jpg / png / heic / pdf, `taoKhoaNgauNhien`), `src/modules/ve-dien-tu/kho-tep.ts`, hàng chờ xoá tệp của `feedback`; cổng kho 1e ở `scripts/release-lib.mjs` (`NHAN_KHO`, `HAU_QUA_THIEU_KHO`).
+  - Cho N6: `src/modules/orders/tra-sau-cong.ts` (409 `tra_sau_khong_nhan_coc`); chỗ ẩn ô cọc khi Trả sau ở `web/order-form.ts`; `src/shared/dat-coc-truoc.ts`; luồng cọc khi huỷ (ADR-0089); ADR-0183 Đ2.
+- [ ] **Bước 2: Soạn ADR N1 theo khuyến nghị của Phần IX kế hoạch mẹ.** Các điểm cần có:
+  - Bắt buộc ảnh chỉ khi tài khoản Đối tác (không giữ quyền Kế toán) ghi khoản thu với người thu «Công ty» và cách «Chuyển khoản». Thiếu ảnh thì 400 `bien_lai_required`, không ghi gì.
+  - Bảng chỉ-thêm `bil_receipt_proof` thuộc `billing`; kho R2 mới binding `BIEN_LAI`, tên `tourdao-sales-bien-lai`; tiền tố khoá `bln`; không lưu tên tệp gốc.
+  - Ô quyền mới `payment.proof.view`: Kế toán, Toàn quyền, và chính Đối tác ghi phiếu.
+  - Route xem tải qua Worker, ghi nhật ký **trước**.
+  - Hạn lưu: cùng hạn sổ tiền; Toàn quyền gỡ ảnh gửi nhầm bằng lệnh có nhật ký và có lý do.
+  - Nói thẳng: HEIC và PDF không xoá được thông tin ẩn.
+  - **Xây trên lỗ đang hở: HC-5.19** (migration khi chưa diễn tập), kèm khoá xin phép theo khuôn ADR-0193.
+- [ ] **Bước 3: Soạn ADR N6.** ADR-0183 còn `proposed`, nên sửa thẳng Đ2 của nó cho khớp (một tên, một luật), không cần dòng «Sửa đổi»; nếu ADR-0183 được duyệt trước thì mới chuyển sang dòng «Sửa đổi». ADR N6 có:
+  - Tên ô do chủ chọn một. Lời yêu cầu 8/11 viết «Khách hàng đặt cọc cho đối tác», còn ADR-0183 viết «Khách đặt cọc cho đại lý». Bảng từ chỉ cho một tên, nên đưa 2–3 tên, khuyến nghị theo từ bảng tham chiếu đang dùng cho bên đặt.
+  - Bỏ ẩn ô và bỏ chặn 409 khi Trả sau.
+  - Câu «cọc ở tay Đối tác, không làm giảm nợ với Công ty».
+  - **Không đổi** chuỗi ghi chú «Khách đặt cọc trước» trong `billing/coc-repo.ts`: chuỗi đó là dấu nhận diện lưu trong CSDL.
+  - Câu cho chủ về huỷ đơn Trả sau còn cọc. Phải nói rõ «cọc chưa nộp» là trạng thái dữ liệu nào (khoản cọc ghi lúc xác nhận theo ADR-0159, chưa có khoản nộp về Công ty), và «Kế toán xử lý» là lệnh nào. Lưu ý: luồng hoàn cọc ADR-0089 (`/coc/duyet`, `/coc/chi`) chỉ chạy trên đơn **đã huỷ**, nên «chặn huỷ tới khi Kế toán xử lý» sẽ bế tắc nếu không có lệnh xử lý trên đơn chưa huỷ. Người soạn dò mã, đưa 2–3 phương án khả thi, khuyến nghị phương án an toàn mà không bế tắc. Biên nhận giữ «Khách đã trả trước».
+  - **Xây trên lỗ đang hở: TNV-G1** (hạn 31/12), kèm khoá xin phép.
+- [ ] **Bước 4: Trang ghép theo `CLAUDE.md` §9.** Gồm:
+  - bảng `bil_payment_receipt` / `bil_receipt_recon` / `bil_receipt_proof` / `orders.declared_deposit` chứa loại thực thể nào;
+  - từng dòng bản đồ quyền chạm các bảng đó;
+  - cổng nào canh cửa nào, kể cả chỗ giao diện ẩn hoặc hiện ô cọc, nút xem ảnh.
+- [ ] **Bước 5: Người kiểm độc lập kiểm một vòng hai ADR và trang ghép.** Chỉ sửa lỗi sai sự thật.
+- [ ] **Bước 6: Trình chủ bằng một trang lời thường**, tối đa ba câu chọn, mỗi câu có khuyến nghị đặt đầu:
+  1. biên lai bắt buộc khi nào;
+  2. tên ô cọc;
+  3. chặn huỷ đơn Trả sau còn cọc.
+
+  Câu duyệt mẫu ghi kèm «Cho phép, có ghi lý do» cho HC-5.19 và TNV-G1, và điều kiện phát hành trước hay sau diễn tập.
+- [ ] **Bước 7: Commit trên nhánh, đưa chủ lệnh nhập (chỉ tài liệu, không cần triển khai).**
+
+#### Task 6A.1–6A.4: Biên lai bắt buộc (sau khi ADR N1 được duyệt)
+
+Nhánh `claude/dot-6a-…`. Viết theo khuyến nghị; chủ chọn khác ở bước 6 của Task 6.0 thì sửa trước khi giao.
+
+**6A.1 Bảng, kho, cổng triển khai.**
+- Theo đúng khuôn kho tệp có sẵn (ADR-0144, `src/modules/feedback/kho-tep.ts`; khuôn gốc `src/modules/parties/kho-tep.ts`): **ghi D1 trước, R2 sau**. Lỗi kho không ném; dòng ở lại trạng thái «tải dở dang» hoặc «chờ xoá» để thấy được và chạy lại.
+- Migration `bil_receipt_proof`: `id`, `receipt_id` (khoá ngoại tới `bil_payment_receipt`), rồi **chép đúng bộ cột và ràng buộc của `fbk_attachment` ở migration `0124`**: `storage_key` (CHECK mẫu `bln/` + 32 ký tự hex, như `fbk/`), `content_kind`, `byte_size`, `content_hash`, `created_at`, `created_by`, `updated_at`, `updated_by`, `stored_at` (rỗng = tải dở dang), `purged_at`, `purge_reason`, `r2_deleted_at` (có `purged_at` mà rỗng cột này = chờ xoá), cùng các CHECK nối `purged_at` / `purge_reason` / `content_hash`. Người gỡ ảnh ghi ở nhật ký và `updated_by`, như khuôn. Không có cột tên tệp gốc. Trigger chặn DELETE và chỉ cho UPDATE các cột trạng thái tệp, theo khuôn `fbk_attachment`.
+- `wrangler.jsonc` thêm `{ "binding": "BIEN_LAI", "bucket_name": "tourdao-sales-bien-lai" }`. `NHAN_KHO.BIEN_LAI = "kho biên lai chuyển khoản"`, `HAU_QUA_THIEU_KHO.BIEN_LAI = "ảnh biên lai không gửi hay mở được"`.
+- `taoKhoaNgauNhien` nhận thêm tiền tố `"bln"`. Khai binding `BIEN_LAI: R2Bucket` trong kiểu `Env` (`npm run types` hoặc khai tay như ba kho cũ).
+- `data-dictionary.json` + `npm run dict`.
+- Bài:
+  - migration (trigger);
+  - bài kho trong `scripts/` có sẵn cho cổng 1e (thiếu kho `BIEN_LAI` thì cổng dừng);
+  - bài kiến trúc: chỉ `billing` ghi bảng mới;
+  - bài «chỉ `billing` chạm kho `BIEN_LAI`» theo `src/kho-tep-ho-tro.test.ts`;
+  - luật kiểm mới `R-BIL-<số>` ở `scripts/audit-checks.mjs` theo `R-FBK-1` (dòng tải dở dang hoặc chờ xoá quá hạn), có bài canh ở `src/audit-invariants.test.ts`.
+
+**6A.2 Ghi khoản thu kèm ảnh.**
+- `POST /api/orders/:id/payments` nhận thêm `bienLai` (base64). Giới hạn cỡ thân yêu cầu theo khuôn `POST /api/feedback`; kiểm tệp bằng `kiemTepCuaTin` / `nhanLoaiTep` của `src/shared/tep-dinh-kem.ts`.
+- Luật bắt buộc: hàm thuần `canBienLai(...)` ở `src/shared/`. Điều kiện «khoản tự báo, chờ đối chiếu» phải **dùng chung** với điều kiện đang quyết định ghi dấu `DECLARED` ở `src/modules/billing/service.ts`: tách điều kiện đó ra hàm thuần, rồi dùng ở cả hai chỗ, không viết điều kiện thứ hai. Phạm vi ai bị đòi ảnh (chỉ Đối tác, hay mọi khoản mang dấu `DECLARED`, kể cả bên đặt và quầy nhà cung cấp) theo ADR N1 đã duyệt.
+- Thứ tự xử lý: kiểm tệp; một `db.batch` gồm phiếu thu, dấu `DECLARED`, dòng `bil_receipt_proof` (`stored_at` rỗng), nhật ký (không có ảnh, không có số tài khoản); sau đó đặt đối tượng R2 rồi đánh `stored_at`. Đặt R2 hỏng thì dòng ở lại «tải dở dang»: Kế toán thấy phiếu có ghi chú «ảnh chưa tải xong». Có route xem và chạy lại hàng chờ, theo `GET /api/feedback/tep-cho-xoa` và `POST /api/feedback/tep-cho-xoa/chay-lai`.
+- Bài:
+  - thiếu ảnh ⇒ 400 `bien_lai_required`, không có phiếu;
+  - sai loại ⇒ 415 với `CAU_SAI_LOAI`;
+  - quá cỡ ⇒ 413 (mã lỗi đúng như `kiemTepCuaTin`);
+  - tiền mặt hoặc «Tôi thu» không cần ảnh;
+  - Kế toán ghi không cần ảnh;
+  - đặt R2 giả lỗi ⇒ phiếu thu vẫn ghi, dòng ảnh ở «tải dở dang», luật kiểm mới đếm được, chạy lại thì xong;
+  - DTO mặc định của khoản thu không chứa khoá R2.
+
+**6A.3 Xem và gỡ ảnh.**
+- Ô `payment.proof.view` trong `MATRIX`; cột Đối tác là `own`, nghĩa là phiếu do chính mình ghi.
+- `GET /api/orders/:id/payments/:receiptId/bien-lai`: ghi nhật ký trước rồi mới trả tệp; thêm ca vào `src/giay-to-khong-lo-so.test.ts` nếu bài đó phủ route tệp.
+- `POST …/bien-lai/go`: chỉ Toàn quyền, bắt buộc lý do, có nhật ký; ghi `purged_at` + `purge_reason` = `GO_TEP` trong lô D1, rồi xoá đối tượng R2 và đánh `r2_deleted_at` (hỏng thì ở lại «chờ xoá»).
+- Bài:
+  - Bán hàng 403;
+  - Đối tác khác 403;
+  - Đối tác chính chủ 200;
+  - Kế toán 200;
+  - nhật ký có trước phản hồi;
+  - gỡ hai lần ⇒ 409.
+
+**6A.4 Giao diện và kiểm cuối.**
+- Form «Ghi khoản thu» (`web/order.ts`): chọn «Công ty» + «Chuyển khoản» thì hiện ô chọn ảnh (bắt buộc). Ảnh thu nhỏ trên máy trước khi gửi theo khuôn `web/ho-tro-tep.ts`.
+- Dòng khoản thu của Kế toán có nút «Xem biên lai» cạnh «Xác nhận đã nhận».
+- Kiểm gói Đơn hàng: tệp `web/order.ts` là gói trang chi tiết, không phải `web/orders.ts`; vẫn chạy `src/goi-trang-nhe.test.ts`.
+- Kịch bản Chrome `docs/evidence/2026-10-08-qr-thanh-toan/kich-ban/qr-smoke.mjs` sửa theo; thêm ca biên lai; ảnh 390 và 1280.
+- `npm test`, `npm run typecheck`, `npm run test:e2e`, `nguoi-kiem-doc-lap`.
+- Trước khi triển khai: đưa chủ lệnh tạo kho, chạy ở thư mục `tourdao-sales`. Lệnh có thể hỏi sửa cấu hình, trả lời «n».
+
+  ```bash
+  npx wrangler r2 bucket create tourdao-sales-bien-lai
+  ```
+
+  Phát hành theo điều kiện chủ ghi ở khoá HC-5.19.
+
+#### Task 6B.1–6B.3: Ô cọc của khách cho đơn Trả sau (sau khi ADR N6 được duyệt)
+
+Nhánh `claude/dot-6b-…`, không migration. Tên ô viết `‹TÊN Ô›` dưới đây, thay bằng tên chủ chọn.
+
+**6B.1 Máy chủ.**
+- Bỏ chặn 409 `tra_sau_khong_nhan_coc` ở `src/modules/orders/tra-sau-cong.ts`.
+- Luật huỷ đơn Trả sau còn cọc: làm **đúng phương án chủ chọn ở ADR N6** (Task 6.0 bước 3). Bước này không được giao khi ADR chưa nói rõ trạng thái «cọc chưa nộp» và lệnh xử lý.
+- Bài đỏ trước, tổ hợp chưa từng chạy:
+  - Trả sau × có cọc × xác nhận: khoản cọc ghi như ADR-0159, công nợ với Công ty không giảm;
+  - Trả sau × có cọc × huỷ: theo phương án ADR N6, kèm bài chứng minh không bế tắc (sau lệnh xử lý thì huỷ được, hoặc huỷ xong luồng ADR-0089 chạy được);
+  - Thanh toán ngay × có cọc: không đổi.
+- Bài nằm ở `src/tra-sau-xac-nhan.test.ts`, `src/tra-sau-duong-ghi.test.ts`, `src/modules/billing/dat-coc-route.test.ts`, và e2e `tests/e2e/dat-coc.mjs`.
+
+**6B.2 Chữ và giao diện.**
+- Đổi chữ hiển thị «Khách đặt cọc trước» thành `‹TÊN Ô›` ở mọi chỗ người dùng thấy: `src/shared/dat-coc-truoc.ts` (hằng `NHAN_DAT_COC`, `NHAN_DAT_COC_CHO`), `src/modules/billing/dat-coc.ts`, `public/order-form.html`, `web/order-form.ts`, `web/order.ts`, `src/shared/huong-dan-doi-tac.ts`, `xac-nhan-chung.ts`, bảng tham chiếu. Trước khi sửa, chạy `grep -rn "đặt cọc trước" src web public` để không sót.
+- **Không đổi** hằng ghi chú `GHI_CHU_KHOAN_LOI_KHAI` trong `src/modules/billing/coc-repo.ts` (dấu nhận diện lưu trong CSDL). Thêm bài khoá chuỗi đó không đổi.
+- Bỏ ẩn ô khi chọn Trả sau. Thêm câu «cọc ở tay Đối tác, không làm giảm nợ với Công ty» (chữ theo ADR).
+- ADR-0183 đã được sửa ở Task 6.0; không sửa thêm ở đây.
+
+**6B.3 Kiểm cuối.**
+- Kịch bản Chrome `docs/evidence/2026-11-02-dat-coc/kich-ban/dat-coc-smoke.mjs` và `docs/evidence/2026-11-05-tra-sau/kich-ban/tra-sau-smoke.mjs`, ảnh 390 và 1280.
+- `npm test`, `npm run typecheck`, `npm run test:e2e`, `nguoi-kiem-doc-lap` (việc tiền).
+- Mục nhật ký thay đổi; lệnh nhập có rào.
+
+#### Việc 6.3 — N3: gác
+
+Không giao. Mở lại khi chủ gỡ lời cấm cấp hạn mức Trả sau thật (luật vận hành ở `docs/HANDOFF-N1.md`). Thiết kế đã dò nằm ở Phần IX mục 6.3 của kế hoạch mẹ.
+
+### Thứ tự giao và nhập
+
+1. **Ngay:** nhánh 5A (thi công) và Task 6.0 (soạn ADR lượt C) chạy song song, vì không chạm cùng tệp. Nhánh 5B thi công song song với 5A, nhưng **không chạm** `web/order-form.ts` hay `web/shell.ts`.
+2. Nhập 5A, rồi triển khai một lần.
+3. Chủ trả lời câu hỏi 1 (hoặc buổi diễn tập xong) ⇒ gộp `main` mới vào 5B, đánh lại số bản, chạy lại bộ kiểm, nhập, triển khai.
+4. ADR lượt C được duyệt ⇒ 6A và 6B thi công song song. Hai nhánh cùng chạm `web/order.ts`, nên 6B cắt nhánh sau khi 6A đã nhập, hoặc gộp lại trước khi nhập. Mỗi nhánh nhập riêng; nhánh nhập sau gộp `main` và đánh lại số bản.
+5. Hạn sổ: HC-5.19 và TNV-G1 hạn 31/12; HC-4.2 hạn 30/11, chủ hẹn quyết khoảng 20/11. Nếu HC-4.2 chưa xử lý trước 0 giờ 1/12 thì `npm test` đỏ, mọi lệnh nhập và triển khai dừng. Đợt 5, 6 nên nhập trước mốc đó.
+
 
 ## Phần X — Kiểm, xác thực, triển khai (áp cho mọi đợt)
 

@@ -15,6 +15,7 @@ import { icon } from "./icons";
 import { renderMaintenanceMessage } from "./maintenance-screen";
 import { ganCaiDatNhapTay } from "./nhap-tay-cai-dat";
 import { ganCaiDatAnKhach } from "./an-khach-cai-dat";
+import { ganCaiDatGioDon } from "./gio-don-cai-dat";
 import { ganNutThanhDuoi } from "./thanh-duoi-cai-dat";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { b64uSangBytes, thietBiTu } from "./push-ui";
@@ -858,6 +859,8 @@ if (can(staff, "settings.ops")) void ganCaiDatNhapTay(byId("nhap-tay-cai-dat"));
 
 // ---- Ẩn thông tin khách khi đối tác đặt vé (ADR-0154 Đ2.1): công tắc bật / tắt — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại), cạnh «Dịch vụ nhập tay» ----
 if (can(staff, "settings.ops")) void ganCaiDatAnKhach(byId("an-khach-cai-dat"));
+// ADR-0193 mục 1: «Bắt buộc giờ đón cho đơn đối tác» — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại), ngay dưới «Ẩn thông tin khách».
+if (can(staff, "settings.ops")) void ganCaiDatGioDon(byId("gio-don-cai-dat"));
 // ADR-0187 Đ2.3: mục «Nút thanh dưới» (chỉ điện thoại). Ai thấy: ô me.favorites.write và không đang xem như vai trò khác — hàm tự hỏi bảng quyền.
 ganNutThanhDuoi(byId("thanh-duoi"), staff);
 

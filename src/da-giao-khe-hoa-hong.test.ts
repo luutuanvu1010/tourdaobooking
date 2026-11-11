@@ -82,7 +82,7 @@ test("0 — đối chứng: vai bên ngoài còn mở, bản chụp có người
   assert.deepEqual(dongHoaHong(w, id), [["HOA_HONG", `pty-${PT}`, 200_000]]);
 });
 
-for (const [ten, actor] of [["Quản trị", ADMIN], ["Toàn quyền", SUPER], ["Nhân sự", HR]] as const) {
+for (const [ten, actor] of [["Quản trị", ADMIN], ["Toàn quyền", SUPER]] as const) {
   test(`1 — ${ten} đổi tài khoản đối tác sang vai nhân viên bán hàng sau khi đơn đã chụp ⇒ «Đã giao» 200, hoa hồng vẫn về người hưởng ĐÃ CHỤP (ĐẢO CÓ CHỦ ĐÍCH — Task 4)`, async () => {
     const w = setup();
     const id = await donDoiTacDaXacNhan(w);
@@ -96,6 +96,15 @@ for (const [ten, actor] of [["Quản trị", ADMIN], ["Toàn quyền", SUPER], [
     assert.deepEqual(dongHoaHong(w, id), [["HOA_HONG", `pty-${PT}`, 200_000]], `KHE: «Đã giao» mà sổ không có dòng hoa hồng cho người hưởng đã chụp (${g.text})`);
   });
 }
+
+test("1b — Nhân sự đổi tài khoản đối tác sang vai nhân viên bán hàng ⇒ 403 forbidden (ADR-0191 mục 3(a): vai xem mọi khách chỉ Quản trị, Toàn quyền gán), vai không đổi", async () => {
+  const w = setup();
+  await donDoiTacDaXacNhan(w);
+  const r = await doiVai(w, HR, ["SALES_STAFF"]);
+  assert.equal(r.status, 403, r.text);
+  assert.equal(r.json.error.code, "forbidden");
+  assert.ok(!w.q("SELECT role_type_code FROM pty_party_role WHERE party_id = ? AND valid_to_date IS NULL", `pty-${PT}`).some((x: { role_type_code: string }) => x.role_type_code === "SALES_STAFF"), "không có vai nhân viên bán hàng");
+});
 
 test("2 — đổi vai bên ngoài sang vai bên ngoài khác (đại lý → hướng dẫn viên tự do) ⇒ «Đã giao» 200, hoa hồng theo bản chụp (ĐẢO CÓ CHỦ ĐÍCH — Task 4: trước là 409)", async () => {
   const w = setup();

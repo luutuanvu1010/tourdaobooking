@@ -275,6 +275,14 @@ export interface AnThongTinKhachResponse { bat: boolean; apChoToi: boolean; doiD
 /** Thân `POST /api/cai-dat/an-thong-tin-khach` (chỉ Toàn quyền). */
 export interface AnThongTinKhachRequest { bat: boolean }
 
+/**
+ * `GET`/`POST /api/cai-dat/bat-buoc-gio-don` (ADR-0193 mục 1): `bat` = công tắc «Bắt buộc giờ đón cho đơn đối tác» đang BẬT (mặc định — hành vi ADR-0154 Đ1.2, Đ1.3); `doiDuoc` = người gọi
+ * bật / tắt được (ô `settings.ops`, chỉ Toàn quyền). Công tắc chỉ đổi cờ «cần chốt giờ» của yêu cầu xác nhận chụp SAU lúc đổi; đơn Đối tác chưa giờ vẫn qua văn phòng xét.
+ */
+export interface BatBuocGioDonResponse { bat: boolean; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/bat-buoc-gio-don` (chỉ Toàn quyền). */
+export interface BatBuocGioDonRequest { bat: boolean }
+
 // ---- Khung giờ đón (ADR-0134 Đ5, Đ6; module `orders`) ----
 /** `GET`/`POST /api/cai-dat/khung-gio-don`: bộ khung đang hiệu lực + câu lưu ý; `doiDuoc` = người gọi đổi được (ô `settings.ops` — chỉ Toàn quyền). */
 export interface KhungGioDonResponse { khung: KhungGio[]; luuY: string; doiDuoc: boolean }
@@ -298,6 +306,8 @@ export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolea
 export interface StaffListResponse { staff: StaffListRowDto[]; tenVai: Record<string, string> }
 export interface StaffResponse { staff: StaffAccountDto }
 export interface StaffWithPinResponse { staff: StaffAccountDto; pin: string }
+/** `POST /api/staff` (ADR-0191): tài khoản xem mọi khách do Nhân sự tạo thì `pin: null` + `choQuanTriCapPin: true` (Quản trị cấp PIN bằng «Đặt lại PIN»). Đường đặt lại PIN vẫn `StaffWithPinResponse`. */
+export interface TaoTaiKhoanResponse { staff: StaffAccountDto; pin: string | null; choQuanTriCapPin: boolean }
 
 // ---- Đơn hàng ----------------------------------------------------------------
 export type OrderStatus = "draft" | "confirmed" | "cancelled";
@@ -741,6 +751,8 @@ export interface MocToiThieuResponse { mocToiThieuPhut: number; canhBaoPhut: num
 export interface ShortNoticeRequiredBody { error: { code: "short_notice_required"; message: string; legs: { legId: string; phutConLai: number }[] } }
 /** 409 Còn vé khi yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.2, Đ1.3) mà lượt đầu của một dịch vụ còn thiếu giờ đón: `legs` = các lượt đầu còn thiếu. Không ghi gì. */
 export interface PickupTimeRequiredBody { error: { code: "pickup_time_required"; message: string; legs: { legId: string }[] } }
+/** 409 `chua_gio_sat_ngay` (ADR-0193 câu (ii)): còn lượt đón CHƯA giờ mà ngày đón đã vào hạn chốt — điền giờ rồi xác nhận lại. `legs` = các lượt chạm luật. */
+export interface ChuaGioSatNgayBody { error: { code: "chua_gio_sat_ngay"; message: string; legs: { legId: string }[] } }
 
 /** Một dịch vụ trong PHẦN HẸP của hàng chờ nhận (ADR-0030 S23-2) — ĐÚNG bốn khoá này. `pickupPlace` (và `name`) đã che mọi dãy từ 8 chữ số. */
 export interface PoolServiceDto {

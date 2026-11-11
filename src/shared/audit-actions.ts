@@ -331,6 +331,8 @@ export const AUDIT_ACTIONS = {
   sales_policy_changed: { label: "Đổi cài đặt người phụ trách", group: "system" },
   // ADR-0154 Đ2.1: Toàn quyền bật / tắt «Ẩn thông tin khách khi đối tác đặt vé» (POST /api/cai-dat/an-thong-tin-khach) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
   partner_customer_policy_changed: { label: "Đổi công tắc ẩn thông tin khách", group: "system" },
+  // ADR-0193 mục 1: Toàn quyền bật / tắt «Bắt buộc giờ đón cho đơn đối tác» (POST /api/cai-dat/bat-buoc-gio-don) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
+  pickup_time_policy_changed: { label: "Đổi công tắc bắt buộc giờ đón", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.
   tro_ly_settings_changed: { label: "Đổi cài đặt trợ lý Hỗ trợ", group: "system" },
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).

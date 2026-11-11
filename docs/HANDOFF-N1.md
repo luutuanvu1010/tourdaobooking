@@ -2,7 +2,40 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.88 ĐÃ LÊN PRODUCTION (sửa lời nhắc ở màn chỉnh giao diện của Toàn quyền, ADR-0195; ẩn/hiện trường theo «không đón / có đón» đã lên ở 2.87, migration `0154`–`0156`) — không migration mới — triển khai 2026-11-10 16:52 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.91 ĐÃ LÊN PRODUCTION (Đợt 5B: ADR-0193 công tắc «Bắt buộc giờ đón cho đơn đối tác» — Toàn quyền Bật/Tắt ở trang Tôi, mặc định Bật; đơn có lượt đón chưa giờ mà ngày đón đã sát hạn chốt thì bị chặn xác nhận) — migration `0157` — triển khai 2026-11-11 16:43 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Chủ chọn nhập TRƯỚC buổi diễn tập khôi phục (diễn tập dời sang 25/11/2026); lời cho phép ghi ở khoá `xay_tren_cho_phep_adr_0193` (`docs/quyen-hoan.json`). Chưa thử iPhone thật, chưa bấm nút trên bản thật.
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-11 16:43 (giờ Việt Nam)
+- Commit: 26f033f09 Nhật ký Đợt 5B: gộp lần hai với bản chính 8f6934fca (chỉ tài liệu), kiểm xanh
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-11T09:39:33Z; lượt kiểm https://github.com/luutuanvu1010/tourdaobooking/actions/runs/42995656984
+- Đổi quy trình kiểm — lý do của chủ: ok roi (tệp `scripts/audit-checks.mjs`, thêm bài R-ORD-17w)
+- Migration đã áp: 0157_cong_tac_gio_don_doi_tac.sql
+- Điểm khôi phục Time Travel trước khi áp: 00002899-00000000-00005120-dbabcad2167c7365ef377bfcb78d3b36
+- Worker Version ID: c29a7ce0-903c-4bd0-9cc5-2f6d7e9a08da
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (2 cảnh báo cũ)
+- Phiên bản: 2.91; cổng phiên bản trước và sau deploy: ĐẠT
+- Thời gian: tổng 10 phút 42 giây (day-len 9 phút 58 giây; trien-khai 0 phút 44 giây), vượt mục tiêu ~10 phút một chút (ADR-0179 Đ1.1), không chặn.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.90 ĐÃ LÊN PRODUCTION (Đợt 5A: ADR-0191 PIN đầu của tài khoản do Nhân sự tạo do Quản trị cấp; ADR-0192 giữ chữ đã gõ khi hết phiên đăng nhập) — KHÔNG migration — triển khai 2026-11-11 11:01 giờ Việt Nam
+
+Ghi từ ghi chú bàn giao của phiên thi công Đợt 5A (đầu ra `npm run trien-khai` do chủ chạy; chưa thử iPhone thật).
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-11 11:01 (giờ Việt Nam)
+- Commit: a83580774 Đợt 5A: nhật ký thi công ghi kết quả kiểm đủ bộ và người kiểm độc lập ĐẠT
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-10T23:01:25Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/42918363865
+- Migration đã áp: không có
+- Worker Version ID: 4e1d7459-7e10-442c-ba9d-7c8f0d4d69db
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (2 cảnh báo cũ, không do đợt này: R-VC-14 — 7 xe thiếu giấy tờ; R-ORD-9 — 1 đơn có danh sách tên nhiều hơn số khách)
+- Phiên bản: 2.90 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: day-len 10 phút 13 giây; trien-khai 0 phút 45 giây; tổng 10 phút 58 giây (vượt mục tiêu ~10 phút của ADR-0179 Đ1.1, không chặn)
+
+Việc còn treo: chữ thay dòng «Hệ thống tự sinh PIN 6 số và chỉ hiện một lần.»; dòng sổ hàng rào cho bài canh «xem mọi khách»; dòng Trạng thái ADR-0071→0191, ADR-0035→0192 (chờ chủ).
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.88 ĐÃ LÊN PRODUCTION (sửa lời nhắc ở màn chỉnh giao diện của Toàn quyền, ADR-0195; ẩn/hiện trường theo «không đón / có đón» đã lên ở 2.87, migration `0154`–`0156`) — không migration mới — triển khai 2026-11-10 16:52 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy ở Terminal. Các mục 2.83–2.87 do phiên khác triển khai, không ghi lại ở đây.
 - Commit: 35ea0be35 · Kiểm đủ bộ (GitHub): XANH · Worker Version ID: 92b08d3e-0860-4879-8d78-6fd42f4aaaf9

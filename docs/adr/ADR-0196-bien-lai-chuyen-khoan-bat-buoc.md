@@ -1,0 +1,92 @@
+# ADR-0196 — Đối tác báo «Công ty thu, chuyển khoản» thì bắt buộc kèm ảnh biên lai; Kế toán xem ảnh tại dòng khoản thu (yêu cầu mới N1)
+
+- **Trạng thái:** **proposed** 2026-11-10 — AI soạn theo kế hoạch `docs/superpowers/plans/2026-11-08-sua-sau-ra-soat-lan-2.md` (chủ duyệt kế hoạch 9/11 và chi tiết Phần IX ngày 10/11), thuộc **ADR lượt C** (trang ghép `docs/superpowers/specs/2026-11-10-trang-ghep-adr-luot-c.md`, trang trình `docs/superpowers/specs/2026-11-10-trinh-chu-adr-luot-c.md`). Chờ chủ duyệt; người soạn không tự duyệt (Hiến pháp N3). Người kiểm độc lập chỉ đọc kiểm một vòng 10/11 (ĐẠT, không sai sự thật nghiêm trọng); góp ý nhỏ đã đưa vào Hệ quả. Vòng kiểm độc lập thứ hai 11/11 (đối chiếu mã `origin/main` @`9a29e3fbc`): 1 CAO (luật đòi ảnh rộng hơn câu (a)), 2 VỪA (không có đường bổ sung ảnh; trigger và trần của bảng ảnh chưa liệt kê) — đã sửa ở Đ1, Đ2, Đ3, Đ11, Bài kiểm, Hệ quả; thiết kế không đổi. Chưa có mã. Dẫn chứng mã đọc trên `main` @`9dbfbc131`.
+- **Số:** 0196 (số lớn nhất trên mọi nhánh và worktree lúc cấp là 0195).
+- **Nguồn:** lời chủ 8/11 (kế hoạch Phụ lục A, nguyên văn): «khi đại lý thực hiện quét mã QR thanh toán, sẽ có chức năng đính kèm ảnh/file biên lai hoặc ảnh mành ình để làm bằng chứng công việc», và câu trả lời trong hộp hỏi: «Bắt buộc đính kèm». Cách hiểu: «ảnh mành ình» = ảnh màn hình; «đại lý» = tài khoản giữ quyền Đối tác.
+- **Ngày:** 2026-11-10. **Loại:** việc lớn — dữ liệu (bảng mới, tệp người dùng, migration), quyền (ô xem mới), tiền (đường ghi khoản thu), triển khai (kho R2 mới do chủ tạo). Người kiểm độc lập chỉ đọc sau thi công.
+- **Cửa:** hai chiều về hành vi (bỏ bắt buộc là sửa mã); một chiều mềm về dữ liệu (bảng chỉ thêm và ảnh đã gửi ở lại tới khi Toàn quyền gỡ).
+- **Quan hệ với ADR cũ:**
+  - **Bổ sung** ADR-0120 Điều 1 (khoản «Công ty thu – chuyển khoản» do người không phải Kế toán khai thành khoản đang đối chiếu, dấu `DECLARED`): với tài khoản Đối tác, khoản đó nay phải kèm ảnh. Cách ghi nhận tiền **không đổi** — ảnh không làm khoản được tính là tiền đã về; vẫn chờ Kế toán bấm «Công ty đã nhận».
+  - **Dùng lại cơ chế** của ADR-0144 (tệp kèm vé hỗ trợ) và ADR-0123 (tải qua Worker, nhật ký trước). Không dùng chung kho `HO_TRO`, `HO_SO`, `TEP` (Hiến chương 5.22: mỗi kho một chủ, một loại dữ liệu).
+  - **Không đổi** ADR-0153 Đ3 (khoản đang đối chiếu không tính là đã thu đủ để mở vé), ADR-0108 (mã QR), ADR-0090 (quyền tiền).
+  - **Quan hệ với ADR-0182 Đ2 (proposed, chưa duyệt):** ADR-0182 dự kiến một thực thể khác — «khoản nộp» của đại lý (tiền đại lý gom nhiều đơn chuyển về Công ty) — cũng kèm ảnh biên lai, với tập người xem có thêm Quản trị (chỉ xem). Văn bản này **không** sửa ADR-0182. Đề xuất để hai việc không thành hai cơ chế: khi ADR-0182 được duyệt, ảnh của khoản nộp dùng **cùng kho `BIEN_LAI`** và cùng khuôn bảng ảnh của văn bản này (một bảng ảnh riêng gắn vào thực thể của nó, hoặc thêm cột tham chiếu — chốt ở kế hoạch thi công ADR-0182); tập người xem của mỗi loại ảnh đi theo ADR của loại đó.
+- **Xây trên lỗ đang hở: HC-5.19** (chưa diễn tập khôi phục dữ liệu, hạn 31/12): việc này cần migration bảng mới và một kho R2 mới. Khôi phục D1 về trước một lần gỡ ảnh thì dòng ảnh quay lại «đã lưu» mà kho không còn đối tượng — route tải trả 404 và ghi lỗi, không lộ gì (cùng giới hạn đã nêu ở ADR-0144). Chạm gián tiếp **TNV-G1** chỉ khi đơn có khoản đang đối chiếu bị huỷ sau đó: luồng tiền đơn huỷ (ADR-0089) không đổi, ảnh nằm im theo khoản thu. **Lý do xin phép:** bảng chỉ thêm, không đổi dòng dữ liệu nào đang có, không thêm loại dòng sổ, không đổi cách tính tiền; điều mới duy nhất ở đường ghi là **chặn thêm** (thiếu ảnh thì không ghi). Khoá đề xuất ghi vào mục `HC-5.19` của `docs/quyen-hoan.json` **sau khi chủ duyệt** (theo khuôn ADR-0193): `"xay_tren_cho_phep_adr_0196": "BIÊN LAI CHUYỂN KHOẢN BẮT BUỘC (ADR-0196) — chủ dự án <ngày> (<nơi>): «<nguyên văn, kèm Cho phép, có ghi lý do>». Lý do: migration chỉ thêm một bảng ảnh và một kho R2 mới, không đổi dữ liệu đang có, không đổi cách tính tiền; đường ghi khoản thu chỉ bị siết. Điều kiện: <phát hành trước hay sau diễn tập, theo lời chủ>; phần còn lại của lỗ giữ hạn cũ."`. Mục `TNV-G1` không cần khoá riêng (không nới luật nào của lỗ; nếu chủ muốn ghi cho đủ thì dùng cùng câu, khoá `xay_tren_cho_phep_adr_0196`).
+- **Hiến chương áp:** 5.1, 5.16, 5.20, 5.22, 5.24, 5.25.
+- **Số quyết định chạm quyền/dữ liệu:** 1 (cùng lượt với ADR-0197 — tổng 2, dưới trần 3).
+
+## Bối cảnh
+
+Đối tác chuyển tiền cho Công ty (thường bằng mã QR VietQR trên đơn, ADR-0108) rồi tự ghi khoản thu ở form «Ghi khoản thu» với người thu «Công ty», cách «Chuyển khoản». Máy chủ coi khoản này là **khoản đang đối chiếu**: ghi dấu `DECLARED` ở `bil_receipt_recon`, không sinh dòng giữ hộ, chưa tính là tiền đã về Công ty, chờ Kế toán bấm «Công ty đã nhận» (`POST /api/ledger/company-receipts/:receiptId/confirm`, ô `ledger.write`). Điều kiện ghi dấu nằm ở đúng một hàm thuần đã có: `canDoiChieu` (`src/modules/billing/rules.ts`), gọi trong `cauLanThu` (`src/modules/billing/service.ts`).
+
+Hôm nay Kế toán chỉ có lời khai, phải tự dò sao kê theo số tiền và ngày. Chủ muốn Đối tác bắt buộc kèm ảnh biên lai để Kế toán đối chiếu nhanh.
+
+**Những cửa tạo được khoản «Công ty thu – chuyển khoản» mang dấu `DECLARED`** (dò mã 10/11):
+
+| Cửa | Đối tác đi được không | Ghi chú |
+|---|---|---|
+| `POST /api/orders/:id/payments` (Ghi khoản thu) | **có** — ô `payment.receive`, cột Đối tác `own` | cửa duy nhất của Đối tác |
+| `POST /api/orders/:id/delivered` kèm `lanThu` («Khách đã trả đủ») | **không** — ô `order.handover`, cột Đối tác `none` | Hướng dẫn viên đang phụ trách, Quản trị, Toàn quyền đi được |
+| `POST /api/ledger/receipt-replacements` (Sửa khoản thu đã ghi) | **không** — `ledger.write` và chặn tài khoản giữ quyền Đối tác (`ghiSoNoiBo`) | lệnh này không ghi dấu `DECLARED` |
+| Khoản khai đặt cọc lúc xác nhận (ADR-0159, `dat-coc.ts`) | không áp | luôn là tiền mặt, không bao giờ mang dấu `DECLARED` |
+
+## Quyết định
+
+1. **Khi nào bắt buộc ảnh** (câu (a) ở trang trình chủ; khuyến nghị):
+   - Bắt buộc khi **đủ cả bốn điều**: (1) người ghi là tài khoản **giữ quyền Đối tác và không giữ quyền Kế toán** (Nền tảng không cho tồn tại tài khoản lai Kế toán + Đối tác, nhưng luật vẫn viết đủ); (2) người thu là **«Công ty»** (`collectorRole = "COMPANY"`); (3) cách trả là **«Chuyển khoản»** (`method = "BANK_TRANSFER"`); (4) `canDoiChieu` trả đúng cho khoản ấy.
+   - **Không** được viết `canBienLai = laDoiTac && canDoiChieu(...)`: `canDoiChieu` (`src/modules/billing/rules.ts`) còn trả đúng cho **lời khai «khách trả cho bên đặt / tại quầy nhà cung cấp»** (`laLoiKhaiBenKia`, ADR-0132) — kể cả tiền mặt. Viết như vậy là phương án (a3), chủ không chọn. (Sửa sau vòng kiểm độc lập 11/11, phát hiện CAO số 1.)
+   - Cách làm: tách vị từ con «Công ty thu bằng chuyển khoản» (`collectorRole === "COMPANY" && method === "BANK_TRANSFER"`) thành **một hàm thuần dùng chung**; `canDoiChieu` gọi nó cho nhánh thứ nhất của mình, `canBienLai` gọi nó cộng ba điều còn lại. Một điều kiện, một nơi (Hiến chương 5.1).
+   - Tiền mặt, «Tôi thu», lời khai «khách trả cho bên đặt / tại quầy nhà cung cấp» (dù chuyển khoản hay tiền mặt), và mọi khoản do nhân viên Công ty ghi: không đòi ảnh.
+   - Phương án khác (chủ chọn ở câu (a)): (a2) mọi khoản «Công ty thu, chuyển khoản» do người không phải Kế toán khai — thêm Bán hàng, Hướng dẫn viên, Quản trị, Thực tập sinh, và thêm cửa «Khách đã trả đủ»; (a3) mọi khoản đang đối chiếu, kể cả lời khai «khách trả cho bên đặt / tại quầy nhà cung cấp» (ADR-0132).
+   - Thiếu ảnh khi bắt buộc ⇒ **400 `bien_lai_required`**, không ghi gì (không khoản thu, không dấu, không nhật ký).
+2. **Gửi ảnh cùng khoản thu, một yêu cầu** (khuôn ADR-0144 mục 2): thân `POST /api/orders/:id/payments` nhận thêm trường ảnh (base64); **đúng một tệp**; chỉ JPG, PNG, HEIC, PDF, kiểm theo chữ ký thật (`kiemTepCuaTin` / `nhanLoaiTep` của `src/shared/tep-dinh-kem.ts`); tối đa 10 MB; chặn cỡ thân yêu cầu trước khi đọc. Sai loại ⇒ 415, quá cỡ ⇒ 413 (mã như `kiemTepCuaTin`). Thứ tự: kiểm tệp → **một lô D1**: khoản thu, dấu `DECLARED`, dòng ảnh (chưa lưu), nhật ký chỉ mã → đặt R2 → đánh dấu đã lưu. Đặt R2 hỏng thì không ném, không trả 5xx: khoản thu vẫn ghi, dòng ảnh ở «tải dở dang», Kế toán thấy ghi chú «ảnh chưa tải xong»; Toàn quyền có route xem và chạy lại hàng chờ (khuôn `GET /api/feedback/tep-cho-xoa`, `POST …/chay-lai`). **Lưu ý:** theo khuôn ADR-0144, chạy lại hàng chờ **không tải lại ảnh** — nó quyết xoá dòng tải dở dang (`TAI_LEN_LOI` / `TAI_LEN_DO_DANG`), nên khoản ấy thành «chưa có biên lai» (xem mục 11).
+3. **Một bảng chỉ thêm `bil_receipt_proof`** của `billing`: mỗi dòng gắn đúng một khoản thu (`receipt_id` tới `bil_payment_receipt`); các cột còn lại **chép đúng bộ cột và ràng buộc của `fbk_attachment`** (migration `0124`): khoá kho, loại, cỡ, băm nội dung, người và giờ tạo/sửa, ba mốc một chiều đã lưu / quyết gỡ (`GO_TEP`, `TAI_LEN_LOI`) / đã xoá khỏi kho. Không có cột tên tệp gốc. Trigger chặn xoá, chỉ cho sửa các cột trạng thái tệp. Khoá kho và băm hạng **N3**. Chỉ `billing` ghi bảng.
+   **Bản tương đương cho khoản thu của các trigger và chỉ mục gắn với tin ở `0124`** (sửa sau vòng kiểm độc lập 11/11, phát hiện VỪA số 3 — người thi công không được đoán):
+   - `fbk_attachment_max_ins` (≤ 5 tệp mỗi tin) ⇒ **`UNIQUE(receipt_id)`**: mỗi khoản thu tối đa **một** dòng ảnh, kể cả sau khi ảnh bị gỡ (không có ảnh thay thế — mục 11).
+   - `fbk_attachment_author_ins` (người tải là tác giả tin) ⇒ trigger chèn: `created_by` của dòng ảnh **bằng** `created_by` của khoản thu, và khoản thu có `kind_code = 'CUSTOMER_PAYMENT'`.
+   - `fbk_attachment_nguoi_ix` (trần 20 tệp / giờ / tài khoản, `TEP_MOI_GIO`) ⇒ chỉ mục `(created_by, created_at)` và **cùng trần `TEP_MOI_GIO`** cho ảnh biên lai (đếm riêng trên bảng này); vượt trần ⇒ 429, không ghi gì (không khoản thu) — câu báo phải nói rõ khoản thu **chưa được ghi** và chờ bao lâu thì gửi lại được (chữ tra bảng tham chiếu). Lý do: ~1000 tài khoản Đối tác gửi được tệp lên kho mới.
+   - `fbk_attachment_no_replace`, `_identity`, `_hash_one_way`, `_purge_one_way`, `_store_one_way`, `_no_delete`, chỉ mục hàng chờ `_cho_ix`: chép nguyên khuôn, đổi tên bảng.
+   - **Lính gác cùng lô:** câu chèn dòng ảnh dùng `INSERT … SELECT … WHERE EXISTS (khoản thu vừa chèn trong cùng lô)`, và lệnh ghi đọc `changes()` của câu ấy như `ghiLanThu` đang làm với câu khoản thu (`service.ts`, 409 `DA_GIAO` khi đơn vừa giao xen giữa). Lô thua phải ra **409**, không phải 5xx do khoá ngoại hay trigger.
+4. **Một kho R2 riêng:** `tourdao-sales-bien-lai`, binding `BIEN_LAI`; chỉ `billing` chạm. Khoá `bln/<128 bit ngẫu nhiên>`. Cổng 1e của `npm run trien-khai` phải biết kho mới (`NHAN_KHO`, `HAU_QUA_THIEU_KHO`): thiếu kho thì dừng trước mọi bước ghi.
+5. **Ô quyền mới `payment.proof.view`** (xem ảnh biên lai): Kế toán `any`, Toàn quyền `any`, Đối tác `own` (chỉ ảnh của khoản thu do chính mình ghi). Mọi cột khác `none` — kể cả Quản trị, Bán hàng phụ trách đơn, Hướng dẫn viên. Không nới ô nào sẵn có.
+6. **Xem ảnh chỉ qua Worker** (ADR-0123 đ3, ADR-0144 mục 4): `GET /api/orders/:id/payments/:receiptId/bien-lai` — kiểm `sec-fetch-site`, kiểm ô `payment.proof.view` và phạm vi, ảnh phải thuộc khoản thu của đúng đơn trên đường dẫn (không thuộc ⇒ 404), **ghi nhật ký trước** rồi mới đọc kho; `Cache-Control: no-store`, `nosniff`, CSP `sandbox`; không đường dẫn ký sẵn; service worker không đệm. Nút «Xem biên lai» đặt ở dòng khoản thu, cạnh «Công ty đã nhận» của Kế toán; Đối tác thấy nút ở khoản của mình.
+7. **Gỡ ảnh gửi nhầm:** chỉ Toàn quyền, một lệnh có tên `POST …/bien-lai/go`, **bắt buộc lý do**, có nhật ký: lô D1 ghi quyết gỡ (`GO_TEP`), rồi xoá đối tượng R2 sau lô (hỏng thì ở lại «chờ xoá»). Gỡ lần hai ⇒ 409. Dòng khoản thu hiện «Biên lai đã được gỡ». Gỡ ảnh **không** đổi khoản thu hay dấu đối chiếu. Đối tác không tự gỡ; gửi nhầm thì nhờ Kế toán.
+8. **Hạn lưu:** giữ cùng khoản thu, như mọi dữ liệu sổ tiền (không tự xoá theo thời gian); thời hạn chung theo chính sách lưu giữ khi luật sư trả lời (Hiến chương 5.25). Máy không tự xoá.
+9. **Thu nhỏ trên máy người gửi** (khuôn `web/ho-tro-tep.ts`): ảnh trình duyệt mở được thì thu cạnh dài ≤ 2000 điểm ảnh, lưu JPG, bỏ thông tin ẩn (toạ độ chụp, máy chụp). **HEIC mà trình duyệt không mở được, và PDF, gửi nguyên — không xoá được thông tin ẩn trong tệp** (ví dụ toạ độ chụp của ảnh HEIC, tên tác giả trong PDF).
+10. **Nội dung ảnh** không vào nhật ký, email báo, câu báo lỗi, Trợ lý, DTO mặc định của khoản thu (DTO chỉ mang «có / chưa tải xong / đã gỡ / chưa có biên lai», không mang khoá kho). Nhật ký không ghi số tài khoản ngân hàng.
+11. **Không có đường gửi bổ sung ảnh** (sửa sau vòng kiểm độc lập 11/11, phát hiện VỪA số 2 — nói thẳng): «bắt buộc» nghĩa là **lúc ghi** khoản thu phải kèm ảnh; **không** có nghĩa khoản nào cũng luôn có ảnh. Khoản sẽ không có ảnh trong hai trường hợp: ảnh tải lên kho hỏng rồi hàng chờ dọn dòng đó (mục 2), hoặc Toàn quyền gỡ ảnh gửi nhầm (mục 7). Đối tác không gửi lại được, vì Đối tác không sửa được khoản thu (`POST /api/ledger/receipt-replacements` chặn tài khoản Đối tác qua `ghiSoNoiBo`), khoản đang đối chiếu cũng không thay được (`ck_cho_xac_nhan`, `thay-lan-thu.ts`), và `UNIQUE(receipt_id)` không cho dòng ảnh thứ hai. Khi đó dòng khoản thu hiện «Chưa có biên lai» và **Kế toán đối chiếu sao kê như hôm nay** trước khi bấm «Xác nhận đã nhận». Muốn có lệnh «Bổ sung biên lai» cho Đối tác chính chủ thì là quyết định riêng (một route mới, gỡ ràng buộc một ảnh một khoản).
+
+## Phương án bị loại
+
+- **Gửi ảnh riêng sau khi ghi khoản thu:** để lọt khoản không ảnh (đúng điều chủ muốn chặn) và sinh tệp «chưa gắn» phải dọn (nợ `BL-TEP-PHAT-LAI-500`, ADR-0144).
+- **Dùng chung kho `HO_TRO` của vé hỗ trợ:** trộn ảnh chứng từ tiền với ảnh vé, hai chủ phân hệ một kho (Hiến chương 5.22).
+- **Ảnh làm khoản được tính là tiền đã về:** ảnh dễ giả; Kế toán vẫn phải đối chiếu sao kê (ADR-0120 giữ nguyên).
+- **Cho Quản trị xem ảnh:** ảnh biên lai có số tài khoản, tên người chuyển; khuôn quyền tiền ADR-0090 không cho Quản trị. (ADR-0182 đề xuất Quản trị «chỉ xem» cho loại ảnh của nó — chủ quyết ở ADR đó.)
+
+## Bài kiểm (đỏ trước, xanh sau)
+
+- Hàm thuần `canBienLai`: Đối tác × (Công ty, Bên đặt, Tôi thu, **Tại quầy nhà cung cấp**) × (Chuyển khoản, Tiền mặt) — chỉ ô Đối tác × Công ty × Chuyển khoản đòi ảnh; Đối tác khai «khách trả cho bên đặt khác mình» hoặc «tại quầy nhà cung cấp» (cả chuyển khoản) **không** đòi ảnh dù `canDoiChieu` trả đúng; Bán hàng ghi «Công ty – chuyển khoản» không đòi ảnh (theo khuyến nghị); bài khoá vị từ «Công ty thu bằng chuyển khoản» chỉ định nghĩa một nơi và `canDoiChieu` dùng lại nó.
+- Route ghi: thiếu ảnh ⇒ 400 `bien_lai_required`, không phiếu; sai loại ⇒ 415; quá cỡ ⇒ 413; vượt trần ảnh theo giờ ⇒ 429, không phiếu; Kế toán ghi không cần ảnh; đơn vừa giao xen giữa ⇒ 409 (không 5xx), không dòng ảnh mồ côi; trigger: dòng ảnh thứ hai cho cùng khoản bị chặn, người tải khác người ghi khoản bị chặn, khoản không phải `CUSTOMER_PAYMENT` bị chặn; R2 giả lỗi ⇒ khoản thu vẫn ghi, dòng ảnh «tải dở dang», luật kiểm mới đếm được, chạy lại thì xong; DTO mặc định không chứa khoá kho.
+- Route xem: Bán hàng 403, Quản trị 403, Đối tác khác 403, Đối tác chính chủ 200, Kế toán 200; nhật ký có trước phản hồi; ảnh của khoản thu đơn khác ⇒ 404.
+- Route gỡ: chỉ Toàn quyền, thiếu lý do 400, gỡ hai lần 409.
+- Migration (trigger), bài kiến trúc (chỉ `billing` ghi bảng mới, chỉ `billing` chạm `BIEN_LAI`), cổng 1e thiếu kho thì dừng, luật kiểm bất biến mới `R-BIL-…` (dòng tải dở dang / chờ xoá quá hạn, khuôn `R-FBK-1`).
+- e2e (chạm API, migration); kịch bản Chrome `qr-smoke.mjs` thêm ca biên lai, ảnh 390 và 1280.
+
+## Người dùng sẽ thấy
+
+Đối tác chọn «Công ty» và «Chuyển khoản» trong form «Ghi khoản thu» thì phải chọn một ảnh (hoặc tệp PDF) biên lai chuyển khoản mới lưu được. Tiền vẫn ở trạng thái «chờ Kế toán xác nhận» như hôm nay. Kế toán thấy nút «Xem biên lai» ngay cạnh nút xác nhận đã nhận tiền, bấm là mở ảnh. Chọn tiền mặt hoặc «Tôi thu» thì không cần ảnh. Ảnh gửi nhầm thì nhờ Kế toán báo Toàn quyền gỡ; gỡ rồi thì Đối tác không gửi lại được, khoản hiện «Chưa có biên lai» và Kế toán đối chiếu sao kê như hôm nay.
+
+## Hệ quả
+
+- Khai binding `BIEN_LAI` trong `wrangler.jsonc` (`r2_buckets`) và kiểu `Env` — cổng 1e đọc tên kho từ `wrangler.jsonc`, thiếu khai thì cổng không thấy kho mới. «Đúng một tệp» phải kiểm riêng (`kiemTepCuaTin` nhận tới 5 tệp); `taoKhoaNgauNhien` nhận thêm tiền tố `bln`. Nút xác nhận ở dòng khoản thu hiện ghi «Xác nhận đã nhận» (`web/order.ts`); «Công ty đã nhận» trong văn bản này chỉ cùng nút đó.
+- Migration số kế tiếp lúc thi công (liệt kê mọi nhánh trước khi đặt số); `docs/data-dictionary.json` + `npm run dict`; hai cột N3 mới vào tập ghim của `src/hang-du-lieu.test.ts`.
+- **Việc của chủ trước lần triển khai có binding `BIEN_LAI`:** tạo kho bằng một lệnh (AI đưa nguyên lệnh và thư mục; lệnh có thể hỏi sửa cấu hình, trả lời «n»). Thiếu kho thì `npm run trien-khai` dừng ở cổng 1e, chưa đổi gì trên bản thật.
+- Hàng rào mới (chỉ `billing` chạm kho; cổng 1e biết kho mới) có dòng ở `docs/SO-HANG-RAO.md` kèm ngày quan sát chặn thật.
+- Chữ mới trên giao diện («Xem biên lai», nhãn ô chọn ảnh, câu `bien_lai_required`, «Biên lai đã được gỡ», «ảnh chưa tải xong»): tra `docs/BANG-THAM-CHIEU.md`; chưa có thì thêm vào tệp bảng khi thi công với đúng chữ ADR này, chủ có thể đổi.
+- Gói trang chi tiết đơn (`web/order.ts`) thêm ô chọn ảnh và thu nhỏ ảnh: dùng lại mã thu nhỏ của `web/ho-tro-tep.ts`; chưa đo cỡ gói.
+- **Phải nói thẳng:**
+  - Ảnh không chứng minh tiền đã về; chỉ giúp Kế toán đối chiếu nhanh. Kế toán vẫn đối chiếu sao kê.
+  - Khoảng 1000 tài khoản Đối tác gửi được tệp lên kho mới; mỗi khoản thu một tệp, mỗi tài khoản tối đa `TEP_MOI_GIO` ảnh mỗi giờ (mục 3); chưa có trần tổng của kho.
+  - Ô `payment.proof.view` cột Đối tác `own`: `ownerId` truyền vào `can()` là **người lập đơn** (như `payment.receive`). Trùng với «khoản do chính mình ghi» vì Đối tác chỉ ghi khoản thu trên đơn của mình; người thi công không đọc `created_by` của khoản thu để thay.
+  - Mỗi lần mở một ảnh là một dòng nhật ký (Hiến chương 5.22).
+  - Phiếu yêu cầu xoá dữ liệu cá nhân (ADR-0126) chưa quét kho này — cùng nợ với vé hỗ trợ, ghi BACKLOG khi thi công.
+  - **Chưa kiểm:** bộ nhớ Worker với thân ~14 MB trên Worker thật (`BL-TEP-THAN-HAI-LAN`); iPhone chụp ảnh HEIC có thu nhỏ được trên Safari không.

@@ -177,11 +177,16 @@ test("TC-23: đủ mốc (ngày mai xa hơn 6 giờ) → xác nhận 200 không 
   const w = setup();
   const xa = await nhap(w, SALES, vnSau(24 * 60 + 60));
   assert.equal((await xacNhan(w, xa.id, SALES)).status, 200);
+  // ADR-0193 câu (ii) (Đợt 5B) đổi một phần I13: chặng không giờ mà ngày đón ĐÃ vào hạn chốt thì chặn (409 `chua_gio_sat_ngay`, bài ở chua-gio-sat-ngay.test.ts). Ngày đón
+  // ngoài hạn chốt (cách 2 ngày) vẫn không chặn; cảnh báo dưới mốc vẫn không có cho chặng chưa giờ (kiemMocDat giữ KHONG_GIO).
   const gio = vnSau(60);
   const r = await w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc(gio.date, [leg(gio.date, "")])] } });
   assert.equal(r.status, 201, r.text);
   assert.deepEqual(r.json.canhBaoMoc, [], "chặng chưa chốt giờ: không cảnh báo");
-  assert.equal((await xacNhan(w, r.json.order.id, SALES)).status, 200, "chặng không giờ không chặn xác nhận");
+  const xaHon = vnSau(2 * 24 * 60);
+  const r2 = await w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc(xaHon.date, [leg(xaHon.date, "")])] } });
+  assert.equal(r2.status, 201, r2.text);
+  assert.equal((await xacNhan(w, r2.json.order.id, SALES)).status, 200, "chặng không giờ, ngày đón ngoài hạn chốt: không chặn xác nhận");
   const src = readFileSync(new URL("./chang-hanh-khach-repo.ts", import.meta.url), "utf8");
   assert.match(src, /defineSql\(\s*"orders",\s*"order_confirm"/, "câu xác nhận đăng ký defineSql ở tệp nửa nghiêm (I15)");
   const repo = readFileSync(new URL("./repository.ts", import.meta.url), "utf8");
