@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 6B kế hoạch sửa sau rà soát lần 2: ADR-0197 (chủ duyệt 11/11, tên ô phương án 1, luật huỷ phương án c1). KHÔNG migration. Phát hành ngay khi xong (khoá xay_tren_cho_phep_adr_0197).
+    // SỐ TẠM 2.92: main có 2.91; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.92",
+    date: "2026-11-11",
+    items: [
+      { kind: "doi", text: "Ô «Khách đặt cọc trước» nay tên «Khách đặt cọc cho đối tác» và có cả khi chọn «Trả sau». Tiền cọc ở tay đối tác, không làm giảm số nợ với Công ty." },
+      { kind: "doi", text: "Đơn trả sau đã xác nhận còn tiền cọc ở tay đối tác thì đối tác không tự huỷ được; Quản trị, Toàn quyền hoặc Hướng dẫn viên phụ trách đơn huỷ giúp." },
+    ],
+  },
+  {
     // Đợt 5B của kế hoạch sửa sau rà soát lần 2 (ADR-0193), CÓ migration 0157 (bảng chính sách chỉ thêm, gieo Bật). Chủ chọn phát hành trước buổi diễn tập khôi phục (11/11).
     // SỐ TẠM 2.91: main có 2.90 (Đợt 5A đã lên production 11/11); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.91",
