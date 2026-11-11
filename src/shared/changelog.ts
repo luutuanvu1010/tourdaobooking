@@ -17,13 +17,25 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Đợt 5B của kế hoạch sửa sau rà soát lần 2 (ADR-0193), CÓ migration 0157 (bảng chính sách chỉ thêm, gieo Bật). Nhánh chỉ nhập SAU buổi diễn tập khôi phục (câu hỏi chủ số 1, phương án a).
-    // SỐ TẠM 2.90: main tới 2.89 lúc soạn; Đợt 5A có thể nhập trước — bước A.0 đặt lại số và ngày lúc nhập.
-    version: "2.90",
-    date: "2026-11-10",
+    // Đợt 5B của kế hoạch sửa sau rà soát lần 2 (ADR-0193), CÓ migration 0157 (bảng chính sách chỉ thêm, gieo Bật). Chủ chọn phát hành trước buổi diễn tập khôi phục (11/11).
+    // SỐ TẠM 2.91: main có 2.90 (Đợt 5A đã lên production 11/11); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.91",
+    date: "2026-11-11",
     items: [
       { kind: "moi", text: "Toàn quyền có nút «Tắt bắt buộc giờ đón» ở trang Tôi (mặc định đang bật). Khi tắt, văn phòng xác nhận được đơn có đón của đối tác mà chưa cần ghi giờ." },
       { kind: "doi", text: "Đơn có lượt đón chưa có giờ mà ngày đón đã sát hạn chốt (ví dụ đón ngay hôm nay) thì phải điền giờ đón trước rồi mới xác nhận được." },
+    ],
+  },
+  {
+    // Đợt 5A kế hoạch sửa sau rà soát lần 2: ADR-0191 (PIN đầu), ADR-0192 (giữ chữ khi hết phiên), chủ duyệt 9/11. KHÔNG migration.
+    // SỐ TẠM 2.90: main có 2.89; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.90",
+    date: "2026-11-10",
+    items: [
+      { kind: "doi", text: "Nhân sự tạo tài khoản Bán hàng thì không thấy PIN; Quản trị bấm «Đặt lại PIN» rồi giao PIN tận tay cho người mới." },
+      { kind: "doi", text: "Nhân sự không gán thêm vai trò xem được thông tin khách cho tài khoản có sẵn; nhờ Quản trị hoặc Toàn quyền gán." },
+      { kind: "sua", text: "Hết hạn đăng nhập giữa lúc lập hoặc sửa đơn: đăng nhập lại trong 30 phút, cùng tài khoản, là chữ đã gõ còn nguyên." },
+      { kind: "sua", text: "Đối tác bấm «Gửi đơn» đúng lúc hết hạn đăng nhập: đăng nhập lại sẽ về trang đơn vừa tạo, không tạo đơn trùng." },
     ],
   },
   {

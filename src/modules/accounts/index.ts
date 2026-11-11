@@ -2,6 +2,7 @@
 // ADR-0071 điều 1b: TẠO tài khoản = ô account.create (HCNS + Toàn quyền, Quản trị KHÔNG); xem / sửa = account.view / account.edit; hỗ trợ đăng nhập (đặt lại PIN,
 // mở khoá, gỡ Face ID) giữ cổng "admin" + admin.manage + account.access.manage. Đồng bộ nhân viên từ Google Sheet đã GỠ HẲN (ADR-0071 điều 2).
 // Quyền trong app (ADR-0005) là tập SALES/ACCOUNTING/ADMIN/FIELD của tài khoản; KHÔNG phải vai trò hồ sơ (HDV, tài xế… — module parties).
+import { CAU_VAI_XEM_KHACH_NHO_QUAN_TRI, HAU_TO_NHAT_KY_CHO_PIN, coXemMoiKhach } from "../../shared/xem-moi-khach.ts";
 import { auditStatement, CHI_TIET_DOI_SDT, type AuditAction } from "../audit";
 import {
   PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, countActivePasskeys, deviceLabel, endAllSessionsIfSuspendedStatement, endAllSessionsStatement,
@@ -24,7 +25,7 @@ import {
 import type {
   AccountMfaResponse, MfaEmailStartResponse, MfaRecoveryCodesResponse, MfaTotpConfirmResponse, MfaTotpStartResponse, PartyMatchResponse, PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, SessionListResponse, SessionPolicyPreviewResponse,
   PhienCuAnDanhKetQua, PhienCuAnDanhResponse,
-  SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, ThanhDuoiResponse, StaffAccountDto, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse,
+  SessionPolicyResponse, SessionPolicyRowDto, SessionPolicySaveResponse, ThanhDuoiResponse, StaffAccountDto, StaffListResponse, StaffResponse, StaffRolesResponse, StaffSessionListResponse, StaffWithPinResponse, TaoTaiKhoanResponse,
 } from "../../shared/contracts";
 import { toBase64Url } from "../../shared/encoding";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
@@ -505,12 +506,13 @@ export const accountsModule: AppModule = {
         }
         const created = await createAccountWithRolesStatements(db, { fullName: name.value ?? null, phone, assignment: parsed.value, existingPartyId, xemDanhBa }, admin.id);
         if (!created.ok) return error(409, created.code ?? "account_rule", created.message);
+        const choQuanTriCapPin = !can(admin, "admin.manage") && coXemMoiKhach(created.permissions); // ADR-0191: quyền hiệu lực do effectivePermissions tính, không suy từ tên vai
         const detail = [
           `vai trò: ${rolesLabelTheo(parsed.value.roles, await tenVaiTaiKhoan(db))}`, // Task 3b: tên hiện hành; nhật ký cũ giữ chữ đã ghi
           `quyền: ${permissionsLabel(created.permissions)}`,
           existingPartyId ? "dùng hồ sơ có sẵn" : "",
           parsed.value.reason ? `lý do: ${parsed.value.reason}` : "",
-        ].filter(Boolean).join("; ");
+        ].filter(Boolean).join("; ") + (choQuanTriCapPin ? HAU_TO_NHAT_KY_CHO_PIN : "");
         try {
           await db.batch([...created.statements, adminAudit(db, admin.id, "staff_created", created.id, detail)]);
         } catch (e) {
@@ -519,7 +521,7 @@ export const accountsModule: AppModule = {
           if (rule) return rule;
           throw e;
         }
-        return json({ staff: await one(db, created.id), pin: created.pin } satisfies StaffWithPinResponse, 201, { location: "/staff" });
+        return json({ staff: await one(db, created.id), pin: choQuanTriCapPin ? null : created.pin, choQuanTriCapPin } satisfies TaoTaiKhoanResponse, 201, { location: "/staff" });
       }
       // ---- Đường CŨ (giữ nguyên hành vi, thêm LC-4): danh sách quyền, hồ sơ mới mang vai STAFF.
       const name = cleanName(body?.fullName);
@@ -542,15 +544,16 @@ export const accountsModule: AppModule = {
         if (coTrung(kq)) return MATCH_EXISTS(kq);
       }
       const created = await createAccountStatements(db, { fullName: name.value!, phone, permissions: perms.value! }, admin.id);
+      const choQuanTriCapPin = !can(admin, "admin.manage") && coXemMoiKhach(perms.value!); // ADR-0191
       try {
-        await db.batch([...created.statements, adminAudit(db, admin.id, "staff_created", created.id, `quyền: ${permissionsLabel(perms.value!)}`)]);
+        await db.batch([...created.statements, adminAudit(db, admin.id, "staff_created", created.id, `quyền: ${permissionsLabel(perms.value!)}${choQuanTriCapPin ? HAU_TO_NHAT_KY_CHO_PIN : ""}`)]);
       } catch (e) {
         if (isUniqueViolation(e)) return PHONE_TAKEN();
         const rule = ruleViolation(e); // lưới cuối: lỗi trigger (LC-1b…) thành 409, không 500
         if (rule) return rule;
         throw e;
       }
-      return json({ staff: await one(db, created.id), pin: created.pin } satisfies StaffWithPinResponse, 201, { location: "/staff" });
+      return json({ staff: await one(db, created.id), pin: choQuanTriCapPin ? null : created.pin, choQuanTriCapPin } satisfies TaoTaiKhoanResponse, 201, { location: "/staff" });
     }),
 
     // ADR-0068 Đ9 (C1): giao diện Thêm tài khoản hỏi "có hồ sơ khớp không" TRONG LÚC GÕ — cùng một hàm với 409 party_match_exists (không hai luật).
@@ -723,6 +726,9 @@ export const accountsModule: AppModule = {
       if (noiBo) return error(409, "account_rule", noiBo);
       const accountProblem = checkAccountChange(admin.id, t, { permissions: change.next }, await countActiveAdmins(db));
       if (accountProblem) return error(409, "account_rule", accountProblem);
+      // ADR-0191 mục 3(a): người không giữ Quản trị (Nhân sự) không làm tài khoản CÓ THÊM mã xem mọi khách (trước không, sau có) — luật ở route, không ở roleAssignmentProblem
+      // (POST /api/staff cũng gọi hàm đó với currentRoles rỗng: đặt ở đó sẽ chặn Nhân sự tạo tài khoản Bán hàng, trái mục 1).
+      if (!can(admin, "admin.manage") && !coXemMoiKhach(t.permissions) && coXemMoiKhach(change.next)) return error(403, "forbidden", CAU_VAI_XEM_KHACH_NHO_QUAN_TRI);
       // ADR-0185 K6: nhánh gỡ Quản trị chạy quyền TRƯỚC vai trò (hai lô — câu vai của parties không mang được điều kiện «còn quản trị viên khác»), nên quyền Đối
       // tác mở ở lô một khi hồ sơ chưa có vai trò đối tác ⇒ trigger lc1c huỷ lô. Kiểm thuần TRƯỚC lô một, câu chỉ đường hai bước; không xếp lại lô.
       if (change.permissions.guarded && change.next.includes("PARTNER") && !t.permissions.includes("PARTNER")) return error(409, "account_rule", CAU_GO_QUAN_TRI_SANG_DOI_TAC);

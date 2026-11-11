@@ -9,6 +9,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { CAU_VAI_XEM_KHACH_NHO_QUAN_TRI, HAU_TO_NHAT_KY_CHO_PIN } from "../../shared/xem-moi-khach.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const ADM = "33333333-3333-4333-8333-333333333333";
@@ -50,7 +51,9 @@ test("điều 1b, 1f: HCNS tạo MỌI loại tài khoản (nội bộ, đối t
   for (const body of [moi({ roles: ["SALES_STAFF"] }), moi({ roles: ["GUIDE_INTERNAL", "SALES_STAFF"] }), moi({ roles: ["COLLABORATOR"] }), moi({ roles: ["DRIVER_EXTERNAL"] }), moi({ permissions: ["FIELD"] })]) {
     const r = await w.call("POST", "/api/staff", { as: HR, body });
     assert.equal(r.status, 201, `${JSON.stringify(body)}: ${r.text}`);
-    assert.match(r.json.pin, /^\d{6}$/);
+    // ADR-0191: tài khoản xem mọi khách (Bán hàng) không trả PIN; các loại còn lại vẫn nhận PIN
+    if (r.json.choQuanTriCapPin) assert.equal(r.json.pin, null);
+    else assert.match(r.json.pin, /^\d{6}$/);
   }
   assert.equal(logCount(w, "staff_created"), 5);
   assert.equal((await w.call("GET", "/api/staff/ho-so-khop?ten=An", { as: HR })).status, 200);
@@ -180,4 +183,121 @@ test("điều 3d: đổi SĐT của tài khoản có SĐT trong danh sách cũ K
   w.sqlite.exec("UPDATE mnt_setting SET allowed_phones = '0900000001' WHERE id = 'default'");
   const r = await w.call("PATCH", `/api/staff/${SALES}`, { as: SUP, body: { phone: "0911222333" } });
   assert.equal(r.status, 200, r.text);
+});
+
+// ---- ADR-0191: tài khoản xem mọi khách do Nhân sự tạo thì PIN đầu do Quản trị cấp; Nhân sự không gán thêm vai xem mọi khách -------------------------------------
+const dangNhap = (w: any, phone: string, pin: string) => w.call("POST", "/api/auth/login", { body: { phone, pin } });
+const khongDangNhapDuoc = async (w: any, phone: string) => {
+  for (const pin of ["000000", "123456"]) assert.equal((await dangNhap(w, phone, pin)).status, 401, `${phone} / ${pin}`);
+};
+
+test("ADR-0191 mục 1: Nhân sự tạo tài khoản Bán hàng (đường vai SALES_STAFF) ⇒ 201, pin null, chờ Quản trị cấp; PIN thử đều 401", async () => {
+  const w = setup();
+  const body = moi({ roles: ["SALES_STAFF"] });
+  const r = await w.call("POST", "/api/staff", { as: HR, body });
+  assert.equal(r.status, 201, r.text);
+  assert.equal(r.json.pin, null);
+  assert.equal(r.json.choQuanTriCapPin, true);
+  await khongDangNhapDuoc(w, r.json.staff.phone);
+});
+
+test("ADR-0191 mục 1: Nhân sự tạo theo đường quyền cũ [SALES] ⇒ như trên", async () => {
+  const w = setup();
+  const r = await w.call("POST", "/api/staff", { as: HR, body: moi({ permissions: ["SALES"] }) });
+  assert.equal(r.status, 201, r.text);
+  assert.equal(r.json.pin, null);
+  assert.equal(r.json.choQuanTriCapPin, true);
+  await khongDangNhapDuoc(w, r.json.staff.phone);
+});
+
+test("ADR-0191 mục 1: PIN khoá theo QUYỀN HIỆU LỰC, không theo tên vai — Nhân sự tạo Tài xế công ty cộng tay quyền SALES ⇒ pin null", async () => {
+  const w = setup();
+  const r = await w.call("POST", "/api/staff", { as: HR, body: moi({ roles: ["DRIVER_INTERNAL"], adds: ["SALES"], reason: "kiêm bán hàng" }) });
+  assert.equal(r.status, 201, r.text);
+  assert.ok(r.json.staff.permissions.includes("SALES"), "quyền hiệu lực có SALES dù vai là tài xế");
+  assert.equal(r.json.pin, null);
+  assert.equal(r.json.choQuanTriCapPin, true);
+  await khongDangNhapDuoc(w, r.json.staff.phone);
+});
+
+test("ADR-0191: Nhân sự tạo Quản lý bán hàng ⇒ 403 như hôm nay (ADR-0169), không tạo", async () => {
+  const w = setup();
+  const truoc = staffCount(w);
+  const r = await w.call("POST", "/api/staff", { as: HR, body: moi({ roles: ["SALES_MANAGER"] }) });
+  assert.equal(r.status, 403, r.text);
+  assert.equal(staffCount(w), truoc);
+});
+
+test("ADR-0191 mục 1: Nhân sự tạo tài xế công ty ⇒ vẫn nhận PIN 6 số, choQuanTriCapPin false, và PIN đó đăng nhập được", async () => {
+  const w = setup();
+  const r = await w.call("POST", "/api/staff", { as: HR, body: moi({ roles: ["DRIVER_INTERNAL"] }) });
+  assert.equal(r.status, 201, r.text);
+  assert.match(r.json.pin, /^\d{6}$/);
+  assert.equal(r.json.choQuanTriCapPin, false);
+  assert.notEqual((await dangNhap(w, r.json.staff.phone, r.json.pin)).status, 401);
+});
+
+test("ADR-0191 mục 1: Toàn quyền tạo Bán hàng ⇒ có PIN như hôm nay", async () => {
+  const w = setup();
+  const r = await w.call("POST", "/api/staff", { as: SUP, body: moi({ roles: ["SALES_STAFF"] }) });
+  assert.equal(r.status, 201, r.text);
+  assert.match(r.json.pin, /^\d{6}$/);
+  assert.equal(r.json.choQuanTriCapPin, false);
+});
+
+test("ADR-0191 mục 2: Quản trị bấm Đặt lại PIN tài khoản pin null ⇒ đăng nhập bằng PIN mới được", async () => {
+  const w = setup();
+  const c = await w.call("POST", "/api/staff", { as: HR, body: moi({ roles: ["SALES_STAFF"] }) });
+  assert.equal(c.json.pin, null);
+  const rs = await w.call("POST", `/api/staff/${c.json.staff.id}/reset-pin`, { as: ADM });
+  assert.equal(rs.status, 200, rs.text);
+  assert.match(rs.json.pin, /^\d{6}$/);
+  assert.notEqual((await dangNhap(w, c.json.staff.phone, rs.json.pin)).status, 401);
+});
+
+const taoTaiXe = async (w: any) => (await w.call("POST", "/api/staff", { as: HR, body: moi({ roles: ["DRIVER_INTERNAL"] }) })).json.staff.id as string;
+const quyenCuaTaiKhoan = (w: any, id: string): string[] => w.q("SELECT permission_type_code AS permission FROM stf_permission WHERE staff_id = ? AND valid_to_at IS NULL ORDER BY permission_type_code", id).map((x: any) => x.permission);
+
+test("ADR-0191 mục 3(a): Nhân sự thêm vai Bán hàng cho tài khoản tài xế ⇒ 403 (đúng câu), quyền trong CSDL không đổi; Quản trị gán cùng vai ⇒ 200", async () => {
+  const w = setup();
+  const id = await taoTaiXe(w);
+  const truoc = quyenCuaTaiKhoan(w, id);
+  const nhanSu = await w.call("PUT", `/api/staff/${id}/roles`, { as: HR, body: { roles: ["DRIVER_INTERNAL", "SALES_STAFF"] } });
+  assert.equal(nhanSu.status, 403, nhanSu.text);
+  assert.equal(nhanSu.json.error.code, "forbidden");
+  assert.equal(nhanSu.json.error.message, CAU_VAI_XEM_KHACH_NHO_QUAN_TRI);
+  assert.deepEqual(quyenCuaTaiKhoan(w, id), truoc);
+  const quanTri = await w.call("PUT", `/api/staff/${id}/roles`, { as: ADM, body: { roles: ["DRIVER_INTERNAL", "SALES_STAFF"] } });
+  assert.equal(quanTri.status, 200, quanTri.text);
+  assert.ok(quyenCuaTaiKhoan(w, id).includes("SALES"));
+});
+
+test("ADR-0191 mục 3(a): Nhân sự bỏ bớt vai, hoặc gán vai không xem khách ⇒ 200", async () => {
+  const w = setup();
+  const id = await taoTaiXe(w);
+  assert.equal((await w.call("PUT", `/api/staff/${id}/roles`, { as: HR, body: { roles: ["DRIVER_INTERNAL", "GUIDE_INTERNAL"] } })).status, 200);
+  assert.equal((await w.call("PUT", `/api/staff/${id}/roles`, { as: HR, body: { roles: ["DRIVER_INTERNAL"] } })).status, 200, "bỏ bớt vai");
+  // tài khoản Bán hàng sẵn có (SALES): Nhân sự đổi sang vai không xem khách thì được; đổi qua lại vai CÓ xem khách (trước đã có) không bị chặn
+  assert.equal((await w.call("PUT", `/api/staff/${SALES}/roles`, { as: HR, body: { roles: ["GUIDE_INTERNAL"] } })).status, 200);
+});
+
+test("ADR-0191 mục 3(a): tài khoản đã xem mọi khách thì Nhân sự đổi vai vẫn xem mọi khách (trước đã có) ⇒ không bị chặn", async () => {
+  const w = setup();
+  assert.equal((await w.call("PUT", `/api/staff/${SALES}/roles`, { as: HR, body: { roles: ["SALES_STAFF", "GUIDE_INTERNAL"] } })).status, 200);
+});
+
+test("ADR-0191 mục 6: nhật ký tạo tài khoản Bán hàng do Nhân sự có hậu tố chờ Quản trị cấp PIN, không chứa số điện thoại; tài xế thì không có hậu tố", async () => {
+  const w = setup();
+  const body = moi({ roles: ["SALES_STAFF"] });
+  const phone = String(body.phone);
+  await w.call("POST", "/api/staff", { as: HR, body });
+  const body2 = moi({ permissions: ["SALES"] });
+  await w.call("POST", "/api/staff", { as: HR, body: body2 });
+  await w.call("POST", "/api/staff", { as: HR, body: moi({ roles: ["DRIVER_INTERNAL"] }) });
+  const dong = w.q("SELECT detail FROM audit_log WHERE action = 'staff_created' ORDER BY rowid").map((x: any) => String(x.detail));
+  assert.equal(dong.length, 3);
+  assert.ok(dong[0]!.endsWith(HAU_TO_NHAT_KY_CHO_PIN), dong[0]);
+  assert.ok(dong[1]!.endsWith(HAU_TO_NHAT_KY_CHO_PIN), dong[1]);
+  assert.ok(!dong[2]!.includes(HAU_TO_NHAT_KY_CHO_PIN), dong[2]);
+  for (const d of dong) assert.ok(!d.includes(phone) && !d.includes(String(body2.phone)), "nhật ký không ghi số điện thoại");
 });
