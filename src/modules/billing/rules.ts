@@ -6,6 +6,7 @@
 // trigger `bil_posting_delivered_paid` (migration 0045) — bài đối chiếu ở rules.test.ts.
 // "Phải thu hiện hành" KHÔNG tính ở đây: `orders` công bố nó (một hàm tính tiền của đơn — `effectiveMoney`), billing nhận số.
 
+import { congTyThuChuyenKhoan } from "../../shared/bien-lai.ts";
 import { chiaPhanNguoiBan, nguoiBanCuaDong } from "../../shared/chia-phan-nguoi-ban.ts";
 import { tinhDongDoiTac, type BanChup } from "../../shared/hoa-hong-dong.ts";
 import { cauKyKhoa, kyCua } from "../../shared/ky-khoa.ts";
@@ -280,7 +281,7 @@ export const canDoiChieu = (input: {
   kind: ReceiptKind; collectorRole: CollectorRole; collectorPartyId: string | null; method?: MethodCode; nguoiGhiPartyId: string; nguoiGhiLaKeToan: boolean; congTyId: string;
 }): boolean =>
   input.kind === "CUSTOMER_PAYMENT"
-  && ((input.collectorRole === "COMPANY" && input.method === "BANK_TRANSFER" && !input.nguoiGhiLaKeToan && input.nguoiGhiPartyId !== input.congTyId) || laLoiKhaiBenKia(input));
+  && ((congTyThuChuyenKhoan(input) && !input.nguoiGhiLaKeToan && input.nguoiGhiPartyId !== input.congTyId) || laLoiKhaiBenKia(input));
 
 /**
  * LỜI KHAI «khách trả bên kia» (ADR-0132 điều 1, 3): người thu là bên đặt (`BOOKER`) / quầy nhà cung cấp (`SUPPLIER`) mà người GHI không phải chính người thu, không
