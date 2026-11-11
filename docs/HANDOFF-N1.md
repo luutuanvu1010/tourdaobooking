@@ -19,6 +19,21 @@ Khối máy in ra:
 - Thời gian (không tính lúc chờ chủ trả lời): TỔNG 1 phút 00 giây (day-len 13 giây, trien-khai 47 giây)
 - Kiểm lại sau triển khai (AI, chỉ đọc): `GET /api/auth/config` trả `version` 2.94; `wrangler d1 migrations list --remote` «No migrations to apply»; `wrangler deployments list` bản b21f0161 nhận 100%.
 
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.93 ĐÃ LÊN PRODUCTION (ô tích mục «Nút thanh dưới» ở trang Tôi có vùng chạm 44px — chỉ CSS, ADR-0187 Đ2.3) — KHÔNG migration — triển khai 2026-11-12 06:07 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Chưa thử iPhone thật. Bằng chứng: `docs/evidence/2026-11-12-o-tick-thanh-duoi/`.
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-12 06:07 (giờ Việt Nam)
+- Commit: 1c2906e44 HANDOFF-N1: ghi trạng thái bản 2.92 (Đợt 6B); mục nhật ký thay đổi 2.93 cho ô tích «Nút thanh dưới»
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-11T23:06:04Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/43115824505
+- Migration đã áp: không có
+- Worker Version ID: cf3c02b7-e9cc-4d51-8d69-b79d084b3a41
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (2 cảnh báo)
+- Phiên bản: 2.93 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: day-len 10 phút 20 giây; trien-khai 0 phút 40 giây; tổng 11 phút 00 giây (vượt mục tiêu ~10 phút của ADR-0179 Đ1.1, không chặn)
+
 ## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.92 ĐÃ LÊN PRODUCTION (Đợt 6B: ADR-0197 ô «Khách đặt cọc cho đối tác» có cả ở đơn Trả sau; đối tác không tự huỷ đơn Trả sau còn cọc; chưa «Khách đã trả đủ» khi cọc còn ở tay đối tác) — KHÔNG migration — triển khai 2026-11-12 04:58 giờ Việt Nam
 
 Ghi từ lời báo của phiên điều phối (đầu ra `npm run trien-khai` do chủ chạy). Chưa thử iPhone thật.
