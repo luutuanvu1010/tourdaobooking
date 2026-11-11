@@ -63,3 +63,8 @@ Xong thi công Task 5B.1–5B.5. Nhánh **nằm chờ tới sau buổi diễn t�
 - Gộp `origin/main` (a83580774) vào nhánh: xung đột duy nhất ở `src/shared/changelog.ts`, giải bằng cách giữ 2.90 của 5A và đặt 5B thành 2.91.
 - Kiểm lại sau gộp: `npm test` thoát 0 (8827 bài qua, 0 đỏ, 4 todo có từ trước); `npm run typecheck` 0 lỗi; `npm run test:e2e` 90/90 xanh (790 giây); người kiểm độc lập xem phần gộp: ĐẠT.
 - Còn mở: dòng Trạng thái ADR-0154 (chờ chủ). Trước khi nhập phải kiểm `main` còn trùng `origin/main` (khối lệnh có rào lo việc này).
+
+## Cập nhật 2026-11-11 (lần gộp thứ hai)
+
+- Bản chính tiến tới `8f6934fca` (nhánh ADR lượt C / Đợt 6 nhập xong). Phần mới chỉ là tài liệu (ADR-0196, ADR-0197, đặc tả, mục lục ADR), không mã, không migration, không mục nhật ký thay đổi: gộp sạch vào nhánh 5B, giữ nguyên 2.91 và migration 0157.
+- Kiểm lại: `npm test` thoát 0, `npm run typecheck` 0 lỗi. Không chạy lại e2e vì không có mã mới.
