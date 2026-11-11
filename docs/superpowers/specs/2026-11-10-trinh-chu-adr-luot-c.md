@@ -14,7 +14,7 @@
 
 Ảnh chỉ để Kế toán xem: tiền vẫn ở trạng thái chờ Kế toán xác nhận như hôm nay. Người xem được ảnh là Kế toán, Toàn quyền và chính Đối tác đã gửi; Quản trị và Bán hàng không xem được. Ảnh gửi nhầm thì Toàn quyền gỡ, phải ghi lý do.
 
-**Phải biết:** «bắt buộc» nghĩa là lúc ghi khoản thu phải có ảnh, không có nghĩa khoản nào cũng luôn còn ảnh. Nếu ảnh tải lên bị lỗi, hoặc Toàn quyền đã gỡ ảnh gửi nhầm, thì Đối tác **không gửi lại được**. Khoản đó hiện «Chưa có biên lai», và Kế toán đối chiếu sao kê ngân hàng như hôm nay. Muốn có nút «Bổ sung biên lai» thì cần một quyết định riêng. Mỗi tài khoản cũng chỉ gửi được tối đa 20 ảnh mỗi giờ, để chặn gửi tràn lan.
+**Phải biết:** «bắt buộc» nghĩa là lúc ghi khoản thu phải có ảnh, không có nghĩa khoản nào cũng luôn còn ảnh. Nếu ảnh tải lên bị lỗi, hoặc Toàn quyền đã gỡ ảnh gửi nhầm, thì Đối tác **không gửi lại được**. Khoản đó hiện «Chưa có biên lai», và Kế toán đối chiếu sao kê ngân hàng như hôm nay. Muốn có nút «Bổ sung biên lai» thì cần một quyết định riêng. Mỗi tài khoản cũng chỉ gửi được tối đa 20 ảnh mỗi giờ, để chặn gửi tràn lan; Đối tác ghi quá 20 khoản chuyển khoản trong một giờ sẽ phải chờ. Ảnh chụp thường được máy tự thu nhỏ và xoá thông tin ẩn (như vị trí chụp), nhưng ảnh HEIC mà máy không mở được và tệp PDF thì gửi nguyên, **không xoá được** thông tin ẩn đó.
 
 ## Câu (b) — Tên ô tiền cọc
 
