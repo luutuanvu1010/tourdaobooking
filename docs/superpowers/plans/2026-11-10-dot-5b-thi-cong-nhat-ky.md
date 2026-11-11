@@ -56,3 +56,10 @@ Xây trên lỗ đang hở: **HC-5.19** (khoá `xay_tren_cho_phep_adr_0193`).
 ## Trạng thái nhánh
 
 Xong thi công Task 5B.1–5B.5. Nhánh **nằm chờ tới sau buổi diễn tập khôi phục** (hẹn 30/11); KHÔNG đưa lệnh nhập. Trước khi nhập: gộp `origin/main` mới, kiểm lại số migration (0157) và số phiên bản (2.90 tạm), chạy lại bộ kiểm.
+
+## Cập nhật 2026-11-11 — chủ chọn nhập trước diễn tập
+
+- Chủ (chat 11/11), nguyên văn: «không, nhập nhánh chính luôn, vì diễn tập sẽ dời vào 25 tháng 11». Lời cho phép ghi ở khoá `xay_tren_cho_phep_adr_0193` (`docs/quyen-hoan.json`) và dòng Trạng thái kế hoạch mẹ. Số bản đánh lại thành **2.91** (5A đã lên 2.90); migration 0157 không trùng.
+- Gộp `origin/main` (a83580774) vào nhánh: xung đột duy nhất ở `src/shared/changelog.ts`, giải bằng cách giữ 2.90 của 5A và đặt 5B thành 2.91.
+- Kiểm lại sau gộp: `npm test` thoát 0 (8827 bài qua, 0 đỏ, 4 todo có từ trước); `npm run typecheck` 0 lỗi; `npm run test:e2e` 90/90 xanh (790 giây); người kiểm độc lập xem phần gộp: ĐẠT.
+- Còn mở: dòng Trạng thái ADR-0154 (chờ chủ). Trước khi nhập phải kiểm `main` còn trùng `origin/main` (khối lệnh có rào lo việc này).
