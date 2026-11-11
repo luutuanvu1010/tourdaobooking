@@ -146,7 +146,8 @@ export const MATRIX = {
   "payment.receive": row("own", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"),
   // ADR-0196 Đ5 (accepted 2026-11-11): XEM ảnh biên lai chuyển khoản (route GET /api/orders/:id/payments/:receiptId/bien-lai) — Kế toán any, Toàn quyền any, Đối tác own
   // (`ownerId` = NGƯỜI LẬP đơn, như payment.receive; Đối tác chỉ ghi khoản thu trên đơn mình). Mọi cột khác none — kể cả Quản trị, Bán hàng, Hướng dẫn viên.
-  "payment.proof.view": row("none", "any", "none", "none", "own", "any", "none", "none", "none", "none"),
+  // Viết gọn bằng hàng «chỉ Toàn quyền» + hai ô (gói trang Đơn hàng có trần — src/goi-trang-nhe.test.ts); giá trị từng ô ghim ở permissions.test.ts.
+  "payment.proof.view": { ...chiToanQuyen(), ACCOUNTING: "any", PARTNER: "own" },
   // ADR-0196 Đ7, Đ2: GỠ ảnh biên lai gửi nhầm và xem / chạy lại hàng chờ dọn kho ảnh — chỉ Toàn quyền. Ô riêng (giả định của người thi công 6A, ghi ở nhật ký
   // thi công 2026-11-11-dot-6a): ADR chỉ nói «chỉ Toàn quyền», không có ô sẵn mang đúng nghĩa đó; ô này không nới ai.
   "payment.proof.purge": chiToanQuyen(),

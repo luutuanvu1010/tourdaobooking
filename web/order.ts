@@ -8,6 +8,10 @@ import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
 import { byId, h, replaceChildren } from "./dom";
+import { CAU_BIEN_LAI_BAT_BUOC, CAU_BIEN_LAI_QUA_CO, NHAN_O_BIEN_LAI, NHAN_XEM_BIEN_LAI, canBienLai, cauTrangThaiBienLai, duongBienLai } from "../src/shared/bien-lai";
+import { CAU_SAI_LOAI, TOI_DA_BYTE, nhanLoaiTep } from "../src/shared/tep-dinh-kem";
+import { maBase64 } from "../src/shared/tep-hien-thi";
+import { ACCEPT_ANH_PDF, thuNhoAnh } from "./thu-nho-anh";
 import { cauXacNhanDaNhan, duocHuyKhoanSo, ghiSoNoiBo, hienNutSuaKhoanThu } from "../src/shared/nut-khoan-thu";
 import { METHOD_LABEL, actionLabel, dateTime, ngayNganHomNay, parseMoney, trangThaiHienThi, vnd } from "./format";
 import { regroupMoney, setMoneyValue } from "./money-input";
@@ -667,6 +671,7 @@ function tienCard(order: Order): HTMLElement {
               ` — ${l.traLai ? (l.laDongDao ? "Huỷ khoản trả lại khách " : "Trả lại khách ") : l.laDongDao ? "−" : ""}${vnd(l.soTien)} · ${l.hinhThuc} · người thu tiền: ${l.nguoiThu}`,
               l.laDongDao ? h("span", { class: "muted" }, " (dòng huỷ)") : l.daDao ? h("span", { class: "muted" }, " (đã huỷ)") : null,
               l.maGiaoDich ? h("span", { class: "muted" }, ` · mã GD ${l.maGiaoDich} (thực chuyển ${vnd(l.soThucChuyen ?? 0)})`) : null,
+              l.bienLai ? oBienLaiLanThu(order, l.id, l.bienLai) : null,
               t.keToan && !t.completedAt ? nhacDoiChieuLanThu(t, l) : null,
               t.keToan && !t.completedAt ? nutKeToanLanThu(order, t, l) : null,
             ),
@@ -954,6 +959,27 @@ function khoiCoc(order: Order, c: Api.CocDonDto): HTMLElement {
   );
 }
 
+/**
+ * ADR-0196 Đ6, Đ10, Đ11: ảnh biên lai ở dòng khoản thu — khoá `bienLai` chỉ có khi người xem giữ ô xem ảnh (Kế toán, Toàn quyền, Đối tác lập đơn; máy chủ quyết).
+ * Có ảnh ⇒ liên kết «Xem biên lai» mở ảnh qua Worker (nhật ký trước, máy chủ kiểm lại); còn lại ⇒ câu trạng thái («ảnh chưa tải xong», «Biên lai đã được gỡ», «Chưa có biên lai»).
+ */
+function oBienLaiLanThu(order: Order, receiptId: string, tt: NonNullable<Api.LanThuDto["bienLai"]>): HTMLElement {
+  const cau = cauTrangThaiBienLai(tt);
+  if (cau !== null) return h("span", { class: "muted", "data-bien-lai": tt }, ` · ${cau}`);
+  return h("a", { class: "btn btn-link", href: duongBienLai(order.id, receiptId), target: "_blank", rel: "noopener", "data-action": "xem-bien-lai", "data-bien-lai": tt }, NHAN_XEM_BIEN_LAI);
+}
+
+/** Ảnh biên lai đã chọn trong form «Ghi khoản thu» (ADR-0196 Đ2, Đ9): đọc, nhận loại theo chữ ký, thu nhỏ ảnh mở được (bỏ thông tin ẩn), mã base64 MỘT lần lúc chọn. */
+async function chuanBiBienLai(f: File): Promise<{ noiDung: string } | { loi: string }> {
+  let bytes: Uint8Array = new Uint8Array(await f.slice(0, 16).arrayBuffer());
+  const loai = nhanLoaiTep(bytes);
+  if (!loai) return { loi: CAU_SAI_LOAI };
+  const nho = loai === "pdf" ? null : await thuNhoAnh(f);
+  bytes = nho ?? new Uint8Array(await f.arrayBuffer()); // HEIC trình duyệt không mở được, và PDF: gửi nguyên (không xoá được thông tin ẩn — ADR-0196 Đ9)
+  if (bytes.length > TOI_DA_BYTE) return { loi: CAU_BIEN_LAI_QUA_CO };
+  return { noiDung: maBase64(bytes) };
+}
+
 /** ADR-0120 Điều 1 mục 3: dòng nhắc Kế toán dưới khoản "Công ty thu" đang đối chiếu — người khai, số tiền, số ngày chờ (quá 3 ngày thì nổi màu cảnh báo). Không số điện thoại / tài khoản / mã giao dịch. */
 function nhacDoiChieuLanThu(t: Api.OrderPaymentsResponse, l: Api.LanThuDto): HTMLElement | null {
   // Chỉ khoản CHUYỂN KHOẢN mới là "đang đối chiếu" (ADR-0120 Điều 1): tiền mặt "Công ty thu" vẫn là nợ giữ hộ (H3 cũ), không nhắc kiểu này.
@@ -1222,8 +1248,13 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse, luaChon: readonly
     const choKeToan = h("p", { class: "muted", "data-khoi": "cho-ke-toan", hidden: true });
     const ngay = t.laKeToan ? (h("input", { type: "date" }) as HTMLInputElement) : null;
     const ma = t.laKeToan ? oMaGiaoDich() : null;
+    // ADR-0196 Đ1, Đ2: Đối tác (không Kế toán) chọn «Công ty» + «Chuyển khoản» ⇒ ô chọn MỘT ảnh biên lai, bắt buộc (luật thuần dùng chung; máy chủ kiểm lại).
+    const anhBl = t.bienLaiKhiCongTyCk ? (h("input", { type: "file", accept: ACCEPT_ANH_PDF, id: "lan-thu-bien-lai" }) as HTMLInputElement) : null;
+    const oBienLai = anhBl ? h("label", { "data-khoi": "bien-lai", hidden: true }, NHAN_O_BIEN_LAI, anhBl) : null;
+    const canAnh = () => canBienLai({ laDoiTac: t.bienLaiKhiCongTyCk, laKeToan: false, collectorRole: nguoi.value === "cong_ty" ? "COMPANY" : "", method: hinhThuc.value, canDoiChieu: true });
     const capNhatMa = () => {
       ma?.hien(hinhThuc.value === "BANK_TRANSFER" && nguoi.value === "cong_ty");
+      if (oBienLai) oBienLai.hidden = !canAnh();
       const o = oThuCho(t.benKia, nguoi.value);
       if (oThuChoEl && thuCho) {
         oThuChoEl.hidden = !o.hien;
@@ -1251,6 +1282,7 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse, luaChon: readonly
         oThuChoEl,
         ngay ? h("label", null, "Ngày phát sinh", ngay) : null,
         ...(ma ? ma.o : []),
+        oBienLai,
       ),
       choKeToan,
       h("div", { class: "handler-actions" }, ghi, thoi),
@@ -1262,10 +1294,18 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse, luaChon: readonly
       if (so <= 0) return hienLoiTaiCho(banner("danger", "Nhập số tiền đã thu."));
       const loiMa = loiCuaMa(ma?.doc() ?? null);
       if (loiMa) return hienLoiTaiCho(banner("danger", loiMa));
+      const tepBl = anhBl && canAnh() ? anhBl.files?.[0] : undefined;
+      if (anhBl && canAnh() && !tepBl) return hienLoiTaiCho(banner("danger", CAU_BIEN_LAI_BAT_BUOC));
       ghi.disabled = true;
       show(null);
       try {
+        const bl = tepBl ? await chuanBiBienLai(tepBl) : null;
+        if (bl && "loi" in bl) {
+          ghi.disabled = false;
+          return hienLoiTaiCho(banner("danger", bl.loi));
+        }
         const than: Api.LanThuInput = {
+          ...(bl ? { bienLai: bl } : {}),
           soTien: so,
           hinhThuc: hinhThuc.value as Api.LanThuInput["hinhThuc"],
           nguoiThu: nguoiThuTuGiaTri(nguoi.value),
@@ -1273,9 +1313,10 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse, luaChon: readonly
           ...(ngay?.value ? { ngayPhatSinh: ngay.value } : {}),
           ...thanCuaMa(ma?.doc() ?? null),
         };
-        await guiCoCanhBaoTrung((boQua) => api(`/api/orders/${encodeURIComponent(order.id)}/payments`, { method: "POST", body: { ...than, ...(boQua ? { boQuaTrung: boQua } : {}) } }), ghi);
+        const kq = await guiCoCanhBaoTrung((boQua) => api<{ bienLaiChuaTaiXong?: boolean }>(`/api/orders/${encodeURIComponent(order.id)}/payments`, { method: "POST", body: { ...than, ...(boQua ? { boQuaTrung: boQua } : {}) } }), ghi);
         await load();
-        if (bannerEl.hidden) show(banner("info", laBenKia(nguoi.value) && !t.laKeToan ? `Đã ghi khoản ${vnd(so)} — chờ Kế toán xác nhận.` : `Đã ghi khoản thu ${vnd(so)}.`));
+        const chuaTai = !!(kq as { bienLaiChuaTaiXong?: boolean } | null | undefined)?.bienLaiChuaTaiXong;
+        if (bannerEl.hidden) show(banner("info", (laBenKia(nguoi.value) || bl) && !t.laKeToan ? `Đã ghi khoản ${vnd(so)} — chờ Kế toán xác nhận.${chuaTai ? " Ảnh biên lai chưa tải xong." : ""}` : `Đã ghi khoản thu ${vnd(so)}.`));
       } catch (err) {
         ma?.tuLoi(err);
         hienLoiTaiCho(errorBanner(err));
