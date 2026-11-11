@@ -1106,7 +1106,7 @@ export type KemCoc = (i: { at: string; auditId: string }) => D1PreparedStatement
 /** Chỉ bài kiểm và lời khai 0 (`cocChoXacNhan`) dùng. */
 export const KHONG_COC: KemCoc = () => [];
 // ADR-0168: `KemTraSau` (câu gác phiên bản + hạn trả của đơn Trả sau) ở ./tra-sau-cong — import kiểu để chữ ký `soanXacNhan` / `confirmOrder` buộc nơi gọi truyền.
-const moTaLoiKhai = (n: number | null): string | null => (n !== null && n > 0 ? `khai khách đặt cọc trước ${n.toLocaleString("vi-VN")} ₫` : null);
+const moTaLoiKhai = (n: number | null): string | null => (n !== null && n > 0 ? `khai khách đặt cọc cho đối tác ${n.toLocaleString("vi-VN")} ₫` : null);
 
 /**
  * Xác nhận đơn: điều kiện "có dịch vụ, mọi dịch vụ có ngày khởi hành trong [hôm nay, +365 ngày] và ≥ 1 khách" nằm TRONG câu UPDATE

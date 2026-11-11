@@ -305,7 +305,7 @@ export interface Ctx<A extends Access = Access> {
    */
   kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" | "doi_ben" }) => Promise<KetQuaKiemTraSau | null>;
   cauGacPhienBanTraSau: (partyId: string, version: number, at: string) => D1PreparedStatement[];
-  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
+  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; cocConGiu?: number; benDat?: string | null; version?: number } | null>;
   /** ADR-0168 Đ3 mục 3: đơn đã có vé bị mở (lộ) cho khách chưa — `ve-dien-tu` trả lời, `orders` không import nó. `null` = không tiêm / không đọc được ⇒ cổng huỷ đơn Trả sau còn nợ chặn 503. */
   veDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
   /** ADR-0175 Đ2.6: như `veDaMoCuaDon` nhưng CHỈ vé hãng ngoài — cổng huỷ đơn Trả sau còn nợ của văn phòng (`congHuyTraSau`). `null` = không tiêm / không đọc được ⇒ cổng chặn 503. */
@@ -509,7 +509,7 @@ export interface AppOptions {
     /** ADR-0168. BẮT BUỘC trong mã chạy thật (`src/index.ts`: billing); thiếu (khung thử cố ý) → `null` (đơn Trả sau bị chặn 503) / câu gác rỗng. */
     kiemTraSau: (env: Env, i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" | "doi_ben" }) => Promise<KetQuaKiemTraSau>;
     cauGacPhienBanTraSau: (env: Env, partyId: string, version: number, at: string) => D1PreparedStatement[];
-    traSauCuaDon: (env: Env, orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
+    traSauCuaDon: (env: Env, orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; cocConGiu?: number; benDat?: string | null; version?: number } | null>;
     /** ADR-0168 Đ3 mục 3, ADR-0170 Đ3: BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu`); `null` = không đọc được ⇒ người giữ quyền Đối tác KHÔNG huỷ / sửa số khách được (chặn, không đoán). */
     veDaMoCuaDon: (env: Env, orderId: string) => Promise<boolean | null>;
     /** ADR-0175 Đ2.6: BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ve-dien-tu`); thiếu → `null` ⇒ cổng huỷ Trả sau chặn 503. */

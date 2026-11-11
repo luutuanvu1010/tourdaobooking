@@ -8,6 +8,7 @@ import type { CocDonDto, KySoResponse, LanThuDto, LanThuInput, LyDoGiuDonDto, Or
 import { nhanDonTrongSo } from "../../shared/so-cong-no-hien-thi";
 import { UUID_RE, error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
+import { NHAN_DAT_COC } from "../../shared/dat-coc-truoc";
 import {
   balanceOfParty, balancesAt, balancesWithOwner, phanDinhTheoBen, orderStatesOfParty, bankTxnInsertStatement, bankTxnOfCode, bankTxnOfOrder, earliestLedgerMonth, lineById, lineIfPostingStatement, lineReversed, linesOfOrder, linesOfParty, linesOfReceipt, mocMaGiaoDich, orderOwners, orderState, ownerCompanyId, partyLabels,
   pendingCompany, postingIfCompletedAtStatement, postingIfDeliveredAtStatement, postingIfReceiptStatement, postingPlainStatement, receiptAtDeliveryStatement,
@@ -314,7 +315,8 @@ export async function docLanThu(db: D1Database, raw: unknown, ai: NguoiGoi, cong
     if (/\d{8,}/.test(b.ghiChu.replace(/[\s.-]/g, ""))) return loi(400, "invalid_input", "Ghi chú không được chứa số điện thoại / số tài khoản.");
     ghiChu = b.ghiChu.trim() || null;
     // ADR-0159: chữ này là dấu nhận ra khoản sinh từ lời khai (coKhoanLoiKhai, R-BIL-DC*). Để người dùng gõ được thì khoản thu tay thành «khoản khai» giả: chặn chuyển cọc đúng, báo sai bất biến.
-    if (ghiChu === GHI_CHU_KHOAN_LOI_KHAI) return loi(400, "invalid_input", "Ghi chú này dành riêng cho số đặt cọc khai lúc lập đơn. Hãy viết ghi chú khác.");
+    // ADR-0197 Đ1: tên hiển thị mới của khoản cọc cũng dành riêng — dòng thu tay mang chữ đó sẽ trông y khoản cọc thật.
+    if (ghiChu === GHI_CHU_KHOAN_LOI_KHAI || ghiChu === NHAN_DAT_COC) return loi(400, "invalid_input", "Ghi chú này dành riêng cho số đặt cọc khai lúc lập đơn. Hãy viết ghi chú khác.");
   }
   return { ok: true, value: { soTien, hinhThuc: b.hinhThuc as MethodCode, collectorRole, collectorPartyId, collectedForPartyId, ngayPhatSinh: ngay.value, ghiChu } };
 }
@@ -413,7 +415,8 @@ function lanThuDto(
     laDongDao: r.reverses_id !== null,
     ...(doiTac && r.created_by !== doiTac.staffId
       ? {}
-      : { nguoiGhi: r.created_by === "he-thong" ? "Hệ thống (chuyển thu trước cũ)" : r.created_by_label, ghiChu: r.note }),
+      // ADR-0197 Đ1: chuỗi dấu khoản cọc lưu trong CSDL giữ chữ cũ; người xem thấy tên ô mới.
+      : { nguoiGhi: r.created_by === "he-thong" ? "Hệ thống (chuyển thu trước cũ)" : r.created_by_label, ghiChu: r.kind_code === "CUSTOMER_PAYMENT" && r.note === GHI_CHU_KHOAN_LOI_KHAI ? NHAN_DAT_COC : r.note }),
     ghiLuc: r.created_at,
     // ADR-0092 Đ6: chỉ người có ledger.write thấy mã + số thực chuyển — người khác KHÔNG có khoá này (không chỉ là null).
     ...(ma?.has(r.id) ? { maGiaoDich: ma.get(r.id)!.ma, soThucChuyen: ma.get(r.id)!.soThucChuyen } : {}),
