@@ -944,6 +944,11 @@ export interface LyDoGiu {
 export const CAU_COC_CHUA_NOP = (soTien: number): string =>
   `Còn ${dong(soTien)} tiền khách đặt cọc cho đối tác chưa nộp về Công ty — đối tác nộp xong mới bấm Xác nhận khách đã trả đủ được.`;
 
+/** Đơn Trả sau còn bấm «Khách đã trả đủ» được mà KHÔNG tính được số cọc (`cocConGiu` vắng) ⇒ route trả 503, không đoán «hết cọc» (chủ dự án 12/11). */
+export function khongTinhDuocCoc(traSau: { cocConGiu?: number } | null, info: { status: string; deliveredAt: string | null }): boolean {
+  return traSau !== null && traSau.cocConGiu === undefined && info.status === "confirmed" && info.deliveredAt === null;
+}
+
 export function lyDoChuaGiaoDuoc(input: {
   status: "draft" | "confirmed" | "cancelled";
   deliveredAt: string | null;

@@ -25,7 +25,7 @@ import { donTraSauTheoId } from "./tra-sau-repo";
 import { CAU_HOAN_SAU_GIAO } from "../../shared/phan-dinh";
 import { MA_LOI_TRUNG, kiemTrung, type UngVienTrung } from "../../shared/luat-trung";
 import {
-  CAU_DA_NOP, LY_DO_DIEU_CHINH_TOI_THIEU, METHOD_CODES, benDatHuong, boNoPhanDinh, tachKhoanPhanDinh, congVaoTach, CAU_TU_NOP_PHAN_DINH, canDoiChieu, cumDoiChieu, nhaCungCapCuaDon, phanChuaThuNhaCungCap, soDuGiuHo, type PhanChoNguoiThu, cauLoiCsdlThuongMai, conLai, dongThuongMaiTu, khoanMoiDoiChieu, sinhPhieuDaGiao, tinhTrangThuongMai, type DoiChieuRow, type DongThuongMai, type TinhTrangThuongMai, dong, khoanChoXacNhan, kiemDaoLanThu, kiemDieuChinh, kiemHoanNguoiGiu, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, lyDoChuaHoanThanh, nhaCungCapTheoSo, type CheSoDu, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
+  CAU_DA_NOP, LY_DO_DIEU_CHINH_TOI_THIEU, METHOD_CODES, benDatHuong, boNoPhanDinh, tachKhoanPhanDinh, congVaoTach, CAU_TU_NOP_PHAN_DINH, canDoiChieu, cumDoiChieu, nhaCungCapCuaDon, phanChuaThuNhaCungCap, soDuGiuHo, type PhanChoNguoiThu, cauLoiCsdlThuongMai, conLai, dongThuongMaiTu, khoanMoiDoiChieu, sinhPhieuDaGiao, tinhTrangThuongMai, type DoiChieuRow, type DongThuongMai, type TinhTrangThuongMai, dong, khoanChoXacNhan, kiemDaoLanThu, kiemDieuChinh, kiemHoanNguoiGiu, kiemQuyetToan, soDuCap, lyDoChuaGiaoDuoc, khongTinhDuocCoc, lyDoChuaHoanThanh, nhaCungCapTheoSo, type CheSoDu, ngayPhatSinh, sinhDongDao, sinhDongHoanKhach, sinhDongLanThu, sinhDongQuyetToan, sinhDongXacNhanCongTy,
   soDuTheoBen, nhomDonCuaBen, LOAI_DONG_THUONG_MAI, type LineDraft, type LineRow, type MethodCode, type ReceiptRow, type SoTienDon,
 } from "./rules";
 
@@ -620,7 +620,7 @@ export async function daGiao(
 ): Promise<KetQua<null>> {
   const { info, ai } = input;
   // Chủ dự án 12/11 «Chặn tới khi nộp»: đơn Trả sau mà không tính được số cọc còn ở tay đối tác ⇒ 503, không đoán «hết cọc» (khuôn cổng huỷ của ADR-0197).
-  if (input.traSau && input.traSau.cocConGiu === undefined && info.status === "confirmed" && info.deliveredAt === null) {
+  if (khongTinhDuocCoc(input.traSau, info)) {
     return loi(503, "tra_sau_khong_doc_duoc", "Chưa tính được tiền cọc của đơn trả sau — thử lại sau ít phút.");
   }
   const congTyId = await ownerCompanyId(db);
