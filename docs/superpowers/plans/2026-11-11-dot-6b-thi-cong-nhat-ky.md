@@ -49,3 +49,12 @@ Nhánh `claude/dot-6b-o-coc-tra-sau-fd9210`, worktree `.claude/worktrees/admin-d
 - Biên nhận vẫn «Khách đã trả trước» (ADR-0183).
 - Kẽ «Tôi thu» trên đơn Trả sau rồi Đối tác tự huỷ (ADR-0197 «Phải nói thẳng») — không đóng ở đây.
 - Sau khi văn phòng huỷ, số cọc Đối tác còn nợ không hiện ở màn «Hạn mức trả sau» (chỉ ở sổ giữ hộ, màn cọc đơn huỷ).
+
+## Kiểm độc lập (2026-11-11)
+
+Người kiểm `nguoi-kiem-doc-lap`, chỉ đọc: **ĐẠT**, không phát hiện CAO. Tự chạy typecheck (0 lỗi) và 9 tệp bài (230/230 xanh); phá thử trên bản sao tạm (tắt điều kiện `cocConGiu > 0` của `congHuyTraSau`) ⇒ 4 bài ADR-0197 đỏ đúng chỗ, nên bài kiểm đúng điều nó nói. Không chạy `npm test` đầy đủ, e2e, Chrome (người làm chạy).
+Ghi nhận (không chặn):
+- VỪA: `web/CLAUDE.md` (tệp luật) dòng bảng kịch bản Chrome còn tên ô cũ «Khách đặt cọc trước». AI không tự sửa tệp luật (N9) — đề xuất chủ cho sửa chữ.
+- VỪA: «Khách đã trả đủ» khi cọc còn ở tay Đối tác là hành vi có sẵn (như «Tôi thu»), nhưng mở ô cọc cho Trả sau làm ca này gặp nhiều hơn — đã có bài ghim, báo chủ.
+- THẤP: tài khoản lai giữ quyền Đối tác (kể cả lai với Quản trị nếu có) bị chặn như Đối tác vì dùng đúng vị từ `holdsPartner` của lớp ADR-0170; chưa có bài ghim riêng ca lai.
+- THẤP: chú thích tên cũ ở `public/app.css` — đã sửa.
