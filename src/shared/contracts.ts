@@ -2847,6 +2847,40 @@ export interface PhieuCongNoDto {
   hanTra: string | null;
   qr: QrThanhToanDto | null;
   ghiChuQr: string | null;
+  /** ADR-0182 phần B: phần khoản nộp của phiếu. Vắng khi máy chủ cũ. */
+  nop?: PhieuNopDto;
+}
+/**
+ * ADR-0182 phần B (Đ2 mục 4–11). `tran` = số còn được nộp = số trên QR (Công nợ còn lại − khoản nộp chờ − khoản «Công ty thu» chờ). `ghiDuoc`: người xem bấm được «Đã chuyển tiền»
+ * (vị từ «đơn có phiếu» + ô `dai-ly.nop.ghi`, không có khoản chờ, trần > 0). `khachDaTra`: X của dòng «Khách đã trả bạn X ₫» — chỉ khi `ghiDuoc`, trình duyệt gửi lại nguyên số này.
+ * `xacNhanDuoc`: người xem giữ ô `dai-ly.nop.xac-nhan`. `khoan`: chỉ khi người xem giữ ô `dai-ly.nop.xem` (rỗng nếu không).
+ */
+export interface PhieuNopDto {
+  nopCho: number;
+  congTyCho: number;
+  tran: number;
+  ghiDuoc: boolean;
+  khachDaTra: number | null;
+  xacNhanDuoc: boolean;
+  khoan: KhoanNopDto[];
+}
+/** Một khoản nộp của đại lý. `bienLai`: trạng thái ảnh (khuôn ADR-0196 Đ10). `laNguoiGhi`: người xem chính là người ghi (giao diện ẩn nút xác nhận — máy chủ vẫn chặn). */
+export interface KhoanNopDto {
+  id: string;
+  soTien: number;
+  ngayChuyen: string;
+  trangThai: "PENDING" | "CONFIRMED" | "REJECTED";
+  lyDoTuChoi: string | null;
+  ghiLuc: string;
+  quyetLuc: string | null;
+  bienLai: "CO" | "CHUA_TAI_XONG" | "DA_GO" | "CHUA_CO";
+  laNguoiGhi: boolean;
+}
+/** Thân `POST /api/orders/:id/khoan-nop` (ADR-0182 Đ2 mục 4). `khachDaTra` = số X máy chủ đã gửi ở phiếu; `bienLai` BẮT BUỘC (base64, khuôn ADR-0196). */
+export interface KhoanNopRequest { soTien: number; ngayChuyen: string; khachDaTra: number; bienLai: { noiDung: string } }
+/** `GET /api/ledger/khoan-nop-cho` (Kế toán, Quản trị, Toàn quyền): khoản nộp đang chờ; `coCongTyCho` = đơn còn khoản «Công ty thu» chờ đối chiếu (Đ2 mục 4 — hiện cạnh nhau). */
+export interface KhoanNopChoResponse {
+  ds: { id: string; orderId: string; maDon: string; daiLy: string; soTien: number; ngayChuyen: string; ghiLuc: string; coCongTyCho: boolean }[];
 }
 export interface PhieuCongNoResponse {
   phieu: PhieuCongNoDto;

@@ -24,6 +24,8 @@ import { cauBienLai, docBienLai, loiTriggerBienLai } from "./bien-lai";
 import { datBienLai } from "./kho-bien-lai";
 import { trangThaiAnhCuaKhoan, type TrangThaiAnhRow } from "./bien-lai-repo";
 import { trangThaiBienLai } from "../../shared/bien-lai";
+import { CAU_CONG_TY_THU_TRUNG, CAU_QUYET_TOAN_TRUNG } from "../../shared/cong-no-dai-ly";
+import { coNopChoCuaBen, coNopChoCuaNguoi } from "./khoan-nop-repo";
 import { kenhThuCuaDon } from "./kenh-thu-repo";
 import { donTraSauTheoId } from "./tra-sau-repo";
 import { CAU_HOAN_SAU_GIAO } from "../../shared/phan-dinh";
@@ -603,6 +605,8 @@ export async function ghiLanThu(
   // ADR-0178 Đ1 mục 2: đơn mang dấu Tắt chỉ nhận người thu = hồ sơ người lập — kiểm TRƯỚC khi dựng lô (trigger 0144 là lớp sau).
   const kenh = await kiemNguoiThuKenh(db, input.orderId, lt.value.collectorPartyId);
   if (kenh) return { ok: false, res: kenh };
+  // ADR-0182 Đ2 mục 13 (chiều ngược): người đang có khoản nộp chờ của đơn không khai thêm «Công ty thu» (trigger `bil_payment_receipt_nop_cho_cong_ty` là lớp sau).
+  if (lt.value.collectorRole === "COMPANY" && (await coNopChoCuaNguoi(db, input.orderId, input.ai.staffId))) return loi(409, "nop_dang_cho", CAU_CONG_TY_THU_TRUNG);
   const boQuaTrung = (input.raw as { boQuaTrung?: unknown } | null | undefined)?.boQuaTrung;
   const trung = kiemTrungTienMat({ receipts: receiptsDb, lt: lt.value, ai: input.ai, raw: boQuaTrung });
   if (!trung.ok) return trung;
@@ -632,6 +636,7 @@ export async function ghiLanThu(
     if (k) return k;
     const m = loiMaTrigger(e) ?? loiTriggerBienLai(e);
     if (m) return m;
+    if (loiTrigger(e, "remittance_pending_company")) return loi(409, "nop_dang_cho", CAU_CONG_TY_THU_TRUNG);
     throw e;
   }
   if ((kq[0]!.meta.changes ?? 0) === 0) return DA_GIAO(); // đơn vừa "Đã giao" giữa lúc đọc và lúc ghi (lính gác của câu khoản thu)
@@ -961,6 +966,8 @@ export async function ghiQuyetToan(db: D1Database, input: { raw: unknown; ai: Ng
     const dongDon = await linesOfOrder(db, p.orderId);
     // Tách nhiệm vụ: không tự ghi đã nộp khoản phân định của chính mình. Lớp CSDL: `bil_debt_line_tu_nop`.
     if (b.chieu === "nop" && b.partyId === input.ai.partyId && soDuCap(dongDon.map(toLineRow).filter((l) => l.kind === "ATTRIBUTION"), b.partyId, congTyId) > 0) return loi(409, "attribution_tu_nop", CAU_TU_NOP_PHAN_DINH);
+    // ADR-0182 Đ2 mục 13: đơn đang có khoản nộp CHỜ của chính người nộp ⇒ một lần chuyển tiền không ghi được ở hai đường (xác nhận hoặc từ chối khoản đó trước).
+    if (b.chieu === "nop" && (await coNopChoCuaBen(db, p.orderId, b.partyId))) return loi(409, "nop_dang_cho", CAU_QUYET_TOAN_TRUNG);
     const k = kiemQuyetToan({ chieu: b.chieu, soDu: soDuCap(dongDon.map(toLineRow), b.partyId, congTyId), soTien: p.amount, maDon: dongDon[0]?.order_code ?? "này" });
     if (!k.ok) return loi(409, k.ma, k.cau);
   }

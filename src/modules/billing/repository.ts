@@ -391,6 +391,12 @@ const POSTING_IF_COMPLETED_AT = defineSql(
   "posting_if_completed_at",
   `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?3 AND completed_at = ?11)`,
 );
+/** ADR-0182 phần B Đ2 mục 9: phiếu QUYẾT TOÁN của lệnh xác nhận khoản nộp — chỉ áp khi khoản nộp ?11 CÒN CHỜ (hai người bấm cùng lúc: người sau không chèn phiếu, không dòng). */
+const POSTING_IF_REMITTANCE_PENDING = defineSql(
+  "billing",
+  "posting_if_remittance_pending",
+  `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM bil_agent_remittance WHERE id = ?11 AND status_code = 'PENDING')`,
+);
 /** Phiếu sổ của Kế toán (xác nhận công ty đã nhận, nộp/trả, hoàn, điều chỉnh, đảo) — không điều kiện mốc. */
 const POSTING_PLAIN = defineSql("billing", "posting_plain", `INSERT INTO bil_posting (${POSTING_COLS}) VALUES (${POSTING_VALUES})`);
 
@@ -410,6 +416,8 @@ export interface NewPosting {
 const bindPosting = (db: D1Database, sql: string, p: NewPosting, ...extra: string[]) =>
   db.prepare(sql).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, p.ghiTien ? 1 : 0, ...extra);
 export const postingIfReceiptStatement = (db: D1Database, p: NewPosting, receiptId: string) => bindPosting(db, POSTING_IF_RECEIPT, p, receiptId);
+export const postingIfRemittancePendingStatement = (db: D1Database, p: NewPosting & { kind: "SETTLEMENT" }, remittanceId: string) =>
+  bindPosting(db, POSTING_IF_REMITTANCE_PENDING, p, remittanceId);
 /** Phiếu "Đã giao": `grossSnapshot` BẮT BUỘC (kiểu, không mặc định) — CSDL không đòi cột này (giữ đường lùi), nên chính chữ ký là chỗ không quên được (R-P8). */
 export const postingIfDeliveredAtStatement = (db: D1Database, p: NewPosting & { kind: "DELIVERED"; dueSnapshot: number; grossSnapshot: number }, deliveredAt: string) =>
   db.prepare(POSTING_IF_DELIVERED_AT).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, p.ghiTien ? 1 : 0, deliveredAt, p.grossSnapshot);

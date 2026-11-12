@@ -151,6 +151,11 @@ export const MATRIX = {
   // ADR-0196 Đ7, Đ2: GỠ ảnh biên lai gửi nhầm và xem / chạy lại hàng chờ dọn kho ảnh — chỉ Toàn quyền. Ô riêng (giả định của người thi công 6A, ghi ở nhật ký
   // thi công 2026-11-11-dot-6a): ADR chỉ nói «chỉ Toàn quyền», không có ô sẵn mang đúng nghĩa đó; ô này không nới ai.
   "payment.proof.purge": chiToanQuyen(),
+  // ADR-0182 Đ3 (phần B, accepted 2026-11-13): khoản nộp của đại lý. Ghi + tải biên lai — Đối tác own (route còn đòi tài khoản Đối tác, hồ sơ phiên = bên đặt, ADR Đ2 mục 11);
+  // xác nhận / từ chối — Kế toán, Toàn quyền (khuôn ADR-0090; Quản trị KHÔNG); xem khoản và biên lai — Kế toán, Quản trị, Toàn quyền, Đối tác own. Viết gọn (trần gói Đơn hàng).
+  "dai-ly.nop.ghi": { ...chiToanQuyen(), PARTNER: "own" },
+  "dai-ly.nop.xac-nhan": { ...chiToanQuyen(), ACCOUNTING: "any" },
+  "dai-ly.nop.xem": { ...quanTri(), ACCOUNTING: "any", PARTNER: "own" },
   // Ghi HOÀN KHÁCH (route POST /api/ledger/refunds, module billing) — ADR-0026 điều 10: ADMIN any → none (H4 "Kế toán ghi", thận trọng).
   "payment.refund": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0089 đ4a, đ6, X-1, X-4 (cọc đơn huỷ — migration 0079): DUYỆT hoàn cọc / huỷ duyệt khoản hoàn / XÁC NHẬN hoặc từ chối dòng "đã hoàn

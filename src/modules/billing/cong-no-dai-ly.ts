@@ -6,7 +6,7 @@
 // Đơn KHÔNG phải đơn đại lý giữ cách tính cũ (phải thu − đã về, ADR-0168 Đ2 mục 2). Số tiền chỉ tính ở máy chủ. KHÔNG tự kiểm quyền — route hỏi `can(` trước.
 import { noMotDon } from "../../shared/tra-sau";
 import { giaDaiLyNhieuDon, type DongGiaDaiLy } from "../orders";
-import { LOAI_DONG_THUONG_MAI, soChuaVeCongTy, soKhaiChuaNop, type DoiChieuRow, type LineRow } from "./rules";
+import { LOAI_DONG_THUONG_MAI, hieuLuc, khoanChoXacNhan, soChuaVeCongTy, soDuCap, soKhaiChuaNop, type DoiChieuRow, type LineRow } from "./rules";
 import { phanKhaiCuaDon } from "./khoan-khai";
 import { ownerCompanyId, receiptsOfOrders } from "./repository";
 import { tienNhieuDon, toReceiptRow } from "./service";
@@ -15,8 +15,11 @@ import { dongCuaCacDon, doiChieuCuaCacDon, donTraSauTheoId } from "./tra-sau-rep
 /** Đơn cần tính: `booker_party_id` là «người lập» của hàm mở vé (ADR-0171); `status` để áp luật đơn huỷ. */
 export interface DonCongNo { id: string; booker_party_id: string | null; status: string }
 
-/** Phiếu công nợ của MỘT đơn đại lý (ADR-0182 Đ2 mục 2). */
-export interface PhieuCongNo { dong: DongGiaDaiLy[]; tong: number; daThu: number; conLai: number }
+/**
+ * Phiếu công nợ của MỘT đơn đại lý (ADR-0182 Đ2 mục 2). `congTyCho` (phần B, Đ2 mục 4): tổng khoản «Công ty thu» còn hiệu lực đang chờ Kế toán đối chiếu / xác nhận — đã KHÔNG nằm
+ * trong Đã thu; trần khoản nộp và số QR trừ thêm nó (`tranNop`, src/shared/cong-no-dai-ly.ts), Kế toán xác nhận khoản nộp khi nó còn > 0 thì bị chặn (Đ2 mục 13).
+ */
+export interface PhieuCongNo { dong: DongGiaDaiLy[]; tong: number; daThu: number; conLai: number; congTyCho: number }
 
 /** Số của một đơn sau lượt tính. `no` = số nợ dùng cho hạn mức / cổng huỷ / nhắc hạn: ≥ 0, đơn huỷ 0 (ADR-0168 Đ3 — một đơn âm không bù đơn khác). */
 export interface KetQuaCongNo { no: number; cocConGiu: number; phieu: PhieuCongNo | null }
@@ -50,7 +53,8 @@ export async function congNoNhieuDon(db: D1Database, dons: readonly DonCongNo[])
     const t = tien.get(d.id);
     if (!t) continue;
     const rs = (rcTheoDon.get(d.id) ?? []).map(toReceiptRow);
-    const ls: LineRow[] = (lnTheoDon.get(d.id) ?? []).map((l) => ({
+    const dongDon = lnTheoDon.get(d.id) ?? [];
+    const ls: LineRow[] = dongDon.map((l) => ({
       id: l.id, debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount, kind: l.kind_code as LineRow["kind"], orderId: l.order_id, receiptId: l.receipt_id, reversesLineId: l.reverses_line_id,
     }));
     const dc: DoiChieuRow[] = (dcTheoDon.get(d.id) ?? []).map((x) => ({ receiptId: x.receipt_id, kind: x.kind_code, occurredDate: x.occurred_date }));
@@ -64,8 +68,16 @@ export async function congNoNhieuDon(db: D1Database, dons: readonly DonCongNo[])
     const g = gia.get(d.id);
     if (g?.laDonDaiLy) {
       const v = ve(ls.filter((l) => !LOAI_DONG_THUONG_MAI.has(l.kind)));
-      const so = tinhConLai({ tong: g.tong, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, conGiu: v.nguoiLapGiu });
-      out.set(d.id, { no: daHuy ? 0 : Math.max(0, so.conLai), cocConGiu, phieu: { dong: g.dong, tong: g.tong, ...so } });
+      // Đ1 mục 4 (khe phần A, sửa ở phần B): hoa hồng sửa SAU «Khách đã trả đủ» chỉ đi bằng dòng HOA_HONG của phiếu khác phiếu «Đã giao» (điều chỉnh có duyệt — ADR-0115; đảo) —
+      // bản chụp không đổi nên Tổng công nợ cộng phần chênh trên sổ giữa bên đặt và công ty (dương = bên đặt nợ thêm, tức hoa hồng giảm).
+      const suaHoaHong = d.booker_party_id && congTyId
+        ? soDuCap(dongDon.filter((l) => l.kind_code === "HOA_HONG" && l.posting_kind !== "DELIVERED").map((l) => ({ debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount })), d.booker_party_id, congTyId)
+        : 0;
+      const tong = g.tong + suaHoaHong;
+      const so = tinhConLai({ tong, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, conGiu: v.nguoiLapGiu });
+      const cho = khoanChoXacNhan(rs, ls, dc);
+      const congTyCho = hieuLuc(rs).filter((r) => r.kind === "CUSTOMER_PAYMENT" && r.collectorRole === "COMPANY" && cho.has(r.id)).reduce((s2, r) => s2 + r.amount, 0);
+      out.set(d.id, { no: daHuy ? 0 : Math.max(0, so.conLai), cocConGiu, phieu: { dong: g.dong, tong, ...so, congTyCho } });
       continue;
     }
     const v = ve(ls);
