@@ -1,6 +1,6 @@
 # Lên App Store và CH Play — phương án để soạn ADR (13/11/2026)
 
-> **Hồ sơ có ngày, bản nháp để chủ chọn hướng.** Đây là **cửa một chiều** (tiền, tài khoản pháp nhân, cam kết duy trì với hai kho) nên
+> **Hồ sơ có ngày. Chủ chọn hướng CÔNG KHAI 13/11 (mục 4); ADR chưa soạn.** Đây là **cửa một chiều** (tiền, tài khoản pháp nhân, cam kết duy trì với hai kho) nên
 > phải qua **ADR do chủ duyệt** (CLAUDE.md §3, N3). Tờ này chưa phải ADR; chưa đăng ký, chưa trả tiền, chưa sửa mã.
 > Kế hoạch kiểm giao diện đi kèm: `docs/superpowers/plans/2026-11-13-kiem-giao-dien-toan-dien-ke-hoach.md`.
 
@@ -44,5 +44,31 @@ chưa có lối xin xoá tài khoản trong Nền tảng.
 | C | **Cả hai kho, phát hành không công khai: CH Play bằng TWA + App Store bằng vỏ (Capacitor) có thêm chức năng gốc (thông báo đẩy, Face ID, máy ảnh)** | Có mặt cả hai kho đúng nhóm người dùng | Apple có thể từ chối theo 4.2; thêm một phần mã gốc phải giữ; cần D-U-N-S, 99 USD/năm, tài khoản thử cho người duyệt, trang quyền riêng tư |
 | — | Viết lại thành ứng dụng gốc | — | Không đề xuất: trái ràng buộc «không thư viện chạy», viết lại hơn 120 tệp giao diện |
 
-**Khuyến nghị:** đi **A ngay** (chương trình kiểm giao diện) và **soạn ADR theo hướng C chia hai nấc** (CH Play trước, App Store sau khi thử xong
-năm rủi ro mục 3). Việc chủ có thể làm sớm vì mất thời gian chờ, không ràng buộc mã: tra xem Công ty TNHH Tour Đảo đã có số D-U-N-S chưa.
+**Khuyến nghị (trước khi chủ trả lời):** đi **A ngay** (chương trình kiểm giao diện) và **soạn ADR theo hướng C chia hai nấc** (CH Play trước,
+App Store sau khi thử xong năm rủi ro mục 3). Việc chủ có thể làm sớm vì mất thời gian chờ, không ràng buộc mã: tra xem Công ty TNHH Tour Đảo đã
+có số D-U-N-S chưa.
+
+## 4. Chủ chọn 13/11: phát hành CÔNG KHAI — và rủi ro đã nói một lần
+
+Lời chủ (nguyên văn): «Công khai». ADR sẽ soạn theo hướng C nhưng **công khai** trên cả hai kho.
+
+Rủi ro (nói một lần, chủ đã nghe thì thi hành — P18): Apple hay từ chối ứng dụng công khai mà **chỉ người có tài khoản do công ty cấp mới dùng
+được**, thường theo điều 3.2 (kinh doanh), rồi đề nghị chuyển sang phát hành không công khai hoặc Apple Business Manager. Nguồn: các chủ đề
+diễn đàn nhà phát triển của Apple (chưa đọc văn bản điều 3.2 gốc — phải đọc khi soạn ADR):
+https://developer.apple.com/forums/thread/755917, https://developer.apple.com/forums/thread/783892, https://developer.apple.com/forums/thread/122473.
+Google Play ít khắt khe hơn ở điểm này (chưa kiểm).
+
+**Cách giảm rủi ro (đưa vào ADR để chủ chọn, chưa quyết):** (a) màn đầu cho người chưa có tài khoản: giới thiệu Tour Đảo, cách đăng ký làm đối tác,
+liên hệ — để ứng dụng có giá trị với người lạ; (b) chức năng gốc trên iPhone (thông báo đẩy, Face ID, máy ảnh quét vé) để qua 4.2; (c) **đường lùi**:
+bị từ chối theo 3.2 thì chuyển App Store sang không công khai, CH Play vẫn công khai.
+
+## 5. Điều kiện của kho công khai (danh sách để thi công bước 4 — chưa làm)
+
+1. Trang **chính sách quyền riêng tư** và **trang hỗ trợ** công khai trên `booking.tourdao.vn` (nội dung pháp lý: chủ / luật sư duyệt).
+2. Khai **nhãn quyền riêng tư** của App Store và mục **An toàn dữ liệu** của Google Play (dữ liệu nào thu: SĐT, tên khách, giấy tờ tài xế…).
+3. **Lối xin xoá tài khoản** trong Nền tảng và một địa chỉ web (Google Play đòi đường dẫn web cho ứng dụng có tài khoản — chưa kiểm áp cho tài
+   khoản do công ty cấp). Chạm dữ liệu và luật «không xoá cứng» ⇒ cần ADR riêng.
+4. **Tài khoản thử cho người duyệt** trên production, dữ liệu giả, không thấy dữ liệu thật — chạm tài khoản và quyền ⇒ chủ duyệt.
+5. Biểu tượng đủ cỡ (kể cả «maskable»), màn chờ khi mở, ảnh giới thiệu theo khổ kho, mô tả tiếng Việt.
+6. Tài khoản nhà phát triển dạng **tổ chức** (Apple 99 USD/năm + D-U-N-S; Google 25 USD một lần) — chủ tự đăng ký, AI không làm.
+7. Tệp `/.well-known/assetlinks.json` cho TWA; cấu hình vỏ iOS (associated domains, App-Bound Domains, quyền máy ảnh) — sau khi thử năm rủi ro mục 3.
