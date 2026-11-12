@@ -56,3 +56,8 @@ Kết quả 12/11: **«TRA SAU SMOKE OK»** (cần `AXE_JS`, đã có). Hai lư�
 1. Luồng cờ ở `web/order-form.ts` (`napTraSau`, `daChonHinhThuc`) không có bài tự động riêng; chỉ kịch bản Chrome P2 canh. Có thể tách thành hàm thuần sau.
 2. Khi `GET /api/tra-sau/con-duoc-dung` lỗi, `napTraSau` giữ nguyên ô (có từ trước; máy chủ vẫn kiểm lúc lưu).
 3. Phần nối cho tài khoản lai ở `money-edit` / `handler-money-edit` là phòng xa, chưa có bài riêng.
+
+## Lượt `npm test` đầy đủ đầu tiên: hai bài đỏ, đã xử lý
+
+1. `src/giao-dien-hoi-bang-quyen.test.ts` (hàng rào «giao diện hỏi bảng quyền»): `laDoiTacTraSau` hỏi thẳng mã `ACCOUNTING`. Đây là câu hỏi DANH TÍNH mà ADR-0198 Đ1 mục 1 định nghĩa bằng mã, đúng loại ngoại lệ hàng rào cho phép; thêm một mục `CHO_PHEP` có lý do (khuôn dòng khớp nguyên văn, đổi dòng thì đỏ lại). Không đổi cách dò. **Cần người kiểm / chủ biết:** đây là một mục ngoại lệ mới của hàng rào.
+2. `src/huong-dan-may-canh.test.ts`: bài Hướng dẫn «Cấp hạn mức trả sau cho đối tác» neo vào `han-muc-tra-sau-hien-thi.ts`. Đọc lại bài, thêm một câu ở «Điều dễ sai» (đối tác không thấy con số hạn mức; đơn mới chọn sẵn «Trả sau»; câu báo khi vượt mức), rồi `npm run huong-dan:xem-lai -- han-muc-tra-sau`.
