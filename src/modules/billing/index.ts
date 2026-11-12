@@ -971,6 +971,8 @@ export { cauDatCocKhiXacNhan, chanKhaiCocLai, tienDonVe } from "./dat-coc";
 // Trả sau theo hạn mức (ADR-0168): hàm công bố cho gốc lắp ráp tiêm vào `ctx` của orders / ve-dien-tu (orders không import billing).
 export { cauGacPhienBan, cauTangPhienBan, hanMucHieuLuc, kiemTraSau, maDonTraSauDaXacNhan, noCuaBenDat, traSauCuaDon } from "./tra-sau";
 export { nhacHanTraSau, nhacHanTraSauAnToan } from "./tra-sau-nhac";
+// ADR-0182 Đ2 mục 2: số của phiếu công nợ MỘT đơn (phần nghiệp vụ «Công nợ đại lý»). KHÔNG tự kiểm quyền — route của receipt hỏi `xemDuocPhieuCongNo` trước.
+export { phieuCongNoCuaDon } from "./cong-no-dai-ly";
 /** ADR-0181 Đ2 (b): hồ sơ có dòng hạn mức ĐANG MỞ (không xét vai) — gốc lắp ráp tiêm cho đường gỡ vai (parties, accounts) để chỉ nối câu đóng khi cần. */
 export const coHanMucTraSauMo = (db: D1Database, partyId: string): Promise<boolean> => hanMucDangMo(db, partyId);
 /**

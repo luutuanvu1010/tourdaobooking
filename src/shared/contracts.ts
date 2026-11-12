@@ -2833,6 +2833,24 @@ export interface QrThanhToanDto {
 export interface QrThanhToanResponse {
   qr: QrThanhToanDto;
 }
+/**
+ * ADR-0182 Đ2 mục 2: `GET /api/orders/:id/cong-no-dai-ly` — phiếu công nợ với Tour Đảo của MỘT đơn đại lý đã xác nhận. Mọi số do phần nghiệp vụ «Công nợ đại lý» của máy chủ tính;
+ * route không nhận số nào từ trình duyệt. `dong` chỉ giá đại lý từng dịch vụ (không hoa hồng, không tỷ lệ); `thieuMuc` = dòng thiếu mức, tính theo giá bán lẻ (Đ1 mục 3).
+ * `conLai` âm = Tour Đảo nợ đại lý. `qr` chỉ khi `conLai` > 0 và công ty đã cài tài khoản nhận tiền (khi đó `ghiChuQr` nói lý do vắng QR). `hanTra` (ISO UTC) chỉ đơn Trả sau.
+ */
+export interface PhieuCongNoDto {
+  maDon: string;
+  dong: { ten: string; giaDaiLy: number; thieuMuc: boolean }[];
+  tong: number;
+  daThu: number;
+  conLai: number;
+  hanTra: string | null;
+  qr: QrThanhToanDto | null;
+  ghiChuQr: string | null;
+}
+export interface PhieuCongNoResponse {
+  phieu: PhieuCongNoDto;
+}
 /** `GET /api/orders/:id/qr-thanh-toan` của đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (ADR-0178 Đ1 mục 2): không có QR vào tài khoản công ty. Đơn khác giữ `QrThanhToanResponse`. */
 export interface QrKhongCoResponse {
   coQr: false;

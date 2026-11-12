@@ -114,6 +114,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nguonTen: "ADR-0182 Đ2 mục 1 — chữ nguyên văn của chủ (12/11), duyệt «Duyệt, chọn cách 1» 2026-11-12",
   },
   {
+    nhom: "Thu tiền",
+    manHinh: "Chi tiết đơn › thẻ Thanh toán (đơn đại lý đã xác nhận)",
+    ten: "Xem công nợ với Tour Đảo",
+    thatSuLam: "Mở «Phiếu công nợ với Tour Đảo»: giá đại lý từng dịch vụ, Tổng công nợ, Đã thu, Công nợ còn lại, hạn trả và mã QR đúng số còn lại do máy chủ tính. Chỉ đại lý chủ đơn, Kế toán, Quản trị, Toàn quyền thấy. Không ghi gì.",
+    hoiLai: "không",
+    hoanTac: "không áp dụng",
+    duongLenh: [],
+    maNhatKy: [],
+    noiDat: [
+      { tep: "web/order.ts", chu: "Xem công nợ với Tour Đảo" },
+    ],
+    trangThai: "da-chot",
+    nguonTen: "ADR-0182 Đ2 mục 2 — chữ nguyên văn của chủ (12/11), duyệt «Duyệt, chọn cách 1» 2026-11-12",
+  },
+  {
     nhom: "Sửa đơn đã xác nhận",
     manHinh: "Chi tiết đơn › thẻ Đưa đón › bảng «Sửa đưa đón»",
     ten: "Sửa đưa đón",

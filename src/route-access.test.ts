@@ -239,6 +239,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/ledger/ky/:period/khoa", access: "office" }, // ledger.period.close (Kế toán, Toàn quyền — Quản trị không)
   { method: "GET", path: "/api/orders/:id/receipt", access: "orders" }, // module receipt: order.view + money.view + contact.view phạm vi đơn
   { method: "GET", path: "/api/orders/:id/qr-thanh-toan", access: "orders" }, // ADR-0108 đ3, module receipt: order.view (HDV không phụ trách → 404) rồi money.view phạm vi đơn
+  { method: "GET", path: "/api/orders/:id/cong-no-dai-ly", access: "orders" }, // ADR-0182 Đ2 mục 2, module receipt: order.view rồi xemDuocPhieuCongNo (credit.limit.view; Đối tác: credit.own.view + bên đặt = hồ sơ phiên)
   // Sổ đại lý đợt 1 (module pricing — ADR-0077, ADR-0078 B1): 8 route; mỗi route tự hỏi can() ở dòng đầu thân (partner.commission.*, supply.terms.*; route tìm người hưởng hỏi order.create).
   { method: "GET", path: "/api/pricing/hoa-hong", access: "office" }, // partner.commission.view
   { method: "POST", path: "/api/pricing/hoa-hong", access: "office" }, // partner.commission.write — thêm mức (chỉ thêm)
@@ -788,6 +789,7 @@ test("mức truy cập của 469 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-09 (ADR-0187 Đ2.3, gộp bản chính có vé Tour Đảo): + PUT /api/account/thanh-duoi (staff; thân hỏi me.favorites.write rồi ghimDuoc) = 486 (476 của bản chính + 6 của Đợt 2).
   // 2026-11-09 (ADR-0194 đợt 1, gộp bản chính có vé Tour Đảo Đợt 2): + 4 route /api/cai-dat/giao-dien* (GET, GET tat-ca, POST, POST khoi-phuc) = 486.
   // 2026-11-11 (ADR-0196, Đợt 6A): + GET (orders) /api/orders/:id/payments/:receiptId/bien-lai, POST (office) …/bien-lai/go, GET + POST (office) /api/ledger/bien-lai-cho-xoa[/chay-lai] = 492.
-  assert.equal(actual.length, 492, "số route thực tế lệch 492 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 492, "SNAPSHOT phải có đúng 492 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-12 (ADR-0182 phần A, Đ2 mục 2): + GET (orders) /api/orders/:id/cong-no-dai-ly (module receipt) = 493.
+  assert.equal(actual.length, 493, "số route thực tế lệch 493 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 493, "SNAPSHOT phải có đúng 493 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

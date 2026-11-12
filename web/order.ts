@@ -43,7 +43,7 @@ import { PAX_LABEL } from "../src/shared/order-lines";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
 import { nhanCamKet } from "../src/shared/cam-ket-xe";
 import { can, holdsPartner } from "../src/shared/permissions";
-import { laTaiKhoanDoiTac } from "../src/shared/cong-no-dai-ly";
+import { CAU_PHIEU_CHUA_XAC_NHAN, TEN_PHIEU_CONG_NO, laTaiKhoanDoiTac, xemDuocPhieuCongNo } from "../src/shared/cong-no-dai-ly";
 import { GHI_CHU_HUY_TOI_DA, NHOM_HUY_NHAN, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
 import { nhanTienDaTra as nhanTienLuat } from "../src/shared/nhan-tien";
 import { ngayDayDu } from "../src/shared/vn-date";
@@ -697,6 +697,10 @@ function tienCard(order: Order): HTMLElement {
   const luaChon = t ? luaChonNguoiThu(t.benKia, t.kenhThu, holdsPartner(staff!)) : [];
   const doiTacTuGhi = t?.coTheGhiThu && luaChon.length === 0 ? h("p", { class: "muted", "data-khoi": "doi-tac-tu-ghi" }, CAU_DOI_TAC_TU_GHI) : null;
   if (t?.coTheGhiThu && luaChon.length > 0) nut.push(nutGhiThu(order, t, luaChon));
+  // ADR-0182 Đ2 mục 2: phiếu công nợ với Tour Đảo (giá đại lý, QR do máy chủ tính) — đơn đại lý, người xem là đại lý chủ đơn hoặc Kế toán / Quản trị / Toàn quyền; máy chủ kiểm lại.
+  const coPhieu = (order.bookerLaDoiTac || laTaiKhoanDoiTac(staff!)) && xemDuocPhieuCongNo(staff!, order.bookerPartyId);
+  if (coPhieu && order.status === "confirmed") nut.push(nutCongNo(order));
+  const phieuChua = coPhieu && order.status === "draft" ? h("p", { class: "muted", "data-khoi": "phieu-cong-no-chua" }, CAU_PHIEU_CHUA_XAC_NHAN) : null;
   if (t && t.quyenGiao && !t.deliveredAt && order.status === "confirmed") nut.push(nutChot(order, "delivered", t));
   if (t && t.quyenHoanThanh && t.deliveredAt && !t.completedAt) nut.push(nutChot(order, "completed", t));
   return h(
@@ -711,6 +715,7 @@ function tienCard(order: Order): HTMLElement {
     t ? khoiPhanDinh(order, t) : null,
     giu,
     doiTacTuGhi,
+    phieuChua,
     nut.length ? h("div", { class: "handler-actions" }, ...nut) : null,
   );
 }
@@ -1447,6 +1452,46 @@ function moBangQr(order: Order, t: Api.OrderPaymentsResponse, opener: HTMLElemen
     moGhiThu(so);
   });
   void nap();
+}
+
+/** «Xem công nợ với Tour Đảo» (ADR-0182 Đ2 mục 2): mở «Phiếu công nợ với Tour Đảo». Mọi số và QR do máy chủ tính; trình duyệt không gửi số nào, chỉ vẽ ma trận QR. */
+function nutCongNo(order: Order): HTMLButtonElement {
+  const btn = h("button", { type: "button", class: "btn", "data-action": "cong-no-dai-ly" }, "Xem công nợ với Tour Đảo");
+  btn.addEventListener("click", () => void moPhieuCongNo(order, btn));
+  return btn;
+}
+
+async function moPhieuCongNo(order: Order, opener: HTMLElement): Promise<void> {
+  const than = h("div", { "data-khoi": "phieu-cong-no" }, h("p", { class: "muted", role: "status" }, "Đang tải…"));
+  const luu = h("button", { type: "button", class: "btn btn-primary", "data-action": "phieu-luu-anh", hidden: true }, "Lưu ảnh");
+  const bang = moBangTruot({ title: TEN_PHIEU_CONG_NO, body: [than], foot: [luu], footClass: "qr-foot", opener });
+  if (!bang) return;
+  try {
+    const { phieu: p } = await api<Api.PhieuCongNoResponse>(`/api/orders/${encodeURIComponent(order.id)}/cong-no-dai-ly`);
+    const dong = (nhan: string, so: string, khoa?: string) => h("p", khoa ? { "data-so": khoa } : null, `${nhan}: `, h("strong", null, so));
+    const canvas = h("canvas", { class: "qr-anh", role: "img", "aria-label": "Mã QR công nợ với Tour Đảo", hidden: true }) as HTMLCanvasElement;
+    replaceChildren(
+      than,
+      h("ul", { class: "pay-list" }, ...p.dong.map((d) => h("li", null, `${d.ten} — ${vnd(d.giaDaiLy)}${d.thieuMuc ? " (chưa có mức hoa hồng, tính theo giá bán lẻ)" : ""}`))),
+      dong("Tổng công nợ", vnd(p.tong), "tong"),
+      dong("Đã thu", vnd(p.daThu), "da-thu"),
+      p.conLai < 0 ? dong("Tour Đảo nợ đại lý", vnd(-p.conLai), "con-lai") : dong("Công nợ còn lại", vnd(p.conLai), "con-lai"),
+      p.hanTra ? dong("Hạn trả", dateTime(p.hanTra)) : null,
+      p.ghiChuQr ? h("p", { class: "muted" }, p.ghiChuQr) : null,
+      h("div", { class: "qr-khung" }, canvas),
+      p.qr ? h("div", { class: "qr-dong" }, ...dongThongTinQr(p.qr).map((x) => h("p", null, x))) : null,
+    );
+    if (!p.qr) return;
+    const qr = p.qr;
+    veMaQr(canvas, qr.payload);
+    canvas.hidden = false;
+    const anh = await dungAnhQr(qr).catch(() => null); // không dựng được ảnh: mã vẫn quét được trên màn hình, chỉ không có nút lưu
+    if (!anh) return;
+    luu.hidden = false;
+    luu.addEventListener("click", () => void luuHoacChiaSe(anh, `QR-${qr.noiDung}.png`, `Công nợ đơn ${qr.maDon}`, bang.body));
+  } catch (err) {
+    replaceChildren(than, h("p", { class: "alert danger", role: "alert" }, err instanceof ApiError ? err.message : "Không tải được phiếu — thử lại."));
+  }
 }
 
 /** Khối "Số khách qua các lần sửa" (ADR-0114 D2): mỗi dòng = một TRẠNG THÁI (số khách theo dịch vụ + tạm tính), dựng bằng `h()`. `null` = không có gì để hiện. */

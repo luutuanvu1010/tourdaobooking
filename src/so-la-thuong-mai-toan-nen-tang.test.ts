@@ -153,6 +153,8 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/orders/:id/nhap-ke-toan": donB.map((id) => `/api/orders/${id}/nhap-ke-toan`),
     "/api/orders/:id/receipt": donB.map((id) => `/api/orders/${id}/receipt`),
     "/api/orders/:id/qr-thanh-toan": donB.map((id) => `/api/orders/${id}/qr-thanh-toan`),
+    // ADR-0182 Đ2 mục 2: phiếu công nợ mang giá đại lý (thành tiền − hoa hồng) của đơn — Đối tác khác / lai không được thấy của đại lý B.
+    "/api/orders/:id/cong-no-dai-ly": donB.map((id) => `/api/orders/${id}/cong-no-dai-ly`),
     // ADR-0032: «còn N lần» (chỉ người ĐANG phụ trách chính đơn — xem MIEN_200) và bảng chọn người (lần Từ chối của đơn — Toàn quyền nhận 200).
     "/api/orders/:id/han-muc-tu-choi": donB.map((id) => `/api/orders/${id}/han-muc-tu-choi`),
     "/api/orders/:id/tu-choi-truoc": donB.map((id) => `/api/orders/${id}/tu-choi-truoc`),
@@ -383,7 +385,7 @@ test("số lạ toàn Nền tảng: tài khoản giữ quyền Đối tác (thu�
       if (xn.status === 200) xacNhan200++;
       xet("POST /api/orders/:id/status", tk, xn);
       daQuet.add("Đơn của chính tài khoản lai, bên đặt B — chi tiết + lịch sử, phần đối tác, biên nhận, QR, lần thu, hành khách");
-      for (const duoi of ["", "/thuong-mai", "/receipt", "/qr-thanh-toan", "/payments", "/passengers"]) {
+      for (const duoi of ["", "/thuong-mai", "/receipt", "/qr-thanh-toan", "/cong-no-dai-ly", "/payments", "/passengers"]) {
         const r = await w.call("GET", `/api/orders/${id}${duoi}`, { as: tk.id });
         xet(`GET /api/orders/:id${duoi} (đơn của mình, bên đặt B)`, tk, r);
         if (duoi === "/thuong-mai") assert.equal(r.status, 404, `${tk.ten}: phần đối tác đơn của mình mà người hưởng là B phải 404: ${r.text}`);

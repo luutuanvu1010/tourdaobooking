@@ -1,6 +1,7 @@
 // Luật THUẦN của biên nhận (module receipt — ADR-0024 đ1, ADR-0026 đ11; kế hoạch Task 8): dựng `ReceiptDto` theo DANH SÁCH TRẮNG — chép TỪNG trường được
 // phép, KHÔNG BAO GIỜ trải đối tượng nguồn (`...order`), nên thêm một trường bí mật vào đơn/sổ sau này không thể tự lọt ra biên nhận. Không I/O.
-import type { CompanyDto, MauBienNhan, OrderDetailDto, QrThanhToanDto, ReceiptDto, ReceiptPhanDto } from "../../shared/contracts.ts";
+import type { CompanyDto, MauBienNhan, OrderDetailDto, PhieuCongNoDto, QrThanhToanDto, ReceiptDto, ReceiptPhanDto } from "../../shared/contracts.ts";
+import { TIEN_TO_NOI_DUNG_DAI_LY } from "../../shared/cong-no-dai-ly.ts";
 import { chiaPhanNguoiBan, nguoiBanCuaDong } from "../../shared/chia-phan-nguoi-ban.ts";
 import type { BanChup } from "../../shared/hoa-hong-dong.ts";
 import { noiDungChuyenKhoan } from "../../shared/noi-dung-chuyen-khoan.ts";
@@ -173,12 +174,41 @@ export function dungQrThanhToan(i: {
   soTien: number;
   conLai: number;
   tk: { congTy: string; nganHang: string; bin: string; soTaiKhoan: string; chuTaiKhoan: string };
+  /** ADR-0182 Đ2 mục 2: tiền tố riêng của QR phiếu công nợ (tiền đại lý nộp, «DL»). QR của khách KHÔNG truyền — nội dung giữ y như cũ. */
+  tienTo?: string;
 }): { ok: true; dto: QrThanhToanDto } | { ok: false; cau: string } {
-  const noiDung = noiDungChuyenKhoan(i.maDon);
+  const noiDung = (i.tienTo ?? "") + noiDungChuyenKhoan(i.maDon);
   const p = payloadVietQr({ bin: i.tk.bin, soTaiKhoan: i.tk.soTaiKhoan, soTien: i.soTien, noiDung });
   if (!p.ok) return { ok: false, cau: p.loi };
   return {
     ok: true,
     dto: { payload: p.payload, soTien: i.soTien, conLai: i.conLai, maDon: i.maDon, noiDung, congTy: i.tk.congTy, nganHang: i.tk.nganHang, soTaiKhoan: i.tk.soTaiKhoan, chuTaiKhoan: i.tk.chuTaiKhoan },
+  };
+}
+
+/**
+ * ADR-0182 Đ2 mục 2: DTO phiếu công nợ theo DANH SÁCH TRẮNG từ số của «Công nợ đại lý» (billing). Không có hoa hồng hay tỷ lệ; QR chỉ khi Công nợ còn lại > 0 — số trên QR là đúng
+ * Công nợ còn lại, nội dung có tiền tố «DL». `tk` null = công ty chưa cài tài khoản (phiếu vẫn hiện số).
+ */
+export function dungPhieuCongNo(i: {
+  maDon: string;
+  phieu: { dong: readonly { name: string; hoaHong: number | null; giaDaiLy: number }[]; tong: number; daThu: number; conLai: number };
+  hanTra: string | null;
+  tk: { congTy: string; nganHang: string; bin: string; soTaiKhoan: string; chuTaiKhoan: string } | null;
+}): { ok: true; dto: PhieuCongNoDto } | { ok: false } {
+  const { tong, daThu, conLai } = i.phieu;
+  let qr: QrThanhToanDto | null = null;
+  let ghiChuQr: string | null = null;
+  if (conLai > 0) {
+    if (!i.tk) ghiChuQr = "Công ty chưa cài tài khoản nhận tiền — báo người phụ trách hệ thống.";
+    else {
+      const q = dungQrThanhToan({ maDon: i.maDon, soTien: conLai, conLai, tk: i.tk, tienTo: TIEN_TO_NOI_DUNG_DAI_LY });
+      if (!q.ok) return { ok: false };
+      qr = q.dto;
+    }
+  }
+  return {
+    ok: true,
+    dto: { maDon: i.maDon, dong: i.phieu.dong.map((d) => ({ ten: d.name, giaDaiLy: d.giaDaiLy, thieuMuc: d.hoaHong === null })), tong, daThu, conLai, hanTra: i.hanTra, qr, ghiChuQr },
   };
 }

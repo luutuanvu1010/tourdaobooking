@@ -10,7 +10,7 @@ import { LOAI_DONG_THUONG_MAI, soChuaVeCongTy, soKhaiChuaNop, type DoiChieuRow, 
 import { phanKhaiCuaDon } from "./khoan-khai";
 import { ownerCompanyId, receiptsOfOrders } from "./repository";
 import { tienNhieuDon, toReceiptRow } from "./service";
-import { dongCuaCacDon, doiChieuCuaCacDon } from "./tra-sau-repo";
+import { dongCuaCacDon, doiChieuCuaCacDon, donTraSauTheoId } from "./tra-sau-repo";
 
 /** Đơn cần tính: `booker_party_id` là «người lập» của hàm mở vé (ADR-0171); `status` để áp luật đơn huỷ. */
 export interface DonCongNo { id: string; booker_party_id: string | null; status: string }
@@ -72,4 +72,11 @@ export async function congNoNhieuDon(db: D1Database, dons: readonly DonCongNo[])
     out.set(d.id, { no: noMotDon({ daHuy, phaiThu: t.phaiThu, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, benDatDangGiu: v.nguoiLapGiu }), cocConGiu, phieu: null });
   }
   return out;
+}
+
+/** Phiếu của MỘT đơn: `null` khi đơn không phải đơn đại lý hoặc chưa tính được tiền. `hanTra` chỉ đơn Trả sau (ADR-0172 Đ3 mục 2). */
+export async function phieuCongNoCuaDon(db: D1Database, d: DonCongNo): Promise<{ phieu: PhieuCongNo; hanTra: string | null } | null> {
+  const [kq, ts] = await Promise.all([congNoNhieuDon(db, [d]), donTraSauTheoId(db, d.id)]);
+  const phieu = kq.get(d.id)?.phieu ?? null;
+  return phieu ? { phieu, hanTra: ts?.credit_due_at ?? null } : null;
 }

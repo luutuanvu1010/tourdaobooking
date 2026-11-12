@@ -110,3 +110,70 @@ test("Đ1 mục 9: giá đại lý đọc NHIỀU đơn một lượt trùng t�
   }
   assert.equal(nhieu.get(b).tong, 3 * 300_000 - 3 * 50_000, "đơn sửa thành 3 người lớn: tính theo số hiện hành");
 });
+
+// ---- Đ2 mục 2: phiếu công nợ với Tour Đảo (route `GET /api/orders/:id/cong-no-dai-ly`) ----
+const SA = "77777777-7777-4777-8777-777777777777"; // = SUP của khung
+const ADM_ = "33333333-3333-4333-8333-333333333333";
+const DT_KHAC = "88888888-8888-4888-8888-888888888809";
+const phieu = (w: W, id: string, as: string, duoi = "") => w.call("GET", `/api/orders/${id}/cong-no-dai-ly${duoi}`, { as });
+async function caiTaiKhoan(w: W): Promise<void> {
+  const ct = String(w.q("SELECT party_id FROM v_pty_owner_company LIMIT 1")[0].party_id);
+  const r = await w.call("PUT", `/api/parties/${ct}/tai-khoan-nhan-tien`, { as: SA, body: { maNganHang: "VCB", soTaiKhoan: "0011001234567", chuTaiKhoan: "CONG TY TNHH TOUR DAO", truocDo: null } });
+  assert.equal(r.status, 200, r.text);
+}
+
+test("Đ2 mục 2: phiếu theo giá đại lý có QR = Công nợ còn lại do máy chủ tính (không nhận số từ đường dẫn), nội dung có tiền tố DL; trả dư thì «Tour Đảo nợ đại lý», không QR", async () => {
+  const w = dung();
+  await hanMuc(w, true);
+  await caiTaiKhoan(w);
+  const id = await donDaiLy(w, GIAM);
+  const r = await phieu(w, id, DT, "?soTien=1000&conLai=1");
+  assert.equal(r.status, 200, r.text);
+  const p = r.json.phieu;
+  assert.deepEqual([p.tong, p.daThu, p.conLai], [500_000, 0, 500_000]);
+  assert.deepEqual(p.dong.map((d: { giaDaiLy: number; thieuMuc: boolean }) => [d.giaDaiLy, d.thieuMuc]), [[500_000, false]]);
+  assert.ok(p.hanTra, "đơn Trả sau có hạn trả");
+  assert.equal(p.qr.soTien, 500_000, "số trên QR = Công nợ còn lại, không phải ?soTien");
+  assert.match(p.qr.noiDung, /^DL/, "nội dung chuyển khoản có tiền tố DL");
+  assert.equal(Object.hasOwn(p.dong[0], "hoaHong"), false, "phiếu không kèm số hoa hồng / tỷ lệ (chỉ giá đại lý)");
+  assert.equal((await congTyThu(w, id, 300_000)).status, 201);
+  assert.equal((await congTyThu(w, id, 250_000)).status, 201);
+  const du = (await phieu(w, id, DT)).json.phieu;
+  assert.deepEqual([du.daThu, du.conLai, du.qr], [550_000, -50_000, null], "Tour Đảo nhận dư: còn lại âm, không QR");
+});
+
+test("Đ2 mục 2: chỉ đơn đã xác nhận; có QR bất kể công tắc ADR-0178 (dấu Tắt); không phải đơn đại lý thì không có phiếu", async () => {
+  const w = dung();
+  await hanMuc(w, true);
+  await caiTaiKhoan(w);
+  const nhap = await w.call("POST", "/api/orders", { as: DT, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc("ZB1", inDays(3))], paymentTerm: "CREDIT" } });
+  const chua = await phieu(w, nhap.json.order.id, DT);
+  assert.deepEqual([chua.status, chua.json.error.code, chua.json.error.message], [409, "phieu_requires_confirmed", "Phiếu công nợ có sau khi đơn được xác nhận."]);
+  const tat = await w.call("POST", "/api/kenh-thu-doi-tac", { as: SA, body: { congTyThu: false } }); // công tắc «Khách của đối tác trả cho Công ty» = Tắt TRƯỚC khi lập (dấu chụp lúc lập)
+  assert.equal(tat.status, 200, tat.text);
+  const id = await donDaiLy(w);
+  assert.equal(w.q("SELECT company_collects_snapshot AS d FROM orders WHERE id = ?", id)[0].d, 0, "đơn mang dấu Tắt");
+  const r = await phieu(w, id, DT);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.phieu.qr?.soTien, TONG - HOA_HONG, "tiền đại lý nộp, không phải tiền khách: có QR bất kể công tắc");
+  const le = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Lẻ", customerPhone: "0912345671", services: [svc("ZB1", inDays(3))] } });
+  assert.equal((await w.call("POST", `/api/orders/${le.json.order.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+  const k = await phieu(w, le.json.order.id, ACC);
+  assert.deepEqual([k.status, k.json.error?.code], [409, "khong_phai_don_dai_ly"], k.text);
+});
+
+test("Đ2 mục 2 / Đ3 dòng «Xem phiếu»: đại lý chủ đơn, Kế toán, Quản trị, Toàn quyền xem được; Bán hàng, đại lý khác không", async () => {
+  const w = dung();
+  seedStaff(w.sqlite, { id: DT_KHAC, phone: "0900000029", name: "Đối Tác Khác", perms: ["PARTNER"] });
+  await hanMuc(w, true);
+  const id = await donDaiLy(w);
+  for (const ai of [DT, ACC, ADM_, SA]) assert.equal((await phieu(w, id, ai)).status, 200, `${ai} xem được`);
+  // Bán hàng lập đơn cho đại lý: vẫn KHÔNG xem phiếu (xem đơn được nhưng không có ô xem công nợ).
+  const r = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Ba", customerPhone: "0912345670", bookerPartyId: BEN, paymentTerm: "CREDIT", services: [svc("ZB1", inDays(3))] } });
+  assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+  assert.equal((await phieu(w, r.json.order.id, A)).status, 403);
+  assert.equal((await phieu(w, r.json.order.id, ACC)).status, 200);
+  const khac = await phieu(w, id, DT_KHAC);
+  assert.ok([403, 404].includes(khac.status), `đại lý khác: ${khac.status}`);
+  assert.doesNotMatch(khac.text, /tong|conLai|payload/);
+});

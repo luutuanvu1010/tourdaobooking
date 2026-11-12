@@ -119,6 +119,8 @@ Mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn. 
 | **Hạng bằng và số khách** | Bảng cho biết mỗi hạng bằng lái chở được tối đa bao nhiêu khách. |  |  | `vc_license_capacity` | chờ chọn |  |
 | **Lý do điều phối** | Danh sách lý do để chọn khi làm các việc của Điều phối cần ghi lý do. |  |  | `vc_reason` | chờ chọn |  |
 | **Giá đại lý** | Số tiền đại lý phải trả công ty cho một đơn, bằng thành tiền của đơn trừ hoa hồng. | Khác giá bán lẻ (giá trong Dịch vụ & giá). |  | `hoaHongDong` `tinhDongDoiTac` | chờ chọn |  |
+| **Công nợ đại lý** | Số đại lý còn phải trả Tour Đảo cho một đơn: tổng giá đại lý các dịch vụ trừ số tiền Tour Đảo đã thật sự nhận. Số âm nghĩa là Tour Đảo đang nợ đại lý. Hạn mức Trả sau dùng số này. | Khác «Phải thu» của khách (tính theo giá bán lẻ). |  | `congNoNhieuDon` `giaDaiLyNhieuDon` | đã chốt | 2026-11-12 (ADR-0182 Đ1, chủ duyệt «Duyệt, chọn cách 1») |
+| **Phiếu công nợ với Tour Đảo** | Phiếu của một đơn đại lý đã xác nhận: từng dịch vụ theo giá đại lý, Tổng công nợ, Đã thu, Công nợ còn lại, hạn trả, và mã QR chuyển đúng số còn lại vào tài khoản công ty (nội dung có tiền tố DL). Mở bằng nút «Xem công nợ với Tour Đảo». Không in trên biên nhận cho khách. | Khác biên nhận cho khách (mẫu HD-02-DT, giá bán lẻ, không QR). |  | `/api/orders/:x/cong-no-dai-ly` `TEN_PHIEU_CONG_NO` | đã chốt | 2026-11-12 (ADR-0182 bảng «Chữ chờ chủ chọn», chủ duyệt theo khuyến nghị) |
 | **Giá công bố** | Giá danh mục, tức giá bán lẻ, in trên biên nhận mẫu HD-02-DT của đơn đối tác. | Khác «Giá đại lý». |  |  | đã chốt | 2026-11-06 (đặc tả biên nhận đơn đối tác) |
 | **Phải thu (biên nhận HD-02-DT)** | Dòng «Phải thu» trên biên nhận mẫu HD-02-DT: số tiền khách còn phải trả sau giảm giá và phần đã trả. | Ở sổ của Kế toán, «phải thu» là tổng đơn phải thu. |  |  | đã chốt | 2026-11-06 (đặc tả biên nhận đơn đối tác) |
 | **Người bán dịch vụ** | Bên cung ứng dịch vụ cho công ty, kèm điều khoản công ty mua lại dịch vụ đó. | Khác «Đối tác» (bên đưa khách đến và hưởng hoa hồng). |  | `prc_supply_term` | chờ chọn |  |
@@ -316,7 +318,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (330)
+## Việc quan trọng (331)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -345,6 +347,16 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | **Tải ảnh về máy** | Hộp «Ảnh gửi khách» | Tải ảnh xác nhận đơn (đã dựng sẵn trên máy) về điện thoại hay máy tính. Không ghi gì vào Nền tảng, không gửi gì cho khách. | không | không áp dụng | (chưa nối) | `web/confirmation-dialog.ts`: Tải ảnh về máy | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
 | **Xem ảnh gửi khách** | Chi tiết đơn (khối nút dưới tóm tắt) | Dựng ngay trên máy một ảnh tóm tắt đơn (dịch vụ, ngày giờ, tiền) để xem, tải về hoặc chia sẻ qua Zalo. Không thu tiền, không gửi gì cho khách, không ghi vào Nền tảng; người dùng tự gửi ảnh. | không | không áp dụng | (chưa nối) | `web/order.ts`: Xem ảnh gửi khách | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
 | **Tạo biên nhận cho khách** | Chi tiết đơn của tài khoản Đối tác (khối nút dưới tóm tắt) | Như «Xem ảnh gửi khách» nhưng cho tài khoản Đối tác: dựng ngay trên máy biên nhận mẫu HD-02-DT theo giá bán lẻ để gửi khách. Biên nhận này không có mã QR, không có số tài khoản, vì đại lý là người thu tiền của khách. Không ghi gì vào Nền tảng. | không | không áp dụng | (chưa nối) | `web/order.ts`: Tạo biên nhận cho khách | đã chốt (ADR-0182 Đ2 mục 1 — chữ nguyên văn của chủ (12/11), duyệt «Duyệt, chọn cách 1» 2026-11-12) |
+
+### Thu tiền
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Xem công nợ với Tour Đảo** | Chi tiết đơn › thẻ Thanh toán (đơn đại lý đã xác nhận) | Mở «Phiếu công nợ với Tour Đảo»: giá đại lý từng dịch vụ, Tổng công nợ, Đã thu, Công nợ còn lại, hạn trả và mã QR đúng số còn lại do máy chủ tính. Chỉ đại lý chủ đơn, Kế toán, Quản trị, Toàn quyền thấy. Không ghi gì. | không | không áp dụng | (chưa nối) | `web/order.ts`: Xem công nợ với Tour Đảo | đã chốt (ADR-0182 Đ2 mục 2 — chữ nguyên văn của chủ (12/11), duyệt «Duyệt, chọn cách 1» 2026-11-12) |
+| **Ghi khoản thu** | Chi tiết đơn › thẻ Thanh toán | Ghi một khoản khách đã trả vào đơn (số tiền, hình thức, ai thu). Nếu người ghi không phải Kế toán và chọn «Công ty» với chuyển khoản, khoản này chỉ là lời khai chờ Kế toán đối chiếu: nó được cộng vào đã thu nhưng chưa bấm được «Xác nhận khách đã trả đủ». Chọn khách trả cho đại lý hoặc nhà cung cấp thì chờ Kế toán xác nhận với bên đó. Không ghi được sau bước Khách đã trả đủ. | không (bấm Ghi trong hàng mở là ghi luôn; có hỏi riêng khi nghi trùng khoản) | một phần: trước bước Khách đã trả đủ sửa bằng «Sửa khoản thu đã ghi» hoặc huỷ bằng «Huỷ khoản thu» (chỉ Kế toán, Toàn quyền) | `/api/orders/:x/payments`<br>nhật ký `payment_recorded` | `web/order.ts`: Ghi khoản thu<br>`web/order.ts`: Ghi | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
+| **Lưu ảnh** | Bảng «QR thanh toán» | Lưu ảnh mã QR thanh toán (kèm số tiền, nội dung chuyển khoản) vào máy, hoặc mở bảng chia sẻ của điện thoại để gửi cho khách. Không ghi gì vào Nền tảng. | không | không áp dụng | (chưa nối) | `web/order.ts`: Lưu ảnh | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
+| **Ghi khoản thu này** | Bảng «QR thanh toán» | Đóng bảng QR rồi mở form «Ghi khoản thu» ngay dưới, điền sẵn số tiền của mã vừa tạo. Bấm nút này chưa ghi gì vào sổ; phải bấm «Ghi» trong form mới ghi khoản thu. | không | không áp dụng | (chưa nối) | `web/order.ts`: Ghi khoản thu này | đã chốt (ADR-0166 câu 10) |
+| **QR thanh toán** | Chi tiết đơn › thẻ Thanh toán | Mở bảng tạo mã QR chuyển tiền vào tài khoản công ty cho số còn lại (hoặc số bạn nhập). Chỉ có với đơn đã xác nhận, chưa tới bước Khách đã trả đủ, còn tiền phải thu. Không ghi gì. | không | không áp dụng | (chưa nối) |  | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 
 ### Sửa đơn đã xác nhận
 
@@ -423,15 +435,6 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 |---|---|---|---|---|---|---|---|
 | **Xác nhận khách đã trả đủ** | Chi tiết đơn › thẻ Thanh toán (dưới các dòng tiền) | Chốt rằng tour đã xong và khách đã trả đủ (trả cho hướng dẫn viên, đối tác hay công ty đều được, nên tiền chưa chắc đã về công ty; tiền về đủ là bước «Hoàn thành» của Kế toán): đơn bị khoá, không sửa, không huỷ, không đổi người phụ trách, không ghi thêm khoản thu. Cùng lúc Nền tảng ghi các dòng hoa hồng đại lý, giá vốn nhà cung cấp và giảm giá do bên đặt chịu của đơn vào sổ. Nút mờ khi chưa đủ điều kiện, lý do hiện ở dòng «Đang giữ đơn». | có: hộp của trình duyệt (confirm) | không: không có nút mở lại; sửa sai chỉ qua «Sửa khoản thu đã ghi» và «Đề nghị phân định» | `/api/orders/:x/delivered`<br>nhật ký `order_delivered` | `web/order.ts`: Xác nhận khách đã trả đủ / Hoàn thành<br>`web/order.ts`: ⟪loai === "delivered"⟫ | đã chốt (chủ 2026-11-07 (chọn trong hộp hỏi «Khách đã trả đủ»): thay «Xác nhận xong và đủ tiền» (chủ chọn 2026-11-05, docs/superpowers/specs/2026-11-05-doi-chu-da-giao.md) vì tên đó làm hiểu là tiền đã về Tour Đảo; trước nữa là «Đã giao – đã thu đủ») |
 | **Hoàn thành** | Chi tiết đơn › thẻ Thanh toán (dưới các dòng tiền, sau khi đơn đã tới bước Khách đã trả đủ) | Đóng sổ của đơn đã tới bước Khách đã trả đủ sau khi mọi người đã nộp tiền và đã thu đúng số phải thu. Từ lúc đó các nút ghi sổ của Kế toán trên đơn (sửa, huỷ khoản thu, ghi nộp…) biến mất. | có: hộp của trình duyệt (confirm) | không: «Không mở lại được» | `/api/orders/:x/completed`<br>nhật ký `order_completed` | `web/order.ts`: Xác nhận khách đã trả đủ / Hoàn thành | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
-
-### Thu tiền
-
-| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
-|---|---|---|---|---|---|---|---|
-| **Ghi khoản thu** | Chi tiết đơn › thẻ Thanh toán | Ghi một khoản khách đã trả vào đơn (số tiền, hình thức, ai thu). Nếu người ghi không phải Kế toán và chọn «Công ty» với chuyển khoản, khoản này chỉ là lời khai chờ Kế toán đối chiếu: nó được cộng vào đã thu nhưng chưa bấm được «Xác nhận khách đã trả đủ». Chọn khách trả cho đại lý hoặc nhà cung cấp thì chờ Kế toán xác nhận với bên đó. Không ghi được sau bước Khách đã trả đủ. | không (bấm Ghi trong hàng mở là ghi luôn; có hỏi riêng khi nghi trùng khoản) | một phần: trước bước Khách đã trả đủ sửa bằng «Sửa khoản thu đã ghi» hoặc huỷ bằng «Huỷ khoản thu» (chỉ Kế toán, Toàn quyền) | `/api/orders/:x/payments`<br>nhật ký `payment_recorded` | `web/order.ts`: Ghi khoản thu<br>`web/order.ts`: Ghi | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
-| **Lưu ảnh** | Bảng «QR thanh toán» | Lưu ảnh mã QR thanh toán (kèm số tiền, nội dung chuyển khoản) vào máy, hoặc mở bảng chia sẻ của điện thoại để gửi cho khách. Không ghi gì vào Nền tảng. | không | không áp dụng | (chưa nối) | `web/order.ts`: Lưu ảnh | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
-| **Ghi khoản thu này** | Bảng «QR thanh toán» | Đóng bảng QR rồi mở form «Ghi khoản thu» ngay dưới, điền sẵn số tiền của mã vừa tạo. Bấm nút này chưa ghi gì vào sổ; phải bấm «Ghi» trong form mới ghi khoản thu. | không | không áp dụng | (chưa nối) | `web/order.ts`: Ghi khoản thu này | đã chốt (ADR-0166 câu 10) |
-| **QR thanh toán** | Chi tiết đơn › thẻ Thanh toán | Mở bảng tạo mã QR chuyển tiền vào tài khoản công ty cho số còn lại (hoặc số bạn nhập). Chỉ có với đơn đã xác nhận, chưa tới bước Khách đã trả đủ, còn tiền phải thu. Không ghi gì. | không | không áp dụng | (chưa nối) |  | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 
 ### Xác nhận đơn
 
