@@ -1,7 +1,8 @@
 // Luật hiển thị của màn «Hạn mức trả sau» và khối Thanh toán trên đơn (ADR-0168; kế hoạch Task 6). Thay R-CRD-3 (bộ kiểm dữ liệu không tính được phải thu).
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { CAU_VE_TRA_TRUOC, NHAN_TRANG_THAI_HAN, cauChonTraSau, cauDonNo, cauGoiYDienSan, cauMucToiDa, cauGio, cauHanMuc, canhBaoVuotHanMuc, goiYCuaCap, giaTriOGioVn, locHoSoTraSau, docGio, docHanMuc, docHanMoi, nhanAnHan, nhanHinhThucDon, nhanQuaHan, quyetHinhThuc } from "./han-muc-tra-sau-hien-thi.ts";
+import { CAU_TRA_SAU_DOI_TAC, CAU_VE_TRA_TRUOC, NHAN_TRANG_THAI_HAN, cauChonTraSau, dongTraSauCuaToi, duocChonSanTraSau, cauDonNo, cauGoiYDienSan, cauMucToiDa, cauGio, cauHanMuc, canhBaoVuotHanMuc, goiYCuaCap, giaTriOGioVn, locHoSoTraSau, docGio, docHanMuc, docHanMoi, nhanAnHan, nhanHinhThucDon, nhanQuaHan, quyetHinhThuc } from "./han-muc-tra-sau-hien-thi.ts";
+import { cauKhongTraSauChoNguoiGui, dongTien, laDoiTacTraSau, lyDoKhongTraSau } from "./tra-sau.ts";
 
 test("cảnh báo khi nợ vượt hạn mức hiện hành; vừa bằng thì chưa cảnh báo", () => {
   assert.equal(canhBaoVuotHanMuc({ hanMuc: 50_000_000, dangNo: 50_000_000 }), null);
@@ -130,4 +131,86 @@ test("câu nhắc trong bảng bật Trả sau: số gợi ý chỉ điền sẵ
   assert.equal(cauMucToiDa(30_000_000, true), null);
   assert.equal(cauMucToiDa(30_000_000, false), "Quản trị đặt được hạn mức tới 30.000.000 ₫.");
   assert.ok(String(cauMucToiDa(null, false)).includes("Toàn quyền chưa đặt"));
+});
+
+// ---- ADR-0198: đối tác thấy Trả sau ở dạng gọn, không số hạn mức; đơn mới của đối tác chọn sẵn «Trả sau» ------------------------------------------------
+// Số canh: ba số khác hẳn nhau để biết chữ nào lộ số nào. Hạn mức và còn-được-dùng KHÔNG BAO GIỜ được hiện cho đối tác; số đang nợ thì vẫn hiện (Đ1 mục 5: «dòng sau chỉ còn "Đang nợ …"»).
+const HAN_MUC_CANH = 73_100_000;
+const CON_DUOC_DUNG_CANH = 41_900_000;
+const DANG_NO_CANH = 31_200_000;
+const coSoTien = (s: string): boolean => /₫/.test(s) || /\d{1,3}(\.\d{3})+/.test(s) || /\d{4,}/.test(s);
+
+test("ADR-0198 Đ1.2: đối tác thấy câu gọn ở ô lập đơn, không số; văn phòng giữ «Hạn mức khả dụng»", () => {
+  const dt = cauChonTraSau({ coHanMuc: true, conDuocDung: CON_DUOC_DUNG_CANH, coDonQuaHan: false, laDoiTac: true });
+  assert.deepEqual(dt, { hien: true, khoa: null, cau: CAU_TRA_SAU_DOI_TAC });
+  assert.equal(CAU_TRA_SAU_DOI_TAC, "Bạn được trả sau. Nhận vé trước, chuyển tiền cho Tour Đảo trong hạn trả.");
+  const vp = cauChonTraSau({ coHanMuc: true, conDuocDung: CON_DUOC_DUNG_CANH, coDonQuaHan: false, laDoiTac: false });
+  assert.equal(vp.cau, `Hạn mức khả dụng ${dongTien(CON_DUOC_DUNG_CANH)}`);
+  // Đ1.3: bị khoá vì quá hạn thì giữ câu khoá cũ (không số)
+  const khoa = cauChonTraSau({ coHanMuc: true, conDuocDung: CON_DUOC_DUNG_CANH, coDonQuaHan: true, laDoiTac: true });
+  assert.ok(khoa.khoa && !coSoTien(khoa.khoa));
+});
+
+test("ADR-0198 Đ1.5: «Trả sau của tôi» của đối tác: dòng một không số tiền (giữ số giờ), dòng hai chỉ còn «Đang nợ …»", () => {
+  const r = { coHanMuc: true, hanMuc: HAN_MUC_CANH, gioTra: 36, gioAnHan: 12, dangNo: DANG_NO_CANH, conDuocDung: CON_DUOC_DUNG_CANH };
+  const dt = dongTraSauCuaToi(r, true);
+  assert.equal(dt.dong1, "Bạn được trả sau, trả trong 36 giờ kể từ khi đơn được xác nhận, sau đó còn 12 giờ ân hạn.");
+  assert.equal(dt.dong2, `Đang nợ ${dongTien(DANG_NO_CANH)}`);
+  assert.equal(dongTraSauCuaToi({ ...r, gioTra: 48, gioAnHan: 0 }, true).dong1, "Bạn được trả sau, trả trong 48 giờ (2 ngày) kể từ khi đơn được xác nhận.");
+  assert.equal(dongTraSauCuaToi({ ...r, coHanMuc: false, hanMuc: null, gioTra: null, gioAnHan: null, conDuocDung: null }, true).dong1, "Chưa cấp");
+  // văn phòng (không phải đối tác): giữ nguyên như trước
+  const vp = dongTraSauCuaToi(r, false);
+  assert.equal(vp.dong1, cauHanMuc(r));
+  assert.equal(vp.dong2, `Đang nợ ${dongTien(DANG_NO_CANH)} · Hạn mức khả dụng ${dongTien(CON_DUOC_DUNG_CANH)}`);
+});
+
+test("ADR-0198 Đ1.7: mọi chữ trả cho đối tác không lộ hạn mức hay còn-được-dùng; ba câu mới không có «₫» hay số tiền", () => {
+  const lo = (s: string): boolean => s.includes(dongTien(HAN_MUC_CANH)) || s.includes(dongTien(CON_DUOC_DUNG_CANH)) || /73\.?100\.?000|41\.?900\.?000/.test(s);
+  const chu: string[] = [];
+  for (const coDonQuaHan of [false, true]) {
+    const c = cauChonTraSau({ coHanMuc: true, conDuocDung: CON_DUOC_DUNG_CANH, coDonQuaHan, laDoiTac: true });
+    chu.push(c.cau, c.khoa ?? "");
+  }
+  for (const gioAnHan of [0, 12, 48]) {
+    const d = dongTraSauCuaToi({ coHanMuc: true, hanMuc: HAN_MUC_CANH, gioTra: 24, gioAnHan, dangNo: DANG_NO_CANH, conDuocDung: CON_DUOC_DUNG_CANH }, true);
+    chu.push(d.dong1, d.dong2);
+    assert.ok(!coSoTien(d.dong1), d.dong1);
+  }
+  const quaMuc = cauKhongTraSauChoNguoiGui({ ma: "vuot_han_muc", cau: lyDoKhongTraSau({ hanMuc: { hanMuc: HAN_MUC_CANH, gioTra: 24, gioAnHan: 0 }, noHienTai: DANG_NO_CANH, soTienDon: 99_000_000, coDonQuaHan: false })!.cau }, true);
+  chu.push(quaMuc);
+  for (const s of chu) assert.ok(!lo(s), `lộ số hạn mức: ${s}`);
+  for (const s of [CAU_TRA_SAU_DOI_TAC, quaMuc]) assert.ok(!coSoTien(s), s);
+});
+
+test("ADR-0198 Đ2 mục 6: chọn sẵn hình thức — bốn ca", () => {
+  const co = cauChonTraSau({ coHanMuc: true, conDuocDung: 1_000_000, coDonQuaHan: false, laDoiTac: true });
+  const khong = cauChonTraSau({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false, laDoiTac: true });
+  const quaHan = cauChonTraSau({ coHanMuc: true, conDuocDung: 1_000_000, coDonQuaHan: true, laDoiTac: true });
+  const chonSan = (laDoiTac: boolean, donMoi: boolean, daChon: boolean) => duocChonSanTraSau({ laDoiTac, donMoi, daChon });
+  // 1. đơn mới của đối tác + dùng được → Trả sau
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c: co, chonSan: chonSan(true, true, false) }), { chon: "CREDIT", bao: null });
+  // 2. đơn mới của đối tác + không dùng được → Thanh toán ngay, KHÔNG câu báo
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c: khong, chonSan: chonSan(true, true, false) }), { chon: "PREPAID", bao: null });
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c: quaHan, chonSan: chonSan(true, true, false) }), { chon: "PREPAID", bao: null });
+  // 3. nháp đã lưu «Thanh toán ngay» → giữ
+  assert.equal(chonSan(true, false, true), false);
+  assert.equal(chonSan(true, true, true), false, "đã chọn (hoặc nạp lại bản đang gõ dở) thì không chọn sẵn đè lên");
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c: co, chonSan: chonSan(true, false, true) }), { chon: "PREPAID", bao: null });
+  // 4. văn phòng lập → Thanh toán ngay
+  assert.equal(chonSan(false, true, false), false);
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c: co, chonSan: chonSan(false, true, false) }), { chon: "PREPAID", bao: null });
+  // bên đặt chưa nạp xong: chưa chọn sẵn
+  assert.deepEqual(quyetHinhThuc({ dangChon: "PREPAID", c: khong, benDatChuaNap: true, chonSan: true }), { chon: "PREPAID", bao: null });
+});
+
+test("ADR-0198 Đ1.4 và Đ1 mục 1: câu vượt hạn mức đổi chữ chỉ khi người gửi là đối tác (giữ Đối tác, không giữ Kế toán); mã khác giữ nguyên câu", () => {
+  const vuot = { ma: "vuot_han_muc" as const, cau: "Đơn trả sau 5.000.000 ₫ vượt hạn mức khả dụng…" };
+  assert.equal(cauKhongTraSauChoNguoiGui(vuot, true), "Đơn này vượt mức được trả sau. Chọn Thanh toán ngay, hoặc liên hệ Tour Đảo.");
+  assert.equal(cauKhongTraSauChoNguoiGui(vuot, false), vuot.cau);
+  const quaHan = { ma: "co_don_qua_han" as const, cau: "Bên đặt còn đơn trả sau quá hạn chưa thanh toán." };
+  assert.equal(cauKhongTraSauChoNguoiGui(quaHan, true), quaHan.cau);
+  assert.equal(laDoiTacTraSau({ permissions: ["PARTNER"] }), true);
+  assert.equal(laDoiTacTraSau({ permissions: ["PARTNER", "ACCOUNTING"] }), false);
+  assert.equal(laDoiTacTraSau({ permissions: ["SALES"] }), false);
+  assert.equal(laDoiTacTraSau({ permissions: ["ADMIN", "PARTNER"] }), true, "giữ Đối tác mà không giữ Kế toán thì vẫn là đối tác (ADR-0196 mục 1)");
 });

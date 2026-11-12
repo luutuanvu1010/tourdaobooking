@@ -119,6 +119,19 @@ export function lyDoKhongTraSau(i: { hanMuc: HanMucHieuLuc | null; noHienTai: nu
 }
 
 /**
+ * ADR-0198 Đ1 mục 1: «đối tác» = tài khoản giữ quyền Đối tác và KHÔNG giữ quyền Kế toán (cùng cách nhận diện của ADR-0196 mục 1). Chỉ đổi điều người đó NHÌN THẤY
+ * (câu báo, chữ trên màn hình, lựa chọn sẵn) — không bao giờ là điều kiện cho phép.
+ */
+export const laDoiTacTraSau = (who: { readonly permissions: readonly string[] }): boolean => who.permissions.includes("PARTNER") && !who.permissions.includes("ACCOUNTING");
+
+/** ADR-0198 Đ1.4 (chữ theo cột «Khuyến nghị»): câu vượt hạn mức gửi cho đối tác — không số tiền. */
+export const CAU_VUOT_HAN_MUC_DOI_TAC = "Đơn này vượt mức được trả sau. Chọn Thanh toán ngay, hoặc liên hệ Tour Đảo.";
+
+/** Câu của kết quả cổng hạn mức theo NGƯỜI GỬI: đối tác bị chặn vì vượt hạn mức thì nhận câu không số; mã lỗi và mọi câu khác giữ nguyên (ADR-0198 Đ1.4). */
+export const cauKhongTraSauChoNguoiGui = (kq: { ma: MaKhongTraSau; cau: string }, laDoiTac: boolean): string =>
+  laDoiTac && kq.ma === "vuot_han_muc" ? CAU_VUOT_HAN_MUC_DOI_TAC : kq.cau;
+
+/**
  * MỘT hàm duy nhất quyết định vé có mở được không (ADR-0168 Đ3 mục 1), thay cho so `thuDu` ở các route vé và giao diện vé.
  * Đơn Trả trước: phải thu đủ. Đơn Trả sau: mở được, trừ khi đã HẾT ÂN HẠN còn nợ mà vé CHƯA mở (vé đã mở vẫn xem được; trong ân hạn chưa chặn — ADR-0172 Đ3 mục 3).
  */

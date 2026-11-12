@@ -72,11 +72,39 @@ export const giaTriOGioVn = (iso: string): string => {
   return `${v.date}T${v.time}`;
 };
 
-/** Khối chọn hình thức ở màn đặt đơn: ẩn khi bên đặt không có hạn mức; khoá (kèm lý do) khi còn đơn quá hạn. */
-export function cauChonTraSau(r: { coHanMuc: boolean; conDuocDung: number; coDonQuaHan: boolean }): { hien: boolean; khoa: string | null; cau: string } {
+/** ADR-0198 Đ1.2 (chữ theo cột «Khuyến nghị»): câu ở khối «Hình thức thanh toán» cho đối tác — không số tiền. */
+export const CAU_TRA_SAU_DOI_TAC = "Bạn được trả sau. Nhận vé trước, chuyển tiền cho Tour Đảo trong hạn trả.";
+
+/**
+ * Khối chọn hình thức ở màn đặt đơn: ẩn khi bên đặt không có hạn mức; khoá (kèm lý do) khi còn đơn quá hạn.
+ * `laDoiTac` (ADR-0198 Đ1: `laDoiTacTraSau` của người đang lập): đối tác thấy câu gọn không số; văn phòng giữ «Hạn mức khả dụng …».
+ */
+export function cauChonTraSau(r: { coHanMuc: boolean; conDuocDung: number; coDonQuaHan: boolean; laDoiTac?: boolean }): { hien: boolean; khoa: string | null; cau: string } {
   if (!r.coHanMuc) return { hien: false, khoa: null, cau: "" };
-  return { hien: true, khoa: r.coDonQuaHan ? CAU_KHOA_QUA_HAN : null, cau: `Hạn mức khả dụng ${dongTien(r.conDuocDung)}` };
+  return { hien: true, khoa: r.coDonQuaHan ? CAU_KHOA_QUA_HAN : null, cau: r.laDoiTac ? CAU_TRA_SAU_DOI_TAC : `Hạn mức khả dụng ${dongTien(r.conDuocDung)}` };
 }
+
+/**
+ * Hai dòng đầu của mục «Trả sau của tôi» (ADR-0173 Đ3 mục 3, sửa bởi ADR-0198 Đ1.5). Đối tác: dòng một chỉ nói số giờ trả và giờ ân hạn (không số tiền), dòng hai chỉ còn số đang nợ.
+ * Không phải đối tác: giữ như cũ (tóm tắt hạn mức; đang nợ kèm hạn mức khả dụng).
+ */
+export function dongTraSauCuaToi(
+  r: { hanMuc: number | null; gioTra: number | null; gioAnHan: number | null; dangNo: number; conDuocDung: number | null },
+  laDoiTac: boolean,
+): { dong1: string; dong2: string } {
+  if (!laDoiTac) return { dong1: cauHanMuc(r), dong2: `Đang nợ ${dongTien(r.dangNo)}${r.conDuocDung === null ? "" : ` · Hạn mức khả dụng ${dongTien(r.conDuocDung)}`}` };
+  const dong1 =
+    r.hanMuc === null || r.gioTra === null
+      ? "Chưa cấp"
+      : `Bạn được trả sau, trả trong ${cauGio(r.gioTra)} kể từ khi đơn được xác nhận${r.gioAnHan ? `, sau đó còn ${cauGio(r.gioAnHan)} ân hạn` : ""}.`;
+  return { dong1, dong2: `Đang nợ ${dongTien(r.dangNo)}` };
+}
+
+/**
+ * ADR-0198 Đ2 mục 1–3: có chọn sẵn «Trả sau» không — chỉ đơn MỚI (chưa từng lưu) do đối tác lập, khi người dùng CHƯA chọn gì (chưa chạm nút, chưa nạp nháp / bản đang gõ dở).
+ * Văn phòng lập đơn qua đối tác: không (giữ «Thanh toán ngay»). Bên đặt có dùng được hay không do `quyetHinhThuc` xét.
+ */
+export const duocChonSanTraSau = (i: { laDoiTac: boolean; donMoi: boolean; daChon: boolean }): boolean => i.laDoiTac && i.donMoi && !i.daChon;
 
 const HAN_MUC_TOI_DA = 10_000_000_000; // cùng trần `MAX_SO_TIEN` của máy chủ (billing/service.ts)
 
@@ -92,8 +120,11 @@ export const CAU_VE_TRA_TRUOC = "Bên đặt không còn hạn mức trả sau d
  * Sau khi biết hạn mức của bên đặt, đơn đang chọn hình thức nào: dùng được thì giữ nguyên; không dùng được (không hạn mức, hoặc còn đơn quá hạn)
  * thì về Trả trước KÈM câu báo nếu đang là Trả sau — không bao giờ đổi âm thầm, và luôn có một hình thức rõ ràng để gửi lên máy chủ.
  */
-export function quyetHinhThuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<typeof cauChonTraSau>; benDatChuaNap?: boolean }): { chon: HinhThucThanhToan; bao: string | null } {
-  if (i.dangChon === "PREPAID" || i.benDatChuaNap) return { chon: i.dangChon, bao: null }; // bên đặt chưa nạp xong (đang mở nháp): chưa đủ căn cứ để đổi lựa chọn của người dùng
+export function quyetHinhThuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<typeof cauChonTraSau>; benDatChuaNap?: boolean; chonSan?: boolean }): { chon: HinhThucThanhToan; bao: string | null } {
+  if (i.benDatChuaNap) return { chon: i.dangChon, bao: null }; // bên đặt chưa nạp xong (đang mở nháp): chưa đủ căn cứ để đổi lựa chọn của người dùng
+  // ADR-0198 Đ2: đơn mới của đối tác, người dùng chưa chọn gì ⇒ dùng được thì «Trả sau», không thì «Thanh toán ngay» — KHÔNG câu báo (người dùng chưa chọn gì để mà đổi).
+  if (i.chonSan) return { chon: i.c.hien && i.c.khoa === null ? "CREDIT" : "PREPAID", bao: null };
+  if (i.dangChon === "PREPAID") return { chon: i.dangChon, bao: null };
   return i.c.hien && i.c.khoa === null ? { chon: "CREDIT", bao: null } : { chon: "PREPAID", bao: CAU_VE_TRA_TRUOC };
 }
 

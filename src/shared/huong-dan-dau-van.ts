@@ -7,7 +7,7 @@ export const DAU_VAN: Readonly<Record<string, DauVanBai>> = {
   "cai-dat-ve": {"neo":"1a9be7c66766df30","chu":"78895cd744fbcb8b","ban":"2.80","ngay":"2026-11-09"},
   "dich-vu-can-kiem-ve": {"neo":"b7f210484a710fae","chu":"b41fe0afa23fe41f","ban":"2.84","ngay":"2026-11-09"},
   "gioi-han-nhap-hoa-hong": {"neo":"5be668561a80de9f","chu":"f2fe829bae2aff80","ban":"2.58","ngay":"2026-11-03"},
-  "han-muc-tra-sau": {"neo":"d8d3abd46c095c77","chu":"4c299fabe8253f65","ban":"2.83","ngay":"2026-11-09"},
+  "han-muc-tra-sau": {"neo":"94c777db435d9756","chu":"38ef6594a828abfa","ban":"2.95","ngay":"2026-11-12"},
   "xem-no-tra-sau": {"neo":"973fc0d160c029ed","chu":"fa963bef8425dbf2","ban":"2.70","ngay":"2026-11-06"},
   "giao-dien": {"neo":"a7f69c17933191a2","chu":"8d315591cb3389c0","ban":"2.82","ngay":"2026-11-09"},
 };
