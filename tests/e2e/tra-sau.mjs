@@ -189,9 +189,11 @@ console.log("✓ 4) Huỷ đơn nợ ⇒ nợ về 0; ngừng hạn mức ⇒ đ
   r = await nop(1000);
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const noDon = async () => (await call(ACC, "GET", `/api/tra-sau/han-muc/${BEN5}/don`)).body.don.map((d) => [d.orderId, d.no]);
-  assert.deepEqual(await noDon(), [[don.id, 199_000]], "nộp một phần: vẫn còn nợ đúng phần chưa về công ty");
+  // ADR-0182 Đ1 (12/11): nợ tính theo GIÁ ĐẠI LÝ ngay từ lúc xác nhận — đơn 200.000, hoa hồng 20.000 (mức 10% của vai TRAVEL_AGENCY do kịch bản sổ đại lý để lại trên D1) ⇒
+  // 180.000 − 1.000 nộp = 179.000, đúng số «sau Khách đã trả đủ» bên dưới (bản cũ: 199.000 rồi mới tụt xuống 179.000).
+  assert.deepEqual(await noDon(), [[don.id, 179_000]], "nộp một phần: còn nợ = giá đại lý − phần đã nộp");
   r = await call(DT, "GET", `/api/tra-sau/con-duoc-dung?benDat=${BEN5}`);
-  assert.equal(r.body.conDuocDung, 1_000_000 - 199_000, "hạn mức khả dụng không trống ra cả đơn");
+  assert.equal(r.body.conDuocDung, 1_000_000 - 179_000, "hạn mức khả dụng không trống ra cả đơn (ADR-0182: theo giá đại lý)");
 
   // Đường dẫn khách thấy đủ vé dù đơn còn nợ (trong hạn)
   const trang = await fetch(`${BASE}/ve/${token}`, { headers: { "cf-connecting-ip": `198.51.100.${Math.floor(Math.random() * 200) + 1}` } });
@@ -230,5 +232,5 @@ console.log("✓ 4) Huỷ đơn nợ ⇒ nợ về 0; ngừng hạn mức ⇒ đ
   assert.equal((await nop(179_001)).status, 409, "sổ không nhận nộp quá phần còn giữ");
   { const x = await nop(179_000); assert.equal(x.status, 201, JSON.stringify(x.body)); }
   assert.deepEqual(await noDon(), [], "nộp đủ: hết nợ");
-  console.log("✓ 5) Vé đơn Trả sau: gửi đơn ⇒ xác nhận + giữ vé; đối tác mở và gửi khi chưa thu; nộp một phần còn nợ 199.000; khách thấy đủ vé; huỷ 409; bước Khách đã trả đủ qua khi ghi đủ, nợ còn 179.000 (trừ hoa hồng) tới khi nộp đủ");
+  console.log("✓ 5) Vé đơn Trả sau: gửi đơn ⇒ xác nhận + giữ vé; đối tác mở và gửi khi chưa thu; nộp một phần còn nợ 179.000 (giá đại lý, ADR-0182); khách thấy đủ vé; huỷ 409; bước Khách đã trả đủ qua khi ghi đủ, nợ còn 179.000 (trừ hoa hồng) tới khi nộp đủ");
 }
