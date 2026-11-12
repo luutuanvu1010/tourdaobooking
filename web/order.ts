@@ -43,6 +43,7 @@ import { PAX_LABEL } from "../src/shared/order-lines";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
 import { nhanCamKet } from "../src/shared/cam-ket-xe";
 import { can, holdsPartner } from "../src/shared/permissions";
+import { laTaiKhoanDoiTac } from "../src/shared/cong-no-dai-ly";
 import { GHI_CHU_HUY_TOI_DA, NHOM_HUY_NHAN, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
 import { nhanTienDaTra as nhanTienLuat } from "../src/shared/nhan-tien";
 import { ngayDayDu } from "../src/shared/vn-date";
@@ -689,7 +690,8 @@ function tienCard(order: Order): HTMLElement {
   const nut: HTMLElement[] = [];
   // ADR-0108 đ3 (đặc tả §4.2): QR khi đọc được tiền của đơn (route payments đã hỏi order.view + money.view), đơn chưa Đã giao, còn lại > 0. ADR-0135 Đ8: chỉ đơn ĐÃ XÁC NHẬN. Máy chủ kiểm lại.
   // ADR-0178 Đ1 mục 2: đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt ⇒ không QR vào tài khoản công ty (máy chủ cũng trả «không có QR»).
-  if (t && !t.coc && !t.deliveredAt && t.conLai > 0 && order.status === "confirmed" && t.kenhThu?.congTyThu !== false) nut.push(nutQr(order, t));
+  // ADR-0182 Đ2 mục 3: tài khoản Đối tác không có nút này (QR giá bán lẻ); máy chủ cũng trả «không có QR».
+  if (t && !t.coc && !t.deliveredAt && t.conLai > 0 && order.status === "confirmed" && t.kenhThu?.congTyThu !== false && !laTaiKhoanDoiTac(staff!)) nut.push(nutQr(order, t));
   // Cùng luật: người thu chỉ là hồ sơ người lập — Đối tác chỉ «Tôi thu»; văn phòng chỉ «Khách trả cho đại lý ‹tên›» hoặc không lựa chọn nào (khi đó KHÔNG dựng form: ô chọn
   // rỗng sẽ gửi «Công ty» và nhận 409 — thay bằng câu đối tác tự ghi).
   const luaChon = t ? luaChonNguoiThu(t.benKia, t.kenhThu, holdsPartner(staff!)) : [];
@@ -1629,7 +1631,10 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   if (chanXacNhan) btns.push(duocDatGap ? h("p", { class: "dg-lock dg-lock-note", "data-chan": "xac-nhan" }, chanXacNhan) : h("p", { class: "dg-lock", "data-chan": "xac-nhan" }, icon("lock", 16), chanXacNhan));
   replaceChildren(actions, ...btns);
   // Nút riêng, ngoài `#actions` (bộ nút sửa/xác nhận/huỷ phụ thuộc trạng thái và quyền; nút này luôn có).
-  const send = h("button", { type: "button", class: "btn btn-primary", "data-action": "send-confirmation" }, "Xem ảnh gửi khách");
+  // ADR-0182 Đ2 mục 1: tài khoản Đối tác thấy chữ của chủ «Tạo biên nhận cho khách» (cùng ảnh, mẫu HD-02-DT, không QR); văn phòng giữ chữ cũ.
+  const send = laTaiKhoanDoiTac(staff!)
+    ? h("button", { type: "button", class: "btn btn-primary", "data-action": "send-confirmation" }, "Tạo biên nhận cho khách")
+    : h("button", { type: "button", class: "btn btn-primary", "data-action": "send-confirmation" }, "Xem ảnh gửi khách");
   send.addEventListener("click", openConfirmation);
   // Đ11: đơn cần xác nhận (đang chờ, hoặc thuộc diện phải gửi) chỉ có ảnh XÁC NHẬN ĐƠN DỊCH VỤ sau khi đã xác nhận; người xét duyệt không mở được biên nhận của đơn chờ (máy chủ trả 404).
   replaceChildren(sendEl, anhXacNhanLuc() ? send : null);

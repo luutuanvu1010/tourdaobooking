@@ -89,9 +89,24 @@ test("§8.3 phạm vi, cổng orders: HDV phụ trách 200, HDV khác 404; Đố
   const cuaDt = don(w, "99999999-9999-4999-8999-000000000022", "TD-20261008-0022", DT);
   assert.equal((await qr(w, HDV, cuaSales)).status, 200);
   assert.equal((await qr(w, HDV2, cuaSales)).status, 404);
-  assert.equal((await qr(w, DT, cuaDt)).status, 200);
+  // ADR-0182 Đ2 mục 3 (12/11): Đối tác vẫn qua cổng xem đơn của mình nhưng KHÔNG nhận QR giá bán lẻ — «không có QR», không chuỗi QR, không tài khoản.
+  const r = await qr(w, DT, cuaDt);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { coQr: false }, "tài khoản Đối tác nhận «không có QR»");
   assert.equal((await qr(w, DT, cuaSales)).status, 403);
   assert.equal((await qr(w, TX, cuaSales)).status, 403);
+});
+
+test("ADR-0182 Đ2 mục 3: «không có QR» với Đối tác đứng TRƯỚC đọc số tiền / tài khoản, kể cả khi gửi ?soTien=; văn phòng giữ nguyên QR", async () => {
+  const w = setup();
+  await caiTaiKhoan(w);
+  const cuaDt = don(w, "99999999-9999-4999-8999-000000000023", "TD-20261008-0023", DT);
+  const r = await w.call("GET", `/api/orders/${cuaDt}/qr-thanh-toan?soTien=1000`, { as: DT });
+  assert.deepEqual([r.status, r.json], [200, { coQr: false }], r.text);
+  assert.doesNotMatch(r.text, /000201|soTaiKhoan|nganHang/i, "không lộ chuỗi QR hay tài khoản");
+  const vp = await qr(w, SALES, don(w, "99999999-9999-4999-8999-000000000024", "TD-20261008-0024", SALES));
+  assert.equal(vp.status, 200, vp.text);
+  assert.ok(vp.json.qr, "văn phòng vẫn có QR như cũ");
 });
 
 const INTERN = "99999999-9999-4999-8999-999999999999";
@@ -110,7 +125,9 @@ test("Thứ tự 'quyền trước tài khoản': công ty CHƯA cài tài kho�
     assert.doesNotMatch(r.text, CHUA_CAI, `${ai}: quyền phải được hỏi TRƯỚC tài khoản — không lộ việc công ty chưa cài`);
   }
   // Đối chứng: người ĐƯỢC xem đơn (chính chủ) vẫn gặp 409 'chưa cài' — chứng tỏ lời đọc tài khoản vẫn nằm sau cổng quyền chứ không biến mất.
-  for (const [ai, id] of [[SALES, cuaSales], [DT, cuaDt], [INTERN, cuaThucTap]] as const) {
+  // ADR-0182 Đ2 mục 3: Đối tác không còn đường QR (trả «không có QR» trước khi đọc tài khoản) nên không còn trong nhóm đối chứng.
+  assert.deepEqual((await qr(w, DT, cuaDt)).json, { coQr: false });
+  for (const [ai, id] of [[SALES, cuaSales], [INTERN, cuaThucTap]] as const) {
     const r = await qr(w, ai, id);
     assert.equal(r.status, 409, `${ai} (đơn của mình): ${r.text}`);
     assert.match(r.json.error.message, CHUA_CAI);

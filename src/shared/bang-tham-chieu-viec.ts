@@ -99,6 +99,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nguonTen: "chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)",
   },
   {
+    nhom: "Ảnh gửi khách",
+    manHinh: "Chi tiết đơn của tài khoản Đối tác (khối nút dưới tóm tắt)",
+    ten: "Tạo biên nhận cho khách",
+    thatSuLam: "Như «Xem ảnh gửi khách» nhưng cho tài khoản Đối tác: dựng ngay trên máy biên nhận mẫu HD-02-DT theo giá bán lẻ để gửi khách. Biên nhận này không có mã QR, không có số tài khoản, vì đại lý là người thu tiền của khách. Không ghi gì vào Nền tảng.",
+    hoiLai: "không",
+    hoanTac: "không áp dụng",
+    duongLenh: [],
+    maNhatKy: [],
+    noiDat: [
+      { tep: "web/order.ts", chu: "Tạo biên nhận cho khách" },
+    ],
+    trangThai: "da-chot",
+    nguonTen: "ADR-0182 Đ2 mục 1 — chữ nguyên văn của chủ (12/11), duyệt «Duyệt, chọn cách 1» 2026-11-12",
+  },
+  {
     nhom: "Sửa đơn đã xác nhận",
     manHinh: "Chi tiết đơn › thẻ Đưa đón › bảng «Sửa đưa đón»",
     ten: "Sửa đưa đón",

@@ -441,3 +441,24 @@ test("Giảm trừ sau khi giao, đơn hai người bán: trừ vào phần Tour
   // Không có giảm trừ: y như cũ.
   assert.deepEqual(chiaPhanBienNhan(donTron(), COMPANY.name, banTron(), { daTra: 0 }).map((p) => p.giamTru), [undefined, undefined]);
 });
+
+// ADR-0182 Đ2 mục 1 (accepted 12/11): biên nhận cho khách của đơn đại lý (mẫu HD-02-DT) — giá bán lẻ, KHÔNG mã QR, KHÔNG số tài khoản / tên ngân hàng / thông tin chuyển khoản,
+// vì đại lý là người thu tiền khách. Khoá cả mô hình (DTO, không khoá hay giá trị nào mang QR / tài khoản) lẫn tệp vẽ ảnh (không nhập bộ vẽ QR, không chữ tài khoản).
+test("ADR-0182 Đ2 mục 1: biên nhận mẫu đối tác không có khối hay dòng nào mang QR, số tài khoản, tên ngân hàng", async () => {
+  const r = dungBienNhan(donBiMat(), COMPANY, { daTra: 0, conLai: 1_000_000 }, null, true);
+  assert.equal(r.mau, "doi_tac");
+  const khoa: string[] = [];
+  const duyet = (x: unknown): void => {
+    if (Array.isArray(x)) x.forEach(duyet);
+    else if (x && typeof x === "object") for (const [k, v] of Object.entries(x)) { khoa.push(k); duyet(v); }
+  };
+  duyet(r);
+  assert.deepEqual(khoa.filter((k) => /qr|bank|ngan.?hang|tai.?khoan|account|stk|chuyen.?khoan|vietqr|bin/i.test(k)), [], "không khoá nào về QR / tài khoản");
+  assert.doesNotMatch(JSON.stringify(r), /VietQR|0002010102|ngân hàng|số tài khoản|chuyển khoản/i, "không giá trị nào là chuỗi QR hay thông tin chuyển khoản");
+  const { readFileSync } = await import("node:fs");
+  for (const tep of ["web/confirmation-image.ts", "src/shared/order-confirmation.ts"]) {
+    const ma = readFileSync(new URL(`../../../${tep}`, import.meta.url), "utf8");
+    assert.doesNotMatch(ma, /from "\.\/qr-ve"|qr-thong-tin|veMaQr|dungAnhQr/, `${tep}: không nhập bộ vẽ / dựng QR`);
+    assert.doesNotMatch(ma, /Số tài khoản|Ngân hàng|Chủ tài khoản/, `${tep}: không in thông tin tài khoản`);
+  }
+});

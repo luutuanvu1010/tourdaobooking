@@ -4,6 +4,7 @@
 import type { QrKhongCoResponse, QrThanhToanResponse, ReceiptResponse } from "../../shared/contracts";
 import { UUID_RE, error, json } from "../../shared/http";
 import { can, seesOnlyAssignedOrders } from "../../shared/permissions";
+import { laTaiKhoanDoiTac } from "../../shared/cong-no-dai-ly";
 import { route, type AppModule } from "../../shared/router";
 import { ketQuaXemDon } from "../../shared/xem-don-nhap";
 import { congTyNhanTienKhach, soTienBienNhan, soTienChoQr } from "../billing";
@@ -54,6 +55,8 @@ export const receiptModule: AppModule = {
       if (!can(staff, "money.view", scope)) return FORBIDDEN_VIEW();
       // ADR-0135 Đ8: QR chỉ cho đơn ĐÃ XÁC NHẬN (mọi đơn); đặt sau kiểm quyền xem để người không xem được vẫn nhận 404/403.
       if (order.status !== "confirmed") return error(409, "qr_requires_confirmed", "Đơn chưa xác nhận, chưa có mã QR thanh toán.");
+      // ADR-0182 Đ2 mục 3: tài khoản Đối tác (ADR-0196 mục 1) không nhận QR giá bán lẻ — số đó lớn hơn số đại lý thật phải nộp. Đại lý dùng phiếu công nợ (QR giá đại lý). Trước mọi đọc số tiền / tài khoản.
+      if (laTaiKhoanDoiTac(staff)) return json({ coQr: false } satisfies QrKhongCoResponse);
       // ADR-0178 Đ1 mục 2: đơn mang dấu Tắt (khách trả cho đối tác đã lập đơn) ⇒ không có QR vào tài khoản công ty. Trước mọi đọc số tiền / tài khoản.
       if (!(await congTyNhanTienKhach(env.DB, id))) return json({ coQr: false } satisfies QrKhongCoResponse);
       const tien = await soTienChoQr(env.DB, id);

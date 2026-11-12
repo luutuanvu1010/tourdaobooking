@@ -316,7 +316,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (329)
+## Việc quan trọng (330)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -344,6 +344,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 |---|---|---|---|---|---|---|---|
 | **Tải ảnh về máy** | Hộp «Ảnh gửi khách» | Tải ảnh xác nhận đơn (đã dựng sẵn trên máy) về điện thoại hay máy tính. Không ghi gì vào Nền tảng, không gửi gì cho khách. | không | không áp dụng | (chưa nối) | `web/confirmation-dialog.ts`: Tải ảnh về máy | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
 | **Xem ảnh gửi khách** | Chi tiết đơn (khối nút dưới tóm tắt) | Dựng ngay trên máy một ảnh tóm tắt đơn (dịch vụ, ngày giờ, tiền) để xem, tải về hoặc chia sẻ qua Zalo. Không thu tiền, không gửi gì cho khách, không ghi vào Nền tảng; người dùng tự gửi ảnh. | không | không áp dụng | (chưa nối) | `web/order.ts`: Xem ảnh gửi khách | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
+| **Tạo biên nhận cho khách** | Chi tiết đơn của tài khoản Đối tác (khối nút dưới tóm tắt) | Như «Xem ảnh gửi khách» nhưng cho tài khoản Đối tác: dựng ngay trên máy biên nhận mẫu HD-02-DT theo giá bán lẻ để gửi khách. Biên nhận này không có mã QR, không có số tài khoản, vì đại lý là người thu tiền của khách. Không ghi gì vào Nền tảng. | không | không áp dụng | (chưa nối) | `web/order.ts`: Tạo biên nhận cho khách | đã chốt (ADR-0182 Đ2 mục 1 — chữ nguyên văn của chủ (12/11), duyệt «Duyệt, chọn cách 1» 2026-11-12) |
 
 ### Sửa đơn đã xác nhận
 

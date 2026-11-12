@@ -227,12 +227,14 @@ test("xác nhận đơn có khai cọc khi người lập chưa gắn hồ sơ �
 test("QR thanh toán: đơn dấu Tắt ⇒ { coQr: false }; đơn dấu Bật và đơn không dấu giữ như hôm nay", async () => {
   const w = setup();
   const tat = await don(w);
-  const r = await w.call("GET", `/api/orders/${tat}/qr-thanh-toan`, { as: PT });
+  const r = await w.call("GET", `/api/orders/${tat}/qr-thanh-toan`, { as: KT }); // ADR-0182 Đ2 mục 3: dấu Tắt kiểm bằng văn phòng (Đối tác luôn «không có QR»)
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(r.json, { coQr: false });
   for (const dau of [1, null] as const) {
     const id = await don(w, { dau });
-    const q = await w.call("GET", `/api/orders/${id}/qr-thanh-toan`, { as: PT });
+    // ADR-0182 Đ2 mục 3 (12/11): tài khoản Đối tác không còn QR giá bán lẻ ở MỌI dấu; luật dấu Bật / không dấu nay kiểm bằng văn phòng (Kế toán).
+    assert.deepEqual((await w.call("GET", `/api/orders/${id}/qr-thanh-toan`, { as: PT })).json, { coQr: false });
+    const q = await w.call("GET", `/api/orders/${id}/qr-thanh-toan`, { as: KT });
     assert.deepEqual([q.status, ma(q)], [409, "bank_account_missing"], q.text); // chưa cài tài khoản nhận tiền: như hôm nay
   }
 });
