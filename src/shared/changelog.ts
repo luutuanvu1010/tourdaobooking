@@ -17,6 +17,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0182 phần A (chủ duyệt 12/11, «Duyệt, chọn cách 1»; chữ theo khuyến nghị; xây trên TNV-G1 có lời chủ «Cho phép, có lý do»): công nợ đại lý theo giá đại lý, hai phiếu. KHÔNG migration.
+    // SỐ TẠM 2.96: main có 2.95 (ADR-0198, chưa triển khai); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.96",
+    date: "2026-11-12",
+    items: [
+      { kind: "doi", text: "Số đối tác còn nợ Tour Đảo nay tính theo giá đại lý (giá bán trừ hoa hồng) ngay từ khi đơn được xác nhận, nên phần trả sau còn dùng được rộng hơn." },
+      { kind: "moi", text: "Đơn của đối tác có nút «Xem công nợ với Tour Đảo»: phiếu ghi giá đại lý, số đã thu, số còn lại và mã QR đúng số còn lại để chuyển khoản từng đơn." },
+      { kind: "doi", text: "Nút gửi khách của đối tác nay là «Tạo biên nhận cho khách» (giá bán lẻ, không mã QR, không số tài khoản). Đối tác không còn nút «QR thanh toán»." },
+    ],
+  },
+  {
     // ADR-0198 (chủ duyệt 12/11, «Duyệt, chọn cách 1»; chữ theo cột «Khuyến nghị»): đối tác không thấy số hạn mức trả sau; đơn mới của đối tác chọn sẵn «Trả sau». KHÔNG migration.
     // SỐ TẠM 2.95: main có 2.94; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.95",
