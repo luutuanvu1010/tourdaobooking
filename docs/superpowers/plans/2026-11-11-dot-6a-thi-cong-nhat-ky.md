@@ -67,3 +67,9 @@ Bản Development (`wrangler.dev.jsonc`) khai kho `tourdao-sales-dev-bien-lai` (
 - `npm run test:e2e` đủ bộ: 91/91 kịch bản xanh, kể cả `bien-lai`; H5 xanh; `audit-invariants --strict` ba nhóm thoát 0 (một cảnh báo R-ORD-6a có sẵn, không do Đợt 6A).
 - Kịch bản Chrome `bien-lai-smoke.mjs`: 8/8 bước xanh ở 390 và 1280, axe không vi phạm critical/serious; ảnh ở `docs/evidence/2026-10-08-qr-thanh-toan/anh-bien-lai/`.
 - Người kiểm độc lập: ĐẠT (hai mục VỪA đã sửa, xem trên).
+
+## Kho R2 (2026-11-12, chủ tự chạy)
+
+- Chủ đã tạo `tourdao-sales-bien-lai` (production) và `tourdao-sales-dev-bien-lai` (bản Development). Kiểm bằng `wrangler r2 bucket list` (chỉ đọc): cả hai có mặt. Cổng 1e của `npm run trien-khai` sẽ không dừng vì thiếu kho.
+- Lệnh tạo kho hỏi «thêm vào cấu hình?», chủ trả lời «yes» ⇒ wrangler chèn binding thứ hai `tourdao_sales_bien_lai` / `tourdao_sales_dev_bien_lai` kèm `remote: true` và định dạng lại cả hai tệp. Đã `git restore wrangler.jsonc wrangler.dev.jsonc`; nhánh sạch, binding duy nhất vẫn là `BIEN_LAI`.
+- Trạng thái: nhánh NẰM CHỜ tới sau diễn tập khôi phục (25/11); 6B nhập trước, rồi 6A gộp main, đánh lại số bản, chạy lại bộ kiểm.
