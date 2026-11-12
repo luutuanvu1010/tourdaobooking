@@ -2,7 +2,24 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.92 ĐÃ LÊN PRODUCTION (Đợt 6B: ADR-0197 ô «Khách đặt cọc cho đối tác» có cả ở đơn Trả sau; đối tác không tự huỷ đơn Trả sau còn cọc; chưa «Khách đã trả đủ» khi cọc còn ở tay đối tác) — KHÔNG migration — triển khai 2026-11-12 04:58 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.94 ĐÃ LÊN PRODUCTION (Đợt 6A: ADR-0196 ảnh biên lai bắt buộc khi Đối tác ghi khoản thu «Công ty thu, chuyển khoản»; Kế toán, Toàn quyền, Đối tác chính chủ xem được; chỉ Toàn quyền gỡ, có lý do — kèm 2.93 ô tích «Nút thanh dưới» 44px) — migration `0158` — kho R2 `tourdao-sales-bien-lai` — triển khai 2026-11-12 12:42 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Chủ cho phát hành TRƯỚC buổi diễn tập khôi phục (nguyên văn «Diễn tập sau cùng,»), ghi ở khoá `xay_tren_cho_phep_adr_0196` (`docs/quyen-hoan.json`). Hai kho R2 (production và bản Development) chủ tạo 12/11. Chưa thử iPhone thật (ảnh HEIC), chưa có nút gỡ ảnh trên giao diện (BACKLOG §70). Bản 2.93 chưa từng triển khai riêng — lên cùng lần này.
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-12 12:42 (giờ Việt Nam)
+- Commit: 98ccdbe84 Đợt 6A: chủ cho phát hành trước diễn tập («Diễn tập sau cùng,»)
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-12T04:45:47Z; lượt kiểm https://github.com/luutuanvu1010/tourdaobooking/actions/runs/43155885269
+- Đổi quy trình kiểm — lý do của chủ: OKE XONG (tệp `scripts/audit-checks.mjs` luật R-BIL-BL1, `scripts/release-lib.mjs` cổng 1e biết kho BIEN_LAI, `tests/e2e/danh-sach.mjs` thêm `bien-lai`)
+- Migration đã áp: 0158_bien_lai_chuyen_khoan.sql
+- Điểm khôi phục Time Travel trước khi áp: 00002946-00000002-00005121-101fa202bb4c60a556ee3b4344fa6374
+- Worker Version ID: b21f0161-4184-4ef1-ab6e-51dc1711c3e4
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (2 cảnh báo)
+- Phiên bản: 2.94 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian (không tính lúc chờ chủ trả lời): TỔNG 1 phút 00 giây (day-len 13 giây, trien-khai 47 giây)
+- Kiểm lại sau triển khai (AI, chỉ đọc): `GET /api/auth/config` trả `version` 2.94; `wrangler d1 migrations list --remote` «No migrations to apply»; `wrangler deployments list` bản b21f0161 nhận 100%.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.92 ĐÃ LÊN PRODUCTION (Đợt 6B: ADR-0197 ô «Khách đặt cọc cho đối tác» có cả ở đơn Trả sau; đối tác không tự huỷ đơn Trả sau còn cọc; chưa «Khách đã trả đủ» khi cọc còn ở tay đối tác) — KHÔNG migration — triển khai 2026-11-12 04:58 giờ Việt Nam
 
 Ghi từ lời báo của phiên điều phối (đầu ra `npm run trien-khai` do chủ chạy). Chưa thử iPhone thật.
 
