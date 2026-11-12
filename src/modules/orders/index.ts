@@ -663,7 +663,7 @@ export async function cancelOrderByHandler(
   // Kế hoạch 2026-11-05 Task 2: `cauSauHuy` nhận cờ `qua.chanVeDaMo` để câu trả vé mang câu bảo vệ «vé vừa mở»; lỗi của câu đó / câu gác phiên bản dịch ở đây (`laDoiTac` chọn câu).
   const meta = await getMeta(db, id);
   if (!meta) return { kq: "thua" };
-  const cong = await congHuyTraSau(congHuy, { id, paymentTerm: meta.paymentTerm, status: "confirmed" });
+  const cong = await congHuyTraSau(congHuy, { id, paymentTerm: meta.paymentTerm, status: "confirmed", laDoiTac });
   if ("loi" in cong) return { kq: "loi", res: cong.loi };
   const huy = soanHuyDon(db, id, staffId, "confirmed", prevUpdatedAt, lyDo, cong.qua, { action: "order_cancelled_by_field", detail: reasonLabel });
   const sau = await cauSauHuy(huy.auditId, cong.qua.chanVeDaMo);
@@ -1332,7 +1332,7 @@ export const ordersModule: AppModule = {
       const khai = await congLoiKhaiKhiLuu(staff, placed.value.declaredDeposit, 0, placed.value.total, chanKhaiCocLai); // ADR-0159 Đ1 mục 4
       if ("loi" in khai) return khai.loi;
       // ADR-0168 Đ2 mục 1, 3: Trả sau chỉ nhận khi bên đặt có hạn mức còn hiệu lực và đơn không kèm lời khai đặt cọc — báo sớm lúc lưu, chốt thật ở lô xác nhận.
-      const chanTraSauLap = await congTraSauKhiLuu({ kiemTraSau }, { id: null, paymentTerm: placed.value.paymentTerm ?? "PREPAID", bookerPartyId: booker.write.partyId, total: placed.value.total, declaredDeposit: khai.giaTri ?? 0 });
+      const chanTraSauLap = await congTraSauKhiLuu({ kiemTraSau }, { id: null, paymentTerm: placed.value.paymentTerm ?? "PREPAID", bookerPartyId: booker.write.partyId, total: placed.value.total });
       if (chanTraSauLap) return chanTraSauLap;
       // ADR-0142: người được mời kiểm NGAY (đang hoạt động, có hồ sơ, giữ Bán hàng, không giữ Đối tác); sai ⇒ 400, không tạo đơn. Ghi hồ sơ của họ trên đơn nháp CÙNG lô tạo đơn (chưa có lời mời — chỉ có từ lúc ghi nhận).
       const xMoi = moi.staffId === null ? null : await banHang.kiemBanHangMoi(moi.staffId);
@@ -1511,9 +1511,9 @@ export const ordersModule: AppModule = {
       const khai = await congLoiKhaiKhiLuu(staff, placed.value.declaredDeposit, dangKhai, placed.value.total, chanKhaiCocLai);
       if ("loi" in khai) return khai.loi;
       // ADR-0168 Đ2 mục 1, 3: như lúc lập — hình thức SẼ lưu = hình thức gửi lên, vắng thì giữ hình thức đang lưu; đơn đã rời nháp không tới được đây (NOT_EDITABLE ở trên).
-      const chanTraSauLuu = await congTraSauKhiLuu({ kiemTraSau }, { id, paymentTerm: placed.value.paymentTerm ?? meta.paymentTerm, bookerPartyId: booker.write.partyId, total: placed.value.total, declaredDeposit: khai.giaTri ?? dangKhai });
+      const chanTraSauLuu = await congTraSauKhiLuu({ kiemTraSau }, { id, paymentTerm: placed.value.paymentTerm ?? meta.paymentTerm, bookerPartyId: booker.write.partyId, total: placed.value.total });
       if (chanTraSauLuu) return chanTraSauLuu;
-      const ghiChuKhai = khai.giaTri !== null && khai.giaTri !== dangKhai ? `đổi khai khách đặt cọc trước ${dangKhai.toLocaleString("vi-VN")} ₫ → ${khai.giaTri.toLocaleString("vi-VN")} ₫` : null;
+      const ghiChuKhai = khai.giaTri !== null && khai.giaTri !== dangKhai ? `đổi khai khách đặt cọc cho đối tác ${dangKhai.toLocaleString("vi-VN")} ₫ → ${khai.giaTri.toLocaleString("vi-VN")} ₫` : null;
       let luuDuoc: boolean;
       try {
         luuDuoc = await updateDraftOrder(env.DB, id, staff.id, { ...placed.value, declaredDeposit: khai.giaTri, expectedUpdatedAt: expected }, booker.write, legMeta, datGapNhap, [ghiChuCoc, ghiChuKhai].filter(Boolean).join("; ") || null,
@@ -1998,7 +1998,7 @@ export const ordersModule: AppModule = {
         const lyDo = docLyDoHuy(body, { coTheChonCongTy: can(staff, "order.cancel.classify") });
         if (!lyDo.ok) return error(lyDo.status, lyDo.status === 403 ? "forbidden" : "invalid_input", lyDo.message);
         // ADR-0168 Đ3 mục 3: đơn Trả sau còn nợ mà vé đã mở thì không huỷ được (đứng TRƯỚC mọi câu soạn lô huỷ).
-        const congHuy = await congHuyTraSau({ traSauCuaDon, veHangNgoaiDaMoCuaDon, cauGacPhienBanTraSau }, { id, paymentTerm: meta.paymentTerm, status: from });
+        const congHuy = await congHuyTraSau({ traSauCuaDon, veHangNgoaiDaMoCuaDon, cauGacPhienBanTraSau }, { id, paymentTerm: meta.paymentTerm, status: from, laDoiTac: holdsPartner(staff) });
         if ("loi" in congHuy) return congHuy.loi;
         // ADR-0104 Đ2 (điểm gọi 1): lô huỷ (câu đơn đứng đầu) + khúc chuyến của máy đồng bộ — MỘT db.batch. Chỉ nhánh huỷ nối máy (xác nhận không đụng chuyến).
         const huy = soanHuyDon(env.DB, id, staff.id, from, meta.updatedAt, lyDo.lyDo, congHuy.qua);

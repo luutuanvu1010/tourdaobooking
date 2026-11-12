@@ -177,15 +177,40 @@ test("ADR-0172 tiêu chí 4: trong ân hạn chưa chặn; hết ân hạn còn 
   assert.equal((await w.call("POST", `/api/orders/${moi.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200, "hết nợ thì mở lại");
 });
 
-test("Trả sau không nhận lời khai đặt cọc: 409 lúc lưu; đơn nháp lỡ mang cả hai thì 409 lúc xác nhận; thiếu bên đặt 409; thân sai giá trị 400", async () => {
+// ADR-0197 Đ2, Đ3: đơn Trả sau NHẬN lời khai đặt cọc (bỏ 409 `tra_sau_khong_nhan_coc`); cọc ở tay Đối tác nên hạn mức kiểm trên TOÀN BỘ tổng, nợ của đơn không giảm.
+// Hai đường xác nhận của chính Đối tác (đường /status của văn phòng không khai cọc được — ADR-0159 Đ1 mục 1).
+for (const d of DUONG.filter((x) => x.as === DT)) {
+  test(`ADR-0197 (${d.ten}) Trả sau × có cọc: hạn mức thiếu 1 đồng so với tổng ⇒ 409 vuot_han_muc dù có cọc; đủ tổng ⇒ lưu và xác nhận được, khoản cọc sinh như ADR-0159, nợ của đơn = tổng`, async () => {
+    const coc = 100_000;
+    const thieu = dung();
+    assert.equal((await hanMuc(thieu, d.tong - 1)).status, 201);
+    const chan = await lap(thieu, DT, { ma: d.ma, term: "CREDIT", coc });
+    assert.deepEqual([chan.status, chan.json.error?.code], [409, "vuot_han_muc"], chan.text);
+    const w = dung();
+    assert.equal((await hanMuc(w, d.tong)).status, 201);
+    const r = await lap(w, DT, { ma: d.ma, term: "CREDIT", coc });
+    assert.equal(r.status, 201, r.text);
+    const o = r.json.order;
+    assert.equal(o.paymentTerm, "CREDIT");
+    assert.equal(o.declaredDeposit, coc, "nháp giữ lời khai");
+    if ("truoc" in d) await d.truoc(w, o);
+    const x = await d.xn(w, o);
+    assert.equal(x.status, 200, x.text);
+    const khoan = w.q("SELECT * FROM bil_payment_receipt WHERE order_id = ?", o.id) as Record<string, unknown>[];
+    assert.equal(khoan.length, 1, "đúng một khoản thu");
+    assert.equal(khoan[0]!.amount, coc);
+    assert.equal(khoan[0]!.kind_code, "CUSTOMER_PAYMENT");
+    assert.equal(khoan[0]!.method_code, "CASH");
+    assert.equal(khoan[0]!.collector_party_id, BEN, "người thu là người lập (Đối tác)");
+    assert.equal(khoan[0]!.note, "Khách đặt cọc trước", "dấu nhận diện trong CSDL không đổi");
+    const no = (await w.call("GET", `/api/tra-sau/han-muc/${BEN}/don`, { as: SUP })).json.don as { orderId: string; no: number }[];
+    assert.equal(no.find((x) => x.orderId === o.id)?.no, d.tong, "cọc ở tay Đối tác không làm giảm nợ với Công ty");
+  });
+}
+
+test("Trả sau: thiếu bên đặt 409; thân sai giá trị 400", async () => {
   const w = dung();
   assert.equal((await hanMuc(w, 10_000_000)).status, 201);
-  const luu = await lap(w, DT, { term: "CREDIT", coc: 100_000 });
-  assert.deepEqual([luu.status, luu.json.error.code], [409, "tra_sau_khong_nhan_coc"]);
-  const nhap = await nhapTS(w, A);
-  w.sqlite.prepare("UPDATE orders SET declared_deposit = 50000 WHERE id = ?").run(nhap.id); // lách qua lưu (kiểm tra lớp lô)
-  const xn = await w.call("POST", `/api/orders/${nhap.id}/status`, { as: A, body: { status: "confirmed" } });
-  assert.deepEqual([xn.status, xn.json.error.code], [409, "tra_sau_khong_nhan_coc"]);
   const thieu = await lap(w, A, { term: "CREDIT", booker: null });
   assert.deepEqual([thieu.status, thieu.json.error.code], [409, "tra_sau_thieu_ben_dat"]);
   const sai = await w.call("POST", "/api/orders", { as: A, body: coBen({ services: [svc("ZB1", inDays(3))], paymentTerm: "LATER" }) });

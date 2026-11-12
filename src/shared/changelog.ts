@@ -17,6 +17,36 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 6A kế hoạch sửa sau rà soát lần 2: ADR-0196 (chủ duyệt 11/11) — ảnh biên lai chuyển khoản bắt buộc. Migration 0158, kho R2 tourdao-sales-bien-lai (chủ đã tạo 12/11).
+    // SỐ TẠM 2.94: main có 2.93 (chưa triển khai); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.94",
+    date: "2026-11-12",
+    items: [
+      { kind: "moi", text: "Đối tác ghi khoản thu «Công ty thu, chuyển khoản» thì phải kèm ảnh hoặc tệp PDF biên lai chuyển khoản. Tiền mặt và «Tôi thu» không cần ảnh." },
+      { kind: "moi", text: "Kế toán bấm «Xem biên lai» ở dòng khoản thu để đối chiếu trước khi xác nhận đã nhận tiền. Khoản thu vẫn chờ Kế toán xác nhận như cũ." },
+    ],
+  },
+  {
+    // Sửa vùng chạm ô tích mục «Nút thanh dưới» (ADR-0187 Đ2.3) — chỉ CSS, KHÔNG migration. Bằng chứng docs/evidence/2026-11-12-o-tick-thanh-duoi/.
+    // SỐ TẠM 2.93: main có 2.92 (Đợt 6B đã lên production 12/11); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.93",
+    date: "2026-11-12",
+    items: [
+      { kind: "sua", text: "Ô chọn ở mục «Nút thanh dưới» trang Tôi to hơn, dễ bấm trên điện thoại." },
+    ],
+  },
+  {
+    // Đợt 6B kế hoạch sửa sau rà soát lần 2: ADR-0197 (chủ duyệt 11/11, tên ô phương án 1, luật huỷ phương án c1). KHÔNG migration. Phát hành ngay khi xong (khoá xay_tren_cho_phep_adr_0197).
+    // SỐ TẠM 2.92: main có 2.91; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.92",
+    date: "2026-11-11",
+    items: [
+      { kind: "doi", text: "Ô «Khách đặt cọc trước» nay tên «Khách đặt cọc cho đối tác» và có cả khi chọn «Trả sau». Tiền cọc ở tay đối tác, không làm giảm số nợ với Công ty." },
+      { kind: "doi", text: "Đơn trả sau đã xác nhận còn tiền cọc ở tay đối tác thì đối tác không tự huỷ được; Quản trị, Toàn quyền hoặc Hướng dẫn viên phụ trách đơn huỷ giúp." },
+      { kind: "doi", text: "Đơn trả sau còn tiền cọc ở tay đối tác thì chưa bấm «Xác nhận khách đã trả đủ» được; đối tác nộp cọc về Công ty xong mới bấm được." },
+    ],
+  },
+  {
     // Đợt 5B của kế hoạch sửa sau rà soát lần 2 (ADR-0193), CÓ migration 0157 (bảng chính sách chỉ thêm, gieo Bật). Chủ chọn phát hành trước buổi diễn tập khôi phục (11/11).
     // SỐ TẠM 2.91: main có 2.90 (Đợt 5A đã lên production 11/11); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.91",

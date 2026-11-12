@@ -9,6 +9,7 @@ import { auditStatement } from "../audit";
 import { taiKhoanCuaHoSo } from "./dieu-chinh-repo";
 import { UUID_RE } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
+import { NHAN_DAT_COC } from "../../shared/dat-coc-truoc";
 import { GHI_CHU_KHOAN_LOI_KHAI, transferInOf } from "./coc-repo";
 import { lineIfPostingStatement, linesOfOrder, linesOfReceipt, lineReversed, orderState, ownerCompanyId, postingIfReceiptStatement, postingPlainStatement, receiptsOfOrder, reconOfOrder } from "./repository";
 import type { GiaoDich } from "./ma-giao-dich";
@@ -123,7 +124,7 @@ export async function chuanBiLoThay(db: D1Database, input: { orderId: string; ph
   }
   // ADR-0159 (K7c): sửa khoản khai đặt cọc thì khoản mới giữ dấu, chọn ở `chonKhoanMangDau`. Gõ lại đúng chữ dấu không mất gì nên không tính là gõ tay; chữ khác báo rõ ở dưới vì cột chỉ có một ô.
   const cuKhai = cuRows.filter((r) => r.note === GHI_CHU_KHOAN_LOI_KHAI).map((r) => ({ collectorPartyId: r.collector_party_id, soTien: r.amount }));
-  const goDungDau = (m: unknown): boolean => { const g = (m as { ghiChu?: unknown } | null)?.ghiChu; return typeof g === "string" && g.trim() === GHI_CHU_KHOAN_LOI_KHAI; };
+  const goDungDau = (m: unknown): boolean => { const g = (m as { ghiChu?: unknown } | null)?.ghiChu; return typeof g === "string" && (g.trim() === GHI_CHU_KHOAN_LOI_KHAI || g.trim() === NHAN_DAT_COC); }; // ADR-0197 Đ1: tên hiển thị mới cũng là «gõ đúng chữ dấu»
   const moi: { lt: LanThuHopLe; gd: GiaoDich | null }[] = [];
   const boQuaGhi: { ma: string; lyDo: string }[] = [];
   // Trần «thu cho» nhà cung cấp: lần thu cũ đang bị thay không tính; các lần thu mới ĐÃ đọc của chính lệnh này cộng dồn (đặc tả P4).

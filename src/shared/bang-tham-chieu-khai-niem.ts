@@ -502,11 +502,20 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   KN({
     ten: "Trả sau",
     giaiNghia: "Hình thức thanh toán của đơn do đối tác đặt: đơn được xác nhận và vé được mở trước, đối tác trả tiền cho Công ty trong hạn trả, trong phạm vi hạn mức trả sau đã được cấp.",
-    khacVoi: "Đối lập với «Thanh toán ngay». Phải có hạn mức trả sau còn hiệu lực mới chọn được; không kèm tiền khách đặt cọc.",
+    khacVoi: "Đối lập với «Thanh toán ngay». Phải có hạn mức trả sau còn hiệu lực mới chọn được; khách đặt cọc cho Đối tác được, nhưng cọc không làm giảm nợ với Công ty (ADR-0197).",
     chuDaLoai: [],
     maNoiBo: ["NHAN_HINH_THUC.CREDIT", "paymentTerm = CREDIT"],
     trangThai: "da-chot",
     chuChon: "2026-11-05 (ADR-0168, chủ duyệt)",
+  }),
+  KN({
+    ten: "Khách đặt cọc cho đối tác",
+    giaiNghia: "Ô trong phần Thanh toán của đơn do tài khoản Đối tác lập: số tiền khách đã đưa cọc cho Đối tác. Có cả khi đơn chọn «Thanh toán ngay» lẫn «Trả sau». Khi đơn được xác nhận, số này thành khoản thu tiền mặt do chính Đối tác thu; Đối tác giữ tiền và nộp về Công ty sau. Chọn «Trả sau» thì dưới ô có câu «Tiền cọc ở tay bạn, không làm giảm số nợ với Công ty.»",
+    khacVoi: "Tên cũ trên giao diện là «Khách đặt cọc trước» (ADR-0159); chữ cũ vẫn là dấu nhận ra khoản cọc lưu trong dữ liệu, người dùng không thấy nữa. Không phải dòng «Khách đã trả trước» của biên nhận. Đơn trả sau đã xác nhận còn tiền cọc ở tay Đối tác thì Đối tác không tự huỷ được, câu báo: «Đơn trả sau còn tiền cọc của khách ở tay bạn nên bạn chưa tự huỷ được. Hãy nhờ Quản trị huỷ.»; Quản trị, Toàn quyền hoặc Hướng dẫn viên đang phụ trách đơn huỷ được.",
+    chuDaLoai: [],
+    maNoiBo: ["NHAN_DAT_COC", "NHAN_DAT_COC_CHO", "CAU_COC_TRA_SAU", "CAU_HUY_CON_COC", "tra_sau_con_coc_o_doi_tac", "orders.declared_deposit", "GHI_CHU_KHOAN_LOI_KHAI"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-11 (ADR-0197 câu (b) phương án (1), chủ duyệt «duyệt,»)",
   }),
   KN({
     ten: "Trong hạn",

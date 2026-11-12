@@ -106,10 +106,8 @@ try {
   const TEN2 = "Công Ty Mới Thử";
   const BEN2 = phai(await call(ACCOUNTS.accounting, "POST", "/api/parties", { kind: "PERSON", fullName: TEN2, contacts: [{ kind: "PHONE", value: "0912000222" }] }), 201, "hồ sơ 2").party.id;
   phai(await call(ACCOUNTS.admin, "POST", `/api/parties/${BEN2}/roles`, { roleTypeCode: "TRAVEL_AGENCY" }), 201, "vai 2");
-  const tk = phai(await call(ACCOUNTS.chu, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đối Tác Xem Nợ", phone: "0912000333", permissions: ["PARTNER"] }), 201, "tài khoản Đối tác");
+  const tk = phai(await call(ACCOUNTS.chu, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đối Tác Xem Nợ", phone: "0912000333", roles: ["TRAVEL_AGENCY"] }), 201, "tài khoản Đối tác"); // ADR-0185: tài khoản Đối tác tạo bằng vai trò
   const DT = { name: "Đối Tác Xem Nợ", phone: tk.staff.phone, pin: tk.pin, permissions: ["PARTNER"] };
-  // Vai của hồ sơ có tài khoản chỉ gán ở Quản lý tài khoản (role_via_account): gán vai «Công ty lữ hành» cho tài khoản.
-  phai(await call(ACCOUNTS.chu, "PUT", `/api/staff/${tk.staff.id}/roles`, { roles: ["TRAVEL_AGENCY"] }), 200, "vai Đối tác");
   phai(await call(ACCOUNTS.chu, "POST", "/api/tra-sau/han-muc", { partyId: tk.staff.partyId, hanMuc: 3_000_000, gioTra: 36, gioAnHan: 0 }), 201, "bật Đối tác");
 
   const moTrang = async (account, vp, duong = "/han-muc-tra-sau") => {

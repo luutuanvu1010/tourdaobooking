@@ -143,7 +143,7 @@ export async function kiemCongXacNhan(
   if ("loi" in vaiTro) return { loi: vaiTro.loi };
   // ADR-0168 Đ2 mục 3, 4: cổng hạn mức Trả sau — MỘT chỗ cho cả ba đường xác nhận (`/status`, `quyet-dinh` Còn vé, `gui-don` nhánh B). Đơn Trả trước: không tốn một câu đọc.
   // Thứ tự (kế hoạch ADR-0185 K4): ADR-0168 ghi cổng này «ngay sau luật bán»; từ ADR-0185 cổng vai trò đối tác xen giữa, vì cổng này đọc bên đặt.
-  const traSau = await traSauChoXacNhan(i.traSau, db, { order: { id: order.id, paymentTerm: order.paymentTerm, bookerPartyId: order.bookerPartyId, total: order.total, declaredDeposit: order.declaredDeposit } });
+  const traSau = await traSauChoXacNhan(i.traSau, db, { order: { id: order.id, paymentTerm: order.paymentTerm, bookerPartyId: order.bookerPartyId, total: order.total } });
   if ("loi" in traSau) return { loi: traSau.loi };
   // DK-T3-01 R2: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản có quyền Đối tác HOẶC Thực tập (ADR-0100) chỉ xác nhận được đơn
   // mà MỌI dòng đúng giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục). R3 (trần giảm giá ĐÃ LƯU) kiểm SAU khi tính bản chụp (Task 7).
@@ -191,7 +191,7 @@ export async function cocChoXacNhan(
   const soTien = i.order.declaredDeposit;
   if (soTien === 0) return { coc: KHONG_COC };
   if (vuotTong(soTien, i.order.total)) return { loi: error(409, "declared_deposit_exceeds_total", i.cauVuot ?? CAU_VUOT_TONG) };
-  const ROI = () => ({ loi: error(503, "dat_coc_chua_dung_duoc", "Chưa ghi được khoản khách đặt cọc trước nên chưa xác nhận đơn — báo người phụ trách hệ thống.") });
+  const ROI = () => ({ loi: error(503, "dat_coc_chua_dung_duoc", "Chưa ghi được khoản khách đặt cọc cho đối tác nên chưa xác nhận đơn — báo người phụ trách hệ thống.") });
   let kq: CauCocXacNhan | null;
   try {
     kq = await cauCoc({ orderId: i.order.id, orderCode: i.order.orderCode, nguoiLapId: i.order.staffId, nguoiBamId: i.nguoiBamId, soTien, chup: i.chup, homNay: i.today });
@@ -215,7 +215,7 @@ export function dichLoiXacNhan(e: unknown): Response | null {
   if (/\bdeclared_deposit_exceeds_total:/.test(loi)) return error(409, "declared_deposit_exceeds_total", CAU_VUOT_TONG);
   // ADR-0168 Đ2 mục 4: hai lệnh cùng làm tăng nợ của một bên đặt — lệnh thua cả lô huỷ, đơn ở lại nháp.
   if (/\bcredit_version_stale:/.test(loi)) return error(409, "credit_version_stale", "Hạn mức vừa thay đổi, mở lại đơn rồi thử lại.");
-  if (/\bperiod_closed:/.test(loi)) return error(409, "period_closed", "Tháng này đã khoá sổ nên chưa ghi được khoản khách đặt cọc trước — báo Kế toán.");
+  if (/\bperiod_closed:/.test(loi)) return error(409, "period_closed", "Tháng này đã khoá sổ nên chưa ghi được khoản khách đặt cọc cho đối tác — báo Kế toán.");
   if (/\bterms_(rule|term)_stale:/.test(loi)) return error(409, "bang_muc_doi", "Bảng mức vừa đổi — thử lại");
   if (/\bterms_service_mismatch:/.test(loi)) return STALE();
   return null;

@@ -16,7 +16,6 @@ export interface HamTraSau {
   cauGacPhienBanTraSau: (partyId: string, version: number, at: string) => D1PreparedStatement[];
 }
 
-export const CAU_TRA_SAU_KHONG_COC = "Đơn trả sau không nhận tiền khách đặt cọc trước. Hãy để trống ô đặt cọc hoặc chọn thanh toán ngay.";
 export const CAU_TRA_SAU_THIEU_BEN_DAT = "Đơn trả sau cần chọn bên đặt là đối tác có hạn mức trả sau.";
 /**
  * Lô huỷ phải mang câu bảo vệ «vé vừa mở» mà gốc lắp ráp không soạn được câu trả vé (`ctx.traVeKhiHuy` trả null) ⇒ không chạy lô, 503 (kế hoạch 2026-11-05 Task 5 việc B).
@@ -25,11 +24,13 @@ export const CAU_TRA_SAU_THIEU_BEN_DAT = "Đơn trả sau cần chọn bên đ�
 export const VE_CHUA_SOAN_DUOC = () => error(503, "tra_sau_chua_dung_duoc", "Chưa kiểm được vé của đơn nên chưa huỷ được. Thử lại sau ít phút.");
 const CHUA_DUNG_DUOC = () => error(503, "tra_sau_chua_dung_duoc", "Chưa kiểm được hạn mức trả sau nên chưa dùng được hình thức này — báo người phụ trách hệ thống.");
 
-/** Đơn đủ thông tin cho cổng. `declaredDeposit` là số SẼ LƯU / đang lưu của lời khai đặt cọc. */
-export interface DonTraSau { id: string | null; paymentTerm: HinhThucThanhToan; bookerPartyId: string | null; total: number; declaredDeposit: number }
+/**
+ * Đơn đủ thông tin cho cổng. ADR-0197 Đ2, Đ3: đơn Trả sau NHẬN lời khai đặt cọc (bỏ 409 chặn cọc của ADR-0168); cọc ở tay Đối tác nên hạn mức kiểm trên TOÀN BỘ `total`,
+ * không trừ cọc — cổng không cần biết số khai.
+ */
+export interface DonTraSau { id: string | null; paymentTerm: HinhThucThanhToan; bookerPartyId: string | null; total: number }
 
 async function kiemDon(h: Pick<HamTraSau, "kiemTraSau">, d: DonTraSau): Promise<{ loi: Response } | { benDat: string; kq: Extract<KetQuaKiemTraSau, { ok: true }> }> {
-  if (d.declaredDeposit > 0) return { loi: error(409, "tra_sau_khong_nhan_coc", CAU_TRA_SAU_KHONG_COC) };
   if (d.bookerPartyId === null) return { loi: error(409, "tra_sau_thieu_ben_dat", CAU_TRA_SAU_THIEU_BEN_DAT) };
   const kq = await h.kiemTraSau({ benDat: d.bookerPartyId, soTienDon: d.total, ...(d.id ? { boQuaDon: d.id } : {}) });
   if (!kq) return { loi: CHUA_DUNG_DUOC() };
@@ -89,7 +90,7 @@ const KHONG_CAU = (): D1PreparedStatement[] => [];
 
 /** Hai hàm do gốc lắp ráp tiêm cho huỷ đơn, đổi bên đặt, sửa tăng (xem `ctx.traSauCuaDon`, `ctx.veDaMoCuaDon` ở src/shared/router.ts). Không tiêm ⇒ hàm trả null ⇒ cổng chặn 503 (không đoán). */
 export interface HamNoTraSau {
-  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; benDat?: string | null; version?: number } | null>;
+  traSauCuaDon: (orderId: string) => Promise<{ hanTra: string | null; hetAnHan?: string | null; no: number; cocConGiu?: number; benDat?: string | null; version?: number } | null>;
   /** ADR-0175 Đ2.6: cổng huỷ Trả sau còn nợ chỉ tính vé HÃNG NGOÀI đã mở (`ctx.veHangNgoaiDaMoCuaDon`); hai luật chặn đối tác vẫn đọc `veDaMoCuaDon` (mọi loại vé). */
   veHangNgoaiDaMoCuaDon: (orderId: string) => Promise<boolean | null>;
 }
@@ -115,27 +116,35 @@ export async function congSuaTangTraSau(
 }
 
 export const CAU_HUY_CON_NO = (no: number): string => `Đơn trả sau còn nợ ${dongTien(no)} mà vé đã mở cho khách nên chưa huỷ được. Hãy thu đủ tiền, hoặc nhờ Kế toán xử lý.`;
+/** ADR-0197 Đ4 phương án (c1), chủ duyệt 2026-11-11. */
+export const CAU_HUY_CON_COC = "Đơn trả sau còn tiền cọc của khách ở tay bạn nên bạn chưa tự huỷ được. Hãy nhờ Quản trị huỷ.";
 export const CAU_DOI_BEN_CON_NO = (no: number): string => `Đơn trả sau còn nợ ${dongTien(no)} nên chưa đổi được bên đặt. Hãy thu đủ tiền trước.`;
 
 /**
  * Huỷ đơn (mọi nơi gọi `soanHuyDon`): đơn Trả sau ĐÃ xác nhận còn nợ mà đã có vé HÃNG NGOÀI mở thì 409 (ADR-0175 Đ2.6: vé Tour Đảo đã mở không tính — huỷ thì vé chết, hết nợ). Còn nợ, vé chưa mở ⇒ qua với `chanVeDaMo` (lô mang câu bảo vệ: vé mở chen giữa lúc kiểm
  * và lúc ghi làm cả lô lui — Task 2, nợ 2). Hết nợ ⇒ qua với câu gác phiên bản bên đặt (khoản thu bị đảo chen giữa làm nợ lại có thì lô thua). Đơn khác ⇒ qua, không câu nào.
+ * ADR-0197 Đ4 (c1): người huỷ giữ quyền Đối tác (`laDoiTac` — cùng vị từ `holdsPartner` của lớp chặn ADR-0170) mà cọc còn ở tay người thu (`cocConGiu` > 0, billing tính bằng
+ * CÙNG lượt với nợ) ⇒ 409; người của Công ty huỷ như cũ. Luật vé hãng ngoài đứng TRƯỚC. Đối tác mà không đọc được số cọc ⇒ 503 (không đoán); văn phòng không phụ thuộc số này.
  */
 export async function congHuyTraSau(
   h: Pick<HamNoTraSau, "traSauCuaDon" | "veHangNgoaiDaMoCuaDon"> & Pick<HamTraSau, "cauGacPhienBanTraSau">,
-  d: { id: string; paymentTerm: HinhThucThanhToan; status: string },
+  d: { id: string; paymentTerm: HinhThucThanhToan; status: string; laDoiTac: boolean },
 ): Promise<{ loi: Response } | { qua: QuaCongHuy }> {
   if (d.paymentTerm !== "CREDIT" || d.status !== "confirmed") return quaHuy({ chanVeDaMo: false, no: 0, kem: KHONG_CAU });
   const t = await h.traSauCuaDon(d.id);
   if (!t) return { loi: CHUA_DUNG_DUOC() };
+  const mo = t.no > 0 ? await h.veHangNgoaiDaMoCuaDon(d.id) : false;
+  if (mo === null) return { loi: CHUA_DUNG_DUOC() };
+  if (mo) return { loi: error(409, "tra_sau_con_no_da_mo_ve", CAU_HUY_CON_NO(t.no)) };
+  if (d.laDoiTac) {
+    if (t.cocConGiu === undefined) return { loi: CHUA_DUNG_DUOC() };
+    if (t.cocConGiu > 0) return { loi: error(409, "tra_sau_con_coc_o_doi_tac", CAU_HUY_CON_COC) };
+  }
   if (t.no <= 0) {
     if (t.benDat === undefined || t.version === undefined) return { loi: CHUA_DUNG_DUOC() };
     const { benDat, version } = t;
     return quaHuy({ chanVeDaMo: false, no: 0, kem: benDat === null ? KHONG_CAU : (at) => h.cauGacPhienBanTraSau(benDat, version, at) });
   }
-  const mo = await h.veHangNgoaiDaMoCuaDon(d.id);
-  if (mo === null) return { loi: CHUA_DUNG_DUOC() };
-  if (mo) return { loi: error(409, "tra_sau_con_no_da_mo_ve", CAU_HUY_CON_NO(t.no)) };
   return quaHuy({ chanVeDaMo: true, no: t.no, kem: KHONG_CAU });
 }
 

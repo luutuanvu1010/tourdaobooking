@@ -1608,7 +1608,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 /* ---------- A2: trang đơn (khối dịch vụ chỉ-đọc, nhắc khoá) — chỉ token ---------- */
 .services { margin-bottom: var(--s4); }
 .kv > span:first-child { flex: none; } /* nhãn không bị ép gãy chữ ("Ghi / chú") khi giá trị dài */
-.kv-dat-coc > span:first-child { flex: 1 1 auto; min-width: 0; } /* nhãn «Khách đặt cọc trước (chờ xác nhận)» dài: nhãn xuống dòng, số tiền giữ nguyên một dòng */
+.kv-dat-coc > span:first-child { flex: 1 1 auto; min-width: 0; } /* nhãn «Khách đặt cọc cho đối tác (chờ xác nhận)» dài: nhãn xuống dòng, số tiền giữ nguyên một dòng */
 .kv-dat-coc > span:last-child { flex: none; white-space: nowrap; }
 .svc-view .svc-facts { margin-top: var(--s3); }
 .kv-warn > span:last-child { font-weight: var(--fw-bold); color: var(--c-sand-text); }
@@ -4213,6 +4213,17 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .nk-muc:last-child { border-bottom: 0; }
 .nk-muc .huy-hieu { justify-self: start; }
 .nk-lien-bai { display: flex; justify-content: flex-start; padding-left: 0; }
+
+/* Ô tích mục «Nút thanh dưới» ở trang Tôi (ADR-0187 Đ2.3, web/thanh-duoi-cai-dat.ts; phần còn lại của mục ở cuối tệp). Đặt TRƯỚC «Thành phần chung v2» (phần đó chép sang bộ v2).
+   Ô tích tự vẽ: chính ô là vùng chạm --tap-min × --tap-min (kịch bản Chrome đo phần tử input, không đo nhãn), hộp nhìn thấy cỡ --s5 ở giữa; lề âm cho hộp thẳng mép chữ.
+   appearance: none làm luật `input {}` chung hiện ra nên trả hết đệm, viền, nền. Vòng focus dùng luật :focus-visible chung. Các màn khác dùng .o-tick không đổi. */
+#thanh-duoi label.check { padding: 0; }
+#thanh-duoi label.check > input.o-tick { -webkit-appearance: none; appearance: none; position: relative; flex: none; display: block; width: var(--tap-min); height: var(--tap-min); margin: 0 0 0 calc((var(--s5) - var(--tap-min)) / 2); padding: 0; background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+#thanh-duoi input.o-tick::before { content: ""; position: absolute; inset: calc((var(--tap-min) - var(--s5)) / 2); box-sizing: border-box; background: var(--c-surface); border: var(--bw-vc) solid var(--c-check-border); border-radius: var(--s1); }
+#thanh-duoi input.o-tick:checked::before { background: var(--c-primary); border-color: var(--c-primary); }
+#thanh-duoi input.o-tick:checked::after { content: ""; position: absolute; left: 50%; top: 50%; width: var(--s2); height: var(--s3); box-sizing: border-box; border: solid var(--c-on-dark); border-width: 0 var(--bw-vc) var(--bw-vc) 0; transform: translate(-50%, -60%) rotate(45deg); }
+#thanh-duoi input.o-tick:disabled { cursor: default; }
+#thanh-duoi input.o-tick:disabled::before { opacity: .45; }
 
 /* ---------- Thành phần chung v2 (đợt 0, đặc tả mục 8) ----------
    Một tên lớp gốc + biến thể bằng thuộc tính; chỉ token. Lớp cũ giữ nguyên. */

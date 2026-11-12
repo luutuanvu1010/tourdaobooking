@@ -44,7 +44,7 @@ import { createCatalogPicker } from "./catalog-picker";
 import { dongBenDatChiDoc, oDatQuaDoiTac, type DatQuaDoiTac } from "./dat-qua-doi-tac";
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
-import { CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
+import { CAU_COC_TRA_SAU, CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
 import { cauChonTraSau, quyetHinhThuc } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { NHAN_HINH_THUC } from "../src/shared/tra-sau";
 import { suKienVeDon } from "./lam-moi-logic";
@@ -165,7 +165,7 @@ let seq = 0;
 let live = new Map<string, CatalogServiceDto>(); // dịch vụ danh mục ĐANG HIỆN và được hỗ trợ, theo mã
 let orderUpdatedAt: string | null = null;
 let formLocked = false;
-/** ADR-0159 Đ1 mục 1: ô «Khách đặt cọc trước» chỉ tài khoản giữ quyền Đối tác (hỏi DANH TÍNH, máy chủ kiểm lại). */
+/** ADR-0159 Đ1 mục 1: ô «Khách đặt cọc cho đối tác» (tên ADR-0197 Đ1) chỉ tài khoản giữ quyền Đối tác (hỏi DANH TÍNH, máy chủ kiểm lại). */
 let coODatCoc = false;
 let saving = false;
 /** ADR-0136 Đ13: người lập giữ quyền Đối tác (kể cả tài khoản lai) — đơn MỚI có nút chính «Gửi đơn» (lưu rồi gửi). Gán sau `initShell()`; chỉ đổi chữ nút, máy chủ vẫn là cổng (`order.submit`). */
@@ -657,7 +657,7 @@ function collect(): OrderInput | OrderInputAn {
     paymentNote: field("paymentNote").value, // trường ẩn vẫn gửi giá trị đang nạp: máy chủ quyết (ẩn ⇒ giữ giá trị lưu), chính sách đổi giữa chừng không xoá mất giá trị
     // Trả sau (ADR-0168): khối chỉ hiện khi bên đặt có hạn mức; Trả sau không kèm tiền đặt cọc (gửi 0 để máy chủ không giữ số cũ).
     paymentTerm: hinhThucChon(), // luôn gửi: khối ẩn thì là Trả trước, để PUT không giữ Trả sau cũ mà không còn chỗ chọn lại
-    ...(coODatCoc ? { declaredDeposit: traSauHien && hinhThucChon() === "CREDIT" ? 0 : num("declaredDeposit") } : {}),
+    ...(coODatCoc ? { declaredDeposit: num("declaredDeposit") } : {}), // ADR-0197 Đ2: đơn Trả sau cũng gửi lời khai, không ép 0
     ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
     // Chỉ khi LẬP đơn và đã chọn người: chưa chọn → KHÔNG gửi trường này (đơn "Chờ nhận"), sửa đơn → không bao giờ gửi (PUT không đổi người phụ trách).
     ...(canPickHandler && !editId && handlerPick ? { handlerStaffId: handlerPick.staffId } : {}),
@@ -1260,10 +1260,12 @@ const oHinhThuc = (v: string): HTMLInputElement => khoiTraSau.querySelector<HTML
 // Chữ hai nút chọn hình thức đến từ MỘT hằng (NHAN_HINH_THUC), không gõ cứng ở HTML (đổi «Trả trước» → «Thanh toán ngay», 9/11/2026).
 for (const v of ["PREPAID", "CREDIT"] as const) khoiTraSau.querySelector(`[data-nhan-hinh-thuc="${v}"]`)!.textContent = NHAN_HINH_THUC[v];
 const hinhThucChon = (): "PREPAID" | "CREDIT" => (oHinhThuc("CREDIT").checked ? "CREDIT" : "PREPAID");
+/** ADR-0197 Đ2, Đ3: ô cọc luôn có với tài khoản Đối tác, kể cả khi chọn Trả sau; chọn Trả sau thì thêm câu nhắc cọc không làm giảm nợ với Công ty. */
 function anHienDatCoc(): void {
-  const an = traSauHien && hinhThucChon() === "CREDIT"; // Trả sau thì không có «Khách đặt cọc trước»
-  byId("dat-coc-o").hidden = !coODatCoc || an;
-  byId("dat-coc-goi-y").hidden = !coODatCoc || an;
+  const traSau = traSauHien && hinhThucChon() === "CREDIT";
+  const cau = byId("dat-coc-tra-sau");
+  cau.textContent = CAU_COC_TRA_SAU;
+  cau.hidden = !coODatCoc || !traSau;
 }
 /**
  * Hình thức của nháp hoặc người dùng đã chọn, tách khỏi ô đang hiện: `napTraSau` có thể đưa ô về Trả trước vì hết hạn mức, và các lần hỏi sau phải vẫn biết đơn muốn Trả sau.

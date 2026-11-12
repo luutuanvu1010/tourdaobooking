@@ -135,5 +135,8 @@ test("«Đã giao»: cả hai nơi gọi lyDoChuaGiaoDuoc ở billing (màn đơ
   const sv = readFileSync(new URL("./modules/billing/service.ts", import.meta.url), "utf8");
   const goi = [...sv.matchAll(/lyDoChuaGiaoDuoc\(\{[\s\S]*?\n  \}\);/g)].map((m) => m[0]);
   assert.equal(goi.length, 2, "hai nơi gọi");
-  for (const g of goi) assert.match(g, /traSau: \(await donTraSauTheoId\(/, "truyền cờ Trả sau");
+  // Route Đã giao nhận `traSau` từ route (traSauCuaDon — tra-sau.ts đã import service.ts nên không gọi ngược); màn đơn đọc thẳng.
+  for (const g of goi) assert.match(g, /traSau: (\(await donTraSauTheoId\(|input\.traSau !== null)/, "truyền cờ Trả sau");
+  // Chủ dự án 12/11 «Chặn tới khi nộp»: cả hai nơi truyền số cọc còn ở tay đối tác.
+  for (const g of goi) assert.match(g, /cocConGiu: (quyen\.cocConGiu|input\.traSau\?\.cocConGiu)/, "truyền số cọc");
 });

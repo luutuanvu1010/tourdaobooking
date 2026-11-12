@@ -24,7 +24,7 @@ import { chiNguoiLapGhiNhap, ketQuaXemDon } from "../../shared/xem-don-nhap";
 import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, orderStatuses, partyLabels, receiptsOfOrder, soDongNoCuaNguoiRow } from "./repository";
 import { daTraTheoThuCho } from "./rules";
 import { GIO_TOI_DA, kiemSoGio } from "../../shared/tra-sau";
-import { benCoLienQuanTraSau, cauTangPhienBan, hanMucHieuLuc, hanMucMoiBen, homQua, noCacBenDat, noCuaBenDat } from "./tra-sau";
+import { benCoLienQuanTraSau, cauTangPhienBan, hanMucHieuLuc, hanMucMoiBen, homQua, noCacBenDat, noCuaBenDat, traSauCuaDon } from "./tra-sau";
 import { dongHanMucKhiHetVaiStatement, dongHanMucStatement, ghiGoiYStatement, goiYTheoCap, hanMucDangMo, mucToiDaQuanTri, themHanMucStatement, themMucToiDaStatement } from "./tra-sau-repo";
 import { dongKenhThuStatement, themKenhThuStatement } from "./kenh-thu-repo";
 import { kenhThuDto, kenhThuHienTai as kenhThuDangBat } from "./kenh-thu";
@@ -161,6 +161,8 @@ export const billingModule: AppModule = {
         // Task 9 (đặc tả P8; I-1 người kiểm Task 3+4): chỉ người có `supply.terms.view` và KHÔNG giữ quyền Đối tác được biết có giá vốn / số dư nhà cung cấp.
         anGiaVon: anGiaVon(staff),
         xemBienLai: can(staff, "payment.proof.view", scope), // ADR-0196 Đ5, Đ10: ownerId = người lập đơn
+        // Chủ dự án 12/11 «Chặn tới khi nộp»: số cọc chỉ cần khi đơn còn bấm «Khách đã trả đủ» được — để màn đơn báo trước đúng câu của route ghi.
+        cocConGiu: phan ? (await traSauCuaDon(env.DB, id))?.cocConGiu : undefined,
       }, coc);
       return json(body satisfies OrderPaymentsResponse);
     }),
@@ -353,6 +355,7 @@ export const billingModule: AppModule = {
       // Người được phép CHỈ vì đang phụ trách (ô `assigned`) ⇒ lô kèm câu bảo vệ (đổi người phụ trách giữa lúc đọc và lúc ghi → lô không áp — NT-F4).
       const kq = await daGiao(env.DB, {
         orderId: id, info, phan, ai: nguoiGoi(staff), canCauBaoVe: !can(staff, "order.handover"), rawLanThu: lanThu, laDoiTac: holdsPartner(staff), anGiaVon: anGiaVon(staff),
+        traSau: await traSauCuaDon(env.DB, id), // chủ dự án 12/11 «Chặn tới khi nộp»
       });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: id, thayDoi: "chot_giao" });

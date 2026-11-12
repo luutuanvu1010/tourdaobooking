@@ -36,7 +36,7 @@ const { soanHuyDon, congHuyTraSau } = await loadModule();
  */
 const KHONG_GOI = async (): Promise<never> => { throw new Error("đơn Trả trước: cổng không được đọc gì"); };
 async function cancelOrder(db: D1Database, id: string, staffId: string, from: "confirmed", prev: string, lyDo: typeof LY_DO, opts?: { action?: "order_cancelled_by_field"; detail?: string }): Promise<boolean> {
-  const cong = await congHuyTraSau({ traSauCuaDon: KHONG_GOI, veDaMoCuaDon: KHONG_GOI, cauGacPhienBanTraSau: () => { throw new Error("không gác"); } }, { id, paymentTerm: "PREPAID", status: from });
+  const cong = await congHuyTraSau({ traSauCuaDon: KHONG_GOI, veDaMoCuaDon: KHONG_GOI, cauGacPhienBanTraSau: () => { throw new Error("không gác"); } }, { id, paymentTerm: "PREPAID", status: from, laDoiTac: false });
   assert.ok("qua" in cong);
   const huy = soanHuyDon(db, id, staffId, from, prev, lyDo, cong.qua, opts);
   return huy.thang(await db.batch(huy.cau));

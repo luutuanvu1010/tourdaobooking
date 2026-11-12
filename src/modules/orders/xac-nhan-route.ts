@@ -354,7 +354,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       }
       // Lô huỷ (câu đơn đứng đầu) + khúc chuyến của máy đồng bộ — MỘT db.batch; câu khép yêu cầu nối vào CUỐI phần câu đơn, gác bằng id nhật ký `cancelled` của chính lô.
       // ADR-0168 Đ3 mục 3: huỷ để lập lại cũng qua cổng (đơn nháp không có nợ nên qua; cổng đứng đủ để đường mới không lọt).
-      const cong = await congHuyTraSau({ traSauCuaDon, veHangNgoaiDaMoCuaDon, cauGacPhienBanTraSau }, { id, paymentTerm: meta.paymentTerm, status: "draft" });
+      const cong = await congHuyTraSau({ traSauCuaDon, veHangNgoaiDaMoCuaDon, cauGacPhienBanTraSau }, { id, paymentTerm: meta.paymentTerm, status: "draft", laDoiTac: holdsPartner(staff) });
       if ("loi" in cong) return cong.loi;
       const huy = soanHuyDon(env.DB, id, staff.id, "draft", meta.updatedAt, lyDo, cong.qua);
       const atHuy = nextStamp(meta.updatedAt);
