@@ -58,7 +58,8 @@ const GOI_HAM: Record<string, Record<string, number>> = {
   hoaHongDong: { [NGUON]: 2, "src/shared/hoa-hong-hien-thi.ts": 1 },
   giaVonDong: { [NGUON]: 1 },
   // Sổ đại lý đợt 2 (Task 3): `dongThuongMaiTu` của billing dựng dòng hoa hồng / giá vốn của phiếu «Đã giao» từ bản chụp — gọi đúng hàm này, không nhân tỷ lệ.
-  tinhDongDoiTac: { "src/modules/orders/thuong-mai.ts": 1, "src/modules/billing/rules.ts": 1 },
+  // ADR-0182 Đ1 (12/11): `giaDaiLyNhieuDon` dựng giá đại lý từng dòng cho «Công nợ đại lý» — gọi đúng hàm này; bài src/cong-no-dai-ly.test.ts so trùng với đường từng đơn. Người kiểm độc lập xem lại.
+  tinhDongDoiTac: { "src/modules/orders/thuong-mai.ts": 1, "src/modules/billing/rules.ts": 1, "src/modules/orders/gia-dai-ly.ts": 1 },
 };
 
 function walk(dir: string, out: string[] = []): string[] {

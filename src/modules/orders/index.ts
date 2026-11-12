@@ -2174,9 +2174,9 @@ export type { PhanThuongMai } from "./thuong-mai";
  * HD-02-DT: người lập đơn HIỆN LÀ Đối tác thuần (giữ quyền Đối tác và không giữ quyền nào ngoài nhóm bên ngoài) — cùng luật `apCongTacAnKhach` của công tắc ẩn khách. Chỉ để CHỌN MẪU IN biên
  * nhận (mã quyền là điều kiện DỮ LIỆU, không phải điều kiện cho phép); đọc hiện trạng, không chụp lúc lập. Không tự kiểm quyền: chỉ gọi trong thân route SAU `can(` (src/orders-cong-bo.test.ts).
  */
-export async function nguoiLapDoiTacThuan(db: D1Database, staffId: string): Promise<boolean> {
-  return apCongTacAnKhach({ permissions: (await quyenMoCuaNguoiLap(db, staffId)) as PermissionHolder["permissions"] });
-}
+export { nguoiLapDoiTacThuan } from "./gia-dai-ly";
+// ADR-0182 Đ1: giá đại lý của nhiều đơn đã xác nhận (phần «Tổng công nợ» của «Công nợ đại lý» ở billing). Không tự kiểm quyền; chỉ trả số tiền.
+export { giaDaiLyNhieuDon, type DongGiaDaiLy, type GiaDaiLyDon } from "./gia-dai-ly";
 // ADR-0068 Đ1 bước 5: CHỈ gốc lắp ráp gọi (ctx.gopHoSo của route gộp hồ sơ) — bài siết ở src/architecture.test.ts.
 export { cauDoiNguoiDat, donChuaXacNhanCua, donCuaNguoiDat } from "./nguoi-dat-gop-repo";
 // ADR-0142: `dispatch` hỏi đơn có yêu cầu xác nhận đang mở không, và lúc ghi nhận của đơn (đơn cũ). Chỉ trả kết luận / mốc, không dữ liệu khách.

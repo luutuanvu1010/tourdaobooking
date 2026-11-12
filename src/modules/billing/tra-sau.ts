@@ -1,13 +1,10 @@
 // Trả sau theo hạn mức — phần điều phối của billing (ADR-0168 Đ1, Đ2). Số nợ KHÔNG lưu cột: tính bằng JS từ số thật (phải thu hiện hành do `tienNhieuDon`, khoản thu, dòng sổ, dấu đối chiếu),
 // một lượt cho cả danh sách đơn (không truy vấn lặp theo từng đơn). Luật thuần ở src/shared/tra-sau.ts. KHÔNG tự kiểm quyền — route hỏi `can(` trước.
-import { lyDoKhongTraSau, noMotDon, quaHan, trangThaiHan, type HanMucHieuLuc, type KetQuaKiemTraSau, type TrangThaiHan } from "../../shared/tra-sau";
+import { lyDoKhongTraSau, quaHan, trangThaiHan, type HanMucHieuLuc, type KetQuaKiemTraSau, type TrangThaiHan } from "../../shared/tra-sau";
 import { addDays, vnToday } from "../../shared/vn-date";
-import { soChuaVeCongTy, soKhaiChuaNop, type DoiChieuRow, type LineRow } from "./rules";
-import { phanKhaiCuaDon } from "./khoan-khai";
-import { ownerCompanyId, receiptsOfOrders } from "./repository";
-import { tienNhieuDon, toReceiptRow } from "./service";
+import { congNoNhieuDon } from "./cong-no-dai-ly";
 import {
-  benCoDonTraSau, dongCuaCacDon, doiChieuCuaCacDon, donTraSauCuaCacBen, donTraSauTheoId, hanMucRowMoiBen, hanMucRowTai, phienBanHienTai,
+  benCoDonTraSau, donTraSauCuaCacBen, donTraSauTheoId, hanMucRowMoiBen, hanMucRowTai, phienBanHienTai,
   type DonTraSauRow, type HanMucRow,
 } from "./tra-sau-repo";
 
@@ -19,44 +16,17 @@ export interface DonNo { orderId: string; maDon: string; hanTra: string | null; 
 export interface NoBenDat { tong: number; don: DonNo[]; coDonQuaHan: boolean }
 const bayGioMacDinh = (): string => new Date().toISOString();
 
-/** Nợ từng đơn Trả sau đã xác nhận (ADR-0168 Đ2 mục 2): phải thu − số đã về công ty, trong đó số đã về công ty không gồm khoản đang đối chiếu và khoản bên đặt tự thu mà chưa nộp. */
+/** Nợ từng đơn Trả sau đã xác nhận: «Công nợ còn lại» (ADR-0182 Đ1; đơn không phải đơn đại lý: ADR-0168 Đ2 mục 2), ≥ 0, đơn huỷ 0. */
 export async function noTheoDon(db: D1Database, dons: readonly DonTraSauRow[]): Promise<Map<string, number>> {
   return new Map([...(await noVaCocTheoDon(db, dons))].map(([id, x]) => [id, x.no]));
 }
 
 /**
- * Nợ và «cọc còn ở tay người thu» của từng đơn trong CÙNG một lượt tính (ADR-0197 Đ4): cọc = phần khoản khai theo `phanKhaiCuaDon` (dấu ghi chú HOẶC chuyển từ đơn huỷ) mà người thu
- * còn số dư giữ hộ với Công ty trên đơn (`soKhaiChuaNop`, đúng hàm của cổng khai lại `dat-coc.ts`). Không viết điều kiện thứ hai: nợ và cọc dùng chung `khai`, `ls`, `congTyId`.
+ * Nợ và «cọc còn ở tay người thu» của từng đơn trong CÙNG một lượt tính (ADR-0197 Đ4). Số nợ là «Công nợ còn lại» của phần nghiệp vụ «Công nợ đại lý» (ADR-0182 Đ1 mục 8):
+ * đơn đại lý tính theo giá đại lý, đơn khác giữ cách cũ — xem `cong-no-dai-ly.ts`; không viết công thức thứ hai ở đây.
  */
 export async function noVaCocTheoDon(db: D1Database, dons: readonly DonTraSauRow[]): Promise<Map<string, { no: number; cocConGiu: number }>> {
-  const out = new Map<string, { no: number; cocConGiu: number }>();
-  if (dons.length === 0) return out;
-  const ids = dons.map((d) => d.id);
-  const [tien, receipts, lines, recon, congTyId] = await Promise.all([tienNhieuDon(db, ids), receiptsOfOrders(db, ids), dongCuaCacDon(db, ids), doiChieuCuaCacDon(db, ids), ownerCompanyId(db)]);
-  const nhom = <T extends { order_id: string }>(rows: readonly T[]): Map<string, T[]> => {
-    const m = new Map<string, T[]>();
-    for (const r of rows) m.set(r.order_id, [...(m.get(r.order_id) ?? []), r]);
-    return m;
-  };
-  const rcTheoDon = nhom(receipts);
-  const lnTheoDon = nhom(lines);
-  const dcTheoDon = nhom(recon);
-  for (const d of dons) {
-    const t = tien.get(d.id);
-    if (!t) continue;
-    const rs = (rcTheoDon.get(d.id) ?? []).map(toReceiptRow);
-    const ls: LineRow[] = (lnTheoDon.get(d.id) ?? []).map((l) => ({
-      id: l.id, debtorPartyId: l.debtor_party_id, creditorPartyId: l.creditor_party_id, amount: l.amount, kind: l.kind_code as LineRow["kind"], orderId: l.order_id, receiptId: l.receipt_id, reversesLineId: l.reverses_line_id,
-    }));
-    const dc: DoiChieuRow[] = (dcTheoDon.get(d.id) ?? []).map((x) => ({ receiptId: x.receipt_id, kind: x.kind_code, occurredDate: x.occurred_date }));
-    // ADR-0171 / ADR-0168 Đ2 mục 2: nợ tính bằng ĐÚNG hàm mở vé `soChuaVeCongTy` (một bản, không viết hai) với người lập = BÊN ĐẶT; khoản khai đặt cọc và phần chuyển từ đơn huỷ gộp vào cùng lượt.
-    const khai = await phanKhaiCuaDon(db, rcTheoDon.get(d.id) ?? [], new Set([d.id]));
-    const v = congTyId ? soChuaVeCongTy({ receipts: rs, lines: ls, doiChieu: dc, nguoiLapPartyId: d.booker_party_id ?? "", congTyId, khaiThem: khai }) : { nguoiLapGiu: t.daThu, choXacNhan: 0 }; // không đọc được công ty ⇒ coi như chưa về (không mở)
-    const no = noMotDon({ daHuy: d.status === "cancelled", phaiThu: t.phaiThu, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, benDatDangGiu: v.nguoiLapGiu });
-    // Không đọc được công ty chủ ⇒ coi cả phần khai là còn giữ (chặt hơn, khuôn dòng trên).
-    out.set(d.id, { no, cocConGiu: congTyId ? soKhaiChuaNop(khai, ls, congTyId) : khai.reduce((s, k) => s + k.soTien, 0) });
-  }
-  return out;
+  return new Map([...(await congNoNhieuDon(db, dons))].map(([id, x]) => [id, { no: x.no, cocConGiu: x.cocConGiu }]));
 }
 
 /** Nợ của NHIỀU bên đặt cùng lúc (màn danh sách): số câu truy vấn không phụ thuộc số đơn. */
