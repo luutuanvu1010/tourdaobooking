@@ -3,14 +3,20 @@
 - **Trạng thái — duyệt từng phần (12/11):**
   - **Phần A (Đ1; Đ2 mục 1–3): accepted 2026-11-12** — chủ dự án, nguyên văn: *«Duyệt, chọn cách 1»* (nút ở khung bước tiếp theo, trả lời câu «Bạn duyệt hai lần đầu và chọn cách 1 cho phần nộp tiền chứ?», sau khi nhận trang trình `docs/superpowers/specs/2026-11-12-trinh-chu-thanh-toan-doi-tac.md` bản cuối ngày 12/11, câu duyệt mẫu «Duyệt lần 1 và lần 2, chữ theo khuyến nghị. Phần nộp tiền chọn cách 1»). Đây là «lần duyệt 2». Chữ ở bảng «Chữ chờ chủ chọn» dùng **khuyến nghị**, kể cả tiền tố «DL» của nội dung chuyển khoản.
   - **Cách ghi sổ (Đ2 mục 9): chủ chọn phương án (b1)** («cách 1» ở trang trình) cùng lời trên.
-  - **Phần B (Đ2 mục 4–8, 10; Đ3): vẫn proposed.** Chờ trình «lần duyệt 3» viết theo (b1), kèm câu chủ trả lời về hai lỗi an toàn chưa sửa (dòng «Xây trên lỗi» dưới đây).
+  - **Phần B (Đ2 mục 4–13; Đ3): vẫn proposed.** Chờ trình «lần duyệt 3» viết theo (b1), kèm câu chủ trả lời về hai lỗi an toàn chưa sửa (dòng «Xây trên lỗi» dưới đây).
+  - **Phần A đã lên production bản 2.96 ngày 2026-11-13** (kiểm bằng GET công khai `/api/auth/config`).
+  - **Sửa phần B 2026-11-13, trước lần duyệt 3** (phiên `claude/partner-payment-system-e3f939`). Chủ dự án, nguyên văn: *«làm nốt phần đại lý bấm Đã chuyển tiền và kèm biên lai , bước này nên ở sau bước gửi đơn (để ưu tiên việc gửi đơn hàng, và coi phần bổ sung biên lai là bước sau»*. Phần sửa:
+    - Đ2 mục 9 chỉ giữ (b1), viết đủ cách ghi; (b2) chuyển xuống «Phương án đã loại».
+    - Thêm mục 11 (bước gửi biên lai đứng sau Gửi đơn, theo lời chủ), mục 12 (cổng mở vé của đơn đối tác theo giá đại lý — **sửa ADR-0170 Đ2**), mục 13 (chặn ghi trùng giữa khoản nộp và quyết toán của Kế toán).
+    - Lý do thêm mục 12: người soạn đọc lại mã ngày 13/11 và thấy câu «Vé mở theo "Tôi thu" như hôm nay» ở bản 12/11 **sai**. Với đơn do tài khoản Đối tác lập, cổng vé chỉ tính tiền **đã về công ty** (`tienDonVe`, `soChuaVeCongTy`, ADR-0170 Đ2): đại lý ghi «Tôi thu» 1.000.000 ₫ rồi nộp 800.000 ₫ giá đại lý thì còn 200.000 ₫ «ở tay đối tác», vé vẫn không mở. Không sửa cổng này thì (b1) vẫn mang lỗi C1.
   - **Điều kiện trước khi thi công phần A — chủ đã cho phép 2026-11-12:** Đ1 đổi con số nợ mà luật đơn huỷ còn nợ (ADR-0168 Đ3) và hạn mức đang đọc, tức chạm vùng lỗi `TNV-G1`. Chủ được hỏi, nguyên văn câu hỏi: «Bạn cho làm phần A dù lỗi tiền đơn huỷ chưa sửa xong chứ?», kèm lời báo một lần (P18) rằng cách tính nợ mới đổi đúng con số luật đơn huỷ còn nợ đang dùng. Chủ trả lời, nguyên văn: *«Cho phép, có lý do»*. Lý do người soạn ghi: phần A không có migration, không thêm loại dòng sổ, không ghi dòng sổ mới, không nới luật đơn huỷ còn nợ (đơn còn nợ > 0 vẫn bị chặn như cũ); chỉ đổi con số đầu vào. Điều phải biết: nợ tính theo giá đại lý nhỏ hơn giá lẻ, nên hạn mức Trả sau của đại lý còn trống nhiều hơn hôm nay. Điều kiện phát hành: người soạn KHÔNG đặt điều kiện «chờ diễn tập» vì phần A không đổi dữ liệu đang có (giả định của người soạn; chủ nói khác thì thêm). Phần còn lại của lỗi giữ hạn cũ. Ghi kèm ở `docs/quyen-hoan.json` mục `TNV-G1`, khoá `xay_tren_cho_phep_adr_0182`.
 - **Lịch sử soạn:** **proposed** 2026-11-07. Chủ chốt hướng trong chat (phiên `claude/cong-no-0172-0173-372c0c`, ba hộp hỏi cùng ngày). Chờ chủ duyệt; người soạn không tự duyệt (Hiến pháp N3). Đã qua một vòng kiểm độc lập chỉ đọc (7/11), các lỗi sai sự thật đã sửa.
 - **Sửa 2026-11-12, trước khi duyệt** (phiên `claude/partner-payment-system-e3f939`). Chủ nêu yêu cầu, nguyên văn: *«Cần tách biệt hóa đơn thanh toán của khách đối với đối tác và hóa đơn thanh toán của đối tác đối với công ty … Cần có 2 nút riêng biệt là : Tạo biên nhận cho khách , và ở một vị trí phù hợp là xem công nợ với công ty Tour đảo … Hóa đơn của đối tác gửi khách là mẫu 02, không có mã QR và/hoặc thông tin chuyển khoản (vì đối tác là người thu tiền từ khách) , nhưng hóa đơn của đối tác với công ty Tour Đảo thì luôn có mã QR để đối tác có thể trả từng đơn tương ứng … Sau khi đối tác khởi tạo đơn, thì cần đến bước bổ sung bằng chứng công việc (ở đây là cho phép đính kèm biên lai chuyển tiền của chính đơn hàng tương ứng để dễ trong việc kiểm soát)»*. Rồi chủ bấm «Đồng ý cả ba» cho hai khuyến nghị: (1) *«bỏ nút QR giá lẻ khỏi màn của đối tác; thay bằng nút "Xem công nợ với Tour Đảo" ngay trên đơn, mở ra phiếu theo giá đại lý có QR đúng số tiền đó; máy chủ tự tính số tiền»*; (2) *«sau khi lập đơn, đối tác bấm "Đã chuyển tiền" trên phiếu công nợ và kèm ảnh biên lai; khoản này chờ Kế toán xác nhận rồi mới trừ vào nợ»*. Phần sửa: Đ2 viết lại (hai phiếu, QR theo giá đại lý, khoản nộp theo từng đơn kèm biên lai bắt buộc), Đ3 thêm quyền xem phiếu, trang ghép cập nhật. Đ1 không đổi. Bản sửa đã qua hai vòng đọc chỉ đọc cùng ngày: người kiểm độc lập (4 phát hiện vừa, đã sửa) và chuyên gia SaaS duyệt văn phong, logic (2 phát hiện cao về cách ghi sổ ⇒ Đ2 mục 9 nay là câu hỏi chờ chủ; các phát hiện vừa đã sửa hoặc ghi ở «Hệ quả»). Hai vòng này đọc văn bản, không chạy mã.
 - **Loại:** việc lớn (tiền, dữ liệu, quyền). **Cửa:** một chiều về số liệu (số nợ đại lý đã hiện theo cách mới); hai chiều về mã.
 - **Số quyết định chạm quyền/dữ liệu:** bản 7/11 đếm 3 trong một lượt; **từ bản sửa 12/11 trình hai lượt** như dòng dưới. ADR-0183 trình ở lượt riêng sau đó. Trang ghép ở cuối tệp.
   - **Đếm lại sau bản sửa 12/11** (phát hiện VỪA số 4 của vòng kiểm độc lập): Đ2 nay gói hai phần chạm tiền/dữ liệu khác nhau — (A) hai phiếu và QR (mục 1–3, không bảng mới, không dòng sổ mới) và (B) khoản nộp, bảng mới, cách ghi sổ mới, tách người (mục 4–10). Vì thế trình **hai lượt**: lượt «0182-A» = Đ1 + Đ2 phần A; lượt «0182-B» = Đ2 phần B + Đ3 + quyết định xây trên lỗ. Lượt B duyệt sau lượt A, và **chỉ trình sau khi chủ chọn cách ghi sổ ở Đ2 mục 9**.
-- **Xây trên lỗi an toàn chưa sửa:** `TNV-G1` (tiền của đơn huỷ), `HC-5.19` (chưa diễn tập lấy lại dữ liệu) — như ADR-0172, ADR-0178. Chủ quyết lại có cho làm trên vùng đó không.
+  - **Đếm lượt 0182-B sau bản sửa 13/11 — ba quyết định:** (B1) khoản nộp theo từng đơn + biên lai + ghi sổ (b1) + Kế toán xác nhận + chặn ghi trùng, gửi sau Gửi đơn (Đ2 mục 4–11, 13; migration hai bảng mới); (B2) cổng mở vé của đơn đối tác lập theo giá đại lý (Đ2 mục 12, sửa ADR-0170 Đ2 mục 1 — chỗ nới duy nhất); (B3) ô quyền mới (Đ3). Câu cho phép xây trên lỗi và điều kiện phát hành là **điều kiện kèm theo**, không phải quyết định thiết kế (như cách trình ADR-0196). Sửa khe hoa hồng của phần A là sửa mã cho khớp Đ1 mục 4 đã duyệt, không đếm.
+- **Xây trên lỗi an toàn chưa sửa:** `TNV-G1` (tiền của đơn huỷ), `HC-5.19` (chưa diễn tập lấy lại dữ liệu) — như ADR-0172, ADR-0178. Chủ quyết lại có cho làm trên vùng đó không. Phần A đã có lời cho phép riêng (dòng Trạng thái). Phần B có migration (hai bảng mới) nên chạm `HC-5.19`; Đ2 mục 12 để phần hoa hồng ở tay đại lý trước «Đã giao» nên chạm `TNV-G1` khi đơn huỷ. Câu hỏi cho chủ ở lần duyệt 3: có cho xây không, và **phát hành trước hay sau diễn tập 25/11** (lời «Diễn tập sau cùng» của ADR-0196 không áp sang đây).
 - **Quan hệ với ADR cũ:**
   - **Thay** ADR-0177 (**accepted** sáng 7/11, ở nhánh `claude/tra-sau-sau-kiem-7-11`, chưa nhập `main`). ADR-0177 cho nợ trừ hoa hồng **từ «Khách đã trả đủ»**; văn bản này trừ **từ lúc xác nhận**. Sau «Khách đã trả đủ» hai cách cho cùng một số. ADR đã duyệt không sửa; văn bản này thay nó khi được duyệt.
   - **Sửa** ADR-0168 Đ2 mục 2: bỏ câu «Tính trên toàn bộ tiền phải thu, không trừ hoa hồng».
@@ -20,6 +26,7 @@
   - **Khớp** ADR-0079 (sổ đại lý): dòng «Giảm giá bên đặt chịu» là phần đại lý tự nhường cho khách. Theo công thức mới, giảm giá không làm đổi nợ, đúng nghĩa dòng sổ ấy.
   - **Đổi có chủ ý** ADR-0109 («phải thu không âm») ở riêng con số công nợ đại lý: Đ1 mục 7 cho phép số âm, tức Tour Đảo nợ đại lý. Phải thu của khách vẫn không âm.
   - **Giữ** ADR-0168 phần còn lại, ADR-0172, ADR-0090 (quyền tiền), ADR-0170 Đ2 mục 2 (tiền nhân viên cầm hộ), ADR-0178 Đ1 (công tắc).
+  - (Sửa 13/11, phần B) **Sửa** ADR-0170 Đ2 mục 1 cho đơn Thanh toán ngay do tài khoản Đối tác lập: cổng mở vé tính theo giá đại lý (Đ2 mục 12). Đơn của nhân viên văn phòng và ADR-0170 Đ2 mục 2–5, Đ3 giữ nguyên.
   - (Sửa 12/11) **Siết** ADR-0108 đ3 (QR thanh toán): tài khoản Đối tác không còn nhận QR giá bán lẻ (Đ2 mục 3). Văn phòng giữ nguyên.
   - (Sửa 12/11) **Dùng lại khuôn** ADR-0196 (biên lai chuyển khoản bắt buộc, accepted 11/11) cho tệp biên lai của khoản nộp; **không gộp** hai đường (Đ2 mục 6).
   - (Sửa 12/11) **Ảnh hưởng** ADR-0183 Đ3 mục 4 (proposed; QR theo «Thu hộ đối tác còn lại»): sau Đ2 mục 3, luật QR đó chỉ còn áp cho **văn phòng**; đối tác không còn đường QR cho khách trả thẳng Công ty. Khi trình ADR-0183, người soạn phải sửa câu đó cho khớp.
@@ -76,14 +83,35 @@ Hôm nay số nợ của đại lý đổi giữa chừng. Trước «Khách đ�
    - **từ chối có lý do**: đại lý thấy lý do.
 
    Người ghi và người xác nhận phải khác nhau. **Đây là luật mới cho đường này**: đường quyết toán hiện nay (`ghiQuyetToan`) chưa có luật tách người.
-9. **Cách ghi sổ — chủ chọn (b1) ngày 12/11** («Duyệt, chọn cách 1»). Phần B viết tiếp theo (b1); (b2) giữ dưới đây làm phương án đã loại. (Viết lại sau vòng duyệt chuyên gia 12/11, phát hiện C1, C2.)
-   - **Sổ hôm nay là mô hình gộp.** Đại lý ghi «Tôi thu» theo giá **bán lẻ** ⇒ dòng `HELD` (đại lý giữ hộ Tour Đảo toàn bộ tiền khách). Lúc «Đã giao» sổ ghi dòng `HOA_HONG` (Tour Đảo nợ đại lý tiền hoa hồng; `src/modules/billing/rules.ts`, dòng thương mại). Đại lý nộp ⇒ dòng `SETTLEMENT`, không quá số đang giữ (`settlement_exceeds_held`). Số dư = giữ hộ − hoa hồng − đã nộp. Cổng mở vé và «Khách đã trả đủ» đo theo **phải thu bán lẻ** (`thuDu`, `src/modules/ve-dien-tu/rules.ts`).
-   - **Ca hỏng nếu nhận khoản nộp mà không có «Tôi thu»:** đơn Thanh toán ngay, giá lẻ 1.000.000 ₫, giá đại lý 800.000 ₫. Đại lý quét QR chuyển 800.000 ₫, Kế toán xác nhận ⇒ công nợ theo Đ1 bằng 0, nhưng phải thu bán lẻ vẫn còn 1.000.000 ₫ ⇒ **vé không mở, đơn không tới «Khách đã trả đủ»** (C1). Tới «Đã giao», sổ vẫn ghi `HOA_HONG` 200.000 ₫ cho đại lý ⇒ **Tour Đảo trả hoa hồng hai lần**, vì đại lý đã giữ phần đó khi chỉ nộp giá đại lý (C2).
-   - **Phương án (b1) — khuyến nghị:** khoản nộp đi **đường sổ đang có**. Nếu đơn chưa có «Tôi thu» đủ phải thu, form «Đã chuyển tiền» ghi luôn «Khách đã trả đại lý» theo giá bán lẻ (đúng thực tế chủ tả: đại lý là người thu tiền khách) rồi mới ghi khoản nộp. Kế toán xác nhận ⇒ `SETTLEMENT`. Vé mở theo «Tôi thu» như hôm nay; số dư sau `HOA_HONG` khớp, không trả hai lần; `settlement_exceeds_held` không còn chặn vì giữ hộ ≥ giá đại lý. Không cần loại dòng sổ mới. Còn lại phải xây: bảng khoản nộp chờ xác nhận, bảng ảnh, luật tách người.
-   - **Phương án (b2):** sổ ghi thẳng theo công nợ của đơn (bản 7/11). Phải đổi cổng mở vé, «Khách đã trả đủ», cổng huỷ, ân hạn, nhắc nợ (ADR-0181), chặn ngừng hồ sơ (ADR-0173 Đ3 mục 5) sang số nợ mới, **và** chặn dòng `HOA_HONG` cho đơn đại lý đã nộp theo giá đại lý. Rộng hơn nhiều, nhiều chỗ dễ lệch.
-   - **Đơn Trả sau:** với (b1), vé đã mở trước theo luật Trả sau; khi khách trả, đại lý ghi «Tôi thu» như hôm nay. Số nợ dùng cho ân hạn và chặn huỷ (`traSau.no`, ADR-0168 Đ3 mục 3) phải đọc **Công nợ còn lại theo Đ1** — người thi công liệt kê mọi chỗ đọc `traSau.no` trong kế hoạch.
-   - Chưa kiểm: đơn có đại lý ghi «Tôi thu» một phần rồi nộp; đường «Thu hộ» (khách trả thẳng Công ty) chạy với (b1) thế nào khi công tắc ADR-0178 Đ1 đang Bật.
+9. **Cách ghi sổ — (b1), chủ chọn ngày 12/11** («Duyệt, chọn cách 1»). Viết đủ ngày 13/11 sau khi đọc mã; (b2) chuyển xuống «Phương án đã loại».
+   - **Sổ hôm nay là mô hình gộp.** Đại lý ghi «Tôi thu» theo giá **bán lẻ** ⇒ dòng `HELD` (đại lý giữ hộ Tour Đảo toàn bộ tiền khách; người thu `BOOKER`, sinh nợ ngay, không dấu chờ — `docLanThu`, `cauLanThu`). Lúc «Đã giao» sổ ghi dòng `HOA_HONG` (Tour Đảo nợ đại lý tiền hoa hồng). Đại lý nộp ⇒ dòng `SETTLEMENT`, không quá số đang giữ (`settlement_exceeds_held`). Số dư = giữ hộ − hoa hồng − đã nộp.
+   - **Lý do không nhận khoản nộp khi chưa có «Tôi thu»:** đơn Thanh toán ngay, giá lẻ 1.000.000 ₫, giá đại lý 800.000 ₫. Nếu chỉ ghi khoản nộp 800.000 ₫ thì phải thu bán lẻ vẫn còn nguyên, đơn không tới «Khách đã trả đủ» (C1), và tới «Đã giao» sổ vẫn ghi `HOA_HONG` 200.000 ₫ cho đại lý, tức Tour Đảo trả hoa hồng hai lần (C2).
+   - **Bước 1 — «Khách đã trả đại lý» ghi kèm, cùng một lô với khoản nộp.** Form «Đã chuyển tiền» hiện một dòng có số tiền: «Khách đã trả bạn **X ₫**», với X = phần **phải thu bán lẻ còn lại** của đơn lúc gửi (phải thu − mọi khoản thu đang hiệu lực, **kể cả** khoản đang chờ đối chiếu và khoản khách trả thẳng Công ty). Vì vậy:
+     - đại lý đã ghi «Tôi thu» một phần thì máy chỉ ghi phần còn thiếu;
+     - công tắc ADR-0178 Đ1 đang Bật và khách đã trả thẳng Công ty (đã hay chưa xác nhận) thì phần đó đã bị trừ khỏi X, không tính hai lần;
+     - X = 0 thì không ghi thêm khoản thu nào.
+
+     Khoản thu này đi đúng đường «Tôi thu» hôm nay (người thu là chính đại lý, `BOOKER`, `HELD` ngay), dùng lại `docLanThu`/`cauLanThu`, không viết đường thứ hai. Khoản thu, khoản nộp, ảnh biên lai và nhật ký nằm trong **một** `db.batch`: một câu hỏng thì không ghi gì.
+   - **Bước 2 — Kế toán xác nhận khoản nộp ⇒ `SETTLEMENT`**, sinh dòng bằng đúng hàm của đường quyết toán «nộp về công ty» (`sinhDongQuyetToan`), kiểm bằng `kiemQuyetToan` trên số dư của đại lý với công ty ở đơn đó (`soDuCap`), và vẫn qua trigger `settlement_exceeds_held` / `settlement_sign_flip`. **Không thêm loại dòng sổ mới.** Từ chối thì không có dòng sổ nào; khoản «Khách đã trả đại lý» ở bước 1 vẫn giữ, vì đó là lời khai tiền khách đã ở tay đại lý (đúng thực tế), không phụ thuộc lần chuyển tiền.
+   - **Kết quả trên sổ** (ví dụ trên): giữ hộ 1.000.000 − nộp 800.000 = đại lý còn giữ 200.000; tới «Đã giao» sổ ghi `HOA_HONG` 200.000 ⇒ số dư 0. Không trả hoa hồng hai lần; `settlement_exceeds_held` không chặn vì giữ hộ ≥ giá đại lý.
+   - **Đơn Trả sau:** vé đã mở theo luật Trả sau. Đại lý chuyển tiền thì cũng qua bước 1: dòng «Khách đã trả bạn X ₫» là lời khai bắt buộc. Nếu khách chưa trả mà đại lý muốn nộp trước, đại lý vẫn phải khai dòng này; đó là hệ quả của mô hình gộp (sổ không có chỗ cho tiền đại lý tự ứng). Ghi ở «Hệ quả». Số nợ dùng cho ân hạn và chặn huỷ đọc Công nợ còn lại theo Đ1 (đã làm ở phần A).
 10. Khoản đã xác nhận thì không sửa được. Nếu ghi nhầm, khoản đó được huỷ bằng một dòng ngược lại, qua yêu cầu điều chỉnh có người thứ hai duyệt (luật sổ sẵn có).
+11. **Gửi biên lai là bước SAU Gửi đơn** (lời chủ 13/11: *«để ưu tiên việc gửi đơn hàng, và coi phần bổ sung biên lai là bước sau»*):
+    - Form lập đơn và nút «Gửi đơn» **không** có ô biên lai, không có ô chuyển tiền, không chặn hay hỏi gì về tiền nộp. Gửi đơn không phụ thuộc phần B.
+    - Nút «Đã chuyển tiền» chỉ có trên phiếu công nợ ở chi tiết đơn, nên chỉ có khi đơn **đã xác nhận** (Đ2 mục 2, Tổng công nợ đọc bản chụp lúc xác nhận — chưa xác nhận thì chưa có con số để kiểm trần ở mục 4).
+    - Để đại lý không quên bước sau: màn báo gửi đơn xong có một câu nhắc «Sau khi đơn được xác nhận, chuyển tiền cho Tour Đảo và gửi biên lai ở mục Xem công nợ với Tour Đảo.» (chữ chờ chủ chọn); và danh sách việc của đại lý (nếu Nền tảng đang có chỗ đó cho Đối tác) hiện các đơn đã xác nhận, Công nợ còn lại > 0, chưa có khoản nộp đang chờ, kèm nút mở phiếu. Danh sách này chỉ nhắc, không chặn.
+    - *Giả định của người soạn, chủ sửa được trong câu duyệt:* «sau bước gửi đơn» hiểu là «sau khi đơn được xác nhận». Phương án khác: cho gửi biên lai ngay lúc đơn đang chờ xác nhận — khi đó máy chưa có giá đại lý chốt để kiểm trần chống khai trùng, nên người soạn không khuyến nghị.
+12. **Cổng mở vé của đơn đối tác lập tính theo giá đại lý** (sửa ADR-0170 Đ2 mục 1, chỉ cho đơn Thanh toán ngay do tài khoản giữ quyền Đối tác lập; ADR đã duyệt không sửa chữ, văn bản này thay điều đó khi được duyệt):
+    - Hôm nay: vé mở khi tiền **đã về công ty** ≥ phải thu **bán lẻ**. Đại lý nộp giá đại lý thì phần hoa hồng còn «ở tay đối tác», vé không bao giờ mở (lỗi C1 vẫn còn dù ghi sổ theo (b1)).
+    - Mới: vé mở khi **cả hai** đúng: (i) khách đã trả đủ theo sổ — tổng khoản thu khách đang hiệu lực ≥ phải thu bán lẻ (`thuDu` trên số chưa trừ phần ở tay đối tác); và (ii) **Công nợ còn lại theo Đ1 ≤ 0**, chỉ tính khoản Tour Đảo đã nhận và **đã** được Kế toán xác nhận (khoản nộp đang chờ, khoản «Công ty thu» đang chờ đối chiếu không tính — giữ tinh thần ADR-0170).
+    - Đại lý nộp đủ giá bán lẻ như hôm nay vẫn mở được (Đã thu ≥ giá đại lý). Đơn của nhân viên văn phòng không đổi. Đơn Trả sau không đổi (ADR-0168 Đ3 mục 1).
+    - Đặt trong **hàm duy nhất** quyết định vé (`tienDonVe` của `billing`), lấy Công nợ còn lại từ **một chỗ** đã có của phần A (`src/modules/billing/cong-no-dai-ly.ts`); không viết công thức thứ hai. Câu báo cho đối tác khi còn khoản chờ giữ chữ ADR-0170 Đ2 mục 5.
+    - Điều phải biết: vé mở **sớm hơn** hôm nay — khi Tour Đảo đã nhận đủ giá đại lý, thay vì đủ giá bán lẻ. Phần hoa hồng ở lại tay đại lý trước khi «Đã giao». Đơn huỷ sau đó thì số đại lý còn giữ vẫn hiện trên sổ là nợ của đại lý (không mất dấu), nhưng nằm trong vùng lỗi `TNV-G1`.
+13. **Chặn ghi trùng một lần chuyển tiền ở hai đường:** đại lý ghi khoản nộp (đang chờ), rồi Kế toán lại ghi chính lần chuyển đó bằng đường quyết toán (`ghiQuyetToan`, chiều «nộp»), rồi xác nhận khoản nộp ⇒ trừ hai lần. Chặn bằng hai lớp, máy kiểm:
+    - `ghiQuyetToan` chiều «nộp» cho một đơn **đang có khoản nộp chờ xác nhận** của chính người nộp ⇒ 409 «Đơn này đang có khoản nộp chờ xác nhận. Xác nhận hoặc từ chối khoản đó trước.» (chữ chờ chủ chọn).
+    - Lúc xác nhận, máy kiểm lại trần: số khoản nộp ≤ số dư đại lý đang giữ ở đơn (`kiemQuyetToan`) **và** ≤ Công nợ còn lại tại lúc xác nhận. Vượt ⇒ 409, khoản vẫn ở trạng thái chờ, Kế toán từ chối có lý do.
+
+    **Sửa cùng đợt, không phải quyết định mới:** khe phần A do người kiểm ghi (mức vừa): Kế toán sửa tay dòng hoa hồng sau «Khách đã trả đủ» thì Công nợ còn lại chưa đổi theo. Đ1 mục 4 đã chốt «sửa mức sau xác nhận thì nợ đổi theo», nên đây là mã lệch văn bản, người thi công sửa mã cho khớp Đ1 mục 4 và thêm bài kiểm.
 
 ## Đ3 — Ô quyền mới
 
@@ -102,6 +130,8 @@ Lúc hỏi, câu chọn có nói «khoản nào tính vào đã thu» sẽ là c
 - **Giữ ADR-0177** (chỉ trừ hoa hồng từ «Khách đã trả đủ»): số nợ đổi giữa chừng, hạn mức bị chiếm thừa trước bước đó. Chủ chọn cách mới.
 - **Công thức tự gõ trên màn hình:** gõ sai một dấu là sai nợ của mọi đại lý, và máy không kiểm trước được. Chủ không chọn.
 - **Chặn xác nhận khi thiếu mức:** đơn có thể kẹt lại. Chủ không chọn.
+- **(b2) Sổ ghi thẳng theo công nợ của đơn** (bản 7/11, loại 12/11 khi chủ chọn (b1)): phải đổi cổng mở vé, «Khách đã trả đủ», cổng huỷ, ân hạn, nhắc nợ (ADR-0181), chặn ngừng hồ sơ (ADR-0173 Đ3 mục 5) sang số nợ mới, **và** chặn dòng `HOA_HONG` cho đơn đại lý đã nộp theo giá đại lý. Rộng hơn nhiều, nhiều chỗ dễ lệch.
+- **Cho gửi biên lai ngay khi đơn còn chờ xác nhận** (13/11): chưa có giá đại lý chốt để kiểm trần chống khai trùng (Đ2 mục 11).
 
 ## Hệ quả chủ cần biết
 
@@ -114,10 +144,13 @@ Lúc hỏi, câu chọn có nói «khoản nào tính vào đã thu» sẽ là c
 - (Sửa 12/11, duyệt chuyên gia V3) Mỗi khoản nộp gắn một đơn. Đại lý gộp mười đơn vào một lần chuyển thì phải ghi mười khoản và gửi cùng một ảnh mười lần, Kế toán khó khớp với sao kê; trần 20 ảnh mỗi giờ (`TEP_MOI_GIO`) có thể chặn đại lý lớn. Nên dặn đại lý chuyển riêng từng đơn; kế hoạch xét nâng trần cho bảng ảnh khoản nộp.
 - (Sửa 12/11, duyệt chuyên gia V4) **Ngoài phạm vi văn bản này:** trả lại đại lý khi «Tour Đảo nợ đại lý» (số âm do sửa mức, giảm khách, chuyển dư, đơn huỷ sau khi đã nộp), và ca «tiền về ít hơn số khai» (phí ngân hàng, chuyển thiếu). Kế toán chỉ có xác nhận hoặc từ chối; các ca này xử lý bằng yêu cầu điều chỉnh có người thứ hai duyệt (ADR-0115). Đơn huỷ sau khi đã nộp thuộc vùng lỗi `TNV-G1`. Chuyển dư (ví dụ làm tròn lên) không khai được phần dư vì trần ở Đ2 mục 4.
 - (Sửa 12/11, duyệt chuyên gia V5) Công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Đ1): sau Đ2 mục 3, công tắc Bật chỉ còn tác dụng khi **văn phòng** tạo QR cho khách; đại lý không còn QR nào để đưa khách. Phiếu công nợ vẫn hiện QR cho chính đại lý, nên nếu văn phòng đã đưa QR cho khách thì có thể cả khách lẫn đại lý cùng trả — trần ở Đ2 mục 4 chặn phần khai trùng, nhưng tiền thừa đã chuyển thì theo dòng trên.
+- (Sửa 13/11) Đơn Thanh toán ngay của đại lý sẽ **mở vé sớm hơn**: khi Tour Đảo đã nhận và xác nhận đủ giá đại lý, thay vì đủ giá bán lẻ. Vé vẫn chờ Kế toán xác nhận khoản nộp, nên đại lý trả trước sẽ thấy vé mở sau khi Kế toán bấm xác nhận, không phải ngay lúc gửi biên lai.
+- (Sửa 13/11) Đại lý muốn nộp tiền trước khi khách trả (đơn Trả sau) vẫn phải khai «Khách đã trả bạn X ₫». Sổ hôm nay không có chỗ cho tiền đại lý tự ứng.
+- (Sửa 13/11) Kế toán không ghi được quyết toán «nộp» cho đơn đang có khoản nộp chờ xác nhận của chính đại lý đó (Đ2 mục 13); phải xác nhận hoặc từ chối khoản đó trước.
 - **Chưa kiểm:**
   - số đơn đại lý cũ trên production thiếu bản chụp mức hoa hồng;
   - báo cáo khoá tháng sẽ dùng số nợ nào;
-  - cách ghi sổ ở Đ2 mục 9;
+  - Nền tảng hiện có danh sách việc cho tài khoản Đối tác không (Đ2 mục 11; không có thì chỉ giữ câu nhắc ở màn gửi đơn, việc dựng danh sách mới để sau);
   - đại lý hiện có dùng nút «QR thanh toán» trên production không (chưa có số liệu; nhật ký có ghi lượt mở QR thì đếm được bằng lệnh chỉ đọc).
 
 ## Chữ chờ chủ chọn (sửa 12/11; Hiến chương 5.27, ADR-0167)
@@ -131,11 +164,15 @@ Hai nút dùng **nguyên chữ chủ**: «Tạo biên nhận cho khách», «Xem
 | Tên khoản (Đ2 mục 4, 7) | «Khoản nộp» | «Lần chuyển tiền» |
 | Câu khi đơn chưa xác nhận | «Phiếu công nợ có sau khi đơn được xác nhận.» | — |
 | Nội dung chuyển khoản trên QR của phiếu (Đ2 mục 2; duyệt chuyên gia V2) | Thêm tiền tố riêng «DL» trước mã đơn, để Kế toán nhìn sao kê biết đây là tiền đại lý nộp, không phải tiền khách | Giữ y như QR của khách (mã đơn) |
+| (13/11) Dòng khai trong form «Đã chuyển tiền» (Đ2 mục 9) | «Khách đã trả bạn X ₫» | «Bạn đã thu của khách X ₫» |
+| (13/11) Câu nhắc ở màn gửi đơn xong (Đ2 mục 11) | «Sau khi đơn được xác nhận, chuyển tiền cho Tour Đảo và gửi biên lai ở mục Xem công nợ với Tour Đảo.» | — |
+| (13/11) Câu chặn quyết toán trùng (Đ2 mục 13) | «Đơn này đang có khoản nộp chờ xác nhận. Xác nhận hoặc từ chối khoản đó trước.» | — |
 
 ## Trang ghép (quy trình «bước ghép khi duyệt»)
 
 1. **Bảng chạm:**
-   - sổ `bil_ledger_line`: dòng từ khoản nộp đã xác nhận (cách ghi chốt ở kế hoạch, Đ2 mục 9);
+   - sổ `bil_ledger_line`: dòng `SETTLEMENT` từ khoản nộp đã xác nhận, cùng hàm với quyết toán «nộp» (Đ2 mục 9) — **không thêm loại dòng mới**;
+   - `bil_payment_receipt` + `bil_ledger_line`: khoản «Khách đã trả đại lý» ghi kèm (`BOOKER`, `HELD`), đi đường «Tôi thu» sẵn có, không thêm loại thực thể;
    - bảng mới của `billing` cho khoản nộp (gắn đúng một đơn) và bảng ảnh biên lai của khoản nộp (chép khuôn `bil_receipt_proof`); kho R2 `BIEN_LAI` dùng chung với ADR-0196, tiền tố khoá riêng;
    - đọc bản chụp hoa hồng của `orders` qua view công bố.
 
@@ -150,6 +187,8 @@ Hai nút dùng **nguyên chữ chủ**: «Tạo biên nhận cho khách», «Xem
    - route ghi khoản nộp: cổng `orders`, kiểm hồ sơ chủ đơn, kiểm tệp trước, một lô D1;
    - route phiếu công nợ và QR của phiếu: cổng `orders`, kiểm ô xem phiếu và hồ sơ chủ đơn; số tiền tính ở máy chủ;
    - route xem biên lai khoản nộp: qua Worker, nhật ký trước (khuôn ADR-0196 mục 6);
-   - route xác nhận: cổng `office`, tách người ghi và người xác nhận.
+   - route xác nhận: cổng `office`, tách người ghi và người xác nhận; kiểm lại trần (Đ2 mục 13);
+   - route quyết toán sẵn có (`POST /api/ledger/settlements`, chiều «nộp»): **siết** — 409 khi đơn có khoản nộp chờ xác nhận của chính người nộp (Đ2 mục 13);
+   - cổng mở vé (`tienDonVe`, gốc lắp ráp tiêm vào `ve-dien-tu`): đơn Thanh toán ngay do Đối tác lập đổi điều kiện theo Đ2 mục 12 — đây là chỗ **nới** duy nhất của phần B (vé mở khi đủ giá đại lý thay vì đủ giá bán lẻ), chủ duyệt riêng; đơn văn phòng và đơn Trả sau không đổi.
 
    **Chỗ giao diện ẩn/hiện bị đổi nghĩa:** «Hạn mức trả sau», «Trả sau của tôi» và chi tiết đơn (con số nợ nay là Công nợ còn lại theo Đ1); thẻ Thanh toán của chi tiết đơn với tài khoản Đối tác: nút «QR thanh toán» biến mất, thêm nút «Xem công nợ với Tour Đảo», nút «Xem ảnh gửi khách» đổi chữ thành «Tạo biên nhận cho khách». Điều kiện hiện nút QR ở `web/order.ts` (đang dựa `t.kenhThu?.congTyThu`) phải thêm điều kiện «không phải tài khoản Đối tác».
