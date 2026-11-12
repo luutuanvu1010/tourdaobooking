@@ -177,3 +177,16 @@ test("Đ2 mục 2 / Đ3 dòng «Xem phiếu»: đại lý chủ đơn, Kế toá
   assert.ok([403, 404].includes(khac.status), `đại lý khác: ${khac.status}`);
   assert.doesNotMatch(khac.text, /tong|conLai|payload/);
 });
+
+test("Đ1 mục 2: hoa hồng lớn hơn thành tiền ⇒ giá đại lý ÂM, không kẹp về 0 (khớp sổ ghi hoa hồng theo số gốc)", async () => {
+  const w = dung();
+  await hanMuc(w, false);
+  const m = await w.call("POST", "/api/pricing/hoa-hong", { as: ACC, body: { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "PER_PAX", moiKhach: 400_000, tuNgay: "2026-01-01" } });
+  assert.equal(m.status, 201, m.text);
+  const id = await donDaiLy(w);
+  const g = (await app.giaDaiLyNhieuDon(w.env.DB, [id])).get(id);
+  assert.equal(g.tong, TONG - 2 * 400_000, "600.000 − 800.000 = −200.000, không kẹp");
+  assert.equal(await noDon(w, id), 0, "số dùng cho hạn mức kẹp ≥ 0 từng đơn (Đ1 mục 8)");
+  const p = (await phieu(w, id, ACC)).json.phieu;
+  assert.deepEqual([p.tong, p.conLai, p.qr], [-200_000, -200_000, null], "phiếu hiện số âm (Tour Đảo nợ đại lý), không QR");
+});
