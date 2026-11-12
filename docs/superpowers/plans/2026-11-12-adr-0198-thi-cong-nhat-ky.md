@@ -61,3 +61,4 @@ Kết quả 12/11: **«TRA SAU SMOKE OK»** (cần `AXE_JS`, đã có). Hai lư�
 
 1. `src/giao-dien-hoi-bang-quyen.test.ts` (hàng rào «giao diện hỏi bảng quyền»): `laDoiTacTraSau` hỏi thẳng mã `ACCOUNTING`. Đây là câu hỏi DANH TÍNH mà ADR-0198 Đ1 mục 1 định nghĩa bằng mã, đúng loại ngoại lệ hàng rào cho phép; thêm một mục `CHO_PHEP` có lý do (khuôn dòng khớp nguyên văn, đổi dòng thì đỏ lại). Không đổi cách dò. **Cần người kiểm / chủ biết:** đây là một mục ngoại lệ mới của hàng rào.
 2. `src/huong-dan-may-canh.test.ts`: bài Hướng dẫn «Cấp hạn mức trả sau cho đối tác» neo vào `han-muc-tra-sau-hien-thi.ts`. Đọc lại bài, thêm một câu ở «Điều dễ sai» (đối tác không thấy con số hạn mức; đơn mới chọn sẵn «Trả sau»; câu báo khi vượt mức), rồi `npm run huong-dan:xem-lai -- han-muc-tra-sau`.
+3. Lượt hai: `src/shared/tro-ly-van-nghia.test.ts` (C4, số đo kho Trợ lý) đỏ 49 → 50 vì câu Hướng dẫn mới có chữ «lập»; đo lại và ghi chú theo khuôn sẵn có của bài (luật không đổi).
