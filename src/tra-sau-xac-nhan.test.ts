@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { seedStaff } from "../tests/audit/harness.mjs";
 import { A, ACC, ADM, PARTNER, SUP, datCo, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
 import { addDays, vnToday } from "./shared/vn-date.ts";
+import { CAU_VUOT_HAN_MUC_DOI_TAC } from "./shared/tra-sau.ts";
 import { cachBayGio, datMocTraSau, datQuaHan } from "../tests/audit/tra-sau-moc.mjs";
 
 const AT = "2026-10-01T00:00:00.000Z";
@@ -64,7 +65,7 @@ const moc = (w: W, id: string) => w.q("SELECT confirmed_at AS c, credit_due_at A
 const phienBan = (w: W) => w.q("SELECT version FROM bil_credit_guard WHERE party_id = ?", BEN)[0]?.version ?? null;
 
 for (const d of DUONG) {
-  test(`(${d.ten}) hạn mức đủ thì xác nhận được và chụp hạn trả = giờ xác nhận + thời hạn, hết ân hạn = hạn trả + ân hạn; vượt thì 409 có số tiền, đơn ở lại nháp, không dòng nào của lô`, async () => {
+  test(`(${d.ten}) hạn mức đủ thì xác nhận được và chụp hạn trả = giờ xác nhận + thời hạn, hết ân hạn = hạn trả + ân hạn; vượt thì 409 (văn phòng gửi: có số tiền; đối tác gửi: câu không số — ADR-0198), đơn ở lại nháp, không dòng nào của lô`, async () => {
     const w = dung();
     assert.equal((await hanMuc(w, Math.floor(d.tong * 1.5), 36, 12)).status, 201);
     const d1 = await nhapTS(w, d.as, d.ma);
@@ -85,7 +86,14 @@ for (const d of DUONG) {
     const r2 = await d.xn(w, d2);
     assert.equal(r2.status, 409, r2.text);
     assert.equal(r2.json.error.code, "vuot_han_muc");
-    assert.match(r2.json.error.message, new RegExp(String(d.tong).replace(/(\d)(?=(\d{3})+$)/g, "$1.")), "câu báo có số tiền của đơn");
+    if (d.ten === "gui-don nhánh B") {
+      // ADR-0198 Đ1.4: người GỬI là đối tác ⇒ câu không số, mã lỗi giữ nguyên
+      assert.equal(r2.json.error.message, CAU_VUOT_HAN_MUC_DOI_TAC);
+      assert.doesNotMatch(r2.json.error.message, /₫|\d/);
+    } else {
+      // người gửi là văn phòng (/status: Bán hàng; Còn vé: Quản trị bấm) ⇒ câu có số như cũ
+      assert.match(r2.json.error.message, new RegExp(String(d.tong).replace(/(\d)(?=(\d{3})+$)/g, "$1.")), "câu báo có số tiền của đơn");
+    }
     assert.deepEqual({ ...trangThai(w, d2.id) }, { status: "draft", t: "CREDIT", h: null });
     assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE order_id = ?", d2.id)[0].n, truoc, "không nhật ký nào của lô thua");
     assert.equal(w.q("SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?", d2.id)[0].n, 0, "không bản chụp nào");
@@ -299,4 +307,20 @@ test("«Đã giao» đơn Trả sau còn nợ đi qua ROUTE THẬT: 409 «Đơn 
   const du = await w.call("POST", `/api/orders/${o.id}/delivered`, { as: SUP, body: {} });
   assert.equal(du.status, 200, du.text);
   assert.equal(hoaHong(), 1, "thu đủ rồi bấm Xác nhận khách đã trả đủ: hoa hồng mới vào sổ");
+});
+
+// ADR-0198 Đ1.4: cổng hạn mức lúc LƯU đơn (POST /api/orders, PUT /api/orders/:id) — đối tác gửi ⇒ câu không số; văn phòng gửi ⇒ câu có số. Mã lỗi giữ nguyên ở cả hai.
+test("ADR-0198 Đ1.4: lưu đơn Trả sau vượt hạn mức — đối tác nhận câu không số, văn phòng nhận câu có số; cùng mã vuot_han_muc", async () => {
+  const w = dung();
+  assert.equal((await hanMuc(w, T_ZB1 - 1)).status, 201);
+  const dt = await lap(w, DT, { term: "CREDIT" });
+  assert.deepEqual([dt.status, dt.json.error?.code, dt.json.error?.message], [409, "vuot_han_muc", CAU_VUOT_HAN_MUC_DOI_TAC], dt.text);
+  const vp = await lap(w, A, { term: "CREDIT" });
+  assert.deepEqual([vp.status, vp.json.error?.code], [409, "vuot_han_muc"], vp.text);
+  assert.match(vp.json.error.message, /₫/, "văn phòng vẫn thấy số");
+  // PUT: nháp Trả trước của đối tác đổi sang Trả sau
+  const nhap = await lap(w, DT, { term: "PREPAID" });
+  assert.equal(nhap.status, 201, nhap.text);
+  const sua = await w.call("PUT", `/api/orders/${nhap.json.order.id}`, { as: DT, body: coBen({ services: [svc("ZB1", inDays(3))], paymentTerm: "CREDIT", expectedUpdatedAt: nhap.json.order.updatedAt }) });
+  assert.deepEqual([sua.status, sua.json.error?.code, sua.json.error?.message], [409, "vuot_han_muc", CAU_VUOT_HAN_MUC_DOI_TAC], sua.text);
 });

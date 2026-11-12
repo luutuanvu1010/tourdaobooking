@@ -41,6 +41,7 @@ import {
   CAU_HET_LUOT, biGioiHanTuChoi, conLai, dauTuanIso, docCaiDat, moTaChamHanMuc, moTaDatLai, moTaDoiCaiDat, quyetDinhHanMuc, type CaiDatHanMuc,
 } from "../../shared/han-muc-tu-choi";
 import type { MaLyDoTuChoi } from "../../shared/ly-do-tu-choi";
+import { laDoiTacTraSau } from "../../shared/tra-sau";
 
 const toDto = (r: HandlerRow): HandlerDto => ({ partyId: r.party_id, staffId: r.staff_id, name: r.label });
 
@@ -365,7 +366,7 @@ export const dispatchModule: AppModule = {
       if (!hasPermission(staff, "SUPER_ADMIN") && tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return MONEY_EDIT_DEPARTED();
       { const chan = await chanDoiTacSuaSoKhach(staff, orderId, veDaMoCuaDon); if (chan) return chan; } // ADR-0171 Đ1: như route văn phòng
       // ADR-0104 Đ2 (điểm gọi 7): máy đồng bộ chuyến nối vào CHÍNH lô sửa số khách (HDV không có trip.view — phản hồi chỉ câu cố định + cờ, Đ2.13).
-      const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request), { kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon }, (x) => dongBoChuyen(x), soVeDaDungTheoDichVu, cauChanDuoiSoDaDung);
+      const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request), { kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon, nguoiGuiLaDoiTac: laDoiTacTraSau(staff) }, (x) => dongBoChuyen(x), soVeDaDungTheoDichVu, cauChanDuoiSoDaDung);
       if (!result.ok) {
         if (result.code === "trip_rule") return result.res;
         if (result.code === "not_found") return NOT_FOUND();

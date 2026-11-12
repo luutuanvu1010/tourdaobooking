@@ -33,7 +33,7 @@ import {
 import { coVeTheoMa, nguonVeTheoMa } from "../catalog";
 import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
 import { mocTraSauCuaDon, noiHanTraSauStatement, soHanhKhachDangLuu } from "./chang-hanh-khach-repo";
-import { kiemNoiHan, ngayCuaMoc, trangThaiHan } from "../../shared/tra-sau";
+import { kiemNoiHan, laDoiTacTraSau, ngayCuaMoc, trangThaiHan } from "../../shared/tra-sau";
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP, type LyDoDatGap } from "../../shared/chang-dua-don";
 import { duoiMocKhiSua, nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
@@ -71,7 +71,7 @@ import type { ChanKhaiLai } from "../../shared/dat-coc-kieu";
 import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRANSFER_DISABLED, TRAN_GIAM_GIA, catChoXetDuyet, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, nguoiLapLaNguoiBam, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
 import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { congLuatBan } from "./cong-ban";
-import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu, dichLoiLoHuy, dichLoiTraSau, VE_CHUA_SOAN_DUOC, type HamNoTraSau, type HamTraSau } from "./tra-sau-cong";
+import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu, dichLoiLoHuy, dichLoiTraSau, VE_CHUA_SOAN_DUOC, type HamNoTraSau, type HamTraSau, type NguoiGuiTraSau } from "./tra-sau-cong";
 import { thanLapDonKhiAn, thanNhapKhiAn } from "./an-thong-tin-khach";
 import { apTruongDichVu, thanKhiAnTruong, thieuBatBuoc, traDichVu, truongTaoDon } from "./an-truong-giao-dien";
 import { anKhachBat, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon } from "./xac-nhan-repo";
@@ -731,7 +731,7 @@ async function soanSuaSoKhach(
   staffId: string,
   body: Record<string, unknown> | null,
   action: HanhDongDoiSoKhach,
-  traSau: HamTraSau & Pick<HamNoTraSau, "traSauCuaDon">,
+  traSau: HamTraSau & Pick<HamNoTraSau, "traSauCuaDon"> & NguoiGuiTraSau,
   soVeDaDung?: (orderId: string) => Promise<Map<string, number> | null>,
   cauGacDuoiSo?: CauGacDuoiSoVe,
 ): Promise<SoanSuaSoKhach> {
@@ -814,7 +814,7 @@ function sauSuaSoKhach(trangThai: string, chang: readonly ChangSoNguoi[], truoc:
 }
 
 export async function editMoneyAsHandler(
-  db: D1Database, orderId: string, staffId: string, body: Record<string, unknown> | null, traSau: HamTraSau & Pick<HamNoTraSau, "traSauCuaDon">, noiChuyen: NoiChuyen,
+  db: D1Database, orderId: string, staffId: string, body: Record<string, unknown> | null, traSau: HamTraSau & Pick<HamNoTraSau, "traSauCuaDon"> & NguoiGuiTraSau, noiChuyen: NoiChuyen,
   soVeDaDung?: (orderId: string) => Promise<Map<string, number> | null>,
   cauGacDuoiSo?: CauGacDuoiSoVe,
 ): Promise<MoneyEditResult> {
@@ -1332,7 +1332,7 @@ export const ordersModule: AppModule = {
       const khai = await congLoiKhaiKhiLuu(staff, placed.value.declaredDeposit, 0, placed.value.total, chanKhaiCocLai); // ADR-0159 Đ1 mục 4
       if ("loi" in khai) return khai.loi;
       // ADR-0168 Đ2 mục 1, 3: Trả sau chỉ nhận khi bên đặt có hạn mức còn hiệu lực và đơn không kèm lời khai đặt cọc — báo sớm lúc lưu, chốt thật ở lô xác nhận.
-      const chanTraSauLap = await congTraSauKhiLuu({ kiemTraSau }, { id: null, paymentTerm: placed.value.paymentTerm ?? "PREPAID", bookerPartyId: booker.write.partyId, total: placed.value.total });
+      const chanTraSauLap = await congTraSauKhiLuu({ kiemTraSau, nguoiGuiLaDoiTac: laDoiTacTraSau(staff) }, { id: null, paymentTerm: placed.value.paymentTerm ?? "PREPAID", bookerPartyId: booker.write.partyId, total: placed.value.total });
       if (chanTraSauLap) return chanTraSauLap;
       // ADR-0142: người được mời kiểm NGAY (đang hoạt động, có hồ sơ, giữ Bán hàng, không giữ Đối tác); sai ⇒ 400, không tạo đơn. Ghi hồ sơ của họ trên đơn nháp CÙNG lô tạo đơn (chưa có lời mời — chỉ có từ lúc ghi nhận).
       const xMoi = moi.staffId === null ? null : await banHang.kiemBanHangMoi(moi.staffId);
@@ -1511,7 +1511,7 @@ export const ordersModule: AppModule = {
       const khai = await congLoiKhaiKhiLuu(staff, placed.value.declaredDeposit, dangKhai, placed.value.total, chanKhaiCocLai);
       if ("loi" in khai) return khai.loi;
       // ADR-0168 Đ2 mục 1, 3: như lúc lập — hình thức SẼ lưu = hình thức gửi lên, vắng thì giữ hình thức đang lưu; đơn đã rời nháp không tới được đây (NOT_EDITABLE ở trên).
-      const chanTraSauLuu = await congTraSauKhiLuu({ kiemTraSau }, { id, paymentTerm: placed.value.paymentTerm ?? meta.paymentTerm, bookerPartyId: booker.write.partyId, total: placed.value.total });
+      const chanTraSauLuu = await congTraSauKhiLuu({ kiemTraSau, nguoiGuiLaDoiTac: laDoiTacTraSau(staff) }, { id, paymentTerm: placed.value.paymentTerm ?? meta.paymentTerm, bookerPartyId: booker.write.partyId, total: placed.value.total });
       if (chanTraSauLuu) return chanTraSauLuu;
       const ghiChuKhai = khai.giaTri !== null && khai.giaTri !== dangKhai ? `đổi khai khách đặt cọc cho đối tác ${dangKhai.toLocaleString("vi-VN")} ₫ → ${khai.giaTri.toLocaleString("vi-VN")} ₫` : null;
       let luuDuoc: boolean;
@@ -1820,7 +1820,7 @@ export const ordersModule: AppModule = {
       const than = docThanSuaSoKhach(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
       // Lý do đi vào luật chung dưới dạng NHÃN cố định do máy chủ chọn (planMoneyEdit nhận `reason` chữ — cùng bộ đọc với đường HDV).
-      const soan = await soanSuaSoKhach(env.DB, id, staff.id, { reason: than.nhan, services: than.services }, "order_money_adjusted", { kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon }, soVeDaDungTheoDichVu, cauChanDuoiSoDaDung);
+      const soan = await soanSuaSoKhach(env.DB, id, staff.id, { reason: than.nhan, services: than.services }, "order_money_adjusted", { kiemTraSau, cauGacPhienBanTraSau, traSauCuaDon, nguoiGuiLaDoiTac: laDoiTacTraSau(staff) }, soVeDaDungTheoDichVu, cauChanDuoiSoDaDung);
       if (!soan.ok && soan.code === "tra_sau") return soan.res; // ADR-0168 Đ2 mục 5
       if (!soan.ok) return soan.code === "thieu_nguoi_lon" ? error(409, "thieu_nguoi_lon", soan.message) : error(400, "invalid_input", soan.message); // ADR-0114 D3: 409, cùng mã với đường hướng dẫn viên
       if (!soan.ghi) {

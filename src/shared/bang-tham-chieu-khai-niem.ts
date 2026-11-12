@@ -474,7 +474,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Hạn mức khả dụng",
-    giaiNghia: "Phần hạn mức trả sau đối tác còn dùng được: hạn mức trừ số đang nợ của các đơn trả sau. Đơn trả sau mới hay phần tăng thêm của một đơn phải nằm trong số này.",
+    giaiNghia: "Phần hạn mức trả sau đối tác còn dùng được: hạn mức trừ số đang nợ của các đơn trả sau. Đơn trả sau mới hay phần tăng thêm của một đơn phải nằm trong số này. Chỉ văn phòng thấy con số này; tài khoản Đối tác không thấy (ADR-0198).",
     khacVoi: "Khác «Hạn mức trả sau»: đó là con số được cấp, còn hạn mức khả dụng là phần chưa dùng tới.",
     chuDaLoai: [],
     maNoiBo: ["conDuocDung", "/api/tra-sau/con-duoc-dung"],
@@ -501,10 +501,10 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Trả sau",
-    giaiNghia: "Hình thức thanh toán của đơn do đối tác đặt: đơn được xác nhận và vé được mở trước, đối tác trả tiền cho Công ty trong hạn trả, trong phạm vi hạn mức trả sau đã được cấp.",
+    giaiNghia: "Hình thức thanh toán của đơn do đối tác đặt: đơn được xác nhận và vé được mở trước, đối tác trả tiền cho Công ty trong hạn trả, trong phạm vi hạn mức trả sau đã được cấp. Đơn mới do tài khoản Đối tác lập được chọn sẵn «Trả sau» khi bên đặt dùng được. Đối tác không thấy con số hạn mức (ADR-0198): ở ô lập đơn thấy câu «Bạn được trả sau. Nhận vé trước, chuyển tiền cho Tour Đảo trong hạn trả.»; ở «Trả sau của tôi» thấy «Bạn được trả sau, trả trong N giờ kể từ khi đơn được xác nhận, sau đó còn M giờ ân hạn.»; đơn vượt mức thì máy báo «Đơn này vượt mức được trả sau. Chọn Thanh toán ngay, hoặc liên hệ Tour Đảo.»",
     khacVoi: "Đối lập với «Thanh toán ngay». Phải có hạn mức trả sau còn hiệu lực mới chọn được; khách đặt cọc cho Đối tác được, nhưng cọc không làm giảm nợ với Công ty (ADR-0197).",
     chuDaLoai: [],
-    maNoiBo: ["NHAN_HINH_THUC.CREDIT", "paymentTerm = CREDIT"],
+    maNoiBo: ["NHAN_HINH_THUC.CREDIT", "paymentTerm = CREDIT", "CAU_TRA_SAU_DOI_TAC", "CAU_VUOT_HAN_MUC_DOI_TAC", "dongTraSauCuaToi", "duocChonSanTraSau"],
     trangThai: "da-chot",
     chuChon: "2026-11-05 (ADR-0168, chủ duyệt)",
   }),
