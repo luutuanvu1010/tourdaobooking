@@ -40,7 +40,9 @@
 
 ## Kịch bản Chrome
 
-`docs/evidence/2026-11-05-tra-sau/kich-ban/tra-sau-smoke.mjs` (cập nhật): P1 (trang Tôi của Đối tác: không số hạn mức, không «Hạn mức khả dụng»), P2 mới (Đối tác lập đơn mới: câu gọn, «Trả sau» chọn sẵn, không câu báo), F1 giữ «Hạn mức khả dụng» cho Bán hàng. Ảnh: `docs/evidence/2026-11-12-adr-0198/anh/`. Kết quả: xem mục dưới.
+`docs/evidence/2026-11-05-tra-sau/kich-ban/tra-sau-smoke.mjs` (cập nhật): P1 (trang Tôi của Đối tác: không số hạn mức, không «Hạn mức khả dụng»), P2 mới (Đối tác lập đơn mới: câu gọn, «Trả sau» chọn sẵn, không câu báo), F1 giữ «Hạn mức khả dụng» cho Bán hàng. Ảnh: `docs/evidence/2026-11-12-adr-0198/anh/` (`doi-tac-lap-don-{1440,390}.png`, `tra-sau-cua-toi-{1440,390}.png`, và ảnh của các bước văn phòng).
+
+Kết quả 12/11: **«TRA SAU SMOKE OK»** (cần `AXE_JS`, đã có). Hai lượt đầu P2 đỏ vì vùng chạm: hai ô tròn «Thanh toán ngay / Trả sau» bị luật chung `input { display: block; width: 100% }` kéo ra cả dòng, nhãn chỉ cao ~34px — lỗi giao diện có từ ADR-0168 (bước F1 cũ có ghi «vùng chạm» trong tên nhưng không gọi `bocucSach`, nên chưa ai bắt). Sửa CSS `.tra-sau-khoi > label` (flex, cao tối thiểu `--tap-min`) và `.tra-sau-khoi > label > input` (không kéo giãn) ở `public/app.css`; hàm đo của kịch bản nay đo cả nhãn khi ô tròn / ô tích nằm trong `<label>` (bấm chữ cũng chọn). Lượt ba, bốn xanh; ảnh 390 cho thấy ô tròn nằm cạnh chữ. Ảnh chụp cả trang ở 390 có thanh tiêu đề dính đè lên câu dưới hai ô tròn (giới hạn của cách chụp cả trang); ảnh 1440 thấy đủ câu.
 
 ## Nợ / việc để sau
 
