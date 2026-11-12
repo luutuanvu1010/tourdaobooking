@@ -26,9 +26,9 @@ Con số hạn mức làm đối tác hiểu đây là khoản được nợ, đ
 2. **Ô lập đơn:** khi bên đặt dùng được Trả sau, khối «Hình thức thanh toán» hiện câu ngắn **«Bạn được trả sau. Nhận vé trước, chuyển tiền cho Tour Đảo trong hạn trả.»** (chữ chờ chủ chọn, xem «Chữ chờ chủ chọn»), không kèm số tiền.
 3. **Khi bị khoá vì có đơn quá hạn:** giữ câu khoá đang có (`CAU_KHOA_QUA_HAN`: «Bên đặt còn đơn trả sau quá hạn chưa thanh toán nên chưa đặt thêm đơn trả sau được.») — câu này không có số tiền.
 4. **Khi lưu hay xác nhận bị máy chủ chặn vì vượt hạn mức:** hôm nay máy chủ trả câu có số (`kiemTraSau`, `src/shared/tra-sau.ts`: «… vượt hạn mức khả dụng của bên đặt là … (hạn mức …»). Khi **người gửi** là tài khoản Đối tác theo mục 1, máy chủ trả câu **không** số: «Đơn này vượt mức được trả sau. Chọn Thanh toán ngay, hoặc liên hệ Tour Đảo.» (chữ chờ chủ chọn). Mã lỗi giữ nguyên; câu cho văn phòng giữ nguyên. Đây là chỗ duy nhất văn bản này sửa ở máy chủ.
-5. **«Trả sau của tôi»:** bỏ «Hạn mức khả dụng …». Giữ số đang nợ và từng đơn còn nợ kèm giờ hạn trả.
-6. **Chỉ ẩn trên màn hình, không phải bí mật.** Máy chủ vẫn trả các trường hạn mức cho đối tác như hôm nay (đối tác đã được xem theo ADR-0173). *Người soạn tự chọn, đảo ngược được:* mục đích của chủ là gọn, không phải giấu; giữ API nguyên thì không đổi hợp đồng giữa các phần. Chủ muốn giấu hẳn thì nói, việc đó thành một quyết định riêng.
-7. Một hàm thuần quyết định câu hiện cho đối tác, đặt cạnh `cauChonTraSau`, có bài kiểm: **mọi** câu trả về cho đối tác không chứa ký hiệu «₫» và không chứa chữ số của số tiền.
+5. **«Trả sau của tôi»** (`web/tra-sau-cua-toi.ts`) hôm nay có **hai** dòng mang số hạn mức: dòng `cauHanMuc(r)` («50.000.000 ₫ · trả trong 36 giờ · ân hạn …», `src/shared/han-muc-tra-sau-hien-thi.ts`) và dòng «Đang nợ … · Hạn mức khả dụng …». Bỏ **cả hai** phần số hạn mức: dòng `cauHanMuc(r)` thay bằng câu không số «Bạn được trả sau, trả trong N giờ kể từ khi đơn được xác nhận.» (giữ số giờ, vì đó là hạn trả, không phải số tiền); dòng sau chỉ còn «Đang nợ …». Giữ từng đơn còn nợ kèm giờ hạn trả. (Sửa sau vòng kiểm độc lập 12/11, phát hiện VỪA số 1.)
+6. **Chỉ ẩn trên màn hình, không phải bí mật.** Máy chủ vẫn trả các trường hạn mức (`hanMuc`, `conDuocDung`) cho đối tác như hôm nay (đối tác đã được xem theo ADR-0173), nên đối tác rành máy vẫn đọc được số qua công cụ của trình duyệt. *Người soạn tự chọn, đảo ngược được:* mục đích của chủ là gọn, không phải giấu; giữ API nguyên thì không đổi hợp đồng giữa các phần. Chủ muốn giấu hẳn thì nói, việc đó thành một quyết định riêng.
+7. Các hàm thuần dựng chữ cho đối tác (câu ở ô lập đơn, hai dòng của «Trả sau của tôi», câu vượt hạn mức) có bài kiểm: **mọi** chữ trả về cho đối tác không chứa ký hiệu «₫» và không chứa số tiền. Bài phủ **cả** màn «Trả sau của tôi», không chỉ ô lập đơn.
 
 ## Đ2 — Đơn mới của đối tác chọn sẵn «Trả sau»
 
@@ -36,7 +36,8 @@ Con số hạn mức làm đối tác hiểu đây là khoản được nợ, đ
 2. **Khi nào không:** nháp đã lưu giữ hình thức đã lưu; bên đặt không dùng được Trả sau thì chọn sẵn «Thanh toán ngay» như hôm nay, không hiện câu báo «chuyển về Thanh toán ngay» (người dùng chưa chọn gì).
 3. **Văn phòng lập đơn qua đối tác:** giữ chọn sẵn «Thanh toán ngay». *Người soạn tự chọn, đảo ngược được:* chủ nói «phương thức mặc định **của đối tác**»; văn phòng đặt hộ thì nên chủ động chọn.
 4. Đối tác vẫn đổi được sang «Thanh toán ngay» bằng một chạm. Máy chủ vẫn kiểm lại lúc lưu và lúc xác nhận (không đổi).
-5. Luật chọn sẵn là một hàm thuần (mở rộng `quyetHinhThuc` hoặc hàm mới cạnh nó), có bài kiểm cho bốn ca: đơn mới + dùng được → Trả sau; đơn mới + không dùng được → Thanh toán ngay, không câu báo; nháp đã lưu Thanh toán ngay → giữ; văn phòng lập → Thanh toán ngay.
+5. **Trả sau theo dịch vụ** (ADR-0178 Đ2, chưa thi công ở ô lập đơn): khi phần đó lên, đơn chỉ có dịch vụ được trả sau ngoài hạn mức cũng được chọn sẵn «Trả sau» theo cùng mục 1; người thi công ADR-0178 Đ2 sửa hàm chọn sẵn cho khớp.
+6. Luật chọn sẵn là một hàm thuần (mở rộng `quyetHinhThuc` hoặc hàm mới cạnh nó), có bài kiểm cho bốn ca: đơn mới + dùng được → Trả sau; đơn mới + không dùng được → Thanh toán ngay, không câu báo; nháp đã lưu Thanh toán ngay → giữ; văn phòng lập → Thanh toán ngay.
 
 ## Chữ chờ chủ chọn (Hiến chương 5.27, ADR-0167)
 
@@ -64,4 +65,4 @@ Chưa có trong `docs/BANG-THAM-CHIEU.md`. Người soạn đưa khuyến nghị
 2. **Bản đồ quyền:** không đổi ô nào. Ô xem hạn mức của đối tác (phạm vi «own») giữ nguyên; chỉ màn hình không vẽ con số.
 3. **Cổng:** không đổi route, không đổi điều kiện chặn. Máy chủ vẫn là cổng chặn vượt hạn mức và đơn quá hạn; chỉ câu báo khi người gửi là đối tác đổi chữ (Đ1.4).
 
-   **Chỗ giao diện ẩn/hiện bị đổi nghĩa:** khối «Hình thức thanh toán» ở ô lập đơn (câu mới, lựa chọn sẵn mới cho đối tác); mục «Trả sau của tôi» ở trang Tôi (bỏ dòng hạn mức khả dụng); câu báo lỗi vượt hạn mức khi người nhận là đối tác.
+   **Chỗ giao diện ẩn/hiện bị đổi nghĩa:** khối «Hình thức thanh toán» ở ô lập đơn (câu mới, lựa chọn sẵn mới cho đối tác); mục «Trả sau của tôi» ở trang Tôi (bỏ dòng số hạn mức và phần «Hạn mức khả dụng»); câu báo lỗi vượt hạn mức khi người nhận là đối tác.
