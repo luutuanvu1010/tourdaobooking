@@ -48,3 +48,11 @@ Kết quả 12/11: **«TRA SAU SMOKE OK»** (cần `AXE_JS`, đã có). Hai lư�
 
 - Đ2 mục 5 (Trả sau theo dịch vụ, ADR-0178 Đ2) chưa thi công ở ô lập đơn: khi làm, sửa `duocChonSanTraSau` / `quyetHinhThuc` cho khớp.
 - Chưa thử iPhone thật.
+
+## Kiểm độc lập (subagent `nguoi-kiem-doc-lap`, chỉ đọc, 12/11)
+
+**ĐẠT**, không có phát hiện mức cao hay vừa. Người kiểm tự chạy năm tệp bài liên quan (74/74 xanh), `npm run typecheck` (0 lỗi), `npm run tham-chieu` (bảng sinh lại khớp bản đã commit), và phá thử trên bản sao tạm: làm câu đối tác luôn có số ⇒ bài Đ1.7, Đ1.4 đỏ; ép `nguoiGuiLaDoiTac: false` ở `kiemCongXacNhan` ⇒ `tra-sau-xac-nhan.test.ts` đỏ. Xác nhận không có mã nào thi công ADR-0182. Ba điểm mức thấp, ghi lại, không chặn:
+
+1. Luồng cờ ở `web/order-form.ts` (`napTraSau`, `daChonHinhThuc`) không có bài tự động riêng; chỉ kịch bản Chrome P2 canh. Có thể tách thành hàm thuần sau.
+2. Khi `GET /api/tra-sau/con-duoc-dung` lỗi, `napTraSau` giữ nguyên ô (có từ trước; máy chủ vẫn kiểm lúc lưu).
+3. Phần nối cho tài khoản lai ở `money-edit` / `handler-money-edit` là phòng xa, chưa có bài riêng.
