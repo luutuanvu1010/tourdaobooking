@@ -73,3 +73,9 @@ Bản Development (`wrangler.dev.jsonc`) khai kho `tourdao-sales-dev-bien-lai` (
 - Chủ đã tạo `tourdao-sales-bien-lai` (production) và `tourdao-sales-dev-bien-lai` (bản Development). Kiểm bằng `wrangler r2 bucket list` (chỉ đọc): cả hai có mặt. Cổng 1e của `npm run trien-khai` sẽ không dừng vì thiếu kho.
 - Lệnh tạo kho hỏi «thêm vào cấu hình?», chủ trả lời «yes» ⇒ wrangler chèn binding thứ hai `tourdao_sales_bien_lai` / `tourdao_sales_dev_bien_lai` kèm `remote: true` và định dạng lại cả hai tệp. Đã `git restore wrangler.jsonc wrangler.dev.jsonc`; nhánh sạch, binding duy nhất vẫn là `BIEN_LAI`.
 - Trạng thái: nhánh NẰM CHỜ tới sau diễn tập khôi phục (25/11); 6B nhập trước, rồi 6A gộp main, đánh lại số bản, chạy lại bộ kiểm.
+
+## Phát hành trước diễn tập (2026-11-12)
+
+- Chủ ra lệnh «gộp, đẩy lên production và lưu trữ». AI báo một lần rủi ro, hỏi có cho lên trước diễn tập 25/11 không; chủ trả lời nguyên văn «Diễn tập sau cùng,». Ghi đổi điều kiện ở `docs/quyen-hoan.json` khoá `xay_tren_cho_phep_adr_0196`.
+- Gộp origin/main (bản 2.93, Đợt 6B) vào nhánh: hai xung đột ở billing (thêm trường `xemBienLai` / `cocConGiu` cùng chỗ) giữ cả hai; sinh lại bảng tham chiếu, từ điển dữ liệu. Mục nhật ký thay đổi số tạm 2.94.
+- Sau gộp: `npm run typecheck` 0 lỗi; `npm test` đủ bộ 8878 bài, 8874 xanh, 0 đỏ, bước đo giờ xanh. e2e và Chrome không chạy lại ở đây (`npm run trien-khai` chạy lại e2e).
