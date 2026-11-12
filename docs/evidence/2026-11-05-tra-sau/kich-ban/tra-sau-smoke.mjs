@@ -1,5 +1,6 @@
 // Kịch bản Chrome — Trả sau (ADR-0168; cập nhật 2026-11-06 cho ADR-0172, ADR-0173): ô «Trả sau» và khối «Hạn mức trả sau» ở màn Cấp độ đại lý (Toàn quyền đặt, điền sẵn số gợi ý;
 // Quản trị bị mức tối đa chặn; Kế toán chỉ xem), màn «Hạn mức trả sau» chỉ xem (giờ Việt Nam), khối Trả sau + nút «Ân hạn» trên đơn, mục «Trả sau của tôi» của Đối tác; 1440 và 390.
+// Cập nhật 2026-11-12 cho ADR-0198: P1 (Đối tác không thấy số hạn mức), P2 (Đối tác lập đơn mới: câu gọn, chọn sẵn «Trả sau»); F1 giữ «Hạn mức khả dụng» cho văn phòng.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, KHÔNG --remote.
 // Quy tắc ADR-0074/0075: đăng nhập MỚI của cùng tài khoản đá phiên trang đang mở ⇒ mọi lời gọi API gieo dữ liệu làm TRƯỚC khi mở trang của tài khoản đó.
 // Chạy (sau `npm run build:web`, từ GỐC repo):
@@ -54,12 +55,12 @@ async function axeKiem(p, nhan) {
   for (const v of vi.filter((x) => !nang.includes(x))) axeNhe.push(`${nhan}: ${v.impact} ${v.id} — ${v.nodes.join(" | ")}`);
   assert.deepEqual(nang, [], `axe nghiêm trọng (${nhan}): ${JSON.stringify(nang)}`);
 }
-/** Không tràn ngang, ô gõ ≥ 16px, vùng chạm của nút và ô trong `main` ≥ 44px. */
+/** Không tràn ngang, ô gõ ≥ 16px, vùng chạm của nút và ô trong `main` ≥ 44px. Ô tròn / ô tích nằm trong `<label>`: vùng chạm là cả nhãn (bấm chữ cũng chọn) — đo nhãn (12/11, ADR-0198 P2). */
 async function bocucSach(p, nhan) {
   const m = await p.ev(`(() => {
     const hien = (e) => e.offsetParent !== null || getComputedStyle(e).position === 'fixed';
     const nho = [...document.querySelectorAll('main input, main select, main textarea')].filter((e) => hien(e) && parseFloat(getComputedStyle(e).fontSize) < 16).map((e) => (e.id || e.tagName) + ':' + getComputedStyle(e).fontSize);
-    const cham = [...document.querySelectorAll('main button, main input:not([type=hidden])')].filter((e) => hien(e)).map((e) => ({ e, r: e.getBoundingClientRect() })).filter((x) => x.r.width > 0 && (x.r.height < 43.5 || x.r.width < 43.5))
+    const cham = [...document.querySelectorAll('main button, main input:not([type=hidden])')].filter((e) => hien(e)).map((e) => ({ e, r: ((e.type === 'radio' || e.type === 'checkbox') && e.closest('label') ? e.closest('label') : e).getBoundingClientRect() })).filter((x) => x.r.width > 0 && (x.r.height < 43.5 || x.r.width < 43.5))
       .map((x) => (x.e.id || x.e.className || x.e.tagName) + ' ' + Math.round(x.r.width) + '×' + Math.round(x.r.height));
     return { sw: document.documentElement.scrollWidth, iw: innerWidth, nho, cham };
   })()`);
@@ -292,15 +293,37 @@ try {
 
   // ---------------- Trả sau của tôi (Đối tác) ----------------
   for (const [nhan, kho] of [["1440", KHO_1440], ["390", KHO_390]]) {
-    await buoc(`P1-${nhan}`, `[${nhan}] Đối tác thấy mục «Trả sau của tôi» ở trang Tôi với hạn mức theo giờ và hạn mức khả dụng; axe`, async () => {
+    // ADR-0198 Đ1.5 (12/11): Đối tác KHÔNG thấy số hạn mức hay hạn mức khả dụng — chỉ số giờ trả, giờ ân hạn và số đang nợ.
+    await buoc(`P1-${nhan}`, `[${nhan}] Đối tác thấy mục «Trả sau của tôi» ở trang Tôi: số giờ trả, không số hạn mức, không «Hạn mức khả dụng»; axe`, async () => {
       const q = await moTrang(DT, kho, "/account");
       try {
         await q.waitFor("!document.getElementById('tra-sau-cua-toi').hidden", "mục Trả sau của tôi hiện");
         const t = await q.ev("document.getElementById('tra-sau-cua-toi').innerText");
-        assert.ok(t.includes("Trả sau của tôi") && t.includes("3.000.000 ₫ · trả trong 36 giờ · không ân hạn") && t.includes("Hạn mức khả dụng 3.000.000 ₫"), t);
+        assert.ok(t.includes("Trả sau của tôi") && t.includes("Bạn được trả sau, trả trong 36 giờ kể từ khi đơn được xác nhận.") && t.includes("Đang nợ 0 ₫"), t);
+        assert.ok(!t.includes("3.000.000") && !t.includes("Hạn mức khả dụng"), `lộ số hạn mức: ${t}`);
         await bocucSach(q, `[${nhan} Tôi]`);
         await chup(q, `tra-sau-cua-toi-${nhan}`);
         await axeKiem(q, `[${nhan} Tôi]`);
+      } finally { q.close(); trangHienTai = null; }
+    });
+  }
+
+  // ---------------- ADR-0198: Đối tác lập đơn MỚI — câu gọn không số, chọn sẵn «Trả sau» ----------------
+  for (const [nhan, kho] of [["1440", KHO_1440], ["390", KHO_390]]) {
+    await buoc(`P2-${nhan}`, `[${nhan}] Đối tác mở đơn mới: khối «Hình thức thanh toán» hiện câu «Bạn được trả sau…», không số tiền, «Trả sau» chọn sẵn, không câu báo; vùng chạm; axe`, async () => {
+      const q = await moTrang(DT, kho, "/order-form");
+      try {
+        await q.waitFor("(() => { const k = document.getElementById('tra-sau-khoi'); return !!k && !k.hidden && document.getElementById('tra-sau-cau').textContent.length > 0; })()", "khối Trả sau hiện");
+        await sleep(500); // lần nạp thứ hai (sau khi nạp xong bên đặt) không được đổi lựa chọn
+        const k = await q.ev("(() => ({ cau: document.getElementById('tra-sau-cau').textContent, khoi: document.getElementById('tra-sau-khoi').innerText, credit: document.querySelector('input[name=paymentTerm][value=CREDIT]').checked, baoHidden: document.getElementById('tra-sau-bao').hidden }))()");
+        assert.equal(k.cau, "Bạn được trả sau. Nhận vé trước, chuyển tiền cho Tour Đảo trong hạn trả.");
+        assert.ok(!/₫|\d{1,3}\.\d{3}/.test(k.khoi), `khối có số tiền: ${k.khoi}`);
+        assert.equal(k.credit, true, "«Trả sau» chọn sẵn");
+        assert.equal(k.baoHidden, true, "không câu «chuyển về Thanh toán ngay»");
+        await q.ev("document.getElementById('tra-sau-khoi').scrollIntoView({ block: 'center' }); true");
+        await bocucSach(q, `[${nhan} lập đơn Đối tác]`);
+        await chup(q, `doi-tac-lap-don-${nhan}`);
+        await axeKiem(q, `[${nhan} lập đơn Đối tác]`);
       } finally { q.close(); trangHienTai = null; }
     });
   }

@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0198 (chủ duyệt 12/11, «Duyệt, chọn cách 1»; chữ theo cột «Khuyến nghị»): đối tác không thấy số hạn mức trả sau; đơn mới của đối tác chọn sẵn «Trả sau». KHÔNG migration.
+    // SỐ TẠM 2.95: main có 2.94; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.95",
+    date: "2026-11-12",
+    items: [
+      { kind: "doi", text: "Đối tác được trả sau không còn thấy con số hạn mức. Ô lập đơn chỉ ghi «Bạn được trả sau»; mục «Trả sau của tôi» ghi số giờ phải trả, giờ ân hạn và số đang nợ." },
+      { kind: "doi", text: "Đơn mới do đối tác lập được chọn sẵn «Trả sau» khi đối tác đang được trả sau. Muốn trả ngay thì bấm «Thanh toán ngay»." },
+    ],
+  },
+  {
     // Đợt 6A kế hoạch sửa sau rà soát lần 2: ADR-0196 (chủ duyệt 11/11) — ảnh biên lai chuyển khoản bắt buộc. Migration 0158, kho R2 tourdao-sales-bien-lai (chủ đã tạo 12/11).
     // SỐ TẠM 2.94: main có 2.93 (chưa triển khai); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.94",
