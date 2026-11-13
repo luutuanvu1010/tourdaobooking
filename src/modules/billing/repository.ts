@@ -300,6 +300,17 @@ const RECEIPT_BEFORE_DELIVERED = defineSql(
   `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
    WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND delivered_at IS NULL)`,
 );
+/**
+ * ADR-0182 phần B Đ2 mục 9, 13: khoản «Khách đã trả bạn X ₫» ghi kèm khoản nộp — CHỈ khi khoản nộp ?14 của CHÍNH lô đã chèn (còn chờ) và đơn chưa «Khách đã trả đủ».
+ * Câu khoản nộp thua lính gác (đơn vừa đổi trạng thái giữa lúc đọc và lúc ghi) thì câu này không chèn ⇒ không có khoản thu / dòng giữ hộ mồ côi.
+ */
+const RECEIPT_WITH_REMITTANCE = defineSql(
+  "billing",
+  "receipt_with_remittance",
+  `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
+   WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND delivered_at IS NULL)
+     AND EXISTS (SELECT 1 FROM bil_agent_remittance WHERE id = ?14 AND order_id = ?2 AND status_code = 'PENDING')`,
+);
 /** Khoản thu nhập ở bước "Đã giao" — chỉ áp khi câu `orders` CỦA CHÍNH LÔ NÀY đã đặt mốc ?14. */
 const RECEIPT_AT_DELIVERY = defineSql(
   "billing",
@@ -361,6 +372,7 @@ export interface NewReceipt {
 const bindReceipt = (db: D1Database, sql: string, r: NewReceipt, ...extra: string[]) =>
   db.prepare(sql).bind(r.id, r.orderId, r.kind, r.amount, r.collectorPartyId, r.collectorRole, r.method, r.stage, r.occurredDate, r.note, r.at, r.by, r.collectedForPartyId ?? null, ...extra);
 export const receiptBeforeDeliveredStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_BEFORE_DELIVERED, r);
+export const receiptWithRemittanceStatement = (db: D1Database, r: NewReceipt, remittanceId: string) => bindReceipt(db, RECEIPT_WITH_REMITTANCE, r, remittanceId);
 export const receiptAtDeliveryStatement = (db: D1Database, r: NewReceipt, deliveredAt: string) => bindReceipt(db, RECEIPT_AT_DELIVERY, r, deliveredAt);
 export const receiptOnConfirmStatement = (db: D1Database, r: NewReceipt, auditIdXacNhan: string) => bindReceipt(db, RECEIPT_ON_CONFIRM, r, auditIdXacNhan);
 export const receiptRefundStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_REFUND, r);

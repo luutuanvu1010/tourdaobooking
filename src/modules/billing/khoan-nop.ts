@@ -3,7 +3,7 @@
 //
 // Cách ghi sổ (b1), Đ2 mục 9:
 //   ghi    — MỘT lô: khoản nộp CHỜ (câu ĐẦU, lính gác đơn đã xác nhận + chưa «Khách đã trả đủ» khi có khoản thu kèm) → khoản «Khách đã trả bạn X ₫» đi ĐÚNG đường «Tôi thu»
-//            (`docLanThu` / `cauLanThu`, người thu = chính đại lý, BOOKER, HELD ngay, lính gác `receiptBeforeDeliveredStatement`) khi X > 0 → dòng ảnh biên lai → nhật ký;
+//            (`docLanThu` / `cauLanThu`, người thu = chính đại lý, BOOKER, HELD ngay, lính gác `receiptWithRemittanceStatement` = «chưa Khách đã trả đủ» + khoản nộp của lô đã chèn) khi X > 0 → dòng ảnh biên lai → nhật ký;
 //            đặt kho ảnh SAU lô (kho-bien-lai.ts, không ném).
 //   xác nhận — Kế toán / Toàn quyền KHÁC người ghi: kiểm lại trần (Đ2 mục 13) → MỘT lô: phiếu SETTLEMENT (chỉ khi khoản còn chờ) → dòng `sinhDongQuyetToan` (đúng hàm của quyết toán
 //            «nộp») → khoản sang CONFIRMED trỏ phiếu → nhật ký. Trigger `settlement_exceeds_held` / `settlement_sign_flip` vẫn canh.
@@ -23,7 +23,7 @@ import {
   chenAnhNopStatement, chenNopStatement, demAnhNopGanDay, nopCuaDon, nopTheoId, trangThaiAnhNop, tuChoiNopStatement, xacNhanNopStatement, type NopRow,
 } from "./khoan-nop-repo";
 import {
-  lineIfPostingStatement, linesOfOrder, ownerCompanyId, postingIfRemittancePendingStatement, receiptBeforeDeliveredStatement, receiptsOfOrder,
+  lineIfPostingStatement, linesOfOrder, ownerCompanyId, postingIfRemittancePendingStatement, receiptWithRemittanceStatement, receiptsOfOrder,
 } from "./repository";
 import { kiemQuyetToan, sinhDongQuyetToan, soDuCap } from "./rules";
 import {
@@ -128,7 +128,7 @@ export async function ghiKhoanNop(
   if (!ai.partyId) return KHONG_PHAI_DAI_LY();
   const stmts: D1PreparedStatement[] = [chenNopStatement(db, { id, orderId: don.id, partyId: ai.partyId, soTien, ngayChuyen: b.ngayChuyen, by: ai.staffId, at, coThuKem: X > 0 })];
   if (lt?.ok) {
-    stmts.push(...cauLanThu(db, { orderId: don.id, lt: lt.value, stage: "PREPAID", ai, congTyId, at, nhatKy: { staffId: ai.staffId, detail: `ghi kèm ${TEN_KHOAN_NOP.toLowerCase()} · ${dong(X)}` } }, (r) => receiptBeforeDeliveredStatement(db, r)));
+    stmts.push(...cauLanThu(db, { orderId: don.id, lt: lt.value, stage: "PREPAID", ai, congTyId, at, nhatKy: { staffId: ai.staffId, detail: `ghi kèm ${TEN_KHOAN_NOP.toLowerCase()} · ${dong(X)}` } }, (r) => receiptWithRemittanceStatement(db, r, id)));
   }
   const viTriAnh = stmts.length;
   stmts.push(

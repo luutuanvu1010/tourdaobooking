@@ -153,7 +153,7 @@ test("Bấm hai lần: lần hai ⇒ 409, không thêm khoản thu, khoản nộ
 test("Bấm hai lần đua nhau (hai thẻ): khoản nộp chen vào ngay trước lô ⇒ chỉ mục duy nhất huỷ CẢ lô (không khoản thu kèm), 409", async () => {
   const w = await dung();
   const id = await donDaiLy(w);
-  w.chenTruocLo((stmts: unknown[]) => JSON.stringify(stmts).includes("bil_agent_remittance") || stmts.length >= 4, async () => {
+  w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((x) => /INSERT INTO bil_agent_remittance/.test(x.sql)), async () => {
     w.sqlite.prepare(`INSERT INTO bil_agent_remittance (id, order_id, agent_party_id, amount, transfer_date, status_code, created_at, created_by, updated_at, updated_by)
       VALUES ('chen-truoc', ?, ?, 100, ?, 'PENDING', ?, ?, ?, ?)`).run(id, BEN, homNay(), new Date().toISOString(), PARTNER, new Date().toISOString(), PARTNER);
   });
@@ -161,6 +161,21 @@ test("Bấm hai lần đua nhau (hai thẻ): khoản nộp chen vào ngay trư�
   assert.equal(r.status, 409, r.text);
   assert.equal(thuCuaDon(w, id).length, 0, "khoản thu kèm không lọt");
   assert.equal(w.q("SELECT count(*) n FROM bil_remittance_proof")[0].n, 0);
+});
+
+test("Khe đọc–ghi (kiểm độc lập THẤP-2): đơn bị huỷ ngay trước lô ⇒ khoản nộp không chèn VÀ khoản «Khách đã trả bạn» kèm cũng không (không dòng giữ hộ mồ côi), 409", async () => {
+  const w = await dung();
+  const id = await donDaiLy(w);
+  w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((x) => /INSERT INTO bil_agent_remittance/.test(x.sql)), async () => {
+    // Giả «người khác vừa huỷ đơn»: bỏ trigger đòi dòng lý do huỷ CHỈ trên SQLite tạm của bài, rồi đổi trạng thái.
+    w.sqlite.exec("DROP TRIGGER orders_cancel_requires_reason");
+    w.sqlite.prepare("UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ?").run(new Date().toISOString(), id);
+  });
+  const r = await ghiNop(w, id, 800_000, 1_000_000);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(w.q("SELECT count(*) n FROM bil_agent_remittance")[0].n, 0);
+  assert.equal(thuCuaDon(w, id).length, 0, "khoản thu kèm không lọt");
+  assert.equal(w.q("SELECT count(*) n FROM bil_debt_line WHERE order_id = ?", id)[0].n, 0, "không dòng giữ hộ mồ côi");
 });
 
 test("Ghi trùng qua quyết toán: đơn có khoản nộp chờ ⇒ quyết toán «nộp» của đại lý 409; Đối tác khai «Công ty thu» 409; xác nhận vượt Công nợ còn lại 409", async () => {

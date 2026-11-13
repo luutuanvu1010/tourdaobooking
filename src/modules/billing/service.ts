@@ -676,6 +676,8 @@ export async function daGiao(
     // ADR-0178 Đ1 mục 2: khoản thu kèm «Khách đã trả đủ» của đơn mang dấu Tắt — kiểm TRƯỚC lô (đơn không sang «Khách đã trả đủ»).
     const kenh = await kiemNguoiThuKenh(db, input.orderId, lt.collectorPartyId);
     if (kenh) return { ok: false, res: kenh };
+    // ADR-0182 Đ2 mục 13 (chiều ngược): cùng chốt với `ghiLanThu` — người có khoản nộp chờ của đơn không khai «Công ty thu» kèm «Khách đã trả đủ».
+    if (lt.collectorRole === "COMPANY" && (await coNopChoCuaNguoi(db, input.orderId, ai.staffId))) return loi(409, "nop_dang_cho", CAU_CONG_TY_THU_TRUNG);
   }
   let gd: GiaoDich | null = null;
   const boQuaGhi: { ma: string; lyDo: string }[] = [];
@@ -745,6 +747,7 @@ export async function daGiao(
     if (loiTrigger(e, "delivered_reconciling")) return loi(409, "not_deliverable", "Còn khoản đang chờ Kế toán đối chiếu / xác nhận — tải lại màn hình rồi thử lại.");
     if (loiTrigger(e, "delivered_not_paid")) return loi(409, "not_deliverable", "Số tiền đã thu vừa thay đổi — tải lại màn hình rồi thử lại.");
     if (loiTrigger(e, "order_delivered")) return loi(409, "order_delivered", "Đơn đã ở bước Khách đã trả đủ.");
+    if (loiTrigger(e, "remittance_pending_company")) return loi(409, "nop_dang_cho", CAU_CONG_TY_THU_TRUNG); // ADR-0182 Đ2 mục 13 (lớp CSDL, khe đọc–ghi)
     throw e;
   }
   const sau = await thongTinGiaoDon(db, input.orderId);

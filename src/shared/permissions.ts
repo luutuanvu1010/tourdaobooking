@@ -153,7 +153,7 @@ export const MATRIX = {
   "payment.proof.purge": chiToanQuyen(),
   // ADR-0182 Đ3 (phần B, accepted 2026-11-13): khoản nộp của đại lý. Ghi + tải biên lai — Đối tác own (route còn đòi tài khoản Đối tác, hồ sơ phiên = bên đặt, ADR Đ2 mục 11);
   // xác nhận / từ chối — Kế toán, Toàn quyền (khuôn ADR-0090; Quản trị KHÔNG); xem khoản và biên lai — Kế toán, Quản trị, Toàn quyền, Đối tác own. Viết gọn (trần gói Đơn hàng).
-  "dai-ly.nop.ghi": { ...chiToanQuyen(), PARTNER: "own" },
+  "dai-ly.nop.ghi": { ...chiToanQuyen(), PARTNER: "own" }, // Toàn quyền `any` theo luật ADR-0014 điều 2 (không ngoại lệ); route vẫn chỉ cho tài khoản Đối tác bên đặt (`coPhieuNopTien`)
   "dai-ly.nop.xac-nhan": { ...chiToanQuyen(), ACCOUNTING: "any" },
   "dai-ly.nop.xem": { ...quanTri(), ACCOUNTING: "any", PARTNER: "own" },
   // Ghi HOÀN KHÁCH (route POST /api/ledger/refunds, module billing) — ADR-0026 điều 10: ADMIN any → none (H4 "Kế toán ghi", thận trọng).

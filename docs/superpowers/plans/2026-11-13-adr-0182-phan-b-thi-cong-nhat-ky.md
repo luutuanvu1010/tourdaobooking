@@ -51,3 +51,13 @@
 - e2e (nhóm tiền): `khoan-nop cong-no-dai-ly bien-lai qr-thanh-toan so-tien tra-sau chong-ghi-trung ve-dien-tu so-dai-ly-dot-2` — 12/12 kịch bản xanh.
 - Kịch bản Chrome `docs/evidence/2026-11-13-khoan-nop-dai-ly/kich-ban/khoan-nop-smoke.mjs`: 10/10 bước xanh ở 390 và 1280, có `AXE_JS`; ảnh ở `…/anh/`.
 - `npm test` đủ bộ và người kiểm độc lập: ghi ở mục dưới khi chạy xong.
+
+## Kiểm độc lập (2026-11-13, `nguoi-kiem-doc-lap`, chỉ đọc)
+
+- **Kết luận: ĐẠT.** Không lỗi CAO. Người kiểm tự chạy typecheck (0 lỗi), 8 tệp bài (189/189 xanh) và tự thử phá tám chốt trên bản sao tạm — mỗi lần có bài đỏ đúng chỗ.
+- **VỪA-1** (chặn «Công ty thu» chiều ngược chỉ có lớp máy chủ ở `ghiLanThu`; `daGiao` kèm khoản thu và Sửa khoản thu dựa trigger, ra 500 thay 409): **đã sửa** — `daGiao` có cùng chốt kiểm trước; hai lô (`daGiao`, `ghiThayLanThu`) dịch lỗi trigger `remittance_pending_company` thành 409 cùng câu. Ghi chú: tài khoản Đối tác không có ô bấm «Khách đã trả đủ» (`order.handover`) và Sửa khoản thu là lệnh của Kế toán, nên hai đường này thực tế không chạm được; sửa để đúng chữ ADR và phòng sau này.
+- **THẤP-2** (khoản «Khách đã trả bạn» kèm không có lính gác «đơn đã xác nhận» như câu khoản nộp ⇒ khe đọc–ghi có thể để lại dòng giữ hộ mồ côi khi đơn vừa bị huỷ): **đã sửa** — câu chèn khoản thu kèm nay là `receipt_with_remittance` (chỉ chèn khi khoản nộp CỦA CHÍNH LÔ đã chèn và còn chờ). Ca mới «Khe đọc–ghi» ở `src/khoan-nop-dai-ly.test.ts`: dùng câu cũ ⇒ đỏ, câu mới ⇒ xanh (quan sát 13/11).
+- **THẤP-3** (xác nhận không đòi ảnh biên lai còn lưu): **giữ nguyên, có chủ ý** — khuôn ADR-0196 Đ11: ảnh hỏng / bị gỡ thì khoản vẫn còn, Kế toán đối chiếu sao kê; phiếu hiện trạng thái ảnh. Chủ muốn chặn thì là một câu.
+- **THẤP-4** (ô `dai-ly.nop.ghi` cho Toàn quyền `any`): **giữ** — luật ADR-0014 điều 2 «Toàn quyền any ở MỌI ô, không ngoại lệ» có bài ghim (`permissions.test.ts`); thử bỏ thì bài đó đỏ. Route vẫn chỉ cho tài khoản Đối tác bên đặt (`coPhieuNopTien`).
+- **THẤP-5** (ngày ghi phiếu quyết toán = ngày chuyển đại lý khai): giả định 5, ghi để chủ biết.
+- Giả định 1–8 không lệch chữ ADR (người kiểm). Hai chữ nút Kế toán («Xác nhận đã nhận», «Từ chối») ngoài bảng «Chữ chờ chủ chọn» của ADR — đã khai `cho-chon` ở bảng tham chiếu.
