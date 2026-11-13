@@ -19,6 +19,14 @@ const tha = (): void => void delete html.dataset.giuDai;
 /** Chờ dải tối đa bao lâu (ms) — dải về chậm nhất đo được ~2 s ở 4G chậm + CPU 4×; quá hạn coi là lần này không có dải. */
 const CHO_DAI = 8000;
 if (ss) {
+  const nho = (): void => {
+    const d = document.querySelector<HTMLElement>("#strips > .dai");
+    if (d) {
+      ss.setItem(KHOA_CAO_DAI, `${d.offsetHeight}|${d.dataset.loai ?? ""}`);
+      tha();
+    }
+    else if (!(html.dataset.giuDai === "bao-mat" && document.body.dataset.khuon === "bieu-mau")) ss.removeItem(KHOA_CAO_DAI);
+  };
   const [cao, loai] = (ss.getItem(KHOA_CAO_DAI) ?? "").split("|");
   if (+cao! > 0) {
     html.style.setProperty("--dai-giu", `${+cao!}px`);
@@ -31,14 +39,6 @@ if (ss) {
   const khoi = ss.getItem(KHOA_KHOI + location.pathname);
   if (khoi) html.dataset.giuKhoi = khoi;
 
-  const nho = (): void => {
-    const d = document.querySelector<HTMLElement>("#strips > .dai");
-    if (d) {
-      ss.setItem(KHOA_CAO_DAI, `${d.offsetHeight}|${d.dataset.loai ?? ""}`);
-      tha();
-    }
-    else if (!(html.dataset.giuDai === "bao-mat" && document.body.dataset.khuon === "bieu-mau")) ss.removeItem(KHOA_CAO_DAI);
-  };
   let strips: Element | null = null;
   const theo = new MutationObserver(() => {
     if (!strips && (strips = document.getElementById("strips"))) {

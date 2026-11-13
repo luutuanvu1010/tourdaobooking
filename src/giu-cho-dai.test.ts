@@ -50,8 +50,8 @@ test("chỉ nhớ chiều cao + tên loại (không nội dung); trang đăng nh
 test("khối theo quyền: tệp đầu trang đặt data-giu-khoi theo trang; trang ghi bằng nhoKhoi; giữ chỗ khung biểu mẫu là VÔ HÌNH (không bấm được trước khi mã gắn xử lý)", () => {
   assert.match(doc("web/giu-cho-dai.ts"), /ss\.getItem\(KHOA_KHOI \+ location\.pathname\)/);
   assert.match(doc("web/catalog.ts"), /nhoKhoi\("kv-tu-kiem", can\(staff, "settings\.ops"\)\)/, "cùng điều kiện với khối thật");
-  assert.match(doc("web/staff.ts"), /nhoKhoi\("add-card", can\(staff, "account\.create"\)\)/);
-  assert.match(doc("web/staff.ts"), /nhoKhoi\("xac-minh", can\(staff, "party\.verify"\)\)/);
+  assert.match(doc("web/staff.ts"), /nhoKhoi\("add-card", can\(staff, "account\.view"\) && can\(staff, "account\.create"\)\)/);
+  assert.match(doc("web/staff.ts"), /nhoKhoi\("xac-minh", can\(staff, "account\.view"\) && can\(staff, "party\.verify"\)\)/);
   const css = doc("public/app.css");
   assert.match(css, /html\[data-giu-khoi~="add-card"\] \[id="add-card"\]\[hidden\], html\[data-giu-khoi~="xac-minh"\] #xac-minh\[hidden\] \{ display: block !important; visibility: hidden; \}/);
   assert.match(doc("web/login.ts"), /k\.startsWith\(KHOA_KHOI\)\) sessionStorage\.removeItem\(k\)/, "đăng nhập xoá mọi chỗ giữ khối");

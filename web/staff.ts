@@ -585,9 +585,11 @@ hienCotCap = thayCotCap(staff); // ADR-0155 Đ2.2: hỏi bảng quyền (ô xem 
 cotCapEl.hidden = !hienCotCap;
 // ADR-0071 điều 1b: cổng trang theo ô account.view (Quản trị, Toàn quyền, Hành chính nhân sự — cùng đối tượng với cổng "accounts" của API); khung "Thêm tài khoản"
 // theo ô account.create (Hành chính nhân sự, Toàn quyền — Quản trị KHÔNG).
+// Lần mở sau tệp đầu trang giữ chỗ (vô hình) cho hai khung này từ lần vẽ đầu — ghi cả khi không vào được trang để trí nhớ cũ không để lại khoảng trống.
+nhoKhoi("add-card", can(staff, "account.view") && can(staff, "account.create"));
+nhoKhoi("xac-minh", can(staff, "account.view") && can(staff, "party.verify"));
 if (!can(staff, "account.view")) showError(errorEl, "Tài khoản này không quản lý được tài khoản.");
 else {
-  nhoKhoi("add-card", can(staff, "account.create")); // lần mở sau tệp đầu trang giữ chỗ (vô hình) cho khung này từ lần vẽ đầu
   if (can(staff, "account.create")) {
     byId("add-card").hidden = false;
     // Bước 1 khung chung (N10): khối vai dựng sau lần nạp đầu (cao 300–700 px) — giữ chỗ trước để khối dưới không bị đẩy khi nó về.
@@ -595,7 +597,6 @@ else {
   }
   // ADR-0125 đ6: hàng chờ xác minh phiếu tự khai — ô party.verify (Quản trị, Nhân sự, Toàn quyền); khối tự dựng và hiện, máy chủ kiểm lại từng route.
   if (can(staff, "party.verify")) dungHangChoXacMinh(byId("xac-minh"), staff);
-  nhoKhoi("xac-minh", can(staff, "party.verify"));
   chinhSach = await taiChinhSach();
   for (const th of document.querySelectorAll<HTMLElement>("th")) anPhanTu(anCot(th.textContent === "Tạo lúc" ? "createdAt" : th.textContent === "Đăng nhập gần nhất" ? "lastLoginAt" : ""), th);
   await load();
