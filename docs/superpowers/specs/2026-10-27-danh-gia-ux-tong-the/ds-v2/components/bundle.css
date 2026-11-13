@@ -123,6 +123,15 @@ body.sheet-open { overflow: hidden; }
 .xuong[data-khuon="vien"] { width: var(--skel-vien); border-radius: var(--radius-pill); }
 @media (prefers-reduced-motion: reduce) { .xuong { animation: none; } }
 .trang-thai-xuong[data-giu-cho] { min-height: var(--giu-cho-cao); }
+/* Bước 1 (N10): giữ chỗ cho dải đầu trang từ lần vẽ đầu — web/giu-cho-dai.js (đầu trang) đặt --dai-giu + data-giu-dai khi lần trước trong thẻ có dải; web/dai.ts thả. Trang biểu mẫu không vẽ dải bảo mật. */
+html[data-giu-dai] #strips:empty { min-height: var(--dai-giu); }
+html[data-giu-dai="bao-mat"] body[data-khuon="bieu-mau"] #strips:empty { min-height: 0; }
+/* … và khối theo quyền lần trước trang có (web/giu-khoi.ts ghi, web/giu-cho-dai.js đặt data-giu-khoi): khối «tự kiểm vé» của Dịch vụ & giá. */
+html[data-giu-khoi~="kv-tu-kiem"] #kv-tu-kiem:empty { display: block; min-height: var(--giu-cho-tu-kiem); }
+/* Khung «Thêm tài khoản» (Quản lý tài khoản): giữ chỗ VÔ HÌNH (không bấm được trước khi mã trang gắn xử lý — biểu mẫu chưa sẵn sàng); khối vai giữ chỗ như khi mã chạy. */
+html[data-giu-khoi~="add-card"] [id="add-card"][hidden], html[data-giu-khoi~="xac-minh"] #xac-minh[hidden] { display: block !important; visibility: hidden; } /* !important: thắng luật chung `[hidden] { display: none !important }` — chỉ khi tệp đầu trang báo lần trước khối có hiện */
+html[data-giu-khoi~="xac-minh"] #xac-minh[hidden] { min-height: var(--giu-cho-xac-minh); }
+html[data-giu-khoi~="add-card"] [id="add-perms"]:empty { min-height: var(--giu-cho-cao); }
 #kv-tu-kiem > .trang-thai-xuong { min-height: var(--giu-cho-tu-kiem); } /* bước 1 (N10): khung chờ của khối tự kiểm vé gần bằng khối thật */ /* bước 1 (N10): `giuCho` của trangThaiHeThong */
 
 .rong { display: flex; flex-direction: column; align-items: center; gap: var(--s3); padding: var(--nhip-khoi) var(--le-trang); text-align: center; color: var(--c-text-muted); }

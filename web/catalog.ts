@@ -2,6 +2,7 @@ import { can, dungManHepDichVu } from "../src/shared/permissions";
 import { ApiError, api, type CatalogAdminItem, type CatalogSyncState, type PaxCode, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { trangThaiHeThong } from "./trang-thai-he-thong";
+import { nhoKhoi } from "./giu-khoi";
 import { dateTime, grouped, parseMoney, vnd } from "./format";
 import { PAX_LABEL, PAX_ORDER } from "../src/shared/order-lines";
 import { unitLabel } from "../src/shared/service-form";
@@ -885,6 +886,7 @@ if (!can(staff, "admin.manage")) {
   pullBtn.hidden = !can(staff, "catalog.sync");
   // Bước 1 khung chung (N10): khối tự kiểm vé và khối nhóm dịch vụ về sau dữ liệu — giữ chỗ trước để danh sách bên dưới không bị đẩy.
   if (can(staff, "settings.ops")) replaceChildren(byId("kv-tu-kiem"), trangThaiHeThong("dang-tai", { khuon: "thiet-lap" }));
+  nhoKhoi("kv-tu-kiem", can(staff, "settings.ops")); // lần mở sau tệp đầu trang giữ chỗ khối này từ lần vẽ đầu
   replaceChildren(nhomEl, trangThaiHeThong("dang-tai", { khuon: "danh-sach", giuCho: true }));
   coVe = taoCoVe(errorEl, can(staff, "catalog.ticket_flag.write"), () => {
     renderNhom();

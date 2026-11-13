@@ -3,6 +3,7 @@
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, setInput, sleep, startEnv, vnDate } from "/Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdao-sales-audit-62ea81/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { HOP_HOI_TU_DONG } from "../../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const OUT = "/Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdao-sales-audit-62ea81/docs/evidence/diem-khuat-2026-09-24/d-t4-t8";
 const SP = "/private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-tourdao-sales-audit-62ea81/c964efb5-7bf2-4e78-8214-a3e41d4568f4/scratchpad/d-t4-t8";
@@ -162,6 +163,7 @@ try {
     if (hasDialog) await F.tap(p, "đóng hộp thoại ảnh (✕)", "document.querySelector('.sheet[role=dialog] .sheet-close').click(), true");
     await sleep(500);
     // Xác nhận đơn (confirm() của trình duyệt: ghi đè để đếm và trả OK)
+    await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await p.ev("window.__dlg = []; window.confirm = (m) => { window.__dlg.push(m); return true; }; true");
     await F.tap(p, "Xác nhận đơn", "(() => { const b = [...document.querySelectorAll('#actions button')].find((x) => x.textContent.trim() === 'Xác nhận đơn'); if (!b) return false; b.click(); return true; })()");
     F.f.taps++; F.f.steps.push("chạm: OK ở hộp hỏi lại của trình duyệt");
@@ -231,6 +233,7 @@ try {
     const afterEdit = await p.ev("document.getElementById('myjobs').innerText");
     F.note(`sau khi lưu: ${afterEdit.slice(0, 200)}`);
     // Huỷ: đếm số chạm tới khi đơn bị huỷ, có hỏi lại không?
+    await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await p.ev("window.__dlg = []; window.confirm = (m) => { window.__dlg.push(m); return true; }; true");
     await F.tap(p, "Huỷ đơn này", "[...document.querySelectorAll('#myjobs button')].find((b) => b.textContent.trim() === 'Huỷ đơn này').click(), true");
     await sleep(300);

@@ -973,7 +973,6 @@ admin = can(me, "admin.manage"); // Quản trị hoặc Toàn quyền (như cổ
 const dupBtn = byId<HTMLButtonElement>("dup-btn");
 dupBtn.hidden = !admin;
 dupBtn.addEventListener("click", () => void moNghiTrung());
-if (can(me, "party.erasure.process")) dungKhoiPhieuXoa(byId("phieu-xoa"), me); // ADR-0126: hàng chờ yêu cầu xoá + ảnh hết lý do giữ (mở lười)
 const [m, l] = await Promise.all([act(() => api<Api.PartyMetaResponse>("/api/parties/meta")), act(() => api<Api.LocationListResponse>("/api/locations"))]);
 if (m) meta = m;
 if (l) locations = l.locations;
@@ -982,6 +981,8 @@ replaceChildren(byId("location"), h("option", { value: "" }, "Tất cả"), ...l
 chinhSach = await taiChinhSach();
 for (const th of document.querySelectorAll<HTMLElement>("th[data-cot]")) anPhanTu(anCot(th.dataset.cot ?? ""), th);
 await search();
+// ADR-0126: hàng chờ yêu cầu xoá + ảnh hết lý do giữ (mở lười). Bước 1 khung chung (N10): dựng SAU lần tìm đầu — khối nằm dưới danh sách, dựng trước thì danh sách về đẩy nó (nhảy bố cục).
+if (can(me, "party.erasure.process")) dungKhoiPhieuXoa(byId("phieu-xoa"), me);
 // Mở thẳng một hồ sơ theo ?id= (màn 06 "Giấy tờ sắp hết hạn" bấm dòng người → hồ sơ ở Danh bạ). Máy chủ kiểm quyền và id như mọi lần mở hồ sơ.
 const moTheoId = new URLSearchParams(location.search).get("id");
 if (moTheoId) await openDetail(moTheoId);

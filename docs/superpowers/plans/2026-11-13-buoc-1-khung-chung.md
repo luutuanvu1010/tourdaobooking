@@ -57,3 +57,22 @@
   tính rất thấp; áp cho mọi thanh nút cuối biểu mẫu dùng khuôn chung (`.form-actions`, `.vc-bottom-bar`, `.vc-form-actions`, `.chan-dinh`), không chỉ Tạo đơn.
   Bộ kiểm đủ lần 3 (sau các sửa này): xanh, cả hai bước thoát 0.
   Chưa kiểm: iPhone thật; số ô < 44 ở Điều phối máy tính tăng 11–15 → 15–20 giữa hai lượt quét (trang không đổi mã — nghi do dữ liệu hành trình thêm chuyến).
+- 13/11 (lượt 3, chủ «Làm tiếp cả hai» qua phiên điều phối): **(1) hai gốc nhảy bố cục khi mở trang của khung trang.**
+  (a) Dải chèn muộn: web/dai.ts nhớ chiều cao + TÊN LOẠI dải lần trước trong thẻ (sessionStorage `td_dai_cao`, không nội dung); tệp đầu trang mới `web/giu-cho-dai.ts`
+  (→ `/js/giu-cho-dai.js`, chạy đồng bộ trong `<head>` của 58 trang có khung, ~300 byte, nạp sẵn ở service worker) đặt `--dai-giu` + `data-giu-dai`; `#strips` viết
+  sẵn trong HTML ngay sau thanh trên; CSS `html[data-giu-dai] #strips:empty` giữ chỗ từ LẦN VẼ ĐẦU; shell thả khi tin + bảo mật đã trả lời; trang biểu mẫu không giữ
+  chỗ cho dải bảo mật; lưới an toàn 8 giây; trang đăng nhập xoá khoá. (b) Khối theo quyền vẽ sau mã: `web/giu-khoi.ts` (`nhoKhoi`) ghi tên khối đã hiện ở trang
+  (`td_khoi:<đường>`), tệp đầu trang đặt `data-giu-khoi`; áp cho «tự kiểm vé» (Dịch vụ & giá), «Thêm tài khoản», «Hàng chờ xác minh» (Quản lý tài khoản) — khung biểu
+  mẫu giữ chỗ VÔ HÌNH (không bấm được trước khi mã gắn xử lý). Danh bạ: khối «Xoá dữ liệu cá nhân» dựng sau lần tìm đầu.
+  Đo (4G chậm, CPU 4×, trang thứ hai trở đi trong thẻ): máy tính — Quản lý tài khoản 0,66 → 0–0,07 (cả Toàn quyền, Quản trị, Nhân sự), Danh bạ 0,32 → 0,01, Dịch vụ
+  0,41 → 0,04, Hỗ trợ 0,23 → 0, Trợ giúp 0,16 → 0; điện thoại — mọi trang của Toàn quyền < 0,1. **Còn lại:** trang ĐẦU TIÊN mở trong thẻ vẫn nhảy một lần (chưa có gì
+  để nhớ); Tạo đơn (~0,12) và Trang chủ (~0,12) ở máy tính có cách dựng riêng — để bước 3 (họ màn). Người dùng thấy gì khác: không, ngoài khoảng trống giữ chỗ thoáng
+  qua trước khi dải / khối hiện (thay cho cú nhảy).
+  **Trần dung lượng gói Đơn hàng — KHÔNG phải nâng:** bản đầu đặt mã nhớ / thả chỗ dải trong web/dai.ts + web/shell.ts làm gói vượt trần 340 byte (đã hỏi chủ qua phiên
+  điều phối); sau đó chuyển TOÀN BỘ phần nhớ / thả vào tệp đầu trang (theo dõi `#strips` bằng MutationObserver; dải về thì thôi giữ; chờ quá 8 giây không có dải
+  thì quên và thả) ⇒ web/dai.ts, web/shell.ts, web/thong-bao-ui.ts trở về như bản chính, gói Đơn hàng nằm trong trần cũ (bài goi-trang-nhe xanh). Câu hỏi nâng trần
+  hết cần — đã báo phiên điều phối. Đổi lại: khi lần trước có dải mà lần này không (vừa «Đã hiểu» tin / vừa bật bảo mật), chỗ trống giữ tối đa 8 giây rồi mới thu.
+  **(2) Kịch bản Chrome:** `dot-0-smoke.mjs` bước 20 đo «Đăng xuất» trong menu tên tài khoản (chạy lại: đạt). 33 kịch bản cũ cài `window.confirm` giả: tiêm thêm
+  `HOP_HOI_TU_DONG` (`docs/evidence/2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs`) — khi hộp hỏi trong trang hiện, hỏi lại đúng hàm trả lời của kịch bản
+  rồi bấm nút đỏ / nút giữ (giữ nguyên cách ghi câu và đáp án); hai kịch bản đếm «0 hộp trình duyệt» (`phien.mjs`, `chinh-sach.mjs`) trả lời qua `__traLoiHopHoi`
+  để số đếm giữ nghĩa. `lb-chung.mjs` (cấm confirm) giữ nguyên.

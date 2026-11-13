@@ -604,6 +604,8 @@
   --skel-so: 26px;
   --skel-vien: 96px;
   --giu-cho-tu-kiem: 200px;    /* bước 1 (N10): giữ chỗ khối «tự kiểm vé» đầu trang Dịch vụ & giá — xấp xỉ cao thật ở điện thoại (đo 203); khổ rộng hơn đặt lại ở @media trước dấu mốc */
+  --giu-cho-xac-minh: 256px;   /* bước 1 (N10): giữ chỗ khối «Hàng chờ xác minh» (Quản lý tài khoản) ở điện thoại (đo 259); khổ rộng đặt lại ở @media trước dấu mốc */
+  --dai-giu: 0px;              /* bước 1 (N10): chiều cao giữ chỗ cho dải đầu trang — mặc định 0; web/giu-cho-dai.js đặt lại trên <html> khi lần trước trong thẻ có dải */
   --giu-cho-cao: 60vh;         /* bước 1 khung chung (N10, 13/11): khung chờ giữ chỗ của khối dài mở đầu trang — đủ đẩy khối dưới ra ngoài màn đầu để dữ liệu về không làm nhảy bố cục */
   --vong-trang-thai: 56px;     /* vòng hình của trang trạng thái (đặc tả 6.1; nguồn bản vẽ, 7c đưa vào bộ) */
   /* Luật khung 30/10/2026 (chủ duyệt gói khuyến nghị của docs/superpowers/specs/2026-10-30-danh-gia-khung-giao-dien/BAO-CAO.md; kế hoạch
@@ -620,7 +622,7 @@
   --w-tim-thanh-tren-hep: 120px; /* ô tìm thanh trên ở máy tính: co tới mức này (thay --w-tim-thanh-tren-min 160px) để tiêu đề trang không bị cắt ở laptop */
   --w-nhom-ten: 240px;          /* Danh mục: cột tên nhóm dịch vụ ở máy tính — điều khiển đứng ngay sau */
 }
-@media (min-width: 641px) { :root { --giu-cho-tu-kiem: 128px; } } /* bước 1 (N10): khối «tự kiểm vé» ở iPad cao ~130 */
+@media (min-width: 641px) { :root { --giu-cho-tu-kiem: 128px; --giu-cho-xac-minh: 216px; } } /* bước 1 (N10): khối «tự kiểm vé» ở iPad cao ~130 */
 @media (min-width: 960px) { :root { --giu-cho-tu-kiem: 104px; } } /* … ở máy tính ~106 */
 @media (min-width: 960px) { :root { --h-danh-sach: 448px; } } /* khung danh sách dịch vụ ~8 dòng ở máy tính (bản vẽ 18/10) — đặt TRƯỚC dấu mốc app iPhone vì có px */
 * { box-sizing: border-box; }
@@ -4318,6 +4320,15 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .xuong[data-khuon="vien"] { width: var(--skel-vien); border-radius: var(--radius-pill); }
 @media (prefers-reduced-motion: reduce) { .xuong { animation: none; } }
 .trang-thai-xuong[data-giu-cho] { min-height: var(--giu-cho-cao); }
+/* Bước 1 (N10): giữ chỗ cho dải đầu trang từ lần vẽ đầu — web/giu-cho-dai.js (đầu trang) đặt --dai-giu + data-giu-dai khi lần trước trong thẻ có dải; web/dai.ts thả. Trang biểu mẫu không vẽ dải bảo mật. */
+html[data-giu-dai] #strips:empty { min-height: var(--dai-giu); }
+html[data-giu-dai="bao-mat"] body[data-khuon="bieu-mau"] #strips:empty { min-height: 0; }
+/* … và khối theo quyền lần trước trang có (web/giu-khoi.ts ghi, web/giu-cho-dai.js đặt data-giu-khoi): khối «tự kiểm vé» của Dịch vụ & giá. */
+html[data-giu-khoi~="kv-tu-kiem"] #kv-tu-kiem:empty { display: block; min-height: var(--giu-cho-tu-kiem); }
+/* Khung «Thêm tài khoản» (Quản lý tài khoản): giữ chỗ VÔ HÌNH (không bấm được trước khi mã trang gắn xử lý — biểu mẫu chưa sẵn sàng); khối vai giữ chỗ như khi mã chạy. */
+html[data-giu-khoi~="add-card"] [id="add-card"][hidden], html[data-giu-khoi~="xac-minh"] #xac-minh[hidden] { display: block !important; visibility: hidden; } /* !important: thắng luật chung `[hidden] { display: none !important }` — chỉ khi tệp đầu trang báo lần trước khối có hiện */
+html[data-giu-khoi~="xac-minh"] #xac-minh[hidden] { min-height: var(--giu-cho-xac-minh); }
+html[data-giu-khoi~="add-card"] [id="add-perms"]:empty { min-height: var(--giu-cho-cao); }
 #kv-tu-kiem > .trang-thai-xuong { min-height: var(--giu-cho-tu-kiem); } /* bước 1 (N10): khung chờ của khối tự kiểm vé gần bằng khối thật */ /* bước 1 (N10): `giuCho` của trangThaiHeThong */
 
 .rong { display: flex; flex-direction: column; align-items: center; gap: var(--s3); padding: var(--nhip-khoi) var(--le-trang); text-align: center; color: var(--c-text-muted); }

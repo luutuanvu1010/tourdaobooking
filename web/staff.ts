@@ -7,6 +7,7 @@ import { chonLocHopLe, locTheoVai, nutLocVai } from "../src/shared/loc-tai-khoan
 import { byId, h, replaceChildren } from "./dom";
 import { hoiXacNhan } from "./bang-truot";
 import { trangThaiHeThong } from "./trang-thai-he-thong";
+import { nhoKhoi } from "./giu-khoi";
 import { dateTime } from "./format";
 import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
 import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
@@ -586,6 +587,7 @@ cotCapEl.hidden = !hienCotCap;
 // theo ô account.create (Hành chính nhân sự, Toàn quyền — Quản trị KHÔNG).
 if (!can(staff, "account.view")) showError(errorEl, "Tài khoản này không quản lý được tài khoản.");
 else {
+  nhoKhoi("add-card", can(staff, "account.create")); // lần mở sau tệp đầu trang giữ chỗ (vô hình) cho khung này từ lần vẽ đầu
   if (can(staff, "account.create")) {
     byId("add-card").hidden = false;
     // Bước 1 khung chung (N10): khối vai dựng sau lần nạp đầu (cao 300–700 px) — giữ chỗ trước để khối dưới không bị đẩy khi nó về.
@@ -593,6 +595,7 @@ else {
   }
   // ADR-0125 đ6: hàng chờ xác minh phiếu tự khai — ô party.verify (Quản trị, Nhân sự, Toàn quyền); khối tự dựng và hiện, máy chủ kiểm lại từng route.
   if (can(staff, "party.verify")) dungHangChoXacMinh(byId("xac-minh"), staff);
+  nhoKhoi("xac-minh", can(staff, "party.verify"));
   chinhSach = await taiChinhSach();
   for (const th of document.querySelectorAll<HTMLElement>("th")) anPhanTu(anCot(th.textContent === "Tạo lúc" ? "createdAt" : th.textContent === "Đăng nhập gần nhất" ? "lastLoginAt" : ""), th);
   await load();

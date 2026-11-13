@@ -11,6 +11,7 @@
 //   AXE_JS=<…/package/axe.min.js> CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-10-08-so-dai-ly-dot-1/kich-ban/so-dai-ly-smoke.mjs
 // Ảnh ghi vào docs/evidence/2026-10-26-hoa-hong-thiet-ke-lai/anh-so-dai-ly/ (đặt OUT=<thư mục> để ghi chỗ khác). Mỗi bước chạy riêng (một bước đỏ không chặn bước sau); cuối cùng in
 // "SMOKE OK" hoặc danh sách bước đỏ (thoát 1). axe: lỗi mức critical/serious làm đỏ bước; moderate/minor in ra ở mục "axe nhẹ" (ghi vào báo cáo, không sửa mã sản phẩm).
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 import assert from "node:assert/strict";
 // Các bước 1 và 1b khoá giao diện /hoa-hong CŨ (đã làm lại 2026-10-26; thay bằng docs/evidence/2026-10-26-hoa-hong-thiet-ke-lai/kich-ban/hoa-hong-smoke.mjs). Mặc định bỏ qua; SDL_HOA_HONG_CU=1 chạy lại (sẽ đỏ).
 const HOA_HONG_CU = process.env.SDL_HOA_HONG_CU === "1";
@@ -134,7 +135,7 @@ try {
     const p = await env.openPage(vp);
     p.vp = vp;
     await p.send("Page.addScriptToEvaluateOnNewDocument", {
-      source: `window.__dialogs = []; window.confirm = (m) => { window.__dialogs.push('confirm: ' + String(m)); return true; }; window.alert = (m) => { window.__dialogs.push('alert: ' + String(m)); };
+      source: `${HOP_HOI_TU_DONG} window.__dialogs = []; window.confirm = (m) => { window.__dialogs.push('confirm: ' + String(m)); return true; }; window.alert = (m) => { window.__dialogs.push('alert: ' + String(m)); };
         window.__pdt = []; const __ghi = () => { const e = document.getElementById('phan-doi-tac'); const s = e ? (e.hidden ? 'an' : 'hien') : 'khong'; const l = window.__pdt[window.__pdt.length - 1]; if (!l || l.s !== s) window.__pdt.push({ s, t: Math.round(performance.now()) }); };
         new MutationObserver(__ghi).observe(document, { subtree: true, childList: true, attributes: true, attributeFilter: ['hidden'] });
         ${PHA_TRANG}`,

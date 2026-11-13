@@ -10,6 +10,7 @@ import {
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt, typeInto, vnDate,
 } from "./dp-lib.mjs";
 import { chonNoiJs } from "../../2026-10-18-tao-don-thiet-ke-lai/kich-ban/cham-that.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const DOI_TAC = { name: "Đối Tác Đặt Gấp", phone: "0900000432", pin: "246432", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" };
 const { env, call } = await dungMoiTruong([CHU, DOI_TAC]);
@@ -125,6 +126,7 @@ try {
   await b.step("3", "409 short_notice_required khi trang đã cũ (bật nút bằng tay, bấm Xác nhận): dải cát 'Còn chặng đón dưới mốc…' + dòng 'Chiều đi · Tour 4 đảo Nha Trang: Giờ đón … — dưới mốc 48 giờ', đơn vẫn nháp", async () => {
     await s.send("Page.navigate", { url: `${env.base}/order?id=${o1.id}` });
     await s.waitFor(shown("#order .dg-warn"), "trang đơn O1");
+    await s.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await s.ev("window.confirm = () => true; true");
     await s.ev(`(() => { const b = [...document.querySelectorAll('#actions button')].find((x) => x.textContent === 'Xác nhận đơn'); b.disabled = false; b.click(); return true; })()`);
     await s.waitFor(`${txt("#error .banner-title")} === 'Còn lượt đưa đón quá hạn chốt — cần đặt gấp trước khi xác nhận.'`, "dải 409");
@@ -193,6 +195,7 @@ try {
     assert.deepEqual([leg.datGap.lyDo, leg.datGap.ghiChu], ["KHACH_DOAN_GOI_GAP", "Khách đoàn gọi lúc 07:40"]);
     await axe(a, "nhãn đặt gấp 1040");
     await shotFull(a, "b7-da-dat-gap-quan-tri-may-tinh.png");
+    await a.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await a.ev("window.confirm = () => true; true");
     await a.ev(`[...document.querySelectorAll('#actions button')].find((x) => x.textContent === 'Xác nhận đơn').click(); true`);
     await a.waitFor(`${txt("#order .badge")} === 'Đã xác nhận'`, "đơn đã xác nhận");
