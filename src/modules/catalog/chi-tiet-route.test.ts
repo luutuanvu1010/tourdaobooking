@@ -1,4 +1,4 @@
-// Chi tiết dịch vụ (ADR-0199 Đ1) qua ứng dụng THẬT: tên hiển thị thắng tên Sheet ở danh mục, đơn cũ giữ tên đã chụp, đồng bộ Sheet không chạm, chỉ `admin.manage` ghi.
+// Chi tiết dịch vụ (ADR-0201 Đ1) qua ứng dụng THẬT: tên hiển thị thắng tên Sheet ở danh mục, đơn cũ giữ tên đã chụp, đồng bộ Sheet không chạm, chỉ `admin.manage` ghi.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts

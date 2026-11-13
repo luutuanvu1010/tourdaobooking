@@ -1,4 +1,4 @@
-// Route ảnh đại diện dịch vụ (ADR-0199 Đ3). Mảng `anhRoutes` được `index.ts` trải vào trước `/api/catalog/:code`.
+// Route ảnh đại diện dịch vụ (ADR-0201 Đ3). Mảng `anhRoutes` được `index.ts` trải vào trước `/api/catalog/:code`.
 // Tải lên / gỡ: cổng admin + `admin.manage` dòng đầu thân → chặn Content-Length TRƯỚC khi đọc thân → kiểm ảnh (luật thuần) → đặt kho (kho-anh.ts) → MỘT lô D1: dòng chi tiết
 // mới (giữ tên hiển thị, mô tả; khoá ảnh mới hoặc null) + nhật ký. Xem: cổng office (người lập đơn văn phòng), không nhật ký (ảnh không riêng tư — Đ3 mục 2).
 import { auditStatement } from "../audit";

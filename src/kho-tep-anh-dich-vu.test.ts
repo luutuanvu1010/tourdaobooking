@@ -1,4 +1,4 @@
-// HÀNG RÀO KHO ẢNH ĐẠI DIỆN DỊCH VỤ (ADR-0199 Đ3; Hiến chương 5.22; khuôn src/kho-tep-bien-lai.test.ts). Phân tích TĨNH trên mã thật:
+// HÀNG RÀO KHO ẢNH ĐẠI DIỆN DỊCH VỤ (ADR-0201 Đ3; Hiến chương 5.22; khuôn src/kho-tep-bien-lai.test.ts). Phân tích TĨNH trên mã thật:
 //   (1) chỉ tệp trong src/modules/catalog/ (không kể *.test.ts) nhắc tới binding ANH_DICH_VU; chỉ catalog/chi-tiet-repo.ts ghi bảng ctl_service_detail;
 //   (2) trong catalog chỉ MỘT chỗ đặt kho và MỘT chỗ đọc kho, cùng nằm ở kho-anh.ts; catalog không xoá gì khỏi kho (ảnh cũ giữ làm lịch sử);
 //   (3) tải lên: hỏi admin.manage → chặn Content-Length → đọc thân → đặt kho → lô D1 (đặt kho TRƯỚC lô — lý do ở đầu kho-anh.ts).
@@ -32,7 +32,7 @@ test("(2) trong catalog: một chỗ đặt kho, một chỗ đọc kho, đều 
   const dem = (re: RegExp) => CATALOG.map((f) => ({ p: f.p, n: boChuThich(f.src).match(re)?.length ?? 0 })).filter((x) => x.n > 0);
   assert.deepEqual(dem(/\bkho\.put\(/g), [{ p: "modules/catalog/kho-anh.ts", n: 1 }]);
   assert.deepEqual(dem(/\bkho\.get\(/g), [{ p: "modules/catalog/kho-anh.ts", n: 1 }]);
-  assert.deepEqual(dem(/\.delete\(/g), [], "catalog không xoá đối tượng kho (ADR-0199 Đ3 mục 2)");
+  assert.deepEqual(dem(/\.delete\(/g), [], "catalog không xoá đối tượng kho (ADR-0201 Đ3 mục 2)");
   assert.deepEqual(dem(/\.put\(/g), [{ p: "modules/catalog/kho-anh.ts", n: 1 }], "lời gọi .put( thứ hai trong catalog");
 });
 

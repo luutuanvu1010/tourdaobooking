@@ -857,15 +857,15 @@ export interface CatalogAdminItemDto {
   groupCode: string | null;
   /** ADR-0149 Đ1: ô «Được đón không» của dịch vụ — GROUP (theo nhóm) / ALWAYS / NEVER; thắng cờ đưa đón của nhóm. */
   transferRule: QuyTacDuaDon;
-  /** ADR-0199 Đ1: tên hiển thị do Nền tảng giữ (thắng `name` — tên Sheet — ở danh mục lập đơn); `null` = dùng tên Sheet. */
+  /** ADR-0201 Đ1: tên hiển thị do Nền tảng giữ (thắng `name` — tên Sheet — ở danh mục lập đơn); `null` = dùng tên Sheet. */
   tenHienThi: string | null;
-  /** ADR-0199 Đ1: mô tả dịch vụ (chữ thuần); `null` = chưa có. */
+  /** ADR-0201 Đ1: mô tả dịch vụ (chữ thuần); `null` = chưa có. */
   moTa: string | null;
-  /** ADR-0199 Đ3: đường xem ảnh đại diện; `null` = chưa có ảnh. */
+  /** ADR-0201 Đ3: đường xem ảnh đại diện; `null` = chưa có ảnh. */
   anh: string | null;
 }
-/** `GET|PUT /api/catalog/:code/chi-tiet` (ADR-0199 Đ1). PUT nhận `{ tenHienThi: string | null, moTa: string | null }`, trả cùng hình. */
-export interface CatalogChiTietResponse { ma: string; tenSheet: string; tenHienThi: string | null; moTa: string | null; cauTenSheetDoi: string | null; /** ADR-0199 Đ3: đường xem ảnh đại diện (có dấu phiên bản); `null` = chưa có ảnh. Tải/gỡ: `PUT /api/catalog/:code/anh` `{ noiDung: base64 | null }`. */ anh: string | null }
+/** `GET|PUT /api/catalog/:code/chi-tiet` (ADR-0201 Đ1). PUT nhận `{ tenHienThi: string | null, moTa: string | null }`, trả cùng hình. */
+export interface CatalogChiTietResponse { ma: string; tenSheet: string; tenHienThi: string | null; moTa: string | null; cauTenSheetDoi: string | null; /** ADR-0201 Đ3: đường xem ảnh đại diện (có dấu phiên bản); `null` = chưa có ảnh. Tải/gỡ: `PUT /api/catalog/:code/anh` `{ noiDung: base64 | null }`. */ anh: string | null }
 /** `PUT /api/catalog/:code/transfer-rule` — `expectedTransferRule` = lựa chọn người dùng đang thấy (khoá lạc quan); trả `CatalogItemResponse`. */
 export interface CatalogTransferRuleRequest { transferRule: QuyTacDuaDon; expectedTransferRule: QuyTacDuaDon }
 

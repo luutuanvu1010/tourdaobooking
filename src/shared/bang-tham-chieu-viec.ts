@@ -4218,7 +4218,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/catalog.ts", chu: "Sửa chi tiết" },
     ],
     trangThai: "cho-chon",
-    nguonTen: "ADR-0199 (2026-11-13): tên tạm, chờ chủ",
+    nguonTen: "ADR-0201 (2026-11-13): tên tạm, chờ chủ",
   },
   {
     nhom: "Chi tiết dịch vụ",
@@ -4233,7 +4233,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/catalog.ts", chu: "Lưu chi tiết" },
     ],
     trangThai: "cho-chon",
-    nguonTen: "ADR-0199 (2026-11-13): tên tạm, chờ chủ",
+    nguonTen: "ADR-0201 (2026-11-13): tên tạm, chờ chủ",
   },
   {
     nhom: "Chi tiết dịch vụ",
@@ -4248,7 +4248,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
       { tep: "web/catalog.ts", chu: "Gỡ ảnh" },
     ],
     trangThai: "cho-chon",
-    nguonTen: "ADR-0199 (2026-11-13): tên tạm, chờ chủ",
+    nguonTen: "ADR-0201 (2026-11-13): tên tạm, chờ chủ",
   },
   {
     nhom: "Ghi đè giá dịch vụ",

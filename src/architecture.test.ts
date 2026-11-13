@@ -179,7 +179,7 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "catalog", file: "modules/catalog/co-ve-repo.ts" },
   // ADR-0175 Đ1.2: ô «Vé do ai phát», mọi câu qua defineSql + EXPLAIN.
   { module: "catalog", file: "modules/catalog/nguon-ve-repo.ts" },
-  // ADR-0199 Đ1: chi tiết dịch vụ (tên hiển thị, mô tả), mọi câu qua defineSql + EXPLAIN.
+  // ADR-0201 Đ1: chi tiết dịch vụ (tên hiển thị, mô tả), mọi câu qua defineSql + EXPLAIN.
   { module: "catalog", file: "modules/catalog/chi-tiet-repo.ts" },
   { module: "orders", file: "modules/orders/chang-hanh-khach-repo.ts" },
   // Sổ tiền lượt 1 (ADR-0024 điều 3–4 — SIẾT): câu mốc "Đã giao" / "Hoàn thành" + đọc trạng thái cho billing, mọi câu qua defineSql + EXPLAIN.

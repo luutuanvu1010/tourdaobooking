@@ -124,7 +124,7 @@
   /* — Riêng của Island Booking System (tên cũ "Tour Đảo Booking"; KHÔNG có trong tourdaovn): kích thước giao diện điện thoại/PWA. Giá trị giao diện mới đi vào đây, không viết cứng trong luật. — */
   --w-main: var(--w-noi-dung-max);        /* bề rộng nội dung tối đa các trang mặc định — chủ dự án duyệt tăng từ 960px (đặc tả §16 mục 3); trang Lập đơn dùng --w-form riêng, không đổi */
   --h-quet-video: 50vh;     /* Quét vé (ADR-0175 Đ3): chiều cao tối đa khung camera — nửa màn, chừa chỗ cho nút và danh sách lượt quét */
-  --h-anh-dich-vu: 200px;  /* ảnh đại diện dịch vụ trong bảng «Chi tiết dịch vụ» (ADR-0199 Đ3): cao tối đa, giữ tỉ lệ */
+  --h-anh-dich-vu: 200px;  /* ảnh đại diện dịch vụ trong bảng «Chi tiết dịch vụ» (ADR-0201 Đ3): cao tối đa, giữ tỉ lệ */
   --w-ve-mau: 360px;        /* ảnh vé Tour Đảo mẫu ở khối «Tạo vé» (ADR-0175 Đ1.7): 1080 × 1920 thu về bề rộng gần một màn điện thoại để xem như khách thấy */
   --h-order-skeleton: 76px; /* Đợt E (vòng sửa 2026-09-24): thẻ đơn đóng đo THẬT 76px ở cả 390px và 1040px (docs/evidence/2026-09-24-dot-e/) — trước là 180-240px cho khung 7 dòng cũ; chỉ là khung xương lúc đang tải, không cần khớp tuyệt đối */
   --c-on-dark: #ffffff;     /* chữ/biểu tượng trên nền primary hoặc accent */
@@ -4634,6 +4634,6 @@ button.bar-avatar { padding: 0; border: 0; font-family: inherit; cursor: pointer
 #thanh-duoi .td-nut { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
 @media (min-width: 900px) { #thanh-duoi { display: none; } }
 
-/* ---------- Chi tiết dịch vụ (ADR-0199 Đ3): ảnh đại diện trong bảng «Chi tiết dịch vụ» — chỉ token. */
+/* ---------- Chi tiết dịch vụ (ADR-0201 Đ3): ảnh đại diện trong bảng «Chi tiết dịch vụ» — chỉ token. */
 .ct-anh { display: block; max-width: 100%; max-height: var(--h-anh-dich-vu); border-radius: var(--radius-sm); margin: var(--s2) 0; }
 .ct-anh[hidden] { display: none; }

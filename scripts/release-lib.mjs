@@ -28,7 +28,7 @@ export const NHAN_KHO = { HO_SO: "kho tệp hồ sơ", HO_TRO: "kho tệp vé h�
 const HAU_QUA_THIEU_KHO = {
   HO_SO: "ảnh giấy tờ không tải lên hay mở được", HO_TRO: "tệp đính kèm vé hỗ trợ không gửi hay mở được", VE_DIEN_TU: "ảnh vé điện tử không nhập hay mở được",
   BIEN_LAI: "ảnh biên lai không gửi hay mở được", // ADR-0196 Đ4
-  ANH_DICH_VU: "ảnh đại diện dịch vụ không tải lên hay xem được", // ADR-0199 Đ3
+  ANH_DICH_VU: "ảnh đại diện dịch vụ không tải lên hay xem được", // ADR-0201 Đ3
 };
 const nhanKho = (binding) => NHAN_KHO[binding] ?? `kho R2 ${binding}`;
 /**

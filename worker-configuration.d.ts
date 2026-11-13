@@ -11,7 +11,7 @@ interface __BaseEnv_Env {
 	VE_DIEN_TU?: R2Bucket;
 	// Kho ảnh biên lai chuyển khoản (ADR-0196 Đ4) — khai TAY cùng lý do với HO_SO; dấu hỏi: lệnh ghi khoản thu cần ảnh và route xem ảnh trả 503 khi binding vắng.
 	BIEN_LAI?: R2Bucket;
-	// Kho ảnh đại diện dịch vụ (ADR-0199 Đ3) — khai TAY cùng lý do với HO_SO; dấu hỏi: route tải / xem ảnh trả 503 khi binding vắng.
+	// Kho ảnh đại diện dịch vụ (ADR-0201 Đ3) — khai TAY cùng lý do với HO_SO; dấu hỏi: route tải / xem ảnh trả 503 khi binding vắng.
 	ANH_DICH_VU?: R2Bucket;
 	ASSETS: Fetcher;
 	SERVICES_SHEET_ID: "1XPx1g0JVTdevdX35MeCpt6Cc6Dgxdmfer6okEWleD3s";

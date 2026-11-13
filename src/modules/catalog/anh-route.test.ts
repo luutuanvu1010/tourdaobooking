@@ -1,4 +1,4 @@
-// Ảnh đại diện dịch vụ (ADR-0199 Đ3) qua ứng dụng THẬT: tải lên kho riêng, xem qua Worker, gỡ được, ảnh cũ không xoá khỏi kho, giữ tên hiển thị / mô tả.
+// Ảnh đại diện dịch vụ (ADR-0201 Đ3) qua ứng dụng THẬT: tải lên kho riêng, xem qua Worker, gỡ được, ảnh cũ không xoá khỏi kho, giữ tên hiển thị / mô tả.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts

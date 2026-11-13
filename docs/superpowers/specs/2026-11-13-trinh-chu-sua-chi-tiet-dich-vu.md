@@ -39,3 +39,4 @@ Khối 3 chỉ **gom các công tắc đã có** về một chỗ (không đổi
 
 ## Chủ chọn (13/11)
 - Câu 1: **A — Sheet + ghi đè** (chủ bấm nút). Câu 2, câu 3: chủ không trả lời, dùng khuyến nghị. Văn bản soạn tiếp: `docs/adr/ADR-0199-chi-tiet-dich-vu-sheet-va-ghi-de.md` (proposed).
+- 13/11 sau: văn bản đổi số thành **ADR-0201** (trùng 0199 với phiên văn phòng nhập cọc; chủ chọn «Đổi số phiên này»): `docs/adr/ADR-0201-chi-tiet-dich-vu-sheet-va-ghi-de.md`.

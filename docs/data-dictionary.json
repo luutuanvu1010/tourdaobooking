@@ -342,7 +342,7 @@
       "name": "ctl_service_detail",
       "module": "catalog",
       "kind": "table",
-      "note": "chi tiết dịch vụ do Nền tảng giữ (ADR-0199 Đ1, migration 0160), CHỈ-THÊM; display_name = tên hiển thị thắng tên Sheet ở danh mục (NULL = dùng tên Sheet), description = mô tả, image_key = khoá ảnh (bước sau), sheet_name_at = tên Sheet lúc ghi (báo Sheet đổi tên); dòng hiệu lực = valid_from_at lớn nhất; đồng bộ Sheet không chạm; luật ở src/shared/chi-tiet-dich-vu.ts"
+      "note": "chi tiết dịch vụ do Nền tảng giữ (ADR-0201 Đ1, migration 0160), CHỈ-THÊM; display_name = tên hiển thị thắng tên Sheet ở danh mục (NULL = dùng tên Sheet), description = mô tả, image_key = khoá ảnh (bước sau), sheet_name_at = tên Sheet lúc ghi (báo Sheet đổi tên); dòng hiệu lực = valid_from_at lớn nhất; đồng bộ Sheet không chạm; luật ở src/shared/chi-tiet-dich-vu.ts"
     },
     {
       "name": "ord_confirm_policy",
@@ -1558,7 +1558,7 @@
         "sheet_name_at",
         "valid_from_at"
       ],
-      "note": "chi tiết hiện hành của từng dịch vụ (ADR-0199); chỉ catalog đọc"
+      "note": "chi tiết hiện hành của từng dịch vụ (ADR-0201); chỉ catalog đọc"
     },
     {
       "name": "v_ctl_service_ticket_source",

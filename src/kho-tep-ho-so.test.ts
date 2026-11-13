@@ -74,7 +74,7 @@ test("(5) khoá kho `xoa/` chỉ xuất hiện trong chepBanNgoai (kho-tep.ts); 
 test("(6) ngoài parties, feedback, ve-dien-tu và ĐÚNG tệp billing/kho-bien-lai.ts không có lời gọi .put( nào (trừ kho trạng thái Durable Object `this.ctx.storage.put(`)", () => {
   // ADR-0153 Đ1 mục 7 (ĐỀ XUẤT, chờ chủ duyệt): kho thứ ba VE_DIEN_TU, hàng rào riêng ở src/kho-tep-ve-dien-tu.test.ts (đúng MỘT chỗ đặt kho).
   // ADR-0196 Đ4: kho thứ tư BIEN_LAI — miễn ĐÚNG MỘT tệp (không cả module billing), hàng rào riêng ở src/kho-tep-bien-lai.test.ts (đúng MỘT chỗ đặt kho).
-  // ADR-0199 Đ3: kho thứ năm ANH_DICH_VU — miễn ĐÚNG MỘT tệp catalog/kho-anh.ts, hàng rào riêng ở src/kho-tep-anh-dich-vu.test.ts.
+  // ADR-0201 Đ3: kho thứ năm ANH_DICH_VU — miễn ĐÚNG MỘT tệp catalog/kho-anh.ts, hàng rào riêng ở src/kho-tep-anh-dich-vu.test.ts.
   const ngoai = TEP.filter((f) => !f.p.startsWith("modules/parties/") && !f.p.startsWith("modules/feedback/") && !f.p.startsWith("modules/ve-dien-tu/") && f.p !== "modules/billing/kho-bien-lai.ts" && f.p !== "modules/catalog/kho-anh.ts")
     .filter((f) => /\.put\(/.test(f.src.replaceAll("this.ctx.storage.put(", ""))).map((f) => f.p);
   assert.deepEqual(ngoai, [], "chỗ đặt vào kho ngoài hai module có kho");

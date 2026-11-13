@@ -510,7 +510,7 @@ async function doiCho(a: Nhom, b: Nhom): Promise<void> {
   await load();
 }
 
-// ---- Chi tiết dịch vụ (ADR-0199 Đ1): tên hiển thị + mô tả do Nền tảng giữ; Sheet giữ mã, tên gốc, giá gốc. Máy chủ kiểm lại quyền admin.manage. ----
+// ---- Chi tiết dịch vụ (ADR-0201 Đ1): tên hiển thị + mô tả do Nền tảng giữ; Sheet giữ mã, tên gốc, giá gốc. Máy chủ kiểm lại quyền admin.manage. ----
 const tenCua = (it: CatalogAdminItem): string => it.tenHienThi ?? it.name;
 /** Dòng phụ «Tên trên Sheet: …» khi dịch vụ đang dùng tên hiển thị khác tên Sheet. */
 const dongTenSheet = (it: CatalogAdminItem): HTMLElement | null =>
@@ -526,7 +526,7 @@ async function chuanBiAnh(f: File): Promise<{ noiDung: string } | { loi: string 
   return { noiDung: maBase64(bytes) };
 }
 
-/** Khối «Ảnh đại diện» của bảng Chi tiết dịch vụ (ADR-0199 Đ3): xem ảnh hiện có, chọn ảnh mới là tải lên ngay, gỡ ảnh. */
+/** Khối «Ảnh đại diện» của bảng Chi tiết dịch vụ (ADR-0201 Đ3): xem ảnh hiện có, chọn ảnh mới là tải lên ngay, gỡ ảnh. */
 function khoiAnh(it: CatalogAdminItem, loi: HTMLElement): HTMLElement {
   const xem = h("img", { class: "ct-anh", alt: `Ảnh đại diện của ${tenCua(it)}`, hidden: !it.anh, ...(it.anh ? { src: it.anh } : {}) }) as HTMLImageElement;
   const trong = h("p", { class: "muted", hidden: !!it.anh }, "Chưa có ảnh đại diện.");
@@ -607,7 +607,7 @@ function moChiTiet(it: CatalogAdminItem, opener: HTMLElement): void {
     foot: [luu],
   });
   if (!bang) return;
-  // Câu «Tên trên Sheet đã đổi» do máy chủ tính (ADR-0199 Đ1 mục 4).
+  // Câu «Tên trên Sheet đã đổi» do máy chủ tính (ADR-0201 Đ1 mục 4).
   void api<Api.CatalogChiTietResponse>(`/api/catalog/${encodeURIComponent(it.code)}/chi-tiet`).then((r) => {
     canhBao.textContent = r.cauTenSheetDoi ?? "";
     canhBao.hidden = r.cauTenSheetDoi === null;

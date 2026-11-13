@@ -17,7 +17,7 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Sửa «Ghi khoản thu» điền sẵn số Còn lại (chủ 13/11) + ADR-0199 Đ1, Đ3 (chủ duyệt 13/11, «Duyệt»): chi tiết dịch vụ — tên hiển thị, mô tả, ảnh đại diện.
+    // Sửa «Ghi khoản thu» điền sẵn số Còn lại (chủ 13/11) + ADR-0201 Đ1, Đ3 (chủ duyệt 13/11, «Duyệt»): chi tiết dịch vụ — tên hiển thị, mô tả, ảnh đại diện.
     // Migration 0160 (ctl_service_detail) + kho R2 MỚI `tourdao-sales-anh-dich-vu` (chủ tạo trước khi triển khai; cổng 1e dừng nếu thiếu). SỐ TẠM 2.98: bước A.0 đặt lại số và ngày.
     version: "2.98",
     date: "2026-11-13",

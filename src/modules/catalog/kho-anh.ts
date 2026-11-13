@@ -1,4 +1,4 @@
-// Việc BÊN NGOÀI của kho ảnh đại diện dịch vụ (ADR-0199 Đ3; binding `ANH_DICH_VU`). Chỉ tệp này của catalog chạm kho (bài src/kho-tep-anh-dich-vu.test.ts).
+// Việc BÊN NGOÀI của kho ảnh đại diện dịch vụ (ADR-0201 Đ3; binding `ANH_DICH_VU`). Chỉ tệp này của catalog chạm kho (bài src/kho-tep-anh-dich-vu.test.ts).
 // KHÁC khuôn kho biên lai (lô D1 trước, đặt kho sau): ở đây ĐẶT KHO TRƯỚC rồi mới chèn dòng chi tiết trỏ tới khoá. Lý do: ảnh đại diện không phải dữ liệu riêng tư
 // (Đ3 mục 2), nên đối tượng mồ côi khi lô D1 hỏng là vô hại; còn chèn dòng trước thì lỗi kho sẽ để danh mục trỏ tới ảnh không có. Ảnh cũ không xoá khỏi kho (Đ3 mục 2).
 // Hai bài tĩnh đếm chữ gọi hàm kho kèm ngoặc trên mã nguồn thô — chú thích đừng viết kèm ngoặc.

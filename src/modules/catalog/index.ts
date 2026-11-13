@@ -45,7 +45,7 @@ export type { EffectiveService };
 export async function getEffectiveServices(db: D1Database, codes?: readonly string[]): Promise<Map<string, EffectiveService>> {
   const want = codes ? new Set(codes) : null;
   const [all, chiTiet] = await Promise.all([loadAll(db), chiTietHienHanh(db)]);
-  // ADR-0199 Đ1: tên hiển thị thắng tên Sheet — đơn mới chụp tên này; đơn đã lập giữ tên đã chụp.
+  // ADR-0201 Đ1: tên hiển thị thắng tên Sheet — đơn mới chụp tên này; đơn đã lập giữ tên đã chụp.
   return new Map(all.filter((s) => !want || want.has(s.code)).map((s) => [s.code, { ...toEffective(s), name: tenHieuLuc(s.name, chiTiet.get(s.code)) }]));
 }
 
@@ -183,7 +183,7 @@ async function catalogForOrderForm(
     /* Sheet lỗi ở lần đầu: vẫn trả danh mục rỗng + cảnh báo bên dưới */
   }
   const [items, state, nhomTheoDichVu, nhoms, quyTac, chiTiet] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), quyTacDuaDonTheoMa(env.DB), chiTietHienHanh(env.DB)]);
-  // ADR-0199 Đ1: tên hiển thị thắng tên Sheet ở danh mục lập đơn (văn phòng và Đối tác).
+  // ADR-0201 Đ1: tên hiển thị thắng tên Sheet ở danh mục lập đơn (văn phòng và Đối tác).
   const dangHien = items.map((s) => ({ ...toEffective(s), name: tenHieuLuc(s.name, chiTiet.get(s.code)) })).filter((e) => e.visible);
   const bo = biChan ? await biChan(dangHien.map((e) => e.code)) : new Set<string>();
   const visible = dangHien.filter((e) => !bo.has(e.code)).map((e) => publicItem(e, nhomTheoDichVu.get(e.code) ?? null));
@@ -227,8 +227,8 @@ export const catalogModule: AppModule = {
     // ---- Đặc điểm dịch vụ (ADR-0152; kế hoạch 2026-10-30 T7) — khai TRƯỚC mọi route `/api/catalog/:code…` ----------------------------
     ...coVeRoutes,
     ...nguonVeRoutes, // ADR-0175 Đ1.2: ô «Vé do ai phát»
-    ...chiTietRoutes, // ADR-0199 Đ1: tên hiển thị + mô tả
-    ...anhRoutes, // ADR-0199 Đ3: ảnh đại diện
+    ...chiTietRoutes, // ADR-0201 Đ1: tên hiển thị + mô tả
+    ...anhRoutes, // ADR-0201 Đ3: ảnh đại diện
     ...dacDiemRoutes,
 
     // ---- Admin -----------------------------------------------------------------------------

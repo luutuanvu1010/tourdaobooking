@@ -38,7 +38,7 @@ const NGOAI_LE_TEN: Record<string, string> = {
   "loc_location.address": "địa chỉ NƠI CHỐN (văn phòng, bến, khách sạn) — ADR-0105",
   "v_loc_location_dia_chi.address": "view chiếu lại loc_location.address — địa chỉ nơi chốn",
   "vc_dispatch_policy.office_phone": "số điện thoại văn phòng công ty",
-  "ctl_service_detail.display_name": "tên hiển thị của DỊCH VỤ danh mục (ADR-0199), không phải tên người",
+  "ctl_service_detail.display_name": "tên hiển thị của DỊCH VỤ danh mục (ADR-0201), không phải tên người",
   "v_ctl_service_detail.display_name": "view của ctl_service_detail — tên hiển thị của DỊCH VỤ, không phải tên người",
   "vc_vehicle_document.document_number": "số giấy tờ XE — ADR-0040 D2 chỉ coi giấy tờ của người là dữ liệu cá nhân",
 };

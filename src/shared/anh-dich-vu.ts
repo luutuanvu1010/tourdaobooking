@@ -1,4 +1,4 @@
-// Luật THUẦN của ảnh đại diện dịch vụ (ADR-0199 Đ3): MỘT nguồn cho máy chủ (catalog) và màn «Dịch vụ và Giá». Không I/O.
+// Luật THUẦN của ảnh đại diện dịch vụ (ADR-0201 Đ3): MỘT nguồn cho máy chủ (catalog) và màn «Dịch vụ và Giá». Không I/O.
 // Chỉ nhận JPG/PNG theo CHỮ KÝ thật (không tin tên, đuôi, loại trình duyệt khai); trình duyệt thu nhỏ trước khi gửi, máy chủ nhận ≤ 1 MB.
 import { doDaiBase64, giaiBase64, nhanLoaiTep } from "./tep-dinh-kem.ts";
 
@@ -34,5 +34,5 @@ export function kiemAnhDichVu(raw: unknown): KiemAnh {
   return { ok: true, tep: { bytes, loai } };
 }
 
-/** Đường xem ảnh qua Worker (ADR-0199 Đ3 mục 2), kèm 12 ký tự của khoá làm dấu phiên bản (đổi ảnh ⇒ đường mới ⇒ trình duyệt tải lại). */
+/** Đường xem ảnh qua Worker (ADR-0201 Đ3 mục 2), kèm 12 ký tự của khoá làm dấu phiên bản (đổi ảnh ⇒ đường mới ⇒ trình duyệt tải lại). */
 export const duongAnhDichVu = (ma: string, khoa: string): string => `/api/catalog/${encodeURIComponent(ma)}/anh?v=${khoa.split("/").pop()!.slice(0, 12)}`;

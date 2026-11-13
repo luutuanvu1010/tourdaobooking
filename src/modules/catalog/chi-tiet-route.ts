@@ -1,7 +1,7 @@
-// Route chi tiết dịch vụ (ADR-0199 Đ1): tên hiển thị + mô tả do Nền tảng giữ. Mảng `chiTietRoutes` được `index.ts` trải vào trước `/api/catalog/:code`.
+// Route chi tiết dịch vụ (ADR-0201 Đ1): tên hiển thị + mô tả do Nền tảng giữ. Mảng `chiTietRoutes` được `index.ts` trải vào trước `/api/catalog/:code`.
 // Quyền: `admin.manage` (cùng người sửa giá ghi đè), hỏi DÒNG ĐẦU thân. Khuôn `nguon-ve-route.ts`: mỗi lần đổi chèn MỘT dòng chỉ-thêm với
 // valid_from_at = max(lúc ghi, mới nhất + 1 ms) cùng nhật ký trong một lô; gửi đúng giá trị đang có = 200, không ghi; va UNIQUE → 409 `stale`.
-// Nhật ký KHÔNG chép tên hay mô tả (chỉ nói trường nào đổi). Khoá ảnh (bước sau của ADR-0199 Đ3) được chép nguyên từ dòng cũ.
+// Nhật ký KHÔNG chép tên hay mô tả (chỉ nói trường nào đổi). Khoá ảnh (bước sau của ADR-0201 Đ3) được chép nguyên từ dòng cũ.
 import { auditStatement } from "../audit";
 import { can } from "../../shared/permissions";
 import { error, json, readJson } from "../../shared/http";

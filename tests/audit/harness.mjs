@@ -363,7 +363,7 @@ export function world(tuyChon = {}) {
   const r2HoTro = khoR2Gia(); // kho tệp vé hỗ trợ (ADR-0144) — kho RIÊNG, không chung đối tượng với kho hồ sơ
   const r2VeDienTu = khoR2Gia(); // kho vé điện tử (ADR-0153) — kho RIÊNG, không chung đối tượng với hai kho kia
   const r2BienLai = khoR2Gia(); // kho ảnh biên lai chuyển khoản (ADR-0196) — kho RIÊNG
-  const r2AnhDichVu = khoR2Gia(); // kho ảnh đại diện dịch vụ (ADR-0199 Đ3) — kho RIÊNG
+  const r2AnhDichVu = khoR2Gia(); // kho ảnh đại diện dịch vụ (ADR-0201 Đ3) — kho RIÊNG
   const env = { DB: fakeD1(sqlite, moc), HO_SO: r2, HO_TRO: r2HoTro, VE_DIEN_TU: r2VeDienTu, BIEN_LAI: r2BienLai, ANH_DICH_VU: r2AnhDichVu, SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.
   sqlite.exec(`UPDATE catalog_sync SET last_attempt_at = '${new Date().toISOString()}', last_success_at = '${new Date().toISOString()}' WHERE id = 'default'`);

@@ -638,7 +638,7 @@ test("trang hướng dẫn: mọi dòng có wrangler đều kèm --config wrangl
   const dong = hdDongLenh().filter((d) => /(npx\s+wrangler|wrangler\s+(d1|r2|secret|deploy|login|whoami))/.test(d));
   assert.ok(dong.length >= 8, "trang phải có các lệnh wrangler (d1 create, 4 r2 bucket create, các secret put)");
   for (const d of dong) assert.ok(d.includes("--config wrangler.dev.jsonc"), `thiếu --config wrangler.dev.jsonc: ${d}`);
-  assert.ok(dong.some((d) => /d1 create/.test(d)) && dong.filter((d) => /r2 bucket create/.test(d)).length === 5); // ADR-0196: kho thứ tư (biên lai); ADR-0199 Đ3: kho thứ năm (ảnh dịch vụ)
+  assert.ok(dong.some((d) => /d1 create/.test(d)) && dong.filter((d) => /r2 bucket create/.test(d)).length === 5); // ADR-0196: kho thứ tư (biên lai); ADR-0201 Đ3: kho thứ năm (ảnh dịch vụ)
 });
 
 test("trang hướng dẫn: tên D1 và tên kho khớp wrangler.dev.jsonc, không nhắc tên bản chính thức", () => {

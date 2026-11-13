@@ -1,4 +1,4 @@
-// TỆP SQL "NỬA NGHIÊM" của chi tiết dịch vụ (ADR-0199 Đ1; hằng `NUA_NGHIEM` ở src/architecture.test.ts). Mọi câu trên `ctl_service_detail` nằm ở đây, qua `defineSql`.
+// TỆP SQL "NỬA NGHIÊM" của chi tiết dịch vụ (ADR-0201 Đ1; hằng `NUA_NGHIEM` ở src/architecture.test.ts). Mọi câu trên `ctl_service_detail` nằm ở đây, qua `defineSql`.
 // Import kèm đuôi .ts và KHÔNG import module khác lúc chạy (bài kiểm kiến trúc nạp tệp này thẳng bằng Node). Câu nhật ký do nơi gọi ghép vào lô.
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { ChiTietDichVu } from "../../shared/chi-tiet-dich-vu.ts";

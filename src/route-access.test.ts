@@ -126,10 +126,10 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/catalog/co-ve", access: "office" },
   { method: "GET", path: "/api/catalog/nguon-ve", access: "office" }, // ADR-0175 Đ1.2; thân hỏi catalog.ticket_flag.write, chặn Đối tác
   { method: "POST", path: "/api/catalog/nguon-ve", access: "office" },
-  { method: "GET", path: "/api/catalog/:code/chi-tiet", access: "admin" }, // ADR-0199 Đ1; thân hỏi admin.manage
+  { method: "GET", path: "/api/catalog/:code/chi-tiet", access: "admin" }, // ADR-0201 Đ1; thân hỏi admin.manage
   { method: "PUT", path: "/api/catalog/:code/chi-tiet", access: "admin" },
-  { method: "PUT", path: "/api/catalog/:code/anh", access: "admin" }, // ADR-0199 Đ3; thân hỏi admin.manage
-  { method: "GET", path: "/api/catalog/:code/anh", access: "office" }, // ADR-0199 Đ3; thân hỏi money.view (như GET /api/catalog)
+  { method: "PUT", path: "/api/catalog/:code/anh", access: "admin" }, // ADR-0201 Đ3; thân hỏi admin.manage
+  { method: "GET", path: "/api/catalog/:code/anh", access: "office" }, // ADR-0201 Đ3; thân hỏi money.view (như GET /api/catalog)
   { method: "GET", path: "/api/catalog/dac-diem", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem/dem-chua-khai", access: "office" },
   { method: "POST", path: "/api/catalog/dac-diem", access: "admin" },
@@ -802,8 +802,8 @@ test("mức truy cập của 503 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-12 (ADR-0182 phần A, Đ2 mục 2): + GET (orders) /api/orders/:id/cong-no-dai-ly (module receipt) = 493.
   // 2026-11-13 (ADR-0182 phần B): + POST (orders) /api/orders/:id/khoan-nop, GET (orders) …/khoan-nop/:nopId/bien-lai, POST (office) …/bien-lai/go, …/xac-nhan, …/tu-choi,
   //   GET (office) /api/ledger/khoan-nop-cho = 499.
-  // 2026-11-13 (ADR-0199 Đ1): + GET, PUT /api/catalog/:code/chi-tiet (admin; thân hỏi admin.manage) = 501.
-  // 2026-11-13 (ADR-0199 Đ3): + PUT (admin) / GET (office) /api/catalog/:code/anh = 503.
+  // 2026-11-13 (ADR-0201 Đ1): + GET, PUT /api/catalog/:code/chi-tiet (admin; thân hỏi admin.manage) = 501.
+  // 2026-11-13 (ADR-0201 Đ3): + PUT (admin) / GET (office) /api/catalog/:code/anh = 503.
   assert.equal(actual.length, 503, "số route thực tế lệch 503 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
   assert.equal(SNAPSHOT.length, 503, "SNAPSHOT phải có đúng 503 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

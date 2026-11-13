@@ -1216,10 +1216,10 @@ test("trien-khai (kho tệp — cổng 1e): kiểm kho SAU khoá bí mật, TRƯ
   assert.match(h.text(), /Đã có kho tệp vé hỗ trợ: tourdao-sales-ho-tro/, "ADR-0144: cổng 1e kiểm MỌI kho khai trong wrangler.jsonc");
   assert.match(h.text(), /Đã có kho vé điện tử: tourdao-sales-ve-dien-tu/, "ADR-0153: kho thứ ba");
   assert.match(h.text(), /Đã có kho biên lai chuyển khoản: tourdao-sales-bien-lai/, "ADR-0196: kho thứ tư");
-  assert.match(h.text(), /Đã có kho ảnh đại diện dịch vụ: tourdao-sales-anh-dich-vu/, "ADR-0199 Đ3: kho thứ năm");
+  assert.match(h.text(), /Đã có kho ảnh đại diện dịch vụ: tourdao-sales-anh-dich-vu/, "ADR-0201 Đ3: kho thứ năm");
 });
 
-test("trien-khai (kho tệp — cổng 1e, ADR-0199 Đ3): có bốn kho cũ nhưng THIẾU kho ảnh dịch vụ ⇒ DỪNG trước mọi bước ghi, chỉ lệnh tạo đúng kho thiếu; KHÔNG tự tạo", async () => {
+test("trien-khai (kho tệp — cổng 1e, ADR-0201 Đ3): có bốn kho cũ nhưng THIẾU kho ảnh dịch vụ ⇒ DỪNG trước mọi bước ghi, chỉ lệnh tạo đúng kho thiếu; KHÔNG tự tạo", async () => {
   const bon = out("Listing buckets...\nname:           tourdao-sales-ho-so\nname:           tourdao-sales-ho-tro\nname:           tourdao-sales-ve-dien-tu\nname:           tourdao-sales-bien-lai\n");
   const h = harness(tkScript({ [KHO]: bon }), ["c", "c"]);
   assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);

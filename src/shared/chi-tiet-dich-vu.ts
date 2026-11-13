@@ -1,4 +1,4 @@
-// Luật THUẦN của chi tiết dịch vụ (ADR-0199 Đ1): MỘT nguồn cho máy chủ (catalog) và màn «Dịch vụ và Giá». Không I/O.
+// Luật THUẦN của chi tiết dịch vụ (ADR-0201 Đ1): MỘT nguồn cho máy chủ (catalog) và màn «Dịch vụ và Giá». Không I/O.
 // Sheet giữ mã, tên gốc, đơn vị, giá gốc; Nền tảng giữ tên hiển thị (thắng tên Sheet) và mô tả. Máy chủ luôn kiểm lại.
 
 export const TEN_TOI_DA = 200;
@@ -34,7 +34,7 @@ export function kiemChiTiet(raw: unknown): KetQuaKiem {
 export const giongNhau = (moi: ChiTietDichVu, cu: ChiTietDichVu | undefined): boolean =>
   moi.tenHienThi === (cu?.tenHienThi ?? null) && moi.moTa === (cu?.moTa ?? null);
 
-/** ADR-0199 Đ1 mục 4: Sheet đổi tên của dịch vụ đang có tên hiển thị ⇒ câu báo trên màn (không tự bỏ tên hiển thị). */
+/** ADR-0201 Đ1 mục 4: Sheet đổi tên của dịch vụ đang có tên hiển thị ⇒ câu báo trên màn (không tự bỏ tên hiển thị). */
 export function cauTenSheetDoi(tenSheet: string, ct: { tenHienThi: string | null; tenSheetLucGhi: string } | undefined): string | null {
   if (!ct?.tenHienThi || ct.tenSheetLucGhi === tenSheet) return null;
   return `Tên trên Sheet đã đổi thành «${tenSheet}» từ lúc đặt tên hiển thị.`;
