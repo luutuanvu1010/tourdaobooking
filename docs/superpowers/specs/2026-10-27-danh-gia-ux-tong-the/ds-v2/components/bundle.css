@@ -185,7 +185,6 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 .dai-dong:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: calc(-1 * var(--focus-ring)); }
 .login-alert.dai { margin: var(--s5) 0 0; border-radius: var(--radius-sm); }
 .login-alert.dai p { flex: 1; }
-.maint-phu { margin: 0 0 var(--s4); color: var(--c-text-muted); font-size: var(--fs-label); }
 /* Hộp xác nhận một chiều hoiXacNhan (đợt 0, Task 11): điện thoại xếp dọc — nút giữ dưới cùng, nút nguy hiểm trên; từ 641 hai đầu */
 .sheet-canh-bao { display: flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); margin: 0 auto var(--s3); color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); border-radius: var(--radius-pill); }
 .sheet-foot.sheet-foot-xac-nhan { display: flex; flex-direction: column-reverse; gap: var(--s2); }
@@ -460,6 +459,10 @@ body.trang-chu #topbar button.bar-avatar { padding: 0; margin-right: 0; }
 #thanh-duoi label.check { min-height: var(--h-control); }
 #thanh-duoi .td-nut { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
 @media (min-width: 900px) { #thanh-duoi { display: none; } }
+
+/* ---------- Chi tiết dịch vụ (ADR-0201 Đ3): ảnh đại diện trong bảng «Chi tiết dịch vụ» — chỉ token. */
+.ct-anh { display: block; max-width: 100%; max-height: var(--h-anh-dich-vu); border-radius: var(--radius-sm); margin: var(--s2) 0; }
+.ct-anh[hidden] { display: none; }
 
 /* ---------- Bước 1 khung chung (N3, chủ duyệt 13/11 «Theo khuyến nghị»): màn thấp (điện thoại xoay ngang, phóng to 200 %) — thanh nút cuối biểu mẫu thôi dính đáy, nằm cuối biểu mẫu như khối thường, không che nội dung. Cầm dọc và máy tính giữ nguyên. ---------- */
 @media (max-height: 500px) { /* chỉ màn thấp: điện thoại cầm dọc luôn cao hơn; một điều kiện để khớp luật miễn điều kiện @media của máy quét giá trị cứng */

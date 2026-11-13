@@ -87,7 +87,10 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 111.444 → 111.589 (+145, ADR-0182 phần B, 13/11/2026): ba ô quyền mới `dai-ly.nop.ghi`, `dai-ly.nop.xac-nhan`, `dai-ly.nop.xem` (ADR-0182 Đ3) trong bản đồ quyền dùng chung mà gói
 // Đơn hàng nhúng; không mã giao diện nào vào gói này. Đã viết gọn bằng hàng dùng chung (`chiToanQuyen()`, `quanTri()` + ô riêng). Trần = đúng số đo, không khoảng dư. Chủ dự án duyệt
 // 13/11/2026 trong phiên soạn ADR (chat, chuyển qua phiên điều phối), nguyên văn «Duyệt nới trần gói Đơn hàng cho ba ô quyền phần B».
-const TRAN_ORDERS = 111_589;
+// Nới 111.589 → 113.492 (+1.903, màn bảo trì mới theo bản mẫu 2a, 13/11/2026): `web/api.ts` nhúng `web/maintenance-screen.ts` vào gói mọi trang; màn mới có đồng hồ ba ô,
+// nút gọi / Zalo, thẻ website, trạng thái «Đã mở lại» (chữ có dấu thành \uXXXX khi rút gọn nên tốn chỗ). Phương án thay thế (tách màn ra tệp tải khi cần) đã trình, chủ chọn nới.
+// Trần = đúng số đo. Chủ dự án duyệt 13/11/2026 trong chat, nguyên văn «Duyệt nới 1,9 KB».
+const TRAN_ORDERS = 113_492;
 
 function dung(trang: string) {
   const r = buildSync({

@@ -227,7 +227,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (87)
+## Việc chờ chọn (90)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -304,6 +304,9 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Ngưng / Kích hoạt lại | `web/staff.ts`: Ngưng / Kích hoạt lại<br>`web/staff.ts`: Ngưng | Ngưng / kích hoạt lại tài khoản | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Chấp nhận | `web/xac-minh-hang-cho.ts`: Chấp nhận | Xác minh phiếu tự khai | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Từ chối → Gửi từ chối | `web/xac-minh-hang-cho.ts`: Từ chối<br>`web/xac-minh-hang-cho.ts`: Gửi từ chối | Xác minh phiếu tự khai | rà soát 2026-11-04: chưa rõ, chờ chủ |
+| Sửa chi tiết | `web/catalog.ts`: Sửa chi tiết | Chi tiết dịch vụ | ADR-0201 (2026-11-13): tên tạm, chờ chủ |
+| Lưu chi tiết | `web/catalog.ts`: Lưu chi tiết | Chi tiết dịch vụ | ADR-0201 (2026-11-13): tên tạm, chờ chủ |
+| Gỡ ảnh | `web/catalog.ts`: Gỡ ảnh | Chi tiết dịch vụ | ADR-0201 (2026-11-13): tên tạm, chờ chủ |
 | Lưu cho màn này | `web/bang-dieu-khien-truong.ts`: Lưu cho màn này | Giao diện công ty | ADR-0194 đợt 1: tên tạm do AI đặt, chờ chủ chọn (phương án khác: «Lưu màn này», «Lưu cài đặt màn») |
 | Khôi phục mặc định | `web/bang-dieu-khien-truong.ts`: Khôi phục mặc định | Giao diện công ty | ADR-0194 đợt 1: chữ «Khôi phục mặc định» do ADR nêu; chủ chưa chọn riêng tên nút (phương án khác: «Về mặc định», «Đặt lại màn này») |
 | Gửi thông báo | `web/gui-thong-bao.ts`: [biểu tượng megaphone] / Gửi thông báo | Gửi thông báo | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -321,7 +324,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (333)
+## Việc quan trọng (336)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -356,7 +359,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
 | **Xem công nợ với Tour Đảo** | Chi tiết đơn › thẻ Thanh toán (đơn đại lý đã xác nhận) | Mở «Phiếu công nợ với Tour Đảo»: giá đại lý từng dịch vụ, Tổng công nợ, Đã thu, Công nợ còn lại, hạn trả và mã QR đúng số còn lại do máy chủ tính. Chỉ đại lý chủ đơn, Kế toán, Quản trị, Toàn quyền thấy. Không ghi gì. | không | không áp dụng | (chưa nối) | `web/order.ts`: Xem công nợ với Tour Đảo | đã chốt (ADR-0182 Đ2 mục 2 — chữ nguyên văn của chủ (12/11), duyệt «Duyệt, chọn cách 1» 2026-11-12) |
-| **Ghi khoản thu** | Chi tiết đơn › thẻ Thanh toán | Ghi một khoản khách đã trả vào đơn (số tiền, hình thức, ai thu). Nếu người ghi không phải Kế toán và chọn «Công ty» với chuyển khoản, khoản này chỉ là lời khai chờ Kế toán đối chiếu: nó được cộng vào đã thu nhưng chưa bấm được «Xác nhận khách đã trả đủ». Chọn khách trả cho đại lý hoặc nhà cung cấp thì chờ Kế toán xác nhận với bên đó. Không ghi được sau bước Khách đã trả đủ. | không (bấm Ghi trong hàng mở là ghi luôn; có hỏi riêng khi nghi trùng khoản) | một phần: trước bước Khách đã trả đủ sửa bằng «Sửa khoản thu đã ghi» hoặc huỷ bằng «Huỷ khoản thu» (chỉ Kế toán, Toàn quyền) | `/api/orders/:x/payments`<br>nhật ký `payment_recorded` | `web/order.ts`: Ghi khoản thu<br>`web/order.ts`: Ghi | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
+| **Ghi khoản thu** | Chi tiết đơn › thẻ Thanh toán | Ghi một khoản khách đã trả vào đơn (số tiền, hình thức, ai thu). Ô số tiền điền sẵn số «Còn lại»; khách trả khác thì sửa lại, form báo ngay phần thiếu hoặc dư. Nếu người ghi không phải Kế toán và chọn «Công ty» với chuyển khoản, khoản này chỉ là lời khai chờ Kế toán đối chiếu: nó được cộng vào đã thu nhưng chưa bấm được «Xác nhận khách đã trả đủ». Chọn khách trả cho đại lý hoặc nhà cung cấp thì chờ Kế toán xác nhận với bên đó. Không ghi được sau bước Khách đã trả đủ. | không (bấm Ghi trong hàng mở là ghi luôn; có hỏi riêng khi nghi trùng khoản) | một phần: trước bước Khách đã trả đủ sửa bằng «Sửa khoản thu đã ghi» hoặc huỷ bằng «Huỷ khoản thu» (chỉ Kế toán, Toàn quyền) | `/api/orders/:x/payments`<br>nhật ký `payment_recorded` | `web/order.ts`: Ghi khoản thu<br>`web/order.ts`: Ghi | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
 | **Lưu ảnh** | Bảng «QR thanh toán» | Lưu ảnh mã QR thanh toán (kèm số tiền, nội dung chuyển khoản) vào máy, hoặc mở bảng chia sẻ của điện thoại để gửi cho khách. Không ghi gì vào Nền tảng. | không | không áp dụng | (chưa nối) | `web/order.ts`: Lưu ảnh | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 | **Ghi khoản thu này** | Bảng «QR thanh toán» | Đóng bảng QR rồi mở form «Ghi khoản thu» ngay dưới, điền sẵn số tiền của mã vừa tạo. Bấm nút này chưa ghi gì vào sổ; phải bấm «Ghi» trong form mới ghi khoản thu. | không | không áp dụng | (chưa nối) | `web/order.ts`: Ghi khoản thu này | đã chốt (ADR-0166 câu 10) |
 | **QR thanh toán** | Chi tiết đơn › thẻ Thanh toán | Mở bảng tạo mã QR chuyển tiền vào tài khoản công ty cho số còn lại (hoặc số bạn nhập). Chỉ có với đơn đã xác nhận, chưa tới bước Khách đã trả đủ, còn tiền phải thu. Không ghi gì. | không | không áp dụng | (chưa nối) |  | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
@@ -1516,6 +1519,14 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
 | **Đồng bộ ngay từ Google Sheet** | Dịch vụ & giá (đầu trang; cả màn của Quản lý bán hàng — ADR-0186) · hộp hỏi trong trang khi Sheet làm ẩn nhiều dịch vụ | Đọc ngay Google Sheet (việc mà máy cũng tự làm mỗi 15 phút). Dịch vụ mới được thêm; dịch vụ đã có và không bị ghi đè giá thì lấy luôn giá, tên, đơn vị mới của Sheet; dịch vụ không còn trong Sheet thì bị đánh dấu «Không còn trong Sheet» và người lập đơn không thấy nữa. Giá đã ghi đè không bao giờ bị đè (ghi đè nằm ở bảng riêng); đơn đã lập giữ giá lúc lập. | không (chỉ có hộp hỏi trong trang khi máy chủ báo sắp ẩn quá nhiều) | một phần: sửa lại Sheet rồi đồng bộ lần nữa thì giá và dịch vụ trở lại; không có nút hoàn tác từng lần đồng bộ. Nếu sắp ẩn hơn một nửa dịch vụ thì máy chủ dừng và hỏi lại (chưa ghi gì cho tới khi bấm đồng ý). | `/api/catalog/sync`<br>nhật ký `catalog_synced` | `public/catalog.html`: Đồng bộ ngay từ Google Sheet<br>`web/catalog-kiem-ve.ts`: Đồng bộ ngay từ Google Sheet<br>`web/catalog-kiem-ve.ts`: Vẫn đồng bộ | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
+
+### Chi tiết dịch vụ
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Sửa chi tiết** | Dịch vụ & giá › mỗi dòng dịch vụ (bảng và thẻ điện thoại) › bảng «Chi tiết dịch vụ: <mã>» | Mở bảng «Chi tiết dịch vụ»: sửa tên hiển thị và mô tả; xem tóm tắt giá và tình trạng bán. Bấm nút này chưa ghi gì. | không | không áp dụng | (chưa nối) | `web/catalog.ts`: Sửa chi tiết | chờ chọn (ADR-0201 (2026-11-13): tên tạm, chờ chủ) |
+| **Lưu chi tiết** | Dịch vụ & giá › bảng «Chi tiết dịch vụ: <mã>» | Lưu tên hiển thị và mô tả của dịch vụ vào Nền tảng (không ghi ngược Google Sheet). Tên hiển thị thay tên Sheet ở danh mục lập đơn cho đơn lập từ nay; đơn đã lập giữ tên cũ. Để trống tên hiển thị = dùng lại tên Sheet. | không | được: sửa lại hoặc xoá trống rồi lưu (lịch sử giữ mọi lần lưu) | `/api/catalog/:x/chi-tiet`<br>nhật ký `service_detail_changed` | `web/catalog.ts`: Lưu chi tiết | chờ chọn (ADR-0201 (2026-11-13): tên tạm, chờ chủ) |
+| **Gỡ ảnh** | Dịch vụ & giá › bảng «Chi tiết dịch vụ: <mã>» › khối Ảnh đại diện | Bỏ ảnh đại diện đang dùng của dịch vụ (ảnh cũ vẫn giữ trong kho làm lịch sử). Ô «Chọn ảnh mới» cạnh nút: chọn tệp là máy thu nhỏ rồi tải lên ngay, thay ảnh đang dùng. | không | được: chọn lại ảnh | `/api/catalog/:x/anh`<br>nhật ký `service_detail_changed` | `web/catalog.ts`: Gỡ ảnh | chờ chọn (ADR-0201 (2026-11-13): tên tạm, chờ chủ) |
 
 ### Ghi đè giá dịch vụ
 
