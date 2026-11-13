@@ -14,6 +14,7 @@ import { docLyDoSua } from "../src/shared/so-dai-ly-nhap";
 import { GIOI_TINH, GIOI_TINH_NHAN } from "../src/shared/xung-ho";
 import { ApiError, api, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
+import { hoiXacNhan } from "./bang-truot";
 import { initials } from "./format";
 import { chipEl, loiCua, moFormGiayTo, moXacNhanXemSo, taoBoCheSo, type GiayToDong } from "./giay-to-ui";
 import { khoiLichSuGan } from "./hoa-hong-lich-su";
@@ -338,9 +339,9 @@ async function openDetail(id: string): Promise<void> {
   const capNhatONoi = (): void => { oNoiLam.hidden = !p.accountLinked && vaiMoChoHoSoKhongTaiKhoan(rType.value); if (oNoiLam.hidden) rLoc.value = ""; };
   rType.addEventListener("change", capNhatONoi);
   capNhatONoi();
-  const addRole = button("Thêm công việc", (b) => {
+  const addRole = button("Thêm công việc", async (b) => {
     if (!rType.value) { hienLoi("Chọn công việc trước khi thêm."); return; }
-    if (rType.value === OWNER_COMPANY_ROLE && !confirm(XAC_NHAN_DOI_CONG_TY_CHU)) return;
+    if (rType.value === OWNER_COMPANY_ROLE && !(await hoiXacNhan({ tieuDe: "Thêm công việc", hauQua: XAC_NHAN_DOI_CONG_TY_CHU, nhanNguyHiem: "Thêm công việc", opener: b }))) return;
     const body = { roleTypeCode: rType.value, locationId: rLoc.value || null, validFrom: rFrom.value || undefined };
     void act(async () => { await api(`/api/parties/${id}/roles`, { method: "POST", body }); await reload(); }, b);
   }, "btn");
@@ -929,12 +930,12 @@ async function veTaiKhoanNhanTien(sec: HTMLElement, p: Api.PartyDto, tin?: TinTa
   const nh = select([...(coSan ? [] : [{ value: "", label: "Chọn ngân hàng" }]), ...r.nganHang.map((b) => ({ value: b.ma, label: b.ten }))], coSan ? r.hienTai!.maNganHang : "");
   const so = input("", { inputmode: "numeric", autocomplete: "off", maxlength: "23", id: "tknt-so" }) as HTMLInputElement;
   const ten = input("", { autocomplete: "off", maxlength: "100", id: "tknt-ten", placeholder: "Như ngân hàng in, vd CONG TY TNHH TOUR DAO" }) as HTMLInputElement;
-  const luu = button(r.hienTai ? "Đổi tài khoản nhận tiền" : "Lưu tài khoản nhận tiền", (b) => {
+  const luu = button(r.hienTai ? "Đổi tài khoản nhận tiền" : "Lưu tài khoản nhận tiền", async (b) => {
     if (b.disabled) return;
     datTin(null);
     if (!nh.value) return datTin({ kieu: "loi", chu: "Chọn ngân hàng nhận tiền." });
     if (!so.value.trim() || !ten.value.trim()) return datTin({ kieu: "loi", chu: "Nhập số tài khoản và tên chủ tài khoản." });
-    if (r.hienTai && !confirm("Đổi tài khoản nhận tiền? Từ lúc này mã QR mới sẽ chuyển tiền về tài khoản mới; tài khoản cũ được lưu lại trong lịch sử.")) return;
+    if (r.hienTai && !(await hoiXacNhan({ tieuDe: "Đổi tài khoản nhận tiền", hauQua: "Đổi tài khoản nhận tiền? Từ lúc này mã QR mới sẽ chuyển tiền về tài khoản mới; tài khoản cũ được lưu lại trong lịch sử.", nhanNguyHiem: "Đổi tài khoản nhận tiền", opener: b }))) return;
     const body: Api.TaiKhoanNhanTienInput = { maNganHang: nh.value, soTaiKhoan: so.value.trim(), chuTaiKhoan: ten.value.trim(), truocDo: r.hienTai?.id ?? null };
     b.disabled = true; // khoá từ lúc bấm đến khi xong (bấm đúp không gửi hai lần); thành công / "đã cũ" thì cả mục được vẽ lại, nút mới thay nút này
     void (async () => {

@@ -13,7 +13,7 @@ import { ACCEPT_ANH_PDF, chuanBiBienLai } from "./thu-nho-anh";
 import { cauXacNhanDaNhan, duocHuyKhoanSo, ghiSoNoiBo, hienNutSuaKhoanThu } from "../src/shared/nut-khoan-thu";
 import { METHOD_LABEL, actionLabel, dateTime, ngayNganHomNay, parseMoney, trangThaiHienThi, vnd } from "./format";
 import { regroupMoney, setMoneyValue } from "./money-input";
-import { moBangTruot } from "./bang-truot";
+import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { guiCoCanhBaoTrung } from "./canh-bao-trung";
 import { openHandlerSheet } from "./handler-sheet";
 import { banHangDaLuu, banHangFailure, banHangTrang } from "../src/shared/ban-hang-view";
@@ -1210,7 +1210,7 @@ function nutChot(order: Order, loai: "delivered" | "completed", t: Api.OrderPaym
     const cau = giao
       ? `Xác nhận khách đã trả đủ? Từ lúc này đơn bị khoá, không sửa, huỷ hay đổi người phụ trách được nữa.${t.banDangGiu > 0 ? ` Bạn còn ${vnd(t.banDangGiu)} chưa nộp về công ty — nhớ nộp.` : ""}`
       : "Xác nhận Hoàn thành đơn này? Không mở lại được.";
-    if (!confirm(cau)) return;
+    if (!(await hoiXacNhan({ tieuDe: giao ? "Xác nhận khách đã trả đủ" : "Hoàn thành", hauQua: cau, nhanNguyHiem: giao ? "Xác nhận khách đã trả đủ" : "Hoàn thành", opener: btn }))) return;
     btn.disabled = true;
     show(null);
     try {
@@ -1815,7 +1815,7 @@ function nutHuyDon(): HTMLElement {
 function change(label: string, to: "confirmed" | "cancelled", prompt: string, cls: string, canhBao: readonly string[] = []): HTMLButtonElement {
   const btn = h("button", { type: "button", class: cls }, label);
   btn.addEventListener("click", async () => {
-    if (!confirm(canhBao.length ? `${prompt}\n\n${canhBao.join("\n")}` : prompt)) return;
+    if (!(await hoiXacNhan({ tieuDe: label, hauQua: canhBao.length ? `${prompt}\n\n${canhBao.join("\n")}` : prompt, nhanNguyHiem: label, opener: btn }))) return;
     btn.disabled = true;
     show(null);
     try {
