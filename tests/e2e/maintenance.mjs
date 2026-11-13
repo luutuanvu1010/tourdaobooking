@@ -259,7 +259,8 @@ try {
   const MOI = { ...ND, tieuDe: "Nâng cấp bảng giá", lyDo: "Cập nhật giá mùa cao điểm.", sdt: "0905 123 456", zalo: "https://zalo.me/0905123456", hienWeb: false };
   const MOI_LUU = { ...MOI, sdt: "0905123456" };
   const mocNd = new Date().toISOString();
-  for (const [name, cookie, code] of [["Bán hàng", SALES2, 403], ["Quản trị", ADMIN, 403], ["chưa đăng nhập", null, 401]]) {
+  const SALES3 = await session(ACCOUNTS.salesA); // bước 9 vừa đăng nhập lại salesA (chính sách một máy có thể kết thúc phiên cũ)
+  for (const [name, cookie, code] of [["Bán hàng", SALES3, 403], ["Quản trị", ADMIN, 403], ["chưa đăng nhập", null, 401]]) {
     assert.equal((await call(cookie, "PUT", "/api/maintenance/content", MOI)).status, code, `${name} sửa nội dung màn bảo trì`);
   }
   for (const [body, re] of [
