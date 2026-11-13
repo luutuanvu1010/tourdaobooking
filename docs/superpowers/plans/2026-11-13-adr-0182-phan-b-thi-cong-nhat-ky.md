@@ -69,3 +69,4 @@
 - e2e: `khoan-nop cong-no-dai-ly bien-lai so-tien` trên bản sửa cuối 7/7 xanh (lượt trước, nhóm tiền rộng hơn, 12/12).
 - Kịch bản Chrome `khoan-nop-smoke.mjs`: 10/10 xanh ở 390 và 1280, có `AXE_JS`.
 - Người kiểm độc lập: ĐẠT; VỪA-1 và THẤP-2 đã sửa (xem mục trên).
+- `npm test` đủ bộ chạy lại trên `bd1f8a6d5` (theo phiên điều phối): 8919 bài, 8915 xanh, 0 đỏ (4 bỏ qua có sẵn); bước đo giờ hook 1/1 xanh; thoát 0.
