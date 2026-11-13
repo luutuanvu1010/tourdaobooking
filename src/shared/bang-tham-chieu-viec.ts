@@ -525,7 +525,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Thu tiền",
     manHinh: "Chi tiết đơn › thẻ Thanh toán",
     ten: "Ghi khoản thu",
-    thatSuLam: "Ghi một khoản khách đã trả vào đơn (số tiền, hình thức, ai thu). Nếu người ghi không phải Kế toán và chọn «Công ty» với chuyển khoản, khoản này chỉ là lời khai chờ Kế toán đối chiếu: nó được cộng vào đã thu nhưng chưa bấm được «Xác nhận khách đã trả đủ». Chọn khách trả cho đại lý hoặc nhà cung cấp thì chờ Kế toán xác nhận với bên đó. Không ghi được sau bước Khách đã trả đủ.",
+    thatSuLam: "Ghi một khoản khách đã trả vào đơn (số tiền, hình thức, ai thu). Ô số tiền điền sẵn số «Còn lại»; khách trả khác thì sửa lại, form báo ngay phần thiếu hoặc dư. Nếu người ghi không phải Kế toán và chọn «Công ty» với chuyển khoản, khoản này chỉ là lời khai chờ Kế toán đối chiếu: nó được cộng vào đã thu nhưng chưa bấm được «Xác nhận khách đã trả đủ». Chọn khách trả cho đại lý hoặc nhà cung cấp thì chờ Kế toán xác nhận với bên đó. Không ghi được sau bước Khách đã trả đủ.",
     hoiLai: "không (bấm Ghi trong hàng mở là ghi luôn; có hỏi riêng khi nghi trùng khoản)",
     hoanTac: "một phần: trước bước Khách đã trả đủ sửa bằng «Sửa khoản thu đã ghi» hoặc huỷ bằng «Huỷ khoản thu» (chỉ Kế toán, Toàn quyền)",
     duongLenh: ["/api/orders/:x/payments"],
