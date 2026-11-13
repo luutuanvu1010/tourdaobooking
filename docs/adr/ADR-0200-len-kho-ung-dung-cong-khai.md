@@ -1,6 +1,9 @@
 # ADR-0200 — Đưa Nền tảng lên App Store và CH Play ở dạng công khai
 
-- **Trạng thái:** **proposed** — AI soạn 13/11/2026, chờ chủ dự án duyệt (Hiến pháp N3). Không tự duyệt.
+- **Trạng thái:** **accepted phần Đ1, Đ2, Đ3, Đ5, Đ6, Đ7** — chủ dự án duyệt trực tiếp trong phiên chat 13/11/2026, nguyên văn «Duyệt sáu điều»
+  (câu hỏi trước đó: duyệt sáu điều, để riêng phần xin xoá tài khoản chờ sau). **Đ4 giữ proposed**: chờ HC-5.19 đóng hoặc chủ cho phép xây trên lỗ.
+  AI soạn và ghi lại, không tự duyệt (Hiến pháp N3). Đã qua hai lượt kiểm độc lập chỉ đọc (cả hai ĐẠT CÓ ĐIỀU KIỆN, đã sửa đủ).
+  - Lịch sử: AI soạn 13/11/2026 ở trạng thái proposed.
   - 13/11: chủ **chốt hai lựa chọn** Đ5 = (a) và Đ6 = (a), nguyên văn «Theo khuyến nghị» (chuyển qua phiên điều phối «Audit giao diện»).
     Đây **chưa** phải lời duyệt toàn bộ ADR. Đ4 vẫn bị chặn bởi HC-5.19 (chủ chưa gia hạn).
 - **Số:** 0200 kiểm 13/11 trên mọi nhánh cục bộ (`main` dừng ở 0198): số lớn nhất đang dùng là 0199 (hai ADR khác nhau cùng mang 0199 ở hai nhánh chưa
