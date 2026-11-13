@@ -3761,6 +3761,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nguonTen: "rà soát 2026-11-04: chưa rõ, chờ chủ",
   },
   {
+    nhom: "Chế độ bảo trì",
+    manHinh: "Tôi › Chế độ bảo trì › khung «Nội dung màn bảo trì»",
+    ten: "Lưu nội dung",
+    thatSuLam: "Lưu chữ, số điện thoại hỗ trợ, liên kết Zalo, website, lời cảm ơn và năm công tắc ẩn/hiện của màn bảo trì. Không bật hay tắt bảo trì; người bị chặn thấy nội dung mới ở lần mở kế tiếp. Chỉ Toàn quyền.",
+    hoiLai: "không",
+    hoanTac: "được: sửa lại rồi Lưu nội dung, hoặc Về mặc định rồi Lưu nội dung",
+    duongLenh: ["/api/maintenance/content"],
+    maNhatKy: ["maintenance_changed"],
+    noiDat: [
+      { tep: "web/maint-noi-dung.ts", chu: "Lưu nội dung" },
+    ],
+    trangThai: "cho-chon",
+    nguonTen: "bản mẫu 2c (thư mục Bao Tri Mockup, 13/11/2026); chủ chưa chọn riêng tên nút",
+  },
+  {
     nhom: "Chính sách đăng nhập",
     manHinh: "Máy đang đăng nhập › Chính sách đăng nhập",
     ten: "Lưu chính sách",

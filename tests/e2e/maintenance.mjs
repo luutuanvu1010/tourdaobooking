@@ -4,6 +4,7 @@
 // không còn nghĩa, rồi KHÔI PHỤC (tắt + trả '0989929373') ở `finally` — kể cả khi assert hỏng. Chạy CUỐI danh sách.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, login, orderInput, randomPhone, session, sql, sqlRows } from "./lib.mjs";
+import { MAINTENANCE_CONTENT_DEFAULT as ND } from "../../src/shared/maintenance.ts";
 
 const SEED_ALLOWED = "0989929373";
 const ADMIN_PHONE = ACCOUNTS.admin.phone;
@@ -14,13 +15,14 @@ const COUNTDOWN = /Thời gian dự kiến hoàn tất là (\d+ ngày \d+ giờ 
 
 const setting = async () => (await sqlRows("SELECT enabled, ends_at, allowed_phones FROM mnt_setting WHERE id = 'default'"))[0];
 const setAllowed = (phones) => sql(`UPDATE mnt_setting SET allowed_phones = '${phones}' WHERE id = 'default'`);
-const restore = () => sql(`UPDATE mnt_setting SET enabled = 0, ends_at = NULL, allowed_phones = '${SEED_ALLOWED}' WHERE id = 'default'`);
+const restore = () => sql(`UPDATE mnt_setting SET enabled = 0, ends_at = NULL, allowed_phones = '${SEED_ALLOWED}', content_json = NULL WHERE id = 'default'`);
 const count = async (table) => (await sqlRows(`SELECT count(*) AS n FROM ${table}`))[0].n;
 
 /** Phản hồi 503 `maintenance` đúng thân: mã, giờ dự kiến khớp, câu chữ chủ dự án đã chốt, không lưu đệm, không cookie. */
 function assertBlocked(r, endsAt, what) {
   assert.equal(r.status, 503, `${what}: ${JSON.stringify(r.body)}`);
   assert.equal(r.body.error.code, "maintenance", what);
+  assert.deepEqual(r.body.error.content, ND, `${what}: nội dung màn bảo trì (chưa lưu → mặc định) đi kèm thân 503`);
   assert.equal(r.body.error.endsAt, endsAt, `${what}: giờ dự kiến phải đi kèm trong thân lỗi`);
   assert.ok(r.body.error.message.startsWith(HEAD), `${what}: ${r.body.error.message}`);
   assert.ok(r.body.error.message.endsWith(TAIL), `${what}: ${r.body.error.message}`);
@@ -67,7 +69,7 @@ try {
   assert.equal(r.body.error.code, "forbidden");
   assert.equal((await setting()).enabled, 0, "bị từ chối thì KHÔNG được bật");
   r = await call(OWNER, "GET", "/api/maintenance");
-  assert.deepEqual(r.body, { on: false, endsAt: null, canToggle: true }, "Toàn quyền (SĐT KHÔNG trong danh sách) xem được và bật/tắt được");
+  assert.deepEqual(r.body, { on: false, endsAt: null, canToggle: true, content: ND }, "Toàn quyền (SĐT KHÔNG trong danh sách) xem được và bật/tắt được");
   console.log("✓ nền TẮT: mọi tài khoản dùng bình thường; GET/PUT /api/maintenance chỉ Toàn quyền (Quản trị 403 dù SĐT trong danh sách cũ)");
 
   // --- 2) kiểm đầu vào PUT
@@ -136,7 +138,7 @@ try {
   assert.ok(salesLastLogin, "salesA vừa đăng nhập nên phải có lastLoginAt");
   r = await call(OWNER, "PUT", "/api/maintenance", { on: true, endsAt: ENDS });
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.deepEqual(r.body, { on: true, endsAt: ENDS, canToggle: true });
+  assert.deepEqual(r.body, { on: true, endsAt: ENDS, canToggle: true, content: ND });
   assert.deepEqual(await setting(), { enabled: 1, ends_at: ENDS, allowed_phones: `${ADMIN_PHONE},${ACCOUNTS.salesA.phone}` }, "danh sách cũ còn trong cột nhưng KHÔNG được đọc");
 
   // --- 4) BẬT: phiên CÓ SẴN của người khác bị chặn ngay, mọi loại route, kể cả route quyền ADMIN (503 chứ KHÔNG 403)
@@ -183,21 +185,21 @@ try {
   for (const [name, cookie] of [["chủ (phiên cũ)", OWNER], ["chủ (phiên thứ hai)", OWNER2]]) {
     r = await call(cookie, "GET", "/api/auth/me");
     assert.equal(r.status, 200, name);
-    assert.deepEqual(r.body.maintenance, { on: true, endsAt: ENDS }, `${name}: /me báo đang bảo trì để giao diện hiện dải nhắc`);
+    assert.deepEqual(r.body.maintenance, { on: true, endsAt: ENDS, content: ND }, `${name}: /me báo đang bảo trì để giao diện hiện dải nhắc`);
     assert.equal((await call(cookie, "GET", "/api/orders")).status, 200, name);
     assert.equal((await call(cookie, "GET", "/api/staff")).status, 200, name);
   }
   r = await login(OWNER_PHONE, ACCOUNTS.superAdmin.pin);
   assert.equal(r.status, 200, `chủ đăng nhập mới khi đang bảo trì: ${JSON.stringify(r.body)}`);
   assert.equal((await call(r.cookie, "GET", "/api/auth/me")).status, 200);
-  assert.deepEqual((await call(OWNER, "GET", "/api/maintenance")).body, { on: true, endsAt: ENDS, canToggle: true });
+  assert.deepEqual((await call(OWNER, "GET", "/api/maintenance")).body, { on: true, endsAt: ENDS, canToggle: true, content: ND });
   console.log("✓ BẬT: chủ dùng bình thường (phiên cũ, phiên thứ hai, đăng nhập mới)");
 
   // --- 7) BẬT: route công khai vẫn chạy, không lộ ai được phép
   r = await call(null, "GET", "/api/auth/config");
   assert.equal(r.status, 200);
-  assert.deepEqual(r.body.maintenance, { on: true, endsAt: ENDS });
-  assert.doesNotMatch(JSON.stringify(r.body), /allowed|0900000004|0989929373|phone/i, "config công khai không được lộ danh sách được phép");
+  assert.deepEqual(r.body.maintenance, { on: true, endsAt: ENDS, content: ND }, "đang bật: kèm nội dung màn bảo trì (SĐT hỗ trợ công khai cho người bị chặn — vốn đã có trong câu báo 503)");
+  assert.doesNotMatch(JSON.stringify(r.body), new RegExp(`allowed|${ADMIN_PHONE}|${ACCOUNTS.salesA.phone}`, "i"), "config công khai không được lộ danh sách được phép (cột cũ)");
   assert.equal((await call(null, "GET", "/api/company")).status, 200);
   assertBlocked(await call(NGUOI_DANG_XUAT, "GET", "/api/auth/me"), ENDS, "Nhân sự bị chặn như mọi tài khoản không phải Toàn quyền");
   r = await call(NGUOI_DANG_XUAT, "POST", "/api/auth/logout");
@@ -214,7 +216,7 @@ try {
     assert.equal(r.status, 200, `${name}: hết giờ bảo trì thì phiên cũ dùng lại được mà không cần chủ tắt: ${JSON.stringify(r.body)}`);
     assert.deepEqual(r.body.maintenance, { on: false, endsAt: null }, name);
   }
-  assert.deepEqual((await call(OWNER, "GET", "/api/maintenance")).body, { on: false, endsAt: null, canToggle: true }, "trang Tôi của chủ thấy đã tắt, nút bật vẫn còn");
+  assert.deepEqual((await call(OWNER, "GET", "/api/maintenance")).body, { on: false, endsAt: null, canToggle: true, content: ND }, "trang Tôi của chủ thấy đã tắt, nút bật vẫn còn");
   await sql(`UPDATE mnt_setting SET ends_at = '${ENDS}' WHERE id = 'default'`); // trả lại giờ tương lai: bước 9 tắt bằng nút như cũ
   assertBlocked(await call(BLOCKED[0][1], "GET", "/api/auth/me"), ENDS, "giờ tương lai trở lại → chặn lại");
   console.log("✓ TỰ TẮT: qua giờ dự kiến thì không chặn ai (phiên cũ, config, trang Tôi) dù dòng cài đặt còn bật");
@@ -222,7 +224,7 @@ try {
   // --- 9) TẮT: mọi thứ trở lại; phiên cũ dùng lại được; không ai bị khoá
   r = await call(OWNER, "PUT", "/api/maintenance", { on: false });
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.deepEqual(r.body, { on: false, endsAt: null, canToggle: true });
+  assert.deepEqual(r.body, { on: false, endsAt: null, canToggle: true, content: ND });
   assert.deepEqual({ ...(await setting()), allowed_phones: undefined }, { enabled: 0, ends_at: null, allowed_phones: undefined });
   for (const [name, cookie] of BLOCKED) {
     r = await call(cookie, "GET", "/api/auth/me");
@@ -253,6 +255,44 @@ try {
   assert.ok(!JSON.stringify(r.body).includes(OWNER_PHONE) && !JSON.stringify(r.body).includes(SEED_ALLOWED), "nhật ký không lộ SĐT của chủ/admin");
   console.log("✓ nhật ký: đủ lần bật + lần tắt, không lộ SĐT");
 
+  // --- 9b) NỘI DUNG MÀN BẢO TRÌ (bản mẫu 2c, ADR-0202 đề xuất): chỉ Toàn quyền sửa; máy chủ kiểm; 503 + config + câu báo dùng nội dung đã lưu; nhật ký không chép giá trị
+  const MOI = { ...ND, tieuDe: "Nâng cấp bảng giá", lyDo: "Cập nhật giá mùa cao điểm.", sdt: "0905 123 456", zalo: "https://zalo.me/0905123456", hienWeb: false };
+  const MOI_LUU = { ...MOI, sdt: "0905123456" };
+  const mocNd = new Date().toISOString();
+  for (const [name, cookie, code] of [["Bán hàng", SALES2, 403], ["Quản trị", ADMIN, 403], ["chưa đăng nhập", null, 401]]) {
+    assert.equal((await call(cookie, "PUT", "/api/maintenance/content", MOI)).status, code, `${name} sửa nội dung màn bảo trì`);
+  }
+  for (const [body, re] of [
+    [{ ...MOI, sdt: "12345" }, /10 số/],
+    [{ ...MOI, zalo: "javascript:alert(1)" }, /zalo\.me/],
+    [{ ...MOI, website: "http://tourdao.vn" }, /https/],
+    [{ ...MOI, tieuDe: "" }, /tiêu đề/],
+    [{ ...MOI, hienGoi: "có" }, /không hợp lệ/],
+  ]) {
+    r = await call(OWNER, "PUT", "/api/maintenance/content", body);
+    assert.equal(r.status, 400, JSON.stringify(body));
+    assert.match(r.body.error.message, re, JSON.stringify(body));
+  }
+  assert.equal((await sqlRows("SELECT content_json FROM mnt_setting WHERE id = 'default'"))[0].content_json, null, "bị từ chối thì KHÔNG ghi");
+  r = await call(OWNER, "PUT", "/api/maintenance/content", MOI);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual(r.body, { on: false, endsAt: null, canToggle: true, content: MOI_LUU }, "lưu nội dung không bật bảo trì; SĐT đã bỏ dấu cách");
+  assert.deepEqual((await call(OWNER, "GET", "/api/maintenance")).body.content, MOI_LUU);
+  const ENDS2 = new Date(Date.now() + 20 * 60_000).toISOString();
+  assert.equal((await call(OWNER, "PUT", "/api/maintenance", { on: true, endsAt: ENDS2 })).status, 200);
+  r = await call(ACCOUNTANT, "GET", "/api/orders");
+  assert.equal(r.status, 503);
+  assert.deepEqual(r.body.error.content, MOI_LUU, "người bị chặn nhận đúng nội dung chủ đã lưu");
+  assert.ok(r.body.error.message.endsWith("liên hệ quản trị viên khi cần hỗ trợ thêm (0905123456)."), `câu báo dùng SĐT đã lưu: ${r.body.error.message}`);
+  assert.deepEqual((await call(null, "GET", "/api/auth/config")).body.maintenance, { on: true, endsAt: ENDS2, content: MOI_LUU }, "trang đăng nhập nhận nội dung đã lưu");
+  assert.equal((await call(OWNER, "PUT", "/api/maintenance", { on: false })).status, 200);
+  r = await call(OWNER, "GET", "/api/audit?action=maintenance_changed&limit=20");
+  const dongNd = r.body.entries.filter((e) => e.at >= mocNd && e.detail.startsWith("Sửa nội dung màn bảo trì"));
+  assert.equal(dongNd.length, 1, "một lần lưu thành công = một dòng nhật ký");
+  assert.equal(dongNd[0].detail, "Sửa nội dung màn bảo trì: tiêu đề, nội dung bảo trì, số điện thoại hỗ trợ, liên kết Zalo, hiện thẻ website");
+  assert.doesNotMatch(dongNd[0].detail, /\d{9,}/, "nhật ký không chép SĐT");
+  console.log("✓ nội dung màn bảo trì: chỉ Toàn quyền sửa; đầu vào sai → 400 không ghi; 503 + câu báo + config dùng nội dung đã lưu; nhật ký chỉ tên ô");
+
   // --- 10) đường thoát khẩn: bật lại rồi tắt bằng MỘT câu SQL (như wrangler d1 execute --remote), không cần deploy
   r = await call(OWNER, "PUT", "/api/maintenance", { on: true, endsAt: new Date(Date.now() + 60 * 60_000).toISOString() });
   assert.equal(r.status, 200, JSON.stringify(r.body));
@@ -266,4 +306,5 @@ try {
   await restore();
 }
 assert.deepEqual(await setting(), { enabled: 0, ends_at: null, allowed_phones: SEED_ALLOWED }, "phải trả cài đặt về nguyên trạng");
+assert.equal((await sqlRows("SELECT content_json FROM mnt_setting WHERE id = 'default'"))[0].content_json, null, "nội dung màn bảo trì trả về mặc định");
 console.log("E2E MAINTENANCE OK");

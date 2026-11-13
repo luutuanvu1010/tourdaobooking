@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bản mẫu 2c của chủ dự án (13/11/2026; ADR-0202 proposed): nội dung màn bảo trì do Toàn quyền tự sửa — migration 0162 (cột mnt_setting.content_json).
+    // Trần gói trang Đơn hàng 113.492 → 114.524: CHỜ chủ duyệt. SỐ TẠM 2.99: main có 2.98; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.99",
+    date: "2026-11-13",
+    items: [
+      { kind: "moi", text: "Trang Tôi › Chế độ bảo trì có khung «Nội dung màn bảo trì»: Toàn quyền tự sửa chữ, số điện thoại hỗ trợ, Zalo, website và chọn khối nào hiện, có xem trước." },
+    ],
+  },
+  {
     // Màn bảo trì mới theo bản mẫu 2a của chủ dự án (13/11/2026). Không migration, không đổi máy chủ. Trần gói trang Đơn hàng 111.589 → 113.492: chủ duyệt
     // 13/11 trong chat, nguyên văn «Duyệt nới 1,9 KB». SỐ TẠM 2.98: main có 2.97; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.98",

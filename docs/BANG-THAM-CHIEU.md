@@ -227,7 +227,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (87)
+## Việc chờ chọn (88)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -294,6 +294,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Quên máy này | `web/account.ts`: Quên máy này | Máy được tin | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Tạo bộ mới → Tạo bộ mã mới | `web/account.ts`: Tạo bộ mới<br>`web/account.ts`: Tạo bộ mã mới | Mã dự phòng | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Bật chế độ bảo trì | `web/account.ts`: Bật chế độ bảo trì<br>`web/account.ts`: Xác nhận bật | Chế độ bảo trì | rà soát 2026-11-04: chưa rõ, chờ chủ |
+| Lưu nội dung | `web/maint-noi-dung.ts`: Lưu nội dung | Chế độ bảo trì | bản mẫu 2c (thư mục Bao Tri Mockup, 13/11/2026); chủ chưa chọn riêng tên nút |
 | Lưu chính sách | `web/chinh-sach-dang-nhap-ui.ts`: Lưu chính sách<br>`web/chinh-sach-dang-nhap-ui.ts`: Xác nhận lưu | Chính sách đăng nhập | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Rút đồng ý | `web/ho-so-cua-toi.ts`: Rút đồng ý<br>`web/ho-so-cua-toi.ts`: Thôi | Chính sách riêng tư của tôi | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Bật → Tiếp tục với Face ID | `web/passkey.ts`: Bật<br>`web/passkey.ts`: Tiếp tục với Face ID | Bật Face ID | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -321,7 +322,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (333)
+## Việc quan trọng (334)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -1368,6 +1369,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | **Đổi giờ dự kiến** | Tôi › Chế độ bảo trì | Đổi giờ hoàn tất của đợt bảo trì đang bật. Giờ này không chỉ là thông báo: tới giờ, máy chủ tự coi bảo trì là tắt và mở lại cho mọi người. | không | được: bảo trì lại | `/api/maintenance`<br>nhật ký `maintenance_changed` | `web/account.ts`: Đổi giờ dự kiến | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
 | **Tắt chế độ bảo trì** | Tôi › Chế độ bảo trì | Mở lại Nền tảng cho mọi người ngay, không hỏi xác nhận. | không | được: bằng Bật chế độ bảo trì | `/api/maintenance`<br>nhật ký `maintenance_changed` | `web/account.ts`: Tắt chế độ bảo trì | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 | **Bật chế độ bảo trì** | Tôi › Chế độ bảo trì | Chặn ngay mọi tài khoản không giữ Toàn quyền, kể cả Quản trị và máy đang đăng nhập; đóng mọi kết nối Bảng tin đang mở. Sẽ tự mở lại đúng giờ dự kiến đã chọn. | có: Mọi nhân viên khác sẽ bị chặn ngay, kể cả người đang mở Nền tảng. Chỉ bạn dùng được. | được: bằng Tắt chế độ bảo trì | `/api/maintenance`<br>nhật ký `maintenance_changed` | `web/account.ts`: Bật chế độ bảo trì<br>`web/account.ts`: Xác nhận bật | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
+| **Lưu nội dung** | Tôi › Chế độ bảo trì › khung «Nội dung màn bảo trì» | Lưu chữ, số điện thoại hỗ trợ, liên kết Zalo, website, lời cảm ơn và năm công tắc ẩn/hiện của màn bảo trì. Không bật hay tắt bảo trì; người bị chặn thấy nội dung mới ở lần mở kế tiếp. Chỉ Toàn quyền. | không | được: sửa lại rồi Lưu nội dung, hoặc Về mặc định rồi Lưu nội dung | `/api/maintenance/content`<br>nhật ký `maintenance_changed` | `web/maint-noi-dung.ts`: Lưu nội dung | chờ chọn (bản mẫu 2c (thư mục Bao Tri Mockup, 13/11/2026); chủ chưa chọn riêng tên nút) |
 
 ### Chính sách đăng nhập
 

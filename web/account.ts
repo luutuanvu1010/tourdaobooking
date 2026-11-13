@@ -13,6 +13,7 @@ import { initials } from "./format";
 import { helpHasNews, newDot } from "./help-seen";
 import { icon } from "./icons";
 import { renderMaintenanceMessage } from "./maintenance-screen";
+import { dungSuaNoiDung } from "./maint-noi-dung";
 import { ganCaiDatNhapTay } from "./nhap-tay-cai-dat";
 import { ganCaiDatAnKhach } from "./an-khach-cai-dat";
 import { ganCaiDatGioDon } from "./gio-don-cai-dat";
@@ -824,7 +825,7 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
   }
 
   const preview = status.on ? h("span", { id: "maint-preview" }) : null;
-  if (preview) stopPreview = renderMaintenanceMessage(preview, status.endsAt);
+  if (preview) stopPreview = renderMaintenanceMessage(preview, status.endsAt, status.content.sdt);
   replaceChildren(
     maintenanceEl,
     h("h2", { id: "maintenance-heading" }, "Chế độ bảo trì"),
@@ -838,6 +839,12 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
     preview && h("p", { class: "muted" }, "Nhân viên đang thấy: ", preview),
     errorBox,
     body,
+    // Bản mẫu 2c: nội dung màn bảo trì do Toàn quyền tự sửa (lưu riêng, không đổi bật/tắt). Lưu xong chỉ vẽ lại câu «Nhân viên đang thấy» với SĐT mới (giữ câu «Đã lưu» của khung).
+    dungSuaNoiDung(status.content, (r) => {
+      if (!preview) return;
+      stopPreview?.();
+      stopPreview = renderMaintenanceMessage(preview, r.endsAt, r.content.sdt);
+    }),
   );
   maintenanceEl.hidden = false;
 }

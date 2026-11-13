@@ -147,7 +147,7 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
-| `mnt_setting` | bảng |  |
+| `mnt_setting` | bảng | singleton id = 'default'. content_json (migration 0162): nội dung màn bảo trì do Toàn quyền sửa ở trang Tôi (SĐT hỗ trợ, Zalo, website, chữ, công tắc ẩn/hiện); NULL = nội dung mặc định |
 
 ## orders
 
@@ -377,7 +377,7 @@
 | `fbk_ticket` |  | `title`, `context` |  |  |
 | `ky_period_close` |  | `note` |  |  |
 | `login_attempt` |  | `key` |  |  |
-| `mnt_setting` |  | `allowed_phones` |  |  |
+| `mnt_setting` |  | `allowed_phones`, `content_json` |  |  |
 | `ntf_notice` |  | `tieu_de`, `noi_dung` |  |  |
 | `ntf_push_sub` |  | `endpoint`, `thiet_bi` |  |  |
 | `ord_cancel_reason` |  | `note` |  |  |
