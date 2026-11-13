@@ -4644,6 +4644,6 @@ body.trang-chu #topbar button.bar-avatar { padding: 0; margin-right: 0; }
 @media (min-width: 900px) { #thanh-duoi { display: none; } }
 
 /* ---------- Bước 1 khung chung (N3, chủ duyệt 13/11 «Theo khuyến nghị»): màn thấp (điện thoại xoay ngang, phóng to 200 %) — thanh nút cuối biểu mẫu thôi dính đáy, nằm cuối biểu mẫu như khối thường, không che nội dung. Cầm dọc và máy tính giữ nguyên. ---------- */
-@media (orientation: landscape) and (max-height: 500px) {
+@media (max-height: 500px) { /* chỉ màn thấp: điện thoại cầm dọc luôn cao hơn; một điều kiện để khớp luật miễn điều kiện @media của máy quét giá trị cứng */
   .form-actions, #order-form .form-actions, .vc-bottom-bar, .vc-form-actions, .chan-dinh { position: static; }
 }
