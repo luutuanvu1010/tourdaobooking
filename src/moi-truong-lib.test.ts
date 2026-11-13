@@ -114,7 +114,7 @@ const devDienDu = () => {
   return JSON.stringify(d);
 };
 const SECRET_DU = JSON.stringify(["SESSION_SECRET", "LAN_GUI_SECRET", "MFA_ENCRYPTION_KEY"].map((name) => ({ name, type: "secret_text" })));
-const KHO_DU = ["tourdao-sales-dev-ho-so", "tourdao-sales-dev-ho-tro", "tourdao-sales-dev-ve-dien-tu", "tourdao-sales-dev-bien-lai"].map((t) => `name:           ${t}\ncreation_date:  2026-11-04\n`).join("\n");
+const KHO_DU = ["tourdao-sales-dev-ho-so", "tourdao-sales-dev-ho-tro", "tourdao-sales-dev-ve-dien-tu", "tourdao-sales-dev-anh-dich-vu", "tourdao-sales-dev-bien-lai"].map((t) => `name:           ${t}\ncreation_date:  2026-11-04\n`).join("\n");
 const DOC_MIG = wr(`d1 execute ${DB_DEV} --remote --json --command SELECT name FROM d1_migrations`);
 const migJson = (...ten: string[]) => JSON.stringify([{ results: ten.map((name) => ({ name })), success: true }]);
 const KB = {
@@ -638,7 +638,7 @@ test("trang hướng dẫn: mọi dòng có wrangler đều kèm --config wrangl
   const dong = hdDongLenh().filter((d) => /(npx\s+wrangler|wrangler\s+(d1|r2|secret|deploy|login|whoami))/.test(d));
   assert.ok(dong.length >= 8, "trang phải có các lệnh wrangler (d1 create, 4 r2 bucket create, các secret put)");
   for (const d of dong) assert.ok(d.includes("--config wrangler.dev.jsonc"), `thiếu --config wrangler.dev.jsonc: ${d}`);
-  assert.ok(dong.some((d) => /d1 create/.test(d)) && dong.filter((d) => /r2 bucket create/.test(d)).length === 4); // ADR-0196: kho thứ tư (biên lai)
+  assert.ok(dong.some((d) => /d1 create/.test(d)) && dong.filter((d) => /r2 bucket create/.test(d)).length === 5); // ADR-0196: kho thứ tư (biên lai); ADR-0199 Đ3: kho thứ năm (ảnh dịch vụ)
 });
 
 test("trang hướng dẫn: tên D1 và tên kho khớp wrangler.dev.jsonc, không nhắc tên bản chính thức", () => {

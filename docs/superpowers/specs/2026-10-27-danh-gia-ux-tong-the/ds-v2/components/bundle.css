@@ -442,6 +442,10 @@ button.bar-avatar { padding: 0; border: 0; font-family: inherit; cursor: pointer
 #thanh-duoi label.check { min-height: var(--h-control); }
 #thanh-duoi .td-nut { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
 @media (min-width: 900px) { #thanh-duoi { display: none; } }
+
+/* ---------- Chi tiết dịch vụ (ADR-0199 Đ3): ảnh đại diện trong bảng «Chi tiết dịch vụ» — chỉ token. */
+.ct-anh { display: block; max-width: 100%; max-height: var(--h-anh-dich-vu); border-radius: var(--radius-sm); margin: var(--s2) 0; }
+.ct-anh[hidden] { display: none; }
 /* ===== CHÉP TỪ MÃ — hết ===== */
 
 /* ===== RIÊNG CỦA BỘ (1) — lớp xem trước ===== */
