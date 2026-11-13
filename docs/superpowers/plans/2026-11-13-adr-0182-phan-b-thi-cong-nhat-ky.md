@@ -61,3 +61,11 @@
 - **THẤP-4** (ô `dai-ly.nop.ghi` cho Toàn quyền `any`): **giữ** — luật ADR-0014 điều 2 «Toàn quyền any ở MỌI ô, không ngoại lệ» có bài ghim (`permissions.test.ts`); thử bỏ thì bài đó đỏ. Route vẫn chỉ cho tài khoản Đối tác bên đặt (`coPhieuNopTien`).
 - **THẤP-5** (ngày ghi phiếu quyết toán = ngày chuyển đại lý khai): giả định 5, ghi để chủ biết.
 - Giả định 1–8 không lệch chữ ADR (người kiểm). Hai chữ nút Kế toán («Xác nhận đã nhận», «Từ chối») ngoài bảng «Chữ chờ chủ chọn» của ADR — đã khai `cho-chon` ở bảng tham chiếu.
+
+## Bộ kiểm cuối (2026-11-13, sau mọi sửa)
+
+- `npm run typecheck`: 0 lỗi.
+- `npm test` đủ bộ (lần lưu `3c65ad532`): 8919 bài, 8913 xanh, 2 đỏ — cả hai ở `src/kenh-thu-noi-goi.test.ts` (câu chèn khoản thu mới `receipt_with_remittance` chưa phân loại CHẶN / MIỄN). Đã phân loại CHẶN (hàm gọi nó là `ghiKhoanNop`, có gọi `kiemNguoiThuKenh` trước) và đổi số câu chèn 11 → 12; tệp đó chạy lại 2/2 xanh. Bước đo giờ hook xanh. Không đổi mã chạy sau lượt đủ bộ.
+- e2e: `khoan-nop cong-no-dai-ly bien-lai so-tien` trên bản sửa cuối 7/7 xanh (lượt trước, nhóm tiền rộng hơn, 12/12).
+- Kịch bản Chrome `khoan-nop-smoke.mjs`: 10/10 xanh ở 390 và 1280, có `AXE_JS`.
+- Người kiểm độc lập: ĐẠT; VỪA-1 và THẤP-2 đã sửa (xem mục trên).
