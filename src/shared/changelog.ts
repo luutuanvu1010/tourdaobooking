@@ -23,7 +23,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-11-13",
     items: [
       { kind: "sua", text: "«Ghi khoản thu»: ô số tiền điền sẵn số Còn lại, chỉ cần bấm «Ghi»; khách trả khác thì sửa lại, form báo ngay phần thiếu hoặc dư." },
-      { kind: "moi", text: "Màn Dịch vụ và Giá có nút «Sửa chi tiết»: đặt tên hiển thị, viết mô tả và chọn ảnh đại diện cho từng dịch vụ. Tên hiển thị thay tên trên Sheet khi lập đơn mới; đơn cũ giữ tên cũ." },
+      { kind: "moi", text: "Màn Dịch vụ và Giá có nút «Sửa chi tiết»: đặt tên hiển thị, mô tả, ảnh đại diện cho từng dịch vụ. Đơn mới dùng tên hiển thị; đơn cũ giữ tên cũ." },
     ],
   },
   {
