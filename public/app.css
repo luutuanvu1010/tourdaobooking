@@ -183,6 +183,11 @@
   --c-spinner-track: rgba(255, 255, 255, 0.3); /* vòng mờ của vòng quay trên nút Đăng nhập đặc màu (1.70; trước là navy mờ trên nút nhạt) */
   --radius-icon: 22.37%;    /* độ bo góc icon iOS */
   --w-narrow: 420px;        /* bề rộng tối đa của thẻ hẹp (trang Tôi) */
+  --w-maint: 480px;         /* bề rộng tối đa thẻ màn bảo trì (bản mẫu 2a, 13/11/2026) */
+  --w-maint-nut: 140px;     /* bề rộng cơ sở nút Gọi / Nhắn Zalo: hẹp thì xuống hai dòng */
+  --w-maint-goi: 220px;     /* bề rộng cơ sở riêng nút Gọi (số điện thoại không gãy dòng) */
+  --logo-maint: 36px;       /* logo đầu thẻ màn bảo trì */
+  --lh-maint-so: 36px;      /* chiều cao dòng số đồng hồ màn bảo trì */
   --fs-name: var(--fs-h2);        /* tên và chữ viết tắt trong thẻ hồ sơ (trang Tôi) */
   --fs-bar-title: var(--fs-step-7); /* tiêu đề trên thanh đầu trang (điện thoại) */
   --h-turnstile: 65px;      /* chiều cao cố định của widget Cloudflare Turnstile (cỡ "flexible"/"normal"): khung giữ chỗ để widget dựng xong không đẩy nút Đăng nhập */
@@ -1749,12 +1754,34 @@ body.sheet-open { overflow: hidden; }
 /* ---------- chế độ bảo trì (lớp phủ web/maintenance-screen.ts, banner ở đăng nhập, dải ở web/shell.ts, mục ở trang Tôi web/account.ts) — chỉ token ---------- */
 body.maint-open { overflow: hidden; }
 .maint-screen { position: fixed; inset: 0; z-index: var(--z-tren-cung); display: flex; align-items: center; justify-content: center; overflow-y: auto; padding: max(var(--s4), env(safe-area-inset-top)) max(var(--s4), env(safe-area-inset-right)) max(var(--s4), env(safe-area-inset-bottom)) max(var(--s4), env(safe-area-inset-left)); background: var(--c-maint-bg); } /* che kín trang bên dưới (nội dung đang gõ vẫn còn trong trang); bậc trên cùng (--z-tren-cung), cao hơn bảng trượt (--z-truot) và thanh tab (--z-tab) */
-.maint-card { width: 100%; max-width: var(--w-narrow); margin: auto; padding: var(--s5); text-align: center; background: var(--c-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
-.maint-icon { display: flex; justify-content: center; margin-bottom: var(--s3); color: var(--c-sand-text); }
-.maint-title { margin: 0 0 var(--s3); font-size: var(--fs-title); }
-.maint-msg { margin: 0 0 var(--s4); overflow-wrap: anywhere; }
-.maint-card .btn { width: 100%; min-height: var(--tap-min); }
-.maint-card .btn + .btn { margin-top: var(--s2); }
+.maint-cot { display: flex; flex-direction: column; align-items: center; gap: var(--s4); width: 100%; max-width: var(--w-maint); margin: auto; } /* màn bảo trì mới (bản mẫu chủ dự án 13/11/2026, phương án 2a): thẻ giữa màn + thẻ website + lời cảm ơn */
+.maint-card { display: flex; flex-direction: column; gap: var(--s5); width: 100%; padding: var(--s5); background: var(--c-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
+.maint-dau { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.maint-thuong { display: flex; align-items: center; gap: var(--s3); min-width: 0; font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-text-muted); }
+.maint-logo { flex: none; width: var(--logo-maint); height: var(--logo-maint); border-radius: var(--radius-sm); }
+.maint-chu { display: flex; flex-direction: column; gap: var(--s2); }
+.maint-title { margin: 0; font-size: var(--fs-step-10); font-weight: var(--fw-heading); text-wrap: pretty; }
+.maint-msg { margin: 0; color: var(--c-text-muted); overflow-wrap: anywhere; text-wrap: pretty; }
+.maint-dem-khoi, .maint-dem { display: flex; flex-direction: column; gap: var(--s3); }
+.maint-nhan { font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-text-muted); }
+.maint-o { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
+.maint-o > div { display: flex; flex-direction: column; align-items: center; padding: var(--s3) var(--s1); background: var(--c-primary-soft); border-radius: var(--radius-md); }
+.maint-o-so { font-size: var(--fs-step-14); line-height: var(--lh-maint-so); font-weight: var(--fw-heavy); color: var(--c-primary); font-variant-numeric: tabular-nums; } /* số cùng bề rộng: đồng hồ chạy không nhảy chữ */
+.maint-o-nhan { font-size: var(--fs-step-1); color: var(--c-text-muted); }
+.maint-mo-lai { display: flex; align-items: center; gap: var(--s2); margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
+.maint-mo-lai > svg { flex: none; }
+.maint-mo-lai strong { font-weight: var(--fw-bold); color: var(--c-text); }
+.maint-card .dai { min-height: 0; padding: var(--s3) var(--s4); border-radius: var(--radius-md); }
+.maint-nut { display: flex; flex-direction: column; gap: var(--s2); }
+.maint-nut > .nut[data-cap="loi"] { align-self: center; min-height: var(--tap-min); }
+.maint-lien-he { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.maint-lien-he .nut { flex: 1 1 var(--w-maint-nut); min-height: var(--tap-min); text-decoration: none; }
+.maint-lien-he .nut:first-child { flex-basis: var(--w-maint-goi); } /* nút Gọi dài hơn: khổ điện thoại thì hai nút xếp hai dòng, mỗi nút trọn chiều ngang */
+.maint-web { display: flex; flex-direction: column; gap: var(--s1); width: 100%; color: var(--c-text); text-decoration: none; }
+.maint-web strong { color: var(--c-primary); }
+.maint-web span { font-size: var(--fs-label); color: var(--c-text-muted); }
+.maint-cam-on { margin: 0; max-width: var(--w-narrow); text-align: center; font-size: var(--fs-label); color: var(--c-text-muted); text-wrap: pretty; }
+.maint-dem-khoi[hidden], .maint-dem[hidden], .maint-mo-lai[hidden], .maint-lien-he[hidden] { display: none; } /* các khối trên đặt display: flex/grid nên phải trả lại cho thuộc tính hidden */
 .maint-count { display: inline-block; font-weight: var(--fw-heavy); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--c-primary); } /* số cùng bề rộng + không xuống dòng giữa chừng: đồng hồ chạy không nhảy chữ */
 .login-maintenance p { margin: 0; overflow-wrap: anywhere; }
 .maint-state { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 0 0 var(--s2); font-weight: var(--fw-bold); }
@@ -4361,7 +4388,6 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 .dai-dong:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: calc(-1 * var(--focus-ring)); }
 .login-alert.dai { margin: var(--s5) 0 0; border-radius: var(--radius-sm); }
 .login-alert.dai p { flex: 1; }
-.maint-phu { margin: 0 0 var(--s4); color: var(--c-text-muted); font-size: var(--fs-label); }
 /* Hộp xác nhận một chiều hoiXacNhan (đợt 0, Task 11): điện thoại xếp dọc — nút giữ dưới cùng, nút nguy hiểm trên; từ 641 hai đầu */
 .sheet-canh-bao { display: flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); margin: 0 auto var(--s3); color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); border-radius: var(--radius-pill); }
 .sheet-foot.sheet-foot-xac-nhan { display: flex; flex-direction: column-reverse; gap: var(--s2); }

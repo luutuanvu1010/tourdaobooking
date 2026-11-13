@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  MAINTENANCE_CONTACT_PHONE, MAX_MAINTENANCE_MS, checkMaintenanceInput, formatCountdown, isBlocked, maintenanceMessage, maintenanceMessageParts, stateFromRow, type MaintenanceState,
+  MAINTENANCE_CONTACT_PHONE, MAINTENANCE_WEBSITE, MAINTENANCE_ZALO_URL, MAX_MAINTENANCE_MS, checkMaintenanceInput, countdownBoxes, formatCountdown, phoneVnText, isBlocked, maintenanceMessage, maintenanceMessageParts, stateFromRow, type MaintenanceState,
 } from "./maintenance.ts";
 
 const NOW = Date.parse("2026-09-22T03:00:00.000Z");
@@ -123,4 +123,22 @@ test("TỰ TẮT khi hết giờ dự kiến: dòng còn bật nhưng giờ đã
   assert.equal(stateFromRow(row(null), NOW).on, true, "bật tay bằng SQL không kèm giờ: không có gì để hết hạn, giữ bật");
   assert.deepEqual(stateFromRow({ enabled: 0, ends_at: "2026-09-22T05:00:00.000Z" }, NOW), { on: false, endsAt: null });
   assert.deepEqual(stateFromRow(null, NOW), { on: false, endsAt: null });
+});
+
+test("countdownBoxes (màn bảo trì mới, bản mẫu 2a): ba ô giờ/phút/giây có số 0 đứng đầu; từ 1 ngày là ngày/giờ/phút, làm tròn lên phút", () => {
+  const s = 1000;
+  assert.deepEqual(countdownBoxes((2 * 3600 + 5 * 60 + 9) * s), [{ so: "02", nhan: "giờ" }, { so: "05", nhan: "phút" }, { so: "09", nhan: "giây" }]);
+  assert.deepEqual(countdownBoxes(42 * s), [{ so: "00", nhan: "giờ" }, { so: "00", nhan: "phút" }, { so: "42", nhan: "giây" }]);
+  assert.deepEqual(countdownBoxes(1), [{ so: "00", nhan: "giờ" }, { so: "00", nhan: "phút" }, { so: "01", nhan: "giây" }], "còn chút ít không hiện 00 giây");
+  assert.deepEqual(countdownBoxes((3 * 86400 + 5 * 3600 + 9 * 60) * s + 1), [{ so: "3", nhan: "ngày" }, { so: "05", nhan: "giờ" }, { so: "10", nhan: "phút" }]);
+});
+
+test("phoneVnText: SĐT 10 số tách 4-3-3 để dễ đọc; số khác giữ nguyên", () => {
+  assert.equal(phoneVnText(MAINTENANCE_CONTACT_PHONE), "0989 929 373");
+  assert.equal(phoneVnText("12345"), "12345");
+});
+
+test("liên hệ cố định của màn bảo trì: Zalo theo cùng SĐT hỗ trợ, website công ty (người bị chặn không đọc được hồ sơ công ty vì mọi API đều 503)", () => {
+  assert.equal(MAINTENANCE_ZALO_URL, `https://zalo.me/${MAINTENANCE_CONTACT_PHONE}`);
+  assert.equal(MAINTENANCE_WEBSITE, "https://tourdao.vn");
 });

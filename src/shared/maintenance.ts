@@ -9,6 +9,14 @@ export const MAINTENANCE_CODE = "maintenance";
 
 /** SĐT liên hệ hiện trong thông điệp cho người bị chặn (chỉ để gọi — ADR-0071: KHÔNG còn là điều kiện miễn trừ). */
 export const MAINTENANCE_CONTACT_PHONE = "0989929373";
+/** Nút «Nhắn Zalo» và thẻ website trên màn bảo trì (bản mẫu chủ dự án 13/11/2026, phương án 2a). Cố định trong mã: người bị chặn gặp 503 ở mọi API nên không đọc được hồ sơ công ty. */
+export const MAINTENANCE_ZALO_URL = `https://zalo.me/${MAINTENANCE_CONTACT_PHONE}`;
+export const MAINTENANCE_WEBSITE = "https://tourdao.vn";
+
+/** SĐT 10 số → "0989 929 373" (dễ đọc trên nút gọi); số khác giữ nguyên. */
+export function phoneVnText(phone: string): string {
+  return /^\d{10}$/.test(phone) ? `${phone.slice(0, 4)} ${phone.slice(4, 7)} ${phone.slice(7)}` : phone;
+}
 
 /** Giờ dự kiến hoàn tất tối đa tính từ lúc bật — chặn gõ nhầm năm/ngày làm khoá cả công ty nhiều tuần. */
 export const MAX_MAINTENANCE_MS = 7 * 24 * 3600_000;
@@ -75,6 +83,16 @@ export function formatCountdown(msLeft: number): string {
   if (h > 0) return `${h} giờ ${pad2(m)} phút ${pad2(s)} giây`;
   if (m > 0) return `${m} phút ${pad2(s)} giây`;
   return `${s} giây`;
+}
+
+/** Ba ô đồng hồ của màn bảo trì (bản mẫu 2a): giờ/phút/giây có số 0 đứng đầu; từ 1 ngày là ngày/giờ/phút, làm tròn LÊN phút — cùng cách đếm với `formatCountdown`. */
+export function countdownBoxes(msLeft: number): { so: string; nhan: string }[] {
+  const total = Math.max(1, Math.ceil(msLeft / 1000));
+  if (total >= 86400) {
+    const mins = Math.ceil(total / 60);
+    return [{ so: String(Math.floor(mins / 1440)), nhan: "ngày" }, { so: pad2(Math.floor((mins % 1440) / 60)), nhan: "giờ" }, { so: pad2(mins % 60), nhan: "phút" }];
+  }
+  return [{ so: pad2(Math.floor(total / 3600)), nhan: "giờ" }, { so: pad2(Math.floor((total % 3600) / 60)), nhan: "phút" }, { so: pad2(total % 60), nhan: "giây" }];
 }
 
 const CONTACT = `liên hệ quản trị viên khi cần hỗ trợ thêm (${MAINTENANCE_CONTACT_PHONE}).`;
