@@ -19,26 +19,23 @@ Phát hiện gom theo **nguyên nhân gốc**, mỗi mã một gốc; số trong
 | K4 | T19 (5.5) | Biểu tượng chỉ có 192 và 512 loại `any`, **không có loại «maskable»** (Android cắt tròn sẽ mất mép); tệp khai báo **thiếu `id`**; **không có màn chờ khi mở** (`apple-touch-startup-image`) nên mở từ màn hình chính là màn trắng. | `public/manifest.webmanifest`, `ls public/icons`, `grep apple public/index.html` |
 | K5 | T19 (5.3) | Trang Tôi có khối «Yêu cầu xoá dữ liệu» (xoá giấy tờ, ảnh, địa chỉ…) nhưng **chưa có lối «xin xoá tài khoản»** và **chưa có địa chỉ web** cho việc này (Google Play đòi đường dẫn web — chưa kiểm áp cho tài khoản do công ty cấp). Chạm dữ liệu ⇒ cần ADR riêng như tờ phương án đã ghi. | ảnh `doi-tac-toi-390.jpg` |
 
-## Nặng (14)
+## Nặng (11)
 
 | Mã | Tiêu chí | Phát hiện | Số đo | Bằng chứng / đo lại |
 |---|---|---|---|---|
 | N1 | T8, WCAG 1.4.4 | **Khoá phóng to** trên mọi trang: viewport `maximum-scale=1, user-scalable=no` + `touch-action: pan-x pan-y` ở `html`. *Chủ đã quyết 30/9 («khoá chức năng phóng»)* — nhắc lại một lần vì bản công khai sẽ bị đánh giá theo chuẩn trợ năng (P18). | axe `meta-viewport` ở 490/490 ô có chạy axe | `public/app.css` (dòng `html {`), mọi `public/*.html` |
-| N2 | T16 | **Chữ không theo cỡ chữ của máy**: mọi cỡ chữ đặt bằng px (`--fs-step-*`), `html` 16px, `-webkit-text-size-adjust:100%` ⇒ đổi cỡ chữ trong Cài đặt iPhone gần như không có tác dụng (cần thử máy thật). Phép xấp xỉ «nhân đôi mọi token cỡ chữ» ở 390: trang tràn ngang, cắt chữ, chồng chữ hàng loạt (thanh tab chồng chữ, tiêu đề chồng số đếm). Phép «phóng 200 %» kiểu WCAG (640 px, tỉ lệ 2): **đạt** (0 tràn, 0 cắt). | chữ×2: tràn ngang 78/212 trang, cắt chữ 188/212, chồng chữ 202/212 | `tong-hop.json` → `T16_chu-x2`; ảnh `chu-x2-don-hang-390.jpg`, `chu-x2-trang-chu-390.jpg` |
+| N2 | T16 | **Chữ không theo cỡ chữ của máy**: mọi cỡ chữ đặt bằng px (`--fs-step-*`), `html` 16px, `-webkit-text-size-adjust:100%` ⇒ đổi cỡ chữ trong Cài đặt iPhone gần như không có tác dụng (cần thử máy thật). Phép xấp xỉ «nhân đôi mọi token cỡ chữ» ở 390: trang tràn ngang, cắt chữ, chồng chữ hàng loạt (thanh tab chồng chữ, tiêu đề chồng số đếm). Phép «phóng 200 %» kiểu WCAG (640 px, tỉ lệ 2): **đạt** (0 tràn, 0 cắt). | chữ×2: tràn ngang 78/212 trang, cắt chữ 188/212, chồng chữ 202/212 | `docs/evidence/2026-11-13-kiem-giao-dien/so-lieu/tong-hop.json` → `T16_chu-x2`; ảnh `chu-x2-don-hang-390.jpg`, `chu-x2-trang-chu-390.jpg` |
 | N3 | T13, T3 | **Xoay ngang điện thoại / phóng 200 %: Tạo đơn gần như không dùng được.** Thanh nút dưới cố định cao 137 px = 35 % chiều cao màn 844×390; cộng thanh trên 60 px và băng thông báo, chỗ nhìn nội dung còn rất hẹp. Ở phép 200 % máy đo thấy nút chọn dịch vụ, ô tên/SĐT khách bị thanh nút đè **ngay cả khi đã cuộn nút vào giữa màn**. | 714 lượt nút chọn dịch vụ không chạm được (5 bộ quyền lập đơn); ô tên/SĐT/ghi chú cũng bị đè | ảnh `tao-don-xoay-ngang.jpg`; `soi-mot-o.mjs SALES /order-form 844 390 1 …` |
-| N4 | T2, T6 | **Thanh bên máy tính: chữ thương hiệu đè mục đầu tiên.** Khi thanh bên tự cuộn tới mục đang mở, mục trên cùng («Trang chủ») trượt dưới khối thương hiệu, bị cắt nửa hoặc mất hẳn — thấy ở hầu hết trang ≥ 1024. | 310 ô (khổ 1024 / 1180 / 1280 / 1440) | ảnh `thanh-ben-1280.jpg`; `tong-hop.json` → `chongKhoThuong` |
 | N5 | T4 | **Vùng chạm nhỏ hơn 44 × 44 ở điện thoại.** Gốc lớn nhất: nút ảnh đại diện ở thanh trên 30 × 30 (có trên mọi trang); ô đánh dấu cao 34; liên kết chữ cao 18–26 («Xem tất cả», «Điền thông tin của tôi», mã chuyến); nút thẻ Điều phối cao 40. | 210/636 ô điện thoại (360/390/430) có ít nhất một chỗ; 512 chỗ; ảnh đại diện 138 ô | `tong-hop.json` → `T4.theoLop` |
 | N6 | T6 | **Quá nhiều kiểu nút và cỡ chữ trên một màn.** Nút lưu, nút phụ, nút viền, nút đỏ viền, nút chữ, viên thuốc… cùng xuất hiện. | 196/212 trang có > 3 hình nút (trung bình 6,5; Tạo đơn 17); 176/212 trang có > 5 cỡ chữ (trung bình 6) — đo ở 1280 | `tong-hop.json` → `T6`; ảnh `tao-don-1280.jpg`, `chi-tiet-don-1280.jpg` |
 | N7 | T7, HIG iPad | **iPad đứng (820) dùng nguyên bố cục điện thoại kéo giãn**: thanh tab dưới, không thanh bên, một cột rộng 788 px, thẻ và ô gõ dài hết bề ngang. | 727 khối «một đầu» (nội dung ≤ 35 % bề rộng) ở 820; bề rộng nội dung 640–788 | ảnh `*-820.jpg` (mọi họ màn) |
 | N8 | T7 | **Máy tính: bề rộng nội dung không theo một lưới**, giãn theo màn: ở 1280 có trang 640 px, có trang 1.184 px (5 mức khác nhau); ở 1440 lên 1.344 px (6 mức). Không có ngưỡng đạt vì lưới chung là việc của Chặng 3 — đây là số đo nền. | 1280: min 640 / trung vị 1.000 / max 1.184; 1440: max 1.344 | `tong-hop.json` → `T7` |
-| N9 | T7, lớp 1 | **Băng thông báo cao 3–4 dòng ở đầu mọi màn điện thoại** (tin quan trọng, nhắc bật bảo mật hai lớp): khoảng 110 px ≈ 13 % màn 844; «Tin quan trọng» không có nút đóng ở bản đo. Đẩy nội dung chính xuống ở mọi trang. | thấy ở mọi ảnh 390 của kho NHIỀU (tin) và RỖNG (nhắc hai lớp) | ảnh `trang-chu-390.jpg`, `don-hang-390.jpg`, `rong-don-hang.jpg` |
+| N9 | T7, lớp 1 | **Băng thông báo cao 3–4 dòng ở đầu mọi màn điện thoại** (tin quan trọng, nhắc bật bảo mật hai lớp): 113 px ≈ 13 % màn 844. «Tin quan trọng» không có nút đóng là **thiết kế đã chốt** (ở lại tới khi bấm «Đã hiểu», `web/gui-thong-bao.ts`) — vấn đề là chiều cao, không phải việc thiếu nút đóng. Đẩy nội dung chính xuống ở mọi trang. | thấy ở mọi ảnh 390 của kho NHIỀU (tin) và RỖNG (nhắc hai lớp) | ảnh `trang-chu-390.jpg`, `don-hang-390.jpg`, `rong-don-hang.jpg` |
 | N10 | T10 | **Nhảy bố cục khi dữ liệu về.** Mở lạnh: 17/57 trang có CLS ≥ 0,1 (cao nhất Chính sách điều phối 0,88; Tạo đơn 0,69; Dịch vụ 0,56; Vé điện tử 0,47). Mở lại: Dịch vụ 0,49; Vé điện tử 0,45; Quản lý tài khoản 0,30. | ngưỡng 0,1 | `so-lieu/toc-do.json` (do-toc-do.mjs, 4G chậm + CPU 4×) |
-| N11 | T12 | Còn **16 hộp hỏi của hệ điều hành** (`confirm`/`alert`) — trong vỏ ứng dụng trông như trang web, chữ nút do máy đặt. Ngưỡng 0. | 16 (trần của bài khoá); nhiều nhất ở Quản lý tài khoản | `node --test src/ratchet-confirm-alert.test.ts` |
-| N12 | T5, T15 | **Trang thiếu tiêu đề chính** (`h1`): chi tiết vé Hỗ trợ (mọi vai, 390), chi tiết đơn của Thực tập / Hướng dẫn viên / Đối tác, chuyến của tài xế (`/cuoc-chuyen`), Nhật ký (`/audit`). Bộ đọc màn hình không có mốc đầu trang. | 23 ô | `tong-hop.json` → `T5.khongMotH1` |
-| N13 | T8, T15 | Ô chọn ảnh vé ở **Quét vé** không có nhãn (axe mức nghiêm trọng, `#qv-anh`). | 14 ô (mọi vai có Quét vé) | `tong-hop.json` → `T8`; ảnh `quet-ve-390.jpg` |
+| N11 | T12 | Còn **khoảng 16 hộp hỏi của hệ điều hành** (`confirm`/`alert`) — trong vỏ ứng dụng trông như trang web, chữ nút do máy đặt. Ngưỡng 0. | 16 là TRẦN của bài khoá (đếm thô 17–18 chỗ gọi, có thể gồm chuỗi chữ); nhiều nhất ở Quản lý tài khoản | `node --test src/ratchet-confirm-alert.test.ts` |
 | N14 | T14 | **Tài xế đối tác — «Lưu khung bận» mờ mà không nói vì sao** (phải chọn một lý do trước). Đã ghi ở đánh giá 27/10, vẫn còn. | hành trình DRIVER_PARTNER dừng ở bước 13 | ảnh `bao-ban-nut-mo-390.jpg`; `so-lieu/hanh-trinh-390.json` |
 
-## Nhỏ (9)
+## Nhỏ (12 — gồm ba mục hạ từ Nặng sau kiểm lại, giữ mã cũ)
 
 | Mã | Tiêu chí | Phát hiện | Số đo / bằng chứng |
 |---|---|---|---|
@@ -51,6 +48,9 @@ Phát hiện gom theo **nguyên nhân gốc**, mỗi mã một gốc; số trong
 | S7 | lớp 1 | Trang Thiết lập trên máy tính là một danh sách dài ~20 dòng, không nhóm, không mô tả, nửa phải trống. | ảnh `thiet-lap-1280.jpg` |
 | S8 | lớp 2 | Quản lý tài khoản trên điện thoại dài khoảng 7 màn cho 13 tài khoản (mỗi thẻ 4 nút, hai hàng). | ảnh cả trang 390 cao 5.927 px (ngoài kho) |
 | S9 | T9 | Màn ngoài mạng: thanh tab đổi số mục (4 thay 5), thanh trên chỉ còn chữ viết tắt tên. | ảnh `rong-ngoai-mang.jpg` |
+| N4 → Nhỏ | T2 | **Sửa sau kiểm lại (bác phần «đè chữ»).** Thanh bên máy tính tự cuộn vùng nhóm tới mục đang mở (`.sidebar-groups` scrollTop 782–958 ở `/staff`, `/catalog`), nên mục trên cùng («Trang chủ») bị cắt nửa hoặc khuất ở mép khung khi mới mở trang sâu. **Không có chữ nào đè lên khối thương hiệu**; con số «310 ô chồng chữ» là dương tính giả (máy đo dùng hộp bao của phần tử đã cuộn khuất) — bỏ. Chỉ còn vấn đề nhìn: mục cắt nửa ở mép trông như lỗi. | ảnh `thanh-ben-1280.jpg` |
+| N12 → Nhỏ | T5 | **Sửa sau kiểm lại (bác phần lớn).** 23 ô «thiếu h1» đều là **khối trạng thái** (thiếu mã đơn / mã chuyến, không tìm thấy đơn không thuộc tài khoản, không quyền) do máy quét mở trang không kèm mã hoặc bằng vai không có quyền — trang chi tiết thật có h1. Còn lại: khối trạng thái lỗi / không quyền không có tiêu đề chính cho bộ đọc màn hình. Chi tiết vé Hỗ trợ có mã: chưa xác nhận. | `soi-mot-o.mjs` (người kiểm lại) |
+| N13 → Nhỏ | T8 | Ô chọn ảnh vé ở Quét vé (`#qv-anh`) không có nhãn (axe nghiêm trọng, 14 ô) — nhưng ô này ẩn, người dùng bấm nút «Chụp ảnh mã vé» có tên rõ ⇒ hạ Nhỏ theo người kiểm lại. | `public/quet-ve.html`; ảnh `quet-ve-390.jpg` |
 
 ## Tiêu chí đạt (không có phát hiện)
 
@@ -86,3 +86,12 @@ chuyến đã ở bước «Đã tới» do dữ liệu gieo. Ba kịch bản c�
 T13 (vùng an toàn, thanh trạng thái, bàn phím ảo che nút lưu) và phần tay của T15 (VoiceOver, TalkBack): cần iPhone của chủ; Android, iPad thật: chưa có máy.
 Trạng thái ÍT (giữa rỗng và nhiều) không đo riêng lần này — đo RỖNG và NHIỀU. Lớp 8 phần «ảnh biên nhận gửi khách» và hộp thoại / bảng trượt chỉ thấy
 qua hành trình, chưa quét riêng.
+
+## Kiểm lại độc lập (kế hoạch mục 6) — 13/11/2026
+
+Một trợ lý khác (vai người kiểm độc lập, chỉ đọc) đọc báo cáo, lấy mẫu và tự đo lại **11 mẫu**: K1, K3, K4, N3, N5, N9, N11, N13, N4, N12 và tiêu chí đạt
+T1/T15 (7 ô ở 360). Kết quả: **8 xác nhận** (K1, K3, K4, N3 phần số đo, N5, N9 số đo, N11, T1/T15 — không bỏ sót), **1 xác nhận một phần** (N13: axe đúng
+nhưng ô ẩn, hạ Nhỏ), **2 bác** (N4 «đè chữ» và phần lớn N12 — dương tính giả của máy đo gộp). Đo thêm ngoài mẫu: N2 (cỡ chữ px) và S2 (mã thô ở Địa điểm)
+xác nhận. Báo cáo đã sửa theo kết quả này: N4, N12, N13 hạ xuống Nhỏ (giữ mã), N9 ghi rõ không có nút đóng là thiết kế, N11 ghi 16 là trần.
+Không đo lại: N6, N7, N8, N10, N14, K2, K5, S3–S9, T18 (số tổng hoặc nhận định). Bài học cho lần đo sau: phép đếm chồng chữ phải bỏ phần tử nằm ngoài khung
+cuộn của cha; phép đếm h1 phải bỏ khối trạng thái lỗi.

@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const HO = [
-  ["Trang chủ", "trang-chu", "Bán hàng", ["N9", "N4", "N6"]],
+  ["Trang chủ", "trang-chu", "Bán hàng", ["N9", "N6"]],
   ["Lập đơn", "tao-don", "Bán hàng", ["N3", "N6", "N10"]],
   ["Đơn hàng", "don-hang", "Bán hàng", ["S3", "S4", "N9"]],
   ["Chi tiết đơn", "chi-tiet-don", "Bán hàng", ["N6", "S4"]],
@@ -20,7 +20,7 @@ const HO = [
   ["Đăng nhập", "dang-nhap", "chưa đăng nhập", ["K1", "K2", "K3"]],
 ];
 const RIENG = [
-  ["K3 · N4", "thanh-ben-1280.jpg", "Máy tính 1280: khối tên «Island Booking System» đè mục đầu của thanh bên khi thanh bên tự cuộn (ba trang khác nhau)."],
+  ["K3 · N4", "thanh-ben-1280.jpg", "Máy tính 1280: thanh bên tự cuộn tới mục đang mở nên mục đầu bị cắt ở mép khung (không phải chữ đè — đã sửa sau kiểm lại); tên «Island Booking System» khác tên ở Đăng nhập (K3)."],
   ["N3", "tao-don-xoay-ngang.jpg", "Điện thoại xoay ngang 844×390: thanh nút dưới cao 137 px, chỗ nhìn nội dung Tạo đơn còn rất hẹp."],
   ["N2", "chu-x2-don-hang-390.jpg", "Phép xấp xỉ nhân đôi cỡ chữ ở 390: Đơn hàng — chữ chồng, thanh tab chồng chữ."],
   ["N2", "chu-x2-trang-chu-390.jpg", "Phép xấp xỉ nhân đôi cỡ chữ ở 390: Trang chủ Kế toán."],
@@ -32,7 +32,9 @@ const RIENG = [
   ["S5", "rong-khong-trang.jpg", "Không có trang."],
   ["S9", "rong-ngoai-mang.jpg", "Ngoài mạng: thanh tab còn 4 mục."],
 ];
-const nhan = (m) => `<span class="ma ma-${m[0]}">${m}</span>`;
+// N4, N12, N13 hạ xuống Nhỏ sau kiểm lại độc lập (giữ mã cũ) ⇒ tô màu Nhỏ.
+const HA = ["N4", "N12", "N13"];
+const nhan = (m) => `<span class="ma ma-${HA.includes(m) ? "S" : m[0]}">${m}</span>`;
 const hang = HO.map(([ten, k, vai, ma]) => `<section class="ho"><h3>${ten} <small>${vai}</small> ${ma.map(nhan).join(" ")}</h3><div class="khung">
 ${[390, 820, 1280].map((w) => `<figure class="w${w}"><a href="anh/${k}-${w}.jpg"><img loading="lazy" src="anh/${k}-${w}.jpg" alt="${ten} khổ ${w}"></a><figcaption>${w === 390 ? "Điện thoại 390" : w === 820 ? "iPad đứng 820" : "Máy tính 1280"}</figcaption></figure>`).join("")}
 </div></section>`).join("\n");

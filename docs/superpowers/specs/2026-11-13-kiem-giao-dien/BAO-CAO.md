@@ -8,7 +8,7 @@
 Nền tảng hiện **chắc ở phần nền**: không trang nào bị kéo ngang ở bất kỳ khổ nào, mọi nút đều có tên cho bộ đọc màn hình, thông tin chính (tên khách, mã đơn,
 số tiền, số khách) không bị cắt, mở lại trang dưới 1 giây. Nhưng để **lên hai kho ở dạng công khai** thì còn **5 điểm chặn**, đều nằm ngoài các màn làm việc:
 thiếu trang chính sách quyền riêng tư và trang hỗ trợ công khai, màn Đăng nhập không tự giới thiệu với người lạ hay người duyệt của kho, tên Nền tảng có ba kiểu,
-biểu tượng và màn chờ khi mở chưa đủ chuẩn, và chưa có lối xin xoá tài khoản. Phần làm người dùng thấy «chưa chuyên nghiệp» tập trung ở **14 điểm nặng**,
+biểu tượng và màn chờ khi mở chưa đủ chuẩn, và chưa có lối xin xoá tài khoản. Phần làm người dùng thấy «chưa chuyên nghiệp» tập trung ở **11 điểm nặng**,
 phần lớn là lỗi chung của khung (một chỗ sửa, mọi trang cùng đẹp lên), đúng với bước 1 của kế hoạch.
 
 ## Đã đo gì
@@ -30,16 +30,22 @@ trang 403 / 404 / mất mạng, đo tốc độ trên mạng 4G chậm, 10 hành
 - **Khoá phóng to** trên mọi trang (N1). Bạn đã quyết khoá từ 30/9; tôi nhắc lại một lần vì bản công khai sẽ bị chấm theo chuẩn trợ năng (P18). Bạn vẫn giữ thì giữ.
 - **Chữ không theo cỡ chữ của điện thoại** (N2): khi tôi nhân đôi cỡ chữ, 188/212 trang bị cắt chữ và 78 trang bị kéo ngang. Cần thử trên iPhone thật.
 - **Xoay ngang điện thoại, màn Tạo đơn gần như không dùng được** (N3): thanh nút dưới chiếm hơn một phần ba màn.
-- **Máy tính: chữ thương hiệu đè mục «Trang chủ» ở thanh bên** (N4, 310 ô); **iPad đứng dùng bố cục điện thoại kéo giãn** (N7); **bề rộng nội dung mỗi trang
-  một kiểu** (N8).
+- **iPad đứng dùng bố cục điện thoại kéo giãn** (N7); **máy tính: bề rộng nội dung mỗi trang một kiểu** (N8).
 - **Nút nhỏ hơn cỡ ngón tay** ở 210/636 ô điện thoại, rõ nhất là nút ảnh đại diện trên mọi trang (N5); **trung bình 6,5 kiểu nút trên một màn** (N6).
-- **Băng thông báo cao 3–4 dòng ở đầu mọi màn điện thoại** (N9); **nhảy bố cục khi dữ liệu về** ở 17/57 trang (N10); 16 hộp hỏi kiểu trình duyệt còn sót (N11).
+- **Băng thông báo cao 3–4 dòng ở đầu mọi màn điện thoại** (N9; không có nút đóng là thiết kế đã chốt, vấn đề là chiều cao); **nhảy bố cục khi dữ liệu về** ở 17/57 trang (N10); khoảng 16 hộp hỏi kiểu trình duyệt còn sót (N11).
 
 ## Bảng tiêu chí
 
 | Đạt | Không đạt | Chưa kiểm |
 |---|---|---|
 | T1 không kéo ngang · T2 thông tin chính · T11 mở lại ≤ 1 s · T15 phần máy (0 nút không tên) · T17 chữ nút | T3 · T4 · T5 · T6 · T7 (số đo nền, chờ lưới) · T8 · T9 · T10 · T12 · T14 (6/10) · T16 · T18 (3 họ dưới 7) · T19 | T13 và VoiceOver (cần iPhone của bạn); Android, iPad thật |
+
+## Đã kiểm lại độc lập
+
+Một trợ lý khác (chỉ đọc) tự đo lại 11 mẫu: **8 xác nhận, 1 xác nhận một phần, 2 bác**. Hai chỗ bị bác là đo nhầm của máy đếm gộp: thanh bên máy tính **không**
+có chữ đè lên tên thương hiệu (chỉ là mục đầu bị cắt ở mép khi thanh bên tự cuộn), và các trang «thiếu tiêu đề» thực ra là khối báo lỗi do máy quét mở trang
+không kèm mã. Tôi đã sửa báo cáo theo đúng kết quả đó: ba mục hạ xuống Nhỏ, còn 5 Chặn kho, 11 Nặng, 12 Nhỏ. Phần chưa đo lại: kiểu nút, bố cục iPad, lưới,
+nhảy bố cục, nút mờ của tài xế đối tác và điểm Nielsen.
 
 ## Giới hạn
 
@@ -48,5 +54,5 @@ Chrome giả lập không phải iPhone thật: vùng tai thỏ, bàn phím ảo
 
 ## Bước kế (theo kế hoạch mục 5)
 
-Bạn đọc báo cáo và chọn đợt. Tôi khuyến nghị: **bước 1 sửa khung chung** gồm N3, N4, N5, N9, N10, N11, N12, N13 (một chỗ sửa, mọi trang lợi), song song
+Bạn đọc báo cáo và chọn đợt. Tôi khuyến nghị: **bước 1 sửa khung chung** gồm N3, N5, N9, N10, N11 và ba mục nhỏ N4, N12, N13 (một chỗ sửa, mọi trang lợi), song song
 **soạn ADR lên kho** để giải K1–K5; N6–N8 để bước 2 (lưới bố cục Chặng 3).
