@@ -16,7 +16,7 @@
 | N11 | Hộp hỏi kiểu trình duyệt | 0 chỗ gọi `confirm(`/`alert(` trong `web/`; bài khoá trần hạ về 0; nút đỏ dùng đúng tên nút đã có trong bảng tham chiếu, nút giữ «Giữ nguyên» | `node --test src/ratchet-confirm-alert.test.ts src/bang-tham-chieu.test.ts` |
 | chung | Không làm hỏng chỗ khác | `npm test`, `npm run typecheck` xanh; quét lại toàn bộ 2.709 ô không tăng lỗi T1 / T3 / T4; kịch bản Chrome khung chung `dot-0-smoke.mjs` đạt | chạy một lần ở cuối |
 
-## Đổi điều người dùng thấy — cần chủ duyệt trước (ảnh ở `docs/evidence/2026-11-13-buoc-1-khung-chung/xem-truoc/`)
+## Đổi điều người dùng thấy — chủ ĐÃ DUYỆT 13/11 («Theo khuyến nghị», qua phiên điều phối): câu 1 và câu 2 theo phương án khuyến nghị (ảnh ở `docs/evidence/2026-11-13-buoc-1-khung-chung/xem-truoc/`)
 
 1. **Dải thông báo trên điện thoại gọn lại tối đa hai dòng** (113 → 53 px). Câu dài bị cắt bằng «…»; bấm «Xem» vẫn đọc đủ. Máy tính không đổi. Ảnh `dai.jpg`.
 2. **Màn thấp (điện thoại xoay ngang, phóng to 200 %): thanh nút Lưu thôi dính đáy**, nằm ở cuối biểu mẫu như một khối thường — phải cuộn xuống mới bấm Lưu,
@@ -39,3 +39,6 @@
 - **Phát hiện mới khi đo ở 1280 (bước 0 chỉ đo tốc độ ở 390):** (a) thanh trên máy tính lúc chưa dựng khung chỉ cao 24 px rồi nở lên 60 px — đã sửa (thanh cao sẵn);
   (b) **dải thông báo chèn muộn đẩy cả trang xuống 61 px** ở mọi trang máy tính khi có tin / nhắc hai lớp: Quản lý tài khoản 0,66, Dịch vụ 0,41, Đơn hàng ~0,1.
   Chưa sửa vì chưa biết trước có dải hay không lúc vẽ khung; cách sửa (nhớ dải lần trước để vẽ sẵn, hoặc giữ chỗ) là việc khung chung riêng — ghi để hỏi.
+- 13/11: chủ duyệt «Theo khuyến nghị» (qua phiên điều phối «Audit giao diện»): dải điện thoại tối đa hai dòng cắt «…»; màn thấp thanh nút Lưu nằm cuối biểu mẫu.
+  Đã làm: N9 dải 113/89 → 53 px ở 390 (nút 44 px, không tràn), máy tính 61 px không đổi; N3 ở 844×390 thanh nút `position: static`, ở 390×844 vẫn dính; T3 Tạo đơn khi
+  phóng 200 %: 251 chỗ bị che → 0. Cắt chữ ở điện thoại +1 chỗ = chính câu dải bị cắt «…» theo duyệt.

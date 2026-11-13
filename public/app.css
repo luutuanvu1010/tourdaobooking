@@ -4301,7 +4301,11 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .dai[data-tong="bien"] { color: var(--c-primary-strong); background: var(--c-primary-soft); }
 .dai[data-tong="cat"] { color: var(--c-sand-text); background: var(--c-mat-mang-bg); }
 .dai[data-tong="do"] { color: var(--c-danger); background: var(--c-danger-soft); }
-@media (max-width: 640px) { .dai { flex-wrap: wrap; } }
+/* Bước 1 khung chung (N9, chủ duyệt 13/11 «Theo khuyến nghị»): điện thoại — dải tối đa hai dòng, câu dài cắt «…» (bấm nút của dải để đọc đủ; bộ đọc màn hình vẫn đọc cả câu); nút và nút đóng giữ một hàng. */
+@media (max-width: 640px) {
+  .dai { flex-wrap: nowrap; gap: var(--s2); padding-top: var(--s1); padding-bottom: var(--s1); }
+  .dai-cau { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; font-size: var(--fs-step-3); line-height: var(--lh-20); }
+}
 
 .chan-dinh { position: sticky; bottom: 0; z-index: var(--z-dinh); display: flex; gap: var(--s3); padding: var(--le-trang) var(--le-trang) calc(var(--le-trang) + env(safe-area-inset-bottom)); background: var(--c-surface); border-top: 1px solid var(--c-border); min-height: var(--h-control-lon); }
 .chan-dinh .nut, .chan-dinh button { min-height: var(--h-control-lon); }
@@ -4638,3 +4642,8 @@ body.trang-chu #topbar button.bar-avatar { padding: 0; margin-right: 0; }
 #thanh-duoi label.check { min-height: var(--h-control); }
 #thanh-duoi .td-nut { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
 @media (min-width: 900px) { #thanh-duoi { display: none; } }
+
+/* ---------- Bước 1 khung chung (N3, chủ duyệt 13/11 «Theo khuyến nghị»): màn thấp (điện thoại xoay ngang, phóng to 200 %) — thanh nút cuối biểu mẫu thôi dính đáy, nằm cuối biểu mẫu như khối thường, không che nội dung. Cầm dọc và máy tính giữ nguyên. ---------- */
+@media (orientation: landscape) and (max-height: 500px) {
+  .form-actions, #order-form .form-actions, .vc-bottom-bar, .vc-form-actions, .chan-dinh { position: static; }
+}
