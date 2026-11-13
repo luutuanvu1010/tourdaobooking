@@ -255,7 +255,7 @@ try {
   assert.ok(!JSON.stringify(r.body).includes(OWNER_PHONE) && !JSON.stringify(r.body).includes(SEED_ALLOWED), "nhật ký không lộ SĐT của chủ/admin");
   console.log("✓ nhật ký: đủ lần bật + lần tắt, không lộ SĐT");
 
-  // --- 9b) NỘI DUNG MÀN BẢO TRÌ (bản mẫu 2c, ADR-0202 đề xuất): chỉ Toàn quyền sửa; máy chủ kiểm; 503 + config + câu báo dùng nội dung đã lưu; nhật ký không chép giá trị
+  // --- 9b) NỘI DUNG MÀN BẢO TRÌ (bản mẫu 2c, ADR-0202): chỉ Toàn quyền sửa; máy chủ kiểm; 503 + config + câu báo dùng nội dung đã lưu; nhật ký không chép giá trị
   const MOI = { ...ND, tieuDe: "Nâng cấp bảng giá", lyDo: "Cập nhật giá mùa cao điểm.", sdt: "0905 123 456", zalo: "https://zalo.me/0905123456", hienWeb: false };
   const MOI_LUU = { ...MOI, sdt: "0905123456" };
   const mocNd = new Date().toISOString();

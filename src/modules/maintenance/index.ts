@@ -83,7 +83,7 @@ export const maintenanceModule: AppModule = {
       return json({ on: input.on, endsAt: input.endsAt, canToggle: true, content } satisfies MaintenanceResponse);
     }),
 
-    // Bản mẫu 2c (ADR-0202 đề xuất): Toàn quyền sửa NỘI DUNG màn bảo trì — không đổi bật/tắt. Cùng chốt settings.ops; ghi + nhật ký trong MỘT batch.
+    // Bản mẫu 2c (ADR-0202): Toàn quyền sửa NỘI DUNG màn bảo trì — không đổi bật/tắt. Cùng chốt settings.ops; ghi + nhật ký trong MỘT batch.
     // Nhật ký dùng lại `maintenance_changed` (đã thuộc nhóm im lặng ADR-0038) và KHÔNG chép giá trị (SĐT là N2 — §7): chỉ tên các ô đã đổi.
     route("PUT", "/api/maintenance/content", "admin", async ({ request, env, staff }) => {
       if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ người phụ trách hệ thống được sửa nội dung màn bảo trì.");

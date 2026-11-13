@@ -90,7 +90,10 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 111.589 → 113.492 (+1.903, màn bảo trì mới theo bản mẫu 2a, 13/11/2026): `web/api.ts` nhúng `web/maintenance-screen.ts` vào gói mọi trang; màn mới có đồng hồ ba ô,
 // nút gọi / Zalo, thẻ website, trạng thái «Đã mở lại» (chữ có dấu thành \uXXXX khi rút gọn nên tốn chỗ). Phương án thay thế (tách màn ra tệp tải khi cần) đã trình, chủ chọn nới.
 // Trần = đúng số đo. Chủ dự án duyệt 13/11/2026 trong chat, nguyên văn «Duyệt nới 1,9 KB».
-const TRAN_ORDERS = 113_492;
+// Nới 113.492 → 114.524 (+1.032, ADR-0202 nội dung màn bảo trì do Toàn quyền tự sửa, 13/11/2026): màn bảo trì dựng từ nội dung đã lưu (khối ẩn/hiện theo công tắc,
+// nội dung mặc định khi chưa lưu, kiểm hình dạng nội dung trong thân 503). Đã bỏ bộ kiểm đầy đủ khỏi gói này (máy chủ kiểm hai đầu). Trần = đúng số đo. Chủ dự án duyệt
+// 13/11/2026 (nút ở khung bước tiếp theo), nguyên văn «Duyệt cả hai» — trả lời câu «Bạn duyệt văn bản quyết định ADR-0202 và cho nới trần trang Đơn hàng thêm 1 KB chứ?».
+const TRAN_ORDERS = 114_524;
 
 function dung(trang: string) {
   const r = buildSync({

@@ -1,4 +1,4 @@
-// Trang Tôi › Chế độ bảo trì › NỘI DUNG MÀN BẢO TRÌ (bản mẫu 2c của chủ dự án 13/11/2026; ADR-0202 đề xuất): Toàn quyền tự sửa chữ, SĐT hỗ trợ, Zalo, website,
+// Trang Tôi › Chế độ bảo trì › NỘI DUNG MÀN BẢO TRÌ (bản mẫu 2c của chủ dự án 13/11/2026; ADR-0202): Toàn quyền tự sửa chữ, SĐT hỗ trợ, Zalo, website,
 // lời cảm ơn và năm công tắc ẩn/hiện; xem trước trực tiếp bằng CHÍNH hàm dựng thẻ của lớp phủ thật (`dungTheBaoTri`) nên xem trước = điều nhân viên thấy.
 // Máy chủ mới là nơi kiểm (PUT /api/maintenance/content — checkMaintenanceContent); ở đây chỉ báo lỗi sớm bằng cùng bộ luật.
 import { ApiError, api, type Api } from "./api";

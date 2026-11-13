@@ -1,4 +1,4 @@
-// Nội dung màn bảo trì (bản mẫu 2c của chủ dự án 13/11/2026; ADR-0202 đề xuất; migration 0162) — kiểm MỨC ROUTE trên cả ứng dụng, SQLite thật (khung tests/audit/harness.mjs):
+// Nội dung màn bảo trì (bản mẫu 2c của chủ dự án 13/11/2026; ADR-0202; migration 0162) — kiểm MỨC ROUTE trên cả ứng dụng, SQLite thật (khung tests/audit/harness.mjs):
 // chỉ Toàn quyền sửa; máy chủ kiểm đầu vào (đường dẫn javascript: bị chặn); lưu không bật/tắt; 503 + câu báo + config + /me dùng nội dung đã lưu; nhật ký chỉ tên ô.
 import { test } from "node:test";
 import assert from "node:assert/strict";

@@ -1,6 +1,6 @@
 # ADR-0202 — Nội dung màn bảo trì do Toàn quyền tự sửa, không gắn cứng trong mã
 
-- **Trạng thái:** **proposed** 2026-11-13. Chủ dự án yêu cầu trong chat, nguyên văn: *«ủa tại sao bạn thi công phiên này mà không giống trong mockup vậy, không được code cứng số điện thoại hay các thông tin như thế, sửa ngay»*. Mã đã làm xong trên nhánh, nhưng chưa có hiệu lực cho tới khi chủ duyệt văn bản này.
+- **Trạng thái:** **accepted** 2026-11-13 — chủ dự án, nguyên văn: *«Duyệt cả hai»* (nút ở khung bước tiếp theo, trả lời câu «Bạn duyệt văn bản quyết định ADR-0202 và cho nới trần trang Đơn hàng thêm 1 KB chứ?»). Yêu cầu gốc trong chat, nguyên văn: *«ủa tại sao bạn thi công phiên này mà không giống trong mockup vậy, không được code cứng số điện thoại hay các thông tin như thế, sửa ngay»*.
 - **Loại:** việc lớn (dữ liệu: thêm một cột; hợp đồng: thân 503 và ba phản hồi có thêm trường). **Cửa:** hai chiều. Cột mới cho phép NULL, nên bỏ tính năng chỉ cần thôi đọc cột.
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt: 1** (Đ1, kèm Đ2 là hệ quả hợp đồng).
 - **Xây trên lỗi an toàn chưa sửa:** không.
