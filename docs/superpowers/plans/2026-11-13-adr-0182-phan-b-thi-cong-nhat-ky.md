@@ -39,7 +39,7 @@
 
 ## Cần chủ quyết
 
-- **Trần gói trang Đơn hàng** +145 byte (111.444 → 111.589) cho ba ô quyền mới trong bản đồ quyền dùng chung; không mã giao diện vào gói đó. Đã gửi câu hỏi qua phiên điều phối. Chưa duyệt thì `src/goi-trang-nhe.test.ts` đỏ (một bài).
+- ~~Trần gói trang Đơn hàng +145 byte~~ — **CHỦ ĐÃ DUYỆT** 13/11/2026 trong phiên soạn ADR (chat, chuyển qua phiên điều phối), nguyên văn «Duyệt nới trần gói Đơn hàng cho ba ô quyền phần B». `TRAN_ORDERS` = 111.589 (đúng số đo sau khi thêm ba ô quyền, không khoảng dư; `src/goi-trang-nhe.test.ts`).
 
 ## Ghi chú quy trình
 
