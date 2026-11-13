@@ -1769,6 +1769,7 @@ body.maint-open { overflow: hidden; }
 .maint-chu { display: flex; flex-direction: column; gap: var(--s2); }
 .maint-title { margin: 0; font-size: var(--fs-step-10); font-weight: var(--fw-heading); text-wrap: pretty; }
 .maint-msg { margin: 0; color: var(--c-text-muted); overflow-wrap: anywhere; text-wrap: pretty; }
+.maint-ly-do { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) var(--s4); background: var(--c-surface-alt); border-radius: var(--radius-md); overflow-wrap: anywhere; }
 .maint-dem-khoi, .maint-dem { display: flex; flex-direction: column; gap: var(--s3); }
 .maint-nhan { font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-text-muted); }
 .maint-o { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
@@ -1788,7 +1789,7 @@ body.maint-open { overflow: hidden; }
 .maint-web strong { color: var(--c-primary); }
 .maint-web span { font-size: var(--fs-label); color: var(--c-text-muted); }
 .maint-cam-on { margin: 0; max-width: var(--w-narrow); text-align: center; font-size: var(--fs-label); color: var(--c-text-muted); text-wrap: pretty; }
-.maint-dem-khoi[hidden], .maint-dem[hidden], .maint-mo-lai[hidden], .maint-lien-he[hidden] { display: none; } /* các khối trên đặt display: flex/grid nên phải trả lại cho thuộc tính hidden */
+.maint-dem-khoi[hidden], .maint-dem[hidden], .maint-mo-lai[hidden], .maint-lien-he[hidden], .maint-ly-do[hidden] { display: none; } /* các khối trên đặt display: flex/grid nên phải trả lại cho thuộc tính hidden */
 .maint-count { display: inline-block; font-weight: var(--fw-heavy); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--c-primary); } /* số cùng bề rộng + không xuống dòng giữa chừng: đồng hồ chạy không nhảy chữ */
 .login-maintenance p { margin: 0; overflow-wrap: anywhere; }
 .maint-state { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 0 0 var(--s2); font-weight: var(--fw-bold); }
@@ -1800,6 +1801,20 @@ body.maint-open { overflow: hidden; }
 .maint-actions .btn { flex: 1 1 auto; min-height: var(--tap-min); }
 .maint-confirm { margin-top: var(--s3); padding: var(--s3); color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); border-radius: var(--radius-sm); }
 .maint-confirm p { margin: 0 0 var(--s2); }
+/* Nội dung màn bảo trì (bản mẫu 2c, ADR-0202): khung sửa + bản xem trước dựng bằng chính thẻ của lớp phủ thật (.maint-cot). */
+.maint-nd { display: flex; flex-direction: column; gap: var(--s4); margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--c-border); }
+.maint-nd-form { display: flex; flex-direction: column; gap: var(--s3); }
+.maint-nd-form h3, .maint-nd-form > p { margin: 0; }
+.maint-nd-o { color: var(--c-text); }
+.maint-nd-goi-y { display: block; margin-top: var(--s1); font-size: var(--fs-label); }
+.maint-nd-hien { display: flex; flex-direction: column; padding-top: var(--s2); border-top: 1px solid var(--c-border); }
+.maint-nd-cong-tac { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: var(--tap-min); font-size: var(--fs-ui); color: var(--c-text); }
+.maint-nd-nut-xem { align-self: stretch; }
+.maint-nd-xem { display: none; flex-direction: column; gap: var(--s2); }
+.maint-nd-xem.mo { display: flex; }
+.maint-nd-xem > .nhan { margin: 0; }
+.maint-xem-truoc { padding: var(--s4); background: var(--c-bg); border: 1px solid var(--c-border); border-radius: var(--radius-lg); }
+@media (min-width: 900px) { .maint-nd-xem { display: flex; } .maint-nd .maint-nd-nut-xem { display: none; } } /* máy tính: bản xem trước luôn hiện như bản mẫu; điện thoại: bấm «Xem trước màn bảo trì» */
 
 /* ---------- hồ sơ khách trên đơn (N2 lát 1) ---------- */
 .booker { display: grid; gap: var(--s2); margin-top: var(--s3); }

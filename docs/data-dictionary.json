@@ -552,7 +552,8 @@
     {
       "name": "mnt_setting",
       "module": "maintenance",
-      "kind": "table"
+      "kind": "table",
+      "note": "singleton id = 'default'. content_json (migration 0162): nội dung màn bảo trì do Toàn quyền sửa ở trang Tôi (SĐT hỗ trợ, Zalo, website, chữ, công tắc ẩn/hiện); NULL = nội dung mặc định"
     },
     {
       "name": "ntf_notice",
@@ -1788,7 +1789,7 @@
     "loc_location": { "id": "N1", "code": "N1", "name": "N1", "location_type_code": "N1", "address": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" , "quick_pick_order": "N1"},
     "loc_location_type": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "login_attempt": { "id": "N1", "key": "N2", "at": "N1" },
-    "mnt_setting": { "id": "N1", "enabled": "N1", "ends_at": "N1", "allowed_phones": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "mnt_setting": { "id": "N1", "enabled": "N1", "ends_at": "N1", "allowed_phones": "N2", "content_json": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ntf_ack": { "notice_id": "N1", "staff_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ntf_notice": { "id": "N1", "tieu_de": "N2", "noi_dung": "N2", "quan_trong": "N1", "client_request_id": "N1", "valid_to": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ntf_notice_target": { "notice_id": "N1", "tag": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

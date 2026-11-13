@@ -8,6 +8,7 @@
 > luật "không đổi SĐT của người được phép" (`phoneChangeProblem`) đã bỏ. Thông điệp cho người bị chặn GIỮ đúng chữ (số `0989929373` vẫn là số liên hệ trong câu); từ 1 ngày
 > trở lên đồng hồ hiện "3 ngày 5 giờ 10 phút". Rủi ro chủ bị khoá ngoài: chỉ khi tài khoản chủ mất `SUPER_ADMIN` hoặc bị ngưng — tắt bằng SQL ở `docs/HANDOFF-N1.md`;
 > tự tắt khi hết giờ vẫn giữ. Các câu bên dưới nói "SĐT được phép", "chỉ 0989929373 được dùng" là LỊCH SỬ (quyết định 2026-09-21 §2 điều 3 đã được ADR-0071 thay).
+> **ADR-0202 (accepted 13/11/2026):** số trong câu nay là SĐT hỗ trợ do Toàn quyền tự sửa ở trang Tôi › Chế độ bảo trì › «Nội dung màn bảo trì» (mặc định `0989929373` khi chưa lưu); chữ, Zalo, website của màn bảo trì cũng vậy.
 
 Viết 2026-09-21 khi kết thúc phiên. Đọc trước: `CLAUDE.md`, `docs/CHANGE-GUIDE.md`, `docs/SYSTEM-DESIGN.md`, và phân tích ở `docs/superpowers/specs/2026-09-21-che-do-phat-trien-nghien-cuu.md` (đã có dữ kiện + phương án; tệp này chốt quyết định và việc phải làm).
 

@@ -19,8 +19,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Bước 1 khung chung giao diện (kế hoạch 2026-11-13, chủ duyệt «Làm cả hai», «Theo khuyến nghị», «Làm tiếp cả hai»): vùng bấm ảnh đại diện, dải đầu trang hai
     // dòng ở điện thoại, thanh nút Lưu khi màn thấp, bỏ hộp hỏi của trình duyệt, chống nhảy bố cục (tệp đầu trang giu-cho-dai). Không migration, không đổi máy chủ.
-    // SỐ TẠM 2.100 (sau 2.99 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "2.100",
+    // SỐ TẠM 3.2 (sau 3.1 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.2",
     date: "2026-11-13",
     items: [
       { kind: "doi", text: "Các câu hỏi «có chắc không» nay hiện ngay trong Nền tảng; nút đỏ mang đúng tên việc sắp làm, nút còn lại là «Giữ nguyên»." },
@@ -28,6 +28,24 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Trang không còn giật khi dải thông báo hoặc dữ liệu hiện ra sau, nhất là Quản lý tài khoản, Danh bạ, Dịch vụ và giá, Vé điện tử." },
       { kind: "sua", text: "Điện thoại xoay ngang: nút Lưu nằm cuối biểu mẫu, không còn che ô đang gõ." },
       { kind: "sua", text: "Ô chữ cái tên bạn ở góc trên điện thoại dễ bấm hơn." },
+    ],
+  },
+  {
+    // ADR-0202 bổ sung (chủ 13/11, «Có, nối luôn»): GET /api/auth/config luôn có supportPhone; dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập dùng số đó. Không migration.
+    // SỐ TẠM 3.1: main có 3.0; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.1",
+    date: "2026-11-13",
+    items: [
+      { kind: "doi", text: "Dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập nay hiện số hỗ trợ Toàn quyền đã lưu ở «Nội dung màn bảo trì», không còn số cố định." },
+    ],
+  },
+  {
+    // Bản mẫu 2c của chủ dự án (13/11/2026; ADR-0202 accepted, chủ «Duyệt cả hai»): nội dung màn bảo trì do Toàn quyền tự sửa — migration 0162 (cột mnt_setting.content_json).
+    // Trần gói trang Đơn hàng 113.492 → 114.524: chủ duyệt cùng lời «Duyệt cả hai» (đo trước khi gộp chi tiết dịch vụ). SỐ TẠM 3.0 (sau 2.99 như 1.97 → 2.0): main có 2.99 (chi tiết dịch vụ); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.0",
+    date: "2026-11-13",
+    items: [
+      { kind: "moi", text: "Trang Tôi › Chế độ bảo trì có khung «Nội dung màn bảo trì»: Toàn quyền tự sửa chữ, số điện thoại hỗ trợ, Zalo, website và chọn khối nào hiện, có xem trước." },
     ],
   },
   {

@@ -10,6 +10,7 @@ import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
 import type { BanChup } from "./hoa-hong-dong.ts";
+import type { MaintenanceContent } from "./maintenance.ts";
 import type { KhungGio, LuaChonDon } from "./khung-gio-don.ts";
 import type { QuyTacDuaDon } from "./dua-don-dich-vu.ts";
 import type { CaiDatHanMuc } from "./han-muc-tu-choi.ts";
@@ -144,6 +145,8 @@ export interface AuthConfigResponse {
   companyName: string | null;
   /** Mã số thuế của hồ sơ công ty chủ (6.2). null như trên. */
   companyTaxCode: string | null;
+  /** SĐT hỗ trợ (10 số) do Toàn quyền lưu ở nội dung màn bảo trì (ADR-0202) — dòng «Hỗ trợ kỹ thuật» dưới nút Đăng nhập; LUÔN có, kể cả khi bảo trì tắt (số công khai). */
+  supportPhone: string;
 }
 
 // ---- Đăng nhập bằng Face ID (passkey, ADR-0016; đặc tả 2026-09-23-passkey-design.md) ----
@@ -219,9 +222,11 @@ export interface MaintenanceStatusDto {
   on: boolean;
   /** Giờ dự kiến hoàn tất (ISO UTC); null khi tắt hoặc bật mà chưa có giờ. */
   endsAt: string | null;
+  /** Nội dung màn bảo trì (bản mẫu 2c) — chỉ có khi đang bật. */
+  content?: MaintenanceContent;
 }
-/** `GET`/`PUT /api/maintenance` (chỉ Toàn quyền — ô settings.ops, ADR-0071 điều 3c): `canToggle` luôn true khi qua chốt (giữ trường cho giao diện). */
-export interface MaintenanceResponse extends MaintenanceStatusDto { canToggle: boolean }
+/** `GET`/`PUT /api/maintenance`, `PUT /api/maintenance/content` (chỉ Toàn quyền — ô settings.ops, ADR-0071 điều 3c): `canToggle` luôn true khi qua chốt; `content` luôn có. */
+export interface MaintenanceResponse extends MaintenanceStatusDto { canToggle: boolean; content: MaintenanceContent }
 
 // ---- Giao diện công ty (ADR-0087; module `giao-dien`) ----
 /** `GET /api/giao-dien` (chỉ Toàn quyền) và thân phản hồi `PUT`: `tokens` = chỉ các núm đã đổi khỏi mặc định; `version` = khoá lạc quan (cũng là ETag của CSS). */
@@ -291,7 +296,9 @@ export interface KhungGioDonRequest { khung: KhungGio[]; luuY: string }
 /** Thân `PUT /api/maintenance`. `endsAt` bắt buộc khi `on = true`. */
 export interface MaintenanceRequest { on: boolean; endsAt?: string }
 /** Thân `error` của phản hồi 503 `maintenance` (mọi `/api/*` cần đăng nhập với người bị chặn, và `POST /api/auth/login`): `endsAt` để giao diện dựng đồng hồ đếm ngược mà không cần gọi thêm. */
-export interface MaintenanceErrorBody { code: "maintenance"; message: string; endsAt: string | null }
+export interface MaintenanceErrorBody { code: "maintenance"; message: string; endsAt: string | null; content: MaintenanceContent }
+/** `PUT /api/maintenance/content`: đủ 12 ô của `MaintenanceContent` (máy chủ kiểm lại từng ô). */
+export type MaintenanceContentRequest = MaintenanceContent;
 /**
  * Một dòng của GET /api/staff: `datLaiPinDuoc` = nút "Đặt lại PIN" hiện ở dòng này cho người đang xem — máy chủ tính bằng CÙNG hàm với cổng route reset-pin
  * (`datLaiPinDuoc` của src/shared/roles.ts: cấp dưới, không phải chính mình, tài khoản có quyền tiền chỉ Toàn quyền — ADR-0090 đ2). Giao diện không tự tính.

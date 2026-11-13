@@ -7,25 +7,30 @@
 import { auditStatement } from "../audit";
 import type { MaintenanceErrorBody, MaintenanceResponse, MaintenanceStatusDto } from "../../shared/contracts";
 import { error, json, readJson } from "../../shared/http";
-import { MAINTENANCE_CODE, checkMaintenanceInput, isBlocked, maintenanceMessage, stateFromRow, type MaintenanceState } from "../../shared/maintenance";
+import { MAINTENANCE_CODE, checkMaintenanceContent, checkMaintenanceInput, contentFromStored, isBlocked, maintenanceMessage, stateFromRow, type MaintenanceState } from "../../shared/maintenance";
 import { can, type PermissionCode } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnDateTimeText } from "../../shared/vn-date";
-import { findSetting, updateSettingStatement } from "./repository";
+import { findSetting, updateContentStatement, updateSettingStatement } from "./repository";
 
 export type { MaintenanceState };
 
 /** Trạng thái có hiệu lực LÚC NÀY từ D1 (một truy vấn). Chưa có dòng cài đặt → TẮT; đã qua giờ dự kiến hoàn tất → TẮT (tự tắt, `stateFromRow`). */
 export async function getMaintenanceState(db: D1Database): Promise<MaintenanceState> {
-  return stateFromRow(await findSetting(db), Date.now());
+  const row = await findSetting(db);
+  return { ...stateFromRow(row, Date.now()), contentJson: row?.content_json ?? null };
 }
 
-/** Phần công khai của trạng thái. */
-export const toStatus = (s: MaintenanceState): MaintenanceStatusDto => ({ on: s.on, endsAt: s.endsAt });
+/** Phần công khai của trạng thái. Đang bật thì kèm nội dung màn bảo trì (trang đăng nhập dùng SĐT hỗ trợ trong câu báo); tắt thì không gửi. */
+export const toStatus = (s: MaintenanceState): MaintenanceStatusDto => ({ on: s.on, endsAt: s.endsAt, ...(s.on ? { content: contentFromStored(s.contentJson) } : {}) });
 
-/** 503 `maintenance`: cùng một thân cho mọi người bị chặn; `endsAt` nằm trong `error` để giao diện dựng đồng hồ đếm ngược mà không gọi thêm. */
-export function maintenanceResponse(endsAt: string | null, now = Date.now()): Response {
-  const body: { error: MaintenanceErrorBody } = { error: { code: MAINTENANCE_CODE, message: maintenanceMessage(endsAt, now), endsAt } };
+/** SĐT hỗ trợ đã lưu (nội dung màn bảo trì, ADR-0202) — dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập; đọc từ cùng trạng thái, không thêm truy vấn. */
+export const supportPhoneOf = (s: MaintenanceState): string => contentFromStored(s.contentJson).sdt;
+
+/** 503 `maintenance`: cùng một thân cho mọi người bị chặn; `endsAt` và nội dung màn bảo trì nằm trong `error` để giao diện dựng màn mà không gọi thêm (mọi API khác cũng 503). */
+export function maintenanceResponse(state: MaintenanceState, now = Date.now()): Response {
+  const content = contentFromStored(state.contentJson);
+  const body: { error: MaintenanceErrorBody } = { error: { code: MAINTENANCE_CODE, message: maintenanceMessage(state.endsAt, now, content.sdt), endsAt: state.endsAt, content } };
   return json(body, 503);
 }
 
@@ -42,8 +47,14 @@ export async function maintenanceBlock(
   // `truoc`: trạng thái đã đọc SONG SONG với phiên (auth `currentStaff` — bớt một chặng D1 ở mọi lời gọi); vắng thì tự đọc như cũ (đăng nhập, Face ID).
   const state = truoc ?? await getMaintenanceState(db);
   if (!state.on) return null;
-  return isBlocked(state, await permissions()) ? maintenanceResponse(state.endsAt) : null;
+  return isBlocked(state, await permissions()) ? maintenanceResponse(state) : null;
 }
+
+/** Tên ô (lời thường) cho dòng nhật ký «Sửa nội dung màn bảo trì: …» — chỉ tên, không giá trị. */
+const TEN_O = {
+  tieuDe: "tiêu đề", loiNhan: "lời nhắn", lyDo: "nội dung bảo trì", sdt: "số điện thoại hỗ trợ", zalo: "liên kết Zalo", website: "website", camOn: "lời cảm ơn",
+  hienLyDo: "hiện nội dung bảo trì", hienGoi: "hiện nút gọi", hienZalo: "hiện nút Zalo", hienWeb: "hiện thẻ website", hienCamOn: "hiện lời cảm ơn",
+} as const;
 
 export const maintenanceModule: AppModule = {
   name: "maintenance",
@@ -52,7 +63,8 @@ export const maintenanceModule: AppModule = {
     // (giữ trường để giao diện không phải đổi hợp đồng).
     route("GET", "/api/maintenance", "admin", async ({ env, staff }) => {
       if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ người phụ trách hệ thống được xem cài đặt bảo trì.");
-      return json({ ...toStatus(await getMaintenanceState(env.DB)), canToggle: true } satisfies MaintenanceResponse);
+      const state = await getMaintenanceState(env.DB);
+      return json({ on: state.on, endsAt: state.endsAt, canToggle: true, content: contentFromStored(state.contentJson) } satisfies MaintenanceResponse);
     }),
 
     route("PUT", "/api/maintenance", "admin", async ({ request, env, staff, dongBangTin }) => {
@@ -70,7 +82,27 @@ export const maintenanceModule: AppModule = {
       ]);
       // BẢNG TIN (KN-2): BẬT bảo trì → đóng MỌI kết nối đang mở (kết nối lại của tài khoản không giữ Toàn quyền sẽ nhận 503 ở lần bắt tay kế).
       if (input.on) dongBangTin("tat-ca");
-      return json({ on: input.on, endsAt: input.endsAt, canToggle: true } satisfies MaintenanceResponse);
+      const content = contentFromStored((await findSetting(db))?.content_json);
+      return json({ on: input.on, endsAt: input.endsAt, canToggle: true, content } satisfies MaintenanceResponse);
+    }),
+
+    // Bản mẫu 2c (ADR-0202): Toàn quyền sửa NỘI DUNG màn bảo trì — không đổi bật/tắt. Cùng chốt settings.ops; ghi + nhật ký trong MỘT batch.
+    // Nhật ký dùng lại `maintenance_changed` (đã thuộc nhóm im lặng ADR-0038) và KHÔNG chép giá trị (SĐT là N2 — §7): chỉ tên các ô đã đổi.
+    route("PUT", "/api/maintenance/content", "admin", async ({ request, env, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ người phụ trách hệ thống được sửa nội dung màn bảo trì.");
+      const db = env.DB;
+      const input = checkMaintenanceContent(await readJson(request));
+      if (!input.ok) return error(400, "invalid_input", input.message);
+      const row = await findSetting(db);
+      const cu = contentFromStored(row?.content_json);
+      const doi = (Object.keys(TEN_O) as (keyof typeof TEN_O)[]).filter((k) => cu[k] !== input.content[k]).map((k) => TEN_O[k]);
+      const at = new Date().toISOString();
+      await db.batch([
+        updateContentStatement(db, { contentJson: JSON.stringify(input.content), at, by: staff.id }),
+        auditStatement(db, { staffId: staff.id, action: "maintenance_changed", at, targetType: "system", targetId: "maintenance", detail: `Sửa nội dung màn bảo trì: ${doi.length ? doi.join(", ") : "không đổi ô nào"}` }),
+      ]);
+      const state = stateFromRow(row, Date.now());
+      return json({ on: state.on, endsAt: state.endsAt, canToggle: true, content: input.content } satisfies MaintenanceResponse);
     }),
   ],
 };
