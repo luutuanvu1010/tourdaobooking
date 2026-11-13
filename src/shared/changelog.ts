@@ -17,6 +17,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bước 1 khung chung giao diện (kế hoạch 2026-11-13, chủ duyệt «Làm cả hai», «Theo khuyến nghị», «Làm tiếp cả hai»): vùng bấm ảnh đại diện, dải đầu trang hai
+    // dòng ở điện thoại, thanh nút Lưu khi màn thấp, bỏ hộp hỏi của trình duyệt, chống nhảy bố cục (tệp đầu trang giu-cho-dai). Không migration, không đổi máy chủ.
+    // SỐ TẠM 2.100 (sau 2.99 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.100",
+    date: "2026-11-13",
+    items: [
+      { kind: "doi", text: "Các câu hỏi «có chắc không» nay hiện ngay trong Nền tảng; nút đỏ mang đúng tên việc sắp làm, nút còn lại là «Giữ nguyên»." },
+      { kind: "doi", text: "Trên điện thoại, dải thông báo ở đầu trang gọn còn tối đa hai dòng; bấm «Xem» để đọc đủ." },
+      { kind: "sua", text: "Trang không còn giật khi dải thông báo hoặc dữ liệu hiện ra sau, nhất là Quản lý tài khoản, Danh bạ, Dịch vụ và giá, Vé điện tử." },
+      { kind: "sua", text: "Điện thoại xoay ngang: nút Lưu nằm cuối biểu mẫu, không còn che ô đang gõ." },
+      { kind: "sua", text: "Ô chữ cái tên bạn ở góc trên điện thoại dễ bấm hơn." },
+    ],
+  },
+  {
     // Sửa «Ghi khoản thu» điền sẵn số Còn lại (chủ 13/11) + ADR-0201 Đ1, Đ3 (chủ duyệt 13/11, «Duyệt»): chi tiết dịch vụ — tên hiển thị, mô tả, ảnh đại diện.
     // Migration 0160 (ctl_service_detail) + kho R2 MỚI `tourdao-sales-anh-dich-vu` (chủ tạo trước khi triển khai; cổng 1e dừng nếu thiếu). SỐ TẠM 2.99: main có 2.98 (màn bảo trì); bước A.0 đặt lại số và ngày.
     version: "2.99",
