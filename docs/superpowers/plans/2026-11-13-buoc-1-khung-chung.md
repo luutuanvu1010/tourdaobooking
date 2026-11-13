@@ -33,3 +33,9 @@
 
 - 13/11: lập nhánh, nhập bản chính 2.97; đo nguồn nhảy bố cục (Dịch vụ: khối chèn phía trên và nhóm dịch vụ nở ra; Vé điện tử: danh mục trong khối «Tạo vé» nở ra đẩy
   các khối dưới; Quản lý tài khoản: danh sách tài khoản nở ra đẩy khối «Hàng chờ xác minh»); Tạo đơn và Chính sách điều phối không tái hiện CLS cao của lượt đo bước 0.
+  Sửa lại chẩn đoán Quản lý tài khoản: khối vai trong «Thêm tài khoản» (cao 300–700 px) dựng sau lần nạp đầu — đó mới là thứ đẩy «Hàng chờ xác minh».
+- 13/11: N5, N10 (390), N11 xong, lần lưu 63a05ad26. Đo lại ở 390: Dịch vụ 0,09, Vé điện tử 0,05, Quản lý tài khoản 0. Bài bảng tham chiếu, bài khoá hộp hỏi
+  (trần 0), bài cỡ gói trang xanh.
+- **Phát hiện mới khi đo ở 1280 (bước 0 chỉ đo tốc độ ở 390):** (a) thanh trên máy tính lúc chưa dựng khung chỉ cao 24 px rồi nở lên 60 px — đã sửa (thanh cao sẵn);
+  (b) **dải thông báo chèn muộn đẩy cả trang xuống 61 px** ở mọi trang máy tính khi có tin / nhắc hai lớp: Quản lý tài khoản 0,66, Dịch vụ 0,41, Đơn hàng ~0,1.
+  Chưa sửa vì chưa biết trước có dải hay không lúc vẽ khung; cách sửa (nhớ dải lần trước để vẽ sẵn, hoặc giữ chỗ) là việc khung chung riêng — ghi để hỏi.
