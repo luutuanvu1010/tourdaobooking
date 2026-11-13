@@ -42,3 +42,18 @@
 - 13/11: chủ duyệt «Theo khuyến nghị» (qua phiên điều phối «Audit giao diện»): dải điện thoại tối đa hai dòng cắt «…»; màn thấp thanh nút Lưu nằm cuối biểu mẫu.
   Đã làm: N9 dải 113/89 → 53 px ở 390 (nút 44 px, không tràn), máy tính 61 px không đổi; N3 ở 844×390 thanh nút `position: static`, ở 390×844 vẫn dính; T3 Tạo đơn khi
   phóng 200 %: 251 chỗ bị che → 0. Cắt chữ ở điện thoại +1 chỗ = chính câu dải bị cắt «…» theo duyệt.
+- 13/11: bộ kiểm đủ (`npm test`) lần 1 đỏ 5 chỗ do đổi mã (bộ v2 lệch, hai bài Hướng dẫn đổi tệp neo, điều kiện @media hai vế, bài đếm đúng 2 confirm) — sửa ở 24392ff5f,
+  lần 2 xanh (cả hai bước thoát 0). Quét lại 2.219 ô (kho NHIỀU) trước / sau: T1 tràn 0 → 0; ô điện thoại có nút < 44: 210 → 108, ảnh đại diện 138 → 0; chỗ bị che ở
+  khổ T16: 1.597 → 88; T15 0 → 0; axe nặng 16 → 16. Kịch bản Chrome khung chung `dot-0-smoke.mjs`: 19 đạt, 1 đỏ (bước 20 đòi nút «Đăng xuất» ở chân thanh bên —
+  kịch bản lỗi thời từ 5ce36e3eb ngày 8/11 đưa Đăng xuất vào menu tên tài khoản; bước 1 không đụng `web/shell.ts`; cập nhật kịch bản là việc riêng).
+- 13/11 kiểm độc lập (trợ lý vai người kiểm, chỉ đọc): **ĐẠT CÓ ĐIỀU KIỆN** — nghiệp vụ, quyền, tiền, đường gọi máy chủ không đổi; 16 hộp hỏi giữ đúng câu và
+  đúng nghĩa (đồng ý → làm, đóng → không làm), không chỗ nào gọi từ trong bảng trượt đang mở; các sửa sau lần đỏ chỉ siết hàng rào. Hai việc phải xử lý: (1) N10
+  Dịch vụ chưa ổn định (ấm 0,10, lạnh tới 0,87); (2) ba chỗ cột «Màn hình» của bảng tham chiếu còn chữ «hộp hỏi của trình duyệt».
+- 13/11 sau kiểm độc lập: (2) đã sửa, sinh lại bảng. (1) Khung chờ nhóm dịch vụ viết sẵn trong `public/catalog.html` (có ngay ở lần vẽ đầu); khung chờ khối «tự kiểm
+  vé» cao gần bằng khối thật (token `--giu-cho-tu-kiem` 200 / 128 / 104 px theo khổ). Đo lại Dịch vụ ở 390: mở lại 0,05 ổn định (hai lượt), 360: 0,048.
+  **Còn lại, ghi để hỏi (không tự nở phạm vi):** mở lần đầu (bộ nhớ trống) vẫn 0,11–0,54 do hai gốc chung của khung trang: (a) khối theo quyền chỉ vẽ khi mã trang
+  chạy xong, lần vẽ đầu chưa có; (b) dải thông báo chèn muộn (53 px điện thoại, 61 px máy tính) đẩy cả trang — ở máy tính mở lại Dịch vụ vẫn 0,34 vì (b).
+  Ghi chú phạm vi N3 (người kiểm nêu): luật `@media (max-height: 500px)` áp cho MỌI màn thấp hơn 500 px — điện thoại xoay ngang, phóng to 200 %, và cả cửa sổ máy
+  tính rất thấp; áp cho mọi thanh nút cuối biểu mẫu dùng khuôn chung (`.form-actions`, `.vc-bottom-bar`, `.vc-form-actions`, `.chan-dinh`), không chỉ Tạo đơn.
+  Bộ kiểm đủ lần 3 (sau các sửa này): xanh, cả hai bước thoát 0.
+  Chưa kiểm: iPhone thật; số ô < 44 ở Điều phối máy tính tăng 11–15 → 15–20 giữa hai lượt quét (trang không đổi mã — nghi do dữ liệu hành trình thêm chuyến).

@@ -122,7 +122,8 @@ body.sheet-open { overflow: hidden; }
 .xuong[data-khuon="so"] { min-height: var(--skel-so); }
 .xuong[data-khuon="vien"] { width: var(--skel-vien); border-radius: var(--radius-pill); }
 @media (prefers-reduced-motion: reduce) { .xuong { animation: none; } }
-.trang-thai-xuong[data-giu-cho] { min-height: var(--giu-cho-cao); } /* bước 1 (N10): `giuCho` của trangThaiHeThong */
+.trang-thai-xuong[data-giu-cho] { min-height: var(--giu-cho-cao); }
+#kv-tu-kiem > .trang-thai-xuong { min-height: var(--giu-cho-tu-kiem); } /* bước 1 (N10): khung chờ của khối tự kiểm vé gần bằng khối thật */ /* bước 1 (N10): `giuCho` của trangThaiHeThong */
 
 .rong { display: flex; flex-direction: column; align-items: center; gap: var(--s3); padding: var(--nhip-khoi) var(--le-trang); text-align: center; color: var(--c-text-muted); }
 

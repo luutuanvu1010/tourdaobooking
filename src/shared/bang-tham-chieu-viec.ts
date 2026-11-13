@@ -4190,7 +4190,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Đồng bộ danh mục từ Google Sheet",
-    manHinh: "Dịch vụ & giá (đầu trang; cả màn của Quản lý bán hàng — ADR-0186) · hộp hỏi của trình duyệt khi Sheet làm ẩn nhiều dịch vụ",
+    manHinh: "Dịch vụ & giá (đầu trang; cả màn của Quản lý bán hàng — ADR-0186) · hộp hỏi trong trang khi Sheet làm ẩn nhiều dịch vụ",
     ten: "Đồng bộ ngay từ Google Sheet",
     thatSuLam: "Đọc ngay Google Sheet (việc mà máy cũng tự làm mỗi 15 phút). Dịch vụ mới được thêm; dịch vụ đã có và không bị ghi đè giá thì lấy luôn giá, tên, đơn vị mới của Sheet; dịch vụ không còn trong Sheet thì bị đánh dấu «Không còn trong Sheet» và người lập đơn không thấy nữa. Giá đã ghi đè không bao giờ bị đè (ghi đè nằm ở bảng riêng); đơn đã lập giữ giá lúc lập.",
     hoiLai: "không (chỉ có hộp hỏi trong trang khi máy chủ báo sắp ẩn quá nhiều)",
@@ -4253,7 +4253,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Ghi đè giá dịch vụ",
-    manHinh: "Dịch vụ & giá › dòng dịch vụ đang có giá ghi đè (bảng và thẻ) › hộp hỏi của trình duyệt",
+    manHinh: "Dịch vụ & giá › dòng dịch vụ đang có giá ghi đè (bảng và thẻ) › hộp hỏi trong trang",
     ten: "Bỏ ghi đè giá",
     thatSuLam: "Đưa giá của dịch vụ về giá theo Sheet. Dịch vụ đang ngừng bán thì vẫn ngừng bán, không tự mở bán lại (ADR-0166 câu 2 đổi cách chạy so với lúc rà soát).",
     hoiLai: "có: hộp hỏi «Bỏ giá ghi đè của <mã>, quay về giá theo Sheet?», thêm câu «Dịch vụ này đang ngừng bán và vẫn ngừng bán.» khi dịch vụ đang ngừng bán",
@@ -4500,7 +4500,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Vai trò hồ sơ · công ty chủ",
-    manHinh: "Danh bạ › chi tiết hồ sơ › mục «Công việc tại đâu» · hộp hỏi của trình duyệt khi chọn «Công ty chủ»",
+    manHinh: "Danh bạ › chi tiết hồ sơ › mục «Công việc tại đâu» · hộp hỏi trong trang khi chọn «Công ty chủ»",
     ten: "Thêm công việc",
     thatSuLam: "Gán thêm một công việc (vai trò) theo nơi cho hồ sơ. Nếu chọn «Công ty chủ» (chỉ Toàn quyền thấy, chỉ hồ sơ tổ chức) thì cùng nút đó ĐỔI công ty chủ của cả Nền tảng: tên, mã số thuế, địa chỉ, Hotline in trên đăng nhập và biên nhận, và tài khoản nhận tiền của mã QR chuyển sang hồ sơ mới; công ty chủ cũ thôi giữ vai trò ngay hôm nay. Hồ sơ mới thiếu tên pháp lý, mã số thuế, địa chỉ hoặc Hotline thì máy chủ chặn.",
     hoiLai: "có (chỉ khi chọn Công ty chủ): Đặt hồ sơ này làm công ty chủ? …",

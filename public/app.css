@@ -603,6 +603,7 @@
   --skel-dong: 16px;
   --skel-so: 26px;
   --skel-vien: 96px;
+  --giu-cho-tu-kiem: 200px;    /* bước 1 (N10): giữ chỗ khối «tự kiểm vé» đầu trang Dịch vụ & giá — xấp xỉ cao thật ở điện thoại (đo 203); khổ rộng hơn đặt lại ở @media trước dấu mốc */
   --giu-cho-cao: 60vh;         /* bước 1 khung chung (N10, 13/11): khung chờ giữ chỗ của khối dài mở đầu trang — đủ đẩy khối dưới ra ngoài màn đầu để dữ liệu về không làm nhảy bố cục */
   --vong-trang-thai: 56px;     /* vòng hình của trang trạng thái (đặc tả 6.1; nguồn bản vẽ, 7c đưa vào bộ) */
   /* Luật khung 30/10/2026 (chủ duyệt gói khuyến nghị của docs/superpowers/specs/2026-10-30-danh-gia-khung-giao-dien/BAO-CAO.md; kế hoạch
@@ -619,6 +620,8 @@
   --w-tim-thanh-tren-hep: 120px; /* ô tìm thanh trên ở máy tính: co tới mức này (thay --w-tim-thanh-tren-min 160px) để tiêu đề trang không bị cắt ở laptop */
   --w-nhom-ten: 240px;          /* Danh mục: cột tên nhóm dịch vụ ở máy tính — điều khiển đứng ngay sau */
 }
+@media (min-width: 641px) { :root { --giu-cho-tu-kiem: 128px; } } /* bước 1 (N10): khối «tự kiểm vé» ở iPad cao ~130 */
+@media (min-width: 960px) { :root { --giu-cho-tu-kiem: 104px; } } /* … ở máy tính ~106 */
 @media (min-width: 960px) { :root { --h-danh-sach: 448px; } } /* khung danh sách dịch vụ ~8 dòng ở máy tính (bản vẽ 18/10) — đặt TRƯỚC dấu mốc app iPhone vì có px */
 * { box-sizing: border-box; }
 h1, h2, h3, h4, h5, h6 { font-weight: var(--fw-heading); }
@@ -4314,7 +4317,8 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .xuong[data-khuon="so"] { min-height: var(--skel-so); }
 .xuong[data-khuon="vien"] { width: var(--skel-vien); border-radius: var(--radius-pill); }
 @media (prefers-reduced-motion: reduce) { .xuong { animation: none; } }
-.trang-thai-xuong[data-giu-cho] { min-height: var(--giu-cho-cao); } /* bước 1 (N10): `giuCho` của trangThaiHeThong */
+.trang-thai-xuong[data-giu-cho] { min-height: var(--giu-cho-cao); }
+#kv-tu-kiem > .trang-thai-xuong { min-height: var(--giu-cho-tu-kiem); } /* bước 1 (N10): khung chờ của khối tự kiểm vé gần bằng khối thật */ /* bước 1 (N10): `giuCho` của trangThaiHeThong */
 
 .rong { display: flex; flex-direction: column; align-items: center; gap: var(--s3); padding: var(--nhip-khoi) var(--le-trang); text-align: center; color: var(--c-text-muted); }
 
