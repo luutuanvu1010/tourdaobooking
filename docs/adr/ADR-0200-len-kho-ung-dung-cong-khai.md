@@ -1,6 +1,8 @@
 # ADR-0200 — Đưa Nền tảng lên App Store và CH Play ở dạng công khai
 
 - **Trạng thái:** **proposed** — AI soạn 13/11/2026, chờ chủ dự án duyệt (Hiến pháp N3). Không tự duyệt.
+  - 13/11: chủ **chốt hai lựa chọn** Đ5 = (a) và Đ6 = (a), nguyên văn «Theo khuyến nghị» (chuyển qua phiên điều phối «Audit giao diện»).
+    Đây **chưa** phải lời duyệt toàn bộ ADR. Đ4 vẫn bị chặn bởi HC-5.19 (chủ chưa gia hạn).
 - **Số:** 0200 kiểm 13/11 trên mọi nhánh cục bộ (`main` dừng ở 0198): số lớn nhất đang dùng là 0199 (hai ADR khác nhau cùng mang 0199 ở hai nhánh chưa
   gộp: «chi tiết dịch vụ» và «văn phòng nhập tiền cọc»). Ai gộp sau mà trùng thì đổi số.
 - **Ngày:** 2026-11-13.
@@ -73,18 +75,18 @@ với Apple, không đổi mã. Để giảm rủi ro 4.2, vỏ iPhone có ba ch
   khoá nội dung và một chiều của bảng (`erasure_content`, `erasure_status_one_way`); chi tiết ở đặc tả lát 3.
 
 **Đ5 (chạm quyền / tài khoản) — Tài khoản thử cho người duyệt của kho.**
-- Hai tài khoản trên **bản chính thức**: một mang quyền **Đối tác** (gắn một hồ sơ đối tác giả «Đối tác thử nghiệm của kho ứng dụng»), một mang quyền
-  **Bán hàng** — để người duyệt thấy cả việc lập đơn lẫn phía đối tác. Không cấp Kế toán, Quản trị, Toàn quyền, Nhân sự.
-- Hai tài khoản **ngưng sẵn**; chỉ mở trong lúc một bản đang chờ duyệt, ngưng lại ngay khi kho trả kết quả. Mỗi lần mở / ngưng có dòng nhật ký.
+- **Một** tài khoản trên **bản chính thức**, mang quyền **Đối tác**, gắn một hồ sơ đối tác giả «Đối tác thử nghiệm của kho ứng dụng» (theo lựa chọn (a)
+  dưới đây; bản soạn đầu đề xuất thêm một tài khoản Bán hàng). Không cấp Bán hàng, Kế toán, Quản trị, Toàn quyền, Nhân sự.
+- Tài khoản **ngưng sẵn**; chỉ mở trong lúc một bản đang chờ duyệt, ngưng lại ngay khi kho trả kết quả. Mỗi lần mở / ngưng có dòng nhật ký.
 - Tài khoản Bán hàng thử **thấy được đơn thật** (Bán hàng xem mọi đơn theo bảng quyền hiện hành). ⇒ **Chủ phải chọn** một trong hai: (a) chỉ cấp tài
   khoản Đối tác thử (an toàn, người duyệt chỉ thấy đơn của chính nó); (b) cấp cả Bán hàng thử và chấp nhận người duyệt thấy đơn thật trong vài ngày.
-  **Khuyến nghị (a).** Người duyệt vẫn lập được đơn, và đơn đó là đơn thật trong sổ của bản chính thức (không xoá cứng): runbook lát 4 ghi cách nhận ra
+  **Chủ chọn (a) ngày 13/11** («Theo khuyến nghị»): chỉ cấp tài khoản Đối tác thử; không có tài khoản Bán hàng thử. Người duyệt vẫn lập được đơn, và đơn đó là đơn thật trong sổ của bản chính thức (không xoá cứng): runbook lát 4 ghi cách nhận ra
   (hồ sơ đối tác giả) và huỷ các đơn đó sau mỗi lần duyệt. Không dùng bản Development (ADR-0162) cho người duyệt: vỏ ứng dụng nạp bản chính thức.
 - PIN của tài khoản thử: chủ tự đặt và tự điền vào khai báo nộp kho; AI không đặt, không biết.
 
 **Đ6 — Một tên.** Tên trên kho, tên dưới biểu tượng, tên ở thanh trên và màn Đăng nhập là **một**. Chủ chọn:
 (a) **«Island Booking System»**, tên ngắn «Island Booking» — giữ quyết định đổi tên 24/9; trên kho, dòng «nhà phát triển» tự hiện «Công ty TNHH Tour Đảo»;
-(b) «Tour Đảo Booking». **Khuyến nghị (a)**. Màn Đăng nhập đổi tiêu đề theo tên chọn; tên Worker / D1 `tourdao-sales` không đổi.
+(b) «Tour Đảo Booking». **Chủ chọn (a) ngày 13/11** («Theo khuyến nghị»): «Island Booking System», tên ngắn «Island Booking». Màn Đăng nhập đổi tiêu đề theo tên chọn; tên Worker / D1 `tourdao-sales` không đổi.
 
 **Đ7 — Bề mặt ứng dụng.** Tệp khai báo thêm `id`, biểu tượng loại «maskable» (vùng an toàn của Android), màn chờ khi mở cho iPhone (khổ theo máy) và
 màn chờ của TWA; nguồn biểu tượng vẫn là logo hiện có (`docs/PWA-IPHONE.md` mục «Dựng lại icon»). Không làm chế độ tối.
@@ -152,7 +154,7 @@ email hỗ trợ công khai; tạo và đặt PIN tài khoản thử; có một 
 |---|---|---|
 | `pty_privacy_policy` | Phiên bản chính sách (văn bản của công ty, không dữ liệu cá nhân trừ `created_by`) | Không thêm dòng mới; thêm **một đường đọc công khai** |
 | `pty_erasure_request` | Phiếu yêu cầu xoá dữ liệu cá nhân của nhân viên, đối tác (ADR-0126) | Thêm loại phiếu **xoá tài khoản** |
-| `staff`, `stf_permission` | Tài khoản nhân viên và đối tác, quyền | Hai tài khoản thử (Đ5), ở trạng thái ngưng phần lớn thời gian |
+| `staff`, `stf_permission` | Tài khoản nhân viên và đối tác, quyền | Một tài khoản Đối tác thử (Đ5, chủ chọn (a)), ở trạng thái ngưng phần lớn thời gian |
 | `pty_party`, `pty_party_role` | Hồ sơ người, tổ chức, vai | Một hồ sơ đối tác giả cho tài khoản thử; hồ sơ bị ẩn danh khi phiếu xoá tài khoản thực hiện |
 
 **(2) Dòng bản đồ quyền chạm các bảng này áp cho loại nào**
@@ -163,7 +165,7 @@ email hỗ trợ công khai; tạo và đặt PIN tài khoản thử; có một 
 | `party.erasure.request` | Mọi tài khoản, «của mình» | Cũng tạo được phiếu xoá tài khoản — **chỉ cho chính mình** |
 | `party.erasure.process` | Quản trị (theo cấp bậc), Toàn quyền | Xử lý cả phiếu xoá tài khoản; luật cấp bậc giữ nguyên (Quản trị không xử lý phiếu của cấp trên) |
 | Ngưng / mở tài khoản | Người quản lý tài khoản hiện hành (Nhân sự, Quản trị theo cấp bậc, Toàn quyền) | Dùng cho tài khoản thử; không thêm quyền mới |
-| Bảng quyền Đối tác / Bán hàng | Như hiện hành | Tài khoản thử nhận đúng bộ quyền này, không ngoại lệ |
+| Bảng quyền Đối tác | Như hiện hành | Tài khoản thử nhận đúng bộ quyền Đối tác, không ngoại lệ |
 
 **(3) Cổng nào canh cửa nào (kể cả chỗ giao diện ẩn / hiện)**
 
@@ -176,5 +178,5 @@ email hỗ trợ công khai; tạo và đặt PIN tài khoản thử; có một 
 
 **Chỗ dễ thành lỗ khi ghép:** phiếu xoá tài khoản + «Xem như vai trò khác» (ADR-0180 đã cho ghi ⇒ chặn ở cả giao diện lẫn máy chủ, như bảng trên);
 lệnh thực hiện mới (ngưng + ẩn danh) đi vòng qua luật «Quản trị cuối cùng» vốn chỉ nằm ở route sửa tài khoản ⇒ phải thêm luật vào lệnh mới;
-tài khoản Bán hàng thử thấy đơn thật (vì thế khuyến nghị Đ5(a)); route công khai mới thêm vào nhóm route `public` đang đọc D1 (`GET /api/company`, `GET /ve/:token`,
+tài khoản Bán hàng thử sẽ thấy đơn thật (đã tránh: chủ chọn Đ5(a), chỉ Đối tác thử); route công khai mới thêm vào nhóm route `public` đang đọc D1 (`GET /api/company`, `GET /ve/:token`,
 cấu hình đăng nhập, tệp giao diện) — người kiểm phải đọc danh sách trường trả về.
