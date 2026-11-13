@@ -93,7 +93,8 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 113.492 → 114.524 (+1.032, ADR-0202 nội dung màn bảo trì do Toàn quyền tự sửa, 13/11/2026): màn bảo trì dựng từ nội dung đã lưu (khối ẩn/hiện theo công tắc,
 // nội dung mặc định khi chưa lưu, kiểm hình dạng nội dung trong thân 503). Đã bỏ bộ kiểm đầy đủ khỏi gói này (máy chủ kiểm hai đầu). Trần = đúng số đo. Chủ dự án duyệt
 // 13/11/2026 (nút ở khung bước tiếp theo), nguyên văn «Duyệt cả hai» — trả lời câu «Bạn duyệt văn bản quyết định ADR-0202 và cho nới trần trang Đơn hàng thêm 1 KB chứ?».
-const TRAN_ORDERS = 114_524;
+// Đo lại sau khi gộp main có chi tiết dịch vụ (ADR-0201): 114.528 (+4 byte do bộ rút gọn đặt lại tên biến) — tổng +1.036, vẫn trong mức «thêm 1 KB» chủ đã duyệt.
+const TRAN_ORDERS = 114_528;
 
 function dung(trang: string) {
   const r = buildSync({

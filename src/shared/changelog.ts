@@ -18,11 +18,21 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Bản mẫu 2c của chủ dự án (13/11/2026; ADR-0202 accepted, chủ «Duyệt cả hai»): nội dung màn bảo trì do Toàn quyền tự sửa — migration 0162 (cột mnt_setting.content_json).
-    // Trần gói trang Đơn hàng 113.492 → 114.524: chủ duyệt cùng lời «Duyệt cả hai». SỐ TẠM 2.99: main có 2.98; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "2.99",
+    // Trần gói trang Đơn hàng 113.492 → 114.524: chủ duyệt cùng lời «Duyệt cả hai» (đo trước khi gộp chi tiết dịch vụ). SỐ TẠM 3.0 (sau 2.99 như 1.97 → 2.0): main có 2.99 (chi tiết dịch vụ); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.0",
     date: "2026-11-13",
     items: [
       { kind: "moi", text: "Trang Tôi › Chế độ bảo trì có khung «Nội dung màn bảo trì»: Toàn quyền tự sửa chữ, số điện thoại hỗ trợ, Zalo, website và chọn khối nào hiện, có xem trước." },
+    ],
+  },
+  {
+    // Sửa «Ghi khoản thu» điền sẵn số Còn lại (chủ 13/11) + ADR-0201 Đ1, Đ3 (chủ duyệt 13/11, «Duyệt»): chi tiết dịch vụ — tên hiển thị, mô tả, ảnh đại diện.
+    // Migration 0160 (ctl_service_detail) + kho R2 MỚI `tourdao-sales-anh-dich-vu` (chủ tạo trước khi triển khai; cổng 1e dừng nếu thiếu). SỐ TẠM 2.99: main có 2.98 (màn bảo trì); bước A.0 đặt lại số và ngày.
+    version: "2.99",
+    date: "2026-11-13",
+    items: [
+      { kind: "sua", text: "«Ghi khoản thu»: ô số tiền điền sẵn số Còn lại, chỉ cần bấm «Ghi»; khách trả khác thì sửa lại, form báo ngay phần thiếu hoặc dư." },
+      { kind: "moi", text: "Màn Dịch vụ và Giá có nút «Sửa chi tiết»: đặt tên hiển thị, mô tả, ảnh đại diện cho từng dịch vụ. Đơn mới dùng tên hiển thị; đơn cũ giữ tên cũ." },
     ],
   },
   {

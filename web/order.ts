@@ -11,6 +11,7 @@ import { byId, h, replaceChildren } from "./dom";
 import { CAU_BIEN_LAI_BAT_BUOC, NHAN_O_BIEN_LAI, NHAN_XEM_BIEN_LAI, canBienLai, cauTrangThaiBienLai, duongBienLai } from "../src/shared/bien-lai";
 import { ACCEPT_ANH_PDF, chuanBiBienLai } from "./thu-nho-anh";
 import { cauXacNhanDaNhan, duocHuyKhoanSo, ghiSoNoiBo, hienNutSuaKhoanThu } from "../src/shared/nut-khoan-thu";
+import { cauConLaiGhiThu, cauLechConLai, soTienDienSan } from "../src/shared/so-tien-ghi-thu";
 import { METHOD_LABEL, actionLabel, dateTime, ngayNganHomNay, parseMoney, trangThaiHienThi, vnd } from "./format";
 import { regroupMoney, setMoneyValue } from "./money-input";
 import { moBangTruot } from "./bang-truot";
@@ -1232,9 +1233,22 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse, luaChon: readonly
   const wrap = h("div", { class: "pay-inline" });
   const mo = h("button", { type: "button", class: "btn", "data-action": "ghi-lan-thu" }, "Ghi khoản thu");
   const moForm = (soTienSan: number | null) => {
-    const soTien = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", placeholder: "0" }) as HTMLInputElement;
-    soTien.addEventListener("input", () => regroupMoney(soTien));
-    if (soTienSan !== null) setMoneyValue(soTien, soTienSan);
+    // Chủ 2026-11-13: bước này chỉ xác nhận số đã thu — điền sẵn số «Còn lại» (hoặc số của mã QR), nhân viên chỉ sửa khi khách thực trả khác.
+    const soTien = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", placeholder: "0", id: "lan-thu-so-tien" }) as HTMLInputElement;
+    const nhacConLai = cauConLaiGhiThu(t.conLai, vnd);
+    const lechEl = h("p", { class: "muted", "data-khoi": "lech-con-lai", role: "status", hidden: true });
+    const capNhatLech = () => {
+      const cau = cauLechConLai(parseMoney(soTien.value), t.conLai, vnd);
+      lechEl.textContent = cau ?? "";
+      lechEl.hidden = cau === null;
+    };
+    soTien.addEventListener("input", () => {
+      regroupMoney(soTien);
+      capNhatLech();
+    });
+    const dienSan = soTienDienSan(t.conLai, soTienSan);
+    if (dienSan !== null) setMoneyValue(soTien, dienSan);
+    capNhatLech();
     const hinhThuc = h("select", null, ...(["BANK_TRANSFER", "CASH", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement;
     // Sổ đại lý đợt 2 (ADR-0132; đặc tả P4): hai lựa chọn mới chỉ khi máy chủ gửi `benKia` (đơn có đại lý được hưởng / quầy nhà cung cấp; không bao giờ với Đối tác).
     const nguoi = h("select", { id: "lan-thu-nguoi-thu" }, ...luaChon.map((c) => h("option", { value: c.value }, c.nhan))) as HTMLSelectElement;
@@ -1268,6 +1282,7 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse, luaChon: readonly
     const form = h(
       "form",
       { class: "pay-form", "data-khoi": "form-lan-thu" },
+      nhacConLai ? h("p", { class: "muted", "data-khoi": "nhac-con-lai" }, nhacConLai) : null,
       h(
         "div",
         { class: "grid two" },
@@ -1279,6 +1294,7 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse, luaChon: readonly
         ...(ma ? ma.o : []),
         oBienLai,
       ),
+      lechEl,
       choKeToan,
       h("div", { class: "handler-actions" }, ghi, thoi),
     ) as HTMLFormElement;
@@ -1319,7 +1335,8 @@ function nutGhiThu(order: Order, t: Api.OrderPaymentsResponse, luaChon: readonly
       }
     });
     replaceChildren(wrap, form);
-    soTien.focus();
+    // Đã điền sẵn thì đưa con trỏ tới nút «Ghi» (chỉ cần xác nhận); ô trống thì vào ô số tiền.
+    if (soTien.value) ghi.focus(); else soTien.focus();
   };
   mo.addEventListener("click", () => moForm(null));
   moGhiThu = (so) => {
