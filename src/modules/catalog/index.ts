@@ -26,6 +26,9 @@ import { coVeRoutes } from "./co-ve-route";
 import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve";
 import { nguonVeHienHanh } from "./nguon-ve-repo";
 import { nguonVeRoutes } from "./nguon-ve-route";
+import { chiTietRoutes } from "./chi-tiet-route";
+import { chiTietHienHanh, type ChiTietDong } from "./chi-tiet-repo";
+import { tenHieuLuc } from "../../shared/chi-tiet-dich-vu";
 import { isQuyTacDuaDon, moTaDoiQuyTac, type QuyTacDuaDon } from "../../shared/dua-don-dich-vu";
 
 /** Tác nhân tự động của việc đồng bộ danh mục (ADR-0186 Đ1): Cron 15 phút và đồng bộ lần đầu chạy dưới định danh này, qua cùng cổng `catalog.sync` với nút. */
@@ -39,8 +42,9 @@ export type { EffectiveService };
  */
 export async function getEffectiveServices(db: D1Database, codes?: readonly string[]): Promise<Map<string, EffectiveService>> {
   const want = codes ? new Set(codes) : null;
-  const all = await loadAll(db);
-  return new Map(all.filter((s) => !want || want.has(s.code)).map((s) => [s.code, toEffective(s)]));
+  const [all, chiTiet] = await Promise.all([loadAll(db), chiTietHienHanh(db)]);
+  // ADR-0199 Đ1: tên hiển thị thắng tên Sheet — đơn mới chụp tên này; đơn đã lập giữ tên đã chụp.
+  return new Map(all.filter((s) => !want || want.has(s.code)).map((s) => [s.code, { ...toEffective(s), name: tenHieuLuc(s.name, chiTiet.get(s.code)) }]));
 }
 
 /**
@@ -92,7 +96,7 @@ function publicItem(e: EffectiveService, groupCode: string | null): Omit<Catalog
 }
 
 /** `groupCode`: nhóm hiện hành THẬT (ADR-0058 Đ5, kể cả nhóm đang tắt) — trộn ở đây từ nhom-repo, không sửa câu SELECT cũ của repository.ts. */
-function adminItem(s: StoredItem, groupCode: string | null, transferRule: QuyTacDuaDon): CatalogAdminItemDto {
+function adminItem(s: StoredItem, groupCode: string | null, transferRule: QuyTacDuaDon, ct?: ChiTietDong): CatalogAdminItemDto {
   const eff = applyOverride(s.prices, s.override);
   return {
     code: s.code,
@@ -110,13 +114,15 @@ function adminItem(s: StoredItem, groupCode: string | null, transferRule: QuyTac
     updatedAt: s.updatedAt,
     groupCode,
     transferRule,
+    tenHienThi: ct?.tenHienThi ?? null,
+    moTa: ct?.moTa ?? null,
   };
 }
 
 /** Một dịch vụ cho phản hồi của route quản trị một dịch vụ (PATCH/ack/bỏ ghi đè): kèm nhóm hiện hành để khớp `GET /api/catalog/admin`. */
 async function adminItemKemNhom(db: D1Database, s: StoredItem): Promise<CatalogAdminItemDto> {
-  const [nhom, quyTac] = await Promise.all([nhomHienHanhTheoMa(db), quyTacDuaDonCua(db, s.code)]);
-  return adminItem(s, nhom.get(s.code) ?? null, quyTac);
+  const [nhom, quyTac, chiTiet] = await Promise.all([nhomHienHanhTheoMa(db), quyTacDuaDonCua(db, s.code), chiTietHienHanh(db)]);
+  return adminItem(s, nhom.get(s.code) ?? null, quyTac, chiTiet.get(s.code));
 }
 
 // ---- Nhóm dịch vụ (ADR-0058) ------------------------------------------------------------------------------------------------------------
@@ -173,8 +179,9 @@ async function catalogForOrderForm(
   } catch {
     /* Sheet lỗi ở lần đầu: vẫn trả danh mục rỗng + cảnh báo bên dưới */
   }
-  const [items, state, nhomTheoDichVu, nhoms, quyTac] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), quyTacDuaDonTheoMa(env.DB)]);
-  const dangHien = items.map(toEffective).filter((e) => e.visible);
+  const [items, state, nhomTheoDichVu, nhoms, quyTac, chiTiet] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), quyTacDuaDonTheoMa(env.DB), chiTietHienHanh(env.DB)]);
+  // ADR-0199 Đ1: tên hiển thị thắng tên Sheet ở danh mục lập đơn (văn phòng và Đối tác).
+  const dangHien = items.map((s) => ({ ...toEffective(s), name: tenHieuLuc(s.name, chiTiet.get(s.code)) })).filter((e) => e.visible);
   const bo = biChan ? await biChan(dangHien.map((e) => e.code)) : new Set<string>();
   const visible = dangHien.filter((e) => !bo.has(e.code)).map((e) => publicItem(e, nhomTheoDichVu.get(e.code) ?? null));
   // ADR-0058 Đ5: dịch vụ của nhóm đang tắt → groupCode null; `groups` chỉ nhóm đang dùng có ≥ 1 dịch vụ đang hiện, xếp sort_order.
@@ -217,6 +224,7 @@ export const catalogModule: AppModule = {
     // ---- Đặc điểm dịch vụ (ADR-0152; kế hoạch 2026-10-30 T7) — khai TRƯỚC mọi route `/api/catalog/:code…` ----------------------------
     ...coVeRoutes,
     ...nguonVeRoutes, // ADR-0175 Đ1.2: ô «Vé do ai phát»
+    ...chiTietRoutes, // ADR-0199 Đ1: tên hiển thị + mô tả
     ...dacDiemRoutes,
 
     // ---- Admin -----------------------------------------------------------------------------
@@ -230,9 +238,9 @@ export const catalogModule: AppModule = {
 
     route("GET", "/api/catalog/admin", "admin", async ({ env, staff }) => {
       if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
-      const [items, state, nhomTheoDichVu, nhoms, quyTac] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), quyTacDuaDonTheoMa(env.DB)]);
+      const [items, state, nhomTheoDichVu, nhoms, quyTac, chiTiet] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), quyTacDuaDonTheoMa(env.DB), chiTietHienHanh(env.DB)]);
       return json({
-        items: items.map((s) => adminItem(s, nhomTheoDichVu.get(s.code) ?? null, quyTac.get(s.code) ?? "GROUP")),
+        items: items.map((s) => adminItem(s, nhomTheoDichVu.get(s.code) ?? null, quyTac.get(s.code) ?? "GROUP", chiTiet.get(s.code))),
         sync: state,
         groups: nhoms.map((g) => nhomDto(g, g.service_count)),
       } satisfies CatalogAdminResponse);

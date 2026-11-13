@@ -81,7 +81,9 @@
 | `ctl_attribute_assignment` | bảng | Gắn giá trị đặc điểm cho MỘT dịch vụ hoặc MỘT nhóm (ADR-0152 Đ1, 0128; khuôn 0127): dòng mở = valid_to_at NULL, tối đa một dòng mở mỗi (dịch vụ, đặc điểm) và (nhóm, đặc điểm); «theo nhóm» = dịch vụ không có dòng mở. Chỉ thêm: cấm xoá, chỉ cho đóng dòng mở một lần; trigger chặn giá trị không thuộc đặc điểm và chèn khi đặc điểm / giá trị / nhóm đang tắt. Module khác đọc giá trị hiệu lực qua view v_ctl_service_attribute; đồng bộ Sheet không ghi bảng này |
 | `ctl_service_ticket_flag` | bảng | ô «Có vé» theo dịch vụ (scope SERVICE, code = mã dịch vụ) hoặc nhóm (scope GROUP, code = mã nhóm) (ADR-0174, migration 0142), CHỈ-THÊM; has_ticket 1 = Có vé, 0 = Không vé (ghi tường minh để dòng dịch vụ thắng nhóm); chưa khai là Không vé; luật xét ở src/shared/co-ve.ts |
 | `ctl_service_ticket_source` | bảng | ô «Vé do ai phát» chỉ trên từng dịch vụ (code = mã dịch vụ, không theo nhóm) (ADR-0175 Đ1.2, migration 0151), CHỈ-THÊM; source HANG_NGOAI = vé hãng ngoài, TOUR_DAO = vé Tour Đảo; dòng hiệu lực = valid_from_at lớn nhất; chưa có dòng là HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts |
+| `ctl_service_detail` | bảng | chi tiết dịch vụ do Nền tảng giữ (ADR-0199 Đ1, migration 0160), CHỈ-THÊM; display_name = tên hiển thị thắng tên Sheet ở danh mục (NULL = dùng tên Sheet), description = mô tả, image_key = khoá ảnh (bước sau), sheet_name_at = tên Sheet lúc ghi (báo Sheet đổi tên); dòng hiệu lực = valid_from_at lớn nhất; đồng bộ Sheet không chạm; luật ở src/shared/chi-tiet-dich-vu.ts |
 | `v_ctl_service_ticket_flag` | view công bố | cột: scope, code, has_ticket |
+| `v_ctl_service_detail` | view công bố | cột: code, display_name, description, image_key, sheet_name_at, valid_from_at |
 | `v_ctl_service_ticket_source` | view công bố | cột: code, source |
 | `v_ctl_service_group` | view công bố | cột: catalog_code, group_code |
 | `v_ctl_service_transfer` | view công bố | cột: catalog_code, transfer_enabled |

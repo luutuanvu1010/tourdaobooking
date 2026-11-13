@@ -34,6 +34,8 @@ Giá «trọn lượt» và em bé 0 ₫ (đổi cách tính tiền đơn); giá
 2. **Bản đồ quyền chạm bảng:** ghi — `admin.manage`; đọc — tài khoản văn phòng qua route danh mục sẵn có (cổng `office`, ADR-0033). Đối tác, Thực tập không gọi route danh mục hôm nay; văn bản này không mở thêm cho họ (tên hiển thị chỉ tới họ qua tên chụp trong đơn).
 3. **Cổng:** route ghi mới ở `catalog/index.ts` khai `access: "office"` + `can(staff, "admin.manage")`; giao diện ẩn khối sửa khi `can` sai (máy chủ kiểm lại). Kho `ANH_DICH_VU` chỉ đọc/ghi qua route của `catalog`. Không chỗ ẩn/hiện nào hiện có bị đổi nghĩa.
 
+**Đính chính 13/11 (sau duyệt, không đổi quyết định; đã báo chủ trong chat):** mục 2 trên viết sai sự thật — Đối tác, Thực tập CÓ đọc danh mục để lập đơn qua `GET /api/catalog/for-order` (ADR-0033). Vì Đ1 mục 3 nói tên hiển thị dùng ở mọi chỗ đọc danh mục, Đối tác thấy tên hiển thị ở form lập đơn — cùng mức họ đang thấy tên Sheet hôm nay. Mô tả và khoá ảnh KHÔNG đi vào danh mục lập đơn ở đợt này (chỉ màn «Dịch vụ và Giá», cổng `admin.manage`).
+
 ## Hệ quả
 - Một migration bảng chỉ thêm; `docs/data-dictionary.json` + `npm run dict`.
 - Màn «Dịch vụ và Giá»: bảng trượt «Chi tiết dịch vụ» bốn khối (Thông tin, Giá, Bán, Giá theo mùa — khối cuối để trống tới đợt sau).
