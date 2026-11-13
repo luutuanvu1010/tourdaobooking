@@ -16,7 +16,8 @@
   ADR-0126; ADR-0035 (khung nằm sẵn trên máy) và ADR-0016 (Face ID) giữ nguyên.
 - **Xây trên lỗ đang hở: HC-5.19** (chưa diễn tập khôi phục dữ liệu; mục HIGH trong `docs/quyen-hoan.json`, hạn hiện ghi 2026-12-31). Đ4 thêm một đường
   kích hoạt ẩn danh hoá (cửa một chiều trên D1) lên đúng lỗ này, như ADR-0126 đã ghi. **Không được duyệt Đ4** trước khi HC-5.19 được đóng hoặc chủ ghi
-  lời gia hạn / cho phép xây trên lỗ cho riêng ADR này. `TNV-G1` (tiền đơn huỷ) chỉ chạm sát (Đ4 giữ đơn và sổ tiền); `HC-4.2` không chạm.
+  lời gia hạn / cho phép xây trên lỗ cho riêng ADR này. `TNV-G1` (tiền đơn huỷ) chỉ chạm sát: Đ4 giữ đơn và sổ tiền; Đ5 dọn đơn của tài khoản thử
+  **không** qua đường huỷ đơn có tiền (xem Đ5). `HC-4.2` không chạm.
 
 ## Bối cảnh
 
@@ -66,7 +67,9 @@ với Apple, không đổi mã. Để giảm rủi ro 4.2, vỏ iPhone có ba ch
   phiếu hiện có chỉ ẩn danh, không ngưng tài khoản; đường ngưng tài khoản hiện có là route khác. **Không xoá cứng**; phần phải giữ theo luật (đơn, sổ
   tiền, nhật ký) giữ đúng ADR-0126 điều 4 và phiếu trả lời liệt kê.
 - **Luật phải thêm (chưa có trong mã):** từ chối khi tài khoản là **Quản trị đang hoạt động cuối cùng** hoặc **Toàn quyền đang hoạt động cuối cùng**
-  (luật sẵn có chỉ chặn Quản trị cuối cùng, và chỉ ở route sửa tài khoản); hồ sơ công ty chủ vẫn bị chặn như nay.
+  (luật sẵn có chỉ chặn Quản trị cuối cùng, và chỉ ở route sửa tài khoản); hồ sơ công ty chủ vẫn bị chặn như nay. Phép đếm phải nằm **trong chính lô
+  ghi** (câu SQL có điều kiện, như route ngưng tài khoản hiện làm), không chỉ kiểm bằng hàm trước khi ghi — để hai phiếu chạy cùng lúc không ngưng nốt
+  người cuối cùng.
 - **Đối tác còn nợ Trả sau:** đường ngưng hiện chặn bằng `con_no_tra_sau`. Đề xuất: phiếu xoá tài khoản cũng bị chặn tới khi hết nợ, phiếu trả lời
   ghi lý do bằng tiếng Việt (chủ chọn khác thì sửa ở đặc tả lát 3).
 - **Số điện thoại đăng nhập** (`staff.phone`) của tài khoản đã ngưng **vẫn giữ** theo ADR-0126 điều 9. Hai kho thường hiểu «xoá tài khoản» là xoá cả dữ liệu
@@ -75,13 +78,18 @@ với Apple, không đổi mã. Để giảm rủi ro 4.2, vỏ iPhone có ba ch
   khoá nội dung và một chiều của bảng (`erasure_content`, `erasure_status_one_way`); chi tiết ở đặc tả lát 3.
 
 **Đ5 (chạm quyền / tài khoản) — Tài khoản thử cho người duyệt của kho.**
-- **Một** tài khoản trên **bản chính thức**, mang quyền **Đối tác**, gắn một hồ sơ đối tác giả «Đối tác thử nghiệm của kho ứng dụng» (theo lựa chọn (a)
-  dưới đây; bản soạn đầu đề xuất thêm một tài khoản Bán hàng). Không cấp Bán hàng, Kế toán, Quản trị, Toàn quyền, Nhân sự.
+- **Đã chốt (a), chủ 13/11 «Theo khuyến nghị»:** **một** tài khoản trên **bản chính thức**, mang quyền **Đối tác**, không cấp Bán hàng, Kế toán, Quản trị,
+  Toàn quyền, Nhân sự. (Phương án (b) — thêm tài khoản Bán hàng thử — bị loại vì Bán hàng xem mọi đơn, người duyệt sẽ thấy đơn thật.)
+- Gắn một hồ sơ **cá nhân** giả «Đối tác thử nghiệm của kho ứng dụng» — phải là hồ sơ cá nhân, vì phiếu xoá chỉ nhận hồ sơ người (trigger
+  `erasure_person_only`); hồ sơ tổ chức thì người duyệt bấm «Xin xoá tài khoản» sẽ bị từ chối, và Apple bắt buộc thấy lối này chạy.
 - Tài khoản **ngưng sẵn**; chỉ mở trong lúc một bản đang chờ duyệt, ngưng lại ngay khi kho trả kết quả. Mỗi lần mở / ngưng có dòng nhật ký.
-- Tài khoản Bán hàng thử **thấy được đơn thật** (Bán hàng xem mọi đơn theo bảng quyền hiện hành). ⇒ **Chủ phải chọn** một trong hai: (a) chỉ cấp tài
-  khoản Đối tác thử (an toàn, người duyệt chỉ thấy đơn của chính nó); (b) cấp cả Bán hàng thử và chấp nhận người duyệt thấy đơn thật trong vài ngày.
-  **Chủ chọn (a) ngày 13/11** («Theo khuyến nghị»): chỉ cấp tài khoản Đối tác thử; không có tài khoản Bán hàng thử. Người duyệt vẫn lập được đơn, và đơn đó là đơn thật trong sổ của bản chính thức (không xoá cứng): runbook lát 4 ghi cách nhận ra
-  (hồ sơ đối tác giả) và huỷ các đơn đó sau mỗi lần duyệt. Không dùng bản Development (ADR-0162) cho người duyệt: vỏ ứng dụng nạp bản chính thức.
+- **Đơn người duyệt lập** là đơn thật trong sổ của bản chính thức (không xoá cứng). Runbook lát 4: văn phòng **không xác nhận** đơn của hồ sơ thử, nên đơn
+  không có khoản thu và không đi đường huỷ đơn có tiền. Dọn bằng chức năng **ẩn đơn sạch tiền** của ADR-0164 — ADR đó đã duyệt nhưng **chưa có trong mã**
+  (kiểm 13/11: không có ô `data.hide`); trước khi có, các đơn nằm yên ở trạng thái chờ xác nhận, gắn hồ sơ thử nên nhận ra được. Huỷ thường chỉ dùng
+  cho đơn chưa xác nhận, không có khoản thu.
+- **Phiếu xin xoá của tài khoản thử:** người xử lý bấm **từ chối** (ghi lý do «tài khoản thử của kho ứng dụng»), không thực hiện — thực hiện sẽ ẩn danh
+  và ngưng hẳn tài khoản, không dùng lại được cho lần duyệt sau.
+- Không dùng bản Development (ADR-0162) cho người duyệt: vỏ ứng dụng nạp bản chính thức.
 - PIN của tài khoản thử: chủ tự đặt và tự điền vào khai báo nộp kho; AI không đặt, không biết.
 
 **Đ6 — Một tên.** Tên trên kho, tên dưới biểu tượng, tên ở thanh trên và màn Đăng nhập là **một**. Chủ chọn:
@@ -123,7 +131,7 @@ L2 trang chính sách công khai (Đ3, route mới) → L3 xin xoá tài khoản
 → L5 TWA, thử kín trên CH Play → L6 vỏ iPhone, thử sáu rủi ro, nộp App Store.
 
 **Việc của chủ (AI không làm):** tra / xin số D-U-N-S cho Công ty TNHH Tour Đảo; đăng ký Apple Developer Program dạng tổ chức (99 USD/năm) và tài khoản
-Google Play dạng tổ chức (phí một lần, chưa kiểm lại con số); chọn tên (Đ6) và chữ nút «Xin xoá tài khoản»; **luật sư xem** chính sách quyền riêng tư,
+Google Play dạng tổ chức (phí một lần, chưa kiểm lại con số); chọn chữ nút «Xin xoá tài khoản» (tên Nền tảng đã chốt ở Đ6); **luật sư xem** chính sách quyền riêng tư,
 thời hạn xử lý phiếu xoá (đã là điều kiện chặn của ADR-0126) và phần khai «nhãn quyền riêng tư» (App Store) / «An toàn dữ liệu» (Google Play); chọn
 email hỗ trợ công khai; tạo và đặt PIN tài khoản thử; có một máy Android để thử; duyệt ảnh giới thiệu trên kho.
 
@@ -135,7 +143,7 @@ email hỗ trợ công khai; tạo và đặt PIN tài khoản thử; có một 
 1. Mở `/chinh-sach-rieng-tu` (tên đường dẫn chốt ở đặc tả) khi chưa đăng nhập: thấy đúng phiên bản đang hiệu lực; đăng phiên bản mới thì trang đổi theo;
    phản hồi không chứa mã người đăng hay dữ liệu cá nhân (bài kiểm khoá danh sách trường).
 2. Route GET công khai mới được khoá trong `src/route-access.test.ts`; tập route GHI công khai không đổi (`src/lan-gui-phu-route.test.ts`).
-3. Tài khoản Bán hàng bấm «Xin xoá tài khoản» → có phiếu; người không có `party.erasure.process` không xử lý được; thực hiện xong thì tài khoản bị ngưng,
+3. Tài khoản Bán hàng của bài kiểm (e2e, D1 tạm — không phải tài khoản thử của kho) bấm «Xin xoá tài khoản» → có phiếu; người không có `party.erasure.process` không xử lý được; thực hiện xong thì tài khoản bị ngưng,
    đăng nhập lại bị từ chối, hồ sơ ẩn danh theo ADR-0126, đơn và sổ tiền vẫn còn. Quản trị / Toàn quyền đang hoạt động cuối cùng và đối tác còn nợ
    Trả sau: bị từ chối bằng câu tiếng Việt. Phiên đang «Xem như vai trò khác» gửi phiếu xoá tài khoản: máy chủ từ chối (bài chặn, đã thấy đỏ khi bỏ chặn — P16).
 4. Tài khoản Đối tác thử chỉ thấy đơn của chính nó (bài quyền sẵn có chạy với tài khoản này); khi ngưng thì không đăng nhập được.
