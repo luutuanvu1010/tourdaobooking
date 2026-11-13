@@ -36,3 +36,6 @@ Khối 3 chỉ **gom các công tắc đã có** về một chỗ (không đổi
 ## Điều chưa chắc
 - Chưa hỏi người đang quản lý Sheet: họ có còn muốn sửa giá ở Sheet không (quyết câu 1).
 - «Theo lượt» có nghĩa trọn gói một xe/một thuyền bất kể số khách, hay khác? Cần chủ xác nhận khi làm đợt 2.
+
+## Chủ chọn (13/11)
+- Câu 1: **A — Sheet + ghi đè** (chủ bấm nút). Câu 2, câu 3: chủ không trả lời, dùng khuyến nghị. Văn bản soạn tiếp: `docs/adr/ADR-0199-chi-tiet-dich-vu-sheet-va-ghi-de.md` (proposed).
