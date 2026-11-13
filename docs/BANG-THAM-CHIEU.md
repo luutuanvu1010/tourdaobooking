@@ -121,6 +121,8 @@ Mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn. 
 | **Giá đại lý** | Số tiền đại lý phải trả công ty cho một đơn, bằng thành tiền của đơn trừ hoa hồng. | Khác giá bán lẻ (giá trong Dịch vụ & giá). |  | `hoaHongDong` `tinhDongDoiTac` | chờ chọn |  |
 | **Công nợ đại lý** | Số đại lý còn phải trả Tour Đảo cho một đơn: tổng giá đại lý các dịch vụ trừ số tiền Tour Đảo đã thật sự nhận. Số âm nghĩa là Tour Đảo đang nợ đại lý. Hạn mức Trả sau dùng số này. | Khác «Phải thu» của khách (tính theo giá bán lẻ). |  | `congNoNhieuDon` `giaDaiLyNhieuDon` | đã chốt | 2026-11-12 (ADR-0182 Đ1, chủ duyệt «Duyệt, chọn cách 1») |
 | **Phiếu công nợ với Tour Đảo** | Phiếu của một đơn đại lý đã xác nhận: từng dịch vụ theo giá đại lý, Tổng công nợ, Đã thu, Công nợ còn lại, hạn trả, và mã QR chuyển đúng số còn lại vào tài khoản công ty (nội dung có tiền tố DL). Mở bằng nút «Xem công nợ với Tour Đảo». Không in trên biên nhận cho khách. | Khác biên nhận cho khách (mẫu HD-02-DT, giá bán lẻ, không QR). |  | `/api/orders/:x/cong-no-dai-ly` `TEN_PHIEU_CONG_NO` | đã chốt | 2026-11-12 (ADR-0182 bảng «Chữ chờ chủ chọn», chủ duyệt theo khuyến nghị) |
+| **Khoản nộp** | Số tiền đại lý đã chuyển cho Tour Đảo cho MỘT đơn, ghi bằng nút «Đã chuyển tiền» trên Phiếu công nợ với Tour Đảo, kèm ảnh biên lai bắt buộc. Khoản ở trạng thái «Chờ Kế toán xác nhận» và chưa trừ vào công nợ; Kế toán đối chiếu sao kê rồi xác nhận (khoản trừ vào công nợ) hoặc từ chối có lý do. Mỗi đơn chỉ một khoản chờ cùng lúc. | Khác khoản thu của khách (tiền khách trả, tính theo giá bán lẻ) và khác quyết toán «nộp về công ty» Kế toán tự ghi (đơn đang có khoản nộp chờ thì quyết toán «nộp» bị chặn). | Lần chuyển tiền | `bil_agent_remittance` `bil_remittance_proof` `dai-ly.nop.ghi` `dai-ly.nop.xac-nhan` `dai-ly.nop.xem` `TEN_KHOAN_NOP` | đã chốt | 2026-11-13 (ADR-0182 bảng «Chữ chờ chủ chọn», chủ duyệt theo khuyến nghị) |
+| **Khách đã trả bạn X ₫** | Dòng trong biểu mẫu «Đã chuyển tiền»: phần khách chưa trả trên sổ của đơn (phải thu trừ mọi khoản thu đang có). Gửi khoản nộp thì máy ghi luôn số này là khách đã trả cho đại lý (đại lý giữ hộ Tour Đảo), để không trả hoa hồng hai lần. X bằng 0 thì không ghi thêm. | Không phải số đại lý tự gõ: máy chủ tính, đổi giữa chừng thì phải tải lại phiếu. | Bạn đã thu của khách X ₫ | `dongKhachDaTra` `khachDaTra` | đã chốt | 2026-11-13 (ADR-0182 bảng «Chữ chờ chủ chọn», chủ duyệt theo khuyến nghị) |
 | **Giá công bố** | Giá danh mục, tức giá bán lẻ, in trên biên nhận mẫu HD-02-DT của đơn đối tác. | Khác «Giá đại lý». |  |  | đã chốt | 2026-11-06 (đặc tả biên nhận đơn đối tác) |
 | **Phải thu (biên nhận HD-02-DT)** | Dòng «Phải thu» trên biên nhận mẫu HD-02-DT: số tiền khách còn phải trả sau giảm giá và phần đã trả. | Ở sổ của Kế toán, «phải thu» là tổng đơn phải thu. |  |  | đã chốt | 2026-11-06 (đặc tả biên nhận đơn đối tác) |
 | **Người bán dịch vụ** | Bên cung ứng dịch vụ cho công ty, kèm điều khoản công ty mua lại dịch vụ đó. | Khác «Đối tác» (bên đưa khách đến và hưởng hoa hồng). |  | `prc_supply_term` | chờ chọn |  |
@@ -225,7 +227,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (86)
+## Việc chờ chọn (87)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -237,6 +239,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Xác nhận · Từ chối | `web/order.ts`: Xác nhận<br>`web/order.ts`: Từ chối | Tiền của đơn huỷ | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Phân loại lý do | `web/order.ts`: Phân loại lý do | Tiền của đơn huỷ | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Xác nhận đã nhận | `web/order.ts`: Xác nhận đã nhận | Đối chiếu khoản thu | rà soát 2026-11-04: chưa rõ, chờ chủ |
+| Xác nhận đã nhận · Từ chối | `web/khoan-nop-ui.ts`: Xác nhận đã nhận<br>`web/khoan-nop-ui.ts`: Từ chối | Khoản nộp của đại lý | người thi công phần B dùng lại tên sẵn có «Xác nhận đã nhận» (cùng nghĩa: Kế toán xác nhận công ty đã nhận tiền) và «Từ chối»; ADR-0182 không chốt tên hai nút này — chờ chủ |
 | Đề nghị phân định | `web/order.ts`: Đề nghị phân định | Sau bước Khách đã trả đủ | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Hoàn thành | `web/order.ts`: Xác nhận khách đã trả đủ / Hoàn thành | Chốt đơn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Ghi khoản thu | `web/order.ts`: Ghi khoản thu<br>`web/order.ts`: Ghi | Thu tiền | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -318,7 +321,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (331)
+## Việc quan trọng (333)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -402,6 +405,13 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 |---|---|---|---|---|---|---|---|
 | **Xác nhận đã nhận** | Chi tiết đơn › thẻ Thanh toán › khối «Kế toán» hoặc dòng của từng khoản thu | Kế toán xác nhận công ty đã thật sự nhận khoản thu do người khác khai là «Công ty thu». Chuyển khoản thì phải nhập mã giao dịch và số tiền thực chuyển theo sao kê. Tiền mặt thì người khai không còn phải nộp khoản đó nữa. | có hộp nhập (mã giao dịch, số tiền thực chuyển nếu chuyển khoản) | một phần: khoản đã xác nhận chỉ sửa bằng «Sửa khoản thu đã ghi» hoặc huỷ bằng «Huỷ khoản thu» (trước bước Khách đã trả đủ) | `/api/ledger/company-receipts/:x/confirm`<br>nhật ký `ledger_company_received` | `web/order.ts`: Xác nhận đã nhận | chờ chọn (rà soát 2026-11-04: chưa rõ, chờ chủ) |
 | **Bên kia đã nhận** | Chi tiết đơn › thẻ Thanh toán › khối «Kế toán» hoặc dòng của từng khoản thu | Kế toán xác nhận đại lý hoặc nhà cung cấp đã nhận tiền khách trả cho họ (do nhân viên khai). Từ lúc đó khoản này là nợ của bên đó với Tour Đảo. Bên kia báo không nhận thì dùng «Huỷ khoản thu». | có: «Đã đối chiếu: … xác nhận đã nhận … của khách?» | một phần: huỷ bằng «Huỷ khoản thu» trước bước Khách đã trả đủ | `/api/ledger/counterparty-receipts/:x/confirm`<br>nhật ký `ledger_counterparty_confirmed` | `web/order.ts`: Bên kia đã nhận | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
+
+### Khoản nộp của đại lý
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Đã chuyển tiền** | Chi tiết đơn › Phiếu công nợ với Tour Đảo (tài khoản Đối tác đặt đơn, đơn đã xác nhận) | Mở biểu mẫu khoản nộp; bấm «Đã chuyển tiền» trong biểu mẫu để gửi: số tiền đã chuyển cho Tour Đảo (không quá số còn phải nộp), ngày chuyển, ảnh biên lai bắt buộc. Cùng lần gửi, máy ghi luôn «Khách đã trả bạn X ₫» (phần khách chưa trả trên sổ, đại lý giữ hộ). Khoản nộp chờ Kế toán xác nhận, chưa trừ vào công nợ. Mỗi đơn chỉ một khoản chờ. | không (biểu mẫu là bước hỏi lại) | không tự huỷ được: Kế toán từ chối (có lý do) thì gửi khoản mới; khoản «Khách đã trả bạn» vẫn giữ | `/api/orders/:x/khoan-nop`<br>nhật ký `agent_remittance_recorded`<br>nhật ký `payment_recorded` | `web/khoan-nop-ui.ts`: Đã chuyển tiền | đã chốt (ADR-0182 phần B, bảng «Chữ chờ chủ chọn» — khuyến nghị «Đã chuyển tiền», chủ duyệt theo khuyến nghị 2026-11-13 «Duyệt, phát hành ngay») |
+| **Xác nhận đã nhận · Từ chối** | Chi tiết đơn › Phiếu công nợ với Tour Đảo › dòng khoản nộp đang chờ (Kế toán, Toàn quyền; không phải người ghi) | Kế toán đối chiếu sao kê rồi xác nhận công ty đã nhận khoản nộp của đại lý: máy ghi một phiếu quyết toán, khoản trừ vào công nợ của đơn. Máy kiểm lại trước khi ghi: không vượt công nợ còn lại, không vượt số đại lý đang giữ, đơn không còn khoản «Công ty thu» chờ đối chiếu. Từ chối phải có lý do; đại lý thấy lý do, không có dòng sổ nào. | có: hộp «Xác nhận khoản nộp» · từ chối có ô lý do | không: khoản đã quyết khoá lại; ghi nhầm thì sửa bằng điều chỉnh có người thứ hai duyệt | `/api/orders/:x/khoan-nop/:x/xac-nhan`<br>`/api/orders/:x/khoan-nop/:x/tu-choi`<br>nhật ký `agent_remittance_confirmed`<br>nhật ký `agent_remittance_rejected` | `web/khoan-nop-ui.ts`: Xác nhận đã nhận<br>`web/khoan-nop-ui.ts`: Từ chối | chờ chọn (người thi công phần B dùng lại tên sẵn có «Xác nhận đã nhận» (cùng nghĩa: Kế toán xác nhận công ty đã nhận tiền) và «Từ chối»; ADR-0182 không chốt tên hai nút này — chờ chủ) |
 
 ### Sửa sổ tiền
 

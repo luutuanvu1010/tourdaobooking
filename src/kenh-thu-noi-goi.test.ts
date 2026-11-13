@@ -78,6 +78,6 @@ test("(2) mỗi hàm gọi một hàm dựng câu CHẶN phải gọi kiemNguoiT
     }
   }
   assert.deepEqual(thieu, [], "hàm ghi khoản thu của khách chưa gọi cổng người thu trước khi dựng lô");
-  // ghiLanThu, daGiao (service.ts); cauDatCocKhiXacNhan (dat-coc.ts); chuanBiLoThay (thay-lan-thu.ts); ghiChuyen (coc.ts).
-  assert.equal(soNoiGoi, 5, "số hàm gọi câu CHẶN đổi — soát lại rồi sửa số này");
+  // ghiLanThu, daGiao (service.ts); cauDatCocKhiXacNhan (dat-coc.ts); chuanBiLoThay (thay-lan-thu.ts); ghiChuyen (coc.ts); ghiKhoanNop (khoan-nop.ts — ADR-0182 phần B, khoản «Khách đã trả bạn»).
+  assert.equal(soNoiGoi, 6, "số hàm gọi câu CHẶN đổi — soát lại rồi sửa số này");
 });

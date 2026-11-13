@@ -66,3 +66,5 @@ export const NHAN_TRANG_THAI_NOP: Readonly<Record<"PENDING" | "CONFIRMED" | "REJ
 };
 /** Câu chặn tài khoản Đối tác khai «Công ty thu» cho đơn đang có khoản nộp chờ (Đ2 mục 13, chiều ngược — một lần tiền chỉ khai ở một đường). */
 export const CAU_CONG_TY_THU_TRUNG = "Đơn này đang có khoản nộp chờ Kế toán xác nhận. Một lần chuyển tiền chỉ khai ở một chỗ: chờ Kế toán xử lý khoản nộp đó rồi mới ghi «Công ty thu».";
+/** Đường xem ảnh biên lai của khoản nộp (qua Worker, nhật ký trước — khuôn `duongBienLai` của ADR-0196). */
+export const duongBienLaiNop = (orderId: string, nopId: string): string => `/api/orders/${encodeURIComponent(orderId)}/khoan-nop/${encodeURIComponent(nopId)}/bien-lai`;

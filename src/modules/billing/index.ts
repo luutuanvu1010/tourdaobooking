@@ -133,11 +133,6 @@ async function donNop(db: D1Database, id: string): Promise<(DonNop & { ownerId: 
   if (!info || !ben) return null;
   return { id, maDon: ben.order_code ?? "này", status: info.status, deliveredAt: info.deliveredAt, bookerPartyId: ben.booker_party_id, ownerId: info.ownerId };
 }
-/** Ô xem khoản nộp + biên lai (Đ3): Kế toán, Quản trị, Toàn quyền mọi đơn; tài khoản Đối tác chỉ đơn có phiếu của chính hồ sơ mình (cùng vị từ của nút «Đã chuyển tiền»). */
-const xemDuocNop = (staff: PermissionHolder & { partyId: string | null }, bookerPartyId: string | null): boolean =>
-  holdsPartner(staff)
-    ? coPhieuNopTien({ nguoi: staff, partyId: staff.partyId, bookerPartyId, laDonDaiLy: true }) && can(staff, "dai-ly.nop.xem", { ownerId: staff.id })
-    : can(staff, "dai-ly.nop.xem");
 
 export const billingModule: AppModule = {
   name: "billing",
@@ -300,7 +295,11 @@ export const billingModule: AppModule = {
       if (!UUID_RE.test(id) || !UUID_RE.test(nid)) return BIEN_LAI_NOT_FOUND();
       const ben = await benDatCuaDon(env.DB, id);
       if (!ben) return BIEN_LAI_NOT_FOUND();
-      if (!xemDuocNop(staff, ben.booker_party_id)) return BIEN_LAI_FORBIDDEN();
+      // Ô xem khoản nộp + biên lai (Đ3): tài khoản Đối tác chỉ đơn có phiếu của chính hồ sơ mình (cùng vị từ nút «Đã chuyển tiền»); Kế toán, Quản trị, Toàn quyền mọi đơn.
+      const xemDuoc = holdsPartner(staff)
+        ? coPhieuNopTien({ nguoi: staff, partyId: staff.partyId, bookerPartyId: ben.booker_party_id, laDonDaiLy: true }) && can(staff, "dai-ly.nop.xem", { ownerId: staff.id })
+        : can(staff, "dai-ly.nop.xem");
+      if (!xemDuoc) return BIEN_LAI_FORBIDDEN();
       const anh = await anhCuaKhoanNop(env.DB, id, nid);
       if (!anh || anh.stored_at === null || anh.purged_at !== null) return BIEN_LAI_NOT_FOUND();
       await env.DB.batch([

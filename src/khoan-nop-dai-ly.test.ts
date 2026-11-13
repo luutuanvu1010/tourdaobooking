@@ -5,6 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { seedStaff } from "../tests/audit/harness.mjs";
+import { doNhatKyHang } from "../tests/audit/nhat-ky-hang.mjs";
+import { CHECKS, demViPham } from "../scripts/audit-checks.mjs";
 import { A, ACC, ADM, LAI, PARTNER, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
 import { CAU_CO_KHOAN_CHO, CAU_QUYET_TOAN_TRUNG } from "./shared/cong-no-dai-ly.ts";
 
@@ -285,6 +287,33 @@ test("Ảnh biên lai khoản nộp: đại lý chủ khoản, Kế toán, Quả
   assert.equal((await w.call("POST", `/api/orders/${id}/khoan-nop/${nid}/bien-lai/go`, { as: SUP, body: { lyDo: "Gửi nhầm ảnh" } })).status, 200);
   assert.equal((await w.call("GET", `/api/orders/${id}/khoan-nop/${nid}/bien-lai`, { as: ACC })).status, 404);
   assert.equal((await phieu(w, id)).nop.khoan[0].bienLai, "DA_GO");
+  const ds = doNhatKyHang(w.sqlite, ["bil_remittance_proof.content_hash", "bil_remittance_proof.storage_key"]);
+  assert.deepEqual(ds.lo, [], "nhật ký chứa giá trị hạng N3 (khoá kho / băm ảnh khoản nộp)");
+});
+
+test("Kho hỏng khi đặt ảnh: khoản nộp vẫn ghi (ảnh «chưa tải xong»), R-BIL-BL1 thấy sau 1 giờ, hàng chờ dọn kho thấy và chạy lại được; nhật ký không lộ N3", async () => {
+  const w = await dung();
+  const id = await donDaiLy(w);
+  w.r2BienLai.hong.put = true;
+  const r = await ghiNop(w, id, 800_000, 1_000_000);
+  assert.equal(r.status, 201, r.text);
+  assert.equal(r.json.bienLaiChuaTaiXong, true);
+  assert.equal((await phieu(w, id)).nop.khoan[0].bienLai, "CHUA_TAI_XONG");
+  // Giả «đã qua 3 giờ»: bỏ trigger giữ mốc tạo CHỈ trên SQLite tạm của bài (không nới luật nào của mã).
+  w.sqlite.exec("DROP TRIGGER bil_remittance_proof_identity");
+  w.sqlite.prepare("UPDATE bil_remittance_proof SET created_at = ?").run(new Date(Date.now() - 3 * 3600_000).toISOString());
+  const c = CHECKS.find((x: any) => x.code === "R-BIL-BL1");
+  assert.equal(demViPham(c, w.sqlite.prepare(c.sql.replace(/\s+/g, " ").trim()).all()), 1, "R-BIL-BL1 đếm ảnh khoản nộp tải dở dang");
+  const cho = await w.call("GET", "/api/ledger/bien-lai-cho-xoa", { as: SUP });
+  assert.equal(cho.status, 200, cho.text);
+  assert.equal(cho.json.anh.length, 1);
+  w.r2BienLai.hong.put = false;
+  const lai = await w.call("POST", "/api/ledger/bien-lai-cho-xoa/chay-lai", { as: SUP, body: {} });
+  assert.equal(lai.status, 200, lai.text);
+  assert.equal((await phieu(w, id)).nop.khoan[0].bienLai, "CHUA_CO", "tải dở quá hạn ⇒ quyết xoá, khoản thành «Chưa có biên lai»");
+  assert.equal(w.q("SELECT count(*) n FROM bil_remittance_proof WHERE r2_deleted_at IS NOT NULL")[0].n, 1);
+  const ds = doNhatKyHang(w.sqlite, ["bil_remittance_proof.content_hash", "bil_remittance_proof.storage_key"]);
+  assert.deepEqual(ds.lo, []);
 });
 
 test("Danh sách chờ cho Kế toán: thấy khoản chờ kèm cờ «còn Công ty thu chờ»; Đối tác, Bán hàng không xem được", async () => {

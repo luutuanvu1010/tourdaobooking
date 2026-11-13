@@ -322,6 +322,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0178 Đ1 mục 1: công tắc kênh thu không phải việc của Đối tác
     "credit.due.extend": "none", // ADR-0173 Đ1 mục 3: Ân hạn là việc của Quản trị, Toàn quyền
     "credit.own.view": "own", // ADR-0173 Đ3 mục 3: «Trả sau của tôi» — chỉ hồ sơ của phiên
+    "dai-ly.nop.ghi": "own", "dai-ly.nop.xac-nhan": "none", "dai-ly.nop.xem": "own", // ADR-0182 Đ3 (phần B): đại lý ghi / xem khoản nộp của đơn có phiếu của mình; không tự xác nhận
     "sales.block.write": "none", // ADR-0146 Đ5: Đối tác không đặt / gỡ luật bán (luật chặn chính họ)
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: Đối tác không gắn đặc điểm (đổi được kết quả luật bán)
     "catalog.confirm_flag.write": "none", "catalog.hidden.write": "none", // ADR-0169 Đ1: Đối tác không dùng, kể cả tài khoản kiêm (route chặn thêm)
