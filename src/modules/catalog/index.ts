@@ -29,6 +29,8 @@ import { nguonVeRoutes } from "./nguon-ve-route";
 import { chiTietRoutes } from "./chi-tiet-route";
 import { chiTietHienHanh, type ChiTietDong } from "./chi-tiet-repo";
 import { tenHieuLuc } from "../../shared/chi-tiet-dich-vu";
+import { duongAnhDichVu } from "../../shared/anh-dich-vu";
+import { anhRoutes } from "./anh-route";
 import { isQuyTacDuaDon, moTaDoiQuyTac, type QuyTacDuaDon } from "../../shared/dua-don-dich-vu";
 
 /** Tác nhân tự động của việc đồng bộ danh mục (ADR-0186 Đ1): Cron 15 phút và đồng bộ lần đầu chạy dưới định danh này, qua cùng cổng `catalog.sync` với nút. */
@@ -116,6 +118,7 @@ function adminItem(s: StoredItem, groupCode: string | null, transferRule: QuyTac
     transferRule,
     tenHienThi: ct?.tenHienThi ?? null,
     moTa: ct?.moTa ?? null,
+    anh: ct?.khoaAnh ? duongAnhDichVu(s.code, ct.khoaAnh) : null,
   };
 }
 
@@ -225,6 +228,7 @@ export const catalogModule: AppModule = {
     ...coVeRoutes,
     ...nguonVeRoutes, // ADR-0175 Đ1.2: ô «Vé do ai phát»
     ...chiTietRoutes, // ADR-0199 Đ1: tên hiển thị + mô tả
+    ...anhRoutes, // ADR-0199 Đ3: ảnh đại diện
     ...dacDiemRoutes,
 
     // ---- Admin -----------------------------------------------------------------------------

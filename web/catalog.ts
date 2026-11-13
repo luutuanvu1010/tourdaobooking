@@ -13,6 +13,10 @@ import { CAU_HOI_BO_GHI_DE_GIA } from "../src/shared/catalog-nut";
 import { cauHoiNgungBan, caNhomCanKiem, kiemVeCua, nhanNguonKiemVe } from "../src/shared/dich-vu-kiem-ve";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { MO_TA_TOI_DA, TEN_TOI_DA } from "../src/shared/chi-tiet-dich-vu";
+import { ANH_TOI_DA_BYTE, CANH_DAI_ANH_DICH_VU, CAU_ANH_QUA_CO, CAU_ANH_SAI_LOAI } from "../src/shared/anh-dich-vu";
+import { nhanLoaiTep } from "../src/shared/tep-dinh-kem";
+import { maBase64 } from "../src/shared/tep-hien-thi";
+import { thuNhoAnh } from "./thu-nho-anh";
 import { taoCoVe, type CoVe } from "./catalog-co-ve";
 import { dongBoTuSheet, taoKiemVe, veManHep } from "./catalog-kiem-ve";
 import { initShell, showError } from "./shell";
@@ -512,6 +516,56 @@ const tenCua = (it: CatalogAdminItem): string => it.tenHienThi ?? it.name;
 const dongTenSheet = (it: CatalogAdminItem): HTMLElement | null =>
   it.tenHienThi && it.tenHienThi !== it.name ? h("div", { class: "muted", "data-khoi": "ten-sheet" }, `Tên trên Sheet: ${it.name}`) : null;
 
+/** Chuẩn bị ảnh đại diện trên máy: thu nhỏ (cạnh dài ≤ CANH_DAI_ANH_DICH_VU, JPG, bỏ thông tin ẩn); không thu nhỏ được thì gửi nguyên tệp JPG/PNG. Máy chủ kiểm lại. */
+async function chuanBiAnh(f: File): Promise<{ noiDung: string } | { loi: string }> {
+  const loai = nhanLoaiTep(new Uint8Array(await f.slice(0, 16).arrayBuffer()));
+  const nho = await thuNhoAnh(f, CANH_DAI_ANH_DICH_VU);
+  const bytes = nho ?? (loai === "jpg" || loai === "png" ? new Uint8Array(await f.arrayBuffer()) : null);
+  if (!bytes) return { loi: CAU_ANH_SAI_LOAI };
+  if (bytes.length > ANH_TOI_DA_BYTE) return { loi: CAU_ANH_QUA_CO };
+  return { noiDung: maBase64(bytes) };
+}
+
+/** Khối «Ảnh đại diện» của bảng Chi tiết dịch vụ (ADR-0199 Đ3): xem ảnh hiện có, chọn ảnh mới là tải lên ngay, gỡ ảnh. */
+function khoiAnh(it: CatalogAdminItem, loi: HTMLElement): HTMLElement {
+  const xem = h("img", { class: "ct-anh", alt: `Ảnh đại diện của ${tenCua(it)}`, hidden: !it.anh, ...(it.anh ? { src: it.anh } : {}) }) as HTMLImageElement;
+  const trong = h("p", { class: "muted", hidden: !!it.anh }, "Chưa có ảnh đại diện.");
+  const chon = h("input", { type: "file", accept: "image/jpeg,image/png,image/heic,image/heif,.heic,.heif", id: "ct-anh-tep" }) as HTMLInputElement;
+  const go = h("button", { type: "button", class: "btn btn-link danger", "data-action": "ct-go-anh", hidden: !it.anh }, "Gỡ ảnh") as HTMLButtonElement;
+  const gui = async (noiDung: string | null) => {
+    loi.hidden = true;
+    chon.disabled = go.disabled = true;
+    try {
+      const r = await api<Api.CatalogChiTietResponse>(`/api/catalog/${encodeURIComponent(it.code)}/anh`, { method: "PUT", body: { noiDung } });
+      items = items.map((x) => (x.code === it.code ? { ...x, anh: r.anh } : x));
+      it = { ...it, anh: r.anh };
+      if (r.anh) xem.src = r.anh;
+      xem.hidden = go.hidden = !r.anh;
+      trong.hidden = !!r.anh;
+    } catch (err) {
+      loi.textContent = loiChu(err);
+      loi.hidden = false;
+    } finally {
+      chon.disabled = go.disabled = false;
+      chon.value = "";
+    }
+  };
+  chon.addEventListener("change", async () => {
+    const f = chon.files?.[0];
+    if (!f) return;
+    const p = await chuanBiAnh(f);
+    if ("loi" in p) {
+      loi.textContent = p.loi;
+      loi.hidden = false;
+      chon.value = "";
+      return;
+    }
+    await gui(p.noiDung);
+  });
+  go.addEventListener("click", () => void gui(null));
+  return h("div", { "data-khoi": "ct-anh" }, h("p", null, "Ảnh đại diện"), xem, trong, h("label", null, "Chọn ảnh mới (JPG, PNG; máy tự thu nhỏ)", chon), go);
+}
+
 function moChiTiet(it: CatalogAdminItem, opener: HTMLElement): void {
   const ten = h("input", { type: "text", autocomplete: "off", maxlength: String(TEN_TOI_DA), id: "ct-ten", placeholder: it.name }) as HTMLInputElement;
   const moTa = h("textarea", { rows: 5, maxlength: String(MO_TA_TOI_DA), id: "ct-mo-ta" }) as HTMLTextAreaElement;
@@ -531,6 +585,7 @@ function moChiTiet(it: CatalogAdminItem, opener: HTMLElement): void {
         canhBao,
         h("label", null, "Tên hiển thị (để trống = dùng tên trên Sheet)", ten),
         h("label", null, "Mô tả", moTa),
+        khoiAnh(it, loi),
         h("p", { class: "muted" }, "Tên hiển thị dùng cho đơn lập từ nay; đơn đã lập giữ tên cũ. Không ghi ngược vào Google Sheet."),
         loi,
       ),

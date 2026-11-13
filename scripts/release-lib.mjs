@@ -24,10 +24,11 @@ export const KHOA_HAI_LOP = "MFA_ENCRYPTION_KEY";
  * Kho R2 của Worker (cổng 1e): ADR-0123 kho tệp hồ sơ (`HO_SO`), ADR-0144 kho tệp vé hỗ trợ (`HO_TRO`), ADR-0153 kho vé điện tử (`VE_DIEN_TU`). Tên kho đọc từ wrangler.jsonc — MỘT nguồn (kế hoạch H-2
  * kho tệp, ruling R2, R10). Nhãn để in câu dừng; binding chưa có nhãn vẫn được kiểm (nhãn chung).
  */
-export const NHAN_KHO = { HO_SO: "kho tệp hồ sơ", HO_TRO: "kho tệp vé hỗ trợ", VE_DIEN_TU: "kho vé điện tử", BIEN_LAI: "kho biên lai chuyển khoản" };
+export const NHAN_KHO = { HO_SO: "kho tệp hồ sơ", HO_TRO: "kho tệp vé hỗ trợ", VE_DIEN_TU: "kho vé điện tử", BIEN_LAI: "kho biên lai chuyển khoản", ANH_DICH_VU: "kho ảnh đại diện dịch vụ" };
 const HAU_QUA_THIEU_KHO = {
   HO_SO: "ảnh giấy tờ không tải lên hay mở được", HO_TRO: "tệp đính kèm vé hỗ trợ không gửi hay mở được", VE_DIEN_TU: "ảnh vé điện tử không nhập hay mở được",
   BIEN_LAI: "ảnh biên lai không gửi hay mở được", // ADR-0196 Đ4
+  ANH_DICH_VU: "ảnh đại diện dịch vụ không tải lên hay xem được", // ADR-0199 Đ3
 };
 const nhanKho = (binding) => NHAN_KHO[binding] ?? `kho R2 ${binding}`;
 /**

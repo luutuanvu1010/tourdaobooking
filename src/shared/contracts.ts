@@ -861,9 +861,11 @@ export interface CatalogAdminItemDto {
   tenHienThi: string | null;
   /** ADR-0199 Đ1: mô tả dịch vụ (chữ thuần); `null` = chưa có. */
   moTa: string | null;
+  /** ADR-0199 Đ3: đường xem ảnh đại diện; `null` = chưa có ảnh. */
+  anh: string | null;
 }
 /** `GET|PUT /api/catalog/:code/chi-tiet` (ADR-0199 Đ1). PUT nhận `{ tenHienThi: string | null, moTa: string | null }`, trả cùng hình. */
-export interface CatalogChiTietResponse { ma: string; tenSheet: string; tenHienThi: string | null; moTa: string | null; cauTenSheetDoi: string | null }
+export interface CatalogChiTietResponse { ma: string; tenSheet: string; tenHienThi: string | null; moTa: string | null; cauTenSheetDoi: string | null; /** ADR-0199 Đ3: đường xem ảnh đại diện (có dấu phiên bản); `null` = chưa có ảnh. Tải/gỡ: `PUT /api/catalog/:code/anh` `{ noiDung: base64 | null }`. */ anh: string | null }
 /** `PUT /api/catalog/:code/transfer-rule` — `expectedTransferRule` = lựa chọn người dùng đang thấy (khoá lạc quan); trả `CatalogItemResponse`. */
 export interface CatalogTransferRuleRequest { transferRule: QuyTacDuaDon; expectedTransferRule: QuyTacDuaDon }
 

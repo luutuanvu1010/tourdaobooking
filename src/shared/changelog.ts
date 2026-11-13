@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa «Ghi khoản thu» điền sẵn số Còn lại (chủ 13/11) + ADR-0199 Đ1, Đ3 (chủ duyệt 13/11, «Duyệt»): chi tiết dịch vụ — tên hiển thị, mô tả, ảnh đại diện.
+    // Migration 0160 (ctl_service_detail) + kho R2 MỚI `tourdao-sales-anh-dich-vu` (chủ tạo trước khi triển khai; cổng 1e dừng nếu thiếu). SỐ TẠM 2.98: bước A.0 đặt lại số và ngày.
+    version: "2.98",
+    date: "2026-11-13",
+    items: [
+      { kind: "sua", text: "«Ghi khoản thu»: ô số tiền điền sẵn số Còn lại, chỉ cần bấm «Ghi»; khách trả khác thì sửa lại, form báo ngay phần thiếu hoặc dư." },
+      { kind: "moi", text: "Màn Dịch vụ và Giá có nút «Sửa chi tiết»: đặt tên hiển thị, viết mô tả và chọn ảnh đại diện cho từng dịch vụ. Tên hiển thị thay tên trên Sheet khi lập đơn mới; đơn cũ giữ tên cũ." },
+    ],
+  },
+  {
     // ADR-0182 phần B (chủ duyệt 13/11, «Duyệt, phát hành ngay»; chữ theo khuyến nghị; xây trên TNV-G1 + HC-5.19, khoá xay_tren_cho_phep_adr_0182_b — KHÔNG chờ diễn tập).
     // Trần gói trang Đơn hàng 111.444 → 111.589 (+145, ba ô quyền mới): chủ duyệt 13/11 trong phiên soạn ADR (chat), nguyên văn «Duyệt nới trần gói Đơn hàng cho ba ô quyền phần B».
     // Migration 0159 (khoản nộp + ảnh biên lai khoản nộp, cùng kho R2 ảnh biên lai của ADR-0196). SỐ TẠM 2.97: main có 2.96; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.

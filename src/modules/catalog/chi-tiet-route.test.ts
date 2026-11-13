@@ -14,14 +14,14 @@ test("GET: dịch vụ chưa có chi tiết trả tên Sheet, tên hiển thị 
   const w = setup();
   const r = await w.call("GET", URL_CT, { as: ADM });
   assert.equal(r.status, 200, r.text);
-  assert.deepEqual(r.json, { ma: "ZA1", tenSheet: "Tour đảo", tenHienThi: null, moTa: null, cauTenSheetDoi: null });
+  assert.deepEqual(r.json, { ma: "ZA1", tenSheet: "Tour đảo", tenHienThi: null, moTa: null, cauTenSheetDoi: null, anh: null });
 });
 
 test("lưu tên hiển thị + mô tả: có nhật ký chỉ mã; tên hiển thị thắng tên Sheet ở danh mục lập đơn (cả Đối tác) và màn quản trị", async () => {
   const w = setup();
   const r = await luu(w, { tenHienThi: "  Tour 4 đảo cao cấp ", moTa: "Đi cano, ăn trưa trên đảo." });
   assert.equal(r.status, 200, r.text);
-  assert.deepEqual(r.json, { ma: "ZA1", tenSheet: "Tour đảo", tenHienThi: "Tour 4 đảo cao cấp", moTa: "Đi cano, ăn trưa trên đảo.", cauTenSheetDoi: null });
+  assert.deepEqual(r.json, { ma: "ZA1", tenSheet: "Tour đảo", tenHienThi: "Tour 4 đảo cao cấp", moTa: "Đi cano, ăn trưa trên đảo.", cauTenSheetDoi: null, anh: null });
   assert.deepEqual([bang(w), nk(w)], [1, 1]);
   const dong = w.q("SELECT target_type, target_id, detail FROM audit_log WHERE action = 'service_detail_changed'")[0];
   assert.equal(dong.target_id, "ZA1");

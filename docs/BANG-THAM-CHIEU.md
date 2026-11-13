@@ -227,7 +227,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (89)
+## Việc chờ chọn (90)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -306,6 +306,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Từ chối → Gửi từ chối | `web/xac-minh-hang-cho.ts`: Từ chối<br>`web/xac-minh-hang-cho.ts`: Gửi từ chối | Xác minh phiếu tự khai | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Sửa chi tiết | `web/catalog.ts`: Sửa chi tiết | Chi tiết dịch vụ | ADR-0199 (2026-11-13): tên tạm, chờ chủ |
 | Lưu chi tiết | `web/catalog.ts`: Lưu chi tiết | Chi tiết dịch vụ | ADR-0199 (2026-11-13): tên tạm, chờ chủ |
+| Gỡ ảnh | `web/catalog.ts`: Gỡ ảnh | Chi tiết dịch vụ | ADR-0199 (2026-11-13): tên tạm, chờ chủ |
 | Lưu cho màn này | `web/bang-dieu-khien-truong.ts`: Lưu cho màn này | Giao diện công ty | ADR-0194 đợt 1: tên tạm do AI đặt, chờ chủ chọn (phương án khác: «Lưu màn này», «Lưu cài đặt màn») |
 | Khôi phục mặc định | `web/bang-dieu-khien-truong.ts`: Khôi phục mặc định | Giao diện công ty | ADR-0194 đợt 1: chữ «Khôi phục mặc định» do ADR nêu; chủ chưa chọn riêng tên nút (phương án khác: «Về mặc định», «Đặt lại màn này») |
 | Gửi thông báo | `web/gui-thong-bao.ts`: [biểu tượng megaphone] / Gửi thông báo | Gửi thông báo | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -323,7 +324,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (335)
+## Việc quan trọng (336)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -1525,6 +1526,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 |---|---|---|---|---|---|---|---|
 | **Sửa chi tiết** | Dịch vụ & giá › mỗi dòng dịch vụ (bảng và thẻ điện thoại) › bảng «Chi tiết dịch vụ: <mã>» | Mở bảng «Chi tiết dịch vụ»: sửa tên hiển thị và mô tả; xem tóm tắt giá và tình trạng bán. Bấm nút này chưa ghi gì. | không | không áp dụng | (chưa nối) | `web/catalog.ts`: Sửa chi tiết | chờ chọn (ADR-0199 (2026-11-13): tên tạm, chờ chủ) |
 | **Lưu chi tiết** | Dịch vụ & giá › bảng «Chi tiết dịch vụ: <mã>» | Lưu tên hiển thị và mô tả của dịch vụ vào Nền tảng (không ghi ngược Google Sheet). Tên hiển thị thay tên Sheet ở danh mục lập đơn cho đơn lập từ nay; đơn đã lập giữ tên cũ. Để trống tên hiển thị = dùng lại tên Sheet. | không | được: sửa lại hoặc xoá trống rồi lưu (lịch sử giữ mọi lần lưu) | `/api/catalog/:x/chi-tiet`<br>nhật ký `service_detail_changed` | `web/catalog.ts`: Lưu chi tiết | chờ chọn (ADR-0199 (2026-11-13): tên tạm, chờ chủ) |
+| **Gỡ ảnh** | Dịch vụ & giá › bảng «Chi tiết dịch vụ: <mã>» › khối Ảnh đại diện | Bỏ ảnh đại diện đang dùng của dịch vụ (ảnh cũ vẫn giữ trong kho làm lịch sử). Ô «Chọn ảnh mới» cạnh nút: chọn tệp là máy thu nhỏ rồi tải lên ngay, thay ảnh đang dùng. | không | được: chọn lại ảnh | `/api/catalog/:x/anh`<br>nhật ký `service_detail_changed` | `web/catalog.ts`: Gỡ ảnh | chờ chọn (ADR-0199 (2026-11-13): tên tạm, chờ chủ) |
 
 ### Ghi đè giá dịch vụ
 

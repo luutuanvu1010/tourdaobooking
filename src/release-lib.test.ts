@@ -492,7 +492,7 @@ const LIST = "CI=1 npx wrangler d1 migrations list tourdao-sales-db --remote";
 /** ADR-0123 (cổng 1e): kho tệp hồ sơ R2 đã tạo chưa. Dạng đầu ra theo MÃ NGUỒN wrangler 4.147.0 (`formatLabelledValues`: nhãn, dấu hai chấm, khoảng đệm) —
  *  CHƯA chụp từ tài khoản thật (AI không chạy lệnh Cloudflare; kế hoạch H-2 "Giới hạn"). */
 const KHO = "CI=1 npx wrangler r2 bucket list";
-const KHO_OK = out("\n ⛅️ wrangler 4.147.0\n───────────────────\nListing buckets...\nname:           tourdao-booking-anh\ncreation_date:  2026-09-01T00:00:00.000Z\n\nname:           tourdao-sales-ho-so\ncreation_date:  2026-10-16T03:00:00.000Z\n\nname:           tourdao-sales-ho-tro\ncreation_date:  2026-10-28T03:00:00.000Z\n\nname:           tourdao-sales-ve-dien-tu\ncreation_date:  2026-10-31T03:00:00.000Z\n\nname:           tourdao-sales-bien-lai\ncreation_date:  2026-11-25T03:00:00.000Z\n");
+const KHO_OK = out("\n ⛅️ wrangler 4.147.0\n───────────────────\nListing buckets...\nname:           tourdao-booking-anh\ncreation_date:  2026-09-01T00:00:00.000Z\n\nname:           tourdao-sales-ho-so\ncreation_date:  2026-10-16T03:00:00.000Z\n\nname:           tourdao-sales-ho-tro\ncreation_date:  2026-10-28T03:00:00.000Z\n\nname:           tourdao-sales-ve-dien-tu\ncreation_date:  2026-10-31T03:00:00.000Z\n\nname:           tourdao-sales-bien-lai\ncreation_date:  2026-11-25T03:00:00.000Z\n\nname:           tourdao-sales-anh-dich-vu\ncreation_date:  2026-11-26T03:00:00.000Z\n");
 /** Lỗi THẬT chủ dự án gặp 2026-10-01 (cũng 26/9, 29/9): lần gọi đầu bị từ chối, chạy lại là qua. */
 const LOI_7403: RunResult = { code: 1, stdout: "", stderr: "✘ [ERROR] A request to the Cloudflare API (/accounts/381557e4e08091d31a3235baf2513df6/d1/database/bcd4c0ac/query) failed.\n\n  The given account is not valid or is not authorized to access this service [code: 7403]\n" };
 const TT = "CI=1 npx wrangler d1 time-travel info tourdao-sales-db --json";
@@ -1216,6 +1216,19 @@ test("trien-khai (kho tệp — cổng 1e): kiểm kho SAU khoá bí mật, TRƯ
   assert.match(h.text(), /Đã có kho tệp vé hỗ trợ: tourdao-sales-ho-tro/, "ADR-0144: cổng 1e kiểm MỌI kho khai trong wrangler.jsonc");
   assert.match(h.text(), /Đã có kho vé điện tử: tourdao-sales-ve-dien-tu/, "ADR-0153: kho thứ ba");
   assert.match(h.text(), /Đã có kho biên lai chuyển khoản: tourdao-sales-bien-lai/, "ADR-0196: kho thứ tư");
+  assert.match(h.text(), /Đã có kho ảnh đại diện dịch vụ: tourdao-sales-anh-dich-vu/, "ADR-0199 Đ3: kho thứ năm");
+});
+
+test("trien-khai (kho tệp — cổng 1e, ADR-0199 Đ3): có bốn kho cũ nhưng THIẾU kho ảnh dịch vụ ⇒ DỪNG trước mọi bước ghi, chỉ lệnh tạo đúng kho thiếu; KHÔNG tự tạo", async () => {
+  const bon = out("Listing buckets...\nname:           tourdao-sales-ho-so\nname:           tourdao-sales-ho-tro\nname:           tourdao-sales-ve-dien-tu\nname:           tourdao-sales-bien-lai\n");
+  const h = harness(tkScript({ [KHO]: bon }), ["c", "c"]);
+  assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);
+  assert.equal(h.calls.at(-1), KHO, "phải dừng NGAY ở cổng kho");
+  assert.ok(!h.calls.includes(LIST), "không lời gọi D1 nào");
+  const t = h.text().replace(/\x1b\[[0-9;]*m/g, "");
+  assert.match(t, /Chưa có kho ảnh đại diện dịch vụ tourdao-sales-anh-dich-vu/);
+  assert.match(t, /ảnh đại diện dịch vụ không tải lên hay xem được/);
+  assert.ok(t.split("\n").map((x) => x.trim()).includes("npx wrangler r2 bucket create tourdao-sales-anh-dich-vu"));
 });
 
 test("trien-khai (kho tệp — cổng 1e, ADR-0196 Đ4): có ba kho cũ nhưng THIẾU kho biên lai ⇒ DỪNG trước mọi bước ghi, câu nói hậu quả, chỉ lệnh tạo đúng kho thiếu; KHÔNG tự tạo", async () => {
@@ -1285,7 +1298,7 @@ test("trien-khai (kho tệp — cổng 1e, m2 + C13): đầu ra không có dòng
 });
 
 test("trien-khai (kho tệp — cổng 1e): tên kho tô màu đúng ⇒ vẫn nhận (bỏ mã màu trước khi đọc)", async () => {
-  const h = harness(tkScript({ [KHO]: out("Listing buckets...\n\x1b[2mname:\x1b[22m           tourdao-sales-ho-so\n\x1b[2mname:\x1b[22m           tourdao-sales-ho-tro\n\x1b[2mname:\x1b[22m           tourdao-sales-ve-dien-tu\n\x1b[2mname:\x1b[22m           tourdao-sales-bien-lai\n") }), ["c", "c"]);
+  const h = harness(tkScript({ [KHO]: out("Listing buckets...\n\x1b[2mname:\x1b[22m           tourdao-sales-ho-so\n\x1b[2mname:\x1b[22m           tourdao-sales-ho-tro\n\x1b[2mname:\x1b[22m           tourdao-sales-ve-dien-tu\n\x1b[2mname:\x1b[22m           tourdao-sales-bien-lai\n\x1b[2mname:\x1b[22m           tourdao-sales-anh-dich-vu\n") }), ["c", "c"]);
   assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: async () => {} }), 0);
 });
 
@@ -1320,7 +1333,7 @@ test("docCacKhoTuCauHinh: chỉ bỏ chú thích CẢ DÒNG; mọi kho theo th�
   assert.equal(lib.docCacKhoTuCauHinh('{ "r2_buckets": [] } // chú thích cuối dòng'), null, "chú thích cuối dòng làm hỏng tệp — phải lộ ra, không đoán");
   assert.equal(lib.NHAN_KHO.HO_SO, "kho tệp hồ sơ");
   assert.equal(lib.NHAN_KHO.HO_TRO, "kho tệp vé hỗ trợ");
-  assert.deepEqual(await lib.docCacKhoMacDinh(), [{ binding: "HO_SO", ten: "tourdao-sales-ho-so" }, { binding: "HO_TRO", ten: "tourdao-sales-ho-tro" }, { binding: "VE_DIEN_TU", ten: "tourdao-sales-ve-dien-tu" }, { binding: "BIEN_LAI", ten: "tourdao-sales-bien-lai" }]);
+  assert.deepEqual(await lib.docCacKhoMacDinh(), [{ binding: "HO_SO", ten: "tourdao-sales-ho-so" }, { binding: "HO_TRO", ten: "tourdao-sales-ho-tro" }, { binding: "VE_DIEN_TU", ten: "tourdao-sales-ve-dien-tu" }, { binding: "BIEN_LAI", ten: "tourdao-sales-bien-lai" }, { binding: "ANH_DICH_VU", ten: "tourdao-sales-anh-dich-vu" }]);
 });
 
 test("parseR2BucketNames: bỏ mã màu, lấy mọi dòng 'name: <tên>'; không lấy dòng khác", () => {

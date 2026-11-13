@@ -4236,6 +4236,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nguonTen: "ADR-0199 (2026-11-13): tên tạm, chờ chủ",
   },
   {
+    nhom: "Chi tiết dịch vụ",
+    manHinh: "Dịch vụ & giá › bảng «Chi tiết dịch vụ: <mã>» › khối Ảnh đại diện",
+    ten: "Gỡ ảnh",
+    thatSuLam: "Bỏ ảnh đại diện đang dùng của dịch vụ (ảnh cũ vẫn giữ trong kho làm lịch sử). Ô «Chọn ảnh mới» cạnh nút: chọn tệp là máy thu nhỏ rồi tải lên ngay, thay ảnh đang dùng.",
+    hoiLai: "không",
+    hoanTac: "được: chọn lại ảnh",
+    duongLenh: ["/api/catalog/:x/anh"],
+    maNhatKy: ["service_detail_changed"],
+    noiDat: [
+      { tep: "web/catalog.ts", chu: "Gỡ ảnh" },
+    ],
+    trangThai: "cho-chon",
+    nguonTen: "ADR-0199 (2026-11-13): tên tạm, chờ chủ",
+  },
+  {
     nhom: "Ghi đè giá dịch vụ",
     manHinh: "Dịch vụ & giá › mỗi dòng dịch vụ (bảng và thẻ điện thoại) › hộp «Ghi đè giá: <mã> — <tên>»",
     ten: "Ghi đè giá",

@@ -9,6 +9,7 @@ import { route, type Route } from "../../shared/router";
 import { CATALOG_CODE_RE } from "../../shared/order-lines";
 import { cauTenSheetDoi, giongNhau, kiemChiTiet } from "../../shared/chi-tiet-dich-vu";
 import type { CatalogChiTietResponse } from "../../shared/contracts";
+import { duongAnhDichVu } from "../../shared/anh-dich-vu";
 import { cauThemChiTiet, chiTietHienHanh, chiTietMoiNhat } from "./chi-tiet-repo";
 import { loadOne } from "./repository";
 
@@ -16,9 +17,10 @@ const lanSau = (moiNhat: string | null, now: Date): string => (moiNhat && Date.p
 const CAM = () => error(403, "forbidden", "Chỉ quản trị viên được sửa chi tiết dịch vụ.");
 const KHONG_CO = () => error(404, "not_found", "Không tìm thấy dịch vụ.");
 
-async function doc(db: D1Database, ma: string, tenSheet: string): Promise<CatalogChiTietResponse> {
+/** Phản hồi chung của các route chi tiết (kể cả route ảnh — anh-route.ts). */
+export async function docChiTiet(db: D1Database, ma: string, tenSheet: string): Promise<CatalogChiTietResponse> {
   const ct = (await chiTietHienHanh(db)).get(ma);
-  return { ma, tenSheet, tenHienThi: ct?.tenHienThi ?? null, moTa: ct?.moTa ?? null, cauTenSheetDoi: cauTenSheetDoi(tenSheet, ct) };
+  return { ma, tenSheet, tenHienThi: ct?.tenHienThi ?? null, moTa: ct?.moTa ?? null, cauTenSheetDoi: cauTenSheetDoi(tenSheet, ct), anh: ct?.khoaAnh ? duongAnhDichVu(ma, ct.khoaAnh) : null };
 }
 
 export const chiTietRoutes: Route[] = [
@@ -26,7 +28,7 @@ export const chiTietRoutes: Route[] = [
     if (!can(staff, "admin.manage")) return CAM();
     const item = params.code && CATALOG_CODE_RE.test(params.code) ? await loadOne(env.DB, params.code) : null;
     if (!item) return KHONG_CO();
-    return json(await doc(env.DB, item.code, item.name));
+    return json(await docChiTiet(env.DB, item.code, item.name));
   }),
   route("PUT", "/api/catalog/:code/chi-tiet", "admin", async ({ env, request, params, staff }) => {
     if (!can(staff, "admin.manage")) return CAM();
@@ -48,6 +50,6 @@ export const chiTietRoutes: Route[] = [
         throw e;
       }
     }
-    return json(await doc(env.DB, item.code, item.name));
+    return json(await docChiTiet(env.DB, item.code, item.name));
   }),
 ];
