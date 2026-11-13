@@ -4,7 +4,6 @@ import { ApiError, api, type Api } from "./api";
 import { h, replaceChildren } from "./dom";
 import { vnd, parseMoney, dateTime } from "./format";
 import { regroupMoney, setMoneyValue } from "./money-input";
-import { hoiXacNhan } from "./bang-truot";
 import { ACCEPT_ANH_PDF, chuanBiBienLai } from "./thu-nho-anh";
 import { NHAN_O_BIEN_LAI, NHAN_XEM_BIEN_LAI, cauTrangThaiBienLai } from "../src/shared/bien-lai";
 import { NHAN_TRANG_THAI_NOP, NUT_DA_CHUYEN_TIEN, TEN_KHOAN_NOP, dongKhachDaTra, duongBienLaiNop } from "../src/shared/cong-no-dai-ly";
@@ -36,16 +35,30 @@ function dongKhoan(orderId: string, k: Api.KhoanNopDto, xacNhanDuoc: boolean, ta
     loi.textContent = cau;
     loi.hidden = false;
   };
-  nhan.addEventListener("click", async () => {
-    if (!(await hoiXacNhan({ tieuDe: "Xác nhận khoản nộp", hauQua: `Đã đối chiếu sao kê: công ty đã nhận ${vnd(k.soTien)} của đại lý? Khoản này sẽ trừ vào công nợ của đơn.`, nhanNguyHiem: "Xác nhận đã nhận", opener: nhan }))) return;
-    nhan.disabled = true;
-    try {
-      await api(`/api/orders/${encodeURIComponent(orderId)}/khoan-nop/${encodeURIComponent(k.id)}/xac-nhan`, { method: "POST", body: {} });
-      taiLai();
-    } catch (err) {
-      nhan.disabled = false;
-      baoLoi(loiCua(err));
-    }
+  // Hỏi lại NGAY TRONG dòng (phiếu đã là một bảng trượt — Nền tảng chỉ mở một bảng mỗi lúc, nên không dùng hộp `hoiXacNhan` ở đây).
+  nhan.addEventListener("click", () => {
+    if (li.querySelector('[data-khoi="xac-nhan-nop"]')) return;
+    const chac = h("button", { type: "button", class: "btn btn-primary", "data-action": "xac-nhan-nop-chac" }, "Xác nhận đã nhận");
+    const thoi = h("button", { type: "button", class: "btn" }, "Thôi");
+    const hang = h(
+      "div",
+      { class: "stack", "data-khoi": "xac-nhan-nop", role: "group", "aria-label": "Xác nhận khoản nộp" },
+      h("p", null, `Đã đối chiếu sao kê: công ty đã nhận ${vnd(k.soTien)} của đại lý? Khoản này sẽ trừ vào công nợ của đơn.`),
+      h("div", { class: "handler-actions" }, chac, thoi),
+    );
+    thoi.addEventListener("click", () => hang.remove());
+    chac.addEventListener("click", async () => {
+      chac.disabled = true;
+      try {
+        await api(`/api/orders/${encodeURIComponent(orderId)}/khoan-nop/${encodeURIComponent(k.id)}/xac-nhan`, { method: "POST", body: {} });
+        taiLai();
+      } catch (err) {
+        chac.disabled = false;
+        baoLoi(loiCua(err));
+      }
+    });
+    li.append(hang);
+    chac.focus();
   });
   tu.addEventListener("click", () => {
     const o = h("textarea", { rows: 2, maxlength: 500, "aria-label": "Lý do từ chối" }) as HTMLTextAreaElement;
