@@ -227,7 +227,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (87)
+## Việc chờ chọn (89)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -304,6 +304,8 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Ngưng / Kích hoạt lại | `web/staff.ts`: Ngưng / Kích hoạt lại<br>`web/staff.ts`: Ngưng tài khoản ‹…›? Họ sẽ bị đăng xuất ngay. | Ngưng / kích hoạt lại tài khoản | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Chấp nhận | `web/xac-minh-hang-cho.ts`: Chấp nhận | Xác minh phiếu tự khai | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Từ chối → Gửi từ chối | `web/xac-minh-hang-cho.ts`: Từ chối<br>`web/xac-minh-hang-cho.ts`: Gửi từ chối | Xác minh phiếu tự khai | rà soát 2026-11-04: chưa rõ, chờ chủ |
+| Sửa chi tiết | `web/catalog.ts`: Sửa chi tiết | Chi tiết dịch vụ | ADR-0199 (2026-11-13): tên tạm, chờ chủ |
+| Lưu chi tiết | `web/catalog.ts`: Lưu chi tiết | Chi tiết dịch vụ | ADR-0199 (2026-11-13): tên tạm, chờ chủ |
 | Lưu cho màn này | `web/bang-dieu-khien-truong.ts`: Lưu cho màn này | Giao diện công ty | ADR-0194 đợt 1: tên tạm do AI đặt, chờ chủ chọn (phương án khác: «Lưu màn này», «Lưu cài đặt màn») |
 | Khôi phục mặc định | `web/bang-dieu-khien-truong.ts`: Khôi phục mặc định | Giao diện công ty | ADR-0194 đợt 1: chữ «Khôi phục mặc định» do ADR nêu; chủ chưa chọn riêng tên nút (phương án khác: «Về mặc định», «Đặt lại màn này») |
 | Gửi thông báo | `web/gui-thong-bao.ts`: [biểu tượng megaphone] / Gửi thông báo | Gửi thông báo | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -321,7 +323,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (333)
+## Việc quan trọng (335)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -1516,6 +1518,13 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
 |---|---|---|---|---|---|---|---|
 | **Đồng bộ ngay từ Google Sheet** | Dịch vụ & giá (đầu trang; cả màn của Quản lý bán hàng — ADR-0186) · hộp hỏi của trình duyệt khi Sheet làm ẩn nhiều dịch vụ | Đọc ngay Google Sheet (việc mà máy cũng tự làm mỗi 15 phút). Dịch vụ mới được thêm; dịch vụ đã có và không bị ghi đè giá thì lấy luôn giá, tên, đơn vị mới của Sheet; dịch vụ không còn trong Sheet thì bị đánh dấu «Không còn trong Sheet» và người lập đơn không thấy nữa. Giá đã ghi đè không bao giờ bị đè (ghi đè nằm ở bảng riêng); đơn đã lập giữ giá lúc lập. | không (chỉ có hộp hỏi của trình duyệt khi máy chủ báo sắp ẩn quá nhiều) | một phần: sửa lại Sheet rồi đồng bộ lần nữa thì giá và dịch vụ trở lại; không có nút hoàn tác từng lần đồng bộ. Nếu sắp ẩn hơn một nửa dịch vụ thì máy chủ dừng và hỏi lại (chưa ghi gì cho tới khi bấm đồng ý). | `/api/catalog/sync`<br>nhật ký `catalog_synced` | `public/catalog.html`: Đồng bộ ngay từ Google Sheet<br>`web/catalog-kiem-ve.ts`: Đồng bộ ngay từ Google Sheet<br>`web/catalog-kiem-ve.ts`: ‹…› Chỉ tiếp tục nếu bạn chắc chắn Sheet đúng. Vẫn đồng bộ và ẩn các dịch vụ đó? | đã chốt (chủ 2026-11-05 (chốt theo khuyến nghị, docs/evidence/2026-11-04-bang-tham-chieu/DE-XUAT-DOT-2.md)) |
+
+### Chi tiết dịch vụ
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Sửa chi tiết** | Dịch vụ & giá › mỗi dòng dịch vụ (bảng và thẻ điện thoại) › bảng «Chi tiết dịch vụ: <mã>» | Mở bảng «Chi tiết dịch vụ»: sửa tên hiển thị và mô tả; xem tóm tắt giá và tình trạng bán. Bấm nút này chưa ghi gì. | không | không áp dụng | (chưa nối) | `web/catalog.ts`: Sửa chi tiết | chờ chọn (ADR-0199 (2026-11-13): tên tạm, chờ chủ) |
+| **Lưu chi tiết** | Dịch vụ & giá › bảng «Chi tiết dịch vụ: <mã>» | Lưu tên hiển thị và mô tả của dịch vụ vào Nền tảng (không ghi ngược Google Sheet). Tên hiển thị thay tên Sheet ở danh mục lập đơn cho đơn lập từ nay; đơn đã lập giữ tên cũ. Để trống tên hiển thị = dùng lại tên Sheet. | không | được: sửa lại hoặc xoá trống rồi lưu (lịch sử giữ mọi lần lưu) | `/api/catalog/:x/chi-tiet`<br>nhật ký `service_detail_changed` | `web/catalog.ts`: Lưu chi tiết | chờ chọn (ADR-0199 (2026-11-13): tên tạm, chờ chủ) |
 
 ### Ghi đè giá dịch vụ
 

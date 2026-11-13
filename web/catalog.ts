@@ -12,6 +12,7 @@ import { canhBaoDoiNhom } from "../src/shared/dac-diem-hien-thi";
 import { CAU_HOI_BO_GHI_DE_GIA } from "../src/shared/catalog-nut";
 import { cauHoiNgungBan, caNhomCanKiem, kiemVeCua, nhanNguonKiemVe } from "../src/shared/dich-vu-kiem-ve";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
+import { MO_TA_TOI_DA, TEN_TOI_DA } from "../src/shared/chi-tiet-dich-vu";
 import { taoCoVe, type CoVe } from "./catalog-co-ve";
 import { dongBoTuSheet, taoKiemVe, veManHep } from "./catalog-kiem-ve";
 import { initShell, showError } from "./shell";
@@ -138,13 +139,14 @@ function row(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "row-off" : "", "data-code": it.code },
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
-    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it), coVe.oDichVu(it.code, it.name)),
+    h("td", null, tenCua(it), dongTenSheet(it), chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it), coVe.oDichVu(it.code, it.name)),
     h("td", { class: "nhom-o", hidden: anCot("groupCode") }, tenNhomCua(it)),
     h("td", { class: "muted", hidden: anCot("unit") }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
     h(
       "td",
       { class: "row-actions" },
+      btn("Sửa chi tiết", (b) => moChiTiet(it, b)),
       btn("Ghi đè giá", () => openEdit(it)),
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "bang"))), it.code, "bang"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
@@ -179,7 +181,7 @@ function card(it: CatalogAdminItem): HTMLElement {
     "div",
     { class: it.hidden || !it.inSheet ? "card card-col row-off" : "card card-col", "data-code": it.code },
     h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, ...(anCot("unit") ? [] : [" · ", unitLabel(it.unit)]))),
-    h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
+    h("div", { class: "dd-ten-dong" }, h("strong", null, tenCua(it)), dongTenSheet(it), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", { class: "nhom-o muted", hidden: anCot("groupCode") }, `Nhóm: ${tenNhomCua(it)}`),
     h("div", { class: "kv-the" }, oKiemVe(it), coVe.oDichVu(it.code, it.name)),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:var(--fw-bold)", title: "Có giá ghi đè" }, " ✎")),
@@ -187,6 +189,7 @@ function card(it: CatalogAdminItem): HTMLElement {
     h(
       "div",
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
+      btn("Sửa chi tiết", (b) => moChiTiet(it, b)),
       btn("Ghi đè giá", () => openEdit(it)),
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "the"))), it.code, "the"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
@@ -501,6 +504,73 @@ async function doiCho(a: Nhom, b: Nhom): Promise<void> {
     if (a.sortOrder === b.sortOrder || (await patchNhom(b, { sortOrder: a.sortOrder }))) nhomLoi = "";
   }
   await load();
+}
+
+// ---- Chi tiết dịch vụ (ADR-0199 Đ1): tên hiển thị + mô tả do Nền tảng giữ; Sheet giữ mã, tên gốc, giá gốc. Máy chủ kiểm lại quyền admin.manage. ----
+const tenCua = (it: CatalogAdminItem): string => it.tenHienThi ?? it.name;
+/** Dòng phụ «Tên trên Sheet: …» khi dịch vụ đang dùng tên hiển thị khác tên Sheet. */
+const dongTenSheet = (it: CatalogAdminItem): HTMLElement | null =>
+  it.tenHienThi && it.tenHienThi !== it.name ? h("div", { class: "muted", "data-khoi": "ten-sheet" }, `Tên trên Sheet: ${it.name}`) : null;
+
+function moChiTiet(it: CatalogAdminItem, opener: HTMLElement): void {
+  const ten = h("input", { type: "text", autocomplete: "off", maxlength: String(TEN_TOI_DA), id: "ct-ten", placeholder: it.name }) as HTMLInputElement;
+  const moTa = h("textarea", { rows: 5, maxlength: String(MO_TA_TOI_DA), id: "ct-mo-ta" }) as HTMLTextAreaElement;
+  ten.value = it.tenHienThi ?? "";
+  moTa.value = it.moTa ?? "";
+  const canhBao = h("p", { class: "alert warn", "data-khoi": "ct-sheet-doi", hidden: true });
+  const loi = h("p", { class: "alert danger", role: "alert", hidden: true });
+  const luu = h("button", { type: "button", class: "btn btn-primary btn-chinh", "data-action": "ct-luu" }, "Lưu chi tiết") as HTMLButtonElement;
+  const giaDong = PAX_ORDER.filter((c) => it.prices[c] !== null).map((c) => h("li", null, `${PAX_LABEL[c]}: ${vnd(it.prices[c]!)}${it.overridden.includes(c) ? " (giá ghi đè)" : ""}`));
+  const bang = moBangTruot({
+    title: `Chi tiết dịch vụ: ${it.code}`,
+    opener,
+    body: [
+      h("section", { "data-khoi": "ct-thong-tin" },
+        h("h3", null, "Thông tin"),
+        h("p", { class: "muted" }, `Mã: ${it.code} (không sửa được — đơn, vé, hoa hồng đều theo mã). Tên trên Sheet: ${it.name}.`),
+        canhBao,
+        h("label", null, "Tên hiển thị (để trống = dùng tên trên Sheet)", ten),
+        h("label", null, "Mô tả", moTa),
+        h("p", { class: "muted" }, "Tên hiển thị dùng cho đơn lập từ nay; đơn đã lập giữ tên cũ. Không ghi ngược vào Google Sheet."),
+        loi,
+      ),
+      h("section", { "data-khoi": "ct-gia" },
+        h("h3", null, "Giá"),
+        h("p", { class: "muted" }, `Tính bằng: ${unitLabel(it.unit)}. Đổi giá bằng nút «Ghi đè giá» ở dòng dịch vụ.`),
+        giaDong.length ? h("ul", null, ...giaDong) : h("p", { class: "muted" }, "Chưa có giá."),
+      ),
+      h("section", { "data-khoi": "ct-ban" },
+        h("h3", null, "Bán"),
+        h("ul", null,
+          h("li", null, it.hidden ? "Đã ngừng bán" : it.inSheet ? "Đang bán" : "Không còn trong Sheet"),
+          h("li", null, `Nhóm: ${tenNhomCua(it)}`),
+          h("li", null, `Đưa đón: ${it.transferRule === "ALWAYS" ? "luôn có" : it.transferRule === "NEVER" ? "không đón" : "theo nhóm"}`),
+        ),
+        h("p", { class: "muted" }, "Ngừng bán, Có vé, Cần kiểm vé, Đưa đón đổi ở dòng dịch vụ."),
+      ),
+    ],
+    foot: [luu],
+  });
+  if (!bang) return;
+  // Câu «Tên trên Sheet đã đổi» do máy chủ tính (ADR-0199 Đ1 mục 4).
+  void api<Api.CatalogChiTietResponse>(`/api/catalog/${encodeURIComponent(it.code)}/chi-tiet`).then((r) => {
+    canhBao.textContent = r.cauTenSheetDoi ?? "";
+    canhBao.hidden = r.cauTenSheetDoi === null;
+  }).catch(() => undefined);
+  luu.addEventListener("click", async () => {
+    loi.hidden = true;
+    luu.disabled = true;
+    try {
+      const r = await api<Api.CatalogChiTietResponse>(`/api/catalog/${encodeURIComponent(it.code)}/chi-tiet`, { method: "PUT", body: { tenHienThi: ten.value, moTa: moTa.value } });
+      items = items.map((x) => (x.code === it.code ? { ...x, tenHienThi: r.tenHienThi, moTa: r.moTa } : x));
+      bang.close();
+      render();
+    } catch (err) {
+      loi.textContent = loiChu(err);
+      loi.hidden = false;
+      luu.disabled = false;
+    }
+  });
 }
 
 function openEdit(it: CatalogAdminItem): void {
