@@ -108,8 +108,9 @@ export function dungTheBaoTri(nd: MaintenanceContent, endsAt: string | null): Th
   const zalo = nd.hienZalo && nd.zalo ? h("a", { class: "nut", "data-cap": "phu", href: nd.zalo, target: "_blank", rel: "noopener" }, "Nhắn Zalo") : null;
   const contact = goi || zalo ? h("div", { class: "maint-lien-he" }, ...[goi, zalo].filter((x) => x !== null)) : null;
   const logoutBtn = h("button", { class: "nut", "data-cap": "loi", type: "button" }, "Đăng xuất") as HTMLButtonElement;
+  const webTen = nd.website.replace(/^https?:\/\//, "").replace(/\/$/, ""); // tính NGOÀI lời gọi h("a"): bài quét liên kết (chi-duong-tinh.test.ts) đọc đối số h("a", …) và coi «//» là chú thích
   const web = nd.hienWeb && nd.website
-    ? h("a", { class: "the maint-web", href: nd.website, target: "_blank", rel: "noopener" }, h("strong", null, nd.website.replace(/^https?:\/\//, "").replace(/\/$/, "")), h("span", null, "Trong lúc chờ, tour và giá vẫn xem được trên website của công ty."))
+    ? h("a", { class: "the maint-web", href: nd.website, target: "_blank", rel: "noopener" }, h("strong", null, webTen), h("span", null, "Trong lúc chờ, tour và giá vẫn xem được trên website của công ty."))
     : null;
   const camOn = nd.hienCamOn && nd.camOn ? h("p", { class: "maint-cam-on" }, nd.camOn) : null;
   const card = h(
