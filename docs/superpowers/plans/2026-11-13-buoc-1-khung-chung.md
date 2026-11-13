@@ -83,3 +83,5 @@
   Nhỏ đã sửa: Quản lý tài khoản ghi trí nhớ khối cả khi không vào được trang; tệp đầu trang khai `nho` trước khi dùng. Nhỏ để lại: bài giu-cho-dai.test.ts chỉ khớp
   mã nguồn — việc thu chỗ sau 8 giây và chặn bấm khung vô hình dựa vào đo Chrome, không có máy canh (dựa vào kỷ luật).
   **Nợ mới (khung trang):** thanh bên máy tính dựng muộn đẩy nội dung ngang — cần chủ quyết có làm trong bước 1 hay để bước 2 (lưới bố cục).
+- 13/11: chủ quyết (nguyên văn «Làm ở bước 2»): nợ «thanh bên máy tính dựng muộn đẩy nội dung ngang» KHÔNG làm ở bước 1; chuyển sang bước 2 (lưới bố cục chung).
+  Bước 1 đóng ở đây.
