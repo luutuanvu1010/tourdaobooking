@@ -786,3 +786,12 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-BL-NUT-GO** — lệnh gỡ ảnh gửi nhầm (`POST …/bien-lai/go`) và hàng chờ dọn kho (`/api/ledger/bien-lai-cho-xoa`) chỉ có đường máy chủ; chưa có nút trên giao diện (ADR không đặt chữ nút). Muốn có nút thì chủ chọn tên.
 - **BL-BL-BO-SUNG** — Đối tác không gửi bổ sung ảnh được khi ảnh tải hỏng hay bị gỡ (ADR-0196 Đ11); muốn có thì là quyết định riêng.
 - **BL-BL-THU-THAT** — chưa thử trên iPhone thật (HEIC từ camera, thu nhỏ trên Safari) và chưa đo bộ nhớ Worker với thân ~14 MB (`BL-TEP-THAN-HAI-LAN`).
+
+## 71. Kiểm toán cách làm bằng AI — việc để sau (mã `BL-AI-…`, 2026-11-13)
+
+- **Trạng thái:** `để sau` · Chủ 13/11, nguyên văn: «Để sau». Hồ sơ: `docs/superpowers/specs/2026-11-13-kiem-toan-cach-lam-vibe-coding.md`.
+- **BL-AI-TERMINAL** — hàng rào lệnh nguy hiểm chỉ canh công cụ Bash; lệnh gõ qua công cụ Terminal của ứng dụng (`mcp__terminal__run_in_terminal`) không qua `guard-remote.mjs` và không khớp luật cấm `Bash(...)`. Vá: thêm luật cấm cho công cụ đó trong `.claude/settings.json` (chủ duyệt), quan sát chặn thật, ghi `docs/SO-HANG-RAO.md`. Mới thấy từ cấu hình, chưa thử.
+- **BL-AI-BO-NHO** — `MEMORY.md` 23,8 KB, sát trần 25 KB máy nạp; phần lớn là dòng trạng thái production. Dọn về sở thích, cách làm.
+- **BL-AI-KIEU-TRA-LOI** — kiểu trả lời "Explanatory" trong cài đặt ứng dụng ngược luật "Cách trả lời tôi"; chủ tự đổi.
+- **BL-AI-CLAUDE-MD** — việc rút gọn CLAUDE.md (ADR-0160) đứng từ 3/11; kèm chuyển công thức `CHANGE-GUIDE.md` thành skill.
+- **BL-AI-NGUOI-KIEM** — người kiểm độc lập có Bash, "chỉ đọc" chỉ bằng lời dặn.
