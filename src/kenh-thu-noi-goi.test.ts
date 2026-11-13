@@ -12,7 +12,7 @@ const ROOT = new URL("..", import.meta.url).pathname;
 const SRC = join(ROOT, "src");
 
 /** CHẶN: khoản khách trả MỚI (CUSTOMER_PAYMENT, không đảo). */
-export const CHAN = ["receiptBeforeDeliveredStatement", "receiptAtDeliveryStatement", "receiptOnConfirmStatement", "receiptThayMoiStatement", "receiptTransferInStatement"] as const;
+export const CHAN = ["receiptBeforeDeliveredStatement", "receiptAtDeliveryStatement", "receiptOnConfirmStatement", "receiptThayMoiStatement", "receiptTransferInStatement", "receiptWithRemittanceStatement"] as const; // receiptWithRemittanceStatement: khoản «Khách đã trả bạn» kèm khoản nộp (ADR-0182 phần B)
 /** MIỄN có tên: tiền ra (CUSTOMER_REFUND) hoặc dòng đảo (chép người thu của dòng gốc). */
 export const MIEN = ["receiptRefundStatement", "receiptReversalStatement", "receiptThayDaoStatement", "receiptPayoutStatement", "hoanPhanDinhStatement"] as const;
 
@@ -60,7 +60,7 @@ test("(1) mọi câu chèn bil_payment_receipt nằm trong một hàm dựng câ
   const chuaPhanLoai = ten.filter((x) => !daPhanLoai.has(x));
   assert.deepEqual(chuaPhanLoai, [], "hàm chèn khoản thu mới chưa phân loại CHẶN / MIỄN (ADR-0178 Đ1 mục 2) — thêm vào CHAN hoặc MIEN kèm lý do");
   assert.deepEqual([...new Set(ten)].sort(), [...daPhanLoai].sort(), "danh sách phân loại khớp đúng các hàm chèn đang có (bỏ tên chết)");
-  assert.equal(soCau, 11, "số câu chèn bil_payment_receipt trong src/ đổi — soát lại bản đồ CHẶN / MIỄN rồi sửa số này");
+  assert.equal(soCau, 12, "số câu chèn bil_payment_receipt trong src/ đổi — soát lại bản đồ CHẶN / MIỄN rồi sửa số này");
 });
 
 test("(2) mỗi hàm gọi một hàm dựng câu CHẶN phải gọi kiemNguoiThuKenh( trước lời gọi đó, trong cùng hàm", () => {
@@ -78,6 +78,6 @@ test("(2) mỗi hàm gọi một hàm dựng câu CHẶN phải gọi kiemNguoiT
     }
   }
   assert.deepEqual(thieu, [], "hàm ghi khoản thu của khách chưa gọi cổng người thu trước khi dựng lô");
-  // ghiLanThu, daGiao (service.ts); cauDatCocKhiXacNhan (dat-coc.ts); chuanBiLoThay (thay-lan-thu.ts); ghiChuyen (coc.ts).
-  assert.equal(soNoiGoi, 5, "số hàm gọi câu CHẶN đổi — soát lại rồi sửa số này");
+  // ghiLanThu, daGiao (service.ts); cauDatCocKhiXacNhan (dat-coc.ts); chuanBiLoThay (thay-lan-thu.ts); ghiChuyen (coc.ts); ghiKhoanNop (khoan-nop.ts — ADR-0182 phần B, khoản «Khách đã trả bạn»).
+  assert.equal(soNoiGoi, 6, "số hàm gọi câu CHẶN đổi — soát lại rồi sửa số này");
 });

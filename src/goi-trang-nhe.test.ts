@@ -84,7 +84,10 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 111.357 → 111.444 (+87, ADR-0196 Đợt 6A, 11/11/2026): hai ô quyền mới `payment.proof.view` (ADR-0196 Đ5) và `payment.proof.purge` (chỉ Toàn quyền — gỡ ảnh biên lai,
 // hàng chờ dọn kho) trong bản đồ quyền dùng chung mà gói Đơn hàng nhúng; không mã giao diện nào vào gói này. Đo thật 111.474 (+117), thu gọn hàng xem ảnh bằng `{ ...chiToanQuyen(), … }`
 // còn 111.444 (+87); tên hai ô cố định nên không về 0 được. Trần = đúng số đo. Chủ dự án duyệt 11/11/2026 (chuyển qua phiên điều phối), nguyên văn «Duyệt nới 87 byte».
-const TRAN_ORDERS = 111_444;
+// Nới 111.444 → 111.589 (+145, ADR-0182 phần B, 13/11/2026): ba ô quyền mới `dai-ly.nop.ghi`, `dai-ly.nop.xac-nhan`, `dai-ly.nop.xem` (ADR-0182 Đ3) trong bản đồ quyền dùng chung mà gói
+// Đơn hàng nhúng; không mã giao diện nào vào gói này. Đã viết gọn bằng hàng dùng chung (`chiToanQuyen()`, `quanTri()` + ô riêng). Trần = đúng số đo, không khoảng dư. Chủ dự án duyệt
+// 13/11/2026 trong phiên soạn ADR (chat, chuyển qua phiên điều phối), nguyên văn «Duyệt nới trần gói Đơn hàng cho ba ô quyền phần B».
+const TRAN_ORDERS = 111_589;
 
 function dung(trang: string) {
   const r = buildSync({

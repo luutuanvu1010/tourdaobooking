@@ -8,10 +8,8 @@ import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
 import { byId, h, replaceChildren } from "./dom";
-import { CAU_BIEN_LAI_BAT_BUOC, CAU_BIEN_LAI_QUA_CO, NHAN_O_BIEN_LAI, NHAN_XEM_BIEN_LAI, canBienLai, cauTrangThaiBienLai, duongBienLai } from "../src/shared/bien-lai";
-import { CAU_SAI_LOAI, TOI_DA_BYTE, nhanLoaiTep } from "../src/shared/tep-dinh-kem";
-import { maBase64 } from "../src/shared/tep-hien-thi";
-import { ACCEPT_ANH_PDF, thuNhoAnh } from "./thu-nho-anh";
+import { CAU_BIEN_LAI_BAT_BUOC, NHAN_O_BIEN_LAI, NHAN_XEM_BIEN_LAI, canBienLai, cauTrangThaiBienLai, duongBienLai } from "../src/shared/bien-lai";
+import { ACCEPT_ANH_PDF, chuanBiBienLai } from "./thu-nho-anh";
 import { cauXacNhanDaNhan, duocHuyKhoanSo, ghiSoNoiBo, hienNutSuaKhoanThu } from "../src/shared/nut-khoan-thu";
 import { METHOD_LABEL, actionLabel, dateTime, ngayNganHomNay, parseMoney, trangThaiHienThi, vnd } from "./format";
 import { regroupMoney, setMoneyValue } from "./money-input";
@@ -43,7 +41,8 @@ import { PAX_LABEL } from "../src/shared/order-lines";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
 import { nhanCamKet } from "../src/shared/cam-ket-xe";
 import { can, holdsPartner } from "../src/shared/permissions";
-import { CAU_PHIEU_CHUA_XAC_NHAN, TEN_PHIEU_CONG_NO, laTaiKhoanDoiTac, xemDuocPhieuCongNo } from "../src/shared/cong-no-dai-ly";
+import { CAU_NHAC_NOP_TIEN, CAU_PHIEU_CHUA_XAC_NHAN, TEN_PHIEU_CONG_NO, laTaiKhoanDoiTac, xemDuocPhieuCongNo } from "../src/shared/cong-no-dai-ly";
+import { khoiKhoanNop } from "./khoan-nop-ui";
 import { GHI_CHU_HUY_TOI_DA, NHOM_HUY_NHAN, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
 import { nhanTienDaTra as nhanTienLuat } from "../src/shared/nhan-tien";
 import { ngayDayDu } from "../src/shared/vn-date";
@@ -976,17 +975,6 @@ function oBienLaiLanThu(order: Order, receiptId: string, tt: NonNullable<Api.Lan
   return h("a", { class: "btn btn-link", href: duongBienLai(order.id, receiptId), target: "_blank", rel: "noopener", "data-action": "xem-bien-lai", "data-bien-lai": tt }, NHAN_XEM_BIEN_LAI);
 }
 
-/** Ảnh biên lai đã chọn trong form «Ghi khoản thu» (ADR-0196 Đ2, Đ9): đọc, nhận loại theo chữ ký, thu nhỏ ảnh mở được (bỏ thông tin ẩn), mã base64 MỘT lần lúc chọn. */
-async function chuanBiBienLai(f: File): Promise<{ noiDung: string } | { loi: string }> {
-  let bytes: Uint8Array = new Uint8Array(await f.slice(0, 16).arrayBuffer());
-  const loai = nhanLoaiTep(bytes);
-  if (!loai) return { loi: CAU_SAI_LOAI };
-  const nho = loai === "pdf" ? null : await thuNhoAnh(f);
-  bytes = nho ?? new Uint8Array(await f.arrayBuffer()); // HEIC trình duyệt không mở được, và PDF: gửi nguyên (không xoá được thông tin ẩn — ADR-0196 Đ9)
-  if (bytes.length > TOI_DA_BYTE) return { loi: CAU_BIEN_LAI_QUA_CO };
-  return { noiDung: maBase64(bytes) };
-}
-
 /** ADR-0120 Điều 1 mục 3: dòng nhắc Kế toán dưới khoản "Công ty thu" đang đối chiếu — người khai, số tiền, số ngày chờ (quá 3 ngày thì nổi màu cảnh báo). Không số điện thoại / tài khoản / mã giao dịch. */
 function nhacDoiChieuLanThu(t: Api.OrderPaymentsResponse, l: Api.LanThuDto): HTMLElement | null {
   // Chỉ khoản CHUYỂN KHOẢN mới là "đang đối chiếu" (ADR-0120 Điều 1): tiền mặt "Công ty thu" vẫn là nợ giữ hộ (H3 cũ), không nhắc kiểu này.
@@ -1480,6 +1468,11 @@ async function moPhieuCongNo(order: Order, opener: HTMLElement): Promise<void> {
       p.ghiChuQr ? h("p", { class: "muted" }, p.ghiChuQr) : null,
       h("div", { class: "qr-khung" }, canvas),
       p.qr ? h("div", { class: "qr-dong" }, ...dongThongTinQr(p.qr).map((x) => h("p", null, x))) : null,
+      // ADR-0182 phần B: khoản nộp (nút «Đã chuyển tiền», khoản chờ / đã quyết, Kế toán xác nhận / từ chối). Gửi / quyết xong: đóng phiếu, tải lại trang đơn, mở lại phiếu với số mới.
+      khoiKhoanNop(order.id, p.nop, () => {
+        bang.close();
+        void load().then(() => moPhieuCongNo(order, opener));
+      }),
     );
     if (!p.qr) return;
     const qr = p.qr;
@@ -1864,7 +1857,11 @@ async function load(quiet = false): Promise<void> {
     render(order, history, canModify, handler);
     if (thamSoGui.nhanh || thamSoGui.loi) {
       // Gửi đơn từ form mới: câu báo hiện TRƯỚC, rồi (nhánh B) hộp ảnh tự mở như hôm nay (Đ13.7). Gửi hỏng: đơn đã lưu nháp, nói rõ để không bấm lại tạo nháp trùng.
-      if (thamSoGui.nhanh) show(banner("info", CAU_BAO_GUI_DON[thamSoGui.nhanh]));
+      // ADR-0182 Đ2 mục 11: tài khoản Đối tác chủ phiếu có thêm câu nhắc chuyển tiền + gửi biên lai theo nhánh (chỉ nhắc, không chặn).
+      if (thamSoGui.nhanh) {
+        const nhacNop = laTaiKhoanDoiTac(staff!) && xemDuocPhieuCongNo(staff!, order.bookerPartyId) ? [{ text: CAU_NHAC_NOP_TIEN[thamSoGui.nhanh] }] : [];
+        show(banner("info", CAU_BAO_GUI_DON[thamSoGui.nhanh], nhacNop.length ? { lines: nhacNop } : undefined));
+      }
       else {
         let loiMayChu = "";
         try { loiMayChu = sessionStorage.getItem(`gui-don-loi:${order.id}`) ?? ""; sessionStorage.removeItem(`gui-don-loi:${order.id}`); } catch { /* không có sessionStorage: câu chung */ }

@@ -83,6 +83,12 @@ export const AUDIT_ACTIONS = {
   payment_proof_viewed: { label: "Mở ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_purged: { label: "Gỡ hoặc quyết xoá ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_purge_retried: { label: "Chạy lại xoá ảnh biên lai khỏi kho", group: "system" },
+  // ADR-0182 phần B: khoản nộp của đại lý theo từng đơn.
+  agent_remittance_recorded: { label: "Đại lý gửi khoản nộp kèm biên lai", group: "order" },
+  agent_remittance_confirmed: { label: "Kế toán xác nhận khoản nộp của đại lý", group: "order" },
+  agent_remittance_rejected: { label: "Kế toán từ chối khoản nộp của đại lý", group: "order" },
+  agent_remittance_proof_viewed: { label: "Mở ảnh biên lai khoản nộp", group: "order" },
+  agent_remittance_proof_purged: { label: "Gỡ hoặc quyết xoá ảnh biên lai khoản nộp", group: "order" },
   // ADR-0060: dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm bil_accounting_entry) — detail = moTaDauNhap (số hoá đơn nguyên văn; lý do đã chặn dãy số dài).
   // Lịch sử đơn BỎ hai hành động này với người không qua ô accounting.entry.view; không vào hộp thông báo (v_aud_order_event là danh sách cho phép).
   order_accounting_entry_marked: { label: "Đánh dấu đã nhập phần mềm kế toán", group: "order", ghiTien: true },

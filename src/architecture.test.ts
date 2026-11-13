@@ -95,6 +95,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "billing", file: "modules/billing/tra-sau-repo.ts" }, // ADR-0168 (trả sau theo hạn mức, migration 0141) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/tu-ghi-repo.ts" }, // ADR-0187 Đ3 mức (a) (sổ soát tự ghi đơn mình lập, migration 0150) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/bien-lai-repo.ts" }, // ADR-0196 (ảnh biên lai chuyển khoản, migration 0158) — nghiêm từ ngày đầu
+  { module: "billing", file: "modules/billing/khoan-nop-repo.ts" }, // ADR-0182 phần B (khoản nộp đại lý + ảnh biên lai, migration 0159) — nghiêm từ ngày đầu
   { module: "company", file: "modules/company/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/han-muc-repo.ts" }, // ADR-0032 (kế hoạch 2026-10-23 mục 3c): sổ sự kiện phân công + cài đặt hạn mức Từ chối — EXPLAIN từng câu

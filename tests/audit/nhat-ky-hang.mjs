@@ -23,6 +23,8 @@ export const PHU_TRACH = {
   "fbk_attachment.storage_key": "src/modules/feedback/tep-route.test.ts",
   "bil_receipt_proof.content_hash": "src/modules/billing/bien-lai-route.test.ts", // ADR-0196: ghi khoản thu kèm ảnh biên lai (cả đường xem, gỡ, kho hỏng)
   "bil_receipt_proof.storage_key": "src/modules/billing/bien-lai-route.test.ts",
+  "bil_remittance_proof.content_hash": "src/khoan-nop-dai-ly.test.ts", // ADR-0182 phần B: ghi khoản nộp kèm ảnh biên lai (cả đường xem, gỡ)
+  "bil_remittance_proof.storage_key": "src/khoan-nop-dai-ly.test.ts",
   "pty_person_document.document_number": "src/giay-to-khong-lo-so.test.ts",
   "pty_person_document.number_key": "src/giay-to-khong-lo-so.test.ts",
   "pty_person_document.issued_place": "src/giay-to-khong-lo-so.test.ts",

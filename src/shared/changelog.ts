@@ -17,6 +17,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0182 phần B (chủ duyệt 13/11, «Duyệt, phát hành ngay»; chữ theo khuyến nghị; xây trên TNV-G1 + HC-5.19, khoá xay_tren_cho_phep_adr_0182_b — KHÔNG chờ diễn tập).
+    // Trần gói trang Đơn hàng 111.444 → 111.589 (+145, ba ô quyền mới): chủ duyệt 13/11 trong phiên soạn ADR (chat), nguyên văn «Duyệt nới trần gói Đơn hàng cho ba ô quyền phần B».
+    // Migration 0159 (khoản nộp + ảnh biên lai khoản nộp, cùng kho R2 ảnh biên lai của ADR-0196). SỐ TẠM 2.97: main có 2.96; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.97",
+    date: "2026-11-13",
+    items: [
+      { kind: "moi", text: "Đơn đối tác đã xác nhận: trong «Xem công nợ với Tour Đảo» có nút «Đã chuyển tiền» để gửi số tiền đã chuyển kèm ảnh biên lai; Kế toán xác nhận rồi mới trừ nợ." },
+      { kind: "moi", text: "Kế toán thấy các khoản nộp đang chờ ở trang Sổ công nợ, mở đơn để «Xác nhận đã nhận» hoặc «Từ chối» kèm lý do. Đối tác thấy lý do khi bị từ chối." },
+      { kind: "doi", text: "Đơn trả ngay của đối tác mở vé khi Tour Đảo đã nhận và xác nhận đủ giá đại lý, không phải chờ đủ giá bán lẻ." },
+      { kind: "sua", text: "Sửa hoa hồng sau khi khách đã trả đủ nay làm đổi đúng số công nợ của đối tác." },
+    ],
+  },
+  {
     // ADR-0182 phần A (chủ duyệt 12/11, «Duyệt, chọn cách 1»; chữ theo khuyến nghị; xây trên TNV-G1 có lời chủ «Cho phép, có lý do»): công nợ đại lý theo giá đại lý, hai phiếu. KHÔNG migration.
     // SỐ TẠM 2.96: main có 2.95 (ADR-0198, chưa triển khai); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.96",

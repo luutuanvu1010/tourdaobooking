@@ -117,6 +117,9 @@ export const LICH_SU_NOI_BO_AN = [
   "ledger_self_write_reviewed",
   // ADR-0196: ảnh biên lai chuyển khoản (gửi, mở, gỡ, chạy lại dọn kho) — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; trang Nhật ký (Toàn quyền) vẫn đọc được.
   "payment_proof_added", "payment_proof_viewed", "payment_proof_purged", "payment_proof_purge_retried",
+  // ADR-0182 phần B: khoản nộp của đại lý (ghi, xác nhận, từ chối) và ảnh biên lai của nó — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; phiếu công nợ
+  // hiện trạng thái và lý do từ chối; trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "agent_remittance_recorded", "agent_remittance_confirmed", "agent_remittance_rejected", "agent_remittance_proof_viewed", "agent_remittance_proof_purged",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nội bộ nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

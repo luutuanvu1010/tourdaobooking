@@ -42,6 +42,7 @@ const NGOAI_LE_TEN: Record<string, string> = {
 };
 const N3_GHIM = [
   "bil_receipt_proof.content_hash", "bil_receipt_proof.storage_key", // ADR-0196: ảnh biên lai có số tài khoản, tên người chuyển — cùng hạng với fbk_attachment
+  "bil_remittance_proof.content_hash", "bil_remittance_proof.storage_key", // ADR-0182 phần B: ảnh biên lai khoản nộp — cùng hạng
   "fbk_attachment.content_hash", "fbk_attachment.storage_key", // ADR-0144: tệp kèm vé có thể là ảnh giấy tờ gửi nhầm — cùng hạng với pty_attachment
   "pty_attachment.content_hash", "pty_attachment.storage_key",
   "pty_organization_document.document_number", "pty_organization_document.issued_place", "pty_organization_document.number_key",

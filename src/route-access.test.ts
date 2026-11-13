@@ -204,6 +204,12 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/orders/:id/payments/:receiptId/bien-lai/go", access: "office" }, // ADR-0196 Đ7: payment.proof.purge (chỉ Toàn quyền)
   { method: "GET", path: "/api/ledger/bien-lai-cho-xoa", access: "office" }, // ADR-0196 Đ2: payment.proof.purge
   { method: "POST", path: "/api/ledger/bien-lai-cho-xoa/chay-lai", access: "office" }, // ADR-0196 Đ2: payment.proof.purge — chạy lại dọn kho SAU lô quyết xoá
+  { method: "POST", path: "/api/orders/:id/khoan-nop", access: "orders" }, // ADR-0182 phần B Đ2 mục 4: dai-ly.nop.ghi own + vị từ «đơn có phiếu» (người phiên là bên đặt)
+  { method: "GET", path: "/api/orders/:id/khoan-nop/:nopId/bien-lai", access: "orders" }, // ADR-0182 Đ3: dai-ly.nop.xem (Đối tác: đơn có phiếu của chính mình)
+  { method: "POST", path: "/api/orders/:id/khoan-nop/:nopId/bien-lai/go", access: "office" }, // ADR-0182 Đ2 mục 5: payment.proof.purge (chỉ Toàn quyền)
+  { method: "POST", path: "/api/orders/:id/khoan-nop/:nopId/xac-nhan", access: "office" }, // ADR-0182 Đ2 mục 8: dai-ly.nop.xac-nhan, không Đối tác
+  { method: "POST", path: "/api/orders/:id/khoan-nop/:nopId/tu-choi", access: "office" }, // ADR-0182 Đ2 mục 8: dai-ly.nop.xac-nhan, không Đối tác
+  { method: "GET", path: "/api/ledger/khoan-nop-cho", access: "office" }, // ADR-0182 Đ2 mục 4: dai-ly.nop.xem, không Đối tác
   { method: "GET", path: "/api/orders/:id/nhap-ke-toan", access: "orders" }, // ADR-0060: order.view + accounting.entry.view phạm vi đơn
   { method: "POST", path: "/api/orders/:id/nhap-ke-toan", access: "office" }, // ADR-0060: accounting.entry.mark (Kế toán, Toàn quyền)
   { method: "POST", path: "/api/orders/:id/delivered", access: "orders" }, // order.handover { assigned } — HDV đang phụ trách, Quản trị, Toàn quyền
@@ -630,7 +636,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 469 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 499 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -790,6 +796,8 @@ test("mức truy cập của 469 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-09 (ADR-0194 đợt 1, gộp bản chính có vé Tour Đảo Đợt 2): + 4 route /api/cai-dat/giao-dien* (GET, GET tat-ca, POST, POST khoi-phuc) = 486.
   // 2026-11-11 (ADR-0196, Đợt 6A): + GET (orders) /api/orders/:id/payments/:receiptId/bien-lai, POST (office) …/bien-lai/go, GET + POST (office) /api/ledger/bien-lai-cho-xoa[/chay-lai] = 492.
   // 2026-11-12 (ADR-0182 phần A, Đ2 mục 2): + GET (orders) /api/orders/:id/cong-no-dai-ly (module receipt) = 493.
-  assert.equal(actual.length, 493, "số route thực tế lệch 493 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 493, "SNAPSHOT phải có đúng 493 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-13 (ADR-0182 phần B): + POST (orders) /api/orders/:id/khoan-nop, GET (orders) …/khoan-nop/:nopId/bien-lai, POST (office) …/bien-lai/go, …/xac-nhan, …/tu-choi,
+  //   GET (office) /api/ledger/khoan-nop-cho = 499.
+  assert.equal(actual.length, 499, "số route thực tế lệch 499 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 499, "SNAPSHOT phải có đúng 499 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

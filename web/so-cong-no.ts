@@ -11,6 +11,7 @@ import {
   BEN_MOI_LAN, CAU_LECH, DON_MOI_LAN, NHAN_LOC, NHAN_XEP, cauSoDu, khopTen, qua, xepBen, type LocSoCongNo, type XepSoCongNo,
 } from "../src/shared/so-cong-no-hien-thi";
 import { ngayDayDu } from "../src/shared/vn-date";
+import { TEN_KHOAN_NOP } from "../src/shared/cong-no-dai-ly";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime, vnd } from "./format";
 import { hienBaoNgan } from "./toast";
@@ -65,6 +66,33 @@ if (!can(staff, "ledger.view")) {
     const phan = [s.choXacNhan.length > 0 && `${s.choXacNhan.length} khoản chờ xác nhận`, s.chuaRo.length > 0 && `${s.chuaRo.length} khoản chưa rõ người thu tiền`].filter(Boolean);
     replaceChildren(canhBaoEl, phan.length > 0 && h("a", { class: "alert warn scn-canh-bao", href: "/" }, `${phan.join(" · ")} — xử lý ở Trang chủ ›`));
   }
+
+  // ADR-0182 phần B (Đ2 mục 4, 8): khoản nộp của đại lý đang chờ — Kế toán mở đơn để đối chiếu và xác nhận / từ chối trên phiếu công nợ (cạnh khoản «Công ty thu» chờ của cùng đơn).
+  // Ô `dai-ly.nop.xem`, không tài khoản giữ quyền Đối tác — cùng cổng máy chủ. Không có khoản chờ thì không hiện gì.
+  const nopEl = h("section", { class: "card", "data-khoi": "khoan-nop-cho", hidden: true });
+  canhBaoEl.after(nopEl);
+  async function taiNopCho(): Promise<void> {
+    if (!can(staff, "dai-ly.nop.xem") || holdsPartner(staff)) return;
+    try {
+      const { ds } = await api<Api.KhoanNopChoResponse>("/api/ledger/khoan-nop-cho");
+      nopEl.hidden = ds.length === 0;
+      replaceChildren(
+        nopEl,
+        h("h2", null, `${TEN_KHOAN_NOP} chờ xác nhận (${ds.length})`),
+        h("ul", { class: "pay-list" }, ...ds.map((k) => h(
+          "li",
+          { "data-khoan-nop": k.id },
+          h("a", { href: `/order?id=${encodeURIComponent(k.orderId)}` }, k.maDon),
+          ` · ${k.daiLy} · ${vnd(k.soTien)} · chuyển ngày ${ngayDayDu(k.ngayChuyen)}`,
+          k.coCongTyCho ? h("span", { class: "muted" }, " · đơn còn khoản «Công ty thu» chờ đối chiếu") : null,
+        ))),
+      );
+    } catch (err) {
+      nopEl.hidden = false;
+      replaceChildren(nopEl, h("p", { class: "alert", role: "alert" }, `Không tải được khoản nộp chờ: ${reasonOf(err)}`));
+    }
+  }
+  void taiNopCho();
 
   function veTong(s: Api.SoCongNoResponse): void {
     const o = (nhan: string, so: string) => h("div", { class: "scn-o-tong" }, h("span", { class: "muted" }, nhan), h("strong", null, so));

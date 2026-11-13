@@ -2,7 +2,27 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.94 ĐÃ LÊN PRODUCTION (Đợt 6A: ADR-0196 ảnh biên lai bắt buộc khi Đối tác ghi khoản thu «Công ty thu, chuyển khoản»; Kế toán, Toàn quyền, Đối tác chính chủ xem được; chỉ Toàn quyền gỡ, có lý do — kèm 2.93 ô tích «Nút thanh dưới» 44px) — migration `0158` — kho R2 `tourdao-sales-bien-lai` — triển khai 2026-11-12 12:42 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.97 ĐÃ LÊN PRODUCTION (ADR-0182 phần B: đại lý bấm «Đã chuyển tiền» trên Phiếu công nợ với Tour Đảo kèm ảnh biên lai, Kế toán xác nhận / từ chối có lý do; đơn trả ngay của đối tác mở vé khi Tour Đảo đã nhận đủ giá đại lý; sửa hoa hồng sau «Khách đã trả đủ» làm đổi công nợ) — migration `0159` — triển khai 2026-11-13 10:37 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Chủ duyệt phần B 13/11 «Duyệt, phát hành ngay» — KHÔNG chờ diễn tập khôi phục; xây trên `TNV-G1`, `HC-5.19` (khoá `xay_tren_cho_phep_adr_0182_b`, `docs/quyen-hoan.json`). Ảnh biên lai khoản nộp dùng chung kho R2 `tourdao-sales-bien-lai` (tiền tố khoá riêng), không kho mới. Lần nhập đầu dừng ở bước ghi bản ghi kiểm vì Xcode vừa cập nhật khoá lệnh `git`; chủ đồng ý điều khoản Xcode rồi chạy lại là qua. Chưa thử iPhone thật. Nhật ký thi công: `docs/superpowers/plans/2026-11-13-adr-0182-phan-b-thi-cong-nhat-ky.md`.
+
+Bản 2.95 (ADR-0198) và 2.96 (ADR-0182 phần A) đã lên cùng một lần trước đó — `wrangler deployments list`: bản `78d20407-dafc-4d4d-94ed-23c52113559f`, 2026-11-13 05:12 giờ Việt Nam — nhưng hồ sơ này chưa có khối máy của lần đó (không có trong đầu ra lần này).
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-13 10:37 (giờ Việt Nam)
+- Commit: 1c3d07aa4 ADR-0182 phần B: nhật ký thi công ghi lượt npm test đủ bộ xanh
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-13T02:58:01Z (có đổi quy trình kiểm — xem lý do bên dưới)
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/43353723150
+- Đổi quy trình kiểm — lý do của chủ: hoan thanh (tệp điều khiển việc kiểm đổi: scripts/audit-checks.mjs; tệp điều khiển việc kiểm đổi: tests/e2e/danh-sach.mjs)
+- Migration đã áp: 0159_khoan_nop_dai_ly.sql
+- Điểm khôi phục Time Travel trước khi áp: 000029ff-00000000-00005122-552dd20e9e82c1824e113b7b27ac71f4
+- Worker Version ID: a4907bb9-145a-46a8-8111-83cf83724d2c
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (2 cảnh báo có sẵn: R-VC-14, R-ORD-9)
+- Phiên bản: 2.97 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian (không tính lúc chờ chủ trả lời): TỔNG 1 phút 06 giây (day-len 18 giây, trien-khai 48 giây)
+- Kiểm lại sau triển khai (AI, chỉ đọc): `GET /api/auth/config` trả `version` 2.97; `GET /api/ledger/khoan-nop-cho` trả 401 khi chưa đăng nhập (route có mặt); `wrangler d1 migrations list --remote` «No migrations to apply»; `wrangler deployments list` bản a4907bb9 nhận 100%.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 2.94 ĐÃ LÊN PRODUCTION (Đợt 6A: ADR-0196 ảnh biên lai bắt buộc khi Đối tác ghi khoản thu «Công ty thu, chuyển khoản»; Kế toán, Toàn quyền, Đối tác chính chủ xem được; chỉ Toàn quyền gỡ, có lý do — kèm 2.93 ô tích «Nút thanh dưới» 44px) — migration `0158` — kho R2 `tourdao-sales-bien-lai` — triển khai 2026-11-12 12:42 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Chủ cho phát hành TRƯỚC buổi diễn tập khôi phục (nguyên văn «Diễn tập sau cùng,»), ghi ở khoá `xay_tren_cho_phep_adr_0196` (`docs/quyen-hoan.json`). Hai kho R2 (production và bản Development) chủ tạo 12/11. Chưa thử iPhone thật (ảnh HEIC), chưa có nút gỡ ảnh trên giao diện (BACKLOG §70). Bản 2.93 chưa từng triển khai riêng — lên cùng lần này.
 
