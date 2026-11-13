@@ -365,6 +365,15 @@ try {
     p.close();
   });
 
+  await step("trang đăng nhập: dòng «Hỗ trợ kỹ thuật» dùng SĐT hỗ trợ đã lưu (ADR-0202 bổ sung), kể cả khi bảo trì đang TẮT", async () => {
+    const p = await env.openPage();
+    await p.send("Network.clearBrowserCookies");
+    await p.send("Page.navigate", { url: env.base + "/login" });
+    await p.waitFor(`${q("#support a")}?.textContent === "0905 123 456"`, "dòng hỗ trợ đổi sang số đã lưu");
+    assert.equal(await p.ev(`${q("#support a")}.getAttribute('href')`), "tel:0905123456");
+    p.close();
+  });
+
   await step("Về mặc định → điền lại nội dung mặc định (chưa ghi); Lưu nội dung → về mặc định", async () => {
     const o = await asCookie(ownerCookie, "/account");
     await o.waitFor(`${q("#maint-nd-sdt")}?.value === "0905123456"`, "mở lại thấy nội dung đã lưu");

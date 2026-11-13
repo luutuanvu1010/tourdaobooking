@@ -24,6 +24,9 @@ export async function getMaintenanceState(db: D1Database): Promise<MaintenanceSt
 /** Phần công khai của trạng thái. Đang bật thì kèm nội dung màn bảo trì (trang đăng nhập dùng SĐT hỗ trợ trong câu báo); tắt thì không gửi. */
 export const toStatus = (s: MaintenanceState): MaintenanceStatusDto => ({ on: s.on, endsAt: s.endsAt, ...(s.on ? { content: contentFromStored(s.contentJson) } : {}) });
 
+/** SĐT hỗ trợ đã lưu (nội dung màn bảo trì, ADR-0202) — dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập; đọc từ cùng trạng thái, không thêm truy vấn. */
+export const supportPhoneOf = (s: MaintenanceState): string => contentFromStored(s.contentJson).sdt;
+
 /** 503 `maintenance`: cùng một thân cho mọi người bị chặn; `endsAt` và nội dung màn bảo trì nằm trong `error` để giao diện dựng màn mà không gọi thêm (mọi API khác cũng 503). */
 export function maintenanceResponse(state: MaintenanceState, now = Date.now()): Response {
   const content = contentFromStored(state.contentJson);

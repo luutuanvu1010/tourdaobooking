@@ -29,7 +29,8 @@ Người bị chặn gặp 503 ở mọi API, nên không đọc được hồ s
 1. Thân 503 `maintenance` có thêm `content`. Câu `message` dùng SĐT đã lưu.
 2. `GET /api/auth/config` (công khai) và `/api/auth/me` có `maintenance.content` **chỉ khi đang bật**. SĐT hỗ trợ vốn đã công khai với người bị chặn qua câu 503. Danh sách SĐT được phép cũ (`allowed_phones`) vẫn không bao giờ lộ.
 3. `GET`/`PUT /api/maintenance` luôn có `content`.
-4. Màn bảo trì, dòng báo ở trang đăng nhập và câu «Nhân viên đang thấy» ở trang Tôi đều dựng từ nội dung đã lưu. Bản xem trước ở trang Tôi dùng chính hàm dựng thẻ của màn thật (`dungTheBaoTri`).
+4. **Bổ sung 13/11/2026** (chủ dự án, nguyên văn *«Có, nối luôn»*, trả lời câu «Nối dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập với số hỗ trợ bạn lưu nhé?»): `GET /api/auth/config` **luôn** có `supportPhone` (SĐT hỗ trợ đã lưu, kể cả khi bảo trì tắt). Dòng «Hỗ trợ kỹ thuật» dưới nút Đăng nhập dùng số này; chữ tĩnh trong `login.html` chỉ là dự phòng khi chưa tải xong, bằng SĐT mặc định (bài `src/chan-trang-dang-nhap.test.ts`). Đây là số công khai, không phải hotline hay liên hệ của hồ sơ công ty (ADR-0024 6.2 giữ nguyên).
+5. Màn bảo trì, dòng báo ở trang đăng nhập và câu «Nhân viên đang thấy» ở trang Tôi đều dựng từ nội dung đã lưu. Bản xem trước ở trang Tôi dùng chính hàm dựng thẻ của màn thật (`dungTheBaoTri`).
 
 ## Hệ quả, giới hạn
 

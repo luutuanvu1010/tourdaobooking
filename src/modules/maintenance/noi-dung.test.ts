@@ -86,3 +86,12 @@ test("nhật ký: một dòng maintenance_changed liệt kê TÊN ô đã đổi
   assert.equal(rows[0].staff_id, SUP);
   assert.doesNotMatch(rows[0].detail, /\d{9,}/);
 });
+
+test("cấu hình công khai luôn mang SĐT hỗ trợ đã lưu (dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập), kể cả khi bảo trì đang TẮT; chưa lưu → mặc định", async () => {
+  const w = setup();
+  assert.equal((await w.call("GET", "/api/auth/config")).json.supportPhone, ND.sdt);
+  assert.equal((await w.call("PUT", "/api/maintenance/content", { as: SUP, body: MOI })).status, 200);
+  const cfg = await w.call("GET", "/api/auth/config");
+  assert.equal(cfg.json.maintenance.on, false);
+  assert.equal(cfg.json.supportPhone, "0905123456");
+});

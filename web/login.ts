@@ -5,7 +5,7 @@ import { KHOA_DAI_BAO_MAT_DA_DONG } from "../src/shared/dai-chu";
 import { KHOA_NHAC_HAI_LOP, showError } from "./shell";
 import { APP_RELEASE_DATE, APP_VERSION } from "./phien-ban";
 import { chanTrangCongTy } from "../src/shared/cong-ty-chu";
-import { MAINTENANCE_CODE } from "../src/shared/maintenance";
+import { MAINTENANCE_CODE, phoneVnText } from "../src/shared/maintenance";
 import { SESSION_ENDED_KEY, cauTuDauNho } from "../src/shared/session-ended";
 import { contentFrom, endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
 import { icon } from "./icons";
@@ -378,6 +378,14 @@ function apDungChanTrang(config: unknown): void {
   mst.textContent = c.mst;
 }
 
+/** Dòng «Hỗ trợ kỹ thuật» (ADR-0202): thay số tĩnh trong login.html bằng SĐT hỗ trợ Toàn quyền đã lưu. Không ném lỗi (login.html cũ có thể thiếu #support a). */
+function apDungHoTro(sdt: unknown): void {
+  const a = document.querySelector<HTMLAnchorElement>("#support a");
+  if (!a || typeof sdt !== "string" || !/^0\d{9}$/.test(sdt)) return;
+  a.href = `tel:${sdt}`;
+  a.textContent = phoneVnText(sdt);
+}
+
 /** Hỏi cấu hình một lần: true = đã có câu trả lời của máy chủ (có khoá hoặc `null`); false = lỗi (mất mạng, 5xx…). */
 async function fetchConfig(): Promise<boolean> {
   try {
@@ -392,6 +400,7 @@ async function fetchConfig(): Promise<boolean> {
         void prefetchPasskey();
       }
     }
+    apDungHoTro(config.supportPhone);
     apDungChanTrang(config); // CUỐI khối: chân trang không bao giờ được làm hỏng cấu hình đăng nhập (Ruling T4 của nhật ký thi công T2b)
     return true;
   } catch {

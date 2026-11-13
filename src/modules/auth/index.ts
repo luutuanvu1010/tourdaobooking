@@ -1,6 +1,6 @@
 // Module auth — phiên đăng nhập (cookie ký HMAC) + chống dò PIN + Cloudflare Turnstile ở đăng nhập (./turnstile.ts). Route: /api/auth/*.
 // Kiểm quyền từng route KHÔNG nằm ở đây: router (src/shared/router.ts) dùng `currentStaff` do gốc lắp ráp truyền vào.
-import { getMaintenanceState, maintenanceBlock, toStatus, type MaintenanceState } from "../maintenance";
+import { getMaintenanceState, maintenanceBlock, supportPhoneOf, toStatus, type MaintenanceState } from "../maintenance";
 import { ownerCompany } from "../parties";
 import {
   accountRoleCodesOf, authenticate, findStaffByPhone, getActiveStaff, isValidPin, mfaDeadlinesOf, mfaEnrollWindowStatement, normalizePhone, recordLogin, type StaffProfile,
@@ -537,7 +537,7 @@ export const authModule: AppModule = {
       ]);
       return json({
         turnstileSiteKey: turnstileSiteKey(env), maintenance: toStatus(maintenance), passkey: passkeyRelyingParty(env) !== null, version: APP_VERSION,
-        companyName: company?.displayName ?? null, companyTaxCode: company?.taxCode ?? null,
+        companyName: company?.displayName ?? null, companyTaxCode: company?.taxCode ?? null, supportPhone: supportPhoneOf(maintenance),
       } satisfies AuthConfigResponse);
     }),
 

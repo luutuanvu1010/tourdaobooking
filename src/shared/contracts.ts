@@ -145,6 +145,8 @@ export interface AuthConfigResponse {
   companyName: string | null;
   /** Mã số thuế của hồ sơ công ty chủ (6.2). null như trên. */
   companyTaxCode: string | null;
+  /** SĐT hỗ trợ (10 số) do Toàn quyền lưu ở nội dung màn bảo trì (ADR-0202) — dòng «Hỗ trợ kỹ thuật» dưới nút Đăng nhập; LUÔN có, kể cả khi bảo trì tắt (số công khai). */
+  supportPhone: string;
 }
 
 // ---- Đăng nhập bằng Face ID (passkey, ADR-0016; đặc tả 2026-09-23-passkey-design.md) ----

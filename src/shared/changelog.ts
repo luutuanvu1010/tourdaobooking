@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0202 bổ sung (chủ 13/11, «Có, nối luôn»): GET /api/auth/config luôn có supportPhone; dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập dùng số đó. Không migration.
+    // SỐ TẠM 3.1: main có 3.0; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.1",
+    date: "2026-11-13",
+    items: [
+      { kind: "doi", text: "Dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập nay hiện số hỗ trợ Toàn quyền đã lưu ở «Nội dung màn bảo trì», không còn số cố định." },
+    ],
+  },
+  {
     // Bản mẫu 2c của chủ dự án (13/11/2026; ADR-0202 accepted, chủ «Duyệt cả hai»): nội dung màn bảo trì do Toàn quyền tự sửa — migration 0162 (cột mnt_setting.content_json).
     // Trần gói trang Đơn hàng 113.492 → 114.524: chủ duyệt cùng lời «Duyệt cả hai» (đo trước khi gộp chi tiết dịch vụ). SỐ TẠM 3.0 (sau 2.99 như 1.97 → 2.0): main có 2.99 (chi tiết dịch vụ); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.0",
