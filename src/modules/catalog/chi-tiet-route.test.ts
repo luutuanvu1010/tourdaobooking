@@ -101,3 +101,14 @@ test("hai lần lưu cùng mili-giây: đúng một lần ghi, lần kia 409 sta
     assert.deepEqual([bang(w), nk(w)], [1, 1]);
   } finally { tat(); }
 });
+
+test("màn Đặc điểm dịch vụ và danh sách của Quản lý bán hàng cũng hiện tên hiển thị", async () => {
+  const w = setup();
+  assert.equal((await luu(w, { tenHienThi: "Tour đẹp", moTa: null })).status, 200);
+  const qlb = await w.call("GET", "/api/catalog/quan-ly-ban", { as: ADM });
+  assert.equal(qlb.status, 200, qlb.text);
+  assert.equal(qlb.json.dichVu.find((d: any) => d.code === "ZA1").ten, "Tour đẹp");
+  const dd = await w.call("GET", "/api/catalog/dac-diem", { as: ADM });
+  assert.equal(dd.status, 200, dd.text);
+  assert.equal(dd.json.dichVu.find((d: any) => d.code === "ZA1").ten, "Tour đẹp");
+});

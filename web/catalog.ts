@@ -43,7 +43,7 @@ let coVe: CoVe;
 /** Công tắc «Cần kiểm vé» của một dòng dịch vụ (ADR-0169 Đ4): vé đặt riêng hay đang theo nhóm thì câu phụ nói rõ. */
 const oKiemVe = (it: CatalogAdminItem): HTMLElement => {
   const kv = kiemVeCua(it.code, it.groupCode, kiemVe.dongCo());
-  return kiemVe.oKiemVe(it.code, it.name, kv.can, nhanNguonKiemVe({ rieng: kv.rieng, coNhom: it.groupCode !== null }));
+  return kiemVe.oKiemVe(it.code, tenCua(it), kv.can, nhanNguonKiemVe({ rieng: kv.rieng, coNhom: it.groupCode !== null }));
 };
 function renderTuKiem(): void {
   if (can(staff, "settings.ops")) replaceChildren(byId("kv-tu-kiem"), kiemVe.khoiTuKiem());
@@ -51,7 +51,7 @@ function renderTuKiem(): void {
 
 /** Ngừng bán hỏi lại (B-5, chủ duyệt 9/11) — cùng hộp với màn hẹp; Mở bán lại không hỏi. */
 async function doiBan(it: CatalogAdminItem, nut: HTMLButtonElement, update: (path: string, init: { method: string; body?: unknown }) => Promise<void>): Promise<void> {
-  if (!it.hidden && !(await hoiXacNhan({ ...cauHoiNgungBan(it.name), opener: nut }))) return;
+  if (!it.hidden && !(await hoiXacNhan({ ...cauHoiNgungBan(tenCua(it)), opener: nut }))) return;
   await update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } });
 }
 
@@ -139,7 +139,7 @@ function row(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "row-off" : "", "data-code": it.code },
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
-    h("td", null, tenCua(it), dongTenSheet(it), chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it), coVe.oDichVu(it.code, it.name)),
+    h("td", null, tenCua(it), dongTenSheet(it), chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it), coVe.oDichVu(it.code, tenCua(it))),
     h("td", { class: "nhom-o", hidden: anCot("groupCode") }, tenNhomCua(it)),
     h("td", { class: "muted", hidden: anCot("unit") }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
@@ -183,7 +183,7 @@ function card(it: CatalogAdminItem): HTMLElement {
     h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, ...(anCot("unit") ? [] : [" · ", unitLabel(it.unit)]))),
     h("div", { class: "dd-ten-dong" }, h("strong", null, tenCua(it)), dongTenSheet(it), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", { class: "nhom-o muted", hidden: anCot("groupCode") }, `Nhóm: ${tenNhomCua(it)}`),
-    h("div", { class: "kv-the" }, oKiemVe(it), coVe.oDichVu(it.code, it.name)),
+    h("div", { class: "kv-the" }, oKiemVe(it), coVe.oDichVu(it.code, tenCua(it))),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:var(--fw-bold)", title: "Có giá ghi đè" }, " ✎")),
     it.conflicts.length > 0 && h("div", { class: "alert warn" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`),
     h(
@@ -611,7 +611,7 @@ function openEdit(it: CatalogAdminItem): void {
   const nhomKhoi = h("div", { class: "nhom-sua" });
   replaceChildren(
     editEl,
-    h("h2", null, `Ghi đè giá: ${it.code} — ${it.name}`),
+    h("h2", null, `Ghi đè giá: ${it.code} — ${tenCua(it)}`),
     h("p", { class: "muted" }, "Giá ghi đè chỉ có hiệu lực trong hệ thống này (không ghi ngược vào Google Sheet) và không bị lần đồng bộ sau đè mất. Để trống hoặc nhập đúng giá Sheet để bỏ ghi đè loại đó."),
     unit,
     h("div", { class: "grid three" }, ...PAX_ORDER.map((c) => h("label", null, `${PAX_LABEL[c]} (₫)`, fields.get(c)!))),
