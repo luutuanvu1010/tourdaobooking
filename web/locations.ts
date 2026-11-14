@@ -162,7 +162,7 @@ function openEdit(l: Api.LocationDto): void {
 
 function zoneRow(z: Api.VungDonDto): HTMLElement {
   const edit = h("button", { type: "button", class: "pill-btn" }, "Sửa khu vực đón");
-  edit.addEventListener("click", () => replaceChildren(wrap, zoneEditor(z)));
+  edit.addEventListener("click", () => wrap.replaceWith(zoneEditor(z)));
   const wrap = h(
     "div",
     { class: z.active ? "card" : "card row-off", "data-testid": "zone-card" },

@@ -14,15 +14,14 @@ export interface VungRow {
 const LIST = defineSql(
   "locations",
   "zone_list",
-  `SELECT z.code, z.name, z.sort_order, z.active, COUNT(l.id) AS so_dia_diem, z.updated_at
-   FROM loc_zone z LEFT JOIN loc_location l ON l.zone_code = z.code
-   GROUP BY z.code, z.name, z.sort_order, z.active, z.updated_at
+  `SELECT z.code, z.name, z.sort_order, z.active, (SELECT COUNT(*) FROM loc_location l WHERE l.zone_code = z.code OR (z.code = 'NGOAI_VUNG' AND l.zone_code IS NULL)) AS so_dia_diem, z.updated_at
+   FROM loc_zone z
    ORDER BY z.active DESC, z.sort_order, z.code`,
 );
 const FIND = defineSql(
   "locations",
   "zone_find",
-  `SELECT z.code, z.name, z.sort_order, z.active, (SELECT COUNT(*) FROM loc_location l WHERE l.zone_code = z.code) AS so_dia_diem, z.updated_at
+  `SELECT z.code, z.name, z.sort_order, z.active, (SELECT COUNT(*) FROM loc_location l WHERE l.zone_code = z.code OR (z.code = 'NGOAI_VUNG' AND l.zone_code IS NULL)) AS so_dia_diem, z.updated_at
    FROM loc_zone z WHERE z.code = ?`,
 );
 const INSERT = defineSql(

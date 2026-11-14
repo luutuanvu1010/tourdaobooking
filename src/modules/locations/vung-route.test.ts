@@ -110,6 +110,21 @@ test("ngưng vùng: còn địa điểm → 409 zone_in_use; NGOAI_VUNG → 409 
   assert.equal(nhatKy(w, "location_zone_updated").length, 1);
 });
 
+test("số địa điểm của NGOAI_VUNG = gán thẳng NGOAI_VUNG + chưa xếp (zone_code NULL)", async () => {
+  const w = setup();
+  await taoVung(w, "BAC");
+  const tong = (await lay(w)).locations.length;
+  assert.ok(tong >= 3, "cần ít nhất 3 địa điểm gieo sẵn");
+  const dem = async (code: string) => (await vungCua(w, code)).soDiaDiem;
+  assert.equal(await dem("NGOAI_VUNG"), tong, "tất cả chưa xếp → tính hết vào Ngoài khu vực");
+  assert.equal(await dem("BAC"), 0);
+  assert.equal((await putDiem(w, await diem(w, "QUAY_VE_01"), { zoneCode: "BAC" })).status, 200);
+  assert.equal(await dem("BAC"), 1);
+  assert.equal(await dem("NGOAI_VUNG"), tong - 1);
+  assert.equal((await putDiem(w, await diem(w, "QUAY_VE_02"), { zoneCode: "NGOAI_VUNG" })).status, 200);
+  assert.equal(await dem("NGOAI_VUNG"), tong - 1, "gán thẳng NGOAI_VUNG vẫn tính một lần, không đếm đôi");
+});
+
 test("khoá lạc quan: PUT vùng với expectedUpdatedAt cũ → 409 stale; Bán hàng → 403", async () => {
   const w = setup();
   await taoVung(w);
@@ -139,11 +154,11 @@ test("gốc lắp ráp tiêm vungDon: index.ts nối vungDangBat; pricing không
   const goc = readFileSync(new URL("../../index.ts", import.meta.url), "utf8");
   assert.match(goc, /vungDon:\s*\(env\)\s*=>\s*vungDangBat\(env\.DB\)/);
   const thuMuc = new URL("../pricing/", import.meta.url);
-  const tep = readdirSync(thuMuc).filter((t) => t.endsWith(".ts") && !t.endsWith(".test.ts"));
+  const tep = (readdirSync(thuMuc, { recursive: true }) as string[]).filter((t) => t.endsWith(".ts") && !t.endsWith(".test.ts"));
   assert.ok(tep.length > 0, "không quét được tệp nào của pricing");
   for (const t of tep) {
     const noi = readFileSync(new URL(t, thuMuc), "utf8");
-    assert.ok(!noi.includes("loc_"), `${t} chứa loc_`);
+    assert.ok(!/\bloc_/.test(noi), `${t} chứa loc_`);
     assert.ok(!noi.includes("modules/locations"), `${t} import locations`);
   }
 });
