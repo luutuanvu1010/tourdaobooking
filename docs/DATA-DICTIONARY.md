@@ -140,10 +140,13 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
-| `loc_location` | bảng | địa điểm phát sinh nghiệp vụ. Cột quick_pick_order (0121, ADR-0118): thứ tự «Chọn nhanh» 1–99, NULL = không chọn nhanh; địa điểm đang dùng có số này hiện thành nút dưới ô Nơi trả (chiều đi) / Nơi đón (chiều về) ở form Tạo đơn — gieo Bến cảng Vinpearl = 1, Bến tàu du lịch Nha Trang = 2 |
+| `loc_location` | bảng | địa điểm phát sinh nghiệp vụ. Cột zone_code (0164, ADR-0147 Đ1): khu vực đón, NULL = chưa xếp (view v_loc_location_zone quy về NGOAI_VUNG). Cột quick_pick_order (0121, ADR-0118): thứ tự «Chọn nhanh» 1–99, NULL = không chọn nhanh; địa điểm đang dùng có số này hiện thành nút dưới ô Nơi trả (chiều đi) / Nơi đón (chiều về) ở form Tạo đơn — gieo Bến cảng Vinpearl = 1, Bến tàu du lịch Nha Trang = 2 |
 | `loc_location_type` | bảng tra cứu |  |
+| `loc_zone` | bảng tra cứu | khu vực đón (ADR-0147 Đ1, 0164): bảng tra cứu, không xoá, chỉ ngưng; NGOAI_VUNG («Ngoài khu vực») gieo sẵn và luôn bật; không ngưng được khu vực còn địa điểm |
 | `v_loc_location_label` | view công bố | cột: id, code, name, location_type_code, active |
 | `v_loc_location_dia_chi` | view công bố | cột: id, address, active |
+| `v_loc_location_zone` | view công bố | cột: location_id, zone_code |
+| `v_loc_zone_label` | view công bố | cột: code, name, active |
 
 ## maintenance
 

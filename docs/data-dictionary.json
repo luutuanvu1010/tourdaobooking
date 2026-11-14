@@ -204,12 +204,18 @@
       "name": "loc_location",
       "module": "locations",
       "kind": "table",
-      "note": "địa điểm phát sinh nghiệp vụ. Cột quick_pick_order (0121, ADR-0118): thứ tự «Chọn nhanh» 1–99, NULL = không chọn nhanh; địa điểm đang dùng có số này hiện thành nút dưới ô Nơi trả (chiều đi) / Nơi đón (chiều về) ở form Tạo đơn — gieo Bến cảng Vinpearl = 1, Bến tàu du lịch Nha Trang = 2"
+      "note": "địa điểm phát sinh nghiệp vụ. Cột zone_code (0164, ADR-0147 Đ1): khu vực đón, NULL = chưa xếp (view v_loc_location_zone quy về NGOAI_VUNG). Cột quick_pick_order (0121, ADR-0118): thứ tự «Chọn nhanh» 1–99, NULL = không chọn nhanh; địa điểm đang dùng có số này hiện thành nút dưới ô Nơi trả (chiều đi) / Nơi đón (chiều về) ở form Tạo đơn — gieo Bến cảng Vinpearl = 1, Bến tàu du lịch Nha Trang = 2"
     },
     {
       "name": "loc_location_type",
       "module": "locations",
       "kind": "lookup"
+    },
+    {
+      "name": "loc_zone",
+      "module": "locations",
+      "kind": "lookup",
+      "note": "khu vực đón (ADR-0147 Đ1, 0164): bảng tra cứu, không xoá, chỉ ngưng; NGOAI_VUNG («Ngoài khu vực») gieo sẵn và luôn bật; không ngưng được khu vực còn địa điểm"
     },
     {
       "name": "login_attempt",
@@ -1138,6 +1144,23 @@
       ]
     },
     {
+      "name": "v_loc_location_zone",
+      "module": "locations",
+      "columns": [
+        "location_id",
+        "zone_code"
+      ]
+    },
+    {
+      "name": "v_loc_zone_label",
+      "module": "locations",
+      "columns": [
+        "code",
+        "name",
+        "active"
+      ]
+    },
+    {
       "name": "v_bil_phai_thu_hien_hanh",
       "module": "billing",
       "columns": [
@@ -1786,8 +1809,9 @@
     "ky_period_close": { "period": "N1", "closed_at": "N1", "closed_by": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "lg_chinh_sach_giu": { "id": "N1", "so_ngay": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "lg_lan_gui": { "staff_id": "N1", "khoa": "N1", "van_tay": "N1", "duong": "N1", "ma_tra": "N1", "ma_loi": "N1", "ket_qua": "N1", "so_lan_lap": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "loc_location": { "id": "N1", "code": "N1", "name": "N1", "location_type_code": "N1", "address": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" , "quick_pick_order": "N1"},
+    "loc_location": { "id": "N1", "code": "N1", "name": "N1", "location_type_code": "N1", "address": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" , "quick_pick_order": "N1", "zone_code": "N1"},
     "loc_location_type": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
+    "loc_zone": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "login_attempt": { "id": "N1", "key": "N2", "at": "N1" },
     "mnt_setting": { "id": "N1", "enabled": "N1", "ends_at": "N1", "allowed_phones": "N2", "content_json": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ntf_ack": { "notice_id": "N1", "staff_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -1897,6 +1921,8 @@
     "v_dsp_sales_policy_current": { "priority_minutes": "N1", "work_start_minute": "N1", "work_end_minute": "N1", "release_cutoff_at": "N1" },
     "v_ky_closed_period": { "period": "N1" },
     "v_loc_location_dia_chi": { "id": "N1", "address": "N1", "active": "N1" },
+    "v_loc_location_zone": { "location_id": "N1", "zone_code": "N1" },
+    "v_loc_zone_label": { "code": "N1", "name": "N1", "active": "N1" },
     "v_loc_location_label": { "id": "N1", "code": "N1", "name": "N1", "location_type_code": "N1", "active": "N1" },
     "v_ord_cancel_state": { "order_id": "N1", "group_code": "N1", "reason_code": "N1", "cancelled_date": "N1", "legacy": "N1", "depart_last_date": "N1", "refund_deadline": "N1" },
     "v_ord_leg_commit": { "id": "N1", "order_id": "N1", "exclusive_vehicle": "N1", "min_vehicle_seats": "N1" },
