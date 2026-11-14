@@ -218,7 +218,8 @@ function moForm(che: Che): void {
     khung = khungNhap("Đặt ngày bắt đầu áp", h("p", { class: "muted" }, "Mỗi khu vực đang dùng phải có một mức chung (không nêu cấp, dịch vụ hay nhóm) còn hiệu lực vào ngày này."), o("Ngày bắt đầu áp", ngay), nutHang);
   } else if (che.loai === "ketThuc") {
     const m = che.m;
-    const ngay = h("input", { type: "date", value: homNay() });
+    // Mức chưa bắt đầu mà để «hôm nay» thì máy chủ luôn từ chối (ngày kết thúc trước ngày bắt đầu): mặc định lấy ngày lớn hơn.
+    const ngay = h("input", { type: "date", value: homNay() < m.tuNgay ? m.tuNgay : homNay() });
     luu.addEventListener("click", async () => {
       if (!ngay.value) return hienLoi("Chọn ngày kết thúc.");
       const ok = await ghi(luu, async () => {
