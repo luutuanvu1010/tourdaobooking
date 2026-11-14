@@ -790,8 +790,12 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 ## 71. Kiểm toán cách làm bằng AI — việc để sau (mã `BL-AI-…`, 2026-11-13)
 
 - **Trạng thái:** `để sau` · Chủ 13/11, nguyên văn: «Để sau». Hồ sơ: `docs/superpowers/specs/2026-11-13-kiem-toan-cach-lam-vibe-coding.md`.
+- **Cập nhật 15/11:** chủ yêu cầu kiểm toán lại và đề xuất cách thi công cho một người; hồ sơ mới `docs/superpowers/specs/2026-11-15-kiem-toan-harness-va-cach-thi-cong-mot-nguoi.md` thay phần đề xuất của bản 13/11 và đang chờ chủ quyết ba việc (kho mã công khai hay riêng tư; hướng A, B hay C; cho làm Bước 1). Các mã dưới đây nằm trong Bước 1–3 của hồ sơ đó. Số mục 71 trùng với một mục 71 khác trên bản chính; đổi số khi nhập.
+- **BL-AI-KHO-CONG-KHAI** (gấp, chờ chủ) — kho GitHub đang công khai, còn địa chỉ bảng Google Sheet nhân viên và bảng giá, vài dòng số điện thoại, sổ lỗi bảo mật đang mở; người lạ tải được cả hai bảng (kiểm 15/11, chỉ lấy tiêu đề). Chủ tắt chia sẻ bảng nhân viên; quyết kho riêng tư hay công khai.
+- **BL-AI-GITHUB-KHOA-BAN-CHINH** — bản chính trên GitHub chưa có luật bảo vệ nhánh; chủ bật trong cài đặt GitHub, cần thử với luồng `day-len`.
+- **BL-AI-MO-TA-MOI-TRUONG** — `autoMode.environment` trong `~/.claude/settings.json` tả dự án khác và đã cũ; AI soạn, chủ dán.
 - **BL-AI-TERMINAL** — hàng rào lệnh nguy hiểm chỉ canh công cụ Bash; lệnh gõ qua công cụ Terminal của ứng dụng (`mcp__terminal__run_in_terminal`) không qua `guard-remote.mjs` và không khớp luật cấm `Bash(...)`. Vá: thêm luật cấm cho công cụ đó trong `.claude/settings.json` (chủ duyệt), quan sát chặn thật, ghi `docs/SO-HANG-RAO.md`. Mới thấy từ cấu hình, chưa thử.
-- **BL-AI-BO-NHO** — `MEMORY.md` 23,8 KB, sát trần 25 KB máy nạp; phần lớn là dòng trạng thái production. Dọn về sở thích, cách làm.
+- **BL-AI-BO-NHO** — mục lục bộ nhớ phần lớn là dòng trạng thái production. 15/11 đã rút gọn cơ học (cắt mô tả dài, gộp mười mục tính năng cũ; còn 156 dòng, khoảng 16,7 nghìn ký tự, dưới trần đọc); việc bỏ hẳn dòng trạng thái, chỉ giữ sở thích và cách làm, còn chờ chủ.
 - **BL-AI-KIEU-TRA-LOI** — kiểu trả lời "Explanatory" trong cài đặt ứng dụng ngược luật "Cách trả lời tôi"; chủ tự đổi.
 - **BL-AI-CLAUDE-MD** — việc rút gọn CLAUDE.md (ADR-0160) đứng từ 3/11; kèm chuyển công thức `CHANGE-GUIDE.md` thành skill.
 - **BL-AI-NGUOI-KIEM** — người kiểm độc lập có Bash, "chỉ đọc" chỉ bằng lời dặn.
