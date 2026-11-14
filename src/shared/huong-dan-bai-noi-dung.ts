@@ -247,7 +247,7 @@ Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân h�
     o: ["admin.manage"],
     gioiHan: [],
     neo: ["web/phi-don.ts", "public/phi-don.html", "src/shared/phi-don-hien-thi.ts"],
-    moDau: "Phí đưa đón tính theo bảng mức của từng khu vực đón. Thiếu mức thì đơn không xác nhận được, Nền tảng không bao giờ tự tính 0 đồng; muốn miễn phí thì đặt một mức 0 đồng.",
+    moDau: "Hiện phí đưa đón chưa được cộng vào đơn; bảng này để chuẩn bị trước. Phí đưa đón tính theo bảng mức của từng khu vực đón. Khi phí được cộng vào đơn, thiếu mức thì đơn không xác nhận được, Nền tảng không bao giờ tự tính 0 đồng; muốn miễn phí thì đặt một mức 0 đồng.",
     noiDung: `### Các bước
 1. Mở **Phí đưa đón**. Bấm [[＋ Thêm mức phí]], chọn khu vực, đi chung hay xe riêng, gõ số tiền (0 là miễn phí) và ngày bắt đầu, rồi bấm [[Lưu mức phí]].
 2. Mỗi khu vực cần ít nhất một mức chung (không chọn cấp, dịch vụ hay nhóm). Mức riêng hơn (theo cấp, dịch vụ, nhóm, chiều) được ưu tiên khi khớp.

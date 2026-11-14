@@ -10,5 +10,5 @@ export const DAU_VAN: Readonly<Record<string, DauVanBai>> = {
   "han-muc-tra-sau": {"neo":"94c777db435d9756","chu":"38ef6594a828abfa","ban":"2.95","ngay":"2026-11-12"},
   "xem-no-tra-sau": {"neo":"4db6f12ce2982896","chu":"fa963bef8425dbf2","ban":"3.6","ngay":"2026-11-15"},
   "giao-dien": {"neo":"7fde36318901a977","chu":"8d315591cb3389c0","ban":"3.6","ngay":"2026-11-15"},
-  "phi-don": {"neo":"25dea82d12d34780","chu":"220950589e0a755e","ban":"3.3","ngay":"2026-11-15"},
+  "phi-don": {"neo":"de274b31357690b7","chu":"be796f0652da70f6","ban":"3.6","ngay":"2026-11-15"},
 };
