@@ -1,12 +1,13 @@
 // Sổ vàng golden/phi-dua-don.json (Hiến chương 5.17; ADR-0147, ADR-0203). CHƯA có mã phí đón, nên hôm nay chỉ có LỚP 1: mỗi ca tự cân (bắt CA MẪU viết sai) —
 // khuôn, trạng thái xác nhận, dòng mức có thật và còn hiệu lực ngày xác nhận, tiền = đơn giá × số lượng, tổng = tổng các chặng, 0 đồng ⇔ nhãn «Miễn phí».
-// LỚP 2 (chạy ca đã xác nhận qua luật thuần của `pricing`) thêm ở Đợt B của kế hoạch thi công; khi đó chỉ ca "da_xac_nhan" được đếm, không «xanh vì rỗng».
+// LỚP 2 (từ Đợt B, Task 6): chạy ca đã xác nhận qua luật thuần `src/modules/pricing/phi-don-rules.ts`; chỉ ca "da_xac_nhan" được đếm, ca còn chờ là test.todo, và danh sách MA_BAT_BUOC canh để ca không lặng lẽ rơi — không «xanh vì rỗng».
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isISODate } from "./shared/vn-date.ts";
+import { capCuaHoSoNgay, chonMucPhiDon, tinhPhiChang, type ChangTinhPhi, type DieuKienPhiDon, type MucPhiDon } from "./modules/pricing/phi-don-rules.ts";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 type Muc = { id: string; kieu: "PER_PAX" | "PER_TRIP"; vung: string; cap: string | null; dich_vu: string | null; nhom: string | null; chieu: string | null; xe_rieng: boolean; tien: number; tu: string; den: string | null };
@@ -99,4 +100,61 @@ test("sổ vàng phí đón — ca có tiền đơn tự cân (công nợ đại
   const p = ca("SV-PD-26").chia_phan!;
   assert.equal(p.tour_dao, ca("SV-PD-26").tong_phi_don, "phí đón thuộc phần của Tour Đảo");
   assert.equal(p.tong_don, p.nguoi_ban_dich_vu! + p.tour_dao!);
+});
+
+// ---- LỚP 2: luật thuần ra đúng đáp án (ADR-0203 ĐB1; Hiến chương 5.17) ----
+const MA_BAT_BUOC = so.cac_ca.map((c) => c.ma).filter((ma) => !["SV-PD-22", "SV-PD-23", "SV-PD-24"].includes(ma));
+const bangMuc = (): MucPhiDon[] => so.bang_phi.map((x) => {
+  const dieuKien: DieuKienPhiDon = { ZONE: x.vung };
+  if (x.cap) dieuKien.TIER = x.cap;
+  if (x.dich_vu) dieuKien.SERVICE = x.dich_vu;
+  if (x.nhom) dieuKien.SERVICE_GROUP = x.nhom;
+  if (x.chieu) dieuKien.DIRECTION = x.chieu;
+  if (x.xe_rieng) dieuKien.EXCLUSIVE = "1";
+  return { id: x.id, kind: x.kieu, amount: x.tien, validFrom: x.tu, validTo: x.den, dieuKien };
+});
+/** Cấp của bên đặt đi qua ĐÚNG `capCuaHoSoNgay`: hai vai hai cấp dựng riêng cho ca `hai_cap`. */
+function capCuaCa(ca: Ca): ReturnType<typeof capCuaHoSoNgay> {
+  const bd = ca.dau_vao.ben_dat as Ca["dau_vao"]["ben_dat"] & { hai_cap?: string[] };
+  const ngay = ca.dau_vao.ngay_xac_nhan;
+  const gan = (roleTypeCode: string, tierCode: string) => ({ roleTypeCode, tierCode, validFrom: "2026-01-01", validTo: null });
+  if (bd.loai !== "DOI_TAC") return capCuaHoSoNgay({ partyId: null, vai: [], ngay, gan: [], ganRieng: [] });
+  if (bd.hai_cap) return capCuaHoSoNgay({ partyId: "p", vai: ["V1", "V2"], ngay, gan: [gan("V1", bd.hai_cap[0]!), gan("V2", bd.hai_cap[1]!)], ganRieng: [] });
+  return capCuaHoSoNgay({ partyId: "p", vai: ["V1"], ngay, gan: bd.cap ? [gan("V1", bd.cap)] : [], ganRieng: [] });
+}
+for (const ca of so.cac_ca.filter((c) => c.xac_nhan.trang_thai !== "da_xac_nhan")) test.todo(`sổ vàng phí đón — lớp 2: ${ca.ma} chờ chủ xác nhận`);
+test("sổ vàng phí đón — lớp 2: luật thuần ra đúng đáp án", () => {
+  const bang = bangMuc();
+  const chay = so.cac_ca.filter((c) => c.xac_nhan.trang_thai === "da_xac_nhan");
+  assert.ok(chay.length >= 25, `chỉ ${chay.length} ca đã xác nhận chạy được`);
+  for (const ma of MA_BAT_BUOC) assert.ok(chay.some((c) => c.ma === ma), `ca bắt buộc ${ma} không được rơi khỏi lớp 2`);
+  let soChang = 0;
+  for (const c of chay) {
+    if (!c.dap_an.ap_dung) { assert.equal(c.dap_an.chang.length, 0, c.ma); continue; }
+    const ngay = c.dau_vao.ngay_xac_nhan;
+    const cap = capCuaCa(c);
+    const haiCap = cap.loai === "HAI_CAP";
+    let tong = 0;
+    let thieu = false;
+    c.dau_vao.chang.forEach((ch, i) => {
+      const k = c.dap_an.chang[i]!;
+      const nhom = so.dich_vu[ch.dich_vu]!.nhom;
+      const cc: ChangTinhPhi = { zoneCode: ch.vung, direction: ch.chieu, exclusive: ch.xe_rieng, catalogCode: ch.dich_vu, groupCode: nhom, tierCode: cap.loai === "CO_CAP" ? cap.tierCode : null };
+      const nhan = `${c.ma} chặng ${i + 1}`;
+      soChang += 1;
+      if (haiCap) { assert.deepEqual([k.ket_qua, k.ly_do], ["THIEU_MUC", "DAI_LY_HAI_CAP"], `${nhan}: hai cấp ⇒ thiếu mức`); thieu = true; return; }
+      const r = chonMucPhiDon({ chang: cc, ngay, muc: bang });
+      if (k.ket_qua === "THIEU_MUC") { assert.deepEqual([r.trangThai, r.trangThai === "THIEU_MUC" ? r.lyDo : null], ["THIEU_MUC", k.ly_do], nhan); thieu = true; return; }
+      assert.equal(r.trangThai, "CO_MUC", nhan);
+      if (r.trangThai !== "CO_MUC") return;
+      assert.equal(r.muc.id, k.quy_tac, `${nhan}: dòng mức`);
+      const khach = (ch.khach.nguoi_lon ?? 0) + (ch.khach.tre_em ?? 0) + (ch.khach.cao_tuoi ?? 0);
+      const t = tinhPhiChang({ muc: r.muc, direction: ch.chieu, soKhachTinhTien: khach, paxOverride: ch.so_nguoi_rieng ?? null });
+      assert.ok(t, `${nhan}: phải ra dòng`);
+      assert.deepEqual([t!.donGia, t!.soLuong, t!.tien], [k.don_gia, k.so_luong, k.tien], `${nhan}: đơn giá, số lượng, tiền`);
+      tong += t!.tien;
+    });
+    assert.equal(c.dap_an.tong_phi_don, thieu ? null : tong, `${c.ma}: tổng`);
+  }
+  assert.ok(soChang >= 25, `chỉ ${soChang} chặng được chạy`);
 });
