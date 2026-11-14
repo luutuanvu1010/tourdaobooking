@@ -9,7 +9,7 @@
   - **làm xong** ADR-0149 Đ2 (khoá dịch vụ trong biểu phí).
   - **bổ sung** ADR-0182: Tổng công nợ của đơn có thêm phí đón.
   - **giữ** ADR-0047 (chặng không mang tiền), ADR-0117 (cấp độ đại lý là dữ liệu Kế toán đặt; không tạo bộ cấp thứ hai).
-- **Xây trên lỗi đang mở: TNV-G1** (hạn 2026-12-31). Xem «Phát hành».
+- **Lỗi TNV-G1:** lúc soạn còn mở; đã đủ điều kiện đóng ngày 14/11. Xem «Phát hành».
 
 ## Tóm tắt cho chủ (lời thường)
 1. Bảng phí đón có thêm hai ô điều kiện: **cấp độ đại lý** và **dịch vụ cụ thể**. Ô nào để trống nghĩa là «mọi…». Mức 0 đồng là miễn phí.
@@ -40,7 +40,7 @@ Trang ghép 28/10 (`../2026-10-28-phi-don-va-chan-ban/TRANG-GHEP.md` §1) đã g
 ## Phát hành và thi công
 - Mã chỉ viết sau khi sổ vàng `golden/phi-dua-don.json` được Kế toán hoặc chủ xác nhận (Hiến chương 5.17).
 - Bốn đợt A–D như TK mục 6. Đợt A, B không tạo dòng tiền, phát hành được trước.
-- **Đợt C (chạm tiền) phát hành sau khi mục TNV-G1 đóng.** Lời chủ 14/11: «sửa luôn phần chạm tiền bị lỗi». Hiện trạng: phần sửa đã chạy trên production từ bản 2.42; mục chưa đóng vì còn chờ xác nhận năm ca sổ vàng, ca 07 (phiếu chi) và một lệnh kiểm dữ liệu. Chủ 14/11, nguyên văn: «ok tôi duyệt 5 ca vàng, duyệt ca 07 vì trên thực tế vẫn có phiếu thu phiếu chi (offline) viết tay.» Sáu ca đã đổi sang đã xác nhận (13/13). Mục TNV-G1 chỉ còn chờ chủ chạy lệnh kiểm dữ liệu production (`audit-invariants --db remote`); đạt thì đóng mục và Đợt C không còn bị chặn.
+- **Đợt C (chạm tiền) phát hành sau khi mục TNV-G1 đóng.** Lời chủ 14/11: «sửa luôn phần chạm tiền bị lỗi». Hiện trạng: phần sửa đã chạy trên production từ bản 2.42; mục chưa đóng vì còn chờ xác nhận năm ca sổ vàng, ca 07 (phiếu chi) và một lệnh kiểm dữ liệu. Chủ 14/11, nguyên văn: «ok tôi duyệt 5 ca vàng, duyệt ca 07 vì trên thực tế vẫn có phiếu thu phiếu chi (offline) viết tay.» Sáu ca đã đổi sang đã xác nhận (13/13). Cùng ngày chủ chạy `audit-invariants --db remote`: «Mọi bất biến đạt, 2 cảnh báo» (hai cảnh báo không thuộc tiền đơn huỷ: xe thiếu giấy tờ, một đơn có danh sách tên nhiều hơn số khách). Mục TNV-G1 đã gỡ khỏi `docs/quyen-hoan.json` trên nhánh này; khi nhánh vào `main` thì Đợt C không còn bị mục này chặn.
 
 ## Tiêu chí nghiệm thu
 TK mục 7, cộng các tiêu chí của ADR-0147 không bị bản này thay.
