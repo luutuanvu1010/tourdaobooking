@@ -218,7 +218,7 @@ try {
     assert.equal(await p.ev(`${q("#maint-login .maint-card")}.textContent.includes("phần chưa lưu")`), true, "câu «phần chưa lưu» có trong DOM…");
     assert.equal(await p.ev(`${q("#maint-login .maint-card .dai")}.offsetParent === null`), true, "…nhưng giấu ở trang đăng nhập");
     assert.equal(await p.ev(`${q("#support")}.offsetParent === null`), true, "thẻ đã có nút Gọi → giấu dòng «Hỗ trợ kỹ thuật»");
-    assert.equal(await p.ev(`${q("#login-form")}.offsetParent === null && ${q("#mo-dang-nhap")}.offsetParent !== null`), true, "ô đăng nhập thu sau nút «Đăng nhập Toàn quyền»");
+    assert.equal(await p.ev(`${q("#login-form")}.offsetParent === null && ${q("#mo-dang-nhap")}.offsetParent !== null`), true, "ô đăng nhập thu sau nút «Quản trị đăng nhập»");
     assert.equal(await p.ev(`(document.body.innerText.match(/0989\\s?929\\s?373/g) ?? []).length`), 1, "SĐT hỗ trợ chỉ hiện MỘT lần trên trang đăng nhập");
     assert.notEqual(await p.ev(`document.activeElement?.id`), "phone", "ô SĐT không giữ con trỏ (bàn phím iPhone không che thẻ)");
     await p.send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });

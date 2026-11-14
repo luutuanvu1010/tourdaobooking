@@ -17,12 +17,12 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Chủ dự án 14/11 (sau khi lên 3.4): «ở giao diện điện thoại cần kéo, như thế là ngoài phạm vi». Thẻ gọn lại, ô đăng nhập thu sau nút «Đăng nhập Toàn quyền» (tên tạm, chờ chủ chọn). Chỉ giao diện.
+    // Chủ dự án 14/11 (sau khi lên 3.4): «ở giao diện điện thoại cần kéo, như thế là ngoài phạm vi». Thẻ gọn lại, ô đăng nhập thu sau nút «Quản trị đăng nhập» (tên chủ chọn 14/11). Chỉ giao diện.
     // SỐ TẠM 3.5: main có 3.4; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.5",
     date: "2026-11-14",
     items: [
-      { kind: "sua", text: "Trang đăng nhập khi đang bảo trì vừa một màn hình điện thoại, không phải kéo; ô đăng nhập mở bằng nút «Đăng nhập Toàn quyền»." },
+      { kind: "sua", text: "Trang đăng nhập khi đang bảo trì vừa một màn hình điện thoại, không phải kéo; ô đăng nhập mở bằng nút «Quản trị đăng nhập»." },
     ],
   },
   {

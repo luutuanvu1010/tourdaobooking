@@ -1874,7 +1874,7 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
 body.login-page.login-bao-tri { background: var(--c-maint-bg); }
 body.login-bao-tri .login-col { max-width: var(--w-maint); }
 body.login-bao-tri .login-logo, body.login-bao-tri .login-col > h1 { display: none; }
-/* Ô đăng nhập (và dòng «Hỗ trợ kỹ thuật» — thẻ đã có nút Gọi) thu sau nút «Đăng nhập Toàn quyền» để trang VỪA MỘT MÀN HÌNH (chủ dự án 14/11/2026: «cần kéo, như thế là ngoài phạm vi»). */
+/* Ô đăng nhập (và dòng «Hỗ trợ kỹ thuật» — thẻ đã có nút Gọi) thu sau nút «Quản trị đăng nhập» để trang VỪA MỘT MÀN HÌNH (chủ dự án 14/11/2026: «cần kéo, như thế là ngoài phạm vi»). */
 body.login-bao-tri:not(.login-mo-form) #login-form, body.login-bao-tri:not(.login-mo-form) .login-support { display: none; }
 .login-mo-dn { align-self: center; min-height: var(--tap-min); margin-top: var(--s2); }
 body:not(.login-bao-tri) .login-mo-dn, body.login-mo-form .login-mo-dn { display: none; }
