@@ -153,7 +153,7 @@ Chủ duyệt bản thiết kế này cùng câu trả lời trên. Các chỗ *
 **Bổ sung cùng ngày, sau khi chủ đọc bảng ví dụ (ca SV-PD-10).** Chủ hỏi có nên «giá trị nào cao hơn thì áp»; người soạn nêu hệ quả (mọi mức ưu đãi thấp hơn mức chung sẽ không bao giờ được áp, trái câu «dịch vụ thắng»). Chủ chọn, nguyên văn: «Giữ thứ tự, thêm cảnh báo». Vậy:
 
 4. **Thứ tự chọn mức ở ĐB1 giữ nguyên** (dịch vụ, rồi cấp, rồi nhóm, rồi chiều). Ca SV-PD-10 đúng như đã soạn.
-5. **Thêm cảnh báo lúc lưu mức (không chặn):** khi Quản trị lưu một dòng mức mà sau đó có tổ hợp (vùng, dịch vụ, chiều, đi chung hay xe riêng) khiến một cấp độ đại lý trả **cao hơn** mức của bên không có cấp, màn đặt mức hiện cảnh báo nêu rõ cấp nào, dịch vụ hoặc nhóm nào, hai con số. Quản trị vẫn lưu được. Cảnh báo tính bằng chính hàm chọn mức, không viết luật thứ hai. Thuộc Đợt A (màn đặt mức); chữ cảnh báo do chủ duyệt ở bước kế hoạch. Tiêu chí nghiệm thu: với bảng mẫu của sổ vàng, lưu dòng P06 (Bãi Dài, cấp 3, 80.000 đ) khi đã có P09 (nhóm Hòn Tằm 70.000 đ) thì cảnh báo hiện; thêm dòng «cấp 3 + nhóm Hòn Tằm 70.000 đ» thì hết.
+5. **Thêm cảnh báo lúc lưu mức (không chặn):** khi Quản trị lưu một dòng mức mà sau đó có tổ hợp (vùng, dịch vụ, chiều, đi chung hay xe riêng) khiến một cấp độ đại lý trả **cao hơn** mức của bên không có cấp, màn đặt mức hiện cảnh báo nêu rõ cấp nào, dịch vụ hoặc nhóm nào, hai con số. Quản trị vẫn lưu được. Cảnh báo tính bằng chính hàm chọn mức, không viết luật thứ hai. Thuộc Đợt B (màn đặt mức); chữ cảnh báo do chủ duyệt ở bước kế hoạch. Tiêu chí nghiệm thu: với bảng mẫu của sổ vàng, lưu dòng P06 (Bãi Dài, cấp 3, 80.000 đ) khi đã có P09 (nhóm Hòn Tằm 70.000 đ) thì cảnh báo hiện; thêm dòng «cấp 3 + nhóm Hòn Tằm 70.000 đ» thì hết.
 
 ## 9. Để người thi công tự quyết
 
