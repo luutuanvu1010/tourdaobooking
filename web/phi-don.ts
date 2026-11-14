@@ -49,6 +49,7 @@ function ten(): TenPhiDon {
 async function nap(): Promise<boolean> {
   try {
     du = await api<Api.PhiDonResponse>("/api/pricing/phi-don");
+    canhBaoSauLuu = []; // cảnh báo riêng chỉ sống tới lần nạp kế tiếp (lưu mức đặt lại ngay sau nap)
     showError(errorEl, null);
     return true;
   } catch (err) {
@@ -68,6 +69,7 @@ async function ghi(nut: HTMLButtonElement, fn: () => Promise<void>): Promise<boo
   } catch (err) {
     if (err instanceof ApiError && err.code === "stale") {
       await nap();
+      dongForm(); // form cũ giữ updatedAt đã cũ: đóng để lần làm lại đọc bản mới
       ve();
       hienLoi(STALE);
     } else hienLoi(loiCua(err));
@@ -91,9 +93,9 @@ function veTrangThai(): void {
   const d = du!;
   const ngay = d.batDauAp.ngay;
   const dong = ngay === null ? "Chưa áp phí đưa đón" : ngay > homNay() ? `Phí đưa đón sẽ áp từ ${ngayDayDu(ngay)}` : `Phí đưa đón đang áp từ ${ngayDayDu(ngay)}`;
-  const nut = [nutPhu("Đặt ngày bắt đầu áp", () => moForm({ loai: "ngayAp" }))];
-  if (ngay !== null) nut.push(nutPhu("Tắt phí đưa đón", () => void tat(nut[nut.length - 1]!)));
-  replaceChildren(trangThaiEl, h("strong", null, dong), h("div", { class: "actions" }, ...nut));
+  const nutDat = nutPhu("Đặt ngày bắt đầu áp", () => moForm({ loai: "ngayAp" }));
+  const nutTat = ngay === null ? null : nutPhu("Tắt phí đưa đón", () => void tat(nutTat!));
+  replaceChildren(trangThaiEl, h("strong", null, dong), h("div", { class: "actions" }, nutDat, nutTat));
 }
 
 async function tat(nutBam: HTMLButtonElement): Promise<void> {
@@ -114,6 +116,7 @@ async function tat(nutBam: HTMLButtonElement): Promise<void> {
 
 // ---------- Khối 2: thử tra ----------
 function veThuTra(): void {
+  ketQuaThuTra = null; // khối dựng lại thì các ô về mặc định: không để kết quả cũ nằm cạnh ô trống
   const d = du!;
   const vung = chon(d.vung.map((x) => [x.code, x.name]));
   const dv = chon(d.dichVu.map((x) => [x.code, x.name]));
@@ -167,9 +170,11 @@ function veMuc(): void {
     if (ds.length === 0) return h("div", { class: "pd-vung" }, h("h3", null, ten1), h("p", { class: "muted" }, "Chưa có mức nào cho khu vực này."));
     const hang = (m: Api.MucPhiDonDto) =>
       h("tr", null, h("td", null, cauDieuKien(m, t)), h("td", null, cauTien(m)), h("td", null, cauKhoangNgay(m.tuNgay, m.denNgay)), h("td", { class: "muted" }, m.ghiChu ?? ""), h("td", { class: "row-actions" }, ...hanhDong(m)));
-    const the = (m: Api.MucPhiDonDto) =>
-      h("div", { class: "card card-col" }, h("div", null, h("strong", null, cauTien(m))), h("div", null, cauDieuKien(m, t)), h("div", { class: "muted" }, cauKhoangNgay(m.tuNgay, m.denNgay)),
-        m.ghiChu && h("div", { class: "muted" }, m.ghiChu), hanhDong(m).length > 0 && h("div", { class: "actions" }, ...hanhDong(m)));
+    const the = (m: Api.MucPhiDonDto) => {
+      const nutM = hanhDong(m);
+      return h("div", { class: "card card-col" }, h("div", null, h("strong", null, cauTien(m))), h("div", null, cauDieuKien(m, t)), h("div", { class: "muted" }, cauKhoangNgay(m.tuNgay, m.denNgay)),
+        m.ghiChu && h("div", { class: "muted" }, m.ghiChu), nutM.length > 0 && h("div", { class: "actions" }, ...nutM));
+    };
     return h("div", { class: "pd-vung" }, h("h3", null, ten1),
       h("section", { class: "card table-wrap" }, h("table", { class: "items" }, h("thead", null, h("tr", null, h("th", null, "Điều kiện"), h("th", null, "Số tiền"), h("th", null, "Hiệu lực"), h("th", null, "Ghi chú"), h("th", null))), h("tbody", null, ...ds.map(hang)))),
       h("div", { class: "card-list" }, ...ds.map(the)));
@@ -270,8 +275,8 @@ function moForm(che: Che): void {
           };
       const ok = await ghi(luu, async () => {
         const r = await api<Api.PhiDonGhiResponse>("/api/pricing/phi-don", { method: "POST", body });
-        canhBaoSauLuu = r.canhBao;
         await nap();
+        canhBaoSauLuu = r.canhBao; // đặt SAU nap: nap xoá cảnh báo cũ
         dongForm();
         ve();
       });
