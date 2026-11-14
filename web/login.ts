@@ -66,6 +66,13 @@ const widgetBox = byId("turnstile-widget");
 const retryBtn = byId<HTMLButtonElement>("turnstile-retry");
 // Tuỳ chọn có chủ ý: service worker làm mới HTML và JS riêng rẽ, HTML cũ trong cache đi với login.js mới không được làm chết trang đăng nhập (byId ném lỗi khi thiếu).
 const maintenanceEl = document.getElementById("maint-login");
+// Nút mở ô đăng nhập khi đang bảo trì (tuỳ chọn: HTML cũ trong cache có thể chưa có). Mở rồi thì giữ mở tới khi hết bảo trì, kể cả khi 503 dựng lại thẻ.
+const moDangNhap = document.getElementById("mo-dang-nhap");
+moDangNhap?.addEventListener("click", () => {
+  document.body.classList.add("login-mo-form");
+  moDangNhap.setAttribute("aria-expanded", "true");
+  byId<HTMLInputElement>("phone").focus();
+});
 // Đăng nhập bằng Face ID (ADR-0016): tuỳ chọn cùng lý do trên — HTML cũ trong cache có thể chưa có các phần tử này.
 const passkeyBtn = document.getElementById("passkey-login") as HTMLButtonElement | null;
 const hintEl = document.getElementById("passkey-hint");
@@ -153,6 +160,8 @@ function setMaintenance(on: boolean, endsAt: string | null, nd: MaintenanceConte
   stopMaintenance?.();
   stopMaintenance = null;
   document.body.classList.toggle("login-bao-tri", on);
+  if (moDangNhap) moDangNhap.hidden = !on;
+  if (!on) document.body.classList.remove("login-mo-form");
   const support = document.getElementById("support");
   if (!maintenanceEl) return;
   const lanDau = maintenanceEl.hidden; // thẻ vừa mới hiện (không phải lần dựng lại của fetchConfig khi người dùng có thể đang gõ)
@@ -166,7 +175,7 @@ function setMaintenance(on: boolean, endsAt: string | null, nd: MaintenanceConte
   t.logoutBtn.hidden = true;
   if (t.note.parentElement) t.note.parentElement.hidden = true;
   t.retry.addEventListener("click", () => location.reload());
-  // Thẻ đã có nút «Gọi …» thì giấu dòng «Hỗ trợ kỹ thuật»: số hỗ trợ chỉ hiện MỘT lần (chủ dự án 14/11/2026).
+  // Thẻ đã có nút «Gọi …» thì giấu dòng «Hỗ trợ kỹ thuật» (cả khi đã mở ô đăng nhập): số hỗ trợ chỉ hiện MỘT lần (chủ dự án 14/11/2026).
   if (support) support.hidden = !!t.contact?.querySelector('a[href^="tel:"]');
   const endsMs = endsAt ? Date.parse(endsAt) : NaN;
   let tick: ReturnType<typeof setInterval> | null = null;

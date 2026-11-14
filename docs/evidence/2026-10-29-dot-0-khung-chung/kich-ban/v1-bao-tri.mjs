@@ -218,19 +218,29 @@ try {
     assert.equal(await p.ev(`${q("#maint-login .maint-card")}.textContent.includes("phần chưa lưu")`), true, "câu «phần chưa lưu» có trong DOM…");
     assert.equal(await p.ev(`${q("#maint-login .maint-card .dai")}.offsetParent === null`), true, "…nhưng giấu ở trang đăng nhập");
     assert.equal(await p.ev(`${q("#support")}.offsetParent === null`), true, "thẻ đã có nút Gọi → giấu dòng «Hỗ trợ kỹ thuật»");
+    assert.equal(await p.ev(`${q("#login-form")}.offsetParent === null && ${q("#mo-dang-nhap")}.offsetParent !== null`), true, "ô đăng nhập thu sau nút «Đăng nhập Toàn quyền»");
     assert.equal(await p.ev(`(document.body.innerText.match(/0989\\s?929\\s?373/g) ?? []).length`), 1, "SĐT hỗ trợ chỉ hiện MỘT lần trên trang đăng nhập");
     assert.notEqual(await p.ev(`document.activeElement?.id`), "phone", "ô SĐT không giữ con trỏ (bàn phím iPhone không che thẻ)");
     await p.send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
     await sleep(300);
     await shotKhungNhin(p, join(OUT, "anh/bt-05b-dang-nhap-the-1280.png"));
-    await p.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
-    await sleep(300);
-    assert.ok((await p.ev(`document.documentElement.scrollWidth`)) <= 390, "không tràn ngang ở 390px");
-    await shotKhungNhin(p, join(OUT, "anh/bt-05c-dang-nhap-the-390.png"));
+    assert.equal(await p.ev(`(() => { const m = document.querySelector("main.login"); return m.scrollHeight <= m.clientHeight; })()`), true, "1280×800: vừa một màn hình");
+    // Chủ dự án 14/11/2026: «ở giao diện điện thoại cần kéo, như thế là ngoài phạm vi» → VỪA MỘT MÀN HÌNH, kể cả Safari còn thanh công cụ (390×664, luật trang đăng nhập 2026-09-24).
+    for (const [w, hh, ten] of [[390, 844, "bt-05c-dang-nhap-the-390"], [390, 664, "bt-05e-dang-nhap-the-390x664"]]) {
+      await p.send("Emulation.setDeviceMetricsOverride", { width: w, height: hh, deviceScaleFactor: 2, mobile: true });
+      await sleep(300);
+      assert.ok((await p.ev(`document.documentElement.scrollWidth`)) <= w, `không tràn ngang ở ${w}px`);
+      assert.equal(await p.ev(`(() => { const m = document.querySelector("main.login"); return m.scrollHeight <= m.clientHeight; })()`), true, `${w}×${hh}: vừa một màn hình, không phải kéo`);
+      await shotKhungNhin(p, join(OUT, `anh/${ten}.png`));
+    }
+    await click(p, "#mo-dang-nhap");
+    await sleep(200);
+    assert.equal(await p.ev(`${q("#login-form")}.offsetParent !== null && ${q("#mo-dang-nhap")}.offsetParent === null`), true, "bấm nút → hiện ô đăng nhập, nút tự ẩn");
+    assert.equal(await p.ev(`document.activeElement?.id`), "phone", "con trỏ vào ô SĐT");
+    assert.equal(await p.ev(`(document.body.innerText.match(/0989\\s?929\\s?373/g) ?? []).length`), 1, "mở ô đăng nhập rồi SĐT vẫn chỉ một lần");
     await p.ev(`document.querySelector("main.login").scrollTop = 1e6`);
     await sleep(200);
-    assert.equal(await p.ev(`(() => { const r = ${q("#submit")}.getBoundingClientRect(); return r.bottom <= innerHeight && r.top >= 0; })()`), true, "cuộn xuống tới được nút Đăng nhập");
-    await shotKhungNhin(p, join(OUT, "anh/bt-05d-dang-nhap-the-390-cuon.png"));
+    await shotKhungNhin(p, join(OUT, "anh/bt-05d-dang-nhap-the-390-mo-o.png"));
     // Bản thiết kế Đăng nhập (2026-09-24): nút khoá tới khi gõ đủ SĐT + 6 số PIN — banner bảo trì KHÔNG khoá thêm.
     await p.ev(setInput(q("#phone"), ACCOUNTS.salesA.phone));
     await p.ev(setInput(q("#pin"), ACCOUNTS.salesA.pin));
@@ -245,7 +255,8 @@ try {
     const p = await env.openPage();
     await p.send("Network.clearBrowserCookies");
     await p.send("Page.navigate", { url: `${env.base}/login` });
-    await p.waitFor(`document.readyState === 'complete' && !!${q("#submit")}`, "form tải xong");
+    await p.waitFor(`document.readyState === 'complete' && !!${q("#submit")} && ${q("#mo-dang-nhap")}?.hidden === false`, "form tải xong, thẻ bảo trì hiện");
+    await click(p, "#mo-dang-nhap");
     await p.ev(setInput(q("#phone"), ACCOUNTS.salesA.phone));
     await p.ev(setInput(q("#pin"), ACCOUNTS.salesA.pin));
     await p.waitFor(`!${q("#submit")}.disabled`, "form sẵn sàng (gõ đủ, nút mở)");
@@ -254,6 +265,7 @@ try {
     assert.equal(await p.ev(`${q("#error")}.hidden`), true, "không hiện lỗi chung");
     assert.equal(await p.ev(`${q("#maint-login")}.hidden`), false);
     assert.equal(await p.ev(`document.querySelectorAll("#maint-login .maint-card").length`), 1, "503 dựng lại thẻ, không thêm thẻ thứ hai");
+    assert.equal(await p.ev(`${q("#login-form")}.offsetParent !== null`), true, "503 không thu lại ô đăng nhập đang mở");
     assert.equal(await p.ev(`${q("#submit")}.disabled`), false);
     assert.equal(await p.ev(`location.pathname`), "/login");
     // không tiêu hao lượt thử PIN: bảng login_attempt không có dòng của nhân viên

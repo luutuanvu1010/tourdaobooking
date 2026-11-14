@@ -1838,7 +1838,7 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
 .login-body { flex: 1 0 auto; display: flex; align-items: flex-start; justify-content: center; padding: var(--s6) 0 var(--login-body-bottom); }
 .login-col { display: flex; flex-direction: column; width: 100%; max-width: var(--w-login); min-width: 0; }
 .login-logo { display: block; width: var(--logo-login); height: var(--logo-login); margin: 0 auto var(--s4); border-radius: var(--radius-icon); box-shadow: var(--shadow-card); }
-.login-col h1 { margin: 0; font-family: var(--font-display); font-weight: var(--fw-heavy); font-size: var(--fs-login-title); line-height: 1.22; color: var(--c-primary); text-align: center; }
+.login-col > h1 { margin: 0; font-family: var(--font-display); font-weight: var(--fw-heavy); font-size: var(--fs-login-title); line-height: 1.22; color: var(--c-primary); text-align: center; }
 .login-alert { margin: var(--s5) 0 0; padding: var(--s3) var(--s4); font-size: var(--fs-label); border-radius: var(--radius-sm); }
 .login-alert p { margin: 0; overflow-wrap: anywhere; }
 .login-form { display: flex; flex-direction: column; gap: var(--s4); margin: var(--s6) 0 0; min-width: 0; }
@@ -1874,7 +1874,24 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
 body.login-page.login-bao-tri { background: var(--c-maint-bg); }
 body.login-bao-tri .login-col { max-width: var(--w-maint); }
 body.login-bao-tri .login-logo, body.login-bao-tri .login-col > h1 { display: none; }
-.login-maint { margin-bottom: var(--s6); }
+/* Ô đăng nhập (và dòng «Hỗ trợ kỹ thuật» — thẻ đã có nút Gọi) thu sau nút «Đăng nhập Toàn quyền» để trang VỪA MỘT MÀN HÌNH (chủ dự án 14/11/2026: «cần kéo, như thế là ngoài phạm vi»). */
+body.login-bao-tri:not(.login-mo-form) #login-form, body.login-bao-tri:not(.login-mo-form) .login-support { display: none; }
+.login-mo-dn { align-self: center; min-height: var(--tap-min); margin-top: var(--s2); }
+body:not(.login-bao-tri) .login-mo-dn, body.login-mo-form .login-mo-dn { display: none; }
+/* Thẻ gọn lại cho vừa một màn hình: điện thoại 390×664 (Safari còn thanh công cụ, như luật trang đăng nhập 2026-09-24), máy tính 1280×800. Thẻ website và lời cảm ơn chỉ hiện ở máy tính. */
+body.login-bao-tri .login-body { padding-top: var(--s2); padding-bottom: var(--s2); }
+body.login-bao-tri .maint-card { gap: var(--s3); padding: var(--s4); }
+body.login-bao-tri .maint-cot { gap: var(--s3); }
+body.login-bao-tri .maint-chu { gap: var(--s1); }
+body.login-bao-tri .maint-dem-khoi, body.login-bao-tri .maint-dem { gap: var(--s2); }
+body.login-bao-tri .maint-o > div { padding: var(--s1); }
+body.login-bao-tri .maint-o-so { font-size: var(--fs-step-12); }
+body.login-bao-tri .maint-nut .nut[data-co="lon"] { min-height: var(--tap-min); }
+@media (max-width: 899px) {
+  body.login-bao-tri .maint-lien-he .nut, body.login-bao-tri .maint-lien-he .nut:first-child { flex-basis: 0; padding-left: var(--s2); padding-right: var(--s2); white-space: nowrap; } /* Gọi + Nhắn Zalo chung một hàng */
+  body.login-bao-tri .maint-web, body.login-bao-tri .maint-cam-on { display: none; }
+  body.login-bao-tri .login-mo-dn { margin-top: var(--s1); }
+}
 .login-support { display: flex; align-items: center; justify-content: center; gap: var(--s2); margin-top: var(--s5); font-size: var(--fs-label); color: var(--c-text-muted); }
 .login-support a { display: flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--s4); font-weight: var(--fw-heavy); color: var(--c-primary); text-decoration: none; background: var(--c-soft-hover); border-radius: var(--radius-pill); }
 .login-support a:hover { color: var(--c-primary-strong); text-decoration: underline; }
@@ -1896,7 +1913,7 @@ body.login-bao-tri .login-logo, body.login-bao-tri .login-col > h1 { display: no
 @media (min-width: 900px) {
   body.login-page main.login { padding: var(--s5) var(--s7) var(--s6); }
   .login-body { align-items: center; padding: var(--s2) 0; } /* bản thiết kế đệm 48px, nhưng khối được CĂN GIỮA nên khi đủ chỗ trông y hệt; đệm tối thiểu nhỏ để có widget Turnstile (bản thiết kế không có) vẫn vừa 1280×800 không cuộn */
-  .login-col h1 { font-size: var(--fs-login-title-wide); }
+  .login-col > h1 { font-size: var(--fs-login-title-wide); }
   .login-field input, .login-actions .login-submit, .login-actions .login-passkey-btn { height: var(--h-field-wide); min-height: var(--h-field-wide); }
   .login-actions .login-passkey-btn { width: var(--h-field-wide); }
   .login-info { font-size: var(--fs-label); }
