@@ -133,6 +133,56 @@ test("kiemThanMucPhiDon", () => {
   assert.ok(sai(dk({ ZONE: "CR", SERVICE: "S9" })) && sai(dk({ ZONE: "CR", SERVICE_GROUP: "XX" })));
 });
 
+// Tiêu chí «khoá giả» (ADR-0147 Đ2 tiêu chí 6): thêm một khoá điều kiện = thêm MỘT mục vào danh sách đăng ký, không sửa hàm chọn mức, không sửa nơi gọi.
+test("khoá giả: dòng mang khoá giả khớp qua boTinh và thắng đúng theo bậc đã khai, hàm chọn mức không đổi", () => {
+  const c = chang({ tierCode: "C1", groupCode: "G1" });
+  const mua = (bac: number) => ({ ...BO_TINH, MUA: { khop: (g: string) => g === "he", bac } });
+  const la = m("LA", { ZONE: "CR", MUA: "he" } as DieuKienPhiDon, 1);
+  const nhom = m("NHOM", { ZONE: "CR", SERVICE_GROUP: "G1" }, 2); // bậc 2
+  const chieu = m("CHIEU", { ZONE: "CR", DIRECTION: "OUT" }, 3); // bậc 1
+  const cap = m("CAP", { ZONE: "CR", TIER: "C1" }, 4); // bậc 4
+  const chon = (bac: number, ...muc: MucPhiDon[]) => chonMucPhiDon({ chang: c, ngay: NGAY, muc, boTinh: mua(bac) });
+  // bậc 3 > nhóm (2) và chiều (1) ⇒ khoá giả thắng; nhưng < cấp (4) ⇒ cấp thắng
+  assert.equal(id(chon(3, la, nhom, chieu)), "LA");
+  assert.equal(id(chon(3, la, nhom, chieu, cap)), "CAP");
+  // bậc 1 (ngang chiều, thấp hơn nhóm) ⇒ thua nhóm
+  assert.equal(id(chon(1, la, nhom)), "NHOM");
+  // dòng thua có lý do bằng chữ, không văng lỗi dù khoá giả không có tên trong bảng tên khoá
+  const r = chon(3, la, nhom);
+  assert.ok(r.trangThai === "CO_MUC" && r.thua.length === 1 && /thua vì/.test(r.thua[0]!.viSao));
+  // giá trị không khớp ⇒ dòng mang khoá giả KHÔNG áp; không truyền boTinh ⇒ khoá giả không bao giờ khớp (mặc định là BO_TINH thật)
+  assert.equal(id(chonMucPhiDon({ chang: c, ngay: NGAY, muc: [m("LA2", { ZONE: "CR", MUA: "dong" } as DieuKienPhiDon, 1), cap], boTinh: mua(3) })), "CAP");
+  assert.equal(id(chonMucPhiDon({ chang: c, ngay: NGAY, muc: [la] })), "THIEU_MUC/KHONG_CO_MUC");
+});
+
+test("khoá điều kiện chỉ được biết ở pricing: orders, van-chuyen, ve-dien-tu không chứa tên khoá, bảng khoá hay bộ tính", () => {
+  const goc = new URL("../../modules/", import.meta.url);
+  const tep = (dir: URL): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+    const u = new URL(e.name + (e.isDirectory() ? "/" : ""), dir);
+    return e.isDirectory() ? tep(u) : /\.ts$/.test(e.name) && !/\.test\.ts$/.test(e.name) ? [u.pathname] : [];
+  });
+  const boChuThich = (src: string): string => src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+  // Tên chỉ dùng cho điều kiện phí (không bao giờ có nghĩa khác): quét theo từ. SERVICE / TIER / DIRECTION có nghĩa khác ở chỗ khác (phạm vi xác nhận, chiều chặng): chỉ bắt khi dùng làm TÊN thuộc tính của bộ điều kiện.
+  const rieng = /\b(ZONE|EXCLUSIVE|SERVICE_GROUP|KHOA_PHI_DON|BO_TINH|prc_transfer_fee\w*|loc_zone\w*|zone_code)\b/;
+  const thuocTinh = /(?:\.|\{\s*|,\s*)(SERVICE|TIER|DIRECTION)\s*[:,}]|\b(SERVICE|TIER|DIRECTION)\s*:/;
+  const loi: string[] = [];
+  let soTep = 0;
+  for (const mod of ["orders", "van-chuyen", "ve-dien-tu"]) {
+    for (const f of tep(new URL(`${mod}/`, goc))) {
+      soTep++;
+      const src = boChuThich(readFileSync(f, "utf8"));
+      const t = rieng.exec(src);
+      if (t) loi.push(`${f.split("/modules/")[1]}: «${t[0]}»`);
+      const p = thuocTinh.exec(src);
+      if (p) loi.push(`${f.split("/modules/")[1]}: tên thuộc tính «${p[0].trim()}»`);
+      // import vào pricing chỉ qua index (không chạm phi-don-rules / phi-don-repo)
+      for (const im of src.matchAll(/from\s+["']([^"']*pricing[^"']*)["']/g)) if (!/\/pricing(\/index(\.ts)?)?$/.test(im[1]!)) loi.push(`${f.split("/modules/")[1]}: import «${im[1]}» không qua pricing/index`);
+    }
+  }
+  assert.ok(soTep > 20, `quét thấy ${soTep} tệp — đường dẫn sai?`);
+  assert.deepEqual(loi, []);
+});
+
 test("BO_TINH và KHOA_PHI_DON khớp bảng khoá của CSDL", () => {
   const db = new DatabaseSync(":memory:");
   const dir = new URL("../../../migrations/", import.meta.url);
