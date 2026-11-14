@@ -1,12 +1,12 @@
 // Kiểm giao diện CHẾ ĐỘ BẢO TRÌ bằng Chrome thật (nằm trong repo, không thêm dependency; KHÔNG cần mạng ngoài — Turnstile TẮT như các kịch bản A2). Chạy từ GỐC repo sau `npm run build:web`:
 //   AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/kich-ban/chrome-wrap.sh> [OUT=<thư mục ghi ảnh>] node docs/evidence/2026-10-29-dot-0-khung-chung/kich-ban/v1-bao-tri.mjs
 // Phủ: mục bật/tắt ở /account (xác nhận hai bước trong trang, không window.confirm), dải "Đang ở chế độ bảo trì", lớp phủ toàn trang + đếm ngược sống + nút Đăng xuất + tự nhận ra khi chủ tắt,
-// banner ở /login, đăng nhập bị 503, tự tắt khi hết giờ dự kiến, nhật ký không chứa SĐT, axe-core. Sửa web/maintenance-screen.ts, web/api.ts (phần bảo trì), web/account.ts (mục bảo trì), web/shell.ts (dải) thì chạy lại.
+// banner ở /login, đăng nhập bị 503, tự tắt khi hết giờ dự kiến, nhật ký không chứa SĐT, axe-core; khung «Nội dung màn bảo trì» (bản mẫu 2c) + xem trước + lớp phủ dùng nội dung đã lưu. Sửa web/maintenance-screen.ts, web/api.ts (phần bảo trì), web/account.ts (mục bảo trì), web/shell.ts (dải) thì chạy lại.
 // Môi trường của A2 (D1 tạm + wrangler dev Turnstile TẮT + Chrome CDP). "Chủ" = tài khoản Toàn quyền thử `chu`, "nhân viên" = salesA. ADR-0071 điều 3: miễn trừ bảo trì
 // theo quyền Toàn quyền, KHÔNG theo SĐT — kịch bản cố ý đặt SĐT của nhân viên (không phải của chủ) vào cột cũ mnt_setting.allowed_phones; các bước "nhân viên bị
 // chặn" vẫn phải đúng (danh sách SĐT không còn tác dụng), "chủ dùng bình thường" đúng nhờ Toàn quyền.
 import assert from "node:assert/strict";
-import { mkdirSync, readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -40,6 +40,8 @@ const step = async (name, fn) => {
   }
 };
 const q = (sel) => `document.querySelector(${JSON.stringify(sel)})`;
+// Lớp phủ bảo trì là `position: fixed`: ảnh chụp cả trang dài (shot) lộ trang bên dưới phía dưới khung nhìn. Ảnh đúng như người dùng thấy = chỉ khung nhìn.
+const shotKhungNhin = async (page, path) => { const r = await page.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: false }); writeFileSync(path, Buffer.from(r.result.data, "base64")); };
 const text = (page, sel) => page.ev(`${q(sel)}?.textContent ?? null`);
 const click = (page, sel) => page.ev(`(() => { const e = ${q(sel)}; if (!e) return false; e.click(); return true; })()`);
 const clickByText = (page, scope, label) =>
@@ -110,15 +112,17 @@ try {
     await clickByText(owner, ".maint-confirm", "Xác nhận bật");
     await owner.waitFor(`/Đang bật/.test(${q("#maintenance .maint-state")}?.textContent ?? '')`, "chuyển sang Đang bật");
     assert.match(await text(owner, "#maintenance .maint-state"), /Dự kiến hoàn tất lúc \d\d:\d\d \d\d\/\d\d\/\d{4}/);
-    const a = await text(owner, "#maint-preview .maint-count");
-    assert.match(a, /^(59 phút \d\d giây|1 giờ 00 phút 00 giây)$/);
+    // 14/11/2026: bỏ câu «Nhân viên đang thấy: … (SĐT)» (SĐT hiện hai lần) — bản xem trước khung điện thoại đếm theo GIỜ THẬT khi đang bật.
+    assert.equal(await owner.ev(`!document.querySelector('#maint-preview') && !/Nhân viên đang thấy/.test(${q("#maintenance")}.textContent)`), true, "không còn câu trùng SĐT");
+    const oSo = `[...document.querySelectorAll('.maint-xem-truoc .maint-o-so')].map((e) => e.textContent).join(':')`;
+    const a = await owner.ev(oSo);
+    assert.match(a, /^(00:59:\d\d|01:00:00)$/, a);
     await sleep(2200);
-    const b = await text(owner, "#maint-preview .maint-count");
-    assert.notEqual(a, b, "đồng hồ phải chạy");
+    assert.notEqual(await owner.ev(oSo), a, "đồng hồ xem trước phải chạy theo giờ thật");
     assert.match(await text(owner, '.dai[data-loai="bao-tri"]'), /^Đang bảo trì/);
     assert.equal(await owner.ev(`${q('.dai[data-loai="bao-tri"] a')}.getAttribute('href')`), "/account");
     assert.equal(await owner.ev(`${q('.dai[data-loai="bao-tri"]')}.getBoundingClientRect().height >= 44`), true, "dải cao ≥ 44px");
-    assert.deepEqual(await owner.ev(`[...document.querySelectorAll('#maintenance button')].map((b) => b.textContent.trim()).filter((t) => t.startsWith('Tắt') || t.startsWith('Cập nhật'))`), ["Cập nhật giờ dự kiến", "Tắt chế độ bảo trì"]);
+    assert.deepEqual(await owner.ev(`[...document.querySelectorAll('#maintenance button')].map((b) => b.textContent.trim()).filter((t) => t.startsWith('Tắt') || t.startsWith('Đổi giờ'))`), ["Đổi giờ dự kiến", "Tắt chế độ bảo trì"]);
     await owner.shot(join(OUT, "anh/bt-03-dang-bat.png"));
   });
 
@@ -156,17 +160,30 @@ try {
     assert.equal(await staffPage.ev(`document.querySelectorAll('#maintenance-screen').length`), 1);
     assert.equal(await staffPage.ev(`${q("#maintenance-screen")}.getAttribute('role')`), "alertdialog");
     assert.equal(await staffPage.ev(`${q("#maintenance-screen")}.getAttribute('aria-modal')`), "true");
-    const before = await text(staffPage, "#maintenance-screen .maint-msg");
-    assert.match(before, /^Hệ thống đang tạm đóng để bảo trì\. Thời gian dự kiến hoàn tất là (59 phút \d\d giây|1 giờ 00 phút 00 giây|[1-5]?\d phút \d\d giây), liên hệ quản trị viên khi cần hỗ trợ thêm \(0989929373\)\.$/);
+    // Màn mới (bản mẫu chủ dự án 13/11/2026, phương án 2a): tiêu đề + lời nhắn + đồng hồ ba ô + giờ mở lại + nút gọi / Zalo + thẻ website.
+    assert.equal(await text(staffPage, "#maintenance-title"), "Hệ thống đang bảo trì");
+    assert.match(await text(staffPage, "#maintenance-screen .huy-hieu"), /Đang bảo trì/);
+    assert.match(await text(staffPage, "#maintenance-screen .maint-msg"), /^Tour Đảo Booking đang được nâng cấp/);
+    const before = await text(staffPage, "#maintenance-screen .maint-o");
+    assert.deepEqual(await staffPage.ev(`[...document.querySelectorAll('#maintenance-screen .maint-o-nhan')].map((e) => e.textContent)`), ["giờ", "phút", "giây"]);
+    assert.match(await text(staffPage, "#maintenance-screen .maint-mo-lai"), /^Mở lại lúc \d\d:\d\d \d\d\/\d\d\/\d{4}$/);
+    assert.deepEqual(await staffPage.ev(`[...document.querySelectorAll('#maintenance-screen .maint-lien-he a')].map((a) => a.getAttribute('href'))`), ["tel:0989929373", "https://zalo.me/0989929373"]);
+    assert.equal(await text(staffPage, "#maintenance-screen .maint-lien-he a"), "Gọi 0989 929 373");
+    assert.equal(await staffPage.ev(`${q("#maintenance-screen .maint-web")}.getAttribute('href')`), "https://tourdao.vn");
     assert.equal(await staffPage.ev(`${q("#current")}.value`), "246810", "chữ đang gõ không bị xoá");
     assert.equal(await staffPage.ev(`${q("#new")}.value`), "135791");
     assert.equal(await staffPage.ev(`${q("main")}.hasAttribute('inert')`), true, "trang bên dưới bị vô hiệu với bàn phím/trình đọc");
     assert.equal(await staffPage.ev(`document.activeElement?.textContent`), "Thử lại", "tiêu điểm ở nút Thử lại");
-    assert.equal(await staffPage.ev(`${q("#maintenance-screen .maint-count")}.getAttribute('aria-live')`), "off");
+    assert.equal(await staffPage.ev(`${q("#maintenance-screen .maint-o")}.getAttribute('role')`), "timer");
+    assert.equal(await staffPage.ev(`${q("#maintenance-screen .maint-o")}.getAttribute('aria-live')`), "off");
     await sleep(2200);
-    assert.notEqual(before, await text(staffPage, "#maintenance-screen .maint-msg"), "đếm ngược sống");
+    assert.notEqual(before, await text(staffPage, "#maintenance-screen .maint-o"), "đếm ngược sống");
     assert.equal(await staffPage.ev(`${q("#maintenance-screen")}.getBoundingClientRect().width === innerWidth`), true, "phủ kín chiều ngang");
-    await staffPage.shot(join(OUT, "anh/bt-04-lop-phu-nhan-vien.png"));
+    await shotKhungNhin(staffPage, join(OUT, "anh/bt-04-lop-phu-nhan-vien.png"));
+    await staffPage.send("Emulation.setDeviceMetricsOverride", { width: 1040, height: 844, deviceScaleFactor: 1, mobile: false });
+    await sleep(300);
+    await shotKhungNhin(staffPage, join(OUT, "anh/bt-04-lop-phu-nhan-vien-1040.png"));
+    await staffPage.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
   });
 
   await step("nhân viên mở trang MỚI khi đang bật: /api/auth/me 503 → lớp phủ (không lỗi thô, không về /login)", async () => {
@@ -183,7 +200,7 @@ try {
 
   await step("lớp phủ có nút Đăng xuất: bấm → về /login (người bị chặn không còn phiên treo)", async () => {
     assert.deepEqual(await staffPage.ev(`[...document.querySelectorAll('#maintenance-screen button')].map((b) => b.textContent.trim())`), ["Thử lại", "Đăng xuất"]);
-    assert.equal(await click(staffPage, "#maintenance-screen .btn-link"), true);
+    assert.equal(await click(staffPage, '#maintenance-screen .nut[data-cap="loi"]'), true);
     await staffPage.waitFor(`location.pathname === '/login'`, "về trang đăng nhập sau Đăng xuất", 12000);
   });
 
@@ -193,7 +210,8 @@ try {
     await p.send("Page.navigate", { url: `${env.base}/login` });
     await p.waitFor(`document.readyState === 'complete' && !${q("#maintenance-banner")}.hidden`, "banner hiện");
     assert.equal(await p.ev(`${q("#maintenance-banner")}.getAttribute('role')`), "status");
-    assert.match(await text(p, "#maintenance-text"), /^Hệ thống đang tạm đóng để bảo trì\. Thời gian dự kiến hoàn tất là .+, liên hệ quản trị viên khi cần hỗ trợ thêm \(0989929373\)\.$/);
+    assert.match(await text(p, "#maintenance-text"), /^Hệ thống đang tạm đóng để bảo trì\. Thời gian dự kiến hoàn tất là .+, liên hệ quản trị viên khi cần hỗ trợ thêm\.$/); // 14/11/2026: không kèm SĐT — số nằm ở dòng «Hỗ trợ kỹ thuật» ngay dưới
+    assert.equal(await p.ev(`(document.body.textContent.match(/0989\\s?929\\s?373/g) ?? []).length`), 1, "SĐT hỗ trợ chỉ hiện MỘT lần trên trang đăng nhập");
     // Bản thiết kế Đăng nhập (2026-09-24): nút khoá tới khi gõ đủ SĐT + 6 số PIN — banner bảo trì KHÔNG khoá thêm.
     await p.ev(setInput(q("#phone"), ACCOUNTS.salesA.phone));
     await p.ev(setInput(q("#pin"), ACCOUNTS.salesA.pin));
@@ -236,9 +254,12 @@ try {
     env.sql(`UPDATE mnt_setting SET enabled = 1 WHERE id = 'default'`);
     env.sql(`UPDATE mnt_setting SET ends_at = '${ENDS_SOON()}' WHERE id = 'default'`);
     const p = await asCookie(salesCookie, "/");
-    await p.waitFor(`!!${q("#maintenance-screen .maint-count")}`, "lớp phủ có đồng hồ đếm ngược");
-    await p.waitFor(`/Hệ thống đã mở lại/.test(${q("#maintenance-screen .maint-msg")}?.textContent ?? '')`, "đồng hồ về 0 → lớp phủ hỏi lại ngay, thấy đã mở lại", 15000);
-    assert.equal(await p.ev(`${q("#maintenance-screen .btn-primary")}.textContent`), "Tải lại trang");
+    await p.waitFor(`!!${q("#maintenance-screen .maint-o")} && !${q("#maintenance-screen .maint-dem")}.hidden`, "lớp phủ có đồng hồ đếm ngược");
+    await p.waitFor(`${q("#maintenance-title")}?.textContent === 'Hệ thống đã mở lại'`, "đồng hồ về 0 → lớp phủ hỏi lại ngay, thấy đã mở lại", 15000);
+    assert.equal(await p.ev(`${q('#maintenance-screen .nut[data-cap="chinh"]')}.textContent`), "Tải lại trang");
+    assert.match(await text(p, "#maintenance-screen .huy-hieu"), /Đã mở lại/);
+    assert.equal(await p.ev(`${q("#maintenance-screen .maint-lien-he")}.offsetParent === null`), true, "mở lại thì ẩn nút gọi / Zalo");
+    await p.shot(join(OUT, "anh/bt-04b-lop-phu-da-mo-lai.png"));
     p.close();
     env.sql(`UPDATE mnt_setting SET ends_at = '${ENDS_SOON()}' WHERE id = 'default'`);
     const l = await env.openPage();
@@ -280,11 +301,97 @@ try {
     const p = await asCookie(salesCookie, "/");
     await p.waitFor(`!!${q("#maintenance-screen")}`, "lớp phủ");
     env.sql(`UPDATE mnt_setting SET enabled = 0 WHERE id = 'default'`);
-    await p.waitFor(`/Hệ thống đã mở lại/.test(${q("#maintenance-screen .maint-msg")}?.textContent ?? '')`, "lớp phủ nhận ra hệ thống đã mở lại", 40000);
-    assert.equal(await text(p, "#maintenance-screen .maint-msg"), "Hệ thống đã mở lại. Bấm “Tải lại trang” để tiếp tục; phần chưa lưu trên trang này sẽ mất.");
-    assert.equal(await p.ev(`!!${q("#maintenance-screen .maint-count")}`), false);
-    assert.equal(await p.ev(`${q("#maintenance-screen .btn-primary")}.textContent`), "Tải lại trang");
+    await p.waitFor(`${q("#maintenance-title")}?.textContent === 'Hệ thống đã mở lại'`, "lớp phủ nhận ra hệ thống đã mở lại", 40000);
+    assert.equal(await text(p, "#maintenance-screen .maint-msg"), "Bảo trì đã xong. Tải lại trang để tiếp tục làm việc.");
+    assert.equal(await p.ev(`${q("#maintenance-screen .maint-dem")}.offsetParent === null`), true, "đồng hồ đã ẩn");
+    assert.equal(await p.ev(`${q('#maintenance-screen .nut[data-cap="chinh"]')}.textContent`), "Tải lại trang");
+    await p.shot(join(OUT, "anh/bt-07-lop-phu-chu-tat.png"));
     p.close();
+  });
+
+  // ---- Bản mẫu 2c (13/11/2026): chủ tự sửa nội dung màn bảo trì, xem trước trực tiếp; người bị chặn thấy đúng nội dung đã lưu ----
+  await step("chủ sửa nội dung: đủ 7 ô + 5 công tắc, ô gõ ≥ 16px; gõ SĐT / tiêu đề → bản xem trước đổi ngay; tắt «Thẻ website» → thẻ biến mất khỏi xem trước", async () => {
+    const o = await asCookie(ownerCookie, "/account");
+    await o.waitFor(`!!${q("#maint-nd-tieuDe")}`, "khung nội dung màn bảo trì");
+    assert.equal(await o.ev(`document.querySelectorAll('.maint-nd-o').length`), 7);
+    assert.equal(await o.ev(`document.querySelectorAll('.maint-nd-cong-tac .dp-switch').length`), 5);
+    assert.equal(await o.ev(`${q("#maint-nd-sdt")}.value`), "0989929373", "chưa lưu: điền sẵn mặc định");
+    assert.equal(await o.ev(`[...document.querySelectorAll('.maint-nd .o')].every((e) => parseFloat(getComputedStyle(e).fontSize) >= 16)`), true, "ô gõ ≥ 16px");
+    // Điện thoại: bản xem trước ẩn tới khi bấm «Xem trước màn bảo trì».
+    assert.equal(await o.ev(`${q(".maint-nd-xem")}.offsetParent === null`), true, "390: xem trước ẩn sẵn");
+    assert.equal(await clickByText(o, ".maint-nd", "Xem trước màn bảo trì"), true);
+    assert.equal(await o.ev(`${q(".maint-nd-xem")}.offsetParent !== null`), true, "bấm thì hiện");
+    await o.ev(setInput(q("#maint-nd-tieuDe"), "Nâng cấp bảng giá"));
+    await o.ev(setInput(q("#maint-nd-lyDo"), "Cập nhật giá mùa cao điểm."));
+    await o.ev(setInput(q("#maint-nd-sdt"), "0905 123 456"));
+    await o.ev(setInput(q("#maint-nd-zalo"), "https://zalo.me/0905123456"));
+    assert.equal(await text(o, ".maint-xem-truoc .maint-title"), "Nâng cấp bảng giá");
+    assert.equal(await text(o, ".maint-xem-truoc .maint-lien-he a"), "Gọi 0905 123 456");
+    assert.equal(await text(o, ".maint-xem-truoc .maint-ly-do span:last-child"), "Cập nhật giá mùa cao điểm.");
+    assert.equal(await o.ev(`!!${q(".maint-xem-truoc .maint-web")}`), true);
+    await o.ev(`${q('.maint-nd-cong-tac:nth-child(5) .dp-switch')}.click()`); // thứ tự: (nhãn nhóm), Nội dung bảo trì, Nút gọi, Nút Zalo, Thẻ website
+    assert.equal(await o.ev(`!!${q(".maint-xem-truoc .maint-web")}`), false, "tắt Thẻ website → xem trước bỏ thẻ");
+    assert.equal(await o.ev(`${q(".maint-xem-truoc")}.inert && !document.querySelector('.maint-xem-truoc #maintenance-title')`), true, "xem trước không bấm được, không trùng id với lớp phủ thật");
+    await o.ev(`${q(".maint-nd")}.scrollIntoView()`);
+    await o.shot(join(OUT, "anh/bt-08-sua-noi-dung-390.png"));
+    await o.send("Emulation.setDeviceMetricsOverride", { width: 1040, height: 900, deviceScaleFactor: 1, mobile: false });
+    assert.equal(await o.ev(`${q(".maint-nd-nut-xem")}.offsetParent === null && ${q(".maint-nd-xem")}.offsetParent !== null`), true, "máy tính: xem trước luôn hiện, không cần nút");
+    assert.equal(await o.ev(`${q(".maint-xem-truoc .maint-title")}.getBoundingClientRect().height > 20`), true, "máy tính: tiêu đề trong xem trước KHÔNG bị luật «tiêu đề trang lên thanh trên» giấu");
+    await o.shot(join(OUT, "anh/bt-08b-sua-noi-dung-1040.png"));
+    await o.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    await o.ev(`${q("#maintenance")}.scrollIntoView()`);
+    assert.equal(await o.ev(`${q(".maint-nd-xem")}.getBoundingClientRect().left >= ${q(".maint-trai")}.getBoundingClientRect().right && Math.round(${q(".maint-xem-truoc")}.getBoundingClientRect().width) === 390`), true, "máy tính rộng: xem trước là cột bên 390px như bản mẫu 2c");
+    await o.shot(join(OUT, "anh/bt-08c-sua-noi-dung-1440.png"));
+    await o.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+    // SĐT sai → báo lỗi tiếng Việt ngay, không gửi.
+    await o.ev(setInput(q("#maint-nd-sdt"), "0905"));
+    assert.equal(await clickByText(o, ".maint-nd", "Lưu nội dung"), true);
+    await o.waitFor(`!${q(".maint-nd .alert")}.hidden`, "báo lỗi SĐT");
+    assert.match(await text(o, ".maint-nd .alert"), /10 số/);
+    assert.equal(env.sql(`SELECT content_json FROM mnt_setting`)[0].content_json, null, "lỗi thì chưa ghi");
+    await o.ev(setInput(q("#maint-nd-sdt"), "0905 123 456"));
+    assert.equal(await clickByText(o, ".maint-nd", "Lưu nội dung"), true);
+    await o.waitFor(`/Đã lưu/.test(${q(".maint-nd [role=status]")}?.textContent ?? "")`, "đã lưu");
+    const luu = JSON.parse(env.sql(`SELECT content_json FROM mnt_setting`)[0].content_json);
+    assert.equal(luu.sdt, "0905123456");
+    assert.equal(luu.hienWeb, false);
+    assert.equal(luu.tieuDe, "Nâng cấp bảng giá");
+    o.close();
+  });
+
+  await step("nhân viên bị chặn thấy ĐÚNG nội dung chủ đã lưu (tiêu đề, nội dung bảo trì, nút gọi số mới, Zalo mới, không có thẻ website)", async () => {
+    env.sql(`UPDATE mnt_setting SET enabled = 1, ends_at = '${new Date(Date.now() + 30 * 60_000).toISOString()}' WHERE id = 'default'`);
+    const p = await asCookie(salesCookie, "/");
+    await p.waitFor(`!!${q("#maintenance-screen")}`, "lớp phủ");
+    assert.equal(await text(p, "#maintenance-title"), "Nâng cấp bảng giá");
+    assert.equal(await text(p, "#maintenance-screen .maint-ly-do span:last-child"), "Cập nhật giá mùa cao điểm.");
+    assert.deepEqual(await p.ev(`[...document.querySelectorAll('#maintenance-screen .maint-lien-he a')].map((a) => a.getAttribute('href'))`), ["tel:0905123456", "https://zalo.me/0905123456"]);
+    assert.equal(await p.ev(`!!${q("#maintenance-screen .maint-web")}`), false);
+    await shotKhungNhin(p, join(OUT, "anh/bt-09-nhan-vien-thay-noi-dung-moi.png"));
+    assert.deepEqual(await axeViolations(p), []);
+    env.sql(`UPDATE mnt_setting SET enabled = 0 WHERE id = 'default'`);
+    p.close();
+  });
+
+  await step("trang đăng nhập: dòng «Hỗ trợ kỹ thuật» dùng SĐT hỗ trợ đã lưu (ADR-0202 bổ sung), kể cả khi bảo trì đang TẮT", async () => {
+    const p = await env.openPage();
+    await p.send("Network.clearBrowserCookies");
+    await p.send("Page.navigate", { url: env.base + "/login" });
+    await p.waitFor(`${q("#support a")}?.textContent === "0905 123 456"`, "dòng hỗ trợ đổi sang số đã lưu");
+    assert.equal(await p.ev(`${q("#support a")}.getAttribute('href')`), "tel:0905123456");
+    p.close();
+  });
+
+  await step("Về mặc định → điền lại nội dung mặc định (chưa ghi); Lưu nội dung → về mặc định", async () => {
+    const o = await asCookie(ownerCookie, "/account");
+    await o.waitFor(`${q("#maint-nd-sdt")}?.value === "0905123456"`, "mở lại thấy nội dung đã lưu");
+    assert.equal(await clickByText(o, ".maint-nd", "Về mặc định"), true);
+    assert.equal(await o.ev(`${q("#maint-nd-sdt")}.value`), "0989929373");
+    assert.equal(JSON.parse(env.sql(`SELECT content_json FROM mnt_setting`)[0].content_json).sdt, "0905123456", "chưa bấm Lưu thì chưa ghi");
+    assert.equal(await clickByText(o, ".maint-nd", "Lưu nội dung"), true);
+    await o.waitFor(`/Đã lưu/.test(${q(".maint-nd [role=status]")}?.textContent ?? "")`, "đã lưu");
+    assert.equal(JSON.parse(env.sql(`SELECT content_json FROM mnt_setting`)[0].content_json).sdt, "0989929373");
+    o.close();
   });
 
   await step("axe-core: trang Tôi của chủ (mục bảo trì đang tắt) 0 vi phạm", async () => {

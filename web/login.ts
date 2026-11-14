@@ -1,13 +1,13 @@
 import { ApiError, api, safeNext, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { registerServiceWorker } from "./pwa";
-import { KHOA_DAI_BAO_MAT_DA_DONG } from "../src/shared/dai-chu";
+import { KHOA_CAO_DAI, KHOA_DAI_BAO_MAT_DA_DONG, KHOA_KHOI } from "../src/shared/dai-chu";
 import { KHOA_NHAC_HAI_LOP, showError } from "./shell";
 import { APP_RELEASE_DATE, APP_VERSION } from "./phien-ban";
 import { chanTrangCongTy } from "../src/shared/cong-ty-chu";
-import { MAINTENANCE_CODE } from "../src/shared/maintenance";
+import { MAINTENANCE_CODE, phoneVnText } from "../src/shared/maintenance";
 import { SESSION_ENDED_KEY, cauTuDauNho } from "../src/shared/session-ended";
-import { endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
+import { contentFrom, endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
 import { icon } from "./icons";
 import { xoaKhungNho } from "./khung-nho";
 import { KHOA_GAN_PHIEN_THONG_BAO } from "./push-ui";
@@ -122,6 +122,8 @@ try {
   sessionStorage.removeItem(KHOA_GAN_PHIEN_THONG_BAO);
   sessionStorage.removeItem(KHOA_NHAC_HAI_LOP); // dải nhắc bật bảo mật hai lớp (web/shell.ts) hỏi lại máy chủ cho phiên mới
   sessionStorage.removeItem(KHOA_DAI_BAO_MAT_DA_DONG); // tài khoản khác đăng nhập cùng thẻ thì thấy lại dải bảo mật
+  sessionStorage.removeItem(KHOA_CAO_DAI); // bước 1 khung chung (N10): người sau không thừa hưởng chỗ giữ dải của người trước
+  for (const k of Object.keys(sessionStorage)) if (k.startsWith(KHOA_KHOI)) sessionStorage.removeItem(k); // … và chỗ giữ khối theo quyền
 } catch {
   // bỏ qua
 }
@@ -149,14 +151,16 @@ try {
 let stopMaintenance: (() => void) | null = null;
 function setMaintenance(on: boolean, endsAt: string | null): void {
   stopMaintenance?.();
+  // Câu báo ở đây KHÔNG kèm SĐT: số hỗ trợ đã nằm ngay dòng «Hỗ trợ kỹ thuật» dưới nút Đăng nhập (apDungHoTro) — trước đây số hiện hai lần (chủ dự án 14/11/2026).
   // Đồng hồ về 0 = máy chủ đã tự tắt chế độ bảo trì (stateFromRow) → ẩn banner, mọi người đăng nhập lại được mà không phải tải lại trang.
-  stopMaintenance = on && maintenanceText ? renderMaintenanceMessage(maintenanceText, endsAt, () => setMaintenance(false, null)) : null;
+  stopMaintenance = on && maintenanceText ? renderMaintenanceMessage(maintenanceText, endsAt, "", () => setMaintenance(false, null)) : null;
   if (maintenanceEl) maintenanceEl.hidden = !on;
 }
 /** Dùng CHUNG cho lỗi bảo trì của cả nút Đăng nhập (PIN) và nút Face ID: cập nhật banner, không hiện lỗi chung ở #error. */
 function showMaintenanceBanner(err: ApiError): void {
   showError(errorEl, null);
   setMaintenance(true, endsAtFrom(err.details));
+  apDungHoTro(contentFrom(err.details).sdt); // số hỗ trợ mới nhất đi kèm thân 503
   maintenanceEl?.scrollIntoView({ block: "nearest" });
 }
 
@@ -378,12 +382,20 @@ function apDungChanTrang(config: unknown): void {
   mst.textContent = c.mst;
 }
 
+/** Dòng «Hỗ trợ kỹ thuật» (ADR-0202): thay số tĩnh trong login.html bằng SĐT hỗ trợ Toàn quyền đã lưu. Không ném lỗi (login.html cũ có thể thiếu #support a). */
+function apDungHoTro(sdt: unknown): void {
+  const a = document.querySelector<HTMLAnchorElement>("#support a");
+  if (!a || typeof sdt !== "string" || !/^0\d{9}$/.test(sdt)) return;
+  a.href = `tel:${sdt}`;
+  a.textContent = phoneVnText(sdt);
+}
+
 /** Hỏi cấu hình một lần: true = đã có câu trả lời của máy chủ (có khoá hoặc `null`); false = lỗi (mất mạng, 5xx…). */
 async function fetchConfig(): Promise<boolean> {
   try {
     const config = await api<Api.AuthConfigResponse>("/api/auth/config");
     siteKey = config.turnstileSiteKey;
-    setMaintenance(config.maintenance?.on === true, config.maintenance?.endsAt ?? null); // (`?.`: bản máy chủ cũ hơn chưa có trường này)
+    setMaintenance(config.maintenance?.on === true, config.maintenance?.endsAt ?? null);
     // B-15: fetchConfig chạy NHIỀU LẦN (start, recoverConfig) — chỉ bật nút/prefetch một lần duy nhất bằng cờ passkeyEnabled.
     if (config.passkey === true && !passkeyEnabled) {
       passkeyEnabled = true;
@@ -392,6 +404,7 @@ async function fetchConfig(): Promise<boolean> {
         void prefetchPasskey();
       }
     }
+    apDungHoTro(config.supportPhone);
     apDungChanTrang(config); // CUỐI khối: chân trang không bao giờ được làm hỏng cấu hình đăng nhập (Ruling T4 của nhật ký thi công T2b)
     return true;
   } catch {

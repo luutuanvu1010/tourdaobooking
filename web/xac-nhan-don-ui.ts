@@ -58,7 +58,7 @@ export function nutGuiXacNhan(c: BoiCanhXacNhan, chan: string | null): HTMLButto
 /** «Rút lại» (người lập, đơn đang chờ). */
 export function nutRutLai(c: BoiCanhXacNhan): HTMLButtonElement {
   return nutHanhDong(NHAN_NUT_XAC_NHAN.withdraw, "btn", "rut-xac-nhan", async () => {
-    if (!confirm("Rút lại yêu cầu xác nhận? Đơn trở về nháp để bạn sửa tiếp.")) return;
+    if (!(await hoiXacNhan({ tieuDe: "Rút lại", hauQua: "Rút lại yêu cầu xác nhận? Đơn trở về nháp để bạn sửa tiếp.", nhanNguyHiem: "Rút lại" }))) return;
     c.xoaBao();
     try {
       await api(`/api/orders/${encodeURIComponent(c.orderId)}/rut-xac-nhan`, { method: "POST", body: {} });
@@ -329,7 +329,7 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
   // ---- Hết vé ----
   const nutHetVe = h("button", { type: "button", class: "btn", "data-action": "quyet-dinh-het-ve" }, NHAN_KET_QUA.HET_VE);
   nutHetVe.addEventListener("click", async () => {
-    if (!confirm("Báo hết vé? Đơn sẽ được huỷ với lý do «hết chỗ».")) return;
+    if (!(await hoiXacNhan({ tieuDe: NHAN_KET_QUA.HET_VE, hauQua: "Báo hết vé? Đơn sẽ được huỷ với lý do «hết chỗ».", nhanNguyHiem: NHAN_KET_QUA.HET_VE, opener: nutHetVe }))) return;
     nutHetVe.disabled = true;
     await guiQuyet({ ketQua: "HET_VE" }, "Đã huỷ đơn: hết vé.");
     nutHetVe.disabled = false;

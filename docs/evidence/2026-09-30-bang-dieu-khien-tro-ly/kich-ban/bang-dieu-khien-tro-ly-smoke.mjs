@@ -21,6 +21,7 @@ import { mkdirSync } from "node:fs";
 import { createServer } from "node:http";
 import { join } from "node:path";
 import { ACCOUNTS, ok, sleep, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-30-bang-dieu-khien-tro-ly";
 mkdirSync(join(OUT, "anh"), { recursive: true });
@@ -285,6 +286,7 @@ try {
     await p.waitFor(`/Đang dùng lời nhắc đã sửa/.test(${q("#tl-mac-dinh")}.textContent)`, "đã lưu bản sửa", 10000);
     // Ô có chỗ sửa chưa lưu ⇒ nút hỏi xác nhận (confirm); kịch bản thay confirm để đếm và đồng ý.
     await p.ev(go("#tl-loi-nhac", "Chỗ sửa chưa lưu."));
+    await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await p.ev(`(() => { window.__hoi = []; window.confirm = (m) => { window.__hoi.push(m); return true; }; return true; })()`);
     await p.ev(`[...${q("#tl-bo-nao")}.querySelectorAll('button')].find((b) => b.textContent === 'Khôi phục mặc định').click(), true`);
     assert.equal(await p.ev(`window.__hoi.length`), 1, "có hỏi xác nhận");

@@ -787,3 +787,11 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-BL-NUT-GO** — lệnh gỡ ảnh gửi nhầm (`POST …/bien-lai/go`) và hàng chờ dọn kho (`/api/ledger/bien-lai-cho-xoa`) chỉ có đường máy chủ; chưa có nút trên giao diện (ADR không đặt chữ nút). Muốn có nút thì chủ chọn tên.
 - **BL-BL-BO-SUNG** — Đối tác không gửi bổ sung ảnh được khi ảnh tải hỏng hay bị gỡ (ADR-0196 Đ11); muốn có thì là quyết định riêng.
 - **BL-BL-THU-THAT** — chưa thử trên iPhone thật (HEIC từ camera, thu nhỏ trên Safari) và chưa đo bộ nhớ Worker với thân ~14 MB (`BL-TEP-THAN-HAI-LAN`).
+
+## 71. Khoản nộp của đại lý — việc để sau (mã `BL-KN-…`, ADR-0182 phần B, 2026-11-13)
+
+- **Trạng thái:** `để sau` · ghi khi thi công phần B; chưa hỏi chủ.
+- **BL-KN-VIEC-DAI-LY** — ADR Đ2 mục 11: danh sách việc của đại lý (đơn đã xác nhận, còn công nợ, chưa có khoản chờ). Trang chủ hiện chưa có thẻ việc nào cho tài khoản Đối tác, nên lần này chỉ có câu nhắc sau Gửi đơn (ADR mục «Chưa kiểm» cho phép).
+- **BL-KN-NUT-GO** — gỡ ảnh biên lai khoản nộp chỉ có đường máy chủ (như BL-BL-NUT-GO), chưa có nút trên giao diện.
+- **BL-KN-TRAN-ANH** — trần 20 ảnh / giờ có thể chặn đại lý lớn gửi nhiều đơn liền (ADR Hệ quả V3); chưa nâng.
+- **BL-KN-THU-THAT** — chưa thử iPhone thật (HEIC từ camera) cho ô ảnh biên lai khoản nộp.

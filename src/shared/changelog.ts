@@ -17,6 +17,80 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bước 1 khung chung giao diện (kế hoạch 2026-11-13, chủ duyệt «Làm cả hai», «Theo khuyến nghị», «Làm tiếp cả hai»): vùng bấm ảnh đại diện, dải đầu trang hai
+    // dòng ở điện thoại, thanh nút Lưu khi màn thấp, bỏ hộp hỏi của trình duyệt, chống nhảy bố cục (tệp đầu trang giu-cho-dai). Không migration, không đổi máy chủ.
+    // SỐ TẠM 3.3 (sau 3.2 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.3",
+    date: "2026-11-14",
+    items: [
+      { kind: "doi", text: "Các câu hỏi «có chắc không» nay hiện ngay trong Nền tảng; nút đỏ mang đúng tên việc sắp làm, nút còn lại là «Giữ nguyên»." },
+      { kind: "doi", text: "Trên điện thoại, dải thông báo ở đầu trang gọn còn tối đa hai dòng; bấm «Xem» để đọc đủ." },
+      { kind: "sua", text: "Trang không còn giật khi dải thông báo hoặc dữ liệu hiện ra sau, nhất là Quản lý tài khoản, Danh bạ, Dịch vụ và giá, Vé điện tử." },
+      { kind: "sua", text: "Điện thoại xoay ngang: nút Lưu nằm cuối biểu mẫu, không còn che ô đang gõ." },
+      { kind: "sua", text: "Ô chữ cái tên bạn ở góc trên điện thoại dễ bấm hơn." },
+    ],
+  },
+  {
+    // Chủ dự án 14/11 (sau khi lên 3.1): «vẫn khác rất xa so với bản mockup ở Desktop, đồng thời, số điện thoại lại hiện 2 lần». Chỉ giao diện, không migration.
+    // SỐ TẠM 3.2: main có 3.1; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.2",
+    date: "2026-11-14",
+    items: [
+      { kind: "sua", text: "Trang Tôi ở máy tính: mục Chế độ bảo trì trải ngang, xem trước khung điện thoại nằm bên phải như bản mẫu, hiện đủ tiêu đề và đếm theo giờ thật." },
+      { kind: "sua", text: "Số điện thoại hỗ trợ không còn hiện hai lần ở trang Tôi và trang đăng nhập." },
+    ],
+  },
+  {
+    // ADR-0202 bổ sung (chủ 13/11, «Có, nối luôn»): GET /api/auth/config luôn có supportPhone; dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập dùng số đó. Không migration.
+    // SỐ TẠM 3.1: main có 3.0; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.1",
+    date: "2026-11-13",
+    items: [
+      { kind: "doi", text: "Dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập nay hiện số hỗ trợ Toàn quyền đã lưu ở «Nội dung màn bảo trì», không còn số cố định." },
+    ],
+  },
+  {
+    // Bản mẫu 2c của chủ dự án (13/11/2026; ADR-0202 accepted, chủ «Duyệt cả hai»): nội dung màn bảo trì do Toàn quyền tự sửa — migration 0162 (cột mnt_setting.content_json).
+    // Trần gói trang Đơn hàng 113.492 → 114.524: chủ duyệt cùng lời «Duyệt cả hai» (đo trước khi gộp chi tiết dịch vụ). SỐ TẠM 3.0 (sau 2.99 như 1.97 → 2.0): main có 2.99 (chi tiết dịch vụ); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.0",
+    date: "2026-11-13",
+    items: [
+      { kind: "moi", text: "Trang Tôi › Chế độ bảo trì có khung «Nội dung màn bảo trì»: Toàn quyền tự sửa chữ, số điện thoại hỗ trợ, Zalo, website và chọn khối nào hiện, có xem trước." },
+    ],
+  },
+  {
+    // Sửa «Ghi khoản thu» điền sẵn số Còn lại (chủ 13/11) + ADR-0201 Đ1, Đ3 (chủ duyệt 13/11, «Duyệt»): chi tiết dịch vụ — tên hiển thị, mô tả, ảnh đại diện.
+    // Migration 0160 (ctl_service_detail) + kho R2 MỚI `tourdao-sales-anh-dich-vu` (chủ tạo trước khi triển khai; cổng 1e dừng nếu thiếu). SỐ TẠM 2.99: main có 2.98 (màn bảo trì); bước A.0 đặt lại số và ngày.
+    version: "2.99",
+    date: "2026-11-13",
+    items: [
+      { kind: "sua", text: "«Ghi khoản thu»: ô số tiền điền sẵn số Còn lại, chỉ cần bấm «Ghi»; khách trả khác thì sửa lại, form báo ngay phần thiếu hoặc dư." },
+      { kind: "moi", text: "Màn Dịch vụ và Giá có nút «Sửa chi tiết»: đặt tên hiển thị, mô tả, ảnh đại diện cho từng dịch vụ. Đơn mới dùng tên hiển thị; đơn cũ giữ tên cũ." },
+    ],
+  },
+  {
+    // Màn bảo trì mới theo bản mẫu 2a của chủ dự án (13/11/2026). Không migration, không đổi máy chủ. Trần gói trang Đơn hàng 111.589 → 113.492: chủ duyệt
+    // 13/11 trong chat, nguyên văn «Duyệt nới 1,9 KB». SỐ TẠM 2.98: main có 2.97; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.98",
+    date: "2026-11-13",
+    items: [
+      { kind: "doi", text: "Màn «Hệ thống đang bảo trì» làm mới: đồng hồ đếm ngược, giờ mở lại, nút gọi và nhắn Zalo cho quản trị viên. Mở lại xong thì màn tự báo «Đã mở lại»." },
+    ],
+  },
+  {
+    // ADR-0182 phần B (chủ duyệt 13/11, «Duyệt, phát hành ngay»; chữ theo khuyến nghị; xây trên TNV-G1 + HC-5.19, khoá xay_tren_cho_phep_adr_0182_b — KHÔNG chờ diễn tập).
+    // Trần gói trang Đơn hàng 111.444 → 111.589 (+145, ba ô quyền mới): chủ duyệt 13/11 trong phiên soạn ADR (chat), nguyên văn «Duyệt nới trần gói Đơn hàng cho ba ô quyền phần B».
+    // Migration 0159 (khoản nộp + ảnh biên lai khoản nộp, cùng kho R2 ảnh biên lai của ADR-0196). SỐ TẠM 2.97: main có 2.96; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.97",
+    date: "2026-11-13",
+    items: [
+      { kind: "moi", text: "Đơn đối tác đã xác nhận: trong «Xem công nợ với Tour Đảo» có nút «Đã chuyển tiền» để gửi số tiền đã chuyển kèm ảnh biên lai; Kế toán xác nhận rồi mới trừ nợ." },
+      { kind: "moi", text: "Kế toán thấy các khoản nộp đang chờ ở trang Sổ công nợ, mở đơn để «Xác nhận đã nhận» hoặc «Từ chối» kèm lý do. Đối tác thấy lý do khi bị từ chối." },
+      { kind: "doi", text: "Đơn trả ngay của đối tác mở vé khi Tour Đảo đã nhận và xác nhận đủ giá đại lý, không phải chờ đủ giá bán lẻ." },
+      { kind: "sua", text: "Sửa hoa hồng sau khi khách đã trả đủ nay làm đổi đúng số công nợ của đối tác." },
+    ],
+  },
+  {
     // ADR-0182 phần A (chủ duyệt 12/11, «Duyệt, chọn cách 1»; chữ theo khuyến nghị; xây trên TNV-G1 có lời chủ «Cho phép, có lý do»): công nợ đại lý theo giá đại lý, hai phiếu. KHÔNG migration.
     // SỐ TẠM 2.96: main có 2.95 (ADR-0198, chưa triển khai); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "2.96",

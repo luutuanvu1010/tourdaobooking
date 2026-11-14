@@ -1,6 +1,8 @@
 import { can, dungManHepDichVu } from "../src/shared/permissions";
 import { ApiError, api, type CatalogAdminItem, type CatalogSyncState, type PaxCode, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
+import { trangThaiHeThong } from "./trang-thai-he-thong";
+import { nhoKhoi } from "./giu-khoi";
 import { dateTime, grouped, parseMoney, vnd } from "./format";
 import { PAX_LABEL, PAX_ORDER } from "../src/shared/order-lines";
 import { unitLabel } from "../src/shared/service-form";
@@ -12,6 +14,11 @@ import { canhBaoDoiNhom } from "../src/shared/dac-diem-hien-thi";
 import { CAU_HOI_BO_GHI_DE_GIA } from "../src/shared/catalog-nut";
 import { cauHoiNgungBan, caNhomCanKiem, kiemVeCua, nhanNguonKiemVe } from "../src/shared/dich-vu-kiem-ve";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
+import { MO_TA_TOI_DA, TEN_TOI_DA } from "../src/shared/chi-tiet-dich-vu";
+import { ANH_TOI_DA_BYTE, CANH_DAI_ANH_DICH_VU, CAU_ANH_QUA_CO, CAU_ANH_SAI_LOAI } from "../src/shared/anh-dich-vu";
+import { nhanLoaiTep } from "../src/shared/tep-dinh-kem";
+import { maBase64 } from "../src/shared/tep-hien-thi";
+import { thuNhoAnh } from "./thu-nho-anh";
 import { taoCoVe, type CoVe } from "./catalog-co-ve";
 import { dongBoTuSheet, taoKiemVe, veManHep } from "./catalog-kiem-ve";
 import { initShell, showError } from "./shell";
@@ -42,7 +49,7 @@ let coVe: CoVe;
 /** Công tắc «Cần kiểm vé» của một dòng dịch vụ (ADR-0169 Đ4): vé đặt riêng hay đang theo nhóm thì câu phụ nói rõ. */
 const oKiemVe = (it: CatalogAdminItem): HTMLElement => {
   const kv = kiemVeCua(it.code, it.groupCode, kiemVe.dongCo());
-  return kiemVe.oKiemVe(it.code, it.name, kv.can, nhanNguonKiemVe({ rieng: kv.rieng, coNhom: it.groupCode !== null }));
+  return kiemVe.oKiemVe(it.code, tenCua(it), kv.can, nhanNguonKiemVe({ rieng: kv.rieng, coNhom: it.groupCode !== null }));
 };
 function renderTuKiem(): void {
   if (can(staff, "settings.ops")) replaceChildren(byId("kv-tu-kiem"), kiemVe.khoiTuKiem());
@@ -50,7 +57,7 @@ function renderTuKiem(): void {
 
 /** Ngừng bán hỏi lại (B-5, chủ duyệt 9/11) — cùng hộp với màn hẹp; Mở bán lại không hỏi. */
 async function doiBan(it: CatalogAdminItem, nut: HTMLButtonElement, update: (path: string, init: { method: string; body?: unknown }) => Promise<void>): Promise<void> {
-  if (!it.hidden && !(await hoiXacNhan({ ...cauHoiNgungBan(it.name), opener: nut }))) return;
+  if (!it.hidden && !(await hoiXacNhan({ ...cauHoiNgungBan(tenCua(it)), opener: nut }))) return;
   await update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } });
 }
 
@@ -138,17 +145,18 @@ function row(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "row-off" : "", "data-code": it.code },
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
-    h("td", null, it.name, chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it), coVe.oDichVu(it.code, it.name)),
+    h("td", null, tenCua(it), dongTenSheet(it), chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it), coVe.oDichVu(it.code, tenCua(it))),
     h("td", { class: "nhom-o", hidden: anCot("groupCode") }, tenNhomCua(it)),
     h("td", { class: "muted", hidden: anCot("unit") }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
     h(
       "td",
       { class: "row-actions" },
+      btn("Sửa chi tiết", (b) => moChiTiet(it, b)),
       btn("Ghi đè giá", () => openEdit(it)),
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "bang"))), it.code, "bang"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
-      it.overridden.length > 0 && btn("Bỏ ghi đè giá", () => confirm(CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden)) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
+      it.overridden.length > 0 && btn("Bỏ ghi đè giá", async () => (await hoiXacNhan({ tieuDe: "Bỏ ghi đè giá", hauQua: CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden), nhanNguyHiem: "Bỏ ghi đè giá" })) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
       btn(it.hidden ? "Mở bán lại" : "Ngừng bán", (nut) => void doiBan(it, nut, update), it.hidden ? "btn btn-link" : "btn btn-link danger"),
     ),
   );
@@ -179,18 +187,19 @@ function card(it: CatalogAdminItem): HTMLElement {
     "div",
     { class: it.hidden || !it.inSheet ? "card card-col row-off" : "card card-col", "data-code": it.code },
     h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, ...(anCot("unit") ? [] : [" · ", unitLabel(it.unit)]))),
-    h("div", { class: "dd-ten-dong" }, h("strong", null, it.name), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
+    h("div", { class: "dd-ten-dong" }, h("strong", null, tenCua(it)), dongTenSheet(it), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ngừng bán"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", { class: "nhom-o muted", hidden: anCot("groupCode") }, `Nhóm: ${tenNhomCua(it)}`),
-    h("div", { class: "kv-the" }, oKiemVe(it), coVe.oDichVu(it.code, it.name)),
+    h("div", { class: "kv-the" }, oKiemVe(it), coVe.oDichVu(it.code, tenCua(it))),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:var(--fw-bold)", title: "Có giá ghi đè" }, " ✎")),
     it.conflicts.length > 0 && h("div", { class: "alert warn" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`),
     h(
       "div",
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
+      btn("Sửa chi tiết", (b) => moChiTiet(it, b)),
       btn("Ghi đè giá", () => openEdit(it)),
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "the"))), it.code, "the"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
-      it.overridden.length > 0 && btn("Bỏ ghi đè giá", () => confirm(CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden)) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
+      it.overridden.length > 0 && btn("Bỏ ghi đè giá", async () => (await hoiXacNhan({ tieuDe: "Bỏ ghi đè giá", hauQua: CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden), nhanNguyHiem: "Bỏ ghi đè giá" })) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
       btn(it.hidden ? "Mở bán lại" : "Ngừng bán", (nut) => void doiBan(it, nut, update), !it.hidden),
     ),
   );
@@ -503,6 +512,124 @@ async function doiCho(a: Nhom, b: Nhom): Promise<void> {
   await load();
 }
 
+// ---- Chi tiết dịch vụ (ADR-0201 Đ1): tên hiển thị + mô tả do Nền tảng giữ; Sheet giữ mã, tên gốc, giá gốc. Máy chủ kiểm lại quyền admin.manage. ----
+const tenCua = (it: CatalogAdminItem): string => it.tenHienThi ?? it.name;
+/** Dòng phụ «Tên trên Sheet: …» khi dịch vụ đang dùng tên hiển thị khác tên Sheet. */
+const dongTenSheet = (it: CatalogAdminItem): HTMLElement | null =>
+  it.tenHienThi && it.tenHienThi !== it.name ? h("div", { class: "muted", "data-khoi": "ten-sheet" }, `Tên trên Sheet: ${it.name}`) : null;
+
+/** Chuẩn bị ảnh đại diện trên máy: thu nhỏ (cạnh dài ≤ CANH_DAI_ANH_DICH_VU, JPG, bỏ thông tin ẩn); không thu nhỏ được thì gửi nguyên tệp JPG/PNG. Máy chủ kiểm lại. */
+async function chuanBiAnh(f: File): Promise<{ noiDung: string } | { loi: string }> {
+  const loai = nhanLoaiTep(new Uint8Array(await f.slice(0, 16).arrayBuffer()));
+  const nho = await thuNhoAnh(f, CANH_DAI_ANH_DICH_VU);
+  const bytes = nho ?? (loai === "jpg" || loai === "png" ? new Uint8Array(await f.arrayBuffer()) : null);
+  if (!bytes) return { loi: CAU_ANH_SAI_LOAI };
+  if (bytes.length > ANH_TOI_DA_BYTE) return { loi: CAU_ANH_QUA_CO };
+  return { noiDung: maBase64(bytes) };
+}
+
+/** Khối «Ảnh đại diện» của bảng Chi tiết dịch vụ (ADR-0201 Đ3): xem ảnh hiện có, chọn ảnh mới là tải lên ngay, gỡ ảnh. */
+function khoiAnh(it: CatalogAdminItem, loi: HTMLElement): HTMLElement {
+  const xem = h("img", { class: "ct-anh", alt: `Ảnh đại diện của ${tenCua(it)}`, hidden: !it.anh, ...(it.anh ? { src: it.anh } : {}) }) as HTMLImageElement;
+  const trong = h("p", { class: "muted", hidden: !!it.anh }, "Chưa có ảnh đại diện.");
+  const chon = h("input", { type: "file", accept: "image/jpeg,image/png,image/heic,image/heif,.heic,.heif", id: "ct-anh-tep" }) as HTMLInputElement;
+  const go = h("button", { type: "button", class: "btn btn-link danger", "data-action": "ct-go-anh", hidden: !it.anh }, "Gỡ ảnh") as HTMLButtonElement;
+  const gui = async (noiDung: string | null) => {
+    loi.hidden = true;
+    chon.disabled = go.disabled = true;
+    try {
+      const r = await api<Api.CatalogChiTietResponse>(`/api/catalog/${encodeURIComponent(it.code)}/anh`, { method: "PUT", body: { noiDung } });
+      items = items.map((x) => (x.code === it.code ? { ...x, anh: r.anh } : x));
+      it = { ...it, anh: r.anh };
+      if (r.anh) xem.src = r.anh;
+      xem.hidden = go.hidden = !r.anh;
+      trong.hidden = !!r.anh;
+    } catch (err) {
+      loi.textContent = loiChu(err);
+      loi.hidden = false;
+    } finally {
+      chon.disabled = go.disabled = false;
+      chon.value = "";
+    }
+  };
+  chon.addEventListener("change", async () => {
+    const f = chon.files?.[0];
+    if (!f) return;
+    const p = await chuanBiAnh(f);
+    if ("loi" in p) {
+      loi.textContent = p.loi;
+      loi.hidden = false;
+      chon.value = "";
+      return;
+    }
+    await gui(p.noiDung);
+  });
+  go.addEventListener("click", () => void gui(null));
+  return h("div", { "data-khoi": "ct-anh" }, h("p", null, "Ảnh đại diện"), xem, trong, h("label", null, "Chọn ảnh mới (JPG, PNG; máy tự thu nhỏ)", chon), go);
+}
+
+function moChiTiet(it: CatalogAdminItem, opener: HTMLElement): void {
+  const ten = h("input", { type: "text", autocomplete: "off", maxlength: String(TEN_TOI_DA), id: "ct-ten", placeholder: it.name }) as HTMLInputElement;
+  const moTa = h("textarea", { rows: 5, maxlength: String(MO_TA_TOI_DA), id: "ct-mo-ta" }) as HTMLTextAreaElement;
+  ten.value = it.tenHienThi ?? "";
+  moTa.value = it.moTa ?? "";
+  const canhBao = h("p", { class: "alert warn", "data-khoi": "ct-sheet-doi", hidden: true });
+  const loi = h("p", { class: "alert danger", role: "alert", hidden: true });
+  const luu = h("button", { type: "button", class: "btn btn-primary btn-chinh", "data-action": "ct-luu" }, "Lưu chi tiết") as HTMLButtonElement;
+  const giaDong = PAX_ORDER.filter((c) => it.prices[c] !== null).map((c) => h("li", null, `${PAX_LABEL[c]}: ${vnd(it.prices[c]!)}${it.overridden.includes(c) ? " (giá ghi đè)" : ""}`));
+  const bang = moBangTruot({
+    title: `Chi tiết dịch vụ: ${it.code}`,
+    opener,
+    body: [
+      h("section", { "data-khoi": "ct-thong-tin" },
+        h("h3", null, "Thông tin"),
+        h("p", { class: "muted" }, `Mã: ${it.code} (không sửa được — đơn, vé, hoa hồng đều theo mã). Tên trên Sheet: ${it.name}.`),
+        canhBao,
+        h("label", null, "Tên hiển thị (để trống = dùng tên trên Sheet)", ten),
+        h("label", null, "Mô tả", moTa),
+        khoiAnh(it, loi),
+        h("p", { class: "muted" }, "Tên hiển thị dùng cho đơn lập từ nay; đơn đã lập giữ tên cũ. Không ghi ngược vào Google Sheet."),
+        loi,
+      ),
+      h("section", { "data-khoi": "ct-gia" },
+        h("h3", null, "Giá"),
+        h("p", { class: "muted" }, `Tính bằng: ${unitLabel(it.unit)}. Đổi giá bằng nút «Ghi đè giá» ở dòng dịch vụ.`),
+        giaDong.length ? h("ul", null, ...giaDong) : h("p", { class: "muted" }, "Chưa có giá."),
+      ),
+      h("section", { "data-khoi": "ct-ban" },
+        h("h3", null, "Bán"),
+        h("ul", null,
+          h("li", null, it.hidden ? "Đã ngừng bán" : it.inSheet ? "Đang bán" : "Không còn trong Sheet"),
+          h("li", null, `Nhóm: ${tenNhomCua(it)}`),
+          h("li", null, `Đưa đón: ${it.transferRule === "ALWAYS" ? "luôn có" : it.transferRule === "NEVER" ? "không đón" : "theo nhóm"}`),
+        ),
+        h("p", { class: "muted" }, "Ngừng bán, Có vé, Cần kiểm vé, Đưa đón đổi ở dòng dịch vụ."),
+      ),
+    ],
+    foot: [luu],
+  });
+  if (!bang) return;
+  // Câu «Tên trên Sheet đã đổi» do máy chủ tính (ADR-0201 Đ1 mục 4).
+  void api<Api.CatalogChiTietResponse>(`/api/catalog/${encodeURIComponent(it.code)}/chi-tiet`).then((r) => {
+    canhBao.textContent = r.cauTenSheetDoi ?? "";
+    canhBao.hidden = r.cauTenSheetDoi === null;
+  }).catch(() => undefined);
+  luu.addEventListener("click", async () => {
+    loi.hidden = true;
+    luu.disabled = true;
+    try {
+      const r = await api<Api.CatalogChiTietResponse>(`/api/catalog/${encodeURIComponent(it.code)}/chi-tiet`, { method: "PUT", body: { tenHienThi: ten.value, moTa: moTa.value } });
+      items = items.map((x) => (x.code === it.code ? { ...x, tenHienThi: r.tenHienThi, moTa: r.moTa } : x));
+      bang.close();
+      render();
+    } catch (err) {
+      loi.textContent = loiChu(err);
+      loi.hidden = false;
+      luu.disabled = false;
+    }
+  });
+}
+
 function openEdit(it: CatalogAdminItem): void {
   const fields = new Map<PaxCode, HTMLInputElement>();
   for (const c of PAX_ORDER) {
@@ -541,7 +668,7 @@ function openEdit(it: CatalogAdminItem): void {
   const nhomKhoi = h("div", { class: "nhom-sua" });
   replaceChildren(
     editEl,
-    h("h2", null, `Ghi đè giá: ${it.code} — ${it.name}`),
+    h("h2", null, `Ghi đè giá: ${it.code} — ${tenCua(it)}`),
     h("p", { class: "muted" }, "Giá ghi đè chỉ có hiệu lực trong hệ thống này (không ghi ngược vào Google Sheet) và không bị lần đồng bộ sau đè mất. Để trống hoặc nhập đúng giá Sheet để bỏ ghi đè loại đó."),
     unit,
     h("div", { class: "grid three" }, ...PAX_ORDER.map((c) => h("label", null, `${PAX_LABEL[c]} (₫)`, fields.get(c)!))),
@@ -882,6 +1009,10 @@ if (!can(staff, "admin.manage")) {
   else showError(errorEl, "Tài khoản này không vào được trang này.");
 } else {
   pullBtn.hidden = !can(staff, "catalog.sync");
+  // Bước 1 khung chung (N10): khối tự kiểm vé và khối nhóm dịch vụ về sau dữ liệu — giữ chỗ trước để danh sách bên dưới không bị đẩy.
+  if (can(staff, "settings.ops")) replaceChildren(byId("kv-tu-kiem"), trangThaiHeThong("dang-tai", { khuon: "thiet-lap" }));
+  nhoKhoi("kv-tu-kiem", can(staff, "settings.ops")); // lần mở sau tệp đầu trang giữ chỗ khối này từ lần vẽ đầu
+  replaceChildren(nhomEl, trangThaiHeThong("dang-tai", { khuon: "danh-sach", giuCho: true }));
   coVe = taoCoVe(errorEl, can(staff, "catalog.ticket_flag.write"), () => {
     renderNhom();
     render();

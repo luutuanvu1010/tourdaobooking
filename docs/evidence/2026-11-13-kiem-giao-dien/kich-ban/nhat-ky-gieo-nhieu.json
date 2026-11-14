@@ -1,0 +1,951 @@
+{
+  "chang": "nhieu",
+  "luc": "2026-11-12T22:59:31.811Z",
+  "soLenhGhi": 143,
+  "loiGap": [
+    {
+      "viec": "xác nhận đơn quá khứ ngày 2026-11-11",
+      "method": "POST",
+      "path": "/api/orders/fd4e2885-c992-4743-8031-1772b76bda76/status",
+      "status": 409,
+      "code": "incomplete_trip",
+      "message": "Chưa đủ thông tin chuyến để xác nhận đơn."
+    },
+    {
+      "viec": "xác nhận đơn quá khứ ngày 2026-11-08",
+      "method": "POST",
+      "path": "/api/orders/1ba24e56-8f21-484a-8cc5-4f46b36b01c1/status",
+      "status": 409,
+      "code": "incomplete_trip",
+      "message": "Chưa đủ thông tin chuyến để xác nhận đơn."
+    },
+    {
+      "viec": "xác nhận đơn quá khứ ngày 2026-11-04",
+      "method": "POST",
+      "path": "/api/orders/95cdd9f2-56d8-411c-844f-7c407ba6bb2a/status",
+      "status": 409,
+      "code": "incomplete_trip",
+      "message": "Chưa đủ thông tin chuyến để xác nhận đơn."
+    },
+    {
+      "viec": "xác nhận đơn quá khứ ngày 2026-10-31",
+      "method": "POST",
+      "path": "/api/orders/4ac95645-bd84-4415-8123-e0458dbaffe9/status",
+      "status": 409,
+      "code": "incomplete_trip",
+      "message": "Chưa đủ thông tin chuyến để xác nhận đơn."
+    }
+  ],
+  "lenh": [
+    {
+      "viec": "hồ sơ khách lẻ Nguyễn Minh Khang",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Trần Thu Hà",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Lê Quốc Bảo",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Phạm Ngọc Trâm",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Hoàng Gia Huy",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Huỳnh Thanh Tâm",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Phan Hữu Phước",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Vũ Mỹ Linh",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Võ Đức Anh",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Đặng Khánh Vy",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Bùi Tuấn Kiệt",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Đỗ Bảo Ngọc",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Hồ Văn Sơn",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Ngô Thị Mai",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Dương Hải Đăng",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Lý Phương Thảo",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách sạn",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ công ty lữ hành (chưa tài khoản)",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 4 (45 chỗ)",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 4 (45 chỗ): giấy tờ INSPECTION",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/d35168e5-6146-4c21-9692-aa803b32a5ff/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 4 (45 chỗ): giấy tờ TPL_INSURANCE",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/d35168e5-6146-4c21-9692-aa803b32a5ff/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe của nhà xe đối tác",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe",
+      "status": 201
+    },
+    {
+      "viec": "xe của nhà xe đối tác: giấy tờ INSPECTION",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/d3e8ed96-2879-4357-af1e-75665976b6c7/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe của nhà xe đối tác: giấy tờ TPL_INSURANCE",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/d3e8ed96-2879-4357-af1e-75665976b6c7/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 6 (chưa có giấy tờ)",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe",
+      "status": 201
+    },
+    {
+      "viec": "đơn nháp (Bán Hàng Thử, ngày 2026-11-15)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "đơn nháp (Bán Hàng Thử, ngày 2026-11-22)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "đơn nháp (Bán Hàng Hai, ngày 2026-11-19)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "đơn nháp (Bán Hàng Hai, ngày 2026-11-25)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "đơn nháp (Thực Tập Thử, ngày 2026-11-16)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "đơn nháp (Thực Tập Thử, ngày 2026-11-20)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "đơn nháp (Cộng Tác Thử, ngày 2026-11-21)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "đơn nháp (Lữ Hành Thử, ngày 2026-11-23)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "đơn chờ xác nhận (Bán Hàng Hai, ngày 2026-11-19)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "gui-xac-nhan (Bán Hàng Hai)",
+      "method": "POST",
+      "path": "/api/orders/a62ed6fb-b50b-42e9-8455-2d860f20a925/gui-xac-nhan",
+      "status": 201
+    },
+    {
+      "viec": "đơn chờ xác nhận (Thực Tập Thử, ngày 2026-11-18)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "gui-xac-nhan (Thực Tập Thử)",
+      "method": "POST",
+      "path": "/api/orders/2013a145-76df-41d6-a804-be5108e59eb2/gui-xac-nhan",
+      "status": 201
+    },
+    {
+      "viec": "đơn chờ xác nhận (Lữ Hành Thử, ngày 2026-11-22)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "gui-don (Lữ Hành Thử)",
+      "method": "POST",
+      "path": "/api/orders/52c26655-32a4-4a3f-af13-ba88353f922e/gui-don",
+      "status": 201
+    },
+    {
+      "viec": "đơn đã xác nhận (Bán Hàng Thử, ngày 2026-11-14)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn Bán Hàng Thử ngày 2026-11-14",
+      "method": "POST",
+      "path": "/api/orders/7f1e6a91-accf-45d1-afc0-14725fd93341/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đã xác nhận (Bán Hàng Hai, ngày 2026-11-15)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn Bán Hàng Hai ngày 2026-11-15",
+      "method": "POST",
+      "path": "/api/orders/0933306b-2e8c-44f3-8a54-c4514f675313/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đã xác nhận (Thực Tập Thử, ngày 2026-11-16)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn Thực Tập Thử ngày 2026-11-16",
+      "method": "POST",
+      "path": "/api/orders/33410e1f-bce4-4f7e-a149-c84d1b2bdf80/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đã xác nhận (Bán Hàng Thử, ngày 2026-11-17)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn Bán Hàng Thử ngày 2026-11-17",
+      "method": "POST",
+      "path": "/api/orders/5750338d-908f-4e5e-9f89-0e0fdd8282b2/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đã xác nhận (Bán Hàng Hai, ngày 2026-11-18)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn Bán Hàng Hai ngày 2026-11-18",
+      "method": "POST",
+      "path": "/api/orders/0ee4d1c5-4016-4238-b5c7-8a5a880f3b1d/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đã xác nhận (Thực Tập Thử, ngày 2026-11-19)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn Thực Tập Thử ngày 2026-11-19",
+      "method": "POST",
+      "path": "/api/orders/fdb757de-0221-4616-9b73-53635302811e/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đã xác nhận (Bán Hàng Thử, ngày 2026-11-20)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn Bán Hàng Thử ngày 2026-11-20",
+      "method": "POST",
+      "path": "/api/orders/d0b12525-c985-45dc-b383-849cb37a7bc7/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đã xác nhận (Bán Hàng Hai, ngày 2026-11-21)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn Bán Hàng Hai ngày 2026-11-21",
+      "method": "POST",
+      "path": "/api/orders/31e98b51-77ef-4c0c-ab41-efff42828cb2/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đã xác nhận (Thực Tập Thử, ngày 2026-11-22)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn Thực Tập Thử ngày 2026-11-22",
+      "method": "POST",
+      "path": "/api/orders/8190544c-cd51-4d76-9b07-9b20d2c69866/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đã xác nhận (Bán Hàng Thử, ngày 2026-11-23)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn Bán Hàng Thử ngày 2026-11-23",
+      "method": "POST",
+      "path": "/api/orders/762dd31d-fde1-4ca5-99e7-535d14e8aa25/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đã xác nhận (Bán Hàng Hai, ngày 2026-11-24)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn Bán Hàng Hai ngày 2026-11-24",
+      "method": "POST",
+      "path": "/api/orders/ea8f1332-e050-47db-bdae-870e808cba21/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đã xác nhận (Thực Tập Thử, ngày 2026-11-25)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn Thực Tập Thử ngày 2026-11-25",
+      "method": "POST",
+      "path": "/api/orders/d73b64a9-8856-461a-b5f4-acf226177f81/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn Đối tác gửi (nhánh B) (Cộng Tác Thử, ngày 2026-11-17)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "gửi đơn (Cộng Tác Thử)",
+      "method": "POST",
+      "path": "/api/orders/d57cb823-b76f-45a3-bfac-3c87e74cb7be/gui-don",
+      "status": 200
+    },
+    {
+      "viec": "đơn Đối tác gửi (nhánh B) (Cộng Tác Thử, ngày 2026-11-24)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "gửi đơn (Cộng Tác Thử)",
+      "method": "POST",
+      "path": "/api/orders/3723277a-90d3-4e78-98cb-ab1620c8f747/gui-don",
+      "status": 200
+    },
+    {
+      "viec": "đơn Đối tác gửi (nhánh B) (Lữ Hành Thử, ngày 2026-11-19)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "gửi đơn (Lữ Hành Thử)",
+      "method": "POST",
+      "path": "/api/orders/4c3b28f4-b143-4aa9-9d3c-cb538884fc03/gui-don",
+      "status": 200
+    },
+    {
+      "viec": "đơn Đối tác gửi (nhánh B) (Lữ Hành Thử, ngày 2026-11-26)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "gửi đơn (Lữ Hành Thử)",
+      "method": "POST",
+      "path": "/api/orders/7cb24ce1-a9dc-477a-b7aa-2b7276a0bf48/gui-don",
+      "status": 200
+    },
+    {
+      "viec": "đơn quá khứ (Bán Hàng Thử, ngày 2026-11-11)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn quá khứ ngày 2026-11-11",
+      "method": "POST",
+      "path": "/api/orders/fd4e2885-c992-4743-8031-1772b76bda76/status",
+      "status": 409,
+      "loi": {
+        "code": "incomplete_trip",
+        "message": "Chưa đủ thông tin chuyến để xác nhận đơn.",
+        "missing": [
+          {
+            "serviceId": "98e52dd3-63de-4b37-8b74-f5220654b9ee",
+            "name": "Fly board (Hòn Tằm)",
+            "reasons": [
+              "past_date"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "viec": "đơn quá khứ (Bán Hàng Hai, ngày 2026-11-08)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn quá khứ ngày 2026-11-08",
+      "method": "POST",
+      "path": "/api/orders/1ba24e56-8f21-484a-8cc5-4f46b36b01c1/status",
+      "status": 409,
+      "loi": {
+        "code": "incomplete_trip",
+        "message": "Chưa đủ thông tin chuyến để xác nhận đơn.",
+        "missing": [
+          {
+            "serviceId": "b567b597-9e58-40a2-913f-92b76f995163",
+            "name": "Lướt ván - Hòn Tằm",
+            "reasons": [
+              "past_date"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "viec": "đơn quá khứ (Bán Hàng Thử, ngày 2026-11-04)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn quá khứ ngày 2026-11-04",
+      "method": "POST",
+      "path": "/api/orders/95cdd9f2-56d8-411c-844f-7c407ba6bb2a/status",
+      "status": 409,
+      "loi": {
+        "code": "incomplete_trip",
+        "message": "Chưa đủ thông tin chuyến để xác nhận đơn.",
+        "missing": [
+          {
+            "serviceId": "adc5d304-4ad1-423a-a929-42b41ece249a",
+            "name": "Thuyền đạp: 30 phút - Hòn Tằm",
+            "reasons": [
+              "past_date"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "viec": "đơn quá khứ (Bán Hàng Hai, ngày 2026-10-31)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn quá khứ ngày 2026-10-31",
+      "method": "POST",
+      "path": "/api/orders/4ac95645-bd84-4415-8123-e0458dbaffe9/status",
+      "status": 409,
+      "loi": {
+        "code": "incomplete_trip",
+        "message": "Chưa đủ thông tin chuyến để xác nhận đơn.",
+        "missing": [
+          {
+            "serviceId": "3a3f97a0-28ca-4670-8856-488ad3746fa5",
+            "name": "Trăm trứng: tinh hoa",
+            "reasons": [
+              "past_date"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "viec": "đơn hôm nay để Hoàn thành (Bán Hàng Thử, ngày 2026-11-13)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn hôm nay (Hoàn thành)",
+      "method": "POST",
+      "path": "/api/orders/333c3654-c759-4c45-842f-c99b32a5c6ac/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn hôm nay để Hoàn thành (Bán Hàng Hai, ngày 2026-11-13)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn hôm nay (Hoàn thành)",
+      "method": "POST",
+      "path": "/api/orders/1868d07d-50ad-4dbe-8b37-bb40f6f12790/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn hôm nay để Hoàn thành (Bán Hàng Thử, ngày 2026-11-13)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn hôm nay (Hoàn thành)",
+      "method": "POST",
+      "path": "/api/orders/0d4c8fab-3eb4-4d07-829d-4a13b49d3b52/status",
+      "status": 200
+    },
+    {
+      "viec": "Kế toán ghi công ty thu đủ",
+      "method": "POST",
+      "path": "/api/orders/333c3654-c759-4c45-842f-c99b32a5c6ac/payments",
+      "status": 201
+    },
+    {
+      "viec": "HDV Đã giao",
+      "method": "POST",
+      "path": "/api/orders/333c3654-c759-4c45-842f-c99b32a5c6ac/delivered",
+      "status": 200
+    },
+    {
+      "viec": "Kế toán Hoàn thành",
+      "method": "POST",
+      "path": "/api/orders/333c3654-c759-4c45-842f-c99b32a5c6ac/completed",
+      "status": 200
+    },
+    {
+      "viec": "Kế toán ghi công ty thu đủ",
+      "method": "POST",
+      "path": "/api/orders/1868d07d-50ad-4dbe-8b37-bb40f6f12790/payments",
+      "status": 201
+    },
+    {
+      "viec": "HDV Đã giao",
+      "method": "POST",
+      "path": "/api/orders/1868d07d-50ad-4dbe-8b37-bb40f6f12790/delivered",
+      "status": 200
+    },
+    {
+      "viec": "Kế toán Hoàn thành",
+      "method": "POST",
+      "path": "/api/orders/1868d07d-50ad-4dbe-8b37-bb40f6f12790/completed",
+      "status": 200
+    },
+    {
+      "viec": "Kế toán ghi công ty thu đủ",
+      "method": "POST",
+      "path": "/api/orders/0d4c8fab-3eb4-4d07-829d-4a13b49d3b52/payments",
+      "status": 201
+    },
+    {
+      "viec": "HDV Đã giao",
+      "method": "POST",
+      "path": "/api/orders/0d4c8fab-3eb4-4d07-829d-4a13b49d3b52/delivered",
+      "status": 200
+    },
+    {
+      "viec": "huỷ đơn quá khứ ngày 2026-11-11",
+      "method": "POST",
+      "path": "/api/orders/fd4e2885-c992-4743-8031-1772b76bda76/status",
+      "status": 200
+    },
+    {
+      "viec": "huỷ đơn quá khứ ngày 2026-11-08",
+      "method": "POST",
+      "path": "/api/orders/1ba24e56-8f21-484a-8cc5-4f46b36b01c1/status",
+      "status": 200
+    },
+    {
+      "viec": "huỷ đơn quá khứ ngày 2026-11-04",
+      "method": "POST",
+      "path": "/api/orders/95cdd9f2-56d8-411c-844f-7c407ba6bb2a/status",
+      "status": 200
+    },
+    {
+      "viec": "huỷ đơn quá khứ ngày 2026-10-31",
+      "method": "POST",
+      "path": "/api/orders/4ac95645-bd84-4415-8123-e0458dbaffe9/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn sẽ huỷ (Bán Hàng Thử, ngày 2026-11-16)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận trước khi huỷ",
+      "method": "POST",
+      "path": "/api/orders/b60f68fa-21b6-48e8-bad4-b1fe8b055ba1/status",
+      "status": 200
+    },
+    {
+      "viec": "huỷ đơn Bán Hàng Thử ngày 2026-11-16",
+      "method": "POST",
+      "path": "/api/orders/b60f68fa-21b6-48e8-bad4-b1fe8b055ba1/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn sẽ huỷ (Bán Hàng Hai, ngày 2026-11-18)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "huỷ đơn Bán Hàng Hai ngày 2026-11-18",
+      "method": "POST",
+      "path": "/api/orders/7fdde185-31d6-4e08-bae7-1396e2b90632/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn sẽ huỷ (Thực Tập Thử, ngày 2026-11-21)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "huỷ đơn Thực Tập Thử ngày 2026-11-21",
+      "method": "POST",
+      "path": "/api/orders/76af959a-1625-4fba-b58c-e02545b8f234/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn sẽ huỷ (Bán Hàng Thử, ngày 2026-11-23)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận trước khi huỷ",
+      "method": "POST",
+      "path": "/api/orders/df635657-d942-4e13-a872-fce800599772/status",
+      "status": 200
+    },
+    {
+      "viec": "huỷ đơn Bán Hàng Thử ngày 2026-11-23",
+      "method": "POST",
+      "path": "/api/orders/df635657-d942-4e13-a872-fce800599772/status",
+      "status": 200
+    },
+    {
+      "viec": "chuyến ngày mai (đơn ba dịch vụ)",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen",
+      "status": 201
+    },
+    {
+      "viec": "chuyến ngày mai (đơn ba dịch vụ): xếp khách",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen/4892bf7b-dec6-4a92-b518-49e5ca7f1d17/phan-bo",
+      "status": 200
+    },
+    {
+      "viec": "chuyến ngày 2026-11-14 (nhà xe đối tác)",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen",
+      "status": 201
+    },
+    {
+      "viec": "chuyến ngày 2026-11-14 (nhà xe đối tác): xếp khách",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen/8ef9f64a-b897-4f08-9992-f0429fb9c9ec/phan-bo",
+      "status": 200
+    },
+    {
+      "viec": "chuyến ngày 2026-11-17 (xe công ty)",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen",
+      "status": 201
+    },
+    {
+      "viec": "chuyến ngày 2026-11-17 (xe công ty): xếp khách",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen/b346d44d-a726-4d11-bf15-fc31005faee0/phan-bo",
+      "status": 200
+    },
+    {
+      "viec": "chuyến ngày 2026-11-20 (nhà xe đối tác)",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen",
+      "status": 201
+    },
+    {
+      "viec": "chuyến ngày 2026-11-20 (nhà xe đối tác): xếp khách",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen/4d6060c7-83ef-454b-8395-b3ad5f7cbe76/phan-bo",
+      "status": 200
+    },
+    {
+      "viec": "chuyến ngày 2026-11-23 (xe công ty)",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen",
+      "status": 201
+    },
+    {
+      "viec": "chuyến ngày 2026-11-23 (xe công ty): xếp khách",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen/a392dfae-6448-4fb4-a78d-782728ee4105/phan-bo",
+      "status": 200
+    },
+    {
+      "viec": "đơn đưa đón gấp hôm nay (Bán Hàng Thử, ngày 2026-11-13)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "đặt gấp chặng hôm nay",
+      "method": "POST",
+      "path": "/api/orders/e9207a89-0ab6-4015-849a-6afed7f0a704/legs/ae747d13-e831-4c8e-8fdd-c4e9cccad01a/short-notice",
+      "status": 200
+    },
+    {
+      "viec": "xác nhận đơn gấp hôm nay",
+      "method": "POST",
+      "path": "/api/orders/e9207a89-0ab6-4015-849a-6afed7f0a704/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đưa đón gấp hôm nay (Bán Hàng Thử, ngày 2026-11-13)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "đặt gấp chặng hôm nay",
+      "method": "POST",
+      "path": "/api/orders/3feaff2f-6234-4783-95e5-15425378d0a4/legs/3ca4800f-c71f-4ec2-b1b4-6d9f1d8ac180/short-notice",
+      "status": 200
+    },
+    {
+      "viec": "xác nhận đơn gấp hôm nay",
+      "method": "POST",
+      "path": "/api/orders/3feaff2f-6234-4783-95e5-15425378d0a4/status",
+      "status": 200
+    },
+    {
+      "viec": "chuyến gấp hôm nay A (tài xế công ty, xe 1)",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen",
+      "status": 201
+    },
+    {
+      "viec": "chuyến gấp hôm nay A (tài xế công ty, xe 1): xếp khách",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen/2f85bc5c-37c8-4ca3-8fe0-c08ba1c8e82b/phan-bo",
+      "status": 200
+    },
+    {
+      "viec": "chuyến gấp hôm nay B (tài xế đối tác, xe nhà xe)",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen",
+      "status": 201
+    },
+    {
+      "viec": "chuyến gấp hôm nay B (tài xế đối tác, xe nhà xe): xếp khách",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen/3ade1e17-447e-49d8-8234-2e407a6e1470/phan-bo",
+      "status": 200
+    },
+    {
+      "viec": "tài xế công ty xuất bến",
+      "method": "POST",
+      "path": "/api/van-chuyen/cuoc-cua-toi/2f85bc5c-37c8-4ca3-8fe0-c08ba1c8e82b/xuat-ben",
+      "status": 200
+    },
+    {
+      "viec": "giá thoả thuận chuyến xe thuê",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen/3ade1e17-447e-49d8-8234-2e407a6e1470/chi-phi/gia-thoa-thuan",
+      "status": 201
+    },
+    {
+      "viec": "tài xế đối tác xuất bến",
+      "method": "POST",
+      "path": "/api/van-chuyen/cuoc-cua-toi/3ade1e17-447e-49d8-8234-2e407a6e1470/xuat-ben",
+      "status": 200
+    },
+    {
+      "viec": "đề nghị chuyển khách",
+      "method": "POST",
+      "path": "/api/van-chuyen/cuoc-cua-toi/2f85bc5c-37c8-4ca3-8fe0-c08ba1c8e82b/de-nghi",
+      "status": 200
+    },
+    {
+      "viec": "tài xế đối tác báo bận",
+      "method": "POST",
+      "path": "/api/van-chuyen/ban",
+      "status": 201
+    },
+    {
+      "viec": "Đối tác tự ghi đã thu tiền khách",
+      "method": "POST",
+      "path": "/api/orders/ba337c53-9e0e-4fda-966d-5494776dbccb/payments",
+      "status": 201
+    },
+    {
+      "viec": "điều chỉnh công nợ đối tác — giảm nợ (SETTLEMENT)",
+      "method": "POST",
+      "path": "/api/ledger/adjustments",
+      "status": 201
+    },
+    {
+      "viec": "điều chỉnh công nợ thứ hai",
+      "method": "POST",
+      "path": "/api/ledger/adjustments",
+      "status": 201
+    },
+    {
+      "viec": "Quản trị duyệt điều chỉnh thứ hai",
+      "method": "POST",
+      "path": "/api/ledger/adjustment-requests/6aa0bb2a-4976-4815-9053-28bb68a85cc7/approve",
+      "status": 201
+    },
+    {
+      "viec": "HDV thu cọc tiền mặt",
+      "method": "POST",
+      "path": "/api/orders/0933306b-2e8c-44f3-8a54-c4514f675313/payments",
+      "status": 201
+    },
+    {
+      "viec": "vé: Nút Đã giao không bấm được trên iPhone",
+      "method": "POST",
+      "path": "/api/feedback",
+      "status": 201
+    },
+    {
+      "viec": "vé: Cho phép tìm khách theo số phòng khách sạn",
+      "method": "POST",
+      "path": "/api/feedback",
+      "status": 201
+    },
+    {
+      "viec": "vé: Đối soát công nợ Cộng tác viên tháng 10",
+      "method": "POST",
+      "path": "/api/feedback",
+      "status": 201
+    },
+    {
+      "viec": "vé: Không thấy đơn vừa gửi trong danh sách",
+      "method": "POST",
+      "path": "/api/feedback",
+      "status": 201
+    },
+    {
+      "viec": "vé: Đổi ca chạy chiều thứ Năm",
+      "method": "POST",
+      "path": "/api/feedback",
+      "status": 201
+    },
+    {
+      "viec": "thông báo quan trọng",
+      "method": "POST",
+      "path": "/api/thong-bao",
+      "status": 201
+    }
+  ]
+}

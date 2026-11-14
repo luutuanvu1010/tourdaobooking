@@ -49,6 +49,8 @@
 | `bil_adjustment_request` | bảng | yêu cầu điều chỉnh công nợ chờ người thứ hai duyệt (ADR-0115 đợt 1; migration 0094), CHỈ-THÊM, khuôn bil_outside_refund: dòng REQUEST (người tạo khai hai bên, loại dòng, số tiền, lý do ≥ 10 ký tự, ngày phát sinh, direction INCREASE/DECREASE lúc tạo) và dòng quyết định APPROVE (direction + cap_snapshot = trần chụp lúc duyệt) / REJECT (lý do bắt buộc) / WITHDRAW (chỉ người tạo) trỏ về REQUEST bằng target_id UNIQUE — mỗi yêu cầu đúng một quyết định. Hết hạn không có dòng: tính lúc đọc (created_at + 7 ngày; trigger chặn APPROVE quá hạn). Trigger: quyết định cùng đơn; người duyệt / từ chối ≠ người tạo. Số dư KHÔNG đổi cho tới khi duyệt; phiếu ADJUSTMENT và dòng nợ chỉ sinh trong lô duyệt |
 | `bil_accounting_entry` | bảng | dấu "đã nhập phần mềm kế toán" + "Số hoá đơn đã nhập" của một đơn (ADR-0060), CHỈ-THÊM (trigger cấm sửa/xoá); trạng thái hiện tại = dòng rowid lớn nhất của đơn; bỏ dấu bắt buộc lý do (CHECK); không tiền, không trạng thái hoá đơn ADR-0004 |
 | `bil_debt_line` | bảng | dòng nợ hai chân (ADR-0026 đ3), CHỈ-THÊM; nguồn = đơn HOẶC chuyến (ADR-0057 T3 — trip_id cột dự trữ, không khoá ngoại, lượt 1 luôn trống). 0080 (ADR-0092 Đ2, Đ2b): trigger bil_debt_line_settlement_no_flip — dòng quyết toán gốc gắn đơn không làm số dư cặp (bên, công ty chủ) đổi dấu; bil_debt_line_held_once — dòng đảo giữ hộ chỉ khi người giữ hộ còn nợ ≥ số dòng gốc (một dòng giữ hộ tất toán MỘT lần: "Công ty đã nhận" HOẶC "Nộp"). 0112 (sổ đại lý đợt 2): ba loại HOA_HONG / GIAM_GIA_BEN_DAT / GIA_VON (ADR-0079 điều 2) — order_service_id bắt buộc cho HOA_HONG / GIA_VON gốc của phiếu Đã giao, chỉ mục duy nhất một phần bil_debt_line_one_commercial (phiếu, dòng dịch vụ, loại), trigger bil_debt_line_commercial_service / _direction / _gross / _discount (ADR-0079 điều 6 (i)–(iv); miễn dòng đảo, phiếu điều chỉnh, phiếu Đã giao gross_snapshot NULL); held_once tạo lại chỉ cộng HELD / SETTLEMENT / REFUND của cặp (đặc tả P10) |
+| `bil_agent_remittance` | bảng | KHOẢN NỘP của đại lý theo từng đơn (ADR-0182 phần B Đ2 mục 4–13; migration 0159), CHỈ-THÊM: gắn đúng một đơn, số > 0, ngày chuyển; trạng thái một chiều PENDING → CONFIRMED (posting_id trỏ phiếu SETTLEMENT của CHÍNH đơn — trigger bil_agent_remittance_posting) hoặc REJECTED (lý do bắt buộc). Mỗi đơn tối đa một khoản PENDING (chỉ mục duy nhất một phần bil_agent_remittance_one_pending — chặn bấm hai lần); người quyết KHÁC người ghi (CHECK). Khoản chờ CHƯA tính vào Đã thu của Công nợ đại lý. Trigger bil_payment_receipt_nop_cho_cong_ty chặn người đang có khoản chờ khai thêm «Công ty thu» cho đơn đó |
+| `bil_remittance_proof` | bảng | ảnh biên lai của KHOẢN NỘP (ADR-0182 phần B Đ2 mục 5; migration 0159) — chép bộ cột + trigger của bil_receipt_proof, gắn khoản nộp thay khoản thu; cùng kho R2 BIEN_LAI, khoá ngẫu nhiên tiền tố riêng nop/<32 hex>. Mỗi khoản một ảnh (UNIQUE remittance_id), người tải = người ghi khoản, trần 20 ảnh / giờ / tài khoản bằng trigger (đếm riêng bảng này). Không xoá dòng — ba mốc một chiều stored_at / purged_at / r2_deleted_at; hàng chờ dọn kho và R-BIL-BL1 phủ cả bảng này |
 | `bil_receipt_proof` | bảng | ảnh biên lai chuyển khoản (ảnh / PDF) ở kho R2 riêng BIEN_LAI (ADR-0196; migration 0158), CHỈ-THÊM: khoản «Công ty thu, chuyển khoản» do tài khoản Đối tác (không Kế toán) khai phải kèm đúng một ảnh, ghi CÙNG lô với khoản thu. Mỗi khoản thu tối đa một dòng (UNIQUE receipt_id, kể cả sau khi gỡ); người tải = người ghi khoản thu, khoản là CUSTOMER_PAYMENT; trần 20 ảnh / giờ / tài khoản bằng trigger (chạm trần thì cả lô huỷ). Khoá kho ngẫu nhiên bln/<32 hex>, loại theo chữ ký, cỡ, băm SHA-256; KHÔNG tên tệp gốc; không xoá dòng — ba mốc một chiều stored_at / purged_at (+ lý do TAI_LEN_DO_DANG / GO_TEP, băm về rỗng) / r2_deleted_at. Ảnh không làm khoản được tính là tiền đã về (dấu DECLARED ở bil_receipt_recon giữ nguyên) |
 | `bil_receipt_recon` | bảng | dấu đối chiếu của khoản "Công ty thu" bằng CHUYỂN KHOẢN do người không phải Kế toán khai (ADR-0120 Điều 1; migration 0099; tiền mặt giữ luật giữ hộ cũ, không có dấu), CHỈ-THÊM. DECLARED = đang đối chiếu (không có dòng giữ hộ nào), CONFIRMED = Kế toán đã bấm "Công ty đã nhận"; đang đối chiếu = có DECLARED chưa có CONFIRMED, lần thu còn hiệu lực. Khoản khai trước ngày áp luật không có dòng ở đây (đi đường dòng giữ hộ cũ). Đơn còn khoản đang đối chiếu chưa Đã giao được (trigger bil_posting_delivered_reconciling). 0112 (ADR-0132): DECLARED nhận thêm lần thu người thu BOOKER / SUPPLIER ở mọi hình thức (khách trả cho bên đặt / tại quầy nhà cung cấp, người không giữ ledger.write khai — không sinh dòng giữ hộ); CONFIRMED của loại này = Kế toán bấm «Bên kia đã nhận»; mã giao dịch ngân hàng chỉ đòi cho người thu Công ty; view cọc v_bil_coc_don và trigger đảo cọc coi khoản loại mới chưa CONFIRMED là đang đối chiếu |
 | `bil_receipt_bank_txn` | bảng | nối lần thu ↔ mã giao dịch ngân hàng + số tiền thực chuyển theo sao kê (ADR-0092 Đ6, ADR-0108 đ4 T2; migration 0088), CHỈ-THÊM, receipt_id duy nhất. Chỉ lần thu chuyển khoản – Công ty thu. Ba luật ở trigger (trùng cùng đơn, số thực chuyển lệch, tổng vượt) theo vị từ hieuLuc. Chỉ người có ledger.write thấy mã; nhật ký không chép mã |
@@ -79,7 +81,9 @@
 | `ctl_attribute_assignment` | bảng | Gắn giá trị đặc điểm cho MỘT dịch vụ hoặc MỘT nhóm (ADR-0152 Đ1, 0128; khuôn 0127): dòng mở = valid_to_at NULL, tối đa một dòng mở mỗi (dịch vụ, đặc điểm) và (nhóm, đặc điểm); «theo nhóm» = dịch vụ không có dòng mở. Chỉ thêm: cấm xoá, chỉ cho đóng dòng mở một lần; trigger chặn giá trị không thuộc đặc điểm và chèn khi đặc điểm / giá trị / nhóm đang tắt. Module khác đọc giá trị hiệu lực qua view v_ctl_service_attribute; đồng bộ Sheet không ghi bảng này |
 | `ctl_service_ticket_flag` | bảng | ô «Có vé» theo dịch vụ (scope SERVICE, code = mã dịch vụ) hoặc nhóm (scope GROUP, code = mã nhóm) (ADR-0174, migration 0142), CHỈ-THÊM; has_ticket 1 = Có vé, 0 = Không vé (ghi tường minh để dòng dịch vụ thắng nhóm); chưa khai là Không vé; luật xét ở src/shared/co-ve.ts |
 | `ctl_service_ticket_source` | bảng | ô «Vé do ai phát» chỉ trên từng dịch vụ (code = mã dịch vụ, không theo nhóm) (ADR-0175 Đ1.2, migration 0151), CHỈ-THÊM; source HANG_NGOAI = vé hãng ngoài, TOUR_DAO = vé Tour Đảo; dòng hiệu lực = valid_from_at lớn nhất; chưa có dòng là HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts |
+| `ctl_service_detail` | bảng | chi tiết dịch vụ do Nền tảng giữ (ADR-0201 Đ1, migration 0160), CHỈ-THÊM; display_name = tên hiển thị thắng tên Sheet ở danh mục (NULL = dùng tên Sheet), description = mô tả, image_key = khoá ảnh (bước sau), sheet_name_at = tên Sheet lúc ghi (báo Sheet đổi tên); dòng hiệu lực = valid_from_at lớn nhất; đồng bộ Sheet không chạm; luật ở src/shared/chi-tiet-dich-vu.ts |
 | `v_ctl_service_ticket_flag` | view công bố | cột: scope, code, has_ticket |
+| `v_ctl_service_detail` | view công bố | cột: code, display_name, description, image_key, sheet_name_at, valid_from_at |
 | `v_ctl_service_ticket_source` | view công bố | cột: code, source |
 | `v_ctl_service_group` | view công bố | cột: catalog_code, group_code |
 | `v_ctl_service_transfer` | view công bố | cột: catalog_code, transfer_enabled |
@@ -145,7 +149,7 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
-| `mnt_setting` | bảng |  |
+| `mnt_setting` | bảng | singleton id = 'default'. content_json (migration 0162): nội dung màn bảo trì do Toàn quyền sửa ở trang Tôi (SĐT hỗ trợ, Zalo, website, chữ, công tắc ẩn/hiện); NULL = nội dung mặc định |
 
 ## orders
 
@@ -173,6 +177,7 @@
 | `v_ord_order_flag` | view công bố | cột: id, is_confirmed, is_cancelled |
 | `v_ord_kenh_thu` | view công bố | cột: id, staff_id, company_collects_snapshot |
 | `v_ord_don_tra_sau` | view công bố | cột: id, order_code, booker_party_id, status, delivered_at, credit_due_date, credit_due_at, credit_grace_until |
+| `v_ord_order_booker` | view công bố | cột: id, staff_id, booker_party_id |
 | `v_ord_order_state` | view công bố | cột: id, status, delivered_at, completed_at |
 | `v_ord_cancel_state` | view công bố | cột: order_id, group_code, reason_code, cancelled_date, legacy, depart_last_date, refund_deadline |
 | `v_ord_leg_key` | view công bố | cột: id, order_id, order_service_id, is_open |
@@ -366,6 +371,7 @@
 | `bil_outside_refund` |  | `reason` |  |  |
 | `bil_payment_receipt` |  | `note` |  |  |
 | `bil_posting` |  | `reason` |  |  |
+| `bil_remittance_proof` |  |  | `storage_key`, `content_hash` |  |
 | `bil_receipt_proof` |  |  | `storage_key`, `content_hash` |  |
 | `dsp_assignment` |  | `place_text` |  |  |
 | `fbk_attachment` |  |  | `storage_key`, `content_hash` |  |
@@ -373,7 +379,7 @@
 | `fbk_ticket` |  | `title`, `context` |  |  |
 | `ky_period_close` |  | `note` |  |  |
 | `login_attempt` |  | `key` |  |  |
-| `mnt_setting` |  | `allowed_phones` |  |  |
+| `mnt_setting` |  | `allowed_phones`, `content_json` |  |  |
 | `ntf_notice` |  | `tieu_de`, `noi_dung` |  |  |
 | `ntf_push_sub` |  | `endpoint`, `thiet_bi` |  |  |
 | `ord_cancel_reason` |  | `note` |  |  |

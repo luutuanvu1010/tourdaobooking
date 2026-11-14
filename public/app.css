@@ -124,6 +124,7 @@
   /* — Riêng của Island Booking System (tên cũ "Tour Đảo Booking"; KHÔNG có trong tourdaovn): kích thước giao diện điện thoại/PWA. Giá trị giao diện mới đi vào đây, không viết cứng trong luật. — */
   --w-main: var(--w-noi-dung-max);        /* bề rộng nội dung tối đa các trang mặc định — chủ dự án duyệt tăng từ 960px (đặc tả §16 mục 3); trang Lập đơn dùng --w-form riêng, không đổi */
   --h-quet-video: 50vh;     /* Quét vé (ADR-0175 Đ3): chiều cao tối đa khung camera — nửa màn, chừa chỗ cho nút và danh sách lượt quét */
+  --h-anh-dich-vu: 200px;  /* ảnh đại diện dịch vụ trong bảng «Chi tiết dịch vụ» (ADR-0201 Đ3): cao tối đa, giữ tỉ lệ */
   --w-ve-mau: 360px;        /* ảnh vé Tour Đảo mẫu ở khối «Tạo vé» (ADR-0175 Đ1.7): 1080 × 1920 thu về bề rộng gần một màn điện thoại để xem như khách thấy */
   --h-order-skeleton: 76px; /* Đợt E (vòng sửa 2026-09-24): thẻ đơn đóng đo THẬT 76px ở cả 390px và 1040px (docs/evidence/2026-09-24-dot-e/) — trước là 180-240px cho khung 7 dòng cũ; chỉ là khung xương lúc đang tải, không cần khớp tuyệt đối */
   --c-on-dark: #ffffff;     /* chữ/biểu tượng trên nền primary hoặc accent */
@@ -182,6 +183,13 @@
   --c-spinner-track: rgba(255, 255, 255, 0.3); /* vòng mờ của vòng quay trên nút Đăng nhập đặc màu (1.70; trước là navy mờ trên nút nhạt) */
   --radius-icon: 22.37%;    /* độ bo góc icon iOS */
   --w-narrow: 420px;        /* bề rộng tối đa của thẻ hẹp (trang Tôi) */
+  --w-maint: 480px;         /* bề rộng tối đa thẻ màn bảo trì (bản mẫu 2a, 13/11/2026) */
+  --w-maint-nut: 140px;     /* bề rộng cơ sở nút Gọi / Nhắn Zalo: hẹp thì xuống hai dòng */
+  --w-maint-goi: 220px;     /* bề rộng cơ sở riêng nút Gọi (số điện thoại không gãy dòng) */
+  --logo-maint: 36px;       /* logo đầu thẻ màn bảo trì */
+  --w-maint-xem: 390px;     /* khung điện thoại của bản xem trước màn bảo trì ở trang Tôi (bản mẫu 2c) */
+  --r-maint-xem: 24px;      /* bo góc khung điện thoại xem trước (bản mẫu 2c) */
+  --lh-maint-so: 36px;      /* chiều cao dòng số đồng hồ màn bảo trì */
   --fs-name: var(--fs-h2);        /* tên và chữ viết tắt trong thẻ hồ sơ (trang Tôi) */
   --fs-bar-title: var(--fs-step-7); /* tiêu đề trên thanh đầu trang (điện thoại) */
   --h-turnstile: 65px;      /* chiều cao cố định của widget Cloudflare Turnstile (cỡ "flexible"/"normal"): khung giữ chỗ để widget dựng xong không đẩy nút Đăng nhập */
@@ -603,6 +611,10 @@
   --skel-dong: 16px;
   --skel-so: 26px;
   --skel-vien: 96px;
+  --giu-cho-tu-kiem: 200px;    /* bước 1 (N10): giữ chỗ khối «tự kiểm vé» đầu trang Dịch vụ & giá — xấp xỉ cao thật ở điện thoại (đo 203); khổ rộng hơn đặt lại ở @media trước dấu mốc */
+  --giu-cho-xac-minh: 256px;   /* bước 1 (N10): giữ chỗ khối «Hàng chờ xác minh» (Quản lý tài khoản) ở điện thoại (đo 259); khổ rộng đặt lại ở @media trước dấu mốc */
+  --dai-giu: 0px;              /* bước 1 (N10): chiều cao giữ chỗ cho dải đầu trang — mặc định 0; web/giu-cho-dai.js đặt lại trên <html> khi lần trước trong thẻ có dải */
+  --giu-cho-cao: 60vh;         /* bước 1 khung chung (N10, 13/11): khung chờ giữ chỗ của khối dài mở đầu trang — đủ đẩy khối dưới ra ngoài màn đầu để dữ liệu về không làm nhảy bố cục */
   --vong-trang-thai: 56px;     /* vòng hình của trang trạng thái (đặc tả 6.1; nguồn bản vẽ, 7c đưa vào bộ) */
   /* Luật khung 30/10/2026 (chủ duyệt gói khuyến nghị của docs/superpowers/specs/2026-10-30-danh-gia-khung-giao-dien/BAO-CAO.md; kế hoạch
      docs/superpowers/plans/2026-10-30-sua-hien-thi-va-luat-khung.md). Dùng ở khối «Luật khung 30/10» cuối tệp. */
@@ -618,6 +630,8 @@
   --w-tim-thanh-tren-hep: 120px; /* ô tìm thanh trên ở máy tính: co tới mức này (thay --w-tim-thanh-tren-min 160px) để tiêu đề trang không bị cắt ở laptop */
   --w-nhom-ten: 240px;          /* Danh mục: cột tên nhóm dịch vụ ở máy tính — điều khiển đứng ngay sau */
 }
+@media (min-width: 641px) { :root { --giu-cho-tu-kiem: 128px; --giu-cho-xac-minh: 216px; } } /* bước 1 (N10): khối «tự kiểm vé» ở iPad cao ~130 */
+@media (min-width: 960px) { :root { --giu-cho-tu-kiem: 104px; } } /* … ở máy tính ~106 */
 @media (min-width: 960px) { :root { --h-danh-sach: 448px; } } /* khung danh sách dịch vụ ~8 dòng ở máy tính (bản vẽ 18/10) — đặt TRƯỚC dấu mốc app iPhone vì có px */
 * { box-sizing: border-box; }
 h1, h2, h3, h4, h5, h6 { font-weight: var(--fw-heading); }
@@ -632,6 +646,7 @@ a { color: var(--c-primary); }
 .num { text-align: right; white-space: nowrap; }
 
 #topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); padding: calc(var(--s3) + env(safe-area-inset-top)) max(var(--s4), env(safe-area-inset-right)) var(--s3) max(var(--s4), env(safe-area-inset-left)); background: var(--c-bar-bg); color: var(--c-on-bar); }
+@media (min-width: 900px) { #topbar { box-sizing: border-box; min-height: calc(var(--bar-h) + env(safe-area-inset-top)); } } /* bước 1 khung chung (N10, 13/11): thanh trên máy tính cao sẵn như khi khung đã dựng — trước đó thanh rỗng chỉ 24 px rồi nở ra, đẩy cả trang xuống (nhảy bố cục ở mọi trang) */
 #topbar a:not(.btn) { color: var(--c-on-bar); text-decoration: none; } /* :not(.btn): luật theo id thắng màu chữ của nút — từng làm nút san hô "Tạo đơn" ở thanh trên máy tính chữ xanh trên nền đỏ (1,73:1, axe 2026-10-02) */
 .brand { display: flex; align-items: center; gap: var(--s2); font-weight: var(--fw-heavy); font-size: var(--fs-h2); } .brand span { font-weight: var(--fw-regular); opacity: .8; }
 .brand .brand-name { min-width: 0; font-weight: inherit; line-height: 1.25; opacity: 1; } /* chữ tên app là MỘT khối: "Island Booking System" hẹp chỗ thì ngắt dòng như câu (sidebar máy tính), không tách "System" thành cột riêng */
@@ -960,7 +975,7 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
   .account-layout { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); align-items: start; }
   #me, #links, #passkeys, #pin-form { grid-column: 1; } /* Task 10: #passkeys thiếu ở đây thì #maintenance ẩn (đa số tài khoản không phải chủ) làm #passkeys tự trôi sang cột 2 giữa chừng (đo bằng CDP: left ~532px, không thẳng hàng cột nào) */
   #myjobs { grid-column: 1 / -1; } /* Task 1.8: "Việc của tôi" của HDV có hai khối (chờ nhận / của tôi) — trải hết bề ngang, không bó vào nửa cột */
-  #maintenance, #tro-ly-cai-dat { grid-column: 2; } /* ADR-0066: khối cài đặt trợ lý của Toàn quyền đứng dưới bảo trì, cùng cột */
+  #tro-ly-cai-dat { grid-column: 2; } /* ADR-0066: khối cài đặt trợ lý của Toàn quyền, cột phải */
 }
 /* mục Face ID ở trang "Tôi": mỗi máy một dòng, ngăn bằng đường kẻ như danh sách dòng của app (.line-view/.mline) — trước đây là .card lồng trong #passkeys.card, cùng nền nên không thấy khung */
 .passkey-list { margin-bottom: var(--s3); border-top: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); }
@@ -1748,12 +1763,35 @@ body.sheet-open { overflow: hidden; }
 /* ---------- chế độ bảo trì (lớp phủ web/maintenance-screen.ts, banner ở đăng nhập, dải ở web/shell.ts, mục ở trang Tôi web/account.ts) — chỉ token ---------- */
 body.maint-open { overflow: hidden; }
 .maint-screen { position: fixed; inset: 0; z-index: var(--z-tren-cung); display: flex; align-items: center; justify-content: center; overflow-y: auto; padding: max(var(--s4), env(safe-area-inset-top)) max(var(--s4), env(safe-area-inset-right)) max(var(--s4), env(safe-area-inset-bottom)) max(var(--s4), env(safe-area-inset-left)); background: var(--c-maint-bg); } /* che kín trang bên dưới (nội dung đang gõ vẫn còn trong trang); bậc trên cùng (--z-tren-cung), cao hơn bảng trượt (--z-truot) và thanh tab (--z-tab) */
-.maint-card { width: 100%; max-width: var(--w-narrow); margin: auto; padding: var(--s5); text-align: center; background: var(--c-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
-.maint-icon { display: flex; justify-content: center; margin-bottom: var(--s3); color: var(--c-sand-text); }
-.maint-title { margin: 0 0 var(--s3); font-size: var(--fs-title); }
-.maint-msg { margin: 0 0 var(--s4); overflow-wrap: anywhere; }
-.maint-card .btn { width: 100%; min-height: var(--tap-min); }
-.maint-card .btn + .btn { margin-top: var(--s2); }
+.maint-cot { display: flex; flex-direction: column; align-items: center; gap: var(--s4); width: 100%; max-width: var(--w-maint); margin: auto; } /* màn bảo trì mới (bản mẫu chủ dự án 13/11/2026, phương án 2a): thẻ giữa màn + thẻ website + lời cảm ơn */
+.maint-card { display: flex; flex-direction: column; gap: var(--s5); width: 100%; padding: var(--s5); background: var(--c-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
+.maint-dau { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.maint-thuong { display: flex; align-items: center; gap: var(--s3); min-width: 0; font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-text-muted); }
+.maint-logo { flex: none; width: var(--logo-maint); height: var(--logo-maint); border-radius: var(--radius-sm); }
+.maint-chu { display: flex; flex-direction: column; gap: var(--s2); }
+.maint-title { margin: 0; font-size: var(--fs-step-10); font-weight: var(--fw-heading); text-wrap: pretty; }
+.maint-msg { margin: 0; color: var(--c-text-muted); overflow-wrap: anywhere; text-wrap: pretty; }
+.maint-ly-do { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) var(--s4); background: var(--c-surface-alt); border-radius: var(--radius-md); overflow-wrap: anywhere; }
+.maint-dem-khoi, .maint-dem { display: flex; flex-direction: column; gap: var(--s3); }
+.maint-nhan { font-size: var(--fs-label); font-weight: var(--fw-medium); color: var(--c-text-muted); }
+.maint-o { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s2); }
+.maint-o > div { display: flex; flex-direction: column; align-items: center; padding: var(--s3) var(--s1); background: var(--c-primary-soft); border-radius: var(--radius-md); }
+.maint-o-so { font-size: var(--fs-step-14); line-height: var(--lh-maint-so); font-weight: var(--fw-heavy); color: var(--c-primary); font-variant-numeric: tabular-nums; } /* số cùng bề rộng: đồng hồ chạy không nhảy chữ */
+.maint-o-nhan { font-size: var(--fs-step-1); color: var(--c-text-muted); }
+.maint-mo-lai { display: flex; align-items: center; gap: var(--s2); margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
+.maint-mo-lai > svg { flex: none; }
+.maint-mo-lai strong { font-weight: var(--fw-bold); color: var(--c-text); }
+.maint-card .dai { min-height: 0; padding: var(--s3) var(--s4); border-radius: var(--radius-md); }
+.maint-nut { display: flex; flex-direction: column; gap: var(--s2); }
+.maint-nut > .nut[data-cap="loi"] { align-self: center; min-height: var(--tap-min); }
+.maint-lien-he { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.maint-lien-he .nut { flex: 1 1 var(--w-maint-nut); min-height: var(--tap-min); text-decoration: none; }
+.maint-lien-he .nut:first-child { flex-basis: var(--w-maint-goi); } /* nút Gọi dài hơn: khổ điện thoại thì hai nút xếp hai dòng, mỗi nút trọn chiều ngang */
+.maint-web { display: flex; flex-direction: column; gap: var(--s1); width: 100%; color: var(--c-text); text-decoration: none; }
+.maint-web strong { color: var(--c-primary); }
+.maint-web span { font-size: var(--fs-label); color: var(--c-text-muted); }
+.maint-cam-on { margin: 0; max-width: var(--w-narrow); text-align: center; font-size: var(--fs-label); color: var(--c-text-muted); text-wrap: pretty; }
+.maint-dem-khoi[hidden], .maint-dem[hidden], .maint-mo-lai[hidden], .maint-lien-he[hidden], .maint-ly-do[hidden] { display: none; } /* các khối trên đặt display: flex/grid nên phải trả lại cho thuộc tính hidden */
 .maint-count { display: inline-block; font-weight: var(--fw-heavy); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--c-primary); } /* số cùng bề rộng + không xuống dòng giữa chừng: đồng hồ chạy không nhảy chữ */
 .login-maintenance p { margin: 0; overflow-wrap: anywhere; }
 .maint-state { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 0 0 var(--s2); font-weight: var(--fw-bold); }
@@ -1765,6 +1803,24 @@ body.maint-open { overflow: hidden; }
 .maint-actions .btn { flex: 1 1 auto; min-height: var(--tap-min); }
 .maint-confirm { margin-top: var(--s3); padding: var(--s3); color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); border-radius: var(--radius-sm); }
 .maint-confirm p { margin: 0 0 var(--s2); }
+/* Nội dung màn bảo trì (bản mẫu 2c, ADR-0202): khung sửa + bản xem trước dựng bằng chính thẻ của lớp phủ thật (.maint-cot). */
+.maint-nd { display: flex; flex-direction: column; gap: var(--s4); margin-top: var(--s5); padding-top: var(--s4); border-top: 1px solid var(--c-border); }
+.maint-nd-form { display: flex; flex-direction: column; gap: var(--s3); }
+.maint-nd-form h3, .maint-nd-form > p { margin: 0; }
+.maint-nd-o { color: var(--c-text); }
+.maint-nd-goi-y { display: block; margin-top: var(--s1); font-size: var(--fs-label); }
+.maint-nd-hien { display: flex; flex-direction: column; padding-top: var(--s2); border-top: 1px solid var(--c-border); }
+.maint-nd-cong-tac { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: var(--tap-min); font-size: var(--fs-ui); color: var(--c-text); }
+.maint-nd-nut-xem { align-self: stretch; }
+.maint-nd-xem { display: none; flex-direction: column; gap: var(--s2); }
+.maint-nd-xem.mo { display: flex; }
+.maint-nd-xem > .nhan { margin: 0; color: var(--c-text-muted); }
+.maint-xem-truoc { width: 100%; max-width: var(--w-maint-xem); margin: 0 auto; padding: var(--s5) var(--s4); background: var(--c-maint-bg); border: 1px solid var(--c-border); border-radius: var(--r-maint-xem); box-shadow: var(--shadow-card); } /* khung điện thoại: nền xám của màn che, thẻ trắng ở giữa — như lớp phủ thật */
+@media (min-width: 900px) { .maint-nd-xem { display: flex; } .maint-nd .maint-nd-nut-xem { display: none; } .maint-nd-xem > .nhan { max-width: var(--w-maint-xem); width: 100%; margin: 0 auto; } }
+@media (min-width: 1200px) { /* bản mẫu 2c: hai cột — khung sửa | xem trước 390px dính khi cuộn */
+  #maintenance:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) var(--w-maint-xem); gap: var(--s6); align-items: start; }
+  #maintenance .maint-nd-xem { position: sticky; top: var(--s4); }
+} /* máy tính: bản xem trước luôn hiện như bản mẫu; điện thoại: bấm «Xem trước màn bảo trì» */
 
 /* ---------- hồ sơ khách trên đơn (N2 lát 1) ---------- */
 .booker { display: grid; gap: var(--s2); margin-top: var(--s3); }
@@ -4299,7 +4355,11 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .dai[data-tong="bien"] { color: var(--c-primary-strong); background: var(--c-primary-soft); }
 .dai[data-tong="cat"] { color: var(--c-sand-text); background: var(--c-mat-mang-bg); }
 .dai[data-tong="do"] { color: var(--c-danger); background: var(--c-danger-soft); }
-@media (max-width: 640px) { .dai { flex-wrap: wrap; } }
+/* Bước 1 khung chung (N9, chủ duyệt 13/11 «Theo khuyến nghị»): điện thoại — dải tối đa hai dòng, câu dài cắt «…» (bấm nút của dải để đọc đủ; bộ đọc màn hình vẫn đọc cả câu); nút và nút đóng giữ một hàng. */
+@media (max-width: 640px) {
+  .dai { flex-wrap: nowrap; gap: var(--s2); padding-top: var(--s1); padding-bottom: var(--s1); }
+  .dai-cau { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; font-size: var(--fs-step-3); line-height: var(--lh-20); }
+}
 
 .chan-dinh { position: sticky; bottom: 0; z-index: var(--z-dinh); display: flex; gap: var(--s3); padding: var(--le-trang) var(--le-trang) calc(var(--le-trang) + env(safe-area-inset-bottom)); background: var(--c-surface); border-top: 1px solid var(--c-border); min-height: var(--h-control-lon); }
 .chan-dinh .nut, .chan-dinh button { min-height: var(--h-control-lon); }
@@ -4308,6 +4368,17 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .xuong[data-khuon="so"] { min-height: var(--skel-so); }
 .xuong[data-khuon="vien"] { width: var(--skel-vien); border-radius: var(--radius-pill); }
 @media (prefers-reduced-motion: reduce) { .xuong { animation: none; } }
+.trang-thai-xuong[data-giu-cho] { min-height: var(--giu-cho-cao); }
+/* Bước 1 (N10): giữ chỗ cho dải đầu trang từ lần vẽ đầu — web/giu-cho-dai.js (đầu trang) đặt --dai-giu + data-giu-dai khi lần trước trong thẻ có dải; web/dai.ts thả. Trang biểu mẫu không vẽ dải bảo mật. */
+html[data-giu-dai] #strips:empty { min-height: var(--dai-giu); }
+html[data-giu-dai="bao-mat"] body[data-khuon="bieu-mau"] #strips:empty { min-height: 0; }
+/* … và khối theo quyền lần trước trang có (web/giu-khoi.ts ghi, web/giu-cho-dai.js đặt data-giu-khoi): khối «tự kiểm vé» của Dịch vụ & giá. */
+html[data-giu-khoi~="kv-tu-kiem"] #kv-tu-kiem:empty { display: block; min-height: var(--giu-cho-tu-kiem); }
+/* Khung «Thêm tài khoản» (Quản lý tài khoản): giữ chỗ VÔ HÌNH (không bấm được trước khi mã trang gắn xử lý — biểu mẫu chưa sẵn sàng); khối vai giữ chỗ như khi mã chạy. */
+html[data-giu-khoi~="add-card"] [id="add-card"][hidden], html[data-giu-khoi~="xac-minh"] #xac-minh[hidden] { display: block !important; visibility: hidden; } /* !important: thắng luật chung `[hidden] { display: none !important }` — chỉ khi tệp đầu trang báo lần trước khối có hiện */
+html[data-giu-khoi~="xac-minh"] #xac-minh[hidden] { min-height: var(--giu-cho-xac-minh); }
+html[data-giu-khoi~="add-card"] [id="add-perms"]:empty { min-height: var(--giu-cho-cao); }
+#kv-tu-kiem > .trang-thai-xuong { min-height: var(--giu-cho-tu-kiem); } /* bước 1 (N10): khung chờ của khối tự kiểm vé gần bằng khối thật */ /* bước 1 (N10): `giuCho` của trangThaiHeThong */
 
 .rong { display: flex; flex-direction: column; align-items: center; gap: var(--s3); padding: var(--nhip-khoi) var(--le-trang); text-align: center; color: var(--c-text-muted); }
 
@@ -4360,7 +4431,6 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 .dai-dong:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: calc(-1 * var(--focus-ring)); }
 .login-alert.dai { margin: var(--s5) 0 0; border-radius: var(--radius-sm); }
 .login-alert.dai p { flex: 1; }
-.maint-phu { margin: 0 0 var(--s4); color: var(--c-text-muted); font-size: var(--fs-label); }
 /* Hộp xác nhận một chiều hoiXacNhan (đợt 0, Task 11): điện thoại xếp dọc — nút giữ dưới cùng, nút nguy hiểm trên; từ 641 hai đầu */
 .sheet-canh-bao { display: flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); margin: 0 auto var(--s3); color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); border-radius: var(--radius-pill); }
 .sheet-foot.sheet-foot-xac-nhan { display: flex; flex-direction: column-reverse; gap: var(--s2); }
@@ -4381,10 +4451,10 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 /* [7] Một trang, một tiêu đề (quyết định cổng 2b: tên trang ở thanh trên). Tiêu đề lớn trong thân chỉ ẩn khỏi mắt — trình đọc màn hình vẫn có h1.
    Giữ biển số ở Chi tiết xe (.vc-plate: là nội dung, không phải nhãn trang). Điện thoại: trước đây chỉ ẩn `main > h1`, nay ẩn cả h1 nằm trong hàng đầu trang. */
 @media (min-width: 900px) {
-  body.has-sidebar main h1:not(.vc-plate):not(.hd-bai-ten) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  body.has-sidebar main h1:not(.vc-plate):not(.hd-bai-ten):not(.maint-title) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 }
 @media (max-width: 899px) {
-  body[data-title] main h1:not(.vc-plate):not(.hd-bai-ten) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  body[data-title] main h1:not(.vc-plate):not(.hd-bai-ten):not(.maint-title) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   /* [6] Trang con có nút quay lại: bỏ ô chữ cái đầu trang trí (chỉ là hình, không bấm được) để tiêu đề — vd mã đơn — không bị cắt. */
   #topbar:has(> .bar-back) .bar-avatar { display: none; }
 }
@@ -4498,6 +4568,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .account-layout > * { break-inside: avoid; margin: 0 0 var(--s4); }
   .account-layout > .vc-eyebrow { break-after: avoid; margin-bottom: var(--s2); }
   body.has-sidebar #links > .row-link.danger { display: none; }
+  #maintenance { column-span: all; } /* bản mẫu 2c (14/11/2026): mục bảo trì trải hết bề ngang hai cột — khung sửa bên trái, xem trước khung điện thoại bên phải */
 }
 
 /* [11] Trang chủ máy tính (Phương án A, 31/10): biểu đồ tuần giãn theo thẻ Doanh thu — xếp dưới con số, chiều cao từ --h-chart-min tới --h-chart-max (xem khối Trang chủ MÁY TÍNH). */
@@ -4600,6 +4671,9 @@ button.sidebar-user { width: 100%; font: inherit; color: inherit; text-align: le
 button.sidebar-user:focus-visible { outline: var(--bw-indicator) solid var(--c-sidebar-text-on); outline-offset: calc(var(--bw-indicator) * -1); }
 .sidebar-foot > button.sidebar-user { grid-column: 1 / -1; }
 button.bar-avatar { padding: 0; border: 0; font-family: inherit; cursor: pointer; }
+/* Bước 1 khung chung (N5, 13/11): ô chữ cái ở thanh trên giữ hình --logo-bar, vùng chạm đủ --tap-min — đệm trong suốt (nền chỉ tô phần giữa), lề âm trên dưới và bên phải giữ nguyên chỗ trên thanh. Trang chủ đã to sẵn (--hero-avatar) nên bỏ đệm. */
+button.bar-avatar { box-sizing: border-box; width: var(--tap-min); height: var(--tap-min); padding: calc((var(--tap-min) - var(--logo-bar)) / 2); margin-block: calc((var(--logo-bar) - var(--tap-min)) / 2); margin-right: calc((var(--logo-bar) - var(--tap-min)) / 2); background-clip: content-box; }
+body.trang-chu #topbar button.bar-avatar { padding: 0; margin-right: 0; }
 .menu-tk { position: fixed; z-index: var(--z-phu); width: min(var(--w-menu-tk), calc(100% - var(--s4) * 2)); max-height: 70vh; overflow-y: auto; display: grid; gap: var(--s1); padding: var(--s2); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); }
 .menu-tk[hidden], .menu-tk-ds[hidden] { display: none; }
 .menu-tk-muc, .menu-tk-vai { min-height: var(--h-muc-nho); padding: var(--s2) var(--s3); font: inherit; font-size: var(--fs-label); font-weight: var(--fw-medium); text-align: left; color: var(--c-text); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
@@ -4632,3 +4706,12 @@ button.bar-avatar { padding: 0; border: 0; font-family: inherit; cursor: pointer
 #thanh-duoi label.check { min-height: var(--h-control); }
 #thanh-duoi .td-nut { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
 @media (min-width: 900px) { #thanh-duoi { display: none; } }
+
+/* ---------- Chi tiết dịch vụ (ADR-0201 Đ3): ảnh đại diện trong bảng «Chi tiết dịch vụ» — chỉ token. */
+.ct-anh { display: block; max-width: 100%; max-height: var(--h-anh-dich-vu); border-radius: var(--radius-sm); margin: var(--s2) 0; }
+.ct-anh[hidden] { display: none; }
+
+/* ---------- Bước 1 khung chung (N3, chủ duyệt 13/11 «Theo khuyến nghị»): màn thấp (điện thoại xoay ngang, phóng to 200 %) — thanh nút cuối biểu mẫu thôi dính đáy, nằm cuối biểu mẫu như khối thường, không che nội dung. Cầm dọc và máy tính giữ nguyên. ---------- */
+@media (max-height: 500px) { /* chỉ màn thấp: điện thoại cầm dọc luôn cao hơn; một điều kiện để khớp luật miễn điều kiện @media của máy quét giá trị cứng */
+  .form-actions, #order-form .form-actions, .vc-bottom-bar, .vc-form-actions, .chan-dinh { position: static; }
+}

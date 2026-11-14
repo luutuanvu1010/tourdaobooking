@@ -13,6 +13,7 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import { ACCOUNTS, ok, sleep, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 import { CANH_BAO_NHIEU_MAY_BEN_NGOAI } from "../../../../src/shared/chinh-sach-dang-nhap.ts";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const DESK = { width: 1040, height: 800, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
@@ -33,7 +34,8 @@ try {
   // ---- 1. Toàn quyền đổi chính sách ở 1040
   let p = await mo(ACCOUNTS.chu, "/sessions", DESK);
   await p.waitFor("!document.getElementById('policy-card').hidden && document.querySelectorAll('#policy-card tr[data-quyen]').length === 10", "1. mục có 9 dòng quyền + dòng Toàn quyền", 10000);
-  await p.ev("(window.__soConfirm = 0, window.confirm = () => { window.__soConfirm++; return true; }, true)");
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
+  await p.ev("(window.__soConfirm = 0, window.__traLoiHopHoi = () => true, window.confirm = () => { window.__soConfirm++; return true; }, true)");
   const dongToanQuyen = await p.ev("document.querySelector('#policy-card tr[data-quyen=\"SUPER_ADMIN\"]').textContent");
   assert.ok(dongToanQuyen.includes("Toàn quyền") && dongToanQuyen.includes("Luôn nhiều máy"), `1. dòng Toàn quyền: ${dongToanQuyen}`);
   assert.equal(await p.ev("document.querySelectorAll('#policy-card input[type=radio]:checked[value=\"0\"]').length"), 9, "1. mặc định cả 9 quyền Một máy");

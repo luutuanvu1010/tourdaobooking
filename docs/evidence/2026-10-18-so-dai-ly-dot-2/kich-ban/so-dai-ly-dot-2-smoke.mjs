@@ -11,6 +11,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, docAxe, ok, setInput, sleep, startEnv, vnDate } from "../../2026-10-08-qr-thanh-toan/kich-ban/qr-chung.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const AXE = docAxe();
 const OUT = process.env.OUT ?? join(process.cwd(), "docs/evidence/2026-10-18-so-dai-ly-dot-2/anh");
@@ -79,7 +80,7 @@ try {
   const moTrang = async (account, path, vp) => {
     const p = await env.openPage(vp);
     p.vp = vp;
-    await p.send("Page.addScriptToEvaluateOnNewDocument", { source: "window.__dialogs = []; window.confirm = (m) => { window.__dialogs.push('confirm: ' + String(m)); return true; }; window.alert = (m) => { window.__dialogs.push('alert: ' + String(m)); };" });
+    await p.send("Page.addScriptToEvaluateOnNewDocument", { source: HOP_HOI_TU_DONG + "window.__dialogs = []; window.confirm = (m) => { window.__dialogs.push('confirm: ' + String(m)); return true; }; window.alert = (m) => { window.__dialogs.push('alert: ' + String(m)); };" });
     const c = await env.login(account);
     await p.send("Network.setCookie", { name: c.name, value: c.value, url: env.base, httpOnly: true });
     await p.send("Page.navigate", { url: env.base + path });

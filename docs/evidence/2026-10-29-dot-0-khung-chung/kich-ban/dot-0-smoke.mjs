@@ -436,7 +436,7 @@ try {
     await dong(p);
   });
 
-  await buoc(20, "biên 899 / 900 (Toàn quyền /orders): 899 = điện thoại, 900 = thanh bên; 1024×768 và 1280×800 thanh bên + Đăng xuất ở chân thanh", async () => {
+  await buoc(20, "biên 899 / 900 (Toàn quyền /orders): 899 = điện thoại, 900 = thanh bên; 1024×768 và 1280×800 thanh bên + Đăng xuất trong menu tên ở chân thanh", async () => {
     for (const [w, h, dienThoai] of [[899, 900, true], [900, 900, false], [1024, 768, false], [1280, 800, false]]) {
       const p = await mo(TQ, "/orders", { width: w, height: h, mobile: false });
       await sleep(800);
@@ -444,7 +444,13 @@ try {
       if (dienThoai) assert.ok(k.tab && !k.ben && !k.tao && k.avatar, `${w}: ${JSON.stringify(k)}`);
       else {
         assert.ok(!k.tab && k.ben && k.tao && !k.avatar, `${w}: ${JSON.stringify(k)}`);
-        assert.equal(await p.ev(hien(".sidebar-logout")), true, `${w}: Đăng xuất ở chân thanh bên`);
+        // Cập nhật 13/11/2026 (bước 1 khung chung): từ 5ce36e3eb (8/11) «Đăng xuất» nằm trong menu tên tài khoản ở chân thanh bên (khung tạm mới còn nút riêng
+        // `.sidebar-logout`). Đo: nút tên ở chân thanh bên hiện; bấm mở menu có mục «Đăng xuất» thấy được.
+        assert.equal(await p.ev(hien("button.sidebar-user")), true, `${w}: nút tên tài khoản ở chân thanh bên`);
+        await p.ev("document.querySelector('button.sidebar-user').click(); true");
+        await sleep(200);
+        assert.equal(await p.ev("(() => { const e = [...document.querySelectorAll('.menu-tk .menu-tk-ra')].find((x) => x.textContent.trim() === 'Đăng xuất' && x.getClientRects().length > 0); return !!e; })()"), true, `${w}: menu tên tài khoản có «Đăng xuất»`);
+        await p.ev("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); true");
       }
       await chup(p, `20-toan-quyen-orders-${w}`);
       await dong(p);

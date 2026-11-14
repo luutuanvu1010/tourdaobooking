@@ -66,6 +66,10 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "payment.proof.view": ["none", "any", "none", "none", "own", "any", "none", "none", "none", "none", "none"],
   // ADR-0196 Đ7, Đ2: gỡ ảnh gửi nhầm + hàng chờ dọn kho ảnh — chỉ Toàn quyền (ô riêng, giả định thi công 6A).
   "payment.proof.purge": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
+  // ADR-0182 Đ3 (phần B, accepted 2026-11-13): khoản nộp của đại lý — ghi: Đối tác own; xác nhận / từ chối: Kế toán, Toàn quyền (Quản trị KHÔNG); xem: Kế toán, Quản trị, Toàn quyền, Đối tác own.
+  "dai-ly.nop.ghi": ["none", "none", "none", "none", "own", "any", "none", "none", "none", "none", "none"],
+  "dai-ly.nop.xac-nhan": ["none", "any", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
+  "dai-ly.nop.xem": ["none", "any", "any", "none", "own", "any", "none", "none", "none", "none", "none"],
   // Sổ tiền lượt 1 — bốn ô MỚI (bảng 9 cột bản làm mới §2): Đã giao (ADR-0025 đ2), Hoàn thành (đ6), xem sổ / ghi sổ (ADR-0026 đ7, đ10).
   "order.handover": ["none", "none", "any", "assigned", "none", "any", "none", "none", "none", "none", "none"],
   "order.complete": ["none", "any", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
@@ -320,6 +324,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "notice.send", "feedback.view", "feedback.triage", "feedback.team.manage", "account.create", "audit.view", "company.legal.write", "party.document.view",
   "payment.refund", // sổ tiền lượt 1 (ADR-0026 điều 10): hoàn khách chỉ Kế toán, Toàn quyền (H4)
   "payment.proof.view", "payment.proof.purge", // ADR-0196 Đ5, Đ7: ảnh biên lai có số tài khoản — Quản trị không xem, không gỡ (khuôn quyền tiền ADR-0090)
+  "dai-ly.nop.ghi", "dai-ly.nop.xac-nhan", // ADR-0182 Đ3: Quản trị chỉ xem khoản nộp, không ghi, không xác nhận (khuôn quyền tiền ADR-0090)
   "order.submit", // ADR-0136 Đ13.6: «Gửi đơn» chỉ Đối tác (own) và Toàn quyền — văn phòng xác nhận thẳng
   "order.complete", "ledger.write", // sổ tiền lượt 1: Hoàn thành / ghi sổ chỉ Kế toán, Toàn quyền (ADR-0025 đ6, ADR-0026 đ10)
   "ledger.view", // ADMIN "own" — chỉ sổ của chính mình (ngữ cảnh ownerId người khác → không)
@@ -420,7 +425,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "ve.doi-chieu.view": "none", // ADR-0175 §2.7: tài xế không xem đối chiếu
     "ve.quet.tinh": "none", "ve.quet.xem": "any", // ADR-0175 Đ3: Tài xế công ty chỉ xem, không tính đã dùng
     "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3: tài xế không đụng kho vé
-    "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "payment.proof.view": "none", "payment.proof.purge": "none", "invoice.request": "none", "invoice.issue": "none",
+    "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "payment.proof.view": "none", "payment.proof.purge": "none", "dai-ly.nop.ghi": "none", "dai-ly.nop.xac-nhan": "none", "dai-ly.nop.xem": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "party.deactivate": "none", // ADR-0190
     "party.personal.view": "none", // ADR-0122 đ5
@@ -484,7 +489,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "ve.doi-chieu.view": "none", // ADR-0175 §2.7
     "ve.quet.tinh": "none", "ve.quet.xem": "none", // ADR-0175 Đ3: không có ô quét
     "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3
-    "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "payment.proof.view": "none", "payment.proof.purge": "none", "invoice.request": "none", "invoice.issue": "none",
+    "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "payment.proof.view": "none", "payment.proof.purge": "none", "dai-ly.nop.ghi": "none", "dai-ly.nop.xac-nhan": "none", "dai-ly.nop.xem": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "party.deactivate": "none", // ADR-0190
     "party.personal.view": "none", // ADR-0122 đ5
@@ -551,7 +556,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "ve.quet.tinh": "none", "ve.quet.xem": "none", // ADR-0175 Đ3: không có ô quét
     "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3
     "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none", "dispatch.guides.view": "none", "dispatch.refuse": "none",
-    "payment.receive": "none", "payment.refund": "none", "payment.proof.view": "none", "payment.proof.purge": "none", "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",
+    "payment.receive": "none", "payment.refund": "none", "payment.proof.view": "none", "payment.proof.purge": "none", "dai-ly.nop.ghi": "none", "dai-ly.nop.xac-nhan": "none", "dai-ly.nop.xem": "none", "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",
     "ledger.period.close": "none", // khoá sổ tháng (ADR-0080 D1): Nhân sự chỉ ba ô tài khoản
     "ledger.adjust.approve": "none", // ADR-0115: duyệt điều chỉnh công nợ chỉ Kế toán, Quản trị, Toàn quyền
     "attribution.request": "none", // ADR-0116

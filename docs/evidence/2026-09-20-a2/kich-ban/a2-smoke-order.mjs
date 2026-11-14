@@ -5,6 +5,7 @@
 //   npm run build:web && CHROME_BIN=<đường dẫn tuyệt đối tới kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-order.mjs
 import assert from "node:assert/strict";
 import { ACCOUNTS, clickText, ok, setInput, startEnv, vnDate } from "./a2-cdp.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const env = await startEnv();
 try {
@@ -83,6 +84,7 @@ try {
   await p.send("Page.navigate", { url: `${env.base}/order?id=${order.id}` });
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2 && [...document.querySelectorAll('#actions .btn')].some((b) => b.textContent === 'Xác nhận đơn' && !b.disabled)", "trang mở lúc đơn đủ ngày: «Xác nhận đơn» bật");
   env.sql(`UPDATE order_service SET depart_date = ${ngayCu === null ? "NULL" : `'${ngayCu}'`} WHERE id = '${order.services[1].id}'`);
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Xác nhận đơn"));
   await p.waitFor("!document.getElementById('error').hidden && /Chưa đủ thông tin chuyến để xác nhận đơn\\./.test(document.getElementById('error').textContent)", "banner incomplete_trip");
@@ -149,6 +151,7 @@ try {
   assert.equal(put.status, 200, JSON.stringify(put.json));
   p = await env.as(ACCOUNTS.salesA, `/order?id=${order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2", "đơn nạp lại");
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Xác nhận đơn"));
   await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã xác nhận'", "đã xác nhận");
@@ -183,6 +186,7 @@ try {
   assert.deepEqual(await p.ev(`[...${svc(1)}.querySelectorAll('.chip')].map((c) => c.textContent)`), ["theo nhóm 5 khách/lượt", "TTB03", "Dịch vụ đã ẩn khỏi danh mục"]);
   assert.equal(await p.ev(`${svc(0)}.querySelector('.tag-price') === null`), true, "giá thực tế bằng giá lúc lập → không nhãn lệch giá dù danh mục đã đổi");
   // huỷ đơn nháp → huy hiệu Đã huỷ, không còn nút, hết nhãn
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Huỷ đơn"));
   await p.ev(`(() => { const f = document.querySelector('[data-khoi="huy-don"]'); f.querySelector('input[value="KHACH_DOI_Y"]').click(); f.querySelector('button[type=submit]').click(); return true; })()`); // ADR-0089 đ8: chọn lý do huỷ rồi bấm "Huỷ đơn" của hàng lý do
@@ -207,6 +211,7 @@ try {
   p = await env.as(ACCOUNTS.salesA, `/order?id=${third.json.order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 1", "đơn nháp thứ ba");
   // sau lời gọi POST /status đầu tiên, mọi GET /api/orders/<id> ném TypeError (mất mạng đúng lúc tải lại)
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev(`(() => { window.confirm = () => true; window.__fetch = window.fetch; let afterStatus = false; window.fetch = (u, o) => { const method = o?.method ?? 'GET'; if (afterStatus && method === 'GET' && /^\\/api\\/orders\\/[^/]+$/.test(String(u))) return Promise.reject(new TypeError('offline')); if (method === 'POST' && /\\/status$/.test(String(u))) afterStatus = true; return window.__fetch(u, o); }; return true; })()`);
   await p.ev(clickText("#actions", "Huỷ đơn"));
   await p.ev(`(() => { const f = document.querySelector('[data-khoi="huy-don"]'); f.querySelector('input[value="KHACH_DOI_Y"]').click(); f.querySelector('button[type=submit]').click(); return true; })()`); // ADR-0089 đ8: chọn lý do huỷ rồi bấm "Huỷ đơn" của hàng lý do
@@ -227,6 +232,7 @@ try {
   // ADR-0135 Đ2: chỉ người lập ghi được đơn nháp (Toàn quyền nay 404) → "nơi khác" là một lời gọi từ CHÍNH trang salesA (cùng phiên, như một thẻ trình duyệt thứ hai); trang
   // vẫn đang vẽ đơn nháp nên lần bấm «Huỷ đơn» dưới vẫn gặp 409 invalid_transition.
   assert.equal(await p.ev(`fetch('/api/orders/${fourth.json.order.id}/status', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ status: 'cancelled', lyDo: 'KHACH_DOI_Y' }) }).then((r) => r.status)`), 200, "đơn bị huỷ ở nơi khác");
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Huỷ đơn")); // trang cũ vẫn tưởng đơn còn nháp → 409 invalid_transition
   await p.ev(`(() => { const f = document.querySelector('[data-khoi="huy-don"]'); f.querySelector('input[value="KHACH_DOI_Y"]').click(); f.querySelector('button[type=submit]').click(); return true; })()`); // ADR-0089 đ8: chọn lý do huỷ rồi bấm "Huỷ đơn" của hàng lý do

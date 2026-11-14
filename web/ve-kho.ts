@@ -18,6 +18,7 @@ import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DI
 import { hoiXacNhan } from "./bang-truot";
 import { createCatalogPicker } from "./catalog-picker";
 import { byId, h, replaceChildren } from "./dom";
+import { trangThaiHeThong } from "./trang-thai-he-thong";
 import { docQrTuTep } from "./qr-doc-ve";
 import { initShell, showError } from "./shell";
 import { dungKhoiTaoVe } from "./ve-tao";
@@ -280,6 +281,8 @@ if (!nhapLo && !taoVe) {
     replaceChildren(loEl, form);
   }
 
+  // Bước 1 khung chung (N10): khối «Nhập lô mới» (danh mục dài) dựng sau khi tải — giữ chỗ trước để các khối dưới không bị đẩy.
+  if (nhapLo) replaceChildren(loEl, trangThaiHeThong("dang-tai", { khuon: "bieu-mau", giuCho: true }));
   await taiKho();
   await Promise.all([taiCacLo(), taiLoDaHuy(), nhapLo ? dungForm() : null,
     taoVe ? dungKhoiTaoVe(taoEl, { tranLo: () => tranLo, hienOk, sauKhiTao: async () => { await Promise.all([taiKho(), taiCacLo(), taiLoDaHuy()]); } }) : null]);

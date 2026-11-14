@@ -8,6 +8,7 @@ import {
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTruong, fetchTrang, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt, typeInto, vnDate,
 } from "../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs";
 import { chonNoiJs } from "../../2026-10-18-tao-don-thiet-ke-lai/kich-ban/cham-that.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const DOI_TAC = { name: "Đối Tác Đưa Đón", phone: "0900000452", pin: "246452", permissions: ["PARTNER"] };
 const { env, call } = await dungMoiTruong([CHU, DOI_TAC]);
@@ -219,6 +220,7 @@ try {
     const p = await env.as(ACCOUNTS.salesA, `/order?id=${o.id}`, DESK);
     await p.waitFor(shown('[data-canh-bao="xac-nhan"]'), "câu cảnh báo dưới nút xác nhận");
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('[data-canh-bao="xac-nhan"]')].map((x) => x.innerText.trim())`), ["Cần nơi trả trước khi xếp xe", "Còn 2 khách chưa có tên — cần đủ trước khi xe chạy"]);
+    await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await p.ev("window.__hoi = ''; window.confirm = (m) => { window.__hoi = m; return true; }; true");
     await p.ev(`[...document.querySelectorAll('#actions button')].find((x) => x.textContent === 'Xác nhận đơn').click(); true`);
     await p.waitFor(`document.getElementById('error').innerText.includes('Đã xác nhận đơn.')`, "dải sau xác nhận", 10000);
