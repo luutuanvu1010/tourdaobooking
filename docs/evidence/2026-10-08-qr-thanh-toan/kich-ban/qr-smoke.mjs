@@ -22,6 +22,7 @@ import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, DESK, KHO, MOB, OUT, axeSach, chonGiaTri, chup, chupKhung, docAxe, goiApi, khongRaNgoai, ok, setInput, sleep, startEnv } from "./qr-chung.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const AXE = docAxe();
 const TEN_CT = "Công ty TNHH Tour Đảo";
@@ -157,6 +158,7 @@ try {
   await p.waitFor("!!document.querySelector('#search-form')", "trang Danh bạ dựng xong");
   await moHoSo(p, TEN_CT);
   await p.waitFor(`${hienTai}.length > 0`, "mục dựng xong");
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev(`window.__hoi = []; window.__tra = true; window.confirm = (m) => { window.__hoi.push(m); return window.__tra; }; true`);
   await p.ev(chonGiaTri(`${SEC}.querySelector('select')`, "VCB"));
   await p.ev(setInput(`${SEC}.querySelector('#tknt-so')`, SO_1));
@@ -320,6 +322,7 @@ try {
   assert.equal(await tinMuc(p), null, "mở lại hồ sơ: không còn dòng báo cũ");
   await chupKhung(p, "#tai-khoan-nhan-tien", "tai-khoan-da-cai-390");
   await demPut(p);
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev("window.confirm = () => true; true");
   await p.ev(setInput(`${SEC}.querySelector('#tknt-so')`, "abc123"));
   await p.ev(setInput(`${SEC}.querySelector('#tknt-ten')`, "Cong ty Tour Dao"));
@@ -344,6 +347,7 @@ try {
   await p.waitFor("!!document.querySelector('#search-form')", "trang Danh bạ dựng xong");
   await moHoSo(p, TEN_CT);
   await p.waitFor(`${hienTai}.includes(${JSON.stringify(SO_1)})`, "mục dựng xong");
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev(`window.__hoi = []; window.__tra = true; window.confirm = (m) => { window.__hoi.push(m); return window.__tra; }; true`);
   await demPut(p);
   // Đổi: có hộp hỏi lại; chọn Huỷ thì không gửi gì

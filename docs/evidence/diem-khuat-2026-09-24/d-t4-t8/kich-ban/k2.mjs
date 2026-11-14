@@ -3,6 +3,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, setInput, sleep, startEnv, vnDate } from "/Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdao-sales-audit-62ea81/docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { HOP_HOI_TU_DONG } from "../../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 const OUT = "/Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdao-sales-audit-62ea81/docs/evidence/diem-khuat-2026-09-24/d-t4-t8";
 const SP = "/private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-tourdao-sales-audit-62ea81/c964efb5-7bf2-4e78-8214-a3e41d4568f4/scratchpad/d-t4-t8";
 const MOB = { width: 375, height: 812, mobile: true };
@@ -27,6 +28,7 @@ try {
     const p = await env.as(ACCOUNTS.salesA, `/order?id=${oid}`, MOB);
     await p.waitFor("/Đã xác nhận/.test(document.body.textContent)", "trang đơn", 20000);
     R.a_hdvCancel = (await call(HDV, "POST", `/api/orders/${oid}/handler-cancel`, { reason: "customer_requested" })).status;
+    await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await p.ev("window.confirm = () => true; true");
     await p.ev("[...document.querySelectorAll('#actions button')].find((b) => b.textContent.trim() === 'Huỷ đơn').click(); true");
     await sleep(2500);

@@ -14,6 +14,7 @@ import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, ok, setInput, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 import { insertStaffSql } from "../../../../scripts/staff-lib.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-28-t2b";
 const AXE = readFileSync(process.env.AXE_JS, "utf8");
@@ -142,6 +143,7 @@ try {
   assert.ok((await p.ev(OPTIONS)).includes("Công ty chủ"), "hồ sơ tổ chức khác: CÓ lựa chọn 'Công ty chủ'");
   await p.ev(`(() => { const s = [...document.querySelectorAll('#detail h3')].find((h) => h.textContent.trim() === 'Công việc tại đâu').nextElementSibling.nextElementSibling.querySelector('select'); s.value = 'OWNER_COMPANY'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
   await p.shot(join(OUT, "anh", "t2b-doi-cong-ty-chu-chon-1040.png"));
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev(`window.__xacNhan = null; window.confirm = (m) => { window.__xacNhan = m; return true; }; true`);
   await p.ev(`[...document.querySelectorAll('#detail button')].find((b) => b.textContent.trim() === 'Thêm công việc').click(), true`);
   await p.waitFor(`!!${ROW_CTC}`, "hồ sơ mới hiện dòng 'Công ty chủ'");

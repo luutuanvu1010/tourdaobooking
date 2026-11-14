@@ -18,6 +18,7 @@ import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import assert from "node:assert/strict";
 import { ACCOUNTS, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const CHROME = process.env.CHROME_BIN ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 const ANH_DIR = process.env.ANH_DIR ?? mkdtempSync(join(tmpdir(), "bang-tin-anh-"));
@@ -318,6 +319,7 @@ async function chayMotKho(env, chrome, vp, tag) {
   await step(`[${tag}] (c2+e1) B bấm "Xác nhận đơn" Y → A thấy thông báo "đã được xác nhận" + huy hiệu Y đổi; axe: thông báo nổi không thêm vi phạm mới`, async () => {
     const nen = await axeChay(A, null); // nền: trang danh sách của A TRƯỚC khi thông báo hiện
     await B.doi(`[...document.querySelectorAll('#actions button')].some((b) => b.textContent.trim() === 'Xác nhận đơn')`, 'nút "Xác nhận đơn" ở B (B đã là người phụ trách)');
+    await B.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await B.ev("window.confirm = () => true; true");
     const t0 = Date.now();
     await B.ev(`[...document.querySelectorAll('#actions button')].find((b) => b.textContent.trim() === 'Xác nhận đơn').click(); true`);
@@ -348,6 +350,7 @@ async function chayMotKho(env, chrome, vp, tag) {
     const nen = await axeChay(A, null);
     await B.dieuHuong(`/order?id=${X.id}`);
     await B.doi(`[...document.querySelectorAll('#actions button')].some((b) => b.textContent.trim() === 'Xác nhận đơn')`, 'nút "Xác nhận đơn" ở B (B là người lập X)');
+    await B.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await B.ev("window.confirm = () => true; true");
     const t0 = Date.now();
     await B.ev(`[...document.querySelectorAll('#actions button')].find((b) => b.textContent.trim() === 'Xác nhận đơn').click(); true`);

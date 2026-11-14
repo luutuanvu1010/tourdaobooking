@@ -8,6 +8,7 @@
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-29-adr-0049/kich-ban/moc-chua-co-smoke.mjs
 // Kho cookie của Chrome dùng CHUNG: Bán hàng → Quản trị → Toàn quyền.
 import { ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, txt, typeInto, vnDate } from "./dp-lib.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const { env, call } = await dungMoiTruong([CHU]);
 const b = boDem("MOC CHUA CO SMOKE");
@@ -65,6 +66,7 @@ try {
     await s.waitFor(`[...document.querySelectorAll('#actions button')].some((x) => x.textContent === 'Xác nhận đơn')`, "trang đơn nháp");
     assert.equal(await s.ev(`[...document.querySelectorAll('#actions button')].find((x) => x.textContent === 'Xác nhận đơn').disabled`), false);
     assert.equal(await s.ev(`!!document.querySelector('#order .dg-warn')`), false);
+    await s.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await s.ev("window.confirm = () => true; true");
     await s.ev(`[...document.querySelectorAll('#actions button')].find((x) => x.textContent === 'Xác nhận đơn').click(); true`);
     await s.waitFor(`${txt("#error .banner-title")} === ${JSON.stringify(CAU_503)}`, "dải 503 trang đơn");
@@ -77,6 +79,7 @@ try {
   const sm = await env.as(ACCOUNTS.salesA, `/order?id=${nhap.id}`, MOB);
   await b.step("3", "390 Bán hàng: cùng dải 503 sau khi bấm Xác nhận; không tràn ngang", async () => {
     await sm.waitFor(`[...document.querySelectorAll('#actions button')].some((x) => x.textContent === 'Xác nhận đơn')`, "trang đơn 390");
+    await sm.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await sm.ev("window.confirm = () => true; true");
     await sm.ev(`[...document.querySelectorAll('#actions button')].find((x) => x.textContent === 'Xác nhận đơn').click(); true`);
     await sm.waitFor(`${txt("#error .banner-title")} === ${JSON.stringify(CAU_503)}`, "dải 503 (390)");

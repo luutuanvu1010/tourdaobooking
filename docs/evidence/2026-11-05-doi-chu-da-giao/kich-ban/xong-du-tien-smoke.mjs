@@ -6,6 +6,7 @@ import { mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { ACCOUNTS, ok, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const OUT = "docs/evidence/2026-11-05-doi-chu-da-giao/anh";
 mkdirSync(OUT, { recursive: true });
@@ -54,6 +55,7 @@ try {
   // 2) Bấm nút thật: hộp hỏi đúng chữ, đơn khoá, huy hiệu tên đầy đủ
   const q = await env.as(ACCOUNTS.admin, `/order?id=${o.id}`);
   await q.waitFor("document.querySelector('[data-action=\"da-giao\"]') && !document.querySelector('[data-action=\"da-giao\"]').disabled", "nút bật");
+  await q.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await q.ev("window.__hoi = ''; window.confirm = (c) => { window.__hoi = c; return true; }; document.querySelector('[data-action=\"da-giao\"]').click(); true");
   await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã ở bước Khách đã trả đủ/.test(n.textContent))", "câu khoá");
   assert.match(await q.ev("window.__hoi"), /^Xác nhận khách đã trả đủ\? /, "hộp hỏi đúng chữ, không lặp «Xác nhận»");

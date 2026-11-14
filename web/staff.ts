@@ -5,6 +5,9 @@ import { ROLE_CODES, canManageAccount, rolesLabelTheo, tuDoiQuyenCuaMinh } from 
 import { CAU_CHO_QUAN_TRI_CAP_PIN, CAU_NHAC_DAT_LAI_PIN_SAU_GAN_VAI } from "../src/shared/xem-moi-khach";
 import { chonLocHopLe, locTheoVai, nutLocVai } from "../src/shared/loc-tai-khoan";
 import { byId, h, replaceChildren } from "./dom";
+import { hoiXacNhan } from "./bang-truot";
+import { trangThaiHeThong } from "./trang-thai-he-thong";
+import { nhoKhoi } from "./giu-khoi";
 import { dateTime } from "./format";
 import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
 import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
@@ -230,7 +233,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
       // tài khoản có quyền tiền chỉ Toàn quyền. Trang không tự tính.
       s.datLaiPinDuoc &&
         btn("Đặt lại PIN", async () => {
-          if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi máy đang đăng nhập sẽ mất hiệu lực.`)) return;
+          if (!(await hoiXacNhan({ tieuDe: "Đặt lại PIN", hauQua: `Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi máy đang đăng nhập sẽ mất hiệu lực.`, nhanNguyHiem: "Đặt lại PIN" }))) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
           if (r) {
             showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
@@ -247,7 +250,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
         !isMe &&
         s.passkeyCount > 0 &&
         btn(`Gỡ Face ID (${s.passkeyCount})`, async () => {
-          if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi máy đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
+          if (!(await hoiXacNhan({ tieuDe: `Gỡ Face ID (${s.passkeyCount})`, hauQua: `Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi máy đang đăng nhập của tài khoản này sẽ bị đăng xuất.`, nhanNguyHiem: `Gỡ Face ID (${s.passkeyCount})` }))) return;
           if (await act(() => api(`/api/staff/${s.id}/passkeys/remove-all`, { method: "POST" }))) await load();
         }),
       quanDuoc(s) &&
@@ -255,7 +258,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
         btn(
           s.active ? "Ngưng" : "Kích hoạt lại",
           async () => {
-            if (s.active && !confirm(`Ngưng tài khoản ${s.fullName}? Họ sẽ bị đăng xuất ngay.`)) return;
+            if (s.active && !(await hoiXacNhan({ tieuDe: "Ngưng", hauQua: `Ngưng tài khoản ${s.fullName}? Họ sẽ bị đăng xuất ngay.`, nhanNguyHiem: "Ngưng" }))) return;
             if (await act(() => api(`/api/staff/${s.id}`, { method: "PATCH", body: { active: !s.active } }))) await load();
           },
           s.active ? "btn btn-link danger" : "btn btn-link",
@@ -290,7 +293,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
       // tài khoản có quyền tiền chỉ Toàn quyền. Trang không tự tính.
       s.datLaiPinDuoc &&
         btn("Đặt lại PIN", async () => {
-          if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi máy đang đăng nhập sẽ mất hiệu lực.`)) return;
+          if (!(await hoiXacNhan({ tieuDe: "Đặt lại PIN", hauQua: `Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi máy đang đăng nhập sẽ mất hiệu lực.`, nhanNguyHiem: "Đặt lại PIN" }))) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
           if (r) {
             showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
@@ -306,7 +309,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
         !isMe &&
         s.passkeyCount > 0 &&
         btn(`Gỡ Face ID (${s.passkeyCount})`, async () => {
-          if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi máy đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
+          if (!(await hoiXacNhan({ tieuDe: `Gỡ Face ID (${s.passkeyCount})`, hauQua: `Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi máy đang đăng nhập của tài khoản này sẽ bị đăng xuất.`, nhanNguyHiem: `Gỡ Face ID (${s.passkeyCount})` }))) return;
           if (await act(() => api(`/api/staff/${s.id}/passkeys/remove-all`, { method: "POST" }))) await load();
         }),
       quanDuoc(s) &&
@@ -314,7 +317,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
         btn(
           s.active ? "Ngưng" : "Kích hoạt lại",
           async () => {
-            if (s.active && !confirm(`Ngưng tài khoản ${s.fullName}? Họ sẽ bị đăng xuất ngay.`)) return;
+            if (s.active && !(await hoiXacNhan({ tieuDe: "Ngưng", hauQua: `Ngưng tài khoản ${s.fullName}? Họ sẽ bị đăng xuất ngay.`, nhanNguyHiem: "Ngưng" }))) return;
             if (await act(() => api(`/api/staff/${s.id}`, { method: "PATCH", body: { active: !s.active } }))) await load();
           },
           s.active,
@@ -582,10 +585,15 @@ hienCotCap = thayCotCap(staff); // ADR-0155 Đ2.2: hỏi bảng quyền (ô xem 
 cotCapEl.hidden = !hienCotCap;
 // ADR-0071 điều 1b: cổng trang theo ô account.view (Quản trị, Toàn quyền, Hành chính nhân sự — cùng đối tượng với cổng "accounts" của API); khung "Thêm tài khoản"
 // theo ô account.create (Hành chính nhân sự, Toàn quyền — Quản trị KHÔNG).
+// Lần mở sau tệp đầu trang giữ chỗ (vô hình) cho hai khung này từ lần vẽ đầu — ghi cả khi không vào được trang để trí nhớ cũ không để lại khoảng trống.
+nhoKhoi("add-card", can(staff, "account.view") && can(staff, "account.create"));
+nhoKhoi("xac-minh", can(staff, "account.view") && can(staff, "party.verify"));
 if (!can(staff, "account.view")) showError(errorEl, "Tài khoản này không quản lý được tài khoản.");
 else {
   if (can(staff, "account.create")) {
     byId("add-card").hidden = false;
+    // Bước 1 khung chung (N10): khối vai dựng sau lần nạp đầu (cao 300–700 px) — giữ chỗ trước để khối dưới không bị đẩy khi nó về.
+    replaceChildren(byId("add-perms"), trangThaiHeThong("dang-tai", { khuon: "bieu-mau", giuCho: true }));
   }
   // ADR-0125 đ6: hàng chờ xác minh phiếu tự khai — ô party.verify (Quản trị, Nhân sự, Toàn quyền); khối tự dựng và hiện, máy chủ kiểm lại từng route.
   if (can(staff, "party.verify")) dungHangChoXacMinh(byId("xac-minh"), staff);

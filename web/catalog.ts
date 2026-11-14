@@ -1,6 +1,8 @@
 import { can, dungManHepDichVu } from "../src/shared/permissions";
 import { ApiError, api, type CatalogAdminItem, type CatalogSyncState, type PaxCode, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
+import { trangThaiHeThong } from "./trang-thai-he-thong";
+import { nhoKhoi } from "./giu-khoi";
 import { dateTime, grouped, parseMoney, vnd } from "./format";
 import { PAX_LABEL, PAX_ORDER } from "../src/shared/order-lines";
 import { unitLabel } from "../src/shared/service-form";
@@ -154,7 +156,7 @@ function row(it: CatalogAdminItem): HTMLElement {
       btn("Ghi đè giá", () => openEdit(it)),
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "bang"))), it.code, "bang"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
-      it.overridden.length > 0 && btn("Bỏ ghi đè giá", () => confirm(CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden)) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
+      it.overridden.length > 0 && btn("Bỏ ghi đè giá", async () => (await hoiXacNhan({ tieuDe: "Bỏ ghi đè giá", hauQua: CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden), nhanNguyHiem: "Bỏ ghi đè giá" })) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
       btn(it.hidden ? "Mở bán lại" : "Ngừng bán", (nut) => void doiBan(it, nut, update), it.hidden ? "btn btn-link" : "btn btn-link danger"),
     ),
   );
@@ -197,7 +199,7 @@ function card(it: CatalogAdminItem): HTMLElement {
       btn("Ghi đè giá", () => openEdit(it)),
       duocSuaDuaDon && nutDuaDon(btn("Đưa đón", () => moDuaDon(it, nutDuaDonCua(it.code, "the"))), it.code, "the"),
       it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
-      it.overridden.length > 0 && btn("Bỏ ghi đè giá", () => confirm(CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden)) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
+      it.overridden.length > 0 && btn("Bỏ ghi đè giá", async () => (await hoiXacNhan({ tieuDe: "Bỏ ghi đè giá", hauQua: CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden), nhanNguyHiem: "Bỏ ghi đè giá" })) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
       btn(it.hidden ? "Mở bán lại" : "Ngừng bán", (nut) => void doiBan(it, nut, update), !it.hidden),
     ),
   );
@@ -1007,6 +1009,10 @@ if (!can(staff, "admin.manage")) {
   else showError(errorEl, "Tài khoản này không vào được trang này.");
 } else {
   pullBtn.hidden = !can(staff, "catalog.sync");
+  // Bước 1 khung chung (N10): khối tự kiểm vé và khối nhóm dịch vụ về sau dữ liệu — giữ chỗ trước để danh sách bên dưới không bị đẩy.
+  if (can(staff, "settings.ops")) replaceChildren(byId("kv-tu-kiem"), trangThaiHeThong("dang-tai", { khuon: "thiet-lap" }));
+  nhoKhoi("kv-tu-kiem", can(staff, "settings.ops")); // lần mở sau tệp đầu trang giữ chỗ khối này từ lần vẽ đầu
+  replaceChildren(nhomEl, trangThaiHeThong("dang-tai", { khuon: "danh-sach", giuCho: true }));
   coVe = taoCoVe(errorEl, can(staff, "catalog.ticket_flag.write"), () => {
     renderNhom();
     render();

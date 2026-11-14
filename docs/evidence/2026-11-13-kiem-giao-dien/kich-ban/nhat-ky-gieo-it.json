@@ -1,0 +1,236 @@
+{
+  "chang": "it",
+  "luc": "2026-11-12T22:59:20.790Z",
+  "soLenhGhi": 38,
+  "loiGap": [],
+  "lenh": [
+    {
+      "viec": "cờ cần xác nhận cho DTE1",
+      "method": "POST",
+      "path": "/api/cai-dat/xac-nhan-don",
+      "status": 200
+    },
+    {
+      "viec": "mức hoa hồng 10% Cộng tác viên",
+      "method": "POST",
+      "path": "/api/pricing/hoa-hong",
+      "status": 201
+    },
+    {
+      "viec": "mức hoa hồng 12% Công ty lữ hành",
+      "method": "POST",
+      "path": "/api/pricing/hoa-hong",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Nguyễn Thị Lan Anh",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Trần Văn Bình",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Lê Hoàng Châu",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Phạm Minh Đức",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ khách lẻ Võ Thị Hồng Nhung",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ đại lý tổ chức",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "gán vai Công ty lữ hành cho hồ sơ TỔ CHỨC",
+      "method": "POST",
+      "path": "/api/parties/ad64b510-e362-4af0-b31c-4dca2bc7574f/roles",
+      "status": 201
+    },
+    {
+      "viec": "hồ sơ nhà xe đối tác",
+      "method": "POST",
+      "path": "/api/parties",
+      "status": 201
+    },
+    {
+      "viec": "gán vai Nhà xe đối tác",
+      "method": "POST",
+      "path": "/api/parties/1e8c47e0-7baa-47d9-bc22-0ad5a659f446/roles",
+      "status": 201
+    },
+    {
+      "viec": "Tài xế đối tác → Tài xế của nhà xe",
+      "method": "POST",
+      "path": "/api/parties/1e8c47e0-7baa-47d9-bc22-0ad5a659f446/relationships",
+      "status": 201
+    },
+    {
+      "viec": "liên hệ nhà xe",
+      "method": "POST",
+      "path": "/api/parties/1e8c47e0-7baa-47d9-bc22-0ad5a659f446/contacts",
+      "status": 201
+    },
+    {
+      "viec": "GPLX Tài Xế Công Ty Thử",
+      "method": "POST",
+      "path": "/api/parties/d72c2978-3d0d-4fb3-89f3-4c83782833b3/documents",
+      "status": 201
+    },
+    {
+      "viec": "GPLX Tài Xế Đối Tác Thử",
+      "method": "POST",
+      "path": "/api/parties/f1781c25-ec60-4e2f-95e8-cd92f988d197/documents",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 1",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 1: giấy tờ INSPECTION",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/b297adae-d7e8-46f9-a84a-c616b73bb58a/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 1: giấy tờ TPL_INSURANCE",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/b297adae-d7e8-46f9-a84a-c616b73bb58a/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 2",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 2: giấy tờ INSPECTION",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/eb28f382-046e-4691-8948-7139f6f8459b/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 2: giấy tờ TPL_INSURANCE",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/eb28f382-046e-4691-8948-7139f6f8459b/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 3 (giấy tờ sắp hết hạn)",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 3 (giấy tờ sắp hết hạn): giấy tờ INSPECTION",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/1b902357-26e9-4134-bd7d-3574f083d883/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "xe công ty 3 (giấy tờ sắp hết hạn): giấy tờ TPL_INSURANCE",
+      "method": "POST",
+      "path": "/api/van-chuyen/xe/1b902357-26e9-4134-bd7d-3574f083d883/giay-to",
+      "status": 201
+    },
+    {
+      "viec": "đơn nháp",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "đơn chờ xác nhận",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "gửi xác nhận",
+      "method": "POST",
+      "path": "/api/orders/be4e5dcd-792f-4788-bff6-6bb5bb53d5ab/gui-xac-nhan",
+      "status": 201
+    },
+    {
+      "viec": "đơn ba dịch vụ đã xác nhận (gán HDV)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn ba dịch vụ",
+      "method": "POST",
+      "path": "/api/orders/e7ee8ad3-713f-4ef4-a8c9-2d74dbac531a/status",
+      "status": 200
+    },
+    {
+      "viec": "đơn đưa đón hôm nay",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "xác nhận đơn hôm nay",
+      "method": "POST",
+      "path": "/api/orders/509211ff-0dab-4934-9557-8aad281c0e2b/status",
+      "status": 200
+    },
+    {
+      "viec": "chuyến hôm nay (tài xế công ty)",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen",
+      "status": 201
+    },
+    {
+      "viec": "chuyến hôm nay (tài xế công ty): xếp khách",
+      "method": "POST",
+      "path": "/api/van-chuyen/chuyen/dbd59834-b90a-4747-9384-e339205599f1/phan-bo",
+      "status": 200
+    },
+    {
+      "viec": "đơn của Đối tác (Cộng tác viên)",
+      "method": "POST",
+      "path": "/api/orders",
+      "status": 201
+    },
+    {
+      "viec": "Đối tác gửi đơn",
+      "method": "POST",
+      "path": "/api/orders/ba337c53-9e0e-4fda-966d-5494776dbccb/gui-don",
+      "status": 200
+    },
+    {
+      "viec": "vé hỗ trợ",
+      "method": "POST",
+      "path": "/api/feedback",
+      "status": 201
+    },
+    {
+      "viec": "thông báo hệ thống",
+      "method": "POST",
+      "path": "/api/thong-bao",
+      "status": 201
+    }
+  ]
+}

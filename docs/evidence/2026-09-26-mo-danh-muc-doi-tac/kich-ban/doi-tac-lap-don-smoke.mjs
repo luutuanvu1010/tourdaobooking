@@ -29,6 +29,7 @@
 // Chạy từ GỐC repo (worktree), sau `npm run build:web`:
 //   CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-09-26-mo-danh-muc-doi-tac/kich-ban/doi-tac-lap-don-smoke.mjs
 // AXE_JS=<…/axe.min.js> (tuỳ chọn) → thêm bước axe RIÊNG (không gộp vào bước 1–4). Ghi ảnh vào $OUT/anh/*.png (mặc định thư mục bằng chứng này).
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
@@ -102,7 +103,7 @@ try {
     const p = await env.openPage(viewport);
     pages.push(p);
     await p.send("Page.addScriptToEvaluateOnNewDocument", {
-      source: "window.__dialogs = []; window.confirm = (m) => { window.__dialogs.push('confirm: ' + String(m)); return true; }; window.alert = (m) => { window.__dialogs.push('alert: ' + String(m)); };",
+      source: HOP_HOI_TU_DONG + "window.__dialogs = []; window.confirm = (m) => { window.__dialogs.push('confirm: ' + String(m)); return true; }; window.alert = (m) => { window.__dialogs.push('alert: ' + String(m)); };",
     });
     const c = await login(account);
     await p.send("Network.setCookie", { name: c.name, value: c.value, url: env.base, httpOnly: true });

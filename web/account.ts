@@ -641,8 +641,8 @@ async function renderMfa(): Promise<void> {
     );
   };
   const quenHet = h("button", { type: "button", class: "btn btn-link danger", id: "mfa-forget-all" }, "Quên mọi máy");
-  quenHet.addEventListener("click", () => {
-    if (confirm("Quên mọi máy được tin? Lần đăng nhập bằng PIN sau trên các máy đó sẽ hỏi mã 6 số. Máy đang đăng nhập không bị đăng xuất.")) void quen("/api/account/mfa/trusted/forget-all");
+  quenHet.addEventListener("click", async () => {
+    if (await hoiXacNhan({ tieuDe: "Quên mọi máy", hauQua: "Quên mọi máy được tin? Lần đăng nhập bằng PIN sau trên các máy đó sẽ hỏi mã 6 số. Máy đang đăng nhập không bị đăng xuất.", nhanNguyHiem: "Quên mọi máy", opener: quenHet })) void quen("/api/account/mfa/trusted/forget-all");
   });
   const mayTin =
     coYeuTo || m.trustedDevices.length > 0

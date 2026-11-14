@@ -28,7 +28,7 @@ export const PRECACHE: readonly string[] = [
   "/app.css", "/giao-dien.css",
   "/fonts/be-vietnam-pro-400.woff2", "/fonts/be-vietnam-pro-500.woff2", "/fonts/be-vietnam-pro-600.woff2",
   "/fonts/be-vietnam-pro-700.woff2", "/fonts/be-vietnam-pro-800.woff2",
-  "/js/login.js", "/js/home.js", "/js/orders.js", "/js/order-form.js", "/js/order.js", "/js/account.js",
+  "/js/login.js", "/js/giu-cho-dai.js", "/js/home.js", "/js/orders.js", "/js/order-form.js", "/js/order.js", "/js/account.js",
   "/js/catalog.js", "/js/staff.js", "/js/audit.js", "/js/parties.js", "/js/locations.js", "/js/feedback.js", "/js/huong-dan.js", "/js/help.js", "/js/gui-thong-bao.js", "/js/tai-xe.js", "/js/xe.js", "/js/xe-sua.js", "/js/xe-chi-tiet.js", "/js/giay-to-sap-het-han.js", "/js/loai-giay-to-xe.js", "/js/loai-giay-to-nguoi.js", "/js/chinh-sach-dieu-phoi.js", "/js/ly-do-dieu-phoi.js", "/js/dieu-kien-xuat-ben.js", "/js/chuyen-sua.js", "/js/chuyen.js", "/js/dieu-phoi.js", "/js/cuoc.js", "/js/cuoc-chuyen.js", "/js/tro-ly-cai-dat.js", "/js/sessions.js", "/js/giao-dien.js", "/js/lich-xe-ban.js", "/js/bang-gia-xe.js", "/js/bang-ke-xe.js", "/js/xe-dang-chay.js", "/js/khoa-thang.js", "/js/so-cong-no.js", "/js/chup-bu.js", "/js/ve-kho.js", "/js/quet-ve.js", "/js/ve-doi-chieu.js", "/js/ve-cai-dat.js", "/js/hoa-hong-gioi-han.js", "/js/cho-xac-nhan.js", "/js/dieu-chinh-cong-no.js", "/js/phan-dinh.js", "/js/hoa-hong.js", "/js/cap-dai-ly.js", "/js/han-muc-tra-sau.js", "/js/luat-ban.js", "/js/dac-diem-dich-vu.js", "/js/nguoi-ban.js", "/js/de-nghi.js", "/js/ban.js", "/js/thiet-lap.js", "/js/khong-co-trang.js", "/js/ngoai-mang.js",
   "/manifest.webmanifest",
   "/icons/logo-96.png", "/icons/icon-192.png",
