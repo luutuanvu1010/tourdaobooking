@@ -25,6 +25,8 @@ const TRANG_THANH_BEN_CU: readonly KhoaTrang[] = [
   "hoaHongGioiHan",
   // Màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): ô partner.commission.write, không Đối tác.
   "capDaiLy",
+  // Màn «Phí đưa đón» (kế hoạch Phí đưa đón, Đợt B Task 8): ô admin.manage (Quản trị, Toàn quyền).
+  "phiDon",
   // Hạn mức trả sau (ADR-0168): ô credit.limit.view, không Đối tác (Kế toán, Toàn quyền).
   "hanMucTraSau",
   // Đối chiếu vé (ADR-0175 §2.7, 9/11): cổng office + ô ve.doi-chieu.view (Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng); lối vào ở THIẾT LẬP.

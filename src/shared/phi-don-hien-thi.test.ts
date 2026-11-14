@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  cauCanhBaoGop, cauCanhBao, cauDieuKien, cauKetQuaThuTra, cauKhoangNgay, cauTien, soTienDocDuoc, tenCap,
+  cauCanhBaoGop, cauCanhBao, cauDieuKien, cauKetQuaThuTra, cauKhoangNgay, cauTien, dieuKienGui, soTienDocDuoc, tenCap,
   type TenPhiDon,
 } from "./phi-don-hien-thi.ts";
 import type { CanhBaoPhiDonDto, MucPhiDonDto, ThuTraPhiDonResponse } from "./contracts.ts";
@@ -108,4 +108,12 @@ test("cauKetQuaThuTra: thiếu mức và hai mức khác tiền cùng bậc", ()
   assert.equal(xd.length, 1);
   assert.match(xd[0]!, /hai mức/);
   for (const d of [...thieu, ...xd]) assert.doesNotMatch(d, KHONG_MA_THO);
+});
+
+test("dieuKienGui: dựng lại đủ khoá từ dòng đã đọc; xe riêng thành EXCLUSIVE 1", () => {
+  assert.deepEqual(dieuKienGui(muc({}).dieuKien), [{ khoa: "ZONE", giaTri: "BD_CR" }]);
+  assert.deepEqual(
+    dieuKienGui(muc({ dieuKien: { cap: "T3", nhom: "HT", chieu: "RETURN", xeRieng: true } }).dieuKien),
+    [{ khoa: "ZONE", giaTri: "BD_CR" }, { khoa: "TIER", giaTri: "T3" }, { khoa: "SERVICE_GROUP", giaTri: "HT" }, { khoa: "DIRECTION", giaTri: "RETURN" }, { khoa: "EXCLUSIVE", giaTri: "1" }],
+  );
 });

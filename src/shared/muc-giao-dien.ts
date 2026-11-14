@@ -114,6 +114,8 @@ export const TRANG = {
   hoaHong: { duong: "/hoa-hong", hien: vk("partner.commission.view") },
   // Màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): CÙNG cổng route `GET /api/pricing/cap-dai-ly` — ô partner.commission.write, không giữ quyền Đối tác (Kế toán, Quản trị, Toàn quyền). Bán hàng có ô xem nhưng không mở màn gom này.
   capDaiLy: { duong: "/cap-dai-ly", hien: vk("partner.commission.write") },
+  // Màn «Phí đưa đón» (kế hoạch Phí đưa đón, Đợt B Task 8): CÙNG cổng năm route `/api/pricing/phi-don*` — ô admin.manage (Quản trị, Toàn quyền).
+  phiDon: { duong: "/phi-don", hien: ve("admin.manage"), moTrang: ve("admin.manage"), tam: (k) => k.admin },
   // Hạn mức trả sau (ADR-0168): CÙNG cổng route `GET /api/tra-sau/han-muc` — ô credit.limit.view (Kế toán, Toàn quyền), không giữ quyền Đối tác.
   hanMucTraSau: { duong: "/han-muc-tra-sau", hien: vk("credit.limit.view"), moTrang: vk("credit.limit.view") },
   // Luật bán theo loại đối tác (ADR-0146 Đ5; kế hoạch 2026-10-30 T11): CÙNG điều kiện ba route `/api/pricing/luat-ban` — ô sales.block.write và không giữ quyền Đối tác (Q-2 (a)).
@@ -232,6 +234,7 @@ export const THANH_BEN = [
   { nhom: "TIỀN", trang: "soCongNo", nhan: "Sổ công nợ & khoá sổ", bieuTuong: "lock", gom: ["soCongNo", "khoaThang"] },
   { nhom: THIET_LAP, trang: "hoaHong", nhan: "Hoa hồng đối tác" },
   { nhom: THIET_LAP, trang: "capDaiLy", nhan: "Cấp độ đại lý" },
+  { nhom: THIET_LAP, trang: "phiDon", nhan: "Phí đưa đón" },
   { nhom: THIET_LAP, trang: "hanMucTraSau", nhan: "Hạn mức trả sau" },
   { nhom: THIET_LAP, trang: "luatBan", nhan: "Luật bán" },
   { nhom: THIET_LAP, trang: "nguoiBan", nhan: "Người bán dịch vụ" },
@@ -330,6 +333,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ" },
   { phan: "sau", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
   { phan: "sau", trang: "capDaiLy", nhan: "Cấp độ đại lý" },
+  { phan: "sau", trang: "phiDon", nhan: "Phí đưa đón" },
   { phan: "sau", trang: "luatBan", nhan: "Luật bán" },
   { phan: "sau", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
   { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },

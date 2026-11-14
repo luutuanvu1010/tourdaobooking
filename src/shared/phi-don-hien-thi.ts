@@ -86,3 +86,14 @@ export function cauKetQuaThuTra(r: ThuTraPhiDonResponse, ten: TenPhiDon): string
   }
   return dong;
 }
+
+/** Bộ điều kiện gửi lên máy chủ (dạng mảng `[{khoa, giaTri}]`) dựng lại từ dòng đã đọc — dùng khi «Đổi mức», để mức mới giữ NGUYÊN điều kiện của mức cũ. */
+export function dieuKienGui(d: MucPhiDonDto["dieuKien"]): { khoa: string; giaTri: string }[] {
+  const r = [{ khoa: "ZONE", giaTri: d.vung }];
+  if (d.cap !== null) r.push({ khoa: "TIER", giaTri: d.cap });
+  if (d.dichVu !== null) r.push({ khoa: "SERVICE", giaTri: d.dichVu });
+  if (d.nhom !== null) r.push({ khoa: "SERVICE_GROUP", giaTri: d.nhom });
+  if (d.chieu !== null) r.push({ khoa: "DIRECTION", giaTri: d.chieu });
+  if (d.xeRieng) r.push({ khoa: "EXCLUSIVE", giaTri: "1" });
+  return r;
+}
