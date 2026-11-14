@@ -41,9 +41,9 @@ Ngoài bảng: phép kiểm mạnh nhất là người dùng thật. Theo hồ s
 
 Mỗi việc đi qua sáu bước. Chủ chỉ có mặt ở bước 1 và bước 4.
 
-1. **Chốt phiếu việc (chủ duyệt lần 1).** Chủ nói muốn gì bằng lời thường. AI đọc mã và luật trước, hỏi một lần tối đa ba câu, rồi viết phiếu một trang: mục tiêu, "xong khi" viết bằng ví dụ nhìn thấy được (bấm gì, thấy gì; việc có tiền thì ví dụ bằng con số), và loại việc (nhỏ hay lớn).
-2. **AI tự làm trọn việc** trong bản làm việc riêng, ở một phiên mới chỉ đọc phiếu. Nó viết bài kiểm từ các ví dụ trong phiếu trước, rồi viết mã tới khi máy báo đạt. Không hỏi giữa chừng, trừ khi lộ ra một quyết định mới về tiền, quyền hay dữ liệu.
-3. **Máy kiểm.** Lúc AI định báo xong, máy tự chạy kiểm nhanh và không cho dừng nếu còn đỏ. Trước khi nhập bản chính, máy kiểm của GitHub chạy đủ bộ. Việc lớn có thêm một phiên kiểm độc lập, chạy trên bản sao riêng, chỉ so kết quả với các ví dụ trong phiếu.
+1. **Chốt đặc tả ngắn (chủ duyệt lần 1).** Chủ nói muốn gì bằng lời thường. AI đọc mã và luật trước, hỏi một lần tối đa ba câu, rồi viết đặc tả ngắn một trang: mục tiêu, "xong khi" viết bằng ví dụ nhìn thấy được (bấm gì, thấy gì; việc có tiền thì ví dụ bằng con số), và loại việc (nhỏ hay lớn).
+2. **AI tự làm trọn việc** trong bản làm việc riêng, ở một phiên mới chỉ đọc đặc tả. Nó viết bài kiểm từ các ví dụ trong đặc tả trước, rồi viết mã tới khi máy báo đạt. Không hỏi giữa chừng, trừ khi lộ ra một quyết định mới về tiền, quyền hay dữ liệu.
+3. **Máy kiểm.** Lúc AI định báo xong, máy tự chạy kiểm nhanh và không cho dừng nếu còn đỏ. Trước khi nhập bản chính, máy kiểm của GitHub chạy đủ bộ. Việc lớn có thêm một phiên kiểm độc lập, chạy trên bản sao riêng, chỉ so kết quả với các ví dụ trong đặc tả.
 4. **Xem kết quả (chủ duyệt lần 2).** AI trình một trang: ảnh thật trên điện thoại và máy tính, hoặc đường dẫn bản thử để chủ bấm trên iPhone; máy đã kiểm gì; điều gì chưa kiểm. Chủ trả lời "phát hành" hoặc "sửa".
 5. **Phát hành theo chuyến.** Mặc định mỗi ngày một chuyến, gom các việc chủ đã gật; việc gấp vẫn đi riêng được. Chủ gõ một lệnh như hiện nay, máy tự ghi trạng thái sau khi lên.
 6. **Đóng việc.** Bản làm việc riêng được dọn ngay. Việc mở quá bảy ngày phải có quyết định làm tiếp hay bỏ.
@@ -51,7 +51,7 @@ Mỗi việc đi qua sáu bước. Chủ chỉ có mặt ở bước 1 và bư�
 Ba giới hạn giữ cho một người kham nổi:
 
 - Tối đa ba việc mở cùng lúc: một việc lớn và hai việc nhỏ. Con số này là đề xuất của tôi; Anthropic không đưa con số.
-- Bản ghi quyết định (ADR) chỉ viết cho quyết định khó quay lại hoặc đổi kiến trúc. Quyết định của một tính năng thì ghi trong phiếu việc và chủ duyệt ngay ở đó. Việc chạm tiền, quyền hay dữ liệu vẫn phải dừng lại hỏi chủ như luật hiện hành. Đây là đổi thói quen so với hôm nay (các quyết định loại này đang thường thành ADR), nên cần chủ gật rõ.
+- Bản ghi quyết định (ADR) chỉ viết cho quyết định khó quay lại hoặc đổi kiến trúc. Quyết định của một tính năng thì ghi trong đặc tả ngắn và chủ duyệt ngay ở đó. Việc chạm tiền, quyền hay dữ liệu vẫn phải dừng lại hỏi chủ như luật hiện hành. Đây là đổi thói quen so với hôm nay (các quyết định loại này đang thường thành ADR), nên cần chủ gật rõ.
 - Luật "không được sai" phải thành lớp chặn của máy hoặc bài kiểm. Luật chỉ là thói quen thì viết ngắn hoặc bỏ. Mỗi tháng một buổi gỡ bớt, và mỗi lần đổi đời AI thì thử lại xem luật nào còn cần.
 
 ### 5. Ba hướng đã cân nhắc
@@ -65,8 +65,8 @@ Ba giới hạn giữ cho một người kham nổi:
 Thời gian là ước lượng. Mỗi bước khi tới lượt có một trang riêng và tối đa ba quyết định.
 
 - **Bước 1, đóng chỗ hở và giảm tải (một đến hai ngày).** Lớp chặn phủ cả đường Terminal. Khoá bản chính trên GitHub. Sửa đoạn mô tả môi trường trong cài đặt máy của chủ. Người kiểm độc lập chạy trên bản sao riêng. Dọn 21 bản làm việc riêng; bảy bản còn phần chưa lưu thì chủ quyết từng bản. *Xong khi:* thử lệnh cấm qua Terminal thì bị chặn; đẩy thẳng vào bản chính một lần lưu chưa kiểm thì GitHub từ chối; còn không quá ba bản làm việc riêng.
-- **Bước 2, máy kiểm nhanh và đáng tin (khoảng một tuần).** Cổng kiểm nhẹ lúc AI dừng. Bài kiểm chạy nhanh hơn. Xử lý bài đỏ giả. Tờ tình hình do máy sinh mỗi lần mở phiên. Thử màn hình trên trình giả lập iPhone. *Xong khi:* AI không báo xong được khi kiểm nhanh còn đỏ; tỉ lệ lượt kiểm phải chạy lại dưới 2% (đang 17%); mở phiên là thấy đúng số bản đang chạy thật mà không ai phải ghi tay.
-- **Bước 3, vòng hai lần duyệt (một đến hai tuần).** Mẫu phiếu việc và trang kết quả. Hoàn tất bản Development để chủ thử trước khi phát hành (tên miền dev.tourdao.vn hôm nay chưa trả lời). Rút gọn CLAUDE.md; chuyển công thức sửa nhanh và quy trình phát hành thành gói hướng dẫn mở khi cần. Luật về ADR, ba việc mở, phát hành theo chuyến. *Xong khi:* ba việc liên tiếp đi trọn vòng mà chủ chỉ duyệt hai lần mỗi việc.
+- **Bước 2, máy kiểm nhanh và đáng tin (khoảng một tuần).** Cổng xanh bản nhẹ lúc AI dừng (bản cũ đã gỡ 19/10 vì chạy cả bộ). Bài kiểm chạy nhanh hơn. Xử lý bài đỏ giả. Trang trạng thái do máy sinh mỗi lần mở phiên. Thử màn hình trên trình giả lập iPhone. *Xong khi:* AI không báo xong được khi kiểm nhanh còn đỏ; tỉ lệ lượt kiểm phải chạy lại dưới 2% (đang 17%); mở phiên là thấy đúng số bản đang chạy thật mà không ai phải ghi tay.
+- **Bước 3, vòng hai lần duyệt (một đến hai tuần).** Mẫu đặc tả ngắn và mẫu báo cáo kết quả. Hoàn tất bản Development để chủ thử trước khi phát hành (tên miền dev.tourdao.vn hôm nay chưa trả lời). Rút gọn CLAUDE.md; chuyển công thức sửa nhanh và quy trình phát hành thành gói hướng dẫn mở khi cần. Luật về ADR, ba việc mở, phát hành theo chuyến. *Xong khi:* ba việc liên tiếp đi trọn vòng mà chủ chỉ duyệt hai lần mỗi việc.
 
 ### 7. Ba quyết định cần chủ
 
@@ -144,9 +144,9 @@ Trợ lý đọc bảy ghi chú bộ nhớ về các đợt kiểm toán, không
 
 ### II.5 Cấu hình Claude Code nên thêm (mỗi loại một hai mục)
 
-- **Lớp chặn.** (1) `SessionStart`: kịch bản in tờ tình hình do máy sinh (số bản chạy thật lấy bằng GET công khai, lần lưu của bản chính, việc đang mở và tuổi, điều đang chờ chủ), thay các dòng trạng thái trong bộ nhớ và phần đầu `docs/HANDOFF-N1.md`. (2) `Stop`: cổng kiểm nhẹ gồm `npm run typecheck` và bài kiểm của thư mục có tệp đổi, có trần thời gian, có kiểm `stop_hook_active`. Kèm sửa cho mục II.3.1: mở rộng tên so khớp thành `Bash|mcp__terminal__.*` và bỏ dòng thoát sớm khi tên công cụ khác `Bash`, hoặc thêm luật cấm `mcp__terminal__run_in_terminal`.
-- **Skill (gói hướng dẫn mở khi cần).** (1) `phat-hanh`, chỉ chủ gọi (`disable-model-invocation: true`): quy trình nhập bản chính, triển khai và các trục trặc đã biết; rời khỏi CLAUDE.md và bộ nhớ, không tốn ngữ cảnh khi không dùng. (2) `phieu-viec`: hỏi tối đa ba câu, viết phiếu một trang, rồi trang kết quả. Về sau: tách công thức của `docs/CHANGE-GUIDE.md` thành gói theo `paths`.
-- **Trợ lý.** `nguoi-kiem-doc-lap`: thêm `isolation: worktree` để chạy trên bản sao riêng; đề bài so với ví dụ trong phiếu, bỏ soi câu chữ. Cần thử: bản sao phải dựng từ đúng lần lưu của người thi công (cài đặt máy đang đặt `worktree.baseRef: "fresh"`).
+- **Lớp chặn.** (1) `SessionStart`: kịch bản in trang trạng thái do máy sinh (số bản chạy thật lấy bằng GET công khai, lần lưu của bản chính, việc đang mở và tuổi, điều đang chờ chủ), thay các dòng trạng thái trong bộ nhớ và phần đầu `docs/HANDOFF-N1.md`. (2) `Stop`: cổng xanh bản nhẹ gồm `npm run typecheck` và bài kiểm của thư mục có tệp đổi, có trần thời gian, có kiểm `stop_hook_active`. Kèm sửa cho mục II.3.1: mở rộng tên so khớp thành `Bash|mcp__terminal__.*` và bỏ dòng thoát sớm khi tên công cụ khác `Bash`, hoặc thêm luật cấm `mcp__terminal__run_in_terminal`.
+- **Skill (gói hướng dẫn mở khi cần).** (1) `phat-hanh`, chỉ chủ gọi (`disable-model-invocation: true`): quy trình nhập bản chính, triển khai và các trục trặc đã biết; rời khỏi CLAUDE.md và bộ nhớ, không tốn ngữ cảnh khi không dùng. (2) `dac-ta-ngan`: hỏi tối đa ba câu, viết đặc tả ngắn một trang, rồi báo cáo kết quả. Về sau: tách công thức của `docs/CHANGE-GUIDE.md` thành gói theo `paths`.
+- **Trợ lý.** `nguoi-kiem-doc-lap`: thêm `isolation: worktree` để chạy trên bản sao riêng; đề bài so với ví dụ trong đặc tả, bỏ soi câu chữ. Cần thử: bản sao phải dựng từ đúng lần lưu của người thi công (cài đặt máy đang đặt `worktree.baseRef: "fresh"`).
 - **Kết nối MCP.** Không thêm. Chrome và trình giả lập iPhone đã có sẵn trong ứng dụng; thêm kết nối Cloudflare sẽ mở thêm một đường ghi vào bản chạy thật.
 - **Plugin.** Không thêm.
 - **Lệnh tự đo**, chạy trong `claude` ở Terminal: `/usage`, `/context all`, `/doctor prompt-audit` [S1, S2].
