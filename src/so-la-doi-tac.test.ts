@@ -51,6 +51,8 @@ function nhap(w: W, chu: string, booker: string | null, dv: [string | null, numb
     w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, ?, ?, ?, ?, 1, ?)`).run(s, id, i, code, `DV ${i}`, code ? "perPax" : "manual", vnHomNay());
     w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, ?, ?, 'Người lớn', 1, ?, ?, ?)`)
       .run(`${s}-i`, id, s, code, code ? "adult" : null, t, code ? t : null, t);
+    // ADR-0205: đơn Đối tác lập chỉ xác nhận được khi giá danh mục đã lưu khớp danh mục hôm nay ⇒ gieo giá danh mục bằng đúng giá của dòng.
+    if (code) w.sqlite.prepare("UPDATE catalog_item SET price_adult = ? WHERE code = ?").run(t, code);
   });
   return id;
 }

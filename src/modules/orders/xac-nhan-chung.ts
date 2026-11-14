@@ -4,11 +4,11 @@
 import { auditStatement } from "../audit";
 import { chupDon, docBangChoChup, laNguoiHuong, soKhachTinhHoaHong, type BanChup, type DuLieuChup } from "../pricing";
 import type { ChuaGioSatNgayBody, DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDto, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile, XacNhanTrenDonDto } from "../../shared/contracts";
-import { can, holdsIntern, holdsPartner, passesAdminGate } from "../../shared/permissions";
+import { can, chiGiaDanhMuc, holdsIntern, holdsPartner, passesAdminGate } from "../../shared/permissions";
 import { error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import { maskLongDigits } from "../../shared/text-guards";
-import { parseUnit } from "../../shared/order-lines";
+import { PAX_LABEL, parseUnit } from "../../shared/order-lines";
 import type { DongBoTheoDon } from "../../shared/dong-bo-chuyen";
 import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem";
 import { cauThieuChonDon, thieuChonDon } from "../../shared/cong-chon-don";
@@ -18,7 +18,7 @@ import { trangThaiLoiMoi } from "../../shared/ban-hang-phu-trach";
 import type { BanHangNoi } from "../../shared/router";
 import { thieuGioChangDau } from "../../shared/chang-dua-don";
 import { canhBaoMocCua } from "./dat-gap";
-import { coHienHanh, nhomTheoMa, tuXacNhanNoiBo, yeuCauMoCuaDon, type YeuCauRow } from "./xac-nhan-repo";
+import { coHienHanh, nhomTheoMa, quyenMoCuaNguoiLap, tuXacNhanNoiBo, yeuCauMoCuaDon, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder } from "./chang-hanh-khach-repo";
 import { KHONG_COC, findOrder, getMeta, getStoredServices, type KemCoc } from "./repository";
 import { CAU_VUOT_TONG, vuotTong } from "../../shared/dat-coc-truoc";
@@ -26,7 +26,8 @@ import type { CauCocXacNhan, VaoCauCoc } from "../../shared/dat-coc-kieu";
 import { viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
 import { cauChupChuoi } from "./thuong-mai-repo";
 import { donChoTran, dongGhiTuChup, moTaChup } from "./thuong-mai";
-import { confirmGaps, summarizeDeviations } from "./service-rules";
+import { catalogStatusOf, confirmGaps, summarizeDeviations } from "./service-rules";
+import { getEffectiveServices } from "../catalog";
 import { kiemNhomChoPhepDuaDon } from "./service";
 import { congLuatBan } from "./cong-ban";
 import { traSauChoXacNhan, type HamTraSau, type KemTraSau } from "./tra-sau-cong";
@@ -95,6 +96,32 @@ export async function congDoiTacChuaCoVaiTro(
   return { loi: DOI_TAC_CHUA_CO_VAI_TRO(daCoVaiTro ? CAU_NHAP_LUU_TRUOC_KHI_CO_VAI_TRO : CAU_DOI_TAC_CHUA_CO_VAI_TRO) };
 }
 
+const dongVn = (n: number): string => `${n.toLocaleString("vi-VN")} ₫`;
+const HUONG_DAN_GIA_DOI = {
+  "xac-nhan": "Mở đơn nháp, bỏ dịch vụ này rồi chọn lại từ danh mục để nhận giá mới, lưu rồi xác nhận lại.",
+  "xet-duyet": "Người lập đơn cần Rút lại yêu cầu, bỏ dịch vụ này rồi chọn lại từ danh mục để nhận giá mới, sau đó gửi lại.",
+} as const;
+
+/**
+ * Cổng «giá danh mục đã đổi sau khi lưu nháp» (kiểm toán 14/11, T3; chủ chọn «Chặn Đối tác, Thực tập» — nơi gọi quyết ai bị áp). Dùng lại `catalogStatusOf` — đúng phép so mà màn đơn nháp dùng để hiện «Giá danh mục
+ * đã đổi»: so `catalog_price` ĐÃ LƯU của từng dòng với giá hiệu lực HÔM NAY (đã áp ghi đè). Chỉ bắt `price_changed`; dịch vụ đã ẩn khỏi danh mục và dòng nhập tay KHÔNG thuộc cổng này.
+ * Mã lỗi riêng `gia_danh_muc_da_doi` (không dùng `catalog_changed` của lúc lưu, mã đó khiến form tự nạp lại giá). Lưu lại nháp KHÔNG tự nhận giá mới (Q11: dịch vụ cùng mã, cùng số khách
+ * giữ bản chụp), nên câu chỉ đường nói «bỏ rồi chọn lại». Người xét duyệt không sửa được nháp của người khác ⇒ câu bảo người lập Rút lại.
+ */
+export async function congGiaDanhMucDoi(db: D1Database, order: DonXacNhan, cua: keyof typeof HUONG_DAN_GIA_DOI): Promise<Response | null> {
+  const ma = [...new Set(order.services.map((s) => s.catalogCode).filter((c): c is string => c !== null))];
+  if (ma.length === 0) return null;
+  const danhMuc = await getEffectiveServices(db, ma);
+  for (const s of order.services) {
+    const eff = s.catalogCode === null ? undefined : danhMuc.get(s.catalogCode);
+    if (!eff || catalogStatusOf(s, eff) !== "price_changed") continue;
+    const dong = s.items.find((it) => it.paxCode !== null && it.catalogPrice !== null && eff.prices[it.paxCode] !== it.catalogPrice);
+    const chiTiet = dong && dong.paxCode !== null && dong.catalogPrice !== null ? ` (${PAX_LABEL[dong.paxCode].toLowerCase()}: ${dongVn(dong.catalogPrice)} → ${eff.prices[dong.paxCode] === undefined ? "không còn giá" : dongVn(eff.prices[dong.paxCode]!)})` : "";
+    return error(409, "gia_danh_muc_da_doi", `Giá danh mục của «${s.name}» đã đổi sau khi lưu đơn nháp${chiTiet}. ${HUONG_DAN_GIA_DOI[cua]}`);
+  }
+  return null;
+}
+
 /**
  * Thành tiền (Σ thành tiền dòng, trước giảm giá cấp đơn) và số khách tính hoa hồng (`soKhachTinhHoaHong`) của MỘT dịch vụ — MỘT công thức cho phần thương mại (`phanThuongMaiCuaDon`)
  * và trần giảm giá (Task 7). Đứng ngoài thân route (bài `src/so-khach-mot-luat-tien.test.ts` (4): thân route không tính trên tiền dòng).
@@ -150,6 +177,13 @@ export async function kiemCongXacNhan(
   // mà MỌI dòng đúng giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục). R3 (trần giảm giá ĐÃ LƯU) kiểm SAU khi tính bản chụp (Task 7).
   const giaLoi = viPhamGiaDanhMuc(actor, order.services.flatMap((s) => s.items));
   if (giaLoi) return { loi: GIA_DANH_MUC(giaLoi) };
+  // Kiểm toán 14/11 (T3), chủ chọn «Chặn Đối tác, Thực tập» (15/11): tài khoản chỉ được bán đúng giá danh mục thì «đúng giá» là giá HÔM NAY — nháp lưu ở giá cũ không chốt được sau khi
+  // danh mục đổi giá. Áp khi NGƯỜI BẤM bị áp R2 (`chiGiaDanhMuc`) hoặc NGƯỜI LẬP đang giữ quyền Đối tác / Thực tập (đơn họ lập do người xét bấm Còn vé). Nhân viên nội bộ lập và xác nhận:
+  // giữ Q11 của đặc tả 2026-09-19 (giữ bản chụp, chỉ cảnh báo — câu nhắc ở `canhBaoXacNhan`). Mã quyền người lập ở đây chỉ SIẾT, không cho thêm quyền.
+  if (chiGiaDanhMuc(actor) || (await quyenMoCuaNguoiLap(db, order.staffId)).some((q) => q === "PARTNER" || q === "INTERN")) {
+    const giaDoi = await congGiaDanhMucDoi(db, order, i.cuaDuaDon === "xet-duyet" ? "xet-duyet" : "xac-nhan");
+    if (giaDoi) return { loi: giaDoi };
+  }
   // ADR-0114 D3: cửa xác nhận đọc số khách ĐÃ LƯU (nháp cũ lập trước ADR có thể không có người lớn); lập đơn / lưu nháp đã chặn ở `validateOrder`.
   if (donThieuNguoiLon(order.services.map((s) => s.pax))) return { loi: error(409, "thieu_nguoi_lon", CAU_THIEU_NGUOI_LON) };
   // ADR-0118 Đ3 (b): nhóm đã tắt đưa đón mà nháp còn lượt mở → chặn (Còn vé truyền `xet-duyet`: câu nói người lập Rút lại).

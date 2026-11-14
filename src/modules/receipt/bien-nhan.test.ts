@@ -300,6 +300,8 @@ async function don(w: W, o: { owner?: string; booker?: string | null; dichVu: Dv
     w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, quantity, unit_price, catalog_price, line_total) VALUES (?, ?, ?, ?, 'adult', 'Người lớn', ?, ?, ?, ?)`)
       .run(`${s}-i`, id, s, d.catalog, d.khach, d.donGia, d.donGia, d.khach * d.donGia);
   });
+  // ADR-0205: đơn Đối tác lập chỉ xác nhận được khi giá danh mục đã lưu khớp danh mục hôm nay ⇒ gieo giá danh mục bằng đúng đơn giá của dòng.
+  for (const d of o.dichVu) w.sqlite.prepare("UPDATE catalog_item SET price_adult = ? WHERE code = ?").run(d.donGia, d.catalog);
   const xn = await w.xacNhanDon(id, o.owner ?? R_SALES); // ADR-0135: nháp chỉ người lập xác nhận
   assert.equal(xn.status, 200, xn.text);
   w.sqlite.prepare(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by)

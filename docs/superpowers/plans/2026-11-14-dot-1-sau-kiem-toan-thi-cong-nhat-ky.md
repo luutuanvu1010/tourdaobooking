@@ -32,7 +32,16 @@ Ba lần giao song song, tệp không chồng nhau: A (T1 + T2, phần tiền), 
 - T3: **lỗi có thật**, tái hiện bằng `src/modules/orders/nhap-cu-gia-moi.test.ts` (ba đường xác nhận đều chốt giá cũ). Chưa sửa hành vi: chờ chủ chọn chặn (409 `catalog_changed`) hay chỉ cảnh báo.
 - Bộ kiểm lần 1: kiểm kiểu xanh; `npm test` 9005/9011, hai bài đỏ đều do sổ phụ chưa cập nhật (dấu «đã xem lại» hai bài hướng dẫn về vé; bảng giây thiếu số đo của năm tệp kiểm mới), đã sửa. e2e 91/93: H5 đòi khai `PUT /api/orders/:id/trip` vào `src/shared/lan-gui-no.ts` (đã khai); `so-dai-ly` nhận 500 thân rỗng ở bước lưu nháp đua với xác nhận, kiểu đỏ giả đã biết của máy chủ thử dưới tải, chờ lần chạy lại.
 
+## T3 — diễn biến 15/11
+
+- Chủ chọn «Chặn xác nhận». Thi công bản chặn mọi người; bộ kiểm đủ đỏ 28 bài và kịch bản `tests/e2e/trip.mjs`. Nguyên nhân: kịch bản đó khoá **Q11** của đặc tả `2026-09-19-thong-tin-chuyen-di-design.md` («nháp cũ … đổi giá: giữ bản chụp đã lưu, chỉ cảnh báo»). Bản kiểm toán 14/11 đã gọi nhầm một quyết định có sẵn là lỗi vì không tra đặc tả trước.
+- Dừng, báo chủ xung đột, đưa ba hướng. Chủ chọn «Chặn Đối tác, Thực tập».
+- Thi công lại: bước chặn chỉ áp khi người bấm bị áp R2 hoặc người lập giữ quyền Đối tác / Thực tập; nhân viên nội bộ giữ Q11, thêm câu nhắc trước khi xác nhận. Văn bản: ADR-0205 (đề xuất).
+- Bài học ghi lại: trước khi gọi một hành vi là lỗi, tra đặc tả và kịch bản thử xem có quyết định của chủ đứng sau không.
+
 ## Ruling, nợ
+
+- Chưa có nút nhận giá mới ngay trong nháp (phải bỏ dịch vụ rồi chọn lại). Câu nhắc nhân viên «Giá danh mục của «…» đã đổi…» là câu mới, chờ chủ duyệt chữ.
 
 - Vé trả do dời ngày ghi lý do `GIAM_SO_KHACH` (bảng chưa có lý do riêng). Đợt sau thêm lý do `DOI_NGAY` bằng migration.
 - Dời ngày đơn có vé đã mở: vé bị vô hiệu, màn hình chưa cảnh báo trước khi dời. Đã ghi vào bài hướng dẫn «Kho vé điện tử»; cảnh báo trên màn hình chờ chủ quyết.
