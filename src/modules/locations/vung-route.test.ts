@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff, fakeD1 } from "../../../tests/audit/harness.mjs";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 // index.ts nhập "../audit" (thư mục, không có đuôi) nên node không nạp trực tiếp được; hàm công bố `vungDangBat` của index.ts chỉ gọi lại listVungDangBat.
 import { listVungDangBat } from "./vung-repo.ts";
 
@@ -133,4 +133,17 @@ test("vungDangBat: chỉ vùng đang bật, có NGOAI_VUNG, sắp theo thứ t�
   assert.match(readFileSync(new URL("./index.ts", import.meta.url), "utf8"), /export function vungDangBat\(db: D1Database\)[^\n]*\{\s*return listVungDangBat\(db\);/);
   const ds = await listVungDangBat(fakeD1(w.sqlite));
   assert.deepEqual(ds.map((z) => z.code), ["BAC", "NGOAI_VUNG"]);
+});
+
+test("gốc lắp ráp tiêm vungDon: index.ts nối vungDangBat; pricing không đọc loc_ và không import locations", () => {
+  const goc = readFileSync(new URL("../../index.ts", import.meta.url), "utf8");
+  assert.match(goc, /vungDon:\s*\(env\)\s*=>\s*vungDangBat\(env\.DB\)/);
+  const thuMuc = new URL("../pricing/", import.meta.url);
+  const tep = readdirSync(thuMuc).filter((t) => t.endsWith(".ts") && !t.endsWith(".test.ts"));
+  assert.ok(tep.length > 0, "không quét được tệp nào của pricing");
+  for (const t of tep) {
+    const noi = readFileSync(new URL(t, thuMuc), "utf8");
+    assert.ok(!noi.includes("loc_"), `${t} chứa loc_`);
+    assert.ok(!noi.includes("modules/locations"), `${t} import locations`);
+  }
 });
