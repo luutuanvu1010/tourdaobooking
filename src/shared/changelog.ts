@@ -17,6 +17,35 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bước 2 lưới bố cục chung (kế hoạch 2026-11-14; chủ duyệt 15/11 «Duyệt, bám trái»): một lề trang mỗi khổ, ba mức bề rộng nội dung (hẹp 720, vừa 1120, rộng),
+    // một nhịp 16 giữa các khối, thanh bên máy tính có chỗ từ lần vẽ đầu. Chỉ giao diện, không migration, không đổi máy chủ.
+    // SỐ TẠM 3.6 (sau 3.5 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.6",
+    date: "2026-11-15",
+    items: [
+      { kind: "doi", text: "Bố cục các trang đều hơn: lề hai bên rộng hơn ở iPad và máy tính, biểu mẫu và trang thiết lập không còn giãn hết màn rộng, khoảng cách các khối bằng nhau." },
+      { kind: "sua", text: "Ở máy tính, mở trang không còn bị thanh bên đẩy nội dung sang ngang." },
+    ],
+  },
+  {
+    // Chủ dự án 14/11 (sau khi lên 3.4): «ở giao diện điện thoại cần kéo, như thế là ngoài phạm vi». Thẻ gọn lại, ô đăng nhập thu sau nút «Quản trị đăng nhập» (tên chủ chọn 14/11). Chỉ giao diện.
+    // SỐ TẠM 3.5: main có 3.4; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.5",
+    date: "2026-11-14",
+    items: [
+      { kind: "sua", text: "Trang đăng nhập khi đang bảo trì vừa một màn hình điện thoại, không phải kéo; ô đăng nhập mở bằng nút «Quản trị đăng nhập»." },
+    ],
+  },
+  {
+    // Chủ dự án 14/11 («Có, làm như vậy»): người chưa đăng nhập thấy đúng thẻ bảo trì như bản xem trước; ô đăng nhập ngay dưới cho Toàn quyền. Chỉ giao diện, không migration.
+    // SỐ TẠM 3.4: main có 3.3 (bước 1 khung chung); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.4",
+    date: "2026-11-14",
+    items: [
+      { kind: "doi", text: "Khi đang bảo trì, trang đăng nhập hiện đúng thẻ bảo trì như bản xem trước của Toàn quyền, có đồng hồ đếm ngược và nút liên hệ." },
+    ],
+  },
+  {
     // Bước 1 khung chung giao diện (kế hoạch 2026-11-13, chủ duyệt «Làm cả hai», «Theo khuyến nghị», «Làm tiếp cả hai»): vùng bấm ảnh đại diện, dải đầu trang hai
     // dòng ở điện thoại, thanh nút Lưu khi màn thấp, bỏ hộp hỏi của trình duyệt, chống nhảy bố cục (tệp đầu trang giu-cho-dai). Không migration, không đổi máy chủ.
     // SỐ TẠM 3.3 (sau 3.2 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.

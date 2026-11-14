@@ -1,0 +1,14 @@
+/* LỚP XEM TRƯỚC bước 2 (tiêm tạm bằng do-luoi.mjs --css; KHÔNG phải mã phát hành). Lưới bố cục chung:
+   lề trang 16 (điện thoại) / 24 (từ 641); ba mức bề rộng nội dung: hẹp 720, vừa 1120, rộng (kín vùng nội dung); mức hẹp và vừa căn giữa vùng nội dung. */
+:root { --luoi-le: 16px; --luoi-rong-hep: 720px; --luoi-rong-vua: 1120px; }
+@media (min-width: 641px) { :root { --luoi-le: 24px; } }
+body:not(.trang-chu):not(.login-page) main { padding-top: var(--luoi-le); padding-left: max(var(--luoi-le), env(safe-area-inset-left)); padding-right: max(var(--luoi-le), env(safe-area-inset-right)); }
+body[data-rong="hep"] main { max-width: calc(var(--luoi-rong-hep) + 2 * var(--luoi-le)); }
+body[data-rong="vua"] main { max-width: calc(var(--luoi-rong-vua) + 2 * var(--luoi-le)); }
+@media (min-width: 900px) {
+  body.has-sidebar[data-rong] main { width: 100%; margin-inline: auto; }
+  body.has-sidebar[data-rong].xem-truoc-trai main { margin-inline: 0; }
+}
+/* nhịp khối: một nhịp 16 giữa các khối của thân trang; đoạn dẫn đầu trang bỏ lề trên / dưới tính theo cỡ chữ (14, 17 px) */
+:root { --luoi-nhip: 16px; }
+body:not(.trang-chu) main > p { margin: 0 0 var(--luoi-nhip); }
