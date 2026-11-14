@@ -46,7 +46,12 @@ const phieu = async (w: W, id: string, as = PARTNER) => {
 const ghiNop = (w: W, id: string, soTien: number, khachDaTra: number, them: Record<string, unknown> = {}, as = PARTNER) =>
   w.call("POST", `/api/orders/${id}/khoan-nop`, { as, body: { soTien, ngayChuyen: homNay(), khachDaTra, bienLai: anh(), ...them } });
 const nopId = (w: W, id: string): string => String(w.q("SELECT id FROM bil_agent_remittance WHERE order_id = ? ORDER BY rowid DESC", id)[0].id);
-const xacNhan = (w: W, id: string, nid: string, as = ACC) => w.call("POST", `/api/orders/${id}/khoan-nop/${nid}/xac-nhan`, { as, body: {} });
+let demMa = 0;
+/** Mã giao dịch riêng cho mỗi lần xác nhận, số thực chuyển = số khoản nộp (kiểm toán 14/11: xác nhận phải kèm mã). `them` ghi đè được `maGiaoDich` / `soThucChuyen` / `boQuaTrung`. */
+const xacNhan = (w: W, id: string, nid: string, as = ACC, them: Record<string, unknown> = {}) => {
+  const so = Number((w.q("SELECT amount FROM bil_agent_remittance WHERE id = ?", nid)[0] as { amount?: number } | undefined)?.amount ?? 1000);
+  return w.call("POST", `/api/orders/${id}/khoan-nop/${nid}/xac-nhan`, { as, body: { maGiaoDich: `MAKN${String(++demMa).padStart(6, "0")}`, soThucChuyen: so, ...them } });
+};
 const tuChoi = (w: W, id: string, nid: string, lyDo = "Không thấy tiền về sao kê", as = ACC) => w.call("POST", `/api/orders/${id}/khoan-nop/${nid}/tu-choi`, { as, body: { lyDo } });
 const veMo = async (w: W, id: string): Promise<boolean> => {
   const r = await w.call("GET", `/api/ve/don/${id}`, { as: ADM });
@@ -343,4 +348,133 @@ test("Danh sách chờ cho Kế toán: thấy khoản chờ kèm cờ «còn Cô
   assert.equal((await w.call("GET", "/api/ledger/khoan-nop-cho", { as: PARTNER })).status, 403);
   assert.equal((await w.call("GET", "/api/ledger/khoan-nop-cho", { as: A })).status, 403);
   assert.equal((await w.call("GET", "/api/ledger/khoan-nop-cho", { as: ACC2 })).status, 200);
+});
+
+// ---- Kiểm toán 14/11: mã giao dịch ngân hàng của khoản nộp (migration 0166), cờ ảnh trùng, khoản đã xác nhận không lệch sổ ----
+const MA = (n: string) => `XNMA${n}`;
+const trangThaiNop = (w: W, nid: string) => String(w.q("SELECT status_code s FROM bil_agent_remittance WHERE id = ?", nid)[0].s);
+const LY_DO_TRUNG = "Một lần chuyển trả hai đơn của cùng đại lý";
+/** Một đơn đại lý có khoản nộp chờ 800.000 (ví dụ ADR: giá đại lý 800.000). */
+async function donCoNop(w: W): Promise<{ id: string; nid: string }> {
+  const id = await donDaiLy(w);
+  const r = await ghiNop(w, id, 800_000, 1_000_000);
+  assert.equal(r.status, 201, r.text);
+  return { id, nid: nopId(w, id) };
+}
+
+test("T1(a) xác nhận thiếu mã hoặc số thực chuyển ⇒ 400, khoản vẫn chờ, không phiếu; đủ cả hai ⇒ 200 và có dòng mã, nhật ký không chép mã", async () => {
+  const w = await dung();
+  const { id, nid } = await donCoNop(w);
+  const goi = (body: unknown) => w.call("POST", `/api/orders/${id}/khoan-nop/${nid}/xac-nhan`, { as: ACC, body });
+  for (const body of [{}, { maGiaoDich: MA("0001") }, { soThucChuyen: 800_000 }]) {
+    const r = await goi(body);
+    assert.equal(r.status, 400, r.text);
+  }
+  assert.equal((await goi({ maGiaoDich: "ab", soThucChuyen: 800_000 })).status, 400, "mã quá ngắn");
+  assert.equal((await goi({ maGiaoDich: MA("0001"), soThucChuyen: 0 })).status, 400, "số thực chuyển phải > 0");
+  assert.equal(trangThaiNop(w, nid), "PENDING");
+  assert.equal(w.q("SELECT count(*) n FROM bil_posting WHERE kind_code = 'SETTLEMENT'")[0].n, 0);
+  assert.equal(w.q("SELECT count(*) n FROM bil_remittance_bank_txn")[0].n, 0);
+  const ok = await goi({ maGiaoDich: "xn ma-0001", soThucChuyen: 800_000 });
+  assert.equal(ok.status, 200, ok.text);
+  assert.equal(trangThaiNop(w, nid), "CONFIRMED");
+  assert.equal(w.q("SELECT txn_code c FROM bil_remittance_bank_txn WHERE remittance_id = ?", nid)[0].c, "XNMA0001", "mã được chuẩn hoá khi lưu");
+  for (const d of w.q("SELECT detail FROM audit_log WHERE order_id = ?", id)) assert.doesNotMatch(String(d.detail ?? ""), /XNMA0001/);
+});
+
+test("T1(b)(c)(d) hai khoản nộp cùng mã: khác số thực chuyển ⇒ 409; tổng vượt ⇒ 409 (khoản vẫn chờ); tổng không vượt ⇒ cả hai qua (sau cảnh báo cùng mã khác đơn, gửi lại kèm lý do)", async () => {
+  const w = await dung();
+  const a = await donCoNop(w);
+  const b = await donCoNop(w);
+  const goi = (x: { id: string; nid: string }, body: Record<string, unknown>) => w.call("POST", `/api/orders/${x.id}/khoan-nop/${x.nid}/xac-nhan`, { as: ACC, body });
+  const boQuaTrung = [{ ma: "ma_giao_dich_khac_don", lyDo: LY_DO_TRUNG }];
+  // (d) 1.600.000 thực chuyển cho hai khoản 800.000 + 800.000: lần một qua; lần hai bị cảnh báo «khác đơn», gửi lại kèm lý do thì qua.
+  assert.equal((await goi(a, { maGiaoDich: MA("0010"), soThucChuyen: 1_600_000 })).status, 200);
+  const canh = await goi(b, { maGiaoDich: MA("0010"), soThucChuyen: 1_600_000 });
+  assert.equal(canh.status, 409, canh.text);
+  assert.equal(canh.json.error.code, "co_the_trung");
+  assert.equal(trangThaiNop(w, b.nid), "PENDING");
+  // (c) cùng mã, số thực chuyển khác số đã ghi ⇒ 409, kèm số đã ghi để điền sẵn
+  const lech = await goi(b, { maGiaoDich: MA("0010"), soThucChuyen: 1_700_000, boQuaTrung });
+  assert.equal(lech.status, 409, lech.text);
+  assert.equal(lech.json.error.code, "bank_txn_amount_mismatch");
+  assert.equal(lech.json.error.soThucChuyen, 1_600_000);
+  assert.equal(trangThaiNop(w, b.nid), "PENDING");
+  const qua = await goi(b, { maGiaoDich: MA("0010"), soThucChuyen: 1_600_000, boQuaTrung });
+  assert.equal(qua.status, 200, qua.text);
+  assert.equal(w.q("SELECT count(*) n FROM bil_remittance_bank_txn WHERE txn_code = ?", MA("0010"))[0].n, 2);
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'ledger_duplicate_overridden'")[0].n, 1, "«vẫn ghi» vào nhật ký");
+  // (b) khoản thứ ba trên mã 1.600.000 đã chia hết ⇒ tổng vượt
+  const c = await donCoNop(w);
+  const vuot = await goi(c, { maGiaoDich: MA("0010"), soThucChuyen: 1_600_000, boQuaTrung });
+  assert.equal(vuot.status, 409, vuot.text);
+  assert.equal(vuot.json.error.code, "bank_txn_over");
+  assert.equal(trangThaiNop(w, c.nid), "PENDING");
+  assert.equal(w.q("SELECT count(*) n FROM bil_posting WHERE kind_code = 'SETTLEMENT'")[0].n, 2, "khoản thứ ba không sinh phiếu");
+});
+
+test("T1(b) khoản nộp + một khoản «Công ty thu, chuyển khoản» cùng mã: tổng vượt số thực chuyển ⇒ 409 ở cả hai chiều", async () => {
+  const w = await dung();
+  const a = await donCoNop(w);
+  const kt = await donDaiLy(w);
+  const boQuaTrung = [{ ma: "ma_giao_dich_khac_don", lyDo: LY_DO_TRUNG }];
+  const ma = MA("0020");
+  // Chiều 1: khoản «Công ty thu» 300.000 gắn mã trước (số thực chuyển 1.000.000); khoản nộp 800.000 cùng mã ⇒ 1.100.000 > 1.000.000
+  const thu = await w.call("POST", `/api/orders/${kt}/payments`, { as: ACC, body: { soTien: 300_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: ma, soThucChuyen: 1_000_000 } });
+  assert.equal(thu.status, 201, thu.text);
+  const vuot = await w.call("POST", `/api/orders/${a.id}/khoan-nop/${a.nid}/xac-nhan`, { as: ACC, body: { maGiaoDich: ma, soThucChuyen: 1_000_000, boQuaTrung } });
+  assert.equal(vuot.status, 409, vuot.text);
+  assert.equal(vuot.json.error.code, "bank_txn_over");
+  assert.equal(trangThaiNop(w, a.nid), "PENDING");
+  // Vừa đủ: số thực chuyển 1.100.000 cho cả hai ⇒ khoản «Công ty thu» đã ghi số 1.000.000 nên lệch ⇒ mismatch
+  const lech = await w.call("POST", `/api/orders/${a.id}/khoan-nop/${a.nid}/xac-nhan`, { as: ACC, body: { maGiaoDich: ma, soThucChuyen: 1_100_000, boQuaTrung } });
+  assert.equal(lech.status, 409, lech.text);
+  assert.equal(lech.json.error.code, "bank_txn_amount_mismatch");
+  // Chiều 2: khoản nộp xác nhận trước với mã mới (1.000.000), rồi «Công ty thu» 300.000 cùng mã ⇒ vượt
+  const ma2 = MA("0021");
+  assert.equal((await w.call("POST", `/api/orders/${a.id}/khoan-nop/${a.nid}/xac-nhan`, { as: ACC, body: { maGiaoDich: ma2, soThucChuyen: 1_000_000 } })).status, 200);
+  const kt2 = await donDaiLy(w);
+  const vuot2 = await w.call("POST", `/api/orders/${kt2}/payments`, { as: ACC, body: { soTien: 300_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: ma2, soThucChuyen: 1_000_000, boQuaTrung } });
+  assert.equal(vuot2.status, 409, vuot2.text);
+  assert.equal(vuot2.json.error.code, "bank_txn_over");
+});
+
+test("T1(e) cờ ảnh trùng: chỉ Kế toán thấy, đúng khi băm trùng khoản khác, sai khi ảnh khác; băm không lọt ra phiếu", async () => {
+  const w = await dung();
+  const a = await donCoNop(w);
+  const b = await donCoNop(w); // cùng bytes PNG ⇒ cùng băm
+  const doc = async (id: string, as: string) => (await w.call("GET", `/api/orders/${id}/cong-no-dai-ly`, { as }));
+  const ra = await doc(b.id, ACC);
+  assert.equal(ra.status, 200, ra.text);
+  assert.equal(ra.json.phieu.nop.khoan[0].bienLaiTrung, true, "ảnh trùng ảnh khoản nộp khác");
+  const bam = String(w.q("SELECT content_hash h FROM bil_remittance_proof LIMIT 1")[0].h);
+  assert.ok(bam.length === 64);
+  assert.ok(!ra.text.includes(bam), "băm không ra ngoài");
+  assert.ok(!(await doc(a.id, ACC)).text.includes(bam));
+  const dl = await doc(b.id, PARTNER);
+  assert.equal(dl.status, 200, dl.text);
+  assert.equal(dl.json.phieu.nop.khoan[0].bienLaiTrung, undefined, "đại lý không thấy cờ");
+  assert.ok(!dl.text.includes(bam));
+  // Ảnh khác ⇒ không cờ. Đổi băm của khoản b (SQLite tạm: bỏ trigger một chiều CHỈ trong bài).
+  w.sqlite.exec("DROP TRIGGER bil_remittance_proof_hash_one_way");
+  w.sqlite.prepare("UPDATE bil_remittance_proof SET content_hash = ? WHERE remittance_id = ?").run("c".repeat(64), b.nid);
+  assert.equal((await doc(b.id, ACC)).json.phieu.nop.khoan[0].bienLaiTrung, false);
+  // Trả băm của b về băm của a ⇒ lại trùng
+  w.sqlite.prepare("UPDATE bil_remittance_proof SET content_hash = ? WHERE remittance_id = ?").run(String(w.q("SELECT content_hash h FROM bil_remittance_proof WHERE remittance_id = ?", a.nid)[0].h), b.nid);
+  assert.equal((await doc(b.id, ACC)).json.phieu.nop.khoan[0].bienLaiTrung, true);
+  // Không chặn: xác nhận khoản có cờ vẫn được
+  assert.equal((await xacNhan(w, b.id, b.nid)).status, 200);
+});
+
+test("T2(a) «huỷ dòng sổ» trên dòng quyết toán của khoản nộp đã xác nhận ⇒ 409, sổ không đổi, khoản vẫn đã xác nhận", async () => {
+  const w = await dung();
+  const { id, nid } = await donCoNop(w);
+  assert.equal((await xacNhan(w, id, nid)).status, 200);
+  const dong = String(w.q("SELECT l.id i FROM bil_debt_line l JOIN bil_posting p ON p.id = l.posting_id WHERE p.kind_code = 'SETTLEMENT' AND l.order_id = ?", id)[0].i);
+  const dem = Number(w.q("SELECT count(*) n FROM bil_debt_line")[0].n);
+  const r = await w.call("POST", "/api/ledger/adjustments", { as: ACC, body: { loai: "dao_dong", lineId: dong, lyDo: "ghi nhầm dòng quyết toán" } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "remittance_line_needs_approval");
+  assert.equal(Number(w.q("SELECT count(*) n FROM bil_debt_line")[0].n), dem, "không dòng đảo nào được ghi");
+  assert.equal(trangThaiNop(w, nid), "CONFIRMED");
 });

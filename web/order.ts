@@ -16,6 +16,7 @@ import { METHOD_LABEL, actionLabel, dateTime, ngayNganHomNay, parseMoney, trangT
 import { regroupMoney, setMoneyValue } from "./money-input";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { guiCoCanhBaoTrung } from "./canh-bao-trung";
+import { oMaGiaoDich } from "./o-ma-giao-dich";
 import { openHandlerSheet } from "./handler-sheet";
 import { banHangDaLuu, banHangFailure, banHangTrang } from "../src/shared/ban-hang-view";
 import { icon } from "./icons";
@@ -724,44 +725,6 @@ function tienCard(order: Order): HTMLElement {
 // `keToan` (người có ô `ledger.write`); máy chủ vẫn là cổng. Chỉ gọi route billing đã có. Mỗi thao tác mở một hàng xác nhận NGAY trong thẻ (không dùng
 // confirm() của trình duyệt): bấm lần hai mới ghi. ----
 
-/**
- * Ô "Mã giao dịch ngân hàng" + "Số tiền thực chuyển" (ADR-0092 Đ6) — chỉ dựng cho Kế toán / Toàn quyền; máy chủ quyết khi nào bắt buộc (trống cả hai ⇒ gửi
- * không mã, máy chủ trả câu nếu cần). Lỗi 409 "số thực chuyển lệch" mang số đã ghi của mã (`error.soThucChuyen`) ⇒ điền sẵn để Kế toán đối chiếu sao kê rồi
- * bấm lại — không có route tra mã (trang ghép §0).
- */
-function oMaGiaoDich(macDinh?: { ma?: string; soThucChuyen?: number }): {
-  o: HTMLElement[];
-  hien: (co: boolean) => void;
-  doc: () => { maGiaoDich: string; soThucChuyen: number } | { loi: string } | null;
-  tuLoi: (err: unknown) => void;
-} {
-  const ma = h("input", { type: "text", autocomplete: "off", maxlength: "60", placeholder: "Như in trên sao kê", value: macDinh?.ma ?? "" }) as HTMLInputElement;
-  const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", placeholder: "Như in trên sao kê" }) as HTMLInputElement;
-  if (macDinh?.soThucChuyen) setMoneyValue(so, macDinh.soThucChuyen);
-  so.addEventListener("input", () => regroupMoney(so));
-  const o = [h("label", { "data-o": "ma-giao-dich" }, "Mã giao dịch ngân hàng", ma), h("label", { "data-o": "so-thuc-chuyen" }, "Số tiền thực chuyển (₫)", so)];
-  let dangHien = true;
-  return {
-    o,
-    hien: (co) => {
-      dangHien = co;
-      for (const x of o) x.hidden = !co;
-    },
-    doc: () => {
-      if (!dangHien) return null;
-      const coMa = ma.value.trim() !== "";
-      const soN = parseMoney(so.value);
-      if (!coMa && soN <= 0) return null;
-      if (!coMa || soN <= 0) return { loi: "Nhập đủ cả mã giao dịch ngân hàng và số tiền thực chuyển theo sao kê." };
-      return { maGiaoDich: ma.value.trim(), soThucChuyen: soN };
-    },
-    tuLoi: (err) => {
-      if (!(err instanceof ApiError) || err.code !== "bank_txn_amount_mismatch") return;
-      const a = (err.details as { soThucChuyen?: unknown } | undefined)?.soThucChuyen;
-      if (typeof a === "number") setMoneyValue(so, a);
-    },
-  };
-}
 const loiCuaMa = (d: ReturnType<ReturnType<typeof oMaGiaoDich>["doc"]>): string | null => (d && "loi" in d ? d.loi : null);
 const thanCuaMa = (d: ReturnType<ReturnType<typeof oMaGiaoDich>["doc"]>): Record<string, unknown> => (d && !("loi" in d) ? d : {});
 

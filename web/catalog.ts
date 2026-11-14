@@ -110,8 +110,16 @@ function renderStatus(): void {
     sync.lastSuccessAt ? `Đồng bộ thành công lần cuối: ${dateTime(sync.lastSuccessAt)}${sync.itemCount !== null ? ` · ${sync.itemCount} dịch vụ trong Sheet` : ""}.` : "Chưa đồng bộ thành công lần nào.",
     "Hệ thống tự đồng bộ mỗi 15 phút.",
   ];
+  // TT1: dòng Sheet sai của dịch vụ đang bán — cảnh báo RÕ ở đầu màn, không nằm trong khối chữ mờ.
+  const giuLai = sync.problems.filter((p) => p.giuLai && p.code);
   replaceChildren(
     statusEl,
+    giuLai.length > 0 &&
+      h("div", { class: "alert", role: "alert" },
+        h("strong", null, `${giuLai.length} dịch vụ có dòng bị sai trong Sheet — đang bán theo bản đã lưu.`),
+        h("ul", { class: "history" }, ...giuLai.map((p) => h("li", null, `${items.find((x) => x.code === p.code)?.name ?? p.code} (${p.code}), dòng ${p.row}: ${p.message.replace(`${p.code}: `, "")}`))),
+        h("p", { class: "muted" }, "Sửa dòng đó trong Google Sheet; lần đồng bộ sau (tối đa 15 phút) sẽ tự cập nhật. Giá và tên đang dùng là bản lần đọc đúng gần nhất."),
+      ),
     h("p", { class: "muted" }, parts.join(" ")),
     sync.lastError && h("div", { class: "alert" }, `Lần đồng bộ gần nhất lỗi: ${sync.lastError} Hệ thống vẫn dùng bản đã lưu.`),
     sync.problems.length > 0 && h("details", null, h("summary", { class: "muted" }, `${sync.problems.length} dòng trong Sheet bị bỏ qua ở lần đồng bộ cuối`), h("ul", { class: "history" }, ...sync.problems.map((p) => h("li", null, `Dòng ${p.row}: ${p.message}`)))),

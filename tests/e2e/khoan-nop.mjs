@@ -71,13 +71,18 @@ try {
     assert.equal(x.status, 200, `${ten}: ${x.status}`);
     assert.equal(x.headers.get("content-type"), "image/png", ten);
   }
+  // Kiểm toán 14/11: xác nhận phải kèm mã giao dịch ngân hàng + số thực chuyển (D1 chung ⇒ mã ngẫu nhiên, không đụng mã của lần chạy khác).
   r = await call(ACC, "POST", `/api/orders/${id}/khoan-nop/${nopId}/xac-nhan`, {});
+  assert.deepEqual([r.status, r.body.error?.code], [400, "bank_txn_required"], "thiếu mã ⇒ 400, khoản vẫn chờ");
+  const maGd = `E2E${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+  const than = { maGiaoDich: maGd, soThucChuyen: 800000 };
+  r = await call(ACC, "POST", `/api/orders/${id}/khoan-nop/${nopId}/xac-nhan`, than);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const qt = await sqlRows(`SELECT l.amount FROM bil_debt_line l JOIN bil_posting p ON p.id = l.posting_id WHERE l.order_id = '${id}' AND p.kind_code = 'SETTLEMENT'`);
   assert.deepEqual(qt.map((x) => x.amount), [800000]);
   const p2 = await phieu(DT, id);
   assert.deepEqual([p2.conLai, p2.nop.khoan[0].trangThai], [0, "CONFIRMED"]);
-  assert.equal((await call(ACC, "POST", `/api/orders/${id}/khoan-nop/${nopId}/xac-nhan`, {})).status, 409);
+  assert.equal((await call(ACC, "POST", `/api/orders/${id}/khoan-nop/${nopId}/xac-nhan`, than)).status, 409);
   console.log("✓ Kế toán xác nhận ⇒ SETTLEMENT 800.000, Công nợ còn lại 0; xác nhận lần hai 409; Bán hàng không xem ảnh; Kế toán, đại lý chủ khoản xem được (image/png)");
 
   const nk = await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE detail LIKE '%nop/%' OR detail LIKE '%${dongAnh.storage_key.slice(4, 16)}%'`);

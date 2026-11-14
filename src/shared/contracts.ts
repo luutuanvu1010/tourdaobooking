@@ -882,7 +882,8 @@ export interface CatalogSyncStateDto {
   lastErrorCode: string | null;
   lastError: string | null;
   itemCount: number | null;
-  problems: { row: number; message: string }[];
+  /** `code` + `giuLai`: dòng sai của dịch vụ đang bán — Nền tảng giữ bản đã lưu (TT1). `daBao` chỉ để máy chống gửi tin lặp. */
+  problems: { row: number; message: string; code?: string; giuLai?: boolean; daBao?: boolean }[];
 }
 
 export interface CatalogPublicResponse { items: CatalogServiceDto[]; sync: { lastSuccessAt: string | null; error: string | null }; groups: CatalogGroupDto[] }
@@ -916,7 +917,9 @@ export interface CatalogSyncResponse {
   hidden: number;
   unchanged: number;
   itemCount: number;
-  problems: { row: number; message: string }[];
+  problems: { row: number; message: string; code?: string; giuLai?: boolean }[];
+  /** Số dịch vụ đang bán mà dòng Sheet sai nên được giữ theo bản đã lưu (không ẩn). */
+  giuLai?: number;
   warnings: { row: number; message: string }[];
 }
 
@@ -2890,7 +2893,11 @@ export interface KhoanNopDto {
   quyetLuc: string | null;
   bienLai: "CO" | "CHUA_TAI_XONG" | "DA_GO" | "CHUA_CO";
   laNguoiGhi: boolean;
+  /** Chỉ đúng với người giữ ô xác nhận và khoản còn chờ: ảnh biên lai trùng ảnh của một khoản nộp / khoản thu khác. Cảnh báo, không chặn. Băm ảnh không bao giờ ra ngoài. */
+  bienLaiTrung?: boolean;
 }
+/** Thân `POST /api/orders/:id/khoan-nop/:nopId/xac-nhan` (kiểm toán 14/11): mã giao dịch + số thực chuyển theo sao kê BẮT BUỘC; `boQuaTrung` khi gửi lại sau cảnh báo cùng mã khác đơn. */
+export interface XacNhanKhoanNopRequest { maGiaoDich: string; soThucChuyen: number; boQuaTrung?: { ma: string; lyDo: string }[] }
 /** Thân `POST /api/orders/:id/khoan-nop` (ADR-0182 Đ2 mục 4). `khachDaTra` = số X máy chủ đã gửi ở phiếu; `bienLai` BẮT BUỘC (base64, khuôn ADR-0196). */
 export interface KhoanNopRequest { soTien: number; ngayChuyen: string; khachDaTra: number; bienLai: { noiDung: string } }
 /** `GET /api/ledger/khoan-nop-cho` (Kế toán, Quản trị, Toàn quyền): khoản nộp đang chờ; `coCongTyCho` = đơn còn khoản «Công ty thu» chờ đối chiếu (Đ2 mục 4 — hiện cạnh nhau). */

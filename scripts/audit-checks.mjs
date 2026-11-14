@@ -819,6 +819,28 @@ export const CHECKS = [
     level: "fail",
   },
   {
+    // Kiểm toán 14/11 (T2; migration 0166): khoản nộp đại lý ĐÃ XÁC NHẬN thì phiếu SETTLEMENT của nó còn một dòng hiệu lực (chưa bị đảo) đúng số tiền khoản nộp — sổ đảo
+    // mà khoản vẫn «đã xác nhận» là lệch. Chỉ tính khoản xác nhận TỪ mốc 'R-BIL-NP' (trước mốc, lệnh «huỷ dòng sổ» chưa bị chặn nên không đòi). Lưới thứ hai sau trigger
+    // `bil_debt_line_remittance_no_reversal` và câu chặn ở `ghiDieuChinh`.
+    code: "R-BIL-NP1",
+    what: "khoản nộp đại lý đã xác nhận có dòng quyết toán còn hiệu lực đúng số tiền",
+    sql: `SELECT count(*) FROM bil_agent_remittance a
+     WHERE a.status_code = 'CONFIRMED' AND a.decided_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-NP')
+       AND NOT EXISTS (SELECT 1 FROM bil_debt_line l WHERE l.posting_id = a.posting_id AND l.kind_code = 'SETTLEMENT' AND l.reverses_line_id IS NULL AND l.amount = a.amount
+                         AND NOT EXISTS (SELECT 1 FROM bil_debt_line x WHERE x.reverses_line_id = l.id))`,
+    level: "fail",
+  },
+  {
+    // Kiểm toán 14/11 (T1; migration 0166): khoản nộp xác nhận TỪ mốc 'R-BIL-NP' đều có dòng mã giao dịch ngân hàng (lưới thứ hai sau trigger `bank_txn_required`; mốc dùng
+    // ngày xác nhận vì khoản ghi trước mốc nhưng xác nhận sau mốc cũng bị trigger đòi mã).
+    code: "R-BIL-NP2",
+    what: "khoản nộp đại lý xác nhận từ mốc 0166 đều có mã giao dịch ngân hàng",
+    sql: `SELECT count(*) FROM bil_agent_remittance a
+     WHERE a.status_code = 'CONFIRMED' AND a.decided_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-NP')
+       AND NOT EXISTS (SELECT 1 FROM bil_remittance_bank_txn t WHERE t.remittance_id = a.id)`,
+    level: "fail",
+  },
+  {
     // H-C3 (đ5): khoản duyệt của đơn KHÁCH HUỶ không ghi sau hạn hoàn cọc (ngày khởi hành muộn nhất / ngày huỷ + 60).
     code: "R-BIL-C6",
     what: "khoản duyệt hoàn cọc của đơn khách huỷ nằm trong hạn",

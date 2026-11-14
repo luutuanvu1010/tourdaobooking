@@ -1,0 +1,45 @@
+# Đợt 1 sau kiểm toán 14/11 — sổ điều phối thi công
+
+Nguồn: `docs/superpowers/specs/2026-11-14-kiem-toan-tien-ve-du-lieu-va-ke-hoach.md` mục 8, Đợt 1. Chủ dự án ra lệnh «Làm Đợt 1» ngày 14/11/2026.
+Nhánh: `claude/financial-data-security-audit-1f92e7`. Số migration dành cho đợt này: `0166` (0163 thuộc nhánh ADR-0199, 0164–0165 thuộc nhánh phí đón, đều chưa nhập). ADR đề xuất: `ADR-0204` (0203 đã có trên nhánh khác).
+
+## Bảng việc và tiêu chí nghiệm thu (viết trước khi làm)
+
+| Việc | Xong khi (hành vi kiểm được) | Trạng thái |
+|---|---|---|
+| T1 — Mã giao dịch cho khoản nộp đại lý | (a) Kế toán xác nhận khoản nộp mà thiếu mã giao dịch hoặc số thực chuyển thì bị từ chối 400, khoản vẫn chờ. (b) Hai khoản nộp, hoặc một khoản nộp và một khoản «Công ty thu», cùng một mã mà tổng vượt số thực chuyển thì lệnh sau bị từ chối 409, kể cả khi hai lệnh tới cùng lúc (lớp cơ sở dữ liệu). (c) Cùng mã, khác số thực chuyển thì 409. (d) Một lần chuyển cho hai đơn, tổng không vượt, thì cả hai qua. (e) Ảnh biên lai trùng ảnh của khoản nộp khác: phiếu của Kế toán có cờ cảnh báo, không chặn; băm ảnh không ra DTO. | chưa |
+| T2 — Khoản nộp đã xác nhận không lệch sổ | (a) Lệnh huỷ lẻ dòng sổ thuộc phiếu của một khoản nộp đã xác nhận bị từ chối 409, có câu chỉ đường. (b) Bộ soát có luật mới: khoản nộp đã xác nhận phải còn dòng sổ có hiệu lực đúng số tiền; cố ý làm lệch thì luật báo. | chưa |
+| V1 — Dời ngày đi thì cân lại vé | Đơn đã xác nhận, đã giữ vé chưa mở hạn ngày cũ; dời ngày sang ngày vé không còn hợp: vé cũ về kho, đơn được cấp vé hợp ngày mới nếu kho có, nếu không thì đơn báo đúng số vé thiếu. Vé đã mở mà lệch ngày: không về kho, đơn báo thiếu. Dời ngày mà vé vẫn hợp: không đổi gì. | chưa |
+| TT1 — Dòng Sheet hỏng không làm mất dịch vụ | Dòng Sheet có mã dịch vụ đang có mà hỏng định dạng: dịch vụ vẫn hiện và bán theo bản đã lưu; lần đồng bộ ghi nhận dòng hỏng; Quản trị và Toàn quyền nhận một tin (không lặp mỗi 15 phút cho cùng một lỗi); màn Danh mục hiện cảnh báo rõ. Dòng thật sự bị xoá khỏi Sheet vẫn bị ẩn như cũ. | chưa |
+| T3 — Nháp cũ, giá mới | Có bài thử: lưu nháp giá cũ, đổi giá danh mục, xác nhận. Nếu đơn chốt giá cũ mà không báo: sửa để xác nhận trả 409 `catalog_changed`. Nếu đã có lớp chặn: giữ bài thử làm lưới, ghi kết luận ở đây. | chưa |
+
+## Điều người dùng sẽ thấy khác (đã báo chủ 14/11 trước khi nhập)
+
+- Kế toán: khi xác nhận khoản nộp của đại lý phải gõ thêm mã giao dịch ngân hàng và số tiền thực chuyển, giống khoản «Công ty thu» bằng chuyển khoản.
+- Kế toán: không huỷ lẻ được dòng sổ của khoản nộp đã xác nhận; muốn sửa thì dùng điều chỉnh có duyệt.
+- Bán hàng, khách: dời ngày đi của đơn đã có vé thì vé cũ không hợp ngày bị thu lại, đơn nhận vé mới hoặc báo thiếu vé.
+- Quản trị, Toàn quyền: nhận tin khi một dòng trên Sheet bị gõ sai.
+
+## Cách chia
+
+Ba lần giao song song, tệp không chồng nhau: A (T1 + T2, phần tiền), B (V1 + T3, phần đơn và vé), C (TT1, danh mục). Một người kiểm độc lập ở cuối. Bộ kiểm dài chạy một lần sau khi cả ba xong.
+
+## Kết quả (14/11)
+
+- T1, T2: thi công xong (migration `0166_ma_giao_dich_khoan_nop.sql`, bảng `bil_remittance_bank_txn`, luật soát R-BIL-NP1, R-BIL-NP2). Kiểm độc lập: đạt có điều kiện, không có phát hiện Cao.
+- V1: thi công xong, không migration (`cauTraPhanBoLechNgay`, `canBangVeTheoSoKhach` xét thêm ngày, route `/trip` gọi cân vé khi đổi ngày). Kiểm độc lập: đạt có điều kiện.
+- TT1: thi công xong phần giữ dịch vụ, dấu bền, cảnh báo ở màn Danh mục. **Chưa nối đường gửi tin** cho Quản trị và Toàn quyền: chờ chủ chọn cách hiện người gửi (máy tự gửi). Kiểm độc lập: đạt.
+- T3: **lỗi có thật**, tái hiện bằng `src/modules/orders/nhap-cu-gia-moi.test.ts` (ba đường xác nhận đều chốt giá cũ). Chưa sửa hành vi: chờ chủ chọn chặn (409 `catalog_changed`) hay chỉ cảnh báo.
+- Bộ kiểm lần 1: kiểm kiểu xanh; `npm test` 9005/9011, hai bài đỏ đều do sổ phụ chưa cập nhật (dấu «đã xem lại» hai bài hướng dẫn về vé; bảng giây thiếu số đo của năm tệp kiểm mới), đã sửa. e2e 91/93: H5 đòi khai `PUT /api/orders/:id/trip` vào `src/shared/lan-gui-no.ts` (đã khai); `so-dai-ly` nhận 500 thân rỗng ở bước lưu nháp đua với xác nhận, kiểu đỏ giả đã biết của máy chủ thử dưới tải, chờ lần chạy lại.
+
+## Ruling, nợ
+
+- Vé trả do dời ngày ghi lý do `GIAM_SO_KHACH` (bảng chưa có lý do riêng). Đợt sau thêm lý do `DOI_NGAY` bằng migration.
+- Dời ngày đơn có vé đã mở: vé bị vô hiệu, màn hình chưa cảnh báo trước khi dời. Đã ghi vào bài hướng dẫn «Kho vé điện tử»; cảnh báo trên màn hình chờ chủ quyết.
+- `docs/SO-HANG-RAO.md`: bốn hàng rào mới (R-BIL-NP2, `remittance_line_no_reversal` kèm câu 409, `amount_mismatch`, hai trigger đối xứng) chưa có ngày quan sát chặn thật; theo luật là lời khuyên cho tới khi ghi ngày.
+- Trùng mã cùng đơn giữa khoản nộp và khoản «Công ty thu»: mới chặn ở máy chủ, chưa có trigger.
+- `web/catalog.ts`: dòng «N dòng bị bỏ qua» đếm cả dòng giữ lại.
+- Câu cảnh báo ảnh biên lai trùng là câu mới, chờ chủ duyệt chữ. Màn xác nhận khoản nộp mới và khối cảnh báo ở Danh mục chưa ai nhìn bằng mắt, chưa chạy kịch bản Chrome.
+- Chưa có mục nhật ký thay đổi và số phiên bản cho đợt này; chưa có ADR đề xuất cho bảng mã giao dịch của khoản nộp (số dành sẵn: ADR-0204).
+
+- Lệnh ghi «Nộp / trả» bằng tay của Kế toán (`/api/ledger/settlements`) chưa bắt mã giao dịch trong đợt này: lệnh đó không có ô hình thức (tiền mặt hay chuyển khoản). Ghi nợ, đưa vào đợt đối soát sao kê.

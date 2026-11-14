@@ -53,6 +53,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Chỉ chọn «Mọi loại khách» khi vé thật sự dùng chung, như vé Harbour tiêu chuẩn.
 - Chưa chắc khách lấy thì đừng bấm nút mở vé hay tạo đường dẫn: mọi vé của đơn bị coi là đã lộ, và vé đã lộ không về lại kho, kể cả khi đơn huỷ.
 - Không chụp màn hình vé hay gửi mã vé vào nhóm chat chung, vì mã QR có giá trị như tiền.
+- Dời ngày đi của đơn đã có vé thì vé không còn hợp ngày mới bị thu lại: vé chưa mở về kho, vé đã mở bị vô hiệu dù khách còn giữ ảnh. Máy tự giữ vé hợp ngày mới nếu kho còn; kho thiếu thì đơn báo còn thiếu vé. Vé đã quét thì giữ nguyên.
 - Vé Tour Đảo đã quét thì dòng «Đã dùng» của dịch vụ trên đơn tăng lên. Đơn có vé đã dùng không huỷ được; phải bỏ lượt quét trước.
 
 ### Khi gặp sự cố
@@ -119,7 +120,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 
 ### Điều dễ sai
 - Chênh lệch dương không có nghĩa là khách vắng: có thể khách chưa quét hoặc quét chưa kịp. Hỏi người phụ trách trước khi kết luận.
-- Đơn đã huỷ không có trong bảng; vé đã mở rồi mà đơn bị huỷ nằm ở «Đã huỷ» của sổ vé.
+- Đơn đã huỷ không có trong bảng; vé đã mở rồi mà đơn bị huỷ, hoặc đơn bị dời sang ngày vé không còn hợp, nằm ở «Đã huỷ» của sổ vé.
 - Sổ vé tính cả kho, không đổi theo ngày chọn.`,
   },
   {

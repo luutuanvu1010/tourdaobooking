@@ -20,14 +20,15 @@ import { phieuCongNoCuaDon, type PhieuCongNo } from "./cong-no-dai-ly";
 import { BANG_NOP, datBienLai } from "./kho-bien-lai";
 import { kiemNguoiThuKenh } from "./kenh-thu";
 import {
-  chenAnhNopStatement, chenNopStatement, demAnhNopGanDay, nopCuaDon, nopTheoId, trangThaiAnhNop, tuChoiNopStatement, xacNhanNopStatement, type NopRow,
+  chenAnhNopStatement, chenNopStatement, demAnhNopGanDay, ganMaNopStatement, khoanNopTrungAnh, nopCuaDon, nopTheoId, trangThaiAnhNop, tuChoiNopStatement, xacNhanNopStatement, type NopRow,
 } from "./khoan-nop-repo";
+import { docGiaoDich } from "./ma-giao-dich";
 import {
   lineIfPostingStatement, linesOfOrder, ownerCompanyId, postingIfRemittancePendingStatement, receiptWithRemittanceStatement, receiptsOfOrder,
 } from "./repository";
 import { kiemQuyetToan, sinhDongQuyetToan, soDuCap } from "./rules";
 import {
-  CHUA_CO_CONG_TY, MAX_SO_TIEN, cauLanThu, docLanThu, docLyDo, lineOf, loi, loiKhoaKy, loiTrigger, tienNhieuDon, toLineRow, toReceiptRow, type KetQua, type NguoiGoi,
+  CHUA_CO_CONG_TY, MAX_SO_TIEN, cauBoQuaTrung, cauLanThu, docLanThu, docLyDo, kiemCacMa, lineOf, loi, loiKhoaKy, loiMaTrigger, loiTrigger, tienNhieuDon, toLineRow, toReceiptRow, type KetQua, type NguoiGoi,
 } from "./service";
 
 const dong = (n: number): string => `${n.toLocaleString("vi-VN")} ₫`;
@@ -66,12 +67,18 @@ export async function soNopCuaDon(db: D1Database, d: { id: string; bookerPartyId
   };
 }
 
-/** DTO các khoản nộp của một đơn (người xem giữ ô `dai-ly.nop.xem` — route quyết). Không khoá kho, không băm; `laNguoiGhi` để giao diện ẩn nút xác nhận (máy chủ vẫn chặn). */
-export async function khoanNopDto(db: D1Database, khoan: readonly NopRow[], staffId: string): Promise<KhoanNopDto[]> {
+/**
+ * DTO các khoản nộp của một đơn (người xem giữ ô `dai-ly.nop.xem` — route quyết). Không khoá kho, không băm; `laNguoiGhi` để giao diện ẩn nút xác nhận (máy chủ vẫn chặn).
+ * `xacNhanDuoc` (route đã hỏi ô xác nhận, không tài khoản Đối tác): chỉ khi đó mới tính cờ `bienLaiTrung` cho khoản còn chờ — đại lý không được biết ảnh của mình trùng ảnh của ai.
+ */
+export async function khoanNopDto(db: D1Database, khoan: readonly NopRow[], staffId: string, xacNhanDuoc = false): Promise<KhoanNopDto[]> {
   const anh = new Map((await trangThaiAnhNop(db, khoan.map((k) => k.id))).map((a) => [a.remittance_id, trangThaiBienLai(a)]));
+  const cho = khoan.filter((k) => k.status_code === "PENDING").map((k) => k.id);
+  const trung = xacNhanDuoc ? await khoanNopTrungAnh(db, cho) : new Set<string>();
   return khoan.map((k) => ({
     id: k.id, soTien: k.amount, ngayChuyen: k.transfer_date, trangThai: k.status_code, lyDoTuChoi: k.reject_reason, ghiLuc: k.created_at, quyetLuc: k.decided_at,
     bienLai: anh.get(k.id) ?? "CHUA_CO", laNguoiGhi: k.created_by === staffId,
+    ...(xacNhanDuoc && k.status_code === "PENDING" ? { bienLaiTrung: trung.has(k.id) } : {}),
   }));
 }
 
@@ -161,13 +168,17 @@ const KHONG_THAY = () => loi(404, "not_found", "Không tìm thấy khoản nộp
  * Kế toán xác nhận khoản nộp (Đ2 mục 8, 9, 13). Route đã kiểm ô `dai-ly.nop.xac-nhan`. Kiểm lại TẠI LÚC XÁC NHẬN: người quyết ≠ người ghi; đơn chưa huỷ; không còn khoản «Công ty thu»
  * chờ đối chiếu; số ≤ Công nợ còn lại; số ≤ số dư đại lý đang giữ ở đơn (`kiemQuyetToan` — đúng hàm của quyết toán «nộp»). Vượt / còn chờ ⇒ 409, khoản vẫn chờ.
  */
-export async function xacNhanKhoanNop(db: D1Database, input: { don: DonNop; nopId: string; ai: NguoiGoi }): Promise<KetQua<null>> {
+export async function xacNhanKhoanNop(db: D1Database, input: { don: DonNop; nopId: string; raw: unknown; ai: NguoiGoi }): Promise<KetQua<null>> {
   const { don, ai } = input;
   const nop = await nopTheoId(db, don.id, input.nopId);
   if (!nop) return KHONG_THAY();
   if (nop.status_code !== "PENDING") return DA_QUYET();
   if (nop.created_by === ai.staffId) return loi(409, "tach_nguoi", "Người ghi khoản nộp không tự xác nhận được — cần một Kế toán khác.");
   if (don.status === "cancelled") return loi(409, "don_da_huy", "Đơn đã huỷ — từ chối khoản nộp này kèm lý do.");
+  // Mã giao dịch ngân hàng + số thực chuyển theo sao kê: BẮT BUỘC (kiểm toán 14/11 — một lần chuyển không xác nhận được cho hai đơn vượt số thực chuyển). Thiếu ⇒ 400, khoản vẫn chờ.
+  const b = (input.raw && typeof input.raw === "object" && !Array.isArray(input.raw) ? input.raw : {}) as { maGiaoDich?: unknown; soThucChuyen?: unknown; boQuaTrung?: unknown };
+  const gd = docGiaoDich(b, { choPhep: true, batBuoc: true });
+  if (!gd.ok) return loi(400, gd.ma, gd.cau);
   const congTyId = await ownerCompanyId(db);
   if (!congTyId) return CHUA_CO_CONG_TY();
   const so = await soNopCuaDon(db, { id: don.id, bookerPartyId: don.bookerPartyId, status: don.status });
@@ -181,15 +192,22 @@ export async function xacNhanKhoanNop(db: D1Database, input: { don: DonNop; nopI
   const lines = (await linesOfOrder(db, don.id)).map(toLineRow);
   const kt = kiemQuyetToan({ chieu: "nop", soDu: soDuCap(lines, nop.agent_party_id, congTyId), soTien: nop.amount, maDon: don.maDon });
   if (!kt.ok) return loi(409, kt.ma, kt.cau);
+  // Lớp 1 của mã (cả khoản thu «Công ty thu» lẫn khoản nộp khác cùng mã): trùng cùng đơn, số thực chuyển khác, tổng vượt; cùng mã ở đơn khác ⇒ cảnh báo, gửi lại kèm lý do thì qua.
+  const k = await kiemCacMa(db, [{ gd: gd.value!, orderId: don.id, soTien: nop.amount }], new Set(), b.boQuaTrung);
+  if (!k.ok) return k;
   const at = new Date().toISOString();
   const postingId = crypto.randomUUID();
   const drafts = sinhDongQuyetToan({ nguoiNopPartyId: nop.agent_party_id, congTyId, phanBo: [{ orderId: don.id, amount: nop.amount }] });
   const stmts = [
     postingIfRemittancePendingStatement(db, { id: postingId, kind: "SETTLEMENT", orderId: don.id, reason: null, reversesPostingId: null, occurredDate: nop.transfer_date, dueSnapshot: null, at, by: ai.staffId, ghiTien: ai.ghiTien }, nop.id),
     ...drafts.map((d) => lineIfPostingStatement(db, lineOf(d, postingId, d.orderId, null, at, ai.staffId))),
+    // Dòng mã TRƯỚC câu khoản sang CONFIRMED (trigger `bil_agent_remittance_txn_required`); khoản còn PENDING ở lúc này. Nhật ký KHÔNG chép mã.
+    ganMaNopStatement(db, { id: crypto.randomUUID(), remittanceId: nop.id, ma: gd.value!.ma, soThucChuyen: gd.value!.soThucChuyen, at, by: ai.staffId, postingId }),
+    auditStatement(db, { orderId: don.id, staffId: ai.staffId, action: "ledger_bank_txn_linked", at, targetType: "ledger", targetId: nop.id, detail: "gắn mã giao dịch ngân hàng" }, "changes() > 0"),
     xacNhanNopStatement(db, { id: nop.id, postingId, at, by: ai.staffId }),
     auditStatement(db, { orderId: don.id, staffId: ai.staffId, action: "agent_remittance_confirmed", at, detail: `${TEN_KHOAN_NOP.toLowerCase()} ${dong(nop.amount)}` }, "changes() > 0"),
   ];
+  if (k.value) stmts.push(cauBoQuaTrung(db, { orderId: don.id, by: ai.staffId, at, boQua: k.value }, "changes() > 0"));
   let kq: D1Result[];
   try {
     kq = await db.batch(stmts);
@@ -197,6 +215,8 @@ export async function xacNhanKhoanNop(db: D1Database, input: { don: DonNop; nopI
     const khoa = await loiKhoaKy(db, e, [nop.transfer_date]);
     if (khoa) return khoa;
     if (loiTrigger(e, "settlement_sign_flip") || loiTrigger(e, "settlement_exceeds_held")) return loi(409, "stale", "Số tiền đại lý đang giữ ở đơn vừa thay đổi — tải lại rồi thử lại.");
+    const m = loiMaTrigger(e);
+    if (m) return m;
     throw e;
   }
   if ((kq[0]!.meta.changes ?? 0) === 0) return DA_QUYET();

@@ -845,6 +845,12 @@
       "note": "ảnh biên lai của KHOẢN NỘP (ADR-0182 phần B Đ2 mục 5; migration 0159) — chép bộ cột + trigger của bil_receipt_proof, gắn khoản nộp thay khoản thu; cùng kho R2 BIEN_LAI, khoá ngẫu nhiên tiền tố riêng nop/<32 hex>. Mỗi khoản một ảnh (UNIQUE remittance_id), người tải = người ghi khoản, trần 20 ảnh / giờ / tài khoản bằng trigger (đếm riêng bảng này). Không xoá dòng — ba mốc một chiều stored_at / purged_at / r2_deleted_at; hàng chờ dọn kho và R-BIL-BL1 phủ cả bảng này"
     },
     {
+      "name": "bil_remittance_bank_txn",
+      "module": "billing",
+      "kind": "table",
+      "note": "nối KHOẢN NỘP đại lý ↔ mã giao dịch ngân hàng + số tiền thực chuyển theo sao kê (kiểm toán 14/11; migration 0166), CHỈ-THÊM, remittance_id duy nhất — khuôn bil_receipt_bank_txn. Chèn trong lô xác nhận, SAU phiếu quyết toán và TRƯỚC câu khoản sang CONFIRMED (lúc đó khoản còn PENDING). Trigger: chỉ khoản đang chờ; cùng mã khác số thực chuyển ở CẢ HAI bảng (bank_txn_amount_mismatch); tổng lần thu còn hiệu lực + khoản nộp không bị từ chối gắn mã vượt số thực chuyển (bank_txn_over, có trigger đối xứng trên bil_receipt_bank_txn); khoản nộp sang CONFIRMED thiếu dòng mã bị chặn (bank_txn_required, trigger trên bil_agent_remittance). Lưới thứ hai: R-BIL-NP2."
+    },
+    {
       "name": "bil_receipt_proof",
       "module": "billing",
       "kind": "table",
@@ -1744,6 +1750,7 @@
       "id": "N1", "remittance_id": "N1", "storage_key": "N3", "content_kind": "N1", "byte_size": "N1", "content_hash": "N3", "stored_at": "N1",
       "purged_at": "N1", "purge_reason": "N1", "r2_deleted_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
     },
+    "bil_remittance_bank_txn": { "id": "N1", "remittance_id": "N1", "txn_code": "N1", "transferred_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_receipt_proof": {
       "id": "N1", "receipt_id": "N1", "storage_key": "N3", "content_kind": "N1", "byte_size": "N1", "content_hash": "N3", "stored_at": "N1",
       "purged_at": "N1", "purge_reason": "N1", "r2_deleted_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"

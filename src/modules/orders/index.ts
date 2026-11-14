@@ -1534,7 +1534,7 @@ export const ordersModule: AppModule = {
     }),
 
     // Sửa trường vận hành (ngày giờ khởi hành, đón, check-in, ghi chú) — kể cả đơn ĐÃ XÁC NHẬN (Q9). Không đổi khách/tiền.
-    route("PUT", "/api/orders/:id/trip", "orders", async ({ env, request, params, staff, isAssigned, isSalesOwner, baoThayDoi, mocToiThieu }) => {
+    route("PUT", "/api/orders/:id/trip", "orders", async ({ env, request, params, staff, isAssigned, isSalesOwner, baoThayDoi, mocToiThieu, canBangVeSauSuaKhach }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [meta, assigned, laBanHang] = await Promise.all([getMeta(env.DB, id), isAssigned(id), isSalesOwner(id)]);
@@ -1589,6 +1589,8 @@ export const ordersModule: AppModule = {
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
+      // V1 (kiểm toán 14/11): đơn ĐÃ XÁC NHẬN dời ngày đi ⇒ cân lại vé theo ngày (lô riêng sau lô lệnh, nuốt lỗi — đổi ngày đã thắng, thiếu vé hiện ở màn đơn). Chỉ đổi giờ/ghi chú thì không gọi.
+      if (meta.status === "confirmed" && planned.updates.some((u) => stored.find((x) => x.id === u.id)?.trip.departDate !== u.trip.departDate)) await canBangVeSauSuaKhach(id);
       return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
     }),
 

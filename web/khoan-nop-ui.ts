@@ -1,9 +1,11 @@
 // Khối «Khoản nộp» trong «Phiếu công nợ với Tour Đảo» (ADR-0182 phần B, Đ2 mục 4–11). Mọi số (trần, X của «Khách đã trả bạn», quyền bấm) do máy chủ gửi trong `phieu.nop`;
 // giao diện chỉ ẩn / hiện và gửi lại đúng số máy chủ đã đưa. Máy chủ kiểm lại mọi thứ (trần, khoản chờ, người quyết ≠ người ghi).
 import { ApiError, api, type Api } from "./api";
+import { guiCoCanhBaoTrung } from "./canh-bao-trung";
 import { h, replaceChildren } from "./dom";
 import { vnd, parseMoney, dateTime } from "./format";
 import { regroupMoney, setMoneyValue } from "./money-input";
+import { oMaGiaoDich } from "./o-ma-giao-dich";
 import { ACCEPT_ANH_PDF, chuanBiBienLai } from "./thu-nho-anh";
 import { NHAN_O_BIEN_LAI, NHAN_XEM_BIEN_LAI, cauTrangThaiBienLai } from "../src/shared/bien-lai";
 import { NHAN_TRANG_THAI_NOP, NUT_DA_CHUYEN_TIEN, TEN_KHOAN_NOP, dongKhachDaTra, duongBienLaiNop } from "../src/shared/cong-no-dai-ly";
@@ -25,6 +27,8 @@ function dongKhoan(orderId: string, k: Api.KhoanNopDto, xacNhanDuoc: boolean, ta
     " ",
     xem,
     k.lyDoTuChoi ? h("p", { class: "muted", "data-khoi": "ly-do-tu-choi" }, `Lý do: ${k.lyDoTuChoi}`) : null,
+    // Kiểm toán 14/11: ảnh trùng ảnh của khoản khác — chỉ cảnh báo (một lần chuyển có thể trả hai đơn), máy chủ chỉ gửi cờ này cho người giữ ô xác nhận.
+    k.bienLaiTrung ? h("p", { class: "alert warn", "data-khoi": "bien-lai-trung" }, "Ảnh biên lai này trùng với ảnh biên lai của một khoản khác. Đối chiếu sao kê kỹ trước khi xác nhận.") : null,
     k.quyetLuc ? h("p", { class: "muted" }, dateTime(k.quyetLuc)) : null,
   );
   if (!(xacNhanDuoc && k.trangThai === "PENDING" && !k.laNguoiGhi)) return li;
@@ -38,22 +42,30 @@ function dongKhoan(orderId: string, k: Api.KhoanNopDto, xacNhanDuoc: boolean, ta
   // Hỏi lại NGAY TRONG dòng (phiếu đã là một bảng trượt — Nền tảng chỉ mở một bảng mỗi lúc, nên không dùng hộp `hoiXacNhan` ở đây).
   nhan.addEventListener("click", () => {
     if (li.querySelector('[data-khoi="xac-nhan-nop"]')) return;
+    const ma = oMaGiaoDich(); // mã giao dịch + số thực chuyển theo sao kê: BẮT BUỘC (máy chủ cũng kiểm); cùng ô với «Công ty đã nhận» của khoản thu
     const chac = h("button", { type: "button", class: "btn btn-primary", "data-action": "xac-nhan-nop-chac" }, "Xác nhận đã nhận");
     const thoi = h("button", { type: "button", class: "btn" }, "Thôi");
     const hang = h(
       "div",
       { class: "stack", "data-khoi": "xac-nhan-nop", role: "group", "aria-label": "Xác nhận khoản nộp" },
       h("p", null, `Đã đối chiếu sao kê: công ty đã nhận ${vnd(k.soTien)} của đại lý? Khoản này sẽ trừ vào công nợ của đơn.`),
+      h("div", { class: "grid two" }, ...ma.o),
       h("div", { class: "handler-actions" }, chac, thoi),
     );
     thoi.addEventListener("click", () => hang.remove());
     chac.addEventListener("click", async () => {
+      const d = ma.doc();
+      if (!d) return baoLoi("Nhập mã giao dịch ngân hàng và số tiền thực chuyển theo sao kê.");
+      if ("loi" in d) return baoLoi(d.loi);
       chac.disabled = true;
       try {
-        await api(`/api/orders/${encodeURIComponent(orderId)}/khoan-nop/${encodeURIComponent(k.id)}/xac-nhan`, { method: "POST", body: {} });
+        const url = `/api/orders/${encodeURIComponent(orderId)}/khoan-nop/${encodeURIComponent(k.id)}/xac-nhan`;
+        // Cùng mã ở đơn khác (một lần chuyển trả nhiều đơn): hộp «Có thể trùng», «Vẫn ghi» gửi lại kèm lý do.
+        await guiCoCanhBaoTrung((boQua) => api(url, { method: "POST", body: { ...d, ...(boQua ? { boQuaTrung: boQua } : {}) } }), chac);
         taiLai();
       } catch (err) {
         chac.disabled = false;
+        ma.tuLoi(err);
         baoLoi(loiCua(err));
       }
     });

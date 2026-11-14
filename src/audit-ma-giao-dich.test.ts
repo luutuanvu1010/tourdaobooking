@@ -24,7 +24,7 @@ function moi(): { db: DatabaseSync; ct: string } {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = OFF");
   for (const f of readdirSync(DIR).filter((x) => x.endsWith(".sql")).sort()) db.exec(readFileSync(new URL(f, DIR), "utf8"));
-  for (const t of ["bil_receipt_bank_txn_duplicate", "bil_receipt_bank_txn_amount_mismatch", "bil_receipt_bank_txn_over"]) db.exec(`DROP TRIGGER ${t}`);
+  for (const t of ["bil_receipt_bank_txn_duplicate", "bil_receipt_bank_txn_amount_mismatch", "bil_receipt_bank_txn_over", "bil_receipt_bank_txn_remittance_mismatch", "bil_receipt_bank_txn_remittance_over"]) db.exec(`DROP TRIGGER ${t}`); // 0166 thêm hai trigger đối xứng cùng loại
   const ct = (db.prepare("SELECT party_id FROM v_pty_owner_company LIMIT 1").get() as { party_id: string }).party_id;
   return { db, ct };
 }
