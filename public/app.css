@@ -1394,7 +1394,8 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
      phần tử flex không co được dưới bề rộng nội dung. Cùng cách khổ điện thoại đã cắt chữ từ lâu (dòng `body[data-title]
      .bar-title` trong khối @media (max-width: 899px)), không phát minh gì mới. */
   body.has-sidebar #topbar .bar-title { display: block; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-label); font-weight: var(--fw-semibold); }
-  /* GIỮ trần bề rộng đã duyệt (--w-main 1200px, và --w-form 1120px riêng của trang Lập đơn), chỉ BỎ CĂN GIỮA:
+  /* (Từ bước 2 lưới bố cục 15/11/2026 trần bề rộng do `body[data-rong]` đặt — hẹp 720, vừa 1120, rộng kín vùng; các con số 1200 / 1120 dưới đây là lịch sử.)
+     GIỮ trần bề rộng đã duyệt (--w-main 1200px, và --w-form 1120px riêng của trang Lập đơn), chỉ BỎ CĂN GIỮA:
      `main` bám mép trái ngay sau thanh bên, đúng dáng bản mẫu. `margin-inline: 0` triệt tiêu `margin: 0 auto` của
      `main` — thiếu nó thì trong ô lưới `main` co về bề rộng nội dung rồi tự căn giữa (đo thật ở 1920px: cột nội
      dung 1684px nhưng main chỉ 886px, trống 399px mỗi bên). KHÔNG đặt lại max-width ở đây: bản trước gỡ hẳn trần
