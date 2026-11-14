@@ -666,11 +666,11 @@
     {
       "ma": "SV-PD-10",
       "mo_ta": "Cấp thắng nhóm dịch vụ. Bảng có mức «nhóm Hòn Tằm ở Bãi Dài: 70.000 đ» cho mọi người, và mức «cấp 3 ở Bãi Dài: 80.000 đ». Đại lý cấp 3 đặt Tắm bùn Hòn Tằm cho 2 người lớn. Máy lấy mức theo cấp: 80.000 đ × 2 = 160.000 đ. LƯU Ý: đại lý cấp 3 ở đây trả CAO hơn khách lẻ (khách lẻ trả 70.000 đ/khách — ca 12). Muốn cấp 3 cũng được 70.000 đ thì phải đặt thêm một dòng «cấp 3 + nhóm Hòn Tằm».",
-      "nguon": "ADR-0203 ĐB1 bậc 2 trên bậc 3",
+      "nguon": "ADR-0203 ĐB1 bậc 2 trên bậc 3; chủ chọn 14/11 «Giữ thứ tự, thêm cảnh báo»",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
