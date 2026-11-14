@@ -35,11 +35,22 @@ Phạm vi đã làm: Đợt A (khu vực đón) và Đợt B (bảng phí, luậ
 - Quan sát chặn thật (ghi ở `docs/SO-HANG-RAO.md`): bỏ cổng «đủ mức» ⇒ e2e đỏ; chèn tên khoá vào `orders` ⇒ bài quét đỏ; bỏ tham số `boTinh` ⇒ bài «khoá giả» đỏ; bỏ `thayCho` khỏi thân «Đổi mức phí» ⇒ kịch bản Chrome đỏ.
 
 ## Kết quả bộ kiểm
-Xem báo cáo `task-9-report.md` ở sổ SDD (ngoài kho) cho đầu ra từng lệnh. Tóm tắt lúc ghi:
-- `npm run typecheck`: 0 lỗi.
-- e2e riêng `phi-don` (ba lần liền trên cùng D1) và `locations`: xanh.
-- Kịch bản Chrome `phi-don-smoke.mjs` (có axe): «SMOKE OK».
-- **`npm test` đủ bộ, `npm run test:e2e` đủ bộ, `dot-a-smoke.mjs`: CHƯA chạy.** Lý do: trước bộ dài, máy còn tiến trình của phiên khác (wrangler dev mồ côi nhiều ngày, Chrome ẩn mồ côi, hai lượt `npm test` đang chạy của worktree khác); luật của lượt giao là tiến trình lạ thì không tắt, dừng và báo chủ.
+Đã chạy (người thi công Task 9, 15/11/2026):
+
+| Lệnh | Mã thoát | Kết quả |
+|---|---|---|
+| `npm run typecheck` | 0 | 0 lỗi (không phủ `src/**/*.test.ts`, `scripts/`, `tests/`) |
+| `node --test src/modules/pricing/phi-don-rules.test.ts` | 0 | 16/16 xanh |
+| `npm run test:e2e -- phi-don` (và `locations`) | 0 | xanh; `E2E_SONG_SONG=1 … phi-don phi-don phi-don` trên cùng một D1: xanh |
+| `node scripts/kiem-phien-ban.mjs` | 1 | CHƯA ĐẠT, đúng dự kiến (bước A.0 để người phát hành) |
+| kịch bản Chrome `phi-don-smoke.mjs` (có axe) | 0 | «SMOKE OK (đã gồm kiểm màu axe)» |
+| `node --test src/kiem-phan.test.ts … audit-invariants.test.ts architecture.test.ts` (nền) | 0 | 299/300; đỏ bài «bảng giây npm test là ĐỒNG HỒ TƯỜNG…», không do đợt này, chưa chạy lại riêng |
+
+**Bộ kiểm đủ (`npm test`, `npm run test:e2e`, `audit-invariants`): do người điều phối chạy — kết quả điền ở đây:** _(chưa điền)_
+
+Ruling của người điều phối:
+- (a) Các `wrangler dev` / Chrome ẩn mồ côi của worktree khác dùng `--persist-to` và cổng riêng nên không chặn bộ kiểm; không ai tắt, chờ chủ dọn.
+- (b) Không chạy `dot-a-smoke.mjs` (tài liệu của nó ghi đỏ sẵn ở trang /audit, ngoài đợt; `phi-don-smoke` đã bấm đến cùng màn Địa điểm): ghi là «chưa chạy».
 
 ## Nợ cho Đợt C
 - **Phía gọi `docBangPhiDonChoDon` phải tự so ngày đơn với `batDauAp`** (hàm trả `batDauAp` nhưng không so giùm; đơn có ngày trước ngày bắt đầu áp không tính phí).

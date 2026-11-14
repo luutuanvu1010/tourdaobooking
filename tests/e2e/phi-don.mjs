@@ -238,6 +238,11 @@ try {
   console.log("✓ (5c) mức nhiều điều kiện thắng theo bậc");
 
   // ---- (7) chưa đơn nào bị đổi tiền (phí đang áp từ quá khứ xa; Đợt C chưa có)
+  // Điều kiện đầu của (7): phí ĐANG ÁP và mức khu vực thử đúng 35.000 ngay hôm nay — thiếu một trong hai thì phép so «không dòng phí» thành vô nghĩa (đổi thứ tự kịch bản không được làm nó rỗng).
+  const apNay = (await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp;
+  assert.ok(apNay.ngay !== null && apNay.ngay <= vnDate(0), `phí phải đang áp trước khi lập đơn (ngày áp: ${apNay.ngay})`);
+  r = await thuTra({ ...base, ngay: vnDate(0) });
+  assert.deepEqual([r.body.ketQua.trangThai, r.body.ketQua.mucId, r.body.ketQua.donGia], ["CO_MUC", chungZ2.id, 35_000], "hôm nay khu vực thử có mức 35.000");
   const DON = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: diem.id, pickupPlace: "", dropoffLocationId: LOC, dropoffPlace: "" };
   const dichVuDon = (extra = {}) => catalogService({ pax: { adult: 2 }, departDate: vnDate(7), ...extra });
   r = await call(SALES, "POST", "/api/orders", orderInput({ services: [dichVuDon({ legs: [DON] })] }));
