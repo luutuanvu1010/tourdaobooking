@@ -40,7 +40,7 @@ Trang ghép 28/10 (`../2026-10-28-phi-don-va-chan-ban/TRANG-GHEP.md` §1) đã g
 ## Phát hành và thi công
 - Mã chỉ viết sau khi sổ vàng `golden/phi-dua-don.json` được Kế toán hoặc chủ xác nhận (Hiến chương 5.17).
 - Bốn đợt A–D như TK mục 6. Đợt A, B không tạo dòng tiền, phát hành được trước.
-- **Đợt C (chạm tiền) phát hành sau khi mục TNV-G1 đóng.** Lời chủ 14/11: «sửa luôn phần chạm tiền bị lỗi». Hiện trạng: phần sửa đã chạy trên production từ bản 2.42; mục chưa đóng vì còn chờ xác nhận năm ca sổ vàng, ca 07 (phiếu chi) và một lệnh kiểm dữ liệu. **[chờ chủ]** cách xử lý ca 07: xem câu hỏi trong chat 14/11; câu trả lời chép vào đây khi chép thành ADR.
+- **Đợt C (chạm tiền) phát hành sau khi mục TNV-G1 đóng.** Lời chủ 14/11: «sửa luôn phần chạm tiền bị lỗi». Hiện trạng: phần sửa đã chạy trên production từ bản 2.42; mục chưa đóng vì còn chờ xác nhận năm ca sổ vàng, ca 07 (phiếu chi) và một lệnh kiểm dữ liệu. Chủ 14/11, nguyên văn: «ok tôi duyệt 5 ca vàng, duyệt ca 07 vì trên thực tế vẫn có phiếu thu phiếu chi (offline) viết tay.» Sáu ca đã đổi sang đã xác nhận (13/13). Mục TNV-G1 chỉ còn chờ chủ chạy lệnh kiểm dữ liệu production (`audit-invariants --db remote`); đạt thì đóng mục và Đợt C không còn bị chặn.
 
 ## Tiêu chí nghiệm thu
 TK mục 7, cộng các tiêu chí của ADR-0147 không bị bản này thay.
