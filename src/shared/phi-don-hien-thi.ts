@@ -65,9 +65,20 @@ export function cauCanhBao(c: CanhBaoPhiDonDto, ten: TenPhiDon): string {
   return `${tenCap(c.cap, ten.cap)} đang trả ${soTien(c.tienCap)} đ, cao hơn mức không có cấp ${soTien(c.tienKhongCap)} đ ở ${noi.join(", ")}.`;
 }
 
-/** Các mục chỉ khác chiều mà cùng nội dung gộp thành một dòng. */
+/**
+ * Các mục chỉ khác chiều mà cùng nội dung gộp thành một dòng. Hai chiều khác SỐ TIỀN thì giữ hai dòng và thêm «, chiều đi» / «, chiều về» vào cuối
+ * câu (bỏ dấu chấm cuối), để người đọc phân biệt được dòng nào là của chiều nào.
+ */
 export function cauCanhBaoGop(ds: readonly CanhBaoPhiDonDto[], ten: TenPhiDon): string[] {
-  return [...new Set(ds.map((c) => cauCanhBao(c, ten)))];
+  const khoaChang = (c: CanhBaoPhiDonDto): string => [c.cap, c.vung, c.xeRieng, c.dichVu, c.nhom].join("|");
+  const goc = ds.map((c) => cauCanhBao(c, ten));
+  const ra: string[] = [];
+  ds.forEach((c, i) => {
+    const khacChieu = ds.some((d, j) => j !== i && khoaChang(d) === khoaChang(c) && goc[j] !== goc[i]);
+    const dong = khacChieu ? `${goc[i]!.slice(0, -1)}, ${c.chieu === "OUT" ? "chiều đi" : "chiều về"}.` : goc[i]!;
+    if (!ra.includes(dong)) ra.push(dong);
+  });
+  return ra;
 }
 
 export function cauKetQuaThuTra(r: ThuTraPhiDonResponse, ten: TenPhiDon): string[] {

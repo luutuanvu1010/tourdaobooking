@@ -83,6 +83,9 @@ test("cauCanhBaoGop: hai chiều cùng nội dung gộp một dòng; khác nội
   assert.equal(hai.length, 1);
   const khac = cauCanhBaoGop([canhBao({ chieu: "OUT" }), canhBao({ chieu: "RETURN", tienCap: 70000 })], ten);
   assert.equal(khac.length, 2);
+  assert.match(khac[0]!, /, chiều đi\.$/);
+  assert.match(khac[1]!, /, chiều về\.$/);
+  assert.equal(hai[0], cauCanhBao(canhBao({}), ten)); // gộp thì giữ nguyên câu, không thêm chiều
   assert.deepEqual(cauCanhBaoGop([], ten), []);
 });
 
