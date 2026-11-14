@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Chủ dự án 14/11 («Có, làm như vậy»): người chưa đăng nhập thấy đúng thẻ bảo trì như bản xem trước; ô đăng nhập ngay dưới cho Toàn quyền. Chỉ giao diện, không migration.
+    // SỐ TẠM 3.4: main có 3.3 (bước 1 khung chung); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.4",
+    date: "2026-11-14",
+    items: [
+      { kind: "doi", text: "Khi đang bảo trì, trang đăng nhập hiện đúng thẻ bảo trì như bản xem trước của Toàn quyền, có đồng hồ đếm ngược và nút liên hệ." },
+    ],
+  },
+  {
     // Bước 1 khung chung giao diện (kế hoạch 2026-11-13, chủ duyệt «Làm cả hai», «Theo khuyến nghị», «Làm tiếp cả hai»): vùng bấm ảnh đại diện, dải đầu trang hai
     // dòng ở điện thoại, thanh nút Lưu khi màn thấp, bỏ hộp hỏi của trình duyệt, chống nhảy bố cục (tệp đầu trang giu-cho-dai). Không migration, không đổi máy chủ.
     // SỐ TẠM 3.3 (sau 3.2 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
