@@ -21,10 +21,11 @@ const MUC_TU = defineSql("pricing", "transfer_fee_rules_from",
 const MUC_TIM = defineSql("pricing", "transfer_fee_rule_find", `SELECT id, kind, valid_from_date, valid_to_date, updated_at FROM prc_transfer_fee_rule WHERE id = ?1`);
 const MUC_THEM = defineSql("pricing", "transfer_fee_rule_insert",
   `INSERT INTO prc_transfer_fee_rule (id, kind, amount, valid_from_date, valid_to_date, condition_sig, note, created_at, created_by, updated_at, updated_by)
-   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9)`);
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9
+   WHERE ?10 IS NULL OR EXISTS (SELECT 1 FROM prc_transfer_fee_rule WHERE id = ?10 AND valid_to_date = ?11 AND updated_at = ?12)`);
 // Câu chèn điều kiện DUY NHẤT (xem đầu tệp): chỉ `cauThemMucPhiDon` được dùng hằng này.
 const CAU_THEM_DIEU_KIEN = defineSql("pricing", "transfer_fee_condition_insert",
-  `INSERT INTO prc_transfer_fee_condition (rule_id, key_code, value, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?4, ?5)`);
+  `INSERT INTO prc_transfer_fee_condition (rule_id, key_code, value, created_at, created_by, updated_at, updated_by) SELECT ?1, ?2, ?3, ?4, ?5, ?4, ?5 WHERE EXISTS (SELECT 1 FROM prc_transfer_fee_rule WHERE id = ?1)`);
 // Đóng dòng: khoá lạc quan theo `updated_at` đã đọc; chỉ rút ngắn (trigger `close_only` là lưới CSDL).
 const MUC_DONG = defineSql("pricing", "transfer_fee_rule_close",
   `UPDATE prc_transfer_fee_rule SET valid_to_date = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND updated_at = ?5 AND (valid_to_date IS NULL OR valid_to_date > ?2)`);
@@ -53,12 +54,14 @@ export async function docMucPhiDonTu(db: D1Database, ngay: string): Promise<Dong
 export const quyTacTheoId = async (db: D1Database, id: string): Promise<DongQuyTac | null> => (await db.prepare(MUC_TIM).bind(id).first<DongQuyTac>()) ?? null;
 export const batDauApMoiNhat = async (db: D1Database): Promise<DongBatDauAp | null> => (await db.prepare(AP_MOI_NHAT).first<DongBatDauAp>()) ?? null;
 
-export interface ThemMucPhiDon { id: string; kind: KieuPhiDon; amount: number; validFrom: string; validTo: string | null; note: string | null; dieuKien: DieuKienPhiDon; at: string; by: string }
+export interface ThemMucPhiDon { id: string; kind: KieuPhiDon; amount: number; validFrom: string; validTo: string | null; note: string | null; dieuKien: DieuKienPhiDon; at: string; by: string;
+  /** Chỉ khi đổi mức (`thayCho`): dòng mới chỉ được chèn nếu dòng cũ SAU câu đóng đang ở `denNgay` với `updated_at` = `updatedAt` (mốc câu đóng vừa ghi, hoặc mốc đã đọc khi dòng đã đóng sẵn). Sai ⇒ không chèn gì (route trả 409 stale). */
+  chiKhiDongCu?: { id: string; denNgay: string; updatedAt: string } }
 /** Lô tạo mức: [chèn dòng mức, chèn từng điều kiện]. Đây là NƠI DUY NHẤT chèn điều kiện; nơi gọi nối nhật ký rồi chạy MỘT `db.batch`. */
 export function cauThemMucPhiDon(db: D1Database, v: ThemMucPhiDon): D1PreparedStatement[] {
   const dieuKien = Object.entries(v.dieuKien).filter((e): e is [string, string] => typeof e[1] === "string").sort((a, b) => (a[0] < b[0] ? -1 : 1));
   return [
-    db.prepare(MUC_THEM).bind(v.id, v.kind, v.amount, v.validFrom, v.validTo, chuKyDieuKien(v.dieuKien), v.note, v.at, v.by),
+    db.prepare(MUC_THEM).bind(v.id, v.kind, v.amount, v.validFrom, v.validTo, chuKyDieuKien(v.dieuKien), v.note, v.at, v.by, v.chiKhiDongCu?.id ?? null, v.chiKhiDongCu?.denNgay ?? null, v.chiKhiDongCu?.updatedAt ?? null),
     ...dieuKien.map(([khoa, giaTri]) => db.prepare(CAU_THEM_DIEU_KIEN).bind(v.id, khoa, giaTri, v.at, v.by)),
   ];
 }

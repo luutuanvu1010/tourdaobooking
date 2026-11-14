@@ -95,7 +95,7 @@ export const phiDonRoutes: Route[] = [
     const id = crypto.randomUUID();
     const at = new Date().toISOString();
     const khoang = `từ ${ngayDayDu(v.validFrom)}${v.validTo ? ` đến ${ngayDayDu(v.validTo)}` : ""}`;
-    let dongCu: { ketThuc: string; chuKy: string } | null = null;
+    let dongCu: { ketThuc: string; chuKy: string; canDong: boolean } | null = null;
     if (thay) {
       const row = await quyTacTheoId(env.DB, thay.id);
       if (!row) return error(404, "not_found", "Không tìm thấy mức phí đưa đón này.");
@@ -121,17 +121,25 @@ export const phiDonRoutes: Route[] = [
           }
         }
       }
-      dongCu = { ketThuc, chuKy: chuKyDieuKien(k) };
+      // Dòng cũ đã đóng đúng ngày liền trước thì KHÔNG đóng lại (câu đóng sẽ không đổi gì và nhật ký «kết thúc» sẽ nói dối).
+      dongCu = { ketThuc, chuKy: chuKyDieuKien(k), canDong: row.valid_to_date !== ketThuc };
     }
+    // Cổng của dòng mới: dòng cũ SAU câu đóng ở đúng `ketThuc` và mang đúng mốc (mốc `at` do câu đóng ghi, hoặc mốc đã đọc nếu đã đóng sẵn). Người khác đổi dòng cũ ⇒ cả lô không ghi gì.
+    const chiKhiDongCu = thay && dongCu ? { id: thay.id, denNgay: dongCu.ketThuc, updatedAt: dongCu.canDong ? at : thay.truocLuc } : undefined;
     const res = await chayLo(env.DB, [
-      // Đóng dòng cũ TRƯỚC khi chèn dòng mới (trigger chồng ngày); cả lô cùng thành hoặc cùng thất bại.
-      ...(thay && dongCu ? [cauDongMucPhiDon(env.DB, { id: thay.id, denNgay: dongCu.ketThuc, at, by: staff.id, truocLuc: thay.truocLuc })] : []),
-      ...cauThemMucPhiDon(env.DB, { id, ...v, at, by: staff.id }),
-      ...(thay && dongCu ? [auditStatement(env.DB, { staffId: staff.id, action: "prc_transfer_fee_ended", at, targetType: "ledger", targetId: thay.id, detail: `${dongCu.chuKy} · kết thúc ${ngayDayDu(dongCu.ketThuc)} · đổi mức` })] : []),
+      // Đóng dòng cũ TRƯỚC khi chèn dòng mới (trigger chồng ngày); nhật ký «kết thúc» chỉ ghi khi câu đóng thật sự đổi một dòng.
+      ...(thay && dongCu?.canDong ? [
+        cauDongMucPhiDon(env.DB, { id: thay.id, denNgay: dongCu.ketThuc, at, by: staff.id, truocLuc: thay.truocLuc }),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_transfer_fee_ended", at, targetType: "ledger", targetId: thay.id, detail: `${dongCu.chuKy} · kết thúc ${ngayDayDu(dongCu.ketThuc)} · đổi mức` }, "changes() > 0"),
+      ] : []),
+      ...cauThemMucPhiDon(env.DB, { id, ...v, at, by: staff.id, chiKhiDongCu }),
+      // Điều kiện luôn có (ít nhất khu vực): `changes() > 0` ngay sau câu điều kiện cuối ⇒ dòng mới đã vào.
       auditStatement(env.DB, { staffId: staff.id, action: "prc_transfer_fee_added", at, targetType: "ledger", targetId: id,
-        detail: `${v.kind === "PER_TRIP" ? "theo chuyến" : "theo khách"} · ${nhanDong(v.amount)}đ · ${chuKyDieuKien(v.dieuKien)} · ${khoang}${thay ? ` · thay dòng ${thay.id}` : ""}` }),
+        detail: `${v.kind === "PER_TRIP" ? "theo chuyến" : "theo khách"} · ${nhanDong(v.amount)}đ · ${chuKyDieuKien(v.dieuKien)} · ${khoang}${thay ? ` · thay dòng ${thay.id}` : ""}` }, "changes() > 0"),
     ]);
     if (res instanceof Response) return res;
+    // Dòng mới không vào ⇒ cổng dòng cũ sai (có người đổi nó giữa lúc đọc và lúc ghi); câu đóng và hai nhật ký cũng bị cổng chặn, lô không ghi gì.
+    if (res[thay && dongCu?.canDong ? 2 : 0]?.meta.changes === 0) return DA_DOI();
     const dong = await docMucPhiDonTu(env.DB, TAT_CA);
     const moi = dong.find((d) => d.muc.id === id)!;
     // Cảnh báo tính cho ngày bắt đầu của dòng vừa lưu (bảng thường được đặt trước ngày áp, nên không thể tính cho «hôm nay»).
@@ -224,7 +232,7 @@ export const phiDonRoutes: Route[] = [
     const [vungDangBat, dv, tiers] = await Promise.all([vungDon(), getEffectiveServices(env.DB, [dichVu]), rateTiers(env.DB)]);
     if (!vungDangBat.some((x) => x.code === vung)) return SAI("Khu vực đón không có.");
     if (!dv.has(dichVu)) return SAI("Dịch vụ không có.");
-    if (cap !== "" && !tiers.some((t) => t.code === cap)) return SAI("Cấp đại lý không có.");
+    if (cap !== "" && !tiers.some((t) => t.code === cap)) return SAI("Cấp độ đại lý không có.");
     const nhom = (await groupsOf(env.DB, [dichVu])).get(dichVu) ?? null;
     const chang: ChangTinhPhi = { zoneCode: vung, direction: chieu, exclusive: xeRieng === "1", catalogCode: dichVu, groupCode: nhom, tierCode: cap === "" ? null : cap };
     const muc = (await docMucPhiDonTu(env.DB, ngay)).map((d) => d.muc);

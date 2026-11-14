@@ -428,3 +428,49 @@ test("điều kiện của dòng mức chỉ được chèn cùng lô tạo mứ
   assert.deepEqual(dung.map((f) => f.slice(ROOT.length + 1)), ["src/modules/pricing/phi-don-route.ts"], "chỉ route tạo mức gọi hàm tạo mức");
   assert.equal((nguon(join(ROOT, "src/modules/pricing/phi-don-route.ts")).match(/\bcauThemMucPhiDon\(/g) ?? []).length, 1, "đúng một lời gọi");
 });
+
+// ---- vòng sửa nhỏ: nhật ký «kết thúc» chỉ khi có đóng thật; ca đua trả stale ----
+const P07_MOI = { kieu: "PER_PAX", vung: "BAC", cap: "C1", tien: 5000, tu: "2027-01-01", den: null };
+
+test("thayCho: dòng cũ ĐÃ đóng đúng ngày liền trước → không câu đóng, không nhật ký «kết thúc» mới, đúng một nhật ký «thêm»", async () => {
+  const c = await setup();
+  await gieo(c);
+  const p07 = c.id.get("P07")!;
+  await ok(c.w.call("POST", `/api/pricing/phi-don/${p07}/ket-thuc`, { as: ADM, body: { validTo: "2026-12-31", expectedUpdatedAt: await capNhat(c, p07) } }), 200);
+  const daKetThuc = dem(c.w, "SELECT count(*) AS n FROM audit_log WHERE action = 'prc_transfer_fee_ended' AND target_id = ?", p07);
+  const daThem = dem(c.w, "SELECT count(*) AS n FROM audit_log WHERE action = 'prc_transfer_fee_added'");
+  const capCu = await capNhat(c, p07);
+  const r = await ok(thay(c, p07, P07_MOI), 201);
+  assert.equal(dem(c.w, "SELECT count(*) AS n FROM audit_log WHERE action = 'prc_transfer_fee_ended' AND target_id = ?", p07), daKetThuc, "không thêm nhật ký «kết thúc»");
+  assert.equal(dem(c.w, "SELECT count(*) AS n FROM audit_log WHERE action = 'prc_transfer_fee_added'"), daThem + 1);
+  assert.equal(dem(c.w, "SELECT count(*) AS n FROM audit_log WHERE action = 'prc_transfer_fee_added' AND target_id = ?", r.json.muc.id), 1);
+  assert.equal(await capNhat(c, p07), capCu, "dòng cũ không bị chạm");
+});
+
+test("thayCho: ca đua — dòng cũ bị người khác đổi ngay trước lô → 409 stale (không phải prc_overlap), bảng và nhật ký không đổi", async () => {
+  const c = await setup();
+  await gieo(c);
+  const p07 = c.id.get("P07")!;
+  const mocCu = await capNhat(c, p07);
+  c.w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => /prc_transfer_fee_rule/.test(s.sql)), () => {
+    c.w.sqlite.prepare("UPDATE prc_transfer_fee_rule SET valid_to_date = '2027-06-30', updated_at = '2030-01-01T00:00:00.000Z' WHERE id = ?").run(p07);
+  });
+  const truoc = [dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_rule"), dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_condition"), dem(c.w, "SELECT count(*) AS n FROM audit_log")];
+  const r = await ok(thay(c, p07, P07_MOI, mocCu), 409);
+  assert.equal(r.json.error.code, "stale");
+  assert.deepEqual([dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_rule"), dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_condition"), dem(c.w, "SELECT count(*) AS n FROM audit_log")], truoc);
+});
+
+test("thayCho: ca đua khi dòng cũ đã đóng sẵn ngày liền trước — bị đổi giữa chừng → 409 stale, không ghi gì", async () => {
+  const c = await setup();
+  await gieo(c);
+  const p07 = c.id.get("P07")!;
+  await ok(c.w.call("POST", `/api/pricing/phi-don/${p07}/ket-thuc`, { as: ADM, body: { validTo: "2026-12-31", expectedUpdatedAt: await capNhat(c, p07) } }), 200);
+  const mocCu = await capNhat(c, p07);
+  c.w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((s) => /prc_transfer_fee_rule/.test(s.sql)), () => {
+    c.w.sqlite.prepare("UPDATE prc_transfer_fee_rule SET valid_to_date = '2026-12-20', updated_at = '2030-01-01T00:00:00.000Z' WHERE id = ?").run(p07);
+  });
+  const truoc = [dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_rule"), dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_condition"), dem(c.w, "SELECT count(*) AS n FROM audit_log")];
+  assert.equal((await ok(thay(c, p07, P07_MOI, mocCu), 409)).json.error.code, "stale");
+  assert.deepEqual([dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_rule"), dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_condition"), dem(c.w, "SELECT count(*) AS n FROM audit_log")], truoc);
+});

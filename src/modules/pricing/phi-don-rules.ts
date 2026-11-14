@@ -28,7 +28,7 @@ export type KetQuaPhiDon =
   | { trangThai: "CO_MUC"; muc: MucPhiDon; thua: { muc: MucPhiDon; viSao: string }[] }
   | { trangThai: "THIEU_MUC"; lyDo: "KHONG_CO_MUC" | "XUNG_DOT" };
 
-const TEN_KHOA: Record<string, string> = { SERVICE: "đích danh dịch vụ", TIER: "cấp đại lý", SERVICE_GROUP: "nhóm dịch vụ", DIRECTION: "chiều đón" };
+const TEN_KHOA: Record<string, string> = { SERVICE: "đích danh dịch vụ", TIER: "cấp độ đại lý", SERVICE_GROUP: "nhóm dịch vụ", DIRECTION: "chiều đón" };
 
 const rows = (d: DieuKienPhiDon): [string, string][] => Object.entries(d).filter((e): e is [string, string] => typeof e[1] === "string");
 
@@ -135,7 +135,7 @@ export function kiemThanMucPhiDon(body: unknown, biet: { vung: ReadonlySet<strin
   if ((b.kind === "PER_TRIP") !== (dk.EXCLUSIVE !== undefined)) return loi("Mức theo chuyến chỉ dành cho xe riêng, và xe riêng chỉ có mức theo chuyến.");
   if (dk.SERVICE !== undefined && dk.SERVICE_GROUP !== undefined) return loi("Chỉ nêu dịch vụ hoặc nhóm dịch vụ, không nêu cả hai.");
   if (dk.DIRECTION !== undefined && dk.DIRECTION !== "OUT" && dk.DIRECTION !== "RETURN") return loi("Chiều đón không hợp lệ.");
-  if (dk.TIER !== undefined && !biet.cap.has(dk.TIER)) return loi("Cấp đại lý không có hoặc đã khoá.");
+  if (dk.TIER !== undefined && !biet.cap.has(dk.TIER)) return loi("Cấp độ đại lý không có hoặc đã khoá.");
   if (dk.SERVICE_GROUP !== undefined && !biet.nhom.has(dk.SERVICE_GROUP)) return loi("Nhóm dịch vụ không có.");
   if (dk.SERVICE !== undefined && !biet.dichVu.has(dk.SERVICE)) return loi("Dịch vụ không có.");
   return { ok: true, value: { kind: b.kind, amount: b.amount, validFrom: b.validFrom, validTo, note: note.value, dieuKien: dk } };
