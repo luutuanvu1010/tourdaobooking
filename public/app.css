@@ -1863,6 +1863,11 @@ body.login-page main.login { display: flex; flex-direction: column; flex: 1; min
 .login-hint { margin: 0; text-align: center; }
 .login-invite { width: 100%; margin: var(--s5) 0 0; border: 1px solid var(--c-border); }
 .login-invite .btn { width: 100%; margin-top: var(--s3); min-height: var(--tap-min); }
+/* Đang bảo trì (bản mẫu 2a trên trang đăng nhập, chủ dự án 14/11/2026): nền xám như lớp phủ thật, thẻ bảo trì thay logo + tiêu đề (thẻ đã có cả hai), cột nở bằng thẻ; ô đăng nhập ngay dưới. */
+body.login-page.login-bao-tri { background: var(--c-maint-bg); }
+body.login-bao-tri .login-col { max-width: var(--w-maint); }
+body.login-bao-tri .login-logo, body.login-bao-tri .login-col > h1 { display: none; }
+.login-maint { margin-bottom: var(--s6); }
 .login-support { display: flex; align-items: center; justify-content: center; gap: var(--s2); margin-top: var(--s5); font-size: var(--fs-label); color: var(--c-text-muted); }
 .login-support a { display: flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--s4); font-weight: var(--fw-heavy); color: var(--c-primary); text-decoration: none; background: var(--c-soft-hover); border-radius: var(--radius-pill); }
 .login-support a:hover { color: var(--c-primary-strong); text-decoration: underline; }

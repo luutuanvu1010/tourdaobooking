@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Chủ dự án 14/11 («Có, làm như vậy»): người chưa đăng nhập thấy đúng thẻ bảo trì như bản xem trước; ô đăng nhập ngay dưới cho Toàn quyền. Chỉ giao diện, không migration.
+    // SỐ TẠM 3.3: main có 3.2; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.3",
+    date: "2026-11-14",
+    items: [
+      { kind: "doi", text: "Khi đang bảo trì, trang đăng nhập hiện đúng thẻ bảo trì như bản xem trước của Toàn quyền, có đồng hồ đếm ngược và nút liên hệ." },
+    ],
+  },
+  {
     // Chủ dự án 14/11 (sau khi lên 3.1): «vẫn khác rất xa so với bản mockup ở Desktop, đồng thời, số điện thoại lại hiện 2 lần». Chỉ giao diện, không migration.
     // SỐ TẠM 3.2: main có 3.1; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.2",

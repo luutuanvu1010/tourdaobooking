@@ -5,9 +5,9 @@ import { KHOA_DAI_BAO_MAT_DA_DONG } from "../src/shared/dai-chu";
 import { KHOA_NHAC_HAI_LOP, showError } from "./shell";
 import { APP_RELEASE_DATE, APP_VERSION } from "./phien-ban";
 import { chanTrangCongTy } from "../src/shared/cong-ty-chu";
-import { MAINTENANCE_CODE, phoneVnText } from "../src/shared/maintenance";
+import { MAINTENANCE_CODE, phoneVnText, type MaintenanceContent } from "../src/shared/maintenance";
 import { SESSION_ENDED_KEY, cauTuDauNho } from "../src/shared/session-ended";
-import { contentFrom, endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
+import { contentFrom, dungTheBaoTri, endsAtFrom, toDongHo } from "./maintenance-screen";
 import { icon } from "./icons";
 import { xoaKhungNho } from "./khung-nho";
 import { KHOA_GAN_PHIEN_THONG_BAO } from "./push-ui";
@@ -65,9 +65,7 @@ const submit = byId<HTMLButtonElement>("submit");
 const widgetBox = byId("turnstile-widget");
 const retryBtn = byId<HTMLButtonElement>("turnstile-retry");
 // Tuỳ chọn có chủ ý: service worker làm mới HTML và JS riêng rẽ, HTML cũ trong cache đi với login.js mới không được làm chết trang đăng nhập (byId ném lỗi khi thiếu).
-const maintenanceEl = document.getElementById("maintenance-banner");
-const maintenanceText = document.getElementById("maintenance-text");
-maintenanceEl?.prepend(icon("history", 18)); // dải kiểu chung `.dai` (đặc tả đợt 0, §5.7)
+const maintenanceEl = document.getElementById("maint-login");
 // Đăng nhập bằng Face ID (ADR-0016): tuỳ chọn cùng lý do trên — HTML cũ trong cache có thể chưa có các phần tử này.
 const passkeyBtn = document.getElementById("passkey-login") as HTMLButtonElement | null;
 const hintEl = document.getElementById("passkey-hint");
@@ -144,22 +142,53 @@ try {
   }
 })();
 
-// ---- Banner chế độ bảo trì ----
-// Chỉ HIỂN THỊ (máy chủ mới là nơi chặn): thông điệp + đồng hồ đếm ngược sống, dùng chung với lớp phủ ở web/maintenance-screen.ts. Không che form vì chủ dự án vẫn phải đăng nhập được.
+// ---- Thẻ chế độ bảo trì (bản mẫu 2a, chủ dự án 14/11/2026) ----
+// Chỉ HIỂN THỊ (máy chủ mới là nơi chặn): người chưa đăng nhập thấy ĐÚNG thẻ của lớp phủ thật (dungTheBaoTri, nội dung chủ đã lưu — ADR-0202), ô đăng nhập ở ngay dưới
+// vì Toàn quyền vẫn phải đăng nhập được. Bỏ những phần chỉ hợp với người đang đăng nhập dở (nút Đăng xuất, câu «phần chưa lưu sẽ mất»).
+// fetchConfig chạy NHIỀU LẦN và lỗi 503 cũng gọi vào đây: mỗi lần dọn bộ đếm cũ rồi dựng lại, không bao giờ có hai thẻ.
 let stopMaintenance: (() => void) | null = null;
-function setMaintenance(on: boolean, endsAt: string | null): void {
+function setMaintenance(on: boolean, endsAt: string | null, nd: MaintenanceContent): void {
   stopMaintenance?.();
-  // Câu báo ở đây KHÔNG kèm SĐT: số hỗ trợ đã nằm ngay dòng «Hỗ trợ kỹ thuật» dưới nút Đăng nhập (apDungHoTro) — trước đây số hiện hai lần (chủ dự án 14/11/2026).
-  // Đồng hồ về 0 = máy chủ đã tự tắt chế độ bảo trì (stateFromRow) → ẩn banner, mọi người đăng nhập lại được mà không phải tải lại trang.
-  stopMaintenance = on && maintenanceText ? renderMaintenanceMessage(maintenanceText, endsAt, "", () => setMaintenance(false, null)) : null;
-  if (maintenanceEl) maintenanceEl.hidden = !on;
+  stopMaintenance = null;
+  document.body.classList.toggle("login-bao-tri", on);
+  const support = document.getElementById("support");
+  if (!maintenanceEl) return;
+  const lanDau = maintenanceEl.hidden; // thẻ vừa mới hiện (không phải lần dựng lại của fetchConfig khi người dùng có thể đang gõ)
+  maintenanceEl.hidden = !on;
+  if (!on) {
+    replaceChildren(maintenanceEl);
+    if (support) support.hidden = false;
+    return;
+  }
+  const t = dungTheBaoTri(nd, endsAt);
+  t.logoutBtn.hidden = true;
+  if (t.note.parentElement) t.note.parentElement.hidden = true;
+  t.retry.addEventListener("click", () => location.reload());
+  // Thẻ đã có nút «Gọi …» thì giấu dòng «Hỗ trợ kỹ thuật»: số hỗ trợ chỉ hiện MỘT lần (chủ dự án 14/11/2026).
+  if (support) support.hidden = !!t.contact?.querySelector('a[href^="tel:"]');
+  const endsMs = endsAt ? Date.parse(endsAt) : NaN;
+  let tick: ReturnType<typeof setInterval> | null = null;
+  const paint = (): void => {
+    const left = endsMs - Date.now();
+    if (left > 0) return toDongHo(t, left);
+    setMaintenance(false, null, nd); // đồng hồ về 0 = máy chủ đã tự tắt chế độ bảo trì (stateFromRow) → trang đăng nhập thường, khỏi tải lại
+  };
+  if (Number.isFinite(endsMs)) {
+    tick = setInterval(paint, 1000);
+    stopMaintenance = () => {
+      if (tick !== null) clearInterval(tick);
+    };
+  }
+  replaceChildren(maintenanceEl, t.cot);
+  if (Number.isFinite(endsMs)) paint();
+  if (lanDau && document.activeElement?.id === "phone") (document.activeElement as HTMLElement).blur(); // ô SĐT có autofocus: đừng mở bàn phím iPhone che thẻ
 }
-/** Dùng CHUNG cho lỗi bảo trì của cả nút Đăng nhập (PIN) và nút Face ID: cập nhật banner, không hiện lỗi chung ở #error. */
+/** Dùng CHUNG cho lỗi bảo trì của cả nút Đăng nhập (PIN) và nút Face ID: dựng thẻ từ thân 503, không hiện lỗi chung ở #error. */
 function showMaintenanceBanner(err: ApiError): void {
   showError(errorEl, null);
-  setMaintenance(true, endsAtFrom(err.details));
+  setMaintenance(true, endsAtFrom(err.details), contentFrom(err.details));
   apDungHoTro(contentFrom(err.details).sdt); // số hỗ trợ mới nhất đi kèm thân 503
-  maintenanceEl?.scrollIntoView({ block: "nearest" });
+  maintenanceEl?.scrollIntoView({ block: "start" });
 }
 
 // Đã có phiên hợp lệ thì vào thẳng, khỏi đăng nhập lại.
@@ -393,7 +422,7 @@ async function fetchConfig(): Promise<boolean> {
   try {
     const config = await api<Api.AuthConfigResponse>("/api/auth/config");
     siteKey = config.turnstileSiteKey;
-    setMaintenance(config.maintenance?.on === true, config.maintenance?.endsAt ?? null);
+    setMaintenance(config.maintenance?.on === true, config.maintenance?.endsAt ?? null, contentFrom(config.maintenance));
     // B-15: fetchConfig chạy NHIỀU LẦN (start, recoverConfig) — chỉ bật nút/prefetch một lần duy nhất bằng cờ passkeyEnabled.
     if (config.passkey === true && !passkeyEnabled) {
       passkeyEnabled = true;

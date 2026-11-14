@@ -1,7 +1,7 @@
 // Kiểm giao diện CHẾ ĐỘ BẢO TRÌ bằng Chrome thật (nằm trong repo, không thêm dependency; KHÔNG cần mạng ngoài — Turnstile TẮT như các kịch bản A2). Chạy từ GỐC repo sau `npm run build:web`:
 //   AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/kich-ban/chrome-wrap.sh> [OUT=<thư mục ghi ảnh>] node docs/evidence/2026-10-29-dot-0-khung-chung/kich-ban/v1-bao-tri.mjs
 // Phủ: mục bật/tắt ở /account (xác nhận hai bước trong trang, không window.confirm), dải "Đang ở chế độ bảo trì", lớp phủ toàn trang + đếm ngược sống + nút Đăng xuất + tự nhận ra khi chủ tắt,
-// banner ở /login, đăng nhập bị 503, tự tắt khi hết giờ dự kiến, nhật ký không chứa SĐT, axe-core; khung «Nội dung màn bảo trì» (bản mẫu 2c) + xem trước + lớp phủ dùng nội dung đã lưu. Sửa web/maintenance-screen.ts, web/api.ts (phần bảo trì), web/account.ts (mục bảo trì), web/shell.ts (dải) thì chạy lại.
+// thẻ bảo trì ở /login, đăng nhập bị 503, tự tắt khi hết giờ dự kiến, nhật ký không chứa SĐT, axe-core; khung «Nội dung màn bảo trì» (bản mẫu 2c) + xem trước + lớp phủ dùng nội dung đã lưu. Sửa web/maintenance-screen.ts, web/api.ts (phần bảo trì), web/account.ts (mục bảo trì), web/shell.ts (dải), web/login.ts (thẻ bảo trì) thì chạy lại.
 // Môi trường của A2 (D1 tạm + wrangler dev Turnstile TẮT + Chrome CDP). "Chủ" = tài khoản Toàn quyền thử `chu`, "nhân viên" = salesA. ADR-0071 điều 3: miễn trừ bảo trì
 // theo quyền Toàn quyền, KHÔNG theo SĐT — kịch bản cố ý đặt SĐT của nhân viên (không phải của chủ) vào cột cũ mnt_setting.allowed_phones; các bước "nhân viên bị
 // chặn" vẫn phải đúng (danh sách SĐT không còn tác dụng), "chủ dùng bình thường" đúng nhờ Toàn quyền.
@@ -204,14 +204,33 @@ try {
     await staffPage.waitFor(`location.pathname === '/login'`, "về trang đăng nhập sau Đăng xuất", 12000);
   });
 
-  await step("trang đăng nhập khi đang bảo trì: banner (role=status) có đếm ngược, form vẫn dùng được; axe 0 vi phạm", async () => {
+  await step("trang đăng nhập khi đang bảo trì: thẻ bản mẫu 2a (đúng thẻ của lớp phủ, đồng hồ chạy), form ngay dưới vẫn dùng được; SĐT một lần; axe 0 vi phạm", async () => {
     const p = await env.openPage();
     await p.send("Network.clearBrowserCookies"); // chưa đăng nhập
     await p.send("Page.navigate", { url: `${env.base}/login` });
-    await p.waitFor(`document.readyState === 'complete' && !${q("#maintenance-banner")}.hidden`, "banner hiện");
-    assert.equal(await p.ev(`${q("#maintenance-banner")}.getAttribute('role')`), "status");
-    assert.match(await text(p, "#maintenance-text"), /^Hệ thống đang tạm đóng để bảo trì\. Thời gian dự kiến hoàn tất là .+, liên hệ quản trị viên khi cần hỗ trợ thêm\.$/); // 14/11/2026: không kèm SĐT — số nằm ở dòng «Hỗ trợ kỹ thuật» ngay dưới
-    assert.equal(await p.ev(`(document.body.textContent.match(/0989\\s?929\\s?373/g) ?? []).length`), 1, "SĐT hỗ trợ chỉ hiện MỘT lần trên trang đăng nhập");
+    await p.waitFor(`document.readyState === 'complete' && !${q("#maint-login")}.hidden && !!${q("#maint-login .maint-card")}`, "thẻ bảo trì hiện");
+    assert.equal(await p.ev(`document.querySelectorAll("#maint-login .maint-card").length`), 1, "một thẻ duy nhất");
+    assert.equal(await text(p, "#maint-login .maint-title"), "Hệ thống đang bảo trì", "tiêu đề từ nội dung đã lưu (mặc định)");
+    assert.ok((await p.ev(`${q("#maint-login .maint-title")}.getBoundingClientRect().height`)) > 20, "tiêu đề thẻ hiện (không bị luật giấu h1 nuốt)");
+    assert.ok(/^\d{2}$/.test(await text(p, "#maint-login .maint-o-so")), "ô đồng hồ có hai chữ số");
+    for (const sel of [".login-logo", ".login-col > h1"]) assert.equal(await p.ev(`${q(sel)}.offsetParent === null`), true, `${sel} giấu khi thẻ hiện (thẻ đã có logo + tên)`);
+    assert.equal(await p.ev(`[...document.querySelectorAll('#maint-login button')].filter((b) => b.offsetParent !== null).map((b) => b.textContent).join('|')`), "Thử lại", "không có nút Đăng xuất (chưa đăng nhập)");
+    assert.equal(await p.ev(`${q("#maint-login .maint-card")}.textContent.includes("phần chưa lưu")`), true, "câu «phần chưa lưu» có trong DOM…");
+    assert.equal(await p.ev(`${q("#maint-login .maint-card .dai")}.offsetParent === null`), true, "…nhưng giấu ở trang đăng nhập");
+    assert.equal(await p.ev(`${q("#support")}.offsetParent === null`), true, "thẻ đã có nút Gọi → giấu dòng «Hỗ trợ kỹ thuật»");
+    assert.equal(await p.ev(`(document.body.innerText.match(/0989\\s?929\\s?373/g) ?? []).length`), 1, "SĐT hỗ trợ chỉ hiện MỘT lần trên trang đăng nhập");
+    assert.notEqual(await p.ev(`document.activeElement?.id`), "phone", "ô SĐT không giữ con trỏ (bàn phím iPhone không che thẻ)");
+    await p.send("Emulation.setDeviceMetricsOverride", { width: 1280, height: 800, deviceScaleFactor: 1, mobile: false });
+    await sleep(300);
+    await shotKhungNhin(p, join(OUT, "anh/bt-05b-dang-nhap-the-1280.png"));
+    await p.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+    await sleep(300);
+    assert.ok((await p.ev(`document.documentElement.scrollWidth`)) <= 390, "không tràn ngang ở 390px");
+    await shotKhungNhin(p, join(OUT, "anh/bt-05c-dang-nhap-the-390.png"));
+    await p.ev(`document.querySelector("main.login").scrollTop = 1e6`);
+    await sleep(200);
+    assert.equal(await p.ev(`(() => { const r = ${q("#submit")}.getBoundingClientRect(); return r.bottom <= innerHeight && r.top >= 0; })()`), true, "cuộn xuống tới được nút Đăng nhập");
+    await shotKhungNhin(p, join(OUT, "anh/bt-05d-dang-nhap-the-390-cuon.png"));
     // Bản thiết kế Đăng nhập (2026-09-24): nút khoá tới khi gõ đủ SĐT + 6 số PIN — banner bảo trì KHÔNG khoá thêm.
     await p.ev(setInput(q("#phone"), ACCOUNTS.salesA.phone));
     await p.ev(setInput(q("#pin"), ACCOUNTS.salesA.pin));
@@ -233,7 +252,8 @@ try {
     await click(p, "#submit");
     await sleep(1500);
     assert.equal(await p.ev(`${q("#error")}.hidden`), true, "không hiện lỗi chung");
-    assert.equal(await p.ev(`${q("#maintenance-banner")}.hidden`), false);
+    assert.equal(await p.ev(`${q("#maint-login")}.hidden`), false);
+    assert.equal(await p.ev(`document.querySelectorAll("#maint-login .maint-card").length`), 1, "503 dựng lại thẻ, không thêm thẻ thứ hai");
     assert.equal(await p.ev(`${q("#submit")}.disabled`), false);
     assert.equal(await p.ev(`location.pathname`), "/login");
     // không tiêu hao lượt thử PIN: bảng login_attempt không có dòng của nhân viên
@@ -265,8 +285,9 @@ try {
     const l = await env.openPage();
     await l.send("Network.clearBrowserCookies");
     await l.send("Page.navigate", { url: `${env.base}/login` });
-    await l.waitFor(`document.readyState === 'complete' && ${q("#maintenance-banner")}?.hidden === false`, "banner bảo trì đang hiện");
-    await l.waitFor(`${q("#maintenance-banner")}.hidden === true`, "đồng hồ về 0 → banner tự ẩn", 15000);
+    await l.waitFor(`document.readyState === 'complete' && ${q("#maint-login")}?.hidden === false`, "thẻ bảo trì đang hiện");
+    await l.waitFor(`${q("#maint-login")}.hidden === true`, "đồng hồ về 0 → thẻ tự ẩn", 15000);
+    assert.equal(await l.ev(`${q(".login-col > h1")}.offsetParent !== null && ${q("#support")}.offsetParent !== null && !document.body.classList.contains("login-bao-tri")`), true, "về trang đăng nhập thường (logo, tiêu đề, dòng hỗ trợ)");
     l.close();
     // Trả giờ tương lai để bước sau (chủ tắt bằng nút) còn thấy "Đang bật".
     env.sql(`UPDATE mnt_setting SET ends_at = '${new Date(Date.now() + 30 * 60_000).toISOString()}' WHERE id = 'default'`);
