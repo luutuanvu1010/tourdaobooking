@@ -168,6 +168,11 @@ export const AUDIT_ACTIONS = {
   // ADR-0161 Đ3: Toàn quyền đổi GIỚI HẠN NHẬP mức hoa hồng (trần phần trăm, bước số tiền; POST /api/pricing/gioi-han-nhap) — `target_type = 'ledger'`, không gắn đơn;
   // `detail` = «trần 50% → 60% · bước 1.000đ → 1.000đ» (hai con số, không dữ liệu cá nhân). Đổi giới hạn không đổi dòng mức đã có hay đơn đã chụp.
   prc_entry_limit_changed: { label: "Đổi giới hạn nhập hoa hồng", group: "ledger" },
+  // ADR-0147 Đ2, ADR-0203 ĐB1: bảng phí đưa đón (route /api/pricing/phi-don*) — `target_type = 'ledger'`. `detail` chỉ mã và số: «theo khách · 30.000đ · ZONE=BAC · từ 01/12/2026»,
+  // «<chữ ký điều kiện> · kết thúc 31/12/2026», «áp dụng từ 01/12/2026» / «tắt phí đưa đón». Không tên, SĐT, email, MST.
+  prc_transfer_fee_added: { label: "Thêm mức phí đưa đón", group: "ledger" },
+  prc_transfer_fee_ended: { label: "Kết thúc mức phí đưa đón", group: "ledger" },
+  prc_transfer_fee_start_set: { label: "Đặt ngày bắt đầu áp phí đưa đón", group: "ledger" },
   // ADR-0168 Đ1: Toàn quyền đặt / ngừng hạn mức Trả sau của một đối tác (route /api/tra-sau/han-muc*) — `target_type = 'ledger'`, `target_id` = mã hồ sơ, không gắn đơn.
   // `detail` = «hạn mức 50.000.000 ₫ · 7 ngày» / «ngừng hạn mức» (số tiền và số ngày, KHÔNG tên, SĐT, email, MST, lý do tự do).
   credit_limit_set: { label: "Đặt hạn mức trả sau", group: "ledger" },
