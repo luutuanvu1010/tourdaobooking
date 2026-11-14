@@ -16,8 +16,8 @@ Cách làm đúng cho một người là đảo lại: máy giữ luật và t�
 
 Kho mã trên GitHub đang để công khai. Chủ đã xác nhận điều này ngày 6/11 để máy kiểm của GitHub chạy miễn phí (ADR-0179). Nhưng điều kiện mà ghi chú của dự án đặt ra từ 19/9, là gỡ dữ liệu nhạy cảm trước khi công khai, chưa được làm:
 
-- Địa chỉ bảng Google Sheet nhân viên nằm trong kho, và hôm nay người lạ không cần đăng nhập vẫn tải được bảng đó. Theo ghi chú của dự án, bảng chứa tên và số điện thoại nhân viên (tôi chỉ kiểm rằng mở được, không tải nội dung). Nền tảng đã thôi đọc bảng này từ 1/10, nên tắt chia sẻ không ảnh hưởng gì.
-- Bảng giá dịch vụ cũng mở như vậy. Nền tảng cần nó mở để đồng bộ, nên các cột nội bộ trong bảng giá đang coi như công khai.
+- Địa chỉ bảng Google Sheet nhân viên nằm trong kho, và hôm nay người lạ không cần đăng nhập vẫn tải được bảng đó. Theo ghi chú của dự án, bảng chứa tên và số điện thoại nhân viên (tôi chỉ kiểm rằng mở được, không tải nội dung). Nền tảng đã thôi đọc bảng này từ 1/10, nên tắt chia sẻ bằng đường liên kết không ảnh hưởng tới Nền tảng; người được chủ chia sẻ đích danh vẫn mở được.
+- Bảng giá dịch vụ cũng mở như vậy. Nền tảng cần nó mở để đồng bộ, nên nếu bảng còn cột nội bộ như ghi chú cũ nói thì các cột đó cũng đang mở.
 - Kho còn công khai sổ ghi ba lỗi bảo mật mức cao đang mở, các báo cáo kiểm toán, và vài dòng có số điện thoại trong tài liệu cũ.
 
 Việc chủ nên làm ngay: mở bảng nhân viên trên Google Sheet, bấm Chia sẻ, đổi "Bất kỳ ai có đường liên kết" thành "Bị hạn chế". Phần còn lại là quyết định 1 ở mục 7.
@@ -33,7 +33,7 @@ Việc chủ nên làm ngay: mở bảng nhân viên trên Google Sheet, bấm C
 | 5. Trạng thái nằm trong tệp, máy ghi được thì để máy ghi | Sổ trạng thái ghi tay đang chậm: ghi bản 3.0, bản chạy thật là 3.5. Bộ nhớ của AI ghi kho mã "riêng tư" suốt thời gian kho đã công khai | Yếu |
 | 6. Bộ khung phải gọn, định kỳ gỡ phần không còn cần | 191 bản ghi quyết định, thêm gần 3 bản mỗi ngày; chưa có nhịp gỡ bớt | Yếu |
 | 7. Con người duyệt ý định và kết quả cuối | Chủ duyệt gần 3 bản ghi quyết định mỗi ngày (có ngày 8), và tự gõ lệnh cho khoảng 4 số phiên bản mới mỗi ngày | Lệch nhiều nhất |
-| 8. Làm song song thì mỗi việc một bản riêng, có giới hạn | 21 bản làm việc riêng; 7 bản còn phần chưa lưu; 16 nhánh chưa nhập bản chính | Quá tải |
+| 8. Làm song song thì mỗi việc một bản riêng, có giới hạn | 21 bản làm việc riêng; 7 bản còn phần chưa lưu; 17 nhánh chưa nhập bản chính | Quá tải |
 
 Ngoài bảng: phép kiểm mạnh nhất là người dùng thật. Theo hồ sơ rà soát 7/11, nhân viên chưa dùng hằng ngày; hôm nay bản chạy thật đang bật chế độ bảo trì tới 13:34 ngày 16/11. Tôi chưa kiểm được hiện đã có ai dùng thật chưa. Nếu chưa, việc đáng làm sớm là cho một nhóm nhỏ dùng thật, vì không bài kiểm nào thay được.
 
@@ -51,7 +51,7 @@ Mỗi việc đi qua sáu bước. Chủ chỉ có mặt ở bước 1 và bư�
 Ba giới hạn giữ cho một người kham nổi:
 
 - Tối đa ba việc mở cùng lúc: một việc lớn và hai việc nhỏ. Con số này là đề xuất của tôi; Anthropic không đưa con số.
-- Bản ghi quyết định (ADR) chỉ viết cho quyết định khó quay lại hoặc đổi kiến trúc, đúng như luật hiện hành của dự án. Quyết định của một tính năng nằm ngay trong phiếu việc.
+- Bản ghi quyết định (ADR) chỉ viết cho quyết định khó quay lại hoặc đổi kiến trúc. Quyết định của một tính năng thì ghi trong phiếu việc và chủ duyệt ngay ở đó. Việc chạm tiền, quyền hay dữ liệu vẫn phải dừng lại hỏi chủ như luật hiện hành. Đây là đổi thói quen so với hôm nay (các quyết định loại này đang thường thành ADR), nên cần chủ gật rõ.
 - Luật "không được sai" phải thành lớp chặn của máy hoặc bài kiểm. Luật chỉ là thói quen thì viết ngắn hoặc bỏ. Mỗi tháng một buổi gỡ bớt, và mỗi lần đổi đời AI thì thử lại xem luật nào còn cần.
 
 ### 5. Ba hướng đã cân nhắc
@@ -83,14 +83,14 @@ Thời gian là ước lượng. Mỗi bước khi tới lượt có một trang
 | Chữ nạp lúc mở phiên | `CLAUDE.md` 31.262 byte (132 dòng) + mục lục bộ nhớ 25.038 byte + `~/.claude/CLAUDE.md` 5.701 + `Projects/CLAUDE.md` 1.635 ≈ 64 KB. Thêm `web/CLAUDE.md` 34.370 và `src/CLAUDE.md` 10.431 khi AI đọc tệp ở hai thư mục đó ≈ 108 KB | `wc -c`, `git show main:<tệp> \| wc -lc` |
 | `.claude/` trên bản chính | 1 trợ lý kiểm, 7 tệp lớp chặn (2 tệp cổng xanh không còn được gọi), `settings.json`. Không có skill, không có luật gắn đường dẫn. Không đổi so với 13/11 | `git ls-tree -r --name-only main .claude`, `git diff --stat HEAD main -- .claude CLAUDE.md src/CLAUDE.md web/CLAUDE.md` |
 | Bộ nhớ của AI | 196 tệp (137 ghi chú dự án, 30 ghi chú cách làm, 27 tra cứu); mục lục 162 dòng, 20.976 ký tự trước khi rút gọn | `ls`, `wc` |
-| Bản làm việc riêng | 21 (kể cả thư mục gốc); 7 bản còn phần chưa lưu; 16 nhánh chưa nhập bản chính | `git worktree list`, `git status --porcelain` từng bản, `git branch --no-merged main` |
+| Bản làm việc riêng | 21 (kể cả thư mục gốc); 7 bản còn phần chưa lưu; 17 nhánh chưa nhập bản chính (16 lúc đầu buổi) | `git worktree list`, `git status --porcelain` từng bản, `git branch --no-merged main` |
 | Phiên làm việc | 131 bản ghi phiên; 50 bản có hoạt động từ 8/11 | `find ~/.claude/projects -maxdepth 2 -path '*tourdao-sales*' -name '*.jsonl'` |
 | Lần lưu trên bản chính | 2.173 từ 15/10; trung vị 71 mỗi ngày, cao nhất 167; 1.087 trong 14 ngày | trợ lý đo bằng `git log main --since=…` |
 | Bản ghi quyết định | 191 tệp; 84 tệp thêm trong 30 ngày, cao nhất 8 trong một ngày; 91 trong 184 dòng mục lục tự ghi "hai chiều" (quay lại được) | `git ls-tree`, `awk` trên `docs/adr/README.md` |
 | Số phiên bản | 52 mục nhật ký trong 12 ngày có phát hành (2–15/11). Bản chạy thật 3.5, đang bảo trì tới `2026-11-16T06:34Z`. Đầu `docs/HANDOFF-N1.md` trên bản chính ghi 3.0 | `src/shared/changelog.ts`, GET `https://booking.tourdao.vn/api/auth/config` |
 | Bộ kiểm | 928 tệp `*.test.ts`; mã kiểm 160.267 dòng, mã thường 132.551 dòng (`src/`, `web/`) | trợ lý đo bằng `git ls-tree`, `wc -l` |
 | Máy kiểm GitHub | 60 lượt gần nhất (7–14/11): trung vị 9,7 phút; 3 lượt đỏ; 10 lượt có `attempt` > 1 | `gh run list --workflow kiem.yml -L 60 --json …` |
-| Kiểm tại máy | kiểm kiểu 6 giây; bài kiểm thư mục `billing` 221 giây (37 tệp, 411 bài); một tệp có cơ sở dữ liệu thử 13,6 giây cho 6 bài; một tệp không có 0,2 giây | `time npm run typecheck`, `time node --test …` |
+| Kiểm tại máy | kiểm kiểu 3–6 giây (hai lần đo); bài kiểm thư mục `billing` 221 giây (37 tệp, 411 bài); một tệp có cơ sở dữ liệu thử 13,6 giây cho 6 bài; một tệp không có 0,2 giây | `time npm run typecheck`, `time node --test …` |
 | Tệp nhiều phiên cùng sửa (14 ngày) | `docs/SO-HANG-RAO.md` 117 lần; `docs/SYSTEM-DESIGN.md` 83; `src/shared/changelog.ts` 79; `docs/BANG-THAM-CHIEU.md` 74; `docs/adr/README.md` 69; `docs/CHANGE-GUIDE.md` 66; `docs/HANDOFF-N1.md` 65 | `git log main --since="14 days ago" --name-only --format=` |
 | Sổ sống | `docs/SO-HANG-RAO.md` 1.479.274 byte, 31 dòng còn chữ "chưa quan sát"; sổ việc để sau 71 mục, khoảng 5 mục đã đóng; sổ hạn 26 mục, 3 mục `HIGH` | `wc -c`, `grep -c` |
 | Kho mã | `visibility: PUBLIC`; `docs/evidence` 4.411 tệp; gói git 1,0 GiB (đo 13/11) | `gh repo view --json visibility`, `git count-objects -vH` |
@@ -99,7 +99,7 @@ Thời gian là ước lượng. Mỗi bước khi tới lượt có một trang
 
 Ký hiệu nguồn [S…] ở mục II.9. Mọi ý của Anthropic dưới đây là lời tóm lại, không phải trích nguyên văn.
 
-**1. Phép kiểm AI tự chạy được** [S1, S13]. Anthropic: cho AI một thứ chạy được và trả về đạt hay không đạt thì nó tự đi tiếp được; không có thì con người thành bộ kiểm. Bộ kiểm phải gần như không sai, đầu ra ngắn, có tập con chạy nhanh, chi tiết ghi ra tệp. Dự án: nhiều bài kiểm và có máy kiểm GitHub (ADR-0179). Lệch: (a) cổng kiểm lúc AI dừng đã gỡ 19/10 vì chạy cả bộ quá 12 phút, trong khi kiểm kiểu chỉ mất 6 giây; (b) không có cơ chế tự chọn bài theo tệp đã đổi, chỉ có bảng tra tay ở `docs/CHANGE-GUIDE.md` mục 3; (c) 10 trong 60 lượt GitHub phải chạy lại; 249 tệp kiểm dùng giờ thật hoặc số ngẫu nhiên, 16 tệp dùng đồng hồ giả; bộ nhớ có ít nhất mười ghi chú về bài đỏ giả và trục trặc khi nhập, phát hành; (d) `npm test` ở máy in nguyên đầu ra, không có khối tóm tắt bài đỏ (trên GitHub thì có); (e) kịch bản Chrome chạy tay, không nằm trong máy kiểm; không có kiểm tự động trên iPhone hay Safari, 11 dòng mục lục bộ nhớ còn ghi "chưa thử iPhone"; (f) 350 tệp kiểm đọc tệp nguồn như văn bản, loại bài này khoá câu chữ và cấu trúc, dễ đỏ khi đổi chữ mà hành vi không đổi.
+**1. Phép kiểm AI tự chạy được** [S1, S13]. Anthropic: cho AI một thứ chạy được và trả về đạt hay không đạt thì nó tự đi tiếp được; không có thì con người thành bộ kiểm. Bộ kiểm phải gần như không sai, đầu ra ngắn, có tập con chạy nhanh, chi tiết ghi ra tệp. Dự án: nhiều bài kiểm và có máy kiểm GitHub (ADR-0179). Lệch: (a) cổng kiểm lúc AI dừng đã gỡ 19/10 vì chạy cả bộ quá 12 phút, trong khi kiểm kiểu chỉ mất vài giây; (b) không có cơ chế tự chọn bài theo tệp đã đổi, chỉ có bảng tra tay ở `docs/CHANGE-GUIDE.md` mục 3; (c) 10 trong 60 lượt GitHub phải chạy lại; 249 tệp kiểm dùng giờ thật hoặc số ngẫu nhiên, 16 tệp dùng đồng hồ giả; bộ nhớ có ít nhất mười ghi chú về bài đỏ giả và trục trặc khi nhập, phát hành; (d) `npm test` ở máy in nguyên đầu ra, không có khối tóm tắt bài đỏ (trên GitHub thì có); (e) kịch bản Chrome chạy tay, không nằm trong máy kiểm; không có kiểm tự động trên iPhone hay Safari, 11 dòng mục lục bộ nhớ còn ghi "chưa thử iPhone"; (f) 350 tệp kiểm đọc tệp nguồn như văn bản, loại bài này khoá câu chữ và cấu trúc, dễ đỏ khi đổi chữ mà hành vi không đổi.
 
 **2. Người làm khác người kiểm** [S1, S5, S12]. Anthropic: tách người làm khỏi người chấm là đòn bẩy mạnh; người kiểm nên là phiên mới chưa thấy lập luận của người làm; người kiểm bị yêu cầu "tìm lỗi" thì lần nào cũng tìm ra gì đó, nên phải giao đề rõ và bỏ soi câu chữ; trợ lý chỉ đọc thật thì không có công cụ Bash. Dự án: `.claude/agents/nguoi-kiem-doc-lap.md` có `tools: Read, Glob, Grep, Bash`, chạy chung cây làm việc với người thi công. Lệch: "không sửa" chỉ là lời dặn; đề bài kiểm thiên về đọc mã và chạy lại lệnh, chưa buộc so với ví dụ "xong khi" (xem II.4).
 
@@ -193,4 +193,12 @@ Bài kỹ thuật của Anthropic, `https://www.anthropic.com/…`: [S9] `engine
 
 ### II.10 Kết quả kiểm độc lập
 
-(điền sau vòng kiểm)
+Một vòng, ngày 15/11, do trợ lý `nguoi-kiem-doc-lap` (chỉ đọc) tự chạy lại lệnh cho 17 nhận định. Kết luận của người kiểm: sẵn sàng trình chủ sau khi sửa. Đã sửa theo đó:
+
+1. Câu về ADR ở mục I.4. Bản đầu viết "đúng như luật hiện hành", trong khi `CLAUDE.md` mục 2 còn đòi quyết định chạm dữ liệu, quyền, tiền phải dừng hỏi hoặc qua ADR. Nay ghi rõ: đây là đổi thói quen cần chủ gật, và việc chạm tiền, quyền, dữ liệu vẫn dừng hỏi chủ.
+2. Số nhánh chưa nhập bản chính: 16 thành 17.
+3. Thời gian kiểm kiểu: 6 giây thành 3–6 giây.
+
+Đứng vững sau khi kiểm: không còn mã nào trên bản chính đọc bảng nhân viên (mã bảng chỉ còn ở một dòng của `docs/SPEC-tourdao-sales.md` và hai lần lưu trong lịch sử; `route-access.test.ts` và `tests/e2e/admin.mjs` còn kiểm rằng đường `/api/staff/sheet` trả 404). Mười bốn nhận định còn lại khớp số.
+
+Người kiểm không kiểm được: nội dung hai bảng (cố ý không tải), nên câu "tên và số điện thoại" và "cột nội bộ" dựa vào ghi chú 19/9; Claude Code thật có bỏ qua lớp chặn với công cụ Terminal không; bộ xét duyệt tự động dùng đoạn mô tả môi trường ra sao; con số 40 lượt mỗi tháng là ước tính của chính ADR-0179; chủ có còn dùng bảng nhân viên vào việc khác ngoài Nền tảng không.
