@@ -7,7 +7,7 @@ Phạm vi đã làm: Đợt A (khu vực đón) và Đợt B (bảng phí, luậ
 ## Số migration thật đã dùng
 - `0164_vung_don.sql` (Đợt A): bảng `loc_zone`, cột `loc_location.zone_code`, hai view `v_loc_location_zone`, `v_loc_zone_label`.
 - `0165_phi_don_bang.sql` (Đợt B): `prc_transfer_fee_key`, `_rule`, `_condition`, `_start` và trigger.
-- Kiểm bằng `ls migrations`: tệp lớn nhất trước hai tệp này là `0162_noi_dung_bao_tri.sql`; `0163` thuộc nhánh ADR-0199 chưa gộp. **Lúc gộp phải chạy lại bước lấy số.**
+- Kiểm lại 15/11 sau khi gộp `main` vào nhánh: không trùng số với tệp nào của `main` (tệp lớn nhất của `main` là `0162_noi_dung_bao_tri.sql`); `0163` thuộc nhánh ADR-0199 chưa gộp — nhánh nào gộp trước thì kiểm lại số.
 
 ## Tên giao diện
 Đã chốt (chủ chọn 14/11, «Dùng tên đó, làm đi»): «Khu vực đón», «Ngoài khu vực», «Phí đưa đón», «Thử tra», «Đặt ngày bắt đầu áp».
@@ -46,7 +46,12 @@ Phạm vi đã làm: Đợt A (khu vực đón) và Đợt B (bảng phí, luậ
 | kịch bản Chrome `phi-don-smoke.mjs` (có axe) | 0 | «SMOKE OK (đã gồm kiểm màu axe)» |
 | `node --test src/kiem-phan.test.ts … audit-invariants.test.ts architecture.test.ts` (nền) | 0 | 299/300; đỏ bài «bảng giây npm test là ĐỒNG HỒ TƯỜNG…», không do đợt này, chưa chạy lại riêng |
 
-**Bộ kiểm đủ (`npm test`, `npm run test:e2e`, `audit-invariants`): do người điều phối chạy — kết quả điền ở đây:** _(chưa điền)_
+**Bộ kiểm đủ do người điều phối chạy ngày 2026-11-15 trên 15ed4f1ab (trước khi gộp main):**
+- `npm test`: 9054 bài, 4 đỏ (`bo-v2-khop-ma`, `kiem-phan` bảng giây, `tro-ly-van-nghia` C4, `xem-nhu-vai` SO_ROUTE); bài đo giờ chạy một mình: xanh.
+- `npm run test:e2e`: 94/94 xanh; audit local R-PRC-PD-1 và R-PRC-PD-2 sạch.
+- Ba bài đã sửa: `b969ef552` (bundle bộ v2), `c9fd4e788` (bảng giây), `0a756ff7f` (số route 511). Bài C4 (`tro-ly-van-nghia`) chờ chủ dự án duyệt số đo, chưa sửa.
+- `dot-a-smoke.mjs`: chưa chạy. iPhone thật: chưa thử.
+- **Sau khi gộp main phải chạy lại bộ đủ** (`npm test`, `npm run test:e2e`, audit): _(chưa điền)_
 
 Ruling của người điều phối:
 - (a) Các `wrangler dev` / Chrome ẩn mồ côi của worktree khác dùng `--persist-to` và cổng riêng nên không chặn bộ kiểm; không ai tắt, chờ chủ dọn.
@@ -60,6 +65,21 @@ Ruling của người điều phối:
 - Màn: `actZone` trùng `act()`; `EXCLUSIVE=1` ngầm khi chọn «Xe riêng» chưa có bài tự động; chưa có bài tự động cho luồng ghi của màn `web/phi-don.ts` (nay có kịch bản Chrome).
 - Chốt «đủ mức» đọc rồi mới ghi, không có lưới CSDL (dựa vào kỷ luật; ghi ở sổ hàng rào).
 - Đề xuất cho chủ (người thi công không được sửa tệp luật): thêm vào bảng ở `web/CLAUDE.md` dòng «Màn Phí đưa đón và khu vực đón: `web/phi-don.ts`, `web/locations.ts`, `public/phi-don.html` → `phi-don-smoke.mjs` ở `docs/evidence/2026-11-phi-don/kich-ban/`».
+
+## Đợt C phải đóng TRƯỚC khi bật phí
+1. **Vùng thiếu mức chung sau ngày bắt đầu áp.** Vùng tạo mới hoặc bật lại khi phí đang áp, hoặc khoảng trống sau ngày bắt đầu, có thể thiếu mức chung. Cần: `GET /api/pricing/phi-don` trả danh sách vùng thiếu mức chung; băng báo trên màn; luật kiểm dữ liệu mới (cảnh báo); cổng thiếu mức ở đơn nêu tên vùng.
+2. **Hợp đồng cho phía đơn thiếu lý do «đại lý hai cấp» (`HAI_CAP`).** Xuất một hàm bọc trả THIEU_MUC kèm lý do, không để phía gọi map về `null` rồi coi là mức chung. Quyết định có chủ ý: `docBangPhiDonChoDon` đọc vai đang mở hôm nay hay theo ngày của đơn.
+3. **Bài so `capCuaHoSoNgay` với logic cấp của hoa hồng** (hai nơi cùng một luật).
+4. **Trần số tiền một mức phí** và kiểm tràn khi nhân với số khách.
+5. **`thayCho` với ngày kết thúc sớm hơn dòng cũ** làm mất phủ lặng lẽ ở dòng cấp, dịch vụ, nhóm: cảnh báo hoặc từ chối.
+6. **Dùng view `v_loc_location_zone` và `v_loc_zone_label`** thay vì thêm cạnh phụ thuộc sang `locations`.
+7. **Gỡ câu «Hiện phí đưa đón chưa được cộng vào đơn…»** ở `public/phi-don.html` và bài Hướng dẫn `phi-don` khi phí thật sự được cộng vào đơn.
+
+## Ghi chú về kế hoạch Đợt A + B
+Mục «Review Focus» điểm 1 của kế hoạch ghi «ngưng vùng còn dòng phí thì từ chối»: câu này không khớp mã. Mã chỉ từ chối khi vùng còn địa điểm, và đó là cách đúng (vùng không còn địa điểm thì không tính tiền cho ai; `locations` không được biết `pricing`). Tệp kế hoạch là hồ sơ có ngày nên không sửa; ghi ở đây.
+
+## Vòng sửa cuối 15/11 (sau gộp main)
+Đã làm: câu nói hiện trạng «chưa cộng vào đơn» ở màn và Hướng dẫn; cờ `chuaApNgayNay` ở Thử tra; lỗi CHECK của CSDL thành 400; ngày mặc định của «Kết thúc mức»; hai dòng sổ hàng rào. Chi tiết ở `.superpowers/sdd/2026-11-14-phi-don-dot-a-b/fix-wave-report.md`.
 
 ## Câu chờ chủ (một lần, gom)
 1. **Tên nút tạm:** «＋ Thêm mức phí», «Đổi mức phí», «Kết thúc mức», «Tắt phí đưa đón», «Lưu mức phí» / «Lưu ngày bắt đầu áp» / «Lưu ngày kết thúc» — giữ hay đổi?
