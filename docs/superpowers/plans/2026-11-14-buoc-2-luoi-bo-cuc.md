@@ -18,7 +18,10 @@ Năm bộ quyền (Toàn quyền, Bán hàng, Kế toán, Đối tác, Tài xế
 | Khối «một đầu» (nội dung ≤ 35 % bề rộng khối) | 888 ở iPad đứng, 261 ở 1280, 496 ở 1920 |
 | Thanh bên máy tính dựng muộn | mở lại trang ở 1280: 70/78 trang có vùng nội dung nhảy ngang 0 → 248 px (8 trang còn lại là trang vẽ khung sớm) |
 
-## Lưới đề xuất (chờ chủ duyệt ảnh trước khi thi công)
+## Lưới (chủ duyệt 15/11, nguyên văn: «Duyệt, bám trái»)
+
+> Mục 2 dưới đây ghi «căn giữa» là bản đề xuất 14/11. Chủ chọn **bám trái**: ở máy tính (có thanh bên) vùng nội dung mức hẹp và vừa bám mép trái sát thanh bên —
+> đúng luật `body.has-sidebar main` đang có, không thêm luật căn chỉnh. Khổ chưa có thanh bên (dưới 900) giữ căn giữa màn như trước (giả định bề mặt, đảo ngược được).
 
 1. **Một lề trang cho mỗi khổ:** 16 px ở điện thoại (giữ), 24 px từ iPad trở lên (nay 16). Token mới `--luoi-le`, đổi giá trị theo khổ.
 2. **Ba mức bề rộng nội dung, mỗi trang đúng một mức** (khai bằng `data-rong` ở `<body>`, không khai = rộng):
@@ -60,3 +63,15 @@ không chờ bản vẽ đó.
   (Toàn quyền, Bán hàng, Đối tác, 78 trang): nhảy ngang 70 → 0 trang; CLS trung vị 0,051 → 0,002; số trang CLS ≥ 0,1: 26 → 6 (phần còn lại là nhảy dọc của từng
   trang, việc bước 3). Đề bài 1b bản 2 đã soạn. Ảnh trước / sau gửi chủ: `docs/evidence/2026-11-14-buoc-2-luoi-bo-cuc/xem-truoc/`. **Chờ chủ duyệt** lề, ba mức bề
   rộng, nhịp và câu «căn giữa hay bám trái» rồi mới thi công mục 1–3, 5.
+- 15/11: chủ trả lời «Duyệt, bám trái». Thi công mục 1–3, 5: bốn token `--luoi-*` ở `public/app.css`, luật `main` lấy lề từ token, `body[data-rong]` cho mức hẹp / vừa,
+  `main > p` theo nhịp; 57 trang khai `data-rong` (10 hẹp, 26 vừa, 21 rộng); bỏ `style` nội tuyến của trang Dịch vụ và trần riêng 640 của thẻ Thêm xe (`--w-vc-form`).
+  Bài `src/luoi-bo-cuc.test.ts` đỏ 5 → xanh 6. Đề bài 1b bản 2 mục 4 đã thêm dòng «bám trái». Công thức thêm trang (`docs/CHANGE-GUIDE.md`) có dòng `data-rong`.
+- 15/11, đo lại 784 ô (số gộp: `docs/evidence/2026-11-14-buoc-2-luoi-bo-cuc/so-lieu/luoi-truoc-sau-gop.json`), 0 lỗi, 0 tràn ngang:
+  - **L1** đạt, với một chỗ SỬA LỜI tiêu chí: điện thoại xoay ngang 844 × 390 nhận lề 24, không phải 16 như bảng trên ghi. Mốc đổi lề là bề rộng 641 (mục 1, đề bài 1b,
+    và ảnh số 2 chủ đã duyệt đều vẽ 24); dòng L1 viết nhầm 844 vào nhóm 16. Kết quả: 16 ở 390; 24 ở 844, 820, 1180, 1280, 1440, 1920; Trang chủ giữ 12 / 16 / 24.
+  - **L2** đạt theo bề rộng vùng nội dung (`main` trừ lề): ở 1920 chỉ còn 720 (18 ô), 1120 (47), kín vùng 1624 (40) cộng Trang chủ; ở 1280 trang hẹp 720, còn lại 984.
+    Cột «rộng» của tệp số gộp đo mép các khối đang hiện nên có vài giá trị lạ (108, 900, trống) ở trang đang tải hoặc trang tự bó khối (Thiết lập 900): không phải mức lưới.
+  - **L3** đạt: 14 và 17 từ 55 xuống 0 trang ở mọi khổ; 16 từ 28–31 lên 69–75.
+  - **L5** đạt: «một đầu» 54 → 42 (390), 888 → 804 (820), 283 → 256 (1180), 261 → 241 (1280), 306 → 285 (1440), 496 → 402 (1920). Khổ 844 × 390 ghi 919 → 939 vì MỘT ô
+    (Kế toán, Đơn hàng) đo 44 thay cho 2; đo riêng lại ba lần đều ra 1 ⇒ nhiễu lần đo (trang đo lúc đang vẽ), trừ ô đó là 897. Điện thoại 390: lề, bề rộng không đổi.
+  - Giả định bề mặt đã áp: khổ dưới 900 (chưa có thanh bên) trang hẹp vẫn căn giữa màn như luật `main` cũ; «bám trái» áp ở máy tính có thanh bên.

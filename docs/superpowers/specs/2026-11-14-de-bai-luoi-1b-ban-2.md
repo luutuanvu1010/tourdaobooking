@@ -49,6 +49,7 @@ Chủ dự án chê giao diện «nhìn không được mạch lạc, có nhữn
 - **Lề trang:** 16 ở điện thoại, 24 từ khổ 641 trở lên.
 - **Ba mức bề rộng nội dung, mỗi trang đúng một mức:** hẹp 720 (biểu mẫu một cột, trang đọc); vừa 1120 (chi tiết, biểu mẫu hai cột, thiết lập); rộng (danh sách, bảng
   điều khiển: dùng hết vùng nội dung, không để dải trống bên phải).
+- **Vị trí:** ở máy tính (có thanh bên) vùng nội dung bám mép trái, sát thanh bên, không căn giữa; khổ chưa có thanh bên thì căn giữa màn.
 - **Nhịp giữa các khối:** 16.
 - Tên trang chỉ ở thanh trên. Thanh trên tối đa một nút chính toàn cục («Tạo đơn»). Danh sách từ khổ 900 là bảng có cột. Ô gõ chữ 16 px, vùng chạm tối thiểu 44 × 44.
 - Trang chủ giữ bản vẽ đã duyệt (điện thoại và máy tính).
@@ -84,4 +85,4 @@ Không chữ Anh trên màn hình. Không dữ liệu thật. Không nút nổi.
 ## Bàn giao (đọc cùng bản vẽ, không dán vào Claude Design)
 
 Khi lệch: mục 4 thắng bản vẽ; token thật trong mã thắng số trong bản vẽ; chữ thật của Nền tảng thắng chữ trong bản vẽ. L1–L3 là đầu vào bắt buộc của bước 3; L4 chỉ
-là minh hoạ. Mục 4 ghi theo lớp xem trước 14/11 đang chờ chủ duyệt: nếu chủ chọn khác (ví dụ bám trái thay cho căn giữa) thì sửa mục 4 trước khi gửi.
+là minh hoạ. Mục 4 ghi theo lưới chủ duyệt 15/11 («Duyệt, bám trái») và đã thi công trong mã.
