@@ -1400,9 +1400,9 @@
       "mo_ta": "Phí đón trong số đại lý nợ công ty. Đại lý cấp 3, đơn trả sau: Tour lặn biển 600.000 đ × 2 khách = 1.200.000 đ, hoa hồng 10% = 120.000 đ, đón ở Bãi Dài 80.000 đ × 2 = 160.000 đ. Khách trả tổng 1.360.000 đ. Đại lý nợ công ty: 1.200.000 − 120.000 + 160.000 = 1.240.000 đ. Hoa hồng vẫn 120.000 đ, không tính trên phí đón.",
       "nguon": "ADR-0203 ĐB3; ADR-0182; chủ chọn 14/11 «có, cộng vào số đại lý nợ»",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
