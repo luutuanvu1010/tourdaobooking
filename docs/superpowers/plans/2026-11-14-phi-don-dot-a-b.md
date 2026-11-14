@@ -31,6 +31,8 @@
 
 ## Tên chờ chủ chọn (người điều phối hỏi chủ MỘT lần trước Task 3)
 
+> **Đã chốt 14/11.** Chủ dự án trả lời câu «Dùng các tên tôi khuyến nghị và bắt đầu thi công chứ?», nguyên văn: «Dùng tên đó, làm đi». Dùng **cột «Tên tạm (khuyến nghị)»** cho mọi dòng; khai trong bảng tham chiếu với `trangThai: "da-chot"`, `nguonTen: "chủ chọn 2026-11-14"`. Bố cục màn hình vẫn chờ chủ xem ảnh thật.
+
 | Thứ | Tên tạm (khuyến nghị) | Phương án khác |
 |---|---|---|
 | Khái niệm vùng | «Khu vực đón» (chữ chủ dùng 14/11) | «Vùng đón»; «Khu vực đưa đón» |
