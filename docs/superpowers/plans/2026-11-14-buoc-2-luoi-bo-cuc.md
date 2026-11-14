@@ -75,3 +75,9 @@ không chờ bản vẽ đó.
   - **L5** đạt: «một đầu» 54 → 42 (390), 888 → 804 (820), 283 → 256 (1180), 261 → 241 (1280), 306 → 285 (1440), 496 → 402 (1920). Khổ 844 × 390 ghi 919 → 939 vì MỘT ô
     (Kế toán, Đơn hàng) đo 44 thay cho 2; đo riêng lại ba lần đều ra 1 ⇒ nhiễu lần đo (trang đo lúc đang vẽ), trừ ô đó là 897. Điện thoại 390: lề, bề rộng không đổi.
   - Giả định bề mặt đã áp: khổ dưới 900 (chưa có thanh bên) trang hẹp vẫn căn giữa màn như luật `main` cũ; «bám trái» áp ở máy tính có thanh bên.
+- 15/11, kiểm cuối: kịch bản Chrome `dot-0-smoke.mjs` đạt 20 bước (có axe). `npm test` lần 1 đỏ MỘT bài (máy canh Hướng dẫn: năm trang là neo của bài chỉ thêm `data-rong`,
+  chữ và nút không đổi) → ghi dấu xem lại năm bài (`kho-ve`, `quet-ve`, `doi-chieu-ve`, `xem-no-tra-sau`, `giao-dien`) → lần 2 thoát 0. `npm run typecheck` 0 lỗi.
+  Người kiểm độc lập (chỉ đọc): **ĐẠT CÓ ĐIỀU KIỆN**, không lỗi nặng; điều kiện «nhìn trang thật» đã làm bằng ảnh Chrome sau sửa (Đơn hàng 1280 và 844 × 390).
+  Điểm nhỏ còn để lại, không chặn: bài `luoi-bo-cuc.test.ts` khoá bằng chữ CSS nên một luật `main.<lớp> { max-width }` thêm sau không bị bắt (dựa vào kỷ luật);
+  trang Tạo đơn rộng hơn trước 32 px, trang Giao diện từ trần 1280 xuống 1168; vài ô «một đầu» tăng 1 dù tổng giảm; ảnh bằng chứng làm kho nặng thêm ~3,6 MB.
+  Chưa kiểm: iPhone / iPad / Android thật; e2e không chạy (không chạm máy chủ, API, migration).
