@@ -1051,11 +1051,16 @@ export interface LocationDto {
    * điểm ngưng dùng vẫn mang số nhưng giao diện lọc theo `active`. Gửi lên `PUT /api/locations/:id`: số 1–99 hoặc `null` (bỏ); KHOÁ VẮNG = giữ giá trị đang lưu.
    */
   quickPickOrder: number | null;
+  /** ADR-0147 Đ1: khu vực đón (`null` = chưa xếp). Gửi lên `PUT /api/locations/:id`: mã khu vực, `null` (bỏ xếp) hoặc VẮNG (giữ nguyên). */
+  zoneCode: string | null;
   /** Mốc cập nhật cuối — gửi lại làm `expectedUpdatedAt` khi sửa (khoá lạc quan). */
   updatedAt: string;
 }
 
-export interface LocationListResponse { locations: LocationDto[]; types: LocationTypeDto[] }
+/** Khu vực đón (ADR-0147 Đ1). `soDiaDiem` = số địa điểm đang xếp vào khu vực (kể cả địa điểm ngưng dùng). */
+export interface VungDonDto { code: string; name: string; sortOrder: number; active: boolean; soDiaDiem: number; updatedAt: string }
+export interface VungDonResponse { zone: VungDonDto }
+export interface LocationListResponse { locations: LocationDto[]; types: LocationTypeDto[]; zones: VungDonDto[] }
 export interface LocationResponse { location: LocationDto }
 
 // ---- Hồ sơ (module parties) --------------------------------------------------

@@ -330,6 +330,8 @@ export const AUDIT_ACTIONS = {
   vehicle_size_saved: { label: "Lưu cỡ xe (bảng giá xe)", group: "trip" },
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
+  location_zone_created: { label: "Thêm khu vực đón", group: "location" }, // ADR-0147 Đ1; detail «<mã> — <tên>»
+  location_zone_updated: { label: "Sửa khu vực đón", group: "location" }, // detail «<mã> — <tên>», thêm « — ngưng» / « — bật lại» khi đổi trạng thái
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },
   refuse_policy_changed: { label: "Đổi hạn mức Từ chối", group: "system" }, // ADR-0032 điều 7: «Chế độ: … → …; liên tiếp … → …; mỗi tuần … → …»
   // ADR-0061 điều 6: Toàn quyền bật / tắt "Dịch vụ nhập tay" (POST /api/cai-dat/nhap-tay) — không gắn đơn (orderId NULL); detail "Bật" / "Tắt".
