@@ -241,9 +241,9 @@
       "mo_ta": "Đón miễn phí ở trung tâm. Khách lẻ, 2 người lớn, Tour lặn biển, đón ở khách sạn trung tâm Nha Trang. Phí đón 0 đ × 2 khách = 0 đ. Biên nhận vẫn in dòng «Phí đưa đón — Miễn phí».",
       "nguon": "ADR-0147 Đ2; ADR-0203 ĐB3",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -286,9 +286,9 @@
       "mo_ta": "Xa trung tâm thì trả phí. Khách lẻ, 2 người lớn + 1 trẻ em, Tour lặn biển, đón ở Bãi Dài – Cam Ranh. Phí 100.000 đ × 3 khách = 300.000 đ.",
       "nguon": "ADR-0147 Đ2",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -332,9 +332,9 @@
       "mo_ta": "Đón đi và đưa về. Khách lẻ, 2 người lớn, Tour lặn biển, Bãi Dài. Chiều đi 100.000 đ × 2 = 200.000 đ; chiều về có mức riêng 120.000 đ × 2 = 240.000 đ. Tổng 440.000 đ, hai dòng phí.",
       "nguon": "ADR-0147 Đ2, Đ3; ADR-0203 ĐB1 bậc 4 (chiều)",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -396,9 +396,9 @@
       "mo_ta": "Em bé không tính phí đón. Khách lẻ, 2 người lớn + 1 em bé, Tour lặn biển, Bắc Nha Trang. Phí 30.000 đ × 2 khách = 60.000 đ.",
       "nguon": "ADR-0147 Đ2 (PER_PAX không đếm em bé); ADR-0203 ĐB2",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -442,9 +442,9 @@
       "mo_ta": "Nơi đón gõ tay tính «Ngoài vùng». Khách lẻ, 2 người lớn, Tour lặn biển, nhân viên gõ tay tên một homestay không có trong danh mục. Phí 150.000 đ × 2 = 300.000 đ.",
       "nguon": "ADR-0147 Đ1",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -488,9 +488,9 @@
       "mo_ta": "Cùng khách sạn, đại lý cấp cao nhất. Đại lý cấp 1 đặt Tour lặn biển cho 2 người lớn, đón ở Bãi Dài. Phí 50.000 đ × 2 = 100.000 đ (khách lẻ cùng chỗ trả 200.000 đ — ca 02). Máy chụp lại «cấp 1».",
       "nguon": "ADR-0203 ĐB1, ĐB2; lời chủ 14/11",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -533,9 +533,9 @@
       "mo_ta": "Cùng khách sạn, đại lý cấp thấp nhất. Đại lý cấp 3 đặt đúng như ca 06. Phí 80.000 đ × 2 = 160.000 đ.",
       "nguon": "ADR-0203 ĐB1, ĐB2; lời chủ 14/11",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -578,9 +578,9 @@
       "mo_ta": "Dịch vụ thắng cấp. Trong tháng 12 có chương trình «Tour 3 đảo miễn phí đón ở Bãi Dài». Đại lý cấp 3 (bình thường trả 80.000 đ/khách) đặt Tour 3 đảo cho 2 người lớn ở Bãi Dài. Phí 0 đ — miễn phí.",
       "nguon": "ADR-0203 ĐB1 bậc 1; chủ chọn 14/11 «dịch vụ thắng»",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -623,9 +623,9 @@
       "mo_ta": "Chương trình hết hạn thì về mức cũ. Như ca 08 nhưng đơn xác nhận ngày 05/01/2027, chương trình đã kết thúc 31/12. Phí 80.000 đ × 2 = 160.000 đ theo cấp 3.",
       "nguon": "ADR-0147 Đ2 (hiệu lực theo ngày xác nhận)",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2027-01-05",
@@ -713,9 +713,9 @@
       "mo_ta": "Dòng nêu cả cấp lẫn nhóm thắng dòng chỉ nêu cấp. Đại lý cấp 1 đặt Tắm bùn Hòn Tằm cho 2 người lớn ở Bãi Dài. Có ba mức khớp: cấp 1 (50.000 đ), nhóm Hòn Tằm (70.000 đ), cấp 1 + nhóm Hòn Tằm (40.000 đ). Phí 40.000 đ × 2 = 80.000 đ.",
       "nguon": "ADR-0203 ĐB1",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -758,9 +758,9 @@
       "mo_ta": "Vé có đón, khách lẻ. Khách lẻ mua Vé Hòn Tằm có đón cho 2 người lớn ở Bãi Dài. Phí theo nhóm Hòn Tằm: 70.000 đ × 2 = 140.000 đ. Vé tính phí đón như mọi dịch vụ có đón khác.",
       "nguon": "ADR-0203 (vé đi qua đơn như dịch vụ thường); ADR-0149",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -803,9 +803,9 @@
       "mo_ta": "Đại lý chưa được gán cấp trả mức chung. Một đại lý mới, Kế toán chưa gán cấp, đặt Tour lặn biển cho 2 người lớn ở Bãi Dài. Phí như khách lẻ: 100.000 đ × 2 = 200.000 đ. Đơn không bị chặn.",
       "nguon": "ADR-0203 ĐB2 [người soạn]",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -849,9 +849,9 @@
       "mo_ta": "Đại lý hai vai trò mang hai cấp khác nhau. Một đối tác vừa mang vai trò được gán cấp 1 vừa mang vai trò được gán cấp 3, chưa có cấp riêng. Máy KHÔNG tự chọn cấp: văn phòng bấm xác nhận thì bị từ chối, câu báo «cần gán cấp riêng cho đối tác …». Đối tác tự gửi đơn thì đơn vào «chờ xác nhận». Sau khi Kế toán gán cấp riêng, đơn tính như ca 06 hoặc 07.",
       "nguon": "ADR-0203 ĐB2 [người soạn]",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -894,9 +894,9 @@
       "mo_ta": "Xe riêng tính theo chuyến. Khách lẻ thuê xe riêng đón 4 người lớn ở Bãi Dài. Phí 500.000 đ cho cả chuyến, không nhân số khách.",
       "nguon": "ADR-0147 Đ2 (PER_TRIP); ADR-0203 ĐB1",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -939,9 +939,9 @@
       "mo_ta": "Xe riêng của đại lý có cấp không lấy giá đi chung. Đại lý cấp 1 đặt xe riêng đón 4 người lớn ở Bãi Dài. Máy lấy mức xe riêng của cấp 1: 400.000 đ một chuyến — không lấy mức đi chung 50.000 đ/khách.",
       "nguon": "ADR-0203 ĐB1 (xe riêng tách nửa) [người soạn]",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -984,9 +984,9 @@
       "mo_ta": "Thiếu mức thì không tính 0. Khách lẻ đặt xe riêng ở Bắc Nha Trang, nơi chưa có mức xe riêng nào. Máy báo thiếu mức, văn phòng không xác nhận được cho tới khi Quản trị đặt mức. Máy không lấy 0 đ và không lấy mức đi chung 30.000 đ.",
       "nguon": "Hiến chương 5.7; ADR-0147 Đ3",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -1025,9 +1025,9 @@
       "mo_ta": "Chiều về ghi số người nhiều hơn số khách tính tiền. Khách lẻ, 2 người lớn + 1 em bé, Bắc Nha Trang. Chiều đi 30.000 đ × 2 = 60.000 đ. Chiều về nhân viên ghi «3 người» (tính cả em bé): máy vẫn chỉ tính 2 khách = 60.000 đ. Tổng 120.000 đ.",
       "nguon": "ADR-0203 ĐB2 (số khách tính tiền) [người soạn]",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -1092,9 +1092,9 @@
       "mo_ta": "Chiều về ít người hơn. Khách lẻ, 3 người lớn, Bắc Nha Trang. Chiều đi 30.000 đ × 3 = 90.000 đ. Chiều về chỉ 1 người đi xe: 30.000 đ × 1 = 30.000 đ. Tổng 120.000 đ.",
       "nguon": "ADR-0203 ĐB2",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -1157,9 +1157,9 @@
       "mo_ta": "Đổi bảng phí không đổi đơn đã xác nhận. Khách lẻ, 2 người lớn, Tour lặn biển, Bãi Dài, xác nhận ngày 28/12/2026: phí 100.000 đ × 2 = 200.000 đ. Từ 01/01/2027 mức Bãi Dài tăng lên 110.000 đ. Đơn này vẫn giữ 200.000 đ.",
       "nguon": "ADR-0147 Đ3 (chụp lúc xác nhận)",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-28",
@@ -1205,9 +1205,9 @@
       "mo_ta": "Đơn xác nhận sau ngày đổi mức lấy mức mới. Như ca 20 nhưng xác nhận ngày 02/01/2027: phí 110.000 đ × 2 = 220.000 đ.",
       "nguon": "ADR-0147 Đ2",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2027-01-02",
@@ -1250,9 +1250,9 @@
       "mo_ta": "Đại lý đổi cấp sau khi đơn đã xác nhận. Đại lý cấp 3 xác nhận đơn ca 07 (160.000 đ). Hôm sau Kế toán nâng đại lý lên cấp 1. Đơn cũ vẫn 160.000 đ và vẫn ghi «cấp 3»; đơn mới của họ mới tính theo cấp 1.",
       "nguon": "ADR-0203 ĐB2 (chụp mã cấp)",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -1300,9 +1300,9 @@
       "mo_ta": "Thêm lượt đón sau khi đơn đã xác nhận. Đơn ca 02 (300.000 đ) đã xác nhận, sau đó khách xin thêm chiều về. Máy thêm lượt đón nhưng KHÔNG tự cộng tiền: tổng phí đón vẫn 300.000 đ. Muốn thu thêm, văn phòng ghi điều chỉnh công nợ có người thứ hai duyệt.",
       "nguon": "ADR-0147 Đ3, «Điều chủ cần biết» 1",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -1350,9 +1350,9 @@
       "mo_ta": "Sửa số khách sau xác nhận tính lại theo mức đã chụp. Đơn ca 20 (2 người lớn, 100.000 đ/khách, chụp ngày 28/12). Ngày 03/01/2027 người có quyền sửa tiền sửa thành 3 người lớn. Phí tính lại theo mức ĐÃ CHỤP: 100.000 đ × 3 = 300.000 đ, không theo mức mới 110.000 đ.",
       "nguon": "ADR-0147 Đ3; ADR-0133 điều 3",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-28",
@@ -1455,9 +1455,9 @@
       "mo_ta": "Phí đón thuộc phần của Tour Đảo. Khách lẻ, Tắm bùn Hòn Tằm (do Hòn Tằm bán) 500.000 đ × 2 = 1.000.000 đ, đón ở Bãi Dài 70.000 đ × 2 = 140.000 đ. Trên biên nhận: phần của Hòn Tằm 1.000.000 đ, phần của Tour Đảo 140.000 đ. Tổng 1.140.000 đ.",
       "nguon": "ADR-0147 Đ3 «Tiền đi đâu» [người soạn; Kế toán xác nhận]",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -1507,9 +1507,9 @@
       "mo_ta": "Một đơn hai dịch vụ, mỗi lượt đón tính theo dịch vụ của nó. Đại lý cấp 1, 2 người lớn, đón ở Bãi Dài cho Tour 3 đảo (đang miễn phí đón) và cho Tắm bùn Hòn Tằm (40.000 đ/khách). Phí 0 đ + 80.000 đ = 80.000 đ.",
       "nguon": "ADR-0203 ĐB1; ADR-0149",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -1571,9 +1571,9 @@
       "mo_ta": "Trước ngày bật thì chưa tính phí. Quản trị đặt ngày bắt đầu áp là 01/12/2026. Đơn xác nhận ngày 25/11/2026 có đón ở Bãi Dài: không có dòng phí đón nào, đơn xác nhận như hôm nay.",
       "nguon": "ADR-0147 Đ2 (ngày bắt đầu áp)",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-14"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-11-25",
