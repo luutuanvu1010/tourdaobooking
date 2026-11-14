@@ -1,6 +1,6 @@
 # Phí đưa đón theo khu vực, cấp độ đại lý và dịch vụ — bản thiết kế
 
-- **Ngày:** 2026-11-14. **Loại:** hồ sơ có ngày (viết xong đóng băng). **Trạng thái:** bản nháp chờ chủ dự án duyệt.
+- **Ngày:** 2026-11-14. **Loại:** hồ sơ có ngày (viết xong đóng băng). **Trạng thái:** chủ dự án duyệt 2026-11-14 trong chat (mục 8). ADR bổ sung: `2026-11-14-phi-don-theo-cap-va-dich-vu/DE-XUAT-ADR-bo-sung.md`, chờ duyệt riêng.
 - **Loại việc:** việc lớn (tiền, dữ liệu). Thi công xong phải có người kiểm độc lập (`CLAUDE.md` §3).
 - **Nối tiếp:** ADR-0147 (phí đưa đón, accepted 2026-10-28, **chưa có mã**), ADR-0149 Đ2 (khoá dịch vụ trong biểu phí, hẹn làm cùng lượt phí đón), đặc tả `2026-10-14-dot-2-gia-dua-don.md`.
 - **Bản này KHÔNG sửa ADR-0147.** Phần mới đi vào một ADR bổ sung do chủ duyệt (mục 5). Số ADR và số migration lấy lúc thi công, sau khi liệt kê mọi nhánh chưa gộp (hôm nay lớn nhất là ADR-0202 và migration 0162 ở worktree này).
@@ -75,7 +75,7 @@ Mọi điều của ADR-0147 (Đ1 vùng đón, Đ2 bảng phí, Đ3 dòng phí t
   - **Xe riêng không nằm trong thứ tự này mà chia bảng làm hai nửa tách hẳn [người soạn]:** chặng xe riêng chỉ khớp các dòng tính theo chuyến (`PER_TRIP`, bắt buộc có khoá xe riêng); chặng đi chung chỉ khớp các dòng tính theo khách (`PER_PAX`, không được có khoá xe riêng). Máy chủ từ chối dòng sai cặp. Lý do: nếu để chung, dòng «cấp 3, 50.000 mỗi khách» sẽ thắng dòng «xe riêng 500.000 mỗi chuyến» và đối tác cấp 3 thuê xe riêng với giá đi chung.
   - Hai dòng có đúng cùng bộ điều kiện và trùng khoảng ngày bị chặn ngay lúc đặt. Khuôn trigger của `prc_commission_rule` không chép thẳng được vì điều kiện nằm ở dòng con; người thi công chọn một trong hai: cột «chữ ký bộ điều kiện» trên dòng quy tắc có chỉ mục và trigger chống chồng (ưu tiên, vì CSDL bảo đảm), hoặc chặn ở máy chủ trong cùng lô ghi. Dù cách nào, hàm chọn mức vẫn phải trả «xung đột» (xử lý như thiếu mức) nếu gặp hai dòng ngang bậc khác số, không chọn bừa.
   - **Đủ mức trước khi bật [người soạn]:** máy từ chối đặt «ngày bắt đầu áp» khi còn một vùng đang bật (kể cả `NGOAI_VUNG`) chưa có **dòng chung** cho chặng đi chung (để trống cấp, dịch vụ, nhóm, chiều) còn hiệu lực; khi đang áp, máy từ chối kết thúc dòng chung cuối cùng của một vùng nếu chưa có dòng chung nối tiếp. Chặt hơn ADR-0147 (chỉ đòi `NGOAI_VUNG`), để khách lẻ và đối tác chưa có cấp không bị kẹt đơn. Xe riêng không bắt buộc có dòng chung: thiếu thì đơn có chặng xe riêng báo thiếu mức như ADR-0147.
-  - **[câu hỏi cho chủ — xem mục 8, câu 1]** thứ tự «dịch vụ thắng cấp» là đề xuất của người soạn.
+  - Thứ tự «dịch vụ thắng cấp»: chủ chọn 14/11 (mục 8, câu 1).
 - **Thử tra** (đã có ở ADR-0147) nhận thêm hai ô: cấp độ đại lý (hoặc «khách lẻ») và dịch vụ. Kết quả nêu dòng thắng và các dòng thua, mỗi dòng một câu vì sao.
 - Màn đặt bảng phí: người soạn đề xuất đặt cạnh màn «Cấp độ đại lý» hiện có (cùng người dùng, cùng khuôn ngày hiệu lực). Bố cục màn hình để chủ duyệt bằng ảnh thật ở bước kế hoạch, không chốt ở đây.
 
@@ -101,7 +101,7 @@ Mọi điều của ADR-0147 (Đ1 vùng đón, Đ2 bảng phí, Đ3 dòng phí t
 
 - **Dòng phí là dòng riêng, không thuộc thành tiền của dịch vụ nào.** `order_item` thêm cột loại dòng (dịch vụ / phí đưa đón) và cột trỏ về chặng; dòng phí để `service_id` trống. Migration chỉ thêm cột, dòng cũ mặc định là loại dịch vụ.
 - **Không tính hoa hồng** (ADR-0147 giữ nguyên).
-- **Công nợ đại lý (ADR-0182)**: Tổng công nợ của đơn = tổng giá đại lý các dịch vụ **cộng đủ** các dòng phí đón. Sửa `ghepGiaDaiLy`. Hôm nay chưa có dòng thật nào để trống `service_id` (migration `0008` đã gán hết), nên **mọi** nơi đọc dòng tiền theo dịch vụ đều chưa từng gặp loại dòng này: người thi công phải rà hết (phải thu bán lẻ, «Đã thu», `effectiveService` / `effectiveSubtotal`, `chiaPhanNguoiBan`, biên nhận, phiếu công nợ, QR) và ghi kết quả rà vào kế hoạch. Trigger `0081` buộc tạm tính bằng tổng mọi dòng lúc xác nhận, nên phí đón chắc chắn nằm trong tạm tính và trong `total` mà cổng hạn mức Trả sau (`tra-sau-cong.ts`) đang dùng. **[câu hỏi cho chủ — mục 8, câu 2]**
+- **Công nợ đại lý (ADR-0182)**: Tổng công nợ của đơn = tổng giá đại lý các dịch vụ **cộng đủ** các dòng phí đón. Sửa `ghepGiaDaiLy`. Hôm nay chưa có dòng thật nào để trống `service_id` (migration `0008` đã gán hết), nên **mọi** nơi đọc dòng tiền theo dịch vụ đều chưa từng gặp loại dòng này: người thi công phải rà hết (phải thu bán lẻ, «Đã thu», `effectiveService` / `effectiveSubtotal`, `chiaPhanNguoiBan`, biên nhận, phiếu công nợ, QR) và ghi kết quả rà vào kế hoạch. Trigger `0081` buộc tạm tính bằng tổng mọi dòng lúc xác nhận, nên phí đón chắc chắn nằm trong tạm tính và trong `total` mà cổng hạn mức Trả sau (`tra-sau-cong.ts`) đang dùng. Chủ chọn 14/11 (mục 8, câu 2).
 - **Hạn mức trả sau**: phí đón nằm trong số nợ nên tính vào hạn mức đã dùng, không có luật riêng.
 - **Biên nhận và phiếu công nợ**: thêm mục «Phí đưa đón» vào danh sách trắng, mỗi chặng một dòng, thuộc phần của Tour Đảo (ADR-0147). Dòng 0 đồng vẫn in, ghi «Miễn phí» **[người soạn]**, để khách và đại lý thấy mình được miễn chứ không phải máy quên.
 - Chữ mới trên giao diện («Phí đưa đón», «Miễn phí», «Thử tra», tên các ô điều kiện) phải có trong `docs/BANG-THAM-CHIEU.md`; tên nào chưa có thì đưa 2–3 phương án cho chủ chọn ở bước kế hoạch.
@@ -122,7 +122,7 @@ Mọi điều của ADR-0147 (Đ1 vùng đón, Đ2 bảng phí, Đ3 dòng phí t
    - Đợt C: dòng phí trên đơn, chụp lúc xác nhận, cổng thiếu mức, công nợ đại lý, biên nhận.
    - Đợt D: câu đếm chỉ đọc nơi đón gõ tay trên dữ liệu thật (chủ chạy), rồi Quản trị xếp vùng, đặt mức, đặt «ngày bắt đầu áp».
    - Đợt A và B phát hành được sớm vì chưa tạo dòng tiền nào. Đợt C là đợt chạm tiền.
-4. **Điều kiện phát hành Đợt C**: mục TNV-G1 của `docs/quyen-hoan.json` đã đóng, hoặc chủ nói khác **[mục 8, câu 3]**.
+4. **Điều kiện phát hành Đợt C**: mục TNV-G1 của `docs/quyen-hoan.json` đã đóng, xem mục 8, câu 3.
 5. Trước «ngày bắt đầu áp», Nền tảng chạy y như hôm nay (ADR-0147).
 
 ## 7. Tiêu chí nghiệm thu thêm (ngoài các tiêu chí của ADR-0147)
@@ -140,11 +140,15 @@ Mọi điều của ADR-0147 (Đ1 vùng đón, Đ2 bảng phí, Đ3 dòng phí t
 - Biên nhận đơn có chặng miễn phí: có dòng «Phí đưa đón — Miễn phí».
 - Thử tra trả cùng số, cùng mã quy tắc với đơn thật trong mọi ca của sổ vàng.
 
-## 8. Câu chỉ chủ dự án quyết được
+## 8. Chủ dự án đã quyết (chat 14/11)
 
-1. **Dòng «theo dịch vụ» và dòng «theo cấp» cùng khớp thì dòng nào thắng?** Đề xuất: dịch vụ thắng (chương trình miễn phí đón của một tour áp cho mọi cấp). Chọn ngược lại thì mức theo cấp luôn giữ, muốn khuyến mại một tour phải đặt riêng cho từng cấp.
-2. **Đơn đại lý: phí đón cộng đủ vào số đại lý nợ công ty?** Đề xuất: có, vì mức đón đã đặt riêng theo cấp, không giảm thêm bằng hoa hồng.
-3. **Đợt chạm tiền có chờ lỗi «đơn huỷ vẫn hiện còn nợ» đóng (hạn 31/12) không?** Đề xuất: giữ như ADR-0147 đang ghi (chờ); Đợt A, B làm và phát hành trước.
+Nguyên văn câu trả lời: «1- dịch vụ thắng, 2- có, cộng vào số đại lý nợ, 3- sửa luôn phần chạm tiền bị lỗi, giải thích thêm. Duyệt theo đề xuất».
+
+1. **Dòng «theo dịch vụ» và dòng «theo cấp» cùng khớp:** dịch vụ thắng. Thứ tự ở ĐB1 giữ nguyên.
+2. **Đơn đại lý:** phí đón cộng đủ vào số đại lý nợ công ty. ĐB3 giữ nguyên.
+3. **Lỗi «đơn huỷ vẫn hiện còn nợ» (TNV-G1):** chủ muốn sửa luôn, không để phần chạm tiền của phí đón phải chờ. Hiện trạng đọc ở `docs/quyen-hoan.json` và `2026-11-09-dot-4-hoi-chu.md`: phần sửa đã chạy trên production từ bản 2.42 (29/10); mục sổ chưa đóng vì còn ba việc không phải mã: chủ hoặc Kế toán xác nhận năm ca sổ vàng 01, 02, 04, 08, 13; ca 07 chờ đặc tả phiếu chi; chủ chạy lệnh kiểm dữ liệu production. Điều kiện phát hành Đợt C ở mục 6 vì vậy vẫn là «mục TNV-G1 đã đóng», và việc cần làm là đóng mục đó, không phải viết mã sửa lỗi. Cách đóng (nhất là ca 07) chờ chủ trả lời sau khi nghe giải thích; ghi ở ADR bổ sung.
+
+Chủ duyệt bản thiết kế này cùng câu trả lời trên. Các chỗ **[người soạn]** được duyệt theo đề xuất, sau khi đã nêu riêng với chủ trong chat (xe riêng tách khỏi đi chung; khách lẻ và đối tác chưa có cấp trả mức chung; đối tác hai vai trò hai cấp phải gán cấp riêng; mỗi vùng phải có mức chung trước khi bật; em bé không tính, chặng miễn phí vẫn in dòng).
 
 ## 9. Để người thi công tự quyết
 
