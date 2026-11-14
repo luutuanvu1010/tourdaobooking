@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Chủ dự án 14/11 (sau khi lên 3.1): «vẫn khác rất xa so với bản mockup ở Desktop, đồng thời, số điện thoại lại hiện 2 lần». Chỉ giao diện, không migration.
+    // SỐ TẠM 3.2: main có 3.1; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.2",
+    date: "2026-11-14",
+    items: [
+      { kind: "sua", text: "Trang Tôi ở máy tính: mục Chế độ bảo trì trải ngang, xem trước khung điện thoại nằm bên phải như bản mẫu, hiện đủ tiêu đề và đếm theo giờ thật." },
+      { kind: "sua", text: "Số điện thoại hỗ trợ không còn hiện hai lần ở trang Tôi và trang đăng nhập." },
+    ],
+  },
+  {
     // ADR-0202 bổ sung (chủ 13/11, «Có, nối luôn»): GET /api/auth/config luôn có supportPhone; dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập dùng số đó. Không migration.
     // SỐ TẠM 3.1: main có 3.0; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.1",

@@ -112,11 +112,13 @@ try {
     await clickByText(owner, ".maint-confirm", "Xác nhận bật");
     await owner.waitFor(`/Đang bật/.test(${q("#maintenance .maint-state")}?.textContent ?? '')`, "chuyển sang Đang bật");
     assert.match(await text(owner, "#maintenance .maint-state"), /Dự kiến hoàn tất lúc \d\d:\d\d \d\d\/\d\d\/\d{4}/);
-    const a = await text(owner, "#maint-preview .maint-count");
-    assert.match(a, /^(59 phút \d\d giây|1 giờ 00 phút 00 giây)$/);
+    // 14/11/2026: bỏ câu «Nhân viên đang thấy: … (SĐT)» (SĐT hiện hai lần) — bản xem trước khung điện thoại đếm theo GIỜ THẬT khi đang bật.
+    assert.equal(await owner.ev(`!document.querySelector('#maint-preview') && !/Nhân viên đang thấy/.test(${q("#maintenance")}.textContent)`), true, "không còn câu trùng SĐT");
+    const oSo = `[...document.querySelectorAll('.maint-xem-truoc .maint-o-so')].map((e) => e.textContent).join(':')`;
+    const a = await owner.ev(oSo);
+    assert.match(a, /^(00:59:\d\d|01:00:00)$/, a);
     await sleep(2200);
-    const b = await text(owner, "#maint-preview .maint-count");
-    assert.notEqual(a, b, "đồng hồ phải chạy");
+    assert.notEqual(await owner.ev(oSo), a, "đồng hồ xem trước phải chạy theo giờ thật");
     assert.match(await text(owner, '.dai[data-loai="bao-tri"]'), /^Đang bảo trì/);
     assert.equal(await owner.ev(`${q('.dai[data-loai="bao-tri"] a')}.getAttribute('href')`), "/account");
     assert.equal(await owner.ev(`${q('.dai[data-loai="bao-tri"]')}.getBoundingClientRect().height >= 44`), true, "dải cao ≥ 44px");
@@ -208,7 +210,8 @@ try {
     await p.send("Page.navigate", { url: `${env.base}/login` });
     await p.waitFor(`document.readyState === 'complete' && !${q("#maintenance-banner")}.hidden`, "banner hiện");
     assert.equal(await p.ev(`${q("#maintenance-banner")}.getAttribute('role')`), "status");
-    assert.match(await text(p, "#maintenance-text"), /^Hệ thống đang tạm đóng để bảo trì\. Thời gian dự kiến hoàn tất là .+, liên hệ quản trị viên khi cần hỗ trợ thêm \(0989929373\)\.$/);
+    assert.match(await text(p, "#maintenance-text"), /^Hệ thống đang tạm đóng để bảo trì\. Thời gian dự kiến hoàn tất là .+, liên hệ quản trị viên khi cần hỗ trợ thêm\.$/); // 14/11/2026: không kèm SĐT — số nằm ở dòng «Hỗ trợ kỹ thuật» ngay dưới
+    assert.equal(await p.ev(`(document.body.textContent.match(/0989\\s?929\\s?373/g) ?? []).length`), 1, "SĐT hỗ trợ chỉ hiện MỘT lần trên trang đăng nhập");
     // Bản thiết kế Đăng nhập (2026-09-24): nút khoá tới khi gõ đủ SĐT + 6 số PIN — banner bảo trì KHÔNG khoá thêm.
     await p.ev(setInput(q("#phone"), ACCOUNTS.salesA.phone));
     await p.ev(setInput(q("#pin"), ACCOUNTS.salesA.pin));
@@ -333,7 +336,12 @@ try {
     await o.shot(join(OUT, "anh/bt-08-sua-noi-dung-390.png"));
     await o.send("Emulation.setDeviceMetricsOverride", { width: 1040, height: 900, deviceScaleFactor: 1, mobile: false });
     assert.equal(await o.ev(`${q(".maint-nd-nut-xem")}.offsetParent === null && ${q(".maint-nd-xem")}.offsetParent !== null`), true, "máy tính: xem trước luôn hiện, không cần nút");
+    assert.equal(await o.ev(`${q(".maint-xem-truoc .maint-title")}.getBoundingClientRect().height > 20`), true, "máy tính: tiêu đề trong xem trước KHÔNG bị luật «tiêu đề trang lên thanh trên» giấu");
     await o.shot(join(OUT, "anh/bt-08b-sua-noi-dung-1040.png"));
+    await o.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 900, deviceScaleFactor: 1, mobile: false });
+    await o.ev(`${q("#maintenance")}.scrollIntoView()`);
+    assert.equal(await o.ev(`${q(".maint-nd-xem")}.getBoundingClientRect().left >= ${q(".maint-trai")}.getBoundingClientRect().right && Math.round(${q(".maint-xem-truoc")}.getBoundingClientRect().width) === 390`), true, "máy tính rộng: xem trước là cột bên 390px như bản mẫu 2c");
+    await o.shot(join(OUT, "anh/bt-08c-sua-noi-dung-1440.png"));
     await o.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
     // SĐT sai → báo lỗi tiếng Việt ngay, không gửi.
     await o.ev(setInput(q("#maint-nd-sdt"), "0905"));

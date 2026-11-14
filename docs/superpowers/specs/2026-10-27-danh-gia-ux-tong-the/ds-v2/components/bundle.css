@@ -190,10 +190,10 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 /* [7] Một trang, một tiêu đề (quyết định cổng 2b: tên trang ở thanh trên). Tiêu đề lớn trong thân chỉ ẩn khỏi mắt — trình đọc màn hình vẫn có h1.
    Giữ biển số ở Chi tiết xe (.vc-plate: là nội dung, không phải nhãn trang). Điện thoại: trước đây chỉ ẩn `main > h1`, nay ẩn cả h1 nằm trong hàng đầu trang. */
 @media (min-width: 900px) {
-  body.has-sidebar main h1:not(.vc-plate):not(.hd-bai-ten) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  body.has-sidebar main h1:not(.vc-plate):not(.hd-bai-ten):not(.maint-title) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 }
 @media (max-width: 899px) {
-  body[data-title] main h1:not(.vc-plate):not(.hd-bai-ten) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  body[data-title] main h1:not(.vc-plate):not(.hd-bai-ten):not(.maint-title) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   /* [6] Trang con có nút quay lại: bỏ ô chữ cái đầu trang trí (chỉ là hình, không bấm được) để tiêu đề — vd mã đơn — không bị cắt. */
   #topbar:has(> .bar-back) .bar-avatar { display: none; }
 }
@@ -307,6 +307,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .account-layout > * { break-inside: avoid; margin: 0 0 var(--s4); }
   .account-layout > .vc-eyebrow { break-after: avoid; margin-bottom: var(--s2); }
   body.has-sidebar #links > .row-link.danger { display: none; }
+  #maintenance { column-span: all; } /* bản mẫu 2c (14/11/2026): mục bảo trì trải hết bề ngang hai cột — khung sửa bên trái, xem trước khung điện thoại bên phải */
 }
 
 /* [11] Trang chủ máy tính (Phương án A, 31/10): biểu đồ tuần giãn theo thẻ Doanh thu — xếp dưới con số, chiều cao từ --h-chart-min tới --h-chart-max (xem khối Trang chủ MÁY TÍNH). */

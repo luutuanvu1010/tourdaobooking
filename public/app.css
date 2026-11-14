@@ -187,6 +187,8 @@
   --w-maint-nut: 140px;     /* bề rộng cơ sở nút Gọi / Nhắn Zalo: hẹp thì xuống hai dòng */
   --w-maint-goi: 220px;     /* bề rộng cơ sở riêng nút Gọi (số điện thoại không gãy dòng) */
   --logo-maint: 36px;       /* logo đầu thẻ màn bảo trì */
+  --w-maint-xem: 390px;     /* khung điện thoại của bản xem trước màn bảo trì ở trang Tôi (bản mẫu 2c) */
+  --r-maint-xem: 24px;      /* bo góc khung điện thoại xem trước (bản mẫu 2c) */
   --lh-maint-so: 36px;      /* chiều cao dòng số đồng hồ màn bảo trì */
   --fs-name: var(--fs-h2);        /* tên và chữ viết tắt trong thẻ hồ sơ (trang Tôi) */
   --fs-bar-title: var(--fs-step-7); /* tiêu đề trên thanh đầu trang (điện thoại) */
@@ -966,7 +968,7 @@ button.xm-the { min-height: var(--tap-min); cursor: pointer; }
   .account-layout { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); align-items: start; }
   #me, #links, #passkeys, #pin-form { grid-column: 1; } /* Task 10: #passkeys thiếu ở đây thì #maintenance ẩn (đa số tài khoản không phải chủ) làm #passkeys tự trôi sang cột 2 giữa chừng (đo bằng CDP: left ~532px, không thẳng hàng cột nào) */
   #myjobs { grid-column: 1 / -1; } /* Task 1.8: "Việc của tôi" của HDV có hai khối (chờ nhận / của tôi) — trải hết bề ngang, không bó vào nửa cột */
-  #maintenance, #tro-ly-cai-dat { grid-column: 2; } /* ADR-0066: khối cài đặt trợ lý của Toàn quyền đứng dưới bảo trì, cùng cột */
+  #tro-ly-cai-dat { grid-column: 2; } /* ADR-0066: khối cài đặt trợ lý của Toàn quyền, cột phải */
 }
 /* mục Face ID ở trang "Tôi": mỗi máy một dòng, ngăn bằng đường kẻ như danh sách dòng của app (.line-view/.mline) — trước đây là .card lồng trong #passkeys.card, cùng nền nên không thấy khung */
 .passkey-list { margin-bottom: var(--s3); border-top: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); }
@@ -1805,9 +1807,13 @@ body.maint-open { overflow: hidden; }
 .maint-nd-nut-xem { align-self: stretch; }
 .maint-nd-xem { display: none; flex-direction: column; gap: var(--s2); }
 .maint-nd-xem.mo { display: flex; }
-.maint-nd-xem > .nhan { margin: 0; }
-.maint-xem-truoc { padding: var(--s4); background: var(--c-bg); border: 1px solid var(--c-border); border-radius: var(--radius-lg); }
-@media (min-width: 900px) { .maint-nd-xem { display: flex; } .maint-nd .maint-nd-nut-xem { display: none; } } /* máy tính: bản xem trước luôn hiện như bản mẫu; điện thoại: bấm «Xem trước màn bảo trì» */
+.maint-nd-xem > .nhan { margin: 0; color: var(--c-text-muted); }
+.maint-xem-truoc { width: 100%; max-width: var(--w-maint-xem); margin: 0 auto; padding: var(--s5) var(--s4); background: var(--c-maint-bg); border: 1px solid var(--c-border); border-radius: var(--r-maint-xem); box-shadow: var(--shadow-card); } /* khung điện thoại: nền xám của màn che, thẻ trắng ở giữa — như lớp phủ thật */
+@media (min-width: 900px) { .maint-nd-xem { display: flex; } .maint-nd .maint-nd-nut-xem { display: none; } .maint-nd-xem > .nhan { max-width: var(--w-maint-xem); width: 100%; margin: 0 auto; } }
+@media (min-width: 1200px) { /* bản mẫu 2c: hai cột — khung sửa | xem trước 390px dính khi cuộn */
+  #maintenance:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) var(--w-maint-xem); gap: var(--s6); align-items: start; }
+  #maintenance .maint-nd-xem { position: sticky; top: var(--s4); }
+} /* máy tính: bản xem trước luôn hiện như bản mẫu; điện thoại: bấm «Xem trước màn bảo trì» */
 
 /* ---------- hồ sơ khách trên đơn (N2 lát 1) ---------- */
 .booker { display: grid; gap: var(--s2); margin-top: var(--s3); }
@@ -4423,10 +4429,10 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 /* [7] Một trang, một tiêu đề (quyết định cổng 2b: tên trang ở thanh trên). Tiêu đề lớn trong thân chỉ ẩn khỏi mắt — trình đọc màn hình vẫn có h1.
    Giữ biển số ở Chi tiết xe (.vc-plate: là nội dung, không phải nhãn trang). Điện thoại: trước đây chỉ ẩn `main > h1`, nay ẩn cả h1 nằm trong hàng đầu trang. */
 @media (min-width: 900px) {
-  body.has-sidebar main h1:not(.vc-plate):not(.hd-bai-ten) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  body.has-sidebar main h1:not(.vc-plate):not(.hd-bai-ten):not(.maint-title) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 }
 @media (max-width: 899px) {
-  body[data-title] main h1:not(.vc-plate):not(.hd-bai-ten) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+  body[data-title] main h1:not(.vc-plate):not(.hd-bai-ten):not(.maint-title) { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
   /* [6] Trang con có nút quay lại: bỏ ô chữ cái đầu trang trí (chỉ là hình, không bấm được) để tiêu đề — vd mã đơn — không bị cắt. */
   #topbar:has(> .bar-back) .bar-avatar { display: none; }
 }
@@ -4540,6 +4546,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .account-layout > * { break-inside: avoid; margin: 0 0 var(--s4); }
   .account-layout > .vc-eyebrow { break-after: avoid; margin-bottom: var(--s2); }
   body.has-sidebar #links > .row-link.danger { display: none; }
+  #maintenance { column-span: all; } /* bản mẫu 2c (14/11/2026): mục bảo trì trải hết bề ngang hai cột — khung sửa bên trái, xem trước khung điện thoại bên phải */
 }
 
 /* [11] Trang chủ máy tính (Phương án A, 31/10): biểu đồ tuần giãn theo thẻ Doanh thu — xếp dưới con số, chiều cao từ --h-chart-min tới --h-chart-max (xem khối Trang chủ MÁY TÍNH). */
