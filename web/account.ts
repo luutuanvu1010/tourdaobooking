@@ -12,7 +12,6 @@ import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { helpHasNews, newDot } from "./help-seen";
 import { icon } from "./icons";
-import { renderMaintenanceMessage } from "./maintenance-screen";
 import { dungSuaNoiDung } from "./maint-noi-dung";
 import { ganCaiDatNhapTay } from "./nhap-tay-cai-dat";
 import { ganCaiDatAnKhach } from "./an-khach-cai-dat";
@@ -723,7 +722,6 @@ void renderMfa();
 // Bật = mọi tài khoản khác bị chặn NGAY (kể cả phiên đang mở) — nên bật phải qua bước xác nhận thứ hai ngay trong trang (không dùng confirm() của trình duyệt). Máy chủ mới là nơi kiểm quyền và giờ hợp lệ.
 const maintenanceEl = byId("maintenance");
 const QUICK_MINUTES = [30, 60, 120] as const;
-let stopPreview: (() => void) | null = null;
 
 /** Chọn giờ dự kiến hoàn tất: ba nút nhanh (từ lúc bấm) hoặc ô chọn giờ (hiểu là giờ Việt Nam). `iso()` trả mốc ISO UTC đã chọn, hoặc null nếu chưa chọn/nhập sai. */
 function etaPicker(): { el: HTMLElement; iso: () => string | null } {
@@ -752,8 +750,6 @@ function etaPicker(): { el: HTMLElement; iso: () => string | null } {
 }
 
 function renderMaintenance(status: Api.MaintenanceResponse): void {
-  stopPreview?.();
-  stopPreview = null;
   setMaintenanceStrip(status.on); // dải "Đang ở chế độ bảo trì" theo trạng thái mới, khỏi tải lại trang
   const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
   const lock = (locked: boolean): void => maintenanceEl.querySelectorAll<HTMLButtonElement | HTMLInputElement>("button, input").forEach((el) => (el.disabled = locked));
@@ -824,27 +820,27 @@ function renderMaintenance(status: Api.MaintenanceResponse): void {
     body = h("div", null, setup, confirmBox);
   }
 
-  const preview = status.on ? h("span", { id: "maint-preview" }) : null;
-  if (preview) stopPreview = renderMaintenanceMessage(preview, status.endsAt, status.content.sdt);
+  // Bản mẫu 2c: nội dung màn bảo trì do Toàn quyền tự sửa (lưu riêng, không đổi bật/tắt). Bản xem trước khung điện thoại CHÍNH LÀ điều nhân viên thấy
+  // (kể cả SĐT), nên không còn câu «Nhân viên đang thấy: … (SĐT)» ở trên — trước đây SĐT hiện hai lần (chủ dự án 14/11/2026). Máy tính: xem trước là cột bên, dính khi cuộn.
+  const nd = dungSuaNoiDung(status.content, status.on ? status.endsAt : null);
   replaceChildren(
     maintenanceEl,
-    h("h2", { id: "maintenance-heading" }, "Chế độ bảo trì"),
-    h("p", { class: "muted" }, "Khi bật, mọi tài khoản không có quyền Toàn quyền bị chặn ngay (kể cả đang mở Nền tảng, kể cả Quản trị)."),
     h(
-      "p",
-      { class: "maint-state" },
-      h("span", { class: status.on ? "badge badge-draft" : "badge badge-cancelled" }, status.on ? "Đang bật" : "Đang tắt"),
-      status.on && status.endsAt && h("span", null, `Dự kiến hoàn tất lúc ${vnDateTimeText(status.endsAt)}`),
+      "div",
+      { class: "maint-trai" },
+      h("h2", { id: "maintenance-heading" }, "Chế độ bảo trì"),
+      h("p", { class: "muted" }, "Khi bật, mọi tài khoản không có quyền Toàn quyền bị chặn ngay (kể cả đang mở Nền tảng, kể cả Quản trị)."),
+      h(
+        "p",
+        { class: "maint-state" },
+        h("span", { class: status.on ? "badge badge-draft" : "badge badge-cancelled" }, status.on ? "Đang bật" : "Đang tắt"),
+        status.on && status.endsAt && h("span", null, `Dự kiến hoàn tất lúc ${vnDateTimeText(status.endsAt)}`),
+      ),
+      errorBox,
+      body,
+      nd.form,
     ),
-    preview && h("p", { class: "muted" }, "Nhân viên đang thấy: ", preview),
-    errorBox,
-    body,
-    // Bản mẫu 2c: nội dung màn bảo trì do Toàn quyền tự sửa (lưu riêng, không đổi bật/tắt). Lưu xong chỉ vẽ lại câu «Nhân viên đang thấy» với SĐT mới (giữ câu «Đã lưu» của khung).
-    dungSuaNoiDung(status.content, (r) => {
-      if (!preview) return;
-      stopPreview?.();
-      stopPreview = renderMaintenanceMessage(preview, r.endsAt, r.content.sdt);
-    }),
+    nd.xem,
   );
   maintenanceEl.hidden = false;
 }

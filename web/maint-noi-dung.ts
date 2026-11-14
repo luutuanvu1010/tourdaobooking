@@ -26,11 +26,16 @@ const CONG_TAC: { k: CongTac; nhan: string }[] = [
   { k: "hienWeb", nhan: "Thẻ website" },
   { k: "hienCamOn", nhan: "Lời cảm ơn" },
 ];
-/** Giờ mẫu cho bản xem trước (đồng hồ đứng yên 02:05:09 như bản mẫu). */
+/** Giờ mẫu cho bản xem trước khi bảo trì đang TẮT (đồng hồ đứng yên 02:05:09 như bản mẫu). Đang bật thì xem trước dùng giờ thật. */
 const MAU_CON_LAI_MS = (2 * 3600 + 5 * 60 + 9) * 1000;
+/** Bộ đếm giây của bản xem trước (một cái cho cả trang: dựng lại mục thì dọn cái cũ). */
+let demXemTruoc: ReturnType<typeof setInterval> | null = null;
 
-/** Dựng khung sửa nội dung + bản xem trước. `daLuu` là nội dung máy chủ đang giữ; `onSaved` nhận phản hồi sau khi lưu. */
-export function dungSuaNoiDung(daLuu: MaintenanceContent, onSaved: (r: Api.MaintenanceResponse) => void): HTMLElement {
+/**
+ * Dựng khung sửa nội dung (`form`) và bản xem trước khung điện thoại (`xem`) — hai phần tách riêng để trang Tôi đặt xem trước thành cột bên ở máy tính như bản mẫu 2c.
+ * `daLuu` là nội dung máy chủ đang giữ; `endsAt` là giờ dự kiến hoàn tất khi bảo trì ĐANG BẬT (xem trước đếm giờ thật), null khi đang tắt (giờ mẫu).
+ */
+export function dungSuaNoiDung(daLuu: MaintenanceContent, endsAt: string | null): { form: HTMLElement; xem: HTMLElement } {
   const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
   const okBox = h("p", { class: "muted", role: "status" });
   const o = {} as Record<O, HTMLInputElement | HTMLTextAreaElement>;
@@ -76,16 +81,27 @@ export function dungSuaNoiDung(daLuu: MaintenanceContent, onSaved: (r: Api.Maint
 
   // Bản xem trước: dựng lại thẻ thật mỗi lần gõ. Nội dung chưa hợp lệ vẫn xem được, nhưng đường dẫn chưa qua kiểm thì bỏ (không đặt href lạ, kể cả trong khung inert).
   const khung = h("div", { class: "maint-xem-truoc", inert: true, "aria-hidden": "true" });
+  const endsMs = endsAt ? Date.parse(endsAt) : NaN;
+  const gioThat = Number.isFinite(endsMs) && endsMs > Date.now();
+  const mauEnds = new Date(Date.now() + MAU_CON_LAI_MS).toISOString();
+  let the: ReturnType<typeof dungTheBaoTri> | null = null;
+  const toGio = (): void => {
+    if (!the) return;
+    const left = gioThat ? endsMs - Date.now() : MAU_CON_LAI_MS;
+    if (left > 0) toDongHo(the, left);
+  };
   const veXemTruoc = (): void => {
     const v = doc();
     const r = checkMaintenanceContent(v);
     const nd: MaintenanceContent = r.ok ? r.content : { ...(v as unknown as MaintenanceContent), zalo: "", website: "" };
-    const t = dungTheBaoTri(nd, new Date(Date.now() + MAU_CON_LAI_MS).toISOString());
-    t.title.removeAttribute("id");
-    t.message.removeAttribute("id");
-    toDongHo(t, MAU_CON_LAI_MS);
-    replaceChildren(khung, t.cot);
+    the = dungTheBaoTri(nd, gioThat ? endsAt : mauEnds);
+    the.title.removeAttribute("id");
+    the.message.removeAttribute("id");
+    toGio();
+    replaceChildren(khung, the.cot);
   };
+  if (demXemTruoc !== null) clearInterval(demXemTruoc);
+  demXemTruoc = gioThat ? setInterval(toGio, 1000) : null;
   const xemTruoc = h("div", { class: "maint-nd-xem" }, h("p", { class: "nhan" }, "Xem trước trên điện thoại"), khung);
   const nutXem = h("button", { class: "nut maint-nd-nut-xem", "data-cap": "phu", type: "button", "aria-expanded": "false" }, "Xem trước màn bảo trì");
   nutXem.addEventListener("click", () => {
@@ -112,7 +128,6 @@ export function dungSuaNoiDung(daLuu: MaintenanceContent, onSaved: (r: Api.Maint
       const res = await api<Api.MaintenanceResponse>("/api/maintenance/content", { method: "PUT", body: r.content satisfies Api.MaintenanceContentRequest });
       dien(res.content);
       okBox.textContent = "Đã lưu. Nhân viên bị chặn sẽ thấy nội dung mới ở lần mở kế tiếp.";
-      onSaved(res);
     } catch (err) {
       showError(errorBox, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
     } finally {
@@ -135,5 +150,5 @@ export function dungSuaNoiDung(daLuu: MaintenanceContent, onSaved: (r: Api.Maint
   form.addEventListener("input", veXemTruoc);
   dien(daLuu);
   veXemTruoc();
-  return h("div", { class: "maint-nd", role: "group", "aria-labelledby": "maint-nd-heading" }, form, xemTruoc);
+  return { form: h("div", { class: "maint-nd", role: "group", "aria-labelledby": "maint-nd-heading" }, form), xem: xemTruoc };
 }

@@ -149,16 +149,18 @@ try {
 // ---- Banner chế độ bảo trì ----
 // Chỉ HIỂN THỊ (máy chủ mới là nơi chặn): thông điệp + đồng hồ đếm ngược sống, dùng chung với lớp phủ ở web/maintenance-screen.ts. Không che form vì chủ dự án vẫn phải đăng nhập được.
 let stopMaintenance: (() => void) | null = null;
-function setMaintenance(on: boolean, endsAt: string | null, sdt = ""): void {
+function setMaintenance(on: boolean, endsAt: string | null): void {
   stopMaintenance?.();
+  // Câu báo ở đây KHÔNG kèm SĐT: số hỗ trợ đã nằm ngay dòng «Hỗ trợ kỹ thuật» dưới nút Đăng nhập (apDungHoTro) — trước đây số hiện hai lần (chủ dự án 14/11/2026).
   // Đồng hồ về 0 = máy chủ đã tự tắt chế độ bảo trì (stateFromRow) → ẩn banner, mọi người đăng nhập lại được mà không phải tải lại trang.
-  stopMaintenance = on && maintenanceText ? renderMaintenanceMessage(maintenanceText, endsAt, sdt, () => setMaintenance(false, null)) : null;
+  stopMaintenance = on && maintenanceText ? renderMaintenanceMessage(maintenanceText, endsAt, "", () => setMaintenance(false, null)) : null;
   if (maintenanceEl) maintenanceEl.hidden = !on;
 }
 /** Dùng CHUNG cho lỗi bảo trì của cả nút Đăng nhập (PIN) và nút Face ID: cập nhật banner, không hiện lỗi chung ở #error. */
 function showMaintenanceBanner(err: ApiError): void {
   showError(errorEl, null);
-  setMaintenance(true, endsAtFrom(err.details), contentFrom(err.details).sdt);
+  setMaintenance(true, endsAtFrom(err.details));
+  apDungHoTro(contentFrom(err.details).sdt); // số hỗ trợ mới nhất đi kèm thân 503
   maintenanceEl?.scrollIntoView({ block: "nearest" });
 }
 
@@ -393,7 +395,7 @@ async function fetchConfig(): Promise<boolean> {
   try {
     const config = await api<Api.AuthConfigResponse>("/api/auth/config");
     siteKey = config.turnstileSiteKey;
-    setMaintenance(config.maintenance?.on === true, config.maintenance?.endsAt ?? null, config.maintenance?.content?.sdt ?? ""); // (`?.`: bản máy chủ cũ hơn chưa có trường này)
+    setMaintenance(config.maintenance?.on === true, config.maintenance?.endsAt ?? null);
     // B-15: fetchConfig chạy NHIỀU LẦN (start, recoverConfig) — chỉ bật nút/prefetch một lần duy nhất bằng cờ passkeyEnabled.
     if (config.passkey === true && !passkeyEnabled) {
       passkeyEnabled = true;

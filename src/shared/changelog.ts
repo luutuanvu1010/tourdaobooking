@@ -19,15 +19,25 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Bước 1 khung chung giao diện (kế hoạch 2026-11-13, chủ duyệt «Làm cả hai», «Theo khuyến nghị», «Làm tiếp cả hai»): vùng bấm ảnh đại diện, dải đầu trang hai
     // dòng ở điện thoại, thanh nút Lưu khi màn thấp, bỏ hộp hỏi của trình duyệt, chống nhảy bố cục (tệp đầu trang giu-cho-dai). Không migration, không đổi máy chủ.
-    // SỐ TẠM 3.2 (sau 3.1 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.2",
-    date: "2026-11-13",
+    // SỐ TẠM 3.3 (sau 3.2 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.3",
+    date: "2026-11-14",
     items: [
       { kind: "doi", text: "Các câu hỏi «có chắc không» nay hiện ngay trong Nền tảng; nút đỏ mang đúng tên việc sắp làm, nút còn lại là «Giữ nguyên»." },
       { kind: "doi", text: "Trên điện thoại, dải thông báo ở đầu trang gọn còn tối đa hai dòng; bấm «Xem» để đọc đủ." },
       { kind: "sua", text: "Trang không còn giật khi dải thông báo hoặc dữ liệu hiện ra sau, nhất là Quản lý tài khoản, Danh bạ, Dịch vụ và giá, Vé điện tử." },
       { kind: "sua", text: "Điện thoại xoay ngang: nút Lưu nằm cuối biểu mẫu, không còn che ô đang gõ." },
       { kind: "sua", text: "Ô chữ cái tên bạn ở góc trên điện thoại dễ bấm hơn." },
+    ],
+  },
+  {
+    // Chủ dự án 14/11 (sau khi lên 3.1): «vẫn khác rất xa so với bản mockup ở Desktop, đồng thời, số điện thoại lại hiện 2 lần». Chỉ giao diện, không migration.
+    // SỐ TẠM 3.2: main có 3.1; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.2",
+    date: "2026-11-14",
+    items: [
+      { kind: "sua", text: "Trang Tôi ở máy tính: mục Chế độ bảo trì trải ngang, xem trước khung điện thoại nằm bên phải như bản mẫu, hiện đủ tiêu đề và đếm theo giờ thật." },
+      { kind: "sua", text: "Số điện thoại hỗ trợ không còn hiện hai lần ở trang Tôi và trang đăng nhập." },
     ],
   },
   {
