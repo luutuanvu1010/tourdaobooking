@@ -26,6 +26,7 @@ function loiBangPhiDon(e: unknown): Response | null {
   if (/\bprc_key_inactive:/.test(m)) return error(400, "invalid_input", "Có điều kiện không còn được dùng.");
   if (/\bprc_append_only:/.test(m) || /UNIQUE constraint failed: prc_transfer_fee_start/.test(m)) return DA_DOI();
   if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Điều kiện của mức phí không hợp lệ.");
+  if (/CHECK constraint failed/.test(m)) return error(400, "invalid_input", "Có giá trị quá dài hoặc không hợp lệ (mã, ghi chú hay ngày) — kiểm tra lại rồi thử lại.");
   return null;
 }
 async function chayLo(db: D1Database, lo: D1PreparedStatement[]): Promise<D1Result[] | Response> {
@@ -237,12 +238,15 @@ export const phiDonRoutes: Route[] = [
     const chang: ChangTinhPhi = { zoneCode: vung, direction: chieu, exclusive: xeRieng === "1", catalogCode: dichVu, groupCode: nhom, tierCode: cap === "" ? null : cap };
     const muc = (await docMucPhiDonTu(env.DB, ngay)).map((d) => d.muc);
     const kq = chonMucPhiDon({ chang, ngay, muc });
-    if (kq.trangThai === "THIEU_MUC") return json({ ketQua: { trangThai: "THIEU_MUC", lyDo: kq.lyDo }, thua: [] } satisfies ThuTraPhiDonResponse);
+    const ap = await batDauApMoiNhat(env.DB);
+    const chuaApNgayNay = ap?.start_date == null || ngay < ap.start_date;
+    if (kq.trangThai === "THIEU_MUC") return json({ ketQua: { trangThai: "THIEU_MUC", lyDo: kq.lyDo }, thua: [], chuaApNgayNay } satisfies ThuTraPhiDonResponse);
     const t = tinhPhiChang({ muc: kq.muc, direction: chieu, soKhachTinhTien: Number(soKhachRaw), paxOverride: soVeRaw ? Number(soVeRaw) : null });
     if (!t || !Number.isSafeInteger(t.tien)) return SAI("Số khách hoặc số tiền quá lớn để tính.");
     return json({
       ketQua: { trangThai: "CO_MUC", mucId: kq.muc.id, kieu: kq.muc.kind, donGia: t.donGia, soLuong: t.soLuong, tien: t.tien },
       thua: kq.thua.map((x) => ({ mucId: x.muc.id, tien: x.muc.amount, viSao: x.viSao })),
+      chuaApNgayNay,
     } satisfies ThuTraPhiDonResponse);
   }),
 ];

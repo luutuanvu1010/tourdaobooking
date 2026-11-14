@@ -15,6 +15,7 @@ export interface TenPhiDon {
 export const CHU_MIEN_PHI = "Miễn phí";
 export const CHU_MOI_CAP = "Mọi cấp";
 export const CHU_THIEU_MUC = "Chưa có mức cho tình huống này. Đơn như vậy sẽ không xác nhận được.";
+export const CHU_CHUA_AP = "Phí đưa đón chưa áp vào ngày này.";
 export const CHU_XUNG_DOT = "Có hai mức cùng độ cụ thể nhưng khác số tiền, nên chưa chọn được mức nào. Sửa một trong hai mức rồi tra lại.";
 
 /** 1500000 → "1.500.000" (số nguyên đồng, ngăn nghìn bằng dấu chấm; không phụ thuộc ICU). */
@@ -83,13 +84,15 @@ export function cauCanhBaoGop(ds: readonly CanhBaoPhiDonDto[], ten: TenPhiDon): 
 
 export function cauKetQuaThuTra(r: ThuTraPhiDonResponse, ten: TenPhiDon): string[] {
   const k = r.ketQua;
-  if (k.trangThai === "THIEU_MUC") return [k.lyDo === "XUNG_DOT" ? CHU_XUNG_DOT : CHU_THIEU_MUC];
+  const chuaAp = r.chuaApNgayNay ? [CHU_CHUA_AP] : [];
+  if (k.trangThai === "THIEU_MUC") return [k.lyDo === "XUNG_DOT" ? CHU_XUNG_DOT : CHU_THIEU_MUC, ...chuaAp];
   const don = k.kieu === "PER_PAX" ? "khách" : "chuyến";
   const dong: string[] = [
     k.tien === 0
       ? `Phí đón: ${CHU_MIEN_PHI}`
       : `Phí đón: ${soTien(k.tien)} đ (${soTien(k.donGia)} đ/${don} × ${k.soLuong} ${don})`,
   ];
+  dong.push(...chuaAp);
   for (const t of r.thua) {
     const m = ten.muc?.get(t.mucId);
     const mo = m ? `${cauDieuKien(m, ten)} · ${cauTien(m)}` : cauTien({ kieu: k.kieu, tien: t.tien });

@@ -3194,6 +3194,8 @@ export interface PhiDonBatDauApResponse { batDauAp: { ngay: string | null; tuLuc
 export interface ThuTraPhiDonResponse {
   ketQua: { trangThai: "CO_MUC"; mucId: string; kieu: "PER_PAX" | "PER_TRIP"; donGia: number; soLuong: number; tien: number } | { trangThai: "THIEU_MUC"; lyDo: "KHONG_CO_MUC" | "XUNG_DOT" };
   thua: { mucId: string; tien: number; viSao: string }[];
+  /** true khi phí đưa đón chưa áp vào ngày hỏi (chưa đặt ngày bắt đầu áp, đã tắt, hoặc ngày hỏi sớm hơn ngày bắt đầu). Số tiền và mức chọn vẫn trả như cũ. */
+  chuaApNgayNay: boolean;
 }
 /** Gắn loại↔mức: 201 kèm `dongRieng` = dòng riêng theo loại (bậc 4–6) còn hiệu lực trong khoảng gắn, của loại này VÀ của mọi loại mà hồ sơ mang loại này đang mang — các dòng đó thắng TA (cảnh báo, không chặn — N-17). */
 export interface GanLoaiMucResponse { gan: GanLoaiMucDto; dongRieng: CommissionRuleDto[] }

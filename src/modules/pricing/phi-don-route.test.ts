@@ -375,6 +375,35 @@ test("Thử tra: tham số sai → 400; số quá lớn → 400", async () => {
   } as Record<string, Record<string, string | number>>)) assert.equal((await kqThu(c, { ...tot, ...them })).status, 400, ten);
 });
 
+test("Thử tra: cờ chuaApNgayNay — chưa bật, ngày sớm hơn ngày áp → true; từ ngày áp → false; số tiền và mức vẫn như cũ", async () => {
+  const c = await setup();
+  await gieo(c);
+  const hoi = (ngay: string) => kqThu(c, { vung: "BAC", chieu: "OUT", xeRieng: 0, dichVu: "TOUR_LAN", ngay, soKhach: 1 });
+  const chuaBat = await ok(hoi(NGAY_AP), 200);
+  assert.equal(chuaBat.json.chuaApNgayNay, true, "chưa đặt ngày bắt đầu áp");
+  assert.equal(chuaBat.json.ketQua.trangThai, "CO_MUC");
+  await ok(batDau(c, NGAY_AP, null), 200);
+  const som = await ok(hoi("2026-11-30"), 200);
+  assert.equal(som.json.chuaApNgayNay, true, "ngày hỏi sớm hơn ngày bắt đầu áp");
+  const dung = await ok(hoi(NGAY_AP), 200);
+  assert.equal(dung.json.chuaApNgayNay, false);
+  assert.equal(dung.json.ketQua.tien, chuaBat.json.ketQua.tien, "số tiền không đổi theo cờ");
+  const tat = (await lay(c)).json.batDauAp.tuLuc;
+  await ok(batDau(c, null, tat), 200);
+  assert.equal((await ok(hoi(NGAY_AP), 200)).json.chuaApNgayNay, true, "đã tắt phí");
+});
+
+test("lỗi CHECK của CSDL (mã dịch vụ dài quá) → 400 lời thường, không 500, bảng không đổi", async () => {
+  const c = await setup();
+  const dai = "DV_" + "X".repeat(70);
+  c.w.sqlite.prepare("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES (?, 'Dịch vụ mã dài', 'perPax', 1000, 1, ?, ?)").run(dai, AT, AT);
+  const truoc = trangThai(c);
+  const r = await ok(c.w.call("POST", "/api/pricing/phi-don", { as: ADM, body: { kind: "PER_PAX", amount: 1000, validFrom: NGAY_AP, validTo: null, note: null, dieuKien: [{ khoa: "ZONE", giaTri: "BAC" }, { khoa: "SERVICE", giaTri: dai }] } }), 400);
+  assert.equal(r.json.error.code, "invalid_input");
+  assert.doesNotMatch(r.text, /CHECK|constraint|SQLITE/i);
+  assert.deepEqual(trangThai(c), truoc);
+});
+
 test("docBangPhiDonChoDon: ngày bắt đầu áp, mức hiệu lực, cấp của bên đặt", async () => {
   const c = await setup();
   await gieo(c);

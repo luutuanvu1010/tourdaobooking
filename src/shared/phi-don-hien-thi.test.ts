@@ -113,6 +113,21 @@ test("cauKetQuaThuTra: thiếu mức và hai mức khác tiền cùng bậc", ()
   for (const d of [...thieu, ...xd]) assert.doesNotMatch(d, KHONG_MA_THO);
 });
 
+test("cauKetQuaThuTra: phí chưa áp vào ngày hỏi thì thêm một dòng nói rõ, số tiền vẫn nằm đầu", () => {
+  const r: ThuTraPhiDonResponse = {
+    ketQua: { trangThai: "CO_MUC", mucId: "m1", kieu: "PER_PAX", donGia: 50000, soLuong: 2, tien: 100000 },
+    thua: [], chuaApNgayNay: true,
+  };
+  const dong = cauKetQuaThuTra(r, ten);
+  assert.equal(dong[0], "Phí đón: 100.000 đ (50.000 đ/khách × 2 khách)");
+  assert.ok(dong.includes("Phí đưa đón chưa áp vào ngày này."), dong.join(" | "));
+  const da = cauKetQuaThuTra({ ...r, chuaApNgayNay: false }, ten);
+  assert.ok(!da.includes("Phí đưa đón chưa áp vào ngày này."));
+  const thieu = cauKetQuaThuTra({ ketQua: { trangThai: "THIEU_MUC", lyDo: "KHONG_CO_MUC" }, thua: [], chuaApNgayNay: true }, ten);
+  assert.equal(thieu.length, 2);
+  assert.equal(thieu[1], "Phí đưa đón chưa áp vào ngày này.");
+});
+
 test("dieuKienGui: dựng lại đủ khoá từ dòng đã đọc; xe riêng thành EXCLUSIVE 1", () => {
   assert.deepEqual(dieuKienGui(muc({}).dieuKien), [{ khoa: "ZONE", giaTri: "BD_CR" }]);
   assert.deepEqual(
