@@ -939,6 +939,25 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   KN({ ten: "Khoá lạc quan", giaiNghia: "Cách phát hiện người khác vừa sửa cùng dòng: dấu thời gian lệch thì máy chủ trả 409 `stale`.", khacVoi: "", chuDaLoai: [], maNoiBo: ["expectedUpdatedAt", "updated_at"], trangThai: "trong-ma", chuChon: "" }),
   KN({ ten: "View công bố", giaiNghia: "Cách duy nhất để module khác đọc nhãn của một module, chỉ đọc.", khacVoi: "", chuDaLoai: [], maNoiBo: ["v_<tiền tố>_<tên>"], trangThai: "trong-ma", chuChon: "" }),
   KN({ ten: "Giấy tờ hiện hành", giaiNghia: "Dòng giấy tờ chưa huỷ và chưa có dòng gia hạn chưa huỷ nối vào. Chỉ dòng này gia hạn hay sửa sai được, dòng khác trả 409 `document_not_current`.", khacVoi: "", chuDaLoai: [], maNoiBo: ["is_current", "HIEN_HANH", "current"], trangThai: "trong-ma", chuChon: "" }),
+  // ---- Khu vực đón (kế hoạch Phí đưa đón, Task 3; tên chủ chọn 14/11) ----
+  KN({
+    ten: "Khu vực đón",
+    giaiNghia: "Nhóm các điểm đón dùng chung một mức phí đưa đón. Mỗi địa điểm thuộc đúng một khu vực; địa điểm chưa xếp được tính vào «Ngoài khu vực».",
+    khacVoi: "«Địa điểm» là một nơi cụ thể (bến tàu, khách sạn, quầy vé); khu vực là nhóm nhiều địa điểm để tính phí.",
+    chuDaLoai: [],
+    maNoiBo: ["loc_zone", "zone_code", "VungDonDto"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-14 (chủ dự án: «Dùng tên đó, làm đi»)",
+  }),
+  KN({
+    ten: "Ngoài khu vực",
+    giaiNghia: "Khu vực gieo sẵn, luôn bật, không ngưng được. Địa điểm chưa xếp và nơi đón gõ tay được tính vào đây.",
+    khacVoi: "Không phải «chưa có mức phí»: khu vực này vẫn phải có mức phí đặt rõ, thiếu mức thì chặn chứ không tính 0 đồng.",
+    chuDaLoai: [],
+    maNoiBo: ["NGOAI_VUNG"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-14 (chủ dự án: «Dùng tên đó, làm đi»)",
+  }),
 ];
 
 /**

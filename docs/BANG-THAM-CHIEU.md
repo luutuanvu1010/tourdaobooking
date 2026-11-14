@@ -136,6 +136,8 @@ Mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn. 
 | **Dịch vụ có đón** | Điều kiện khi chỉnh «Hiển thị trường theo màn hình»: dịch vụ trong đơn được chọn «Đón». Dòng chỉnh gắn điều kiện này chỉ áp cho những dịch vụ đó. | Khác «Không đón»; dịch vụ chưa chọn đón thì không thuộc điều kiện nào, chỉ theo dòng không gắn điều kiện. |  | `DICH_VU_CO_DON` `src/shared/ui-dieu-kien.ts` | chờ chọn |  |
 | **Chi tiết đơn** | Màn chỉ xem trong phần chỉnh hiển thị trường: trang một đơn (email khách, ghi chú khách, ghi chú thanh toán, người lập). Ẩn ở đây chỉ ẩn chữ trên màn hình, không phải cấm xem. | Quyền xem đơn vẫn do quyền của tài khoản quyết định; dữ liệu vẫn có trong phản hồi của máy chủ. |  | `MAN_UI.chi-tiet-don` | chờ chọn |  |
 | **Danh sách đơn** | Màn chỉ xem trong phần chỉnh hiển thị trường: danh sách các đơn (ghi chú khách, điểm đón, người lập, giờ lập, số khách). Ẩn ở đây chỉ ẩn chữ trên màn hình, không phải cấm xem. | Quyền xem đơn vẫn do quyền của tài khoản quyết định. |  | `MAN_UI.danh-sach-don` | chờ chọn |  |
+| **Khu vực đón** | Nhóm các điểm đón dùng chung một mức phí đưa đón. Mỗi địa điểm thuộc đúng một khu vực; địa điểm chưa xếp được tính vào «Ngoài khu vực». | «Địa điểm» là một nơi cụ thể (bến tàu, khách sạn, quầy vé); khu vực là nhóm nhiều địa điểm để tính phí. |  | `loc_zone` `zone_code` `VungDonDto` | đã chốt | 2026-11-14 (chủ dự án: «Dùng tên đó, làm đi») |
+| **Ngoài khu vực** | Khu vực gieo sẵn, luôn bật, không ngưng được. Địa điểm chưa xếp và nơi đón gõ tay được tính vào đây. | Không phải «chưa có mức phí»: khu vực này vẫn phải có mức phí đặt rõ, thiếu mức thì chặn chứ không tính 0 đồng. |  | `NGOAI_VUNG` | đã chốt | 2026-11-14 (chủ dự án: «Dùng tên đó, làm đi») |
 
 ## Thuật ngữ trong mã
 
@@ -325,7 +327,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (337)
+## Việc quan trọng (339)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -1579,6 +1581,8 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 |---|---|---|---|---|---|---|---|
 | **Thêm** | Địa điểm › khung «Thêm địa điểm» | Thêm một địa điểm mới (mã, tên, loại, địa chỉ, thứ tự) vào danh mục dùng cho nơi đón, nơi trả, nơi làm. Mã không đổi được sau khi tạo. | không | một phần: không xoá được, chỉ Ngưng dùng bằng nút Sửa | `/api/locations`<br>nhật ký `location_created` | `public/locations.html`: Thêm | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 | **Sửa** | Địa điểm › mỗi dòng (bảng và thẻ) › khung «Sửa: <mã>» | Sửa tên, loại, địa chỉ, thứ tự, số «Chọn nhanh» (hiện thành nút bấm ở form Tạo đơn) và công tắc «Đang dùng» (bỏ tick = ngưng dùng). Có khoá chống ghi đè khi hai người cùng sửa. | không | được: sửa lại; tick lại «Đang dùng» để dùng lại | `/api/locations/:x`<br>nhật ký `location_updated` | `web/locations.ts`: Sửa<br>`web/locations.ts`: Lưu | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
+| **Thêm khu vực đón** | Địa điểm › thẻ «Khu vực đón» › khung thêm | Thêm một khu vực đón mới (mã, tên, thứ tự). Khu vực gom các địa điểm dùng chung một mức phí đưa đón. Mã không đổi được sau khi tạo. | không | một phần: không xoá được, chỉ ngưng bằng nút Sửa khu vực đón | `/api/location-zones`<br>nhật ký `location_zone_created` | `public/locations.html`: Thêm khu vực đón | đã chốt (chủ chọn 2026-11-14) |
+| **Sửa khu vực đón** | Địa điểm › thẻ «Khu vực đón» › mỗi khu vực › khung «Sửa: <mã>» | Sửa tên, thứ tự và công tắc «Đang dùng» của một khu vực đón (bỏ tick = ngưng). Khu vực còn địa điểm, và khu vực «Ngoài khu vực», không ngưng được. Có khoá chống ghi đè khi hai người cùng sửa. | không | được: sửa lại; tick lại «Đang dùng» để dùng lại | `/api/location-zones/:x`<br>nhật ký `location_zone_updated` | `web/locations.ts`: Sửa khu vực đón | đã chốt (chủ chọn 2026-11-14) |
 
 ### Hồ sơ Danh bạ
 
