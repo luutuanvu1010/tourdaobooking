@@ -3185,6 +3185,9 @@ export interface MucPhiDonDto { id: string; kieu: "PER_PAX" | "PER_TRIP"; tien: 
 export interface CanhBaoPhiDonDto { cap: string; vung: string; chieu: "OUT" | "RETURN"; xeRieng: boolean; dichVu: string | null; nhom: string | null; tienCap: number; tienKhongCap: number }
 export interface PhiDonResponse { muc: MucPhiDonDto[]; batDauAp: { ngay: string | null; tuLuc: string | null }; canhBao: CanhBaoPhiDonDto[];
   vung: { code: string; name: string }[]; cap: { code: string; name: string }[]; nhom: { code: string; name: string }[]; dichVu: { code: string; name: string; nhom: string | null }[] }
+/** Thân `POST /api/pricing/phi-don`: `thayCho` (tuỳ chọn) = đổi mức — đóng dòng `id` ngày liền trước `validFrom` rồi thêm dòng mới trong một lần ghi; dòng mới phải cùng kiểu tính và cùng bộ điều kiện. `expectedUpdatedAt` = `updatedAt` đã đọc của dòng cũ. */
+export interface PhiDonThayCho { id: string; expectedUpdatedAt: string }
+export interface PhiDonThemBody { kind: "PER_PAX" | "PER_TRIP"; amount: number; validFrom: string; validTo: string | null; note: string | null; dieuKien: { khoa: string; giaTri: string }[]; thayCho?: PhiDonThayCho }
 export interface PhiDonGhiResponse { muc: MucPhiDonDto; canhBao: CanhBaoPhiDonDto[] }
 /** `POST …/bat-dau-ap`: dòng ngày bắt đầu áp mới nhất sau khi ghi (`ngay` null = đang tắt). `tuLuc` gửi lại làm `tuLucDaDoc` ở lần đổi sau. */
 export interface PhiDonBatDauApResponse { batDauAp: { ngay: string | null; tuLuc: string } }

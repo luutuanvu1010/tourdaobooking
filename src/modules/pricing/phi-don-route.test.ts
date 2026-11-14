@@ -194,6 +194,112 @@ test("đang áp thì không kết thúc dòng chung cuối của vùng; dòng kh
   await ok(c.w.call("POST", `/api/pricing/phi-don/${p02}/ket-thuc`, { as: ADM, body: { validTo: "2026-12-31", expectedUpdatedAt: await upd(p02) } }), 200);
 });
 
+// ---- đổi mức bằng `thayCho` (một lô: đóng dòng cũ → chèn dòng mới → điều kiện → hai nhật ký) ----
+const BAC_CHUNG = { kieu: "PER_PAX", vung: "BAC", tien: 35000, tu: "2027-01-01", den: null };
+const capNhat = async (c: Ctx, id: string) => (await lay(c)).json.muc.find((m: any) => m.id === id).updatedAt as string;
+const thay = async (c: Ctx, id: string, m: any, expectedUpdatedAt?: string) =>
+  c.w.call("POST", "/api/pricing/phi-don", { as: ADM, body: { ...than(c, m), thayCho: { id, expectedUpdatedAt: expectedUpdatedAt ?? (await capNhat(c, id)) } } });
+const trangThai = (c: Ctx) => [dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_rule"), dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_condition"), dem(c.w, "SELECT count(*) AS n FROM audit_log"),
+  JSON.stringify(c.w.q("SELECT id, valid_to_date, updated_at FROM prc_transfer_fee_rule ORDER BY id"))];
+
+test("đang áp: thay mức chung bằng thayCho — dòng cũ đóng ngày liền trước, dòng mới nối tiếp, hai nhật ký", async () => {
+  const c = await setup();
+  await gieo(c);
+  await ok(batDau(c, NGAY_AP, null), 200);
+  const p02 = c.id.get("P02")!;
+  const tra = (ngay: string) => kqThu(c, { vung: "BAC", chieu: "OUT", xeRieng: 0, dichVu: "TOUR_LAN", ngay, soKhach: 1 });
+  const r = await ok(thay(c, p02, BAC_CHUNG), 201);
+  assert.equal(r.json.muc.tien, 35000);
+  assert.equal(dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_rule WHERE id = ? AND valid_to_date = '2026-12-31'", p02), 1, "dòng cũ đóng 2026-12-31");
+  const g = (await lay(c, "2026-12-15")).json.muc;
+  assert.equal(g.find((m: any) => m.id === p02).denNgay, "2026-12-31");
+  assert.ok(g.find((m: any) => m.id === r.json.muc.id), "GET thấy cả dòng mới");
+  assert.equal((await tra("2026-12-31")).json.ketQua.tien, 30000);
+  assert.equal((await tra("2027-01-01")).json.ketQua.tien, 35000);
+  assert.equal(dem(c.w, "SELECT count(*) AS n FROM audit_log WHERE action = 'prc_transfer_fee_ended' AND target_id = ?", p02), 1);
+  const them = String(c.w.q("SELECT detail FROM audit_log WHERE action = 'prc_transfer_fee_added' AND target_id = ?", r.json.muc.id)[0].detail);
+  assert.ok(them.includes(`thay dòng ${p02}`), them);
+  // kết thúc mức mới đang áp (khu vực chỉ còn dòng này) vẫn bị chốt «đủ mức» chặn
+  const chan = await ok(c.w.call("POST", `/api/pricing/phi-don/${r.json.muc.id}/ket-thuc`, { as: ADM, body: { validTo: "2027-03-31", expectedUpdatedAt: r.json.muc.updatedAt } }), 409);
+  assert.equal(chan.json.error.code, "transfer_fee_general_required");
+});
+
+test("thayCho: dòng mới có ngày kết thúc làm khu vực hở sau đó → 409 transfer_fee_general_required, không ghi gì", async () => {
+  const c = await setup();
+  await gieo(c);
+  await ok(batDau(c, NGAY_AP, null), 200);
+  const truoc = trangThai(c);
+  const r = await ok(thay(c, c.id.get("P02")!, { ...BAC_CHUNG, den: "2027-06-30" }), 409);
+  assert.equal(r.json.error.code, "transfer_fee_general_required");
+  assert.deepEqual(trangThai(c), truoc);
+});
+
+test("thayCho khác bộ điều kiện hoặc khác kiểu tính → 400, không dòng nào đổi, không nhật ký", async () => {
+  const c = await setup();
+  await gieo(c);
+  await ok(batDau(c, NGAY_AP, null), 200);
+  const p02 = c.id.get("P02")!;
+  const truoc = trangThai(c);
+  const khacDk = await ok(thay(c, p02, { ...BAC_CHUNG, cap: "C1" }), 400);
+  assert.ok(String(khacDk.json.error.message).includes("cùng kiểu tính và cùng bộ điều kiện"), khacDk.text);
+  await ok(thay(c, p02, { ...BAC_CHUNG, vung: "TT" }), 400);
+  await ok(thay(c, p02, { kieu: "PER_TRIP", vung: "BAC", xe_rieng: true, tien: 200000, tu: "2027-01-01", den: null }), 400);
+  assert.deepEqual(trangThai(c), truoc);
+});
+
+test("thayCho: mốc cũ → 409 stale; không có dòng cũ → 404; thân thayCho thiếu → 400; không dòng nào đổi", async () => {
+  const c = await setup();
+  await gieo(c);
+  const p07 = c.id.get("P07")!; // BAC + cấp 1, đang mở
+  const cu = await capNhat(c, p07);
+  await ok(c.w.call("POST", `/api/pricing/phi-don/${p07}/ket-thuc`, { as: ADM, body: { validTo: "2027-06-30", expectedUpdatedAt: cu } }), 200);
+  const truoc = trangThai(c);
+  const moi = { kieu: "PER_PAX", vung: "BAC", cap: "C1", tien: 5000, tu: "2027-01-01", den: null };
+  assert.equal((await ok(thay(c, p07, moi, cu), 409)).json.error.code, "stale");
+  assert.equal((await ok(thay(c, "khong-co-dong-nay", moi, "x"), 404)).status, 404);
+  assert.equal((await c.w.call("POST", "/api/pricing/phi-don", { as: ADM, body: { ...than(c, moi), thayCho: { id: p07 } } })).status, 400);
+  assert.deepEqual(trangThai(c), truoc);
+});
+
+test("thayCho: ngày bắt đầu mới không sau ngày bắt đầu dòng cũ, hoặc dòng cũ đã kết thúc sớm hơn → 400", async () => {
+  const c = await setup();
+  await gieo(c);
+  const p02 = c.id.get("P02")!; // từ 2026-12-01
+  const truoc = trangThai(c);
+  await ok(thay(c, p02, { ...BAC_CHUNG, tu: "2026-12-01" }), 400);
+  await ok(thay(c, p02, { ...BAC_CHUNG, tu: "2026-11-15" }), 400);
+  const p07 = c.id.get("P07")!;
+  await ok(c.w.call("POST", `/api/pricing/phi-don/${p07}/ket-thuc`, { as: ADM, body: { validTo: "2026-12-10", expectedUpdatedAt: await capNhat(c, p07) } }), 200);
+  const sauKetThuc = trangThai(c);
+  await ok(thay(c, p07, { kieu: "PER_PAX", vung: "BAC", cap: "C1", tien: 5000, tu: "2027-01-01", den: null }), 400); // không nới ngày kết thúc 2026-12-10 ra 2026-12-31
+  assert.deepEqual(trangThai(c), sauKetThuc);
+  assert.notDeepEqual(truoc, sauKetThuc);
+});
+
+test("thayCho là lô nguyên tử: chèn dòng mới thất bại thì dòng cũ KHÔNG bị đóng, không nhật ký", async () => {
+  const c = await setup();
+  await gieo(c);
+  const p07 = c.id.get("P07")!;
+  const truoc = trangThai(c);
+  c.w.sqlite.prepare("UPDATE prc_transfer_fee_key SET active = 0 WHERE code = 'TIER'").run(); // trigger prc_key_inactive chặn bước chèn điều kiện
+  const r = await ok(thay(c, p07, { kieu: "PER_PAX", vung: "BAC", cap: "C1", tien: 5000, tu: "2027-01-01", den: null }), 400);
+  assert.equal(r.json.error.code, "invalid_input");
+  assert.deepEqual(trangThai(c), truoc, "dòng cũ vẫn mở, không dòng mới, không nhật ký");
+  assert.equal(dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_rule WHERE id = ? AND valid_to_date IS NULL", p07), 1);
+});
+
+test("thayCho: cảnh báo cấp cao hơn vẫn được tính trên trạng thái sau lô; vắng thayCho thì tạo mức thường", async () => {
+  const c = await setup();
+  await gieo(c);
+  // thay dòng chung CR (P12 từ 2027-01-01, 110.000) bằng dòng 60.000 từ 2027-02-01: cấp 3 (80.000) cao hơn → có cảnh báo
+  const r = await ok(thay(c, c.id.get("P12")!, { kieu: "PER_PAX", vung: "CR", tien: 60000, tu: "2027-02-01", den: null }), 201);
+  assert.ok(r.json.canhBao.some((x: any) => x.cap === c.cap.C3 && x.vung === "CR" && x.tienKhongCap === 60000), JSON.stringify(r.json.canhBao));
+  assert.equal(dem(c.w, "SELECT count(*) AS n FROM prc_transfer_fee_rule WHERE id = ? AND valid_to_date = '2027-01-31'", c.id.get("P12")), 1);
+  const thuong = await ok(c.w.call("POST", "/api/pricing/phi-don", { as: ADM, body: than(c, { kieu: "PER_PAX", vung: "BAC", cap: "C3", tien: 1000, tu: NGAY_AP, den: null }) }), 201);
+  assert.equal(dem(c.w, "SELECT count(*) AS n FROM audit_log WHERE action = 'prc_transfer_fee_ended'"), 1, "tạo thường không ghi «kết thúc»");
+  assert.ok(!String(c.w.q("SELECT detail FROM audit_log WHERE action = 'prc_transfer_fee_added' AND target_id = ?", thuong.json.muc.id)[0].detail).includes("thay dòng"));
+});
+
 test("kết thúc: ngày không hợp lệ, không phải rút ngắn, mã không có → 400/404", async () => {
   const c = await setup();
   await gieo(c);

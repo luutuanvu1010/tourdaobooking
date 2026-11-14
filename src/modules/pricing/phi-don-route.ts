@@ -76,19 +76,60 @@ export const phiDonRoutes: Route[] = [
     } satisfies PhiDonResponse);
   }),
 
+  // Thân tuỳ chọn `thayCho: { id, expectedUpdatedAt }` = «đổi mức»: đóng dòng cũ (ngày liền trước ngày bắt đầu mới) rồi chèn dòng mới trong CÙNG MỘT lô; vắng thì là tạo mức thường.
   route("POST", "/api/pricing/phi-don", "admin", async ({ env, request, staff, vungDon }) => {
     if (!can(staff, "admin.manage")) return FORBIDDEN();
     const b = await bietMa(env.DB, vungDon);
-    const kq = kiemThanMucPhiDon(await readJson(request), b.biet);
+    const raw = await readJson(request);
+    const kq = kiemThanMucPhiDon(raw, b.biet);
     if (!kq.ok) return error(400, "invalid_input", kq.message);
     const v = kq.value;
+    const rawThay = (raw as Record<string, unknown>).thayCho;
+    let thay: { id: string; truocLuc: string } | null = null;
+    if (rawThay !== undefined && rawThay !== null) {
+      const t = rawThay as Record<string, unknown>;
+      if (typeof rawThay !== "object" || Array.isArray(rawThay) || typeof t.id !== "string" || t.id === "" || typeof t.expectedUpdatedAt !== "string" || t.expectedUpdatedAt === "")
+        return error(400, "invalid_input", "Thiếu mức cần thay hoặc mốc cập nhật của nó — tải lại rồi thử lại.");
+      thay = { id: t.id, truocLuc: t.expectedUpdatedAt };
+    }
     const id = crypto.randomUUID();
     const at = new Date().toISOString();
     const khoang = `từ ${ngayDayDu(v.validFrom)}${v.validTo ? ` đến ${ngayDayDu(v.validTo)}` : ""}`;
+    let dongCu: { ketThuc: string; chuKy: string } | null = null;
+    if (thay) {
+      const row = await quyTacTheoId(env.DB, thay.id);
+      if (!row) return error(404, "not_found", "Không tìm thấy mức phí đưa đón này.");
+      if (thay.truocLuc !== row.updated_at) return DA_DOI();
+      const truoc = (await docMucPhiDonTu(env.DB, TAT_CA)).find((d) => d.muc.id === thay.id);
+      if (!truoc) return error(404, "not_found", "Không tìm thấy mức phí đưa đón này.");
+      if (truoc.muc.kind !== v.kind || chuKyDieuKien(truoc.muc.dieuKien) !== chuKyDieuKien(v.dieuKien))
+        return error(400, "invalid_input", "Mức thay thế phải cùng kiểu tính và cùng bộ điều kiện với mức cũ.");
+      if (v.validFrom <= row.valid_from_date) return error(400, "invalid_input", "Ngày bắt đầu của mức thay thế phải sau ngày bắt đầu của mức cũ.");
+      const ketThuc = addDays(v.validFrom, -1);
+      if (row.valid_to_date !== null && row.valid_to_date < ketThuc) return error(400, "invalid_input", "Mức cũ đã kết thúc sớm hơn ngày liền trước ngày bắt đầu mới — chỉ được rút ngắn, không được nới.");
+      // «Đủ mức» khi phí đang áp, tính trên trạng thái SAU lô: dòng cũ đã đóng, dòng mới đã chèn.
+      const ap = await batDauApMoiNhat(env.DB);
+      const k = truoc.muc.dieuKien;
+      if (ap?.start_date != null && v.kind === "PER_PAX" && Object.keys(k).length === 1 && k.ZONE !== undefined) {
+        const vung = await vungDon();
+        if (vung.some((x) => x.code === k.ZONE)) {
+          const tatCa = await docMucPhiDonTu(env.DB, TAT_CA);
+          const sau: MucPhiDon[] = [...tatCa.map((d) => (d.muc.id === thay!.id ? { ...d.muc, validTo: ketThuc } : d.muc)), { id, kind: v.kind, amount: v.amount, validFrom: v.validFrom, validTo: v.validTo, dieuKien: v.dieuKien }];
+          for (const ngay of v.validTo ? [v.validFrom, addDays(v.validTo, 1)] : [v.validFrom]) {
+            const thieu = vungThieuDongChung({ vung: [k.ZONE], muc: sau, ngay });
+            if (thieu.length > 0) return THIEU_CHUNG(vung, thieu);
+          }
+        }
+      }
+      dongCu = { ketThuc, chuKy: chuKyDieuKien(k) };
+    }
     const res = await chayLo(env.DB, [
+      // Đóng dòng cũ TRƯỚC khi chèn dòng mới (trigger chồng ngày); cả lô cùng thành hoặc cùng thất bại.
+      ...(thay && dongCu ? [cauDongMucPhiDon(env.DB, { id: thay.id, denNgay: dongCu.ketThuc, at, by: staff.id, truocLuc: thay.truocLuc })] : []),
       ...cauThemMucPhiDon(env.DB, { id, ...v, at, by: staff.id }),
+      ...(thay && dongCu ? [auditStatement(env.DB, { staffId: staff.id, action: "prc_transfer_fee_ended", at, targetType: "ledger", targetId: thay.id, detail: `${dongCu.chuKy} · kết thúc ${ngayDayDu(dongCu.ketThuc)} · đổi mức` })] : []),
       auditStatement(env.DB, { staffId: staff.id, action: "prc_transfer_fee_added", at, targetType: "ledger", targetId: id,
-        detail: `${v.kind === "PER_TRIP" ? "theo chuyến" : "theo khách"} · ${nhanDong(v.amount)}đ · ${chuKyDieuKien(v.dieuKien)} · ${khoang}` }),
+        detail: `${v.kind === "PER_TRIP" ? "theo chuyến" : "theo khách"} · ${nhanDong(v.amount)}đ · ${chuKyDieuKien(v.dieuKien)} · ${khoang}${thay ? ` · thay dòng ${thay.id}` : ""}` }),
     ]);
     if (res instanceof Response) return res;
     const dong = await docMucPhiDonTu(env.DB, TAT_CA);
