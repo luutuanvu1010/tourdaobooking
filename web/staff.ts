@@ -14,6 +14,8 @@ import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./c
 import { initShell, showError } from "./shell";
 import { nhanHaiLop } from "../src/shared/hai-lop-hien-thi";
 import { dungHangChoXacMinh } from "./xac-minh-hang-cho";
+import { dungHangChoDangKy } from "./dang-ky-hang-cho";
+import { dauXacMinh } from "./dau-xac-minh";
 import { CHU_CAP, suaDuocCot, thayCotCap } from "../src/shared/cap-hien-hanh-hien-thi";
 import { datTieuDiemODongCap, oCap, oCapDangNap, oCapKhongTai, taiCapHienHanh } from "./cot-cap-dai-ly";
 import type { CapHienHanhDto } from "../src/shared/contracts";
@@ -209,6 +211,10 @@ const oCapCuaS = (s: Api.StaffListRowDto): HTMLElement | null =>
         ? oCapKhongTai(s)
         : oCap(s, s.partyId === null ? undefined : capHienHanh.get(s.partyId), suaDuocCot(me), lamMoiCap);
 
+/** Tài khoản đang tắt: «Chưa kích hoạt» (sinh từ phiếu đăng ký, chưa tự đặt PIN — ADR-0207 Đ7) hoặc «Ngưng». */
+const trangThaiTat = (s: Api.StaffListRowDto): HTMLElement =>
+  s.chuaKichHoat ? h("span", { class: "badge badge-draft", "data-chua-kich-hoat": "1" }, "Chưa kích hoạt") : h("span", { class: "badge badge-cancelled" }, "Ngưng");
+
 function row(s: Api.StaffListRowDto): HTMLElement {
   const btn = (label: string, onclick: () => void, cls = "btn btn-link") => {
     const b = h("button", { type: "button", class: cls }, label);
@@ -219,7 +225,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
   return h(
     "tr",
     { class: s.active ? "" : "row-off" },
-    h("td", null, s.fullName, isMe && h("span", { class: "muted" }, " (bạn)"), !s.active && !anCot("active") && h("span", { class: "badge badge-cancelled" }, "Ngưng"), s.locked && h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập"), h("div", null, nhanHaiLopEl(s))),
+    h("td", null, s.fullName, isMe && h("span", { class: "muted" }, " (bạn)"), dauXacMinh(s.dauXacMinh), !s.active && !anCot("active") && trangThaiTat(s), s.locked && h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập"), h("div", null, nhanHaiLopEl(s))),
     h("td", null, s.phone),
     h("td", null, accessLabel(s)),
     hienCotCap && h("td", null, oCapCuaS(s)),
@@ -255,6 +261,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
         }),
       quanDuoc(s) &&
         !isMe &&
+        !s.chuaKichHoat && // ADR-0207 Đ7: tài khoản chưa kích hoạt chỉ có đường «Gửi lại lời mời» (hàng chờ phiếu đăng ký); máy chủ trả 409 cho «Kích hoạt lại»
         btn(
           s.active ? "Ngưng" : "Kích hoạt lại",
           async () => {
@@ -278,8 +285,8 @@ function card(s: Api.StaffListRowDto): HTMLElement {
   return h(
     "div",
     { class: s.active ? "card card-col" : "card card-col row-off" },
-    h("div", null, h("strong", null, s.fullName), isMe && h("span", { class: "muted" }, " (bạn)")),
-    !s.active && !anCot("active") && h("div", null, h("span", { class: "badge badge-cancelled" }, "Ngưng")),
+    h("div", null, h("strong", null, s.fullName), isMe && h("span", { class: "muted" }, " (bạn)"), dauXacMinh(s.dauXacMinh)),
+    !s.active && !anCot("active") && h("div", null, trangThaiTat(s)),
     s.locked && h("div", null, h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),
     h("div", null, nhanHaiLopEl(s)),
     h("div", { class: "muted" }, s.phone, " · ", accessLabel(s)),
@@ -314,6 +321,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
         }),
       quanDuoc(s) &&
         !isMe &&
+        !s.chuaKichHoat && // ADR-0207 Đ7: tài khoản chưa kích hoạt chỉ có đường «Gửi lại lời mời» (hàng chờ phiếu đăng ký); máy chủ trả 409 cho «Kích hoạt lại»
         btn(
           s.active ? "Ngưng" : "Kích hoạt lại",
           async () => {
@@ -597,6 +605,8 @@ else {
   }
   // ADR-0125 đ6: hàng chờ xác minh phiếu tự khai — ô party.verify (Quản trị, Nhân sự, Toàn quyền); khối tự dựng và hiện, máy chủ kiểm lại từng route.
   if (can(staff, "party.verify")) dungHangChoXacMinh(byId("xac-minh"), staff);
+  // ADR-0207 Đ9: hàng chờ phiếu đăng ký đối tác — ô registration.queue.view (Quản trị, Nhân sự, Toàn quyền); từng bước hỏi ô riêng, máy chủ kiểm lại.
+  if (can(staff, "registration.queue.view")) dungHangChoDangKy(byId("dang-ky-hc"), staff);
   chinhSach = await taiChinhSach();
   for (const th of document.querySelectorAll<HTMLElement>("th")) anPhanTu(anCot(th.textContent === "Tạo lúc" ? "createdAt" : th.textContent === "Đăng nhập gần nhất" ? "lastLoginAt" : ""), th);
   await load();
