@@ -211,7 +211,7 @@ function dungTepLuat({ tu, ghi }, nc, root) {
     if (r) return r;
   }
   let k = 0;
-  while (k < tu.length && (/^\w+=/.test(tu[k]) || BOC.has(tu[k]))) k++;
+  while (k < tu.length && (/^\w+=/.test(tu[k]) || BOC.has(basename(tu[k])))) k++; // basename: `/usr/bin/env node …` (người kiểm độc lập 15/11)
   if (k >= tu.length) return null;
   const lenh = basename(tu[k]);
   const a = tu.slice(k + 1);
@@ -308,7 +308,7 @@ export function danhGiaScriptLuat(command, scripts, { cwd = null, root = null } 
   for (const { raw } of candidates(String(command ?? "").slice(0, 200_000))) {
     for (const { tu } of tachDoan(raw)) {
       let k = 0;
-      while (k < tu.length && (/^\w+=/.test(tu[k]) || BOC.has(tu[k]))) k++;
+      while (k < tu.length && (/^\w+=/.test(tu[k]) || BOC.has(basename(tu[k])))) k++;
       if (k < tu.length && TRINH.test(basename(tu[k]))) doiSo.push(...tu.slice(k + 1, k + 51).filter((x) => !x.startsWith("-"))); // chỉ đối số của chính lệnh trình thông dịch
     }
   }
