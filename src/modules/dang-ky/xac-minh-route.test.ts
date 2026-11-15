@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { cauLyDoChoNguoiDangKy } from "../../shared/dang-ky-hien-thi.ts";
-import { lyDoCuaPhieu } from "./repository.ts";
+import { boSungStatement, datStatement, ketLuanMucStatement, lyDoCuaPhieu, suKienNhanVienStatement } from "./repository.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const ACC = "22222222-2222-4222-8222-222222222222";
@@ -70,8 +70,9 @@ async function tep(w: any, reg: string, slot = "CCCD_MAT_TRUOC"): Promise<{ id: 
 const reg = (w: any, id: string) => w.q("SELECT * FROM dk_registration WHERE id = ?", id)[0];
 const events = (w: any, id: string): any[] => w.q("SELECT actor_kind, actor_ref, command, reason_code FROM dk_event WHERE registration_id = ? ORDER BY created_at, rowid", id).map((x: any) => ({ ...x }));
 const audits = (w: any, action?: string): any[] => w.q(`SELECT staff_id, action, target_type, target_id, detail FROM audit_log WHERE action LIKE 'registration_%'${action ? " AND action = ?" : ""} ORDER BY created_at, rowid`, ...(action ? [action] : [])).map((x: any) => ({ ...x }));
-const ketLuan = (w: any, as: string, id: string, body: unknown) => w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as, body });
-const dat = (w: any, as: string, id: string, body: unknown = {}) => w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as, body });
+// `phienBan` mặc định 1 (bản khai người xác minh đã xem); bài tab cũ truyền số khác (hoặc `phienBan: undefined` để thử thiếu).
+const ketLuan = (w: any, as: string, id: string, body: any) => w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as, body: { phienBan: 1, ...body } });
+const dat = (w: any, as: string, id: string, body: any = {}) => w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as, body: { phienBan: 1, ...body } });
 const boSung = (w: any, as: string, id: string, body: unknown = { lyDo: "KHONG_DOC_DUOC" }) => w.call("POST", `/api/dang-ky/phieu/${id}/bo-sung`, { as, body });
 const tuChoi = (w: any, as: string, id: string, body: unknown = { lyDo: "KHONG_THUOC_DIEN" }) => w.call("POST", `/api/dang-ky/phieu/${id}/tu-choi`, { as, body });
 const xemSo = (w: any, as: string, id: string) => w.call("POST", `/api/dang-ky/phieu/${id}/xem-so`, { as });
@@ -121,7 +122,7 @@ test("(2) Hàng chờ: Quản trị, Toàn quyền thấy mọi phiếu chưa k�
   w.sqlite.prepare("UPDATE dk_registration SET activated_at = ? WHERE id = ?").run(AT, g); // đã kích hoạt: không còn ở hàng chờ
   const ids = async (as: string) => (await w.call("GET", "/api/dang-ky/hang-cho", { as })).json.phieu.map((x: any) => x.id).sort();
   assert.deepEqual(await ids(ADM), [a, b, c, e].sort());
-  assert.deepEqual(await ids(SUP), [a, b, c, e].sort());
+  assert.deepEqual(await ids(SUP), [a, b, c, e, f].sort(), "Toàn quyền: xác minh được + có account.create ⇒ hợp (có cả ĐÃ DUYỆT chưa kích hoạt)");
   assert.deepEqual(await ids(HR), [c, f].sort());
   const r = await w.call("GET", "/api/dang-ky/hang-cho", { as: HR });
   for (const lo of ["Phạm", "Thử Nghiệm", "0912", "khach@", "079", d, g]) assert.equal(boUuid(r.text).includes(lo), false, `lộ ${lo}`);
@@ -351,7 +352,7 @@ test("(10b) Lô «từ chối» khi câu đổi trạng thái trúng 0 dòng: t�
   const w = setup();
   const id = phieu(w);
   const t = await tep(w, id);
-  const { tuChoiStatement, suKienNhanVienStatement } = await import("./repository.ts");
+  const { tuChoiStatement } = await import("./repository.ts");
   const { cauGoTepChoNeuTruocDoi } = await import("../parties/tep-cho.ts");
   w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG' WHERE id = ?").run(id); // phiếu đã bị người khác đổi trước lô
   const at = new Date().toISOString();
@@ -395,10 +396,9 @@ test("(12) Ba nhãn: danh sách chín mã lý do (bảy dùng lại, bỏ «hồ
 test("(4b) Câu «đạt» tự canh: mục chưa đạt hoặc chưa có kết luận Danh bạ thì câu đổi 0 dòng, kể cả khi kiểm trước ở route bị lách", async () => {
   const w = setup();
   const id = phieu(w);
-  const { datStatement } = await import("./repository.ts");
   const at = new Date().toISOString();
   const chay = async (v: { matchKind: "NEW" | "EXISTING" | null; matchPartyId: string | null }) =>
-    (await w.env.DB.batch([datStatement(w.env.DB, { registrationId: id, by: ADM, at, mucBatBuoc: MUC, ...v })]))[0].meta.changes;
+    (await w.env.DB.batch([datStatement(w.env.DB, { registrationId: id, by: ADM, at, mucBatBuoc: MUC, phienBan: 1, ...v })]))[0].meta.changes;
   assert.equal(await chay({ matchKind: "NEW", matchPartyId: null }), 0, "chưa có kết luận mục nào");
   for (const m of MUC.slice(1)) assert.equal((await ketLuan(w, ADM, id, { muc: m, dat: true })).status, 200);
   assert.equal(await chay({ matchKind: "NEW", matchPartyId: null }), 0, "thiếu một mục");
@@ -407,4 +407,101 @@ test("(4b) Câu «đạt» tự canh: mục chưa đạt hoặc chưa có kết 
   assert.equal(reg(w, id).status, "CHO_XAC_MINH");
   assert.equal(await chay({ matchKind: "NEW", matchPartyId: null }), 1);
   assert.equal(reg(w, id).status, "CHO_DUYET");
+});
+
+/** Người đăng ký gửi lại: bản khai 2, phiếu về CHỜ XÁC MINH (đi đường hợp lệ của trigger). */
+function guiLai(w: any, id: string, soMoi = "079999999999") {
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG' WHERE id = ?").run(id);
+  w.sqlite.prepare(`INSERT INTO dk_submission (id, registration_id, version, given_name, document_type_code, document_number, number_key, policy_id, consented_at, created_at, updated_at)
+    VALUES (?, ?, 2, 'Đã Đổi', 'CCCD', ?, ?, (SELECT id FROM pty_privacy_policy LIMIT 1), ?, ?, ?)`).run(`sub2-${id}`, id, soMoi, soMoi, AT, AT, AT);
+  w.sqlite.prepare("UPDATE dk_registration SET current_version = 2 WHERE id = ?").run(id);
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(id);
+}
+const soDong = (w: any) => ({ ketLuan: w.q("SELECT count(*) n FROM dk_item_result")[0].n, su: w.q("SELECT count(*) n FROM dk_event")[0].n, nhatKy: audits(w).length });
+
+test("(13) I-1: tab cũ (đã xem bản khai 1) gửi kết luận hoặc «đạt» sau khi người đăng ký gửi lại bản 2 ⇒ 409 registration_version_changed, KHÔNG ghi gì (không dòng kết luận, lịch sử, nhật ký)", async () => {
+  const w = setup();
+  const id = phieu(w);
+  assert.equal((await chiTiet(w, ADM, id)).json.phienBan, 1);
+  await datHetMuc(w, ADM, id);
+  const truoc = soDong(w);
+  guiLai(w, id);
+  assert.equal((await chiTiet(w, ADM, id)).json.phienBan, 2);
+  const r = await ketLuan(w, ADM, id, { muc: "CCCD", dat: true }); // phienBan 1 mặc định = tab cũ
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "registration_version_changed");
+  const d = await dat(w, ADM, id, { hoSo: { kieu: "MOI" } });
+  assert.equal(d.status, 409, d.text);
+  assert.equal(d.json.error.code, "registration_version_changed");
+  assert.deepEqual(soDong(w), truoc, "không ghi gì");
+  assert.equal(reg(w, id).status, "CHO_XAC_MINH");
+  assert.equal(reg(w, id).verified_by, null);
+  // mở lại (phienBan 2): kết luận ghi vào đúng bản 2, phản hồi mang phienBan
+  const ok = await ketLuan(w, ADM, id, { muc: "CCCD", dat: true, phienBan: 2 });
+  assert.equal(ok.status, 200, ok.text);
+  assert.equal(ok.json.phienBan, 2);
+  assert.deepEqual(w.q("SELECT version FROM dk_item_result ORDER BY rowid DESC LIMIT 1").map((x: any) => x.version), [2]);
+  // thiếu phienBan hoặc sai kiểu ⇒ 400
+  for (const pb of [undefined, 0, 1.5, "1", null]) assert.equal((await ketLuan(w, ADM, id, { muc: "HO_TEN", dat: true, phienBan: pb })).status, 400, String(pb));
+  assert.equal((await dat(w, ADM, id, { hoSo: { kieu: "MOI" }, phienBan: undefined })).status, 400);
+});
+
+test("(13b) I-1: câu ghi tự canh phiên bản — kết luận và «đạt» với phienBan ≠ current_version đổi 0 dòng, kể cả khi kiểm trước ở route bị lách", async () => {
+  const w = setup();
+  const id = phieu(w);
+  await datHetMuc(w, ADM, id);
+  guiLai(w, id);
+  for (const m of MUC) assert.equal((await ketLuan(w, ADM, id, { muc: m, dat: true, phienBan: 2 })).status, 200, m); // bản 2 đã đủ mục «đạt»: chỉ còn phiên bản chặn
+  const at = new Date().toISOString();
+  const [kl, dt] = await w.env.DB.batch([
+    ketLuanMucStatement(w.env.DB, { registrationId: id, item: "CCCD", dat: true, lyDo: null, by: ADM, at, phienBan: 1 }),
+    datStatement(w.env.DB, { registrationId: id, by: ADM, at, matchKind: "NEW", matchPartyId: null, mucBatBuoc: MUC, phienBan: 1 }),
+  ]);
+  assert.equal(kl.meta.changes, 0);
+  assert.equal(dt.meta.changes, 0);
+  assert.equal(reg(w, id).status, "CHO_XAC_MINH");
+  assert.equal(w.q("SELECT count(*) n FROM dk_item_result WHERE version = 2")[0].n, MUC.length, "không thêm dòng nào ngoài năm kết luận bản 2");
+});
+
+test("(14) I-3: câu «kết luận» và «bổ sung» tự canh trạng thái — phiếu không ở CHO_XAC_MINH ⇒ 0 dòng, không dòng lịch sử, không nhật ký (gọi thẳng câu ghi, lách kiểm trước ở route)", async () => {
+  const w = setup();
+  const at = new Date().toISOString();
+  for (const trangThai of ["CHO_DUYET", "CAN_BO_SUNG", "TU_CHOI"]) {
+    const id = phieu(w, { trangThai });
+    const truoc = soDong(w);
+    const [kl, su1, bs, su2] = await w.env.DB.batch([
+      ketLuanMucStatement(w.env.DB, { registrationId: id, item: "HO_TEN", dat: true, lyDo: null, by: ADM, at, phienBan: 1 }),
+      suKienNhanVienStatement(w.env.DB, { registrationId: id, staffId: ADM, command: "KET_LUAN", lyDo: null, at }),
+      boSungStatement(w.env.DB, { registrationId: id, lyDo: "KHONG_DOC_DUOC", by: ADM, at }),
+      suKienNhanVienStatement(w.env.DB, { registrationId: id, staffId: ADM, command: "BO_SUNG", lyDo: "KHONG_DOC_DUOC", at }),
+    ]);
+    assert.equal(kl.meta.changes, 0, `${trangThai}: kết luận`);
+    assert.equal(su1.meta.changes, 0, `${trangThai}: lịch sử kết luận`);
+    assert.equal(bs.meta.changes, 0, `${trangThai}: bổ sung`);
+    assert.equal(su2.meta.changes, 0, `${trangThai}: lịch sử bổ sung`);
+    assert.deepEqual(soDong(w), truoc, trangThai);
+    assert.equal(reg(w, id).status, trangThai);
+    // đường route: 409, không ghi
+    assert.equal((await ketLuan(w, ADM, id, { muc: "HO_TEN", dat: true })).status, 409, trangThai);
+    assert.equal((await boSung(w, ADM, id)).status, 409, trangThai);
+    assert.deepEqual(soDong(w), truoc, trangThai);
+  }
+});
+
+test("(15) M-1: hàng chờ dựng theo năng lực — Toàn quyền, Quản trị + Nhân sự thấy hợp; Nhân sự + Kế toán gộp quyền nên có cả hai năng lực", async () => {
+  const w = setup();
+  seedStaff(w.sqlite, { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1", phone: "0900000031", name: "Nhân Sự Kế Toán", perms: ["HR", "ACCOUNTING"] });
+  seedStaff(w.sqlite, { id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2", phone: "0900000032", name: "Quản Trị Nhân Sự", perms: ["ADMIN", "HR"] });
+  const a = phieu(w, { trangThai: "CHO_XAC_MINH" });
+  const c = phieu(w, { trangThai: "CHO_DUYET" });
+  const f = phieu(w, { trangThai: "DA_DUYET" }); // chưa kích hoạt
+  const g = phieu(w, { trangThai: "DA_DUYET" });
+  w.sqlite.prepare("UPDATE dk_registration SET activated_at = ? WHERE id = ?").run(AT, g);
+  const ids = async (as: string) => (await w.call("GET", "/api/dang-ky/hang-cho", { as })).json.phieu.map((x: any) => x.id).sort();
+  assert.deepEqual(await ids(SUP), [a, c, f].sort(), "Toàn quyền: xác minh được và có account.create ⇒ hợp");
+  assert.deepEqual(await ids("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa2"), [a, c, f].sort(), "Quản trị + Nhân sự ⇒ hợp");
+  // Nhân sự giữ party.verify, Kế toán giữ party.view: tài khoản giữ cả hai vai có đủ cả hai ô ⇒ xác minh được ⇒ hợp (hàng chờ theo năng lực, không theo tên vai).
+  assert.deepEqual(await ids("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1"), [a, c, f].sort(), "Nhân sự + Kế toán: đủ party.verify + party.view");
+  assert.deepEqual(await ids(HR), [c, f].sort());
+  assert.deepEqual(await ids(ADM), [a, c].sort(), "Quản trị một mình: chỉ xác minh, không duyệt");
 });

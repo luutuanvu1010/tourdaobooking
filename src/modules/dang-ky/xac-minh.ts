@@ -24,16 +24,19 @@ export function mucChuaDat(batBuoc: readonly string[], moiNhat: ReadonlyMap<stri
   return batBuoc.filter((m) => moiNhat.get(m) !== "DAT");
 }
 
+/** Số bản khai người xác minh đã xem (lấy từ GET phiếu): số nguyên ≥ 1. */
+const laPhienBan = (v: unknown): v is number => typeof v === "number" && Number.isInteger(v) && v >= 1;
 const khongThua = (body: Record<string, unknown>, cho: readonly string[]): boolean => Object.keys(body).every((k) => cho.includes(k));
 
-/** Thân `ket-luan`: `{ muc, dat, lyDo? }`. «không đạt» đòi một mã lý do trong danh sách đóng; «đạt» không kèm lý do. Mục phải thuộc tập mục bắt buộc. */
-export function kiemKetLuan(body: Record<string, unknown> | null, batBuoc: readonly string[]): Kiem<{ muc: string; dat: boolean; lyDo: MaLyDoPhieu | null }> {
-  if (!body || !khongThua(body, ["muc", "dat", "lyDo"])) return { ok: false, message: "Yêu cầu không hợp lệ." };
+/** Thân `ket-luan`: `{ muc, dat, lyDo?, phienBan }`. «không đạt» đòi một mã lý do trong danh sách đóng; «đạt» không kèm lý do. Mục phải thuộc tập mục bắt buộc. */
+export function kiemKetLuan(body: Record<string, unknown> | null, batBuoc: readonly string[]): Kiem<{ muc: string; dat: boolean; lyDo: MaLyDoPhieu | null; phienBan: number }> {
+  if (!body || !khongThua(body, ["muc", "dat", "lyDo", "phienBan"]) || !laPhienBan(body.phienBan)) return { ok: false, message: "Yêu cầu không hợp lệ." };
+  const phienBan = body.phienBan;
   if (typeof body.muc !== "string" || !batBuoc.includes(body.muc)) return { ok: false, message: "Mục này không nằm trong các mục cần xác minh." };
   if (typeof body.dat !== "boolean") return { ok: false, message: "Hãy chọn «Đạt» hoặc «Không đạt»." };
-  if (body.dat) return body.lyDo === undefined || body.lyDo === null ? { ok: true, value: { muc: body.muc, dat: true, lyDo: null } } : { ok: false, message: "Kết luận «Đạt» không kèm lý do." };
+  if (body.dat) return body.lyDo === undefined || body.lyDo === null ? { ok: true, value: { muc: body.muc, dat: true, lyDo: null, phienBan } } : { ok: false, message: "Kết luận «Đạt» không kèm lý do." };
   if (!laMaLyDoPhieu(body.lyDo)) return { ok: false, message: "Hãy chọn một lý do trong danh sách." };
-  return { ok: true, value: { muc: body.muc, dat: false, lyDo: body.lyDo } };
+  return { ok: true, value: { muc: body.muc, dat: false, lyDo: body.lyDo, phienBan } };
 }
 
 /** Thân `bo-sung`, `tu-choi`: `{ lyDo }` — một mã trong danh sách đóng, không trường nào khác. */
@@ -46,12 +49,12 @@ export type HoSoDich = { kieu: "MOI" } | { kieu: "CO_SAN"; partyId: string };
 const PARTY_ID_RE = /^[A-Za-z0-9_-]{1,100}$/;
 
 /**
- * Thân `dat`: `{ hoSo?: { kieu: "MOI" } | { kieu: "CO_SAN"; partyId }, nguoiGioiThieuPartyId? }`. `hoSo` là KẾT LUẬN DANH BẠ; vắng mặt thì dùng kết luận đã ghi trước đó (nếu có —
+ * Thân `dat`: `{ phienBan, hoSo?: { kieu: "MOI" } | { kieu: "CO_SAN"; partyId }, nguoiGioiThieuPartyId? }`. `hoSo` là KẾT LUẬN DANH BẠ; vắng mặt thì dùng kết luận đã ghi trước đó (nếu có —
  * không có thì route trả 409). Người giới thiệu: mã hồ sơ, tuỳ chọn.
  */
-export function kiemDat(body: Record<string, unknown> | null): Kiem<{ hoSo: HoSoDich | null; nguoiGioiThieuPartyId: string | null }> {
+export function kiemDat(body: Record<string, unknown> | null): Kiem<{ hoSo: HoSoDich | null; nguoiGioiThieuPartyId: string | null; phienBan: number }> {
   const loi = { ok: false, message: "Yêu cầu không hợp lệ." } as const;
-  if (!body || !khongThua(body, ["hoSo", "nguoiGioiThieuPartyId"])) return loi;
+  if (!body || !khongThua(body, ["hoSo", "nguoiGioiThieuPartyId", "phienBan"]) || !laPhienBan(body.phienBan)) return loi;
   let hoSo: HoSoDich | null = null;
   const h = body.hoSo;
   if (h !== undefined && h !== null) {
@@ -63,7 +66,7 @@ export function kiemDat(body: Record<string, unknown> | null): Kiem<{ hoSo: HoSo
   }
   const g = body.nguoiGioiThieuPartyId;
   if (g !== undefined && g !== null && !(typeof g === "string" && PARTY_ID_RE.test(g))) return loi;
-  return { ok: true, value: { hoSo, nguoiGioiThieuPartyId: typeof g === "string" ? g : null } };
+  return { ok: true, value: { hoSo, nguoiGioiThieuPartyId: typeof g === "string" ? g : null, phienBan: body.phienBan } };
 }
 
 /** Gói lỗi lô → 409 có câu rõ (trigger của phiếu). null = không phải lỗi của bước này. */

@@ -26,6 +26,7 @@ type Staff = Ctx<"accounts">["staff"];
 export const CAM = () => error(403, "forbidden", "Bạn không có quyền xác minh phiếu đăng ký.");
 const KHONG_THAY = () => error(404, "not_found", "Không tìm thấy phiếu.");
 const DA_XU_LY = () => error(403, "registration_processed", "Phiếu đã được xử lý — không xem lại được.");
+const DOI_PHIEN_BAN = () => error(409, "registration_version_changed", "Phiếu đã thay đổi từ lúc bạn mở. Hãy mở lại phiếu để xem bản mới.");
 const KHONG_CON_CHO = () => error(409, "registration_state_changed", "Phiếu vừa được người khác xử lý hoặc không còn chờ xác minh. Hãy mở lại phiếu.");
 
 // Cổng quyền của từng route nằm ở THÂN route trong index.ts (hàng rào route-write-guard đọc chữ `if (!can(…)) return …` ở đó): bước xác minh = `party.verify` VÀ `party.view` (ADR-0207 Đ1;
@@ -47,8 +48,8 @@ const dsMuc = (batBuoc: readonly string[], kl: Map<string, { ketQua: KetQuaMuc; 
 
 // ---- GET /api/dang-ky/hang-cho ----
 export async function xemHangCho({ env, staff }: Ctx<"accounts">): Promise<Response> {
-  // Không có quyền xem Danh bạ (Nhân sự — chỉ lọc danh sách, không phải cổng) ⇒ chỉ phiếu CHỜ DUYỆT chưa kích hoạt. Hàng chờ chỉ mang mã, loại, mốc — không tên, không liên hệ.
-  const ds = await hangCho(env.DB, !can(staff, "party.view"));
+  // Lọc theo năng lực (không phải cổng): xác minh được ⇒ phiếu chưa kết thúc; account.create ⇒ CHỜ DUYỆT + ĐÃ DUYỆT chưa kích hoạt; cả hai ⇒ hợp. Chỉ mã, loại, mốc — không tên, không liên hệ.
+  const ds = await hangCho(env.DB, { xacMinh: can(staff, "party.verify") && can(staff, "party.view"), duyet: can(staff, "account.create") });
   return json({ phieu: ds.map((r) => ({ id: r.id, trangThai: r.status, loai: r.role_code, phienBan: r.current_version, guiLuc: r.submitted_at })) });
 }
 
@@ -97,6 +98,12 @@ async function phieuChoXacMinh(env: Ctx<"accounts">["env"], params: Record<strin
   return { p };
 }
 
+/** Câu ghi trúng 0 dòng: bản khai đã đổi (phiếu vẫn chờ xác minh) hay phiếu đã chuyển bước. */
+async function loiKhongGhi(env: Ctx<"accounts">["env"], id: string, phienBan: number): Promise<Response> {
+  const p = await phieuXet(env.DB, id);
+  return p && p.status === "CHO_XAC_MINH" && p.current_version !== phienBan ? DOI_PHIEN_BAN() : KHONG_CON_CHO();
+}
+
 // ---- POST /api/dang-ky/phieu/:id/ket-luan ----
 export async function ketLuanMuc({ request, env, staff, params }: Ctx<"accounts">): Promise<Response> {
   const r = await phieuChoXacMinh(env, params);
@@ -105,15 +112,16 @@ export async function ketLuanMuc({ request, env, staff, params }: Ctx<"accounts"
   const at = new Date().toISOString();
   const k = kiemKetLuan(await readJson(request), await mucPhaiDat(env.DB, at));
   if (!k.ok) return error(400, "invalid_input", k.message);
-  const { muc, dat, lyDo } = k.value;
+  const { muc, dat, lyDo, phienBan } = k.value;
+  if (phienBan !== p.current_version) return DOI_PHIEN_BAN(); // người đăng ký đã gửi lại sau khi bạn mở phiếu
   const kq = await env.DB.batch([
-    ketLuanMucStatement(env.DB, { registrationId: p.id, item: muc, dat, lyDo, by: staff.id, at }),
+    ketLuanMucStatement(env.DB, { registrationId: p.id, item: muc, dat, lyDo, by: staff.id, at, phienBan }),
     suKienNhanVienStatement(env.DB, { registrationId: p.id, staffId: staff.id, command: "KET_LUAN", lyDo, at }),
     auditStatement(env.DB, { staffId: staff.id, action: "registration_item_concluded", at, targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · mục ${muc} · ${dat ? "đạt" : `không đạt · ${lyDo}`}` }, "changes() > 0"),
   ]);
-  if ((kq[0]?.meta.changes ?? 0) === 0) return KHONG_CON_CHO();
+  if ((kq[0]?.meta.changes ?? 0) === 0) return loiKhongGhi(env, p.id, phienBan);
   const batBuoc = await mucPhaiDat(env.DB, at);
-  return json({ muc: dsMuc(batBuoc, await moiNhat(env.DB, p)) });
+  return json({ phienBan, muc: dsMuc(batBuoc, await moiNhat(env.DB, p)) });
 }
 
 // ---- POST /api/dang-ky/phieu/:id/xem-so ----
@@ -139,7 +147,7 @@ export async function moTep({ request, env, staff, params }: Ctx<"accounts">): P
   const tid = laMaTep(params.tid) ? params.tid! : null;
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p || !tid) return KHONG_THAY();
-  if (p.status !== "CHO_XAC_MINH") return DA_XU_LY();
+  if (p.status !== "CHO_XAC_MINH" || p.current_version < 1) return DA_XU_LY();
   const tep = await timTepChoDeXem(env.DB, p.id, tid);
   if (!tep) return error(404, "not_found", "Không tìm thấy tệp này.");
   // Nhật ký TRƯỚC khi đọc kho; chỉ mã phiếu và mã tệp (không khoá kho). Ghi lỗi thì ném lên (500), KHÔNG đọc kho.
@@ -171,6 +179,7 @@ export async function xacMinhDat({ request, env, staff, params }: Ctx<"accounts"
   if (!k.ok) return error(400, "invalid_input", k.message);
   // Người giới thiệu: bảng phiếu chưa có cột lưu mã hồ sơ người giới thiệu (cần migration ở đợt sau). Nhận mà không lưu là làm mất dữ liệu âm thầm ⇒ báo thẳng.
   if (k.value.nguoiGioiThieuPartyId !== null) return error(409, "referrer_not_supported", "Bước này chưa lưu được người giới thiệu. Hãy bỏ lựa chọn này và xác minh tiếp.");
+  if (k.value.phienBan !== p.current_version) return DOI_PHIEN_BAN();
   const at = new Date().toISOString();
   const batBuoc = await mucPhaiDat(env.DB, at);
   const thieu = mucChuaDat(batBuoc, new Map([...(await moiNhat(env.DB, p))].map(([m, v]) => [m, v.ketQua])));
@@ -184,7 +193,7 @@ export async function xacMinhDat({ request, env, staff, params }: Ctx<"accounts"
   let kq: D1Result[];
   try {
     kq = await env.DB.batch([
-      datStatement(env.DB, { registrationId: p.id, by: staff.id, at, matchKind: hoSo ? (hoSo.kieu === "MOI" ? "NEW" : "EXISTING") : null, matchPartyId: hoSo?.kieu === "CO_SAN" ? hoSo.partyId : null, mucBatBuoc: batBuoc }),
+      datStatement(env.DB, { registrationId: p.id, by: staff.id, at, matchKind: hoSo ? (hoSo.kieu === "MOI" ? "NEW" : "EXISTING") : null, matchPartyId: hoSo?.kieu === "CO_SAN" ? hoSo.partyId : null, mucBatBuoc: batBuoc, phienBan: k.value.phienBan }),
       suKienNhanVienStatement(env.DB, { registrationId: p.id, staffId: staff.id, command: "DAT", lyDo: null, at }),
       auditStatement(env.DB, { staffId: staff.id, action: "registration_verified", at, targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · xác minh đạt · ${hoSo ? (hoSo.kieu === "MOI" ? "hồ sơ mới" : "gắn hồ sơ có sẵn") : "theo kết luận đã ghi"}` }, "changes() > 0"),
     ]);
@@ -193,7 +202,7 @@ export async function xacMinhDat({ request, env, staff, params }: Ctx<"accounts"
     if (l) return error(l.status, l.code, l.message);
     throw e;
   }
-  if ((kq[0]?.meta.changes ?? 0) === 0) return KHONG_CON_CHO();
+  if ((kq[0]?.meta.changes ?? 0) === 0) return loiKhongGhi(env, p.id, k.value.phienBan);
   return json({ trangThai: "CHO_DUYET" });
 }
 

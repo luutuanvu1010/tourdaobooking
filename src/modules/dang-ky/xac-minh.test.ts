@@ -29,9 +29,10 @@ test("chín mã lý do: bảy dùng lại nhãn phiếu tự khai (bỏ «hồ s
 });
 
 test("kiemKetLuan: đạt không kèm lý do; không đạt đòi mã trong danh sách; mục phải thuộc tập; không trường thừa", () => {
-  assert.deepEqual(kiemKetLuan({ muc: "CALLED", dat: true }, BAT_BUOC), { ok: true, value: { muc: "CALLED", dat: true, lyDo: null } });
-  assert.deepEqual(kiemKetLuan({ muc: "CCCD", dat: false, lyDo: "GIAY_TO_HET_HAN" }, BAT_BUOC), { ok: true, value: { muc: "CCCD", dat: false, lyDo: "GIAY_TO_HET_HAN" } });
-  for (const x of [null, {}, { muc: "X", dat: true }, { muc: "CCCD", dat: "co" }, { muc: "CCCD", dat: false }, { muc: "CCCD", dat: false, lyDo: "tuy-y" }, { muc: "CCCD", dat: true, lyDo: "KHONG_DOC_DUOC" }, { muc: "CCCD", dat: true, a: 1 }]) {
+  assert.deepEqual(kiemKetLuan({ muc: "CALLED", dat: true, phienBan: 1 }, BAT_BUOC), { ok: true, value: { muc: "CALLED", dat: true, lyDo: null, phienBan: 1 } });
+  assert.deepEqual(kiemKetLuan({ muc: "CCCD", dat: false, lyDo: "GIAY_TO_HET_HAN", phienBan: 3 }, BAT_BUOC), { ok: true, value: { muc: "CCCD", dat: false, lyDo: "GIAY_TO_HET_HAN", phienBan: 3 } });
+  for (const x of [null, {}, { muc: "X", dat: true, phienBan: 1 }, { muc: "CCCD", dat: "co", phienBan: 1 }, { muc: "CCCD", dat: false, phienBan: 1 }, { muc: "CCCD", dat: false, lyDo: "tuy-y", phienBan: 1 }, { muc: "CCCD", dat: true, lyDo: "KHONG_DOC_DUOC", phienBan: 1 }, { muc: "CCCD", dat: true, a: 1, phienBan: 1 },
+    { muc: "CCCD", dat: true }, { muc: "CCCD", dat: true, phienBan: 0 }, { muc: "CCCD", dat: true, phienBan: 1.5 }, { muc: "CCCD", dat: true, phienBan: "1" }]) {
     assert.equal(kiemKetLuan(x as never, BAT_BUOC).ok, false, JSON.stringify(x));
   }
 });
@@ -40,10 +41,11 @@ test("kiemLyDo, kiemDat, mã phiếu, mã tệp", () => {
   assert.equal(kiemLyDo({ lyDo: "KHONG_THUOC_DIEN" }).ok, true);
   assert.equal(kiemLyDo({ lyDo: "KHONG_THUOC_DIEN", ghiChu: "x" }).ok, false);
   assert.equal(kiemLyDo(null).ok, false);
-  assert.deepEqual(kiemDat({}), { ok: true, value: { hoSo: null, nguoiGioiThieuPartyId: null } });
-  assert.deepEqual(kiemDat({ hoSo: { kieu: "MOI" } }), { ok: true, value: { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: null } });
-  assert.deepEqual(kiemDat({ hoSo: { kieu: "CO_SAN", partyId: "pty-1" }, nguoiGioiThieuPartyId: "pty-2" }), { ok: true, value: { hoSo: { kieu: "CO_SAN", partyId: "pty-1" }, nguoiGioiThieuPartyId: "pty-2" } });
-  for (const x of [{ hoSo: { kieu: "CO_SAN" } }, { hoSo: { kieu: "MOI", partyId: "p" } }, { hoSo: "MOI" }, { hoSo: { kieu: "CO_SAN", partyId: "a b" } }, { x: 1 }, { nguoiGioiThieuPartyId: 5 }]) {
+  assert.deepEqual(kiemDat({ phienBan: 1 }), { ok: true, value: { hoSo: null, nguoiGioiThieuPartyId: null, phienBan: 1 } });
+  assert.deepEqual(kiemDat({ hoSo: { kieu: "MOI" }, phienBan: 2 }), { ok: true, value: { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: null, phienBan: 2 } });
+  assert.deepEqual(kiemDat({ hoSo: { kieu: "CO_SAN", partyId: "pty-1" }, nguoiGioiThieuPartyId: "pty-2", phienBan: 1 }), { ok: true, value: { hoSo: { kieu: "CO_SAN", partyId: "pty-1" }, nguoiGioiThieuPartyId: "pty-2", phienBan: 1 } });
+  assert.equal(kiemDat({}).ok, false, "thiếu phienBan");
+  for (const x of [{ hoSo: { kieu: "CO_SAN" } }, { hoSo: { kieu: "MOI", partyId: "p" } }, { hoSo: "MOI" }, { hoSo: { kieu: "CO_SAN", partyId: "a b" } }, { x: 1 }, { nguoiGioiThieuPartyId: 5 }].map((o) => ({ ...o, phienBan: 1 }))) {
     assert.equal(kiemDat(x as never).ok, false, JSON.stringify(x));
   }
   assert.equal(laMaPhieu("DK_ABCDEFGH"), true);

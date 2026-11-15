@@ -293,6 +293,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuChon: "AI viết hai nhãn mới 2026-11-15, chờ chủ chọn tên",
   }),
   KN({
+    ten: "Phiếu đã thay đổi từ lúc bạn mở",
+    giaiNghia: "Câu báo cho người xác minh khi người đăng ký đã gửi lại bản khai mới sau lúc họ mở phiếu: kết luận hay «Xác minh đạt» bị từ chối, không ghi gì, và họ phải mở lại phiếu để xem bản mới.",
+    khacVoi: "Khác câu «phiếu vừa được người khác xử lý»: ở đây phiếu vẫn chờ xác minh, chỉ có bản khai đã đổi.",
+    chuDaLoai: [],
+    maNoiBo: ["registration_version_changed", "phienBan"],
+    trangThai: "cho-chon",
+    chuChon: "AI viết câu 2026-11-15, chờ chủ chọn tên",
+  }),
+  KN({
     ten: "Mục xác minh của phiếu đăng ký",
     giaiNghia: "Từng việc người xác minh kết luận «Đạt» hoặc «Không đạt» trước khi xác minh đạt: Họ tên, Ngày sinh, Căn cước công dân, Vai người dùng xin đăng ký, Đã gọi số điện thoại đã khai.",
     khacVoi: "Danh sách mục bắt buộc của hồ sơ đặt ở Danh bạ; hai mục chỉ phiếu cần («vai», «đã gọi») đặt ở chính sách đăng ký.",

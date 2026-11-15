@@ -94,8 +94,8 @@ export async function xoaKhoTepChoDaGo(env: Env, registrationId: string, luc: ()
 }
 
 /**
- * Như `cauGoTepCho` nhưng CHỈ gỡ khi câu liền trước trong lô đã đổi đúng một dòng (`changes() > 0`): đặt NGAY SAU dòng lịch sử (chính nó chỉ ghi khi câu đổi trạng thái đã trúng).
- * Phiếu bị người khác xử lý giữa lúc bấm thì lô không đổi gì và tệp ở lại.
+ * Như `cauGoTepCho` nhưng CHỈ gỡ khi câu liền trước trong lô đã đổi dòng (`changes() > 0`). Bất biến người gọi phải giữ: câu liền trước chính nó phải được điều kiện theo câu đổi trạng thái
+ * (dòng lịch sử `WHERE changes() > 0`, nhật ký `onlyIf changes() > 0`), nên chuỗi chỉ «sống» khi câu đổi trạng thái trúng. Phiếu bị người khác xử lý giữa lúc bấm thì lô không đổi gì và tệp ở lại.
  */
 export const cauGoTepChoNeuTruocDoi = (db: D1Database, registrationId: string, lyDo: string, at: string): D1PreparedStatement =>
   goTepChoCuaPhieuNeuTruocDoiStatement(db, { registrationId, at, lyDo });
