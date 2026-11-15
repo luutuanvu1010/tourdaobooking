@@ -177,6 +177,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "registration.queue.view": { ten: "xem hàng chờ phiếu đăng ký", moTa: "Xem danh sách phiếu đăng ký đối tác đang chờ xử lý; Nhân sự chỉ thấy phiếu đang chờ duyệt." },
   "registration.policy.write": { ten: "đổi chính sách đăng ký đối tác", moTa: "Đổi công tắc nhận đăng ký mới và các con số của việc đăng ký đối tác." },
   "registration.agent.purge": { ten: "dọn phiếu đăng ký (Nền tảng tự làm)", moTa: "Nền tảng tự cho hết hạn phiếu đăng ký bỏ dở, xoá thông tin cá nhân của phiếu đã kết thúc quá hạn giữ, xoá ảnh giấy tờ chờ xoá và mã email cũ, rồi ghi một dòng Dọn phiếu đăng ký vào nhật ký. Không có nút cho người bấm." },
+  "verification.requirement.write": { ten: "đặt mục bắt buộc của dấu xác minh", moTa: "Đổi danh sách các mục (họ tên, ngày sinh, căn cước) hồ sơ phải có kết luận đạt để được «Đã xác minh»." },
   "vehicle.manage": { ten: "quản lý xe và giấy tờ xe", moTa: "Thêm, sửa xe, giấy tờ xe, xem danh sách sắp hết hạn." },
   "transport.rate.view": { ten: "xem bảng giá thuê xe", moTa: "Xem giá thuê xe theo chuyến của từng nhà xe." },
   "transport.rate.manage": { ten: "nhập bảng giá thuê xe", moTa: "Thêm, kết thúc giá thuê xe; sửa danh mục tuyến và cỡ xe." },

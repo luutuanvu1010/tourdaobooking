@@ -324,6 +324,7 @@ export const MATRIX = {
   // Cột ADMIN, HR, SUPER_ADMIN (đảo ADR-0083 đ2, thay ADR-0071 đ1e chỉ trong phạm vi phiếu đang chờ — HR vẫn party.view = none). Còn hỏi cấp bậc canManageAccount
   // và tách nhiệm vụ (đ5 — lính gác trong câu ghi). Route: GET /api/parties/xac-minh*, POST …/:pid/chap-nhan, POST …/:pid/tu-choi (cổng accounts).
   "party.verify": quanTriNhanSu(),
+  "verification.requirement.write": chiToanQuyen(), // ADR-0210 Đ1: đặt danh sách mục bắt buộc để hồ sơ được «Đã xác minh» — chỉ Toàn quyền (khuôn payment.proof.purge). Chưa có route ghi ở Task 10 (màn đặt thuộc việc sau); ô có trước để bản đồ và bài canh khoá sẵn.
   // ADR-0125 đ1: XEM ĐỦ SỐ (và ảnh — lát mở loại nối SELF_SUBMISSION) CHỈ của phiếu ĐANG CHỜ; nhật ký ghi TRƯỚC, không chứa số. Route: POST /api/parties/xac-minh/:pid/xem-so.
   "party.verify.attachment": quanTriNhanSu(),
   // ADR-0206 / ADR-0207 (accepted 2026-11-15; đợt 1 Task 6): phiếu đăng ký đối tác. `registration.queue.view` = xem hàng chờ của phiếu (Quản trị, Toàn quyền thấy mọi phiếu chưa kết thúc; Nhân sự chỉ phiếu CHỜ DUYỆT chưa kích hoạt);
