@@ -436,7 +436,6 @@
 | `vc_trip_stop` |  | `place_text` |  |  |
 | `vdt_guest_link` |  | `token_hash` |  |  |
 | `vdt_ticket` |  | `ticket_code`, `storage_key`, `content_hash` |  |  |
-| `dk_registration` |  | `match_party_id` |  |  |
 | `dk_identity` |  | `subject`, `contact_email` |  |  |
 | `dk_submission` |  | `family_name`, `middle_name`, `given_name`, `gender`, `birth_date`, `address_value`, `phone_value`, `phone_key`, `referrer_text` | `document_number`, `number_key`, `issued_place` |  |
 | `dk_email_code` |  | `email_key` |  | `code_hash` |

@@ -79,8 +79,8 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   "tro-ly": ["audit", "staff"],
   // ADR-0153 Đ1 (ĐỀ XUẤT 2026-10-31, CHỜ CHỦ DUYỆT): kho vé điện tử. Hiện chỉ cạnh → audit (nhật ký chỉ số lượng); các cạnh staff / thongbao / catalog / orders (chỉ đọc view)
   // thêm KHI ADR được duyệt. Không module nào import ve-dien-tu (orders đi bằng tiêm ở gốc lắp ráp).
-  // dang-ky (ADR-0206 Đ2, đợt 1): phiếu đăng ký đối tác — tới parties (hồ sơ, tệp), staff (tài khoản), auth (Turnstile, bộ đếm chống dò), audit (nhật ký lệnh của người trong công ty và tác nhân), pricing.
-  "dang-ky": ["parties", "staff", "auth", "audit", "pricing"],
+  // dang-ky (ADR-0206 Đ2, đợt 1): phiếu đăng ký đối tác — tới parties (hồ sơ, tệp), staff (tài khoản), auth (Turnstile, bộ đếm chống dò), audit (nhật ký lệnh của người trong công ty và tác nhân). KHÔNG tới pricing: câu của pricing do gốc lắp ráp (src/index.ts) ghép vào lô duyệt (ADR-0209 Đ6).
+  "dang-ky": ["parties", "staff", "auth", "audit"],
   "ve-dien-tu": ["audit", "auth", "catalog", "orders"], // + auth: ADR-0153 Đ2 — dùng lại bộ đếm chống dò (`reserveAttempts`) cho route công khai của đường dẫn khách. + orders: ADR-0153 Đ1 mục 4 — chỉ ĐỌC view công bố `v_ord_order_state` làm cổng cho câu trả vé của lô huỷ (không import mã orders). + catalog: ADR-0153 Đ1 mục 2 (đã duyệt 31/10) — chỉ ĐỌC dịch vụ qua hàm công bố getEffectiveServices để kiểm mã tour
 };
 

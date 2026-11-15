@@ -21,17 +21,20 @@ test("bốn trạng thái kết thúc không đi đâu; còn lại không kết 
 test("hàm khớp trigger dk_registration_transition của CSDL (mọi cặp)", () => {
   const dir = new URL("../../../migrations/", import.meta.url);
   const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+  const db = new DatabaseSync(":memory:");
+  for (const f of files) db.exec(readFileSync(new URL(f, dir), "utf8"));
+  const trig = (db.prepare("SELECT sql FROM sqlite_master WHERE name = 'dk_registration_transition'").get() as { sql: string }).sql;
   for (const tu of TRANG_THAI) for (const den of TRANG_THAI) {
-    const db = new DatabaseSync(":memory:");
-    for (const f of files) db.exec(readFileSync(new URL(f, dir), "utf8"));
-    // Đặt thẳng trạng thái xuất phát (bỏ trigger chuyển để dựng ca), rồi cài lại để thử.
-    const trig = (db.prepare("SELECT sql FROM sqlite_master WHERE name = 'dk_registration_transition'").get() as { sql: string }).sql;
+    db.exec("SAVEPOINT cap");
+    // Đặt thẳng trạng thái xuất phát (bỏ trigger chuyển để dựng ca), rồi cài lại để thử; mọi thay đổi được cuộn lại sau mỗi cặp.
     db.exec("DROP TRIGGER dk_registration_transition");
     db.prepare(`INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES ('DK_AAAAAAAA', 'PERSON', 'DANG_DIEN', 'AGENT', 'a', 'a')`).run();
     db.prepare("UPDATE dk_registration SET status = ?").run(tu);
     db.exec(trig);
     let ok = true;
     try { db.prepare("UPDATE dk_registration SET status = ?").run(den as TrangThai); } catch { ok = false; }
+    db.exec("ROLLBACK TO cap");
+    db.exec("RELEASE cap");
     assert.equal(ok, tu === den || chuyenHopLe(tu, den), `${tu} → ${den}`);
   }
 });
