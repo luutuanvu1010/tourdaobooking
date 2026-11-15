@@ -1,10 +1,10 @@
 // Tệp chờ của phiếu đăng ký (ADR-0208 Đ1, Đ2, Đ5, Đ7). `parties` giữ bảng `pty_registration_attachment` và là module DUY NHẤT chạm kho `HO_SO` cho tệp này;
 // `dang-ky` chỉ gọi các hàm dưới đây qua `parties/index.ts`. Các hàm `cau*` trả CÂU LỆNH CHƯA CHẠY để module gọi gộp vào lô của mình (từ chối, rút, hết hạn, duyệt).
 // Thứ tự an toàn: lô D1 TRƯỚC, đặt kho SAU, đánh dấu đã lưu; xoá kho chạy SAU lô ghi quyết gỡ (Hiến chương 5.16). Lỗi kho KHÔNG ném.
-import { LOAI_NOI_DUNG, dauPhanHoiTep, khoaNgauNhien, nhanLoaiTep, type LoaiTep } from "./tep.ts";
+import { DO_DANG_SAU_MS, LOAI_NOI_DUNG, dauPhanHoiTep, khoaNgauNhien, nhanLoaiTep, type LoaiTep } from "./tep.ts";
 import {
   chuyenTepChoStatements, demTepChoCuaPhieu, findTepChoTrung, goTepChoCuaOStatement, goTepChoCuaPhieuNeuTruocDoiStatement, goTepChoCuaPhieuStatement, insertTepChoStatement, markTepChoR2Deleted, markTepChoStored,
-  tepChoDaGoCanXoaKho, tepChoDeXemDs, tepChoDeXemMot, tepChoTheoO, type TepChoXemRow,
+  goTepChoDoDang, tepChoChoXoaToanBang, tepChoDaGoCanXoaKho, tepChoDeXemDs, tepChoDeXemMot, tepChoTheoO, type TepChoXemRow,
 } from "./repository.ts";
 
 export const LY_DO_GO_TEP_CHO = { THAY_TEP: "THAY_TEP", KHONG_THUOC_BAN_KHAI: "KHONG_THUOC_BAN_KHAI" } as const;
@@ -91,6 +91,27 @@ export async function xoaKhoTepChoDaGo(env: Env, registrationId: string, luc: ()
     }
   }
   return { daXoa, loi };
+}
+
+/**
+ * Việc 3 của tác nhân dọn phiếu đăng ký (ADR-0208 Đ8, Hiến chương 5.16): (a) quyết gỡ tệp «tải dở dang» tạo trước `bayGio` − DO_DANG_SAU_MS (10 phút, cùng mốc của hàng chờ xoá tệp hồ sơ); (b) xoá khỏi kho tối đa `toiDa` tệp ở hàng «chờ xoá» (đã quyết gỡ,
+ * kho chưa xoá — kể cả tệp của lần rút thứ hai không chạy lại xoá kho) rồi đánh dấu. Không bao giờ chạm dòng đã chuyển. Lỗi kho KHÔNG ném: dòng còn «chờ xoá», lượt sau chạy lại.
+ * Người gọi đã hỏi `can()` cho ô của mình; trả số tệp đã xoá khỏi kho (không mã tệp, không khoá kho).
+ */
+export async function donKhoTepCho(env: Env, toiDa: number, bayGio: Date, luc: () => string = () => new Date().toISOString()): Promise<number> {
+  await goTepChoDoDang(env.DB, new Date(bayGio.getTime() - DO_DANG_SAU_MS).toISOString(), luc());
+  const kho = env.HO_SO;
+  if (!kho) return 0;
+  let daXoa = 0;
+  for (const t of await tepChoChoXoaToanBang(env.DB, toiDa)) {
+    try {
+      await kho.delete(t.storage_key);
+      daXoa += await markTepChoR2Deleted(env.DB, t.id, luc());
+    } catch (e) {
+      console.error(JSON.stringify({ level: "error", event: "tep_cho_xoa_kho_loi", tepId: t.id, loi: e instanceof Error ? e.name : "unknown" }));
+    }
+  }
+  return daXoa;
 }
 
 /**

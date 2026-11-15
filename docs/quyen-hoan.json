@@ -37,13 +37,6 @@
       "ke_hoach": "Thi hành trong đợt 1 đăng ký đối tác (kế hoạch docs/superpowers/plans/2026-11-15-dang-ky-dot-1-ke-hoach.md, task chính sách đăng ký). Nếu chưa xong trước hạn, chủ dự án gia hạn có ghi lý do.",
       "han": "2026-12-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án"
-    },
-    {
-      "ma": "registration.agent.purge",
-      "ly_do": "Ô thêm ở đợt 1 Task 6 (ADR-0206 / ADR-0208, đăng ký đối tác) cho việc chạy tác nhân dọn phiếu hết hạn; tác nhân thuộc task sau của cùng đợt, chưa có.",
-      "ke_hoach": "Thi hành trong đợt 1 đăng ký đối tác (kế hoạch docs/superpowers/plans/2026-11-15-dang-ky-dot-1-ke-hoach.md, task tác nhân dọn phiếu). Nếu chưa xong trước hạn, chủ dự án gia hạn có ghi lý do.",
-      "han": "2026-12-31",
-      "nguoi_chiu_trach_nhiem": "chủ dự án"
     }
   ],
   "cua_ghi": [

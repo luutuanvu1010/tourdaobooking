@@ -121,7 +121,8 @@ ORDER BY p.version DESC
 LIMIT 1;
 
 -- Bộ đếm tệp tải lên mỗi giờ mỗi địa chỉ mạng (ADR-0208 Đ2, dk_policy.files_per_network_hour). Module dang-ky; để CHUNG tệp migration này vì route tải tệp ra đời cùng Task 5.
--- Không dùng `login_attempt` của auth: cửa sổ ở đó cố định 15 phút và mỗi lần đặt chỗ xoá dòng quá 15 phút của MỌI khoá. Chỉ-thêm trên thực tế (R-N1-9: không xoá cứng): đếm theo cửa sổ `at_ms`, dòng cũ không còn được đếm; dọn dòng cũ cần quyết định riêng.
+-- Không dùng `login_attempt` của auth: cửa sổ ở đó cố định 15 phút và mỗi lần đặt chỗ xoá dòng quá 15 phút của MỌI khoá. Đếm theo cửa sổ `at_ms`; dòng ra khỏi cửa sổ một giờ bị tác nhân
+-- dọn phiếu XOÁ (bảng kỹ thuật như dk_email_code — ngoại lệ có tên XOA_CUNG_KY_THUAT của R-N1-9 ở src/architecture.test.ts, đợt 1 Task 9, chờ chủ duyệt).
 -- ip_key là địa chỉ mạng (N2): không vào nhật ký, DTO, câu báo lỗi.
 CREATE TABLE dk_upload_attempt (
   id          TEXT PRIMARY KEY,

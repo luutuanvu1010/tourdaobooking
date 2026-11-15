@@ -1753,6 +1753,27 @@ const GO_TEP_CHO_CUA_PHIEU_NEU_TRUOC_DOI = defineSql(
   `UPDATE pty_registration_attachment SET purged_at = ?2, purge_reason = ?3, content_hash = NULL, updated_at = ?2
    WHERE registration_id = ?1 AND purged_at IS NULL AND transferred_at IS NULL AND changes() > 0`,
 );
+// Tác nhân dọn phiếu đăng ký (ADR-0208 Đ8 việc 3; đợt 1 Task 9) — quét TOÀN BẢNG, không theo một phiếu:
+// (a) tệp «tải dở dang» quá mốc (chưa lưu, chưa gỡ, chưa chuyển, tạo trước ?1) ⇒ quyết gỡ TAI_LEN_DO_DANG; điều kiện nằm TRONG câu (tệp vừa lưu xong trong khe không bị đụng);
+// (b) mọi tệp đã quyết gỡ mà kho chưa xoá (hàng «chờ xoá» — xoá kho hỏng ở lô trước, hay lần rút thứ hai không chạy lại) ⇒ xoá kho rồi đánh dấu. Không bao giờ chạm dòng đã chuyển.
+const GO_TEP_CHO_DO_DANG = defineSql(
+  "parties",
+  "purge_registration_attachment_stalled",
+  `UPDATE pty_registration_attachment SET purged_at = ?2, purge_reason = 'TAI_LEN_DO_DANG', content_hash = NULL, updated_at = ?2
+   WHERE stored_at IS NULL AND purged_at IS NULL AND transferred_at IS NULL AND created_at <= ?1`,
+);
+const TEP_CHO_CHO_XOA_TOAN_BANG = defineSql(
+  "parties",
+  "registration_attachment_purged_pending_r2_all",
+  `SELECT id, storage_key FROM pty_registration_attachment
+   WHERE purged_at IS NOT NULL AND r2_deleted_at IS NULL AND transferred_at IS NULL ORDER BY purged_at, id LIMIT ?1`,
+);
+export async function goTepChoDoDang(db: D1Database, moc: string, at: string): Promise<number> {
+  return (await db.prepare(GO_TEP_CHO_DO_DANG).bind(moc, at).run()).meta.changes ?? 0;
+}
+export async function tepChoChoXoaToanBang(db: D1Database, toiDa: number): Promise<{ id: string; storage_key: string }[]> {
+  return (await db.prepare(TEP_CHO_CHO_XOA_TOAN_BANG).bind(toiDa).all<{ id: string; storage_key: string }>()).results;
+}
 export const goTepChoCuaPhieuNeuTruocDoiStatement = (db: D1Database, v: { registrationId: string; at: string; lyDo: string }): D1PreparedStatement =>
   db.prepare(GO_TEP_CHO_CUA_PHIEU_NEU_TRUOC_DOI).bind(v.registrationId, v.at, v.lyDo);
 

@@ -328,7 +328,8 @@ export const MATRIX = {
   "party.verify.attachment": quanTriNhanSu(),
   // ADR-0206 / ADR-0207 (accepted 2026-11-15; đợt 1 Task 6): phiếu đăng ký đối tác. `registration.queue.view` = xem hàng chờ của phiếu (Quản trị, Toàn quyền thấy mọi phiếu chưa kết thúc; Nhân sự chỉ phiếu CHỜ DUYỆT chưa kích hoạt);
   // xem nội dung / kết luận / xem đủ số / mở ảnh còn đòi `party.verify` VÀ `party.view` (+ `party.verify.attachment` cho số và ảnh) — Nhân sự không có `party.view` nên không làm bước xác minh.
-  // `registration.policy.write` (đổi chính sách đăng ký, công tắc) và `registration.agent.purge` (tác nhân dọn phiếu) chỉ Toàn quyền; hai ô này chờ route ở các task sau (docs/quyen-hoan.json).
+  // `registration.policy.write` (đổi chính sách đăng ký, công tắc) và `registration.agent.purge` (tác nhân dọn phiếu DON_PHIEU_DANG_KY — Cron, src/modules/dang-ky/don-phieu.ts, đợt 1 Task 9;
+  // không route cho người) chỉ Toàn quyền; ô chính sách còn chờ route ở task sau (docs/quyen-hoan.json).
   "registration.queue.view": quanTriNhanSu(),
   "registration.policy.write": chiToanQuyen(),
   "registration.agent.purge": chiToanQuyen(),
@@ -427,7 +428,7 @@ export interface OperationContext {
  * ADR-0186 Đ1 (đóng HC-5.11): TÁC NHÂN TỰ ĐỘNG — mỗi việc định giờ một mã; không phải tài khoản đăng nhập (không số điện thoại, PIN, phiên). Chỉ ba việc
  * định giờ (và đồng bộ lần đầu) dựng tác nhân — bài src/tac-nhan-tu-dong.test.ts canh chỗ gọi hàm dựng. Dòng nhật ký của tác nhân mang `audit_log.agent_code`.
  */
-export const MA_TAC_NHAN = ["DONG_BO_DANH_MUC", "NHAC_HAN_TRA_SAU", "DON_ANH_VE"] as const;
+export const MA_TAC_NHAN = ["DONG_BO_DANH_MUC", "NHAC_HAN_TRA_SAU", "DON_ANH_VE", "DON_PHIEU_DANG_KY"] as const;
 export type MaTacNhan = (typeof MA_TAC_NHAN)[number];
 export const laMaTacNhan = (v: unknown): v is MaTacNhan => typeof v === "string" && (MA_TAC_NHAN as readonly string[]).includes(v);
 /** ADR-0186 Đ2: quyền riêng của mỗi tác nhân — đúng ô nó cần. Không bao giờ ô ghi tiền (`O_GHI_TIEN`), không `admin.manage` (bài canh). */
@@ -435,6 +436,7 @@ export const QUYEN_TAC_NHAN: Readonly<Record<MaTacNhan, readonly OperationCode[]
   DONG_BO_DANH_MUC: ["catalog.sync"],
   NHAC_HAN_TRA_SAU: ["credit.due.remind"],
   DON_ANH_VE: ["ve.kho.purge"],
+  DON_PHIEU_DANG_KY: ["registration.agent.purge"], // ADR-0208 Đ8 (đợt 1 Task 9): dọn phiếu đăng ký — hết hạn, ẩn danh, xoá kho tệp chờ, xoá mã email cũ
 };
 /** Người phát lệnh là tác nhân: không giữ mã quyền nào của người, nên mọi cổng router từ chối nó; `can()` chỉ tra `QUYEN_TAC_NHAN`. */
 export interface TacNhan extends PermissionHolder {

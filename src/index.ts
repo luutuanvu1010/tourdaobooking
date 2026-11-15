@@ -21,7 +21,7 @@ import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
-import { cauAnDanhBanKhai, cauChotDuyet, cauDuyetPhieu, chuaKichHoat, dangKyModule, suKienDuyetStatement } from "./modules/dang-ky";
+import { cauAnDanhBanKhai, cauChotDuyet, cauDuyetPhieu, chuaKichHoat, dangKyModule, donPhieuDangKyDinhGio, suKienDuyetStatement } from "./modules/dang-ky";
 import { banHangNoi, dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
 import { chinhSachChoNguoi, giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
@@ -392,10 +392,11 @@ export function taoAppChoKhungThu(ghiDe: Partial<AppOptions["injected"]>): Retur
 
 export default {
   fetch: app.fetch,
-  // Cron Trigger (wrangler.jsonc "triggers.crons"): tự đồng bộ danh mục dịch vụ từ Google Sheet; dọn ảnh vé còn ở hàng chờ xoá (ADR-0156); nhắc hạn trả sau (ADR-0173 Đ3 mục 2).
+  // Cron Trigger (wrangler.jsonc "triggers.crons"): tự đồng bộ danh mục dịch vụ từ Google Sheet; dọn ảnh vé còn ở hàng chờ xoá (ADR-0156); nhắc hạn trả sau (ADR-0173 Đ3 mục 2); dọn phiếu đăng ký (ADR-0208 Đ8).
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(runScheduledSync(env));
     ctx.waitUntil(donHangChoXoaVe(env));
     ctx.waitUntil(nhacHanTraSauAnToan(env));
+    ctx.waitUntil(donPhieuDangKyDinhGio(env)); // ADR-0208 Đ8 (đợt 1 Task 9): tác nhân dọn phiếu đăng ký
   },
 } satisfies ExportedHandler<Env>;
