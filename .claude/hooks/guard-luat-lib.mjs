@@ -155,6 +155,7 @@ const TRINH = /^(?:python[\d.]*|node|nodejs|perl|ruby|bun|deno|php)$/;
 const DAU_GHI = new RegExp(
   [
     String.raw`,\s{0,5}(?:mode\s{0,3}=\s{0,3})?["'](?:[wax]|r\+)[bt+]{0,2}["']`, // đối số chế độ mở tệp để ghi: open(p, 'w'|'a'|'x'|'r+'|'wb'), File.open, fopen — kể cả open(os.path.join(…), 'w')
+    String.raw`\.open\s{0,5}\(\s{0,5}(?:mode\s{0,3}=\s{0,3})?["'](?:[wax]|r\+)[bt+]{0,2}["']`, // pathlib: Path(p).open('w') — chế độ đứng một mình (người kiểm độc lập 15/11)
     String.raw`write_text|write_bytes|writeFile|appendFile|createWriteStream|writeSync|copyFile|cpSync|rmSync|rmdirSync|unlinkSync|renameSync|truncateSync|symlinkSync|linkSync|file_put_contents|writeTextFile`,
     String.raw`\b(?:unlink|rename|rmdir|truncate|symlink)\b`, // fs.unlink(…), Path.rename(…), perl `unlink "x"`, php rename()
     String.raw`\b(?:rm|link|cp)\s{0,5}\(`, // fs.rm(…), fs.cp(…)

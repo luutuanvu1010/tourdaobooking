@@ -240,6 +240,9 @@ const TRINH_PHAI_CHAN: [string, string?][] = [
   ["npm test && node -e \"require('fs').writeFileSync('CLAUDE.md','x')\""],
   [`bash -c "node -e \\"require('fs').writeFileSync('CLAUDE.md','x')\\""`],
   [`env FOO=1 /usr/bin/python3 -c "open('CLAUDE.md','w')"`],
+  // Người kiểm độc lập 15/11: chế độ ghi đứng một mình trong .open('w') (pathlib); env gõ bằng đường dẫn tuyệt đối.
+  [`python3 -c "import pathlib;pathlib.Path('docs/adr/README.md').open('w')"`],
+  [`/usr/bin/env node -e "require('fs').writeFileSync('CLAUDE.md','x')"`],
   // cd rồi đường dẫn tương đối; worktree; đường dẫn tuyệt đối vào kho.
   [`cd docs && node -e "require('fs').writeFileSync('adr/README.md','x')"`],
   [`node -e "require('fs').writeFileSync('CLAUDE.md','x')"`, WT],
