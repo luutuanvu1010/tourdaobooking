@@ -29,7 +29,7 @@ function setup(tuyChon: Record<string, unknown> = {}): W {
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(NCC, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-kt-ncc', ?, 'SUPPLIER', '2026-01-01', ?, ?)").run(NCC, AT, AT);
-  w.sqlite.exec(`INSERT INTO catalog_item (code, name, unit, price_adult, sheet_row, in_sheet, first_seen_at, updated_at) VALUES ('IRESORT', 'Vé tắm bùn i-resort', 'perPax', 300000, 1, 1, '${AT}', '${AT}')`);
+  w.sqlite.exec(`INSERT INTO catalog_item (code, name, unit, price_adult, sheet_row, in_sheet, first_seen_at, updated_at) VALUES ('IRESORT', 'Vé tắm bùn i-resort', 'perPax', 1000000, 1, 1, '${AT}', '${AT}')`);
   w.sqlite.exec(`INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZB1', 'Tour thường', 'perPax', 300000, 1, '2026-01-01', '2026-01-01')`);
   return w;
 }
@@ -38,6 +38,7 @@ async function ganNcc(w: W) {
   assert.equal(c.status, 201, c.text);
 }
 
+/** Giá danh mục IRESORT gieo 1.000.000 = giá dòng gieo bên dưới (ADR-0205: đơn Đối tác lập mà giá danh mục đã lưu lệch danh mục thì không xác nhận được). */
 /** Đơn NHÁP bằng SQL (một dịch vụ IRESORT 1.000.000, ngày đi hôm nay) rồi xác nhận qua route của người lập; HDV phụ trách. `dau` = dấu kênh thu (null = không dấu). */
 async function don(w: W, o: { owner?: string; booker?: string | null; dau?: 0 | 1 | null; tong?: number; xacNhan?: boolean } = {}): Promise<string> {
   const id = uuid();

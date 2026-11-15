@@ -522,6 +522,9 @@ function recompute(): void {
   byId("ct-tam-tinh").textContent = tamTinh;
   byId("ct-giam-gia").textContent = giamGia;
   byId("ct-tong").textContent = tong;
+  // Phí đưa đón Đợt C: trình duyệt KHÔNG tính phí (Hiến chương 5.4) — có lượt đưa đón thì chỉ nói «Phí đưa đón: Tính khi lưu»; lưu xong trang đơn hiện số máy chủ tính (đơn nháp ghi «dự kiến»).
+  const coLuot = ds.some((d) => d.legs.length > 0);
+  for (const dong of document.querySelectorAll<HTMLElement>("[data-phi-don]")) dong.hidden = !coLuot;
   if (coODatCoc) {
     // Hai dòng xem trước: không trừ gì vào sổ — máy chủ kiểm lại khi lưu, khoản thu chỉ sinh khi đơn được xác nhận.
     const coc = num("declaredDeposit");

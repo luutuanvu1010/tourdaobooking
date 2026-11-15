@@ -105,9 +105,11 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "ky-so", file: "modules/ky-so/repository.ts" }, // ADR-0080 D1 (sổ đại lý đợt 1): khoá tháng — nghiêm từ ngày đầu. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
   { module: "lan-gui", file: "modules/lan-gui/repository.ts" }, // ADR-0094 đ2: nghiêm từ ngày đầu
   { module: "locations", file: "modules/locations/repository.ts" },
+  { module: "locations", file: "modules/locations/vung-repo.ts" },
   { module: "maintenance", file: "modules/maintenance/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "pricing", file: "modules/pricing/repository.ts" }, // ADR-0077 — sổ đại lý đợt 1: bảng mức, điều khoản người bán
+  { module: "pricing", file: "modules/pricing/phi-don-repo.ts" }, // ADR-0147 Đ2: bảng phí đưa đón — nghiêm từ ngày đầu (defineSql)
   { module: "pricing", file: "modules/pricing/luat-ban-repo.ts" }, // ADR-0146 Đ6 (a) — luật bán theo loại đối tác: tệp DUY NHẤT nhắc prc_sales_block
   { module: "staff", file: "modules/staff/repository.ts" },
   { module: "thongbao", file: "modules/thongbao/repository.ts" },

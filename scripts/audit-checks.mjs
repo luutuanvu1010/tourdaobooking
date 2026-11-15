@@ -685,6 +685,19 @@ export const CHECKS = [
     level: "warn",
   },
   {
+    // Phí đưa đón trên đơn (Đợt C, ADR-0147 / ADR-0203; migration 0169): mỗi dòng phí (`line_kind = 'TRANSFER_FEE'`) trỏ chặng CÙNG ĐƠN, mã mức còn tồn tại (cột `fee_rule_id` không có khoá ngoại — xem 0169), thành tiền = số lượng × đơn giá, và mức phí
+    // «theo chuyến» luôn có số lượng 1. Lưới thứ hai của trigger 0007 (thành tiền) và 0169 (cột phí); chặng cùng đơn là luật chỉ máy chủ giữ nên kiểm ở đây. Chỉ đọc; R-ORD-15 giữ nguyên.
+    code: "R-ORD-PD-1",
+    what: "dòng phí đưa đón trỏ chặng của đơn khác (hoặc chặng không còn), trỏ mức phí không còn, thành tiền khác số lượng × đơn giá, hoặc mức theo chuyến có số lượng khác 1",
+    sql: `SELECT count(*) FROM order_item i
+       WHERE i.line_kind = 'TRANSFER_FEE'
+         AND (NOT EXISTS (SELECT 1 FROM ord_transfer_leg l WHERE l.id = i.transfer_leg_id AND l.order_id = i.order_id)
+           OR NOT EXISTS (SELECT 1 FROM prc_transfer_fee_rule r WHERE r.id = i.fee_rule_id)
+           OR i.line_total <> i.quantity * i.unit_price
+           OR (i.fee_kind = 'PER_TRIP' AND i.quantity <> 1))`,
+    level: "fail",
+  },
+  {
     // ADR-0092 Đ1, đ8 (TNV-G4, KT06): đã thu RÒNG của mỗi đơn ≥ 0 (lần thu còn hiệu lực: thu cộng, trả lại khách trừ — cùng công thức trigger 0045 / 0082).
     // Mốc (bil_audit_cutoff 'R-BIL-8', 0082): đơn có lần thu ghi TỪ mốc mà âm = LỖI; chỉ có lần thu cũ hơn mốc = cảnh báo (R-BIL-8w, kèm danh sách).
     code: "R-BIL-8",
@@ -816,6 +829,28 @@ export const CHECKS = [
              AND NOT EXISTS (SELECT 1 FROM bil_receipt_recon dc WHERE dc.receipt_id = r.id AND dc.kind_code = 'DECLARED'
                              AND NOT EXISTS (SELECT 1 FROM bil_receipt_recon xc WHERE xc.receipt_id = r.id AND xc.kind_code = 'CONFIRMED')))
          OR EXISTS (SELECT 1 FROM bil_debt_line d JOIN bil_posting p ON p.id = d.posting_id WHERE d.receipt_id = r.id AND p.kind_code = 'COMPANY_RECEIVED'))`,
+    level: "fail",
+  },
+  {
+    // Kiểm toán 14/11 (T2; migration 0166): khoản nộp đại lý ĐÃ XÁC NHẬN thì phiếu SETTLEMENT của nó còn một dòng hiệu lực (chưa bị đảo) đúng số tiền khoản nộp — sổ đảo
+    // mà khoản vẫn «đã xác nhận» là lệch. Chỉ tính khoản xác nhận TỪ mốc 'R-BIL-NP' (trước mốc, lệnh «huỷ dòng sổ» chưa bị chặn nên không đòi). Lưới thứ hai sau trigger
+    // `bil_debt_line_remittance_no_reversal` và câu chặn ở `ghiDieuChinh`.
+    code: "R-BIL-NP1",
+    what: "khoản nộp đại lý đã xác nhận có dòng quyết toán còn hiệu lực đúng số tiền",
+    sql: `SELECT count(*) FROM bil_agent_remittance a
+     WHERE a.status_code = 'CONFIRMED' AND a.decided_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-NP')
+       AND NOT EXISTS (SELECT 1 FROM bil_debt_line l WHERE l.posting_id = a.posting_id AND l.kind_code = 'SETTLEMENT' AND l.reverses_line_id IS NULL AND l.amount = a.amount
+                         AND NOT EXISTS (SELECT 1 FROM bil_debt_line x WHERE x.reverses_line_id = l.id))`,
+    level: "fail",
+  },
+  {
+    // Kiểm toán 14/11 (T1; migration 0166): khoản nộp xác nhận TỪ mốc 'R-BIL-NP' đều có dòng mã giao dịch ngân hàng (lưới thứ hai sau trigger `bank_txn_required`; mốc dùng
+    // ngày xác nhận vì khoản ghi trước mốc nhưng xác nhận sau mốc cũng bị trigger đòi mã).
+    code: "R-BIL-NP2",
+    what: "khoản nộp đại lý xác nhận từ mốc 0166 đều có mã giao dịch ngân hàng",
+    sql: `SELECT count(*) FROM bil_agent_remittance a
+     WHERE a.status_code = 'CONFIRMED' AND a.decided_at >= (SELECT cutoff_at FROM bil_audit_cutoff WHERE code = 'R-BIL-NP')
+       AND NOT EXISTS (SELECT 1 FROM bil_remittance_bank_txn t WHERE t.remittance_id = a.id)`,
     level: "fail",
   },
   {
@@ -2388,6 +2423,44 @@ export const CHECKS = [
     mode: "rows",
     level: "fail",
     note: "tiền khách của đối tác đã vào tay Công ty hoặc người khác dù công tắc đang Tắt (đường ghi tiền lọt cổng, hoặc SQL chạy tay): đối chiếu từng đơn nêu mã, đảo khoản và nhờ Kế toán ghi lại đúng người thu",
+  },
+
+  // ---- Phí đưa đón (ADR-0147 Đ2, ADR-0203 ĐB1; migration 0165). Trigger / CHECK là đường chặn thứ nhất; hai kiểm này là lưới thứ hai cho SQL chạy tay. ----
+  {
+    // R-PRC-PD-1: chữ ký điều kiện = các dòng con sắp theo key_code, nối «KEY=value» bằng «|» (cùng công thức chuKyDieuKien ở phi-don-rules.ts); lệch thì trigger chồng ngày canh sai khoá.
+    code: "R-PRC-PD-1",
+    what: "dòng mức phí đưa đón có chữ ký điều kiện (condition_sig) khác chữ ký tính lại từ các dòng điều kiện con",
+    sql: `SELECT count(*) FROM prc_transfer_fee_rule r
+      WHERE r.condition_sig IS NOT COALESCE((SELECT group_concat(key_code || '=' || value, '|') FROM (SELECT key_code, value FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id ORDER BY key_code)), '')`,
+    level: "fail",
+    note: "ADR-0203 ĐB1: chữ ký lệch dòng con (SQL chạy tay hoặc mã ghi sai) làm chặn trùng ngày không còn đúng — đóng dòng mức đó, thêm lại dòng đúng",
+  },
+  {
+    // R-PRC-PD-2: dòng mức đúng luật khuôn: đúng một ZONE; PER_TRIP ⇔ có EXCLUSIVE; không vừa SERVICE vừa SERVICE_GROUP.
+    code: "R-PRC-PD-2",
+    what: "dòng mức phí đưa đón sai khuôn: không đúng một điều kiện khu vực, hoặc kiểu theo chuyến không đi cùng điều kiện xe riêng, hoặc vừa nêu dịch vụ vừa nêu nhóm dịch vụ",
+    sql: `SELECT count(*) FROM prc_transfer_fee_rule r
+      WHERE (SELECT count(*) FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id AND c.key_code = 'ZONE') <> 1
+         OR (r.kind = 'PER_TRIP') <> EXISTS (SELECT 1 FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id AND c.key_code = 'EXCLUSIVE')
+         OR (EXISTS (SELECT 1 FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id AND c.key_code = 'SERVICE')
+             AND EXISTS (SELECT 1 FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id AND c.key_code = 'SERVICE_GROUP'))`,
+    level: "fail",
+    note: "ADR-0203 ĐB1: mỗi dòng mức có đúng một khu vực; theo chuyến ⇔ xe riêng; không vừa dịch vụ vừa nhóm — đóng dòng mức sai, thêm lại dòng đúng",
+  },
+  {
+    // R-PRC-PD-3: khi phí đưa đón ĐÃ bật (ngày bắt đầu áp mới nhất không trống và đã tới), mỗi khu vực đang bật cần một dòng chung đi chung (chỉ khoá ZONE) còn hiệu lực hôm nay
+    // (cùng nghĩa `vungThieuDongChung`); thiếu thì đơn có đón ở khu vực đó không xác nhận được. Cảnh báo, không chặn — route đã chặn lúc bật và lúc kết thúc.
+    code: "R-PRC-PD-3",
+    what: "khu vực đón đang bật chưa có mức chung đi chung còn hiệu lực hôm nay, trong khi phí đưa đón đã bật",
+    sql: `SELECT count(*) FROM loc_zone z
+      WHERE z.active = 1
+        AND (SELECT s.start_date FROM prc_transfer_fee_start s ORDER BY s.valid_from_at DESC LIMIT 1) <= ${HOM_NAY_VN}
+        AND NOT EXISTS (SELECT 1 FROM prc_transfer_fee_rule r
+          WHERE r.kind = 'PER_PAX' AND r.valid_from_date <= ${HOM_NAY_VN} AND ${CHUA_HET_HAN("r")}
+            AND (SELECT count(*) FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id) = 1
+            AND EXISTS (SELECT 1 FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id AND c.key_code = 'ZONE' AND c.value = z.code))`,
+    level: "warn",
+    note: "ADR-0203 ĐB1: thêm mức chung cho khu vực nêu mã trên màn Phí đưa đón; đến lúc đó đơn có đón ở khu vực này không xác nhận được",
   },
 ];
 

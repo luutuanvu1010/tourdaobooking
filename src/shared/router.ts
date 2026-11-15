@@ -229,6 +229,12 @@ export interface Ctx<A extends Access = Access> {
    */
   chinhSachGiaoDien: () => Promise<readonly TruongDaGiai[]>;
   /**
+   * KHU VỰC ĐÓN ĐANG BẬT (ADR-0147 Đ1; kế hoạch Phí đưa đón, Task 4) — do gốc lắp ráp tiêm (`locations.vungDangBat`; `pricing` KHÔNG import `locations`, không đọc `v_loc_*`,
+   * không nới ALLOWED_EDGES — khuôn `mocToiThieu`). Mỗi lần gọi là MỘT truy vấn D1. Không tiêm (khung thử cũ) ⇒ `[]`: bảng phí chỉ dùng để kiểm mã khu vực, nên danh sách rỗng làm
+   * mọi mã khu vực bị từ chối (đóng kín), không bao giờ thành "mức 0 đồng".
+   */
+  vungDon: () => Promise<{ code: string; name: string }[]>;
+  /**
    * ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1) — do gốc lắp ráp tiêm (`van-chuyen.dongBoChuyenChoDon`; orders / dispatch KHÔNG import van-chuyen). Nhận câu đơn ĐÃ
    * SOẠN chưa chạy, trả danh sách đầy đủ `[câu đơn…, khúc chuyến…]` để điểm gọi chạy MỘT `db.batch`. `sauKhiGhi(kq)` (gọi khi lệnh đơn thắng) trả phần "chuyến"
    * của phản hồi và — bản router bọc — tự báo Bảng tin / tin chuyến (`baoThayDoiChuyen`) cho từng khúc thắng. Câu đi vào CHÍNH lô của handler ⇒ dùng `envH`.
@@ -478,6 +484,8 @@ export interface AppOptions {
     mocToiThieu: (env: Env) => Promise<MocToiThieu | null>;
     /** CHÍNH SÁCH GIAO DIỆN (ADR-0194 đợt 1). Bản thật ở `src/index.ts` (`chinhSachChoNguoi` của giao-dien); thiếu (khung thử cũ) ⇒ `[]` — không đổi hành vi. */
     chinhSachGiaoDien?: (env: Env, actor: StaffProfile) => Promise<TruongDaGiai[]>;
+    /** KHU VỰC ĐÓN ĐANG BẬT (Task 4). Bản thật ở `src/index.ts` (`vungDangBat` của locations); thiếu (khung thử cũ) ⇒ `[]`. */
+    vungDon?: (env: Env) => Promise<{ code: string; name: string }[]>;
     /** ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `dongBoChuyenChoDon` của van-chuyen); thiếu (khung thử cố ý) → `dongBoDiThang`. */
     dongBoChuyen: (env: Env, actor: StaffProfile, x: VaoDongBoTheoDon) => Promise<DongBoTheoDon>;
     /** Mốc sắp hết hạn (ADR-0040 D1). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguongHetHanHienHanh(env.DB)`). */
@@ -672,6 +680,7 @@ export function createApp(opts: AppOptions) {
       giaoLoDay: (ds) => opts.injected.giaoLoDay(env, ds),
       // Thiếu hàm tiêm (khung thử cố ý) → null: route chặn, không đoán (I25). Kiểm lúc GỌI, không lúc dựng app (typeof — JS không kiểm kiểu).
       mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(envH) : Promise.resolve(null)),
+      vungDon: () => (typeof opts.injected.vungDon === "function" ? opts.injected.vungDon(envH) : Promise.resolve([])),
       chinhSachGiaoDien: async () => {
         if (!who || typeof opts.injected.chinhSachGiaoDien !== "function") return [];
         try {

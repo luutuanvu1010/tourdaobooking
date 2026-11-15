@@ -59,6 +59,8 @@ test("người quyết KHÁC người ghi; từ chối phải có lý do; xác n
   phieu(db, "p-khac", "SETTLEMENT", "o9");
   phieu(db, "p-sai-loai", "RECEIPT");
   phieu(db, "p1");
+  // Từ migration 0166 xác nhận còn đòi dòng mã giao dịch (trigger bank_txn_required — bài riêng ở migrations-khoan-nop-ma.test.ts).
+  db.prepare("INSERT INTO bil_remittance_bank_txn (id, remittance_id, txn_code, transferred_amount, created_at, updated_at) VALUES ('t1', 'n1', 'MA0001', 800000, ?, ?)").run(T, T);
   for (const p of ["p-khac", "p-sai-loai"]) {
     assert.throws(() => db.prepare("UPDATE bil_agent_remittance SET status_code = 'CONFIRMED', posting_id = ?, decided_at = ?, decided_by = ? WHERE id = 'n1'").run(p, T, KT), /remittance_posting/);
   }

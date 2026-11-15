@@ -92,7 +92,7 @@ export const receiptModule: AppModule = {
       const xemKhoan = laTaiKhoanDoiTac(staff) ? can(staff, "dai-ly.nop.xem", { ownerId: staff.id }) : can(staff, "dai-ly.nop.xem");
       const nop = {
         nopCho: so.nopCho, congTyCho: so.phieu.congTyCho, tran: so.tran, ghiDuoc, khachDaTra: ghiDuoc ? (order.deliveredAt ? 0 : so.khachDaTra) : null,
-        xacNhanDuoc: !laTaiKhoanDoiTac(staff) && can(staff, "dai-ly.nop.xac-nhan"), khoan: xemKhoan ? await khoanNopDto(env.DB, so.khoan, staff.id) : [],
+        xacNhanDuoc: !laTaiKhoanDoiTac(staff) && can(staff, "dai-ly.nop.xac-nhan"), khoan: xemKhoan ? await khoanNopDto(env.DB, so.khoan, staff.id, !laTaiKhoanDoiTac(staff) && can(staff, "dai-ly.nop.xac-nhan")) : [],
       };
       const tk = so.tran > 0 ? await taiKhoanNhanTienHienHanh(env.DB) : null;
       const p = dungPhieuCongNo({ maDon: order.orderCode, phieu: so.phieu, hanTra: so.hanTra, tk, nop });

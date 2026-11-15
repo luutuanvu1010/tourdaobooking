@@ -339,13 +339,13 @@ export const billingModule: AppModule = {
     }),
     // Kế toán xác nhận / từ chối khoản nộp (Đ2 mục 8, 13): cổng `office`, ô `dai-ly.nop.xac-nhan` (Kế toán, Toàn quyền; KHÔNG tài khoản giữ quyền Đối tác). Người quyết ≠ người ghi
     // (máy chủ + CHECK). Xác nhận kiểm lại trần và sinh phiếu SETTLEMENT bằng đúng hàm của quyết toán «nộp»; từ chối bắt buộc lý do.
-    route("POST", "/api/orders/:id/khoan-nop/:nopId/xac-nhan", "office", async ({ env, params, staff, baoThayDoi }) => {
+    route("POST", "/api/orders/:id/khoan-nop/:nopId/xac-nhan", "office", async ({ env, request, params, staff, baoThayDoi }) => {
       if (!can(staff, "dai-ly.nop.xac-nhan") || holdsPartner(staff)) return KHONG_QUYET_NOP();
       const id = params.id!;
       if (!UUID_RE.test(id) || !UUID_RE.test(params.nopId!)) return NOP_NOT_FOUND();
       const don = await donNop(env.DB, id);
       if (!don) return NOP_NOT_FOUND();
-      const kq = await xacNhanKhoanNop(env.DB, { don, nopId: params.nopId!, ai: nguoiGoi(staff, { ghiTien: true }) });
+      const kq = await xacNhanKhoanNop(env.DB, { don, nopId: params.nopId!, raw: await readJson(request), ai: nguoiGoi(staff, { ghiTien: true }) });
       if (!kq.ok) return kq.res;
       baoThayDoi({ orderId: id, thayDoi: "tien" });
       return json({ ok: true, ...dauTuGhiThan(tuGhiDonMinhLap(don.ownerId, staff.id)) });

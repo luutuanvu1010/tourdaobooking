@@ -12,8 +12,11 @@ export interface CatalogInput {
   notes: { child: string | null; senior: string | null; infant: string | null };
 }
 
+/** Dòng hỏng. `code` có khi ô mã đọc được và hợp lệ (để đồng bộ giữ bản đã lưu của dịch vụ đó — TT1); thiếu / sai mã / trùng mã thì không có. */
+export interface CatalogProblem { row: number; message: string; code?: string }
+
 export type CatalogParse =
-  | { ok: true; items: CatalogInput[]; problems: { row: number; message: string }[]; warnings: { row: number; message: string }[] }
+  | { ok: true; items: CatalogInput[]; problems: CatalogProblem[]; warnings: { row: number; message: string }[] }
   | { ok: false; reason: "missing_columns"; missing: string[]; headers: string[] };
 
 
@@ -52,7 +55,7 @@ export function parseCatalogSheet(csv: string): CatalogParse {
 
   const cell = (r: string[], i: number) => (i >= 0 ? (r[i] ?? "") : "");
   const items: CatalogInput[] = [];
-  const problems: { row: number; message: string }[] = [];
+  const problems: CatalogProblem[] = [];
   const warnings: { row: number; message: string }[] = [];
   const seen = new Set<string>();
   for (const [i, r] of rows.slice(1).entries()) {
@@ -74,22 +77,22 @@ export function parseCatalogSheet(csv: string): CatalogParse {
       continue;
     }
     if (!name || name.length > 300) {
-      problems.push({ row, message: `${code}: thiếu hoặc quá dài Tên tour` });
+      problems.push({ row, message: `${code}: thiếu hoặc quá dài Tên tour`, code });
       continue;
     }
     if (!unit) {
-      problems.push({ row, message: `${code}: thiếu Đơn vị` });
+      problems.push({ row, message: `${code}: thiếu Đơn vị`, code });
       continue;
     }
     const adult = price(cell(r, col.adult));
     if (adult.value === null) {
-      problems.push({ row, message: `${code}: Giá người lớn thiếu hoặc không phải số nguyên` });
+      problems.push({ row, message: `${code}: Giá người lớn thiếu hoặc không phải số nguyên`, code });
       continue;
     }
     const others = { child: price(cell(r, col.child)), senior: price(cell(r, col.senior)), infant: price(cell(r, col.infant)) };
     const badOther = (Object.entries(others) as [string, { bad?: boolean }][]).find(([, p]) => p.bad);
     if (badOther) {
-      problems.push({ row, message: `${code}: giá "${badOther[0]}" không phải số nguyên hợp lệ` });
+      problems.push({ row, message: `${code}: giá "${badOther[0]}" không phải số nguyên hợp lệ`, code });
       continue;
     }
     seen.add(code);

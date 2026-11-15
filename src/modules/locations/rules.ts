@@ -1,4 +1,6 @@
 // Luật thuần của module locations: kiểm đầu vào địa điểm. Không I/O; import kiểu/hằng bằng đuôi .ts (node --test chạy trực tiếp).
+import { MA_VUNG_RE } from "./vung-rules.ts";
+
 export type Result<T> = { ok: true; value: T } | { ok: false; message: string };
 
 export interface LocationCreate {
@@ -18,6 +20,8 @@ export interface LocationUpdate {
   expectedUpdatedAt: string;
   /** ADR-0118 Đ4: thứ tự «Chọn nhanh» 1–99; `null` = bỏ chọn nhanh; `undefined` (khoá VẮNG) = GIỮ giá trị đang lưu (Ruling R-G). */
   quickPickOrder?: number | null;
+  /** ADR-0147 Đ1: khu vực đón; `null` = bỏ xếp vùng; `undefined` (khoá VẮNG) = GIỮ vùng đang lưu (cùng luật với `quickPickOrder`). */
+  zoneCode?: string | null;
 }
 
 export const CHON_NHANH_TOI_THIEU = 1;
@@ -74,5 +78,12 @@ export function validateLocationUpdate(body: Record<string, unknown> | null): Re
     else if (typeof q === "number" && Number.isInteger(q) && q >= CHON_NHANH_TOI_THIEU && q <= CHON_NHANH_TOI_DA) quickPickOrder = q;
     else return fail(LOI_CHON_NHANH);
   }
-  return { ok: true, value: { ...c.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt, ...(quickPickOrder !== undefined ? { quickPickOrder } : {}) } };
+  let zoneCode: string | null | undefined;
+  if ("zoneCode" in body && body.zoneCode !== undefined) {
+    const z = body.zoneCode;
+    if (z === null) zoneCode = null;
+    else if (typeof z === "string" && MA_VUNG_RE.test(z)) zoneCode = z;
+    else return fail("Khu vực đón không hợp lệ.");
+  }
+  return { ok: true, value: { ...c.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt, ...(quickPickOrder !== undefined ? { quickPickOrder } : {}), ...(zoneCode !== undefined ? { zoneCode } : {}) } };
 }

@@ -241,3 +241,14 @@ test("bảng giây npm test là ĐỒNG HỒ TƯỜNG cả tệp đo trên GitHu
   // Bước gom gợi ý chép ĐỒNG HỒ TƯỜNG (giayTuong), không phải giây các bài.
   assert.match(readFileSync(new URL("../scripts/kiem-phan.mjs", import.meta.url), "utf8"), /chép vào scripts\/thoi-gian-test\.json khi cần chia lại\): có trong tệp ket-qua-tong, khoá giayTuong/);
 });
+
+// Việc 2.4 (kế hoạch 2026-11-15): tệp kiểm treo phải đỏ CÓ TÊN trong trần, không làm cả phần chờ tới khi GitHub huỷ (7 lượt «npm test phần 2» bị huỷ).
+test("trần mỗi tệp kiểm (--test-timeout): một nguồn ở kiem-phan.mjs, cả npm test lẫn phần GitHub đều dùng; nằm giữa 3 và 15 phút", () => {
+  const l = lib as Lib & { TRAN_TEP_MS: number; CO_TRAN_TEP: string };
+  assert.ok(l.TRAN_TEP_MS >= 180_000 && l.TRAN_TEP_MS <= 900_000, `trần ${l.TRAN_TEP_MS} ms`);
+  assert.equal(l.CO_TRAN_TEP, `--test-timeout=${l.TRAN_TEP_MS}`);
+  const kp = readFileSync(new URL("../scripts/kiem-phan.mjs", import.meta.url), "utf8");
+  assert.match(kp, /spawnSync\(process\.execPath, \["--test", CO_TRAN_TEP,/, "phần GitHub (chayNodeTest) mang trần");
+  const ct = readFileSync(new URL("../scripts/chay-test.mjs", import.meta.url), "utf8");
+  assert.match(ct, /\["--test", CO_TRAN_TEP, \.\.\.chinh\]/, "bộ chính của npm test mang trần");
+});

@@ -99,3 +99,35 @@ test("toEffective: giá hiệu lực (đã ghi đè) + visible = còn trong Shee
   // vừa bị ẩn vừa rời Sheet
   assert.equal(toEffective({ ...base, inSheet: false, override: patchOverride(base.prices, null, { hidden: true }) }).visible, false);
 });
+
+// ---- TT1: dòng Sheet gõ sai không làm dịch vụ đang bán biến mất ----
+test("TT1: mã đang bán mà dòng của nó hỏng → giữ lại bản đã lưu, KHÔNG vào danh sách ẩn", () => {
+  const plan = planSync(map(rec("A", 100), rec("B", 200), rec("C", 300)), [input("A", 100), input("C", 300)], [{ code: "B" }]);
+  assert.deepEqual(plan.giuLai, ["B"]);
+  assert.deepEqual(plan.missing, []);
+  assert.deepEqual(plan.changed, []);
+});
+
+test("TT1: dòng bị XOÁ hẳn vẫn ẩn như cũ; dòng hỏng của mã CHƯA từng có không tạo gì; ô mã không đọc được → như cũ", () => {
+  const plan = planSync(map(rec("A", 100), rec("B", 200)), [input("A", 100)], [{ code: "Z" }, {}]);
+  assert.deepEqual(plan.missing, ["B"]);
+  assert.deepEqual(plan.giuLai, []);
+  assert.deepEqual(plan.added, []);
+});
+
+test("TT1: dịch vụ đã ẩn khỏi Sheet từ trước thì dòng hỏng không đổi gì (không vào giữ lại)", () => {
+  const plan = planSync(map(rec("A", 100), rec("B", 200, false)), [input("A", 100)], [{ code: "B" }]);
+  assert.deepEqual(plan.giuLai, []);
+  assert.deepEqual(plan.missing, []);
+});
+
+test("TT1: chốt chặn không đếm dòng giữ lại là mất, nhưng vẫn chặn khi Sheet mất quá nửa thật", () => {
+  const all = map(rec("A", 1), rec("B", 1), rec("C", 1), rec("D", 1), rec("E", 1));
+  const hong = planSync(all, [input("A", 1)], [{ code: "B" }, { code: "C" }, { code: "D" }, { code: "E" }]);
+  assert.equal(hong.missing.length, 0);
+  assert.equal(syncGuard(5, hong, 1), null); // bốn dòng chỉ sai chữ: không phải Sheet bị xoá
+  const that = planSync(all, [input("A", 1), input("B", 1)], [{ code: "C" }]);
+  assert.equal(syncGuard(5, that, 2), null); // D, E thật sự vắng: 2/5 → chưa chặn
+  const nua = planSync(all, [input("A", 1)], [{ code: "B" }]);
+  assert.match(syncGuard(5, nua, 1)!, /ẩn 3\/5/);
+});

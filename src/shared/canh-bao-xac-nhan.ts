@@ -14,6 +14,8 @@ import { parseUnit } from "./order-lines.ts";
 import { soNguoiChang, tongKhach } from "./so-nguoi-chang.ts";
 
 export const CAU_CAN_NOI_TRA = "Cần nơi trả trước khi xếp xe";
+/** Kiểm toán 14/11 (T3) + Q11 của đặc tả 2026-09-19: nhân viên nội bộ xác nhận nháp có giá danh mục đã đổi thì đơn giữ giá đã lưu — chỉ nhắc, không chặn (Đối tác, Thực tập bị máy chủ chặn). */
+export const cauGiaDanhMucDaDoi = (ten: string): string => `Giá danh mục của «${ten}» đã đổi sau khi lưu đơn nháp — đơn sẽ xác nhận theo giá đã lưu`;
 export const CAU_XE_RIENG_CHUA_GIA_NHOM = "Có lượt đưa đón Xe riêng nhưng đơn chưa có dịch vụ Giá theo nhóm — kiểm lại tiền xe";
 /** ADR-0154 Đ3: `khongCan` = đơn mang dấu miễn danh sách (`OrderDetailDto.manifestExempt`) — câu nói rõ tên không chặn xe chạy; mặc định câu cũ. */
 export const cauThieuTen = (n: number, khongCan = false): string =>
@@ -27,11 +29,12 @@ export const xeRiengChuaGiaNhom = (services: readonly Pick<OrderServiceDto, "leg
   services.some((s) => s.legs.some((l) => l.exclusiveVehicle)) && !services.some((s) => parseUnit(s.unit).kind === "group");
 
 /**
- * Câu cảnh báo khi xác nhận (thứ tự: nơi trả, tên, xe riêng). `nguoiCuaDon` = khoá người của danh sách hành khách hiện hành (`GET /passengers`); null = không biết (lỗi tải) → bỏ cảnh báo
+ * Câu cảnh báo khi xác nhận (thứ tự: giá danh mục đã đổi, nơi trả, tên, xe riêng). `nguoiCuaDon` = khoá người của danh sách hành khách hiện hành (`GET /passengers`); null = không biết (lỗi tải) → bỏ cảnh báo
  * tên (không nói "thiếu" khi không biết). Đơn không chặng → không cảnh báo tên (không có xe chạy). Rỗng = không cảnh báo.
  */
-export function canhBaoXacNhan(services: readonly Pick<OrderServiceDto, "pax" | "legs" | "unit">[], nguoiCuaDon: readonly string[] | null, khongCan = false): string[] {
+export function canhBaoXacNhan(services: readonly (Pick<OrderServiceDto, "pax" | "legs" | "unit"> & Partial<Pick<OrderServiceDto, "name" | "catalogStatus">>)[], nguoiCuaDon: readonly string[] | null, khongCan = false): string[] {
   const out: string[] = [];
+  for (const s of services) if (s.catalogStatus === "price_changed") out.push(cauGiaDanhMucDaDoi(s.name ?? "dịch vụ"));
   if (services.some((s) => s.legs.some(thieuNoiTra))) out.push(CAU_CAN_NOI_TRA);
   if (nguoiCuaDon !== null) {
     let thieu = 0;

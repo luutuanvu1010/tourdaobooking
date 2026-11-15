@@ -17,8 +17,10 @@ export interface YeuCauRow {
   deadline_at: string;
   /** 1 = yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.2): người xét phải ghi giờ ở Còn vé. Chụp một lần lúc Gửi đơn, trigger cấm đổi. */
   pickup_time_required: number;
+  /** 1 = Gửi đơn đi nhánh A vì còn chặng chưa tính được phí đưa đón (Đợt C, Task 4; migration 0169). Chụp một lần lúc gửi, trigger cấm đổi. */
+  transfer_fee_missing: number;
 }
-const YC_COLS = "id, order_id, submitted_at, submitted_by, deadline_at, pickup_time_required";
+const YC_COLS = "id, order_id, submitted_at, submitted_by, deadline_at, pickup_time_required, transfer_fee_missing";
 /** Yêu cầu còn mở của MỘT đơn (chỉ mục duy nhất có điều kiện: tối đa một). */
 const YC_MO_CUA_DON = defineSql("orders", "confirm_request_open_of_order", `SELECT ${YC_COLS} FROM ord_confirm_request WHERE order_id = ?1 AND decided_at IS NULL`);
 export const yeuCauMoCuaDon = (db: D1Database, orderId: string): Promise<YeuCauRow | null> => db.prepare(YC_MO_CUA_DON).bind(orderId).first<YeuCauRow>();
@@ -29,7 +31,7 @@ export const yeuCauTheoId = (db: D1Database, id: string): Promise<YeuCauRow | nu
 const YC_MO_TAT_CA = defineSql(
   "orders",
   "confirm_request_open_all",
-  `SELECT r.id, r.order_id, r.submitted_at, r.submitted_by, r.deadline_at, r.pickup_time_required FROM ord_confirm_request r JOIN orders o ON o.id = r.order_id
+  `SELECT r.id, r.order_id, r.submitted_at, r.submitted_by, r.deadline_at, r.pickup_time_required, r.transfer_fee_missing FROM ord_confirm_request r JOIN orders o ON o.id = r.order_id
    WHERE r.decided_at IS NULL AND o.status = 'draft' ORDER BY r.submitted_at, r.id`,
 );
 export const yeuCauMoTatCa = async (db: D1Database): Promise<YeuCauRow[]> => (await db.prepare(YC_MO_TAT_CA).all<YeuCauRow>()).results;
@@ -63,12 +65,12 @@ export const orderTouchDraft = (db: D1Database, orderId: string, at: string, exp
 const YC_MO_GUARDED = defineSql(
   "orders",
   "confirm_request_open_guarded",
-  `INSERT INTO ord_confirm_request (id, order_id, submitted_at, submitted_by, deadline_at, pickup_time_required, created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3, ?4, ?5, ?7, ?3, ?4, ?3, ?4 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?6)`,
+  `INSERT INTO ord_confirm_request (id, order_id, submitted_at, submitted_by, deadline_at, pickup_time_required, transfer_fee_missing, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?7, ?8, ?3, ?4, ?3, ?4 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?6)`,
 );
-/** `canChotGio` BẮT BUỘC (không mặc định): nơi gọi phải nói rõ có chụp cờ «cần chốt giờ» hay không — quên thì `tsc` đỏ chứ không lặng lẽ thành 0. */
-export const cauMoYeuCau = (db: D1Database, v: { id: string; orderId: string; at: string; by: string; han: string; auditId: string; canChotGio: boolean }): D1PreparedStatement =>
-  db.prepare(YC_MO_GUARDED).bind(v.id, v.orderId, v.at, v.by, v.han, v.auditId, v.canChotGio ? 1 : 0);
+/** `canChotGio`, `thieuPhi` BẮT BUỘC (không mặc định): nơi gọi phải nói rõ có chụp cờ «cần chốt giờ» / «thiếu phí đưa đón» hay không — quên thì `tsc` đỏ chứ không lặng lẽ thành 0. */
+export const cauMoYeuCau = (db: D1Database, v: { id: string; orderId: string; at: string; by: string; han: string; auditId: string; canChotGio: boolean; thieuPhi: boolean }): D1PreparedStatement =>
+  db.prepare(YC_MO_GUARDED).bind(v.id, v.orderId, v.at, v.by, v.han, v.auditId, v.canChotGio ? 1 : 0, v.thieuPhi ? 1 : 0);
 
 /** Khép yêu cầu ĐÚNG MỘT lần (trigger canh) — CHỈ khi dòng nhật ký của lô này (Rút lại / Còn vé / Hết vé / Huỷ) đã ghi. `ticket` NULL với RUT_LAI. */
 const YC_KHEP_GUARDED = defineSql(

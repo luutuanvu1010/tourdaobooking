@@ -939,6 +939,53 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   KN({ ten: "Khoá lạc quan", giaiNghia: "Cách phát hiện người khác vừa sửa cùng dòng: dấu thời gian lệch thì máy chủ trả 409 `stale`.", khacVoi: "", chuDaLoai: [], maNoiBo: ["expectedUpdatedAt", "updated_at"], trangThai: "trong-ma", chuChon: "" }),
   KN({ ten: "View công bố", giaiNghia: "Cách duy nhất để module khác đọc nhãn của một module, chỉ đọc.", khacVoi: "", chuDaLoai: [], maNoiBo: ["v_<tiền tố>_<tên>"], trangThai: "trong-ma", chuChon: "" }),
   KN({ ten: "Giấy tờ hiện hành", giaiNghia: "Dòng giấy tờ chưa huỷ và chưa có dòng gia hạn chưa huỷ nối vào. Chỉ dòng này gia hạn hay sửa sai được, dòng khác trả 409 `document_not_current`.", khacVoi: "", chuDaLoai: [], maNoiBo: ["is_current", "HIEN_HANH", "current"], trangThai: "trong-ma", chuChon: "" }),
+  // ---- Khu vực đón (kế hoạch Phí đưa đón, Task 3; tên chủ chọn 14/11) ----
+  KN({
+    ten: "Khu vực đón",
+    giaiNghia: "Nhóm các điểm đón dùng chung một mức phí đưa đón. Mỗi địa điểm thuộc đúng một khu vực; địa điểm chưa xếp được tính vào «Ngoài khu vực».",
+    khacVoi: "«Địa điểm» là một nơi cụ thể (bến tàu, khách sạn, quầy vé); khu vực là nhóm nhiều địa điểm để tính phí.",
+    chuDaLoai: [],
+    maNoiBo: ["loc_zone", "zone_code", "VungDonDto"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-14 (chủ dự án: «Dùng tên đó, làm đi»)",
+  }),
+  KN({
+    ten: "Ngoài khu vực",
+    giaiNghia: "Khu vực gieo sẵn, luôn bật, không ngưng được. Địa điểm chưa xếp và nơi đón gõ tay được tính vào đây.",
+    khacVoi: "Không phải «chưa có mức phí»: khu vực này vẫn phải có mức phí đặt rõ, thiếu mức thì chặn chứ không tính 0 đồng.",
+    chuDaLoai: [],
+    maNoiBo: ["NGOAI_VUNG"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-14 (chủ dự án: «Dùng tên đó, làm đi»)",
+  }),
+  // ---- Phí đưa đón trên đơn (kế hoạch Phí đưa đón Đợt C, Task 6) ----
+  KN({
+    ten: "Phí đưa đón",
+    giaiNghia: "Tiền đón và đưa khách của một lượt đưa đón, tính theo mức Quản trị đặt cho khu vực đón (có thể riêng theo cấp độ đại lý, dịch vụ, chiều). Từ ngày bắt đầu áp, Nền tảng tự thêm mỗi lượt một dòng phí vào đơn; tạm tính gồm cả phí. Giảm giá của đơn không trừ vào phí, phí không tính hoa hồng, và phí nằm trong phần của Tour Đảo trên biên nhận.",
+    khacVoi: "Không phải tiền dịch vụ: nhân viên không gõ số phí, và lúc xác nhận Nền tảng chụp lại mức nên đổi bảng phí sau đó không làm đổi đơn cũ. Thiếu mức thì đơn không xác nhận được, không bao giờ tính 0 đồng.",
+    chuDaLoai: [],
+    maNoiBo: ["line_kind = TRANSFER_FEE", "OrderDto.phiDuaDon", "prc_transfer_fee_rule"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-14 (chủ dự án: «Dùng tên đó, làm đi» — tên màn hình; dùng lại làm tên dòng phí trên đơn và biên nhận, kế hoạch Đợt C)",
+  }),
+  KN({
+    ten: "Miễn phí",
+    giaiNghia: "Chữ in thay số tiền cho một dòng phí đưa đón có mức 0 đồng được Quản trị đặt rõ.",
+    khacVoi: "Khác «chưa có mức»: thiếu mức thì đơn không xác nhận được, không bao giờ hiện «Miễn phí». Dòng phí còn 0 khách trả tiền (dịch vụ sửa còn toàn em bé) mà mức khác 0 thì in đúng 0 đồng, không gọi là miễn phí.",
+    chuDaLoai: [],
+    maNoiBo: ["CHU_MIEN_PHI", "MIEN_PHI", "chuThanhTienPhi"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-15 (chủ dự án «chốt theo đề xuất», câu 3 của kế hoạch Phí đưa đón Đợt C)",
+  }),
+  KN({
+    ten: "dự kiến",
+    giaiNghia: "Ghi kèm phí đưa đón của đơn chưa xác nhận: số tính theo bảng phí hôm nay, sẽ tính lại và chụp lúc xác nhận nên có thể khác.",
+    khacVoi: "Khác «Tạm tính» (tổng trước giảm giá). Cùng nghĩa «còn có thể đổi» như «giờ dự kiến» ở chuyến xe và bảo trì.",
+    chuDaLoai: [],
+    maNoiBo: ["CHU_DU_KIEN", "phiDuaDon.duKien", "ReceiptDto.phiDuKien"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-15 (chủ dự án «chốt theo đề xuất», câu 3 của kế hoạch Phí đưa đón Đợt C)",
+  }),
 ];
 
 /**

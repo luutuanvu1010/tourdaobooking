@@ -25,7 +25,7 @@ import { datBienLai } from "./kho-bien-lai";
 import { trangThaiAnhCuaKhoan, type TrangThaiAnhRow } from "./bien-lai-repo";
 import { trangThaiBienLai } from "../../shared/bien-lai";
 import { CAU_CONG_TY_THU_TRUNG, CAU_QUYET_TOAN_TRUNG } from "../../shared/cong-no-dai-ly";
-import { coNopChoCuaBen, coNopChoCuaNguoi } from "./khoan-nop-repo";
+import { coNopChoCuaBen, coNopChoCuaNguoi, laPhieuKhoanNopDaXacNhan } from "./khoan-nop-repo";
 import { kenhThuCuaDon } from "./kenh-thu-repo";
 import { donTraSauTheoId } from "./tra-sau-repo";
 import { CAU_HOAN_SAU_GIAO } from "../../shared/phan-dinh";
@@ -168,7 +168,8 @@ export function cauGanMa(db: D1Database, i: { receiptId: string; orderId: string
 /** Lỗi lớp CSDL của mã (dữ liệu đổi giữa lúc kiểm và lúc ghi, hoặc hai người bấm cùng lúc) — null nếu không phải lỗi mã. */
 export function loiMaTrigger(e: unknown): { ok: false; res: Response } | null {
   const m = e instanceof Error ? e.message : String(e);
-  if (/UNIQUE constraint failed: bil_receipt_bank_txn\.receipt_id/.test(m)) return loi(409, "stale", "Khoản này vừa được xác nhận — tải lại để xem.");
+  if (/UNIQUE constraint failed: bil_(receipt_bank_txn\.receipt_id|remittance_bank_txn\.remittance_id)/.test(m)) return loi(409, "stale", "Khoản này vừa được xác nhận — tải lại để xem.");
+  if (loiTrigger(e, "bank_txn_remittance_invalid") || loiTrigger(e, "bank_txn_no_replace")) return loi(409, "stale", "Khoản nộp vừa thay đổi — tải lại rồi thử lại.");
   if (loiTrigger(e, "bank_txn_duplicate")) return loi(409, "bank_txn_duplicate", "Mã giao dịch này vừa được gắn với một khoản thu khác của đơn — tải lại để xem.");
   if (loiTrigger(e, "bank_txn_amount_mismatch")) return loi(409, "bank_txn_amount_mismatch", "Mã này vừa được ghi với số tiền thực chuyển khác — tải lại rồi thử lại.");
   if (loiTrigger(e, "bank_txn_over")) return loi(409, "bank_txn_over", "Tổng các khoản thu gắn mã này vượt số tiền thực chuyển — tải lại rồi thử lại.");
@@ -390,7 +391,8 @@ export const lineOf = (d: LineDraft, postingId: string, orderId: string, receipt
 
 /**
  * Phần thương mại của đơn cho «Đã giao» (sổ đại lý đợt 2 — ADR-0079 điều 1–6; đặc tả P1–P3): dòng thương mại (`dongThuongMaiTu` — số chỉ qua `tinhDongDoiTac`),
- * tình trạng (`tinhTrangThuongMai`) và thành tiền TRƯỚC giảm của đơn (`gross` = Σ thành tiền hiện hành các dòng dịch vụ — cột `gross_snapshot`, controller notes đ7).
+ * tình trạng (`tinhTrangThuongMai`) và thành tiền TRƯỚC giảm của đơn (`gross` = Σ thành tiền hiện hành các dòng dịch vụ + Σ phí đưa đón hiện hành — cột `gross_snapshot`, controller notes đ7).
+ * Đợt C, Task 5: phải thu nay gồm phí mà giảm giá không trừ vào phí, nên `gross` phải gồm phí để `gross − phải thu` (dòng GIAM_GIA_BEN_DAT, R-BIL-16) vẫn đúng bằng giảm giá hiệu lực.
  * `phan` do ROUTE đọc (`phanThuongMaiCuaDon`, sau `can(`) rồi truyền xuống. `phan` null (đơn huỷ / vừa biến mất / route không đọc vì đơn không còn bấm «Đã giao»
  * được) ⇒ THIẾU — đóng an toàn: không bao giờ coi «không đọc được» là «không có người hưởng» (Ruling R-20). Nơi gọi chỉ dùng tình trạng này SAU các lý do
  * trạng thái đơn (đã giao / huỷ / chưa xác nhận — `lyDoChuaGiaoDuoc`), nên null không đổi câu của các đơn đó.
@@ -399,7 +401,7 @@ export function thuongMaiCuaDon(phan: PhanThuongMai | null): { dong: DongThuongM
   // M-5 (Task 9): vẫn đóng an toàn (giữ đơn), nhưng câu là «đơn vừa thay đổi — tải lại», không phải «thiếu mức».
   if (!phan) return { dong: [], tinhTrang: { trangThai: "KHONG_DOC" }, gross: 0 };
   const dongTm = dongThuongMaiTu({ chup: phan.chup, dichVu: phan.dichVu });
-  return { dong: dongTm, tinhTrang: tinhTrangThuongMai({ chup: phan.chup, dong: dongTm }), gross: phan.dichVu.reduce((t, d) => t + d.thanhTien, 0) };
+  return { dong: dongTm, tinhTrang: tinhTrangThuongMai({ chup: phan.chup, dong: dongTm }), gross: phan.dichVu.reduce((t, d) => t + d.thanhTien, 0) + phan.phiDon };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1139,6 +1141,8 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
     if (l.kind_code === "ATTRIBUTION") return loi(409, "attribution_line", "Khoản nợ theo phân định chỉ đổi hoặc huỷ ở màn «Phân định trách nhiệm».");
     // ADR-0092 Đ4: không đảo riêng dòng giữ hộ khi khoản thu sinh ra nó còn hiệu lực (lớp CSDL: trigger bil_held_no_single_reversal, 0082).
     if (l.kind_code === "HELD" && l.receipt_id !== null && !(await receiptsOfOrder(db, l.order_id)).some((r) => r.reverses_id === l.receipt_id)) return HELD_DON_LE();
+    // Kiểm toán 14/11 (T2): dòng của phiếu quyết toán một khoản nộp ĐÃ XÁC NHẬN không huỷ riêng — sổ đảo mà khoản vẫn «đã xác nhận». Lớp CSDL: trigger `remittance_line_no_reversal` (0166).
+    if (await laPhieuKhoanNopDaXacNhan(db, l.posting_id)) return DAO_KHOAN_NOP();
     const stmts = [
       postingPlainStatement(db, { id: postingId, kind: "REVERSAL", orderId: l.order_id, reason: lyDo.value, reversesPostingId: null, occurredDate: ngay.value, dueSnapshot: null, at, by, ghiTien: input.ai.ghiTien }),
       lineIfPostingStatement(db, lineOf(sinhDongDao(toLineRow(l)), postingId, l.order_id, l.receipt_id, at, by)),
@@ -1153,6 +1157,7 @@ export async function ghiDieuChinh(db: D1Database, input: { raw: unknown; ai: Ng
       if (/UNIQUE constraint failed: bil_debt_line\.reverses_line_id/.test(e instanceof Error ? e.message : String(e))) return loi(409, "stale", "Dòng này đã bị huỷ.");
       if (loiTrigger(e, "held_already_settled")) return loi(409, "held_already_settled", "Khoản tiền này đã được ghi nộp về công ty — huỷ lần ghi nộp trước.");
       if (loiTrigger(e, "held_single_reversal")) return HELD_DON_LE();
+      if (loiTrigger(e, "remittance_line_no_reversal")) return DAO_KHOAN_NOP();
       throw e;
     }
     return { ok: true, value: { orderId: l.order_id } };
@@ -1168,6 +1173,7 @@ const CHUYEN_KHOA = () =>
   loi(409, "coc_transfer_locked", "Tiền này đã chuyển sang đơn mới — không huỷ riêng một phía của lần chuyển được. Cần sửa thì báo Toàn quyền.");
 const DAO_THUONG_MAI = () =>
   loi(409, "commercial_line_needs_approval", "Dòng hoa hồng, giá vốn hay giảm giá bên đặt chịu không huỷ riêng được — tạo yêu cầu điều chỉnh để người thứ hai duyệt.");
+const DAO_KHOAN_NOP = () => loi(409, "remittance_line_needs_approval", "Dòng này thuộc một khoản nộp đã xác nhận — không huỷ riêng được. Ghi nhầm thì sửa bằng điều chỉnh có người thứ hai duyệt.");
 const HELD_DON_LE = () =>
   loi(409, "held_single_reversal", "Không huỷ riêng dòng tiền nhân viên chưa nộp về công ty khi khoản thu vẫn còn — huỷ khoản thu, hoặc dùng “Xác nhận đã nhận” cho khoản chuyển khoản.");
 

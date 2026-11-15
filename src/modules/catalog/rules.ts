@@ -17,14 +17,17 @@ export interface SyncPlan {
   changed: { input: CatalogInput; changes: string[] }[];
   /** Có trong D1 (đang còn trong Sheet) nhưng không còn trong Sheet → chỉ ẩn. */
   missing: string[];
+  /** Đang bán (còn trong Sheet) mà dòng của nó trong Sheet hỏng ở lần đọc này → GIỮ NGUYÊN bản đã lưu, không ẩn (TT1). Dòng thật sự vắng khỏi Sheet vẫn vào `missing`. */
+  giuLai: string[];
   unchanged: number;
 }
 
 /** Định dạng tiền cho nhật ký: 850000 → "850.000 ₫", null → "(không có)". */
 export const money = (n: number | null): string => (n === null ? "(không có)" : `${n.toLocaleString("vi-VN")} ₫`);
 
-export function planSync(existing: Map<string, CatalogRecord>, incoming: CatalogInput[]): SyncPlan {
-  const plan: SyncPlan = { added: [], changed: [], missing: [], unchanged: 0 };
+export function planSync(existing: Map<string, CatalogRecord>, incoming: CatalogInput[], problems: readonly { code?: string }[] = []): SyncPlan {
+  const plan: SyncPlan = { added: [], changed: [], missing: [], giuLai: [], unchanged: 0 };
+  const hong = new Set(problems.flatMap((p) => (p.code ? [p.code] : [])));
   const seen = new Set<string>();
   for (const input of incoming) {
     seen.add(input.code);
@@ -46,7 +49,10 @@ export function planSync(existing: Map<string, CatalogRecord>, incoming: Catalog
     if (changes.length) plan.changed.push({ input, changes });
     else plan.unchanged++;
   }
-  for (const [code, rec] of existing) if (rec.inSheet && !seen.has(code)) plan.missing.push(code);
+  for (const [code, rec] of existing) {
+    if (!rec.inSheet || seen.has(code)) continue;
+    (hong.has(code) ? plan.giuLai : plan.missing).push(code);
+  }
   return plan;
 }
 
@@ -59,11 +65,18 @@ export function syncGuard(existingInSheet: number, plan: SyncPlan, incomingCount
   return null;
 }
 
+/** Một dòng Sheet hỏng như đã lưu ở trạng thái đồng bộ. `giuLai`: dịch vụ đang bán được giữ theo bản đã lưu; `daBao`: đã gửi tin cho Quản trị về đúng dòng + lý do này. */
+export interface VanDeDongBo { row: number; message: string; code?: string; giuLai?: boolean; daBao?: boolean }
+
+/** Chìa nhận diện «cùng một vấn đề» giữa hai lần đồng bộ: mã + lý do (số dòng đổi do chèn dòng không tính là vấn đề mới). */
+export const chiaVanDe = (p: { code?: string; message: string }): string => `${p.code ?? ""}|${p.message}`;
+
 /** Tóm tắt ngắn cho nhật ký (không chứa bí mật): số lượng + tối đa vài thay đổi giá đầu tiên. */
 export function summarizePlan(plan: SyncPlan, maxLines = 6): string {
   const parts = [`thêm ${plan.added.length}`, `đổi ${plan.changed.length}`, `ẩn ${plan.missing.length}`];
   const details = plan.changed.slice(0, maxLines).map((c) => `${c.input.code}: ${c.changes.join(", ")}`);
   const more = plan.changed.length > maxLines ? [`… và ${plan.changed.length - maxLines} dịch vụ khác`] : [];
+  if (plan.giuLai.length) parts.push(`giữ lại ${plan.giuLai.length} (dòng Sheet sai)`);
   return [parts.join(", "), ...details, ...more].join(" | ");
 }
 

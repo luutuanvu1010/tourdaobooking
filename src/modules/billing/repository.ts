@@ -527,6 +527,7 @@ export const accountingEntryInsertStatement = (db: D1Database, e: NewAccountingE
   db.prepare(ENTRY_INSERT).bind(e.id, e.orderId, e.entered ? 1 : 0, e.invoiceNumber, e.reason, e.at, e.by, e.expectedCurrentId);
 
 // ---- Mã giao dịch ngân hàng (ADR-0092 Đ6; migration 0088). "Còn hiệu lực" = vị từ hieuLuc (không phải dòng đảo, chưa bị đảo). ----
+// Từ migration 0166 câu đọc theo mã gồm CẢ khoản nộp đại lý (khác REJECTED) — `receipt_id` của dòng đó là mã KHOẢN NỘP; cùng tập với trigger của 0166.
 export interface BankTxnRow {
   receipt_id: string;
   order_id: string;
@@ -537,7 +538,10 @@ const BANK_TXN_OF_CODE = defineSql(
   "billing",
   "bank_txn_of_code",
   `SELECT t.receipt_id, r.order_id, r.amount, t.transferred_amount FROM bil_receipt_bank_txn t JOIN bil_payment_receipt r ON r.id = t.receipt_id
-   WHERE t.txn_code = ?1 AND r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)`,
+   WHERE t.txn_code = ?1 AND r.reverses_id IS NULL AND NOT EXISTS (SELECT 1 FROM bil_payment_receipt x WHERE x.reverses_id = r.id)
+   UNION ALL
+   SELECT t.remittance_id AS receipt_id, a.order_id, a.amount, t.transferred_amount FROM bil_remittance_bank_txn t JOIN bil_agent_remittance a ON a.id = t.remittance_id
+   WHERE t.txn_code = ?1 AND a.status_code <> 'REJECTED'`,
 );
 export async function bankTxnOfCode(db: D1Database, ma: string): Promise<BankTxnRow[]> {
   return (await db.prepare(BANK_TXN_OF_CODE).bind(ma).all<BankTxnRow>()).results;

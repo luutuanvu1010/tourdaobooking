@@ -36,6 +36,14 @@ const XAC_NHAN = defineSql(
   `UPDATE bil_agent_remittance SET status_code = 'CONFIRMED', posting_id = ?2, decided_at = ?3, decided_by = ?4, updated_at = ?3, updated_by = ?4
    WHERE id = ?1 AND status_code = 'PENDING' AND EXISTS (SELECT 1 FROM bil_posting WHERE id = ?2)`,
 );
+// Gắn mã giao dịch ngân hàng cho khoản nộp (migration 0166) — chèn SAU phiếu quyết toán ?7 của chính lô xác nhận, TRƯỚC câu khoản sang CONFIRMED (lúc đó khoản còn PENDING; trigger
+// `bil_remittance_bank_txn_remittance`). Phiếu không chèn (thua đua) ⇒ câu này không chèn gì. ?1 id, ?2 khoản nộp, ?3 mã, ?4 số thực chuyển, ?5 bây giờ, ?6 người, ?7 phiếu.
+const GAN_MA = defineSql(
+  "billing",
+  "remittance_bank_txn_insert",
+  `INSERT INTO bil_remittance_bank_txn (id, remittance_id, txn_code, transferred_amount, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6 WHERE EXISTS (SELECT 1 FROM bil_posting WHERE id = ?7)`,
+);
 const TU_CHOI = defineSql(
   "billing",
   "remittance_reject",
@@ -104,6 +112,22 @@ const CHO_XOA = defineSql(
    ORDER BY p.created_at, p.id LIMIT 51`,
 );
 
+// Cờ «biên lai trùng ảnh» (kiểm toán 14/11): trong các khoản ?1 (json), khoản nào có ảnh còn giữ mà băm trùng ảnh còn giữ của MỘT khoản nộp khác hoặc của một biên lai khoản thu.
+// Ảnh đã quyết xoá có băm rỗng nên tự rơi ra. Băm CHỈ đi trong câu này — chỉ trả mã khoản, không bao giờ ra DTO, nhật ký, câu lỗi (N3).
+const ANH_TRUNG = defineSql(
+  "billing",
+  "remittance_proof_duplicate_hash",
+  `SELECT p.remittance_id FROM bil_remittance_proof p
+   WHERE p.remittance_id IN (SELECT value FROM json_each(?1)) AND p.content_hash IS NOT NULL
+     AND (EXISTS (SELECT 1 FROM bil_remittance_proof q WHERE q.content_hash = p.content_hash AND q.remittance_id <> p.remittance_id)
+          OR EXISTS (SELECT 1 FROM bil_receipt_proof r WHERE r.content_hash = p.content_hash))`,
+);
+// Phiếu ?1 là phiếu quyết toán của một khoản nộp ĐÃ XÁC NHẬN (migration 0166 — dòng của nó không huỷ riêng được; trigger `bil_debt_line_remittance_no_reversal` là lớp sau).
+const PHIEU_CUA_NOP_DA_XAC_NHAN = defineSql(
+  "billing",
+  "remittance_confirmed_of_posting",
+  "SELECT 1 AS co FROM bil_agent_remittance WHERE posting_id = ?1 AND status_code = 'CONFIRMED' LIMIT 1",
+);
 export type TrangThaiNop = "PENDING" | "CONFIRMED" | "REJECTED";
 export interface NopRow {
   id: string; order_id: string; agent_party_id: string; amount: number; transfer_date: string; status_code: TrangThaiNop; reject_reason: string | null; posting_id: string | null;
@@ -175,4 +199,14 @@ export interface BenDatRow { staff_id: string; booker_party_id: string | null; o
 export const benDatCuaDon = (db: D1Database, orderId: string): Promise<BenDatRow | null> => db.prepare(BEN_DAT_CUA_DON).bind(orderId).first<BenDatRow>();
 export async function quyenMoCua(db: D1Database, staffId: string): Promise<string[]> {
   return (await db.prepare(QUYEN_MO_CUA).bind(staffId).all<{ permission_code: string }>()).results.map((r) => r.permission_code);
+}
+
+export const ganMaNopStatement = (db: D1Database, v: { id: string; remittanceId: string; ma: string; soThucChuyen: number; at: string; by: string; postingId: string }): D1PreparedStatement =>
+  db.prepare(GAN_MA).bind(v.id, v.remittanceId, v.ma, v.soThucChuyen, v.at, v.by, v.postingId);
+export async function khoanNopTrungAnh(db: D1Database, ids: readonly string[]): Promise<Set<string>> {
+  if (ids.length === 0) return new Set();
+  return new Set((await db.prepare(ANH_TRUNG).bind(JSON.stringify(ids)).all<{ remittance_id: string }>()).results.map((r) => r.remittance_id));
+}
+export async function laPhieuKhoanNopDaXacNhan(db: D1Database, postingId: string): Promise<boolean> {
+  return (await db.prepare(PHIEU_CUA_NOP_DA_XAC_NHAN).bind(postingId).first()) !== null;
 }
