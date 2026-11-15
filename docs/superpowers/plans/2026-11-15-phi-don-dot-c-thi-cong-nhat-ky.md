@@ -101,4 +101,6 @@ Người điều phối ghi, 15/11/2026. Kết quả thật, chép từ lần ch
 
 **Nhật ký thay đổi (bước A.0):** thêm mục 3.9 (số tạm) ở `src/shared/changelog.ts`; bảy tệp bài đọc nhật ký thay đổi 65/65 đạt.
 
-**Chưa làm:** quan sát cổng thiếu phí bằng e2e SV-PD-17; xem phiếu công nợ sau F4 bằng Chrome; chạy lại cả e2e sau lượt sửa (chỉ chạy bốn kịch bản liên quan).
+**Lượt 3 — sau mục nhật ký thay đổi:** phép đột biến thứ năm của kế hoạch (cho `congThieuPhiDon` luôn trả null) ⇒ e2e `phi-don-xac-nhan` đỏ ở SV-PD-17 ⇒ hoàn nguyên (cây sạch); bộ sinh kho trợ lý không đổi tệp nào; `npm run test:e2e` đủ bộ ở `169353c02`: 96/96 kịch bản xanh, 1.447 giây (máy tải ~28).
+
+**Chưa làm:** xem phiếu công nợ sau F4 bằng Chrome (chỉ có bài đơn vị và e2e).
