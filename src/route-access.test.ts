@@ -99,6 +99,15 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/audit", access: "admin" },
   { method: "GET", path: "/api/auth/config", access: "public" },
   { method: "POST", path: "/api/dang-ky/phieu/tep", access: "public" }, // ADR-0208 Đ2: tải tệp vào ô của phiếu — công khai, cổng là cookie đăng ký td_dang_ky kiểm trong thân route (ADR-0206 Đ7)
+  // ADR-0207 Đ9 (đợt 1 Task 6): bước xác minh phiếu đăng ký — cổng accounts; thân hỏi registration.queue.view (hàng chờ) hoặc party.verify + party.view (+ party.verify.attachment cho số, ảnh).
+  { method: "GET", path: "/api/dang-ky/hang-cho", access: "accounts" },
+  { method: "GET", path: "/api/dang-ky/phieu/:id", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/ket-luan", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/xem-so", access: "accounts" },
+  { method: "GET", path: "/api/dang-ky/phieu/:id/tep/:tid", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/dat", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/bo-sung", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/tu-choi", access: "accounts" },
   { method: "GET", path: "/api/bang-tin", access: "staff" }, // bắt tay WebSocket Bảng tin (ADR-0022) — mọi tài khoản đăng nhập; nhãn nhận tin tính ở máy chủ bằng can()
   { method: "POST", path: "/api/auth/login", access: "public" },
   { method: "POST", path: "/api/auth/logout", access: "public" },
@@ -643,7 +652,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 505 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 513 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -809,6 +818,7 @@ test("mức truy cập của 505 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-13 (ADR-0201 Đ3): + PUT (admin) / GET (office) /api/catalog/:code/anh = 503.
   // ADR-0202 (nội dung màn bảo trì): +1 PUT (admin) /api/maintenance/content = 504.
   // ADR-0208 Đ2 (đăng ký đối tác, đợt 1 Task 5): +1 POST (public) /api/dang-ky/phieu/tep = 505.
-  assert.equal(actual.length, 505, "số route thực tế lệch 505 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 505, "SNAPSHOT phải có đúng 505 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // ADR-0207 Đ9 (đợt 1 Task 6): + 8 route /api/dang-ky/* (accounts) = 513.
+  assert.equal(actual.length, 513, "số route thực tế lệch 513 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 513, "SNAPSHOT phải có đúng 513 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

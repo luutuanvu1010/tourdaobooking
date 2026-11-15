@@ -126,6 +126,10 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "party.erasure.process": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0126 đ2 (lát H-5): xử lý phiếu yêu cầu xoá dữ liệu — Quản trị, Toàn quyền (còn hỏi cấp bậc ở route)
   "party.verify": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "none"], // ADR-0125 đ1, đ2 (lát H-4): hàng chờ xác minh phiếu tự khai — Quản trị, Toàn quyền, Nhân sự (HR vẫn party.view = none)
   "party.verify.attachment": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "none"], // ADR-0125 đ1: xem đủ số của phiếu ĐANG CHỜ — nhật ký trước, không số trong nhật ký
+  // ADR-0207 Đ9 (đợt 1 Task 6): hàng chờ phiếu đăng ký — Quản trị, Toàn quyền, Nhân sự (Nhân sự chỉ thấy phiếu CHỜ DUYỆT, lọc ở route); hai ô sau chỉ Toàn quyền, chờ route (docs/quyen-hoan.json).
+  "registration.queue.view": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "none"],
+  "registration.policy.write": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
+  "registration.agent.purge": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
   "vehicle.manage": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0040 D1: xe, giấy tờ xe, danh sách sắp hết hạn — Quản trị + Toàn quyền (ADR-0038 điều 6)
   "transport.rate.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0057 B3: xem bảng giá thuê xe — Kế toán = Quản trị (lần 18), Toàn quyền
   "transport.rate.manage": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0057 B3: thêm / đóng giá, danh mục tuyến, cỡ xe
@@ -320,6 +324,7 @@ test("mặc định từ chối: không quyền, thao tác lạ, chủ đơn thi
 // ADR-0040 D2: party.document.view — ô `own` của Quản trị (giấy tờ của chính mình); Quản trị xem giấy tờ NGƯỜI KHÁC qua party.document.write.
 // ADR-0119: feedback.team.manage — quản lý nhóm hỗ trợ chỉ Toàn quyền (Quản trị không có đường tắt vào nhóm nhạy cảm).
 const ADMIN_NONE_OPS: readonly OperationCode[] = [
+  "registration.policy.write", "registration.agent.purge", // ADR-0206 / ADR-0207 (đợt 1 Task 6): chính sách đăng ký, tác nhân dọn phiếu — chỉ Toàn quyền
   "admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "settings.ops", "order.pool.view",
   "notice.send", "feedback.view", "feedback.triage", "feedback.team.manage", "account.create", "audit.view", "company.legal.write", "party.document.view",
   "payment.refund", // sổ tiền lượt 1 (ADR-0026 điều 10): hoàn khách chỉ Kế toán, Toàn quyền (H4)
@@ -441,6 +446,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "me.favorites.write": "own", // ADR-0187 Đ2.3: tài xế công ty tự chọn nút thanh dưới của chính mình
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): xử lý phiếu xoá dữ liệu của người khác — không
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1
+    "registration.queue.view": "none", "registration.policy.write": "none", "registration.agent.purge": "none", // ADR-0207 Đ9: hàng chờ phiếu đăng ký (Nhân sự thấy, lọc ở route); hai ô còn lại chỉ Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     // ADR-0049 D3 — NỚI (ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
@@ -505,6 +511,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "me.favorites.write": "none", // ADR-0187 Đ2.3: chủ 8/11 — tài xế đối tác chỉ có hai trang, không tự chọn nút thanh dưới
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): xử lý phiếu xoá dữ liệu của người khác — không
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1
+    "registration.queue.view": "none", "registration.policy.write": "none", "registration.agent.purge": "none", // ADR-0207 Đ9: hàng chờ phiếu đăng ký (Nhân sự thấy, lọc ở route); hai ô còn lại chỉ Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.passenger.add": "none", // ADR-0052 D5b × lời chủ 5/10 ("chỉ tài xế công ty"): tài xế đối tác KHÔNG bổ sung tên
@@ -577,6 +584,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "me.favorites.write": "own", // ADR-0187 Đ2.3: tự chọn nút thanh dưới của chính mình, như mọi tài khoản nội bộ
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): Nhân sự không xử lý phiếu xoá — chỉ Quản trị, Toàn quyền
     "party.verify": "any", "party.verify.attachment": "any", // ADR-0125 đ1
+    "registration.queue.view": "any", "registration.policy.write": "none", "registration.agent.purge": "none", // ADR-0207 Đ9: hàng chờ phiếu đăng ký (Nhân sự thấy, lọc ở route); hai ô còn lại chỉ Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.override.giay_to_cung": "none", "trip.urgent_adjust": "none", "dispatch.policy.lead": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none",
@@ -843,10 +851,10 @@ test("ADR-0125 đ1, đ2: party.verify / party.verify.attachment — ADMIN, HR, S
   assert.equal(MATRIX["party.document.reveal"].HR, "none");
 });
 
-test("ADR-0125: HR đúng năm ô `any` ngoài hai ô của mọi tài khoản nội bộ", () => {
+test("ADR-0125 + ADR-0207: HR đúng sáu ô `any` ngoài hai ô của mọi tài khoản nội bộ", () => {
   const MOI_TAI_KHOAN = new Set(["feedback.submit", "assistant.ask"]);
   const hrAny = Object.entries(MATRIX).filter(([, r]) => r.HR === "any").map(([k]) => k).filter((k) => !MOI_TAI_KHOAN.has(k)).sort();
-  assert.deepEqual(hrAny, ["account.create", "account.edit", "account.view", "party.verify", "party.verify.attachment"]);
+  assert.deepEqual(hrAny, ["account.create", "account.edit", "account.view", "party.verify", "party.verify.attachment", "registration.queue.view"]);
 });
 
 test("ADR-0125 đ1 (lát H-4): party.verify / party.verify.attachment trên cả 2048 tập con quyền — được khi có ADMIN, HR hoặc SUPER_ADMIN, có hay không có ngữ cảnh", () => {

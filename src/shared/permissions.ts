@@ -326,6 +326,12 @@ export const MATRIX = {
   "party.verify": quanTriNhanSu(),
   // ADR-0125 đ1: XEM ĐỦ SỐ (và ảnh — lát mở loại nối SELF_SUBMISSION) CHỈ của phiếu ĐANG CHỜ; nhật ký ghi TRƯỚC, không chứa số. Route: POST /api/parties/xac-minh/:pid/xem-so.
   "party.verify.attachment": quanTriNhanSu(),
+  // ADR-0206 / ADR-0207 (accepted 2026-11-15; đợt 1 Task 6): phiếu đăng ký đối tác. `registration.queue.view` = xem hàng chờ của phiếu (Quản trị, Toàn quyền thấy mọi phiếu chưa kết thúc; Nhân sự chỉ phiếu CHỜ DUYỆT chưa kích hoạt);
+  // xem nội dung / kết luận / xem đủ số / mở ảnh còn đòi `party.verify` VÀ `party.view` (+ `party.verify.attachment` cho số và ảnh) — Nhân sự không có `party.view` nên không làm bước xác minh.
+  // `registration.policy.write` (đổi chính sách đăng ký, công tắc) và `registration.agent.purge` (tác nhân dọn phiếu) chỉ Toàn quyền; hai ô này chờ route ở các task sau (docs/quyen-hoan.json).
+  "registration.queue.view": quanTriNhanSu(),
+  "registration.policy.write": chiToanQuyen(),
+  "registration.agent.purge": chiToanQuyen(),
   // ADR-0040 D1: quản lý xe, giấy tờ xe, xem danh sách giấy tờ sắp hết hạn (xe + tài xế, không số) — Quản trị + Toàn quyền (việc kinh doanh, ADR-0038
   // điều 6). Route: /api/van-chuyen/* (module van-chuyen, cổng office). Danh mục loại giấy tờ xe: admin.manage; ngưỡng sắp hết hạn: settings.ops.
   "vehicle.manage": quanTri(),

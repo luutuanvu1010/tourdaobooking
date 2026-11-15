@@ -242,6 +242,14 @@ export const AUDIT_ACTIONS = {
   party_erasure_retried: { label: "Chạy lại việc xoá dữ liệu", group: "system" },
   sessions_anonymized: { label: "Ẩn danh IP và thông tin máy đã đăng xuất", group: "system" }, // ADR-0126 đ8: chỉ số phiên + mốc kết thúc, KHÔNG IP / User-Agent
   self_submission_number_viewed: { label: "Xem đủ số giấy tờ của phiếu tự khai", group: "party" },
+  // ADR-0207 Đ6 (đợt 1 Task 6): xác minh phiếu đăng ký đối tác. target_type 'party' (KHÔNG 'staff' — không chạm tài khoản, view v_aud_cham_tai_khoan), target_id = mã phiếu (DK_…), không phải mã hồ sơ.
+  // `detail` CHỈ mã mục / mã lý do / tên loại giấy tờ — KHÔNG SĐT, email, số giấy tờ, ngày sinh, địa chỉ, khoá kho.
+  registration_item_concluded: { label: "Kết luận một mục của phiếu đăng ký", group: "party" },
+  registration_verified: { label: "Xác minh đạt phiếu đăng ký", group: "party" },
+  registration_supplement_requested: { label: "Yêu cầu bổ sung phiếu đăng ký", group: "party" },
+  registration_rejected: { label: "Từ chối phiếu đăng ký", group: "party" },
+  registration_number_viewed: { label: "Xem đủ số giấy tờ của phiếu đăng ký", group: "party" },
+  registration_file_viewed: { label: "Mở ảnh của phiếu đăng ký", group: "party" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
   // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
   party_bank_account_changed: { label: "Đổi tài khoản nhận tiền", group: "party" },
