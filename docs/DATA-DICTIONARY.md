@@ -357,9 +357,9 @@
 | `dk_submission` | bảng | bản khai bất biến (0167): mỗi lần gửi một dòng, version kế tiếp current_version; chỉ cho đặt erased_at một lần (ẩn danh, ADR-0208). Cột soi theo pty_person / pty_contact_point / pty_person_document. Hạng N2/N3 không bao giờ vào nhật ký |
 | `dk_item_result` | bảng | kết luận từng mục khi xác minh (0167), CHỈ-THÊM |
 | `dk_decision` | bảng | quyết định của phiếu (ADR-0207 Đ5; 0167), CHỈ-THÊM: DUYET và KICH_HOAT, mỗi loại một dòng mỗi phiếu. Trigger dk_decision_guard làm hỏng cả lô nếu sai điều kiện (trạng thái, phiên bản, kết luận Danh bạ, người duyệt ≠ người xác minh trừ cờ Toàn quyền do máy chủ đặt; kích hoạt: đã duyệt, chưa kích hoạt, còn hạn) |
-| `dk_event` | bảng | lịch sử lệnh của phiếu (0167), CHỈ-THÊM; actor_kind REGISTRANT | STAFF | AGENT. Không ghi SĐT, email, số giấy tờ, ngày sinh, địa chỉ |
-| `dk_upload_attempt` | bảng | bộ đếm tệp tải lên mỗi giờ mỗi địa chỉ mạng của đăng ký (ADR-0208 Đ2; migration 0168): chỉ thêm dòng (đếm theo cửa sổ at_ms, không xoá cứng); ip_key là địa chỉ mạng (N2), không vào nhật ký |
-| `dk_email_code` | bảng | mã gửi email của đăng ký (0167): chỉ lưu bản băm (N4), có hạn, có đếm lần nhập; bảng kỹ thuật, được cập nhật và xoá (dòng hết hạn) |
+| `dk_event` | bảng | lịch sử lệnh của phiếu (0167), CHỈ-THÊM; actor_kind REGISTRANT | STAFF | AGENT (AGENT: mã tác nhân DON_PHIEU_DANG_KY). Không ghi SĐT, email, số giấy tờ, ngày sinh, địa chỉ. Lệnh dấu KICH_HOAT_LECH không bao giờ nằm lại: trigger dk_event_activation_account làm hỏng lô kích hoạt khi câu đặt PIN khớp 0 dòng (đợt 1 Task 9) |
+| `dk_upload_attempt` | bảng | bộ đếm tệp tải lên mỗi giờ mỗi địa chỉ mạng của đăng ký (ADR-0208 Đ2; migration 0168): đếm theo cửa sổ at_ms; dòng ra khỏi cửa sổ một giờ bị tác nhân dọn phiếu xoá (bảng kỹ thuật — ngoại lệ có tên XOA_CUNG_KY_THUAT của R-N1-9, chờ chủ duyệt); ip_key là địa chỉ mạng (N2), không vào nhật ký |
+| `dk_email_code` | bảng | mã gửi email của đăng ký (0167): chỉ lưu bản băm (N4), có hạn, có đếm lần nhập; bảng kỹ thuật, được cập nhật và xoá: tác nhân dọn phiếu xoá dòng đã hết hạn VÀ tạo trước bây giờ − max(hạn mã, 1 giờ) (trần theo giờ của xin mã đếm các dòng đó; ngoại lệ có tên XOA_CUNG_KY_THUAT, chờ chủ duyệt) |
 
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 
