@@ -188,3 +188,10 @@ Phiên điều phối gọi trợ lý `nguoi-kiem-doc-lap` với `isolation: "wo
 - Thử khô (Bước 6): `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Bị chặn: npm run day-len / trien-khai / len-chinh-thuc / lam-moi-dev …"}}` (lý do rút gọn ở đây).
 - Quyết định khác kế hoạch: viết bài kiểm Task 2 sau, không cùng lúc, để lần lưu Task 1 không chứa bài đỏ. Dòng sổ hàng rào chèn ngay dưới dòng dữ liệu đầu tiên (dòng «Hook `guard-remote`…»).
 - [x] Task 1 Bước 1–8 xong.
+
+### Task 2 (người thi công, 2026-11-15)
+
+- Lần chạy đỏ (`# fail 1`): `not ok 12 - trợ lý nguoi-kiem-doc-lap: chạy trên bản sao riêng, không có công cụ sửa tệp`, lý do `'thiếu isolation: worktree'`.
+- Sau khi ghi tệp trợ lý: ba tệp bài kiểm hàng rào `# tests 37`, `# pass 37`, `# fail 0` (34 + 3). `npm run typecheck`: 0 lỗi.
+- Quyết định khác kế hoạch: trong tệp trợ lý, mục «Bản sao riêng» đặt ngay sau câu mở đầu, và bước «so kết quả…» thành bước 1 nên các bước sau đánh số lại 2–7 (bước «trả bản sao» là bước 7). Không đổi luật cứng nào ngoài hai chỗ kế hoạch nêu.
+- [x] Task 2 Bước 1–5 xong. Task 3, Task 4 chưa làm (phiên điều phối).

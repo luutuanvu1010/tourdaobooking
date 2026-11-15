@@ -251,6 +251,13 @@ test("settings.json: đường Terminal của ứng dụng có đủ hai lớp (
   assert.ok((s.permissions?.deny ?? []).includes("mcp__terminal__run_in_terminal"), "thiếu luật deny cho công cụ Terminal");
 });
 
+test("trợ lý nguoi-kiem-doc-lap: chạy trên bản sao riêng, không có công cụ sửa tệp", () => {
+  const dau = read(".claude/agents/nguoi-kiem-doc-lap.md").split("---")[1] ?? "";
+  assert.match(dau, /^isolation: worktree$/m, "thiếu isolation: worktree");
+  const congCu = (dau.match(/^tools: (.*)$/m)?.[1] ?? "").split(",").map((x) => x.trim());
+  for (const cam of ["Edit", "Write", "MultiEdit", "NotebookEdit"]) assert.ok(!congCu.includes(cam), `người kiểm không được có công cụ ${cam}`);
+});
+
 test("guard-remote: script móc thật trả deny cho `npm run day-len` và `node scripts/trien-khai.mjs`", () => {
   for (const command of ["npm run day-len", "node scripts/trien-khai.mjs"]) {
     const r = spawnSync("node", [".claude/hooks/guard-remote.mjs"], { cwd: ROOT, input: JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd: ROOT }), encoding: "utf8" });
