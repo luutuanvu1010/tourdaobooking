@@ -149,6 +149,12 @@ INSERT INTO pty_relationship_type (code, name, sort_order) VALUES ('REFERRED_BY'
 -- Loại hồ sơ chưa có mục bắt buộc (tổ chức) vẫn ra MỘT hàng với item_kind NULL, để cờ vai đối tác không mất. `is_partner`: mang vai đối tác đang mở (cùng nghĩa v_pty_party_partner_label, viết thẳng trên bảng để tra theo chỉ mục mã hồ sơ — view kia quét hết bảng vai cho mỗi hồ sơ). `anonymized`: đã có lệnh xoá DA_THUC_HIEN.
 -- Giấy tờ hiện hành = dòng cùng loại chưa huỷ, chưa ẩn danh, chưa có dòng gia hạn chưa huỷ nối tiếp. `ever_passed`: từng có «đạt» (mục thuộc tính; hoặc dòng giấy tờ BẤT KỲ cùng loại của hồ sơ).
 -- Dấu CHỈ ĐỂ BIẾT (Đ5): chỉ ba màn ở Đ3 đọc view này; không luật đơn, tiền, đăng nhập nào đọc (bài src/dau-xac-minh-chi-de-biet.test.ts).
+-- Hai chỉ mục cho view dưới (ADR-0210 Đ2; vòng sửa 1 Task 10, I-1). Không có chúng, trên CSDL chưa có thống kê SQLite chọn `pty_person_document_number_ix` (chỉ theo loại giấy tờ) và
+-- `pty_verification_target_ix` (chỉ theo loại đích) cho các truy vấn con THEO TỪNG HỒ SƠ, quét cả loại cho mỗi hồ sơ ⇒ bình phương (1000 hồ sơ ≈ 1 giây, 2000 ≈ 4 giây). Không có chỉ mục tương đương
+-- sẵn (pty_person_document_party_ix chỉ có party_id; pty_verification_party_ix có party_id, created_at). Bài src/dau-xac-minh-ke-hoach.test.ts khoá bằng EXPLAIN QUERY PLAN.
+CREATE INDEX pty_person_document_party_type_ix ON pty_person_document(party_id, document_type_code);
+CREATE INDEX pty_verification_party_target_ix ON pty_verification(party_id, target_kind, attribute_code, target_id, created_at);
+
 CREATE VIEW v_pty_verification_facts AS
 SELECT x.party_id, x.subject_kind, x.item_kind, x.item_code, x.is_partner, x.anonymized, x.doc_id, d.expiry_date,
   CASE x.item_kind
