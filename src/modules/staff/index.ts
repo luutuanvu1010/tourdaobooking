@@ -10,7 +10,7 @@ import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
-  insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, taiKhoanChoXacMinhRows, touchCredentialsStatement, updateStaffStatement, upsertThanhDuoiStatement,
+  insertStaffInactiveStatement, insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinActivateStatement, setPinStatement as setPinRow, taiKhoanChoXacMinhRows, touchCredentialsStatement, updateStaffStatement, upsertThanhDuoiStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import {
@@ -208,6 +208,32 @@ export async function createAccountStatements(
     ],
   };
 }
+
+/**
+ * Tạo tài khoản TẮT trên hồ sơ CÓ SẴN (ADR-0207 Đ5; đợt 1 Task 7) cho lô duyệt phiếu đăng ký: chỉ `staff` (`active = 0`) + `stf_permission` theo quyền hiệu lực của vai.
+ * Không sinh hồ sơ, không mở vai (`parties` mở vai TRƯỚC trong cùng lô — LC-1 đòi vai đã mở); không chỉnh tay. PIN ngẫu nhiên chỉ để lấp cột, được băm và KHÔNG trả ra:
+ * không ai trong công ty biết PIN nào cho tới khi người đăng ký tự đặt (`datPinKichHoatStatements`). Trả câu CHƯA CHẠY, không đọc gì phụ thuộc câu khác của lô; `id` sinh sẵn.
+ */
+export async function createAccountOnPartyStatements(
+  db: D1Database,
+  input: { partyId: string; phone: string; roles: readonly RoleCode[] },
+  actorId: string,
+  at: string,
+): Promise<{ id: string; statements: D1PreparedStatement[]; permissions: PermissionCode[] }> {
+  const { permissions } = effectivePermissions(input.roles, { adds: [], removes: [] });
+  const id = crypto.randomUUID();
+  return {
+    id,
+    permissions,
+    statements: [
+      insertStaffInactiveStatement(db, { id, phone: input.phone, pinHash: await hashPin(generatePin()), createdAt: at, partyId: input.partyId, mfaGraceUntil: mfaGraceOnCreate(permissions, Date.parse(at)) }),
+      ...permissions.map((code) => insertPermissionStatement(db, id, code, actorId, at, false)),
+    ],
+  };
+}
+
+/** Kích hoạt (ADR-0207 Đ6): đặt PIN người đăng ký tự chọn (đã băm), bật tài khoản, đẩy `credentials_changed_at` (= `at`, mili giây). Chỉ tác động tài khoản đang TẮT. */
+export const datPinKichHoatStatements = (db: D1Database, staffId: string, pinHash: string, at: number): D1PreparedStatement[] => [setPinActivateStatement(db, staffId, pinHash, at)];
 
 /**
  * Đổi tên hiển thị của tài khoản = đổi tên hồ sơ (parties). Trả null nếu tài khoản chưa có hồ sơ (khoảng giữa hai lần triển khai N1).
