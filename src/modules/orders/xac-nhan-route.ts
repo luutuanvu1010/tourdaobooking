@@ -439,6 +439,10 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     if ("loi" in vaiTroXd) return vaiTroXd.loi;
     const tatDuaDon = await congNhomTatDuaDon(env.DB, order, "xet-duyet");
     if (tatDuaDon) return tatDuaDon;
+    // Đợt C, Task 4 (trang ghép §3 cổng 6, cùng lý do R-7): thiếu phí đưa đón ⇒ 409 NGAY ĐÂY, trước phần kiểm mốc / đặt gấp của route — không đẩy người xét đi đặt gấp, ghi giờ cho đơn
+    // chưa xác nhận được (đơn mang cờ «thiếu phí» của Gửi đơn là ca chính). Cổng chọn Đón (cổng 5) không đổi được trong lúc chờ (khoá khi chờ; đã kiểm lúc Gửi đơn). `kiemCongXacNhan` gọi lại (lưới).
+    const thieuPhiXd = congThieuPhiDon(await chuanBiPhiDonXacNhan(env.DB, order, homNay), order.bookerName);
+    if (thieuPhiXd) return thieuPhiXd;
     const daDatGap = new Set((await legDatGapByOrder(env.DB, id)).map((r) => r.id));
     const legsMoi = [...chang.values()].map(({ l, dichVu }) => ({
       id: l.id,

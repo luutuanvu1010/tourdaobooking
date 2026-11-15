@@ -232,6 +232,17 @@ test("Gửi đơn của Đối tác thiếu mức ⇒ 201 nhánh A, yêu cầu m
   assert.equal(soXacNhan(w, o.id), 1);
 });
 
+test("Còn vé: đơn thiếu phí có lượt dưới hạn chốt ⇒ báo THIẾU PHÍ trước (không đẩy người xét đi đặt gấp cho đơn chưa xác nhận được)", async () => {
+  const w = await setup({ bac: true });
+  const o = await lap(w, [OUT(KS_BAC)], {}, DT);
+  await ok(w.call("POST", `/api/orders/${o.id}/gui-don`, { as: DT, body: {} }), 201, "gửi đơn");
+  const sat = new Date(Date.now() + 7 * 3600e3 + 60 * 60_000).toISOString();
+  w.sqlite.prepare("UPDATE ord_transfer_leg SET pickup_date = ?, pickup_time = ? WHERE order_id = ?").run(sat.slice(0, 10), sat.slice(11, 16), o.id);
+  const x = (await ok(w.call("GET", `/api/orders/${o.id}`, { as: ADM }), 200)).json;
+  thieuPhi(await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: x.xacNhan.yeuCau.id, updatedAt: x.order.updatedAt } }));
+  assert.equal(trangThai(w, o.id), "draft");
+});
+
 test("Gửi đơn của Đối tác đủ mức, không cờ ⇒ nhánh B xác nhận ngay với phí tính lại ở ngày xác nhận", async () => {
   const w = await setup();
   const o = await lap(w, [OUT(KS_CR)], {}, DT);
@@ -269,6 +280,13 @@ test("canh: Gửi xác nhận tự chốt thiếu phí SAU cổng chọn Đón, 
   const than = thanRoute(doc("./xac-nhan-route.ts"), 'route("POST", "/api/orders/:id/gui-xac-nhan"');
   truocSau(than, "thieuChonDon(", "congThieuPhiDon(", "gui-xac-nhan");
   truocSau(than, "congThieuPhiDon(", "moYeuCau(", "gui-xac-nhan");
+});
+
+test("canh: Còn vé chốt thiếu phí ngay sau nhóm tắt đưa đón, TRƯỚC phần kiểm mốc / đặt gấp của route", () => {
+  const than = thanRoute(doc("./xac-nhan-route.ts"), 'route("POST", "/api/orders/:id/quyet-dinh"');
+  truocSau(than, "congNhomTatDuaDon(", "congThieuPhiDon(", "quyet-dinh");
+  truocSau(than, "congThieuPhiDon(", "canhBaoMocCua(", "quyet-dinh");
+  truocSau(than, "congThieuPhiDon(", "xetDatGap(", "quyet-dinh");
 });
 
 test("canh: kiemCongXacNhan — phí tính ở đầu (trước cổng Trả sau), lỗi thiếu phí đứng sau cổng chọn Đón và trước cổng mốc", () => {
