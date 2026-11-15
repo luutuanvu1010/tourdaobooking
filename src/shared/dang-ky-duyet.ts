@@ -41,8 +41,8 @@ export interface LoDuyetDangKyRa {
   staffId: string;
   statements: D1PreparedStatement[];
   /**
-   * Cấp độ đại lý mặc định (ADR-0209 Đ3, Đ4; Task 12 mục I-1): `viTri` = chỉ số câu 8 trong `statements` (null = không có câu 8); `duDoan` = «cấp sẽ áp» pricing tính lúc ghép lô.
+   * Cấp độ đại lý mặc định (ADR-0209 Đ3, Đ4; Task 12 mục I-1): `viTri` = chỉ số câu 8 trong `statements` (null = không có câu 8); `duDoan` = «cấp sẽ áp» pricing tính lúc ghép lô; `capCau8` = cấp của dòng chính sách mà câu 8 chèn (khi câu chèn thật thì đây là cấp đã áp).
    * Route đọc `kq[viTri].meta.changes` để biết đã ghi hay bỏ qua, rồi cắt tên cấp theo `partner.commission.view` của người duyệt.
    */
-  cap: { viTri: number | null; duDoan: { cap: { code: string; ten: string } | null; lyDo: LyDoKhongApCap | null } };
+  cap: { viTri: number | null; duDoan: { cap: { code: string; ten: string } | null; lyDo: LyDoKhongApCap | null }; capCau8: { code: string; ten: string } | null };
 }

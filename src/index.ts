@@ -129,7 +129,7 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
       detail: `phiếu đăng ký ${v.registrationId}; vai trò: ${v.roleLabel}; ${v.hoSo.kieu === "MOI" ? "hồ sơ mới" : "dùng hồ sơ có sẵn"}; chưa kích hoạt${v.co ? "; Toàn quyền làm cả hai bước" : ""}` }),
   ];
   if (cauCap) viTriCap = statements.indexOf(cauCap);
-  return { partyId, staffId: tk.id, statements, cap: { viTri: viTriCap !== null && viTriCap >= 0 ? viTriCap : null, duDoan } };
+  return { partyId, staffId: tk.id, statements, cap: { viTri: viTriCap !== null && viTriCap >= 0 ? viTriCap : null, duDoan, capCau8: capMacDinh ? { code: capMacDinh.tierCode, ten: capMacDinh.tierName } : null } };
 }
 
 const APP_OPTIONS: AppOptions = {

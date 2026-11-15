@@ -12,6 +12,7 @@ import { NHAN_O_TEP, CHU_HANG_CHO_DK } from "../src/shared/dang-ky-giao-dien";
 import { LY_DO_PHIEU, nhanTrangThaiPhieu, type MaLyDoPhieu } from "../src/shared/dang-ky-hien-thi";
 import { CAU_DOI_VAI_CAP, type KetQuaCapDto } from "../src/shared/cap-se-ap-hien-thi";
 import { vnDateTimeText } from "../src/shared/vn-date";
+import { ngayVN } from "../src/shared/giay-to-hien-thi";
 import { h, replaceChildren } from "./dom";
 
 type Staff = Api.StaffProfile;
@@ -216,10 +217,10 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     replaceChildren(ketThuc, nutDat);
     moKhung(k.el,
       dong("Vai trò xin", tenVai(d.loai)), d.guiLuc ? dong("Gửi lúc", vnDateTimeText(d.guiLuc)) : null,
-      dong("Họ tên", n.hoTen), dong("Ngày sinh", n.ngaySinh ?? "Không có"), dong("Địa chỉ", n.diaChi ?? "Không có"), dong("Số điện thoại", n.soDienThoai ?? "Không có"),
+      dong("Họ tên", n.hoTen), dong("Ngày sinh", n.ngaySinh ? ngayVN(n.ngaySinh) : "Không có"), dong("Địa chỉ", n.diaChi ?? "Không có"), dong("Số điện thoại", n.soDienThoai ?? "Không có"),
       n.nguoiGioiThieuKhai ? dong("Người giới thiệu (khai)", n.nguoiGioiThieuKhai) : null,
       g ? h("div", { class: "hs-dong" }, h("span", { class: "muted" }, "Số căn cước"), soEl, hienSo) : null,
-      g?.ngayCap ? dong("Ngày cấp", g.ngayCap) : null, g?.noiCap ? dong("Nơi cấp", g.noiCap) : null, g?.hetHan ? dong("Hết hạn", g.hetHan) : null,
+      g?.ngayCap ? dong("Ngày cấp", ngayVN(g.ngayCap)) : null, g?.noiCap ? dong("Nơi cấp", g.noiCap) : null, g?.hetHan ? dong("Hết hạn", ngayVN(g.hetHan)) : null,
       anh.length ? h("div", { class: "dk-hang-nut", id: "dk-hc-anh" }, ...anh) : null,
       h("h4", null, "Kết luận từng mục"), khoiMuc, danhBa, capEl, ketThuc,
       h("div", { class: "dk-hang-nut" }, lyBoSung.el, nutBoSung), h("div", { class: "dk-hang-nut" }, lyTuChoi.el, nutTuChoi));

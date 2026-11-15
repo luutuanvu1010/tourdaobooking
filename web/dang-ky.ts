@@ -1,6 +1,6 @@
 // Trang CÔNG KHAI «Đăng ký làm đối tác» (ADR-0206 Đ5, Đ6, Đ9, Đ14; ADR-0207 Đ3, Đ7; ADR-0208 Đ2, Đ3, Đ9; đợt 1 Task 12). Người chưa có tài khoản:
 //   email → mã 6 số (Turnstile ở bước xin mã) → phiếu (vai, thông tin, hai ảnh căn cước, đồng ý chính sách riêng tư) → gửi; trang trạng thái; phiếu đã duyệt ⇒ xin mã MỚI rồi tự đặt PIN.
-// Không khung chung, không `web/api.ts` (lớp vé chống ghi trùng và đường «hết phiên → /login» chỉ dành cho người có tài khoản): một hàm `goiDk()` nhỏ ở đây.
+// Không khung chung. Mọi lời gọi đi qua `api()` (web/api.ts) bọc trong `goiDk()` (đổi lỗi sang `Loi`); 401 của người đăng ký mang mã riêng nên không bị đưa về /login.
 // Cổng là cookie đăng ký (HttpOnly, máy chủ tự kiểm); trang không giữ dữ liệu khai ở đâu ngoài các ô đang mở (không localStorage). Ảnh thu nhỏ trên máy trước khi gửi (bỏ toạ độ chụp);
 // HEIC trình duyệt không mở được và PDF gửi nguyên (ADR-0208 Đ9). Trang KHÔNG xem lại được ảnh đã gửi (Đ3) — chỉ «Đã gửi» / «Chưa tải xong» theo ô. Chỉ dựng DOM bằng h().
 import type { PhieuDangKyDto } from "../src/shared/contracts";
@@ -20,9 +20,9 @@ const CAU_MANG = "Không kết nối được máy chủ. Kiểm tra mạng rồ
 
 /** Mọi lời gọi qua `api()` (web/api.ts — vé chống ghi trùng; route công khai bỏ qua vé, máy chủ tự chống bấm hai lần). 401 của người đăng ký mang mã `registration_session_required`
  *  (không phải `unauthenticated`) nên api() KHÔNG đưa về /login của nhân viên; lỗi đổi sang `Loi` để trang xử lý. Thân là chuỗi JSON nên trình duyệt luôn gửi Content-Length (411). */
-async function goiDk<T>(duong: string, method = "GET", than?: unknown): Promise<T> {
+async function goiDk<T>(duong: string, method = "GET", than?: unknown, henGioMs?: number): Promise<T> {
   try {
-    return await api<T>(duong, { method, body: than });
+    return await api<T>(duong, { method, body: than, henGioMs });
   } catch (e) {
     if (e instanceof ApiError) throw new Loi(e.status, e.code, e.message);
     throw new Loi(0, "mang", CAU_MANG);
@@ -278,7 +278,7 @@ function oTep(ma: string, nhan: string, p: PhieuDangKyDto): HTMLElement {
       if (!loai) throw new Loi(415, "loai", "Chỉ nhận ảnh JPG, PNG, HEIC hoặc tệp PDF.");
       const nho = loai === "pdf" ? null : await thuNhoAnh(f);
       const bytes = nho ?? new Uint8Array(await f.arrayBuffer());
-      const r = await goiDk<{ tep: { o: string; trangThai: "DA_GUI" | "CHUA_TAI_XONG" }[] }>("/api/dang-ky/phieu/tep", "POST", { o: ma, noiDung: maBase64(bytes) });
+      const r = await goiDk<{ tep: { o: string; trangThai: "DA_GUI" | "CHUA_TAI_XONG" }[] }>("/api/dang-ky/phieu/tep", "POST", { o: ma, noiDung: maBase64(bytes) }, 120_000); // ảnh gửi nguyên (HEIC, PDF) tới 5 MB ⇒ thân ~6,7 MB: hạn chờ dài như tệp kèm hỗ trợ (ADR-0144 đ7)
       const moi = r.tep.find((x) => x.o === ma);
       trangThai.textContent = moi?.trangThai === "DA_GUI" ? "Đã gửi" : "Chưa tải xong, hãy gửi lại";
     } catch (e) {

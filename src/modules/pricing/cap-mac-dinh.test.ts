@@ -448,3 +448,19 @@ test("(13) Chính sách đổi giữa lúc bấm (câu 8 chèn 0 dòng dù dự 
   const r = await ok(duyet(w, id), 200, "duyệt");
   assert.deepEqual(r.json.cap, { ap: false, cap: null, lyDo: "VUA_DOI", cau: "Cấp mặc định vừa đổi lúc duyệt nên chưa ghi cấp riêng." });
 });
+
+test("(14) Dự đoán «không áp» (cấp đang khoá) nhưng cấp được mở lại ngay trước lô và câu 8 chèn thật ⇒ lệnh duyệt báo ĐÃ ÁP kèm tên cấp vừa ghi (m-5)", async () => {
+  const w = setup();
+  const { ta2 } = await nen(w);
+  await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200);
+  await ok(w.call("POST", `/api/pricing/muc-ta/${ta2}/tat`, { as: KT }), 200, "khoá TA2");
+  const id = phieu(w);
+  await xacMinh(w, id);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /INSERT INTO dk_decision/.test(s.sql)), async () => {
+    w.sqlite.prepare("UPDATE prc_rate_tier SET active = 1 WHERE code = ?").run(ta2);
+  });
+  const r = await ok(duyet(w, id, "TRAVEL_AGENCY", SUP), 200, "duyệt");
+  const party = w.q("SELECT party_id FROM staff WHERE phone = ?", DT_KHOA)[0].party_id;
+  assert.deepEqual(capRieng(w, party).map((x: any) => x.tier_code), [ta2], "câu 8 chèn thật");
+  assert.deepEqual(r.json.cap, { ap: true, cap: { code: ta2, ten: "TA2" }, lyDo: null, cau: null });
+});

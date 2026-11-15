@@ -146,7 +146,8 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy }:
   // Cấp độ đại lý mặc định (ADR-0209 Đ3, Đ4): câu 8 có chèn ⇒ đã áp; không có câu 8 / chèn 0 dòng ⇒ lý do dự đoán (dự đoán nói «sẽ áp» mà câu chèn 0 dòng ⇒ chính sách vừa đổi giữa lúc bấm).
   // Tên cấp chỉ cho người duyệt giữ `partner.commission.view` (Nhân sự không thấy — Đ4).
   const daAp = lo.cap.viTri !== null && (kq[lo.cap.viTri]?.meta.changes ?? 0) > 0;
-  const cap = ketQuaCapChoNguoiXem(daAp ? lo.cap.duDoan : { cap: null, lyDo: lo.cap.duDoan.lyDo ?? "VUA_DOI" }, can(staff, "partner.commission.view"));
+  // Câu 8 đã chèn ⇒ LUÔN «đã áp» với cấp câu 8 vừa ghi (kể cả khi dự đoán nói không — chính sách đổi giữa lúc bấm; bài kiểm Task 12 m-5).
+  const cap = ketQuaCapChoNguoiXem(daAp ? { cap: lo.cap.capCau8, lyDo: null } : { cap: null, lyDo: lo.cap.duDoan.lyDo ?? "VUA_DOI" }, can(staff, "partner.commission.view"));
   return json({ trangThai: "DA_DUYET", cap }); // không PIN, không mã tài khoản
 }
 
