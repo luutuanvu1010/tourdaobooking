@@ -44,6 +44,8 @@ import { passkeyRelyingParty } from "./webauthn";
 export { lockedPhones, unlockPhone };
 /** Bộ đếm thử/chống dò dùng chung (ADR-0153 Đ2: đường dẫn công khai của kho vé dùng lại, không viết bộ thứ hai). Khoá tự đặt, cửa sổ 15 phút. */
 export { clearAttempts, reserveAttempts };
+/** Cổng Turnstile dùng chung (ADR-0206 Đ8: route xin mã của người đăng ký). `turnstileSecret` null ⇒ chưa đặt khoá. */
+export { turnstileGate, turnstileLog, turnstileSecret } from "./turnstile";
 // Xuất cho module `accounts` (bật/gỡ/đặt PIN bằng Face ID, danh sách passkey của tài khoản — ADR-0016).
 export {
   countActivePasskeys, firstUserHandle, insertPasskeyStatement, listActivePasskeys, revokeAllPasskeysIfSuspendedStatement, revokeAllPasskeysStatement, revokePasskeyStatement,

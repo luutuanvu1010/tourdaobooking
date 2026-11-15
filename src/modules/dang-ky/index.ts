@@ -4,6 +4,7 @@ import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { chinhSachHienHanh } from "./repository";
 import { taiTepPhieu } from "./tep-route";
+import { cauHinhDangKy, xacNhanMa, xinMa } from "./xin-ma-route";
 import { CAM, ketLuanMuc, moTep, tuChoiPhieu, xacMinhDat, xemHangCho, xemPhieu, xemSo, yeuCauBoSung } from "./xac-minh-route";
 
 export { cauLyDoChoNguoiDangKy } from "../../shared/dang-ky-hien-thi";
@@ -16,6 +17,10 @@ export const chinhSachDangKy = chinhSachHienHanh;
 export const dangKyModule: AppModule = {
   name: "dang-ky",
   routes: [
+    // Cấu hình, xin mã, nhập mã (ADR-0206 Đ6; đợt 1 Task 3). Công khai: người đăng ký chưa có tài khoản; chỉ route nhập mã CẤP cookie đăng ký, không route nào ở đây đọc nó.
+    route("GET", "/api/dang-ky/cau-hinh", "public", async (ctx) => cauHinhDangKy(ctx)),
+    route("POST", "/api/dang-ky/ma", "public", async (ctx) => xinMa(ctx)),
+    route("POST", "/api/dang-ky/xac-nhan", "public", async (ctx) => xacNhanMa(ctx)),
     // Tải một tệp vào ô của phiếu (ADR-0208 Đ2). Công khai: người đăng ký chưa có tài khoản; cổng là cookie đăng ký kiểm trong thân (ADR-0206 Đ7).
     route("POST", "/api/dang-ky/phieu/tep", "public", async (ctx) => {
       return taiTepPhieu(ctx);

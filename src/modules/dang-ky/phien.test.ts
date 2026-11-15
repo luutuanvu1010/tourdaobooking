@@ -1,7 +1,7 @@
 // Phiên đăng ký (ADR-0206 Đ5): cookie ký bằng khoá dẫn xuất riêng, không dùng lẫn với phiên Nền tảng.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DK_COOKIE, dkEmailKey, dkIpKey, docPhienDangKy, taoPhienDangKy } from "./phien.ts";
+import { DK_COOKIE, dkEmailKey, dkIpKey, dkTepIpKey, docPhienDangKy, khoaBam, taoPhienDangKy } from "./phien.ts";
 import { createSessionToken, verifySessionToken } from "../auth/session.ts";
 
 const SECRET = "bi-mat-thu-nghiem-dai-du-dung";
@@ -65,4 +65,31 @@ test("mã chứa dấu chấm không ký được (tránh nhập nhằng phân t
 test("khoá bộ đếm có không gian tên dk: gồm cả IP", () => {
   assert.equal(dkEmailKey("a@b.vn"), "dk:email:a@b.vn");
   assert.equal(dkIpKey("1.2.3.4"), "dk:ip:1.2.3.4");
+});
+
+test("taoPhienDangKy từ chối mốc bắt đầu SAU mốc hiện tại (cookie không ký được phiên «từ tương lai»)", async () => {
+  await assert.rejects(() => taoPhienDangKy(SECRET, "DK_ABCDEFGH", "id-1", T0, T0 + 1), /Mốc bắt đầu/);
+  await assert.rejects(() => taoPhienDangKy(SECRET, "DK_ABCDEFGH", "id-1", Number.NaN), /Mốc bắt đầu/);
+  assert.ok(await taoPhienDangKy(SECRET, "DK_ABCDEFGH", "id-1", T0, T0), "bằng nhau thì được");
+  assert.ok(await taoPhienDangKy(SECRET, "DK_ABCDEFGH", "id-1", T0 + MIN, T0), "cấp lại sau thao tác (bắt đầu cũ hơn) thì được");
+});
+
+test("khoá bộ đếm `dk:` không bao giờ chung tiền tố với phone:, mfa:, mfa-mail:, ip: của đăng nhập (ADR-0206 Đ8) — kiểm cả hai chiều", async () => {
+  const cua = ["phone:", "mfa:", "mfa-mail:", "ip:"];
+  const dk = [dkEmailKey("x"), dkIpKey("1.2.3.4"), dkTepIpKey("1.2.3.4")];
+  for (const k of dk) {
+    assert.ok(k.startsWith("dk:"), k);
+    for (const c of cua) {
+      assert.equal(k.startsWith(c), false, `${k} chung tiền tố ${c}`);
+      assert.equal(c.startsWith(k.split(":")[0] + ":"), false, `${c} chung tiền tố với ${k}`);
+    }
+  }
+});
+
+test("khoaBam: cùng đầu vào ra cùng khoá, khác loại hay khác bí mật ra khoá khác, không chứa đầu vào", async () => {
+  const a = await khoaBam(SECRET, "email", "an@gmail.com");
+  assert.equal(a, await khoaBam(SECRET, "email", "an@gmail.com"));
+  assert.notEqual(a, await khoaBam(SECRET, "ip", "an@gmail.com"));
+  assert.notEqual(a, await khoaBam("bi-mat-khac-hoan-toan-khac", "email", "an@gmail.com"));
+  assert.match(a, /^[0-9a-f]{64}$/);
 });

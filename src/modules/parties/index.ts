@@ -70,6 +70,14 @@ export {
 export { cheSo } from "./giay-to";
 export { demTepChoCuaPhieu } from "./repository";
 /**
+ * Chính sách riêng tư hiệu lực tại `nowIso` cho người CHƯA có tài khoản (ADR-0206 Đ6, ADR-0200 Đ3): CHỈ phiên bản, ngày hiệu lực, toàn văn — không mục đích thu, không số ngày giữ.
+ * Cùng bộ lọc hiệu lực (`valid_from_at <= nowIso`) với `chinhSachHienHanh`, nên «phiên bản đang hiệu lực» của mọi nơi là MỘT con số. null = chưa có bản nào.
+ */
+export async function chinhSachRiengTuCongKhai(db: D1Database, nowIso: string): Promise<{ phienBan: number; hieuLucTu: string; noiDung: string } | null> {
+  const p = await chinhSachHienHanh(db, nowIso);
+  return p ? { phienBan: p.version, hieuLucTu: p.valid_from_at, noiDung: p.body } : null;
+}
+/**
  * HÀM CÔNG BỐ HẸP (ADR-0139): SĐT liên hệ chính của các hồ sơ — chỉ cho DTO tài xế công ty (người đi kèm chuyến, trong ngày chạy). Không tự kiểm quyền:
  * chỉ gọi sau khi `van-chuyen` đã xác định người gọi đang lái chuyến và đủ điều kiện. Không bao giờ SĐT đăng nhập.
  */
@@ -892,6 +900,11 @@ function phieuXoaDto(r: PhieuXoaRow): PhieuXoaCuaToiDto {
 export const partiesModule: AppModule = {
   name: "parties",
   routes: [
+    // Chính sách riêng tư hiệu lực, công khai (ADR-0206 Đ6): người đăng ký đọc TRƯỚC khi có tài khoản. Chỉ đọc; không cookie.
+    route("GET", "/api/chinh-sach-rieng-tu", "public", async ({ env }) => {
+      const p = await chinhSachRiengTuCongKhai(env.DB, new Date().toISOString());
+      return json(p ?? { dangCapNhat: true }, 200, { "cache-control": "no-store" });
+    }),
     // ---- Tra cứu (khai TRƯỚC :id để "meta"/"lookup" không bị hiểu là id) ------------------------------------------------
     route("GET", "/api/parties/meta", "office", async ({ env, staff }) => {
       if (!can(staff, "party.view")) return FORBIDDEN_VIEW();

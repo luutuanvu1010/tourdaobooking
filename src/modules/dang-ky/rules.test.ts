@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
-import { TRANG_THAI, chuyenHopLe, daKetThuc, type TrangThai } from "./rules.ts";
+import { TRANG_THAI, chuanHoaEmail, chuyenHopLe, daKetThuc, sinhMaEmail, type TrangThai } from "./rules.ts";
 
 const HOP_LE = new Set([
   "DANG_DIEN>CHO_XAC_MINH", "CHO_XAC_MINH>CAN_BO_SUNG", "CHO_XAC_MINH>CHO_DUYET", "CAN_BO_SUNG>CHO_XAC_MINH", "CHO_DUYET>DA_DUYET",
@@ -37,4 +37,18 @@ test("hàm khớp trigger dk_registration_transition của CSDL (mọi cặp)", 
     db.exec("RELEASE cap");
     assert.equal(ok, tu === den || chuyenHopLe(tu, den), `${tu} → ${den}`);
   }
+});
+
+test("chuanHoaEmail: «An@Gmail.com » và «an@gmail.com» là MỘT khoá; sai dạng ⇒ null", () => {
+  assert.equal(chuanHoaEmail("  An@Gmail.com "), "an@gmail.com");
+  assert.equal(chuanHoaEmail("AN@GMAIL.COM"), chuanHoaEmail("an@gmail.com"));
+  for (const x of ["", "a", "a@b", "a b@c.vn", "@c.vn", 5, null, undefined, `${"a".repeat(250)}@b.vn`]) assert.equal(chuanHoaEmail(x), null, String(x));
+});
+
+test("sinhMaEmail: đúng số chữ số theo chính sách, giữ số 0 đầu, loại bỏ mẫu lệch", () => {
+  assert.equal(sinhMaEmail(6, (b) => { b[0] = 42; }), "000042");
+  assert.equal(sinhMaEmail(4, (b) => { b[0] = 12345; }), "2345");
+  let lan = 0;
+  assert.equal(sinhMaEmail(6, (b) => { b[0] = lan++ === 0 ? 0xffff_ffff : 7; }), "000007", "mẫu rơi vào đuôi lệch bị bỏ, lấy mẫu lại");
+  for (let i = 0; i < 50; i++) assert.match(sinhMaEmail(8), /^\d{8}$/);
 });

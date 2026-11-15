@@ -51,3 +51,24 @@ export function kiemTepPhieu(noiDung: unknown, maxMb: number): KiemTepPhieu {
   if (!loai) return { ok: false, status: 415, code: "unsupported_file_type", message: CAU_SAI_LOAI };
   return { ok: true, bytes, loai };
 }
+
+// ---- Email của người đăng ký (ADR-0206 Đ3, Đ8) ----
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+/** Chuẩn hoá email người đăng ký gõ: cắt khoảng trắng, chữ thường, đúng khuôn `a@b.c`, ≤ 254 ký tự; sai ⇒ null. «An@Gmail.com » và «an@gmail.com» ra CÙNG một khoá danh tính. */
+export function chuanHoaEmail(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const e = raw.trim().toLowerCase();
+  return e.length > 0 && e.length <= 254 && EMAIL_RE.test(e) ? e : null;
+}
+
+/** Mã gửi email gồm `soChuSo` chữ số đều nhau (lấy mẫu loại bỏ trên số 32 bit — không lệch về số nhỏ), giữ số 0 đầu. `soChuSo` là dòng chính sách (4–10). */
+export function sinhMaEmail(soChuSo: number, ngauNhien: (b: Uint32Array) => void = (b) => void crypto.getRandomValues(b)): string {
+  const mod = 10 ** soChuSo;
+  const gioiHan = Math.floor(0x1_0000_0000 / mod) * mod;
+  const buf = new Uint32Array(1);
+  for (let i = 0; i < 1000; i++) {
+    ngauNhien(buf);
+    if (buf[0]! < gioiHan) return String(buf[0]! % mod).padStart(soChuSo, "0");
+  }
+  throw new Error("Không sinh được mã.");
+}

@@ -206,3 +206,75 @@ const LY_DO_CUA_PHIEU = defineSql("dang-ky", "registration_reason", "SELECT stat
 /** Trạng thái và mã lý do của phiếu (cho trang trạng thái của người đăng ký — nhãn lấy ở `cauLyDoChoNguoiDangKy`). */
 export const lyDoCuaPhieu = (db: D1Database, registrationId: string): Promise<{ status: string; reason_code: string | null } | null> =>
   db.prepare(LY_DO_CUA_PHIEU).bind(registrationId).first<{ status: string; reason_code: string | null }>();
+
+// ---- Xin mã và nhập mã của người đăng ký (ADR-0206 Đ6, Đ8; đợt 1 Task 3) ----
+export interface DanhTinhTheoEmail { identity_id: string; registration_id: string; status: string; activated_at: string | null; is_open: number }
+// Danh tính EMAIL còn giá trị của một email đã chuẩn hoá: (a) đang mở (phiếu chưa kết thúc), hoặc (b) phiếu ĐÃ DUYỆT mà tài khoản chưa kích hoạt — danh tính đã hạ is_open ở bước duyệt
+// nhưng người được duyệt phải vào lại để đặt PIN (ADR-0207 Đ7). Phiếu kết thúc khác (từ chối, rút, hết hạn, đã kích hoạt) không tính: email đó đăng ký lại như người mới.
+const DANH_TINH_THEO_EMAIL = defineSql(
+  "dang-ky",
+  "identity_by_email",
+  `SELECT i.id AS identity_id, r.id AS registration_id, r.status, r.activated_at, i.is_open
+   FROM dk_identity i JOIN dk_registration r ON r.id = i.registration_id
+   WHERE i.provider = 'EMAIL' AND i.subject = ?1 AND i.erased_at IS NULL
+     AND (i.is_open = 1 OR (r.status = 'DA_DUYET' AND r.activated_at IS NULL))
+   ORDER BY i.is_open DESC, i.created_at DESC LIMIT 1`,
+);
+export const danhTinhTheoEmail = (db: D1Database, email: string): Promise<DanhTinhTheoEmail | null> => db.prepare(DANH_TINH_THEO_EMAIL).bind(email).first<DanhTinhTheoEmail>();
+
+// Chèn dòng mã MỚI chỉ khi cả Nền tảng chưa đủ `?7` mã trong cửa sổ `?6` (trần theo giờ, ADR-0206 Đ8): đếm và chèn trong MỘT câu nên chạy song song không vượt trần.
+// Không dùng bộ đếm `login_attempt`: bộ đó luôn dọn dòng cũ hơn 15 phút nên không giữ nổi cửa sổ một giờ. Dòng mã không xoá khi dùng (xem `tieuMa`) để trần đếm đúng số thư đã gửi.
+const MA_CHEN = defineSql(
+  "dang-ky",
+  "email_code_insert",
+  `INSERT INTO dk_email_code (id, email_key, code_hash, expires_at, attempts, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, 0, ?5, NULL, ?5, NULL
+   WHERE (SELECT count(*) FROM dk_email_code WHERE created_at > ?6) < ?7`,
+);
+/** Chèn mã mới; trả `true` nếu chèn được, `false` nếu cả Nền tảng đã đủ trần trong cửa sổ. */
+export async function chenMaEmail(db: D1Database, v: { id: string; emailKey: string; codeHash: string; expiresAt: string; at: string; since: string; tran: number }): Promise<boolean> {
+  const r = await db.prepare(MA_CHEN).bind(v.id, v.emailKey, v.codeHash, v.expiresAt, v.at, v.since, v.tran).run();
+  return (r.meta.changes ?? 0) === 1;
+}
+
+export interface MaGanNhat { id: string; code_hash: string; expires_at: string; attempts: number }
+// Chỉ mã MỚI NHẤT của email được kiểm: xin mã mới là mã cũ hết tác dụng.
+const MA_GAN_NHAT = defineSql(
+  "dang-ky",
+  "email_code_latest",
+  "SELECT id, code_hash, expires_at, attempts FROM dk_email_code WHERE email_key = ?1 ORDER BY created_at DESC, rowid DESC LIMIT 1",
+);
+export const maGanNhat = (db: D1Database, emailKey: string): Promise<MaGanNhat | null> => db.prepare(MA_GAN_NHAT).bind(emailKey).first<MaGanNhat>();
+
+const MA_DEM_SAI = defineSql("dang-ky", "email_code_bump", "UPDATE dk_email_code SET attempts = attempts + 1, updated_at = ?2 WHERE id = ?1 AND attempts < ?3");
+export const demLanNhapSai = (db: D1Database, id: string, at: string, toiDa: number): Promise<D1Result> => db.prepare(MA_DEM_SAI).bind(id, at, toiDa).run();
+
+// Tiêu mã: đặt số lần nhập về trần (mã không dùng lại được) nhưng GIỮ dòng để trần theo giờ đếm đúng. MỘT câu có điều kiện, đòi changes = 1 — hai lần nhập song song chỉ một lần thắng.
+const MA_TIEU = defineSql("dang-ky", "email_code_consume", "UPDATE dk_email_code SET attempts = ?3, updated_at = ?2 WHERE id = ?1 AND attempts < ?3 AND expires_at > ?2");
+export async function tieuMa(db: D1Database, id: string, at: string, toiDa: number): Promise<boolean> {
+  return ((await db.prepare(MA_TIEU).bind(id, at, toiDa).run()).meta.changes ?? 0) === 1;
+}
+
+const PHIEU_MOI = defineSql(
+  "dang-ky",
+  "registration_open_draft",
+  `INSERT INTO dk_registration (id, kind, status, role_code, created_at, created_by, updated_at, updated_by) VALUES (?1, 'PERSON', 'DANG_DIEN', '', ?2, NULL, ?2, NULL)`,
+);
+const DANH_TINH_MOI = defineSql(
+  "dang-ky",
+  "identity_open",
+  `INSERT INTO dk_identity (id, registration_id, provider, subject, contact_email, is_open, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, 'EMAIL', ?3, ?3, 1, ?4, NULL, ?4, NULL)`,
+);
+const SU_KIEN_MO = defineSql(
+  "dang-ky",
+  "event_open_draft",
+  `INSERT INTO dk_event (id, registration_id, actor_kind, actor_ref, command, reason_code, at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, 'REGISTRANT', ?3, 'MO_PHIEU', NULL, ?4, ?4, ?3, ?4, ?3)`,
+);
+/** Mở phiếu ĐANG ĐIỀN cho một email: MỘT lô [phiếu, danh tính, dòng lịch sử]. `role_code` để trống tới khi người đăng ký chọn loại ở bước lưu nháp. Lô hỏng do chỉ mục «một phiếu đang mở mỗi email» (hai lần nhập song song) ⇒ người gọi đọc lại. */
+export function moPhieuNhap(db: D1Database, v: { registrationId: string; identityId: string; email: string; at: string }): D1PreparedStatement[] {
+  return [
+    db.prepare(PHIEU_MOI).bind(v.registrationId, v.at),
+    db.prepare(DANH_TINH_MOI).bind(v.identityId, v.registrationId, v.email, v.at),
+    db.prepare(SU_KIEN_MO).bind(crypto.randomUUID(), v.registrationId, v.identityId, v.at),
+  ];
+}

@@ -17,6 +17,7 @@ const dkKey = (secret: string): Promise<Uint8Array> => hmacBytes(enc.encode(secr
 /** Cấp token. `startMs` bỏ trống = phiên mới (bắt đầu = bây giờ); cấp lại sau một thao tác thì truyền mốc bắt đầu cũ. */
 export async function taoPhienDangKy(secret: string, registrationId: string, identityId: string, nowMs: number, startMs: number = nowMs): Promise<string> {
   if (registrationId.includes(".") || identityId.includes(".")) throw new Error("Mã phiếu / danh tính không được chứa dấu chấm.");
+  if (!Number.isFinite(startMs) || !Number.isFinite(nowMs) || startMs > nowMs) throw new Error("Mốc bắt đầu phiên không được sau mốc hiện tại.");
   const payload = `dk1.${registrationId}.${identityId}.${startMs}.${nowMs}`;
   return `${payload}.${toBase64Url(await hmacBytes(await dkKey(secret), payload))}`;
 }
@@ -55,4 +56,13 @@ export const dkTepIpKey = (ip: string): string => `dk:tep:ip:${ip}`;
 /** Set-Cookie của phiên đăng ký: HttpOnly, SameSite=Lax, Secure khi https; Path chỉ /api/dang-ky; Max-Age = hạn tối đa của phiên (hạn không thao tác do chính token kiểm). */
 export function cookiePhienDangKy(token: string, maxHours: number, secure: boolean): string {
   return `${DK_COOKIE}=${token}; Path=/api/dang-ky; Max-Age=${Math.floor(maxHours * 3600)}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
+}
+
+/**
+ * Khoá băm có khoá (HMAC-SHA256, khoá dẫn xuất riêng từ SESSION_SECRET) cho email, địa chỉ mạng, mã: để khoá bộ đếm `dk:` và `dk_email_code.email_key` KHÔNG chứa email hay địa chỉ ở dạng rõ
+ * (khuôn `emailHash` của auth/mfa-email.ts nhưng có khoá — email dễ đoán nên băm trần dò ngược được). `loai` tách không gian băm; trả hex.
+ */
+export async function khoaBam(secret: string, loai: "email" | "ip" | "ma", giaTri: string): Promise<string> {
+  const khoa = await hmacBytes(enc.encode(secret), "td-dang-ky-bam-v1");
+  return Array.from(await hmacBytes(khoa, `${loai}:${giaTri}`), (b) => b.toString(16).padStart(2, "0")).join("");
 }
