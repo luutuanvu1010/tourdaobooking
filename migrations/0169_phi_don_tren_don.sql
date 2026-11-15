@@ -5,7 +5,7 @@
 -- Dòng phí không mang dữ liệu cá nhân: chỉ mã luật, mã vùng, mã cấp, số.
 
 -- Lưu ý: `fee_rule_id` KHÔNG có REFERENCES. Khoá ngoại từ bảng của orders sang bảng của pricing làm câu chèn của pricing phải quét `order_item` (bài ranh giới
--- ADR-0002 điều 8(b) bắt) và chưa có cạnh toàn vẹn được duyệt. An toàn vẫn giữ: dòng mức của pricing chỉ-thêm, trigger `prc_append_only` cấm xoá (0165); R-ORD-PD-1 kiểm mã mức còn tồn tại.
+-- ADR-0002 điều 8(b) bắt) và chưa có cạnh toàn vẹn được duyệt. An toàn vẫn giữ: dòng mức của pricing chỉ-thêm, trigger `prc_transfer_fee_rule_no_delete` cấm xoá (0165); R-ORD-PD-1 kiểm mã mức còn tồn tại.
 
 -- 1) Loại dòng: dịch vụ (mọi dòng cũ) hoặc phí đưa đón. Bản chụp phí nằm NGAY trên dòng (không tra lại bảng phí khi xem đơn cũ).
 ALTER TABLE order_item ADD COLUMN line_kind TEXT NOT NULL DEFAULT 'SERVICE' CHECK (line_kind IN ('SERVICE', 'TRANSFER_FEE'));
