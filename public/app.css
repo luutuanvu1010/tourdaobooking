@@ -1639,13 +1639,13 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 /* ---------- A2: trang đơn (khối dịch vụ chỉ-đọc, nhắc khoá) — chỉ token ---------- */
 .services { margin-bottom: var(--s4); }
 .kv > span:first-child { flex: none; } /* nhãn không bị ép gãy chữ ("Ghi / chú") khi giá trị dài */
-.kv-dat-coc > span:first-child { flex: 1 1 auto; min-width: 0; }
+.kv-dat-coc > span:first-child { flex: 1 1 auto; min-width: 0; } /* nhãn «Khách đặt cọc cho đối tác (chờ xác nhận)» dài: nhãn xuống dòng, số tiền giữ nguyên một dòng */
 /* Phí đưa đón Đợt C (trang đơn, thẻ Thanh toán): mục «Phí đưa đón» trên «Tạm tính», ngăn bằng một đường mảnh; nhãn «Chiều đi · <khu vực>» được xuống dòng, số giữ bên phải. */
 .phi-don-tien { padding-bottom: var(--s2); margin-bottom: var(--s2); border-bottom: 1px solid var(--c-line); }
 .phi-don-tieu-de { font-weight: var(--fw-bold); }
 .kv-phi-don > span:first-child { flex: 1 1 auto; min-width: 0; }
 .kv-phi-don > span:last-child { white-space: nowrap; }
-.phi-don-chi-tiet { display: block; font-size: var(--fs-label); } /* nhãn «Khách đặt cọc cho đối tác (chờ xác nhận)» dài: nhãn xuống dòng, số tiền giữ nguyên một dòng */
+.phi-don-chi-tiet { display: block; font-size: var(--fs-label); }
 .kv-dat-coc > span:last-child { flex: none; white-space: nowrap; }
 .svc-view .svc-facts { margin-top: var(--s3); }
 .kv-warn > span:last-child { font-weight: var(--fw-bold); color: var(--c-sand-text); }
