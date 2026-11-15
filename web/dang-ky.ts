@@ -285,7 +285,7 @@ function oTep(ma: string, nhan: string, p: PhieuDangKyDto): HTMLElement {
       chon.value = "";
     }
   })());
-  return h("div", { class: "dk-o-tep" }, h("span", { class: "nhan" }, nhan), trangThai, chon);
+  return h("label", { class: "dk-o-tep" }, h("span", { class: "nhan" }, nhan), trangThai, chon);
 }
 
 // ---- Phiếu đã duyệt: xin mã MỚI rồi đặt PIN (ADR-0207 Đ7) ----

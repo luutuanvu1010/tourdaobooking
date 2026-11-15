@@ -495,6 +495,7 @@ body.login-bao-tri:not(.login-mo-form) .login-dang-ky { display: none; }
 .dk-hc-cap { padding: var(--s2) var(--s3); background: var(--c-surface-alt); border-radius: var(--radius-sm); }
 .dau-xm { vertical-align: middle; margin-left: var(--s1); }
 .dau-xm svg { width: var(--fs-badge); height: var(--fs-badge); }
+.dk-hang-nut > select.o { width: auto; margin-top: 0; }
 /* ===== CHÉP TỪ MÃ — hết ===== */
 
 /* ===== RIÊNG CỦA BỘ (1) — lớp xem trước ===== */
