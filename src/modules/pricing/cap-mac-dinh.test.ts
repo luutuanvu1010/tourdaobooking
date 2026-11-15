@@ -217,6 +217,18 @@ test("(5) Chưa đặt chính sách, hoặc «Theo cấp của vai trò» ⇒ l�
   assert.equal(dem1(w2, "SELECT count(*) n FROM audit_log WHERE action = 'prc_party_tier_set'"), 0);
 });
 
+test("(6) Hồ sơ có sẵn đã có cấp riêng đang áp dụng, không thời hạn ⇒ lô thành công, dòng cũ nguyên, không dòng mới", async () => {
+  const w = setup();
+  const { ta1, ta2 } = await nen(w);
+  await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200);
+  const goc = await hoSoCoSan(w);
+  await ok(w.call("POST", `/api/pricing/ho-so/${goc}/muc-rieng`, { as: KT, body: { muc: ta1, tuNgay: "2026-01-01" } }), 201, "cấp riêng đang áp dụng");
+  const truoc = capRieng(w, goc);
+  assert.equal(await duyetMoi(w, { hoSo: { kieu: "CO_SAN", partyId: goc } }), goc);
+  assert.deepEqual(capRieng(w, goc), truoc);
+  assert.equal(truoc.length, 1);
+});
+
 test("(6a) KHÔNG LÀM HỎNG LÔ — hồ sơ có sẵn đã có cấp riêng bắt đầu từ ngày mai ⇒ lô thành công, cấp cũ nguyên, không dòng mới", async () => {
   const w = setup();
   const { ta1, ta2 } = await nen(w);
