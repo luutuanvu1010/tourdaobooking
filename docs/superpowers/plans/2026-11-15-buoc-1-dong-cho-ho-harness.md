@@ -177,3 +177,14 @@ Phiên điều phối gọi trợ lý `nguoi-kiem-doc-lap` với `isolation: "wo
 ## Nhật ký
 
 (người thi công và phiên điều phối ghi ở đây: dòng đỏ quan sát được, quyết định giữa chừng, việc còn nợ)
+
+### Task 1 (người thi công, 2026-11-15)
+
+- Lần chạy đỏ, trước khi sửa móc (`# tests 21`, `# pass 19`, `# fail 2`):
+  - `not ok 10 - guard-remote: lệnh cấm gõ qua công cụ Terminal của ứng dụng cũng bị chặn; lệnh thường và công cụ Terminal khác thì im lặng`
+  - `not ok 11 - settings.json: đường Terminal của ứng dụng có đủ hai lớp (móc guard-remote + luật deny cả công cụ)`
+- Sau khi sửa móc, chưa sửa settings (`# pass 20`, `# fail 1`): `not ok 11 - settings.json: đường Terminal của ứng dụng có đủ hai lớp (móc guard-remote + luật deny cả công cụ)`
+- Sau khi ghi settings: ba tệp bài kiểm hàng rào `# tests 36`, `# pass 36`, `# fail 0` (34 + 2).
+- Thử khô (Bước 6): `{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"Bị chặn: npm run day-len / trien-khai / len-chinh-thuc / lam-moi-dev …"}}` (lý do rút gọn ở đây).
+- Quyết định khác kế hoạch: viết bài kiểm Task 2 sau, không cùng lúc, để lần lưu Task 1 không chứa bài đỏ. Dòng sổ hàng rào chèn ngay dưới dòng dữ liệu đầu tiên (dòng «Hook `guard-remote`…»).
+- [x] Task 1 Bước 1–8 xong.

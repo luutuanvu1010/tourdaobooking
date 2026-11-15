@@ -231,6 +231,26 @@ test("settings.json: khai móc PreToolUse cho Bash và luật deny (lớp hai, P
   }
 });
 
+test("guard-remote: lệnh cấm gõ qua công cụ Terminal của ứng dụng cũng bị chặn; lệnh thường và công cụ Terminal khác thì im lặng", () => {
+  const run = (tool_name: string, tool_input: Record<string, string>) =>
+    spawnSync("node", [".claude/hooks/guard-remote.mjs"], { cwd: ROOT, input: JSON.stringify({ hook_event_name: "PreToolUse", tool_name, tool_input, cwd: ROOT }), encoding: "utf8" });
+  for (const command of [...MUST_DENY, "git merge main", "git merge --no-ff nhanh-khac"]) {
+    const r = run("mcp__terminal__run_in_terminal", { command });
+    assert.equal(r.status, 0);
+    assert.equal(JSON.parse(r.stdout || "{}").hookSpecificOutput?.permissionDecision, "deny", `phải chặn qua Terminal: ${command}`);
+  }
+  for (const command of ["npm test", "git status", "npm run dev"]) assert.equal(run("mcp__terminal__run_in_terminal", { command }).stdout, "", `chặn nhầm qua Terminal: ${command}`);
+  assert.equal(run("mcp__terminal__run_in_terminal", {}).stdout, "", "thiếu command thì im lặng");
+  assert.equal(run("mcp__terminal__read_terminal", { tab_id: "0" }).stdout, "", "công cụ đọc Terminal không bị xét");
+});
+
+test("settings.json: đường Terminal của ứng dụng có đủ hai lớp (móc guard-remote + luật deny cả công cụ)", () => {
+  const s = JSON.parse(read(".claude/settings.json"));
+  const nhom = (s.hooks?.PreToolUse ?? []).filter((h: { matcher: string }) => h.matcher === "mcp__terminal__run_in_terminal").flatMap((h: { hooks: { command: string }[] }) => h.hooks);
+  assert.ok(nhom.some((h: { command: string }) => h.command.includes(".claude/hooks/guard-remote.mjs")), "thiếu móc guard-remote cho công cụ Terminal");
+  assert.ok((s.permissions?.deny ?? []).includes("mcp__terminal__run_in_terminal"), "thiếu luật deny cho công cụ Terminal");
+});
+
 test("guard-remote: script móc thật trả deny cho `npm run day-len` và `node scripts/trien-khai.mjs`", () => {
   for (const command of ["npm run day-len", "node scripts/trien-khai.mjs"]) {
     const r = spawnSync("node", [".claude/hooks/guard-remote.mjs"], { cwd: ROOT, input: JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd: ROOT }), encoding: "utf8" });
