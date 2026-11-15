@@ -9,6 +9,7 @@ import { app, world, seedStaff } from "../tests/audit/harness.mjs";
 import { buildConfirmation, MIEN_PHI } from "./shared/order-confirmation.ts";
 import { chiaPhanBienNhan } from "./modules/receipt/rules.ts";
 import { nhaCungCapCuaDon } from "./modules/billing/rules.ts";
+import { CAU_GIAM_GIA_VUOT_CO_PHI } from "./shared/so-khach-van-phong.ts";
 import type { BanChup } from "./shared/hoa-hong-dong.ts";
 import type { OrderDetailDto } from "./shared/contracts.ts";
 
@@ -203,7 +204,9 @@ test("đơn có giảm giá + phí, sửa số khách bớt người: giảm gi�
   const w = await setup({ cr: 70_000 });
   const o = await lapXacNhan(w, [OUT(KS_CR)], { extra: { discount: 900_000 } });
   assert.deepEqual([o.subtotal, o.giamGiaHieuLuc, o.total], [1_140_000, 900_000, 240_000]);
-  await ok(w.call("POST", `/api/orders/${o.id}/money-edit`, { as: SALES, body: { lyDo: "BOT_NGUOI", services: [{ id: o.services[0].id, pax: P({ adult: 1 }) }] } }), 200, "bớt khách");
+  const bot = await ok(w.call("POST", `/api/orders/${o.id}/money-edit`, { as: SALES, body: { lyDo: "BOT_NGUOI", services: [{ id: o.services[0].id, pax: P({ adult: 1 }) }] } }), 200, "bớt khách");
+  // Kiểm độc lập Nên sửa 2: câu cảnh báo giảm giá vượt của đơn có phí không được nói «khách không còn phải trả gì» (khách còn nợ 70.000 phí).
+  assert.equal(bot.json.canhBaoTongAm, CAU_GIAM_GIA_VUOT_CO_PHI, "câu cảnh báo của đơn có phí đưa đón");
   const sau = await don(w, o.id);
   // dịch vụ 500.000 < giảm giá 900.000 ⇒ phần dịch vụ về 0; phí 70.000 × 1 vẫn thu đủ.
   assert.deepEqual([sau.subtotal, sau.giamGiaHieuLuc, sau.total], [570_000, 500_000, 70_000]);

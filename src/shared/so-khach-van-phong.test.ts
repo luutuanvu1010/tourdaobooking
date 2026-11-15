@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CAU_GIAM_GIA_VUOT, CAU_KHUYEN_MAI_KHI_BOT_KHACH, LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, canhBaoGiamGiaVuot, canhBaoKhuyenMai, docThanSuaSoKhach, duocSuaSoKhachVanPhong,
+  CAU_GIAM_GIA_VUOT, CAU_GIAM_GIA_VUOT_CO_PHI, CAU_KHUYEN_MAI_KHI_BOT_KHACH, LY_DO_SUA_SO_KHACH, MA_LY_DO_SUA_SO_KHACH, canhBaoGiamGiaVuot, canhBaoKhuyenMai, docThanSuaSoKhach, duocSuaSoKhachVanPhong,
   nguonBangSuaSoKhach, soKhachTraTien, thanSuaSoKhach,
 } from "./so-khach-van-phong.ts";
 import { EDIT_REASON_QUICK } from "./viec-cua-toi.ts";
@@ -87,6 +87,22 @@ test("giảm giá vượt tạm tính (ADR-0109 QĐ3): chỉ cảnh báo, điề
   // Phiếu phản biện ADR-0109 (tiền đề sai 3): câu còn hiện sau khi đã hoàn / Đã giao / Hoàn thành ⇒ không được khẳng định "toàn bộ tiền đã trả thành tiền trả dư".
   assert.doesNotMatch(CAU_GIAM_GIA_VUOT, /Toàn bộ tiền khách đã trả/);
   assert.match(CAU_GIAM_GIA_VUOT, /nếu chưa hoàn/);
+});
+
+test("giảm giá vượt, đơn CÓ phí đưa đón phải trả (sửa sau kiểm độc lập Đợt C, Nên sửa 2): câu riêng — khách vẫn trả phí đưa đón, chỉ phần trả hơn phí mới là tiền trả dư; phí 0 đồng (Miễn phí) hoặc không phí ⇒ câu cũ", () => {
+  const phi = (...tien: number[]) => ({ dong: tien.map((lineTotal) => ({ lineTotal })) });
+  assert.equal(canhBaoGiamGiaVuot({ discount: 800000, giamGiaHieuLuc: 500000, phiDuaDon: phi(70000) }), CAU_GIAM_GIA_VUOT_CO_PHI);
+  assert.equal(canhBaoGiamGiaVuot({ discount: 800000, giamGiaHieuLuc: 0, phiDuaDon: phi(0, 40000) }), CAU_GIAM_GIA_VUOT_CO_PHI, "một dòng có tiền là đủ");
+  assert.equal(canhBaoGiamGiaVuot({ discount: 800000, giamGiaHieuLuc: 500000, phiDuaDon: phi(0) }), CAU_GIAM_GIA_VUOT, "Miễn phí: khách không còn phải trả gì");
+  assert.equal(canhBaoGiamGiaVuot({ discount: 800000, giamGiaHieuLuc: 500000, phiDuaDon: phi() }), CAU_GIAM_GIA_VUOT);
+  assert.equal(canhBaoGiamGiaVuot({ discount: 800000, giamGiaHieuLuc: 500000, phiDuaDon: null }), CAU_GIAM_GIA_VUOT);
+  assert.equal(canhBaoGiamGiaVuot({ discount: 500000, giamGiaHieuLuc: 500000, phiDuaDon: phi(70000) }), null, "không vượt thì không câu nào");
+  assert.match(CAU_GIAM_GIA_VUOT_CO_PHI, /phí đưa đón/);
+  assert.doesNotMatch(CAU_GIAM_GIA_VUOT_CO_PHI, /không còn phải trả gì/, "đơn có phí: khách vẫn phải trả phí");
+  assert.match(CAU_GIAM_GIA_VUOT_CO_PHI, /Kế toán/);
+  assert.match(CAU_GIAM_GIA_VUOT_CO_PHI, /nếu chưa hoàn/);
+  assert.doesNotMatch(CAU_GIAM_GIA_VUOT_CO_PHI, /\d/, "câu cố định, không số tiền");
+  assert.notEqual(CAU_GIAM_GIA_VUOT_CO_PHI, CAU_GIAM_GIA_VUOT);
 });
 
 // ---- ADR-0114 D1: nhắc khuyến mại khi bớt khách (chỉ cảnh báo; tính từ trạng thái hiện hành, không lưu cờ) ----------------------------------------------

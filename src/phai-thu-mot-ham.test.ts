@@ -47,8 +47,9 @@ const CHO_PHEP: { file: string; khuon: RegExp; lyDo: string }[] = [
   { file: "src/modules/orders/nguoi-dat-gop-repo.ts", khuon: /o\.total IS NOT o\.subtotal - o\.discount/, lyDo: "kiểm dữ liệu ĐÃ LƯU (SQL) — cùng luật trigger 0007, không phải phải thu hiện hành" },
   { file: "src/shared/order-confirmation.ts", khuon: /order\.discount > 0 \? -order\.discount : order\.discount/, lyDo: "đổi dấu để in dòng Giảm giá của biên nhận (số máy chủ đặt vào ReceiptDto)" },
   { file: "web/order-form.ts", khuon: /if \(s\.discount > s\.subtotal\) lines\.push\(/, lyDo: "báo lỗi biểu mẫu nháp (máy chủ chặn lại ở rules.ts)" },
+  // Sửa sau kiểm độc lập (Nên sửa 2): tham số thêm `phiDuaDon` CHỈ để chọn câu (đơn còn phí phải trả); điều kiện so vẫn y nguyên, vẫn đúng một chỗ.
   // Đợt C, Task 5: so với giảm giá HIỆU LỰC (số của `effectiveMoney`) thay vì tạm tính, vì tạm tính nay gồm phí đưa đón mà giảm giá chỉ trừ tiền dịch vụ (chủ 15/11, SV-PD-29).
-  { file: "src/shared/so-khach-van-phong.ts", khuon: /canhBaoGiamGiaVuot = \(don: \{ discount: number; giamGiaHieuLuc: number \}\): string \| null => \(don\.discount > don\.giamGiaHieuLuc \?/, lyDo: "điều kiện cảnh báo giảm giá vượt tiền dịch vụ (ADR-0109 QĐ3) — một hàm dùng chung máy chủ ↔ giao diện, so với giảm giá hiệu lực, không tính tiền" },
+  { file: "src/shared/so-khach-van-phong.ts", khuon: /canhBaoGiamGiaVuot = \(don: \{ discount: number; giamGiaHieuLuc: number; phiDuaDon\?: \{ dong: readonly \{ lineTotal: number \}\[\] \} \| null \}\): string \| null => \(don\.discount > don\.giamGiaHieuLuc \?/, lyDo: "điều kiện cảnh báo giảm giá vượt tiền dịch vụ (ADR-0109 QĐ3) — một hàm dùng chung máy chủ ↔ giao diện, so với giảm giá hiệu lực, không tính tiền" },
   { file: "src/modules/orders/price-guards.ts", khuon: /discountWithinCap = \(discount: number, maxDiscount: number\): boolean => discount <= maxDiscount/, lyDo: "trần giảm giá của tài khoản Đối tác (ADR-0027), không phải phải thu" },
 ];
 

@@ -57,9 +57,18 @@ export function duocSuaSoKhachVanPhong(viewer: PermissionHolder, don: { staffId:
  */
 export const CAU_GIAM_GIA_VUOT =
   "Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách, nên khách không còn phải trả gì và phần giảm giá vượt không dùng tới. Khách đã trả bao nhiêu thì số đó là tiền trả dư; nếu chưa hoàn thì Kế toán hoàn lại cho khách.";
+/**
+ * Biến thể của `CAU_GIAM_GIA_VUOT` cho đơn còn PHÍ ĐƯA ĐÓN phải trả (kiểm độc lập Đợt C, Nên sửa 2): giảm giá không trừ vào phí (chủ 15/11, SV-PD-29), nên khi giảm giá vượt tiền dịch vụ
+ * khách vẫn phải trả phí — câu cũ «khách không còn phải trả gì… Kế toán hoàn lại» làm Kế toán có thể hoàn nhầm cả phí. Chỉ dùng tên đã có trong bảng tham chiếu («Phí đưa đón»,
+ * «Giảm giá», «Kế toán», «tiền trả dư»). Câu cố định, không chữ số, đúng ở mọi trạng thái như câu cũ.
+ */
+export const CAU_GIAM_GIA_VUOT_CO_PHI =
+  "Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách, nên khách không còn phải trả tiền dịch vụ và phần giảm giá vượt không dùng tới. Giảm giá không trừ vào phí đưa đón, nên khách vẫn phải trả phí đưa đón. Khách đã trả nhiều hơn phí đưa đón thì phần nhiều hơn là tiền trả dư; nếu chưa hoàn thì Kế toán hoàn lại phần đó cho khách.";
 // Đợt C, Task 5 (phí đưa đón): tạm tính nay gồm phí, mà giảm giá chỉ trừ vào tiền dịch vụ (chủ 15/11, SV-PD-29) ⇒ so giảm giá đã lưu với GIẢM GIÁ HIỆU LỰC (= min(giảm giá, tiền dịch vụ),
 // số do `effectiveMoney` trả) thay vì với tạm tính: giảm giá > hiệu lực ⇔ giảm giá > tiền dịch vụ hiện hành. Đơn không phí: y như trước (hiệu lực = min(giảm giá, tạm tính)).
-export const canhBaoGiamGiaVuot = (don: { discount: number; giamGiaHieuLuc: number }): string | null => (don.discount > don.giamGiaHieuLuc ? CAU_GIAM_GIA_VUOT : null);
+// Chọn câu: đơn có ít nhất một dòng phí HIỆN HÀNH (`OrderDto.phiDuaDon.dong`, máy chủ đã tính lại sau «Sửa số khách») khác 0 đồng ⇒ `CAU_GIAM_GIA_VUOT_CO_PHI`; không phí hoặc chỉ
+// «Miễn phí» ⇒ câu cũ (khách thật sự không còn phải trả gì). Không cộng tiền ở đây — chỉ hỏi «có dòng nào khác 0 không».
+export const canhBaoGiamGiaVuot = (don: { discount: number; giamGiaHieuLuc: number; phiDuaDon?: { dong: readonly { lineTotal: number }[] } | null }): string | null => (don.discount > don.giamGiaHieuLuc ? ((don.phiDuaDon?.dong ?? []).some((d) => d.lineTotal > 0) ? CAU_GIAM_GIA_VUOT_CO_PHI : CAU_GIAM_GIA_VUOT) : null);
 
 /**
  * ADR-0114 D1 (chủ duyệt 2026-10-13: "nếu giảm số lượng thì nhớ hiện nhắc nhở phần khuyến mại… phải báo đỏ"): đơn có giảm giá mà SỐ KHÁCH đã giảm so với lúc xác nhận thì
