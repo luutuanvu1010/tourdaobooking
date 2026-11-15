@@ -15,6 +15,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { ACCOUNTS, docAxe, goiApi, ok, setInput, sleep, startEnv } from "../../2026-10-08-qr-thanh-toan/kich-ban/qr-chung.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const AXE = process.env.AXE_JS ? docAxe() : null;
 const OUT = process.env.OUT ?? join(process.cwd(), "docs/evidence/2026-11-03-chiet-khau-bon-truc/anh");
@@ -169,7 +170,7 @@ try {
     const p = await env.openPage(vp);
     p.vp = vp;
     trangHienTai = p;
-    await p.send("Page.addScriptToEvaluateOnNewDocument", { source: `window.confirm = () => true; window.alert = () => {}; ${GHI_FETCH}` });
+    await p.send("Page.addScriptToEvaluateOnNewDocument", { source: `${HOP_HOI_TU_DONG} window.confirm = () => true; window.alert = () => {}; ${GHI_FETCH}` });
     const c = await env.login(account);
     await p.send("Network.setCookie", { name: c.name, value: c.value, url: env.base, httpOnly: true });
     const t0 = Date.now();

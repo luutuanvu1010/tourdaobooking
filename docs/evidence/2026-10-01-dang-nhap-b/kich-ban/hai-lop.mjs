@@ -16,6 +16,7 @@
 //   9  console sạch, không lỗi CSP (không tràn ngang 390 / 320 kiểm ngay ở bước 2, 3, 7; axe khi có AXE_JS ở bước 2, 3, 6)
 import { randomBytes } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 process.env.OUT ??= "docs/evidence/2026-10-01-dang-nhap-b";
 const { ACCOUNTS, startEnv, sleep } = await import("../../2026-09-20-a2/kich-ban/a2-cdp.mjs");
@@ -181,6 +182,7 @@ try {
   });
 
   await b.step("5", "\"Quên mọi máy\" → đăng nhập bằng mã dự phòng → còn 9 mã → vào app", async () => {
+    await nv.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await nv.ev("window.confirm = () => true; true");
     await mustBam(nv, "#mfa", "Quên mọi máy");
     await nv.waitFor(`!!${q("#mfa-devices")} && document.querySelectorAll('#mfa-devices [data-may-tin]').length === 0`, "máy được tin đã quên", 10000);

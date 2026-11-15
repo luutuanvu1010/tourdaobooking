@@ -1,7 +1,7 @@
 // Luật THUẦN của biên nhận (module receipt — ADR-0024 đ1, ADR-0026 đ11; kế hoạch Task 8): dựng `ReceiptDto` theo DANH SÁCH TRẮNG — chép TỪNG trường được
 // phép, KHÔNG BAO GIỜ trải đối tượng nguồn (`...order`), nên thêm một trường bí mật vào đơn/sổ sau này không thể tự lọt ra biên nhận. Không I/O.
-import type { CompanyDto, MauBienNhan, OrderDetailDto, PhieuCongNoDto, QrThanhToanDto, ReceiptDto, ReceiptPhanDto } from "../../shared/contracts.ts";
-import { TIEN_TO_NOI_DUNG_DAI_LY } from "../../shared/cong-no-dai-ly.ts";
+import type { CompanyDto, MauBienNhan, OrderDetailDto, PhieuCongNoDto, PhieuNopDto, QrThanhToanDto, ReceiptDto, ReceiptPhanDto } from "../../shared/contracts.ts";
+import { CAU_CO_KHOAN_CHO, TIEN_TO_NOI_DUNG_DAI_LY } from "../../shared/cong-no-dai-ly.ts";
 import { chiaPhanNguoiBan, nguoiBanCuaDong } from "../../shared/chia-phan-nguoi-ban.ts";
 import type { BanChup } from "../../shared/hoa-hong-dong.ts";
 import { noiDungChuyenKhoan } from "../../shared/noi-dung-chuyen-khoan.ts";
@@ -195,20 +195,26 @@ export function dungPhieuCongNo(i: {
   phieu: { dong: readonly { name: string; hoaHong: number | null; giaDaiLy: number }[]; tong: number; daThu: number; conLai: number };
   hanTra: string | null;
   tk: { congTy: string; nganHang: string; bin: string; soTaiKhoan: string; chuTaiKhoan: string } | null;
+  /** ADR-0182 phần B: phần khoản nộp. Số trên QR = `nop.tran` (Đ2 mục 7 — cùng con số với trần Đ2 mục 4); vắng ⇒ như phần A (QR = Công nợ còn lại). */
+  nop?: PhieuNopDto;
 }): { ok: true; dto: PhieuCongNoDto } | { ok: false } {
   const { tong, daThu, conLai } = i.phieu;
+  const soQr = i.nop ? i.nop.tran : conLai;
   let qr: QrThanhToanDto | null = null;
   let ghiChuQr: string | null = null;
-  if (conLai > 0) {
+  if (soQr > 0) {
     if (!i.tk) ghiChuQr = "Công ty chưa cài tài khoản nhận tiền — báo người phụ trách hệ thống.";
     else {
-      const q = dungQrThanhToan({ maDon: i.maDon, soTien: conLai, conLai, tk: i.tk, tienTo: TIEN_TO_NOI_DUNG_DAI_LY });
+      const q = dungQrThanhToan({ maDon: i.maDon, soTien: soQr, conLai: soQr, tk: i.tk, tienTo: TIEN_TO_NOI_DUNG_DAI_LY });
       if (!q.ok) return { ok: false };
       qr = q.dto;
     }
-  }
+  } else if (conLai > 0 && i.nop && i.nop.nopCho + i.nop.congTyCho > 0) ghiChuQr = CAU_CO_KHOAN_CHO;
   return {
     ok: true,
-    dto: { maDon: i.maDon, dong: i.phieu.dong.map((d) => ({ ten: d.name, giaDaiLy: d.giaDaiLy, thieuMuc: d.hoaHong === null })), tong, daThu, conLai, hanTra: i.hanTra, qr, ghiChuQr },
+    dto: {
+      maDon: i.maDon, dong: i.phieu.dong.map((d) => ({ ten: d.name, giaDaiLy: d.giaDaiLy, thieuMuc: d.hoaHong === null })), tong, daThu, conLai, hanTra: i.hanTra, qr, ghiChuQr,
+      ...(i.nop ? { nop: i.nop } : {}),
+    },
   };
 }

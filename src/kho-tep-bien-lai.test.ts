@@ -44,7 +44,15 @@ test("(2) xem ảnh: ô payment.proof.view → ghi nhật ký → MỚI đọc k
   const [o, nk, doc] = [vt(s, 'can(staff, "payment.proof.view"'), vt(s, "auditStatement("), vt(s, "kho.get(")];
   assert.ok(o !== -1 && nk !== -1 && doc !== -1, "thiếu một trong ba mốc");
   assert.ok(o < nk && nk < doc, `thứ tự sai: ô=${o}, nhật ký=${nk}, đọc kho=${doc}`);
-  assert.equal(dem(/\bkho\.get\(/g), 1, "đường đọc kho ảnh thứ hai trong billing — phải đi qua cùng cổng nhật ký");
+  // ADR-0182 phần B: đường thứ hai — ảnh biên lai của khoản nộp, cùng khuôn ô xem → nhật ký → đọc kho (bài dưới).
+  assert.equal(dem(/\bkho\.get\(/g), 2, "đường đọc kho ảnh thứ ba trong billing — phải đi qua cùng cổng nhật ký");
+});
+
+test("(2b) xem ảnh khoản nộp (ADR-0182 phần B): ô xem khoản nộp → ghi nhật ký → MỚI đọc kho", () => {
+  const s = thanRoute("GET", "/api/orders/:id/khoan-nop/:nopId/bien-lai");
+  const [o, nk, doc] = [vt(s, 'can(staff, "dai-ly.nop.xem"'), vt(s, "auditStatement("), vt(s, "kho.get(")];
+  assert.ok(o !== -1 && nk !== -1 && doc !== -1, "thiếu một trong ba mốc");
+  assert.ok(o < nk && nk < doc, `thứ tự sai: ô=${o}, nhật ký=${nk}, đọc kho=${doc}`);
 });
 
 test("(3) ghi khoản thu kèm ảnh: chặn Content-Length TRƯỚC khi đọc thân; lô D1 TRƯỚC khi đặt kho; trong billing chỉ MỘT chỗ đặt kho (kho-bien-lai.ts)", () => {

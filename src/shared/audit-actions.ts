@@ -83,6 +83,12 @@ export const AUDIT_ACTIONS = {
   payment_proof_viewed: { label: "Mở ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_purged: { label: "Gỡ hoặc quyết xoá ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_purge_retried: { label: "Chạy lại xoá ảnh biên lai khỏi kho", group: "system" },
+  // ADR-0182 phần B: khoản nộp của đại lý theo từng đơn.
+  agent_remittance_recorded: { label: "Đại lý gửi khoản nộp kèm biên lai", group: "order" },
+  agent_remittance_confirmed: { label: "Kế toán xác nhận khoản nộp của đại lý", group: "order" },
+  agent_remittance_rejected: { label: "Kế toán từ chối khoản nộp của đại lý", group: "order" },
+  agent_remittance_proof_viewed: { label: "Mở ảnh biên lai khoản nộp", group: "order" },
+  agent_remittance_proof_purged: { label: "Gỡ hoặc quyết xoá ảnh biên lai khoản nộp", group: "order" },
   // ADR-0060: dấu "đã nhập phần mềm kế toán" (bảng chỉ-thêm bil_accounting_entry) — detail = moTaDauNhap (số hoá đơn nguyên văn; lý do đã chặn dãy số dài).
   // Lịch sử đơn BỎ hai hành động này với người không qua ô accounting.entry.view; không vào hộp thông báo (v_aud_order_event là danh sách cho phép).
   order_accounting_entry_marked: { label: "Đánh dấu đã nhập phần mềm kế toán", group: "order", ghiTien: true },
@@ -358,6 +364,7 @@ export const AUDIT_ACTIONS = {
   catalog_group_assigned: { label: "Đổi nhóm của dịch vụ", group: "catalog" },
   ticket_flag_changed: { label: "Đổi ô Có vé", group: "catalog" }, // ADR-0174
   ticket_source_changed: { label: "Đổi ô Vé do ai phát", group: "catalog" }, // ADR-0175 Đ1.2: targetId = mã dịch vụ, detail «Dịch vụ <mã>: Vé hãng ngoài | Vé Tour Đảo»
+  service_detail_changed: { label: "Sửa chi tiết dịch vụ", group: "catalog" }, // ADR-0201 Đ1: targetId = mã dịch vụ, detail chỉ nói trường nào đổi (không chép tên, mô tả)
   catalog_groups_seeded: { label: "Gieo nhóm dịch vụ", group: "catalog" }, // do migration 0055 ghi một lần (detail "gieo 14 nhóm, N dịch vụ")
   // ADR-0149 Đ1: ô «Được đón không» của một dịch vụ — targetId = mã dịch vụ, detail "Theo nhóm → Không đón" (nhãn; không dữ liệu cá nhân).
   catalog_service_transfer_set: { label: "Đổi đưa đón của dịch vụ", group: "catalog" },

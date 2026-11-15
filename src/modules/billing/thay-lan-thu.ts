@@ -10,6 +10,7 @@ import { taiKhoanCuaHoSo } from "./dieu-chinh-repo";
 import { UUID_RE } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 import { NHAN_DAT_COC } from "../../shared/dat-coc-truoc";
+import { CAU_CONG_TY_THU_TRUNG } from "../../shared/cong-no-dai-ly";
 import { GHI_CHU_KHOAN_LOI_KHAI, transferInOf } from "./coc-repo";
 import { lineIfPostingStatement, linesOfOrder, linesOfReceipt, lineReversed, orderState, ownerCompanyId, postingIfReceiptStatement, postingPlainStatement, receiptsOfOrder, reconOfOrder } from "./repository";
 import type { GiaoDich } from "./ma-giao-dich";
@@ -62,6 +63,8 @@ export async function ghiThayLanThu(db: D1Database, input: { orderId: string; ph
     if (k) return k;
     const l = loiLoThay(e);
     if (l) return l;
+    // ADR-0182 Đ2 mục 13 (lớp CSDL): người có khoản nộp chờ của đơn không ghi «Công ty thu» — thường không tới được (lệnh này của Kế toán, khoản nộp do Đối tác ghi).
+    if (loiTrigger(e, "remittance_pending_company")) return loi(409, "nop_dang_cho", CAU_CONG_TY_THU_TRUNG);
     throw e;
   }
   return { ok: true, value: { orderId: input.orderId } };

@@ -4,10 +4,10 @@
 import type { PhieuCongNoResponse, QrKhongCoResponse, QrThanhToanResponse, ReceiptResponse } from "../../shared/contracts";
 import { UUID_RE, error, json } from "../../shared/http";
 import { can, seesOnlyAssignedOrders } from "../../shared/permissions";
-import { CAU_PHIEU_CHUA_XAC_NHAN, laTaiKhoanDoiTac, xemDuocPhieuCongNo } from "../../shared/cong-no-dai-ly";
+import { CAU_PHIEU_CHUA_XAC_NHAN, coPhieuNopTien, laTaiKhoanDoiTac, xemDuocPhieuCongNo } from "../../shared/cong-no-dai-ly";
 import { route, type AppModule } from "../../shared/router";
 import { ketQuaXemDon } from "../../shared/xem-don-nhap";
-import { congTyNhanTienKhach, phieuCongNoCuaDon, soTienBienNhan, soTienChoQr } from "../billing";
+import { congTyNhanTienKhach, khoanNopDto, soNopCuaDon, soTienBienNhan, soTienChoQr } from "../billing";
 import { congTyChoBienNhan } from "../company";
 import { donChoBienNhan, nguoiLapDoiTacThuan, phanThuongMaiCuaDon } from "../orders";
 import { taiKhoanNhanTienHienHanh } from "../parties";
@@ -83,10 +83,19 @@ export const receiptModule: AppModule = {
       if (xem !== "ok") return xem === "404" ? NOT_FOUND() : FORBIDDEN_VIEW();
       if (!xemDuocPhieuCongNo(staff, order.bookerPartyId)) return FORBIDDEN_VIEW();
       if (order.status !== "confirmed") return error(409, "phieu_requires_confirmed", CAU_PHIEU_CHUA_XAC_NHAN);
-      const so = await phieuCongNoCuaDon(env.DB, { id: order.id, booker_party_id: order.bookerPartyId, status: order.status });
+      const so = await soNopCuaDon(env.DB, { id: order.id, bookerPartyId: order.bookerPartyId, status: order.status });
       if (!so) return error(409, "khong_phai_don_dai_ly", "Đơn này không phải đơn đại lý, không có phiếu công nợ.");
-      const tk = so.phieu.conLai > 0 ? await taiKhoanNhanTienHienHanh(env.DB) : null;
-      const p = dungPhieuCongNo({ maDon: order.orderCode, phieu: so.phieu, hanTra: so.hanTra, tk });
+      // ADR-0182 phần B (Đ2 mục 4–11, Đ3): nút «Đã chuyển tiền» chỉ cho đơn CÓ PHIẾU theo người phiên (một vị từ `coPhieuNopTien`) + ô `dai-ly.nop.ghi`, không còn khoản chờ, còn trần;
+      // khoản nộp + trạng thái ảnh chỉ cho người giữ ô `dai-ly.nop.xem` (Đối tác: chính phạm vi phiếu).
+      const ghiDuoc = coPhieuNopTien({ nguoi: staff, partyId: staff.partyId, bookerPartyId: order.bookerPartyId, laDonDaiLy: true }) && can(staff, "dai-ly.nop.ghi", { ownerId: staff.id })
+        && so.nopCho === 0 && so.tran > 0;
+      const xemKhoan = laTaiKhoanDoiTac(staff) ? can(staff, "dai-ly.nop.xem", { ownerId: staff.id }) : can(staff, "dai-ly.nop.xem");
+      const nop = {
+        nopCho: so.nopCho, congTyCho: so.phieu.congTyCho, tran: so.tran, ghiDuoc, khachDaTra: ghiDuoc ? (order.deliveredAt ? 0 : so.khachDaTra) : null,
+        xacNhanDuoc: !laTaiKhoanDoiTac(staff) && can(staff, "dai-ly.nop.xac-nhan"), khoan: xemKhoan ? await khoanNopDto(env.DB, so.khoan, staff.id) : [],
+      };
+      const tk = so.tran > 0 ? await taiKhoanNhanTienHienHanh(env.DB) : null;
+      const p = dungPhieuCongNo({ maDon: order.orderCode, phieu: so.phieu, hanTra: so.hanTra, tk, nop });
       if (!p.ok) return error(409, "bank_account_invalid", "Tài khoản nhận tiền của công ty chưa đúng dạng — báo người phụ trách hệ thống.");
       return json({ phieu: p.dto } satisfies PhieuCongNoResponse);
     }),

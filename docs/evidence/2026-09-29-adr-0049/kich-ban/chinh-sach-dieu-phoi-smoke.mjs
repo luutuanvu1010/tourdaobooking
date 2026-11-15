@@ -4,6 +4,7 @@
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-29-adr-0049/kich-ban/chinh-sach-dieu-phoi-smoke.mjs
 // Kho cookie của Chrome dùng CHUNG: làm hết các bước của một tài khoản rồi mới sang tài khoản khác (Toàn quyền → Quản trị → Bán hàng).
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 import { fetchTrang,
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt, typeInto, vcSub,
 } from "./dp-lib.mjs";
@@ -119,6 +120,7 @@ try {
     await p.waitFor(`${txt("#dk-ok")} === 'Đã thêm điều kiện cho xe chạy — áp ngay từ bây giờ.'`, "báo đã thêm điều kiện");
     const sau = await p.ev(dong);
     assert.ok(sau.some((t) => t.startsWith("Phù hiệu xe hợp đồng — xe chở từ 9 người") && t.includes("Đang áp")), JSON.stringify(sau));
+    await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await p.ev("window.confirm = () => true; true");
     await p.ev(`[...document.querySelectorAll('#dk-dieu-kien .dp-reason')].find((r) => r.innerText.includes('Phù hiệu')).querySelector('[data-action="dong-dieu-kien"]').click()`);
     await p.waitFor(`${txt("#dk-ok")} === 'Đã đóng điều kiện “Phù hiệu xe hợp đồng — xe chở từ 9 người”.'`, "báo đã đóng");

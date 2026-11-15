@@ -84,7 +84,17 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 111.357 → 111.444 (+87, ADR-0196 Đợt 6A, 11/11/2026): hai ô quyền mới `payment.proof.view` (ADR-0196 Đ5) và `payment.proof.purge` (chỉ Toàn quyền — gỡ ảnh biên lai,
 // hàng chờ dọn kho) trong bản đồ quyền dùng chung mà gói Đơn hàng nhúng; không mã giao diện nào vào gói này. Đo thật 111.474 (+117), thu gọn hàng xem ảnh bằng `{ ...chiToanQuyen(), … }`
 // còn 111.444 (+87); tên hai ô cố định nên không về 0 được. Trần = đúng số đo. Chủ dự án duyệt 11/11/2026 (chuyển qua phiên điều phối), nguyên văn «Duyệt nới 87 byte».
-const TRAN_ORDERS = 111_444;
+// Nới 111.444 → 111.589 (+145, ADR-0182 phần B, 13/11/2026): ba ô quyền mới `dai-ly.nop.ghi`, `dai-ly.nop.xac-nhan`, `dai-ly.nop.xem` (ADR-0182 Đ3) trong bản đồ quyền dùng chung mà gói
+// Đơn hàng nhúng; không mã giao diện nào vào gói này. Đã viết gọn bằng hàng dùng chung (`chiToanQuyen()`, `quanTri()` + ô riêng). Trần = đúng số đo, không khoảng dư. Chủ dự án duyệt
+// 13/11/2026 trong phiên soạn ADR (chat, chuyển qua phiên điều phối), nguyên văn «Duyệt nới trần gói Đơn hàng cho ba ô quyền phần B».
+// Nới 111.589 → 113.492 (+1.903, màn bảo trì mới theo bản mẫu 2a, 13/11/2026): `web/api.ts` nhúng `web/maintenance-screen.ts` vào gói mọi trang; màn mới có đồng hồ ba ô,
+// nút gọi / Zalo, thẻ website, trạng thái «Đã mở lại» (chữ có dấu thành \uXXXX khi rút gọn nên tốn chỗ). Phương án thay thế (tách màn ra tệp tải khi cần) đã trình, chủ chọn nới.
+// Trần = đúng số đo. Chủ dự án duyệt 13/11/2026 trong chat, nguyên văn «Duyệt nới 1,9 KB».
+// Nới 113.492 → 114.524 (+1.032, ADR-0202 nội dung màn bảo trì do Toàn quyền tự sửa, 13/11/2026): màn bảo trì dựng từ nội dung đã lưu (khối ẩn/hiện theo công tắc,
+// nội dung mặc định khi chưa lưu, kiểm hình dạng nội dung trong thân 503). Đã bỏ bộ kiểm đầy đủ khỏi gói này (máy chủ kiểm hai đầu). Trần = đúng số đo. Chủ dự án duyệt
+// 13/11/2026 (nút ở khung bước tiếp theo), nguyên văn «Duyệt cả hai» — trả lời câu «Bạn duyệt văn bản quyết định ADR-0202 và cho nới trần trang Đơn hàng thêm 1 KB chứ?».
+// Đo lại sau khi gộp main có chi tiết dịch vụ (ADR-0201): 114.528 (+4 byte do bộ rút gọn đặt lại tên biến) — tổng +1.036, vẫn trong mức «thêm 1 KB» chủ đã duyệt.
+const TRAN_ORDERS = 114_528;
 
 function dung(trang: string) {
   const r = buildSync({

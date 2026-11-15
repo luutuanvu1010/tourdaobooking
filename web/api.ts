@@ -6,7 +6,7 @@ import { SESSION_ENDED_KEY, dauHetPhien } from "../src/shared/session-ended";
 import { donTuDuongDan, laTaoDonMoi, taoSoTuLam } from "./bangtin-logic";
 import { goDaiNgoaiMang } from "./dai";
 import { layKhungNho, xoaKhungNho } from "./khung-nho";
-import { endsAtFrom, showMaintenanceScreen } from "./maintenance-screen";
+import { contentFrom, endsAtFrom, showMaintenanceScreen } from "./maintenance-screen";
 import { hienBaoNgan } from "./toast";
 
 // Kiểu dữ liệu API lấy từ hợp đồng dùng chung với Worker (src/shared/contracts.ts) — không chép tay ở đây.
@@ -178,7 +178,7 @@ async function guiMotLan<T>(path: string, method: string, than: string | undefin
       // Chế độ bảo trì: máy chủ chặn tài khoản này (kể cả phiên đang mở) → lớp phủ toàn trang có đồng hồ đếm ngược, không hiện lỗi thô. Riêng trang đăng nhập tự xử lý (chủ vẫn cần đăng nhập được).
       if (data?.error?.code === MAINTENANCE_CODE && !location.pathname.startsWith("/login")) {
         const loi = data.error;
-        return { dangXuLy: false, ket: () => showMaintenanceScreen(endsAtFrom(loi)) };
+        return { dangXuLy: false, ket: () => showMaintenanceScreen(endsAtFrom(loi), contentFrom(loi)) };
       }
       // Phiên hết hạn (mã "unauthenticated" của router) ở màn hình khác /login → đưa về đăng nhập; riêng chính /login thì để hiện lỗi.
       // B-3 (giả định bề mặt, đảo ngược được): thu hẹp còn đúng mã "unauthenticated" — các route Face ID ở trang "Tôi" (vd pin-by-passkey) trả 401 với mã khác (passkey_invalid/passkey_unknown) và phải hiện lỗi tại chỗ, không được đưa thẳng về /login.

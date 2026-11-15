@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { test } from "node:test";
 
 // Giới hạn đã biết: chuỗi chứa « //» đứng trước lời gọi thì phần sau bị coi là chú thích; dòng bắt đầu bằng `*` (tiếp theo chú thích khối) bị bỏ qua.
-const TRAN = 16;
+const TRAN = 0;
 const THU_MUC = join(import.meta.dirname, "..", "web");
 
 function chiMa(dong: string): string {

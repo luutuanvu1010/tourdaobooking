@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, clickText, ok, setInput, sleep, startEnv, vnDate } from "./a2-cdp.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-20-a2";
 const AXE = readFileSync(process.env.AXE_JS, "utf8");
@@ -179,6 +180,7 @@ try {
   await p.waitFor(`${items}.length === 3`, "đơn nháp");
   await full(p, "1h-don-nhap.png");
   await check(p, "don-nhap");
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Xác nhận đơn"));
   await p.waitFor("!document.getElementById('error').hidden && /Chưa đủ thông tin chuyến/.test(document.getElementById('error').textContent)", "banner thiếu chuyến");
@@ -191,6 +193,7 @@ try {
   assert.equal((await call(ACCOUNTS.salesA, "PUT", `/api/orders/${main.id}/trip`, { expectedUpdatedAt: d.updatedAt, services: [tripOf(d.services[0]), tripOf(d.services[1]), tripOf(d.services[2], { departDate: vnDate(12) })] })).status, 200);
   p = await open(ACCOUNTS.salesA, `/order?id=${main.id}`);
   await p.waitFor(`${items}.length === 3`, "đơn nạp lại");
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev("window.confirm = () => true; true");
   await p.ev(clickText("#actions", "Xác nhận đơn"));
   await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã xác nhận'", "đã xác nhận");

@@ -211,10 +211,13 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // 13 → 12 (vẫn bằng trần 12 nên khối tài liệu không đổi số đoạn); hai câu kia giữ nguyên. Luật không đổi.
   // 2026-11-12 (ADR-0198): bài Hướng dẫn «Cấp hạn mức trả sau cho đối tác» thêm câu «Đơn mới đối tác lập được chọn sẵn "Trả sau"» ⇒ đo lại bằng chính bài này: 12 / 9 / 50 —
   // MỘT đoạn nữa vượt ngưỡng của câu lập đơn. Luật không đổi, trần 12 vẫn cắt.
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [12, 9, 50]);
+  // 2026-11-13 (ADR-0182 phần B): bảng tên kho cấu trúc thêm ba ô «gửi khoản nộp kèm biên lai», «xác nhận khoản nộp của đại lý», «xem khoản nộp của đại lý» (thêm đoạn vào kho,
+  // tần suất từ đổi) ⇒ đo lại bằng chính bài này: 11 / 9 / 50 — đoạn «Cấu trúc Nền tảng › Phân hệ Địa điểm» rơi khỏi ngưỡng của câu than phiền (12 → 11, dưới trần 12 nên khối tài liệu
+  // còn 11 đoạn; đoạn Câu hỏi thường gặp vẫn có). Số đo, luật không đổi.
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [11, 9, 50]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
-  assert.equal(thanPhien.length, SO_DOAN_TOI_DA);
+  assert.equal(thanPhien.length, 11); // = số khớp mạnh đo ở trên (dưới trần SO_DOAN_TOI_DA từ ADR-0182 phần B)
   assert.ok(thanPhien.includes("Phần chung › Câu hỏi thường gặp"), JSON.stringify(thanPhien));
   assert.ok(!thanPhien.some((t) => t.includes("Điều phối xe")), JSON.stringify(thanPhien));
   // 46 khớp mạnh ⇒ RRF + trần 12 đoạn / 6.000 token chọn tiếp (F7: khoá tên cụ thể, không chỉ "có đoạn").

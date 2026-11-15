@@ -662,7 +662,8 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 
 ## 55. Thiết kế lại giao diện — chủ tạm gác (mã `BL-TKL-…`, 2026-10-30)
 
-- **Trạng thái:** `để sau` · Chủ dự án 30/10/2026: «việc thiết kế lại giao diện chúng ta để làm về sau đi, ghi backlog». Đợt 0 (khung chung, bản 2.47) đã lên production và giữ nguyên; phần chưa phát hành dừng tại chỗ, không xoá.
+- **13/11/2026: chủ MỞ LẠI** («Mở lại, nhưng nâng cấp độ lên mức toàn diện hơn»), gộp vào kế hoạch `docs/superpowers/plans/2026-11-13-kiem-giao-dien-toan-dien-ke-hoach.md`; mục này giữ làm lịch sử.
+- **Trạng thái (cũ):** `để sau` · Chủ dự án 30/10/2026: «việc thiết kế lại giao diện chúng ta để làm về sau đi, ghi backlog». Đợt 0 (khung chung, bản 2.47) đã lên production và giữ nguyên; phần chưa phát hành dừng tại chỗ, không xoá.
 - **BL-TKL-0B · Đợt 0b khung tải — thi công xong, CHƯA gộp, chưa phát hành.** Nhánh `dot-0b-khung-tai` (17 commit trên `dac-ta-dot-0b`, đầu `86fb949d`, chưa push); nhật ký `docs/superpowers/plans/2026-10-29-dot-0b-khung-tai-nhat-ky.md`, bằng chứng `docs/evidence/2026-10-29-dot-0b-khung-tai/` (đều nằm trên nhánh). Đạt: tổng JS thô −73 % (5,46 MB → 1,47 MB), nạp sẵn lúc cài 108 mục / 2,0 MB → 24 mục / 0,31 MB nén, mọi bài kiểm xanh. **Không đạt 11.4:** trung vị FCP lạnh chậm hơn ≈ 570 ms ở 390 và 1040 (984 → 1550 / 1558 ms, đo 30/10 trên `main` `a129d3dd`), do `preload` phông + `modulepreload` ở `<head>` tranh băng thông với `app.css` trên 4G chậm. Đo riêng `/orders`: bản nhánh 1660 · bỏ preload phông 1236 · bỏ cả hai 1000 · `main` 996 ms — không cách nào đạt «nhanh hơn ≥ 150 ms» vì FCP do CSS quyết. Khi mở lại: chủ chọn bỏ cả hai loại tải trước (đề xuất) hay chỉ bỏ phông, rồi đo đủ 45 trang hai khổ, sửa tiêu chí 11.4 (đặc tả bản 5 đang đóng băng), QA2, cổng phát hành. Nợ kèm: 11.6 còn trượt (`/` ở 390 do vỏ; 4 trang do dải nhắc bảo mật hai lớp `#strips`; nhiều trang do thân chưa tách phần khung xương); bộ DS v2 đã xuất bản lệch mã cho tới khi xuất bản lại.
 - **BL-TKL-CHANG-3 · Chặng 3 (lưới bố cục và thân trang)** — gác cùng; đề bài lưới bố cục 1b nằm trên nhánh `chang-3-luoi-bo-cuc` (phiên khác soạn), chưa gửi Claude Design.
 - **Nếu để nguyên:** Nền tảng chạy như bản 2.47 hiện tại; không mất dữ liệu, không đổi quyền. Nhánh `dot-0b-khung-tai` càng để lâu càng phải gộp lại với `main` và đo lại «trước».
@@ -787,15 +788,23 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-BL-BO-SUNG** — Đối tác không gửi bổ sung ảnh được khi ảnh tải hỏng hay bị gỡ (ADR-0196 Đ11); muốn có thì là quyết định riêng.
 - **BL-BL-THU-THAT** — chưa thử trên iPhone thật (HEIC từ camera, thu nhỏ trên Safari) và chưa đo bộ nhớ Worker với thân ~14 MB (`BL-TEP-THAN-HAI-LAN`).
 
-## 71. Kiểm toán cách làm bằng AI — việc để sau (mã `BL-AI-…`, 2026-11-13)
+## 71. Khoản nộp của đại lý — việc để sau (mã `BL-KN-…`, ADR-0182 phần B, 2026-11-13)
 
-- **Trạng thái:** `để sau` · Chủ 13/11, nguyên văn: «Để sau». Hồ sơ: `docs/superpowers/specs/2026-11-13-kiem-toan-cach-lam-vibe-coding.md`.
-- **Cập nhật 15/11:** chủ yêu cầu kiểm toán lại và đề xuất cách thi công cho một người; hồ sơ mới `docs/superpowers/specs/2026-11-15-kiem-toan-harness-va-cach-thi-cong-mot-nguoi.md` thay phần đề xuất của bản 13/11 và đang chờ chủ quyết ba việc (kho mã công khai hay riêng tư; hướng A, B hay C; cho làm Bước 1). Các mã dưới đây nằm trong Bước 1–3 của hồ sơ đó. Số mục 71 trùng với một mục 71 khác trên bản chính; đổi số khi nhập.
+- **Trạng thái:** `để sau` · ghi khi thi công phần B; chưa hỏi chủ.
+- **BL-KN-VIEC-DAI-LY** — ADR Đ2 mục 11: danh sách việc của đại lý (đơn đã xác nhận, còn công nợ, chưa có khoản chờ). Trang chủ hiện chưa có thẻ việc nào cho tài khoản Đối tác, nên lần này chỉ có câu nhắc sau Gửi đơn (ADR mục «Chưa kiểm» cho phép).
+- **BL-KN-NUT-GO** — gỡ ảnh biên lai khoản nộp chỉ có đường máy chủ (như BL-BL-NUT-GO), chưa có nút trên giao diện.
+- **BL-KN-TRAN-ANH** — trần 20 ảnh / giờ có thể chặn đại lý lớn gửi nhiều đơn liền (ADR Hệ quả V3); chưa nâng.
+- **BL-KN-THU-THAT** — chưa thử iPhone thật (HEIC từ camera) cho ô ảnh biên lai khoản nộp.
+
+## 72. Kiểm toán cách làm bằng AI — việc để sau (mã `BL-AI-…`, 2026-11-13)
+
+- **Trạng thái:** `để sau` · Chủ 13/11, nguyên văn: «Để sau». Hồ sơ: `docs/superpowers/specs/2026-11-13-kiem-toan-cach-lam-vibe-coding.md`. Mục này mang số 71 lúc ghi; đổi thành 72 khi nhận bản chính ngày 15/11 vì trùng số.
+- **Cập nhật 15/11:** chủ yêu cầu kiểm toán lại và đề xuất cách thi công cho một người; hồ sơ mới `docs/superpowers/specs/2026-11-15-kiem-toan-harness-va-cach-thi-cong-mot-nguoi.md` thay phần đề xuất của bản 13/11. Chủ đã cho làm Bước 1 cùng ngày (nút «Làm Bước 1»; kế hoạch `docs/superpowers/plans/2026-11-15-buoc-1-dong-cho-ho-harness.md`). Còn chờ chủ: kho mã công khai hay riêng tư; hướng A, B hay C. Các mã dưới đây nằm trong Bước 1–3 của hồ sơ đó.
 - **BL-AI-KHO-CONG-KHAI** (gấp, chờ chủ) — kho GitHub đang công khai, còn địa chỉ bảng Google Sheet nhân viên và bảng giá, vài dòng số điện thoại, sổ lỗi bảo mật đang mở; người lạ tải được cả hai bảng (kiểm 15/11, chỉ lấy tiêu đề). Chủ tắt chia sẻ bảng nhân viên; quyết kho riêng tư hay công khai.
 - **BL-AI-GITHUB-KHOA-BAN-CHINH** — bản chính trên GitHub chưa có luật bảo vệ nhánh; chủ bật trong cài đặt GitHub, cần thử với luồng `day-len`.
 - **BL-AI-MO-TA-MOI-TRUONG** — `autoMode.environment` trong `~/.claude/settings.json` tả dự án khác và đã cũ; AI soạn, chủ dán.
-- **BL-AI-TERMINAL** — hàng rào lệnh nguy hiểm chỉ canh công cụ Bash; lệnh gõ qua công cụ Terminal của ứng dụng (`mcp__terminal__run_in_terminal`) không qua `guard-remote.mjs` và không khớp luật cấm `Bash(...)`. Vá: thêm luật cấm cho công cụ đó trong `.claude/settings.json` (chủ duyệt), quan sát chặn thật, ghi `docs/SO-HANG-RAO.md`. Mới thấy từ cấu hình, chưa thử.
+- **BL-AI-TERMINAL** — hàng rào lệnh nguy hiểm chỉ canh công cụ Bash; lệnh gõ qua công cụ Terminal của ứng dụng (`mcp__terminal__run_in_terminal`) không qua `guard-remote.mjs` và không khớp luật cấm `Bash(...)`. ĐÃ THI CÔNG 15/11 trên nhánh `claude/vibe-coding-audit-2bdc6e`: móc canh thêm công cụ Terminal và thêm luật cấm cả công cụ; đã ghi `docs/SO-HANG-RAO.md`. Còn nợ: quan sát trên Claude Code thật ở phiên mở sau khi nhánh vào `main`.
 - **BL-AI-BO-NHO** — mục lục bộ nhớ phần lớn là dòng trạng thái production. 15/11 đã rút gọn cơ học (cắt mô tả dài, gộp mười mục tính năng cũ; còn 156 dòng, khoảng 16,7 nghìn ký tự, dưới trần đọc); việc bỏ hẳn dòng trạng thái, chỉ giữ sở thích và cách làm, còn chờ chủ.
 - **BL-AI-KIEU-TRA-LOI** — kiểu trả lời "Explanatory" trong cài đặt ứng dụng ngược luật "Cách trả lời tôi"; chủ tự đổi.
 - **BL-AI-CLAUDE-MD** — việc rút gọn CLAUDE.md (ADR-0160) đứng từ 3/11; kèm chuyển công thức `CHANGE-GUIDE.md` thành skill.
-- **BL-AI-NGUOI-KIEM** — người kiểm độc lập có Bash, "chỉ đọc" chỉ bằng lời dặn.
+- **BL-AI-NGUOI-KIEM** — người kiểm độc lập có Bash, "chỉ đọc" chỉ bằng lời dặn. ĐÃ THI CÔNG 15/11 trên nhánh `claude/vibe-coding-audit-2bdc6e`: tệp trợ lý thêm `isolation: worktree` (chạy trên bản sao riêng). Có hiệu lực ở phiên mở sau khi nhánh vào `main`.

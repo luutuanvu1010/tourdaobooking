@@ -10,6 +10,10 @@ import { cauLanThu, tienNhieuDon, toDoiChieuRow, toLineRow, toReceiptRow } from 
 import { traSauCuaDon } from "./tra-sau";
 import { phanKhaiCuaDon } from "./khoan-khai";
 import { kiemNguoiThuKenh } from "./kenh-thu";
+import { congNoNhieuDon } from "./cong-no-dai-ly";
+import { benDatCuaDon, quyenMoCua } from "./khoan-nop-repo";
+import { coPhieuNopTien } from "../../shared/cong-no-dai-ly";
+import { isPermissionCode } from "../../shared/permissions";
 
 const dong = (n: number): string => `${n.toLocaleString("vi-VN")} ₫`;
 
@@ -59,7 +63,22 @@ export async function tienDonVe(db: D1Database, orderId: string): Promise<{ daTh
   const v = soChuaVeCongTy({ receipts: receipts.map(toReceiptRow), lines: lines.map(toLineRow), doiChieu: recon.map(toDoiChieuRow), nguoiLapPartyId: partyId, congTyId, khaiThem: khoan });
   // Khoản khai đặt cọc đã gộp vào cùng lượt tính (không trừ hai lần, không bỏ sót khoản do người khác cầm): `nguoiLapGiu` là tổng chưa nộp của mọi khoản đang giữ.
   const choNop = v.nguoiLapGiu;
-  return { daThu: t.daThu - choNop - v.choXacNhan, phaiThu: t.phaiThu, choNop, choXacNhan: v.choXacNhan, traSau };
+  const cu = { daThu: t.daThu - choNop - v.choXacNhan, phaiThu: t.phaiThu, choNop, choXacNhan: v.choXacNhan, traSau };
+  // ADR-0182 Đ2 mục 12 (sửa ADR-0170 Đ2 mục 1 — chỗ NỚI duy nhất của phần B): đơn Thanh toán ngay CÓ PHIẾU (vị từ `coPhieuNopTien` với NGƯỜI LẬP) mở vé khi CẢ HAI đúng:
+  // (i) khách đã trả đủ theo sổ (tổng khoản thu đang hiệu lực ≥ phải thu bán lẻ) và (ii) Công nợ còn lại theo Đ1 ≤ 0 (chỉ tiền Tour Đảo đã nhận VÀ đã xác nhận — từ «Công nợ đại lý»,
+  // không công thức thứ hai). Đơn văn phòng, đơn Trả sau, đơn Đối tác không có phiếu: giữ nguyên nhánh trên. Cổng cũ qua được thì vẫn qua (đại lý nộp đủ giá lẻ như hôm nay).
+  if (traSau || cu.daThu >= t.phaiThu || t.daThu < t.phaiThu) return cu;
+  if (await moVeTheoGiaDaiLy(db, orderId, chu, partyId)) return { daThu: t.daThu, phaiThu: t.phaiThu, choNop: 0, choXacNhan: 0, traSau };
+  return cu;
+}
+
+/** B2 (Đ2 mục 12): đơn CÓ PHIẾU theo người lập và Công nợ còn lại ≤ 0. Không đọc được gì ⇒ false (giữ cổng cũ — chặt hơn). */
+async function moVeTheoGiaDaiLy(db: D1Database, orderId: string, nguoiLap: string, partyNguoiLap: string): Promise<boolean> {
+  const [ben, quyen] = await Promise.all([benDatCuaDon(db, orderId), quyenMoCua(db, nguoiLap)]);
+  if (!ben) return false;
+  if (!coPhieuNopTien({ nguoi: { id: nguoiLap, permissions: quyen.filter(isPermissionCode) }, partyId: partyNguoiLap, bookerPartyId: ben.booker_party_id, laDonDaiLy: true })) return false;
+  const phieu = (await congNoNhieuDon(db, [{ id: orderId, booker_party_id: ben.booker_party_id, status: "confirmed" }])).get(orderId)?.phieu ?? null;
+  return phieu !== null && phieu.conLai <= 0;
 }
 
 /** Dựng câu khoản thu cho lô xác nhận; câu dựng ra CHƯA chạy, nằm sau câu xác nhận trong cùng một lô. Tháng đã khoá: trigger huỷ cả lô, `orders` dịch thành 409. */

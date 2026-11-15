@@ -40,8 +40,8 @@ export function giaiBase64(s: unknown): Uint8Array | null {
 }
 
 const hex = (u: Uint8Array): string => Array.from(u, (x) => x.toString(16).padStart(2, "0")).join("");
-/** Khoá kho `<tiền tố>/<128 bit ngẫu nhiên>` — không mang nghĩa (Hiến chương 5.22). `pty` = kho tệp hồ sơ (ADR-0123), `fbk` = kho tệp vé hỗ trợ (ADR-0144), `vdt` = kho vé điện tử (ADR-0153 Đ1 mục 7, đề xuất), `bln` = kho ảnh biên lai chuyển khoản (ADR-0196 Đ4). */
-export function taoKhoaNgauNhien(tienTo: "pty" | "fbk" | "vdt" | "bln"): string {
+/** Khoá kho `<tiền tố>/<128 bit ngẫu nhiên>` — không mang nghĩa (Hiến chương 5.22). `pty` = kho tệp hồ sơ (ADR-0123), `fbk` = kho tệp vé hỗ trợ (ADR-0144), `vdt` = kho vé điện tử (ADR-0153 Đ1 mục 7, đề xuất), `bln` = kho ảnh biên lai chuyển khoản (ADR-0196 Đ4), `anh` = kho ảnh đại diện dịch vụ (ADR-0201 Đ3). */
+export function taoKhoaNgauNhien(tienTo: "pty" | "fbk" | "vdt" | "bln" | "nop" | "anh"): string {
   return `${tienTo}/${hex(crypto.getRandomValues(new Uint8Array(16)))}`;
 }
 export async function bamSha256(b: Uint8Array): Promise<string> {

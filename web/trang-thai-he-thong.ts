@@ -14,6 +14,8 @@ export interface TuyChonTrangThai {
   cau?: string;
   nut?: { nhan: string; khiBam: () => void };
   khuon?: KhuonXuong;
+  /** Khung chờ GIỮ CHỖ (bước 1 khung chung, N10): cao tối thiểu `--giu-cho-cao` để khối bên dưới không bị đẩy khi dữ liệu dài về (nhảy bố cục). Chỉ cho khối nội dung dài, mở đầu trang. */
+  giuCho?: boolean;
   thuLai?: () => void;
   loi?: unknown;
   hetGio?: boolean;
@@ -53,7 +55,7 @@ export function trangThaiHeThong(loai: LoaiTrangThai, o: TuyChonTrangThai = {}):
     const khuon = o.khuon ?? "danh-sach";
     const dong: Child[] = [];
     for (let i = 0; i < SO_DONG[khuon]; i++) dong.push(h("span", { class: "xuong", "data-khuon": khuon }));
-    return h("section", { class: "trang-thai-xuong", "data-loai": "dang-tai", "aria-busy": "true" }, ...dong);
+    return h("section", { class: "trang-thai-xuong", "data-loai": "dang-tai", "aria-busy": "true", ...(o.giuCho ? { "data-giu-cho": "" } : {}) }, ...dong);
   }
   const veTrangDau = () => nutHoacLienKet(NHAN_VE_TRANG_DAU, { href: o.trangDau ?? "/" });
   const thuLai = () => nutHoacLienKet(NHAN_THU_LAI, { khiBam: o.thuLai });

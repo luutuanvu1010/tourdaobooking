@@ -45,6 +45,10 @@ const KHONG_CAN: Readonly<Record<string, string>> = {
   "POST /api/orders/:id/handler-refuse": "trả đơn (ADR-0030 điều 1) — không đổi khách / chặng; người phụ trách không ở trong chuyến",
   "POST /api/orders/:id/payments": "billing — tiền, không đổi người / chặng",
   "POST /api/orders/:id/payments/:receiptId/bien-lai/go": "billing — gỡ ảnh biên lai (ADR-0196 Đ7), không đổi tiền, người hay chặng",
+  "POST /api/orders/:id/khoan-nop": "billing — khoản nộp của đại lý (ADR-0182 phần B), chỉ tiền, không đổi người hay chặng",
+  "POST /api/orders/:id/khoan-nop/:nopId/bien-lai/go": "billing — gỡ ảnh biên lai khoản nộp, không đổi tiền, người hay chặng",
+  "POST /api/orders/:id/khoan-nop/:nopId/xac-nhan": "billing — Kế toán xác nhận khoản nộp (phiếu quyết toán), không đổi người hay chặng",
+  "POST /api/orders/:id/khoan-nop/:nopId/tu-choi": "billing — Kế toán từ chối khoản nộp, không đổi người hay chặng",
   "POST /api/orders/:id/coc/duyet": "billing — cọc",
   "POST /api/orders/:id/coc/duyet/:duyetId/huy": "billing — cọc",
   "POST /api/orders/:id/coc/chi": "billing — cọc",
@@ -103,7 +107,7 @@ test("NT-6 (ADR-0104 Đ2.4): mọi route ghi /api/orders* (orders, dispatch, bil
   assert.deepEqual(viPham(ROUTES, CAN, KHONG_CAN), []);
   assert.equal(ROUTES.length, Object.keys(CAN).length + Object.keys(KHONG_CAN).length, "chống bài rỗng: số route bóc được = CAN + KHONG_CAN");
   assert.equal(Object.keys(CAN).length, 8);
-  assert.equal(Object.keys(KHONG_CAN).filter((k) => KHONG_CAN[k]!.startsWith("billing")).length, 11, "mười một route billing (kế hoạch mục 3; ADR-0196 thêm …/bien-lai/go)");
+  assert.equal(Object.keys(KHONG_CAN).filter((k) => KHONG_CAN[k]!.startsWith("billing")).length, 15, "mười lăm route billing (kế hoạch mục 3; ADR-0196 thêm …/bien-lai/go; ADR-0182 phần B thêm bốn route …/khoan-nop*)");
 });
 
 test("NT-6: hai hàm orders nhận máy từ dispatch (cancelOrderByHandler, editMoneyAsHandler) gọi noiChuyen( đúng một lần", () => {

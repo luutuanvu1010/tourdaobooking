@@ -45,10 +45,10 @@ export const cauTepLoi = (n: number): string | null =>
 export const duongTep = (ticketId: string, tepId: string): string => `/api/feedback/${encodeURIComponent(ticketId)}/tep/${encodeURIComponent(tepId)}`;
 
 /** Cỡ vẽ lại của ảnh: cạnh dài ≤ `CANH_DAI_TOI_DA`, giữ tỉ lệ, không cạnh nào về 0. */
-export function kichThuocThuNho(rong: number, cao: number): { rong: number; cao: number } {
+export function kichThuocThuNho(rong: number, cao: number, canhDai: number = CANH_DAI_TOI_DA): { rong: number; cao: number } {
   const dai = Math.max(rong, cao);
-  if (dai <= CANH_DAI_TOI_DA) return { rong, cao };
-  const k = CANH_DAI_TOI_DA / dai;
+  if (dai <= canhDai) return { rong, cao };
+  const k = canhDai / dai;
   return { rong: Math.max(1, Math.round(rong * k)), cao: Math.max(1, Math.round(cao * k)) };
 }
 

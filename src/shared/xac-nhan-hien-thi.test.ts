@@ -119,6 +119,6 @@ test("nối dây bảng Còn vé: web/xac-nhan-don-ui.ts đi qua dongGioConVe, k
   assert.match(ui, /can\(c\.staff,\s*"order\.leg\.short_notice"\)/, "hiện khung đặt gấp theo bảng quyền, không theo mã quyền");
   assert.match(ui, /CAU_NHO_DAT_GAP/, "người không có ô được nhắc nhờ Bán hàng hoặc Quản trị");
   assert.match(ui, /CAU_THIEU_GIO_LUOT/, "thiếu lượt bắt buộc thì báo tại chỗ");
-  assert.equal(ui.match(/\bconfirm\(/g)?.length, 2, "đúng hai confirm( cũ (Rút lại, Hết vé) — không thêm");
+  assert.equal(ui.match(/\bconfirm\(/g)?.length ?? 0, 0, "không còn confirm( (bước 1 khung chung 13/11: Rút lại, Hết vé đã sang hộp hỏi chung) — không thêm lại");
 });
 

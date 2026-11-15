@@ -1,0 +1,86 @@
+{
+  "chang": "tai-khoan",
+  "luc": "2026-11-12T22:58:59.803Z",
+  "soLenhGhi": 13,
+  "loiGap": [],
+  "lenh": [
+    {
+      "viec": "tạo tài khoản Bán Hàng Thử",
+      "method": "POST",
+      "path": "/api/staff",
+      "status": 201
+    },
+    {
+      "viec": "tạo tài khoản Bán Hàng Hai",
+      "method": "POST",
+      "path": "/api/staff",
+      "status": 201
+    },
+    {
+      "viec": "tạo tài khoản Thực Tập Thử",
+      "method": "POST",
+      "path": "/api/staff",
+      "status": 201
+    },
+    {
+      "viec": "tạo tài khoản Kế Toán Thử",
+      "method": "POST",
+      "path": "/api/staff",
+      "status": 201
+    },
+    {
+      "viec": "tạo tài khoản Quản Trị Thử",
+      "method": "POST",
+      "path": "/api/staff",
+      "status": 201
+    },
+    {
+      "viec": "tạo tài khoản Hướng Dẫn Thử",
+      "method": "POST",
+      "path": "/api/staff",
+      "status": 201
+    },
+    {
+      "viec": "tạo tài khoản Cộng Tác Thử",
+      "method": "POST",
+      "path": "/api/staff",
+      "status": 201
+    },
+    {
+      "viec": "tạo tài khoản Lữ Hành Thử",
+      "method": "POST",
+      "path": "/api/staff",
+      "status": 201
+    },
+    {
+      "viec": "tạo tài khoản Tài Xế Công Ty Thử",
+      "method": "POST",
+      "path": "/api/staff",
+      "status": 201
+    },
+    {
+      "viec": "tạo tài khoản Tài Xế Đối Tác Thử",
+      "method": "POST",
+      "path": "/api/staff",
+      "status": 201
+    },
+    {
+      "viec": "tạo tài khoản Nhân Sự Thử",
+      "method": "POST",
+      "path": "/api/staff",
+      "status": 201
+    },
+    {
+      "viec": "tạo tài khoản Quản Lý Bán Hàng Thử",
+      "method": "POST",
+      "path": "/api/staff",
+      "status": 201
+    },
+    {
+      "viec": "gán vai IT cho Toàn Quyền Thử",
+      "method": "PUT",
+      "path": "/api/staff/32927b5e-3c79-4647-b168-816be001a4f2/roles",
+      "status": 200
+    }
+  ]
+}

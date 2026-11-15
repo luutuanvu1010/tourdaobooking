@@ -12,6 +12,7 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { ACCOUNTS, ok, setInput, sleep, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const DESK = { width: 1040, height: 800, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
@@ -78,7 +79,8 @@ try {
   assert.ok((await thanhBen(p)).includes("Máy đang đăng nhập"), "2. thanh bên có mục Phiên đăng nhập");
   assert.equal(await p.ev("document.querySelector('#sidebar [aria-current=page] .sidebar-item-label')?.textContent.trim()"), "Máy đang đăng nhập", "2. mục đang chọn");
   await p.waitFor("document.querySelectorAll('#list tr[data-phien]').length >= 3", "2. bảng có phiên của salesA, salesB, chủ");
-  await p.ev("(window.__soConfirm = 0, window.confirm = () => { window.__soConfirm++; return true; }, true)");
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
+  await p.ev("(window.__soConfirm = 0, window.__traLoiHopHoi = () => true, window.confirm = () => { window.__soConfirm++; return true; }, true)");
   assert.deepEqual(await baoLoi(p), [], "2. không dòng báo lỗi");
   assert.equal(await p.ev("document.getElementById('chi-song').checked"), true, "2. mặc định chỉ phiên đang hiệu lực");
   const dongChu = await p.ev(`(() => { const tr = [...document.querySelectorAll('#list tr[data-phien]')].find((r) => r.textContent.includes('(máy này)')); return tr ? tr.querySelectorAll('button').length : -1; })()`);

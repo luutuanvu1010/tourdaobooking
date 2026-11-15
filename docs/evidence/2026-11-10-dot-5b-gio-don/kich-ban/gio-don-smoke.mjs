@@ -10,6 +10,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, CHU, MOB, OUT, assert, axe, axeNote, boDem, click, dungMoiTruong, fetchTrang, noCode, noOverflowX, sleep, vnDate } from "../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const RONG = { width: 1280, height: 860, mobile: false };
 const DOITAC = { name: "Đối Tác Giờ Đón 5B", phone: "0900000651", pin: "246651", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" };
@@ -131,6 +132,7 @@ try {
   p = await env.as(ACCOUNTS.salesA, `/order?id=${dBH}`, MOB);
   await b.step("5", `390 + 1280 Bán hàng: nháp Đón chưa giờ hôm nay → «Xác nhận đơn» → câu (ii), đơn vẫn nháp${axeNote()}`, async () => {
     await p.waitFor(coNut("Xác nhận đơn"), "nút Xác nhận đơn", 12000);
+    await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await p.ev("window.confirm = () => true");
     assert.equal(await p.ev(nutChu("Xác nhận đơn")), true);
     await p.waitFor(`document.querySelector('main')?.innerText.includes('chưa có giờ mà đã sát giờ đón')`, "câu (ii)", 12000);
@@ -144,6 +146,7 @@ try {
     await axe(p, "câu (ii) 390");
     await doiKhung(p, RONG);
     await p.waitFor(coNut("Xác nhận đơn"), "1280 nút Xác nhận đơn", 12000);
+    await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await p.ev("window.confirm = () => true");
     await p.ev(nutChu("Xác nhận đơn"));
     await p.waitFor(`document.querySelector('main')?.innerText.includes('chưa có giờ mà đã sát giờ đón')`, "1280 câu (ii)", 12000);

@@ -49,6 +49,10 @@ npx wrangler r2 bucket create tourdao-sales-dev-ve-dien-tu --config wrangler.dev
 npx wrangler r2 bucket create tourdao-sales-dev-bien-lai --config wrangler.dev.jsonc
 ```
 
+```bash
+npx wrangler r2 bucket create tourdao-sales-dev-anh-dich-vu --config wrangler.dev.jsonc
+```
+
 ## Bước 3. Tạo cặp khoá thông báo điện thoại (VAPID)
 
 Lệnh này chạy đúng một lần. Nó in ra một dòng bắt đầu bằng `KHOA CONG KHAI:` (không phải bí mật, chép dòng đó gửi cho AI) và tự đặt nửa bí mật lên Cloudflare mà không hiện ra màn hình. Chạy lại lần hai sẽ sinh cặp khác và làm lệch cặp, nên chỉ chạy một lần.

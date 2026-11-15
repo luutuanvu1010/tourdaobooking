@@ -6,6 +6,12 @@
 // Chỉ tệp này của billing chạm kho (bài src/kho-tep-bien-lai.test.ts). Hai bài tĩnh đếm chữ gọi hàm kho kèm ngoặc trên mã nguồn thô — chú thích đừng viết kèm ngoặc.
 import { LOAI_NOI_DUNG, type LoaiTep } from "../../shared/tep-dinh-kem.ts";
 import { anhChoDat, danhDauDaLuu, danhDauDaXoaKho, type AnhCanXoaRow } from "./bien-lai-repo.ts";
+import { anhNopChoDat, danhDauAnhNopDaLuu, danhDauAnhNopDaXoaKho } from "./khoan-nop-repo.ts";
+
+/** Bảng ảnh của kho BIEN_LAI (ADR-0196 khoản thu; ADR-0182 phần B khoản nộp — cùng kho, tiền tố khoá riêng): hàm đọc dòng chờ đặt và hai hàm đánh dấu của từng bảng. */
+interface BangAnh { choDat: (db: D1Database, chuId: string) => Promise<AnhCanXoaRow[]>; daLuu: (db: D1Database, id: string, at: string) => Promise<number>; daXoaKho: (db: D1Database, id: string, at: string) => Promise<number> }
+const BANG_THU: BangAnh = { choDat: anhChoDat, daLuu: danhDauDaLuu, daXoaKho: danhDauDaXoaKho };
+export const BANG_NOP: BangAnh = { choDat: anhNopChoDat, daLuu: danhDauAnhNopDaLuu, daXoaKho: danhDauAnhNopDaXoaKho };
 
 const ghiLoi = (event: string, anhId: string | null, e?: unknown): void =>
   console.error(JSON.stringify({ level: "error", event, anhId, ...(e === undefined ? {} : { loi: e instanceof Error ? e.name : "unknown" }) }));
@@ -14,9 +20,9 @@ const ghiLoi = (event: string, anhId: string | null, e?: unknown): void =>
  * Sau lô D1 đã chèn khoản thu + dòng ảnh: ĐỌC LẠI dòng ảnh có thật của khoản thu (chỉ dòng này được đặt kho), đặt đối tượng, rồi đánh dấu đã lưu.
  * KHÔNG BAO GIỜ NÉM (route không được trả 5xx sau lô đã có khoản thu): mọi lỗi chỉ ghi log. Trả true khi ảnh đã lưu xong.
  */
-export async function datBienLai(db: D1Database, kho: R2Bucket, v: { receiptId: string; anhId: string; bytes: Uint8Array; loai: LoaiTep; luc: () => string }): Promise<boolean> {
+export async function datBienLai(db: D1Database, kho: R2Bucket, v: { receiptId: string; anhId: string; bytes: Uint8Array; loai: LoaiTep; luc: () => string }, bang: BangAnh = BANG_THU): Promise<boolean> {
   try {
-    const d = (await anhChoDat(db, v.receiptId)).find((x) => x.id === v.anhId);
+    const d = (await bang.choDat(db, v.receiptId)).find((x) => x.id === v.anhId);
     if (!d) return false;
     try {
       await kho.put(d.storage_key, v.bytes, { httpMetadata: { contentType: LOAI_NOI_DUNG[v.loai] } });
@@ -25,7 +31,7 @@ export async function datBienLai(db: D1Database, kho: R2Bucket, v: { receiptId: 
       return false;
     }
     try {
-      if ((await danhDauDaLuu(db, d.id, v.luc())) === 1) return true;
+      if ((await bang.daLuu(db, d.id, v.luc())) === 1) return true;
       ghiLoi("bien_lai_danh_dau_luu_khong_doi", d.id);
     } catch (e) {
       ghiLoi("bien_lai_danh_dau_luu_loi", d.id, e);
@@ -37,13 +43,13 @@ export async function datBienLai(db: D1Database, kho: R2Bucket, v: { receiptId: 
 }
 
 /** Xoá từng đối tượng rồi đánh dấu `r2_deleted_at`. Xoá R2 vốn không lỗi khi đối tượng đã mất (chạy lại an toàn). Không ném. */
-export async function xoaBienLaiKhoiKho(db: D1Database, kho: R2Bucket, ds: readonly AnhCanXoaRow[], luc: () => string): Promise<{ daXoa: number; loi: number }> {
+export async function xoaBienLaiKhoiKho(db: D1Database, kho: R2Bucket, ds: readonly AnhCanXoaRow[], luc: () => string, bang: BangAnh = BANG_THU): Promise<{ daXoa: number; loi: number }> {
   let daXoa = 0;
   let loi = 0;
   for (const t of ds) {
     try {
       await kho.delete(t.storage_key);
-      await danhDauDaXoaKho(db, t.id, luc());
+      await bang.daXoaKho(db, t.id, luc());
       daXoa++;
     } catch (e) {
       loi++;

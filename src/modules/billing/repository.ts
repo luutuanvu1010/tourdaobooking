@@ -300,6 +300,17 @@ const RECEIPT_BEFORE_DELIVERED = defineSql(
   `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
    WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND delivered_at IS NULL)`,
 );
+/**
+ * ADR-0182 phần B Đ2 mục 9, 13: khoản «Khách đã trả bạn X ₫» ghi kèm khoản nộp — CHỈ khi khoản nộp ?14 của CHÍNH lô đã chèn (còn chờ) và đơn chưa «Khách đã trả đủ».
+ * Câu khoản nộp thua lính gác (đơn vừa đổi trạng thái giữa lúc đọc và lúc ghi) thì câu này không chèn ⇒ không có khoản thu / dòng giữ hộ mồ côi.
+ */
+const RECEIPT_WITH_REMITTANCE = defineSql(
+  "billing",
+  "receipt_with_remittance",
+  `INSERT INTO bil_payment_receipt (${RECEIPT_INSERT_COLS}) SELECT ${RECEIPT_VALUES}
+   WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?2 AND delivered_at IS NULL)
+     AND EXISTS (SELECT 1 FROM bil_agent_remittance WHERE id = ?14 AND order_id = ?2 AND status_code = 'PENDING')`,
+);
 /** Khoản thu nhập ở bước "Đã giao" — chỉ áp khi câu `orders` CỦA CHÍNH LÔ NÀY đã đặt mốc ?14. */
 const RECEIPT_AT_DELIVERY = defineSql(
   "billing",
@@ -361,6 +372,7 @@ export interface NewReceipt {
 const bindReceipt = (db: D1Database, sql: string, r: NewReceipt, ...extra: string[]) =>
   db.prepare(sql).bind(r.id, r.orderId, r.kind, r.amount, r.collectorPartyId, r.collectorRole, r.method, r.stage, r.occurredDate, r.note, r.at, r.by, r.collectedForPartyId ?? null, ...extra);
 export const receiptBeforeDeliveredStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_BEFORE_DELIVERED, r);
+export const receiptWithRemittanceStatement = (db: D1Database, r: NewReceipt, remittanceId: string) => bindReceipt(db, RECEIPT_WITH_REMITTANCE, r, remittanceId);
 export const receiptAtDeliveryStatement = (db: D1Database, r: NewReceipt, deliveredAt: string) => bindReceipt(db, RECEIPT_AT_DELIVERY, r, deliveredAt);
 export const receiptOnConfirmStatement = (db: D1Database, r: NewReceipt, auditIdXacNhan: string) => bindReceipt(db, RECEIPT_ON_CONFIRM, r, auditIdXacNhan);
 export const receiptRefundStatement = (db: D1Database, r: NewReceipt) => bindReceipt(db, RECEIPT_REFUND, r);
@@ -391,6 +403,12 @@ const POSTING_IF_COMPLETED_AT = defineSql(
   "posting_if_completed_at",
   `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id = ?3 AND completed_at = ?11)`,
 );
+/** ADR-0182 phần B Đ2 mục 9: phiếu QUYẾT TOÁN của lệnh xác nhận khoản nộp — chỉ áp khi khoản nộp ?11 CÒN CHỜ (hai người bấm cùng lúc: người sau không chèn phiếu, không dòng). */
+const POSTING_IF_REMITTANCE_PENDING = defineSql(
+  "billing",
+  "posting_if_remittance_pending",
+  `INSERT INTO bil_posting (${POSTING_COLS}) SELECT ${POSTING_VALUES} WHERE EXISTS (SELECT 1 FROM bil_agent_remittance WHERE id = ?11 AND status_code = 'PENDING')`,
+);
 /** Phiếu sổ của Kế toán (xác nhận công ty đã nhận, nộp/trả, hoàn, điều chỉnh, đảo) — không điều kiện mốc. */
 const POSTING_PLAIN = defineSql("billing", "posting_plain", `INSERT INTO bil_posting (${POSTING_COLS}) VALUES (${POSTING_VALUES})`);
 
@@ -410,6 +428,8 @@ export interface NewPosting {
 const bindPosting = (db: D1Database, sql: string, p: NewPosting, ...extra: string[]) =>
   db.prepare(sql).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, p.ghiTien ? 1 : 0, ...extra);
 export const postingIfReceiptStatement = (db: D1Database, p: NewPosting, receiptId: string) => bindPosting(db, POSTING_IF_RECEIPT, p, receiptId);
+export const postingIfRemittancePendingStatement = (db: D1Database, p: NewPosting & { kind: "SETTLEMENT" }, remittanceId: string) =>
+  bindPosting(db, POSTING_IF_REMITTANCE_PENDING, p, remittanceId);
 /** Phiếu "Đã giao": `grossSnapshot` BẮT BUỘC (kiểu, không mặc định) — CSDL không đòi cột này (giữ đường lùi), nên chính chữ ký là chỗ không quên được (R-P8). */
 export const postingIfDeliveredAtStatement = (db: D1Database, p: NewPosting & { kind: "DELIVERED"; dueSnapshot: number; grossSnapshot: number }, deliveredAt: string) =>
   db.prepare(POSTING_IF_DELIVERED_AT).bind(p.id, p.kind, p.orderId, p.reason, p.reversesPostingId, p.occurredDate, p.dueSnapshot, p.at, p.by, p.ghiTien ? 1 : 0, deliveredAt, p.grossSnapshot);

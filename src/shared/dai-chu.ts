@@ -22,6 +22,11 @@ export const TONG_DAI: Record<LoaiDai, { tong: "bien" | "cat" | "do"; hinh: "his
 export const CAU_NGOAI_MANG_NGAN = "Đang ngoài mạng";
 export const CAU_NGOAI_MANG = CAU_NGOAI_MANG_NGAN + " — dữ liệu lần xem gần nhất";
 export const KHOA_DAI_BAO_MAT_DA_DONG = "dai-bao-mat-da-dong";
+/** Chiều cao dải của lần vẽ trước trong thẻ (sessionStorage, chỉ một con số) — web/dai.ts giữ chỗ khi khung dựng để dải chèn muộn không đẩy trang (bước 1 khung chung, N10). */
+export const KHOA_CAO_DAI = "td_dai_cao";
+/** Tiền tố khoá «khối theo quyền đã hiện ở trang này lần trước» (sessionStorage, `td_khoi:<đường trang>` = tên khối cách nhau dấu cách) — web/giu-cho-dai.ts đọc ở đầu
+ *  trang để CSS giữ chỗ khối đó từ lần vẽ đầu (bước 1 khung chung, N10). Chỉ tên khối, không dữ liệu. */
+export const KHOA_KHOI = "td_khoi:";
 
 export function cauBaoTri(gioDuKien: string | null): string {
   return gioDuKien ? `Đang bảo trì, dự kiến xong ${gioDuKien}` : "Đang bảo trì";

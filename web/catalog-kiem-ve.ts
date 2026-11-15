@@ -117,7 +117,7 @@ export async function dongBoTuSheet(o: { nut: HTMLButtonElement; thongBaoEl: HTM
     o.thongBaoEl.textContent = `Đã đồng bộ xong: thêm ${r.added}, đổi ${r.changed}, ẩn ${r.hidden}, giữ nguyên ${r.unchanged}.${r.problems.length ? ` ${r.problems.length} dòng bị bỏ qua.` : ""}${r.warnings.length ? ` Cảnh báo: ${r.warnings.map((w) => w.message).join("; ")}.` : ""}`;
     o.thongBaoEl.hidden = false;
   } catch (err) {
-    if (err instanceof ApiError && err.code === "sync_guard" && confirm(`${err.message}\n\nChỉ tiếp tục nếu bạn chắc chắn Sheet đúng. Vẫn đồng bộ và ẩn các dịch vụ đó?`)) {
+    if (err instanceof ApiError && err.code === "sync_guard" && (await hoiXacNhan({ tieuDe: "Đồng bộ ngay từ Google Sheet", hauQua: `${err.message}\n\nChỉ tiếp tục nếu bạn chắc chắn Sheet đúng. Vẫn đồng bộ và ẩn các dịch vụ đó?`, nhanNguyHiem: "Vẫn đồng bộ", opener: o.nut }))) {
       o.nut.disabled = false;
       return dongBoTuSheet({ ...o, force: true });
     }

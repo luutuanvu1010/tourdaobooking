@@ -101,11 +101,13 @@ const BEN_CO_DON = defineSql("billing", "credit_parties_with_orders", `SELECT DI
 export const benCoDonTraSau = async (db: D1Database): Promise<string[]> => (await db.prepare(BEN_CO_DON).all<{ party_id: string }>()).results.map((r) => r.party_id);
 
 // ---- Dòng sổ và dấu đối chiếu của NHIỀU đơn (một câu, không lặp theo đơn) ----
-export interface DongNoRow { id: string; order_id: string; debtor_party_id: string; creditor_party_id: string; amount: number; kind_code: string; receipt_id: string | null; reverses_line_id: string | null }
+/** `posting_kind`: loại phiếu của dòng — ADR-0182 Đ1 mục 4 (phần B sửa khe phần A): dòng HOA_HONG không thuộc phiếu «Đã giao» là sửa hoa hồng sau giao (điều chỉnh có duyệt / đảo). */
+export interface DongNoRow { id: string; order_id: string; debtor_party_id: string; creditor_party_id: string; amount: number; kind_code: string; receipt_id: string | null; reverses_line_id: string | null; posting_kind: string }
 const DONG_CUA_CAC_DON = defineSql(
   "billing",
   "lines_of_orders",
-  `SELECT l.id, l.order_id, l.debtor_party_id, l.creditor_party_id, l.amount, l.kind_code, l.receipt_id, l.reverses_line_id FROM bil_debt_line l
+  `SELECT l.id, l.order_id, l.debtor_party_id, l.creditor_party_id, l.amount, l.kind_code, l.receipt_id, l.reverses_line_id, p.kind_code AS posting_kind
+   FROM bil_debt_line l JOIN bil_posting p ON p.id = l.posting_id
    WHERE l.order_id IN (SELECT value FROM json_each(?1)) ORDER BY l.rowid`,
 );
 export async function dongCuaCacDon(db: D1Database, orderIds: readonly string[]): Promise<DongNoRow[]> {

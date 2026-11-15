@@ -38,10 +38,13 @@ const NGOAI_LE_TEN: Record<string, string> = {
   "loc_location.address": "địa chỉ NƠI CHỐN (văn phòng, bến, khách sạn) — ADR-0105",
   "v_loc_location_dia_chi.address": "view chiếu lại loc_location.address — địa chỉ nơi chốn",
   "vc_dispatch_policy.office_phone": "số điện thoại văn phòng công ty",
+  "ctl_service_detail.display_name": "tên hiển thị của DỊCH VỤ danh mục (ADR-0201), không phải tên người",
+  "v_ctl_service_detail.display_name": "view của ctl_service_detail — tên hiển thị của DỊCH VỤ, không phải tên người",
   "vc_vehicle_document.document_number": "số giấy tờ XE — ADR-0040 D2 chỉ coi giấy tờ của người là dữ liệu cá nhân",
 };
 const N3_GHIM = [
   "bil_receipt_proof.content_hash", "bil_receipt_proof.storage_key", // ADR-0196: ảnh biên lai có số tài khoản, tên người chuyển — cùng hạng với fbk_attachment
+  "bil_remittance_proof.content_hash", "bil_remittance_proof.storage_key", // ADR-0182 phần B: ảnh biên lai khoản nộp — cùng hạng
   "fbk_attachment.content_hash", "fbk_attachment.storage_key", // ADR-0144: tệp kèm vé có thể là ảnh giấy tờ gửi nhầm — cùng hạng với pty_attachment
   "pty_attachment.content_hash", "pty_attachment.storage_key",
   "pty_organization_document.document_number", "pty_organization_document.issued_place", "pty_organization_document.number_key",

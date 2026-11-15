@@ -30,6 +30,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, docAxe, ok, setInput, sleep, startEnv } from "../../2026-10-08-qr-thanh-toan/kich-ban/qr-chung.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const AXE = docAxe();
 const OUT = process.env.OUT ?? join(process.cwd(), "docs/evidence/2026-10-27-ho-tro-thiet-ke-lai/anh");
@@ -48,7 +49,7 @@ const CHU_ANH = /\b(fbk_\w+|CLAIMED|ASSIGNED|TEAM_CHANGED|DECLINED|IN_PROGRESS|U
 const CHU_CAM = [/Hàng đợi nhóm/, /Trợ giúp/, /[Pp]hiếu/, /Mozilla\/5\.0/];
 
 const PHA_TRANG = `
-  window.confirm = () => true; window.alert = () => {};
+  ${HOP_HOI_TU_DONG} window.confirm = () => true; window.alert = () => {};
   window.__htTaiTep = [];
   try { new PerformanceObserver((l) => { for (const e of l.getEntries()) { const d = new URL(e.name).pathname; if (d.startsWith('/api/feedback/') && d.split('/').length === 6 && d.split('/')[4] === 'tep') window.__htTaiTep.push(d); } }).observe({ type: 'resource', buffered: true }); } catch {}
   ${PHA === "tab" ? "{ const t = DOMTokenList.prototype.toggle; DOMTokenList.prototype.toggle = function (tok, force) { if (tok === 'tabbar-an' && force === false) return false; return t.call(this, tok, force); }; }" : ""}

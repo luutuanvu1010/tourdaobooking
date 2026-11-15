@@ -26,6 +26,7 @@ import { ACCOUNTS, OUT, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTru
 import { CAU_CHO_QUAN_TRI_CAP_PIN, CAU_VAI_XEM_KHACH_NHO_QUAN_TRI } from "../../../../src/shared/xem-moi-khach.ts";
 import { TIEN_TO_NHAP_TAM } from "../../../../src/shared/nhap-tam-don.ts";
 import { cauLoiGuiDon } from "../../../../src/shared/xac-nhan-hien-thi.ts";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const MOB = { width: 390, height: 844, mobile: true };
 const DESK = { width: 1280, height: 820, mobile: false };
@@ -220,6 +221,7 @@ if (dungXong) {
 
     // ==== Cảnh 2: Quản trị đặt lại PIN =========================================================================================================================
     p = await env.as(ACCOUNTS.admin, "/staff", DESK);
+    await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await p.ev("window.confirm = () => true; true"); // confirm() gốc của Chrome headless làm treo Runtime.evaluate
     const datLaiPin = async (vung, cu) => {
       await p.waitFor(`[...document.querySelectorAll(${JSON.stringify(vung)})].some((x) => x.textContent.includes(${JSON.stringify(MOI_390.ten)}) && [...x.querySelectorAll('button')].some((b) => b.textContent.trim() === 'Đặt lại PIN'))`, `nút Đặt lại PIN ở ${vung}`, 12000);
