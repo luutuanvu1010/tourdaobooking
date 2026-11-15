@@ -16,7 +16,9 @@
 
 Hôm nay Quản trị đã đặt được mức phí đưa đón trên màn «Phí đưa đón», nhưng chưa đơn nào bị cộng phí. Kế hoạch này nối hai đầu: đơn có lượt đón thì máy tự thêm dòng phí, nhân viên không gõ số; lúc xác nhận máy chụp lại để đổi bảng phí về sau không làm đổi đơn cũ; chưa có mức thì văn phòng không xác nhận được (đơn Đối tác gửi thì chuyển sang «chờ xác nhận»). Phí cộng đủ vào số đại lý nợ công ty, in trên biên nhận ở phần của Tour Đảo (mức 0 đồng in «Miễn phí»), không tính hoa hồng, không bị giảm giá của đơn trừ vào. Phí chỉ thật sự chạy từ «ngày bắt đầu áp» Quản trị đặt.
 
-## Câu chờ chủ — phải có lời chủ TRƯỚC task ghi rõ (gom một lần)
+## Ba câu đã được chủ chốt (15/11/2026)
+
+**Chủ dự án chốt cả ba theo khuyến nghị, trong chat, nguyên văn: «chốt theo đề xuất».** Vậy: (1) giảm giá của đơn **không** trừ vào phí đưa đón, trần giảm giá = tổng tiền dịch vụ; ca **SV-PD-29** đã thêm vào `golden/phi-dua-don.json` ở trạng thái `da_xac_nhan` (bài tự cân ở `src/so-vang-phi-don.test.ts`); (2) trần một mức phí **5.000.000 đ**; (3) chữ **«Miễn phí»** cho dòng 0 đồng và **«dự kiến»** cho phí của đơn nháp. Các chỗ «chờ câu chủ 1/2/3» bên dưới nay **không còn chặn**, người thi công áp đúng giá trị này. Phần dưới giữ nguyên văn câu hỏi để biết đã hỏi gì.
 
 1. **Giảm giá của đơn có trừ vào phí đưa đón không?** Trang ghép đã duyệt ghi «bỏ ra ngoài», tức giảm giá chỉ trừ vào tiền dịch vụ, phí luôn thu đủ. Nhưng sổ vàng chưa có ca nào vừa giảm giá vừa có phí, và Hiến chương 5.17 đòi ca mẫu được xác nhận trước khi viết mã. **Khuyến nghị:** thêm ca SV-PD-29 «khách lẻ, Tắm bùn Hòn Tằm 1.000.000 đ, phí đón 140.000 đ, giảm giá 100.000 đ ⇒ phần Hòn Tằm 900.000 đ, phần Tour Đảo 140.000 đ, tổng 1.040.000 đ; giảm giá tối đa bằng 1.000.000 đ». Chặn **Task 5** (phần chia phần và trần giảm giá) và Task 4 (trần giảm giá).
 2. **Trần số tiền một mức phí** (câu 4 cũ của nhật ký Đợt A+B, chủ chưa trả lời). **Khuyến nghị:** 5.000.000 đ một mức, để chặn gõ nhầm thêm số 0. Chặn **bước «trần» của Task 2**; mọi bước khác làm được. Kiểm tràn số (`Number.isSafeInteger` của đơn giá × số khách) làm ngay, không cần chờ.

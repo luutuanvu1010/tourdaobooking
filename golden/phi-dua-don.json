@@ -1599,6 +1599,62 @@
         "tong_phi_don": 0,
         "xac_nhan_duoc": true
       }
+    },
+    {
+      "ma": "SV-PD-29",
+      "mo_ta": "Giảm giá của đơn không trừ vào phí đón. Như ca 26 (khách lẻ, Tắm bùn Hòn Tằm 1.000.000 đ, đón ở Bãi Dài 140.000 đ), đơn được giảm giá 100.000 đ. Giảm giá chỉ trừ vào tiền dịch vụ: phần của Hòn Tằm 900.000 đ, phần của Tour Đảo 140.000 đ (phí đón thu đủ). Khách trả 1.040.000 đ. Giảm giá tối đa của đơn này là 1.000.000 đ (tổng tiền dịch vụ, không gồm phí đón).",
+      "nguon": "Trang ghép 2026-10-28 §1 («giảm giá cấp đơn: bỏ ra ngoài» phí đón); chủ dự án chốt 15/11 trong chat: «chốt theo đề xuất»",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-15"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": {
+          "loai": "KHACH_LE",
+          "cap": null
+        },
+        "chang": [
+          {
+            "vung": "CR",
+            "dich_vu": "HT_BUN",
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2
+            }
+          }
+        ],
+        "gia_moi_khach": 500000,
+        "nguoi_ban": "Hòn Tằm",
+        "giam_gia": 100000
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_MUC",
+            "quy_tac": "P09",
+            "kieu": "PER_PAX",
+            "don_gia": 70000,
+            "so_luong": 2,
+            "tien": 140000,
+            "cap_da_chup": null,
+            "nhan_bien_nhan": null
+          }
+        ],
+        "tong_phi_don": 140000,
+        "xac_nhan_duoc": true,
+        "chia_phan": {
+          "nguoi_ban_dich_vu_truoc_giam": 1000000,
+          "giam_gia": 100000,
+          "nguoi_ban_dich_vu": 900000,
+          "tour_dao": 140000,
+          "tong_don": 1040000,
+          "giam_gia_toi_da": 1000000
+        }
+      }
     }
   ]
 }
