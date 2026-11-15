@@ -99,13 +99,21 @@ export function loiLoDuyet(e: unknown): { status: 409; code: string; message: st
   const doi = { status: 409 as const, code: "registration_state_changed", message: "Phiếu vừa được người khác xử lý hoặc không còn chờ duyệt. Hãy mở lại phiếu." };
   if (m.includes("dk_decision_state")) return doi;
   if (m.includes("dk_decision_version")) return { status: 409, code: "registration_version_changed", message: "Phiếu đã thay đổi từ lúc bạn mở. Hãy mở lại phiếu để xem bản mới." };
-  if (m.includes("dk_decision_no_match") || m.includes("dk_decision_not_verified")) return { status: 409, code: "registration_not_verified", message: "Phiếu chưa được xác minh đạt đầy đủ. Hãy trả phiếu về bước xác minh." };
+  if (m.includes("dk_decision_no_match") || m.includes("dk_decision_not_verified")) return { status: 409, code: "registration_not_verified", message: "Phiếu chưa được xác minh đạt đầy đủ nên chưa duyệt được. Hãy từ chối phiếu." };
   if (m.includes("dk_decision_same_person")) return { status: 409, code: "registration_same_person", message: "Người duyệt phải khác người đã xác minh phiếu này. Hãy nhờ một người khác duyệt." };
   if (/UNIQUE constraint failed: dk_decision/.test(m)) return doi;
-  if (m.includes("person_document_cccd_other_person")) return { status: 409, code: "document_other_person", message: "Số căn cước của phiếu đã thuộc một hồ sơ khác. Hãy từ chối phiếu, hoặc nhờ Quản trị xem lại kết luận Danh bạ." };
+  if (/NOT NULL constraint failed: pty_consent\.party_id/.test(m)) return { status: 409, code: "target_changed", message: "Hồ sơ đích vừa ngưng hoạt động hoặc vừa gộp vào hồ sơ khác nên chưa mở được tài khoản. Hãy từ chối phiếu." };
+  if (/NOT NULL constraint failed: pty_party_relationship\.from_party_id/.test(m)) return { status: 409, code: "referrer_changed", message: "Hồ sơ người giới thiệu vừa ngưng hoạt động hoặc vừa gộp vào hồ sơ khác nên chưa mở được tài khoản. Hãy từ chối phiếu." };
+  if (m.includes("person_document_cccd_other_person")) return { status: 409, code: "document_other_person", message: "Số căn cước của phiếu đã thuộc một hồ sơ khác. Hãy từ chối phiếu (lý do «Thông tin này đã có trong hệ thống»)." };
   if (/UNIQUE constraint failed|party_role_|lc1|registration_attachment_|verification_target_mismatch|person_document_/i.test(m)) {
     return { status: 409, code: "registration_conflict", message: "Dữ liệu vừa thay đổi nên chưa mở được tài khoản (ví dụ số điện thoại vừa được dùng cho tài khoản khác). Hãy mở lại phiếu." };
   }
   return null;
+}
+
+/** Hai lỗi ĐÃ BIẾT khi staff dựng câu tài khoản (vai không mang quyền nào; vai mang quyền nội bộ) ⇒ route trả 400. Mọi lỗi khác ném lên (500) — không đội lốt lỗi vai (M4 vòng sửa 1). */
+export function loiDungLoDuyet(e: unknown): boolean {
+  const m = e instanceof Error ? e.message : "";
+  return m === "createAccountOnPartyStatements: vai trò không mang quyền nào" || m === "createAccountOnPartyStatements: chỉ dùng cho vai trò bên ngoài";
 }
 

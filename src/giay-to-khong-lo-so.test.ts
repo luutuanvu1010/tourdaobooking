@@ -24,7 +24,7 @@ async function routesOf(entry: string, exportName: string): Promise<string[]> {
   return mod[exportName]!.routes.map((r) => `${r.method} ${r.path}`);
 }
 const TUYEN_THAT = [...(await routesOf("./modules/parties/index.ts", "partiesModule")), ...(await routesOf("./modules/van-chuyen/index.ts", "vanChuyenModule")), ...(await routesOf("./modules/dang-ky/index.ts", "dangKyModule"))]
-  .filter((k) => /\/documents|\/giay-to|^\/api\/parties\/cua-toi|^\/api\/parties\/xac-minh|^\/api\/parties\/(phieu-xoa|anh-can-xoa)|^\/api\/dang-ky\/phieu\/:id(\/xem-so|\/tep\/:tid)?$|^\/api\/dang-ky\/phieu(\/gui|\/rut)?$/.test(k.split(" ")[1]!)) // lát H-5: năm route xử lý phiếu xoá (ADR-0126) — KHÔNG bắt route khác; lát H-3: route "của tôi" (phiếu tự khai mang số giấy tờ) — không bắt /api/van-chuyen/ban/cua-toi; lát H-4: ba route xác minh phiếu (ADR-0125)
+  .filter((k) => /\/documents|\/giay-to|^\/api\/parties\/cua-toi|^\/api\/parties\/xac-minh|^\/api\/parties\/(phieu-xoa|anh-can-xoa)|^\/api\/dang-ky\/phieu\/:id(\/xem-so|\/tep\/:tid|\/xem-duyet|\/duyet)?$|^\/api\/dang-ky\/phieu(\/gui|\/rut)?$/.test(k.split(" ")[1]!)) // lát H-5: năm route xử lý phiếu xoá (ADR-0126) — KHÔNG bắt route khác; lát H-3: route "của tôi" (phiếu tự khai mang số giấy tờ) — không bắt /api/van-chuyen/ban/cua-toi; lát H-4: ba route xác minh phiếu (ADR-0125)
   .sort();
 
 const ADM = "33333333-3333-4333-8333-333333333333";
@@ -264,6 +264,21 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
       const x = await w.call("POST", `/api/dang-ky/phieu/${phieuDk}/xem-so`, { as: ADM });
       assert.equal(x.status, 200, x.text);
       lanXemSoDk += x.text; // KHÔNG đưa vào `than`
+    },
+    // ADR-0207 Đ4, Đ5 (đợt 1 Task 8, vòng sửa 1 I4): màn duyệt KHÔNG mang số (kể cả số che); lệnh duyệt ĐỌC số đầy đủ (chép sang hồ sơ) nhưng phản hồi, nhật ký, lịch sử không có số.
+    "GET /api/dang-ky/phieu/:id/xem-duyet": async () => {
+      for (const muc of ["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"]) await goi(`kết luận ${muc}`, "POST", `/api/dang-ky/phieu/${phieuDk}/ket-luan`, ADM, { muc, dat: true, phienBan: 1 }, 200);
+      await goi("xác minh đạt phiếu đăng ký", "POST", `/api/dang-ky/phieu/${phieuDk}/dat`, ADM, { hoSo: { kieu: "MOI" }, phienBan: 1 }, 200);
+      const r = await goi("màn duyệt phiếu đăng ký", "GET", `/api/dang-ky/phieu/${phieuDk}/xem-duyet`, SUP, undefined, 200);
+      assert.equal(r.json.hoTen, "Dò Số", "chống bài rỗng: màn duyệt có nội dung");
+      assert.equal(r.text.includes("••••"), false, "màn duyệt không mang cả số che");
+    },
+    "POST /api/dang-ky/phieu/:id/duyet": async () => {
+      await goi("duyệt phiếu đăng ký", "POST", `/api/dang-ky/phieu/${phieuDk}/duyet`, SUP, { roleCode: "TRAVEL_AGENCY" }, 200);
+      assert.equal(w.q("SELECT count(*) n FROM pty_person_document WHERE number_key = ?", SO_DK)[0].n, 1, "chống bài rỗng: lệnh duyệt đã chép số sang hồ sơ");
+      const lichSu = JSON.stringify(w.q("SELECT * FROM dk_event WHERE registration_id = ?", phieuDk));
+      for (const s of DAU_SO_NGUOI) assert.equal(lichSu.includes(s), false, `lịch sử phiếu lộ "${s}"`);
+      assert.equal(lichSu.includes(NOI_DK), false, "lịch sử phiếu lộ nơi cấp");
     },
     // ADR-0206 Đ6 (đợt 1 Task 4): bốn route của CHÍNH người đăng ký (cookie đăng ký, không tài khoản). Gửi thật qua route: bản khai mang SO_DK2 + NOI_DK2 — số chỉ ở bảng, không ở thân trả về, nhật ký, lịch sử phiếu.
     "GET /api/dang-ky/phieu": async () => {

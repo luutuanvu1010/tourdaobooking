@@ -357,12 +357,12 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Câu báo lỗi của bước duyệt phiếu đăng ký",
-    giaiNghia: "Các câu máy chủ trả cho người duyệt khi chưa mở được tài khoản: người duyệt trùng người xác minh, phiếu chưa xác minh đạt đủ, số điện thoại đã là số đăng nhập của một tài khoản, số căn cước đã thuộc hồ sơ khác, phiếu chưa có số điện thoại hợp lệ, dữ liệu vừa thay đổi, phiếu không còn chờ kích hoạt, chưa có chính sách đăng ký, và các câu về người giới thiệu. Không câu nào nói số điện thoại thuộc tài khoản của ai.",
+    giaiNghia: "Các câu máy chủ trả cho người duyệt khi chưa mở được tài khoản: người duyệt trùng người xác minh, phiếu chưa xác minh đạt đủ, số điện thoại đã là số đăng nhập của một tài khoản, số căn cước đã thuộc hồ sơ khác, phiếu chưa có số điện thoại hợp lệ, dữ liệu vừa thay đổi, phiếu không còn chờ kích hoạt, chưa có chính sách đăng ký, hồ sơ đích hay hồ sơ người giới thiệu vừa ngưng / vừa gộp, và các câu về người giới thiệu. Câu nào cũng chỉ tới việc làm được (từ chối phiếu, mở lại phiếu, nhờ người khác duyệt) — không khuyên trả phiếu về bước xác minh, vì phiếu chờ duyệt không có đường về đó. Không câu nào nói số điện thoại thuộc tài khoản của ai.",
     khacVoi: "Khác câu của bước xác minh: ở đây phiếu đã qua xác minh, người đọc là Nhân sự.",
     chuDaLoai: [],
-    maNoiBo: ["registration_same_person", "registration_not_verified", "phone_taken", "phone_missing", "document_other_person", "registration_conflict", "registration_not_pending_activation", "registration_policy_missing", "referrer_not_found", "referrer_merged", "referrer_inactive", "referrer_is_target"],
+    maNoiBo: ["registration_same_person", "registration_not_verified", "phone_taken", "phone_missing", "document_other_person", "registration_conflict", "registration_not_pending_activation", "registration_policy_missing", "referrer_not_found", "referrer_merged", "referrer_inactive", "referrer_is_target", "target_changed", "referrer_changed"],
     trangThai: "cho-chon",
-    chuChon: "AI viết các câu 2026-11-15 (đợt 1 Task 8), chờ chủ chọn tên",
+    chuChon: "AI viết các câu 2026-11-15 (đợt 1 Task 8, sửa vòng 1), chờ chủ chọn tên",
   }),
   KN({
     ten: "Công việc tại đâu",

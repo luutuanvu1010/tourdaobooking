@@ -1793,6 +1793,20 @@ const DK_GIAY_TO = defineSql("parties", "registration_add_document",
 const DK_XAC_MINH = defineSql("parties", "registration_add_verification",
   `INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, reason_code, verifier_touched_account, created_at, created_by, updated_at, updated_by)
    VALUES (?1, ?2, ?3, ?4, ?5, 'DA_XAC_MINH', NULL, ?6, ?7, ?8, ?7, ?8)`);
+// HO_TEN chỉ «đạt» khi tên ĐANG CÓ của hồ sơ (ghép họ, đệm, tên theo đúng luật composePersonName: bỏ phần rỗng, nối bằng một dấu cách) BẰNG tên khai ?6 (I2 vòng sửa 1,
+// phương án a). Hồ sơ mới: câu 2 vừa chèn đúng tên khai nên luôn ghi. Gắn hồ sơ có sẵn khác tên: không ghi dòng HO_TEN, không đổi tên hồ sơ.
+const DK_XAC_MINH_TEN = defineSql("parties", "registration_add_name_verification",
+  `INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, reason_code, verifier_touched_account, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, p.party_id, 'ATTRIBUTE', NULL, 'HO_TEN', 'DA_XAC_MINH', NULL, ?3, ?4, ?5, ?4, ?5 FROM pty_person p
+   WHERE p.party_id = ?2 AND COALESCE(NULLIF(p.family_name, '') || ' ', '') || COALESCE(NULLIF(p.middle_name, '') || ' ', '') || p.given_name = ?6`);
+// Dòng đồng ý — câu LUÔN chạy của lô duyệt nên mang LÍNH GÁC TRẠNG THÁI hồ sơ đích (I1 vòng sửa 1): hồ sơ vừa bị ngưng / gộp sau lúc kiểm trước lô ⇒ party_id NULL ⇒ NOT NULL làm hỏng CẢ lô.
+const DK_DONG_Y = defineSql("parties", "registration_add_consent",
+  `INSERT INTO pty_consent (id, party_id, policy_id, decision, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, (SELECT g.id FROM pty_party g WHERE g.id = ?2 AND g.active = 1 AND g.merged_into_id IS NULL), ?3, 'DONG_Y', ?4, ?5, ?4, ?5)`);
+// Quan hệ giới thiệu, cùng lính gác cho hồ sơ NGƯỜI GIỚI THIỆU (from_party_id NULL ⇒ hỏng cả lô).
+const DK_GIOI_THIEU = defineSql("parties", "registration_add_referral",
+  `INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, (SELECT g.id FROM pty_party g WHERE g.id = ?2 AND g.active = 1 AND g.merged_into_id IS NULL), ?3, 'REFERRED_BY', ?4, NULL, ?5, ?6, ?5, ?6)`);
 const DK_SO_O_HO_SO_KHAC = defineSql("parties", "registration_cccd_elsewhere",
   `SELECT 1 AS x FROM pty_person_document d WHERE d.document_type_code = 'CCCD' AND d.number_key = ?1 AND d.voided_at IS NULL AND (?2 IS NULL OR d.party_id <> ?2) LIMIT 1`);
 
@@ -1812,6 +1826,12 @@ export const dkXacMinhStatement = (
   db: D1Database,
   v: { id: string; partyId: string; targetKind: "ATTRIBUTE" | "PERSON_DOCUMENT"; targetId: string | null; attributeCode: string | null; co: 0 | 1; verifiedBy: string; verifiedAt: string },
 ): D1PreparedStatement => db.prepare(DK_XAC_MINH).bind(v.id, v.partyId, v.targetKind, v.targetId, v.attributeCode, v.co, v.verifiedAt, v.verifiedBy);
+export const dkXacMinhTenStatement = (db: D1Database, v: { id: string; partyId: string; tenKhai: string; co: 0 | 1; verifiedBy: string; verifiedAt: string }): D1PreparedStatement =>
+  db.prepare(DK_XAC_MINH_TEN).bind(v.id, v.partyId, v.co, v.verifiedAt, v.verifiedBy, v.tenKhai);
+export const dkDongYStatement = (db: D1Database, v: { id: string; partyId: string; policyId: string; consentedAt: string; staffId: string }): D1PreparedStatement =>
+  db.prepare(DK_DONG_Y).bind(v.id, v.partyId, v.policyId, v.consentedAt, v.staffId);
+export const dkGioiThieuStatement = (db: D1Database, v: { id: string; referrerPartyId: string; partyId: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_GIOI_THIEU).bind(v.id, v.referrerPartyId, v.partyId, v.today, v.at, v.actorId);
 export async function dkSoCanCuocOHoSoKhac(db: D1Database, numberKey: string, partyId: string | null): Promise<boolean> {
   return (await db.prepare(DK_SO_O_HO_SO_KHAC).bind(numberKey, partyId).first()) !== null;
 }

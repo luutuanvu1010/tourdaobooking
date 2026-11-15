@@ -38,7 +38,7 @@ import {
   anDanhStatements, chanLoNeuThuaXoaStatement, coPhieuXoaChoHoacDa, demHoSoGopVao, demXemTruocXoa, listPhieuChuaChepNgoai, listPhieuXoaChoCoTen, listPhieuXoaDaXuLy, quyetPhieuXoaStatement, tepChoXoaCuaPhieu,
   tepChoXoaLyDoPhieu, timPhieuXoaCoTen, tuChoiPhieuXoaStatement, datChoXoaAnhHetGiuStatement, listAnhHetLyDoGiu, type AnhHetGiuRow,
   canXacMinhLaiStatement, chamCuaTaiKhoan, ghiDiaChiTuPhieuStatement, ghiGiayToTuPhieuStatement, ghiNgaySinhTuPhieuStatement, ghiXacMinhTuPhieuStatement, lamMoiHoSoTuPhieuStatement, quyetPhieuStatement, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
-  dkGiayToStatement, dkLienHeStatement, dkMoHoSoStatements, dkMoVaiStatement, dkNgaySinhStatement, dkSoCanCuocOHoSoKhac, dkXacMinhStatement,
+  dkDongYStatement, dkGiayToStatement, dkGioiThieuStatement, dkLienHeStatement, dkMoHoSoStatements, dkMoVaiStatement, dkNgaySinhStatement, dkSoCanCuocOHoSoKhac, dkXacMinhStatement, dkXacMinhTenStatement,
   datHoatDongLoaiDoiTacStatement, suaLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
@@ -106,16 +106,24 @@ export function cauGhiGiaTriDaXacMinh(
 /** Câu 5: một dòng `pty_verification` cho từng mục đã đạt có đích (thuộc tính, dòng giấy tờ) — người tạo và giờ là NGƯỜI XÁC MINH, GIỜ XÁC MINH; `co` = Toàn quyền làm cả hai bước. */
 export function cauXacMinhTuPhieu(
   db: D1Database,
-  v: { partyId: string; muc: readonly { id: string; targetKind: "ATTRIBUTE" | "PERSON_DOCUMENT"; targetId: string | null; attributeCode: string | null }[]; co: 0 | 1; verifiedBy: string; verifiedAt: string },
+  v: {
+    partyId: string; muc: readonly { id: string; targetKind: "ATTRIBUTE" | "PERSON_DOCUMENT"; targetId: string | null; attributeCode: string | null }[]; co: 0 | 1; verifiedBy: string; verifiedAt: string;
+    /** Tên khai (họ, đệm, tên): dòng HO_TEN chỉ ghi khi tên đang có của hồ sơ ghép ra đúng tên này (gắn hồ sơ có sẵn khác tên ⇒ không ghi; không đổi tên). */
+    tenKhai: PersonName;
+  },
 ): D1PreparedStatement[] {
-  return v.muc.map((m) => dkXacMinhStatement(db, { ...m, partyId: v.partyId, co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt }));
+  return v.muc.map((m) => m.targetKind === "ATTRIBUTE" && m.attributeCode === "HO_TEN"
+    ? dkXacMinhTenStatement(db, { id: m.id, partyId: v.partyId, tenKhai: composePersonName(v.tenKhai), co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt })
+    : dkXacMinhStatement(db, { ...m, partyId: v.partyId, co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt }));
 }
-/** Câu 6: dòng đồng ý chép từ bản khai — đúng phiên bản chính sách, GIỜ ĐỒNG Ý trong bản khai, người tạo là TÀI KHOẢN MỚI (câu 3 đứng trước). */
-export const cauDongYTuPhieu = (db: D1Database, v: { id: string; partyId: string; policyId: string; consentedAt: string; staffId: string }): D1PreparedStatement =>
-  ghiDongYStatement(db, { id: v.id, partyId: v.partyId, policyId: v.policyId, quyetDinh: "DONG_Y", at: v.consentedAt, actorId: v.staffId });
-/** Câu 9: quan hệ «Người giới thiệu của» — từ hồ sơ người giới thiệu tới hồ sơ được duyệt, từ hôm nay. Chỉ ghi nhận, không sinh tiền. */
+/**
+ * Câu 6: dòng đồng ý chép từ bản khai — đúng phiên bản chính sách, GIỜ ĐỒNG Ý trong bản khai, người tạo là TÀI KHOẢN MỚI (câu 3 đứng trước). Câu luôn chạy nên mang LÍNH GÁC hồ sơ đích:
+ * hồ sơ vừa ngưng / gộp giữa lúc kiểm trước lô và lúc ghi ⇒ hỏng CẢ lô (`NOT NULL constraint failed: pty_consent.party_id`).
+ */
+export const cauDongYTuPhieu = (db: D1Database, v: { id: string; partyId: string; policyId: string; consentedAt: string; staffId: string }): D1PreparedStatement => dkDongYStatement(db, v);
+/** Câu 9: quan hệ «Người giới thiệu của» — từ hồ sơ người giới thiệu tới hồ sơ được duyệt, từ hôm nay. Chỉ ghi nhận, không sinh tiền. Lính gác: người giới thiệu ngưng / gộp ⇒ hỏng CẢ lô. */
 export const cauQuanHeGioiThieu = (db: D1Database, v: { referrerPartyId: string; partyId: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
-  addRelationshipStatement(db, { fromPartyId: v.referrerPartyId, toPartyId: v.partyId, typeCode: "REFERRED_BY", from: v.today, to: null }, v.actorId, v.at);
+  dkGioiThieuStatement(db, { id: crypto.randomUUID(), ...v });
 /** Kiểm TRƯỚC lô duyệt (câu báo rõ; trigger CCCD một người vẫn là lưới cuối): số CCCD chuẩn hoá đã nằm ở dòng chưa huỷ của hồ sơ KHÁC `partyId` (null = hồ sơ mới ⇒ mọi hồ sơ). Chỉ đúng / sai. */
 export const canCuocThuocHoSoKhac = dkSoCanCuocOHoSoKhac;
 /**

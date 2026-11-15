@@ -208,6 +208,38 @@ test("(3) Gắn hồ sơ có sẵn: Nhân sự (không xem Danh bạ) duyệt đ
   assert.equal(taiKhoanMoi(w).party_id, goc);
   assert.equal(dem1(w, "SELECT count(*) n FROM pty_contact_point WHERE party_id = ? AND contact_kind_code = 'PHONE'", goc), 1, "số đã có không chép lại");
   assert.equal(w.q("SELECT birth_date FROM pty_person WHERE party_id = ?", goc)[0].birth_date, "1990-05-06");
+  // I2 (vòng sửa 1, phương án a): tên hồ sơ có sẵn «Người Có Sẵn» KHÁC tên khai «Phạm Thử Nghiệm» ⇒ KHÔNG dòng HO_TEN; không đổi tên hồ sơ; ngày sinh, CCCD vẫn có dòng xác minh
+  assert.deepEqual(w.q("SELECT attribute_code a, target_kind k FROM pty_verification WHERE party_id = ? ORDER BY target_kind, attribute_code", goc).map((x: any) => [x.k, x.a]),
+    [["ATTRIBUTE", "NGAY_SINH"], ["PERSON_DOCUMENT", null]]);
+  assert.equal(w.q("SELECT display_name FROM pty_party WHERE id = ?", goc)[0].display_name, "Người Có Sẵn");
+});
+
+test("(3b) Gắn hồ sơ có sẵn CÙNG tên khai (họ + tên ghép theo luật của Danh bạ) ⇒ có dòng HO_TEN «đạt»", async () => {
+  const w = setup();
+  const goc = "pty-cung-ten";
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', 'Phạm Thử Nghiệm', 1, ?, ?)").run(goc, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_person (party_id, family_name, given_name, created_at, updated_at) VALUES (?, 'Phạm', 'Thử Nghiệm', ?, ?)").run(goc, AT, AT);
+  const id = phieu(w);
+  await xacMinh(w, id, ADM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
+  assert.equal((await duyet(w, HR, id)).status, 200);
+  assert.equal(dem1(w, "SELECT count(*) n FROM pty_verification WHERE party_id = ? AND attribute_code = 'HO_TEN' AND outcome = 'DA_XAC_MINH'", goc), 1);
+});
+
+test("(3c) Gắn hồ sơ có sẵn đã có CCCD kèm ảnh ⇒ dòng mới là dòng gia hạn; ảnh của dòng cũ vào danh sách xoá với lý do «đã gia hạn» (M1)", async () => {
+  const w = setup();
+  const goc = hoSoCoSan(w);
+  w.sqlite.prepare("INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, created_at, updated_at) VALUES ('gt-cu', ?, 'CCCD', ?, ?, ?, ?)").run(goc, SO, KHOA_SO, AT, AT);
+  w.sqlite.prepare(`INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at, updated_by)
+    VALUES ('anh-cu', ?, ?, 'png', 3, ?, ?, ?, 's', ?, 's')`).run(goc, `pty/${"a".repeat(32)}`, "d".repeat(64), AT, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by) VALUES ('anh-cu', 'PERSON_DOCUMENT', 'gt-cu', ?, 's', ?, 's')").run(AT, AT);
+  const id = phieu(w);
+  await xacMinh(w, id, ADM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
+  assert.equal((await duyet(w, HR, id)).status, 200);
+  const moi = w.q("SELECT previous_id FROM pty_person_document WHERE party_id = ? AND id <> 'gt-cu'", goc);
+  assert.deepEqual(moi.map((x: any) => x.previous_id), ["gt-cu"]);
+  const { listAnhHetLyDoGiu } = await import("../parties/repository.ts");
+  const ds = await listAnhHetLyDoGiu(w.env.DB, "2026-11-15", []);
+  assert.deepEqual(ds.filter((r: any) => r.id === "anh-cu").map((r: any) => r.ly_do), ["DA_GIA_HAN"]);
 });
 
 test("(4) Giả lỗi ở câu giữa lô (dòng đồng ý) ⇒ không còn dòng nào trong số đó; phiếu vẫn CHỜ DUYỆT", async () => {
@@ -488,4 +520,61 @@ test("(19) Bản khai đổi phiên bản giữa lúc bấm (phiếu vẫn CHỜ
   assert.equal(r.json.error.code, "registration_version_changed");
   const sau = anh(w);
   for (const k of ["party", "staff", "quyen", "vai", "giayTo", "xacMinh", "dongY", "tep", "quyetDinh", "taoTk"] as const) assert.equal(sau[k], truoc[k], k);
+});
+
+/** Hồ sơ đích hoặc người giới thiệu đổi trạng thái NGAY TRƯỚC lô (I1, vòng sửa 1): lô phải tự hỏng, không chỉ dựa vào kiểm trước lô. */
+async function duaTruocLo(w: any, id: string, chen: () => void) {
+  const truoc = anh(w);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /INSERT INTO dk_decision/.test(s.sql)), async () => chen());
+  const r = await duyet(w, HR, id);
+  const sau = anh(w);
+  for (const k of ["party", "staff", "quyen", "vai", "lienHe", "giayTo", "xacMinh", "dongY", "tep", "quanHe", "quyetDinh", "taoTk"] as const) assert.equal(sau[k], truoc[k], k);
+  assert.equal(reg(w, id).status, "CHO_DUYET");
+  return r;
+}
+
+test("(20) R3a: hồ sơ đích bị gộp NGAY TRƯỚC lô ⇒ lô hỏng, 409, không ghi gì", async () => {
+  const w = setup();
+  const goc = hoSoCoSan(w);
+  const chinh = hoSoCoSan(w, "pty-chinh", "Hồ Sơ Chính");
+  const id = phieu(w);
+  await xacMinh(w, id, ADM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
+  const r = await duaTruocLo(w, id, () => w.sqlite.prepare("UPDATE pty_party SET merged_into_id = ?, merged_at = ?, active = 0 WHERE id = ?").run(chinh, AT, goc));
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "target_changed");
+});
+
+test("(21) R3a2: hồ sơ đích bị ngưng NGAY TRƯỚC lô ⇒ lô hỏng, 409, không ghi gì", async () => {
+  const w = setup();
+  const goc = hoSoCoSan(w);
+  const id = phieu(w);
+  await xacMinh(w, id, ADM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
+  const r = await duaTruocLo(w, id, () => w.sqlite.prepare("UPDATE pty_party SET active = 0 WHERE id = ?").run(goc));
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "target_changed");
+});
+
+test("(22) R3b: hồ sơ người giới thiệu bị ngưng NGAY TRƯỚC lô ⇒ lô hỏng, 409, không ghi gì", async () => {
+  const w = setup();
+  const id = phieu(w);
+  await xacMinh(w, id, ADM, { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: `pty-${SALES}` });
+  const r = await duaTruocLo(w, id, () => w.sqlite.prepare("UPDATE pty_party SET active = 0 WHERE id = ?").run(`pty-${SALES}`));
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "referrer_changed");
+});
+
+test("(23) M4: lỗi lạ khi dựng câu lô ⇒ 500 (không đội lốt «vai không mở được»); hai lỗi đã biết của staff ⇒ 400", async () => {
+  const { loiDungLoDuyet } = await import("./xac-minh.ts");
+  assert.equal(loiDungLoDuyet(new Error("createAccountOnPartyStatements: vai trò không mang quyền nào")), true);
+  assert.equal(loiDungLoDuyet(new Error("createAccountOnPartyStatements: chỉ dùng cho vai trò bên ngoài")), true);
+  assert.equal(loiDungLoDuyet(new Error("loDuyetDangKy: mã vai không hợp lệ")), false);
+  assert.equal(loiDungLoDuyet(new TypeError("x is undefined")), false);
+  // đối chứng ở đường thật: lỗi lạ ở LÔ (không thuộc bảng dịch lỗi) ⇒ 500 có mã yêu cầu, không lộ chữ lỗi
+  const w = setup();
+  const id = phieu(w);
+  await xacMinh(w, id);
+  w.sqlite.exec("CREATE TEMP TRIGGER thu_loi_la BEFORE INSERT ON dk_decision BEGIN SELECT RAISE(ABORT, 'loi_la_khong_ten'); END");
+  const r = await duyet(w, HR, id);
+  assert.equal(r.status, 500, r.text);
+  assert.equal(r.text.includes("loi_la_khong_ten"), false);
 });

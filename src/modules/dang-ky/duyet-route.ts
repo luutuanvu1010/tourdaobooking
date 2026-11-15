@@ -17,7 +17,7 @@ import { findStaffByPhone, tenVaiTaiKhoan } from "../staff";
 import {
   banKhaiDeDuyet, chinhSachHienHanh, emailLienLacCuaPhieu, guiLaiLoiMoiStatement, ketLuanMoiNhat, phieuXet, suKienNhanVienStatement, tomTatDeDuyet, tuChoiDuyetStatement,
 } from "./repository.ts";
-import { kiemDuyet, kiemLyDoDuyet, laMaPhieu, loiLoDuyet } from "./xac-minh.ts";
+import { kiemDuyet, kiemLyDoDuyet, laMaPhieu, loiDungLoDuyet, loiLoDuyet } from "./xac-minh.ts";
 import { dsMuc, kiemHoSoDich, kiemNguoiGioiThieu, moiNhat, mucPhaiDat } from "./xac-minh-route.ts";
 
 export const CAM_DUYET = () => error(403, "forbidden", "Bạn không có quyền duyệt phiếu đăng ký.");
@@ -88,7 +88,7 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy }:
     if (loi) return error(409, loi.code, loi.message);
   }
   if (bk.document_type_code === "CCCD" && bk.number_key && (await canCuocThuocHoSoKhac(env.DB, bk.number_key, dich))) {
-    return error(409, "document_other_person", "Số căn cước của phiếu đã thuộc một hồ sơ khác. Hãy từ chối phiếu, hoặc nhờ Quản trị xem lại kết luận Danh bạ.");
+    return error(409, "document_other_person", "Số căn cước của phiếu đã thuộc một hồ sơ khác. Hãy từ chối phiếu (lý do «Thông tin này đã có trong hệ thống»).");
   }
   if (p.referrer_party_id) {
     const loi = await kiemNguoiGioiThieu(env.DB, p.referrer_party_id, dich);
@@ -125,9 +125,10 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy }:
         : null,
       policyId: bk.policy_id, consentedAt: bk.consented_at, verifiedBy: p.verified_by ?? "", verifiedAt: p.verified_at ?? at, mucDat, referrerPartyId: p.referrer_party_id, deadlineAt,
     });
-  } catch {
-    // Vai không mang quyền nào / mang quyền nội bộ (staff từ chối dựng câu) — đã chặn ở trên, đây là lưới.
-    return error(400, "invalid_input", "Vai trò này không mở được tài khoản đối tác.");
+  } catch (e) {
+    // CHỈ hai lỗi đã biết của staff (vai không mang quyền nào / mang quyền nội bộ — đã chặn ở trên, đây là lưới) thành 400; lỗi khác ném lên (500).
+    if (loiDungLoDuyet(e)) return error(400, "invalid_input", "Vai trò này không mở được tài khoản đối tác.");
+    throw e;
   }
   try {
     await env.DB.batch(lo.statements);

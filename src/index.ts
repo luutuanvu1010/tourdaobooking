@@ -97,8 +97,8 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
       giayTo: v.giayTo && docId ? { ...v.giayTo, id: docId } : null,
     }),
     // 5 — parties: dòng xác minh (người + giờ XÁC MINH).
-    ...cauXacMinhTuPhieu(db, { partyId, muc: mucXacMinh, co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt }),
-    // 6 — parties: dòng đồng ý, người tạo = tài khoản mới.
+    ...cauXacMinhTuPhieu(db, { partyId, muc: mucXacMinh, co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt, tenKhai: v.ten }),
+    // 6 — parties: dòng đồng ý, người tạo = tài khoản mới; câu LUÔN chạy này mang lính gác hồ sơ đích còn dùng, chưa gộp (I1).
     cauDongYTuPhieu(db, { id: crypto.randomUUID(), partyId, policyId: v.policyId, consentedAt: v.consentedAt, staffId: tk.id }),
     // 7 — parties: tệp của phiếu thành tệp của hồ sơ (nối dòng giấy tờ); không có dòng giấy tờ thì tệp chờ nhận quyết gỡ.
     ...(docId
