@@ -166,5 +166,7 @@ test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCua
     // ADR-0207 (bước xác minh phiếu đăng ký, đợt 1 Task 6): tìm theo số giấy tờ, mục bắt buộc, xem / mở tệp chờ (nhật ký ở dang-ky), gỡ tệp có điều kiện, mặt nạ số
     "hoSoTheoSoGiayTo", "mucXacMinhBatBuocCaNhan", "tepChoDeXemCuaPhieu", "timTepChoDeXem", "moTepChoTuKho", "khoTepChoSanSang", "cauGoTepChoNeuTruocDoi", "cheSo",
     // ADR-0206 Đ6 (xin mã, đợt 1 Task 3): dang-ky đọc chính sách riêng tư hiệu lực qua một hàm hẹp (chỉ phiên bản, ngày hiệu lực, toàn văn) — không đọc bảng pty_privacy_policy
-    "chinhSachRiengTuCongKhai"].sort());
+    "chinhSachRiengTuCongKhai",
+    // ADR-0206 Đ6 (route của phiếu, đợt 1 Task 4): luật kiểm HÌNH THỨC của tự khai dùng lại cho bản khai của phiếu đăng ký (hàm thuần) + danh mục giấy tờ cho lần kiểm
+    "danhMucGiayToChoDangKy", "kiemThemGiayTo", "kiemNgaySinh", "validateContact"].sort());
 });

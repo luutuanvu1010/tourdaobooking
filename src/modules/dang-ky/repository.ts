@@ -306,7 +306,7 @@ const CHINH_SACH_RIENG_TU = defineSql("dang-ky", "privacy_policy_current", "SELE
 export const chinhSachRiengTuHienHanh = (db: D1Database, at: string): Promise<{ id: string; version: number } | null> =>
   db.prepare(CHINH_SACH_RIENG_TU).bind(at).first<{ id: string; version: number }>();
 
-// Bản khai gần nhất chưa ẩn danh, để người đăng ký sửa khi CẦN BỔ SUNG. KHÔNG chọn document_number, issued_place, phone_value, phone_key (chỉ «đã khai điện thoại»): DTO không trả các giá trị đó.
+// Bản khai gần nhất chưa ẩn danh, để người đăng ký sửa khi CẦN BỔ SUNG. «Chưa ẩn danh» = tên chưa bị thay bằng dấu «(đã ẩn)» (trigger dk_submission_erase_shape bắt buộc đúng dấu đó khi ẩn danh) — chữ cột ẩn danh chỉ nằm ở parties/repository.ts (bài src/xoa-mot-lenh-co-ten.test.ts). KHÔNG chọn document_number, issued_place, phone_value, phone_key (chỉ «đã khai điện thoại»): DTO không trả các giá trị đó.
 export interface BanKhaiTruocRow {
   family_name: string | null; middle_name: string | null; given_name: string; gender: string | null; birth_date: string | null; address_value: string | null; co_dien_thoai: number;
   document_type_code: string | null; number_key: string | null; license_class_code: string | null; issued_date: string | null; expiry_date: string | null;
@@ -315,7 +315,7 @@ const BAN_KHAI_TRUOC = defineSql(
   "dang-ky",
   "submission_latest_for_registrant",
   `SELECT family_name, middle_name, given_name, gender, birth_date, address_value, phone_key IS NOT NULL AS co_dien_thoai, document_type_code, number_key, license_class_code, issued_date, expiry_date
-   FROM dk_submission WHERE registration_id = ?1 AND erased_at IS NULL ORDER BY version DESC LIMIT 1`,
+   FROM dk_submission WHERE registration_id = ?1 AND given_name IS NOT '(đã ẩn)' ORDER BY version DESC LIMIT 1`,
 );
 export const banKhaiTruoc = (db: D1Database, registrationId: string): Promise<BanKhaiTruocRow | null> => db.prepare(BAN_KHAI_TRUOC).bind(registrationId).first<BanKhaiTruocRow>();
 

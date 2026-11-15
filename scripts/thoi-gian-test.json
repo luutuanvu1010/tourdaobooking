@@ -281,6 +281,7 @@
  "src/modules/company/migration.test.ts": 0.1,
  "src/modules/company/rules.test.ts": 0.1,
  "src/modules/dang-ky/phien.test.ts": 0.1,
+ "src/modules/dang-ky/phieu-route.test.ts": 8.6,
  "src/modules/dang-ky/rules.test.ts": 0.7,
  "src/modules/dang-ky/tep-route.test.ts": 8.5,
  "src/modules/dang-ky/xac-minh-route.test.ts": 5.9,

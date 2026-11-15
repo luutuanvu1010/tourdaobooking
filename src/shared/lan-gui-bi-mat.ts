@@ -49,12 +49,9 @@ export const KHONG_VE: readonly MauRoute[] = [
   "/api/auth/mfa/enroll/start", // bật lại lớp hai ở bước đăng nhập (ADR-0074 đ5, Task 6): công khai, cookie chờ "enroll"
   "/api/auth/mfa/enroll/confirm", // như trên; thân có mã TOTP — không vé, không lưu gì
   "/api/auth/mfa/email", // gửi mã email ở bước hai (ADR-0074 đ4, Phần C): công khai, cookie chờ "verify" — không vé, không lưu gì
-  "/api/dang-ky/ma", // ADR-0206 Đ6: xin mã gửi email, công khai, thân có email — không vé, không lưu
-  "/api/dang-ky/xac-nhan", // nhập mã, công khai, thân có email và mã — không vé, không lưu
-  "/api/dang-ky/phieu/tep", // ADR-0208 Đ2: người đăng ký chưa có tài khoản tải tệp vào phiếu — công khai, cookie đăng ký; thân là ảnh giấy tờ, không vé, không lưu gì
-  "/api/dang-ky/phieu/gui", // ADR-0206 Đ6: gửi phiếu — thân có số giấy tờ, ngày sinh, điện thoại; công khai, cookie đăng ký — không vé, không lưu gì
-  "/api/dang-ky/phieu/rut", // rút phiếu — công khai, cookie đăng ký
-].map((path): MauRoute => ({ method: "POST", path })).concat({ method: "PUT", path: "/api/dang-ky/phieu" }); // lưu nháp (chọn loại) — cùng đường với GET, nên khác phương thức
+  // ADR-0206 Đ6, ADR-0208 Đ2: người đăng ký chưa có tài khoản — công khai, cookie đăng ký; thân có email, mã, ảnh giấy tờ, số giấy tờ (gửi) — không vé, không lưu gì. Viết chung tiền tố cho gọn gói trang.
+  ...["ma", "xac-nhan", "phieu", "phieu/tep", "phieu/gui", "phieu/rut"].map((d) => `/api/dang-ky/${d}`),
+].map((path): MauRoute => ({ method: path.endsWith("/phieu") ? "PUT" : "POST", path })); // «…/phieu» là lưu nháp (PUT, cùng đường với GET); còn lại POST
 
 /** Đường dẫn thật (có thể kèm `?query`) có khớp MẪU route không — `:x` khớp đúng một đoạn không rỗng. */
 export function khopMau(mau: string, duongDan: string): boolean {
