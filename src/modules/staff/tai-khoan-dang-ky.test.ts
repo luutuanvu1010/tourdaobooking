@@ -92,11 +92,10 @@ test("datPinKichHoatStatements: đặt PIN, bật tài khoản, đẩy credentia
   assert.equal(row(sqlite, made.id).credentials_changed_at, 1234);
 });
 
-test("createAccountOnPartyStatements: vai nội bộ → có ân hạn lớp hai như đường thường; hai lần gọi cho id khác nhau", async () => {
-  const { sqlite, db } = seed("SALES_STAFF");
-  const a = await staff.createAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0933333333", roles: ["SALES_STAFF"] }, "s-hr", AT);
-  const b = await staff.createAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0944444444", roles: ["SALES_STAFF"] }, "s-hr", AT);
+test("createAccountOnPartyStatements: vai nội bộ bị từ chối (không ghi ân hạn lớp hai); hai lần gọi cho id khác nhau", async () => {
+  const { db } = seed();
+  await assert.rejects(staff.createAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0933333333", roles: ["SALES_STAFF"] }, "s-hr", AT), /bên ngoài/);
+  const a = await staff.createAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0933333333", roles: ["HOTEL_RECEPTION"] }, "s-hr", AT);
+  const b = await staff.createAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0944444444", roles: ["HOTEL_RECEPTION"] }, "s-hr", AT);
   assert.notEqual(a.id, b.id);
-  await db.batch(a.statements as never);
-  assert.equal(typeof row(sqlite, a.id).mfa_grace_until, "string");
 });

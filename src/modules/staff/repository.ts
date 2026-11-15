@@ -69,11 +69,11 @@ const INSERT_STAFF = defineSql(
   "insert",
   `INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id, mfa_grace_until) VALUES (?1, '', ?2, ?3, 'sales', 1, ?4, ?5, ?6)`,
 );
-// Biến thể TẮT (ADR-0207 Đ5; đợt 1 Task 7): tài khoản sinh lúc DUYỆT phiếu đăng ký, `active = 0` tới khi người đăng ký tự đặt PIN (Đ6). Cùng cột với INSERT_STAFF, chỉ khác active.
+// Biến thể TẮT (ADR-0207 Đ5; đợt 1 Task 7): tài khoản sinh lúc DUYỆT phiếu đăng ký, `active = 0` tới khi người đăng ký tự đặt PIN (Đ6). Không ghi hạn lớp hai (chỉ vai bên ngoài — bài cham-tai-khoan.test.ts ghim tập câu ghi cột đó).
 const INSERT_STAFF_INACTIVE = defineSql(
   "staff",
   "insert_inactive",
-  `INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id, mfa_grace_until) VALUES (?1, '', ?2, ?3, 'sales', 0, ?4, ?5, ?6)`,
+  `INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES (?1, '', ?2, ?3, 'sales', 0, ?4, ?5)`,
 );
 // Kích hoạt (ADR-0207 Đ6): đặt PIN + bật + đẩy credentials_changed_at. `active = 0` trong WHERE: lệnh lặp / tài khoản đã bật KHÔNG bị ghi đè PIN.
 const SET_PIN_ACTIVATE = defineSql(
@@ -170,8 +170,8 @@ export const insertStaffStatement = (
 ): D1PreparedStatement => db.prepare(INSERT_STAFF).bind(v.id, v.phone, v.pinHash, v.createdAt, v.partyId, v.mfaGraceUntil);
 
 export const insertStaffInactiveStatement = (
-  db: D1Database, v: { id: string; phone: string; pinHash: string; createdAt: string; partyId: string; mfaGraceUntil: string | null },
-): D1PreparedStatement => db.prepare(INSERT_STAFF_INACTIVE).bind(v.id, v.phone, v.pinHash, v.createdAt, v.partyId, v.mfaGraceUntil);
+  db: D1Database, v: { id: string; phone: string; pinHash: string; createdAt: string; partyId: string },
+): D1PreparedStatement => db.prepare(INSERT_STAFF_INACTIVE).bind(v.id, v.phone, v.pinHash, v.createdAt, v.partyId);
 
 export const setPinActivateStatement = (db: D1Database, id: string, pinHash: string, at: number): D1PreparedStatement => db.prepare(SET_PIN_ACTIVATE).bind(id, pinHash, at);
 

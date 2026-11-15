@@ -221,12 +221,14 @@ export async function createAccountOnPartyStatements(
   at: string,
 ): Promise<{ id: string; statements: D1PreparedStatement[]; permissions: PermissionCode[] }> {
   const { permissions } = effectivePermissions(input.roles, { adds: [], removes: [] });
+  // Chỉ vai bên ngoài (đợt 1: bốn loại đối tác mở): biến thể này không ghi ân hạn lớp hai nên không nhận quyền nội bộ.
+  if (coQuyenNoiBo(permissions)) throw new Error("createAccountOnPartyStatements: chỉ dùng cho vai bên ngoài");
   const id = crypto.randomUUID();
   return {
     id,
     permissions,
     statements: [
-      insertStaffInactiveStatement(db, { id, phone: input.phone, pinHash: await hashPin(generatePin()), createdAt: at, partyId: input.partyId, mfaGraceUntil: mfaGraceOnCreate(permissions, Date.parse(at)) }),
+      insertStaffInactiveStatement(db, { id, phone: input.phone, pinHash: await hashPin(generatePin()), createdAt: at, partyId: input.partyId }),
       ...permissions.map((code) => insertPermissionStatement(db, id, code, actorId, at, false)),
     ],
   };
