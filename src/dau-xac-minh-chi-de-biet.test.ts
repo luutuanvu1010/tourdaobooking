@@ -142,3 +142,15 @@ test("chỉ để biết (Đ5): `dauXacMinhTheoHoSo(` được gọi đúng ba n
   const a = TEP_MA.find((t) => t.f === "src/modules/accounts/index.ts")!.src;
   assert.match(a, /route\("GET", "\/api\/staff", "accounts"[\s\S]{0,400}account\.view[\s\S]{0,600}dauXacMinhTaiKhoan\(/);
 });
+
+test("chỉ để biết (Đ5, M-4): trong migrations/*.sql chỉ MỘT dòng không phải chú thích nhắc view dữ kiện — chính câu `CREATE VIEW` của nó; không trigger, view, câu gieo nào khác đọc", () => {
+  const dir = join(ROOT, "migrations");
+  const hit: string[] = [];
+  for (const t of readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()) {
+    for (const [i, dong] of readFileSync(join(dir, t), "utf8").split("\n").entries()) {
+      if (/v_pty_verification_facts/i.test(dong) && !/^\s*--/.test(dong)) hit.push(`${t}:${i + 1}: ${dong.trim().slice(0, 60)}`);
+    }
+  }
+  assert.equal(hit.length, 1, hit.join("\n"));
+  assert.match(hit[0]!, /^0168_tep_cho_dang_ky\.sql:\d+: CREATE VIEW v_pty_verification_facts AS$/);
+});

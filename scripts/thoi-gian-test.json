@@ -43,6 +43,7 @@
  "src/danh-muc-don-vi-web.test.ts": 0.2,
  "src/dat-coc-noi-goi.test.ts": 0.3,
  "src/dau-xac-minh-chi-de-biet.test.ts": 1.7,
+ "src/dau-xac-minh-ke-hoach.test.ts": 1.5,
  "src/dieu-phoi-ca-mau.test.ts": 0.3,
  "src/doi-chu-thanh-toan-ngay.test.ts": 0.1,
  "src/doi-so-khach-mot-cua.test.ts": 0.2,
