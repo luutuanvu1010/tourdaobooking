@@ -157,6 +157,24 @@ test("(2) Đặt chính sách: nhật ký mang loại, cấp cũ và cấp mới
   assert.equal(dem1(w, "SELECT count(*) n FROM prc_signup_tier_policy"), n);
 });
 
+test("(2b) Hai người đặt cùng lúc: người kia ghi xong NGAY TRƯỚC lô của mình (đã qua kiểm trước) ⇒ 409, không thêm dòng, không dòng nhật ký nói sai cấp cũ", async () => {
+  const w = setup();
+  const { ta1, ta2 } = await nen(w);
+  await ok(datCs(w, SM, "TRAVEL_AGENCY", ta1), 200);
+  const thay = await hienHanh(w, "TRAVEL_AGENCY");
+  let daChen = 0;
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /INSERT INTO prc_signup_tier_policy/.test(s.sql)), async () => {
+    daChen++;
+    await ok(datCs(w, ADM, "TRAVEL_AGENCY", null, thay), 200, "Quản trị đặt trước");
+  });
+  const r = await datCs(w, SM, "TRAVEL_AGENCY", ta2, thay);
+  assert.equal(daChen, 1);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(dem1(w, "SELECT count(*) n FROM prc_signup_tier_policy"), 2);
+  assert.deepEqual(w.q("SELECT detail FROM audit_log WHERE action = 'prc_signup_tier_set' ORDER BY rowid").map((x: any) => x.detail),
+    ["Công ty lữ hành (TRAVEL_AGENCY) · Theo cấp của vai trò → TA1", "Công ty lữ hành (TRAVEL_AGENCY) · TA1 → Theo cấp của vai trò"]);
+});
+
 test("(3) Trigger: chính sách không sửa, không xoá; không chèn cấp đang khoá hay loại không được hưởng", async () => {
   const w = setup();
   const { ta1, ta2 } = await nen(w);

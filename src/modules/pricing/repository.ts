@@ -203,10 +203,12 @@ const CS_DK_HIEU_LUC = defineSql("pricing", "signup_tier_effective_all",
   `SELECT p.id, p.role_type_code, p.tier_code, p.valid_from_at FROM prc_signup_tier_policy p WHERE p.id = ${HIEU_LUC("p.role_type_code", "?1")}`);
 const CS_DK_CUA_LOAI = defineSql("pricing", "signup_tier_effective_of_role",
   `SELECT p.id, p.tier_code, t.name AS tier_name FROM prc_signup_tier_policy p LEFT JOIN prc_rate_tier t ON t.code = p.tier_code WHERE p.id = ${HIEU_LUC("?1", "?2")}`);
-// Đặt chính sách: khoá lạc quan = dòng hiệu lực người đặt đã thấy (?6; NULL = chưa có dòng nào) — người khác vừa đặt ⇒ 0 dòng ⇒ 409, nhật ký `changes() > 0` không ghi.
+// Đặt chính sách: khoá lạc quan = dòng người đặt đã thấy (?6; NULL = chưa có dòng nào) phải còn là dòng MỚI NHẤT của loại (không xét mốc ≤ ?4: lệnh của người khác lấy mốc SAU
+// mốc của mình nhưng ghi TRƯỚC thì vẫn bị bắt) — người khác vừa đặt ⇒ 0 dòng ⇒ 409, nhật ký `changes() > 0` không ghi.
 const CS_DK_THEM = defineSql("pricing", "signup_tier_insert",
   `INSERT INTO prc_signup_tier_policy (id, role_type_code, tier_code, valid_from_at, created_at, created_by, updated_at, updated_by)
-   SELECT ?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5 WHERE ${HIEU_LUC("?2", "?4")} IS ?6`);
+   SELECT ?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5
+   WHERE (SELECT e.id FROM prc_signup_tier_policy e WHERE e.role_type_code = ?2 ORDER BY e.valid_from_at DESC LIMIT 1) IS ?6`);
 // Câu 8 của lô duyệt phiếu đăng ký (ADR-0209 Đ3). WHERE lặp ĐÚNG mọi trigger BEFORE INSERT của prc_party_tier để câu chèn 0 dòng thay vì làm hỏng lô:
 //   prc_party_tier_tier_ok (cấp đang bật), prc_party_tier_party_ok (hồ sơ đang mở vai thuộc loại được hưởng còn bật — nguyên văn, đọc v_pty_open_role; câu mở vai đứng trước trong lô),
 //   prc_party_tier_overlap (bản 0126: dòng chưa huỷ có ngày kết thúc ≥ ngày bắt đầu mới, vì dòng mới không có ngày kết thúc), born_clean / replaces_ok (bốn cột huỷ / thay để NULL).
