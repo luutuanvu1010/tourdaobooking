@@ -38,7 +38,8 @@ export const khuonKhop = (dong: string): string[] => KHUON.filter((k) => k.re.te
  * Rộng hơn ADR-0109 "Bối cảnh mã" (chỉ nêu phép TRỪ): khuôn P2/P3 bắt cả phép SO SÁNH, nên các chỗ so giảm giá với tạm tính / trần cũng phải có tên ở đây.
  */
 const CHO_PHEP: { file: string; khuon: RegExp; lyDo: string }[] = [
-  { file: "src/modules/orders/money-adjustment.ts", khuon: /return \{ total: Math\.max\(0, subtotal - discount\), giamGiaHieuLuc: Math\.min\(discount, subtotal\) \};/, lyDo: "effectiveMoney — ĐỊNH NGHĨA phải thu kẹp ≥ 0 và giảm giá hiệu lực (một hàm, ADR-0109)" },
+  // Đợt C, Task 5 (15/11, chủ chốt SV-PD-29 «giảm giá không trừ vào phí đón»): định nghĩa đổi có chủ đích — đối số đầu là PHẦN DỊCH VỤ, phí đưa đón cộng SAU phép kẹp. Vẫn đúng một chỗ.
+  { file: "src/modules/orders/money-adjustment.ts", khuon: /return \{ total: Math\.max\(0, dichVu - discount\) \+ phi, giamGiaHieuLuc: Math\.min\(discount, dichVu\) \};/, lyDo: "effectiveMoney — ĐỊNH NGHĨA phải thu kẹp ≥ 0 và giảm giá hiệu lực (một hàm, ADR-0109); giảm giá chỉ trừ phần dịch vụ, phí cộng sau (Đợt C)" },
   { file: "src/modules/orders/rules.ts", khuon: /if \(discount\.value > subtotal\) return fail\(/, lyDo: "lập / lưu nháp: chặn giảm giá > tạm tính (giảm giá ≤ tạm tính lúc lập)" },
   { file: "src/modules/orders/rules.ts", khuon: /const total = subtotal - discount\.value;/, lyDo: "lập / lưu nháp: total đã lưu (đã chặn giảm giá ≤ tạm tính ở dòng trên; trigger 0007 giữ total = subtotal − discount ≥ 0)" },
   { file: "src/shared/service-form.ts", khuon: /const total = subtotal - discount;/, lyDo: "xem trước trên biểu mẫu nháp (chưa lưu; máy chủ tính lại khi lưu)" },
@@ -46,7 +47,8 @@ const CHO_PHEP: { file: string; khuon: RegExp; lyDo: string }[] = [
   { file: "src/modules/orders/nguoi-dat-gop-repo.ts", khuon: /o\.total IS NOT o\.subtotal - o\.discount/, lyDo: "kiểm dữ liệu ĐÃ LƯU (SQL) — cùng luật trigger 0007, không phải phải thu hiện hành" },
   { file: "src/shared/order-confirmation.ts", khuon: /order\.discount > 0 \? -order\.discount : order\.discount/, lyDo: "đổi dấu để in dòng Giảm giá của biên nhận (số máy chủ đặt vào ReceiptDto)" },
   { file: "web/order-form.ts", khuon: /if \(s\.discount > s\.subtotal\) lines\.push\(/, lyDo: "báo lỗi biểu mẫu nháp (máy chủ chặn lại ở rules.ts)" },
-  { file: "src/shared/so-khach-van-phong.ts", khuon: /canhBaoGiamGiaVuot = \(don: \{ subtotal: number; discount: number \}\): string \| null => \(don\.discount > don\.subtotal \?/, lyDo: "điều kiện cảnh báo giảm giá vượt tạm tính (ADR-0109 QĐ3) — một hàm dùng chung máy chủ ↔ giao diện, không tính tiền" },
+  // Đợt C, Task 5: so với giảm giá HIỆU LỰC (số của `effectiveMoney`) thay vì tạm tính, vì tạm tính nay gồm phí đưa đón mà giảm giá chỉ trừ tiền dịch vụ (chủ 15/11, SV-PD-29).
+  { file: "src/shared/so-khach-van-phong.ts", khuon: /canhBaoGiamGiaVuot = \(don: \{ discount: number; giamGiaHieuLuc: number \}\): string \| null => \(don\.discount > don\.giamGiaHieuLuc \?/, lyDo: "điều kiện cảnh báo giảm giá vượt tiền dịch vụ (ADR-0109 QĐ3) — một hàm dùng chung máy chủ ↔ giao diện, so với giảm giá hiệu lực, không tính tiền" },
   { file: "src/modules/orders/price-guards.ts", khuon: /discountWithinCap = \(discount: number, maxDiscount: number\): boolean => discount <= maxDiscount/, lyDo: "trần giảm giá của tài khoản Đối tác (ADR-0027), không phải phải thu" },
 ];
 

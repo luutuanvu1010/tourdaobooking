@@ -4,7 +4,7 @@ import { PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
 import type { OrderDetailDto } from "../../shared/contracts.ts";
 import {
   applyAdjustmentToOrder, editablePaxCodesOf, effectiveMoney, effectiveService, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, parseMoneyEditInput, recomputeService,
-  type SubtotalServiceInput,
+  phiHieuLuc, soLuongPhiSauSua, tienHieuLuc, type SubtotalServiceInput,
 } from "./money-adjustment.ts";
 import type { StoredService } from "./service-rules.ts";
 
@@ -173,21 +173,21 @@ test("editablePaxCodesOf: dịch vụ nhập tay (catalogCode null) → rỗng",
 
 // --- effectiveMoney -------------------------------------------------------------------------------------------------
 test("effectiveMoney: total = subtotal - discount khi giảm giá ≤ tạm tính; trả thêm giảm giá hiệu lực (ADR-0109 QĐ2) — đơn không âm không đổi đồng nào", () => {
-  assert.deepEqual(effectiveMoney(900000, 0), { total: 900000, giamGiaHieuLuc: 0 });
-  assert.deepEqual(effectiveMoney(900000, 50000), { total: 850000, giamGiaHieuLuc: 50000 });
-  assert.deepEqual(effectiveMoney(500000, 500000), { total: 0, giamGiaHieuLuc: 500000 });
+  assert.deepEqual(effectiveMoney(900000, 0, 0), { total: 900000, giamGiaHieuLuc: 0 });
+  assert.deepEqual(effectiveMoney(900000, 50000, 0), { total: 850000, giamGiaHieuLuc: 50000 });
+  assert.deepEqual(effectiveMoney(500000, 500000, 0), { total: 0, giamGiaHieuLuc: 500000 });
 });
 
 test("effectiveMoney (ADR-0109 QĐ1): phải thu KẸP ≥ 0 — giảm giá 800.000 trên tạm tính 500.000 → phải thu 0, giảm giá hiệu lực 500.000 (giảm giá đã lưu không đổi)", () => {
-  assert.deepEqual(effectiveMoney(500000, 800000), { total: 0, giamGiaHieuLuc: 500000 });
-  assert.deepEqual(effectiveMoney(0, 100000), { total: 0, giamGiaHieuLuc: 0 }, "tạm tính về 0 (chỉ còn em bé giá 0)");
+  assert.deepEqual(effectiveMoney(500000, 800000, 0), { total: 0, giamGiaHieuLuc: 500000 });
+  assert.deepEqual(effectiveMoney(0, 100000, 0), { total: 0, giamGiaHieuLuc: 0 }, "tạm tính về 0 (chỉ còn em bé giá 0)");
 });
 
 test("effectiveMoney NT-1: lưới s, d ∈ {0, 1, 499 999, 500 000, 500 001, 10¹¹} — total ≥ 0, total + giảm giá hiệu lực = tạm tính, giảm giá hiệu lực ≤ giảm giá; s ≥ d thì total = s − d", () => {
   const luoi = [0, 1, 499999, 500000, 500001, 1e11];
   for (const s of luoi)
     for (const d of luoi) {
-      const m = effectiveMoney(s, d);
+      const m = effectiveMoney(s, d, 0);
       assert.ok(Number.isInteger(m.total) && m.total >= 0, `total ≥ 0 (s=${s}, d=${d})`);
       assert.equal(m.total + m.giamGiaHieuLuc, s, `cân (s=${s}, d=${d})`);
       assert.ok(m.giamGiaHieuLuc <= d && m.giamGiaHieuLuc >= 0, `0 ≤ giảm giá hiệu lực ≤ giảm giá (s=${s}, d=${d})`);
@@ -239,19 +239,19 @@ test("effectiveService: dịch vụ NHẬP TAY (catalogCode null) dù CÓ mặt 
 });
 
 test("effectiveSubtotal: đơn CHỈ có dịch vụ nhập tay, after=[] → tổng = tiền đã lưu (ca lỗi cũ: nơi ghi quên cộng, giờ nơi đọc tự tính đúng dù nơi ghi có quên hay không)", () => {
-  assert.equal(effectiveSubtotal([manualInput()], []), 200000);
+  assert.equal(effectiveSubtotal([manualInput()], [], []), 200000);
 });
 
 test("effectiveSubtotal: đơn TRỘN danh mục + nhập tay, CHỈ dịch vụ danh mục có điều chỉnh → tổng = (danh mục TÍNH LẠI) + (nhập tay GIỮ NGUYÊN) — CA LỖI GỐC đã đo (thiếu 200.000₫)", () => {
   const services = [catalogInput(), manualInput()];
   // Trước sửa: nơi ghi cũ tính subtotal_after = 900000 (chỉ danh mục, BỎ SÓT 200000 nhập tay) — nơi đọc cũ tin thẳng số đó nên hiện 900000, THIẾU
   // đúng 200000 so với thực tế. Sau sửa: effectiveSubtotal (nguồn duy nhất, dùng CẢ nơi ghi lẫn nơi đọc) LUÔN cộng đủ, không phụ thuộc nơi ghi.
-  const total = effectiveSubtotal(services, [{ serviceId: "svc-cat", pax: { adult: 3, child: 0, senior: 0, infant: 0 } }]);
+  const total = effectiveSubtotal(services, [], [{ serviceId: "svc-cat", pax: { adult: 3, child: 0, senior: 0, infant: 0 } }]);
   assert.equal(total, 900000 + 200000, "900.000 (3×300.000 danh mục, tính lại) + 200.000 (nhập tay, giữ nguyên) = 1.100.000, KHÔNG PHẢI 900.000");
 });
 
 test("effectiveSubtotal: after tham chiếu MỘT serviceId không còn tồn tại trong `services` (dữ liệu hỏng ngoài tầm kiểm) → bị bỏ qua lặng lẽ, không cộng thừa, không lỗi", () => {
-  const total = effectiveSubtotal([catalogInput()], [{ serviceId: "svc-khong-ton-tai", pax: { adult: 99, child: 0, senior: 0, infant: 0 } }]);
+  const total = effectiveSubtotal([catalogInput()], [], [{ serviceId: "svc-khong-ton-tai", pax: { adult: 99, child: 0, senior: 0, infant: 0 } }]);
   assert.equal(total, 600000, "svc-cat không có trong after (khoá khác) nên giữ 'own'; entry lạ trong after không tạo ra dịch vụ ảo nào");
 });
 
@@ -358,4 +358,26 @@ test("isAdjustmentSeqCollision: nhận đúng lỗi UNIQUE order_id+seq (kể c�
   assert.ok(!isAdjustmentSeqCollision(new Error("UNIQUE constraint failed: orders.order_code")));
   assert.ok(!isAdjustmentSeqCollision(new Error("FOREIGN KEY constraint failed")));
   assert.ok(!isAdjustmentSeqCollision("UNIQUE constraint failed: order_money_adjustment.order_id, order_money_adjustment.seq"), "chỉ nhận Error");
+});
+
+// ---- Đợt C, Task 5: dòng phí đưa đón trong tiền hiệu lực (ADR-0147 Đ3; sổ vàng SV-PD-24) ----
+test("phiHieuLuc: PER_PAX tính lại theo số khách tính tiền mới (em bé không tính), đơn giá đã chụp; chiều về lấy min(số người đã chụp, số mới); PER_TRIP giữ nguyên; dịch vụ không sửa giữ nguyên", () => {
+  const P = (adult: number, child = 0, infant = 0) => ({ adult, child, senior: 0, infant });
+  const phi = [
+    { serviceId: "s1", kind: "PER_PAX" as const, returnPax: null, quantity: 2, unitPrice: 100_000, lineTotal: 200_000 },
+    { serviceId: "s1", kind: "PER_PAX" as const, returnPax: 1, quantity: 1, unitPrice: 100_000, lineTotal: 100_000 },
+    { serviceId: "s1", kind: "PER_TRIP" as const, returnPax: null, quantity: 1, unitPrice: 500_000, lineTotal: 500_000 },
+    { serviceId: "s2", kind: "PER_PAX" as const, returnPax: null, quantity: 2, unitPrice: 0, lineTotal: 0 },
+  ];
+  const r = phiHieuLuc(phi, [{ serviceId: "s1", pax: P(3, 0, 2) }]);
+  assert.deepEqual(r.dong.map((d) => [d.quantity, d.lineTotal]), [[3, 300_000], [1, 100_000], [1, 500_000], [2, 0]]);
+  assert.equal(r.tong, 900_000);
+  assert.equal(soLuongPhiSauSua({ kind: "PER_PAX", returnPax: 2, quantity: 2 }, P(1)), 1, "bớt khách dưới số người chiều về đã chụp");
+  assert.deepEqual(phiHieuLuc(phi, []).dong, phi, "không điều chỉnh ⇒ y như đã lưu");
+});
+
+test("effectiveMoney (Đợt C): giảm giá chỉ trừ phần dịch vụ, phí cộng sau phép kẹp — SV-PD-29 và ca bớt khách dưới giảm giá", () => {
+  assert.deepEqual(effectiveMoney(1_000_000, 100_000, 140_000), { total: 1_040_000, giamGiaHieuLuc: 100_000 });
+  assert.deepEqual(effectiveMoney(500_000, 900_000, 70_000), { total: 70_000, giamGiaHieuLuc: 500_000 });
+  assert.deepEqual(tienHieuLuc([], [{ serviceId: "x", kind: "PER_TRIP", returnPax: null, quantity: 1, unitPrice: 200_000, lineTotal: 200_000 }], []), { dichVu: 0, phi: 200_000 });
 });

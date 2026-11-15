@@ -57,7 +57,9 @@ export function duocSuaSoKhachVanPhong(viewer: PermissionHolder, don: { staffId:
  */
 export const CAU_GIAM_GIA_VUOT =
   "Giảm giá lớn hơn tiền dịch vụ sau khi bớt khách, nên khách không còn phải trả gì và phần giảm giá vượt không dùng tới. Khách đã trả bao nhiêu thì số đó là tiền trả dư; nếu chưa hoàn thì Kế toán hoàn lại cho khách.";
-export const canhBaoGiamGiaVuot = (don: { subtotal: number; discount: number }): string | null => (don.discount > don.subtotal ? CAU_GIAM_GIA_VUOT : null);
+// Đợt C, Task 5 (phí đưa đón): tạm tính nay gồm phí, mà giảm giá chỉ trừ vào tiền dịch vụ (chủ 15/11, SV-PD-29) ⇒ so giảm giá đã lưu với GIẢM GIÁ HIỆU LỰC (= min(giảm giá, tiền dịch vụ),
+// số do `effectiveMoney` trả) thay vì với tạm tính: giảm giá > hiệu lực ⇔ giảm giá > tiền dịch vụ hiện hành. Đơn không phí: y như trước (hiệu lực = min(giảm giá, tạm tính)).
+export const canhBaoGiamGiaVuot = (don: { discount: number; giamGiaHieuLuc: number }): string | null => (don.discount > don.giamGiaHieuLuc ? CAU_GIAM_GIA_VUOT : null);
 
 /**
  * ADR-0114 D1 (chủ duyệt 2026-10-13: "nếu giảm số lượng thì nhớ hiện nhắc nhở phần khuyến mại… phải báo đỏ"): đơn có giảm giá mà SỐ KHÁCH đã giảm so với lúc xác nhận thì

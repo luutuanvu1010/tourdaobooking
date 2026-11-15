@@ -437,6 +437,8 @@ export interface PhiDuaDonDto {
   /** Cấp đại lý của mức đã dùng; null = mức không có cấp. */
   tierCode: string | null;
   kind: "PER_PAX" | "PER_TRIP";
+  /** Số người chiều về đã chụp lúc tính (`order_item.fee_return_pax`); null = theo số khách của dịch vụ. Máy chủ dùng để tính lại phí khi «Sửa số khách» (không đọc số người chiều về hiện tại). */
+  returnPax: number | null;
   quantity: number;
   unitPrice: number;
   lineTotal: number;

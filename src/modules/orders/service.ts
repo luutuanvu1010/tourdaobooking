@@ -658,7 +658,7 @@ export async function chuanBiPhiDonXacNhan(db: D1Database, don: NonNullable<Awai
   if (!phi.ketQua.apDung && !coDongCu) return { ketQua: phi.ketQua, thieu: [], subtotalMoi: don.subtotal, totalMoi: don.total, cauLenh: () => [] };
   const tongDichVu = don.services.reduce((t, s) => t + s.items.reduce((u, i) => u + i.lineTotal, 0), 0);
   const subtotalMoi = tongDichVu + phi.tong;
-  const totalMoi = effectiveMoney(subtotalMoi, don.discount).total;
+  const totalMoi = effectiveMoney(tongDichVu, don.discount, phi.tong).total;
   const thieu = phi.ketQua.apDung ? phi.ketQua.thieu.map((t) => ({ legKey: t.legKey, tenVung: phi.ten.get(t.zoneCode) ?? t.zoneCode, lyDo: t.lyDo })) : [];
   const soDongDichVu = don.services.reduce((t, s) => t + s.items.length, 0);
   return {

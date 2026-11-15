@@ -11,13 +11,13 @@ import {
   legCloseChecked, legCloseGuarded, legCloseReplaceChecked, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legPaxOverrideChecked, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
   openLegsStatement, chotLoPhiDon, orderConfirm, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded,
   serviceMirrorUpdateGuarded, type DauChepNhap, type DauDatGapMoi, type DauGhi, type LegFields, type LegRow, type LegWrite, type OPhuGhi, type PassengerWrite, type ServicePaxRow,
-  feeItemInsert, feeRowsStatement, type DongPhiGhi, type FeeRow,
+  dongPhiTienNhieuDon, feeItemInsert, feeRowsStatement, type DongPhiGhi, type FeeRow,
 } from "./chang-hanh-khach-repo";
 import { dongPhiThanhItem, phiDongDto, phiDuaDonDto, type PhiTheoChang } from "./phi-don-don";
 import type { LocDon } from "../../shared/loc-don";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
-import { effectiveMoney, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, type AdjustmentEntry, type SubtotalServiceInput } from "./money-adjustment";
+import { effectiveMoney, isAdjustmentSeqCollision, parseAdjustmentAfter, tienHieuLuc, type AdjustmentEntry, type DongPhiTien, type SubtotalServiceInput } from "./money-adjustment";
 import type { PoolSourceOrder, PoolSourceService } from "./pool";
 import type { FrozenLine } from "./price-guards";
 import { NHAN_THAN_CU, type LoaiThanCu } from "./than-cu";
@@ -195,9 +195,10 @@ function toDto(r: OrderRow): OrderDto {
     subtotal: r.subtotal,
     discount: r.discount,
     total: r.total,
-    // ADR-0109 QĐ2: giảm giá hiệu lực của đơn CHƯA điều chỉnh (đơn đã điều chỉnh: `applyAdjustmentToOrder` ghi đè cùng hàm). Bằng `discount` vì lúc lập đã chặn
-    // giảm giá ≤ tạm tính (trigger 0007 giữ total = subtotal − discount ≥ 0).
-    giamGiaHieuLuc: effectiveMoney(r.subtotal, r.discount).giamGiaHieuLuc,
+    // ADR-0109 QĐ2: giảm giá hiệu lực của đơn CHƯA điều chỉnh (đơn đã điều chỉnh: `applyAdjustmentToOrder` ghi đè cùng hàm). Bằng `discount` vì lúc lập / lưu nháp đã chặn
+    // giảm giá ≤ Σ dòng dịch vụ ≤ tạm tính (trigger 0007 giữ total = subtotal − discount ≥ 0). Đợt C: danh sách / tóm tắt không đọc dòng phí nên truyền cả tạm tính đã lưu làm phần
+    // dịch vụ và phí 0 — chỉ đọc `giamGiaHieuLuc` (= min(giảm giá, tạm tính) = giảm giá = min(giảm giá, Σ dịch vụ)); chi tiết đơn (`findOrder`) tính lại theo đúng phần dịch vụ.
+    giamGiaHieuLuc: effectiveMoney(r.subtotal, r.discount, 0).giamGiaHieuLuc,
     paymentNote: r.payment_note,
     // ADR-0159 Đ1 mục 6: sau xác nhận đọc từ sổ, không đọc cột — nên chỉ đơn nháp mang số này.
     declaredDeposit: r.status === "draft" ? r.declared_deposit : 0,
@@ -359,7 +360,10 @@ export async function findOrder(db: D1Database, id: string): Promise<OrderDetail
   });
   // Phí đưa đón: dòng phí ĐÃ LƯU (đơn nháp: `loadOrderView` bổ sung chặng thiếu mức tính lúc đọc).
   const phiDuaDon = phiDuaDonDto({ nhap: row.status === "draft", dong: phiDongDto(feeRes!.results as FeeRow[]), songNhap: null });
-  return { ...toDto(row), phiDuaDon, services, bookerLaDoiTac: Number((laDoiTacRes!.results as { la: number }[])[0]?.la ?? 0) === 1, manifestExempt: row.manifest_exempt === 1 };
+  // Đợt C, Task 5: giảm giá hiệu lực = min(giảm giá, Σ dòng dịch vụ) — phí không bao giờ bị giảm (chủ 15/11, SV-PD-29).
+  const dichVu = services.reduce((t, s) => t + s.items.reduce((u, i) => u + i.lineTotal, 0), 0);
+  const giamGiaHieuLuc = effectiveMoney(dichVu, row.discount, (phiDuaDon?.dong ?? []).reduce((t, d) => t + d.lineTotal, 0)).giamGiaHieuLuc;
+  return { ...toDto(row), giamGiaHieuLuc, phiDuaDon, services, bookerLaDoiTac: Number((laDoiTacRes!.results as { la: number }[])[0]?.la ?? 0) === 1, manifestExempt: row.manifest_exempt === 1 };
 }
 
 /**
@@ -1402,6 +1406,19 @@ export async function getServicesForSubtotal(db: D1Database, orderIds: readonly 
   return buildSubtotalServices(serviceRows, itemRows);
 }
 
+/**
+ * Dòng phí đưa đón ĐÃ LƯU (đã đóng băng) của NHIỀU đơn, theo đơn — phần còn lại của tiền hiệu lực bên cạnh `getServicesForSubtotal` (Đợt C, Task 5). Câu ở tệp nửa nghiêm
+ * (`dongPhiTienNhieuDon`, chang-hanh-khach-repo.ts). Đơn không dòng phí: không có trong Map.
+ */
+export async function getPhiChoHieuLuc(db: D1Database, orderIds: readonly string[]): Promise<Map<string, DongPhiTien[]>> {
+  const out = new Map<string, DongPhiTien[]>();
+  for (const r of await dongPhiTienNhieuDon(db, orderIds)) {
+    const d: DongPhiTien = { serviceId: r.order_service_id, kind: r.fee_kind, returnPax: r.fee_return_pax, quantity: r.quantity, unitPrice: r.unit_price, lineTotal: r.line_total };
+    out.set(r.order_id, [...(out.get(r.order_id) ?? []), d]);
+  }
+  return out;
+}
+
 /** Cột gốc của `orders` cần để tính tiền hiệu lực khi đơn KHÔNG có điều chỉnh (dùng thẳng) hoặc CÓ điều chỉnh (nền cho `effectiveSubtotal`). */
 export interface OrderMoneyBase {
   id: string;
@@ -1422,7 +1439,7 @@ export async function computeEffectiveMoney(
   latestAdjustments: ReadonlyMap<string, LatestAdjustmentOverlay>,
 ): Promise<Map<string, { total: number }>> {
   const adjustedIds = orders.filter((o) => latestAdjustments.has(o.id)).map((o) => o.id);
-  const servicesByOrder = await getServicesForSubtotal(db, adjustedIds);
+  const [servicesByOrder, phiByOrder] = await Promise.all([getServicesForSubtotal(db, adjustedIds), getPhiChoHieuLuc(db, adjustedIds)]);
   const out = new Map<string, { total: number }>();
   for (const o of orders) {
     const adj = latestAdjustments.get(o.id);
@@ -1430,8 +1447,9 @@ export async function computeEffectiveMoney(
       out.set(o.id, { total: o.total });
       continue;
     }
-    const subtotal = effectiveSubtotal(servicesByOrder.get(o.id) ?? [], adj.after);
-    out.set(o.id, { total: effectiveMoney(subtotal, o.discount).total }); // ADR-0109: phải thu kẹp ≥ 0 trong effectiveMoney
+    // Đợt C, Task 5: phần phí đưa đón tính lại theo số khách mới (`phiHieuLuc` trong `tienHieuLuc`); giảm giá chỉ trừ phần dịch vụ.
+    const t = tienHieuLuc(servicesByOrder.get(o.id) ?? [], phiByOrder.get(o.id) ?? [], adj.after);
+    out.set(o.id, { total: effectiveMoney(t.dichVu, o.discount, t.phi).total }); // ADR-0109: phải thu kẹp ≥ 0 trong effectiveMoney
   }
   return out;
 }

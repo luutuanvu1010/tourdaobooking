@@ -968,6 +968,23 @@ export interface FeeRow {
 export const feeRowsStatement = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(FEE_ROWS_BY_ORDER).bind(orderId);
 
 /**
+ * Dòng phí đã lưu của NHIỀU đơn, đủ để tính tiền hiệu lực (Đợt C, Task 5): dịch vụ của chặng, kiểu mức, số người chiều về ĐÃ CHỤP, số lượng, đơn giá, thành tiền. KHÔNG lọc chặng đã
+ * đóng (phí đã chụp theo dòng, không theo chặng — chặng đóng sau xác nhận vẫn giữ dòng phí). Dùng cho phải thu / danh sách / Trang chủ (`getPhiChoHieuLuc`) và công nợ đại lý.
+ */
+const FEE_MONEY_MANY = defineSql(
+  "orders",
+  "fee_money_many",
+  `SELECT i.order_id, l.order_service_id, i.fee_kind, i.fee_return_pax, i.quantity, i.unit_price, i.line_total
+   FROM order_item i JOIN ord_transfer_leg l ON l.id = i.transfer_leg_id
+   WHERE i.order_id IN (SELECT value FROM json_each(?1)) AND i.line_kind = 'TRANSFER_FEE' ORDER BY i.order_id, i.sort_order`,
+);
+export interface FeeMoneyRow { order_id: string; order_service_id: string; fee_kind: "PER_PAX" | "PER_TRIP"; fee_return_pax: number | null; quantity: number; unit_price: number; line_total: number }
+export async function dongPhiTienNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<FeeMoneyRow[]> {
+  if (orderIds.length === 0) return [];
+  return (await db.prepare(FEE_MONEY_MANY).bind(JSON.stringify([...new Set(orderIds)])).all<FeeMoneyRow>()).results;
+}
+
+/**
  * CÂU CHỐT của lô xác nhận có câu phí (Đợt C, Task 4; migration 0169 mục 5): chèn vào bảng đổ `ord_xac_nhan_phi_gac` — đơn đã 'confirmed' ⇒ trigger bỏ qua (không lưu dòng);
  * chưa ⇒ trigger ném `transfer_fee_confirm_lost` ⇒ CẢ lô lui, kể cả câu xoá / chèn dòng phí và câu tiền đứng TRƯỚC câu xác nhận. Phải đứng SAU chuỗi `changes() > 0` của
  * nhật ký `confirmed` và bản chụp (câu bị bỏ qua để lại `changes() = 0`) — `soanXacNhan` đặt nó CUỐI phần soạn.

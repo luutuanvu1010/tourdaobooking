@@ -100,7 +100,7 @@ export function cauThieuPhiDon(t: { lyDo: LyDoThieuPhiDon; tenVung: string }, te
 export function phiDongDto(rows: readonly FeeRow[]): PhiDuaDonDto[] {
   return rows.map((r) => ({
     id: r.id, legId: r.transfer_leg_id, serviceId: r.order_service_id, direction: r.direction, zoneCode: r.fee_zone_code, zoneName: r.zone_name ?? r.fee_zone_code,
-    tierCode: r.fee_tier_code, kind: r.fee_kind, quantity: r.quantity, unitPrice: r.unit_price, lineTotal: r.line_total, description: r.description,
+    tierCode: r.fee_tier_code, kind: r.fee_kind, returnPax: r.fee_return_pax, quantity: r.quantity, unitPrice: r.unit_price, lineTotal: r.line_total, description: r.description,
   }));
 }
 

@@ -64,7 +64,7 @@ test("DK-T2-01 recomputeService: dòng đã lưu THIẾU đơn giá (không ph�
 
 test("DK-T2-01 effectiveService/effectiveSubtotal (danh sách, Trang chủ, nơi ghi): tính lại theo giá thoả thuận", () => {
   assert.equal(effectiveService(subtotalInput(), { ...ZERO, adult: 3 }).subtotal, 3 * DEAL);
-  assert.equal(effectiveSubtotal([subtotalInput()], [{ serviceId: "svc-1", pax: { ...ZERO, adult: 2 } }]), 2 * DEAL, "y nguyên số khách → y nguyên tiền");
+  assert.equal(effectiveSubtotal([subtotalInput()], [], [{ serviceId: "svc-1", pax: { ...ZERO, adult: 2 } }]), 2 * DEAL, "y nguyên số khách → y nguyên tiền");
 });
 
 test("DK-T2-01 effectiveService: dòng đọc lên thiếu đơn giá → lùi về tiền ĐÃ LƯU (own), không phải giá niêm yết", () => {

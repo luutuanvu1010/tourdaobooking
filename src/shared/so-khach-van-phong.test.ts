@@ -75,12 +75,12 @@ test("ai thấy nút: chỉ đơn ĐÃ XÁC NHẬN, chưa 'Đã giao' (sau ngày
 });
 
 test("giảm giá vượt tạm tính (ADR-0109 QĐ3): chỉ cảnh báo, điều kiện giảm giá > tạm tính HIỆN HÀNH (so nghiêm, kể cả tạm tính 0); bằng hoặc nhỏ hơn → không có câu", () => {
-  assert.equal(canhBaoGiamGiaVuot({ subtotal: 500000, discount: 800000 }), CAU_GIAM_GIA_VUOT);
-  assert.equal(canhBaoGiamGiaVuot({ subtotal: 0, discount: 800000 }), CAU_GIAM_GIA_VUOT, "tạm tính về 0 (vd chỉ còn em bé giá 0)");
-  assert.equal(canhBaoGiamGiaVuot({ subtotal: 500000, discount: 500001 }), CAU_GIAM_GIA_VUOT);
-  assert.equal(canhBaoGiamGiaVuot({ subtotal: 500000, discount: 500000 }), null, "bằng nhau: phải thu 0 nhưng không có phần giảm giá vượt");
-  assert.equal(canhBaoGiamGiaVuot({ subtotal: 500000, discount: 0 }), null);
-  assert.equal(canhBaoGiamGiaVuot({ subtotal: 0, discount: 0 }), null);
+  assert.equal(canhBaoGiamGiaVuot({ discount: 800000, giamGiaHieuLuc: 500000 }), CAU_GIAM_GIA_VUOT);
+  assert.equal(canhBaoGiamGiaVuot({ discount: 800000, giamGiaHieuLuc: 0 }), CAU_GIAM_GIA_VUOT, "tạm tính về 0 (vd chỉ còn em bé giá 0)");
+  assert.equal(canhBaoGiamGiaVuot({ discount: 500001, giamGiaHieuLuc: 500000 }), CAU_GIAM_GIA_VUOT);
+  assert.equal(canhBaoGiamGiaVuot({ discount: 500000, giamGiaHieuLuc: 500000 }), null, "bằng nhau: phải thu 0 nhưng không có phần giảm giá vượt");
+  assert.equal(canhBaoGiamGiaVuot({ discount: 0, giamGiaHieuLuc: 0 }), null);
+  assert.equal(canhBaoGiamGiaVuot({ discount: 0, giamGiaHieuLuc: 0 }), null);
   assert.match(CAU_GIAM_GIA_VUOT, /Kế toán/);
   assert.match(CAU_GIAM_GIA_VUOT, /hoàn/);
   assert.doesNotMatch(CAU_GIAM_GIA_VUOT, /\d/, "câu cố định, không số tiền");

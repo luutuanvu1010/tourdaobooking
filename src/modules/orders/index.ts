@@ -24,7 +24,7 @@ import { dungLichSuSoKhach } from "../../shared/lich-su-so-khach";
 import { editablePaxCodesOf, effectiveMoney, effectiveSubtotal, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
 import {
   addLeg, cauTienNhapSauPhi, changeBooker, daXacNhan, soanDoiKhach, soanHuyDon, soanXacNhan, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getGiamGia, getLatestAdjustment, getMeta, getOrderRef, bookerLaDoiTacCuaDon, nextStamp,
-  chayLoSuaSoKhach, demThanCu, getServicesForSubtotal, getStoredPax, getStoredServices, type StoredServiceRow, insertMoneyAdjustment, listAdjustments, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip,
+  chayLoSuaSoKhach, demThanCu, getPhiChoHieuLuc, getServicesForSubtotal, getStoredPax, getStoredServices, type StoredServiceRow, insertMoneyAdjustment, listAdjustments, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
 import {
   legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, manualPolicy, manualPolicyInsert, slotPolicy, slotPolicyInsert, openLegsByOrders, orderContactRows, passengerRowsByOrders,
@@ -264,8 +264,8 @@ async function phiSauSuaChang(
   const phi = await tinhPhiNhap(db, bookerPartyId, dv, vnToday(new Date()));
   const dongDichVu = stored.flatMap((s) => s.lines);
   // Tạm tính = Σ thành tiền dòng dịch vụ đang lưu (một hàm `thanhTienDong`) + phí; tổng qua hàm phải thu duy nhất `effectiveMoney` (giảm giá ≤ dòng dịch vụ ⇒ = tạm tính − giảm giá).
-  const subtotal = dongDichVu.reduce((t, l) => t + thanhTienDong(l), 0) + phi.tong;
-  const tien = { subtotal, total: effectiveMoney(subtotal, await getGiamGia(db, id)).total };
+  const dichVu = dongDichVu.reduce((t, l) => t + thanhTienDong(l), 0);
+  const tien = { subtotal: dichVu + phi.tong, total: effectiveMoney(dichVu, await getGiamGia(db, id), phi.tong).total };
   if (vuotTong(await loiKhaiDangLuu(db, id), tien.total)) return { res: error(409, "declared_deposit_exceeds_total", CAU_VUOT_TONG) };
   const changMoi = new Set((sua.ops ?? []).flatMap((op) => (op.kind === "insert" && op.leg.id !== null ? [op.leg.id] : [])));
   return { cau: { ...cauPhiNhap(db, id, phi, g, changMoi, dongDichVu.length), tien } };
@@ -756,14 +756,16 @@ async function soanSuaSoKhach(
   soVeDaDung?: (orderId: string) => Promise<Map<string, number> | null>,
   cauGacDuoiSo?: CauGacDuoiSoVe,
 ): Promise<SoanSuaSoKhach> {
-  const [stored, latest, servicesByOrder] = await Promise.all([
+  const [stored, latest, servicesByOrder, phiByOrder] = await Promise.all([
     getStoredServices(db, orderId),
     getLatestAdjustment(db, orderId),
     getServicesForSubtotal(db, [orderId]),
+    getPhiChoHieuLuc(db, [orderId]),
   ]);
   const services = servicesByOrder.get(orderId) ?? [];
   const plan = planMoneyEdit({
     services,
+    phi: phiByOrder.get(orderId) ?? [],
     storedPax: new Map(stored.map((s) => [s.id, s.pax])),
     latestAfter: latest?.after ?? null,
     body,
@@ -787,8 +789,8 @@ async function soanSuaSoKhach(
   if (!meta) return { ok: false, code: "invalid_input", message: "Không tìm thấy đơn." };
   const giam = meta.paymentTerm === "CREDIT" ? await getGiamGia(db, orderId) : 0;
   const cong = await congSuaTangTraSau(
-    traSau, { id: orderId, paymentTerm: meta.paymentTerm, status: meta.status, bookerPartyId: meta.bookerPartyId, total: effectiveMoney(plan.subtotalBefore, giam).total },
-    effectiveMoney(plan.subtotalAfter, giam).total,
+    traSau, { id: orderId, paymentTerm: meta.paymentTerm, status: meta.status, bookerPartyId: meta.bookerPartyId, total: effectiveMoney(plan.tienTruoc.dichVu, giam, plan.tienTruoc.phi).total },
+    effectiveMoney(plan.tienSau.dichVu, giam, plan.tienSau.phi).total, // Đợt C: phần phí theo khách tăng cũng tính vào «sửa tăng»
   );
   if ("loi" in cong) return { ok: false, code: "tra_sau", res: cong.loi };
   const { auditId, cau } = insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, plan.before, plan.after, plan.subtotalBefore, plan.subtotalAfter, action, detail, cong.qua);
@@ -814,12 +816,13 @@ async function nhacKhuyenMaiCuaDon(db: D1Database, order: OrderDetailDto): Promi
  * MỘT nguồn `effectiveSubtotal` trên MỌI dịch vụ (kể cả nhập tay) — không tin cột `subtotal_after` đã lưu; KHÔNG đọc chữ nhật ký. Dựng dòng ở src/shared/lich-su-so-khach.ts.
  */
 async function lichSuSoKhachCuaDon(db: D1Database, order: OrderDetailDto): Promise<DongLichSuSoKhachDto[]> {
-  const [daLuu, lanSua, dichVuTien] = await Promise.all([getStoredPax(db, order.id), listAdjustments(db, order.id), getServicesForSubtotal(db, [order.id])]);
+  const [daLuu, lanSua, dichVuTien, phiTien] = await Promise.all([getStoredPax(db, order.id), listAdjustments(db, order.id), getServicesForSubtotal(db, [order.id]), getPhiChoHieuLuc(db, [order.id])]);
   const tien = dichVuTien.get(order.id) ?? [];
+  const phi = phiTien.get(order.id) ?? []; // Đợt C: tạm tính mỗi dòng gồm phí đưa đón theo khách tính lại
   return dungLichSuSoKhach({
     dichVu: order.services.map((s) => ({ id: s.id, catalogCode: s.catalogCode, name: s.name, pax: daLuu.get(s.id) ?? s.pax })),
-    tamTinhKhoiTao: effectiveSubtotal(tien, []),
-    lanSua: lanSua.map((l) => ({ seq: l.seq, sau: l.after, tamTinhSau: effectiveSubtotal(tien, l.after) })),
+    tamTinhKhoiTao: effectiveSubtotal(tien, phi, []),
+    lanSua: lanSua.map((l) => ({ seq: l.seq, sau: l.after, tamTinhSau: effectiveSubtotal(tien, phi, l.after) })),
   });
 }
 

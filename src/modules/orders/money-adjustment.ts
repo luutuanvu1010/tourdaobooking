@@ -1,8 +1,8 @@
 // Luật thuần cho "dòng điều chỉnh" số khách sau xác nhận (ADR-0014 điều 6, Phase B). Không I/O. Tái dùng nguyên `snapshotService`/`buildLines`
 // đã có (cơ chế "giá lúc lập đơn" của Q11) — KHÔNG viết logic tính giá mới. Dùng chung cho route ghi (dispatch) và overlay đọc (service.ts).
-import type { OrderDetailDto, OrderItemDto, OrderServiceDto } from "../../shared/contracts.ts";
+import type { OrderDetailDto, OrderItemDto, OrderServiceDto, PhiDuaDonDto } from "../../shared/contracts.ts";
 import { CAU_THIEU_NGUOI_LON, suaDuaVeKhongNguoiLon } from "../../shared/nguoi-di-kem.ts";
-import { PAX_ORDER, availableCodes, thanhTienDong, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
+import { PAX_ORDER, availableCodes, payingGuests, thanhTienDong, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
 import { snapshotService, storedServiceLines, storedUnitPrices, type StoredService } from "./service-rules.ts";
 import { hasLongDigitRun, PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
 
@@ -190,12 +190,64 @@ export function effectiveService(svc: SubtotalServiceInput, newPax: PaxCounts | 
   return { subtotal: recomputed.subtotal, recomputed: { pax: recomputed.pax, lines: recomputed.lines } };
 }
 
-/** Tổng tiền hiệu lực của MỘT ĐƠN — tổng `effectiveService(...).subtotal` của mọi dịch vụ. Dùng ở CẢ nơi GHI (`orders/index.ts:editMoneyAsHandler`,
- * tính `subtotal_before`/`subtotal_after` MỚI) lẫn nơi ĐỌC nhiều đơn (`orders/repository.ts`, danh sách/Trang chủ). `services` PHẢI là MỌI dịch vụ
- * của đơn (kể cả nhập tay) — thiếu dịch vụ nào thì thiếu đúng tiền dịch vụ đó, không có lưới nào khác bù lại. */
-export function effectiveSubtotal(services: readonly SubtotalServiceInput[], after: readonly { serviceId: string; pax: PaxCounts }[]): number {
+// ---- Dòng phí đưa đón trong tiền hiệu lực (Đợt C, Task 5; ADR-0147 Đ3, ADR-0203 ĐB2; trang ghép 2026-10-28 §1; sổ vàng SV-PD-24) ----------------------------
+//
+// Sau xác nhận trigger 0081 khoá mọi dòng `order_item` (cả dòng phí). «Sửa số khách» KHÔNG ghi đè dòng nào — chỉ thêm dòng `order_money_adjustment` — nên dòng phí theo khách
+// (`PER_PAX`) được TÍNH LẠI LÚC ĐỌC, cùng cách dòng dịch vụ: đơn giá = `unit_price` ĐÃ CHỤP, số lượng = số khách tính tiền MỚI của dịch vụ của chặng (em bé không tính),
+// chiều về có số người đã chụp (`fee_return_pax`) thì lấy min(số đó, số mới) — KHÔNG đọc `pax_override` hiện tại của chặng (sửa chặng sau xác nhận không đổi phí). `PER_TRIP`
+// giữ nguyên. Chặng đã đóng sau xác nhận vẫn tính lại như chặng mở: phí đã chụp theo DÒNG, không theo chặng. Không thêm đường ghi nào, không thêm quyền nào.
+
+/** Một dòng phí đã lưu, đủ để tính lại theo số khách mới. `serviceId` = dịch vụ của chặng (`ord_transfer_leg.order_service_id`); `returnPax` = cột chụp `fee_return_pax`. */
+export interface DongPhiTien {
+  serviceId: string;
+  kind: "PER_PAX" | "PER_TRIP";
+  returnPax: number | null;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+/**
+ * Số lượng của MỘT dòng phí khi dịch vụ của chặng đổi sang `newPax` (MỘT chỗ tính lại phí — bài canh `src/buildlines-guard.test.ts`). `PER_TRIP` ⇒ số lượng đã lưu (1).
+ * `PER_PAX` ⇒ số khách tính tiền mới, chiều về có `returnPax` thì min(`returnPax`, số đó).
+ */
+export function soLuongPhiSauSua(d: Pick<DongPhiTien, "kind" | "returnPax" | "quantity">, newPax: PaxCounts): number {
+  if (d.kind !== "PER_PAX") return d.quantity;
+  const khach = payingGuests(newPax);
+  return d.returnPax === null ? khach : Math.min(d.returnPax, khach);
+}
+
+/** Dòng phí hiệu lực: dịch vụ của chặng có trong `after` ⇒ tính lại (`soLuongPhiSauSua`, thành tiền qua `thanhTienDong`); không có ⇒ y như đã lưu. */
+export function phiHieuLuc<T extends DongPhiTien>(phi: readonly T[], after: readonly { serviceId: string; pax: PaxCounts }[]): { dong: T[]; tong: number } {
   const byService = new Map(after.map((a) => [a.serviceId, a.pax]));
-  return services.reduce((sum, s) => sum + effectiveService(s, byService.get(s.id)).subtotal, 0);
+  const dong = phi.map((d) => {
+    const pax = byService.get(d.serviceId);
+    if (!pax) return d;
+    const quantity = soLuongPhiSauSua(d, pax);
+    return { ...d, quantity, lineTotal: thanhTienDong({ quantity, unitPrice: d.unitPrice }) };
+  });
+  return { dong, tong: dong.reduce((t, d) => t + d.lineTotal, 0) };
+}
+
+/**
+ * Tiền hiệu lực của MỘT ĐƠN tách hai phần: `dichVu` = tổng `effectiveService(...).subtotal` của mọi dịch vụ, `phi` = tổng dòng phí hiệu lực (`phiHieuLuc`). Tách vì giảm giá chỉ
+ * trừ vào phần dịch vụ (chủ 15/11, SV-PD-29; `effectiveMoney`). `services` PHẢI là MỌI dịch vụ của đơn (kể cả nhập tay), `phi` PHẢI là MỌI dòng phí của đơn — thiếu dòng nào thì
+ * thiếu đúng tiền dòng đó, không có lưới nào khác bù lại.
+ */
+export function tienHieuLuc(
+  services: readonly SubtotalServiceInput[],
+  phi: readonly DongPhiTien[],
+  after: readonly { serviceId: string; pax: PaxCounts }[],
+): { dichVu: number; phi: number } {
+  const byService = new Map(after.map((a) => [a.serviceId, a.pax]));
+  return { dichVu: services.reduce((sum, s) => sum + effectiveService(s, byService.get(s.id)).subtotal, 0), phi: phiHieuLuc(phi, after).tong };
+}
+
+/** Tạm tính hiệu lực của MỘT ĐƠN = phần dịch vụ + phần phí (`tienHieuLuc`) — cùng nghĩa cột `orders.subtotal` (Σ mọi dòng, Ruling R1 Đợt C). Dùng ở CẢ nơi GHI (`orders/index.ts:soanSuaSoKhach`,
+ * tính `subtotal_before`/`subtotal_after` MỚI — R-ORD-6a so `subtotal_before` dòng đầu với `orders.subtotal`) lẫn nơi ĐỌC (lịch sử số khách). */
+export function effectiveSubtotal(services: readonly SubtotalServiceInput[], phi: readonly DongPhiTien[], after: readonly { serviceId: string; pax: PaxCounts }[]): number {
+  const t = tienHieuLuc(services, phi, after);
+  return t.dichVu + t.phi;
 }
 
 const toSubtotalInput = (s: OrderServiceDto): SubtotalServiceInput => ({
@@ -211,16 +263,23 @@ const toSubtotalInput = (s: OrderServiceDto): SubtotalServiceInput => ({
  */
 export function applyAdjustmentToOrder(order: OrderDetailDto, after: readonly { serviceId: string; pax: PaxCounts }[]): OrderDetailDto {
   const byService = new Map(after.map((a) => [a.serviceId, a.pax]));
-  let subtotal = 0;
+  let dichVu = 0;
   const services: OrderServiceDto[] = order.services.map((s) => {
     const eff = effectiveService(toSubtotalInput(s), byService.get(s.id));
-    subtotal += eff.subtotal;
+    dichVu += eff.subtotal;
     return eff.recomputed ? { ...s, pax: eff.recomputed.pax, items: eff.recomputed.lines.map(toItemDto) } : s;
   });
-  return { ...order, subtotal, ...effectiveMoney(subtotal, order.discount), services };
+  // Đợt C, Task 5: dòng phí theo khách tính lại theo số khách mới (cùng hàm `phiHieuLuc` với danh sách / phải thu của billing); tạm tính gồm phí, giảm giá chỉ trừ phần dịch vụ.
+  const phi = phiHieuLuc<PhiDuaDonDto>(order.phiDuaDon?.dong ?? [], after);
+  const phiDuaDon = order.phiDuaDon ? { ...order.phiDuaDon, dong: phi.dong } : null;
+  return { ...order, subtotal: dichVu + phi.tong, ...effectiveMoney(dichVu, order.discount, phi.tong), services, phiDuaDon };
 }
 
 /**
+ * Đợt C, Task 5 (chủ 15/11, sổ vàng SV-PD-29): đối số đầu là PHẦN DỊCH VỤ hiệu lực (Σ dòng dịch vụ), `phi` là PHẦN PHÍ ĐƯA ĐÓN hiệu lực. Giảm giá chỉ trừ vào phần dịch vụ và
+ * không bao giờ ăn vào phí: `total` = max(0, dịch vụ − giảm giá) + phí, `giamGiaHieuLuc` = min(giảm giá, dịch vụ). Đơn không phí: `phi` = 0, y như trước. Tham số `phi` bắt buộc để
+ * máy kiểm kiểu chỉ ra mọi nơi gọi (không nơi nào lặng lẽ quên phí).
+ *
  * PHẢI THU HIỆN HÀNH — MỘT HÀM (ADR-0109 QĐ1, Hiến chương 5.4): `total` = max(0, `subtotal` hiệu lực − `discount`), từ `subtotal` hiệu lực (gốc hoặc đã cộng
  * điều chỉnh); `discount` KHÔNG đổi qua route sửa số khách (khoá bởi 0081). Trả kèm `giamGiaHieuLuc` = min(`discount`, `subtotal`) — giảm giá THỰC DÙNG (ADR-0109
  * QĐ2), số dẫn xuất do cùng hàm trả về, để `subtotal − giamGiaHieuLuc = total` luôn đúng (biên nhận in số này — QĐ4). Khi tạm tính ≥ giảm giá thì hai số bằng số
@@ -244,8 +303,8 @@ export function applyAdjustmentToOrder(order: OrderDetailDto, after: readonly { 
  *  7. sổ vàng đại lý (`golden/hoan-tat-cong-no.json`) phải có bản đại lý của SV-SK-04: đại lý chịu 500.000, không phải 800.000;
  *  8. mọi chỗ tính mới phải gọi hàm này hoặc xin thêm vào danh sách cho phép của `src/phai-thu-mot-ham.test.ts`, có người rà.
  */
-export function effectiveMoney(subtotal: number, discount: number): { total: number; giamGiaHieuLuc: number } {
-  return { total: Math.max(0, subtotal - discount), giamGiaHieuLuc: Math.min(discount, subtotal) };
+export function effectiveMoney(dichVu: number, discount: number, phi: number): { total: number; giamGiaHieuLuc: number } {
+  return { total: Math.max(0, dichVu - discount) + phi, giamGiaHieuLuc: Math.min(discount, dichVu) };
 }
 
 // ---- Quyết định một lần "HDV sửa số khách" (luật THUẦN; `orders/index.ts:editMoneyAsHandler` chỉ đọc/ghi D1 quanh hàm này) ------------------
@@ -264,6 +323,8 @@ export interface AdjustmentEntry {
 export interface MoneyEditContext {
   /** MỌI dịch vụ của đơn (kể cả nhập tay) với dòng tiền ĐÃ LƯU — từ `repository.ts:getServicesForSubtotal`. */
   services: readonly SubtotalServiceInput[];
+  /** MỌI dòng phí đưa đón đã lưu của đơn — từ `repository.ts:getPhiChoHieuLuc` (Đợt C, Task 5). Rỗng = đơn không phí. */
+  phi: readonly DongPhiTien[];
   /** Số khách ĐÃ LƯU (order_service gốc) của từng dịch vụ. */
   storedPax: ReadonlyMap<string, PaxCounts>;
   /** `after` của dòng điều chỉnh gần nhất (đã qua `parseAdjustmentAfter`), null nếu chưa có. */
@@ -274,7 +335,8 @@ export interface MoneyEditContext {
 
 export type MoneyEditPlan =
   | { ok: true; write: false }
-  | { ok: true; write: true; reason: string; before: AdjustmentEntry[]; after: AdjustmentEntry[]; subtotalBefore: number; subtotalAfter: number }
+  /** `subtotalBefore`/`subtotalAfter` = tạm tính (dịch vụ + phí) — cột của `order_money_adjustment`; `tienTruoc`/`tienSau` tách hai phần cho phải thu (giảm giá chỉ trừ phần dịch vụ). */
+  | { ok: true; write: true; reason: string; before: AdjustmentEntry[]; after: AdjustmentEntry[]; subtotalBefore: number; subtotalAfter: number; tienTruoc: { dichVu: number; phi: number }; tienSau: { dichVu: number; phi: number } }
   | { ok: false; code: "invalid_input"; message: string }
   /** ADR-0114 D3: lần sửa này đưa tổng người đi kèm của cả đơn từ ≥ 1 xuống 0 — máy chủ trả 409 `thieu_nguoi_lon` ở CẢ hai đường sửa số khách. */
   | { ok: false; code: "thieu_nguoi_lon"; message: string };
@@ -286,7 +348,7 @@ const samePax = (a: PaxCounts, b: PaxCounts): boolean => PAX_ORDER.every((c) => 
  *  1. Thân yêu cầu hợp lệ (`parseMoneyEditInput` — lý do bắt buộc, đủ mọi dịch vụ từ danh mục).
  *  2. Mọi dịch vụ Y NGUYÊN số khách hiện hành (dòng điều chỉnh gần nhất, hoặc số đã lưu) → `write: false`: KHÔNG ghi dòng điều chỉnh nào
  *     (DK-T2-01: "kiểm lại danh sách, không đổi" từng ghi một dòng và đổi tiền đơn).
- *  3. Tiền trước/sau tính bằng `effectiveSubtotal` (nguồn duy nhất, theo ĐƠN GIÁ ĐÃ THOẢ THUẬN) trên MỌI dịch vụ của đơn.
+ *  3. Tiền trước/sau tính bằng `tienHieuLuc` (nguồn duy nhất, theo ĐƠN GIÁ ĐÃ THOẢ THUẬN) trên MỌI dịch vụ VÀ MỌI dòng phí đưa đón của đơn.
  * KHÔNG chặn "còn lại" âm (giảm khách làm tổng < cọc) — giữ đúng hành vi trước bản vá DK-T2-01. Đây là việc MỞ, CHƯA quyết, để dành cho thiết
  * kế sổ thu/hoàn tiền (docs/CHANGE-GUIDE.md §4 mục 32).
  */
@@ -324,7 +386,8 @@ export function planMoneyEdit(c: MoneyEditContext): MoneyEditPlan {
   }
   if (after.every((a, i) => samePax(a.pax, before[i]!.pax))) return { ok: true, write: false };
 
-  const subtotalBefore = effectiveSubtotal(c.services, before);
-  const subtotalAfter = effectiveSubtotal(c.services, after);
-  return { ok: true, write: true, reason: input.reason, before, after, subtotalBefore, subtotalAfter };
+  // Đợt C, Task 5: tiền trước / sau gồm cả dòng phí theo khách tính lại (`phiHieuLuc`) — cổng Trả sau «sửa tăng» nhờ vậy cộng cả phần phí tăng.
+  const tienTruoc = tienHieuLuc(c.services, c.phi, before);
+  const tienSau = tienHieuLuc(c.services, c.phi, after);
+  return { ok: true, write: true, reason: input.reason, before, after, subtotalBefore: tienTruoc.dichVu + tienTruoc.phi, subtotalAfter: tienSau.dichVu + tienSau.phi, tienTruoc, tienSau };
 }
