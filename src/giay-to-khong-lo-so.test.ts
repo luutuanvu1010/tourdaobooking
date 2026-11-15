@@ -274,7 +274,7 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
       assert.equal(r.text.includes("••••"), false, "màn duyệt không mang cả số che");
     },
     "POST /api/dang-ky/phieu/:id/duyet": async () => {
-      await goi("duyệt phiếu đăng ký", "POST", `/api/dang-ky/phieu/${phieuDk}/duyet`, SUP, { roleCode: "TRAVEL_AGENCY" }, 200);
+      await goi("duyệt phiếu đăng ký", "POST", `/api/dang-ky/phieu/${phieuDk}/duyet`, SUP, { roleCode: "TRAVEL_AGENCY", phienBan: 1 }, 200);
       assert.equal(w.q("SELECT count(*) n FROM pty_person_document WHERE number_key = ?", SO_DK)[0].n, 1, "chống bài rỗng: lệnh duyệt đã chép số sang hồ sơ");
       const lichSu = JSON.stringify(w.q("SELECT * FROM dk_event WHERE registration_id = ?", phieuDk));
       for (const s of DAU_SO_NGUOI) assert.equal(lichSu.includes(s), false, `lịch sử phiếu lộ "${s}"`);

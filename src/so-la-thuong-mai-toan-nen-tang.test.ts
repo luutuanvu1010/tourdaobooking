@@ -209,6 +209,7 @@ function bangDien(g: Gieo): Record<string, string[]> {
     // chuỗi truy vấn. Nhật ký toàn hệ thống: trang đầu (100 dòng) + lọc đúng các hành động chở mức — thế giới lớn dần thì dòng cũ không rơi khỏi phép quét.
     "/api/audit": ["/api/audit?limit=100", "/api/audit?action=prc_commission_rule_added", "/api/audit?action=prc_supply_term_added", "/api/audit?action=order_terms_manual", "/api/audit?q=SL"],
     "/api/pricing/thu-tra": [`/api/pricing/thu-tra?doiTac=${PTY_B}&dichVu=SLX&ngay=${NGAY}`, `/api/pricing/thu-tra?doiTac=${PTY_B}&dichVu=SLY&ngay=${NGAY}`],
+    "/api/pricing/cap-mac-dinh/se-ap": [`/api/pricing/cap-mac-dinh/se-ap?loai=TRAVEL_AGENCY&hoSo=${PTY_B}`], // ADR-0209 Đ4 (Task 12): «cấp sẽ áp» — tên cấp hoặc câu lý do, không tiền; văn phòng xem được hoa hồng 200, Đối tác / tài khoản lai 403
     "/api/pricing/ho-so/:id/hoa-hong": [`/api/pricing/ho-so/${PTY_B}/hoa-hong`], // YC-0020: chỉ mã, tên mức, số đếm — văn phòng 200, Đối tác / tài khoản lai 403
     "/api/pricing/nguoi-huong": ["/api/pricing/nguoi-huong?q=Đại"],
     // ADR-0148 Đ1: xem trước «Sửa» (chỉ hôm nay / đường / hai ngày) — dòng mức riêng 37,29% của B và gắn loại Đại lý lữ hành → mức TA lạ; văn phòng 200, Đối tác / lai 403.
