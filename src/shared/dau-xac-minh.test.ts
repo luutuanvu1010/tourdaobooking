@@ -74,6 +74,12 @@ const CA: (Ca & { dk: DuKienXacMinh[] })[] = [
       db.exec("UPDATE pty_party SET merged_into_id = 'p', merged_at = '2026-11-10T00:00:00.000Z', active = 0 WHERE id = 'm'");
     }, coTaiKhoan: true, mong: "DA",
     dk: [MUC("HO_TEN", "ATTRIBUTE", DAT), MUC("NGAY_SINH", "ATTRIBUTE", DAT), MUC("CCCD", "DOCUMENT", { ...DAT, maGiayTo: "d1", hetHan: HAN })] },
+  { ten: "hồ sơ tổ chức (danh sách mục bắt buộc của tổ chức còn rỗng) ⇒ Chưa, không bao giờ Đã (chủ sẽ xác nhận)", hoSo: "o", lap: (db) => {
+      const t = "2026-11-01T00:00:00.000Z";
+      db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('o', 'ORGANIZATION', 'Công ty Thử', 1, '${t}', '${t}')`);
+      db.exec(`INSERT INTO pty_organization (party_id, created_at, updated_at) VALUES ('o', '${t}', '${t}')`);
+    }, coTaiKhoan: true, mong: "CHUA",
+    dk: [{ loaiMuc: null, maMuc: null, ketLuanMoiNhat: null, tungDat: false, maGiayTo: null, hetHan: null, laDoiTac: false, anDanh: false }] },
   { ten: "hồ sơ đã ẩn danh theo yêu cầu xoá ⇒ Chưa", lap: (db) => {
       giayTo(db, "p", "d1", HAN); datDu(db, "p", "d1");
       db.exec(`INSERT INTO pty_erasure_request (id, party_id, status, created_at, created_by, updated_at, updated_by) VALUES ('x1', 'p', 'CHO_XU_LY', '2026-11-11T00:00:00.000Z', 'p', '2026-11-11T00:00:00.000Z', 'p')`);

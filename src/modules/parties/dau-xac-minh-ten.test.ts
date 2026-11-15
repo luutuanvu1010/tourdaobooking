@@ -89,7 +89,8 @@ test("quét mã: chỉ ba câu UPDATE pty_person đụng cột tên, đều ở 
   const hit: string[] = [];
   for (const f of tep(SRC)) {
     const src = readFileSync(f, "utf8");
-    for (const m of src.matchAll(/UPDATE pty_person SET[\s\S]{0,400}?(?:`|")/g)) if (/(family_name|middle_name|given_name)\s*=/.test(m[0])) hit.push(f.slice(SRC.length));
+    // không phân biệt hoa thường và khoảng trắng / xuống dòng giữa các từ; cắt tới dấu đóng chuỗi SQL kế tiếp
+    for (const m of src.matchAll(/update\s+pty_person\s+set[\s\S]{0,600}?(?:`|")/gi)) if (/(family_name|middle_name|given_name)\s*=/i.test(m[0])) hit.push(f.slice(SRC.length));
   }
   assert.deepEqual(hit, ["modules/parties/repository.ts", "modules/parties/repository.ts", "modules/parties/repository.ts"]);
   const stf = readFileSync(join(SRC, "modules/staff/index.ts"), "utf8");
