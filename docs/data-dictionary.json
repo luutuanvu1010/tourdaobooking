@@ -21,7 +21,8 @@
     "lan-gui",
     "pricing",
     "ky-so",
-    "ve-dien-tu"
+    "ve-dien-tu",
+    "dang-ky"
   ],
   "tables": [
     {
@@ -1071,6 +1072,54 @@
       "module": "ve-dien-tu",
       "kind": "table",
       "note": "Cài đặt kho vé (ADR-0156 Đ3, 0132): một dòng id = 'default', khuôn gd_setting. `batch_limit` = số vé tối đa mỗi lô, mặc định 50, Toàn quyền đặt qua ô settings.ops; `version` là khoá lạc quan; lịch sử ở audit_log (`ve_doi_tran_lo`)."
+    },
+    {
+      "name": "dk_policy",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "chính sách đăng ký (ADR-0206 Đ3; migration 0167), CHỈ-THÊM, dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét; gieo một dòng ĐÓNG (registration_open = 0). Con số lấy từ PHU-LUC đợt 1; anonymize_days là thời gian giữ dữ liệu cá nhân của người lạ"
+    },
+    {
+      "name": "dk_registration",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "phiếu đăng ký đối tác (ADR-0206 Đ3, Đ4; 0167): id DK_XXXXXXXX; loại mở PERSON; trạng thái đi theo đồ thị trigger dk_registration_transition (bốn trạng thái kết thúc không đổi). match_*, verified_* là kết luận Danh bạ và người xác minh để trigger dk_decision_guard chỉ đọc dk_*. party_id, staff_id, match_party_id là tham chiếu logic, không khoá ngoại"
+    },
+    {
+      "name": "dk_identity",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "danh tính đã chứng minh của phiếu (0167): đợt 1 chỉ EMAIL; chỉ mục duy nhất dk_identity_open_uq: một phiếu đang mở mỗi (provider, subject); is_open do trigger hạ về 0 khi phiếu kết thúc"
+    },
+    {
+      "name": "dk_submission",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "bản khai bất biến (0167): mỗi lần gửi một dòng, version kế tiếp current_version; chỉ cho đặt erased_at một lần (ẩn danh, ADR-0208). Cột soi theo pty_person / pty_contact_point / pty_person_document. Hạng N2/N3 không bao giờ vào nhật ký"
+    },
+    {
+      "name": "dk_item_result",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "kết luận từng mục khi xác minh (0167), CHỈ-THÊM"
+    },
+    {
+      "name": "dk_decision",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "quyết định của phiếu (ADR-0207 Đ5; 0167), CHỈ-THÊM: DUYET và KICH_HOAT, mỗi loại một dòng mỗi phiếu. Trigger dk_decision_guard làm hỏng cả lô nếu sai điều kiện (trạng thái, phiên bản, kết luận Danh bạ, người duyệt ≠ người xác minh trừ cờ Toàn quyền do máy chủ đặt; kích hoạt: đã duyệt, chưa kích hoạt, còn hạn)"
+    },
+    {
+      "name": "dk_event",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "lịch sử lệnh của phiếu (0167), CHỈ-THÊM; actor_kind REGISTRANT | STAFF | AGENT. Không ghi SĐT, email, số giấy tờ, ngày sinh, địa chỉ"
+    },
+    {
+      "name": "dk_email_code",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "mã gửi email của đăng ký (0167): chỉ lưu bản băm (N4), có hạn, có đếm lần nhập; bảng kỹ thuật, được cập nhật và xoá (dòng hết hạn)"
     }
   ],
   "views": [
@@ -1966,6 +2015,14 @@
     "vdt_setting": { "id": "N1", "batch_limit": "N1", "version": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_ticket": { "id": "N1", "batch_id": "N1", "ticket_code": "N2", "valid_from": "N1", "valid_to": "N1", "slot_time": "N1", "storage_key": "N2", "content_kind": "N1", "byte_size": "N1", "content_hash": "N2", "status": "N1", "stored_at": "N1", "purged_at": "N1", "r2_deleted_at": "N1", "withdrawn_at": "N1", "opened_at": "N1", "opened_by": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_soat_tu_ghi": { "audit_id": "N1", "order_id": "N1", "soat_boi": "N1", "soat_luc": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "v_aud_tu_ghi": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" }
+    "v_aud_tu_ghi": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
+    "dk_policy": { "id": "N1", "registration_open": "N1", "open_role_codes": "N1", "code_digits": "N1", "code_ttl_minutes": "N1", "code_max_attempts": "N1", "ask_per_mailbox": "N1", "ask_per_network": "N1", "ask_window_minutes": "N1", "ask_global_per_hour": "N1", "session_idle_minutes": "N1", "session_max_hours": "N1", "draft_expire_days": "N1", "supplement_expire_days": "N1", "activation_days": "N1", "photo_max_mb": "N1", "photo_max_count": "N1", "anonymize_days": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_registration": { "id": "N1", "kind": "N1", "status": "N1", "role_code": "N1", "current_version": "N1", "reason_code": "N1", "match_kind": "N1", "match_party_id": "N2", "verified_by": "N1", "verified_version": "N1", "verified_at": "N1", "party_id": "N1", "staff_id": "N1", "submitted_at": "N1", "decided_at": "N1", "activated_at": "N1", "expires_at": "N1", "erased_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_identity": { "id": "N1", "registration_id": "N1", "provider": "N1", "subject": "N2", "contact_email": "N2", "is_open": "N1", "erased_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_submission": { "id": "N1", "registration_id": "N1", "version": "N1", "family_name": "N2", "middle_name": "N2", "given_name": "N2", "gender": "N2", "birth_date": "N2", "address_value": "N2", "phone_value": "N2", "phone_key": "N2", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "license_class_code": "N1", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "referrer_text": "N2", "policy_id": "N1", "consented_at": "N1", "erased_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_item_result": { "id": "N1", "registration_id": "N1", "version": "N1", "item_code": "N1", "result": "N1", "reason_code": "N1", "verified_by": "N1", "verified_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_decision": { "id": "N1", "registration_id": "N1", "kind": "N1", "version": "N1", "decided_by": "N1", "super_admin_flag": "N1", "decided_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_event": { "id": "N1", "registration_id": "N1", "actor_kind": "N1", "actor_ref": "N1", "command": "N1", "reason_code": "N1", "at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_email_code": { "id": "N1", "email_key": "N2", "code_hash": "N4", "expires_at": "N1", "attempts": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" }
   }
 }

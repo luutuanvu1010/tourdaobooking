@@ -342,6 +342,19 @@
 | `vdt_scan` | bảng | Lượt quét vé Tour Đảo (ADR-0175 Đ3, 0155): mỗi lượt quét có vé thật một dòng; mã lạ và vé hãng ngoài KHÔNG ghi. `ket_qua`: DA_TINH (tính đã dùng), CHI_XEM (tài xế công ty), TU_CHOI (đỏ có vé thật, để phát hiện dùng lại). «Vé đã dùng» = vé có lượt DA_TINH chưa bỏ (`voided_at` trống); không thêm trạng thái vào `vdt_ticket`. Mã vé không có ở bảng này, chỉ khoá `ticket_id`. `order_id`, `order_service_id` là tham chiếu logic. Chỉ mục duy nhất một phần `vdt_scan_mot_lan` chặn hai DA_TINH chưa bỏ trên một vé từng khách; vé đoàn (`ve_doan` = 1) được chừa, `so_khach` là số người của đợt quét. `xac_nhan_*` = người quét đã bấm xác nhận cảnh báo vàng nào. Bỏ lượt: chỉ đặt ba cột `voided_*` một lần, lý do bắt buộc; không xoá, không sửa cột khác (trigger vdt_scan_only_void) |
 | `vdt_setting` | bảng | Cài đặt kho vé (ADR-0156 Đ3, 0132): một dòng id = 'default', khuôn gd_setting. `batch_limit` = số vé tối đa mỗi lô, mặc định 50, Toàn quyền đặt qua ô settings.ops; `version` là khoá lạc quan; lịch sử ở audit_log (`ve_doi_tran_lo`). |
 
+## dang-ky
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `dk_policy` | bảng | chính sách đăng ký (ADR-0206 Đ3; migration 0167), CHỈ-THÊM, dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét; gieo một dòng ĐÓNG (registration_open = 0). Con số lấy từ PHU-LUC đợt 1; anonymize_days là thời gian giữ dữ liệu cá nhân của người lạ |
+| `dk_registration` | bảng | phiếu đăng ký đối tác (ADR-0206 Đ3, Đ4; 0167): id DK_XXXXXXXX; loại mở PERSON; trạng thái đi theo đồ thị trigger dk_registration_transition (bốn trạng thái kết thúc không đổi). match_*, verified_* là kết luận Danh bạ và người xác minh để trigger dk_decision_guard chỉ đọc dk_*. party_id, staff_id, match_party_id là tham chiếu logic, không khoá ngoại |
+| `dk_identity` | bảng | danh tính đã chứng minh của phiếu (0167): đợt 1 chỉ EMAIL; chỉ mục duy nhất dk_identity_open_uq: một phiếu đang mở mỗi (provider, subject); is_open do trigger hạ về 0 khi phiếu kết thúc |
+| `dk_submission` | bảng | bản khai bất biến (0167): mỗi lần gửi một dòng, version kế tiếp current_version; chỉ cho đặt erased_at một lần (ẩn danh, ADR-0208). Cột soi theo pty_person / pty_contact_point / pty_person_document. Hạng N2/N3 không bao giờ vào nhật ký |
+| `dk_item_result` | bảng | kết luận từng mục khi xác minh (0167), CHỈ-THÊM |
+| `dk_decision` | bảng | quyết định của phiếu (ADR-0207 Đ5; 0167), CHỈ-THÊM: DUYET và KICH_HOAT, mỗi loại một dòng mỗi phiếu. Trigger dk_decision_guard làm hỏng cả lô nếu sai điều kiện (trạng thái, phiên bản, kết luận Danh bạ, người duyệt ≠ người xác minh trừ cờ Toàn quyền do máy chủ đặt; kích hoạt: đã duyệt, chưa kích hoạt, còn hạn) |
+| `dk_event` | bảng | lịch sử lệnh của phiếu (0167), CHỈ-THÊM; actor_kind REGISTRANT | STAFF | AGENT. Không ghi SĐT, email, số giấy tờ, ngày sinh, địa chỉ |
+| `dk_email_code` | bảng | mã gửi email của đăng ký (0167): chỉ lưu bản băm (N4), có hạn, có đếm lần nhập; bảng kỹ thuật, được cập nhật và xoá (dòng hết hạn) |
+
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 
 - `audit_log` → `staff` — audit_log.staff_id — ADR-0002 điều 6
@@ -423,3 +436,7 @@
 | `vc_trip_stop` |  | `place_text` |  |  |
 | `vdt_guest_link` |  | `token_hash` |  |  |
 | `vdt_ticket` |  | `ticket_code`, `storage_key`, `content_hash` |  |  |
+| `dk_registration` |  | `match_party_id` |  |  |
+| `dk_identity` |  | `subject`, `contact_email` |  |  |
+| `dk_submission` |  | `family_name`, `middle_name`, `given_name`, `gender`, `birth_date`, `address_value`, `phone_value`, `phone_key`, `referrer_text` | `document_number`, `number_key`, `issued_place` |  |
+| `dk_email_code` |  | `email_key` |  | `code_hash` |
