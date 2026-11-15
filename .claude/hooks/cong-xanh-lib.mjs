@@ -1,130 +1,187 @@
-// "Cổng xanh" — móc Stop của phiên chính (`cong-xanh.mjs`). CLAUDE.md §4: "Không nói 'xong' khi test/typecheck chưa chạy hoặc đỏ". Trước đây bộ kiểm chỉ
-// chạy khi AI nhớ chạy (kho không có CI, không có git hook). Cổng làm việc đó thành việc của MÁY:
-//   • Cây làm việc nơi phiên đang đứng (`cwd`) GIỐNG main và sạch ⇒ không chạy gì (phiên hỏi đáp không bị chậm).
-//   • KHÁC main (có commit riêng, hoặc có thay đổi chưa commit) ⇒ chạy `npm run typecheck` + bộ kiểm chính (src/**/*.test.ts TRỪ bài đo giờ của hook —
-//     bài đó đỏ giả khi máy bận, `npm test` chạy nó riêng). Xanh ⇒ cho dừng. Đỏ / không chạy được ⇒ GIỮ AI lại, kèm tên bài đỏ.
-//   • Lối ra duy nhất khi chưa xanh: câu trả lời cuối ghi nguyên văn CAU_KHAI ("BỘ KIỂM CHƯA XANH") — đang chờ chủ trả lời, đỏ có chủ ý giữa chừng… thì
-//     AI vẫn dừng được, nhưng chủ dự án LUÔN đọc thấy sự thật.
-//   • Kết quả được nhớ theo "dấu vân" của mã (cây HEAD + thay đổi chưa commit + tệp mới): mã không đổi thì không chạy lại.
-// canhCong(input, { khoChung, chay }) → { chan: false, ghiChu? } | { chan: true, lyDo }. `chay` tiêm được để bài kiểm không phải chạy bộ kiểm thật.
+// "Cổng xanh" bản nhẹ — móc Stop của phiên chính (`cong-xanh.mjs`), kế hoạch docs/superpowers/plans/2026-11-15-buoc-2-3-may-kiem-va-hai-lan-duyet.md việc 2.2.
+// Bản cũ (gỡ 2026-10-19) chạy cả bộ kiểm chính mỗi lần dừng — quá 12 phút. Bản này chỉ chạy phần LIÊN QUAN tới thay đổi:
+//   • `stop_hook_active` đúng ⇒ cho dừng ngay (Claude Code đang dừng lại sau một lần chặn — không vòng lặp).
+//   • Cây làm việc ở `cwd` không khác main ⇒ im lặng, không chạy gì.
+//   • Khác ⇒ `npm run typecheck` + `node --test` các `*.test.ts` nằm NGAY trong thư mục có tệp đổi (tệp đổi = so với chỗ rẽ nhánh từ main, cộng phần
+//     chưa lưu và tệp mới). Chạy hai lượt: lượt 1 = bài đổi + bài cùng tên của tệp nguồn đổi (`x.ts` → `x.test.ts`); đỏ thì chặn ngay. Lượt 2 = các bài
+//     còn lại của các thư mục đó, trong thời gian còn lại của trần.
+//   • Tổng có trần TRAN_MS (90 giây): quá trần mà chưa thấy đỏ ⇒ chỉ cảnh báo, cho dừng.
+//   • Đỏ ⇒ chặn, kèm tối đa TOI_DA_BAI tên bài đỏ / dòng lỗi kiểu. Lỗi nội bộ ⇒ cho dừng (móc không bao giờ khoá phiên).
+//   • Kết quả (xanh / đỏ / quá trần) nhớ theo dấu vân của mã (giữ từ bản cũ): mã không đổi thì không chạy lại.
+// canhCong(input, { khoChung, tranMs }) → { chan: false, canhBao? } | { chan: true, lyDo }.
 //
-// GIỚI HẠN (nói thẳng): (1) chỉ nhìn cây làm việc ở `cwd` của PHIÊN CHÍNH — phiên điều phối đứng ở checkout gốc còn trợ lý con sửa ở worktree khác thì
-// cổng không thấy; trợ lý con KHÔNG có cổng (xem cong-xanh.mjs). (2) KHÔNG chạy e2e, bài đo giờ, bước sinh kho trợ lý của `npm test` — `npm test`
-// đầy đủ vẫn là điều kiện của lệnh đẩy/triển khai. (3) Tệp dấu nằm trong thư mục .git, AI ghi được: chặn QUÊN, không chống cố ý lách. (4) Claude Code tự
-// gỡ cổng sau 8 lần giữ liên tiếp. (5) Phiên mở ở thư mục cha của kho: lớp chuyển tiếp cấp máy không biết phiên thuộc kho nào ⇒ cổng không chạy.
-// (6) Hai phiên cùng dừng trong MỘT worktree thì hai lượt kiểm chạy chồng (chung tệp nhật ký) — có thể đỏ giả; mỗi worktree một phiên.
-// (7) Kho không có tệp `src/**/*.test.ts` nào thì bước bài kiểm coi như đạt (không xảy ra ở kho này).
+// GIỚI HẠN (nói thẳng): chỉ nhìn cây ở `cwd` của phiên chính; không chạy e2e, không chạy bài ở thư mục khác (bài phụ thuộc chéo có thể đỏ mà cổng không thấy
+// — `npm test` đủ bộ trên GitHub vẫn là lớp chặn thật); thư mục nhiều bài (như `src/`, ~300 tệp) thường quá trần ở lượt 2 ⇒ chỉ cảnh báo; tệp nhớ nằm
+// trong .git, AI ghi được: chặn QUÊN, không chống cố ý lách.
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { closeSync, globSync, openSync, readFileSync, statSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { khoChungCua } from "./guard-tep-lib.mjs";
 
-/** Bài đo giờ của hook: `npm test` chạy nó MỘT MÌNH (scripts/chay-test.mjs — cùng hằng; bài kiểm canh hai nơi khớp nhau). Cổng không chạy nó. */
+export const TRAN_MS = 90_000;
+export const TOI_DA_BAI = 10;
+/** Bài đo giờ của hook: đỏ giả khi máy bận, `npm test` chạy nó một mình. Cổng không chạy. */
 export const TEP_DO_GIO = "src/claude-guard-thoi-gian.test.ts";
-export const CAU_KHAI = "BỘ KIỂM CHƯA XANH";
-const TEP_DAU = "claude-cong-xanh.json";
-const TEP_LOG = "claude-cong-xanh.log";
-const HAN_KIEM_KIEU_MS = 5 * 60_000;
-const HAN_BO_KIEM_MS = 12 * 60_000;
-const TOI_DA_DONG = 15;
-const LON = 512 * 1024 * 1024;
+const TEP_NHO = "claude-cong-xanh.json";
+const LON = 64 * 1024 * 1024;
 
 function git(dir, args) {
-  const r = spawnSync("git", ["-C", dir, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: LON, timeout: 60_000 });
+  const r = spawnSync("git", ["-C", dir, ...args], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], maxBuffer: LON, timeout: 10_000 });
   return r.status === 0 ? r.stdout.replace(/\r?\n$/, "") : null;
 }
+const dong = (s) => (s ?? "").split("\n").map((x) => x.trim()).filter(Boolean);
 
-/** Cây làm việc `top` có khác main không, và dấu vân của toàn bộ nội dung đang có (đổi một ký tự ở bất kỳ tệp không-bị-ignore nào ⇒ dấu vân khác). */
-export function trangThaiCay(top) {
-  const head = git(top, ["rev-parse", "--verify", "-q", "HEAD"]);
-  const trangThai = git(top, ["status", "--porcelain", "--untracked-files=all"]) ?? "";
-  // "Đi trước main" = HEAD có commit mà CẢ `main` lẫn `origin/main` đều chưa có. Worktree mới tạo từ origin/main (main cục bộ còn chậm) không tính là khác.
-  const moc = head === null ? [] : ["main", "origin/main"].filter((ref) => git(top, ["rev-parse", "--verify", "-q", `${ref}^{commit}`]) !== null);
-  const diTruoc = moc.length > 0 && !moc.some((ref) => git(top, ["merge-base", "--is-ancestor", "HEAD", ref]) !== null);
+/** Mốc so: chỗ rẽ nhánh của HEAD với main (không có main thì origin/main). Không có ⇒ null (chỉ xét phần chưa lưu). */
+function mocSo(top) {
+  for (const ref of ["main", "origin/main"]) {
+    if (git(top, ["rev-parse", "--verify", "-q", `${ref}^{commit}`]) === null) continue;
+    const mb = git(top, ["merge-base", "HEAD", ref]);
+    if (mb) return mb;
+  }
+  return null;
+}
+
+/** Tệp đổi so với main (đã lưu + chưa lưu) và tệp mới chưa theo dõi; đường dẫn tương đối dấu "/". null khi git lỗi. */
+export function tepDoi(top) {
+  const moc = mocSo(top) ?? (git(top, ["rev-parse", "--verify", "-q", "HEAD"]) ? "HEAD" : null);
+  const daTheoDoi = moc ? git(top, ["diff", "--name-only", "--no-renames", moc]) : "";
+  const moi = git(top, ["ls-files", "--others", "--exclude-standard"]);
+  if (daTheoDoi === null || moi === null) return null;
+  return [...new Set([...dong(daTheoDoi), ...dong(moi)])];
+}
+
+/** Dấu vân của nội dung đang có: cây HEAD + khác biệt chưa lưu + tên và nội dung tệp đổi. */
+function dauVan(top, tep) {
   const h = createHash("sha256");
   h.update(git(top, ["rev-parse", "-q", "--verify", "HEAD^{tree}"]) ?? "chưa-có-commit");
   h.update("\0");
-  h.update(head === null ? "" : (git(top, ["diff", "HEAD", "--binary", "--no-ext-diff"]) ?? ""));
-  for (const ten of (git(top, ["ls-files", "--others", "--exclude-standard", "-z"]) ?? "").split("\0").filter(Boolean).sort()) {
-    h.update(`\0${ten}\0`);
+  h.update(git(top, ["diff", "HEAD", "--binary", "--no-ext-diff"]) ?? "");
+  for (const t of [...tep].sort()) {
+    h.update(`\0${t}\0`);
     try {
-      if (statSync(join(top, ten)).isFile()) h.update(readFileSync(join(top, ten)));
+      if (statSync(join(top, t)).isFile()) h.update(readFileSync(join(top, t)));
     } catch {
-      // tệp vừa biến mất / không đọc được: tên tệp đã vào dấu vân là đủ
+      // tệp đã xoá: tên đã vào dấu vân là đủ
     }
   }
-  return { khac: trangThai !== "" || diTruoc, dauVan: h.digest("hex") };
+  return h.digest("hex");
 }
 
-/** Chạy kiểm kiểu + bộ kiểm chính ở `top`, ghi toàn bộ đầu ra vào `tepLog`. Trả { xanh, tomTat } — tomTat liệt kê bước đỏ và tên bài / dòng lỗi kiểu. */
-export function chayBoKiem(top, tepLog) {
-  const env = { ...process.env };
-  delete env.NODE_TEST_CONTEXT; // cổng có thể đang chạy BÊN TRONG một lượt `node --test`: bộ kiểm con không được kế thừa chế độ "tiến trình con"
-  const fd = openSync(tepLog, "w");
-  const chay = (lenh, thamSo, han) => {
-    const r = spawnSync(lenh, thamSo, { cwd: top, env, stdio: ["ignore", fd, fd], timeout: han });
-    return r.error ? (r.error.code === "ETIMEDOUT" ? "quá giờ" : `không chạy được (${r.error.code ?? r.error.message})`) : r.status === 0 ? null : `thoát ${r.status ?? r.signal}`;
-  };
-  let loiKieu;
-  let loiBai = null;
-  let soTep = 0;
+const laTep = (top, rel) => {
   try {
-    loiKieu = chay("npm", ["run", "--silent", "typecheck"], HAN_KIEM_KIEU_MS);
-    const tep = globSync("src/**/*.test.ts", { cwd: top }).map((f) => f.split("\\").join("/")).filter((f) => f !== TEP_DO_GIO).sort();
-    soTep = tep.length;
-    if (soTep) loiBai = chay(process.execPath, ["--test", "--test-reporter=tap", ...tep], HAN_BO_KIEM_MS);
-  } finally {
-    closeSync(fd);
-  }
-  if (loiKieu === null && loiBai === null) return { xanh: true, tomTat: "" };
-  const dong = readFileSync(tepLog, "utf8").split("\n");
-  const cat = (ds) => (ds.length > TOI_DA_DONG ? [...ds.slice(0, TOI_DA_DONG), `… và ${ds.length - TOI_DA_DONG} dòng nữa`] : ds).map((d) => `  - ${d.slice(0, 300)}`);
-  const phan = [];
-  if (loiKieu !== null) phan.push(`Kiểm kiểu (npm run typecheck): ĐỎ — ${loiKieu}`, ...cat(dong.filter((d) => /error TS\d+/.test(d))));
-  if (loiBai !== null) phan.push(`Bộ kiểm chính (${soTep} tệp): ĐỎ — ${loiBai}`, ...cat(dong.filter((d) => /^not ok \d+ - /.test(d)).map((d) => d.replace(/^not ok \d+ - /, ""))));
-  return { xanh: false, tomTat: phan.join("\n") };
-}
-
-const chuan = (s) => s.normalize("NFC").toUpperCase().replace(/\s+/g, " ");
-
-export function canhCong(input, { khoChung = null, chay = chayBoKiem } = {}) {
-  const cwd = input?.cwd;
-  if (typeof cwd !== "string" || cwd === "" || typeof khoChung !== "string" || khoChung === "") return { chan: false };
-  if (khoChungCua(cwd) !== khoChung) return { chan: false }; // ngoài kho, hoặc kho khác
-  if (git(cwd, ["rev-parse", "--is-inside-work-tree"]) !== "true") return { chan: false };
-  const top = git(cwd, ["rev-parse", "--show-toplevel"]);
-  const gitDir = git(cwd, ["rev-parse", "--path-format=absolute", "--git-dir"]);
-  if (top === null || gitDir === null) return { chan: false };
-  const tt = trangThaiCay(top);
-  if (!tt.khac) return { chan: false };
-
-  const tepDau = join(gitDir, TEP_DAU);
-  const tepLog = join(gitDir, TEP_LOG);
-  let kq = null;
-  try {
-    kq = JSON.parse(readFileSync(tepDau, "utf8"));
+    return statSync(join(top, rel)).isFile();
   } catch {
-    kq = null;
+    return false;
   }
-  if (kq?.dauVan !== tt.dauVan || typeof kq?.xanh !== "boolean") {
-    const r = chay(top, tepLog);
-    kq = { dauVan: tt.dauVan, xanh: r.xanh === true, tomTat: String(r.tomTat ?? ""), luc: new Date().toISOString() };
-    writeFileSync(tepDau, `${JSON.stringify(kq, null, 2)}\n`);
-  }
-  if (kq.xanh) return { chan: false };
+};
 
-  const cau = typeof input.last_assistant_message === "string" && input.last_assistant_message.trim() !== "" ? input.last_assistant_message : null; // rỗng = không đọc được
-  if (cau !== null && chuan(cau).includes(CAU_KHAI)) return { chan: false };
-  if (cau === null && input.stop_hook_active === true) return { chan: false, ghiChu: `cổng xanh: bộ kiểm chưa xanh ở ${top} nhưng không đọc được câu trả lời cuối — cho qua có khai.` };
-  return {
-    chan: true,
-    lyDo: [
-      `Cổng xanh: bộ kiểm CHƯA XANH ở ${top} (đo lúc ${kq.luc}).`,
-      kq.tomTat,
-      `Nhật ký đầy đủ: ${tepLog}`,
-      `Sửa cho xanh rồi mới kết thúc lượt (CLAUDE.md §4: không nói "xong" khi test/typecheck chưa chạy hoặc đỏ). Nếu chưa thể xanh trong lượt này (đang chờ chủ dự án trả lời, đỏ có chủ ý giữa chừng, lỗi có sẵn từ trước…) thì câu trả lời cuối PHẢI có nguyên văn dòng "${CAU_KHAI}" kèm tên bài đỏ và lý do — khi đó cổng cho dừng.`,
-      "Cổng chạy: npm run typecheck + bộ kiểm chính (src/**/*.test.ts trừ bài đo giờ của hook). Không chạy e2e; mã không đổi thì không chạy lại.",
-    ].join("\n"),
+/** Bài liên quan: { truoc, sau }. truoc = bài đổi + `x.test.ts` cạnh tệp nguồn đổi `x.*`; sau = các *.test.ts còn lại NGAY trong thư mục có tệp đổi. */
+export function baiLienQuan(top, tep) {
+  const truoc = new Set();
+  for (const t of tep) {
+    const ung = t.endsWith(".test.ts") ? t : /\.[^./]+$/.test(t) ? t.replace(/\.[^./]+$/, ".test.ts") : null;
+    if (ung && ung !== TEP_DO_GIO && laTep(top, ung)) truoc.add(ung);
+  }
+  const sau = new Set();
+  for (const d of new Set(tep.map((t) => dirname(t)))) {
+    if (!existsSync(join(top, d))) continue;
+    for (const ten of readdirSync(join(top, d))) {
+      if (!ten.endsWith(".test.ts")) continue;
+      const rel = d === "." ? ten : `${d}/${ten}`;
+      if (rel !== TEP_DO_GIO && !truoc.has(rel) && laTep(top, rel)) sau.add(rel);
+    }
+  }
+  return { truoc: [...truoc].sort(), sau: [...sau].sort() };
+}
+
+const cat = (ds, ten) => (ds.length > TOI_DA_BAI ? [...ds.slice(0, TOI_DA_BAI), `… và ${ds.length - TOI_DA_BAI} ${ten} nữa`] : ds).map((d) => `  - ${d.slice(0, 300)}`);
+
+/** Chạy typecheck + hai lượt bài trong trần `tranMs`. Trả { quaTran: true } | { xanh: true } | { xanh: false, tomTat }. */
+function chayKiem(top, { truoc, sau }, tranMs) {
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT; // móc có thể chạy BÊN TRONG một lượt `node --test`: tiến trình con không được kế thừa chế độ "con"
+  const batDau = Date.now();
+  const chay = (lenh, thamSo) => {
+    const conLai = tranMs - (Date.now() - batDau);
+    if (conLai < 500) return { quaTran: true };
+    const r = spawnSync(lenh, thamSo, { cwd: top, env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: conLai, killSignal: "SIGKILL", maxBuffer: LON });
+    if (r.error) {
+      if (r.error.code === "ETIMEDOUT") return { quaTran: true };
+      throw new Error(`${lenh} ${thamSo.slice(0, 2).join(" ")}: không chạy được (${r.error.code ?? r.error.message})`);
+    }
+    return { ma: r.status, ra: `${r.stdout ?? ""}\n${r.stderr ?? ""}` };
   };
+  const phan = [];
+  const kieu = chay("npm", ["run", "--silent", "typecheck"]);
+  if (kieu.quaTran) return { quaTran: true };
+  if (kieu.ma !== 0) phan.push(`Kiểm kiểu (npm run typecheck): ĐỎ — thoát ${kieu.ma}`, ...cat(dong(kieu.ra).filter((d) => /error TS\d+/.test(d)), "dòng lỗi kiểu"));
+  const luot = (bai, nhan) => {
+    if (!bai.length) return null;
+    const kq = chay(process.execPath, ["--test", "--test-reporter=tap", ...bai]);
+    if (kq.quaTran) return { quaTran: true };
+    if (kq.ma === 0) return null;
+    const ten = [...new Set(kq.ra.split("\n").map((d) => /^\s*not ok \d+ - (.*)$/.exec(d)?.[1]).filter((x) => x && !bai.includes(x)))];
+    phan.push(`Bài kiểm ${nhan} (${bai.length} tệp${bai.length <= 5 ? `: ${bai.join(", ")}` : ""}): ĐỎ`, ...cat(ten.length ? ten : ["không đọc được tên bài đỏ — chạy lại tay để xem"], "bài đỏ"));
+    return null;
+  };
+  const do_ = () => (phan.length ? { xanh: false, tomTat: phan.join("\n") } : null);
+  if (luot(truoc, "của tệp đổi")?.quaTran) return do_() ?? { quaTran: true };
+  if (do_()) return do_();
+  if (luot(sau, "cùng thư mục")?.quaTran) return { quaTran: true };
+  return do_() ?? { xanh: true };
+}
+
+const canhBaoQuaTran = (tranMs, top, soBai, nho) =>
+  `Cổng xanh: quá trần ${Math.round(tranMs / 1000)} giây khi chạy typecheck + ${soBai} tệp bài ở ${top}${nho ? " (đo lần trước, mã chưa đổi)" : ""} — cho dừng, CHƯA biết xanh hay đỏ. Hãy tự chạy bài liên quan.`;
+
+export function canhCong(input, { khoChung = null, tranMs = TRAN_MS } = {}) {
+  try {
+    if (input?.stop_hook_active === true) return { chan: false };
+    const cwd = input?.cwd;
+    if (typeof cwd !== "string" || cwd === "" || typeof khoChung !== "string" || khoChung === "") return { chan: false };
+    if (khoChungCua(cwd) !== khoChung) return { chan: false }; // ngoài kho, hoặc kho khác
+    const top = git(cwd, ["rev-parse", "--show-toplevel"]);
+    const gitDir = git(cwd, ["rev-parse", "--path-format=absolute", "--git-dir"]);
+    if (top === null || gitDir === null) return { chan: false };
+    const tep = tepDoi(top);
+    if (tep === null || tep.length === 0) return { chan: false };
+
+    const van = dauVan(top, tep);
+    const tepNho = join(gitDir, TEP_NHO);
+    let kq = null;
+    try {
+      kq = JSON.parse(readFileSync(tepNho, "utf8"));
+    } catch {
+      kq = null;
+    }
+    const dungDuoc = kq?.dauVan === van && (typeof kq?.xanh === "boolean" || kq?.quaTran === true);
+    if (dungDuoc && kq.quaTran === true) return { chan: false, canhBao: canhBaoQuaTran(kq.tranMs ?? tranMs, top, kq.soBai ?? 0, true) };
+    if (!dungDuoc) {
+      const bai = baiLienQuan(top, tep);
+      const soBai = bai.truoc.length + bai.sau.length;
+      const r = chayKiem(top, bai, tranMs);
+      kq = r.quaTran
+        ? { dauVan: van, quaTran: true, tranMs, soBai, luc: new Date().toISOString() }
+        : { dauVan: van, xanh: r.xanh === true, tomTat: String(r.tomTat ?? ""), luc: new Date().toISOString() };
+      try {
+        writeFileSync(tepNho, `${JSON.stringify(kq, null, 2)}\n`);
+      } catch {
+        // không ghi được tệp nhớ: lần sau chạy lại, không sao
+      }
+      if (r.quaTran) return { chan: false, canhBao: canhBaoQuaTran(tranMs, top, soBai, false) };
+    }
+    if (kq.xanh) return { chan: false };
+    return {
+      chan: true,
+      lyDo: [
+        `Cổng xanh: CHƯA XANH ở ${top} (đo lúc ${kq.luc}).`,
+        kq.tomTat,
+        "Sửa cho xanh rồi mới kết thúc lượt (CLAUDE.md §4: không nói «xong» khi test/typecheck đỏ). Chưa thể xanh trong lượt này thì nói thẳng tên bài đỏ và lý do trong câu trả lời — lần dừng kế tiếp cổng sẽ cho qua.",
+        "Cổng chỉ chạy: npm run typecheck + *.test.ts trong thư mục có tệp đổi (bài đổi trước; trần 90 giây). Không thay cho npm test đủ bộ.",
+      ].join("\n"),
+    };
+  } catch (e) {
+    return { chan: false, canhBao: `Cổng xanh: lỗi nội bộ, cho dừng — ${e instanceof Error ? e.message : String(e)}` };
+  }
 }
