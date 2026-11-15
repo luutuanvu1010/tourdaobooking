@@ -1,7 +1,8 @@
 // Việc 2.6 (kế hoạch 2026-11-15): chụp ảnh các trang chính trên TRÌNH GIẢ LẬP iPhone của Xcode. Chạy TAY, không nằm trong npm test hay lượt kiểm GitHub.
 //   node scripts/chup-iphone.mjs [địa chỉ] [--cho <giây>] [--ra <thư mục>] [--trang /login,/home]
 //     địa chỉ mặc định http://localhost:8787 (máy chủ cục bộ: `node scripts/dev-iphone.mjs` hoặc `npm run dev`).
-//     --trang: chỉ chụp các trang này (mặc định năm trang chính). Với bản chạy thật chỉ chụp `/login` (không đăng nhập).
+//     --trang: chỉ chụp các trang này (mặc định năm trang chính). Kịch bản không đăng nhập ở đâu cả; với địa chỉ bản chạy thật, nên chỉ chụp
+//     `--trang /login` (trang trong sẽ chuyển về đăng nhập). Kịch bản chỉ MỞ trang, không gửi gì lên máy chủ.
 //     Ảnh ghi vào thư mục tạm (mặc định $TMPDIR/tourdao-chup-iphone-*), KHÔNG ghi vào kho (kho công khai).
 // Cần: Xcode (xcrun simctl) và một trình giả lập đang bật. Kịch bản không đăng nhập: trang cần phiên sẽ chuyển về trang đăng nhập — muốn chụp trang
 // trong, đăng nhập một lần bằng Safari của trình giả lập (tài khoản thử do dev-iphone.mjs in ra) rồi chạy lại; cookie còn trong trình giả lập.
