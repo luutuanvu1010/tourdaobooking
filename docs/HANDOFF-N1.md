@@ -2,7 +2,27 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.0 ĐÃ LÊN PRODUCTION (ADR-0202: nội dung màn bảo trì do Toàn quyền tự sửa ở trang Tôi › Chế độ bảo trì — SĐT hỗ trợ, Zalo, website, chữ, công tắc ẩn/hiện; gồm luôn 2.99 chi tiết dịch vụ ADR-0201) — migration `0162` — triển khai 2026-11-13 21:42 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.8 ĐÃ LÊN PRODUCTION (Đợt 1 sau kiểm toán 14/11: ADR-0204 mã giao dịch bắt buộc khi Kế toán xác nhận khoản nộp đại lý, dòng sổ của khoản nộp đã xác nhận không huỷ lẻ; ADR-0205 nháp lưu giá danh mục cũ — chặn Đối tác, Thực tập khi xác nhận, nhân viên chỉ được nhắc; dời ngày đi cân lại vé; dòng Sheet gõ sai giữ dịch vụ, cảnh báo đỏ ở Danh mục) — migration `0166` — triển khai 2026-11-15 12:02 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy (đọc ở ô Terminal của phiên). Các bản 3.1–3.7 do phiên khác triển khai; trạng thái của chúng ghi ở nhánh của phiên đó (chưa có trên dòng này khi ghi).
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-15 12:02 (giờ Việt Nam)
+- Commit: f68ec4c11 Nhập origin/main 266ecb465 (Bước 2–3 cách làm một người, ADR-0211 đề xuất) vào nhánh Đợt 1 sau kiểm toán
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-15T04:57:22Z (có đổi quy trình kiểm)
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/43678451777
+- Đổi quy trình kiểm — lý do của chủ: «hoan tat» (`scripts/audit-checks.mjs`, `scripts/thoi-gian-test.json`)
+- Tệp luật đã đổi — lý do của chủ: «hoan tat roi» (ADR-0204, ADR-0205, `docs/adr/README.md`)
+- Migration đã áp: 0166_ma_giao_dich_khoan_nop.sql
+- Điểm khôi phục Time Travel trước khi áp: 00002bbd-00000004-00005124-d7d23e2d2738d1a8fba3230a4a973e51
+- Worker Version ID: 0938a9c2-2d0c-43ca-9126-5f023b9304a4
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (2 cảnh báo có sẵn: R-VC-14 xe thiếu giấy tờ điều kiện xuất bến — 7; R-ORD-9 danh sách có tên nhiều hơn số khách — 1). Hai luật mới R-BIL-NP1, R-BIL-NP2 đạt.
+- Phiên bản: 3.8 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: TỔNG 9 phút 18 giây (day-len 7 phút 57 giây, trong đó chờ GitHub kiểm 7 phút 52 giây; trien-khai 1 phút 21 giây)
+- Kiểm lại sau triển khai (AI, chỉ đọc): `node scripts/kiem-phien-ban.mjs --sau-deploy` ĐẠT — production chạy 3.8. Lúc kiểm, chế độ bảo trì ĐANG BẬT (tới 2026-11-16 13:34 giờ Việt Nam). Chưa thử iPhone thật.
+- Kế tiếp: Đợt 2 của kế hoạch kiểm toán (diễn tập khôi phục, xuất dữ liệu ra ngoài Cloudflare, soát tiền hằng ngày) — phải xong trước hạn sổ HC-5.19 31/12; HC-4.2 hạn 30/11.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.0 ĐÃ LÊN PRODUCTION (ADR-0202: nội dung màn bảo trì do Toàn quyền tự sửa ở trang Tôi › Chế độ bảo trì — SĐT hỗ trợ, Zalo, website, chữ, công tắc ẩn/hiện; gồm luôn 2.99 chi tiết dịch vụ ADR-0201) — migration `0162` — triển khai 2026-11-13 21:42 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy (đọc ở ô Terminal của phiên). Bản 2.98 (màn bảo trì 2a) và 2.99 (chi tiết dịch vụ, migration 0160, kho R2 `tourdao-sales-anh-dich-vu`) lên trước đó trong ngày từ hai lần triển khai khác; hồ sơ này không có khối máy của hai lần đó.
 
