@@ -41,7 +41,7 @@ import { CAU_CAN_NOI_TRA, canhBaoXacNhan, cauThieuTen, thieuNoiTra } from "../sr
 import { dongThongTinQr } from "../src/shared/qr-thong-tin";
 import { PAX_LABEL } from "../src/shared/order-lines";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
-import { dongPhiTrenDon } from "../src/shared/phi-don-hien-thi";
+import { CHU_MIEN_PHI, dongPhiTrenDon } from "../src/shared/phi-don-hien-thi";
 import { nhanCamKet } from "../src/shared/cam-ket-xe";
 import { can, holdsPartner } from "../src/shared/permissions";
 import { CAU_NHAC_NOP_TIEN, CAU_PHIEU_CHUA_XAC_NHAN, TEN_PHIEU_CONG_NO, laTaiKhoanDoiTac, xemDuocPhieuCongNo } from "../src/shared/cong-no-dai-ly";
@@ -1458,7 +1458,7 @@ async function moPhieuCongNo(order: Order, opener: HTMLElement): Promise<void> {
     const canvas = h("canvas", { class: "qr-anh", role: "img", "aria-label": "Mã QR công nợ với Tour Đảo", hidden: true }) as HTMLCanvasElement;
     replaceChildren(
       than,
-      h("ul", { class: "pay-list" }, ...p.dong.map((d) => h("li", null, `${d.ten} — ${vnd(d.giaDaiLy)}${d.thieuMuc ? " (chưa có mức hoa hồng, tính theo giá bán lẻ)" : ""}`))),
+      h("ul", { class: "pay-list" }, ...p.dong.map((d) => h("li", null, `${d.ten} — ${d.mienPhi ? CHU_MIEN_PHI : vnd(d.giaDaiLy)}${d.thieuMuc ? " (chưa có mức hoa hồng, tính theo giá bán lẻ)" : ""}`))),
       dong("Tổng công nợ", vnd(p.tong), "tong"),
       dong("Đã thu", vnd(p.daThu), "da-thu"),
       p.conLai < 0 ? dong("Tour Đảo nợ đại lý", vnd(-p.conLai), "con-lai") : dong("Công nợ còn lại", vnd(p.conLai), "con-lai"),

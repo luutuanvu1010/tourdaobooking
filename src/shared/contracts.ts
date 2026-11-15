@@ -2909,7 +2909,8 @@ export interface QrThanhToanResponse {
  */
 export interface PhieuCongNoDto {
   maDon: string;
-  dong: { ten: string; giaDaiLy: number; thieuMuc: boolean }[];
+  /** `mienPhi` (Đợt C, ADR-0203 ĐB3): dòng phí đưa đón mức 0 đồng — giao diện ghi «Miễn phí» thay số; dòng dịch vụ luôn false. Dòng phí: mỗi chặng một dòng, tên như biên nhận. */
+  dong: { ten: string; giaDaiLy: number; thieuMuc: boolean; mienPhi: boolean }[];
   tong: number;
   daThu: number;
   conLai: number;

@@ -298,12 +298,33 @@ test("SV-PD-25: đơn đại lý Trả sau — nợ = 1.200.000 − hoa hồng 1
   assert.equal(no, 1_240_000, "số nợ của hạn mức");
   const p = (await ok(w.call("GET", `/api/orders/${o.id}/cong-no-dai-ly`, { as: ACC }), 200, "phiếu")).json.phieu;
   assert.deepEqual([p.tong, p.conLai], [1_240_000, 1_240_000]);
-  assert.deepEqual(p.dong.map((d: any) => [d.ten, d.giaDaiLy]), [["Tour lặn biển cao cấp", 1_080_000], ["Phí đưa đón", 160_000]], "các dòng cộng khớp tổng");
+  assert.deepEqual(p.dong.map((d: any) => [d.ten, d.giaDaiLy, d.mienPhi]), [["Tour lặn biển cao cấp", 1_080_000, false], ["Phí đưa đón — chiều đi, Bãi Dài – Cam Ranh", 160_000, false]], "các dòng cộng khớp tổng; dòng phí mang tên chặng như biên nhận");
   // sửa số khách 2 → 3: phí theo khách tính lại trong công nợ (cùng hàm với chi tiết đơn)
   const dv = o.services[0];
   await ok(w.call("POST", `/api/orders/${o.id}/money-edit`, { as: ACC, body: { lyDo: "THEM_NGUOI", services: [{ id: dv.id, pax: P({ adult: 3 }) }] } }), 200, "sửa số khách");
   const g2 = (await app.giaDaiLyNhieuDon(w.env.DB, [o.id])).get(o.id);
   assert.deepEqual([g2.phiDon, g2.tong], [240_000, 1_800_000 - 180_000 + 240_000]);
+});
+
+test("ADR-0203 ĐB3 (sửa sau kiểm độc lập, Nên sửa 4): phiếu công nợ in MỖI CHẶNG MỘT DÒNG phí, cùng tên dòng với biên nhận; chặng mức 0 đồng vẫn in, cờ «Miễn phí»; sửa số khách thì dòng theo khách tính lại", async () => {
+  const w = await setup({ cr: 80_000 });
+  await ok(w.call("POST", "/api/pricing/phi-don", { as: ADM, body: { kind: "PER_PAX", amount: 0, validFrom: "2026-01-01", validTo: null, note: null, dieuKien: [{ khoa: "ZONE", giaTri: "CR" }, { khoa: "DIRECTION", giaTri: "RETURN" }] } }), 201, "mức chiều về 0 đồng");
+  await hoaHong(w, { kieu: "RATE", tyLeBp: 1000 });
+  assert.equal((await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN_DT, hanMuc: 10_000_000, gioTra: 168, gioAnHan: 0, lyDo: "thử" } })).status, 201);
+  const o = await lapXacNhan(w, [], { services: [svc({ adult: 2 }, [OUT(KS_CR), RET(KS_CR)], "TOUR_600")], extra: { bookerPartyId: BEN_DT, paymentTerm: "CREDIT" } });
+  const bn = await bienNhan(w, o.id, ACC);
+  const p = (await ok(w.call("GET", `/api/orders/${o.id}/cong-no-dai-ly`, { as: ACC }), 200, "phiếu")).json.phieu;
+  assert.deepEqual(p.dong.map((d: any) => [d.ten, d.giaDaiLy, d.mienPhi]), [
+    ["Tour lặn biển cao cấp", 1_080_000, false],
+    ["Phí đưa đón — chiều đi, Bãi Dài – Cam Ranh", 160_000, false],
+    ["Phí đưa đón — chiều về, Bãi Dài – Cam Ranh", 0, true],
+  ]);
+  assert.deepEqual(p.dong.slice(1).map((d: any) => d.ten), bn.phiDuaDon.map((d: any) => d.description), "tên dòng phí trùng biên nhận");
+  assert.equal(p.tong, p.dong.reduce((t: number, d: any) => t + d.giaDaiLy, 0), "các dòng cộng khớp tổng");
+  await ok(w.call("POST", `/api/orders/${o.id}/money-edit`, { as: ACC, body: { lyDo: "THEM_NGUOI", services: [{ id: o.services[0].id, pax: P({ adult: 3 }) }] } }), 200, "sửa số khách");
+  const p2 = (await ok(w.call("GET", `/api/orders/${o.id}/cong-no-dai-ly`, { as: ACC }), 200, "phiếu sau sửa")).json.phieu;
+  assert.deepEqual(p2.dong.slice(1).map((d: any) => [d.giaDaiLy, d.mienPhi]), [[240_000, false], [0, true]]);
+  assert.equal(p2.tong, p2.dong.reduce((t: number, d: any) => t + d.giaDaiLy, 0));
 });
 
 test("«Khách đã trả đủ» đơn có người hưởng + giảm giá + phí ⇒ dòng giảm giá bên đặt = đúng giảm giá (60.000), thành tiền trước giảm (gross) gồm phí", async () => {

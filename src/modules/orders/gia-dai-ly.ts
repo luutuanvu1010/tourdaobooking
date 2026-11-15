@@ -19,7 +19,9 @@ import type { PermissionHolder } from "../../shared/permissions";
 export interface DongGiaDaiLy { serviceId: string; name: string; thanhTien: number; hoaHong: number | null; giaDaiLy: number }
 /** `laDonDaiLy` theo luật `mauBienNhan` (bên đặt là đối tác HOẶC người lập là Đối tác thuần). `tong` = Σ `giaDaiLy` + `phiDon`, có thể âm (Đ1 mục 2: không kẹp). `phiDon` = Σ dòng phí
  * đưa đón hiện hành (đã tính lại theo số khách mới nếu có sửa số khách); 0 = đơn không phí. */
-export interface GiaDaiLyDon { laDonDaiLy: boolean; dong: DongGiaDaiLy[]; phiDon: number; tong: number }
+export interface GiaDaiLyDon { laDonDaiLy: boolean; dong: DongGiaDaiLy[]; phiDon: number; /** Mỗi dòng phí HIỆN HÀNH một phần tử (ADR-0203 ĐB3: phiếu in mỗi chặng một dòng); Σ `tien` = `phiDon`. `donGia` 0 ⇒ «Miễn phí». */ phiDong: DongPhiGiaDaiLy[]; tong: number }
+/** Một dòng phí đưa đón của phiếu công nợ: tên dòng đã lưu (như biên nhận), thành tiền hiện hành (đã tính lại khi sửa số khách), đơn giá đã chụp. */
+export interface DongPhiGiaDaiLy { ten: string; tien: number; donGia: number }
 
 /** Phần thuần (test được không cần D1): ghép dòng đã đọc thành giá đại lý từng đơn. Đơn nháp / huỷ / id lạ: không có trong Map. */
 export function ghepGiaDaiLy(v: {
@@ -46,11 +48,13 @@ export function ghepGiaDaiLy(v: {
       const t = tinhDongDoiTac(chupTheoDv.get(s.id) ?? chuaCoBanChup(s.id), tien);
       return { serviceId: s.id, name: s.name, thanhTien: t.thanhTien, hoaHong: t.hoaHong, giaDaiLy: t.giaDaiLy ?? t.thanhTien };
     });
-    const phiDon = phiHieuLuc(
-      v.doc.phi.filter((p) => p.order_id === o.id).map((p) => ({ serviceId: p.order_service_id, kind: p.fee_kind, returnPax: p.fee_return_pax, quantity: p.quantity, unitPrice: p.unit_price, lineTotal: p.line_total })),
+    const phi = phiHieuLuc(
+      v.doc.phi.filter((p) => p.order_id === o.id).map((p) => ({ serviceId: p.order_service_id, kind: p.fee_kind, returnPax: p.fee_return_pax, quantity: p.quantity, unitPrice: p.unit_price, lineTotal: p.line_total, ten: p.description })),
       v.dieuChinh.get(o.id)?.after.map((a) => ({ serviceId: a.serviceId, pax: { adult: a.pax.adult ?? 0, child: a.pax.child ?? 0, senior: a.pax.senior ?? 0, infant: a.pax.infant ?? 0 } })) ?? [],
-    ).tong;
-    out.set(o.id, { laDonDaiLy: o.la === 1 || v.doiTacThuan.has(o.staff_id), dong, phiDon, tong: dong.reduce((s, d) => s + d.giaDaiLy, 0) + phiDon });
+    );
+    const phiDon = phi.tong;
+    const phiDong = phi.dong.map((d) => ({ ten: d.ten, tien: d.lineTotal, donGia: d.unitPrice }));
+    out.set(o.id, { laDonDaiLy: o.la === 1 || v.doiTacThuan.has(o.staff_id), dong, phiDon, phiDong, tong: dong.reduce((s, d) => s + d.giaDaiLy, 0) + phiDon });
   }
   return out;
 }

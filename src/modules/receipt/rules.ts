@@ -29,7 +29,7 @@ export interface TienBienNhan {
 }
 
 const TOUR_DAO = "";
-/** Tên dòng phí trên phiếu công nợ / phần Tour Đảo của biên nhận (tên màn hình «Phí đưa đón» trong bảng tham chiếu). */
+/** Tên «Phí đưa đón» ghi thêm vào phần Tour Đảo của biên nhận (tên màn hình trong bảng tham chiếu). Dòng phí của phiếu công nợ mang tên từng chặng, không dùng hằng này. */
 export const TEN_DONG_PHI_DON = "Phí đưa đón";
 /**
  * Chia biên nhận theo người bán (ADR-0078 điều 10; đặc tả P5; sổ đại lý đợt 2 Task 8). Luật (Ruling R-80…R-83 sổ thi công):
@@ -204,8 +204,9 @@ export function dungQrThanhToan(i: {
  */
 export function dungPhieuCongNo(i: {
   maDon: string;
-  /** `phiDon` (Đợt C, SV-PD-25): Σ phí đưa đón đã nằm trong `tong` — in thành một dòng «Phí đưa đón» để các dòng cộng khớp tổng. Vắng / 0 ⇒ không dòng. */
-  phieu: { dong: readonly { name: string; hoaHong: number | null; giaDaiLy: number }[]; phiDon?: number; tong: number; daThu: number; conLai: number };
+  /** `phiDong` (Đợt C, SV-PD-25; ADR-0203 ĐB3): dòng phí đưa đón đã nằm trong `tong` — MỖI CHẶNG MỘT DÒNG, tên y như biên nhận («Phí đưa đón — chiều đi/về, <khu vực>»), để các
+   *  dòng cộng khớp tổng. Dòng mức 0 đồng (`donGia` 0) vẫn in, cờ `mienPhi` (giao diện ghi «Miễn phí»). Vắng / rỗng ⇒ không dòng phí. */
+  phieu: { dong: readonly { name: string; hoaHong: number | null; giaDaiLy: number }[]; phiDong?: readonly { ten: string; tien: number; donGia: number }[]; tong: number; daThu: number; conLai: number };
   hanTra: string | null;
   tk: { congTy: string; nganHang: string; bin: string; soTaiKhoan: string; chuTaiKhoan: string } | null;
   /** ADR-0182 phần B: phần khoản nộp. Số trên QR = `nop.tran` (Đ2 mục 7 — cùng con số với trần Đ2 mục 4); vắng ⇒ như phần A (QR = Công nợ còn lại). */
@@ -228,8 +229,8 @@ export function dungPhieuCongNo(i: {
     dto: {
       maDon: i.maDon,
       dong: [
-        ...i.phieu.dong.map((d) => ({ ten: d.name, giaDaiLy: d.giaDaiLy, thieuMuc: d.hoaHong === null })),
-        ...((i.phieu.phiDon ?? 0) > 0 ? [{ ten: TEN_DONG_PHI_DON, giaDaiLy: i.phieu.phiDon!, thieuMuc: false }] : []),
+        ...i.phieu.dong.map((d) => ({ ten: d.name, giaDaiLy: d.giaDaiLy, thieuMuc: d.hoaHong === null, mienPhi: false })),
+        ...(i.phieu.phiDong ?? []).map((d) => ({ ten: d.ten, giaDaiLy: d.tien, thieuMuc: false, mienPhi: d.donGia === 0 })),
       ],
       tong, daThu, conLai, hanTra: i.hanTra, qr, ghiChuQr,
       ...(i.nop ? { nop: i.nop } : {}),

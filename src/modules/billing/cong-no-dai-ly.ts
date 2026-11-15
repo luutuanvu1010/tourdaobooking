@@ -5,7 +5,7 @@
 //   Công nợ còn lại = Tổng công nợ − Đã thu (âm = Tour Đảo nợ đại lý, Đ1 mục 7).
 // Đơn KHÔNG phải đơn đại lý giữ cách tính cũ (phải thu − đã về, ADR-0168 Đ2 mục 2). Số tiền chỉ tính ở máy chủ. KHÔNG tự kiểm quyền — route hỏi `can(` trước.
 import { noMotDon } from "../../shared/tra-sau";
-import { giaDaiLyNhieuDon, type DongGiaDaiLy } from "../orders";
+import { giaDaiLyNhieuDon, type DongGiaDaiLy, type DongPhiGiaDaiLy } from "../orders";
 import { LOAI_DONG_THUONG_MAI, hieuLuc, khoanChoXacNhan, soChuaVeCongTy, soDuCap, soKhaiChuaNop, type DoiChieuRow, type LineRow } from "./rules";
 import { phanKhaiCuaDon } from "./khoan-khai";
 import { ownerCompanyId, receiptsOfOrders } from "./repository";
@@ -19,7 +19,7 @@ export interface DonCongNo { id: string; booker_party_id: string | null; status:
  * Phiếu công nợ của MỘT đơn đại lý (ADR-0182 Đ2 mục 2). `congTyCho` (phần B, Đ2 mục 4): tổng khoản «Công ty thu» còn hiệu lực đang chờ Kế toán đối chiếu / xác nhận — đã KHÔNG nằm
  * trong Đã thu; trần khoản nộp và số QR trừ thêm nó (`tranNop`, src/shared/cong-no-dai-ly.ts), Kế toán xác nhận khoản nộp khi nó còn > 0 thì bị chặn (Đ2 mục 13).
  */
-export interface PhieuCongNo { dong: DongGiaDaiLy[]; /** Σ phí đưa đón hiện hành — đã nằm trong `tong` (Đợt C, SV-PD-25). */ phiDon: number; tong: number; daThu: number; conLai: number; congTyCho: number }
+export interface PhieuCongNo { dong: DongGiaDaiLy[]; /** Dòng phí đưa đón hiện hành, mỗi chặng một dòng — đã nằm trong `tong` (Đợt C, SV-PD-25; ADR-0203 ĐB3). */ phiDong: DongPhiGiaDaiLy[]; tong: number; daThu: number; conLai: number; congTyCho: number }
 
 /** Số của một đơn sau lượt tính. `no` = số nợ dùng cho hạn mức / cổng huỷ / nhắc hạn: ≥ 0, đơn huỷ 0 (ADR-0168 Đ3 — một đơn âm không bù đơn khác). */
 export interface KetQuaCongNo { no: number; cocConGiu: number; phieu: PhieuCongNo | null }
@@ -77,7 +77,7 @@ export async function congNoNhieuDon(db: D1Database, dons: readonly DonCongNo[])
       const so = tinhConLai({ tong, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, conGiu: v.nguoiLapGiu });
       const cho = khoanChoXacNhan(rs, ls, dc);
       const congTyCho = hieuLuc(rs).filter((r) => r.kind === "CUSTOMER_PAYMENT" && r.collectorRole === "COMPANY" && cho.has(r.id)).reduce((s2, r) => s2 + r.amount, 0);
-      out.set(d.id, { no: daHuy ? 0 : Math.max(0, so.conLai), cocConGiu, phieu: { dong: g.dong, phiDon: g.phiDon, tong, ...so, congTyCho } });
+      out.set(d.id, { no: daHuy ? 0 : Math.max(0, so.conLai), cocConGiu, phieu: { dong: g.dong, phiDong: g.phiDong, tong, ...so, congTyCho } });
       continue;
     }
     const v = ve(ls);

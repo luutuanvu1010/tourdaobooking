@@ -974,11 +974,12 @@ export const feeRowsStatement = (db: D1Database, orderId: string): D1PreparedSta
 const FEE_MONEY_MANY = defineSql(
   "orders",
   "fee_money_many",
-  `SELECT i.order_id, l.order_service_id, i.fee_kind, i.fee_return_pax, i.quantity, i.unit_price, i.line_total
+  `SELECT i.order_id, l.order_service_id, i.fee_kind, i.fee_return_pax, i.description, i.quantity, i.unit_price, i.line_total
    FROM order_item i JOIN ord_transfer_leg l ON l.id = i.transfer_leg_id
    WHERE i.order_id IN (SELECT value FROM json_each(?1)) AND i.line_kind = 'TRANSFER_FEE' ORDER BY i.order_id, i.sort_order`,
 );
-export interface FeeMoneyRow { order_id: string; order_service_id: string; fee_kind: "PER_PAX" | "PER_TRIP"; fee_return_pax: number | null; quantity: number; unit_price: number; line_total: number }
+/** `description` = tên dòng «Phí đưa đón — chiều đi/về, <khu vực>» đã lưu — phiếu công nợ in mỗi chặng một dòng với đúng tên này (ADR-0203 ĐB3, cùng tên với biên nhận). */
+export interface FeeMoneyRow { order_id: string; order_service_id: string; fee_kind: "PER_PAX" | "PER_TRIP"; fee_return_pax: number | null; description: string; quantity: number; unit_price: number; line_total: number }
 export async function dongPhiTienNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<FeeMoneyRow[]> {
   if (orderIds.length === 0) return [];
   return (await db.prepare(FEE_MONEY_MANY).bind(JSON.stringify([...new Set(orderIds)])).all<FeeMoneyRow>()).results;
