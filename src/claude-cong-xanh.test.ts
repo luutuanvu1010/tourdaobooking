@@ -8,7 +8,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
-import { canhCong, tepDoi, TRAN_MS, TOI_DA_BAI } from "../.claude/hooks/cong-xanh-lib.mjs";
+import { baiLienQuan, canhCong, tepDoi, TRAN_MS, TOI_DA_BAI, TOI_DA_BAI_LUOT_2 } from "../.claude/hooks/cong-xanh-lib.mjs";
 import { khoChungCua } from "../.claude/hooks/guard-tep-lib.mjs";
 
 const ROOT = new URL("../", import.meta.url).pathname;
@@ -58,6 +58,35 @@ test("cổng xanh: tệp đổi = so với main (đã lưu) + phần chưa lưu 
     ghi(join(k.dir, "docs/x.md"), "y\n");
     ghi(join(k.dir, "web/moi.ts"), "export {};\n");
     assert.deepEqual(tepDoi(k.dir)?.sort(), ["docs/x.md", "src/a.ts", "web/moi.ts"]);
+  } finally {
+    k.don();
+  }
+});
+
+test("cổng xanh: main cục bộ đi sau origin/main → mốc so là chỗ rẽ GẦN NHẤT (không kéo tệp đổi của người khác) (kiểm độc lập 15/11)", () => {
+  const k = khoGia();
+  try {
+    git(k.dir, "checkout", "-q", "main");
+    ghi(join(k.dir, "lib/khac.ts"), "export const k = 1;\n");
+    git(k.dir, "add", "-A");
+    git(k.dir, "commit", "-q", "-m", "người khác nhập main");
+    git(k.dir, "update-ref", "refs/remotes/origin/main", "HEAD"); // origin/main mới
+    git(k.dir, "reset", "-q", "--hard", "HEAD~1"); // main cục bộ cũ
+    git(k.dir, "checkout", "-q", "lam");
+    git(k.dir, "merge", "-q", "--no-edit", "origin/main");
+    ghi(join(k.dir, "src/a.ts"), "export const a = 3;\n");
+    assert.deepEqual(tepDoi(k.dir)?.sort(), ["src/a.ts"], "chỉ tệp của phiên, không có lib/khac.ts");
+  } finally {
+    k.don();
+  }
+});
+
+test("cổng xanh: thư mục có quá TOI_DA_BAI_LUOT_2 tệp bài → bỏ lượt 2, vẫn giữ bài trực tiếp", () => {
+  const k = khoGia();
+  try {
+    for (let i = 0; i <= TOI_DA_BAI_LUOT_2; i++) ghi(join(k.dir, `src/b${i}.test.ts`), BAI_XANH);
+    const bai = baiLienQuan(k.dir, ["src/a.ts"]);
+    assert.deepEqual(bai, { truoc: ["src/a.test.ts"], sau: [] });
   } finally {
     k.don();
   }

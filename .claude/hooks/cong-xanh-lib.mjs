@@ -32,14 +32,18 @@ function git(dir, args) {
 }
 const dong = (s) => (s ?? "").split("\n").map((x) => x.trim()).filter(Boolean);
 
-/** Mốc so: chỗ rẽ nhánh của HEAD với main (không có main thì origin/main). Không có ⇒ null (chỉ xét phần chưa lưu). */
+/** Mốc so: chỗ rẽ nhánh GẦN NHẤT của HEAD với main và origin/main. `main` cục bộ của một bản làm việc riêng có thể đi sau GitHub (kiểm độc lập
+ *  15/11: mốc với `main` cũ kéo 110 tệp đổi, 515 tệp bài, cổng luôn quá trần) ⇒ lấy mốc nào là hậu duệ của mốc kia. Không có ⇒ null. */
 function mocSo(top) {
-  for (const ref of ["main", "origin/main"]) {
+  const moc = [];
+  for (const ref of ["origin/main", "main"]) {
     if (git(top, ["rev-parse", "--verify", "-q", `${ref}^{commit}`]) === null) continue;
     const mb = git(top, ["merge-base", "HEAD", ref]);
-    if (mb) return mb;
+    if (mb) moc.push(mb);
   }
-  return null;
+  if (moc.length < 2) return moc[0] ?? null;
+  const [a, b] = moc;
+  return spawnSync("git", ["-C", top, "merge-base", "--is-ancestor", a, b], { stdio: "ignore", timeout: 10_000 }).status === 0 ? b : a;
 }
 
 /** Tệp đổi so với main (đã lưu + chưa lưu) và tệp mới chưa theo dõi; đường dẫn tương đối dấu "/". null khi git lỗi. */
@@ -92,8 +96,11 @@ export function baiLienQuan(top, tep) {
       if (rel !== TEP_DO_GIO && !truoc.has(rel) && laTep(top, rel)) sau.add(rel);
     }
   }
-  return { truoc: [...truoc].sort(), sau: [...sau].sort() };
+  // Lượt 2 quá đông (thư mục như `src/` có ~300 tệp bài) thì gần như chắc quá trần và che mất lượt 1 ⇒ bỏ lượt 2, chỉ kiểm bài trực tiếp.
+  return { truoc: [...truoc].sort(), sau: sau.size > TOI_DA_BAI_LUOT_2 ? [] : [...sau].sort() };
 }
+/** Trần số tệp bài của lượt 2 (cùng thư mục). Quá trần ⇒ bỏ lượt 2. */
+export const TOI_DA_BAI_LUOT_2 = 40;
 
 const cat = (ds, ten) => (ds.length > TOI_DA_BAI ? [...ds.slice(0, TOI_DA_BAI), `… và ${ds.length - TOI_DA_BAI} ${ten} nữa`] : ds).map((d) => `  - ${d.slice(0, 300)}`);
 
