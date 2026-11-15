@@ -27,11 +27,14 @@ test("Đ1: vai sinh Bán hàng + Quản lý bán hàng; nội bộ; không quy�
 });
 
 // ADR-0175 Đ1.3 (chủ duyệt 8/11): thêm ô `ve.phat-hanh` (tạo vé Tour Đảo).
+// ADR-0209 Đ2 (chủ duyệt 15/11): thêm `partner.signup_tier.write` (đặt cấp cho đối tác tự đăng ký; không tạo cấp, không sửa mức, không ghi tiền).
 // ADR-0186 (chủ duyệt 8/11): thêm ô thứ ba `catalog.sync` — «Đồng bộ ngay từ Google Sheet» chỉ lấy giá đang có ở Sheet về, không sửa giá trong Nền tảng.
 test("Đ1 + ADR-0186: cột mới chỉ có ba ô nghiệp vụ và các ô tự phục vụ; không ô đơn, tiền, tài khoản, sửa giá nào", () => {
   const co = Object.entries(MATRIX).filter(([, r]) => r.SALES_MANAGER !== "none").map(([o]) => o).sort();
   assert.deepEqual(co, [
-    "assistant.ask", "catalog.confirm_flag.write", "catalog.hidden.write", "catalog.sync", "feedback.submit", "feedback.view", "me.favorites.write", "party.document.view", "party.erasure.request",
+    "assistant.ask", "catalog.confirm_flag.write", "catalog.hidden.write", "catalog.sync", "feedback.submit", "feedback.view", "me.favorites.write",
+    "partner.signup_tier.write", // ADR-0209 Đ2 (chủ duyệt 2026-11-15): ô đầu tiên của Quản lý bán hàng chạm điều khoản thương mại — chỉ chọn cấp đang bật cho đối tác tự đăng ký, không sửa mức
+    "party.document.view", "party.erasure.request",
     "party.self.submit",
     "party.self.view",
     "ve.doi-chieu.view", // ADR-0175 §2.7: Quản lý bán hàng xem đối chiếu và người quét

@@ -316,7 +316,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "trip.transfer": "none", // ADR-0052 D4 / ADR-0111: Đối tác không điều xe
     "assistant.ask": "any", // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: sổ phiên chỉ Toàn quyền
-    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: Đối tác không thấy bảng mức, người bán (ADR-0077 điều 11; tỷ lệ chỉ văn phòng)
+    "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: Đối tác không thấy bảng mức, người bán (ADR-0077 điều 11; tỷ lệ chỉ văn phòng)
     "credit.limit.write": "none", // ADR-0168: hạn mức trả sau do Toàn quyền đặt
     "credit.limit.view": "none",
     "credit.ceiling.write": "none", // ADR-0172: chỉ Toàn quyền

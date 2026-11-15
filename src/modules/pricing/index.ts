@@ -477,7 +477,7 @@ async function docCapMacDinh(db: D1Database, luc: string): Promise<CapMacDinhRes
 /** Thân lệnh đặt: `{ loai, muc: mã cấp | null, dangHieuLuc: id dòng hiệu lực đã thấy | null }` — ba khoá bắt buộc (null là giá trị, vắng là lỗi). */
 function kiemThanCapMacDinh(raw: unknown): { ok: true; loai: string; muc: string | null; dangHieuLuc: string | null } | { ok: false; message: string } {
   const o = raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as Record<string, unknown>) : null;
-  if (!o || typeof o.loai !== "string" || !MA_RE.test(o.loai)) return { ok: false, message: "Hãy chọn loại đối tác." };
+  if (!o || typeof o.loai !== "string" || !MA_RE.test(o.loai)) return { ok: false, message: "Hãy chọn một vai trò đối tác." };
   if (!("muc" in o) || (o.muc !== null && (typeof o.muc !== "string" || !MUC_TA_RE.test(o.muc)))) return { ok: false, message: "Hãy chọn một cấp độ đại lý, hoặc «Theo cấp của vai trò»." };
   if (!("dangHieuLuc" in o) || (o.dangHieuLuc !== null && (typeof o.dangHieuLuc !== "string" || !PARTY_RE.test(o.dangHieuLuc)))) return { ok: false, message: "Thiếu dấu phiên bản. Tải lại trang." };
   return { ok: true, loai: o.loai, muc: o.muc as string | null, dangHieuLuc: o.dangHieuLuc as string | null };
