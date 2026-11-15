@@ -16,7 +16,7 @@ import {
 } from "../parties";
 import { getStaffAccountOfParty } from "../staff";
 import {
-  banKhaiXet, boSungStatement, datStatement, hangCho, ketLuanMoiNhat, ketLuanMucStatement, mucRiengCuaPhieu, phieuXet, soDayDuCuaBanKhai, suKienNhanVienStatement, tuChoiStatement,
+  banKhaiXet, boSungStatement, chinhSachHienHanh, datStatement, hangCho, ketLuanMoiNhat, ketLuanMucStatement, mucRiengCuaPhieu, phieuXet, soDayDuCuaBanKhai, suKienNhanVienStatement, tuChoiStatement,
   type PhieuXetRow,
 } from "./repository.ts";
 import { kiemDat, kiemKetLuan, kiemLyDo, laMaPhieu, laMaTep, loiLoXacMinh, mucBatBuoc, mucChuaDat, type KetQuaMuc } from "./xac-minh.ts";
@@ -230,10 +230,14 @@ export async function yeuCauBoSung({ request, env, staff, params }: Ctx<"account
   const { lyDo, phienBan } = k.value;
   if (phienBan !== p.current_version) return DOI_PHIEN_BAN(); // người đăng ký đã gửi lại sau khi bạn mở phiếu
   const at = new Date().toISOString();
+  // Hạn sửa = lúc yêu cầu + `supplement_expire_days` của chính sách (PHU-LUC: 14 ngày); tác nhân dọn phiếu cho hết hạn theo mốc này. Không có dòng chính sách ⇒ 503 (không đoán con số).
+  const cs = await chinhSachHienHanh(env.DB, at);
+  if (!cs) return error(503, "registration_policy_missing", "Chưa có chính sách đăng ký. Hãy báo quản trị viên.");
+  const expiresAt = new Date(Date.parse(at) + cs.supplement_expire_days * 86_400_000).toISOString();
   let kq: D1Result[];
   try {
     kq = await env.DB.batch([
-      boSungStatement(env.DB, { registrationId: p.id, lyDo, by: staff.id, at, phienBan }),
+      boSungStatement(env.DB, { registrationId: p.id, lyDo, by: staff.id, at, phienBan, expiresAt }),
       suKienNhanVienStatement(env.DB, { registrationId: p.id, staffId: staff.id, command: "BO_SUNG", lyDo, at }),
       auditStatement(env.DB, { staffId: staff.id, action: "registration_supplement_requested", at, targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · yêu cầu bổ sung · ${lyDo}` }, "changes() > 0"),
     ]);

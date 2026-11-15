@@ -10,7 +10,7 @@ const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const SRC = join(ROOT, "src");
 
 /** Các tệp (ngoài phien.ts và bài kiểm) gọi docPhienDangKy. Các task sau thêm. */
-const ROUTE_DANG_KY: readonly string[] = ["src/modules/dang-ky/tep-route.ts", "src/modules/dang-ky/phieu-route.ts"]; // POST /api/dang-ky/phieu/tep (ADR-0208 Đ2); GET, PUT /phieu, POST /phieu/gui, /phieu/rut (ADR-0206 Đ6)
+const ROUTE_DANG_KY: readonly string[] = ["src/modules/dang-ky/tep-route.ts", "src/modules/dang-ky/phieu-route.ts", "src/modules/dang-ky/kich-hoat-route.ts"]; // POST /api/dang-ky/phieu/tep (ADR-0208 Đ2); GET, PUT /phieu, POST /phieu/gui, /phieu/rut (ADR-0206 Đ6); POST /phieu/dat-pin (ADR-0207 Đ7, Task 9)
 
 function tep(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {

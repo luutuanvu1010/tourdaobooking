@@ -106,6 +106,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "PUT", path: "/api/dang-ky/phieu", access: "public" }, // lưu nháp (chọn loại đối tác)
   { method: "POST", path: "/api/dang-ky/phieu/gui", access: "public" }, // gửi / gửi lại: bản khai bất biến
   { method: "POST", path: "/api/dang-ky/phieu/rut", access: "public" }, // rút phiếu (kèm quyết gỡ tệp chờ, ADR-0208 Đ7)
+  { method: "POST", path: "/api/dang-ky/phieu/dat-pin", access: "public" }, // ADR-0207 Đ7 (đợt 1 Task 9): người được duyệt tự đặt PIN — cookie đăng ký + mã email MỚI kiểm trong thân; KHÔNG cấp td_session
   { method: "POST", path: "/api/dang-ky/phieu/tep", access: "public" }, // ADR-0208 Đ2: tải tệp vào ô của phiếu — công khai, cổng là cookie đăng ký td_dang_ky kiểm trong thân route (ADR-0206 Đ7)
   // ADR-0207 Đ9 (đợt 1 Task 6): bước xác minh phiếu đăng ký — cổng accounts; thân hỏi registration.queue.view (hàng chờ) hoặc party.verify + party.view (+ party.verify.attachment cho số, ảnh).
   { method: "GET", path: "/api/dang-ky/hang-cho", access: "accounts" },
@@ -665,7 +666,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 525 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 526 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -835,6 +836,7 @@ test("mức truy cập của 525 route hiện có khớp ảnh chụp đã duy�
   // ADR-0206 Đ6 (đợt 1 Task 3): + 4 route công khai (GET /api/dang-ky/cau-hinh, POST /api/dang-ky/ma, POST /api/dang-ky/xac-nhan, GET /api/chinh-sach-rieng-tu) = 513 + 4 = 517.
   // ADR-0206 Đ6 (đợt 1 Task 4): + 4 route của chính người đăng ký (GET, PUT /api/dang-ky/phieu, POST …/gui, POST …/rut; public) = 517 + 4 = 521.
   // ADR-0207 Đ4, Đ7, Đ9 (đợt 1 Task 8): + 4 route duyệt (GET …/xem-duyet, POST …/duyet, …/tu-choi-duyet, …/gui-lai-loi-moi; accounts) = 521 + 4 = 525.
-  assert.equal(actual.length, 525, "số route thực tế lệch 525 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 525, "SNAPSHOT phải có đúng 525 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // ADR-0207 Đ7 (đợt 1 Task 9): + 1 route kích hoạt (POST /api/dang-ky/phieu/dat-pin; public) = 526.
+  assert.equal(actual.length, 526, "số route thực tế lệch 526 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 526, "SNAPSHOT phải có đúng 526 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

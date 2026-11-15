@@ -271,6 +271,12 @@ CREATE TABLE dk_event (
   updated_by       TEXT
 );
 CREATE INDEX dk_event_registration_ix ON dk_event(registration_id, at);
+-- Câu canh của LÔ KÍCH HOẠT (ADR-0207 Đ7; đợt 1 Task 9): câu ghi PIN của staff (`WHERE active = 0`) khớp 0 dòng KHÔNG làm hỏng lô, nên ngay sau câu đó lô chèn một dòng lịch sử mang lệnh
+-- dấu KICH_HOAT_LECH `WHERE changes() = 0` — chỉ khi tài khoản không còn ở trạng thái tắt. Trigger RAISE làm hỏng CẢ lô (dòng quyết định, mốc kích hoạt, ẩn danh danh tính đều mất).
+-- Lệnh dấu này không bao giờ nằm lại trong bảng.
+CREATE TRIGGER dk_event_activation_account BEFORE INSERT ON dk_event
+WHEN NEW.command = 'KICH_HOAT_LECH'
+BEGIN SELECT RAISE(ABORT, 'dk_activation_account: tài khoản của phiếu không ở trạng thái chờ kích hoạt'); END;
 CREATE TRIGGER dk_event_no_update BEFORE UPDATE ON dk_event
 BEGIN SELECT RAISE(ABORT, 'dk_append_only: lịch sử phiếu chỉ thêm dòng mới'); END;
 CREATE TRIGGER dk_event_no_delete BEFORE DELETE ON dk_event

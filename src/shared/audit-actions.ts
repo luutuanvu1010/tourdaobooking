@@ -252,6 +252,10 @@ export const AUDIT_ACTIONS = {
   registration_file_viewed: { label: "Mở ảnh của phiếu đăng ký", group: "party" },
   registration_approval_rejected: { label: "Từ chối duyệt phiếu đăng ký", group: "party" },
   registration_invite_resent: { label: "Gửi lại lời mời đặt PIN", group: "party" },
+  // ADR-0207 Đ7 (đợt 1 Task 9): người được duyệt tự đặt PIN — do CHÍNH tài khoản mới đứng tên (không dùng staff_reactivated, để không ghi «chạm tài khoản» thay một người quản trị). target = phiếu.
+  registration_activated: { label: "Tự đặt mã PIN, kích hoạt tài khoản", group: "party" },
+  // ADR-0208 Đ8 (đợt 1 Task 9): tác nhân DON_PHIEU_DANG_KY ghi MỘT dòng mỗi lượt có việc; detail CHỈ các số đếm (KHÔNG mã phiếu, KHÔNG khoá kho, KHÔNG email).
+  registration_cleanup_run: { label: "Dọn phiếu đăng ký", group: "party" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
   // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
   party_bank_account_changed: { label: "Đổi tài khoản nhận tiền", group: "party" },

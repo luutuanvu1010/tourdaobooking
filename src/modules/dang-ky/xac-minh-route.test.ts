@@ -498,7 +498,7 @@ test("(13d) I-3: câu «bổ sung» và «từ chối» tự canh phiên bản �
   guiLai(w, id); // current_version = 2
   const at = new Date().toISOString();
   const kq = await w.env.DB.batch([
-    boSungStatement(w.env.DB, { registrationId: id, lyDo: "KHONG_DOC_DUOC", by: ADM, at, phienBan: 1 }),
+    boSungStatement(w.env.DB, { registrationId: id, lyDo: "KHONG_DOC_DUOC", by: ADM, at, phienBan: 1, expiresAt: at }),
     tuChoiStatement(w.env.DB, { registrationId: id, lyDo: "KHONG_DOC_DUOC", by: ADM, at, phienBan: 1 }),
   ]);
   assert.deepEqual(kq.map((x: any) => x.meta.changes), [0, 0]);
@@ -531,7 +531,7 @@ test("(14) I-3: câu «kết luận» và «bổ sung» tự canh trạng thái 
     const [kl, su1, bs, su2] = await w.env.DB.batch([
       ketLuanMucStatement(w.env.DB, { registrationId: id, item: "HO_TEN", dat: true, lyDo: null, by: ADM, at, phienBan: 1 }),
       suKienNhanVienStatement(w.env.DB, { registrationId: id, staffId: ADM, command: "KET_LUAN", lyDo: null, at }),
-      boSungStatement(w.env.DB, { registrationId: id, lyDo: "KHONG_DOC_DUOC", by: ADM, at, phienBan: 1 }),
+      boSungStatement(w.env.DB, { registrationId: id, lyDo: "KHONG_DOC_DUOC", by: ADM, at, phienBan: 1, expiresAt: at }),
       suKienNhanVienStatement(w.env.DB, { registrationId: id, staffId: ADM, command: "BO_SUNG", lyDo: "KHONG_DOC_DUOC", at }),
     ]);
     assert.equal(kl.meta.changes, 0, `${trangThai}: kết luận`);

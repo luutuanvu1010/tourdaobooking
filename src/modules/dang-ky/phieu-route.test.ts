@@ -247,9 +247,10 @@ test("«Gửi» hai lần song song, lần hai đến sau khi lô đầu đã xo
 test("CẦN BỔ SUNG: GET kể lý do bằng câu cho người ngoài và bản khai trước (số che); PUT cùng loại ⇒ 200; PUT loại khác ⇒ 409; gửi lại ⇒ bản khai MỚI (phiên bản 2), về CHỜ XÁC MINH, lý do xoá", async () => {
   const w = setup();
   await daGui(w);
-  w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = 'KHONG_DOC_DUOC' WHERE id = ?").run(PHIEU);
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = 'KHONG_DOC_DUOC', expires_at = '2099-01-01T00:00:00.000Z' WHERE id = ?").run(PHIEU);
   const g = await xem(w);
   assert.equal(g.json.trangThai, "CAN_BO_SUNG");
+  assert.equal(g.json.hanLuc, "2099-01-01T00:00:00.000Z", "hạn sửa hiện cho người đăng ký");
   assert.equal(g.json.chiXem, false);
   assert.deepEqual(g.json.lyDo, { ma: "KHONG_DOC_DUOC", cau: "Ảnh hoặc thông tin không đọc được. Vui lòng gửi lại bản rõ hơn." });
   assert.equal(g.json.banKhaiTruoc.hoTen, "Nguyễn Văn Thử");
@@ -267,6 +268,7 @@ test("CẦN BỔ SUNG: GET kể lý do bằng câu cho người ngoài và bản
   const p = phieu(w);
   assert.equal(p.current_version, 2);
   assert.equal(p.reason_code, null);
+  assert.equal(p.expires_at, null, "gửi lại xoá mốc hạn sửa (đợt 1 Task 9) — phiếu chờ xác minh không tự hết hạn");
   assert.deepEqual(w.q("SELECT version, given_name FROM dk_submission ORDER BY version").map((x: any) => ({ ...x })), [{ version: 1, given_name: "Thử" }, { version: 2, given_name: "Hai" }]);
   assert.deepEqual(lichSu(w), ["LUU_NHAP", "GUI", "GUI_LAI"]);
 });

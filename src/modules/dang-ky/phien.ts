@@ -59,6 +59,11 @@ export function cookiePhienDangKy(token: string, maxHours: number, secure: boole
   return `${DK_COOKIE}=${token}; Path=/api/dang-ky; Max-Age=${Math.floor(maxHours * 3600)}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
 }
 
+/** Set-Cookie KẾT THÚC phiên đăng ký (Max-Age=0, cùng Path) — sau lô kích hoạt (ADR-0207 Đ7: «sau lô, phiên đăng ký kết thúc»). */
+export function cookieKetThucPhienDangKy(secure: boolean): string {
+  return `${DK_COOKIE}=; Path=/api/dang-ky; Max-Age=0; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
+}
+
 /**
  * Khoá băm có khoá (HMAC-SHA256, khoá dẫn xuất riêng từ SESSION_SECRET) cho email, địa chỉ mạng, mã: để khoá bộ đếm `dk:` và `dk_email_code.email_key` KHÔNG chứa email hay địa chỉ ở dạng rõ
  * (khuôn `emailHash` của auth/mfa-email.ts nhưng có khoá — email dễ đoán nên băm trần dò ngược được). `loai` tách không gian băm; trả hex.

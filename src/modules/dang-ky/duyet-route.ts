@@ -15,7 +15,7 @@ import { auditStatement } from "../audit";
 import { canCuocThuocHoSoKhac, cauGoTepChoNeuTruocDoi, partySummary, validateContact, xoaKhoTepChoDaGo } from "../parties";
 import { findStaffByPhone, tenVaiTaiKhoan } from "../staff";
 import {
-  banKhaiDeDuyet, chinhSachHienHanh, emailLienLacCuaPhieu, guiLaiLoiMoiStatement, ketLuanMoiNhat, phieuXet, suKienNhanVienStatement, tomTatDeDuyet, tuChoiDuyetStatement,
+  banKhaiDeDuyet, chinhSachHienHanh, danhTinhConEmail, emailLienLacCuaPhieu, guiLaiLoiMoiStatement, ketLuanMoiNhat, phieuXet, suKienNhanVienStatement, tomTatDeDuyet, tuChoiDuyetStatement,
 } from "./repository.ts";
 import { kiemDuyet, kiemLyDoDuyet, laMaPhieu, loiDungLoDuyet, loiLoDuyet } from "./xac-minh.ts";
 import { dsMuc, kiemHoSoDich, kiemNguoiGioiThieu, moiNhat, mucPhaiDat } from "./xac-minh-route.ts";
@@ -25,6 +25,8 @@ const KHONG_THAY = () => error(404, "not_found", "Không tìm thấy phiếu.");
 const KHONG_CON_CHO = () => error(409, "registration_state_changed", "Phiếu vừa được người khác xử lý hoặc không còn chờ duyệt. Hãy mở lại phiếu.");
 const DOI_PHIEN_BAN = () => error(409, "registration_version_changed", "Phiếu đã thay đổi từ lúc bạn mở. Hãy mở lại phiếu để xem bản mới.");
 const NGAY_MS = 24 * 3600 * 1000;
+const DANH_TINH_DA_AN = () =>
+  error(409, "registration_identity_erased", "Đã quá hạn đặt mã PIN và thông tin liên lạc của người đăng ký đã được xoá, nên không gửi lại lời mời được. Người này cần đăng ký lại.");
 
 const idPhieu = (params: Record<string, string>): string | null => (laMaPhieu(params.id) ? params.id! : null);
 
@@ -172,6 +174,8 @@ export async function guiLaiLoiMoi({ env, staff, params }: Ctx<"accounts">): Pro
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p) return KHONG_THAY();
   if (p.status !== "DA_DUYET" || p.activated_at !== null) return error(409, "registration_not_pending_activation", "Phiếu không ở trạng thái đã duyệt, chưa kích hoạt.");
+  // Tác nhân dọn phiếu đã ẩn danh danh tính (quá hạn kích hoạt — ADR-0208 Đ6, Đ8): người được duyệt không còn đường vào lại phiếu ⇒ không mở lại hạn (câu ghi cũng tự canh điều này).
+  if (!(await danhTinhConEmail(env.DB, p.id))) return DANH_TINH_DA_AN();
   const at = new Date().toISOString();
   const deadlineAt = await hanKichHoat(env.DB, at);
   if (!deadlineAt) return error(503, "registration_policy_missing", "Chưa có chính sách đăng ký. Hãy báo quản trị viên.");
@@ -180,6 +184,9 @@ export async function guiLaiLoiMoi({ env, staff, params }: Ctx<"accounts">): Pro
     suKienNhanVienStatement(env.DB, { registrationId: p.id, staffId: staff.id, command: "GUI_LAI_LOI_MOI", lyDo: null, at }),
     auditStatement(env.DB, { staffId: staff.id, action: "registration_invite_resent", at, targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · mở lại hạn đặt PIN` }, "changes() > 0"),
   ]);
-  if ((kq[0]?.meta.changes ?? 0) === 0) return error(409, "registration_not_pending_activation", "Phiếu không ở trạng thái đã duyệt, chưa kích hoạt.");
+  if ((kq[0]?.meta.changes ?? 0) === 0) {
+    if (!(await danhTinhConEmail(env.DB, p.id))) return DANH_TINH_DA_AN();
+    return error(409, "registration_not_pending_activation", "Phiếu không ở trạng thái đã duyệt, chưa kích hoạt.");
+  }
   return json({ hanKichHoat: deadlineAt });
 }

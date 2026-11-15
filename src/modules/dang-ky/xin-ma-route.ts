@@ -13,7 +13,7 @@ import { getMaintenanceState, maintenanceResponse } from "../maintenance";
 import { chinhSachRiengTuCongKhai, mucXacMinhBatBuocCaNhan } from "../parties";
 import { guiThuMa } from "./mail.ts";
 import { cookiePhienDangKy, dkEmailKey, dkIpKey, dkXacNhanIpKey, khoaBam, taoPhienDangKy } from "./phien.ts";
-import { chenMaEmail, chinhSachHienHanh, danhTinhTheoEmail, demLanNhapSai, maGanNhat, moPhieuNhap, mucRiengCuaPhieu, tieuMa } from "./repository.ts";
+import { chenMaEmail, chinhSachHienHanh, danhTinhTheoEmail, demLanNhapSai, maGanNhat, moPhieuNhap, mucRiengCuaPhieu, tieuMa, type ChinhSachDangKyRow, type MaGanNhat } from "./repository.ts";
 import { chuanHoaEmail, sinhMaEmail } from "./rules.ts";
 import { sinhMa } from "../../shared/ma-dinh-danh.ts";
 import { mucBatBuoc } from "./xac-minh.ts";
@@ -21,7 +21,7 @@ import { mucBatBuoc } from "./xac-minh.ts";
 const GIO_MS = 3_600_000;
 const CAU_TAM_NGUNG = "Tạm ngừng nhận đăng ký. Hãy thử lại sau ít phút.";
 const CAU_DONG = "Tour Đảo tạm ngừng nhận đăng ký mới.";
-const CAU_SAI_MA = "Mã không đúng hoặc đã hết hạn. Hãy xin mã mới.";
+export const CAU_SAI_MA = "Mã không đúng hoặc đã hết hạn. Hãy xin mã mới.";
 const enc = new TextEncoder();
 const OK = (): Response => json({ ok: true }, 200, { "cache-control": "no-store" });
 const TAM_NGUNG = (): Response => error(503, "registration_unavailable", CAU_TAM_NGUNG);
@@ -80,6 +80,32 @@ export async function xinMa({ request, env, exec }: Ctx<"public">): Promise<Resp
   return OK();
 }
 
+/**
+ * Kiểm MỘT mã gửi email — CÙNG một đường cho nhập mã (Task 3) và đặt PIN (ADR-0207 Đ7, Task 9), để hai nơi không lệch nhau:
+ * lượt nhập sai tính theo địa chỉ mạng (khoá `dk:xn:ip:` băm, riêng `dk:`) → mã MỚI NHẤT của email → còn hạn, chưa đủ số lần → so băm (thời gian hằng) → sai thì đếm một lần sai.
+ * Đúng ⇒ trả dòng mã và lượt đã đặt chỗ; NGƯỜI GỌI tiêu mã (`tieuMa`) rồi xoá lượt (`clearAttempts`). Mọi câu sai cùng một câu (không cho dò email nào đang có mã).
+ * Dòng chính sách chưa có số riêng cho lượt sai nên DÙNG LẠI `ask_per_network` và `ask_window_minutes` (báo cáo Task 3, vòng sửa 1).
+ */
+export async function kiemMaEmail(
+  env: Env, request: Request, email: string, maNhap: unknown, chinhSach: ChinhSachDangKyRow, nowMs: number,
+): Promise<{ ok: true; dong: MaGanNhat; dat: { ids: Record<string, string> } } | { ok: false; res: Response }> {
+  const at = new Date(nowMs).toISOString();
+  const emailKey = await khoaBam(env.SESSION_SECRET, "email", email);
+  const ipKey = await khoaBam(env.SESSION_SECRET, "ip", request.headers.get("cf-connecting-ip") ?? "khong-ro");
+  const dat = await reserveAttempts(env.DB, [{ key: dkXacNhanIpKey(ipKey), max: chinhSach.ask_per_network }], nowMs, chinhSach.ask_window_minutes * 60_000);
+  if (!dat.allowed) return { ok: false, res: error(429, "too_many_attempts", "Bạn đã nhập sai quá nhiều lần. Hãy đợi ít phút rồi thử lại.") };
+  const dong = await maGanNhat(env.DB, emailKey);
+  // Không có mã, mã hết hạn, đã đủ số lần nhập: CÙNG một câu.
+  if (!dong || dong.expires_at <= at || dong.attempts >= chinhSach.code_max_attempts) return { ok: false, res: error(401, "invalid_code", CAU_SAI_MA) };
+  const ma = typeof maNhap === "string" ? maNhap.trim() : "";
+  const dung = ma.length > 0 && ma.length <= 20 && timingSafeEqual(enc.encode(await khoaBam(env.SESSION_SECRET, "ma", `${dong.id}:${emailKey}:${ma}`)), enc.encode(dong.code_hash));
+  if (!dung) {
+    await demLanNhapSai(env.DB, dong.id, at, chinhSach.code_max_attempts);
+    return { ok: false, res: error(401, "invalid_code", CAU_SAI_MA) };
+  }
+  return { ok: true, dong, dat };
+}
+
 /** POST /api/dang-ky/xac-nhan — thân `{ email, ma }`; đúng ⇒ đặt cookie đăng ký và trả `{ trangThai }`. */
 export async function xacNhanMa({ request, env }: Ctx<"public">): Promise<Response> {
   const baoTri = await getMaintenanceState(env.DB);
@@ -91,21 +117,9 @@ export async function xacNhanMa({ request, env }: Ctx<"public">): Promise<Respon
   const body = await readJson(request);
   const email = chuanHoaEmail(body?.email);
   if (!email) return error(400, "invalid_input", "Email chưa đúng dạng. Hãy kiểm tra lại.");
-  const emailKey = await khoaBam(env.SESSION_SECRET, "email", email);
-  // Chống người lạ đốt mã của người khác: lượt nhập SAI tính theo địa chỉ mạng (khoá `dk:xn:ip:` băm, riêng `dk:`); nhập đúng thì xoá lượt vừa đặt (khuôn đăng nhập).
-  // Dòng chính sách chưa có số riêng cho việc này nên DÙNG LẠI `ask_per_network` và `ask_window_minutes` (báo cáo Task 3, vòng sửa 1).
-  const ipKey = await khoaBam(env.SESSION_SECRET, "ip", request.headers.get("cf-connecting-ip") ?? "khong-ro");
-  const dat = await reserveAttempts(env.DB, [{ key: dkXacNhanIpKey(ipKey), max: chinhSach.ask_per_network }], nowMs, chinhSach.ask_window_minutes * 60_000);
-  if (!dat.allowed) return error(429, "too_many_attempts", "Bạn đã nhập sai quá nhiều lần. Hãy đợi ít phút rồi thử lại.");
-  const dong = await maGanNhat(env.DB, emailKey);
-  // Không có mã, mã hết hạn, đã đủ số lần nhập: CÙNG một câu (không cho dò email nào đang có mã).
-  if (!dong || dong.expires_at <= at || dong.attempts >= chinhSach.code_max_attempts) return error(401, "invalid_code", CAU_SAI_MA);
-  const ma = typeof body?.ma === "string" ? body.ma.trim() : "";
-  const dung = ma.length > 0 && ma.length <= 20 && timingSafeEqual(enc.encode(await khoaBam(env.SESSION_SECRET, "ma", `${dong.id}:${emailKey}:${ma}`)), enc.encode(dong.code_hash));
-  if (!dung) {
-    await demLanNhapSai(env.DB, dong.id, at, chinhSach.code_max_attempts);
-    return error(401, "invalid_code", CAU_SAI_MA);
-  }
+  const kiem = await kiemMaEmail(env, request, email, body?.ma, chinhSach, nowMs);
+  if (!kiem.ok) return kiem.res;
+  const { dong, dat } = kiem;
   let ident = await danhTinhTheoEmail(env.DB, email);
   // Công tắc đóng và chưa có phiếu: không mở phiếu mới; mã CHƯA bị tiêu (người đăng ký thử lại khi công tắc mở).
   if (!ident && chinhSach.registration_open !== 1) return error(409, "registration_closed", CAU_DONG);
@@ -120,7 +134,7 @@ export async function xacNhanMa({ request, env }: Ctx<"public">): Promise<Respon
     registrationId = sinhMa("DK", crypto.getRandomValues(new Uint8Array(8)));
     identityId = crypto.randomUUID();
     try {
-      await env.DB.batch(moPhieuNhap(env.DB, { registrationId, identityId, email, at }));
+      await env.DB.batch(moPhieuNhap(env.DB, { registrationId, identityId, email, at, expiresAt: new Date(nowMs + chinhSach.draft_expire_days * 86_400_000).toISOString() }));
       trangThai = "DANG_DIEN";
     } catch (e) {
       // Hai lần nhập song song cho cùng email: chỉ mục «một phiếu đang mở mỗi email» chặn lô thứ hai; đọc lại phiếu của lô thắng.

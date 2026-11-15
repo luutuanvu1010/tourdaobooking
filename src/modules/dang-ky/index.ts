@@ -1,10 +1,12 @@
 // Module dang-ky — phiếu đăng ký đối tác tự đăng ký (ADR-0206 Đ2; đợt 1 Task 1). Chủ duy nhất của bảng dk_*. Chưa có route (routes: []): route, lệnh gửi, xác minh, duyệt thêm ở các Task sau.
 // Phụ thuộc (khai ở ALLOWED_EDGES): parties (hồ sơ, tệp), staff (tài khoản), auth (Turnstile, bộ đếm chống dò), audit (nhật ký lệnh của người trong công ty và tác nhân). Câu của pricing do gốc lắp ráp ghép vào lô duyệt, không có cạnh.
-import { can } from "../../shared/permissions";
+import { can, tacNhan } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { chinhSachHienHanh } from "./repository";
 import { guiPhieu, luuNhapPhieu, rutPhieu, xemPhieuCuaToi } from "./phieu-route";
 import { taiTepPhieu } from "./tep-route";
+import { datPinKichHoat } from "./kich-hoat-route";
+import { donPhieuDangKy } from "./don-phieu";
 import { cauHinhDangKy, xacNhanMa, xinMa } from "./xin-ma-route";
 import { CAM_DUYET, duyetPhieu, guiLaiLoiMoi, tuChoiDuyet, xemDeDuyet } from "./duyet-route";
 import { CAM, ketLuanMuc, moTep, tuChoiPhieu, xacMinhDat, xemHangCho, xemPhieu, xemSo, yeuCauBoSung } from "./xac-minh-route";
@@ -14,6 +16,19 @@ export { chuaKichHoat, lyDoCuaPhieu } from "./repository";
 // Câu CHƯA CHẠY của dang-ky cho LÔ DUYỆT (ADR-0207 Đ5; đợt 1 Task 8): gốc lắp ráp ghép với câu của parties, staff (và pricing) — câu 1 chốt, câu 10 phiếu + lịch sử + ẩn danh bản khai.
 export { cauAnDanhBanKhai, cauChotDuyet, cauDuyetPhieu, suKienNhanVienStatement as suKienDuyetStatement } from "./repository";
 export { TRANG_THAI, TRANG_THAI_KET_THUC, chuyenHopLe, daKetThuc, type TrangThai } from "./rules";
+
+export { donPhieuDangKy, type KetQuaDonPhieu } from "./don-phieu";
+
+/** Tác nhân tự động dọn phiếu đăng ký (ADR-0208 Đ8, khuôn ADR-0186 Đ1): chỉ Cron dùng; giữ đúng ô `registration.agent.purge`, không có nút hay route nào cho người. */
+const DON_PHIEU_DANG_KY = tacNhan("DON_PHIEU_DANG_KY");
+/** Cron ở gốc lắp ráp: một lượt dọn phiếu dưới tác nhân DON_PHIEU_DANG_KY. KHÔNG BAO GIỜ NÉM (lỗi ở đây không kéo theo việc định kỳ khác). */
+export async function donPhieuDangKyDinhGio(env: Env): Promise<void> {
+  try {
+    await donPhieuDangKy(env, DON_PHIEU_DANG_KY, new Date());
+  } catch (e) {
+    console.error(JSON.stringify({ level: "error", event: "dk_don_phieu_loi", viec: "luot", loi: e instanceof Error ? e.name : "unknown" }));
+  }
+}
 
 /** Chính sách đăng ký hiệu lực tại `at`; null ⇒ coi là đóng đăng ký. */
 export const chinhSachDangKy = chinhSachHienHanh;
@@ -44,6 +59,10 @@ export const dangKyModule: AppModule = {
     }),
     route("POST", "/api/dang-ky/phieu/rut", "public", async (ctx) => {
       return rutPhieu(ctx);
+    }),
+    // KÍCH HOẠT (ADR-0207 Đ7; đợt 1 Task 9): người được duyệt tự đặt PIN. Công khai; cổng là cookie đăng ký + mã email MỚI kiểm trong thân (kich-hoat-route.ts). Không cấp td_session.
+    route("POST", "/api/dang-ky/phieu/dat-pin", "public", async (ctx) => {
+      return datPinKichHoat(ctx);
     }),
     // Tải một tệp vào ô của phiếu (ADR-0208 Đ2). Công khai: người đăng ký chưa có tài khoản; cổng là cookie đăng ký kiểm trong thân (ADR-0206 Đ7).
     route("POST", "/api/dang-ky/phieu/tep", "public", async (ctx) => {

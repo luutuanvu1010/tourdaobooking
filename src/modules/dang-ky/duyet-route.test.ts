@@ -4,7 +4,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { world, seedStaff, SECRET } from "../../../tests/audit/harness.mjs";
+import { DK_COOKIE, khoaBam, taoPhienDangKy } from "./phien.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const ACC = "22222222-2222-4222-8222-222222222222";
@@ -108,6 +109,18 @@ const anh = (w: any) => ({
   suKien: dem1(w, "SELECT count(*) n FROM dk_event"),
 });
 const taiKhoanMoi = (w: any) => w.q("SELECT * FROM staff WHERE phone = ?", DT_KHOA)[0];
+/** Kích hoạt THẬT (ADR-0207 Đ7; Task 9): gieo một mã email mới băm đúng như route xin mã, rồi người được duyệt đặt PIN bằng cookie đăng ký qua route `dat-pin`. */
+async function kichHoatThat(w: any, id: string, pin = "246813") {
+  const ident = `ident-${id}`;
+  const email = w.q("SELECT subject FROM dk_identity WHERE id = ?", ident)[0].subject;
+  const maId = crypto.randomUUID();
+  const emailKey = await khoaBam(SECRET, "email", email);
+  const now = new Date().toISOString();
+  w.sqlite.prepare("INSERT INTO dk_email_code (id, email_key, code_hash, expires_at, attempts, created_at, updated_at) VALUES (?, ?, ?, ?, 0, ?, ?)")
+    .run(maId, emailKey, await khoaBam(SECRET, "ma", `${maId}:${emailKey}:482915`), new Date(Date.now() + 600_000).toISOString(), now, now);
+  const r = await w.call("POST", "/api/dang-ky/phieu/dat-pin", { body: { ma: "482915", pin }, headers: { cookie: `${DK_COOKIE}=${await taoPhienDangKy(SECRET, id, ident, Date.now())}` } });
+  assert.equal(r.status, 200, r.text);
+}
 
 test("(1) Quyền: Quản trị, Bán hàng, Kế toán, Đối tác gọi duyệt / từ chối duyệt / gửi lại lời mời / xem để duyệt ⇒ 403; không đổi dòng nào", async () => {
   const w = setup();
@@ -388,7 +401,8 @@ test("(12) Người đã duyệt về sau KHÔNG xác minh được phiếu tự
   await xacMinh(w, id);
   assert.equal((await duyet(w, HR, id)).status, 200);
   const tk = taiKhoanMoi(w);
-  w.sqlite.prepare("UPDATE staff SET active = 1 WHERE id = ?").run(tk.id); // giả đã kích hoạt (đường kích hoạt thuộc Task 9)
+  await kichHoatThat(w, id); // đường kích hoạt THẬT (Task 9): mã email mới + đặt PIN qua route
+  assert.equal(taiKhoanMoi(w).active, 1);
   const pid = crypto.randomUUID();
   w.sqlite.prepare(`INSERT INTO pty_self_submission (id, party_id, subject_kind, policy_id, birth_date, status, created_at, created_by, updated_at, updated_by)
     VALUES (?, ?, 'NGAY_SINH', 'pol', '1990-05-07', 'CHO_XAC_MINH', ?, ?, ?, ?)`).run(pid, tk.party_id, new Date().toISOString(), tk.id, new Date().toISOString(), tk.id);

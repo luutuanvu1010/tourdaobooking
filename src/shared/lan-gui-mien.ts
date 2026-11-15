@@ -19,6 +19,7 @@ export const LAN_GUI_MIEN: readonly MucMien[] = [
   { method: "PUT", path: "/api/dang-ky/phieu", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
   { method: "POST", path: "/api/dang-ky/phieu/gui", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
   { method: "POST", path: "/api/dang-ky/phieu/rut", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
+  { method: "POST", path: "/api/dang-ky/phieu/dat-pin", congKhai: true, lyDo: "người được duyệt chưa có tài khoản đang bật — ADR-0206 Đ7 (route đặt PIN của ADR-0207), chủ duyệt 15/11" },
 ];
 
 export const laMienLanGui = (method: string, path: string): boolean => LAN_GUI_MIEN.some((m) => m.method === method && m.path === path);

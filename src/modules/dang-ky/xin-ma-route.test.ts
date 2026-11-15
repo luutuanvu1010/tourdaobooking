@@ -239,6 +239,9 @@ test("nhập đúng mã: mở phiếu ĐANG ĐIỀN + danh tính + dòng lịch 
   assert.equal(p[0].status, "DANG_DIEN");
   assert.equal(p[0].kind, "PERSON");
   assert.match(p[0].id, /^DK_[A-Z]{8}$/);
+  // Hạn phiếu đang điền = lúc mở + draft_expire_days (PHU-LUC: 7 ngày) — tác nhân dọn phiếu cho hết hạn theo mốc này (đợt 1 Task 9).
+  const han = Date.parse(String(p[0].expires_at));
+  assert.ok(han >= t0 + 7 * 86_400_000 - 1000 && han <= Date.now() + 7 * 86_400_000, "expires_at = lúc mở + 7 ngày");
   assert.equal(danhTinh(w)[0].subject, "moi@example.com");
   assert.deepEqual(w.q("SELECT actor_kind, command FROM dk_event WHERE registration_id = ?", p[0].id).map((x: any) => ({ ...x })), [{ actor_kind: "REGISTRANT", command: "MO_PHIEU" }]);
   const sc = r.headers.get("set-cookie") ?? "";

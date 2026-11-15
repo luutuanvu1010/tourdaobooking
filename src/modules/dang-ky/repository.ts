@@ -192,10 +192,11 @@ export const datStatement = (
 const BO_SUNG_CAP = defineSql(
   "dang-ky",
   "registration_supplement",
-  `UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'CHO_XAC_MINH' AND current_version = ?5`,
+  `UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = ?2, expires_at = ?6, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'CHO_XAC_MINH' AND current_version = ?5`,
 );
-export const boSungStatement = (db: D1Database, v: { registrationId: string; lyDo: string; by: string; at: string; phienBan: number }): D1PreparedStatement =>
-  db.prepare(BO_SUNG_CAP).bind(v.registrationId, v.lyDo, v.at, v.by, v.phienBan);
+/** `expiresAt` = lúc yêu cầu bổ sung + `supplement_expire_days` (PHU-LUC «Phiếu cần bổ sung mà không sửa: hết hạn sau 14 ngày»); gửi lại thì câu gửi xoá mốc này (đợt 1 Task 9). */
+export const boSungStatement = (db: D1Database, v: { registrationId: string; lyDo: string; by: string; at: string; phienBan: number; expiresAt: string }): D1PreparedStatement =>
+  db.prepare(BO_SUNG_CAP).bind(v.registrationId, v.lyDo, v.at, v.by, v.phienBan, v.expiresAt);
 
 const TU_CHOI_CAP = defineSql(
   "dang-ky",
@@ -269,7 +270,7 @@ export async function tieuMa(db: D1Database, id: string, at: string, toiDa: numb
 const PHIEU_MOI = defineSql(
   "dang-ky",
   "registration_open_draft",
-  `INSERT INTO dk_registration (id, kind, status, role_code, created_at, created_by, updated_at, updated_by) VALUES (?1, 'PERSON', 'DANG_DIEN', '', ?2, NULL, ?2, NULL)`,
+  `INSERT INTO dk_registration (id, kind, status, role_code, expires_at, created_at, created_by, updated_at, updated_by) VALUES (?1, 'PERSON', 'DANG_DIEN', '', ?3, ?2, NULL, ?2, NULL)`,
 );
 const DANH_TINH_MOI = defineSql(
   "dang-ky",
@@ -281,10 +282,13 @@ const SU_KIEN_MO = defineSql(
   "event_open_draft",
   `INSERT INTO dk_event (id, registration_id, actor_kind, actor_ref, command, reason_code, at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, 'REGISTRANT', ?3, 'MO_PHIEU', NULL, ?4, ?4, ?3, ?4, ?3)`,
 );
-/** Mở phiếu ĐANG ĐIỀN cho một email: MỘT lô [phiếu, danh tính, dòng lịch sử]. `role_code` để trống tới khi người đăng ký chọn loại ở bước lưu nháp. Lô hỏng do chỉ mục «một phiếu đang mở mỗi email» (hai lần nhập song song) ⇒ người gọi đọc lại. */
-export function moPhieuNhap(db: D1Database, v: { registrationId: string; identityId: string; email: string; at: string }): D1PreparedStatement[] {
+/**
+ * Mở phiếu ĐANG ĐIỀN cho một email: MỘT lô [phiếu, danh tính, dòng lịch sử]. `role_code` để trống tới khi người đăng ký chọn loại ở bước lưu nháp. Lô hỏng do chỉ mục «một phiếu đang mở mỗi email» (hai lần nhập song song) ⇒ người gọi đọc lại.
+ * `expiresAt` = lúc mở + `draft_expire_days` của chính sách (ADR-0206 Đ3, PHU-LUC «Phiếu đang điền bỏ dở: hết hạn sau 7 ngày») — tác nhân dọn phiếu cho hết hạn theo mốc này (đợt 1 Task 9).
+ */
+export function moPhieuNhap(db: D1Database, v: { registrationId: string; identityId: string; email: string; at: string; expiresAt: string }): D1PreparedStatement[] {
   return [
-    db.prepare(PHIEU_MOI).bind(v.registrationId, v.at),
+    db.prepare(PHIEU_MOI).bind(v.registrationId, v.at, v.expiresAt),
     db.prepare(DANH_TINH_MOI).bind(v.identityId, v.registrationId, v.email, v.at),
     db.prepare(SU_KIEN_MO).bind(crypto.randomUUID(), v.registrationId, v.identityId, v.at),
   ];
@@ -367,7 +371,7 @@ export const guiChenStatement = (db: D1Database, v: { id: string; registrationId
 const GUI_TIEN = defineSql(
   "dang-ky",
   "registration_submit_advance",
-  `UPDATE dk_registration SET status = 'CHO_XAC_MINH', current_version = current_version + 1, reason_code = NULL, submitted_at = ?3, updated_at = ?3, updated_by = ?4
+  `UPDATE dk_registration SET status = 'CHO_XAC_MINH', current_version = current_version + 1, reason_code = NULL, expires_at = NULL, submitted_at = ?3, updated_at = ?3, updated_by = ?4
    WHERE id = ?1 AND status IN ('DANG_DIEN', 'CAN_BO_SUNG')
      AND EXISTS (SELECT 1 FROM dk_submission s WHERE s.id = ?2 AND s.registration_id = dk_registration.id AND s.version = dk_registration.current_version + 1)`,
 );
@@ -476,12 +480,162 @@ const TU_CHOI_DUYET_CAP = defineSql(
 export const tuChoiDuyetStatement = (db: D1Database, v: { registrationId: string; lyDo: string; by: string; at: string; phienBan: number | null }): D1PreparedStatement =>
   db.prepare(TU_CHOI_DUYET_CAP).bind(v.registrationId, v.lyDo, v.at, v.by, v.phienBan);
 
-// «Gửi lại lời mời» (ADR-0207 Đ7): mở lại hạn đặt PIN; chỉ phiếu ĐÃ DUYỆT chưa kích hoạt (trigger dk_registration_deadline là lớp thứ hai).
+// «Gửi lại lời mời» (ADR-0207 Đ7): mở lại hạn đặt PIN; chỉ phiếu ĐÃ DUYỆT chưa kích hoạt (trigger dk_registration_deadline là lớp thứ hai) VÀ danh tính còn email (tác nhân dọn phiếu
+// chưa ẩn danh — ADR-0208 Đ6, Đ8; đợt 1 Task 9): danh tính đã ẩn danh thì người được duyệt không còn đường vào lại phiếu, mở lại hạn là vô nghĩa ⇒ 0 dòng, route trả 409.
 const GUI_LAI_LOI_MOI = defineSql(
   "dang-ky",
   "registration_reopen_activation",
-  `UPDATE dk_registration SET activation_deadline_at = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'DA_DUYET' AND activated_at IS NULL`,
+  `UPDATE dk_registration SET activation_deadline_at = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'DA_DUYET' AND activated_at IS NULL
+     AND EXISTS (SELECT 1 FROM dk_identity i WHERE i.registration_id = dk_registration.id AND i.contact_email IS NOT NULL)`,
 );
 export const guiLaiLoiMoiStatement = (db: D1Database, v: { registrationId: string; deadlineAt: string; at: string; by: string }): D1PreparedStatement =>
   db.prepare(GUI_LAI_LOI_MOI).bind(v.registrationId, v.deadlineAt, v.at, v.by);
 
+
+/** Danh tính của phiếu còn email (chưa ẩn danh)? Dấu «đã ẩn danh» là `contact_email` rỗng (trigger dk_identity_shape bắt buộc bỏ email khi ẩn danh). */
+const DANH_TINH_CON_EMAIL = defineSql(
+  "dang-ky",
+  "identity_has_email",
+  "SELECT 1 AS co FROM dk_identity WHERE registration_id = ?1 AND contact_email IS NOT NULL LIMIT 1",
+);
+export async function danhTinhConEmail(db: D1Database, registrationId: string): Promise<boolean> {
+  return (await db.prepare(DANH_TINH_CON_EMAIL).bind(registrationId).first<{ co: number }>()) !== null;
+}
+
+// ---- KÍCH HOẠT: người được duyệt tự đặt PIN (ADR-0207 Đ7; đợt 1 Task 9) ----
+export interface PhieuKichHoatRow { id: string; status: string; current_version: number; staff_id: string | null; activated_at: string | null; activation_deadline_at: string | null }
+const PHIEU_KICH_HOAT = defineSql(
+  "dang-ky",
+  "registration_for_activation",
+  "SELECT id, status, current_version, staff_id, activated_at, activation_deadline_at FROM dk_registration WHERE id = ?1",
+);
+export const phieuKichHoat = (db: D1Database, id: string): Promise<PhieuKichHoatRow | null> => db.prepare(PHIEU_KICH_HOAT).bind(id).first<PhieuKichHoatRow>();
+
+// Email đã chứng minh của CHÍNH danh tính trong cookie (cột subject — cùng khoá với xin mã), chỉ khi danh tính chưa ẩn danh. Mã email mới được kiểm theo khoá băm của email này.
+const EMAIL_CUA_DANH_TINH = defineSql(
+  "dang-ky",
+  "identity_subject_for_activation",
+  "SELECT subject FROM dk_identity WHERE id = ?1 AND registration_id = ?2 AND provider = 'EMAIL' AND contact_email IS NOT NULL",
+);
+export async function emailCuaDanhTinh(db: D1Database, identityId: string, registrationId: string): Promise<string | null> {
+  return (await db.prepare(EMAIL_CUA_DANH_TINH).bind(identityId, registrationId).first<{ subject: string }>())?.subject ?? null;
+}
+
+// Câu 1 — CÂU CHỐT của lô kích hoạt: chèn dòng KICH_HOAT; trigger dk_decision_guard RAISE (hỏng CẢ lô) khi phiếu chưa duyệt, đã kích hoạt, hay quá hạn đặt PIN.
+// Người quyết = chính tài khoản mới. Chỉ mục dk_decision_once_uq: một dòng KICH_HOAT mỗi phiếu.
+const CHOT_KICH_HOAT = defineSql(
+  "dang-ky",
+  "decision_activate_insert",
+  `INSERT INTO dk_decision (id, registration_id, kind, version, decided_by, super_admin_flag, decided_at, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, 'KICH_HOAT', ?3, ?4, 0, ?5, ?5, ?4, ?5, ?4)`,
+);
+export const cauChotKichHoat = (db: D1Database, v: { registrationId: string; version: number; staffId: string; at: string }): D1PreparedStatement =>
+  db.prepare(CHOT_KICH_HOAT).bind(crypto.randomUUID(), v.registrationId, v.version, v.staffId, v.at);
+
+// Câu canh ĐỨNG NGAY SAU câu đặt PIN của staff (`WHERE active = 0`): câu đó khớp 0 dòng (tài khoản đã bật, đã bị thay đổi) thì chèn lệnh dấu KICH_HOAT_LECH — trigger
+// dk_event_activation_account RAISE làm hỏng CẢ lô. `changes()` đọc câu liền trước, nên câu này PHẢI là câu kế tiếp sau câu của staff (bài kich-hoat-route.test.ts ca «tài khoản đã bật»).
+const CANH_KICH_HOAT = defineSql(
+  "dang-ky",
+  "activation_account_guard",
+  `INSERT INTO dk_event (id, registration_id, actor_kind, actor_ref, command, reason_code, at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, 'REGISTRANT', ?3, 'KICH_HOAT_LECH', NULL, ?4, ?4, ?3, ?4, ?3 WHERE changes() = 0`,
+);
+export const cauCanhKichHoat = (db: D1Database, v: { registrationId: string; identityId: string; at: string }): D1PreparedStatement =>
+  db.prepare(CANH_KICH_HOAT).bind(crypto.randomUUID(), v.registrationId, v.identityId, v.at);
+
+// Mốc kích hoạt: đóng vĩnh viễn đường đặt PIN này với tài khoản (ADR-0207 Đ7). Điều kiện trạng thái là lớp thứ hai sau câu chốt.
+const KICH_HOAT_CAP = defineSql(
+  "dang-ky",
+  "registration_activate",
+  "UPDATE dk_registration SET activated_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND status = 'DA_DUYET' AND activated_at IS NULL",
+);
+export const cauKichHoatPhieu = (db: D1Database, v: { registrationId: string; at: string; by: string }): D1PreparedStatement => db.prepare(KICH_HOAT_CAP).bind(v.registrationId, v.at, v.by);
+
+// ẨN DANH DANH TÍNH (ADR-0208 Đ6): thay email đã chứng minh bằng dấu, bỏ email liên lạc, đặt mốc — đúng dấu trigger dk_identity_shape đòi. Điều kiện NẰM TRONG câu: chỉ phiếu đã kết thúc
+// (TỪ CHỐI, ĐÃ RÚT, HẾT HẠN), hoặc ĐÃ DUYỆT mà đã kích hoạt (lô kích hoạt) hay đã quá hạn kích hoạt (tác nhân) — danh tính của phiếu đang sống không bao giờ bị xoá qua câu này.
+// Ngoại lệ có tên của bài src/xoa-mot-lenh-co-ten.test.ts (2b), chờ chủ duyệt.
+const AN_DANH_DANH_TINH = defineSql(
+  "dang-ky",
+  "identity_erase",
+  `UPDATE dk_identity SET erased_at = ?2, subject = 'XOA' || upper(replace(id, '-', '')), contact_email = NULL, is_open = 0, updated_at = ?2, updated_by = ?3
+   WHERE registration_id = ?1 AND erased_at IS NULL
+     AND EXISTS (SELECT 1 FROM dk_registration r WHERE r.id = ?1
+                   AND (r.status IN ('TU_CHOI', 'DA_RUT', 'HET_HAN') OR (r.status = 'DA_DUYET' AND (r.activated_at IS NOT NULL OR r.activation_deadline_at < ?2))))`,
+);
+export const cauAnDanhDanhTinh = (db: D1Database, v: { registrationId: string; at: string; by: string }): D1PreparedStatement => db.prepare(AN_DANH_DANH_TINH).bind(v.registrationId, v.at, v.by);
+
+// ---- TÁC NHÂN DỌN PHIẾU (ADR-0208 Đ8; đợt 1 Task 9) ----
+// Việc 1 — hết hạn: phiếu ĐANG ĐIỀN / CẦN BỔ SUNG có `expires_at` đã qua. `expires_at` đặt lúc mở phiếu và lúc yêu cầu bổ sung (theo chính sách); dòng thiếu mốc (đường cũ quên đặt) dùng
+// LƯỚI AN TOÀN: tạo phiếu (đang điền) / lần đổi gần nhất (cần bổ sung) quá số ngày của chính sách — để không có phiếu nào giữ dữ liệu mãi mãi. ?1 = bây giờ, ?2 / ?3 = mốc lưới.
+const DIEU_KIEN_HET_HAN = `((status = 'DANG_DIEN' AND ((expires_at IS NOT NULL AND expires_at <= ?1) OR (expires_at IS NULL AND created_at <= ?2)))
+      OR (status = 'CAN_BO_SUNG' AND ((expires_at IS NOT NULL AND expires_at <= ?1) OR (expires_at IS NULL AND updated_at <= ?3))))`;
+const PHIEU_HET_HAN = defineSql("dang-ky", "registration_expire_candidates", `SELECT id FROM dk_registration WHERE ${DIEU_KIEN_HET_HAN} ORDER BY id LIMIT ?4`);
+export async function phieuCanHetHan(db: D1Database, v: { at: string; mocNhap: string; mocBoSung: string; toiDa: number }): Promise<string[]> {
+  return (await db.prepare(PHIEU_HET_HAN).bind(v.at, v.mocNhap, v.mocBoSung, v.toiDa).all<{ id: string }>()).results.map((r) => r.id);
+}
+// Mốc `decided_at` = lúc phiếu kết thúc: đồng hồ ẩn danh (việc 2) chạy từ đây.
+const HET_HAN_CAP = defineSql(
+  "dang-ky",
+  "registration_expire",
+  `UPDATE dk_registration SET status = 'HET_HAN', decided_at = ?1, updated_at = ?1, updated_by = ?5 WHERE id = ?4 AND ${DIEU_KIEN_HET_HAN}`,
+);
+export const cauHetHan = (db: D1Database, v: { registrationId: string; at: string; mocNhap: string; mocBoSung: string; by: string }): D1PreparedStatement =>
+  db.prepare(HET_HAN_CAP).bind(v.at, v.mocNhap, v.mocBoSung, v.registrationId, v.by);
+
+// Việc 2a — phiếu đã kết thúc không được duyệt, quá số ngày ẩn danh, còn dữ liệu cá nhân (danh tính còn email hoặc bản khai chưa thay dấu).
+const PHIEU_CAN_AN_DANH = defineSql(
+  "dang-ky",
+  "registration_anonymize_candidates",
+  `SELECT r.id FROM dk_registration r
+   WHERE r.status IN ('TU_CHOI', 'DA_RUT', 'HET_HAN') AND r.decided_at <= ?1
+     AND (EXISTS (SELECT 1 FROM dk_identity i WHERE i.registration_id = r.id AND i.contact_email IS NOT NULL)
+       OR EXISTS (SELECT 1 FROM dk_submission s WHERE s.registration_id = r.id AND s.given_name <> '(đã ẩn)'))
+   ORDER BY r.id LIMIT ?2`,
+);
+export async function phieuCanAnDanh(db: D1Database, moc: string, toiDa: number): Promise<string[]> {
+  return (await db.prepare(PHIEU_CAN_AN_DANH).bind(moc, toiDa).all<{ id: string }>()).results.map((r) => r.id);
+}
+// Mốc «đã ẩn danh» của phiếu (ADR-0208 Đ6) — câu ĐẦU của lô ẩn danh, điều kiện trạng thái + tuổi nằm trong câu. Ngoại lệ có tên của bài src/xoa-mot-lenh-co-ten.test.ts (2b), chờ chủ duyệt.
+const PHIEU_DANH_DAU_AN_DANH = defineSql(
+  "dang-ky",
+  "registration_mark_erased",
+  `UPDATE dk_registration SET erased_at = ?2, updated_at = ?2, updated_by = ?4
+   WHERE id = ?1 AND erased_at IS NULL AND status IN ('TU_CHOI', 'DA_RUT', 'HET_HAN') AND decided_at <= ?3`,
+);
+export const cauDanhDauAnDanh = (db: D1Database, v: { registrationId: string; at: string; moc: string; by: string }): D1PreparedStatement =>
+  db.prepare(PHIEU_DANH_DAU_AN_DANH).bind(v.registrationId, v.at, v.moc, v.by);
+
+// Việc 2b — phiếu ĐÃ DUYỆT, chưa kích hoạt, đã quá hạn đặt PIN, danh tính còn email ⇒ ẩn danh danh tính (ADR-0207 Đ7, ADR-0208 Đ6).
+const PHIEU_QUA_HAN_KICH_HOAT = defineSql(
+  "dang-ky",
+  "registration_activation_lapsed",
+  `SELECT r.id FROM dk_registration r
+   WHERE r.status = 'DA_DUYET' AND r.activated_at IS NULL AND r.activation_deadline_at < ?1
+     AND EXISTS (SELECT 1 FROM dk_identity i WHERE i.registration_id = r.id AND i.contact_email IS NOT NULL)
+   ORDER BY r.id LIMIT ?2`,
+);
+export async function phieuQuaHanKichHoat(db: D1Database, at: string, toiDa: number): Promise<string[]> {
+  return (await db.prepare(PHIEU_QUA_HAN_KICH_HOAT).bind(at, toiDa).all<{ id: string }>()).results.map((r) => r.id);
+}
+
+// Dòng lịch sử của tác nhân; chỉ ghi khi câu liền trước đổi dòng. `actor_ref` = mã tác nhân (chữ hoa — CHECK của bảng). Không số, tên, liên hệ, khoá kho.
+const SU_KIEN_TAC_NHAN = defineSql(
+  "dang-ky",
+  "event_agent_if_prev",
+  `INSERT INTO dk_event (id, registration_id, actor_kind, actor_ref, command, reason_code, at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, 'AGENT', ?3, ?4, NULL, ?5, ?5, ?3, ?5, ?3 WHERE changes() > 0`,
+);
+export const suKienTacNhanStatement = (db: D1Database, v: { registrationId: string; agentCode: string; command: string; at: string }): D1PreparedStatement =>
+  db.prepare(SU_KIEN_TAC_NHAN).bind(crypto.randomUUID(), v.registrationId, v.agentCode, v.command, v.at);
+
+// Việc 4 — XOÁ CỨNG hai bảng KỸ THUẬT (ngoại lệ có tên XOA_CUNG_KY_THUAT của R-N1-9, src/architecture.test.ts; chờ chủ duyệt). Điều kiện tuổi NẰM TRONG câu.
+// dk_email_code: trần theo giờ của xin mã đếm dòng TẠO trong một giờ qua (Task 3) ⇒ chỉ xoá dòng tạo trước `?1` = bây giờ − max(hạn mã, 1 giờ), VÀ đã hết hạn (`?2` = bây giờ).
+const MA_XOA = defineSql("dang-ky", "email_code_purge", "DELETE FROM dk_email_code WHERE created_at <= ?1 AND expires_at <= ?2");
+export async function xoaMaEmailCu(db: D1Database, moc: string, at: string): Promise<number> {
+  return (await db.prepare(MA_XOA).bind(moc, at).run()).meta.changes ?? 0;
+}
+// dk_upload_attempt: cửa sổ đếm tải tệp là một giờ (`files_per_network_hour`) ⇒ xoá dòng có `at_ms` trước `?1` = bây giờ − 1 giờ.
+const TEP_MANG_XOA = defineSql("dang-ky", "upload_attempt_purge", "DELETE FROM dk_upload_attempt WHERE at_ms < ?1");
+export async function xoaLuotTaiCu(db: D1Database, mocMs: number): Promise<number> {
+  return (await db.prepare(TEP_MANG_XOA).bind(mocMs).run()).meta.changes ?? 0;
+}

@@ -50,7 +50,10 @@ test("(1) câu SQL đăng ký đặt erased_at = ĐÚNG hai câu của lệnh �
 // NGOẠI LỆ CÓ TÊN (đợt 1 Task 8 — ADR-0207 Đ5 câu 9, ADR-0208 Đ6; CHỜ CHỦ DUYỆT vì nới rào): lô duyệt phiếu đăng ký ẩn danh bản khai `dk_submission` (bảng của dang-ky — parties không
 // được ghi bảng dk_*, architecture.test.ts). Chữ `erased_at` được nằm ở dang-ky/repository.ts CHỈ bên trong chuỗi SQL của ĐÚNG MỘT câu đăng ký có tên dưới đây; câu đặt erased_at trên
 // bảng dk_* phải đúng danh sách này. Phá thử: thêm một câu `UPDATE dk_identity SET erased_at = ?1 …` → (2b) đỏ; nhắc chữ đó ngoài chuỗi SQL (chú thích, biến) → (2) đỏ.
-const DK_TEN_DUOC_PHEP = ["dang-ky:submission_erase_on_approve"];
+// Đợt 1 Task 9 (ADR-0207 Đ7, ADR-0208 Đ6, Đ8; CHỜ CHỦ DUYỆT — nới thêm, chỉ thêm ĐÚNG TÊN, không nới mẫu): `identity_erase` (ẩn danh danh tính — lô kích hoạt và tác nhân dọn phiếu; điều kiện
+// «phiếu đã kết thúc / đã kích hoạt / quá hạn kích hoạt» NẰM TRONG câu) và `registration_mark_erased` (mốc «đã ẩn danh» của phiếu — tác nhân). Tác nhân DÙNG LẠI `submission_erase_on_approve`
+// cho bản khai của phiếu đã kết thúc (cùng câu, không thêm tên).
+const DK_TEN_DUOC_PHEP = ["dang-ky:submission_erase_on_approve", "dang-ky:identity_erase", "dang-ky:registration_mark_erased"];
 const DK_DAT_ERASED_AT = /^\s*UPDATE\s+dk_[a-z_]+\b[\s\S]*?\bSET\b[\s\S]*?\berased_at\s*=/i;
 
 test("(2) chữ erased_at trong mã nguồn chỉ ở parties/repository.ts (ngoài migrations/ và scripts/audit-checks.mjs) — và ở dang-ky/repository.ts CHỈ trong chuỗi SQL của câu ngoại lệ có tên", async () => {
