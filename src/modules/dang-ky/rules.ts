@@ -12,7 +12,7 @@ const DUONG_CHINH: Readonly<Record<TrangThai, readonly TrangThai[]>> = {
   DANG_DIEN: ["CHO_XAC_MINH"],
   CHO_XAC_MINH: ["CAN_BO_SUNG", "CHO_DUYET"],
   CAN_BO_SUNG: ["CHO_XAC_MINH"],
-  CHO_DUYET: ["DA_DUYET"],
+  CHO_DUYET: ["DA_DUYET", "CHO_XAC_MINH"], // CHỜ XÁC MINH = «Trả về xác minh» (ADR-0207 Đ5)
   DA_DUYET: [],
   TU_CHOI: [],
   DA_RUT: [],

@@ -454,7 +454,7 @@ test("M1 — mã đã dùng hay đã nhập sai đủ lần vẫn CHẾT khi To�
   await w.choNen();
   const ma = maTrongThu(thu[0]!);
   assert.equal((await xacNhan(w, "nang@example.com", ma)).status, 200);
-  datChinhSach(w, { code_max_attempts: 50 });
+  datChinhSach(w, { code_max_attempts: 15 });
   assert.equal((await xacNhan(w, "nang@example.com", ma)).status, 401, "mã đã dùng không sống lại khi nâng trần");
   // đã sai đủ 5 lần rồi nâng trần: mã không được thêm lượt đoán
   await xin(w, "nang2@example.com");
@@ -462,9 +462,9 @@ test("M1 — mã đã dùng hay đã nhập sai đủ lần vẫn CHẾT khi To�
   const ma2 = maTrongThu(thu[1]!);
   const sai = ma2 === "000000" ? "111111" : "000000";
   w.sqlite.prepare("UPDATE login_attempt SET at = at - 1").run();
-  for (let i = 0; i < 50; i++) await xacNhan(w, "nang2@example.com", sai, `198.51.100.${i}`);
-  assert.equal((await xacNhan(w, "nang2@example.com", ma2, "198.51.100.200")).status, 401, "đã sai đủ 50 lần: chết");
-  datChinhSach(w, { code_max_attempts: 100 });
+  for (let i = 0; i < 15; i++) await xacNhan(w, "nang2@example.com", sai, `198.51.100.${i}`);
+  assert.equal((await xacNhan(w, "nang2@example.com", ma2, "198.51.100.200")).status, 401, "đã sai đủ 15 lần: chết");
+  datChinhSach(w, { code_max_attempts: 20 }); // trần CHECK của 0170 (M-2): ≤ 20
   assert.equal((await xacNhan(w, "nang2@example.com", ma2, "198.51.100.201")).status, 401, "nâng trần lần nữa vẫn chết");
 });
 

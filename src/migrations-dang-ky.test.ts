@@ -102,6 +102,13 @@ test("(d) chuyển trạng thái: đúng đồ thị; trái đồ thị bị ch�
   assert.throws(() => doi(db, a, "CAN_BO_SUNG"), loi(/dk_registration_transition/));
   assert.throws(() => doi(db, a, "DANG_DIEN"), loi(/dk_registration_transition/));
   doi(db, a, "DA_DUYET");
+  // «Trả về xác minh» (ADR-0207 Đ5): CHỜ DUYỆT → CHỜ XÁC MINH được, nhưng PHẢI xoá kết luận Danh bạ + người xác minh trong cùng câu.
+  const tv = choDuyet(db);
+  assert.throws(() => doi(db, tv, "CHO_XAC_MINH"), loi(/dk_registration_return_clear/));
+  assert.throws(() => db.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH', verified_by = NULL, verified_version = NULL, verified_at = NULL, updated_at = ? WHERE id = ?").run(AT, tv), loi(/dk_registration_return_clear/));
+  assert.throws(() => db.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH', verified_version = NULL, verified_at = NULL, match_kind = NULL, match_party_id = NULL, referrer_party_id = NULL, updated_at = ? WHERE id = ?").run(AT, tv), loi(/dk_registration_return_clear/), "giữ người xác minh cũ ⇒ chặn");
+  db.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH', verified_by = NULL, verified_version = NULL, verified_at = NULL, match_kind = NULL, match_party_id = NULL, referrer_party_id = NULL, updated_at = ? WHERE id = ?").run(AT, tv);
+  assert.equal(rows(db, "SELECT status FROM dk_registration WHERE id = ?", tv)[0]!.status, "CHO_XAC_MINH");
   for (const t of ["TU_CHOI", "DA_RUT", "HET_HAN", "CHO_DUYET", "DANG_DIEN"]) assert.throws(() => doi(db, a, t), loi(/dk_registration_transition/));
   for (const t of ["TU_CHOI", "DA_RUT", "HET_HAN"]) { const b = phieu(db); doi(db, b, t); assert.throws(() => doi(db, b, "CHO_XAC_MINH"), loi(/dk_registration_transition/)); }
   assert.throws(() => db.prepare("UPDATE dk_registration SET status = 'KHAC' WHERE id = ?").run(a));
@@ -249,4 +256,15 @@ test("Fix 6 (Task 5): dk_policy.photo_max_mb bị CHECK ≤ 10 — chính sách 
     VALUES (?, 0, '', 6, 10, 5, 3, 10, 15, 60, 30, 12, 7, 14, 14, 30, ?, 8, 30, 20, '', ?, ?, ?)`).run(`t-${mb}`, mb, at, at, at);
   assert.doesNotThrow(() => them(10, "2099-01-01T00:00:00.000Z"));
   assert.throws(() => them(11, "2099-01-02T00:00:00.000Z"), /CHECK/);
+});
+
+test("M-2 (rà soát cuối): dk_policy.code_max_attempts có trần CHECK ≤ 20 — luôn dưới dấu MA_CHET của mã đã chết", () => {
+  const db = all();
+  const them = (n: number, at: string) => db.prepare(`INSERT INTO dk_policy (id, registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour,
+    session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, phieu_required_items, valid_from_at, created_at, updated_at)
+    VALUES (?, 0, '', 6, 10, ?, 3, 10, 15, 60, 30, 12, 7, 14, 14, 30, 5, 8, 30, 20, '', ?, ?, ?)`).run(`m-${n}`, n, at, at, at);
+  assert.doesNotThrow(() => them(20, "2099-01-01T00:00:00.000Z"));
+  assert.throws(() => them(21, "2099-01-02T00:00:00.000Z"), /CHECK/);
+  assert.throws(() => them(1_000_000_000, "2099-01-03T00:00:00.000Z"), /CHECK/);
+  assert.throws(() => them(0, "2099-01-04T00:00:00.000Z"), /CHECK/);
 });

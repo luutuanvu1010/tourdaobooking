@@ -11,7 +11,7 @@ CREATE TABLE dk_policy (
   open_role_codes         TEXT NOT NULL DEFAULT '',                          -- loại đối tác mở cho phiếu, cách nhau dấu phẩy; rỗng = chưa mở loại nào
   code_digits             INTEGER NOT NULL CHECK (code_digits BETWEEN 4 AND 10),
   code_ttl_minutes        INTEGER NOT NULL CHECK (code_ttl_minutes > 0),
-  code_max_attempts       INTEGER NOT NULL CHECK (code_max_attempts > 0),
+  code_max_attempts       INTEGER NOT NULL CHECK (code_max_attempts BETWEEN 1 AND 20), -- ≤ 20: luôn dưới dấu MA_CHET (mã đã dùng / đã sai đủ lần — dang-ky/repository.ts); rà soát cuối M-2
   ask_per_mailbox         INTEGER NOT NULL CHECK (ask_per_mailbox > 0),
   ask_per_network         INTEGER NOT NULL CHECK (ask_per_network > 0),
   ask_window_minutes      INTEGER NOT NULL CHECK (ask_window_minutes > 0),
@@ -79,17 +79,23 @@ BEGIN SELECT RAISE(ABORT, 'dk_registration_kind_closed: loại phiếu này chư
 CREATE TRIGGER dk_registration_status_ins BEFORE INSERT ON dk_registration
 WHEN NEW.status <> 'DANG_DIEN'
 BEGIN SELECT RAISE(ABORT, 'dk_registration_new_not_draft: phiếu mới phải ở trạng thái đang điền'); END;
--- Đồ thị ADR-0206 Đ4: ĐANG ĐIỀN → CHỜ XÁC MINH → CHỜ DUYỆT → ĐÃ DUYỆT; CHỜ XÁC MINH ⇄ CẦN BỔ SUNG; mọi trạng thái chưa kết thúc → TỪ CHỐI | ĐÃ RÚT | HẾT HẠN. Bốn trạng thái kết thúc không đổi nữa.
+-- Đồ thị ADR-0206 Đ4: ĐANG ĐIỀN → CHỜ XÁC MINH → CHỜ DUYỆT → ĐÃ DUYỆT; CHỜ XÁC MINH ⇄ CẦN BỔ SUNG; CHỜ DUYỆT → CHỜ XÁC MINH («Trả về xác minh», ADR-0207 Đ5); mọi trạng thái chưa kết thúc → TỪ CHỐI | ĐÃ RÚT | HẾT HẠN. Bốn trạng thái kết thúc không đổi nữa.
 -- Phải khớp hàm `chuyenHopLe` ở src/modules/dang-ky/rules.ts (bài rules.test.ts đối chiếu).
 CREATE TRIGGER dk_registration_transition BEFORE UPDATE OF status ON dk_registration
 WHEN NEW.status IS NOT OLD.status AND NOT (
      (OLD.status = 'DANG_DIEN'    AND NEW.status = 'CHO_XAC_MINH')
   OR (OLD.status = 'CHO_XAC_MINH' AND NEW.status IN ('CAN_BO_SUNG', 'CHO_DUYET'))
   OR (OLD.status = 'CAN_BO_SUNG'  AND NEW.status = 'CHO_XAC_MINH')
-  OR (OLD.status = 'CHO_DUYET'    AND NEW.status = 'DA_DUYET')
+  OR (OLD.status = 'CHO_DUYET'    AND NEW.status IN ('DA_DUYET', 'CHO_XAC_MINH'))
   OR (OLD.status IN ('DANG_DIEN', 'CHO_XAC_MINH', 'CAN_BO_SUNG', 'CHO_DUYET') AND NEW.status IN ('TU_CHOI', 'DA_RUT', 'HET_HAN'))
 )
 BEGIN SELECT RAISE(ABORT, 'dk_registration_transition: chuyển trạng thái trái đồ thị của phiếu đăng ký'); END;
+-- «Trả về xác minh» (ADR-0207 Đ5; rà soát cuối I-3): phiếu CHỜ DUYỆT quay lại CHỜ XÁC MINH thì CÙNG câu phải xoá kết luận Danh bạ, người giới thiệu đã chọn và người / bản / lúc xác minh —
+-- người xác minh phải kết luận lại (kết luận từng mục chỉ-thêm thì giữ). Thiếu thì RAISE: không phiếu nào quay về mà còn mang dấu «đã xác minh đạt» cũ.
+CREATE TRIGGER dk_registration_return_clear BEFORE UPDATE OF status ON dk_registration
+WHEN OLD.status = 'CHO_DUYET' AND NEW.status = 'CHO_XAC_MINH'
+  AND (NEW.verified_by IS NOT NULL OR NEW.verified_version IS NOT NULL OR NEW.verified_at IS NOT NULL OR NEW.match_kind IS NOT NULL OR NEW.match_party_id IS NOT NULL OR NEW.referrer_party_id IS NOT NULL)
+BEGIN SELECT RAISE(ABORT, 'dk_registration_return_clear: trả về xác minh phải xoá kết luận Danh bạ và người xác minh'); END;
 -- Phiếu kết thúc thì danh tính hết «đang mở» (để cùng email đăng ký lại được).
 -- Không xoá phiếu; cột gốc bất biến: id, loại, ngày tạo, người tạo; loại đối tác chỉ đổi được trước lần gửi đầu; số bản khai chỉ tăng đúng 1.
 CREATE TRIGGER dk_registration_no_delete BEFORE DELETE ON dk_registration

@@ -5,7 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 import { TRANG_THAI, chuanHoaEmail, chuyenHopLe, daKetThuc, dsLoaiMo, mucChuaDapUng, sinhMaEmail, type TrangThai } from "./rules.ts";
 
 const HOP_LE = new Set([
-  "DANG_DIEN>CHO_XAC_MINH", "CHO_XAC_MINH>CAN_BO_SUNG", "CHO_XAC_MINH>CHO_DUYET", "CAN_BO_SUNG>CHO_XAC_MINH", "CHO_DUYET>DA_DUYET",
+  "DANG_DIEN>CHO_XAC_MINH", "CHO_XAC_MINH>CAN_BO_SUNG", "CHO_XAC_MINH>CHO_DUYET", "CAN_BO_SUNG>CHO_XAC_MINH", "CHO_DUYET>DA_DUYET", "CHO_DUYET>CHO_XAC_MINH", // «Trả về xác minh» (ADR-0207 Đ5)
   ...["DANG_DIEN", "CHO_XAC_MINH", "CAN_BO_SUNG", "CHO_DUYET"].flatMap((t) => ["TU_CHOI", "DA_RUT", "HET_HAN"].map((d) => `${t}>${d}`)),
 ]);
 
