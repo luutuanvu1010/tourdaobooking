@@ -2,6 +2,7 @@
 // miễn phí là một dòng amount = 0 được đặt rõ. Thứ tự chọn mức cố định, KHÔNG đếm số điều kiện: dịch vụ > cấp > nhóm > chiều (bậc 8, 4, 2, 1 cộng lại).
 // MỘT danh sách đăng ký `BO_TINH`: mỗi khoá điều kiện một bộ tính; bài kiểm ép nó khớp bảng `prc_transfer_fee_key`. Thêm khoá = thêm một dòng ở bảng + một ở đây.
 import { hieuLuc, laNgay, docGhiChu, type GanLoaiMuc, type GanRieng } from "./rules.ts";
+import { thanhTienDong } from "../../shared/order-lines.ts";
 
 export const KHOA_PHI_DON = ["ZONE", "DIRECTION", "SERVICE_GROUP", "EXCLUSIVE", "TIER", "SERVICE"] as const;
 export type KhoaPhiDon = (typeof KHOA_PHI_DON)[number];
@@ -85,7 +86,7 @@ export function capCuaHoSoNgay(v: { partyId: string | null; vai: readonly string
 export function tinhPhiChang(v: { muc: MucPhiDon; direction: "OUT" | "RETURN"; soKhachTinhTien: number; paxOverride: number | null }): { donGia: number; soLuong: number; tien: number } | null {
   const soLuong = v.muc.kind === "PER_TRIP" ? 1 : v.direction === "RETURN" && v.paxOverride !== null ? Math.min(v.paxOverride, v.soKhachTinhTien) : v.soKhachTinhTien;
   if (soLuong <= 0) return null;
-  return { donGia: v.muc.amount, soLuong, tien: v.muc.amount * soLuong };
+  return { donGia: v.muc.amount, soLuong, tien: thanhTienDong({ quantity: soLuong, unitPrice: v.muc.amount }) }; // một công thức thành tiền dòng (bài src/thanh-tien-mot-ham.test.ts)
 }
 
 /** Chữ ký bộ điều kiện: khoá sắp theo chữ cái, «KEY=value» nối bằng «|». Cùng công thức với bất biến R-PRC-PD-1. */

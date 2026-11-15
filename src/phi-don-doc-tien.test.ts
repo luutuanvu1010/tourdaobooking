@@ -5,12 +5,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { app, world, seedStaff } from "../../../tests/audit/harness.mjs";
-import { buildConfirmation, MIEN_PHI } from "../../shared/order-confirmation.ts";
-import { chiaPhanBienNhan } from "../receipt/rules.ts";
-import { nhaCungCapCuaDon } from "../billing/rules.ts";
-import type { BanChup } from "../../shared/hoa-hong-dong.ts";
-import type { OrderDetailDto } from "../../shared/contracts.ts";
+import { app, world, seedStaff } from "../tests/audit/harness.mjs";
+import { buildConfirmation, MIEN_PHI } from "./shared/order-confirmation.ts";
+import { chiaPhanBienNhan } from "./modules/receipt/rules.ts";
+import { nhaCungCapCuaDon } from "./modules/billing/rules.ts";
+import type { BanChup } from "./shared/hoa-hong-dong.ts";
+import type { OrderDetailDto } from "./shared/contracts.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const SALES_B = "22222222-2222-4222-8222-222222222222";

@@ -311,3 +311,31 @@ test("K-A-3 (2): hoaHongDong( / giaVonDong( / tinhDongDoiTac( chỉ được g�
     `Chỗ gọi hoaHongDong / giaVonDong / tinhDongDoiTac khác danh sách đã rà. Dòng đối tác của đơn đi qua MỘT đường (tinhDongDoiTac ← orders/thuong-mai.ts); gọi thêm chỗ khác là dựng công thức thứ hai. Chỗ lệch: ${viTri(lech)}`,
   );
 });
+
+// ĐỔI CÓ CHỦ ĐÍCH 15/11 (phí đưa đón Đợt C, Task 5; trang ghép 2026-10-28 §1 «hoa hồng: bỏ ra ngoài», §6): `order_item` nhận nguồn dòng tiền mới — dòng phí đưa đón
+// (`line_kind = 'TRANSFER_FEE'`, không dịch vụ). Hoa hồng / giá đại lý tính theo DÒNG DỊCH VỤ, nên câu SQL nạp dòng tiền cho công thức hoa hồng (tệp `NGUON_DONG_HOA_HONG`) phải lọc
+// `line_kind = 'SERVICE'` — không dựa vào việc dòng phí tình cờ có `service_id` rỗng. Phí cộng vào tổng công nợ đại lý ở NGOÀI công thức (`phiDon` của `ghepGiaDaiLy`, sổ vàng SV-PD-25).
+const NGUON_DONG_HOA_HONG = ["src/modules/orders/thuong-mai-repo.ts"];
+/** Mỗi câu (khúc chuỗi từ `FROM order_item` tới hết khuôn chữ) thiếu bộ lọc dòng dịch vụ ⇒ một chỗ lệch «tệp: đoạn». */
+function cauDongTienThieuLoc(file: string, src: string): string[] {
+  const out: string[] = [];
+  for (const m of src.matchAll(/FROM order_item\b[^`"]*/g)) if (!/line_kind = 'SERVICE'/.test(m[0])) out.push(`${file}: ${m[0].slice(0, 60)}`);
+  return out;
+}
+
+test("bộ quét phí đưa đón (Đợt C): bắt câu nạp dòng tiền không lọc dòng dịch vụ (tự kiểm)", () => {
+  assert.deepEqual(cauDongTienThieuLoc("x.ts", "const a = `SELECT * FROM order_item WHERE order_id = ?1`;"), ["x.ts: FROM order_item WHERE order_id = ?1"]);
+  assert.deepEqual(cauDongTienThieuLoc("x.ts", "const a = `SELECT * FROM order_item WHERE order_id = ?1 AND line_kind = 'SERVICE'`;"), []);
+});
+
+test("phí đưa đón (Đợt C): câu nạp dòng tiền cho hoa hồng / giá đại lý chỉ lấy dòng DỊCH VỤ — phí không vào hoa hồng", () => {
+  let thay = 0;
+  const lech: string[] = [];
+  for (const f of NGUON_DONG_HOA_HONG) {
+    const src = readFileSync(join(ROOT, f), "utf8");
+    thay += [...src.matchAll(/FROM order_item\b/g)].length;
+    lech.push(...cauDongTienThieuLoc(f, src));
+  }
+  assert.ok(thay > 0, "tự kiểm: phải thấy ít nhất một câu nạp dòng tiền");
+  assert.deepEqual(lech, [], "Câu nạp dòng tiền cho hoa hồng phải có `line_kind = 'SERVICE'` (dòng phí đưa đón không vào hoa hồng)");
+});
