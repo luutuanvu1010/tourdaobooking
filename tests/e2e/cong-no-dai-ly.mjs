@@ -3,7 +3,7 @@
 // đó, tiền tố DL, không đọc ?soTien → Đối tác gọi QR giá bán lẻ ⇒ «không có QR» → Kế toán, Quản trị, Toàn quyền xem được, Bán hàng 403 → khách trả thẳng công ty
 // 300.000 ⇒ còn lại −30.000, không QR → biên nhận khách mẫu đối tác không mang QR / tài khoản.
 // Phí đưa đón Đợt C, Task 5 (sổ vàng SV-PD-25): đơn đại lý có lượt đón 50.000 đ/khách × 3 ⇒ tổng công nợ = giá đại lý 270.000 + phí 150.000 = 420.000 (hoa hồng không tính trên phí),
-// phiếu có dòng «Phí đưa đón» 150.000; phí bật từ hôm nay rồi tắt ở `finally` (tests/e2e/lib-phi-don.mjs).
+// phiếu có dòng phí của chặng («Phí đưa đón — chiều đi, …») 150.000; phí bật từ hôm nay rồi tắt ở `finally` (tests/e2e/lib-phi-don.mjs).
 // D1 chung với kịch bản khác: mã danh mục riêng ZCN1 (cờ «cần xác nhận» tắt, trả về cuối kịch bản); chỉ đọc tài khoản dùng chung.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
@@ -81,8 +81,10 @@ try {
     assert.equal((await call(DT, "POST", `/api/orders/${id2}/gui-don`, {})).status, 200);
     const p2 = (await phieu(ACC, id2)).body.phieu;
     assert.deepEqual([p2.tong, p2.daThu, p2.conLai], [420000, 0, 420000], JSON.stringify(p2));
-    assert.deepEqual(p2.dong.map((d) => [d.ten, d.giaDaiLy]), [["Dịch vụ công nợ thử", 270000], ["Phí đưa đón", 150000]], "các dòng cộng khớp tổng; hoa hồng không tính trên phí");
     const bn2 = (await call(DT, "GET", `/api/orders/${id2}/receipt`)).body.receipt;
+    // ADR-0203 ĐB3 (sửa sau kiểm độc lập): mỗi chặng một dòng phí, tên y như dòng phí của biên nhận («Phí đưa đón — chiều đi, <khu vực>»).
+    assert.match(bn2.phiDuaDon[0]?.description ?? "", /^Phí đưa đón — chiều đi, /);
+    assert.deepEqual(p2.dong.map((d) => [d.ten, d.giaDaiLy, d.mienPhi]), [["Dịch vụ công nợ thử", 270000, false], [bn2.phiDuaDon[0].description, 150000, false]], "các dòng cộng khớp tổng; hoa hồng không tính trên phí");
     assert.deepEqual([bn2.total, bn2.phiDuaDon.map((d) => d.lineTotal)], [450000, [150000]], "khách trả 300.000 + phí 150.000");
     console.log("✓ đơn đại lý có phí đưa đón: tổng công nợ 270.000 + phí 150.000 = 420.000, phiếu có dòng «Phí đưa đón»; biên nhận khách 450.000");
   } finally {
