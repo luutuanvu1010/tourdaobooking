@@ -407,7 +407,7 @@ Nêu bởi chủ dự án trong lúc trả lời từng ca sổ vàng; hồ sơ 
 - **BL-SV-NOP-BU** · **Trạng thái:** `chưa làm` · **Ca liên quan:** SV-SC-06 (còn chờ xác nhận).
   - **Vấn đề:** Hướng dẫn viên khai «Công ty thu – CK» nhưng tiền chưa về, nên nộp bù tiền mặt (Kế toán ghi «Đã nộp»). Sau đó Kế toán bấm «Xác nhận đã nhận» cho khoản chuyển khoản thì máy chủ từ chối (ADR-0092 Đ2b) để hướng dẫn viên không bị âm. Chủ nêu: tiền khách có thể về trễ vì chuyển khoản bị gián đoạn, khi đó công ty đang giữ cả hai khoản.
   - **Việc khi làm:** thêm đường trả lại cho hướng dẫn viên phần đã nộp bù khi tiền chuyển khoản thật sự về (có người duyệt khác người ghi, có nhật ký, không âm số dư). Quyết định luật tiền nên qua ADR; ca sổ vàng SV-SC-06 viết thêm bước này rồi mới xác nhận.
-- **BL-SV-CHUNG-TU-HOAN-NGOAI** · **Trạng thái:** `chưa làm` · **Ca liên quan:** SV-DH-07 (còn chờ xác nhận).
+- **BL-SV-CHUNG-TU-HOAN-NGOAI** · **Trạng thái:** `chưa làm` · **Ca liên quan:** SV-DH-07 (chủ xác nhận 14/11 với lý do phiếu thu chi viết tay ngoài Nền tảng vẫn là chứng từ gốc; việc này nay là việc để sau, không chặn ca 07 hay mục TNV-G1).
   - **Vấn đề:** Khoản «đã hoàn ngoài hệ thống» (công ty trả tay cho khách) hiện chỉ ghi số tiền. Chủ yêu cầu thu chi phải có chứng từ nội bộ: ghi rõ chi vì mục đích gì, số tiền, chi cho ai, hình thức nào (ví dụ tiền mặt), số chứng từ và ngày.
   - **Việc khi làm:** thêm các trường chứng từ vào khoản hoàn ngoài (bắt buộc, không đưa số tài khoản/giấy tờ cá nhân vào nhật ký — CLAUDE.md §7), cập nhật migration + `docs/data-dictionary.json`, viết lại ca SV-DH-07 cho khớp, chủ xác nhận lại.
 
