@@ -14,7 +14,7 @@ export interface TenPhiDon {
 
 export const CHU_MIEN_PHI = "Miễn phí";
 export const CHU_MOI_CAP = "Mọi cấp";
-export const CHU_THIEU_MUC = "Chưa có mức cho tình huống này. Đơn như vậy sẽ không xác nhận được.";
+export const CHU_THIEU_MUC = "Chưa có mức cho tình huống này. Khi phí được cộng vào đơn, đơn như vậy sẽ không xác nhận được.";
 export const CHU_CHUA_AP = "Phí đưa đón chưa áp vào ngày này.";
 export const CHU_XUNG_DOT = "Có hai mức cùng độ cụ thể nhưng khác số tiền, nên chưa chọn được mức nào. Sửa một trong hai mức rồi tra lại.";
 

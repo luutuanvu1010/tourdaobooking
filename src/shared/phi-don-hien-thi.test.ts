@@ -106,7 +106,7 @@ test("cauKetQuaThuTra: có mức theo khách, theo chuyến, miễn phí", () =>
 
 test("cauKetQuaThuTra: thiếu mức và hai mức khác tiền cùng bậc", () => {
   const thieu = cauKetQuaThuTra({ ketQua: { trangThai: "THIEU_MUC", lyDo: "KHONG_CO_MUC" }, thua: [] }, ten);
-  assert.deepEqual(thieu, ["Chưa có mức cho tình huống này. Đơn như vậy sẽ không xác nhận được."]);
+  assert.deepEqual(thieu, ["Chưa có mức cho tình huống này. Khi phí được cộng vào đơn, đơn như vậy sẽ không xác nhận được."]);
   const xd = cauKetQuaThuTra({ ketQua: { trangThai: "THIEU_MUC", lyDo: "XUNG_DOT" }, thua: [] }, ten);
   assert.equal(xd.length, 1);
   assert.match(xd[0]!, /hai mức/);
