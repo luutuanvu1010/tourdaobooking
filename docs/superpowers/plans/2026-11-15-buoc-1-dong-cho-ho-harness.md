@@ -172,7 +172,32 @@ Phiên điều phối gọi trợ lý `nguoi-kiem-doc-lap` với `isolation: "wo
 
 **B. Mô tả môi trường cho bộ xét duyệt tự động** (`~/.claude/settings.json`, khoá `autoMode.environment`): AI soạn các dòng cần thay và đưa trong cuộc trò chuyện, không lưu vào kho. Chủ tự dán, hoặc ra lệnh cho AI sửa và duyệt phần thay đổi máy hiện ra.
 
-**C. Dọn bản làm việc riêng:** AI lập bảng từng phiên (tên, tình trạng, khuyến nghị); chủ gật phiên nào thì AI lưu trữ phiên đó. Không tự lưu trữ, không xoá nhánh chưa nhập.
+**C. Dọn bản làm việc riêng.** Bảng đo ngày 15/11 (21 bản, kể cả thư mục gốc). AI không tự lưu trữ phiên, không xoá nhánh chưa nhập; chủ nói làm nhóm nào thì AI làm nhóm đó. «Không thấy phiên» nghĩa là thư mục không gắn với phiên nào đang mở trong ứng dụng.
+
+| Thư mục → nhánh | Phiên trong ứng dụng | Tình trạng | Khuyến nghị |
+|---|---|---|---|
+| **Nhóm 1: đóng được ngay, không mất gì (sạch, đã nằm trong bản chính)** | | | |
+| `admin-role-accounting-role-bug-bf505e` → `claude/project-director-review-prompt-58bc10` | «ok vậy-ended» (13/11) | sạch, đã nhập | lưu trữ phiên |
+| `modest-lovelace-09b5ba` → `claude/redesign-maintenance-screen-325ff8` | «Thiết kế lại màn hình bảo trì- end» (14/11) | sạch, đã nhập; còn 6 tiến trình thử chạy sót | chủ tắt tiến trình sót, rồi lưu trữ phiên |
+| `multi-role-admin-view-8030d2` | «Màn hình đa vai trò quản trị-ended» (13/11) | sạch, đã nhập | lưu trữ phiên |
+| `partner-type-ta-oracle-18-efd687` → `claude/trang-thai-2-73` | «Áp dụng TA theo loại đối tác và Oracle 18-ended» (7/11) | sạch, đã nhập | lưu trữ phiên |
+| `two-factor-auth-expiry-328f96` | «Bảo mật 2 lớp hết hạn 30 ngày» (6/11) | sạch, đã nhập | lưu trữ phiên |
+| `admin-delete-data-decision-31f0fc` → `claude/init-7dd303` | «Audit giao diện» (14/11) | sạch, đã nhập | lưu trữ nếu việc đã chuyển hẳn sang phiên «bước 2» |
+| `xoa-muc-tra-sau-no` | không thấy phiên | sạch, đã nhập, 9 ngày | gỡ thư mục, xoá nhánh đã nhập |
+| **Nhóm 2: còn lần lưu chưa nhập, chủ quyết nhập hay bỏ** | | | |
+| `adr-0199-van-phong-nhap-coc` | không thấy phiên | 27 lần lưu chưa nhập; thi công xong 13/11, chờ chủ nhập và phát hành | nhập khi chủ duyệt phát hành |
+| `dot-0b-khung-tai` | không thấy phiên | 17 lần lưu, 179 tệp, từ 30/10; việc đã gác (BACKLOG mục 55) | gỡ thư mục, GIỮ nhánh |
+| `order-edit-shipment-button-d582be` | «…-paused» (9/11) | 1 lần lưu, sửa hai dòng bảng từ | nhập (nhỏ) hoặc bỏ |
+| `quirky-faraday-88277b` | «…-ended» (8/11) | 1 lần lưu ghi chú kế hoạch ADR-0178 phần B, nay phần B đã phát hành | bỏ: lưu trữ phiên, giữ nhánh |
+| `friendly-franklin-4c7098` → `claude/tour-account-qr-scan-setup-533817` | không thấy phiên | 3 lần lưu từ 18/10 (sơ đồ kiến trúc, bài tình huống) và 1 tệp cấu hình chưa lưu | chủ xem còn cần không; không thì gỡ thư mục, giữ nhánh |
+| `rut-gon-claude-md` | không thấy phiên | 4 lần lưu và 3 bản nháp chưa lưu (ADR-0160) | giữ tới Bước 3 (rút gọn CLAUDE.md) rồi quyết |
+| **Nhóm 3: còn tệp chưa lưu** | | | |
+| `adr-0184-thi-cong` | không thấy phiên | 30 ảnh bằng chứng chưa lưu; ADR-0184 đã phát hành | bỏ ảnh rồi gỡ thư mục (kho đang công khai và đã nặng), hoặc lưu nếu chủ cần giữ bằng chứng |
+| `luot-a-gop-y-69dd26` | không thấy phiên | 2 tệp mã sửa dở từ ba tuần trước (`src/shared/loc-don.ts` và bài kiểm của nó) | chủ quyết xem lại hay bỏ |
+| **Nhóm 4: đang làm, để nguyên** | | | |
+| `soan-adr-a-b-ed0d40`, `fix-receipt-service-edit-4f4aae`, `vibrant-keller-5d0659`, `reverent-kilby-7333f6`, `vibe-coding-audit-2bdc6e` | năm phiên có hoạt động 14–15/11 | | không đụng |
+
+Làm xong Nhóm 1 thì còn 14 bản; muốn về ba bản thì phải quyết hết Nhóm 2 và Nhóm 3.
 
 ## Nhật ký
 
@@ -195,3 +220,19 @@ Phiên điều phối gọi trợ lý `nguoi-kiem-doc-lap` với `isolation: "wo
 - Sau khi ghi tệp trợ lý: ba tệp bài kiểm hàng rào `# tests 37`, `# pass 37`, `# fail 0` (34 + 3). `npm run typecheck`: 0 lỗi.
 - Quyết định khác kế hoạch: trong tệp trợ lý, mục «Bản sao riêng» đặt ngay sau câu mở đầu, và bước «so kết quả…» thành bước 1 nên các bước sau đánh số lại 2–7 (bước «trả bản sao» là bước 7). Không đổi luật cứng nào ngoài hai chỗ kế hoạch nêu.
 - [x] Task 2 Bước 1–5 xong. Task 3, Task 4 chưa làm (phiên điều phối).
+
+### Task 3 (phiên điều phối, 2026-11-15): kiểm độc lập
+
+- Người kiểm: trợ lý `nguoi-kiem-doc-lap`, gọi với `isolation: "worktree"`, kiểm lần lưu `0959edd0f` trên bản sao riêng. Kết luận nguyên văn: «Sẵn sàng trình chủ? Có.» Không có phát hiện Critical hay Important.
+- Người kiểm tự chạy: ba tệp bài kiểm hàng rào `# tests 37`, `pass 37`, `fail 0`; `npm run typecheck` 0 lỗi; năm đầu vào lạ cho móc thật (thiếu `tool_input`, `tool_input` là `null`, `command` là số, `cwd` không tồn tại, lệnh vô hại chỉ nhắc chuỗi cấm) đều thoát 0, không ném lỗi; ca `git push origin main` với `cwd` không tồn tại trả `deny`; lệnh vô hại chỉ nhắc chuỗi cấm được cho qua ở cả Terminal lẫn Bash (hai đường xử lý như nhau).
+- Người kiểm xác nhận không nới: luật `deny` cũ, danh sách `ask` và hai mục `PreToolUse` cũ không đổi; luồng xử lý cho `Bash` giữ nguyên.
+- Phép đột biến riêng của người kiểm KHÔNG làm được: lệnh `perl -pi` sửa `.claude/hooks/guard-remote.mjs` trong bản sao bị chính lớp chặn của kho từ chối («Bị chặn: sửa/xoá/ghi đè tệp luật … bằng dòng lệnh»). Ghi nhận như một lần quan sát lớp chặn tệp luật chạy thật, cả trong bản sao của trợ lý. Hai lần đỏ ở Task 1 vì thế chỉ có người thi công quan sát.
+- Quan sát cho Task 2: sau khi người kiểm xong, `git status --short` ở cây làm việc của người thi công rỗng. Người kiểm trả bản sao về nhánh ban đầu trước khi báo cáo, và Claude Code đã tự dọn bản sao cùng nhánh tạm của nó. Lần thử trước đó (bản sao để ở trạng thái đã đổi HEAD) thì không được tự dọn, phiên điều phối phải gỡ tay.
+- Người kiểm không kiểm được: Claude Code thật (chưa có phiên mới nạp cấu hình); e2e (bản sao không có `.dev.vars`); `npm test` đủ bộ (đề bài không cho).
+
+### Yêu cầu của chủ giữa chừng (2026-11-15): «sửa cấu hình để bypass mọi câu hỏi của bạn dành cho tôi»
+
+- Phiên điều phối KHÔNG tự sửa. Lý do: hộp hỏi khi AI sửa tệp luật là công tắc an ninh của chính AI; quy tắc an toàn của Claude để cài đặt an ninh cho người dùng tự đổi, và Hiến pháp N9 không cho AI tự nới luật chi phối mình. Tiền lệ: ngày 9/11 chủ tự xoá `Edit(docs/adr/**)` khỏi `permissions.ask`.
+- Hiện trạng đo được: hộp hỏi đến từ mười dòng `permissions.ask` trong `.claude/settings.json`. Lệnh `npm run day-len` chỉ đòi lý do khi các tệp trong `TEP_DIEU_KHIEN` (`scripts/kiem-phan.mjs`) đổi; danh sách đó KHÔNG gồm `.claude/**`, `CLAUDE.md`, `playbook/**`. Nghĩa là nếu bỏ hộp hỏi hôm nay thì không còn điểm nào chủ nhìn thấy AI sửa tệp luật.
+- Đề xuất cho Bước 2 (siết trước, nới sau): đưa các tệp luật vào danh sách mà `day-len` liệt kê và đòi chủ gõ lý do khi đổi. Khi đó chủ có thể tự bỏ khối `ask`, và việc duyệt tệp luật dồn về đúng một lần lúc nhập bản chính.
+- Các câu hỏi ở cuối lượt của AI: từ 15/11 phiên này không hỏi nữa; tự chọn phương án khuyến nghị và ghi lại (đúng ghi chú «Đừng hỏi câu chủ nên đồng ý»).
