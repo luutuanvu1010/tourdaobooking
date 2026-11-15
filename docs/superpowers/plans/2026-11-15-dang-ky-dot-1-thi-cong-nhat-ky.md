@@ -1,0 +1,106 @@
+# Nhật ký thi công — đăng ký đối tác đợt 1 (15–16/11/2026)
+
+Hồ sơ có ngày. Kế hoạch: `2026-11-15-dang-ky-dot-1-ke-hoach.md`. Mỗi task do một trợ lý thi công, một người kiểm độc lập đọc lại; lượt kiểm toàn nhánh cuối ĐẠT sau một đợt sửa. Dưới đây là mọi quyết định (ruling) điều phối đã tự chốt thay chủ, theo thứ tự thời gian, kèm giá nếu sai. Các mục chờ chủ ở `docs/HANDOFF-N1.md` (danh sách 11 việc).
+
+## Quyết định của điều phối
+
+- Ruling: Task 0 needs the owner to send a Góp ý; start Tasks 1–2 meanwhile (independent of how identity is confirmed) — cost if wrong: Task 3 identity method rework only.
+- Ruling: migration numbers re-checked at each task across all branches (other branches hold up to 0166).
+- Ruling: item 1 — add `activation_deadline_at` on dk_registration, set by server at DUYET and at «gửi lại lời mời» (logged in dk_event); KICH_HOAT trigger compares with it — ADR-0207 Đ7 — cost if wrong: one column.
+- Ruling: item 4 — add `files_per_network_hour` (seed 20) to dk_policy now — ADR-0208 Đ2 wins over PHU-LUC.
+- Ruling: item 5 — add `dk_policy.phieu_required_items` (seed 'ROLE,CALLED') now, cheaper while 0167 unmerged — ADR-0210 Đ1.
+- Ruling: item 6 — remove edge dang-ky→pricing; approval batch is assembled in src/index.ts with statements injected (ADR-0209 Đ6) — cost if wrong: re-add edge in Task 11.
+- Ruling: minors (immutable columns of dk_registration, actor_ref vs actor_kind check, item_result.version must exist, comment fix, data-dictionary class match_party_id N1, test via SAVEPOINT) fixed in this round since migration unmerged.
+- Ruling: Task 0 still pending (no Góp ý seen in log); do Task 5 next (independent of identity method), hold Task 3 until gate — cost if wrong: none
+- Ruling: dk_upload_attempt rows — treat as technical counter table like dk_email_code (deletable, exemption from R-N1-9 named) and purge in Task 9 agent — cost if wrong: table grows slowly.
+- Ruling: required items — dk_policy.phieu_required_items = phiếu-only items (ROLE, CALLED); pty_verification_requirement = verification items; Task 4 «gửi» and Task 6 «đạt» require the union (ADR-0210 Đ1).
+- Ruling: fix in round 1 also minors 2,3,4,5,6,7 (cheap, unmerged migration): event row conditioned on insert winning; insert conditioned on status; reserve IP slot after validation and not on same-hash retry; public route rejects missing Content-Length (411); dk_policy CHECK photo_max_mb ≤ 10 instead of relying on 0168 CHECK; move import.
+- Ruling: accept edge dang-ky→maintenance (read-only state, same edge auth has; ADR-0206 Đ8 requires the maintenance gate) — note in final report to owner as a fifth edge beyond ADR-0206 Đ2 list.
+- Ruling: Task 6 before Task 3/4 — tests seed phiếu rows directly (status CHO_XAC_MINH) instead of going through public routes; independent of identity method — cost if wrong: test fixtures rewritten later.
+- Ruling: Task 3 unblocked; start it right after Task 6 completes (no parallel implementers) — cost if wrong: Task 3 email path reworked.
+- Ruling: bundle ceiling — not raised by AI (owner gate «Duyệt nới»); collect in one owner question at end of batch, or trim in a later task — cost if wrong: npm test red until owner answers, blocks day-len only.
+- Ruling: referrer — 409 referrer_not_supported now; Task 8 adds referrer_party_id column (migration number decided at Task 8) — cost if wrong: one column.
+- Ruling: HR queue = CHO_DUYET ∪ (DA_DUYET AND activated_at IS NULL) per ADR-0207 Đ7; Task 8 builds HR's own detail view — cost if wrong: query change.
+- Ruling: I-1 — ket-luan and dat bodies carry `phienBan`; write conditioned `current_version = ?`; mismatch → 409 (stale view) — ADR-0207 Đ2 (verifier concludes on what they saw) — cost if wrong: one body field.
+- Ruling: fix in round 1 also M-1 (queue groups by capability: verify-capable ⇒ verification statuses; account.create ⇒ CHO_DUYET + DA_DUYET not activated; union), M-3, M-4, M-7, M-8 — cheap.
+- Ruling: an HR+Kế toán account passes party.verify+party.view and so may verify — queue follows the permission matrix; the verifier≠approver rule is enforced by Task 8's dk_decision_guard — cost if wrong: one extra role exclusion in the queue/route.
+- Ruling: G2 — code mail is single-use; «gửi lại» = request a new code (the public page shows a «Gửi lại mã» action in Task 12); the dk_email_code row is the visible pending record (state: chờ nhập / đã dùng / hết hạn), no separate outbox — ADR-0206 Đ13 met by the row + resend path — cost if wrong: add sent_at/outcome column later. Note in owner report.
+- Ruling: fix in round 1 also M1 (exhausted marker must not revive when policy cap rises), M2 (dk: IP counter on /xac-nhan so strangers cannot burn others' codes freely; value from dk_policy if a row exists, else same as ask-per-IP), M3 (use sinhMa from ma-dinh-danh), M4 (restore history line 513), M7 (drop unused turnstileSecret export), M9 (test junk).
+- Ruling: draft (PUT) keeps only role_code; all content travels in «gửi» body — no server-side store of identity data for abandoned drafts (less N3 held, no migration) — ADR silent on draft content — cost if wrong: migration 0169 + data dictionary + Task 9 anonymise. Note for owner report.
+- Ruling: «cookie A calls phiếu B ⇒ 404» has no path (phiếu comes from cookie); 401 for foreign identity accepted.
+- Ruling: two CCCD photos not required for «gửi» in đợt 1 (ADR silent; verifier asks via bổ sung) — note for owner.
+- Ruling: I3 fixed in Task 4 round (load-bearing for decision 9; Task 6 code) — bo-sung and tu-choi bodies carry phienBan, write conditioned on current_version — cost if wrong: one body field.
+- Ruling: I2 — banKhaiTruoc only when status CAN_BO_SUNG, latest submission only, null if anonymised.
+- Ruling: fix in round 1 also m1, m2, m3 (registrant-facing labels for missing items), m4 (privacy current-version check consistent between cau-hinh and gui).
+- Ruling: timing-table red must be fixed in this task (record measured seconds for missing dang-ky/staff/accounts test files) — sent back; review runs in parallel on 8a5d38e (timing json is not reviewed code).
+- Ruling: 409 message is server text with no button yet — reference-table row deferred to Task 12 when the «Gửi lại lời mời» button is built (mark cho-chon then).
+- Ruling: I1 — make chuaKichHoat a required ctx field like mocToiThieu (tsc catches a missing injection) and anchor the guard regex; router.test.ts case — cost if wrong: none.
+- Ruling: I2 fixed now in Task 7 (brief lists touch-credentials.test.ts).
+- Ruling: fix in round 1 also M1 (throw when permissions empty), M3 (route-level PIN login 401 test), M4 (with I1), M5.
+- Ruling: referrer_party_id column added to unmerged 0167 (no new migration); REFERRED_BY relation type appended to unmerged 0168; Task 6 «dat» stops returning referrer_not_supported — cost if wrong: one column.
+- Ruling: rail xoa-mot-lenh-co-ten (2) widened to the single named statement dang-ky:submission_erase_on_approve, pinned by (2b) — behaviour required by accepted ADR-0207 Đ5 slot 10, but loosening a rail needs owner sign-off (N9 / Điều 9.4) — collect with the bundle-ceiling question at end of batch; until then the branch is not merge-ready — cost if wrong: revert one test line.
+- Ruling: «đã duyệt» email not sent — no ADR Đ settles content/channel, no plan task — note for owner report (candidate backlog item).
+- Ruling: I1 — enforce in batch via NULL-on-invalid subselect (pty_consent party_id; relation from_party_id); map to 409; race tests R3a/R3a2/R3b.
+- Ruling: I2 — option (a): write HO_TEN verified row only when the party's name equals the declared name (checked inside the statement); otherwise no HO_TEN row (conservative: claims less) — note for owner — cost if wrong: owner may later want rename (ADR).
+- Ruling: I3 — owner sign-off collected at end of batch; fix SO-HANG-RAO line now.
+- Ruling: fix in round 1 also I4, M1 (pin test), M2 (advise rejecting, not a non-existent path), M4 (narrow catch).
+- Ruling: activation-expiry erasure — do NOT erase at deadline; new dk_policy row (grace after activation deadline) seeded 30 days, reusing PHU-LUC's approved «ẩn danh sau 30 ngày» retention for unapproved text; HR may resend within the grace; 409 activation_expired message stays «nhờ Tour Đảo gửi lại lời mời» — keeps data longer but reversible (erasure is not) — owner confirms in end-of-batch question — cost if wrong: change one policy value.
+- Ruling: third rail widening (architecture R-N1-9 XOA_CUNG_KY_THUAT, 2 named hard deletes on dk_email_code/dk_upload_attempt) joins the owner sign-off question.
+- Ruling: I1 — slide expires_at on PUT /phieu and file upload (DANG_DIEN only).
+- Ruling: I2 — option (a): chain both erase statements in-statement to the row just marked erased in this run (EXISTS … erased_at = at); this tightens an existing named statement, no new name; add test pinning age condition; fix comment; disclose reuse in owner question.
+- Ruling: I3 — truthful text now; owner question: inactive account after grace — close and release phone, or keep (ADR-0207 Đ7 «tài khoản vẫn tắt»).
+- Ruling: fix in round 1 also M1, M2.
+- Ruling: Task 10 view v_pty_verification_facts goes into unmerged 0168 (parties' migration) — 0169 is taken on another branch; no new file — cost if wrong: move to a new file at merge.
+- Ruling: name-change CAN_LAI via SQL trigger instead of per-path statements — accepted pending review (covers all paths structurally).
+- Ruling: new quyen-hoan.json deferral for verification.requirement.write (no write route yet; owner-responsible, due 31/12/2026) — joins owner question list.
+- Ruling: fix I-1 (indexes in unmerged 0168 + EXPLAIN QUERY PLAN test), M-1 (add organisation case; keep CHUA — owner note), M-2 (regex /i, \s+), M-4 (scan migrations too).
+- Ruling: Task 11 slot 8 attaches in src/index.ts loDuyetDangKy (batch composition point), not in dang-ky/index.ts — ADR-0206 Đ2 (no dang-ky→pricing edge; ledger ruling Task 1 item 6).
+- Ruling: Task 11 migration = new pricing file, number = max across all branches + 1 (checked at dispatch).
+- Ruling: I-1 is a plan defect, not Task 11 code — carried into Task 12 dispatch (server DTO gated by partner.commission.view, no tier name to HR) — cost if wrong: one extra task.
+- Ruling: m-1 (pin title), m-2 (audit target = party) carried into Task 12 dispatch as small fixes.
+- Ruling: Task 12 does NOT edit web/CLAUDE.md (law file, background agent cannot answer the edit prompt) — controller adds the smoke-script row with Edit at Task 13 / final.
+- Ruling: Task 12 also carries Task 11 I-1 (server skip reason + «cấp sẽ áp» DTO), m-1, m-2; Task 6 M3/Task 8 M3 (phienBan required in UI bodies for duyet/tu-choi-duyet/bo-sung/tu-choi/ket-luan/dat); Task 7 409 «Gửi lại lời mời» reference row (cho-chon).
+- Ruling: I-3 — build now in Task 12 round 1 (ADR-0206 promises it; cell registration.policy.write exists): Toàn quyền-only route writing a new dk_policy row (append-only, optimistic lock) for the switch + open_role_codes; opening refused when no effective privacy policy (v_pty_privacy_effective); other numbers stay as seeded; UI block for Toàn quyền; remove the quyen-hoan deferral for registration.policy.write — cost if wrong: one route + block (reversible).
+- Ruling: fix in round 1 also I-1 (set-based injected query), I-2 (henGioMs 120 000 for upload), m-4, m-5, m-6.
+- Ruling: round 2 — fix I-N1 (assert as Toàn quyền/Quản trị with control row, mutate both flags) + add PRAGMA column-list test for the policy copy (cheap, prevents silent drop).
+- Ruling: Task 13 first merges local main into the branch (main is 116 commits ahead, has 0169_phi_don_tren_don) and renumbers our migrations to max+1 contiguous after checking all branches (0167→0170, 0168→0171, 0170→0172 if free) so order stays monotonic per CLAUDE.md §10 — cost if wrong: test/name updates only.
+- Ruling: Task 13 Step 3 (real iPhone) needs the owner's device — not done by AI; listed for owner. Step 5 changelog prepared, day-len/trien-khai commands handed only after owner answers the end-of-batch questions.
+- Ruling: docs/ARCHITECTURE.md 5.29 enforcement-table update = factual (names the tests); allowed as description, flagged in report. web/CLAUDE.md row added by controller with Edit.
+- Ruling: I-1 — implement the three Đ13 emails (cần bổ sung / đã duyệt / bị từ chối) now: accepted ADR mandates them; send via guiThu in waitUntil, record a sent/failed dk_event (no PII) as the visible pending state; «Gửi lại lời mời» resends «đã duyệt» — supersedes the Task 8 ruling that no Đ settled it (that ruling was wrong) — cost if wrong: wording only.
+- Ruling: I-3 — add HR action «trả về xác minh» (CHO_DUYET→CHO_XAC_MINH, phienBan-guarded, clears verified_by/match fields, dk_event) in unmerged 0170 + route + UI; 409 messages point to it — accepted ADR-0207 Đ5 requires it.
+- Ruling: I-4 — verification queue excludes DANG_DIEN, sorts submitted first, returns «còn nữa» flag.
+- Ruling: I-5 — add SO-HANG-RAO rows for kho-tep-ho-so and phien-cung-lo (chờ chủ duyệt) and complete the HANDOFF owner list.
+- Ruling: also fix M-1, M-2 (CHECK in 0170), M-3, M-7 (runbook TURNSTILE + table order); M-4 adr README by controller with Edit; M-5/M-6/M-8 noted.
+- Ruling: I-2 stays an owner question (account after grace: close+release phone vs keep); code keeps the safe option.
+- Final: parked (minor) — return_clear referrer clause has no test; pre-batch target/referrer messages not pointing to «Trả về xác minh»; HANDOFF heading says «Mười việc» (11); SO-HANG-RAO lacks rows for QLBH pin, quyen-hoan deferral, maintenance edge; DK_THU comment points to wrong test file; resend allowed while notice still «chờ»; gui-lai-loi-moi no per-phiếu cap — Ruling: parked for a follow-up round, none blocks merge.
+
+## Nợ nhỏ để lại (đã phân loại ở lượt kiểm toàn nhánh)
+
+- Task 2: minor (deferred): route-list test matches name string only — add test that every route calling docPhienDangKy is access "public" (do in Task 3)
+- Task 2: minor (deferred): test dk: keys never share prefix with phone:/mfa:/ip:
+- Task 2: minor (deferred): taoPhienDangKy does not assert startMs <= nowMs
+- Task 5: minor (deferred): dk_upload_attempt lives in 0168 (parties header) — Task 9 purge exemption must name it.
+- Task 6: minor (deferred): M-2 queue LIMIT 200 without «còn nữa» flag; drafts can push out CHO_XAC_MINH.
+- Task 6: minor (deferred): M-5 hoSoTheoSoGiayTo ignores document type (GPLX vs CCCD collision, hint only).
+- Task 6: minor (deferred): M-6 dead match_kind fallback branch in «đạt».
+- Task 6: minor (deferred): test (13b) batches only the write statements, not the history/audit rows — «no history/audit on version mismatch» rests on code reading.
+- Task 3: minor (deferred): M5 small timing difference when switch off (Turnstile + caps bound it).
+- Task 3: minor (deferred): M6 hourly cap counts dk_email_code rows — Task 9 cleanup agent must keep rows ≥ 1 h (name it in Task 9 dispatch).
+- Task 3: minor (deferred): M8 near-dead catch branch after code consumed.
+- Task 3: minor (deferred): attacker with many IPs can still burn a victim's codes (M2 mitigates, not eliminates); code_max_attempts has no upper bound vs MA_CHET sentinel.
+- Task 4: minor (deferred → Task 9): m5 expires_at never set; m6 second withdrawal does not retry storage delete — Task 9 agent cleans «chờ xoá».
+- Task 4: minor (deferred): no dedicated test for v_pty_privacy_effective in tep-cho.test.ts (view in unmerged 0168).
+- Task 7: minor (deferred → Task 8/9): M2 activation UPDATE matching 0 rows does not abort the batch — dk_decision KICH_HOAT guard is the main net; Task 9 must assert changes.
+- Task 8: minor (deferred → Task 12): M3 make phienBan required in duyet/tu-choi-duyet bodies when UI is built.
+- Task 8: minor (deferred → owner report): M5 HR may assign any external role incl. DRIVER_EXTERNAL/TRAVEL_AGENCY outside open_role_codes (ADR-0207 Đ4 keeps existing role rules); M6 «đã duyệt» email unowned; M2 root — ADR-0207 Đ5 advises a CHO_DUYET→CHO_XAC_MINH path that 0167 lacks.
+- Task 8: minor (deferred → Task 9): M7 resend-invite after identity anonymised; M9 real activation in test (12).
+- Task 8: minor (deferred → owner report): HO_TEN name match is binary (no case/NFC/space normalisation) — misses silently (safe direction); owner may want option (c).
+- Task 8: minor (deferred): race tests (20)–(22) assert 409 but do not count rows.
+- Task 9: minor (deferred): M3 orphan storage object on rare re-upload race; M4 purge-list starvation; M6 two layers without mutation evidence; M7 approved phiếu has no registration-level erased_at (settle with audit-checks invariant, Task 13).
+- Task 9: minor (deferred): a too_many_files cap race (insert 0 rows) still slides draft expiry — harmless (user was active).
+- Task 10: minor (deferred → Task 13 docs): M-3 note statement-vs-trigger in CHANGE-GUIDE; M-6 accounts→staff→parties read path note.
+- Task 10: minor (deferred): created_at tail of pty_verification_party_target_ix does not avoid sort; scan ignores /* */ comments (none exist).
+- Task 11: minor (deferred): m-3 clock skew skips slot 8 silently (solved with I-1); m-5 redundant mirror clauses without red test.
+- Task 12: minor (deferred → owner report / đợt sau): m-1 referrer profile picker; m-2 badge click to pending item for party.verify; m-7 «Rút phiếu» two jobs (cho-chu); m-8 tier block reload, image order.
+- Task 12: minor (deferred): a future-dated dk_policy row would make policy writes 409 forever (only reachable by direct SQL).
+- Final: parked (minor) — return_clear referrer clause has no test; pre-batch target/referrer messages not pointing to «Trả về xác minh»; HANDOFF heading says «Mười việc» (11); SO-HANG-RAO lacks rows for QLBH pin, quyen-hoan deferral, maintenance edge; DK_THU comment points to wrong test file; resend allowed while notice still «chờ»; gui-lai-loi-moi no per-phiếu cap — Ruling: parked for a follow-up round, none blocks merge.
