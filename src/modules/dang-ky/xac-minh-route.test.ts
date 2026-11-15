@@ -189,7 +189,7 @@ test("(5) Kết luận Danh bạ «gắn hồ sơ có sẵn»: hồ sơ đã có
   assert.equal(p.match_party_id, caNhan);
 });
 
-test("(5b) Thân sai: ô lạ, hoSo sai kiểu, lý do ngoài danh sách đóng, mục lạ, người giới thiệu (chưa lưu được) ⇒ lỗi rõ, không ghi", async () => {
+test("(5b) Thân sai: ô lạ, hoSo sai kiểu, lý do ngoài danh sách đóng, mục lạ, người giới thiệu không có thật ⇒ lỗi rõ, không ghi", async () => {
   const w = setup();
   const id = phieu(w);
   assert.equal((await ketLuan(w, ADM, id, { muc: "KHONG_CO", dat: true })).status, 400);
@@ -202,10 +202,37 @@ test("(5b) Thân sai: ô lạ, hoSo sai kiểu, lý do ngoài danh sách đóng,
   assert.equal((await tuChoi(w, ADM, id, {})).status, 400);
   assert.equal((await dat(w, ADM, id, { hoSo: { kieu: "KHAC" } })).status, 400);
   await datHetMuc(w, ADM, id);
-  assert.equal((await dat(w, ADM, id, { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: "pty-x" })).status, 409);
+  const rg = await dat(w, ADM, id, { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: "pty-x" });
+  assert.equal(rg.status, 409);
+  assert.equal(rg.json.error.code, "referrer_not_found");
   assert.equal(reg(w, id).status, "CHO_XAC_MINH");
   assert.equal((await w.call("GET", "/api/dang-ky/phieu/khong-phai-ma", { as: ADM })).status, 404);
   assert.equal((await ketLuan(w, ADM, "DK_ZZZZZZZZ", { muc: "HO_TEN", dat: true })).status, 404);
+});
+
+test("(5c) Người giới thiệu (Task 8 ruling): «đạt» lưu mã hồ sơ người giới thiệu; hồ sơ đã gộp, đang ngưng, hay trùng hồ sơ đích ⇒ 409, không ghi", async () => {
+  const w = setup();
+  const a = phieu(w);
+  await datHetMuc(w, ADM, a);
+  // hồ sơ đã gộp / đang ngưng ⇒ 409
+  w.sqlite.prepare("UPDATE pty_party SET active = 0 WHERE id = ?").run(`pty-${ACC}`);
+  const r1 = await dat(w, ADM, a, { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: `pty-${ACC}` });
+  assert.equal(r1.status, 409, r1.text);
+  assert.equal(r1.json.error.code, "referrer_inactive");
+  // hồ sơ đích = người giới thiệu ⇒ 409 (bảng quan hệ cấm nối hồ sơ với chính nó)
+  const goc = "pty-goc-gioi-thieu";
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', 'Người Có Sẵn', 1, ?, ?)").run(goc, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES (?, 'Người Có Sẵn', ?, ?)").run(goc, AT, AT);
+  const r2 = await dat(w, ADM, a, { hoSo: { kieu: "CO_SAN", partyId: goc }, nguoiGioiThieuPartyId: goc });
+  assert.equal(r2.status, 409, r2.text);
+  assert.equal(r2.json.error.code, "referrer_is_target");
+  assert.equal(reg(w, a).status, "CHO_XAC_MINH");
+  assert.equal(reg(w, a).referrer_party_id, null);
+  // hợp lệ ⇒ lưu
+  const r3 = await dat(w, ADM, a, { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: `pty-${SALES}` });
+  assert.equal(r3.status, 200, r3.text);
+  assert.equal(reg(w, a).status, "CHO_DUYET");
+  assert.equal(reg(w, a).referrer_party_id, `pty-${SALES}`);
 });
 
 test("(6) «bổ sung»: CAN_BO_SUNG + lý do; người đăng ký thấy câu lý do trung tính cho mã trùng; lịch sử + nhật ký", async () => {

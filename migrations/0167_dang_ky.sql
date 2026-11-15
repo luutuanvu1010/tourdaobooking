@@ -52,6 +52,7 @@ CREATE TABLE dk_registration (
   reason_code      TEXT CHECK (reason_code IS NULL OR (reason_code = upper(reason_code) AND length(reason_code) BETWEEN 2 AND 40 AND reason_code NOT GLOB '*[^A-Z0-9_]*')),
   match_kind       TEXT CHECK (match_kind IS NULL OR match_kind IN ('NEW', 'EXISTING')),  -- kết luận Danh bạ: hồ sơ mới / gắn hồ sơ có sẵn
   match_party_id   TEXT,
+  referrer_party_id TEXT,                                                    -- hồ sơ người giới thiệu do người xác minh chọn lúc «đạt» (ADR-0207 Đ2 mục 5); lô duyệt ghi quan hệ REFERRED_BY
   verified_by      TEXT,                                                     -- người đã bấm «đạt»
   verified_version INTEGER,                                                  -- bản khai được xác minh
   verified_at      TEXT,

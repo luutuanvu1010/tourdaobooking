@@ -177,14 +177,16 @@ const DAT_CAP = defineSql(
   "registration_verify_pass",
   `UPDATE dk_registration
       SET status = 'CHO_DUYET', verified_by = ?2, verified_version = current_version, verified_at = ?3,
-          match_kind = COALESCE(?4, match_kind), match_party_id = CASE WHEN ?4 IS NULL THEN match_party_id ELSE ?5 END, updated_at = ?3, updated_by = ?2
+          match_kind = COALESCE(?4, match_kind), match_party_id = CASE WHEN ?4 IS NULL THEN match_party_id ELSE ?5 END, referrer_party_id = ?8, updated_at = ?3, updated_by = ?2
     WHERE id = ?1 AND status = 'CHO_XAC_MINH' AND current_version = ?7 AND COALESCE(?4, match_kind) IS NOT NULL
       AND (SELECT count(*) FROM json_each(?6) j
             WHERE (SELECT x.result FROM dk_item_result x WHERE x.registration_id = dk_registration.id AND x.version = dk_registration.current_version AND x.item_code = j.value
                     ORDER BY x.created_at DESC, x.rowid DESC LIMIT 1) = 'DAT') = json_array_length(?6)`,
 );
-export const datStatement = (db: D1Database, v: { registrationId: string; by: string; at: string; matchKind: "NEW" | "EXISTING" | null; matchPartyId: string | null; mucBatBuoc: readonly string[]; phienBan: number }): D1PreparedStatement =>
-  db.prepare(DAT_CAP).bind(v.registrationId, v.by, v.at, v.matchKind, v.matchPartyId, JSON.stringify(v.mucBatBuoc), v.phienBan);
+export const datStatement = (
+  db: D1Database,
+  v: { registrationId: string; by: string; at: string; matchKind: "NEW" | "EXISTING" | null; matchPartyId: string | null; mucBatBuoc: readonly string[]; phienBan: number; referrerPartyId?: string | null },
+): D1PreparedStatement => db.prepare(DAT_CAP).bind(v.registrationId, v.by, v.at, v.matchKind, v.matchPartyId, JSON.stringify(v.mucBatBuoc), v.phienBan, v.referrerPartyId ?? null);
 
 const BO_SUNG_CAP = defineSql(
   "dang-ky",

@@ -139,3 +139,6 @@ CREATE INDEX dk_upload_attempt_ix ON dk_upload_attempt(ip_key, at_ms);
 CREATE TRIGGER dk_event_tep_status BEFORE INSERT ON dk_event
 WHEN NEW.command = 'THEM_TEP' AND NOT EXISTS (SELECT 1 FROM dk_registration r WHERE r.id = NEW.registration_id AND r.status IN ('DANG_DIEN', 'CAN_BO_SUNG'))
 BEGIN SELECT RAISE(ABORT, 'dk_event_tep_status: phiếu không còn nhận tệp (chỉ khi đang điền hoặc cần bổ sung)'); END;
+
+-- Loại quan hệ «Người giới thiệu của» (ADR-0207 Đ2 mục 5, Đ5 câu 9; đợt 1 Task 8): chiều đọc như CONTACT_OF / DRIVES_FOR — from = người giới thiệu, to = hồ sơ được giới thiệu. Chỉ ghi nhận, không sinh tiền.
+INSERT INTO pty_relationship_type (code, name, sort_order) VALUES ('REFERRED_BY', 'Người giới thiệu của', 3);

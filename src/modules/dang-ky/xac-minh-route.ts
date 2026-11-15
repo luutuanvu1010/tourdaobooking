@@ -171,15 +171,29 @@ async function kiemHoSoDich(db: D1Database, partyId: string, vaiXin: string): Pr
   return null;
 }
 
+/** Hồ sơ người giới thiệu: có thật, đang dùng, chưa gộp (cá nhân hay tổ chức đều giới thiệu được); khác hồ sơ đích (bảng quan hệ cấm nối hồ sơ với chính nó). Dùng ở «đạt» và lúc duyệt. */
+export async function kiemNguoiGioiThieu(db: D1Database, partyId: string, hoSoDich: string | null): Promise<{ code: string; message: string } | null> {
+  const ho = await partySummary(db, partyId);
+  if (!ho) return { code: "referrer_not_found", message: "Không tìm thấy hồ sơ người giới thiệu." };
+  if (ho.mergedIntoId) return { code: "referrer_merged", message: "Hồ sơ người giới thiệu đã gộp vào hồ sơ khác — hãy chọn hồ sơ chính." };
+  if (!ho.active) return { code: "referrer_inactive", message: "Hồ sơ người giới thiệu đang ngưng hoạt động." };
+  if (hoSoDich !== null && hoSoDich === partyId) return { code: "referrer_is_target", message: "Người giới thiệu không thể là chính hồ sơ được duyệt." };
+  return null;
+}
+
 export async function xacMinhDat({ request, env, staff, params }: Ctx<"accounts">): Promise<Response> {
   const r = await phieuChoXacMinh(env, params);
   if (r instanceof Response) return r;
   const { p } = r;
   const k = kiemDat(await readJson(request));
   if (!k.ok) return error(400, "invalid_input", k.message);
-  // Người giới thiệu: bảng phiếu chưa có cột lưu mã hồ sơ người giới thiệu (cần migration ở đợt sau). Nhận mà không lưu là làm mất dữ liệu âm thầm ⇒ báo thẳng.
-  if (k.value.nguoiGioiThieuPartyId !== null) return error(409, "referrer_not_supported", "Bước này chưa lưu được người giới thiệu. Hãy bỏ lựa chọn này và xác minh tiếp.");
   if (k.value.phienBan !== p.current_version) return DOI_PHIEN_BAN();
+  // Người giới thiệu (ADR-0207 Đ2 mục 5): tuỳ chọn; lưu ở phiếu, lô duyệt ghi quan hệ «Người giới thiệu của». Lô duyệt kiểm lại lúc duyệt (hồ sơ có thể ngưng / gộp giữa chừng).
+  if (k.value.nguoiGioiThieuPartyId !== null) {
+    const dich = k.value.hoSo?.kieu === "CO_SAN" ? k.value.hoSo.partyId : k.value.hoSo === null ? p.match_party_id : null;
+    const loi = await kiemNguoiGioiThieu(env.DB, k.value.nguoiGioiThieuPartyId, dich);
+    if (loi) return error(409, loi.code, loi.message);
+  }
   const at = new Date().toISOString();
   const batBuoc = await mucPhaiDat(env.DB, at);
   const thieu = mucChuaDat(batBuoc, new Map([...(await moiNhat(env.DB, p))].map(([m, v]) => [m, v.ketQua])));
@@ -193,7 +207,7 @@ export async function xacMinhDat({ request, env, staff, params }: Ctx<"accounts"
   let kq: D1Result[];
   try {
     kq = await env.DB.batch([
-      datStatement(env.DB, { registrationId: p.id, by: staff.id, at, matchKind: hoSo ? (hoSo.kieu === "MOI" ? "NEW" : "EXISTING") : null, matchPartyId: hoSo?.kieu === "CO_SAN" ? hoSo.partyId : null, mucBatBuoc: batBuoc, phienBan: k.value.phienBan }),
+      datStatement(env.DB, { registrationId: p.id, by: staff.id, at, matchKind: hoSo ? (hoSo.kieu === "MOI" ? "NEW" : "EXISTING") : null, matchPartyId: hoSo?.kieu === "CO_SAN" ? hoSo.partyId : null, mucBatBuoc: batBuoc, phienBan: k.value.phienBan, referrerPartyId: k.value.nguoiGioiThieuPartyId }),
       suKienNhanVienStatement(env.DB, { registrationId: p.id, staffId: staff.id, command: "DAT", lyDo: null, at }),
       auditStatement(env.DB, { staffId: staff.id, action: "registration_verified", at, targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · xác minh đạt · ${hoSo ? (hoSo.kieu === "MOI" ? "hồ sơ mới" : "gắn hồ sơ có sẵn") : "theo kết luận đã ghi"}` }, "changes() > 0"),
     ]);
