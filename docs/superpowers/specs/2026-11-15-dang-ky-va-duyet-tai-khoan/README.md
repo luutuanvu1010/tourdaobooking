@@ -4,6 +4,8 @@ Hồ sơ có ngày; viết xong là đóng băng. Trang này trình **hướng �
 
 **Sửa lần 2, cùng ngày, theo lời bạn:** thêm cấp độ đại lý mặc định và dấu xác minh. Phần thêm này tôi đã tự đối chiếu với mã, nhưng chưa qua người đọc độc lập.
 
+**Chủ đã duyệt hướng ngày 15/11**, bằng nút trả lời «Duyệt theo khuyến nghị» cho câu «Bạn duyệt hướng đi sau khi sửa chứ?». Theo lời báo ngay trước nút đó, lời duyệt gồm: thêm đợt 5, và chưa bắt buộc bảo mật hai lớp cho tài khoản tự đăng ký. Từ đây hồ sơ này đóng băng; các quyết định của từng đợt nằm ở tệp riêng.
+
 ## Kết luận
 
 Đối tác sẽ tự đăng ký bằng một **phiếu đăng ký**: xác nhận email, điền thông tin, chụp gửi giấy tờ ngay trên điện thoại. Quản trị xác minh, Nhân sự duyệt; **chỉ khi duyệt, Nền tảng mới sinh hồ sơ và tài khoản**. Người được duyệt tự đặt PIN rồi đăng nhập, **nhận sẵn cấp độ đại lý mặc định** (ví dụ TA1) và mang dấu **«Đã xác minh»**. Thông tin đã xác minh nằm ở hồ sơ, Kế toán dùng cho hoá đơn.

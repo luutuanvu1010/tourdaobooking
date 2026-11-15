@@ -1,6 +1,6 @@
 # Đăng ký và duyệt tài khoản đối tác — bản thiết kế khung (15/11/2026)
 
-> **Hồ sơ có ngày; viết xong là đóng băng.** Trạng thái: **đề xuất, chờ chủ duyệt khung**. Chưa có ADR, chưa có kế hoạch thi công, chưa có mã. Đã qua một lượt đọc soát độc lập (chỉ đọc) ngày 15/11.
+> **Hồ sơ có ngày; đã đóng băng.** Trạng thái: **chủ đã duyệt hướng ngày 15/11/2026** (nút trả lời «Duyệt theo khuyến nghị»; lời duyệt gồm: thêm đợt 5, và chọn phương án (a) cho câu lớp hai ở mục 11). Lời duyệt này là duyệt **hướng đi**, chưa phải duyệt ADR nào: từng đợt vẫn trình ADR riêng. Chưa có kế hoạch thi công, chưa có mã. Bản đầu đã qua một lượt đọc soát độc lập (chỉ đọc) ngày 15/11.
 > Trang cho chủ đọc: `README.md` cùng thư mục. Phiên soạn giữ vai **lập kế hoạch** (P15): không thi công, không tự nghiệm thu.
 > Nguồn yêu cầu: chat của chủ 15/11/2026. Chủ chốt cùng ngày (nút trả lời, nguyên văn): «Ghi cho công ty» — công ty đăng ký thì đơn, hoa hồng, công nợ ghi cho công ty.
 > **Sửa lần 2, cùng ngày, theo lời chủ** (nguyên văn): «Cho phép tài khoản đăng ký mặc định được hưởng chính sách đại lý cụ thể (Ví dụ là TA1), tùy chỉnh trong bảng điều khiển của Quản lý bán hàng, Quản trị và Toàn quyền (Super Admin). Tất cả các tài khoản nào được xác minh sẽ có nút biểu tượng Đã xác minh, ngược lại là Chưa xác minh, cần xác minh lại.» Phần thêm nằm ở mục 5.6, 5.7 và các đợt; phần này **chưa** qua người đọc độc lập.
@@ -389,7 +389,7 @@ Các con số (số lần xin mã mỗi giờ, hạn ngày của từng trạng 
 15. Cấp độ đại lý mặc định: ghi thành cấp riêng lúc duyệt, đặt theo từng loại đối tác, chụp lúc duyệt; hồ sơ có sẵn đã có cấp riêng thì giữ nguyên; Kế toán không đặt mặc định nhưng vẫn đổi được cấp riêng (mục 5.6).
 16. Dấu xác minh chỉ để biết, không chặn việc gì; hiện ở trang Tôi, Quản lý tài khoản, Danh bạ; áp cho cả tài khoản nội bộ (mục 5.7).
 
-**Hai câu còn chờ chủ, hỏi cùng lúc duyệt khung.**
+**Hai câu hỏi cùng lúc duyệt khung — chủ đã trả lời ngày 15/11 («Duyệt theo khuyến nghị»): câu 1 thêm đợt 5; câu 2 chọn (a).**
 
 Câu 1: có **thêm đợt 5** không (người đã có tài khoản tự nộp giấy tờ để được dấu «Đã xác minh»)? Người soạn khuyến nghị thêm, đi sau đợt 1; không thêm thì dấu của các tài khoản do Nhân sự tạo đứng yên ở «Chưa xác minh».
 
