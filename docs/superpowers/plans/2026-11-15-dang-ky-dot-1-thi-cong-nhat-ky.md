@@ -104,3 +104,13 @@ Hồ sơ có ngày. Kế hoạch: `2026-11-15-dang-ky-dot-1-ke-hoach.md`. Mỗi 
 - Task 12: minor (deferred → owner report / đợt sau): m-1 referrer profile picker; m-2 badge click to pending item for party.verify; m-7 «Rút phiếu» two jobs (cho-chu); m-8 tier block reload, image order.
 - Task 12: minor (deferred): a future-dated dk_policy row would make policy writes 409 forever (only reachable by direct SQL).
 - Final: parked (minor) — return_clear referrer clause has no test; pre-batch target/referrer messages not pointing to «Trả về xác minh»; HANDOFF heading says «Mười việc» (11); SO-HANG-RAO lacks rows for QLBH pin, quyen-hoan deferral, maintenance edge; DK_THU comment points to wrong test file; resend allowed while notice still «chờ»; gui-lai-loi-moi no per-phiếu cap — Ruling: parked for a follow-up round, none blocks merge.
+
+## Chủ duyệt 16/11/2026
+
+Chủ trả lời «Duyệt theo khuyến nghị» cho năm câu cuối đợt, nên:
+1. Trần gói trang Đơn hàng nới 114.528 → 114.890 (+362); đã sửa `src/goi-trang-nhe.test.ts` kèm dòng ghi lời duyệt.
+2. Mười một chỗ nới hàng rào được duyệt (danh sách ở `docs/HANDOFF-N1.md`); dòng ở `docs/SO-HANG-RAO.md` đổi từ «chờ chủ duyệt» sang «chủ đã duyệt 16/11/2026».
+3. Ân hạn 30 ngày sau hạn đặt PIN giữ nguyên (`dk_policy.activation_grace_days`).
+4. Tài khoản quá ân hạn: tạm giữ như hiện nay, công cụ đóng + nhả số điện thoại ghi vào `docs/BACKLOG.md` mục BL-DK-SAU-DOT-1.
+5. Các lựa chọn thận trọng (khớp họ tên đúng từng chữ, hồ sơ tổ chức «Chưa xác minh», Nhân sự gán mọi vai bên ngoài, người xác minh lần đầu vẫn duyệt được sau «Trả về xác minh») giữ nguyên.
+Việc còn lại của chủ: thử iPhone thật; rồi chạy `day-len` và `trien-khai`.
