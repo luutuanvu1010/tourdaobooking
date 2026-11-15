@@ -167,6 +167,16 @@ test("đóng chặng chiều về SAU xác nhận ⇒ dòng phí vẫn trên tra
   assert.equal(sau.total, 2_100_000);
 });
 
+test("kiểm độc lập Đợt C, Nhỏ 2: dòng phí trên đơn KHÔNG kèm mã cấp đại lý (`tierCode`) — người có quyền xem tiền không đọc được cấp của đại lý; cột chụp vẫn giữ trong CSDL", async () => {
+  const w = await setup();
+  const o = await lapXacNhan(w, [OUT(KS_CR)]);
+  for (const as of [SALES, ADM, ACC]) {
+    const d = (await don(w, o.id, as)).phiDuaDon.dong[0];
+    assert.equal(Object.hasOwn(d, "tierCode"), false, `${as}: ${JSON.stringify(d)}`);
+  }
+  assert.equal(w.q("SELECT count(*) AS n FROM pragma_table_info('order_item') WHERE name = 'fee_tier_code'")[0].n, 1, "cột fee_tier_code vẫn còn");
+});
+
 test("SV-PD-23: thêm chiều về SAU xác nhận ⇒ không sinh dòng phí mới, tổng không đổi", async () => {
   const w = await setup();
   const o = await lapXacNhan(w, [OUT(KS_CR)], { pax: { adult: 2, child: 1 } });
@@ -261,7 +271,7 @@ const donHonTam = (phi: number, giam: number): OrderDetailDto => ({
   id: "o", orderCode: "TD-1", staffId: "s", staffName: "", bookerPartyId: null, bookerName: null, bookerLaDoiTac: false, manifestExempt: false, status: "confirmed",
   customerName: "Khách", customerPhone: "0900000000", customerEmail: null, customerNote: null, subtotal: 1_000_000 + phi, discount: giam, total: 1_000_000 + phi - giam, giamGiaHieuLuc: giam,
   paymentNote: null, createdAt: "", updatedAt: "", confirmedAt: "", deliveredAt: null, completedAt: null, declaredDeposit: 0, paymentTerm: "PREPAID", hanTra: null, hetAnHan: null,
-  phiDuaDon: { dong: [{ id: "f", legId: "l", serviceId: "ht", direction: "OUT", zoneCode: "CR", zoneName: "Bãi Dài", tierCode: null, kind: "PER_PAX", returnPax: null, quantity: 2, unitPrice: phi / 2, lineTotal: phi, description: "Phí đưa đón — chiều đi, Bãi Dài" }], thieu: [], duKien: false },
+  phiDuaDon: { dong: [{ id: "f", legId: "l", serviceId: "ht", direction: "OUT", zoneCode: "CR", zoneName: "Bãi Dài", kind: "PER_PAX", returnPax: null, quantity: 2, unitPrice: phi / 2, lineTotal: phi, description: "Phí đưa đón — chiều đi, Bãi Dài" }], thieu: [], duKien: false },
   services: [{ id: "ht", kind: "catalog", catalogCode: "HT_BUN", name: "Tắm bùn Hòn Tằm", unit: "perPax", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, items: [{ id: "i", catalogCode: "HT_BUN", paxCode: "adult", description: "Người lớn", detail: null, quantity: 2, unitPrice: 500_000, catalogPrice: 500_000, lineTotal: 1_000_000 }], catalogStatus: null, legs: [], departDate: "", departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null, pickupChoice: "DON" }],
 } as unknown as OrderDetailDto);
 const CT = "pty-ct";

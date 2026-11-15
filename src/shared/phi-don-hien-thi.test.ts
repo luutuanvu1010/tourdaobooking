@@ -143,7 +143,7 @@ import type { PhiDuaDonCuaDonDto, PhiDuaDonDto } from "./contracts.ts";
 const tien = (n: number): string => `${soTienChu(n)} ₫`;
 const soTienChu = (n: number): string => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 const dongPhi = (o: Partial<PhiDuaDonDto> = {}): PhiDuaDonDto => ({
-  id: "f1", legId: "l1", serviceId: "s1", direction: "OUT", zoneCode: "BD_CR", zoneName: "Bãi Dài – Cam Ranh", tierCode: null, kind: "PER_PAX", returnPax: null,
+  id: "f1", legId: "l1", serviceId: "s1", direction: "OUT", zoneCode: "BD_CR", zoneName: "Bãi Dài – Cam Ranh", kind: "PER_PAX", returnPax: null,
   quantity: 2, unitPrice: 70_000, lineTotal: 140_000, description: "Phí đưa đón — chiều đi, Bãi Dài – Cam Ranh", ...o,
 });
 

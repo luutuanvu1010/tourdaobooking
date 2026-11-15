@@ -28,8 +28,8 @@ const donBiMat = (): OrderDetailDto => ({
 });
 
 test("NT-B1 (luật): số lạ 480017 ở mọi ô KHÔNG được phép của đơn không lọt vào ReceiptDto; khoá đúng danh sách trắng", () => {
-  // Đợt C, Task 5: dòng phí 0 đồng mang số lạ ở mọi ô KHÔNG được phép (id, chặng, dịch vụ, vùng, cấp, số người chiều về) — chỉ mô tả / số lượng / đơn giá / thành tiền được chép.
-  const r = dungBienNhan({ ...donBiMat(), phiDuaDon: { dong: [{ id: `fee-${LA}`, legId: `leg-${LA}`, serviceId: `svc-${LA}`, direction: "OUT", zoneCode: `Z${LA}`, zoneName: `Vùng ${LA}`, tierCode: `C${LA}`, kind: "PER_PAX", returnPax: Number(LA), quantity: 2, unitPrice: 0, lineTotal: 0, description: "Phí đưa đón — chiều đi, Trung tâm" }], thieu: [], duKien: false } }, COMPANY, { daTra: 300_000, conLai: 700_000 }, null);
+  // Đợt C, Task 5: dòng phí 0 đồng mang số lạ ở mọi ô KHÔNG được phép (id, chặng, dịch vụ, vùng, số người chiều về — DTO dòng phí không còn mã cấp) — chỉ mô tả / số lượng / đơn giá / thành tiền được chép.
+  const r = dungBienNhan({ ...donBiMat(), phiDuaDon: { dong: [{ id: `fee-${LA}`, legId: `leg-${LA}`, serviceId: `svc-${LA}`, direction: "OUT", zoneCode: `Z${LA}`, zoneName: `Vùng ${LA}`, kind: "PER_PAX", returnPax: Number(LA), quantity: 2, unitPrice: 0, lineTotal: 0, description: "Phí đưa đón — chiều đi, Trung tâm" }], thieu: [], duKien: false } }, COMPANY, { daTra: 300_000, conLai: 700_000 }, null);
   assert.equal(coLo(JSON.stringify(r)), false, JSON.stringify(r));
   assert.deepEqual(Object.keys(r).sort(), [
     "company", "conLai", "createdAt", "customerEmail", "customerName", "customerNote", "customerPhone", "daTra", "discount", "huy", "mau", "orderCode", "phan", "phiDuKien", "phiDuaDon", "services", "status", "subtotal", "total",

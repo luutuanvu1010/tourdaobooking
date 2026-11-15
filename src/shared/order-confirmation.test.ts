@@ -546,7 +546,7 @@ test("HD-02-DT: nhiều người bán ⇒ giữ các dòng Phần … và câu v
 // ---- Đợt C, Task 6: khối «Phí đưa đón» trên biên nhận (chủ 15/11, câu 3) ----
 test("khối Phí đưa đón: «Miễn phí» chỉ cho dòng đơn giá 0 đồng; dòng số lượng 0 (đơn giá > 0) in 0 ₫; đơn nháp ghi «Phí đưa đón (dự kiến)»", () => {
   const dong = (o: Record<string, unknown>) => ({
-    id: "fee_INTERNAL", legId: "leg_INTERNAL", serviceId: "svc_INTERNAL_1", direction: "OUT" as const, zoneCode: "ZONE_INTERNAL", zoneName: "Bãi Dài", tierCode: null,
+    id: "fee_INTERNAL", legId: "leg_INTERNAL", serviceId: "svc_INTERNAL_1", direction: "OUT" as const, zoneCode: "ZONE_INTERNAL", zoneName: "Bãi Dài",
     kind: "PER_PAX" as const, returnPax: null, quantity: 2, unitPrice: 70000, lineTotal: 140000, description: "Phí đưa đón — chiều đi, Bãi Dài", ...o,
   });
   const phi = (duKien: boolean) => ({
