@@ -68,7 +68,7 @@ import {
 } from "./service";
 import { CAU_CHUA_GAN_HO_SO, CAU_KHONG_PHAI_DOI_TAC, CAU_VUOT_TONG, vuotTong } from "../../shared/dat-coc-truoc";
 import type { ChanKhaiLai } from "../../shared/dat-coc-kieu";
-import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRANSFER_DISABLED, TRAN_GIAM_GIA, catChoXetDuyet, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, nguoiLapLaNguoiBam, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
+import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRANSFER_DISABLED, TRAN_GIAM_GIA, catChoXetDuyet, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
 import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { congLuatBan } from "./cong-ban";
 import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu, dichLoiLoHuy, dichLoiTraSau, VE_CHUA_SOAN_DUOC, type HamNoTraSau, type HamTraSau, type NguoiGuiTraSau } from "./tra-sau-cong";
@@ -2072,28 +2072,32 @@ export const ordersModule: AppModule = {
         if (chanBanXn) return chanBanXn;
         if ((await tinhCanXacNhan(env.DB, order, moc, nowMs)).can) return CAN_YEU_CAU();
         // ADR-0185 Đ1: người bấm là người lập (nháp chỉ người lập ghi được); người lập giữ quyền Đối tác đã bị Đ13.5 chặn ở trên — cổng vai trò ở đây là lưới.
-        const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc, nguoiLapDoiTac: nguoiLapLaNguoiBam(staff), traSau: { kiemTraSau, cauGacPhienBanTraSau } });
+        // Đợt C, Task 4: thiếu phí đưa đón ⇒ 409 `transfer_fee_missing`, đơn ở lại nháp (trang ghép §3).
+        const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc, nguoiLapDoiTac: nguoiLapLaNguoiBam(staff), traSau: { kiemTraSau, cauGacPhienBanTraSau }, cheDoThieuPhi: "TU_CHOI" });
         if ("loi" in cong) return cong.loi;
-        // ADR-0159: đường thứ ba chỉ còn cho tài khoản đã thôi giữ quyền Đối tác khi đơn còn nháp — lời khai vẫn thành khoản thu của người lập.
-        const cocXn = await cocChoXacNhan(cauCocKhiXacNhan, { order, nguoiBamId: staff.id, chup: cong.chup, today: cong.today });
+        // ADR-0159: đường thứ ba chỉ còn cho tài khoản đã thôi giữ quyền Đối tác khi đơn còn nháp — lời khai vẫn thành khoản thu của người lập. Đợt C: so với tổng ĐÃ GỒM phí.
+        const cocXn = await cocChoXacNhan(cauCocKhiXacNhan, { order: { ...order, total: cong.phiDon.totalMoi }, nguoiBamId: staff.id, chup: cong.chup, today: cong.today });
         if ("loi" in cocXn) return cocXn.loi;
         const gio = await docKhungGio(banHang); // ADR-0142: khung giờ hành chính MỘT lần; thiếu ⇒ 503 trước khi ghi
         if ("loi" in gio) return gio.loi;
         // ADR-0193 câu (ii): lượt chưa giờ mà ngày đón đã vào hạn chốt ⇒ 409 TRƯỚC khi dựng lô (`kiemCongXacNhan` đã bảo đảm có mốc). Cửa này không đổi ngày / giờ: xét lượt đang lưu.
         const chuaGio = chanChuaGioSatNgay(changDangLuu(order.services), nowMs, moc!.phut);
         if (chuaGio) return chuaGio;
-        let thang: boolean;
+        let thang = false;
         try {
           // ADR-0049 D2 (I15, I25): điều kiện mốc nằm TRONG câu xác nhận — ngưỡng chuỗi giờ VN tính bằng `nguongMocVn` (MỘT luật với `kiemMocDat`).
           // ADR-0142: điểm ghi nhận «đơn không cần kiểm» — Bán hàng được mời mở lời mời, hoặc người lập tự mời mình thì thành Bán hàng phụ trách ngay; nối CUỐI lô, gác bằng id nhật ký `confirmed`.
-          const xn = soanXacNhan(env.DB, id, staff.id, cong.today, meta.updatedAt, nguongMocVn(nowMs, moc!.phut), cong.detail, kemChupXacNhan(env.DB, { orderId: id, staffId: staff.id, today: cong.today, chup: cong.chup }), cocXn.coc, cong.traSau);
+          const xn = soanXacNhan(env.DB, id, staff.id, cong.today, meta.updatedAt, nguongMocVn(nowMs, moc!.phut), cong.detail, kemChupXacNhan(env.DB, { orderId: id, staffId: staff.id, today: cong.today, chup: cong.chup }), cocXn.coc, cong.traSau, cong.phiDon.cauLenh);
           const gn = await soanGhiNhan({ db: env.DB, banHang, orderId: id, nguoiLap: { id: staff.id, partyId: staff.partyId }, at: xn.at, auditId: xn.auditId, canKiem: false, khung: gio.khung });
-          thang = daXacNhan(await env.DB.batch([...xn.cau, ...gn.cau]));
+          thang = daXacNhan(await env.DB.batch([...xn.cau, ...gn.cau]), xn.chiSoXacNhan);
         } catch (e) {
           if (laVaChamOBanHang(e)) return error(409, "stale", "Đơn vừa có người phụ trách, hãy tải lại.");
-          const res = dichLoiXacNhan(e);
-          if (res) return res;
-          throw e;
+          // Đợt C, Task 4: câu chốt phí ném khi câu xác nhận thua (cả lô lui) ⇒ coi như lô thua, đọc lại lý do như hôm nay.
+          if (!laThuaChotPhiDon(e)) {
+            const res = dichLoiXacNhan(e);
+            if (res) return res;
+            throw e;
+          }
         }
         if (!thang) return chanDoanXacNhan(env.DB, { id, today: cong.today, mocToiThieu: moc!, nowMs });
         await capVeSauXacNhan(id); // ADR-0153: lô cấp vé RIÊNG sau lô xác nhận; lỗi nuốt, xác nhận đã thắng

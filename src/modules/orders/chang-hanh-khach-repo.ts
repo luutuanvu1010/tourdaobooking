@@ -966,3 +966,11 @@ export interface FeeRow {
   fee_tier_code: string | null; fee_return_pax: number | null; description: string; quantity: number; unit_price: number; line_total: number;
 }
 export const feeRowsStatement = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(FEE_ROWS_BY_ORDER).bind(orderId);
+
+/**
+ * CÂU CHỐT của lô xác nhận có câu phí (Đợt C, Task 4; migration 0169 mục 5): chèn vào bảng đổ `ord_xac_nhan_phi_gac` — đơn đã 'confirmed' ⇒ trigger bỏ qua (không lưu dòng);
+ * chưa ⇒ trigger ném `transfer_fee_confirm_lost` ⇒ CẢ lô lui, kể cả câu xoá / chèn dòng phí và câu tiền đứng TRƯỚC câu xác nhận. Phải đứng SAU chuỗi `changes() > 0` của
+ * nhật ký `confirmed` và bản chụp (câu bị bỏ qua để lại `changes() = 0`) — `soanXacNhan` đặt nó CUỐI phần soạn.
+ */
+const ORDER_FEE_CONFIRM_LOCK = defineSql("orders", "order_fee_confirm_lock", `INSERT INTO ord_xac_nhan_phi_gac (order_id) VALUES (?1)`);
+export const chotLoPhiDon = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(ORDER_FEE_CONFIRM_LOCK).bind(orderId);

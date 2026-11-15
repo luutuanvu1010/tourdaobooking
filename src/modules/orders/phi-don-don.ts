@@ -1,7 +1,7 @@
 // Phí đưa đón trên đơn (Đợt C, Task 3; ADR-0147 Đ1–Đ3, ADR-0203; thiết kế 2026-11-14 §5, §7): phía `orders` chỉ LÀM PHẲNG chặng thành đầu vào của `pricing`
 // (`tinhPhiDonChoDon` — một hàm tính duy nhất, cùng hàm với «Thử tra») và đổi dòng phí `pricing` trả về thành dòng `order_item`. Không có luật chọn mức ở đây.
 // Tệp chỉ nhập KIỂU từ `../pricing` (bài thuần chạy thẳng bằng node — index của pricing không nạp được ngoài Worker); lời gọi `tinhPhiDonChoDon` nằm ở `service.ts`.
-import type { ChangDauVao, DongPhiDon, KetQuaPhiDonDon } from "../pricing";
+import type { ChangDauVao, DongPhiDon, KetQuaPhiDonDon, LyDoThieuPhiDon } from "../pricing";
 import type { PaxCounts } from "../../shared/order-lines.ts";
 import { payingGuests } from "../../shared/order-lines.ts";
 import type { PhiDuaDonCuaDonDto, PhiDuaDonDto } from "../../shared/contracts";
@@ -85,6 +85,16 @@ export function dauVaoLamPhang(dv: readonly DichVuChoPhi[], vung: ReadonlyMap<st
 }
 export const diaDiemKhachSan = (dv: readonly DichVuChoPhi[]): string[] =>
   dv.flatMap((s) => s.legs.flatMap((l) => { const id = l.direction === "OUT" ? l.pickupLocationId : l.dropoffLocationId; return id === null ? [] : [id]; }));
+
+/**
+ * Câu báo 409 `transfer_fee_missing` của cửa xác nhận (Đợt C, Task 4 — chữ của kế hoạch): `tenVung` = tên khu vực của chặng thiếu; `tenDoiTac` = tên bên đặt (chỉ dùng cho
+ * `DAI_LY_HAI_CAP` — hồ sơ hai cấp luôn là một bên đặt có hồ sơ, nên tên không trống; trống thì nói «bên đặt»).
+ */
+export function cauThieuPhiDon(t: { lyDo: LyDoThieuPhiDon; tenVung: string }, tenDoiTac: string | null): string {
+  if (t.lyDo === "XUNG_DOT") return `Phí đưa đón khu vực ${t.tenVung} có hai mức trùng nhau; Quản trị cần kết thúc một mức trước khi xác nhận.`;
+  if (t.lyDo === "DAI_LY_HAI_CAP") return `Cần gán cấp riêng cho đối tác ${tenDoiTac ?? "bên đặt"} trước khi xác nhận.`;
+  return `Quản trị cần đặt phí đưa đón cho khu vực ${t.tenVung} trước khi xác nhận.`;
+}
 
 /** Dòng phí đã lưu (kết quả `feeRowsStatement`) → DTO (THUẦN). */
 export function phiDongDto(rows: readonly FeeRow[]): PhiDuaDonDto[] {

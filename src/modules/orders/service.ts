@@ -11,7 +11,7 @@ import { auditStatement } from "../audit";
 import { datGapTheoVai } from "./dat-gap";
 import { getEffectiveServices, maDatKhongDon, tenNhomHienHanh } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
-import { laNguoiHuong, tinhPhiDonChoDon } from "../pricing";
+import { laNguoiHuong, tinhPhiDonChoDon, type KetQuaPhiDonDon, type LyDoThieuPhiDon } from "../pricing";
 import {
   LY_DO_DONG_CHANG, MAX_CHANG_MOI_DICH_VU, chiDoiOPhu, chieuDiDau, docSoNguoiVe, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
 } from "../../shared/chang-dua-don";
@@ -20,7 +20,7 @@ import { laLyDoThayChang, type LyDoThayChang } from "../../shared/thay-chang";
 import {
   activeLocations, dichVuTatDuaDon, legById, passengerRowsByOrders, servicePaxByIds, servicePaxByOrder, type LegFields, type OPhuGhi, type PassengerRow,
 } from "./chang-hanh-khach-repo";
-import { applyAdjustmentToOrder } from "./money-adjustment";
+import { applyAdjustmentToOrder, effectiveMoney } from "./money-adjustment";
 import {
   KHONG_PHI, NGOAI_VUNG, dauVaoLamPhang, diaDiemKhachSan, dongPhiThanhItem, ghepPhiNhap, phiDuaDonDto, type DichVuChoPhi, type PhiNhap,
 } from "./phi-don-don";
@@ -29,7 +29,7 @@ import {
   feeItemInsert, feeItemInsertTruoc, feeItemsDeleteTruoc, tenKhuVuc, type DongPhiGhi, type GacTruoc,
 } from "./chang-hanh-khach-repo";
 import {
-  effectivePax, findOrder, getLatestAdjustment, getMeta, getStoredServices, type BookerWrite, type LegOp, type StoredLeg, type StoredServiceRow,
+  cauTienXacNhanPhi, effectivePax, findOrder, getLatestAdjustment, getMeta, getStoredServices, type BookerWrite, type KemPhiDon, type LegOp, type StoredLeg, type StoredServiceRow,
 } from "./repository";
 import { cauNhomTatDuaDon, dichVuCanHoiDuaDon, type CuaDuaDon, type ValidOrder } from "./rules";
 import { catalogStatusOf, type ServiceContext, type ValidTrip } from "./service-rules";
@@ -625,5 +625,47 @@ export function cauPhiNhap(db: D1Database, orderId: string, phi: PhiNhap, g: Gac
   return {
     truoc: [feeItemsDeleteTruoc(db, g), ...dong.filter((d) => !d.moi).map((d) => feeItemInsertTruoc(db, d, g))],
     sau: dong.filter((d) => d.moi).map((d) => feeItemInsert(db, d, d.legId)),
+  };
+}
+
+// ---- Phí đưa đón LÚC XÁC NHẬN (Đợt C, Task 4; ADR-0147 Đ3, ADR-0203; trang ghép 2026-10-28 §3) -------------------------------------------------------------
+
+/** Kết quả chuẩn bị phí của bước xác nhận. `cauLenh(mốc)` = câu đứng TRƯỚC câu đổi trạng thái trong lô (rỗng ⇔ đơn phí chưa áp và không còn dòng phí cũ). */
+export interface PhiDonXacNhan {
+  ketQua: KetQuaPhiDonDon;
+  /** Chặng chưa tính được phí (tên khu vực đã tra) — khác rỗng thì cửa xác nhận từ chối (hoặc Gửi đơn đi nhánh A). */
+  thieu: { legKey: string; tenVung: string; lyDo: LyDoThieuPhiDon }[];
+  /** Σ dòng dịch vụ + Σ dòng phí tìm được (chặng thiếu chưa có tiền). */
+  subtotalMoi: number;
+  /** Tổng phải thu theo `subtotalMoi` (giảm giá chỉ so với dòng dịch vụ — đã chặn lúc lưu nháp; `effectiveMoney` kẹp ≥ 0). Cổng Trả sau và lời khai đặt cọc đọc số này. */
+  totalMoi: number;
+  cauLenh: KemPhiDon;
+}
+
+/**
+ * CHỈ ĐỌC: tính lại phí đưa đón của đơn NHÁP `don` theo bảng ngày xác nhận `ngay` (giờ Việt Nam, `cong.today`) — KHÔNG tin dòng phí «dự kiến» đã lưu (mức có thể đổi, phí có
+ * thể vừa bật / tắt, bên đặt có thể đổi cấp sau lần lưu cuối). Cùng một hàm tính với lưu nháp (`tinhPhiNhap` → `tinhPhiDonChoDon` của pricing).
+ * Câu (khi có): xoá mọi dòng phí cũ → chèn dòng phí mới → tạm tính / tổng mới (`cauTienXacNhanPhi`), đều gác bằng «đơn còn nháp ĐÚNG mốc `prevUpdatedAt`» (cùng điều kiện khoá của
+ * câu xác nhận) và không đổi `updated_at`. Có câu khi phí đang áp HOẶC nháp còn dòng phí cũ (phí vừa tắt ⇒ phải bỏ dòng cũ và trả tạm tính về tổng dịch vụ).
+ * Đặt ở service.ts (không ở phi-don-don.ts như brief): hàm gọi `vungCuaDiaDiem` (locations) và `tinhPhiDonChoDon` (pricing) lúc chạy — phi-don-don.ts phải nạp được bằng node trần.
+ * `remaining_amount` không tính ở đây: cột cọc cũ không được đọc ngoài câu SQL (NT-R9) — `COC_CU_THEO_TONG` trong câu tiền tự đặt theo `totalMoi`.
+ * Không ném lỗi tràn: số khách mỗi dịch vụ ≤ MAX_GUESTS_PER_SERVICE (50), một mức ≤ 5.000.000 đ ⇒ mỗi dòng ≤ 2,5e8 (như `tinhPhiNhap`).
+ */
+export async function chuanBiPhiDonXacNhan(db: D1Database, don: NonNullable<Awaited<ReturnType<typeof findOrder>>>, ngay: string): Promise<PhiDonXacNhan> {
+  const dv: DichVuChoPhi[] = don.services.map((s) => ({ ref: s.id, catalogCode: s.catalogCode, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) }));
+  const phi = await tinhPhiNhap(db, don.bookerPartyId, dv, ngay);
+  const coDongCu = (don.phiDuaDon?.dong.length ?? 0) > 0;
+  if (!phi.ketQua.apDung && !coDongCu) return { ketQua: phi.ketQua, thieu: [], subtotalMoi: don.subtotal, totalMoi: don.total, cauLenh: () => [] };
+  const tongDichVu = don.services.reduce((t, s) => t + s.items.reduce((u, i) => u + i.lineTotal, 0), 0);
+  const subtotalMoi = tongDichVu + phi.tong;
+  const totalMoi = effectiveMoney(subtotalMoi, don.discount).total;
+  const thieu = phi.ketQua.apDung ? phi.ketQua.thieu.map((t) => ({ legKey: t.legKey, tenVung: phi.ten.get(t.zoneCode) ?? t.zoneCode, lyDo: t.lyDo })) : [];
+  const soDongDichVu = don.services.reduce((t, s) => t + s.items.length, 0);
+  return {
+    ketQua: phi.ketQua, thieu, subtotalMoi, totalMoi,
+    cauLenh: (moc) => [
+      ...cauPhiNhap(db, don.id, phi, { orderId: don.id, mocDon: moc, legId: null, mocChang: null }, new Set(), soDongDichVu).truoc,
+      cauTienXacNhanPhi(db, don.id, moc, { subtotal: subtotalMoi, total: totalMoi }),
+    ],
   };
 }

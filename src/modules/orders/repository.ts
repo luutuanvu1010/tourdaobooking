@@ -9,7 +9,7 @@ import { dbNgoaiVe } from "../../shared/lan-gui-boc";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
   legCloseChecked, legCloseGuarded, legCloseReplaceChecked, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legPaxOverrideChecked, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
-  openLegsStatement, orderConfirm, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded,
+  openLegsStatement, chotLoPhiDon, orderConfirm, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded,
   serviceMirrorUpdateGuarded, type DauChepNhap, type DauDatGapMoi, type DauGhi, type LegFields, type LegRow, type LegWrite, type OPhuGhi, type PassengerWrite, type ServicePaxRow,
   feeItemInsert, feeRowsStatement, type DongPhiGhi, type FeeRow,
 } from "./chang-hanh-khach-repo";
@@ -1102,6 +1102,20 @@ export function cauTienNhapSauPhi(db: D1Database, orderId: string, auditId: stri
     .bind(tien.subtotal, t, t, t, t, t, t, orderId, ...guard.binds);
 }
 
+/**
+ * Tạm tính / tổng của ĐƠN NHÁP theo phí tính lại LÚC XÁC NHẬN (Đợt C, Task 4): đứng TRONG lô xác nhận, TRƯỚC câu đổi trạng thái (trigger 0081 khoá cột tiền khi đơn hết nháp).
+ * Gác = đúng điều kiện khoá của câu xác nhận (`status = 'draft' AND updated_at = ?` — cùng mốc `prevUpdatedAt`); KHÔNG đổi `updated_at` (câu xác nhận gác bằng chính mốc đó).
+ * Câu xác nhận thua ⇒ câu chốt cuối lô làm cả lô lui, nên câu này không bao giờ để lại tiền nửa vời. Ba cột cọc cũ theo tổng mới qua `COC_CU_THEO_TONG` (NT-R9).
+ */
+export function cauTienXacNhanPhi(db: D1Database, orderId: string, prevUpdatedAt: string, tien: { subtotal: number; total: number }): D1PreparedStatement {
+  const t = tien.total;
+  return db
+    .prepare(`UPDATE orders SET subtotal = ?, total = ?,
+           ${COC_CU_THEO_TONG}
+         WHERE id = ? AND status = 'draft' AND updated_at = ?`)
+    .bind(tien.subtotal, t, t, t, t, t, t, orderId, prevUpdatedAt);
+}
+
 export async function updateDraftOrder(
   db: D1Database,
   id: string,
@@ -1178,30 +1192,46 @@ const moTaLoiKhai = (n: number | null): string | null => (n !== null && n > 0 ? 
  */
 export async function confirmOrder(
   db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail: string | undefined,
-  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, traSau: KemTraSau,
+  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, traSau: KemTraSau, phiDon: KemPhiDon,
 ): Promise<boolean> {
-  return daXacNhan(await db.batch(soanXacNhan(db, id, staffId, today, prevUpdatedAt, nguongMoc, detail, alsoConfirm, coc, traSau).cau));
+  const xn = soanXacNhan(db, id, staffId, today, prevUpdatedAt, nguongMoc, detail, alsoConfirm, coc, traSau, phiDon);
+  return daXacNhan(await db.batch(xn.cau), xn.chiSoXacNhan);
 }
 
 /**
+ * Đợt C, Task 4: câu phí đưa đón của lô xác nhận, dựng theo mốc `prevUpdatedAt` mà câu xác nhận gác (xoá dòng phí cũ → chèn dòng phí tính lại → tạm tính / tổng mới). Nơi gọi
+ * lấy từ `kiemCongXacNhan` (`cong.phiDon.cauLenh`, dựng ở `chuanBiPhiDonXacNhan` — service.ts). Đơn phí chưa áp và không dòng phí cũ ⇒ trả mảng rỗng (lô y như trước Đợt C).
+ */
+export type KemPhiDon = (prevUpdatedAt: string) => D1PreparedStatement[];
+
+/**
  * SOẠN (chưa chạy) lô xác nhận của `confirmOrder` — Task 3.2b: MỘT nguồn cho ba nơi gọi (`POST /status`, `quyet-dinh` Còn vé, `gui-don` nhánh B).
- * `cau` = [điền ngày đón] → [đổi trạng thái, KHOÁ `updated_at = prevUpdatedAt`] → [nhật ký `confirmed` `changes() > 0`] → [câu kèm `alsoConfirm(at)` = bản chụp mức
- * hoa hồng của đơn, dùng đúng mốc `at` của lô] → [câu khoản thu đặt cọc `coc` — ADR-0159: BẮT BUỘC theo kiểu, gác bằng id nhật ký `confirmed` của CHÍNH lô]. Nơi gọi muốn nối thêm câu (ví dụ khép yêu cầu xác nhận) nối SAU mảng này để chỉ số câu đổi trạng thái (1) không đổi;
- * chạy MỘT `db.batch` rồi hỏi `daXacNhan(kq)`. Bản chụp mức đi trong `alsoConfirm` — bỏ sót thì hoa hồng của đơn không được chụp (lỗi tiền âm thầm).
+ * `cau` = [câu phí đưa đón `phiDon(prevUpdatedAt)` — Đợt C, có thể rỗng] → [điền ngày đón] → [đổi trạng thái, KHOÁ `updated_at = prevUpdatedAt`] → [nhật ký `confirmed`
+ * `changes() > 0`] → [câu kèm `alsoConfirm(at)` = bản chụp mức hoa hồng của đơn, dùng đúng mốc `at` của lô] → [câu khoản thu đặt cọc `coc` — ADR-0159: BẮT BUỘC theo kiểu, gác
+ * bằng id nhật ký `confirmed` của CHÍNH lô] → [câu gác Trả sau] → [câu CHỐT phí, chỉ khi có câu phí]. Câu phí PHẢI đứng trước câu đổi trạng thái (trigger 0081 cấm chèn dòng
+ * tiền khi đơn hết nháp), nên chỉ số câu đổi trạng thái KHÔNG cố định: đọc `chiSoXacNhan` (`daXacNhan(kq, chiSoXacNhan)`; nơi gọi nối thêm câu ở ĐẦU lô thì cộng độ dài phần đó).
+ * Câu chốt đứng CUỐI (không ngay sau câu đổi trạng thái) vì câu chèn bị trigger bỏ qua để lại `changes() = 0` — chen giữa sẽ làm mất nhật ký `confirmed` và bản chụp; ở bất kỳ
+ * vị trí nào sau câu đổi trạng thái nó đều làm cả lô lui khi câu đó thua. Nơi gọi muốn nối thêm câu (ví dụ khép yêu cầu xác nhận) nối SAU mảng này; câu nối thêm không được
+ * dựa vào `changes()` của câu đứng trước nó trong mảng này.
+ * Chạy MỘT `db.batch` rồi hỏi `daXacNhan(kq, chiSoXacNhan)`. Lô có câu chốt mà câu xác nhận thua ⇒ `db.batch` NÉM `transfer_fee_confirm_lost` (`laThuaChotPhiDon` ở
+ * xac-nhan-chung.ts) — nơi gọi coi như lô thua. Bản chụp mức đi trong `alsoConfirm` — bỏ sót thì hoa hồng của đơn không được chụp (lỗi tiền âm thầm).
  */
 export function soanXacNhan(
   db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail: string | undefined,
-  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, traSau: KemTraSau, opts?: { auditId?: string; yeuCauId?: string },
-): { at: string; cau: D1PreparedStatement[]; auditId: string } {
+  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, traSau: KemTraSau, phiDon: KemPhiDon, opts?: { auditId?: string; yeuCauId?: string },
+): { at: string; cau: D1PreparedStatement[]; auditId: string; chiSoXacNhan: number } {
   const at = nextStamp(prevUpdatedAt);
   const { from, to } = confirmWindow(today);
   // ADR-0049 D2 (I15): câu xác nhận ở tệp nửa nghiêm (`order_confirm`), thêm vế mốc tối thiểu lúc đặt — ngưỡng chuỗi do route tính bằng `nguongMocVn`.
   // `opts.auditId`: id dòng nhật ký `confirmed` do nơi gọi chọn trước, để câu khép yêu cầu (`_guarded`) hỏi «dòng này đã ghi» (Task 3.3 — khuôn `wonGuard`).
   const auditId = opts?.auditId ?? crypto.randomUUID();
+  const cauPhi = phiDon(prevUpdatedAt);
   return {
     at,
     auditId,
+    chiSoXacNhan: cauPhi.length + 1,
     cau: [
+      ...cauPhi,
       legFillDateOnConfirm(db, id, at),
       orderConfirm(db, id, at, from, to, nguongMoc, prevUpdatedAt, opts?.yeuCauId ?? null),
       auditStatement(db, { id: auditId, orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
@@ -1211,11 +1241,13 @@ export function soanXacNhan(
       ...coc({ at, auditId }),
       // ADR-0168 Đ2 mục 3, 4, 7: đơn Trả sau — câu gác phiên bản của bên đặt (sai phiên bản ⇒ trigger huỷ CẢ lô) và ghi hạn trả; đơn Trả trước: không câu nào. Cũng đứng cuối để chỉ số câu đổi trạng thái không đổi.
       ...traSau({ at, auditId }),
+      // Đợt C, Task 4: câu CHỐT — chỉ khi lô có câu phí (đơn phí chưa áp chạy y như trước). Đứng CUỐI: xem chú thích hàm.
+      ...(cauPhi.length > 0 ? [chotLoPhiDon(db, id)] : []),
     ],
   };
 }
-/** Lô xác nhận (do `soanXacNhan` soạn) đã thắng ⇔ câu đổi trạng thái (thứ 2, chỉ số 1) đổi một dòng. */
-export const daXacNhan = (kq: readonly D1Result[]): boolean => (kq[1]?.meta.changes ?? 0) > 0;
+/** Lô xác nhận (do `soanXacNhan` soạn) đã thắng ⇔ câu đổi trạng thái (chỉ số `chiSoXacNhan` của `soanXacNhan`, cộng phần nơi gọi nối ở đầu lô) đổi một dòng. */
+export const daXacNhan = (kq: readonly D1Result[], chiSoXacNhan: number): boolean => (kq[chiSoXacNhan]?.meta.changes ?? 0) > 0;
 
 /**
  * SOẠN (chưa chạy) lô huỷ đơn — cho điểm gọi nối máy đồng bộ chuyến (ADR-0104 Đ2, điểm gọi 1 và 2): `auditId` = id dòng nhật ký của câu cổng

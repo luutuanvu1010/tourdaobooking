@@ -356,6 +356,7 @@
  "src/modules/orders/luu-nhap-chang.test.ts": 7.1,
  "src/modules/orders/phi-don-don-route.test.ts": 5,
  "src/modules/orders/phi-don-don.test.ts": 0.4,
+ "src/modules/orders/phi-don-xac-nhan.test.ts": 1,
  "src/modules/orders/migration.test.ts": 0.1,
  "src/modules/orders/money-adjustment.test.ts": 0.2,
  "src/modules/orders/money-edit-plan.test.ts": 0.2,
