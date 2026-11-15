@@ -685,6 +685,19 @@ export const CHECKS = [
     level: "warn",
   },
   {
+    // Phí đưa đón trên đơn (Đợt C, ADR-0147 / ADR-0203; migration 0169): mỗi dòng phí (`line_kind = 'TRANSFER_FEE'`) trỏ chặng CÙNG ĐƠN, mã mức còn tồn tại (cột `fee_rule_id` không có khoá ngoại — xem 0169), thành tiền = số lượng × đơn giá, và mức phí
+    // «theo chuyến» luôn có số lượng 1. Lưới thứ hai của trigger 0007 (thành tiền) và 0169 (cột phí); chặng cùng đơn là luật chỉ máy chủ giữ nên kiểm ở đây. Chỉ đọc; R-ORD-15 giữ nguyên.
+    code: "R-ORD-PD-1",
+    what: "dòng phí đưa đón trỏ chặng của đơn khác (hoặc chặng không còn), trỏ mức phí không còn, thành tiền khác số lượng × đơn giá, hoặc mức theo chuyến có số lượng khác 1",
+    sql: `SELECT count(*) FROM order_item i
+       WHERE i.line_kind = 'TRANSFER_FEE'
+         AND (NOT EXISTS (SELECT 1 FROM ord_transfer_leg l WHERE l.id = i.transfer_leg_id AND l.order_id = i.order_id)
+           OR NOT EXISTS (SELECT 1 FROM prc_transfer_fee_rule r WHERE r.id = i.fee_rule_id)
+           OR i.line_total <> i.quantity * i.unit_price
+           OR (i.fee_kind = 'PER_TRIP' AND i.quantity <> 1))`,
+    level: "fail",
+  },
+  {
     // ADR-0092 Đ1, đ8 (TNV-G4, KT06): đã thu RÒNG của mỗi đơn ≥ 0 (lần thu còn hiệu lực: thu cộng, trả lại khách trừ — cùng công thức trigger 0045 / 0082).
     // Mốc (bil_audit_cutoff 'R-BIL-8', 0082): đơn có lần thu ghi TỪ mốc mà âm = LỖI; chỉ có lần thu cũ hơn mốc = cảnh báo (R-BIL-8w, kèm danh sách).
     code: "R-BIL-8",

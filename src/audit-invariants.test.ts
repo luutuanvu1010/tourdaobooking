@@ -3982,6 +3982,49 @@ test("R-ORD-T1 + R-ORD-T1w: đơn trước mốc / trong ân hạn thiếu chụ
   assert.deepEqual(hang.map((r) => Object.values(r)), [["TD-o-sat"]], "T1w liệt kê MÃ ĐƠN (order_code), mỗi đơn một dòng");
 });
 
+test("R-ORD-PD-1: dòng phí đưa đón đúng (chặng cùng đơn, thành tiền = số lượng × đơn giá, theo chuyến thì số lượng 1) → 0; mỗi vế lệch → 1; dòng dịch vụ không xét", () => {
+  const c = one("R-ORD-PD-1");
+  assert.equal(c.level, "fail");
+  const db = build();
+  for (const o of ["o-pd", "o-khac"]) addOrder(db, o);
+  db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult) VALUES ('sv-pd', 'o-pd', 0, 'S1', 'Tour', 'perPax', 2)").run();
+  db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult) VALUES ('sv-khac', 'o-khac', 0, 'S1', 'Tour', 'perPax', 2)").run();
+  const chang = (id: string, order: string, svc: string) =>
+    db.prepare(`INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_place, created_at, updated_at) VALUES (?, ?, ?, 'OUT', '2026-12-10', 'KS A', ?, ?)`).run(id, order, svc, T1, T1);
+  chang("l-pd", "o-pd", "sv-pd");
+  chang("l-khac", "o-khac", "sv-khac");
+  db.prepare(`INSERT INTO prc_transfer_fee_rule (id, kind, amount, valid_from_date, valid_to_date, condition_sig, note, created_at, created_by, updated_at, updated_by)
+    VALUES ('r1', 'PER_PAX', 70000, '2026-12-01', NULL, 'ZONE=CR', NULL, ?, NULL, ?, NULL)`).run(T1, T1);
+  // Dòng dịch vụ thường (không xét): quantity × unit_price khớp, không cột phí.
+  db.prepare("INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES ('i-dv', 'o-pd', 'sv-pd', 'Người lớn', 2, 300000, 600000)").run();
+  const phi = (id: string, leg: string, kind: string, qty: number, price: number) =>
+    db.prepare(`INSERT INTO order_item (id, order_id, description, quantity, unit_price, line_total, line_kind, transfer_leg_id, fee_rule_id, fee_kind, fee_zone_code)
+      VALUES (?, 'o-pd', 'Phí đưa đón', ?, ?, ?, 'TRANSFER_FEE', ?, 'r1', ?, 'CR')`).run(id, qty, price, qty * price, leg, kind);
+  phi("f-ok-pax", "l-pd", "PER_PAX", 2, 70000);
+  assert.equal(violations(db, c), 0, "dòng phí đúng ⇒ 0");
+  // Chặng của đơn khác: trigger không chặn (luật do máy chủ giữ) ⇒ kiểm định kỳ bắt.
+  phi("f-sai-don", "l-khac", "PER_PAX", 2, 70000);
+  assert.equal(violations(db, c), 1, "dòng phí trỏ chặng của đơn khác ⇒ 1");
+  db.prepare("DELETE FROM order_item WHERE id = 'f-sai-don'").run();
+  // Mức phí không có thật (cột không có khoá ngoại): lỗi.
+  db.prepare("DELETE FROM order_item WHERE id = 'f-ok-pax'").run(); // mỗi chặng một dòng phí (chỉ mục duy nhất)
+  phi("f-mat-muc", "l-pd", "PER_PAX", 2, 70000);
+  db.prepare("UPDATE order_item SET fee_rule_id = 'khong-co' WHERE id = 'f-mat-muc'").run();
+  assert.equal(violations(db, c), 1, "trỏ mức phí không còn ⇒ 1");
+  db.prepare("DELETE FROM order_item WHERE id = 'f-mat-muc'").run();
+  // Theo chuyến mà số lượng 2: lỗi.
+  db.prepare("DELETE FROM order_item WHERE id = 'f-ok-pax'").run();
+  phi("f-chuyen-2", "l-pd", "PER_TRIP", 2, 100000);
+  assert.equal(violations(db, c), 1, "theo chuyến, số lượng 2 ⇒ 1");
+  db.prepare("DELETE FROM order_item WHERE id = 'f-chuyen-2'").run();
+  phi("f-chuyen-1", "l-pd", "PER_TRIP", 1, 100000);
+  assert.equal(violations(db, c), 0, "theo chuyến, số lượng 1 ⇒ 0");
+  // Thành tiền lệch (gỡ trigger 0007 để dựng ca, như các bài khác): lỗi.
+  db.exec("DROP TRIGGER order_item_money_update");
+  db.prepare("UPDATE order_item SET line_total = 1 WHERE id = 'f-chuyen-1'").run();
+  assert.equal(violations(db, c), 1, "thành tiền khác số lượng × đơn giá ⇒ 1");
+});
+
 test("R-ORD-T1 + R-ORD-T1w: chỉ đơn ĐÃ XÁC NHẬN; T1w bỏ đơn đã Đã giao; mốc xác nhận thiếu lấy ngày tạo (như R-ORD-15); hai bản hiện hành hoặc thiếu hẳn đều là lỗi, bản MANUAL thay AUTO vẫn đúng một", () => {
   const t1 = one("R-ORD-T1");
   const w = one("R-ORD-T1w");
