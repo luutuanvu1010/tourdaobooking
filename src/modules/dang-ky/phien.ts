@@ -17,7 +17,7 @@ const dkKey = (secret: string): Promise<Uint8Array> => hmacBytes(enc.encode(secr
 /** Cấp token. `startMs` bỏ trống = phiên mới (bắt đầu = bây giờ); cấp lại sau một thao tác thì truyền mốc bắt đầu cũ. */
 export async function taoPhienDangKy(secret: string, registrationId: string, identityId: string, nowMs: number, startMs: number = nowMs): Promise<string> {
   if (registrationId.includes(".") || identityId.includes(".")) throw new Error("Mã phiếu / danh tính không được chứa dấu chấm.");
-  if (!Number.isFinite(startMs) || !Number.isFinite(nowMs) || startMs > nowMs) throw new Error("Mốc bắt đầu phiên không được sau mốc hiện tại.");
+  if (!Number.isFinite(startMs) || !Number.isFinite(nowMs) || startMs > nowMs) throw new Error("Mốc bắt đầu không được sau mốc hiện tại.");
   const payload = `dk1.${registrationId}.${identityId}.${startMs}.${nowMs}`;
   return `${payload}.${toBase64Url(await hmacBytes(await dkKey(secret), payload))}`;
 }

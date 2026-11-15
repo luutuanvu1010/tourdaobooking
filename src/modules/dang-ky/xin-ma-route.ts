@@ -61,8 +61,8 @@ export async function xinMa({ request, env, exec }: Ctx<"public">): Promise<Resp
   if (!email) return error(400, "invalid_input", "Email chưa đúng dạng. Hãy kiểm tra lại.");
 
   const [emailKey, ipKey] = await Promise.all([khoaBam(env.SESSION_SECRET, "email", email), khoaBam(env.SESSION_SECRET, "ip", ip)]);
-  // Bộ đếm của đăng nhập dùng lại với khoá riêng `dk:` (không chung `ip:`/`phone:`/`mfa:`); cửa sổ cố định 15 phút của bộ đếm đó.
-  const dat = await reserveAttempts(env.DB, [{ key: dkEmailKey(emailKey), max: chinhSach.ask_per_mailbox }, { key: dkIpKey(ipKey), max: chinhSach.ask_per_network }]);
+  // Bộ đếm của đăng nhập dùng lại với khoá riêng `dk:` (không chung `ip:`/`phone:`/`mfa:`); cửa sổ theo dòng chính sách `ask_window_minutes`.
+  const dat = await reserveAttempts(env.DB, [{ key: dkEmailKey(emailKey), max: chinhSach.ask_per_mailbox }, { key: dkIpKey(ipKey), max: chinhSach.ask_per_network }], nowMs, chinhSach.ask_window_minutes * 60_000);
   if (!dat.allowed) return OK();
   // Công tắc đóng chỉ ngăn mở phiếu MỚI: email đã có phiếu (đang mở, hoặc đã duyệt chưa kích hoạt) vẫn nhận mã để vào lại (ADR-0206 Đ9).
   const ident = await danhTinhTheoEmail(env.DB, email);

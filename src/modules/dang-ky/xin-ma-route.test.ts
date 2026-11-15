@@ -393,3 +393,34 @@ test("GET /api/dang-ky/cau-hinh: công tắc, loại đối tác mở, mục b�
   assert.equal((await tat.w.call("GET", "/api/dang-ky/cau-hinh")).json.nhanDangKy, false);
   assert.equal((await tat.w.call("GET", "/api/dang-ky/cau-hinh")).json.chinhSachRiengTu, null);
 });
+
+test("cửa sổ đếm theo dòng chính sách `ask_window_minutes`: đổi dòng chính sách thì cửa sổ đổi (không cố định 15 phút)", async () => {
+  const cu = (w: any, phut: number) => w.sqlite.prepare("UPDATE login_attempt SET at = at - ?").run(phut * 60_000);
+  { // cửa sổ 30 phút: lượt xin cách đây 20 phút VẪN tính (mặc định 15 phút thì đã hết)
+    const { w, thu } = setup({ chinhSach: { ask_window_minutes: 30, ask_per_mailbox: 1 } });
+    await xin(w, "cs@example.com");
+    cu(w, 20);
+    await xin(w, "cs@example.com");
+    await w.choNen();
+    assert.equal(thu.length, 1, "vẫn trong cửa sổ 30 phút ⇒ không gửi lượt hai");
+    cu(w, 20); // tổng 40 phút > 30
+    await xin(w, "cs@example.com");
+    await w.choNen();
+    assert.equal(thu.length, 2, "ra khỏi cửa sổ 30 phút ⇒ gửi lại được");
+  }
+  { // cửa sổ 5 phút: lượt xin cách đây 10 phút đã hết
+    const { w, thu } = setup({ chinhSach: { ask_window_minutes: 5, ask_per_mailbox: 1 } });
+    await xin(w, "cs@example.com");
+    cu(w, 10);
+    await xin(w, "cs@example.com");
+    await w.choNen();
+    assert.equal(thu.length, 2);
+  }
+  { // đăng nhập (15 phút) không dọn dòng dk: của cửa sổ dài hơn
+    const { w } = setup({ chinhSach: { ask_window_minutes: 60 } });
+    await xin(w, "cs2@example.com");
+    cu(w, 30);
+    await w.call("POST", "/api/auth/login", { body: { phone: "0900000000", pin: "000000" } });
+    assert.ok((w.q("SELECT count(*) AS n FROM login_attempt WHERE key LIKE 'dk:%'")[0] as any).n >= 2);
+  }
+});

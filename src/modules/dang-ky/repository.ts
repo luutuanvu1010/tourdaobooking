@@ -209,6 +209,7 @@ export const lyDoCuaPhieu = (db: D1Database, registrationId: string): Promise<{ 
 
 // ---- Xin mã và nhập mã của người đăng ký (ADR-0206 Đ6, Đ8; đợt 1 Task 3) ----
 export interface DanhTinhTheoEmail { identity_id: string; registration_id: string; status: string; activated_at: string | null; is_open: number }
+// (Danh tính đã ẩn danh có số email bị thay bằng dấu nên không bao giờ khớp một email thật.)
 // Danh tính EMAIL còn giá trị của một email đã chuẩn hoá: (a) đang mở (phiếu chưa kết thúc), hoặc (b) phiếu ĐÃ DUYỆT mà tài khoản chưa kích hoạt — danh tính đã hạ is_open ở bước duyệt
 // nhưng người được duyệt phải vào lại để đặt PIN (ADR-0207 Đ7). Phiếu kết thúc khác (từ chối, rút, hết hạn, đã kích hoạt) không tính: email đó đăng ký lại như người mới.
 const DANH_TINH_THEO_EMAIL = defineSql(
@@ -216,7 +217,7 @@ const DANH_TINH_THEO_EMAIL = defineSql(
   "identity_by_email",
   `SELECT i.id AS identity_id, r.id AS registration_id, r.status, r.activated_at, i.is_open
    FROM dk_identity i JOIN dk_registration r ON r.id = i.registration_id
-   WHERE i.provider = 'EMAIL' AND i.subject = ?1 AND i.erased_at IS NULL
+   WHERE i.provider = 'EMAIL' AND i.subject = ?1
      AND (i.is_open = 1 OR (r.status = 'DA_DUYET' AND r.activated_at IS NULL))
    ORDER BY i.is_open DESC, i.created_at DESC LIMIT 1`,
 );
