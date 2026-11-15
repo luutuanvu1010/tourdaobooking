@@ -177,7 +177,9 @@ test("bộ quét: nhận nhóm trong chuỗi/regex/template, báo lệch ngoặc
 test("đường kích hoạt (datPinKichHoatStatements) nằm trong rào: ngoại lệ chỉ có đúng tên đó, và mỗi lời gọi (nếu có) nằm thẳng trong một lô", () => {
   assert.deepEqual([...KHONG_DOI_KET_THUC_PHIEN], ["datPinKichHoatStatements"]);
   const kichHoat = sites.filter((x) => x.fn === "datPinKichHoatStatements");
-  for (const k of kichHoat) assert.ok(/^\[|^\(/.test(k.group), `${k.file}: lô kích hoạt không phân tích được`);
+  // Đợt 1 Task 9 (SIẾT): route kích hoạt đã có ⇒ ĐÚNG MỘT lời gọi, ở kich-hoat-route.ts, nằm thẳng trong mảng của lô (không bí danh, không gán biến) — bộ dò mất dấu thì đỏ, không qua với 0 chỗ.
+  assert.deepEqual(kichHoat.map((k) => k.file.split(":")[0]), ["modules/dang-ky/kich-hoat-route.ts"], "đúng một lời gọi datPinKichHoatStatements, ở route kích hoạt");
+  for (const k of kichHoat) assert.ok(/^\[/.test(k.group), `${k.file}: lô kích hoạt không phân tích được (phải nằm thẳng trong mảng của db.batch)`);
   // Chống bài rỗng: bộ dò thật sự nhận ra tên mới (một lời gọi giả trong nguồn mẫu).
   assert.ok([..."x([datPinKichHoatStatements(db, id, h, 1)])".matchAll(CALLS)].length === 1);
 });
