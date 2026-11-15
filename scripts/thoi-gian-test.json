@@ -315,6 +315,7 @@
  "src/modules/company/khong-doc-cot-phap-ly.test.ts": 0.2,
  "src/modules/company/migration.test.ts": 0.1,
  "src/modules/company/rules.test.ts": 0.1,
+ "src/modules/dang-ky/duyet-route.test.ts": 7.0,
  "src/modules/dang-ky/phien.test.ts": 0.1,
  "src/modules/dang-ky/phieu-route.test.ts": 8.6,
  "src/modules/dang-ky/rules.test.ts": 0.7,

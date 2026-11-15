@@ -316,9 +316,12 @@ test("(10) Số căn cước đã thuộc hồ sơ khác ⇒ 409 trước lô, k
   const id = phieu(w);
   await xacMinh(w, id);
   const truoc = anh(w);
+  let loChay = 0;
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /INSERT INTO dk_decision/.test(s.sql)), async () => { loChay++; });
   const r = await duyet(w, HR, id);
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "document_other_person");
+  assert.equal(loChay, 0, "chặn trước lô");
   assert.equal(r.text.includes(KHOA_SO), false);
   assert.deepEqual(anh(w), truoc);
   // hồ sơ đích vừa có tài khoản (sau «đạt»)
@@ -409,9 +412,11 @@ test("(14) Gửi lại lời mời: mở lại hạn đặt PIN + lịch sử + 
 test("(15) Câu chốt RAISE cho phiếu chưa có kết luận Danh bạ / chưa xác minh đạt (gieo thẳng — đường thật không sinh được) ⇒ 409", async () => {
   const w = setup();
   const a = phieu(w);
-  w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_DUYET' WHERE id = ?").run(a); // không verified_by, không match_kind
+  // đã xác minh đạt (người + phiên bản) nhưng KHÔNG có kết luận Danh bạ
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_DUYET', verified_by = ?, verified_version = 1, verified_at = ? WHERE id = ?").run(ADM, AT, a);
   const r = await duyet(w, HR, a);
   assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "registration_not_verified");
   assert.equal(dem1(w, "SELECT count(*) n FROM dk_decision"), 0);
   const b = phieu(w, { dienThoai: "0912 000 555", so: null });
   w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_DUYET', match_kind = 'NEW' WHERE id = ?").run(b); // có Danh bạ, chưa người xác minh
@@ -468,4 +473,19 @@ test("(18) Người giới thiệu: lô duyệt ghi quan hệ «Người giới 
   const r = await duyet(w, HR, b);
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "referrer_inactive");
+});
+
+test("(19) Bản khai đổi phiên bản giữa lúc bấm (phiếu vẫn CHỜ DUYỆT) ⇒ câu chốt RAISE phiên bản, 409 registration_version_changed, không ghi gì", async () => {
+  const w = setup();
+  const id = phieu(w);
+  await xacMinh(w, id);
+  const truoc = anh(w);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /INSERT INTO dk_decision/.test(s.sql)), async () => {
+    w.sqlite.prepare("UPDATE dk_registration SET current_version = current_version + 1 WHERE id = ?").run(id);
+  });
+  const r = await duyet(w, HR, id);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "registration_version_changed");
+  const sau = anh(w);
+  for (const k of ["party", "staff", "quyen", "vai", "giayTo", "xacMinh", "dongY", "tep", "quyetDinh", "taoTk"] as const) assert.equal(sau[k], truoc[k], k);
 });

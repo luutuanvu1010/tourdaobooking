@@ -338,6 +338,9 @@ test("hàng rào cổng quản trị: bộ đánh giá nhận đúng khuôn, t�
   assert.equal(hasAdminDenial(`{ if (x) return y; const v = !can(staff, "admin.manage"); return v; }`), false, "lời gọi sau câu if, không nằm trong điều kiện");
 });
 
+/** ADR-0207 Đ4, Đ7, Đ9 (đợt 1 Task 8): bốn route DUYỆT phiếu đăng ký — danh sách có tên, mỗi route hỏi đúng `account.create`. */
+const DK_DUYET = ["GET /api/dang-ky/phieu/:id/xem-duyet", "POST /api/dang-ky/phieu/:id/duyet", "POST /api/dang-ky/phieu/:id/tu-choi-duyet", "POST /api/dang-ky/phieu/:id/gui-lai-loi-moi"];
+
 // ---- Luật (4b) — ADR-0071: hàng rào cổng Quản lý tài khoản, cùng khuôn luật (4) với ba ô account.*. Không có mục hoãn nào. ----
 test("hàng rào cổng accounts (ADR-0071): mọi route cổng accounts có `if (!can(<người gọi>, \"account.*\")) return …` ở cấp thân handler", () => {
   const thuoc = routes.filter((r) => r.access === "accounts");
@@ -346,15 +349,24 @@ test("hàng rào cổng accounts (ADR-0071): mọi route cổng accounts có `if
     "POST /api/parties/xac-minh/:pid/chap-nhan", "POST /api/parties/xac-minh/:pid/tu-choi",
     // ADR-0207 Đ9: bước xác minh phiếu đăng ký đối tác (module dang-ky)
     "GET /api/dang-ky/hang-cho", "GET /api/dang-ky/phieu/:id", "POST /api/dang-ky/phieu/:id/ket-luan", "POST /api/dang-ky/phieu/:id/xem-so", "GET /api/dang-ky/phieu/:id/tep/:tid",
-    "POST /api/dang-ky/phieu/:id/dat", "POST /api/dang-ky/phieu/:id/bo-sung", "POST /api/dang-ky/phieu/:id/tu-choi"];
-  assert.deepEqual(thuoc.map((r) => key(r.method, r.path)).sort(), [...known].sort(), "đúng bảy route Quản lý tài khoản + năm route xác minh phiếu (ADR-0125) + tám route xác minh phiếu đăng ký (ADR-0207) ở cổng accounts");
+    "POST /api/dang-ky/phieu/:id/dat", "POST /api/dang-ky/phieu/:id/bo-sung", "POST /api/dang-ky/phieu/:id/tu-choi",
+    // ADR-0207 Đ4, Đ7, Đ9 (đợt 1 Task 8): bước DUYỆT mở tài khoản — chỉ `account.create` (Nhân sự không có party.view)
+    ...DK_DUYET];
+  assert.deepEqual(thuoc.map((r) => key(r.method, r.path)).sort(), [...known].sort(), "đúng bảy route Quản lý tài khoản + năm route xác minh phiếu (ADR-0125) + tám route xác minh và bốn route duyệt phiếu đăng ký (ADR-0207) ở cổng accounts");
   const missing = thuoc.filter((r) => !hasAdminDenial(r.body, ACCOUNTS_DENIAL_RE)).map((r) => `${r.method} ${r.path} (${r.module})`);
   assert.deepEqual(missing, [], `Route cổng accounts không hỏi ô tài khoản: ${missing.join("; ")}. Đầu thân: if (!can(staff, "<ô>")) return …; ô thuộc ${ACCOUNTS_OPS.join(", ")}.`);
   // Vòng sửa 1 (m-2): ô theo NHÓM đường dẫn — một route xác minh không được "mượn" ô account.* và ngược lại (ACCOUNTS_OPS dùng chung 12 route sẽ cho qua cả hai).
   const NHOM_XAC_MINH = denialRe(["party.verify", "party.verify.attachment"]);
   const NHOM_TAI_KHOAN = denialRe(["account.create", "account.view", "account.edit"]);
   const NHOM_DANG_KY = denialRe(["registration.queue.view", "party.verify", "party.verify.attachment"]);
+  const NHOM_DK_DUYET = denialRe(["account.create"]);
   for (const r of thuoc) {
+    // Bước duyệt (danh sách CÓ TÊN, không theo tiền tố): ĐÚNG ô account.create, không party.view (Nhân sự duyệt dù không xem Danh bạ — ADR-0207 Đ4); không mượn ô xác minh.
+    if (DK_DUYET.includes(key(r.method, r.path))) {
+      assert.ok(hasAdminDenial(r.body, NHOM_DK_DUYET), `${r.method} ${r.path}: bước duyệt phiếu đăng ký phải hỏi account.create`);
+      assert.equal(/"party\.verify/.test(r.body), false, `${r.method} ${r.path}: bước duyệt không hỏi ô xác minh`);
+      continue;
+    }
     const dk = r.path.startsWith("/api/dang-ky/");
     const xm = r.path.startsWith("/api/parties/xac-minh");
     assert.ok(dk || xm || r.path.startsWith("/api/staff"), `${r.method} ${r.path}: route cổng accounts ngoài ba nhóm đã biết — thêm nhóm có chủ đích`);
