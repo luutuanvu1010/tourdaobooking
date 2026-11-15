@@ -30,7 +30,7 @@ import {
   companyIdentityOf, docsForMerge, driverDocsForDispatch, driversForDispatch, expiringDocumentsOfRoles, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
   listCarriers, listPartiesByIds, openPersonPhones, personsForMatch, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
-  voidPersonDocStatement,
+  voidPersonDocStatement, maHoSoTheoSoGiayTo, mucXacMinhBatBuocCua,
   datChoXoaTepStatement, findTepDeTai, insertTepLinkStatement, insertTepStatement, listTepChoXoa, listTepCuaGiayTo, markTepStored, tepCuaGiayTo,
   chinhSachHienHanh, phienBanLonNhat, dangChinhSachStatement, phienBanDangDongY, ghiDongYStatement, rutMoiPhieuChoStatement, listPhieuCuaHoSo, type PhieuRow,
   ghiPhieuStatement, timPhieuCuaHoSo, rutPhieuStatement,
@@ -64,8 +64,11 @@ export { kiemTenLoaiDoiTac, maLoaiDoiTac } from "./rules";
 export { hanGiuPhienNgay } from "./repository";
 // Tệp chờ của phiếu đăng ký (ADR-0208; đợt 1 Task 5): dang-ky chỉ gọi các hàm này, không đọc bảng pty_registration_attachment, không chạm kho HO_SO.
 export {
-  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauGoTepCho, cauTepChoMoi, datKhoTepCho, timTepChoTrung, trangThaiTepChoTheoO, xoaKhoTepChoDaGo,
+  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauGoTepCho, cauGoTepChoNeuTruocDoi, cauTepChoMoi, datKhoTepCho, moTepChoTuKho, tepChoDeXemCuaPhieu, timTepChoDeXem, timTepChoTrung,
+  trangThaiTepChoTheoO, xoaKhoTepChoDaGo, type TepChoDeXem,
 } from "./tep-cho";
+export { dauPhanHoiTep } from "./tep";
+export { cheSo } from "./giay-to";
 export { demTepChoCuaPhieu } from "./repository";
 /**
  * HÀM CÔNG BỐ HẸP (ADR-0139): SĐT liên hệ chính của các hồ sơ — chỉ cho DTO tài xế công ty (người đi kèm chuyến, trong ngày chạy). Không tự kiểm quyền:
@@ -144,6 +147,25 @@ export async function hoSoCaNhanKhop(db: D1Database, v: { phone: string | null; 
     lyDo: lyDo.get(r.id)!,
     vai: [...new Set((r.role_codes ?? "").split(",").filter(Boolean))].map((c) => tenVai.get(c) ?? c),
   }));
+}
+
+/**
+ * HÀM CÔNG BỐ (ADR-0207 Đ2 mục 4; đợt 1 Task 6) cho module dang-ky: hồ sơ CÁ NHÂN đang dùng, chưa gộp, đang giữ một dòng giấy tờ còn hiệu lực mang đúng số chuẩn hoá `numberKey`.
+ * Cùng dạng trả về với `hoSoCaNhanKhop` (không SĐT, không số). KHÔNG tự kiểm quyền: nơi gọi kiểm `party.view` trước.
+ */
+export async function hoSoTheoSoGiayTo(db: D1Database, numberKey: string): Promise<{ id: string; displayName: string; vai: string[] }[]> {
+  const ids = await maHoSoTheoSoGiayTo(db, numberKey);
+  if (ids.length === 0) return [];
+  const [dong, loai] = await Promise.all([listPartiesByIds(db, ids, vnToday(new Date())), listRoleTypes(db)]);
+  const tenVai = new Map(loai.map((t) => [t.code, t.name]));
+  return dong
+    .filter((r) => r.party_kind === "PERSON" && r.active === 1)
+    .map((r) => ({ id: r.id, displayName: r.display_name, vai: [...new Set((r.role_codes ?? "").split(",").filter(Boolean))].map((c) => tenVai.get(c) ?? c) }));
+}
+
+/** Mục xác minh bắt buộc đang hiệu lực của hồ sơ cá nhân (ADR-0210 Đ1): đọc view công bố. `loai` = ATTRIBUTE | DOCUMENT; `ma` = HO_TEN, NGAY_SINH, CCCD… */
+export async function mucXacMinhBatBuocCaNhan(db: D1Database): Promise<{ loai: string; ma: string }[]> {
+  return (await mucXacMinhBatBuocCua(db, "PERSON")).map((r) => ({ loai: r.item_kind, ma: r.item_code }));
 }
 
 /** Định danh Tour Đảo cho nơi đọc ngoài module (ADR-0024 điều 6 + 6.2). Trường có thể null: dữ liệu hồ sơ tổ chức cho phép trống. */

@@ -1709,3 +1709,49 @@ export const chuyenTepChoStatements = (db: D1Database, v: { registrationId: stri
   db.prepare(CHUYEN_TEP_CHO_NOI).bind(v.registrationId, v.documentId, v.at, v.approverId),
   db.prepare(CHUYEN_TEP_CHO_DANH_DAU).bind(v.registrationId, v.at, v.approverId),
 ];
+
+// ---- Bước xác minh phiếu đăng ký (ADR-0207 Đ2, ADR-0208 Đ3, ADR-0210 Đ1; đợt 1 Task 6) ----
+const HO_SO_THEO_SO = defineSql(
+  "parties",
+  "party_ids_by_document_number",
+  "SELECT DISTINCT d.party_id AS id FROM pty_person_document d WHERE d.number_key = ?1 AND d.voided_at IS NULL AND d.erased_at IS NULL",
+);
+/** Mã hồ sơ cá nhân đang giữ một dòng giấy tờ CÒN HIỆU LỰC (chưa huỷ, chưa ẩn danh) mang đúng số chuẩn hoá. Chỉ mã, không số. */
+export async function maHoSoTheoSoGiayTo(db: D1Database, numberKey: string): Promise<string[]> {
+  return (await db.prepare(HO_SO_THEO_SO).bind(numberKey).all<{ id: string }>()).results.map((r) => r.id);
+}
+const MUC_XAC_MINH_BAT_BUOC = defineSql(
+  "parties",
+  "verification_requirement_of_kind",
+  "SELECT item_kind, item_code FROM v_pty_verification_requirement WHERE subject_kind = ?1 ORDER BY item_kind, item_code",
+);
+export async function mucXacMinhBatBuocCua(db: D1Database, subjectKind: "PERSON" | "ORGANIZATION"): Promise<{ item_kind: string; item_code: string }[]> {
+  return (await db.prepare(MUC_XAC_MINH_BAT_BUOC).bind(subjectKind).all<{ item_kind: string; item_code: string }>()).results;
+}
+export interface TepChoXemRow { id: string; slot: string; content_kind: string; storage_key: string; stored_at: string | null }
+const TEP_CHO_DE_XEM_DS = defineSql(
+  "parties",
+  "registration_attachment_for_review_list",
+  `SELECT id, slot, content_kind, storage_key, stored_at FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND purged_at IS NULL AND transferred_at IS NULL AND stored_at IS NOT NULL ORDER BY slot, created_at`,
+);
+const TEP_CHO_DE_XEM_MOT = defineSql(
+  "parties",
+  "registration_attachment_for_review_one",
+  `SELECT id, slot, content_kind, storage_key, stored_at FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND id = ?2 AND purged_at IS NULL AND transferred_at IS NULL AND stored_at IS NOT NULL`,
+);
+export async function tepChoDeXemDs(db: D1Database, registrationId: string): Promise<TepChoXemRow[]> {
+  return (await db.prepare(TEP_CHO_DE_XEM_DS).bind(registrationId).all<TepChoXemRow>()).results;
+}
+export const tepChoDeXemMot = (db: D1Database, registrationId: string, id: string): Promise<TepChoXemRow | null> =>
+  db.prepare(TEP_CHO_DE_XEM_MOT).bind(registrationId, id).first<TepChoXemRow>();
+// Gỡ mọi tệp chờ của phiếu CHỈ KHI câu liền trước trong lô đổi đúng dòng (`changes() > 0`): phiếu bị người khác xử lý giữa chừng thì tệp ở lại (Task 6, từ chối).
+const GO_TEP_CHO_CUA_PHIEU_NEU_TRUOC_DOI = defineSql(
+  "parties",
+  "purge_registration_attachment_all_if_prev",
+  `UPDATE pty_registration_attachment SET purged_at = ?2, purge_reason = ?3, content_hash = NULL, updated_at = ?2
+   WHERE registration_id = ?1 AND purged_at IS NULL AND transferred_at IS NULL AND changes() > 0`,
+);
+export const goTepChoCuaPhieuNeuTruocDoiStatement = (db: D1Database, v: { registrationId: string; at: string; lyDo: string }): D1PreparedStatement =>
+  db.prepare(GO_TEP_CHO_CUA_PHIEU_NEU_TRUOC_DOI).bind(v.registrationId, v.at, v.lyDo);

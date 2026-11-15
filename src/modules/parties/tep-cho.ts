@@ -3,8 +3,8 @@
 // Thứ tự an toàn: lô D1 TRƯỚC, đặt kho SAU, đánh dấu đã lưu; xoá kho chạy SAU lô ghi quyết gỡ (Hiến chương 5.16). Lỗi kho KHÔNG ném.
 import { LOAI_NOI_DUNG, khoaNgauNhien, nhanLoaiTep, type LoaiTep } from "./tep.ts";
 import {
-  chuyenTepChoStatements, demTepChoCuaPhieu, findTepChoTrung, goTepChoCuaOStatement, goTepChoCuaPhieuStatement, insertTepChoStatement, markTepChoR2Deleted, markTepChoStored,
-  tepChoDaGoCanXoaKho, tepChoTheoO,
+  chuyenTepChoStatements, demTepChoCuaPhieu, findTepChoTrung, goTepChoCuaOStatement, goTepChoCuaPhieuNeuTruocDoiStatement, goTepChoCuaPhieuStatement, insertTepChoStatement, markTepChoR2Deleted, markTepChoStored,
+  tepChoDaGoCanXoaKho, tepChoDeXemDs, tepChoDeXemMot, tepChoTheoO, type TepChoXemRow,
 } from "./repository.ts";
 
 export const LY_DO_GO_TEP_CHO = { THAY_TEP: "THAY_TEP", KHONG_THUOC_BAN_KHAI: "KHONG_THUOC_BAN_KHAI" } as const;
@@ -91,4 +91,33 @@ export async function xoaKhoTepChoDaGo(env: Env, registrationId: string, luc: ()
     }
   }
   return { daXoa, loi };
+}
+
+/**
+ * Như `cauGoTepCho` nhưng CHỈ gỡ khi câu liền trước trong lô đã đổi đúng một dòng (`changes() > 0`): đặt NGAY SAU dòng lịch sử (chính nó chỉ ghi khi câu đổi trạng thái đã trúng).
+ * Phiếu bị người khác xử lý giữa lúc bấm thì lô không đổi gì và tệp ở lại.
+ */
+export const cauGoTepChoNeuTruocDoi = (db: D1Database, registrationId: string, lyDo: string, at: string): D1PreparedStatement =>
+  goTepChoCuaPhieuNeuTruocDoiStatement(db, { registrationId, at, lyDo });
+
+export interface TepChoDeXem { id: string; slot: string; loai: LoaiTep; storageKey: string }
+const nhanTep = (r: TepChoXemRow): TepChoDeXem => ({ id: r.id, slot: r.slot, loai: r.content_kind as LoaiTep, storageKey: r.storage_key });
+/** Tệp chờ đang sống và ĐÃ LƯU của phiếu, để người xác minh xem (chỉ gọi sau khi route kiểm quyền). Mã tệp hiện cho người xác minh; khoá kho KHÔNG ra khỏi dang-ky ngoài hàm mở kho dưới đây. */
+export async function tepChoDeXemCuaPhieu(db: D1Database, registrationId: string): Promise<TepChoDeXem[]> {
+  return (await tepChoDeXemDs(db, registrationId)).map(nhanTep);
+}
+export async function timTepChoDeXem(db: D1Database, registrationId: string, tepId: string): Promise<TepChoDeXem | null> {
+  const r = await tepChoDeXemMot(db, registrationId, tepId);
+  return r ? nhanTep(r) : null;
+}
+/** Mở đối tượng trong kho. Gọi SAU khi nhật ký đã ghi. `null` = thiếu kho hoặc thiếu đối tượng (route trả 404 / 503). */
+export async function moTepChoTuKho(env: Env, tep: TepChoDeXem): Promise<{ body: ReadableStream; loai: LoaiTep } | null> {
+  const kho = env.HO_SO;
+  if (!kho) return null;
+  const obj = await kho.get(tep.storageKey);
+  if (!obj) {
+    console.error(JSON.stringify({ level: "error", event: "tep_cho_thieu_doi_tuong", tepId: tep.id }));
+    return null;
+  }
+  return { body: obj.body, loai: tep.loai };
 }
