@@ -204,3 +204,9 @@ export function maintenanceMessage(endsAt: string | null, nowMs: number, sdt: st
   const p = maintenanceMessageParts(endsAt, nowMs, sdt);
   return p.before + (p.countdown ?? "") + p.after;
 }
+
+/**
+ * ADR-0206 Đ8: người đăng ký đối tác chưa có tài khoản nên không có bộ quyền để so (`isBlocked` coi họ là «null»). Quy tắc: bảo trì BẬT ⇒ chặn
+ * mọi lệnh của người đăng ký (xin mã, gửi phiếu, tải tệp); TẮT ⇒ không chặn. Không có ngoại lệ Toàn quyền vì họ không phải tài khoản.
+ */
+export const chanNguoiKhongTaiKhoan = (state: MaintenanceState): boolean => state.on;
