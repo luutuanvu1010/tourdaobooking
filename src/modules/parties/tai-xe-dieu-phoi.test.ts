@@ -169,6 +169,8 @@ test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCua
     "chinhSachRiengTuCongKhai",
     // ADR-0206 Đ6 (route của phiếu, đợt 1 Task 4): luật kiểm HÌNH THỨC của tự khai dùng lại cho bản khai của phiếu đăng ký (hàm thuần) + danh mục giấy tờ cho lần kiểm
     "danhMucGiayToChoDangKy", "kiemThemGiayTo", "kiemNgaySinh", "validateContact",
+    // ADR-0208 Đ8 (tác nhân dọn phiếu đăng ký, đợt 1 Task 9): quét toàn bảng tệp chờ «chờ xoá» / «tải dở dang» rồi xoá kho — dang-ky không chạm bảng tệp hay kho
+    "donKhoTepCho",
     // ADR-0207 Đ5 (lô duyệt phiếu đăng ký, đợt 1 Task 8): câu CHƯA CHẠY cho gốc lắp ráp ghép (hồ sơ + vai, giá trị, dòng xác minh, đồng ý, quan hệ giới thiệu) + một kiểm trước lô (CCCD một người)
     "cauMoHoSoDangKy", "cauGhiGiaTriDaXacMinh", "cauXacMinhTuPhieu", "cauDongYTuPhieu", "cauQuanHeGioiThieu", "canCuocThuocHoSoKhac"].sort());
 });
