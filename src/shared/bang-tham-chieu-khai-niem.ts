@@ -338,6 +338,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuChon: "AI viết mười câu 2026-11-15, chờ chủ chọn tên",
   }),
   KN({
+    ten: "Tên mục của phiếu đăng ký (người đăng ký thấy)",
+    giaiNghia: "Tên từng mục khi máy nói với người đăng ký về điều còn thiếu để gửi phiếu: Họ tên, Ngày sinh, Căn cước công dân còn hạn, Vai người dùng xin đăng ký, Số điện thoại.",
+    khacVoi: "Khác «Mục xác minh của phiếu đăng ký» (viết cho người xác minh): ở đó «Đã gọi số điện thoại đã khai» là việc của người xác minh, người đăng ký chỉ cần đưa số điện thoại.",
+    chuDaLoai: [],
+    maNoiBo: ["NHAN_MUC_CHO_NGUOI_DANG_KY", "items_missing"],
+    trangThai: "cho-chon",
+    chuChon: "AI viết năm tên 2026-11-15, chờ chủ chọn tên",
+  }),
+  KN({
     ten: "Công việc tại đâu",
     giaiNghia: "Mục trên hồ sơ ghi hồ sơ đó làm việc gì và ở đâu (hướng dẫn viên, tài xế, nhà xe…). Chỉ để phân loại và tìm kiếm.",
     khacVoi: "Không bao giờ dùng để cho hay chặn một thao tác. Việc cho phép nằm ở quyền của tài khoản.",

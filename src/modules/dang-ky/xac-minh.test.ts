@@ -38,8 +38,10 @@ test("kiemKetLuan: đạt không kèm lý do; không đạt đòi mã trong danh
 });
 
 test("kiemLyDo, kiemDat, mã phiếu, mã tệp", () => {
-  assert.equal(kiemLyDo({ lyDo: "KHONG_THUOC_DIEN" }).ok, true);
-  assert.equal(kiemLyDo({ lyDo: "KHONG_THUOC_DIEN", ghiChu: "x" }).ok, false);
+  assert.equal(kiemLyDo({ lyDo: "KHONG_THUOC_DIEN", phienBan: 1 }).ok, true);
+  assert.equal(kiemLyDo({ lyDo: "KHONG_THUOC_DIEN" }).ok, false, "thiếu phienBan");
+  assert.equal(kiemLyDo({ lyDo: "KHONG_THUOC_DIEN", phienBan: 0 }).ok, false);
+  assert.equal(kiemLyDo({ lyDo: "KHONG_THUOC_DIEN", phienBan: 1, ghiChu: "x" }).ok, false);
   assert.equal(kiemLyDo(null).ok, false);
   assert.deepEqual(kiemDat({ phienBan: 1 }), { ok: true, value: { hoSo: null, nguoiGioiThieuPartyId: null, phienBan: 1 } });
   assert.deepEqual(kiemDat({ hoSo: { kieu: "MOI" }, phienBan: 2 }), { ok: true, value: { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: null, phienBan: 2 } });

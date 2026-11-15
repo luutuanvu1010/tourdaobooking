@@ -6,7 +6,7 @@
 import { timingSafeEqual } from "../../shared/encoding.ts";
 import { error, json, readJson } from "../../shared/http.ts";
 import { chanNguoiKhongTaiKhoan } from "../../shared/maintenance.ts";
-import { nhanMucXacMinh } from "../../shared/dang-ky-hien-thi.ts";
+import { nhanMucChoNguoiDangKy } from "../../shared/dang-ky-hien-thi.ts";
 import type { Ctx } from "../../shared/router.ts";
 import { clearAttempts, reserveAttempts, turnstileGate, turnstileLog } from "../auth";
 import { getMaintenanceState, maintenanceResponse } from "../maintenance";
@@ -35,7 +35,7 @@ export async function cauHinhDangKy({ env }: Ctx<"public">): Promise<Response> {
     {
       nhanDangKy: chinhSach?.registration_open === 1,
       loaiMo: (chinhSach?.open_role_codes ?? "").split(",").map((x) => x.trim()).filter(Boolean),
-      mucBatBuoc: mucBatBuoc(rieng, hoSo.map((m) => m.ma)).map((ma) => ({ ma, nhan: nhanMucXacMinh(ma) })),
+      mucBatBuoc: mucBatBuoc(rieng, hoSo.map((m) => m.ma)).map((ma) => ({ ma, nhan: nhanMucChoNguoiDangKy(ma) })),
       chinhSachRiengTu: riengTu?.phienBan ?? null,
     },
     200,

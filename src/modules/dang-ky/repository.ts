@@ -189,18 +189,18 @@ export const datStatement = (db: D1Database, v: { registrationId: string; by: st
 const BO_SUNG_CAP = defineSql(
   "dang-ky",
   "registration_supplement",
-  `UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'CHO_XAC_MINH'`,
+  `UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'CHO_XAC_MINH' AND current_version = ?5`,
 );
-export const boSungStatement = (db: D1Database, v: { registrationId: string; lyDo: string; by: string; at: string }): D1PreparedStatement =>
-  db.prepare(BO_SUNG_CAP).bind(v.registrationId, v.lyDo, v.at, v.by);
+export const boSungStatement = (db: D1Database, v: { registrationId: string; lyDo: string; by: string; at: string; phienBan: number }): D1PreparedStatement =>
+  db.prepare(BO_SUNG_CAP).bind(v.registrationId, v.lyDo, v.at, v.by, v.phienBan);
 
 const TU_CHOI_CAP = defineSql(
   "dang-ky",
   "registration_reject",
-  `UPDATE dk_registration SET status = 'TU_CHOI', reason_code = ?2, decided_at = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'CHO_XAC_MINH'`,
+  `UPDATE dk_registration SET status = 'TU_CHOI', reason_code = ?2, decided_at = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'CHO_XAC_MINH' AND current_version = ?5`,
 );
-export const tuChoiStatement = (db: D1Database, v: { registrationId: string; lyDo: string; by: string; at: string }): D1PreparedStatement =>
-  db.prepare(TU_CHOI_CAP).bind(v.registrationId, v.lyDo, v.at, v.by);
+export const tuChoiStatement = (db: D1Database, v: { registrationId: string; lyDo: string; by: string; at: string; phienBan: number }): D1PreparedStatement =>
+  db.prepare(TU_CHOI_CAP).bind(v.registrationId, v.lyDo, v.at, v.by, v.phienBan);
 
 const LY_DO_CUA_PHIEU = defineSql("dang-ky", "registration_reason", "SELECT status, reason_code FROM dk_registration WHERE id = ?1");
 /** Trạng thái và mã lý do của phiếu (cho trang trạng thái của người đăng ký — nhãn lấy ở `cauLyDoChoNguoiDangKy`). */
@@ -300,13 +300,12 @@ const PHIEU_DE_XEM = defineSql(
 export const phieuDeXem = (db: D1Database, registrationId: string, identityId: string): Promise<PhieuDeXemRow | null> =>
   db.prepare(PHIEU_DE_XEM).bind(registrationId, identityId).first<PhieuDeXemRow>();
 
-// Phiên bản chính sách riêng tư HIỆN HÀNH để người đăng ký đồng ý lúc gửi: view công bố của parties (0168), chỉ bản đã có hiệu lực. Bản mới đăng giữa lúc đọc và lúc ghi
+// Phiên bản chính sách riêng tư ĐANG CÓ HIỆU LỰC để người đăng ký đồng ý lúc gửi: view công bố của parties (0168) — cùng nghĩa với GET cau-hinh và GET chinh-sach-rieng-tu (bản ngày hiệu lực ở tương lai không tính). Bản mới đăng giữa lúc đọc và lúc ghi
 // làm câu chèn bản khai (điều kiện id = id hiện hành) khớp 0 dòng.
-const CHINH_SACH_RIENG_TU = defineSql("dang-ky", "privacy_policy_current", "SELECT id, version FROM v_pty_privacy_current WHERE valid_from_at <= ?1");
-export const chinhSachRiengTuHienHanh = (db: D1Database, at: string): Promise<{ id: string; version: number } | null> =>
-  db.prepare(CHINH_SACH_RIENG_TU).bind(at).first<{ id: string; version: number }>();
+const CHINH_SACH_RIENG_TU = defineSql("dang-ky", "privacy_policy_current", "SELECT id, version FROM v_pty_privacy_effective");
+export const chinhSachRiengTuHienHanh = (db: D1Database): Promise<{ id: string; version: number } | null> => db.prepare(CHINH_SACH_RIENG_TU).first<{ id: string; version: number }>();
 
-// Bản khai gần nhất chưa ẩn danh, để người đăng ký sửa khi CẦN BỔ SUNG. «Chưa ẩn danh» = tên chưa bị thay bằng dấu «(đã ẩn)» (trigger dk_submission_erase_shape bắt buộc đúng dấu đó khi ẩn danh) — chữ cột ẩn danh chỉ nằm ở parties/repository.ts (bài src/xoa-mot-lenh-co-ten.test.ts). KHÔNG chọn document_number, issued_place, phone_value, phone_key (chỉ «đã khai điện thoại»): DTO không trả các giá trị đó.
+// Bản khai MỚI NHẤT (không bao giờ lùi về bản cũ hơn), để người đăng ký sửa khi CẦN BỔ SUNG. Đã ẩn danh = tên bị thay bằng dấu «(đã ẩn)» (trigger dk_submission_erase_shape bắt buộc đúng dấu đó) — route kiểm dấu, vì chữ cột ẩn danh chỉ nằm ở parties/repository.ts (bài src/xoa-mot-lenh-co-ten.test.ts). KHÔNG chọn document_number, issued_place, phone_value, phone_key (chỉ «đã khai điện thoại»): DTO không trả các giá trị đó.
 export interface BanKhaiTruocRow {
   family_name: string | null; middle_name: string | null; given_name: string; gender: string | null; birth_date: string | null; address_value: string | null; co_dien_thoai: number;
   document_type_code: string | null; number_key: string | null; license_class_code: string | null; issued_date: string | null; expiry_date: string | null;
@@ -315,7 +314,7 @@ const BAN_KHAI_TRUOC = defineSql(
   "dang-ky",
   "submission_latest_for_registrant",
   `SELECT family_name, middle_name, given_name, gender, birth_date, address_value, phone_key IS NOT NULL AS co_dien_thoai, document_type_code, number_key, license_class_code, issued_date, expiry_date
-   FROM dk_submission WHERE registration_id = ?1 AND given_name IS NOT '(đã ẩn)' ORDER BY version DESC LIMIT 1`,
+   FROM dk_submission WHERE registration_id = ?1 ORDER BY version DESC LIMIT 1`,
 );
 export const banKhaiTruoc = (db: D1Database, registrationId: string): Promise<BanKhaiTruocRow | null> => db.prepare(BAN_KHAI_TRUOC).bind(registrationId).first<BanKhaiTruocRow>();
 
@@ -355,7 +354,7 @@ const GUI_CHEN = defineSql(
    SELECT ?1, r.id, r.current_version + 1, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?3, ?4, ?4, ?5, ?4, ?5
    FROM dk_registration r
    WHERE r.id = ?2 AND r.status IN ('DANG_DIEN', 'CAN_BO_SUNG') AND r.current_version = ?22 AND r.role_code <> ''
-     AND ?3 = (SELECT id FROM v_pty_privacy_current)`,
+     AND ?3 = (SELECT id FROM v_pty_privacy_effective)`,
 );
 export const guiChenStatement = (db: D1Database, v: { id: string; registrationId: string; policyId: string; at: string; identityId: string; phienBanDaDoc: number; b: BanKhaiMoi }): D1PreparedStatement =>
   db.prepare(GUI_CHEN).bind(

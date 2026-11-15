@@ -60,3 +60,13 @@ export const CAU_PHIEU = {
   doiChinhSach: "Chính sách riêng tư vừa được cập nhật. Hãy đọc lại rồi gửi.",
   doiTrangThai: "Phiếu vừa thay đổi. Hãy tải lại phiếu rồi làm tiếp.",
 } as const;
+
+/** Tên mục khi NÓI VỚI NGƯỜI ĐĂNG KÝ về điều còn thiếu (chữ AI viết, chờ chủ chọn — BANG-THAM-CHIEU «Tên mục của phiếu đăng ký (người đăng ký thấy)»). Khác `NHAN_MUC_XAC_MINH` viết cho người xác minh («Đã gọi số điện thoại đã khai» là việc của họ). */
+export const NHAN_MUC_CHO_NGUOI_DANG_KY: Readonly<Record<string, string>> = {
+  HO_TEN: "Họ tên",
+  NGAY_SINH: "Ngày sinh",
+  CCCD: "Căn cước công dân còn hạn",
+  ROLE: "Vai người dùng xin đăng ký",
+  CALLED: "Số điện thoại",
+};
+export const nhanMucChoNguoiDangKy = (ma: string): string => NHAN_MUC_CHO_NGUOI_DANG_KY[ma] ?? ma;

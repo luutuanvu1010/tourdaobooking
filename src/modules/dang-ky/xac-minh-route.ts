@@ -213,12 +213,13 @@ export async function yeuCauBoSung({ request, env, staff, params }: Ctx<"account
   const k = kiemLyDo(await readJson(request));
   if (!k.ok) return error(400, "invalid_input", k.message);
   const { p } = r;
-  const { lyDo } = k.value;
+  const { lyDo, phienBan } = k.value;
+  if (phienBan !== p.current_version) return DOI_PHIEN_BAN(); // người đăng ký đã gửi lại sau khi bạn mở phiếu
   const at = new Date().toISOString();
   let kq: D1Result[];
   try {
     kq = await env.DB.batch([
-      boSungStatement(env.DB, { registrationId: p.id, lyDo, by: staff.id, at }),
+      boSungStatement(env.DB, { registrationId: p.id, lyDo, by: staff.id, at, phienBan }),
       suKienNhanVienStatement(env.DB, { registrationId: p.id, staffId: staff.id, command: "BO_SUNG", lyDo, at }),
       auditStatement(env.DB, { staffId: staff.id, action: "registration_supplement_requested", at, targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · yêu cầu bổ sung · ${lyDo}` }, "changes() > 0"),
     ]);
@@ -227,7 +228,7 @@ export async function yeuCauBoSung({ request, env, staff, params }: Ctx<"account
     if (l) return error(l.status, l.code, l.message);
     throw e;
   }
-  if ((kq[0]?.meta.changes ?? 0) === 0) return KHONG_CON_CHO();
+  if ((kq[0]?.meta.changes ?? 0) === 0) return loiKhongGhi(env, p.id, phienBan);
   return json({ trangThai: "CAN_BO_SUNG", lyDo: { ma: lyDo, nhan: cauLyDoChoNguoiDangKy(lyDo) } });
 }
 
@@ -238,13 +239,14 @@ export async function tuChoiPhieu({ request, env, staff, params }: Ctx<"accounts
   const k = kiemLyDo(await readJson(request));
   if (!k.ok) return error(400, "invalid_input", k.message);
   const { p } = r;
-  const { lyDo } = k.value;
+  const { lyDo, phienBan } = k.value;
+  if (phienBan !== p.current_version) return DOI_PHIEN_BAN(); // người đăng ký đã gửi lại sau khi bạn mở phiếu
   const at = new Date().toISOString();
   let kq: D1Result[];
   try {
     // MỘT lô: đổi trạng thái → lịch sử → nhật ký → quyết gỡ mọi tệp chờ (chỉ khi câu liền trước đã ghi: phiếu bị người khác xử lý giữa chừng thì tệp ở lại). Xoá kho chạy SAU lô.
     kq = await env.DB.batch([
-      tuChoiStatement(env.DB, { registrationId: p.id, lyDo, by: staff.id, at }),
+      tuChoiStatement(env.DB, { registrationId: p.id, lyDo, by: staff.id, at, phienBan }),
       suKienNhanVienStatement(env.DB, { registrationId: p.id, staffId: staff.id, command: "TU_CHOI", lyDo, at }),
       auditStatement(env.DB, { staffId: staff.id, action: "registration_rejected", at, targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · từ chối · ${lyDo}` }, "changes() > 0"),
       cauGoTepChoNeuTruocDoi(env.DB, p.id, "TU_CHOI", at),
@@ -254,7 +256,7 @@ export async function tuChoiPhieu({ request, env, staff, params }: Ctx<"accounts
     if (l) return error(l.status, l.code, l.message);
     throw e;
   }
-  if ((kq[0]?.meta.changes ?? 0) === 0) return KHONG_CON_CHO();
+  if ((kq[0]?.meta.changes ?? 0) === 0) return loiKhongGhi(env, p.id, phienBan);
   await xoaKhoTepChoDaGo(env, p.id);
   return json({ trangThai: "TU_CHOI" });
 }

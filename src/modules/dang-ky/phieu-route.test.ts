@@ -154,7 +154,8 @@ test("gửi khi chưa chọn loại ⇒ 400 (phiếu loại '' không gửi đư
   assert.match(thieuNgaySinh.json.error.message, /Ngày sinh/);
   const thieuDienThoai = await gui(w, banKhai({ dienThoai: undefined }));
   assert.equal(thieuDienThoai.status, 400);
-  assert.match(thieuDienThoai.json.error.message, /Đã gọi số điện thoại/);
+  assert.match(thieuDienThoai.json.error.message, /Số điện thoại/);
+  assert.equal(thieuDienThoai.json.error.message.includes("Đã gọi"), false, "nhãn cho người đăng ký, không phải nhãn của người xác minh (m3)");
   const thieuGiayTo = await gui(w, banKhai({ giayTo: undefined }));
   assert.equal(thieuGiayTo.status, 400);
   assert.match(thieuGiayTo.json.error.message, /Căn cước công dân/);
@@ -194,7 +195,7 @@ test("gửi đủ: 200, chờ xác minh, đúng MỘT bản khai bất biến (s
   assert.equal(r.json.phienBan, 1);
   assert.equal(r.json.chiXem, true);
   for (const cam of [SO, SO_CACH, DIEN_THOAI, "0912 345 678", EMAIL, NOI_CAP, "pty/"]) assert.equal(r.text.includes(cam), false, `DTO lộ ${cam}`);
-  assert.equal(r.json.banKhaiTruoc.giayTo.soChe, "••••2333");
+  assert.equal(r.json.banKhaiTruoc, null, "chỉ phiếu CẦN BỔ SUNG mới trả lại nội dung đã khai (I2)");
   const p = phieu(w);
   assert.equal(p.status, "CHO_XAC_MINH");
   assert.equal(p.current_version, 1);
@@ -306,6 +307,7 @@ test("rút khi đang điền: ĐÃ RÚT, lịch sử RUT, danh tính hết mở,
   assert.equal(r.json.trangThai, "DA_RUT");
   assert.equal(r.json.nhanTrangThai, "Đã rút");
   assert.equal(r.json.chiXem, true);
+  assert.equal(r.json.banKhaiTruoc, null);
   assert.equal(phieu(w).status, "DA_RUT");
   assert.equal(w.q("SELECT is_open FROM dk_identity WHERE id = ?", IDENT)[0].is_open, 0);
   assert.deepEqual(lichSu(w), ["RUT"]);
@@ -347,6 +349,7 @@ test("phiếu đã duyệt chưa kích hoạt (danh tính hết mở): GET xem �
   assert.equal(g.json.trangThai, "DA_DUYET");
   assert.equal(g.json.nhanTrangThai, "Đã duyệt");
   assert.equal(g.json.chiXem, true);
+  assert.equal(g.json.banKhaiTruoc, null, "phiếu đã duyệt không trả lại nội dung đã khai (I2)");
   assert.equal((await luu(w, VAI)).status, 409);
   assert.equal((await gui(w, banKhai())).status, 409);
   assert.equal((await rut(w)).status, 409);
@@ -362,6 +365,7 @@ test("phiếu bị từ chối: GET kể lý do bằng câu cho người ngoài;
   assert.equal(g.json.nhanTrangThai, "Bị từ chối");
   assert.equal(g.json.lyDo.cau, "Thông tin này đã có trong hệ thống. Vui lòng liên hệ Tour Đảo.");
   assert.equal(g.text.includes("tài khoản"), false, "câu cố ý không nói «đã có tài khoản»");
+  assert.equal(g.json.banKhaiTruoc, null, "phiếu đã kết thúc không trả lại họ tên, ngày sinh, địa chỉ (I2)");
   assert.equal((await luu(w, VAI)).status, 409);
   assert.equal((await gui(w, banKhai())).status, 409);
   assert.equal((await rut(w)).status, 409);
@@ -414,7 +418,7 @@ test("khoá điều kiện nằm TRONG câu ghi: gửi chèn bản khai bằng m
   const src = readFileSync(new URL("./repository.ts", import.meta.url), "utf8");
   const chen = src.match(/registration_submit_insert[\s\S]*?`,\s*\)/)?.[0] ?? "";
   assert.match(chen, /r\.status IN \('DANG_DIEN', 'CAN_BO_SUNG'\)/);
-  assert.match(chen, /v_pty_privacy_current/);
+  assert.match(chen, /v_pty_privacy_effective/);
   assert.match(chen, /current_version \+ 1/);
   const doi = src.match(/registration_submit_advance[\s\S]*?`,\s*\)/)?.[0] ?? "";
   assert.match(doi, /EXISTS \(SELECT 1 FROM dk_submission/);
@@ -440,4 +444,145 @@ test("hai lô «gửi» cùng đọc trạng thái cũ rồi cùng ghi (đua th�
   assert.equal(soDong(w, "dk_submission"), 1);
   assert.equal(phieu(w).current_version, 1);
   assert.deepEqual(lichSu(w).filter((x) => x === "GUI"), ["GUI"]);
+});
+
+// ---- Vòng sửa 1 ----
+const batMay = (w: any, bat: boolean) => w.sqlite.exec(`UPDATE mnt_setting SET enabled = ${bat ? 1 : 0}, ends_at = NULL WHERE id = 'default'`);
+const banKhaiMoi = (): BanKhaiMoi => ({
+  family: "Nguyễn", middle: null, given: "Thử", gender: null, birthDate: "1990-05-06", address: null, phoneValue: "0912345678", phoneKey: "0912345678",
+  documentType: "CCCD", documentNumber: SO, numberKey: SO, licenseClass: null, issuedDate: null, issuedPlace: null, expiryDate: null, referrer: null,
+});
+const loGui = (w: any, id: string, o: { policyId?: string; phienBanDaDoc: number }) => w.env.DB.batch([
+  guiChenStatement(w.env.DB, { id, registrationId: PHIEU, policyId: o.policyId ?? "cs-1", at: new Date().toISOString(), identityId: IDENT, phienBanDaDoc: o.phienBanDaDoc, b: banKhaiMoi() }),
+  guiTienStatement(w.env.DB, { registrationId: PHIEU, submissionId: id, at: new Date().toISOString(), identityId: IDENT }),
+  suKienNguoiDangKyStatement(w.env.DB, { registrationId: PHIEU, identityId: IDENT, command: "GUI", at: new Date().toISOString() }),
+]);
+
+test("I1(a): câu chèn bản khai KHÔNG ghi khi phiên bản chính sách đã nêu không còn hiệu lực (gọi thẳng câu lệnh) — không bản khai, phiếu không đổi", async () => {
+  const w = setup();
+  await luu(w, VAI);
+  chinhSachRiengTu(w, 2); // cs-1 không còn là bản hiện hành
+  const kq = await loGui(w, "sub-cu", { policyId: "cs-1", phienBanDaDoc: 0 });
+  assert.deepEqual(kq.map((x: any) => x.meta.changes), [0, 0, 0]);
+  assert.equal(soDong(w, "dk_submission"), 0);
+  assert.equal(phieu(w).status, "DANG_DIEN");
+  assert.deepEqual(lichSu(w), ["LUU_NHAP"]);
+  const dung = await loGui(w, "sub-moi", { policyId: "cs-2", phienBanDaDoc: 0 });
+  assert.deepEqual(dung.map((x: any) => x.meta.changes), [1, 1, 1], "đối chứng: đúng bản hiện hành thì ghi");
+});
+
+test("I1(b): câu chèn bản khai KHÔNG ghi khi phiếu đã ĐÃ RÚT, HẾT HẠN, TỪ CHỐI hay CHỜ XÁC MINH dù số bản khai đã đọc còn khớp (gọi thẳng câu lệnh)", async () => {
+  for (const trangThai of ["DA_RUT", "HET_HAN", "TU_CHOI", "CHO_XAC_MINH"]) {
+    const w = setup();
+    await daGui(w); // current_version = 1, CHO_XAC_MINH
+    if (trangThai !== "CHO_XAC_MINH") w.sqlite.prepare("UPDATE dk_registration SET status = ? WHERE id = ?").run(trangThai, PHIEU);
+    const truoc = [soDong(w, "dk_submission"), phieu(w).current_version, lichSu(w).length];
+    const kq = await loGui(w, "sub-muoi", { phienBanDaDoc: 1 });
+    assert.deepEqual(kq.map((x: any) => x.meta.changes), [0, 0, 0], trangThai);
+    assert.deepEqual([soDong(w, "dk_submission"), phieu(w).current_version, lichSu(w).length], truoc, trangThai);
+  }
+});
+
+test("I1(c): câu chèn bản khai KHÔNG ghi khi số bản khai đã đọc lỗi thời dù phiếu lại ở CẦN BỔ SUNG (đọc v1 → bị trả lại → đã gửi v2 → bị trả lại lần nữa)", async () => {
+  const w = setup();
+  await daGui(w); // v1
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = 'KHONG_DOC_DUOC' WHERE id = ?").run(PHIEU);
+  assert.equal((await gui(w, banKhai())).status, 200); // v2
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = 'KHONG_DOC_DUOC' WHERE id = ?").run(PHIEU);
+  const kq = await loGui(w, "sub-ba", { phienBanDaDoc: 1 }); // tab cũ đọc v1
+  assert.deepEqual(kq.map((x: any) => x.meta.changes), [0, 0, 0]);
+  assert.equal(soDong(w, "dk_submission"), 2);
+});
+
+test("I1: chính sách đổi GIỮA lúc đọc và lúc ghi ⇒ lô khớp 0 dòng, route trả 409 policy_changed (nhánh sau lô), không bản khai", async () => {
+  const w = setup();
+  await luu(w, VAI);
+  const goc = w.env.DB.batch.bind(w.env.DB);
+  w.env.DB.batch = async (st: unknown) => { w.env.DB.batch = goc; chinhSachRiengTu(w, 2); return goc(st); };
+  const r = await gui(w, banKhai());
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "policy_changed");
+  assert.equal(soDong(w, "dk_submission"), 0);
+  assert.equal(phieu(w).status, "DANG_DIEN");
+  assert.equal((await gui(w, banKhai({ chinhSachPhienBan: 2 }))).status, 200, "gửi lại với bản mới thì được");
+});
+
+test("I2: CẦN BỔ SUNG chỉ trả bản khai MỚI NHẤT; bản mới nhất đã ẩn danh ⇒ null, KHÔNG lùi về bản cũ hơn", async () => {
+  const w = setup();
+  await daGui(w); // v1
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = 'KHONG_DOC_DUOC' WHERE id = ?").run(PHIEU);
+  assert.equal((await gui(w, banKhai({ hoTen: "Trần Văn Hai" }))).status, 200); // v2
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = 'KHONG_DOC_DUOC' WHERE id = ?").run(PHIEU);
+  assert.equal((await xem(w)).json.banKhaiTruoc.hoTen, "Trần Văn Hai", "bản mới nhất, không phải v1");
+  // Ẩn danh bản v2 đúng khuôn trigger dk_submission_erase_shape.
+  w.sqlite.prepare(`UPDATE dk_submission SET erased_at = ?1, given_name = '(đã ẩn)', family_name = NULL, middle_name = NULL, gender = NULL, birth_date = NULL, address_value = NULL,
+    phone_value = NULL, phone_key = NULL, issued_place = NULL, referrer_text = NULL, document_number = 'XOA' || upper(replace(id, '-', '')), number_key = 'XOA' || upper(replace(id, '-', ''))
+    WHERE registration_id = ?2 AND version = 2`).run(new Date().toISOString(), PHIEU);
+  const g = await xem(w);
+  assert.equal(g.status, 200, g.text);
+  assert.equal(g.json.banKhaiTruoc, null);
+  assert.equal(g.text.includes("Nguyễn Văn Thử"), false, "không rơi về bản v1");
+});
+
+test("I2: ĐÃ RÚT, HẾT HẠN, TỪ CHỐI, ĐÃ DUYỆT, CHỜ DUYỆT, CHỜ XÁC MINH không trả bản khai trước", async () => {
+  for (const t of ["DA_RUT", "HET_HAN", "TU_CHOI", "CHO_DUYET", "DA_DUYET", "CHO_XAC_MINH"]) {
+    const w = setup();
+    await daGui(w);
+    if (t === "CHO_DUYET" || t === "DA_DUYET") chuyen(w, "CHO_DUYET");
+    if (t === "DA_DUYET") chuyen(w, "DA_DUYET");
+    if (t === "DA_RUT" || t === "HET_HAN" || t === "TU_CHOI") chuyen(w, t);
+    const g = await xem(w);
+    assert.equal(g.status, 200, `${t}: ${g.text}`);
+    assert.equal(g.json.banKhaiTruoc, null, t);
+  }
+});
+
+test("m1: bảo trì BẬT và KHÔNG cookie ⇒ 503, không phải 401 (bảo trì đứng TRƯỚC cookie)", async () => {
+  const w = setup();
+  batMay(w, true);
+  for (const r of [await xem(w, { cookie: null }), await luu(w, VAI, { cookie: null }), await gui(w, banKhai(), { cookie: null }), await rut(w, { cookie: null })]) {
+    assert.equal(r.status, 503, r.text);
+    assert.equal(r.json.error.code, "maintenance");
+  }
+  batMay(w, false);
+  assert.equal((await xem(w, { cookie: null })).status, 401);
+});
+
+test("m2: trường lạ (ở thân hoặc trong giayTo) ⇒ 400 TRƯỚC các nhánh 409 về chính sách; không bản khai", async () => {
+  const w = setup({ chinhSach: false }); // chưa có chính sách: nếu 409 đứng trước thì ra no_privacy_policy
+  await luu(w, VAI);
+  const lanThan = await gui(w, banKhai({ email: "x@example.com" }));
+  assert.equal(lanThan.status, 400, lanThan.text);
+  const lanGiayTo = await gui(w, banKhai({ giayTo: { typeCode: "CCCD", number: SO_CACH, issuedDate: "2021-03-04", expiryDate: "2036-05-06", ghiChu: "x" } }));
+  assert.equal(lanGiayTo.status, 400, lanGiayTo.text);
+  assert.equal(lanGiayTo.json.error.code, "invalid_input");
+  assert.equal(soDong(w, "dk_submission"), 0);
+  assert.equal((await gui(w, banKhai())).json.error.code, "no_privacy_policy", "thân sạch thì mới tới nhánh chính sách");
+});
+
+test("m3: câu thiếu mục dùng tên cho NGƯỜI ĐĂNG KÝ; cau-hinh cũng vậy", async () => {
+  const w = setup();
+  await luu(w, VAI);
+  const r = await gui(w, banKhai({ dienThoai: undefined, ngaySinh: undefined }));
+  assert.equal(r.status, 400);
+  assert.match(r.json.error.message, /Số điện thoại/);
+  assert.match(r.json.error.message, /Ngày sinh/);
+  const ch = await w.call("GET", "/api/dang-ky/cau-hinh");
+  const nhan = Object.fromEntries(ch.json.mucBatBuoc.map((m: any) => [m.ma, m.nhan]));
+  assert.equal(nhan.CALLED, "Số điện thoại");
+});
+
+test("m4: bản chính sách riêng tư có ngày hiệu lực ở TƯƠNG LAI không làm «gửi» trả no_privacy_policy — cùng nghĩa «hiện hành» với cau-hinh", async () => {
+  const w = setup();
+  await luu(w, VAI);
+  const tuongLai = new Date(Date.now() + 86_400_000).toISOString();
+  w.sqlite.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('cs-2', 2, 'm', 'Toàn văn mới.', ?, ?, 'x', ?, 'x')").run(tuongLai, tuongLai, tuongLai);
+  assert.equal((await w.call("GET", "/api/dang-ky/cau-hinh")).json.chinhSachRiengTu, 1, "cau-hinh vẫn báo bản 1");
+  const r = await gui(w, banKhai({ chinhSachPhienBan: 1 }));
+  assert.equal(r.status, 200, r.text);
+  assert.equal(w.q("SELECT policy_id FROM dk_submission")[0].policy_id, "cs-1");
+  const w2 = setup();
+  await luu(w2, VAI);
+  w2.sqlite.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('cs-2', 2, 'm', 'Toàn văn mới.', ?, ?, 'x', ?, 'x')").run(tuongLai, tuongLai, tuongLai);
+  assert.equal((await gui(w2, banKhai({ chinhSachPhienBan: 2 }))).json.error.code, "policy_changed", "bản chưa hiệu lực không đồng ý được");
 });

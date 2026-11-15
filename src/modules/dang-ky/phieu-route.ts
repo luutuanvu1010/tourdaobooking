@@ -4,7 +4,7 @@
 // «Lưu nháp» = chọn LOẠI đối tác (cột `role_code`): mọi giá trị khác của bản khai đi trong thân của «gửi» và chỉ vào bảng khi gửi (bản khai bất biến, ADR-0206 Đ3) — không có bảng nháp chứa
 // họ tên, ngày sinh, số giấy tờ (quyết định riêng của chủ nếu muốn lưu nháp phía máy chủ). Lịch sử lệnh ghi ở `dk_event`, KHÔNG vào `audit_log` (Đ12); không số, tên, liên hệ.
 // Công tắc «Nhận đăng ký mới» đóng KHÔNG chặn các route này: phiếu đã có vẫn vào lại, sửa, gửi lại, rút (Đ9).
-import { CAU_PHIEU, cauLyDoChoNguoiDangKy, nhanMucXacMinh, nhanTrangThaiPhieu, type TrangThaiPhieuDangKy } from "../../shared/dang-ky-hien-thi.ts";
+import { CAU_PHIEU, cauLyDoChoNguoiDangKy, nhanMucChoNguoiDangKy, nhanTrangThaiPhieu, type TrangThaiPhieuDangKy } from "../../shared/dang-ky-hien-thi.ts";
 import type { PhieuDangKyDto } from "../../shared/contracts.ts";
 import { error, json, readJson } from "../../shared/http.ts";
 import { chanNguoiKhongTaiKhoan } from "../../shared/maintenance.ts";
@@ -53,7 +53,9 @@ async function tra(ctx: Ctx<"public">, v: Vao, dto: PhieuDangKyDto): Promise<Res
 /** Phiếu đọc lại từ CSDL rồi dựng DTO — luôn dựng sau khi ghi, không dựng từ dữ liệu người gọi gửi lên. */
 async function dtoPhieu(db: D1Database, id: string, identityId: string): Promise<PhieuDangKyDto> {
   const p = (await phieuDeXem(db, id, identityId))!;
-  const [ten, tep, bk] = await Promise.all([tenLoaiVai(db), trangThaiTepChoTheoO(db, p.id), banKhaiTruoc(db, p.id)]);
+  const [ten, tep, bkMoiNhat] = await Promise.all([tenLoaiVai(db), trangThaiTepChoTheoO(db, p.id), p.status === "CAN_BO_SUNG" ? banKhaiTruoc(db, p.id) : Promise.resolve(null)]);
+  // Chỉ phiếu CẦN BỔ SUNG mới trả lại nội dung (để sửa); chỉ bản MỚI NHẤT — bản đó đã ẩn danh (tên bị thay bằng dấu) thì null, không lùi về bản cũ hơn.
+  const bk = bkMoiNhat && bkMoiNhat.given_name !== "(đã ẩn)" ? bkMoiNhat : null;
   const lyDo = (p.status === "CAN_BO_SUNG" || p.status === "TU_CHOI") && p.reason_code ? cauLyDoChoNguoiDangKy(p.reason_code) : null;
   return {
     maPhieu: p.id,
@@ -125,12 +127,15 @@ export async function luuNhapPhieu(ctx: Ctx<"public">): Promise<Response> {
 
 // ---- POST /api/dang-ky/phieu/gui ---- thân `{ chinhSachPhienBan, hoTen, ngaySinh?, diaChi?, dienThoai?, gioiTinh?, giayTo?, nguoiGioiThieu? }`
 const TRUONG_GUI = ["chinhSachPhienBan", "hoTen", "gioiTinh", "ngaySinh", "diaChi", "dienThoai", "giayTo", "nguoiGioiThieu"];
+const TRUONG_GIAY_TO = ["typeCode", "number", "classCode", "issuedDate", "issuedPlace", "expiryDate"];
+const laVat = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
+const truongDung = (body: Record<string, unknown>): boolean =>
+  Object.keys(body).every((k) => TRUONG_GUI.includes(k)) && (!laVat(body.giayTo) || Object.keys(body.giayTo).every((k) => TRUONG_GIAY_TO.includes(k)));
 const co = (x: unknown): boolean => x !== undefined && x !== null && !(typeof x === "string" && x.trim() === "");
 const loi = (message: string): { ok: false; message: string } => ({ ok: false, message });
 
 /** Kiểm HÌNH THỨC bản khai ĐANG GỬI bằng luật thuần của tự khai (parties); giá trị khai là đề xuất, câu báo lỗi không nhắc lại giá trị. Trả bản khai chuẩn hoá và các dữ kiện để kiểm mục bắt buộc. */
 function kiemBanKhai(body: Record<string, unknown>, dm: DanhMucGiayTo, homNay: string): { ok: true; b: BanKhaiMoi; muc: Omit<DuLieuKiemMuc, "loaiHopLe"> } | { ok: false; message: string } {
-  if (!Object.keys(body).every((k) => TRUONG_GUI.includes(k))) return loi("Yêu cầu không hợp lệ.");
   if (typeof body.hoTen !== "string") return loi("Họ tên là bắt buộc.");
   const ten = validatePersonFullName(body.hoTen);
   if (!ten.ok) return ten;
@@ -185,8 +190,9 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   const chan = chanSua(v.phieu);
   if (chan) return chan;
   const body = await readJson(ctx.request);
-  if (!body) return error(400, "invalid_input", "Yêu cầu không hợp lệ.");
-  const chinhSachRT = await chinhSachRiengTuHienHanh(env.DB, v.at);
+  // Hình thức tập trường (kể cả trong `giayTo`) kiểm TRƯỚC các nhánh 409 về chính sách: trường lạ luôn là 400.
+  if (!body || !truongDung(body)) return error(400, "invalid_input", "Yêu cầu không hợp lệ.");
+  const chinhSachRT = await chinhSachRiengTuHienHanh(env.DB);
   if (!chinhSachRT) return error(409, "no_privacy_policy", CAU_PHIEU.chuaChinhSach);
   if (typeof body.chinhSachPhienBan !== "number") return error(409, "consent_required", CAU_PHIEU.chuaDongY);
   if (body.chinhSachPhienBan !== chinhSachRT.version) return error(409, "policy_changed", CAU_PHIEU.doiChinhSach);
@@ -198,7 +204,7 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   const batBuoc = [...new Set(["ROLE", ...mucBatBuoc(rieng, hoSo.map((m) => m.ma))])];
   const loaiHopLe = v.phieu.role_code !== "" && dsLoaiMo(v.chinhSach.open_role_codes).includes(v.phieu.role_code);
   const thieu = mucChuaDapUng(batBuoc, { loaiHopLe, ...k.muc });
-  if (thieu.length > 0) return error(400, "items_missing", `Chưa đủ thông tin để gửi: ${thieu.map(nhanMucXacMinh).join(", ")}.`);
+  if (thieu.length > 0) return error(400, "items_missing", `Chưa đủ thông tin để gửi: ${thieu.map(nhanMucChoNguoiDangKy).join(", ")}.`);
 
   const submissionId = crypto.randomUUID();
   let kq: D1Result[] | null = null;
@@ -216,7 +222,7 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   // Khớp 0 dòng: lần gửi khác đã thắng (kết quả y như lần đầu), hoặc chính sách mới vừa đăng, hoặc phiếu đổi trạng thái.
   const nay = await phieuDeXem(env.DB, registrationId, identityId);
   if (nay && nay.status === "CHO_XAC_MINH" && nay.current_version > v.phieu.current_version) return tra(ctx, v, await dtoPhieu(env.DB, registrationId, identityId));
-  const csNay = await chinhSachRiengTuHienHanh(env.DB, new Date().toISOString());
+  const csNay = await chinhSachRiengTuHienHanh(env.DB);
   if (csNay && csNay.id !== chinhSachRT.id) return error(409, "policy_changed", CAU_PHIEU.doiChinhSach);
   return DOI_TRANG_THAI();
 }

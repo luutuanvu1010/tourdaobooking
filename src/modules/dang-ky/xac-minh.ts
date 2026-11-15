@@ -39,10 +39,10 @@ export function kiemKetLuan(body: Record<string, unknown> | null, batBuoc: reado
   return { ok: true, value: { muc: body.muc, dat: false, lyDo: body.lyDo, phienBan } };
 }
 
-/** Thân `bo-sung`, `tu-choi`: `{ lyDo }` — một mã trong danh sách đóng, không trường nào khác. */
-export function kiemLyDo(body: Record<string, unknown> | null): Kiem<{ lyDo: MaLyDoPhieu }> {
-  if (!body || !khongThua(body, ["lyDo"]) || !laMaLyDoPhieu(body.lyDo)) return { ok: false, message: "Hãy chọn một lý do trong danh sách." };
-  return { ok: true, value: { lyDo: body.lyDo } };
+/** Thân `bo-sung`, `tu-choi`: `{ lyDo, phienBan }` — một mã trong danh sách đóng và số bản khai người xác minh đã xem; không trường nào khác. */
+export function kiemLyDo(body: Record<string, unknown> | null): Kiem<{ lyDo: MaLyDoPhieu; phienBan: number }> {
+  if (!body || !khongThua(body, ["lyDo", "phienBan"]) || !laMaLyDoPhieu(body.lyDo) || !laPhienBan(body.phienBan)) return { ok: false, message: "Hãy chọn một lý do trong danh sách." };
+  return { ok: true, value: { lyDo: body.lyDo, phienBan: body.phienBan } };
 }
 
 export type HoSoDich = { kieu: "MOI" } | { kieu: "CO_SAN"; partyId: string };

@@ -111,6 +111,15 @@ FROM pty_privacy_policy p
 ORDER BY p.version DESC
 LIMIT 1;
 
+-- View công bố 3: phiên bản chính sách riêng tư ĐANG CÓ HIỆU LỰC (valid_from_at <= bây giờ, version lớn nhất) — cùng nghĩa «hiện hành» với `chinhSachRiengTuCongKhai` (GET cau-hinh, GET chinh-sach-rieng-tu)
+-- và hàm CURRENT_POLICY của parties. Khác view trên ở chỗ bản có ngày hiệu lực ở tương lai KHÔNG tính: phiếu đăng ký ghi policy_id từ view này, nên đồng ý đúng bản mà người đăng ký đang thấy (đợt 1 Task 4, vòng sửa 1).
+CREATE VIEW v_pty_privacy_effective AS
+SELECT p.id, p.version, p.valid_from_at
+FROM pty_privacy_policy p
+WHERE p.valid_from_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+ORDER BY p.version DESC
+LIMIT 1;
+
 -- Bộ đếm tệp tải lên mỗi giờ mỗi địa chỉ mạng (ADR-0208 Đ2, dk_policy.files_per_network_hour). Module dang-ky; để CHUNG tệp migration này vì route tải tệp ra đời cùng Task 5.
 -- Không dùng `login_attempt` của auth: cửa sổ ở đó cố định 15 phút và mỗi lần đặt chỗ xoá dòng quá 15 phút của MỌI khoá. Chỉ-thêm trên thực tế (R-N1-9: không xoá cứng): đếm theo cửa sổ `at_ms`, dòng cũ không còn được đếm; dọn dòng cũ cần quyết định riêng.
 -- ip_key là địa chỉ mạng (N2): không vào nhật ký, DTO, câu báo lỗi.

@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { cauLyDoChoNguoiDangKy } from "../../shared/dang-ky-hien-thi.ts";
-import { boSungStatement, datStatement, ketLuanMucStatement, lyDoCuaPhieu, suKienNhanVienStatement } from "./repository.ts";
+import { boSungStatement, datStatement, ketLuanMucStatement, lyDoCuaPhieu, suKienNhanVienStatement, tuChoiStatement } from "./repository.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const ACC = "22222222-2222-4222-8222-222222222222";
@@ -73,8 +73,8 @@ const audits = (w: any, action?: string): any[] => w.q(`SELECT staff_id, action,
 // `phienBan` mặc định 1 (bản khai người xác minh đã xem); bài tab cũ truyền số khác (hoặc `phienBan: undefined` để thử thiếu).
 const ketLuan = (w: any, as: string, id: string, body: any) => w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as, body: { phienBan: 1, ...body } });
 const dat = (w: any, as: string, id: string, body: any = {}) => w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as, body: { phienBan: 1, ...body } });
-const boSung = (w: any, as: string, id: string, body: unknown = { lyDo: "KHONG_DOC_DUOC" }) => w.call("POST", `/api/dang-ky/phieu/${id}/bo-sung`, { as, body });
-const tuChoi = (w: any, as: string, id: string, body: unknown = { lyDo: "KHONG_THUOC_DIEN" }) => w.call("POST", `/api/dang-ky/phieu/${id}/tu-choi`, { as, body });
+const boSung = (w: any, as: string, id: string, body: any = { lyDo: "KHONG_DOC_DUOC" }) => w.call("POST", `/api/dang-ky/phieu/${id}/bo-sung`, { as, body: { phienBan: 1, ...body } });
+const tuChoi = (w: any, as: string, id: string, body: any = { lyDo: "KHONG_THUOC_DIEN" }) => w.call("POST", `/api/dang-ky/phieu/${id}/tu-choi`, { as, body: { phienBan: 1, ...body } });
 const xemSo = (w: any, as: string, id: string) => w.call("POST", `/api/dang-ky/phieu/${id}/xem-so`, { as });
 const chiTiet = (w: any, as: string, id: string) => w.call("GET", `/api/dang-ky/phieu/${id}`, { as });
 const mo = (w: any, as: string, id: string, tid: string) => w.call("GET", `/api/dang-ky/phieu/${id}/tep/${tid}`, { as });
@@ -357,7 +357,7 @@ test("(10b) Lô «từ chối» khi câu đổi trạng thái trúng 0 dòng: t�
   w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG' WHERE id = ?").run(id); // phiếu đã bị người khác đổi trước lô
   const at = new Date().toISOString();
   const kq = await w.env.DB.batch([
-    tuChoiStatement(w.env.DB, { registrationId: id, lyDo: "KHONG_DOC_DUOC", by: ADM, at }),
+    tuChoiStatement(w.env.DB, { registrationId: id, lyDo: "KHONG_DOC_DUOC", by: ADM, at, phienBan: 1 }),
     suKienNhanVienStatement(w.env.DB, { registrationId: id, staffId: ADM, command: "TU_CHOI", lyDo: "KHONG_DOC_DUOC", at }),
     cauGoTepChoNeuTruocDoi(w.env.DB, id, "TU_CHOI", at),
   ]);
@@ -446,6 +446,38 @@ test("(13) I-1: tab cũ (đã xem bản khai 1) gửi kết luận hoặc «đ�
   assert.equal((await dat(w, ADM, id, { hoSo: { kieu: "MOI" }, phienBan: undefined })).status, 400);
 });
 
+test("(13c) I-3: tab cũ (đã xem bản khai 1) bấm «Yêu cầu bổ sung» hoặc «Từ chối» sau khi người đăng ký gửi lại bản 2 ⇒ 409 registration_version_changed, KHÔNG ghi gì; mở lại (phienBan 2) thì làm được", async () => {
+  const w = setup();
+  const id = phieu(w);
+  assert.equal((await chiTiet(w, ADM, id)).json.phienBan, 1);
+  guiLai(w, id);
+  const truoc = soDong(w);
+  for (const lenh of [() => boSung(w, ADM, id), () => tuChoi(w, ADM, id)]) {
+    const r = await lenh();
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "registration_version_changed");
+  }
+  assert.deepEqual(soDong(w), truoc, "không dòng lịch sử, không nhật ký");
+  assert.equal(reg(w, id).status, "CHO_XAC_MINH");
+  assert.equal(reg(w, id).reason_code, null);
+  for (const lenh of [() => boSung(w, ADM, id, { lyDo: "KHONG_DOC_DUOC", phienBan: undefined }), () => tuChoi(w, ADM, id, { lyDo: "KHONG_THUOC_DIEN", phienBan: 0 })]) assert.equal((await lenh()).status, 400);
+  assert.equal((await boSung(w, ADM, id, { lyDo: "KHONG_DOC_DUOC", phienBan: 2 })).status, 200);
+  assert.equal(reg(w, id).status, "CAN_BO_SUNG");
+});
+
+test("(13d) I-3: câu «bổ sung» và «từ chối» tự canh phiên bản — phienBan ≠ current_version đổi 0 dòng (kể cả khi bỏ kiểm trước ở route)", async () => {
+  const w = setup();
+  const id = phieu(w);
+  guiLai(w, id); // current_version = 2
+  const at = new Date().toISOString();
+  const kq = await w.env.DB.batch([
+    boSungStatement(w.env.DB, { registrationId: id, lyDo: "KHONG_DOC_DUOC", by: ADM, at, phienBan: 1 }),
+    tuChoiStatement(w.env.DB, { registrationId: id, lyDo: "KHONG_DOC_DUOC", by: ADM, at, phienBan: 1 }),
+  ]);
+  assert.deepEqual(kq.map((x: any) => x.meta.changes), [0, 0]);
+  assert.equal(reg(w, id).status, "CHO_XAC_MINH");
+});
+
 test("(13b) I-1: câu ghi tự canh phiên bản — kết luận và «đạt» với phienBan ≠ current_version đổi 0 dòng, kể cả khi kiểm trước ở route bị lách", async () => {
   const w = setup();
   const id = phieu(w);
@@ -472,7 +504,7 @@ test("(14) I-3: câu «kết luận» và «bổ sung» tự canh trạng thái 
     const [kl, su1, bs, su2] = await w.env.DB.batch([
       ketLuanMucStatement(w.env.DB, { registrationId: id, item: "HO_TEN", dat: true, lyDo: null, by: ADM, at, phienBan: 1 }),
       suKienNhanVienStatement(w.env.DB, { registrationId: id, staffId: ADM, command: "KET_LUAN", lyDo: null, at }),
-      boSungStatement(w.env.DB, { registrationId: id, lyDo: "KHONG_DOC_DUOC", by: ADM, at }),
+      boSungStatement(w.env.DB, { registrationId: id, lyDo: "KHONG_DOC_DUOC", by: ADM, at, phienBan: 1 }),
       suKienNhanVienStatement(w.env.DB, { registrationId: id, staffId: ADM, command: "BO_SUNG", lyDo: "KHONG_DOC_DUOC", at }),
     ]);
     assert.equal(kl.meta.changes, 0, `${trangThai}: kết luận`);

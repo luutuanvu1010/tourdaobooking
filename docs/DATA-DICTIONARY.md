@@ -224,6 +224,7 @@
 | `v_pty_owner_company` | view công bố | cột: party_id |
 | `v_pty_verification_requirement` | view công bố | cột: subject_kind, item_kind, item_code, valid_from_at |
 | `v_pty_privacy_current` | view công bố | cột: id, version, purposes, body, valid_from_at |
+| `v_pty_privacy_effective` | view công bố | cột: id, version, valid_from_at |
 | `v_pty_carrier` | view công bố | cột: party_id |
 | `v_pty_carrier_driver` | view công bố | cột: carrier_party_id, driver_party_id |
 | `v_pty_person_xung_ho` | view công bố | cột: party_id, given_name, gender |
