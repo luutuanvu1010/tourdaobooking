@@ -1,6 +1,6 @@
 # ADR-0207 — Xác minh phiếu đăng ký, duyệt mở tài khoản và kích hoạt: hai bước, hai người
 
-- **Trạng thái:** **proposed** 2026-11-15 — AI soạn theo khung đã được chủ duyệt **hướng** ngày 15/11 (`docs/superpowers/specs/2026-11-15-dang-ky-va-duyet-tai-khoan/`). Chờ chủ duyệt; AI không tự duyệt (Hiến pháp N3). Trang trình chủ: `docs/superpowers/specs/2026-11-15-dang-ky-dot-1-luot-a/TRINH-CHU.md`.
+- **Trạng thái:** **accepted** 2026-11-15 — chủ dự án, «Duyệt theo câu mẫu» (cùng lượt với ADR-0206; câu mẫu nguyên văn ghi ở ADR-0206), gồm lời cho phép «Nhân sự duyệt vào hồ sơ có sẵn do Quản trị chọn» (ngoại lệ có tên của ADR-0071 điều 3b). Lịch sử: **proposed** 2026-11-15 — AI soạn theo khung đã được chủ duyệt **hướng** ngày 15/11 (`docs/superpowers/specs/2026-11-15-dang-ky-va-duyet-tai-khoan/`). Chờ chủ duyệt; AI không tự duyệt (Hiến pháp N3). Trang trình chủ: `docs/superpowers/specs/2026-11-15-dang-ky-dot-1-luot-a/TRINH-CHU.md`.
 - **Số:** 0207 (số lớn nhất trên mọi nhánh và worktree lúc cấp là 0205; 0206 cấp cùng lượt). Tên giữ chỗ trong khung: `ĐK-2`.
 - **Nguồn:** lời chủ 15/11: «đăng ký - phê duyệt tài khoản»; và hai lựa chọn chủ đã duyệt cùng ngày: phiếu trước, tài khoản sau; chưa bắt buộc bảo mật hai lớp cho tài khoản tự đăng ký.
 - **Ngày:** 2026-11-15. **Loại:** việc lớn — quyền (ai xác minh, ai duyệt, tách nhiệm vụ), dữ liệu (lệnh duyệt sinh hồ sơ và tài khoản), tài khoản (một đường đặt PIN mới). Người kiểm độc lập chỉ đọc sau thi công.

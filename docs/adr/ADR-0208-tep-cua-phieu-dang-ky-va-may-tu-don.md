@@ -1,6 +1,6 @@
 # ADR-0208 — Tệp của phiếu đăng ký, và việc máy tự dọn phiếu đã kết thúc
 
-- **Trạng thái:** **proposed** 2026-11-15 — AI soạn theo khung đã được chủ duyệt **hướng** ngày 15/11 (`docs/superpowers/specs/2026-11-15-dang-ky-va-duyet-tai-khoan/`). Chờ chủ duyệt; AI không tự duyệt (Hiến pháp N3). Trang trình chủ: `docs/superpowers/specs/2026-11-15-dang-ky-dot-1-luot-a/TRINH-CHU.md`.
+- **Trạng thái:** **accepted** 2026-11-15 — chủ dự án, «Duyệt theo câu mẫu» (cùng lượt với ADR-0206; câu mẫu nguyên văn ghi ở ADR-0206), gồm lời cho phép «máy tự xoá dữ liệu của phiếu không được duyệt». Lịch sử: **proposed** 2026-11-15 — AI soạn theo khung đã được chủ duyệt **hướng** ngày 15/11 (`docs/superpowers/specs/2026-11-15-dang-ky-va-duyet-tai-khoan/`). Chờ chủ duyệt; AI không tự duyệt (Hiến pháp N3). Trang trình chủ: `docs/superpowers/specs/2026-11-15-dang-ky-dot-1-luot-a/TRINH-CHU.md`.
 - **Số:** 0208 (số lớn nhất trên mọi nhánh và worktree lúc cấp là 0205; 0206, 0207 cấp cùng lượt). Tên giữ chỗ trong khung: `ĐK-3`.
 - **Nguồn:** lời chủ 15/11: «Các tệp được đính kèm sẽ lưu ở trong kho R2 (Cloudflare), có thể xem lại - xóa - ẩn .. trong bảng điều khiển của Super Admin». ADR này chỉ lo phần **tệp của phiếu** và việc dọn; màn xem lại, ẩn, xoá của Toàn quyền là đợt 3, ADR riêng.
 - **Ngày:** 2026-11-15. **Loại:** việc lớn — dữ liệu (bảng mới, tệp của người ngoài, một lệnh ẩn danh), quyền (một tác nhân tự động mới), triển khai (cùng kho R2 `HO_SO`, không kho mới). Người kiểm độc lập chỉ đọc sau thi công.

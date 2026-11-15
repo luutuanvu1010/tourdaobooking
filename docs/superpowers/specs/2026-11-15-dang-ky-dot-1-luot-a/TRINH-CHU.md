@@ -1,6 +1,6 @@
 # Trình chủ — đăng ký đối tác, đợt 1, lượt duyệt A (15/11/2026)
 
-Hồ sơ có ngày; viết xong là đóng băng. Trang này trình văn bản để bạn duyệt, chưa phải lời duyệt. Bộ văn bản đã qua một lượt soát độc lập (chỉ đọc); người soát tìm ra bốn lỗ thiết kế nặng, tôi đã sửa cả bốn (mục cuối). Chữ và con số đề xuất nằm ở `PHU-LUC.md`.
+Hồ sơ có ngày; viết xong là đóng băng. **Chủ đã duyệt ngày 15/11 bằng nút trả lời «Duyệt theo câu mẫu»** (câu mẫu ở cuối trang). Phần dưới giữ nguyên như lúc trình. Bộ văn bản đã qua một lượt soát độc lập (chỉ đọc); người soát tìm ra bốn lỗ thiết kế nặng, tôi đã sửa cả bốn (mục cuối). Chữ và con số đề xuất nằm ở `PHU-LUC.md`.
 
 Luật dự án cho tối đa ba quyết định mỗi lần duyệt, nên đợt 1 chia hai lượt. Lượt A gồm ba quyết định dưới đây; lượt B (cấp độ đại lý mặc định, dấu xác minh) trình sau.
 
