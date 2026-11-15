@@ -73,3 +73,139 @@ export async function datChoTepMang(db: D1Database, ipKey: string, max: number, 
   await db.prepare(TEP_MANG_CHEN).bind(crypto.randomUUID(), ipKey, nowMs, new Date(nowMs).toISOString()).run();
   return (await dem()) <= max;
 }
+
+// ---- Bước xác minh của người trong công ty (ADR-0207 Đ2, Đ9; đợt 1 Task 6) ----
+export interface PhieuXetRow {
+  id: string; kind: string; status: string; role_code: string; current_version: number; reason_code: string | null;
+  match_kind: string | null; match_party_id: string | null; verified_by: string | null; verified_version: number | null;
+  submitted_at: string | null; activated_at: string | null; created_at: string;
+}
+const PHIEU_XET = defineSql(
+  "dang-ky",
+  "registration_for_review",
+  `SELECT id, kind, status, role_code, current_version, reason_code, match_kind, match_party_id, verified_by, verified_version, submitted_at, activated_at, created_at
+   FROM dk_registration WHERE id = ?1`,
+);
+export const phieuXet = (db: D1Database, id: string): Promise<PhieuXetRow | null> => db.prepare(PHIEU_XET).bind(id).first<PhieuXetRow>();
+
+export interface HangChoRow { id: string; status: string; role_code: string; current_version: number; submitted_at: string | null; created_at: string }
+// Quản trị, Toàn quyền: mọi phiếu CHƯA KẾT THÚC (không gồm ĐÃ DUYỆT, TỪ CHỐI, ĐÃ RÚT, HẾT HẠN). Chỉ mã, loại, mốc — không tên, không liên hệ.
+const HANG_CHO_TAT_CA = defineSql(
+  "dang-ky",
+  "queue_all_open",
+  `SELECT id, status, role_code, current_version, submitted_at, created_at FROM dk_registration
+   WHERE status IN ('DANG_DIEN', 'CHO_XAC_MINH', 'CAN_BO_SUNG', 'CHO_DUYET') ORDER BY COALESCE(submitted_at, created_at), id LIMIT 200`,
+);
+// Nhân sự: chỉ phiếu CHỜ DUYỆT chưa kích hoạt (ADR-0207 Đ4).
+const HANG_CHO_DUYET = defineSql(
+  "dang-ky",
+  "queue_awaiting_approval",
+  `SELECT id, status, role_code, current_version, submitted_at, created_at FROM dk_registration
+   WHERE status = 'CHO_DUYET' AND activated_at IS NULL ORDER BY COALESCE(submitted_at, created_at), id LIMIT 200`,
+);
+export async function hangCho(db: D1Database, chiChoDuyet: boolean): Promise<HangChoRow[]> {
+  return (await db.prepare(chiChoDuyet ? HANG_CHO_DUYET : HANG_CHO_TAT_CA).all<HangChoRow>()).results;
+}
+
+export interface BanKhaiRow {
+  version: number; family_name: string | null; middle_name: string | null; given_name: string; gender: string | null; birth_date: string | null; address_value: string | null;
+  phone_value: string | null; phone_key: string | null; document_type_code: string | null; number_key: string | null; license_class_code: string | null;
+  issued_date: string | null; issued_place: string | null; expiry_date: string | null; referrer_text: string | null; created_at: string;
+}
+// KHÔNG chọn document_number: số đầy đủ chỉ ra khỏi máy chủ ở route xem-so, sau khi nhật ký đã ghi.
+const BAN_KHAI = defineSql(
+  "dang-ky",
+  "submission_for_review",
+  `SELECT version, family_name, middle_name, given_name, gender, birth_date, address_value, phone_value, phone_key, document_type_code, number_key, license_class_code,
+          issued_date, issued_place, expiry_date, referrer_text, created_at
+   FROM dk_submission WHERE registration_id = ?1 AND version = ?2 AND erased_at IS NULL`,
+);
+export const banKhaiXet = (db: D1Database, registrationId: string, version: number): Promise<BanKhaiRow | null> => db.prepare(BAN_KHAI).bind(registrationId, version).first<BanKhaiRow>();
+
+const SO_DAY_DU = defineSql(
+  "dang-ky",
+  "submission_full_number",
+  "SELECT document_number, document_type_code FROM dk_submission WHERE registration_id = ?1 AND version = ?2 AND erased_at IS NULL AND document_number IS NOT NULL",
+);
+export const soDayDuCuaBanKhai = (db: D1Database, registrationId: string, version: number): Promise<{ document_number: string; document_type_code: string | null } | null> =>
+  db.prepare(SO_DAY_DU).bind(registrationId, version).first<{ document_number: string; document_type_code: string | null }>();
+
+const MUC_RIENG_PHIEU = defineSql(
+  "dang-ky",
+  "policy_phieu_required_items",
+  "SELECT phieu_required_items AS items FROM dk_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1",
+);
+/** Mục bắt buộc CHỈ phiếu cần ở dòng chính sách hiệu lực tại `at`; chưa có dòng ⇒ rỗng. */
+export async function mucRiengCuaPhieu(db: D1Database, at: string): Promise<string> {
+  return (await db.prepare(MUC_RIENG_PHIEU).bind(at).first<{ items: string }>())?.items ?? "";
+}
+
+// Kết luận MỚI NHẤT của từng mục ở một bản khai (dòng chỉ-thêm; dòng sau thắng).
+const KET_LUAN_MOI_NHAT = defineSql(
+  "dang-ky",
+  "item_result_latest",
+  `SELECT r.item_code, r.result, r.reason_code FROM dk_item_result r
+   WHERE r.registration_id = ?1 AND r.version = ?2
+     AND NOT EXISTS (SELECT 1 FROM dk_item_result n WHERE n.registration_id = r.registration_id AND n.version = r.version AND n.item_code = r.item_code
+                       AND (n.created_at > r.created_at OR (n.created_at = r.created_at AND n.rowid > r.rowid)))
+   ORDER BY r.item_code`,
+);
+export async function ketLuanMoiNhat(db: D1Database, registrationId: string, version: number): Promise<{ item_code: string; result: "DAT" | "KHONG_DAT"; reason_code: string | null }[]> {
+  return (await db.prepare(KET_LUAN_MOI_NHAT).bind(registrationId, version).all<{ item_code: string; result: "DAT" | "KHONG_DAT"; reason_code: string | null }>()).results;
+}
+
+// Câu ghi. Thứ tự lô CỐ ĐỊNH: [câu đổi (mang điều kiện trạng thái), dòng lịch sử (WHERE changes() > 0), nhật ký (onlyIf changes() > 0), …]. Điều kiện nằm TRONG câu; 0 dòng ⇒ phiếu đã bị xử lý.
+const KET_LUAN_CHEN = defineSql(
+  "dang-ky",
+  "item_result_insert",
+  `INSERT INTO dk_item_result (id, registration_id, version, item_code, result, reason_code, verified_by, verified_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, r.id, r.current_version, ?3, ?4, ?5, ?6, ?7, ?7, ?6, ?7, ?6 FROM dk_registration r WHERE r.id = ?2 AND r.status = 'CHO_XAC_MINH' AND r.current_version >= 1`,
+);
+export const ketLuanMucStatement = (db: D1Database, v: { registrationId: string; item: string; dat: boolean; lyDo: string | null; by: string; at: string }): D1PreparedStatement =>
+  db.prepare(KET_LUAN_CHEN).bind(crypto.randomUUID(), v.registrationId, v.item, v.dat ? "DAT" : "KHONG_DAT", v.lyDo, v.by, v.at);
+
+const SU_KIEN_NEU = defineSql(
+  "dang-ky",
+  "event_staff_if_prev",
+  `INSERT INTO dk_event (id, registration_id, actor_kind, actor_ref, command, reason_code, at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, 'STAFF', ?3, ?4, ?5, ?6, ?6, ?3, ?6, ?3 WHERE changes() > 0`,
+);
+/** Dòng lịch sử của người trong công ty; chỉ ghi khi câu liền trước đổi dòng. `command` là mã chữ hoa (KET_LUAN, DAT, BO_SUNG, TU_CHOI…); lịch sử KHÔNG mang số, tên, liên hệ. */
+export const suKienNhanVienStatement = (db: D1Database, v: { registrationId: string; staffId: string; command: string; lyDo: string | null; at: string }): D1PreparedStatement =>
+  db.prepare(SU_KIEN_NEU).bind(crypto.randomUUID(), v.registrationId, v.staffId, v.command, v.lyDo, v.at);
+
+// «Đạt»: mọi mục bắt buộc có kết luận MỚI NHẤT là DAT ở bản khai hiện hành VÀ đã có kết luận Danh bạ (cột match_*, hoặc đặt cùng lệnh). Danh sách mục là tham số JSON (?6).
+const DAT_CAP = defineSql(
+  "dang-ky",
+  "registration_verify_pass",
+  `UPDATE dk_registration
+      SET status = 'CHO_DUYET', verified_by = ?2, verified_version = current_version, verified_at = ?3,
+          match_kind = COALESCE(?4, match_kind), match_party_id = CASE WHEN ?4 IS NULL THEN match_party_id ELSE ?5 END, updated_at = ?3, updated_by = ?2
+    WHERE id = ?1 AND status = 'CHO_XAC_MINH' AND current_version >= 1 AND COALESCE(?4, match_kind) IS NOT NULL
+      AND (SELECT count(*) FROM json_each(?6) j
+            WHERE (SELECT x.result FROM dk_item_result x WHERE x.registration_id = dk_registration.id AND x.version = dk_registration.current_version AND x.item_code = j.value
+                    ORDER BY x.created_at DESC, x.rowid DESC LIMIT 1) = 'DAT') = json_array_length(?6)`,
+);
+export const datStatement = (db: D1Database, v: { registrationId: string; by: string; at: string; matchKind: "NEW" | "EXISTING" | null; matchPartyId: string | null; mucBatBuoc: readonly string[] }): D1PreparedStatement =>
+  db.prepare(DAT_CAP).bind(v.registrationId, v.by, v.at, v.matchKind, v.matchPartyId, JSON.stringify(v.mucBatBuoc));
+
+const BO_SUNG_CAP = defineSql(
+  "dang-ky",
+  "registration_supplement",
+  `UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'CHO_XAC_MINH'`,
+);
+export const boSungStatement = (db: D1Database, v: { registrationId: string; lyDo: string; by: string; at: string }): D1PreparedStatement =>
+  db.prepare(BO_SUNG_CAP).bind(v.registrationId, v.lyDo, v.at, v.by);
+
+const TU_CHOI_CAP = defineSql(
+  "dang-ky",
+  "registration_reject",
+  `UPDATE dk_registration SET status = 'TU_CHOI', reason_code = ?2, decided_at = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'CHO_XAC_MINH'`,
+);
+export const tuChoiStatement = (db: D1Database, v: { registrationId: string; lyDo: string; by: string; at: string }): D1PreparedStatement =>
+  db.prepare(TU_CHOI_CAP).bind(v.registrationId, v.lyDo, v.at, v.by);
+
+const LY_DO_CUA_PHIEU = defineSql("dang-ky", "registration_reason", "SELECT status, reason_code FROM dk_registration WHERE id = ?1");
+/** Trạng thái và mã lý do của phiếu (cho trang trạng thái của người đăng ký — nhãn lấy ở `cauLyDoChoNguoiDangKy`). */
+export const lyDoCuaPhieu = (db: D1Database, registrationId: string): Promise<{ status: string; reason_code: string | null } | null> =>
+  db.prepare(LY_DO_CUA_PHIEU).bind(registrationId).first<{ status: string; reason_code: string | null }>();
