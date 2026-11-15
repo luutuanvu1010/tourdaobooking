@@ -61,14 +61,19 @@ export function chuanHoaEmail(raw: unknown): string | null {
   return e.length > 0 && e.length <= 254 && EMAIL_RE.test(e) ? e : null;
 }
 
-/** Mã gửi email gồm `soChuSo` chữ số đều nhau (lấy mẫu loại bỏ trên số 32 bit — không lệch về số nhỏ), giữ số 0 đầu. `soChuSo` là dòng chính sách (4–10). */
-export function sinhMaEmail(soChuSo: number, ngauNhien: (b: Uint32Array) => void = (b) => void crypto.getRandomValues(b)): string {
-  const mod = 10 ** soChuSo;
-  const gioiHan = Math.floor(0x1_0000_0000 / mod) * mod;
-  const buf = new Uint32Array(1);
-  for (let i = 0; i < 1000; i++) {
+/**
+ * Mã gửi email gồm `soChuSo` chữ số ĐỀU nhau, giữ số 0 đầu; chạy đúng với mọi độ dài CHECK của `dk_policy.code_digits` cho phép (4–10). Mỗi chữ số lấy từ MỘT byte ngẫu nhiên
+ * bằng lấy mẫu loại bỏ (byte ≥ 250 bỏ đi, nên 0–9 đều xác suất như nhau — không lệch về số nhỏ). `ngauNhien` tiêm được để bài thử điều khiển.
+ */
+export function sinhMaEmail(soChuSo: number, ngauNhien: (b: Uint8Array) => void = (b) => void crypto.getRandomValues(b)): string {
+  const buf = new Uint8Array(32);
+  let ma = "";
+  for (let vong = 0; vong < 1000 && ma.length < soChuSo; vong++) {
     ngauNhien(buf);
-    if (buf[0]! < gioiHan) return String(buf[0]! % mod).padStart(soChuSo, "0");
+    for (const byte of buf) {
+      if (byte < 250 && ma.length < soChuSo) ma += String(byte % 10);
+    }
   }
-  throw new Error("Không sinh được mã.");
+  if (ma.length < soChuSo) throw new Error("Không sinh được mã.");
+  return ma;
 }

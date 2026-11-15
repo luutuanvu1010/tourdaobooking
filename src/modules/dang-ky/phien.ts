@@ -51,6 +51,7 @@ export async function docPhienDangKy(
 /** Khoá bộ đếm chống dò (ADR-0206 Đ8): không gian tên `dk:` riêng, không đụng khoá đăng nhập; dùng với `reserveAttempts`, `clearAttempts` của auth. */
 export const dkEmailKey = (email: string): string => `dk:email:${email}`;
 export const dkIpKey = (ip: string): string => `dk:ip:${ip}`;
+export const dkXacNhanIpKey = (ip: string): string => `dk:xn:ip:${ip}`;
 export const dkTepIpKey = (ip: string): string => `dk:tep:ip:${ip}`;
 
 /** Set-Cookie của phiên đăng ký: HttpOnly, SameSite=Lax, Secure khi https; Path chỉ /api/dang-ky; Max-Age = hạn tối đa của phiên (hạn không thao tác do chính token kiểm). */

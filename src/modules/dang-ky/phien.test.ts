@@ -1,7 +1,7 @@
 // Phiên đăng ký (ADR-0206 Đ5): cookie ký bằng khoá dẫn xuất riêng, không dùng lẫn với phiên Nền tảng.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { DK_COOKIE, dkEmailKey, dkIpKey, dkTepIpKey, docPhienDangKy, khoaBam, taoPhienDangKy } from "./phien.ts";
+import { DK_COOKIE, dkEmailKey, dkIpKey, dkTepIpKey, dkXacNhanIpKey, docPhienDangKy, khoaBam, taoPhienDangKy } from "./phien.ts";
 import { createSessionToken, verifySessionToken } from "../auth/session.ts";
 
 const SECRET = "bi-mat-thu-nghiem-dai-du-dung";
@@ -76,7 +76,7 @@ test("taoPhienDangKy từ chối mốc bắt đầu SAU mốc hiện tại (cook
 
 test("khoá bộ đếm `dk:` không bao giờ chung tiền tố với phone:, mfa:, mfa-mail:, ip: của đăng nhập (ADR-0206 Đ8) — kiểm cả hai chiều", async () => {
   const cua = ["phone:", "mfa:", "mfa-mail:", "ip:"];
-  const dk = [dkEmailKey("x"), dkIpKey("1.2.3.4"), dkTepIpKey("1.2.3.4")];
+  const dk = [dkEmailKey("x"), dkIpKey("1.2.3.4"), dkTepIpKey("1.2.3.4"), dkXacNhanIpKey("1.2.3.4")];
   for (const k of dk) {
     assert.ok(k.startsWith("dk:"), k);
     for (const c of cua) {

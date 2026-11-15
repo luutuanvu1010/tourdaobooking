@@ -8,13 +8,14 @@ import { error, json, readJson } from "../../shared/http.ts";
 import { chanNguoiKhongTaiKhoan } from "../../shared/maintenance.ts";
 import { nhanMucXacMinh } from "../../shared/dang-ky-hien-thi.ts";
 import type { Ctx } from "../../shared/router.ts";
-import { reserveAttempts, turnstileGate, turnstileLog } from "../auth";
+import { clearAttempts, reserveAttempts, turnstileGate, turnstileLog } from "../auth";
 import { getMaintenanceState, maintenanceResponse } from "../maintenance";
 import { chinhSachRiengTuCongKhai, mucXacMinhBatBuocCaNhan } from "../parties";
 import { guiThuMa } from "./mail.ts";
-import { cookiePhienDangKy, dkEmailKey, dkIpKey, khoaBam, taoPhienDangKy } from "./phien.ts";
+import { cookiePhienDangKy, dkEmailKey, dkIpKey, dkXacNhanIpKey, khoaBam, taoPhienDangKy } from "./phien.ts";
 import { chenMaEmail, chinhSachHienHanh, danhTinhTheoEmail, demLanNhapSai, maGanNhat, moPhieuNhap, mucRiengCuaPhieu, tieuMa } from "./repository.ts";
 import { chuanHoaEmail, sinhMaEmail } from "./rules.ts";
+import { sinhMa } from "../../shared/ma-dinh-danh.ts";
 import { mucBatBuoc } from "./xac-minh.ts";
 
 const GIO_MS = 3_600_000;
@@ -91,6 +92,11 @@ export async function xacNhanMa({ request, env }: Ctx<"public">): Promise<Respon
   const email = chuanHoaEmail(body?.email);
   if (!email) return error(400, "invalid_input", "Email chưa đúng dạng. Hãy kiểm tra lại.");
   const emailKey = await khoaBam(env.SESSION_SECRET, "email", email);
+  // Chống người lạ đốt mã của người khác: lượt nhập SAI tính theo địa chỉ mạng (khoá `dk:xn:ip:` băm, riêng `dk:`); nhập đúng thì xoá lượt vừa đặt (khuôn đăng nhập).
+  // Dòng chính sách chưa có số riêng cho việc này nên DÙNG LẠI `ask_per_network` và `ask_window_minutes` (báo cáo Task 3, vòng sửa 1).
+  const ipKey = await khoaBam(env.SESSION_SECRET, "ip", request.headers.get("cf-connecting-ip") ?? "khong-ro");
+  const dat = await reserveAttempts(env.DB, [{ key: dkXacNhanIpKey(ipKey), max: chinhSach.ask_per_network }], nowMs, chinhSach.ask_window_minutes * 60_000);
+  if (!dat.allowed) return error(429, "too_many_attempts", "Bạn đã nhập sai quá nhiều lần. Hãy đợi ít phút rồi thử lại.");
   const dong = await maGanNhat(env.DB, emailKey);
   // Không có mã, mã hết hạn, đã đủ số lần nhập: CÙNG một câu (không cho dò email nào đang có mã).
   if (!dong || dong.expires_at <= at || dong.attempts >= chinhSach.code_max_attempts) return error(401, "invalid_code", CAU_SAI_MA);
@@ -111,7 +117,7 @@ export async function xacNhanMa({ request, env }: Ctx<"public">): Promise<Respon
     // Có phiếu đang mở, hoặc phiếu ĐÃ DUYỆT chưa kích hoạt (danh tính đã hạ is_open): trả trạng thái của phiếu đó, KHÔNG mở phiếu mới.
     ({ registration_id: registrationId, identity_id: identityId, status: trangThai } = ident);
   } else {
-    registrationId = `DK_${Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => String.fromCharCode(65 + (b % 26))).join("")}`;
+    registrationId = sinhMa("DK", crypto.getRandomValues(new Uint8Array(8)));
     identityId = crypto.randomUUID();
     try {
       await env.DB.batch(moPhieuNhap(env.DB, { registrationId, identityId, email, at }));
@@ -124,6 +130,7 @@ export async function xacNhanMa({ request, env }: Ctx<"public">): Promise<Respon
     }
   }
   // Mã mới là PHIÊN mới: mốc bắt đầu = bây giờ (các route sau cấp lại cookie giữ mốc này để hạn không thao tác trượt, tối đa `session_max_hours`).
+  await clearAttempts(env.DB, null, dat.ids);
   const token = await taoPhienDangKy(env.SESSION_SECRET, registrationId, identityId, nowMs);
   return json({ trangThai }, 200, { "set-cookie": cookiePhienDangKy(token, chinhSach.session_max_hours, new URL(request.url).protocol === "https:"), "cache-control": "no-store" });
 }

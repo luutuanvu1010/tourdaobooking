@@ -247,13 +247,20 @@ const MA_GAN_NHAT = defineSql(
 );
 export const maGanNhat = (db: D1Database, emailKey: string): Promise<MaGanNhat | null> => db.prepare(MA_GAN_NHAT).bind(emailKey).first<MaGanNhat>();
 
-const MA_DEM_SAI = defineSql("dang-ky", "email_code_bump", "UPDATE dk_email_code SET attempts = attempts + 1, updated_at = ?2 WHERE id = ?1 AND attempts < ?3");
-export const demLanNhapSai = (db: D1Database, id: string, at: string, toiDa: number): Promise<D1Result> => db.prepare(MA_DEM_SAI).bind(id, at, toiDa).run();
+// Mã đã dùng hoặc đã nhập sai đủ số lần mang `attempts` = MA_CHET (một dấu cứng, lớn hơn mọi trần có nghĩa): mã đó chết hẳn, kể cả khi Toàn quyền nâng `code_max_attempts` sau đó
+// (nếu chỉ so với trần hiện hành thì nâng trần làm mã đã dùng nhập lại được). Dòng được GIỮ để trần theo giờ đếm đúng.
+export const MA_CHET = 1_000_000_000;
+const MA_DEM_SAI = defineSql(
+  "dang-ky",
+  "email_code_bump",
+  "UPDATE dk_email_code SET attempts = CASE WHEN attempts + 1 >= ?3 THEN ?4 ELSE attempts + 1 END, updated_at = ?2 WHERE id = ?1 AND attempts < ?3",
+);
+export const demLanNhapSai = (db: D1Database, id: string, at: string, toiDa: number): Promise<D1Result> => db.prepare(MA_DEM_SAI).bind(id, at, toiDa, MA_CHET).run();
 
-// Tiêu mã: đặt số lần nhập về trần (mã không dùng lại được) nhưng GIỮ dòng để trần theo giờ đếm đúng. MỘT câu có điều kiện, đòi changes = 1 — hai lần nhập song song chỉ một lần thắng.
-const MA_TIEU = defineSql("dang-ky", "email_code_consume", "UPDATE dk_email_code SET attempts = ?3, updated_at = ?2 WHERE id = ?1 AND attempts < ?3 AND expires_at > ?2");
+// Tiêu mã: đặt dấu MA_CHET (mã không dùng lại được, kể cả khi trần được nâng) nhưng GIỮ dòng để trần theo giờ đếm đúng. MỘT câu có điều kiện, đòi changes = 1 — hai lần nhập song song chỉ một lần thắng.
+const MA_TIEU = defineSql("dang-ky", "email_code_consume", "UPDATE dk_email_code SET attempts = ?4, updated_at = ?2 WHERE id = ?1 AND attempts < ?3 AND expires_at > ?2");
 export async function tieuMa(db: D1Database, id: string, at: string, toiDa: number): Promise<boolean> {
-  return ((await db.prepare(MA_TIEU).bind(id, at, toiDa).run()).meta.changes ?? 0) === 1;
+  return ((await db.prepare(MA_TIEU).bind(id, at, toiDa, MA_CHET).run()).meta.changes ?? 0) === 1;
 }
 
 const PHIEU_MOI = defineSql(

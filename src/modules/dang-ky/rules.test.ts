@@ -45,10 +45,14 @@ test("chuanHoaEmail: «An@Gmail.com » và «an@gmail.com» là MỘT khoá; sai
   for (const x of ["", "a", "a@b", "a b@c.vn", "@c.vn", 5, null, undefined, `${"a".repeat(250)}@b.vn`]) assert.equal(chuanHoaEmail(x), null, String(x));
 });
 
-test("sinhMaEmail: đúng số chữ số theo chính sách, giữ số 0 đầu, loại bỏ mẫu lệch", () => {
-  assert.equal(sinhMaEmail(6, (b) => { b[0] = 42; }), "000042");
-  assert.equal(sinhMaEmail(4, (b) => { b[0] = 12345; }), "2345");
-  let lan = 0;
-  assert.equal(sinhMaEmail(6, (b) => { b[0] = lan++ === 0 ? 0xffff_ffff : 7; }), "000007", "mẫu rơi vào đuôi lệch bị bỏ, lấy mẫu lại");
-  for (let i = 0; i < 50; i++) assert.match(sinhMaEmail(8), /^\d{8}$/);
+test("sinhMaEmail: đúng độ dài với MỌI giá trị CHECK cho phép (4, 6, 9, 10), giữ số 0 đầu, bỏ byte lệch (≥ 250)", () => {
+  const tu = (...bytes: number[]) => (b: Uint8Array) => { b.fill(0); bytes.forEach((x, i) => { b[i] = x; }); };
+  assert.equal(sinhMaEmail(4, tu(0, 0, 4, 2)), "0042");
+  assert.equal(sinhMaEmail(4, tu(1, 255, 2, 250, 3, 251, 4)), "1234", "byte 250–255 bị bỏ, không lấy dư");
+  assert.equal(sinhMaEmail(4, tu(19, 28, 37, 46)), "9876", "chữ số = byte mod 10");
+  for (const n of [4, 6, 9, 10]) for (let i = 0; i < 40; i++) assert.match(sinhMaEmail(n), new RegExp(`^\\d{${n}}$`), `độ dài ${n}`);
+  // phân bố: mỗi chữ số xuất hiện, không chữ số nào gấp đôi mức đều (kiểm thô)
+  const dem = new Array(10).fill(0);
+  for (let i = 0; i < 300; i++) for (const c of sinhMaEmail(10)) dem[Number(c)]++;
+  for (const d of dem) assert.ok(d > 150 && d < 450, `phân bố lệch: ${dem.join(",")}`);
 });

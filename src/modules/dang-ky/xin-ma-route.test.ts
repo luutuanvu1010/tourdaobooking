@@ -3,7 +3,7 @@
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { world } from "../../../tests/audit/harness.mjs";
+import { seedStaff, world } from "../../../tests/audit/harness.mjs";
 import { doNhatKyHang } from "../../../tests/audit/nhat-ky-hang.mjs";
 import { DK_COOKIE } from "./phien.ts";
 
@@ -247,7 +247,7 @@ test("nhập đúng mã: mở phiếu ĐANG ĐIỀN + danh tính + dòng lịch 
   const phan = sc.split(";")[0]!.split("=")[1]!.split(".");
   assert.ok(Number(phan[3]) >= t0 - 1000 && Number(phan[3]) <= Date.now() + 1000, "mã mới là phiên mới: mốc bắt đầu = bây giờ");
   assert.equal(r.headers.get("cache-control"), "no-store");
-  assert.equal((w.q("SELECT attempts FROM dk_email_code")[0] as any).attempts, 5, "mã đúng đã tiêu: số lần nhập về trần, dòng giữ để trần theo giờ đếm đúng");
+  assert.equal((w.q("SELECT attempts FROM dk_email_code")[0] as any).attempts, 1_000_000_000, "mã đúng đã tiêu: dấu chết cứng, dòng giữ để trần theo giờ đếm đúng");
   // vào lại
   await xin(w, "moi@example.com");
   await w.choNen();
@@ -276,9 +276,7 @@ test("phiếu đang xử lý trả đúng trạng thái; phiếu ĐÃ DUYỆT ch
 });
 
 test("công tắc TẮT lúc nhập mã và email chưa có phiếu ⇒ 409 «tạm ngừng nhận đăng ký mới», mã còn nguyên, không mở phiếu", async () => {
-  const { w } = setup({ mo: false });
-  const at = new Date().toISOString();
-  // Dựng thẳng một dòng mã hợp lệ (bình thường công tắc tắt thì không gửi mã cho email mới).
+  // Mã được xin lúc công tắc còn MỞ, rồi công tắc đóng trước khi nhập (bình thường công tắc tắt thì không gửi mã cho email mới).
   const { w: w2, thu } = setup();
   await xin(w2, "kia@example.com");
   await w2.choNen();
@@ -289,7 +287,6 @@ test("công tắc TẮT lúc nhập mã và email chưa có phiếu ⇒ 409 «t�
   assert.equal(phieu(w2).length, 0);
   assert.equal(soMa(w2), 1, "mã chưa bị tiêu");
   assert.equal(r.headers.get("set-cookie"), null);
-  void w; void at;
 });
 
 test("bảo trì BẬT ⇒ 503 `maintenance` cho cả xin mã lẫn nhập mã; không thư, không dòng, không bộ đếm; TẮT lại thì chạy", async () => {
@@ -420,7 +417,71 @@ test("cửa sổ đếm theo dòng chính sách `ask_window_minutes`: đổi dò
     const { w } = setup({ chinhSach: { ask_window_minutes: 60 } });
     await xin(w, "cs2@example.com");
     cu(w, 30);
-    await w.call("POST", "/api/auth/login", { body: { phone: "0900000000", pin: "000000" } });
-    assert.ok((w.q("SELECT count(*) AS n FROM login_attempt WHERE key LIKE 'dk:%'")[0] as any).n >= 2);
+    delete w.env.TURNSTILE_SECRET_KEY; // để lời gọi đăng nhập TỚI bộ đếm (có khoá thì dừng ở Turnstile, không chạm login_attempt)
+    const dn = await w.call("POST", "/api/auth/login", { body: { phone: "0900000000", pin: "000000" } });
+    assert.equal(dn.status, 401, dn.text);
+    assert.ok((w.q("SELECT count(*) AS n FROM login_attempt WHERE key LIKE 'phone:%' OR key LIKE 'ip:%'")[0] as any).n >= 1, "đăng nhập đã chạy câu dọn của nó");
+    assert.equal((w.q("SELECT count(*) AS n FROM login_attempt WHERE key LIKE 'dk:%'")[0] as any).n, 2, "câu dọn của đăng nhập không cắt cửa sổ 60 phút của đăng ký");
+  }
+});
+
+test("G1 — email đã có tài khoản (nhân viên và đối tác, có yếu tố email hai lớp): xin mã trả CÙNG dấu câu trả lời như email mới, không cookie; route không tra tài khoản", async () => {
+  const mau = dau(await xin(setup().w, "mau@example.com"));
+  const { w, thu } = setup();
+  seedStaff(w.sqlite, { id: "tk-nv", phone: "0911000001", name: "Nhân Viên", perms: ["SALES"] });
+  seedStaff(w.sqlite, { id: "tk-dt", phone: "0911000002", name: "Đối Tác", perms: ["PARTNER"] });
+  const at = new Date().toISOString();
+  const them = w.sqlite.prepare("INSERT INTO aut_mfa_factor (id, staff_id, kind, secret_enc, email, last_totp_step, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'EMAIL', NULL, ?, 0, ?, NULL, ?, ?, ?, ?)");
+  them.run("yt-nv", "tk-nv", "nv@example.com", at, at, "tk-nv", at, "tk-nv");
+  them.run("yt-dt", "tk-dt", "dt@example.com", at, at, "tk-dt", at, "tk-dt");
+  const a = await xin(w, "nv@example.com");
+  const b = await xin(w, "DT@example.com ");
+  assert.equal(dau(a), mau);
+  assert.equal(dau(b), mau);
+  assert.equal(a.headers.get("set-cookie"), null);
+  assert.equal(b.headers.get("set-cookie"), null);
+  await w.choNen();
+  assert.deepEqual(thu.map((t) => t.to).sort(), ["dt@example.com", "nv@example.com"], "cùng một thư như người thường — không thư khác, không thân khác");
+  assert.ok(thu.every((t) => t.subject === "Mã xác nhận đăng ký Tour Đảo" && !/tài khoản/i.test(`${t.text}${t.html}`)));
+});
+
+test("M1 — mã đã dùng hay đã nhập sai đủ lần vẫn CHẾT khi Toàn quyền nâng code_max_attempts", async () => {
+  const { w, thu } = setup();
+  await xin(w, "nang@example.com");
+  await w.choNen();
+  const ma = maTrongThu(thu[0]!);
+  assert.equal((await xacNhan(w, "nang@example.com", ma)).status, 200);
+  datChinhSach(w, { code_max_attempts: 50 });
+  assert.equal((await xacNhan(w, "nang@example.com", ma)).status, 401, "mã đã dùng không sống lại khi nâng trần");
+  // đã sai đủ 5 lần rồi nâng trần: mã không được thêm lượt đoán
+  await xin(w, "nang2@example.com");
+  await w.choNen();
+  const ma2 = maTrongThu(thu[1]!);
+  const sai = ma2 === "000000" ? "111111" : "000000";
+  w.sqlite.prepare("UPDATE login_attempt SET at = at - 1").run();
+  for (let i = 0; i < 50; i++) await xacNhan(w, "nang2@example.com", sai, `198.51.100.${i}`);
+  assert.equal((await xacNhan(w, "nang2@example.com", ma2, "198.51.100.200")).status, 401, "đã sai đủ 50 lần: chết");
+  datChinhSach(w, { code_max_attempts: 100 });
+  assert.equal((await xacNhan(w, "nang2@example.com", ma2, "198.51.100.201")).status, 401, "nâng trần lần nữa vẫn chết");
+});
+
+test("M2 — nhập sai tính theo địa chỉ mạng (`dk:xn:ip:` băm): quá ask_per_network lần ⇒ 429; nhập đúng xoá lượt; địa chỉ khác không bị ảnh hưởng; không khoá email nào", async () => {
+  const { w, thu } = setup({ chinhSach: { ask_per_network: 3, ask_per_mailbox: 100 } });
+  await xin(w, "ip@example.com", { ip: "198.51.100.50" });
+  await w.choNen();
+  const ma = maTrongThu(thu[0]!);
+  for (let i = 0; i < 3; i++) assert.equal((await xacNhan(w, "ip@example.com", "000001", "203.0.113.77")).status, 401);
+  const chan = await xacNhan(w, "ip@example.com", ma, "203.0.113.77");
+  assert.equal(chan.status, 429, "địa chỉ đã sai đủ trần: chặn kể cả mã đúng");
+  assert.equal(chan.headers.get("set-cookie"), null);
+  const khac = await xacNhan(w, "ip@example.com", ma, "203.0.113.78");
+  assert.equal(khac.status, 200, "địa chỉ khác (chủ thật) vẫn nhập được: người lạ đốt tối đa trần lượt, không khoá nạn nhân");
+  const khoa = (w.q("SELECT key FROM login_attempt WHERE key LIKE 'dk:xn:%'") as any[]).map((x) => x.key).join("\n");
+  assert.equal(khoa.includes("203.0.113"), false, "khoá lưu địa chỉ mạng ở dạng băm");
+  // nhập đúng xoá lượt vừa đặt: 3 lần đúng liên tiếp từ một địa chỉ không tích lượt
+  for (let i = 0; i < 4; i++) {
+    await xin(w, `d${i}@example.com`, { ip: `198.51.100.${60 + i}` });
+    await w.choNen();
+    assert.equal((await xacNhan(w, `d${i}@example.com`, maTrongThu(thu[thu.length - 1]!), "203.0.113.90")).status, 200, `lần đúng ${i}`);
   }
 });

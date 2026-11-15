@@ -822,7 +822,7 @@ test("mức truy cập của 517 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-13 (ADR-0201 Đ3): + PUT (admin) / GET (office) /api/catalog/:code/anh = 503.
   // ADR-0202 (nội dung màn bảo trì): +1 PUT (admin) /api/maintenance/content = 504.
   // ADR-0208 Đ2 (đăng ký đối tác, đợt 1 Task 5): +1 POST (public) /api/dang-ky/phieu/tep = 505.
-  // ADR-0207 Đ9 (đợt 1 Task 6): + 8 route /api/dang-ky/* (accounts) = 517.
+  // ADR-0207 Đ9 (đợt 1 Task 6): + 8 route /api/dang-ky/* (accounts) = 513.
   // ADR-0206 Đ6 (đợt 1 Task 3): + 4 route công khai (GET /api/dang-ky/cau-hinh, POST /api/dang-ky/ma, POST /api/dang-ky/xac-nhan, GET /api/chinh-sach-rieng-tu) = 513 + 4 = 517.
   assert.equal(actual.length, 517, "số route thực tế lệch 517 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
   assert.equal(SNAPSHOT.length, 517, "SNAPSHOT phải có đúng 517 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
