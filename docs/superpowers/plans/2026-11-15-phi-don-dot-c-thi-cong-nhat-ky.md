@@ -33,7 +33,7 @@ Ba câu chủ đã chốt 15/11 («chốt theo đề xuất»): (1) giảm giá 
 - Câu chốt **đứng cuối lô** (R8).
 - **Thứ tự cổng ở Còn vé**: thiếu phí trước mốc / đặt gấp (R10).
 - `chuanBiPhiDonXacNhan` nằm ở `orders/service.ts` (không ở `phi-don-don.ts`) vì gọi `locations` và `pricing` lúc chạy; `phi-don-don.ts` phải nạp được bằng node trần.
-- `fee_return_pax` lưu `min(số người chiều về, số khách)` thay số thô; máy chủ đã chặn số người chiều về vượt số khách nên hai số trùng nhau trong thực tế.
+- ~~`fee_return_pax` lưu `min(số người chiều về, số khách)` thay số thô; máy chủ đã chặn số người chiều về vượt số khách nên hai số trùng nhau trong thực tế.~~ **Sửa 15/11 sau kiểm độc lập (Nên sửa 1): câu gạch là SAI.** Máy chủ chặn số người chiều về theo TỔNG khách (gồm em bé), còn số lượng phí chỉ đếm khách tính tiền (không em bé), nên hai số khác nhau khi có em bé (SV-PD-18: 2 người lớn + 1 em bé, chiều về 3 ⇒ số đã kẹp 2). Lưu số đã kẹp làm «Sửa số khách» tăng lên thu thiếu. Nay `fee_return_pax` lưu đúng số người chiều về GỐC như kế hoạch Task 1 và chú thích `0169` (bài `src/phi-don-doc-tien.test.ts` «SV-PD-18 rồi sửa số khách», lớp 3 sổ vàng so `returnPax`).
 
 ## Task 5: chỗ đọc `order_item` được bỏ qua hoặc xếp loại (nguồn: `DA_RA` của `src/doc-dong-tien-phi-don.test.ts`)
 - `orders/repository.ts` (5 chỗ) — BỎ RA / BỎ QUA: câu đọc dòng của chi tiết đơn (nhóm dịch vụ chỉ lấy dòng dịch vụ, phí đọc riêng); câu dòng tiền cho tạm tính dịch vụ (phần phí qua `getPhiChoHieuLuc`); kiểu bảng ghi, câu chèn dòng dịch vụ, câu xoá dòng của đơn nháp (ghi, không đọc tiền).

@@ -133,6 +133,24 @@ test("[Review Focus 5] sửa số người chiều về SAU xác nhận rồi s�
   assert.equal(sau.total, 1_900_000);
 });
 
+test("SV-PD-18 rồi sửa số khách (sửa sau kiểm độc lập, Nên sửa 1): 2 người lớn + 1 em bé, chiều về ghi 3 người ⇒ lúc xác nhận chiều về 30.000 × 2 nhưng bản chụp giữ số GỐC 3; sửa thành 3 người lớn + 1 em bé ⇒ chiều về 30.000 × 3 = 90.000 (không thu thiếu)", async () => {
+  const w = await setup({ cr: 30_000 });
+  w.sqlite.prepare("UPDATE catalog_item SET price_infant = 0 WHERE code = 'TOUR_LAN'").run(); // em bé đi miễn phí (giá 0 đặt rõ) — để lập được đơn có em bé
+  const dv = { ...svc({ adult: 2, infant: 1 }, [OUT(KS_CR), RET(KS_CR, 3)]), catalogPriceSeen: { adult: 500000, child: 300000, infant: 0 } };
+  const o = await lapXacNhan(w, [], { services: [dv] });
+  assert.deepEqual(phiTrenDon(o), [
+    { direction: "OUT", quantity: 2, unitPrice: 30_000, lineTotal: 60_000 },
+    { direction: "RETURN", quantity: 2, unitPrice: 30_000, lineTotal: 60_000 },
+  ], "lúc xác nhận: em bé không tính tiền, chiều về min(3, 2) = 2");
+  assert.deepEqual(dongPhiDaLuu(w, o.id).map((d: any) => [d.quantity, d.fee_return_pax]), [[2, null], [2, 3]], "bản chụp chiều về = số người GỐC 3, không phải số đã kẹp 2");
+  await ok(suaSoKhach(w, o, { adult: 3, infant: 1 }), 200, "sửa số khách");
+  const sau = await don(w, o.id);
+  assert.deepEqual(phiTrenDon(sau), [
+    { direction: "OUT", quantity: 3, unitPrice: 30_000, lineTotal: 90_000 },
+    { direction: "RETURN", quantity: 3, unitPrice: 30_000, lineTotal: 90_000 },
+  ], "chiều về min(3 người đã chụp, 3 khách mới) = 3");
+});
+
 test("đóng chặng chiều về SAU xác nhận ⇒ dòng phí vẫn trên trang đơn và biên nhận, vẫn tính lại khi sửa số khách (phí chụp theo dòng, không theo chặng)", async () => {
   const w = await setup();
   const o = await lapXacNhan(w, [OUT(KS_CR), RET(KS_CR)]);

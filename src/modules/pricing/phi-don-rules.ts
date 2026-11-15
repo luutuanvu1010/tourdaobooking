@@ -96,6 +96,8 @@ export function chuKyDieuKien(d: DieuKienPhiDon): string {
 
 // ---- Phí đưa đón của MỘT đơn (Đợt C, Task 2): hàm thuần mà `orders` và «Thử tra» cùng dùng; không có luật chọn thứ hai ----
 export interface ChangDauVao { legKey: string; zoneCode: string; direction: "OUT" | "RETURN"; exclusive: boolean; catalogCode: string | null; soKhachTinhTien: number; paxOverride: number | null }
+/** `returnPax` = số người chiều về GỐC (`pax_override`) của chặng về theo khách, chụp vào `order_item.fee_return_pax`; KHÔNG phải số đã kẹp (`soLuong` = min(số đó, khách tính tiền)).
+ *  «Sửa số khách» tính lại min(`returnPax`, khách mới) — lưu số đã kẹp thì tăng khách sẽ thu thiếu (kiểm độc lập Đợt C, Nên sửa 1). */
 export interface DongPhiDon { legKey: string; ruleId: string; kind: KieuPhiDon; zoneCode: string; tierCode: string | null; donGia: number; soLuong: number; tien: number; returnPax: number | null }
 export type LyDoThieuPhiDon = "KHONG_CO_MUC" | "XUNG_DOT" | "DAI_LY_HAI_CAP"; // trùng chữ `ly_do` của sổ vàng
 export interface ThieuPhiDon { legKey: string; zoneCode: string; lyDo: LyDoThieuPhiDon }
@@ -122,7 +124,7 @@ export function tinhPhiDonThuan(v: { bang: BangPhiDon; nhom: ReadonlyMap<string,
     const t = tinhPhiChang({ muc: r.muc, direction: c.direction, soKhachTinhTien: c.soKhachTinhTien, paxOverride: c.paxOverride });
     if (!t) continue;
     if (!Number.isSafeInteger(t.tien)) throw new RangeError("Số khách hoặc số tiền quá lớn để tính phí đưa đón.");
-    dong.push({ legKey: c.legKey, ruleId: r.muc.id, kind: r.muc.kind, zoneCode: c.zoneCode, tierCode, donGia: t.donGia, soLuong: t.soLuong, tien: t.tien, returnPax: r.muc.kind === "PER_PAX" && c.direction === "RETURN" && c.paxOverride !== null ? t.soLuong : null });
+    dong.push({ legKey: c.legKey, ruleId: r.muc.id, kind: r.muc.kind, zoneCode: c.zoneCode, tierCode, donGia: t.donGia, soLuong: t.soLuong, tien: t.tien, returnPax: r.muc.kind === "PER_PAX" && c.direction === "RETURN" && c.paxOverride !== null ? c.paxOverride : null });
   }
   return { apDung: true, dong, thieu };
 }

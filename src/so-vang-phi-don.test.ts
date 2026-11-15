@@ -186,7 +186,7 @@ test("sổ vàng phí đón — lớp 3: hàm tính phí của đơn ra đúng �
     const cap = capCuaCa(c);
     const capChup = cap.loai === "CO_CAP" ? cap.tierCode : null;
     let tong = 0;
-    c.dau_vao.chang.forEach((_, i) => {
+    c.dau_vao.chang.forEach((ch, i) => {
       const k = c.dap_an.chang[i]!;
       const nhan = `${c.ma} chặng ${i + 1}`;
       const dong = kq.dong.find((d) => d.legKey === `c${i + 1}`);
@@ -196,6 +196,10 @@ test("sổ vàng phí đón — lớp 3: hàm tính phí của đơn ra đúng �
       assert.ok(dong, `${nhan}: phải ra dòng`);
       assert.deepEqual([dong!.ruleId, dong!.kind, dong!.donGia, dong!.soLuong, dong!.tien, dong!.tierCode], [k.quy_tac, k.kieu, k.don_gia, k.so_luong, k.tien, k.cap_da_chup ?? null], nhan);
       assert.equal(dong!.tierCode, capChup, `${nhan}: cấp đã chụp`);
+      // Bản chụp `fee_return_pax` = số người chiều về GỐC (`so_nguoi_rieng`), KHÔNG phải số đã kẹp (sửa sau kiểm độc lập, Nên sửa 1): sửa số khách tăng lên phải tính lại
+      // min(số gốc, số khách mới) — lưu số đã kẹp thì SV-PD-18 (2 NL + 1 em bé, chiều về 3) sửa thành 3 NL thu thiếu một khách.
+      const goc = k.kieu === "PER_PAX" && ch.chieu === "RETURN" && ch.so_nguoi_rieng != null ? ch.so_nguoi_rieng : null;
+      assert.equal(dong!.returnPax, goc, `${nhan}: số người chiều về đã chụp (gốc, không kẹp)`);
       tong += dong!.tien;
     });
     assert.equal(kq.thieu.length === 0 ? tong : null, c.dap_an.tong_phi_don, `${c.ma}: tổng (null ⇔ có thiếu)`);
