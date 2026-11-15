@@ -108,9 +108,10 @@ test("SV-PD-24: sửa số khách 2 → 3 người lớn sau xác nhận ⇒ ph�
   assert.equal(await tongTrongDanhSach(w, o.id), 1_800_000, "danh sách đọc computeEffectiveMoney");
   const b = await bienNhan(w, o.id);
   assert.deepEqual([b.subtotal, b.total, b.conLai], [1_800_000, 1_800_000, 1_800_000], "biên nhận / phải thu của billing");
-  // lịch sử số khách: tạm tính mỗi dòng gồm phí
-  const ls = sau.lichSuSoKhach ?? (await don(w, o.id)).lichSuSoKhach;
-  if (ls) assert.deepEqual(ls.map((d: any) => d.tamTinh), [1_200_000, 1_800_000]);
+  // lịch sử số khách (chỉ người có order.history.view — đọc bằng Quản trị): tạm tính mỗi dòng gồm phí, dòng cuối = hiện hành
+  const ls = (await ok(w.call("GET", `/api/orders/${o.id}`, { as: ADM }), 200, "đọc đơn (Quản trị)")).json.lichSuSoKhach;
+  assert.ok(Array.isArray(ls) && ls.length >= 2, JSON.stringify(ls));
+  assert.deepEqual([ls[0].tamTinh, ls[ls.length - 1].tamTinh], [1_200_000, 1_800_000]);
 });
 
 test("[Review Focus 5] sửa số người chiều về SAU xác nhận rồi sửa số khách ⇒ phí chiều về theo số người ĐÃ CHỤP (min(1, 3) = 1), không theo số mới 2; chiều đi theo số khách mới", async () => {
@@ -213,7 +214,7 @@ test("SV-PD-01: đón miễn phí (mức 0 đồng) ⇒ biên nhận vẫn in d�
   assert.deepEqual(phiTrenDon(o), [{ direction: "OUT", quantity: 2, unitPrice: 0, lineTotal: 0 }]);
   const b = await bienNhan(w, o.id);
   assert.deepEqual(b.phiDuaDon, [{ description: "Phí đưa đón — chiều đi, Bãi Dài – Cam Ranh", quantity: 2, unitPrice: 0, lineTotal: 0 }]);
-  assert.deepEqual([b.subtotal, b.total], [1_000_000, 1_000_000]);
+  assert.deepEqual([b.subtotal, b.total, b.phiDuKien], [1_000_000, 1_000_000, false]);
   const khoi = buildConfirmation(b, null).blocks.find((k: any) => k.kind === "service" && k.name === "Phí đưa đón") as any;
   assert.ok(khoi, "có khối Phí đưa đón");
   assert.deepEqual(khoi.lines.map((l: any) => [l.description, l.quantity, l.lineTotal]), [["Phí đưa đón — chiều đi, Bãi Dài – Cam Ranh", "2", MIEN_PHI]]);
@@ -296,4 +297,13 @@ test("«Khách đã trả đủ» đơn có người hưởng + giảm giá + ph
   assert.deepEqual(phieu, { gross_snapshot: 1_200_000, due_snapshot: 1_140_000 }, "R-BIL-16: gross − due = giảm giá hiệu lực");
   const giam = w.q("SELECT amount FROM bil_debt_line WHERE order_id = ? AND kind_code = 'GIAM_GIA_BEN_DAT'", o.id).map((r: any) => r.amount);
   assert.deepEqual(giam, [60_000]);
+});
+
+test("biên nhận đơn NHÁP có phí: cờ phiDuKien = true (số «dự kiến», chưa chụp); không phí ⇒ false", async () => {
+  const w = await setup();
+  const nhap = (await ok(w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc({ adult: 2 }, [OUT(KS_CR)])] } }), 201)).json.order;
+  const b = await bienNhan(w, nhap.id);
+  assert.deepEqual([b.phiDuKien, b.phiDuaDon.map((d: any) => d.lineTotal)], [true, [200_000]]);
+  const khong = (await ok(w.call("POST", "/api/orders", { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc({ adult: 2 }, [])] } }), 201)).json.order;
+  assert.deepEqual([(await bienNhan(w, khong.id)).phiDuKien, (await bienNhan(w, khong.id)).phiDuaDon], [false, []]);
 });

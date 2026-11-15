@@ -2812,6 +2812,8 @@ export interface ReceiptDto {
    * Rỗng = đơn không phí (hoặc máy chủ cũ). `subtotal` đã gồm các dòng này.
    */
   phiDuaDon?: ReceiptPhiDto[];
+  /** Dòng phí còn là số «dự kiến» (đơn NHÁP — phí chưa chụp, tính lại lúc xác nhận; chủ 15/11 câu 3). Chữ «dự kiến» trên ảnh do Task 6 đặt; máy chủ chỉ báo cờ. Vắng = máy chủ cũ. */
+  phiDuKien?: boolean;
   subtotal: number;
   /** Giảm giá IN TRÊN BIÊN NHẬN = giảm giá hiệu lực (`OrderDto.giamGiaHieuLuc`, ADR-0109 QĐ4); bằng giảm giá đã lưu trừ khi tạm tính hiện hành nhỏ hơn. subtotal − discount = total. */
   discount: number;

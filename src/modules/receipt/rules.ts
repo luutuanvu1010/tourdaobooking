@@ -148,6 +148,7 @@ export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: T
     })),
     // Đợt C, Task 5: dòng phí đưa đón của đơn (đơn nháp: «dự kiến», cùng số với tạm tính) — chép TỪNG trường, không mã mức / cấp / vùng.
     phiDuaDon: (order.phiDuaDon?.dong ?? []).map((d) => ({ description: d.description, quantity: d.quantity, unitPrice: d.unitPrice, lineTotal: d.lineTotal })),
+    phiDuKien: (order.phiDuaDon?.duKien ?? false) && (order.phiDuaDon?.dong.length ?? 0) > 0,
     subtotal: order.subtotal,
     // ADR-0109 QĐ4: dòng "Giảm giá" gửi khách = giảm giá HIỆU LỰC (min(giảm giá, tạm tính hiện hành), máy chủ tính bằng `effectiveMoney`) để Tạm tính − Giảm giá =
     // Tổng cộng; bằng giảm giá đã lưu trừ khi bớt khách làm tạm tính nhỏ hơn. Không suy ngược `subtotal − total` (chỗ tính thứ hai — Hiến chương 5.4).
