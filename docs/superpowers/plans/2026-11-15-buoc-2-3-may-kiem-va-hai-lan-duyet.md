@@ -84,6 +84,7 @@
 | 2.1–2.6 | xong trên nhánh, kiểm độc lập đạt; có hiệu lực khi chủ nhập bản chính và mở phiên mới |
 | 3.1, 3.2, 3.5 | xong trên nhánh (mẫu, gói hướng dẫn có hiệu lực khi nhập) |
 | 3.3 ADR-0211 | đề xuất; chờ chủ nói «Duyệt ADR-0211» |
-| 3.4 rút gọn CLAUDE.md | chờ chủ quyết ADR-0160 |
+| 3.4 rút gọn CLAUDE.md | đã cập nhật theo bản chính trên nhánh mới `worktree-rut-gon-claude-md-2` (lần lưu 0aa3153dc, bản sao `.claude/worktrees/agent-a14f30763912b29a3`); vẫn đề xuất, chờ chủ duyệt ADR-0160 |
 | Dọn bản làm việc riêng | nhóm 1: 4 phiên đã lưu trữ, `xoa-muc-tra-sau-no` đã gỡ; `dot-0b-khung-tai` gỡ thư mục giữ nhánh; `quirky-faraday` lưu trữ phiên. Còn để nguyên: `modest-lovelace` (chủ tắt 6 tiến trình sót trước), `admin-delete-data-decision` (phiên «Audit giao diện» còn phiên con), nhóm 2–3 có tệp hoặc lần lưu chưa nhập |
 | Khoá bản chính GitHub, kho riêng tư/công khai, `autoMode`, tài nguyên Cloudflare bản Development | việc của chủ (mục 0) |
+- **3.4 làm lại (15/11, sau khi cửa kiểm mục tiêu chỉ ra):** thay vì gộp vào nhánh cũ (bị chặn), tách nhánh mới `worktree-rut-gon-claude-md-2` từ nhánh cũ rồi nhận bản chính 538f51ade — lớp chặn cho phép. Lần lưu 0aa3153dc. CLAUDE.md đề xuất 27.787 byte / 139 dòng (bản chính 31.262 / 132), giữ nguyên văn ba thay đổi mới của bản chính. Bảng kịch bản Chrome chuyển từ `web/CLAUDE.md` sang `docs/KICH-BAN-CHROME.md` để dưới trần (ngoài đề xuất cũ; BACKLOG BL-CM-WEB để chủ chọn). Bài kiểm 107/107 + 25/25, typecheck 0. Ba tệp nháp chưa lưu ở thư mục cũ không mang sang.
