@@ -60,6 +60,15 @@ Chạy `node scripts/dev-iphone.mjs` từ thư mục gốc: dựng D1 **tạm** 
 - **Có service worker (HTTPS tạm):** `node scripts/dev-iphone.mjs --tunnel` rồi mở địa chỉ `trycloudflare.com` mà wrangler in ra (dùng `wrangler dev --tunnel`, theo tài liệu của wrangler; **tôi chưa tự chạy thử cờ này** vì nó mở địa chỉ công khai ra Internet cho tới khi bạn thoát). Thử thêm mục 6 (mở lại tức thì) và offline.
 - Thoát bằng Ctrl+C. Khi xong, ghi kết quả từng mục vào `docs/evidence/2026-09-19-pwa/` (ảnh chụp màn hình iPhone là bằng chứng E2).
 
+## Chụp nhanh trên trình giả lập iPhone (máy Mac có Xcode)
+
+Không thay được iPhone thật (không có Face ID, rung, camera), nhưng xem nhanh bố cục, tai thỏ, chữ tràn. Chạy tay, không nằm trong `npm test` hay lượt kiểm GitHub.
+1. Bật một trình giả lập: Xcode → Open Developer Tool → Simulator (hoặc `xcrun simctl boot "iPhone 17" && open -a Simulator`).
+2. Ở thư mục gốc, dựng máy chủ dữ liệu tạm: `node scripts/dev-iphone.mjs` (in SĐT/PIN tài khoản thử).
+3. Ở một cửa sổ khác: `node scripts/chup-iphone.mjs` — mở lần lượt năm trang chính (đăng nhập, trang chủ, đơn hàng, tạo đơn, tài khoản) bằng Safari của trình giả lập, chụp mỗi trang và in đường dẫn ảnh (thư mục tạm, không ghi vào kho). Muốn chụp trang trong: đăng nhập một lần bằng Safari của trình giả lập rồi chạy lại. Tuỳ chọn: địa chỉ khác (`node scripts/chup-iphone.mjs http://localhost:8787`), `--trang /login,/orders`, `--cho 6` (giây chờ mỗi trang), `--ra <thư mục>`.
+- Không có trình giả lập nào bật thì kịch bản in hướng dẫn và thoát mã 1.
+- Bản chạy thật chỉ chụp trang đăng nhập công khai, không đăng nhập: `node scripts/chup-iphone.mjs https://booking.tourdao.vn --trang /login`.
+
 ## Sau khi deploy (xác nhận một lần trên môi trường thật; cấu trúc `no-store` đã chặn bẫy 304 nên đây chỉ là xác nhận)
 
 **Đã làm lần deploy đầu (2026-09-19, `docs/evidence/2026-09-19-pwa/sau-deploy.txt`): điểm 2 và 3 đạt; điểm 1 đạt phần header (`/sw.js` là `no-store`), còn phần "tên cache đổi sau deploy có đổi mã" CHƯA quan sát** vì mới có một bản deploy: làm ở lần deploy tiếp theo. Mỗi lần deploy sau, chạy lại `kich-ban/kiem-tra-san-xuat.mjs`.
