@@ -27,7 +27,7 @@ export async function docPhienDangKy(
   env: Env,
   nowMs: number,
   policy: { idleMin: number; maxHours: number },
-): Promise<{ registrationId: string; identityId: string } | null> {
+): Promise<{ registrationId: string; identityId: string; startMs: number } | null> {
   const token = getCookie(request, DK_COOKIE);
   if (!token || token.length > 300) return null;
   const parts = token.split(".");
@@ -44,9 +44,15 @@ export async function docPhienDangKy(
   const l = Number(last);
   if (!Number.isFinite(s) || !Number.isFinite(l) || l < s || l > nowMs + 60_000) return null; // chữ ký đúng nhưng đồng hồ lạ: từ chối
   if (nowMs >= l + policy.idleMin * 60_000 || nowMs >= s + policy.maxHours * 3_600_000) return null;
-  return { registrationId, identityId };
+  return { registrationId, identityId, startMs: s };
 }
 
 /** Khoá bộ đếm chống dò (ADR-0206 Đ8): không gian tên `dk:` riêng, không đụng khoá đăng nhập; dùng với `reserveAttempts`, `clearAttempts` của auth. */
 export const dkEmailKey = (email: string): string => `dk:email:${email}`;
 export const dkIpKey = (ip: string): string => `dk:ip:${ip}`;
+export const dkTepIpKey = (ip: string): string => `dk:tep:ip:${ip}`;
+
+/** Set-Cookie của phiên đăng ký: HttpOnly, SameSite=Lax, Secure khi https; Path chỉ /api/dang-ky; Max-Age = hạn tối đa của phiên (hạn không thao tác do chính token kiểm). */
+export function cookiePhienDangKy(token: string, maxHours: number, secure: boolean): string {
+  return `${DK_COOKIE}=${token}; Path=/api/dang-ky; Max-Age=${Math.floor(maxHours * 3600)}; HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`;
+}

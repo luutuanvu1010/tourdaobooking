@@ -7,7 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 
 const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
-const MATCHES = files.filter((f) => f.endsWith("_dang_ky.sql"));
+const MATCHES = files.filter((f) => /^\d{4}_dang_ky\.sql$/.test(f));
 const FILE = MATCHES[0]!;
 const sqlOf = (f: string) => readFileSync(new URL(f, DIR), "utf8");
 const all = () => {

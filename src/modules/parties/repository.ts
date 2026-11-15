@@ -1601,3 +1601,111 @@ export function anDanhStatements(db: D1Database, v: { id: string; partyId: strin
 }
 export const datChoXoaAnhHetGiuStatement = (db: D1Database, v: { tepId: string; actorId: string; at: string; homNay: string }): D1PreparedStatement =>
   db.prepare(DAT_CHO_XOA_ANH_HET_GIU).bind(v.tepId, v.actorId, v.at, v.homNay);
+
+// ---- Tệp chờ của phiếu đăng ký (ADR-0208 Đ1, Đ2, Đ5, Đ7; migration 0168) — bảng pty_registration_attachment. Chỉ parties ghi; khoá kho và băm là N3, không ra DTO/nhật ký. ----
+const INSERT_TEP_CHO = defineSql(
+  "parties",
+  "insert_registration_attachment",
+  `INSERT INTO pty_registration_attachment (id, registration_id, slot, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9
+   WHERE ?10 IS NULL OR (SELECT count(*) FROM pty_registration_attachment WHERE registration_id = ?2) < ?10`,
+);
+const GO_TEP_CHO_CUA_O = defineSql(
+  "parties",
+  "purge_registration_attachment_slot",
+  `UPDATE pty_registration_attachment SET purged_at = ?3, purge_reason = ?4, content_hash = NULL, updated_at = ?3
+   WHERE registration_id = ?1 AND slot = ?2 AND purged_at IS NULL AND transferred_at IS NULL
+     AND id <> ?5 AND EXISTS (SELECT 1 FROM pty_registration_attachment WHERE id = ?5)`,   // chỉ gỡ tệp cũ KHI tệp mới đã được chèn (trần phiếu có thể từ chối câu chèn)
+);
+const GO_TEP_CHO_CUA_PHIEU = defineSql(
+  "parties",
+  "purge_registration_attachment_all",
+  `UPDATE pty_registration_attachment SET purged_at = ?2, purge_reason = ?3, content_hash = NULL, updated_at = ?2
+   WHERE registration_id = ?1 AND purged_at IS NULL AND transferred_at IS NULL`,
+);
+const MARK_TEP_CHO_STORED = defineSql(
+  "parties",
+  "mark_registration_attachment_stored",
+  "UPDATE pty_registration_attachment SET stored_at = ?2, updated_at = ?2 WHERE id = ?1 AND stored_at IS NULL AND purged_at IS NULL",
+);
+const FIND_TEP_CHO_TRUNG = defineSql(
+  "parties",
+  "find_registration_attachment_same_hash",
+  `SELECT id, storage_key, stored_at FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND slot = ?2 AND content_hash = ?3 AND purged_at IS NULL AND transferred_at IS NULL`,
+);
+const DEM_TEP_CHO = defineSql(
+  "parties",
+  "count_registration_attachment",
+  "SELECT count(*) AS n FROM pty_registration_attachment WHERE registration_id = ?1",
+);
+const TEP_CHO_THEO_O = defineSql(
+  "parties",
+  "registration_attachment_by_slot",
+  `SELECT slot, stored_at FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND purged_at IS NULL AND transferred_at IS NULL ORDER BY slot, created_at`,
+);
+const TEP_CHO_DA_GO = defineSql(
+  "parties",
+  "registration_attachment_purged_pending_r2",
+  `SELECT id, storage_key FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND purged_at IS NOT NULL AND r2_deleted_at IS NULL AND transferred_at IS NULL ORDER BY created_at, id`,
+);
+const MARK_TEP_CHO_R2_DELETED = defineSql(
+  "parties",
+  "mark_registration_attachment_r2_deleted",
+  "UPDATE pty_registration_attachment SET r2_deleted_at = ?2, updated_at = ?2 WHERE id = ?1 AND purged_at IS NOT NULL AND r2_deleted_at IS NULL AND transferred_at IS NULL",
+);
+// Lúc duyệt (ADR-0208 Đ5): chèn dòng pty_attachment DÙNG LẠI mã và khoá kho của dòng chờ; nối vào dòng giấy tờ vừa tạo; đánh dấu đã chuyển + băm về rỗng; phần còn lại (chưa lưu) nhận quyết gỡ.
+const CHUYEN_TEP_CHO_CHEN = defineSql(
+  "parties",
+  "transfer_registration_attachment_insert",
+  `INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at, updated_by)
+   SELECT id, ?2, storage_key, content_kind, byte_size, content_hash, stored_at, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL`,
+);
+const CHUYEN_TEP_CHO_NOI = defineSql(
+  "parties",
+  "transfer_registration_attachment_link",
+  `INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by)
+   SELECT id, 'PERSON_DOCUMENT', ?2, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
+   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL`,
+);
+const CHUYEN_TEP_CHO_DANH_DAU = defineSql(
+  "parties",
+  "transfer_registration_attachment_mark",
+  `UPDATE pty_registration_attachment SET transferred_at = ?2, content_hash = NULL, updated_at = ?2, updated_by = ?3
+   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL`,
+);
+
+export const insertTepChoStatement = (
+  db: D1Database,
+  v: { id: string; registrationId: string; slot: string; key: string; loai: LoaiTep; kichThuoc: number; bam: string; at: string; actorRef: string; toiDa: number | null },
+): D1PreparedStatement => db.prepare(INSERT_TEP_CHO).bind(v.id, v.registrationId, v.slot, v.key, v.loai, v.kichThuoc, v.bam, v.at, v.actorRef, v.toiDa);
+export const goTepChoCuaOStatement = (db: D1Database, v: { registrationId: string; slot: string; at: string; lyDo: string; tepMoiId: string }): D1PreparedStatement =>
+  db.prepare(GO_TEP_CHO_CUA_O).bind(v.registrationId, v.slot, v.at, v.lyDo, v.tepMoiId);
+export const goTepChoCuaPhieuStatement = (db: D1Database, v: { registrationId: string; at: string; lyDo: string }): D1PreparedStatement =>
+  db.prepare(GO_TEP_CHO_CUA_PHIEU).bind(v.registrationId, v.at, v.lyDo);
+export async function markTepChoStored(db: D1Database, id: string, at: string): Promise<number> {
+  return (await db.prepare(MARK_TEP_CHO_STORED).bind(id, at).run()).meta.changes ?? 0;
+}
+export interface TepChoTrungRow { id: string; storage_key: string; stored_at: string | null }
+export const findTepChoTrung = (db: D1Database, registrationId: string, slot: string, bam: string): Promise<TepChoTrungRow | null> =>
+  db.prepare(FIND_TEP_CHO_TRUNG).bind(registrationId, slot, bam).first<TepChoTrungRow>();
+export async function demTepChoCuaPhieu(db: D1Database, registrationId: string): Promise<number> {
+  return (await db.prepare(DEM_TEP_CHO).bind(registrationId).first<{ n: number }>())?.n ?? 0;
+}
+export async function tepChoTheoO(db: D1Database, registrationId: string): Promise<{ slot: string; stored_at: string | null }[]> {
+  return (await db.prepare(TEP_CHO_THEO_O).bind(registrationId).all<{ slot: string; stored_at: string | null }>()).results;
+}
+export async function tepChoDaGoCanXoaKho(db: D1Database, registrationId: string): Promise<{ id: string; storage_key: string }[]> {
+  return (await db.prepare(TEP_CHO_DA_GO).bind(registrationId).all<{ id: string; storage_key: string }>()).results;
+}
+export async function markTepChoR2Deleted(db: D1Database, id: string, at: string): Promise<number> {
+  return (await db.prepare(MARK_TEP_CHO_R2_DELETED).bind(id, at).run()).meta.changes ?? 0;
+}
+export const chuyenTepChoStatements = (db: D1Database, v: { registrationId: string; partyId: string; documentId: string; approverId: string; at: string }): D1PreparedStatement[] => [
+  db.prepare(CHUYEN_TEP_CHO_CHEN).bind(v.registrationId, v.partyId, v.at, v.approverId),
+  db.prepare(CHUYEN_TEP_CHO_NOI).bind(v.registrationId, v.documentId, v.at, v.approverId),
+  db.prepare(CHUYEN_TEP_CHO_DANH_DAU).bind(v.registrationId, v.at, v.approverId),
+];

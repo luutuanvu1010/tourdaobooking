@@ -13,7 +13,7 @@ const yeuCau = (cookie: string | null): Request => new Request("https://booking.
 
 test("cookie đúng đọc ra mã phiếu và danh tính", async () => {
   const t = await taoPhienDangKy(SECRET, "DK_ABCDEFGH", "id-1", T0);
-  assert.deepEqual(await docPhienDangKy(yeuCau(`${DK_COOKIE}=${t}`), env, T0 + 5 * MIN, POLICY), { registrationId: "DK_ABCDEFGH", identityId: "id-1" });
+  assert.deepEqual(await docPhienDangKy(yeuCau(`${DK_COOKIE}=${t}`), env, T0 + 5 * MIN, POLICY), { registrationId: "DK_ABCDEFGH", identityId: "id-1", startMs: T0 });
 });
 
 test("không cookie, sai chữ ký, bị sửa nội dung: null", async () => {

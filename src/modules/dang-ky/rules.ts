@@ -26,3 +26,28 @@ export function chuyenHopLe(tu: TrangThai, den: TrangThai): boolean {
   if (daKetThuc(tu)) return false;
   return DUONG_CHINH[tu].includes(den) || THOAT.includes(den);
 }
+
+// ---- Tệp của phiếu (ADR-0208 Đ2): luật thuần kiểm MỘT tệp tải lên ----
+import { CAU_SAI_LOAI, doDaiBase64, giaiBase64, nhanLoaiTep, type LoaiTep } from "../../shared/tep-dinh-kem.ts";
+
+/** Ô tệp của phiếu cá nhân (đợt 1): căn cước mặt trước, mặt sau. Ô mới = thêm vào đây cùng ô khai ở phiếu. */
+export const O_TEP_PHIEU = ["CCCD_MAT_TRUOC", "CCCD_MAT_SAU"] as const;
+export const laOTepPhieu = (s: unknown): s is (typeof O_TEP_PHIEU)[number] => typeof s === "string" && (O_TEP_PHIEU as readonly string[]).includes(s);
+/** Phiếu chỉ nhận tệp khi còn ở hai trạng thái này (ADR-0208 Đ2). */
+export const TRANG_THAI_CHO_TAI_TEP: readonly TrangThai[] = ["DANG_DIEN", "CAN_BO_SUNG"];
+
+/** Trần `Content-Length` của thân JSON mang tệp `maxMb` MB (chuỗi base64 + vỏ). Vượt ⇒ 413 TRƯỚC khi đọc thân. */
+export const tranThanTep = (maxMb: number): number => doDaiBase64(maxMb * 1024 * 1024) + 1024;
+
+export type KiemTepPhieu = { ok: true; bytes: Uint8Array; loai: LoaiTep } | { ok: false; status: 400 | 413 | 415; code: string; message: string };
+/** Kiểm `noiDung` (base64): quá cỡ ⇒ 413 (chuỗi quá dài không giải); thiếu / hỏng ⇒ 400; sai chữ ký ⇒ 415. Trần theo BYTE của tệp (`maxMb`). */
+export function kiemTepPhieu(noiDung: unknown, maxMb: number): KiemTepPhieu {
+  const qua = (): KiemTepPhieu => ({ ok: false, status: 413, code: "file_too_large", message: `Tệp lớn hơn ${maxMb} MB.` });
+  if (typeof noiDung === "string" && noiDung.length > doDaiBase64(maxMb * 1024 * 1024)) return qua();
+  const bytes = giaiBase64(noiDung);
+  if (!bytes || bytes.length === 0) return { ok: false, status: 400, code: "invalid_input", message: "Chưa có nội dung tệp, hoặc nội dung không đọc được." };
+  if (bytes.length > maxMb * 1024 * 1024) return qua();
+  const loai = nhanLoaiTep(bytes.subarray(0, 16));
+  if (!loai) return { ok: false, status: 415, code: "unsupported_file_type", message: CAU_SAI_LOAI };
+  return { ok: true, bytes, loai };
+}

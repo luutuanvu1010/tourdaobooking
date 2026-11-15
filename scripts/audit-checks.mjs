@@ -173,6 +173,8 @@ export const COT_N3_NHAT_KY = {
   "fbk_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 vé hỗ trợ — không bao giờ vào nhật ký
   "pty_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0123 (lát H-2 Gói 2): băm ảnh giấy tờ — nhật ký chỉ mang mã tệp
   "pty_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 — không bao giờ vào nhật ký
+  "pty_registration_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0208 Đ1 (migration 0168): băm tệp chờ của phiếu đăng ký — nhật ký chỉ mang mã phiếu
+  "pty_registration_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false },
   "pty_organization_document.document_number": { kiem: "R-PD-1", chuanHoa: false },
   "pty_organization_document.number_key": { kiem: "R-PD-1", chuanHoa: true },
   "pty_organization_document.issued_place": { kiem: "R-PD-1", chuanHoa: false },
@@ -1062,6 +1064,13 @@ export const CHECKS = [
     what: "phiên đăng nhập cấp trước khi thực hiện phiếu xoá mà còn IP hoặc User-Agent",
     sql: `SELECT COUNT(*) FROM aut_session x JOIN staff st ON st.id = x.staff_id JOIN pty_erasure_request r ON r.party_id = st.party_id
           WHERE r.status = 'DA_THUC_HIEN' AND x.created_at <= r.decided_at AND (x.ip IS NOT NULL OR x.user_agent IS NOT NULL)`,
+    level: "fail",
+  },
+  // R-PTY-DK1 (ADR-0208 Đ5): một khoá kho không bao giờ vừa nằm ở dòng tệp chờ CHƯA chuyển, vừa ở pty_attachment (lô duyệt chèn dòng hồ sơ và đánh dấu «đã chuyển» cùng lô).
+  {
+    code: "R-PTY-DK1",
+    what: "khoá kho của tệp chờ phiếu đăng ký chưa chuyển trùng với khoá của một tệp hồ sơ",
+    sql: "SELECT count(*) FROM pty_registration_attachment w JOIN pty_attachment p ON p.storage_key = w.storage_key WHERE w.transferred_at IS NULL",
     level: "fail",
   },
   {

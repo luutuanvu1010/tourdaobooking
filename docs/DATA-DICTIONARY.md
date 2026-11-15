@@ -211,6 +211,8 @@
 | `pty_erasure_request` | bảng | phiếu yêu cầu xoá dữ liệu (ADR-0126 đ2; migration 0108): chỉ hồ sơ cá nhân, một phiếu chờ mỗi hồ sơ; trạng thái một chiều CHO_XU_LY → DA_THUC_HIEN / TU_CHOI / RUT; người xử lý khác người gửi, chỉ người gửi được rút; không xoá dòng; due_at chụp từ erasure_days của chính sách lúc gửi (rỗng = chính sách chưa có số); retained_codes chỉ là MÃ loại dữ liệu giữ lại theo luật, offsite_at là mốc chép bản ngoài D1 (chỉ mã) |
 | `pty_privacy_policy` | bảng | chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào. erasure_days (hạn xử lý phiếu xoá) và session_retention_days (thời hạn giữ IP / User-Agent của phiên) thêm ở migration 0108: rỗng được, không DEFAULT — con số chờ luật sư, đi cùng bản đăng mới (ADR-0126 đ2, đ8) |
 | `pty_attachment` | bảng | tệp hồ sơ (ảnh / PDF giấy tờ) ở kho R2 riêng HO_SO (ADR-0123; migration 0104): khoá kho ngẫu nhiên, loại theo chữ ký, cỡ, băm SHA-256; KHÔNG tên tệp gốc; không xoá dòng — ba mốc một chiều stored_at / purged_at (+ lý do, băm về rỗng) / r2_deleted_at; 'chờ xoá' = purged_at có, r2_deleted_at rỗng |
+| `pty_registration_attachment` | bảng | tệp chờ của phiếu đăng ký đối tác (ADR-0208 Đ1; migration 0168), kho R2 HO_SO, khoá kho pty/ + 32 hex như pty_attachment để lúc duyệt dùng lại đúng khoá; mã phiếu (registration_id) là chuỗi, không khoá ngoại; slot = ô của tệp trong phiếu. CHỈ-THÊM: không xoá dòng, các mốc stored_at / purged_at / r2_deleted_at / transferred_at đi một chiều; chuyển xong thì băm về rỗng và dòng không bao giờ bị gỡ |
+| `pty_verification_requirement` | bảng | mục bắt buộc để hồ sơ được «Đã xác minh» (ADR-0210 Đ1; migration 0168), CHỈ-THÊM; một bản danh sách = mọi dòng cùng (loại hồ sơ, valid_from_at), bản hiệu lực là bản mới nhất ≤ lúc xét; mã chỉ trong tập đóng (src/shared/dau-xac-minh.ts, trigger item_closed). Gieo cho cá nhân: HO_TEN, NGAY_SINH, CCCD |
 | `pty_attachment_link` | bảng | nối tệp hồ sơ với dòng giấy tờ người / tổ chức (ADR-0123 đ4, đ5; migration 0104), CHỈ-THÊM; loại nối là mã mở, trigger chỉ mở PERSON_DOCUMENT, ORG_DOCUMENT; gộp hồ sơ thêm dòng nối sang dòng giấy tờ mới của hồ sơ chính |
 | `pty_consent` | bảng | đồng ý / rút đồng ý theo cả phiên bản chính sách (ADR-0126 đ1; migration 0103), CHỈ-THÊM; tài khoản bấm ở created_by |
 | `pty_bank` | bảng tra cứu | ngân hàng Việt Nam: mã, BIN 6 số (NAPAS), tên ngắn, tên đầy đủ (ADR-0108 đ2; migration 0087). Nguồn gieo: danh sách công khai VietQR.io, đối chiếu khi gieo. Thêm ngân hàng = migration mới |
@@ -220,6 +222,8 @@
 | `v_pty_open_role_group` | view công bố | cột: party_id, role_group |
 | `v_pty_party_label` | view công bố | cột: id, display_name, party_kind, active, sort_key |
 | `v_pty_owner_company` | view công bố | cột: party_id |
+| `v_pty_verification_requirement` | view công bố | cột: subject_kind, item_kind, item_code, valid_from_at |
+| `v_pty_privacy_current` | view công bố | cột: id, version, purposes, body, valid_from_at |
 | `v_pty_carrier` | view công bố | cột: party_id |
 | `v_pty_carrier_driver` | view công bố | cột: carrier_party_id, driver_party_id |
 | `v_pty_person_xung_ho` | view công bố | cột: party_id, given_name, gender |
@@ -353,6 +357,7 @@
 | `dk_item_result` | bảng | kết luận từng mục khi xác minh (0167), CHỈ-THÊM |
 | `dk_decision` | bảng | quyết định của phiếu (ADR-0207 Đ5; 0167), CHỈ-THÊM: DUYET và KICH_HOAT, mỗi loại một dòng mỗi phiếu. Trigger dk_decision_guard làm hỏng cả lô nếu sai điều kiện (trạng thái, phiên bản, kết luận Danh bạ, người duyệt ≠ người xác minh trừ cờ Toàn quyền do máy chủ đặt; kích hoạt: đã duyệt, chưa kích hoạt, còn hạn) |
 | `dk_event` | bảng | lịch sử lệnh của phiếu (0167), CHỈ-THÊM; actor_kind REGISTRANT | STAFF | AGENT. Không ghi SĐT, email, số giấy tờ, ngày sinh, địa chỉ |
+| `dk_upload_attempt` | bảng | bộ đếm tệp tải lên mỗi giờ mỗi địa chỉ mạng của đăng ký (ADR-0208 Đ2; migration 0168): chỉ thêm dòng (đếm theo cửa sổ at_ms, không xoá cứng); ip_key là địa chỉ mạng (N2), không vào nhật ký |
 | `dk_email_code` | bảng | mã gửi email của đăng ký (0167): chỉ lưu bản băm (N4), có hạn, có đếm lần nhập; bảng kỹ thuật, được cập nhật và xoá (dòng hết hạn) |
 
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
@@ -413,6 +418,8 @@
 | `pty_person` |  | `family_name`, `middle_name`, `given_name`, `gender`, `birth_date` |  |  |
 | `pty_person_document` |  |  | `document_number`, `number_key`, `issued_place` |  |
 | `pty_attachment` |  |  | `storage_key`, `content_hash` |  |
+| `pty_registration_attachment` |  |  | `storage_key`, `content_hash` |  |
+| `dk_upload_attempt` |  | `ip_key` |  |  |
 | `pty_organization_document` |  |  | `document_number`, `number_key`, `issued_place` |  |
 | `pty_self_submission` |  | `birth_date`, `address_value` | `document_number`, `number_key`, `issued_place` |  |
 | `staff` |  | `full_name`, `phone` |  | `pin_hash` |
