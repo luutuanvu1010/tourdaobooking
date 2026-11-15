@@ -946,7 +946,9 @@ export async function phanThuongMaiCuaDon(db: D1Database, orderId: string): Prom
   }
   const cty = await ownerCompany(db);
   const ids = chup.flatMap((c) => [c.beneficiaryPartyId, ...(c.cungUng.status === "SET" ? [c.cungUng.sellerPartyId] : [])]).filter((x): x is string => x !== null);
-  return { duKien, chuaChup, chup, dichVu, ten: await tenHoSo(db, ids), congTyChuId: cty?.partyId ?? null, giamGiaHieuLuc: don.giamGiaHieuLuc, ghiTay };
+  // Đợt C, Task 5: Σ phí đưa đón HIỆN HÀNH (`loadOrderView` đã tính lại theo số khách mới) — không vào hoa hồng (`dichVu` chỉ dòng dịch vụ), chỉ để billing cộng vào thành tiền trước giảm.
+  const phiDon = (don.phiDuaDon?.dong ?? []).reduce((t, d) => t + d.lineTotal, 0);
+  return { duKien, chuaChup, chup, dichVu, ten: await tenHoSo(db, ids), congTyChuId: cty?.partyId ?? null, giamGiaHieuLuc: don.giamGiaHieuLuc, phiDon, ghiTay };
 }
 
 /** Bán hàng người lập đã mời trên đơn NHÁP, kiểm lại hôm nay (mất quyền / ngưng ⇒ null). Chỉ gọi sau cổng «người lập». */

@@ -2770,6 +2770,13 @@ export interface ReceiptLineDto {
 }
 /** Mẫu in biên nhận do MÁY CHỦ quyết (HD-02-DT): «noi_bo» hay «doi_tac» (đơn của Đối tác — bên đặt là đối tác hoặc người lập là Đối tác thuần). */
 export type MauBienNhan = "noi_bo" | "doi_tac";
+/** Một dòng phí đưa đón trên biên nhận (Đợt C) — xem `ReceiptDto.phiDuaDon`. */
+export interface ReceiptPhiDto {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
 export interface ReceiptServiceDto {
   name: string;
   /** Đơn vị (để in số khách "2 người lớn" hay "N khách"); "manual" = nhập tay. */
@@ -2799,6 +2806,12 @@ export interface ReceiptDto {
   customerEmail: string | null;
   customerNote: string | null;
   services: ReceiptServiceDto[];
+  /**
+   * Phí đưa đón (Đợt C, Task 5; ADR-0147 Đ3, ADR-0203 ĐB3; sổ vàng SV-PD-01): mỗi dòng phí ĐÃ LƯU trên đơn một dòng (đơn đã sửa số khách: số lượng / thành tiền hiện hành) — kể cả chặng đã
+   * đóng sau xác nhận. Danh sách trắng: mô tả («Phí đưa đón — chiều đi/về, <khu vực>»), số lượng, đơn giá, thành tiền; không mã mức, cấp, vùng. Dòng 0 đồng in chữ «Miễn phí».
+   * Rỗng = đơn không phí (hoặc máy chủ cũ). `subtotal` đã gồm các dòng này.
+   */
+  phiDuaDon?: ReceiptPhiDto[];
   subtotal: number;
   /** Giảm giá IN TRÊN BIÊN NHẬN = giảm giá hiệu lực (`OrderDto.giamGiaHieuLuc`, ADR-0109 QĐ4); bằng giảm giá đã lưu trừ khi tạm tính hiện hành nhỏ hơn. subtotal − discount = total. */
   discount: number;

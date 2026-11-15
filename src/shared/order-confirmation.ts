@@ -269,6 +269,28 @@ function serviceBlock(s: ReceiptServiceDto, index: number): ServiceBlock {
   };
 }
 
+/** Chữ in ở cột thành tiền của dòng phí đưa đón 0 đồng (chủ 15/11, câu 3; sổ vàng SV-PD-01 `nhan_bien_nhan`). */
+export const MIEN_PHI = "Miễn phí";
+/** Tên khối phí đưa đón trên biên nhận (tên màn hình «Phí đưa đón»). */
+export const TEN_KHOI_PHI_DON = "Phí đưa đón";
+/**
+ * Đợt C, Task 5 (ADR-0147 Đ3, ADR-0203 ĐB3): khối «Phí đưa đón» sau các dịch vụ — mỗi dòng phí một dòng (mô tả «Phí đưa đón — chiều đi/về, <khu vực>», số khách, đơn giá, thành tiền;
+ * dòng 0 đồng in «Miễn phí»). Dùng lại dạng khối dịch vụ (bộ vẽ ảnh / hộp xem không đổi). Không dòng phí ⇒ không khối. Số do máy chủ đặt vào `ReceiptDto.phiDuaDon`.
+ */
+function phiBlock(order: ReceiptDto, index: number): ServiceBlock[] {
+  const dong = order.phiDuaDon ?? [];
+  if (dong.length === 0) return [];
+  return [{
+    kind: "service",
+    index,
+    name: TEN_KHOI_PHI_DON,
+    details: [],
+    columns: { ...COLUMNS },
+    lines: dong.map((d) => ({ description: clean(d.description), detail: null, quantity: String(d.quantity), unitPrice: money(d.unitPrice), lineTotal: d.lineTotal === 0 ? MIEN_PHI : money(d.lineTotal) })),
+    subtotal: null,
+  }];
+}
+
 function summaryBlock(order: ReceiptDto): SummaryBlock {
   const dau = [
     { label: "Tạm tính", value: money(order.subtotal), emphasis: false },
@@ -366,7 +388,7 @@ export function buildConfirmation(receipt: ReceiptDto, handlerName: HandlerInput
     orderCode: clean(order.orderCode),
     fileName: fileNameOf(order.orderCode),
     blocks: thanNoiBo
-      ? [dau, titleBlock(order, handlerName), customerBlock(order), ...order.services.map((s, i) => serviceBlock(s, i + 1)), summaryBlock(order), footerBlock(company, order)]
-      : [dau, titleBlock(order, handlerName), customerDoiTac(order), ...order.services.map((s, i) => serviceDoiTac(s, i + 1, nhieuDiemDon)), summaryDoiTac(order), footerBlock(company, order)],
+      ? [dau, titleBlock(order, handlerName), customerBlock(order), ...order.services.map((s, i) => serviceBlock(s, i + 1)), ...phiBlock(order, order.services.length + 1), summaryBlock(order), footerBlock(company, order)]
+      : [dau, titleBlock(order, handlerName), customerDoiTac(order), ...order.services.map((s, i) => serviceDoiTac(s, i + 1, nhieuDiemDon)), ...phiBlock(order, order.services.length + 1), summaryDoiTac(order), footerBlock(company, order)],
   };
 }

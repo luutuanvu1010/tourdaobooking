@@ -1,10 +1,12 @@
 // ADR-0182 Đ1 mục 1–3: giá đại lý của NHIỀU đơn đã xác nhận trong MỘT lượt đọc — phần «Tổng công nợ» mà `billing` (phần nghiệp vụ «Công nợ đại lý») cần. Số tiền / số khách mỗi dòng là số
 // HIỆN HÀNH (dòng điều chỉnh số khách áp bằng CÙNG `effectiveService` của chi tiết đơn); mức là mức ĐÃ CHỤP; mỗi dòng đi qua `tinhDongDoiTac` (MỘT công thức với khối «Phần đối tác» và
-// phiếu «Đã giao»). Bài `src/cong-no-dai-ly.test.ts` khoá: kết quả trùng `phanThuongMaiCuaDon` từng đơn, kể cả đơn đã sửa số khách.
+// phiếu «Đã giao»). Bài `src/cong-no-dai-ly.test.ts` khoá: kết quả trùng `phanThuongMaiCuaDon` từng đơn + Σ phí đưa đón hiện hành, kể cả đơn đã sửa số khách.
+// Phí đưa đón (Đợt C, Task 5; ADR-0203 ĐB3, chủ chọn 14/11 «có, cộng vào số đại lý nợ»; sổ vàng SV-PD-25): `tong` = Σ giá đại lý dịch vụ + Σ dòng phí hiện hành (`phiHieuLuc` — cùng
+// hàm của chi tiết đơn). Phí không vào hoa hồng (`dong` chỉ là dòng dịch vụ); số phí tách riêng ở `phiDon`.
 // HÀM CÔNG BỐ, KHÔNG tự kiểm quyền — trả số tiền, không tên / SĐT khách.
 import { tinhDongDoiTac, type BanChup } from "../../shared/hoa-hong-dong.ts";
 import { thanhTienDong, type PaxCode } from "../../shared/order-lines.ts";
-import { effectiveService, type SubtotalServiceInput } from "./money-adjustment.ts";
+import { effectiveService, phiHieuLuc, type SubtotalServiceInput } from "./money-adjustment.ts";
 import { getLatestAdjustments } from "./repository";
 import { banChupTuDb, chuaCoBanChup } from "./thuong-mai.ts";
 import { docGiaDaiLyNhieu } from "./thuong-mai-repo.ts";
@@ -15,8 +17,9 @@ import type { PermissionHolder } from "../../shared/permissions";
 
 /** Một dòng dịch vụ của phiếu công nợ. `hoaHong` null = thiếu mức (Đ1 mục 3: dòng tính theo giá bán lẻ, `giaDaiLy` = thành tiền). */
 export interface DongGiaDaiLy { serviceId: string; name: string; thanhTien: number; hoaHong: number | null; giaDaiLy: number }
-/** `laDonDaiLy` theo luật `mauBienNhan` (bên đặt là đối tác HOẶC người lập là Đối tác thuần). `tong` = Σ `giaDaiLy`, có thể âm (Đ1 mục 2: không kẹp). */
-export interface GiaDaiLyDon { laDonDaiLy: boolean; dong: DongGiaDaiLy[]; tong: number }
+/** `laDonDaiLy` theo luật `mauBienNhan` (bên đặt là đối tác HOẶC người lập là Đối tác thuần). `tong` = Σ `giaDaiLy` + `phiDon`, có thể âm (Đ1 mục 2: không kẹp). `phiDon` = Σ dòng phí
+ * đưa đón hiện hành (đã tính lại theo số khách mới nếu có sửa số khách); 0 = đơn không phí. */
+export interface GiaDaiLyDon { laDonDaiLy: boolean; dong: DongGiaDaiLy[]; phiDon: number; tong: number }
 
 /** Phần thuần (test được không cần D1): ghép dòng đã đọc thành giá đại lý từng đơn. Đơn nháp / huỷ / id lạ: không có trong Map. */
 export function ghepGiaDaiLy(v: {
@@ -43,7 +46,11 @@ export function ghepGiaDaiLy(v: {
       const t = tinhDongDoiTac(chupTheoDv.get(s.id) ?? chuaCoBanChup(s.id), tien);
       return { serviceId: s.id, name: s.name, thanhTien: t.thanhTien, hoaHong: t.hoaHong, giaDaiLy: t.giaDaiLy ?? t.thanhTien };
     });
-    out.set(o.id, { laDonDaiLy: o.la === 1 || v.doiTacThuan.has(o.staff_id), dong, tong: dong.reduce((s, d) => s + d.giaDaiLy, 0) });
+    const phiDon = phiHieuLuc(
+      v.doc.phi.filter((p) => p.order_id === o.id).map((p) => ({ serviceId: p.order_service_id, kind: p.fee_kind, returnPax: p.fee_return_pax, quantity: p.quantity, unitPrice: p.unit_price, lineTotal: p.line_total })),
+      v.dieuChinh.get(o.id)?.after.map((a) => ({ serviceId: a.serviceId, pax: { adult: a.pax.adult ?? 0, child: a.pax.child ?? 0, senior: a.pax.senior ?? 0, infant: a.pax.infant ?? 0 } })) ?? [],
+    ).tong;
+    out.set(o.id, { laDonDaiLy: o.la === 1 || v.doiTacThuan.has(o.staff_id), dong, phiDon, tong: dong.reduce((s, d) => s + d.giaDaiLy, 0) + phiDon });
   }
   return out;
 }

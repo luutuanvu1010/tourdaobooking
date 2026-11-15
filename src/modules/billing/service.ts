@@ -391,7 +391,8 @@ export const lineOf = (d: LineDraft, postingId: string, orderId: string, receipt
 
 /**
  * Phần thương mại của đơn cho «Đã giao» (sổ đại lý đợt 2 — ADR-0079 điều 1–6; đặc tả P1–P3): dòng thương mại (`dongThuongMaiTu` — số chỉ qua `tinhDongDoiTac`),
- * tình trạng (`tinhTrangThuongMai`) và thành tiền TRƯỚC giảm của đơn (`gross` = Σ thành tiền hiện hành các dòng dịch vụ — cột `gross_snapshot`, controller notes đ7).
+ * tình trạng (`tinhTrangThuongMai`) và thành tiền TRƯỚC giảm của đơn (`gross` = Σ thành tiền hiện hành các dòng dịch vụ + Σ phí đưa đón hiện hành — cột `gross_snapshot`, controller notes đ7).
+ * Đợt C, Task 5: phải thu nay gồm phí mà giảm giá không trừ vào phí, nên `gross` phải gồm phí để `gross − phải thu` (dòng GIAM_GIA_BEN_DAT, R-BIL-16) vẫn đúng bằng giảm giá hiệu lực.
  * `phan` do ROUTE đọc (`phanThuongMaiCuaDon`, sau `can(`) rồi truyền xuống. `phan` null (đơn huỷ / vừa biến mất / route không đọc vì đơn không còn bấm «Đã giao»
  * được) ⇒ THIẾU — đóng an toàn: không bao giờ coi «không đọc được» là «không có người hưởng» (Ruling R-20). Nơi gọi chỉ dùng tình trạng này SAU các lý do
  * trạng thái đơn (đã giao / huỷ / chưa xác nhận — `lyDoChuaGiaoDuoc`), nên null không đổi câu của các đơn đó.
@@ -400,7 +401,7 @@ export function thuongMaiCuaDon(phan: PhanThuongMai | null): { dong: DongThuongM
   // M-5 (Task 9): vẫn đóng an toàn (giữ đơn), nhưng câu là «đơn vừa thay đổi — tải lại», không phải «thiếu mức».
   if (!phan) return { dong: [], tinhTrang: { trangThai: "KHONG_DOC" }, gross: 0 };
   const dongTm = dongThuongMaiTu({ chup: phan.chup, dichVu: phan.dichVu });
-  return { dong: dongTm, tinhTrang: tinhTrangThuongMai({ chup: phan.chup, dong: dongTm }), gross: phan.dichVu.reduce((t, d) => t + d.thanhTien, 0) };
+  return { dong: dongTm, tinhTrang: tinhTrangThuongMai({ chup: phan.chup, dong: dongTm }), gross: phan.dichVu.reduce((t, d) => t + d.thanhTien, 0) + phan.phiDon };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------

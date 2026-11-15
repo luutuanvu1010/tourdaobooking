@@ -1,5 +1,5 @@
 // Phần nghiệp vụ «Công nợ đại lý» (ADR-0182 Đ1 mục 9): MỘT chỗ giữ công thức, mọi màn (hạn mức, Trả sau của tôi, danh sách nợ, nhắc hạn, cổng huỷ, phiếu công nợ) gọi tới đây.
-//   Tổng công nợ = Σ giá đại lý từng dòng (orders `giaDaiLyNhieuDon` — bản chụp lúc xác nhận, dòng thiếu mức tính giá bán lẻ, không kẹp âm).
+//   Tổng công nợ = Σ giá đại lý từng dòng (orders `giaDaiLyNhieuDon` — bản chụp lúc xác nhận, dòng thiếu mức tính giá bán lẻ, không kẹp âm) + Σ phí đưa đón (Đợt C, SV-PD-25).
 //   Đã thu      = tiền Tour Đảo thật sự đã nhận: tổng khoản thu còn hiệu lực − khoản đang đối chiếu − phần bên đặt / người thu khác còn giữ (cùng hàm mở vé `soChuaVeCongTy`),
 //                 trong đó «còn giữ» tính trên dòng sổ TIỀN (bỏ ba loại dòng thương mại): hoa hồng đã trừ trong Tổng công nợ, tính thêm ở đây là trừ hai lần sau «Khách đã trả đủ».
 //   Công nợ còn lại = Tổng công nợ − Đã thu (âm = Tour Đảo nợ đại lý, Đ1 mục 7).
@@ -19,7 +19,7 @@ export interface DonCongNo { id: string; booker_party_id: string | null; status:
  * Phiếu công nợ của MỘT đơn đại lý (ADR-0182 Đ2 mục 2). `congTyCho` (phần B, Đ2 mục 4): tổng khoản «Công ty thu» còn hiệu lực đang chờ Kế toán đối chiếu / xác nhận — đã KHÔNG nằm
  * trong Đã thu; trần khoản nộp và số QR trừ thêm nó (`tranNop`, src/shared/cong-no-dai-ly.ts), Kế toán xác nhận khoản nộp khi nó còn > 0 thì bị chặn (Đ2 mục 13).
  */
-export interface PhieuCongNo { dong: DongGiaDaiLy[]; tong: number; daThu: number; conLai: number; congTyCho: number }
+export interface PhieuCongNo { dong: DongGiaDaiLy[]; /** Σ phí đưa đón hiện hành — đã nằm trong `tong` (Đợt C, SV-PD-25). */ phiDon: number; tong: number; daThu: number; conLai: number; congTyCho: number }
 
 /** Số của một đơn sau lượt tính. `no` = số nợ dùng cho hạn mức / cổng huỷ / nhắc hạn: ≥ 0, đơn huỷ 0 (ADR-0168 Đ3 — một đơn âm không bù đơn khác). */
 export interface KetQuaCongNo { no: number; cocConGiu: number; phieu: PhieuCongNo | null }
@@ -77,7 +77,7 @@ export async function congNoNhieuDon(db: D1Database, dons: readonly DonCongNo[])
       const so = tinhConLai({ tong, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, conGiu: v.nguoiLapGiu });
       const cho = khoanChoXacNhan(rs, ls, dc);
       const congTyCho = hieuLuc(rs).filter((r) => r.kind === "CUSTOMER_PAYMENT" && r.collectorRole === "COMPANY" && cho.has(r.id)).reduce((s2, r) => s2 + r.amount, 0);
-      out.set(d.id, { no: daHuy ? 0 : Math.max(0, so.conLai), cocConGiu, phieu: { dong: g.dong, tong, ...so, congTyCho } });
+      out.set(d.id, { no: daHuy ? 0 : Math.max(0, so.conLai), cocConGiu, phieu: { dong: g.dong, phiDon: g.phiDon, tong, ...so, congTyCho } });
       continue;
     }
     const v = ve(ls);
