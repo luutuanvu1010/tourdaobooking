@@ -8,6 +8,7 @@ import { ROLES, isRoleCode } from "../src/shared/roles";
 import { nhanLoaiTep } from "../src/shared/tep-dinh-kem";
 import { maBase64 } from "../src/shared/tep-hien-thi";
 import { CAU_DONG_DANG_KY, CHU_DANG_KY, NHAN_O_TEP } from "../src/shared/dang-ky-giao-dien";
+import { ApiError, api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { ACCEPT_ANH_PDF, thuNhoAnh } from "./thu-nho-anh";
 
@@ -17,20 +18,15 @@ class Loi extends Error {
 }
 const CAU_MANG = "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.";
 
+/** Mọi lời gọi qua `api()` (web/api.ts — vé chống ghi trùng; route công khai bỏ qua vé, máy chủ tự chống bấm hai lần). 401 của người đăng ký mang mã `registration_session_required`
+ *  (không phải `unauthenticated`) nên api() KHÔNG đưa về /login của nhân viên; lỗi đổi sang `Loi` để trang xử lý. Thân là chuỗi JSON nên trình duyệt luôn gửi Content-Length (411). */
 async function goiDk<T>(duong: string, method = "GET", than?: unknown): Promise<T> {
-  let res: Response;
   try {
-    res = await fetch(duong, {
-      method, credentials: "same-origin",
-      headers: than === undefined ? undefined : { "content-type": "application/json" },
-      body: than === undefined ? undefined : JSON.stringify(than), // chuỗi: trình duyệt luôn gửi Content-Length (máy chủ đòi — 411)
-    });
-  } catch {
+    return await api<T>(duong, { method, body: than });
+  } catch (e) {
+    if (e instanceof ApiError) throw new Loi(e.status, e.code, e.message);
     throw new Loi(0, "mang", CAU_MANG);
   }
-  const data = (await res.json().catch(() => null)) as { error?: { code: string; message: string } } | null;
-  if (!res.ok) throw new Loi(res.status, data?.error?.code ?? "loi", data?.error?.message ?? "Có lỗi xảy ra, thử lại sau.");
-  return data as T;
 }
 
 const loiEl = byId("dk-loi");
@@ -66,6 +62,13 @@ async function hoiCauHinhDangNhap(): Promise<void> {
   } catch {
     siteKey = null;
   }
+}
+/** Bẫy web/CLAUDE.md: `siteKey` từng kẹt null khi lần hỏi lúc mở trang lỗi. Sau 403/503 Turnstile: hỏi lại; có khoá mà trước đó chưa có ⇒ dựng lại bước đang mở để widget hiện. */
+let buocLai: (() => void) | null = null;
+async function hoiLaiTurnstile(loi: string): Promise<void> {
+  const truoc = siteKey;
+  await hoiCauHinhDangNhap();
+  if (siteKey !== null && truoc === null && buocLai) { buocLai(); hienLoi(loi); }
 }
 /** Khung xác minh người thật + hàm lấy token hiện có (null khi máy chủ không bật Turnstile hoặc chưa xong). */
 function khungTurnstile(): { el: HTMLElement; token: () => string | null; datLai: () => void } {
@@ -105,7 +108,7 @@ async function bamNutDk(n: HTMLButtonElement, viec: () => Promise<void>): Promis
     await viec();
   } catch (e) {
     if (e instanceof Loi && e.status === 401 && e.code === "registration_session_required") { buocEmail(e.message); return; }
-    if (e instanceof Loi && (e.code === "turnstile_failed" || e.code === "turnstile_unavailable")) void hoiCauHinhDangNhap();
+    if (e instanceof Loi && (e.code === "turnstile_failed" || e.code === "turnstile_unavailable")) void hoiLaiTurnstile(cauCua(e));
     hienLoi(cauCua(e));
   } finally {
     n.disabled = false;
@@ -114,6 +117,7 @@ async function bamNutDk(n: HTMLButtonElement, viec: () => Promise<void>): Promis
 
 // ---- Bước 1: email ----
 function buocEmail(loiTruoc: string | null = null): void {
+  buocLai = () => buocEmail();
   hienLoi(loiTruoc);
   hienBao(null);
   const dong = !cauHinh.nhanDangKy || cauHinh.loaiMo.length === 0;
@@ -290,6 +294,7 @@ function oTep(ma: string, nhan: string, p: PhieuDangKyDto): HTMLElement {
 
 // ---- Phiếu đã duyệt: xin mã MỚI rồi đặt PIN (ADR-0207 Đ7) ----
 function veDatPin(p: PhieuDangKyDto): void {
+  buocLai = () => veDatPin(p);
   const email = oGo("dk-email-pin", "email", { autocomplete: "email", value: emailDaNhap });
   const ts = khungTurnstile();
   const ma = oGo("dk-ma-pin", "text", { inputmode: "numeric", autocomplete: "one-time-code", maxlength: 6 });

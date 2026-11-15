@@ -15,7 +15,6 @@ const DA_BIET = new Set([
   'web/api.ts | "/api/auth/session-ended"', // công khai: hỏi lý do phiên kết thúc
   "web/api.ts | path", // chính api() — gắn vé
   'web/maintenance-screen.ts | "/api/auth/logout"', // công khai: đăng xuất từ màn bảo trì
-  "web/dang-ky.ts | duong", // công khai: trang đăng ký đối tác (người CHƯA có tài khoản) — bảy route ghi của người đăng ký có mục miễn `congKhai` ở lan-gui-mien.ts (ADR-0206 Đ7 đã duyệt), từng lệnh tự chống bấm hai lần bằng điều kiện trạng thái / phiên bản; api() còn đẩy 401 về /login của nhân viên
 ]);
 
 const walk = (d: string): string[] =>
