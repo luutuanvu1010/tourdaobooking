@@ -146,7 +146,7 @@ INSERT INTO pty_relationship_type (code, name, sort_order) VALUES ('REFERRED_BY'
 
 -- View công bố 4 (ADR-0210 Đ2, Task 10): DỮ KIỆN xác minh theo TỪNG mục bắt buộc của MỖI hồ sơ — hàm thuần `tinhDauXacMinh` (src/shared/dau-xac-minh.ts) đổi dữ kiện thành ba dấu; view không tự
 -- tính dấu vì SQLite không nhận tham số ngày (so hạn căn cước với `vnToday`). KHÔNG số giấy tờ, KHÔNG dữ liệu cá nhân. Hồ sơ đã gộp (`merged_into_id`) lấy dữ kiện của hồ sơ chính (`party_id` vẫn là hồ sơ hỏi).
--- Loại hồ sơ chưa có mục bắt buộc (tổ chức) vẫn ra MỘT hàng với item_kind NULL, để cờ vai đối tác không mất. `is_partner`: mang vai đối tác đang mở (v_pty_party_partner_label). `anonymized`: đã có lệnh xoá DA_THUC_HIEN.
+-- Loại hồ sơ chưa có mục bắt buộc (tổ chức) vẫn ra MỘT hàng với item_kind NULL, để cờ vai đối tác không mất. `is_partner`: mang vai đối tác đang mở (cùng nghĩa v_pty_party_partner_label, viết thẳng trên bảng để tra theo chỉ mục mã hồ sơ — view kia quét hết bảng vai cho mỗi hồ sơ). `anonymized`: đã có lệnh xoá DA_THUC_HIEN.
 -- Giấy tờ hiện hành = dòng cùng loại chưa huỷ, chưa ẩn danh, chưa có dòng gia hạn chưa huỷ nối tiếp. `ever_passed`: từng có «đạt» (mục thuộc tính; hoặc dòng giấy tờ BẤT KỲ cùng loại của hồ sơ).
 -- Dấu CHỈ ĐỂ BIẾT (Đ5): chỉ ba màn ở Đ3 đọc view này; không luật đơn, tiền, đăng nhập nào đọc (bài src/dau-xac-minh-chi-de-biet.test.ts).
 CREATE VIEW v_pty_verification_facts AS
@@ -165,7 +165,8 @@ SELECT x.party_id, x.subject_kind, x.item_kind, x.item_code, x.is_partner, x.ano
   END AS ever_passed
 FROM (
   SELECT p.id AS party_id, COALESCE(p.merged_into_id, p.id) AS eff_id, p.party_kind AS subject_kind, r.item_kind, r.item_code,
-    EXISTS (SELECT 1 FROM v_pty_party_partner_label l WHERE l.party_id IN (p.id, COALESCE(p.merged_into_id, p.id))) AS is_partner,
+    EXISTS (SELECT 1 FROM pty_party_role pr JOIN pty_role_type rt ON rt.code = pr.role_type_code
+            WHERE pr.party_id IN (p.id, COALESCE(p.merged_into_id, p.id)) AND pr.valid_to_date IS NULL AND rt.is_partner_label = 1) AS is_partner,
     EXISTS (SELECT 1 FROM pty_erasure_request e WHERE e.party_id = COALESCE(p.merged_into_id, p.id) AND e.status = 'DA_THUC_HIEN') AS anonymized,
     CASE WHEN r.item_kind = 'DOCUMENT' THEN
       (SELECT g.id FROM pty_person_document g
