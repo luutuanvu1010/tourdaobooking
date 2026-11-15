@@ -295,7 +295,7 @@
       "name": "ord_xac_nhan_phi_gac",
       "module": "orders",
       "kind": "table",
-      "note": "BẢNG ĐỔ làm chốt lô xác nhận (Đợt C, migration 0169): KHÔNG BAO GIỜ lưu dòng. INSERT (order_id) ném transfer_fee_confirm_lost khi đơn chưa ở 'confirmed' (trigger ord_xac_nhan_phi_gac_chot) và bỏ qua dòng (RAISE IGNORE) khi đã 'confirmed'. Đặt sau câu chuyển trạng thái trong cùng db.batch để câu không khớp dòng nào thì cả lô hoàn tác. Không dữ liệu cá nhân."
+      "note": "BẢNG ĐỔ làm chốt lô xác nhận (Đợt C, migration 0169): KHÔNG BAO GIỜ lưu dòng. INSERT (order_id) ném transfer_fee_confirm_lost khi đơn chưa ở 'confirmed' (trigger ord_xac_nhan_phi_gac_chot) và bỏ qua dòng (RAISE IGNORE) khi đã 'confirmed'. Đặt CUỐI lô xác nhận (sau câu chuyển trạng thái và mọi câu gác bằng changes() — câu bị bỏ qua để lại changes() = 0; ruling R8 của Đợt C) trong cùng db.batch để câu không khớp dòng nào thì cả lô hoàn tác. Không dữ liệu cá nhân."
     },
     {
       "name": "ord_transfer_leg",

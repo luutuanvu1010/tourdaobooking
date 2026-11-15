@@ -1,7 +1,8 @@
 // Phí đưa đón trên đơn (Đợt C, Task 3; ADR-0147 Đ1–Đ3, ADR-0203; thiết kế 2026-11-14 §5, §7): phía `orders` chỉ LÀM PHẲNG chặng thành đầu vào của `pricing`
 // (`tinhPhiDonChoDon` — một hàm tính duy nhất, cùng hàm với «Thử tra») và đổi dòng phí `pricing` trả về thành dòng `order_item`. Không có luật chọn mức ở đây.
 // Tệp chỉ nhập KIỂU từ `../pricing` (bài thuần chạy thẳng bằng node — index của pricing không nạp được ngoài Worker); lời gọi `tinhPhiDonChoDon` nằm ở `service.ts`.
-import type { ChangDauVao, DongPhiDon, KetQuaPhiDonDon, LyDoThieuPhiDon } from "../pricing";
+import type { ChangDauVao, DongPhiDon, KetQuaPhiDonDon } from "../pricing";
+import { CHIEU_LABEL } from "../../shared/chang-dua-don.ts";
 import type { PaxCounts } from "../../shared/order-lines.ts";
 import { payingGuests } from "../../shared/order-lines.ts";
 import type { PhiDuaDonCuaDonDto, PhiDuaDonDto } from "../../shared/contracts";
@@ -49,7 +50,7 @@ export function lamPhangChang(v: {
 export function dongPhiThanhItem(d: DongPhiDon, legId: string, tenVung: string, chieu: "OUT" | "RETURN"): OrderItemRowPhiDon {
   return {
     legId, feeRuleId: d.ruleId, feeKind: d.kind, feeZoneCode: d.zoneCode, feeTierCode: d.tierCode, feeReturnPax: d.returnPax,
-    description: `Phí đưa đón — ${chieu === "OUT" ? "chiều đi" : "chiều về"}, ${tenVung}`, quantity: d.soLuong, unitPrice: d.donGia, lineTotal: d.tien,
+    description: `Phí đưa đón — ${CHIEU_LABEL[chieu].toLowerCase()}, ${tenVung}`, quantity: d.soLuong, unitPrice: d.donGia, lineTotal: d.tien,
   };
 }
 
@@ -88,13 +89,10 @@ export const diaDiemKhachSan = (dv: readonly DichVuChoPhi[]): string[] =>
 
 /**
  * Câu báo 409 `transfer_fee_missing` của cửa xác nhận (Đợt C, Task 4 — chữ của kế hoạch): `tenVung` = tên khu vực của chặng thiếu; `tenDoiTac` = tên bên đặt (chỉ dùng cho
- * `DAI_LY_HAI_CAP` — hồ sơ hai cấp luôn là một bên đặt có hồ sơ, nên tên không trống; trống thì nói «bên đặt»).
+ * `DAI_LY_HAI_CAP` — hồ sơ hai cấp luôn là một bên đặt có hồ sơ, nên tên không trống; trống thì nói «bên đặt»). Task 6: thân hàm chuyển sang `src/shared/phi-don-hien-thi.ts` để
+ * băng báo trên trang đơn nháp dùng ĐÚNG câu này (giao diện không được nạp `src/modules/`); ở đây chỉ chuyển tiếp.
  */
-export function cauThieuPhiDon(t: { lyDo: LyDoThieuPhiDon; tenVung: string }, tenDoiTac: string | null): string {
-  if (t.lyDo === "XUNG_DOT") return `Phí đưa đón khu vực ${t.tenVung} có hai mức trùng nhau; Quản trị cần kết thúc một mức trước khi xác nhận.`;
-  if (t.lyDo === "DAI_LY_HAI_CAP") return `Cần gán cấp riêng cho đối tác ${tenDoiTac ?? "bên đặt"} trước khi xác nhận.`;
-  return `Quản trị cần đặt phí đưa đón cho khu vực ${t.tenVung} trước khi xác nhận.`;
-}
+export { cauThieuPhiDon } from "../../shared/phi-don-hien-thi.ts";
 
 /** Dòng phí đã lưu (kết quả `feeRowsStatement`) → DTO (THUẦN). */
 export function phiDongDto(rows: readonly FeeRow[]): PhiDuaDonDto[] {

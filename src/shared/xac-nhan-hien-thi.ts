@@ -32,7 +32,8 @@ const NHAN_VI: Record<LyDoCanXacNhan, string> = {
   DICH_VU: "Có dịch vụ cần kiểm vé, chờ người kiểm vé báo còn vé.",
   DAT_GAP: "Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.",
   CHOT_GIO: "Có lượt đưa đón chưa có giờ đón, văn phòng cần ghi giờ.",
-  // Đợt C, Task 4: cùng ý với câu 409 `transfer_fee_missing` («Quản trị cần đặt phí đưa đón cho khu vực … trước khi xác nhận») — chữ tạm, chờ chủ chọn (chưa có trong BANG-THAM-CHIEU).
+  // Đợt C, Task 4: cùng ý với câu 409 `transfer_fee_missing` («Quản trị cần đặt phí đưa đón cho khu vực … trước khi xác nhận»). Câu ghép từ tên đã có trong BANG-THAM-CHIEU
+  // («lượt», «Phí đưa đón» — Task 6), không đặt tên mới (ruling R9 của điều phối).
   PHI_DON: "Có lượt đưa đón chưa có mức phí, Quản trị cần đặt phí đưa đón trước khi xác nhận.",
 };
 export const nhanLyDoCanXacNhan = (vi: readonly LyDoCanXacNhan[]): string => vi.map((v) => NHAN_VI[v]).join(" ");

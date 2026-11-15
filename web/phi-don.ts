@@ -154,7 +154,7 @@ function veThuTra(): void {
 function veThieuChung(): void {
   const v = du!.vungThieuMucChung;
   thieuChungEl.hidden = v.length === 0;
-  replaceChildren(thieuChungEl, h("strong", null, `Chưa có mức chung cho: ${v.map((x) => x.name).join(", ")}.`), h("div", null, "Khi phí được cộng vào đơn, đơn có đón ở khu vực này sẽ không xác nhận được. Hãy thêm mức chung (không nêu cấp, dịch vụ hay nhóm)."));
+  replaceChildren(thieuChungEl, h("strong", null, `Chưa có mức chung cho: ${v.map((x) => x.name).join(", ")}.`), h("div", null, "Khi phí đang áp, đơn có đón ở khu vực này không xác nhận được. Hãy thêm mức chung (không nêu cấp, dịch vụ hay nhóm)."));
 }
 
 function veCanhBao(): void {

@@ -22,6 +22,7 @@ import type { CompanyDto, ReceiptDto, ReceiptServiceDto } from "./contracts.ts";
 import { PAX_LABEL, PAX_ORDER, parseUnit, paxTotal, type PaxCounts } from "./order-lines.ts";
 import { formatDmy } from "./trip-form.ts";
 import { vnToday } from "./vn-date.ts";
+import { CHU_MIEN_PHI, TEN_PHI_DUA_DON, chuThanhTienPhi, tenKhoiPhiDon } from "./phi-don-hien-thi.ts";
 
 export interface LabelValue { label: string; value: string }
 
@@ -269,13 +270,14 @@ function serviceBlock(s: ReceiptServiceDto, index: number): ServiceBlock {
   };
 }
 
-/** Chữ in ở cột thành tiền của dòng phí đưa đón 0 đồng (chủ 15/11, câu 3; sổ vàng SV-PD-01 `nhan_bien_nhan`). */
-export const MIEN_PHI = "Miễn phí";
+/** Chữ in ở cột thành tiền của dòng phí đưa đón có đơn giá 0 đồng (chủ 15/11, câu 3; sổ vàng SV-PD-01 `nhan_bien_nhan`) — cùng hằng với trang đơn. */
+export const MIEN_PHI = CHU_MIEN_PHI;
 /** Tên khối phí đưa đón trên biên nhận (tên màn hình «Phí đưa đón»). */
-export const TEN_KHOI_PHI_DON = "Phí đưa đón";
+export const TEN_KHOI_PHI_DON = TEN_PHI_DUA_DON;
 /**
- * Đợt C, Task 5 (ADR-0147 Đ3, ADR-0203 ĐB3): khối «Phí đưa đón» sau các dịch vụ — mỗi dòng phí một dòng (mô tả «Phí đưa đón — chiều đi/về, <khu vực>», số khách, đơn giá, thành tiền;
- * dòng 0 đồng in «Miễn phí»). Dùng lại dạng khối dịch vụ (bộ vẽ ảnh / hộp xem không đổi). Không dòng phí ⇒ không khối. Số do máy chủ đặt vào `ReceiptDto.phiDuaDon`.
+ * Đợt C, Task 5 (ADR-0147 Đ3, ADR-0203 ĐB3): khối «Phí đưa đón» sau các dịch vụ — mỗi dòng phí một dòng (mô tả «Phí đưa đón — chiều đi/về, <khu vực>», số khách, đơn giá, thành tiền).
+ * Task 6: thành tiền theo `chuThanhTienPhi` (CÙNG luật với trang đơn): «Miễn phí» CHỈ khi đơn giá 0 đồng; dòng số lượng 0 (đơn giá > 0) in 0 ₫. Đơn nháp (`phiDuKien`) ghi tên khối
+ * «Phí đưa đón (dự kiến)». Dùng lại dạng khối dịch vụ (bộ vẽ ảnh / hộp xem không đổi). Không dòng phí ⇒ không khối. Số do máy chủ đặt vào `ReceiptDto.phiDuaDon`.
  */
 function phiBlock(order: ReceiptDto, index: number): ServiceBlock[] {
   const dong = order.phiDuaDon ?? [];
@@ -283,10 +285,10 @@ function phiBlock(order: ReceiptDto, index: number): ServiceBlock[] {
   return [{
     kind: "service",
     index,
-    name: TEN_KHOI_PHI_DON,
+    name: tenKhoiPhiDon(order.phiDuKien === true),
     details: [],
     columns: { ...COLUMNS },
-    lines: dong.map((d) => ({ description: clean(d.description), detail: null, quantity: String(d.quantity), unitPrice: money(d.unitPrice), lineTotal: d.lineTotal === 0 ? MIEN_PHI : money(d.lineTotal) })),
+    lines: dong.map((d) => ({ description: clean(d.description), detail: null, quantity: String(d.quantity), unitPrice: money(d.unitPrice), lineTotal: chuThanhTienPhi(d, money) })),
     subtotal: null,
   }];
 }

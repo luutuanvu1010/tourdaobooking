@@ -12,6 +12,8 @@ export const CHU_MAN = {
   khongKhop: "Không có hồ sơ nào khớp.",
   xemThem: "Xem thêm",
   nhanVaiTro: "Vai trò",
+  /** Phí đưa đón Đợt C (nợ ADR-0203 ĐB2): mức phí đưa đón chọn theo cấp của bên đặt; đơn đã xác nhận đã chụp mức nên đổi cấp không đổi phí của đơn cũ. */
+  nhacPhiDon: "Cấp độ đại lý cũng quyết định mức phí đưa đón; đơn đã xác nhận giữ mức cũ.",
 } as const;
 
 /** Số dòng vẽ mỗi lần: hàng nghìn đối tác vẫn lọc trong bộ nhớ, nhưng chỉ dựng DOM cho phần đang xem («Xem thêm» vẽ tiếp). */

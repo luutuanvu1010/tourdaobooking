@@ -1,7 +1,7 @@
-// Chữ hiển thị của màn «Phí đưa đón» (kế hoạch Phí đưa đón, Đợt B Task 8). Thuần: không I/O, KHÔNG tính tiền (mọi số tiền do máy chủ trả).
-// Không hàm nào để lọt mã thô (PER_PAX, OUT, NGOAI_VUNG…) ra chữ người dùng; mã không có tên thì hiện mã kèm lời giải («đã khoá»).
+// Chữ hiển thị của màn «Phí đưa đón» (kế hoạch Phí đưa đón, Đợt B Task 8) và của phí đưa đón trên đơn / biên nhận (Đợt C, Task 6). Thuần: không I/O, KHÔNG tính tiền
+// (mọi số tiền do máy chủ trả). Không hàm nào để lọt mã thô (PER_PAX, OUT, NGOAI_VUNG…) ra chữ người dùng; mã không có tên thì hiện mã kèm lời giải («đã khoá»).
 import { ngayDayDu } from "./vn-date.ts";
-import type { CanhBaoPhiDonDto, MucPhiDonDto, ThuTraPhiDonResponse } from "./contracts.ts";
+import type { CanhBaoPhiDonDto, LyDoThieuPhiDonDto, MucPhiDonDto, PhiDuaDonCuaDonDto, ThuTraPhiDonResponse } from "./contracts.ts";
 
 export interface TenPhiDon {
   vung: ReadonlyMap<string, string>;
@@ -12,9 +12,14 @@ export interface TenPhiDon {
   muc?: ReadonlyMap<string, MucPhiDonDto>;
 }
 
+/** Chữ của mức / dòng phí 0 đồng được đặt rõ (chủ 15/11, câu 3). MỘT hằng cho màn Phí đưa đón, trang đơn và biên nhận. */
 export const CHU_MIEN_PHI = "Miễn phí";
+/** Chữ của phí trên đơn nháp, chưa chụp lúc xác nhận (chủ 15/11, câu 3). */
+export const CHU_DU_KIEN = "dự kiến";
+/** Tên màn và tên khối phí trên trang đơn, biên nhận, phiếu công nợ (chủ 14/11). */
+export const TEN_PHI_DUA_DON = "Phí đưa đón";
 export const CHU_MOI_CAP = "Mọi cấp";
-export const CHU_THIEU_MUC = "Chưa có mức cho tình huống này. Khi phí được cộng vào đơn, đơn như vậy sẽ không xác nhận được.";
+export const CHU_THIEU_MUC = "Chưa có mức cho tình huống này, nên đơn như vậy không xác nhận được.";
 export const CHU_CHUA_AP = "Phí đưa đón chưa áp vào ngày này.";
 export const CHU_XUNG_DOT = "Có hai mức cùng độ cụ thể nhưng khác số tiền, nên chưa chọn được mức nào. Sửa một trong hai mức rồi tra lại.";
 
@@ -110,4 +115,51 @@ export function dieuKienGui(d: MucPhiDonDto["dieuKien"]): { khoa: string; giaTri
   if (d.chieu !== null) r.push({ khoa: "DIRECTION", giaTri: d.chieu });
   if (d.xeRieng) r.push({ khoa: "EXCLUSIVE", giaTri: "1" });
   return r;
+}
+
+// ---- Đợt C, Task 6: phí đưa đón trên trang đơn và biên nhận ----
+
+/**
+ * Chữ ở cột thành tiền của MỘT dòng phí đã lưu: «Miễn phí» CHỈ khi đơn giá đã chụp là 0 đồng (mức 0 đồng được đặt rõ — Hiến chương 5.7). Dòng có số lượng 0 mà
+ * đơn giá > 0 (dịch vụ sửa còn toàn em bé) in đúng số 0 đồng, không gọi là miễn phí. Trang đơn và biên nhận dùng chung hàm này.
+ */
+export function chuThanhTienPhi(d: { unitPrice: number; lineTotal: number }, tien: (n: number) => string): string {
+  return d.unitPrice === 0 ? CHU_MIEN_PHI : tien(d.lineTotal);
+}
+
+/** Tên khối phí: đơn nháp ghi «Phí đưa đón (dự kiến)» (số tính theo bảng phí hôm nay, chụp lại lúc xác nhận). */
+export const tenKhoiPhiDon = (duKien: boolean): string => (duKien ? `${TEN_PHI_DUA_DON} (${CHU_DU_KIEN})` : TEN_PHI_DUA_DON);
+
+/**
+ * Câu khi một chặng chưa tính được phí đưa đón — MỘT nguồn cho câu 409 `transfer_fee_missing` lúc xác nhận (orders re-export) và băng báo trên trang đơn nháp.
+ * Chữ theo kế hoạch Đợt C (Task 4).
+ */
+export function cauThieuPhiDon(t: { lyDo: LyDoThieuPhiDonDto; tenVung: string }, tenDoiTac: string | null): string {
+  if (t.lyDo === "XUNG_DOT") return `Phí đưa đón khu vực ${t.tenVung} có hai mức trùng nhau; Quản trị cần kết thúc một mức trước khi xác nhận.`;
+  if (t.lyDo === "DAI_LY_HAI_CAP") return `Cần gán cấp riêng cho đối tác ${tenDoiTac ?? "bên đặt"} trước khi xác nhận.`;
+  return `Quản trị cần đặt phí đưa đón cho khu vực ${t.tenVung} trước khi xác nhận.`;
+}
+
+export interface DongPhiTrang {
+  /** «Chiều đi · <khu vực>». */
+  nhan: string;
+  /** Dòng phụ «2 khách × 70.000 ₫» / «1 chuyến × 300.000 ₫»; null với dòng «Miễn phí». */
+  chiTiet: string | null;
+  /** Thành tiền, hoặc «Miễn phí» (đơn giá 0 đồng). */
+  giaTri: string;
+}
+
+/** `OrderDto.phiDuaDon` → chữ của mục «Phí đưa đón» trong thẻ tiền của trang đơn: tiêu đề, mỗi chặng một dòng (nhãn + dòng phụ số khách × đơn giá, thành tiền bên phải), câu băng báo thiếu mức (bỏ trùng). */
+export function dongPhiTrenDon(p: PhiDuaDonCuaDonDto, tien: (n: number) => string, tenDoiTac: string | null): { tieuDe: string; dong: DongPhiTrang[]; thieu: string[] } {
+  const dong = p.dong.map((d) => ({
+    nhan: `${chieuChu(d.direction)} · ${d.zoneName}`,
+    chiTiet: d.unitPrice === 0 ? null : `${d.quantity} ${d.kind === "PER_PAX" ? "khách" : "chuyến"} × ${tien(d.unitPrice)}`,
+    giaTri: chuThanhTienPhi(d, tien),
+  }));
+  const thieu: string[] = [];
+  for (const t of p.thieu) {
+    const cau = cauThieuPhiDon({ lyDo: t.lyDo, tenVung: t.zoneName }, tenDoiTac);
+    if (!thieu.includes(cau)) thieu.push(cau);
+  }
+  return { tieuDe: tenKhoiPhiDon(p.duKien), dong, thieu };
 }
