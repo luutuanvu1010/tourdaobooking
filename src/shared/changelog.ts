@@ -17,17 +17,24 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Phí đưa đón, Đợt A + B (ADR-0147 Đ1–Đ2, ADR-0203 ĐB1–ĐB2; 15/11): hai migration 0164, 0165; chưa cộng phí vào đơn nào.
+    // SỐ TẠM 3.7 (sau 3.6 đã lên production): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.7",
+    date: "2026-11-15",
+    items: [
+      { kind: "moi", text: "Quản trị có thêm «Khu vực đón» trong trang Địa điểm để gom các điểm đón theo vùng." },
+      { kind: "moi", text: "Màn «Phí đưa đón» cho đặt mức theo khu vực, cấp độ đại lý, dịch vụ hoặc nhóm dịch vụ; có «Thử tra» và «Đặt ngày bắt đầu áp». Phí chưa được cộng vào đơn." },
+    ],
+  },
+  {
     // Bước 2 lưới bố cục chung (kế hoạch 2026-11-14; chủ duyệt 15/11 «Duyệt, bám trái»): một lề trang mỗi khổ, ba mức bề rộng nội dung (hẹp 720, vừa 1120, rộng),
     // một nhịp 16 giữa các khối, thanh bên máy tính có chỗ từ lần vẽ đầu. Chỉ giao diện, không migration, không đổi máy chủ.
-    // Gộp thêm Phí đưa đón (ADR-0147 Đ1–Đ2, ADR-0203 ĐB1–ĐB2; 15/11) theo công thức t «Mục đầu đã MỚI HƠN production»: giữ số, chưa cộng phí vào đơn nào.
     // SỐ TẠM 3.6 (sau 3.5 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.6",
     date: "2026-11-15",
     items: [
       { kind: "doi", text: "Bố cục các trang đều hơn: lề hai bên rộng hơn ở iPad và máy tính, biểu mẫu và trang thiết lập không còn giãn hết màn rộng, khoảng cách các khối bằng nhau." },
       { kind: "sua", text: "Ở máy tính, mở trang không còn bị thanh bên đẩy nội dung sang ngang." },
-      { kind: "moi", text: "Quản trị có thêm «Khu vực đón» trong trang Địa điểm để gom các điểm đón theo vùng." },
-      { kind: "moi", text: "Màn «Phí đưa đón» cho đặt mức theo khu vực, cấp độ đại lý, dịch vụ hoặc nhóm dịch vụ; có «Thử tra» và «Đặt ngày bắt đầu áp». Phí chưa được cộng vào đơn." },
     ],
   },
   {
