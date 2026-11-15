@@ -19,7 +19,13 @@ assert.deepEqual(r.body.types.map((t) => t.code), ["OFFICE", "TICKET_COUNTER", "
 assert.deepEqual(r.body.types.slice(4).map((t) => t.name), ["Khách sạn", "Sân bay", "Ga cáp treo"]);
 const vin = r.body.locations.find((l) => l.code === "CANG_VINPEARL");
 assert.equal(vin.locationTypeName, "Bến cảng"); assert.equal(vin.active, true); assert.match(vin.updatedAt, /^\d{4}-\d{2}-\d{2}T/);
-console.log("✓ đọc danh sách");
+// ADR-0147 Đ1 (migration 0164): danh sách khu vực đón đi kèm danh sách địa điểm; «Ngoài khu vực» gieo sẵn, luôn bật; mỗi địa điểm có `zoneCode` (null = chưa xếp).
+assert.ok(Array.isArray(r.body.zones), "GET /api/locations có `zones`");
+const ngoaiVung = r.body.zones.find((z) => z.code === "NGOAI_VUNG");
+assert.ok(ngoaiVung && ngoaiVung.active === true && ngoaiVung.name === "Ngoài khu vực", "khu vực «Ngoài khu vực» gieo sẵn, đang bật");
+assert.ok(r.body.zones.every((z) => Number.isInteger(z.soDiaDiem) && z.soDiaDiem >= 0 && /^\d{4}-\d{2}-\d{2}T/.test(z.updatedAt)));
+assert.ok(r.body.locations.every((l) => l.zoneCode === null || typeof l.zoneCode === "string"), "địa điểm có khoá `zoneCode`");
+console.log("✓ đọc danh sách (có khu vực đón)");
 
 // --- ghi: chỉ quản trị viên
 const input = { code, name: "  Quầy vé thử ", locationTypeCode: "TICKET_COUNTER", address: "12 Trần Phú", sortOrder: 90 };

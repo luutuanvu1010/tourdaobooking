@@ -1054,11 +1054,16 @@ export interface LocationDto {
    * điểm ngưng dùng vẫn mang số nhưng giao diện lọc theo `active`. Gửi lên `PUT /api/locations/:id`: số 1–99 hoặc `null` (bỏ); KHOÁ VẮNG = giữ giá trị đang lưu.
    */
   quickPickOrder: number | null;
+  /** ADR-0147 Đ1: khu vực đón (`null` = chưa xếp). Gửi lên `PUT /api/locations/:id`: mã khu vực, `null` (bỏ xếp) hoặc VẮNG (giữ nguyên). */
+  zoneCode: string | null;
   /** Mốc cập nhật cuối — gửi lại làm `expectedUpdatedAt` khi sửa (khoá lạc quan). */
   updatedAt: string;
 }
 
-export interface LocationListResponse { locations: LocationDto[]; types: LocationTypeDto[] }
+/** Khu vực đón (ADR-0147 Đ1). `soDiaDiem` = số địa điểm đang xếp vào khu vực (kể cả địa điểm ngưng dùng). */
+export interface VungDonDto { code: string; name: string; sortOrder: number; active: boolean; soDiaDiem: number; updatedAt: string }
+export interface VungDonResponse { zone: VungDonDto }
+export interface LocationListResponse { locations: LocationDto[]; types: LocationTypeDto[]; zones: VungDonDto[] }
 export interface LocationResponse { location: LocationDto }
 
 // ---- Hồ sơ (module parties) --------------------------------------------------
@@ -3176,6 +3181,29 @@ export interface MucTaResponse { muc: MucTaDto }
  * `tuLuc` = mốc hiệu lực của dòng này — hộp gửi lại khi đổi để máy chủ phát hiện người khác vừa đổi (409 `stale`). Chỉ áp cho số MỚI nhập, không áp lại dòng mức đã có.
  */
 export interface GioiHanNhapResponse { tranTyLeBp: number; buocTien: number; tuLuc: string }
+/**
+ * Bảng phí đưa đón (ADR-0147 Đ2, ADR-0203 ĐB1; kế hoạch Phí đưa đón, Đợt B Task 7): `GET /api/pricing/phi-don`, `POST /api/pricing/phi-don`, `…/:id/ket-thuc`, `…/bat-dau-ap`, `…/thu-tra`.
+ * `kieu`: PER_PAX = theo khách, PER_TRIP = theo chuyến (chỉ xe riêng) — giao diện đổi sang chữ thường người dùng, không lộ mã. `tien` là số nguyên đồng; 0 = «Miễn phí» đặt rõ
+ * (thiếu mức KHÔNG BAO GIỜ là 0 đồng). `updatedAt` = khoá lạc quan: gửi lại làm `expectedUpdatedAt` khi kết thúc mức.
+ */
+export interface MucPhiDonDto { id: string; kieu: "PER_PAX" | "PER_TRIP"; tien: number; tuNgay: string; denNgay: string | null; ghiChu: string | null;
+  dieuKien: { vung: string; cap: string | null; dichVu: string | null; nhom: string | null; chieu: "OUT" | "RETURN" | null; xeRieng: boolean }; updatedAt: string }
+/** Cảnh báo KHÔNG CHẶN: cấp `cap` đang trả `tienCap` đ, CAO HƠN mức không có cấp `tienKhongCap` đ ở cùng chặng (vùng, chiều, xe riêng, dịch vụ hoặc nhóm). */
+export interface CanhBaoPhiDonDto { cap: string; vung: string; chieu: "OUT" | "RETURN"; xeRieng: boolean; dichVu: string | null; nhom: string | null; tienCap: number; tienKhongCap: number }
+export interface PhiDonResponse { muc: MucPhiDonDto[]; batDauAp: { ngay: string | null; tuLuc: string | null }; canhBao: CanhBaoPhiDonDto[];
+  vung: { code: string; name: string }[]; cap: { code: string; name: string }[]; nhom: { code: string; name: string }[]; dichVu: { code: string; name: string; nhom: string | null }[] }
+/** Thân `POST /api/pricing/phi-don`: `thayCho` (tuỳ chọn) = đổi mức — đóng dòng `id` ngày liền trước `validFrom` rồi thêm dòng mới trong một lần ghi; dòng mới phải cùng kiểu tính và cùng bộ điều kiện. `expectedUpdatedAt` = `updatedAt` đã đọc của dòng cũ. */
+export interface PhiDonThayCho { id: string; expectedUpdatedAt: string }
+export interface PhiDonThemBody { kind: "PER_PAX" | "PER_TRIP"; amount: number; validFrom: string; validTo: string | null; note: string | null; dieuKien: { khoa: string; giaTri: string }[]; thayCho?: PhiDonThayCho }
+export interface PhiDonGhiResponse { muc: MucPhiDonDto; canhBao: CanhBaoPhiDonDto[] }
+/** `POST …/bat-dau-ap`: dòng ngày bắt đầu áp mới nhất sau khi ghi (`ngay` null = đang tắt). `tuLuc` gửi lại làm `tuLucDaDoc` ở lần đổi sau. */
+export interface PhiDonBatDauApResponse { batDauAp: { ngay: string | null; tuLuc: string } }
+export interface ThuTraPhiDonResponse {
+  ketQua: { trangThai: "CO_MUC"; mucId: string; kieu: "PER_PAX" | "PER_TRIP"; donGia: number; soLuong: number; tien: number } | { trangThai: "THIEU_MUC"; lyDo: "KHONG_CO_MUC" | "XUNG_DOT" };
+  thua: { mucId: string; tien: number; viSao: string }[];
+  /** true khi phí đưa đón chưa áp vào ngày hỏi (chưa đặt ngày bắt đầu áp, đã tắt, hoặc ngày hỏi sớm hơn ngày bắt đầu). Số tiền và mức chọn vẫn trả như cũ. */
+  chuaApNgayNay: boolean;
+}
 /** Gắn loại↔mức: 201 kèm `dongRieng` = dòng riêng theo loại (bậc 4–6) còn hiệu lực trong khoảng gắn, của loại này VÀ của mọi loại mà hồ sơ mang loại này đang mang — các dòng đó thắng TA (cảnh báo, không chặn — N-17). */
 export interface GanLoaiMucResponse { gan: GanLoaiMucDto; dongRieng: CommissionRuleDto[] }
 /** Góp ý YC-0020: «Hoa hồng hiện hành» của một hồ sơ (chỉ đọc). `muc` = mức TA loại đó đang gắn (null = chưa gắn). Chỉ mã, tên, số đếm — không tỷ lệ, không số liệu hồ sơ. */

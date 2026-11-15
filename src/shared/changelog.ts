@@ -19,8 +19,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đợt 1 sau kiểm toán 14/11 (chủ: «Làm Đợt 1», «Chặn Đối tác, Thực tập», «Chỉ cảnh báo đỏ»): mã giao dịch cho khoản nộp đại lý (ADR-0204, migration 0166), dời ngày cân lại vé,
     // dòng Sheet hỏng giữ dịch vụ, nháp giá cũ chặn Đối tác / Thực tập (ADR-0205). Sổ: docs/superpowers/plans/2026-11-14-dot-1-sau-kiem-toan-thi-cong-nhat-ky.md.
-    // SỐ TẠM 3.7: main có 3.6 (bước 2 lưới bố cục); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.7",
+    // SỐ TẠM 3.8: main có 3.7 (Phí đưa đón); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.8",
     date: "2026-11-15",
     items: [
       { kind: "doi", text: "Kế toán xác nhận khoản nộp của đại lý phải nhập mã giao dịch ngân hàng và số tiền thực chuyển; một lần chuyển khoản không còn bị ghi nhận hai lần." },
@@ -28,6 +28,16 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Dời ngày đi của đơn đã có vé: vé không còn hợp ngày được thu lại, đơn nhận vé hợp ngày mới hoặc báo thiếu vé.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
       { kind: "sua", text: "Một ô gõ sai trên Sheet không còn làm dịch vụ biến khỏi form lập đơn: dịch vụ vẫn bán theo giá đã lưu, màn Danh mục hiện cảnh báo đỏ." },
       { kind: "doi", text: "Đối tác và Thực tập không xác nhận được đơn nháp lưu giá danh mục cũ sau khi bảng giá đổi; nhân viên được nhắc trước khi xác nhận." },
+    ],
+  },
+  {
+    // Phí đưa đón, Đợt A + B (ADR-0147 Đ1–Đ2, ADR-0203 ĐB1–ĐB2; 15/11): hai migration 0164, 0165; chưa cộng phí vào đơn nào.
+    // SỐ TẠM 3.7 (sau 3.6 đã lên production): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.7",
+    date: "2026-11-15",
+    items: [
+      { kind: "moi", text: "Quản trị có thêm «Khu vực đón» trong trang Địa điểm để gom các điểm đón theo vùng." },
+      { kind: "moi", text: "Màn «Phí đưa đón» cho đặt mức theo khu vực, cấp độ đại lý, dịch vụ hoặc nhóm dịch vụ; có «Thử tra» và «Đặt ngày bắt đầu áp». Phí chưa được cộng vào đơn." },
     ],
   },
   {

@@ -61,6 +61,8 @@ const vk = (o: OperationCode) => (s: PermissionHolder): boolean => can(s, o) && 
 const chiToanQuyenKhongDoiTac = (s: PermissionHolder): boolean => can(s, "settings.ops") && !holdsPartner(s);
 /** Có ô quản trị (một chỗ gọi, gói Đơn hàng có trần dung lượng). */
 const quanTri = (s: PermissionHolder): boolean => can(s, "admin.manage");
+/** Khung tạm của mục chỉ Quản trị (một chỗ viết, gói Đơn hàng có trần dung lượng). */
+const tamQuanTri = (k: CoKhungNho): boolean => k.admin;
 const vaoSoDieuChinh = (s: PermissionHolder): boolean => (can(s, "ledger.write") || can(s, "ledger.adjust.approve")) && !holdsPartner(s);
 export const TRANG = {
   trangChu: { duong: "/", hien: seesAllOrders, tam: (k) => k.seesAll },
@@ -75,13 +77,13 @@ export const TRANG = {
   },
   taoDon: { duong: "/order-form", hien: ve("order.create"), tam: (k) => k.canCreate },
   danhBa: { duong: "/parties", hien: isOffice, tam: (k) => k.office },
-  dichVu: { duong: "/catalog", hien: (s) => quanTri(s) || dungManHepDichVu(s), tam: (k) => k.admin }, // ADR-0169 Đ4
+  dichVu: { duong: "/catalog", hien: (s) => quanTri(s) || dungManHepDichVu(s), tam: tamQuanTri }, // ADR-0169 Đ4
   // ADR-0071: ô account.view (Quản trị, Nhân sự, Toàn quyền). Bản nhớ khung không có cờ này (ADR-0035): khung tạm dùng `admin` — Nhân sự thiếu mục một nhịp.
-  taiKhoan: { duong: "/staff", hien: ve("account.view"), tam: (k) => k.admin },
+  taiKhoan: { duong: "/staff", hien: ve("account.view"), tam: tamQuanTri },
   phien: { duong: "/sessions", hien: ve("auth.session.viewAll") }, // ADR-0075 điều 7
   // GET /api/locations mở cho mọi tài khoản (form đơn, form chuyến cần danh sách) — trang quản lý chỉ mở cho ô admin.manage (web/locations.ts).
-  diaDiem: { duong: "/locations", hien: ve("admin.manage"), moTrang: ve("admin.manage"), tam: (k) => k.admin },
-  loaiGiayToNguoi: { duong: "/loai-giay-to-nguoi", hien: ve("admin.manage") },
+  diaDiem: { duong: "/locations", hien: quanTri, moTrang: quanTri, tam: tamQuanTri },
+  loaiGiayToNguoi: { duong: "/loai-giay-to-nguoi", hien: quanTri },
   // Bảng điều phối (ADR-0049, Q-B-4): ô trip.view không ngữ cảnh — văn phòng.
   dieuPhoi: { duong: "/dieu-phoi", cungSang: ["/chuyen", "/chuyen-sua"], hien: thayDieuPhoiXe },
   xeDangChay: { duong: "/xe-dang-chay", hien: thayDieuPhoiXe },
@@ -114,6 +116,8 @@ export const TRANG = {
   hoaHong: { duong: "/hoa-hong", hien: vk("partner.commission.view") },
   // Màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): CÙNG cổng route `GET /api/pricing/cap-dai-ly` — ô partner.commission.write, không giữ quyền Đối tác (Kế toán, Quản trị, Toàn quyền). Bán hàng có ô xem nhưng không mở màn gom này.
   capDaiLy: { duong: "/cap-dai-ly", hien: vk("partner.commission.write") },
+  // Màn «Phí đưa đón» (kế hoạch Phí đưa đón, Đợt B Task 8): CÙNG cổng năm route `/api/pricing/phi-don*` — ô admin.manage (Quản trị, Toàn quyền).
+  phiDon: { duong: "/phi-don", hien: quanTri, moTrang: quanTri, tam: tamQuanTri },
   // Hạn mức trả sau (ADR-0168): CÙNG cổng route `GET /api/tra-sau/han-muc` — ô credit.limit.view (Kế toán, Toàn quyền), không giữ quyền Đối tác.
   hanMucTraSau: { duong: "/han-muc-tra-sau", hien: vk("credit.limit.view"), moTrang: vk("credit.limit.view") },
   // Luật bán theo loại đối tác (ADR-0146 Đ5; kế hoạch 2026-10-30 T11): CÙNG điều kiện ba route `/api/pricing/luat-ban` — ô sales.block.write và không giữ quyền Đối tác (Q-2 (a)).
@@ -157,9 +161,9 @@ export const TRANG = {
     get cungSang(): readonly string[] {
       return [...(THANH_BEN as readonly ChoThanhBen[]).filter((c) => c.nhom === "THIẾT LẬP").flatMap((c) => [TRANG[c.trang].duong, ...((TRANG[c.trang] as TrangDich).cungSang ?? [])])];
     },
-    hien: ve("admin.manage"),
-    moTrang: ve("admin.manage"),
-    tam: (k) => k.admin,
+    hien: quanTri,
+    moTrang: quanTri,
+    tam: tamQuanTri,
   },
 } as const satisfies Record<string, TrangDich>;
 
@@ -209,6 +213,10 @@ export interface ChoThanhBen extends ChoDat {
 }
 
 // Một hằng cho nhãn nhóm lặp ở mọi dòng Thiết lập: chữ có dấu thành \uXXXX trong gói nén nên dòng nào cũng tốn ~20 byte (trần gói trang Đơn hàng, src/goi-trang-nhe.test.ts). Giá trị không đổi.
+// Nhãn dùng ở cả thanh bên lẫn trang Tôi: viết một chỗ (gói Đơn hàng có trần dung lượng).
+const NHAN_PHI_DON = "Phí đưa đón";
+const NHAN_CAP_DAI_LY = "Cấp độ đại lý";
+const NHAN_HOA_HONG = "Hoa hồng đối tác";
 const THIET_LAP = "THIẾT LẬP";
 const tl = <T extends string, N extends string>(trang: T, nhan: N) => ({ nhom: THIET_LAP, trang, nhan }) as const;
 export const THANH_BEN = [
@@ -230,8 +238,9 @@ export const THANH_BEN = [
   { nhom: "TIỀN", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ", bieuTuong: "money" },
   // Sổ công nợ (25/10) gộp với Khoá sổ tháng — cùng điều kiện hiện (ledger.view không ngữ cảnh); giữ trần 10 mục hiện sẵn của Toàn quyền. Trang Sổ công nợ có lối sang Khoá sổ tháng.
   { nhom: "TIỀN", trang: "soCongNo", nhan: "Sổ công nợ & khoá sổ", bieuTuong: "lock", gom: ["soCongNo", "khoaThang"] },
-  { nhom: THIET_LAP, trang: "hoaHong", nhan: "Hoa hồng đối tác" },
-  { nhom: THIET_LAP, trang: "capDaiLy", nhan: "Cấp độ đại lý" },
+  { nhom: THIET_LAP, trang: "hoaHong", nhan: NHAN_HOA_HONG },
+  { nhom: THIET_LAP, trang: "capDaiLy", nhan: NHAN_CAP_DAI_LY },
+  { nhom: THIET_LAP, trang: "phiDon", nhan: NHAN_PHI_DON },
   { nhom: THIET_LAP, trang: "hanMucTraSau", nhan: "Hạn mức trả sau" },
   { nhom: THIET_LAP, trang: "luatBan", nhan: "Luật bán" },
   { nhom: THIET_LAP, trang: "nguoiBan", nhan: "Người bán dịch vụ" },
@@ -328,8 +337,9 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "soCongNo", nhan: "Sổ công nợ" },
   { phan: "sau", trang: "khoaThang", nhan: "Khoá sổ tháng" },
   { phan: "sau", trang: "dieuChinhCongNo", nhan: "Điều chỉnh công nợ" },
-  { phan: "sau", trang: "hoaHong", nhan: "Hoa hồng đối tác" },
-  { phan: "sau", trang: "capDaiLy", nhan: "Cấp độ đại lý" },
+  { phan: "sau", trang: "hoaHong", nhan: NHAN_HOA_HONG },
+  { phan: "sau", trang: "capDaiLy", nhan: NHAN_CAP_DAI_LY },
+  { phan: "sau", trang: "phiDon", nhan: NHAN_PHI_DON },
   { phan: "sau", trang: "luatBan", nhan: "Luật bán" },
   { phan: "sau", trang: "dacDiem", nhan: "Đặc điểm dịch vụ" },
   { phan: "sau", trang: "nguoiBan", nhan: "Người bán dịch vụ" },
