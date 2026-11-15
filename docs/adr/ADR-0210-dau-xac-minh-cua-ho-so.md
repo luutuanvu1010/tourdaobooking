@@ -1,6 +1,6 @@
 # ADR-0210 — Dấu xác minh của hồ sơ: «Đã xác minh», «Chưa xác minh», «Cần xác minh lại»
 
-- **Trạng thái:** **proposed** 2026-11-15 — AI soạn theo khung đã duyệt hướng ngày 15/11 (`docs/superpowers/specs/2026-11-15-dang-ky-va-duyet-tai-khoan/THIET-KE.md` mục 5.7). Chờ chủ duyệt; AI không tự duyệt (Hiến pháp N3). Trang trình: `docs/superpowers/specs/2026-11-15-dang-ky-dot-1-luot-b/TRINH-CHU.md`.
+- **Trạng thái:** **accepted** 2026-11-15 — chủ dự án, «Duyệt theo câu mẫu» (cùng lượt với ADR-0209; câu mẫu nguyên văn ghi ở ADR-0209). Lịch sử: **proposed** 2026-11-15 — AI soạn theo khung đã duyệt hướng ngày 15/11 (`docs/superpowers/specs/2026-11-15-dang-ky-va-duyet-tai-khoan/THIET-KE.md` mục 5.7). Chờ chủ duyệt; AI không tự duyệt (Hiến pháp N3). Trang trình: `docs/superpowers/specs/2026-11-15-dang-ky-dot-1-luot-b/TRINH-CHU.md`.
 - **Số:** 0210 (cấp cùng lượt với 0209). Tên giữ chỗ trong khung: `ĐK-8`.
 - **Nguồn:** lời chủ 15/11, nguyên văn: «Tất cả các tài khoản nào được xác minh sẽ có nút biểu tượng Đã xác minh, ngược lại là Chưa xác minh, cần xác minh lại.» Ba tên dấu lấy đúng lời chủ.
 - **Ngày:** 2026-11-15. **Loại:** việc lớn — dữ liệu (bảng chính sách mới, view công bố mới), hiển thị ở ba màn có quyền khác nhau. Người kiểm độc lập chỉ đọc sau thi công.
