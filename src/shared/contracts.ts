@@ -309,7 +309,7 @@ export type MaintenanceContentRequest = MaintenanceContent;
  * POST /api/staff/:id/mfa-reset sẽ nhận (ADR-0074 đ5, ADR-0090 đ1 iv). `mfa` (kế hoạch Task 6): `enabled` = có ít nhất một yếu tố sống; `graceUntil` = hạn ân
  * hạn đang lưu (có thể đã qua) khi tài khoản nội bộ chưa bật, null khi đã bật hoặc tài khoản bên ngoài.
  */
-export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean; canResetMfa: boolean; mfa: { enabled: boolean; graceUntil: string | null }; /** ADR-0210: dấu xác minh của hồ sơ gắn tài khoản (máy chủ tính; null = chưa có hồ sơ). */ dauXacMinh: DauXacMinh | null }
+export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean; canResetMfa: boolean; /** ADR-0207 Đ7: tài khoản sinh từ phiếu đăng ký đã duyệt, chưa tự đặt PIN (giao diện gọi «Chưa kích hoạt», không phải «Ngưng»). */ chuaKichHoat: boolean; mfa: { enabled: boolean; graceUntil: string | null }; /** ADR-0210: dấu xác minh của hồ sơ gắn tài khoản (máy chủ tính; null = chưa có hồ sơ). */ dauXacMinh: DauXacMinh | null }
 /** `tenVai`: tên HIỆN HÀNH (CSDL) của mọi mã vai tài khoản — giao diện dùng thay ROLES[c].name (Task 3b kế hoạch 2026-10-31). */
 export interface StaffListResponse { staff: StaffListRowDto[]; tenVai: Record<string, string> }
 export interface StaffResponse { staff: StaffAccountDto }

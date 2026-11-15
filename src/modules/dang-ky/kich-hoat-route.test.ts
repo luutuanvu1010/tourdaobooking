@@ -213,3 +213,29 @@ test("(7) Cookie của phiếu chưa duyệt ⇒ 409; cookie sai chữ ký ⇒ 4
   assert.equal(r.status, 409, r.text);
   assert.equal((await datPin(w, `${DK_COOKIE}=dk1.DK_ZZZZZZZZ.ident-z.1.2.xxxx`, { ma: "1", pin: PIN })).status, 401);
 });
+
+test("(T12) Danh sách tài khoản: tài khoản vừa duyệt mang chuaKichHoat = true (giao diện gọi «Chưa kích hoạt», không phải «Ngưng»); đặt PIN xong ⇒ false; tài khoản ngưng thường ⇒ false", async () => {
+  const w = setup();
+  w.env.TURNSTILE_SECRET_KEY = "khoa-bi-mat-thu";
+  w.env.FEEDBACK_MAIL_FROM = "no-reply@booking.tourdao.vn";
+  const thu: { to: string; text?: string }[] = [];
+  w.env.EMAIL = { send: async (m: { to: string; text?: string }) => { thu.push(m); } };
+  seedStaff(w.sqlite, { id: "11111111-1111-4111-8111-111111111119", phone: "0900000019", name: "Đã Ngưng", perms: ["SALES"] });
+  w.sqlite.exec("UPDATE staff SET active = 0 WHERE phone = '0900000019'");
+  const { id, ident, email } = await phieuDaDuyet(w);
+  const dong = async () => {
+    const r = await w.call("GET", "/api/staff", { as: HR });
+    assert.equal(r.status, 200, r.text);
+    return new Map((r.json.staff as { phone: string; chuaKichHoat: boolean }[]).map((s) => [s.phone, s.chuaKichHoat]));
+  };
+  let m = await dong();
+  assert.equal(m.get(DT_KHOA), true, "vừa duyệt, chưa đặt PIN");
+  assert.equal(m.get("0900000019"), false, "ngưng thường");
+  assert.equal(m.get("0900000003"), false, "đang bật");
+  assert.equal((await w.call("POST", "/api/dang-ky/ma", { body: { email, turnstileToken: "token-tot" }, headers: { "cf-connecting-ip": "203.0.113.19" } })).status, 200);
+  await w.choNen();
+  const ma = /\b(\d{6})\b/.exec(thu[0]!.text ?? "")![1]!;
+  assert.equal((await datPin(w, await cookie(id, ident), { ma, pin: PIN })).status, 200);
+  m = await dong();
+  assert.equal(m.get(DT_KHOA), false, "đã kích hoạt");
+});
