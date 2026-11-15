@@ -78,12 +78,13 @@ export async function datChoTepMang(db: D1Database, ipKey: string, max: number, 
 export interface PhieuXetRow {
   id: string; kind: string; status: string; role_code: string; current_version: number; reason_code: string | null;
   match_kind: string | null; match_party_id: string | null; verified_by: string | null; verified_version: number | null;
-  submitted_at: string | null; activated_at: string | null; created_at: string;
+  submitted_at: string | null; activated_at: string | null; created_at: string; referrer_party_id: string | null; verified_at: string | null;
 }
 const PHIEU_XET = defineSql(
   "dang-ky",
   "registration_for_review",
-  `SELECT id, kind, status, role_code, current_version, reason_code, match_kind, match_party_id, verified_by, verified_version, submitted_at, activated_at, created_at
+  `SELECT id, kind, status, role_code, current_version, reason_code, match_kind, match_party_id, verified_by, verified_version, submitted_at, activated_at, created_at,
+          referrer_party_id, verified_at
    FROM dk_registration WHERE id = ?1`,
 );
 export const phieuXet = (db: D1Database, id: string): Promise<PhieuXetRow | null> => db.prepare(PHIEU_XET).bind(id).first<PhieuXetRow>();
@@ -392,3 +393,95 @@ const CHUA_KICH_HOAT = defineSql(
 export async function chuaKichHoat(db: D1Database, staffId: string): Promise<boolean> {
   return (await db.prepare(CHUA_KICH_HOAT).bind(staffId).first<{ co: number }>()) !== null;
 }
+
+// ---- Bước DUYỆT của Nhân sự (ADR-0207 Đ4, Đ5, Đ7; đợt 1 Task 8) ----
+export interface BanKhaiDuyetRow {
+  family_name: string | null; middle_name: string | null; given_name: string; gender: string | null; birth_date: string | null; address_value: string | null; phone_value: string | null;
+  document_type_code: string | null; document_number: string | null; number_key: string | null; license_class_code: string | null; issued_date: string | null; issued_place: string | null;
+  expiry_date: string | null; policy_id: string; consented_at: string;
+}
+// Bản khai ĐÚNG phiên bản đang chờ duyệt, đọc TRƯỚC lô để chép một–một sang hồ sơ. Bản khai bất biến và câu chốt ghim phiên bản, nên giá trị đọc trước không lệch với lúc ghi.
+// Đây là câu DUY NHẤT của bước duyệt chọn số giấy tờ đầy đủ: số chỉ đi vào câu ghi của parties, không vào DTO, nhật ký hay câu báo lỗi.
+const BAN_KHAI_DUYET = defineSql(
+  "dang-ky",
+  "submission_for_approval",
+  `SELECT family_name, middle_name, given_name, gender, birth_date, address_value, phone_value, document_type_code, document_number, number_key, license_class_code,
+          issued_date, issued_place, expiry_date, policy_id, consented_at
+   FROM dk_submission WHERE registration_id = ?1 AND version = ?2 AND given_name <> '(đã ẩn)'`,
+);
+export const banKhaiDeDuyet = (db: D1Database, registrationId: string, version: number): Promise<BanKhaiDuyetRow | null> =>
+  db.prepare(BAN_KHAI_DUYET).bind(registrationId, version).first<BanKhaiDuyetRow>();
+
+const TOM_TAT_DUYET = defineSql(
+  "dang-ky",
+  "submission_summary_for_approver",
+  "SELECT family_name, middle_name, given_name, phone_value FROM dk_submission WHERE registration_id = ?1 AND version = ?2 AND given_name <> '(đã ẩn)'",
+);
+/** Màn duyệt của Nhân sự (ADR-0207 Đ4): CHỈ họ tên và số điện thoại — không ngày sinh, địa chỉ, giấy tờ. */
+export const tomTatDeDuyet = (db: D1Database, registrationId: string, version: number): Promise<{ family_name: string | null; middle_name: string | null; given_name: string; phone_value: string | null } | null> =>
+  db.prepare(TOM_TAT_DUYET).bind(registrationId, version).first<{ family_name: string | null; middle_name: string | null; given_name: string; phone_value: string | null }>();
+
+const EMAIL_LIEN_LAC = defineSql(
+  "dang-ky",
+  "identity_contact_email_of_registration",
+  "SELECT contact_email FROM dk_identity WHERE registration_id = ?1 AND contact_email IS NOT NULL ORDER BY created_at DESC LIMIT 1",
+);
+/** Email liên lạc đã xác nhận của phiếu (danh tính còn giữ tới khi kích hoạt — ADR-0208 Đ6); lô duyệt ghi thành liên hệ của hồ sơ. */
+export async function emailLienLacCuaPhieu(db: D1Database, registrationId: string): Promise<string | null> {
+  return (await db.prepare(EMAIL_LIEN_LAC).bind(registrationId).first<{ contact_email: string }>())?.contact_email ?? null;
+}
+
+// Câu 1 — CÂU CHỐT: chèn dòng quyết định DUYET; trigger dk_decision_guard RAISE (hỏng CẢ lô) khi phiếu không CHỜ DUYỆT, sai phiên bản, chưa có kết luận Danh bạ, chưa xác minh đạt,
+// hay người duyệt = người xác minh mà không mang cờ. Cờ do MÁY CHỦ đặt (Toàn quyền làm cả hai bước). Chỉ mục dk_decision_once_uq: một dòng DUYET mỗi phiếu.
+const CHOT_DUYET = defineSql(
+  "dang-ky",
+  "decision_approve_insert",
+  `INSERT INTO dk_decision (id, registration_id, kind, version, decided_by, super_admin_flag, decided_at, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, 'DUYET', ?3, ?4, ?5, ?6, ?6, ?4, ?6, ?4)`,
+);
+export const cauChotDuyet = (db: D1Database, v: { id: string; registrationId: string; version: number; by: string; co: 0 | 1; at: string }): D1PreparedStatement =>
+  db.prepare(CHOT_DUYET).bind(v.id, v.registrationId, v.version, v.by, v.co, v.at);
+
+// Câu 10a — phiếu sang ĐÃ DUYỆT, ghi hồ sơ + tài khoản kết quả, mốc quyết, và HẠN ĐẶT PIN trong CÙNG câu (trigger dk_registration_deadline). Điều kiện trạng thái + phiên bản là lớp thứ hai.
+const DUYET_CAP = defineSql(
+  "dang-ky",
+  "registration_approve",
+  `UPDATE dk_registration SET status = 'DA_DUYET', party_id = ?3, staff_id = ?4, decided_at = ?5, activation_deadline_at = ?6, updated_at = ?5, updated_by = ?7
+   WHERE id = ?1 AND status = 'CHO_DUYET' AND current_version = ?2`,
+);
+export const cauDuyetPhieu = (db: D1Database, v: { registrationId: string; version: number; partyId: string; staffId: string; at: string; deadlineAt: string; by: string }): D1PreparedStatement =>
+  db.prepare(DUYET_CAP).bind(v.registrationId, v.version, v.partyId, v.staffId, v.at, v.deadlineAt, v.by);
+
+// Câu 10c — ẨN DANH mọi bản khai của phiếu (ADR-0207 Đ5 câu 9; ADR-0208 Đ6): giá trị đã chép sang hồ sơ nên bản khai không còn giữ; danh tính và email liên lạc (dk_identity) GIỮ tới khi
+// kích hoạt. Đúng dấu mà trigger dk_submission_erase_shape đòi. Ngoại lệ có tên của bài src/xoa-mot-lenh-co-ten.test.ts (2).
+const AN_DANH_BAN_KHAI = defineSql(
+  "dang-ky",
+  "submission_erase_on_approve",
+  `UPDATE dk_submission SET erased_at = ?2, given_name = '(đã ẩn)', family_name = NULL, middle_name = NULL, gender = NULL, birth_date = NULL, address_value = NULL,
+          phone_value = NULL, phone_key = NULL, issued_place = NULL, referrer_text = NULL,
+          document_number = CASE WHEN document_number IS NULL THEN NULL ELSE 'XOA' || upper(replace(id, '-', '')) END,
+          number_key = CASE WHEN number_key IS NULL THEN NULL ELSE 'XOA' || upper(replace(id, '-', '')) END,
+          updated_at = ?2, updated_by = ?3
+   WHERE registration_id = ?1 AND erased_at IS NULL`,
+);
+export const cauAnDanhBanKhai = (db: D1Database, v: { registrationId: string; at: string; by: string }): D1PreparedStatement => db.prepare(AN_DANH_BAN_KHAI).bind(v.registrationId, v.at, v.by);
+
+// «Từ chối duyệt» (ADR-0207 Đ4): CHỜ DUYỆT → TỪ CHỐI theo đồ thị 0167; `?5` = phiên bản người duyệt đã xem (NULL = không gửi ⇒ không ghim).
+const TU_CHOI_DUYET_CAP = defineSql(
+  "dang-ky",
+  "registration_reject_at_approval",
+  `UPDATE dk_registration SET status = 'TU_CHOI', reason_code = ?2, decided_at = ?3, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND status = 'CHO_DUYET' AND current_version = COALESCE(?5, current_version)`,
+);
+export const tuChoiDuyetStatement = (db: D1Database, v: { registrationId: string; lyDo: string; by: string; at: string; phienBan: number | null }): D1PreparedStatement =>
+  db.prepare(TU_CHOI_DUYET_CAP).bind(v.registrationId, v.lyDo, v.at, v.by, v.phienBan);
+
+// «Gửi lại lời mời» (ADR-0207 Đ7): mở lại hạn đặt PIN; chỉ phiếu ĐÃ DUYỆT chưa kích hoạt (trigger dk_registration_deadline là lớp thứ hai).
+const GUI_LAI_LOI_MOI = defineSql(
+  "dang-ky",
+  "registration_reopen_activation",
+  `UPDATE dk_registration SET activation_deadline_at = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'DA_DUYET' AND activated_at IS NULL`,
+);
+export const guiLaiLoiMoiStatement = (db: D1Database, v: { registrationId: string; deadlineAt: string; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(GUI_LAI_LOI_MOI).bind(v.registrationId, v.deadlineAt, v.at, v.by);
+

@@ -250,6 +250,8 @@ export const AUDIT_ACTIONS = {
   registration_rejected: { label: "Từ chối phiếu đăng ký", group: "party" },
   registration_number_viewed: { label: "Xem đủ số giấy tờ của phiếu đăng ký", group: "party" },
   registration_file_viewed: { label: "Mở ảnh của phiếu đăng ký", group: "party" },
+  registration_approval_rejected: { label: "Từ chối duyệt phiếu đăng ký", group: "party" },
+  registration_invite_resent: { label: "Gửi lại lời mời đặt PIN", group: "party" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
   // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
   party_bank_account_changed: { label: "Đổi tài khoản nhận tiền", group: "party" },

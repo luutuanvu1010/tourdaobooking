@@ -35,15 +35,15 @@ const KHONG_CON_CHO = () => error(409, "registration_state_changed", "Phiếu v�
 const idPhieu = (params: Record<string, string>): string | null => (laMaPhieu(params.id) ? params.id! : null);
 
 /** Mục phải «đạt» cho phiếu: hợp của mục chỉ phiếu cần (chính sách đang hiệu lực) và mục bắt buộc của hồ sơ cá nhân (parties). */
-async function mucPhaiDat(db: D1Database, at: string): Promise<string[]> {
+export async function mucPhaiDat(db: D1Database, at: string): Promise<string[]> {
   const [rieng, hoSo] = await Promise.all([mucRiengCuaPhieu(db, at), mucXacMinhBatBuocCaNhan(db)]);
   return mucBatBuoc(rieng, hoSo.map((m) => m.ma));
 }
-async function moiNhat(db: D1Database, p: PhieuXetRow): Promise<Map<string, { ketQua: KetQuaMuc; lyDo: string | null }>> {
+export async function moiNhat(db: D1Database, p: PhieuXetRow): Promise<Map<string, { ketQua: KetQuaMuc; lyDo: string | null }>> {
   if (p.current_version < 1) return new Map();
   return new Map((await ketLuanMoiNhat(db, p.id, p.current_version)).map((r) => [r.item_code, { ketQua: r.result, lyDo: r.reason_code }]));
 }
-const dsMuc = (batBuoc: readonly string[], kl: Map<string, { ketQua: KetQuaMuc; lyDo: string | null }>) =>
+export const dsMuc = (batBuoc: readonly string[], kl: Map<string, { ketQua: KetQuaMuc; lyDo: string | null }>) =>
   batBuoc.map((ma) => ({ ma, nhan: nhanMucXacMinh(ma), ketLuan: kl.get(ma)?.ketQua ?? null, lyDo: kl.get(ma)?.lyDo ? { ma: kl.get(ma)!.lyDo!, nhan: nhanLyDoPhieu(kl.get(ma)!.lyDo!) } : null }));
 
 // ---- GET /api/dang-ky/hang-cho ----
@@ -159,7 +159,7 @@ export async function moTep({ request, env, staff, params }: Ctx<"accounts">): P
 
 // ---- POST /api/dang-ky/phieu/:id/dat ----
 /** Hồ sơ đích «gắn hồ sơ có sẵn» phải qua đúng điều kiện của đường tạo tài khoản trên hồ sơ có sẵn (ADR-0207 Đ2 mục 4): cá nhân, đang dùng, chưa gộp, chưa có tài khoản, không lẫn nhóm vai. */
-async function kiemHoSoDich(db: D1Database, partyId: string, vaiXin: string): Promise<{ code: string; message: string } | null> {
+export async function kiemHoSoDich(db: D1Database, partyId: string, vaiXin: string): Promise<{ code: string; message: string } | null> {
   const ho = await partySummary(db, partyId);
   if (!ho) return { code: "target_not_found", message: "Không tìm thấy hồ sơ đã chọn." };
   if (ho.kind !== "PERSON") return { code: "target_not_person", message: "Chỉ gắn được vào hồ sơ cá nhân." };

@@ -75,3 +75,37 @@ export function loiLoXacMinh(e: unknown): { status: 409; code: string; message: 
   if (m.includes("dk_registration_transition")) return { status: 409, code: "registration_state_changed", message: "Phiếu vừa được người khác xử lý. Hãy mở lại phiếu." };
   return null;
 }
+
+/** Thân `duyet`: `{ roleCode, phienBan? }` — mã vai (kiểm nhóm / luật gán ở route) và, tuỳ chọn, số bản khai người duyệt đã xem. Không trường nào khác. */
+export function kiemDuyet(body: Record<string, unknown> | null): Kiem<{ roleCode: string; phienBan: number | null }> {
+  if (!body || !khongThua(body, ["roleCode", "phienBan"]) || typeof body.roleCode !== "string" || !/^[A-Z][A-Z0-9_]{1,39}$/.test(body.roleCode)) return { ok: false, message: "Hãy chọn một vai trò đối tác." };
+  if (body.phienBan !== undefined && body.phienBan !== null && !laPhienBan(body.phienBan)) return { ok: false, message: "Yêu cầu không hợp lệ." };
+  return { ok: true, value: { roleCode: body.roleCode, phienBan: laPhienBan(body.phienBan) ? body.phienBan : null } };
+}
+
+/** Thân `tu-choi-duyet`: `{ lyDo, phienBan? }` — một mã trong danh sách đóng (ADR-0207 Đ3); không trường nào khác. */
+export function kiemLyDoDuyet(body: Record<string, unknown> | null): Kiem<{ lyDo: MaLyDoPhieu; phienBan: number | null }> {
+  if (!body || !khongThua(body, ["lyDo", "phienBan"]) || !laMaLyDoPhieu(body.lyDo)) return { ok: false, message: "Hãy chọn một lý do trong danh sách." };
+  if (body.phienBan !== undefined && body.phienBan !== null && !laPhienBan(body.phienBan)) return { ok: false, message: "Yêu cầu không hợp lệ." };
+  return { ok: true, value: { lyDo: body.lyDo, phienBan: laPhienBan(body.phienBan) ? body.phienBan : null } };
+}
+
+/**
+ * Gói lỗi của LÔ DUYỆT → 409 có câu rõ (ADR-0207 Đ5: «máy chủ dịch lỗi đó thành 409»). Câu chốt (dk_decision_guard) trước; rồi lưới cuối của các bảng khác (chỉ mục duy nhất, trigger
+ * CCCD một người, vai, quan hệ) — mọi câu KHÔNG nhắc dữ liệu khai, không chép chữ lỗi thô. null = lỗi lạ (route ném lên ⇒ 500 có mã yêu cầu).
+ */
+export function loiLoDuyet(e: unknown): { status: 409; code: string; message: string } | null {
+  const m = e instanceof Error ? e.message : "";
+  const doi = { status: 409 as const, code: "registration_state_changed", message: "Phiếu vừa được người khác xử lý hoặc không còn chờ duyệt. Hãy mở lại phiếu." };
+  if (m.includes("dk_decision_state")) return doi;
+  if (m.includes("dk_decision_version")) return { status: 409, code: "registration_version_changed", message: "Phiếu đã thay đổi từ lúc bạn mở. Hãy mở lại phiếu để xem bản mới." };
+  if (m.includes("dk_decision_no_match") || m.includes("dk_decision_not_verified")) return { status: 409, code: "registration_not_verified", message: "Phiếu chưa được xác minh đạt đầy đủ. Hãy trả phiếu về bước xác minh." };
+  if (m.includes("dk_decision_same_person")) return { status: 409, code: "registration_same_person", message: "Người duyệt phải khác người đã xác minh phiếu này. Hãy nhờ một người khác duyệt." };
+  if (/UNIQUE constraint failed: dk_decision/.test(m)) return doi;
+  if (m.includes("person_document_cccd_other_person")) return { status: 409, code: "document_other_person", message: "Số căn cước của phiếu đã thuộc một hồ sơ khác. Hãy từ chối phiếu, hoặc nhờ Quản trị xem lại kết luận Danh bạ." };
+  if (/UNIQUE constraint failed|party_role_|lc1|registration_attachment_|verification_target_mismatch|person_document_/i.test(m)) {
+    return { status: 409, code: "registration_conflict", message: "Dữ liệu vừa thay đổi nên chưa mở được tài khoản (ví dụ số điện thoại vừa được dùng cho tài khoản khác). Hãy mở lại phiếu." };
+  }
+  return null;
+}
+

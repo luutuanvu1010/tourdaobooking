@@ -6,10 +6,13 @@ import { chinhSachHienHanh } from "./repository";
 import { guiPhieu, luuNhapPhieu, rutPhieu, xemPhieuCuaToi } from "./phieu-route";
 import { taiTepPhieu } from "./tep-route";
 import { cauHinhDangKy, xacNhanMa, xinMa } from "./xin-ma-route";
+import { CAM_DUYET, duyetPhieu, guiLaiLoiMoi, tuChoiDuyet, xemDeDuyet } from "./duyet-route";
 import { CAM, ketLuanMuc, moTep, tuChoiPhieu, xacMinhDat, xemHangCho, xemPhieu, xemSo, yeuCauBoSung } from "./xac-minh-route";
 
 export { cauLyDoChoNguoiDangKy } from "../../shared/dang-ky-hien-thi";
 export { chuaKichHoat, lyDoCuaPhieu } from "./repository";
+// Câu CHƯA CHẠY của dang-ky cho LÔ DUYỆT (ADR-0207 Đ5; đợt 1 Task 8): gốc lắp ráp ghép với câu của parties, staff (và pricing) — câu 1 chốt, câu 10 phiếu + lịch sử + ẩn danh bản khai.
+export { cauAnDanhBanKhai, cauChotDuyet, cauDuyetPhieu, suKienNhanVienStatement as suKienDuyetStatement } from "./repository";
 export { TRANG_THAI, TRANG_THAI_KET_THUC, chuyenHopLe, daKetThuc, type TrangThai } from "./rules";
 
 /** Chính sách đăng ký hiệu lực tại `at`; null ⇒ coi là đóng đăng ký. */
@@ -78,6 +81,24 @@ export const dangKyModule: AppModule = {
     route("POST", "/api/dang-ky/phieu/:id/tu-choi", "accounts", async (ctx) => {
       if (!can(ctx.staff, "party.verify") || !can(ctx.staff, "party.view")) return CAM();
       return tuChoiPhieu(ctx);
+    }),
+    // Bước DUYỆT MỞ TÀI KHOẢN (ADR-0207 Đ1, Đ4–Đ7, Đ9; đợt 1 Task 8). Cổng `accounts`; mỗi route hỏi `account.create` (Nhân sự, Toàn quyền — Quản trị không có). Nhân sự không xem Danh bạ:
+    // màn duyệt riêng (không ảnh, không số giấy tờ, không ngày sinh, không địa chỉ). Lệnh duyệt: một lô do gốc lắp ráp ghép (`ctx.loDuyetDangKy`), câu chốt làm hỏng cả lô.
+    route("GET", "/api/dang-ky/phieu/:id/xem-duyet", "accounts", async (ctx) => {
+      if (!can(ctx.staff, "account.create")) return CAM_DUYET();
+      return xemDeDuyet(ctx);
+    }),
+    route("POST", "/api/dang-ky/phieu/:id/duyet", "accounts", async (ctx) => {
+      if (!can(ctx.staff, "account.create")) return CAM_DUYET();
+      return duyetPhieu(ctx);
+    }),
+    route("POST", "/api/dang-ky/phieu/:id/tu-choi-duyet", "accounts", async (ctx) => {
+      if (!can(ctx.staff, "account.create")) return CAM_DUYET();
+      return tuChoiDuyet(ctx);
+    }),
+    route("POST", "/api/dang-ky/phieu/:id/gui-lai-loi-moi", "accounts", async (ctx) => {
+      if (!can(ctx.staff, "account.create")) return CAM_DUYET();
+      return guiLaiLoiMoi(ctx);
     }),
   ],
 };

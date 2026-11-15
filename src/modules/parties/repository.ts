@@ -1755,3 +1755,63 @@ const GO_TEP_CHO_CUA_PHIEU_NEU_TRUOC_DOI = defineSql(
 );
 export const goTepChoCuaPhieuNeuTruocDoiStatement = (db: D1Database, v: { registrationId: string; at: string; lyDo: string }): D1PreparedStatement =>
   db.prepare(GO_TEP_CHO_CUA_PHIEU_NEU_TRUOC_DOI).bind(v.registrationId, v.at, v.lyDo);
+
+// ---- Lô DUYỆT phiếu đăng ký (ADR-0207 Đ5; đợt 1 Task 8) ----
+// Mọi câu dưới đây là câu CHƯA CHẠY cho lô duyệt do gốc lắp ráp ghép (dang-ky không đọc / ghi bảng pty_*). Mã dòng do người gọi SINH SẴN (dòng xác minh trỏ được tới dòng giấy tờ),
+// giá trị đã đọc từ bản khai bất biến TRƯỚC lô; KHÔNG câu nào đọc kết quả câu khác của lô. Câu chốt của dang-ky (trigger dk_decision_guard) làm hỏng CẢ lô khi phiếu không còn hợp lệ,
+// nên các câu này không mang điều kiện thắng riêng. Câu chèn có `NOT EXISTS` chỉ để KHÔNG chép trùng vào hồ sơ có sẵn (vai đã mở, liên hệ đã có).
+const DK_MO_HO_SO = defineSql("parties", "registration_open_party",
+  "INSERT INTO pty_party (id, party_kind, display_name, active, created_at, created_by, updated_at, updated_by) VALUES (?1, 'PERSON', ?2, 1, ?3, ?4, ?3, ?4)");
+const DK_MO_NGUOI = defineSql("parties", "registration_open_person",
+  `INSERT INTO pty_person (party_id, family_name, middle_name, given_name, gender, birth_date, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, NULL, ?6, ?7, ?6, ?7)`);
+// Vai với Tour Đảo (không gắn nơi) từ hôm nay; hồ sơ có sẵn đã MỞ đúng vai này thì không chèn (vai đóng trùng ngày ⇒ trigger chồng lấn làm hỏng lô — route báo 409).
+const DK_MO_VAI = defineSql("parties", "registration_open_role",
+  `INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, NULL, ?4, NULL, ?5, ?6, ?5, ?6
+   WHERE NOT EXISTS (SELECT 1 FROM pty_party_role o WHERE o.party_id = ?2 AND o.role_type_code = ?3 AND o.location_id IS NULL AND o.valid_to_date IS NULL)`);
+const DK_NGAY_SINH = defineSql("parties", "registration_set_birth_date",
+  "UPDATE pty_person SET birth_date = ?2, updated_at = ?3, updated_by = ?4 WHERE party_id = ?1");
+// Liên hệ: chỉ chèn khi hồ sơ CHƯA có liên hệ đang mở cùng loại, cùng khoá so; là liên hệ chính khi hồ sơ chưa có liên hệ chính cùng loại (chỉ mục pty_contact_primary_uq).
+const DK_LIEN_HE = defineSql("parties", "registration_add_contact",
+  `INSERT INTO pty_contact_point (id, party_id, contact_kind_code, value, value_normalized, label, is_primary, valid_from_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, NULL,
+          CASE WHEN EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id = ?2 AND c.contact_kind_code = ?3 AND c.is_primary = 1 AND c.valid_to_date IS NULL) THEN 0 ELSE 1 END,
+          ?6, ?7, ?8, ?7, ?8
+   WHERE NOT EXISTS (SELECT 1 FROM pty_contact_point c WHERE c.party_id = ?2 AND c.contact_kind_code = ?3 AND c.value_normalized = ?5 AND c.valid_to_date IS NULL)`);
+// Dòng giấy tờ: hồ sơ có sẵn đã có dòng HIỆN HÀNH cùng loại (GPLX: cùng hạng) thì dòng mới là dòng GIA HẠN — previous_id tính TRONG câu (khuôn ACCEPT_DOCUMENT; dạng VALUES một dòng
+// để bài ranh giới SQL không thấy câu đọc bảng con của module khác). Trigger sẵn có canh số CCCD thuộc đúng một người.
+const DK_GIAY_TO = defineSql("parties", "registration_add_document",
+  `INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, license_class_code, issued_date, issued_place, expiry_date,
+     previous_id, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9,
+     (SELECT d.id FROM pty_person_document d WHERE d.party_id = ?2 AND d.document_type_code = ?3 AND d.license_class_code IS ?6
+        AND d.voided_at IS NULL AND d.erased_at IS NULL AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL)
+        ORDER BY d.created_at DESC, d.id DESC LIMIT 1),
+     ?10, ?11, ?10, ?11)`);
+// Dòng xác minh: người tạo = NGƯỜI XÁC MINH, giờ = GIỜ XÁC MINH (ADR-0207 Đ5 câu 5) — không phải người / giờ duyệt. Cờ = Toàn quyền làm cả hai bước (Đ1).
+const DK_XAC_MINH = defineSql("parties", "registration_add_verification",
+  `INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, reason_code, verifier_touched_account, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, 'DA_XAC_MINH', NULL, ?6, ?7, ?8, ?7, ?8)`);
+const DK_SO_O_HO_SO_KHAC = defineSql("parties", "registration_cccd_elsewhere",
+  `SELECT 1 AS x FROM pty_person_document d WHERE d.document_type_code = 'CCCD' AND d.number_key = ?1 AND d.voided_at IS NULL AND (?2 IS NULL OR d.party_id <> ?2) LIMIT 1`);
+
+export const dkMoHoSoStatements = (db: D1Database, v: { partyId: string; name: PersonName; gender: string | null; actorId: string; at: string }): D1PreparedStatement[] => [
+  db.prepare(DK_MO_HO_SO).bind(v.partyId, composePersonName(v.name), v.at, v.actorId),
+  db.prepare(DK_MO_NGUOI).bind(v.partyId, v.name.family, v.name.middle, v.name.given, v.gender, v.at, v.actorId),
+];
+export const dkMoVaiStatement = (db: D1Database, v: { id: string; partyId: string; roleCode: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_MO_VAI).bind(v.id, v.partyId, v.roleCode, v.today, v.at, v.actorId);
+export const dkNgaySinhStatement = (db: D1Database, v: { partyId: string; birthDate: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_NGAY_SINH).bind(v.partyId, v.birthDate, v.at, v.actorId);
+export const dkLienHeStatement = (db: D1Database, v: { id: string; partyId: string; kind: string; value: string; valueNormalized: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_LIEN_HE).bind(v.id, v.partyId, v.kind, v.value, v.valueNormalized, v.today, v.at, v.actorId);
+export const dkGiayToStatement = (db: D1Database, v: { id: string; partyId: string; doc: PersonDocValues; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_GIAY_TO).bind(v.id, v.partyId, v.doc.typeCode, v.doc.number, v.doc.numberKey, v.doc.classCode, v.doc.issuedDate, v.doc.issuedPlace, v.doc.expiryDate, v.at, v.actorId);
+export const dkXacMinhStatement = (
+  db: D1Database,
+  v: { id: string; partyId: string; targetKind: "ATTRIBUTE" | "PERSON_DOCUMENT"; targetId: string | null; attributeCode: string | null; co: 0 | 1; verifiedBy: string; verifiedAt: string },
+): D1PreparedStatement => db.prepare(DK_XAC_MINH).bind(v.id, v.partyId, v.targetKind, v.targetId, v.attributeCode, v.co, v.verifiedAt, v.verifiedBy);
+export async function dkSoCanCuocOHoSoKhac(db: D1Database, numberKey: string, partyId: string | null): Promise<boolean> {
+  return (await db.prepare(DK_SO_O_HO_SO_KHAC).bind(numberKey, partyId).first()) !== null;
+}

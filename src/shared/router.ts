@@ -10,6 +10,7 @@ import { bocDb } from "./lan-gui-boc.ts";
 import { HEADER_PHAT_LAI, HEADER_VE, ketQuaDeLuu, kiemKhoa, phanLoai, thanPhatLai, type DongVe } from "./lan-gui-luat.ts";
 import { laMienLanGui } from "./lan-gui-mien.ts";
 import type { MocToiThieu } from "./moc-toi-thieu.ts";
+import type { LoDuyetDangKyRa, LoDuyetDangKyVao } from "./dang-ky-duyet.ts";
 import type { CauCocXacNhan, ChanKhaiLai, VaoCauCoc } from "./dat-coc-kieu.ts";
 import type { KetQuaKiemTraSau } from "./tra-sau.ts";
 import type { NguonVe } from "./nguon-ve.ts";
@@ -228,6 +229,11 @@ export interface Ctx<A extends Access = Access> {
    * `createApp` (thiếu thì typecheck đỏ): không có đường mặc định cho qua.
    */
   chuaKichHoat: (staffId: string) => Promise<boolean>;
+  /**
+   * LÔ DUYỆT PHIẾU ĐĂNG KÝ (ADR-0207 Đ5; đợt 1 Task 8) — do gốc lắp ráp tiêm: ghép câu CHƯA CHẠY của dang-ky (câu chốt, phiếu, ẩn danh), parties, staff (và pricing ở Task 11)
+   * theo đúng thứ tự Đ5 (ADR-0206 Đ2, ADR-0209 Đ6). Không chạy gì; route `dang-ky` chạy MỘT `db.batch`. BẮT BUỘC (như `chuaKichHoat`): thiếu thì typecheck đỏ.
+   */
+  loDuyetDangKy: (v: LoDuyetDangKyVao) => Promise<LoDuyetDangKyRa>;
   /**
    * CHÍNH SÁCH GIAO DIỆN ÁP CHO NGƯỜI GỌI (ADR-0194 đợt 1) — do gốc lắp ráp tiêm (`giao-dien.chinhSachChoNguoi`; `orders` KHÔNG import `giao-dien`, khuôn `mocToiThieu`). Hợp của mọi quyền
    * của người gọi, chỉ trường KHÁC mặc định. Không tiêm (khung thử cũ) HOẶC không đăng nhập HOẶC đọc lỗi ⇒ `[]` = hành vi hôm nay (mặc định đầy đủ — không ẩn, không bắt buộc thêm).
@@ -484,6 +490,8 @@ export interface AppOptions {
     mocToiThieu: (env: Env) => Promise<MocToiThieu | null>;
     /** TÀI KHOẢN CHƯA KÍCH HOẠT (ADR-0207 Đ7). BẮT BUỘC (như `mocToiThieu`): bản thật ở `src/index.ts` (`chuaKichHoat` của dang-ky); thiếu thì typecheck đỏ — không có mặc định cho qua. */
     chuaKichHoat: (env: Env, staffId: string) => Promise<boolean>;
+    /** LÔ DUYỆT PHIẾU ĐĂNG KÝ (ADR-0207 Đ5). BẮT BUỘC: bản thật ở `src/index.ts`; thiếu thì typecheck đỏ. */
+    loDuyetDangKy: (env: Env, v: LoDuyetDangKyVao) => Promise<LoDuyetDangKyRa>;
     /** CHÍNH SÁCH GIAO DIỆN (ADR-0194 đợt 1). Bản thật ở `src/index.ts` (`chinhSachChoNguoi` của giao-dien); thiếu (khung thử cũ) ⇒ `[]` — không đổi hành vi. */
     chinhSachGiaoDien?: (env: Env, actor: StaffProfile) => Promise<TruongDaGiai[]>;
     /** ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `dongBoChuyenChoDon` của van-chuyen); thiếu (khung thử cố ý) → `dongBoDiThang`. */
@@ -681,6 +689,7 @@ export function createApp(opts: AppOptions) {
       // Thiếu hàm tiêm (khung thử cố ý) → null: route chặn, không đoán (I25). Kiểm lúc GỌI, không lúc dựng app (typeof — JS không kiểm kiểu).
       mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(envH) : Promise.resolve(null)),
       chuaKichHoat: (staffId) => opts.injected.chuaKichHoat(envH, staffId),
+      loDuyetDangKy: (v) => opts.injected.loDuyetDangKy(envH, v),
       chinhSachGiaoDien: async () => {
         if (!who || typeof opts.injected.chinhSachGiaoDien !== "function") return [];
         try {

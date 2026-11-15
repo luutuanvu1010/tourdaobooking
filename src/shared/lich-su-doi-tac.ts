@@ -105,7 +105,7 @@ export const LICH_SU_DOI_TAC_AN = [
   // ADR-0182 phần B: khoản nộp của đại lý (ghi, xác nhận, từ chối) và ảnh biên lai của nó — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; phiếu công nợ
   // hiện trạng thái và lý do từ chối; trang Nhật ký (Toàn quyền) vẫn đọc được.
   "agent_remittance_recorded", "agent_remittance_confirmed", "agent_remittance_rejected", "agent_remittance_proof_viewed", "agent_remittance_proof_purged",
-  "registration_item_concluded", "registration_verified", "registration_supplement_requested", "registration_rejected", "registration_number_viewed", "registration_file_viewed", // ADR-0207 Đ6: xác minh phiếu đăng ký — không thuộc đơn nào
+  "registration_item_concluded", "registration_verified", "registration_supplement_requested", "registration_rejected", "registration_number_viewed", "registration_file_viewed", "registration_approval_rejected", "registration_invite_resent", // ADR-0207 Đ6: xác minh phiếu đăng ký — không thuộc đơn nào
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */
