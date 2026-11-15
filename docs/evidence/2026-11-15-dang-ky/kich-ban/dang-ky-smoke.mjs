@@ -1,7 +1,7 @@
 // Kịch bản Chrome + axe — ĐĂNG KÝ ĐỐI TÁC đợt 1 (ADR-0206 … ADR-0210; Task 12, 15/11/2026). Hai khổ 390 và 1280. CHỈ D1 local tạm (startEnv của a2-cdp.mjs): không remote,
 // không `wrangler dev --remote`. Tên, email, số điện thoại, số căn cước là GIẢ.
 //   0. Công tắc «Nhận đăng ký mới» đang TẮT (bản gieo): màn Đăng nhập có lối «Đăng ký làm đối tác»; /dang-ky nói «Tour Đảo tạm ngừng nhận đăng ký mới.», không có biểu mẫu phiếu.
-//   Rồi kịch bản BẬT công tắc và mở bốn loại đối tác trên D1 tạm (thêm một dòng dk_policy), thêm một phiên bản chính sách riêng tư.
+//   0b. Toàn quyền BẬT «Nhận đăng ký mới» ở khối của mình (Quản lý tài khoản; route thật thêm một dòng dk_policy); chính sách riêng tư phiên bản 1 gieo bằng SQL trên D1 tạm.
 //   1. Người đăng ký: email → (Turnstile khoá thử) Gửi mã → nhập mã → điền phiếu, hai ảnh căn cước, đồng ý → Gửi phiếu ⇒ «Đang chờ xác minh».
 //   2. Quản trị: Quản lý tài khoản › Phiếu đăng ký đối tác ⇒ mở phiếu, năm mục «Đạt», «Hồ sơ mới» ⇒ «Xác minh đạt».
 //   3. Nhân sự: mở phiếu chờ duyệt ⇒ «Duyệt mở tài khoản»; hàng chờ ghi «Chưa kích hoạt»; danh sách tài khoản ghi «Chưa kích hoạt».
@@ -30,12 +30,13 @@ const MOB = { width: 390, height: 844, mobile: true };
 const RONG = { width: 1280, height: 860, mobile: false };
 const ADM = { name: "Quản Trị Đăng Ký", phone: "0900000851", pin: "246851", permissions: ["ADMIN"] };
 const HR = { name: "Nhân Sự Đăng Ký", phone: "0900000852", pin: "246852", permissions: ["HR"] };
+const CHU = { name: "Toàn Quyền Đăng Ký", phone: "0900000853", pin: "246853", permissions: ["SUPER_ADMIN"] };
 const PIN_MOI = "580927";
 
 const env = await startEnv({ turnstile: true, vars: { SESSION_SECRET: SECRET } });
 const b = boDem("DANG KY DOI TAC");
 try {
-  for (const a of [ADM, HR]) for (const stmt of (await insertStaffSqlThu(a)).split("\n")) if (stmt.trim()) env.sql(stmt);
+  for (const a of [ADM, HR, CHU]) for (const stmt of (await insertStaffSqlThu(a)).split("\n")) if (stmt.trim()) env.sql(stmt);
 
   const png = (() => {
     const crc = (buf) => { let c = ~0; for (const x of buf) { c ^= x; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xedb88320 : c >>> 1; } return ~c >>> 0; };
@@ -110,16 +111,31 @@ try {
       p.close();
     });
   }
-  // Bật công tắc + mở bốn loại trên D1 TẠM (chỉ thêm dòng); chính sách riêng tư phiên bản 1.
-  const nay = new Date().toISOString(); // SAU dòng gieo của migration (mốc lúc áp migration) để dòng này là dòng hiệu lực
-  env.sql(`INSERT INTO dk_policy (id, registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour,
-    session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour,
-    phieu_required_items, valid_from_at, created_at, created_by, updated_at, updated_by)
-    SELECT 'mo-smoke', 1, 'GUIDE_FREELANCE,HOTEL_RECEPTION,TAXI_DRIVER,COLLABORATOR', code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour,
-    session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour,
-    phieu_required_items, '${nay}', '${nay}', NULL, '${nay}', NULL FROM dk_policy WHERE id = 'gieo-0167'`);
+  // Chính sách riêng tư phiên bản 1 trên D1 TẠM (SQL — đăng chính sách không thuộc việc này). Công tắc «Nhận đăng ký mới» BẬT qua khối của Toàn quyền ở Quản lý tài khoản
+  // (route thật POST /api/dang-ky/chinh-sach — thêm một dòng dk_policy, chỉ đổi công tắc và loại mở; vòng sửa 1 Task 12), không còn chèn dk_policy bằng SQL.
+  const nay = new Date().toISOString();
   if (env.sql("SELECT count(*) AS n FROM pty_privacy_policy")[0].n === 0) {
     env.sql(`INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('cs-smoke', 1, 'Xác minh đối tác (bản thử)', 'Bản thử của chính sách riêng tư.\nTour Đảo chỉ dùng thông tin để xác minh đối tác.', '${nay}', '${nay}', 'kich-ban', '${nay}', 'kich-ban')`);
+  }
+  for (const [khung, hau] of [[MOB, "390"], [RONG, "1280"]]) {
+    const p = await env.as(CHU, "/staff", khung);
+    await b.step(`${hau}-0b`, `${hau}: Toàn quyền — khối «Nhận đăng ký mới» ${hau === "390" ? "bật công tắc (bốn vai đã chọn sẵn), Lưu ⇒ dòng chính sách mới đang nhận" : "đang Bật sau lần lưu ở khổ 390"}${axeNote()}`, async () => {
+      await p.waitFor(`!!document.querySelector('#dk-cs-luu')`, "khối Nhận đăng ký mới", 15000);
+      assert.equal(await p.ev(`document.querySelectorAll('input[name=dk-cs-loai]').length`), 4, "bốn vai cá nhân, không có Công ty lữ hành");
+      if (hau === "390") {
+        assert.equal(await p.ev(`document.querySelector('#dk-cs-tat').checked`), true, "bản gieo: Tắt");
+        await p.ev(`document.querySelector('#dk-cs-bat').click(), true`);
+        await bam(p, "#dk-cs-luu");
+        await p.waitFor(`(document.querySelector('#dk-cs-bao')?.innerText ?? '').includes('đang nhận đăng ký mới')`, "báo đã lưu", 15000);
+        assert.equal(env.sql("SELECT registration_open AS o FROM dk_policy ORDER BY valid_from_at DESC LIMIT 1")[0].o, 1);
+      } else {
+        assert.equal(await p.ev(`document.querySelector('#dk-cs-bat').checked`), true, "đang Bật");
+      }
+      await p.ev(`document.querySelector('#dang-ky-cs').scrollIntoView(), true`);
+      await chup(p, `00-toan-quyen-nhan-dang-ky-${hau}`, khung);
+      await axe(p, `khối Nhận đăng ký mới ${hau}`);
+    });
+    p.close();
   }
 
   let so = 0;

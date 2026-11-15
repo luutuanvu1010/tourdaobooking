@@ -5463,6 +5463,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     trangThai: "cho-chon",
     nguonTen: "tên khối theo trang trình lượt B (ADR-0209 Đ5); nút dùng chữ chung «Lưu», AI chọn 2026-11-15, chờ chủ",
   },
+  {
+    nhom: "Phiếu đăng ký đối tác",
+    manHinh: "Quản lý tài khoản › khối «Nhận đăng ký mới» (chỉ Toàn quyền)",
+    ten: "Lưu (nhận đăng ký mới)",
+    thatSuLam: "Bật hoặc tắt «Nhận đăng ký mới» và chọn vai người dùng được đăng ký (bốn vai cá nhân, không có Công ty lữ hành). Mỗi lần lưu thêm một dòng chính sách đăng ký mới, chỉ đổi công tắc và loại mở, các con số khác giữ nguyên. Chưa có chính sách riêng tư đang hiệu lực thì không bật được. Tắt chỉ chặn mở phiếu mới; phiếu đã có vẫn đi tiếp.",
+    hoiLai: "không",
+    hoanTac: "được: lưu lại lựa chọn khác (dòng cũ giữ trong lịch sử chính sách)",
+    duongLenh: ["/api/dang-ky/chinh-sach"],
+    maNhatKy: ["registration_policy_set"],
+    noiDat: [
+      { tep: "web/dang-ky-chinh-sach.ts", chu: "Lưu" },
+    ],
+    trangThai: "cho-chon",
+    nguonTen: "tên công tắc «Nhận đăng ký mới» (Bật, Tắt) theo PHU-LUC lượt A; nút dùng chữ chung «Lưu», AI chọn 2026-11-16 (Task 12 vòng sửa 1), chờ chủ",
+  },
 ];
 
 /** Nút máy dò là ghi dữ liệu hay nút chính nhưng không phải việc quan trọng (chỉ tải lại, chỉ ẩn khung…); mỗi mục có lý do. */

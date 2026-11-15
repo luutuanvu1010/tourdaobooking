@@ -455,6 +455,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuChon: "AI viết 2026-11-15 (đợt 1 Task 12), chờ chủ chọn tên",
   }),
   KN({
+    ten: "Nhận đăng ký mới",
+    giaiNghia: "Công tắc của Toàn quyền ở Quản lý tài khoản (Bật, Tắt) cùng danh sách vai người dùng được đăng ký. Tắt: không ai mở được phiếu đăng ký mới, trang /dang-ky nói «Tour Đảo tạm ngừng nhận đăng ký mới.»; phiếu đã có vẫn đi tiếp. Lời giải thích, câu báo của khối do AI viết.",
+    khacVoi: "Khác chế độ bảo trì (chặn mọi lệnh của người đăng ký).",
+    chuDaLoai: [],
+    maNoiBo: ["registration_open", "open_role_codes", "/api/dang-ky/chinh-sach", "registration_policy_set", "VAI_MO_DUOC_CHO_PHIEU_CA_NHAN"],
+    trangThai: "cho-chon",
+    chuChon: "tên «Nhận đăng ký mới» (Bật, Tắt) theo PHU-LUC lượt A; câu chữ của khối AI viết 2026-11-16 (Task 12 vòng sửa 1), chờ chủ chọn",
+  }),
+  KN({
     ten: "Cấp sẽ áp",
     giaiNghia: "Cấp độ đại lý mà lệnh duyệt sẽ ghi làm cấp riêng cho người đăng ký (cấp mặc định của vai trò), hoặc lý do không ghi: «Loại này chưa đặt cấp.», «Cấp mặc định đang tắt.», «Hồ sơ đã có cấp riêng.», «Loại này không còn được hưởng hoa hồng.», «Cấp mặc định vừa đổi lúc duyệt nên chưa ghi cấp riêng.». Người xác minh xem trước; lệnh duyệt báo «Cấp đã áp». Tên cấp chỉ hiện cho người xem được hoa hồng; Nhân sự chỉ thấy câu «Cấp hoa hồng sẽ theo chính sách của vai trò mới.» khi đổi vai.",
     khacVoi: "Ba câu lý do đầu và câu đổi vai là chữ của ADR-0209 Đ3, Đ4; hai câu sau và tên «Cấp sẽ áp», «Cấp đã áp» do AI viết.",

@@ -15,6 +15,7 @@ import { initShell, showError } from "./shell";
 import { nhanHaiLop } from "../src/shared/hai-lop-hien-thi";
 import { dungHangChoXacMinh } from "./xac-minh-hang-cho";
 import { dungHangChoDangKy } from "./dang-ky-hang-cho";
+import { dungChinhSachDangKy } from "./dang-ky-chinh-sach";
 import { dauXacMinh } from "./dau-xac-minh";
 import { CHU_CAP, suaDuocCot, thayCotCap } from "../src/shared/cap-hien-hanh-hien-thi";
 import { datTieuDiemODongCap, oCap, oCapDangNap, oCapKhongTai, taiCapHienHanh } from "./cot-cap-dai-ly";
@@ -607,6 +608,8 @@ else {
   if (can(staff, "party.verify")) dungHangChoXacMinh(byId("xac-minh"), staff);
   // ADR-0207 Đ9: hàng chờ phiếu đăng ký đối tác — ô registration.queue.view (Quản trị, Nhân sự, Toàn quyền); từng bước hỏi ô riêng, máy chủ kiểm lại.
   if (can(staff, "registration.queue.view")) dungHangChoDangKy(byId("dang-ky-hc"), staff);
+  // ADR-0206 Đ9: chỗ mở, đóng đăng ký — chỉ Toàn quyền (ô registration.policy.write), đặt ngay trên hàng chờ phiếu đăng ký.
+  if (can(staff, "registration.policy.write")) dungChinhSachDangKy(byId("dang-ky-cs"), staff);
   chinhSach = await taiChinhSach();
   for (const th of document.querySelectorAll<HTMLElement>("th")) anPhanTu(anCot(th.textContent === "Tạo lúc" ? "createdAt" : th.textContent === "Đăng nhập gần nhất" ? "lastLoginAt" : ""), th);
   await load();

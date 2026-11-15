@@ -260,7 +260,7 @@ export const AUDIT_ACTIONS = {
   // ADR-0208 Đ8 (đợt 1 Task 9): tác nhân DON_PHIEU_DANG_KY ghi MỘT dòng mỗi lượt có việc; detail CHỈ các số đếm (KHÔNG mã phiếu, KHÔNG khoá kho, KHÔNG email).
   registration_cleanup_run: { label: "Dọn phiếu đăng ký", group: "party" },
   // ADR-0206 Đ9 (đợt 1 Task 12 vòng sửa 1): Toàn quyền bật / tắt «Nhận đăng ký mới» và chọn loại mở; detail CHỈ «Bật / Tắt» và mã loại (không dữ liệu cá nhân).
-  registration_policy_set: { label: "Đổi chính sách đăng ký đối tác", group: "system" },
+  registration_policy_set: { label: "Đổi công tắc nhận đăng ký mới", group: "system" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
   // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
   party_bank_account_changed: { label: "Đổi tài khoản nhận tiền", group: "party" },
