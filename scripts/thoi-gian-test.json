@@ -76,6 +76,7 @@
  "src/khoi-gap-noi-day.test.ts": 0.1,
  "src/khung-dang-tai-css.test.ts": 0.1,
  "src/khung-nho-web.test.ts": 0.1,
+ "src/khung-thu-ban-mau.test.ts": 1.1,
  "src/khung-thu-dong-ho-gio-xau.test.ts": 6.5,
  "src/khung-thu-gioi-han-like.test.ts": 0.8,
  "src/khung-thu-ve.test.ts": 0.1,
