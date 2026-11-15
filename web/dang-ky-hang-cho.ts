@@ -70,6 +70,11 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
   const chuThu = (t: ThuBao | null | undefined): string | null =>
     !t || t.trangThai === "GUI" ? null : `${t.trangThai === "LOI" ? CHU_HANG_CHO_DK.thuLoi : CHU_HANG_CHO_DK.thuCho}: ${NHAN_LOAI_THU[t.loai] ?? ""}`;
 
+  const huyHieuThu = (t: ThuBao | null | undefined): HTMLElement | null => {
+    const cau = chuThu(t);
+    return cau ? h("span", { class: "huy-hieu", "data-tong": t?.trangThai === "LOI" ? "do" : "cat", "data-thu": t?.trangThai ?? "" }, cau) : null;
+  };
+
   function the(p: DongHangCho): HTMLElement {
     // Phiếu ĐÃ DUYỆT còn trong hàng chờ = người đăng ký chưa tự đặt PIN (ADR-0207 Đ7: «Chưa kích hoạt»).
     const nhan = p.trangThai === "DA_DUYET" ? CHU_HANG_CHO_DK.chuaKichHoat : nhanTrangThaiPhieu(p.trangThai);
@@ -77,7 +82,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       h("span", { class: "xm-the-dong" }, h("strong", null, p.id), h("span", { class: "huy-hieu", "data-tong": p.trangThai === "DA_DUYET" ? "cat" : "bien" }, nhan)),
       h("span", null, tenVai(p.loai)),
       p.guiLuc ? h("span", { class: "muted" }, `Gửi lúc ${vnDateTimeText(p.guiLuc)}`) : null,
-      chuThu(p.thu) ? h("span", { class: "huy-hieu", "data-tong": p.thu?.trangThai === "LOI" ? "do" : "cat", "data-thu": p.thu?.trangThai ?? "" }, chuThu(p.thu)) : null);
+      huyHieuThu(p.thu));
   }
 
   const dong = (nhan: string, giaTri: string | Node) => h("div", { class: "hs-dong" }, h("span", { class: "muted" }, nhan), h("span", null, giaTri));

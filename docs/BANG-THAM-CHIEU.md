@@ -1825,7 +1825,7 @@ Nút máy dò là ghi dữ liệu hay nút chính nhưng thực ra không phải
 
 | Tệp | Nút | Lý do |
 |---|---|---|
-| `web/dang-ky-hang-cho.ts` | ⟪p.id⟫ / Chưa kích hoạt / ⟪nhanTrangThaiPhieu(p.trangThai)⟫ / ⟪tenVai(p.loai)⟫ / Gửi lúc ‹…› | thẻ một phiếu trong hàng chờ đăng ký: chỉ mở khung chi tiết của phiếu, không ghi gì; việc ghi nằm ở các nút trong khung |
+| `web/dang-ky-hang-cho.ts` | ⟪p.id⟫ / Chưa kích hoạt / ⟪nhanTrangThaiPhieu(p.trangThai)⟫ / ⟪tenVai(p.loai)⟫ / Gửi lúc ‹…› / ⟪huyHieuThu(p.thu)⟫ | thẻ một phiếu trong hàng chờ đăng ký: chỉ mở khung chi tiết của phiếu, không ghi gì; việc ghi nằm ở các nút trong khung (huy hiệu thư báo chỉ là chữ, thêm 2026-11-16) |
 | `web/dang-ky.ts` | Đăng nhập | liên kết sang màn Đăng nhập sau khi đã đặt mã PIN; không ghi gì (việc đăng nhập là hàng «Đăng nhập» ở public/login.html) |
 | `web/shell.ts` | ⟪nho.tat⟫ | ô chữ cái đầu ở thanh trên (điện thoại): chỉ mở menu tên tài khoản, không ghi gì; việc ghi nằm ở các mục trong menu (web/menu-tai-khoan.ts). Khung tạm từ bản nhớ không dựng nút này |
 | `web/shell.ts` | ⟪initials(staff.fullName)⟫ | ô chữ cái đầu ở thanh trên (điện thoại): chỉ mở menu tên tài khoản, không ghi gì; việc ghi nằm ở các mục trong menu (web/menu-tai-khoan.ts) |

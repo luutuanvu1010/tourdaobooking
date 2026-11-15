@@ -112,6 +112,7 @@ export const TRAN_HANG_CHO = 200;
 // KHÔNG gồm ĐANG ĐIỀN: phiếu nháp chưa gửi không phải việc của ai và không được đẩy phiếu thật ra khỏi trần, rà soát cuối I-4); duyệt được (account.create) ⇒ CHỜ DUYỆT và ĐÃ DUYỆT mà tài khoản
 // chưa kích hoạt (ADR-0207 Đ4, Đ7); có cả hai (Toàn quyền, Quản trị + Nhân sự) ⇒ hợp. Thêm: phiếu TỪ CHỐI có thư báo chưa gửi được (ADR-0206 Đ13, Hiến chương 5.16 «thấy được và gửi lại được»)
 // cho đúng bước đã từ chối (xác minh ⇒ người xác minh; duyệt ⇒ người duyệt), chỉ khi danh tính còn email. Cột `thu` = lệnh thư báo MỚI NHẤT của phiếu (một câu, không hỏi từng dòng).
+// Phiếu TỪ CHỐI chỉ được xét khi danh tính còn email (tác nhân ẩn danh sau số ngày của chính sách ⇒ số dòng TỪ CHỐI được xét có trần tự nhiên).
 // Xếp: việc làm được ngay (CHỜ XÁC MINH, CHỜ DUYỆT) trước, rồi gửi sớm nhất trước. Chỉ mã, loại, mốc — không tên, không liên hệ.
 const HANG_CHO = defineSql(
   "dang-ky",
@@ -122,7 +123,8 @@ const HANG_CHO = defineSql(
             EXISTS (SELECT 1 FROM dk_identity i WHERE i.registration_id = r.id AND i.contact_email IS NOT NULL) AS con_email
      FROM dk_registration r
      WHERE r.status IN ('CHO_XAC_MINH', 'CAN_BO_SUNG', 'CHO_DUYET', 'DA_DUYET', 'TU_CHOI')
-       AND (r.status <> 'DA_DUYET' OR r.activated_at IS NULL) AND (r.status <> 'TU_CHOI' OR r.erased_at IS NULL)
+       AND (r.status <> 'DA_DUYET' OR r.activated_at IS NULL)
+       AND (r.status <> 'TU_CHOI' OR EXISTS (SELECT 1 FROM dk_identity t WHERE t.registration_id = r.id AND t.contact_email IS NOT NULL))
    ) q
    WHERE (?1 = 1 AND status IN ('CHO_XAC_MINH', 'CAN_BO_SUNG', 'CHO_DUYET'))
       OR (?2 = 1 AND (status = 'CHO_DUYET' OR status = 'DA_DUYET'))
