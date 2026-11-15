@@ -5,6 +5,7 @@
 - **Nguồn:** lời chủ 15/11 (nguyên văn, phần liên quan): «lên kế hoạch chuẩn mực cho việc đăng ký - phê duyệt tài khoản … Mục đích là để cho đối tác tự đăng ký tài khoản, cung cấp các thông tin và hồ sơ cần thiết (tùy thân, doanh nghiệp) để phục vụ cho việc xác minh thông tin».
 - **Ngày:** 2026-11-15. **Loại:** việc lớn — dữ liệu (module và bảng mới), quyền (một cổng mới cho người chưa có tài khoản, hai hàng quyền mới), luật (kèm đề xuất một điều Hiến chương), triển khai (route công khai mới). Người kiểm độc lập chỉ đọc sau thi công.
 - **Cửa:** hai chiều về hành vi (đóng công tắc là thôi nhận phiếu mới); một chiều mềm về dữ liệu (bảng chỉ thêm, phiếu đã gửi ở lại dưới dạng đã ẩn danh).
+- **Sửa sau lượt soát độc lập 15/11** (chỉ đọc): bỏ cổng router mới, dùng route công khai kèm cookie đã ký (tiền lệ hai lớp); thêm hàm bảo trì cho người không có tài khoản; tách không gian khoá của bộ đếm.
 - **Quan hệ với ADR cũ:**
   - **ADR-0200:** phần Bối cảnh của ADR-0200 lấy tiền đề «mọi tài khoản do công ty tạo, không có tự đăng ký». Khi ADR này được thi công thì tiền đề đó hết đúng. ADR này **không** sửa ADR-0200; hệ quả với hai kho ứng dụng ghi ở mục Hệ quả. ADR này **thi hành** một phần ADR-0200 Đ3: đường công khai đọc chính sách riêng tư.
   - **ADR-0016 Đ8:** dùng lại luật «tách khoá ký» cho cookie phiên đăng ký.
@@ -44,43 +45,43 @@ Vì vậy không thể cho người lạ một tài khoản «chờ duyệt» r�
 - **Bản khai:** mỗi lần gửi là một dòng **bất biến**. Cột có kiểu, soi theo cột của `pty_person`, `pty_contact_point`, `pty_person_document` để lệnh duyệt chép một–một; không JSON tự do (Hiến chương 5.2). Kèm mã phiên bản chính sách riêng tư đã đồng ý và giờ đồng ý.
 - **Lịch sử lệnh của phiếu** (chỉ thêm): ai phát lệnh (người đăng ký, mã tài khoản nhân viên, hoặc mã tác nhân), lệnh gì, lúc nào, mã lý do.
 - **Mã gửi email:** chỉ lưu bản băm, có hạn, có đếm lần nhập. Đây là bảng kỹ thuật như `login_attempt`: dòng hết hạn được xoá.
-- **Chính sách đăng ký:** chỉ thêm dòng, có ngày hiệu lực (khuôn `ord_pickup_time_policy`): công tắc mở / đóng; hạn ngày của từng trạng thái; các trần của Đ8; danh sách loại đối tác mở cho phiếu; danh sách mục bắt buộc theo loại phiếu.
+- **Chính sách đăng ký:** chỉ thêm dòng, có ngày hiệu lực (khuôn `ord_pickup_time_policy`): công tắc mở / đóng; hạn ngày của từng trạng thái; hạn phiên đăng ký (Đ5); hạn kích hoạt (ADR-0207); các trần của Đ8; thời hạn ẩn danh (ADR-0208); danh sách loại đối tác mở cho phiếu; danh sách mục bắt buộc theo loại phiếu.
 
 **Đ4 — Vòng đời** (tên giữ chỗ; tập đóng bằng `CHECK`, chuyển trạng thái canh bằng trigger và bằng điều kiện trong câu ghi):
 
 `ĐANG ĐIỀN → CHỜ XÁC MINH → CHỜ DUYỆT → ĐÃ DUYỆT`. Từ `CHỜ XÁC MINH`, người xác minh có thể trả phiếu về `CẦN BỔ SUNG`; ở trạng thái này người đăng ký sửa được như lúc `ĐANG ĐIỀN`, và «gửi lại» đưa phiếu về `CHỜ XÁC MINH` với một bản khai mới. Từ mọi trạng thái chưa kết thúc có thể sang `TỪ CHỐI` (người của công ty), `ĐÃ RÚT` (người đăng ký), `HẾT HẠN` (tác nhân, ADR-0208). Bốn trạng thái `ĐÃ DUYỆT`, `TỪ CHỐI`, `ĐÃ RÚT`, `HẾT HẠN` là kết thúc, không đổi nữa. Sơ đồ ở bản khung vẽ đường quay lại qua `ĐANG ĐIỀN`; ADR này nói rõ hơn và thắng bản khung ở điểm đó.
 
-**Đ5 — Phiên đăng ký.** Một cookie riêng (tên giữ chỗ `td_dang_ky`), `HttpOnly`, `Secure`, ký HMAC bằng khoá dẫn xuất hoặc tiền tố mục đích **khác** `td_session` (ADR-0016 Đ8), gắn với đúng một phiếu và một danh tính, hạn ngắn (đề xuất: hết sau 30 phút không thao tác, tối đa 12 giờ). Router thêm **một cổng mới** (tên giữ chỗ `access: "dang-ky"`): route khai cổng này chỉ nhận phiên đăng ký; mọi cổng khác (`staff`, `office`, `orders`, `accounts`, `admin`) không bao giờ đọc cookie này. Vào lại phiếu = xin mã mới cho đúng email. Không cửa cấp phiên `td_session` nào được thêm.
+**Đ5 — Phiên đăng ký.** Một cookie riêng (tên giữ chỗ `td_dang_ky`), `HttpOnly`, `Secure`, ký HMAC bằng khoá dẫn xuất hoặc tiền tố mục đích **khác** `td_session` (ADR-0016 Đ8), gắn với đúng một phiếu và một danh tính, hạn ngắn (dữ liệu chính sách; đề xuất: hết sau 30 phút không thao tác, tối đa 12 giờ). **Không thêm cổng router mới.** Route của người đăng ký khai `access: "public"` và **tự kiểm cookie đăng ký trong thân route** bằng một hàm dùng chung của `dang-ky`, theo đúng tiền lệ bước hai của đăng nhập hai lớp (`POST /api/auth/mfa/verify`: route công khai, cổng là cookie chờ đã ký). Router và kiểu `Ctx` không đổi. Mọi cổng có tài khoản (`staff`, `office`, `orders`, `accounts`, `admin`) không bao giờ đọc cookie này. Vào lại phiếu = xin mã mới cho đúng email. Không cửa cấp phiên `td_session` nào được thêm.
 
-**Đ6 — Route là một danh sách đóng** (đường dẫn giữ chỗ; thêm route mà chưa khai vào ảnh chụp cổng thì bài đỏ):
+**Đ6 — Route là một tập đóng** (đường dẫn giữ chỗ). Mọi route dưới đây khai `public`; cột «Đòi cookie đăng ký» là phần thân route tự kiểm. Một bài kiểm mới liệt kê đúng các route gọi hàm kiểm cookie đăng ký; thêm route mà chưa khai vào bài đó thì đỏ.
 
-| Cổng | Route | Việc |
+| Đòi cookie đăng ký | Route | Việc |
 |---|---|---|
-| `public` | `GET /api/dang-ky/cau-hinh` | công tắc, loại đối tác đang mở, mục bắt buộc, phiên bản chính sách riêng tư đang hiệu lực |
-| `public` | `GET /api/chinh-sach-rieng-tu` | thân chính sách đang hiệu lực, phiên bản, ngày hiệu lực (ADR-0200 Đ3); chưa có phiên bản nào thì trả «đang cập nhật» |
-| `public` | `POST /api/dang-ky/ma` | xin mã gửi email (Đ8); mọi trường hợp trả cùng một câu |
-| `public` | `POST /api/dang-ky/xac-nhan` | nhập mã; đúng thì cấp phiên đăng ký, và mở phiếu `ĐANG ĐIỀN` nếu danh tính chưa có phiếu đang mở và công tắc đang mở |
-| `dang-ky` | `GET /api/dang-ky/phieu` | trạng thái, nội dung đang điền, lý do cần bổ sung hay bị từ chối, hạn |
-| `dang-ky` | `PUT /api/dang-ky/phieu` | lưu nháp khi `ĐANG ĐIỀN` hoặc `CẦN BỔ SUNG` |
-| `dang-ky` | `POST /api/dang-ky/phieu/gui` | gửi, hoặc gửi lại; sinh một dòng bản khai bất biến |
-| `dang-ky` | `POST /api/dang-ky/phieu/rut` | rút phiếu (ADR-0208 lo phần tệp) |
+| không | `GET /api/dang-ky/cau-hinh` | công tắc, loại đối tác đang mở, mục bắt buộc, phiên bản chính sách riêng tư đang hiệu lực |
+| không | `GET /api/chinh-sach-rieng-tu` | thân chính sách đang hiệu lực, phiên bản, ngày hiệu lực (ADR-0200 Đ3); chưa có phiên bản nào thì trả «đang cập nhật» |
+| không | `POST /api/dang-ky/ma` | xin mã gửi email (Đ8); mọi trường hợp trả cùng một câu |
+| không | `POST /api/dang-ky/xac-nhan` | nhập mã; đúng thì cấp phiên đăng ký, và mở phiếu `ĐANG ĐIỀN` nếu danh tính chưa có phiếu đang mở và công tắc đang mở |
+| có | `GET /api/dang-ky/phieu` | trạng thái, nội dung đang điền, lý do cần bổ sung hay bị từ chối, hạn |
+| có | `PUT /api/dang-ky/phieu` | lưu nháp khi `ĐANG ĐIỀN` hoặc `CẦN BỔ SUNG` |
+| có | `POST /api/dang-ky/phieu/gui` | gửi, hoặc gửi lại; sinh một dòng bản khai bất biến |
+| có | `POST /api/dang-ky/phieu/rut` | rút phiếu (ADR-0208 lo phần tệp) |
 
 Route tải ảnh thuộc ADR-0208; route đặt PIN và các route của người trong công ty thuộc ADR-0207.
 
-**Đ7 — Lớp chống ghi trùng không chạy cho các route trên** (lớp đó chỉ chạy cho route có tài khoản đăng nhập — ADR-0094). Năm route ghi ở Đ6 (xin mã, xác nhận mã, lưu nháp, gửi, rút), cùng route tải ảnh (ADR-0208) và route đặt PIN (ADR-0207), phải có mục `congKhai` trong `src/shared/lan-gui-mien.ts`; **lời duyệt ADR này là lời duyệt các mục miễn đó**. Bù lại, từng lệnh tự chống bấm hai lần: câu ghi mang điều kiện «đúng trạng thái và đúng phiên bản bản khai», lần bấm thứ hai khớp 0 dòng và nhận lại kết quả của lần đầu.
+**Đ7 — Lớp chống ghi trùng không chạy cho các route trên** (lớp đó chỉ chạy cho route có tài khoản đăng nhập — ADR-0094). Năm route ghi ở Đ6 (xin mã, xác nhận mã, lưu nháp, gửi, rút), cùng route tải ảnh (ADR-0208) và route đặt PIN (ADR-0207) — bảy route, đều `public` — phải có mục `congKhai` trong `src/shared/lan-gui-mien.ts` (bài `src/lan-gui-phu-route.test.ts` đòi mọi route ghi `public` ngoài danh sách đã biết phải có mục đó); **lời duyệt ADR này là lời duyệt các mục miễn đó**. Bù lại, từng lệnh tự chống bấm hai lần: câu ghi mang điều kiện «đúng trạng thái và đúng phiên bản bản khai», lần bấm thứ hai khớp 0 dòng và nhận lại kết quả của lần đầu.
 
 **Đ8 — Chống lạm dụng.** Con số là dữ liệu chính sách (Đ3); mã không viết cứng. Mặc định đề xuất:
 
 | Mối nguy | Lớp chặn |
 |---|---|
-| Máy xin mã, mở phiếu hàng loạt | Turnstile ở `POST …/ma`; **thiếu khoá Turnstile thì route trả 503 «tạm ngừng nhận đăng ký»** (khác đăng nhập, nơi thiếu khoá thì bỏ qua kiểm). Bộ đếm của đăng nhập dùng lại với khoá đặt tên riêng (không dùng tiền tố `phone:`, `mfa:`): 3 lần / 15 phút / email; 10 lần / 15 phút / địa chỉ mạng |
+| Máy xin mã, mở phiếu hàng loạt | Turnstile ở `POST …/ma`; **thiếu khoá Turnstile thì route trả 503 «tạm ngừng nhận đăng ký»** (khác đăng nhập, nơi thiếu khoá thì bỏ qua kiểm). Bộ đếm của đăng nhập dùng lại với **không gian khoá riêng** `dk:` cho cả email lẫn địa chỉ mạng (không dùng `phone:`, `mfa:`, và **không dùng chung `ip:`** của đăng nhập, để đăng ký dồn dập từ một mạng khách sạn không khoá đăng nhập của nhân viên cùng mạng): 3 lần / 15 phút / email; 10 lần / 15 phút / địa chỉ mạng |
 | Mượn Nền tảng để gửi thư tới người khác | Thêm trần tổng: 60 thư mã / giờ cho cả Nền tảng; vượt thì trả cùng câu như thường và không gửi. Thư đăng ký có câu chữ riêng, không dùng lại thư «mã xác minh đăng nhập» |
 | Dò mã | Mã 6 số, sống 10 phút, 5 lần nhập, băm khi lưu (khuôn lớp hai) |
 | Dò xem số điện thoại, email nào đã có tài khoản | Không route nào của người đăng ký trả lời «đã có tài khoản». Trùng số do người xác minh và người duyệt xử lý (ADR-0207) |
 | Phiếu bỏ dở chất đống | `ĐANG ĐIỀN` quá 7 ngày không thao tác, `CẦN BỔ SUNG` quá 14 ngày: tác nhân cho hết hạn (ADR-0208) |
 | Giả phiên Nền tảng | Đ5; bài kiểm: hàm kiểm phiên của Nền tảng từ chối cookie đăng ký và ngược lại |
 | Lệnh ghi từ trang khác | Kiểm `Origin` cùng site giữ nguyên, không ngoại lệ |
-| Chế độ bảo trì | Route công khai không tự qua cổng bảo trì: mỗi route ghi ở Đ6 gọi cổng đó tường minh như đăng nhập |
+| Chế độ bảo trì | Route công khai không tự qua cổng bảo trì, và cổng bảo trì của đăng nhập xét theo quyền và số điện thoại của một tài khoản nên không dùng được cho người chưa có tài khoản. Thêm **một hàm bảo trì nhỏ cho người không có tài khoản**: đang bảo trì thì mọi lệnh ghi của người đăng ký bị chặn; mỗi route ghi ở Đ6 gọi hàm đó |
 
 **Đ9 — Công tắc và chính sách.** Hai hàng quyền mới: «xem hàng chờ phiếu đăng ký» (Quản trị, Nhân sự, Toàn quyền) và «đặt chính sách đăng ký» (chỉ Toàn quyền). Công tắc **mặc định đóng** lúc phát hành. Đóng nghĩa là **không mở được phiếu mới**; phiếu đã có vẫn đi tiếp (vào lại, xem, sửa, gửi lại, rút, đặt PIN). Muốn dừng hẳn thì dùng chế độ bảo trì.
 
@@ -103,8 +104,9 @@ Route tải ảnh thuộc ADR-0208; route đặt PIN và các route của ngư�
 
 ## Bài kiểm (đỏ trước, xanh sau)
 
-- Cookie đăng ký bị hàm kiểm phiên của Nền tảng từ chối; cookie `td_session` bị cổng `dang-ky` từ chối. Phiên đăng ký gọi một route cổng `staff` bất kỳ: 401.
-- Ảnh chụp cổng (`src/route-access.test.ts`): route nhận phiên đăng ký là đúng danh sách ở Đ6 cộng hai route của ADR-0207, ADR-0208; thêm route chưa khai thì đỏ. Bài «bốn cửa cấp phiên» giữ nguyên bốn.
+- Cookie đăng ký bị hàm kiểm phiên của Nền tảng từ chối; cookie `td_session` bị hàm kiểm cookie đăng ký từ chối. Phiên đăng ký gọi một route cổng `staff` bất kỳ: 401.
+- Bài mới: các route gọi hàm kiểm cookie đăng ký là đúng danh sách ở Đ6 cộng hai route của ADR-0207, ADR-0208; thêm route chưa khai thì đỏ. Ảnh chụp cổng (`src/route-access.test.ts`) cập nhật cho các route `public` mới. Bài «bốn cửa cấp phiên» giữ nguyên bốn.
+- Đang bảo trì: mọi lệnh ghi của người đăng ký bị chặn. Đăng ký dồn dập từ một địa chỉ mạng không làm khoá đăng nhập của tài khoản dùng cùng địa chỉ đó.
 - Gửi phiếu: không dòng nào mới ở `pty_party`, `pty_person`, `pty_attachment`, `staff` (đếm trước và sau).
 - Chưa có chính sách riêng tư hoặc chưa đồng ý đúng phiên bản: gửi bị từ chối bằng câu tiếng Việt.
 - Công tắc đóng: xin mã cho email chưa có phiếu không mở được phiếu; phiếu đã có vẫn vào lại, sửa, gửi lại, rút được.

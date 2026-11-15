@@ -6,7 +6,7 @@
 Ba câu hỏi bắt buộc của bài học F-01, trả lời trước:
 
 - **Bảng hồ sơ nay chứa ai?** Không thêm loại người nào. Thêm một **nguồn**: người tự tìm đến, và chỉ sau khi hai người của công ty đã xác minh và duyệt.
-- **Bảng tài khoản nay chứa ai?** Thêm một loại mới: **tài khoản đã duyệt nhưng chưa kích hoạt** (chưa ai biết PIN).
+- **Bảng tài khoản nay chứa ai?** Thêm một loại mới: **tài khoản đã duyệt nhưng chưa kích hoạt**: tắt (`active = 0`), chưa ai biết PIN, các lệnh hỗ trợ đăng nhập từ chối nó.
 - **Kho `HO_SO` nay chứa gì?** Thêm ảnh giấy tờ của **người chưa là đối tác**, trong lúc phiếu của họ còn sống.
 
 ## (1) Những bảng / kho này chứa loại thực thể nào
@@ -22,16 +22,17 @@ Ba câu hỏi bắt buộc của bài học F-01, trả lời trước:
 | `pty_verification` | Kết quả xác minh phiếu tự khai của người **đã có tài khoản** | 0207 | Thêm dòng sinh từ phiếu đăng ký, ghi lúc duyệt, người xác minh là người đã kết luận. Dòng do Toàn quyền làm cả hai bước mang cờ | Lượt B sẽ đọc bảng này để tính dấu xác minh |
 | `pty_consent` | Đồng ý chính sách riêng tư của người có hồ sơ | 0207 | Thêm dòng chép từ bản khai lúc duyệt | Đúng phiên bản người đăng ký đã đồng ý, không phải phiên bản lúc duyệt |
 | `pty_party_relationship` và bảng loại quan hệ | Hai loại: «Người liên hệ của», «Tài xế của» | 0207 | Thêm **một loại** («người giới thiệu»), bằng migration; dòng ghi lúc duyệt nếu người xác minh đã chọn | Chỉ ghi nhận. Không luật tiền nào đọc loại này |
-| `staff`, quyền và vai trò tài khoản | Tài khoản do Nhân sự, Toàn quyền tạo | 0207 | Thêm tài khoản sinh từ lệnh duyệt; **loại mới: chưa kích hoạt** | Đường đặt PIN mới chỉ chạy cho tài khoản sinh từ phiếu và chưa kích hoạt. Trigger «quyền Đối tác phải có vai trò đối tác» vẫn áp: lô xếp vai trò trước quyền |
-| `audit_log`, view `v_aud_cham_tai_khoan` | Nhật ký mọi lệnh; view cho lính gác tách nhiệm vụ | 0206, 0207, 0208 | Hành động mới: kết luận xác minh, xem đủ số, mở ảnh của phiếu, duyệt, từ chối, gửi lại lời mời, đổi chính sách, lượt dọn của tác nhân, đặt PIN lần đầu. View tạo lại để xếp «duyệt phiếu» vào tầng tạo tài khoản | Lệnh của **người đăng ký** không vào đây (họ không phải tài khoản hay tác nhân) mà vào lịch sử của phiếu |
-| `login_attempt` (bộ đếm chống dò) | Lượt thử đăng nhập theo số điện thoại, địa chỉ mạng | 0206 | Thêm khoá của đăng ký | Không dùng tiền tố `phone:`, `mfa:`: hai câu «đang bị khoá» ở màn Quản lý tài khoản lọc theo tiền tố đó |
+| `staff`, quyền và vai trò tài khoản | Tài khoản do Nhân sự, Toàn quyền tạo | 0207 | Thêm tài khoản sinh từ lệnh duyệt bằng một biến thể mới của đường tạo (chỉ tài khoản và quyền, không sinh hồ sơ); **loại mới: chưa kích hoạt, `active = 0`** | Đường đặt PIN mới chỉ chạy cho tài khoản sinh từ phiếu và chưa kích hoạt; lô kích hoạt bật `active = 1`. Đặt lại PIN, mở khoá, kích hoạt lại, tắt lớp hai từ chối tài khoản chưa kích hoạt. Trigger «quyền Đối tác phải có vai trò đối tác» vẫn áp: lô xếp vai trò trước quyền |
+| **Bảng quyết định của phiếu (mới, của `dang-ky`)** | — | 0207 | Một dòng cho mỗi lần duyệt, mỗi lần kích hoạt, mang cờ khi Toàn quyền làm cả hai bước | Câu chèn là câu chốt của lô; trigger `RAISE` làm hỏng cả lô khi điều kiện sai; trigger chỉ đọc bảng `dk_*` |
+| `audit_log`, view `v_aud_cham_tai_khoan` | Nhật ký mọi lệnh; view cho lính gác tách nhiệm vụ | 0206, 0207, 0208 | Lệnh duyệt ghi `staff_created` trỏ mã tài khoản mới (đã nằm ở tầng tạo tài khoản, **không tạo lại view**). Hành động mới, đích là phiếu: kết luận xác minh, xem đủ số, mở ảnh, từ chối, gửi lại lời mời, đổi chính sách, lượt dọn của tác nhân; kích hoạt do chính tài khoản mới đứng tên | Lệnh của **người đăng ký** không vào đây (họ không phải tài khoản hay tác nhân) mà vào lịch sử của phiếu |
+| `login_attempt` (bộ đếm chống dò) | Lượt thử đăng nhập theo số điện thoại, địa chỉ mạng | 0206 | Thêm khoá của đăng ký, không gian riêng `dk:` cho cả email lẫn địa chỉ mạng | Không dùng `phone:`, `mfa:` (màn Quản lý tài khoản lọc theo đó) và không dùng chung `ip:` (để đăng ký dồn dập không khoá đăng nhập của nhân viên cùng mạng) |
 | `pty_privacy_policy` | Chính sách riêng tư có phiên bản (hôm nay chưa có dòng nào trên bản chính thức, theo sổ bàn giao) | 0206 | Thêm **một đường đọc công khai** | Chỉ trả phiên bản, ngày hiệu lực, thân; không trả người đăng |
 
 ## (2) Dòng bản đồ quyền chạm các bảng / route trên
 
 | Ô | SALES | ACC | ADMIN | FIELD | PARTNER | SUPER | INTERN | DRIVER | DRV_P | HR | SM | Áp cho | Ghi chú |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| **(mới)** xem hàng chờ phiếu đăng ký | none | none | any | none | none | any | none | none | none | any | none | mọi phiếu chưa kết thúc và danh sách đã xử lý | khuôn `quanTriNhanSu()`. Nhân sự chỉ thấy phần của bước duyệt (ADR-0207 Đ4) |
+| **(mới)** xem hàng chờ phiếu đăng ký | none | none | any | none | none | any | none | none | none | any | none | Quản trị, Toàn quyền: mọi phiếu chưa kết thúc; Nhân sự: chỉ phiếu `CHỜ DUYỆT` và tài khoản chưa kích hoạt; mọi người: danh sách đã xử lý dạng mã | khuôn `quanTriNhanSu()` (ADR-0207 Đ4) |
 | **(mới)** đặt chính sách đăng ký | none | none | none | none | none | any | none | none | none | none | none | công tắc, hạn ngày, trần, loại đối tác mở, mục bắt buộc | khuôn `chiToanQuyen()` |
 | **(mới)** dọn phiếu đăng ký | none | none | none | none | none | any | none | none | none | none | none | tác nhân `DON_PHIEU_DANG_KY` | với người chỉ có trên bảng (ADR-0014 điều 2), không nút, không route |
 | `party.verify` (đã có) | none | none | any | none | none | any | none | none | none | any | none | **rộng ra:** thêm kết luận từng mục của phiếu đăng ký | route phiếu đăng ký đòi thêm `party.view` ⇒ **Nhân sự không qua** |
@@ -41,21 +42,22 @@ Ba câu hỏi bắt buộc của bài học F-01, trả lời trước:
 | `account.view` (đã có) | none | none | any | none | none | any | none | none | none | any | none | danh sách nay có tài khoản chưa kích hoạt | không đổi ô |
 | `party.attachment.view` (đã có) | none | none | none | none | none | any | none | none | none | none | none | thêm hàng chờ tệp lỗi của phiếu | chỉ mã, không mở ảnh từ đây |
 
-Người đăng ký **không có dòng nào** trong bảng quyền. Họ được canh bằng cổng `dang-ky` và luật «đúng phiếu của phiên».
+Người đăng ký **không có dòng nào** trong bảng quyền. Họ được canh bằng cookie đăng ký (kiểm trong thân route, danh sách route đóng có bài kiểm) và luật «đúng phiếu của phiên».
 
 ## (3) Cổng nào canh cửa nào
 
 | Cửa | Cổng router | Hỏi thêm | Ai qua |
 |---|---|---|---|
 | Đọc cấu hình đăng ký; đọc chính sách riêng tư | `public` | không | mọi người; chỉ dữ liệu công khai |
-| Xin mã gửi email | `public` | Turnstile (thiếu khoá thì 503), bộ đếm theo email, theo địa chỉ mạng, trần tổng; cổng bảo trì gọi tường minh | mọi người |
+| Xin mã gửi email | `public` | Turnstile (thiếu khoá thì 503), bộ đếm `dk:` theo email và địa chỉ mạng, trần tổng; hàm bảo trì cho người không có tài khoản | mọi người |
 | Nhập mã | `public` | mã đúng, còn hạn, chưa quá số lần | người giữ hộp thư |
-| Xem, lưu nháp, gửi, rút phiếu; tải ảnh | **`dang-ky` (mới)** | đúng phiếu của phiên; đúng trạng thái | người đăng ký |
-| Đặt PIN | `dang-ky` | thêm **mã email mới**; phiếu `ĐÃ DUYỆT`; tài khoản chưa kích hoạt; còn hạn | người đăng ký đã được duyệt |
+| Xem, lưu nháp, gửi, rút phiếu; tải ảnh | `public`, **thân route kiểm cookie đăng ký** (tiền lệ bước hai đăng nhập hai lớp; không thêm cổng router) | đúng phiếu của phiên; đúng trạng thái; hàm bảo trì cho lệnh ghi | người đăng ký |
+| Đặt PIN | `public`, kiểm cookie đăng ký | thêm **mã email mới**; câu chốt: phiếu `ĐÃ DUYỆT`, chưa kích hoạt, còn hạn | người đăng ký đã được duyệt |
 | Xem hàng chờ; xem tóm tắt một phiếu | `accounts` | ô xem hàng chờ | Quản trị, Nhân sự, Toàn quyền |
 | Xem nội dung bản khai, kết luận từng mục, ba lệnh kết thúc xác minh | `accounts` | `party.verify` **và** `party.view`; phiếu `CHỜ XÁC MINH` | Quản trị, Toàn quyền |
 | Xem đủ số; mở ảnh của phiếu | `accounts` | thêm `party.verify.attachment`; nhật ký trước | Quản trị, Toàn quyền |
-| Duyệt; từ chối ở bước duyệt; gửi lại lời mời | `accounts` | `account.create`; người duyệt khác người xác minh, hoặc là Toàn quyền | Nhân sự, Toàn quyền |
+| Duyệt; từ chối ở bước duyệt; gửi lại lời mời | `accounts` | `account.create`; câu chốt: người duyệt khác người xác minh, hoặc là Toàn quyền | Nhân sự, Toàn quyền |
+| Đặt lại PIN, mở khoá, kích hoạt lại, tắt lớp hai (đã có) | `admin` / `accounts` như hôm nay | **thêm:** từ chối tài khoản chưa kích hoạt | không ai, cho tới khi kích hoạt |
 | Mở, đóng đăng ký; sửa chính sách | `admin` | ô đặt chính sách | Toàn quyền |
 | Hàng chờ tệp lỗi của phiếu | `office` | `party.attachment.view` | Toàn quyền |
 | Việc dọn | không có route | tác nhân qua `can()` | Cron |

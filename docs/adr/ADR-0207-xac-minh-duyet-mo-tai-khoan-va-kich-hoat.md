@@ -5,6 +5,7 @@
 - **Nguồn:** lời chủ 15/11: «đăng ký - phê duyệt tài khoản»; và hai lựa chọn chủ đã duyệt cùng ngày: phiếu trước, tài khoản sau; chưa bắt buộc bảo mật hai lớp cho tài khoản tự đăng ký.
 - **Ngày:** 2026-11-15. **Loại:** việc lớn — quyền (ai xác minh, ai duyệt, tách nhiệm vụ), dữ liệu (lệnh duyệt sinh hồ sơ và tài khoản), tài khoản (một đường đặt PIN mới). Người kiểm độc lập chỉ đọc sau thi công.
 - **Cửa:** hai chiều về luật ai làm bước nào; **một chiều** về dữ liệu đã sinh (hồ sơ, tài khoản, dòng xác minh ở lại) và về dữ liệu đã xem (đã thấy số giấy tờ thì không thu hồi được).
+- **Sửa sau lượt soát độc lập 15/11** (chỉ đọc): câu chốt làm hỏng cả lô bằng trigger; tài khoản tắt cho tới khi kích hoạt; nhật ký duyệt dùng `staff_created` trỏ đúng tài khoản; biến thể mới của đường tạo tài khoản; thứ tự lô, người tạo dòng đồng ý, giờ của dòng xác minh; kiểm trùng căn cước trước lô; Toàn quyền không bị máy kiểm vế «khi không còn ai».
 - **Quan hệ với ADR cũ:**
   - **ADR-0125 đ5** («người xác minh khác người tạo tài khoản»): áp vào ca mới. Với phiếu đăng ký, người duyệt là người tạo tài khoản, nên người duyệt phải khác người xác minh. Giữ khuôn «Toàn quyền là chốt cuối, có cờ».
   - **ADR-0125 đ1, đ6:** dùng lại hai ô `party.verify`, `party.verify.attachment`, luật «nhật ký ghi trước mỗi lần mở», «lý do thuộc danh sách đóng», «xử lý xong thì không xem lại nội dung khai». **Hẹp hơn ADR-0125 ở một điểm:** bước xác minh phiếu đăng ký đòi thêm quyền xem Danh bạ, nên Nhân sự không làm bước này.
@@ -39,7 +40,7 @@ Vì chỉ Quản trị và Toàn quyền vừa xác minh được vừa xem đư
 | Xác minh và đối chiếu Danh bạ | Quản trị, Toàn quyền | `party.verify` **và** `party.view`; mở ảnh, xem số đủ thì thêm `party.verify.attachment` |
 | Duyệt mở tài khoản | Nhân sự, Toàn quyền | `account.create` |
 
-Người duyệt phải **khác** người xác minh. «Người xác minh» là người đã bấm kết luận «đạt» cho bản khai được duyệt. Ngoại lệ duy nhất: **Toàn quyền** được làm cả hai bước khi không còn ai hợp lệ; khi đó dòng duyệt và các dòng xác minh sinh ra mang cờ (cột `verifier_touched_account` sẵn có), và hàng chờ đã xử lý hiện cờ đó. Điều kiện này nằm **trong câu ghi** của lệnh duyệt, không chỉ kiểm trước ở máy chủ. Không thêm ô quyền nào cho hai bước này.
+Người duyệt phải **khác** người xác minh. «Người xác minh» là người đã bấm kết luận «đạt» cho bản khai được duyệt. Ngoại lệ duy nhất: **Toàn quyền** làm được cả hai bước. Máy **không** kiểm vế «khi không còn ai hợp lệ» (giống cách lính gác xác minh hôm nay cư xử với Toàn quyền); vế đó dựa vào kỷ luật. Khi Toàn quyền làm cả hai bước, dòng quyết định của phiếu (bảng mới, Đ5) mang cờ, các dòng `pty_verification` sinh ra mang cờ ở cột `verifier_touched_account` sẵn có, và hàng chờ đã xử lý hiện cờ đó. Điều kiện nằm **trong trigger của câu chốt** (Đ5), không chỉ kiểm trước ở máy chủ. Không thêm ô quyền nào cho hai bước này.
 
 **Đ2 — Bước xác minh.** Chỉ làm được khi phiếu ở `CHỜ XÁC MINH`. Người xác minh:
 
@@ -54,31 +55,41 @@ Xử lý xong, người xác minh không xem lại được nội dung khai hay 
 
 **Đ3 — Lý do thuộc danh sách đóng, không ô chữ tự do.** Chín mã. Bảy mã dùng lại từ phiếu tự khai (`src/shared/xac-minh-hien-thi.ts`; bỏ mã «hồ sơ đã gộp» vì không áp cho phiếu đăng ký). Trong bảy mã đó, mã «số giấy tờ đã thuộc hồ sơ khác» cũng dùng cho ca số điện thoại đã có tài khoản, và hiện cho người đăng ký bằng một câu trung tính («thông tin này đã có trong hệ thống»), **không** nói «đã có tài khoản». Hai mã mới: không liên lạc được số điện thoại; không thuộc diện đối tác của công ty. **Người đăng ký nhìn thấy lý do** ở trang trạng thái và trong thư — đây là điều mới người ngoài nhìn thấy (hôm nay người tự khai không thấy lý do). Câu chữ từng lý do viết cho người ngoài đọc và do chủ chọn.
 
-**Đ4 — Bước duyệt.** Chỉ làm được khi phiếu ở `CHỜ DUYỆT`. Người duyệt thấy: họ tên, số điện thoại, loại đối tác xin, kết luận xác minh, kết luận Danh bạ («gắn hồ sơ có sẵn» hay «hồ sơ mới», không kèm tên hồ sơ nếu người duyệt không xem được Danh bạ). **Không** thấy ảnh, số giấy tờ, ngày sinh, địa chỉ. Người duyệt chọn vai trò đối tác (mặc định là loại người đăng ký xin; luật gán vai trò sẵn có áp nguyên), rồi bấm duyệt hoặc từ chối kèm lý do.
+**Đ4 — Bước duyệt.** Chỉ làm được khi phiếu ở `CHỜ DUYỆT`; Nhân sự chỉ thấy các phiếu ở trạng thái này (và danh sách đã xử lý dạng mã). Người duyệt thấy: họ tên, số điện thoại, loại đối tác xin, kết luận xác minh, kết luận Danh bạ («gắn hồ sơ có sẵn» hay «hồ sơ mới», không kèm tên hồ sơ nếu người duyệt không xem được Danh bạ). **Không** thấy ảnh, số giấy tờ, ngày sinh, địa chỉ. Người duyệt chọn vai trò đối tác (mặc định là loại người đăng ký xin; luật gán vai trò sẵn có áp nguyên), rồi bấm duyệt hoặc từ chối kèm lý do.
 
-**Đ5 — Lệnh duyệt là một lô** (`db.batch`, Hiến chương 1.2 và K8). Câu đầu là câu chốt trên dòng phiếu, mang điều kiện: phiếu còn ở `CHỜ DUYỆT`, đúng phiên bản bản khai đã xác minh, đã có kết luận Danh bạ, người duyệt khác người xác minh hoặc là Toàn quyền. Mọi câu sau chỉ chạy khi câu chốt thắng. Mỗi module cấp câu lệnh chưa chạy cho bảng của mình:
+**Đ5 — Lệnh duyệt là một lô** (`db.batch`, Hiến chương 1.2 và K8).
 
-1. `parties`: tạo hồ sơ cá nhân mới kèm vai trò, hoặc mở vai trò trên hồ sơ có sẵn (ngoại lệ ADR-0071 điều 3b);
-2. `parties`: ghi giá trị đã xác minh: ngày sinh; địa chỉ; dòng giấy tờ (hồ sơ đã có dòng hiện hành cùng loại thì là dòng gia hạn); số điện thoại và email liên lạc thành liên hệ của hồ sơ nếu hồ sơ chưa có đúng liên hệ đó;
-3. `parties`: một dòng `pty_verification` cho từng mục đã đạt, ghi người xác minh; và dòng `pty_consent` chép từ bản khai;
-4. `parties`: tệp của phiếu thành tệp của hồ sơ (ADR-0208);
-5. `staff`: tài khoản với số điện thoại đăng nhập, vai trò và bộ quyền sinh từ vai trò, bằng đường tạo theo vai trò sẵn có. PIN do máy sinh **không trả về cho ai và không hiện ở đâu**;
-6. `parties`: dòng quan hệ với người giới thiệu, nếu Đ2 mục 5 đã chọn (một loại quan hệ mới, thêm bằng migration; chỉ ghi nhận, không sinh tiền);
-7. `dang-ky`: phiếu sang `ĐÃ DUYỆT`, ghi mã hồ sơ và tài khoản kết quả; nội dung cá nhân của các bản khai được ẩn danh ngay trong lô (ADR-0208 Đ6);
-8. `audit`: một dòng nhật ký với hành động mới (tên giữ chỗ «duyệt phiếu đăng ký»), chỉ mang mã phiếu, tên vai trò, và «hồ sơ có sẵn» hay «hồ sơ mới».
+**Câu chốt làm hỏng cả lô, không chỉ khớp 0 dòng.** `db.batch` không tự bỏ các câu sau khi một câu `UPDATE` khớp 0 dòng, và các câu ghi sẵn có của `staff`, `parties` không mang điều kiện. Vì vậy câu đầu của lô là một câu **chèn dòng quyết định** vào một bảng mới của `dang-ky` (tên giữ chỗ «quyết định của phiếu», chỉ thêm). Trigger `BEFORE INSERT` của bảng đó `RAISE` — làm cả lô thất bại — nếu thiếu một trong các điều kiện: phiếu còn ở `CHỜ DUYỆT`; đúng phiên bản bản khai đã xác minh; đã có kết luận Danh bạ; người duyệt khác người xác minh, hoặc là Toàn quyền (khi đó dòng mang cờ). Trigger chỉ đọc bảng `dk_*` (Hiến chương 5.3). Máy chủ dịch lỗi đó thành 409 bằng hàm sẵn có `ruleViolation`. Nhờ vậy các câu ghi sẵn có ở sau dùng lại được nguyên.
 
-Lô chừa chỗ cho hai việc của lượt B (cấp độ đại lý mặc định; dấu xác minh) mà không đổi thứ tự trên. Số điện thoại đã có tài khoản, hoặc hồ sơ đích không còn hợp lệ: lô không ghi gì, người duyệt nhận 409 kèm câu nói rõ phải làm gì (trả phiếu về bước xác minh, hoặc từ chối).
+**Kiểm trước, ngoài lô** (để trả câu báo rõ thay vì lỗi thô): số điện thoại chưa có tài khoản; hồ sơ đích (nếu gắn) còn hợp lệ; số căn cước chưa thuộc hồ sơ khác (trigger sẵn có `pty_person_document_cccd_one_person_ins` sẽ làm hỏng lô nếu trùng). Trúng một điều thì 409 kèm câu nói rõ phải làm gì (trả phiếu về bước xác minh, hoặc từ chối); các trigger vẫn là lưới cuối.
 
-**Đ6 — Hành động nhật ký «duyệt phiếu đăng ký» xếp vào tầng «tạo tài khoản»** của lính gác ADR-0125 đ5b (hằng ở `src/modules/audit/cham-tai-khoan.ts`, kèm migration tạo lại view `v_aud_cham_tai_khoan`). Hệ quả: người đã duyệt một phiếu thì về sau không xác minh được các phiếu tự khai của chính tài khoản đó.
+**Thứ tự câu trong lô** (mỗi module cấp câu lệnh chưa chạy cho bảng của mình; thứ tự theo khoá ngoại và trigger sẵn có):
 
-**Đ7 — Kích hoạt: tự đặt PIN, không cấp phiên.**
+1. `dang-ky`: câu chốt (dòng quyết định);
+2. `parties`: tạo hồ sơ cá nhân mới, hoặc dùng hồ sơ có sẵn; mở vai trò đối tác trên hồ sơ (phải đứng trước câu cấp quyền, vì trigger «quyền Đối tác phải có vai trò đối tác» kiểm lúc chèn quyền);
+3. `staff`: một **biến thể mới** của đường tạo tài khoản: chỉ sinh dòng tài khoản và quyền cho một hồ sơ đã có (vừa tạo ở câu 2, hoặc hồ sơ có sẵn), **không** sinh hồ sơ hay vai trò, và không áp chốt ADR-0071 điều 3b (ngoại lệ có tên). Hàm `createAccountWithRolesStatements` hiện có tự sinh hồ sơ và trả «không tìm thấy hồ sơ» cho Nhân sự ở hồ sơ có sẵn, nên không dùng nguyên được. Tài khoản tạo với **`active = 0`** (Đ7);
+4. `parties`: ghi giá trị đã xác minh: ngày sinh; địa chỉ; dòng giấy tờ (hồ sơ có sẵn đã có dòng hiện hành cùng loại thì là dòng gia hạn, và ảnh của dòng cũ vào danh sách xoá theo luật sẵn có); số điện thoại và email liên lạc thành liên hệ nếu hồ sơ chưa có đúng liên hệ đó;
+5. `parties`: một dòng `pty_verification` cho từng mục đã đạt mà có đích tương ứng (thuộc tính, liên hệ, giấy tờ), **ghi người xác minh và giờ xác minh** (không phải người duyệt, giờ duyệt). Các mục không có đích (loại đối tác, «đã gọi», ảnh) chỉ nằm ở bảng kết luận của phiếu;
+6. `parties`: dòng `pty_consent` chép từ bản khai: đúng phiên bản chính sách người đăng ký đã đồng ý, giờ đồng ý ghi trong bản khai, **người tạo là tài khoản mới** (câu 3 đã đứng trước);
+7. `parties`: tệp của phiếu thành tệp của hồ sơ (ADR-0208 Đ5);
+8. `parties`: dòng quan hệ với người giới thiệu, nếu Đ2 mục 5 đã chọn (một loại quan hệ mới, thêm bằng migration; chỉ ghi nhận, không sinh tiền);
+9. `dang-ky`: phiếu sang `ĐÃ DUYỆT`, ghi mã hồ sơ và tài khoản kết quả; ẩn danh nội dung bản khai, **trừ danh tính và email liên lạc**, giữ tới khi kích hoạt (ADR-0208 Đ6);
+10. `audit`: dòng nhật ký (Đ6).
 
-- Người được duyệt vào lại trang trạng thái bằng phiên đăng ký, rồi **xin một mã email mới** ngay trước khi đặt PIN. Một phiên đăng ký đang mở sẵn là chưa đủ (tinh thần ADR-0016 Đ2a), để kẻ cầm được máy đang mở phiên không chiếm được tài khoản.
-- Route (cổng `dang-ky`, tên giữ chỗ `POST /api/dang-ky/phieu/dat-pin`) chỉ chạy khi phiếu `ĐÃ DUYỆT`, tài khoản kết quả chưa kích hoạt và còn trong hạn kích hoạt (đề xuất 14 ngày). PIN kiểm bằng luật sẵn có (`validateFreshPin`).
-- Một lô: đặt PIN bằng câu ghi sẵn có của `staff`; ghi mốc «đã kích hoạt» trên phiếu; một dòng nhật ký do chính tài khoản mới đứng tên. Sau lô, phiên đăng ký kết thúc.
+Lô chừa chỗ cho hai việc của lượt B (cấp độ đại lý mặc định; dấu xác minh) mà không đổi thứ tự trên. PIN do máy sinh cho dòng tài khoản (cột bắt buộc) **không trả về cho ai và không hiện ở đâu**.
+
+**Đ6 — Nhật ký của lệnh duyệt dùng lại hành động sẵn có `staff_created`**: `target_type = 'staff'`, `target_id` = mã tài khoản mới, người làm = người duyệt, mã phiếu và tên vai trò ở phần chi tiết. Hành động này đã nằm ở tầng «tạo tài khoản» của view lính gác ADR-0125 đ5b (`v_aud_cham_tai_khoan` lọc theo `target_type = 'staff'` và mã tài khoản), nên **không phải tạo lại view**. Hệ quả: người đã duyệt một phiếu thì về sau không xác minh được các phiếu tự khai của chính tài khoản đó. Kết luận xác minh, xem đủ số, mở ảnh dùng hành động mới, đích là phiếu.
+
+**Đ7 — Kích hoạt: tài khoản tắt cho tới khi người dùng tự đặt PIN; không cấp phiên.**
+
+- **Tài khoản sinh ra ở trạng thái tắt** (`active = 0`). Đăng nhập bằng PIN, Face ID đều từ chối tài khoản tắt, nên PIN ngẫu nhiên do máy sinh không dùng được. Giao diện gọi trạng thái này là «Chưa kích hoạt», không phải «Đã ngưng»; nhận ra bằng cách tài khoản có phiếu `ĐÃ DUYỆT` chưa có mốc kích hoạt.
+- Với tài khoản chưa kích hoạt, máy chủ **từ chối** các lệnh hỗ trợ đăng nhập sẵn có: đặt lại PIN, mở khoá đăng nhập, kích hoạt lại, tắt lớp hai. Đường duy nhất là «gửi lại lời mời». Nhờ vậy câu «không ai trong công ty biết PIN» đúng thật.
+- Người được duyệt vào lại trang trạng thái bằng phiên đăng ký (danh tính email còn giữ, ADR-0208 Đ6), rồi **xin một mã email mới** ngay trước khi đặt PIN. Một phiên đăng ký đang mở sẵn là chưa đủ (tinh thần ADR-0016 Đ2a), để kẻ cầm được máy đang mở phiên không chiếm được tài khoản.
+- Route (công khai, kiểm cookie đăng ký, tên giữ chỗ `POST /api/dang-ky/phieu/dat-pin`) chỉ chạy khi phiếu `ĐÃ DUYỆT`, chưa có mốc kích hoạt và còn trong hạn kích hoạt (dữ liệu chính sách; đề xuất 14 ngày). PIN kiểm bằng luật sẵn có (`validateFreshPin`).
+- **Một lô, có câu chốt cùng khuôn Đ5:** câu đầu chèn dòng «đã kích hoạt» vào bảng quyết định của phiếu, trigger `RAISE` nếu phiếu chưa duyệt, đã kích hoạt, hay quá hạn; sau đó đặt PIN và bật `active = 1` bằng câu ghi của `staff`; ẩn danh danh tính và email của phiếu; một dòng nhật ký do chính tài khoản mới đứng tên (không dùng `staff_reactivated`, để không ghi «chạm tài khoản» thay cho một người quản trị). Sau lô, phiên đăng ký kết thúc.
 - **Không cấp phiên `td_session`.** Người dùng sang màn Đăng nhập và đăng nhập như mọi người, rồi được mời bật Face ID (ADR-0016). Bài «bốn cửa cấp phiên» giữ nguyên bốn cửa.
-- Đây là **một đường đặt PIN mới**: phải khai vào các bài rào về bí mật đăng nhập của `staff`. Đường này đóng vĩnh viễn với một tài khoản ngay khi tài khoản đó đã kích hoạt.
-- Quá hạn kích hoạt: người duyệt bấm «gửi lại lời mời» (mở lại hạn, có nhật ký). Tài khoản đã duyệt mà chưa kích hoạt hiện ở hàng chờ để Nhân sự theo dõi; ngưng tài khoản dùng đường sẵn có.
+- Đây là **một đường đặt PIN mới**: phải khai vào các bài rào về bí mật đăng nhập của `staff`. Đường này đóng vĩnh viễn với một tài khoản ngay khi có mốc kích hoạt.
+- Quá hạn kích hoạt: người duyệt bấm «gửi lại lời mời» (mở lại hạn, có nhật ký). Hết hạn mà không ai gửi lại thì tài khoản vẫn tắt, và tác nhân dọn phiếu ẩn danh danh tính (ADR-0208). Tài khoản chưa kích hoạt hiện ở hàng chờ để Nhân sự theo dõi.
 
 **Đ8 — Bảo mật hai lớp:** lệnh duyệt và bước kích hoạt **không** tự bật lớp hai (chủ chọn ngày 15/11). Sau lần đăng nhập đầu, giao diện mời bật, điền sẵn email đã xác nhận. Việc bắt buộc lớp hai cho đối tác là việc của ADR-0121, làm riêng.
 
@@ -97,11 +108,12 @@ Lô chừa chỗ cho hai việc của lượt B (cấp độ đại lý mặc đ
 
 - Bảng quyền: Nhân sự gọi route xác minh và route xem đủ số của phiếu đăng ký: 403. Quản trị gọi route duyệt: 403. Bán hàng, Kế toán, Đối tác gọi bất kỳ route nào ở Đ9: 403.
 - Tách nhiệm vụ: Toàn quyền A xác minh, Nhân sự B duyệt: được. Toàn quyền A xác minh rồi A duyệt: được, và dòng duyệt mang cờ. Một tài khoản giữ cả Quản trị lẫn Nhân sự xác minh rồi tự duyệt: bị từ chối ở câu ghi. Hai người bấm duyệt cùng lúc: đúng một lô thắng.
-- Lệnh duyệt: sau một lần duyệt có đúng một hồ sơ (hoặc không hồ sơ mới, khi gắn), một tài khoản, vai trò, quyền, dòng xác minh cho từng mục, dòng đồng ý, một dòng nhật ký; giả lỗi ở câu giữa lô thì không còn dòng nào trong số đó. Phản hồi của route không chứa PIN.
+- Lệnh duyệt: sau một lần duyệt có đúng một hồ sơ (hoặc không hồ sơ mới, khi gắn), một tài khoản, vai trò, quyền, dòng xác minh cho từng mục, dòng đồng ý, một dòng nhật ký; giả lỗi ở câu giữa lô thì không còn dòng nào trong số đó. Phản hồi của route không chứa PIN. **Câu chốt:** phiếu vừa bị từ chối hay trả về giữa lúc người duyệt bấm thì lô thất bại toàn bộ, không sinh hồ sơ hay tài khoản, route trả 409. Số căn cước đã thuộc hồ sơ khác: 409 trước lô, không lỗi thô.
+- Tài khoản vừa duyệt: đăng nhập bằng PIN và Face ID đều bị từ chối; đặt lại PIN, mở khoá, kích hoạt lại, tắt lớp hai do Quản trị hay Toàn quyền gọi đều bị từ chối; «gửi lại lời mời» chạy được.
 - Gắn hồ sơ có sẵn: không sinh hồ sơ mới; hồ sơ đích đã có tài khoản, đã gộp, đang ngưng, hoặc là tổ chức: 409, không ghi gì. Nhân sự duyệt được dù không thấy hồ sơ đích.
 - Số điện thoại đã có tài khoản: 409, không ghi gì; câu báo không lộ tài khoản đó là của ai.
-- Lính gác ADR-0125: người đã duyệt phiếu không xác minh được phiếu tự khai về sau của tài khoản đó (bài vét cạn tầng ở `cham-tai-khoan.test.ts` có hành động mới).
-- Kích hoạt: thiếu mã email mới: từ chối. Đặt PIN lần hai: từ chối. Quá hạn: từ chối cho tới khi có «gửi lại lời mời». Sau kích hoạt không có cookie `td_session`; đăng nhập bằng số điện thoại và PIN vừa đặt thì vào được.
+- Lính gác ADR-0125: dòng `staff_created` của lệnh duyệt trỏ đúng mã tài khoản mới; người đã duyệt phiếu không xác minh được phiếu tự khai về sau của tài khoản đó (đi đường xác minh thật). Các hành động nhật ký mới đích là phiếu nên bài vét cạn tầng ở `cham-tai-khoan.test.ts` phải xếp chúng là «không chạm tài khoản».
+- Kích hoạt: thiếu mã email mới: từ chối. Đặt PIN lần hai: từ chối (câu chốt). Quá hạn: từ chối cho tới khi có «gửi lại lời mời». Sau kích hoạt tài khoản bật, không có cookie `td_session`; đăng nhập bằng số điện thoại và PIN vừa đặt thì vào được. Không có dòng `staff_reactivated` nào.
 - Người xác minh đã xử lý xong gọi lại route xem phiếu: không còn nội dung khai. Mỗi lần xem đủ số có một dòng nhật ký ghi trước, không chứa số.
 - Lịch sử phiếu, `audit_log`, phản hồi lỗi: không chứa số điện thoại, email, số giấy tờ.
 - e2e cho chuỗi gửi → xác minh → duyệt → kích hoạt → đăng nhập; kịch bản Chrome cho hàng chờ và màn một phiếu.
@@ -113,7 +125,9 @@ Quản trị mở hàng chờ, xem từng mục của phiếu, mở ảnh giấy
 ## Hệ quả
 
 - Hàng rào phải sửa cùng lúc: `src/shared/permissions.test.ts` (ảnh chụp bảng quyền, hàng mới), ảnh chụp cổng, bài tầng nhật ký, các bài về bí mật đăng nhập của `staff`, `scripts/audit-checks.mjs` (bất biến mới: phiếu `ĐÃ DUYỆT` khi và chỉ khi có tài khoản kết quả; tài khoản sinh từ phiếu luôn có hồ sơ mang vai trò đối tác). Dòng mới ở `docs/SO-HANG-RAO.md`.
-- `staff` và `parties` công bố thêm câu lệnh chưa chạy cho lô duyệt; đường tạo tài khoản sẵn có không đổi hành vi với Nhân sự.
+- `staff` và `parties` công bố thêm câu lệnh chưa chạy cho lô duyệt. `staff` có thêm một biến thể của đường tạo tài khoản (chỉ tài khoản và quyền, `active = 0`); đường tạo tài khoản sẵn có của Nhân sự không đổi hành vi. Các lệnh hỗ trợ đăng nhập sẵn có thêm một điều kiện từ chối cho tài khoản chưa kích hoạt; nhận ra «chưa kích hoạt» qua một hàm tra do `dang-ky` công bố (gốc lắp ráp tiêm, khuôn `ctx.isAssigned`).
+- Tài khoản tắt không giữ Face ID và phiên sống nào, nên các bất biến sẵn có về tài khoản ngưng (`R-AUT-1`, `R-AUT-SESSION-2`) vẫn đúng.
+- Cảnh báo sẵn có «tài khoản không có quyền nào» không bắn, vì tài khoản đã có quyền từ lúc duyệt.
 - **Phải nói thẳng:**
   - Cần **hai người** cho mỗi phiếu. Công ty chỉ có một người giữ vai phù hợp thì mọi phiếu dồn về Toàn quyền và đều mang cờ.
   - Hai người thông đồng thì luật này không bắt được; lớp bù là nhật ký (cùng giới hạn ADR-0125 đã nói).

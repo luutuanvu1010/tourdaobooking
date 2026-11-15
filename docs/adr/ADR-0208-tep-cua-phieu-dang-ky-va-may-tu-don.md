@@ -5,6 +5,7 @@
 - **Nguồn:** lời chủ 15/11: «Các tệp được đính kèm sẽ lưu ở trong kho R2 (Cloudflare), có thể xem lại - xóa - ẩn .. trong bảng điều khiển của Super Admin». ADR này chỉ lo phần **tệp của phiếu** và việc dọn; màn xem lại, ẩn, xoá của Toàn quyền là đợt 3, ADR riêng.
 - **Ngày:** 2026-11-15. **Loại:** việc lớn — dữ liệu (bảng mới, tệp của người ngoài, một lệnh ẩn danh), quyền (một tác nhân tự động mới), triển khai (cùng kho R2 `HO_SO`, không kho mới). Người kiểm độc lập chỉ đọc sau thi công.
 - **Cửa:** hai chiều về hành vi; **một chiều** với việc xoá tệp và ẩn danh (không lấy lại được).
+- **Sửa sau lượt soát độc lập 15/11** (chỉ đọc): giữ danh tính và email tới lúc kích hoạt; hàng thư không giữ địa chỉ; xoá bản băm khi chuyển tệp; nói rõ ai gỡ tệp trong từng trường hợp.
 - **Quan hệ với ADR cũ:**
   - **ADR-0123** (kho tệp hồ sơ): dùng lại kho `HO_SO`, khuôn kiểm tệp, luật «tải qua máy chủ, nhật ký trước, không lưu đệm», luật «xoá kho chạy sau lô ghi». **Không sửa** bảng `pty_attachment`.
   - **ADR-0125 đ1:** người xác minh mở ảnh của phiếu đang chờ bằng ô `party.verify.attachment`, nhật ký ghi trước.
@@ -28,7 +29,7 @@ Phiếu bị từ chối, bị rút, bỏ dở sẽ để lại ảnh căn cư�
 
 **Đ1 — Một bảng «tệp chờ» riêng, do `parties` giữ** (tên giữ chỗ `pty_registration_attachment`; chỉ `parties` ghi bảng và chỉ `parties` chạm kho `HO_SO`). Bộ cột chép `pty_attachment`, với ba khác biệt: không có cột hồ sơ; có **mã phiếu** (một chuỗi do `dang-ky` truyền vào, không khoá ngoại sang bảng của module khác) và **ô** của tệp trong phiếu (ví dụ căn cước mặt trước, mặt sau); có thêm mốc **«đã chuyển»**. Khoá kho cùng dạng `pty/` + 32 ký tự hex với `pty_attachment`, để lúc duyệt dùng lại được. Không lưu tên tệp gốc. Khoá kho và băm nội dung hạng N3. Trigger: không xoá dòng; các mốc đi một chiều; chỉ sửa được cột trạng thái.
 
-**Đ2 — Tải lên** (cổng `dang-ky`, tên giữ chỗ `POST /api/dang-ky/phieu/tep`):
+**Đ2 — Tải lên** (route công khai, kiểm cookie đăng ký, tên giữ chỗ `POST /api/dang-ky/phieu/tep`):
 
 - Chỉ khi phiếu ở `ĐANG ĐIỀN` hoặc `CẦN BỔ SUNG`. Thân là JSON mang nội dung base64 (khuôn sẵn có; luật «thân phải là JSON» của router giữ nguyên).
 - Chỉ JPG, PNG, HEIC, PDF, nhận theo chữ ký thật. Chặn cỡ thân yêu cầu trước khi đọc.
@@ -37,23 +38,24 @@ Phiếu bị từ chối, bị rút, bỏ dở sẽ để lại ảnh căn cư�
 - Thay một tệp là thêm dòng mới cho cùng ô; dòng cũ nhận quyết gỡ trong cùng lô và bị xoá khỏi kho sau lô.
 - Route này không đi qua lớp chống ghi trùng (ADR-0206 Đ7), nên **không** mắc lỗi «bấm lại thì báo đã ghi dù ảnh chưa lưu» của `BL-TEP-PHAT-LAI-500`. Chống bấm hai lần bằng băm nội dung: cùng phiếu, cùng ô, cùng băm thì nhận lại dòng đã có.
 
-**Đ3 — Người đăng ký không tải lại được tệp đã gửi.** Trang trạng thái chỉ hiện «đã gửi» hay «chưa tải xong» cho từng ô. Không có route đọc tệp cho cổng `dang-ky`. Cướp được phiên đăng ký cũng không lấy được ảnh giấy tờ.
+**Đ3 — Người đăng ký không tải lại được tệp đã gửi.** Trang trạng thái chỉ hiện «đã gửi» hay «chưa tải xong» cho từng ô. Không có route đọc tệp nào nhận cookie đăng ký. Cướp được phiên đăng ký cũng không lấy được ảnh giấy tờ.
 
 **Đ4 — Người xác minh mở ảnh** (cổng `accounts`): hỏi `party.verify`, `party.verify.attachment` và `party.view` (ADR-0207 Đ1). Chỉ tệp của phiếu đang ở `CHỜ XÁC MINH`, chỉ dòng đã lưu và chưa quyết gỡ. Ghi nhật ký **trước** khi đọc kho (chỉ mã phiếu và mã tệp). Trả về với `Cache-Control: no-store`, `nosniff`, CSP `sandbox`; không đường dẫn ký sẵn; service worker không đệm. Phiếu rời `CHỜ XÁC MINH` thì route này trả 404 cho mọi tệp của phiếu.
 
-**Đ5 — Lúc duyệt, tệp chờ thành tệp của hồ sơ** (trong lô của ADR-0207 Đ5, do `parties` cấp câu lệnh): với mỗi tệp chờ đã lưu của bản khai được duyệt, chèn một dòng `pty_attachment` cho hồ sơ kết quả, **dùng lại đúng khoá kho** (không chép tệp trong kho), người tạo là người duyệt; chèn dòng nối tới dòng giấy tờ vừa tạo; ghi mốc «đã chuyển» trên dòng tệp chờ. Tệp chờ không thuộc bản khai được duyệt (tệp đã bị thay) nhận quyết gỡ. Bất biến mới: một khoá kho không bao giờ vừa nằm ở một dòng tệp chờ chưa chuyển, vừa nằm ở một dòng `pty_attachment`.
+**Đ5 — Lúc duyệt, tệp chờ thành tệp của hồ sơ** (trong lô của ADR-0207 Đ5, do `parties` cấp câu lệnh): với mỗi tệp chờ đã lưu của bản khai được duyệt, chèn một dòng `pty_attachment` cho hồ sơ kết quả, **dùng lại đúng khoá kho** (không chép tệp trong kho), người tạo là người duyệt; chèn dòng nối tới dòng giấy tờ vừa tạo; ghi mốc «đã chuyển» trên dòng tệp chờ và **xoá bản băm nội dung** khỏi dòng đó (khoá kho giữ lại để bất biến dưới kiểm được; bản băm sống ở dòng `pty_attachment`, nơi phiếu xoá dữ liệu của ADR-0126 quét tới). Tệp chờ không thuộc bản khai được duyệt (tệp đã bị thay) nhận quyết gỡ. Bất biến mới: một khoá kho không bao giờ vừa nằm ở một dòng tệp chờ chưa chuyển, vừa nằm ở một dòng `pty_attachment`.
 
 **Đ6 — Ẩn danh nội dung phiếu: một lệnh có tên của `dang-ky`** (khuôn Hiến chương 5.24): thay mọi giá trị cá nhân trong các bản khai của một phiếu (họ tên, số điện thoại, ngày sinh, địa chỉ, số giấy tờ, nơi cấp, chữ ở ô người giới thiệu) và giá trị danh tính (email) bằng dấu ẩn danh; ghi mốc đã ẩn danh. Giữ lại: mã phiếu, loại, trạng thái, loại đối tác xin, các mốc giờ, người xử lý, mã lý do, mã hồ sơ và tài khoản kết quả. Trigger «bản khai bất biến» có điều kiện miễn hẹp cho đúng lệnh này (khuôn migration `0108`). Lệnh chạy:
 
-- **ngay trong lô duyệt** với phiếu `ĐÃ DUYỆT`: từ lúc đó giá trị cá nhân chỉ còn sống ở bảng hồ sơ (mỗi sự thật một nơi);
+- **ngay trong lô duyệt** với phiếu `ĐÃ DUYỆT`, cho mọi giá trị của bản khai: từ lúc đó các giá trị đó chỉ còn sống ở bảng hồ sơ (mỗi sự thật một nơi). **Riêng danh tính và email liên lạc được giữ tới lúc kích hoạt**, vì người được duyệt cần chúng để vào lại phiếu, xin mã mới và đặt PIN (ADR-0207 Đ7), và thư «đã duyệt», «gửi lại lời mời» cần địa chỉ. Lô kích hoạt ẩn danh hai giá trị này; hết hạn kích hoạt mà chưa kích hoạt thì tác nhân ẩn danh (Đ8);
+- **hàng thư chờ gửi** chỉ lưu mã phiếu và loại thư, tra địa chỉ lúc gửi; nhờ vậy ẩn danh phiếu là ẩn danh luôn hàng thư, không có nơi thứ hai giữ địa chỉ;
 - **sau số ngày ghi trong chính sách** (mặc định đề xuất: 30 ngày) với phiếu `TỪ CHỐI`, `ĐÃ RÚT`, `HẾT HẠN`: để trong 30 ngày người đăng ký còn vào xem được lý do, và công ty còn trả lời được khi họ hỏi lại.
 
-**Đ7 — Phiếu kết thúc mà không được duyệt thì tệp bị gỡ ngay.** Lô chuyển phiếu sang `TỪ CHỐI`, `ĐÃ RÚT` hay `HẾT HẠN` ghi luôn quyết gỡ cho mọi tệp chờ của phiếu (do `parties` cấp câu lệnh); xoá khỏi kho chạy sau lô. Xoá kho hỏng thì dòng ở «chờ xoá», thấy được và chạy lại được (Hiến chương 5.16).
+**Đ7 — Phiếu kết thúc mà không được duyệt thì tệp bị gỡ ngay.** Ai làm phiếu kết thúc thì lô của người đó gỡ luôn tệp: người của công ty bấm từ chối, người đăng ký bấm rút, tác nhân cho hết hạn. Lô chuyển phiếu sang `TỪ CHỐI`, `ĐÃ RÚT` hay `HẾT HẠN` ghi luôn quyết gỡ cho mọi tệp chờ của phiếu (do `parties` cấp câu lệnh); xoá khỏi kho chạy sau lô. Xoá kho hỏng thì dòng ở «chờ xoá», thấy được và chạy lại được (Hiến chương 5.16).
 
 **Đ8 — Một tác nhân tự động mới** (khuôn ADR-0186; mã giữ chỗ `DON_PHIEU_DANG_KY`), giữ đúng **một** ô quyền mới (tên giữ chỗ «dọn phiếu đăng ký»). Với người, chỉ Toàn quyền có ô này trên bảng, và không có nút hay route nào cho người. Mỗi lượt Cron, tác nhân làm bốn việc, mỗi việc qua `can()` và gọi đúng hàm lệnh của nó:
 
 1. cho hết hạn phiếu `ĐANG ĐIỀN` và `CẦN BỔ SUNG` quá số ngày của chính sách (kèm Đ7);
-2. chạy lệnh ẩn danh (Đ6) cho phiếu đã kết thúc quá hạn;
+2. chạy lệnh ẩn danh (Đ6) cho phiếu đã kết thúc quá hạn, và cho danh tính, email của phiếu đã duyệt mà quá hạn kích hoạt;
 3. chạy lại việc xoá kho cho tệp chờ đang ở «chờ xoá» và «tải dở dang» quá hạn;
 4. xoá dòng mã email đã hết hạn.
 
@@ -77,18 +79,18 @@ Mỗi lượt có làm gì thì ghi **một** dòng nhật ký mang mã tác nh�
 
 - Tải lên: sai chữ ký, SVG, HTML: 415. Quá 5 MB: 413. Tệp thứ chín của một phiếu: từ chối. Phiếu không ở `ĐANG ĐIỀN` hay `CẦN BỔ SUNG`: từ chối. Bấm hai lần cùng tệp: một dòng. Kho giả lỗi: dòng «tải dở dang», không 5xx, chạy lại thì xong.
 - Sau khi tải lên: không dòng nào mới ở `pty_attachment`, `pty_party`.
-- Không có route đọc tệp cho cổng `dang-ky` (ảnh chụp cổng); phiên đăng ký gọi route mở ảnh của người xác minh: 401.
+- Không có route đọc tệp nào nhận cookie đăng ký (bài danh sách route đóng của ADR-0206); phiên đăng ký gọi route mở ảnh của người xác minh: 401.
 - Mở ảnh: Nhân sự 403; Quản trị 200 khi phiếu `CHỜ XÁC MINH`, 404 khi phiếu đã rời trạng thái đó; có dòng nhật ký trước phản hồi; nhật ký không ghi được thì không trả tệp; phản hồi có `no-store`, `nosniff`.
 - Duyệt: mỗi tệp chờ của bản khai được duyệt có đúng một dòng `pty_attachment` cùng khoá kho và một dòng nối; tệp chờ mang mốc «đã chuyển»; kho không có thêm đối tượng nào.
 - Từ chối, rút, hết hạn: mọi tệp chờ nhận quyết gỡ trong cùng lô; kho giả lỗi thì dòng ở «chờ xoá», tác nhân chạy lại thì xoá xong.
-- Ẩn danh: sau lô duyệt, bản khai không còn giá trị cá nhân; phiếu không duyệt quá hạn thì tác nhân ẩn danh; lệnh chạy lần hai không đổi gì; mọi đường ghi khác vào bản khai vẫn bị trigger chặn.
+- Ẩn danh: sau lô duyệt, bản khai không còn giá trị cá nhân, nhưng danh tính và email còn; sau lô kích hoạt thì hai giá trị đó cũng hết; quá hạn kích hoạt thì tác nhân ẩn danh chúng; dòng tệp chờ đã chuyển không còn bản băm; phiếu không duyệt quá hạn thì tác nhân ẩn danh; lệnh chạy lần hai không đổi gì; mọi đường ghi khác vào bản khai vẫn bị trigger chặn.
 - Tác nhân: `src/tac-nhan-tu-dong.test.ts` nhận đúng bốn tác nhân, tác nhân mới có đúng một ô, không ô tiền, không `admin.manage`; chỉ mã định giờ dựng tác nhân. Người gọi việc dọn qua bất kỳ route nào: không có route.
 - Bất biến mới ở `scripts/audit-checks.mjs`: không phiếu đã kết thúc nào còn tệp chờ chưa quyết gỡ; không khoá kho nào nằm ở hai nơi (Đ5); không dòng «tải dở dang / chờ xoá» quá hạn.
 - Bài kiến trúc: chỉ `parties` chạm `HO_SO` (bài `src/kho-tep-ho-so.test.ts` sửa số đếm có chủ đích); chỉ `parties` ghi bảng tệp chờ. e2e cho tải lên → duyệt, và tải lên → rút. Thử iPhone thật: chụp bằng máy ảnh, ảnh HEIC.
 
 ## Người dùng sẽ thấy
 
-Người đăng ký bấm vào từng ô để chụp hoặc chọn ảnh; ảnh được thu nhỏ rồi gửi, ô chuyển thành «đã gửi». Họ thay ảnh được khi phiếu còn đang điền, nhưng không xem lại được ảnh đã gửi. Quản trị mở từng ảnh ngay trên màn phiếu. Khi phiếu được duyệt, ảnh nằm ở hồ sơ của đối tác. Khi phiếu bị từ chối, bị rút, hoặc bỏ dở quá hạn, ảnh bị xoá mà không cần ai bấm; ba mươi ngày sau, phần chữ của phiếu cũng được ẩn danh.
+Người đăng ký bấm vào từng ô để chụp hoặc chọn ảnh; ảnh được thu nhỏ rồi gửi, ô chuyển thành «đã gửi». Họ thay ảnh được khi phiếu còn đang điền, nhưng không xem lại được ảnh đã gửi. Quản trị mở từng ảnh ngay trên màn phiếu. Khi phiếu được duyệt, ảnh nằm ở hồ sơ của đối tác. Khi phiếu bị từ chối hoặc bị rút, ảnh bị xoá ngay trong cùng lần bấm, không cần thêm bước xoá nào; khi phiếu bỏ dở quá hạn thì máy tự xoá. Ba mươi ngày sau, phần chữ của phiếu không được duyệt cũng được máy ẩn danh.
 
 ## Hệ quả
 
