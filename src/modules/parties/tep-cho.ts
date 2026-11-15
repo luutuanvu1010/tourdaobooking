@@ -1,7 +1,7 @@
 // Tệp chờ của phiếu đăng ký (ADR-0208 Đ1, Đ2, Đ5, Đ7). `parties` giữ bảng `pty_registration_attachment` và là module DUY NHẤT chạm kho `HO_SO` cho tệp này;
 // `dang-ky` chỉ gọi các hàm dưới đây qua `parties/index.ts`. Các hàm `cau*` trả CÂU LỆNH CHƯA CHẠY để module gọi gộp vào lô của mình (từ chối, rút, hết hạn, duyệt).
 // Thứ tự an toàn: lô D1 TRƯỚC, đặt kho SAU, đánh dấu đã lưu; xoá kho chạy SAU lô ghi quyết gỡ (Hiến chương 5.16). Lỗi kho KHÔNG ném.
-import { LOAI_NOI_DUNG, khoaNgauNhien, nhanLoaiTep, type LoaiTep } from "./tep.ts";
+import { LOAI_NOI_DUNG, dauPhanHoiTep, khoaNgauNhien, nhanLoaiTep, type LoaiTep } from "./tep.ts";
 import {
   chuyenTepChoStatements, demTepChoCuaPhieu, findTepChoTrung, goTepChoCuaOStatement, goTepChoCuaPhieuNeuTruocDoiStatement, goTepChoCuaPhieuStatement, insertTepChoStatement, markTepChoR2Deleted, markTepChoStored,
   tepChoDaGoCanXoaKho, tepChoDeXemDs, tepChoDeXemMot, tepChoTheoO, type TepChoXemRow,
@@ -110,8 +110,14 @@ export async function timTepChoDeXem(db: D1Database, registrationId: string, tep
   const r = await tepChoDeXemMot(db, registrationId, tepId);
   return r ? nhanTep(r) : null;
 }
-/** Mở đối tượng trong kho. Gọi SAU khi nhật ký đã ghi. `null` = thiếu kho hoặc thiếu đối tượng (route trả 404 / 503). */
-export async function moTepChoTuKho(env: Env, tep: TepChoDeXem): Promise<{ body: ReadableStream; loai: LoaiTep } | null> {
+/** Kho tệp hồ sơ đã gắn chưa (route trả 503 khi chưa). Chỉ parties được nhắc binding kho (bài src/kho-tep-ho-so.test.ts). */
+export const khoTepChoSanSang = (env: Env): boolean => env.HO_SO !== undefined;
+
+/**
+ * Mở đối tượng trong kho kèm header trả về (no-store, nosniff, không tên tệp gốc). Gọi SAU khi nhật ký đã ghi (ADR-0208 Đ3). `null` = thiếu kho hoặc thiếu đối tượng (route trả 404).
+ * Đây là chỗ đọc kho THỨ HAI trong parties, có tên: chỉ đọc tệp chờ của phiếu đăng ký, và chỉ module dang-ky gọi, sau cổng quyền + nhật ký của chính route xem tệp.
+ */
+export async function moTepChoTuKho(env: Env, tep: TepChoDeXem): Promise<{ body: ReadableStream; headers: Record<string, string> } | null> {
   const kho = env.HO_SO;
   if (!kho) return null;
   const obj = await kho.get(tep.storageKey);
@@ -119,5 +125,5 @@ export async function moTepChoTuKho(env: Env, tep: TepChoDeXem): Promise<{ body:
     console.error(JSON.stringify({ level: "error", event: "tep_cho_thieu_doi_tuong", tepId: tep.id }));
     return null;
   }
-  return { body: obj.body, loai: tep.loai };
+  return { body: obj.body, headers: dauPhanHoiTep({ id: tep.id, loai: tep.loai }) };
 }

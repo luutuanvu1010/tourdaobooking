@@ -64,10 +64,9 @@ export { kiemTenLoaiDoiTac, maLoaiDoiTac } from "./rules";
 export { hanGiuPhienNgay } from "./repository";
 // Tệp chờ của phiếu đăng ký (ADR-0208; đợt 1 Task 5): dang-ky chỉ gọi các hàm này, không đọc bảng pty_registration_attachment, không chạm kho HO_SO.
 export {
-  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauGoTepCho, cauGoTepChoNeuTruocDoi, cauTepChoMoi, datKhoTepCho, moTepChoTuKho, tepChoDeXemCuaPhieu, timTepChoDeXem, timTepChoTrung,
+  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauGoTepCho, cauGoTepChoNeuTruocDoi, cauTepChoMoi, datKhoTepCho, khoTepChoSanSang, moTepChoTuKho, tepChoDeXemCuaPhieu, timTepChoDeXem, timTepChoTrung,
   trangThaiTepChoTheoO, xoaKhoTepChoDaGo, type TepChoDeXem,
 } from "./tep-cho";
-export { dauPhanHoiTep } from "./tep";
 export { cheSo } from "./giay-to";
 export { demTepChoCuaPhieu } from "./repository";
 /**

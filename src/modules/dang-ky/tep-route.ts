@@ -13,7 +13,7 @@ import { chinhSachHienHanh, datChoTepMang, phieuCuaPhien, suKienThemTepStatement
 import { TRANG_THAI_CHO_TAI_TEP, kiemTepPhieu, laOTepPhieu, tranThanTep, type TrangThai } from "./rules.ts";
 
 const HAN_TEP_MANG_MS = 3_600_000;
-const CAU_HET_PHIEN = "Phiên đăng ký đã hết hạn. Hãy đăng nhập lại bằng email để tiếp tục.";
+const CAU_HET_PHIEN = "Lần đăng nhập để điền phiếu đã hết hạn. Hãy đăng nhập lại bằng email để tiếp tục.";
 
 export async function taiTepPhieu({ request, env }: Ctx<"public">): Promise<Response> {
   // ADR-0206 Đ8: bảo trì BẬT ⇒ chặn mọi lệnh của người đăng ký (không có ngoại lệ Toàn quyền); đứng TRƯỚC cookie và mọi việc với D1 ngoài việc đọc trạng thái.

@@ -28,7 +28,7 @@ export const NHAN_MUC_XAC_MINH: Readonly<Record<string, string>> = {
   HO_TEN: "Họ tên",
   NGAY_SINH: "Ngày sinh",
   CCCD: "Căn cước công dân",
-  ROLE: "Loại đối tác xin đăng ký",
+  ROLE: "Vai người dùng xin đăng ký",
   CALLED: "Đã gọi số điện thoại đã khai",
 };
 export const nhanMucXacMinh = (ma: string): string => NHAN_MUC_XAC_MINH[ma] ?? ma;

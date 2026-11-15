@@ -96,12 +96,12 @@ const HANG_CHO_TAT_CA = defineSql(
   `SELECT id, status, role_code, current_version, submitted_at, created_at FROM dk_registration
    WHERE status IN ('DANG_DIEN', 'CHO_XAC_MINH', 'CAN_BO_SUNG', 'CHO_DUYET') ORDER BY COALESCE(submitted_at, created_at), id LIMIT 200`,
 );
-// Nhân sự: chỉ phiếu CHỜ DUYỆT chưa kích hoạt (ADR-0207 Đ4).
+// Nhân sự: phiếu CHỜ DUYỆT (ADR-0207 Đ4) và phiếu ĐÃ DUYỆT mà tài khoản chưa kích hoạt (Đ7: «Chưa kích hoạt» hiện ở hàng chờ để Nhân sự theo dõi, gửi lại lời mời).
 const HANG_CHO_DUYET = defineSql(
   "dang-ky",
   "queue_awaiting_approval",
   `SELECT id, status, role_code, current_version, submitted_at, created_at FROM dk_registration
-   WHERE status = 'CHO_DUYET' AND activated_at IS NULL ORDER BY COALESCE(submitted_at, created_at), id LIMIT 200`,
+   WHERE status = 'CHO_DUYET' OR (status = 'DA_DUYET' AND activated_at IS NULL) ORDER BY COALESCE(submitted_at, created_at), id LIMIT 200`,
 );
 export async function hangCho(db: D1Database, chiChoDuyet: boolean): Promise<HangChoRow[]> {
   return (await db.prepare(chiChoDuyet ? HANG_CHO_DUYET : HANG_CHO_TAT_CA).all<HangChoRow>()).results;
@@ -118,14 +118,14 @@ const BAN_KHAI = defineSql(
   "submission_for_review",
   `SELECT version, family_name, middle_name, given_name, gender, birth_date, address_value, phone_value, phone_key, document_type_code, number_key, license_class_code,
           issued_date, issued_place, expiry_date, referrer_text, created_at
-   FROM dk_submission WHERE registration_id = ?1 AND version = ?2 AND erased_at IS NULL`,
+   FROM dk_submission WHERE registration_id = ?1 AND version = ?2`,
 );
 export const banKhaiXet = (db: D1Database, registrationId: string, version: number): Promise<BanKhaiRow | null> => db.prepare(BAN_KHAI).bind(registrationId, version).first<BanKhaiRow>();
 
 const SO_DAY_DU = defineSql(
   "dang-ky",
   "submission_full_number",
-  "SELECT document_number, document_type_code FROM dk_submission WHERE registration_id = ?1 AND version = ?2 AND erased_at IS NULL AND document_number IS NOT NULL",
+  "SELECT document_number, document_type_code FROM dk_submission WHERE registration_id = ?1 AND version = ?2 AND document_number IS NOT NULL",
 );
 export const soDayDuCuaBanKhai = (db: D1Database, registrationId: string, version: number): Promise<{ document_number: string; document_type_code: string | null } | null> =>
   db.prepare(SO_DAY_DU).bind(registrationId, version).first<{ document_number: string; document_type_code: string | null }>();

@@ -1,7 +1,7 @@
 // Bước XÁC MINH phiếu đăng ký đối tác qua route thật (tests/audit/harness.mjs, SQLite thật, kho R2 giả) — ADR-0207 Đ1–Đ3, Đ9; ADR-0208 Đ3; ADR-0210 Đ1. Mọi giá trị (số giấy tờ, SĐT, email) là GIẢ.
 // Phiếu được gieo THẲNG bằng SQL ở trạng thái mong muốn (route công khai tạo phiếu thuộc task khác).
-// Phá thử (P16): bỏ `party.view` khỏi `duocXacMinh` → ca (1) đỏ (Nhân sự qua được); bỏ điều kiện `json_each` ở `DAT_CAP` → ca (3) đỏ; đảo audit sau kho.get ở `moTep` → ca (8) đỏ;
-// đổi `cauGoTepChoNeuTruocDoi` thành `cauGoTepCho` → ca (9b) đỏ; bỏ `changes() > 0` ở dòng lịch sử → ca (9b) đỏ.
+// Phá thử (P16, đã quan sát đỏ 15/11): bỏ `|| !can(ctx.staff, "party.view")` khỏi thân MỘT route ở index.ts → ca (1) đỏ (Nhân sự qua được) và bài route-write-guard (cổng accounts) đỏ;
+// bỏ điều kiện `json_each` ở `DAT_CAP` → ca (4b) đỏ; mở kho TRƯỚC khi ghi nhật ký ở `moTep` → ca (9b) đỏ; bỏ `AND changes() > 0` ở câu gỡ tệp có điều kiện → ca (10b) đỏ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
@@ -40,7 +40,7 @@ function setup() {
   }
   return w;
 }
-const DUONG: Record<string, string[]> = { DANG_DIEN: [], CHO_XAC_MINH: ["CHO_XAC_MINH"], CAN_BO_SUNG: ["CHO_XAC_MINH", "CAN_BO_SUNG"], CHO_DUYET: ["CHO_XAC_MINH", "CHO_DUYET"], TU_CHOI: ["CHO_XAC_MINH", "TU_CHOI"] };
+const DUONG: Record<string, string[]> = { DA_DUYET: ["CHO_XAC_MINH", "CHO_DUYET", "DA_DUYET"], DANG_DIEN: [], CHO_XAC_MINH: ["CHO_XAC_MINH"], CAN_BO_SUNG: ["CHO_XAC_MINH", "CAN_BO_SUNG"], CHO_DUYET: ["CHO_XAC_MINH", "CHO_DUYET"], TU_CHOI: ["CHO_XAC_MINH", "TU_CHOI"] };
 /** Gieo phiếu cá nhân đã gửi bản khai 1 rồi đưa tới `trangThai` theo đường hợp lệ của trigger. */
 function phieu(w: any, o: { id?: string; trangThai?: string; so?: string | null; hoTen?: [string, string]; dienThoai?: string } = {}): string {
   const id = o.id ?? `DK_${"ABCDEFGHIJKLMNOPQRSTUVWXYZ".slice(dem % 18, (dem % 18) + 8)}`;
@@ -109,19 +109,22 @@ test("(1) Quyền: Nhân sự gọi ket-luan, xem-so, tep, chi tiết, ba lệnh
   }
 });
 
-test("(2) Hàng chờ: Quản trị, Toàn quyền thấy mọi phiếu chưa kết thúc; Nhân sự chỉ CHỜ DUYỆT chưa kích hoạt, không tên, không liên hệ", async () => {
+test("(2) Hàng chờ: Quản trị, Toàn quyền thấy mọi phiếu chưa kết thúc; Nhân sự thấy CHỜ DUYỆT và ĐÃ DUYỆT chưa kích hoạt (ADR-0207 Đ4, Đ7), không tên, không liên hệ", async () => {
   const w = setup();
   const a = phieu(w, { trangThai: "CHO_XAC_MINH" });
   const b = phieu(w, { trangThai: "CAN_BO_SUNG" });
   const c = phieu(w, { trangThai: "CHO_DUYET" });
   const d = phieu(w, { trangThai: "TU_CHOI" });
   const e = phieu(w, { trangThai: "DANG_DIEN" });
+  const f = phieu(w, { trangThai: "DA_DUYET" }); // đã duyệt, chưa kích hoạt: Nhân sự theo dõi
+  const g = phieu(w, { trangThai: "DA_DUYET" });
+  w.sqlite.prepare("UPDATE dk_registration SET activated_at = ? WHERE id = ?").run(AT, g); // đã kích hoạt: không còn ở hàng chờ
   const ids = async (as: string) => (await w.call("GET", "/api/dang-ky/hang-cho", { as })).json.phieu.map((x: any) => x.id).sort();
   assert.deepEqual(await ids(ADM), [a, b, c, e].sort());
   assert.deepEqual(await ids(SUP), [a, b, c, e].sort());
-  assert.deepEqual(await ids(HR), [c]);
+  assert.deepEqual(await ids(HR), [c, f].sort());
   const r = await w.call("GET", "/api/dang-ky/hang-cho", { as: HR });
-  for (const lo of ["Phạm", "Thử Nghiệm", "0912", "khach@", "079", d]) assert.equal(boUuid(r.text).includes(lo), false, `lộ ${lo}`);
+  for (const lo of ["Phạm", "Thử Nghiệm", "0912", "khach@", "079", d, g]) assert.equal(boUuid(r.text).includes(lo), false, `lộ ${lo}`);
 });
 
 test("(3) «đạt» khi còn mục chưa đạt ⇒ 409; mục «không đạt» ⇒ 409; đủ mục nhưng chưa có kết luận Danh bạ ⇒ 409; không đổi trạng thái", async () => {
@@ -161,7 +164,7 @@ test("(4) «đạt» thành công: CHO_DUYET, ghi người xác minh + bản kha
   assert.equal(p.match_party_id, null);
   assert.deepEqual(events(w, id).map((x) => x.command), ["KET_LUAN", "KET_LUAN", "KET_LUAN", "KET_LUAN", "KET_LUAN", "DAT"]);
   assert.equal(audits(w, "registration_verified").length, 1);
-  const rac = JSON.stringify([w.q("SELECT * FROM dk_event WHERE registration_id = ?", id), audits(w), w.q("SELECT * FROM audit_log WHERE action LIKE 'registration_%'")]);
+  const rac = boUuid(JSON.stringify([w.q("SELECT * FROM dk_event WHERE registration_id = ?", id), audits(w), w.q("SELECT * FROM audit_log WHERE action LIKE 'registration_%'")])); // che UUID: id ngẫu nhiên có thể tình cờ chứa «0912»
   for (const lo of [SO, KHOA_SO, "0912", "khach@", "Phạm", "Thử Nghiệm", "Đường Thử", "1990-05-06"]) assert.equal(rac.includes(lo), false, `lộ ${lo}`);
   // đã chuyển bước ⇒ bấm lại: 409, không ghi thêm
   assert.equal((await dat(w, ADM, id, { hoSo: { kieu: "MOI" } })).status, 409);

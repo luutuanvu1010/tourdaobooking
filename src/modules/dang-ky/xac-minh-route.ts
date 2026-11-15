@@ -11,7 +11,7 @@ import type { Ctx } from "../../shared/router.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import { auditStatement } from "../audit";
 import {
-  accountRolesOf, cauGoTepChoNeuTruocDoi, cheSo, dauPhanHoiTep, hoSoCaNhanKhop, hoSoTheoSoGiayTo, moTepChoTuKho, mucXacMinhBatBuocCaNhan, partySummary, tepChoDeXemCuaPhieu,
+  accountRolesOf, cauGoTepChoNeuTruocDoi, cheSo, hoSoCaNhanKhop, hoSoTheoSoGiayTo, khoTepChoSanSang, moTepChoTuKho, mucXacMinhBatBuocCaNhan, partySummary, tepChoDeXemCuaPhieu,
   timTepChoDeXem, xoaKhoTepChoDaGo,
 } from "../parties";
 import { getStaffAccountOfParty } from "../staff";
@@ -134,7 +134,7 @@ export async function moTep({ request, env, staff, params }: Ctx<"accounts">): P
   // GET không qua lớp chặn gọi chéo trang của router: chỉ nhận same-origin, none (mở thẳng) hoặc vắng header — cùng danh sách cho phép với ảnh giấy tờ của hồ sơ.
   const sfs = request.headers.get("sec-fetch-site");
   if (sfs !== null && sfs !== "same-origin" && sfs !== "none") return CAM();
-  if (!env.HO_SO) return error(503, "storage_unavailable", "Kho tệp hồ sơ chưa sẵn sàng. Hãy báo quản trị viên.");
+  if (!khoTepChoSanSang(env)) return error(503, "storage_unavailable", "Kho tệp hồ sơ chưa sẵn sàng. Hãy báo quản trị viên.");
   const id = idPhieu(params);
   const tid = laMaTep(params.tid) ? params.tid! : null;
   const p = id ? await phieuXet(env.DB, id) : null;
@@ -146,7 +146,7 @@ export async function moTep({ request, env, staff, params }: Ctx<"accounts">): P
   await env.DB.batch([auditStatement(env.DB, { staffId: staff.id, action: "registration_file_viewed", at: new Date().toISOString(), targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · tệp ${tep.id}` })]);
   const obj = await moTepChoTuKho(env, tep);
   if (!obj) return error(404, "not_found", "Không tìm thấy tệp này.");
-  return new Response(obj.body, { status: 200, headers: dauPhanHoiTep({ id: tep.id, loai: obj.loai }) });
+  return new Response(obj.body, { status: 200, headers: obj.headers });
 }
 
 // ---- POST /api/dang-ky/phieu/:id/dat ----
