@@ -77,4 +77,28 @@ Ba câu chủ đã chốt 15/11 («chốt theo đề xuất»): (1) giảm giá 
 5. **Ảnh để duyệt:** năm ảnh `docs/evidence/2026-11-phi-don/phi-don-don-*.png` (thẻ Thanh toán của đơn nháp và đơn đã xác nhận ở máy tính và điện thoại, ảnh biên nhận có dòng «Miễn phí»).
 
 ## Kết quả bộ kiểm cuối
-(Để trống cho người điều phối — Task 7: `npm test`, `npm run test:e2e`, kịch bản Chrome đủ bộ, người kiểm độc lập.)
+Người điều phối ghi, 15/11/2026. Kết quả thật, chép từ lần chạy.
+
+**Lượt 1 — ở `380361ed4` (sau Task 6):**
+- `npm run typecheck`: thoát 0.
+- `npm test`: bước 1 có 9.013 bài, 9.008 đạt, 0 sai, 4 việc treo (todo), 1 huỷ: tệp `src/audit-invariants.test.ts` bị cắt ở trần 10 phút mỗi tệp khi máy tải trung bình ~120 (nhiều phiên khác chạy cùng). Bước 2 (bài đo giờ của hook) 1/1. Chạy riêng `node --test src/audit-invariants.test.ts` ngay sau đó: 215/215 đạt, 395 giây. Không phải bài đỏ do đợt này; ghi để biết tệp này sát trần khi máy tải cao.
+- `npm run test:e2e`: 96/96 kịch bản xanh, 1.412 giây (gồm `phi-don`, `phi-don-don`, `phi-don-xac-nhan`, `cong-no-dai-ly`, `bien-lai`, `sua-so-khach`, `qr-thanh-toan` và `audit-invariants` cuối e2e).
+- `npm run db:migrate:local`: không còn migration chờ. `node scripts/audit-invariants.mjs --db local`: thoát 1, chỉ `R-N1-5` («còn ít nhất một quản trị viên đang hoạt động») vì D1 local của thư mục làm việc này không có dữ liệu nào (chưa gieo tài khoản); mọi luật phí đón (`R-ORD-PD-1`, `R-PRC-PD-1..3`) đạt. Không liên quan đợt này.
+- Quan sát hàng rào chặn thật (bản sao riêng, không nhiễm bộ kiểm chính): bốn phép đột biến đều đỏ rồi xanh lại — ghi ở `docs/SO-HANG-RAO.md`. Phép thứ năm của kế hoạch (bỏ cổng thiếu phí ⇒ e2e SV-PD-17 đỏ) **chưa làm**; cổng này có bài đơn vị đỏ khi bỏ (người kiểm độc lập phép M4) nhưng chưa quan sát bằng e2e.
+
+**Người kiểm độc lập (chỉ đọc) ở `380361ed4`:** ĐẠT CÓ ĐIỀU KIỆN — 0 Chặn, 4 Nên sửa, 6 Nhỏ. Lỗi tiền đáng kể nhất: cột chụp `fee_return_pax` lưu số đã kẹp nên sửa số khách ở đơn có em bé và số người chiều về riêng sẽ thu thiếu phí (ca SV-PD-18 → 3 NL + 1 em bé: ra 2 khách thay vì 3). Câu trong nhật ký này trước đó nói «hai số trùng nhau trong thực tế» là sai (máy chủ chặn số chiều về theo tổng khách gồm em bé).
+
+**Lượt sửa** (`052fedcef`..`730e91728`, 9 commit): F1 `fee_return_pax` lưu số người chiều về gốc, bài SV-PD-18 đỏ → xanh, sổ vàng lớp 3 so thêm `returnPax`; F2 câu cảnh báo giảm giá vượt có biến thể cho đơn có phí (khách vẫn trả phí đưa đón); F4 phiếu công nợ in mỗi chặng một dòng (ADR-0203 ĐB3), 0 đồng in «Miễn phí»; N1 sổ hàng rào tách rõ phần đã/chưa quan sát; N2 bỏ `tierCode` khỏi `PhiDuaDonDto`; N5 sửa tên trigger trong chú thích `0169`. Không đổi câu 409 trần giảm giá và hành vi ADR-0116 (chờ chủ). Bài canh `src/phai-thu-mot-ham.test.ts` đổi một dòng mẫu cho phép (cùng một chỗ so, thêm tham số chọn câu).
+
+**Lượt 2 — ở `730e91728` (sau lượt sửa):**
+- `npm run typecheck`: thoát 0.
+- `npm test`: bước 1 có 9.231 bài, 9.227 đạt, 0 sai, 0 huỷ, 4 việc treo; bước 2 1/1; «bước 1 thoát 0, bước 2 thoát 0» (máy tải ~5–30).
+- e2e của lượt sửa (người sửa chạy): `sua-so-khach`, `bien-lai`, `phi-don-xac-nhan` xanh; `cong-no-dai-ly` đỏ lần đầu ở dòng khoá danh sách khoá phiếu (khoá mới `mienPhi` của F4), sửa dòng đó rồi chạy lại: xanh. Không chạy lại cả e2e sau lượt sửa.
+- Kịch bản Chrome: chạy ở Task 6 (axe 4.13.0 có chạy): `phi-don-don-smoke`, `mau-hd-02-dt`, `a2-smoke-sheet`, `dat-coc-smoke`, `phi-don-smoke` đạt; `v1-xac-nhan-png`, `a2-smoke-order`, `a2-smoke-form`, `v1-nguoi-phu-trach`, `xac-nhan-smoke` đỏ đúng các điểm như ở bản gốc trước Đợt C (đỏ có sẵn, không do đợt này); `huong-dan-smoke` đỏ một lần rồi xanh khi chạy lại. Phiếu công nợ sau F4 chưa xem bằng Chrome.
+
+
+**Người kiểm độc lập soát lại lượt sửa (`380361ed4..730e91728`):** ĐẠT. Cả sáu mục F1, F2, F4, N1, N2, N5 đúng ý phát hiện; không chạm câu 409 trần giảm giá, hành vi ADR-0116, tệp luật. Người kiểm tự thay bản cũ vào và thấy bài đỏ (F1: SV-PD-18 ra [2,2] thay vì [2,3]; F2, F4, N1 tương tự); bài canh `phai-thu-mot-ham` vẫn cắn. Một phát hiện Nhỏ mới, không chặn: chưa bài nào có dòng phí đơn giá > 0 mà số lượng 0 trên phiếu công nợ, nên đổi `mienPhi: d.donGia === 0` thành `d.tien === 0` ở `receipt/rules.ts` không làm bài nào đỏ — nên thêm một ca vào bài ADR-0203 ĐB3 của `src/phi-don-doc-tien.test.ts` ở lần sau.
+
+**Nhật ký thay đổi (bước A.0):** thêm mục 3.9 (số tạm) ở `src/shared/changelog.ts`; bảy tệp bài đọc nhật ký thay đổi 65/65 đạt.
+
+**Chưa làm:** quan sát cổng thiếu phí bằng e2e SV-PD-17; xem phiếu công nợ sau F4 bằng Chrome; chạy lại cả e2e sau lượt sửa (chỉ chạy bốn kịch bản liên quan).
