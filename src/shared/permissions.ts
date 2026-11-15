@@ -190,6 +190,8 @@ export const MATRIX = {
   // Sổ đại lý đợt 1 (ADR-0077 điều 11, ADR-0078 điều 6; đặc tả 2026-10-08 §6). Cột HR = none (ADR-0071). Route: /api/pricing/* (module pricing).
   "partner.commission.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   "partner.commission.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0209 Đ2 (chủ duyệt 2026-11-15): đặt «Cấp cho đối tác tự đăng ký» theo từng loại — Quản lý bán hàng, Quản trị, Toàn quyền (Kế toán KHÔNG). Route POST /api/pricing/cap-mac-dinh; xem dùng partner.commission.view.
+  "partner.signup_tier.write": quanLyBanHang(),
   // ADR-0146 Đ5 (bổ sung 28/10): đặt / kết thúc LUẬT BÁN theo loại đối tác (route /api/pricing/luat-ban*, cổng office) — Bán hàng, Quản trị, Toàn quyền `any` (luật không có người sở hữu).
   "sales.block.write": banHangQuanTri(),
   // ADR-0168 Đ1 mục 3, sửa bởi ADR-0172 Đ1: đặt / đổi / ngừng Trả sau của đại lý và số gợi ý theo cấp — Quản trị, Toàn quyền (Quản trị bị giới hạn bởi mức tối đa — ADR-0173 Đ1,

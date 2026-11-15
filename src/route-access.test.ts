@@ -286,6 +286,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/pricing/thu-tra", access: "office" }, // partner.commission.view — thử tra, chỉ đọc
   { method: "GET", path: "/api/pricing/cap-dai-ly", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly), chỉ đọc: tên, loại hồ sơ, vai trò, có tài khoản hay chưa, cấp; không SĐT, email, MST, địa chỉ
   { method: "GET", path: "/api/pricing/cap-hien-hanh", access: "office" }, // partner.commission.view + không giữ quyền Đối tác — ADR-0155 Đ2.5 cột «Cấp độ đại lý», chỉ đọc (mã hồ sơ, mã + tên cấp, ngày; không tên hồ sơ, không SĐT)
+  { method: "GET", path: "/api/pricing/cap-mac-dinh", access: "office" }, // partner.commission.view + không giữ quyền Đối tác — ADR-0209 «Cấp cho đối tác tự đăng ký», chỉ đọc (mã, tên loại, tên cấp, mốc giờ)
+  { method: "POST", path: "/api/pricing/cap-mac-dinh", access: "office" }, // partner.signup_tier.write + không giữ quyền Đối tác — ADR-0209 Đ2 đặt cấp mặc định theo loại (chỉ thêm dòng chính sách, khoá lạc quan)
   { method: "GET", path: "/api/pricing/ho-so/:id/hoa-hong", access: "office" }, // partner.commission.view — YC-0020 khối «Hoa hồng hiện hành» trên hồ sơ, chỉ đọc (mã, tên, số đếm; không tiền)
   { method: "POST", path: "/api/pricing/ho-so/:id/muc-rieng", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0138 gắn mức TA riêng
   { method: "POST", path: "/api/pricing/muc-rieng/:id/ket-thuc", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0138 kết thúc mức riêng
@@ -666,7 +668,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 526 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 528 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -837,6 +839,7 @@ test("mức truy cập của 526 route hiện có khớp ảnh chụp đã duy�
   // ADR-0206 Đ6 (đợt 1 Task 4): + 4 route của chính người đăng ký (GET, PUT /api/dang-ky/phieu, POST …/gui, POST …/rut; public) = 517 + 4 = 521.
   // ADR-0207 Đ4, Đ7, Đ9 (đợt 1 Task 8): + 4 route duyệt (GET …/xem-duyet, POST …/duyet, …/tu-choi-duyet, …/gui-lai-loi-moi; accounts) = 521 + 4 = 525.
   // ADR-0207 Đ7 (đợt 1 Task 9): + 1 route kích hoạt (POST /api/dang-ky/phieu/dat-pin; public) = 526.
-  assert.equal(actual.length, 526, "số route thực tế lệch 526 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 526, "SNAPSHOT phải có đúng 526 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // ADR-0209 (đợt 1 Task 11): + 2 route «Cấp cho đối tác tự đăng ký» (GET, POST /api/pricing/cap-mac-dinh; office) = 528.
+  assert.equal(actual.length, 528, "số route thực tế lệch 528 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 528, "SNAPSHOT phải có đúng 528 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

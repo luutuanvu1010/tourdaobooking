@@ -160,6 +160,9 @@ export const AUDIT_ACTIONS = {
   prc_role_tier_closed: { label: "Ngừng áp dụng cấp độ đại lý cho vai trò", group: "ledger" },
   prc_party_tier_set: { label: "Chọn cấp riêng cho đối tác", group: "ledger" },
   prc_party_tier_closed: { label: "Ngừng áp dụng cấp riêng của đối tác", group: "ledger" },
+  // ADR-0209 Đ4: đặt «Cấp cho đối tác tự đăng ký» của một loại (POST /api/pricing/cap-mac-dinh) — `target_type = 'ledger'`, `target_id` = mã loại; `detail` = «tên loại (mã) · cấp cũ → cấp mới»
+  // (tên cấp hoặc «Theo cấp của vai trò»; không dữ liệu cá nhân). Lô duyệt phiếu ghi cấp đã áp qua `prc_party_tier_set` (người làm = người duyệt).
+  prc_signup_tier_set: { label: "Đặt cấp cho đối tác tự đăng ký", group: "ledger" },
   // ADR-0148 Đ1: nút «Sửa» huỷ dòng chưa đơn nào chụp và thay hẳn bằng dòng mới (đi cùng `_added` / `_set` của dòng mới). `detail` = «sửa · dòng <cũ> → <mới> · huỷ dòng cũ» —
   // KHÔNG chép lý do sửa (lý do ở cột `change_reason` của dòng mới). Sửa dòng ĐÃ có đơn chụp đóng dòng cũ ⇒ đi qua `_closed`.
   prc_commission_rule_voided: { label: "Huỷ mức hoa hồng nhập sai (đã thay bằng dòng sửa)", group: "ledger" },

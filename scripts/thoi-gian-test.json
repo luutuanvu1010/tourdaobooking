@@ -487,6 +487,7 @@
  "src/modules/pricing/doi-chinh-sach.test.ts": 9.9,
  "src/modules/pricing/doi-muc-route.test.ts": 10.6,
  "src/modules/pricing/doi-muc.test.ts": 0.2,
+ "src/modules/pricing/cap-mac-dinh.test.ts": 5.2,
  "src/modules/pricing/gan-rieng-route.test.ts": 11.6,
  "src/modules/pricing/gan-rieng.test.ts": 0.2,
  "src/modules/pricing/ghi-muc-qua-cong.test.ts": 0.2,

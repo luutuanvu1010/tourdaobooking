@@ -32,7 +32,7 @@ import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./mo
 import {
   LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauDongYTuPhieu, cauGhiGiaTriDaXacMinh, cauGoTepCho, cauMoHoSoDangKy, cauQuanHeGioiThieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule,
 } from "./modules/parties";
-import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
+import { capMacDinhChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
 import { cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
 import { accountOfParty, createAccountOnPartyStatements, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
@@ -69,8 +69,9 @@ async function nemNeuLoi(viec: [string, Promise<unknown> | null][]): Promise<voi
 
 /**
  * LÔ DUYỆT PHIẾU ĐĂNG KÝ (ADR-0207 Đ5; ADR-0206 Đ2; ADR-0209 Đ6; đợt 1 Task 8). Gốc lắp ráp là NƠI DUY NHẤT ghép câu chưa chạy của dang-ky, parties, staff (và pricing — câu 8,
- * cấp độ đại lý mặc định, Task 11) theo ĐÚNG thứ tự Đ5. Không đọc gì, không chạy gì: mọi giá trị route đã đọc trước lô, mọi mã dòng sinh ở đây. Câu 1 (chốt) làm hỏng CẢ lô
- * khi phiếu không còn hợp lệ; các câu sau không đọc kết quả của nhau (trừ dòng lịch sử `changes() > 0` ngay sau câu phiếu, khuôn chung của dang-ky).
+ * cấp độ đại lý mặc định, Task 11) theo ĐÚNG thứ tự Đ5. Không chạy gì; đọc ĐÚNG MỘT lần: dòng chính sách cấp mặc định đang hiệu lực của vai người duyệt chọn (ADR-0209 Đ3 — để nhật ký
+ * mang mã cấp; câu 8 tự xét lại dòng đó còn hiệu lực cùng mọi điều kiện trigger, nên lần đọc không quyết gì). Mọi giá trị khác route đã đọc trước lô, mọi mã dòng sinh ở đây. Câu 1 (chốt)
+ * làm hỏng CẢ lô khi phiếu không còn hợp lệ; các câu sau không đọc kết quả của nhau (trừ dòng nhật ký / lịch sử `changes() > 0` ngay sau câu nó ghi lại, khuôn chung).
  */
 async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuyetDangKyRa> {
   if (!isRoleCode(v.roleCode)) throw new Error("loDuyetDangKy: mã vai không hợp lệ");
@@ -83,6 +84,7 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
     return docId && v.giayTo?.typeCode === m.ma ? [{ id: crypto.randomUUID(), targetKind: "PERSON_DOCUMENT" as const, targetId: docId, attributeCode: null }] : [];
   });
   const base = { actorId: v.approverId, at: v.at };
+  const capMacDinh = await capMacDinhChoDuyet(db, v.roleCode, v.at);
   const statements: D1PreparedStatement[] = [
     // 1 — dang-ky: câu chốt (dòng quyết định DUYET).
     cauChotDuyet(db, { id: crypto.randomUUID(), registrationId: v.registrationId, version: v.version, by: v.approverId, co: v.co, at: v.at }),
@@ -104,7 +106,13 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
     ...(docId
       ? cauChuyenTepCho(db, { registrationId: v.registrationId, version: v.version, partyId, documentId: docId, approverId: v.approverId, at: v.at })
       : cauGoTepCho(db, v.registrationId, LY_DO_GO_TEP_CHO.KHONG_THUOC_BAN_KHAI, v.at)),
-    // 8 — pricing: cấp độ đại lý mặc định (ADR-0209 Đ6) — Task 11 thêm ở đây.
+    // 8 — pricing: cấp độ đại lý mặc định (ADR-0209 Đ3, Đ6): MỘT cấp riêng cho hồ sơ kết quả, từ ngày duyệt; thiếu điều kiện ⇒ chèn 0 dòng, lô vẫn chạy. Nhật ký mang mã cấp CHỈ khi câu
+    //     liền trước đã chèn (`changes() > 0`), người làm = người duyệt (ghi thay mặt chính sách — Đ4). Loại chưa đặt / «Theo cấp của vai trò» ⇒ không câu nào.
+    ...(capMacDinh ? [
+      cauCapMacDinhChoHoSo(db, { partyId, roleCode: v.roleCode, ngayDuyet: v.today, approverId: v.approverId, at: v.at, policyId: capMacDinh.policyId }),
+      auditStatement(db, { staffId: v.approverId, action: "prc_party_tier_set", at: v.at,
+        detail: `mức riêng ${capMacDinh.tierName} (${capMacDinh.tierCode}) · từ ${v.today} · cấp cho đối tác tự đăng ký, phiếu ${v.registrationId}` }, "changes() > 0"),
+    ] : []),
     // 9 — parties: quan hệ «Người giới thiệu của».
     ...(v.referrerPartyId ? [cauQuanHeGioiThieu(db, { ...base, referrerPartyId: v.referrerPartyId, partyId, today: v.today })] : []),
     // 10 — dang-ky: phiếu ĐÃ DUYỆT + hạn đặt PIN (cùng câu), dòng lịch sử, ẩn danh bản khai (trừ danh tính và email).
