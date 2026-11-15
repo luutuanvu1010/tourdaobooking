@@ -182,6 +182,9 @@ export const COT_N3_NHAT_KY = {
   "pty_self_submission.document_number": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0124 (lát H-3): số giấy tờ TỰ KHAI — nhật ký chỉ mang mã phiếu
   "pty_self_submission.number_key": { kiem: "R-PD-1", chuanHoa: true },
   "pty_self_submission.issued_place": { kiem: "R-PD-1", chuanHoa: false },
+  "dk_submission.document_number": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0206 Đ3 (migration 0167): số giấy tờ ở bản khai đăng ký — nhật ký chỉ mang mã phiếu
+  "dk_submission.number_key": { kiem: "R-PD-1", chuanHoa: true },
+  "dk_submission.issued_place": { kiem: "R-PD-1", chuanHoa: false },
 };
 const DETAIL_CHUAN = "upper(replace(replace(replace(replace(a.detail, ' ', ''), '.', ''), '-', ''), '/', ''))";
 const DO_COT_N3 = Object.entries(COT_N3_NHAT_KY)
