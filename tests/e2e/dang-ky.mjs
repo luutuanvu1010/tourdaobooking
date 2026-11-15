@@ -105,6 +105,21 @@ assert.equal(r.status, 200, than(r));
 assert.equal((await sqlRows(`SELECT status FROM dk_registration WHERE id = '${PHIEU}'`))[0].status, "CHO_DUYET");
 console.log("✓ 3. Quản trị xác minh năm mục, hồ sơ mới ⇒ Chờ duyệt; Nhân sự bị 403 ở bước xác minh");
 
+// 3b. «Trả về xác minh» (ADR-0207 Đ5; rà soát cuối I-3): Quản trị không có ô account.create ⇒ 403; Nhân sự trả về ⇒ Chờ xác minh, kết luận Danh bạ và người xác minh bị xoá;
+// duyệt lúc này ⇒ 409; Quản trị kết luận Danh bạ lại ⇒ Chờ duyệt.
+r = await call(QUAN_TRI, "POST", `/api/dang-ky/phieu/${PHIEU}/tra-ve-xac-minh`, { phienBan: 1 });
+assert.equal(r.status, 403, than(r));
+r = await call(NHAN_SU, "POST", `/api/dang-ky/phieu/${PHIEU}/tra-ve-xac-minh`, { phienBan: 1 });
+assert.equal(r.status, 200, than(r));
+const [tv] = await sqlRows(`SELECT status, verified_by, match_kind FROM dk_registration WHERE id = '${PHIEU}'`);
+assert.deepEqual([tv.status, tv.verified_by, tv.match_kind], ["CHO_XAC_MINH", null, null]);
+r = await call(NHAN_SU, "POST", `/api/dang-ky/phieu/${PHIEU}/duyet`, { roleCode: VAI, phienBan: 1 });
+assert.equal(r.status, 409, than(r));
+r = await call(QUAN_TRI, "POST", `/api/dang-ky/phieu/${PHIEU}/dat`, { phienBan: 1, hoSo: { kieu: "MOI" } });
+assert.equal(r.status, 200, than(r));
+assert.equal((await sqlRows(`SELECT status FROM dk_registration WHERE id = '${PHIEU}'`))[0].status, "CHO_DUYET");
+console.log("✓ 3b. Nhân sự «Trả về xác minh» ⇒ Chờ xác minh (Quản trị 403; duyệt lúc này 409); Quản trị kết luận lại ⇒ Chờ duyệt");
+
 // 4. Nhân sự duyệt mở tài khoản ⇒ tài khoản TẮT, PIN ngẫu nhiên không trả ra; Quản trị (không giữ ô account.create) không duyệt được.
 r = await call(QUAN_TRI, "POST", `/api/dang-ky/phieu/${PHIEU}/duyet`, { roleCode: VAI, phienBan: 1 });
 assert.equal(r.status, 403, than(r));

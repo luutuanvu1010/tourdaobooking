@@ -4,7 +4,8 @@
 //   0b. Toàn quyền BẬT «Nhận đăng ký mới» ở khối của mình (Quản lý tài khoản; route thật thêm một dòng dk_policy); chính sách riêng tư phiên bản 1 gieo bằng SQL trên D1 tạm.
 //   1. Người đăng ký: email → (Turnstile khoá thử) Gửi mã → nhập mã → điền phiếu, hai ảnh căn cước, đồng ý → Gửi phiếu ⇒ «Đang chờ xác minh».
 //   2. Quản trị: Quản lý tài khoản › Phiếu đăng ký đối tác ⇒ mở phiếu, năm mục «Đạt», «Hồ sơ mới» ⇒ «Xác minh đạt».
-//   3. Nhân sự: mở phiếu chờ duyệt ⇒ «Duyệt mở tài khoản»; hàng chờ ghi «Chưa kích hoạt»; danh sách tài khoản ghi «Chưa kích hoạt».
+//   2b. (rà soát cuối 16/11) Nhân sự: mở phiếu chờ duyệt ⇒ «Trả về xác minh» ⇒ phiếu về Chờ xác minh; Quản trị chọn lại «Hồ sơ mới» ⇒ «Xác minh đạt» (kết luận từng mục giữ nguyên).
+//   3. Nhân sự: mở phiếu chờ duyệt ⇒ «Duyệt mở tài khoản»; hàng chờ ghi «Chưa kích hoạt» và «Thư chưa gửi được» (chạy cục bộ không có thư thật); danh sách tài khoản ghi «Chưa kích hoạt».
 //   4. Người đăng ký: /dang-ky ⇒ phiếu «Đã duyệt» ⇒ Gửi mã (mới) → nhập mã + mã PIN hai lần ⇒ «Đã kích hoạt tài khoản».
 //   5. Đăng nhập bằng số điện thoại đã khai + mã PIN vừa đặt ở màn Đăng nhập ⇒ rời /login.
 // THƯ: chạy cục bộ không có thư thật (thiếu FEEDBACK_MAIL_FROM thì máy chủ không gửi, chỉ ghi `dk_mail_failed`). Kịch bản lấy mã như khung thử (`gieoMa` của
@@ -210,6 +211,35 @@ try {
     p.close();
 
     p = await env.as(HR, "/staff", khung);
+    await b.step(`${hau}-2b`, `${hau}: Nhân sự — «Trả về xác minh» ⇒ phiếu về Chờ xác minh, kết luận Danh bạ bị xoá${axeNote()}`, async () => {
+      await p.waitFor(`!!document.querySelector('[data-phieu="${phieu}"]')`, "thẻ phiếu chờ duyệt", 15000);
+      await bam(p, `[data-phieu="${phieu}"]`);
+      await p.waitFor(`!!document.querySelector('#dk-hc-tra-ve')`, "nút Trả về xác minh", 15000);
+      assert.equal(await p.ev(`document.querySelector('#dk-hc-tra-ve').innerText.trim()`), "Trả về xác minh");
+      await chup(p, `06b-nhan-su-tra-ve-${hau}`, khung);
+      await axe(p, `khung duyệt có Trả về xác minh ${hau}`);
+      await bam(p, "#dk-hc-tra-ve");
+      await p.waitFor(`document.body.innerText.includes('Đã trả phiếu về bước xác minh')`, "báo đã trả về", 15000);
+      const r = env.sql(`SELECT status, verified_by, match_kind FROM dk_registration WHERE id = '${phieu}'`)[0];
+      assert.deepEqual([r.status, r.verified_by, r.match_kind], ["CHO_XAC_MINH", null, null]);
+    });
+    p.close();
+    p = await env.as(ADM, "/staff", khung);
+    await b.step(`${hau}-2c`, `${hau}: Quản trị — phiếu trả về: kết luận từng mục còn «Đạt», chọn lại «Hồ sơ mới» ⇒ «Xác minh đạt»${axeNote()}`, async () => {
+      await p.waitFor(`!!document.querySelector('[data-phieu="${phieu}"]')`, "thẻ phiếu trong hàng chờ", 15000);
+      await bam(p, `[data-phieu="${phieu}"]`);
+      await p.waitFor(`!!document.querySelector('#dk-hc-xac-minh-dat')`, "khung xác minh", 15000);
+      for (const m of ["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"]) assert.equal(await p.ev(`(document.querySelector('[data-muc="${m}"]')?.innerText ?? '').includes('Chưa kết luận')`), false, `mục ${m} giữ kết luận`);
+      assert.equal(await p.ev(`document.querySelector('input[name="dk-ho-so"][value="MOI"]').checked`), false, "kết luận Danh bạ đã bị xoá");
+      await p.ev(`document.querySelector('input[name="dk-ho-so"][value="MOI"]').click(), true`);
+      await sleep(300);
+      await bam(p, "#dk-hc-xac-minh-dat");
+      await p.waitFor(`document.body.innerText.includes('Đã xác minh đạt')`, "báo xác minh đạt", 15000);
+      assert.equal(env.sql(`SELECT status FROM dk_registration WHERE id = '${phieu}'`)[0].status, "CHO_DUYET");
+    });
+    p.close();
+
+    p = await env.as(HR, "/staff", khung);
     await b.step(`${hau}-3`, `${hau}: Nhân sự — «Duyệt mở tài khoản» ⇒ hàng chờ và danh sách tài khoản ghi «Chưa kích hoạt»${axeNote()}`, async () => {
       await p.waitFor(`!!document.querySelector('[data-phieu="${phieu}"]')`, "thẻ phiếu chờ duyệt", 15000);
       await bam(p, `[data-phieu="${phieu}"]`);
@@ -225,7 +255,11 @@ try {
       await bam(p, "#dk-hc-duyet");
       await p.waitFor(`document.body.innerText.includes('Đã duyệt.')`, "báo đã duyệt", 15000);
       await p.waitFor(`(document.querySelector('[data-phieu="${phieu}"]')?.innerText ?? '').includes('Chưa kích hoạt')`, "hàng chờ: Chưa kích hoạt", 15000);
+      // Thư «đã được duyệt» (ADR-0206 Đ13): cục bộ không có thư thật ⇒ gửi hỏng ⇒ hàng chờ hiện «Thư chưa gửi được» (tải lại để thấy kết quả sau waitUntil).
+      await sleep(800);
       await p.send("Page.reload", {});
+      await p.waitFor(`(document.querySelector('[data-phieu="${phieu}"]')?.innerText ?? '').includes('Thư chưa gửi được')`, "hàng chờ: Thư chưa gửi được", 15000);
+      assert.deepEqual(env.sql(`SELECT command FROM dk_event WHERE registration_id = '${phieu}' AND command GLOB 'THU_*' ORDER BY at, rowid`).map((x) => x.command), ["THU_DA_DUYET_CHO", "THU_DA_DUYET_LOI"]);
       await p.waitFor(`[...document.querySelectorAll('[data-chua-kich-hoat]')].length > 0`, "danh sách tài khoản: Chưa kích hoạt", 15000);
       assert.equal(env.sql(`SELECT active FROM staff WHERE phone = '${dtKhoa}'`)[0].active, 0);
       await chup(p, `08-chua-kich-hoat-${hau}`, khung);
