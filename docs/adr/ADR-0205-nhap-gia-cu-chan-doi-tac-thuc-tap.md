@@ -1,6 +1,6 @@
 # ADR-0205 — Đơn nháp lưu giá danh mục cũ: chặn Đối tác và Thực tập khi xác nhận, nhân viên chỉ được nhắc
 
-- **Trạng thái:** **đề xuất** 2026-11-15 — chủ dự án đã chọn hướng, nguyên văn: *«Chặn Đối tác, Thực tập»* (nút ở khung bước tiếp theo, trả lời câu «Giá cũ trên đơn nháp: chặn ai khi xác nhận?», sau khi được báo về Q11 bên dưới). Trước đó cùng ngày chủ chọn *«Chặn xác nhận»* khi chưa được báo về Q11; lựa chọn sau thay lựa chọn trước. Văn bản này chờ chủ duyệt; mã đã làm trên nhánh, chưa nhập bản chính.
+- **Trạng thái:** **accepted** 2026-11-15 — chủ dự án, nguyên văn: *«Duyệt cả hai»* (nút ở khung bước tiếp theo, trả lời câu «Bạn duyệt ADR-0204, ADR-0205 và ba câu chữ mới chứ?»; câu trình kèm nêu rõ hệ quả Đ1.6: văn phòng xác nhận hộ đơn của Đối tác cũng bị chặn). Trước đó, **đề xuất** 2026-11-15 — chủ dự án đã chọn hướng, nguyên văn: *«Chặn Đối tác, Thực tập»* (nút ở khung bước tiếp theo, trả lời câu «Giá cũ trên đơn nháp: chặn ai khi xác nhận?», sau khi được báo về Q11 bên dưới). Trước đó cùng ngày chủ chọn *«Chặn xác nhận»* khi chưa được báo về Q11; lựa chọn sau thay lựa chọn trước. Văn bản này chờ chủ duyệt; mã đã làm trên nhánh, chưa nhập bản chính.
 - **Loại:** việc lớn (tiền: đổi điều kiện chốt giá của đơn). **Cửa:** hai chiều, không đổi dữ liệu, không migration.
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt: 1** (Đ1; Đ2 chỉ là câu nhắc ở giao diện).
 - **Xây trên lỗi an toàn chưa sửa:** không.

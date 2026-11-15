@@ -1,6 +1,6 @@
 # ADR-0204 — Khoản nộp của đại lý phải gắn mã giao dịch ngân hàng khi xác nhận
 
-- **Trạng thái:** **đề xuất** 2026-11-14 — chờ chủ dự án duyệt. Chủ đã ra lệnh thi công, nguyên văn: *«Làm Đợt 1»* (nút ở khung bước tiếp theo, trả lời câu «Bạn có cho làm ngay Đợt 1 (năm việc sửa nhỏ chặn sai tiền, sai vé) không?»). Lệnh thi công chưa phải lời duyệt văn bản này; mã đã làm trên nhánh, chưa nhập bản chính.
+- **Trạng thái:** **accepted** 2026-11-15 — chủ dự án, nguyên văn: *«Duyệt cả hai»* (nút ở khung bước tiếp theo, trả lời câu «Bạn duyệt ADR-0204, ADR-0205 và ba câu chữ mới chứ?», sau khi có trang ghép `docs/superpowers/specs/2026-11-15-trang-ghep-adr-0204-0205.md` và ảnh thật ba màn). Trước đó, **đề xuất** 2026-11-14. Chủ đã ra lệnh thi công, nguyên văn: *«Làm Đợt 1»* (nút ở khung bước tiếp theo, trả lời câu «Bạn có cho làm ngay Đợt 1 (năm việc sửa nhỏ chặn sai tiền, sai vé) không?»). Lệnh thi công chưa phải lời duyệt văn bản này; mã đã làm trên nhánh, chưa nhập bản chính.
 - **Loại:** việc lớn (tiền, dữ liệu: thêm một bảng; hợp đồng: thân lệnh xác nhận khoản nộp có thêm hai trường bắt buộc). **Cửa:** hai chiều về mã; bảng mới chỉ ghi thêm nên dữ liệu đã ghi thì giữ.
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt: 2** (Đ1, Đ2). Không đổi ô quyền nào, không đổi ai được làm gì.
 - **Xây trên lỗi an toàn chưa sửa:** không.
