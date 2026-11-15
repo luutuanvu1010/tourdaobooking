@@ -2474,6 +2474,78 @@ export const CHECKS = [
     level: "warn",
     note: "ADR-0203 ĐB1: thêm mức chung cho khu vực nêu mã trên màn Phí đưa đón; đến lúc đó đơn có đón ở khu vực này không xác nhận được",
   },
+
+  // ---- Đăng ký đối tác (ADR-0206 … ADR-0208; migration 0170, 0171; đợt 1 Task 13). Trigger và câu tự canh của lô là đường chặn thứ nhất; năm kiểm này là lưới thứ hai cho
+  // SQL chạy tay và đường ghi lọt cổng. Chỉ đọc; trả mã phiếu / khoá đếm, không in tên, email, số giấy tờ, khoá kho.
+  {
+    // R-DK-1 (ADR-0207 Đ5): phiếu ĐÃ DUYỆT ⇔ có tài khoản. Lô duyệt ghi status = 'DA_DUYET' và staff_id trong CÙNG một câu (cauDuyetPhieu); phiếu chưa duyệt / kết thúc không
+    // duyệt không bao giờ mang tài khoản. Thêm: tài khoản trỏ tới phải có thật.
+    code: "R-DK-1",
+    what: "phiếu đăng ký «Đã duyệt» thiếu tài khoản (hoặc tài khoản không có thật), hay phiếu chưa duyệt lại mang tài khoản",
+    sql: `SELECT r.id FROM dk_registration r
+     WHERE (r.status = 'DA_DUYET' AND (r.staff_id IS NULL OR NOT EXISTS (SELECT 1 FROM staff s WHERE s.id = r.staff_id)))
+        OR (r.status <> 'DA_DUYET' AND r.staff_id IS NOT NULL)`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0207 Đ5: lô duyệt hỏng giữa chừng hoặc SQL chạy tay — đối chiếu dk_event của phiếu nêu mã với nhật ký staff_created rồi sửa bằng lệnh có tên, không sửa tay cột trạng thái",
+  },
+  {
+    // R-DK-2 (ADR-0208 Đ5, Đ7): phiếu đã kết thúc (ĐÃ DUYỆT, TỪ CHỐI, ĐÃ RÚT, HẾT HẠN) không còn tệp chờ «sống» (chưa quyết gỡ, chưa chuyển sang hồ sơ). Mọi lô kết thúc gỡ hết
+    // trong CÙNG lô (cauChuyenTepCho + câu gỡ phần còn lại lúc duyệt; cauGoTepChoNeuTruocDoi lúc từ chối / rút / hết hạn).
+    code: "R-DK-2",
+    what: "phiếu đăng ký đã kết thúc còn tệp chờ chưa quyết gỡ và chưa chuyển sang hồ sơ",
+    sql: `SELECT DISTINCT r.id FROM dk_registration r JOIN pty_registration_attachment a ON a.registration_id = r.id
+     WHERE r.status IN ('DA_DUYET', 'TU_CHOI', 'DA_RUT', 'HET_HAN') AND a.purged_at IS NULL AND a.transferred_at IS NULL`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0208 Đ7: ảnh giấy tờ của phiếu đã kết thúc phải nhận quyết gỡ (tác nhân DON_PHIEU_DANG_KY rồi xoá khỏi kho HO_SO) — đối chiếu lịch sử phiếu nêu mã, tìm đường kết thúc lọt câu gỡ",
+  },
+  {
+    // R-DK-3 (ADR-0208 Đ5): mỗi khoá kho HO_SO có ĐÚNG MỘT chủ. Khoá của tệp chờ chưa chuyển không được có dòng pty_attachment (hai nơi cùng giữ một tệp ⇒ gỡ ở nơi này xoá mất tệp
+    // của nơi kia); tệp chờ đã chuyển phải có đúng một dòng pty_attachment cùng mã và cùng khoá (chuyển mà mất dòng hồ sơ ⇒ tệp mồ côi trong kho).
+    code: "R-DK-3",
+    what: "khoá kho của tệp chờ đăng ký đang ở hai nơi (tệp chờ chưa chuyển mà hồ sơ đã có), hoặc tệp đã chuyển không có đúng một dòng tệp của hồ sơ",
+    sql: `SELECT a.id FROM pty_registration_attachment a
+     WHERE (a.transferred_at IS NULL AND EXISTS (SELECT 1 FROM pty_attachment p WHERE p.storage_key = a.storage_key))
+        OR (a.transferred_at IS NOT NULL AND (SELECT count(*) FROM pty_attachment p WHERE p.storage_key = a.storage_key AND p.id = a.id) <> 1)`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0208 Đ5: lô duyệt chèn dòng tệp của hồ sơ và đánh dấu đã chuyển trong CÙNG lô — lệch là lô hỏng giữa chừng hoặc SQL chạy tay; KHÔNG xoá kho trước khi đối chiếu",
+  },
+  {
+    // R-DK-4 (ADR-0207 Đ4, Đ5; ADR-0185): tài khoản sinh từ phiếu là tài khoản ĐỐI TÁC của đúng hồ sơ phiếu. (a) staff.party_id = party_id của phiếu — luôn xét: không route nào đổi
+    // staff.party_id, và gộp hồ sơ giữ hồ sơ có tài khoản làm hồ sơ chính (ADR-0068 điều 4). (b) CHỈ khi chưa kích hoạt (trạng thái đóng băng từ lúc duyệt): có ít nhất một quyền
+    // bên ngoài còn mở (PARTNER / DRIVER_PARTNER — EXTERNAL_PERMISSIONS), không quyền nội bộ nào còn mở, và hồ sơ đang mang vai đối tác (nhóm bên ngoài hoặc nhãn đối tác).
+    // Sau kích hoạt, vòng đời tài khoản (thôi làm đối tác, đổi vai) thuộc các kiểm R-LC-* — không đếm trùng ở đây.
+    code: "R-DK-4",
+    what: "tài khoản sinh từ phiếu đăng ký không gắn đúng hồ sơ của phiếu, hoặc (chưa kích hoạt) không phải tài khoản đối tác thuần trên hồ sơ mang vai đối tác",
+    sql: `SELECT r.id FROM dk_registration r JOIN staff s ON s.id = r.staff_id
+     WHERE r.status = 'DA_DUYET'
+       AND (s.party_id IS NOT r.party_id
+         OR (r.activated_at IS NULL
+             AND (NOT EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code IN ('PARTNER', 'DRIVER_PARTNER'))
+               OR EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code NOT IN ('PARTNER', 'DRIVER_PARTNER'))
+               OR (NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id = s.party_id AND g.role_group = 'EXTERNAL')
+                   AND NOT EXISTS (SELECT 1 FROM v_pty_party_partner_label l WHERE l.party_id = s.party_id)))))`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0207 Đ4: lô duyệt mở vai đối tác và quyền đối tác cho đúng hồ sơ trong CÙNG lô — lệch là lô hỏng hoặc SQL chạy tay; đối chiếu nhật ký staff_created của phiếu nêu mã",
+  },
+  {
+    // R-DK-5 (ADR-0207 Đ5 ô 10, Đ7; ADR-0208 Đ6 — Task 9 M7 «phiếu đã duyệt không có mốc ẩn danh của phiếu»): phiếu ĐÃ DUYỆT không bao giờ mang `dk_registration.erased_at` (mốc này
+    // CHỈ của phiếu kết thúc không duyệt — câu `registration_mark_erased`). Với phiếu đã duyệt, «đã ẩn danh» đọc ở dòng con: mọi bản khai có `erased_at` (lô duyệt ẩn danh trong CÙNG lô),
+    // và khi đã kích hoạt thì mọi danh tính có `erased_at` (lô kích hoạt ẩn danh trong CÙNG lô). Phiếu đã duyệt chưa kích hoạt quá hạn + ân hạn do tác nhân ẩn danh theo giờ — không xét ở đây.
+    code: "R-DK-5",
+    what: "phiếu «Đã duyệt» mang mốc ẩn danh của phiếu, còn bản khai chưa ẩn danh, hoặc đã kích hoạt mà danh tính chưa ẩn danh",
+    sql: `SELECT r.id FROM dk_registration r
+     WHERE r.status = 'DA_DUYET'
+       AND (r.erased_at IS NOT NULL
+         OR EXISTS (SELECT 1 FROM dk_submission s WHERE s.registration_id = r.id AND s.erased_at IS NULL)
+         OR (r.activated_at IS NOT NULL AND EXISTS (SELECT 1 FROM dk_identity i WHERE i.registration_id = r.id AND i.erased_at IS NULL)))`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0208 Đ6: dữ liệu cá nhân của bản khai phải ẩn danh ngay lúc duyệt, email danh tính ngay lúc kích hoạt — đối chiếu lô duyệt / kích hoạt của phiếu nêu mã",
+  },
 ];
 
 /**
