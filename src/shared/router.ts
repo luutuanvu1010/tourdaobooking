@@ -224,8 +224,8 @@ export interface Ctx<A extends Access = Access> {
   mocToiThieu: () => Promise<MocToiThieu | null>;
   /**
    * TÀI KHOẢN CHƯA KÍCH HOẠT (ADR-0207 Đ7; đợt 1 Task 7) — do gốc lắp ráp tiêm (`dang-ky.chuaKichHoat`; `accounts` KHÔNG import `dang-ky`, khuôn `isAssigned`). Đúng khi tài khoản sinh từ phiếu
-   * đã duyệt mà người đăng ký chưa đặt PIN: các lệnh hỗ trợ đăng nhập (đặt lại PIN, mở khoá, kích hoạt lại, tắt lớp hai) từ chối. Một truy vấn D1 mỗi lần gọi. Không tiêm (khung thử cũ) ⇒ `false`
-   * (khung thử không có phiếu); mã chạy thật luôn tiêm (bài `chua-kich-hoat.test.ts` canh `src/index.ts`).
+   * đã duyệt mà người đăng ký chưa đặt PIN: các lệnh hỗ trợ đăng nhập (đặt lại PIN, mở khoá, kích hoạt lại, tắt lớp hai) từ chối. Một truy vấn D1 mỗi lần gọi. Tiêm là BẮT BUỘC ở
+   * `createApp` (thiếu thì typecheck đỏ): không có đường mặc định cho qua.
    */
   chuaKichHoat: (staffId: string) => Promise<boolean>;
   /**
@@ -482,8 +482,8 @@ export interface AppOptions {
      * router trả `null` ⇒ `orders` chặn lệnh cần mốc (khuôn `isAssigned`: không bao giờ lặng lẽ "không có mốc").
      */
     mocToiThieu: (env: Env) => Promise<MocToiThieu | null>;
-    /** TÀI KHOẢN CHƯA KÍCH HOẠT (ADR-0207 Đ7). Bản thật ở `src/index.ts` (`chuaKichHoat` của dang-ky); thiếu (khung thử cũ) ⇒ `false`. */
-    chuaKichHoat?: (env: Env, staffId: string) => Promise<boolean>;
+    /** TÀI KHOẢN CHƯA KÍCH HOẠT (ADR-0207 Đ7). BẮT BUỘC (như `mocToiThieu`): bản thật ở `src/index.ts` (`chuaKichHoat` của dang-ky); thiếu thì typecheck đỏ — không có mặc định cho qua. */
+    chuaKichHoat: (env: Env, staffId: string) => Promise<boolean>;
     /** CHÍNH SÁCH GIAO DIỆN (ADR-0194 đợt 1). Bản thật ở `src/index.ts` (`chinhSachChoNguoi` của giao-dien); thiếu (khung thử cũ) ⇒ `[]` — không đổi hành vi. */
     chinhSachGiaoDien?: (env: Env, actor: StaffProfile) => Promise<TruongDaGiai[]>;
     /** ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `dongBoChuyenChoDon` của van-chuyen); thiếu (khung thử cố ý) → `dongBoDiThang`. */
@@ -680,7 +680,7 @@ export function createApp(opts: AppOptions) {
       giaoLoDay: (ds) => opts.injected.giaoLoDay(env, ds),
       // Thiếu hàm tiêm (khung thử cố ý) → null: route chặn, không đoán (I25). Kiểm lúc GỌI, không lúc dựng app (typeof — JS không kiểm kiểu).
       mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(envH) : Promise.resolve(null)),
-      chuaKichHoat: async (staffId) => (typeof opts.injected.chuaKichHoat === "function" ? opts.injected.chuaKichHoat(envH, staffId) : false),
+      chuaKichHoat: (staffId) => opts.injected.chuaKichHoat(envH, staffId),
       chinhSachGiaoDien: async () => {
         if (!who || typeof opts.injected.chinhSachGiaoDien !== "function") return [];
         try {

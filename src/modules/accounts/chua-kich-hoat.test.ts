@@ -133,11 +133,11 @@ for (const [ten, method, path, body] of BON_LENH) {
 }
 
 test("đối chứng: tài khoản thường và tài khoản đã kích hoạt KHÔNG bị chặn bởi luật chưa kích hoạt (cả bốn lệnh)", async () => {
-  for (const alvo of [THUONG, DA]) {
+  for (const mucTieu of [THUONG, DA]) {
     for (const [ten, method, path, body] of BON_LENH.filter((l) => l[1] !== "PATCH")) {
-      const r = await call(seed(), method, path, alvo, body);
-      assert.notEqual((r.body.error as { code?: string } | undefined)?.code, "chua_kich_hoat", `${ten} cho ${alvo}`);
-      assert.equal(r.status, 200, `${ten} cho ${alvo}: ${JSON.stringify(r.body)}`);
+      const r = await call(seed(), method, path, mucTieu, body);
+      assert.notEqual((r.body.error as { code?: string } | undefined)?.code, "chua_kich_hoat", `${ten} cho ${mucTieu}`);
+      assert.equal(r.status, 200, `${ten} cho ${mucTieu}: ${JSON.stringify(r.body)}`);
     }
   }
 });
@@ -152,7 +152,7 @@ test("đối chứng PATCH: kích hoạt lại tài khoản thường bị ngưn
 test("PATCH đổi tên (không đụng active) tài khoản chưa kích hoạt vẫn được — chỉ lệnh bật bị chặn", async () => {
   const sqlite = seed();
   const r = await call(sqlite, "PATCH", "/api/staff/:id", CHUA, { fullName: "Tên Mới" });
-  assert.notEqual(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.status, 200, JSON.stringify(r.body));
 });
 
 test("phiếu đã kích hoạt rồi mà tài khoản bị ngưng sau đó: kích hoạt lại bằng tay là việc thường, không bị chặn", async () => {
@@ -164,6 +164,6 @@ test("phiếu đã kích hoạt rồi mà tài khoản bị ngưng sau đó: kí
 
 test("gốc lắp ráp src/index.ts tiêm chuaKichHoat từ dang-ky (thiếu tiêm = luật im lặng vô hiệu)", () => {
   const index = readFileSync(new URL("../../index.ts", import.meta.url), "utf8");
-  assert.match(index, /import \{[^}]*\bchuaKichHoat\b[^}]*\} from "\.\/modules\/dang-ky"/);
-  assert.match(index, /chuaKichHoat: \(env, staffId\) => chuaKichHoat\(env\.DB, staffId\)/);
+  assert.match(index, /^import \{[^}]*\bchuaKichHoat\b[^}]*\} from "\.\/modules\/dang-ky"/m);
+  assert.match(index, /^\s+chuaKichHoat: \(env, staffId\) => chuaKichHoat\(env\.DB, staffId\),/m); // neo đầu dòng: dòng đã thành chú thích không khớp
 });

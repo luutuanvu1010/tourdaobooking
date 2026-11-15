@@ -76,7 +76,6 @@ const chinhSachDto = (rows: readonly { id: string; permissionCode: QuyenDatDuoc;
 const NOT_SUPER_ONLY = () => error(403, "forbidden", "Việc này chỉ người phụ trách hệ thống làm được.");
 // ADR-0207 Đ7: tài khoản sinh từ phiếu đã duyệt mà người đăng ký chưa đặt PIN — các lệnh hỗ trợ đăng nhập từ chối, đường duy nhất là «Gửi lại lời mời» (để câu «không ai trong công ty biết PIN» đúng thật).
 const CHUA_KICH_HOAT = () => error(409, "chua_kich_hoat", "Tài khoản chưa kích hoạt — dùng \"Gửi lại lời mời\"");
-const daChuaKichHoat = async (ctx: Ctx, staffId: string): Promise<boolean> => typeof ctx.chuaKichHoat === "function" && (await ctx.chuaKichHoat(staffId));
 const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tài khoản cấp dưới.");
 // DK-T3-02: đặt lại PIN ở đây KHÔNG hỏi PIN cũ — áp lên chính mình thì một phiên bỏ quên đủ để chiếm hẳn tài khoản (vượt ADR-0016 điều 2a).
 const SELF_RESET_PIN = () => error(403, "forbidden", "Không tự đặt lại PIN của chính mình ở đây. Để đổi PIN, vào trang Tôi, mục “Đổi mã PIN”, rồi nhập PIN hiện tại.");
@@ -600,7 +599,7 @@ export const accountsModule: AppModule = {
         if (body.active !== t.active) patch.active = body.active;
       }
       if (Object.keys(patch).length === 0) return json({ staff: await one(db, t.id) } satisfies StaffResponse);
-      if (patch.active === true && (await daChuaKichHoat(ctx, t.id))) return CHUA_KICH_HOAT(); // ADR-0207 Đ7: kích hoạt lại bằng tay không thay được «Gửi lại lời mời» — TRƯỚC mọi ghi
+      if (patch.active === true && (await ctx.chuaKichHoat(t.id))) return CHUA_KICH_HOAT(); // ADR-0207 Đ7: kích hoạt lại bằng tay không thay được «Gửi lại lời mời» — TRƯỚC mọi ghi
 
       const problem = checkAccountChange(admin.id, t, { active: patch.active }, await countActiveAdmins(db));
       if (problem) return error(409, "account_rule", problem);
@@ -806,7 +805,7 @@ export const accountsModule: AppModule = {
       if (t.id === ctx.staff.id) return SELF_RESET_PIN(); // DK-T3-02: chặn TRƯỚC mọi ghi; tự đổi PIN chỉ qua change-pin (PIN hiện tại) hoặc pin-by-passkey (ký Face ID mới)
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
       if (!chamTaiKhoanTienDuoc(ctx.staff, t)) return error(403, "forbidden", TIEN_CHI_TOAN_QUYEN_MESSAGE); // ADR-0090 đ1(i): QT04 — TRƯỚC mọi ghi
-      if (await daChuaKichHoat(ctx, t.id)) return CHUA_KICH_HOAT(); // ADR-0207 Đ7: TRƯỚC mọi ghi
+      if (await ctx.chuaKichHoat(t.id)) return CHUA_KICH_HOAT(); // ADR-0207 Đ7: TRƯỚC mọi ghi
       const pin = generatePin();
       const now = Date.now();
       const at = new Date(now).toISOString();
@@ -852,7 +851,7 @@ export const accountsModule: AppModule = {
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
-      if (await daChuaKichHoat(ctx, t.id)) return CHUA_KICH_HOAT(); // ADR-0207 Đ7: TRƯỚC mọi ghi
+      if (await ctx.chuaKichHoat(t.id)) return CHUA_KICH_HOAT(); // ADR-0207 Đ7: TRƯỚC mọi ghi
       // Kế hoạch Task 6, nhóm (c): gỡ CẢ khoá sai PIN lẫn khoá sai mã bước hai (`mfa:<id>`), cùng phạm vi quyền như cũ. MỘT lô, nhật ký TRƯỚC (vòng sửa 1 lát H-4, I-3):
       // nhật ký hỏng thì lô hỏng cả, không có chuyện đã mở khoá mà thiếu dòng `login_unlocked` (tầng CUA_SO_30 của lính gác ADR-0125 đ5).
       await db.batch([adminAudit(db, ctx.staff.id, "login_unlocked", t.id), ...unlockLoginStatements(db, t.phone, t.id)]);
@@ -878,7 +877,7 @@ export const accountsModule: AppModule = {
       if (chan === "khong_cap_duoi") return NOT_MANAGER();
       if (chan === "chi_toan_quyen") return error(403, "forbidden", "Chỉ Toàn quyền tắt được bảo mật hai lớp của Quản trị/Toàn quyền."); // ADR-0074 đ5
       if (chan === "quyen_tien") return error(403, "forbidden", TIEN_CHI_TOAN_QUYEN_MESSAGE); // ADR-0090 đ1(iv)
-      if (await daChuaKichHoat(ctx, t.id)) return CHUA_KICH_HOAT(); // ADR-0207 Đ7: TRƯỚC mọi ghi
+      if (await ctx.chuaKichHoat(t.id)) return CHUA_KICH_HOAT(); // ADR-0207 Đ7: TRƯỚC mọi ghi
       const now = Date.now();
       const at = new Date(now).toISOString();
       await db.batch([

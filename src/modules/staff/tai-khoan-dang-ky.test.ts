@@ -94,8 +94,13 @@ test("datPinKichHoatStatements: đặt PIN, bật tài khoản, đẩy credentia
 
 test("createAccountOnPartyStatements: vai nội bộ bị từ chối (không ghi ân hạn lớp hai); hai lần gọi cho id khác nhau", async () => {
   const { db } = seed();
-  await assert.rejects(staff.createAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0933333333", roles: ["SALES_STAFF"] }, "s-hr", AT), /bên ngoài/);
+  await assert.rejects(staff.createAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0933333333", roles: ["SALES_STAFF"] }, "s-hr", AT), /vai trò bên ngoài/);
   const a = await staff.createAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0933333333", roles: ["HOTEL_RECEPTION"] }, "s-hr", AT);
   const b = await staff.createAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0944444444", roles: ["HOTEL_RECEPTION"] }, "s-hr", AT);
   assert.notEqual(a.id, b.id);
+});
+
+test("createAccountOnPartyStatements: vai rỗng hoặc không mang quyền nào → ném lỗi, không dựng câu nào", async () => {
+  const { db } = seed();
+  await assert.rejects(staff.createAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0933333333", roles: [] }, "s-hr", AT), /không mang quyền/);
 });

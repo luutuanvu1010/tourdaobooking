@@ -221,8 +221,9 @@ export async function createAccountOnPartyStatements(
   at: string,
 ): Promise<{ id: string; statements: D1PreparedStatement[]; permissions: PermissionCode[] }> {
   const { permissions } = effectivePermissions(input.roles, { adds: [], removes: [] });
+  if (permissions.length === 0) throw new Error("createAccountOnPartyStatements: vai trò không mang quyền nào"); // LC-1c không bắt được tài khoản không quyền
   // Chỉ vai bên ngoài (đợt 1: bốn loại đối tác mở): biến thể này không ghi ân hạn lớp hai nên không nhận quyền nội bộ.
-  if (coQuyenNoiBo(permissions)) throw new Error("createAccountOnPartyStatements: chỉ dùng cho vai bên ngoài");
+  if (coQuyenNoiBo(permissions)) throw new Error("createAccountOnPartyStatements: chỉ dùng cho vai trò bên ngoài");
   const id = crypto.randomUUID();
   return {
     id,
