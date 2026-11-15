@@ -100,6 +100,12 @@ test("sổ vàng phí đón — ca có tiền đơn tự cân (công nợ đại
   const p = ca("SV-PD-26").chia_phan!;
   assert.equal(p.tour_dao, ca("SV-PD-26").tong_phi_don, "phí đón thuộc phần của Tour Đảo");
   assert.equal(p.tong_don, p.nguoi_ban_dich_vu! + p.tour_dao!);
+  // SV-PD-29 (chủ chốt 15/11): giảm giá cấp đơn chỉ trừ vào tiền dịch vụ, phí đón thu đủ; trần giảm giá = tổng tiền dịch vụ (trang ghép 2026-10-28 §1).
+  const g = ca("SV-PD-29").chia_phan!;
+  assert.equal(g.tour_dao, ca("SV-PD-29").tong_phi_don, "giảm giá không trừ vào phí đón");
+  assert.equal(g.nguoi_ban_dich_vu, g.nguoi_ban_dich_vu_truoc_giam! - g.giam_gia!);
+  assert.equal(g.tong_don, g.nguoi_ban_dich_vu! + g.tour_dao!);
+  assert.equal(g.giam_gia_toi_da, g.nguoi_ban_dich_vu_truoc_giam, "trần giảm giá không gồm phí đón");
 });
 
 // ---- LỚP 2: luật thuần ra đúng đáp án (ADR-0203 ĐB1; Hiến chương 5.17) ----
