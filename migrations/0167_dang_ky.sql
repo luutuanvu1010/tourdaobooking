@@ -34,7 +34,7 @@ CREATE TABLE dk_policy (
 );
 INSERT INTO dk_policy (id, registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour,
   session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, phieu_required_items, valid_from_at, created_at, created_by, updated_at, updated_by)
-VALUES ('gieo-0167', 0, '', 6, 10, 5, 3, 10, 15, 60, 30, 12, 7, 14, 14, 5, 8, 30, 20, 'ROLE,CALLED',
+VALUES ('gieo-0167', 0, 'GUIDE_FREELANCE,HOTEL_RECEPTION,TAXI_DRIVER,COLLABORATOR', 6, 10, 5, 3, 10, 15, 60, 30, 12, 7, 14, 14, 5, 8, 30, 20, 'ROLE,CALLED',
   strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
 CREATE TRIGGER dk_policy_no_update BEFORE UPDATE ON dk_policy
 BEGIN SELECT RAISE(ABORT, 'dk_policy_append_only: chính sách đăng ký chỉ thêm dòng mới, không sửa'); END;
