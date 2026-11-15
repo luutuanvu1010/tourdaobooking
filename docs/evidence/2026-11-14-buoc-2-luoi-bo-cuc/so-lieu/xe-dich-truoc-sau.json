@@ -1,0 +1,88 @@
+[
+ {
+  "nhan": "xe-dich-truoc",
+  "luc": "2026-11-14T16:06:39.140Z",
+  "css": false,
+  "theoKho": {
+   "1280x800": {
+    "soO": 78,
+    "tranNgang": 0,
+    "le": {
+     "16/16": 76,
+     "24/24": 2
+    },
+    "soMucLe": 2,
+    "rongNoiDung": {
+     "984": 2,
+     "1000": 76
+    },
+    "soMucRong": 2,
+    "nhip": {
+     "0": 7,
+     "4": 3,
+     "12": 11,
+     "14": 36,
+     "16": 20,
+     "17": 2,
+     "20": 4,
+     "24": 3,
+     "1333": 1
+    },
+    "soGiaTriNhip": 9,
+    "motDau": 193,
+    "trangCoMotDau": 46,
+    "dongDaiMax": 997,
+    "xeDich": {
+     "soO": 78,
+     "coXeNgang": 70,
+     "clsTren01": 26,
+     "clsMax": 0.5956,
+     "clsTrungVi": 0.051
+    }
+   }
+  }
+ },
+ {
+  "nhan": "xe-dich-sau",
+  "luc": "2026-11-14T16:12:26.460Z",
+  "css": false,
+  "theoKho": {
+   "1280x800": {
+    "soO": 78,
+    "tranNgang": 0,
+    "le": {
+     "16/16": 76,
+     "24/24": 2
+    },
+    "soMucLe": 2,
+    "rongNoiDung": {
+     "984": 2,
+     "1000": 76
+    },
+    "soMucRong": 2,
+    "nhip": {
+     "0": 7,
+     "4": 3,
+     "12": 11,
+     "14": 36,
+     "16": 20,
+     "17": 2,
+     "20": 4,
+     "24": 3,
+     "1333": 1
+    },
+    "soGiaTriNhip": 9,
+    "motDau": 193,
+    "trangCoMotDau": 46,
+    "dongDaiMax": 997,
+    "xeDich": {
+     "soO": 78,
+     "coXeNgang": 0,
+     "clsTren01": 6,
+     "clsMax": 0.3895,
+     "clsTrungVi": 0.0016
+    }
+   }
+  }
+ }
+]

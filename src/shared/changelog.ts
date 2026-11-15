@@ -19,8 +19,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đợt 1 sau kiểm toán 14/11 (chủ: «Làm Đợt 1», «Chặn Đối tác, Thực tập», «Chỉ cảnh báo đỏ»): mã giao dịch cho khoản nộp đại lý (ADR-0204, migration 0166), dời ngày cân lại vé,
     // dòng Sheet hỏng giữ dịch vụ, nháp giá cũ chặn Đối tác / Thực tập (ADR-0205). Sổ: docs/superpowers/plans/2026-11-14-dot-1-sau-kiem-toan-thi-cong-nhat-ky.md.
-    // SỐ TẠM 3.6: main có 3.5; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.6",
+    // SỐ TẠM 3.7: main có 3.6 (bước 2 lưới bố cục); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.7",
     date: "2026-11-15",
     items: [
       { kind: "doi", text: "Kế toán xác nhận khoản nộp của đại lý phải nhập mã giao dịch ngân hàng và số tiền thực chuyển; một lần chuyển khoản không còn bị ghi nhận hai lần." },
@@ -28,6 +28,17 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Dời ngày đi của đơn đã có vé: vé không còn hợp ngày được thu lại, đơn nhận vé hợp ngày mới hoặc báo thiếu vé.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
       { kind: "sua", text: "Một ô gõ sai trên Sheet không còn làm dịch vụ biến khỏi form lập đơn: dịch vụ vẫn bán theo giá đã lưu, màn Danh mục hiện cảnh báo đỏ." },
       { kind: "doi", text: "Đối tác và Thực tập không xác nhận được đơn nháp lưu giá danh mục cũ sau khi bảng giá đổi; nhân viên được nhắc trước khi xác nhận." },
+    ],
+  },
+  {
+    // Bước 2 lưới bố cục chung (kế hoạch 2026-11-14; chủ duyệt 15/11 «Duyệt, bám trái»): một lề trang mỗi khổ, ba mức bề rộng nội dung (hẹp 720, vừa 1120, rộng),
+    // một nhịp 16 giữa các khối, thanh bên máy tính có chỗ từ lần vẽ đầu. Chỉ giao diện, không migration, không đổi máy chủ.
+    // SỐ TẠM 3.6 (sau 3.5 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.6",
+    date: "2026-11-15",
+    items: [
+      { kind: "doi", text: "Bố cục các trang đều hơn: lề hai bên rộng hơn ở iPad và máy tính, biểu mẫu và trang thiết lập không còn giãn hết màn rộng, khoảng cách các khối bằng nhau." },
+      { kind: "sua", text: "Ở máy tính, mở trang không còn bị thanh bên đẩy nội dung sang ngang." },
     ],
   },
   {

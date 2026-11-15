@@ -5,7 +5,11 @@
 //  2. Ghi nhớ: theo dõi `#strips` — có `.dai` thì nhớ chiều cao + loại (`data-loai`) và thôi giữ chỗ; hết dải thì quên. Đang giữ chỗ mà sau CHO_DAI ms dải chưa về
 //     (lần này không có dải) thì thả chỗ và quên (trang biểu mẫu không vẽ dải bảo mật: ở đó không quên trí nhớ «bao-mat»). Không cần mã nào trong gói trang.
 //  3. Khối theo quyền vẽ sau mã trang (web/giu-khoi.ts ghi): lần trước trang này có khối nào ⇒ `data-giu-khoi`, CSS giữ chỗ.
+//  4. Bước 2 lưới bố cục (14/11/2026): thanh bên máy tính chỉ dựng khi mã trang chạy (web/shell.ts) — lần vẽ đầu nội dung kín màn rồi bị đẩy ngang 248 px. Đã có bản
+//     nhớ khung hợp lệ (ADR-0035; cùng điều kiện shell vẽ khung tạm) ⇒ gắn sẵn lớp lưới `has-sidebar` lên <body> ngay khi nó có mặt: cột thanh bên có chỗ từ lần vẽ
+//     đầu (CSS chỉ áp từ 900 px). Shell gắn / gỡ lớp như cũ; quá CHO_DAI mà thanh bên không về thì gỡ cột trống. Chỉ đọc bản nhớ, không ghi gì.
 import { KHOA_CAO_DAI, KHOA_KHOI } from "../src/shared/dai-chu.ts";
+import { docKhungNho, KHOA_KHUNG } from "./khung-nho.ts";
 
 const html = document.documentElement;
 const ss = (() => {
@@ -18,6 +22,23 @@ const ss = (() => {
 const tha = (): void => void delete html.dataset.giuDai;
 /** Chờ dải tối đa bao lâu (ms) — dải về chậm nhất đo được ~2 s ở 4G chậm + CPU 4×; quá hạn coi là lần này không có dải. */
 const CHO_DAI = 8000;
+let coKhung = false;
+try {
+  coKhung = !!docKhungNho(localStorage.getItem(KHOA_KHUNG));
+} catch {
+  // localStorage bị chặn: không giữ chỗ, như trước
+}
+if (coKhung) {
+  const choBody = new MutationObserver(() => {
+    if (!document.body) return;
+    choBody.disconnect();
+    document.body.classList.add("has-sidebar");
+  });
+  choBody.observe(html, { childList: true });
+  setTimeout(() => {
+    if (!document.getElementById("sidebar")) document.body.classList.remove("has-sidebar");
+  }, CHO_DAI);
+}
 if (ss) {
   const nho = (): void => {
     const d = document.querySelector<HTMLElement>("#strips > .dai");
