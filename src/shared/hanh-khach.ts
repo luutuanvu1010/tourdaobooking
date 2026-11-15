@@ -164,6 +164,12 @@ export function soKhachDoan(paxByService: readonly PaxCounts[]): number {
 }
 /** Cờ cho văn phòng (không tự tăng số khách — N7): danh sách có tên nhiều hơn số khách của đoàn. */
 export const vuotSoKhach = (soNguoiCoTen: number, soKhach: number): boolean => soNguoiCoTen > soKhach;
+/**
+ * Câu cảnh báo MỀM lúc nhập / xem (chủ duyệt 2026-11-07; ADR-0047 L-A1 cố ý KHÔNG chặn và không tự tăng số khách): số tên nhiều hơn số khách của đoàn
+ * (`soKhach` = `soKhachDoan` = dịch vụ đông nhất, cùng nghĩa kiểm định kỳ R-ORD-9). Không chặn Lưu; không dính tiền.
+ */
+export const canhBaoQuaTen = (soNguoiCoTen: number, soKhach: number): string | null =>
+  vuotSoKhach(soNguoiCoTen, soKhach) ? `Đang có ${soNguoiCoTen} tên cho ${soKhach} khách. Kiểm tra lại số khách hoặc xoá dòng nhập nhầm.` : null;
 
 /** Câu nhật ký của `order_passenger_changed` — ĐÚNG khuôn, CHỈ số lượng (không tên, không năm sinh — Hiến chương 5.12; kiểm định kỳ R-ORD-10). */
 export const moTaThayDoiKhach = (d: { them: number; sua: number; huy: number }): string => `thêm ${d.them}, sửa ${d.sua}, huỷ ${d.huy} khách`;

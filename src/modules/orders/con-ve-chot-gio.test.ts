@@ -60,16 +60,16 @@ test("(c) yêu cầu mang cờ, Còn vé không gửi giờ → 409 pickup_time_
   const w = setup();
   const { id, legId } = await chotGio(w);
   const truoc = hoSo(w, id);
-  const r = await qd(w, id, ACC, { ketQua: "CON_VE" });
+  const r = await qd(w, id, B, { ketQua: "CON_VE" });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "pickup_time_required");
-  assert.equal(r.json.error.message, "Còn lượt đưa đón chưa có giờ đón. Ghi giờ đón rồi bấm Còn vé.");
+  assert.equal(r.json.error.message, "Còn lượt đưa đón chưa có giờ đón. Ghi giờ đón rồi bấm Còn vé, xác nhận đơn.");
   assert.deepEqual(r.json.error.legs, [{ legId }]);
   assert.deepEqual(hoSo(w, id), truoc, "không ghi gì");
   assert.equal(q(w, id).moc.s, "draft");
   assert.equal(chang(w, legId).t, null);
   // gửi giờ rỗng cho lượt khác (lạ) cũng không qua: lỗi đầu vào đến TRƯỚC cổng giờ, vẫn không ghi
-  const sai = await qd(w, id, ACC, { ketQua: "CON_VE", gioDon: [] });
+  const sai = await qd(w, id, B, { ketQua: "CON_VE", gioDon: [] });
   assert.equal(sai.status, 409, sai.text);
   assert.equal(sai.json.error.code, "pickup_time_required");
 });
@@ -77,7 +77,7 @@ test("(c) yêu cầu mang cờ, Còn vé không gửi giờ → 409 pickup_time_
 test("(c2) mang cờ + gửi giờ cho lượt đầu → 200 confirmed, chặng có giờ, cột cũ order_service.pickup_time = giờ đó, yêu cầu khép XAC_NHAN", async () => {
   const w = setup();
   const { id, legId } = await chotGio(w);
-  const r = await qd(w, id, ACC, { ketQua: "CON_VE", gioDon: [{ legId, pickupTime: "09:00" }] });
+  const r = await qd(w, id, B, { ketQua: "CON_VE", gioDon: [{ legId, pickupTime: "09:00" }] });
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(r.json, { ketQua: "CON_VE", trangThai: "confirmed" });
   assert.equal(chang(w, legId).t, "09:00");
@@ -101,10 +101,10 @@ test("(c3) GHIM: có giờ dưới hạn chốt, không datGap → 409 short_not
 test("(c4) GHIM: Hết vé và Huỷ trên yêu cầu mang cờ KHÔNG cần giờ → 200", async () => {
   const w = setup();
   const a = await chotGio(w);
-  assert.equal((await qd(w, a.id, ACC, { ketQua: "HET_VE" })).status, 200);
+  assert.equal((await qd(w, a.id, B, { ketQua: "HET_VE" })).status, 200);
   assert.equal(q(w, a.id).moc.s, "cancelled");
   const b = await chotGio(w);
-  assert.equal((await qd(w, b.id, ACC, { ketQua: "HUY", lyDo: "KHACH_DOI_Y" })).status, 200);
+  assert.equal((await qd(w, b.id, B, { ketQua: "HUY", lyDo: "KHACH_DOI_Y" })).status, 200);
   assert.equal(q(w, b.id).moc.s, "cancelled");
 });
 
@@ -126,12 +126,12 @@ test("(i) đi trong ngày, giờ còn 2 tiếng, Bán hàng kèm datGap → 200:
   assert.equal(q(w, id).yc[0].outcome, "XAC_NHAN");
 });
 
-test("(i2) Kế toán (không có ô đặt gấp): không datGap → 409 short_notice_required; kèm datGap qua API → 403 forbidden (câu đã áp số 2); cả hai không ghi gì", async () => {
+test("(i2) Bán hàng khác không kèm datGap → 409 short_notice_required; Kế toán (ADR-0142: không còn ô xét duyệt, cũng không có ô đặt gấp) kèm datGap → 403 forbidden; cả hai không ghi gì", async () => {
   const w = setup();
   const { id, legId } = await chotGio(w);
   const g = vnSau(120);
   const truoc = hoSo(w, id);
-  const khong = await qd(w, id, ACC, { ketQua: "CON_VE", ngayDi: g.date, gioDon: [{ legId, pickupTime: g.time }] });
+  const khong = await qd(w, id, B, { ketQua: "CON_VE", ngayDi: g.date, gioDon: [{ legId, pickupTime: g.time }] });
   assert.equal(khong.status, 409, khong.text);
   assert.equal(khong.json.error.code, "short_notice_required");
   const co = await qd(w, id, ACC, { ketQua: "CON_VE", ngayDi: g.date, gioDon: [{ legId, pickupTime: g.time, datGap: DAT_GAP }] });
@@ -176,7 +176,7 @@ test("(i4) chặng ĐÃ có giờ dưới hạn chốt (giờ không đổi), k�
 test("(j) GHIM: đơn Bán hàng có cờ dịch vụ, Đón không giờ, không gửi giờ → 200 như hôm nay, chặng vẫn NULL (cờ chốt giờ chỉ của đơn Đối tác)", async () => {
   const w = setup();
   const { id, o } = await choVanPhong(w, [svc("ZA1", NGAY(), [leg(NGAY(), null)])]);
-  const r = await qd(w, id, ACC, { ketQua: "CON_VE" });
+  const r = await qd(w, id, B, { ketQua: "CON_VE" });
   assert.equal(r.status, 200, r.text);
   assert.equal(q(w, id).moc.s, "confirmed");
   assert.equal(chang(w, o.services[0].legs[0].id).t, null);
@@ -187,12 +187,12 @@ test("Review Focus 2: hai dịch vụ cùng mang lượt đầu trống giờ, c
   const c = await chotGio(w, [svc("ZB1", NGAY(), [leg(NGAY(), null)]), svc("ZA1", NGAY(), [leg(NGAY(), null)])]);
   const legs = c.o.services.map((s: any) => s.legs[0].id as string);
   const truoc = hoSo(w, c.id);
-  const r = await qd(w, c.id, ACC, { ketQua: "CON_VE", gioDon: [{ legId: legs[0], pickupTime: "09:00" }] });
+  const r = await qd(w, c.id, B, { ketQua: "CON_VE", gioDon: [{ legId: legs[0], pickupTime: "09:00" }] });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "pickup_time_required");
   assert.deepEqual(r.json.error.legs, [{ legId: legs[1] }], "chỉ nêu lượt còn thiếu");
   assert.deepEqual(hoSo(w, c.id), truoc, "không dịch vụ nào đổi");
-  const ok = await qd(w, c.id, ACC, { ketQua: "CON_VE", gioDon: legs.map((legId: string, i: number) => ({ legId, pickupTime: i === 0 ? "09:00" : "10:00" })) });
+  const ok = await qd(w, c.id, B, { ketQua: "CON_VE", gioDon: legs.map((legId: string, i: number) => ({ legId, pickupTime: i === 0 ? "09:00" : "10:00" })) });
   assert.equal(ok.status, 200, ok.text);
   assert.deepEqual(legs.map((l: string) => chang(w, l).t), ["09:00", "10:00"]);
 });
@@ -241,7 +241,7 @@ test("chặng khác không bắt buộc: lượt đầu có giờ gửi lên, ch
   const legs = c.o.services[0].legs;
   const di = legs.find((l: any) => l.direction === "OUT").id;
   const ve = legs.find((l: any) => l.direction === "RETURN").id;
-  const r = await qd(w, c.id, ACC, { ketQua: "CON_VE", gioDon: [{ legId: di, pickupTime: "09:00" }] });
+  const r = await qd(w, c.id, B, { ketQua: "CON_VE", gioDon: [{ legId: di, pickupTime: "09:00" }] });
   assert.equal(r.status, 200, r.text);
   assert.equal(chang(w, di).t, "09:00");
   assert.equal(chang(w, ve).t, null);
@@ -257,7 +257,7 @@ test("T6 ghi kép theo LƯỢT ĐI ĐẦU: hai chiều đi cùng nơi (09:30 và
     const trong = lgs.find((l) => l.pickupTime === null)!.id;
     assert.deepEqual(cotCu(w, id), ["09:30"], "chống bài rỗng: cột cũ đang là giờ của lượt đi đầu");
     assert.equal(dem(w), 0, "trước khi Còn vé");
-    const r = await qd(w, id, ACC, { ketQua: "CON_VE", gioDon: [{ legId: trong, pickupTime: gui }] });
+    const r = await qd(w, id, B, { ketQua: "CON_VE", gioDon: [{ legId: trong, pickupTime: gui }] });
     assert.equal(r.status, 200, `${gui}: ${r.text}`);
     assert.deepEqual(cotCu(w, id), [mong], `gửi ${gui} cho lượt sau`);
     assert.equal(dem(w), 0, `R-ORD-7 sau Còn vé (gửi ${gui})`);
@@ -290,7 +290,7 @@ const quaNgayDi = (w: any, id: string) => {
   w.sqlite.prepare("UPDATE ord_transfer_leg SET pickup_date = ? WHERE order_id = ?").run(inDays(-1), id);
 };
 
-test("(N-1) đơn quá ngày đi, người xét Bán hàng gửi giờ kèm datGap → 409 incomplete_trip và KHÔNG ghi gì (không giờ, không dấu, không nhật ký, không cột cũ, yêu cầu còn mở); Kế toán sau đó vẫn 409 short_notice_required; gửi ngayDi hợp lệ thì xác nhận được", async () => {
+test("(N-1) đơn quá ngày đi, người xét Bán hàng gửi giờ kèm datGap → 409 incomplete_trip và KHÔNG ghi gì (không giờ, không dấu, không nhật ký, không cột cũ, yêu cầu còn mở); Bán hàng khác (không datGap) sau đó vẫn 409 short_notice_required; gửi ngayDi hợp lệ thì xác nhận được", async () => {
   const w = setup();
   const { id, legId } = await chotGio(w);
   quaNgayDi(w, id);
@@ -306,14 +306,14 @@ test("(N-1) đơn quá ngày đi, người xét Bán hàng gửi giờ kèm datG
   assert.deepEqual(cotCu(w, id), [null], "cột cũ order_service.pickup_time không đổi");
   assert.equal(q(w, id).yc.filter((y: any) => y.decided_at === null).length, 1, "yêu cầu còn mở");
   assert.equal(q(w, id).moc.s, "draft");
-  // (2) hệ quả cũ: dấu mồ côi mở đường cho người KHÔNG có ô đặt gấp xác nhận chặng dưới hạn chốt. Nay không còn dấu nào ⇒ Kế toán nhận 409 như đối chứng.
+  // (2) hệ quả cũ: dấu mồ côi mở đường cho người KHÔNG có ô đặt gấp xác nhận chặng dưới hạn chốt. Nay không còn dấu nào ⇒ Bán hàng khác không kèm datGap nhận 409 như đối chứng.
   const g = vnSau(60);
-  const ke = await qd(w, id, ACC, { ketQua: "CON_VE", ngayDi: g.date, gioDon: [{ legId, pickupTime: g.time }] });
+  const ke = await qd(w, id, B, { ketQua: "CON_VE", ngayDi: g.date, gioDon: [{ legId, pickupTime: g.time }] });
   assert.equal(ke.status, 409, ke.text);
   assert.equal(ke.json.error.code, "short_notice_required");
-  assert.deepEqual(hoSo(w, id), truoc, "Kế toán bị chặn cũng không ghi gì");
+  assert.deepEqual(hoSo(w, id), truoc, "Người bị chặn cũng không ghi gì");
   // (3) cùng đơn quá ngày: gửi ngày đi hợp lệ thì vẫn xác nhận được (chặn chỉ nhằm vế ngày SAU khi áp ngayDi)
-  const ok = await qd(w, id, ACC, { ketQua: "CON_VE", ngayDi: inDays(3), gioDon: [{ legId, pickupTime: "09:00" }] });
+  const ok = await qd(w, id, B, { ketQua: "CON_VE", ngayDi: inDays(3), gioDon: [{ legId, pickupTime: "09:00" }] });
   assert.equal(ok.status, 200, ok.text);
   assert.equal(q(w, id).moc.s, "confirmed");
   assert.deepEqual(chang(w, legId), { d: inDays(3), t: "09:00" });
@@ -347,13 +347,13 @@ test("(E4, R7) đơn nhiều ngày có cờ (đi D chưa giờ, về D+1 giờ g
   const c = await chotGio(w, [svc("ZB1", d, [leg(d, null), RET(inDays(4), "16:00")])]);
   const di = c.o.services[0].legs.find((l: any) => l.direction === "OUT").id as string;
   const truoc = hoSo(w, c.id);
-  const r = await qd(w, c.id, ACC, { ketQua: "CON_VE", ngayDi: inDays(8) });
+  const r = await qd(w, c.id, B, { ketQua: "CON_VE", ngayDi: inDays(8) });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "pickup_time_required");
   assert.deepEqual(r.json.error.legs, [{ legId: di }], "nêu đúng chiều đi chưa giờ, không phải chiều về đã có giờ gợi ý");
   assert.deepEqual(hoSo(w, c.id), truoc, "không ghi gì (kể cả ngày đi)");
   assert.equal(q(w, c.id).moc.s, "draft");
-  const ok = await qd(w, c.id, ACC, { ketQua: "CON_VE", ngayDi: inDays(8), gioDon: [{ legId: di, pickupTime: "09:00" }] });
+  const ok = await qd(w, c.id, B, { ketQua: "CON_VE", ngayDi: inDays(8), gioDon: [{ legId: di, pickupTime: "09:00" }] });
   assert.equal(ok.status, 200, ok.text);
   assert.deepEqual(chang(w, di), { d: inDays(8), t: "09:00" });
 });
@@ -367,7 +367,7 @@ test("(N-1b) mọi vế câu xác nhận mà câu đổi giờ không phủ: d�
     const c = await chotGio(w, [svc("ZB1", NGAY(), [leg(NGAY(), null)]), svc("ZB1", NGAY(), [])]);
     hong(w, c.id);
     const truoc = hoSo(w, c.id);
-    const r = await qd(w, c.id, ACC, { ketQua: "CON_VE", gioDon: [{ legId: c.legId, pickupTime: "09:00" }] });
+    const r = await qd(w, c.id, B, { ketQua: "CON_VE", gioDon: [{ legId: c.legId, pickupTime: "09:00" }] });
     assert.equal(r.status, 409, `${ten}: ${r.text}`);
     assert.equal(r.json.error.code, "incomplete_trip", ten);
     assert.ok(r.json.error.missing.some((m: any) => m.reasons.includes(mong[0])), `${ten}: nêu đúng lý do ${mong[0]}`);

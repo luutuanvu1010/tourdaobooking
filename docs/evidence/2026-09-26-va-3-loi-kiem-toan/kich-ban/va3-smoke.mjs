@@ -7,6 +7,7 @@
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-26-va-3-loi-kiem-toan/kich-ban/va3-smoke.mjs
 // Không có AXE_JS → bỏ bước axe và in rõ "chưa chạy axe". Ghi ảnh vào $OUT/anh/*.png (mặc định thư mục bằng chứng này).
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -91,7 +92,7 @@ try {
     const p = await env.openPage(viewport);
     pages.push(p);
     await p.send("Page.addScriptToEvaluateOnNewDocument", {
-      source: "window.__confirmCalls = []; window.__answer = false; window.confirm = (m) => { window.__confirmCalls.push(String(m)); return window.__answer === true; };",
+      source: HOP_HOI_TU_DONG + "window.__confirmCalls = []; window.__answer = false; window.confirm = (m) => { window.__confirmCalls.push(String(m)); return window.__answer === true; };",
     });
     const c = await login(account);
     await p.send("Network.setCookie", { name: c.name, value: c.value, url: env.base, httpOnly: true });

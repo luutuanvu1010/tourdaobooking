@@ -60,7 +60,9 @@ import { xetKetThuc } from "../src/shared/ket-thuc-chuyen";
 import { cauChuaKetThuc, nhomDiemChay, viecChinh, type ViecChinh } from "../src/shared/diem-ke-tiep";
 import { cauChoVang } from "../src/shared/cho-vang";
 import { giuChiDuong, nutChiDuongCuaDiem } from "../src/shared/chi-duong";
+import { nhanChoChayThieu } from "../src/shared/cho-chay-thieu-giay";
 import { cauThayKhach, daiHanTuChoi, loiTuChoi } from "../src/shared/tu-choi-man";
+import { CAU_NHAC_KET_THUC, hienNhacKetThuc } from "../src/shared/nhac-ket-thuc";
 
 const errorEl = byId("error");
 const trangEl = byId("cc-trang");
@@ -503,11 +505,14 @@ function ve(): void {
   document.body.classList.toggle("cc-dang-chay", c.trangThai === "RUNNING");
   if (c.trangThai === "PLANNED") return veXuatBen(dauMang);
   const trenXe = r.suat.filter((s) => s.trangThai === "BOARDED").length;
+  // ADR-0189: chuyến đang chạy đã qua khung xem khách (quên bấm Kết thúc) — nhắc tài xế; khung là cờ máy chủ gửi, hàm thuần chỉ thêm vế "sau ngày chạy".
+  const nhacKetThuc = hienNhacKetThuc({ trangThai: c.trangThai, trongNgayChay: r.trongNgayChay, ngayChay: ngay }, vnToday(new Date())) ? dai("warning", CAU_NHAC_KET_THUC) : null;
   const dauTrang = h(
     "div",
     { class: "dp-cc-head" },
     chip(c.trangThaiNhan, c.trangThai === "RUNNING" ? "unit" : c.trangThai === "ENDED" ? "ok" : "muted"),
     h("span", null, h("strong", null, c.bienSo), c.xuatBen ? ` · xe chạy ${c.xuatBen.gioXayRa.gio}` : "", " · trên xe ", h("strong", null, `${trenXe}/${c.soCho}`)),
+    nhanVangChoChay(r),
   );
   const chayDuoc = c.trangThai === "RUNNING";
   const phuDiem = (b: BuocDiem) => ({ ben: nutThuTu(b), duoi: [...bayCua(b, r.suat), ...dichVuCua(b), ...lienHeCua(b), ...chiDuongCua(b, r), ...nutNhoDon(b)] });
@@ -555,6 +560,7 @@ function ve(): void {
   replaceChildren(
     trangEl,
     dauMang,
+    nhacKetThuc,
     baoCao,
     ...khoiDeNghiToi(),
     daiDiemMoi(),
@@ -914,6 +920,11 @@ function moTuChoi(opener: HTMLElement): void {
   });
 }
 
+/** ADR-0184: nhãn vàng «Xe thiếu A, B — đã cho chạy» (chỉ tên loại giấy; không số giấy, không người cho phép) — màn tài xế công ty và đối tác như nhau. */
+function nhanVangChoChay(r: CuocChiTietResponse): HTMLElement | null {
+  return r.choChayThieu.length ? h("span", { class: "chip dp-chip-warn", "data-khoi": "cho-chay-thieu" }, icon("alert", 14, 2), nhanChoChayThieu(r.choChayThieu.map((x) => x.ten))) : null;
+}
+
 /** Xuất bến (bản vẽ 6b, 6c — màn tài xế): chỉ điều kiện CÒN THIẾU "(văn phòng lo)" (thiếu tên + tự bổ sung được: chỉ chỗ tự làm — `hauToDieuKienTaiXe`); đạt hết → "Đủ điều kiện xuất bến". Không ô giờ. */
 function veXuatBen(dauMang: HTMLElement | null): void {
   const r = duLieu!;
@@ -927,6 +938,7 @@ function veXuatBen(dauMang: HTMLElement | null): void {
     lechNgay ? dai("danger", "Không phải chuyến của hôm nay", [lechNgay]) : null,
     ...khoiHanTuChoi(r),
     h("div", { class: "dp-note dp-cc-meta" }, `${c.bienSo} · ${ngayNgan(c.gioBatDau.ngay, vnToday(new Date()))} ${c.gioBatDau.gio} · ${chiSuatKhach(r.suat).length} khách`),
+    nhanVangChoChay(r),
     dongDiKem(),
     khoiSuatKhach(),
     // Bản 1.39 (chủ quyết 30/9: "tài xế nên thấy điểm đón từ trước, ngày giờ đón, vị trí và số lượng khách"): các điểm của chuyến TRƯỚC khi xuất bến — thứ tự,

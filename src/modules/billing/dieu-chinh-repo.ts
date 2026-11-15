@@ -93,6 +93,14 @@ export const taiKhoanCuaHoSo = async (db: D1Database, partyIds: readonly string[
   return new Map(rows.map((r) => [r.party_id, r.id]));
 };
 
+/** Như `taiKhoanCuaHoSo` nhưng CHỈ tài khoản ĐANG HOẠT ĐỘNG (tài khoản đã ngưng không nhận được tin) — ADR-0155 Đ1.5, cờ `benChiuKhongTaiKhoan` của phiếu phân định. */
+const TAI_KHOAN_DANG_DUNG = defineSql("billing", "adjreq_active_staff_of_party", `SELECT id, party_id FROM v_stf_staff_label WHERE active = 1 AND party_id IN (SELECT value FROM json_each(?1))`);
+export const taiKhoanDangDungCuaHoSo = async (db: D1Database, partyIds: readonly string[]): Promise<Set<string>> => {
+  if (partyIds.length === 0) return new Set();
+  const rows = (await db.prepare(TAI_KHOAN_DANG_DUNG).bind(JSON.stringify(partyIds)).all<{ id: string; party_id: string }>()).results;
+  return new Set(rows.map((r) => r.party_id));
+};
+
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 // Ghi
 // ---------------------------------------------------------------------------------------------------------------------------------------------------

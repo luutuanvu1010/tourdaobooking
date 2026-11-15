@@ -121,7 +121,7 @@ test("ADR-0013 điều 5: không ai đổi 'đang dùng' của hồ sơ có tài
   assert.equal((await rename(w, ADM, pty(SALES), "An Hai", true)).status, 200);
 });
 
-test("hành vi cũ giữ nguyên: SALES tạo, sửa, ngưng, thêm/đóng liên hệ của hồ sơ KHÔNG gắn tài khoản", async () => {
+test("hành vi cũ giữ nguyên: SALES tạo, sửa, thêm/đóng liên hệ của hồ sơ KHÔNG gắn tài khoản; ngưng chỉ Quản trị (ADR-0190)", async () => {
   const w = setup();
   const made = await w.call("POST", "/api/parties", { as: SALES, body: { kind: "PERSON", fullName: "Trần Khách", contacts: [] } });
   assert.equal(made.status, 201, made.text);
@@ -133,7 +133,12 @@ test("hành vi cũ giữ nguyên: SALES tạo, sửa, ngưng, thêm/đóng liên
   assert.equal(added.status, 201);
   const cid = added.json.party.contacts[0].id;
   assert.equal((await w.call("POST", `/api/parties/${id}/contacts/${cid}/end`, { as: ACC, body: {} })).status, 200);
-  assert.equal((await rename(w, SALES2, id, "Khách Mới", false)).status, 200, "ngưng hồ sơ khách vẫn được (R3d ngoài phạm vi)");
+  // ADR-0190 (R3d): ngừng dùng / dùng lại hồ sơ khách nay chỉ Quản trị, Toàn quyền — Bán hàng 403, hồ sơ vẫn đang dùng.
+  const ngung = await rename(w, SALES2, id, "Khách Mới", false);
+  assert.equal(ngung.status, 403, "Bán hàng không ngưng được hồ sơ khách (ADR-0190)");
+  assert.equal(ngung.json.error.code, "party_deactivate_forbidden");
+  assert.equal(w.q("SELECT active a FROM pty_party WHERE id = ?", id)[0].a, 1);
+  assert.equal((await rename(w, ADM, id, "Khách Mới", false)).status, 200, "Quản trị ngưng được");
 });
 
 test("đóng liên hệ của hồ sơ có tài khoản: SALES 403, ADMIN (cấp dưới) 200; ADMIN không đóng được liên hệ của ADMIN khác/SUPER_ADMIN", async () => {
@@ -192,11 +197,11 @@ test("ADR-0013 điều 5 / I-1: không tạo tài khoản trên hồ sơ đang N
   assert.equal(w.q("SELECT count(*) n FROM staff")[0].n, beforeCountOk + 1);
   assert.equal(w.q("SELECT count(*) n FROM staff WHERE party_id = ?", activeId)[0].n, 1);
 
-  // Ca chính: hồ sơ đang ngưng (chưa có tài khoản nên được phép tự ngưng) → tạo tài khoản phải bị chặn.
+  // Ca chính: hồ sơ đang ngưng (chưa có tài khoản nên ngưng ở màn Hồ sơ được — Quản trị, ADR-0190) → tạo tài khoản phải bị chặn.
   const made = await w.call("POST", "/api/parties", { as: SALES, body: { kind: "PERSON", fullName: "Khách Sẽ Ngưng", contacts: [] } });
   assert.equal(made.status, 201, made.text);
   const inactiveId = made.json.party.id;
-  const stopped = await rename(w, SALES, inactiveId, "Khách Sẽ Ngưng", false);
+  const stopped = await rename(w, ADM, inactiveId, "Khách Sẽ Ngưng", false); // ADR-0190: ngưng hồ sơ chỉ Quản trị, Toàn quyền
   assert.equal(stopped.status, 200, stopped.text);
   assert.equal(w.q("SELECT active a FROM pty_party WHERE id = ?", inactiveId)[0].a, 0);
 

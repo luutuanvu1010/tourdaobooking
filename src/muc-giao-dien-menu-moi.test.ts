@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { can } from "./shared/permissions.ts";
 import { PERMISSION_CODES, type PermissionCode } from "./shared/permissions.ts";
 import { THANH_BEN, TRANG, coHien, demMucHienSan, thanhBen, thietLapMoSan, type KhoaTrang } from "./shared/muc-giao-dien.ts";
 
@@ -20,6 +21,16 @@ const TRANG_THANH_BEN_CU: readonly KhoaTrang[] = [
   "veKho",
   // Cài đặt vé điện tử (ADR-0156 Đ3, 2/11): ô settings.ops, chỉ Toàn quyền.
   "veCaiDat",
+  // Giới hạn nhập hoa hồng (ADR-0161 Đ3, 3/11): ô settings.ops, chỉ Toàn quyền, không Đối tác.
+  "hoaHongGioiHan",
+  // Màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): ô partner.commission.write, không Đối tác.
+  "capDaiLy",
+  // Màn «Phí đưa đón» (kế hoạch Phí đưa đón, Đợt B Task 8): ô admin.manage (Quản trị, Toàn quyền).
+  "phiDon",
+  // Hạn mức trả sau (ADR-0168): ô credit.limit.view, không Đối tác (Kế toán, Toàn quyền).
+  "hanMucTraSau",
+  // Đối chiếu vé (ADR-0175 §2.7, 9/11): cổng office + ô ve.doi-chieu.view (Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng); lối vào ở THIẾT LẬP.
+  "veDoiChieu",
 ];
 const holder = (permissions: readonly PermissionCode[]) => ({ id: "x", permissions });
 
@@ -43,7 +54,10 @@ test("MỌI tập quyền: bảng thanh bên (kể cả gom) khớp điều ki�
     const truoc = new Set(TRANG_THANH_BEN_CU.filter((k) => TRANG[k].hien(holder(p))));
     const sau = toiDuoc(p);
     for (const k of truoc) assert.ok(sau.has(k), `${p.join("+")}: mất lối vào ${k}`);
-    for (const k of sau) assert.ok(truoc.has(k), `${p.join("+")}: thấy thêm ${k}`);
+    for (const k of sau) if (k !== "quetVe") assert.ok(truoc.has(k), `${p.join("+")}: thấy thêm ${k}`);
+    // Quét vé (ADR-0175 Đ3, đặc tả §2.10) hẹp hơn điều kiện trang có chủ đích: mọi người có ô quét thấy ở thanh bên TRỪ tập có cả Quản trị lẫn sổ công nợ (Toàn quyền, Kế toán + Quản trị: trần 10 khối hiện sẵn đã đầy; vào qua trang Tôi). Ghi ở DUOC_MA_AN của bài rào.
+    const quet = TRANG.quetVe.hien(holder(p));
+    assert.equal(sau.has("quetVe"), quet && !(can(holder(p), "admin.manage") && can(holder(p), "ledger.view")), `${p.join("+")}: Quét vé ở thanh bên`);
   }
 });
 
@@ -60,12 +74,12 @@ test("trần 10 khối hiện sẵn (nhóm gập đếm 1, Thiết lập đếm 
 test("hướng dẫn viên: có Đơn hàng + chân menu, không có nhóm khác", () => {
   const g = thanhBen({ staff: holder(["FIELD"]) }, "/").filter((x) => x.muc.length);
   assert.deepEqual(g.map((x) => x.nhom), ["HẰNG NGÀY", "CHÂN MENU"]);
-  assert.deepEqual(g[0].muc.map((m) => m.nhan), ["Đơn hàng"]);
+  assert.deepEqual(g[0].muc.map((m) => m.nhan), ["Đơn hàng", "Quét vé"]); // Quét vé: ADR-0175 Đ3
 });
 
-test("Kế toán: Hoa hồng đối tác, Người bán dịch vụ (chủ duyệt 14/10) và Chụp bù mức (sổ đại lý đợt 2) nằm trong Thiết lập", () => {
+test("Kế toán: Hoa hồng đối tác, Cấp độ đại lý (đặc tả 2026-11-04-man-cap-dai-ly), Hạn mức trả sau (ADR-0168), Người bán dịch vụ (chủ duyệt 14/10), Chụp bù mức (sổ đại lý đợt 2) và Vé điện tử (ADR-0175 Đ1.4: tạo vé Tour Đảo) nằm trong Thiết lập", () => {
   const tl = thanhBen({ staff: holder(["ACCOUNTING"]) }, "/").find((x) => x.nhom === "THIẾT LẬP");
-  assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Người bán dịch vụ", "Chụp bù mức"]);
+  assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Cấp độ đại lý", "Hạn mức trả sau", "Người bán dịch vụ", "Chụp bù mức", "Vé điện tử", "Đối chiếu vé"]); // Đối chiếu vé: ADR-0175 §2.7
 });
 
 test("Quản trị chưa có Phiên đăng nhập, Nhật ký (chỉ Toàn quyền); có Chính sách điều phối để đặt mốc (ADR-0128 Q1)", () => {
@@ -94,4 +108,16 @@ test("nút Thiết lập chỉ đăng ký lời gọi lệch giá khi nhóm có 
   assert.equal(co(["ACCOUNTING"]), false);
   assert.equal(co(["HR"]), false);
   assert.equal(co(["ADMIN"]), true);
+});
+
+test("Cấp độ đại lý (đặc tả 2026-11-04-man-cap-dai-ly): hiện cho Kế toán, Quản trị, Toàn quyền; không hiện cho Bán hàng, Hành chính nhân sự, Đối tác, Tài xế đối tác, tài khoản lai Kế toán + Đối tác", () => {
+  const co = (p: PermissionCode[]) => thanhBen({ staff: holder(p) }, "/").flatMap((g) => g.muc).some((m) => m.trang === "capDaiLy");
+  for (const p of [["ACCOUNTING"], ["ADMIN"], ["SUPER_ADMIN"]] as PermissionCode[][]) assert.equal(co(p), true, p.join("+"));
+  for (const p of [["SALES"], ["HR"], ["PARTNER"], ["DRIVER_PARTNER"], ["FIELD"], ["INTERN"], ["DRIVER"], ["ACCOUNTING", "PARTNER"]] as PermissionCode[][]) assert.equal(co(p), false, p.join("+"));
+});
+
+test("Hạn mức trả sau (ADR-0168; ADR-0172 trang ghép (2): Quản trị xem): hiện cho Kế toán, Quản trị và Toàn quyền; không hiện cho Bán hàng, Hành chính nhân sự, Đối tác, Tài xế đối tác, tài khoản lai Kế toán + Đối tác", () => {
+  const co = (p: PermissionCode[]) => thanhBen({ staff: holder(p) }, "/").flatMap((g) => g.muc).some((m) => m.trang === "hanMucTraSau");
+  for (const p of [["ACCOUNTING"], ["ADMIN"], ["SUPER_ADMIN"]] as PermissionCode[][]) assert.equal(co(p), true, p.join("+"));
+  for (const p of [["SALES"], ["HR"], ["PARTNER"], ["DRIVER_PARTNER"], ["FIELD"], ["INTERN"], ["DRIVER"], ["ACCOUNTING", "PARTNER"]] as PermissionCode[][]) assert.equal(co(p), false, p.join("+"));
 });

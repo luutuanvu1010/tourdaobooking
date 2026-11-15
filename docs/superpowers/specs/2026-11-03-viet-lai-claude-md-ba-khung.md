@@ -74,7 +74,7 @@ Người kiểm độc lập, chỉ đọc, đọc bản đầu ngày 2026-11-03
 | M8 | Số `EXC-2026-002` không có số 001 để đối chiếu | Không đúng: `EXC-2026-001` có ở `playbook/.PINNED_VERSION` |
 | M8 | Lỗi 7403 «chạy lại là qua» mạnh hơn quy trình | Sửa |
 | M8 | Khối §2 và bảng tiêu chí là hai bản của một sự thật | Chấp nhận: §2 ghi rõ là bản rút, cả hai có bài kiểm trích dẫn |
-| M8 | `tro-ly-may/tho-san-loi/agent.md` chỉ dặn đọc hai tệp | Ghi `docs/BACKLOG.md` mục 62; phạm vi săn lỗi hôm nay chỉ về tiền nên chưa thiệt |
+| M8 | `tro-ly-may/tho-san-loi/agent.md` chỉ dặn đọc hai tệp | Ghi `docs/BACKLOG.md` mục 73 (số cũ 62, đổi 15/11 khi gộp bản chính); phạm vi săn lỗi hôm nay chỉ về tiền nên chưa thiệt |
 | M9 | Hai chỗ trỏ §8 trong runbook có ngày | Không sửa: hồ sơ đóng băng, §8 vẫn đúng chủ đề |
 
 Người kiểm đọc lại lần sửa: **đạt**, rút lại điểm về `EXC-2026-001`. Ba chỗ chữ nhỏ còn sót đã sửa ở lần lưu kế: C15 ghi rõ hai nghĩa vụ chỉ có ở ADR-0160 chưa duyệt, trỏ đúng `KERNEL-18.md` mục 4; `CLAUDE.md` §2 ghi «rút từ lời chủ»; đầu tệp ghi «cả ba» cho khỏi đọc hẹp.

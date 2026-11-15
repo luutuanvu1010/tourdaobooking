@@ -242,7 +242,7 @@ export function docSoKhachHang(classCode: string, v: string): { ok: true; value:
 
 // ---- danh mục lý do ------------------------------------------------------------------------------------------------------------------------------------------
 /** Nhóm lý do lượt 1, theo thứ tự bản vẽ 8c (Phá lệ, Huỷ chuyến, Kết thúc gián đoạn) rồi hai nhóm lượt 1 bản vẽ không vẽ. */
-export const NHOM_LY_DO_HIEN: readonly NhomLyDo[] = ["PHA_LE", "HUY_CHUYEN", "KET_THUC_GIAN_DOAN", "BO_QUA_DIEM", "DOI_GIO_XE", "BAO_HUY_DIEM", "TU_CHOI_NHAN"]; // + BAO_HUY_DIEM: ADR-0052 D5.2 (Đợt 5); + TU_CHOI_NHAN: ADR-0111 (A5 — Không nhận / Bác đề nghị chuyển khách)
+export const NHOM_LY_DO_HIEN: readonly NhomLyDo[] = ["PHA_LE", "HUY_CHUYEN", "KET_THUC_GIAN_DOAN", "BO_QUA_DIEM", "DOI_GIO_XE", "BAO_HUY_DIEM", "TU_CHOI_NHAN", "CHO_CHAY_THIEU_GIAY"]; // + CHO_CHAY_THIEU_GIAY: ADR-0184 (0147); + BAO_HUY_DIEM: ADR-0052 D5.2 (Đợt 5); + TU_CHOI_NHAN: ADR-0111 (A5 — Không nhận / Bác đề nghị chuyển khách)
 export interface NhomHien {
   nhom: NhomLyDo;
   tieuDe: string;
@@ -260,6 +260,7 @@ const TIEN_TO: Readonly<Record<NhomLyDo, string>> = {
   CHI_PHI_XE: "CPX", // ADR-0057 T2 (0073): lý do chi phí xe thuê — mã gieo CPX_…
   DIEU_CHINH: "DIEU_CHINH", // ADR-0097 Đ2.5 (0085): mã gieo DIEU_CHINH_…
   TU_CHOI_CHUYEN: "TCC", // ADR-0053 D8.1 (0092): mã gieo TCC_… — khác tiền tố "TU_CHOI" của TU_CHOI_NHAN (G-A4-11)
+  CHO_CHAY_THIEU_GIAY: "THIEU_GIAY", // ADR-0184 (0147): mã gieo THIEU_GIAY_…
   BAN_TAI_XE: "BTX", // ADR-0053 D9.1 (0092): mã gieo BTX_… — khác "BAN_XE"
 };
 const MA_TOI_DA = 40;

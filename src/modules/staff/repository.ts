@@ -24,6 +24,8 @@ export interface StaffRow {
 /** Hàng dùng khi xác thực: thêm pin_hash. */
 export interface StaffAuthRow extends StaffRow {
   pin_hash: string;
+  /** Chỉ câu find_by_id: nút thanh dưới đã chọn (ADR-0187 Đ2.3), khoá trang cách nhau dấu phẩy; null = mặc định. */
+  thanh_duoi?: string | null;
 }
 
 export const parsePermissions = (s: string | null): PermissionCode[] =>
@@ -35,7 +37,16 @@ const COLUMNS = `s.id, s.phone, s.active, s.created_at, s.credentials_changed_at
 const FROM = "FROM staff s LEFT JOIN v_pty_party_label pl ON pl.id = s.party_id";
 
 const FIND_BY_PHONE = defineSql("staff", "find_by_phone", `SELECT ${COLUMNS}, s.pin_hash ${FROM} WHERE s.phone = ?1`);
-const FIND_BY_ID = defineSql("staff", "find_by_id", `SELECT ${COLUMNS}, s.pin_hash ${FROM} WHERE s.id = ?1`);
+// ADR-0187 Đ2.3: thêm cột con `thanh_duoi` (nút thanh dưới đã chọn) NGAY TRONG câu này — câu chạy ở mọi request (getActiveStaff), nên GET /api/auth/me vẫn
+// đúng 3 câu đọc (src/modules/auth/nen-moi-yeu-cau.test.ts). Không thêm vào COLUMNS chung (LIST dùng nó).
+const FIND_BY_ID = defineSql("staff", "find_by_id", `SELECT ${COLUMNS}, s.pin_hash, (SELECT g.trang FROM stf_thanh_duoi g WHERE g.staff_id = s.id) AS thanh_duoi ${FROM} WHERE s.id = ?1`);
+// Ghi đè tại chỗ (một dòng mỗi tài khoản — sở thích hiển thị, lịch sử ở nhật ký); ?2 NULL = «Về mặc định», không xoá dòng (migration 0153).
+const UPSERT_THANH_DUOI = defineSql(
+  "staff",
+  "upsert_thanh_duoi",
+  `INSERT INTO stf_thanh_duoi (staff_id, trang, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?1, ?3, ?1)
+   ON CONFLICT(staff_id) DO UPDATE SET trang = excluded.trang, updated_at = excluded.updated_at, updated_by = excluded.updated_by`,
+);
 // ADR-0013 điều 4: hồ sơ gắn tài khoản nào (kể cả tài khoản đang ngưng). staff_party_uq ⇒ tối đa một dòng.
 const LIST = defineSql("staff", "list", `SELECT ${COLUMNS} ${FROM} ORDER BY s.active DESC, pl.sort_key COLLATE NOCASE, s.created_at`);
 
@@ -208,3 +219,6 @@ export const closeAdjustmentStatement = (db: D1Database, v: { id: string; staffI
 export async function accountIdOfParty(db: D1Database, partyId: string): Promise<string | null> {
   return (await db.prepare(ACCOUNT_OF_PARTY).bind(partyId).first<{ id: string }>())?.id ?? null;
 }
+
+export const upsertThanhDuoiStatement = (db: D1Database, staffId: string, trang: string | null, at: string): D1PreparedStatement =>
+  db.prepare(UPSERT_THANH_DUOI).bind(staffId, trang, at);

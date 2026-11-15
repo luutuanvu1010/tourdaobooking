@@ -6,6 +6,7 @@
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=docs/evidence/2026-10-09-c4 node docs/evidence/2026-10-09-c4/kich-ban/c4-bieu-mau-smoke.mjs
 // Kho cookie Chrome dùng CHUNG: chỉ một tài khoản (Bán hàng).
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 import {
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTruong, fetchTrang, noCode, noOverflowX, shotFull, shotView, shown, txt, typeInto, vnDate,
 } from "../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs";
@@ -141,6 +142,7 @@ try {
     await axe(m, "trang đơn 390 có cảnh báo xe riêng");
     await m.ev(`document.getElementById('actions').scrollIntoView({ block: 'center' }); true`);
     await shotFull(m, "c12-canh-bao-xe-rieng-390.png");
+    await m.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await m.ev("window.__hoi = ''; window.confirm = (s) => { window.__hoi = s; return true; }; true");
     await m.ev(`[...document.querySelectorAll('#actions button')].find((x) => x.textContent === 'Xác nhận đơn').click(); true`);
     await m.waitFor(`document.getElementById('error').innerText.includes('Đã xác nhận đơn.')`, "dải sau xác nhận", 10000);

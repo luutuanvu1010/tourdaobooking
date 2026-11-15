@@ -98,3 +98,39 @@ test("R-VDT-1..3: dữ liệu sạch ⇒ 0; vé ALLOCATED không phân bổ ⇒ 
   assert.equal(kiem(d, "R-VDT-2"), 1, "phân bổ mở trỏ vé AVAILABLE");
   assert.equal(kiem(d, "R-VDT-3"), 1, "vé đã lộ nằm AVAILABLE");
 });
+
+test("R-VDT-7, R-VDT-8 (ADR-0175): DA_TINH chỉ trên vé TOUR_DAO đã lộ; vé đã dùng không nằm AVAILABLE", () => {
+  const d = taoCsdl();
+  const quet = (id: string, ve: string, kq = "DA_TINH") => d.prepare(
+    "INSERT INTO vdt_scan (id, ticket_id, ket_qua, scanned_at, scanned_by, created_at, updated_at) VALUES (?, ?, ?, ?, 'u', ?, ?)",
+  ).run(id, ve, kq, AT, AT, AT);
+  const phanBo = (id: string, ve: string, lo: boolean) => {
+    d.prepare("UPDATE vdt_ticket SET status = 'ALLOCATED', updated_at = ? WHERE id = ?").run(AT, ve);
+    d.prepare("INSERT INTO vdt_allocation (id, ticket_id, order_id, order_service_id, pax_group, slot_no, allocated_at, revealed_at, created_at, updated_at) VALUES (?, ?, 'o', ?, 'ADULT', 1, ?, ?, ?, ?)").run(id, ve, `s-${id}`, AT, lo ? AT : null, AT, AT);
+  };
+  for (const m of ["R-VDT-7", "R-VDT-8"]) assert.equal(kiem(d, m), 0, `${m} sạch`);
+  // vé Tour Đảo đã lộ: hợp lệ
+  const tdLo = themVe(d, themLo(d, { nguon: "TOUR_DAO" }));
+  phanBo("a1", tdLo, true);
+  quet("q1", tdLo);
+  assert.equal(kiem(d, "R-VDT-7"), 0, "vé Tour Đảo đã lộ");
+  // CHI_XEM trên vé hãng ngoài không tính (chỉ DA_TINH)
+  const hn = themVe(d, themLo(d));
+  phanBo("a2", hn, true);
+  quet("q2", hn, "CHI_XEM");
+  assert.equal(kiem(d, "R-VDT-7"), 0, "CHI_XEM không tính");
+  quet("q3", hn);
+  assert.equal(kiem(d, "R-VDT-7"), 1, "DA_TINH trên vé hãng ngoài");
+  d.prepare("UPDATE vdt_scan SET voided_at = ?, voided_by = 'u', void_reason = 'sửa', updated_at = ? WHERE id = 'q3'").run(AT, AT);
+  assert.equal(kiem(d, "R-VDT-7"), 0, "lượt đã bỏ không tính");
+  // vé Tour Đảo chưa lộ
+  const chuaLo = themVe(d, themLo(d, { nguon: "TOUR_DAO" }));
+  phanBo("a4", chuaLo, false);
+  quet("q4", chuaLo);
+  assert.equal(kiem(d, "R-VDT-7"), 1, "vé Tour Đảo chưa lộ");
+  // R-VDT-8: ép vé đã dùng về AVAILABLE bằng SQL thô (tắt trigger một chiều)
+  assert.equal(kiem(d, "R-VDT-8"), 0);
+  d.exec("DROP TRIGGER vdt_ticket_one_way");
+  d.prepare("UPDATE vdt_ticket SET status = 'AVAILABLE', updated_at = ? WHERE id = ?").run(AT, tdLo);
+  assert.equal(kiem(d, "R-VDT-8"), 1, "vé đã dùng về kho");
+});

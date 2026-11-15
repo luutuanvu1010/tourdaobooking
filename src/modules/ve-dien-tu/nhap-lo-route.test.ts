@@ -23,14 +23,19 @@ const taoLo = (w: any, as: string, over: Record<string, unknown> = {}) =>
 const them = (w: any, as: string, loId: string, ve: unknown[]) => w.call("POST", `/api/ve/lo/${loId}/ve`, { as, body: { ve } });
 const ve = (n: number, over: Record<string, unknown> = {}) => ({ noiDung: b64(PNG(n)), maVe: `TA.10000000000${n}`, tuNgay: "2026-10-24", denNgay: "2026-11-23", ...over });
 
-test("quyền: Bán hàng và Toàn quyền vào được; Kế toán, Đối tác, Hướng dẫn viên nhận 403 ở mọi route kho vé", async () => {
+test("quyền: Bán hàng và Toàn quyền vào được; Đối tác, Hướng dẫn viên nhận 403 ở mọi route kho vé; Kế toán không tạo lô hãng ngoài, không thấy dòng hãng ngoài", async () => {
   const w = setup();
-  for (const as of [KT, PARTNER, FIELD]) {
+  for (const as of [PARTNER, FIELD]) {
     for (const [m, p, body] of [["GET", "/api/ve/kho", undefined], ["POST", "/api/ve/lo", { catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "x" }]] as const) {
       const r = await w.call(m, p, { as, body });
       assert.equal(r.status, 403, `${as} ${m} ${p} → ${r.status}`);
     }
   }
+  // ADR-0175 Đ1.4: Kế toán giữ `ve.phat-hanh` (lô Tour Đảo) nên GET /kho trả 200 nhưng không có dòng hãng ngoài; tạo lô hãng ngoài vẫn 403.
+  assert.equal((await w.call("POST", "/api/ve/lo", { as: KT, body: { catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "x" } })).status, 403);
+  const kt = await w.call("GET", "/api/ve/kho", { as: KT });
+  assert.equal(kt.status, 200, kt.text);
+  assert.ok(kt.json.kho.every((d: any) => d.nguon === "TOUR_DAO"));
   assert.equal((await w.call("GET", "/api/ve/kho", { as: SALES })).status, 200);
   assert.equal((await w.call("GET", "/api/ve/kho", { as: SUPER })).status, 200);
   assert.equal((await w.call("GET", "/api/ve/kho")).status, 401, "chưa đăng nhập");
@@ -67,6 +72,23 @@ test("phản hồi và nhật ký KHÔNG chứa mã vé đầy đủ, khoá kho,
   const nk = w.q("SELECT detail, target_id FROM audit_log WHERE action LIKE 've_%'").map((x: any) => `${x.detail} ${x.target_id}`).join("\n");
   assert.ok(nk.length > 0);
   assert.doesNotMatch(nk, /TA\.|vdt\/|[0-9a-f]{32}/);
+});
+
+test("lô Tour Đảo: phản hồi và nhật ký KHÔNG chứa mã TD1. đầy đủ; mã chỉ lộ 4 ký tự cuối (ADR-0175 Đ1.6)", async () => {
+  const w = setup();
+  const loId = (await taoLo(w, KT, { nguon: "TOUR_DAO" })).json.loId;
+  const ma = "TD1." + "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const r = await them(w, KT, loId, [ve(1, { maVe: ma })]);
+  assert.equal(r.json.themDuoc, 1, r.text);
+  const xn = await w.call("POST", `/api/ve/lo/${loId}/xac-nhan`, { as: KT, body: {} });
+  const kho = await w.call("GET", "/api/ve/kho", { as: KT });
+  const ds = await w.call("GET", "/api/ve/lo", { as: KT });
+  const tatCa = [r.text, xn.text, kho.text, ds.text].join("\n");
+  assert.doesNotMatch(tatCa, /TD1\.[A-Z2-7]{26}/);
+  assert.match(r.text, /…WXYZ/);
+  const nk = w.q("SELECT detail, target_id FROM audit_log WHERE action LIKE 've_%'").map((x: any) => `${x.detail} ${x.target_id}`).join("\n");
+  assert.ok(nk.length > 0);
+  assert.doesNotMatch(nk, /TD1\.[A-Z2-7]{26}|TD1\./);
 });
 
 test("vé trùng mã bị loại riêng (cả trong kho lẫn trong đợt); các vé khác vẫn vào", async () => {

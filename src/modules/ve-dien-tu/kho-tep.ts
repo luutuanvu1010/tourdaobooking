@@ -2,6 +2,7 @@
 // đã ghi dòng vé. Lỗi kho KHÔNG ném (không được trả 5xx sau lô đã ghi): vé chưa lưu được thì quyết xoá (VOID) nên không bao giờ được giữ chỗ; đối tượng chờ xoá còn thấy được
 // và chạy lại được. Không import module khác (chạy được bằng node --test). Chỉ ve-dien-tu chạm kho này (bài src/kho-tep-ve-dien-tu.test.ts).
 // Hai bài tĩnh đếm chữ gọi hàm kho kèm ngoặc trên mã nguồn thô — chú thích ở tệp này đừng viết tên hàm kho kèm ngoặc.
+import { can, type PermissionHolder } from "../../shared/permissions.ts";
 import { LOAI_NOI_DUNG, type LoaiTep } from "../../shared/tep-dinh-kem.ts";
 import { NGAY_LUU_ANH_LO_HUY } from "../../shared/ve-nhap-lo.ts";
 import { cauRutVeChuaPhat, danhDauDaLuu, danhDauDaXoaR2, listChoXoa, listVeChoDat, type VeCanXoa } from "./repository.ts";
@@ -26,13 +27,22 @@ export async function xoaKhoiKho(db: D1Database, kho: R2Bucket, ds: readonly VeC
   return { daXoa, loi };
 }
 
-/** Lần chạy định kỳ: xoá ảnh đã quyết xoá khi đã quá hạn lưu (lô đã huỷ lưu `NGAY_LUU_ANH_LO_HUY` ngày; Hiến chương 5.16: thấy được ở `R-VDT-5`, chạy lại không cần người). KHÔNG BAO GIỜ NÉM. */
-export async function donHangChoXoa(db: D1Database, kho: R2Bucket, gioiHan: number, luc: () => string): Promise<void> {
+/**
+ * Lần chạy định kỳ: xoá ảnh đã quyết xoá khi đã quá hạn lưu (lô đã huỷ lưu `NGAY_LUU_ANH_LO_HUY` ngày; Hiến chương 5.16: thấy được ở `R-VDT-5`, chạy lại không cần người).
+ * `nguoiPhat` qua cổng ô `ve.kho.purge` TRƯỚC khi đọc hay xoá (ADR-0186 Đ3 — Cron dùng tác nhân DON_ANH_VE): bị từ chối thì một dòng log, không xoá gì.
+ * KHÔNG BAO GIỜ NÉM. Trả số ảnh đã xoá, để bọc Cron ghi một dòng nhật ký chỉ có số ảnh.
+ */
+export async function donHangChoXoa(db: D1Database, kho: R2Bucket, nguoiPhat: PermissionHolder, gioiHan: number, luc: () => string): Promise<number> {
+  if (!can(nguoiPhat, "ve.kho.purge")) {
+    ghiLoi("ve_dien_tu_don_hang_cho_tu_choi", null);
+    return 0;
+  }
   try {
     const truocMoc = new Date(Date.parse(luc()) - NGAY_LUU_ANH_LO_HUY * 24 * 3600 * 1000).toISOString();
-    await xoaKhoiKho(db, kho, await listChoXoa(db, truocMoc, gioiHan), luc);
+    return (await xoaKhoiKho(db, kho, await listChoXoa(db, truocMoc, gioiHan), luc)).daXoa;
   } catch (e) {
     ghiLoi("ve_dien_tu_don_hang_cho_loi", null, e);
+    return 0;
   }
 }
 

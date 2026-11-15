@@ -26,6 +26,7 @@ export const BI_MAT: readonly MauRoute[] = [
   "/api/account/mfa/email/start",
   "/api/account/mfa/email/confirm",
   "/api/staff/:id/reset-pin",
+  "/api/ve/quet", // ADR-0175 Đ3: thân có mã vé
   "/api/parties/:id/documents",
   "/api/parties/:id/documents/:did/renew",
   "/api/parties/:id/documents/:did/correct",

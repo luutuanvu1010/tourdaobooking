@@ -101,7 +101,7 @@ export function dungCauTruc(vao) {
   };
   const aiLamDuoc = (op) => {
     const co = maQuyen.filter((q) => coPhamVi(op, q) !== "none").map((q) => (PHAM_VI[phamVi(op, q)] ? `${nhanQuyen[q]} (${PHAM_VI[phamVi(op, q)]})` : nhanQuyen[q]));
-    const khong = maQuyen.filter((q) => phamVi(op, q) === "none").map((q) => nhanQuyen[q]);
+    const khong = maQuyen.filter((q) => q !== "SALES_MANAGER" && phamVi(op, q) === "none").map((q) => nhanQuyen[q]); // ADR-0169: mã này luôn kèm SALES
     return { co, khong };
   };
   const trangTheo = (duong) => trang.find((t) => t.duongDan === duong);
@@ -165,11 +165,12 @@ export function dungCauTruc(vao) {
     const co = opHoi.filter((op) => coPhamVi(op, q) !== "none").map((op) => viecCoPhamVi(op, q));
     // I-3: vai làm được "sửa, xác nhận, huỷ đơn" không bị ghi "không làm được: huỷ đơn … theo quyền hướng dẫn viên" (dễ hiểu ngược).
     const huyDuoc = phamVi("order.modify", q) !== "none";
-    const khong = opHoi.filter((op) => phamVi(op, q) === "none" && !(op === "order.cancel" && huyDuoc)).map(tenOp);
+    // ADR-0169: SALES_MANAGER luôn đi kèm SALES, nên danh sách «không làm được» của riêng mã này sẽ nói ngược.
+    const khong = q === "SALES_MANAGER" ? [] : opHoi.filter((op) => phamVi(op, q) === "none" && !(op === "order.cancel" && huyDuoc)).map(tenOp);
     them(
       `Vai trò ${nhanQuyen[q]} làm được gì`,
       [q],
-      `Tài khoản có quyền ${nhanQuyen[q]} (một tài khoản có thể giữ vài quyền; làm được việc nếu ít nhất một quyền cho phép).\nLàm được: ${co.join("; ") || "không việc nào"}.\nKhông làm được: ${khong.join("; ") || "không có"}.\nKhông thấy một nút hay mục menu thường vì vai trò không có quyền việc đó; máy chủ luôn kiểm lại quyền.`,
+      `Tài khoản có quyền ${nhanQuyen[q]} (một tài khoản có thể giữ vài quyền; làm được việc nếu ít nhất một quyền cho phép).${q === "SALES_MANAGER" ? " Vai trò này luôn kèm quyền Bán hàng nên làm được mọi việc của Bán hàng, thêm các việc dưới đây." : ""}\nLàm được: ${co.join("; ") || "không việc nào"}.\nKhông làm được: ${khong.join("; ") || "không có"}.\nKhông thấy một nút hay mục menu thường vì vai trò không có quyền việc đó; máy chủ luôn kiểm lại quyền.`,
     );
   }
 

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { docNhoDanhMuc, locDanhMuc, NHO_DANH_MUC_TRONG, doiGhim, xepGhimTruoc, locTheoNhom, khoaNhoNhom, docNhoNhom, CHUA_PHAN_LOAI, docNhoMotNhom, ghiNhoMotNhom, chamNhom, doiChuTim, chiaMuc, nhomConKetQua, nhanDem, tachTenDichVu, dungMucDanhMuc, type TrangThaiNhom } from "./loc-danh-muc.ts";
+import { chonDuocDichVu, timDichVuDaChon, docNhoDanhMuc, locDanhMuc, NHO_DANH_MUC_TRONG, doiGhim, xepGhimTruoc, locTheoNhom, khoaNhoNhom, docNhoNhom, CHUA_PHAN_LOAI, docNhoMotNhom, ghiNhoMotNhom, chamNhom, doiChuTim, chiaMuc, nhomConKetQua, nhanDem, tachTenDichVu, dungMucDanhMuc, type TrangThaiNhom } from "./loc-danh-muc.ts";
 
 const it = (code: string, name: string, unit: string) => ({ code, name, unit });
 const DS = [it("TD101", "Tour 4 đảo", "perPax"), it("TTB03", "Phao chuối", "per5Pax"), it("TTB06", "Motor nước", "perPax"), it("DD01", "Đưa đón", "manual")];
@@ -182,4 +182,22 @@ test("dungMucDanhMuc: 'Tất cả' lúc tìm chia mục theo nhóm, KHÔNG có m
   assert.deepEqual(ma(motNhom.muc[0].dong).slice(0, 2), ["TTB23", "TTB01"]);
   const khongNhom = dungMucDanhMuc(DSN, { kim: "motor", nhom: "", ghim: [], groups: [] });
   assert.deepEqual(khongNhom.muc.map((m) => [m.khoa, ma(m.dong)]), [["", ["TTB06", "MOI02"]]]);
+});
+
+// N4 (9/11/2026): khung chọn dịch vụ dùng thêm ở trang Nhập lô vé — chọn MỘT dịch vụ, dòng không có giá người lớn vẫn chọn được.
+test("chonDuocDichVu: mặc định (Tạo đơn) cần hỗ trợ + có giá người lớn; khongYeuCauGia (Nhập lô vé) chọn được mọi dòng", () => {
+  const ok = { supported: true, prices: { adult: 1350000 } };
+  const chuaGia = { supported: true, prices: { adult: null } };
+  const chuaHoTro = { supported: false, prices: { adult: 500000 } };
+  assert.equal(chonDuocDichVu(ok), true);
+  assert.equal(chonDuocDichVu(chuaGia), false, "chưa có giá: Tạo đơn loại");
+  assert.equal(chonDuocDichVu(chuaHoTro), false, "chưa hỗ trợ: Tạo đơn loại");
+  for (const c of [ok, chuaGia, chuaHoTro]) assert.equal(chonDuocDichVu(c, true), true, "Nhập lô vé: vé gắn với dịch vụ, không cần giá");
+});
+
+test("timDichVuDaChon: mã còn trong danh mục → dòng đó; mã không còn hoặc chưa chọn → null (khung bỏ chọn)", () => {
+  assert.equal(timDichVuDaChon(DS, "TTB06")?.name, "Motor nước");
+  assert.equal(timDichVuDaChon(DS, "XX99"), null);
+  assert.equal(timDichVuDaChon(DS, null), null);
+  assert.equal(timDichVuDaChon([], "TD101"), null);
 });

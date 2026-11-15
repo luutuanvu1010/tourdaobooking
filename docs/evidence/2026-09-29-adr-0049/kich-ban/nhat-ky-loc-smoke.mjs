@@ -24,7 +24,7 @@ const NHOM = "Điều phối xe";
 const SAU_HANH_DONG = [
   "Đổi chính sách điều phối",
   "Thêm điều kiện cho xe chạy",
-  "Đóng điều kiện cho xe chạy",
+  "Ngừng điều kiện cho xe chạy",
   "Đổi số khách theo hạng bằng",
   "Thêm lý do điều phối",
   "Sửa lý do điều phối",

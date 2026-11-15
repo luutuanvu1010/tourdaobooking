@@ -50,9 +50,10 @@ test("Q-T2 đối chứng: Quản trị vẫn đặt lại PIN Bán hàng (ADR-0
   assert.match(r.json.pin, /^\d{6}$/);
 });
 
-test("Q-T3 (QT04 biến thể): Quản trị / Nhân sự gán vai Kế toán hoặc cộng tay Kế toán cho Bán hàng → 403 câu đ1, quyền không đổi", async () => {
+// ADR-0176 (chủ 2026-11-06) bỏ Quản trị khỏi bài này: Quản trị nay gán được (bài kế bên). Nhân sự vẫn 403.
+test("Q-T3 (QT04 biến thể): Nhân sự gán vai Kế toán hoặc cộng tay Kế toán cho Bán hàng → 403 câu đ1, quyền không đổi", async () => {
   const w = setup();
-  for (const as of [QT, NS]) {
+  for (const as of [NS]) {
     for (const body of [{ roles: ["SALES_STAFF", "ACCOUNTANT"] }, { roles: ["SALES_STAFF"], adds: ["ACCOUNTING"], reason: "kiêm nhiệm" }]) {
       const r = await w.call("PUT", `/api/staff/${BH}/roles`, { as, body });
       assert.equal(r.status, 403, `${as} ${JSON.stringify(body)}: ${r.text}`);
@@ -60,6 +61,21 @@ test("Q-T3 (QT04 biến thể): Quản trị / Nhân sự gán vai Kế toán ho
     }
   }
   assert.deepEqual(quyen(w, BH), ["SALES"]);
+});
+
+test("ADR-0176: Quản trị gán vai Kế toán và cộng tay Kế toán cho Bán hàng → 200; đặt lại PIN của Kế toán vẫn 403", async () => {
+  const w = setup();
+  const vai = await w.call("PUT", `/api/staff/${BH}/roles`, { as: QT, body: { roles: ["SALES_STAFF", "ACCOUNTANT"] } });
+  assert.equal(vai.status, 200, vai.text);
+  assert.deepEqual(quyen(w, BH), ["ACCOUNTING", "SALES"]);
+  const go = await w.call("PUT", `/api/staff/${BH}/roles`, { as: QT, body: { roles: ["SALES_STAFF"] } });
+  assert.equal(go.status, 200, go.text);
+  assert.deepEqual(quyen(w, BH), ["SALES"]);
+  const tay = await w.call("PUT", `/api/staff/${BH}/roles`, { as: QT, body: { roles: ["SALES_STAFF"], adds: ["ACCOUNTING"], reason: "kiêm nhiệm" } });
+  assert.equal(tay.status, 200, tay.text);
+  // đ1(i) không đổi: tài khoản đã giữ tiền thì đặt lại PIN vẫn chỉ Toàn quyền
+  const pin = await w.call("POST", `/api/staff/${BH}/reset-pin`, { as: QT, body: {} });
+  assert.equal(pin.status, 403, pin.text);
 });
 
 test("Q-T4 (GD-P-01): Nhân sự tạo tài khoản mang vai Kế toán / quyền Kế toán qua CẢ HAI đường của POST /api/staff → 403 câu đ1, không có tài khoản mới", async () => {

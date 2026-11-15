@@ -7,7 +7,7 @@
 // Thẻ có lỗi chặn Lưu đang hiện thì luôn mở (`mustStayOpen`); "chỉ một thẻ mở" do trang quyết (web/order-form.ts). Luật chữ dòng gập: src/shared/dong-gap-the.ts.
 // Số khách + tiền (Task 6, cùng đặc tả): loại khách có giá xếp LƯỚI hai cột (mỗi ô: tên, "giá · điều kiện", bộ đếm); dịch vụ theo nhóm một ô "Số khách" kèm "7 khách = 2 lượt".
 // Dòng tiền là CHỮ "2 người lớn × 1.350.000 = 2.700.000" ghép từ previewLines (một công thức — không tính lại ở đây); "Thành tiền dịch vụ" chỉ khi từ hai dòng. Ô đơn giá nằm
-// trong khối gập "Sửa giá" (`taoKhoiGap` — chỉ ẩn bằng `hidden`; Lưu bị từ chối / 400 mở được như mọi khối gập); `retailOnly` không có "Sửa giá": khối chỉ mở khi có dòng lệch
+// trong khối gập "Sửa giá đơn này" (`taoKhoiGap` — chỉ ẩn bằng `hidden`; Lưu bị từ chối / 400 mở được như mọi khối gập); `retailOnly` không có "Sửa giá đơn này": khối chỉ mở khi có dòng lệch
 // giá cũ (để đưa về đúng giá), về đúng giá rồi rời ô thì tự đóng, mọi lối mở khác bị trả lại (họ không có nút đóng).
 import { PAX_LABEL, thanhTienDong, type PaxCode } from "../src/shared/order-lines";
 import {
@@ -20,6 +20,9 @@ import { canhBaoChuyenThe, coLoiChanLuuDangHien, dongGapThe } from "../src/share
 import { GOI_Y_GHI_CHU_DOI_TAC, MAX_GHI_CHU_DICH_VU, NHAN_GHI_CHU_DOI_TAC, ghiChuMotDong } from "../src/shared/form-dat-ve";
 import { tripSummaryLine } from "../src/shared/trip-form";
 import { MAX_LINES_PER_ORDER } from "../src/shared/trip-rules";
+import { dieuKienCuaDichVu } from "../src/shared/ui-dieu-kien";
+import { chonDonTheoNhom } from "../src/shared/chon-nhanh";
+import type { ChinhSachUi } from "./chinh-sach-giao-dien";
 import { counter, type Counter } from "./counter";
 import { h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
@@ -66,6 +69,11 @@ export interface CardOptions {
   onMo?: () => void;
   /** Phần tử trang gắn vào CUỐI thân thẻ (dải đặt gấp của từng chặng) — nằm trong phần gập, cùng ẩn / hiện với thân. */
   cuoiThe?: HTMLElement;
+  /**
+   * ADR-0195 (CHỈ form Tạo/sửa đơn): chính sách hiện / ẩn / bắt buộc của màn «dich-vu-trong-don» cho người đang lập; thẻ tự tính điều kiện «không đón / có đón» của CHÍNH dịch vụ này (kể cả khi nhóm tắt đưa đón
+   * ⇒ «Không đón», như lúc gửi) và tính lại ngay khi lựa chọn đón đổi. Vắng = hiện đủ. Ô ẩn vẫn nằm trong bản nháp, chỉ máy chủ bỏ khi lưu.
+   */
+  chinhSachDichVu?: ChinhSachUi;
 }
 
 export interface ServiceCard {
@@ -79,6 +87,8 @@ export interface ServiceCard {
    * mà chỉ có lỗi cấp thẻ thì trả ô lỗi đầu tiên của thẻ với `daAn: true` (thẻ vừa mở — trang cuộn tới ô đó và đặt tiêu điểm).
    */
   showIssues(show: boolean): { o: HTMLElement; daAn: boolean } | null;
+  /** G-02: đánh dấu thiếu Đón / Không đón (xem `KhoiDuaDon.danhDauThieuChon`); `cau` null = gỡ. Trả nhóm nút khi có dấu. */
+  danhDauThieuChonDon(cau: string | null): HTMLElement | null;
   /** Mở thẻ, mở khối chuyến và cuộn tới thẻ. */
   reveal(): void;
   hasIssues(): boolean;
@@ -91,7 +101,7 @@ export interface ServiceCard {
   datChipNgoai(chips: readonly string[]): void;
 }
 
-/** Một loại khách có dòng tiền: dòng CHỮ (`xem`, đang xem) và dòng SỬA (`row` = `.line` có ô đơn giá, trong khối gập "Sửa giá"); cả hai ẩn khi loại đó không có khách. */
+/** Một loại khách có dòng tiền: dòng CHỮ (`xem`, đang xem) và dòng SỬA (`row` = `.line` có ô đơn giá, trong khối gập "Sửa giá đơn này"); cả hai ẩn khi loại đó không có khách. */
 interface LineRefs {
   row: HTMLElement;
   qty: HTMLElement;
@@ -163,7 +173,19 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     return cat > 0 ? nhan.slice(0, cat) : nhan;
   };
 
+  /** Chính sách của một ô cấp dịch vụ cho CHÍNH dịch vụ này (ADR-0195); lỗi tải / vắng chính sách = hiện đủ. */
+  const csDichVu = (truong: "flightCode" | "paxOverride" | "note"): { an: boolean; batBuoc: boolean } => {
+    const c = o.chinhSachDichVu;
+    if (!c) return { an: false, batBuoc: false };
+    const dk = dieuKienCuaDichVu({ pickupChoice: chonDonTheoNhom(o.duaDon.coDuaDon?.() !== false, draft.pickupChoice) });
+    const an = c.an("dich-vu-trong-don", truong, dk);
+    return { an, batBuoc: !an && c.batBuoc("dich-vu-trong-don", truong, dk) };
+  };
+  /** Khoá «ô nào đang ẩn / bắt buộc» của dịch vụ này: đổi khoá ⇒ dựng lại khối đưa đón (ô số hiệu chuyến bay / số người chiều về) và tính lại ô ghi chú. */
+  const dkKhoa = (): string => (["flightCode", "paxOverride", "note"] as const).map((t) => { const c = csDichVu(t); return `${c.an ? 1 : 0}${c.batBuoc ? 1 : 0}`; }).join(",");
+
   const duaDon = taoKhoiDuaDon({
+    chinhSachO: o.chinhSachDichVu ? (t) => csDichVu(t) : undefined,
     legs: draft.legs, taoSan: draft.taoSan, che: "form", ma: draft.key, ...o.duaDon, soKhach: () => soKhachNhap(draft), anGio: o.formGonDoiTac === true, // ADR-0154 Đ1.1: form đối tác không nhập giờ đón
     // ADR-0134: còn lượt → "Đón"; bỏ lượt cuối khi đang "Đón" → về chưa chọn (`chonDonSauDoiChang`).
     onChange: (legs, taoSan) => commit({ ...draft, legs, taoSan, pickupChoice: chonDonSauDoiChang(draft.pickupChoice, legs.length) }),
@@ -190,6 +212,21 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     : null;
   if (oGhiChuGon) oGhiChuGon.addEventListener("input", () => commit({ ...draft, trip: { ...draft.trip, note: oGhiChuGon.value } }));
   const dongGhiChuGon = oGhiChuGon ? h("label", { class: "o-noi" }, khungNhanNoi(NHAN_GHI_CHU_DOI_TAC, oGhiChuGon, { khungClass: "o-hien-goi-y" })) : null;
+  // N7a: dịch vụ không có đưa đón thì dòng «Ghi chú — Thời gian đón» không còn nghĩa → ẩn (chữ đã gõ vẫn giữ trong bản nháp và vẫn gửi lên nguyên).
+  if (dongGhiChuGon) dongGhiChuGon.hidden = o.duaDon.coDuaDon?.() === false;
+  /** ADR-0195: ô «Ghi chú dịch vụ» (khối chuyến) và dòng ghi chú gọn của Đối tác theo chính sách; gọi lại khi lựa chọn đón / nhóm đổi. */
+  const apGhiChu = (): void => {
+    if (!o.chinhSachDichVu) return;
+    const cs = csDichVu("note");
+    fields.datGhiChu(cs);
+    if (dongGhiChuGon) {
+      const khongDua = o.duaDon.coDuaDon?.() === false; // cùng điều kiện với khối Đưa đón (N7a)
+      dongGhiChuGon.hidden = khongDua || cs.an;
+      const chu = dongGhiChuGon.querySelector(".o-noi-chu");
+      if (chu) chu.textContent = cs.batBuoc ? `${NHAN_GHI_CHU_DOI_TAC} *` : NHAN_GHI_CHU_DOI_TAC;
+    }
+  };
+  apGhiChu();
 
   const than = h(
     "div",
@@ -231,11 +268,11 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   let nameInput: HTMLInputElement | null = null;
   let manualRefs: ManualRefs[] = [];
   let addLineBtn: HTMLButtonElement | null = null;
-  /** Khối gập "Sửa giá" (ô đơn giá từng dòng) và nút của nó; trạng thái mở giữ qua các lần dựng lại thân (`suaGiaMo`). */
+  /** Khối gập "Sửa giá đơn này" (ô đơn giá từng dòng) và nút của nó; trạng thái mở giữ qua các lần dựng lại thân (`suaGiaMo`). */
   let gapGia: KhoiGap | null = null;
   let nutSuaGia: HTMLButtonElement | null = null;
   let suaGiaMo = false;
-  /** Có dòng đang lệch giá danh mục (lần `refresh` gần nhất). `retailOnly` chỉ được mở khối "Sửa giá" khi có dòng lệch (đưa về đúng giá) — mọi lối mở khác (Lưu bị từ chối, 400) bị trả lại. */
+  /** Có dòng đang lệch giá danh mục (lần `refresh` gần nhất). `retailOnly` chỉ được mở khối "Sửa giá đơn này" khi có dòng lệch (đưa về đúng giá) — mọi lối mở khác (Lưu bị từ chối, 400) bị trả lại. */
   let coLechGia = false;
   const khongDuocMoGia = (): boolean => Boolean(o.retailOnly) && !coLechGia;
 
@@ -275,7 +312,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       lockedNote = h("div", { class: "svc-locked" }, h("p", { class: "muted" }, d.repick ? "Dịch vụ này không còn trong danh mục và dòng đã lưu thiếu giá danh mục nên chưa lưu được. Chọn lại từ danh mục, hoặc xoá thẻ này." : "Dịch vụ này không còn trong danh mục nên không đổi được số khách. Vẫn sửa được đơn giá và thông tin chuyến."), repick);
     }
     emptyHint = h("p", { class: "svc-empty" }, "Nhập số khách để xem dòng tiền.");
-    // Dòng tiền: dòng CHỮ (canh phải) trong `xem`; dòng SỬA `.line` (ô đơn giá — aria-label như cũ, kịch bản và bài kiểm dùng) trong `sua` = khối gập "Sửa giá".
+    // Dòng tiền: dòng CHỮ (canh phải) trong `xem`; dòng SỬA `.line` (ô đơn giá — aria-label như cũ, kịch bản và bài kiểm dùng) trong `sua` = khối gập "Sửa giá đơn này".
     const xem = h("div", { class: "svc-tien-xem" });
     const sua = h("div", { class: "svc-tien-sua" });
     for (const code of codes) {
@@ -298,13 +335,13 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       xem.append(xemRow);
       sua.append(row);
     }
-    const nut = h("button", { type: "button", class: "btn btn-link svc-sua-gia", "data-action": "sua-gia" }, "Sửa giá");
+    const nut = h("button", { type: "button", class: "btn btn-link svc-sua-gia", "data-action": "sua-gia" }, "Sửa giá đơn này");
     nutSuaGia = nut;
-    // `retailOnly` (Đối tác, Thực tập — nút "Sửa giá" ẩn): khối chỉ mở khi có dòng lệch giá cũ. Lưu bị từ chối / máy chủ 400 mở MỌI khối gập (`moMoiKhoiGap`) — khối này
+    // `retailOnly` (Đối tác, Thực tập — nút "Sửa giá đơn này" ẩn): khối chỉ mở khi có dòng lệch giá cũ. Lưu bị từ chối / máy chủ 400 mở MỌI khối gập (`moMoiKhoiGap`) — khối này
     // trả lại ngay, vì họ không có nút để đóng (trước đây kẹt mở tới khi tải lại trang). Về đúng giá: đóng khi rời ô (không đóng lúc đang gõ — ô biến mất dưới ngón tay).
     let khoi: KhoiGap | null = null;
     khoi = taoKhoiGap({
-      ma: `gia-${d.key}`, nhan: "Sửa giá", than: sua, nut, mo: suaGiaMo && !khongDuocMoGia(),
+      ma: `gia-${d.key}`, nhan: "Sửa giá đơn này", than: sua, nut, mo: suaGiaMo && !khongDuocMoGia(),
       khiDoi: (mo) => {
         if (mo && khongDuocMoGia() && khoi) {
           khoi.dong();
@@ -312,7 +349,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
         }
         suaGiaMo = mo;
         xem.hidden = mo; // đang sửa: dòng chữ nhường chỗ cho dòng có ô đơn giá
-        nut.textContent = mo ? "Xong sửa giá" : "Sửa giá";
+        nut.textContent = mo ? "Xong sửa giá đơn này" : "Sửa giá đơn này";
       },
     });
     gapGia = khoi;
@@ -471,8 +508,8 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       }
       if (emptyHint) emptyHint.hidden = visible > 0;
       if (groupHint) groupHint.textContent = chuLuot(g);
-      // "Sửa giá": không có cho Đối tác / Thực tập (giá luôn là giá danh mục) và khi chưa có dòng tiền. Dòng lệch giá CŨ của họ (đơn lập trước đây) thì khối tự mở:
-      // ô đơn giá sửa được để đưa về đúng giá — như trước khi ô nằm sau "Sửa giá" (máy chủ từ chối mọi giá khác).
+      // "Sửa giá đơn này": không có cho Đối tác / Thực tập (giá luôn là giá danh mục) và khi chưa có dòng tiền. Dòng lệch giá CŨ của họ (đơn lập trước đây) thì khối tự mở:
+      // ô đơn giá sửa được để đưa về đúng giá — như trước khi ô nằm sau "Sửa giá đơn này" (máy chủ từ chối mọi giá khác).
       if (nutSuaGia) nutSuaGia.hidden = Boolean(o.retailOnly) || visible === 0;
       coLechGia = coLech;
       if (o.retailOnly && gapGia) {
@@ -525,7 +562,12 @@ export function createServiceCard(o: CardOptions): ServiceCard {
 
   function commit(next: ServiceDraft): void {
     const before = structKey(draft, o.duocNhapTay === true);
+    const dkTruoc = o.chinhSachDichVu ? dkKhoa() : "";
     draft = next;
+    if (o.chinhSachDichVu && dkKhoa() !== dkTruoc) {
+      apGhiChu(); // ADR-0195: đổi lựa chọn đón ⇒ tính lại ngay ô ẩn / bắt buộc của CHÍNH dịch vụ này (khối đưa đón dựng lại để ô số hiệu chuyến bay / số người chiều về đổi theo)
+      duaDon.update(next.legs, next.taoSan);
+    }
     if (structKey(next, o.duocNhapTay === true) !== before) rebuildBody();
     refresh();
     o.onChange(next); // trang cập nhật bản nháp của mình rồi gọi refreshLimits() của MỌI thẻ (trần dòng tính trên cả đơn)
@@ -552,7 +594,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     else if ((loi.code === "line_description" || loi.code === "line_quantity") && draft.kind === "manual") {
       const i = draft.lines.findIndex((l) => (loi.code === "line_description" ? l.description.trim() === "" : l.quantity < 1));
       o = loi.code === "line_description" ? manualRefs[i]?.desc : manualRefs[i]?.qty.input;
-    } else if ((loi.code === "preview" || loi.code === "amount") && !khongDuocMoGia()) o = body.querySelector<HTMLElement>(".line:not([hidden]) .price-field") ?? body.querySelector<HTMLElement>(".price-field"); // trong khối gập "Sửa giá": trang mở khối (`moKhoiChua`) trước khi đặt tiêu điểm; `retailOnly` không mở được khối đó → ô đầu tiên của thẻ
+    } else if ((loi.code === "preview" || loi.code === "amount") && !khongDuocMoGia()) o = body.querySelector<HTMLElement>(".line:not([hidden]) .price-field") ?? body.querySelector<HTMLElement>(".price-field"); // trong khối gập "Sửa giá đơn này": trang mở khối (`moKhoiChua`) trước khi đặt tiêu điểm; `retailOnly` không mở được khối đó → ô đầu tiên của thẻ
     const dungDuoc = (e: HTMLElement | null | undefined): e is HTMLElement => !!e && !(e as HTMLInputElement).disabled;
     return dungDuoc(o) ? o : body.querySelector<HTMLElement>("input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled])");
   }
@@ -564,11 +606,15 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     root,
     update(d) {
       const before = structKey(draft, o.duocNhapTay === true);
+      const dkTruoc = o.chinhSachDichVu ? dkKhoa() : "";
       const legsDoi = d.legs !== draft.legs || d.taoSan !== draft.taoSan || d.pickupChoice !== draft.pickupChoice;
       draft = d;
+      const dkDoi = o.chinhSachDichVu !== undefined && dkKhoa() !== dkTruoc;
       if (structKey(d, o.duocNhapTay === true) !== before) rebuildBody();
-      if (legsDoi) duaDon.update(d.legs, d.taoSan);
+      if (legsDoi || dkDoi) duaDon.update(d.legs, d.taoSan);
       duaDon.root.hidden = o.duaDon.coDuaDon?.() === false; // cờ nhóm có thể vừa đổi (form tải lại danh mục sau 409 `transfer_disabled`)
+      if (dongGhiChuGon) dongGhiChuGon.hidden = o.duaDon.coDuaDon?.() === false;
+      apGhiChu();
       refresh();
       refreshLimits(); // thân có thể vừa được dựng lại: nút "+ Thêm dòng" mới mặc định bật
     },
@@ -582,6 +628,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       // Thẻ đang GẬP có lỗi cấp thẻ (vd "Nhập số khách."): chính thẻ không bao giờ "ẩn" (chỉ thân ẩn) nên trang không tự biết — trả ô lỗi đầu tiên, đánh dấu vừa nằm trong khối đóng.
       return gap.laMo() ? { o: oLoiThe() ?? root, daAn: true } : null;
     },
+    danhDauThieuChonDon: (cau) => duaDon.danhDauThieuChon(cau),
     reveal() {
       gap.mo();
       if (o.formGonDoiTac !== true) tripDetails.open = true; // form gọn: khối chuyến đang ẩn, không có gì để mở

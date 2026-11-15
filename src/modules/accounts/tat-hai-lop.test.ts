@@ -36,7 +36,8 @@ async function setup() {
   seedStaff(w.sqlite, { id: KT, phone: PHONE[KT], name: "Kế Toán", perms: ["ACCOUNTING"] });
   seedStaff(w.sqlite, { id: BH, phone: PHONE[BH], name: "Bán Hàng", perms: ["SALES"] });
   seedStaff(w.sqlite, { id: TQ, phone: PHONE[TQ], name: "Toàn Quyền", perms: ["SUPER_ADMIN"] });
-  seedStaff(w.sqlite, { id: DT, phone: PHONE[DT], name: "Đối Tác", perms: ["PARTNER"] });
+  // ADR-0185: đường quyền cũ (PUT …/permissions) chỉ còn cho tài khoản chưa gán vai trò ⇒ tài khoản Đối tác của bài này dựng kiểu cũ.
+  seedStaff(w.sqlite, { id: DT, phone: PHONE[DT], name: "Đối Tác", perms: ["PARTNER"], kieuCu: true });
   seedStaff(w.sqlite, { id: TQ2, phone: PHONE[TQ2], name: "Toàn Quyền Hai", perms: ["SUPER_ADMIN"] });
   w.sqlite.prepare("UPDATE staff SET pin_hash = ?").run(await hashPin(PIN));
   return w;
@@ -279,7 +280,7 @@ test("(a) PUT /api/staff/:id/roles: vai bên ngoài → vai nội bộ → ân h
   assert.ok(gan(han(w, DT).g, Date.now() + 14 * NGAY), `ân hạn: ${han(w, DT).g}`);
   // Đối tác đã tự bật lớp hai rồi mới được cấp quyền nội bộ → không cần ân hạn (đã có yếu tố).
   const DT2 = "0c000000-0000-4000-8000-000000000009";
-  seedStaff(w.sqlite, { id: DT2, phone: "0902000009", name: "Đối Tác Hai", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: DT2, phone: "0902000009", name: "Đối Tác Hai", perms: ["PARTNER"], kieuCu: true });
   await gieoHaiLop(w, DT2);
   assert.equal((await w.call("PUT", `/api/staff/${DT2}/roles`, { as: TQ, body: { roles: ["SALES_STAFF"] } })).status, 200);
   assert.equal(han(w, DT2).g, null);
@@ -300,8 +301,9 @@ test("(a) vòng sửa 1: hạn cũ đã qua khi trở lại nội bộ → KHÔN
   assert.equal(chan.json.error.code, "mfa_setup_required");
   const con = new Date(Date.now() + 3 * NGAY).toISOString();
   w.sqlite.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = ?").run(con, DT);
-  assert.equal((await w.call("PUT", `/api/staff/${DT}/permissions`, { as: TQ, body: { permissions: ["PARTNER"] } })).status, 200);
-  assert.equal((await w.call("PUT", `/api/staff/${DT}/permissions`, { as: TQ, body: { permissions: ["SALES"] } })).status, 200);
+  // ADR-0185 Đ2: đường quyền cũ không cấp lại quyền Đối tác — trở lại bên ngoài bằng cách chọn vai trò, rồi lên nội bộ cũng bằng vai trò.
+  assert.equal((await w.call("PUT", `/api/staff/${DT}/roles`, { as: TQ, body: { roles: ["TRAVEL_AGENCY"] } })).status, 200);
+  assert.equal((await w.call("PUT", `/api/staff/${DT}/roles`, { as: TQ, body: { roles: ["SALES_STAFF"] } })).status, 200);
   assert.equal(han(w, DT).g, con, "hạn còn hiệu lực giữ nguyên");
 });
 
@@ -355,7 +357,7 @@ test("vòng sửa 1: lên nội bộ mà CÒN ân hạn / có yếu tố → kh�
   assert.equal((await w.call("PUT", `/api/staff/${DT}/permissions`, { as: TQ, body: { permissions: ["SALES"] } })).status, 200);
   assert.equal(dem(w, "SELECT count(*) AS n FROM aut_session WHERE staff_id = ? AND ended_at IS NULL", DT), 1, "hạn NULL → +14 ngày, phiên giữ");
   const DT2 = "0c000000-0000-4000-8000-000000000009";
-  seedStaff(w.sqlite, { id: DT2, phone: "0902000009", name: "Đối Tác Hai", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: DT2, phone: "0902000009", name: "Đối Tác Hai", perms: ["PARTNER"], kieuCu: true });
   await gieoHaiLop(w, DT2);
   w.sqlite.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = ?").run(new Date(Date.now() - NGAY).toISOString(), DT2);
   await w.token(DT2);

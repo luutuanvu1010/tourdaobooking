@@ -19,11 +19,11 @@ const CAU = "Hồ sơ này không nhận thêm vai trò nội bộ vào lúc nà
 
 function nen() {
   const w = world();
+  w.sqlite.prepare("INSERT INTO pty_role_type (code, name, sort_order, role_group, is_partner_label) VALUES (?, ?, 40, 'OTHER', 1)").run(NHAN, TEN_NHAN);
   for (const [id, phone, name, perms] of [
     [ADM, "0900000003", "Quản Trị", ["ADMIN"]], [ADM2, "0900000006", "Quản Trị Hai", ["ADMIN"]], [HR, "0900000004", "Nhân Sự", ["HR"]],
     [SUP, "0900000007", "Chủ", ["SUPER_ADMIN"]], [PARTNER, "0900000008", "Đối Tác", ["PARTNER"]],
-  ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  w.sqlite.prepare("INSERT INTO pty_role_type (code, name, sort_order, role_group, is_partner_label) VALUES (?, ?, 40, 'OTHER', 1)").run(NHAN, TEN_NHAN);
+  ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms], ...(id === PARTNER ? { vai: NHAN } : {}) });
   return w;
 }
 function hoSo(w: any, ten: string): string {
@@ -100,7 +100,7 @@ test("N-7 (b) mở lại vai: Bán hàng → Cộng tác viên (đóng SALES_STA
 
 test("N-7 (b) đường quyền kiểu cũ: PUT /api/staff/:id/permissions đổi tài khoản Đối tác (hồ sơ mang loại) sang Bán hàng → 409 (trigger là lưới, không 500), quyền giữ nguyên", async () => {
   const w = nen();
-  await ganNhan(w, `pty-${PARTNER}`);
+  // Hồ sơ của PARTNER mang loại từ lúc gieo (ADR-0185: tài khoản Đối tác phải có hồ sơ mang vai trò đối tác); loại nhóm OTHER nên đường quyền cũ còn mở.
   const r = await w.call("PUT", `/api/staff/${PARTNER}/permissions`, { as: SUP, body: { permissions: ["SALES"] } });
   bi409(r, "PUT permissions");
   assert.deepEqual(quyenMo(w, PARTNER), ["PARTNER"]);

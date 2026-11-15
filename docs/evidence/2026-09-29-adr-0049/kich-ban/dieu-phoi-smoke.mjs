@@ -55,7 +55,7 @@ try {
     assert.match(await p.ev(txt("#dp-ngay-nhan")), /^(Thứ (Hai|Ba|Tư|Năm|Sáu|Bảy)|Chủ nhật)$/);
     assert.equal(await p.ev(`document.querySelector('#dp-moi').getAttribute('href')`), `/chuyen-sua?ngay=${d.NGAY_XA}`);
     assert.ok(await p.ev(shown("#dp-moi")));
-    assert.deepEqual(await p.ev(soLieu), ["LƯỢT ĐƯA ĐÓN 4", "ĐÃ XẾP 3", "CHƯA XẾP 1", "CHUYẾN 4 2 bị giữ", `CẦN XỬ LÝ ${await p.ev(`document.querySelectorAll('#dp-cot-can-xu-ly .dp-cxl').length`)}`, "CHỜ XÁC NHẬN 0"]);
+    assert.deepEqual(await p.ev(soLieu), ["LƯỢT ĐƯA ĐÓN 4", "ĐÃ XẾP 3", "CHƯA XẾP 1", "CHUYẾN 4 2 bị giữ", `CẦN XỬ LÝ ${await p.ev(`document.querySelectorAll('#dp-cot-can-xu-ly .dp-cxl').length`)}`, "CHƯA XÁC NHẬN 0"]);
     assert.equal(await p.ev(shown("#dp-tabs")), false, "máy tính: không thẻ");
     for (const c of ["#dp-cot-chua-xep", "#dp-cot-xe", "#dp-cot-can-xu-ly"]) assert.ok(await p.ev(shown(c)), c);
     const nav = await p.ev(vcSub);
@@ -70,7 +70,7 @@ try {
     const v = await p.ev(viec);
     const giu = v.filter((x) => x.loai === "CHUYẾN BỊ GIỮ");
     assert.deepEqual(giu.map((x) => [x.tieuDe, x.ai, x.nut]), [
-      [`${d.T2.ma} · 07:30 · 79A-222.22`, "Ai xử lý: Quản trị, Văn phòng", []],
+      [`${d.T2.ma} · 07:30 · 79A-222.22`, "Ai xử lý: Văn phòng, Quản trị, Toàn quyền", []], // ADR-0184 P3, P10: xe thiếu Kiểm định / Bảo hiểm → mã giữ DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN, «Quản trị, Toàn quyền»; chữ gom theo vai (Văn phòng → Quản trị → Toàn quyền)
       [`${d.T3.ma} · 14:30 · 79A-111.11`, "Ai xử lý: Văn phòng", ["Cập nhật điểm theo đơn"]],
     ]);
     assert.ok(!v.some((x) => x.tieuDe.startsWith(`${d.T3.ma} · TD-`)), "không mục 'nơi hẹn khác điểm' trùng với chuyến bị giữ");

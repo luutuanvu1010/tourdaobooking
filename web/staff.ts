@@ -1,11 +1,16 @@
 import { ApiError, api, type StaffAccount, type Api } from "./api";
 import { NHAN_LY_DO_KHOP } from "../src/shared/ho-so-trung";
-import { PERMISSION_CODES, PERMISSION_LABEL, can, type PermissionCode } from "../src/shared/permissions";
+import { PERMISSION_CODES, PERMISSION_LABEL, can, isExternalPermission, type PermissionCode } from "../src/shared/permissions";
 import { ROLE_CODES, canManageAccount, rolesLabelTheo, tuDoiQuyenCuaMinh } from "../src/shared/roles";
+import { CAU_CHO_QUAN_TRI_CAP_PIN, CAU_NHAC_DAT_LAI_PIN_SAU_GAN_VAI } from "../src/shared/xem-moi-khach";
 import { chonLocHopLe, locTheoVai, nutLocVai } from "../src/shared/loc-tai-khoan";
 import { byId, h, replaceChildren } from "./dom";
+import { hoiXacNhan } from "./bang-truot";
+import { trangThaiHeThong } from "./trang-thai-he-thong";
+import { nhoKhoi } from "./giu-khoi";
 import { dateTime } from "./format";
 import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
+import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
 import { initShell, showError } from "./shell";
 import { nhanHaiLop } from "../src/shared/hai-lop-hien-thi";
 import { dungHangChoXacMinh } from "./xac-minh-hang-cho";
@@ -32,6 +37,7 @@ const TU_DOI_QUYEN_TOAN_QUYEN =
   "Vai trò vừa chọn làm đổi quyền của chính bạn — không ai tự đổi quyền của mình được (chống tự khoá). Toàn quyền đã làm được mọi việc của mọi vai trò, nên không cần tự gán thêm. Chưa lưu gì.";
 const sameAssignment = (a: RolePickerValue, b: RolePickerValue): boolean => sameSet(a.roles, b.roles) && sameSet(a.adds, b.adds) && sameSet(a.removes, b.removes);
 let meSuper = false;
+let meQuanTri = false; // ADR-0169 Đ3
 // ADR-0042 + ADR-0071 điều 1e: đặt lại PIN, gỡ Face ID, mở khoá — Quản trị + Toàn quyền (ô account.access.manage); HCNS không thấy nút (máy chủ vẫn chặn 403).
 let canAccessManage = false;
 
@@ -45,6 +51,9 @@ let capHienHanh: Map<string, CapHienHanhDto> | null | undefined = undefined;
 let lanNapCap = 0; // số thứ tự lần nạp: lần nạp cũ về muộn không ghi đè lần mới hơn
 let daVeLanDau = false; // đã vẽ bảng từ danh sách chưa — cấp về trước thì để `load` vẽ, về sau thì vẽ lại
 const cotCapEl = byId("cot-cap");
+/** ADR-0194 đợt 1: hai cột phụ (Tạo lúc, Đăng nhập gần nhất) Toàn quyền có thể ẩn — chỉ hiển thị; lỗi tải = mặc định đầy đủ. Tải TRƯỚC lần vẽ đầu. */
+let chinhSach: ChinhSachUi = CHINH_SACH_DAY_DU;
+const anCot = (truong: string): boolean => chinhSach.an("danh-sach-tai-khoan", truong);
 
 // Bộ lọc theo vai trò (đặt vé của đối tác, lượt 1, Task 4; đặc tả §4.4): lọc ngay trên danh sách ĐÃ NẠP (`accounts`), cả bảng máy tính lẫn thẻ điện thoại; bấm nút chỉ vẽ lại, không gọi máy chủ.
 // Lựa chọn nhớ theo phiên (sessionStorage — có thể bị chặn / không có: bọc try/catch, trang vẫn chạy với «Tất cả»). Luật chọn nút / lọc / giữ lựa chọn ở src/shared/loc-tai-khoan.ts.
@@ -67,6 +76,24 @@ let locVai: string | null = docLocNho();
 
 const reasonOf = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 const fail = (err: unknown) => showError(errorEl, reasonOf(err));
+
+/** ADR-0191 mục 5: thay hộp «PIN của tài khoản mới» khi máy chủ không trả PIN (`pin: null`). */
+function hienChoCapPin(name: string, phone: string): void {
+  const close = h("button", { type: "button", class: "btn btn-link" }, "Đóng");
+  close.addEventListener("click", () => {
+    secretEl.hidden = true;
+    replaceChildren(secretEl);
+  });
+  replaceChildren(
+    secretEl,
+    h("h2", null, "Tài khoản mới"),
+    h("p", null, `${name} — ${phone}`),
+    h("p", { class: "alert warn" }, CAU_CHO_QUAN_TRI_CAP_PIN),
+    h("div", { class: "actions", style: "margin-top:12px" }, close),
+  );
+  secretEl.hidden = false;
+  secretEl.scrollIntoView({ block: "nearest" });
+}
 
 /** PIN chỉ hiện đúng một lần ở đây; không lưu vào bất kỳ đâu phía client. */
 function showSecrets(title: string, rows: { name: string; phone: string; pin: string }[]): void {
@@ -192,12 +219,12 @@ function row(s: Api.StaffListRowDto): HTMLElement {
   return h(
     "tr",
     { class: s.active ? "" : "row-off" },
-    h("td", null, s.fullName, isMe && h("span", { class: "muted" }, " (bạn)"), !s.active && h("span", { class: "badge badge-cancelled" }, "Ngưng"), s.locked && h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập"), h("div", null, nhanHaiLopEl(s))),
+    h("td", null, s.fullName, isMe && h("span", { class: "muted" }, " (bạn)"), !s.active && !anCot("active") && h("span", { class: "badge badge-cancelled" }, "Ngưng"), s.locked && h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập"), h("div", null, nhanHaiLopEl(s))),
     h("td", null, s.phone),
     h("td", null, accessLabel(s)),
     hienCotCap && h("td", null, oCapCuaS(s)),
-    h("td", { class: "muted" }, dateTime(s.createdAt)),
-    h("td", { class: "muted" }, s.lastLoginAt ? dateTime(s.lastLoginAt) : "Chưa ghi nhận"),
+    h("td", { class: "muted", hidden: anCot("createdAt") }, dateTime(s.createdAt)),
+    h("td", { class: "muted", hidden: anCot("lastLoginAt") }, s.lastLoginAt ? dateTime(s.lastLoginAt) : "Chưa ghi nhận"),
     h(
       "td",
       { class: "row-actions" },
@@ -206,7 +233,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
       // tài khoản có quyền tiền chỉ Toàn quyền. Trang không tự tính.
       s.datLaiPinDuoc &&
         btn("Đặt lại PIN", async () => {
-          if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi máy đang đăng nhập sẽ mất hiệu lực.`)) return;
+          if (!(await hoiXacNhan({ tieuDe: "Đặt lại PIN", hauQua: `Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi máy đang đăng nhập sẽ mất hiệu lực.`, nhanNguyHiem: "Đặt lại PIN" }))) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
           if (r) {
             showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
@@ -223,7 +250,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
         !isMe &&
         s.passkeyCount > 0 &&
         btn(`Gỡ Face ID (${s.passkeyCount})`, async () => {
-          if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi máy đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
+          if (!(await hoiXacNhan({ tieuDe: `Gỡ Face ID (${s.passkeyCount})`, hauQua: `Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi máy đang đăng nhập của tài khoản này sẽ bị đăng xuất.`, nhanNguyHiem: `Gỡ Face ID (${s.passkeyCount})` }))) return;
           if (await act(() => api(`/api/staff/${s.id}/passkeys/remove-all`, { method: "POST" }))) await load();
         }),
       quanDuoc(s) &&
@@ -231,7 +258,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
         btn(
           s.active ? "Ngưng" : "Kích hoạt lại",
           async () => {
-            if (s.active && !confirm(`Ngưng tài khoản ${s.fullName}? Họ sẽ bị đăng xuất ngay.`)) return;
+            if (s.active && !(await hoiXacNhan({ tieuDe: "Ngưng", hauQua: `Ngưng tài khoản ${s.fullName}? Họ sẽ bị đăng xuất ngay.`, nhanNguyHiem: "Ngưng" }))) return;
             if (await act(() => api(`/api/staff/${s.id}`, { method: "PATCH", body: { active: !s.active } }))) await load();
           },
           s.active ? "btn btn-link danger" : "btn btn-link",
@@ -252,12 +279,12 @@ function card(s: Api.StaffListRowDto): HTMLElement {
     "div",
     { class: s.active ? "card card-col" : "card card-col row-off" },
     h("div", null, h("strong", null, s.fullName), isMe && h("span", { class: "muted" }, " (bạn)")),
-    !s.active && h("div", null, h("span", { class: "badge badge-cancelled" }, "Ngưng")),
+    !s.active && !anCot("active") && h("div", null, h("span", { class: "badge badge-cancelled" }, "Ngưng")),
     s.locked && h("div", null, h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),
     h("div", null, nhanHaiLopEl(s)),
     h("div", { class: "muted" }, s.phone, " · ", accessLabel(s)),
     oCapThe && h("div", null, h("span", { class: "muted" }, `${CHU_CAP.nhanCot}: `), oCapThe),
-    h("div", { class: "muted" }, s.lastLoginAt ? `Đăng nhập gần nhất ${dateTime(s.lastLoginAt)}` : "Chưa ghi nhận đăng nhập"),
+    h("div", { class: "muted", hidden: anCot("lastLoginAt") }, s.lastLoginAt ? `Đăng nhập gần nhất ${dateTime(s.lastLoginAt)}` : "Chưa ghi nhận đăng nhập"),
     h(
       "div",
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
@@ -266,7 +293,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
       // tài khoản có quyền tiền chỉ Toàn quyền. Trang không tự tính.
       s.datLaiPinDuoc &&
         btn("Đặt lại PIN", async () => {
-          if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi máy đang đăng nhập sẽ mất hiệu lực.`)) return;
+          if (!(await hoiXacNhan({ tieuDe: "Đặt lại PIN", hauQua: `Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi máy đang đăng nhập sẽ mất hiệu lực.`, nhanNguyHiem: "Đặt lại PIN" }))) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
           if (r) {
             showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
@@ -282,7 +309,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
         !isMe &&
         s.passkeyCount > 0 &&
         btn(`Gỡ Face ID (${s.passkeyCount})`, async () => {
-          if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi máy đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
+          if (!(await hoiXacNhan({ tieuDe: `Gỡ Face ID (${s.passkeyCount})`, hauQua: `Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi máy đang đăng nhập của tài khoản này sẽ bị đăng xuất.`, nhanNguyHiem: `Gỡ Face ID (${s.passkeyCount})` }))) return;
           if (await act(() => api(`/api/staff/${s.id}/passkeys/remove-all`, { method: "POST" }))) await load();
         }),
       quanDuoc(s) &&
@@ -290,7 +317,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
         btn(
           s.active ? "Ngưng" : "Kích hoạt lại",
           async () => {
-            if (s.active && !confirm(`Ngưng tài khoản ${s.fullName}? Họ sẽ bị đăng xuất ngay.`)) return;
+            if (s.active && !(await hoiXacNhan({ tieuDe: "Ngưng", hauQua: `Ngưng tài khoản ${s.fullName}? Họ sẽ bị đăng xuất ngay.`, nhanNguyHiem: "Ngưng" }))) return;
             if (await act(() => api(`/api/staff/${s.id}`, { method: "PATCH", body: { active: !s.active } }))) await load();
           },
           s.active,
@@ -312,12 +339,14 @@ async function openEdit(s: StaffAccount): Promise<void> {
   const name = h("input", { type: "text", value: s.fullName, maxLength: 200 });
   const phone = h("input", { type: "tel", value: s.phone });
   const isMe = s.id === me.id;
-  const picker = rolePicker({ initial: saved, actorIsSuperAdmin: meSuper, current: s.permissions, tenVai });
+  const picker = rolePicker({ initial: saved, actorIsSuperAdmin: meSuper, actorLaQuanTri: meQuanTri, current: s.permissions, tenVai });
   const boxes = new Map<PermissionCode, HTMLInputElement>();
   const permissionBoxes = PERMISSION_CODES.map((code) => {
     const box = h("input", { type: "checkbox", checked: s.permissions.includes(code), disabled: isMe, style: "width:auto;display:inline;margin:0 6px 0 0" });
     boxes.set(code, box);
-    return meSuper || code !== "SUPER_ADMIN" ? h("label", { class: "check" }, box, PERMISSION_LABEL[code]) : null; // ADR-0042: vai ẩn
+    // ADR-0042: vai ẩn. ADR-0185 Đ2 (K9): không vẽ ô quyền bên ngoài — đường quyền cũ không cấp Đối tác, Tài xế đối tác (máy chủ cũng chặn). Ô vẫn ở `boxes`, tích theo
+    // s.permissions: tài khoản kiểu cũ đang giữ quyền đó chỉ đổi tên / số thì không gửi PUT quyền làm rơi quyền.
+    return (meSuper || code !== "SUPER_ADMIN") && !isExternalPermission(code) ? h("label", { class: "check" }, box, PERMISSION_LABEL[code]) : null;
   });
   const save = h("button", { type: "button", class: "btn btn-primary btn-chinh" }, "Lưu");
   const cancel = h("button", { type: "button", class: "btn" }, "Đóng");
@@ -357,6 +386,7 @@ async function openEdit(s: StaffAccount): Promise<void> {
     legacy && h("p", { class: "alert warn" }, `Tài khoản này chưa gán vai trò, đang dùng quyền cũ: ${permissionsLabel(s.permissions)}. Chọn vai trò để chuyển sang cách mới — xem dòng "Sẽ mất" trước khi lưu.`),
     isMe && h("p", { class: "muted" }, meSuper ? "Bạn chỉ đổi được vai trò của chính mình khi quyền không đổi. Toàn quyền đã làm được mọi việc của mọi vai trò — không cần tự gán thêm vai trò." : "Bạn chỉ đổi được vai trò của chính mình khi quyền không đổi (xem dòng xem trước)."),
     picker.el,
+    !legacy && meQuanTri && h("p", { class: "muted" }, CAU_NHAC_DAT_LAI_PIN_SAU_GAN_VAI), // ADR-0191 mục 3: Quản trị gán được vai xem mọi khách, nhắc đặt lại PIN nếu có người đã biết
     quyenCu && h("details", null, h("summary", null, "Quyền cũ (chỉ dùng khi chưa gán vai trò)"), ...permissionBoxes),
     h("p", { class: "muted" }, "Đổi số điện thoại sẽ đổi tên đăng nhập của người này. Các máy đang đăng nhập vẫn giữ nguyên."),
     h("div", { class: "actions" }, save, cancel),
@@ -411,7 +441,7 @@ const addPhone = byId<HTMLInputElement>("add-phone");
 const existingNote = h("div", { id: "add-khop", class: "muted", hidden: true });
 
 function setupAddForm(): void {
-  addPicker = rolePicker({ initial: EMPTY, actorIsSuperAdmin: meSuper, current: null, tenVai });
+  addPicker = rolePicker({ initial: EMPTY, actorIsSuperAdmin: meSuper, actorLaQuanTri: meQuanTri, current: null, tenVai });
   replaceChildren(byId("add-perms"), addPicker.el, existingNote);
 }
 
@@ -515,9 +545,9 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
   if (v.roles.length === 0) return showError(errorEl, "Chọn ít nhất một vai trò.");
   const who = existingPartyId ? { partyId: existingPartyId } : { fullName: addName.value, ...(taoMoi.checked ? { taoHoSoMoi: true } : {}) };
   const body = { phone: addPhone.value, roles: v.roles, adds: v.adds, removes: v.removes, reason: v.reason, ...who };
-  let r: Api.StaffWithPinResponse;
+  let r: Api.TaoTaiKhoanResponse;
   try {
-    r = await api<Api.StaffWithPinResponse>("/api/staff", { method: "POST", body });
+    r = await api<Api.TaoTaiKhoanResponse>("/api/staff", { method: "POST", body });
   } catch (err) {
     // Máy chủ thấy hồ sơ khớp mà lần tra lúc gõ chưa kịp trả (hoặc vừa có hồ sơ mới): hiện khối với danh sách của máy chủ, kèm câu báo của máy chủ.
     if (err instanceof ApiError && err.code === "party_match_exists") {
@@ -532,7 +562,8 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
     }
     return fail(err);
   }
-  showSecrets("Tài khoản mới", [{ name: r.staff.fullName, phone: r.staff.phone, pin: r.pin }]);
+  if (r.pin === null) hienChoCapPin(r.staff.fullName, r.staff.phone); // ADR-0191: tài khoản xem mọi khách do Nhân sự tạo — không có PIN để hiện
+  else showSecrets("Tài khoản mới", [{ name: r.staff.fullName, phone: r.staff.phone, pin: r.pin }]);
   huyTraKhop();
   clearExisting();
   addName.value = addPhone.value = "";
@@ -546,19 +577,28 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
 
 const staff = await initShell();
 me = staff;
+meQuanTri = can(staff, "admin.manage");
 meSuper = can(staff, "admin.manage.superadmin"); // ADR-0072 mục 4a: hỏi bảng quyền (ô gán/gỡ Toàn quyền), không hỏi mã
 canAccessManage = can(staff, "account.access.manage");
+byId("lien-ket-cap-dai-ly").hidden = !suaDuocCot(me); // lối sang màn gom (đặc tả 2026-11-04-man-cap-dai-ly): cùng cổng với route đọc của màn
 hienCotCap = thayCotCap(staff); // ADR-0155 Đ2.2: hỏi bảng quyền (ô xem hoa hồng đối tác, không giữ Đối tác), không hỏi mã vai
 cotCapEl.hidden = !hienCotCap;
 // ADR-0071 điều 1b: cổng trang theo ô account.view (Quản trị, Toàn quyền, Hành chính nhân sự — cùng đối tượng với cổng "accounts" của API); khung "Thêm tài khoản"
 // theo ô account.create (Hành chính nhân sự, Toàn quyền — Quản trị KHÔNG).
+// Lần mở sau tệp đầu trang giữ chỗ (vô hình) cho hai khung này từ lần vẽ đầu — ghi cả khi không vào được trang để trí nhớ cũ không để lại khoảng trống.
+nhoKhoi("add-card", can(staff, "account.view") && can(staff, "account.create"));
+nhoKhoi("xac-minh", can(staff, "account.view") && can(staff, "party.verify"));
 if (!can(staff, "account.view")) showError(errorEl, "Tài khoản này không quản lý được tài khoản.");
 else {
   if (can(staff, "account.create")) {
     byId("add-card").hidden = false;
+    // Bước 1 khung chung (N10): khối vai dựng sau lần nạp đầu (cao 300–700 px) — giữ chỗ trước để khối dưới không bị đẩy khi nó về.
+    replaceChildren(byId("add-perms"), trangThaiHeThong("dang-tai", { khuon: "bieu-mau", giuCho: true }));
   }
   // ADR-0125 đ6: hàng chờ xác minh phiếu tự khai — ô party.verify (Quản trị, Nhân sự, Toàn quyền); khối tự dựng và hiện, máy chủ kiểm lại từng route.
   if (can(staff, "party.verify")) dungHangChoXacMinh(byId("xac-minh"), staff);
+  chinhSach = await taiChinhSach();
+  for (const th of document.querySelectorAll<HTMLElement>("th")) anPhanTu(anCot(th.textContent === "Tạo lúc" ? "createdAt" : th.textContent === "Đăng nhập gần nhất" ? "lastLoginAt" : ""), th);
   await load();
   // Task 3b: khối vai dựng SAU lần nạp đầu để ô vai mang tên hiện hành (tenVai) từ máy chủ.
   if (can(staff, "account.create")) setupAddForm();

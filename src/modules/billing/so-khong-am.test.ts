@@ -1,4 +1,4 @@
-// ADR-0092 Đ1, Đ3, Đ4, Đ5a–c (TNV-G4 — phần thi công được; Đ5d tin báo, Đ6 mã giao dịch, Đ6a cảnh báo trùng DỪNG chờ chủ) — hành vi qua ROUTE THẬT trên khung
+// ADR-0092 Đ1, Đ3, Đ4, Đ5a–c (Đ5d, Đ6, Đ6a có bài riêng: tin-dieu-chinh, ma-giao-dich-route, phan-dinh-route) — hành vi qua ROUTE THẬT trên khung
 // thử (tests/audit/harness.mjs: cả ứng dụng + SQLite, lô `db.batch()` là một giao dịch). Lớp CSDL (migration 0082) kiểm riêng ở src/migrations-so-khong-am.test.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";

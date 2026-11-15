@@ -169,13 +169,15 @@ function fitSize(c: Ctx, kind: "body" | "display", weight: number, size: number,
 // ---- các khối ---------------------------------------------------------------------------------------------------------------------------------------------------------
 function headerBlock(c: Ctx, b: HeaderBlock, y: number): number {
   const top = y + 28;
-  const textX = MG + (c.hasLogo ? LOGO_SIZE + 20 : 0);
+  const veLogo = c.hasLogo && b.logo; // mẫu đối tác (HD-02-DT) không có logo, chữ không lệch
+  const textX = MG + (veLogo ? LOGO_SIZE + 20 : 0);
   const textW = W - MG - textX;
-  if (c.hasLogo) c.ops.push({ kind: "logo", x: MG, y: top, size: LOGO_SIZE, radius: Math.round(LOGO_SIZE * 0.2237) });
+  if (b.maMau !== null) put(c, { text: b.maMau, x: W - MG, top: y + 10, lh: 16, font: fontOf(c, "body", 400, 11), color: c.theme.muted, align: "right", tag: "ma-mau" });
+  if (veLogo) c.ops.push({ kind: "logo", x: MG, y: top, size: LOGO_SIZE, radius: Math.round(LOGO_SIZE * 0.2237) });
   let ty = flow(c, b.companyName, { x: textX, y: top, width: textW, lh: 28, font: fontOf(c, "display", 800, 22), color: c.theme.primary, tag: "company" });
   ty += 4;
   for (const line of b.lines) ty = flow(c, line, { x: textX, y: ty, width: textW, lh: 20, font: fontOf(c, "body", 400, 14), color: c.theme.muted });
-  const bottom = Math.max(ty, c.hasLogo ? top + LOGO_SIZE : ty) + 24;
+  const bottom = Math.max(ty, veLogo ? top + LOGO_SIZE : ty) + 24;
   rule(c, MG, W - MG, bottom, "header-rule");
   return bottom + 1;
 }

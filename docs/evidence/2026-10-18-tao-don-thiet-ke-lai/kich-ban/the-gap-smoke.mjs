@@ -14,7 +14,7 @@
 //   (ô Nơi đón ẩn, 'Thêm chi tiết' gập, Thông tin chuyến đóng); chạm dòng tóm tắt → chặng mở, ô Nơi đón hiện; tiêu điểm: chuột → ô Nơi đón, cảm ứng → đầu chặng;
 //   Việc 9 (nợ T5): bước 12 — bỏ thẻ bằng thùng rác khi tiêu điểm đang ở nút (bàn phím / chuột) → tiêu điểm sang đầu thẻ kế / thẻ trước, hết thẻ thì sang câu "Chưa có dịch vụ";
 //   Việc 12 (vòng sửa sau production 19/10): bước 1 — thẻ gập của dịch vụ không có chặng ghi «Không đưa đón» sau số khách (trước: dòng gập không nói gì về đưa đón).
-//   Việc 14 (nợ chip đã duyệt): bước 15 — Quản trị, chặng đón NGÀY MAI dưới mốc 48 giờ (đặt bằng route chính sách): thẻ gập mang chip «Cần đặt gấp»; bấm «Duyệt đặt gấp» (lưu nháp + đặt gấp) rồi mở lại nháp →
+//   Việc 14 (nợ chip đã duyệt): bước 15 — Quản trị, chặng đón NGÀY MAI dưới mốc 48 giờ (đặt bằng route chính sách): thẻ gập mang chip «Cần đặt gấp»; bấm «Ghi đặt gấp» (lưu nháp + đặt gấp) rồi mở lại nháp →
 //   thẻ gập mang chip «Đã duyệt đặt gấp» và KHÔNG còn «Cần đặt gấp» (hai chip không cùng hiện). Chính sách mốc 48 giờ đặt một lần trước vòng lặp (các bước khác dùng ngày +3 nên không bị ảnh hưởng).
 //   7) nạp lại nháp: nháp sạch → mọi thẻ gập; nháp có giá trị bị giấu (Thông tin chuyến, xe riêng) → các thẻ đó mở sẵn (nhiều thẻ cùng mở được), mở thẻ khác thì chúng gập; `?focus=` mở đúng thẻ.
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, danh mục giả (TD101, TTB03 Phao chuối, TTB06 Motor nước).
@@ -418,7 +418,7 @@ try {
       assert.deepEqual(p.consoleErrors.filter((e) => !/favicon/.test(e)), [], "không lỗi console (trang mới)");
     });
 
-    await buoc(`${kho}-15`, "Quản trị: thẻ gập dưới mốc có chip «Cần đặt gấp»; sau «Duyệt đặt gấp» và mở lại nháp thì thẻ gập có chip «Đã duyệt đặt gấp», không còn «Cần đặt gấp»", async () => {
+    await buoc(`${kho}-15`, "Quản trị: thẻ gập dưới mốc có chip «Cần đặt gấp»; sau «Ghi đặt gấp» và mở lại nháp thì thẻ gập có chip «Đã duyệt đặt gấp», không còn «Cần đặt gấp»", async () => {
       p.close();
       p = await env.as(ACCOUNTS.admin, `/order-form?id=${nhapGap[kho]}`, vp);
       await p.waitFor(`${THE}.length === 1`, "form sửa nháp dựng xong", 15000);

@@ -21,15 +21,15 @@
 | # | Việc | Xong khi | Trạng thái |
 |---|---|---|---|
 | 0 | Điều kiện bắt đầu | chủ đã duyệt dòng làm rõ ADR-0136 Đ10 / ADR-0034 đ5 (phiên sửa hộp thư); nhánh hộp thư (`0120`) đã vào `main`; nhánh này dựng trên `main` mới nhất. Hai điểm trước Task 5 (bốn dòng lịch sử nội bộ; cách xử tài khoản lai ở Review Focus 4) **chủ đã duyệt 27/10**, nguyên văn: «Duyệt cả hai đề xuất: tài khoản lai Bán hàng + Đối tác bấm Còn vé thì đơn vẫn xác nhận nhưng không thành Bán hàng phụ trách; bốn dòng mời/nhận/từ chối/đổi Bán hàng hiện trong lịch sử nội bộ, không tên người.» | **đủ (27/10 tối)**: ADR-0136 mục «Làm rõ 27/10» chủ duyệt (`a14ec12a`); `0120` trên `main` và production bản 2.37; nhánh này đã nhập `main` `2847b6c2`. Người thi công vẫn kiểm lại `main` mới nhất trước Task 1 |
-| 1 | Luật thuần: đồng hồ, lời mời, ai nhận, ai thấy thẻ, danh sách trắng | `src/shared/ban-hang-phu-trach.test.ts` + `xac-nhan-don.test.ts` đỏ→xanh | chưa làm |
-| 2 | Migration: ba bảng `dispatch`, view (cả view gác nhật ký), cột mời trên `orders`, dựng lại khoá Đã giao | bài migration + NT-R6 xanh; `data-dictionary` + `npm run dict`; ba dòng sổ hàng rào | chưa làm |
-| 3 | `dispatch`: SQL, câu lệnh, hàm công bố; gốc lắp ráp | `dispatch/ban-hang.test.ts` + `architecture.test.ts` xanh; `typecheck` 0 lỗi | chưa làm |
-| 4 | Quyền: hàng `order.confirm.review`, ba ô mới, danh sách trắng | bài ghim quyền, bài đổi theo hàng mới, rào quét mã xanh | chưa làm |
-| 5 | Route: mời, ghi nhận, Còn vé, nhận / từ chối / đổi, danh sách, thẻ, chính sách | e2e `ban-hang-phu-trach.mjs` đủ ca | chưa làm |
-| 6 | Thông báo: Bảng tin, hộp thư (view mới + nguồn người nhận), báo đẩy | bài thuần + ca thông báo của e2e | chưa làm |
-| 7 | Giao diện + kịch bản Chrome + ảnh cho chủ | `ban-hang-phu-trach-smoke.mjs` 390 + 1040 xanh; ảnh gửi chủ | chưa làm |
-| 8 | Tài liệu, Trợ giúp, nhật ký thay đổi, bất biến | `audit-invariants --db local` thoát 0 | chưa làm |
-| 9 | Bộ dài MỘT lần + người kiểm độc lập + lệnh cho chủ | `npm test`, `typecheck`, `build:web`, `test:e2e` xanh; người kiểm báo «đạt» | chưa làm |
+| 1 | Luật thuần: đồng hồ, lời mời, ai nhận, ai thấy thẻ, danh sách trắng | `src/shared/ban-hang-phu-trach.test.ts` + `xac-nhan-don.test.ts` đỏ→xanh | xong 5/11 |
+| 2 | Migration: ba bảng `dispatch`, view (cả view gác nhật ký), cột mời trên `orders`, dựng lại khoá Đã giao | bài migration + NT-R6 xanh; `data-dictionary` + `npm run dict`; ba dòng sổ hàng rào | xong 5/11 |
+| 3 | `dispatch`: SQL, câu lệnh, hàm công bố; gốc lắp ráp | `dispatch/ban-hang.test.ts` + `architecture.test.ts` xanh; `typecheck` 0 lỗi | xong 5/11 |
+| 4 | Quyền: hàng `order.confirm.review`, ba ô mới, danh sách trắng | bài ghim quyền, bài đổi theo hàng mới, rào quét mã xanh | xong 5/11 |
+| 5 | Route: mời, ghi nhận, Còn vé, nhận / từ chối / đổi, danh sách, thẻ, chính sách | e2e `ban-hang-phu-trach.mjs` đủ ca | xong 5/11 |
+| 6 | Thông báo: Bảng tin, hộp thư (view mới + nguồn người nhận), báo đẩy | bài thuần + ca thông báo của e2e | xong 5/11 |
+| 7 | Giao diện + kịch bản Chrome + ảnh cho chủ | `ban-hang-phu-trach-smoke.mjs` 390 + 1040 xanh; ảnh gửi chủ | xong 5/11 |
+| 8 | Tài liệu, Trợ giúp, nhật ký thay đổi, bất biến | `audit-invariants --db local` thoát 0 | xong 5/11 |
+| 9 | Bộ dài MỘT lần + người kiểm độc lập + lệnh cho chủ | `npm test`, `typecheck`, `build:web`, `test:e2e` xanh; người kiểm báo «đạt» | người kiểm: đạt có điều kiện, đã sửa 5/11; bộ dài đang chờ |
 
 ## Global Constraints
 - **Chữ người dùng thấy:** tiếng Việt **có dấu**, không chữ Anh hay mã thô. Gọi hệ thống là «Nền tảng». Không dùng chữ «tự do» mà dùng «Chờ Bán hàng nhận». Thẻ cũ đổi nhãn thành «Đơn chưa có HDV nhận». Nút Nhận của ô cũ đổi thành «Nhận làm HDV».

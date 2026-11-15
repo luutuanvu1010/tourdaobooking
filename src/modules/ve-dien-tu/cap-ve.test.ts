@@ -5,8 +5,8 @@ import { soanCapVe, soanTraVe, veDangGiu } from "./cap-ve.ts";
 import { AT, chayLo, d1That, dem, nhatKyThu, taoCsdl, themLo, themVe } from "../../khung-thu-ve.test.ts";
 
 const NGAY = "2026-10-24";
-const dich = (o: Partial<{ orderId: string; serviceId: string; pax: { adult: number; child: number; senior: number; infant: number } }> = {}) => ({
-  orderId: o.orderId ?? "o-1", serviceId: o.serviceId ?? "s-1", catalogCode: "V2D", ngayDi: NGAY, pax: o.pax ?? { adult: 2, child: 1, senior: 0, infant: 1 },
+const dich = (o: Partial<{ orderId: string; serviceId: string; pax: { adult: number; child: number; senior: number; infant: number }; nguonVe: "HANG_NGOAI" | "TOUR_DAO" }> = {}) => ({
+  orderId: o.orderId ?? "o-1", serviceId: o.serviceId ?? "s-1", catalogCode: "V2D", ngayDi: NGAY, pax: o.pax ?? { adult: 2, child: 1, senior: 0, infant: 1 }, nguonVe: o.nguonVe ?? "HANG_NGOAI",
 });
 function kho(soAdult: number, soChild = 0) {
   const d = taoCsdl();
@@ -18,6 +18,40 @@ function kho(soAdult: number, soChild = 0) {
 }
 const cap = (d: ReturnType<typeof taoCsdl>, x = dich()) => chayLo(d, soanCapVe(d1That(d), x, "s-1", AT, nhatKyThu(d1That(d))).cau);
 const giu = (d: ReturnType<typeof taoCsdl>, dv = "s-1") => dem(d, "SELECT count(*) AS c FROM vdt_allocation WHERE order_service_id = ? AND released_at IS NULL", dv);
+
+// ---- ADR-0175 Đ1.5: giữ vé đúng nguồn theo ô «Vé do ai phát» của dịch vụ ---------------------------------------------------------------------------------
+const loCuaVeGiu = (d: ReturnType<typeof taoCsdl>, dv = "s-1") =>
+  (d.prepare("SELECT a.ticket_id AS t, b.source AS s FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id JOIN vdt_batch b ON b.id = t.batch_id WHERE a.order_service_id = ? AND a.released_at IS NULL ORDER BY a.slot_no").all(dv) as { t: string; s: string }[]);
+function khoHaiNguon() {
+  const d = taoCsdl();
+  const hn = themLo(d);
+  const td = themLo(d, { nguon: "TOUR_DAO" });
+  for (let i = 0; i < 3; i++) { themVe(d, hn); themVe(d, td); }
+  return d;
+}
+
+test("giữ đúng nguồn: dịch vụ Tour Đảo chỉ lấy vé lô Tour Đảo; dịch vụ hãng ngoài chỉ lấy vé lô hãng ngoài (cùng mã tour)", () => {
+  const d = khoHaiNguon();
+  cap(d, dich({ pax: { adult: 2, child: 0, senior: 0, infant: 0 }, nguonVe: "TOUR_DAO" }));
+  assert.deepEqual(loCuaVeGiu(d).map((x) => x.s), ["TOUR_DAO", "TOUR_DAO"]);
+  cap(d, dich({ serviceId: "s-2", orderId: "o-2", pax: { adult: 3, child: 0, senior: 0, infant: 0 }, nguonVe: "HANG_NGOAI" }));
+  assert.deepEqual(loCuaVeGiu(d, "s-2").map((x) => x.s), ["HANG_NGOAI", "HANG_NGOAI", "HANG_NGOAI"]);
+  // Tour Đảo còn 1 vé: cần 3 thì chỉ giữ thêm 1, không lấy sang lô hãng ngoài.
+  cap(d, dich({ serviceId: "s-3", orderId: "o-3", pax: { adult: 3, child: 0, senior: 0, infant: 0 }, nguonVe: "TOUR_DAO" }));
+  assert.deepEqual(loCuaVeGiu(d, "s-3").map((x) => x.s), ["TOUR_DAO"]);
+});
+
+test("đổi ô sau khi đã giữ: vé đã giữ không đổi; phần thiếu giữ sau lấy theo giá trị mới (Đ1.5)", () => {
+  const d = khoHaiNguon();
+  cap(d, dich({ pax: { adult: 1, child: 0, senior: 0, infant: 0 }, nguonVe: "HANG_NGOAI" }));
+  const truoc = loCuaVeGiu(d);
+  assert.deepEqual(truoc.map((x) => x.s), ["HANG_NGOAI"]);
+  cap(d, dich({ pax: { adult: 2, child: 0, senior: 0, infant: 0 }, nguonVe: "TOUR_DAO" }));
+  const sau = loCuaVeGiu(d);
+  assert.equal(sau.length, 2, "chỉ giữ thêm phần thiếu");
+  assert.deepEqual(sau[0], truoc[0], "vé đã giữ giữ nguyên, vẫn từ lô hãng ngoài");
+  assert.equal(sau[1]!.s, "TOUR_DAO");
+});
 
 test("capDuVeDungNhom: 2 người lớn + 1 trẻ em + 1 em bé ⇒ 2 + 1 vé, em bé 0", async () => {
   const d = kho(5, 5);

@@ -3,7 +3,7 @@
 // cùng một db.batch() với thay đổi dữ liệu → ghi nhật ký và đổi dữ liệu thành công/thất bại cùng nhau.
 // Route riêng: GET /api/audit (nhật ký toàn hệ thống) — chỉ admin. Module không phụ thuộc module nào.
 import { error, intParam, json } from "../../shared/http";
-import { can, holdsPartner } from "../../shared/permissions";
+import { can, holdsPartner, laTacNhan, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import {
   insertStatement, isAuditAction, listAll, listByOrder, listReturnedOrders,
@@ -19,6 +19,11 @@ export { CHAM_TAI_KHOAN, CHI_TIET_DOI_SDT, type LoaiCham } from "./cham-tai-khoa
  */
 export function auditStatement(db: D1Database, entry: AuditInput, onlyIf?: string): D1PreparedStatement {
   return insertStatement(db, entry, onlyIf);
+}
+
+/** ADR-0186 Đ4: dấu người làm của dòng nhật ký theo NGƯỜI PHÁT LỆNH — người: `staffId`; tác nhân tự động: `agentCode` (không bao giờ rỗng cả hai). */
+export function nguoiLam(who: PermissionHolder): Pick<AuditInput, "staffId" | "agentCode"> {
+  return laTacNhan(who) ? { staffId: null, agentCode: who.tacNhan } : { staffId: who.id, agentCode: null };
 }
 
 /**

@@ -1,0 +1,17 @@
+Nạp một lần 2026-11-04 từ lần lưu 8a031e28 của hồ sơ, đo trên mã hiện tại.
+việc: 298; da-chot: 200; cho-chon: 98; mục bỏ qua: 66
+nơi đặt đã đổi khoá theo bảng đổi: 22; khoá không còn thấy trong mã: 0
+hàng ghi dữ liệu còn chưa có đường lệnh: 1; hàng có đường lệnh: 279/298
+hàng có mã nhật ký: 260/298
+Chưa nối (người thi công đọc mã nối tay những hàng rõ; hàng không rõ để trống, không đoán):
+  nhật ký chưa khớp: «Theo lệnh gốc (Ghi khoản thu); lý do bỏ qua nằm trong chi tiết» (việc «Vẫn ghi») → (trống)
+  nhật ký chưa khớp: «Thêm / Sửa / Bỏ lượt đưa đón» (việc «Lưu») → (trống)
+  nhật ký khớp một phần (2/3): «Huỷ mức hoa hồng nhập sai (đã thay bằng dòng sửa), hoặc Ngừng mức hoa hồng; rồi Thêm mức hoa hồng» (việc «Sửa») → prc_commission_rule_voided, prc_commission_rule_closed
+  nhật ký khớp một phần (1/3): «Huỷ lần áp dụng cấp độ đại lý cho vai trò (đã thay bằng dòng sửa), hoặc Ngừng áp dụng; rồi Áp dụng cấp độ đại lý cho vai trò» (việc «Sửa») → prc_role_tier_voided
+  nhật ký khớp một phần (2/3): «Huỷ cấp riêng của đối tác (đã thay bằng dòng sửa), hoặc Ngừng áp dụng cấp riêng của đối tác; rồi Áp dụng cấp riêng cho đối tác» (việc «Sửa») → prc_party_tier_voided, prc_party_tier_closed
+  nhật ký chưa khớp: «Theo lệnh gốc (Xếp khách lên xe, Rút khách khỏi xe, Dời khách sang chuyến khác, Huỷ chuyến xe…); chi tiết ghi lý do bỏ qua luật» (việc «Điều chỉnh khẩn cấp và xếp / thêm / rút / chuyển / lưu / huỷ (khi chuyến đã dưới hạn chốt); Phá lệ và xếp / thêm / rút / chuyển / lưu / huỷ (ngoài hạn chốt, chỉ Quản trị và Toàn quyền)») → (trống)
+  ghi dữ liệu chưa có đường lệnh: «Đã lên xe / Đã xuống (người đi kèm)» (web/chuyen.ts:615, web/cuoc-chuyen.ts:452, src/shared/tien-do-man.ts:348)
+  nhật ký khớp một phần (1/2): «Lưu tuyến / Lưu cỡ xe (ghi «ngưng dùng» hoặc «dùng lại»)» (việc «Ngưng dùng / Dùng lại · (cỡ xe còn giá đang áp) xác nhận «Vẫn ngưng»») → route_saved, vehicle_size_saved
+  nhật ký khớp một phần (0/1): «Xoá dữ liệu cá nhân (party_erased: «Xoá dữ liệu…» theo nhãn audit-actions)» (việc «Thực hiện») → party_erased
+  nhật ký chưa khớp: «Xoá ảnh giấy tờ hết lý do giữ» (việc «Xoá ảnh đã chọn») → (trống)
+  nhật ký chưa khớp: «Ẩn danh máy đã đăng xuất» (việc «Ẩn danh hoá») → (trống)

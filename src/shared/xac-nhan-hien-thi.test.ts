@@ -24,12 +24,12 @@ test("dải chờ qua đêm (22:00–06:00 không tính): còn hơn 1 giờ thì
 });
 
 test("không lộ mã thô: lý do cần xác nhận và kết quả đều là chữ đời thường", () => {
-  assert.equal(nhanLyDoCanXacNhan(["DICH_VU"]), "Có dịch vụ cần xác nhận còn vé.");
+  assert.equal(nhanLyDoCanXacNhan(["DICH_VU"]), "Có dịch vụ cần kiểm vé, chờ người kiểm vé báo còn vé.");
   assert.equal(nhanLyDoCanXacNhan(["DAT_GAP"]), "Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.");
-  assert.equal(nhanLyDoCanXacNhan(["DICH_VU", "DAT_GAP"]), "Có dịch vụ cần xác nhận còn vé. Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.");
+  assert.equal(nhanLyDoCanXacNhan(["DICH_VU", "DAT_GAP"]), "Có dịch vụ cần kiểm vé, chờ người kiểm vé báo còn vé. Có lượt đón dưới hạn chốt, cần Quản trị đặt gấp.");
   assert.equal(nhanLyDoCanXacNhan([]), "");
-  assert.deepEqual(NHAN_KET_QUA, { CON_VE: "Còn vé", HET_VE: "Hết vé", HUY: "Huỷ" });
-  assert.equal(NHAN_NUT_XAC_NHAN.send, "Gửi xác nhận");
+  assert.deepEqual(NHAN_KET_QUA, { CON_VE: "Còn vé, xác nhận đơn", HET_VE: "Hết vé", HUY: "Huỷ" });
+  assert.equal(NHAN_NUT_XAC_NHAN.send, "Gửi kiểm vé");
   assert.equal(NHAN_NUT_XAC_NHAN.withdraw, "Rút lại");
   assert.equal(NHAN_NUT_XAC_NHAN.submit, "Gửi đơn");
   for (const v of Object.values(NHAN_NUT_XAC_NHAN)) assert.ok(!/[A-Z_]{4,}/.test(v), v);
@@ -104,7 +104,7 @@ test("chữ của bảng Còn vé: nhãn giờ theo tên đã chọn, câu thi�
   assert.equal(nhanGioLuot("Chiều về", "Tour 4 đảo", false), "Giờ đón · Chiều về · Tour 4 đảo");
   assert.equal(nhanGhiChuDichVu("Tour 4 đảo"), "Ghi chú · Tour 4 đảo");
   assert.equal(CAU_THIEU_GIO_LUOT, "Chọn giờ đón cho lượt này.");
-  assert.equal(CAU_NHO_DAT_GAP, "Giờ này đã qua hạn chốt. Nhờ Bán hàng hoặc Quản trị bấm Còn vé kèm đặt gấp.");
+  assert.equal(CAU_NHO_DAT_GAP, "Giờ này đã qua hạn chốt. Nhờ Bán hàng hoặc Quản trị bấm Còn vé, xác nhận đơn kèm đặt gấp.");
 });
 
 const doc = (tep: string): string => readFileSync(fileURLToPath(new URL(`../../${tep}`, import.meta.url)), "utf8");
@@ -119,6 +119,6 @@ test("nối dây bảng Còn vé: web/xac-nhan-don-ui.ts đi qua dongGioConVe, k
   assert.match(ui, /can\(c\.staff,\s*"order\.leg\.short_notice"\)/, "hiện khung đặt gấp theo bảng quyền, không theo mã quyền");
   assert.match(ui, /CAU_NHO_DAT_GAP/, "người không có ô được nhắc nhờ Bán hàng hoặc Quản trị");
   assert.match(ui, /CAU_THIEU_GIO_LUOT/, "thiếu lượt bắt buộc thì báo tại chỗ");
-  assert.equal(ui.match(/\bconfirm\(/g)?.length, 2, "đúng hai confirm( cũ (Rút lại, Hết vé) — không thêm");
+  assert.equal(ui.match(/\bconfirm\(/g)?.length ?? 0, 0, "không còn confirm( (bước 1 khung chung 13/11: Rút lại, Hết vé đã sang hộp hỏi chung) — không thêm lại");
 });
 

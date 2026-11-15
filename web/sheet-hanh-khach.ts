@@ -1,5 +1,5 @@
 // Bảng trượt "Sửa danh sách hành khách" của đơn ĐÃ XÁC NHẬN (bản vẽ M5 — docs/design/2026-10-01-dua-don-hanh-khach/M5 Sua danh sach hanh khach.dc.html).
-// Mỗi người một thẻ (cả máy tính — bảng trượt rộng 640px); "Huỷ người" hỏi lại ngay trong thẻ, không ô lý do. Lưu = MỘT lệnh `POST /api/orders/:id/passengers`
+// Mỗi người một thẻ (cả máy tính — bảng trượt rộng 640px); "Bỏ khỏi danh sách" hỏi lại ngay trong thẻ, không ô lý do. Lưu = MỘT lệnh `POST /api/orders/:id/passengers`
 // (thêm / sửa = dòng mới / huỷ — chỉ-thêm, ADR-0047 R8) với mốc của ĐƠN đọc từ danh sách.
 import { ApiError, api, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";

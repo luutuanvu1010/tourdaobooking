@@ -48,7 +48,7 @@ try {
   };
 
   // ---- dữ liệu ----
-  const PARTNER = { name: "Đối Tác Chụp Ảnh", phone: "0900000291", pin: "246891", permissions: ["PARTNER"] };
+  const PARTNER = { name: "Đối Tác Chụp Ảnh", phone: "0900000291", pin: "246891", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" };
   const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
   for (const stmt of (await insertStaffSql(PARTNER)).split("\n")) env.sql(stmt);
   // Cảnh 2: đơn đối tác có Đón, không giờ, gửi đi (chờ xác nhận) — làm TRƯỚC khi bật công tắc để khỏi đụng khối khách.

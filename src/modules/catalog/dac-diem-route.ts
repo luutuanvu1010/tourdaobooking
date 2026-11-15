@@ -4,10 +4,10 @@
 // của giao diện (Đ4 mục 2). Mọi SQL ở `dac-diem-repo.ts` (hàng rào (f)); dữ liệu + nhật ký MỘT `db.batch`, nhật ký chỉ ghi khi câu chốt đổi dòng.
 import { auditStatement } from "../audit";
 import type {
-  CatalogDacDiemDemResponse, CatalogDacDiemGanResponse, CatalogDacDiemMotResponse, CatalogDacDiemResponse, DacDiemDto,
+  CatalogDacDiemDemResponse, CatalogDacDiemGanResponse, CatalogDacDiemMotResponse, CatalogDacDiemResponse, CatalogQuanLyBanResponse, DacDiemDto,
 } from "../../shared/contracts";
 import { error, json, readJson } from "../../shared/http";
-import { can, holdsPartner } from "../../shared/permissions";
+import { can, dungManHepDichVu, holdsPartner } from "../../shared/permissions";
 import { route, type Route } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { CATALOG_CODE_RE } from "../../shared/order-lines";
@@ -18,6 +18,8 @@ import {
 import { MA_DAC_DIEM_RE, MA_GIA_TRI_RE, chuaKhai, kiemTenDacDiem, kiemTenGiaTri, maDacDiemMoi, maGiaTriMoi, moiTheoNhom, type DichVuDacDiem } from "./dac-diem-rules";
 import { danhSachNhom, nhomHienHanhTheoMa, nhomTheoMa } from "./nhom-repo";
 import { loadAll } from "./repository";
+import { chiTietHienHanh } from "./chi-tiet-repo";
+import { tenHieuLuc } from "../../shared/chi-tiet-dich-vu";
 
 const THU_TU_TOI_DA = 9999;
 const laThuTu = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v >= 0 && v <= THU_TU_TOI_DA;
@@ -43,8 +45,8 @@ const dichVuXet = async (db: D1Database): Promise<DichVuDacDiem[]> =>
 /** Toàn bộ dữ liệu màn Đặc điểm dịch vụ (Đ5: «chưa khai», «mới, đang theo nhóm» tính lúc đọc trên view — một nguồn sự thật). */
 async function docManDacDiem(db: D1Database): Promise<CatalogDacDiemResponse> {
   const homNay = vnToday(new Date());
-  const [dd, gt, hl, dv, items, nhomCuaDv, nhoms, ganNhom] = await Promise.all([
-    danhSachDacDiem(db), danhSachGiaTri(db), giaTriHieuLucTatCa(db), dichVuXet(db), loadAll(db), nhomHienHanhTheoMa(db), danhSachNhom(db), giaTriTheoNhomDangMo(db),
+  const [dd, gt, hl, dv, items, nhomCuaDv, nhoms, ganNhom, chiTiet] = await Promise.all([
+    danhSachDacDiem(db), danhSachGiaTri(db), giaTriHieuLucTatCa(db), dichVuXet(db), loadAll(db), nhomHienHanhTheoMa(db), danhSachNhom(db), giaTriTheoNhomDangMo(db), chiTietHienHanh(db),
   ]);
   const hieuLuc = hl.map((r) => ({ catalogCode: r.catalog_code, attributeCode: r.attribute_code, source: r.source }));
   const theoDv = new Map<string, Record<string, { valueCode: string; nguon: "SERVICE" | "GROUP" }>>();
@@ -55,7 +57,7 @@ async function docManDacDiem(db: D1Database): Promise<CatalogDacDiemResponse> {
   return {
     homNay,
     dacDiem: dd.map((a) => dtoDacDiem(a, gt, chuaKhai(dv, hieuLuc, a.code))),
-    dichVu: items.map((i) => ({ code: i.code, ten: i.name, dangBan: dangBan.get(i.code) ?? false, groupCode: nhomCuaDv.get(i.code) ?? null, giaTri: theoDv.get(i.code) ?? {} })),
+    dichVu: items.map((i) => ({ code: i.code, ten: tenHieuLuc(i.name, chiTiet.get(i.code)), dangBan: dangBan.get(i.code) ?? false, groupCode: nhomCuaDv.get(i.code) ?? null, giaTri: theoDv.get(i.code) ?? {} })),
     nhom: nhoms.map((g) => ({ code: g.code, ten: g.name, dangDung: g.active === 1, giaTri: theoNhom.get(g.code) ?? {} })),
     moiTheoNhom: moiTheoNhom(dv, hieuLuc, homNay),
   };
@@ -98,6 +100,16 @@ async function chayGan(db: D1Database, lo: D1PreparedStatement[], chot: number):
 }
 
 export const dacDiemRoutes: Route[] = [
+  // ADR-0169 Đ5: danh sách hẹp cho màn của Quản lý bán hàng: mã, tên, nhóm, còn bán hay không; KHÔNG giá. Dịch vụ đã rời Sheet không bán lại được nên không trả.
+  route("GET", "/api/catalog/quan-ly-ban", "office", async ({ env, staff }) => {
+    if (!(can(staff, "admin.manage") || dungManHepDichVu(staff))) return error(403, "forbidden", "Tài khoản này không xem được danh sách này.");
+    const [dv, items, nhomCuaDv, nhoms, chiTiet] = await Promise.all([dichVuXet(env.DB), loadAll(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), chiTietHienHanh(env.DB)]);
+    const theoMa = new Map(dv.map((d) => [d.code, d]));
+    return json({
+      dichVu: items.filter((i) => theoMa.get(i.code)?.inSheet === true).map((i) => ({ code: i.code, ten: tenHieuLuc(i.name, chiTiet.get(i.code)), dangBan: theoMa.get(i.code)?.hidden === false, groupCode: nhomCuaDv.get(i.code) ?? null })),
+      nhom: nhoms.map((g) => ({ code: g.code, ten: g.name })),
+    } satisfies CatalogQuanLyBanResponse);
+  }),
   route("GET", "/api/catalog/dac-diem", "office", async ({ env, staff }) => {
     if (!(can(staff, "catalog.attribute.assign") || can(staff, "admin.manage")) || holdsPartner(staff)) return CAM_XEM();
     return json((await docManDacDiem(env.DB)) satisfies CatalogDacDiemResponse);

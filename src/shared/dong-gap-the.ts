@@ -26,6 +26,11 @@ export const KHONG_DUA_DON = "Không đưa đón";
 /** Chip dòng gập khi dịch vụ CHƯA chọn Đón / Không đón (ADR-0134 Đ1, Đ2 — xác nhận sẽ bị chặn tới khi chọn). Thẻ chưa chọn KHÔNG ghi «Không đưa đón». */
 export const CHIP_CHUA_CHON_DON = "Chưa chọn đón";
 
+/** Chữ khối Đưa đón ở TRANG ĐƠN cho dịch vụ không có chặng: đơn nháp mà chưa chọn Đón / Không đón → «Chưa chọn đón» (không nói «Không đưa đón» khi người lập chưa hề chọn). */
+export function nhanDuaDonTrangDon(d: { status: string; pickupChoice: "DON" | "KHONG_DON" | null; soChang: number }): string {
+  return d.status === "draft" && d.pickupChoice === null && d.soChang === 0 ? CHIP_CHUA_CHON_DON : KHONG_DUA_DON;
+}
+
 /** Số khách gọn của dòng gập: chỉ loại có người, theo thứ tự Người lớn, Trẻ em, Người cao tuổi, Em bé — "2 NL · 1 TE · 1 EB". Không khách → "". */
 export function soKhachGon(s: { nl: number; te: number; nc: number; eb: number }): string {
   return ([[s.nl, "NL"], [s.te, "TE"], [s.nc, "NCT"], [s.eb, "EB"]] as const)

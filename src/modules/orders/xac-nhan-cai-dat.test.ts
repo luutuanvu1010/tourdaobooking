@@ -58,6 +58,31 @@ test("POST nhóm: nhóm đang có dịch vụ đặt được; nhóm lạ → 40
   assert.equal((await dat(w, SUP, { pham: "GROUP", ma: "KHONGCO", canXacNhan: true })).status, 400);
 });
 
+test("POST dịch vụ false khi nhóm đang cần (Đ1): ghi dòng riêng «không cần», đơn dịch vụ đó không phải chờ kiểm vé; gửi lại không ghi thêm", async () => {
+  const w = setup();
+  const t = new Date(Date.now() - 5000).toISOString();
+  w.sqlite.exec(`INSERT OR IGNORE INTO ctl_group (code, name, sort_order, active, created_at, updated_at) VALUES ('TTB', 'Tour tham quan', 1, 1, '${t}', '${t}')`);
+  w.sqlite.exec(`INSERT INTO ctl_service_group (id, service_code, group_code, seq, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('g1', 'ZA1', 'TTB', 1, '${t}', '${t}', NULL, '${t}', NULL)`);
+  assert.equal((await dat(w, SUP, { pham: "GROUP", ma: "TTB", canXacNhan: true })).status, 200);
+  const r = await dat(w, SUP, { pham: "SERVICE", ma: "ZA1", canXacNhan: false });
+  assert.equal(r.status, 200, r.text);
+  assert.ok(r.json.dongCo.some((d: any) => d.pham === "SERVICE" && d.ma === "ZA1" && d.canXacNhan === false), "phải có dòng riêng không cần");
+  const n = dongCo(w);
+  assert.equal((await dat(w, SUP, { pham: "SERVICE", ma: "ZA1", canXacNhan: false })).status, 200);
+  assert.equal(dongCo(w), n, "gửi lại đúng trạng thái: không ghi thêm");
+  // Không dòng riêng, nhóm cần, gửi true: đang hiệu lực rồi, không ghi. Nhóm không cần, không dòng riêng, gửi false: cũng không ghi.
+  w.sqlite.exec(`INSERT INTO ctl_service_group (id, service_code, group_code, seq, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('g2', 'ZB1', 'TTB', 1, '${t}', '${t}', NULL, '${t}', NULL)`);
+  assert.equal((await dat(w, SUP, { pham: "SERVICE", ma: "ZB1", canXacNhan: true })).status, 200);
+  assert.equal(dongCo(w), n, "theo nhóm đã cần: không ghi");
+  assert.equal((await dat(w, SUP, { pham: "GROUP", ma: "TTB", canXacNhan: false })).status, 200);
+  const m = dongCo(w);
+  assert.equal((await dat(w, SUP, { pham: "SERVICE", ma: "ZB1", canXacNhan: false })).status, 200);
+  assert.equal(dongCo(w), m, "theo nhóm không cần: không ghi");
+  const ngay = inDays(3);
+  const o = await lap(w, A, [svc("ZA1", ngay, [leg(ngay, "07:00")])]);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200, "dòng riêng thắng dòng nhóm");
+});
+
 test("POST mã dịch vụ lạ / thân sai → 400 và không ghi gì", async () => {
   const w = setup();
   for (const body of [
@@ -80,9 +105,9 @@ test("công tắc tự xác nhận: tắt → GET false + nhật ký; gửi lạ
   assert.equal(w.q("SELECT count(*) AS n FROM ord_confirm_policy")[0].n, 3);
 });
 
-test("cổng quyền (ô settings.ops): Quản trị, Bán hàng, Kế toán, HDV, Thực tập, Đối tác → 403 cả GET lẫn POST, không ghi gì", async () => {
+test("cổng quyền (ADR-0169 thay một phần ADR-0136 Đ1): Bán hàng, Kế toán, HDV, Thực tập, Đối tác → 403 cả GET lẫn POST, không ghi gì; Quản trị, Quản lý bán hàng ở quan-ly-ban-hang.test.ts", async () => {
   const w = setup();
-  for (const ai of [ADM, A, ACC, H, INTERN, PARTNER]) {
+  for (const ai of [A, ACC, H, INTERN, PARTNER]) {
     assert.equal((await w.call("GET", URL, { as: ai })).status, 403, `GET ${ai}`);
     assert.equal((await dat(w, ai, { pham: "SERVICE", ma: "ZA1", canXacNhan: true })).status, 403, `POST ${ai}`);
     assert.equal((await dat(w, ai, { tuXacNhanNoiBo: false })).status, 403, `POST công tắc ${ai}`);

@@ -6,19 +6,22 @@ import type { AssigneeDto, CatalogServiceDto } from "../src/shared/contracts";
 import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
 import { chipDatGap, theMoKhiNap } from "../src/shared/dong-gap-the";
 import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
+import { dichVuThieuChonDon, cauThieuChonDon } from "../src/shared/cong-chon-don";
 import { boChangKhiTatDuaDon, cauBoChangNhomTat, chonDonTheoNhom, diemChonNhanh, type DiemNhanh } from "../src/shared/chon-nhanh";
-import { cauDoiNgay, changTaoSan, doiNgayDi, giuDatGapNhap, legsGuiFormGon, type ChangNhap } from "../src/shared/chang-form";
+import { cauDoiNgay, changTaoSan, coOSoHieu, doiNgayDi, giuDatGapNhap, legsGuiFormGon, type ChangNhap } from "../src/shared/chang-form";
 import { canHienLaiKhoiKhach } from "../src/shared/an-thong-tin-khach";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
 import { dongTuDto, loiDanhSachKhach, passengersNhap, type DongKhach } from "../src/shared/hanh-khach-form";
 import { soKhachDoan } from "../src/shared/hanh-khach";
-import { suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
+import { banHangSuaDuoc, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
+import { can as canNv } from "../src/shared/permissions";
 import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
-import { gopBenDat, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
+import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieuVaiTro, gopBenDat, hienNutDienDoiTac, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
 import { GOI_Y_GIAM_GIA_DOI_TAC, formGonDoiTac } from "../src/shared/form-dat-ve";
 import { cauTranGiamGiaForm, oGiamGiaChiGiaDanhMuc } from "../src/shared/ben-kia-hien-thi";
+import { dongVuotThanhTien, tongTinhTran } from "../src/shared/hoa-hong-dong";
 import { coXemPhanDoiTac } from "../src/shared/phan-doi-tac-hien-thi";
 import {
   canAddService, chonDonGoiY, draftFromDto, draftIssues, soKhachNhap, newCatalogDraft, newManualDraft, orderIssues, orderSummary, refreshFromCatalog, toServiceInput, totalLines,
@@ -29,6 +32,9 @@ import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "../src/shared/trip-rules";
 import { coGiaTriChuyen } from "../src/shared/trip-form";
 import { buocXong } from "../src/shared/buoc-tao-don";
 import { vnToday } from "../src/shared/vn-date";
+import { SESSION_ENDED_KEY } from "../src/shared/session-ended";
+import type { BookerChoice } from "../src/shared/booker";
+import { docBanChup, khoaNhapTam, quyetKhoiPhuc, type BanChup } from "../src/shared/nhap-tam-don";
 import { ApiError, api, vuaLamBoiTabNay, type Api, type OrderInput } from "./api";
 import { openAssigneePicker } from "./assignee-picker";
 import { renderBanner } from "./banner";
@@ -38,7 +44,9 @@ import { createCatalogPicker } from "./catalog-picker";
 import { dongBenDatChiDoc, oDatQuaDoiTac, type DatQuaDoiTac } from "./dat-qua-doi-tac";
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
-import { CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
+import { CAU_COC_TRA_SAU, CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
+import { cauChonTraSau, duocChonSanTraSau, quyetHinhThuc } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { NHAN_HINH_THUC, laDoiTacTraSau } from "../src/shared/tra-sau";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
@@ -52,6 +60,8 @@ import { goiSom } from "./goi-som";
 import { icon } from "./icons";
 import { layKhungNho } from "./khung-nho";
 import { benDatCuaToi, initShell, setBarTitle } from "./shell";
+import { dieuKienCuaDichVu } from "../src/shared/ui-dieu-kien";
+import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
 
 const params = new URLSearchParams(location.search);
 const editId = params.get("id");
@@ -100,6 +110,7 @@ const bookerPicker = createBookerPicker({
   traDoiTac: async (ten) => (await api<Api.NguoiHuongTimResponse>(`/api/pricing/nguoi-huong?q=${encodeURIComponent(ten)}`)).ketQua,
   onDoiTacTrung: (d, soDt) => canhBao.hien(d, soDt),
   khachLe: () => daChonBenDat === null,
+  onDoiBenDat: () => void napTraSau(),
 });
 byId("booker-slot").append(bookerPicker.root);
 byId("canh-bao-slot").append(canhBao.root);
@@ -154,7 +165,7 @@ let seq = 0;
 let live = new Map<string, CatalogServiceDto>(); // dịch vụ danh mục ĐANG HIỆN và được hỗ trợ, theo mã
 let orderUpdatedAt: string | null = null;
 let formLocked = false;
-/** ADR-0159 Đ1 mục 1: ô «Khách đặt cọc trước» chỉ tài khoản giữ quyền Đối tác (hỏi DANH TÍNH, máy chủ kiểm lại). */
+/** ADR-0159 Đ1 mục 1: ô «Khách đặt cọc cho đối tác» (tên ADR-0197 Đ1) chỉ tài khoản giữ quyền Đối tác (hỏi DANH TÍNH, máy chủ kiểm lại). */
 let coODatCoc = false;
 let saving = false;
 /** ADR-0136 Đ13: người lập giữ quyền Đối tác (kể cả tài khoản lai) — đơn MỚI có nút chính «Gửi đơn» (lưu rồi gửi). Gán sau `initShell()`; chỉ đổi chữ nút, máy chủ vẫn là cổng (`order.submit`). */
@@ -162,7 +173,7 @@ let guiDonKhiLuu = false;
 
 // ---- mốc 6 giờ + đặt gấp (ADR-0049 V12; bản vẽ docs/design/van-chuyen-dieu-phoi/project/07; ruling R-P15) ----
 // Mốc đọc từ GET /api/orders/moc-toi-thieu (đơn CHƯA lưu cũng cảnh báo được); chỉ để HIỆN — máy chủ quyết lúc lưu (canhBaoMoc) và lúc xác nhận (409).
-// Người có ô order.leg.short_notice (Bán hàng, Quản trị, Toàn quyền — ADR-0107) có nút "Đặt gấp": "Duyệt đặt gấp" = LƯU NHÁP rồi gọi lệnh đặt gấp cho ĐÚNG chặng
+// Người có ô order.leg.short_notice (Bán hàng, Quản trị, Toàn quyền — ADR-0107) có nút "Đặt gấp": "Ghi đặt gấp" = LƯU NHÁP rồi gọi lệnh đặt gấp cho ĐÚNG chặng
 // mang dải cảnh báo (dải chỉ hiện khi chặng đó dưới mốc — máy chủ từ chối chặng không dưới mốc: 409 `short_notice_not_needed`).
 let mocPhut: number | null = null;
 let duocDatGap = false;
@@ -250,6 +261,20 @@ let formGon = false;
  * Áp thì khối Khách hàng (trừ Ngày khởi hành) và khối Hành khách ẩn, và thân gửi lên không có các khoá khách (máy chủ điền lại). Chỉ ẩn / hiện: máy chủ viết lại thân theo công tắc HIỆN HÀNH.
  */
 let anKhach = false;
+/**
+ * ADR-0194 đợt 1: chính sách hiện / ẩn / bắt buộc của Toàn quyền cho màn Tạo đơn (Email, Ghi chú khách, Hành khách, Ghi chú thanh toán). Tải TRƯỚC khi dựng khối; lỗi tải = mặc định đầy đủ.
+ * Chỉ ẩn / hiện / đánh dấu — MÁY CHỦ quyết lại (bỏ khoá trường ẩn, giữ giá trị đang lưu, 400 khi thiếu trường bắt buộc). Công tắc ADR-0154 đang áp thì nó quyết các trường khách (không chen vào).
+ */
+let chinhSach: ChinhSachUi = CHINH_SACH_DAY_DU;
+const anTruong = (t: string): boolean => !anKhach && chinhSach.an("tao-don", t);
+const batBuocTruong = (t: string): boolean => !anKhach && !chinhSach.an("tao-don", t) && chinhSach.batBuoc("tao-don", t);
+/** ADR-0195: chính sách cho ô cấp dịch vụ; công tắc ẩn thông tin khách (ADR-0154) đang áp ⇒ máy chủ bỏ chính sách ⇒ giao diện cũng hiện đủ (đọc `anKhach` MỖI lần hỏi). */
+const chinhSachDichVu: ChinhSachUi = {
+  an: (m, t, dk) => !anKhach && chinhSach.an(m, t, dk),
+  batBuoc: (m, t, dk) => !anKhach && chinhSach.batBuoc(m, t, dk),
+};
+/** Tên hiện trong câu báo thiếu (chữ đang hiện ở màn thật). */
+const NHAN_O_DICH_VU: Readonly<Record<string, string>> = { flightCode: "Số hiệu chuyến bay", note: "Ghi chú của dịch vụ" };
 // ADR-0061: người dùng được nhập tay (công tắc BẬT, có ô order.service.manual, không mang quyền Đối tác) — MÁY CHỦ quyết (`duocDung` của
 // GET /api/cai-dat/nhap-tay), giao diện không tự tính luật. Đọc TRƯỚC khi dựng thẻ đã lưu (loadOrder); lỗi / 403 → false (ẩn nút, thẻ chỉ xem).
 let duocNhapTay = false;
@@ -267,6 +292,7 @@ function mount(d: ServiceDraft, moThe: boolean, open?: boolean): Entry {
     canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
     retailOnly,
     formGonDoiTac: formGon,
+    chinhSachDichVu: chinhSachDichVu, // ADR-0195: ô cấp dịch vụ theo chính sách + điều kiện «không đón / có đón» của chính dịch vụ
     duocNhapTay,
     duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, diemNhanh: () => diemNhanh, suaSoVe, newKey, khungGio: () => khungGio, coDuaDon: () => coDuaDon(entry.draft) },
     moThe,
@@ -301,7 +327,7 @@ function mount(d: ServiceDraft, moThe: boolean, open?: boolean): Entry {
 
 /**
  * Nhãn đặt gấp (dấu còn giữ khi lưu lại) hoặc dải cảnh báo dưới mốc của TỪNG chặng của một thẻ (bản vẽ 07 ghép M1 hàng 1f); không có gì → trống.
- * Giờ đón nay ở chặng (ADR-0047 Phần B) — mỗi chặng có giờ xét mốc riêng; "Duyệt đặt gấp" = lưu nháp rồi đặt gấp ĐÚNG chặng đó.
+ * Giờ đón nay ở chặng (ADR-0047 Phần B) — mỗi chặng có giờ xét mốc riêng; "Ghi đặt gấp" = lưu nháp rồi đặt gấp ĐÚNG chặng đó.
  */
 function capNhatMoc(entry: Entry): void {
   const d = entry.draft;
@@ -386,17 +412,17 @@ function renderOwner(focus = false): void {
   const head = h(
     "div",
     { class: "owner-head" },
-    h("h2", { id: "owner-title", class: "owner-title" }, "Người phụ trách"),
+    h("h2", { id: "owner-title", class: "owner-title" }, "Hướng dẫn viên"),
     p === null ? h("span", { class: "chip hdv-chip chip-warn" }, "Chờ nhận") : null,
   );
   let opener: HTMLButtonElement;
   if (p === null) {
-    opener = h("button", { type: "button", class: "owner-pick", "data-action": "pick-handler" }, h("span", null, "Chọn người phụ trách"), icon("next", 18));
-    replaceChildren(ownerEl, head, h("div", { class: "owner-body" }, h("p", { class: "owner-text" }, "Chưa chọn ai — hướng dẫn viên nào cũng bấm Nhận được."), opener));
+    opener = h("button", { type: "button", class: "owner-pick", "data-action": "pick-handler" }, h("span", null, "Chọn Hướng dẫn viên"), icon("next", 18));
+    replaceChildren(ownerEl, head, h("div", { class: "owner-body" }, h("p", { class: "owner-text" }, "Chưa chọn ai — Hướng dẫn viên nào cũng bấm Nhận làm HDV được."), opener));
   } else {
     opener = h(
       "button",
-      { type: "button", class: "owner-current", "data-action": "pick-handler", "aria-label": `Đổi người phụ trách, đang chọn ${p.name}` },
+      { type: "button", class: "owner-current", "data-action": "pick-handler", "aria-label": `Đổi Hướng dẫn viên, đang chọn ${p.name}` },
       h("span", { class: "owner-current-text" }, h("span", { class: "owner-name" }, `HDV: ${p.name}`), h("span", { class: "owner-role" }, p.roleLabel)),
       h("span", { class: "owner-change" }, "Đổi"),
     );
@@ -405,6 +431,39 @@ function renderOwner(focus = false): void {
     replaceChildren(ownerEl, head, h("div", { class: "owner-body" }, opener, clear));
   }
   opener.addEventListener("click", () => openAssigneePicker({ current: handlerPick, onPick: setHandlerPick }, opener));
+  if (focus) opener.focus();
+}
+
+// ---- người phụ trách (Bán hàng) mời ngay lúc lập / sửa nháp (ADR-0142 L1; chủ 5/11) ----
+// Khác khối «Hướng dẫn viên» ở trên: ai giữ ô `dispatch.sales.invitees` (kể cả Đối tác, Thực tập) đều mời được; danh sách chỉ có TÊN (`GET /api/dispatch/ban-hang-moi`);
+// không có nút Lưu riêng — lựa chọn nằm trong state của form, máy chủ nhận khi bấm Lưu cả đơn (`banHangMoiStaffId`). Lúc SỬA nháp, vắng khoá = giữ lời mời đang lưu, `null` = bỏ.
+const banHangEl = byId("ban-hang-card");
+let banHangPick: AssigneeDto | null = null;
+let banHangDaDoi = false;
+function setBanHangPick(picked: AssigneeDto | null): void {
+  banHangPick = picked;
+  banHangDaDoi = true;
+  renderBanHang(true);
+}
+function renderBanHang(focus = false): void {
+  const p = banHangPick;
+  const head = h("div", { class: "owner-head" }, h("h2", { id: "ban-hang-title", class: "owner-title" }, "Người phụ trách"), p === null ? h("span", { class: "chip hdv-chip chip-warn" }, "Chờ Bán hàng nhận") : null);
+  let opener: HTMLButtonElement;
+  if (p === null) {
+    opener = h("button", { type: "button", class: "owner-pick", "data-action": "pick-ban-hang" }, h("span", null, "Chọn người phụ trách"), icon("next", 18));
+    replaceChildren(banHangEl, head, h("div", { class: "owner-body" }, h("p", { class: "owner-text" }, "Chưa mời ai — Bán hàng nào cũng bấm Nhận phụ trách được."), opener));
+  } else {
+    opener = h(
+      "button",
+      { type: "button", class: "owner-current", "data-action": "pick-ban-hang", "aria-label": `Đổi người phụ trách, đang chọn ${p.name}` },
+      h("span", { class: "owner-current-text" }, h("span", { class: "owner-name" }, p.name), h("span", { class: "owner-role" }, "Bán hàng")),
+      h("span", { class: "owner-change" }, "Đổi"),
+    );
+    const clear = h("button", { type: "button", class: "owner-clear", "data-action": "clear-ban-hang" }, "Bỏ chọn — để Chờ Bán hàng nhận");
+    clear.addEventListener("click", () => setBanHangPick(null));
+    replaceChildren(banHangEl, head, h("div", { class: "owner-body" }, opener, clear));
+  }
+  opener.addEventListener("click", () => openAssigneePicker({ kieu: "ban-hang", current: banHangPick, onPick: setBanHangPick }, opener));
   if (focus) opener.focus();
 }
 
@@ -494,7 +553,7 @@ function recompute(): void {
   capNhatBuoc();
   const tooMany = ds.some((d) => draftIssues(d).some((i) => i.code === "too_many_guests")); // vượt 50 khách khoá nút Lưu (đặc tả 5.1)
   saveBtn.disabled = formLocked || saving || tooMany;
-  saveBtn.textContent = saving ? (guiDonKhiLuu && !editId ? "Đang gửi…" : "Đang lưu…") : editId ? "Lưu thay đổi" : guiDonKhiLuu ? NHAN_NUT_XAC_NHAN.submit : "Lưu, chờ xác nhận";
+  saveBtn.textContent = saving ? (guiDonKhiLuu && !editId ? "Đang gửi…" : "Đang lưu…") : editId ? "Lưu thay đổi" : guiDonKhiLuu ? NHAN_NUT_XAC_NHAN.submit : "Lưu đơn (chưa xác nhận)";
 }
 
 for (const id of ["discount", "declaredDeposit"]) {
@@ -525,7 +584,7 @@ function loiTienForm(): { cau: string[] } {
 }
 
 /** `cacO` = mọi ô / khối có lỗi: nơi gọi mở khối gập chứa chúng (`moKhoiChua`) — lỗi không bao giờ nằm trong khối đóng. */
-function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] } | null {
+function validate(guiDon: boolean): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] } | null {
   const lines: string[] = [];
   const focusables: HTMLElement[] = [];
   const need = (id: string, message: string) => {
@@ -541,6 +600,10 @@ function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] }
     need("customerName", "Nhập tên khách."); // khối khách ẩn (ADR-0154 Đ2.2): không còn ô để nhập, máy chủ điền từ tài khoản
     need("customerPhone", "Nhập số điện thoại khách.");
   }
+  // ADR-0194: trường Toàn quyền đòi bắt buộc (máy chủ kiểm lại, trả 400 nếu thiếu). Chữ câu báo: tên tạm theo khuôn «Nhập tên khách.» — chờ chủ chọn (nhật ký thi công ADR-0194).
+  if (batBuocTruong("customerEmail")) need("customerEmail", "Nhập email khách.");
+  if (batBuocTruong("customerNote")) need("customerNote", "Nhập ghi chú khách.");
+  if (batBuocTruong("paymentNote")) need("paymentNote", "Nhập ghi chú thanh toán.");
   if (entries.length === 0) lines.push("Thêm ít nhất một dịch vụ.");
   entries.forEach((e, i) => {
     for (const issue of draftIssues(e.draft)) {
@@ -548,7 +611,26 @@ function validate(): { banner: Banner; focus: HTMLElement; cacO: HTMLElement[] }
       focusables.push(e.card.root);
     }
   });
+  // ADR-0195: ô cấp dịch vụ Toàn quyền đòi bắt buộc (theo điều kiện của CHÍNH dịch vụ; máy chủ kiểm lại, 400 nếu thiếu). Số hiệu chuyến bay chỉ đòi ở chặng có ô nhập (đón / trả ở sân bay).
+  entries.forEach((e, i) => {
+    const dk = dieuKienCuaDichVu({ pickupChoice: chonDonTheoNhom(coDuaDon(e.draft), e.draft.pickupChoice) });
+    const can = (t: string) => !chinhSachDichVu.an("dich-vu-trong-don", t, dk) && chinhSachDichVu.batBuoc("dich-vu-trong-don", t, dk);
+    if (can("note") && e.draft.trip.note.trim() === "") { lines.push(`${nameOf(e.draft, i)}: cần nhập «${NHAN_O_DICH_VU.note}».`); focusables.push(e.card.root); }
+    if (can("flightCode") && e.draft.legs.some((l) => coOSoHieu(l, (id) => diem.some((d) => d.id === id && d.sanBay)) && l.flightCode.trim() === "")) { lines.push(`${nameOf(e.draft, i)}: cần nhập «${NHAN_O_DICH_VU.flightCode}».`); focusables.push(e.card.root); }
+  });
   lines.push(...orderIssues(drafts()));
+  if (hk && batBuocTruong("passengers") && passengersNhap(hk.rows()).length === 0) {
+    lines.push("Thêm ít nhất một khách vào danh sách khách.");
+    focusables.push(hkCard);
+  }
+  // G-02: «Gửi đơn» của Đối tác bị máy chủ chặn khi chưa chọn Đón / Không đón → báo ngay ở trình duyệt, chỉ ra dịch vụ nào và nhóm nút nào. «Lưu đơn (chưa xác nhận)» của nhân viên không bị chặn.
+  const thieuDon = guiDon ? dichVuThieuChonDon(entries.map((e) => ({ choPhep: coDuaDon(e.draft), pickupChoice: e.draft.pickupChoice, soChang: e.draft.legs.length }))) : [];
+  entries.forEach((e, i) => {
+    const o = e.card.danhDauThieuChonDon(thieuDon.includes(i) ? cauThieuChonDon(i) : null);
+    if (!thieuDon.includes(i)) return;
+    lines.push(cauThieuChonDon(i));
+    focusables.push(o ?? e.card.root);
+  });
   if (hk) {
     const loiKhach = loiDanhSachKhach(hk.rows(), today);
     lines.push(...loiKhach);
@@ -572,11 +654,15 @@ function collect(): OrderInput | OrderInputAn {
     // Form gọn của Đối tác (ADR-0154 Đ1.1): lượt đầu của dịch vụ luôn gửi trống giờ (`legsGuiFormGon`); form khác giữ nguyên.
     services: entries.map((e) => toServiceInput({ ...e.draft, legs: formGon ? legsGuiFormGon(e.draft.legs, orderDate) : e.draft.legs, pickupChoice: chonDonTheoNhom(coDuaDon(e.draft), e.draft.pickupChoice) }, suaSoVe)), // Ruling R-M
     discount: num("discount"),
-    paymentNote: field("paymentNote").value,
-    ...(coODatCoc ? { declaredDeposit: num("declaredDeposit") } : {}),
+    paymentNote: field("paymentNote").value, // trường ẩn vẫn gửi giá trị đang nạp: máy chủ quyết (ẩn ⇒ giữ giá trị lưu), chính sách đổi giữa chừng không xoá mất giá trị
+    // Trả sau (ADR-0168): khối chỉ hiện khi bên đặt có hạn mức; Trả sau không kèm tiền đặt cọc (gửi 0 để máy chủ không giữ số cũ).
+    paymentTerm: hinhThucChon(), // luôn gửi: khối ẩn thì là Trả trước, để PUT không giữ Trả sau cũ mà không còn chỗ chọn lại
+    ...(coODatCoc ? { declaredDeposit: num("declaredDeposit") } : {}), // ADR-0197 Đ2: đơn Trả sau cũng gửi lời khai, không ép 0
     ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
     // Chỉ khi LẬP đơn và đã chọn người: chưa chọn → KHÔNG gửi trường này (đơn "Chờ nhận"), sửa đơn → không bao giờ gửi (PUT không đổi người phụ trách).
     ...(canPickHandler && !editId && handlerPick ? { handlerStaffId: handlerPick.staffId } : {}),
+    // ADR-0142 L1: lập mới chỉ gửi khi đã mời; sửa nháp chỉ gửi khi người dùng đã đổi (vắng khoá = giữ lời mời đang lưu; null = bỏ lời mời).
+    ...(banHangDaDoi && !banHangEl.hidden ? { banHangMoiStaffId: banHangPick ? banHangPick.staffId : null } : {}),
   };
   if (anKhach) return chung; // ADR-0154 Đ2.2, Đ2.3: khối khách đang ẩn
   return {
@@ -692,7 +778,20 @@ formEl.addEventListener("submit", (e) => {
 const laLuuBangCham = nhoChamKichHoat(saveBtn);
 
 /**
- * Lưu đơn nháp. `datGap` (ADR-0049 R-P15 — nút "Duyệt đặt gấp" trên thẻ): lưu xong gọi lệnh đặt gấp cho đúng chặng `legKey` của dịch vụ đó (thứ tự
+ * ADR-0192 mục 6: Đối tác bấm «Gửi đơn» = lưu rồi gửi. Mã đơn vừa lưu nằm ở đây suốt lời gọi gửi; lời gọi gửi gặp 401 thì `goLogin` không bao giờ trả về (khối `catch` không chạy),
+ * nên `pagehide` đọc biến này để ghi bản chụp «đơn đã tạo» — đăng nhập lại thì về trang đơn đó, không mở lại form (tránh đơn trùng). Gửi xong / gửi hỏng vì lý do khác ⇒ null.
+ */
+let donVuaTao: string | null = null;
+/** ADR-0192 mục 4, 5: xoá bản chụp của người đang đăng nhập (đã khôi phục / bỏ, hoặc lưu thành công). sessionStorage bị chặn → bỏ qua. */
+function xoaNhapTam(): void {
+  try {
+    sessionStorage.removeItem(khoaNhapTam(staff.id));
+  } catch {
+    // bỏ qua
+  }
+}
+/**
+ * Lưu đơn nháp. `datGap` (ADR-0049 R-P15 — nút "Ghi đặt gấp" trên thẻ): lưu xong gọi lệnh đặt gấp cho đúng chặng `legKey` của dịch vụ đó (thứ tự
  * dịch vụ trong phản hồi = thứ tự thẻ). Lệnh đặt gấp hỏng thì đơn VẪN đã lưu → vẫn chuyển sang trang đơn, kèm `datgap=loi` để trang đơn báo và cho duyệt lại.
  */
 async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDatGap; ghiChu: string | null } }): Promise<void> {
@@ -702,7 +801,7 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
   assigneeErrorShown = false;
   const loiChangCuaThe = entries.map((en) => en.card.showIssues(true)); // mở chặng gọn / khối chi tiết chứa ô lỗi; nhớ ô lỗi đầu tiên của từng thẻ + ô đó có đang nằm trong khối đóng không
   hk?.showIssues(true);
-  const invalid = validate();
+  const invalid = validate(!editId && guiDonKhiLuu && !datGap);
   if (invalid) {
     renderBanner(saveErrorEl, invalid.banner);
     gapChiTietKhiLoi();
@@ -725,6 +824,7 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
     const { order } = editId
       ? await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(editId)}`, { method: "PUT", body: collect() })
       : await api<Api.OrderResponse>("/api/orders", { method: "POST", body: collect() });
+    xoaNhapTam(); // ADR-0192 mục 5: lưu thành công — bản chụp (nếu còn) không còn cần
     let datGapLoi = "";
     if (datGap) {
       const chang = changDaLuu(order.services[entries.indexOf(datGap.entry)]?.legs ?? [], datGap.entry.draft.legs, datGap.legKey);
@@ -741,10 +841,13 @@ async function luu(datGap?: { entry: Entry; legKey: string; than: { lyDo: LyDoDa
     // không ở lại form — bấm lần hai trên form sẽ POST /api/orders lần hai (nháp trùng). Thành công: chỉ MỘT CHỮ CÁI nhánh (`gui=A|B`) lên địa chỉ — trang đơn dựng câu báo từ `CAU_BAO_GUI_DON`.
     if (!editId && guiDonKhiLuu && !datGap) {
       let thamSo = "";
+      donVuaTao = order.id; // ADR-0192 mục 6: gửi hết phiên (401) ⇒ pagehide ghi bản chụp «đơn đã tạo»
       try {
         const r = await api<Api.GuiDonResponse>(`/api/orders/${encodeURIComponent(order.id)}/gui-don`, { method: "POST", body: {} });
+        donVuaTao = null;
         thamSo = `&gui=${r.nhanh}${r.nhanh === "B" ? "&moi=1" : ""}`;
       } catch (e) {
+        donVuaTao = null; // gửi hỏng vì lý do khác 401: rẽ sang trang nháp kèm câu lỗi như cũ
         try { sessionStorage.setItem(`gui-don-loi:${order.id}`, e instanceof ApiError ? e.message : ""); } catch { /* không có sessionStorage: trang đơn nói câu chung */ }
         thamSo = "&guiloi=1";
       }
@@ -815,35 +918,42 @@ function napBenDat(o: Api.OrderDetailDto): void {
   datQua?.datChon(null);
   datBenDat(null);
   bookerPicker.set(o.bookerPartyId, o.bookerName);
+  void napTraSau(); // `datBenDat(null)` chạy TRƯỚC `set`: hỏi lại khi bên đặt đã nạp xong, nếu không khối Trả sau ẩn nhầm
 }
 
-/** Trả các câu báo (dịch vụ thuộc nhóm tắt đưa đón mà nháp còn chặng → form bỏ chặng đó; ADR-0118 Đ5). */
-function fill(o: Api.OrderDetailDto): string[] {
-  const bao: string[] = [];
+/** Các ô thường của form mà đường nạp đơn điền (từ đơn đã lưu, hoặc từ bản chụp lúc hết phiên — ADR-0192). */
+type GiaTriO = Pick<Api.OrderDetailDto, "customerName" | "customerPhone" | "customerEmail" | "customerNote" | "discount" | "paymentNote" | "declaredDeposit" | "paymentTerm">;
+/** Điền các ô thường; `giua` chạy đúng chỗ cũ của việc nạp bên đặt (sau tên + SĐT, trước email — ô tra hồ sơ khách tra theo SĐT vừa điền). */
+function napO(o: GiaTriO, giua: () => void): void {
   field("customerName").value = o.customerName;
   field("customerPhone").value = o.customerPhone;
-  napBenDat(o);
+  giua();
   field("customerEmail").value = o.customerEmail ?? "";
   field("customerNote").value = o.customerNote ?? "";
-  if (field("customerEmail").value !== "" || field("customerNote").value.trim() !== "") gapKhach.mo(); // nháp đã có email / ghi chú: khối gập tự mở — không giấu giá trị đang có
+  if (field("customerEmail").value !== "" || field("customerNote").value.trim() !== "") gapKhach.mo(); // nháp đã có email / ghi chú: khối gập tự mở — không giấu giá trị đang có (ô bị chính sách ẩn tự ẩn; khối trống vô hại) // nháp đã có email / ghi chú: khối gập tự mở — không giấu giá trị đang có
   (field("discount") as HTMLInputElement).value = o.discount ? grouped(o.discount) : "";
   field("paymentNote").value = o.paymentNote ?? "";
   (field("declaredDeposit") as HTMLInputElement).value = o.declaredDeposit ? grouped(o.declaredDeposit) : "";
+  datHinhThuc(o.paymentTerm);
+}
+
+/** Dựng lại các thẻ dịch vụ (bỏ thẻ cũ) theo ngày của cả đơn `ngay`. Trả các câu báo (dịch vụ thuộc nhóm tắt đưa đón mà còn chặng → form bỏ chặng đó; ADR-0118 Đ5). */
+function napThe(taoThe: readonly (() => ServiceDraft)[], ngay: string): string[] {
+  const bao: string[] = [];
   for (const en of [...entries]) unmount(en);
-  orderUpdatedAt = o.updatedAt;
   // Ngày của cả đơn đặt TRƯỚC khi dựng thẻ: khối Đưa đón quyết chặng gọn / mở lúc dựng bằng cách so ngày đón với ngày đi (`changNenGon`) — ngày đi còn trống thì chặng nào cũng "đón khác ngày".
-  const ngayDv = new Set(o.services.map((s) => s.departDate ?? ""));
-  orderDate = ngayDv.size === 1 ? [...ngayDv][0]! : "";
+  orderDate = ngay;
   orderDateEl.value = orderDate;
   // Thiết kế lại 18/10 (mục 3C): thẻ của nháp nạp lại GẬP, trừ khi có lỗi hoặc có giá trị mà dòng gập không cho thấy (`theMoKhiNap` — luật tự mở của các khối bên trong) hoặc là thẻ `?focus=`.
   // Lúc nạp có thể nhiều thẻ cùng mở; "chỉ một thẻ mở" áp từ thao tác đầu tiên của người dùng (thêm dịch vụ / chạm mở thẻ khác).
   const laSanBay = (id: string): boolean => diem.some((x) => x.id === id && x.sanBay);
-  for (const s of o.services) {
-    const nap = theoNhomDuaDon(draftFromDto(s, live, newKey()));
+  for (const tao of taoThe) {
+    const nap = theoNhomDuaDon(tao());
     if (nap.soBo > 0) bao.push(cauBoChangNhomTat(nap.draft.name, nap.soBo));
     const d = nap.draft;
-    const entry = mount(d, s.id === focusId || theMoKhiNap(d, orderDate, laSanBay), s.id === focusId ? true : undefined);
-    if (s.id === focusId) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở thẻ + khối chuyến và cuộn tới thẻ
+    const laFocus = d.id !== null && d.id === focusId;
+    const entry = mount(d, laFocus || theMoKhiNap(d, orderDate, laSanBay), laFocus ? true : undefined);
+    if (laFocus) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở thẻ + khối chuyến và cuộn tới thẻ
   }
   // Đơn cũ (trước ADR-0021) có thể mỗi dịch vụ một ngày: khi đó ô để trống và Lưu báo "chọn một ngày cho cả đơn" (không đoán hộ).
   const dates = new Set(entries.map((e) => e.draft.trip.departDate));
@@ -852,26 +962,103 @@ function fill(o: Api.OrderDetailDto): string[] {
   return bao;
 }
 
+/** Nạp đơn đã lưu vào form. Trả các câu báo của `napThe`. */
+function fill(o: Api.OrderDetailDto): string[] {
+  napO(o, () => napBenDat(o));
+  orderUpdatedAt = o.updatedAt;
+  const ngayDv = new Set(o.services.map((s) => s.departDate ?? ""));
+  return napThe(o.services.map((s) => () => draftFromDto(s, live, newKey())), ngayDv.size === 1 ? [...ngayDv][0]! : "");
+}
+
+/**
+ * ADR-0192: giá trị form lúc hết phiên. Ô thường lấy bằng chính hàm dựng thân lưu nháp (`collect`), thẻ dịch vụ là chính các bản nháp thẻ, hành khách là chính các dòng
+ * của khối — không liệt kê lại ô. Cộng thêm (theo phán quyết điều phối 10/11: «chữ đã gõ còn nguyên») những thứ thân lưu nháp không mang đủ: tên hồ sơ khách / «Tạo hồ sơ mới»,
+ * đối tác đã chọn ở ô «Đặt qua đối tác», người phụ trách và lời mời Bán hàng đã chọn, ngày của cả đơn.
+ */
+interface GiaTriForm {
+  than: ReturnType<typeof collect>;
+  dv: ServiceDraft[];
+  ngay: string;
+  hk: DongKhach[] | null;
+  benDat: BenDatChon | null;
+  chonKhach: BookerChoice;
+  nguoi: AssigneeDto | null;
+  banHang: AssigneeDto | null;
+  banHangDaDoi: boolean;
+}
+function chupForm(): GiaTriForm {
+  return { than: collect(), dv: drafts(), ngay: orderDate, hk: hk?.rows() ?? null, benDat: daChonBenDat, chonKhach: bookerPicker.chon(), nguoi: handlerPick, banHang: banHangPick, banHangDaDoi };
+}
+/** Thẻ từ bản chụp: khoá cục bộ mới (khoá của trang trước có thể trùng khoá trang này sinh), danh mục theo bản hiện tại (như `draftFromDto` làm với đơn đã lưu). */
+function theTuBanChup(d: ServiceDraft): ServiceDraft {
+  const key = newKey();
+  const legs = d.legs.map((l, i) => ({ ...l, key: `${key}-l${i}` }));
+  if (d.kind !== "catalog") return { ...d, key, legs };
+  const moi = live.get(d.code) ?? null;
+  const the = { ...d, key, legs, live: moi };
+  return moi && the.source === "live" ? refreshFromCatalog(the, moi) : the;
+}
+/** Điền lại form từ bản chụp qua chính đường nạp đơn (`napO`, `napThe` mà `fill` dùng; hành khách qua `dungKhoiKhach`). Ô khách đang ẩn (thân không mang) giữ giá trị đang có. */
+function apBanChup(g: GiaTriForm): void {
+  const t = g.than as Partial<OrderInput>;
+  const o: GiaTriO = {
+    customerName: t.customerName ?? field("customerName").value,
+    customerPhone: t.customerPhone ?? field("customerPhone").value,
+    customerEmail: t.customerEmail ?? field("customerEmail").value,
+    customerNote: t.customerNote ?? field("customerNote").value,
+    discount: t.discount ?? 0,
+    paymentNote: t.paymentNote ?? "",
+    declaredDeposit: t.declaredDeposit ?? 0,
+    paymentTerm: t.paymentTerm ?? "PREPAID",
+  };
+  napO(o, () => {
+    if (khoiBenDat.kieu === "chi-doc") return;
+    if (g.benDat && datQua) {
+      datQua.datChon(g.benDat);
+      datBenDat(g.benDat);
+      bookerPicker.set(null, null);
+      return;
+    }
+    datQua?.datChon(null);
+    datBenDat(null);
+    bookerPicker.datLuaChon(g.chonKhach);
+  });
+  napThe(g.dv.map((d) => () => theTuBanChup(d)), g.ngay);
+  if (hk && g.hk) dungKhoiKhach(g.hk.map((r) => ({ ...r, key: newKey() }))); // chỉ khi khối đang được dựng (đúng quyền, không bị ẩn)
+  if (canPickHandler) {
+    handlerPick = g.nguoi;
+    renderOwner();
+  }
+  if (!banHangEl.hidden && g.banHangDaDoi) {
+    banHangPick = g.banHang;
+    banHangDaDoi = true;
+    renderBanHang();
+  }
+}
+
 async function loadOrder(): Promise<void> {
   if (!editId) return;
   renderBanner(errorEl, null);
   renderBanner(saveErrorEl, null);
   try {
-    const { order, canModify } = await layDon!();
+    const { order, canModify, laBanHangPhuTrach, banHangMoi } = await layDon!();
     // `canModify` do MÁY CHỦ quyết (người lập, người phụ trách đơn — ADR-0009 — hoặc quản trị); câu này chỉ giải thích khi bị từ chối.
-    if (!canModify) return lockForm(banner("danger", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được sửa đơn này."));
-    if (order.status !== "draft") return lockForm(banner("danger", "Chỉ sửa được đơn đang chờ xác nhận."));
+    if (!canModify) return lockForm(banner("danger", "Chỉ người lập đơn, Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa đơn này."));
+    if (order.status !== "draft") return lockForm(banner("danger", "Chỉ sửa được đơn chưa xác nhận."));
     byId("form-title").textContent = `Sửa đơn ${order.orderCode}`;
     setBarTitle(`Sửa đơn ${order.orderCode}`);
-    suaSoVe = suaChuyenDuoc(staff, order.staffId, canModify); // trước fill: thẻ dựng ô "Số người chiều về" theo cờ này
+    suaSoVe = suaChuyenDuoc(staff, order.staffId, canModify, banHangSuaDuoc(order, laBanHangPhuTrach === true)); // ADR-0142: Bán hàng phụ trách (chưa Đã giao) sửa được như người phụ trách; trước fill: thẻ dựng ô "Số người chiều về" theo cờ này
     const baoBoChang = fill(order);
-    if (baoBoChang.length > 0) renderBanner(saveErrorEl, banner("warning", `${baoBoChang.join(" ")} Bấm Lưu nháp để ghi lại.`));
+    if (baoBoChang.length > 0) renderBanner(saveErrorEl, banner("warning", `${baoBoChang.join(" ")} Bấm Lưu thay đổi để ghi lại.`));
     // Hành khách của nháp: chỉ người có ô order.passenger.write; tải hỏng → KHÔNG dựng khối và KHÔNG gửi khoá `passengers` (máy chủ giữ danh sách đang lưu —
     // không bao giờ gửi [] khi chưa biết danh sách thật).
     // Tải lại đơn (sau 409 stale): bỏ khối cũ TRƯỚC — tải danh sách hỏng thì không được gửi lại danh sách cũ đè lên bản người khác vừa sửa (R6).
     hk = null;
     hkCard.hidden = true;
-    suaKhachCuaNhap = suaKhachDuoc(staff, order.staffId, canModify);
+    suaKhachCuaNhap = suaKhachDuoc(staff, order.staffId, canModify, banHangSuaDuoc(order, laBanHangPhuTrach === true));
+    // Lời mời chỉ của người lập (máy chủ trả `banHangMoi` cho người lập nháp); người khác sửa hộ nháp thì khối ẩn và không gửi khoá.
+    banHangEl.hidden = banHangAn || order.staffId !== staff.id;
+    if (!banHangEl.hidden) { banHangPick = banHangMoi ? { staffId: banHangMoi.staffId, partyId: "", name: banHangMoi.name, roleLabel: "Bán hàng" } : null; renderBanHang(); }
     if (suaKhachCuaNhap && !anKhach) {
       try {
         const ds = await api<Api.PassengerListResponse>(`/api/orders/${encodeURIComponent(order.id)}/passengers`);
@@ -890,6 +1077,7 @@ const soKhachForm = (): number => soKhachDoan(drafts().map((d) => (d.kind === "c
 
 /** Dựng khối "Hành khách" (M2) ở `#hk-card`; máy tính (≥ 960px) dạng bảng trải hết bề ngang dưới hàng "thẻ dịch vụ | Tóm tắt". */
 function dungKhoiKhach(rows: DongKhach[]): void {
+  if (anTruong("passengers")) return; // ADR-0194: chính sách ẩn khối hành khách (không dựng; không gửi khoá `passengers` ⇒ máy chủ giữ danh sách đang lưu)
   hk = taoKhoiHanhKhach({ rows, che: "form", soKhach: soKhachForm, today, bang: () => wideQuery.matches, newKey, ma: "hk", onChange: () => recompute() });
   replaceChildren(hkCard, h("h2", null, "Hành khách"), hk.root);
   hkCard.hidden = false;
@@ -922,7 +1110,25 @@ function datAnKhach(an: boolean): void {
   anKhach = an;
   khoiKhach.toggleAttribute("data-an-khach", an);
   if (an) hkCard.hidden = true;
+  apChinhSach();
   capNhatBuoc();
+}
+/** Ẩn / hiện ô theo chính sách (ADR-0194) và đánh dấu «*» ô bắt buộc. Gọi lại được (công tắc ADR-0154 đổi ⇒ chính sách không còn / lại chen vào). */
+function apChinhSach(): void {
+  for (const e of entries) e.card.update(e.draft); // ADR-0195: thẻ tính lại ô cấp dịch vụ (công tắc đổi)
+  const o = (id: string) => field(id).closest("label");
+  anPhanTu(anTruong("customerEmail"), o("customerEmail"));
+  anPhanTu(anTruong("customerNote"), o("customerNote"));
+  anPhanTu(anTruong("customerEmail") && anTruong("customerNote"), gapKhach.nut);
+  anPhanTu(anTruong("paymentNote"), o("paymentNote"));
+  if (anTruong("passengers")) {
+    hk = null;
+    hkCard.hidden = true;
+  }
+  for (const t of ["customerEmail", "customerNote", "paymentNote"]) {
+    const chu = o(t)?.querySelector(".o-noi-chu");
+    if (chu && batBuocTruong(t) && !(chu.textContent ?? "").endsWith("*")) chu.textContent = `${chu.textContent} *`;
+  }
 }
 /** Hiện lại khối «Hành khách» sau khi công tắc tắt: lập mới → khối trống (nếu có ô); sửa nháp → tải danh sách đang lưu (tải hỏng thì KHÔNG dựng, KHÔNG gửi `passengers`). */
 async function dungLaiKhoiKhach(): Promise<void> {
@@ -958,6 +1164,42 @@ async function hienLaiKhoiKhachNeuCan(err: unknown): Promise<void> {
 const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.CatalogPublicResponse>("/api/catalog/for-order")) : () => api<Api.CatalogPublicResponse>("/api/catalog/for-order");
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
+// ---- ADR-0192: bản chụp tạm form đơn lúc hết phiên (sessionStorage, gắn mã nhân viên, 30 phút, một lần) ----
+// Chụp: chỉ khi trang bị rời VÌ `goLogin` (401) — `goLogin` ghi `SESSION_ENDED_KEY` trước khi chuyển về /login, và /login đọc rồi xoá khoá đó mỗi lần mở, nên lúc
+// rời form theo cách thường khoá không có. Lời gọi session-ended hỏng (mất mạng) thì không có dấu ⇒ không chụp (chỉ là không khôi phục được). Form chưa nạp xong hoặc đã
+// khoá (không sửa được) thì không chụp giá trị ô.
+/** Đã mở xong nháp (hoặc form trắng): từ đây «chưa có bên đặt» mới là thật, không còn là bên đặt chưa kịp nạp; `pagehide` cũng chỉ chụp giá trị ô từ lúc này. Khai TRƯỚC `pagehide` (tránh vùng chết của `let`). */
+let donDaNap = false;
+window.addEventListener("pagehide", () => {
+  try {
+    if (sessionStorage.getItem(SESSION_ENDED_KEY) !== null && (donVuaTao !== null || (donDaNap && !formLocked))) {
+      const b: BanChup = donVuaTao !== null
+        ? { loai: "da-tao", staffId: staff.id, at: Date.now(), orderId: donVuaTao } // mục 6: chỉ mã đơn đã tạo, không giá trị ô
+        : { loai: "form", staffId: staff.id, at: Date.now(), orderId: editId, updatedAt: orderUpdatedAt, o: chupForm() as unknown as Record<string, unknown> };
+      sessionStorage.setItem(khoaNhapTam(staff.id), JSON.stringify(b));
+    }
+  } catch {
+    // sessionStorage bị chặn / đầy: bỏ qua, không bao giờ cản việc về trang đăng nhập
+  }
+});
+// Khôi phục MỘT lần (ADR-0192 mục 4): đọc NGAY để «đơn đã tạo» chuyển trang trước khi nạp gì; bản chụp giá trị ô thì quyết SAU khi form nạp xong (đơn đang sửa cần
+// `updatedAt` máy chủ trả) — xoá khoá ngay sau lúc quyết, dù điền hay bỏ.
+let banChup: BanChup | null = null;
+try {
+  banChup = docBanChup(sessionStorage.getItem(khoaNhapTam(staff.id)));
+} catch {
+  // bỏ qua
+}
+if (banChup?.loai !== "form") {
+  xoaNhapTam();
+  const kq = quyetKhoiPhuc(banChup, staff.id, Date.now(), editId, null);
+  if (kq.lam === "chuyen") {
+    // Đơn đã lưu nhưng lời gọi gửi hết phiên: về trang nháp đó như nhánh «gửi hỏng» (câu chung «chưa gửi được… bấm Gửi đơn lại»), không mở lại form — tránh đơn trùng.
+    location.replace(`/order?id=${encodeURIComponent(kq.orderId)}&guiloi=1`);
+    await new Promise<never>(() => undefined); // trang sắp bị thay: không nạp danh mục / đơn
+  }
+  banChup = null; // đã quyết và xoá: bước quyết muộn không xét lại
+}
 guiDonKhiLuu = holdsPartner(staff);
 coODatCoc = holdsPartner(staff);
 byId("dat-coc-o").hidden = !coODatCoc;
@@ -980,6 +1222,9 @@ duocDatGap = can(staff, "order.leg.short_notice");
 // Quyết định hiện gì do `khoiBenDatForm` (src/shared/phan-doi-tac-hien-thi.ts): Đối tác mà máy chủ ÉP bên đặt (trường `benDatCuaToi` của /api/auth/me — giao diện không suy) → dòng chỉ đọc "Bên đặt: <tên>"
 // thay ô tra hồ sơ khách; văn phòng (người lập đơn, KHÔNG giữ quyền Đối tác) → thêm ô "Đặt qua đối tác"; còn lại → ô tra SĐT như hôm nay. Dựng TRƯỚC loadOrder (nạp nháp cần biết có ô nào).
 const khoiBenDat = khoiBenDatForm(staff, benDatCuaToi());
+// ADR-0185 Đ1 (kế hoạch K10): giữ quyền Đối tác mà máy chủ không ép bên đặt ⇒ Gửi đơn sẽ bị chặn — báo trước bằng dải vàng ở ĐẦU thẻ Khách hàng. Đặt trong dòng «Ngày khởi hành»
+// vì công tắc «Ẩn thông tin khách» (ADR-0154 Đ2.2, áp cho đối tác) chỉ để lại dòng đó của khối; đặt chỗ khác thì đối tác bị ẩn khách không thấy dải.
+if (doiTacThieuVaiTro(staff, benDatCuaToi())) khoiKhach.querySelector(".khach-ngay")?.prepend(h("p", { class: "alert warn", role: "status" }, CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO));
 bookerPicker.datCoODatQuaDoiTac(khoiBenDat.kieu === "tra-sdt-va-dat-qua"); // câu cạnh hồ sơ tổ chức chỉ trỏ tới ô «Đặt qua đối tác» khi ô đó CÓ ở form này (Task 14, nợ (d))
 let datQua: DatQuaDoiTac | null = null;
 let daChonBenDat: BenDatChon | null = null;
@@ -991,6 +1236,15 @@ function datBenDat(chon: BenDatChon | null): void {
   if (chon !== null) canhBao.hien(null, ""); // đã chọn đối tác thì hết điều để hỏi
   else if (truoc !== null) bookerPicker.kiemLai(); // vừa bỏ đối tác: số khách đang gõ có thể là của một đối tác — hỏi lại (nợ T4(2), Việc 9)
   datNhanKhach(chon !== null);
+  capNhatNutDienDoiTac();
+  void napTraSau();
+}
+/** N5: nút «Điền thông tin đối tác» hiện theo luật thuần `hienNutDienDoiTac`; đổi đối tác thì câu báo cũ bị xoá. */
+function capNhatNutDienDoiTac(): void {
+  byId("use-partner").hidden = !hienNutDienDoiTac(staff, daChonBenDat);
+  const bao = byId("use-partner-bao");
+  bao.hidden = true;
+  bao.textContent = "";
 }
 /** Nhãn nổi của hai ô khách theo việc đã chọn đối tác (luật chữ ở `src/shared/phan-doi-tac-hien-thi.ts`): đã chọn thì SĐT ghi rõ là của khách, không phải của đối tác. */
 function datNhanKhach(daChonDoiTac: boolean): void {
@@ -999,6 +1253,64 @@ function datNhanKhach(daChonDoiTac: boolean): void {
     if (chu) chu.textContent = nhan;
   }
 }
+// ---- Trả sau (ADR-0168): hỏi đường hẹp `con-duoc-dung` theo bên đặt; có hạn mức mới hiện hai lựa chọn. Máy chủ vẫn kiểm lại lúc lưu và lúc xác nhận. ----
+const khoiTraSau = byId("tra-sau-khoi");
+let traSauHien = false;
+const oHinhThuc = (v: string): HTMLInputElement => khoiTraSau.querySelector<HTMLInputElement>(`input[name="paymentTerm"][value="${v}"]`)!;
+// Chữ hai nút chọn hình thức đến từ MỘT hằng (NHAN_HINH_THUC), không gõ cứng ở HTML (đổi «Trả trước» → «Thanh toán ngay», 9/11/2026).
+for (const v of ["PREPAID", "CREDIT"] as const) khoiTraSau.querySelector(`[data-nhan-hinh-thuc="${v}"]`)!.textContent = NHAN_HINH_THUC[v];
+const hinhThucChon = (): "PREPAID" | "CREDIT" => (oHinhThuc("CREDIT").checked ? "CREDIT" : "PREPAID");
+/** ADR-0197 Đ2, Đ3: ô cọc luôn có với tài khoản Đối tác, kể cả khi chọn Trả sau; chọn Trả sau thì thêm câu nhắc cọc không làm giảm nợ với Công ty. */
+function anHienDatCoc(): void {
+  const traSau = traSauHien && hinhThucChon() === "CREDIT";
+  const cau = byId("dat-coc-tra-sau");
+  cau.textContent = CAU_COC_TRA_SAU;
+  cau.hidden = !coODatCoc || !traSau;
+}
+/**
+ * Hình thức của nháp hoặc người dùng đã chọn, tách khỏi ô đang hiện: `napTraSau` có thể đưa ô về Trả trước vì hết hạn mức, và các lần hỏi sau phải vẫn biết đơn muốn Trả sau.
+ * Đọc từ ô thì lần hỏi thứ hai thấy Trả trước, xoá câu báo, và bấm lưu sẽ đổi đơn mà người dùng không được báo.
+ */
+let hinhThucMuon: "PREPAID" | "CREDIT" = "PREPAID";
+/**
+ * ADR-0198 Đ2: người dùng đã có lựa chọn (chạm nút, hoặc nạp nháp / bản đang gõ dở qua `datHinhThuc`) — từ đó không chọn sẵn đè lên nữa.
+ * Khi còn đang «chọn sẵn», `hinhThucMuon` giữ «Thanh toán ngay»: bên đặt mất Trả sau thì ô về «Thanh toán ngay» âm thầm, không câu báo (người dùng chưa chọn gì).
+ */
+let daChonHinhThuc = false;
+function datHinhThuc(v: "PREPAID" | "CREDIT"): void {
+  daChonHinhThuc = true;
+  hinhThucMuon = v;
+  oHinhThuc(v).checked = true;
+  anHienDatCoc();
+}
+function benDatId(): string | null {
+  if (khoiBenDat.kieu === "chi-doc") return khoiBenDat.benDat.partyId;
+  if (daChonBenDat) return daChonBenDat.partyId;
+  return (bookerPicker.payload() as { bookerPartyId?: string | null }).bookerPartyId ?? null;
+}
+let traSauLuot = 0;
+async function napTraSau(): Promise<void> {
+  const luot = ++traSauLuot;
+  const id = benDatId();
+  const laDoiTac = laDoiTacTraSau(staff); // ADR-0198 Đ1: đối tác không thấy số hạn mức
+  let c = cauChonTraSau({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false, laDoiTac });
+  if (id) {
+    try { c = cauChonTraSau({ ...(await api<Api.ConDuocDungTraSauResponse>(`/api/tra-sau/con-duoc-dung?benDat=${encodeURIComponent(id)}`)), laDoiTac }); } catch { return; /* không đọc được: giữ nguyên lựa chọn đang có, máy chủ vẫn kiểm lại lúc lưu */ }
+  }
+  if (luot !== traSauLuot) return; // có lần hỏi mới hơn (đổi bên đặt liên tục): bỏ kết quả cũ
+  const q = quyetHinhThuc({ dangChon: hinhThucMuon, c, benDatChuaNap: id === null && !donDaNap, chonSan: duocChonSanTraSau({ laDoiTac, donMoi: !editId, daChon: daChonHinhThuc }) });
+  traSauHien = c.hien;
+  khoiTraSau.hidden = !c.hien;
+  byId("tra-sau-cau").textContent = c.khoa ?? c.cau;
+  oHinhThuc("CREDIT").disabled = c.khoa !== null;
+  oHinhThuc(q.chon).checked = true;
+  const bao = byId("tra-sau-bao");
+  bao.textContent = q.bao ?? "";
+  bao.hidden = q.bao === null;
+  anHienDatCoc();
+}
+for (const v of ["PREPAID", "CREDIT"]) oHinhThuc(v).addEventListener("change", () => { daChonHinhThuc = true; hinhThucMuon = hinhThucChon(); byId("tra-sau-bao").hidden = true; anHienDatCoc(); });
+void napTraSau();
 if (khoiBenDat.kieu === "chi-doc") {
   bookerPicker.tat();
   bookerPicker.root.replaceWith(dongBenDatChiDoc(khoiBenDat.benDat));
@@ -1013,6 +1325,12 @@ const layMoc = can(staff, "order.create")
   : Promise.resolve(null);
 // Khối "Người phụ trách": chỉ lập đơn mới, chỉ ai máy chủ cho chọn (Thực tập, Đối tác thuần: khối KHÔNG hiện — không phải hiện rồi báo lỗi).
 canPickHandler = !editId && mayPickHandlerOnCreate(staff);
+// Khối «Người phụ trách» (mời Bán hàng): mọi người giữ ô mời (kể cả Đối tác, Thực tập); sửa nháp thì khối hiện lại khi tải được đơn (`loadOrder`).
+const banHangAn = !canNv(staff, "dispatch.sales.invitees");
+if (!banHangAn && !editId) {
+  banHangEl.hidden = false;
+  renderBanHang();
+}
 thanhBuoc.an("phu-trach", !canPickHandler); // bước "Phụ trách" chỉ có khi khối người phụ trách có (lập đơn mới, người lập chọn được)
 if (canPickHandler) {
   ownerEl.hidden = false;
@@ -1025,6 +1343,31 @@ byId("use-mine").addEventListener("click", () => {
     const el = field(id);
     el.value = value;
     el.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+});
+// N5: «Điền thông tin đối tác» — lấy tên + số điện thoại chính từ hồ sơ đối tác đã chọn (GET /api/parties/:id, cổng văn phòng + party.view) rồi điền như «Điền thông tin của tôi».
+// Đối tác chưa có số → báo nhẹ, không điền rỗng, không xoá ô đang có.
+byId("use-partner").addEventListener("click", async () => {
+  const chon = daChonBenDat;
+  if (!hienNutDienDoiTac(staff, chon)) return;
+  const bao = byId("use-partner-bao");
+  try {
+    const { party } = await api<Api.PartyResponse>(`/api/parties/${encodeURIComponent(chon!.partyId)}`);
+    if (daChonBenDat?.partyId !== chon!.partyId) return; // người lập đã đổi đối tác trong lúc chờ
+    if (!party.primaryPhone) {
+      bao.textContent = CAU_DOI_TAC_CHUA_CO_SDT;
+      bao.hidden = false;
+      return;
+    }
+    bao.hidden = true;
+    for (const [id, value] of [["customerName", party.displayName], ["customerPhone", party.primaryPhone]] as const) {
+      const el = field(id);
+      el.value = value;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  } catch (e) {
+    bao.textContent = e instanceof ApiError ? e.message : "Không lấy được thông tin đối tác.";
+    bao.hidden = false;
   }
 });
 // ADR-0047 Phần B: điểm danh mục cho ô Nơi đón / Nơi trả (cổng staff — mọi tài khoản) và mẫu chặng theo dịch vụ (chỉ người lập đơn). Lỗi → rỗng.
@@ -1053,7 +1396,9 @@ const layKhung = can(staff, "order.create") && !formGon // form gọn của Đ�
   : Promise.resolve(khungGio);
 // ADR-0154 Đ2.2: chỉ tài khoản giữ quyền Đối tác mới có thể bị áp công tắc (`apCongTacAnKhach` ⊂ `holdsPartner`) nên người khác không hỏi. Lỗi mạng → không ẩn (máy chủ vẫn quyết lại ở lần lưu).
 const layAnKhach = formGon ? docCongTacAnKhach() : Promise.resolve(null);
+const layChinhSach = taiChinhSach(); // ADR-0194: gửi song song
 const [viTri, mauVe, khungVe, anKhachMay] = await Promise.all([layDiem, layMau, layKhung, layAnKhach]);
+chinhSach = await layChinhSach; // ADR-0194: trước khi dựng khối / nạp đơn; lỗi tải đã thành mặc định đầy đủ
 datAnKhach(anKhachMay === true);
 diem = viTri.diem;
 diemNhanh = viTri.nhanh;
@@ -1075,6 +1420,19 @@ if (editId) {
   suaSoVe = can(staff, "order.trip.edit", { ownerId: staff.id, assigned: false });
   if (!anKhach && can(staff, "order.passenger.write", { ownerId: staff.id, assigned: false })) dungKhoiKhach([]); // khối khách ẩn (ADR-0154 Đ2.2): không dựng khối Hành khách
 }
+if (banChup) {
+  const kq = quyetKhoiPhuc(banChup, staff.id, Date.now(), editId, orderUpdatedAt); // sửa đơn: `orderUpdatedAt` = updatedAt máy chủ vừa trả (fill trong loadOrder)
+  xoaNhapTam();
+  if (kq.lam === "dien" && !formLocked) {
+    try {
+      apBanChup(kq.o as unknown as GiaTriForm);
+    } catch {
+      // bản chụp sai dạng: bỏ, form giữ như vừa nạp
+    }
+  }
+}
+donDaNap = true; // nháp (nếu có) đã nạp xong, kể cả bên đặt
+void napTraSau();
 mocPhut = await layMoc;
 {
   // Dòng báo nằm DƯỚI cả hàng ba ô Thanh toán (không trong cột hẹp của ô giảm giá — ở máy tính từng xuống 3 hàng), ô trỏ tới nó cho trình đọc màn hình.
@@ -1098,8 +1456,9 @@ mocPhut = await layMoc;
   if (editId && !(retailOnly && discountEl.readOnly) && coXemPhanDoiTac(staff, { staffId: staff.id })) {
     void api<Api.ThuongMaiResponse>(`/api/orders/${encodeURIComponent(editId)}/thuong-mai`).then((r) => {
       const coHuong = "vanPhong" in r ? r.vanPhong.nguoiHuong !== null : benDatCuaToi() != null;
-      const tong = "vanPhong" in r ? r.vanPhong.tong.hoaHong : r.doiTac.tong.hoaHong;
-      const cau = coHuong ? cauTranGiamGiaForm(tong) : null;
+      // ADR-0161 Đ5: trần = tổng hoa hồng TÍNH VÀO TRẦN (dịch vụ có hoa hồng vượt thành tiền tính 0), tính từ từng dòng máy chủ trả — cùng luật với kiểm của máy chủ lúc lưu.
+      const dong = "vanPhong" in r ? r.vanPhong.dong : r.doiTac.dong;
+      const cau = coHuong ? cauTranGiamGiaForm(tongTinhTran(dong), dong.some(dongVuotThanhTien)) : null;
       if (!cau) return;
       if (hint) hint.textContent = cau;
       else datHint(cau);

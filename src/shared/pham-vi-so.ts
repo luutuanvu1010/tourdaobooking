@@ -14,6 +14,7 @@ export const PHAM_VI_O_TRANG_CHU = {
   conThieu: "TOAN_CONG_TY",
   donNhap: "CUA_TOI",
   chuaPhuTrach: "TOAN_CONG_TY",
+  chuaBanHang: "TOAN_CONG_TY", // ADR-0142 Đ6: đơn chưa có người phụ trách (Bán hàng / Quản trị / Toàn quyền / Kế toán thấy cả công ty; người lập thấy đơn của mình)
   doanhThu: "CUA_TOI",
   // Thẻ "Việc của bạn" (máy tính, 15/10): `dieuChinh` đếm phần chờ CHÍNH người xem duyệt (`choDuyetChoToi`); `xemLai` (cảnh báo giá + giấy tờ), `chuyenHomNay`, `gopY` (hàng đợi) là cả công ty.
   dieuChinh: "CUA_TOI",
@@ -23,4 +24,6 @@ export const PHAM_VI_O_TRANG_CHU = {
   donCho: "TOAN_CONG_TY", // ADR-0136 Đ9: đơn đang chờ xác nhận của cả công ty
   doiChieu: "TOAN_CONG_TY", // Trang chủ Phương án A (31/10): khoản chờ đối chiếu / thu trước của đơn huỷ là sổ của cả công ty
   thuTruoc: "TOAN_CONG_TY",
+  tuGhi: "TOAN_CONG_TY", // ADR-0187 Đ3 mức (a): dòng tiền tự ghi đơn mình lập chờ soát — sổ của cả công ty
+  choChayThieu: "TOAN_CONG_TY", // ADR-0184: chuyến hôm nay của cả công ty chạy dù xe thiếu giấy tờ
 } as const satisfies Record<string, PhamVi>;

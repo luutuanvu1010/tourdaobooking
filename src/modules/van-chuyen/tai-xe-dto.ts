@@ -36,7 +36,7 @@ const suKienCuoi = (events: readonly EventRow[], tripId: string, loai: readonly 
   [...events].reverse().find((e) => e.trip_id === tripId && loai.includes(e.kind));
 
 /** Route 19 — một chuyến của "Cuốc của tôi" (R-P17): mã, giờ xuất bến dự kiến, trạng thái, biển số, số khách, số điểm đón / trả, điều kiện còn thiếu. */
-export function cuocCuaToiItem(t: TripRow, v: { xe: XeDieuPhoiRow | undefined; stops: readonly StopRow[]; allocs: readonly AllocRow[]; conThieu: readonly LyDoGiu[]; chiCauGoc: boolean }): CuocCuaToiItemDto {
+export function cuocCuaToiItem(t: TripRow, v: { xe: XeDieuPhoiRow | undefined; stops: readonly StopRow[]; allocs: readonly AllocRow[]; conThieu: readonly LyDoGiu[]; chiCauGoc: boolean; choChayThieu: { ten: string }[] }): CuocCuaToiItemDto {
   const diemCon = v.stops.filter((s) => s.trip_id === t.id && s.status !== "SKIPPED" && s.status !== "MOVED");
   return {
     id: t.id,
@@ -49,6 +49,7 @@ export function cuocCuaToiItem(t: TripRow, v: { xe: XeDieuPhoiRow | undefined; s
     soDiemDon: diemCon.filter((s) => s.kind === "PICKUP").length,
     soDiemTra: diemCon.filter((s) => s.kind === "DROPOFF").length,
     dieuKienConThieu: v.conThieu.map((l) => dieuKienConThieuDto(l, v.chiCauGoc)),
+    choChayThieu: v.choChayThieu,
   };
 }
 
@@ -65,6 +66,8 @@ export function cuocChiTietDto(v: {
   suat: readonly SuatChuyenDto[];
   lienHe: readonly LienHeTaiXe[] | null;
   conThieu: readonly LyDoGiu[];
+  /** ADR-0184: tên loại giấy xe đã được cho chạy dù thiếu (chỉ tên) — chuyến chưa chạy: dòng cho phép đang áp; đã chạy: bản chụp ĐẠT. */
+  choChayThieu: { ten: string }[];
   lyDo: readonly { code: string; label: string }[];
   nhan: ReadonlyMap<string, string> | null;
   trongNgay: boolean;
@@ -110,6 +113,7 @@ export function cuocChiTietDto(v: {
       ? { lienHe: v.lienHe.filter((x) => maDonCuaSuat.has(x.orderCode)).map((x) => ({ maDon: x.orderCode, tenLienHe: x.tenLienHe, sdtLienHe: x.sdtLienHe })) }
       : {}),
     dieuKienConThieu: v.conThieu.map((l) => dieuKienConThieuDto(l, anMaDon)),
+    choChayThieu: v.choChayThieu,
     lyDo: v.lyDo.map((r) => ({ code: r.code, nhan: r.label })),
     trongNgayChay: v.trongNgay,
     tuChoiDuoc: v.khung.tuChoiDuoc,

@@ -138,6 +138,10 @@ test("(c) dữ liệu gieo: đúng một dòng chính sách 360/120/30/1/0 + k�
     "CHI_PHI_XE:CPX_DOI_CHUYEN",
     "CHI_PHI_XE:CPX_HUY_CHUYEN",
     "CHI_PHI_XE:CPX_KHAC",
+    // 0147 (ADR-0184): lý do cho xe chạy dù thiếu giấy tờ — sửa được ở trang Lý do điều phối
+    "CHO_CHAY_THIEU_GIAY:THIEU_GIAY_GIA_HAN",
+    "CHO_CHAY_THIEU_GIAY:THIEU_GIAY_XE_THAY",
+    "CHO_CHAY_THIEU_GIAY:THIEU_GIAY_KHAC",
     // 0085 (ADR-0097 Đ2.5, gói A1): lý do điều chỉnh kết quả khách / thu hồi xuất bến — danh sách đóng
     "DIEU_CHINH:DIEU_CHINH_BAM_NHAM",
     "DIEU_CHINH:DIEU_CHINH_KHACH_DOI_Y",

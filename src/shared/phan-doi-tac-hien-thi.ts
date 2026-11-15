@@ -7,9 +7,9 @@
 // GHI CHÚ HỢP NHẤT: `docTyLeTay` / `docTienTay` / `MOI_KHACH_TOI_DA` KHÔNG còn bản riêng — chỉ là tên cũ trỏ về `docTyLePhanTram` / `docTienMoiKhach` / `MOI_KHACH_TOI_DA` của `so-dai-ly-nhap.ts` (một luật đọc ô, hai màn dùng).
 // Bài `docTyLeTay / docTienTay` ở phan-doi-tac-hien-thi.test.ts và bài nối `ghi-tay-nhap-noi.test.ts` (đối chiếu `kiemThanGhiTay` của máy chủ) giữ nguyên làm bài canh.
 import type { ThuongMaiDoiTacDto, ThuongMaiVanPhongDto } from "./contracts.ts";
-import { chenhGiamGiaSauGhiTay, type MucGhiTay } from "./hoa-hong-dong.ts";
-import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
-import { CAU_DON_BI_GIU, CAU_THIEU_MUC, NHAN_LY_DO_THIEU } from "./so-dai-ly-nhan.ts";
+import { chenhGiamGiaSauGhiTay, dongVuotThanhTien, type MucGhiTay } from "./hoa-hong-dong.ts";
+import { can, holdsPartner, isOffice, type PermissionHolder } from "./permissions.ts";
+import { CAU_DON_BI_GIU, CAU_THIEU_MUC, CAU_THIEU_MUC_DA_CHUP, NHAN_LY_DO_THIEU } from "./so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA, docTienMoiKhach, docTyLePhanTram } from "./so-dai-ly-nhap.ts";
 import { PHONE_IN_TEXT_MESSAGE, hasLongDigitRun } from "./text-guards.ts";
 
@@ -30,6 +30,14 @@ export interface BenDatChon {
  */
 export const coODatQuaDoiTac = (staff: PermissionHolder): boolean => can(staff, "order.create") && !holdsPartner(staff);
 
+/**
+ * N5: nút «Điền thông tin đối tác» (chủ chọn tên 8/11/2026) — điền tên và số điện thoại của đối tác đã chọn vào khung Khách hàng. Hiện khi ĐÃ chọn «Qua đối tác» VÀ người dùng thuộc văn phòng có ô
+ * `party.view` (cùng cổng với `GET /api/parties/:id` mà nút gọi: Thực tập và tài khoản Đối tác không được xem hồ sơ nên không thấy nút). Chỉ ẩn / hiện — máy chủ vẫn kiểm lại.
+ */
+export const hienNutDienDoiTac = (who: PermissionHolder, daChonBenDat: { partyId: string } | null): boolean => daChonBenDat !== null && isOffice(who) && can(who, "party.view");
+/** Câu báo nhẹ khi đối tác đã chọn chưa có số điện thoại: không điền rỗng, không xoá ô đang có. Một hằng; đổi chữ chỉ sửa ở đây. */
+export const CAU_DOI_TAC_CHUA_CO_SDT = "Đối tác này chưa có số điện thoại.";
+
 export type KhoiBenDatForm =
   /** Tài khoản Đối tác mà máy chủ SẼ ép bên đặt (trường `benDatCuaToi` của `/api/auth/me` — giao diện không suy): dòng chỉ đọc "Bên đặt: <tên>", không ô nào để chọn. */
   | { kieu: "chi-doc"; benDat: BenDatChon }
@@ -42,6 +50,14 @@ export function khoiBenDatForm(staff: PermissionHolder, benDatCuaToi: BenDatChon
   if (holdsPartner(staff)) return benDatCuaToi ? { kieu: "chi-doc", benDat: benDatCuaToi } : { kieu: "tra-sdt" };
   return coODatQuaDoiTac(staff) ? { kieu: "tra-sdt-va-dat-qua" } : { kieu: "tra-sdt" };
 }
+
+/** ADR-0185 Đ1 (chủ chọn chữ 8/11): dải vàng ở đầu thẻ Khách hàng của form lập đơn. Một hằng; đổi chữ chỉ sửa ở đây. */
+export const CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO = "Tài khoản của bạn chưa được gán vai trò đối tác: lập và lưu nháp được, nhưng chưa gửi được đơn. Vui lòng báo Tour Đảo.";
+/**
+ * ADR-0185 Đ1 (kế hoạch K10): tài khoản giữ quyền Đối tác mà máy chủ KHÔNG ép bên đặt (trường `benDatCuaToi` của `/api/auth/me` rỗng — giao diện không suy từ vai trò) ⇒ đơn của nó sẽ ra
+ * «không người hưởng» và Gửi đơn bị máy chủ chặn (`congDoiTacChuaCoVaiTro`). Báo trước để đối tác biết trước khi gõ; lập và lưu nháp vẫn được. Chỉ ẩn / hiện — máy chủ vẫn chặn.
+ */
+export const doiTacThieuVaiTro = (staff: PermissionHolder, benDatCuaToi: BenDatChon | null | undefined): boolean => holdsPartner(staff) && !benDatCuaToi;
 
 /** Điều ô tra hồ sơ khách theo SĐT gửi kèm đơn (`bookerPayload` của booker.ts): hoặc gắn hồ sơ có sẵn / bỏ gắn, hoặc tạo hồ sơ cá nhân mới. */
 export type BenDatGui = { bookerPartyId: string | null } | { newBooker: { fullName: string; phone: string } };
@@ -109,15 +125,30 @@ export function ghiChuTrangThai(d: Pick<ThuongMaiVanPhongDto, "duKien" | "chuaCh
   return null;
 }
 
-/** Câu cảnh báo (màu đỏ) của dòng thiếu mức. Chưa có mức: «Chưa có mức cho đối tác này — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Đã giao.»; lý do khác (hai mức xung đột…): giữ lý do của máy chủ rồi nối cùng đuôi. */
-export const canhBaoThieuMuc = (thieu: string | null): string | null => {
+/** Câu cảnh báo (màu đỏ) của dòng thiếu mức. `daChup` (đơn đã chụp mức lúc xác nhận): câu «cài mức mới không gỡ được…» thay đuôi «cần cài mức». Chưa có mức: «Chưa có mức cho đối tác này — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Khách đã trả đủ.»; lý do khác (hai mức xung đột…): giữ lý do của máy chủ rồi nối cùng đuôi. */
+export const canhBaoThieuMuc = (thieu: string | null, daChup = false): string | null => {
   if (thieu === null) return null;
   const dau = thieu === NHAN_LY_DO_THIEU.NO_RULE ? "Chưa có mức cho đối tác này" : thieu;
+  if (daChup) return `${dau} — ${CAU_THIEU_MUC_DA_CHUP}.`;
   return `${dau} — ${CAU_THIEU_MUC}; ${CAU_DON_BI_GIU}.`;
 };
 
 /** Tổng hoa hồng: null = chưa đủ mức (không bao giờ hiện 0 thay cho thiếu); 0 là số thật (đơn không người hưởng). `dinhDang` = hàm hiện tiền của nơi gọi. */
 export const chuTongHoaHong = (v: number | null, dinhDang: (n: number) => string): string => (v === null ? "Chưa đủ mức" : dinhDang(v));
+/**
+ * ADR-0161 Đ4: dòng có hoa hồng LỚN HƠN thành tiền của chính dòng thì giá đại lý ra số âm — màn đơn không hiện số âm mà nói thẳng mức đang vượt giá bán. DTO và sổ không đổi (chỉ chữ hiển thị).
+ * Bằng thành tiền không phải vượt (giá đại lý 0 là số thật).
+ */
+export const CAU_HOA_HONG_VUOT = "Hoa hồng vượt thành tiền — Kế toán xem lại";
+/** Ô «Giá đại lý» của một dòng (văn phòng và Đối tác dùng chung): vượt ⇒ câu cảnh báo; thiếu mức ⇒ «—»; còn lại là số của máy chủ. */
+export const chuGiaDaiLy = (d: { thanhTien: number; hoaHong: number | null; giaDaiLy: number | null }, dinhDang: (n: number) => string): string =>
+  dongVuotThanhTien(d) ? CAU_HOA_HONG_VUOT : d.giaDaiLy === null ? "—" : dinhDang(d.giaDaiLy);
+/**
+ * Ô «Tổng giá đại lý»: còn một dòng vượt thì câu cảnh báo dù tổng còn dương (số dương che mất dòng sai); vừa vượt vừa thiếu mức thì câu vượt thắng «Chưa đủ mức» (cụ thể hơn, cùng thứ tự với `chuGiaDaiLy`).
+ * Không dòng vượt: `null` = «Chưa đủ mức», còn lại là số của máy chủ.
+ */
+export const chuTongGiaDaiLy = (tong: { giaDaiLy: number | null }, dong: readonly { thanhTien: number; hoaHong: number | null }[], dinhDang: (n: number) => string): string =>
+  dong.some(dongVuotThanhTien) ? CAU_HOA_HONG_VUOT : tong.giaDaiLy === null ? "Chưa đủ mức" : dinhDang(tong.giaDaiLy);
 /** Ô hoa hồng trong bảng của Đối tác: null = Công ty chưa cài mức cho dòng đó. */
 export const chuHoaHongDoiTac = (v: number | null, dinhDang: (n: number) => string): string => (v === null ? "Chờ Công ty cài mức" : dinhDang(v));
 /** Khối nhà cung cấp (chỉ người có `supply.terms.view` nhận được từ máy chủ). */

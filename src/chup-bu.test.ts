@@ -40,7 +40,6 @@ function setup(): W {
     [KT, "0900000004", "Lan Kế Toán", ["ACCOUNTING"]], [SUPER, "0900000005", "Chủ", ["SUPER_ADMIN"]], [PT, "0900000006", "Đại Lý A", ["PARTNER"]],
     [LAI_KT, "0900000007", "Khoa Lai Kế", ["ACCOUNTING", "PARTNER"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-pt', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`pty-${PT}`, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Đại lý C', 1, ?, ?)").run(DAI_LY, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-dlc', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(DAI_LY, AT, AT);
   return w;
@@ -269,7 +268,7 @@ test("(A8) Ruling R-P13: đơn ĐẠI LÝ có dòng nhập tay — Chụp bù 20
   assert.equal((await danhSach(w)).json.don.some((d: { orderId: string }) => d.orderId === id), false, "đã có bản chụp ⇒ ra khỏi danh sách");
   await thuDu(w, id, 2_900_000);
   const giu = await lyDoGiu(w, id);
-  assert.deepEqual([giu?.ma, giu?.cau], ["terms_missing", "Thiếu mức hoa hồng / người bán cho Ca nô riêng — Kế toán ghi mức tay cho dòng này."], "câu giữ cố định của Task 3 (canChupBu = false)");
+  assert.deepEqual([giu?.ma, giu?.cau], ["terms_missing", "Thiếu mức hoa hồng / người bán cho Ca nô riêng — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này."], "câu giữ cố định của Task 3 (canChupBu = false)");
   assert.equal((await daGiao(w, id)).status, 409, "còn giữ trước khi ghi tay");
   chuaGiao(w, id);
   const t = await w.call("POST", `/api/orders/${id}/thuong-mai/${svc[1]}`, { as: KT, body: { lyDo: "ca nô riêng thoả thuận với đại lý C", hoaHong: { kieu: "RATE", tyLeBp: 500 }, nguoiBan: { partyId: congTy(w) } } });
@@ -288,7 +287,7 @@ test("(A8b) Ruling R-P13: đơn KHÁCH LẺ có dòng nhập tay (không lọt 0
   assert.deepEqual([tay!.commission_status, tay!.beneficiary_party_id, tay!.supply_status], ["NONE", null, "MISSING"]);
   await thuDu(w, id, 900_000);
   const giu = await lyDoGiu(w, id);
-  assert.deepEqual([giu?.ma, giu?.cau], ["terms_missing", "Thiếu mức hoa hồng / người bán cho Ca nô riêng — Kế toán ghi mức tay cho dòng này."]);
+  assert.deepEqual([giu?.ma, giu?.cau], ["terms_missing", "Thiếu mức hoa hồng / người bán cho Ca nô riêng — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này."]);
   const t = await w.call("POST", `/api/orders/${id}/thuong-mai/${svc[0]}`, { as: KT, body: { lyDo: "dòng nhập tay do Tour Đảo bán", nguoiBan: { partyId: congTy(w) } } });
   assert.equal(t.status, 200, t.text);
   const g = await daGiao(w, id);

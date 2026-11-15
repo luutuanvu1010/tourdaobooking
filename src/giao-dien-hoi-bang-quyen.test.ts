@@ -23,6 +23,12 @@ const NHOM_CAM = ["ADMIN", "SUPER_ADMIN", "HR", "SALES", "ACCOUNTING", "INTERN"]
 /** Ngoại lệ có lý do — mỗi dòng một câu hỏi danh tính hoặc luật mà ADR định nghĩa thẳng bằng mã (không phải ô MATRIX). */
 const CHO_PHEP: { file: string; khuon: RegExp; ma: string; lyDo: string }[] = [
   {
+    file: "src/shared/tra-sau.ts",
+    khuon: /^export const laDoiTacTraSau = .*who\.permissions\.includes\("PARTNER"\) && !who\.permissions\.includes\("ACCOUNTING"\);$/,
+    ma: "ACCOUNTING",
+    lyDo: "ADR-0198 Đ1 mục 1 (theo ADR-0196 mục 1) định nghĩa «đối tác» thẳng bằng MÃ quyền: giữ Đối tác và không giữ Kế toán. Chỉ đổi chữ hiển thị và lựa chọn sẵn của Trả sau, không quyết ai được làm gì (máy chủ vẫn hỏi bảng quyền)",
+  },
+  {
     file: "src/shared/maintenance.ts",
     khuon: /hasPermission\(\{ permissions \}, "SUPER_ADMIN"\)/,
     ma: "SUPER_ADMIN",

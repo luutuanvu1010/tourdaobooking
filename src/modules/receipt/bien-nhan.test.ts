@@ -6,9 +6,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CompanyDto, OrderDetailDto } from "../../shared/contracts.ts";
-import { dungBienNhan } from "./rules.ts";
+import { dungBienNhan, mauBienNhan } from "./rules.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { world, seedStaff, noiGioiHanNhap } from "../../../tests/audit/harness.mjs";
 
 const LA = "480017";
 const coLo = (json: string) => json.includes(LA) || json.includes("480.017");
@@ -31,12 +31,18 @@ test("NT-B1 (luật): số lạ 480017 ở mọi ô KHÔNG được phép của 
   const r = dungBienNhan(donBiMat(), COMPANY, { daTra: 300_000, conLai: 700_000 }, null);
   assert.equal(coLo(JSON.stringify(r)), false, JSON.stringify(r));
   assert.deepEqual(Object.keys(r).sort(), [
-    "company", "conLai", "createdAt", "customerEmail", "customerName", "customerNote", "customerPhone", "daTra", "discount", "huy", "orderCode", "phan", "services", "status", "subtotal", "total",
+    "company", "conLai", "createdAt", "customerEmail", "customerName", "customerNote", "customerPhone", "daTra", "discount", "huy", "mau", "orderCode", "phan", "services", "status", "subtotal", "total",
   ]);
-  assert.deepEqual(Object.keys(r.services[0]!).sort(), ["checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "items", "name", "pax", "pickupPlace", "pickupTime", "unit"]);
+  assert.deepEqual(Object.keys(r.services[0]!).sort(), ["checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "giaKhacCongBo", "items", "name", "pax", "pickupPlace", "pickupTime", "unit"]);
   assert.deepEqual(Object.keys(r.services[0]!.items[0]!).sort(), ["description", "detail", "lineTotal", "quantity", "unitPrice"]);
   assert.deepEqual([r.daTra, r.conLai, r.status.nhan], [300_000, 700_000, "Đã xác nhận"]);
-  assert.equal(dungBienNhan({ ...donBiMat(), deliveredAt: "x" }, COMPANY, { daTra: 1, conLai: 0 }, null).status.nhan, "Đã giao – đã thu đủ");
+  assert.equal(dungBienNhan({ ...donBiMat(), deliveredAt: "x" }, COMPANY, { daTra: 1, conLai: 0 }, null).status.nhan, "Khách đã trả đủ");
+});
+
+test("ADR-0166 câu 5: chữ khách đọc — đơn nháp (chưa gửi hay đã gửi kiểm vé) vẫn ghi «Chờ xác nhận» trên biên nhận / ảnh gửi khách, không đi theo nhãn nội bộ «Chưa xác nhận»", () => {
+  const r = dungBienNhan({ ...donBiMat(), status: "draft" }, COMPANY, { daTra: 0, conLai: 1_000_000 }, null);
+  assert.deepEqual([r.status.khoa, r.status.nhan], ["draft", "Chờ xác nhận"]);
+  assert.equal(dungBienNhan({ ...donBiMat(), status: "cancelled" }, COMPANY, { daTra: 0, conLai: 0 }, null).status.nhan, "Đã huỷ");
 });
 
 test("NT-B1 (route thật): GET /api/orders/:id/receipt — số lạ ở ô bí mật của đơn và SỔ (ghi chú lần thu, tên người thu) không lộ; đã trả / còn lại từ billing; khuôn quyền chi tiết đơn", async () => {
@@ -68,8 +74,59 @@ test("NT-B1 (route thật): GET /api/orders/:id/receipt — số lạ ở ô bí
   assert.equal((await w.call("GET", `/api/orders/${id}/receipt`, { as: HDV })).status, 200, "HDV đang phụ trách");
 });
 
+test("HD-02-DT (luật): mauBienNhan — bên đặt là đối tác HOẶC người lập là Đối tác thuần ⇒ doi_tac", () => {
+  assert.equal(mauBienNhan({ bookerLaDoiTac: false, nguoiLapDoiTacThuan: false }), "noi_bo");
+  assert.equal(mauBienNhan({ bookerLaDoiTac: true, nguoiLapDoiTacThuan: false }), "doi_tac");
+  assert.equal(mauBienNhan({ bookerLaDoiTac: false, nguoiLapDoiTacThuan: true }), "doi_tac");
+});
+test("HD-02-DT (luật): giaKhacCongBo — đơn giá ≠ giá danh mục hoặc dòng không có giá danh mục ⇒ true; khớp mọi dòng ⇒ false; DTO không mang giá danh mục", () => {
+  const khop = { ...donBiMat(), services: [{ ...donBiMat().services[0]!, items: [{ ...donBiMat().services[0]!.items[0]!, unitPrice: 500_000, catalogPrice: 500_000 }] }] };
+  assert.equal(dungBienNhan(khop, COMPANY, { daTra: 0, conLai: 1_000_000 }, null, false).services[0]!.giaKhacCongBo, false);
+  assert.equal(dungBienNhan(donBiMat(), COMPANY, { daTra: 0, conLai: 1_000_000 }, null, false).services[0]!.giaKhacCongBo, true); // catalogPrice = 480017
+  const tay = { ...khop, services: [{ ...khop.services[0]!, items: [{ ...khop.services[0]!.items[0]!, catalogPrice: null }] }] };
+  assert.equal(dungBienNhan(tay, COMPANY, { daTra: 0, conLai: 1_000_000 }, null, false).services[0]!.giaKhacCongBo, true);
+  assert.equal(coLo(JSON.stringify(dungBienNhan(donBiMat(), COMPANY, { daTra: 0, conLai: 1 }, null, true))), false);
+  assert.equal(dungBienNhan({ ...donBiMat(), bookerLaDoiTac: false }, COMPANY, { daTra: 0, conLai: 1 }, null, false).mau, "noi_bo");
+});
+
+test("HD-02-DT (route thật): mẫu theo người lập và bên đặt; văn phòng và đối tác mở cùng đơn ra cùng mẫu", async () => {
+  const w = world();
+  const SALES = "11111111-1111-4111-8111-111111111111";
+  const DT = "66666666-6666-4666-8666-666666666666";
+  const LAI = "66666666-6666-4666-8666-666666666669";
+  const DLA = "dda00000-0000-4000-8000-000000000001";
+  const AT = "2026-09-01T00:00:00.000Z";
+  seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An Bán", perms: ["SALES"] });
+  seedStaff(w.sqlite, { id: DT, phone: "0900000007", name: "Đối Tác", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: LAI, phone: "0900000009", name: "Lai", perms: ["SALES", "PARTNER"] });
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Đại lý A', 1, ?, ?)").run(DLA, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DLA}`, DLA, AT, AT);
+  const them = (n: number, staff: string, booker: string | null): string => {
+    const id = `99999999-9999-4999-8999-00000000010${n}`;
+    w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, booker_party_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
+      VALUES (?, ?, ?, ?, 'draft', 'Khách Giả', '0900000099', 1000000, 1000000, 1000000, ?, ?)`).run(id, `TD-DT-${n}`, staff, booker, AT, AT);
+    w.sqlite.prepare(`INSERT INTO order_service (pickup_choice, id, order_id, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, 'Vé', 'perPax', 2, '2026-10-01')`).run(`svc-dt${n}`, id);
+    w.sqlite.prepare(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total, catalog_code, catalog_price, pax_code)
+      VALUES (?, ?, ?, 'Người lớn', 2, 500000, 1000000, 'ZX1', 500000, 'adult')`).run(`it-dt${n}`, id, `svc-dt${n}`);
+    w.sqlite.prepare(`UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = ?`).run(AT, AT, id);
+    return id;
+  };
+  const a = them(1, DT, null), b = them(2, SALES, null), c = them(3, LAI, null), d = them(4, SALES, DLA);
+  const mau = async (id: string, as: string) => {
+    const r = await w.call("GET", `/api/orders/${id}/receipt`, { as });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.receipt.services[0].giaKhacCongBo, false);
+    return r.json.receipt.mau;
+  };
+  assert.equal(await mau(a, DT), "doi_tac");
+  assert.equal(await mau(a, SALES), "doi_tac", "văn phòng mở đơn của Đối tác thuần ra cùng mẫu");
+  assert.equal(await mau(b, SALES), "noi_bo");
+  assert.equal(await mau(c, SALES), "noi_bo", "tài khoản lai SALES+PARTNER không phải Đối tác thuần");
+  assert.equal(await mau(d, SALES), "doi_tac", "bên đặt là đại lý");
+});
+
 // ---- ADR-0109 QĐ4: biên nhận gửi khách in GIẢM GIÁ HIỆU LỰC (= min(giảm giá, tạm tính hiện hành) — số máy chủ tính bằng `effectiveMoney`, đọc khoá
-// `OrderDto.giamGiaHieuLuc`), để ba dòng Tạm tính − Giảm giá = Tổng cộng luôn cân. `ReceiptDto` giữ đúng 16 khoá (bài NT-B1 ở trên; khoá thứ 16 `phan` — sổ đại lý đợt 2 Task 8).
+// `OrderDto.giamGiaHieuLuc`), để ba dòng Tạm tính − Giảm giá = Tổng cộng luôn cân. `ReceiptDto` giữ đúng 17 khoá (bài NT-B1 ở trên; khoá thứ 16 `phan` — sổ đại lý đợt 2 Task 8; khoá thứ 17 `mau` — HD-02-DT).
 test("ADR-0109 (luật): biên nhận in giảm giá hiệu lực — đơn âm 500.000 / giảm 800.000 → [500.000, 500.000, 0]; bất biến tạm tính − giảm giá = tổng trên ba mẫu", () => {
   const am = dungBienNhan({ ...donBiMat(), subtotal: 500_000, discount: 800_000, total: 0, giamGiaHieuLuc: 500_000 }, COMPANY, { daTra: 200_000, conLai: 0 }, null);
   assert.deepEqual([am.subtotal, am.discount, am.total], [500_000, 500_000, 0]);
@@ -211,13 +268,13 @@ let seq = 0;
 const uuid = () => `93939393-9393-4939-8939-${String(++seq).padStart(12, "0")}`;
 type W = ReturnType<typeof world>;
 
-async function dung(o: { tenHdv?: string; tyLeMuaBp?: number; hoaHong?: { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number } } = {}): Promise<{ w: W; ct: string }> {
+async function dung(o: { tenHdv?: string; tyLeMuaBp?: number; hoaHong?: { kieu: "RATE"; tyLeBp: number } | { kieu: "PER_PAX"; moiKhach: number }; noiGioiHan?: boolean } = {}): Promise<{ w: W; ct: string }> {
   const w = world();
+  if (o.noiGioiHan) noiGioiHanNhap(w); // ADR-0161 Đ3: dấu «số lạ» để dò rò rỉ KHÔNG chia hết 1.000 — nới giới hạn nhập, giữ nguyên số và đáp án.
   for (const [id, phone, name, perms] of [
     [R_SALES, "0900000001", "An Bán", ["SALES"]], [R_HDV, "0900000002", o.tenHdv ?? "Nam HDV", ["FIELD"]], [R_SUPER, "0900000003", "Chủ", ["SUPER_ADMIN"]],
     [R_KT, "0900000005", "Lan Kế Toán", ["ACCOUNTING"]], [R_PT, "0900000008", "Hương Lễ Tân", ["PARTNER"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('ptr-bn-dl', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`pty-${R_PT}`, R_AT, R_AT);
   const hh = o.hoaHong ?? { kieu: "RATE", tyLeBp: 1000 };
   const m = await w.call("POST", "/api/pricing/hoa-hong", { as: R_KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", ...hh } });
   assert.equal(m.status, 201, m.text);
@@ -326,7 +383,7 @@ test("Task 8 «thu cho» rồi Kế toán đảo (route thật — M-1 người 
 
 test("Task 8 số lạ (route thật): a% 48,17% (4817), giá vốn 470.019, hoa hồng 460.023/khách, HDV «Nam Số Lạ 4817» thu — sau «Đã giao» biên nhận của Bán hàng, Đối tác, Kế toán không chứa số / tên nào; Kế toán THẤY chúng ở phần thương mại (có răng)", async () => {
   // 975.750 × 48,17% = 470.018,775 ⇒ làm tròn 470.019 (giá vốn); hoa hồng 460.023 đ/khách × 1 khách mỗi dòng. Không số tiền nào khác chứa số lạ.
-  const { w } = await dung({ tenHdv: "Nam Số Lạ 4817", tyLeMuaBp: 4817, hoaHong: { kieu: "PER_PAX", moiKhach: 460_023 } });
+  const { w } = await dung({ tenHdv: "Nam Số Lạ 4817", tyLeMuaBp: 4817, hoaHong: { kieu: "PER_PAX", moiKhach: 460_023 }, noiGioiHan: true });
   const id = await don(w, { owner: R_PT, dichVu: [VE_HT, { ten: "Vé tắm bùn i-resort", catalog: "IRESORT", khach: 1, donGia: 975_750 }] });
   await thuR(w, R_HDV, id, { soTien: 500_000, nguoiThu: "toi", ghiChu: "thu ở cảng 4817" });
   await thuR(w, R_KT, id, { soTien: 975_750, nguoiThu: { partyId: R_NCC } });
@@ -383,4 +440,25 @@ test("Giảm trừ sau khi giao, đơn hai người bán: trừ vào phần Tour
   assert.deepEqual(b.map((p) => [p.tong, p.giamTru, p.conLai]), [[0, 1_000_000, 0], [500_000, 100_000, 0]]);
   // Không có giảm trừ: y như cũ.
   assert.deepEqual(chiaPhanBienNhan(donTron(), COMPANY.name, banTron(), { daTra: 0 }).map((p) => p.giamTru), [undefined, undefined]);
+});
+
+// ADR-0182 Đ2 mục 1 (accepted 12/11): biên nhận cho khách của đơn đại lý (mẫu HD-02-DT) — giá bán lẻ, KHÔNG mã QR, KHÔNG số tài khoản / tên ngân hàng / thông tin chuyển khoản,
+// vì đại lý là người thu tiền khách. Khoá cả mô hình (DTO, không khoá hay giá trị nào mang QR / tài khoản) lẫn tệp vẽ ảnh (không nhập bộ vẽ QR, không chữ tài khoản).
+test("ADR-0182 Đ2 mục 1: biên nhận mẫu đối tác không có khối hay dòng nào mang QR, số tài khoản, tên ngân hàng", async () => {
+  const r = dungBienNhan(donBiMat(), COMPANY, { daTra: 0, conLai: 1_000_000 }, null, true);
+  assert.equal(r.mau, "doi_tac");
+  const khoa: string[] = [];
+  const duyet = (x: unknown): void => {
+    if (Array.isArray(x)) x.forEach(duyet);
+    else if (x && typeof x === "object") for (const [k, v] of Object.entries(x)) { khoa.push(k); duyet(v); }
+  };
+  duyet(r);
+  assert.deepEqual(khoa.filter((k) => /qr|bank|ngan.?hang|tai.?khoan|account|stk|chuyen.?khoan|vietqr|bin/i.test(k)), [], "không khoá nào về QR / tài khoản");
+  assert.doesNotMatch(JSON.stringify(r), /VietQR|0002010102|ngân hàng|số tài khoản|chuyển khoản/i, "không giá trị nào là chuỗi QR hay thông tin chuyển khoản");
+  const { readFileSync } = await import("node:fs");
+  for (const tep of ["web/confirmation-image.ts", "src/shared/order-confirmation.ts"]) {
+    const ma = readFileSync(new URL(`../../../${tep}`, import.meta.url), "utf8");
+    assert.doesNotMatch(ma, /from "\.\/qr-ve"|qr-thong-tin|veMaQr|dungAnhQr/, `${tep}: không nhập bộ vẽ / dựng QR`);
+    assert.doesNotMatch(ma, /Số tài khoản|Ngân hàng|Chủ tài khoản/, `${tep}: không in thông tin tài khoản`);
+  }
 });

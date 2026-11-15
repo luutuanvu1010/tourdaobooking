@@ -6,7 +6,7 @@
 //   (4) danh sách trắng: đúng khoá, không SĐT, không tên khách, không khoá nơi; lịch sử đơn không có dòng trip_*.
 // Dữ liệu độc nhất theo lần chạy (SĐT ngẫu nhiên, biển số theo Date.now()). Chuyến chạy NGÀY KIA (không vướng mốc 6 giờ). Tên khách, số giấy tờ GIẢ.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, VAI_DOI_TAC_MAC_DINH, call, catalogService, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const ADMIN = await session(ACCOUNTS.admin);
@@ -114,7 +114,7 @@ console.log("✓ (2) chuyến huỷ → không hiện trên đơn");
 // --- (3) Quyền từng vai + tài khoản lai ---
 const LAI_BAN_HDV = await taiKhoan(`Lai Bán HDV Xe Đơn ${duoi}`, { quyen: ["SALES", "FIELD"] });
 const LAI_HDV_TT = await taiKhoan(`Lai HDV Thực Tập Xe Đơn ${duoi}`, { quyen: ["FIELD", "INTERN"] });
-const DT = await taiKhoan(`Đối Tác Xe Đơn ${duoi}`, { quyen: ["PARTNER"] });
+const DT = await taiKhoan(`Đối Tác Xe Đơn ${duoi}`, { vai: [VAI_DOI_TAC_MAC_DINH] });
 const TT = await taiKhoan(`Thực Tập Xe Đơn ${duoi}`, { quyen: ["INTERN"] });
 for (const [ten, ck] of [["Kế toán", ACC], ["Quản trị", ADMIN], ["Toàn quyền", SUP], ["lai Bán hàng + HDV", LAI_BAN_HDV.cookie]]) {
   r = await call(ck, "GET", `/api/van-chuyen/xe-cua-don/${A.id}`);

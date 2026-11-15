@@ -27,6 +27,8 @@ const { ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, dungMoi
 
 const NHAN_SU = { name: "Nhân Sự Cột Cấp", phone: "0900000551", pin: "246551", permissions: ["HR"] };
 // Tài khoản có quyền Đối tác nhưng hồ sơ chưa mang vai nào được hưởng (dựng thẳng bằng SQL như các kịch bản tài khoản khác).
+// CỐ Ý không kèm `vai`: đây là ca «Chưa có vai trò». Từ ADR-0185, insertStaffSql từ chối dựng tài khoản này ⇒ kịch bản dừng lúc dựng cho tới khi có đường gieo
+// kiểu cũ cho Đối tác thuần (gieo kèm vai rồi đóng vai, khuôn gieoTaiKhoanLai({ kieuCu: true }) của tests/e2e/lib.mjs). Gắn vai thì ca này mất nghĩa (Đợt 3, 9/11).
 const CHUA_VAI = { name: "Đại Lý Chưa Vai", phone: "0900000552", pin: "246552", permissions: ["PARTNER"] };
 const TEN = { rieng: "Đại Lý Riêng", theoVai: "Đại Lý Theo Vai", chuaCap: "Đại Lý Chưa Cấp", haiVai: "Đại Lý Hai Vai" };
 const SDT = { rieng: "0900000553", theoVai: "0900000554", chuaCap: "0900000555", haiVai: "0900000556" };

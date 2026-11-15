@@ -1,0 +1,8 @@
+/* Xem trước bước 1 (KHÔNG phải mã thi công) */
+@media (max-width: 640px) {
+  .dai { flex-wrap: nowrap; gap: var(--s2); padding-top: var(--s1); padding-bottom: var(--s1); }
+  .dai-cau { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: var(--fs-step-3); line-height: 1.35; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .form-actions, #order-form .form-actions, .vc-bottom-bar, .vc-form-actions, .chan-dinh { position: static; }
+}

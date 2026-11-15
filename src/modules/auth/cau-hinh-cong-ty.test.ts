@@ -16,9 +16,12 @@ test("cấu hình đăng nhập: companyName = tên gọi, companyTaxCode = MST 
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.companyName, ho.display_name);
   assert.equal(r.json.companyTaxCode, ho.tax_code);
-  assert.deepEqual(Object.keys(r.json).sort(), ["companyName", "companyTaxCode", "maintenance", "passkey", "turnstileSiteKey", "version"]);
+  assert.deepEqual(Object.keys(r.json).sort(), ["companyName", "companyTaxCode", "maintenance", "passkey", "supportPhone", "turnstileSiteKey", "version"]);
   assert.deepEqual(r.json.maintenance, { on: false, endsAt: null });
-  assert.doesNotMatch(r.text, /hotline|phone|email|address/i, "chỉ tên + MST — không SĐT, email, địa chỉ");
+  // ADR-0202 (bổ sung 13/11, chủ «Có, nối luôn»): `supportPhone` = SĐT hỗ trợ công khai Toàn quyền lưu ở nội dung màn bảo trì — KHÔNG phải hotline / liên hệ của hồ sơ công ty.
+  const { supportPhone, ...conLai } = r.json;
+  assert.match(supportPhone, /^0\d{9}$/);
+  assert.doesNotMatch(JSON.stringify(conLai), /hotline|phone|email|address/i, "ngoài SĐT hỗ trợ: chỉ tên + MST — không SĐT, email, địa chỉ của hồ sơ công ty");
 });
 
 test("đọc hồ sơ lỗi → cấu hình VẪN 200 với đủ trường cũ, hai trường mới null (chân trang giữ chữ tĩnh; Turnstile/Face ID không chết theo)", async () => {

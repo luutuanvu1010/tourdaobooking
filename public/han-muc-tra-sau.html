@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Hạn mức trả sau — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
+<body data-rong="vua" data-title="Hạn mức trả sau" data-back="/account">
+<header id="topbar"></header>
+<div id="strips"></div>
+<main>
+  <!-- Danh sách Trả sau đang bật / đang nợ (ADR-0168, ADR-0172 Đ1 mục 3: màn này CHỈ XEM). Ô credit.limit.view (Kế toán, Quản trị, Toàn quyền), không Đối tác. Bật / đổi / ngừng ở màn Cấp độ đại lý. web/han-muc-tra-sau.ts dựng nội dung. -->
+  <h1>Hạn mức trả sau</h1>
+  <p class="muted">Đối tác đang được Trả sau hoặc còn nợ. Bật, đổi, ngừng Trả sau ở màn <a href="/cap-dai-ly">Cấp độ đại lý</a>.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="ok" class="alert ok" role="status" hidden></div>
+  <div id="hm-khung" hidden>
+    <section id="hm-bang-wrap" class="card table-wrap">
+      <table class="items">
+        <thead><tr><th>Đối tác</th><th>Trả sau</th><th>Đang nợ</th><th>Hạn mức khả dụng</th><th>Quá hạn</th><th></th></tr></thead>
+        <tbody id="hm-bang"></tbody>
+      </table>
+    </section>
+    <div id="hm-the" class="card-list"></div>
+    <p id="hm-rong" class="muted" hidden></p>
+    <section id="hm-don" class="card" hidden></section>
+  </div>
+</main>
+<script type="module" src="/js/han-muc-tra-sau.js"></script>
+</body></html>

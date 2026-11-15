@@ -6,6 +6,7 @@ import { can } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { orderCard } from "./order-card";
+import { dungBangDieuKhienTruong } from "./bang-dieu-khien-truong";
 import { initShell, showError } from "./shell";
 
 const NHOM: readonly [Num["nhom"], string][] = [["nen-chu", "Màu nền và chữ"], ["thanh", "Thanh tác vụ"], ["nut", "Nút"], ["chu", "Phông và cỡ chữ"]];
@@ -169,4 +170,5 @@ void (async () => {
   boBtn.onclick = () => { dangSua = { ...daLuu }; dungForm(); capNhat(); };
   macDinhBtn.onclick = () => { dangSua = {}; dungForm(); capNhat(); };
   try { await napLai(); } catch (err) { showError(errorEl, err instanceof ApiError ? err.message : "Không tải được cài đặt giao diện."); }
+  await dungBangDieuKhienTruong(byId("bdk"), (cau) => showError(errorEl, cau)); // ADR-0194 đợt 1: khối riêng, lỗi tải của nó không chặn phần màu
 })();

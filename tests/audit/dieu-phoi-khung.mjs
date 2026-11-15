@@ -122,6 +122,8 @@ export function setup(tuyChon = {}) {
   thanhTaiXe(w, `pty-${DRIVER}`);
   thanhTaiXe(w, `pty-${DRIVER2}`);
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 777000, 1, '2026-01-01', '2026-01-01')");
+  // ADR-0174: ZA1 mặc định Có vé để các bài kho vé không phải tự khai; bài của chính ô này truyền `chuaKhaiCoVe`.
+  if (!tuyChon.chuaKhaiCoVe) w.sqlite.exec("INSERT INTO ctl_service_ticket_flag (id, scope, code, has_ticket, valid_from_at, created_at, updated_at) VALUES ('co-ve-za1', 'SERVICE', 'ZA1', 1, '2026-01-01T00:00:00.000Z', '2026-01-01', '2026-01-01')");
   return w;
 }
 
@@ -167,7 +169,7 @@ export async function datCongTacAnKhach(w, bat) {
 }
 /**
  * Đơn ĐÃ XÁC NHẬN do tài khoản ĐỐI TÁC lập bằng ĐƯỜNG THẬT, công tắc «Ẩn thông tin khách» ĐANG ở trạng thái nào thì lập theo trạng thái đó (không đổi công tắc): đối tác
- * `POST /api/orders` (một chặng đón KHÔNG giờ) → `gui-don` (nhánh A, cờ «cần chốt giờ») → người xét Kế toán `quyet-dinh` CON_VE kèm giờ đón. `guiKhachGia: true` = trình duyệt cũ gửi
+ * `POST /api/orders` (một chặng đón KHÔNG giờ) → `gui-don` (nhánh A, cờ «cần chốt giờ») → người xét Quản trị (ADR-0142: Kế toán không còn ô xét duyệt) `quyet-dinh` CON_VE kèm giờ đón. `guiKhachGia: true` = trình duyệt cũ gửi
  * kèm danh sách khách giả (chỉ hợp lệ khi công tắc BẬT — TẮT thì máy chủ 403 vì đối tác không được gửi `passengers`). Trả như `don()`: `{ id, code, legId }`. `soNguoi` người lớn; giờ
  * đón mặc định 13:00 (qua mốc 6 giờ). Dấu miễn danh sách của đơn là điều máy chủ chụp lúc lập — hàm này không gieo dấu (trigger cấm UPDATE dấu).
  */
@@ -196,7 +198,7 @@ export async function donDoiTac(w, v = {}) {
   const moc = w.q("SELECT updated_at u FROM orders WHERE id = ?", o.id)[0].u;
   const yc = w.q("SELECT id FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", o.id)[0];
   assert.ok(yc, "chống bài rỗng: có yêu cầu đang mở");
-  const x = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ACC, body: { yeuCauId: yc.id, updatedAt: moc, ketQua: "CON_VE", gioDon: [{ legId, pickupTime: v.gio ?? "13:00" }] } });
+  const x = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { yeuCauId: yc.id, updatedAt: moc, ketQua: "CON_VE", gioDon: [{ legId, pickupTime: v.gio ?? "13:00" }] } });
   assert.equal(x.status, 200, x.text);
   assert.equal(w.q("SELECT status s FROM orders WHERE id = ?", o.id)[0].s, "confirmed");
   return { id: o.id, code: o.orderCode, legId };

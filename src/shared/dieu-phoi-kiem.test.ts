@@ -4,8 +4,8 @@
 // hạng lạ → CHẶN (không đoán).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungBanVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
-import { changXetTheoDon, khoaNguoiRanh, kiemKetThuc, lyDoNoiTra, lyDoThieuTen, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, laiXeThueBangTaiXeCongTy, noiLechCuaSuat, suatKhachDaDoi, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
+import type { ChangVao, ChinhSachVao, ChoPhepThieuVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungBanVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
+import { changXetTheoDon, khoaNguoiRanh, kiemKetThuc, lyDoNoiTra, lyDoThieuTen, kiemTaoSuaChuyen, giayToXeConThieu, kiemXep, kiemXuatBen, laiXeThueBangTaiXeCongTy, noiLechCuaSuat, suatKhachDaDoi, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
 import { MA_GIU, NUT_CAP_NHAT_KHACH, type LyDoGiu } from "./ly-do-giu.ts";
 import { MA_LUAT_PHA_LE } from "./dieu-phoi-kieu.ts";
 import { batDauSomNhatSauDoiGio } from "./moc-toi-thieu.ts";
@@ -219,7 +219,7 @@ const diemVao = (id: string, loai: "PICKUP" | "DROPOFF", placeKey: string, v: Pa
 const DIEM = [diemVao("d-1", "PICKUP", "L:noi-don-1"), diemVao("d-9", "DROPOFF", "L:noi-tra-9")];
 function xb(v: Partial<KiemXuatBenVao> = {}): KiemXuatBenVao {
   return {
-    chuyen: chuyenVao(), suat: BON_SUAT, chang: [chang()], suatMoCuaChang: BON_SUAT, diem: DIEM, chuyenKhac: [], chinhSach: CS, hangBang: HB, dieuKien: [],
+    chuyen: chuyenVao(), suat: BON_SUAT, chang: [chang()], suatMoCuaChang: BON_SUAT, diem: DIEM, chuyenKhac: [], chinhSach: CS, hangBang: HB, dieuKien: [], choPhepThieu: [],
     bayGioMs: LUC_XUAT_BEN, xuatBenMs: LUC_XUAT_BEN, ...v,
   };
 }
@@ -231,7 +231,7 @@ test("kiemXuatBen đạt: đủ điều kiện → dat, không lý do; gắn 2 t
   assert.deepEqual(r.ganTen, [{ suatId: "s3", personKey: "p3" }, { suatId: "s4", personKey: "p4" }]);
   assert.deepEqual(r.chup, {
     policyId: "cs-1", xeId: "xe-a", bienSo: "79B-123.45", soCho: 15, chuXePartyId: "cty", taiXePartyId: "tx-an", nghiDaDung: 30,
-    muc: [{ loai: "GPLX", vehicleDocumentId: null, personDocumentId: "gplx-an", documentTypeCode: "GPLX", licenseClassCode: "D1", expiryDate: "2027-12-31", ruleId: null }],
+    muc: [{ loai: "GPLX", vehicleDocumentId: null, personDocumentId: "gplx-an", documentTypeCode: "GPLX", licenseClassCode: "D1", expiryDate: "2027-12-31", ruleId: null , waiverId: null }],
   });
 });
 
@@ -299,6 +299,78 @@ test("kiemXuatBen điều kiện đang hiệu lực (theo cỡ xe): giấy tờ 
   assert.deepEqual(ma(hetHan.lyDo), ["DIEU_KIEN_GIAY_TO_XE"], "hết hạn trước giờ kết thúc (chuyến qua nửa đêm)");
 });
 
+// ---- ADR-0184: cho chạy dù thiếu giấy tờ ----------------------------------------------------------------------------------------------------------------
+const DK_REG: DieuKienVao = { id: "dk-reg", minCapacity: 1, subject: "VEHICLE", documentTypeCode: "REGISTRATION" };
+const DK_INS: DieuKienVao = { id: "dk-ins", minCapacity: 1, subject: "VEHICLE", documentTypeCode: "INSPECTION" };
+const DK_INS_LON: DieuKienVao = { id: "dk-ins-lon", minCapacity: 10, subject: "VEHICLE", documentTypeCode: "INSPECTION" };
+const CHO = (documentTypeCode: string, v: Partial<ChoPhepThieuVao> = {}): ChoPhepThieuVao => ({ id: `w-${documentTypeCode}`, xeId: "xe-a", documentTypeCode, ...v });
+const giayXe = (typeCode: string, expiryDate: string | null, rowId = `g-${typeCode}`) => ({ rowId, typeCode, expiryDate });
+
+test("giayToXeConThieu: thiếu hẳn (hạn null), hết hạn trước giờ kết thúc chuyến (hạn = hạn dòng cũ), còn hạn → không thiếu; mỗi loại một phần tử; điều kiện tài xế / cỡ xe không tính", () => {
+  const ketThuc = ms("2026-09-30", "11:00");
+  const dk: DieuKienVao[] = [DK_REG, DK_INS, DK_INS_LON, { id: "dk-tx", minCapacity: 1, subject: "DRIVER", documentTypeCode: "HEALTH_CHECK" }, { id: "dk-cam", minCapacity: 16, subject: "VEHICLE", documentTypeCode: "DRIVER_CAMERA" }];
+  assert.deepEqual(giayToXeConThieu(xe(), dk, ketThuc), [
+    { documentTypeCode: "REGISTRATION", expiryDate: null, ruleId: "dk-reg" },
+    { documentTypeCode: "INSPECTION", expiryDate: null, ruleId: "dk-ins" },
+  ], "xe 15 chỗ: bỏ điều kiện tài xế và điều kiện từ 16 chỗ; hai điều kiện Kiểm định gộp một");
+  const hetHan = giayToXeConThieu(xe({ giayTo: [giayXe("REGISTRATION", null), giayXe("INSPECTION", "2026-09-29")] }), dk, ketThuc);
+  assert.deepEqual(hetHan, [{ documentTypeCode: "INSPECTION", expiryDate: "2026-09-29", ruleId: "dk-ins" }], "Kiểm định hết hạn hôm trước; Đăng ký (không hạn) còn dùng");
+  assert.deepEqual(giayToXeConThieu(xe({ giayTo: [giayXe("INSPECTION", "2026-09-30")] }), [DK_INS], ketThuc), [], "hạn đúng ngày chạy vẫn còn");
+  assert.deepEqual(giayToXeConThieu(xe({ giayTo: [giayXe("INSPECTION", "2026-09-30")] }), [DK_INS], ms("2026-10-01", "01:00")), [{ documentTypeCode: "INSPECTION", expiryDate: "2026-09-30", ruleId: "dk-ins" }], "chuyến qua nửa đêm: hết hạn trước giờ kết thúc");
+});
+
+test("kiemXuatBen + ADR-0184: thiếu Đăng ký không cho phép → DIEU_KIEN_GIAY_TO_XE (Quản trị); thiếu Kiểm định → DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN (Quản trị, Toàn quyền)", () => {
+  const reg = kiemXuatBen(xb({ dieuKien: [DK_REG] }));
+  assert.deepEqual(ai(reg.lyDo), ["DIEU_KIEN_GIAY_TO_XE:QUAN_TRI"]);
+  assert.deepEqual(reg.choChayThieu, []);
+  const ins = kiemXuatBen(xb({ dieuKien: [DK_INS] }));
+  assert.deepEqual(ai(ins.lyDo), ["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN:QUAN_TRI_TOAN_QUYEN"]);
+  const tpl = kiemXuatBen(xb({ dieuKien: [{ id: "dk-tpl", minCapacity: 1, subject: "VEHICLE", documentTypeCode: "TPL_INSURANCE" }] }));
+  assert.deepEqual(ma(tpl.lyDo), ["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"]);
+  assert.equal(ins.chup.muc.every((m) => m.waiverId === null), true);
+});
+
+test("kiemXuatBen + ADR-0184: có dòng cho phép cùng xe → ĐẠT, choChayThieu có dòng, mục chụp DIEU_KIEN mang waiverId, không lý do giữ", () => {
+  for (const code of ["REGISTRATION", "INSPECTION"]) {
+    const r = kiemXuatBen(xb({ dieuKien: [code === "REGISTRATION" ? DK_REG : DK_INS], choPhepThieu: [CHO(code)] }));
+    assert.equal(r.dat, true, JSON.stringify(r.lyDo));
+    assert.deepEqual(r.lyDo, []);
+    assert.deepEqual(r.choChayThieu, [{ documentTypeCode: code, waiverId: `w-${code}` }]);
+    assert.deepEqual(r.chup.muc.filter((m) => m.loai === "DIEU_KIEN").map((m) => [m.documentTypeCode, m.waiverId, m.ruleId]), [[code, `w-${code}`, code === "REGISTRATION" ? "dk-reg" : "dk-ins"]]);
+  }
+});
+
+test("kiemXuatBen + ADR-0184 (Trọng tâm 3): dòng cho phép của XE KHÁC (đã đổi xe) → vẫn giữ; chỉ loại được cho phép mới qua", () => {
+  const khac = kiemXuatBen(xb({ dieuKien: [DK_INS], choPhepThieu: [CHO("INSPECTION", { xeId: "xe-cu" })] }));
+  assert.deepEqual(ma(khac.lyDo), ["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"]);
+  assert.deepEqual(khac.choChayThieu, []);
+  const mot = kiemXuatBen(xb({ dieuKien: [DK_REG, DK_INS], choPhepThieu: [CHO("REGISTRATION")] }));
+  assert.deepEqual(ma(mot.lyDo), ["DIEU_KIEN_GIAY_TO_XE_TOAN_QUYEN"], "cho phép Đăng ký, Kiểm định vẫn giữ (P4: từng loại)");
+  assert.deepEqual(mot.choChayThieu.map((x) => x.documentTypeCode), ["REGISTRATION"]);
+});
+
+test("kiemXuatBen + ADR-0184 (Trọng tâm 1): hai điều kiện cùng loại giấy → hai mục chụp cùng waiverId, choChayThieu một dòng", () => {
+  const r = kiemXuatBen(xb({ dieuKien: [DK_INS, DK_INS_LON], choPhepThieu: [CHO("INSPECTION")] }));
+  assert.equal(r.dat, true, JSON.stringify(r.lyDo));
+  assert.deepEqual(r.chup.muc.filter((m) => m.loai === "DIEU_KIEN").map((m) => [m.ruleId, m.waiverId]), [["dk-ins", "w-INSPECTION"], ["dk-ins-lon", "w-INSPECTION"]]);
+  assert.deepEqual(r.choChayThieu, [{ documentTypeCode: "INSPECTION", waiverId: "w-INSPECTION" }]);
+});
+
+test("kiemXuatBen + ADR-0184 (Trọng tâm 4): giấy đã được gia hạn → ĐẠT như thường, choChayThieu rỗng, không mục nào mang waiverId", () => {
+  const r = kiemXuatBen(xb({ dieuKien: [DK_INS], choPhepThieu: [CHO("INSPECTION")], chuyen: chuyenVao({ xe: xe({ giayTo: [giayXe("INSPECTION", "2027-01-01")] }) }) }));
+  assert.equal(r.dat, true, JSON.stringify(r.lyDo));
+  assert.deepEqual(r.choChayThieu, []);
+  assert.deepEqual(r.chup.muc.map((m) => [m.loai, m.waiverId]), [["GPLX", null], ["GIAY_TO_XE", null]]);
+});
+
+test("kiemXuatBen + ADR-0184: thiếu giấy của TÀI XẾ vẫn giữ dù có dòng cho phép (luật này chỉ cho giấy tờ XE)", () => {
+  const dkTx: DieuKienVao = { id: "dk-tx", minCapacity: 1, subject: "DRIVER", documentTypeCode: "HEALTH_CHECK" };
+  const r = kiemXuatBen(xb({ dieuKien: [dkTx], choPhepThieu: [CHO("HEALTH_CHECK")] }));
+  assert.deepEqual(ai(r.lyDo), ["DIEU_KIEN_GIAY_TO_TAI_XE:QUAN_TRI"]);
+  assert.deepEqual(r.choChayThieu, []);
+  assert.equal(r.chup.muc.some((m) => m.waiverId !== null), false);
+});
+
 test("kiemXuatBen: câu lý do không bao giờ chứa tên tài xế / khoá người; chỉ mã đơn, mã chuyến, biển số, con số", () => {
   const r = kiemXuatBen(xb({ chang: [chang({ nguoiCuaDon: ["p1"] })], chuyen: chuyenVao({ taiXe: taiXe("B", "2026-01-01") }) }));
   const text = JSON.stringify(r.lyDo);
@@ -340,6 +412,29 @@ test("TC-18 / Q-L3-B trongNgayChay: xuất bến SỚM (tối hôm trước, chu
   assert.equal(trongNgayChay({ ngayChay: "2026-09-30", trangThai: "RUNNING", xuatBenMs: ms("2026-09-29", "22:00") }, "2026-10-01"), false);
   // RUNNING mà thiếu giờ xuất bến (không xảy ra — CHECK của vc_trip) → không (không đoán)
   assert.equal(trongNgayChay({ ngayChay: "2026-09-29", trangThai: "RUNNING", xuatBenMs: null }, "2026-09-30"), false);
+});
+
+// ADR-0189 (Q-05): vế "đang chạy" có hạn — tới HẾT ngày VN kế sau ngày VN của giờ xuất bến. Chuyến quên bấm Kết thúc hết khung từ 00:00 ngày thứ hai sau ngày xuất bến.
+test("TC-18 / ADR-0189 trongNgayChay: chuyến quên Kết thúc — xuất bến D 12:35 → D, D+1 có; D+2, D+9 không; qua nửa đêm D+1 00:30 → tới hết D+2; xuất bến tối D−1 → chỉ D", () => {
+  const ms = (ngay: string, gio: string) => Date.parse(`${ngay}T${gio}:00+07:00`);
+  const D = "2026-10-20";
+  const c = { ngayChay: D, trangThai: "RUNNING" as const, xuatBenMs: ms(D, "12:35") };
+  assert.equal(trongNgayChay(c, D), true, "D");
+  assert.equal(trongNgayChay(c, "2026-10-21"), true, "D+1");
+  assert.equal(trongNgayChay(c, "2026-10-22"), false, "D+2: quên Kết thúc → hết khung");
+  assert.equal(trongNgayChay(c, "2026-10-29"), false, "D+9 (mục E-1 cũ: 9 ngày sau vẫn thấy) → hết khung");
+  // chuyến qua nửa đêm của ngày chạy D, xuất bến D+1 00:30 → trong khung tới hết D+2, ngoài từ D+3
+  const qua = { ngayChay: D, trangThai: "RUNNING" as const, xuatBenMs: ms("2026-10-21", "00:30") };
+  assert.equal(trongNgayChay(qua, "2026-10-21"), true);
+  assert.equal(trongNgayChay(qua, "2026-10-22"), true, "D+2: ngày kế sau ngày xuất bến");
+  assert.equal(trongNgayChay(qua, "2026-10-23"), false, "D+3");
+  // xuất bến tối D−1 (ngày chạy D): chỉ ngày D (vế "hôm nay là ngày chạy")
+  const som = { ngayChay: D, trangThai: "RUNNING" as const, xuatBenMs: ms("2026-10-19", "21:00") };
+  assert.equal(trongNgayChay(som, "2026-10-19"), false);
+  assert.equal(trongNgayChay(som, D), true);
+  assert.equal(trongNgayChay(som, "2026-10-21"), false);
+  // vế "hôm nay là ngày chạy" giữ nguyên, kể cả khi đã kết thúc
+  assert.equal(trongNgayChay({ ngayChay: D, trangThai: "ENDED", xuatBenMs: ms(D, "12:35") }, D), true);
 });
 
 // ---- ADR-0050 VK1-B (TC-48, luật thuần — khoá GIẢ): giữ NOI_HEN_DOI khi nơi hẹn đổi sau khi xếp; VK1-A (TC-47, I37): nghỉ đo từ giờ XẢY RA xuất bến -------

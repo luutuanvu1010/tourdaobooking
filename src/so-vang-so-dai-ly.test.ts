@@ -312,7 +312,6 @@ test("sổ vàng — SV-SK-04 bản đại lý (mã thật): bớt khách sau X�
     seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
   }
   const dl = `pty-${DL}`;
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('ptr-sk04', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(dl, AT, AT);
   const muc = await w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 5000 } });
   assert.equal(muc.status, 201, muc.text);
   const id = "97979797-9797-4979-8979-5c5c5c5c5c04";

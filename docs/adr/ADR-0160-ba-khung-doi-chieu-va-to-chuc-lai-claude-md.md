@@ -46,7 +46,7 @@ dieu_kien_dong: "Lần nâng ghim bỏ FRAMEWORK.md và kho luật gốc có ng�
 trang_thai: "open"
 ```
 
-Hạn này không có máy canh, dựa vào kỷ luật; mục nhắc ở `docs/BACKLOG.md` mục 62. FRAMEWORK §4.6 còn bảo nạp chi tiết bằng dòng nhập `@`; dự án không theo vế đó vì nhập bằng `@` không giảm ngữ cảnh (`CLAUDE.md` §6).
+Hạn này không có máy canh, dựa vào kỷ luật; mục nhắc ở `docs/BACKLOG.md` mục 73. FRAMEWORK §4.6 còn bảo nạp chi tiết bằng dòng nhập `@`; dự án không theo vế đó vì nhập bằng `@` không giảm ngữ cảnh (`CLAUDE.md` §6).
 
 **Đ7 — Hàng rào máy.** `src/claude-md-gioi-han.test.ts` thêm: giữ số mục và cụm chữ được trích; neo ba khung và bốn văn bản nền ở §2; Kernel 18 đúng một lần; mọi điều luật, ADR, nguyên lý, trụ cột được trích có thật; tệp con trong trần, được §10 trỏ tới, nằm trong gói trợ lý trên mây; luật `ask` cho tệp con. Mỗi hàng rào đã thấy đỏ thật, ghi ở `docs/SO-HANG-RAO.md`.
 
@@ -71,7 +71,7 @@ Hai chỗ AI tự chọn, chủ đọc và nhập ADR này là đồng ý, muố
 
 ## Hệ quả
 
-- ADR và đặc tả mới có thêm mục `## Đối chiếu`. **Chưa có máy chặn ADR thiếu mục này, dựa vào kỷ luật và người kiểm độc lập.** Sau khi ADR này được duyệt, thêm bài đỏ cho ADR số lớn hơn 0160 thiếu mục (`docs/BACKLOG.md` mục 62). Chưa làm ngay vì nó đổi quy trình của mọi ADR sau và có thể làm đỏ nhánh đang chạy song song.
+- ADR và đặc tả mới có thêm mục `## Đối chiếu`. **Chưa có máy chặn ADR thiếu mục này, dựa vào kỷ luật và người kiểm độc lập.** Sau khi ADR này được duyệt, thêm bài đỏ cho ADR số lớn hơn 0160 thiếu mục (`docs/BACKLOG.md` mục 73). Chưa làm ngay vì nó đổi quy trình của mọi ADR sau và có thể làm đỏ nhánh đang chạy song song.
 - `CLAUDE.md` vẫn là lời khuyên (`RANG_BUOC_NGOAI.md` A1). Khối ba khung chỉ có sức ép khi đọc; bài kiểm chỉ giữ neo và trích dẫn, không giữ chất lượng lập luận.
 - Bẫy theo vùng không tự tới khi tìm rộng bằng `grep -r`; các lệnh shell khác và phiên trên web chưa thử (`RANG_BUOC_NGOAI.md` A4). Vì vậy đầu `CLAUDE.md` giữ lời dặn cũ: làm bằng lệnh shell thì tự mở tệp.
 - **Tờ khai Kernel 18 chưa qua máy kiểm:** chạy `kiem-kernel-18.mjs` của kho luật gốc ngày 2026-11-03 cho KHÔNG ĐẠT, hai lỗi quá hạn 31/10 ở dòng 12, 13. Dòng 13 chép lệch ngày của `docs/quyen-hoan.json` (HC-4.2 đã gia hạn tới 30/11) nên đã bỏ ngày chép lại. Dòng 12 (`PH-TDS-01`) quá hạn thật, chờ chủ quyết: làm hay gia hạn có lý do. Tờ khai vẫn chưa có người duyệt.
@@ -84,3 +84,7 @@ Hai chỗ AI tự chọn, chủ đọc và nhập ADR này là đồng ý, muố
 - **Theo Anthropic:** giữ tệp ngắn; đưa chi tiết theo vùng ra tệp nạp đúng lúc; giữ ở tệp chính những chỗ đã phải sửa hai lần; `CLAUDE.md` là ngữ cảnh, muốn chắc phải có hook hay bài kiểm. Anthropic không có khuyến nghị đưa triết lý vào `CLAUDE.md`, nên khối này giữ ngắn và là chỗ lệch nhẹ có chủ ý theo lệnh chủ.
 - **Kernel 18:** không chạm thành phần nào của Nền tảng. Sửa tờ khai dòng 13 cho khớp sổ.
 - **Chọn:** khối ngắn cộng bảng đủ, giữ số mục, tệp con, ngoại lệ có hạn: đúng ý cả bốn nguồn ở phần chính, lệch 4 KB của Framework có ghi và có hạn.
+
+## Lịch sử
+
+- 2026-11-15: cập nhật theo bản chính `538f51ade` trên nhánh `worktree-rut-gon-claude-md-2`; vẫn là đề xuất, chờ chủ duyệt.

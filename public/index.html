@@ -1,7 +1,8 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Trang chủ — Island Booking System</title></head>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Trang chủ — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
 <body class="trang-chu">
 <header id="topbar"></header>
+<div id="strips"></div>
 <main>
   <!-- Bản mẫu không có H1 to trên trang (khung có sẵn của trang này chưa có thanh tiêu đề như bản mẫu sidebar — đó là việc của Đợt D khác) — h1 chỉ còn phục vụ trình đọc màn hình, ẩn khỏi mắt ở MỌI khổ (cùng kỹ thuật với .detail-head h1). -->
   <h1 class="visually-hidden">Trang chủ</h1>
@@ -14,7 +15,7 @@
     <nav id="dash-loi-tat-luoi" class="dash-loi-tat-luoi" aria-label="Lối tắt"></nav>
   </section>
   <!-- Dải việc gấp (chỉ máy tính ≥641px, Phương án A 31/10): hiện khi có đơn chờ xác nhận gấp (đi hôm nay / ngày mai, hoặc chờ quá 2 giờ — src/shared/viec-gap.ts), ẩn hẳn khi không.
-       Chỉ người giữ ô xét duyệt xác nhận đơn. web/home.ts dựng nội dung CÙNG LÚC với #dash-grid nên không nhảy bố cục sau khi trang đã vẽ. Nút «Xác nhận ngay» là nút san hô duy nhất của màn. -->
+       Chỉ người giữ ô xét duyệt xác nhận đơn. web/home.ts dựng nội dung CÙNG LÚC với #dash-grid nên không nhảy bố cục sau khi trang đã vẽ. Nút «Xem đơn chờ xác nhận» là nút san hô duy nhất của màn. -->
   <section id="dash-gap" class="dash-gap" aria-label="Việc gấp" hidden></section>
   <!-- Trang chủ điện thoại (≤640px — bản vẽ "Trang chu dien thoai.dc.html" 1a–1g, lưới 4 ô theo bản 1.73): ô tìm đơn nổi trên dải đầu trang, lưới ô chức năng, khối số liệu 2×2.
        Máy tính ẩn ba khối này (CSS) — lời chào của máy tính ở #dash-dai, số liệu ở #dash-so-mt. Lời chào / chuông / trợ giúp của dải đầu trang nằm trong #topbar (web/home.ts chèn sau initShell). -->

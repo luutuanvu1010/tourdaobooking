@@ -1,5 +1,6 @@
-import { auditStatement, type AuditAction } from "../audit";
+import { auditStatement, nguoiLam, type AuditAction } from "../audit";
 import type { CatalogSyncStateDto } from "../../shared/contracts";
+import type { PermissionHolder } from "../../shared/permissions";
 import type { Prices } from "../../shared/order-lines";
 import type { CatalogRecord, Override, SyncPlan } from "./rules";
 import { summarizePlan } from "./rules";
@@ -114,7 +115,7 @@ const CHUNK = 40;
 export async function applySync(
   db: D1Database,
   plan: SyncPlan,
-  meta: { at: string; actorId: string | null; itemCount: number; problems: { row: number; message: string }[] },
+  meta: { at: string; nguoiPhat: PermissionHolder; itemCount: number; problems: { row: number; message: string }[] },
 ): Promise<void> {
   const stmts: D1PreparedStatement[] = [];
   const upsert = (i: CatalogInput) =>
@@ -141,7 +142,7 @@ export async function applySync(
       )
       .bind(meta.at, meta.at, meta.itemCount, JSON.stringify(meta.problems.slice(0, 50))),
     ...(changed > 0
-      ? [auditStatement(db, { staffId: meta.actorId, action: "catalog_synced", at: meta.at, targetType: "catalog", detail: summarizePlan(plan) })]
+      ? [auditStatement(db, { ...nguoiLam(meta.nguoiPhat), action: "catalog_synced", at: meta.at, targetType: "catalog", detail: summarizePlan(plan) })] // người bấm hoặc tác nhân (ADR-0186)
       : []),
   ]);
 }

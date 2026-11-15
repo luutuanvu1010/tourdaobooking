@@ -43,10 +43,36 @@ const MUST_DENY = [
   "curl -sSX DELETE https://booking.tourdao.vn/api/orders/1",
   "E2E_BASE_URL=https://booking.tourdao.vn node tests/e2e/orders.mjs",
   "gh pr merge 12",
+  // ADR-0162 Task 5: lệnh lên chính thức, làm mới Development, và mọi đường chạm wrangler Development/R2 ngoài ba lệnh chỉ-đọc/local.
+  "npm run len-chinh-thuc -- x",
+  "npm run lam-moi-dev",
+  "pnpm len-chinh-thuc",
+  "node scripts/len-chinh-thuc.mjs x",
+  "node ./scripts/lam-moi-dev.mjs",
+  "CI=1 npm run len-chinh-thuc",
+  "npm run len-dev && npm run len-chinh-thuc -- x",
+  "wrangler deploy --config wrangler.dev.jsonc",
+  "npx wrangler secret put X --config wrangler.dev.jsonc",
+  'wrangler d1 execute tourdao-sales-dev-db --remote --command "SELECT 1"',
+  "npx wrangler r2 object put tourdao-sales-ho-so/x --file y --remote",
+  "npx wrangler r2 object get tourdao-sales-ho-so/x --remote",
+  "npx wrangler r2 bucket create x",
+  "npx wrangler r2 bucket dev-url enable tourdao-sales-ho-so",
+  "npx wrangler r2 bucket domain add tourdao-sales-ho-so --domain x.tourdao.vn",
+  "npx wrangler r2 bucket cors set tourdao-sales-ho-so --file c.json",
+  "npx wrangler r2 bucket lifecycle add tourdao-sales-ho-so",
+  "npx wrangler r2 bulk put tourdao-sales-ho-so --filename a.json",
 ];
 
 const MUST_ALLOW = [
   "git status",
+  "npm run len-dev",
+  "node scripts/len-dev.mjs",
+  "cat scripts/len-chinh-thuc.mjs",
+  "git add scripts/len-chinh-thuc.mjs",
+  "npx wrangler r2 object put x/y --file z --local",
+  "npx wrangler r2 bucket list",
+  "npx wrangler r2 bucket info x",
   "git commit -F msg.txt",
   'git commit -m "không dùng git push ở đây"',
   "git commit -m \"$(cat <<'EOF'\nTiêu đề\n\nThân có nhắc git push và wrangler deploy.\nEOF\n)\"",
@@ -167,7 +193,9 @@ test("guard-remote: bài đo giờ chạy RIÊNG trong npm test (chủ lần 15)
   const pkg = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
   assert.equal(pkg.scripts.test, "node scripts/chay-test.mjs", "npm test phải đi qua kịch bản tách bài đo giờ");
   const kb = read("scripts/chay-test.mjs");
-  assert.match(kb, /const TEP_DO_GIO = "src\/claude-guard-thoi-gian\.test\.ts";/);
+  // Tên tệp đo giờ: MỘT nguồn ở scripts/kiem-phan.mjs (dùng chung với bảng chia phần trên GitHub, ADR-0179).
+  assert.match(kb, /import \{ danhSachTest, TEP_DO_GIO \} from "\.\/kiem-phan\.mjs";/);
+  assert.match(read("scripts/kiem-phan.mjs"), /export const TEP_DO_GIO = "src\/claude-guard-thoi-gian\.test\.ts";/);
   assert.match(kb, /\["--test", "--test-concurrency=1", TEP_DO_GIO\]/, "bước 2 chạy tệp đo giờ một mình");
   assert.match(kb, /process\.exit\(ma\(b1\) !== 0 \? ma\(b1\) : ma\(b2\)\)/, "một trong hai bước đỏ ⇒ thoát ≠ 0");
   const doGio = read("src/claude-guard-thoi-gian.test.ts");
@@ -201,6 +229,33 @@ test("settings.json: khai móc PreToolUse cho Bash và luật deny (lớp hai, P
   for (const cmd of ["npm run day-len", "npm run trien-khai", "node scripts/day-len.mjs", "node scripts/trien-khai.mjs"]) {
     for (const rule of [`Bash(${cmd})`, `Bash(${cmd} *)`]) assert.ok(deny.includes(rule), `thiếu luật deny: ${rule}`);
   }
+});
+
+test("guard-remote: lệnh cấm gõ qua công cụ Terminal của ứng dụng cũng bị chặn; lệnh thường và công cụ Terminal khác thì im lặng", () => {
+  const run = (tool_name: string, tool_input: Record<string, string>) =>
+    spawnSync("node", [".claude/hooks/guard-remote.mjs"], { cwd: ROOT, input: JSON.stringify({ hook_event_name: "PreToolUse", tool_name, tool_input, cwd: ROOT }), encoding: "utf8" });
+  for (const command of [...MUST_DENY, "git merge main", "git merge --no-ff nhanh-khac"]) {
+    const r = run("mcp__terminal__run_in_terminal", { command });
+    assert.equal(r.status, 0);
+    assert.equal(JSON.parse(r.stdout || "{}").hookSpecificOutput?.permissionDecision, "deny", `phải chặn qua Terminal: ${command}`);
+  }
+  for (const command of ["npm test", "git status", "npm run dev"]) assert.equal(run("mcp__terminal__run_in_terminal", { command }).stdout, "", `chặn nhầm qua Terminal: ${command}`);
+  assert.equal(run("mcp__terminal__run_in_terminal", {}).stdout, "", "thiếu command thì im lặng");
+  assert.equal(run("mcp__terminal__read_terminal", { tab_id: "0" }).stdout, "", "công cụ đọc Terminal không bị xét");
+});
+
+test("settings.json: đường Terminal của ứng dụng có đủ hai lớp (móc guard-remote + luật deny cả công cụ)", () => {
+  const s = JSON.parse(read(".claude/settings.json"));
+  const nhom = (s.hooks?.PreToolUse ?? []).filter((h: { matcher: string }) => h.matcher === "mcp__terminal__run_in_terminal").flatMap((h: { hooks: { command: string }[] }) => h.hooks);
+  assert.ok(nhom.some((h: { command: string }) => h.command.includes(".claude/hooks/guard-remote.mjs")), "thiếu móc guard-remote cho công cụ Terminal");
+  assert.ok((s.permissions?.deny ?? []).includes("mcp__terminal__run_in_terminal"), "thiếu luật deny cho công cụ Terminal");
+});
+
+test("trợ lý nguoi-kiem-doc-lap: chạy trên bản sao riêng, không có công cụ sửa tệp", () => {
+  const dau = read(".claude/agents/nguoi-kiem-doc-lap.md").split("---")[1] ?? "";
+  assert.match(dau, /^isolation: worktree$/m, "thiếu isolation: worktree");
+  const congCu = (dau.match(/^tools: (.*)$/m)?.[1] ?? "").split(",").map((x) => x.trim());
+  for (const cam of ["Edit", "Write", "MultiEdit", "NotebookEdit"]) assert.ok(!congCu.includes(cam), `người kiểm không được có công cụ ${cam}`);
 });
 
 test("guard-remote: script móc thật trả deny cho `npm run day-len` và `node scripts/trien-khai.mjs`", () => {

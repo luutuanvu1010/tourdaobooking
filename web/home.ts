@@ -466,7 +466,7 @@ let soXemLaiGanNhat: number | null = 0;
 /** Tín hiệu quá hạn của hai khối chi tiết (lần tải đầy đủ gần nhất) — đưa vào phụ đề «Đang chờ bạn» (vòng 2). */
 let quaHanGanNhat: { doiChieu: number | null; thuTruoc: { canChi: number; qua7Ngay: number; sapHetHan: number; conNguoiGiu: number } | null } = { doiChieu: null, thuTruoc: null };
 /** Hai nguồn ngoài (điều chỉnh công nợ, góp ý) lần tải gần nhất; chỉ tải khi khối "Việc của bạn" thật sự hiện (điện thoại ẩn nó) và chưa có số, làm mới lặng lẽ dùng lại. */
-let soNgoaiGanNhat: { dieuChinh?: number | null; gopY?: number | null } = {};
+let soNgoaiGanNhat: { dieuChinh?: number | null; gopY?: number | null; tuGhi?: number | null } = {};
 let ngoaiDaTai = false;
 /** Khối máy tính có đang hiện không — hỏi chính trình duyệt (`offsetParent` null khi CSS ẩn), cùng cách web/shell.ts nạp huy hiệu thanh bên; không chép mốc 641px sang JS. */
 const khoiHien = (): boolean => byId("dash-dai").offsetParent !== null;
@@ -555,7 +555,7 @@ function datDaiGap(staff: Staff, ds: readonly Api.DonChoXacNhanDto[] | null | un
   replaceChildren(
     el,
     h("div", { class: "dash-gap-chu" }, h("p", { class: "dash-gap-cau" }, g.cau), g.phu ? h("p", { class: "dash-gap-phu" }, g.phu) : false),
-    h("a", { class: "btn btn-accent", href: "/cho-xac-nhan" }, "Xác nhận ngay"),
+    h("a", { class: "btn btn-accent", href: "/cho-xac-nhan" }, "Xem đơn chờ xác nhận"),
   );
   el.hidden = false;
 }
@@ -796,7 +796,7 @@ function oSo(iconName: IconName, nhan: string, phamVi: PhamVi, giaTri: string, p
   );
 }
 
-/** Thứ tự bản vẽ: Còn thiếu · Doanh thu của tôi · Chờ xác nhận · Chưa phụ trách — cùng số với thẻ số liệu máy tính (renderSoMayTinh), số rút gọn. */
+/** Thứ tự bản vẽ: Còn thiếu · Doanh thu của tôi · Chờ xác nhận · Chưa phụ trách — cùng số với thẻ số liệu máy tính (renderSoMayTinh), tiền viết đủ kiểu «2.800.000 ₫» (G-06d). */
 function renderSoDienThoai(staff: Staff, data: Api.DashboardResponse, unpaid: Api.UnpaidSummaryResponse | null): void {
   const rev = data.revenueWeek;
   // Hai ô «Của tôi» chỉ cho người lập được đơn (coOSoCuaToi, chủ 28/10); Kế toán còn hai ô «Còn thiếu», «Chưa phụ trách» trên một hàng.
@@ -804,11 +804,11 @@ function renderSoDienThoai(staff: Staff, data: Api.DashboardResponse, unpaid: Ap
   replaceChildren(
     byId("dash-so"),
     unpaid
-      ? oSo("money", "Còn thiếu", PHAM_VI_O_TRANG_CHU.conThieu, `${vndShort(unpaid.total)} ₫`, unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn`, "dash-so-thieu")
+      ? oSo("money", "Còn thiếu", PHAM_VI_O_TRANG_CHU.conThieu, vnd(unpaid.total), unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn`, "dash-so-thieu")
       : oSo("money", "Còn thiếu", PHAM_VI_O_TRANG_CHU.conThieu, "—", "Chưa tải được số"),
     ...(cuaToi
       ? [
-          oSo("chart", "Doanh thu của tôi", PHAM_VI_O_TRANG_CHU.doanhThu, `${vndShort(rev.total)} ₫`, `Tuần này · ${rev.count} đơn`, "dash-so-doanh-thu"),
+          oSo("chart", "Doanh thu của tôi", PHAM_VI_O_TRANG_CHU.doanhThu, vnd(rev.total), `Tuần này · ${rev.count} đơn`, "dash-so-doanh-thu"),
           oSo("doc-check", "Đơn nháp", PHAM_VI_O_TRANG_CHU.donNhap, String(data.draftCount), "Nháp của bạn, chưa xác nhận"),
         ]
       : []),
@@ -912,7 +912,15 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
     const layDonCho = canTai.includes("donCho")
       ? api<Api.DonChoXacNhanResponse>("/api/orders/cho-xac-nhan").then((r) => r.don, () => null)
       : Promise.resolve(undefined);
-    const [data, review, unpaid, ngoai, dsDonCho, soDoiChieu, soThuTruoc] = await Promise.all([
+    // ADR-0142 Đ6: thẻ «Đơn chưa có người phụ trách». Số = đơn hiện được + đơn chờ xác nhận chỉ là con số (Kế toán). Lỗi → null ("—" + Thử lại), không phải 0.
+    const layChuaBanHang = canTai.includes("chuaBanHang")
+      ? api<Api.ChuaCoBanHangResponse>("/api/orders/chua-co-ban-hang").then((r) => r.don.length + r.soDonChoXacNhanAn, () => null)
+      : Promise.resolve(undefined);
+    // ADR-0184: thẻ «Xe thiếu giấy tờ — đã cho chạy» (chỉ người có ô trip.override). Lỗi → null ("—" + Thử lại), không phải 0.
+    const layChoChayThieu = canTai.includes("choChayThieu")
+      ? api<Api.ChoChayThieuDemResponse>("/api/van-chuyen/cho-chay-thieu/dem").then((r) => r.count, () => null)
+      : Promise.resolve(undefined);
+    const [data, review, unpaid, ngoai, dsDonCho, soDoiChieu, soThuTruoc, soChuaBanHang, soChoChayThieu] = await Promise.all([
       layDashboard(),
       lamMoi ? undefined : loadReview(staff, taiMoi || soXemLaiGanNhat === null),
       api<Api.UnpaidSummaryResponse>("/api/ledger/unpaid-summary").catch(() => null), // sổ tiền lượt 1: ô "Còn thiếu tiền" rời dashboard của orders
@@ -921,11 +929,15 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
             canTai.includes("dieuChinh") ? api<Api.YeuCauDieuChinhListResponse>("/api/ledger/adjustment-requests").then((r) => r.choDuyetChoToi) : undefined,
             // Trùng một lời gọi với feedbackBadge() của shell.ts (nó trả mine+queue, không export queue; đổi sẽ động byte gói orders) — chấp nhận, chỉ Toàn quyền.
             canTai.includes("gopY") ? api<Api.FeedbackBadgeResponse>("/api/feedback/badge").then((r) => r.queue) : undefined,
+            // ADR-0187 Đ3 mức (a): số dòng tiền tự ghi đơn mình lập chưa soát — chỉ người soát được (`nguonCanTai`).
+            canTai.includes("tuGhi") ? api<Api.TuGhiDemResponse>("/api/ledger/tu-ghi/dem").then((r) => r.chuaSoat) : undefined,
           ])
         : null,
       layDonCho,
       taiDoiChieu(staff, lamMoi), // số cho dòng «Chờ đối chiếu» (khối chi tiết cũ vẫn dựng ở đây); cổng giữ nguyên
       taiThuTruoc(staff, lamMoi),
+      layChuaBanHang,
+      layChoChayThieu,
     ]);
     const donCho = dsDonCho === undefined ? undefined : dsDonCho === null ? null : { count: dsDonCho.length, quaHan: dsDonCho.filter((d) => d.quaHan).length };
     datDaiDonChoDienThoai(donCho);
@@ -942,13 +954,13 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
       quaHanGanNhat = { doiChieu: review.alerts?.doiChieu?.count ?? null, thuTruoc: review.alerts?.thuTruoc ?? null };
     }
     if (ngoai) {
-      soNgoaiGanNhat = { dieuChinh: soTuKetQua(ngoai[0]), gopY: soTuKetQua(ngoai[1]) };
-      ngoaiDaTai = soNgoaiGanNhat.dieuChinh !== null && soNgoaiGanNhat.gopY !== null; // có nguồn lỗi thì lần làm mới sau thử lại
+      soNgoaiGanNhat = { dieuChinh: soTuKetQua(ngoai[0]), gopY: soTuKetQua(ngoai[1]), tuGhi: soTuKetQua(ngoai[2]) };
+      ngoaiDaTai = soNgoaiGanNhat.dieuChinh !== null && soNgoaiGanNhat.gopY !== null && soNgoaiGanNhat.tuGhi !== null; // có nguồn lỗi thì lần làm mới sau thử lại
     }
     // Dựng khối "Việc của bạn" SAU renderReview (thẻ "Cần xem lại" cuộn tới khối đó nên khối phải hiện cùng nguồn) và TRƯỚC dòng tóm tắt (nó lấy câu từ thẻ).
     const nguon: NguonSo = {
-      nhap: data.draftCount, chuaPhuTrach: data.unassignedCount, conThieu: unpaid, xemLai: soXemLaiGanNhat,
-      dieuChinh: soNgoaiGanNhat.dieuChinh, gopY: soNgoaiGanNhat.gopY, donCho, doiChieu: soDoiChieu, thuTruoc: soThuTruoc, doiChieuQuaHan: quaHanGanNhat.doiChieu, thuTruocChiTiet: quaHanGanNhat.thuTruoc,
+      nhap: data.draftCount, chuaPhuTrach: data.unassignedCount, chuaBanHang: soChuaBanHang, choChayThieu: soChoChayThieu, conThieu: unpaid, xemLai: soXemLaiGanNhat,
+      dieuChinh: soNgoaiGanNhat.dieuChinh, gopY: soNgoaiGanNhat.gopY, tuGhi: soNgoaiGanNhat.tuGhi, donCho, doiChieu: soDoiChieu, thuTruoc: soThuTruoc, doiChieuQuaHan: quaHanGanNhat.doiChieu, thuTruocChiTiet: quaHanGanNhat.thuTruoc,
     }; // `chuyenHomNay` không còn nguồn: «Đơn đi hôm nay» là chính thẻ Chuyến đón (Phương án A)
     // Dải lỗi chung (thiếu số "Còn thiếu"): máy tính mà thẻ "Đơn còn thiếu tiền" đang hiện "—" + Thử lại thì thẻ là chỗ thử lại DUY NHẤT (không cộng nút ở dải); điện thoại (thẻ ẩn) vẫn dùng dải.
     baoLoi(unpaid || (khoiHien() && dongCuaBan(staff, nguon).some((t) => t.khoa === "conThieu")) ? null : LOI_SO_LIEU);

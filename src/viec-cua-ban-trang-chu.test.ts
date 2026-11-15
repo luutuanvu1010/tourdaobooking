@@ -50,9 +50,9 @@ test("thẻ «Đang chờ bạn» có chỗ trong cột phụ, đủ neo cuộn,
   assert.doesNotMatch(home, /href: "\/order-form" \}, "Tạo đơn"/, "nút «Tạo đơn» san hô của trạng thái rỗng đã bỏ");
 });
 
-test("luật khung 7: nút san hô (btn-accent) duy nhất của Trang chủ máy tính là «Xác nhận ngay» của dải việc gấp", () => {
+test("luật khung 7: nút san hô (btn-accent) duy nhất của Trang chủ máy tính là «Xem đơn chờ xác nhận» của dải việc gấp", () => {
   assert.equal([...home.matchAll(/btn btn-accent/g)].length, 1);
-  assert.match(home, /h\("a", \{ class: "btn btn-accent", href: "\/cho-xac-nhan" \}, "Xác nhận ngay"\)/);
+  assert.match(home, /h\("a", \{ class: "btn btn-accent", href: "\/cho-xac-nhan" \}, "Xem đơn chờ xác nhận"\)/);
 });
 
 test("dải việc gấp: luật ở viec-gap.ts, dựng cùng lúc với lưới (không nhảy bố cục), cập nhật theo đồng hồ phút, không giật tiêu điểm", () => {
@@ -148,4 +148,12 @@ test("khối số máy tính chỉ còn ô Doanh thu; điện thoại vẫn đ�
   assert.match(mt, /Doanh thu của tôi/);
   const dt = home.slice(home.indexOf("function renderSoDienThoai"), home.indexOf("const LOI_SO_LIEU"));
   for (const nhan of ["Còn thiếu", "Doanh thu của tôi", "Đơn nháp", "Chưa phụ trách"]) assert.ok(dt.includes(`"${nhan}"`), nhan);
+});
+
+test("G-06(d): ô số Trang chủ điện thoại viết tiền đủ (vnd), không rút gọn vndShort; hai ô tiền có đúng một lời gọi vnd", () => {
+  const dt = home.slice(home.indexOf("function renderSoDienThoai"), home.indexOf("const LOI_SO_LIEU"));
+  assert.doesNotMatch(dt, /vndShort\(/, "ô số không dùng vndShort");
+  assert.match(dt, /vnd\(unpaid\.total\)/);
+  assert.match(dt, /vnd\(rev\.total\)/);
+  assert.equal((dt.match(/\bvnd\(/g) ?? []).length, 2);
 });

@@ -53,10 +53,13 @@ const CHUOI_DA_RA: Record<string, { soCho: number; lyDo: string }> = {};
  */
 const GOI_HAM: Record<string, Record<string, number>> = {
   // 2 = `tinhDongDoiTac` + `chenhGiamGiaSauGhiTay` (Sửa 5 sau rà soát 24/10, Ruling R-156: cảnh báo hạ mức tay dưới giảm giá — giao diện tính trước bằng CÙNG hàm, trong tệp nguồn).
-  hoaHongDong: { [NGUON]: 2 },
+  // + 1 ở `src/shared/hoa-hong-hien-thi.ts` (`cauXemTruocGiaDaiLy`, ADR-0161 Đ2, Task 5): hộp nhập xem trước giá đại lý bằng CHÍNH `hoaHongDong` (không nhân tỷ lệ, không làm tròn riêng); chỉ để xem, máy chủ quyết.
+  // Thêm 3/11 ở lần giao 3 vì bộ kiểm dài bắt (Task 5 chỉ chạy nhóm bài liên quan); người kiểm độc lập xem lại dòng này.
+  hoaHongDong: { [NGUON]: 2, "src/shared/hoa-hong-hien-thi.ts": 1 },
   giaVonDong: { [NGUON]: 1 },
   // Sổ đại lý đợt 2 (Task 3): `dongThuongMaiTu` của billing dựng dòng hoa hồng / giá vốn của phiếu «Đã giao» từ bản chụp — gọi đúng hàm này, không nhân tỷ lệ.
-  tinhDongDoiTac: { "src/modules/orders/thuong-mai.ts": 1, "src/modules/billing/rules.ts": 1 },
+  // ADR-0182 Đ1 (12/11): `giaDaiLyNhieuDon` dựng giá đại lý từng dòng cho «Công nợ đại lý» — gọi đúng hàm này; bài src/cong-no-dai-ly.test.ts so trùng với đường từng đơn. Người kiểm độc lập xem lại.
+  tinhDongDoiTac: { "src/modules/orders/thuong-mai.ts": 1, "src/modules/billing/rules.ts": 1, "src/modules/orders/gia-dai-ly.ts": 1 },
 };
 
 function walk(dir: string, out: string[] = []): string[] {

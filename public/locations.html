@@ -1,7 +1,8 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Địa điểm — Island Booking System</title></head>
-<body data-title="Địa điểm">
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Địa điểm — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
+<body data-rong="vua" data-title="Địa điểm">
 <header id="topbar"></header>
+<div id="strips"></div>
 <main>
   <h1>Địa điểm</h1>
   <p class="muted">Nơi phát sinh nghiệp vụ: văn phòng, quầy vé, bến tàu, bến cảng. Địa điểm không xoá được — chỉ ngưng dùng.</p>
@@ -18,9 +19,20 @@
       <div><button class="btn btn-primary" type="submit">Thêm</button></div>
     </form>
   </section>
+  <section id="zone-card" class="card" hidden>
+    <h2>Khu vực đón</h2>
+    <p class="muted">Nhóm các địa điểm dùng chung một mức phí đưa đón. Địa điểm chưa xếp được tính vào «Ngoài khu vực».</p>
+    <div id="zone-list" class="zone-list"></div>
+    <form id="zone-form" class="grid three" autocomplete="off">
+      <label>Mã (chữ HOA, số, gạch dưới)<input id="zone-code" type="text" maxlength="30" placeholder="BAC_NHA_TRANG" required></label>
+      <label>Tên<input id="zone-name" type="text" maxlength="60" required></label>
+      <label>Thứ tự<input id="zone-sort" type="number" min="0" max="9999" value="0"></label>
+      <div><button class="btn btn-primary" type="submit">Thêm khu vực đón</button></div>
+    </form>
+  </section>
   <section class="card table-wrap">
     <table class="items">
-      <thead><tr><th>Mã</th><th>Tên</th><th>Loại</th><th>Địa chỉ</th><th>Thứ tự</th><th>Chọn nhanh</th><th></th></tr></thead>
+      <thead><tr><th>Mã</th><th>Tên</th><th>Loại</th><th>Khu vực</th><th>Địa chỉ</th><th>Thứ tự</th><th>Chọn nhanh</th><th></th></tr></thead>
       <tbody id="list"></tbody>
     </table>
   </section>

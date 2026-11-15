@@ -200,10 +200,28 @@ test("C4: kho THẬT + mọi véc-tơ đoạn trực giao câu hỏi ⇒ chỉ c
   // thêm ba đoạn vượt ngưỡng tương đối (17 → 20); đổi PIN và lập đơn không đổi ⇒ đo lại bằng chính bài này: 20 / 10 / 45. Số đo, không suy ra từng đoạn. Luật không đổi,
   // trần 12 vẫn cắt (bài khoá `thanPhien.length === SO_DOAN_TOI_DA` ngay dưới); các tên đoạn khoá dưới đây giữ nguyên.
   // 2026-11-03 (Hướng dẫn thành mục riêng): thêm các đoạn «Bài theo việc» vào kho và tách «khó» khỏi «kho» ở `tachTu`, ngưỡng tương đối đổi ⇒ đo lại bằng chính bài này: 15 / 9 / 45. Số đo, luật không đổi; các tên đoạn khoá dưới đây giữ nguyên.
-  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [15, 9, 45]);
+  // 2026-11-04 (màn Dịch vụ cần kiểm vé, ADR-0136 Đ1): bài Hướng dẫn mới có chữ «đơn mình lập» ⇒ đo lại bằng chính bài này: 15 / 9 / 46 — MỘT đoạn nữa vượt ngưỡng của câu lập đơn. Luật không đổi, trần 12 vẫn cắt.
+  // 2026-11-05 (ADR-0169): thêm mã quyền Quản lý bán hàng ⇒ thêm đoạn vai trò và hai ô mới (mã này không vào dòng «Không làm được» vì luôn kèm Bán hàng), thêm nhóm hướng dẫn có chữ «lập đơn» ⇒ đo lại bằng chính bài này: 15 / 9 / 50 (46 → 50). Luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
+  // 2026-11-05 (trả sau, ADR-0168): bài Hướng dẫn «Cấp hạn mức trả sau cho đối tác», trang Hạn mức trả sau và ô quyền credit.limit.* thêm chữ vào kho ⇒ câu than phiền từ 15 lên 16; luật không đổi, trần 12 vẫn cắt.
+  // 2026-11-06 (ADR-0172, ADR-0173): hai bài Hướng dẫn Trả sau mới («Bật Trả sau cho đối tác», «Xem đối tác đang nợ Trả sau») và ba ô quyền credit.* thêm chữ vào kho ⇒ đo lại bằng chính bài này: 17 / 9 / 49 — thêm MỘT đoạn sát ngưỡng ở câu than phiền; luật không đổi, trần 12 vẫn cắt.
+  // 2026-11-09 (vé Tour Đảo Đợt 2, bài Hướng dẫn «Quét vé Tour Đảo», «Đối chiếu vé», «Kho vé»): đoạn «Điều dễ sai» của bài Quét vé từng có chữ «Đã dùng» hai lần và thành đoạn điểm cao nhất của câu than phiền
+  // (số đo rớt xuống 8, dưới trần 12, mất khoá «đúng 12 đoạn» và đoạn Câu hỏi thường gặp). Đã bỏ một chữ «Đã dùng» thừa ở bài (chữ bài, không đổi luật); đo lại bằng chính bài này: 12 / 9 / 49. Số đo, luật không đổi, trần 12 vẫn cắt.
+  // 2026-11-09 (ADR-0190, ô quyền `party.deactivate`): bảng tên kho cấu trúc thêm dòng «ngừng dùng, dùng lại hồ sơ trong Danh bạ» (chữ «dùng» hai lần) ⇒ đo lại bằng chính bài này (sau khi gộp main có vé Tour Đảo Đợt 2, 12 → 13): 13 / 9 / 49 — thêm MỘT đoạn sát ngưỡng ở câu than phiền. Số đo, luật không đổi, trần 12 vẫn cắt; các tên đoạn khoá dưới đây giữ nguyên.
+  // 2026-11-11 (ADR-0196, Đợt 6A): bảng tên kho cấu trúc thêm hai ô «xem ảnh biên lai chuyển khoản», «gỡ ảnh biên lai gửi nhầm» ⇒ đo lại bằng chính bài này: câu than phiền
+  // 13 → 12 (vẫn bằng trần 12 nên khối tài liệu không đổi số đoạn); hai câu kia giữ nguyên. Luật không đổi.
+  // 2026-11-12 (ADR-0198): bài Hướng dẫn «Cấp hạn mức trả sau cho đối tác» thêm câu «Đơn mới đối tác lập được chọn sẵn "Trả sau"» ⇒ đo lại bằng chính bài này: 12 / 9 / 50 —
+  // MỘT đoạn nữa vượt ngưỡng của câu lập đơn. Luật không đổi, trần 12 vẫn cắt.
+  // 2026-11-13 (ADR-0182 phần B): bảng tên kho cấu trúc thêm ba ô «gửi khoản nộp kèm biên lai», «xác nhận khoản nộp của đại lý», «xem khoản nộp của đại lý» (thêm đoạn vào kho,
+  // tần suất từ đổi) ⇒ đo lại bằng chính bài này: 11 / 9 / 50 — đoạn «Cấu trúc Nền tảng › Phân hệ Địa điểm» rơi khỏi ngưỡng của câu than phiền (12 → 11, dưới trần 12 nên khối tài liệu
+  // còn 11 đoạn; đoạn Câu hỏi thường gặp vẫn có). Số đo, luật không đổi.
+  // 2026-11-15 (Phí đưa đón): bài Hướng dẫn `phi-don` và mô tả Địa điểm có «Khu vực đón» làm đổi thống kê kho ⇒ đo lại bằng chính bài này: 13 / 9 / 50 (11 → 13) — hai đoạn cũ
+  // «Cấu trúc Nền tảng › Phân hệ Địa điểm» và «Cấu trúc Nền tảng › Việc: xem bảng mức hoa hồng đối tác» qua ngưỡng của câu than phiền lại; không đoạn phí đưa đón nào lọt vào.
+  // Số đo, không đổi luật. Chủ dự án duyệt 2026-11-15, nguyên văn: «Duyệt ghi số mới». Lưu ý người soát cuối: 13 vượt trần nên đoạn «Câu hỏi thường gặp» nay đứng thứ 11 trên 12;
+  // thêm hai đoạn sát ngưỡng nữa có thể đẩy nó ra khỏi 12 — rủi ro có sẵn của bài, không do đợt này.
+  assert.deepEqual([dem("sao app khó dùng thế"), dem("đổi mã PIN thế nào"), dem("lập đơn mới ra sao")], [13, 9, 50]);
   // 2026-10-05 (1.81, Đợt 7): Trợ giúp thêm câu về hai ô "Xe riêng" / "Xe tối thiểu" (Bán hàng, Quản trị) và bỏ vài dòng trùng ý ⇒ hai đoạn nữa vượt ngưỡng tương đối của câu than phiền (15 → 17); luật không đổi, trần 12 vẫn cắt.
   const thanPhien = chonDoanTron("sao app khó dùng thế", mot(0), kho, vec, ["SALES"]).map((x) => x.doan.ten);
-  assert.equal(thanPhien.length, SO_DOAN_TOI_DA);
+  assert.equal(thanPhien.length, SO_DOAN_TOI_DA); // số khớp mạnh đo ở trên (13) vượt trần nên đoạn chọn bị cắt đúng bằng trần (2026-11-15)
   assert.ok(thanPhien.includes("Phần chung › Câu hỏi thường gặp"), JSON.stringify(thanPhien));
   assert.ok(!thanPhien.some((t) => t.includes("Điều phối xe")), JSON.stringify(thanPhien));
   // 46 khớp mạnh ⇒ RRF + trần 12 đoạn / 6.000 token chọn tiếp (F7: khoá tên cụ thể, không chỉ "có đoạn").

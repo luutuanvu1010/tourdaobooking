@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  LENH_KHOA_THEO_MOC, LENH_XEP, batDauSomNhatSauDoiGio, chuyenDuoiMoc, duQuyen, duoiMocKhiSua, gioXetMocXep, gioXetSuaChuyen, kiemMocDat, kiemMocXep, lopCanCho, lopCuaLuat,
+  CAU_CHUA_GIO_SAT_NGAY, LENH_KHOA_THEO_MOC, LENH_XEP, batDauSomNhatSauDoiGio, cauChuaGioSatNgay, changChuaGioVaoHanChot, chuyenDuoiMoc, duQuyen, duoiMocKhiSua, gioXetMocXep, gioXetSuaChuyen, kiemMocDat, kiemMocXep, lopCanCho, lopCuaLuat,
   lopVuotMoc, lopVuotNghiCamKet, mucMoc, nguongMocVn, type LenhVuotMoc, type LopVuot,
 } from "./moc-toi-thieu.ts";
 import { vnLocalToMs } from "./vn-date.ts";
@@ -262,4 +262,50 @@ test("ADR-0104 Đ1 mục 2: lopCanCho / duQuyen — lớp 409 theo MỌI luật 
   assert.equal(lopCuaLuat("MOC_TOI_THIEU", false, ["DOI_DI"]), "KHAN_CAP", "mốc luôn theo lệnh, không theo 'dưới mốc' của đích");
   assert.equal(duQuyen(["MOC_TOI_THIEU"], true, ["XEP"], keToan), false);
   assert.equal(duQuyen([], false, [], keToan), true, "không thiếu gì → đủ");
+});
+
+// ---- ADR-0193 câu (ii): lượt đón CHƯA giờ mà ngày đón đã vào hạn chốt ⇒ không xác nhận được tới khi có giờ ---------------------------------------------------------------
+const cg = (pickupDate: string | null, pickupTime: string | null, departDate: string | null = null) => ({ pickupDate, pickupTime, departDate });
+const vn = (d: string, t: string, giay = 0) => ms(d, t) + giay * 1000;
+
+test("changChuaGioVaoHanChot (hạn chốt 60 phút, ngày đón 12/11): 22:00, 22:59, 22:59:30, 23:00:00.000 hôm trước ⇒ chưa chặn; 23:00:01, 23:30, 08:00 hôm đó ⇒ chặn", () => {
+  const l = cg("2026-11-12", null);
+  assert.equal(changChuaGioVaoHanChot(l, vn("2026-11-11", "22:00"), 60), false);
+  assert.equal(changChuaGioVaoHanChot(l, vn("2026-11-11", "22:59"), 60), false);
+  assert.equal(changChuaGioVaoHanChot(l, vn("2026-11-11", "22:59", 30), 60), false);
+  assert.equal(changChuaGioVaoHanChot(l, vn("2026-11-11", "23:00"), 60), false, "quy ước «<» có sẵn của cổng hạn chốt: đúng 23:00:00.000 chưa chặn");
+  assert.equal(changChuaGioVaoHanChot(l, vn("2026-11-11", "23:00", 1), 60), true);
+  assert.equal(changChuaGioVaoHanChot(l, vn("2026-11-11", "23:30"), 60), true);
+  assert.equal(changChuaGioVaoHanChot(l, vn("2026-11-12", "08:00"), 60), true);
+});
+
+test("changChuaGioVaoHanChot: lượt có giờ ⇒ không xét (đi cổng hạn chốt thường); thiếu ngày đón thì lấy ngày đi của dịch vụ; cả hai đều thiếu ⇒ không chặn", () => {
+  assert.equal(changChuaGioVaoHanChot(cg("2026-11-12", "07:30"), vn("2026-11-12", "08:00"), 60), false);
+  assert.equal(changChuaGioVaoHanChot(cg(null, null, "2026-11-12"), vn("2026-11-11", "23:30"), 60), true, "ngày đón trống = ngày đi (cùng luật legFillDateOnConfirm)");
+  assert.equal(changChuaGioVaoHanChot(cg(null, null, "2026-11-12"), vn("2026-11-11", "22:00"), 60), false);
+  assert.equal(changChuaGioVaoHanChot(cg(null, null, null), vn("2026-11-11", "23:30"), 60), false);
+  assert.equal(changChuaGioVaoHanChot(cg("2026-11-14", null, "2026-11-12"), vn("2026-11-11", "23:30"), 60), false, "ngày đón riêng của lượt thắng ngày đi");
+});
+
+test("changChuaGioVaoHanChot không đổi kiemMocDat: lượt chưa giờ vẫn KHONG_GIO (cảnh báo dưới mốc, duoiMocKhiSua, lịch điều phối giữ nguyên)", () => {
+  assert.deepEqual(kiemMocDat(chang("2026-11-12", null), vn("2026-11-12", "08:00"), 60), { duoiMoc: false, lyDo: "KHONG_GIO", phutConLai: null });
+  assert.equal(duoiMocKhiSua(null, { pickupDate: "2026-11-12", pickupTime: null }, vn("2026-11-12", "08:00"), 60), false);
+});
+
+test("MỘT luật, hai cách nói (câu ii): `ngày 00:00` < nguongMocVn ⇔ changChuaGioVaoHanChot — giây lẻ, qua nửa đêm, nhiều hạn chốt", () => {
+  let so = 0;
+  for (const now of [Date.parse("2026-11-11T15:59:59.999Z"), Date.parse("2026-11-11T16:00:00.000Z"), Date.parse("2026-11-11T16:00:01.000Z"), Date.parse("2026-11-11T16:30:30.500Z"), Date.parse("2026-11-12T01:00:00.000Z")]) {
+    for (const phut of [1, 59, 60, 61, 360, 1440, 2880]) {
+      for (const d of ["2026-11-11", "2026-11-12", "2026-11-13", "2026-11-14"]) {
+        assert.equal(`${d} 00:00` < nguongMocVn(now, phut), changChuaGioVaoHanChot(cg(d, null), now, phut), `now=${new Date(now).toISOString()} mốc=${phut} ngày=${d}`);
+        so++;
+      }
+    }
+  }
+  assert.ok(so >= 140);
+});
+
+test("câu báo câu (ii): hằng ở một nơi, ngày viết dd/mm/yyyy", () => {
+  assert.equal(CAU_CHUA_GIO_SAT_NGAY, "Lượt đón ngày ‹ngày› chưa có giờ mà đã sát giờ đón — điền giờ đón trước khi xác nhận.");
+  assert.equal(cauChuaGioSatNgay("2026-11-12"), "Lượt đón ngày 12/11/2026 chưa có giờ mà đã sát giờ đón — điền giờ đón trước khi xác nhận.");
 });

@@ -47,7 +47,7 @@ Bổ sung 27/10/2026 từ đánh giá UX tổng thể (`docs/superpowers/specs/2
 8. **Tốc độ cảm nhận:** tắt hẳn app, bật rồi tắt chế độ máy bay, mở lại từ icon: Trang chủ hiện khung trong ≤ 1 giây? Bấm tab "Đơn" rồi tab "Tôi": có chớp trắng giữa hai trang không?
 9. **Vùng chạm bằng ngón cái:** ở Đơn hàng bấm được nút "Lọc" và chip "Xoá lọc" ngay lần đầu; ở Chi tiết đơn, nút "Xác nhận đơn" ở chân dính không bị thanh home đè.
 10. **Bảng trượt:** mở "Sửa thông tin chuyến", kéo xuống để đóng; bàn phím hiện lên thì nút "Lưu" của bảng trượt còn thấy.
-11. **Mất mạng giữa chừng:** đang điền Tạo đơn, bật chế độ máy bay, bấm "Lưu, chờ xác nhận": câu báo nói gì; dữ liệu đã gõ còn không sau khi có mạng lại.
+11. **Mất mạng giữa chừng:** đang điền Tạo đơn, bật chế độ máy bay, bấm "Lưu đơn (chưa xác nhận)": câu báo nói gì; dữ liệu đã gõ còn không sau khi có mạng lại.
 12. **Không có quyền / không có trang:** dán địa chỉ `/audit` (tài khoản Bán hàng) và `/khong-co-trang-nay`: có về được trang đầu bằng một chạm không.
 13. **Thanh dính đáy chồng nhau:** ở Chuyến của tôi (tài xế) và Hỗ trợ (ô trả lời) chỉ có một thanh dính dưới, không thanh nào đè thanh tab.
 14. **Chữ và số:** ở Sổ công nợ và Hoa hồng, số tiền có dấu chấm ngăn nghìn, canh phải, không bị cắt "…" ở 390.

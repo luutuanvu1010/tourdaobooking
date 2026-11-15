@@ -207,8 +207,8 @@ test("(a) đúng một tệp *_chuyen_xe.sql, số 0042; tám bảng vc_trip*; m
   assert.match(FILE, /^0042_/);
   const db = openDb();
   const bang = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'vc\\_trip%' ESCAPE '\\' ORDER BY name").all() as { name: string }[]).map((r) => r.name);
-  // + vc_trip_cost_line của migration *_vc_chi_phi_chuyen (ADR-0057 T2 — không thuộc tệp 0042; tên trigger vẫn vc_).
-  assert.deepEqual(bang, ["vc_trip", "vc_trip_allocation", "vc_trip_cost_line", "vc_trip_departure_check", "vc_trip_departure_check_item", "vc_trip_driver", "vc_trip_event", "vc_trip_manifest", "vc_trip_stop"]);
+  // + vc_trip_cost_line của migration *_vc_chi_phi_chuyen (ADR-0057 T2 — không thuộc tệp 0042; tên trigger vẫn vc_) và vc_trip_departure_waiver của migration 0147 (ADR-0184).
+  assert.deepEqual(bang, ["vc_trip", "vc_trip_allocation", "vc_trip_cost_line", "vc_trip_departure_check", "vc_trip_departure_check_item", "vc_trip_departure_waiver", "vc_trip_driver", "vc_trip_event", "vc_trip_manifest", "vc_trip_stop"]);
   const text = sqlOf(FILE);
   const tenTrigger = [...text.matchAll(/CREATE TRIGGER (\w+)/g)].map((m) => m[1]!);
   assert.ok(tenTrigger.length >= 50, `chống bài rỗng: ${tenTrigger.length}`);
@@ -427,9 +427,13 @@ test("TC-10 LC-04: DELETE mọi bảng vc_trip* → RAISE; sự kiện, bản ch
   const c = chuyenChuan(db);
   const d = don(db);
   suat(db, c, d.legs[0]!, { key: d.khach[0]! });
+  // ADR-0184: dòng DIEU_KIEN dưới bản chụp ĐẠT phải trỏ dòng cho phép khớp (trigger riêng, bài ở cho-chay-thieu-giay-csdl.test.ts). Bài này chỉ cần MỘT dòng để thử
+  // «bản ghi chỉ-thêm», nên gieo một điều kiện Đăng ký xe + dòng cho phép HỢP LỆ (chuyến còn PLANNED, đúng xe, lý do đúng nhóm) TRƯỚC khi xuất bến — không gỡ trigger nào (đợt sửa 1, R).
+  run(db, `INSERT INTO vc_departure_rule (id, min_capacity, subject, vehicle_document_type_code, valid_from_at, created_at, updated_at) VALUES ('ru-dk-tc10', 1, 'VEHICLE', 'REGISTRATION', ?, ?, ?)`, AT, AT, AT);
+  run(db, `INSERT INTO vc_trip_departure_waiver (id, trip_id, cmd_id, vehicle_id, document_type_code, reason_code, created_at, created_by, updated_at) VALUES ('wv-tc10', ?, ?, ?, 'REGISTRATION', 'THIEU_GIAY_GIA_HAN', ?, NULL, ?)`, c.id, randomUUID(), c.xe, AT, AT);
   const cmd = xuatBen(db, c.id);
   const ck = one<{ id: string }>(db, "SELECT id FROM vc_trip_departure_check WHERE cmd_id = ?", cmd).id;
-  run(db, `INSERT INTO vc_trip_departure_check_item (id, check_id, item_kind, rule_id, created_at, updated_at) VALUES ('ci-1', ?, 'DIEU_KIEN', '1a6f3c52-4d0e-4b8a-9c21-7e5d0b3a9f11', ?, ?)`, ck, AT, AT);
+  run(db, `INSERT INTO vc_trip_departure_check_item (id, check_id, item_kind, document_type_code, rule_id, waiver_id, created_at, updated_at) VALUES ('ci-1', ?, 'DIEU_KIEN', 'REGISTRATION', 'ru-dk-tc10', 'wv-tc10', ?, ?)`, ck, AT, AT);
   const al = one<{ id: string }>(db, "SELECT id FROM vc_trip_allocation WHERE trip_id = ?", c.id).id;
   run(db, `INSERT INTO vc_trip_manifest (id, trip_id, check_id, allocation_id, passenger_row_id, created_at, updated_at) VALUES ('mf-1', ?, ?, ?, ?, ?, ?)`, c.id, ck, al, d.khach[0]!, AT, AT);
   for (const bang of ["vc_trip", "vc_trip_driver", "vc_trip_stop", "vc_trip_allocation", "vc_trip_event", "vc_trip_departure_check", "vc_trip_departure_check_item", "vc_trip_manifest"]) {

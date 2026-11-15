@@ -52,8 +52,9 @@ let soDt = 0;
 function nhanVien(sqlite: DatabaseSync, id: string, perms: PermissionCode[], roles: RoleCode[] = []) {
   sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-${id}', 'PERSON', 'N ${id}', 1, '${NOW}', '${NOW}')`);
   sqlite.exec(`INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES ('${id}', '', '09${String(++soDt).padStart(8, "0")}', 'x', 'sales', 1, '${NOW}', 'pty-${id}')`);
-  for (const p of perms) sqlite.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('${id}-${p}', '${id}', '${p}', '${NOW}', '${NOW}', '${NOW}')`);
+  // ADR-0185 Đ2: vai TRƯỚC quyền — trigger lc1c chỉ cho mở PARTNER khi hồ sơ đang mang vai trò đối tác.
   for (const r of roles) sqlite.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('r-${id}-${r}', 'pty-${id}', '${r}', NULL, '2026-01-01', '${NOW}', '${NOW}')`);
+  for (const p of perms) sqlite.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('${id}-${p}', '${id}', '${p}', '${NOW}', '${NOW}', '${NOW}')`);
 }
 function phien(sqlite: DatabaseSync, id: string, staff: string, createdAt: string, single = 0, expires = LATER) {
   sqlite.prepare(
@@ -121,7 +122,7 @@ test("siết theo tập: tài khoản một máy theo chính sách TRONG BẢNG 
 
 test("xem trước = đúng số câu siết sẽ làm (cùng mẩu điều kiện), và khớp isSingleDevice của TypeScript", async () => {
   const { sqlite, db } = setup();
-  const nguoi: [string, PermissionCode[], RoleCode[]][] = [["s1", ["SALES"], []], ["s2", ["SALES", "HR"], []], ["p1", ["PARTNER"], []], ["it", ["ADMIN"], ["IT"]], ["sa", ["SUPER_ADMIN"], []]];
+  const nguoi: [string, PermissionCode[], RoleCode[]][] = [["s1", ["SALES"], []], ["s2", ["SALES", "HR"], []], ["p1", ["PARTNER"], ["TRAVEL_AGENCY"]], ["it", ["ADMIN"], ["IT"]], ["sa", ["SUPER_ADMIN"], []]];
   for (const [id, perms, roles] of nguoi) {
     nhanVien(sqlite, id, perms, roles);
     phien(sqlite, `${id}-1`, id, "2026-10-01T00:00:00.000Z");
@@ -145,7 +146,7 @@ test("số câu trong lô siết không phụ thuộc số người: 5 và 50 t�
   for (const n of [5, 50]) {
     const { sqlite, db } = setup();
     for (let i = 0; i < n; i++) {
-      nhanVien(sqlite, `p${i}`, ["PARTNER"]);
+      nhanVien(sqlite, `p${i}`, ["PARTNER"], ["TRAVEL_AGENCY"]);
       phien(sqlite, `p${i}-a`, `p${i}`, "2026-10-01T00:00:00.000Z");
       phien(sqlite, `p${i}-b`, `p${i}`, "2026-10-01T01:00:00.000Z");
     }

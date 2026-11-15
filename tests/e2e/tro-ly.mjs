@@ -7,7 +7,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import * as esbuild from "esbuild";
-import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, call, login, randomPhone, session, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, TRO_LY_DAU, TRO_LY_KHOA, call, login, randomPhone, session, sqlRows, thanQuyenTaiKhoan } from "./lib.mjs";
 
 const PORT = Number(process.env.E2E_OPENAI_PORT);
 if (!PORT) throw new Error("Thiếu E2E_OPENAI_PORT (chạy qua npm run test:e2e -- tro-ly)");
@@ -69,7 +69,7 @@ const hoi = (cookie, cauHoi) => call(cookie, "POST", "/api/tro-ly/hoi", { cauHoi
 const caiDat = (cookie, body) => call(cookie, "POST", "/api/tro-ly/cai-dat", body);
 const soDong = async () => (await sqlRows("SELECT count(*) AS n FROM tl_luot_hoi"))[0].n;
 const MAC_DINH = { bat: true, tranThangUsd: 5, tranNgay: 30 };
-const PERMS = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR"]; // HR: ADR-0071
+const PERMS = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR", "SALES_MANAGER"]; // HR: ADR-0071; SALES_MANAGER: ADR-0169
 const tatCaVai = (bat) => Object.fromEntries(PERMS.map((p) => [p, bat]));
 const datVai = (vai) => call(OWNER, "POST", "/api/tro-ly/vai", { vai });
 const loiDanDau = (await call(OWNER, "GET", "/api/tro-ly/loi-dan")).body.hienHanh;
@@ -232,7 +232,7 @@ try {
   const cacMa = [["SALES"], ["ACCOUNTING"], ["ADMIN"], ["FIELD"], ["PARTNER"], ["SUPER_ADMIN"], ["INTERN"], ["DRIVER"]];
   const taiKhoan = [];
   for (const permissions of cacMa) {
-    const t = await call(OWNER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Trợ Lý ${permissions[0]} E2E`, phone: randomPhone(), permissions });
+    const t = await call(OWNER, "POST", "/api/staff", { taoHoSoMoi: true, fullName: `Trợ Lý ${permissions[0]} E2E`, phone: randomPhone(), ...thanQuyenTaiKhoan(permissions) }); // ADR-0185: Đối tác qua vai
     assert.equal(t.status, 201, `${permissions}: ${JSON.stringify(t.body)}`);
     taiKhoan.push([permissions[0], t.body]);
   }
@@ -326,7 +326,7 @@ try {
   r = await call(OWNER, "POST", "/api/tro-ly/thu-khoa", {});
   assert.equal(r.status, 200);
   assert.equal(r.body.ma, "sai_khoa", JSON.stringify(r.body));
-  assert.match(r.body.cau, /^Sai key/);
+  assert.match(r.body.cau, /^Sai khoá/);
   chu.push(JSON.stringify(r.body));
   cheDo = "429q";
   r = await call(OWNER, "POST", "/api/tro-ly/thu-khoa", {});

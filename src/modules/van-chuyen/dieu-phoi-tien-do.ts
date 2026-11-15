@@ -4,6 +4,7 @@
 // 31–38 — thân route đã chặn chỗ khác); làm MỌI kiểm (trạng thái, điểm đã tới, `kiemGioXayRa`, `kiemXuatBen`, `kiemKetThuc`), dựng lô (dieu-phoi.ts), chạy.
 // Trả `Response` khi từ chối, `null` khi đã ghi (hoặc không có gì để ghi). KHÔNG gọi hàm hẹp của orders: chặng + tên khách do thân route đọc sau `can()`.
 import type { ChangChoChuyen, ChangLichChung } from "../orders";
+import { sapTheoThuTuLoai } from "../../shared/cho-chay-thieu-giay";
 import { kiemKetThuc, kiemXuatBen } from "../../shared/dieu-phoi-kiem";
 import { error } from "../../shared/http";
 import { lyDoGiu, MA_GIU, type LyDoGiu } from "../../shared/ly-do-giu";
@@ -12,7 +13,7 @@ import { legFlags, lyDoDangDung, tenDiem, tripsTouching, type AllocRow, type Tri
 import {
   LENH_SUAT, loDaToi, loDoiThuTu, loKetThuc, loKetThucGianDoan, loSuat, loXuatBen, type LenhChung, type LoaiLenhSuat, type XayRa,
 } from "./dieu-phoi";
-import { chinhSachVao, diemVao, docChung, docNguCanh, suatVao, type NenChuyen } from "./dieu-phoi-doc";
+import { chinhSachVao, choPhepCuaChuyen, diemVao, docChung, docNguCanh, suatVao, type NenChuyen } from "./dieu-phoi-doc";
 import { kiemGioLenh, ketThucTruoc, vaoGio, type NenGio } from "./dieu-phoi-gio";
 import { lyDoGiuCuaChuyen } from "./dieu-phoi-dto";
 import { CHUYEN_CU, chanDaoMoi, chanToiDiemTra, chayLo, loi409 } from "./dieu-phoi-route";
@@ -80,7 +81,7 @@ export async function lenhXuatBen(
   const vao = {
     chuyen: nc.chuyen, suat: nc.suat, chang: [...nc.chang.values()], changNgoai: nc.changNgoai, suatMoCuaChang: nc.suatMoCuaChang, diem: nc.diem, chuyenKhac: nc.chuyenKhac,
     chinhSach: csVao && csCuaSo ? { ...csVao, departureWindowMinutes: csCuaSo.departure_window_minutes } : csVao, hangBang: chung.hangBang, dieuKien: chung.dieuKien, bayGioMs,
-    xuatBenMs: x.ms,
+    choPhepThieu: choPhepCuaChuyen(chung, t.id), xuatBenMs: x.ms,
   };
   const kq = kiemXuatBen(vao);
   // ADR-0104 Đ1 mục 9 ★: ai xử lý khoảng nghỉ / nghỉ thiếu / cam kết theo mốc của chuyến lúc lệnh chạy (`lyDoGiuCuaChuyen` — cùng hàm với màn).
@@ -115,13 +116,15 @@ export async function lenhXuatBen(
   }
   const soKhach = mo.filter((a) => a.kind === "PASSENGER").length;
   const c = kq.chup;
+  // ADR-0184: loại giấy xe thiếu mà cổng cho qua nhờ dòng cho phép — tên loại (không số giấy) vào câu nhật ký.
+  const tenThieu = sapTheoThuTuLoai(kq.choChayThieu, (w) => w.documentTypeCode, chung.thuTuLoai).map((w) => chung.choPhepThieu.find((x) => x.id === w.waiverId)?.ten ?? w.documentTypeCode);
   // ADR-0056 VK3-A (C7): cổng đạt mà HẾT vi phạm cam kết (vd. đơn tắt xe riêng sau khi đã phá lệ) và chuyến còn cột phá lệ → xoá trong cùng lô, có nhật ký.
   const xoaCamKet = kq.camKet.khoa === null && t.commitment_override_key !== null;
   const lo = loXuatBen(db, {
     ...l, tripId: t.id, version: t.version, xayRa: x, policyId: cs.id, ganTen: kq.ganTen,
     chup: { id: crypto.randomUUID(), xeId: c.xeId, bienSo: c.bienSo, soCho: c.soCho, chuXePartyId: c.chuXePartyId, taiXePartyId: c.taiXePartyId as string, nghiDaDung: c.nghiDaDung ?? t.rest_minutes_snapshot },
     muc: c.muc, chot, soKhach, xoaCamKet,
-    detail: `${t.code}: cho xe chạy · xe ${c.bienSo} · ${soKhach} khách${xoaCamKet ? " · hết vi phạm cam kết — bỏ phá lệ cam kết" : ""}${duoi(nguoi, x)}`,
+    detail: `${t.code}: cho xe chạy · xe ${c.bienSo} · ${soKhach} khách${xoaCamKet ? " · hết vi phạm cam kết — bỏ phá lệ cam kết" : ""}${tenThieu.length > 0 ? ` · cho chạy dù thiếu ${tenThieu.join(", ")}` : ""}${duoi(nguoi, x)}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? null : r.res;

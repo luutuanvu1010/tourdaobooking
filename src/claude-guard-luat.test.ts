@@ -16,6 +16,14 @@ const WT = "/repo/.claude/worktrees/x";
 const danhGia = (cmd: string, cwd = ROOT) => danhGiaGhiLuat(cmd, { cwd, root: ROOT });
 
 const PHAI_CHAN: [string, string?][] = [
+  // Bảng tham chiếu ngôn ngữ (ADR-0167): thêm hay đổi tên chỉ khi chủ đã chọn, nên sửa bằng công cụ để chủ được hỏi.
+  ["sed -i '' 's/a/b/' src/shared/bang-tham-chieu-viec.ts"],
+  ["echo x > src/shared/bang-tham-chieu-khai-niem.ts"],
+  ["cp /tmp/x.ts src/shared/bang-tham-chieu.ts"],
+  // Máy canh của bảng: nới nó mà chủ không được hỏi thì bảng không còn được canh.
+  ["sed -i '' 's/a/b/' scripts/quet-nut-lib.mjs"],
+  ["echo x > scripts/bang-tham-chieu-lib.mjs"],
+  ["cp /tmp/x.ts src/bang-tham-chieu.test.ts"],
   ["sed -i '' 's/a/b/' CLAUDE.md"],
   ["sed -i.bak -e 's/a/b/' src/CLAUDE.md"],
   ["sed -E -i '' 's/a/b/' \"web/CLAUDE.md\""],
@@ -65,6 +73,13 @@ const PHAI_CHAN: [string, string?][] = [
 ];
 
 const PHAI_CHO_QUA: [string, string?][] = [
+  ["cat src/shared/bang-tham-chieu-viec.ts"],
+  ["cat scripts/quet-nut-lib.mjs"],
+  ["node --test src/bang-tham-chieu.test.ts"],
+  ["node scripts/gen-bang-tham-chieu.mjs"],
+  ["npm run tham-chieu"],
+  ["git add src/shared/bang-tham-chieu-viec.ts"],
+  ["echo x > docs/BANG-THAM-CHIEU.md"],
   ["cat CLAUDE.md"],
   ["sed -n 1,40p CLAUDE.md"],
   ["sed -n '/Điều/p' playbook/CONSTITUTION.md"],
@@ -163,4 +178,25 @@ test("guard-remote: script móc thật chặn sửa tệp luật bằng dòng l�
     assert.equal(r.status, 0);
     assert.equal(r.stdout, "", `phải im lặng với: ${command}`);
   }
+});
+
+test("guard-luat (ADR-0179 Đ2.6): .github/workflows/ là TỆP LUẬT (sửa bằng dòng lệnh bị chặn); .git/tourdao-kiem/ (bản ghi kết luận kiểm) AI không ghi được", () => {
+  for (const [cmd, cwd] of [["sed -i '' 's/a/b/' .github/workflows/kiem.yml"], ["echo x > .github/workflows/kiem.yml"], ["rm .github/workflows/kiem.yml", WT], ["cp /tmp/x.yml .github/workflows/"], ["git checkout -- .github/workflows/kiem.yml"]] as [string, string?][]) {
+    const v = danhGia(cmd, cwd);
+    assert.equal(v.deny, true, `phải CHẶN: ${cmd}`);
+    if (v.deny) assert.equal(v.rule, "sua-luat-bang-lenh");
+  }
+  for (const [cmd, cwd] of [["echo '{}' > .git/tourdao-kiem/abc.json"], ["cp /tmp/x.json .git/tourdao-kiem/"], ["tee /repo/.git/tourdao-kiem/abc.json < /tmp/x", WT], ["rm -rf .git/tourdao-kiem"], ["sed -i '' 's/do/xanh/' ../../../.git/tourdao-kiem/abc.json", WT]] as [string, string?][]) {
+    const v = danhGia(cmd, cwd);
+    assert.equal(v.deny, true, `phải CHẶN: ${cmd}`);
+    if (v.deny) {
+      assert.equal(v.rule, "ghi-ban-ghi-kiem");
+      assert.match(v.reason, /npm run day-len/);
+    }
+  }
+  for (const cmd of ["cat .github/workflows/kiem.yml", "git add .github/workflows/kiem.yml", "ls .git/tourdao-kiem", "cat .git/tourdao-kiem/abc.json", "git diff origin/main main -- .github/workflows"]) {
+    assert.equal(danhGia(cmd).deny, false, `phải CHO QUA: ${cmd}`);
+  }
+  const s = read(".claude/settings.json");
+  assert.ok(s.includes('"Edit(.github/workflows/**)"'), "settings.json: sửa quy trình GitHub bằng công cụ sửa tệp phải HỎI chủ");
 });

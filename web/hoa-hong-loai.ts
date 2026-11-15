@@ -96,9 +96,6 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
   const lanGan = d.mucTa.muc.flatMap((m) => m.gan.filter((g) => g.loai.code === loai.code));
   const lichSu = khoiLichSuGan(chiaLanGan(lanGan, d.homNay).lichSu, d.homNay, (g) => g.muc.ten, `hh-ls-loai-${loai.code}`);
   const bang = bangDongMuc(dongLoai, null, d, ghi, mo, false);
-  const them = ghi ? h("button", { type: "button", class: "nut", "data-cap": "phu" }, "＋ Thêm mức riêng cho vai trò này") : null;
-  them?.addEventListener("click", () => mo.themMuc({ ai: { loai: "VAI", code: loai.code } }));
-
   return h(
     "article",
     { class: "the hh-loai-the", "data-loai": loai.code, "data-phu": ketQua.kieu },
@@ -110,7 +107,6 @@ function cumLoai(it: { loai: DuLieuHoaHong["loai"][number]; dong: Api.Commission
     lichSu,
     h("h4", null, "Hoa hồng riêng của vai trò"),
     bang ? h("div", { class: "hh-muc-cap-khung" }, bang) : h("p", { class: "muted" }, CAU_LOAI_CHUA_CO_MUC_RIENG),
-    them && h("div", { class: "hh-cap-nut" }, them),
     loiEl,
   );
 }

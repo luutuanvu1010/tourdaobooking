@@ -20,11 +20,13 @@ import { readdirSync, readFileSync } from "node:fs";
 import { performance } from "node:perf_hooks";
 import { PERMISSION_CODES, can, holdsPartner, isExternalPermission, type PermissionCode } from "./shared/permissions.ts";
 import { HANH_DONG_TIN_DON } from "./shared/thong-bao.ts";
+import { noiDungChuyenKhoan } from "./shared/noi-dung-chuyen-khoan.ts";
+import { payloadVietQr } from "./shared/vietqr.ts";
 import { HANH_DONG_TIN_CHUYEN } from "./shared/tin-chuyen.ts";
 import { THAY_DOI } from "./shared/bang-tin.ts";
 import { hanhDongCuaThayDoi } from "./shared/web-push.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { seedStaff } from "../tests/audit/harness.mjs";
+import { seedStaff, noiGioiHanNhap } from "../tests/audit/harness.mjs";
 import {
   ACC, ADM, DRIVER, DRIVER2, DRIVER_PARTNER, FIELD, INTERN, NGAY, PARTNER, SALES, SUP, batDongHo, chuyenSan, denGio, nhaXeKhung, setup, tienDo, uuid, xe,
 } from "../tests/audit/dieu-phoi-khung.mjs";
@@ -102,6 +104,8 @@ const ROUTE_GET: string[] = [...new Set(readdirSync(MODULES).flatMap((m) => {
 const MIEN_200: Record<string, string> = {
   "/api/ve/don/:orderId": "ADR-0153 (kho vé điện tử): danh sách vé của MỘT đơn có vé giữ — bài này không nhập kho vé nên mã đơn lạ ⇒ 404; DTO chỉ SỐ LƯỢNG theo nhóm khách + cờ thu đủ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
   "/api/ve/lo-da-huy/:veId/anh": "Chủ quyết 2/11/2026: thân là byte ảnh vé của lô đã huỷ (không phải JSON, không chở tiền) — cần vé đã mở; bài này không nhập kho; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
+  "/api/orders/:id/payments/:receiptId/bien-lai": "ADR-0196 Đ6: thân là byte ảnh biên lai (không phải JSON, không chở tiền) — cần khoản thu có ảnh đã lưu; bài này không gửi ảnh nên mã khoản lạ ⇒ 404 / 403 (ô payment.proof.view), không bao giờ 200",
+  "/api/orders/:id/khoan-nop/:nopId/bien-lai": "ADR-0182 phần B: thân là byte ảnh biên lai khoản nộp (không phải JSON, không chở tiền) — cần khoản nộp có ảnh đã lưu; bài này không ghi khoản nộp nên mã lạ ⇒ 404 / 403 (ô dai-ly.nop.xem), không bao giờ 200",
   "/api/ve/anh/:allocationId": "ADR-0153 Đ3: thân là byte ảnh vé (không phải JSON, không chở tiền) — cần vé đã giữ cho đơn thu đủ; bài này không nhập kho; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
   "/ve/:token": "ADR-0153 Đ2: trang công khai theo token — không đăng nhập; thân là HTML chỉ có ảnh + nhãn nhóm khách + khoảng ngày (không tên khách, mã đơn, giá); token lạ ⇒ 404 cùng một thân",
   "/api/ve-khach/:token/anh/:slot": "ADR-0153 Đ2: ảnh vé công khai theo token (byte ảnh, không chở tiền); token lạ ⇒ 404 cùng một thân",
@@ -150,12 +154,17 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/orders/:id/nhap-ke-toan": donB.map((id) => `/api/orders/${id}/nhap-ke-toan`),
     "/api/orders/:id/receipt": donB.map((id) => `/api/orders/${id}/receipt`),
     "/api/orders/:id/qr-thanh-toan": donB.map((id) => `/api/orders/${id}/qr-thanh-toan`),
+    // ADR-0182 Đ2 mục 2: phiếu công nợ mang giá đại lý (thành tiền − hoa hồng) của đơn — Đối tác khác / lai không được thấy của đại lý B.
+    "/api/orders/:id/cong-no-dai-ly": donB.map((id) => `/api/orders/${id}/cong-no-dai-ly`),
     // ADR-0032: «còn N lần» (chỉ người ĐANG phụ trách chính đơn — xem MIEN_200) và bảng chọn người (lần Từ chối của đơn — Toàn quyền nhận 200).
     "/api/orders/:id/han-muc-tu-choi": donB.map((id) => `/api/orders/${id}/han-muc-tu-choi`),
     "/api/orders/:id/tu-choi-truoc": donB.map((id) => `/api/orders/${id}/tu-choi-truoc`),
     "/api/staff/:id/roles": [`/api/staff/${DT_B}/roles`],
     // Sổ công nợ P1 (25/10): chi tiết một bên — bên B (hoa hồng của B) và nhà cung cấp (giá vốn); chỉ Kế toán / Toàn quyền không giữ quyền Đối tác nhận 200.
     "/api/ledger/ben/:partyId": [`/api/ledger/ben/${PTY_B}`, "/api/ledger/ben/pty-ncc"],
+    // ADR-0168: danh sách đơn còn nợ trả sau của MỘT bên (Kế toán, Toàn quyền); Đối tác và tài khoản lai Đối tác nhận 403 — vẫn GỌI để thân được quét.
+    "/api/tra-sau/han-muc/:partyId/don": [`/api/tra-sau/han-muc/${PTY_B}/don`],
+    "/api/tra-sau/han-muc/:partyId": [`/api/tra-sau/han-muc/${PTY_B}`],
     "/api/feedback/:id": [`/api/feedback/${g.gopY}`],
     // ADR-0119 Việc 5b: hàng đợi MỘT nhóm (cần ?team) — nhóm Kỹ thuật giữ góp ý thử của B; Toàn quyền nhận 200.
     "/api/feedback/queue": ["/api/feedback/queue?team=fbk-team-ky-thuat"],
@@ -226,12 +235,19 @@ const NGOAI_GET: Record<string, string> = {
 };
 
 /** Đơn NHÁP gieo bằng SQL (khuôn so-la-doi-tac): chủ `chu`, bên đặt `booker`, ngày đi = hôm nay giờ VN (đồng hồ giả). */
+let soMaGieo = 0;
 function nhap(w: W, chu: string, booker: string | null, dv: [string, number][]): string {
   const id = uuid();
   const tong = dv.reduce((s, [, t]) => s + t, 0);
+  // Mã gieo CỐ ĐỊNH (không lấy từ uuid ngẫu nhiên): payload QR có CRC-16 ghép từ mã đơn, mã ngẫu nhiên có lúc làm CRC ra đúng một dãy «số lạ» (vd 4261) ⇒ đỏ ngẫu nhiên.
+  // Kiểm trước: payload QR của mã này (tài khoản và số tiền của bài) không chứa số lạ nào. Không thu hẹp phép quét, không bỏ CRC.
+  const ma = `TD-SL-${String(++soMaGieo).padStart(3, "0")}`;
+  const qr = payloadVietQr({ bin: "970436", soTaiKhoan: "0011001234567", soTien: tong, noiDung: noiDungChuyenKhoan(ma) });
+  assert.ok(qr.ok, "payload QR của mã gieo dựng được");
+  if (qr.ok) assert.deepEqual(soLaTrong(qr.payload).map((x) => x.ten), [], `mã gieo ${ma} (số tiền ${tong}): payload QR chứa số lạ — đổi số thứ tự mã`);
   const ngay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
   w.sqlite.prepare(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, booker_party_id, created_at, updated_at)
-    VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, ?, ?, ?, ?, ?)`).run(id, `TD-SL-${id.slice(0, 4)}`, chu, tong, tong, tong, booker, AT, AT);
+    VALUES (?, ?, ?, 'draft', 'Khách Giả', '0900000099', ?, ?, ?, ?, ?, ?)`).run(id, ma, chu, tong, tong, tong, booker, AT, AT);
   dv.forEach(([code, t], i) => {
     const s = `${id}-s${i}`;
     w.sqlite.prepare("INSERT INTO order_service (pickup_choice, id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES ('KHONG_DON', ?, ?, ?, ?, ?, 'perPax', 1, ?)").run(s, id, i, code, `Dịch vụ ${code}`, ngay);
@@ -248,12 +264,10 @@ const KQ = async (p: Promise<Res>, ma: number, ten: string): Promise<Res> => {
 
 /** Dựng thế giới: tài khoản, vai, bảng mức + điều khoản (qua route thật của Kế toán), đơn của A, đơn của B (xác nhận + ghi tay, nháp), đơn nháp bên đặt B của mỗi tài khoản lai, chuyến xe, góp ý, tin. */
 async function gieo(w: W): Promise<Gieo> {
+  noiGioiHanNhap(w); // ADR-0161 Đ3: dấu «số lạ» để dò rò rỉ KHÔNG chia hết 1.000 — nới giới hạn nhập, giữ nguyên số và đáp án.
   THUAN.forEach((t, i) => { if (!KHUNG[t.permissions[0]!]) seedStaff(w.sqlite, { id: t.id, phone: `0911000${String(i).padStart(3, "0")}`, name: `Thuần ${t.permissions[0]}`, perms: t.permissions }); });
   LAI.forEach((t, i) => seedStaff(w.sqlite, { id: t.id, phone: `0912000${String(i).padStart(3, "0")}`, name: `Lai ${t.permissions[0]}`, perms: t.permissions }));
   seedStaff(w.sqlite, { id: DT_B, phone: "0913000001", name: "Đại Lý Bê", perms: ["PARTNER"] });
-  for (const [r, p] of [["r-sl-a", `pty-${PARTNER}`], ["r-sl-b", PTY_B]] as const) {
-    w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(r, p, AT, AT);
-  }
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'Nhà cung cấp Lạ', 1, ?, ?)").run(AT, AT);
   w.sqlite.prepare("INSERT INTO pty_organization (party_id, legal_name, created_at, updated_at) VALUES ('pty-ncc', 'Nhà cung cấp Lạ', ?, ?)").run(AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-sl-ncc', 'pty-ncc', 'SUPPLIER', '2026-01-01', ?, ?)").run(AT, AT);
@@ -372,7 +386,7 @@ test("số lạ toàn Nền tảng: tài khoản giữ quyền Đối tác (thu�
       if (xn.status === 200) xacNhan200++;
       xet("POST /api/orders/:id/status", tk, xn);
       daQuet.add("Đơn của chính tài khoản lai, bên đặt B — chi tiết + lịch sử, phần đối tác, biên nhận, QR, lần thu, hành khách");
-      for (const duoi of ["", "/thuong-mai", "/receipt", "/qr-thanh-toan", "/payments", "/passengers"]) {
+      for (const duoi of ["", "/thuong-mai", "/receipt", "/qr-thanh-toan", "/cong-no-dai-ly", "/payments", "/passengers"]) {
         const r = await w.call("GET", `/api/orders/${id}${duoi}`, { as: tk.id });
         xet(`GET /api/orders/:id${duoi} (đơn của mình, bên đặt B)`, tk, r);
         if (duoi === "/thuong-mai") assert.equal(r.status, 404, `${tk.ten}: phần đối tác đơn của mình mà người hưởng là B phải 404: ${r.text}`);

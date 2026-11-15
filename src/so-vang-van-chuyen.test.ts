@@ -83,7 +83,7 @@ function chayMau(k: Kiem): Record<string, unknown> {
     return { quyet_dinh: qd, ma_luat: (qd === "CHAN" ? r.chan : r.canPhaLe).map((x) => x.ma) };
   }
   assert.equal(buoc.ham, "kiemXuatBen", `bước mẫu ${k.mau}: hàm lạ ${buoc.ham}`);
-  const r = kiemXuatBen(v);
+  const r = kiemXuatBen({ choPhepThieu: [], ...v });
   return { quyet_dinh: r.dat ? "DAT" : "GIU", ma_luat: r.lyDo.map((x) => x.ma), ai_xu_ly: r.lyDo.map((x) => x.aiXuLy), so_gan_ten: r.ganTen.length };
 }
 /** Chạy một phép kiểm máy. `ky_vong` của mẫu bước chỉ so các khoá có ghi (tập con). */

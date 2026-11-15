@@ -6,13 +6,20 @@ import type { ChangChoChuyen } from "../orders";
 import { cauDieuChinh, coTienDoSauXuatBen, kiemDieuChinh } from "../../shared/dieu-chinh-suat";
 import { error } from "../../shared/http";
 import { legFlags, lyDoDangDung, type TripRow } from "./chuyen-repo";
-import { loDieuChinh, loThuHoiXuatBen, type LenhChung } from "./dieu-phoi";
+import { loChoChayThieu, loDieuChinh, loThuHoiXuatBen, type LenhChung } from "./dieu-phoi";
 import type { NenChuyen } from "./dieu-phoi-doc";
 import { chayLo, loi409 } from "./dieu-phoi-route";
 import type { DieuChinhSuatThan, ThuHoiXuatBenThan } from "./dieu-phoi-than";
 import type { NguoiBam } from "./dieu-phoi-tien-do";
 import { chinhSachHienHanh } from "./repository";
 import { lyDoGiu } from "../../shared/ly-do-giu";
+import { giayToXeConThieu } from "../../shared/dieu-phoi-kiem";
+import { kiemChoChayThieu, MA_LY_DO_THIEU_GIAY_KHAC, NHOM_LY_DO_THIEU_GIAY, sapTheoThuTuLoai } from "../../shared/cho-chay-thieu-giay";
+import { msToVnLocal, ngayDayDu } from "../../shared/vn-date";
+import { boSungXe, docChung, xeVao } from "./dieu-phoi-doc";
+import { CAU_CHI_TOAN_QUYEN_GIAY_TO } from "./rules";
+import { listVehicleDocumentTypes } from "./repository";
+import type { ChoChayThieuThan } from "./dieu-phoi-than";
 
 const lenh = (requestId: string, nguoi: NguoiBam, bayGioMs: number): LenhChung => ({ cmd: crypto.randomUUID(), requestId, lucIso: new Date(bayGioMs).toISOString(), nguoiId: nguoi.id });
 const KHONG_CO_SUAT = () => error(404, "not_found", "Không tìm thấy khách này trên chuyến.");
@@ -89,6 +96,56 @@ export async function lenhThuHoiXuatBen(db: D1Database, nen: NenChuyen, b: ThuHo
   const l = lenh(b.requestId, nguoi, bayGioMs);
   const lo = loThuHoiXuatBen(db, {
     ...l, tripId: t.id, version: b.version, lyDo: lyDo.code, detail: `${t.code}: thu hồi lệnh cho xe chạy — ${lyDo.label}${nguoi.bamThay ? " · văn phòng bấm thay" : ""}`,
+  });
+  const r = await chayLo(db, lo, b.requestId);
+  return r.ok ? null : r.res;
+}
+
+/** "2027-03-11" → "11/03/2027" (chỉ để ghi nhật ký). */
+const ngayVn = ngayDayDu;
+/**
+ * ADR-0184 — «Cho chạy dù thiếu giấy tờ». Văn phòng (Quản trị: `trip.override`; Toàn quyền: thêm `trip.override.giay_to_cung` = `coOToanQuyen`) cấp dòng cho phép
+ * cho chuyến CHƯA chạy. Kiểm: chuyến PLANNED (409); thiếu tính LẠI lúc lệnh chạy bằng `giayToXeConThieu` của xe HIỆN TẠI (cùng định nghĩa với cổng xuất bến);
+ * `kiemChoChayThieu` (mã → 403 / 400 / 409); loại đã có dòng cho phép chưa dùng cùng xe → 409. Ghi chú tự do chỉ ở dòng cho phép, KHÔNG vào nhật ký (P5).
+ */
+export async function lenhChoChayThieu(
+  db: D1Database, nen: NenChuyen, b: ChoChayThieuThan, nguoi: NguoiBam, bayGioMs: number, coOToanQuyen: boolean,
+): Promise<Response | null> {
+  const t = nen.trip;
+  if (t.status !== "PLANNED") {
+    return loi409(t.status === "RUNNING" ? "da_xuat_ben" : "chuyen_da_ket_thuc", [], {}, t.status === "RUNNING" ? "Xe đã chạy rồi — không cho chạy dù thiếu giấy tờ nữa." : "Chuyến đã kết thúc hoặc đã huỷ.");
+  }
+  const chung = await docChung(db, new Date(bayGioMs).toISOString(), msToVnLocal(bayGioMs).date);
+  await boSungXe(db, chung, [t.vehicle_id]);
+  const xeRow = chung.xe.find((x) => x.id === t.vehicle_id);
+  if (!xeRow) return loi409("chuyen_da_ket_thuc", [], {}, "Không tìm thấy xe của chuyến — tải lại trang.");
+  const xe = xeVao(xeRow, chung.giayToXe);
+  const thieu = giayToXeConThieu(xe, chung.dieuKien, t.planned_end_ms);
+  const lyDoDanhMuc = b.lyDo === null ? null : (chung.lyDo.find((r) => r.code === b.lyDo && r.reason_group === NHOM_LY_DO_THIEU_GIAY) ?? null);
+  const kq = kiemChoChayThieu({ thieu, yeuCau: b.loaiGiayTo, coOToanQuyen, lyDo: b.lyDo, lyDoHopLe: lyDoDanhMuc !== null, ghiChu: b.ghiChu });
+  const ten = new Map((await listVehicleDocumentTypes(db)).map((r) => [r.code, r.name]));
+  const tenLoai = (code: string) => ten.get(code) ?? code;
+  if (!kq.ok) {
+    switch (kq.ma) {
+      case "chi_toan_quyen": return error(403, "forbidden", CAU_CHI_TOAN_QUYEN_GIAY_TO);
+      case "thieu_ly_do": return error(400, "invalid_input", "Chọn lý do cho chạy dù thiếu giấy tờ.");
+      case "ly_do_sai_nhom": return error(400, "invalid_input", "Lý do không có trong danh mục lý do cho chạy dù thiếu giấy tờ.");
+      case "thieu_ghi_chu": return error(400, "invalid_input", b.lyDo === MA_LY_DO_THIEU_GIAY_KHAC ? "Lý do «Khác» cần ghi chú từ 10 đến 200 ký tự." : "Ghi chú dài từ 10 đến 200 ký tự.");
+      case "trong": return error(400, "invalid_input", "Chọn loại giấy tờ cho chạy.");
+      case "giay_to_khong_thieu": return loi409("giay_to_khong_thieu", [], {}, "Xe không còn thiếu loại giấy này — tải lại trang.");
+    }
+  }
+  for (const code of b.loaiGiayTo) {
+    if (chung.choPhepThieu.some((w) => w.tripId === t.id && w.xeId === t.vehicle_id && w.documentTypeCode === code)) {
+      return loi409("da_cho_chay_thieu", [], {}, `Chuyến này đã được cho chạy dù thiếu ${tenLoai(code)}.`);
+    }
+  }
+  const dong = sapTheoThuTuLoai(b.loaiGiayTo, (code) => code, chung.thuTuLoai).map((code) => ({ id: crypto.randomUUID(), documentTypeCode: code, expiryDate: thieu.find((x) => x.documentTypeCode === code)?.expiryDate ?? null }));
+  const loai = dong.map((d) => `${tenLoai(d.documentTypeCode)} (${d.documentTypeCode}, hạn ${d.expiryDate === null ? "chưa có" : ngayVn(d.expiryDate)})`).join(", ");
+  const l = lenh(b.requestId, nguoi, bayGioMs);
+  const lo = loChoChayThieu(db, {
+    ...l, tripId: t.id, version: b.version, xeId: t.vehicle_id, dong, lyDo: b.lyDo, ghiChu: kq.ghiChu,
+    detail: `${t.code}: cho chạy dù thiếu giấy tờ · xe ${xe.bienSo} · ${loai} · lý do ${lyDoDanhMuc ? lyDoDanhMuc.label : "không nêu lý do"}${kq.ghiChu !== null ? " · có ghi chú" : ""}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? null : r.res;

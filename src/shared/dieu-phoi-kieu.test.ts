@@ -11,8 +11,8 @@ import {
 import { MA_GIU } from "./ly-do-giu.ts";
 import { LENH_XEP } from "./moc-toi-thieu.ts";
 
-test("NHOM_LY_DO: đúng mười hai nhóm — bảy của thiết kế [TK] §1.9 + BAN_XE từ ADR-0055 + CHI_PHI_XE (ADR-0057 C3) + DIEU_CHINH (ADR-0097 Đ2.5) + TU_CHOI_CHUYEN, BAN_TAI_XE (ADR-0053 D8.1, D9.1); có nhãn tiếng Việt; isNhomLyDo chỉ nhận đúng mã", () => {
-  assert.deepEqual([...NHOM_LY_DO], ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "BAN_XE", "CHI_PHI_XE", "DIEU_CHINH", "TU_CHOI_CHUYEN", "BAN_TAI_XE"]);
+test("NHOM_LY_DO: đúng mười ba nhóm — bảy của thiết kế [TK] §1.9 + BAN_XE từ ADR-0055 + CHI_PHI_XE (ADR-0057 C3) + DIEU_CHINH (ADR-0097 Đ2.5) + TU_CHOI_CHUYEN, BAN_TAI_XE (ADR-0053 D8.1, D9.1) + CHO_CHAY_THIEU_GIAY (ADR-0184); có nhãn tiếng Việt; isNhomLyDo chỉ nhận đúng mã", () => {
+  assert.deepEqual([...NHOM_LY_DO], ["DOI_GIO_XE", "BAO_HUY_DIEM", "PHA_LE", "TU_CHOI_NHAN", "KET_THUC_GIAN_DOAN", "HUY_CHUYEN", "BO_QUA_DIEM", "BAN_XE", "CHI_PHI_XE", "DIEU_CHINH", "TU_CHOI_CHUYEN", "BAN_TAI_XE", "CHO_CHAY_THIEU_GIAY"]);
   for (const g of NHOM_LY_DO) assert.ok(NHAN_NHOM_LY_DO[g].trim().length > 0, g);
   assert.equal(Object.keys(NHAN_NHOM_LY_DO).length, NHOM_LY_DO.length);
   assert.equal(isNhomLyDo("PHA_LE"), true);
@@ -41,6 +41,8 @@ test("LOAI_SU_KIEN_CHUYEN: đủ 17 loại tương ứng các hành động trip
     "PASSENGER_NAMED",
     // ADR-0097 (gói A1, V3-B): văn phòng điều chỉnh kết quả một khách; thu hồi xuất bến nhầm
     "CORRECTION", "DEPARTURE_REVOKED",
+    // ADR-0184: văn phòng cho xe chạy dù thiếu giấy tờ xe — danh sách mở (0042:157)
+    "DOCS_WAIVED",
     // ADR-0104 Đ2.9: máy cập nhật chuyến theo đơn (lệnh đơn nối khúc chuyến vào cùng lô) — danh sách mở (0042:157), không dựng lại bảng
     "ALLOCATION_ORDER_SYNCED",
     // ADR-0111 (gói A5): đề nghị chuyển khách giữa hai xe (G-A5-25)

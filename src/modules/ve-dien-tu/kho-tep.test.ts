@@ -88,7 +88,7 @@ test("giữ chỗ bỏ qua vé chưa lưu vào kho (stored_at rỗng)", async ()
   veDoDang(d, lo, "t-1"); // dở dang: chưa có stored_at
   const { soanCapVe } = await import("./cap-ve.ts");
   const { nhatKyThu } = await import("../../khung-thu-ve.test.ts");
-  chayLo(d, soanCapVe(d1That(d), { orderId: "o", serviceId: "s", catalogCode: "V2D", ngayDi: "2026-10-24", pax: { adult: 1, child: 0, senior: 0, infant: 0 } }, null, AT, nhatKyThu(d1That(d))).cau);
+  chayLo(d, soanCapVe(d1That(d), { orderId: "o", serviceId: "s", catalogCode: "V2D", ngayDi: "2026-10-24", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, nguonVe: "HANG_NGOAI" }, null, AT, nhatKyThu(d1That(d))).cau);
   assert.equal(dem(d, "SELECT count(*) AS c FROM vdt_allocation"), 0);
 });
 
@@ -99,7 +99,7 @@ test("thu hồi (cauDatChoXoa) KHÔNG đụng vé đang có phân bổ mở — 
   d.prepare("UPDATE vdt_ticket SET stored_at = ? WHERE id = 't-1'").run(AT);
   const { soanCapVe } = await import("./cap-ve.ts");
   const { nhatKyThu } = await import("../../khung-thu-ve.test.ts");
-  chayLo(d, soanCapVe(d1That(d), { orderId: "o", serviceId: "s", catalogCode: "V2D", ngayDi: "2026-10-24", pax: { adult: 1, child: 0, senior: 0, infant: 0 } }, null, AT, nhatKyThu(d1That(d))).cau);
+  chayLo(d, soanCapVe(d1That(d), { orderId: "o", serviceId: "s", catalogCode: "V2D", ngayDi: "2026-10-24", pax: { adult: 1, child: 0, senior: 0, infant: 0 }, nguonVe: "HANG_NGOAI" }, null, AT, nhatKyThu(d1That(d))).cau);
   assert.equal(dem(d, "SELECT count(*) AS c FROM vdt_allocation WHERE released_at IS NULL"), 1);
   const kq = chayLo(d, [cauDatChoXoa(d1That(d), "t-1", luc(), null)].map((c) => c as never));
   assert.deepEqual(kq, [0]);

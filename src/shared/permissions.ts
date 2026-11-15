@@ -2,7 +2,7 @@
 // Mặc định từ chối (Điều 8.5): thao tác lạ hoặc ô không khai = không được. Quyền app KHÔNG phải vai trò hồ sơ (ADR-0005): vai trò
 // hồ sơ (HDV, tài xế…) không bao giờ là điều kiện ở đây (R-N1-12).
 
-export const PERMISSION_CODES = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR"] as const;
+export const PERMISSION_CODES = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER", "HR", "SALES_MANAGER"] as const;
 export type PermissionCode = (typeof PERMISSION_CODES)[number];
 
 export const PERMISSION_LABEL: Record<PermissionCode, string> = {
@@ -15,6 +15,7 @@ export const PERMISSION_LABEL: Record<PermissionCode, string> = {
   INTERN: "Thực tập", // ADR-0018 điều 4
   DRIVER: "Tài xế", // ADR-0040 D3: tài xế công ty là nhân viên có tài khoản (vai "Tài xế công ty", mã vai DRIVER_INTERNAL)
   DRIVER_PARTNER: "Tài xế đối tác", // ADR-0048 D2: tài xế của nhà xe đối tác (vai "Tài xế đối tác", mã vai DRIVER_EXTERNAL) — khác quyền DRIVER
+  SALES_MANAGER: "Quản lý bán hàng", // ADR-0169 Đ1: vai cùng tên, kèm SALES; thêm công tắc kiểm vé và Ngừng bán. Đặt cuối PERMISSION_CODES, nhãn đứng đây để cạnh HR
   HR: "Nhân sự", // ADR-0071 điều 1a: vai "Hành chính nhân sự" (mã vai HR_STAFF) — tạo / xem / sửa tài khoản; không đơn, tiền, Danh bạ, danh mục
 };
 
@@ -43,16 +44,16 @@ export type Scope = "none" | "own" | "assigned" | "ownOrAssigned" | "any";
  */
 type Row = Record<PermissionCode, Scope>;
 const row = (
-  SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope, PARTNER: Scope, SUPER_ADMIN: Scope, INTERN: Scope, DRIVER: Scope, DRIVER_PARTNER: Scope, HR: Scope,
+  SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope, PARTNER: Scope, SUPER_ADMIN: Scope, INTERN: Scope, DRIVER: Scope, DRIVER_PARTNER: Scope, HR: Scope, SALES_MANAGER: Scope = "none", // ADR-0169 Đ1: cột thứ 11, mặc định `none` (từ chối) để các hàng cũ và nhánh đang làm dở không phải đổi
 ): Row => ({
-  SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, INTERN, DRIVER, DRIVER_PARTNER, HR,
+  SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, INTERN, DRIVER, DRIVER_PARTNER, HR, SALES_MANAGER,
 });
 /** Hàng "chỉ Toàn quyền": SUPER_ADMIN `any`, mọi cột khác `none`. Một hàm dùng chung (mỗi lần gọi một đối tượng MỚI) để gói giao diện gọn — giá trị y như viết
  * tay `row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none")`; bài ghim từng ô ở permissions.test.ts canh. */
 const chiToanQuyen = (): Row => row("none", "none", "none", "none", "none", "any", "none", "none", "none", "none");
 /** Hàng "tự phục vụ": mọi cột `own` (chính mình — route truyền `{ ownerId: staff.id }` và lấy hồ sơ từ `staff.partyId`), SUPER_ADMIN `any` (ADR-0014 điều 2 — Toàn quyền
  * any ở MỌI ô; route vẫn chỉ phục vụ hồ sơ của phiên). Một hàm dùng chung để gói giao diện gọn (trần gói Đơn hàng — src/goi-trang-nhe.test.ts, không nới). */
-const tuPhucVu = (): Row => row("own", "own", "own", "own", "own", "any", "own", "own", "own", "own");
+const tuPhucVu = (): Row => row("own", "own", "own", "own", "own", "any", "own", "own", "own", "own", "own");
 /** Hàng "Quản trị + Toàn quyền": ADMIN, SUPER_ADMIN `any`, mọi cột khác `none`. Hàm dùng chung để gói giao diện gọn (trần gói Đơn hàng — src/goi-trang-nhe.test.ts,
  * KHÔNG nới; kế hoạch H-4 R11). Giá trị y như viết tay; bài ghim từng ô ở permissions.test.ts canh. */
 const quanTri = (): Row => row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none");
@@ -60,6 +61,10 @@ const quanTri = (): Row => row("none", "none", "any", "none", "none", "any", "no
 const quanTriNhanSu = (): Row => row("none", "none", "any", "none", "none", "any", "none", "none", "none", "any");
 /** Hàng "Bán hàng + Quản trị + Toàn quyền": SALES, ADMIN, SUPER_ADMIN `any`, mọi cột khác `none`. Hàm dùng chung để gói giao diện gọn (trần gói Đơn hàng — src/goi-trang-nhe.test.ts,
  * KHÔNG nới; thêm ô `sales.block.write` 30/10). Giá trị y như viết tay `row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none")`; bài ghim từng ô ở permissions.test.ts canh. */
+/** ADR-0169 Đ1: Quản lý bán hàng + Quản trị + Toàn quyền. */
+const quanLyBanHang = (): Row => row("none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any");
+/** ADR-0175 §2.9: hàng quét vé — mọi vai nội bộ có ô quét trừ Nhân sự, Thực tập; chỉ ô DRIVER (Tài xế công ty) đổi giữa «tính đã dùng» (none) và «chỉ xem» (any). Giá trị y như viết tay từng ô (bài ghim canh). */
+const quetVe = (taiXe: Scope): Row => row("any", "any", "any", "any", "none", "any", "none", taiXe, "none", "none", "any");
 const banHangQuanTri = (): Row => row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none");
 
 /**
@@ -105,9 +110,9 @@ export const MATRIX = {
   // (`legs[].datGap = { daDuyet: true }`). Không phạm vi đơn: phạm vi đã do order.view quyết. Hỏi ở `loadOrderView` qua `xemDuDatGap` (orders/index.ts).
   "order.leg.short_notice.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0136 Đ4 (chủ duyệt 25/10/2026): QUYẾT ĐỊNH đơn đang chờ xác nhận (Còn vé / Hết vé / Huỷ) và đọc đơn chờ ở phần hẹp (route `quyet-dinh`, danh sách chờ).
-  // Bán hàng, Kế toán, Quản trị, HDV (FIELD), Toàn quyền; KHÔNG Đối tác, Thực tập, tài xế, Nhân sự. Không phạm vi đơn. `can()` lấy HỢP các ô của mọi quyền
+  // ADR-0142 (chủ duyệt 27/10): CHỈ Bán hàng, Quản trị, Toàn quyền — Kế toán và HDV (FIELD) không còn quyết định đơn chờ xác nhận; KHÔNG Đối tác, Thực tập, tài xế, Nhân sự. Không phạm vi đơn. `can()` lấy HỢP các ô của mọi quyền
   // tài khoản giữ — tài khoản lai (Bán hàng + Đối tác) có ô này; cổng «không tự quyết đơn của mình» đặt ở route bằng `duocQuyetDinh` (src/shared/xac-nhan-don.ts).
-  "order.confirm.review": row("any", "any", "any", "any", "none", "any", "none", "none", "none", "none"),
+  "order.confirm.review": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0136 Đ13.6 (đúng hàng đích ADR-0018 đ6): nút «Gửi đơn» của ĐỐI TÁC (own = đơn của mình). Toàn quyền any (bài «Toàn quyền = any ở mọi thao tác»); mọi mã khác none —
   // văn phòng không «gửi» mà xác nhận thẳng. KHÔNG tách ô `order.confirm`: `order.modify` giữ nguyên giá trị.
   "order.submit": row("none", "none", "none", "none", "own", "any", "none", "none", "none", "none"),
@@ -125,6 +130,11 @@ export const MATRIX = {
   "order.cancel.classify": quanTri(),
   "dispatch.assign": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
   "dispatch.claim": row("any", "none", "any", "any", "none", "any", "none", "none", "none", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này) — FIELD any (ADR-0030 S20-6/S20-12); chốt Nhận (đã huỷ/qua ngày đi) + chặn tài khoản có quyền Đối tác ở route PUT /api/orders/:id/handler
+  // ADR-0142 (chủ duyệt 27/10): BÁN HÀNG PHỤ TRÁCH đơn — ô riêng, KHÔNG phải người phụ trách (HANDLE). Nhận: Bán hàng, Quản trị, Toàn quyền (ưu tiên lời mời, đơn chưa có người, tài khoản lai
+  // bị chặn do dispatch kiểm, không phải ô này). Đặt / đổi / gỡ: Quản trị + Toàn quyền. Xem danh sách Bán hàng để mời: cùng hàng order.create. Không ô nào chạm tiền.
+  "dispatch.sales.claim": banHangQuanTri(),
+  "dispatch.sales.assign": quanTri(),
+  "dispatch.sales.invitees": row("any", "none", "any", "none", "any", "any", "any", "none", "none", "none"),
   // ADR-0030 điều 1 (nút «Từ chối»): người ĐANG phụ trách tự trả đơn — ô `assigned` cho Bán hàng / Quản trị / Hướng dẫn viên, `any` cho Toàn quyền, NHƯNG route
   // POST /api/orders/:id/handler-refuse còn chốt "người gọi đúng là người đang phụ trách" áp CẢ Toàn quyền (không ai trả đơn hộ người khác; văn phòng đổi
   // người bằng PUT …/handler). Ô chỉ là sàng sớm + câu hỏi ẩn/hiện nút ở giao diện.
@@ -134,6 +144,18 @@ export const MATRIX = {
   // module billing). FIELD assigned (HDV đang phụ trách ghi tiền mình thu trước chuyến), PARTNER own, INTERN own — thay ô cọc trên form đơn của mình.
   // Người thu ∈ {chính mình, Công ty} trừ Kế toán/Toàn quyền (kiểm ở route, không phải ô này).
   "payment.receive": row("own", "any", "any", "assigned", "own", "any", "own", "none", "none", "none"),
+  // ADR-0196 Đ5 (accepted 2026-11-11): XEM ảnh biên lai chuyển khoản (route GET /api/orders/:id/payments/:receiptId/bien-lai) — Kế toán any, Toàn quyền any, Đối tác own
+  // (`ownerId` = NGƯỜI LẬP đơn, như payment.receive; Đối tác chỉ ghi khoản thu trên đơn mình). Mọi cột khác none — kể cả Quản trị, Bán hàng, Hướng dẫn viên.
+  // Viết gọn bằng hàng «chỉ Toàn quyền» + hai ô (gói trang Đơn hàng có trần — src/goi-trang-nhe.test.ts); giá trị từng ô ghim ở permissions.test.ts.
+  "payment.proof.view": { ...chiToanQuyen(), ACCOUNTING: "any", PARTNER: "own" },
+  // ADR-0196 Đ7, Đ2: GỠ ảnh biên lai gửi nhầm và xem / chạy lại hàng chờ dọn kho ảnh — chỉ Toàn quyền. Ô riêng (giả định của người thi công 6A, ghi ở nhật ký
+  // thi công 2026-11-11-dot-6a): ADR chỉ nói «chỉ Toàn quyền», không có ô sẵn mang đúng nghĩa đó; ô này không nới ai.
+  "payment.proof.purge": chiToanQuyen(),
+  // ADR-0182 Đ3 (phần B, accepted 2026-11-13): khoản nộp của đại lý. Ghi + tải biên lai — Đối tác own (route còn đòi tài khoản Đối tác, hồ sơ phiên = bên đặt, ADR Đ2 mục 11);
+  // xác nhận / từ chối — Kế toán, Toàn quyền (khuôn ADR-0090; Quản trị KHÔNG); xem khoản và biên lai — Kế toán, Quản trị, Toàn quyền, Đối tác own. Viết gọn (trần gói Đơn hàng).
+  "dai-ly.nop.ghi": { ...chiToanQuyen(), PARTNER: "own" }, // Toàn quyền `any` theo luật ADR-0014 điều 2 (không ngoại lệ); route vẫn chỉ cho tài khoản Đối tác bên đặt (`coPhieuNopTien`)
+  "dai-ly.nop.xac-nhan": { ...chiToanQuyen(), ACCOUNTING: "any" },
+  "dai-ly.nop.xem": { ...quanTri(), ACCOUNTING: "any", PARTNER: "own" },
   // Ghi HOÀN KHÁCH (route POST /api/ledger/refunds, module billing) — ADR-0026 điều 10: ADMIN any → none (H4 "Kế toán ghi", thận trọng).
   "payment.refund": row("none", "any", "none", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0089 đ4a, đ6, X-1, X-4 (cọc đơn huỷ — migration 0079): DUYỆT hoàn cọc / huỷ duyệt khoản hoàn / XÁC NHẬN hoặc từ chối dòng "đã hoàn
@@ -170,9 +192,33 @@ export const MATRIX = {
   "partner.commission.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0146 Đ5 (bổ sung 28/10): đặt / kết thúc LUẬT BÁN theo loại đối tác (route /api/pricing/luat-ban*, cổng office) — Bán hàng, Quản trị, Toàn quyền `any` (luật không có người sở hữu).
   "sales.block.write": banHangQuanTri(),
+  // ADR-0168 Đ1 mục 3, sửa bởi ADR-0172 Đ1: đặt / đổi / ngừng Trả sau của đại lý và số gợi ý theo cấp — Quản trị, Toàn quyền (Quản trị bị giới hạn bởi mức tối đa — ADR-0173 Đ1,
+  // so ở máy chủ). Xem hạn mức và nợ của mọi đối tác — Kế toán, Quản trị, Toàn quyền (ADR-0172 trang ghép (2)).
+  "credit.limit.write": quanTri(),
+  "credit.limit.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0173 Đ1 mục 1: đặt mức tối đa Quản trị được cấp — chỉ Toàn quyền.
+  "credit.ceiling.write": chiToanQuyen(),
+  // ADR-0178 Đ1 mục 1: công tắc «Khách của đối tác trả cho Công ty» — đổi chỉ Toàn quyền; xem: Kế toán, Quản trị, Toàn quyền (khuôn credit.limit.view). Route: /api/kenh-thu-doi-tac (module billing).
+  "billing.partner_channel.write": chiToanQuyen(),
+  "billing.partner_channel.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0173 Đ1 mục 3: lùi hạn trả của MỘT đơn Trả sau đã xác nhận (bắt buộc lý do) — Quản trị, Toàn quyền.
+  "credit.due.extend": quanTri(),
+  // ADR-0173 Đ3 mục 3: đại lý xem Trả sau của CHÍNH hồ sơ mình (hạn mức, đang nợ, còn được dùng, từng đơn nợ) — Đối tác phạm vi `own`; hồ sơ lấy từ phiên, không nhận từ trình duyệt.
+  "credit.own.view": row("none", "none", "none", "none", "own", "any", "none", "none", "none", "none"), // Toàn quyền `any` theo luật ADR-0014 điều 2; route vẫn chỉ đọc hồ sơ của phiên
+  // ADR-0186 Đ2: gửi tin nhắc hạn trả sau — chỉ tác nhân NHAC_HAN_TRA_SAU dùng (Cron, src/modules/billing/tra-sau-nhac.ts); không route cho người. Toàn quyền có ô
+  // chỉ vì ADR-0014 điều 2 (Toàn quyền `any` ở mọi ô); Trợ lý không kể ô này là việc người làm được (O_HEP ở tro-ly-cau-truc-ten.ts).
+  "credit.due.remind": chiToanQuyen(),
   // ADR-0152 Đ3: gắn / đổi / bỏ giá trị ĐẶC ĐIỂM cho MỘT dịch vụ (route PUT /api/catalog/:code/dac-diem/:attr, cổng office) và xem màn Đặc điểm dịch vụ (cùng admin.manage) —
   // Bán hàng, Quản trị, Toàn quyền. Không rộng hơn sales.block.write ở cột nào (hàng rào (i), permissions.test.ts). Định nghĩa đặc điểm, gắn theo nhóm: admin.manage.
   "catalog.attribute.assign": banHangQuanTri(),
+  // ADR-0169 Đ1 (chủ duyệt 2026-11-05): bật, tắt «cần kiểm vé» theo vé và cả nhóm (thay một phần ADR-0136 Đ1); Ngừng bán, Mở bán lại. Bán hàng thường không có. Route còn chặn tài khoản giữ Đối tác.
+  "catalog.confirm_flag.write": quanLyBanHang(),
+  "catalog.hidden.write": quanLyBanHang(),
+  // ADR-0174 Đ4 (chủ duyệt 2026-11-05): đặt ô «Có vé» theo dịch vụ và nhóm. Chỉ Quản trị, Toàn quyền; Quản lý bán hàng không có việc này.
+  "catalog.ticket_flag.write": quanTri(),
+  // ADR-0186 Đ2, Đ3 (chủ duyệt 2026-11-08): «Đồng bộ ngay từ Google Sheet» — Quản lý bán hàng, Quản trị, Toàn quyền (trước: admin.manage); tác nhân DONG_BO_DANH_MUC
+  // (Cron 15 phút, đồng bộ lần đầu) giữ đúng ô này. Một hàm lệnh cho cả ba đường: syncCatalog (src/modules/catalog/service.ts) hỏi ô này trước khi ghi.
+  "catalog.sync": quanLyBanHang(),
   "supply.terms.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // Bán hàng KHÔNG xem tỷ lệ mua lại của nhà cung cấp
   "supply.terms.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // Phần đối tác của đơn (đặc tả §6; Task 5): xem = bằng `order.view` ở MỌI cột (supply.terms.view ⊆ order.terms.view ⊆ money.view — bài khoá ở permissions.test.ts), nhưng tài khoản giữ
@@ -190,6 +236,8 @@ export const MATRIX = {
   "accounting.entry.view": row("any", "any", "any", "assigned", "none", "any", "own", "none", "none", "none"),
   "party.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // xem hồ sơ khách/đại lý
   "party.write": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // tạo/sửa hồ sơ KHÔNG gắn tài khoản (khách, đại lý, HDV/tài xế chưa có tài khoản) — ADR-0007, ADR-0013
+  // ADR-0190 (chủ duyệt 2026-11-09): ngừng dùng / dùng lại hồ sơ KHÔNG gắn tài khoản — Quản trị, Toàn quyền. Route PUT /api/parties/:id hỏi khi cờ đổi.
+  "party.deactivate": quanTri(),
   "party.staff.write": quanTri(), // sửa hồ sơ GẮN TÀI KHOẢN (tên, liên hệ) — ADR-0013; ADMIN còn phải quản được tài khoản đó (cấp bậc, ADR-0014 điều 8: ctx.partyAccount)
   // ADR-0122 đ5 (accepted 2026-10-16): xem / ghi NGÀY SINH và liên hệ ĐỊA CHỈ (ADDRESS) của hồ sơ người KHÁC — Quản trị + Toàn quyền. party.view (Bán hàng, Kế toán)
   // KHÔNG thấy hai trường này; chính chủ thấy của mình nhưng không ghi trực tiếp (Hiến chương 5.23). Quản trị còn theo luật cấp bậc khi hồ sơ gắn tài khoản
@@ -208,15 +256,25 @@ export const MATRIX = {
   "account.view": quanTriNhanSu(),
   "account.edit": quanTriNhanSu(),
   "audit.view": chiToanQuyen(), // đọc nhật ký kiểm toán ĐẦY ĐỦ: trang Nhật ký (GET /api/audit) và lịch sử đơn đủ tên (ADR-0131: chỉ Toàn quyền)
-  "feedback.submit": row("any", "any", "any", "any", "any", "any", "any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
-  "feedback.view": row("own", "own", "own", "own", "own", "any", "own", "own", "own", "own"), // xem yêu cầu: chỉ của mình (ownerId = người gửi); đọc mọi yêu cầu chỉ Toàn quyền (ADR-0038)
+  "feedback.submit": row("any", "any", "any", "any", "any", "any", "any", "any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
+  "feedback.view": row("own", "own", "own", "own", "own", "any", "own", "own", "own", "own", "own"), // xem yêu cầu: chỉ của mình (ownerId = người gửi); đọc mọi yêu cầu chỉ Toàn quyền (ADR-0038)
   "feedback.triage": chiToanQuyen(), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi — chỉ Toàn quyền (ADR-0038)
   "feedback.team.manage": chiToanQuyen(), // tạo/ngưng nhóm hỗ trợ, gán/gỡ thành viên — chỉ Toàn quyền (ADR-0119)
   // ADR-0153 Đ3 (accepted 2026-10-31): KHO VÉ ĐIỆN TỬ. `ve.kho.manage` = nhập lô, xem kho và thống kê, sửa mã tour lô chưa giữ chỗ, thu hồi vé (Toàn quyền, Quản trị, Bán hàng — chủ chốt 31/10;
   // Kế toán không). `ve.cap.send` = nút Cấp vé, xem ảnh vé, gửi Zalo, tạo / thu hồi đường dẫn khách: Bán hàng chỉ đơn của mình hoặc được giao, Quản trị, Toàn quyền. Danh sách vé của đơn
   // (số lượng, không ảnh, không mã) đi theo quyền xem đơn `order.view` nên Kế toán thấy. Xem ảnh còn bị cổng thu đủ chặn ở máy chủ, không chỉ ô này.
   "ve.kho.manage": row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
-  "ve.cap.send": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "ve.phat-hanh": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"), // ADR-0175 Đ1.3: tạo và thao tác lô vé Tour Đảo; Bán hàng thường không dù có ve.kho.manage
+  // ADR-0175 Đ3, §2.9: quét vé Tour Đảo. `ve.quet.tinh` = tính đã dùng (Hướng dẫn viên, Bán hàng, Quản lý bán hàng, Kế toán, Quản trị, Toàn quyền); `ve.quet.xem` = chỉ xem, thêm Tài xế công ty.
+  // Tài xế đối tác, Thực tập, Nhân sự, Đối tác không có ô quét. Quét không mở quyền xem đơn: tên, SĐT, giá không đi qua; mã đơn chỉ khi người quét có `order.view` trên đơn.
+  "ve.quet.tinh": quetVe("none"),
+  "ve.quet.xem": quetVe("any"),
+  // ADR-0175 §2.7: màn đối chiếu khách thực tế và theo dõi người quét — cùng bốn vai với `ve.phat-hanh` (Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng).
+  "ve.doi-chieu.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"),
+  "ve.cap.send": row("ownOrAssigned", "none", "any", "none", "own", "any", "none", "none", "none", "none"), // ADR-0170 Đ1: Đối tác chỉ đơn do chính tài khoản lập (`orders.staff_id`); mở vé còn qua cổng tiền Đ2
+  // ADR-0186 Đ2: xoá ảnh vé đã hết hạn lưu khỏi kho — chỉ tác nhân DON_ANH_VE dùng (Cron, src/modules/ve-dien-tu/kho-tep.ts); hẹp hơn ve.kho.manage; không route
+  // cho người. Toàn quyền có ô chỉ vì ADR-0014 điều 2; Trợ lý không kể ô này là việc người làm được.
+  "ve.kho.purge": chiToanQuyen(),
   "settings.ops": chiToanQuyen(), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
   // hàng chờ nhận — PHẦN HẸP của đơn chưa có người phụ trách (ADR-0030 S23-1, S23-2; route GET /api/orders/pool, module orders, còn chặn tài khoản có quyền
   // Đối tác). ADMIN "none": Quản trị đã thấy đủ mọi đơn qua order.view. Nơi đón/giờ đón ở phần hẹp là NGOẠI LỆ CÓ TÊN của chú thích ô contact.view (không
@@ -230,7 +288,7 @@ export const MATRIX = {
   // xem giấy tờ của CHÍNH MÌNH (số che) — mọi tài khoản nội bộ (Ruling R5: chủ trả lời 28/9 "Mọi nhân viên"), Đối tác không (Ruling R4: route cổng
   // "staff", thân route hỏi ô này với ownerId = chính người gọi). Route: GET /api/parties/documents/mine. ADR-0048 D2 (sửa ADR-0040 D2): "… mọi tài khoản nội
   // bộ VÀ tài khoản Tài xế đối tác, phạm vi của mình".
-  "party.document.view": row("own", "own", "own", "own", "none", "any", "own", "own", "own", "own"),
+  "party.document.view": row("own", "own", "own", "own", "none", "any", "own", "own", "own", "own", "own"),
   // ghi giấy tờ của người (thêm, gia hạn, sửa sai) + xem danh sách giấy tờ (số che) của người khác — Quản trị + Toàn quyền; Quản trị còn theo luật cấp bậc
   // khi hồ sơ gắn tài khoản (Ruling R8). Route: GET/POST /api/parties/:id/documents…, GET /api/parties/documents/meta.
   "party.document.write": quanTri(),
@@ -255,6 +313,10 @@ export const MATRIX = {
   // ADR-0124 đ4 + ADR-0126 đ2 (lát H-5 Gói 2): GỬI / RÚT yêu cầu xoá dữ liệu của CHÍNH MÌNH — mọi tài khoản (kể cả Tài xế đối tác, Nhân sự — kế hoạch H-5 sự thật 1).
   // Phạm vi own = staff.partyId của PHIÊN. Không đòi đồng ý chính sách. Route: POST /api/parties/cua-toi/phieu-xoa, POST …/phieu-xoa/:id/rut (cổng staff).
   "party.erasure.request": tuPhucVu(),
+  // ADR-0187 Đ2.3 (accepted 2026-11-08): TỰ CHỌN NÚT THANH DƯỚI điện thoại của CHÍNH MÌNH (bảng stf_thanh_duoi) — mọi mã quyền có khung, TRỪ Tài xế đối tác (chủ 8/11: chỉ hai
+  // trang, không chọn). Viết tay, KHÔNG dùng tuPhucVu() (hàm đó cho DRIVER_PARTNER own). Route PUT /api/account/thanh-duoi (cổng staff) hỏi { ownerId: staff.id }; trang chọn được
+  // còn phải qua ghimDuoc (src/shared/muc-giao-dien.ts) — CÙNG hàm với giao diện.
+  "me.favorites.write": row("own", "own", "own", "own", "own", "any", "own", "own", "none", "own", "own"),
   // ADR-0126 đ2 (lát H-5 Gói 2): XỬ LÝ phiếu yêu cầu xoá của NGƯỜI KHÁC (xem hàng chờ, xem trước, thực hiện ẩn danh hoá, từ chối, chạy lại) — Quản trị, Toàn quyền; route cổng admin
   // hỏi admin.manage rồi ô này, còn hỏi cấp bậc và tách người gửi / người xử lý (xoa-an-danh.ts). Nhân sự KHÔNG có. Route: /api/parties/phieu-xoa*.
   "party.erasure.process": quanTri(),
@@ -279,11 +341,14 @@ export const MATRIX = {
   // ADR-0049 D3 (Task A13): CHUYẾN XE. `trip.view` — xem lịch chung, chi tiết chuyến (văn phòng: Bán hàng, Kế toán, Quản trị, Toàn quyền; Tài xế công ty:
   // CHỈ chuyến mình đang lái — `assigned` = dòng lái mở trên chuyến, tính trong van-chuyen, route tài xế A15). NỚI bài ghim hàng DRIVER — ĐÃ DUYỆT 2026-09-30 (lần 17)
   // (đề xuất luật mục 2). `trip.dispatch` — tạo / sửa / xếp / rút / dời / huỷ chuyến, cập nhật điểm theo đơn (Bán hàng, Quản trị, Toàn quyền). `trip.override`
-  // — phá lệ luật CẤU HÌNH (khoảng nghỉ, cam kết KHI chuyến ngoài mốc — ADR-0104 Đ1 thay ĐP3) — chỉ Quản trị, Toàn quyền. Luật lõi LC-01…21 không ai vượt.
+  // — phá lệ luật CẤU HÌNH (khoảng nghỉ, cam kết KHI chuyến ngoài mốc — ADR-0104 Đ1 thay ĐP3) HOẶC cho chạy dù thiếu giấy tờ xe khác Kiểm định / Bảo hiểm, kèm lý do
+  // (ADR-0184) — chỉ Quản trị, Toàn quyền. `trip.override.giay_to_cung` (ADR-0184, chủ chọn D1=b, D2): cho chạy dù thiếu Kiểm định / Bảo hiểm trách nhiệm dân sự
+  // và được bỏ trống lý do — CHỈ Toàn quyền. Luật lõi LC-01…21 không ai vượt.
   // ADR-0053 D7.1 (kế hoạch A4 T6): tài xế đối tác `assigned` — chỉ chuyến mình có dòng lái mở (route tài xế), như tài xế công ty.
   "trip.view": row("any", "any", "any", "none", "none", "any", "none", "assigned", "assigned", "none"),
   "trip.dispatch": banHangQuanTri(),
   "trip.override": quanTri(),
+  "trip.override.giay_to_cung": chiToanQuyen(),
   // ADR-0104 Đ1 (accepted 2026-10-08, Q-1 b): "Điều chỉnh khẩn cấp" — vượt mốc ở MỌI lệnh bị khoá (xếp, rút, dời, thêm khách khi xe chạy, đổi xe, đổi tài
   // xế, huỷ chuyến còn khách); vượt khoảng nghỉ, cam kết KHI chuyến dưới mốc (ngoài mốc vẫn `trip.override`). Bán hàng, Quản trị, Toàn quyền — bằng
   // `trip.dispatch`; bài ghim: không rộng hơn `trip.dispatch` ở mọi cột. Lớp quyết ở `src/shared/moc-toi-thieu.ts` (lopVuotMoc / lopVuotNghiCamKet).
@@ -320,7 +385,7 @@ export const MATRIX = {
   "trip.call_ack": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0066 điều 1 (accepted 2026-09-30): hỏi trợ lý AI "Hỗ trợ" cách dùng app — MỌI tài khoản đăng nhập (cả 9 mã quyền). Route POST /api/tro-ly/hoi
   // (module tro-ly, cổng staff). Trợ lý không đọc dữ liệu nghiệp vụ nên ô này không mở gì ngoài kho hướng dẫn (ngoại lệ có tên ở ba bài ghim hàng tài xế / Nhân sự).
-  "assistant.ask": row("any", "any", "any", "any", "any", "any", "any", "any", "any", "any"),
+  "assistant.ask": row("any", "any", "any", "any", "any", "any", "any", "any", "any", "any", "any"),
   // ADR-0075 điều 7: sổ phiên đăng nhập. Xem phiên của MỌI tài khoản (GET /api/sessions) và gỡ một phiên (POST /api/sessions/:id/revoke) — chỉ Toàn quyền
   // (vai IT mặc định mang Toàn quyền). Toàn quyền gỡ được phiên của Toàn quyền khác (cùng cấp). Lịch sử phiên của CHÍNH MÌNH là tự phục vụ, không qua ô.
   "auth.session.viewAll": chiToanQuyen(),
@@ -351,6 +416,30 @@ export interface OperationContext {
   readonly ownerId?: string;
   readonly assigned?: boolean;
 }
+
+/**
+ * ADR-0186 Đ1 (đóng HC-5.11): TÁC NHÂN TỰ ĐỘNG — mỗi việc định giờ một mã; không phải tài khoản đăng nhập (không số điện thoại, PIN, phiên). Chỉ ba việc
+ * định giờ (và đồng bộ lần đầu) dựng tác nhân — bài src/tac-nhan-tu-dong.test.ts canh chỗ gọi hàm dựng. Dòng nhật ký của tác nhân mang `audit_log.agent_code`.
+ */
+export const MA_TAC_NHAN = ["DONG_BO_DANH_MUC", "NHAC_HAN_TRA_SAU", "DON_ANH_VE"] as const;
+export type MaTacNhan = (typeof MA_TAC_NHAN)[number];
+export const laMaTacNhan = (v: unknown): v is MaTacNhan => typeof v === "string" && (MA_TAC_NHAN as readonly string[]).includes(v);
+/** ADR-0186 Đ2: quyền riêng của mỗi tác nhân — đúng ô nó cần. Không bao giờ ô ghi tiền (`O_GHI_TIEN`), không `admin.manage` (bài canh). */
+export const QUYEN_TAC_NHAN: Readonly<Record<MaTacNhan, readonly OperationCode[]>> = {
+  DONG_BO_DANH_MUC: ["catalog.sync"],
+  NHAC_HAN_TRA_SAU: ["credit.due.remind"],
+  DON_ANH_VE: ["ve.kho.purge"],
+};
+/** Người phát lệnh là tác nhân: không giữ mã quyền nào của người, nên mọi cổng router từ chối nó; `can()` chỉ tra `QUYEN_TAC_NHAN`. */
+export interface TacNhan extends PermissionHolder {
+  readonly id: MaTacNhan;
+  readonly permissions: readonly [];
+  readonly tacNhan: MaTacNhan;
+}
+export function tacNhan(ma: MaTacNhan): TacNhan {
+  return Object.freeze({ id: ma, permissions: [] as const, tacNhan: ma });
+}
+export const laTacNhan = (who: PermissionHolder): who is TacNhan => laMaTacNhan((who as { readonly tacNhan?: unknown }).tacNhan);
 
 /**
  * ADR-0042: Toàn quyền là vai ẩn — người xem không giữ Toàn quyền thấy tài khoản Toàn quyền như Quản trị thường (SUPER_ADMIN → ADMIN,
@@ -384,6 +473,7 @@ function allows(scope: Scope | undefined, whoId: string, ctx: OperationContext):
 export function can(who: PermissionHolder, op: OperationCode, ctx: OperationContext = {}): boolean {
   const cells = (MATRIX as Record<string, Row | undefined>)[op];
   if (!cells) return false;
+  if (laTacNhan(who)) return QUYEN_TAC_NHAN[who.tacNhan].includes(op); // ADR-0186 Đ2: tác nhân chỉ có ô của nó, không xét phạm vi người
   return who.permissions.some((p) => allows(cells[p], who.id, ctx));
 }
 
@@ -415,6 +505,8 @@ export const passesAdminGate = (who: PermissionHolder): boolean => holdsAny(who,
 export const passesAccountsGate = (who: PermissionHolder): boolean => holdsAny(who, ACCOUNTS_GATE);
 /** Qua cổng "office" (vào Hồ sơ…). KHÔNG dùng để hiện Trang chủ/Đơn hàng — dùng `seesAllOrders`. */
 export const isOffice = (who: PermissionHolder): boolean => holdsAny(who, OFFICE_GATE);
+/** ADR-0169 Đ4: dùng được màn hẹp Dịch vụ & giá. Cổng office vẫn là điều kiện: mã SALES_MANAGER KHÔNG vào cổng (cổng này còn mở Danh bạ, tin đơn), nên tài khoản bị bớt tay SALES không dùng được. */
+export const dungManHepDichVu = (who: PermissionHolder): boolean => can(who, "catalog.hidden.write") && isOffice(who) && !holdsPartner(who);
 /** Qua cổng "orders". Mỗi route đơn vẫn tự gọi `can()` để kiểm phạm vi. */
 export const canAccessOrders = (who: PermissionHolder): boolean => holdsAny(who, ORDERS_GATE);
 /** Xem được MỌI đơn (không ngữ cảnh): hiện Trang chủ, mục "Đơn hàng", ô tìm đơn; `homeRedirect` giữ người này ở Trang chủ. Là câu hỏi của BẢNG, không phải cổng. */

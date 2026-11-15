@@ -254,7 +254,7 @@ async function donDoiTacHaiLuot(w: any, v: { gioDi: string; gioVe: string }): Pr
   const moc = w.q("SELECT updated_at u FROM orders WHERE id = ?", o.id)[0].u;
   const yc = w.q("SELECT id FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", o.id)[0];
   assert.ok(yc, "chống bài rỗng: có yêu cầu đang mở");
-  const x = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ACC, body: { yeuCauId: yc.id, updatedAt: moc, ketQua: "CON_VE", gioDon: [{ legId: legDi, pickupTime: v.gioDi }] } });
+  const x = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { yeuCauId: yc.id, updatedAt: moc, ketQua: "CON_VE", gioDon: [{ legId: legDi, pickupTime: v.gioDi }] } });
   assert.equal(x.status, 200, x.text);
   return { id: o.id, code: o.orderCode, legDi, legVe };
 }

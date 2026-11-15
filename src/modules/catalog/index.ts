@@ -2,9 +2,10 @@
 // Sheet là nguồn chính; Admin có thể ghi đè giá/ẩn dịch vụ (ghi đè không bị lần đồng bộ sau đè mất). App KHÔNG BAO GIỜ ghi ngược vào Sheet.
 import { auditStatement, type AuditAction } from "../audit";
 import { error, json, readJson } from "../../shared/http";
-import { can, isOffice } from "../../shared/permissions";
+import { can, holdsPartner, isOffice, tacNhan } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import type {
+  CatalogNgungBanResponse,
   CatalogAdminGroupDto, CatalogAdminItemDto, CatalogAdminResponse, CatalogConflictCountResponse, CatalogGroupAssignResponse, CatalogGroupHistoryResponse, CatalogGroupResponse,
   CatalogGroupsResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse,
 } from "../../shared/contracts";
@@ -19,7 +20,21 @@ import {
 import { choPhepDuaDon, kiemLoGan, kiemTenNhom, moTaDoiNhom, nhomChoForm } from "./nhom-rules";
 import { tenCuaGiaTri } from "./dac-diem-repo";
 import { dacDiemRoutes } from "./dac-diem-route";
+import { coVeCua } from "../../shared/co-ve";
+import { coVeHienHanh } from "./co-ve-repo";
+import { coVeRoutes } from "./co-ve-route";
+import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve";
+import { nguonVeHienHanh } from "./nguon-ve-repo";
+import { nguonVeRoutes } from "./nguon-ve-route";
+import { chiTietRoutes } from "./chi-tiet-route";
+import { chiTietHienHanh, type ChiTietDong } from "./chi-tiet-repo";
+import { tenHieuLuc } from "../../shared/chi-tiet-dich-vu";
+import { duongAnhDichVu } from "../../shared/anh-dich-vu";
+import { anhRoutes } from "./anh-route";
 import { isQuyTacDuaDon, moTaDoiQuyTac, type QuyTacDuaDon } from "../../shared/dua-don-dich-vu";
+
+/** Tác nhân tự động của việc đồng bộ danh mục (ADR-0186 Đ1): Cron 15 phút và đồng bộ lần đầu chạy dưới định danh này, qua cùng cổng `catalog.sync` với nút. */
+const DONG_BO_DANH_MUC = tacNhan("DONG_BO_DANH_MUC");
 
 export type { EffectiveService };
 
@@ -29,14 +44,29 @@ export type { EffectiveService };
  */
 export async function getEffectiveServices(db: D1Database, codes?: readonly string[]): Promise<Map<string, EffectiveService>> {
   const want = codes ? new Set(codes) : null;
-  const all = await loadAll(db);
-  return new Map(all.filter((s) => !want || want.has(s.code)).map((s) => [s.code, toEffective(s)]));
+  const [all, chiTiet] = await Promise.all([loadAll(db), chiTietHienHanh(db)]);
+  // ADR-0201 Đ1: tên hiển thị thắng tên Sheet — đơn mới chụp tên này; đơn đã lập giữ tên đã chụp.
+  return new Map(all.filter((s) => !want || want.has(s.code)).map((s) => [s.code, { ...toEffective(s), name: tenHieuLuc(s.name, chiTiet.get(s.code)) }]));
 }
 
 /**
  * ADR-0118 Đ2 / Ruling R-C: tên NHÓM HIỆN HÀNH của các mã dịch vụ, cho `orders` viết câu báo «nhóm này không có đưa đón». Hàm công bố hẹp (chỉ tên, chỉ mã được hỏi); CỔNG chặn/không
  * chặn của `orders` đọc view `v_ctl_service_transfer`, không dựa vào hàm này. Chưa phân loại / chưa gán: không có khoá.
  */
+/** ADR-0174 Đ2: mã nào trong `codes` đang Có vé. Một nguồn cho `orders` (giữ vé, báo thiếu) và `ve-dien-tu` (báo lúc xác nhận lô). KHÔNG tự kiểm quyền. */
+export async function coVeTheoMa(db: D1Database, codes: readonly string[]): Promise<Map<string, boolean>> {
+  if (codes.length === 0) return new Map();
+  const [co, nhomCua] = await Promise.all([coVeHienHanh(db), nhomHienHanhTheoMa(db)]);
+  return new Map(codes.map((ma) => [ma, coVeCua(ma, nhomCua.get(ma) ?? null, co).coVe]));
+}
+
+/** ADR-0175 Đ1.2: ô «Vé do ai phát» của các mã trong `codes` (không có dòng là `HANG_NGOAI`). Một nguồn cho `ve-dien-tu` qua hàm tiêm. KHÔNG tự kiểm quyền. */
+export async function nguonVeTheoMa(db: D1Database, codes: readonly string[]): Promise<Map<string, NguonVe>> {
+  if (codes.length === 0) return new Map();
+  const hienHanh = await nguonVeHienHanh(db);
+  return new Map(codes.map((ma) => [ma, nguonVeCua(ma, hienHanh)]));
+}
+
 export async function tenNhomHienHanh(db: D1Database, codes: readonly string[]): Promise<Map<string, string>> {
   return tenNhomCuaCacMa(db, codes);
 }
@@ -68,7 +98,7 @@ function publicItem(e: EffectiveService, groupCode: string | null): Omit<Catalog
 }
 
 /** `groupCode`: nhóm hiện hành THẬT (ADR-0058 Đ5, kể cả nhóm đang tắt) — trộn ở đây từ nhom-repo, không sửa câu SELECT cũ của repository.ts. */
-function adminItem(s: StoredItem, groupCode: string | null, transferRule: QuyTacDuaDon): CatalogAdminItemDto {
+function adminItem(s: StoredItem, groupCode: string | null, transferRule: QuyTacDuaDon, ct?: ChiTietDong): CatalogAdminItemDto {
   const eff = applyOverride(s.prices, s.override);
   return {
     code: s.code,
@@ -86,13 +116,16 @@ function adminItem(s: StoredItem, groupCode: string | null, transferRule: QuyTac
     updatedAt: s.updatedAt,
     groupCode,
     transferRule,
+    tenHienThi: ct?.tenHienThi ?? null,
+    moTa: ct?.moTa ?? null,
+    anh: ct?.khoaAnh ? duongAnhDichVu(s.code, ct.khoaAnh) : null,
   };
 }
 
 /** Một dịch vụ cho phản hồi của route quản trị một dịch vụ (PATCH/ack/bỏ ghi đè): kèm nhóm hiện hành để khớp `GET /api/catalog/admin`. */
 async function adminItemKemNhom(db: D1Database, s: StoredItem): Promise<CatalogAdminItemDto> {
-  const [nhom, quyTac] = await Promise.all([nhomHienHanhTheoMa(db), quyTacDuaDonCua(db, s.code)]);
-  return adminItem(s, nhom.get(s.code) ?? null, quyTac);
+  const [nhom, quyTac, chiTiet] = await Promise.all([nhomHienHanhTheoMa(db), quyTacDuaDonCua(db, s.code), chiTietHienHanh(db)]);
+  return adminItem(s, nhom.get(s.code) ?? null, quyTac, chiTiet.get(s.code));
 }
 
 // ---- Nhóm dịch vụ (ADR-0058) ------------------------------------------------------------------------------------------------------------
@@ -145,12 +178,13 @@ async function catalogForOrderForm(
   { showSyncError, biChan }: { showSyncError: boolean; biChan?: (codes: readonly string[]) => Promise<ReadonlySet<string>> },
 ): Promise<CatalogPublicResponse> {
   try {
-    await bootstrapIfNeverSynced(env);
+    await bootstrapIfNeverSynced(env, DONG_BO_DANH_MUC);
   } catch {
     /* Sheet lỗi ở lần đầu: vẫn trả danh mục rỗng + cảnh báo bên dưới */
   }
-  const [items, state, nhomTheoDichVu, nhoms, quyTac] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), quyTacDuaDonTheoMa(env.DB)]);
-  const dangHien = items.map(toEffective).filter((e) => e.visible);
+  const [items, state, nhomTheoDichVu, nhoms, quyTac, chiTiet] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), quyTacDuaDonTheoMa(env.DB), chiTietHienHanh(env.DB)]);
+  // ADR-0201 Đ1: tên hiển thị thắng tên Sheet ở danh mục lập đơn (văn phòng và Đối tác).
+  const dangHien = items.map((s) => ({ ...toEffective(s), name: tenHieuLuc(s.name, chiTiet.get(s.code)) })).filter((e) => e.visible);
   const bo = biChan ? await biChan(dangHien.map((e) => e.code)) : new Set<string>();
   const visible = dangHien.filter((e) => !bo.has(e.code)).map((e) => publicItem(e, nhomTheoDichVu.get(e.code) ?? null));
   // ADR-0058 Đ5: dịch vụ của nhóm đang tắt → groupCode null; `groups` chỉ nhóm đang dùng có ≥ 1 dịch vụ đang hiện, xếp sort_order.
@@ -191,6 +225,10 @@ export const catalogModule: AppModule = {
     }),
 
     // ---- Đặc điểm dịch vụ (ADR-0152; kế hoạch 2026-10-30 T7) — khai TRƯỚC mọi route `/api/catalog/:code…` ----------------------------
+    ...coVeRoutes,
+    ...nguonVeRoutes, // ADR-0175 Đ1.2: ô «Vé do ai phát»
+    ...chiTietRoutes, // ADR-0201 Đ1: tên hiển thị + mô tả
+    ...anhRoutes, // ADR-0201 Đ3: ảnh đại diện
     ...dacDiemRoutes,
 
     // ---- Admin -----------------------------------------------------------------------------
@@ -204,9 +242,9 @@ export const catalogModule: AppModule = {
 
     route("GET", "/api/catalog/admin", "admin", async ({ env, staff }) => {
       if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
-      const [items, state, nhomTheoDichVu, nhoms, quyTac] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), quyTacDuaDonTheoMa(env.DB)]);
+      const [items, state, nhomTheoDichVu, nhoms, quyTac, chiTiet] = await Promise.all([loadAll(env.DB), getSyncState(env.DB), nhomHienHanhTheoMa(env.DB), danhSachNhom(env.DB), quyTacDuaDonTheoMa(env.DB), chiTietHienHanh(env.DB)]);
       return json({
-        items: items.map((s) => adminItem(s, nhomTheoDichVu.get(s.code) ?? null, quyTac.get(s.code) ?? "GROUP")),
+        items: items.map((s) => adminItem(s, nhomTheoDichVu.get(s.code) ?? null, quyTac.get(s.code) ?? "GROUP", chiTiet.get(s.code))),
         sync: state,
         groups: nhoms.map((g) => nhomDto(g, g.service_count)),
       } satisfies CatalogAdminResponse);
@@ -382,12 +420,13 @@ export const catalogModule: AppModule = {
       return json({ item: await adminItemKemNhom(env.DB, item) } satisfies CatalogItemResponse);
     }),
 
-    route("POST", "/api/catalog/sync", "admin", async ({ env, request, staff }) => {
-      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+    // ADR-0186 Đ3: cổng office + ô catalog.sync (Quản lý bán hàng, Quản trị, Toàn quyền); CÙNG hàm lệnh với Cron và đồng bộ lần đầu.
+    route("POST", "/api/catalog/sync", "office", async ({ env, request, staff }) => {
+      if (!can(staff, "catalog.sync")) return error(403, "forbidden", "Tài khoản này không được bấm «Đồng bộ ngay từ Google Sheet».");
       const body = await readJson(request);
-      const result = await syncCatalog(env, staff.id, { force: body?.force === true });
+      const result = await syncCatalog(env, staff, { force: body?.force === true });
       if (result.ok) return json(result satisfies CatalogSyncResponse);
-      return error(result.code === "sheet_unreachable" ? 502 : result.code === "sync_guard" ? 409 : 424, result.code, result.message);
+      return error(result.code === "forbidden" ? 403 : result.code === "sheet_unreachable" ? 502 : result.code === "sync_guard" ? 409 : 424, result.code, result.message);
     }),
 
     // Ghi đè giá / ẩn / hiện
@@ -418,6 +457,19 @@ export const catalogModule: AppModule = {
       return json({ item: await adminItemKemNhom(env.DB, (await loadOne(env.DB, item.code))!) } satisfies CatalogItemResponse);
     }),
 
+    // ADR-0169 Đ5: Ngừng bán, Mở bán lại cho Quản lý bán hàng. Tuyến riêng để không phải mở PATCH trên (PATCH còn sửa giá, chỉ admin.manage).
+    route("PUT", "/api/catalog/:code/ngung-ban", "office", async ({ env, request, params, staff }) => {
+      if (!can(staff, "catalog.hidden.write") || holdsPartner(staff)) return error(403, "forbidden", "Tài khoản này không ngừng bán được dịch vụ.");
+      const item = await loadByParam(env.DB, params.code);
+      if (!item) return NOT_FOUND();
+      const ngungBan = ((await readJson(request)) as { ngungBan?: unknown } | null)?.ngungBan;
+      if (typeof ngungBan !== "boolean") return error(400, "invalid_input", "Chọn ngừng bán hoặc mở bán lại.");
+      if (applyOverride(item.prices, item.override).hidden !== ngungBan) {
+        await saveOverride(env.DB, item.code, patchOverride(item.prices, item.override, { hidden: ngungBan }), staff.id, new Date().toISOString(), [{ action: ngungBan ? "catalog_hidden" : "catalog_unhidden" }]);
+      }
+      return json({ code: item.code, ngungBan } satisfies CatalogNgungBanResponse);
+    }),
+
     // "Giữ ghi đè": đã xem Sheet đổi giá, xác nhận giữ giá ghi đè
     route("POST", "/api/catalog/:code/ack", "admin", async ({ env, params, staff }) => {
       if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
@@ -432,19 +484,25 @@ export const catalogModule: AppModule = {
       return json({ item: await adminItemKemNhom(env.DB, (await loadOne(env.DB, item.code))!) } satisfies CatalogItemResponse);
     }),
 
-    // Bỏ toàn bộ ghi đè (giá + ẩn), quay về theo Sheet
+    // Bỏ ghi đè GIÁ, quay về giá theo Sheet (ADR-0166 câu 2). Dấu «Ngừng bán» (hidden) được GIỮ: dịch vụ đang ngừng bán vẫn ngừng bán.
+    // Không còn gì để giữ (không ngừng bán) thì dòng ghi đè bị xoá hẳn như trước (`patchOverride` trả null).
     route("DELETE", "/api/catalog/:code/override", "admin", async ({ env, params, staff }) => {
       if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const item = await loadByParam(env.DB, params.code);
       if (!item) return NOT_FOUND();
-      if (!item.override) return json({ item: await adminItemKemNhom(env.DB, item) } satisfies CatalogItemResponse);
-      await saveOverride(env.DB, item.code, null, staff.id, new Date().toISOString(), [{ action: "catalog_override_cleared", detail: "quay về giá theo Sheet" }]);
+      if (!item.override || Object.keys(item.override.prices).length === 0) return json({ item: await adminItemKemNhom(env.DB, item) } satisfies CatalogItemResponse); // không có giá ghi đè nào: không đổi gì
+      const conNgungBan = item.override.hidden;
+      const next = patchOverride(item.prices, item.override, { prices: Object.fromEntries(PAX_ORDER.map((c) => [c, null])) });
+      await saveOverride(env.DB, item.code, next, staff.id, new Date().toISOString(), [{ action: "catalog_override_cleared", detail: `bỏ ghi đè giá, quay về giá theo Sheet${conNgungBan ? " (dịch vụ vẫn ngừng bán)" : ""}` }]);
       return json({ item: await adminItemKemNhom(env.DB, (await loadOne(env.DB, item.code))!) } satisfies CatalogItemResponse);
     }),
   ],
 };
 
-/** Cron Trigger: đồng bộ Sheet định kỳ, không có người thao tác (nhật ký ghi là "Hệ thống"). Lỗi chỉ ghi vào trạng thái, không ném ra. */
+/**
+ * Cron Trigger: đồng bộ Sheet định kỳ dưới tác nhân DONG_BO_DANH_MUC (ADR-0186) — cùng hàm lệnh, cùng cổng với nút; nhật ký mang mã tác nhân, màn Nhật ký
+ * vẫn hiện «Hệ thống (tự động)». Lỗi Sheet và bị từ chối chỉ ghi vào trạng thái đồng bộ, không ném ra.
+ */
 export async function runScheduledSync(env: Env): Promise<void> {
-  await syncCatalog(env, null);
+  await syncCatalog(env, DONG_BO_DANH_MUC);
 }

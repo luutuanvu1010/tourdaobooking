@@ -14,20 +14,22 @@ export interface LocationRow {
   active: number;
   /** ADR-0118 Đ4 (0121): thứ tự «Chọn nhanh» 1–99; NULL = không chọn nhanh. */
   quick_pick_order: number | null;
+  /** ADR-0147 Đ1 (0164): khu vực đón; NULL = chưa xếp. */
+  zone_code: string | null;
   updated_at: string;
 }
 
 const LIST = defineSql(
   "locations",
   "list",
-  `SELECT l.id, l.code, l.name, l.location_type_code, t.name AS type_name, l.address, l.sort_order, l.active, l.quick_pick_order, l.updated_at
+  `SELECT l.id, l.code, l.name, l.location_type_code, t.name AS type_name, l.address, l.sort_order, l.active, l.quick_pick_order, l.zone_code, l.updated_at
    FROM loc_location l JOIN loc_location_type t ON t.code = l.location_type_code
    ORDER BY l.active DESC, l.sort_order, l.name`,
 );
 const FIND = defineSql(
   "locations",
   "find",
-  `SELECT l.id, l.code, l.name, l.location_type_code, t.name AS type_name, l.address, l.sort_order, l.active, l.quick_pick_order, l.updated_at
+  `SELECT l.id, l.code, l.name, l.location_type_code, t.name AS type_name, l.address, l.sort_order, l.active, l.quick_pick_order, l.zone_code, l.updated_at
    FROM loc_location l JOIN loc_location_type t ON t.code = l.location_type_code WHERE l.id = ?`,
 );
 const TYPES = defineSql("locations", "types", "SELECT code, name FROM loc_location_type WHERE active = 1 ORDER BY sort_order");
@@ -41,7 +43,7 @@ const INSERT = defineSql(
 const UPDATE = defineSql(
   "locations",
   "update",
-  `UPDATE loc_location SET name = ?, location_type_code = ?, address = ?, sort_order = ?, active = ?, quick_pick_order = ?, updated_at = ?, updated_by = ?
+  `UPDATE loc_location SET name = ?, location_type_code = ?, address = ?, sort_order = ?, active = ?, quick_pick_order = ?, zone_code = ?, updated_at = ?, updated_by = ?
    WHERE id = ? AND updated_at = ?`,
 );
 
@@ -71,6 +73,6 @@ export function insertLocationStatement(db: D1Database, id: string, v: LocationC
  * Sửa có khoá lạc quan: chỉ áp dụng khi `updated_at` còn đúng mốc client đã đọc (changes() = 0 → đã bị sửa). `quickPick` là giá trị SẼ GHI (nơi gọi đã quyết khoá vắng = giữ giá trị đang lưu —
  * ADR-0118 Ruling R-G; mốc lạc quan bảo đảm giá trị đang lưu chưa đổi giữa lúc đọc và lúc ghi).
  */
-export function updateLocationStatement(db: D1Database, id: string, v: LocationUpdate, quickPick: number | null, actorId: string, at: string): D1PreparedStatement {
-  return db.prepare(UPDATE).bind(v.name, v.locationTypeCode, v.address, v.sortOrder, v.active ? 1 : 0, quickPick, at, actorId, id, v.expectedUpdatedAt);
+export function updateLocationStatement(db: D1Database, id: string, v: LocationUpdate, quickPick: number | null, zone: string | null, actorId: string, at: string): D1PreparedStatement {
+  return db.prepare(UPDATE).bind(v.name, v.locationTypeCode, v.address, v.sortOrder, v.active ? 1 : 0, quickPick, zone, at, actorId, id, v.expectedUpdatedAt);
 }

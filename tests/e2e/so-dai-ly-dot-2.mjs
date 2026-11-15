@@ -22,7 +22,7 @@ import { execFile } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, cauNgungTaiKhoanKieuCu, ensureFakeCatalog, gieoTaiKhoanLai, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const ACC = await session(ACCOUNTS.accountant);
@@ -386,7 +386,8 @@ let don2;
   });
   const docDon = async (who, id) => (await call(who, "GET", `/api/orders/${id}`)).body.order;
   const put = (who, o, extra = {}) => call(who, "PUT", `/api/orders/${o.id}`, orderInput({ customerName: o.customerName, customerPhone: o.customerPhone, services: o.services.map(daLuu), expectedUpdatedAt: o.updatedAt, ...extra }));
-  const DT0 = await gieoTaiKhoanLai(`Đối Tác Không Hưởng ${CHU}`, ["PARTNER"]);
+  // ADR-0185: Đối tác «không được hưởng» = kiểu cũ (hồ sơ không vai trò đối tác); tài khoản lai tự dựng kiểu cũ. Cả hai được ngưng trước bước 7.
+  const DT0 = await gieoTaiKhoanLai(`Đối Tác Không Hưởng ${CHU}`, ["PARTNER"], { kieuCu: true });
   const LAI = await gieoTaiKhoanLai(`Lai Bán Đối Tác ${CHU}`, ["SALES", "PARTNER"]);
   for (const [ai, who] of [["Đối tác không được hưởng", DT0.cookie], ["Tài khoản lai Bán hàng + Đối tác", LAI.cookie]]) {
     const o = await lapDon(who, orderInput({ customerName: `Khách I Một ${CHU}`, services: [dv("ZSD2T", 1, { departDate: vnDate(7) })] }));
@@ -423,6 +424,9 @@ let don2;
   const persist = process.env.E2E_PERSIST_TO;
   assert.ok(persist, "cần E2E_PERSIST_TO (run.mjs đặt) để chạy audit-invariants trên đúng D1 của máy chủ đang thử");
   const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+  // ADR-0185 kế hoạch K12: tài khoản kiểu cũ bộ thử đã dựng trên D1 này (gồm DT0, LAI ở mục 6) đúng là vi phạm R-LC-1c — ngưng ĐÚNG chúng trước khi kiểm, như run.mjs làm cuối máy.
+  const ngung = cauNgungTaiKhoanKieuCu(persist);
+  if (ngung) await sql(ngung.cau);
   let ma = 0;
   let out = "";
   try {

@@ -26,7 +26,7 @@
 //     Ngoài so từng byte (đã bỏ UUID), kiểm THÔ từng thân: đúng id điểm đã chọn ở đúng ô, chữ tự do đúng ô — bộ chuẩn hoá thay mọi UUID bằng <id> nên chọn nhầm điểm vẫn "giống".
 // Vòng sửa 1 của việc 7 (người kiểm I-1 — chữ gõ ở ô nơi mất lặng lẽ khi không chạm dòng "Gõ tự do: …"; chủ chọn phương án A):
 //   - CACH=goluu (tệp than-gui-goluu-<giai đoạn>.json, đặt THU_MUC=…/dua-don-mot-o): thao tác TỰ NHIÊN trên điện thoại — gõ địa chỉ rồi chạm Lưu, KHÔNG chạm dòng gợi ý nào. Mỗi khổ:
-//     POST-A: TD101 + "+ Thêm đưa đón"; chạm ô Nơi đón, gõ "12 Trần Phú, Nha Trang", chạm thẳng "Lưu, chờ xác nhận";
+//     POST-A: TD101 + "+ Thêm đưa đón"; chạm ô Nơi đón, gõ "12 Trần Phú, Nha Trang", chạm thẳng "Lưu đơn (chưa xác nhận)";
 //     POST-B: TTB06 có MẪU đưa đón (gieo vc_leg_template: một chiều, nơi trả mặc định Bến cảng Vinpearl — chặng tạo sẵn với Nơi trả = Vinpearl); chạm Nơi đón, gõ "Bãi Dài, Cam Lâm",
 //             chạm ô Nơi trả (rời ô đón bằng cách chạm ô khác trong cùng chặng), gõ "Cảng Cầu Đá, Nha Trang" đè điểm mẫu, chạm Lưu;
 //     PUT-A:  mở lại đơn A, mở chặng gọn bằng chạm thật, chạm ô Nơi đón, chọn hết chữ, gõ "15 Trần Phú, Nha Trang", chạm Lưu.
@@ -199,7 +199,7 @@ try {
     kiemLeg(put2, 1, 0, { pickupLocationId: null, pickupPlace: "15 Trần Phú, Nha Trang", dropoffLocationId: BEN_VINPEARL }, "PUT-2");
     than[`PUT-2-${kho}`] = chuanHoa(put2);
   };
-  /** Chạm THẬT nút "Lưu, chờ xác nhận" / "Lưu thay đổi" (cả hai bản) rồi chờ chuyển sang trang đơn. */
+  /** Chạm THẬT nút "Lưu đơn (chưa xác nhận)" / "Lưu thay đổi" (cả hai bản) rồi chờ chuyển sang trang đơn. */
   const luuCham = async (p, mobile, nhan) => {
     await cham(p, mobile, "document.getElementById('save')");
     await p.waitFor("location.pathname === '/order' && !!new URLSearchParams(location.search).get('id')", nhan, 15000);

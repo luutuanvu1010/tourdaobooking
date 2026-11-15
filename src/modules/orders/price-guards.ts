@@ -159,7 +159,7 @@ export function viPhamGiaDanhMuc(staff: PermissionHolder, items: readonly { cata
 
 /** Câu từ chối khi giảm giá vượt trần của đơn có người hưởng (ADR-0079 ví dụ C-5 — chữ cố định). MỘT nguồn với form lập / sửa đơn (Task 12): src/shared/ben-kia-hien-thi.ts. */
 export { CAU_TRAN_HOA_HONG } from "../../shared/ben-kia-hien-thi.ts";
-import { CAU_TRAN_HOA_HONG } from "../../shared/ben-kia-hien-thi.ts";
+import { CAU_TRAN_HOA_HONG, cauTranCoDongVuot } from "../../shared/ben-kia-hien-thi.ts";
 
 /**
  * Trần giảm giá cấp đơn (VNĐ); null = không trần. Thứ tự cố định: Thực tập → 0 (ADR-0100, cả trên đơn có người hưởng); đơn CÓ người hưởng → tổng hoa hồng của đơn, cho MỌI người
@@ -181,8 +181,11 @@ export type ViPhamTran = { status: 403; code: "forbidden"; cau: string } | { sta
 /** Câu riêng khi bên đặt mang vai bên ngoài mà KHÔNG còn được hưởng (mọi dòng thiếu mức `BOOKER_NOT_BENEFICIARY` ⇒ trần 0) — vòng sửa Task 7, M-1. */
 export const CAU_BEN_DAT_KHONG_HUONG = "Chưa giảm giá được: bên đặt không còn được hưởng hoa hồng — nhờ văn phòng sửa bên đặt hoặc Kế toán ghi mức.";
 
-/** Người hưởng + tổng hoa hồng của ĐƠN do route tính từ bản chụp (dự kiến hoặc vừa chụp). `benDatKhongHuong` = bên đặt mang vai bên ngoài không còn được hưởng. */
-export interface DonChoTran { coNguoiHuong: boolean; tongHoaHong: number; beneficiaryPartyId: string | null; benDatKhongHuong: boolean }
+/**
+ * Người hưởng + tổng hoa hồng TÍNH VÀO TRẦN của ĐƠN do route tính từ bản chụp (dự kiến hoặc vừa chụp; dòng thiếu mức và dòng vượt thành tiền đã tính 0 — ADR-0161 Đ5).
+ * `benDatKhongHuong` = bên đặt mang vai bên ngoài không còn được hưởng. `coDongVuot` = đơn có dịch vụ mà hoa hồng lớn hơn thành tiền của dịch vụ (chọn câu báo trần).
+ */
+export interface DonChoTran { coNguoiHuong: boolean; tongHoaHong: number; beneficiaryPartyId: string | null; benDatKhongHuong: boolean; coDongVuot: boolean }
 
 /**
  * Vế trần (R3 + C8 = A) cho lập đơn, sửa nháp, xác nhận; null = đạt. Tài khoản giữ quyền Đối tác (kể cả lai) mà người hưởng của đơn KHÁC hồ sơ của mình ⇒ 403 câu cũ
@@ -196,7 +199,8 @@ export function viPhamTranGiamGia(staff: PermissionHolder & { partyId?: string |
   if (tran === null || discountWithinCap(discount, tran)) return null;
   if (laThucTap) return { status: 403, code: "forbidden", cau: laDoiTac ? PARTNER_DISCOUNT_MESSAGE : INTERN_PRICE_MESSAGE };
   if (laDoiTac && !nguoiHuongLaMinh) return { status: 403, code: "forbidden", cau: PARTNER_DISCOUNT_MESSAGE };
-  if (don.coNguoiHuong) return { status: 400, code: "discount_exceeds_commission", cau: don.benDatKhongHuong ? CAU_BEN_DAT_KHONG_HUONG : CAU_TRAN_HOA_HONG(tran) };
+  // Thứ tự chọn câu: bên đặt không còn được hưởng ⇒ dịch vụ có hoa hồng vượt thành tiền ⇒ câu trần thường.
+  if (don.coNguoiHuong) return { status: 400, code: "discount_exceeds_commission", cau: don.benDatKhongHuong ? CAU_BEN_DAT_KHONG_HUONG : don.coDongVuot ? cauTranCoDongVuot(tran) : CAU_TRAN_HOA_HONG(tran) };
   return { status: 403, code: "forbidden", cau: PARTNER_DISCOUNT_MESSAGE };
 }
 
@@ -214,7 +218,9 @@ export function canhBaoGiamGiaDon(v: { coNguoiHuong: boolean; tongHoaHong: numbe
  * Đổi bên đặt sau Xác nhận (đặc tả P7; giảm giá đã khoá từ migration 0081): bên đặt MỚI làm đơn có người hưởng mà giảm giá hiệu lực > tổng hoa hồng theo bản chụp mới ⇒ câu từ chối nêu
  * hai số (409 `discount_exceeds_commission`); null = đổi được. Không có chặn này, kiểm định kỳ R-ORD-DC1 sẽ báo lỗi vĩnh viễn mà không có đường sửa.
  */
-export function cauDoiBenDatVuotHoaHong(v: { coNguoiHuong: boolean; tongHoaHong: number; giamGiaHieuLuc: number }): string | null {
+export function cauDoiBenDatVuotHoaHong(v: { coNguoiHuong: boolean; tongHoaHong: number; giamGiaHieuLuc: number; coDongVuot: boolean }): string | null {
   if (!v.coNguoiHuong || discountWithinCap(v.giamGiaHieuLuc, v.tongHoaHong)) return null;
-  return `Đơn đang giảm giá ${v.giamGiaHieuLuc.toLocaleString("vi-VN")} ₫, lớn hơn hoa hồng của bên đặt mới (${v.tongHoaHong.toLocaleString("vi-VN")} ₫) — giảm giá trên đơn có người hưởng tối đa bằng hoa hồng của đơn, nên chưa đổi được bên đặt.`;
+  const cau = `Đơn đang giảm giá ${v.giamGiaHieuLuc.toLocaleString("vi-VN")} ₫, lớn hơn hoa hồng của bên đặt mới (${v.tongHoaHong.toLocaleString("vi-VN")} ₫) — giảm giá trên đơn có người hưởng tối đa bằng hoa hồng của đơn, nên chưa đổi được bên đặt.`;
+  // ADR-0161 Đ5: số «hoa hồng của bên đặt mới» đã bỏ dòng vượt thành tiền — nói rõ để người đọc biết vì sao thấp hơn mức nhập.
+  return v.coDongVuot ? `${cau} Mức hoa hồng của dịch vụ đang vượt giá bán — nhờ Kế toán xem lại.` : cau;
 }

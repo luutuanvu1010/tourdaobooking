@@ -51,7 +51,7 @@ try {
   await b.step("2", `11.3 1040 Bán hàng: "Việc của văn phòng" có nút "Gửi đề nghị cứu hộ" (gói A5) và "Cứu hộ" (đỏ) → hộp "Kết thúc gián đoạn" bấm thay + dòng "Xe hỏng: kết thúc gián đoạn rồi xếp khách sang xe cứu hộ."; chuyến đang chạy KHÔNG có khối Cứu hộ, không gọi GET cuu-ho${axeNote()}`, async () => {
     await moChuyen(s);
     await s.waitFor(`!!document.querySelector('.dp-viec-vp')`, "khối việc văn phòng");
-    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-viec-vp button')].map((x) => x.innerText.trim())`), ["Thêm điểm đón / thêm khách", "Cập nhật điểm theo đơn", "Gửi đề nghị cứu hộ", "Cứu hộ"]);
+    assert.deepEqual(await s.ev(`[...document.querySelectorAll('.dp-viec-vp button')].map((x) => x.innerText.trim())`), ["Thêm điểm đón / thêm khách", "Cập nhật điểm theo đơn", "Gửi đề nghị cứu hộ", "Kết thúc gián đoạn (xe hỏng)"]);
     assert.ok(await s.ev(`document.querySelector('[data-action="cuu-ho"]').classList.contains('vc-btn-danger')`));
     assert.equal(await s.ev(`!!document.querySelector('#ct-cuu-ho')`), false);
     assert.deepEqual(goiCuuHo(s), []);

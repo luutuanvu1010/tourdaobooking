@@ -1,7 +1,8 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Tạo đơn — Island Booking System</title></head>
-<body data-khuon="bieu-mau" data-title="Tạo đơn" data-back="/orders" data-tabbar="off">
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Tạo đơn — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
+<body data-rong="vua" data-khuon="bieu-mau" data-title="Tạo đơn" data-back="/orders" data-tabbar="off">
 <header id="topbar"></header>
+<div id="strips"></div>
 <main class="form-page">
   <h1 id="form-title">Tạo đơn</h1>
   <div id="error" class="banner" role="alert" hidden></div>
@@ -17,8 +18,12 @@
         </div>
         <div class="khach-dau">
           <h2 id="khach-title">Khách hàng</h2>
-          <button id="use-mine" class="btn btn-link" type="button">Điền thông tin của tôi</button>
+          <span class="khach-dau-nut">
+            <button id="use-mine" class="btn btn-link" type="button">Điền thông tin của tôi</button>
+            <button id="use-partner" class="btn btn-link" type="button" hidden>Điền thông tin đối tác</button>
+          </span>
         </div>
+        <p class="muted" id="use-partner-bao" role="status" hidden></p>
         <div id="don-cua-slot"></div>
         <div class="grid two">
           <label class="o-noi"><span class="o-noi-khung"><input id="customerName" type="text" maxlength="200" autocomplete="off" placeholder=" " required aria-describedby="customerName-loi"><span class="o-noi-chu">Tên khách đi tour *</span></span><span class="field-error" id="customerName-loi" hidden></span></label>
@@ -41,11 +46,19 @@
       </section>
       <section class="card buoc" id="pay-card" data-buoc-khoi="thanh-toan" tabindex="-1" aria-labelledby="pay-title">
         <h2 id="pay-title">Thanh toán</h2>
+        <fieldset id="tra-sau-khoi" class="tra-sau-khoi" hidden>
+          <legend>Hình thức thanh toán</legend>
+          <label><input type="radio" name="paymentTerm" value="PREPAID" checked> <span data-nhan-hinh-thuc="PREPAID"></span></label>
+          <label><input type="radio" name="paymentTerm" value="CREDIT" aria-describedby="tra-sau-cau"> <span data-nhan-hinh-thuc="CREDIT"></span></label>
+          <p id="tra-sau-cau" class="muted" role="status"></p>
+        </fieldset>
+        <p id="tra-sau-bao" class="alert" role="status" hidden></p>
         <div class="grid three">
           <label class="o-noi"><span class="o-noi-khung"><input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="o-noi-chu">Giảm giá (₫)</span></span></label>
-          <label id="dat-coc-o" class="o-noi" hidden><span class="o-noi-khung"><input id="declaredDeposit" type="text" inputmode="numeric" autocomplete="off" placeholder="0" aria-describedby="dat-coc-goi-y"><span class="o-noi-chu">Khách đặt cọc trước (₫)</span></span></label>
+          <label id="dat-coc-o" class="o-noi" hidden><span class="o-noi-khung"><input id="declaredDeposit" type="text" inputmode="numeric" autocomplete="off" placeholder="0" aria-describedby="dat-coc-goi-y"><span class="o-noi-chu">Khách đặt cọc cho đối tác (₫)</span></span></label>
         </div>
         <p id="dat-coc-goi-y" class="muted" hidden>Số tiền bạn đã nhận của khách. Nền tảng chỉ ghi thành khoản thu khi đơn được xác nhận; bạn nộp số này về công ty sau.</p>
+        <p id="dat-coc-tra-sau" class="muted" hidden></p>
         <label class="pay-note o-noi"><span class="o-noi-khung"><textarea id="paymentNote" maxlength="1000" placeholder="vd: nội dung chuyển khoản"></textarea><span class="o-noi-chu">Ghi chú thanh toán</span></span></label>
       </section>
     </div>
@@ -57,11 +70,12 @@
           <div class="kv"><span class="muted">Tạm tính</span><span id="sum-subtotal">0 ₫</span></div>
           <div class="kv"><span class="muted">Giảm giá</span><span id="sum-discount">0 ₫</span></div>
           <div class="kv strong"><span>Tổng cộng</span><span id="sum-total">0 ₫</span></div>
-          <div class="kv" data-dat-coc hidden><span class="muted">Khách đặt cọc trước</span><span id="sum-dat-coc">0 ₫</span></div>
+          <div class="kv" data-dat-coc hidden><span class="muted">Khách đặt cọc cho đối tác</span><span id="sum-dat-coc">0 ₫</span></div>
           <div class="kv strong" data-dat-coc hidden><span>Khách còn phải trả</span><span id="sum-con-tra">0 ₫</span></div>
           <p class="muted summary-note">Số này chỉ để xem trước; hệ thống tính lại khi lưu.</p>
         </div>
       </section>
+      <section id="ban-hang-card" class="card owner-card" tabindex="-1" aria-labelledby="ban-hang-title" hidden></section>
       <section id="owner-card" class="card owner-card buoc" data-buoc-khoi="phu-trach" tabindex="-1" aria-labelledby="owner-title" hidden></section>
       <div class="form-actions thanh-hanh-dong-cuoi">
         <div class="mobile-actions-summary">
@@ -69,7 +83,7 @@
             <div class="kv"><span class="muted">Tạm tính</span><span id="ct-tam-tinh">0 ₫</span></div>
             <div class="kv"><span class="muted">Giảm giá</span><span id="ct-giam-gia">0 ₫</span></div>
             <div class="kv strong"><span>Tổng cộng</span><span id="ct-tong">0 ₫</span></div>
-            <div class="kv" data-dat-coc hidden><span class="muted">Khách đặt cọc trước</span><span id="ct-dat-coc">0 ₫</span></div>
+            <div class="kv" data-dat-coc hidden><span class="muted">Khách đặt cọc cho đối tác</span><span id="ct-dat-coc">0 ₫</span></div>
             <div class="kv strong" data-dat-coc hidden><span>Khách còn phải trả</span><span id="ct-con-tra">0 ₫</span></div>
             <p class="muted summary-note">Số này chỉ để xem trước; hệ thống tính lại khi lưu.</p>
           </div>
@@ -77,7 +91,7 @@
         </div>
         <div id="sum-warning" class="alert warn" hidden></div>
         <div id="save-error" class="banner" role="alert" hidden></div>
-        <button id="save" class="btn btn-primary" type="submit">Lưu, chờ xác nhận</button>
+        <button id="save" class="btn btn-primary" type="submit">Lưu đơn (chưa xác nhận)</button>
         <a class="btn" href="/orders">Quay lại</a>
       </div>
     </div>

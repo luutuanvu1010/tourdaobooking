@@ -6,7 +6,7 @@
 // - Đơn nháp chỉ ĐẾM (I11); nháp có chặng dưới mốc chưa đặt gấp vào danh sách "chờ duyệt đặt gấp" (Bán hàng, Quản trị — ADR-0107) — route quyết ai được thấy (ô
 //   `order.leg.short_notice`), hàm này không biết quyền.
 // - Chính sách rỗng → cảnh báo, không đoán mốc.
-import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TrangThaiChuyen } from "./dieu-phoi-kieu.ts";
+import type { ChangVao, ChinhSachVao, ChoPhepThieuVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TrangThaiChuyen } from "./dieu-phoi-kieu.ts";
 import { kiemXuatBen, laiXeThueBangTaiXeCongTy, noiLechCuaSuat, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
 import { trangThaiChang, type TrangThaiChangRa } from "./dieu-phoi-trang-thai.ts";
 import { canhBaoGioLai, NHAN_CANH_BAO_GIO_LAI } from "./gio-lai.ts";
@@ -41,6 +41,8 @@ export interface LichChungVao {
   chinhSach: ChinhSachVao | null;
   hangBang: HangBangVao[];
   dieuKien: DieuKienVao[];
+  /** ADR-0184: dòng cho phép chạy thiếu giấy tờ chưa dùng (mọi chuyến trong lịch; lọc theo `tripId`) — để màn và cổng thật cho CÙNG kết quả. BẮT BUỘC. */
+  choPhepThieu: readonly (ChoPhepThieuVao & { tripId: string })[];
   bayGioMs: number;
 }
 export const LOAI_CANH_BAO_LICH = [
@@ -187,6 +189,7 @@ export function dungLichChung(v: LichChungVao): LichChungRa {
         chinhSach: v.chinhSach,
         hangBang: v.hangBang,
         dieuKien: v.dieuKien,
+        choPhepThieu: v.choPhepThieu.filter((w) => w.tripId === c.id),
         bayGioMs: Math.max(v.bayGioMs, c.batDauMs),
         xuatBenMs: Math.max(v.bayGioMs, c.batDauMs), // dự phóng "xuất bến đúng giờ" (GA-11)
       }).lyDo;

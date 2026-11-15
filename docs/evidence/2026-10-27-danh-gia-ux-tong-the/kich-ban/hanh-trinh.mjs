@@ -131,7 +131,7 @@ async function dienDon(H, { soDichVu = 3, ten = "Khách Thử Hành Trình", sdt
   }
   await H.cuonToi("re:Thanh toán|Tóm tắt", "xem phần tiền trước khi lưu");
   if (await H.co("css:#sum-mo")) await H.bam("css:#sum-mo", { viec: "mở chi tiết tiền ở chân màn", doan: true });
-  const luu = await H.bam("re:^(Lưu, chờ xác nhận|Lưu|Gửi)", { viec: "bấm nút lưu ở chân biểu mẫu" });
+  const luu = await H.bam("re:^(Lưu đơn \\(chưa xác nhận\\)|Lưu|Gửi)", { viec: "bấm nút lưu ở chân biểu mẫu" });
   if (luu) await H.choDuong("/order");
 }
 

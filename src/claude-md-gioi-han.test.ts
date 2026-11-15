@@ -21,8 +21,8 @@ const TEP_CON = readdirSync(join(ROOT, "src/modules"))
   .map((m) => `src/modules/${m}/CLAUDE.md`)
   .filter((p) => existsSync(join(ROOT, p)));
 
-/** Trần byte (2026-11-03: 30.638 / 10.236 / 32.355 byte; gốc hạ khi viết lại, ADR-0160). CHỈ HẠ khi rút gọn; có dung sai nhỏ để sửa số đếm, tên tệp (N9). */
-const TRAN_BYTE: Record<(typeof TEP)[number], number> = { "CLAUDE.md": 27800, "src/CLAUDE.md": 10500, "web/CLAUDE.md": 33000 };
+/** Trần byte (2026-11-03: 30.638 / 10.236 / 32.355 byte; gốc hạ khi viết lại, ADR-0160; 2026-11-15: bảng kịch bản Chrome của web chuyển nguyên văn sang docs/KICH-BAN-CHROME.md). CHỈ HẠ khi rút gọn; có dung sai nhỏ để sửa số đếm, tên tệp (N9). */
+const TRAN_BYTE: Record<(typeof TEP)[number], number> = { "CLAUDE.md": 27800, "src/CLAUDE.md": 10500, "web/CLAUDE.md": 7500 };
 /** Tệp nhỏ hơn trần quá chừng này thì đỏ: hạ trần cho sát. */
 const DUNG_SAI = 2500;
 /** Trần mỗi CLAUDE.md con: chỉ chứa bẫy của đúng một vùng (ngưỡng theo mức 4 KB của FRAMEWORK §4.6). */
@@ -92,7 +92,10 @@ export function choTrich(s: string): { hc: string[]; adr: string[]; hienPhap: st
 }
 
 const doc = (ten: string): string => readFileSync(join(ROOT, ten), "utf8");
-const tatCaTep = (): string[] => [...TEP, ...TEP_CON];
+/** Bảng kịch bản Chrome chuyển nguyên văn khỏi web/CLAUDE.md ngày 2026-11-15 (trần cỡ tệp): đường dẫn trong bảng vẫn được kiểm như trước. */
+const TEP_BANG_CHROME = "docs/KICH-BAN-CHROME.md";
+/** Các tệp có đường dẫn được kiểm (bài chỉ dẫn treo, bài loại trừ). */
+const tatCaTep = (): string[] => [...TEP, ...TEP_CON, TEP_BANG_CHROME];
 
 /** Đoạn «### Ba khung…» của §2, tới hết §2. */
 const khoiBaKhung = (): string => {

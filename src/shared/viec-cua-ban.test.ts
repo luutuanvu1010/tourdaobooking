@@ -60,8 +60,8 @@ test("câu phụ thẻ conThieu nói số tiền còn thu; nguồn lỗi thì kh
   const loi = viecCuaBan(who("SALES"), { ...day, conThieu: null }).the.find((t) => t.khoa === "conThieu");
   assert.ok(!/\d/.test(loi?.phu ?? ""));
 });
-test("thẻ chuaPhuTrach: Bán hàng 'Nhận phụ trách', Quản trị 'Phân công'", () => {
-  assert.equal(viecCuaBan(who("SALES"), day).the.find((t) => t.khoa === "chuaPhuTrach")?.nut, "Nhận phụ trách");
+test("thẻ chuaPhuTrach (nay là «Đơn chưa có HDV nhận»): Bán hàng 'Xem đơn', Quản trị 'Phân công'", () => {
+  assert.equal(viecCuaBan(who("SALES"), day).the.find((t) => t.khoa === "chuaPhuTrach")?.nut, "Xem đơn");
   assert.equal(viecCuaBan(who("ADMIN"), { chuaPhuTrach: 2 }).the[0]?.nut, "Phân công");
 });
 test("thẻ chuyenHomNay đếm ĐƠN, không phải chuyến xe: «Đơn đi hôm nay» (chủ chọn 28/10)", () => {
@@ -69,14 +69,14 @@ test("thẻ chuyenHomNay đếm ĐƠN, không phải chuyến xe: «Đơn đi h�
   assert.deepEqual([t?.nhan, t?.nut, t?.phu], ["Đơn đi hôm nay", "Xem đơn", "Các đơn có ngày đi hôm nay"]);
 });
 test("nguonCanTai: chỉ nguồn người này dùng; không nguồn quản trị cho Bán hàng/Kế toán", () => {
-  assert.deepEqual([...nguonCanTai(who("SALES"))], ["donCho", "nhap", "conThieu", "chuaPhuTrach", "chuyenHomNay"]);
-  assert.deepEqual([...nguonCanTai(who("ACCOUNTING"))], ["donCho", "doiChieu", "thuTruoc", "dieuChinh", "nhap", "conThieu", "chuyenHomNay"]); // Phương án A (31/10): hai dòng chờ đối chiếu / thu trước theo cổng của khối cũ
+  assert.deepEqual([...nguonCanTai(who("SALES"))], ["donCho", "chuaBanHang", "nhap", "conThieu", "chuaPhuTrach", "chuyenHomNay"]);
+  assert.deepEqual([...nguonCanTai(who("ACCOUNTING"))], ["chuaBanHang", "doiChieu", "thuTruoc", "tuGhi", "dieuChinh", "nhap", "conThieu", "chuyenHomNay"]); // ADR-0187 Đ3 mức (a): Kế toán soát được ⇒ nguồn tuGhi. ADR-0142: Kế toán không còn thẻ donCho. Phương án A (31/10): hai dòng chờ đối chiếu / thu trước theo cổng của khối cũ
   assert.ok(nguonCanTai(who("ADMIN")).includes("xemLai"));
   assert.ok(!nguonCanTai(who("ADMIN")).includes("gopY"));
   assert.ok(nguonCanTai(who("SUPER_ADMIN")).includes("gopY"));
 });
 
-test("1024 tập quyền: không xem mọi đơn ⇒ không thẻ đơn/tiền/chuyến và không đòi nguồn đó", () => {
+test("2048 tập quyền: không xem mọi đơn ⇒ không thẻ đơn/tiền/chuyến và không đòi nguồn đó", () => {
   const DON = ["nhap", "conThieu", "chuaPhuTrach", "chuyenHomNay"];
   const dayDu = { ...day, conThieu: { count: 5, total: 1 } };
   let xet = 0;
@@ -148,12 +148,26 @@ test("conLaiThe: phần dồn theo thứ tự ưu tiên; cauConLai viết nhãn 
 test("nhãn phạm vi: mỗi khoá thẻ có phạm vi trong bảng chung (điều chỉnh và đơn nháp = Của tôi — ADR-0135; còn lại Toàn công ty)", () => {
   assert.deepEqual(
     Object.entries(KHOA_PHAM_VI).map(([k, v]) => [k, PHAM_VI_O_TRANG_CHU[v]]),
-    [["xemLai", "TOAN_CONG_TY"], ["dieuChinh", "CUA_TOI"], ["nhap", "CUA_TOI"], ["conThieu", "TOAN_CONG_TY"], ["chuaPhuTrach", "TOAN_CONG_TY"], ["chuyenHomNay", "TOAN_CONG_TY"], ["gopY", "TOAN_CONG_TY"], ["donCho", "TOAN_CONG_TY"], ["doiChieu", "TOAN_CONG_TY"], ["thuTruoc", "TOAN_CONG_TY"]],
+    [["xemLai", "TOAN_CONG_TY"], ["dieuChinh", "CUA_TOI"], ["nhap", "CUA_TOI"], ["conThieu", "TOAN_CONG_TY"], ["chuaPhuTrach", "TOAN_CONG_TY"], ["chuaBanHang", "TOAN_CONG_TY"], ["chuyenHomNay", "TOAN_CONG_TY"], ["gopY", "TOAN_CONG_TY"], ["donCho", "TOAN_CONG_TY"], ["doiChieu", "TOAN_CONG_TY"], ["thuTruoc", "TOAN_CONG_TY"], ["tuGhi", "TOAN_CONG_TY"], ["choChayThieu", "TOAN_CONG_TY"]],
   );
 });
 
 // Ruling R-P18 (sổ đại lý đợt 2, vòng sửa 1 Task 6): máy chủ chặn tài khoản giữ quyền Đối tác ở mọi route yêu cầu điều chỉnh ⇒ thẻ «Điều chỉnh công nợ chờ duyệt» không hiện,
 // và trang chủ không tải số đó (tải sẽ bị 403) — mọi tập con quyền có PARTNER.
+test("ADR-0187 Đ3 mức (a): thẻ «Cần người thứ hai soát» chỉ cho người soát được (ledger.write, không Đối tác); số 0 ⇒ không thẻ; nguồn lỗi ⇒ thẻ «—»", () => {
+  const co = { ...day, tuGhi: 3 };
+  const t = viecCuaBan(who("ACCOUNTING"), co).the.find((x) => x.khoa === "tuGhi");
+  assert.ok(t, "Kế toán có thẻ");
+  assert.deepEqual([t!.nhan, t!.so, t!.nut, t!.href, t!.tone], ["Cần người thứ hai soát", 3, "Soát", "/so-cong-no#tu-ghi", "cat"]);
+  assert.ok(viecCuaBan(who("SUPER_ADMIN"), co).the.some((x) => x.khoa === "tuGhi"), "Toàn quyền có thẻ");
+  for (const p of [["SALES"], ["ADMIN"], ["FIELD"], ["PARTNER"], ["ACCOUNTING", "PARTNER"], ["SUPER_ADMIN", "PARTNER"]] as PermissionCode[][]) {
+    assert.ok(!viecCuaBan(who(...p), co).the.some((x) => x.khoa === "tuGhi"), `${p.join("+")} không có thẻ`);
+    assert.ok(!nguonCanTai(who(...p)).includes("tuGhi"), `${p.join("+")} không tải nguồn`);
+  }
+  assert.ok(!viecCuaBan(who("ACCOUNTING"), { ...day, tuGhi: 0 }).the.some((x) => x.khoa === "tuGhi"), "0 dòng ⇒ không thẻ");
+  assert.equal(viecCuaBan(who("ACCOUNTING"), { ...day, tuGhi: null }).the.find((x) => x.khoa === "tuGhi")?.so, null, "nguồn lỗi ⇒ «—»");
+});
+
 test("R-P18: mọi tập quyền có PARTNER (kể cả lai Kế toán / Toàn quyền) ⇒ không thẻ dieuChinh, không tải nguồn dieuChinh", () => {
   let soTap = 0;
   for (let m = 0; m < 1 << PERMISSION_CODES.length; m++) {
@@ -163,6 +177,21 @@ test("R-P18: mọi tập quyền có PARTNER (kể cả lai Kế toán / Toàn q
     assert.ok(!viecCuaBan(who(...p), day).the.concat(viecCuaBan(who(...p), day).conLaiThe).some((t) => t.khoa === "dieuChinh"), p.join("+"));
     assert.ok(!nguonCanTai(who(...p)).includes("dieuChinh"), p.join("+"));
   }
-  assert.equal(soTap, 512);
+  assert.equal(soTap, 1024);
   assert.ok(viecCuaBan(who("ACCOUNTING"), day).the.some((t) => t.khoa === "dieuChinh"), "Kế toán thường vẫn có thẻ");
+});
+
+// ADR-0184 việc 5: thẻ «Xe thiếu giấy tờ — đã cho chạy» — chỉ người có ô trip.override (Quản trị, Toàn quyền), bấm tới Điều phối xe; số 0 thì không thẻ; nguồn lỗi hiện «—».
+test("thẻ choChayThieu: Quản trị / Toàn quyền thấy, Bán hàng và Kế toán không; số 0 → vắng; lỗi → «—»", () => {
+  for (const p of ["ADMIN", "SUPER_ADMIN"] as const) {
+    const t = viecCuaBan(who(p), { choChayThieu: 2 }).the.find((x) => x.khoa === "choChayThieu");
+    assert.deepEqual([t?.nhan, t?.so, t?.href, t?.nut], ["Xe thiếu giấy tờ — đã cho chạy", 2, "/dieu-phoi", "Xem chuyến"], p);
+    assert.ok(nguonCanTai(who(p)).includes("choChayThieu"), p);
+  }
+  for (const p of ["SALES", "ACCOUNTING"] as const) {
+    assert.ok(!viecCuaBan(who(p), { choChayThieu: 2 }).the.some((x) => x.khoa === "choChayThieu"), p);
+    assert.ok(!nguonCanTai(who(p)).includes("choChayThieu"), p);
+  }
+  assert.ok(!viecCuaBan(who("ADMIN"), { choChayThieu: 0 }).the.some((x) => x.khoa === "choChayThieu"));
+  assert.equal(viecCuaBan(who("ADMIN"), { choChayThieu: null }).the.find((x) => x.khoa === "choChayThieu")?.so, null);
 });

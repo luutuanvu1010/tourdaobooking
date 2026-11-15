@@ -4,6 +4,7 @@
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-29-adr-0049/kich-ban/chinh-sach-dieu-phoi-smoke.mjs
 // Kho cookie của Chrome dùng CHUNG: làm hết các bước của một tài khoản rồi mới sang tài khoản khác (Toàn quyền → Quản trị → Bán hàng).
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 import { fetchTrang,
   ACCOUNTS, CHU, DESK, MOB, apiCalls, assert, axe, axeNote, boDem, click, dungMoiTruong, noCode, noOverflowX, shotFull, shotView, shown, sleep, txt, typeInto, vcSub,
 } from "./dp-lib.mjs";
@@ -14,7 +15,7 @@ const O = (truong) => `#cs-${truong}`;
 const loiO = (truong) => txt(`#cs-${truong}-error`);
 const lichSu = `[...document.querySelectorAll('#cs-lich-su .dp-hist-row')].map((r) => r.innerText.replace(/\\s+/g, ' ').trim())`;
 // + nhóm BAN_XE (ADR-0055, Đợt 3 — 0071 gieo 4 lý do); + nhóm BAO_HUY_DIEM (ADR-0052 D5.2, Đợt 5 — 0076 gieo 4 lý do); Đợt 4 (migration 0073, ADR-0057 T2): nhóm "Chi phí xe thuê" ở cuối — do máy chủ gieo, màn Lý do tự hiện. Gói A1 (migration 0085, ADR-0097 Đ2.5): + nhóm "Điều chỉnh chuyến đang chạy" ở cuối.
-const NHOM_BAN_VE = ["Điều chỉnh khẩn cấp, phá lệ", /* ADR-0104 Đ1 mục 9: tên nhóm PHA_LE */ "Huỷ chuyến", "Kết thúc gián đoạn", "Bỏ qua điểm", "Đổi giờ xe tới", "Báo huỷ điểm đón", "Không nhận chuyển điểm" /* gói A5: nhóm TU_CHOI_NHAN, 0093 */, "Lý do xe bận", "Chi phí xe thuê", "Điều chỉnh chuyến đang chạy", "Tài xế từ chối chuyến", "Tài xế báo bận"]; // A4 (migration 0092, ADR-0053 D8, D9): + hai nhóm cuối
+const NHOM_BAN_VE = ["Điều chỉnh khẩn cấp, phá lệ", /* ADR-0104 Đ1 mục 9: tên nhóm PHA_LE */ "Huỷ chuyến", "Kết thúc gián đoạn", "Bỏ qua điểm", "Đổi giờ xe tới", "Báo huỷ điểm đón", "Không nhận chuyển điểm" /* gói A5: nhóm TU_CHOI_NHAN, 0093 */, "Cho chạy dù thiếu giấy tờ" /* ADR-0184 (0147): nhóm CHO_CHAY_THIEU_GIAY */, "Lý do xe bận", "Chi phí xe thuê", "Điều chỉnh chuyến đang chạy", "Tài xế từ chối chuyến", "Tài xế báo bận"]; // A4 (migration 0092, ADR-0053 D8, D9): + hai nhóm cuối
 
 try {
   // ---- Toàn quyền, máy tính ----------------------------------------------------------------------------------------------------------------------------------
@@ -119,6 +120,7 @@ try {
     await p.waitFor(`${txt("#dk-ok")} === 'Đã thêm điều kiện cho xe chạy — áp ngay từ bây giờ.'`, "báo đã thêm điều kiện");
     const sau = await p.ev(dong);
     assert.ok(sau.some((t) => t.startsWith("Phù hiệu xe hợp đồng — xe chở từ 9 người") && t.includes("Đang áp")), JSON.stringify(sau));
+    await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await p.ev("window.confirm = () => true; true");
     await p.ev(`[...document.querySelectorAll('#dk-dieu-kien .dp-reason')].find((r) => r.innerText.includes('Phù hiệu')).querySelector('[data-action="dong-dieu-kien"]').click()`);
     await p.waitFor(`${txt("#dk-ok")} === 'Đã đóng điều kiện “Phù hiệu xe hợp đồng — xe chở từ 9 người”.'`, "báo đã đóng");

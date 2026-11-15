@@ -4,6 +4,7 @@ import { UUID_RE } from "../../shared/http.ts";
 import { can, holdsPartner, MATRIX, type PermissionHolder } from "../../shared/permissions.ts";
 import { hasLongDigitRun, PHONE_IN_TEXT_MESSAGE } from "../../shared/text-guards.ts";
 import { GHI_CHU_HUY_TOI_DA } from "../../shared/ly-do-huy.ts";
+import { duocGiaoTheoO } from "../../shared/ban-hang-phu-trach.ts";
 
 /** Số đơn tối đa của một lần tra `GET /api/dispatch/handlers` (danh sách đơn có trang tối đa 100 đơn). */
 export const MAX_HANDLER_LOOKUP = 100;
@@ -57,7 +58,7 @@ export function checkAssignee(who: AssigneeCandidate | null): Parsed<{ partyId: 
   if (!who) return { ok: false, message: "Không tìm thấy nhân viên được chọn." };
   if (!who.active) return { ok: false, message: "Nhân viên này đã ngưng hoạt động, không thể giao phụ trách." };
   if (!who.partyId) return { ok: false, message: "Nhân viên này chưa có hồ sơ, không thể giao phụ trách." };
-  if (holdsPartner(who)) return { ok: false, message: "Tài khoản có quyền Đối tác không làm người phụ trách được." };
+  if (holdsPartner(who)) return { ok: false, message: "Tài khoản có quyền Đối tác không làm Hướng dẫn viên được." };
   const narrowTier = who.permissions.some((p) => MATRIX["order.money.edit"][p] === "assigned");
   const eligible = can(who, "order.modify", { assigned: true }) || narrowTier;
   if (!eligible) return { ok: false, message: "Chỉ giao phụ trách cho người có quyền Bán hàng, Quản trị hoặc Hướng dẫn viên." };
@@ -103,9 +104,12 @@ export function parseCancelReason(body: Record<string, unknown> | null): Parsed<
  *  - `dispatch.assign` (người lập HOẶC người phụ trách hiện tại; quản trị mọi đơn) — người lập giữ quyền cả khi đã giao lại;
  *  - hoặc `dispatch.claim`: đơn CHƯA có người phụ trách và `who` nhận cho CHÍNH MÌNH.
  * `current` = người phụ trách đang mở (null = chưa có); `current.staffId` null = hồ sơ chưa có tài khoản (không ai là "người được giao").
+ * `laBanHangPhuTrach` (ADR-0142) = `who` là Bán hàng phụ trách đang mở của đơn (route lấy từ `ctx.isSalesOwner`).
  */
-export function mayChangeHandler(who: PermissionHolder, order: { ownerId: string }, current: { staffId: string | null } | null, targetStaffId: string): boolean {
-  if (can(who, "dispatch.assign", { ownerId: order.ownerId, assigned: current !== null && current.staffId === who.id })) return true;
+export function mayChangeHandler(who: PermissionHolder, order: { ownerId: string }, current: { staffId: string | null } | null, targetStaffId: string, laBanHangPhuTrach: boolean): boolean {
+  // ADR-0142: Bán hàng phụ trách được cộng như «người phụ trách» ở ô `dispatch.assign` (danh sách trắng) — chỉ ô này, không ô nhận.
+  const assigned = duocGiaoTheoO("dispatch.assign", { laNguoiPhuTrach: current !== null && current.staffId === who.id, laBanHangPhuTrach });
+  if (can(who, "dispatch.assign", { ownerId: order.ownerId, assigned })) return true;
   return current === null && targetStaffId === who.id && can(who, "dispatch.claim");
 }
 
@@ -118,8 +122,8 @@ export function mayChangeHandler(who: PermissionHolder, order: { ownerId: string
  */
 export type HandlerChangeVerdict = "allow" | "stale" | "forbidden";
 
-export function handlerChangeVerdict(who: PermissionHolder, order: { ownerId: string }, current: { staffId: string | null } | null, targetStaffId: string): HandlerChangeVerdict {
-  if (mayChangeHandler(who, order, current, targetStaffId)) return "allow";
+export function handlerChangeVerdict(who: PermissionHolder, order: { ownerId: string }, current: { staffId: string | null } | null, targetStaffId: string, laBanHangPhuTrach: boolean): HandlerChangeVerdict {
+  if (mayChangeHandler(who, order, current, targetStaffId, laBanHangPhuTrach)) return "allow";
   return current !== null && targetStaffId === who.id && can(who, "dispatch.claim") ? "stale" : "forbidden";
 }
 

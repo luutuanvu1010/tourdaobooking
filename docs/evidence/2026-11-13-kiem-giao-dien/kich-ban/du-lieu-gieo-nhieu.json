@@ -1,0 +1,194 @@
+{
+  "dichVu": {
+    "duThuyen": "DTE1",
+    "bus": "BCT4",
+    "atv": "ATV",
+    "dem": "BFN1",
+    "bus24": "BCT24"
+  },
+  "khachLe": [
+    {
+      "id": "8a4d3e6c-7871-4762-83c3-274995de35ec",
+      "ten": "Nguyễn Thị Lan Anh",
+      "sdt": "0912000101"
+    },
+    {
+      "id": "11f66a71-86a3-4a20-a7e1-1d6580ecd974",
+      "ten": "Trần Văn Bình",
+      "sdt": "0912000102"
+    },
+    {
+      "id": "30d8088d-a524-4055-a74a-e0880107914d",
+      "ten": "Lê Hoàng Châu",
+      "sdt": "0912000103"
+    },
+    {
+      "id": "c9af4114-1222-4e7b-9f8a-ddc0f4f617aa",
+      "ten": "Phạm Minh Đức",
+      "sdt": "0912000104"
+    },
+    {
+      "id": "f64f7d4b-b460-4125-bab0-090aacc39c81",
+      "ten": "Võ Thị Hồng Nhung",
+      "sdt": "0912000105"
+    },
+    {
+      "id": "8fcb20a6-8cbe-4b79-8874-4e4ddebc63c8",
+      "ten": "Nguyễn Minh Khang",
+      "sdt": "0912000200"
+    },
+    {
+      "id": "413fef27-b67b-4136-9df0-0a69a93c4a7e",
+      "ten": "Trần Thu Hà",
+      "sdt": "0913000201"
+    },
+    {
+      "id": "49a72967-e7ea-4038-a49e-33eb1dc0ce80",
+      "ten": "Lê Quốc Bảo",
+      "sdt": "0914000202"
+    },
+    {
+      "id": "12c99a85-c4fa-4a2c-8f94-e1504620888c",
+      "ten": "Phạm Ngọc Trâm",
+      "sdt": "0912000203"
+    },
+    {
+      "id": "fa0a9af1-8d0e-4355-b36a-2dd16d996e01",
+      "ten": "Hoàng Gia Huy",
+      "sdt": "0913000204"
+    },
+    {
+      "id": "23c17537-a9f7-4aa4-8b56-94dbfb1cb2c9",
+      "ten": "Huỳnh Thanh Tâm",
+      "sdt": "0914000205"
+    },
+    {
+      "id": "13027749-45b6-44a0-9391-872adbb22b0a",
+      "ten": "Phan Hữu Phước",
+      "sdt": "0912000206"
+    },
+    {
+      "id": "21bfa243-6a43-43e9-a17a-98aad70d2940",
+      "ten": "Vũ Mỹ Linh",
+      "sdt": "0913000207"
+    },
+    {
+      "id": "e358ade6-a1cc-421b-af75-2e57de036300",
+      "ten": "Võ Đức Anh",
+      "sdt": "0914000208"
+    },
+    {
+      "id": "b1ed57ae-24bf-40c8-bd29-636941989773",
+      "ten": "Đặng Khánh Vy",
+      "sdt": "0912000209"
+    },
+    {
+      "id": "71610ed9-3dd1-4f66-84d9-0161aa0d5a7e",
+      "ten": "Bùi Tuấn Kiệt",
+      "sdt": "0913000210"
+    },
+    {
+      "id": "fb827f87-3b34-44e6-a05e-9ea02021c80b",
+      "ten": "Đỗ Bảo Ngọc",
+      "sdt": "0914000211"
+    },
+    {
+      "id": "bcca3f89-5338-4ce7-ab82-f7c9bd9876b8",
+      "ten": "Hồ Văn Sơn",
+      "sdt": "0912000212"
+    },
+    {
+      "id": "bbcb4b76-2f1c-4385-afde-495a3677b3e1",
+      "ten": "Ngô Thị Mai",
+      "sdt": "0913000213"
+    },
+    {
+      "id": "1bcd75fa-5a7b-403f-a4b9-0d19ccbf8e22",
+      "ten": "Dương Hải Đăng",
+      "sdt": "0914000214"
+    },
+    {
+      "id": "3a07349f-ad73-482e-b11b-29d606fd6f73",
+      "ten": "Lý Phương Thảo",
+      "sdt": "0912000215"
+    }
+  ],
+  "daiLyToChuc": {
+    "id": "ad64b510-e362-4af0-b31c-4dca2bc7574f",
+    "ganVai": 201
+  },
+  "nhaXe": "1e8c47e0-7baa-47d9-bc22-0ad5a659f446",
+  "xe": {
+    "xe1": "b297adae-d7e8-46f9-a84a-c616b73bb58a",
+    "xe2": "eb28f382-046e-4691-8948-7139f6f8459b",
+    "xe3": "1b902357-26e9-4134-bd7d-3574f083d883",
+    "xe4": "d35168e5-6146-4c21-9692-aa803b32a5ff",
+    "xe5": "d3e8ed96-2879-4357-af1e-75665976b6c7",
+    "xe6": "3f028170-0aa6-4917-8777-d09873be568e"
+  },
+  "don": {
+    "nhap": "242be16e-395d-404f-a132-8985169f65d5",
+    "choXacNhan": "be4e5dcd-792f-4788-bff6-6bb5bb53d5ab",
+    "baDichVu": "e7ee8ad3-713f-4ef4-a8c9-2d74dbac531a",
+    "homNay": "509211ff-0dab-4934-9557-8aad281c0e2b",
+    "doiTac": "ba337c53-9e0e-4fda-966d-5494776dbccb"
+  },
+  "gioDonHomNay": {
+    "gio": "12:40",
+    "datGap": false
+  },
+  "chuyenHomNay": "dbd59834-b90a-4747-9384-e339205599f1",
+  "chuyen": {
+    "mai": "4892bf7b-dec6-4a92-b518-49e5ca7f1d17",
+    "ngay1": "8ef9f64a-b897-4f08-9992-f0429fb9c9ec",
+    "ngay4": "b346d44d-a726-4d11-bf15-fc31005faee0",
+    "ngay7": "4d6060c7-83ef-454b-8395-b3ad5f7cbe76",
+    "ngay10": "a392dfae-6448-4fb4-a78d-782728ee4105",
+    "gapA": "2f85bc5c-37c8-4ca3-8fe0-c08ba1c8e82b",
+    "gapB": "3ade1e17-447e-49d8-8234-2e407a6e1470"
+  },
+  "nhieu": {
+    "donTheoViec": [],
+    "hoanThanh": [
+      {
+        "id": "333c3654-c759-4c45-842f-c99b32a5c6ac",
+        "ngay": "2026-11-13",
+        "daGiao": true,
+        "hoanThanh": true
+      },
+      {
+        "id": "1868d07d-50ad-4dbe-8b37-bb40f6f12790",
+        "ngay": "2026-11-13",
+        "daGiao": true,
+        "hoanThanh": true
+      },
+      {
+        "id": "0d4c8fab-3eb4-4d07-829d-4a13b49d3b52",
+        "ngay": "2026-11-13",
+        "daGiao": true,
+        "hoanThanh": false
+      }
+    ],
+    "deNghi": {
+      "status": 200,
+      "ketQua": "DA_GUI",
+      "trangThai": "PENDING"
+    },
+    "congNo": {
+      "bookerPartyId": "abd9aace-ba0f-49dd-a38b-4b37a8ab5b5c",
+      "yeuCau1": {
+        "status": 201,
+        "id": "cd6e843d-00b8-4f35-8f0b-fa2cb458a94f",
+        "dang": "giảm nợ (SETTLEMENT)"
+      },
+      "yeuCau2": {
+        "status": 201,
+        "id": "6aa0bb2a-4976-4815-9053-28bb68a85cc7"
+      },
+      "duyet2": {
+        "status": 201
+      }
+    },
+    "donMoi": 40
+  }
+}

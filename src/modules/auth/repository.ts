@@ -1,6 +1,7 @@
 // SQL của các bảng module auth sở hữu: `login_attempt` (bảng cũ, giữ tên — ADR-0002 điều 2), `aut_passkey` (ADR-0016, migration 0023) và `aut_session` (sổ phiên, ADR-0075, migration 0065).
 // Mọi câu đi qua defineSql (ADR-0002 điều 8(b)), import bằng đuôi .ts để bài kiểm kiến trúc nạp được tệp này. SQL TĨNH, liệt kê cột tường minh.
 import { defineSql } from "../../shared/sql-registry.ts";
+import type { PermissionCode } from "../../shared/permissions.ts";
 
 export interface PasskeyRow {
   id: string;
@@ -124,8 +125,9 @@ const SS_END_ALL_IF_SUSPENDED = defineSql("auth", "session_end_all_if_suspended"
     "AND EXISTS (SELECT 1 FROM v_stf_staff_label WHERE id = ?1 AND active = 0)");
 // (2c) phiên được GIỮ khi người dùng tự đổi PIN / gỡ Face ID (ADR-0075 điều 5): last_seen_at = đúng mốc ghi vào credentials_changed_at, để màn sổ phiên
 // (sessionStatus, so max(created_at, last_seen_at)) không coi phiên đang dùng là "Đã đổi thông tin đăng nhập".
+// ADR-0180: cấp lại phiên = đổi thông tin đăng nhập ⇒ LUÔN bỏ vai đang đóng (không thì làm mới last_seen_at sẽ làm sống lại vai đã quá hạn mà cột chưa kịp xoá).
 const SS_MARK_REISSUED = defineSql("auth", "session_mark_reissued",
-  "UPDATE aut_session SET last_seen_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND ended_at IS NULL");
+  "UPDATE aut_session SET last_seen_at = ?2, acting_role = NULL, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND ended_at IS NULL");
 // (2d) Một tài khoản MẤT nhiều máy khi đổi quyền / vai (ADR-0085 Q2 điều 7, thay ADR-0075 điều 3): [dọn hạn (1) → kết thúc mọi phiên trừ phiên còn sống mới nhất
 // → đánh dấu phiên còn lại single = 1]. Thứ tự giữ chỉ mục aut_session_one_live không vỡ. KHÔNG còn tự kiểm "không giữ Toàn quyền" trong SQL: route đặt hai câu
 // này ở lô THỨ HAI, chỉ chạy khi lô đổi quyền/vai đã thắng câu chốt "quản trị viên cuối" (bài accounts/mat-mien-route.test.ts, đột biến ở sổ hàng rào).
@@ -142,8 +144,18 @@ const SS_END_ONE = defineSql("auth", "session_end_one",
 // (3) chèn phiên mới: last_seen_at = updated_at = created_at; created_by = chính tài khoản đăng nhập (như aut_passkey).
 const SS_INSERT = defineSql("auth", "session_insert",
   `INSERT INTO aut_session (${SS_COLS}, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?9, ?10, NULL, NULL, NULL, ?2, ?9, NULL)`);
+// `acting_role` (ADR-0180, migration 0145) chỉ đọc ở câu này — không vào SS_COLS (câu chèn, sổ phiên, DTO không mang nó).
 const SS_FIND_LIVE = defineSql("auth", "session_find_live",
-  `SELECT ${SS_COLS} FROM aut_session WHERE id = ?1 AND staff_id = ?2 AND ended_at IS NULL AND expires_at > ?3`);
+  `SELECT ${SS_COLS}, acting_role FROM aut_session WHERE id = ?1 AND staff_id = ?2 AND ended_at IS NULL AND expires_at > ?3`);
+// ADR-0180 Đ1: đặt / gỡ vai đang đóng của MỘT phiên còn sống. Đặt vai cũng là thao tác ⇒ làm mới last_seen_at (mốc tính hạn 60 phút), để câu xoá vai hết hạn
+// chạy nền của lần gọi trước (điều kiện `last_seen_at < mốc`) không xoá nhầm vai vừa chọn.
+const SS_SET_ACTING_ROLE = defineSql("auth", "session_set_acting_role",
+  "UPDATE aut_session SET acting_role = ?2, last_seen_at = ?3, updated_at = ?3 WHERE id = ?1 AND ended_at IS NULL AND expires_at > ?3");
+// ADR-0180 Đ1.3: vai đã quá 60 phút không thao tác ⇒ xoá cột (chạy nền, CÙNG lô và TRƯỚC câu chạm last_seen_at — không thì lần gọi sau thấy mốc mới và vai sống lại).
+// Điều kiện `last_seen_at < ?3` (mốc hết hạn) hoặc mốc hỏng (`julianday` NULL — `daHetHan` coi là đã hết): phiên vừa được đặt vai mới (last_seen_at mới) thì không đụng.
+const SS_CLEAR_EXPIRED_ACTING = defineSql("auth", "session_clear_expired_acting_role",
+  "UPDATE aut_session SET acting_role = NULL, updated_at = ?2 WHERE id = ?1 AND ended_at IS NULL AND acting_role IS NOT NULL " +
+    "AND (last_seen_at < ?3 OR julianday(last_seen_at) IS NULL)");
 const SS_TOUCH = defineSql("auth", "session_touch",
   "UPDATE aut_session SET last_seen_at = ?2, updated_at = ?2 WHERE id = ?1 AND ended_at IS NULL AND last_seen_at < ?3");
 const SS_LIST_MINE = defineSql("auth", "session_list_mine",
@@ -182,8 +194,16 @@ export const endSessionStatement = (db: D1Database, id: string, reason: string, 
 export const insertSessionStatement = (db: D1Database, v: {
   id: string; staffId: string; method: string; single: 0 | 1; trustedDeviceId: string | null; deviceLabel: string; userAgent: string | null; ip: string | null; at: string; expiresAt: string;
 }): D1PreparedStatement => db.prepare(SS_INSERT).bind(v.id, v.staffId, v.method, v.single, v.trustedDeviceId, v.deviceLabel, v.userAgent, v.ip, v.at, v.expiresAt);
-export const findLiveSession = (db: D1Database, id: string, staffId: string, nowIso: string): Promise<SessionRow | null> =>
-  db.prepare(SS_FIND_LIVE).bind(id, staffId, nowIso).first<SessionRow>();
+/** Dòng phiên còn sống kèm vai đang đóng (ADR-0180) — chỉ `currentStaff` dùng. */
+export interface LiveSessionRow extends SessionRow { acting_role: string | null }
+export const findLiveSession = (db: D1Database, id: string, staffId: string, nowIso: string): Promise<LiveSessionRow | null> =>
+  db.prepare(SS_FIND_LIVE).bind(id, staffId, nowIso).first<LiveSessionRow>();
+/** Đặt (`role`) hoặc gỡ (`null`) vai đang đóng của một phiên còn sống (ADR-0180 Đ1). Chưa chạy — route gộp với dòng nhật ký trong một lô. */
+export const setActingRoleStatement = (db: D1Database, sessionId: string, role: PermissionCode | null, nowIso: string): D1PreparedStatement =>
+  db.prepare(SS_SET_ACTING_ROLE).bind(sessionId, role, nowIso);
+/** Xoá vai đã hết hạn (ADR-0180 Đ1.3) nếu phiên vẫn chưa thao tác từ trước `expiredBeforeIso`. Chưa chạy. */
+export const clearExpiredActingRoleStatement = (db: D1Database, sessionId: string, nowIso: string, expiredBeforeIso: string): D1PreparedStatement =>
+  db.prepare(SS_CLEAR_EXPIRED_ACTING).bind(sessionId, nowIso, expiredBeforeIso);
 export const touchSessionStatement = (db: D1Database, id: string, nowIso: string, staleBeforeIso: string): D1PreparedStatement =>
   db.prepare(SS_TOUCH).bind(id, nowIso, staleBeforeIso);
 export async function listMySessions(db: D1Database, staffId: string): Promise<SessionRow[]> {

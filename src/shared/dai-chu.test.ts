@@ -7,12 +7,13 @@ test("chonDai: một dải một lúc, theo thứ tự bảo trì › ngoài m�
   assert.equal(chonDai([]), null);
   assert.equal(chonDai(["bao-mat", "thong-bao"]), "thong-bao");
   assert.equal(chonDai(["ngoai-mang", "bao-tri"]), "bao-tri");
+  assert.equal(chonDai(["bao-tri", "xem-nhu-vai"]), "xem-nhu-vai");
   assert.equal(chonDai(["bao-mat", "ngoai-mang"]), "ngoai-mang");
   assert.equal(chonDai(new Set(["bao-mat"] as const)), "bao-mat");
 });
 
-test("UU_TIEN đúng bốn phần tử theo thứ tự", () => {
-  assert.deepEqual([...UU_TIEN], ["bao-tri", "ngoai-mang", "thong-bao", "bao-mat"]);
+test("UU_TIEN đúng năm phần tử theo thứ tự (ADR-0180 thêm «xem-nhu-vai» đầu)", () => {
+  assert.deepEqual([...UU_TIEN], ["xem-nhu-vai", "bao-tri", "ngoai-mang", "thong-bao", "bao-mat"]);
 });
 
 test("cauBaoTri: có giờ dự kiến thì nói giờ, không thì chỉ báo đang bảo trì", () => {

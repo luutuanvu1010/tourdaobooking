@@ -8,11 +8,11 @@ import { CAU_BAO_GUI_DON } from "./gui-don-cau-bao.ts";
 
 test("Trợ giúp Đối tác: không còn nút «Lưu, chờ xác nhận» / «Xác nhận đơn» (cả trong chữ lẫn trong tên nút [[…]]); có nút «Gửi đơn» và «Rút lại»", () => {
   const chu = chuCuaNhom(HD_DOI_TAC).join("\n");
-  assert.ok(!chu.includes("Lưu, chờ xác nhận"), "còn mẫu «Lưu, chờ xác nhận»");
+  assert.ok(!chu.includes("Lưu đơn (chưa xác nhận)"), "còn mẫu «Lưu đơn (chưa xác nhận)»");
   assert.ok(!/\[\[Xác nhận đơn\]\]/.test(readFileSync(new URL("./huong-dan-doi-tac.ts", import.meta.url), "utf8")), "còn nút [[Xác nhận đơn]]");
   const nut = nutCuaNhom(HD_DOI_TAC);
   assert.ok(nut.includes("Gửi đơn") && nut.includes("Rút lại"), nut.join("|"));
-  assert.ok(!nut.includes("Xác nhận đơn") && !nut.includes("Lưu, chờ xác nhận"), nut.join("|"));
+  assert.ok(!nut.includes("Xác nhận đơn") && !nut.includes("Lưu đơn (chưa xác nhận)"), nut.join("|"));
 });
 
 test("Trợ giúp Đối tác: hai câu báo Gửi đơn có mặt nguyên văn (kể cả dấu &)", () => {
@@ -21,6 +21,6 @@ test("Trợ giúp Đối tác: hai câu báo Gửi đơn có mặt nguyên văn 
   assert.ok(chu.includes(CAU_BAO_GUI_DON.B), "thiếu câu B");
 });
 
-test("hộp ảnh «Xác nhận đơn để gửi khách» vẫn là tên hợp lệ (Đ11) — giữ", () => {
-  assert.ok(chuCuaNhom(HD_DOI_TAC).join("\n").includes("Xác nhận đơn để gửi khách"));
+test("hộp ảnh «Ảnh gửi khách» (ADR-0166 câu 5, thay «Xác nhận đơn để gửi khách») vẫn là tên hợp lệ (Đ11)", () => {
+  assert.ok(chuCuaNhom(HD_DOI_TAC).join("\n").includes("Ảnh gửi khách"));
 });

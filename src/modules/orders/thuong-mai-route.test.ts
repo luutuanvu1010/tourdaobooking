@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { world, seedStaff, noiGioiHanNhap } from "../../../tests/audit/harness.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const FIELD = "22222222-2222-4222-8222-222222222222";
@@ -40,7 +40,7 @@ function setup(): W {
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
   // Vai bên ngoài chèn SAU quyền (trigger LC-1 chặn quyền nội bộ trên hồ sơ đã mang vai bên ngoài). Tài khoản lai Bán hàng + Đối tác (LAI_BAN) cũng được chèn vai sau quyền:
   // đường quản trị cũ gán PARTNER cùng quyền nội bộ mà LC-1 không chạy, nên dữ liệu thật CÓ thể có tài khoản như vậy (xem holdsPartner) — cần để thử "đơn do chính hồ sơ mình hưởng".
-  for (const [r, p] of [["r-dta", DT_A], ["r-dtb", DT_B], ["r-lai", LAI_BAN]] as const) {
+  for (const [r, p] of [["r-lai", LAI_BAN]] as const) {
     w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(r, `pty-${p}`, AT, AT);
   }
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-dla', 'ORGANIZATION', 'Đại lý C', 1, ?, ?)").run(AT, AT);
@@ -67,10 +67,14 @@ function nhap(w: W, chu: string, booker: string | null, dv: [string | null, numb
 }
 const dv = (id: string, i = 0) => `${id}-s${i}`;
 const xacNhan = (w: W, id: string, as = SALES) => w.xacNhanDon(id, as); // ADR-0136 Đ13.5: Đối tác «Gửi đơn», người khác /status
-/** Đơn đã xác nhận (có bản chụp) của SALES. */
+/**
+ * Đơn đã xác nhận (có bản chụp) của SALES. ADR-0185: đơn khách lẻ (không người hưởng) của tài khoản giữ quyền Đối tác (thuần hay lai) không xác nhận được nữa, chỉ còn là dữ liệu cũ
+ * ⇒ Bán hàng xác nhận thay rồi trả người lập (`xacNhanDonCu`).
+ */
 async function daXacNhan(w: W, booker: string | null, dvs: [string | null, number][], chu = SALES): Promise<string> {
   const id = nhap(w, chu, booker, dvs);
-  const r = await xacNhan(w, id, chu);
+  const giuDoiTac = w.q("SELECT 1 FROM stf_permission WHERE staff_id = ? AND permission_type_code = 'PARTNER' AND valid_to_at IS NULL", chu).length > 0;
+  const r = booker === null && giuDoiTac ? await w.xacNhanDonCu(id, chu, SALES) : await xacNhan(w, id, chu);
   assert.equal(r.status, 200, r.text);
   return id;
 }
@@ -247,8 +251,9 @@ test("(3d) tài khoản lai Bán hàng + Đối tác KHÔNG mở được phần
 });
 
 test("(3d2) MỌI tài khoản lai — Bán hàng / Kế toán / Quản trị / Toàn quyền / HDV được giao đơn / Thực tập + Đối tác — đọc phần đối tác đơn của đại lý B (xác nhận, nháp) ⇒ 404, thân không có số của B; Thực tập + Đối tác trên đơn CỦA MÌNH mà bên đặt là B ⇒ 404", async () => {
-  // M2 của người kiểm Task 5 (Ruling 23): bài route nối hàm `cheDoThuongMai` với route cho cả sáu loại tài khoản lai — bài 1024 tập quyền chỉ thử hàm thuần.
+  // M2 của người kiểm Task 5 (Ruling 23): bài route nối hàm `cheDoThuongMai` với route cho cả sáu loại tài khoản lai — bài 2048 tập quyền chỉ thử hàm thuần.
   const w = setup();
+  noiGioiHanNhap(w); // ADR-0161 Đ3: dấu «số lạ» để dò rò rỉ KHÔNG chia hết 1.000 — nới giới hạn nhập, giữ nguyên số và đáp án.
   const LAI_QT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa3"; // ADMIN + PARTNER
   const LAI_TQ = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa4"; // SUPER_ADMIN + PARTNER
   const LAI_HDV = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa5"; // FIELD + PARTNER, được giao đơn đã xác nhận của B
@@ -297,6 +302,7 @@ test("(3e) Đối tác A có hồ sơ được hưởng, đơn của mình, ngư
 
 test("(3f) Đối tác A, đơn của mình nhưng bên đặt là hồ sơ đại lý B (gieo bằng SQL) ⇒ 404 cả đơn xác nhận lẫn đơn nháp; không thân có số (số tiền riêng của B không lộ cho A)", async () => {
   const w = setup();
+  noiGioiHanNhap(w); // ADR-0161 Đ3: dấu «số lạ» để dò rò rỉ KHÔNG chia hết 1.000 — nới giới hạn nhập, giữ nguyên số và đáp án.
   assert.equal((await muc(w, { ...mucVai(), doiTuong: { loai: "DOI_TAC", partyId: `pty-${DT_B}` }, kieu: "PER_PAX", tyLeBp: undefined, moiKhach: 480_017 })).status, 201);
   const nhapAB = nhap(w, DT_A, `pty-${DT_B}`, [["HONTAM", 2_000_000]]);
   // Đơn xác nhận của A mà bên đặt là B (đơn nháp gieo bằng SQL như người kiểm; xác nhận bằng route thật ⇒ bản chụp có người hưởng B và mức riêng 480.017đ/khách của B).
@@ -363,7 +369,7 @@ test("(4b) Thực tập (không giữ quyền Đối tác): đơn của người
   const cuaNguoiKhac = await xem(w, cuaSales, TTS);
   assert.equal(cuaNguoiKhac.status, 403, cuaNguoiKhac.text);
   assert.equal(cuaNguoiKhac.json.error.code, "forbidden");
-  assert.equal(cuaNguoiKhac.json.error.message,"Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.", "câu 403 có sẵn của khuôn chi tiết đơn (nợ Task 14: đổi câu)");
+  assert.equal(cuaNguoiKhac.json.error.message,"Chỉ người lập đơn, Hướng dẫn viên của đơn hoặc quản trị viên mới được thay đổi đơn này.", "câu 403 có sẵn của khuôn chi tiết đơn (nợ Task 14: đổi câu)");
   const minh = await xem(w, cuaMinh, TTS);
   assert.equal(minh.status, 200, minh.text);
   assert.deepEqual(Object.keys(minh.json), ["vanPhong"]);
@@ -490,7 +496,7 @@ test("(6) kiểm hợp lệ: thiếu lý do 400; đơn nháp 409; đã giao 409;
   const g = await ghi(w, id, dv(id), KT, tay15);
   assert.equal(g.status, 409, g.text);
   assert.equal(g.json.error.code, "order_delivered");
-  assert.match(g.json.error.message, /^Đơn đã ở bước Đã giao – đã thu đủ/);
+  assert.match(g.json.error.message, /^Đơn đã ở bước Khách đã trả đủ/);
   assert.equal(bangChup(w, id).length, truoc);
 });
 

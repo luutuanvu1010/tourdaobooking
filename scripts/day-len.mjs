@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // `npm run day-len [-- <nhánh>]` — CHỦ DỰ ÁN tự gõ trong terminal (AI không được chạy: CLAUDE.md §8, hook guard-remote chặn).
-// Gộp tiến thẳng <nhánh> vào main (nếu có), chạy test + typecheck, in tóm tắt (kể cả migration mới), hỏi, rồi `git push origin main`.
+// Gộp tiến thẳng <nhánh> vào main (nếu có), đẩy đúng commit lên nhánh chờ kiểm `cho-kiem/<mã>`, chờ GitHub kiểm đủ bộ (ADR-0179), in tóm tắt (kể cả
+// migration mới), hỏi, ghi bản ghi kết luận vào .git/tourdao-kiem/, rồi `git push origin main`.
 // Đặc tả: docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md. Logic: scripts/release-lib.mjs.
 import { dayLen } from "./release-lib.mjs";
 import { ask, isTTY, log, run } from "./release-shell.mjs";

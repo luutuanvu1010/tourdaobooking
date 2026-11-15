@@ -18,6 +18,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, ok, setInput, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 import { CHANGELOG } from "../../../../src/shared/changelog.ts";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-10-13-sua-so-khach-adr-0114/anh";
 mkdirSync(OUT, { recursive: true });
@@ -417,12 +418,13 @@ try {
     const p = await trangDon(env, ACCOUNTS.salesA, H.id, DESK);
     try {
       await p.waitFor("[...document.querySelectorAll('#actions .btn')].some((b) => b.textContent === 'Xác nhận đơn')", "nút Xác nhận đơn");
+      await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
       await p.ev("window.confirm = () => true, true"); // hộp xác nhận gốc của trình duyệt (headless): đồng ý sẵn
       await p.ev("[...document.querySelectorAll('#actions .btn')].find((b) => b.textContent === 'Xác nhận đơn').click()");
       await p.waitFor("!document.getElementById('error').hidden", "dải lỗi hiện");
       const d = await dai(p);
       assert.deepEqual([d.lop, d.tieuDe, d.nut], [["banner-danger"], CAU_THIEU_NGUOI_LON, []], `dải đỏ câu máy chủ, không nút tải lại. Thực tế: ${JSON.stringify(d)}`);
-      assert.equal(await p.ev("document.querySelector('#order .badge').textContent"), "Chờ xác nhận", "đơn vẫn là nháp (nhãn \"Chờ xác nhận\"), chưa xác nhận được");
+      assert.equal(await p.ev("document.querySelector('#order .badge').textContent"), "Chưa xác nhận", "đơn vẫn là nháp (nhãn \"Chưa xác nhận\"), chưa xác nhận được");
       await shotKhung(p, "15-xac-nhan-nhap-thieu-nguoi-lon-1040.png");
       console.log(`   dải: ${JSON.stringify(d)}`);
     } finally {

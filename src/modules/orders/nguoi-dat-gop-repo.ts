@@ -38,5 +38,32 @@ export async function donCuaNguoiDat(db: D1Database, partyId: string): Promise<D
     maDoi: seDoi.filter((r) => r.status !== "draft").map((r) => r.order_code),
   };
 }
+// ADR-0155 C3: đơn NHÁP đứng tên hồ sơ (kể cả nháp chờ xác nhận = nháp có yêu cầu xác nhận còn mở). Nháp là riêng tư (ADR-0135 Đ1, Đ2): mã đơn CHỈ trả cho đơn đang chờ
+// xác nhận (đã nằm trong tay người xét duyệt). Chủ dự án 2026-11-04, nguyên văn: «Nêu tên người lập» — để Quản trị biết nhờ ai huỷ / xác nhận nháp: hàm trả thêm, theo
+// từng người lập (`orders.staff_id`, KHÔNG phải `booker_party_id` là bên đặt), SỐ nháp + tên + tài khoản có đang ngưng không. Tên qua view công bố `v_stf_staff_label`
+// (orders không đọc bảng staff). KHÔNG trả mã nháp chưa gửi, tên khách, SĐT, tiền; nhật ký không ghi tên người lập. Chỉ gốc lắp ráp gọi (ctx.viecDoKhiThoiVai ở parties).
+const DON_NHAP_CUA_NGUOI_DAT = defineSql(
+  "orders",
+  "don_nhap_cua_nguoi_dat",
+  `SELECT o.order_code, o.staff_id, sl.label AS ten, sl.active AS dang_dung, sl.party_id AS ho_so,
+     EXISTS (SELECT 1 FROM ord_confirm_request r WHERE r.order_id = o.id AND r.decided_at IS NULL) AS cho FROM orders o
+   LEFT JOIN v_stf_staff_label sl ON sl.id = o.staff_id
+   WHERE o.booker_party_id = ?1 AND o.status = 'draft' ORDER BY o.order_code`,
+);
+/** Số nháp của một người lập; `ten` = null khi không rõ tên (không hồ sơ / không tìm thấy nhân viên). */
+export interface NguoiLapNhap { ten: string | null; ngung: boolean; so: number }
+export async function donChuaXacNhanCua(db: D1Database, partyId: string): Promise<{ donNhap: number; maDonChoXacNhan: string[]; nguoiLap: NguoiLapNhap[] }> {
+  const { results } = await db.prepare(DON_NHAP_CUA_NGUOI_DAT).bind(partyId).all<{ order_code: string; staff_id: string | null; ten: string | null; dang_dung: number | null; ho_so: string | null; cho: number }>();
+  const theo = new Map<string, NguoiLapNhap>();
+  for (const r of results) {
+    const ro = r.ten !== null && r.ho_so !== null && r.ten.trim() !== "";
+    const khoa = ro ? `s:${r.staff_id}` : "khong-ro";
+    const cu = theo.get(khoa);
+    if (cu) cu.so++;
+    else theo.set(khoa, { ten: ro ? r.ten!.trim() : null, ngung: ro && r.dang_dung === 0, so: 1 });
+  }
+  const nguoiLap = [...theo.values()].sort((a, b) => b.so - a.so || (a.ten ?? "\uffff").localeCompare(b.ten ?? "\uffff", "vi"));
+  return { donNhap: results.length, maDonChoXacNhan: results.filter((r) => r.cho === 1).map((r) => r.order_code), nguoiLap };
+}
 export const cauDoiNguoiDat = (db: D1Database, tuPartyId: string, sangPartyId: string, at: string): D1PreparedStatement =>
   db.prepare(DOI_NGUOI_DAT).bind(tuPartyId, sangPartyId, at);

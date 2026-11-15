@@ -40,7 +40,8 @@ async function setup(o: { mailer?: "ok" | "nem" } = {}) {
     },
   };
   seedStaff(w.sqlite, { id: BH, phone: PHONE[BH], name: "Bán Hàng", perms: ["SALES"] });
-  seedStaff(w.sqlite, { id: DT, phone: PHONE[DT], name: "Đối Tác", perms: ["PARTNER"] });
+  // ADR-0185: đường quyền cũ (PUT …/permissions) chỉ còn cho tài khoản chưa gán vai trò ⇒ tài khoản Đối tác của bài này dựng kiểu cũ.
+  seedStaff(w.sqlite, { id: DT, phone: PHONE[DT], name: "Đối Tác", perms: ["PARTNER"], kieuCu: true });
   seedStaff(w.sqlite, { id: QT, phone: PHONE[QT], name: "Quản Trị", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: KT, phone: PHONE[KT], name: "Kế Toán", perms: ["ACCOUNTING"] });
   seedStaff(w.sqlite, { id: TQ, phone: PHONE[TQ], name: "Toàn Quyền", perms: ["SUPER_ADMIN"] });

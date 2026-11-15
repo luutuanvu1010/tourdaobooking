@@ -142,3 +142,17 @@ test("Phán quyết Task 3: liên hệ của A bắt đầu sau hôm nay → mer
   assert.deepEqual(ma(ke(hs("a", { lienHe: [sdt("c", "0912000111", { validFrom: "2026-10-02" })] }), hs("b"))), ["merge_source_future_row"]);
   assert.deepEqual(ma(ke(hs("a", { lienHe: [sdt("c", "0912000111", { validFrom: HOM_NAY })] }), hs("b"))), []);
 });
+
+test("ADR-0155 Đ1.4: nguồn KHÔNG tài khoản giữ một trong năm vai → câu chặn trỏ Danh bạ (không trỏ Quản lý tài khoản) và nhắc thứ tự việc dở; vai nội bộ hoặc DRIVER_EXTERNAL giữ câu cũ", () => {
+  const nam = ke(hs("a", { congViec: [cv("r", "COLLABORATOR", { group: "EXTERNAL" })] }), hs("b")).chan.find((c) => c.code === "merge_source_account_role")!;
+  assert.ok(nam, "vẫn chặn");
+  assert.match(nam.message, /Danh bạ/);
+  assert.doesNotMatch(nam.message, /Quản lý tài khoản/);
+  assert.match(nam.message, /đơn nháp/);
+  assert.match(nam.message, /cấp riêng/);
+  assert.match(nam.message, /mức riêng/);
+  const cu = ke(hs("a", { congViec: [cv("r", "DRIVER_INTERNAL", { group: "INTERNAL" })] }), hs("b")).chan.find((c) => c.code === "merge_source_account_role")!;
+  assert.match(cu.message, /Quản lý tài khoản/);
+  const dx = ke(hs("a", { congViec: [cv("r", "DRIVER_EXTERNAL", { group: "EXTERNAL" })] }), hs("b")).chan.find((c) => c.code === "merge_source_account_role")!;
+  assert.match(dx.message, /Quản lý tài khoản/, "DRIVER_EXTERNAL không thuộc năm vai: câu cũ");
+});

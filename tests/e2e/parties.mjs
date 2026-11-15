@@ -16,7 +16,7 @@ assert.equal(r.status, 200);
 // ADR-0018: meta trả MỌI loại vai (kể cả vai cũ đã ngưng) kèm nhóm và trạng thái; vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên.
 assert.deepEqual(r.body.roleTypes.map((t) => t.code).sort(), [
   "ACCOUNTANT", "AGENT", "BOAT_CAPTAIN", "CARRIER", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "DRIVER_EXTERNAL", "DRIVER_INTERNAL", "GUIDE", "GUIDE_FREELANCE", "GUIDE_INTERNAL",
-  "HOTEL_RECEPTION", "HR_STAFF", "INTERN", "IT", "OPERATIONS_MANAGER", "OWNER_COMPANY", "SALES", "SALES_STAFF", "STAFF", "SUPPLIER", "TAXI_DRIVER", "TRAVEL_AGENCY", // IT: ADR-0044; OWNER_COMPANY: T2b; DRIVER_INTERNAL: ADR-0040; DRIVER_EXTERNAL, CARRIER: ADR-0048; HR_STAFF: ADR-0071; SUPPLIER: sổ đại lý đợt 1 (migration 0090)
+  "HOTEL_RECEPTION", "HR_STAFF", "INTERN", "IT", "OPERATIONS_MANAGER", "OWNER_COMPANY", "SALES", "SALES_MANAGER", "SALES_STAFF", "STAFF", "SUPPLIER", "TAXI_DRIVER", "TRAVEL_AGENCY", // IT: ADR-0044; OWNER_COMPANY: T2b; DRIVER_INTERNAL: ADR-0040; DRIVER_EXTERNAL, CARRIER: ADR-0048; HR_STAFF: ADR-0071; SUPPLIER: sổ đại lý đợt 1 (migration 0090)
 ]);
 // Sổ đại lý đợt 1 (migration 0090): vai hồ sơ "Nhà cung cấp" — nhóm OTHER, đang dùng (người bán dịch vụ ở /nguoi-ban phải mang vai này).
 // ADR-0117 lần 1: mỗi dòng loại vai kèm cờ `partnerLabel` (loại đối tác do Kế toán thêm); mọi loại có sẵn đều false.
@@ -110,7 +110,10 @@ assert.equal(after.displayName, (x.status === 200 ? x : y).body.party.displayNam
 console.log("✓ song song: một bên thắng, dữ liệu nhất quán");
 
 // --- ngưng (không xoá): mặc định ẩn khỏi danh sách, includeInactive=1 thì hiện
+// ADR-0190: Bán hàng không ngừng dùng được (403, hồ sơ giữ nguyên); Quản trị ngừng được.
 r = await call(SALES, "PUT", P(B.id), { fullName: B.displayName, active: false, expectedUpdatedAt: B.updatedAt });
+assert.equal(r.status, 403); assert.equal(r.body.error.code, "party_deactivate_forbidden");
+r = await call(ADMIN, "PUT", P(B.id), { fullName: B.displayName, active: false, expectedUpdatedAt: B.updatedAt });
 assert.equal(r.status, 200); assert.equal(r.body.party.active, false);
 assert.ok(!(await call(SALES, "GET", `/api/parties?q=${phone.slice(3)}`)).body.parties.some((p) => p.id === B.id));
 assert.ok((await call(SALES, "GET", `/api/parties?q=${phone.slice(3)}&includeInactive=1`)).body.parties.some((p) => p.id === B.id));
@@ -174,13 +177,24 @@ for (const code of ["GUIDE", "DRIVER"]) {
   assert.equal(x.body.error.code, "role_type_inactive");
 }
 
-// ADR-0018: vai quyết định quyền đăng nhập không gán/gỡ ở trang Hồ sơ.
-for (const code of ["SALES_STAFF", "COLLABORATOR"]) {
+// ADR-0018: vai quyết định quyền đăng nhập không gán/gỡ ở trang Hồ sơ. ADR-0155 Đ1/C6 (đảo có chủ đích 2026-11-04): vai nội bộ và DRIVER_EXTERNAL vẫn 409; năm vai bên
+// ngoài (Công ty lữ hành, Hướng dẫn viên độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên) trên hồ sơ CHƯA có tài khoản nay gắn được, không sinh quyền.
+for (const code of ["SALES_STAFF", "DRIVER_EXTERNAL"]) {
   const x = await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: code });
   assert.equal(x.status, 409, `${code}: ${JSON.stringify(x.body)}`);
   assert.equal(x.body.error.code, "role_via_account");
 }
-console.log("✓ vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên");
+{
+  const kt = await call(SALES, "POST", "/api/parties", { kind: "PERSON", fullName: `Cộng Tác ${tag} Viên` });
+  assert.equal(kt.status, 201, JSON.stringify(kt.body));
+  const g = await call(ADMIN, "POST", `${P(kt.body.party.id)}/roles`, { roleTypeCode: "COLLABORATOR" });
+  assert.equal(g.status, 201, JSON.stringify(g.body));
+  const g2 = await call(ADMIN, "POST", `${P(kt.body.party.id)}/roles`, { roleTypeCode: "HOTEL_RECEPTION", locationId: pier.id });
+  assert.equal(g2.status, 400, "vai bên ngoài không gắn nơi: " + JSON.stringify(g2.body));
+  const rid = g.body.party.roles.find((x) => x.roleTypeCode === "COLLABORATOR").id;
+  assert.equal((await call(ADMIN, "POST", `${P(kt.body.party.id)}/roles/${rid}/end`, {})).status, 200);
+}
+console.log("✓ vai nội bộ chỉ gán ở trang Nhân viên; năm vai bên ngoài gắn được cho hồ sơ chưa có tài khoản");
 
 // Truy vấn của đợt N1: ai giữ vai HDV ở Bến cảng Vinpearl hôm nay
 r = await call(SALES, "GET", `/api/parties?role=BOAT_CAPTAIN&location=${vinpearl.id}`);

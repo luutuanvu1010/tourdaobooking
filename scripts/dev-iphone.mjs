@@ -4,34 +4,20 @@
 //   node scripts/dev-iphone.mjs --tunnel   → thêm địa chỉ HTTPS tạm của Cloudflare Quick Tunnel (wrangler in ra), có service worker.
 //                                            Địa chỉ này công khai với ai có link cho tới khi bạn thoát (Ctrl+C); chỉ có dữ liệu thử.
 import { execFileSync, spawn } from "node:child_process";
-import { randomBytes, randomInt } from "node:crypto";
+import { randomBytes } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { networkInterfaces, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isWeakPin } from "../src/modules/staff/rules.ts";
 import { insertStaffSql } from "./staff-lib.mjs";
+import { taoTaiKhoanThu } from "./tai-khoan-thu.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const PORT = 8787;
 const tunnel = process.argv.includes("--tunnel");
 const wrangler = (args) => execFileSync("npx", ["wrangler", ...args], { cwd: ROOT, stdio: ["ignore", "pipe", "pipe"], encoding: "utf8", maxBuffer: 256 * 1024 * 1024, env: { ...process.env, CI: "1" } }); // maxBuffer: đầu ra apply vượt 1 MB từ migration 0062 (2026-10-01)
 
-const pin = () => {
-  for (;;) {
-    const p = String(randomInt(100000, 1000000));
-    if (!isWeakPin(p)) return p;
-  }
-};
-const accounts = [
-  { name: "Admin Thử", phone: "0900000001", pin: pin(), permissions: ["SALES", "ADMIN"] },
-  { name: "Nhân viên Thử", phone: "0900000002", pin: pin(), permissions: ["SALES"] },
-  { name: "Toàn quyền Thử", phone: "0900000003", pin: pin(), permissions: ["SUPER_ADMIN"] },
-  { name: "Kế toán Thử", phone: "0900000004", pin: pin(), permissions: ["ACCOUNTING"] },
-  { name: "Hướng dẫn viên Thử", phone: "0900000005", pin: pin(), permissions: ["FIELD"] },
-  { name: "Tài xế Thử", phone: "0900000006", pin: pin(), permissions: ["DRIVER"] },
-  { name: "Tài xế đối tác Thử", phone: "0900000007", pin: pin(), permissions: ["DRIVER_PARTNER"] },
-];
+const accounts = taoTaiKhoanThu();
 const lan = Object.values(networkInterfaces()).flat().find((i) => i && i.family === "IPv4" && !i.internal)?.address;
 
 const persist = mkdtempSync(join(tmpdir(), "tourdao-iphone-"));

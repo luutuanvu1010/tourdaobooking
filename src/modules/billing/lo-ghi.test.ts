@@ -172,7 +172,7 @@ test("NT-F1: trước ngày đi muộn nhất → 409; bên đặt là cộng t�
   await thu(w, HDV, dt, tienMat(1_000_000));
   const r2 = await giao(w, HDV, dt);
   assert.equal(r2.status, 409);
-  assert.equal(r2.json.error.message, "Thiếu mức hoa hồng / người bán cho Vé Hòn Tằm — Kế toán ghi mức tay cho dòng này.");
+  assert.equal(r2.json.error.message, "Thiếu mức hoa hồng / người bán cho Vé Hòn Tằm — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.");
   const cu = donDaXacNhan(w);
   w.sqlite.prepare(`INSERT INTO bil_payment_receipt (id, order_id, kind_code, amount, collector_party_id, collector_role_code, method_code, collected_for_party_id, stage_code,
     occurred_date, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'CUSTOMER_PAYMENT', 1000000, NULL, 'UNKNOWN', 'OTHER', (SELECT party_id FROM v_pty_owner_company), 'PREPAID', '2026-09-01', ?, 'he-thong', ?, 'he-thong')`)

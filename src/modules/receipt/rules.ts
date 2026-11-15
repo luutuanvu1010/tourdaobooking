@@ -1,6 +1,7 @@
 // Luật THUẦN của biên nhận (module receipt — ADR-0024 đ1, ADR-0026 đ11; kế hoạch Task 8): dựng `ReceiptDto` theo DANH SÁCH TRẮNG — chép TỪNG trường được
 // phép, KHÔNG BAO GIỜ trải đối tượng nguồn (`...order`), nên thêm một trường bí mật vào đơn/sổ sau này không thể tự lọt ra biên nhận. Không I/O.
-import type { CompanyDto, OrderDetailDto, QrThanhToanDto, ReceiptDto, ReceiptPhanDto } from "../../shared/contracts.ts";
+import type { CompanyDto, MauBienNhan, OrderDetailDto, PhieuCongNoDto, PhieuNopDto, QrThanhToanDto, ReceiptDto, ReceiptPhanDto } from "../../shared/contracts.ts";
+import { CAU_CO_KHOAN_CHO, TIEN_TO_NOI_DUNG_DAI_LY } from "../../shared/cong-no-dai-ly.ts";
 import { chiaPhanNguoiBan, nguoiBanCuaDong } from "../../shared/chia-phan-nguoi-ban.ts";
 import type { BanChup } from "../../shared/hoa-hong-dong.ts";
 import { noiDungChuyenKhoan } from "../../shared/noi-dung-chuyen-khoan.ts";
@@ -103,11 +104,19 @@ export function chiaPhanBienNhan(order: OrderDetailDto, tenCongTy: string, ban: 
   }));
 }
 
-export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: TienBienNhan, ban: NguoiBanChoBienNhan | null): ReceiptDto {
+/** Mẫu in biên nhận (HD-02-DT): đơn của đối tác khi bên đặt là đối tác HOẶC người lập là Đối tác thuần; còn lại mẫu nội bộ. Luật thuần; hai cờ do route đọc. */
+export function mauBienNhan(i: { bookerLaDoiTac: boolean; nguoiLapDoiTacThuan: boolean }): MauBienNhan {
+  return i.bookerLaDoiTac || i.nguoiLapDoiTacThuan ? "doi_tac" : "noi_bo";
+}
+
+export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: TienBienNhan, ban: NguoiBanChoBienNhan | null, nguoiLapDoiTacThuan: boolean): ReceiptDto {
   return {
+    mau: mauBienNhan({ bookerLaDoiTac: order.bookerLaDoiTac, nguoiLapDoiTacThuan }),
     company: { name: company.name, taxCode: company.taxCode, address: company.address, hotline: company.hotline, email: company.email },
     orderCode: order.orderCode,
-    status: trangThaiHienThi({ status: order.status, deliveredAt: order.deliveredAt, completedAt: order.completedAt }),
+    // Chữ KHÁCH đọc (biên nhận, ảnh gửi khách): đơn nháp luôn «Chờ xác nhận», KHÔNG đi theo nhãn nội bộ «Chưa xác nhận» (ADR-0166 câu 5) — khách không cần biết
+    // đơn đã qua bước kiểm vé hay chưa. Cờ `true` cố định; bài `bien-nhan.test.ts` khoá.
+    status: trangThaiHienThi({ status: order.status, deliveredAt: order.deliveredAt, completedAt: order.completedAt, dangCho: true }),
     createdAt: order.createdAt,
     customerName: order.customerName,
     customerPhone: order.customerPhone,
@@ -124,6 +133,8 @@ export function dungBienNhan(order: OrderDetailDto, company: CompanyDto, tien: T
       checkinDate: s.checkinDate,
       checkinTime: s.checkinTime,
       checkinPlace: s.checkinPlace,
+      // Chỉ CỜ, không chép giá danh mục (ADR-0026 đ11): dòng nhập tay (không có giá danh mục) cũng tính là khác giá công bố.
+      giaKhacCongBo: s.items.some((it) => it.catalogPrice === null || it.unitPrice !== it.catalogPrice),
       items: s.items.map((it) => ({ description: it.description, detail: it.detail, quantity: it.quantity, unitPrice: it.unitPrice, lineTotal: it.lineTotal })),
     })),
     subtotal: order.subtotal,
@@ -148,7 +159,7 @@ export type KiemSoTienQr = { ok: true; soTien: number } | { ok: false; status: 4
 
 /** Thứ tự: đơn đã giao (kể cả đơn lệch cũ còn lại > 0) → hết tiền cần thu → số gõ. Thiếu số ⇒ bằng còn lại. */
 export function kiemSoTienQr(i: { daGiao: boolean; conLai: number; soTienRaw: string | null }): KiemSoTienQr {
-  if (i.daGiao) return { ok: false, status: 409, ma: "order_delivered", cau: "Đơn đã giao — không thu thêm." };
+  if (i.daGiao) return { ok: false, status: 409, ma: "order_delivered", cau: "Đơn đã tới bước Khách đã trả đủ — không thu thêm." };
   if (i.conLai <= 0) return { ok: false, status: 409, ma: "nothing_due", cau: "Đơn không còn tiền cần thu." };
   if (i.soTienRaw === null || i.soTienRaw === "") return { ok: true, soTien: i.conLai };
   if (!SO_TIEN_QR_RE.test(i.soTienRaw)) return { ok: false, status: 400, ma: "invalid_input", cau: "Số tiền phải là số nguyên dương (đồng)." };
@@ -163,12 +174,47 @@ export function dungQrThanhToan(i: {
   soTien: number;
   conLai: number;
   tk: { congTy: string; nganHang: string; bin: string; soTaiKhoan: string; chuTaiKhoan: string };
+  /** ADR-0182 Đ2 mục 2: tiền tố riêng của QR phiếu công nợ (tiền đại lý nộp, «DL»). QR của khách KHÔNG truyền — nội dung giữ y như cũ. */
+  tienTo?: string;
 }): { ok: true; dto: QrThanhToanDto } | { ok: false; cau: string } {
-  const noiDung = noiDungChuyenKhoan(i.maDon);
+  const noiDung = (i.tienTo ?? "") + noiDungChuyenKhoan(i.maDon);
   const p = payloadVietQr({ bin: i.tk.bin, soTaiKhoan: i.tk.soTaiKhoan, soTien: i.soTien, noiDung });
   if (!p.ok) return { ok: false, cau: p.loi };
   return {
     ok: true,
     dto: { payload: p.payload, soTien: i.soTien, conLai: i.conLai, maDon: i.maDon, noiDung, congTy: i.tk.congTy, nganHang: i.tk.nganHang, soTaiKhoan: i.tk.soTaiKhoan, chuTaiKhoan: i.tk.chuTaiKhoan },
+  };
+}
+
+/**
+ * ADR-0182 Đ2 mục 2: DTO phiếu công nợ theo DANH SÁCH TRẮNG từ số của «Công nợ đại lý» (billing). Không có hoa hồng hay tỷ lệ; QR chỉ khi Công nợ còn lại > 0 — số trên QR là đúng
+ * Công nợ còn lại, nội dung có tiền tố «DL». `tk` null = công ty chưa cài tài khoản (phiếu vẫn hiện số).
+ */
+export function dungPhieuCongNo(i: {
+  maDon: string;
+  phieu: { dong: readonly { name: string; hoaHong: number | null; giaDaiLy: number }[]; tong: number; daThu: number; conLai: number };
+  hanTra: string | null;
+  tk: { congTy: string; nganHang: string; bin: string; soTaiKhoan: string; chuTaiKhoan: string } | null;
+  /** ADR-0182 phần B: phần khoản nộp. Số trên QR = `nop.tran` (Đ2 mục 7 — cùng con số với trần Đ2 mục 4); vắng ⇒ như phần A (QR = Công nợ còn lại). */
+  nop?: PhieuNopDto;
+}): { ok: true; dto: PhieuCongNoDto } | { ok: false } {
+  const { tong, daThu, conLai } = i.phieu;
+  const soQr = i.nop ? i.nop.tran : conLai;
+  let qr: QrThanhToanDto | null = null;
+  let ghiChuQr: string | null = null;
+  if (soQr > 0) {
+    if (!i.tk) ghiChuQr = "Công ty chưa cài tài khoản nhận tiền — báo người phụ trách hệ thống.";
+    else {
+      const q = dungQrThanhToan({ maDon: i.maDon, soTien: soQr, conLai: soQr, tk: i.tk, tienTo: TIEN_TO_NOI_DUNG_DAI_LY });
+      if (!q.ok) return { ok: false };
+      qr = q.dto;
+    }
+  } else if (conLai > 0 && i.nop && i.nop.nopCho + i.nop.congTyCho > 0) ghiChuQr = CAU_CO_KHOAN_CHO;
+  return {
+    ok: true,
+    dto: {
+      maDon: i.maDon, dong: i.phieu.dong.map((d) => ({ ten: d.name, giaDaiLy: d.giaDaiLy, thieuMuc: d.hoaHong === null })), tong, daThu, conLai, hanTra: i.hanTra, qr, ghiChuQr,
+      ...(i.nop ? { nop: i.nop } : {}),
+    },
   };
 }

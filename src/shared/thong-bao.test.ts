@@ -72,6 +72,44 @@ test("ADR-0131: tin điều chỉnh công nợ — Kế toán nhận câu không
   assert.ok(!JSON.stringify(xem(ai("sup2", "SUPER_ADMIN", "PARTNER"), [dc()])).includes("Hùng"));
 });
 
+test("ADR-0092 Đ5d / ADR-0115 điều 5: «số dư của bạn đổi» tới MỌI tài khoản của bên bị đổi — Đối tác, Tài xế đối tác cũng nhận (câu nhắc liên hệ văn phòng); người khác không", () => {
+  const dc = (o: Partial<DongDieuChinh> = {}): DongDieuChinh => ({ id: "dc" + Math.random(), maDon: "TD-20260927-0001", action: "ledger_adjustment_affected", mucLoai: "staff", mucId: "bx",
+    actorId: "kt", tenNguoiLam: "Hà Kế Toán", luc: "2026-09-27T02:00:00.000Z", ...o });
+  const xem = (staff: ReturnType<typeof ai>, d: DongDieuChinh[]) => locHopThongBao(staff, { don: [], thuCong: [], dieuChinh: d, docDenLuc: "2026-09-26T00:00:00.000Z", now: NOW, ngan: "cua-toi" }).tin;
+  const CAU_NGOAI = "Số dư của bạn trên đơn TD-20260927-0001 vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết";
+  const CAU_NOI_BO = "Số dư của bạn trên đơn TD-20260927-0001 vừa được điều chỉnh";
+  // Tài xế đối tác chỉ thấy mã đơn trong khung thấy khách của chuyến họ chạy (ADR-0053 D7, ADR-0048 D2) ⇒ tin số dư của họ KHÔNG có mã đơn, cả câu lẫn trường maDon.
+  const CAU_TAI_XE_DOI_TAC = "Số dư của bạn vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết";
+  // Đối tác thuần và Nhân sự thuần: không xem được sổ của mình ⇒ câu nhắc liên hệ văn phòng, CÓ mã đơn; liên kết /account (không phải trang văn phòng).
+  for (const [staff, mucId] of [[BX, "bx"], [ai("ns", "HR"), "ns"]] as const) {
+    const t = xem(staff, [dc({ mucId })]);
+    assert.deepEqual(t.map((x) => x.cau), [CAU_NGOAI], staff.id);
+    assert.equal(t[0]!.maDon, "TD-20260927-0001");
+    assert.equal(t[0]!.lienKet, "/account");
+    assert.equal(t[0]!.cuaToi, true);
+    assert.ok(!JSON.stringify(t).includes("Hà Kế Toán"), "không tên người làm");
+  }
+  const tx = xem(ai("tx", "DRIVER_PARTNER"), [dc({ mucId: "tx" })]);
+  assert.deepEqual(tx.map((x) => x.cau), [CAU_TAI_XE_DOI_TAC]);
+  assert.equal(tx[0]!.maDon, null, "DTO không lộ mã đơn cho Tài xế đối tác");
+  assert.ok(!JSON.stringify(tx).includes("TD-20260927-0001"), "không chỗ nào trong tin chứa mã đơn");
+  assert.equal(tx[0]!.lienKet, "/account");
+  assert.equal(tx[0]!.cuaToi, true);
+  // Tài khoản lai Bán hàng + Đối tác có ô xem khoản của mình (ledger.view own) ⇒ giữ câu nội bộ; liên kết /order.
+  const lai = xem(LAI, [dc({ mucId: "lai" })]);
+  assert.deepEqual(lai.map((x) => x.cau), [CAU_NOI_BO]);
+  assert.equal(lai[0]!.lienKet, "/order");
+  // Không xem được sổ của mình nhưng là nhân viên (Tài xế công ty) ⇒ cùng câu nhắc liên hệ văn phòng như tin attribution_posted.
+  assert.deepEqual(xem(ai("xe", "DRIVER"), [dc({ mucId: "xe" })]).map((x) => x.cau), [CAU_NGOAI]);
+  // Có ô xem khoản của mình (Kế toán, Bán hàng, HDV) ⇒ câu nội bộ.
+  for (const [staff, mucId] of [[MAI, "mai"], [LAN, "lan"], [TAM, "tam"]] as const) assert.deepEqual(xem(staff, [dc({ mucId })]).map((x) => x.cau), [CAU_NOI_BO], staff.id);
+  // Khoá chỉ vào đúng người: Đối tác khác, Bán hàng không phải bên bị đổi ⇒ không có tin.
+  assert.deepEqual(xem(ai("bx2", "PARTNER"), [dc({ mucId: "bx" })]), []);
+  assert.deepEqual(xem(LAN, [dc({ mucId: "bx" })]), []);
+  // Người tạo yêu cầu (chính người làm) không nhận tin của việc mình làm.
+  assert.deepEqual(xem(ai("mai", "ACCOUNTING"), [dc({ mucId: "mai", actorId: "mai" })]), []);
+});
+
 test("E3: không thấy tin do chính mình làm hoặc gửi (K6)", () => {
   assert.equal(hop(HUNG, [don({})]).tin.length, 0);
   assert.equal(hop(VU, [], [tin({ nguoiGuiId: "vu" })]).tin.length, 0);
@@ -107,7 +145,7 @@ test("ADR-0045: lưu NHÁP không vào 'Của tôi' của ai (kể cả chủ đ
   const r = hop(VU, [nhapChuaAi, xn], [], "cua-toi");
   assert.equal(r.tin.length, 1);
   assert.equal(r.tin[0]!.loai, "cho_nhan");
-  assert.equal(r.tin[0]!.cau, "Bảo vừa xác nhận đơn TD-20260927-0001, chưa có người phụ trách");
+  assert.equal(r.tin[0]!.cau, "Bảo vừa xác nhận đơn TD-20260927-0001, chưa có Hướng dẫn viên");
   // Có người nhận rồi → dòng xác nhận thành tin "xác nhận" thường, rời "Của tôi" của người không liên quan
   assert.equal(hop(LAN, [don({ ...xn, phuTrach: { coNguoi: true, staffId: "hung" } })], [], "cua-toi").tin.length, 0);
 });
@@ -254,4 +292,26 @@ test("tin chuyến: chỉ ở hộp của người nhận (cuaToi), loại 'chuy
   assert.equal(kt.tin.length, 0);
   const cu = locHopThongBao({ id: "tx", permissions: ["DRIVER"], partyId: "p-b" }, { don: [], thuCong: [], chuyen: [{ ...d, luc: "2027-01-01T00:00:00.000Z", lai: [{ partyId: "p-b", tu: "2027-01-01T00:00:00.000Z", den: null }] }], docDenLuc: now, now, ngan: "cua-toi" });
   assert.equal(cu.tin.length, 0);
+});
+
+// ADR-0175 Đ1.5a (kế hoạch vé Tour Đảo Task 6): tin «thiếu vé» — khoá ('ve', nguồn). Vé Tour Đảo → người giữ `ve.phat-hanh`; vé hãng ngoài → người giữ `ve.kho.manage`; không Đối tác.
+test("tin thiếu vé: Tour Đảo tới Kế toán, không tới Bán hàng thường; hãng ngoài ngược lại; không bao giờ tới tài khoản giữ quyền Đối tác; người làm không tự nhận", () => {
+  const thieu = (nguon: string, o: Partial<DongDieuChinh> = {}): DongDieuChinh =>
+    ({ id: "v" + Math.random(), maDon: "TD-20260927-0009", action: "ve_thieu", mucLoai: "ve", mucId: nguon, actorId: "hung", tenNguoiLam: "Hùng", luc: "2026-09-27T02:00:00.000Z", ...o });
+  const hop = (s: ReturnType<typeof ai>, d: DongDieuChinh) => locHopThongBao(s, { don: [], thuCong: [], dieuChinh: [d], docDenLuc: "2026-09-26T00:00:00.000Z", now: NOW, ngan: "cua-toi" }).tin;
+  const td = hop(MAI, thieu("TOUR_DAO"));
+  assert.equal(td.length, 1);
+  assert.equal(td[0]!.cau, "Đơn TD-20260927-0009 còn thiếu vé Tour Đảo — cần nhập thêm vé vào kho.");
+  assert.equal(td[0]!.lienKet, "/ve-kho");
+  assert.equal(td[0]!.cuaToi, true);
+  assert.equal(hop(LAN, thieu("TOUR_DAO")).length, 0, "Bán hàng thường không giữ ve.phat-hanh");
+  assert.equal(hop(LAN, thieu("HANG_NGOAI")).length, 1, "Bán hàng giữ ve.kho.manage");
+  assert.equal(hop(MAI, thieu("HANG_NGOAI")).length, 0, "Kế toán không giữ ve.kho.manage");
+  assert.equal(hop(VU, thieu("TOUR_DAO")).length, 1);
+  for (const n of ["TOUR_DAO", "HANG_NGOAI"]) {
+    assert.equal(hop(BX, thieu(n)).length, 0, `Đối tác ${n}`);
+    assert.equal(hop(LAI, thieu(n)).length, 0, `tài khoản lai Bán hàng + Đối tác ${n}`);
+  }
+  assert.equal(hop(LAN, thieu("HANG_NGOAI", { actorId: "lan" })).length, 0, "người làm không tự nhận tin của mình");
+  assert.equal(hop(MAI, thieu("KHAC")).length, 0, "nguồn lạ: không ai nhận");
 });

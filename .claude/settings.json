@@ -18,7 +18,16 @@
       "Bash(node scripts/day-len.mjs)",
       "Bash(node scripts/day-len.mjs *)",
       "Bash(node scripts/trien-khai.mjs)",
-      "Bash(node scripts/trien-khai.mjs *)"
+      "Bash(node scripts/trien-khai.mjs *)",
+      "Bash(npm run len-chinh-thuc)",
+      "Bash(npm run len-chinh-thuc *)",
+      "Bash(node scripts/len-chinh-thuc.mjs)",
+      "Bash(node scripts/len-chinh-thuc.mjs *)",
+      "Bash(npm run lam-moi-dev)",
+      "Bash(npm run lam-moi-dev *)",
+      "Bash(node scripts/lam-moi-dev.mjs)",
+      "Bash(node scripts/lam-moi-dev.mjs *)",
+      "mcp__terminal__run_in_terminal"
     ],
     "ask": [
       "Edit(CLAUDE.md)",
@@ -27,7 +36,11 @@
       "Edit(src/modules/**/CLAUDE.md)",
       "Edit(.claude/**)",
       "Edit(playbook/**)",
-      "Edit(docs/adr/**)"
+      "Edit(src/shared/bang-tham-chieu*.ts)",
+      "Edit(scripts/bang-tham-chieu-lib.mjs)",
+      "Edit(scripts/quet-nut-lib.mjs)",
+      "Edit(src/bang-tham-chieu.test.ts)",
+      "Edit(.github/workflows/**)"
     ]
   },
   "hooks": {
@@ -48,6 +61,16 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-tep.mjs\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__terminal__run_in_terminal",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-remote.mjs\"",
             "timeout": 10
           }
         ]

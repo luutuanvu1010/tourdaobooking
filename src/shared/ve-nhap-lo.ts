@@ -2,6 +2,8 @@
 
 /** Mỗi lần gửi thêm vé vào lô: tối đa bấy nhiêu ảnh (cỡ thân yêu cầu giới hạn riêng ở route). */
 export const TOI_DA_VE_MOI_DOT = 10;
+/** Số đơn tối đa được xét cấp bù trong MỘT lần xác nhận lô (giữ lệnh dưới trần ~1.000 câu D1 mỗi lần gọi Worker). Còn đơn chưa xét ⇒ phản hồi `conDonChuaXet`. */
+export const TOI_DA_DON_XET_CAP_BU = 30;
 export const TOI_DA_BYTE_ANH = 3 * 1024 * 1024;
 
 /** Trần lô: mặc định và khoảng Toàn quyền đặt được (`vdt_setting.batch_limit`; migration kiểm cùng khoảng). */

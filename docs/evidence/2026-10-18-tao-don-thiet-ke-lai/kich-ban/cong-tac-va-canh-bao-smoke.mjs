@@ -21,6 +21,7 @@ import assert from "node:assert/strict";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { ACCOUNTS, ok, setInput, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const MOB = { width: 390, height: 844, mobile: true };
 const DESK = { width: 1040, height: 900, mobile: false };
@@ -255,6 +256,7 @@ try {
   let b = await env.as(ACCOUNTS.salesA, `/order?id=${donId}`, MOB);
   await buoc("6", "bảng «Đổi khách»: SĐT đối tác → khung cảnh báo hiện trong bảng, câu cảnh báo cũ còn nguyên; «Đúng» chọn đối tác ở ô «Đặt qua đối tác», xoá hai ô; «Không» ẩn", async () => {
     await b.waitFor("document.querySelectorAll('#order .svc-view').length === 1", "đơn nạp xong");
+    await b.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
     await b.ev("window.confirm = () => true; true");
     await b.ev(`[...document.querySelectorAll('#actions button')].find((x) => x.textContent.trim() === 'Xác nhận đơn').click(); true`);
     await b.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã xác nhận'", "đã xác nhận");

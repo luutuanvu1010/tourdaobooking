@@ -8,7 +8,7 @@
 // chạy song song. Phần 1 chạy thêm các kiểm tĩnh (không gọi máy chủ). Đặt ở tests/audit/ (không ở src/) vì nó nhập khung thử .mjs và node:* — `tsc` của src
 // không có khai kiểu cho hai thứ đó.
 //
-// CHẶN (trên ĐỦ 1024 tập quyền = mọi tập con của PERMISSION_CODES; mỗi tập một tài khoản thật trong CSDL thử, gọi route THẬT qua khung thử harness.mjs — router,
+// CHẶN (trên ĐỦ 2048 tập quyền = mọi tập con của PERMISSION_CODES; mỗi tập một tài khoản thật trong CSDL thử, gọi route THẬT qua khung thử harness.mjs — router,
 // cổng, `can()`, CSDL dựng từ migrations/):
 //   (1) mục điều hướng HIỆN mà ĐƯỜNG GỌI CHÍNH của trang bị máy chủ TỪ CHỐI với chính tài khoản đó ⇒ ĐỎ;
 //   (1b) mục HIỆN mà chính trang TỰ CHẶN ở trình duyệt (`moTrang` của bảng mục là sai) ⇒ ĐỎ;
@@ -96,6 +96,18 @@ const coDriver = (s) => coCuocCuaToi(s);
 const biCatTab = (s, k) => THANH_TAB.some((c) => c.trang === k && coHien(c, { staff: s })) && !thanhTab({ staff: s }).some((t) => t.trang === k);
 const DUOC_MA_AN = [
   // Dòng "HDV chỉ-FIELD không thấy mục Đơn hàng" đã BỎ 15/10: chủ quyết hiện mục cho HDV (ADR-0017); trang /orders của HDV = đơn mình phụ trách.
+  {
+    noi: ["thanh-ben"],
+    trang: "quetVe",
+    khi: (s) => (can(s, "ve.quet.tinh") || can(s, "ve.quet.xem")) && can(s, "admin.manage") && can(s, "ledger.view"),
+    lyDo: "ADR-0175 Đ3, đặc tả §2.10: mọi người có ô quét thấy «Quét vé» ở thanh bên, TRỪ tập vừa có Quản trị vừa có sổ công nợ (Toàn quyền, Kế toán + Quản trị) — thanh bên của các tập ấy đã đủ trần 10 khối hiện sẵn, nên họ vào qua trang Tôi. Chờ chủ (giữ là hợp lý).",
+  },
+  {
+    noi: ["thanh-tab"],
+    trang: "quetVe",
+    khi: (s) => (can(s, "ve.quet.tinh") || can(s, "ve.quet.xem")) && (seesAllOrders(s) || (can(s, "account.view") && !can(s, "admin.manage")) || biCatTab(s, "quetVe")),
+    lyDo: "ADR-0175 §2.10: tab «Quét vé» là việc chính của Hướng dẫn viên, Tài xế công ty trên điện thoại nên chỉ cho người không xem mọi đơn; Bán hàng, Kế toán, Quản trị, Toàn quyền vào qua thanh bên hoặc trang Tôi. Tab cũng không hiện cho tập có quyền Nhân sự (hình «Đơn hàng, Tạo đơn, Tài khoản, Hỗ trợ, Tôi» đã khoá ở thanh-tab-theo-bo-quyen.test.ts); tài khoản gộp nhiều quyền còn bị cắt bởi trần 5 tab. Chờ chủ (giữ là hợp lý).",
+  },
   {
     noi: ["thanh-tren"],
     trang: "donHang",
@@ -223,7 +235,7 @@ const HIEN = Object.fromEntries(Object.entries(NOI).map(([noi, { hien }]) => [no
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
 
-/** Đăng ký các bài của phần `phan` (0-based): dựng CSDL thử, 1024 tài khoản, gọi các đường của phần này bằng mọi tài khoản, rồi kiểm. */
+/** Đăng ký các bài của phần `phan` (0-based): dựng CSDL thử, 2048 tài khoản, gọi các đường của phần này bằng mọi tài khoản, rồi kiểm. */
 export async function kiemPhan(phan) {
   const batDau = Date.now();
   const goiPhan = goiCuaPhan(phan);

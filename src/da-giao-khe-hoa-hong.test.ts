@@ -33,7 +33,6 @@ function setup(): W {
   seedStaff(w.sqlite, { id: ADMIN, phone: "0900000006", name: "Quản trị", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: HR, phone: "0900000007", name: "Nhân sự", perms: ["HR"] });
   seedStaff(w.sqlite, { id: PT, phone: "0900000008", name: "Đối tác Lan", perms: ["PARTNER"] });
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('ptr-66666666-6666-4666-8666-6666666666aa', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`pty-${PT}`, AT, AT);
   return w;
 }
 function nhap(w: W, booker: string | null, tong = 2_000_000): string {
@@ -83,7 +82,7 @@ test("0 — đối chứng: vai bên ngoài còn mở, bản chụp có người
   assert.deepEqual(dongHoaHong(w, id), [["HOA_HONG", `pty-${PT}`, 200_000]]);
 });
 
-for (const [ten, actor] of [["Quản trị", ADMIN], ["Toàn quyền", SUPER], ["Nhân sự", HR]] as const) {
+for (const [ten, actor] of [["Quản trị", ADMIN], ["Toàn quyền", SUPER]] as const) {
   test(`1 — ${ten} đổi tài khoản đối tác sang vai nhân viên bán hàng sau khi đơn đã chụp ⇒ «Đã giao» 200, hoa hồng vẫn về người hưởng ĐÃ CHỤP (ĐẢO CÓ CHỦ ĐÍCH — Task 4)`, async () => {
     const w = setup();
     const id = await donDoiTacDaXacNhan(w);
@@ -97,6 +96,15 @@ for (const [ten, actor] of [["Quản trị", ADMIN], ["Toàn quyền", SUPER], [
     assert.deepEqual(dongHoaHong(w, id), [["HOA_HONG", `pty-${PT}`, 200_000]], `KHE: «Đã giao» mà sổ không có dòng hoa hồng cho người hưởng đã chụp (${g.text})`);
   });
 }
+
+test("1b — Nhân sự đổi tài khoản đối tác sang vai nhân viên bán hàng ⇒ 403 forbidden (ADR-0191 mục 3(a): vai xem mọi khách chỉ Quản trị, Toàn quyền gán), vai không đổi", async () => {
+  const w = setup();
+  await donDoiTacDaXacNhan(w);
+  const r = await doiVai(w, HR, ["SALES_STAFF"]);
+  assert.equal(r.status, 403, r.text);
+  assert.equal(r.json.error.code, "forbidden");
+  assert.ok(!w.q("SELECT role_type_code FROM pty_party_role WHERE party_id = ? AND valid_to_date IS NULL", `pty-${PT}`).some((x: { role_type_code: string }) => x.role_type_code === "SALES_STAFF"), "không có vai nhân viên bán hàng");
+});
 
 test("2 — đổi vai bên ngoài sang vai bên ngoài khác (đại lý → hướng dẫn viên tự do) ⇒ «Đã giao» 200, hoa hồng theo bản chụp (ĐẢO CÓ CHỦ ĐÍCH — Task 4: trước là 409)", async () => {
   const w = setup();
@@ -116,8 +124,22 @@ test("3 — đối tác CHƯA có mức hoa hồng (bản chụp «thiếu mức
   await thuDu(w, id);
   const g = await daGiao(w, id);
   assert.equal(g.status, 409);
-  assert.equal(g.json.error.message, "Thiếu mức hoa hồng / người bán cho DV 0 — Kế toán ghi mức tay cho dòng này.", "Task 4: câu lời thường của lý do terms_missing");
+  assert.equal(g.json.error.message, "Thiếu mức hoa hồng / người bán cho DV 0 — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.", "Task 4: câu lời thường của lý do terms_missing");
   assert.equal(w.q("SELECT count(*) AS n FROM bil_posting WHERE order_id = ? AND kind_code = 'DELIVERED'", id)[0].n, 0);
+});
+
+test("3b — T-02: đơn ĐÃ chụp «thiếu mức»; cài mức phủ ngày xác nhận rồi bấm Chụp bù ⇒ 409, «Khách đã trả đủ» ⇒ 409 với câu «không gỡ được» (không bảo cài mức)", async () => {
+  const w = setup();
+  const id = await donDoiTacDaXacNhan(w, false);
+  assert.equal(chup(w, id)[0]!.commission_status, "MISSING");
+  await datMuc(w, { loai: "VAI", code: "TRAVEL_AGENCY" }); // mức phủ ngày xác nhận (tuNgay 2026-01-01)
+  const cb = await w.call("POST", `/api/orders/${id}/chup-bu`, { as: KT });
+  assert.equal(cb.status, 409, cb.text); // đã có bản chụp (dù thiếu mức) nên không chụp bù được
+  await thuDu(w, id);
+  const g = await daGiao(w, id);
+  assert.equal(g.status, 409, g.text);
+  assert.match(g.json.error.message, /cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay/);
+  assert.doesNotMatch(g.json.error.message, /cần cài mức/);
 });
 
 test("4 — loại đối tác nhóm OTHER (tương lai) có người hưởng: bản chụp SET ⇒ «Đã giao» 200 và HOA_HONG cho người hưởng đó dù không thuộc nhóm bên ngoài (ĐẢO CÓ CHỦ ĐÍCH — Task 4)", async () => {

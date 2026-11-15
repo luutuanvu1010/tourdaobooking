@@ -33,9 +33,9 @@ export function chayLo(d: DatabaseSync, cau: readonly unknown[]): number[] {
 }
 
 let n = 0;
-export function themLo(d: DatabaseSync, o: { ma?: string; nhom?: "ADULT" | "CHILD" | "SENIOR" | "ALL"; status?: string } = {}): string {
+export function themLo(d: DatabaseSync, o: { ma?: string; nhom?: "ADULT" | "CHILD" | "SENIOR" | "ALL"; status?: string; nguon?: "HANG_NGOAI" | "TOUR_DAO" } = {}): string {
   const id = `b-${++n}`;
-  d.prepare(`INSERT INTO vdt_batch (id, catalog_code, pax_group, printed_name, status, created_at, updated_at) VALUES (?, ?, ?, 'Vé mẫu', ?, ?, ?)`).run(id, o.ma ?? "V2D", o.nhom ?? "ADULT", o.status ?? "ACTIVE", AT, AT);
+  d.prepare(`INSERT INTO vdt_batch (id, catalog_code, pax_group, printed_name, status, source, created_at, updated_at) VALUES (?, ?, ?, 'Vé mẫu', ?, ?, ?, ?)`).run(id, o.ma ?? "V2D", o.nhom ?? "ADULT", o.status ?? "ACTIVE", o.nguon ?? "HANG_NGOAI", AT, AT);
   return id;
 }
 export function themVe(d: DatabaseSync, lo: string, tu = "2026-10-01", den = "2026-11-30", id = `t-${++n}`): string {

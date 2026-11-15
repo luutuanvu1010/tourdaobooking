@@ -18,7 +18,7 @@ export function nhanMa(code: string, coSan: boolean): string {
 
 /** Một dòng dấu vết. `luc` null: «tao» ⇒ loại tạo trước khi có cột dấu vết; «sua» ⇒ chưa sửa lần nào. */
 export function nhanDauVet(luc: string | null, boi: string | null, kieu: "tao" | "sua"): string {
-  if (luc === null) return kieu === "tao" ? "Tạo trước 31/10/2026 — chưa có dấu vết" : "Chưa sửa lần nào";
+  if (luc === null) return kieu === "tao" ? "Tạo trước 31/10/2026 — không rõ người tạo" : "Chưa sửa lần nào";
   const dau = kieu === "tao" ? "Tạo" : "Sửa gần nhất";
   return `${dau}${boi ? ` bởi ${boi}` : ""} lúc ${vnDateTimeText(luc)}`;
 }

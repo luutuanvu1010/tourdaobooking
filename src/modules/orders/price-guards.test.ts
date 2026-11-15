@@ -94,6 +94,7 @@ const ai = (...permissions: PermissionCode[]) => ({ id: "u1", permissions });
 test("ADR-0061 bảng quyền: công tắc BẬT — chỉ Bán hàng, Kế toán, Quản trị, Toàn quyền; HDV, Đối tác, Thực tập, Tài xế, Tài xế đối tác KHÔNG", () => {
   const bat: Record<PermissionCode, boolean> = {
     SALES: true, ACCOUNTING: true, ADMIN: true, FIELD: false, PARTNER: false, SUPER_ADMIN: true, INTERN: false, DRIVER: false, DRIVER_PARTNER: false, HR: false, // ADR-0071: Nhân sự không lập / sửa đơn
+    SALES_MANAGER: false, // ADR-0169 Đ1: mã này chỉ cộng hai ô danh mục; người giữ vai có thêm SALES nên được nhờ SALES
   };
   for (const p of PERMISSION_CODES) assert.equal(duocNhapTay(ai(p), true), bat[p], `${p}, công tắc BẬT`);
 });
@@ -118,7 +119,7 @@ test("ADR-0061: thứ tự lý do — Đối tác TRƯỚC công tắc, công t�
   assert.equal(lyDoKhongNhapTay(ai("SALES"), true), null);
 });
 
-test("ADR-0061: MỌI tập con của 10 quyền (1024) — được nhập tay ⇔ công tắc bật && có một quyền nội bộ được phép && KHÔNG có PARTNER", () => {
+test("ADR-0061: MỌI tập con của 11 quyền (2048) — được nhập tay ⇔ công tắc bật && có một quyền nội bộ được phép && KHÔNG có PARTNER", () => {
   let n = 0;
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
     const perms = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
@@ -127,7 +128,7 @@ test("ADR-0061: MỌI tập con của 10 quyền (1024) — được nhập tay 
     assert.equal(duocNhapTay(ai(...perms), false), false, `${perms.join("+") || "(không quyền)"}, TẮT`);
     n++;
   }
-  assert.equal(n, 1024); // 10 mã (ADR-0071 thêm HR)
+  assert.equal(n, 2048); // 11 mã (ADR-0169 thêm SALES_MANAGER)
 });
 
 test("holdsPartner: CÓ quyền PARTNER là áp luật giá Đối tác, kể cả khi kèm quyền khác (chủ dự án chốt 2026-09-26)", () => {
@@ -327,4 +328,23 @@ test("Task 7 vòng sửa (M-1): bên đặt không còn được hưởng ⇒ c�
   assert.deepEqual(viPhamTranGiamGia(nguoi("SALES"), 1, khongHuong), { status: 400, code: "discount_exceeds_commission", cau: CAU_BEN_DAT_KHONG_HUONG });
   assert.equal(CAU_BEN_DAT_KHONG_HUONG, "Chưa giảm giá được: bên đặt không còn được hưởng hoa hồng — nhờ văn phòng sửa bên đặt hoặc Kế toán ghi mức.");
   assert.equal(viPhamTranGiamGia(nguoi("SALES"), 0, khongHuong), null);
+});
+
+test("ADR-0161 Đ5: đơn có dòng hoa hồng vượt thành tiền — thứ tự chọn câu: bên đặt không còn được hưởng ⇒ dòng vượt (trần 0 / còn số) ⇒ câu trần thường; luật quyền (403) không đổi", () => {
+  const vuot = (tongHoaHong: number) => ({ ...coHuong(tongHoaHong), coDongVuot: true });
+  assert.deepEqual(viPhamTranGiamGia(nguoi("SALES"), 1, vuot(0)), { status: 400, code: "discount_exceeds_commission", cau: "Chưa giảm giá được: mức hoa hồng của dịch vụ trong đơn đang vượt giá bán — nhờ Kế toán xem lại." });
+  assert.deepEqual(viPhamTranGiamGia(nguoi("SALES"), 300_001, vuot(300_000)), { status: 400, code: "discount_exceeds_commission", cau: "Giảm tối đa 300.000 ₫ (không tính dịch vụ có mức hoa hồng vượt giá bán — nhờ Kế toán xem lại)." });
+  assert.equal(viPhamTranGiamGia(nguoi("SALES"), 300_000, vuot(300_000)), null, "đúng trần thì nhận");
+  assert.equal(viPhamTranGiamGia(nguoi("SALES"), 0, vuot(0)), null, "giảm 0 luôn nhận");
+  assert.deepEqual(viPhamTranGiamGia(nguoi("SALES"), 1, { ...vuot(0), benDatKhongHuong: true }), { status: 400, code: "discount_exceeds_commission", cau: CAU_BEN_DAT_KHONG_HUONG }, "bên đặt không còn được hưởng đứng TRƯỚC");
+  assert.deepEqual(viPhamTranGiamGia(nguoi("SALES"), 100_001, { ...coHuong(100_000), coDongVuot: false }), { status: 400, code: "discount_exceeds_commission", cau: "Giảm tối đa 100.000 ₫ (bằng hoa hồng của đơn)." }, "không dòng vượt ⇒ câu cũ");
+  assert.deepEqual(viPhamTranGiamGia(nguoi("INTERN"), 1, vuot(300_000)), { status: 403, code: "forbidden", cau: INTERN_PRICE_MESSAGE }, "Thực tập giữ câu cũ");
+  assert.deepEqual(viPhamTranGiamGia({ ...nguoi("PARTNER"), partyId: "khac" }, 1, vuot(300_000)), { status: 403, code: "forbidden", cau: PARTNER_DISCOUNT_MESSAGE }, "Đối tác không hưởng giữ câu cũ, không lộ chuyện dòng vượt");
+});
+
+test("ADR-0161 Đ5 đổi bên đặt: có dòng vượt thì nối câu nhắc Kế toán xem lại sau câu hai số; không dòng vượt thì câu cũ nguyên", () => {
+  const cu = "Đơn đang giảm giá 100.000 ₫, lớn hơn hoa hồng của bên đặt mới (0 ₫) — giảm giá trên đơn có người hưởng tối đa bằng hoa hồng của đơn, nên chưa đổi được bên đặt.";
+  assert.equal(cauDoiBenDatVuotHoaHong({ coNguoiHuong: true, tongHoaHong: 0, giamGiaHieuLuc: 100_000, coDongVuot: false }), cu);
+  assert.equal(cauDoiBenDatVuotHoaHong({ coNguoiHuong: true, tongHoaHong: 0, giamGiaHieuLuc: 100_000, coDongVuot: true }), `${cu} Mức hoa hồng của dịch vụ đang vượt giá bán — nhờ Kế toán xem lại.`);
+  assert.equal(cauDoiBenDatVuotHoaHong({ coNguoiHuong: true, tongHoaHong: 100_000, giamGiaHieuLuc: 100_000, coDongVuot: true }), null, "giảm không vượt trần thì đổi được, dù có dòng vượt");
 });

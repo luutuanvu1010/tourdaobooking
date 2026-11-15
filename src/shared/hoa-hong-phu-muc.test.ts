@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { conApNgay, demDai, khopDichVu, phuMucCap, phuMucLoai, xepTheoPhu } from "./hoa-hong-phu-muc.ts";
+import { conApNgay, demDai, dichVuThieuCuaCap, khopDichVu, phuMucCap, phuMucLoai, xepTheoPhu } from "./hoa-hong-phu-muc.ts";
 import type { CapPhu, DichVuPhu, KetQuaPhu } from "./hoa-hong-phu-muc.ts";
 
 // Bộ mẫu đặc tả §4.4. D = 2026-11-01.
@@ -137,4 +137,27 @@ test("dòng nhiễu (đích MUC, hoặc đích loại khác) không đổi kết
   assert.deepEqual(chayVoi(nhieu), chayVoi(goc));
   assert.equal(chayVoi(nhieu).ketQua.kieu, "THIEU");
   assert.equal(chayVoi(nhieu).sapApTu, null);
+});
+
+// ADR-0161 Task 5: «Còn thiếu mức» của bảng nhập dùng đúng luật phủ mức đã có, không viết luật thứ hai.
+test("dichVuThieuCuaCap: cấp rỗng ⇒ mọi dịch vụ; mức «tất cả» đang áp ⇒ rỗng; mức nhóm phủ đúng nhóm; dòng sắp áp, đã huỷ không tính", () => {
+  const thieu = (c: CapPhu) => dichVuThieuCuaCap({ cap: c, dichVu: S, homNay: D }).map((s) => s.code);
+  assert.deepEqual(thieu(T2), ["A", "B", "C", "D'"], "RONG: mọi dịch vụ");
+  assert.deepEqual(thieu(T3), ["A", "B", "C", "D'"], "CHUA_AP (chỉ có dòng sắp áp): mọi dịch vụ");
+  assert.deepEqual(thieu(T6), ["A", "B", "C", "D'"], "dòng đã hết hạn: mọi dịch vụ");
+  assert.deepEqual(thieu(T1), [], "«tất cả» đang áp");
+  assert.deepEqual(thieu(T5), [], "cấp khoá vẫn phủ");
+  assert.deepEqual(thieu(T4), ["D'"], "nhóm G1 (A, B) + dịch vụ C; D' không nhóm nên thiếu");
+  assert.deepEqual(thieu(cap("Th", [dong(muc("Th"), "SERVICE", { catalogCode: "A", daHuy: true })])), ["A", "B", "C", "D'"], "dòng đã huỷ không tính");
+  assert.deepEqual(thieu(cap("Ts", [dong(muc("Ts"), "GROUP", { groupCode: "G1" }), dong(muc("Ts"), "SERVICE", { catalogCode: "C", tuNgay: "2026-11-02" })])), ["C", "D'"], "dòng sắp áp của C không tính");
+});
+
+test("dichVuThieuCuaCap khớp phuMucCap ở mọi ca THIEU (một luật, hai cách đọc)", () => {
+  for (const c of [T1, T2, T3, T4, T5, T6]) {
+    const kq = phuMucCap({ cap: c, dichVu: S, homNay: D });
+    const ds = dichVuThieuCuaCap({ cap: c, dichVu: S, homNay: D }).map((s) => s.code);
+    if (kq.kieu === "THIEU") assert.deepEqual(ds, kq.thieu.map((s) => s.code), c.code);
+    else if (kq.kieu === "DU") assert.deepEqual(ds, [], c.code);
+    else assert.equal(ds.length, S.length, `${c.code}: RONG hoặc CHUA_AP ⇒ mọi dịch vụ`);
+  }
 });

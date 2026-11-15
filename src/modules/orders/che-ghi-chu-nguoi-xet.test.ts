@@ -29,10 +29,10 @@ async function donBanHangCho(w: any) {
   return o;
 }
 
-test("(p) đơn Đối tác đang chờ: người xét (Kế toán, HDV, Bán hàng khác, Quản trị, Toàn quyền, tài khoản lai) nhận tên, SĐT, email rỗng và ghi chú dịch vụ ĐÃ CHE; sau Còn vé Kế toán có ô liên hệ thấy số trên đơn", async () => {
+test("(p) đơn Đối tác đang chờ: người xét (Bán hàng khác, Quản trị, Toàn quyền, tài khoản lai) nhận tên, SĐT, email rỗng và ghi chú dịch vụ ĐÃ CHE; sau Còn vé Bán hàng khác có ô liên hệ thấy số trên đơn", async () => {
   const w = setup();
   const o = await donDoiTacCho(w);
-  for (const ai of [ACC, H, B, ADM, SUP, LAI]) {
+  for (const ai of [B, ADM, SUP, LAI]) {
     const r = await chiTiet(w, o.id, ai);
     assert.equal(r.status, 200, `${ai}: ${r.text}`);
     const d = r.json.order;
@@ -45,13 +45,13 @@ test("(p) đơn Đối tác đang chờ: người xét (Kế toán, HDV, Bán h�
   }
   // bản lưu trong CSDL KHÔNG đổi: che chỉ ở lớp xem
   assert.equal(w.q("SELECT note FROM order_service WHERE order_id = ?", o.id)[0].note, GHI_CHU);
-  // Kế toán điền giờ → Còn vé → đơn đã xác nhận: người có ô liên hệ thấy số khách và ghi chú nguyên văn trên đơn
+  // Bán hàng khác điền giờ → Còn vé → đơn đã xác nhận: người có ô liên hệ thấy số khách và ghi chú nguyên văn trên đơn
   const legId = o.services[0].legs[0].id as string;
   const moc = w.q("SELECT updated_at u FROM orders WHERE id = ?", o.id)[0].u;
   const y = w.q("SELECT id FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", o.id)[0];
-  const qd = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ACC, body: { yeuCauId: y.id, updatedAt: moc, ketQua: "CON_VE", gioDon: [{ legId, pickupTime: "09:00" }] } });
+  const qd = await w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: B, body: { yeuCauId: y.id, updatedAt: moc, ketQua: "CON_VE", gioDon: [{ legId, pickupTime: "09:00" }] } });
   assert.equal(qd.status, 200, qd.text);
-  const sau = await chiTiet(w, o.id, ACC);
+  const sau = await chiTiet(w, o.id, B);
   assert.equal(sau.status, 200, sau.text);
   assert.equal(sau.json.order.status, "confirmed");
   assert.equal(sau.json.order.customerPhone, "0912345678");
@@ -61,7 +61,7 @@ test("(p) đơn Đối tác đang chờ: người xét (Kế toán, HDV, Bán h�
 test("(p2) đơn Bán hàng đang chờ: người xét thấy ghi chú dịch vụ NGUYÊN VĂN (chữ của nhân viên công ty), vẫn không thấy SĐT, tên, email khách", async () => {
   const w = setup();
   const o = await donBanHangCho(w);
-  for (const ai of [ACC, H, B, ADM, SUP]) {
+  for (const ai of [B, ADM, SUP]) {
     const r = await chiTiet(w, o.id, ai);
     assert.equal(r.status, 200, `${ai}: ${r.text}`);
     const d = r.json.order;
@@ -85,9 +85,9 @@ test("(p3) người lập Đối tác xem đơn đang chờ CỦA MÌNH: ghi ch�
 test("(p3b) HỆ QUẢ CHẤP NHẬN: người lập đã thôi quyền Đối tác (dòng đã đóng) → ghi chú đơn chờ của họ không còn che; còn quyền → che", async () => {
   const w = setup();
   const o = await donDoiTacCho(w);
-  assert.equal((await chiTiet(w, o.id, ACC)).json.order.services[0].note, GHI_CHU_CHE, "còn quyền: che");
+  assert.equal((await chiTiet(w, o.id, B)).json.order.services[0].note, GHI_CHU_CHE, "còn quyền: che");
   w.sqlite.exec(`UPDATE stf_permission SET valid_to_at = valid_from_at WHERE staff_id = '${PARTNER}' AND permission_type_code = 'PARTNER'`);
-  const r = await chiTiet(w, o.id, ACC);
+  const r = await chiTiet(w, o.id, B);
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.order.services[0].note, GHI_CHU, "đã thôi quyền: không còn che (hệ quả đã chấp nhận)");
   assert.equal(r.json.order.customerPhone, "", "nhưng tên / SĐT / email khách vẫn bị cắt cho mọi đơn chờ");

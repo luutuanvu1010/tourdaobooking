@@ -130,6 +130,14 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
     gac: T,
   },
   loThuHoiXuatBen: { vao: { ...L, tripId: T, version: 7, lyDo: "DIEU_CHINH_BAM_NHAM", detail: "d" }, gac: T },
+  // ADR-0184: cho chạy dù thiếu giấy tờ — cổng (PLANNED) → nhật ký → sự kiện DOCS_WAIVED → mỗi loại một dòng cho phép (gác dấu lệnh); không câu trạng thái cuối.
+  loChoChayThieu: {
+    vao: {
+      ...L, tripId: T, version: 7, xeId: "x-1", lyDo: "THIEU_GIAY_GIA_HAN", ghiChu: "Đang chờ cấp lại giấy",
+      dong: [{ id: "w-1", documentTypeCode: "REGISTRATION", expiryDate: null }, { id: "w-2", documentTypeCode: "INSPECTION", expiryDate: "2027-03-01" }], detail: "d",
+    },
+    gac: T,
+  },
   // ADR-0053 D8.4 (A4 T7): tài xế Từ chối — cổng đủ điều kiện → nhật ký → sự kiện → đóng dòng lái REFUSED. Mẫu chỉ DỰNG lô trên DB giả (không chạy câu) nên
   // `bayGioMs` là số bất kỳ — luật đồng hồ §2 áp cho bài CHẠY lô (tu-choi.test.ts).
   loTuChoi: { vao: { ...L, tripId: T, version: 7, taiXePartyId: "p-tx", lyDo: "TCC_KHAC", bayGioMs: 1, detail: "d" }, gac: T },

@@ -47,6 +47,25 @@ test("tài xế CÔNG TY (không vế hạn — undefined): chỉ khung ngày ch
   assert.equal(trongKhungXemKhach(chuyen("2026-10-21"), undefined, vn("2026-10-20T23:00:00")), false);
 });
 
+test("ADR-0189: chuyến quên bấm Kết thúc — khung hết đúng 00:00 ngày thứ hai sau ngày xuất bến, cho cả tài xế công ty lẫn người có vế hạn (giao với hạn)", () => {
+  const c = chuyen("2026-10-20", "RUNNING", "2026-10-20T12:35:00");
+  const h14 = hanCua("2026-10-20T14:00:00"); // hạn 02:00 ngày D — đã qua lúc xuất bến
+  for (const han of [undefined, h14]) {
+    const ten = han === undefined ? "công ty" : "vế hạn";
+    assert.equal(trongKhungXemKhach(c, han, vn("2026-10-20T13:00:00")), true, `${ten}: D`);
+    assert.equal(trongKhungXemKhach(c, han, vn("2026-10-21T23:59:59")), true, `${ten}: hết D+1 còn thấy`);
+    assert.equal(trongKhungXemKhach(c, han, vn("2026-10-22T00:00:00")), false, `${ten}: 00:00 D+2 hết khung`);
+    assert.equal(trongKhungXemKhach(c, han, vn("2026-10-29T12:00:00")), false, `${ten}: D+9`);
+  }
+  // vế hạn vẫn giao: chuyến 23:30 ngày D (hạn 11:30), xuất bến 23:20 → D+1 có, D+2 không
+  const c23 = chuyen("2026-10-20", "RUNNING", "2026-10-20T23:20:00");
+  const h23 = hanCua("2026-10-20T23:30:00");
+  assert.equal(trongKhungXemKhach(c23, h23, vn("2026-10-21T08:00:00")), true);
+  assert.equal(trongKhungXemKhach(c23, h23, vn("2026-10-22T00:00:00")), false);
+  // thiếu dòng hạn vẫn đóng
+  assert.equal(trongKhungXemKhach(c, null, vn("2026-10-21T08:00:00")), false);
+});
+
 test("người có vế hạn mà THIẾU dòng hạn (null) → luôn ngoài khung (đóng mặc định — G-A4-2)", () => {
   assert.equal(trongKhungXemKhach(chuyen("2026-10-20"), null, vn("2026-10-20T12:00:00")), false);
   assert.equal(trongKhungXemKhach(chuyen("2026-10-20", "RUNNING", "2026-10-20T06:00:00"), null, vn("2026-10-20T12:00:00")), false);

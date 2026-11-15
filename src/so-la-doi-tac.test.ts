@@ -10,7 +10,7 @@ import { HANH_DONG_TIN_CHUYEN } from "./shared/tin-chuyen.ts";
 import { THAY_DOI } from "./shared/bang-tin.ts";
 import { hanhDongCuaThayDoi } from "./shared/web-push.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { world, seedStaff } from "../tests/audit/harness.mjs";
+import { world, seedStaff, noiGioiHanNhap } from "../tests/audit/harness.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const KT = "44444444-4444-4444-8444-444444444444";
@@ -34,7 +34,7 @@ function setup(): W {
     [SALES, "0900000001", "An Bán", ["SALES"]], [KT, "0900000004", "Lan Kế Toán", ["ACCOUNTING"]], [SUP, "0900000006", "Chủ", ["SUPER_ADMIN"]],
     [DT_A, "0900000007", "Đại Lý A", ["PARTNER"]], [DT_B, "0900000008", "Đại Lý B", ["PARTNER"]], [LAI_BAN, "0900000012", "Sơn Lai Bán", ["SALES", "PARTNER"]],
   ] as const) seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
-  for (const [r, p] of [["r-dta", DT_A], ["r-dtb", DT_B], ["r-lai", LAI_BAN]] as const) { // r-lai: tài khoản lai cũng có thể mang vai này (quyền gán bằng đường cũ không qua LC-1) — để thử đơn do CHÍNH hồ sơ họ hưởng
+  for (const [r, p] of [["r-lai", LAI_BAN]] as const) { // r-lai: tài khoản lai cũng có thể mang vai này (quyền gán bằng đường cũ không qua LC-1) — để thử đơn do CHÍNH hồ sơ họ hưởng
     w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(r, `pty-${p}`, AT, AT);
   }
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(AT, AT);
@@ -70,6 +70,7 @@ const khoaCua = (x: unknown): string[] => (Array.isArray(x) ? x.flatMap(khoaCua)
 /** Dựng thế giới: A có đơn của mình (Kế toán ghi tay 48,17%), B có mức riêng 480.017đ/khách và đơn của mình, nhà cung cấp mua lại 48,17%, tài khoản lai có đơn của mình. */
 async function dungThe() {
   const w = setup();
+  noiGioiHanNhap(w); // ADR-0161 Đ3: dấu «số lạ» để dò rò rỉ KHÔNG chia hết 1.000 — nới giới hạn nhập, giữ nguyên số và đáp án.
   const KQ = async (r: Promise<{ status: number; text: string; json: any }>, ma: number) => { const x = await r; assert.equal(x.status, ma, x.text); return x; };
   await KQ(w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 } }), 201);
   await KQ(w.call("POST", "/api/pricing/hoa-hong", { as: KT, body: { tuNgay: "2026-01-01", doiTuong: { loai: "DOI_TAC", partyId: `pty-${DT_B}` }, phamVi: "ALL", kieu: "PER_PAX", moiKhach: 480_017 } }), 201);
@@ -505,8 +506,8 @@ test("Task 9 (6) — I-1 người kiểm Task 8+9: tài khoản lai Kế toán +
   const c = await w.call("POST", `/api/orders/${huy}/status`, { as: SUP, body: { status: "cancelled", lyDo: "THOI_TIET" } });
   assert.equal(c.status, 200, c.text);
   const ktCoc = (await tienT9(w, huy, KT)).json.coc;
-  assert.deepEqual(ktCoc.nguoiGiu, [{ ten: TEN_HDV, soTien: 300_000 }], "có răng: Kế toán thuần thấy người giữ tiền");
+  assert.deepEqual(ktCoc.nguoiGiu, [{ partyId: `pty-${T9_HDV}`, ten: TEN_HDV, soTien: 300_000 }], "có răng: Kế toán thuần thấy người giữ tiền, kèm mã hồ sơ (ADR-0171 Đ3: nút chuyển cọc gửi đúng người)");
   const r = await tienT9(w, huy, T9_KTP);
   assert.equal(r.json.coc.nguoiGiu, null, `lai thấy người giữ: ${JSON.stringify(r.json.coc.nguoiGiu)}`);
-  for (const cam of ["Nam Số Lạ", "4817"]) assert.ok(!r.text.includes(cam), `lai thấy «${cam}» ở màn tiền đơn huỷ: ${r.text}`);
+  for (const cam of ["Nam Số Lạ", "4817", "partyId", `pty-${T9_HDV}`]) assert.ok(!r.text.includes(cam), `lai thấy «${cam}» ở màn tiền đơn huỷ: ${r.text}`);
 });

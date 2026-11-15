@@ -51,6 +51,35 @@ export async function serviceChoVe(db: D1Database, orderId: string): Promise<Ser
   return (await db.prepare(SERVICE_CHO_VE).bind(orderId).all<ServiceChoVeRow>()).results;
 }
 
+/**
+ * ADR-0175 Đ1.5a (cấp bù khi lô vào kho): đơn ĐÃ XÁC NHẬN có dòng dịch vụ mã ?1 ngày đi từ ?2 (hôm nay giờ Việt Nam), sắp theo ngày đi GẦN NHẤT của dòng mã đó rồi theo id.
+ * Chỉ khoá đơn; «Có vé» và «còn thiếu» do gốc lắp ráp lọc tiếp (ô của catalog, phân bổ của ve-dien-tu). Trần ?3 dòng.
+ */
+const DON_XAC_NHAN_THEO_MA = defineSql(
+  "orders",
+  "confirmed_orders_by_catalog_code",
+  `SELECT s.order_id, min(s.depart_date) AS ngay FROM order_service s JOIN orders o ON o.id = s.order_id
+   WHERE o.status = 'confirmed' AND s.catalog_code = ?1 AND s.depart_date >= ?2 GROUP BY s.order_id ORDER BY ngay, s.order_id LIMIT ?3`,
+);
+export async function donXacNhanTheoMa(db: D1Database, catalogCode: string, tuNgay: string, gioiHan: number): Promise<string[]> {
+  return (await db.prepare(DON_XAC_NHAN_THEO_MA).bind(catalogCode, tuNgay, gioiHan).all<{ order_id: string }>()).results.map((r) => r.order_id);
+}
+
+/**
+ * ADR-0175 §2.7 (màn đối chiếu): dịch vụ có mã danh mục của đơn ĐÃ XÁC NHẬN đi đúng ngày ?1 (không đơn nháp, chờ xác nhận, huỷ). Chỉ tên dịch vụ và số khách đã lưu: không tên khách, không SĐT, không tiền.
+ * Trần 5.000 dòng (một ngày không tới được; vượt thì bị cắt lặng lẽ: route đối chiếu chưa báo, dựa vào việc một ngày không tới số này).
+ */
+const DICH_VU_XAC_NHAN_THEO_NGAY = defineSql(
+  "orders",
+  "confirmed_services_by_day",
+  `SELECT s.id, s.order_id, s.catalog_code, s.name AS ten, s.pax_adult, s.pax_child, s.pax_senior, s.pax_infant FROM order_service s JOIN orders o ON o.id = s.order_id
+   WHERE o.status = 'confirmed' AND s.depart_date = ?1 AND s.catalog_code IS NOT NULL ORDER BY s.id LIMIT 5000`,
+);
+export interface DichVuNgayRow extends ServicePaxRow { catalog_code: string; ten: string }
+export async function dichVuXacNhanTheoNgay(db: D1Database, ngay: string): Promise<DichVuNgayRow[]> {
+  return (await db.prepare(DICH_VU_XAC_NHAN_THEO_NGAY).bind(ngay).all<DichVuNgayRow>()).results;
+}
+
 /** Số khách ĐÃ LƯU của mọi dịch vụ của MỘT đơn (cờ "danh sách nhiều hơn số khách" — R9). */
 const SERVICE_PAX_BY_ORDER = defineSql("orders", "service_pax_by_order", `SELECT id, order_id, pax_adult, pax_child, pax_senior, pax_infant FROM order_service WHERE order_id = ?1`);
 export async function servicePaxByOrder(db: D1Database, orderId: string): Promise<ServicePaxRow[]> {
@@ -446,6 +475,9 @@ export async function legDatGapByOrder(db: D1Database, orderId: string): Promise
  * KHOÁ PHIÊN BẢN (Task 4b — lời chủ 2026-10-08, "báo tải lại, bấm lại"): thêm `updated_at = ?6` = mốc route đã đọc TRƯỚC khi dựng bản chụp mức. Lưu nháp luôn
  * đẩy `updated_at` (`updateDraftOrder`, `changeBooker`, gộp hồ sơ…), nên nếu đơn đổi sau lúc route đọc thì câu này không đổi dòng nào ⇒ cả lô không ghi gì (chuỗi
  * `changes() > 0`) và route trả 409 "vừa được người khác sửa". Không có vế này, bản chụp (bên hưởng, mã dòng danh mục) có thể lệch đơn vừa lưu.
+ * ADR-0193 câu (ii) — vế thứ hai về chặng: không còn chặng MỞ nào CHƯA giờ mà `ngày đón || ' 00:00'` < ?5 (cùng ngưỡng, không thêm tham số). Câu điền ngày đón đứng trước trong lô nên chặng
+ * trống ngày đã mang ngày đi. MỘT luật với `changChuaGioVaoHanChot` (src/shared/moc-toi-thieu.ts; bài khoá hai phía ở chua-gio-sat-ngay.test.ts). Lớp chặn CUỐI: các cửa xác nhận đã kiểm
+ * bằng hàm thuần trước khi dựng lô (ruling R6).
  */
 const ORDER_CONFIRM = defineSql(
   "orders",
@@ -459,6 +491,9 @@ const ORDER_CONFIRM = defineSql(
      AND NOT EXISTS (
        SELECT 1 FROM ord_transfer_leg l WHERE l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NOT NULL
          AND l.short_notice_reason IS NULL AND l.pickup_date || ' ' || l.pickup_time < ?5)
+     AND NOT EXISTS (
+       SELECT 1 FROM ord_transfer_leg l WHERE l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NULL
+         AND l.pickup_date IS NOT NULL AND l.pickup_date || ' 00:00' < ?5)
      AND (?7 IS NULL OR EXISTS (SELECT 1 FROM ord_confirm_request q WHERE q.id = ?7 AND q.order_id = orders.id AND q.decided_at IS NULL))`,
 );
 /**
@@ -516,6 +551,11 @@ const PASSENGER_ROWS_BY_ORDERS = defineSql(
   `SELECT id, order_id, person_key, previous_id, voided_at IS NOT NULL AS voided, full_name AS ten, birth_year, pax_code, updated_at
    FROM ord_passenger WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, created_at, rowid`,
 );
+/** Số dòng hành khách ĐANG LƯU của đơn (chưa huỷ) — cho kiểm «bắt buộc có danh sách khách» khi sửa nháp không gửi khoá `passengers` (ADR-0194 đợt 1). */
+const PASSENGER_COUNT_ACTIVE = defineSql("orders", "passenger_count_active", `SELECT count(*) AS n FROM ord_passenger WHERE order_id = ?1 AND voided_at IS NULL`);
+export async function soHanhKhachDangLuu(db: D1Database, orderId: string): Promise<number> {
+  return (await db.prepare(PASSENGER_COUNT_ACTIVE).bind(orderId).first<{ n: number }>())?.n ?? 0;
+}
 export interface PassengerRow {
   id: string;
   order_id: string;
@@ -814,3 +854,27 @@ export interface NguoiDaLapDonRow {
 export async function nguoiDaLapDon(db: D1Database): Promise<NguoiDaLapDonRow[]> {
   return (await db.prepare(NGUOI_DA_LAP_DON).all<NguoiDaLapDonRow>()).results;
 }
+
+// ---- Trả sau: hai mốc hạn trả của đơn (ADR-0172 Đ3, ADR-0173 Đ1 mục 3; migration 0143) ------------------------------------------------------------
+
+export interface DonTraSauMocRow {
+  id: string; order_code: string; status: string; payment_term: "PREPAID" | "CREDIT"; booker_party_id: string | null; delivered_at: string | null; credit_due_at: string | null; credit_grace_until: string | null;
+}
+const ORDER_CREDIT_MOC = defineSql(
+  "orders",
+  "order_credit_moc",
+  `SELECT id, order_code, status, payment_term, booker_party_id, delivered_at, credit_due_at, credit_grace_until FROM orders WHERE id = ?1`,
+);
+export const mocTraSauCuaDon = (db: D1Database, orderId: string): Promise<DonTraSauMocRow | null> => db.prepare(ORDER_CREDIT_MOC).bind(orderId).first<DonTraSauMocRow>();
+/**
+ * Lùi hạn trả (lệnh «Ân hạn»): ĐỨNG ĐẦU lô, chỉ áp khi hạn trả vẫn là số đã đọc (?6 — hai người bấm cùng lúc thì người sau 0 dòng). Cột ngày cũ ghi theo (lùi bản an toàn).
+ * Trigger `orders_credit_due_forward_only` là lưới CSDL: hạn chỉ đi về sau, khoảng ân hạn giữ nguyên.
+ */
+const ORDER_CREDIT_EXTEND = defineSql(
+  "orders",
+  "order_credit_extend",
+  `UPDATE orders SET credit_due_at = ?2, credit_grace_until = ?3, credit_due_date = ?4, updated_at = ?5
+   WHERE id = ?1 AND credit_due_at = ?6 AND payment_term = 'CREDIT' AND status = 'confirmed'`,
+);
+export const noiHanTraSauStatement = (db: D1Database, v: { orderId: string; hanMoi: string; hetAnHanMoi: string; ngayMoi: string; at: string; hanCu: string }) =>
+  db.prepare(ORDER_CREDIT_EXTEND).bind(v.orderId, v.hanMoi, v.hetAnHanMoi, v.ngayMoi, v.at, v.hanCu);

@@ -8,6 +8,8 @@ export interface TripFields {
   root: HTMLElement;
   /** Đặt giá trị các ô theo `trip` (bỏ qua ô đang có focus); KHÔNG bắn onChange. */
   sync(trip: TripInput): void;
+  /** ADR-0195 (CHỈ form Tạo/sửa đơn): ẩn / hiện ô «Ghi chú dịch vụ» và đánh dấu «*» khi bắt buộc. Giá trị ô vẫn nằm trong bản nháp (không xoá). Không gọi = hiện đủ như cũ (bảng «Sửa chuyến»). */
+  datGhiChu(cs: { an: boolean; batBuoc: boolean }): void;
 }
 
 /**
@@ -53,6 +55,13 @@ export function tripFields(o: { trip: TripInput; onChange: (next: TripInput) => 
   note.addEventListener("input", () => change("note", note.value));
   const noteLabel = o.nhanNoi ? h("label", { class: "o-noi span-2" }, khungNhanNoi("Ghi chú dịch vụ", note)) : h("label", { class: "span-2" }, "Ghi chú dịch vụ", note);
 
+  const hienGhiChu = (cs: { an: boolean; batBuoc: boolean }): void => {
+    noteLabel.hidden = cs.an;
+    const chu = noteLabel.querySelector(".o-noi-chu");
+    if (chu) chu.textContent = cs.batBuoc && !cs.an ? "Ghi chú dịch vụ *" : "Ghi chú dịch vụ";
+    else if (noteLabel.firstChild) noteLabel.firstChild.textContent = cs.batBuoc && !cs.an ? "Ghi chú dịch vụ *" : "Ghi chú dịch vụ";
+  };
+
   const root = h(
     "div",
     { class: "trip-body" },
@@ -71,6 +80,7 @@ export function tripFields(o: { trip: TripInput; onChange: (next: TripInput) => 
 
   return {
     root,
+    datGhiChu: hienGhiChu,
     sync(next) {
       trip = next;
       capNhatNgay();

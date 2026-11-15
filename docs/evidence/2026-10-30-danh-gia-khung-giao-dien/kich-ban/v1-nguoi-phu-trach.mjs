@@ -1,4 +1,5 @@
 // BẢN CHÉP «thay bằng» (luật khung 30/10/2026, chủ duyệt): bản gốc docs/evidence/2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs giữ nguyên (hồ sơ có ngày).
+// Sửa 2026-11-09 (Đợt 1 sửa sau rà soát lần 2, G-06): nút «Xem biên nhận» đã đổi tên thành «Xem ảnh gửi khách» ở đợt đổi tên 5/11 (commit 1c1e71603, bảng tham chiếu đợt 2); chỉ đổi chữ tìm nút, không đổi điều kiện kiểm nào.
 // Chỉ đổi hai phép kiểm theo luật 6 «không cắt tên khách, số khách, số tiền» (thay quyết định «đúng 2 dòng» của Đợt E 24/9): bước a — bỏ trần cao thẻ 84px
 // (thẻ nay ba hàng), thêm «tên khách và số khách KHÔNG bị cắt», trần cao mới 170px (390) / 130px (1040), đếm hàng của dòng 2 bằng cách gom đỉnh (dòng 2 nay được
 // xuống hàng); bước m — tên dài KHÔNG còn bị cắt ở 390px
@@ -503,8 +504,8 @@ try {
   await step("c", "ảnh PNG “Xác nhận gửi khách” SAU KHI đổi người in đúng tên B: giống từng byte bản dựng từ tên B, khác bản dựng từ tên A (người lập)", async () => {
     const main = await getMain();
     const p = await openAs(A, `/order?id=${main.id}`, { lib: true });
-    await p.waitFor("document.querySelector('#send button') !== null", "nút Xem biên nhận", 10000);
-    await p.ev(clickText("#send", "Xem biên nhận"));
+    await p.waitFor("document.querySelector('#send button') !== null", "nút Xem ảnh gửi khách", 10000);
+    await p.ev(clickText("#send", "Xem ảnh gửi khách"));
     await p.waitFor("(() => { const i = document.querySelector('.sheet .confirm-img'); return !!i && i.complete && i.naturalWidth > 0; })()", "ảnh xác nhận hiện", 20000);
     const same = (name) => p.ev(`(async () => __t.sameBytes(__t.blobOf(document.querySelector('.sheet a.confirm-download').href), await __lib.renderConfirmationPng(await __t.modelOf(${JSON.stringify(main.id)}, ${JSON.stringify(name)}))))()`);
     assert.equal(await same("Sales Hai"), true, "ảnh phải in tên người phụ trách hiện tại (Sales Hai)");
@@ -539,7 +540,7 @@ try {
     assert.deepEqual(await c.ev(CARD_BUTTONS), [], "C: đơn đã có người → không đổi, không nhận");
     assert.deepEqual(await c.ev(ACTION_BUTTONS), []);
     assert.match(await c.ev("document.getElementById('actions').textContent"), NO_PERM, "câu giải thích quyền phải kể cả người phụ trách");
-    assert.equal(await c.ev("document.querySelector('#send button')?.textContent"), "Xem biên nhận", "ảnh xác nhận vẫn có cho mọi người xem được đơn");
+    assert.equal(await c.ev("document.querySelector('#send button')?.textContent"), "Xem ảnh gửi khách", "ảnh xác nhận vẫn có cho mọi người xem được đơn");
     c.close();
     const acc = await openAs(ACC, `/order?id=${main.id}`);
     await acc.waitFor(CARD_READY, "khối Người phụ trách (kế toán)", 10000);

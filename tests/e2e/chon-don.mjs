@@ -46,12 +46,12 @@ r = await tao([catalogService({ pickupChoice: "DON", legs: [OUT({ pickupSlotEnd:
 assert.equal(r.status, 400, JSON.stringify(r.body));
 assert.match(r.body.error.message, /cuối khung/);
 
-// 4) Chính sách khung giờ: Bán hàng đọc được; HDV nội bộ (ô xét duyệt) đọc được từ ADR-0154 Đ1.5 (trước là 403 — đảo có chủ đích, kế hoạch lượt 2 Task 1.4); Bán hàng ghi 403; Toàn quyền ghi 200 rồi GET thấy khung mới; đặt lại mặc định.
+// 4) Chính sách khung giờ: Bán hàng đọc được; HDV thôi đọc từ ADR-0142 vì không còn ô xét duyệt (ADR-0154 Đ1.5 mở theo ô đó) (trước là 403 — đảo có chủ đích, kế hoạch lượt 2 Task 1.4); Bán hàng ghi 403; Toàn quyền ghi 200 rồi GET thấy khung mới; đặt lại mặc định.
 r = await call(SALES, "GET", "/api/cai-dat/khung-gio-don");
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.doiDuoc, false);
 assert.ok(r.body.khung.length >= 1);
-assert.equal((await call(FIELD, "GET", "/api/cai-dat/khung-gio-don")).status, 200);
+assert.equal((await call(FIELD, "GET", "/api/cai-dat/khung-gio-don")).status, 403);
 const moi = { khung: [{ tu: "06:00", den: "06:30" }, { tu: "06:30", den: "07:00" }], luuY: `Giờ có thể đổi ${tag}.` };
 assert.equal((await call(SALES, "POST", "/api/cai-dat/khung-gio-don", moi)).status, 403);
 r = await call(SUPER, "POST", "/api/cai-dat/khung-gio-don", moi);

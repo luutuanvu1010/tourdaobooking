@@ -4,6 +4,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import * as esbuild from "esbuild";
 import { mfaGraceOnCreate } from "../../src/modules/staff/rules.ts";
+import { isExternalPermission } from "../../src/shared/permissions.ts";
 
 export const ROOT = process.env.AUDIT_ROOT ?? new URL("../../", import.meta.url).pathname;
 const MIG = `${ROOT}/migrations/`;
@@ -32,13 +33,17 @@ async function bundle(entry) {
     bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false, logLevel: "silent",
     plugins: [cloudflareWorkersGia],
   });
-  return import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0].text).toString("base64")}`);
+  // Tên ngắn cho khối mã gói: thiếu dòng này, MỖI khung dấu vết lỗi chép cả URL data: ~4,5 MB — một lỗi chưa bắt in dòng nhật ký hàng chục MB, máy chạy
+  // GitHub nghẽn và «npm test» treo tới hết giờ (sự cố 2026-11-07). Bài giữ: src/khung-thu-dau-vet-ngan.test.ts.
+  const ma = `${built.outputFiles[0].text}\n//# sourceURL=khung-thu-app.mjs\n`;
+  return import(`data:text/javascript;base64,${Buffer.from(ma).toString("base64")}`);
 }
 // listAll: bộ lọc thao tác im lặng (ADR-0038) chỉ kiểm được ở tầng truy vấn — trang Nhật ký nay chỉ Toàn quyền gọi được.
 export const app = (await bundle(
   'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository"; export { xoaBoNhoVanNghia } from "./modules/tro-ly/van-nghia";' +
     ' export { isSingleDevice } from "./modules/auth/session-ledger"; export { accountRoleCodesOf, getActiveStaff } from "./modules/staff"; export { docTapNhieuMay } from "./modules/auth";' +
-    ' export { chuyenChoTinTheoId, dongBoChuyenChoDon, suKienTheoYeuCau } from "./modules/van-chuyen"; export { cauDatCocKhiXacNhan } from "./modules/billing"; export { dongChuyenTheoId } from "./modules/thongbao";',
+    ' export { chuyenChoTinTheoId, dongBoChuyenChoDon, suKienTheoYeuCau } from "./modules/van-chuyen"; export { cauDatCocKhiXacNhan, tienDonVe, nhacHanTraSau } from "./modules/billing"; export { dongChuyenTheoId } from "./modules/thongbao";' +
+    ' export { syncCatalog } from "./modules/catalog/service"; export { auditStatement } from "./modules/audit"; export { giaDaiLyNhieuDon, phanThuongMaiCuaDon } from "./modules/orders";', // ADR-0186: bài src/tac-nhan-tu-dong.test.ts gọi thẳng hàm lệnh đồng bộ và hàm dựng câu nhật ký; ADR-0182: src/cong-no-dai-ly.test.ts so giá đại lý đọc nhiều đơn với từng đơn
 ));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
@@ -114,16 +119,63 @@ export const LOCATION_HOP_LE = /^\/[a-z0-9-]+(\?[a-z]+=[A-Za-z0-9-]+)?$/;
 export const LAN_GUI_SECRET_GIA = "l".repeat(48);
 const NOW = "2026-09-01T00:00:00.000Z";
 
-/** Gieo tài khoản có hồ sơ + quyền. */
-export function seedStaff(sqlite, { id, phone, name, perms }) {
+/** Vai trò đối tác mặc định khi bài gieo tài khoản giữ PARTNER mà không nói vai (ADR-0185 Đ2: trigger lc1c đòi hồ sơ mang vai trò đối tác). Công ty lữ hành: «Có sẵn», được hưởng. */
+export const VAI_DOI_TAC_MAC_DINH = "TRAVEL_AGENCY";
+const NGAY_VAI = "2026-01-01";
+/** Ngày của dòng vai trò đối tác ĐÃ KẾT THÚC trong hình dạng kiểu cũ — trước `NGAY_VAI` để bài tự mở lại vai trò đối tác cho hồ sơ đó (từ `NGAY_VAI`) không chồng lấn. */
+const NGAY_VAI_CU = "2025-01-01";
+
+/**
+ * Gieo tài khoản có hồ sơ + quyền.
+ * ADR-0185 Đ2 (trigger `lc1c_stf_permission_partner_needs_role`): tài khoản giữ PARTNER phải có hồ sơ mang vai trò đối tác. `vai` (mã vai trò hồ sơ) chèn TRƯỚC quyền,
+ * dòng vai có id `r-<id>` từ `NGAY_VAI`; vắng mà có PARTNER thì dùng `VAI_DOI_TAC_MAC_DINH` — hồ sơ thành bên đặt máy chủ ép, đơn có người hưởng. Bài cần LOẠI khác
+ * cho chính hồ sơ này truyền qua `vai`, đừng chèn thêm sau (hồ sơ mở hai vai trò đối tác: đổi hoa hồng, hoặc chồng lấn khi cùng loại).
+ * Hình dạng KIỂU CŨ (dữ liệu còn trên bản thật: tài khoản giữ PARTNER mà hồ sơ không mở vai trò đối tác — cổng ADR-0185 Đ1, R-LC-1c): mở vai trò đối tác cũ
+ * (`r-<id>-cu`), mở PARTNER, KẾT THÚC vai trò đó, gắn vai STAFF như lô tạo tài khoản kiểu cũ, rồi mới mở các quyền còn lại. Không gỡ trigger, không mở lại dòng
+ * quyền bằng UPDATE (LC-1 chỉ canh lúc mở quyền nội bộ khi hồ sơ đang mở vai bên ngoài). Dựng khi `kieuCu: true` (tài khoản chỉ giữ quyền bên ngoài: bài tự chọn),
+ * và LUÔN dựng cho tài khoản lai — PARTNER cùng một quyền nội bộ (ADR-0083 1c: chỉ còn trong dữ liệu cũ, không có hình dạng hợp lệ nào khác).
+ */
+export function seedStaff(sqlite, { id, phone, name, perms, vai, kieuCu }) {
+  const giuDoiTac = perms.includes("PARTNER");
+  const lai = giuDoiTac && perms.some((p) => !isExternalPermission(p));
+  if (kieuCu && !giuDoiTac) throw new Error("seedStaff({ kieuCu }): chỉ dùng cho tài khoản giữ PARTNER");
+  if (lai && (vai !== undefined || kieuCu === false)) throw new Error("seedStaff: tài khoản lai (PARTNER + quyền nội bộ) chỉ dựng được theo hình dạng kiểu cũ — bỏ `vai` / `kieuCu: false`");
+  const cu = kieuCu === true || lai;
+  if (cu && vai !== undefined) throw new Error("seedStaff: hình dạng kiểu cũ không đi cùng `vai`");
   sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-${id}', 'PERSON', '${name}', 1, '${NOW}', '${NOW}')`);
   sqlite.exec(`INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('pty-${id}', '${name}', '${NOW}', '${NOW}')`);
+  const moVai = (rid, code, tuNgay) =>
+    sqlite.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('${rid}', 'pty-${id}', '${code}', NULL, '${tuNgay}', '${NOW}', '${NOW}')`);
+  const moQuyen = (p) => sqlite.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('${id}-${p}', '${id}', '${p}', '${NOW}', '${NOW}', '${NOW}')`);
+  if (cu) {
+    moVai(`r-${id}-cu`, VAI_DOI_TAC_MAC_DINH, NGAY_VAI_CU);
+  } else if (vai ?? giuDoiTac) {
+    moVai(`r-${id}`, vai ?? VAI_DOI_TAC_MAC_DINH, NGAY_VAI);
+  }
   sqlite.exec(`INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES ('${id}', '', '${phone}', 'x', 'sales', 1, '${NOW}', 'pty-${id}')`);
-  for (const p of perms) sqlite.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('${id}-${p}', '${id}', '${p}', '${NOW}', '${NOW}', '${NOW}')`);
+  if (cu) {
+    moQuyen("PARTNER");
+    sqlite.exec(`UPDATE pty_party_role SET valid_to_date = '${NGAY_VAI_CU}', updated_at = '${NOW}' WHERE id = 'r-${id}-cu'`);
+    moVai(`r-${id}-staff`, "STAFF", NGAY_VAI);
+    for (const p of perms) if (p !== "PARTNER") moQuyen(p);
+  } else {
+    for (const p of perms) moQuyen(p);
+  }
   // ADR-0074 điều 1: tài khoản nội bộ có hạn ân hạn bảo mật hai lớp như lô tạo tài khoản thật (CÙNG hàm mfaGraceOnCreate) — tính từ giờ THẬT (không
   // từ NOW giả ở trên, kẻo hạn đã qua và cổng lớp hai chặn đăng nhập PIN của mọi bài). Bài kiểm cổng tự đặt lại cột này.
   const grace = mfaGraceOnCreate(perms, Date.now());
   if (grace) sqlite.prepare("UPDATE staff SET mfa_grace_until = ? WHERE id = ?").run(grace, id);
+}
+
+/**
+ * ADR-0161 Đ3 (kế hoạch 2026-11-03 Task 1): nới GIỚI HẠN NHẬP mức hoa hồng của `w` (trần 100%, bước 1 đ) bằng cách chèn thêm MỘT dòng chỉ-thêm — đúng đường Toàn quyền đổi giới hạn, chỉ khác là chèn thẳng.
+ * CHỈ cho bài cố ý dùng «số lạ» (vd 48,17%, 480.017 đ/khách) làm dấu để dò rò rỉ hay thử làm tròn, chứ không kiểm giới hạn: bài đó giữ nguyên số đầu vào và đáp án, chỉ gọi hàm này ở phần gieo.
+ * Mốc dòng mới = mốc lớn nhất hiện có + 1 ms (dòng gieo của migration lấy giờ thật lúc dựng `world()`; bài mock đồng hồ về quá khứ vẫn thấy dòng này là dòng mới nhất).
+ */
+export function noiGioiHanNhap(w) {
+  const moiNhat = w.sqlite.prepare("SELECT max(valid_from_at) AS m FROM prc_entry_limit_policy").get().m;
+  const tuLuc = new Date(Date.parse(moiNhat) + 1).toISOString();
+  w.sqlite.prepare("INSERT INTO prc_entry_limit_policy (id, max_rate_bp, amount_step, valid_from_at, created_at, updated_at) VALUES (?, 10000, 1, ?, ?, ?)").run(`noi-gioi-han-${tuLuc}`, tuLuc, tuLuc, tuLuc);
 }
 
 /** Mã chính sách của mốc GIẢ khung thử (Ruling N-9 (iii)) — bài thấy mã này trong dữ liệu là biết mình đang chạy mốc giả. */
@@ -182,10 +234,12 @@ export function khoR2Gia() {
  *   `mocToiThieu` — lách hàng rào N-9) → ném lỗi; dùng chung với tuỳ chọn khác → ném lỗi (không lặng lẽ bỏ). Không nới luật cho môi trường thử.
  * - `khongTiemNhan: true` — bỏ hàm tiêm nhãn người bấm (ruling R-P20: route để trống nhãn, không đoán). `demNhan: true` — nhãn GIẢ có ĐẾM số lần gọi
  *   (`w.soLanGoiNhan()`, mỗi lần một mảng id) — "một lần mỗi request cho cả danh sách".
+ * - `kenhThuGia: async () => 0|1` — ADR-0178 Đ1: hàm tiêm GIẢ cho công tắc «Khách của đối tác trả cho Công ty» (ném lỗi ⇒ route lập đơn của Đối tác trả 503). `khongTiemKenhThu: true` — bỏ hàm tiêm ⇒ router trả 1.
  * - `khongTiemDaThu: true` — ADR-0136 Đ3: bỏ hàm tiêm «số đã thu của đơn» ⇒ route gửi xác nhận PHẢI trả 503 `khoan_thu_chua_kiem` (từ chối kín, không đoán). `daThuGia: <số VNĐ>` — hàm tiêm GIẢ
  *   trả số cố định, CHỈ để kiểm nhánh «đơn đã có khoản thu» (từ L2 nháp không ghi thu được qua API).
  * - `khongTiemAnDanhPhien: true` — ADR-0126 đ8 (lát H-5 Gói 2): bỏ hàm tiêm câu ẩn danh sổ phiên của auth ⇒ route Thực hiện phiếu xoá của chủ có tài khoản PHẢI trả 503 `erasure_unavailable`,
  *   không thực hiện thiếu phần sổ phiên. Cùng khuôn `khongTiemNhan` (bỏ đúng MỘT hàm tiêm, không nới luật nào).
+ * - `khongTiemTraSauCuaDon: true` — bỏ ĐÚNG MỘT hàm tiêm «nợ của một đơn Trả sau» (kế hoạch 2026-11-05 Task 3): cổng sửa tăng / huỷ / đổi bên đặt phải trả 503, không đoán.
  * - `khongDongBoChuyen: true` — ADR-0104 Đ2 (kế hoạch N9 "đổi cách dựng, không nới luật"): bỏ hàm tiêm máy đồng bộ chuyến ⇒ router dùng `dongBoDiThang` (lô = câu
  *   đơn, phản hồi `capNhatTay`). CHỈ cho bài cần TRẠNG THÁI GIỮ (suất của đơn huỷ / khách đã đổi còn trên chuyến) để kiểm lý do giữ hay nút tay — bài đó vẫn phải
  *   thấy lý do giữ.
@@ -243,6 +297,14 @@ export function world(tuyChon = {}) {
         return d;
       },
     });
+  } else if (tuyChon.khongTiemTraSau) {
+    ungDung = app.taoAppChoKhungThu({ kiemTraSau: undefined }); // ADR-0168: gốc lắp ráp không tiêm cổng hạn mức ⇒ đơn Trả sau bị chặn 503
+  } else if (tuyChon.khongTiemTraSauCuaDon) {
+    ungDung = app.taoAppChoKhungThu({ traSauCuaDon: undefined }); // Kế hoạch Trả sau 2026-11-05 Task 3: không đọc được nợ của đơn ⇒ cổng sửa tăng / huỷ / đổi bên đặt chặn 503
+  } else if (tuyChon.kenhThuGia) {
+    ungDung = app.taoAppChoKhungThu({ kenhThuHienTai: tuyChon.kenhThuGia }); // ADR-0178 Đ1: hàm tiêm GIẢ trả 0/1 hoặc ném lỗi (⇒ 503); mặc định: hàm thật của gốc lắp ráp
+  } else if (tuyChon.khongTiemKenhThu) {
+    ungDung = app.taoAppChoKhungThu({ kenhThuHienTai: undefined }); // router trả 1 (Bật) khi KHÔNG tiêm — các bài route cũ giữ hành vi
   } else if (tuyChon.khongTiemCoc) {
     ungDung = app.taoAppChoKhungThu({ cauCocKhiXacNhan: undefined }); // ADR-0159: gốc lắp ráp không dựng được câu ⇒ 503
   } else if (tuyChon.chenTruocLoCoc) {
@@ -300,7 +362,9 @@ export function world(tuyChon = {}) {
   const r2 = khoR2Gia();
   const r2HoTro = khoR2Gia(); // kho tệp vé hỗ trợ (ADR-0144) — kho RIÊNG, không chung đối tượng với kho hồ sơ
   const r2VeDienTu = khoR2Gia(); // kho vé điện tử (ADR-0153) — kho RIÊNG, không chung đối tượng với hai kho kia
-  const env = { DB: fakeD1(sqlite, moc), HO_SO: r2, HO_TRO: r2HoTro, VE_DIEN_TU: r2VeDienTu, SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
+  const r2BienLai = khoR2Gia(); // kho ảnh biên lai chuyển khoản (ADR-0196) — kho RIÊNG
+  const r2AnhDichVu = khoR2Gia(); // kho ảnh đại diện dịch vụ (ADR-0201 Đ3) — kho RIÊNG
+  const env = { DB: fakeD1(sqlite, moc), HO_SO: r2, HO_TRO: r2HoTro, VE_DIEN_TU: r2VeDienTu, BIEN_LAI: r2BienLai, ANH_DICH_VU: r2AnhDichVu, SESSION_SECRET: SECRET, LAN_GUI_SECRET: LAN_GUI_SECRET_GIA, SERVICES_SHEET_ID: "x" };
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.
   sqlite.exec(`UPDATE catalog_sync SET last_attempt_at = '${new Date().toISOString()}', last_success_at = '${new Date().toISOString()}' WHERE id = 'default'`);
   // waitUntil THU promise (promise vốn đã chạy — bài cũ không đổi hành vi); `choNen()` chờ hết việc chạy nền (ADR-0094 L5: bước 6 cập nhật kết quả vé).
@@ -355,5 +419,18 @@ export function world(tuyChon = {}) {
     const laDoiTac = sqlite.prepare("SELECT 1 FROM stf_permission WHERE staff_id = ? AND permission_type_code = 'PARTNER' AND valid_to_at IS NULL").get(as) !== undefined;
     return laDoiTac ? call("POST", `/api/orders/${id}/gui-don`, { as, body: {} }) : call("POST", `/api/orders/${id}/status`, { as, body: { status: "confirmed" } });
   };
-  return { sqlite, env, r2, r2HoTro, r2VeDienTu, call, xacNhanDon, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
+  /**
+   * ADR-0185 (cổng `congDoiTacChuaCoVaiTro`): đơn do tài khoản giữ quyền Đối tác lập mà người hưởng ra «không người hưởng» (tài khoản kiểu cũ, tài khoản lai; bên đặt là khách lẻ hay trống)
+   * KHÔNG còn Gửi đơn / xác nhận được. Đơn như thế ở trạng thái đã xác nhận hay đang chờ kiểm vé chỉ còn là DỮ LIỆU CŨ (trước ADR-0185 — ADR Đ3 mục 2), hoặc do văn phòng «Đổi khách» sau đó.
+   * Bài cần trạng thái đó (sổ tiền, kênh thu, trang đơn…) dựng bằng hai trợ giúp dưới: văn phòng `vanPhong` làm THAY (người lập tạm là văn phòng — nháp chỉ người lập ghi được, ADR-0135 Đ2),
+   * rồi trả người lập về `nguoiLap` bằng SQL như dữ liệu cũ. Khác đường thật: nhật ký, bản chụp, yêu cầu ghi người bấm là văn phòng; lời khai đặt cọc (nếu có) thành khoản của văn phòng —
+   * đừng dùng cho đơn có lời khai. KHÔNG dùng cho bài kiểm chính đường xác nhận / Gửi đơn (bài đó phải thấy 409 `doi_tac_chua_co_vai_tro`).
+   */
+  async function quaVanPhong(id, nguoiLap, vanPhong, goi) {
+    sqlite.prepare("UPDATE orders SET staff_id = ? WHERE id = ?").run(vanPhong, id);
+    try { return await goi(); } finally { sqlite.prepare("UPDATE orders SET staff_id = ? WHERE id = ?").run(nguoiLap, id); }
+  }
+  const xacNhanDonCu = (id, nguoiLap, vanPhong) => quaVanPhong(id, nguoiLap, vanPhong, () => call("POST", `/api/orders/${id}/status`, { as: vanPhong, body: { status: "confirmed" } }));
+  const guiKiemVeCu = (id, nguoiLap, vanPhong) => quaVanPhong(id, nguoiLap, vanPhong, () => call("POST", `/api/orders/${id}/gui-xac-nhan`, { as: vanPhong, body: {} }));
+  return { sqlite, env, r2, r2HoTro, r2VeDienTu, r2BienLai, r2AnhDichVu, call, xacNhanDon, xacNhanDonCu, guiKiemVeCu, token, choNen, raoTraVe, chenTruocLo, q:(sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }

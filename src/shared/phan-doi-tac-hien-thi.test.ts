@@ -2,10 +2,10 @@
 // Cổng ẩn/hiện được nối với ROUTE THẬT ở src/modules/pricing/o-dat-qua-noi-cong.test.ts; thân ghi tay được nối với `kiemThanGhiTay` của máy chủ ở src/modules/orders/ghi-tay-nhap-noi.test.ts.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
+import { PERMISSION_CODES, can, isOffice, type PermissionCode } from "./permissions.ts";
 import {
-  CAU_CHO_CAI_MUC, MOI_KHACH_TOI_DA, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, demLyDo, docThanGhiTay,
-  docTienTay, docTyLeTay, duocGhiTay, ghiChuTrangThai, gopBenDat, hienNutGhiTay, khoiBenDatForm, nhanBenDat, nhanNguoiHuong, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type FormGhiTay,
+  CAU_CHO_CAI_MUC, CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, MOI_KHACH_TOI_DA, TIEU_DE_DOI_TAC, TIEU_DE_LOI, TIEU_DE_VAN_PHONG, canhBaoThieuMuc, chuHoaHongDoiTac, chuNhaCungCap, chuTongHoaHong, coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, demLyDo, docThanGhiTay,
+  CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieuVaiTro, docTienTay, docTyLeTay, duocGhiTay, ghiChuTrangThai, gopBenDat, hienNutDienDoiTac, hienNutGhiTay, khoiBenDatForm, nhanBenDat, nhanNguoiHuong, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type FormGhiTay,
 } from "./phan-doi-tac-hien-thi.ts";
 
 const staff = (...permissions: PermissionCode[]) => ({ id: "s1", permissions });
@@ -25,6 +25,16 @@ test("coODatQuaDoiTac: người lập đơn KHÔNG giữ quyền Đối tác —
   assert.equal(coODatQuaDoiTac(staff("ACCOUNTING")), false, "Kế toán không lập đơn");
   assert.equal(coODatQuaDoiTac(staff("FIELD")), false);
   assert.equal(coODatQuaDoiTac(staff("HR")), false);
+});
+
+test("doiTacThieuVaiTro (ADR-0185 Đ1, K10): giữ quyền Đối tác mà máy chủ không ép bên đặt (`benDatCuaToi` rỗng) ⇒ hiện dải vàng; có bên đặt, hoặc không giữ quyền Đối tác ⇒ không", () => {
+  assert.equal(doiTacThieuVaiTro(staff("PARTNER"), null), true);
+  assert.equal(doiTacThieuVaiTro(staff("PARTNER"), undefined), true, "/me chưa trả trường");
+  assert.equal(doiTacThieuVaiTro(staff("SALES", "PARTNER"), null), true, "tài khoản lai kiểu cũ");
+  assert.equal(doiTacThieuVaiTro(staff("PARTNER"), AGENCY), false);
+  assert.equal(doiTacThieuVaiTro(staff("SALES"), null), false);
+  assert.equal(doiTacThieuVaiTro(staff("SUPER_ADMIN"), null), false);
+  assert.equal(CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, "Tài khoản của bạn chưa được gán vai trò đối tác: lập và lưu nháp được, nhưng chưa gửi được đơn. Vui lòng báo Tour Đảo.");
 });
 
 test("khoiBenDatForm: Đối tác được hưởng ⇒ dòng chỉ đọc; Đối tác khác / lai ⇒ ô tra SĐT như cũ; văn phòng ⇒ ô tra SĐT + ô Đặt qua đối tác", () => {
@@ -90,9 +100,14 @@ test("chữ hiển thị của khối: người hưởng, trạng thái, cảnh 
   assert.equal(ghiChuTrangThai({ duKien: true, chuaChup: false }), "Dự kiến — tính theo bảng mức hôm nay, chưa lưu");
   assert.equal(ghiChuTrangThai({ duKien: false, chuaChup: true }), "Đơn xác nhận trước khi có bảng mức");
   assert.equal(ghiChuTrangThai({ duKien: false, chuaChup: false }), null);
-  assert.equal(canhBaoThieuMuc("Chưa có mức cho dịch vụ này"), "Chưa có mức cho đối tác này — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Đã giao.");
-  assert.equal(canhBaoThieuMuc("Hai mức khác nhau cùng áp — Kế toán chọn một"), "Hai mức khác nhau cùng áp — Kế toán chọn một — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Đã giao.");
+  assert.equal(canhBaoThieuMuc("Chưa có mức cho dịch vụ này"), "Chưa có mức cho đối tác này — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Khách đã trả đủ.");
+  assert.equal(canhBaoThieuMuc("Hai mức khác nhau cùng áp — Kế toán chọn một"), "Hai mức khác nhau cùng áp — Kế toán chọn một — cần cài mức (cấp) thì mới tính được hoa hồng; đơn bị giữ ở bước Khách đã trả đủ.");
   assert.doesNotMatch(canhBaoThieuMuc("Chưa có mức cho dịch vụ này") ?? "", /MISSING|RULE_CONFLICT|NO_RULE/);
+  // T-02 (Đợt 3): đơn ĐÃ chụp mức lúc xác nhận thì cài thêm mức không gỡ được — câu không được bảo «cần cài mức».
+  const daChup = canhBaoThieuMuc("Chưa có mức cho dịch vụ này", true) ?? "";
+  assert.doesNotMatch(daChup, /cần cài mức/);
+  assert.equal(daChup, "Chưa có mức cho đối tác này — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.");
+  assert.equal(canhBaoThieuMuc(null, true), null);
   assert.equal(canhBaoThieuMuc(null), null);
   assert.equal(chuTongHoaHong(null, f), "Chưa đủ mức");
   assert.equal(chuTongHoaHong(0, f), "0đ", "0 là số thật (đơn không người hưởng), không phải thiếu");
@@ -216,4 +231,56 @@ test("canhBaoHaMucTay: đơn 1.000.000, hoa hồng 10% = 100.000, giảm 100.000
   // Dòng khác thiếu mức tính 0 (R-73, như kiểm định kỳ R-ORD-DC1).
   const hai = { ...dto, dong: [...dto.dong, { serviceId: "s2", thanhTien: 500_000, soKhachTinh: 1, hoaHong: null }] };
   assert.ok(canhBaoHaMucTay({ dto: hai, serviceId: "s1", form: f({ tyLe: "5" }), giamGiaHieuLuc: 100_000, dinhDang: vnd })?.includes(vnd(50_000)));
+});
+
+// ADR-0161 Đ4 (Task 4): màn đơn nói «Hoa hồng vượt thành tiền — Kế toán xem lại» thay cho giá đại lý âm. DTO và sổ không đổi; chỉ đổi chữ hiển thị.
+test("chuGiaDaiLy: dòng vượt thành tiền ⇒ câu cảnh báo, không bao giờ hiện số âm; thiếu mức ⇒ «—»; bằng thành tiền ⇒ 0đ", async () => {
+  const { CAU_HOA_HONG_VUOT, chuGiaDaiLy } = await import("./phan-doi-tac-hien-thi.ts");
+  const { nhanDong } = await import("./so-dai-ly-nhan.ts");
+  const f = (n: number) => `${nhanDong(n)}đ`;
+  assert.equal(CAU_HOA_HONG_VUOT, "Hoa hồng vượt thành tiền — Kế toán xem lại");
+  assert.equal(chuGiaDaiLy({ thanhTien: 600_000, hoaHong: 1_000_000, giaDaiLy: -400_000 }, f), CAU_HOA_HONG_VUOT);
+  assert.equal(chuGiaDaiLy({ thanhTien: 600_000, hoaHong: 600_001, giaDaiLy: -1 }, f), CAU_HOA_HONG_VUOT, "vượt 1 đồng cũng báo");
+  assert.equal(chuGiaDaiLy({ thanhTien: 600_000, hoaHong: null, giaDaiLy: null }, f), "—", "thiếu mức: giữ «—» như cũ");
+  assert.equal(chuGiaDaiLy({ thanhTien: 600_000, hoaHong: 600_000, giaDaiLy: 0 }, f), "0đ", "bằng thành tiền là không vượt");
+  assert.equal(chuGiaDaiLy({ thanhTien: 600_000, hoaHong: 100_000, giaDaiLy: 500_000 }, f), "500.000đ");
+  assert.doesNotMatch(chuGiaDaiLy({ thanhTien: 600_000, hoaHong: 1_000_000, giaDaiLy: -400_000 }, f), /-|−/, "không dấu trừ");
+});
+
+test("chuTongGiaDaiLy: có một dòng vượt thì câu cảnh báo dù tổng dương; không dòng vượt thì như cũ (Chưa đủ mức khi tổng null)", async () => {
+  const { CAU_HOA_HONG_VUOT, chuTongGiaDaiLy } = await import("./phan-doi-tac-hien-thi.ts");
+  const { nhanDong } = await import("./so-dai-ly-nhan.ts");
+  const f = (n: number) => `${nhanDong(n)}đ`;
+  const vuot = { thanhTien: 300_000, hoaHong: 500_000 };
+  const dung = { thanhTien: 1_000_000, hoaHong: 100_000 };
+  // Tổng dương dù một dòng vượt: 1.000.000 − 100.000 + 300.000 − 500.000 = 700.000.
+  assert.equal(chuTongGiaDaiLy({ giaDaiLy: 700_000 }, [dung, vuot], f), CAU_HOA_HONG_VUOT);
+  assert.equal(chuTongGiaDaiLy({ giaDaiLy: 900_000 }, [dung], f), "900.000đ");
+  assert.equal(chuTongGiaDaiLy({ giaDaiLy: null }, [dung, { thanhTien: 1, hoaHong: null }], f), "Chưa đủ mức");
+  assert.equal(chuTongGiaDaiLy({ giaDaiLy: 0 }, [{ thanhTien: 600_000, hoaHong: 600_000 }], f), "0đ", "bằng thành tiền: không vượt, 0 là số thật");
+  // Vừa vượt vừa thiếu mức: câu vượt thắng (cụ thể hơn «Chưa đủ mức», và cùng thứ tự với chuGiaDaiLy). Ghi ở sổ thi công.
+  assert.equal(chuTongGiaDaiLy({ giaDaiLy: null }, [vuot, { thanhTien: 1, hoaHong: null }], f), CAU_HOA_HONG_VUOT);
+  assert.equal(chuTongGiaDaiLy({ giaDaiLy: 0 }, [], f), "0đ", "đơn không dòng nào (không người hưởng): số thật");
+});
+
+// N5 (9/11/2026): nút «Điền thông tin đối tác» — chỉ khi ĐÃ chọn «Qua đối tác» VÀ người dùng thuộc văn phòng có ô party.view (cùng cổng GET /api/parties/:id); Thực tập không thấy.
+test("hienNutDienDoiTac: văn phòng có party.view + đã chọn đối tác → hiện; chưa chọn, Thực tập, Đối tác → ẩn", () => {
+  for (const q of [["SALES"], ["ADMIN"], ["SUPER_ADMIN"]] as PermissionCode[][]) {
+    assert.equal(hienNutDienDoiTac(staff(...q), AGENCY), true, q.join("+"));
+    assert.equal(hienNutDienDoiTac(staff(...q), null), false, `${q.join("+")} chưa chọn đối tác`);
+  }
+  assert.equal(hienNutDienDoiTac(staff("INTERN"), AGENCY), false, "Thực tập không có ô party.view");
+  assert.equal(hienNutDienDoiTac(staff("PARTNER"), AGENCY), false, "tài khoản chỉ giữ quyền Đối tác không thấy nút này");
+  // Tài khoản lai Bán hàng + Đối tác không có ô «Đặt qua đối tác» (coODatQuaDoiTac = false) nên không bao giờ có `daChonBenDat` — nút không tới được dù luật nút chỉ hỏi văn phòng + party.view.
+  assert.equal(coODatQuaDoiTac(staff("SALES", "PARTNER")), false);
+});
+
+test("hienNutDienDoiTac: khớp đúng cổng của GET /api/parties/:id trên mọi tập quyền (văn phòng + party.view)", () => {
+  const n = PERMISSION_CODES.length;
+  for (let mask = 0; mask < 1 << n; mask++) {
+    const q = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    const w = staff(...q);
+    if (hienNutDienDoiTac(w, AGENCY)) assert.ok(isOffice(w) && can(w, "party.view"), q.join("+"));
+  }
+  assert.match(CAU_DOI_TAC_CHUA_CO_SDT, /chưa có số điện thoại/);
 });

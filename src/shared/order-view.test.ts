@@ -1,8 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { OrderItemDto, OrderServiceDto } from "./contracts.ts";
-import { catalogTag, cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, serviceView, suaChuyenDuoc, suaKhachDuoc, type OrderActions, cauChuaCoNgay } from "./order-view.ts";
+import { banHangSuaDuoc, catalogTag, cauKhoaXacNhan, khongQuyenSuaText, orderActions, paxFullText, serviceView, suaChuyenDuoc, suaKhachDuoc, type OrderActions, cauChuaCoNgay } from "./order-view.ts";
 import { can, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
+import { duocGiaoTheoO } from "./ban-hang-phu-trach.ts";
 
 const NO_TRIP = { departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
 const item = (o: Partial<OrderItemDto> = {}): OrderItemDto => ({
@@ -88,7 +89,7 @@ test("orderActions: nút theo trạng thái và quyền; đơn đã xác nhận 
   assert.deepEqual(orderActions("cancelled", false, false), A({ noPermission: true }));
 });
 
-// Vòng sửa 1 (I-2): câu "Chỉ <người lập>, người phụ trách đơn hoặc quản trị viên mới được sửa…" mâu thuẫn khi CHÍNH người đang xem là người phụ trách mà
+// Vòng sửa 1 (I-2): câu "Chỉ <người lập>, Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa…" mâu thuẫn khi CHÍNH người đang xem là người phụ trách mà
 // là hướng dẫn viên (order.modify ô FIELD = none). Câu cho HDV nói điều trang này không làm được và nhờ ai — không hứa nút cụ thể.
 test("khongQuyenSuaText: HDV (chỉ xem đơn mình phụ trách) — câu riêng, KHÔNG nói 'người phụ trách đơn … mới được sửa'; đơn đã xác nhận chỉ tới mục “Việc của tôi”", () => {
   const hdv = { permissions: ["FIELD"] as const };
@@ -104,7 +105,7 @@ test("khongQuyenSuaText: người khác (kế toán, bán hàng không liên qua
   for (const perms of [["ACCOUNTING"], ["SALES"], ["FIELD", "INTERN"]] as const) {
     assert.equal(
       khongQuyenSuaText({ ownerName: "Sales Một", status: "draft", viewer: { permissions: perms } }),
-      "Chỉ Sales Một (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.",
+      "Chỉ Sales Một (người lập đơn), Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.",
       JSON.stringify(perms),
     );
   }
@@ -120,30 +121,32 @@ test("orderActions: đơn đã xác nhận, sửa được đơn nhưng KHÔNG c
 
 test("suaChuyenDuoc: Đối tác, Thực tập với đơn mình lập → false; Bán hàng người lập / người phụ trách, Quản trị → true; không sửa được đơn → false", () => {
   const w = (id: string, ...permissions: PermissionCode[]) => ({ id, permissions });
-  assert.equal(suaChuyenDuoc(w("p", "PARTNER"), "p", true), false, "Đối tác, đơn mình lập");
-  assert.equal(suaChuyenDuoc(w("i", "INTERN"), "i", true), false, "Thực tập, đơn mình lập");
-  assert.equal(suaChuyenDuoc(w("s", "SALES"), "s", true), true, "Bán hàng lập đơn");
-  assert.equal(suaChuyenDuoc(w("s", "SALES"), "khac", true), true, "Bán hàng đang phụ trách (máy chủ đã cho sửa)");
-  assert.equal(suaChuyenDuoc(w("a", "ADMIN"), "khac", true), true, "Quản trị");
-  assert.equal(suaChuyenDuoc(w("s", "SALES"), "khac", false), false, "máy chủ không cho sửa");
-  assert.equal(suaChuyenDuoc(w("x", "SALES", "PARTNER"), "x", true), true, "tài khoản lai Bán hàng + Đối tác, đơn mình lập");
-  assert.equal(suaChuyenDuoc(w("x", "FIELD", "INTERN"), "x", true), false, "tài khoản lai HDV + Thực tập, đơn mình lập");
+  assert.equal(suaChuyenDuoc(w("p", "PARTNER"), "p", true, false), false, "Đối tác, đơn mình lập");
+  assert.equal(suaChuyenDuoc(w("i", "INTERN"), "i", true, false), false, "Thực tập, đơn mình lập");
+  assert.equal(suaChuyenDuoc(w("s", "SALES"), "s", true, false), true, "Bán hàng lập đơn");
+  assert.equal(suaChuyenDuoc(w("s", "SALES"), "khac", true, false), true, "Bán hàng đang phụ trách (máy chủ đã cho sửa)");
+  assert.equal(suaChuyenDuoc(w("a", "ADMIN"), "khac", true, false), true, "Quản trị");
+  assert.equal(suaChuyenDuoc(w("s", "SALES"), "khac", false, false), false, "máy chủ không cho sửa");
+  assert.equal(suaChuyenDuoc(w("x", "SALES", "PARTNER"), "x", true, false), true, "tài khoản lai Bán hàng + Đối tác, đơn mình lập");
+  assert.equal(suaChuyenDuoc(w("x", "FIELD", "INTERN"), "x", true, false), false, "tài khoản lai HDV + Thực tập, đơn mình lập");
 });
 
 // Bài ghim: giao diện KHÔNG biết chắc "đang phụ trách" (lời gọi người phụ trách có thể lỗi) nên suaChuyenDuoc suy phạm vi từ cờ canModify của máy chủ.
 // Bài này thử MỌI tổ hợp quyền (2^9) × {người lập, không} × {đang phụ trách, không}: kết quả phải BẰNG ĐÚNG điều máy chủ quyết
 // (`can(order.modify)` rồi `can(order.trip.edit)` với phạm vi thật — orders/index.ts, route PUT …/trip và PUT …/booker). Bản đồ quyền đổi làm lệch → đỏ.
-test("suaChuyenDuoc khớp máy chủ ở mọi tổ hợp quyền × người lập × đang phụ trách", () => {
+test("suaChuyenDuoc khớp máy chủ ở mọi tổ hợp quyền × người lập × đang phụ trách × Bán hàng phụ trách (ADR-0142)", () => {
   let lech = 0;
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
     const permissions = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
     const viewer = { id: "toi", permissions };
     for (const ownerId of ["toi", "khac"]) {
       for (const assigned of [true, false]) {
-        const scope = { ownerId, assigned };
-        const canModify = can(viewer, "order.modify", scope);
-        const mayChu = canModify && can(viewer, "order.trip.edit", scope);
-        if (suaChuyenDuoc(viewer, ownerId, canModify) !== mayChu) lech++;
+        for (const banHang of [true, false]) {
+          // Máy chủ: `assigned` của ô order.trip.edit = người phụ trách HOẶC Bán hàng phụ trách (danh sách trắng). `canModify` KHÔNG gồm Bán hàng phụ trách.
+          const canModify = can(viewer, "order.modify", { ownerId, assigned });
+          const mayChu = (canModify || banHang) && can(viewer, "order.trip.edit", { ownerId, assigned: duocGiaoTheoO("order.trip.edit", { laNguoiPhuTrach: assigned, laBanHangPhuTrach: banHang }) });
+          if (suaChuyenDuoc(viewer, ownerId, canModify, banHang) !== mayChu) lech++;
+        }
       }
     }
   }
@@ -151,22 +154,57 @@ test("suaChuyenDuoc khớp máy chủ ở mọi tổ hợp quyền × người l
 });
 
 // ADR-0047 Phần B (bản vẽ M3, M5): nút "Sửa danh sách" theo ô order.passenger.write — cùng cách suy phạm vi với suaChuyenDuoc; khớp máy chủ (route
-// GET/POST …/passengers, PUT /api/orders có khoá passengers) ở mọi tổ hợp.
-test("suaKhachDuoc khớp máy chủ (order.passenger.write) ở mọi tổ hợp quyền × người lập × đang phụ trách", () => {
+// GET/POST …/passengers, PUT /api/orders có khoá passengers) ở mọi tổ hợp. ADR-0142: thêm chiều Bán hàng phụ trách.
+test("suaKhachDuoc khớp máy chủ (order.passenger.write) ở mọi tổ hợp quyền × người lập × đang phụ trách × Bán hàng phụ trách", () => {
   let lech = 0;
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
     const permissions = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
     const viewer = { id: "toi", permissions };
     for (const ownerId of ["toi", "khac"]) {
       for (const assigned of [true, false]) {
-        const scope = { ownerId, assigned };
-        if (suaKhachDuoc(viewer, ownerId, can(viewer, "order.modify", scope)) !== can(viewer, "order.passenger.write", scope)) lech++;
+        for (const banHang of [true, false]) {
+          const canModify = can(viewer, "order.modify", { ownerId, assigned });
+          const mayChu = can(viewer, "order.passenger.write", { ownerId, assigned: duocGiaoTheoO("order.passenger.write", { laNguoiPhuTrach: assigned, laBanHangPhuTrach: banHang }) });
+          if (suaKhachDuoc(viewer, ownerId, canModify, banHang) !== mayChu) lech++;
+        }
       }
     }
   }
   assert.equal(lech, 0);
-  assert.equal(suaKhachDuoc({ id: "p", permissions: ["PARTNER"] }, "p", true), true, "Đối tác, đơn mình lập");
-  assert.equal(suaKhachDuoc({ id: "k", permissions: ["ACCOUNTING"] }, "x", false), false, "Kế toán");
+  assert.equal(suaKhachDuoc({ id: "p", permissions: ["PARTNER"] }, "p", true, false), true, "Đối tác, đơn mình lập");
+  assert.equal(suaKhachDuoc({ id: "k", permissions: ["ACCOUNTING"] }, "x", false, false), false, "Kế toán");
+});
+
+// ADR-0142 — ca bắt buộc: Bán hàng KHÔNG phải người lập, KHÔNG phụ trách HDV, là Bán hàng phụ trách ⇒ sửa chuyến được, sửa khách được, KHÔNG có nút huỷ.
+test("Bán hàng phụ trách (không phải người lập, không phụ trách HDV): sửa chuyến + sửa khách được, đơn đã xác nhận không có nút huỷ, không báo thiếu quyền", () => {
+  const ban = { id: "ban", permissions: ["SALES"] as PermissionCode[] };
+  const canModify = can(ban, "order.modify", { ownerId: "lap", assigned: false }); // không phải người lập, không phụ trách HDV
+  assert.equal(canModify, false);
+  const suaDuoc = banHangSuaDuoc({ deliveredAt: null }, true);
+  assert.equal(suaDuoc, true);
+  const chuyen = suaChuyenDuoc(ban, "lap", canModify, suaDuoc);
+  assert.equal(chuyen, true);
+  assert.equal(suaKhachDuoc(ban, "lap", canModify, suaDuoc), true);
+  assert.deepEqual(orderActions("confirmed", canModify, chuyen), { ...orderActions("confirmed", true, true), edit: false, cancel: false, editTrip: true, noPermission: false, locked: true });
+  const a = orderActions("confirmed", canModify, chuyen);
+  assert.equal(a.cancel, false, "không có nút huỷ");
+  assert.equal(a.editTrip, true);
+  assert.equal(a.noPermission, false);
+  // không là Bán hàng phụ trách thì vẫn như cũ
+  assert.equal(suaChuyenDuoc(ban, "lap", canModify, banHangSuaDuoc({ deliveredAt: null }, false)), false);
+  assert.equal(orderActions("confirmed", false, false).noPermission, true);
+});
+
+// ADR-0142 — mốc Đã giao: hôm nay `canModify` tự tắt khi đơn Đã giao; Bán hàng phụ trách không được thành cửa sau.
+test("banHangSuaDuoc: đơn Đã giao mà người xem là Bán hàng phụ trách ⇒ không có nút sửa chuyến, không có nút sửa khách", () => {
+  const ban = { id: "ban", permissions: ["SALES"] as PermissionCode[] };
+  assert.equal(banHangSuaDuoc({ deliveredAt: "2026-11-01T00:00:00.000Z" }, true), false);
+  assert.equal(banHangSuaDuoc({ deliveredAt: null }, false), false);
+  assert.equal(banHangSuaDuoc({ deliveredAt: null }, true), true);
+  const suaDuoc = banHangSuaDuoc({ deliveredAt: "2026-11-01T00:00:00.000Z" }, true);
+  assert.equal(suaChuyenDuoc(ban, "lap", false, suaDuoc), false);
+  assert.equal(suaKhachDuoc(ban, "lap", false, suaDuoc), false);
+  assert.equal(orderActions("confirmed", false, suaChuyenDuoc(ban, "lap", false, suaDuoc)).editTrip, false);
 });
 
 test("cauKhoaXacNhan (D5, bản vẽ M3): câu khoá đơn đã xác nhận theo những gì người xem còn sửa được", () => {
@@ -184,7 +222,7 @@ test("cauKhoaXacNhan (ADR-0063 D1, phiếu kiểm A2 V-1): không còn nói 's�
 test("khongQuyenSuaText + nút sửa số khách (ADR-0063 D1, phiếu kiểm A2 V-1): Kế toán thấy nút thì câu nói rõ số khách sửa được", () => {
   assert.equal(
     khongQuyenSuaText({ ownerName: "Sales Một", status: "confirmed", viewer: { permissions: ["ACCOUNTING"] }, suaSoKhach: true }),
-    "Chỉ Sales Một (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này. Số khách thì bạn sửa được bằng nút “Sửa số khách dịch vụ”.",
+    "Chỉ Sales Một (người lập đơn), Hướng dẫn viên của đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này. Số khách thì bạn sửa được bằng nút “Sửa số khách dịch vụ”.",
   );
 });
 

@@ -6,35 +6,47 @@
 // (đường huỷ–thay hay «từ ngày» do máy chủ quyết, giao diện không đoán). Ô tìm đối tác: GET /nguoi-huong (`taoTimDoiTac`, cổng `coTheTimDoiTac`).
 // Trang không tính tiền, không chọn mức: ô đọc bằng src/shared/so-dai-ly-nhap.ts, chữ ở src/shared/hoa-hong-hien-thi.ts; máy chủ kiểm lại tất cả.
 import {
+  AP_CHO_CHUNG,
+  AP_CHO_THEO_LOAI,
   CAU_DA_SUA_CAP_RIENG,
   CAU_DAT_CAP_RIENG,
+  CAU_GHI_DIEU_KIEN_CAP,
   CAU_THEO_LOAI_KHACH,
+  cachGhiTien,
+  cachGhiTienCuaDong,
   cauCanhBaoDongRieng,
-  cauCanhBaoTheoChinhSach,
   cauCapCuDangKhoa,
   cauCapCuSeNgung,
   CAU_CHON_NGAY_BAT_DAU,
+  NHAN_AP_CHO,
   NHAN_CAP_MOI,
+  NHAN_TINH_BANG,
   NHAN_TU_NGAY,
+  TINH_BANG_PHAN_TRAM,
+  TINH_BANG_SO_TIEN,
   TIEU_DE_DOI_CAP_RIENG,
   cauDaDatCapRieng,
   cauDaDoiCapRieng,
   cauDaNgungCapRieng,
   cauDoiTuNgayMai,
+  cauGioiHanDangAp,
   cauMucCuSeNgung,
   cauNgungCapRieng,
   cauSeTao,
+  cauXemTruocGiaDaiLy,
   cauXemTruocSua,
-  chinhSachCuaLoai,
   coTheTimDoiTac,
   ngayDoiSomNhat,
   nhanDoiTuong,
-  nhanMucDto,
+  nhanMucTheoDonVi,
   nhanPhamVi,
+  tenSauNhanDichVu,
+  type CachGhiTien,
 } from "../src/shared/hoa-hong-hien-thi";
+import { baoSomGioiHan, type GiaBanLe } from "../src/shared/gioi-han-nhap-muc";
 import type { PermissionHolder } from "../src/shared/permissions";
 import { nhanDong, nhanTyLeBp } from "../src/shared/so-dai-ly-nhan";
-import { docLyDoSua, docNgayDong, docThanDoiMuc, docThanDongMucTa, docThanGan, docThanGanRieng, docThanMuc, ngayDongMacDinh, type FormMuc, type LoiO, type PhamViForm } from "../src/shared/so-dai-ly-nhap";
+import { docLyDoSua, docMucXemTruoc, docNgayDong, docThanDoiMuc, docThanDongMucTa, docThanGan, docThanGanRieng, docThanMuc, ngayDongMacDinh, type FormMuc, type LoiO, type PhamViForm } from "../src/shared/so-dai-ly-nhap";
 import { ngayDayDu } from "../src/shared/vn-date";
 import { CAU_DA_CHEP, CAU_KHONG_CHEP_DUOC, CAU_TEN_CO_SAN, GHI_CHU_TOI_DA, cauDangDungCap, cauDangDungLoai, cauDemGhiChu, nhanDauVet, nhanMa } from "../src/shared/hien-thi-ma";
 import { ApiError, api, type Api } from "./api";
@@ -44,7 +56,11 @@ import type { DuLieuHoaHong } from "./hoa-hong";
 import { lyDoLoi, taoBangLoi, taoChonDichVu, taoTimDoiTac, type BangLoi } from "./so-dai-ly-ui";
 
 export interface MoHop {
-  themMuc(dien?: { ai: { loai: "VAI"; code: string } | { loai: "DOI_TAC"; partyId: string; ten: string } | { loai: "MUC"; code: string } }): void;
+  /**
+   * `dien.phamVi` (ADR-0161, bấm một ô của bảng nhập): hàng đã chọn sẵn — hộp thay ba ô chọn dịch vụ bằng một dòng chữ tên hàng và, khi hàng có giá bán lẻ (`unit`, `gia`), hiện giá đại lý xem trước theo mức đang gõ.
+   * Hộp tìm lại cấp và hàng bằng mã, không nhớ DOM của ô.
+   */
+  themMuc(dien?: { ai: { loai: "DOI_TAC"; partyId: string; ten: string } | { loai: "MUC"; code: string }; phamVi?: PhamViHang }): void;
   doi(d: Api.CommissionRuleDto): void;
   /** ADR-0148 Đ1: hỏi máy chủ đường Sửa (GET …/sua) rồi mở hộp Sửa điền sẵn mức cũ; lý do bắt buộc. */
   sua(d: Api.CommissionRuleDto): void;
@@ -64,7 +80,7 @@ export interface MoHop {
   /** Lệnh một bước không cần hộp (Tắt / Bật): gửi, nạp lại trang; trả câu lỗi nguyên văn của máy chủ, hoặc null nếu xong. */
   guiNhanh(path: string, thongBao: string): Promise<string | null>;
   /** Q-8: đặt cấp riêng cho một đối tác (`POST /api/pricing/ho-so/:id/muc-rieng`). `dien` = đối tác đã chọn sẵn (mở từ cụm của đối tác đó); không có thì tìm theo tên. */
-  datCapRieng(dien?: { partyId: string; ten: string }): void;
+  datCapRieng(dien?: { partyId: string; ten: string }, capSan?: string): void;
   /** ADR-0148 Đ1: Sửa một lần gắn cấp riêng (GET rồi POST `/api/pricing/muc-rieng/:id/sua`), lý do bắt buộc. */
   suaCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void;
   /** Ngừng một lần gắn cấp riêng: chọn ngày cuối, `POST /api/pricing/muc-rieng/:id/ket-thuc`. */
@@ -74,6 +90,9 @@ export interface MoHop {
   /** ADR-0151: đổi cấp riêng một lô, `POST /api/pricing/muc-rieng/:id/doi` thân { muc, tuNgay }; cấp cũ khoá thì hộp nói trước giới hạn Đ8. */
   doiCapRieng(g: Api.GanRiengLichSuDto, partyId: string): void;
 }
+
+/** Hàng của bảng nhập đã chọn sẵn cho hộp «Thêm mức» (xem `HangMaTran` ở src/shared/hoa-hong-hien-thi.ts). `ten` = tên hàng như bảng hiện («Mọi dịch vụ», «Nhóm Đảo», tên dịch vụ). */
+export interface PhamViHang { phamVi: "ALL" | "GROUP" | "SERVICE"; code: string | null; ten: string; unit: string | null; gia: GiaBanLe | null }
 
 /** Tham số hộp «Sửa» chung (đặc tả 2026-10-31 §3). `dauVet` = các dòng ai tạo / ai sửa, `soNoi` = câu «Đang dùng…». */
 export interface ThamSuaDanhMuc {
@@ -175,28 +194,43 @@ function moHop(ctx: NguCanhHop, o: { title: string; body: Child[]; nhan: string;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------
-// Khối «Cách tính» + «Hiệu lực» + «Ghi chú» dùng chung cho Thêm mức và Đổi
+// Khối «Tính bằng» + «Áp cho» + «Hiệu lực» + «Ghi chú» dùng chung cho Thêm mức, Đổi và Sửa (ADR-0161 Đ2: hai ô tập đóng thay cho «Cách tính» và ô tích «Tách theo loại khách»)
 
 interface CachTinh {
   readonly root: HTMLElement;
   doc(): { kieu: "RATE" | "PER_PAX"; tyLe: string; moiKhach: string; theoLoai: boolean; treEm: string; nguoiCaoTuoi: string; tuNgay: string; denNgay: string; ghiChu: string };
   /** Gọi khi bất kỳ ô nào đổi. */
   khiDoi(fn: () => void): void;
+  /** Đổi chữ ô số tiền, câu gợi ý và lựa chọn «Riêng từng loại khách» khi phạm vi / dịch vụ của hộp đổi (hộp tự chọn dịch vụ). Không tự phát sự kiện: nơi gọi tự vẽ lại câu «Sẽ tạo». */
+  datCach(c: CachGhiTien): void;
 }
 
-/** `denMacDinh` (hộp Sửa): điền sẵn ngày kết thúc cũ — thiếu nó, sửa riêng con số sẽ lặng lẽ biến dòng có hạn thành không thời hạn. `tuMax`: ngày bắt đầu muộn nhất (Sửa «từ ngày»). */
-function dungCachTinh(o: { tienTo: string; loi: BangLoi; homNay: string; tuMacDinh: string; tuMin: string | null; tuMax?: string | null; denMacDinh?: string | null; san: Api.CommissionRuleDto | null }): CachTinh {
+/** Câu dưới ô «Áp cho» khi chọn phần trăm: vì sao ô bị khoá. */
+const CAU_PHAN_TRAM_CHUNG = "Phần trăm tính trên thành tiền của dịch vụ, nên chỉ có «Mọi khách như nhau».";
+
+/**
+ * `denMacDinh` (hộp Sửa): điền sẵn ngày kết thúc cũ — thiếu nó, sửa riêng con số sẽ lặng lẽ biến dòng có hạn thành không thời hạn. `tuMax`: ngày bắt đầu muộn nhất (Sửa «từ ngày»).
+ * `sauMuc`: các dòng chữ đứng ngay dưới ô nhập mức (giới hạn đang áp, giá đại lý xem trước), trên khối «Thời gian áp dụng».
+ * `cach`: chữ ô số tiền theo phạm vi và đơn vị của dịch vụ (`cachGhiTien`); thiếu thì như cũ («mỗi khách»). Dòng ĐÃ có số theo loại (Đổi, Sửa) vẫn giữ lựa chọn «Riêng từng loại khách» dù dịch vụ tính theo lượt, để không mất dữ liệu.
+ */
+function dungCachTinh(o: { tienTo: string; loi: BangLoi; homNay: string; tuMacDinh: string; tuMin: string | null; tuMax?: string | null; denMacDinh?: string | null; san: Api.CommissionRuleDto | null; cach?: CachGhiTien; sauMuc?: readonly HTMLElement[] }): CachTinh {
   const p = o.tienTo;
-  const kieu = h("select", { id: `${p}-kieu`, "aria-label": "Cách tính" }, h("option", { value: "RATE" }, "Phần trăm"), h("option", { value: "PER_PAX" }, "Số tiền mỗi khách"));
+  const kieu = h("select", { id: `${p}-kieu`, "aria-label": NHAN_TINH_BANG }, h("option", { value: "RATE" }, TINH_BANG_PHAN_TRAM), h("option", { value: "PER_PAX" }, TINH_BANG_SO_TIEN));
+  // «Riêng từng loại khách» là phần tử được gắn / gỡ (không dùng `hidden`: iOS Safari bỏ qua `hidden` của <option>).
+  const luaLoai = h("option", { value: "LOAI" }, AP_CHO_THEO_LOAI);
+  const apCho = h("select", { id: `${p}-ap-cho`, "aria-label": NHAN_AP_CHO }, h("option", { value: "CHUNG" }, AP_CHO_CHUNG), luaLoai);
+  let cach: CachGhiTien = o.cach ?? cachGhiTien({ phamVi: "SERVICE", unit: null });
+  const giuTheoLoai = o.san?.theoLoai != null;
   const tyLe = h("input", { id: `${p}-ty-le`, type: "text", inputMode: "decimal", maxLength: 7, placeholder: "12,5", autocomplete: "off" });
   const moiKhach = h("input", { id: `${p}-moi-khach`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "50.000", autocomplete: "off" });
-  const nhanMoiKhach = h("span", null, "Số tiền mỗi khách (đồng)");
-  const bat = h("input", { id: `${p}-theo-loai`, type: "checkbox", class: "o-tick" });
+  const nhanMoiKhach = h("span", null, cach.nhan);
   const treEm = h("input", { id: `${p}-tre-em`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "Bắt buộc", autocomplete: "off" });
   const nguoiCaoTuoi = h("input", { id: `${p}-nguoi-cao-tuoi`, type: "text", inputMode: "numeric", maxLength: 12, placeholder: "Bắt buộc", autocomplete: "off" });
   const khuTyLe = h("label", null, "Phần trăm (%)", tyLe);
   const haiO = h("div", null, h("div", { class: "grid two" }, h("label", null, "Trẻ em (đồng)", treEm), h("label", null, "Người cao tuổi (đồng)", nguoiCaoTuoi)), h("p", { class: "hint" }, CAU_THEO_LOAI_KHACH));
-  const khuTien = h("div", null, h("label", null, nhanMoiKhach, moiKhach), h("label", { class: "check" }, bat, "Tách theo loại khách"), haiO);
+  const goiY = h("p", { class: "hint", hidden: true });
+  const khuTien = h("div", null, h("label", null, nhanMoiKhach, moiKhach), goiY, haiO);
+  const cauChung = h("p", { class: "hint", hidden: true }, CAU_PHAN_TRAM_CHUNG);
   const tu = h("input", { id: `${p}-tu-ngay`, type: "date", value: o.tuMacDinh });
   if (o.tuMin !== null) tu.min = o.tuMin;
   if (o.tuMax) tu.max = o.tuMax;
@@ -208,12 +242,24 @@ function dungCachTinh(o: { tienTo: string; loi: BangLoi; homNay: string; tuMacDi
   }
   const ghiChu = h("input", { id: `${p}-ghi-chu`, type: "text", maxLength: 200, autocomplete: "off" });
 
+  const theoLoaiBat = (): boolean => kieu.value === "PER_PAX" && apCho.value === "LOAI";
   const ve = (): void => {
+    const cho = cach.coRiengTungLoai || giuTheoLoai;
+    if (cho && luaLoai.parentNode !== apCho) apCho.append(luaLoai);
+    if (!cho && luaLoai.parentNode === apCho) {
+      if (apCho.value === "LOAI") apCho.value = "CHUNG"; // đang chọn mà bị gỡ: về «Mọi khách như nhau» trước khi gỡ
+      luaLoai.remove();
+    }
     const rate = kieu.value === "RATE";
+    if (rate) apCho.value = "CHUNG"; // phần trăm luôn «Mọi khách như nhau»: ô khoá, máy chủ cũng từ chối thân khác
+    apCho.disabled = rate;
+    cauChung.hidden = !rate;
     khuTyLe.hidden = !rate;
     khuTien.hidden = rate;
-    haiO.hidden = !bat.checked;
-    nhanMoiKhach.textContent = bat.checked ? "Người lớn (đồng)" : "Số tiền mỗi khách (đồng)";
+    haiO.hidden = !theoLoaiBat();
+    nhanMoiKhach.textContent = theoLoaiBat() ? "Người lớn (đồng)" : cach.nhan;
+    goiY.textContent = cach.goiY ?? "";
+    goiY.hidden = cach.goiY === null || theoLoaiBat(); // khi tách theo loại, câu dưới ba ô (CAU_THEO_LOAI_KHACH) đã nói chuyện «lượt»
     den.hidden = denChon.value !== "NGAY";
   };
   if (o.san) {
@@ -222,20 +268,29 @@ function dungCachTinh(o: { tienTo: string; loi: BangLoi; homNay: string; tuMacDi
     else {
       moiKhach.value = nhanDong(o.san.moiKhach ?? 0);
       if (o.san.theoLoai) {
-        bat.checked = true;
+        apCho.value = "LOAI";
         treEm.value = nhanDong(o.san.theoLoai.treEm);
         nguoiCaoTuoi.value = nhanDong(o.san.theoLoai.nguoiCaoTuoi);
       }
     }
     ghiChu.value = o.san.ghiChu ?? "";
   }
-  for (const e of [kieu, bat, denChon]) e.addEventListener("change", ve);
+  for (const e of [kieu, apCho, denChon]) e.addEventListener("change", ve);
   ve();
 
   const root = h(
     "div",
     { class: "hh-hop-khoi" },
-    h("div", null, h("label", null, "Cách tính", kieu), khuTyLe, khuTien, o.loi.dong("muc")),
+    h(
+      "div",
+      null,
+      h("div", { class: "grid two" }, h("label", null, NHAN_TINH_BANG, kieu), h("label", null, NHAN_AP_CHO, apCho)),
+      cauChung,
+      khuTyLe,
+      khuTien,
+      o.loi.dong("muc"),
+      ...(o.sauMuc ?? []),
+    ),
     h(
       "fieldset",
       { class: "hh-nhom" },
@@ -250,7 +305,7 @@ function dungCachTinh(o: { tienTo: string; loi: BangLoi; homNay: string; tuMacDi
       kieu: kieu.value === "PER_PAX" ? "PER_PAX" : "RATE",
       tyLe: tyLe.value,
       moiKhach: moiKhach.value,
-      theoLoai: bat.checked,
+      theoLoai: theoLoaiBat(),
       treEm: treEm.value,
       nguoiCaoTuoi: nguoiCaoTuoi.value,
       tuNgay: tu.value,
@@ -260,6 +315,43 @@ function dungCachTinh(o: { tienTo: string; loi: BangLoi; homNay: string; tuMacDi
     khiDoi(fn) {
       root.addEventListener("input", fn);
       root.addEventListener("change", fn);
+    },
+    datCach(c) {
+      cach = c;
+      ve();
+    },
+  };
+}
+
+/** Câu nhắc giới hạn đang áp (null khi trang chưa đọc được giới hạn — hộp vẫn dùng được, máy chủ quyết). */
+function dungCauGioiHan(d: DuLieuHoaHong): HTMLElement | null {
+  return d.gioiHan === null ? null : h("p", { class: "hint", "data-gioi-han": "" }, cauGioiHanDangAp(d.gioiHan));
+}
+
+/** Đơn vị của «số tiền» ở một dòng mức đã có, tra theo danh mục (xem `cachGhiTienCuaDong`). Dùng cho mọi câu nêu mức của dòng: «50.000đ/khách» hay «50.000đ/lượt». */
+export const cachCuaDong = (d: DuLieuHoaHong, dong: Api.CommissionRuleDto): CachGhiTien => cachGhiTienCuaDong(dong, d.dm.dichVu);
+
+/** Giá bán lẻ của dịch vụ mà một dòng đã có áp cho (chỉ phạm vi một dịch vụ còn trong danh mục); không có thì hộp Đổi / Sửa không hiện xem trước. */
+function giaCuaDong(d: DuLieuHoaHong, dong: Api.CommissionRuleDto): { unit: string; gia: GiaBanLe } | null {
+  if (dong.phamVi !== "SERVICE" || dong.catalogCode === null) return null;
+  const sv = d.dm.dichVu.find((x) => x.code === dong.catalogCode);
+  return sv ? { unit: sv.unit, gia: sv.gia } : null;
+}
+
+/**
+ * Giá đại lý xem trước (ADR-0161 Đ2): chỉ khi biết giá bán lẻ của hàng. Số đi qua `cauXemTruocGiaDaiLy` (luật thuần dùng `hoaHongDong`), web không tính; `aria-live` để đọc màn hình nghe được khi gõ.
+ * Trả null khi hàng không có giá (nhóm, mọi dịch vụ, dịch vụ chưa có giá). `capNhat` nhận `ct.doc()` mỗi lần ô đổi.
+ */
+function dungXemTruoc(g: { unit: string; gia: GiaBanLe } | null): { root: HTMLElement; capNhat(f: ReturnType<CachTinh["doc"]>): void } | null {
+  if (g === null) return null;
+  const root = h("p", { class: "hint hh-xem-truoc", "aria-live": "polite", hidden: true });
+  return {
+    root,
+    capNhat(f) {
+      const m = docMucXemTruoc({ kieu: f.kieu, tyLe: f.tyLe, moiKhach: f.moiKhach, theoLoai: f.theoLoai, treEm: f.treEm, nguoiCaoTuoi: f.nguoiCaoTuoi });
+      const cau = m === null ? null : cauXemTruocGiaDaiLy({ unit: g.unit, gia: g.gia, ...m });
+      root.textContent = cau ?? "";
+      root.hidden = cau === null;
     },
   };
 }
@@ -271,7 +363,7 @@ function khungDongRieng(r: Api.GanLoaiMucResponse, d: DuLieuHoaHong): HTMLElemen
   return h(
     "div",
     { class: "sheet-warn", role: "status" },
-    h("div", null, h("p", null, h("strong", null, cauCanhBaoDongRieng(r.gan.loai.ten, r.gan.muc.ten, r.dongRieng.length))), h("ul", { class: "hh-mucta-dong-rieng" }, ...r.dongRieng.map((x) => h("li", null, `${nhanDoiTuong(x.doiTuong).ten} · ${nhanPhamVi(x, d.ten)} · ${nhanMucDto(x)}`))), h("p", null, "Ngừng các mức riêng đó ở thẻ «Vai người dùng».")),
+    h("div", null, h("p", null, h("strong", null, cauCanhBaoDongRieng(r.gan.loai.ten, r.gan.muc.ten, r.dongRieng.length))), h("ul", { class: "hh-mucta-dong-rieng" }, ...r.dongRieng.map((x) => h("li", null, `${nhanDoiTuong(x.doiTuong).ten} · ${nhanPhamVi(x, d.ten)} · ${nhanMucTheoDonVi(x, cachCuaDong(d, x).donVi)}`))), h("p", null, "Ngừng các mức riêng đó ở thẻ «Vai người dùng».")),
   );
 }
 
@@ -283,82 +375,73 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     const loi = taoBangLoi();
     const dich = dien?.ai;
     const laMuc = dich?.loai === "MUC";
-    // ---- Ai được hưởng
+    // ---- Ai được hưởng: một cấp (đã chọn sẵn) hoặc MỘT ĐỐI TÁC. Vai trò chỉ đi qua cấp trên giao diện (ADR-0161 Đ6); route vẫn nhận đích vai trò.
     let ai: HTMLElement;
     let docAi: () => FormMuc["doiTuong"] = () => null;
     let tenAi: () => string = () => "";
-    let tuLoai: () => string | null = () => null;
     if (dich?.loai === "MUC") {
       const tenMuc = d.mucTa.muc.find((m) => m.code === dich.code)?.ten ?? "";
       ai = h("p", null, h("strong", null, `Cấp ${tenMuc}`));
       tenAi = () => `Cấp ${tenMuc}`;
     } else {
-      const loaiVai = h("input", { type: "radio", class: "o-tick", name: "hh-hop-ai", value: "VAI", checked: dich?.loai !== "DOI_TAC" });
-      const loaiDt = h("input", { type: "radio", class: "o-tick", name: "hh-hop-ai", value: "DOI_TAC", checked: dich?.loai === "DOI_TAC" });
-      const vai = h("select", { id: "hh-hop-vai", "aria-label": "Vai người dùng" }, h("option", { value: "" }, "— Chọn vai người dùng —"), ...d.vai.map((v) => h("option", { value: v.code }, v.ten)));
-      if (dich?.loai === "VAI") vai.value = dich.code;
-      const tim = taoTimDoiTac({ choPhep: true, id: "hh-hop-doi-tac" });
+      const tim = taoTimDoiTac({ choPhep: duocTimTen, id: "hh-hop-doi-tac" });
       if (dich?.loai === "DOI_TAC") tim.datChon({ partyId: dich.partyId, ten: dich.ten });
-      const khuVai = h("div", null, vai);
-      const khuDt = h("div", null, tim.root);
-      const veAi = (): void => {
-        khuVai.hidden = !loaiVai.checked;
-        khuDt.hidden = !loaiDt.checked;
-      };
-      loaiVai.addEventListener("change", veAi);
-      loaiDt.addEventListener("change", veAi);
-      veAi();
-      ai = h(
-        "div",
-        null,
-        duocTimTen && h("div", { class: "hh-radio" }, h("label", { class: "check" }, loaiVai, "Vai người dùng"), h("label", { class: "check" }, loaiDt, "Một đối tác")),
-        khuVai,
-        duocTimTen && khuDt,
-      );
-      docAi = () => (loaiDt.checked && duocTimTen ? { loai: "DOI_TAC", partyId: tim.chon()?.partyId ?? "" } : { loai: "VAI", code: vai.value });
-      tenAi = () => (loaiDt.checked && duocTimTen ? (tim.chon()?.ten ?? "") : (d.vai.find((v) => v.code === vai.value)?.ten ?? ""));
-      tuLoai = () => (loaiDt.checked && duocTimTen ? null : vai.value || null);
+      ai = h("div", null, tim.root);
+      docAi = () => ({ loai: "DOI_TAC", partyId: tim.chon()?.partyId ?? "" });
+      tenAi = () => tim.chon()?.ten ?? "";
       tim.khiDoi(() => {
         loi.xoa();
         veCau();
       });
     }
-    // ---- Dịch vụ
-    const pv = h("select", { id: "hh-hop-pham-vi", "aria-label": "Dịch vụ" }, h("option", { value: "ALL" }, "Tất cả dịch vụ"), h("option", { value: "GROUP" }, "Một nhóm"), h("option", { value: "SERVICE" }, "Một dịch vụ"));
-    pv.value = "SERVICE";
-    const nhom = h("select", { id: "hh-hop-nhom", "aria-label": "Nhóm dịch vụ" }, h("option", { value: "" }, "— Chọn nhóm —"), ...d.dm.nhom.map((g) => h("option", { value: g.code }, g.name)));
-    const dv = taoChonDichVu(d.dm, "hh-hop-dich-vu");
-    const khuNhom = h("div", null, nhom);
-    const khuDv = h("div", null, dv.root);
-    const vePv = (): void => {
-      khuNhom.hidden = pv.value !== "GROUP";
-      khuDv.hidden = pv.value !== "SERVICE";
+    // ---- Dịch vụ: hàng đã chọn sẵn (bấm ô của bảng nhập) là một dòng chữ; không thì ba ô chọn như cũ.
+    const ph = dien?.phamVi;
+    let dichVu: HTMLElement;
+    let docDichVu: () => { phamVi: PhamViForm; catalogCode: string; groupCode: string };
+    if (ph) {
+      dichVu = h("div", { class: "hh-pham-vi" }, h("p", null, h("span", { class: "hh-nhan-nho" }, "Dịch vụ"), h("strong", null, ph.ten)), loi.dong("phamVi"));
+      docDichVu = () => ({ phamVi: ph.phamVi, catalogCode: ph.phamVi === "SERVICE" ? (ph.code ?? "") : "", groupCode: ph.phamVi === "GROUP" ? (ph.code ?? "") : "" });
+    } else {
+      const pv = h("select", { id: "hh-hop-pham-vi", "aria-label": "Dịch vụ" }, h("option", { value: "ALL" }, "Tất cả dịch vụ"), h("option", { value: "GROUP" }, "Một nhóm"), h("option", { value: "SERVICE" }, "Một dịch vụ"));
+      pv.value = "SERVICE";
+      const nhom = h("select", { id: "hh-hop-nhom", "aria-label": "Nhóm dịch vụ" }, h("option", { value: "" }, "— Chọn nhóm —"), ...d.dm.nhom.map((g) => h("option", { value: g.code }, g.name)));
+      const dv = taoChonDichVu(d.dm, "hh-hop-dich-vu");
+      const khuNhom = h("div", null, nhom);
+      const khuDv = h("div", null, dv.root);
+      const vePv = (): void => {
+        khuNhom.hidden = pv.value !== "GROUP";
+        khuDv.hidden = pv.value !== "SERVICE";
+      };
+      pv.addEventListener("change", vePv);
+      vePv();
+      dichVu = h("div", { class: "hh-pham-vi" }, h("label", null, "Dịch vụ", pv), khuNhom, khuDv, loi.dong("phamVi"));
+      docDichVu = () => ({ phamVi: pv.value as PhamViForm, catalogCode: pv.value === "SERVICE" ? dv.ma() : "", groupCode: pv.value === "GROUP" ? nhom.value : "" });
+    }
+    const cauGh = dungCauGioiHan(d);
+    const xemTruoc = dungXemTruoc(ph && ph.unit !== null && ph.gia !== null ? { unit: ph.unit, gia: ph.gia } : null);
+    // Chữ ô số tiền theo phạm vi và đơn vị của dịch vụ đang chọn: hàng đã chọn sẵn thì cố định; hộp tự chọn dịch vụ thì đổi theo ô «Dịch vụ» / nhóm / dịch vụ (chưa chọn dịch vụ ⇒ như cũ).
+    const cachHienTai = (): CachGhiTien => {
+      if (ph) return cachGhiTien({ phamVi: ph.phamVi, unit: ph.unit });
+      const f = docDichVu();
+      return cachGhiTien({ phamVi: f.phamVi, unit: f.phamVi === "SERVICE" ? (d.dm.dichVu.find((s) => s.code === f.catalogCode)?.unit ?? null) : null });
     };
-    pv.addEventListener("change", vePv);
-    vePv();
-    const dichVu = h("div", { class: "hh-pham-vi" }, h("label", null, "Dịch vụ", pv), khuNhom, khuDv, loi.dong("phamVi"));
 
-    const ct = dungCachTinh({ tienTo: "hh-hop", loi, homNay: d.homNay, tuMacDinh: d.homNay, tuMin: null, san: null });
+    const ct = dungCachTinh({ tienTo: "hh-hop", loi, homNay: d.homNay, tuMacDinh: d.homNay, tuMin: null, san: null, cach: cachHienTai(), sauMuc: [...(cauGh ? [cauGh] : []), ...(xemTruoc ? [xemTruoc.root] : [])] });
     const cau = h("p", { class: "hint", "aria-live": "polite", hidden: true });
-    const canh = h("p", { class: "sheet-warn", hidden: true });
 
-    const docDichVu = (): { phamVi: PhamViForm; catalogCode: string; groupCode: string } => ({ phamVi: pv.value as PhamViForm, catalogCode: pv.value === "SERVICE" ? dv.ma() : "", groupCode: pv.value === "GROUP" ? nhom.value : "" });
     const docThan = (): ReturnType<typeof docThanMuc> | ReturnType<typeof docThanDongMucTa> => {
       const f = { ...docDichVu(), ...ct.doc() };
       return dich?.loai === "MUC" ? docThanDongMucTa(f) : docThanMuc({ doiTuong: docAi(), ...f });
     };
     const veCau = (): void => {
+      xemTruoc?.capNhat(ct.doc());
       const kq = docThan();
       if (kq.ok) {
         const b = kq.body;
-        const muc = nhanMucDto({ kieu: b.kieu, tyLeBp: "tyLeBp" in b ? b.tyLeBp : null, moiKhach: "moiKhach" in b ? b.moiKhach : null, theoLoai: "theoLoai" in b && b.theoLoai ? { nguoiLon: "moiKhach" in b ? b.moiKhach : 0, treEm: b.theoLoai.treEm, nguoiCaoTuoi: b.theoLoai.nguoiCaoTuoi } : null });
+        const muc = nhanMucTheoDonVi({ kieu: b.kieu, tyLeBp: "tyLeBp" in b ? b.tyLeBp : null, moiKhach: "moiKhach" in b ? b.moiKhach : null, theoLoai: "theoLoai" in b && b.theoLoai ? { nguoiLon: "moiKhach" in b ? b.moiKhach : 0, treEm: b.theoLoai.treEm, nguoiCaoTuoi: b.theoLoai.nguoiCaoTuoi } : null }, cachHienTai().donVi);
         cau.textContent = cauSeTao({ ai: tenAi(), dichVu: nhanPhamVi({ phamVi: b.phamVi, catalogCode: b.catalogCode ?? null, groupCode: b.groupCode ?? null }, d.ten), muc, tu: b.tuNgay, den: b.denNgay ?? null });
         cau.hidden = false;
       } else cau.hidden = true;
-      const code = tuLoai();
-      const cs = code === null ? null : chinhSachCuaLoai(ctx.lay().mucTa, code);
-      canh.textContent = cs ? cauCanhBaoTheoChinhSach(cs.muc.ten) : "";
-      canh.hidden = cs === null;
     };
     moHop(ctx, {
       title: laMuc ? "Thêm hoa hồng cho dịch vụ" : "Thêm mức hoa hồng",
@@ -367,7 +450,6 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
         dichVu,
         ct.root,
         cau,
-        canh,
       ],
       nhan: "Thêm mức",
       chuan() {
@@ -376,16 +458,25 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
           loi.hien(kq.loi);
           return null;
         }
+        const quaGioiHan = baoSomGioiHan(ctx.lay().gioiHan, kq.body); // báo sớm; máy chủ đọc giới hạn mới nhất và vẫn kiểm lại
+        if (quaGioiHan !== null) {
+          loi.hien([{ truong: "muc", message: quaGioiHan }]);
+          return null;
+        }
         loi.xoa();
         const path = dich?.loai === "MUC" ? `/api/pricing/muc-ta/${encodeURIComponent(dich.code)}/dong` : "/api/pricing/hoa-hong";
         return { path, body: kq.body };
       },
       xong: () => ctx.baoOk("Đã thêm mức."),
     });
-    // Câu «Sẽ tạo» và cảnh báo cấp đại lý cập nhật theo mọi thay đổi ở ba khối ô.
-    for (const k of [ai, dichVu, ct.root]) {
-      k.addEventListener("input", veCau);
-      k.addEventListener("change", veCau);
+    // Câu «Sẽ tạo» cập nhật theo mọi thay đổi ở ba khối ô.
+    const khiDichVuDoi = (): void => {
+      ct.datCach(cachHienTai()); // trước veCau: câu «Sẽ tạo» và xem trước đọc ô theo chữ mới
+      veCau();
+    };
+    for (const [k, fn] of [[ai, veCau], [dichVu, khiDichVuDoi], [ct.root, veCau]] as const) {
+      k.addEventListener("input", fn);
+      k.addEventListener("change", fn);
     }
     veCau();
   }
@@ -394,8 +485,15 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     const d = ctx.lay();
     const loi = taoBangLoi();
     const tuSom = ngayDoiSomNhat(dong.tuNgay, d.homNay); // mức cũ bắt đầu hôm nay ⇒ ngày mai (chủ dự án 28/10)
-    const ct = dungCachTinh({ tienTo: "hh-doi", loi, homNay: d.homNay, tuMacDinh: tuSom, tuMin: tuSom, san: dong });
-    const mucCu = nhanMucDto(dong);
+    const cauGh = dungCauGioiHan(d);
+    const xemTruoc = dungXemTruoc(giaCuaDong(d, dong));
+    const cach = cachCuaDong(d, dong);
+    const ct = dungCachTinh({ tienTo: "hh-doi", loi, homNay: d.homNay, tuMacDinh: tuSom, tuMin: tuSom, san: dong, cach, sauMuc: [...(cauGh ? [cauGh] : []), ...(xemTruoc ? [xemTruoc.root] : [])] });
+    if (xemTruoc) {
+      xemTruoc.capNhat(ct.doc());
+      ct.khiDoi(() => xemTruoc.capNhat(ct.doc()));
+    }
+    const mucCu = nhanMucTheoDonVi(dong, cach.donVi);
     const cauCu = h("p", { class: "hint", "aria-live": "polite" }, cauMucCuSeNgung(mucCu, tuSom));
     const cauMai = cauDoiTuNgayMai(dong.tuNgay, d.homNay);
     ct.khiDoi(() => {
@@ -407,7 +505,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       title: "Đổi mức",
       body: [
         h("p", null, h("span", { class: "hh-nhan-nho" }, "Ai được hưởng"), h("strong", null, ten.ten), " ", h("span", { class: "muted" }, ten.loai)),
-        h("p", null, h("span", { class: "hh-nhan-nho" }, "Dịch vụ"), h("strong", null, nhanPhamVi(dong, d.ten))),
+        h("p", null, h("span", { class: "hh-nhan-nho" }, "Dịch vụ"), h("strong", null, tenSauNhanDichVu(dong, d.ten))),
         ct.root,
         cauCu,
         ...(cauMai ? [h("p", { class: "hint" }, cauMai)] : []),
@@ -417,6 +515,11 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
         const kq = docThanDoiMuc(ct.doc());
         if (!kq.ok) {
           loi.hien(kq.loi);
+          return null;
+        }
+        const quaGioiHan = baoSomGioiHan(ctx.lay().gioiHan, kq.body); // Đổi luôn là số mới; máy chủ vẫn kiểm lại
+        if (quaGioiHan !== null) {
+          loi.hien([{ truong: "muc", message: quaGioiHan }]);
           return null;
         }
         loi.xoa();
@@ -450,9 +553,16 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     const d = ctx.lay();
     const loi = taoBangLoi();
     const tuNgay = xt.duong === "HUY_THAY" ? dong.tuNgay : xt.tuNgaySomNhat; // huỷ–thay: giữ được ngày bắt đầu cũ (Q5)
+    const cauGh = dungCauGioiHan(d);
+    const xemTruoc = dungXemTruoc(giaCuaDong(d, dong));
+    const cach = cachCuaDong(d, dong);
     const ct = dungCachTinh({ tienTo: "hh-sua", loi, homNay: d.homNay, tuMacDinh: tuNgay, tuMin: xt.duong === "TU_NGAY" ? xt.tuNgaySomNhat : null, tuMax: xt.duong === "TU_NGAY" ? xt.denNgayToiDa : null,
-      denMacDinh: dong.denNgay, san: dong });
-    const mucCu = nhanMucDto(dong);
+      denMacDinh: dong.denNgay, san: dong, cach, sauMuc: [...(cauGh ? [cauGh] : []), ...(xemTruoc ? [xemTruoc.root] : [])] });
+    if (xemTruoc) {
+      xemTruoc.capNhat(ct.doc());
+      ct.khiDoi(() => xemTruoc.capNhat(ct.doc()));
+    }
+    const mucCu = nhanMucTheoDonVi(dong, cach.donVi);
     const cauCu = h("p", { class: "hint", "aria-live": "polite", hidden: xt.duong === "HUY_THAY" }, xt.duong === "TU_NGAY" ? cauMucCuSeNgung(mucCu, tuNgay) : "");
     if (xt.duong === "TU_NGAY") {
       ct.khiDoi(() => {
@@ -467,7 +577,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
       body: [
         h("p", { class: "hint", role: "status" }, h("strong", null, cauXemTruocSua(xt))),
         h("p", null, h("span", { class: "hh-nhan-nho" }, "Ai được hưởng"), h("strong", null, ten.ten), " ", h("span", { class: "muted" }, ten.loai)),
-        h("p", null, h("span", { class: "hh-nhan-nho" }, "Dịch vụ"), h("strong", null, nhanPhamVi(dong, d.ten))),
+        h("p", null, h("span", { class: "hh-nhan-nho" }, "Dịch vụ"), h("strong", null, tenSauNhanDichVu(dong, d.ten))),
         ct.root,
         cauCu,
         lyDo.root,
@@ -478,6 +588,12 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
         const ld = lyDo.doc();
         if (!kq.ok || !ld.ok) {
           loi.hien([...(kq.ok ? [] : kq.loi), ...(ld.ok ? [] : [{ truong: "lyDo", message: ld.message } satisfies LoiO])]);
+          return null;
+        }
+        // Sửa chỉ kiểm khi SỐ đổi (truyền dòng cũ): dòng cũ vượt giới hạn mới mà chỉ đổi ngày, ghi chú vẫn sửa được — đúng route Sửa của máy chủ.
+        const quaGioiHan = baoSomGioiHan(ctx.lay().gioiHan, kq.body, dong);
+        if (quaGioiHan !== null) {
+          loi.hien([{ truong: "muc", message: quaGioiHan }]);
           return null;
         }
         loi.xoa();
@@ -561,7 +677,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
 
   function ngung(dong: Api.CommissionRuleDto, url: string, moTa?: string): void {
     const ten = nhanDoiTuong(dong.doiTuong);
-    hopNgay({ tuNgay: dong.tuNgay, moTa: moTa ?? `Ngừng mức: ${ten.ten} · ${nhanPhamVi(dong, ctx.lay().ten)} · ${nhanMucDto(dong)}`, url, title: "Ngừng", nhan: "Ngừng", daXong: "Đã ngừng." });
+    hopNgay({ tuNgay: dong.tuNgay, moTa: moTa ?? `Ngừng mức: ${ten.ten} · ${nhanPhamVi(dong, ctx.lay().ten)} · ${nhanMucTheoDonVi(dong, cachCuaDong(ctx.lay(), dong).donVi)}`, url, title: "Ngừng", nhan: "Ngừng", daXong: "Đã ngừng." });
   }
 
   function ngungApDung(gan: Api.GanLoaiMucDto): void {
@@ -607,7 +723,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     const tu = h("input", { id: "hh-adcs-tu", type: "date", value: d.homNay });
     const loi = h("p", { class: "field-error", role: "alert", hidden: true });
     moHop(ctx, {
-      title: loaiCode === undefined ? "Thêm vai trò vào cấp" : "Chọn cấp cho vai trò",
+      title: loaiCode === undefined ? "Gán cho vai trò" : "Chọn cấp cho vai trò",
       body: [h("p", null, h("span", { class: "hh-nhan-nho" }, "Cấp độ đại lý"), h("strong", null, muc.ten)), h("label", null, "Vai người dùng", loai), h("label", null, "Từ ngày", tu), loi],
       nhan: "Lưu",
       chuan() {
@@ -647,13 +763,13 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
     return { root, tu, den: () => (denChon.value === "NGAY" ? den.value : "") };
   };
 
-  function datCapRieng(dien?: { partyId: string; ten: string }): void {
+  function datCapRieng(dien?: { partyId: string; ten: string }, capSan?: string): void {
     const d = ctx.lay();
     const loi = taoBangLoi();
     const tim = dien ? null : taoTimDoiTac({ choPhep: duocTimTen, id: "hh-dcr-doi-tac" });
     tim?.khiDoi(() => loi.xoa());
     const doc = (): { partyId: string; ten: string } => dien ?? { partyId: tim?.chon()?.partyId ?? "", ten: tim?.chon()?.ten ?? "" };
-    const cap = oCapMo("hh-dcr-muc", "");
+    const cap = oCapMo("hh-dcr-muc", capSan ?? ""); // `capSan` (ADR-0166 câu 1): nút «Gán cho đối tác» ở trang chi tiết cấp chọn sẵn cấp đang xem
     const hl = oHieuLuc("hh-dcr", loi, d.homNay, null);
     let gui = "";
     moHop(ctx, {
@@ -799,6 +915,7 @@ export function taoMoHop(ctx: NguCanhHop): MoHop {
         t.coSan && h("p", { class: "hint" }, CAU_TEN_CO_SAN),
         h("label", null, "Ghi chú", ghi),
         dem,
+        !la && h("p", { class: "hint" }, CAU_GHI_DIEU_KIEN_CAP),
         ...t.dauVet.map((x) => h("p", { class: "muted" }, x)),
         h("p", { class: "muted" }, t.soNoi),
       ],

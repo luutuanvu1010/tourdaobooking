@@ -1,3 +1,4 @@
+// GHI CHÚ 11/11/2026 (ADR-0196, Đợt 6A): ca BIÊN LAI CHUYỂN KHOẢN ở bien-lai-smoke.mjs cùng thư mục (cần tài khoản Đối tác của khung dp-lib; tách riêng để chạy tới được dù bước B/C ở đây đỏ sẵn).
 // GHI CHÚ 27/10/2026 (ADR-0135/0136): phần E (ba ô trả trước) hết hiệu lực từ 27/10 (ADR-0135 Đ7). Bước B/C đã đỏ có sẵn (axe `moderate region: #strips`). Chưa sửa, ghi nợ.
 // Kịch bản Chrome — QR thanh toán (ADR-0108; đặc tả docs/superpowers/specs/2026-10-08-qr-thanh-toan/README.md §4.1, §4.2, §7, §8.1, §8.7, §8.10): màn đơn, bảng QR, mục
 // "Tài khoản nhận tiền" ở Danh bạ, lối tắt "Khách đã chuyển khoản", form lập đơn của Toàn quyền. Các ô mã giao dịch của Kế toán nằm ở qr-ma-smoke.mjs.
@@ -21,6 +22,7 @@ import assert from "node:assert/strict";
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, DESK, KHO, MOB, OUT, axeSach, chonGiaTri, chup, chupKhung, docAxe, goiApi, khongRaNgoai, ok, setInput, sleep, startEnv } from "./qr-chung.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const AXE = docAxe();
 const TEN_CT = "Công ty TNHH Tour Đảo";
@@ -156,6 +158,7 @@ try {
   await p.waitFor("!!document.querySelector('#search-form')", "trang Danh bạ dựng xong");
   await moHoSo(p, TEN_CT);
   await p.waitFor(`${hienTai}.length > 0`, "mục dựng xong");
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev(`window.__hoi = []; window.__tra = true; window.confirm = (m) => { window.__hoi.push(m); return window.__tra; }; true`);
   await p.ev(chonGiaTri(`${SEC}.querySelector('select')`, "VCB"));
   await p.ev(setInput(`${SEC}.querySelector('#tknt-so')`, SO_1));
@@ -226,7 +229,7 @@ try {
     assert.deepEqual(d.dong.slice(1), [`Vietcombank · ${SO_1}`, "Chủ tài khoản: CONG TY TNHH TOUR DAO", "Số tiền: 850.000đ", `Nội dung: ${noiDung}`, `Mã đơn: ${don1.orderCode}`]);
     assert.equal(d.amount, "850.000", "ô số tiền hiện số còn lại do máy chủ trả (điền SAU khi mở, không lấy từ dữ liệu lúc tải trang)");
     assert.equal(d.font, "16px", "ô số tiền 16px");
-    assert.deepEqual(d.foot, ["Lưu ảnh", "Khách đã chuyển khoản"]);
+    assert.deepEqual(d.foot, ["Lưu ảnh", "Ghi khoản thu này"]);
     assert.equal(d.lechNgang, false, "không tràn ngang");
     assert.ok(d.cssW <= 289, `ảnh mã ≤ 18rem (đo ${d.cssW})`);
     assert.doesNotMatch(d.dong.join("\n"), /hoa hồng|giá vốn|nợ|NV Bán|Sales/i, "không lộ hoa hồng / giá vốn / người thu");
@@ -259,7 +262,7 @@ try {
     const nutTat = `[...document.querySelectorAll('.sheet-foot button')].map((b) => b.disabled)`;
     assert.deepEqual(await p.ev(nutTat), [false, false], "trước khi gõ: hai nút bật");
     await p.ev(setInput(`document.getElementById('qr-so-tien')`, "100000"));
-    assert.deepEqual(await p.ev(nutTat), [true, true], "gõ số khác ⇒ Lưu ảnh và Khách đã chuyển khoản tắt");
+    assert.deepEqual(await p.ev(nutTat), [true, true], "gõ số khác ⇒ Lưu ảnh và Ghi khoản thu này tắt");
     assert.match(await p.ev(`document.querySelector('[data-khoi="qr-trang-thai"]').textContent`), /Tạo lại mã/);
     await chup(p, `qr-bang-doi-so-chua-tao-lai-${kho}`);
     await p.ev(`document.querySelector('[data-action="qr-tao-lai"]').click(), true`);
@@ -319,6 +322,7 @@ try {
   assert.equal(await tinMuc(p), null, "mở lại hồ sơ: không còn dòng báo cũ");
   await chupKhung(p, "#tai-khoan-nhan-tien", "tai-khoan-da-cai-390");
   await demPut(p);
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev("window.confirm = () => true; true");
   await p.ev(setInput(`${SEC}.querySelector('#tknt-so')`, "abc123"));
   await p.ev(setInput(`${SEC}.querySelector('#tknt-ten')`, "Cong ty Tour Dao"));
@@ -343,6 +347,7 @@ try {
   await p.waitFor("!!document.querySelector('#search-form')", "trang Danh bạ dựng xong");
   await moHoSo(p, TEN_CT);
   await p.waitFor(`${hienTai}.includes(${JSON.stringify(SO_1)})`, "mục dựng xong");
+  await p.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await p.ev(`window.__hoi = []; window.__tra = true; window.confirm = (m) => { window.__hoi.push(m); return window.__tra; }; true`);
   await demPut(p);
   // Đổi: có hộp hỏi lại; chọn Huỷ thì không gửi gì

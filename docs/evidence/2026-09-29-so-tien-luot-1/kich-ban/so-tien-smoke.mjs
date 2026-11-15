@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { ACCOUNTS, clickText, ok, setInput, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // bước 1 khung chung 13/11: trả lời hộp hỏi trong trang (thay confirm() của trình duyệt)
 
 const OUT = "docs/evidence/2026-09-29-so-tien-luot-1/anh";
 mkdirSync(OUT, { recursive: true });
@@ -59,14 +60,15 @@ try {
   await q.ev("document.querySelector('[data-khoi=\"form-lan-thu\"] button[type=\"submit\"]').click(); true");
   await q.waitFor("[...document.querySelectorAll('[data-khoi=\"thanh-toan\"] .kv')].some((k) => k.children[0].textContent === 'Còn lại' && k.children[1].textContent === '0 ₫')", "Còn lại 0 ₫ sau khi ghi", 10000);
   await q.waitFor("document.querySelector('[data-action=\"da-giao\"]') && !document.querySelector('[data-action=\"da-giao\"]').disabled", "nút Đã giao bật");
+  await q.ev(HOP_HOI_TU_DONG); // bước 1 khung chung 13/11: hộp hỏi trong trang thay confirm()
   await q.ev("window.confirm = () => true; document.querySelector('[data-action=\"da-giao\"]').click(); true");
-  await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã ở bước Đã giao – đã thu đủ/.test(n.textContent))", "câu khoá sau Đã giao", 10000);
+  await q.waitFor("[...document.querySelectorAll('.lock-note')].some((n) => /Đơn đã ở bước Khách đã trả đủ/.test(n.textContent))", "câu khoá sau Đã giao", 10000);
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"da-giao\"]')"), false, "hết nút Đã giao");
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"hoan-thanh\"]')"), false, "Quản trị KHÔNG có nút Hoàn thành (order.complete = none)");
   assert.equal(await q.ev("!!document.querySelector('[data-khoi=\"ke-toan\"], [data-action=\"dao-lan-thu\"]')"), false, "Quản trị KHÔNG thấy thao tác Kế toán (ledger.write = none)");
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"ghi-lan-thu\"]')"), false, "đơn đã khoá: không ghi lần thu");
   assert.equal(await q.ev("document.querySelectorAll('.handler-card button').length"), 0, "đơn đã khoá: không nút đổi / nhận người phụ trách");
-  assert.ok(/Đã giao – đã thu đủ/.test(await q.ev("document.body.textContent")), "nhãn trạng thái tiếng Việt");
+  assert.ok(/Khách đã trả đủ/g.test(await q.ev("document.body.textContent")), "nhãn trạng thái tiếng Việt");
   assert.equal(await q.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1"), true, "không tràn ngang 390");
   await q.shot(`${OUT}/3-da-giao-390.png`);
   const errs = [...q.consoleErrors];

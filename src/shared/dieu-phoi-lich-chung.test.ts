@@ -35,7 +35,7 @@ function diemMacDinh(tripId: string): DiemVao[] {
 }
 function vao(v: Partial<LichChungVao> = {}): LichChungVao {
   const diem = (v.chuyen ?? []).flatMap((c) => diemMacDinh(c.id));
-  return { chang: [], nhap: [], chuyen: [], suat: [], diem, chuyenKhac: [], chinhSach: CS, hangBang: HB, dieuKien: [], bayGioMs: BAY_GIO, ...v };
+  return { chang: [], nhap: [], chuyen: [], suat: [], diem, chuyenKhac: [], chinhSach: CS, hangBang: HB, dieuKien: [], choPhepThieu: [], bayGioMs: BAY_GIO, ...v };
 }
 
 test("dungLichChung: chuyến đủ điều kiện (tải, không giữ); chặng xếp đủ 'Đã xếp'; chặng chưa xếp 'Chưa xếp'", () => {
@@ -131,7 +131,7 @@ const diemK = (id: string, tripId: string, loai: "PICKUP" | "DROPOFF", placeKey:
 const vaoK02 = (v: Partial<LichChungVao>): LichChungVao => ({
   chang: [chang("a")], nhap: [], chuyen: [chuyen("t1")], suat: [suat("s1", "a", "t1", { personKey: "a-p1" }), suat("s2", "a", "t1", { personKey: "a-p2" })],
   diem: [diemK("d1", "t1", "PICKUP", "L:noi-d1"), diemK("d9", "t1", "DROPOFF", "L:noi-d9")],
-  chuyenKhac: [], chinhSach: CS, hangBang: HB, dieuKien: [], bayGioMs: ms("2026-09-29", "20:00"), ...v,
+  chuyenKhac: [], chinhSach: CS, hangBang: HB, dieuKien: [], choPhepThieu: [], bayGioMs: ms("2026-09-29", "20:00"), ...v,
 });
 const loaiCb = (r: ReturnType<typeof dungLichChung>, loai: string) => r.canhBao.filter((c) => c.loai === loai).map((c) => `${c.tripId}:${c.orderCode}`);
 

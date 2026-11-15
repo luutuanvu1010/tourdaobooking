@@ -8,7 +8,7 @@
 - Production `https://booking.tourdao.vn`: Cloudflare Worker `tourdao-sales` + D1 `tourdao-sales-db` + Workers Assets; PWA cài lên iPhone ("Tour Đảo Booking").
 - **Độc lập** với repo `tourdaovn` (website công khai): khác Worker, D1, domain. Điểm chạm hiện có: giá trị token màu/font (chỉ sao chép giá trị).
 - TypeScript, giao diện thuần (không React), esbuild, SQLite (D1), Node 22 (chạy `.ts` trực tiếp bằng `node --test`), **không có dependency runtime**.
-- Mười quyền của Nền tảng, một tài khoản có nhiều quyền: `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`, `PARTNER`, `SUPER_ADMIN`, `INTERN`, `DRIVER` (Tài xế công ty — ADR-0040), `DRIVER_PARTNER` (Tài xế đối tác — ADR-0048; đứng một mình, không kèm quyền nào khác), `HR` (Nhân sự — vai Hành chính nhân sự, ADR-0071; chỉ tạo/xem/sửa tài khoản). Từ vựng: `docs/SYSTEM-DESIGN.md` §15.
+- Mười một quyền của Nền tảng, một tài khoản có nhiều quyền: `SALES_MANAGER` (Quản lý bán hàng — ADR-0169; đi kèm `SALES`), `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`, `PARTNER`, `SUPER_ADMIN`, `INTERN`, `DRIVER` (Tài xế công ty — ADR-0040), `DRIVER_PARTNER` (Tài xế đối tác — ADR-0048; đứng một mình, không kèm quyền nào khác), `HR` (Nhân sự — vai Hành chính nhân sự, ADR-0071; chỉ tạo/xem/sửa tài khoản).
 
 ## 2. Thứ tự ưu tiên khi mâu thuẫn (Hiến pháp Điều 3.1)
 Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặc tả → mã. Hiến pháp v2.3.0 nằm ngay trong repo ở `playbook/CONSTITUTION.md` (bản chép chỉ-đọc từ Core, ADR-0012 đã accepted; luật chung thuộc kho luật gốc Master-Project-Framework, ADR-0101; cách dùng và điều cấm: `playbook/PIN-README.md`). **Không sửa `playbook/`.**
@@ -18,7 +18,7 @@ Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặ
 - Tài liệu **mô tả** (`docs/SYSTEM-DESIGN.md`, `docs/DATA-DICTIONARY.md`, `docs/CHANGE-GUIDE.md`) **thua mã**: sửa tài liệu trong cùng commit.
 - **Lệch có chủ ý** đã ghi ở `docs/SYSTEM-DESIGN.md` §16 (mã đúng, tài liệu chuẩn tắc lệch): không sửa mã; giữ ở §16 và trình chủ để ra ADR/dòng lịch sử mới.
 - Không tự hoà giải bằng suy đoán: dừng, nêu xung đột, hỏi chủ.
-- **Luật phiên chung** (FRAMEWORK §4.6): ngưỡng phải là số, không phải tính từ; không có bằng chứng đạt thì coi là trượt (im lặng là trượt); mỗi sự thật một bản, nơi khác chỉ trỏ tới; quyết định ghi ngay lúc quyết; tài liệu dưới trỏ đúng phiên bản tài liệu trên.
+- **Luật phiên chung** (FRAMEWORK §4.6): ngưỡng phải là số, không phải tính từ; không có bằng chứng đạt thì coi là trượt; mỗi sự thật một bản, nơi khác chỉ trỏ tới; quyết định ghi ngay lúc quyết; tài liệu dưới trỏ đúng phiên bản tài liệu trên.
 
 ### Ba khung đối chiếu: Oracle, Kernel 18, MWG (chủ dự án 2026-11-03; ADR-0160)
 Mỗi ADR, đặc tả và lời khuyên có chọn lựa chạm dữ liệu, quyền, tiền, luồng hoặc ranh giới phải có **đoạn Đối chiếu**: chiếu theo Oracle thì làm sao, theo MWG thì làm sao (việc về cách làm với AI thì thêm Anthropic), rồi chọn cách vừa đúng triết lý vừa hợp quy mô Tour Đảo. Mẫu và bảng đủ: `docs/Ref/tieu-chi-doi-chieu.md`; nguồn: `docs/Ref/Oracle-crm-triet-ly-va-checklist.md`, `docs/Ref/MWG-5-tru-cot.md`. Đây là **tiêu chí, không phải tầng luật mới**: lệch thì chuỗi trên thắng, lệch thật thì nêu cho chủ quyết. HC = Hiến chương.
@@ -50,7 +50,7 @@ Mỗi ADR, đặc tả và lời khuyên có chọn lựa chạm dữ liệu, qu
 - Thấy dấu hiệu một nguyên tắc sắp/đang bị vi phạm: nói ngay **một lần**, bằng lời thường (số hiệu điều để trong ngoặc); chủ đã nghe và vẫn quyết thì thi hành, không nhắc lại (P18).
 
 ## 4. Trả lời chủ dự án: ngắn, dễ hiểu, phi kỹ thuật
-Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu trả lời trò chuyện với chủ**. Tài liệu, commit, nhật ký và báo cáo giữa các AI (người kiểm ↔ điều phối) vẫn viết đủ (tệp:dòng, lệnh) để người sau kiểm được.
+Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu trả lời trò chuyện với chủ**. Tài liệu, commit, nhật ký và báo cáo giữa các AI vẫn viết đủ (tệp:dòng, lệnh) để người sau kiểm được.
 - **Kết luận trước** (1–2 câu), rồi điều chủ cần làm hoặc quyết. Sau đó tối đa vài gạch ngắn. Không kể quy trình, không giải thích dài.
 - **Lời thường.** Tránh thuật ngữ, tên tệp, đường dẫn, mã commit, tên hàm, số hiệu điều luật (riêng cảnh báo P18 được để số hiệu trong ngoặc). Bắt buộc dùng thuật ngữ thì kèm giải nghĩa một câu (nói "bản sao Hiến pháp", không nói "pinned copy").
 - **Chi tiết chỉ khi chủ hỏi.** Số liệu, bằng chứng, lệnh đã chạy ghi vào tài liệu/nhật ký; trong câu trả lời chỉ nêu tên một tệp khi chủ cần xem.
@@ -64,9 +64,9 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 | Lệnh | Việc |
 |---|---|
 | `npm run dev` | `wrangler dev` (tự `build:web`); cần `.dev.vars` (mẫu `.dev.vars.example`) và `npm run db:migrate:local` |
-| `npm test` | `node scripts/chay-test.mjs`: bộ chính song song (`src/**/*.test.ts` trừ bài đo giờ của hook) rồi bài đo giờ chạy MỘT MÌNH (`src/claude-guard-thoi-gian.test.ts`); một bước đỏ ⇒ thoát ≠ 0. Một tệp: `node --test src/shared/service-form.test.ts` |
+| `npm test` | `node scripts/chay-test.mjs`: bộ chính song song rồi bài đo giờ của hook (`src/claude-guard-thoi-gian.test.ts`) chạy MỘT MÌNH; một bước đỏ ⇒ thoát ≠ 0. Một tệp: `node --test src/shared/service-form.test.ts` |
 | `npm run typecheck` | `tsc` cho server, `web/`, `web/sw/` — phải **0 lỗi**. **KHÔNG phủ** `src/**/*.test.ts`, `scripts/`, `tests/` (tự đọc lại tệp đó) |
-| `npm run build:web` | esbuild các trang `web/*.ts` (liệt kê trong script) → `public/js/`, `web/sw/sw.ts` → `public/sw.js` (cả hai **gitignored**) |
+| `npm run build:web` | esbuild các trang `web/*.ts` (liệt kê trong script) → `public/js/`, `web/sw/sw.ts` → `public/sw.js` |
 | `npm run test:e2e [-- tên …]` | API thật trên D1 local tạm; **cần mạng** (đọc Sheet thật + siteverify Turnstile); đăng nhập luôn qua `login()`/`session()` của `tests/e2e/lib.mjs`; cuối cùng chạy `audit-invariants` |
 | `node scripts/audit-invariants.mjs --db local\|remote` | bất biến dữ liệu, **chỉ đọc**; thoát 1 = vi phạm, **2 = không chạy được** (không phải dữ liệu sạch) |
 | `npm run dict` | sinh lại `docs/DATA-DICTIONARY.md` từ `docs/data-dictionary.json` |
@@ -82,16 +82,17 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 | Không chắc nên hỏi chủ hay tự quyết; ai được quyết gì | Hiến pháp `playbook/CONSTITUTION.md`: P8, Điều 7.1 và 7.3 |
 | Việc lớn (dữ liệu, quyền, tiền, triển khai, luật, hook): ai kiểm, "xong" là gì | Hiến pháp: N3, N8, N9, P15, P16, Điều 6.1; điều cấm: Điều 5 |
 | Sửa luật, ADR, CLAUDE.md, `playbook/` | Hiến pháp Điều 9; `playbook/PIN-README.md`; `docs/adr/README.md` |
-| Sơ đồ kiến trúc tổng quan (C4: bối cảnh, khối triển khai, các phần máy chủ theo tầng, dữ liệu) | `docs/so-do-kien-truc/README.md` (bản trực quan `tong-the.html`, `van-chuyen.html` cùng thư mục) |
+| Sơ đồ kiến trúc tổng quan (C4) | `docs/so-do-kien-truc/README.md` (bản trực quan `tong-the.html`, `van-chuyen.html` cùng thư mục) |
 | Hệ thống chạy thế nào (máy chủ, đăng nhập, một request) | `docs/SYSTEM-DESIGN.md` §2–§4 |
 | Luồng nghiệp vụ (lập đơn, xác nhận, phân công…) | `docs/SYSTEM-DESIGN.md` §6; nghiệp vụ và quyết định của chủ: `docs/SPEC-tourdao-sales.md`, `docs/superpowers/specs/` |
-| Dữ liệu: bảng, quan hệ, migration | `docs/SYSTEM-DESIGN.md` §5; từng cột: `docs/DATA-DICTIONARY.md` (nguồn `docs/data-dictionary.json`) |
+| Dữ liệu: bảng, quan hệ, migration | `docs/SYSTEM-DESIGN.md` §5; từng cột: `docs/DATA-DICTIONARY.md` |
 | API, quyền, bảo mật | `docs/SYSTEM-DESIGN.md` §7, §8, §11 |
 | Đối chiếu với bộ luật mới và lộ trình nâng ghim | `docs/superpowers/specs/2026-10-05-doi-chieu-bo-luat-v2.md` |
 | Thiết kế mới (dữ liệu, vai, quyền, tiền, luồng) — **đọc đầu tiên** | Hiến chương `docs/ARCHITECTURE.md` Phần I; ba khung đối chiếu §2; hiện trạng `docs/SYSTEM-DESIGN.md` §17 |
 | Kiến trúc: ranh giới module, nơi đặt mã | `docs/ARCHITECTURE.md` Phần II; quyết định đã duyệt: mục lục `docs/adr/README.md` rồi ADR liên quan |
 | Hồ sơ khách/đại lý/đối tác, danh tính | ADR-0001, ADR-0010; đối chiếu Oracle TCA (bản nháp): `docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md` |
-| Giao diện, hệ thống thiết kế (màu, chữ, khoảng cách, thành phần) | token ở đầu `public/app.css`; luật giao diện: `web/CLAUDE.md`; thiết kế màn hình: `docs/superpowers/specs/2026-09-19-a2-giao-dien-design.md`, `docs/SYSTEM-DESIGN.md` §9; iPhone: `docs/PWA-IPHONE.md` |
+| Giao diện, hệ thống thiết kế (màu, chữ, khoảng cách, thành phần) | luật giao diện, thiết kế, iPhone: `web/CLAUDE.md`; token: đầu `public/app.css` |
+| Viết, sửa chữ giao diện; nghĩa của một nút, một từ chuyên ngành | `docs/BANG-THAM-CHIEU.md` (máy sinh, nguồn `src/shared/bang-tham-chieu*.ts`, ADR-0167); cách làm: `docs/CHANGE-GUIDE.md` công thức z34 |
 | Sửa/thêm nhanh: công thức từng loại việc, bẫy | `docs/CHANGE-GUIDE.md`: §1 bảng "muốn … → xem …", rồi đúng công thức ở §2; §3 ma trận "đổi gì → chạy kiểm nào" |
 | Triển khai, áp migration, hoàn tác, trạng thái production | `docs/HANDOFF-N1.md`: mục "TRẠNG THÁI TRIỂN KHAI" ở đầu tệp = hiện trạng; runbook từng lần phát hành; "Việc còn treo / nợ" ở cuối tệp |
 | Lộ trình, việc tiếp theo | `docs/SYSTEM-DESIGN.md` §14; `docs/HANDOFF-N1.md` (Việc còn treo) |
@@ -101,12 +102,13 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 
 ## 7. Quy tắc bắt buộc (chi tiết theo thư mục ở `src/CLAUDE.md`, `web/CLAUDE.md`)
 - **Ngôn ngữ**: giao diện, thông báo lỗi, tài liệu, commit đều **tiếng Việt CÓ DẤU** đầy đủ; không chữ Anh lộ ra người dùng, kể cả mã trạng thái thô như `cancelled`.
+- **Từ ngữ: mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn** (Hiến chương 5.27, ADR-0167): viết, sửa chữ giao diện thì tra `docs/BANG-THAM-CHIEU.md`; chưa có thì đưa 2–3 tên cho chủ chọn, không tự đặt; chữ nút lệch bảng là `npm test` đỏ.
 - **Gọi hệ thống là "Nền tảng", không gọi "App"** (chủ dự án 2026-10-02, nguyên văn: "Từ nay chúng ta ghi thành luật là dùng từ Nền tảng thay cho App"): áp cho trả lời chủ, tài liệu, commit và chữ mới trên giao diện. Tên riêng đã đặt (tên cài lên iPhone "Tour Đảo Booking", "Island Booking System") giữ nguyên.
 - **Kiến trúc** (`src/architecture.test.ts` ép đầy đủ cho module "nghiêm"; module cũ còn ngoại lệ có hạn): module chỉ import module khác qua `index.ts`; chỉ module chủ ghi bảng của mình; đọc xuyên module chỉ qua view `v_<tiền tố>_*`; `src/shared/` và `web/` không import `src/modules/`.
 - **Dữ liệu**: tiền = `INTEGER` VNĐ, dẫn xuất chỉ tính ở **server** (`buildLines`), không tin số tiền từ trình duyệt; ngày/giờ dân sự theo **giờ Việt Nam** (`vnToday`), dấu thời gian ISO UTC; không xoá cứng (hiệu lực bằng `valid_from/to`; ngoại lệ có tên duy nhất: dòng `ord_*` của **đơn nháp** xoá–chèn lại khi lưu nháp — ADR-0047, `XOA_CUNG_NHAP`).
 - **Migration**: chỉ thêm tệp mới, **không sửa tệp đã áp remote**; đổi phá vỡ theo expand–contract trong hai lần phát hành; bảng/cột mới → cập nhật `docs/data-dictionary.json` + `npm run dict`.
-- **Giao diện** (chi tiết `web/CLAUDE.md`): không `innerHTML` (dựng bằng `h()`); giá trị CSS đi vào token; ô gõ 16px; trang mới khai `PAGES` (`src/shared/sw-policy.ts`) và script `build:web`. Sửa giao diện thì chạy lại đúng kịch bản Chrome.
-- **Bảo mật**: mặc định từ chối (route khai `access`; ma trận ở `src/shared/permissions.ts`); POST/PUT/PATCH cần header `Origin` cùng site (thử bằng curl phải tự thêm); nhật ký **không ghi** SĐT/email/MST (**nhật ký cũ trên production vẫn còn số**, đừng sao chép kiểu cũ; chi tiết `src/CLAUDE.md`); bí mật chỉ qua `wrangler secret put` / `.dev.vars` (gitignored), **không** commit khoá, không nạp bí mật vào ngữ cảnh khi không cần (N10).
+- **Giao diện** (chi tiết `web/CLAUDE.md`): không `innerHTML` (dựng bằng `h()`); giá trị CSS đi vào token; ô gõ 16px; trang mới khai `PAGES` và script `build:web`. Sửa giao diện thì chạy lại đúng kịch bản Chrome (`docs/KICH-BAN-CHROME.md`).
+- **Bảo mật**: mặc định từ chối (route khai `access`; ma trận ở `src/shared/permissions.ts`); POST/PUT/PATCH cần header `Origin` cùng site (thử bằng curl phải tự thêm); nhật ký **không ghi** SĐT/email/MST (nhật ký cũ còn số, đừng chép kiểu cũ: `src/CLAUDE.md`); bí mật chỉ qua `wrangler secret put` / `.dev.vars` (gitignored), **không** commit khoá, không nạp bí mật vào ngữ cảnh khi không cần (N10).
 - **Kiểm thử**: sửa hành vi → viết test **đỏ trước, xanh sau**; luật thuần có `*.test.ts` cạnh tệp; hành vi API có kịch bản `tests/e2e`. Chạm API/migration thì chạy cả e2e.
 
 ## 8. Git, triển khai, an toàn

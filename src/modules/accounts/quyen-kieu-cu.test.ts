@@ -19,7 +19,7 @@ function setup() {
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: HR, phone: "0900000004", name: "Nhân sự", perms: ["HR"] });
   seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
-  seedStaff(w.sqlite, { id: CU, phone: "0900000009", name: "Đối tác cũ", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: CU, phone: "0900000009", name: "Đối tác cũ", perms: ["PARTNER"], kieuCu: true }); // chưa gán vai trò (ADR-0185: hình dạng kiểu cũ)
   seedStaff(w.sqlite, { id: BH, phone: "0900000008", name: "Bán hàng cũ", perms: ["SALES"] });
   return w;
 }
@@ -83,7 +83,7 @@ test("1b: LC-1b giữ nguyên câu riêng — Tài xế đối tác + quyền kh
   assert.deepEqual(openPerms(w, CU), ["PARTNER"]);
 });
 
-test("1b: POST /api/staff không vai (đường quyền cũ) — tập lai → 400 câu dễ hiểu cho cả Toàn quyền lẫn HCNS, không tạo tài khoản; tập một phía vẫn 201", async () => {
+test("1b: POST /api/staff không vai (đường quyền cũ) — tập lai → 400 câu dễ hiểu cho cả Toàn quyền lẫn HCNS, không tạo tài khoản; tập một phía nội bộ vẫn 201, một phía bên ngoài 400 (ADR-0185)", async () => {
   const w = setup();
   const [perms, logs] = [permRows(w), logRows(w)];
   let so = 400;
@@ -98,9 +98,14 @@ test("1b: POST /api/staff không vai (đường quyền cũ) — tập lai → 4
   }
   assert.equal(permRows(w), perms);
   assert.equal(logRows(w), logs);
-  const ok = await w.call("POST", "/api/staff", { as: HR, body: { fullName: "Đối Tác Đường Cũ", phone: "0911000499", permissions: ["PARTNER"], taoHoSoMoi: true } });
+  // ADR-0185 Đ2: tài khoản Đối tác qua đường cũ nay 400 (tạo theo vai trò); tài khoản một phía nội bộ vẫn 201.
+  const ngoai = await w.call("POST", "/api/staff", { as: HR, body: { fullName: "Đối Tác Đường Cũ", phone: "0911000499", permissions: ["PARTNER"], taoHoSoMoi: true } });
+  assert.equal(ngoai.status, 400, ngoai.text);
+  assert.equal(ngoai.json.error.code, "invalid_input");
+  assert.equal(staffByPhone(w, "0911000499"), 0);
+  const ok = await w.call("POST", "/api/staff", { as: HR, body: { fullName: "Bán Hàng Đường Cũ", phone: "0911000498", permissions: ["SALES"], taoHoSoMoi: true } });
   assert.equal(ok.status, 201, ok.text);
-  assert.deepEqual(openPerms(w, ok.json.staff.id), ["PARTNER"]);
+  assert.deepEqual(openPerms(w, ok.json.staff.id), ["SALES"]);
 });
 
 test("1e (ADR-0083 bổ sung): POST /api/staff gán VAI nội bộ + cộng tay Đối tác → 400, không tạo tài khoản", async () => {

@@ -38,3 +38,13 @@ test("chữ tĩnh dự phòng (tên, MST, địa chỉ) khớp dữ liệu gieo 
   assert.equal(chuTrong(/<span id="company-tax"[^>]*>([^<]*)<\/span>/, "#company-tax").replace(/[^0-9-]/g, ""), ho.tax_code, "MST");
   assert.equal(chuan(chuTrong(/<span class="login-address"[^>]*>([^<]*)<\/span>/, ".login-address")), chuan(ho.address), "địa chỉ");
 });
+
+test("dòng «Hỗ trợ kỹ thuật» (ADR-0202): có #support a để web/login.ts thay bằng SĐT hỗ trợ đã lưu; chữ tĩnh dự phòng = SĐT mặc định của nội dung màn bảo trì", async () => {
+  const { MAINTENANCE_CONTENT_DEFAULT, phoneVnText } = await import("./shared/maintenance.ts");
+  const m = /<div id="support"[^>]*>.*?<a href="tel:(\d+)">([^<]+)<\/a>/.exec(html);
+  assert.ok(m, "public/login.html thiếu #support a");
+  assert.equal(m[1], MAINTENANCE_CONTENT_DEFAULT.sdt);
+  assert.equal(m[2], phoneVnText(MAINTENANCE_CONTENT_DEFAULT.sdt));
+  const loginTs = readFileSync(new URL("../web/login.ts", import.meta.url), "utf8");
+  assert.match(loginTs, /supportPhone/, "web/login.ts phải đọc supportPhone từ cấu hình");
+});

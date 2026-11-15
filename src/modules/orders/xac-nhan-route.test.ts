@@ -3,6 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { hanXacNhan } from "../../shared/xac-nhan-don.ts";
+import { KHUNG_MAC_DINH } from "../../shared/ban-hang-phu-trach.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { A, B, ACC, SUP, INTERN, datCo, inDays, lap, leg, setup, svc, vnSau } from "../../../tests/audit/xac-nhan-khung.mjs";
 
@@ -21,12 +22,12 @@ test("gửi xác nhận: đơn có dịch vụ cần xác nhận → 201, yêu c
   assert.equal(y.length, 1);
   assert.equal(y[0].decided_at, null);
   assert.equal(y[0].submitted_by, A);
-  assert.equal(y[0].deadline_at, hanXacNhan(y[0].submitted_at));
-  // Hạn kiểm ĐỘC LẬP với chính hàm hanXacNhan (bài không phụ thuộc giờ thật): ít nhất 15 phút, và đúng 15 phút khi gửi trong khung ngày 06:00–21:40 giờ VN.
+  assert.equal(y[0].deadline_at, hanXacNhan(y[0].submitted_at, KHUNG_MAC_DINH));
+  // Hạn kiểm ĐỘC LẬP với chính hàm hanXacNhan (bài không phụ thuộc giờ thật): ít nhất 15 phút, và đúng 15 phút khi gửi trong giờ hành chính (07:00–16:45 giờ VN, ADR-0142 Đ5).
   const dau = Date.parse(y[0].submitted_at);
   const phutVn = new Date(dau + 7 * 3600e3).getUTCHours() * 60 + new Date(dau).getUTCMinutes();
   assert.ok(Date.parse(y[0].deadline_at) - dau >= 15 * 60_000);
-  if (phutVn >= 6 * 60 && phutVn <= 21 * 60 + 40) assert.equal(Date.parse(y[0].deadline_at) - dau, 15 * 60_000);
+  if (phutVn >= 7 * 60 && phutVn <= 16 * 60 + 45) assert.equal(Date.parse(y[0].deadline_at) - dau, 15 * 60_000);
   assert.equal(r.json.yeuCau.id, y[0].id);
   assert.equal(r.json.yeuCau.hanLuc, y[0].deadline_at);
   assert.deepEqual(r.json.yeuCau.vi, ["DICH_VU"]);
@@ -77,7 +78,7 @@ test("`/status` xác nhận đơn cần xác nhận → 409 confirm_request_requ
   const s1 = await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } });
   assert.equal(s1.status, 409, s1.text);
   assert.equal(s1.json.error.code, "confirm_request_required");
-  assert.equal(s1.json.error.message, "Đơn có dịch vụ cần xác nhận, hãy bấm Gửi xác nhận.");
+  assert.equal(s1.json.error.message, "Đơn có dịch vụ cần xác nhận, hãy bấm Gửi kiểm vé.");
   assert.equal((await gui(w, o.id, A)).status, 201);
   for (const body of [{ status: "confirmed" }, { status: "cancelled", reason: "KHACH_DOI_Y" }]) {
     const s = await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body });
@@ -161,7 +162,7 @@ test("Đ3 chưa có khoản thu: số đã thu > 0 → 409 confirm_blocked_has_p
       assert.equal(mo(w, o.id).length, 0);
       assert.equal(w.q("SELECT status FROM orders WHERE id = ?", o.id)[0].status, "draft");
     }
-    if (ma === "confirm_blocked_has_payment") assert.equal(r.json.error.message, "Đơn đã có khoản thu nên chưa gửi xác nhận được. Hãy báo Kế toán.");
+    if (ma === "confirm_blocked_has_payment") assert.equal(r.json.error.message, "Đơn đã có khoản thu nên chưa gửi kiểm vé được. Hãy báo Kế toán.");
   }
 });
 

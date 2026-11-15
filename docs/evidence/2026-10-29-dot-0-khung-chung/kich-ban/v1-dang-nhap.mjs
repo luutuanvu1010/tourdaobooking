@@ -148,6 +148,7 @@ async function openLogin(env, { vp = M, bypassSW = true, blocked = [], before = 
   p.t0 = Date.now();
   await p.send("Page.navigate", { url: env.base + "/login" });
   await p.waitFor("document.readyState === 'complete'", "trang đăng nhập tải xong");
+  assert.equal(await p.ev("document.getElementById('session-ended-banner').hidden"), true, "mở /login lần đầu (máy chưa từng đăng nhập): không câu «đã bị đăng xuất» (G-03a)");
   return p;
 }
 /** Chờ widget dựng xong và tự đạt: khung widget có mặt, ô token có giá trị, nút Đăng nhập mở. */

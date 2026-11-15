@@ -1,3 +1,6 @@
+// GHI CHÚ 5/11 (ADR-0142, Task 7): thẻ `chuaPhuTrach` nay ghi «Đơn chưa có HDV nhận» (nút «Xem đơn» cho Bán hàng, «Phân công» cho Quản trị); thẻ MỚI `chuaBanHang`
+//   «Đơn chưa có người phụ trách» chỉ hiện khi có đơn quá thời gian ưu tiên — dữ liệu của tệp này không gieo đơn như vậy nên danh sách khoá thẻ ở các bước Quản trị giữ nguyên.
+//   Thẻ `donCho` bỏ dòng phụ «quá hạn». Phần thẻ mới do ban-hang-phu-trach-smoke.mjs kiểm; tệp này CHƯA chạy lại (giới hạn của Task 7).
 // BẢN CHÉP (đợt 0 khung chung, 29/10/2026) của docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs — hồ sơ có ngày giữ nguyên.
 // Sửa theo vỏ mới (đặc tả đợt 0): token --w-main nay là var(--w-noi-dung-max) (đọc qua một bậc var); các chỗ khác ghi «đợt 0» tại dòng sửa. Mặc định OUT=/tmp/trang-chu-smoke.
 // GHI CHÚ 27/10/2026 (ADR-0135/0136): đỏ từ 27/10: hàm `createAndConfirm` nhận 409 `confirm_request_required` (chặng dưới mốc nay đi qua bước xác nhận / người lập tự đặt gấp trước). Phần xác nhận đơn thay bằng `docs/evidence/2026-10-26-xac-nhan-don/kich-ban/xac-nhan-smoke.mjs`; muốn chạy tiếp phải đặt gấp từng chặng rồi xác nhận lại (chưa sửa, ghi nợ).
@@ -319,11 +322,11 @@ try {
         const v = el.querySelector('.dash-so-gt');
         const cs = getComputedStyle(v);
         const oneLine = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
-        return { label: el.querySelector('.dash-so-nhan span').textContent.trim(), value: v.textContent.trim(), sub: el.querySelector('.dash-so-phu').textContent.trim(), shown: vis(el), wrapped: v.getBoundingClientRect().height > oneLine + 1, href: el.getAttribute('href') };
+        return { label: el.querySelector('.dash-so-nhan span').textContent.trim(), value: v.textContent.trim(), sub: el.querySelector('.dash-so-phu').textContent.trim(), shown: vis(el), tran: v.getBoundingClientRect().right > el.getBoundingClientRect().right - parseFloat(getComputedStyle(el).paddingRight) + 0.5, phaiSo: Math.round(v.getBoundingClientRect().right), phaiVung: Math.round(el.getBoundingClientRect().right - parseFloat(getComputedStyle(el).paddingRight)), wrapped: v.getBoundingClientRect().height > oneLine + 1, href: el.getAttribute('href') };
       });
       const grid = document.querySelector('#dash-grid');
       // Bản vẽ "Trang chu Quan tri.dc.html" (1.73): MỘT thẻ số liệu #dash-so-mt, bốn ô — Còn thiếu tiền, Chờ xác nhận, Chưa phụ trách, Doanh thu của tôi
-      // (chữ phụ "Tuần này · dd/mm–dd/mm · N đơn" + biểu đồ bên phải). Số ĐẦY ĐỦ ("12.345.000 ₫"); điện thoại vẫn dùng #dash-so (số rút gọn).
+      // (chữ phụ "Tuần này · dd/mm–dd/mm · N đơn" + biểu đồ bên phải). Số ĐẦY ĐỦ ("12.345.000 ₫"); điện thoại #dash-so cũng viết số đủ từ G-06d (trước đó rút gọn).
       const statsMt = [...document.querySelectorAll('#dash-so-mt .dash-smt-o')].map((el) => {
         const valueEl = el.querySelector('.dash-smt-gt');
         const cs = getComputedStyle(valueEl);
@@ -540,10 +543,11 @@ try {
       assert.equal(m.soShown, true, `${label}: khối số liệu 2×2 (#dash-so) phải hiển thị thật — ${JSON.stringify(m)}`);
       // Ô thứ ba «Đơn nháp» / «Nháp của bạn, chưa xác nhận» (đổi từ «Chờ xác nhận» ở commit 00ecef1f, ADR-0135 nháp riêng tư, 26/10).
       assert.deepEqual(m.so.map((s) => s.label), ["Còn thiếu", "Doanh thu của tôi", "Đơn nháp", "Chưa phụ trách"], `${label}: bốn ô số liệu đúng thứ tự bản vẽ — ${JSON.stringify(m.so)}`);
-      assert.deepEqual(m.so.map((s) => s.value), ["12,34tr ₫", "12,64tr ₫", "1", String(data.unassignedCount)], `${label}: giá trị bốn ô (tiền rút gọn vndShort; số đơn nháp; số chưa phụ trách khớp API) — ${JSON.stringify(m.so)}`);
+      assert.deepEqual(m.so.map((s) => s.value), ["12.345.000 ₫", "12.645.000 ₫", "1", String(data.unassignedCount)], `${label}: giá trị bốn ô (tiền đủ kiểu vnd, G-06d; số đơn nháp; số chưa phụ trách khớp API) — ${JSON.stringify(m.so)}`);
       assert.deepEqual(m.so.map((s) => s.sub), ["1 đơn", "Tuần này · 2 đơn", "Nháp của bạn, chưa xác nhận", "Chờ người nhận"], `${label}: dòng phụ bốn ô — ${JSON.stringify(m.so)}`);
       assert.ok(m.so.every((s) => s.shown && s.href === "/orders"), `${label}: bốn ô hiển thị thật và dẫn tới /orders — ${JSON.stringify(m.so)}`);
       assert.deepEqual(m.so.filter((s) => s.wrapped), [], `${label}: số của ô (.dash-so-gt) không được xuống dòng ("₫" rơi khỏi số — kiểm gộp I-3) — ${JSON.stringify(m.so)}`);
+      assert.deepEqual(m.so.filter((s) => s.tran), [], `${label}: số của ô (.dash-so-gt) TRÀN vùng nội dung ô (mép phải số > mép phải ô trừ padding phải, sai số 0,5px; số nowrap, còn phần tràn bị cắt/che vì ô cha .dash-so có overflow hidden) — ${JSON.stringify(m.so.map((s) => ({ nhan: s.label, gt: s.value, phaiSo: s.phaiSo, phaiVung: s.phaiVung })))}`);
 
       // Đợt D Task 2 — mockup mobile (390px) KHÔNG có biểu đồ trong ô "Doanh thu của tôi" (chỉ 1 trong 4 ô rút gọn của
       // lưới 2×2): biểu đồ vẫn còn trong DOM (không xoá — giữ đơn giản, không dựng hai bản) nhưng PHẢI ẩn bằng CSS.
@@ -696,7 +700,7 @@ try {
   const ADMIN_NAV = [
     "Trang chủ", "Đơn hàng", "Danh bạ",
     "Điều phối xe", "Đề nghị chuyển khách", "Xe đang chạy", "Xe & giấy tờ", "Giá & chi phí", // đợt 0 Task 7: «Đề nghị chuyển khách» lên sau «Điều phối xe» (cùng khối gập «Điều phối»)
-    "Điều chỉnh công nợ", "Hoa hồng đối tác", "Luật bán", "Người bán dịch vụ", "Chụp bù mức", "Vé điện tử", // 3/11: + «Vé điện tử» (kho vé, bản 2.57) ⇒ 25 mục, Thiết lập 13; 30/10 (kế hoạch ADR-0146/0152 T11, T12): + «Luật bán» (sau «Hoa hồng đối tác»), + «Đặc điểm dịch vụ» (sau «Dịch vụ & giá») ⇒ 24 mục, Thiết lập 12; sổ đại lý đợt 2 Task 12 (19/10): + "Chụp bù mức" (ô order.terms.override) ⇒ 21 mục, Thiết lập 9
+    "Điều chỉnh công nợ", "Hoa hồng đối tác", "Cấp độ đại lý", "Luật bán", "Người bán dịch vụ", "Chụp bù mức", "Vé điện tử", // 4/11: + «Cấp độ đại lý» (ô partner.commission.write) ⇒ 26 mục; 3/11: + «Vé điện tử» (kho vé, bản 2.57) ⇒ 25 mục, Thiết lập 13; 30/10 (kế hoạch ADR-0146/0152 T11, T12): + «Luật bán» (sau «Hoa hồng đối tác»), + «Đặc điểm dịch vụ» (sau «Dịch vụ & giá») ⇒ 24 mục, Thiết lập 12; sổ đại lý đợt 2 Task 12 (19/10): + "Chụp bù mức" (ô order.terms.override) ⇒ 21 mục, Thiết lập 9
     "Dịch vụ & giá", "Đặc điểm dịch vụ", "Địa điểm", "Loại giấy tờ cá nhân", "Loại giấy tờ xe", "Lý do điều phối", "Chính sách điều phối", "Quản lý tài khoản", // ADR-0128 Q1 (17/10): Quản trị có «Chính sách điều phối» — đỏ sẵn trước Task 12, sửa theo số đo 19/10
     "Của tôi", "Hỗ trợ", "Nhật ký thay đổi",
   ];
@@ -714,15 +718,15 @@ try {
       sidebarOverflow: document.querySelector('#sidebar').scrollWidth - document.querySelector('#sidebar').clientWidth,
     };
   })()`);
-  assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 25 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
+  assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 26 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
   // 2/10 (ADR-0055 VK2-A, Vận chuyển Đợt 3): + "Lịch xe bận" (ô vehicle.manage, sau "Xe") ⇒ 18 trên main; gộp main ffed6f1c vào Đợt 4 (5/10): 18 + 2 mục tiền xe thuê ⇒ 20; gộp Đợt 4 vào Đợt 5 (5/10): + "Xe đang chạy" (ô trip.view, sau "Điều phối xe") ⇒ 21.
   // Sổ đại lý đợt 1 (12/10): + "Hoa hồng đối tác", "Người bán dịch vụ" ⇒ 23; gói A5 (ADR-0111): + "Đề nghị chuyển khách" (ô trip.override, sau "Xe đang chạy") ⇒ 24 (ghép main 1c471990 vào gói A+C, 12/10); ADR-0115 (13/10): + "Điều chỉnh công nợ" ⇒ 25 (số đã đo bằng Chrome 13/10 ở dieu-chinh-smoke.mjs).
-  assert.equal(navMeasure.linkCount, 25 /* 30/10 T11+T12: +2; 3/11 Vé điện tử: +1 */, `Thanh điều hướng dọc (ADMIN) phải có 22 mục .sidebar-item (+ nút Tạo đơn = 21 theo bảng THANH_BEN; số ĐO bằng Chrome 15/10, menu theo việc) — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  assert.equal(navMeasure.linkCount, 26 /* 30/10 T11+T12: +2; 3/11 Vé điện tử: +1; 4/11 Cấp độ đại lý: +1 */, `Thanh điều hướng dọc (ADMIN) phải có 22 mục .sidebar-item (+ nút Tạo đơn = 21 theo bảng THANH_BEN; số ĐO bằng Chrome 15/10, menu theo việc) — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
   assert.deepEqual(navMeasure.taoDon, [], /* đợt 0 §5.4: bỏ nút nổi bật «Tạo đơn» khỏi thanh bên (nút ở thanh trên) */ `Thanh điều hướng dọc (ADMIN): đúng một nút nổi bật "Tạo đơn" — ${JSON.stringify(navMeasure.taoDon)}`);
   assert.deepEqual(navMeasure.tieuDe, ["VẬN CHUYỂN", "TIỀN"], `Thanh điều hướng dọc (ADMIN): hai tiêu đề nhóm (HẰNG NGÀY không tiêu đề; THIẾT LẬP là nút thu gọn) — ${JSON.stringify(navMeasure.tieuDe)}`);
   // Nhóm Thiết lập ĐÓNG mặc định với vai không đứng ở trang thuộc nhóm đó (thietLapMoSan): 8 mục nằm trong DOM nhưng ẩn.
-  assert.deepEqual(navMeasure.thietLap, { dong: true, anTrongNhom: true, dem: "13 · 1 lệch giá" /* 30/10 T11+T12: +2; 3/11 Vé điện tử: +1 */ }, `Thanh điều hướng dọc (ADMIN): nhóm Thiết lập đóng mặc định, ẩn thân nhóm, đếm 8 + "1 lệch giá" (dữ liệu T3: TD101 đổi giá) — ${JSON.stringify(navMeasure.thietLap)}`);
-  assert.equal(navMeasure.anCount, 15 /* 30/10 T11+T12: +2 trong Thiết lập; 3/11 Vé điện tử: +1 */, /* đợt 0 §5.4: + 2 mục của khối gập «Điều phối» (đóng ở Trang chủ) */ `Thanh điều hướng dọc (ADMIN): đúng 10 mục ẩn (cả nhóm Thiết lập) — ${JSON.stringify(navMeasure)}`);
+  assert.deepEqual(navMeasure.thietLap, { dong: true, anTrongNhom: true, dem: "14 · 1 lệch giá" /* 30/10 T11+T12: +2; 3/11 Vé điện tử: +1 */ }, `Thanh điều hướng dọc (ADMIN): nhóm Thiết lập đóng mặc định, ẩn thân nhóm, đếm 8 + "1 lệch giá" (dữ liệu T3: TD101 đổi giá) — ${JSON.stringify(navMeasure.thietLap)}`);
+  assert.equal(navMeasure.anCount, 16 /* 30/10 T11+T12: +2 trong Thiết lập; 3/11 Vé điện tử: +1; 4/11 Cấp độ đại lý: +1 */, /* đợt 0 §5.4: + 2 mục của khối gập «Điều phối» (đóng ở Trang chủ) */ `Thanh điều hướng dọc (ADMIN): đúng 10 mục ẩn (cả nhóm Thiết lập) — ${JSON.stringify(navMeasure)}`);
   assert.ok(navMeasure.scrollOverflow <= 1, `Thanh điều hướng máy tính: trang không được tràn ngang — lệch ${navMeasure.scrollOverflow}px`);
   assert.ok(navMeasure.topbarOverflow <= 1, `Thanh điều hướng máy tính: #topbar tự nó không được tràn ngang (flex-wrap phải nhận đủ) — lệch ${navMeasure.topbarOverflow}px`);
   assert.ok(navMeasure.sidebarOverflow <= 1, `Thanh điều hướng dọc: #sidebar tự nó không được tràn ngang — lệch ${navMeasure.sidebarOverflow}px`);
@@ -1066,7 +1070,7 @@ try {
   }
   {
     const FRAME_PAGES = [
-      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 23 }, // 3/11 Vé điện tử: +1 (Quản trị). 30/10 T11+T12: + «Luật bán», «Đặc điểm dịch vụ» trong Thiết lập (mở) ⇒ 20 + 2. đợt 0 §5.4: khối gập «Điều phối» (2 mục) đóng ⇒ 22 − 2. MENU THEO VIỆC 15/10: /staff nằm trong nhóm Thiết lập ⇒ nhóm MỞ ⇒ thấy đủ 20 .sidebar-item của Quản trị (số đếm trong DOM; bảng THANH_BEN: 21 gồm nút Tạo đơn)
+      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 24 }, // 4/11 Cấp độ đại lý: +1 (Quản trị). 3/11 Vé điện tử: +1 (Quản trị). 30/10 T11+T12: + «Luật bán», «Đặc điểm dịch vụ» trong Thiết lập (mở) ⇒ 20 + 2. đợt 0 §5.4: khối gập «Điều phối» (2 mục) đóng ⇒ 22 − 2. MENU THEO VIỆC 15/10: /staff nằm trong nhóm Thiết lập ⇒ nhóm MỞ ⇒ thấy đủ 20 .sidebar-item của Quản trị (số đếm trong DOM; bảng THANH_BEN: 21 gồm nút Tạo đơn)
       {
         // PHẢI là đơn NHÁP (R2). Đơn đã xác nhận (R1/R3) bị web/order-form.ts khoá form ("Chỉ sửa được đơn ở trạng
         // thái nháp") và KHÔNG gọi setBarTitle(`Sửa đơn <mã>`) — breadcrumb kẹt ở chữ "Sửa đơn" ngắn, lưới xanh giả.
@@ -1094,7 +1098,7 @@ try {
         ready: `document.querySelector('.toolbar select option[value]:not([value=""])') !== null`,
         mainCap: () => CSS_W_MAIN,
         account: TOAN_QUYEN,
-        sidebar: 30, // 3/11: + «Vé điện tử», «Cài đặt vé điện tử» (Toàn quyền). 30/10 T11+T12: + 2 mục Thiết lập (mở). đợt 0 §5.4: − 2 mục khối gập «Điều phối» (đóng). Task 12 sổ đại lý đợt 2: + "Chụp bù mức". MENU THEO VIỆC 15/10: /audit (Nhật ký) nằm trong nhóm Thiết lập ⇒ nhóm MỞ ⇒ thấy đủ 27 `.sidebar-item` của Quản trị + Toàn quyền (bảng THANH_BEN: 28 gồm nút Tạo đơn)
+        sidebar: 32, // 4/11: + «Cấp độ đại lý»; + «Giới hạn nhập hoa hồng» (ADR-0161, số cũ chưa cộng). 3/11: + «Vé điện tử», «Cài đặt vé điện tử» (Toàn quyền). 30/10 T11+T12: + 2 mục Thiết lập (mở). đợt 0 §5.4: − 2 mục khối gập «Điều phối» (đóng). Task 12 sổ đại lý đợt 2: + "Chụp bù mức". MENU THEO VIỆC 15/10: /audit (Nhật ký) nằm trong nhóm Thiết lập ⇒ nhóm MỞ ⇒ thấy đủ 27 `.sidebar-item` của Quản trị + Toàn quyền (bảng THANH_BEN: 28 gồm nút Tạo đơn)
       },
     ];
 

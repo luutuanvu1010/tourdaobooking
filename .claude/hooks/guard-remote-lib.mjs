@@ -29,6 +29,14 @@ const RULES = [
     reason: "wrangler d1 ghi/đọc-dữ-liệu không kèm --local",
     unlessLocal: true, // chỉ miễn khi có --local NGAY TRONG đoạn lệnh đó (tách theo && || ; | xuống dòng)
   },
+  {
+    // ADR-0162 (Task 5): kho tệp hồ sơ chứa ảnh giấy tờ của người; liệt kê từng lệnh `r2` cấm thì sót (vd `bucket dev-url enable` mở kho ra ngoài),
+    // nên CHẶN MẶC ĐỊNH mọi `wrangler r2`, chỉ miễn `bucket list`, `bucket info` và lệnh có `--local` NGAY TRONG đoạn lệnh đó (e2e dùng `object … --local`).
+    id: "wrangler-r2-mac-dinh-chan",
+    re: new RegExp(`${WRANGLER}(?:\\s+\\S+){0,3}?\\s+r2(?![\\w-])(?!\\s+bucket\\s+(?:list|info)(?![\\w-]))`),
+    reason: "wrangler r2 (kho tệp; chỉ `r2 bucket list`, `r2 bucket info` và lệnh có --local được chạy)",
+    unlessLocal: true,
+  },
   { id: "npm-migrate-remote", re: /(?<![\w-])(?:npm|pnpm|yarn|bun)(?:\s+\S+){0,3}?\s+db:migrate:remote(?![\w-])/, reason: "npm run db:migrate:remote" },
   { id: "npm-dev-remote", re: /(?<![\w-])(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?dev\s+--\s+.*--remote(?![\w-])/, reason: "npm run dev -- --remote (D1 thật)" },
   { id: "import-staff-remote", re: /import-staff\.mjs[^\n;&|]*--db[ =]+remote/, reason: "import-staff.mjs --db remote (ghi tài khoản lên production)" },
@@ -40,13 +48,13 @@ const RULES = [
     id: "release-owner-only",
     re: new RegExp(
       [
-        "(?<![\\w-])(?:npm|pnpm|yarn|bun)(?:\\s+\\S+){0,3}?\\s+run(?:-script)?(?:\\s+-\\S+)*\\s+(?:day-len|trien-khai)(?![\\w-])",
-        "(?<![\\w-])(?:pnpm|yarn|bun)(?:\\s+-\\S+)*\\s+(?:day-len|trien-khai)(?![\\w-])",
-        "(?<![\\w-])(?:node|nodejs|bun|deno)(?:\\s+\\S+){0,4}?\\s+\\S*scripts\\/(?:day-len|trien-khai)\\.mjs(?![\\w-])",
-        "(?:^|[;&|(\\n])\\s*(?:\\w+=\\S*\\s+)*(?:exec\\s+)?\\S*scripts\\/(?:day-len|trien-khai)\\.mjs(?![\\w-])",
+        "(?<![\\w-])(?:npm|pnpm|yarn|bun)(?:\\s+\\S+){0,3}?\\s+run(?:-script)?(?:\\s+-\\S+)*\\s+(?:day-len|trien-khai|len-chinh-thuc|lam-moi-dev)(?![\\w-])",
+        "(?<![\\w-])(?:pnpm|yarn|bun)(?:\\s+-\\S+)*\\s+(?:day-len|trien-khai|len-chinh-thuc|lam-moi-dev)(?![\\w-])",
+        "(?<![\\w-])(?:node|nodejs|bun|deno)(?:\\s+\\S+){0,4}?\\s+\\S*scripts\\/(?:day-len|trien-khai|len-chinh-thuc|lam-moi-dev)\\.mjs(?![\\w-])",
+        "(?:^|[;&|(\\n])\\s*(?:\\w+=\\S*\\s+)*(?:exec\\s+)?\\S*scripts\\/(?:day-len|trien-khai|len-chinh-thuc|lam-moi-dev)\\.mjs(?![\\w-])",
       ].join("|"),
     ),
-    reason: "npm run day-len / npm run trien-khai (lệnh chủ dự án tự gõ: git push, áp migration remote, wrangler deploy)",
+    reason: "npm run day-len / trien-khai / len-chinh-thuc / lam-moi-dev (lệnh chủ dự án tự gõ: git push, áp migration remote, wrangler deploy, lên bản chính thức, xoá sạch bản Development)",
     // Đuôi riêng: hai lệnh này tự từ chối khi không có terminal thật (TTY), nên KHÔNG gợi ý `! <lệnh>` như DENY_TAIL chung.
     tail: " Theo CLAUDE.md (mục Git, triển khai, an toàn) AI không được chạy lệnh này. Chủ dự án tự gõ nó trong ứng dụng Terminal của macOS (terminal thật, có TTY), đứng ở thư mục gốc repo trên nhánh main — không chạy qua AI, kể cả dạng gõ `!` trong phiên Claude Code.",
   },

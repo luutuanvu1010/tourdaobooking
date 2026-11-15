@@ -17,8 +17,516 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Phí đưa đón, Đợt A + B (ADR-0147 Đ1–Đ2, ADR-0203 ĐB1–ĐB2; 15/11): hai migration 0164, 0165; chưa cộng phí vào đơn nào.
+    // SỐ TẠM 3.7 (sau 3.6 đã lên production): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.7",
+    date: "2026-11-15",
+    items: [
+      { kind: "moi", text: "Quản trị có thêm «Khu vực đón» trong trang Địa điểm để gom các điểm đón theo vùng." },
+      { kind: "moi", text: "Màn «Phí đưa đón» cho đặt mức theo khu vực, cấp độ đại lý, dịch vụ hoặc nhóm dịch vụ; có «Thử tra» và «Đặt ngày bắt đầu áp». Phí chưa được cộng vào đơn." },
+    ],
+  },
+  {
+    // Bước 2 lưới bố cục chung (kế hoạch 2026-11-14; chủ duyệt 15/11 «Duyệt, bám trái»): một lề trang mỗi khổ, ba mức bề rộng nội dung (hẹp 720, vừa 1120, rộng),
+    // một nhịp 16 giữa các khối, thanh bên máy tính có chỗ từ lần vẽ đầu. Chỉ giao diện, không migration, không đổi máy chủ.
+    // SỐ TẠM 3.6 (sau 3.5 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.6",
+    date: "2026-11-15",
+    items: [
+      { kind: "doi", text: "Bố cục các trang đều hơn: lề hai bên rộng hơn ở iPad và máy tính, biểu mẫu và trang thiết lập không còn giãn hết màn rộng, khoảng cách các khối bằng nhau." },
+      { kind: "sua", text: "Ở máy tính, mở trang không còn bị thanh bên đẩy nội dung sang ngang." },
+    ],
+  },
+  {
+    // Chủ dự án 14/11 (sau khi lên 3.4): «ở giao diện điện thoại cần kéo, như thế là ngoài phạm vi». Thẻ gọn lại, ô đăng nhập thu sau nút «Quản trị đăng nhập» (tên chủ chọn 14/11). Chỉ giao diện.
+    // SỐ TẠM 3.5: main có 3.4; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.5",
+    date: "2026-11-14",
+    items: [
+      { kind: "sua", text: "Trang đăng nhập khi đang bảo trì vừa một màn hình điện thoại, không phải kéo; ô đăng nhập mở bằng nút «Quản trị đăng nhập»." },
+    ],
+  },
+  {
+    // Chủ dự án 14/11 («Có, làm như vậy»): người chưa đăng nhập thấy đúng thẻ bảo trì như bản xem trước; ô đăng nhập ngay dưới cho Toàn quyền. Chỉ giao diện, không migration.
+    // SỐ TẠM 3.4: main có 3.3 (bước 1 khung chung); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.4",
+    date: "2026-11-14",
+    items: [
+      { kind: "doi", text: "Khi đang bảo trì, trang đăng nhập hiện đúng thẻ bảo trì như bản xem trước của Toàn quyền, có đồng hồ đếm ngược và nút liên hệ." },
+    ],
+  },
+  {
+    // Bước 1 khung chung giao diện (kế hoạch 2026-11-13, chủ duyệt «Làm cả hai», «Theo khuyến nghị», «Làm tiếp cả hai»): vùng bấm ảnh đại diện, dải đầu trang hai
+    // dòng ở điện thoại, thanh nút Lưu khi màn thấp, bỏ hộp hỏi của trình duyệt, chống nhảy bố cục (tệp đầu trang giu-cho-dai). Không migration, không đổi máy chủ.
+    // SỐ TẠM 3.3 (sau 3.2 của main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.3",
+    date: "2026-11-14",
+    items: [
+      { kind: "doi", text: "Các câu hỏi «có chắc không» nay hiện ngay trong Nền tảng; nút đỏ mang đúng tên việc sắp làm, nút còn lại là «Giữ nguyên»." },
+      { kind: "doi", text: "Trên điện thoại, dải thông báo ở đầu trang gọn còn tối đa hai dòng; bấm «Xem» để đọc đủ." },
+      { kind: "sua", text: "Trang không còn giật khi dải thông báo hoặc dữ liệu hiện ra sau, nhất là Quản lý tài khoản, Danh bạ, Dịch vụ và giá, Vé điện tử." },
+      { kind: "sua", text: "Điện thoại xoay ngang: nút Lưu nằm cuối biểu mẫu, không còn che ô đang gõ." },
+      { kind: "sua", text: "Ô chữ cái tên bạn ở góc trên điện thoại dễ bấm hơn." },
+    ],
+  },
+  {
+    // Chủ dự án 14/11 (sau khi lên 3.1): «vẫn khác rất xa so với bản mockup ở Desktop, đồng thời, số điện thoại lại hiện 2 lần». Chỉ giao diện, không migration.
+    // SỐ TẠM 3.2: main có 3.1; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.2",
+    date: "2026-11-14",
+    items: [
+      { kind: "sua", text: "Trang Tôi ở máy tính: mục Chế độ bảo trì trải ngang, xem trước khung điện thoại nằm bên phải như bản mẫu, hiện đủ tiêu đề và đếm theo giờ thật." },
+      { kind: "sua", text: "Số điện thoại hỗ trợ không còn hiện hai lần ở trang Tôi và trang đăng nhập." },
+    ],
+  },
+  {
+    // ADR-0202 bổ sung (chủ 13/11, «Có, nối luôn»): GET /api/auth/config luôn có supportPhone; dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập dùng số đó. Không migration.
+    // SỐ TẠM 3.1: main có 3.0; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.1",
+    date: "2026-11-13",
+    items: [
+      { kind: "doi", text: "Dòng «Hỗ trợ kỹ thuật» ở trang đăng nhập nay hiện số hỗ trợ Toàn quyền đã lưu ở «Nội dung màn bảo trì», không còn số cố định." },
+    ],
+  },
+  {
+    // Bản mẫu 2c của chủ dự án (13/11/2026; ADR-0202 accepted, chủ «Duyệt cả hai»): nội dung màn bảo trì do Toàn quyền tự sửa — migration 0162 (cột mnt_setting.content_json).
+    // Trần gói trang Đơn hàng 113.492 → 114.524: chủ duyệt cùng lời «Duyệt cả hai» (đo trước khi gộp chi tiết dịch vụ). SỐ TẠM 3.0 (sau 2.99 như 1.97 → 2.0): main có 2.99 (chi tiết dịch vụ); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.0",
+    date: "2026-11-13",
+    items: [
+      { kind: "moi", text: "Trang Tôi › Chế độ bảo trì có khung «Nội dung màn bảo trì»: Toàn quyền tự sửa chữ, số điện thoại hỗ trợ, Zalo, website và chọn khối nào hiện, có xem trước." },
+    ],
+  },
+  {
+    // Sửa «Ghi khoản thu» điền sẵn số Còn lại (chủ 13/11) + ADR-0201 Đ1, Đ3 (chủ duyệt 13/11, «Duyệt»): chi tiết dịch vụ — tên hiển thị, mô tả, ảnh đại diện.
+    // Migration 0160 (ctl_service_detail) + kho R2 MỚI `tourdao-sales-anh-dich-vu` (chủ tạo trước khi triển khai; cổng 1e dừng nếu thiếu). SỐ TẠM 2.99: main có 2.98 (màn bảo trì); bước A.0 đặt lại số và ngày.
+    version: "2.99",
+    date: "2026-11-13",
+    items: [
+      { kind: "sua", text: "«Ghi khoản thu»: ô số tiền điền sẵn số Còn lại, chỉ cần bấm «Ghi»; khách trả khác thì sửa lại, form báo ngay phần thiếu hoặc dư." },
+      { kind: "moi", text: "Màn Dịch vụ và Giá có nút «Sửa chi tiết»: đặt tên hiển thị, mô tả, ảnh đại diện cho từng dịch vụ. Đơn mới dùng tên hiển thị; đơn cũ giữ tên cũ." },
+    ],
+  },
+  {
+    // Màn bảo trì mới theo bản mẫu 2a của chủ dự án (13/11/2026). Không migration, không đổi máy chủ. Trần gói trang Đơn hàng 111.589 → 113.492: chủ duyệt
+    // 13/11 trong chat, nguyên văn «Duyệt nới 1,9 KB». SỐ TẠM 2.98: main có 2.97; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.98",
+    date: "2026-11-13",
+    items: [
+      { kind: "doi", text: "Màn «Hệ thống đang bảo trì» làm mới: đồng hồ đếm ngược, giờ mở lại, nút gọi và nhắn Zalo cho quản trị viên. Mở lại xong thì màn tự báo «Đã mở lại»." },
+    ],
+  },
+  {
+    // ADR-0182 phần B (chủ duyệt 13/11, «Duyệt, phát hành ngay»; chữ theo khuyến nghị; xây trên TNV-G1 + HC-5.19, khoá xay_tren_cho_phep_adr_0182_b — KHÔNG chờ diễn tập).
+    // Trần gói trang Đơn hàng 111.444 → 111.589 (+145, ba ô quyền mới): chủ duyệt 13/11 trong phiên soạn ADR (chat), nguyên văn «Duyệt nới trần gói Đơn hàng cho ba ô quyền phần B».
+    // Migration 0159 (khoản nộp + ảnh biên lai khoản nộp, cùng kho R2 ảnh biên lai của ADR-0196). SỐ TẠM 2.97: main có 2.96; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.97",
+    date: "2026-11-13",
+    items: [
+      { kind: "moi", text: "Đơn đối tác đã xác nhận: trong «Xem công nợ với Tour Đảo» có nút «Đã chuyển tiền» để gửi số tiền đã chuyển kèm ảnh biên lai; Kế toán xác nhận rồi mới trừ nợ." },
+      { kind: "moi", text: "Kế toán thấy các khoản nộp đang chờ ở trang Sổ công nợ, mở đơn để «Xác nhận đã nhận» hoặc «Từ chối» kèm lý do. Đối tác thấy lý do khi bị từ chối." },
+      { kind: "doi", text: "Đơn trả ngay của đối tác mở vé khi Tour Đảo đã nhận và xác nhận đủ giá đại lý, không phải chờ đủ giá bán lẻ." },
+      { kind: "sua", text: "Sửa hoa hồng sau khi khách đã trả đủ nay làm đổi đúng số công nợ của đối tác." },
+    ],
+  },
+  {
+    // ADR-0182 phần A (chủ duyệt 12/11, «Duyệt, chọn cách 1»; chữ theo khuyến nghị; xây trên TNV-G1 có lời chủ «Cho phép, có lý do»): công nợ đại lý theo giá đại lý, hai phiếu. KHÔNG migration.
+    // SỐ TẠM 2.96: main có 2.95 (ADR-0198, chưa triển khai); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.96",
+    date: "2026-11-12",
+    items: [
+      { kind: "doi", text: "Số đối tác còn nợ Tour Đảo nay tính theo giá đại lý (giá bán trừ hoa hồng) ngay từ khi đơn được xác nhận, nên phần trả sau còn dùng được rộng hơn." },
+      { kind: "moi", text: "Đơn của đối tác có nút «Xem công nợ với Tour Đảo»: phiếu ghi giá đại lý, số đã thu, số còn lại và mã QR đúng số còn lại để chuyển khoản từng đơn." },
+      { kind: "doi", text: "Nút gửi khách của đối tác nay là «Tạo biên nhận cho khách» (giá bán lẻ, không mã QR, không số tài khoản). Đối tác không còn nút «QR thanh toán»." },
+    ],
+  },
+  {
+    // ADR-0198 (chủ duyệt 12/11, «Duyệt, chọn cách 1»; chữ theo cột «Khuyến nghị»): đối tác không thấy số hạn mức trả sau; đơn mới của đối tác chọn sẵn «Trả sau». KHÔNG migration.
+    // SỐ TẠM 2.95: main có 2.94; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.95",
+    date: "2026-11-12",
+    items: [
+      { kind: "doi", text: "Đối tác được trả sau không còn thấy con số hạn mức. Ô lập đơn chỉ ghi «Bạn được trả sau»; mục «Trả sau của tôi» ghi số giờ phải trả, giờ ân hạn và số đang nợ." },
+      { kind: "doi", text: "Đơn mới do đối tác lập được chọn sẵn «Trả sau» khi đối tác đang được trả sau. Muốn trả ngay thì bấm «Thanh toán ngay»." },
+    ],
+  },
+  {
+    // Đợt 6A kế hoạch sửa sau rà soát lần 2: ADR-0196 (chủ duyệt 11/11) — ảnh biên lai chuyển khoản bắt buộc. Migration 0158, kho R2 tourdao-sales-bien-lai (chủ đã tạo 12/11).
+    // SỐ TẠM 2.94: main có 2.93 (chưa triển khai); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.94",
+    date: "2026-11-12",
+    items: [
+      { kind: "moi", text: "Đối tác ghi khoản thu «Công ty thu, chuyển khoản» thì phải kèm ảnh hoặc tệp PDF biên lai chuyển khoản. Tiền mặt và «Tôi thu» không cần ảnh." },
+      { kind: "moi", text: "Kế toán bấm «Xem biên lai» ở dòng khoản thu để đối chiếu trước khi xác nhận đã nhận tiền. Khoản thu vẫn chờ Kế toán xác nhận như cũ." },
+    ],
+  },
+  {
+    // Sửa vùng chạm ô tích mục «Nút thanh dưới» (ADR-0187 Đ2.3) — chỉ CSS, KHÔNG migration. Bằng chứng docs/evidence/2026-11-12-o-tick-thanh-duoi/.
+    // SỐ TẠM 2.93: main có 2.92 (Đợt 6B đã lên production 12/11); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.93",
+    date: "2026-11-12",
+    items: [
+      { kind: "sua", text: "Ô chọn ở mục «Nút thanh dưới» trang Tôi to hơn, dễ bấm trên điện thoại." },
+    ],
+  },
+  {
+    // Đợt 6B kế hoạch sửa sau rà soát lần 2: ADR-0197 (chủ duyệt 11/11, tên ô phương án 1, luật huỷ phương án c1). KHÔNG migration. Phát hành ngay khi xong (khoá xay_tren_cho_phep_adr_0197).
+    // SỐ TẠM 2.92: main có 2.91; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.92",
+    date: "2026-11-11",
+    items: [
+      { kind: "doi", text: "Ô «Khách đặt cọc trước» nay tên «Khách đặt cọc cho đối tác» và có cả khi chọn «Trả sau». Tiền cọc ở tay đối tác, không làm giảm số nợ với Công ty." },
+      { kind: "doi", text: "Đơn trả sau đã xác nhận còn tiền cọc ở tay đối tác thì đối tác không tự huỷ được; Quản trị, Toàn quyền hoặc Hướng dẫn viên phụ trách đơn huỷ giúp." },
+      { kind: "doi", text: "Đơn trả sau còn tiền cọc ở tay đối tác thì chưa bấm «Xác nhận khách đã trả đủ» được; đối tác nộp cọc về Công ty xong mới bấm được." },
+    ],
+  },
+  {
+    // Đợt 5B của kế hoạch sửa sau rà soát lần 2 (ADR-0193), CÓ migration 0157 (bảng chính sách chỉ thêm, gieo Bật). Chủ chọn phát hành trước buổi diễn tập khôi phục (11/11).
+    // SỐ TẠM 2.91: main có 2.90 (Đợt 5A đã lên production 11/11); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.91",
+    date: "2026-11-11",
+    items: [
+      { kind: "moi", text: "Toàn quyền có nút «Tắt bắt buộc giờ đón» ở trang Tôi (mặc định đang bật). Khi tắt, văn phòng xác nhận được đơn có đón của đối tác mà chưa cần ghi giờ." },
+      { kind: "doi", text: "Đơn có lượt đón chưa có giờ mà ngày đón đã sát hạn chốt (ví dụ đón ngay hôm nay) thì phải điền giờ đón trước rồi mới xác nhận được." },
+    ],
+  },
+  {
+    // Đợt 5A kế hoạch sửa sau rà soát lần 2: ADR-0191 (PIN đầu), ADR-0192 (giữ chữ khi hết phiên), chủ duyệt 9/11. KHÔNG migration.
+    // SỐ TẠM 2.90: main có 2.89; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.90",
+    date: "2026-11-10",
+    items: [
+      { kind: "doi", text: "Nhân sự tạo tài khoản Bán hàng thì không thấy PIN; Quản trị bấm «Đặt lại PIN» rồi giao PIN tận tay cho người mới." },
+      { kind: "doi", text: "Nhân sự không gán thêm vai trò xem được thông tin khách cho tài khoản có sẵn; nhờ Quản trị hoặc Toàn quyền gán." },
+      { kind: "sua", text: "Hết hạn đăng nhập giữa lúc lập hoặc sửa đơn: đăng nhập lại trong 30 phút, cùng tài khoản, là chữ đã gõ còn nguyên." },
+      { kind: "sua", text: "Đối tác bấm «Gửi đơn» đúng lúc hết hạn đăng nhập: đăng nhập lại sẽ về trang đơn vừa tạo, không tạo đơn trùng." },
+    ],
+  },
+  {
+    // Đợt 3 «chữ do chủ chọn» của kế hoạch sửa sau rà soát lần 2 (phiếu Phụ lục B, phương án (1); câu khoá vé dùng dự phòng B-2), KHÔNG migration.
+    // SỐ TẠM 2.89: main có 2.88 (ADR-0195 và lời nhắc màn chỉnh); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.89",
+    date: "2026-11-10",
+    items: [
+      { kind: "sua", text: "Khi đơn đang giữ vì thiếu mức hoa hồng, câu báo nói rõ cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng đó." },
+      { kind: "doi", text: "Đối tác còn tiền khách chưa nộp về Công ty thấy câu «Vé mở sau khi Công ty ghi nhận bạn đã nộp tiền.» thay cho câu cũ." },
+      { kind: "doi", text: "Màn Dịch vụ cần kiểm vé: công tắc có chữ «Cần kiểm vé» kèm dòng nói theo nhóm hay đặt riêng; nhóm có mũi tên và số vé." },
+      { kind: "doi", text: "Bấm «Ngừng bán» một dịch vụ thì Nền tảng hỏi lại trước khi ngừng." },
+      { kind: "sua", text: "Lập đơn có dịch vụ đã ngừng bán thì Nền tảng bảo chọn dịch vụ khác." },
+      { kind: "doi", text: "Nút đặt gấp đổi tên thành «Ghi đặt gấp»." },
+      { kind: "sua", text: "Một số câu khó hiểu được viết lại: câu chờ kiểm vé, câu chưa tới ngày đi, câu danh sách đơn trống, câu loại đối tác tạo trước 31/10/2026." },
+      { kind: "doi", text: "Trang chủ trên điện thoại viết số tiền đầy đủ, ví dụ «2.800.000 ₫»." },
+      { kind: "sua", text: "Bị đăng xuất giữa chừng vì hết hạn đăng nhập thì trang đăng nhập báo rõ để bạn đăng nhập lại." },
+    ],
+  },
+  {
+    // Sửa lời nhắc ở màn chỉnh giao diện của Toàn quyền (ADR-0195). KHÔNG migration. Số 2.88: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.88",
+    date: "2026-11-10",
+    items: [
+      { kind: "doi", text: "Màn chỉnh giao diện của Toàn quyền nhắc rõ: ô «Ghi chú của dịch vụ» là chỗ Đối tác ghi giờ đón, chỉ nên ẩn ở dòng «Dịch vụ không đón»." },
+    ],
+  },
+  {
+    // ADR-0195 (accepted 10/11): ẩn/hiện trường theo điều kiện «không đón / có đón» và thêm trường ở Chi tiết đơn, tài khoản, Hỗ trợ. Migration 0156. SỐ TẠM 2.87: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.87",
+    date: "2026-11-10",
+    items: [
+      { kind: "moi", text: "Toàn quyền chọn ẩn ghi chú, số hiệu chuyến bay ở từng dịch vụ, riêng cho dịch vụ không đón hoặc có đón; ẩn thêm vài dòng ở Chi tiết đơn, tài khoản, Hỗ trợ." },
+    ],
+  },
+  {
+    // Đợt 2 kế hoạch sửa sau rà soát lần 2: ADR-0188 (T-03), ADR-0189 (Q-05), ADR-0190 (R3d), chủ duyệt 9/11. KHÔNG migration. Số 2.86: main đã có 2.84 (vé Tour Đảo
+    // Đợt 2) và 2.85 (ADR-0194 đợt 1); bước A.0 đặt lại số và ngày nếu nhánh khác (Đợt 3) nhập trước.
+    version: "2.86",
+    date: "2026-11-10",
+    items: [
+      { kind: "doi", text: "Đơn trả sau đã xác nhận chỉ đổi bên đặt sang đối tác có hạn mức trả sau còn hiệu lực, không có đơn quá hạn; gộp hồ sơ có đơn trả sau cũng vậy." },
+      { kind: "doi", text: "Tài xế quên bấm «Kết thúc»: từ 0 giờ ngày thứ hai sau ngày xe chạy, màn chuyến ẩn tên, số liên hệ của khách và nhắc bấm «Kết thúc»." },
+      { kind: "doi", text: "Chỉ Quản trị, Toàn quyền ngừng dùng hoặc dùng lại hồ sơ khách, đại lý; Bán hàng, Kế toán vẫn sửa tên, liên hệ. Nhật ký ghi rõ «ngừng dùng», «dùng lại»." },
+    ],
+  },
+  {
+    // ADR-0194 đợt 1 (accepted 9/11): bảng điều khiển hiện/ẩn/bắt buộc trường của Toàn quyền. Migration 0154. SỐ TẠM 2.85: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.85",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Toàn quyền chọn trường nào hiện, ẩn hay bắt buộc theo từng quyền ở màn Tạo đơn và vài cột phụ. Chỉnh trong trang Giao diện, có nút khôi phục mặc định." },
+    ],
+  },
+  {
+    // Vé Tour Đảo Đợt 2 (ADR-0175): quét vé và đối chiếu. KHÔNG có migration mới ngoài 0155_ve_quet. Bước A.0 ngày 9/11 (sau 2.83 của Đợt 1 sửa nhỏ). Mọi dịch vụ vẫn «Vé hãng ngoài» cho tới khi chủ gạt ô «Vé do ai phát».
+    version: "2.84",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Trang «Quét vé»: Hướng dẫn viên, Tài xế dùng camera quét mã vé Tour Đảo; xanh cho đi, vàng cần xác nhận, đỏ từ chối; có nút chụp ảnh dự phòng." },
+      { kind: "moi", text: "Đơn có ô «Đã dùng» theo từng dịch vụ; màn «Đối chiếu vé» so số khách theo đơn với số vé đã dùng trong ngày; Quản trị bỏ được lượt quét nhầm." },
+      { kind: "doi", text: "Đơn đã có vé Tour Đảo được quét thì không huỷ được và không giảm số khách xuống dưới số vé đã dùng; muốn huỷ thì bỏ lượt quét trước." },
+    ],
+  },
+  {
+    // Đợt 1 «sửa nhỏ» của kế hoạch sửa sau rà soát lần 2 (9/11), KHÔNG migration. SỐ TẠM 2.83: production/main đang 2.82; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "2.83",
+    date: "2026-11-09",
+    items: [
+      { kind: "sua", text: "Khi Nền tảng báo lỗi hệ thống, câu báo có kèm mã lỗi để bạn chụp gửi Quản trị." },
+      { kind: "doi", text: "Đối tác bấm «Gửi đơn» mà chưa chọn Đón hay Không đón thì đơn chưa được lưu; Nền tảng chỉ ra dịch vụ nào còn thiếu. Trang đơn chưa xác nhận ghi «Chưa chọn đón»." },
+      { kind: "doi", text: "Khi lập đơn qua đối tác, nhân viên văn phòng có thêm nút «Điền thông tin đối tác» để điền sẵn tên và số của đối tác vào khung Khách hàng." },
+      { kind: "doi", text: "Ở ô chọn cách thanh toán khi lập đơn cho đối tác có hạn mức, chữ «Trả trước» đổi thành «Thanh toán ngay»." },
+      { kind: "doi", text: "Trang Vé điện tử chọn dịch vụ bằng ô tìm và hàng nút nhóm giống màn Tạo đơn, thay cho hộp thả xuống dài." },
+      { kind: "sua", text: "Quản lý bán hàng có ô «Dịch vụ & giá» ở Trang chủ trên điện thoại." },
+      { kind: "sua", text: "Dịch vụ không có đưa đón thì Đối tác không còn dòng ghi chú về giờ đón." },
+      { kind: "sua", text: "Các bài hướng dẫn ghi đúng tên tab và mục menu mà bạn đang thấy." },
+    ],
+  },
+  {
+    // ADR-0187 Đ2.3 (accepted 8/11): người dùng tự chọn nút thanh dưới điện thoại, lưu ở máy chủ. Migration 0153. Ban đầu lấy tạm 2.81; vé Tour Đảo Đợt 1 nhập
+    // bản chính trước và lên production bản 2.81 (9/11) nên khi gộp bản chính ngày 9/11 đánh lại thành 2.82.
+    version: "2.82",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Trang Tôi trên điện thoại có mục «Nút thanh dưới»: tự chọn tối đa 4 trang mình hay dùng cho thanh dưới; nút Tôi luôn có." },
+      { kind: "moi", text: "Lựa chọn lưu theo tài khoản nên đổi máy vẫn còn. Bấm «Về mặc định» để quay lại cách Nền tảng tự xếp." },
+    ],
+  },
+  {
+    // Vé Tour Đảo Đợt 1 (ADR-0175), CÓ migration 0151, 0152. Bước A.0 ngày 9/11: production đang 2.80 nên lấy 2.81. Mọi dịch vụ vẫn «Vé hãng ngoài» tới khi Đợt 2 (quét vé) xong.
+    version: "2.81",
+    date: "2026-11-09",
+    items: [
+      { kind: "moi", text: "Màn Dịch vụ & giá có ô «Vé do ai phát» cho từng dịch vụ: «Vé hãng ngoài» (như cũ) hoặc «Vé Tour Đảo». Hiện mọi dịch vụ vẫn là «Vé hãng ngoài»." },
+      { kind: "moi", text: "Kho vé có thêm lô «Vé Tour Đảo»; Kế toán, Quản trị, Toàn quyền và Quản lý bán hàng tạo được vé có mã QR, còn Kế toán chỉ thấy lô Tour Đảo." },
+    ],
+  },
+  {
+    // Ô «Có vé» theo nhóm và dịch vụ (ADR-0174), CÓ migration 0142. Số tạm 8/11: 2.78 (ADR-0186) đang chờ, 2.79 giữ cho ADR-0185, nên lấy 2.80; bước A.0 đặt lại nếu cần.
+    version: "2.80",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Màn Dịch vụ & giá có ô «Có vé» cho từng nhóm và từng dịch vụ; Quản trị và Toàn quyền bật tắt được." },
+      { kind: "sua", text: "Dịch vụ không dùng vé không còn hiện «Thiếu vé» và nút «Cấp vé» trên trang đơn." },
+    ],
+  },
+  {
+    // ADR-0185 (chủ duyệt 8/11: Đ1 a, Đ2 a, Đ3): chặn đơn của tài khoản Đối tác chưa gán vai trò (T-01). Migration 0149. Ngày đặt lại ở bước A.0 của lần triển khai; đổi số 2.77 → 2.78 khi gộp ADR-0184 (nhập và triển khai trước, giữ 2.77), rồi 2.78 → 2.79 khi gộp ADR-0186 (nhập trước theo phiên điều phối, giữ 2.78).
+    version: "2.79",
+    date: "2026-11-08",
+    items: [
+      { kind: "doi", text: "Tài khoản Đối tác chưa được gán vai trò đối tác vẫn lập và lưu nháp được, nhưng chưa Gửi đơn được; trang lập đơn có dải vàng báo trước." },
+      { kind: "doi", text: "Tài khoản Đối tác, Tài xế đối tác chỉ tạo được bằng cách chọn vai trò ở màn Quản lý tài khoản, không qua khối «Quyền cũ»." },
+    ],
+  },
+  {
+    // ADR-0186 (chủ duyệt 8/11, đóng HC-5.11): ba việc định giờ chạy dưới tác nhân có định danh riêng; Quản lý bán hàng được đồng bộ danh mục. Migration 0148.
+    // Bước A.0 ngày 8/11 trên nhánh claude/pensive-keller-274010. SỐ TẠM: 2.76 (ADR-0187 Đ3) và 2.77 (ADR-0184) đã lên production trước nên đổi 2.76 → 2.77 → 2.78
+    // theo hai lần nhập đó; bản sửa ADR-0185 nhập sau lấy 2.79 (phiên điều phối 8/11). Nhánh khác nhập trước mà cũng lấy 2.78 thì phiên phát hành đánh lại số.
+    version: "2.78",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Quản lý bán hàng có nút «Đồng bộ ngay từ Google Sheet» ở màn Dịch vụ & giá để lấy giá mới ngay, không phải nhờ Quản trị. Nền tảng vẫn tự đồng bộ mỗi 15 phút.", bai: { id: "quan-ly-ban-hang/lay-bang-gia-moi-tu-google-sheet", ten: "Lấy bảng giá mới từ Google Sheet" } },
+      { kind: "doi", text: "Toàn quyền thấy thêm dòng «Xoá ảnh vé hết hạn lưu» ở trang Nhật ký mỗi lần Nền tảng tự xoá ảnh vé của lô đã huỷ khi quá hạn lưu; dòng chỉ ghi số ảnh." },
+    ],
+  },
+  {
+    // ADR-0184 (chủ duyệt 7/11, chọn chữ 7–8/11): cho chạy dù thiếu giấy tờ xe, kèm nhãn vàng. Migration 0147. Bước A.0 ngày 8/11; đổi số 2.76 → 2.77 khi gộp ADR-0187 (nhập trước, giữ 2.76).
+    version: "2.77",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Quản trị và Toàn quyền nay cho chạy được một lần chuyến có xe thiếu hoặc hết hạn giấy tờ: bấm «Cho chạy dù thiếu giấy tờ» ở chi tiết chuyến." },
+      { kind: "moi", text: "Riêng Kiểm định và Bảo hiểm thì chỉ Toàn quyền cho chạy được. Mỗi lần cho phép chỉ dùng cho đúng chuyến và đúng xe đó." },
+      { kind: "moi", text: "Chuyến được cho chạy mang nhãn vàng «Xe thiếu … — đã cho chạy» ở chi tiết chuyến, Điều phối xe và cuốc của tài xế; tài xế nhận tin báo." },
+      { kind: "moi", text: "Văn phòng xem được lý do và ghi chú của lần cho chạy ngay dưới nhãn vàng ở chi tiết chuyến." },
+      { kind: "moi", text: "Trang chủ của Quản trị và Toàn quyền có thẻ «Xe thiếu giấy tờ — đã cho chạy», đếm số chuyến hôm nay chưa kết thúc đã được cho chạy dù thiếu giấy tờ." },
+      { kind: "doi", text: "Xe thiếu Kiểm định hoặc Bảo hiểm thì dòng «Ai xử lý» ghi «Quản trị, Toàn quyền»." },
+    ],
+  },
+  {
+    // ADR-0187 Đ3 mức (a) (chủ duyệt 8/11 «Duyệt, mức a»): tách nhiệm vụ — đánh dấu, không chặn. Migration 0150. Ngày đặt lại ở bước A.0 của lần triển khai.
+    version: "2.76",
+    date: "2026-11-08",
+    items: [
+      { kind: "moi", text: "Người vừa lập đơn vừa ghi tiền cho đơn đó vẫn ghi được, nhưng dòng tiền mang dấu «Tự ghi đơn mình lập» để người thứ hai soát." },
+      { kind: "moi", text: "Sổ công nợ có bộ lọc «Cần người thứ hai soát»; Kế toán khác hoặc Toàn quyền bấm «Đã soát». Trang chủ của người soát được có thẻ số dòng chưa soát." },
+    ],
+  },
+  {
+    // Chủ dự án 8/11: «Xem như vai trò khác» chuyển từ trang Tôi vào menu tên tài khoản. Không migration.
+    version: "2.75",
+    date: "2026-11-08",
+    items: [
+      { kind: "doi", text: "Bấm tên tài khoản (chân menu trái trên máy tính, ô chữ cái góc trên trên điện thoại) mở menu nhỏ: «Đăng xuất», và với Toàn quyền thêm «Xem như vai trò khác»." },
+    ],
+  },
+  {
+    // ADR-0180 (chủ duyệt 7/11): Toàn quyền xem như vai trò khác. Migration 0145. Bước A.0 ngày 7/11.
+    version: "2.74",
+    date: "2026-11-07",
+    items: [
+      { kind: "moi", text: "Toàn quyền chọn «Xem như vai trò khác» ở trang Tôi để dùng Nền tảng như một vai trò khác; bấm «Thoát» hoặc sau 60 phút không thao tác thì trở lại như cũ." },
+    ],
+  },
+  {
+    // ADR-0181 (chủ duyệt 7/11): đơn trả sau đã xong còn nợ được nhắc và «Ân hạn»; thôi làm đối tác thì hết hạn mức. Migration 0146. Ngày đặt lại ở bước A.0 của lần triển khai.
+    version: "2.73",
+    date: "2026-11-07",
+    items: [
+      { kind: "doi", text: "Bước «Xong và đủ tiền» đổi tên thành «Khách đã trả đủ», nút ghi «Xác nhận khách đã trả đủ», cho khỏi hiểu nhầm là tiền đã về công ty. Cách làm việc không đổi." },
+      { kind: "sua", text: "Đơn trả sau đã tới bước «Khách đã trả đủ» mà đối tác chưa nộp tiền về công ty: hộp thư vẫn nhắc trước hạn trả 6 giờ và khi quá hạn, như đơn chưa xong." },
+      { kind: "sua", text: "Quản trị, Toàn quyền bấm «Ân hạn» được cả trên đơn trả sau đã tới bước «Khách đã trả đủ» mà còn nợ. Ngoài hạn trả, đơn đó vẫn khoá như cũ." },
+      { kind: "doi", text: "Gỡ vai trò đối tác cuối cùng của một hồ sơ (ở Danh bạ hay ở Tài khoản) thì hạn mức trả sau của hồ sơ đó đóng luôn. Gán lại vai trò thì phải cấp lại hạn mức." },
+    ],
+  },
+  {
+    // Biên nhận mẫu HD-02-DT cho đơn đối tác. Không migration. Bước A.0 ngày 7/11: 2.70, 2.71, 2.72 lên cùng một lần triển khai, giữ ba mục riêng (tiền lệ 2.55–2.57).
+    version: "2.72",
+    date: "2026-11-07",
+    items: [
+      { kind: "doi", text: "Ảnh gửi khách của đơn đối tác có mẫu riêng: đầu ảnh là thương hiệu Tour Đảo Nha Trang và câu khẩu hiệu, có giá công bố và dòng Phải thu.", bai: { id: "doi-tac/gui-bien-nhan-cho-khach", ten: "Gửi biên nhận cho khách" } },
+    ],
+  },
+  {
+    // Công tắc «Khách của đối tác trả cho Công ty» (ADR-0178 Phần A, migration 0144) và Quản trị gán mọi vai trò trừ IT (ADR-0176, không migration). Ngày đặt ở bước A.0 7/11.
+    version: "2.71",
+    date: "2026-11-07",
+    items: [
+      { kind: "moi", text: "Công tắc «Khách của đối tác trả cho Công ty» ở màn Cấp độ đại lý: Toàn quyền bật, tắt; Kế toán, Quản trị xem. Mặc định Bật, như trước." },
+      { kind: "doi", text: "Đơn Đối tác lập lúc công tắc Tắt: chỉ đối tác đó ghi khoản thu («Tôi thu»), không có QR thanh toán. Đơn đã lập giữ cách thu của lúc lập." },
+      { kind: "doi", text: "Quản trị gán được mọi vai trò cho tài khoản, kể cả Kế toán, Giám đốc, Điều hành chung, Hành chính nhân sự; riêng vai trò IT thì không." },
+    ],
+  },
+  {
+    // Trả sau theo giờ và luật vận hành công nợ (ADR-0172, ADR-0173), kèm phần làm hết nợ Trả sau (Task 2, 3). Migration 0143. Ngày đặt ở bước A.0 7/11.
+    version: "2.70",
+    date: "2026-11-07",
+    items: [
+      { kind: "doi", text: "Trả sau nay đặt ở màn Cấp độ đại lý, cột «Trả sau»: Quản trị, Toàn quyền cấp, điều chỉnh, đóng hạn mức; Kế toán xem. Màn Hạn mức trả sau chỉ để xem ai đang nợ.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
+      { kind: "doi", text: "Thời hạn trả tính bằng giờ từ lúc đơn được xác nhận, có thêm số giờ ân hạn. Trong ân hạn chỉ báo; hết ân hạn mà còn nợ mới chặn đơn trả sau mới và vé chưa mở." },
+      { kind: "moi", text: "Mỗi Cấp độ đại lý có số gợi ý Trả sau, tự điền sẵn khi cấp hạn mức cho một đối tác. Toàn quyền đặt mức tối đa Quản trị được cấp." },
+      { kind: "moi", text: "Nút «Ân hạn» trên đơn trả sau còn nợ: Quản trị, Toàn quyền lùi hạn trả kèm lý do." },
+      { kind: "moi", text: "Đối tác xem mục «Trả sau của tôi» ở trang Tôi: hạn mức, số đang nợ và từng đơn còn nợ." },
+      { kind: "moi", text: "Hộp thư nhắc đối tác trước hạn trả 6 giờ và khi đơn quá hạn; Kế toán cũng được báo khi quá hạn." },
+      { kind: "doi", text: "Đối tác còn nợ Trả sau thì chưa ngừng tài khoản, gỡ vai trò đối tác hay xoá hồ sơ được." },
+      { kind: "sua", text: "Sửa đơn trả sau làm tăng tiền: Nền tảng so phần tăng với hạn mức khả dụng, không còn báo vượt hạn mức nhầm khi đơn đã thu một phần." },
+    ],
+  },
+  {
+    // Đối tác xem và gửi vé (ADR-0170), siết ba đường (ADR-0171), sửa số nợ Trả sau khi nộp một phần. Không migration. Số và ngày tạm: bước A.0 đặt lại nếu cần.
+    version: "2.69",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Đối tác xem và gửi được vé của đơn mình lập, khi tiền của đơn đã về công ty." },
+      { kind: "doi", text: "Đơn do Đối tác lập: khoản Đối tác tự ghi chỉ tính sau khi đã nộp về công ty hoặc Kế toán xác nhận, nên vé mở sau bước đó." },
+      { kind: "doi", text: "Đối tác không tự huỷ hoặc tự sửa số khách trên đơn đã mở vé; cần thì liên hệ văn phòng." },
+      { kind: "doi", text: "Đường dẫn gửi khách: vé đã mở vẫn xem được, vé chưa mở chỉ hiện khi đơn đủ tiền." },
+      { kind: "doi", text: "Chuyển tiền sang đơn mới: phải ghi đúng người chưa nộp tiền; đơn của Đối tác chỉ mở vé sau khi người đó nộp." },
+      { kind: "sua", text: "Đơn trả sau: số nợ tính đúng khi mới nộp một phần tiền." },
+      { kind: "sua", text: "Màn Hạn mức trả sau: danh sách đối tác hiện sẵn để chọn, lọc theo tên gõ có dấu hay không đều ra." },
+    ],
+  },
+  {
+    // Sửa khe đua ADR-0142 (nợ T4): nhận / đổi người phụ trách đúng lúc đơn bị huỷ. Không migration. Số và ngày tạm cho nhánh: bước A.0 đặt lại nếu cần.
+    version: "2.68",
+    date: "2026-11-05",
+    items: [
+      { kind: "sua", text: "Bấm nhận hoặc đổi người phụ trách đúng lúc đơn vừa bị huỷ: Nền tảng báo đơn đã huỷ và không ghi tên người lên đơn đó nữa." },
+    ],
+  },
+  {
+    // Thanh toán trả sau theo hạn mức (ADR-0168): migration 0141, ô quyền credit.limit.view / credit.limit.write.
+    // Số 2.67 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.67",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Đối tác có hạn mức được chọn «Trả sau» khi lập đơn: vé mở trước, tiền thu sau trong số ngày được nợ." },
+      { kind: "moi", text: "Toàn quyền có màn Hạn mức trả sau để cấp hoặc ngừng hạn mức cho từng đối tác; Kế toán xem được số nợ và đơn quá hạn.", bai: { id: "viec/han-muc-tra-sau", ten: "Cấp hạn mức trả sau cho đối tác" } },
+      { kind: "moi", text: "Đơn trả sau vượt hạn mức, hoặc của đối tác còn đơn quá hạn, không xác nhận được; chi tiết đơn ghi hình thức thanh toán và hạn trả." },
+    ],
+  },
+  {
+    // Đổi chữ trạng thái đơn (chủ 2026-11-05, «chốt hướng»): chỉ đổi chữ người dùng thấy, mã và CSDL giữ tên cũ; không có migration.
+    version: "2.66",
+    date: "2026-11-05",
+    items: [
+      { kind: "doi", text: "Trạng thái Đã giao đổi tên thành Xong và đủ tiền để khỏi nhầm với giao vé; nút ghi Xác nhận xong và đủ tiền. Cách làm việc không đổi." },
+    ],
+  },
+  {
+    // ADR-0169: vai Quản lý bán hàng, công tắc kiểm vé về Dịch vụ & giá. Migration 0140_quan_ly_ban_hang (khác tệp 0140_hop_thu_ban_hang của mục 2.64).
+    version: "2.65",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Có vai mới Quản lý bán hàng: làm mọi việc của Bán hàng, thêm bật, tắt cần kiểm vé và Ngừng bán, Mở bán lại. Quản trị, Giám đốc, Toàn quyền gán được vai này." },
+      { kind: "doi", text: "Công tắc Cần kiểm vé nay nằm ngay trong Dịch vụ & giá, theo từng vé và cả nhóm. Trang Dịch vụ cần kiểm vé không còn nữa. Quản trị cũng gạt được.", bai: { id: "viec/dich-vu-can-kiem-ve", ten: "Đánh dấu vé cần kiểm vé" } },
+    ],
+  },
+  {
+    // Bán hàng phụ trách đơn (ADR-0142; migration 0138, 0140; ô quyền mới `dispatch.sales.*`; `order.confirm.review` thu về Bán hàng, Quản trị, Toàn quyền).
+    version: "2.64",
+    date: "2026-11-05",
+    items: [
+      { kind: "moi", text: "Mỗi đơn có hai người: «Người phụ trách» là Bán hàng chịu trách nhiệm chính; «Hướng dẫn viên» đón, hướng dẫn, gặp khách, thu tiền tại cảng." },
+      { kind: "moi", text: "Lập đơn có thể mời một Bán hàng làm người phụ trách. Người đó bấm «Nhận phụ trách» hoặc «Từ chối» trong thời gian ưu tiên; hết hạn thì Bán hàng nào cũng nhận." },
+      { kind: "moi", text: "Danh sách đơn có dòng «Phụ trách: tên» hoặc «Chờ Bán hàng nhận»; Trang chủ có thẻ «Đơn chưa có người phụ trách». Quản trị, Toàn quyền đổi được người phụ trách." },
+      { kind: "doi", text: "Kế toán và Hướng dẫn viên không còn bấm «Còn vé, xác nhận đơn» nữa: đơn cần kiểm vé do Bán hàng, Quản trị hoặc Toàn quyền xác nhận." },
+      { kind: "doi", text: "Nút «Nhận làm HDV» nay chỉ hiện với tài khoản có quyền Hướng dẫn viên." },
+    ],
+  },
+  {
+    // Bảng tham chiếu ngôn ngữ đợt 2 (ADR-0167): 16 tên nút đổi theo lời chủ 2026-11-05. Không migration, không ô quyền, không lệnh ghi mới.
+    version: "2.63",
+    date: "2026-11-05",
+    items: [
+      { kind: "doi", text: "Đổi chữ trên một số nút cho dễ hiểu hơn, ví dụ «Tải ảnh về máy», «Xem ảnh gửi khách», «Bỏ khỏi danh sách», «Đổi giờ dự kiến». Việc nút làm không đổi." },
+      { kind: "doi", text: "Nút «Sửa giá» trong đơn nay là «Sửa giá đơn này»; ở màn Dịch vụ & giá là «Ghi đè giá», để hai việc khác nhau không trùng tên." },
+    ],
+  },
+  {
+    // Màn «Dịch vụ cần kiểm vé» (ADR-0136 Đ1, Đ5) và sửa máy chủ: vé tắt riêng trong nhóm đang bật. Không migration, không ô quyền mới.
+    version: "2.62",
+    date: "2026-11-04",
+    items: [
+      { kind: "moi", text: "Toàn quyền có màn Dịch vụ cần kiểm vé: đánh dấu vé phải chờ người kiểm vé báo còn vé rồi đơn mới được xác nhận, theo từng vé hoặc cả nhóm.", bai: { id: "viec/dich-vu-can-kiem-ve", ten: "Đánh dấu vé cần kiểm vé" } },
+    ],
+  },
+  {
+    // Màn «Cấp độ đại lý» (đặc tả docs/superpowers/specs/2026-11-04-man-cap-dai-ly.md). Không migration, không ô quyền mới, không lệnh ghi mới.
+    // Đổi 12 tên nút sau rà soát 4/11 và tách nhãn đơn nháp (ADR-0166). Không migration, không ô quyền; có đổi cách chạy ở «Bỏ ghi đè giá», hộp hỏi «Còn vé, xác nhận đơn», cờ `dangCho` ở danh sách đơn.
+    // Số 2.61 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.61",
+    date: "2026-11-04",
+    items: [
+      { kind: "moi", text: "Có màn Cấp độ đại lý: gán cấp hoa hồng nhanh cho mọi đối tác, kể cả công ty chưa có tài khoản, không cần vào trang Hoa hồng đối tác." },
+      { kind: "doi", text: "Đơn chưa gửi kiểm vé nay ghi «Chưa xác nhận»; đơn đã gửi và đang chờ người kiểm vé ghi «Chờ xác nhận». Ảnh gửi khách không đổi." },
+      { kind: "doi", text: "Bấm «Còn vé, xác nhận đơn» nay được hỏi lại và nói rõ việc gì sẽ xảy ra, vì bước này không hoàn tác được." },
+      { kind: "moi", text: "Hoa hồng đối tác: trong một cấp đại lý có hai nút «Gán cho vai trò» và «Gán cho đối tác»." },
+      { kind: "sua", text: "Dịch vụ & giá: «Bỏ ghi đè giá» chỉ đưa giá về theo Sheet, dịch vụ đang ngừng bán vẫn ngừng bán." },
+      { kind: "doi", text: "Đổi tên nút cho đúng việc: «Gửi kiểm vé», «Lưu đơn (chưa xác nhận)», «Ghi khoản thu này», «Ghi khoản thu đòi được», «Mở vé để gửi khách»." },
+      { kind: "doi", text: "Đổi tên nút cho đúng việc: «Ngừng bán», «Mở bán lại», «Kết thúc gián đoạn (xe hỏng)», «Đặt ngày kết thúc», «Ngừng dùng»." },
+      { kind: "sua", text: "Điện thoại: khung «Xác nhận đơn» trải đủ bề ngang, chữ không còn tràn khỏi viền." },
+    ],
+  },
+  {
+    // Hồ sơ chưa có tài khoản (cả tổ chức) mang năm vai đối tác ở Danh bạ và hưởng hoa hồng theo cấp (ADR-0155 Đ1, C3, C4, C6). Không migration, không ô quyền mới.
+    // Số 2.60 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.60",
+    date: "2026-11-04",
+    items: [
+      { kind: "moi", text: "Công ty lữ hành và đối tác chưa có tài khoản nay gắn được vai trò ở Danh bạ và hưởng hoa hồng theo cấp." },
+    ],
+  },
+  {
+    // Tin «số dư của bạn đổi» tới cả Đối tác và Tài xế đối tác (ADR-0092 Đ5d, ADR-0115 điều 5; sửa mã cho khớp tài liệu đã duyệt). Không migration, không ô quyền mới.
+    // Số 2.59 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
+    version: "2.59",
+    date: "2026-11-04",
+    items: [
+      { kind: "sua", text: "Đối tác và tài xế đối tác nay nhận tin khi số dư của mình được Kế toán điều chỉnh." },
+    ],
+  },
+  {
     // Phân định trách nhiệm sau «Đã giao» (ADR-0116, TNV-G3) và cảnh báo khoản thu giống nhau (ADR-0092 Đ6a, TNV-G4). Có migration 0135; thêm hai ô quyền attribution.request, attribution.decide.
-    // Cùng bản: Khách đặt cọc trước (ADR-0159, migration 0136). Chỉ phát hành sau khi diễn tập khôi phục HC-5.19 (ADR-0159).
+    // Cùng bản: Khách đặt cọc trước (ADR-0159, migration 0136). Lên 3/11 trước diễn tập khôi phục HC-5.19, do chủ dự án quyết; xem docs/HANDOFF-N1.md.
+    // Cùng bản: Chính sách chiết khấu bốn trục (ADR-0161, migration 0137, không thêm ô quyền, công thức hoa hồng và sổ không đổi).
     // Số 2.58 và ngày chỉ là tạm cho nhánh: bước A.0 của lần triển khai đặt lại nếu cần.
     version: "2.58",
     date: "2026-11-02",
@@ -32,6 +540,10 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Sửa khoản thu đã ghi: người thu cũ và người thu mới đều nhận tin báo." },
       { kind: "moi", text: "Khoản thu tiền mặt cùng số, cùng ngày trên một đơn hoặc mã giao dịch đã gắn ở đơn khác: Nền tảng hỏi lại, vẫn ghi được khi có lý do." },
       { kind: "doi", text: "Đơn đã giao có giảm trừ theo phân định: số phải thu trên đơn đã trừ phần này và ghi rõ một dòng." },
+      { kind: "moi", text: "Trang Hoa hồng đối tác có bảng nhập: mỗi hàng là một dịch vụ kèm giá bán lẻ, mỗi cột là một cấp đại lý. Bấm vào ô để nhập mức, chọn «Tính bằng» và «Áp cho»." },
+      { kind: "moi", text: "Toàn quyền đổi được phần trăm tối đa và bước tiền khi nhập hoa hồng; mức đã có và đơn đã xác nhận giữ nguyên.", bai: { id: "viec/gioi-han-nhap-hoa-hong", ten: "Đổi giới hạn nhập hoa hồng" } },
+      { kind: "doi", text: "Hoa hồng một dịch vụ không nhập được lớn hơn giá bán. Đơn có hoa hồng vượt thành tiền hiện lời nhắc Kế toán xem lại; dòng đó không làm tăng mức giảm giá tối đa." },
+      { kind: "doi", text: "Vai trò nay đi theo cấp đại lý: màn hình không còn lối thêm mức riêng cho vai trò. Mức riêng đã có vẫn Đổi, Sửa, Ngừng được." },
     ],
   },
   {

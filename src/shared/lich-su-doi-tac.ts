@@ -58,11 +58,11 @@ export const LICH_SU_DOI_TAC_AN = [
   "deposit_refund_approved", "deposit_transfer_approved", "deposit_approval_voided", "deposit_refund_paid", "deposit_transferred_out", "deposit_transferred_in",
   "deposit_outside_recorded", "deposit_outside_confirmed", "deposit_outside_rejected", "prc_commission_rule_added", "prc_commission_rule_closed", "prc_supply_term_added",
   "prc_supply_term_closed", "prc_partner_type_added", "prc_partner_type_off", "prc_partner_type_on", "prc_partner_type_renamed", "prc_partner_type_note", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_rate_tier_renamed", "prc_rate_tier_note",
-  "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed", "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "ledger_period_closed",
+  "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed", "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "prc_entry_limit_changed", "prc_transfer_fee_added", "prc_transfer_fee_ended", "prc_transfer_fee_start_set", "ledger_period_closed",
   // Không gắn đơn: tài khoản, hồ sơ
   "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed", "passkey_added", "passkey_removed",
   "pin_set_by_passkey", "login_unlocked", "staff_synced", "permission_changed", "account_roles_changed", "session_policy_changed", "session_revoked",
-  "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened", "mfa_exception_set",
+  "acting_role_set", "acting_role_cleared", "bottom_tabs_changed", "mfa_enabled", "mfa_removed", "mfa_recovery_regenerated", "mfa_reset", "mfa_grace_reopened", "mfa_exception_set",
   "party_created", "party_updated", "party_contact_changed", "party_role_added", "party_role_ended", "party_relationship_changed", "party_merged", "party_document_added",
   "party_document_renewed", "party_document_corrected", "party_document_number_viewed", "party_document_catalog_changed", "party_bank_account_changed",
   "party_attachment_added", "party_attachment_viewed", "party_attachment_purged", "party_attachment_purge_retried", // ADR-0123: ảnh giấy tờ — không gắn đơn
@@ -78,21 +78,33 @@ export const LICH_SU_DOI_TAC_AN = [
   "trip_reason_added", "trip_reason_updated", "transfer_template_set", "trip_passengers_synced", "trip_stops_synced", "trip_order_synced", "trip_created", "trip_edited",
   "trip_cancelled", "trip_allocated", "trip_allocation_removed", "trip_allocation_moved", "trip_departed", "trip_stop_arrived", "trip_passenger_boarded",
   "trip_passenger_no_show", "trip_passenger_cancelled_at_stop", "trip_passenger_dropped", "trip_stops_reordered", "trip_ended", "trip_ended_interrupted",
-  "trip_stop_added_running", "trip_allocation_office_cancelled", "trip_passenger_named", "trip_allocation_corrected", "trip_departure_revoked", "trip_transfer_sent",
+  "trip_stop_added_running", "trip_allocation_office_cancelled", "trip_passenger_named", "trip_allocation_corrected", "trip_departure_revoked", "trip_departure_waived", "trip_transfer_sent",
   "trip_transfer_withdrawn", "trip_transfer_declined", "trip_transfer_expired", "trip_transfer_escalated", "trip_transfer_confirmed", "trip_transfer_rejected",
   "trip_driver_refused", "trip_appt_called", "trip_appt_call_undone", "trip_cost_adjusted", "trip_cost_reversed", "trip_cost_snapshot", "trip_cost_agreed",
   "rental_rate_added", "rental_rate_closed", "route_saved", "vehicle_size_saved",
   // Địa điểm, danh mục, hệ thống, góp ý, thông báo
-  "location_created", "location_updated", "maintenance_changed", "manual_service_policy_changed", "pickup_slot_policy_changed", "confirm_flag_changed", "confirm_policy_changed", "partner_customer_policy_changed", "order_confirm_requested", "order_confirm_withdrawn", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body",
+  "location_created", "location_updated", "location_zone_created", "location_zone_updated", "maintenance_changed", "manual_service_policy_changed", "pickup_slot_policy_changed", "confirm_flag_changed", "confirm_policy_changed", "sales_policy_changed", "sales_invited", "sales_owner_claimed", "sales_owner_changed", "sales_invite_refused", "partner_customer_policy_changed", "pickup_time_policy_changed", "ui_policy_changed", "order_confirm_requested", "order_confirm_withdrawn", "tro_ly_settings_changed", "giao_dien_changed", "client_outdated_body",
   "catalog_synced", "catalog_overridden", "catalog_override_cleared", "catalog_hidden", "catalog_unhidden", "catalog_group_created", "catalog_group_updated",
-  "catalog_group_assigned", "catalog_groups_seeded", "catalog_service_transfer_set", "ctl_attribute_created", "ctl_attribute_updated", "ctl_attribute_value_created", "ctl_attribute_value_updated", "ctl_service_attribute_set", "ctl_group_attribute_set", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned",
+  "catalog_group_assigned", "ticket_flag_changed", "ticket_source_changed", "service_detail_changed", "catalog_groups_seeded", "catalog_service_transfer_set", "ctl_attribute_created", "ctl_attribute_updated", "ctl_attribute_value_created", "ctl_attribute_value_updated", "ctl_service_attribute_set", "ctl_group_attribute_set", "feedback_created", "feedback_replied", "feedback_status_changed", "feedback_assigned",
   "feedback_claimed", "feedback_team_changed", "feedback_priority_changed", "feedback_team_created", "feedback_team_updated", "feedback_team_member_changed", "notice_sent", "notice_revoked",
   "feedback_attachment_added", "feedback_attachment_viewed", "feedback_attachment_purged", "feedback_attachment_purge_retried", // ADR-0144: tệp kèm vé — không gắn đơn
   "notice_acknowledged",
   // ADR-0032 (hạn mức Từ chối — G3 kế hoạch 2026-10-23): ẩn như lớp nội bộ.
   "refuse_limit_hit", "refuse_policy_changed", "refuse_counter_reset",
   // ADR-0153 (đề xuất): giữ chỗ / trả vé điện tử — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại. Trang Nhật ký (Toàn quyền) vẫn đọc được.
-  "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo",
+  "ve_giu_cho", "ve_tra_ve", "ve_xem_anh", "ve_mo_anh_lo_huy", "ve_giao", "ve_tao_duong_dan", "ve_thu_hoi_duong_dan", "ve_nhap_lo", "ve_xac_nhan_lo", "ve_sua_ma_tour", "ve_bo_lo", "ve_doi_tran_lo", "ve_thieu", "ve_quet", "ve_bo_luot_quet",
+  "ve_xoa_anh_het_han", // ADR-0186 Đ4: tác nhân DON_ANH_VE ghi, không gắn đơn — ẩn; Toàn quyền đọc ở trang Nhật ký
+  // ADR-0168: hạn mức Trả sau — việc nội bộ của Toàn quyền, ẩn khỏi lịch sử Đối tác.
+  "credit_limit_set", "credit_limit_stopped",
+  // ADR-0172, ADR-0173: mức tối đa, số gợi ý, ân hạn đơn, tin nhắc — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại; trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "partner_channel_set", "credit_ceiling_set", "credit_tier_default_set", "credit_due_extended", "credit_due_soon_reminded", "credit_overdue_reminded",
+  // ADR-0187 Đ3 mức (a): soát dòng tiền tự ghi đơn mình lập — việc nội bộ của Kế toán, ẩn khỏi lịch sử Đối tác.
+  "ledger_self_write_reviewed",
+  // ADR-0196: ảnh biên lai chuyển khoản (gửi, mở, gỡ, chạy lại dọn kho) — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "payment_proof_added", "payment_proof_viewed", "payment_proof_purged", "payment_proof_purge_retried",
+  // ADR-0182 phần B: khoản nộp của đại lý (ghi, xác nhận, từ chối) và ảnh biên lai của nó — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; phiếu công nợ
+  // hiện trạng thái và lý do từ chối; trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "agent_remittance_recorded", "agent_remittance_confirmed", "agent_remittance_rejected", "agent_remittance_proof_viewed", "agent_remittance_proof_purged",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

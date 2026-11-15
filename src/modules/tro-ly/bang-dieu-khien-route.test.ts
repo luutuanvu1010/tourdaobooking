@@ -283,7 +283,7 @@ test("Thử key: được / sai key (401) / hết tiền (429 insufficient_quota
   goi = openAiGia({ status: 401, loi: { code: "invalid_api_key" } });
   const sai = await thu();
   assert.equal(sai.ma, "sai_khoa");
-  assert.match(sai.cau, /^Sai key/);
+  assert.match(sai.cau, /^Sai khoá/);
   openAiGia({ status: 429, loi: { code: "insufficient_quota" } });
   assert.equal((await thu()).ma, "het_tien");
   openAiGia({ status: 429, loi: { code: "rate_limit_exceeded" } });

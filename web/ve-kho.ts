@@ -10,23 +10,30 @@
 //   POST /api/ve/lo/:id/bo              → huỷ lô; ảnh vé của lô nhập lại được
 // Mã vé do máy đọc từ QR trên từng ảnh, ngay trên trình duyệt (ADR-0156 Đ1); ảnh không đọc được thì loại riêng, không có đường nhập tay. Khoảng ngày dùng chung cho cả lô.
 // Phản hồi của máy chủ chỉ có 4 số cuối mã — trang không bao giờ hiện mã đầy đủ.
-// Ẩn/hiện hỏi bảng quyền: ô `ve.kho.manage`. Máy chủ vẫn kiểm lại. Không `innerHTML` (dựng bằng `h()`).
+// Ẩn/hiện hỏi bảng quyền (ADR-0175 Đ1.4): trang mở cho `ve.kho.manage` hoặc `ve.phat-hanh`; khối nhập lô (vé hãng ngoài) chỉ `ve.kho.manage`; khối «Tạo vé» (vé Tour Đảo,
+// web/ve-tao.ts) chỉ `ve.phat-hanh`; nút «Huỷ lô» theo nguồn của lô. Máy chủ vẫn kiểm lại. Không `innerHTML` (dựng bằng `h()`).
 import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
 import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, cauVuotTran, locAnhDaDoc } from "../src/shared/ve-nhap-lo";
 import { hoiXacNhan } from "./bang-truot";
+import { createCatalogPicker } from "./catalog-picker";
 import { byId, h, replaceChildren } from "./dom";
+import { trangThaiHeThong } from "./trang-thai-he-thong";
 import { docQrTuTep } from "./qr-doc-ve";
 import { initShell, showError } from "./shell";
+import { dungKhoiTaoVe } from "./ve-tao";
 
-interface KhoDong { catalogCode: string; tenDichVu: string | null; nhomKhach: "ADULT" | "CHILD" | "SENIOR" | "ALL"; conTrong: number; sapHetHan: number; daGiu: number; daGiao: number }
+type Nguon = "HANG_NGOAI" | "TOUR_DAO";
+interface KhoDong { catalogCode: string; tenDichVu: string | null; nhomKhach: "ADULT" | "CHILD" | "SENIOR" | "ALL"; nguon: Nguon; conTrong: number; sapHetHan: number; daGiu: number; daGiao: number }
 interface ThemVeRes { loId: string; themDuoc: number; chuaLuuVaoKho: number; loai: { thuTu: number; lyDo: string }[]; veTrongLo: number }
-interface LoBoDuoc { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; trangThai: string; soVe: number; taoLuc: string }
+interface LoBoDuoc { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; nguon: Nguon; trangThai: string; soVe: number; taoLuc: string }
 
 interface VeDaHuy { veId: string; duoiMa: string; tuNgay: string; denNgay: string; trangThaiAnh: "CHUA_MO" | "DA_MO" | "DA_NHAP_LAI" | "HET_ANH" }
 interface LoDaHuy { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: VeDaHuy[] }
 
 const NHAN_NHOM: Record<string, string> = { ADULT: "Người lớn", CHILD: "Trẻ em", SENIOR: "Cao tuổi", ALL: "Mọi loại khách" };
+/** Nhãn ô «Vé do ai phát» của từng dòng: hai dòng cùng dịch vụ khác nguồn không trông giống nhau. */
+const NHAN_NGUON: Record<Nguon, string> = { HANG_NGOAI: "Vé hãng ngoài", TOUR_DAO: "Vé Tour Đảo" };
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -35,6 +42,9 @@ const khoEl = byId("vk-kho");
 const loEl = byId("vk-lo");
 const cacLoEl = byId("vk-cac-lo");
 const daHuyEl = byId("vk-da-huy");
+const khoiLoEl = byId("vk-khoi-lo");
+const khoiTaoEl = byId("vk-khoi-tao");
+const taoEl = byId("vk-tao");
 
 const staff = await initShell();
 const lyDoLoi = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
@@ -53,10 +63,17 @@ function docBase64(tep: File): Promise<string> {
   });
 }
 
-if (!can(staff, "ve.kho.manage")) {
-  showError(errorEl, "Trang Vé điện tử chỉ Bán hàng, Quản trị và Toàn quyền dùng được.");
+const nhapLo = can(staff, "ve.kho.manage");
+const taoVe = can(staff, "ve.phat-hanh");
+/** Thao tác lô theo nguồn của lô (ADR-0175 Đ1.4): Bán hàng thường xem được lô Tour Đảo nhưng không huỷ được. */
+const thaoTacLo = (nguon: Nguon): boolean => (nguon === "TOUR_DAO" ? taoVe : nhapLo);
+
+if (!nhapLo && !taoVe) {
+  showError(errorEl, "Trang Vé điện tử chỉ Bán hàng, Kế toán, Quản lý bán hàng, Quản trị và Toàn quyền dùng được.");
 } else {
   noiDungEl.hidden = false;
+  khoiLoEl.hidden = !nhapLo;
+  khoiTaoEl.hidden = !taoVe;
   let tranLo = TRAN_LO_MAC_DINH;
 
   async function taiKho(): Promise<void> {
@@ -64,10 +81,10 @@ if (!can(staff, "ve.kho.manage")) {
     try {
       const r = await api<{ tranLo: number; kho: KhoDong[] }>("/api/ve/kho");
       tranLo = r.tranLo;
-      if (r.kho.length === 0) { replaceChildren(khoEl, h("p", { class: "muted" }, "Kho chưa có vé nào. Nhập lô đầu tiên ở khối bên dưới.")); return; }
+      if (r.kho.length === 0) { replaceChildren(khoEl, h("p", { class: "muted" }, nhapLo || taoVe ? "Kho chưa có vé nào. Nhập lô đầu tiên ở khối bên dưới." : "Kho chưa có vé nào.")); return; }
       replaceChildren(khoEl, h("ul", { class: "pay-list", "data-khoi": "ton-kho" }, ...r.kho.map((d) =>
         h("li", { "data-ma": d.catalogCode },
-          h("strong", null, `${d.tenDichVu ?? d.catalogCode} · ${NHAN_NHOM[d.nhomKhach] ?? d.nhomKhach}`),
+          h("strong", null, `${d.tenDichVu ?? d.catalogCode} · ${NHAN_NHOM[d.nhomKhach] ?? d.nhomKhach} · ${NHAN_NGUON[d.nguon] ?? d.nguon}`),
           h("p", { class: "muted" }, `Còn trống ${d.conTrong} · sắp hết hạn (7 ngày) ${d.sapHetHan} · đã giữ cho đơn ${d.daGiu} · đã giao ${d.daGiao}`)))));
     } catch (err) {
       replaceChildren(khoEl, h("p", { class: "alert", role: "alert" }, lyDoLoi(err)));
@@ -137,6 +154,8 @@ if (!can(staff, "ve.kho.manage")) {
       const r = await api<{ lo: LoBoDuoc[] }>("/api/ve/lo");
       if (r.lo.length === 0) { replaceChildren(cacLoEl, h("p", { class: "muted" }, "Không có lô nào.")); return; }
       replaceChildren(cacLoEl, h("ul", { class: "pay-list", "data-khoi": "cac-lo" }, ...r.lo.map((l) => {
+        const moTa = h("p", { class: "muted" }, `${l.tenDichVu ?? "Dịch vụ không còn trong danh mục"} · ${NHAN_NHOM[l.nhomKhach] ?? l.nhomKhach} · ${NHAN_NGUON[l.nguon] ?? l.nguon} · ${l.trangThai === "PENDING" ? "đang dở" : "đã vào kho"} · ${l.soVe} vé · tạo ${ngayVn(l.taoLuc)}`);
+        if (!thaoTacLo(l.nguon)) return h("li", { "data-lo": l.loId }, h("strong", null, l.tenSanPham), moTa);
         const nut = h("button", { type: "button", class: "btn", "data-action": "bo-lo", "data-id": l.loId }, "Huỷ lô");
         nut.addEventListener("click", async () => {
           const dongY = await hoiXacNhan({ tieuDe: "Huỷ lô vé này?", hauQua: `${l.soVe} vé của lô sẽ bị gỡ khỏi kho. Ảnh được lưu thêm ${NGAY_LUU_ANH_LO_HUY} ngày rồi tự xoá. Muốn dùng lại thì nhập đúng các ảnh đó trong lô mới.`, nhanNguyHiem: "Huỷ lô", opener: nut });
@@ -152,10 +171,7 @@ if (!can(staff, "ve.kho.manage")) {
             nut.disabled = false;
           }
         });
-        return h("li", { "data-lo": l.loId },
-          h("strong", null, l.tenSanPham),
-          h("p", { class: "muted" }, `${l.tenDichVu ?? "Dịch vụ không còn trong danh mục"} · ${NHAN_NHOM[l.nhomKhach] ?? l.nhomKhach} · ${l.trangThai === "PENDING" ? "đang dở" : "đã vào kho"} · ${l.soVe} vé · tạo ${ngayVn(l.taoLuc)}`),
-          h("div", { class: "handler-actions" }, nut));
+        return h("li", { "data-lo": l.loId }, h("strong", null, l.tenSanPham), moTa, h("div", { class: "handler-actions" }, nut));
       })));
     } catch (err) {
       replaceChildren(cacLoEl, h("p", { class: "alert", role: "alert" }, lyDoLoi(err)));
@@ -163,14 +179,17 @@ if (!can(staff, "ve.kho.manage")) {
   }
 
   async function dungForm(): Promise<void> {
-    let dichVu: { code: string; name: string }[] = [];
     let loiDanhMuc: string | null = null;
+    // N4: chọn dịch vụ bằng CHÍNH khung của Tạo đơn (ô tìm + hàng nút nhóm + ★ Hay dùng), chế độ «chọn một»; vé không cần giá nên dòng chưa có giá vẫn chọn được; nhớ nhóm bằng khoá riêng của trang này.
+    let maDichVu = "";
+    const khungDv = createCatalogPicker({ cheDo: "chon-mot", khongYeuCauGia: true, khoaNho: "ve-kho", onPick: (c) => { maDichVu = c.code; }, onDoi: () => { maDichVu = ""; } });
     try {
       const r = await api<Api.CatalogPublicResponse>("/api/catalog");
-      dichVu = r.items.map((i) => ({ code: i.code, name: i.name })).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+      khungDv.setGroups(r.groups);
+      khungDv.setItems(r.items);
     } catch (err) { loiDanhMuc = lyDoLoi(err); }
-
-    const chonDv = h("select", { class: "o", id: "vk-dich-vu", required: true }, h("option", { value: "" }, "Chọn dịch vụ…"), ...dichVu.map((d) => h("option", { value: d.code }, d.name)));
+    khungDv.setTaiKhoan(staff.id);
+    const chonDv = h("div", { id: "vk-dich-vu", class: "vk-dich-vu", role: "group", "aria-labelledby": "vk-dich-vu-nhan" }, khungDv.root);
     const chonNhom = h("select", { class: "o", id: "vk-nhom" }, ...Object.entries(NHAN_NHOM).map(([ma, ten]) => h("option", { value: ma }, ten)));
     const tenSp = h("input", { type: "text", class: "o", id: "vk-ten-sp", maxLength: 120, required: true, placeholder: "Tên sản phẩm in trên vé" });
     const tuNgay = h("input", { type: "date", class: "o", id: "vk-tu-ngay", required: true });
@@ -184,7 +203,7 @@ if (!can(staff, "ve.kho.manage")) {
 
     const form = h("form", { id: "vk-form", novalidate: false },
       loiDanhMuc ? h("p", { class: "alert", role: "alert" }, loiDanhMuc) : null,
-      truong("Dịch vụ", "vk-dich-vu", chonDv), truong("Loại khách", "vk-nhom", chonNhom), truong("Tên sản phẩm in trên vé", "vk-ten-sp", tenSp),
+      h("div", { class: "lb-truong" }, h("span", { class: "nhan", id: "vk-dich-vu-nhan" }, "Dịch vụ"), chonDv), truong("Loại khách", "vk-nhom", chonNhom), truong("Tên sản phẩm in trên vé", "vk-ten-sp", tenSp),
       truong("Dùng từ ngày (chung cho cả lô)", "vk-tu-ngay", tuNgay), truong("Dùng đến ngày (chung cho cả lô)", "vk-den-ngay", denNgay),
       truong(`Ảnh vé (JPG hoặc PNG, mỗi ảnh tối đa 3 MB, mỗi lô tối đa ${tranLo} ảnh)`, "vk-tep", tep),
       h("p", { class: "muted" }, "Máy tự đọc mã QR trên từng ảnh để chống trùng, nhưng không đọc ngày hay loại vé. Mỗi lô chỉ chọn vé cùng một sản phẩm, cùng loại khách và cùng ngày dùng. Chọn «Mọi loại khách» khi vé dùng được cho cả người lớn, trẻ em và người cao tuổi."),
@@ -200,6 +219,7 @@ if (!can(staff, "ve.kho.manage")) {
       ev.preventDefault();
       loi.hidden = true; hienOk(null);
       const tepDs = [...(tep.files ?? [])];
+      if (maDichVu === "") { baoLoi("Chọn dịch vụ cho lô vé."); return; }
       if (tepDs.length === 0) { baoLoi("Chọn ít nhất một ảnh vé."); return; }
       if (tepDs.length > tranLo) { baoLoi(cauVuotTran(tranLo, tepDs.length)); return; }
       nutGui.disabled = true;
@@ -217,7 +237,7 @@ if (!can(staff, "ve.kho.manage")) {
         for (const b of loc.bi) bi.push(`${b.ten}: ${b.lyDo}`);
         if (loc.hop.length === 0) { baoLoi(bi.join(" ")); trangThai.textContent = "Chưa có vé nào vào kho. Chưa tạo lô."; return; }
 
-        const lo = await api<{ loId: string }>("/api/ve/lo", { method: "POST", body: { catalogCode: chonDv.value, nhomKhach: chonNhom.value, tenSanPham: tenSp.value, soVeDuKien: loc.hop.length } });
+        const lo = await api<{ loId: string }>("/api/ve/lo", { method: "POST", body: { catalogCode: maDichVu, nhomKhach: chonNhom.value, tenSanPham: tenSp.value, soVeDuKien: loc.hop.length } });
         try {
           let them = 0;
           for (let i = 0; i < loc.hop.length; i += TOI_DA_VE_MOI_DOT) {
@@ -236,10 +256,14 @@ if (!can(staff, "ve.kho.manage")) {
             await Promise.all([taiCacLo(), taiLoDaHuy()]);
             return;
           }
-          await api(`/api/ve/lo/${encodeURIComponent(lo.loId)}/xac-nhan`, { method: "POST", body: {} });
+          const xn = await api<{ dichVuKhongVe: boolean; canhBaoNguon?: boolean }>(`/api/ve/lo/${encodeURIComponent(lo.loId)}/xac-nhan`, { method: "POST", body: {} });
           trangThai.hidden = true;
-          hienOk(`Đã nhập ${them} vé vào kho.`);
+          // ADR-0175 Đ1.5a: dịch vụ đang dùng vé của nguồn khác ⇒ lô chưa được cấp cho ai tới khi Quản trị đổi ô «Vé do ai phát».
+          hienOk(xn.dichVuKhongVe ? `Đã nhập ${them} vé vào kho. Dịch vụ này đang tắt ô «Có vé» nên máy chưa giữ vé cho đơn. Hãy báo Quản trị bật ô này ở màn Dịch vụ & giá.`
+            : xn.canhBaoNguon ? `Đã nhập ${them} vé vào kho. Lô chưa được cấp cho ai tới khi Quản trị đổi ô «Vé do ai phát» ở màn Dịch vụ & giá.` : `Đã nhập ${them} vé vào kho.`);
           form.reset();
+          khungDv.xoaChon();
+          maDichVu = "";
           await Promise.all([taiKho(), taiCacLo(), taiLoDaHuy()]);
         } catch (err) {
           // Lô đã tạo mà gửi dở: chỉ đường ra thay vì để vé kẹt không ai thấy (ADR-0156 Đ2 mục 3).
@@ -257,6 +281,9 @@ if (!can(staff, "ve.kho.manage")) {
     replaceChildren(loEl, form);
   }
 
+  // Bước 1 khung chung (N10): khối «Nhập lô mới» (danh mục dài) dựng sau khi tải — giữ chỗ trước để các khối dưới không bị đẩy.
+  if (nhapLo) replaceChildren(loEl, trangThaiHeThong("dang-tai", { khuon: "bieu-mau", giuCho: true }));
   await taiKho();
-  await Promise.all([taiCacLo(), taiLoDaHuy(), dungForm()]);
+  await Promise.all([taiCacLo(), taiLoDaHuy(), nhapLo ? dungForm() : null,
+    taoVe ? dungKhoiTaoVe(taoEl, { tranLo: () => tranLo, hienOk, sauKhiTao: async () => { await Promise.all([taiKho(), taiCacLo(), taiLoDaHuy()]); } }) : null]);
 }

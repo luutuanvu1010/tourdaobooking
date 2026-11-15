@@ -26,12 +26,12 @@ test("quaHanXacNhan: đồng hồ TIÊM ĐƯỢC (không đọc giờ thật) �
   assert.equal(quaHanXacNhan(han, Date.parse(han) + 1), true);
 });
 
-test("(b) danh sách chờ: Kế toán, HDV, Quản trị, Toàn quyền, Bán hàng thấy đơn; JSON KHÔNG chứa SĐT, email, ghi chú, tên khách; có hạn + dịch vụ + tiền; HCNS, Đối tác, Thực tập → 403", async () => {
+test("(b) danh sách chờ: Quản trị, Toàn quyền, Bán hàng thấy đơn; JSON KHÔNG chứa SĐT, email, ghi chú, tên khách; có hạn + dịch vụ + tiền; Kế toán, HDV (ADR-0142), HCNS, Đối tác, Thực tập → 403", async () => {
   const w = setup();
   const o = await choXacNhan(w);
   await lap(w, A); // nháp chưa gửi: không có trong danh sách
   seedStaff(w.sqlite, { id: HR, phone: "0900000010", name: "Nhân sự", perms: ["HR"] });
-  for (const ai of [ACC, H, ADM, SUP, B, A]) {
+  for (const ai of [ADM, SUP, B, A]) {
     const r = await w.call("GET", "/api/orders/cho-xac-nhan", { as: ai });
     assert.equal(r.status, 200, `${ai}: ${r.text}`);
     assert.equal(r.json.don.length, 1, ai);
@@ -50,7 +50,7 @@ test("(b) danh sách chờ: Kế toán, HDV, Quản trị, Toàn quyền, Bán h
     assert.equal(d.canDatGap, false);
     for (const cam of ["0912345678", "khach@example.com", "Dị ứng", "Khách Thử"]) assert.ok(!r.text.includes(cam), `${ai}: lộ ${cam}`);
   }
-  for (const ai of [HR, PARTNER, INTERN]) assert.equal((await w.call("GET", "/api/orders/cho-xac-nhan", { as: ai })).status, 403, ai);
+  for (const ai of [ACC, H, HR, PARTNER, INTERN]) assert.equal((await w.call("GET", "/api/orders/cho-xac-nhan", { as: ai })).status, 403, ai);
 });
 
 test("danh sách chờ: đơn rút lại / đã quyết biến mất; đơn chờ vì chặng dưới mốc có nhãn canDatGap (vi DAT_GAP)", async () => {
@@ -59,17 +59,17 @@ test("danh sách chờ: đơn rút lại / đã quyết biến mất; đơn ch�
   const gio = vnSau(60);
   const m = await lap(w, A, [svc("ZB1", gio.date, [leg(gio.date, gio.time)])]);
   assert.equal((await gui(w, m.id, A)).status, 201);
-  const ds = async () => (await w.call("GET", "/api/orders/cho-xac-nhan", { as: ACC })).json.don as any[];
+  const ds = async () => (await w.call("GET", "/api/orders/cho-xac-nhan", { as: B })).json.don as any[];
   assert.deepEqual((await ds()).map((d) => [d.orderId, d.canDatGap]).sort(), [[a.id, false], [m.id, true]].sort());
   assert.equal((await rut(w, a.id, A)).status, 200);
   assert.deepEqual((await ds()).map((d) => d.orderId), [m.id]);
 });
 
-test("chi tiết đơn ĐANG CHỜ (Đ6): Kế toán / HDV chưa phụ trách / Bán hàng khác → 200 DTO đã cắt (không SĐT, email, tên, ghi chú), tiền còn; hành khách 404; nháp KHÔNG chờ → 404; Rút lại → 404 lại", async () => {
+test("chi tiết đơn ĐANG CHỜ (Đ6): Bán hàng khác / Quản trị / Toàn quyền → 200 DTO đã cắt (không SĐT, email, tên, ghi chú), tiền còn; hành khách 404; nháp KHÔNG chờ → 404; Rút lại → 404 lại", async () => {
   const w = setup();
   const o = await choXacNhan(w);
   const khongCho = await lap(w, A);
-  for (const ai of [ACC, H, B, ADM, SUP]) {
+  for (const ai of [B, ADM, SUP]) {
     const r = await w.call("GET", `/api/orders/${o.id}`, { as: ai });
     assert.equal(r.status, 200, `${ai}: ${r.text}`);
     const d = r.json.order;
@@ -92,8 +92,9 @@ test("chi tiết đơn ĐANG CHỜ (Đ6): Kế toán / HDV chưa phụ trách / 
   assert.equal(rA.json.order.customerPhone, "0912345678");
   // không có ô xét duyệt → như cũ (nháp người khác 404)
   assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: INTERN })).status, 404);
+  for (const ai of [ACC, H]) assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: ai })).status, 404, `${ai}: ADR-0142 Kế toán / HDV không còn ô xét duyệt`);
   assert.equal((await rut(w, o.id, A)).status, 200);
-  for (const ai of [ACC, H, B]) assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: ai })).status, 404, `${ai}: sau Rút lại`);
+  for (const ai of [B]) assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: ai })).status, 404, `${ai}: sau Rút lại`);
 });
 
 test("(r) tài khoản lai Bán hàng + Đối tác mở chi tiết đơn chờ CỦA NGƯỜI KHÁC → 200 DTO đã cắt như người xét duyệt (không phải DTO hẹp của Đối tác)", async () => {

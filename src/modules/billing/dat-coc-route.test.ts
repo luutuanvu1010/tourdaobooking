@@ -12,13 +12,15 @@ import { A, ACC, ADM, PARTNER, SUP, datCo, inDays, leg, setup, svc } from "../..
 const AT = "2026-10-01T00:00:00.000Z";
 const DT_HUONG = "88888888-8888-4888-8888-888888888801"; // Đối tác có hồ sơ mang vai được hưởng ⇒ bên đặt = chính hồ sơ này ⇒ BOOKER
 const DT_KHONG_HO_SO = "88888888-8888-4888-8888-888888888802";
+// Đối tác kiểu cũ (hồ sơ không vai trò đối tác — ADR-0185): nháp không bên đặt ⇒ vai STAFF. Gửi đơn của nó bị cổng chặn nên ca STAFF đi đường «đã thôi quyền Đối tác».
+const DT_CU = "88888888-8888-4888-8888-888888888803";
 
 function dung(tuyChon: Record<string, unknown> = {}) {
   const w = setup(tuyChon);
   seedStaff(w.sqlite, { id: DT_HUONG, phone: "0900000021", name: "Đối Tác Hưởng", perms: ["PARTNER"] });
   seedStaff(w.sqlite, { id: DT_KHONG_HO_SO, phone: "0900000022", name: "Đối Tác Không Hồ Sơ", perms: ["PARTNER"] });
   w.sqlite.prepare("UPDATE staff SET party_id = NULL WHERE id = ?").run(DT_KHONG_HO_SO);
-  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${DT_HUONG}`, `pty-${DT_HUONG}`, AT, AT);
+  seedStaff(w.sqlite, { id: DT_CU, phone: "0900000023", name: "Đối Tác Kiểu Cũ", perms: ["PARTNER"], kieuCu: true });
   return w;
 }
 const than = (coc: unknown, extra: Record<string, unknown> = {}, dv: unknown[] = [svc("ZB1", inDays(3))]) => ({ customerName: "Khách Thử", customerPhone: "0912345678", services: dv, ...(coc === undefined ? {} : { declaredDeposit: coc }), ...extra });
@@ -59,6 +61,8 @@ async function moYeuCau(w: any, as: string, coc: number) {
   assert.equal(g.json.nhanh, "A");
   return (await w.call("GET", `/api/orders/${o.id}`, { as: ADM })).json;
 }
+/** Thôi quyền Đối tác, nhận quyền Bán hàng: đơn nháp còn số khai, người lập đi đường xác nhận thường. */
+const thoiDoiTac = (w: any, id: string) => w.sqlite.prepare("UPDATE stf_permission SET permission_type_code = 'SALES' WHERE staff_id = ? AND permission_type_code = 'PARTNER'").run(id);
 const conVe = (w: any, as: string, o: any, yeuCauId: string) => w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as, body: { ketQua: "CON_VE", yeuCauId, updatedAt: o.updatedAt } });
 
 // ---- (a) nháp --------------------------------------------------------------------------------------------------------------------------------------------------
@@ -80,14 +84,14 @@ test("(a) nháp có lời khai: cột lưu đúng số, KHÔNG có dòng sổ n�
 const cot2 = (w: any, id: string) => w.q("SELECT updated_at AS u FROM orders WHERE id = ?", id)[0].u;
 
 // ---- (b) ba đường --------------------------------------------------------------------------------------------------------------------------------------------
-test("(b1) Gửi đơn nhánh B: đúng một khoản thu, một dòng giữ hộ, không dấu chờ; vai STAFF khi người lập không phải bên đặt được hưởng", async () => {
+test("(b1) Gửi đơn nhánh B: đúng một khoản thu, một dòng giữ hộ, không dấu chờ; vai BOOKER — Đối tác gửi được đơn thì là bên đặt được hưởng (ADR-0185; vai STAFF ở b3, b5)", async () => {
   const w = dung();
   const o = await lapCoc(w, PARTNER, 200000);
   const g = await guiDon(w, o.id, PARTNER);
   assert.equal(g.status, 200, g.text);
   assert.equal(g.json.nhanh, "B");
   assert.equal(status(w, o.id), "confirmed");
-  dungMotKhoan(w, o.id, 200000, PARTNER, "STAFF");
+  dungMotKhoan(w, o.id, 200000, PARTNER, "BOOKER");
 });
 
 test("(b2) Còn vé do Quản trị bấm: người thu và người ghi vẫn là NGƯỜI LẬP; vai BOOKER theo bản chụp của chính lô; nhật ký ghi người bấm, chỉ số tiền và mã đơn", async () => {
@@ -103,14 +107,13 @@ test("(b2) Còn vé do Quản trị bấm: người thu và người ghi vẫn l
   assert.doesNotMatch(String(nk[0].detail), /09\d{8}|Khách Thử/, "nhật ký không có tên, SĐT");
 });
 
-test("(b3) POST /status của tài khoản đã thôi giữ quyền Đối tác khi đơn còn nháp: đúng một khoản thu trên người lập", async () => {
+test("(b3) POST /status của tài khoản đã thôi giữ quyền Đối tác khi đơn còn nháp: đúng một khoản thu trên người lập; vai STAFF (nháp không bên đặt)", async () => {
   const w = dung();
-  const o = await lapCoc(w, PARTNER, 250000);
-  // Thôi quyền Đối tác, nhận quyền Bán hàng: đơn nháp còn số khai, người lập đi đường xác nhận thường.
-  w.sqlite.prepare("UPDATE stf_permission SET permission_type_code = 'SALES' WHERE staff_id = ? AND permission_type_code = 'PARTNER'").run(PARTNER);
-  const r = await w.call("POST", `/api/orders/${o.id}/status`, { as: PARTNER, body: { status: "confirmed" } });
+  const o = await lapCoc(w, DT_CU, 250000);
+  thoiDoiTac(w, DT_CU);
+  const r = await w.call("POST", `/api/orders/${o.id}/status`, { as: DT_CU, body: { status: "confirmed" } });
   assert.equal(r.status, 200, r.text);
-  dungMotKhoan(w, o.id, 250000, PARTNER, "STAFF");
+  dungMotKhoan(w, o.id, 250000, DT_CU, "STAFF");
 });
 
 test("(b4) Khai 0 không sinh khoản thu ở cả đường có và không có khoá", async () => {
@@ -124,11 +127,13 @@ test("(b4) Khai 0 không sinh khoản thu ở cả đường có và không có 
 });
 
 test("(b5) «Đã giao» không bị khoản này chặn: khách trả đủ theo lời khai thì đi qua, số dư nằm trên đối tác — cả người lập là bên đặt được hưởng (BOOKER) lẫn không (STAFF)", async () => {
-  for (const [nguoi, vai] of [[PARTNER, "STAFF"], [DT_HUONG, "BOOKER"]] as const) {
+  for (const [nguoi, vai] of [[DT_CU, "STAFF"], [DT_HUONG, "BOOKER"]] as const) {
     const w = dung();
     const o = await lapCoc(w, nguoi, 600000, [svc("ZB1", inDays(0))]);
     assert.equal(o.total, 600000);
-    const g = await guiDon(w, o.id, nguoi);
+    // Ca STAFF đi đường của b3 (Đối tác chưa có vai trò không Gửi đơn được — ADR-0185); xacNhanDon chọn Gửi đơn hay /status theo quyền đang mở.
+    if (vai === "STAFF") thoiDoiTac(w, nguoi);
+    const g = await w.xacNhanDon(o.id, nguoi);
     assert.equal(g.status, 200, g.text);
     dungMotKhoan(w, o.id, 600000, nguoi, vai);
     const don = (await w.call("GET", `/api/orders/${o.id}`, { as: nguoi })).json.order;
@@ -241,11 +246,14 @@ test("(d1) Lời khai > tổng sau giảm: lập 409, lưu 409, không ghi; 16 g
 
 test("(d2) Người xét: tổng trong CSDL bị hạ dưới lời khai ⇒ trigger chặn câu hạ tổng; Còn vé gặp đơn lệch (đặt thẳng, tắt trigger) ⇒ 409 nói phải trả đơn, không ghi gì, đơn ở lại nháp", async () => {
   const w = dung();
-  const { order, xacNhan } = await moYeuCau(w, PARTNER, 400000);
-  assert.throws(() => w.sqlite.prepare("UPDATE orders SET discount = 800000, total = 200000, remaining_amount = 200000 WHERE id = ?").run(order.id), /declared_deposit_exceeds_total/);
+  // Người lập là bên đặt được hưởng (ADR-0185) ⇒ trần giảm giá = hoa hồng của đơn: mức 15% (150.000 ₫) để khoản giảm 100.000 ₫ qua được trần, chỉ còn lời khai vượt tổng.
+  const muc = await w.call("POST", "/api/pricing/hoa-hong", { as: ACC, body: { tuNgay: "2026-01-01", doiTuong: { loai: "DOI_TAC", partyId: `pty-${PARTNER}` }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1500 } });
+  assert.equal(muc.status, 201, muc.text);
+  const { order, xacNhan } = await moYeuCau(w, PARTNER, 950000);
+  assert.throws(() => w.sqlite.prepare("UPDATE orders SET discount = 100000, total = 900000, remaining_amount = 900000 WHERE id = ?").run(order.id), /declared_deposit_exceeds_total/);
   // Mô phỏng tổng đã thấp hơn lời khai vì một đường khác: gỡ lớp CSDL để chạm đúng cổng máy chủ.
   w.sqlite.exec("DROP TRIGGER orders_declared_deposit_within_total");
-  w.sqlite.prepare("UPDATE orders SET discount = 800000, total = 200000, remaining_amount = 200000 WHERE id = ?").run(order.id);
+  w.sqlite.prepare("UPDATE orders SET discount = 100000, total = 900000, remaining_amount = 900000 WHERE id = ?").run(order.id);
   const r = await conVe(w, ADM, order, xacNhan.yeuCau.id);
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "declared_deposit_exceeds_total");
@@ -497,12 +505,18 @@ test("I-4: khai đủ chưa nộp thì khoá và báo chờ đối tác nộp; n
   assert.equal(v.choDoiTacNop, false);
 });
 
-test("I-4: «Tôi thu» đủ tiền vẫn mở như cũ, không phải đợi nộp", async () => {
+// Đổi CÓ CHỦ Ý (ADR-0170 Đ2, mở rộng ADR-0159 Đ2 mục 2): bản cũ nói «Tôi thu» đủ tiền thì vé mở ngay. Nay đơn do người giữ quyền Đối tác lập chỉ mở khi tiền ĐÃ VỀ công ty,
+// nên «Tôi thu» của chính họ khoá tới khi nộp (đơn do nhân viên văn phòng lập vẫn mở ngay: doi-tac-mo-ve.test.ts).
+test("I-4 (đổi theo ADR-0170): «Tôi thu» đủ tiền của đối tác khoá tới khi nộp về công ty", async () => {
   const w = dung();
   const o = await moDon(w, PARTNER, 0);
   const t = await w.call("POST", `/api/orders/${o.id}/payments`, { as: PARTNER, body: { soTien: 600000, hinhThuc: "CASH", nguoiThu: "toi" } });
   assert.equal(t.status, 201, t.text);
-  const v = await veDon(w, o.id);
+  let v = await veDon(w, o.id);
+  assert.equal(v.thuDu, false);
+  assert.equal(v.choDoiTacNop, true);
+  assert.equal((await nop(w, o.id, 600000)).status, 201);
+  v = await veDon(w, o.id);
   assert.equal(v.thuDu, true);
   assert.equal(v.choDoiTacNop, false);
 });
@@ -661,14 +675,18 @@ test("I-5: chuyển hai lần vẫn truy về khoản khai", async () => {
   assert.equal((await veDon(w, c.id)).thuDu, true);
 });
 
-test("I-5: cọc «Tôi thu» chuyển sang giữ quy tắc cũ, vé mở", async () => {
+// Đổi CÓ CHỦ Ý (ADR-0170 Đ2): tiền «Tôi thu» của đối tác chuyển sang đơn mới vẫn nằm ở tay đối tác (dòng giữ hộ trên họ), nên vé đơn nhận khoá tới khi nộp.
+test("I-5 (đổi theo ADR-0170): cọc «Tôi thu» chuyển sang đơn mới vẫn ở tay đối tác, vé khoá tới khi nộp", async () => {
   const w = dung();
   const cu = await moDon(w, PARTNER, 0);
   assert.equal((await w.call("POST", `/api/orders/${cu.id}/payments`, { as: PARTNER, body: { soTien: 600000, hinhThuc: "CASH", nguoiThu: "toi" } })).status, 201);
   await huyDon(w, cu.id);
   const nhan = await moDon(w, PARTNER, 0);
   await chuyenCoc(w, cu, nhan, 600000);
-  const v = await veDon(w, nhan.id);
+  let v = await veDon(w, nhan.id);
+  assert.equal(v.thuDu, false);
+  assert.equal((await nop(w, nhan.id, 600000)).status, 201);
+  v = await veDon(w, nhan.id);
   assert.equal(v.thuDu, true);
   assert.equal(v.choDoiTacNop, false);
 });
@@ -723,4 +741,42 @@ test("Ghi chú Kế toán gõ cho khoản mang dấu: báo rõ 400, không âm t
   assert.equal(khoanSong(w, o.id)[0].id, id, "khoản cũ còn nguyên");
   assert.equal((await suaGop(w, o.id, [id], [mo(200000, { ghiChu: "Khách đặt cọc trước" })])).status, 201);
   assert.equal(khoanSong(w, o.id)[0].note, "Khách đặt cọc trước");
+});
+
+// ---- ADR-0197 Đ1: tên ô «Khách đặt cọc cho đối tác» ở mọi chỗ người dùng thấy; chuỗi dấu trong CSDL KHÔNG đổi -------------------------------------------------------
+const TEN_MOI = "Khách đặt cọc cho đối tác";
+const docTep = (tep: string): string => readFileSync(new URL(`../../../${tep}`, import.meta.url), "utf8");
+
+test("ADR-0197 Đ1: dấu nhận diện `GHI_CHU_KHOAN_LOI_KHAI` trong CSDL giữ nguyên «Khách đặt cọc trước» (dữ liệu thật mang chuỗi này)", () => {
+  assert.match(docTep("src/modules/billing/coc-repo.ts"), /export const GHI_CHU_KHOAN_LOI_KHAI = "Khách đặt cọc trước";/);
+});
+
+test("ADR-0197 Đ1: tên ô mới ở ô nhập, hai dòng tóm tắt, dòng chờ xác nhận, câu hướng dẫn Đối tác; không còn tên cũ ở chỗ hiển thị", async () => {
+  const { NHAN_DAT_COC, NHAN_DAT_COC_CHO } = await import("../../shared/dat-coc-truoc.ts");
+  assert.equal(NHAN_DAT_COC, TEN_MOI);
+  assert.equal(NHAN_DAT_COC_CHO, `${TEN_MOI} (chờ xác nhận)`);
+  const html = docTep("public/order-form.html");
+  assert.ok(html.includes(`${TEN_MOI} (₫)`), "nhãn ô nhập");
+  assert.equal(html.split(`<span class="muted">${TEN_MOI}</span>`).length - 1, 2, "hai dòng tóm tắt");
+  assert.ok(docTep("src/shared/huong-dan-doi-tac.ts").includes(`**${TEN_MOI}**`), "câu hướng dẫn Đối tác");
+  for (const tep of ["public/order-form.html", "web/order-form.ts", "web/order.ts", "src/shared/huong-dan-doi-tac.ts", "src/shared/dat-coc-truoc.ts"]) {
+    assert.ok(!docTep(tep).includes("Khách đặt cọc trước"), `${tep} còn tên cũ`);
+  }
+});
+
+test("ADR-0197 Đ1: dòng khoản thu mang dấu hiện tên mới (DTO đổi chữ lúc hiển thị, CSDL giữ chuỗi dấu); nhật ký mới ghi tên mới; khoản thu tay gõ tên mới bị chặn như gõ chuỗi dấu", async () => {
+  const w = dung();
+  const o = await lapCoc(w, PARTNER, 200000);
+  assert.equal((await guiDon(w, o.id, PARTNER)).status, 200);
+  assert.equal(khoanThu(w, o.id)[0].note, "Khách đặt cọc trước", "CSDL giữ chuỗi dấu");
+  for (const as of [PARTNER, ACC]) {
+    const t = await w.call("GET", `/api/orders/${o.id}/payments`, { as });
+    assert.equal(t.status, 200, t.text);
+    assert.equal(t.json.lanThu[0].ghiChu, TEN_MOI, `người xem ${as}`);
+  }
+  const nk = w.q("SELECT detail FROM audit_log WHERE detail LIKE ?", `${TEN_MOI}%`);
+  assert.equal(nk.length, 1, "nhật ký mới ghi tên mới");
+  const tay = await w.call("POST", `/api/orders/${o.id}/payments`, { as: PARTNER, body: { soTien: 10_000, hinhThuc: "CASH", nguoiThu: "toi", ghiChu: TEN_MOI } });
+  assert.equal(tay.status, 400, "gõ tay tên mới thì dòng thu tay trông y khoản cọc thật — chặn");
+  assert.match(tay.json.error.message, /dành riêng/);
 });

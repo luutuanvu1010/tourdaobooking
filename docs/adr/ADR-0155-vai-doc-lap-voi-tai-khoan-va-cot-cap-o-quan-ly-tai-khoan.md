@@ -1,8 +1,9 @@
 # ADR-0155 — Vai bên ngoài trên hồ sơ chưa có tài khoản; cột «Cấp độ đại lý» ở Quản lý tài khoản
 
-- **Trạng thái:** viết lại sau kiểm độc lập 2026-11-02. Chưa có mã. AI soạn và ghi lại, không tự duyệt.
+- **Trạng thái:** **accepted toàn bộ** 2026-11-04. Viết lại sau kiểm độc lập 2026-11-02; AI soạn và ghi lại, không tự duyệt.
+  - **Đ1, C3, C4, C6: accepted** 2026-11-04. Sau khi đóng `TNV-G3`, `TNV-G4` và đọc tóm tắt ba điều kèm khuyến nghị (trang ghép `docs/superpowers/specs/2026-11-03-trang-ghep-lu-hanh-khong-tai-khoan.md`), được hỏi «Bạn duyệt cả ba điều cho công ty lữ hành chưa có tài khoản chứ?», chủ trả lời, nguyên văn: *«Duyệt cả ba»*. Ba điều trình đúng theo khuyến nghị ở mục dưới. Đ2 đã lên bản 2.57.
   - **Đ2: accepted** 2026-11-02. Được hỏi «Cột cấp độ đại lý ở Quản lý tài khoản có duyệt làm ngay không?», chủ trả lời, nguyên văn: *«Ok duyệt, nhưng lưu ý cách dùng từ ngữ, phải phổ thông , đơn nghĩa»*. Vì lời này, chữ hiển thị ở Đ2.3, Đ2.4 đã đổi trước khi ghi duyệt, theo bảng từ `src/shared/bang-tu-giao-dien.ts`; đó là chữ mẫu, chủ xem bằng ảnh thật lúc thi công.
-  - **Đ1: vẫn là đề xuất, hoãn.** Chủ 2026-11-02, nguyên văn: *«vá xong mới làm, nên tóm tắt trước để hiểu»*; trình lại sau khi đóng `TNV-G3`, `TNV-G4`, kèm C3, C4, C6.
+  - **Đ1 trước đó hoãn.** Chủ 2026-11-02, nguyên văn: *«vá xong mới làm, nên tóm tắt trước để hiểu»*. Dòng «Xây trên lỗ đang hở» và đoạn «Phần còn lại của hai lỗ» dưới C5 là hồ sơ của ngày 2/11; hai mục đã đóng 2026-11-04.
 - **Nguồn:** đặc tả `docs/superpowers/specs/2026-11-01-dat-ve-doi-tac-design.md` §5 QĐ-C, §8 (chủ duyệt thiết kế 2026-11-02, nguyên văn «Duyệt thiết kế»). Trang ghép: `docs/superpowers/specs/2026-11-02-trang-ghep-dat-ve-luot-2.md`. Dẫn chứng từng lỗi đã sửa: `docs/superpowers/specs/2026-11-02-ket-qua-kiem-adr-0154-0155.md`. Văn bản đề xuất kiểm một vòng nên bản này không kiểm vòng hai; thi công có người kiểm riêng.
 - **Lệch chữ đặc tả, ADR này thắng:** bỏ điều kiện «vai còn bật, đọc qua view» của §5 C1 (tạo vòng phụ thuộc); route đọc không nhận `ids` và không ép một câu truy vấn (§5 C2).
 - **Số:** 0155 kiểm còn trống 2026-11-02 trên `main` và mọi nhánh trong máy. Không cần migration (người kiểm thử không thêm bảng, trigger không chặn), kiểm lại lúc thi công.
@@ -48,9 +49,9 @@ Phần còn lại của hai lỗ (đọc mã và ADR 2026-11-02, theo từ khoá
 - `TNV-G3` đ9 phân định trách nhiệm: chủ đã duyệt (ADR-0116, 2026-10-13), chưa thi công; hoàn sau Đã giao còn bị chặn hẳn. Tin báo người thu cũ và mới: chưa có mã.
 - `TNV-G4` Đ6a cảnh báo lần thu tiền mặt giống nhau: chủ đã chọn 2026-10-02, chưa thấy trong mã. Đ5d tin báo người bị đổi số dư: đã có mã từ ADR-0115 (`ledger_adjustment_affected`), chỉ tới người có tài khoản.
 
-## Câu chờ chủ quyết, trình lại cùng Đ1
+## Câu chủ đã duyệt cùng Đ1 (2026-11-04: theo khuyến nghị)
 
-**C3. Đối tác thôi vai mà còn đơn nháp đứng tên hoặc còn cấp riêng?** Hôm nay đơn nháp của cá nhân thành không hoa hồng mà không ai được báo; đơn của công ty phải đổi sang Khách lẻ mới lưu được.
+**C3. Đối tác thôi vai mà còn đơn nháp đứng tên hoặc còn cấp riêng?** Hôm nay đơn nháp của cá nhân thành không hoa hồng mà không ai được báo; đơn của công ty không đổi được bên đặt, nhưng bấm Xác nhận thẳng thì vẫn qua, hoa hồng «không có», không ai được báo (kiểm độc lập 3/11). Gộp hồ sơ đòi gỡ vai trước, nên câu chặn phải nói rõ lối ra: xử lý đơn nháp, kết thúc cấp riêng, rồi gỡ.
 - **Khuyến nghị:** chặn gỡ và nêu mã đơn, tới khi xử lý xong nháp và cấp riêng; đơn đã xác nhận không tính.
 - Cách khác: cho gỡ như loại tự thêm hôm nay, chấp nhận mất hoa hồng lặng lẽ.
 

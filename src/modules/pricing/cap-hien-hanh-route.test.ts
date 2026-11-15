@@ -203,8 +203,9 @@ test("(f2) hồ sơ không mang vai được hưởng không có trong kết qu�
   const b = await boHoSo(w);
   const r = await ok(doc(w, ADM), 200);
   assert.equal(hoSoCua(r, b.id.khong), undefined, "hồ sơ không vai");
-  const mongIds = Object.entries(b.id).filter(([ten]) => ten !== "khong").map(([, id]) => id).sort();
-  assert.deepEqual(r.json.hoSo.map((x: any) => x.partyId), mongIds, "đúng tám hồ sơ được hưởng, theo mã");
+  // + hồ sơ của tài khoản Đối tác DT: khung thử gieo Đối tác kèm vai trò Công ty lữ hành (ADR-0185).
+  const mongIds = [...Object.entries(b.id).filter(([ten]) => ten !== "khong").map(([, id]) => id), `pty-${DT}`].sort();
+  assert.deepEqual(r.json.hoSo.map((x: any) => x.partyId), mongIds, "đúng tám hồ sơ được hưởng của bộ và hồ sơ của Đối tác, theo mã");
   // vai trò thường (không phải loại được hưởng) không đưa hồ sơ vào kết quả
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-khach', ?, 'CUSTOMER', '2026-01-01', ?, ?)").run(b.id.khong, AT, AT);
   assert.equal(hoSoCua(await ok(doc(w, ADM), 200), b.id.khong), undefined, "vai khách không được hưởng");
@@ -239,7 +240,7 @@ test("(f3) số câu cố định: 0, 1 và 5 hồ sơ cùng số câu; đúng s
   }
   const k5 = await dem();
   assert.equal(hoSoCua(await ok(doc(w, ADM), 200), p1).partyId, p1, "chống bài rỗng: hồ sơ có trong kết quả");
-  assert.equal(Number((await ok(doc(w, ADM), 200)).json.hoSo.length), 5, "chống bài rỗng: năm hồ sơ");
+  assert.equal(Number((await ok(doc(w, ADM), 200)).json.hoSo.length), 5 + 1, "chống bài rỗng: năm hồ sơ thêm và hồ sơ của Đối tác DT (vai trò mặc định — ADR-0185)");
   assert.equal(cauBang(k0).length, 6, `sáu câu bảng giá: ${cauBang(k0).join(" || ")}`);
   assert.deepEqual([k0.length, k1.length, k5.length], [k0.length, k0.length, k0.length], "không đổi theo số hồ sơ");
   assert.equal(cauBang(k5).length, 6);

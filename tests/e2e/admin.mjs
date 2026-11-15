@@ -30,8 +30,12 @@ let r = await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "  Ngu
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.equal(r.body.staff.phone, phoneA); assert.equal(r.body.staff.fullName, "Nguyễn Test Một"); assert.deepEqual(r.body.staff.permissions, ["SALES"]);
 assert.ok(r.body.staff.partyId, "tài khoản mới phải có hồ sơ");
-assert.match(r.body.pin, /^\d{6}$/);
-const A = { id: r.body.staff.id, pin: r.body.pin, phone: phoneA, partyId: r.body.staff.partyId };
+// ADR-0191: Nhân sự tạo tài khoản xem mọi khách (Bán hàng) ⇒ không nhận PIN; Quản trị cấp PIN đầu bằng «Đặt lại PIN».
+assert.equal(r.body.pin, null); assert.equal(r.body.choQuanTriCapPin, true);
+const A = { id: r.body.staff.id, pin: null, phone: phoneA, partyId: r.body.staff.partyId };
+r = await raw(ADMIN, "POST", `/api/staff/${A.id}/reset-pin`);
+assert.equal(r.status, 200, JSON.stringify(r.body)); assert.match(r.body.pin, /^\d{6}$/);
+A.pin = r.body.pin;
 assert.equal((await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Trùng", phone: phoneA })).status, 409);
 assert.equal((await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Sai", phone: "123" })).status, 400);
 // Tên vượt giới hạn của hồ sơ (CHECK pty_person 60/100/60) phải bị chặn ở ĐẦU VÀO = 400, không để db.batch() vỡ = 500.
@@ -198,6 +202,10 @@ assert.equal(checked + blocked, 40);
 // đăng nhập đúng xoá bộ đếm
 const okPhone = rnd();
 r = await raw(HR, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đúng sai", phone: okPhone, permissions: ["SALES"] });
+assert.equal(r.body.pin, null, "ADR-0191: Nhân sự tạo Bán hàng không nhận PIN");
+const okId = r.body.staff.id;
+r = await raw(ADMIN, "POST", `/api/staff/${okId}/reset-pin`);
+assert.equal(r.status, 200, JSON.stringify(r.body));
 const okPin = r.body.pin;
 for (let i = 0; i < 4; i++) await login(okPhone, "999888", fresh());
 assert.equal((await login(okPhone, okPin, fresh())).status, 200);

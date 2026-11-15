@@ -57,6 +57,7 @@ async function callOff(r: Route, env: Record<string, unknown>): Promise<Response
     params: { id: "00000000-0000-4000-8000-000000000002" },
     staff: ADMIN as never,
     isAssigned: async () => false,
+    banHang: () => ({}) as never, // ADR-0142: khung thử không dùng Bán hàng phụ trách; ctx gọi lười
     newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
     ordersWithHandler: async () => new Set<string>(),
     myHandledOrderIds: async () => [],

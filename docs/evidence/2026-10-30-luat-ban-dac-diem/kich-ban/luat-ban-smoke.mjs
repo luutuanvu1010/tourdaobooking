@@ -196,7 +196,7 @@ try {
           await bocucSach(p, `bước 5 hộp ${kho}`);
           await axeKiem(p, `bước 5 hộp ${kho}`);
           await chup(p, `luat-ban-5-hop-hen-${tenKho}`, false);
-          assert.equal(await p.ev("(() => { const b = [...document.querySelectorAll('.sheet-foot button')].find((x) => x.textContent.trim() === 'Hẹn kết thúc'); b.click(); return true; })()"), true);
+          assert.equal(await p.ev("(() => { const b = [...document.querySelectorAll('.sheet-foot button')].find((x) => x.textContent.trim() === 'Đặt ngày kết thúc'); b.click(); return true; })()"), true);
           await choDongHop(p);
           await p.waitFor(`(() => { const e = [...document.querySelectorAll('[data-id="${luatDD.id}"]')].find((x) => x.offsetParent !== null); return !!e && e.innerText.includes('đến hết'); })()`, "dòng đã hẹn kết thúc");
           const d = await dong(p, luatDD.id);

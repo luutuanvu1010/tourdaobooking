@@ -3,6 +3,8 @@
 // "Còn mở" = valid_to_date IS NULL hoặc > hôm nay (giờ VN) — dòng đóng đúng hôm nay coi là "vừa kết thúc" (kế hoạch R7).
 // Hệ quả (phán quyết F16): các đường đọc cũ dùng `>= hôm nay`, nên dòng của A đóng đúng hôm nay vẫn hiện là hiệu lực trong ngày ở đó — chấp nhận được vì A bị ẩn sau khi gộp.
 
+import { vaiMoChoHoSoKhongTaiKhoan } from "../../shared/roles.ts";
+
 export type NhomVai = "INTERNAL" | "EXTERNAL" | "OTHER";
 export interface LienHeGop { id: string; kind: string; value: string; valueNormalized: string; label: string | null; isPrimary: boolean; validFrom: string; validTo: string | null }
 export interface CongViecGop { id: string; code: string; name: string; group: NhomVai; locationId: string | null; locationName: string | null; validFrom: string; validTo: string | null }
@@ -32,11 +34,11 @@ export interface HoSoGop {
   giayTo: GiayToGop[];
 }
 /** Phần của module khác, gốc lắp ráp đếm (ctx.gopHoSo) — parties không đọc dsp_ / vc_ / orders. */
-export interface NgoaiGop { phuTrachDon: number; laiChuyen: number; toLaiChuyen: number; chuXeChuyen: number; soXe: number; donLechTien: string[] }
+export interface NgoaiGop { phuTrachDon: number; laiChuyen: number; toLaiChuyen: number; chuXeChuyen: number; soXe: number; donLechTien: string[]; donConNoTraSau?: string[] }
 export type MaChanGop =
   | "merge_same" | "merge_not_person" | "merge_inactive" | "merge_owner_company" | "merge_both_accounts" | "merge_source_has_account" | "merge_source_account_role"
   | "merge_role_group_conflict" | "merge_source_busy" | "merge_source_is_target" | "merge_source_future_row" | "merge_order_invalid" | "merge_source_owns_vehicle"
-  | "merge_partner_label_internal" | "merge_erasure";
+  | "merge_partner_label_internal" | "merge_erasure" | "merge_credit_debt" | "merge_credit_no_limit" | "merge_credit_overdue";
 export interface LyDoChan { code: MaChanGop; message: string }
 export interface KeHoachGop {
   chan: LyDoChan[];
@@ -49,7 +51,7 @@ export interface KeHoachGop {
   benThu3: string[];
 }
 
-const CAU: Record<Exclude<MaChanGop, "merge_source_busy" | "merge_order_invalid">, string> = {
+const CAU: Record<Exclude<MaChanGop, "merge_source_busy" | "merge_order_invalid" | "merge_credit_debt">, string> = {
   merge_same: "Hồ sơ phụ và hồ sơ chính phải là hai hồ sơ khác nhau.",
   merge_not_person: "Chỉ gộp được hai hồ sơ cá nhân (chưa gộp được hồ sơ tổ chức).",
   merge_inactive: "Một trong hai hồ sơ đã ngưng dùng hoặc đã gộp vào hồ sơ khác.",
@@ -64,8 +66,23 @@ const CAU: Record<Exclude<MaChanGop, "merge_source_busy" | "merge_order_invalid"
   merge_source_owns_vehicle: "Hồ sơ phụ đang đứng tên xe — đổi chủ xe ở mục Xe trước khi gộp.",
   // ADR-0126 (lát H-5): chặn ở route (đọc phiếu xoá của CẢ HAI hồ sơ trước lô) và ở trigger party_merge_erasure; cùng câu.
   merge_erasure: "Hồ sơ đang có hoặc đã thực hiện yêu cầu xoá dữ liệu — không gộp được.",
+  // ADR-0188 mục 4(a): cùng câu a / b của đường đổi bên đặt, đổi «bên đặt mới» thành «hồ sơ chính» (câu a viết lại cho đúng việc gộp). Route tính (cổng hạn mức của billing), không phải luật thuần.
+  merge_credit_no_limit:
+    "Hồ sơ phụ có đơn trả sau đã xác nhận nên chỉ gộp được vào hồ sơ chính có hạn mức trả sau còn hiệu lực. Nhờ Quản trị hoặc Toàn quyền cấp hạn mức cho hồ sơ chính, hoặc chọn hồ sơ chính khác.",
+  merge_credit_overdue: "Hồ sơ chính còn đơn trả sau quá hạn chưa thanh toán nên chưa nhận thêm đơn trả sau.",
 };
 export const chanCo = (code: keyof typeof CAU): LyDoChan => ({ code, message: CAU[code] });
+/**
+ * ADR-0155 Đ1.4: hồ sơ phụ KHÔNG tài khoản mà mọi vai bên ngoài/nội bộ đang giữ đều thuộc năm vai mở cho hồ sơ không tài khoản → vai đó gỡ ở Danh bạ (không có màn
+ * Quản lý tài khoản nào để bỏ chọn). Thứ tự gỡ theo C3: vai hưởng cuối còn đơn nháp / cấp riêng / mức riêng thì phải xử lý những việc đó trước.
+ */
+const CAU_PHU_VAI_DANH_BA =
+  "Hồ sơ phụ đang giữ vai trò đối tác (công ty lữ hành, hướng dẫn viên tự do, lễ tân, tài xế taxi hoặc cộng tác viên) — kết thúc vai trò đó ở Danh bạ (mở hồ sơ, mục Công việc) rồi gộp lại. " +
+  "Nếu đó là vai trò hưởng hoa hồng cuối của hồ sơ, hãy xử lý trước các đơn nháp, cấp riêng và mức riêng còn mở, vì Nền tảng không cho kết thúc vai trò khi còn những việc này.";
+function chanVaiPhu(a: HoSoGop, vaiMoA: CongViecGop[]): LyDoChan {
+  const chiNamVai = !a.coTaiKhoan && vaiMoA.filter((r) => r.group !== "OTHER").every((r) => vaiMoChoHoSoKhongTaiKhoan(r.code));
+  return chiNamVai ? { code: "merge_source_account_role", message: CAU_PHU_VAI_DANH_BA } : chanCo("merge_source_account_role");
+}
 const conMo = (validTo: string | null, homNay: string): boolean => validTo === null || validTo > homNay;
 const cungNoi = (x: string | null, y: string | null): boolean => (x ?? "") === (y ?? "");
 
@@ -102,7 +119,7 @@ export function keHoachGop(a: HoSoGop, b: HoSoGop, ngoai: NgoaiGop, homNay: stri
   if (a.coTaiKhoan && b.coTaiKhoan) chan.push(chanCo("merge_both_accounts"));
   else if (a.coTaiKhoan) chan.push(chanCo("merge_source_has_account"));
   const vaiMoA = a.congViec.filter((r) => r.validFrom <= homNay && conMo(r.validTo, homNay));
-  if (vaiMoA.some((r) => r.group !== "OTHER")) chan.push(chanCo("merge_source_account_role"));
+  if (vaiMoA.some((r) => r.group !== "OTHER")) chan.push(chanVaiPhu(a, vaiMoA));
   const nhomSau = new Set([...b.congViec.filter((r) => conMo(r.validTo, homNay)).map((r) => r.group), ...vaiMoA.map((r) => r.group)]);
   if (nhomSau.has("INTERNAL") && nhomSau.has("EXTERNAL")) chan.push(chanCo("merge_role_group_conflict"));
   // ADR-0117 điều 4: nhân viên nội bộ không mang loại đối tác được hưởng — chặn ở kế hoạch (lý do riêng), không để trigger huỷ lô thành merge_stale.
@@ -122,6 +139,10 @@ export function keHoachGop(a: HoSoGop, b: HoSoGop, ngoai: NgoaiGop, homNay: stri
   }
   if (ngoai.donLechTien.length > 0) {
     chan.push({ code: "merge_order_invalid", message: `Đơn ${ngoai.donLechTien.join(", ")} của hồ sơ phụ đang lệch số tiền — sửa đơn trước khi gộp.` });
+  }
+  // ADR-0168 Đ2 mục 6: hồ sơ đang đứng tên đơn Trả sau còn nợ thì không gộp (nợ và hạn mức gắn với hồ sơ này; dời đơn sang hồ sơ khác làm mất dấu).
+  if ((ngoai.donConNoTraSau ?? []).length > 0) {
+    chan.push({ code: "merge_credit_debt", message: `Đơn trả sau ${ngoai.donConNoTraSau!.join(", ")} của hồ sơ phụ còn nợ — chờ thanh toán xong rồi gộp.` });
   }
   // [Dừng Q2] — khuyến nghị: chặn khi hồ sơ phụ đứng tên xe.
   if (ngoai.soXe > 0) chan.push(chanCo("merge_source_owns_vehicle"));

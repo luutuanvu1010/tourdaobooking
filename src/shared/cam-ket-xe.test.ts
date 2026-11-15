@@ -39,7 +39,7 @@ test("R-XR: đơn A có chặng xe riêng và chỉ suất của A → không vi
   };
   const xb = kiemXuatBen({
     chuyen, suat: ds, chang: [changA], suatMoCuaChang: ds, diem: [{ id: "d-1", tripId: "cx", seq: 1, loai: "PICKUP", trangThai: "PENDING", placeKey: "L:d", gioXeToiMs: null }],
-    chuyenKhac: [], chinhSach: CS, hangBang: [{ classCode: "D", maxPassengers: null }], dieuKien: [], bayGioMs: chuyen.batDauMs, xuatBenMs: chuyen.batDauMs,
+    chuyenKhac: [], chinhSach: CS, hangBang: [{ classCode: "D", maxPassengers: null }], dieuKien: [], choPhepThieu: [], bayGioMs: chuyen.batDauMs, xuatBenMs: chuyen.batDauMs,
   });
   assert.equal(xb.dat, true, JSON.stringify(xb.lyDo));
   assert.equal(xb.camKet.khoa, null);

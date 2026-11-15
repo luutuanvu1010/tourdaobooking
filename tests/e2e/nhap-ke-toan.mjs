@@ -2,7 +2,7 @@
 // tài khoản lai SALES + PARTNER (thấy, không ghi) và PARTNER + FIELD (theo ô FIELD — đơn tự lập qua ô PARTNER: không thấy), lọc danh sách "chưa nhập" /
 // "đã nhập" kèm khoảng ngày, bỏ dấu có lý do → quay lại. Đơn dùng NGÀY ĐI riêng (hôm nay + 41) để bộ lọc không lẫn đơn của kịch bản khác.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, login, orderInput, randomPhone, session, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, login, orderInput, randomPhone, session, thanQuyenTaiKhoan, vnDate, xacNhanDonCu } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const SALES = await session(ACCOUNTS.salesA);
@@ -14,19 +14,31 @@ const NGAY = vnDate(41);
 
 async function taiKhoanCookie(ten, perms) {
   const phone = randomPhone();
-  const r = await call(SA, "POST", "/api/staff", { taoHoSoMoi: true, fullName: ten, phone, permissions: perms });
+  const r = await call(SA, "POST", "/api/staff", { taoHoSoMoi: true, fullName: ten, phone, ...thanQuyenTaiKhoan(perms) }); // ADR-0185: Đối tác thuần tạo qua vai
   assert.equal(r.status, 201, `${ten}: ${JSON.stringify(r.body)}`);
   return (await login(phone, r.body.pin)).cookie;
 }
 const PARTNER = await taiKhoanCookie("Đối Tác Nhập KT", ["PARTNER"]);
 // ADR-0083 1b: API không tạo tài khoản lai nữa — dữ liệu lai cũ vẫn có thể còn (điều 1c), gieo SQL để thử luật.
-const SP = (await gieoTaiKhoanLai("Lai Bán Đối Tác KT", ["SALES", "PARTNER"])).cookie;
-const PF = (await gieoTaiKhoanLai("Lai Đối Tác HDV KT", ["PARTNER", "FIELD"])).cookie;
+// ADR-0185: tài khoản lai chỉ có hình dạng kiểu cũ (hồ sơ không vai trò đối tác) — gieoTaiKhoanLai tự dựng và ghi để run.mjs ngưng trước kiểm bất biến cuối máy.
+const SP_TK = await gieoTaiKhoanLai("Lai Bán Đối Tác KT", ["SALES", "PARTNER"]);
+const PF_TK = await gieoTaiKhoanLai("Lai Đối Tác HDV KT", ["PARTNER", "FIELD"]);
+const SP = SP_TK.cookie;
+const PF = PF_TK.cookie;
 const INTERN = await taiKhoanCookie("Thực Tập Nhập KT", ["INTERN"]);
 
-async function donXacNhan(cookie) {
+async function donXacNhan(cookie, nguoiLapCu = null) {
   const r = await call(cookie, "POST", "/api/orders", orderInput({ services: [catalogService({ departDate: NGAY })] }));
   assert.equal(r.status, 201, JSON.stringify(r.body));
+  if (nguoiLapCu) {
+    // ADR-0185: tài khoản lai không người hưởng Gửi đơn ⇒ 409 doi_tac_chua_co_vai_tro; đơn đã xác nhận của nó là dữ liệu cũ — văn phòng xác nhận thay rồi trả người lập.
+    const g = await call(cookie, "POST", `/api/orders/${r.body.order.id}/gui-don`, {});
+    assert.equal(g.status, 409, JSON.stringify(g.body));
+    assert.equal(g.body.error.code, "doi_tac_chua_co_vai_tro");
+    const x = await xacNhanDonCu(r.body.order.id, nguoiLapCu, ACCOUNTS.salesA);
+    assert.equal(x.status, 200, JSON.stringify(x.body));
+    return r.body.order.id;
+  }
   // ADR-0136 Đ13.5: người lập giữ quyền Đối tác (PARTNER, lai Bán hàng + Đối tác, lai Đối tác + HDV) bị chặn ở /status (409 `partner_submit_required`) và «Gửi đơn» (đơn thường → nhánh B, 200).
   let c = await call(cookie, "POST", `/api/orders/${r.body.order.id}/status`, { status: "confirmed" });
   if (c.status === 409 && c.body?.error?.code === "partner_submit_required") c = await call(cookie, "POST", `/api/orders/${r.body.order.id}/gui-don`, {});
@@ -75,8 +87,8 @@ console.log("✓ lọc thiếu khoảng ngày 400; HDV, Thực tập, Đối tá
 
 // ---- Đối tác một mình: đơn CỦA MÌNH đã đánh dấu → chi tiết dấu 403, thẻ vắng nhãn, lịch sử không có dòng; lai SALES+PARTNER thấy; PARTNER+FIELD không
 const donDT = await donXacNhan(PARTNER);
-const donSP = await donXacNhan(SP);
-const donPF = await donXacNhan(PF);
+const donSP = await donXacNhan(SP, SP_TK.id);
+const donPF = await donXacNhan(PF, PF_TK.id);
 for (const id of [donDT, donSP, donPF]) assert.equal((await dau(SA, id, { daNhap: true, soHoaDon: "HD-9", truocDo: null })).status, 200, "Toàn quyền đánh dấu");
 assert.equal((await doc(PARTNER, donDT)).status, 403, "Đối tác một mình không xem dấu");
 const dsDT = await call(PARTNER, "GET", "/api/orders?limit=100");

@@ -74,7 +74,7 @@ async function main(): Promise<void> {
     h("span", { class: tt === "DANG_AP" ? "badge badge-confirmed" : tt === "SAP_AP" ? "badge badge-draft" : "badge badge-cancelled" }, NHAN_TRANG_THAI[tt]);
   const nutDong = (d: Api.SupplyTermDto, k: ReturnType<typeof khungDong>): HTMLElement | false => {
     if (!duocGhi || !dongDongDuoc(d)) return false;
-    const nut = h("button", { type: "button", class: "btn", "data-dong": d.id, "aria-label": `Đóng điều khoản: ${k.phamVi} · ${k.nguoiBan}` }, "Đóng");
+    const nut = h("button", { type: "button", class: "btn", "data-dong": d.id, "aria-label": `Ngừng điều khoản: ${k.phamVi} · ${k.nguoiBan}` }, "Ngừng điều khoản");
     nut.addEventListener("click", () => moDong(d, k));
     return nut;
   };
@@ -121,11 +121,11 @@ async function main(): Promise<void> {
   function moDong(d: Api.SupplyTermDto, k: ReturnType<typeof khungDong>): void {
     const macDinh = canXacNhanDongDieuKhoan(d);
     veHopDong(dongKhuEl, {
-      moTa: `Đóng điều khoản: ${k.phamVi} · ${k.nguoiBan}${d.tyLeMuaBp === null ? "" : ` · mua lại ${k.tyLe}`}`,
+      moTa: `Ngừng điều khoản: ${k.phamVi} · ${k.nguoiBan}${d.tyLeMuaBp === null ? "" : ` · mua lại ${k.tyLe}`}`,
       canhBao: macDinh ? CAU_DONG_DONG_MAC_DINH : null,
       tuNgay: d.tuNgay,
       homNay: ds.homNay,
-      nhanXacNhan: macDinh ? "Vẫn đóng" : "Đóng điều khoản",
+      nhanXacNhan: macDinh ? "Vẫn ngừng" : "Ngừng điều khoản",
       dong: () => replaceChildren(dongKhuEl),
       chay: async (denNgay) => {
         showError(errorEl, null);

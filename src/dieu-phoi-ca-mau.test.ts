@@ -50,7 +50,7 @@ function chay(b: Buoc, nen: Record<string, Json>): Record<string, unknown> {
     return { quyet_dinh: quyetDinh, ma_luat: (quyetDinh === "CHAN" ? r.chan : r.canPhaLe).map((x) => x.ma) };
   }
   if (b.ham === "kiemXuatBen") {
-    const r = kiemXuatBen(v);
+    const r = kiemXuatBen({ choPhepThieu: [], ...v });
     const out: Record<string, unknown> = { quyet_dinh: r.dat ? "DAT" : "GIU", ma_luat: r.lyDo.map((x) => x.ma) };
     if ("ai_xu_ly" in b.dap_an) out.ai_xu_ly = r.lyDo.map((x) => x.aiXuLy);
     out.so_gan_ten = r.ganTen.length;

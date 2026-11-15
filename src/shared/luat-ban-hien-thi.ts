@@ -10,6 +10,8 @@ export const NHAN_PHAM_VI: Readonly<Record<LuatBanDto["phamVi"], string>> = { SE
 export const tongTrangThai = (t: TrangThaiLuatBan): "la" | "bien" | "xam" => (t === "DANG_AP_DUNG" ? "la" : t === "SAP_AP_DUNG" ? "bien" : "xam");
 
 export const NUT_KET_THUC_NGAY = "Kết thúc ngay";
+/** ADR-0166 câu 11: nói trước khi đặt — sau khi đặt, dòng luật mất hết nút, không đổi ngày hay dừng sớm hơn được. */
+export const CAU_CHI_DAT_MOT_LAN = "Chỉ đặt được một lần: đặt xong không đổi ngày hay dừng sớm hơn được.";
 export const CAU_KET_THUC_NGAY = "Luật thôi chặn từ bây giờ.";
 export const DONG_PHU_DEN_NGAY = "Luật vẫn chặn tới hết ngày này.";
 export const CAU_KHONG_PHU = "Không phủ dịch vụ nào";

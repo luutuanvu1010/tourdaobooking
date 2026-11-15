@@ -4,12 +4,13 @@ import { ApiError, api, type Api, type Order, type Staff } from "./api";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
 import { vnd } from "./format";
+import { hoiXacNhan } from "./bang-truot";
 import { LY_DO_DAT_GAP, type LyDoDatGap } from "../src/shared/chang-dua-don";
 import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
 import { KHUNG_MAC_DINH, type KhungGio } from "../src/shared/khung-gio-don";
 import { GHI_CHU_HUY_TOI_DA, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
 import { can } from "../src/shared/permissions";
-import { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT, CAU_TIEN_KHOA_KHI_CHO, NHAN_KET_QUA, NHAN_NUT_XAC_NHAN, dongChoXacNhan, dongGioConVe, nhanGhiChuDichVu, nhanGioLuot, nhanLyDoCanXacNhan, type DongGioConVe, type LuotGioConVe } from "../src/shared/xac-nhan-hien-thi";
+import { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT, CAU_TIEN_KHOA_KHI_CHO, HOI_CON_VE, NHAN_KET_QUA, NHAN_NUT_XAC_NHAN, dongChoXacNhan, dongGioConVe, nhanGhiChuDichVu, nhanGioLuot, nhanLyDoCanXacNhan, type DongGioConVe, type LuotGioConVe } from "../src/shared/xac-nhan-hien-thi";
 import { taoKhungDatGap } from "./dat-gap-ui";
 
 /** Những gì trang đơn cung cấp: tải lại đơn, báo thành công / lỗi. */
@@ -45,7 +46,7 @@ export function nutGuiXacNhan(c: BoiCanhXacNhan, chan: string | null): HTMLButto
     c.xoaBao();
     try {
       await api<Api.GuiXacNhanResponse>(`/api/orders/${encodeURIComponent(c.orderId)}/gui-xac-nhan`, { method: "POST", body: {} });
-      await c.lamMoi({ tone: "success", text: "Đã gửi xác nhận. Đơn đang chờ người kiểm vé." });
+      await c.lamMoi({ tone: "success", text: "Đã gửi kiểm vé. Đơn đang chờ người kiểm vé." });
     } catch (err) {
       c.baoLoi(err);
     }
@@ -57,7 +58,7 @@ export function nutGuiXacNhan(c: BoiCanhXacNhan, chan: string | null): HTMLButto
 /** «Rút lại» (người lập, đơn đang chờ). */
 export function nutRutLai(c: BoiCanhXacNhan): HTMLButtonElement {
   return nutHanhDong(NHAN_NUT_XAC_NHAN.withdraw, "btn", "rut-xac-nhan", async () => {
-    if (!confirm("Rút lại yêu cầu xác nhận? Đơn trở về nháp để bạn sửa tiếp.")) return;
+    if (!(await hoiXacNhan({ tieuDe: "Rút lại", hauQua: "Rút lại yêu cầu xác nhận? Đơn trở về nháp để bạn sửa tiếp.", nhanNguyHiem: "Rút lại" }))) return;
     c.xoaBao();
     try {
       await api(`/api/orders/${encodeURIComponent(c.orderId)}/rut-xac-nhan`, { method: "POST", body: {} });
@@ -265,8 +266,9 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
       await c.lamMoi({ tone: "success", text: loiBao });
     } catch (err) {
       baoLoiTaiCho(err);
-      // Hai câu 409 này nói người xét còn thiếu giờ / thiếu đặt gấp (ADR-0154 Đ1.3, Đ1.4), KHÔNG phải đơn vừa đổi: giữ bảng để không mất giờ vừa chọn. 409 / 404 khác: đơn đã đổi → tải lại.
-      const thieuNhapLieu = err instanceof ApiError && (err.code === "pickup_time_required" || err.code === "short_notice_required");
+      // Ba câu 409 này nói người xét còn thiếu giờ / thiếu đặt gấp (ADR-0154 Đ1.3, Đ1.4; ADR-0193 câu (ii) `chua_gio_sat_ngay`), KHÔNG phải đơn vừa đổi: giữ bảng để không mất giờ vừa chọn.
+      // 409 / 404 khác: đơn đã đổi → tải lại.
+      const thieuNhapLieu = err instanceof ApiError && (err.code === "pickup_time_required" || err.code === "short_notice_required" || err.code === "chua_gio_sat_ngay");
       if (err instanceof ApiError && (err.status === 409 || err.status === 404) && !thieuNhapLieu) await c.lamMoi();
     }
   };
@@ -309,6 +311,8 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
       dauTien.focus();
       return;
     }
+    // ADR-0166 câu 4: nút này chốt đơn ngay (giá khoá, hoa hồng chụp, vé cấp, cọc thành khoản thu) — hỏi lại trước khi gọi máy chủ; huỷ hộp thì không gọi gì.
+    if (!(await hoiXacNhan({ ...HOI_CON_VE, opener: nutConVe }))) return;
     nutConVe.disabled = true;
     const than: Omit<Api.QuyetDinhXacNhanInput, "yeuCauId" | "updatedAt"> = { ketQua: "CON_VE" };
     if (ngayOng.value && ngayOng.value !== ngayHienTai) than.ngayDi = ngayOng.value;
@@ -325,7 +329,7 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
   // ---- Hết vé ----
   const nutHetVe = h("button", { type: "button", class: "btn", "data-action": "quyet-dinh-het-ve" }, NHAN_KET_QUA.HET_VE);
   nutHetVe.addEventListener("click", async () => {
-    if (!confirm("Báo hết vé? Đơn sẽ được huỷ với lý do «hết chỗ».")) return;
+    if (!(await hoiXacNhan({ tieuDe: NHAN_KET_QUA.HET_VE, hauQua: "Báo hết vé? Đơn sẽ được huỷ với lý do «hết chỗ».", nhanNguyHiem: NHAN_KET_QUA.HET_VE, opener: nutHetVe }))) return;
     nutHetVe.disabled = true;
     await guiQuyet({ ketQua: "HET_VE" }, "Đã huỷ đơn: hết vé.");
     nutHetVe.disabled = false;

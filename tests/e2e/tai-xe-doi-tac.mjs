@@ -5,7 +5,7 @@
 // nhiên, biển số / số giấy tờ có Date.now()). Mọi số giấy tờ là số GIẢ. Hai tin thông báo thu hồi ở `finally`.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { ACCOUNTS, call, login, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, gieoTaiKhoanLai, login, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 const ADMIN = await session(ACCOUNTS.admin);
 const TOAN_QUYEN = await session(ACCOUNTS.superAdmin);
@@ -49,13 +49,16 @@ try {
   assert.match(r.body.error.message, /một người chọn một/);
   r = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Lai Hai E2E", phone: randomPhone(), permissions: ["DRIVER_PARTNER", "SALES"] });
   assert.equal(r.status, 400, JSON.stringify(r.body));
-  const cu = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đối Tác Cũ E2E", phone: randomPhone(), permissions: ["PARTNER"] });
-  assert.equal(cu.status, 201, JSON.stringify(cu.body));
-  r = await call(TOAN_QUYEN, "PUT", `/api/staff/${cu.body.staff.id}/permissions`, { permissions: ["PARTNER", "DRIVER_PARTNER"] }); // ADR-0083 1a: chỉ Toàn quyền
+  // ADR-0185 Đ2: đường danh sách quyền không cấp quyền bên ngoài nữa — tạo Đối tác bằng nó ⇒ 400; Đối tác chưa gán vai (kiểu cũ) chỉ còn trong dữ liệu cũ ⇒ gieo SQL.
+  r = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Đối Tác Cũ E2E", phone: randomPhone(), permissions: ["PARTNER"] });
+  assert.equal(r.status, 400, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "invalid_input");
+  const cu = await gieoTaiKhoanLai("Đối Tác Cũ E2E", ["PARTNER"], { kieuCu: true });
+  r = await call(TOAN_QUYEN, "PUT", `/api/staff/${cu.id}/permissions`, { permissions: ["PARTNER", "DRIVER_PARTNER"] }); // ADR-0083 1a: chỉ Toàn quyền
   assert.equal(r.status, 400, JSON.stringify(r.body));
   r = await call(ADMIN, "PUT", `/api/staff/${txId}/roles`, { roles: ["DRIVER_EXTERNAL"], adds: ["PARTNER"], reason: "thử lai" });
   assert.equal(r.status, 400, JSON.stringify(r.body));
-  for (const [id, want] of [[cu.body.staff.id, ["PARTNER"]], [txId, ["DRIVER_PARTNER"]]]) assert.deepEqual(await openPerms(id), want, "quyền giữ nguyên sau 400");
+  for (const [id, want] of [[cu.id, ["PARTNER"]], [txId, ["DRIVER_PARTNER"]]]) assert.deepEqual(await openPerms(id), want, "quyền giữ nguyên sau 400");
   console.log("✓ tài khoản lai: POST có vai, POST đường cũ, PUT …/permissions, PUT …/roles → 400 (không 500), quyền giữ nguyên");
 
   // --- 3. Đổi vai hợp lệ (5b): Tài xế taxi ↔ Tài xế đối tác → 200, đúng một quyền mở ---
@@ -75,9 +78,11 @@ try {
   await assert.rejects(grant(txId, "PARTNER"), /lc1b_driver_partner_alone/, "(b) đang giữ DRIVER_PARTNER, chèn PARTNER");
   const [{ id: salesId }] = await sqlRows(`SELECT id FROM staff WHERE phone = '${ACCOUNTS.salesA.phone}'`);
   await assert.rejects(grant(salesId, "DRIVER_PARTNER"), /lc1b_driver_partner_alone/, "(c) SALES có trước, chèn DRIVER_PARTNER");
-  const chiDt = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Chỉ Tài Xế Đối Tác E2E", phone: randomPhone(), permissions: ["DRIVER_PARTNER"] });
-  assert.equal(chiDt.status, 201, JSON.stringify(chiDt.body));
-  await assert.rejects(grant(chiDt.body.staff.id, "SALES"), /lc1b_driver_partner_alone/, "(c) DRIVER_PARTNER có trước (không vai), chèn SALES");
+  // ADR-0185 Đ2: đường danh sách quyền không cấp quyền bên ngoài, kể cả Tài xế đối tác ⇒ 400; tài khoản Tài xế đối tác chưa gán vai chỉ còn trong dữ liệu cũ ⇒ gieo SQL.
+  r = await call(TOAN_QUYEN, "POST", "/api/staff", { taoHoSoMoi: true, fullName: "Chỉ Tài Xế Đối Tác E2E", phone: randomPhone(), permissions: ["DRIVER_PARTNER"] });
+  assert.equal(r.status, 400, JSON.stringify(r.body));
+  const chiDt = await gieoTaiKhoanLai("Chỉ Tài Xế Đối Tác E2E", ["DRIVER_PARTNER"]);
+  await assert.rejects(grant(chiDt.id, "SALES"), /lc1b_driver_partner_alone/, "(c) DRIVER_PARTNER có trước (không vai), chèn SALES");
   // (d)(e)(f): tài khoản vai bên ngoài MỚI, CHƯA có quyền nào — dựng bằng SQL (tiêu chí 4, dòng cuối: tránh vướng cả LC-1 lẫn LC-1b).
   const moi = `e2e-dt-${duoi}`;
   await sql(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('p-${moi}', 'PERSON', 'Tài Xế SQL ${duoi}', 1, '${AT}', '${AT}')`);

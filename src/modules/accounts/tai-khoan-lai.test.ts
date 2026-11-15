@@ -24,7 +24,7 @@ function setup() {
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: ADM2, phone: "0900000006", name: "Quản trị Hai", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
-  seedStaff(w.sqlite, { id: CU, phone: "0900000009", name: "Đối tác cũ", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: CU, phone: "0900000009", name: "Đối tác cũ", perms: ["PARTNER"], kieuCu: true }); // chưa gán vai trò (ADR-0185: hình dạng kiểu cũ)
   return w;
 }
 const LAI = "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác.";
@@ -62,10 +62,11 @@ test("#2 POST /api/staff đường cũ: permissions Tài xế đối tác + Bán
   assert.equal(staffByPhone(w, "0911000302"), 0);
   assert.equal(permRows(w), perms);
   assert.equal(logRows(w), logs);
-  // Đường cũ vẫn tạo được tài khoản chỉ-Tài xế đối tác (đứng một mình).
-  const ok = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Tài Xế Đường Cũ", phone: "0911000303", permissions: ["DRIVER_PARTNER"] } });
-  assert.equal(ok.status, 201, ok.text);
-  assert.deepEqual(openPerms(w, ok.json.staff.id), ["DRIVER_PARTNER"]);
+  // ADR-0185 Đ2: đường cũ KHÔNG còn tạo tài khoản chỉ-Tài xế đối tác — tạo theo vai trò Tài xế đối tác (bài #5 trở đi).
+  const cu = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Tài Xế Đường Cũ", phone: "0911000303", permissions: ["DRIVER_PARTNER"] } });
+  assert.equal(cu.status, 400, cu.text);
+  assert.equal(cu.json.error.code, "invalid_input");
+  assert.equal(staffByPhone(w, "0911000303"), 0);
 });
 
 test("#4 PUT /api/staff/:id/permissions (tài khoản chưa gán vai): Đối tác + Tài xế đối tác → 400, quyền giữ nguyên, không nhật ký", async () => {
@@ -78,10 +79,11 @@ test("#4 PUT /api/staff/:id/permissions (tài khoản chưa gán vai): Đối t�
   assert.deepEqual(openPerms(w, CU), ["PARTNER"]);
   assert.equal(permRows(w), perms);
   assert.equal(logRows(w), logs);
-  // Đổi HẲN sang chỉ Tài xế đối tác qua đường cũ được: setPermissionStatements đóng PARTNER TRƯỚC rồi mới chèn DRIVER_PARTNER (LC-1b chỉ đếm dòng mở).
-  const ok = await w.call("PUT", `/api/staff/${CU}/permissions`, { as: SUP, body: { permissions: ["DRIVER_PARTNER"] } });
-  assert.equal(ok.status, 200, ok.text);
-  assert.deepEqual(openPerms(w, CU), ["DRIVER_PARTNER"]);
+  // ADR-0185 Đ2: đổi HẲN sang Tài xế đối tác qua đường cũ không còn được — đổi bằng cách chọn vai trò; quyền giữ nguyên.
+  const cu = await w.call("PUT", `/api/staff/${CU}/permissions`, { as: SUP, body: { permissions: ["DRIVER_PARTNER"] } });
+  assert.equal(cu.status, 400, cu.text);
+  assert.equal(cu.json.error.code, "invalid_input");
+  assert.deepEqual(openPerms(w, CU), ["PARTNER"]);
 });
 
 test("#5 PUT /api/staff/:id/roles: 'Tài xế đối tác' + cộng tay Đối tác → 400, vai và quyền giữ nguyên, không nhật ký đổi vai", async () => {

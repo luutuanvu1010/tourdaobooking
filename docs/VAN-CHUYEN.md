@@ -33,6 +33,13 @@ Nguồn quyết định: ADR-0128 và ADR-0129, chủ duyệt 17/10/2026 khi rà
 - **Còn ít hơn mốc** trước giờ xuất bến: Bán hàng không thao tác thẳng được, phải bấm **«Điều chỉnh khẩn cấp»** kèm lý do; tài xế đang lái nhận tin báo. Xác nhận đơn có chặng dưới mốc vẫn cần bấm **«Đặt gấp»** trước (từ bản 2.31 Bán hàng tự bấm được, cùng Quản trị / Toàn quyền — ADR-0107).
 - Còn **đúng bằng** mốc là ngoài mốc (không bị chặn).
 
+### 0.1b Xe thiếu giấy tờ vẫn xuất bến (ADR-0184)
+
+- **Mặc định vẫn giữ xe:** xe thiếu hoặc hết hạn giấy tờ thì cổng xuất bến giữ lại, như trước.
+- **Cho chạy ngoại lệ:** Quản trị hoặc Toàn quyền bấm **«Cho chạy dù thiếu giấy tờ»** trên đúng chuyến, chọn loại giấy đang thiếu và lý do. Sau đó xe xuất bến được, chuyến hiện nhãn vàng «Xe thiếu … — đã cho chạy» và tài xế nhận tin. Ở chi tiết chuyến của văn phòng, ngay dưới nhãn vàng hiện thêm «Lý do: …» và «Ghi chú: …» của lần cho chạy (Toàn quyền bỏ trống lý do thì không có dòng lý do). Lý do và ghi chú chỉ hiện ở đó: không có ở màn tài xế, lịch chung, tin báo, nhật ký hay Bảng tin. Dãy số dài trong ghi chú (ví dụ số điện thoại) bị che khi hiện, như mọi chữ tự do khác của Vận chuyển; dữ liệu đã lưu không đổi.
+- **Ai được cho chạy loại nào:** thiếu Kiểm định hoặc Bảo hiểm chỉ Toàn quyền cho chạy được (được bỏ trống lý do); các loại giấy xe còn lại Quản trị cũng làm được nhưng phải chọn lý do. Giấy tờ của tài xế thì không có lối cho chạy. Màn «Ai xử lý» của xe thiếu Kiểm định hoặc Bảo hiểm ghi «Quản trị, Toàn quyền» (Quản trị nhập giấy mới để gỡ giữ, Toàn quyền cho chạy); bốn loại còn lại ghi «Quản trị».
+- **Chỉ áp cho đúng chuyến và đúng xe:** đổi sang xe khác thì phải cho chạy lại; mỗi lần cho chạy chỉ dùng cho một lần xuất bến. Chưa có nút rút lại sự cho phép trước giờ chạy (ghi ở danh sách việc để sau).
+
 ### 0.2 Xe riêng — không bao giờ ghép khách lẻ
 
 - Chặng khách đã đặt **xe riêng**: **không ai** (kể cả Toàn quyền, kể cả khẩn cấp) xếp đơn khác lên chuyến đó. Muốn ghép thì phải sửa đơn xe riêng trước.
@@ -139,6 +146,7 @@ Trên máy tính, các mục nằm ở thanh bên, nhóm **QUẢN TRỊ › Vậ
 | Gắn người đi kèm (hướng dẫn viên) — chỉ chọn được tài khoản Hướng dẫn viên đang hoạt động | có | không | có | có | không | không | không | không | không |
 | Xem chuyến (Hướng dẫn viên) | — | — | — | — | không (chờ ADR-0064) | — | — | — | — |
 | Phá lệ (mốc 6 giờ, khoảng nghỉ) | không | không | có | có | không | không | không | không | không |
+| «Cho chạy dù thiếu giấy tờ» (xe thiếu giấy tờ vẫn xuất bến, ADR-0184) | không | không | có, trừ Kiểm định và Bảo hiểm | có, mọi loại | không | không | không | không | không |
 | Bấm tiến độ (Xuất bến, Đã đón, …) | bấm thay | không | bấm thay | bấm thay | không | không | không | tự bấm, chuyến mình lái | không |
 | "Đã gọi báo" | đơn mình lập hoặc đang phụ trách | không | mọi chặng | mọi chặng | không | không | không | không | không |
 | Bấm "Đặt gấp" (chỉ khi chặng thật sự dưới mốc — ADR-0107) | có (từ bản 2.31) | không | có | có | không | không | không | không | không |

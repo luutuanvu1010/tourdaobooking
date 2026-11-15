@@ -1,0 +1,62 @@
+{
+  "_ghi_chu": "Trần giảm giá khi có dòng hoa hồng vượt thành tiền (ADR-0161 Đ5; đặc tả docs/superpowers/specs/2026-11-03-chinh-sach-chiet-khau-bon-truc-design.md). Mỗi ca là MỘT đơn của đại lý có người hưởng hoa hồng. Luật: dòng nào hoa hồng lớn hơn thành tiền của dòng thì KHÔNG tính vào trần giảm giá (tính 0); bằng thành tiền vẫn tính. Đáp án đọc ở đường thật qua src/modules/orders/tran-giam-gia-don.test.ts. Số do AI soạn, chờ Kế toán hoặc chủ xác nhận; AI không tự đánh dấu.",
+  "cac_ca": [
+    {
+      "ma": "SV-TG-01",
+      "mo_ta": "Mức 100.000 ₫ mỗi khách cho mọi dịch vụ, vé 2 khách × 300.000 ₫ = 600.000 ₫: hoa hồng 200.000 ₫ nhỏ hơn thành tiền nên trần vẫn bằng hoa hồng như trước, câu báo cũ.",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "dich_vu": [{ "ma": "ZV1", "ten": "Vé tham quan", "gia_moi_khach": 300000, "so_khach": 2 }],
+        "muc_tat_ca": { "kieu": "PER_PAX", "moi_khach": 100000 },
+        "muc_rieng_dich_vu": []
+      },
+      "dap_an": {
+        "thanh_tien_don": 600000,
+        "hoa_hong_goc": 200000,
+        "hoa_hong_tinh_tran": 200000,
+        "co_dong_vuot": false,
+        "tran_giam_gia": 200000,
+        "cau_khi_giam_vuot_tran": "Giảm tối đa 200.000 ₫ (bằng hoa hồng của đơn)."
+      }
+    },
+    {
+      "ma": "SV-TG-02",
+      "mo_ta": "Mức 500.000 ₫ mỗi khách cho mọi dịch vụ, vé 2 khách × 300.000 ₫ = 600.000 ₫: hoa hồng gốc 1.000.000 ₫ lớn hơn thành tiền nên dòng này tính 0, trần giảm giá 0. Giảm 1 ₫ bị từ chối bằng câu nhắc Kế toán xem lại mức; giảm 0 vẫn lập và gửi được.",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "dich_vu": [{ "ma": "ZV1", "ten": "Vé tham quan", "gia_moi_khach": 300000, "so_khach": 2 }],
+        "muc_tat_ca": { "kieu": "PER_PAX", "moi_khach": 500000 },
+        "muc_rieng_dich_vu": []
+      },
+      "dap_an": {
+        "thanh_tien_don": 600000,
+        "hoa_hong_goc": 1000000,
+        "hoa_hong_tinh_tran": 0,
+        "co_dong_vuot": true,
+        "tran_giam_gia": 0,
+        "cau_khi_giam_vuot_tran": "Chưa giảm giá được: mức hoa hồng của dịch vụ trong đơn đang vượt giá bán — nhờ Kế toán xem lại."
+      }
+    },
+    {
+      "ma": "SV-TG-03",
+      "mo_ta": "Đơn có hai dịch vụ: vé 2 khách × 300.000 ₫ (mức 500.000 ₫ mỗi khách ⇒ hoa hồng gốc 1.000.000 ₫, vượt thành tiền 600.000 ₫) và tour 1 khách × 2.000.000 ₫ (mức riêng 15% ⇒ hoa hồng 300.000 ₫). Dòng vé tính 0, trần chỉ còn hoa hồng của tour: 300.000 ₫. Giảm 300.000 ₫ nhận, 300.001 ₫ bị từ chối bằng câu còn số.",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "dich_vu": [
+          { "ma": "ZV1", "ten": "Vé tham quan", "gia_moi_khach": 300000, "so_khach": 2 },
+          { "ma": "ZT1", "ten": "Tour trọn gói", "gia_moi_khach": 2000000, "so_khach": 1 }
+        ],
+        "muc_tat_ca": { "kieu": "PER_PAX", "moi_khach": 500000 },
+        "muc_rieng_dich_vu": [{ "ma": "ZT1", "kieu": "RATE", "ty_le_bp": 1500 }]
+      },
+      "dap_an": {
+        "thanh_tien_don": 2600000,
+        "hoa_hong_goc": 1300000,
+        "hoa_hong_tinh_tran": 300000,
+        "co_dong_vuot": true,
+        "tran_giam_gia": 300000,
+        "cau_khi_giam_vuot_tran": "Giảm tối đa 300.000 ₫ (không tính dịch vụ có mức hoa hồng vượt giá bán — nhờ Kế toán xem lại)."
+      }
+    }
+  ]
+}

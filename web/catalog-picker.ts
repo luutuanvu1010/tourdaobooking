@@ -18,7 +18,7 @@
 // `recompute()` của form gọi `setSelected` / `setDisabled` ở MỖI lần gõ: hai hàm này chỉ sửa tại chỗ (nhãn, khoá), không dựng lại khung — nếu không, vị trí cuộn
 // trong khung sẽ nhảy về đầu sau mỗi lần thêm dịch vụ.
 import type { CatalogGroupDto, CatalogServiceDto } from "../src/shared/contracts";
-import { CHUA_PHAN_LOAI, chamNhom, docNhoDanhMuc, docNhoMotNhom, doiChuTim, doiGhim, dungMucDanhMuc, ghiNhoMotNhom, khoaNhoNhom, nhanDem, tachTenDichVu, type NhoDanhMuc, type TrangThaiNhom } from "../src/shared/loc-danh-muc";
+import { CHUA_PHAN_LOAI, chamNhom, chonDuocDichVu, timDichVuDaChon, docNhoDanhMuc, docNhoMotNhom, doiChuTim, doiGhim, dungMucDanhMuc, ghiNhoMotNhom, khoaNhoNhom, nhanDem, tachTenDichVu, type NhoDanhMuc, type TrangThaiNhom } from "../src/shared/loc-danh-muc";
 import { parseUnit } from "../src/shared/order-lines";
 import { unitLabel } from "../src/shared/service-form";
 import { h, replaceChildren } from "./dom";
@@ -39,36 +39,38 @@ export interface CatalogPicker {
   focus(): void;
   /** ADR-0058 Đ8: nhóm dịch vụ (thứ tự của máy chủ) cho hàng nút nhóm; rỗng = ẩn hàng nhóm, khung không chia mục. */
   setGroups(groups: readonly CatalogGroupDto[]): void;
+  /** «Chọn một» (N4): bỏ chọn dịch vụ hiện tại (sau khi form gửi xong) mà không gọi `onDoi`. Chế độ «thêm» không dùng. */
+  xoaChon(): void;
   /** Id tài khoản đang đăng nhập (gọi ngay sau `initShell()`): đọc nhóm đã chọn lần trước của RIÊNG tài khoản này trên máy. Trước khi gọi: "Tất cả", không đọc / ghi bộ nhớ. */
   setTaiKhoan(staffId: string): void;
 }
 
 const KHOA_NHO = "td.dmLoc.v1";
-function docBoNho(): string | null {
+function docBoNho(khoa: string): string | null {
   try {
-    return localStorage.getItem(KHOA_NHO);
+    return localStorage.getItem(khoa);
   } catch {
     return null;
   }
 }
-function ghiBoNho(v: NhoDanhMuc): void {
+function ghiBoNho(khoa: string, v: NhoDanhMuc): void {
   try {
-    localStorage.setItem(KHOA_NHO, JSON.stringify(v));
+    localStorage.setItem(khoa, JSON.stringify(v));
   } catch {
     /* bộ nhớ bị chặn: chỉ không nhớ */
   }
 }
 // Nhóm đã chọn: nhớ THEO TÀI KHOẢN (`khoaNhoNhom`), mọi đọc / ghi bọc try/catch (khuôn help-seen.ts) — bị chặn thì coi như "Tất cả".
-function docNhoNhomTho(staffId: string): string | null {
+function docNhoNhomTho(khoa: string): string | null {
   try {
-    return localStorage.getItem(khoaNhoNhom(staffId));
+    return localStorage.getItem(khoa);
   } catch {
     return null;
   }
 }
-function ghiNhoNhom(staffId: string, ma: string): void {
+function ghiNhoNhom(khoa: string, ma: string): void {
   try {
-    localStorage.setItem(khoaNhoNhom(staffId), JSON.stringify(ghiNhoMotNhom(ma)));
+    localStorage.setItem(khoa, JSON.stringify(ghiNhoMotNhom(ma)));
   } catch {
     /* bộ nhớ bị chặn: chỉ không nhớ */
   }
@@ -80,7 +82,16 @@ function beRongMep(el: Element): number {
   return Number.isFinite(v) ? v : 0;
 }
 
-export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => void }): CatalogPicker {
+/**
+ * `cheDo` «them» (mặc định, form Tạo đơn): chạm dòng là THÊM dịch vụ, dòng hiện «✓ đã thêm», khung đứng yên. «chon-mot» (N4, trang Nhập lô vé): chạm dòng là CHỌN — khung thu lại thành một dòng
+ * tên dịch vụ kèm nút «Đổi» (`onDoi` báo form xoá lựa chọn), không «✓ đã thêm». `khongYeuCauGia`: dòng không có giá người lớn vẫn chọn được và không hiện cột giá (luật ở `chonDuocDichVu`).
+ * `khoaNho`: hậu tố khoá bộ nhớ (sao «Hay dùng», nhóm đã chọn) — vắng = khoá cũ của Tạo đơn; trang khác truyền khoá riêng để không nhớ nhóm chéo giữa hai trang.
+ */
+export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => void; onDoi?: () => void; cheDo?: "them" | "chon-mot"; khongYeuCauGia?: boolean; khoaNho?: string }): CatalogPicker {
+  const chonMot = o.cheDo === "chon-mot";
+  const khongGia = o.khongYeuCauGia === true;
+  const khoaGhim = o.khoaNho ? `${KHOA_NHO}:${o.khoaNho}` : KHOA_NHO;
+  const khoaNhomCua = (id: string): string => (o.khoaNho ? `${khoaNhoNhom(id)}:${o.khoaNho}` : khoaNhoNhom(id));
   const notice = h("div", { class: "alert warn", role: "status", hidden: true });
   // Câu lý do khoá: `p.muted` con trực tiếp của `.catalog` (kịch bản a2-smoke-form đọc đúng chỗ này).
   const reasonText = h("span", null);
@@ -115,10 +126,13 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   let tt: TrangThaiNhom = { nhom: "", truocKhiTim: null, daThuHep: false };
   let chuCu = "";
   // Mã đã gắn sao (☆/★) nhớ TRÊN MÁY này (bộ nhớ trình duyệt; bị chặn → chỉ không nhớ). Bản nhớ cũ còn trường `loc` thì `docNhoDanhMuc` bỏ qua.
-  let nho: NhoDanhMuc = docNhoDanhMuc(docBoNho());
+  let nho: NhoDanhMuc = docNhoDanhMuc(docBoNho(khoaGhim));
   let nutNhom: HTMLButtonElement[] = [];
   const dongPhu = new Map<string, HTMLElement[]>(); // mã → các dòng phụ đang vẽ (để gắn / gỡ "✓ đã thêm" tại chỗ)
   let henBao = 0;
+  /** «Chọn một»: dịch vụ đang chọn (thu khung lại) — null = đang mở khung để chọn. */
+  let daChon: CatalogServiceDto | null = null;
+  let dongDaChon: HTMLElement | null = null;
 
   const coChuaPhanLoai = (): boolean => items.some((c) => c.groupCode === null);
   const coHangNhom = (): boolean => groups.length > 0;
@@ -181,7 +195,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
     daCham = true;
     const tim = dangTim();
     tt = chamNhom(tt, ma, tim);
-    if (!tim && staffId !== null) ghiNhoNhom(staffId, ma); // chạm lúc đang tìm chỉ là thu hẹp tạm: không đè nhóm đã nhớ
+    if (!tim && staffId !== null) ghiNhoNhom(khoaNhomCua(staffId), ma); // chạm lúc đang tìm chỉ là thu hẹp tạm: không đè nhóm đã nhớ
     ve(true);
     duaVaoTam(ma);
   }
@@ -223,13 +237,13 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   }
   function dongDichVu(c: CatalogServiceDto): HTMLElement {
     const coGia = c.prices.adult !== null;
-    const chonDuoc = c.supported && coGia;
+    const chonDuoc = chonDuocDichVu(c, khongGia);
     const ten = tachTenDichVu(c.name);
-    const ghi = !c.supported ? (nhapTay ? "chưa hỗ trợ — dùng nhập tay" : "chưa hỗ trợ") : coGia ? null : "chưa có giá";
+    const ghi = khongGia ? null : !c.supported ? (nhapTay ? "chưa hỗ trợ — dùng nhập tay" : "chưa hỗ trợ") : coGia ? null : "chưa có giá";
     const phu = h("span", { class: "catalog-phu" }, h("span", { class: "catalog-ma" }, c.code), ghi ? h("span", { class: "catalog-ghi" }, ghi) : null);
-    nhanDaThem(phu, selected.has(c.code));
+    if (!chonMot) nhanDaThem(phu, selected.has(c.code));
     dongPhu.set(c.code, [...(dongPhu.get(c.code) ?? []), phu]);
-    const gia = h(
+    const gia = khongGia ? null : h(
       "span",
       { class: "catalog-gia" },
       chonDuoc && c.prices.adult !== null ? h("span", { class: "catalog-gia-so" }, grouped(c.prices.adult)) : h("span", { class: "catalog-gia-so", "aria-hidden": "true" }, "—"),
@@ -243,6 +257,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
     );
     pick.addEventListener("click", () => {
       if (!chonDuoc || khoa !== null) return; // dòng mờ / đơn đã khoá: không tác dụng
+      if (chonMot) return chonDichVu(c);
       o.onPick(c); // form dựng thẻ rồi gọi setSelected → nhãn "✓ đã thêm" gắn tại chỗ; khung không dựng lại, chữ tìm giữ nguyên
       baoDaThem(c.name);
     });
@@ -258,10 +273,38 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
     veSao();
     ghim.addEventListener("click", () => {
       nho = { ...nho, ghim: doiGhim(nho.ghim, c.code) };
-      ghiBoNho(nho);
+      ghiBoNho(khoaGhim, nho);
       veSao();
     });
     return h("div", { class: "catalog-row", "data-ma": c.code }, ghim, pick);
+  }
+  /** «Chọn một»: chạm dòng → khung thu lại thành MỘT dòng tên dịch vụ kèm nút «Đổi»; form nhận dịch vụ qua `onPick`. */
+  function chonDichVu(c: CatalogServiceDto): void {
+    daChon = c;
+    const doi = h("button", { type: "button", class: "btn btn-link", "data-action": "doi-dich-vu" }, "Đổi");
+    doi.addEventListener("click", () => {
+      boChon();
+      o.onDoi?.();
+      q.focus();
+    });
+    dongDaChon = h("div", { class: "catalog-da-chon", "data-ma": c.code }, h("span", { class: "catalog-da-chon-ten" }, c.name, h("span", { class: "catalog-ma" }, c.code)), doi);
+    root.append(dongDaChon);
+    root.classList.add("is-da-chon");
+    baoDaChon(c.name);
+    o.onPick(c);
+  }
+  function boChon(): void {
+    daChon = null;
+    dongDaChon?.remove();
+    dongDaChon = null;
+    root.classList.remove("is-da-chon");
+  }
+  function baoDaChon(ten: string): void {
+    bao.textContent = "";
+    window.clearTimeout(henBao);
+    henBao = window.setTimeout(() => {
+      bao.textContent = `Đã chọn ${ten}`;
+    }, 100);
   }
   function cauRong(tim: boolean, nhom: string): string {
     if (items.length === 0) return "Chưa có dịch vụ để chọn.";
@@ -332,6 +375,10 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
     root,
     setItems(next) {
       items = next;
+      if (daChon !== null && timDichVuDaChon(items, daChon.code) === null) {
+        boChon(); // danh mục tải lại mà mất dịch vụ đã chọn: bỏ chọn và báo form
+        o.onDoi?.();
+      }
       daNap = true;
       khung.hidden = false;
       veHangNhom();
@@ -347,7 +394,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
     },
     setTaiKhoan(id) {
       staffId = id;
-      choDoc = docNhoNhomTho(id); // đọc bộ nhớ MỘT lần; áp khi đã có groups (danh mục tải SAU initShell)
+      choDoc = docNhoNhomTho(khoaNhomCua(id)); // đọc bộ nhớ MỘT lần; áp khi đã có groups (danh mục tải SAU initShell)
       apDungNho();
       ve(true);
       duaVaoTam(nhomHieuLuc());
@@ -384,6 +431,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
       nhapTay = v;
       ve(false);
     },
+    xoaChon: boChon,
     focus: () => q.focus(),
   };
 }

@@ -16,6 +16,10 @@ const DUYET = {
   order_passenger_changed: "giu", confirmed: "giu", cancelled: "giu", order_cancelled_by_field: "giu", order_cancel_reason_classified: "giu",
   order_money_adjusted: "giu", order_money_adjusted_by_field: "giu", payment_recorded: "giu", order_delivered: "giu", order_completed: "giu",
   order_confirm_requested: "giu", order_confirm_withdrawn: "giu", // ADR-0136 Task 3.3: khuôn cố định, không dữ liệu khách
+  sales_invited: "giu", // ADR-0142: chủ duyệt 27/10
+  sales_owner_claimed: "giu", // ADR-0142: chủ duyệt 27/10
+  sales_owner_changed: "giu", // ADR-0142: chủ duyệt 27/10
+  sales_invite_refused: "giu", // ADR-0142: chủ duyệt 27/10
   order_handler_changed: "giu", order_claimed: "bo", order_handler_refused: "giu", booker_changed: "giu",
   order_terms_captured: "giu", order_terms_recaptured: "giu", order_terms_manual: "giu",
   ledger_company_received: "giu", ledger_refund: "giu", ledger_adjustment_withdrawn: "giu", ledger_bank_txn_linked: "giu", deposit_refund_paid: "giu",

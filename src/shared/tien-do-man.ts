@@ -4,6 +4,7 @@
 // - Giờ sớm nhất khai được: CHỈ từ `gioSomNhatKhai` / 409 `somNhat` của máy chủ (R-P14) — không tự tính.
 // - Nút theo TRẠNG THÁI dữ liệu (điểm chưa tới / đã tới, suất chờ / vắng / trên xe); máy chủ vẫn quyết (409 → câu của máy chủ).
 import { dongDieuKienTaiXe } from "./dieu-phoi-hien-thi.ts";
+import { nhanChoChayThieu } from "./cho-chay-thieu-giay.ts";
 import { NHAN_GIO_XAY_RA, type MaGioXayRa } from "./gio-xay-ra.ts";
 import type { CuocCuaToiItemDto, DieuKienConThieuDto, GioVnDto, MocChanDto, MocTienDoDto } from "./contracts.ts";
 import { maskLongDigits } from "./text-guards.ts";
@@ -256,6 +257,8 @@ export interface TheCuoc {
   canhBao: string[];
   /** Chuyến đang chạy → nút "Mở chuyến đang chạy". */
   moChay: boolean;
+  /** ADR-0184: nhãn vàng «Xe thiếu A, B — đã cho chạy» khi chuyến được cho chạy dù thiếu giấy tờ xe; vắng nếu không. Chỉ tên loại. */
+  nhanVang?: string;
   /** HT-24: chuyến đang chạy có ngày xuất bến ngoài ba ngày đang xem (vắt qua nửa đêm, hoặc xuất bến sớm) — "Xuất bến dd/mm"; thẻ khác không có. */
   nhanNgay?: string;
 }
@@ -276,6 +279,7 @@ export function nhomCuoc(ds: readonly CuocCuaToiItemDto[], homNay: string, tuy: 
       dong: `${c.bienSo} · ${c.soKhach} khách · ${c.soDiemDon} điểm đón · ${c.soDiemTra} điểm trả`,
       canhBao: giu ? dongDieuKienTaiXe(c.dieuKienConThieu as readonly DieuKienConThieuDto[], tuy.tuBoSungTen === true && c.gioXuatBen.ngay === homNay) : [],
       moChay: c.trangThai === "RUNNING",
+      ...(c.choChayThieu.length > 0 ? { nhanVang: nhanChoChayThieu(c.choChayThieu.map((x) => x.ten)) } : {}),
     };
   };
   const theoNgay = (ngay: string) => ds.filter((c) => c.gioXuatBen.ngay === ngay).sort((a, b) => a.gioXuatBen.gio.localeCompare(b.gioXuatBen.gio)).map(the);

@@ -6,12 +6,15 @@ import type { GuiThongBaoRequest, HopThongBaoResponse, LoaiTin, NguoiNhanTin, Ti
 import { tinChuyenCho, tinGioHenCho, type ChuyenCuaChang, type DongChuyen, type NguoiNhanChuyen } from "./tin-chuyen.ts";
 import { HANH_DONG_DOI_SO_KHACH } from "./audit-actions.ts";
 import { phanDoiCuaTin, type PhanDoiTin } from "./tin-doi-don.ts";
+import { trangThaiLoiMoi } from "./ban-hang-phu-trach.ts";
 
 /**
  * Tập hành động của view hộp thư `v_aud_order_event` (khai MỘT nơi; bài src/migrations-tin-cho-xac-nhan.test.ts buộc view = ĐÚNG tập này, và mọi hành động gõ cửa
  * màn hình khoá phải thuộc tập). `order_confirm_withdrawn` không thành tin (loaiTinDon trả null) — chỉ để list_don biết yêu cầu xác nhận đã khép (migration 0120).
  */
-export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field", "order_confirm_requested", "order_confirm_withdrawn", "deposit_refund_approved"] as const;
+export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field", "order_confirm_requested", "order_confirm_withdrawn", "deposit_refund_approved",
+  // ADR-0142 Đ7 (migration *_hop_thu_ban_hang): lời mời, nhận, đổi, từ chối Bán hàng phụ trách + Hoàn thành. KHÔNG `order_handler_refused` (chủ để sau — BACKLOG mục 3).
+  "sales_invited", "sales_owner_claimed", "sales_owner_changed", "sales_invite_refused", "order_completed"] as const;
 /**
  * ADR-0062 Đ1 — tập nguồn ĐÓNG của tin "đơn đổi sau xác nhận" (khai MỘT nơi; view `v_aud_order_change` lọc đúng tập này — bài migrations-tin-doi-don):
  * sửa thông tin chuyến, sửa / thêm / bỏ chặng, và MỌI hành động mang cờ `doiSoKhach` (dẫn từ AUDIT_ACTIONS — không gõ tay).
@@ -35,6 +38,10 @@ export interface DongDon {
   laNhap?: boolean;
   /** Chỉ dòng `order_confirm_requested`: đơn có dòng rút lại / xác nhận / huỷ ghi SAU dòng gửi = yêu cầu đã khép → không còn tin «đang chờ» (chủ dự án 27/10). Vắng = còn mở. */
   yeuCauDaKhep?: boolean;
+  /** ADR-0142: Bán hàng phụ trách HIỆN TẠI của đơn (mã tài khoản). Hộp thư tính theo trạng thái hiện tại, không theo trạng thái lúc sự kiện. Vắng / null = chưa có. */
+  banHangStaffId?: string | null;
+  /** ADR-0142: lời mời Bán hàng phụ trách đang MỞ (người được mời + hạn ưu tiên, ISO). Vắng / null = không có lời mời mở. */
+  loiMoi?: { staffId: string | null; hanIso: string } | null;
   cungLoLap: boolean; // order_handler_changed cùng mốc với dòng created của đơn = chọn người phụ trách LÚC LẬP (ADR-0030 Task 1.3) → không thành tin riêng
   // ---- Chỉ dòng ĐỔI (ADR-0062 — view v_aud_order_change; gốc lắp ráp dựng cho gõ cửa). Dòng tin đơn cũ để vắng. ----
   /** Chữ nhật ký có khuôn do máy chủ viết — CHỈ hàm đọc `phanDoiCuaTin` dùng, không bao giờ in thô. */
@@ -68,6 +75,15 @@ export interface DongDieuChinh {
  * MỘT hàm cho mọi tin có tên (tin đơn, tin đổi, tin điều chỉnh); hộp thư và câu màn hình khoá (đẩy) đều đi qua locHopThongBao nên không lệch nhau.
  */
 const xemTenNguoiLam = (staff: PermissionHolder): boolean => can(staff, "audit.view") && !holdsPartner(staff);
+/** Câu tin nhắc hạn trả sau (ADR-0173 Đ3 mục 2). Không số tiền; đại lý được nói việc cần làm, Kế toán chỉ được báo. */
+export const cauNhacTraSau = (action: "credit_due_soon_reminded" | "credit_overdue_reminded", maDon: string, choKeToan: boolean): string =>
+  action === "credit_due_soon_reminded"
+    ? `Đơn trả sau ${maDon} còn nợ, sắp tới hạn trả (còn dưới 6 giờ). Hãy thanh toán cho công ty trước hạn.`
+    : choKeToan
+      ? `Đơn trả sau ${maDon} đã quá hạn trả mà còn nợ.`
+      : `Đơn trả sau ${maDon} đã quá hạn trả mà còn nợ. Hãy thanh toán phần còn nợ cho công ty.`;
+/** Câu tin thiếu vé (ADR-0175 Đ1.5a). Không số khách, không tên khách; chỉ mã đơn và loại vé. */
+export const cauThieuVe = (maDon: string, tourDao: boolean): string => `Đơn ${maDon} còn thiếu ${tourDao ? "vé Tour Đảo" : "vé hãng ngoài"} — cần nhập thêm vé vào kho.`;
 export const CAU_DIEU_CHINH: Record<string, { coTen: (ten: string, ma: string) => string; khongTen: (ma: string) => string }> = {
   ledger_adjustment_requested: { coTen: (t, m) => `${t} gửi yêu cầu điều chỉnh công nợ đơn ${m} — chờ bạn duyệt`, khongTen: (m) => `Có yêu cầu điều chỉnh công nợ đơn ${m} — chờ bạn duyệt` },
   ledger_adjustment_withdrawn: { coTen: (t, m) => `${t} đã rút yêu cầu điều chỉnh công nợ đơn ${m}`, khongTen: (m) => `Yêu cầu điều chỉnh công nợ đơn ${m} đã được rút` },
@@ -90,7 +106,7 @@ const phanCua = phanDoiCuaDong;
 
 export function loaiTinDon(d: DongDon): LoaiTinDon | null {
   switch (d.action) {
-    // ADR-0045: lưu NHÁP không báo ai (chỉ còn ở ngăn "Tất cả", xem locHopThongBao); "chờ nhận" nảy ra lúc XÁC NHẬN đơn chưa có người phụ trách
+    // ADR-0045: lưu NHÁP không báo ai (chỉ còn ở ngăn "Tất cả", xem locHopThongBao); "chờ nhận" nảy ra lúc XÁC NHẬN đơn chưa có Hướng dẫn viên
     // (theo người phụ trách HIỆN TẠI — có người nhận rồi thì thành tin "xác nhận" thường). `lapChuaCoNguoi` không còn quyết loại tin.
     case "created": return "lap";
     case "order_claimed": return "nhan";
@@ -98,26 +114,55 @@ export function loaiTinDon(d: DongDon): LoaiTinDon | null {
     case "confirmed": return d.phuTrach.coNguoi ? "xac_nhan" : "cho_nhan";
     case "cancelled": case "order_cancelled_by_field": return "huy";
     case "order_confirm_requested": return "cho_xac_nhan"; // ADR-0136 Đ10: người xét duyệt biết có đơn chờ kiểm vé
+    case "sales_invited": return "moi_ban_hang"; // ADR-0142 Đ7 — người nhận ở `nguoiNhanBanHang`
+    case "sales_owner_claimed": return "ban_hang_nhan";
+    case "sales_invite_refused": return "ban_hang_tu_choi";
+    case "sales_owner_changed": return "doi_ban_hang";
+    case "order_completed": return "hoan_thanh";
     case "deposit_refund_approved": return "duyet_hoan"; // ADR-0089 (NT-V7; chủ 28/10): người ghi chi hoàn biết có khoản đã duyệt chờ chi
     // ADR-0062 Đ1: dòng đổi thành tin khi đơn ĐÃ xác nhận trước đó VÀ hàm đọc nhận ra phần đổi (mốc / cửa sổ do locHopThongBao xét).
     default: return laHanhDongTinDoi(d.action) && d.sauXacNhan === true && phanCua(d) !== null ? "doi_sau_xac_nhan" : null;
   }
 }
 
+const LOAI_BAN_HANG = ["moi_ban_hang", "ban_hang_nhan", "ban_hang_tu_choi", "doi_ban_hang", "hoan_thanh"] as const;
+type LoaiBanHang = (typeof LOAI_BAN_HANG)[number];
+const laLoaiBanHang = (l: LoaiTinDon): l is LoaiBanHang => (LOAI_BAN_HANG as readonly string[]).includes(l);
+/**
+ * ADR-0142 Đ7 / thiết kế L9 — người nhận tin của Bán hàng phụ trách, tính theo trạng thái HIỆN TẠI của đơn (khuôn `handlerTruoc` giả của ô HDV):
+ *   lời mời → X khi lời mời còn mở, hoặc X đang là Bán hàng phụ trách; nhận phụ trách / X từ chối → người lập; đổi → người mới + người lập;
+ *   hoàn thành → Bán hàng phụ trách + người lập. Người cũ khi Đổi, và X khi người khác nhận thay, KHÔNG có dòng hộp thư (Bảng tin / báo đẩy lúc sự kiện).
+ */
+function nguoiNhanBanHang(d: DongDon, loai: LoaiBanHang): string[] {
+  const ra = loai === "moi_ban_hang" ? [d.loiMoi?.staffId, d.banHangStaffId]
+    : loai === "ban_hang_nhan" || loai === "ban_hang_tu_choi" ? [d.ownerId]
+    : [d.ownerId, d.banHangStaffId]; // doi_ban_hang, hoan_thanh
+  return ra.filter((x): x is string => typeof x === "string" && x !== "");
+}
+/** Lời mời mở còn trong thời gian ưu tiên lúc `now` (ISO) — dùng `trangThaiLoiMoi`, một nguồn với route. */
+const uuTienConHieuLuc = (l: NonNullable<DongDon["loiMoi"]>, now: string): boolean =>
+  l.staffId !== null && trangThaiLoiMoi({ hanIso: l.hanIso, nowMs: Date.parse(now), xConHopLe: true, daKhep: false }) === "UU_TIEN";
+
 const CAU: Record<Exclude<LoaiTinDon, "doi_sau_xac_nhan">, { coTen: (ten: string, ma: string) => string; khongTen: (ma: string) => string }> = {
   lap: { coTen: (t, m) => `${t} vừa lập đơn mới ${m}`, khongTen: (m) => `Có đơn mới ${m}` },
-  cho_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}, chưa có người phụ trách`, khongTen: (m) => `Có đơn mới ${m}, chưa có người phụ trách` },
+  cho_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}, chưa có Hướng dẫn viên`, khongTen: (m) => `Có đơn mới ${m}, chưa có Hướng dẫn viên` },
   nhan: { coTen: (t, m) => `${t} vừa nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa có người nhận` },
-  giao: { coTen: (t, m) => `${t} vừa giao đơn ${m} cho người khác phụ trách`, khongTen: (m) => `Đơn ${m} vừa đổi người phụ trách` },
+  giao: { coTen: (t, m) => `${t} vừa giao đơn ${m} cho người khác làm Hướng dẫn viên`, khongTen: (m) => `Đơn ${m} vừa đổi Hướng dẫn viên` },
   xac_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa được xác nhận` },
   huy: { coTen: (t, m) => `${t} vừa huỷ đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa bị huỷ` },
   cho_xac_nhan: { coTen: (_t, m) => `Đơn ${m} đang chờ xác nhận`, khongTen: (m) => `Đơn ${m} đang chờ xác nhận` }, // ADR-0136 Đ10: không bao giờ kèm tên người gửi
   // ADR-0089 NT-V7: không số tiền (nhật ký duyệt chỉ ghi lý do — khuôn tin điều chỉnh ADR-0115), chữ «thu trước» không «cọc» (chủ 14/10).
+  // ADR-0142 Đ7: tin tới Đối tác / Thực tập (người lập) không kèm tên người làm — `coTen` chỉ dùng cho người qua `xemTenNguoiLam` (Toàn quyền, không giữ quyền Đối tác).
+  moi_ban_hang: { coTen: (t, m) => `${t} mời bạn làm người phụ trách đơn ${m}`, khongTen: (m) => `Đơn ${m}: bạn được mời làm người phụ trách` },
+  ban_hang_nhan: { coTen: (t, m) => `${t} đã nhận phụ trách đơn ${m}`, khongTen: (m) => `Đơn ${m} đã có người phụ trách` },
+  ban_hang_tu_choi: { coTen: (t, m) => `${t} không nhận phụ trách đơn ${m}, đơn đang Chờ Bán hàng nhận`, khongTen: (m) => `Đơn ${m}: người được mời chưa nhận, đang Chờ Bán hàng nhận` },
+  doi_ban_hang: { coTen: (t, m) => `${t} đã đổi người phụ trách đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa đổi người phụ trách` },
+  hoan_thanh: { coTen: (t, m) => `${t} đã bấm Hoàn thành đơn ${m}`, khongTen: (m) => `Đơn ${m} đã Hoàn thành` },
   duyet_hoan: { coTen: (t, m) => `${t} đã duyệt hoàn thu trước đơn ${m} cho khách, chờ ghi chi hoàn`, khongTen: (m) => `Đơn ${m} đã được duyệt hoàn thu trước cho khách, chờ ghi chi hoàn` },
 };
 /** Tin "giao" đọc bởi chính người đang phụ trách đơn: "cho người khác" dễ làm họ tưởng mình không phải đi (B-01). Chọn theo `d.phuTrach` (người HIỆN TẠI —
  * nhật ký chỉ ghi tên) VÀ dòng phải là lần đổi người MỚI NHẤT của đơn (giao / tự nhận; kiểm độc lập F-1): dòng giao cũ hơn đã có người khác nhận sau. */
-const CAU_GIAO_CHO_BAN = { coTen: (t: string, m: string) => `${t} vừa giao đơn ${m} cho bạn phụ trách`, khongTen: (m: string) => `Đơn ${m} vừa được giao cho bạn phụ trách` };
+const CAU_GIAO_CHO_BAN = { coTen: (t: string, m: string) => `${t} vừa giao đơn ${m} cho bạn làm Hướng dẫn viên`, khongTen: (m: string) => `Đơn ${m} vừa được giao cho bạn làm Hướng dẫn viên` };
 
 /** Chữ của một phần đổi khi GHÉP nhiều dòng cùng lô (câu chung thành cụm cố định — không chữ thô). */
 const chuPhan = (p: PhanDoiTin): string => (p.loai === "cu-the" ? p.phan : p.cau === "so-khach" ? "đổi số khách" : "đổi lượt đưa đón");
@@ -202,7 +247,22 @@ export function locHopThongBao(
     // thường (ở "Tất cả") — giữ đúng hành vi trước 1.30, không để việc xác nhận biến mất khỏi hộp của họ.
     if (loai === "cho_nhan" && !duocThayTinDon(staff, true)) loai = "xac_nhan";
     if (!loai || loai === "doi_sau_xac_nhan") continue; // dòng đổi đã rẽ nhánh ở trên
+    // ADR-0142 Đ7 (ADR-0136 Đ10 bổ sung): yêu cầu xác nhận có lời mời mở và còn trong thời gian ưu tiên → CHỈ X nhận; hết ưu tiên thì mọi người giữ ô nhận lại (trạng thái hiện tại).
+    if (loai === "cho_xac_nhan" && d.loiMoi && uuTienConHieuLuc(d.loiMoi, vao.now) && d.loiMoi.staffId !== staff.id) continue;
     if (loai === "cho_xac_nhan" && d.yeuCauDaKhep === true) continue; // hết chờ (rút lại / quyết định) → không còn tin «đang chờ»; đơn rút lại lại là nháp riêng tư (ADR-0135 Đ6)
+    // ADR-0142 Đ7: năm loại của Bán hàng phụ trách — người nhận RIÊNG (không qua nhanSuKien: lời mời mở lúc đơn còn NHÁP chờ xác nhận, nhanSuKien(laNhap) sẽ chỉ để lại người lập). Người lập là
+    // Đối tác / Thực tập vẫn nhận (xem được đơn mình lập), không có tin nổi (thongBaoNoi); câu không tên người làm trừ người qua `xemTenNguoiLam`. Luôn «Của tôi», mở thẳng trang đơn.
+    if (laLoaiBanHang(loai)) {
+      if (!nguoiNhanBanHang(d, loai).includes(staff.id)) continue;
+      if (!(d.ownerId === staff.id && can(staff, "order.view", { ownerId: d.ownerId })) && !duocThayTinDon(staff, false)) continue;
+      const coTenBh = d.tenNguoiLam !== null && xemTenNguoiLam(staff);
+      tat.push({
+        id: d.id, loai, maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+        cau: coTenBh ? CAU[loai].coTen(d.tenNguoiLam!, d.maDon) : CAU[loai].khongTen(d.maDon),
+        lienKet: `/order?id=${d.orderId}`, luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
+      });
+      continue;
+    }
     // ADR-0089 NT-V7 (chủ 28/10): «đã duyệt hoàn thu trước» → người giữ ô ghi chi hoàn (`payment.refund` — Kế toán, Toàn quyền), trừ người duyệt (đã bỏ ở đầu vòng),
     // không tài khoản giữ quyền Đối tác; luôn «Của tôi» (việc của họ), mở thẳng trang đơn. Không qua nhanSuKien: người nhận theo Ô, không theo quan hệ với đơn (khuôn ADR-0136 Đ10).
     if (loai === "duyet_hoan") {
@@ -221,7 +281,9 @@ export function locHopThongBao(
     // Hộp KHÔNG biết người phụ trách trước sự kiện. Nhãn cho-nhan do chính loại tin quyết (dòng dưới), nên bỏ mọi cho-nhan nhanSuKien suy ra.
     // Hôm nay (ADR-0030 chưa lên main) nhanSuKien chưa nhận null → truyền { coNguoi: false, staffId: null }; kết quả đúng nhờ .filter.
     // KHI GỘP ADR-0030 Task 1.4: đổi thành handlerTruoc: null ("không biết" — không bao giờ coi là "chưa ai", NT-3). Mục "Phụ thuộc ADR-0030" điểm 6.
-    const nhan = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: { coNguoi: false, staffId: null }, handlerSau: d.phuTrach, laNhap: d.laNhap, choXacNhan: loai === "cho_xac_nhan" })
+    const nhan = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: { coNguoi: false, staffId: null }, handlerSau: d.phuTrach, laNhap: d.laNhap, choXacNhan: loai === "cho_xac_nhan",
+      // ADR-0142 L9: nhận / giao / huỷ thêm Bán hàng phụ trách vào người nhận hiện có.
+      thayDoi: loai === "nhan" || loai === "giao" || loai === "huy" ? loai : undefined, banHang: d.banHangStaffId ?? null })
       .filter((t) => t !== "cho-nhan");
     if (loai === "cho_nhan" && d.laNhap !== true) nhan.push("cho-nhan");
     // ADR-0045: đơn NHÁP chưa là việc của ai — tin "lập đơn" chỉ ở ngăn "Tất cả" (không "Của tôi" → không số đỏ, không gõ cửa màn hình khoá).
@@ -250,7 +312,7 @@ export function locHopThongBao(
     for (const x of lo) {
       if (x.d.action !== "order_leg_updated" || !x.p.gioHen || !x.d.chuyenCuaChang?.length) continue;
       gioHen = tinGioHenCho(nguoiChuyen, {
-        actorId: x.d.actorId, luc: x.d.luc, maDon: x.d.maDon, ownerId: x.d.ownerId, handlerStaffId: x.d.phuTrach.staffId, chuyen: x.d.chuyenCuaChang,
+        actorId: x.d.actorId, luc: x.d.luc, maDon: x.d.maDon, ownerId: x.d.ownerId, handlerStaffId: x.d.phuTrach.staffId, banHangStaffId: x.d.banHangStaffId ?? null, chuyen: x.d.chuyenCuaChang,
       });
       if (gioHen) break;
     }
@@ -296,12 +358,37 @@ export function locHopThongBao(
   // ADR-0115: tin về yêu cầu điều chỉnh công nợ — MỘT nơi chọn người nhận. Yêu cầu mới / rút: mọi người có ô `ledger.adjust.approve` TRỪ người làm; đã duyệt /
   // từ chối / số dư của bạn đổi: đúng tài khoản trỏ ở khoá. Luôn vào "Của tôi"; câu không chứa số tiền, lý do hay tên bên nợ; tên người làm chỉ hiện cho Toàn quyền không giữ quyền Đối tác (ADR-0131 — xemTenNguoiLam), còn lại là câu không tên + mã đơn.
   const duyetDuoc = can(staff, "ledger.adjust.approve");
+  const xemKhoanMinh = can(staff, "ledger.view", { ownerId: staff.id }); // CÙNG ô route khoản của tôi; Đối tác, tài xế không có
   for (const d of vao.dieuChinh ?? []) {
     if (d.luc < moc || d.actorId === staff.id) continue;
+    // ADR-0173 Đ3 mục 2: tin nhắc hạn trả sau (Cron ghi). Khoá 'staff' = đúng tài khoản của bên đặt; khoá 'ledger' (chỉ lúc quá hạn) = người ghi sổ (Kế toán, Toàn quyền),
+    // không giữ quyền Đối tác. Câu không số tiền, chỉ mã đơn.
+    if (d.action === "credit_due_soon_reminded" || d.action === "credit_overdue_reminded") {
+      const choKeToan = d.mucLoai === "ledger";
+      const denToi = choKeToan ? d.action === "credit_overdue_reminded" && can(staff, "ledger.write") && !holdsPartner(staff) : d.mucLoai === "staff" && d.mucId === staff.id;
+      if (denToi) {
+        tat.push({
+          id: d.id, loai: "dieu_chinh", cau: cauNhacTraSau(d.action, d.maDon, choKeToan), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+          lienKet: choKeToan ? "/order" : "/account", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
+        });
+      }
+      continue;
+    }
+    // ADR-0175 Đ1.5a: tin thiếu vé (kho vé ghi khi giữ vé xong mà dịch vụ còn thiếu). Khoá ('ve', nguồn): vé Tour Đảo → người giữ `ve.phat-hanh`; vé hãng ngoài → người giữ
+    // `ve.kho.manage`; không tài khoản giữ quyền Đối tác. Câu chỉ mã đơn + nguồn, mở màn kho vé.
+    if (d.action === "ve_thieu") {
+      const denToi = d.mucLoai === "ve" && !holdsPartner(staff) && (d.mucId === "TOUR_DAO" ? can(staff, "ve.phat-hanh") : d.mucId === "HANG_NGOAI" && can(staff, "ve.kho.manage"));
+      if (denToi) {
+        tat.push({
+          id: d.id, loai: "dieu_chinh", cau: cauThieuVe(d.maDon, d.mucId === "TOUR_DAO"), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+          lienKet: "/ve-kho", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
+        });
+      }
+      continue;
+    }
     // ADR-0116: tin phân định — đề nghị mới cho người có ô phân định; đã phân định cho người có ô ghi sổ (khoá 'ledger'); bên chịu và người đề nghị theo khoá 'staff'. Tài khoản bên ngoài chỉ nhận đúng tin của chính mình.
     if (d.action.startsWith("attribution_") || d.action === "ledger_receipt_collector_changed") {
       const c = CAU_DIEU_CHINH[d.action];
-      const xemKhoanMinh = can(staff, "ledger.view", { ownerId: staff.id }); // CÙNG ô route khoản của tôi; Đối tác, tài xế không có
       const denToi = d.mucLoai === "staff" ? d.mucId === staff.id && !(d.action === "attribution_ruled" && can(staff, "ledger.write"))
         : d.action === "attribution_requested" ? can(staff, "attribution.decide") && !holdsPartner(staff)
         : d.action === "attribution_ruled" ? can(staff, "ledger.write") && !holdsPartner(staff)
@@ -315,13 +402,15 @@ export function locHopThongBao(
       continue;
     }
     const cho = d.mucLoai === "ledger" && (d.action === "ledger_adjustment_requested" || d.action === "ledger_adjustment_withdrawn");
-    // «Số dư của bạn đổi» (ADR-0092 Đ5d) chỉ cho NHÂN VIÊN có tài khoản nội bộ: tài khoản giữ quyền Đối tác bên ngoài (kể cả lai) không nhận, vì tin kèm mã đơn.
-    const biNgoai = d.action === "ledger_adjustment_affected" && staff.permissions.some(isExternalPermission);
-    const rieng = !biNgoai && d.mucLoai === "staff" && d.mucId === staff.id && d.action !== "ledger_adjustment_requested" && d.action !== "ledger_adjustment_withdrawn";
+    // «Số dư của bạn đổi» (ADR-0092 Đ5d, ADR-0115 điều 5) tới MỌI tài khoản của bên bị đổi, kể cả Đối tác và Tài xế đối tác. Ai không xem được sổ của mình nhận câu
+    // nhắc liên hệ văn phòng (cùng khuôn attribution_posted ở trên): không số tiền, lý do, tên bên nợ hay tên người làm.
+    const rieng = d.mucLoai === "staff" && d.mucId === staff.id && d.action !== "ledger_adjustment_requested" && d.action !== "ledger_adjustment_withdrawn";
     const cau = CAU_DIEU_CHINH[d.action];
     if (!cau || !(cho ? duyetDuoc : rieng)) continue;
+    // Tài xế đối tác chỉ thấy mã đơn như một ngoại lệ có tên, trong khung thấy khách của chuyến họ chạy (ADR-0053 D7, ADR-0048 D2): tin số dư của họ KHÔNG kèm mã đơn, cả câu lẫn `maDon`.
+    const anMaDon = d.action === "ledger_adjustment_affected" && hasPermission(staff, "DRIVER_PARTNER");
     tat.push({
-      id: d.id, loai: "dieu_chinh", cau: d.tenNguoiLam !== null && xemTenNguoiLam(staff) ? cau.coTen(d.tenNguoiLam, d.maDon) : cau.khongTen(d.maDon), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+      id: d.id, loai: "dieu_chinh", cau: anMaDon ? "Số dư của bạn vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết" : d.action === "ledger_adjustment_affected" && !xemKhoanMinh ? `Số dư của bạn trên đơn ${d.maDon} vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết` : d.tenNguoiLam !== null && xemTenNguoiLam(staff) ? cau.coTen(d.tenNguoiLam, d.maDon) : cau.khongTen(d.maDon), maDon: anMaDon ? null : d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
       lienKet: (cho || can(staff, "ledger.write")) && !holdsPartner(staff) ? "/dieu-chinh-cong-no" : isOffice(staff) ? "/order" : "/account", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
     });
   }

@@ -42,7 +42,10 @@ test("N-19: nhóm tắt đưa đón — form ẩn khối, không tạo chặng s
   assert.match(of, /tatDuaDon \? \{ legs: \[\] as ChangNhap\[\], taoSan: null \}/);
   // Một hàm cho nháp nạp lại và cho sau 409: bỏ chặng + «Không đón» (Ruling R-M, ghép ADR-0118 với ADR-0134 — 28/10).
   assert.match(of, /function theoNhomDuaDon\(d: ServiceDraft\)[\s\S]*?boChangKhiTatDuaDon\(d\.legs, false\)[\s\S]*?pickupChoice: chonDonTheoNhom\(false, d\.pickupChoice\)/);
-  assert.match(of, /const nap = theoNhomDuaDon\(draftFromDto\(s, live, newKey\(\)\)\)/, "nạp nháp đi qua theoNhomDuaDon");
+  // ADR-0192 tách `fill` thành napO + napThe: MỌI thẻ dựng bởi napThe đi qua theoNhomDuaDon rồi mới mount; nạp nháp (fill) và khôi phục bản chụp (apBanChup) đều dựng thẻ bằng napThe.
+  assert.match(of, /function napThe\([^)]*\)[^{]*\{[\s\S]*?for \(const tao of taoThe\) \{\s*const nap = theoNhomDuaDon\(tao\(\)\);[\s\S]*?const d = nap\.draft;[\s\S]*?mount\(d, /, "napThe: mọi thẻ đi qua theoNhomDuaDon trước khi dựng");
+  assert.match(of, /napThe\(o\.services\.map\(\(s\) => \(\) => draftFromDto\(s, live, newKey\(\)\)\)/, "nạp nháp đi qua theoNhomDuaDon (qua napThe)");
+  assert.match(of, /napThe\(g\.dv\.map\(\(d\) => \(\) => theTuBanChup\(d\)\)/, "khôi phục bản chụp (ADR-0192) đi qua theoNhomDuaDon (qua napThe)");
   assert.match(of, /const nap = theoNhomDuaDon\(en\.draft\)/, "sau 409 transfer_disabled đi qua theoNhomDuaDon");
   assert.match(of, /pickupChoice: chonDonTheoNhom\(!tatDuaDon, chonDonGoiY\(tao\.legs\.length\)\)/, "thêm dịch vụ nhóm tắt → «Không đón»");
   // ADR-0154 Đ1.1: form gọn của Đối tác thêm MỘT dòng `legs:` (lượt đầu gửi trống giờ) giữa `...e.draft` và `pickupChoice`; vế «nhóm tắt luôn Không đón» giữ nguyên.

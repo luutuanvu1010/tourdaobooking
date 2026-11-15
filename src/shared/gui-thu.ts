@@ -8,10 +8,28 @@ export interface Mailer {
   send(msg: { to: string; from: string; subject: string; text?: string; html?: string }): Promise<unknown>;
 }
 
-/** Bộ gửi + địa chỉ người gửi đọc từ môi trường; thiếu cái nào thì trường đó `undefined` (tính năng thư tự tắt — không ném). */
-export function cauHinhThu(env: { EMAIL?: unknown; FEEDBACK_MAIL_FROM?: unknown }): { mailer?: Mailer; from?: string } {
+/**
+ * Bản Development (ADR-0162 Đ2): khi `MOI_TRUONG` được đặt (giá trị nào cũng tính), bộ gửi bị bọc — chỉ thư có `to` KHỚP NGUYÊN CHUỖI (không phân biệt hoa thường)
+ * một mục của `THU_CHO_PHEP` (danh sách ngăn dấu phẩy) mới tới bộ gửi thật; thư khác bị bỏ, không ném, log một dòng không có địa chỉ. Danh sách trống/thiếu = không thư nào tới.
+ */
+function locThuBanThu(that: Mailer, danhSach: unknown): Mailer {
+  const duoc = new Set(typeof danhSach === "string" ? danhSach.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean) : []);
+  return {
+    async send(msg) {
+      if (!duoc.has(String(msg.to).trim().toLowerCase())) {
+        console.warn(JSON.stringify({ level: "warn", event: "thu_bi_loc_ban_thu" }));
+        return undefined;
+      }
+      return that.send(msg);
+    },
+  };
+}
+
+/** Bộ gửi + địa chỉ người gửi đọc từ môi trường; thiếu cái nào thì trường đó `undefined` (tính năng thư tự tắt — không ném). Có `MOI_TRUONG` thì bộ gửi được lọc theo `THU_CHO_PHEP`. */
+export function cauHinhThu(env: { EMAIL?: unknown; FEEDBACK_MAIL_FROM?: unknown; MOI_TRUONG?: unknown; THU_CHO_PHEP?: unknown }): { mailer?: Mailer; from?: string } {
   const e = env.EMAIL as Partial<Mailer> | undefined;
-  const mailer = e && typeof e.send === "function" ? (e as Mailer) : undefined;
+  let mailer = e && typeof e.send === "function" ? (e as Mailer) : undefined;
+  if (mailer && env.MOI_TRUONG !== undefined && env.MOI_TRUONG !== null) mailer = locThuBanThu(mailer, env.THU_CHO_PHEP);
   const from = typeof env.FEEDBACK_MAIL_FROM === "string" && env.FEEDBACK_MAIL_FROM.trim() ? env.FEEDBACK_MAIL_FROM.trim() : undefined;
   return { mailer, from };
 }

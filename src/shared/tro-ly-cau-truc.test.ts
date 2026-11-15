@@ -117,18 +117,18 @@ test("M-3: bước Xác nhận đơn không nói sai 'chỉ còn sửa được 
   assert.match(b2, /hướng dẫn viên đang phụ trách vẫn sửa được số khách tới hết ngày đi/);
 });
 
-test("Đ2 kho (e): Tạo đơn — không còn trong menu bên (Đợt 0 7/16: nút ở thanh trên và tab), mục theo thứ tự, nút 'Lưu, chờ xác nhận' ở thanh nút cuối trang (sau Tóm tắt)", () => {
+test("Đ2 kho (e): Tạo đơn — không còn trong menu bên (Đợt 0 7/16: nút ở thanh trên và tab), mục theo thứ tự, nút 'Lưu đơn (chưa xác nhận)' ở thanh nút cuối trang (sau Tóm tắt)", () => {
   const t = SO_DO_TRANG.find((x) => x.duongDan === "/order-form")!;
   assert.deepEqual(t.nhomMenu, []);
   // 14/10/2026 (Tạo đơn bốn bước): khách lên đầu và ô Ngày khởi hành nằm TRONG khối khách — không còn thẻ "Chọn ngày" riêng ⇒ năm mục, không sáu (số mục trong kho sinh ra đổi theo; luật sinh không đổi).
   assert.deepEqual(t.boCuc.map((m) => m.muc), ["Khách hàng", "Dịch vụ", "Thanh toán", "Tóm tắt", "Thanh nút cuối trang"]);
-  assert.deepEqual(t.boCuc.at(-1)!.nut, ["Lưu, chờ xác nhận", "Quay lại"]);
+  assert.deepEqual(t.boCuc.at(-1)!.nut, ["Lưu đơn (chưa xác nhận)", "Quay lại"]);
   assert.deepEqual(SO_DO_TRANG.find((x) => x.duongDan === "/dieu-phoi")!.nhomMenu, ["VẬN CHUYỂN"]);
   assert.deepEqual(SO_DO_TRANG.find((x) => x.duongDan === "/help")!.nhomMenu, ["CHÂN MENU"]);
   const doan = chiaKho().find((d) => d.ten === "Sơ đồ trang › Tạo đơn")!;
   assert.ok(!/Trong menu:/.test(doan.chu), "Tạo đơn không còn mục ở menu bên");
   assert.ok(!/nhóm HẰNG NGÀY|nhóm CHÂN MENU/.test(doan.chu), "nhóm không có tiêu đề trên màn hình thì không nhắc tên");
-  assert.match(doan.chu, /Tóm tắt\. 5\. Thanh nút cuối trang — nút: Lưu, chờ xác nhận, Quay lại\./);
+  assert.match(doan.chu, /Tóm tắt\. 5\. Thanh nút cuối trang — nút: Lưu đơn \(chưa xác nhận\), Quay lại\./);
   // Phần dựng bằng web/*.ts: không gán nút vào mục (thứ tự trong mã ≠ vị trí trên màn hình — bản đầu nói sai "Lịch sử — nút: … Sửa thông tin chuyến").
   const ct = chiaKho().find((d) => d.ten === "Sơ đồ trang › Chi tiết đơn")!.chu;
   assert.match(ct, /Nút hiện khi trang chạy \(tuỳ quyền và trạng thái\): [^\n]*Sửa thông tin chuyến/);
@@ -137,7 +137,7 @@ test("Đ2 kho (e): Tạo đơn — không còn trong menu bên (Đợt 0 7/16: n
 
 test("Đ2 (đặc tả mục 5 dòng 4): đổi tên một nút ⇒ kho sinh ra dùng tên MỚI (bố cục trang và bước luồng chính)", () => {
   const html = doc("public/order-form.html");
-  const moi = html.replace(">Lưu, chờ xác nhận<", ">Lưu đơn nháp<");
+  const moi = html.replace(">Lưu đơn (chưa xác nhận)<", ">Lưu đơn nháp<");
   assert.notEqual(moi, html);
   const bc = boCucHtml(moi);
   assert.deepEqual(bc.at(-1)!.nut, ["Lưu đơn nháp", "Quay lại"]);
@@ -145,7 +145,7 @@ test("Đ2 (đặc tả mục 5 dòng 4): đổi tên một nút ⇒ kho sinh ra 
   const trang = vao.trang.map((t: { duongDan: string }) => (t.duongDan === "/order-form" ? { ...t, boCuc: bc } : t));
   const buoc1 = dungCauTruc({ ...vao, trang }).find((d: { tieuDe: string }) => d.tieuDe.startsWith("Luồng chính, bước 1"))!;
   assert.match(buoc1.noiDung, /Lưu đơn nháp/);
-  assert.ok(!buoc1.noiDung.includes("Lưu, chờ xác nhận"));
+  assert.ok(!buoc1.noiDung.includes("Lưu đơn (chưa xác nhận)"));
 });
 
 // ---------------------------------------------------------------- Đ3 tự sinh
@@ -186,7 +186,7 @@ test("Đ5 viPhamKyThuat: bắt tiền tố bảng, a_b, /api/, đuôi tệp mã,
     "gọi OpenAI", "bật Turnstile", "chạy wrangler", "đóng gói esbuild", "mã JWT", "binding d1", "cơ sở D1",
   ]) assert.ok(viPhamKyThuat(s), s);
   for (const s of [
-    "Đơn hàng dựa vào Danh bạ và Địa điểm.", "Bấm Lưu, chờ xác nhận ở cuối biểu mẫu.", "Trang /orders", "Face ID, mã PIN", "Góp ý / Báo lỗi",
+    "Đơn hàng dựa vào Danh bạ và Địa điểm.", "Bấm Lưu đơn (chưa xác nhận) ở cuối biểu mẫu.", "Trang /orders", "Face ID, mã PIN", "Góp ý / Báo lỗi",
     "Vận chuyển lấy khách từ đơn đã xác nhận.", "xe 16 chỗ", "Bảng tin", "trợ lý",
     "bằng lái hạng D1", "Hạng D1 chở được xe khách", "Dịch vụ & giá (Google Sheet)", "bấm Thử key",
   ]) assert.equal(viPhamKyThuat(s), null, s);
@@ -244,7 +244,7 @@ test("Đ6: 'Nút Lưu nháp ở đâu?' ⇒ chọn bước Lập đơn (nút th�
   const ten = ds.map((d) => d.ten);
   const b1 = ds.find((d) => d.ten === "Cấu trúc Nền tảng › Luồng chính, bước 1: Lập đơn và lưu nháp");
   assert.ok(b1, ten.join(" | "));
-  assert.match(b1.chu, /Thanh nút cuối trang — nút: Lưu, chờ xác nhận/);
+  assert.match(b1.chu, /Thanh nút cuối trang — nút: Lưu đơn \(chưa xác nhận\)/);
   assert.ok(ten.includes("Sơ đồ trang › Tạo đơn"), ten.join(" | "));
   assert.ok(tong(ds) <= NGAN_SACH_TOKEN);
 });

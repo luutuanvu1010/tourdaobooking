@@ -6,7 +6,7 @@
 // R-1: «Kết thúc ngay» = luật thôi chặn từ bây giờ (hỏi bằng hoiXacNhan — gọi từ nút trên dòng, không từ trong bảng trượt); hẹn kết thúc = bảng trượt riêng có dòng phụ
 // «Luật vẫn chặn tới hết ngày này».
 import {
-  CAU_GIOI_THIEU, CAU_RONG_THE, NHAN_PHAM_VI, NHAN_THE_LUAT, NUT_KET_THUC_NGAY, THU_TU_THE, dongPhuDaKetThuc, dongPhuDenNgay, hauQuaKetThucNgay, locTheThe, moTaHieuLuc,
+  CAU_CHI_DAT_MOT_LAN, CAU_GIOI_THIEU, CAU_RONG_THE, NHAN_PHAM_VI, NHAN_THE_LUAT, NUT_KET_THUC_NGAY, THU_TU_THE, dongPhuDaKetThuc, dongPhuDenNgay, hauQuaKetThucNgay, locTheThe, moTaHieuLuc,
   moTaPhamVi, ngayHenNhoNhat, tongTrangThai,
 } from "../src/shared/luat-ban-hien-thi";
 import { can } from "../src/shared/permissions";
@@ -76,7 +76,7 @@ function viecCua(l: Api.LuatBanDto): HTMLElement | null {
   const ten = moTaPhamVi(l);
   const ngay = h("button", { type: "button", class: "nut", "data-viec": "ket-thuc-ngay", "aria-label": `${NUT_KET_THUC_NGAY}: ${l.tenLoai} · ${ten}` }, NUT_KET_THUC_NGAY);
   ngay.addEventListener("click", () => void ketThucNgay(l, ngay));
-  const hen = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-viec": "hen", "aria-label": `Hẹn ngày kết thúc: ${l.tenLoai} · ${ten}` }, "Hẹn ngày kết thúc");
+  const hen = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-viec": "hen", "aria-label": `Đặt ngày kết thúc: ${l.tenLoai} · ${ten}` }, "Đặt ngày kết thúc");
   hen.addEventListener("click", () => moHenKetThuc(l, hen));
   return h("div", { class: "lb-viec" }, ngay, hen);
 }
@@ -177,10 +177,10 @@ function moHenKetThuc(l: Api.LuatBanDto, nut: HTMLElement): void {
   o.addEventListener("input", () => (phu.textContent = dongPhuDenNgay(o.value, ds.homNay)));
   const loi = h("p", { class: "o-loi", role: "alert", hidden: true });
   const huy = h("button", { type: "button", class: "nut" }, "Huỷ");
-  const luu = h("button", { type: "button", class: "nut", "data-cap": "chinh" }, "Hẹn kết thúc");
+  const luu = h("button", { type: "button", class: "nut", "data-cap": "chinh" }, "Đặt ngày kết thúc");
   const bang = moBangTruot({
-    title: "Hẹn ngày kết thúc",
-    body: [h("p", null, `${l.tenLoai} · ${moTaPhamVi(l)}`), h("label", { class: "nhan", for: "lb-hen-ngay" }, "Đến ngày"), o, phu, loi],
+    title: "Đặt ngày kết thúc",
+    body: [h("p", null, `${l.tenLoai} · ${moTaPhamVi(l)}`), h("p", { class: "hint", "data-khoi": "chi-mot-lan" }, CAU_CHI_DAT_MOT_LAN), h("label", { class: "nhan", for: "lb-hen-ngay" }, "Đến ngày"), o, phu, loi],
     foot: [huy, luu],
     opener: nut,
   });
@@ -210,7 +210,7 @@ function moHenKetThuc(l: Api.LuatBanDto, nut: HTMLElement): void {
     }
     bang.setBusy(false);
     bang.close(false);
-    hienBaoNgan(`Đã hẹn kết thúc. ${dongPhuDenNgay(o.value, ds.homNay)}`);
+    hienBaoNgan(`Đã đặt ngày kết thúc. ${dongPhuDenNgay(o.value, ds.homNay)}`);
     await napLai();
   });
 }

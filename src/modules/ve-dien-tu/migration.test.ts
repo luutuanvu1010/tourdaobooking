@@ -198,3 +198,102 @@ test("dấu lưu kho / thu hồi / xoá kho ghi một lần; stored_at không v�
   d.prepare(`UPDATE vdt_ticket SET purged_at = ?, status = 'VOID', updated_at = ? WHERE id = ?`).run(SAU, SAU, t);
   assert.throws(() => d.prepare(`UPDATE vdt_ticket SET purged_at = NULL WHERE id = ?`).run(t), /vdt_append_only/);
 });
+
+// ADR-0175 Đ1.1, Đ1.2 (kế hoạch vé Tour Đảo Task 1): nguồn vé của lô + ô «Vé do ai phát». Tệp tìm theo ĐUÔI tên.
+const NGUON = files.find((f) => f.endsWith("_ve_tour_dao_nguon.sql"));
+const truocNguon = () => {
+  assert.ok(NGUON, "cần tệp *_ve_tour_dao_nguon.sql");
+  const d = new DatabaseSync(":memory:");
+  d.exec("PRAGMA foreign_keys = ON");
+  for (const f of files.filter((x) => x < NGUON!)) d.exec(sqlOf(f));
+  return d;
+};
+
+test("0151: lô cũ là HANG_NGOAI, không đổi được source", () => {
+  const d = truocNguon();
+  const cu = lo(d);
+  d.exec(sqlOf(NGUON!));
+  const row = d.prepare(`SELECT source FROM vdt_batch WHERE id = ?`).get(cu) as { source: string };
+  assert.equal(row.source, "HANG_NGOAI");
+  assert.throws(() => d.prepare(`UPDATE vdt_batch SET source = 'TOUR_DAO' WHERE id = ?`).run(cu), /vdt_one_way/);
+  assert.throws(
+    () => d.prepare(`INSERT INTO vdt_batch (id, catalog_code, pax_group, printed_name, status, source, created_at, updated_at) VALUES ('khac', 'V2D', 'ADULT', 'Vé', 'ACTIVE', 'KHAC', ?, ?)`).run(AT, AT),
+    /CHECK/i,
+  );
+  d.prepare(`INSERT INTO vdt_batch (id, catalog_code, pax_group, printed_name, status, source, created_at, updated_at) VALUES ('td', 'V2D', 'ADULT', 'Vé', 'ACTIVE', 'TOUR_DAO', ?, ?)`).run(AT, AT);
+  d.prepare(`UPDATE vdt_batch SET status = 'VOID', updated_at = ? WHERE id = 'td'`).run(SAU); // cột khác vẫn đổi được như cũ
+  assert.equal((d.prepare(`SELECT source FROM vdt_batch WHERE id = 'td'`).get() as { source: string }).source, "TOUR_DAO");
+});
+
+test("0151: ctl_service_ticket_source chỉ thêm, view lấy dòng mới nhất", () => {
+  const d = db();
+  const them = (id: string, source: string, at: string) =>
+    d.prepare(`INSERT INTO ctl_service_ticket_source (id, code, source, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?, 'ZVD1', ?, ?, ?, NULL, ?, NULL)`).run(id, source, at, at, at);
+  them("n1", "TOUR_DAO", AT);
+  them("n2", "HANG_NGOAI", SAU);
+  assert.deepEqual({ ...(d.prepare(`SELECT code, source FROM v_ctl_service_ticket_source`).get() as object) }, { code: "ZVD1", source: "HANG_NGOAI" });
+  assert.equal((d.prepare(`SELECT count(*) AS c FROM v_ctl_service_ticket_source`).get() as { c: number }).c, 1);
+  assert.throws(() => them("n3", "TOUR_DAO", SAU), /UNIQUE/i, "cùng mã, cùng mốc");
+  assert.throws(() => them("n4", "KHAC", "2026-10-31T05:00:00.000Z"), /CHECK/i);
+  assert.throws(() => d.prepare(`UPDATE ctl_service_ticket_source SET source = 'TOUR_DAO' WHERE id = 'n2'`).run(), /ctl_service_ticket_source_append_only/);
+  assert.throws(() => d.prepare(`DELETE FROM ctl_service_ticket_source WHERE id = 'n1'`).run(), /ctl_service_ticket_source_append_only/);
+});
+
+// ---- Lượt quét vé Tour Đảo (migration 0155, ADR-0175 Đ3 mục 1) ----
+const quet = (d: DatabaseSync, ticket: string, o: { kq?: string; doan?: number; luc?: string; soKhach?: number } = {}) => {
+  const id = `q-${++n}`;
+  d.prepare(
+    `INSERT INTO vdt_scan (id, ticket_id, ket_qua, so_khach, scanned_at, scanned_by, ve_doan, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 'u-1', ?, ?, ?)`,
+  ).run(id, ticket, o.kq ?? "DA_TINH", o.soKhach ?? 1, o.luc ?? AT, o.doan ?? 0, AT, AT);
+  return id;
+};
+const boLuot = (d: DatabaseSync, id: string) =>
+  d.prepare(`UPDATE vdt_scan SET voided_at = ?, voided_by = 'u-2', void_reason = 'quét nhầm', updated_at = ? WHERE id = ?`).run(SAU, SAU, id);
+
+test("migration lượt quét: đúng MỘT tệp `*_ve_quet.sql`, số ≥ 0155, chỉ thêm", () => {
+  const m = files.filter((f) => f.endsWith("_ve_quet.sql"));
+  assert.equal(m.length, 1);
+  assert.ok(m[0]! >= "0155", m[0]);
+  assert.doesNotMatch(sqlOf(m[0]!).replace(/--[^\n]*/g, ""), /DELETE\s+FROM|ALTER\s+TABLE|DROP\s+TABLE|UPDATE\s+\w+\s+SET/i);
+});
+
+test("haiDaTinhChuaBoCungVe_biChanBangChiMucDuyNhat; bỏ lượt rồi quét lại được", () => {
+  const d = db();
+  const t = ve(d, lo(d));
+  const q1 = quet(d, t);
+  assert.throws(() => quet(d, t), /UNIQUE/i);
+  quet(d, t, { kq: "CHI_XEM" }); // lượt xem và từ chối không bị chặn
+  quet(d, t, { kq: "TU_CHOI" });
+  boLuot(d, q1);
+  quet(d, t); // đã bỏ lượt: tính lại được
+  assert.throws(() => quet(d, t), /UNIQUE/i);
+});
+
+test("veDoan_chuaViTriDuyNhat: nhiều lượt DA_TINH cho một vé đoàn, kể cả lượt một khách", () => {
+  const d = db();
+  const t = ve(d, lo(d));
+  quet(d, t, { doan: 1, soKhach: 5 });
+  quet(d, t, { doan: 1, soKhach: 1 });
+  quet(d, t, { doan: 1, soKhach: 6 });
+  assert.equal((d.prepare(`SELECT count(*) AS c FROM vdt_scan`).get() as { c: number }).c, 3);
+});
+
+test("luotQuet_chiThem: không xoá; sửa ket_qua hay cột khác bị chặn; chỉ đóng dấu bỏ lượt MỘT lần", () => {
+  const d = db();
+  const t = ve(d, lo(d));
+  const q = quet(d, t);
+  assert.throws(() => d.prepare(`DELETE FROM vdt_scan WHERE id = ?`).run(q), /vdt_append_only/);
+  assert.throws(() => d.prepare(`UPDATE vdt_scan SET ket_qua = 'CHI_XEM' WHERE id = ?`).run(q), /vdt_append_only/);
+  assert.throws(() => d.prepare(`UPDATE vdt_scan SET so_khach = 9 WHERE id = ?`).run(q), /vdt_append_only/);
+  assert.throws(() => d.prepare(`UPDATE vdt_scan SET scanned_by = 'u-9' WHERE id = ?`).run(q), /vdt_append_only/);
+  assert.throws(() => d.prepare(`UPDATE vdt_scan SET voided_at = ? WHERE id = ?`).run(SAU, q), /CHECK/i, "bỏ lượt mà thiếu lý do");
+  boLuot(d, q);
+  assert.throws(() => d.prepare(`UPDATE vdt_scan SET void_reason = 'khác' WHERE id = ?`).run(q), /vdt_append_only/, "đã bỏ: không sửa nữa");
+});
+
+test("luotQuet_giaTri: kết quả lạ, số khách < 1 bị chặn", () => {
+  const d = db();
+  const t = ve(d, lo(d));
+  assert.throws(() => quet(d, t, { kq: "DA_DUNG" }), /CHECK/i);
+  assert.throws(() => quet(d, t, { soKhach: 0 }), /CHECK/i);
+});

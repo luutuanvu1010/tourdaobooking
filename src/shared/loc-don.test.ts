@@ -75,7 +75,7 @@ test("soDieuKienLoc / chipLocDon / boDieuKien: mỗi nhóm một chip, nhãn ti�
   assert.deepEqual(chipLocDon(loc, ten, { toiId: TOI, ten: new Map() }), [
     { khoa: "ngay", nhan: "Ngày đi 01/10 – 03/10" },
     { khoa: "dichVu", nhan: "Tour 4 đảo +1" },
-    { khoa: "trangThai", nhan: "Chờ xác nhận, Đã xác nhận" },
+    { khoa: "trangThai", nhan: "Chưa xác nhận, Đã xác nhận" },
     { khoa: "nguoiLap", nhan: "Đơn tôi lập" },
   ]);
   assert.deepEqual(chipLocDon(L({ tu: "2026-10-01" }), ten), [{ khoa: "ngay", nhan: "Ngày đi từ 01/10" }]);

@@ -1,4 +1,4 @@
-// Bảng trượt "Đổi người phụ trách" (v1.0, Task 8; đặc tả "Việc 3 → Giao diện") — cùng khuôn với trip-sheet.ts và dùng chung CSS `.sheet*`: ≤ 640px trượt từ đáy, > 640px hộp giữa màn hình;
+// Bảng trượt "Đổi Hướng dẫn viên" / "Đổi người phụ trách" (v1.0, Task 8; ADR-0142 + quyết định chủ 5/11: mỗi đơn có HAI vai — `kieu: "hdv"` là ô cũ `HANDLE`, `kieu: "ban-hang"` là người phụ trách mới, PUT …/ban-hang; đặc tả "Việc 3 → Giao diện") — cùng khuôn với trip-sheet.ts và dùng chung CSS `.sheet*`: ≤ 640px trượt từ đáy, > 640px hộp giữa màn hình;
 // role=dialog + aria-modal, phần nền `inert`, Esc / ✕ / chạm nền để đóng, trả focus về nút mở. Danh sách người có thể nhận phụ trách lấy từ GET /api/dispatch/assignees khi mở bảng
 // (chỉ tên, đã lọc ở máy chủ bằng `checkAssignee`: đang hoạt động, có hồ sơ, không mang quyền Đối tác, có quyền Bán hàng/Quản trị/Toàn quyền HOẶC Hướng dẫn
 // viên — ADR-0030, Task 1.1); chọn một người rồi "Lưu người phụ trách" → PUT /api/orders/:id/handler. Chọn người ngay lúc LẬP đơn là bảng khác:
@@ -6,7 +6,9 @@
 // KHÓA KHI ĐANG LƯU: nút, danh sách và ✕ khoá, Esc/chạm nền không đóng (đóng giữa chừng thì lỗi của máy chủ không còn chỗ hiện và người dùng tưởng đã huỷ).
 // Máy chủ từ chối vì màn hình đã cũ (409 stale/no_change, 403) → bảng đóng và nơi gọi tải lại đơn kèm thông báo (`onOutdated`); lỗi khác (vd người vừa nghỉ, 400) → thông báo ngay trong bảng
 // và danh sách được tải lại. Không có test tự động cho tệp này (như trip-sheet.ts): bằng chứng là docs/evidence/2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs. Luật thuần (câu báo lỗi) ở src/shared/handler-view.ts.
-import type { AssigneeDto, HandlerDto } from "../src/shared/contracts";
+import { laNhomHdv } from "../src/shared/assignee-pick";
+import type { AssigneeDto, BanHangGhiResponse, BanHangMoiResponse } from "../src/shared/contracts";
+import { banHangFailure } from "../src/shared/ban-hang-view";
 import type { Banner } from "../src/shared/order-errors";
 import { dongTuChoiTruoc, handlerFailure } from "../src/shared/handler-view";
 import { ApiError, api, type Api, type Order } from "./api";
@@ -16,10 +18,12 @@ import { icon } from "./icons";
 
 export interface HandlerSheetOptions {
   order: Order;
-  /** Người phụ trách hiện tại (null = chưa có): hàng của người đó bị khoá và có nhãn "Đang phụ trách". */
-  current: HandlerDto | null;
-  /** Lưu thành công: bảng đã đóng; nơi gọi tải lại đơn rồi báo. */
-  onSaved: (handler: HandlerDto) => void;
+  /** "hdv" (mặc định) = Hướng dẫn viên của đơn; "ban-hang" = người phụ trách (Bán hàng). */
+  kieu?: "hdv" | "ban-hang";
+  /** Người hiện tại (null = chưa có): hàng của người đó bị khoá và có nhãn. Hướng dẫn viên so theo hồ sơ (`partyId`), người phụ trách so theo tài khoản (`staffId`). */
+  current: { name: string; partyId?: string; staffId?: string | null } | null;
+  /** Lưu thành công: bảng đã đóng; nơi gọi tải lại đơn rồi báo (`name` = tên người vừa được đặt). */
+  onSaved: (name: string) => void;
   /** Màn hình đã lỗi thời (409, 403): bảng đã đóng; nơi gọi tải lại đơn rồi hiện `banner`. */
   onOutdated: (banner: Banner) => void;
 }
@@ -30,17 +34,23 @@ export function openHandlerSheet(o: HandlerSheetOptions, opener: HTMLElement): v
   let closed = false;
   let loadSeq = 0;
   let chosen: AssigneeDto | null = null;
+  const bh = o.kieu === "ban-hang";
+  // Chữ của hai vai (chủ dự án 5/11): «Hướng dẫn viên» là người đón, hướng dẫn khách, thu tiền tại cảng; người phụ trách là Bán hàng chịu trách nhiệm chính cho đơn.
+  const chu = bh
+    ? { chon: "Chọn người phụ trách", doi: "Đổi người phụ trách", luu: "Lưu người phụ trách", goiY: "Người phụ trách chịu trách nhiệm chính cho đơn này.", moi: "Chọn người phụ trách mới", rong: "Chưa có Bán hàng nào có thể nhận phụ trách.", dang: "Đang phụ trách", ten: "danh sách Bán hàng" }
+    : { chon: "Chọn Hướng dẫn viên", doi: "Đổi Hướng dẫn viên", luu: "Lưu Hướng dẫn viên", goiY: "Hướng dẫn viên đón và hướng dẫn khách, thu tiền tại cảng.", moi: "Chọn Hướng dẫn viên mới", rong: "Chưa có Hướng dẫn viên nào có thể nhận.", dang: "Đang là Hướng dẫn viên", ten: "danh sách nhân viên" };
 
   const bannerEl = h("div", { class: "banner", role: "alert", hidden: true });
   const listSlot = h("div", { class: "pick-slot" });
-  const saveBtn = h("button", { type: "button", class: "btn btn-primary btn-block", disabled: true }, "Lưu người phụ trách");
+  const thuocLuu = { type: "button", class: "btn btn-primary btn-block", disabled: true } as const;
+  const saveBtn = bh ? h("button", thuocLuu, "Lưu người phụ trách") : h("button", thuocLuu, "Lưu Hướng dẫn viên"); // hai nút MỘT tên mỗi cái: bảng tham chiếu khai từng tên (ADR-0167)
   const closeBtn = h("button", { type: "button", class: "btn btn-link sheet-close", "aria-label": "Đóng" }, icon("close", 20));
   const scrim = h("div", { class: "sheet-scrim" });
   const dialog = h(
     "div",
     { class: "sheet", role: "dialog", "aria-modal": "true", "aria-labelledby": "handler-sheet-title", tabindex: -1 },
-    h("div", { class: "sheet-head" }, h("h2", { id: "handler-sheet-title", class: "sheet-title" }, o.current === null ? "Chọn người phụ trách" : "Đổi người phụ trách"), closeBtn),
-    h("div", { class: "sheet-body" }, h("p", { class: "pick-hint" }, "Người phụ trách chăm sóc khách và sửa được đơn này."), bannerEl, listSlot),
+    h("div", { class: "sheet-head" }, h("h2", { id: "handler-sheet-title", class: "sheet-title" }, o.current === null ? chu.chon : chu.doi), closeBtn),
+    h("div", { class: "sheet-body" }, h("p", { class: "pick-hint" }, chu.goiY), bannerEl, listSlot),
     h("div", { class: "sheet-foot" }, saveBtn),
   );
   const root = h("div", { class: "sheet-root handler-root" }, scrim, dialog);
@@ -69,7 +79,7 @@ export function openHandlerSheet(o: HandlerSheetOptions, opener: HTMLElement): v
   /** Khoá/mở toàn bộ khi đang lưu: nút Lưu (đổi chữ), danh sách, ✕. Focus giữ trong bảng (nút đang focus bị khoá sẽ làm focus rơi ra `body`). */
   function setSaving(value: boolean): void {
     saving = value;
-    saveBtn.textContent = value ? "Đang lưu…" : "Lưu người phụ trách";
+    saveBtn.textContent = value ? "Đang lưu…" : chu.luu;
     saveBtn.disabled = value || chosen === null;
     closeBtn.disabled = value;
     const set = fieldset();
@@ -80,11 +90,11 @@ export function openHandlerSheet(o: HandlerSheetOptions, opener: HTMLElement): v
 
   /** ADR-0032 điều 10: «Đã từ chối đơn này lúc … — <lý do>» — nguồn sổ sự kiện (route tu-choi-truoc); không ẩn ai. */
   let tuChoi: Api.TuChoiTruocResponse["tuChoi"] = {};
-  const dongPhu = (a: AssigneeDto): string | null => dongTuChoiTruoc(tuChoi[a.partyId]);
+  const dongPhu = (a: AssigneeDto): string | null => (bh ? null : dongTuChoiTruoc(tuChoi[a.partyId]));
 
   function renderRow(a: AssigneeDto): HTMLElement {
     const phu = dongPhu(a);
-    const isCurrent = o.current !== null && o.current.partyId === a.partyId; // máy chủ so theo hồ sơ (party): cùng người = 409 no_change
+    const isCurrent = o.current !== null && (bh ? o.current.staffId === a.staffId : o.current.partyId === a.partyId); // Hướng dẫn viên: máy chủ so theo hồ sơ (party), cùng người = 409 no_change
     const input = h("input", { type: "radio", name: "assignee", value: a.staffId, disabled: isCurrent });
     input.addEventListener("change", () => {
       chosen = a;
@@ -97,7 +107,7 @@ export function openHandlerSheet(o: HandlerSheetOptions, opener: HTMLElement): v
       input,
       h("span", { class: "pick-mark", "aria-hidden": "true" }),
       h("span", { class: "pick-name" }, a.name, phu ? h("span", { class: "assignee-tu-choi" }, phu) : null),
-      isCurrent ? h("span", { class: "chip chip-unit pick-current" }, "Đang phụ trách") : null,
+      isCurrent ? h("span", { class: "chip chip-unit pick-current" }, chu.dang) : null,
     );
   }
 
@@ -105,10 +115,10 @@ export function openHandlerSheet(o: HandlerSheetOptions, opener: HTMLElement): v
     chosen = null;
     saveBtn.disabled = true;
     if (list.length === 0) {
-      replaceChildren(listSlot, h("p", { class: "pick-empty" }, "Chưa có nhân viên nào có thể nhận phụ trách."));
+      replaceChildren(listSlot, h("p", { class: "pick-empty" }, chu.rong));
       return;
     }
-    replaceChildren(listSlot, h("fieldset", { class: "pick-list" }, h("legend", { class: "pick-legend" }, "Chọn người phụ trách mới"), ...list.map(renderRow)));
+    replaceChildren(listSlot, h("fieldset", { class: "pick-list" }, h("legend", { class: "pick-legend" }, chu.moi), ...list.map(renderRow)));
   }
 
   function showLoadError(): void {
@@ -121,7 +131,7 @@ export function openHandlerSheet(o: HandlerSheetOptions, opener: HTMLElement): v
       h(
         "div",
         { class: "banner banner-danger", role: "alert" },
-        h("div", { class: "banner-title" }, "Chưa tải được danh sách nhân viên."),
+        h("div", { class: "banner-title" }, `Chưa tải được ${chu.ten}.`),
         h("p", { class: "pick-error-text" }, "Kiểm tra kết nối mạng rồi bấm “Thử lại”."),
         h("div", { class: "banner-actions" }, retry),
       ),
@@ -135,17 +145,19 @@ export function openHandlerSheet(o: HandlerSheetOptions, opener: HTMLElement): v
     // Focus đang ở nút Lưu (vd sau 400: `setSaving(false)` vừa trả focus cho nó) hoặc ở trong danh sách/nút "Thử lại" — cả hai sắp bị khoá/gỡ khỏi DOM → giữ focus trong bảng, không để rơi ra `body`.
     const focusWasThere = document.activeElement === saveBtn || listSlot.contains(document.activeElement);
     saveBtn.disabled = true;
-    replaceChildren(listSlot, h("p", { class: "pick-status", role: "status" }, "Đang tải danh sách nhân viên…"));
+    replaceChildren(listSlot, h("p", { class: "pick-status", role: "status" }, `Đang tải ${chu.ten}…`));
     if (focusWasThere) dialog.focus();
     try {
       // Dòng phụ «đã từ chối đơn này» gọi song song; lỗi thì bỏ qua (danh sách vẫn hiện).
-      const [{ assignees }, truoc] = await Promise.all([
-        api<Api.AssigneesResponse>("/api/dispatch/assignees"),
-        api<Api.TuChoiTruocResponse>(`/api/orders/${encodeURIComponent(o.order.id)}/tu-choi-truoc`).catch(() => null),
+      const [danhSach, truoc] = await Promise.all([
+        bh
+          ? api<BanHangMoiResponse>("/api/dispatch/ban-hang-moi").then((r) => r.banHang.map((x): AssigneeDto => ({ staffId: x.staffId, partyId: "", name: x.name, roleLabel: "" })))
+          : api<Api.AssigneesResponse>("/api/dispatch/assignees").then((r) => r.assignees.filter(laNhomHdv)), // chỉ nhóm Hướng dẫn viên (chủ 5/11); máy chủ vẫn nhận mọi người hợp lệ
+        bh ? null : api<Api.TuChoiTruocResponse>(`/api/orders/${encodeURIComponent(o.order.id)}/tu-choi-truoc`).catch(() => null),
       ]);
       if (closed || mine !== loadSeq) return;
       tuChoi = truoc?.tuChoi ?? {};
-      showList(assignees);
+      showList(danhSach);
     } catch {
       if (closed || mine !== loadSeq) return;
       showLoadError();
@@ -158,12 +170,16 @@ export function openHandlerSheet(o: HandlerSheetOptions, opener: HTMLElement): v
     renderBanner(bannerEl, null);
     setSaving(true);
     try {
-      const res = await api<Api.SetHandlerResponse>(`/api/orders/${encodeURIComponent(o.order.id)}/handler`, { method: "PUT", body: { staffId: target.staffId } });
+      const goc = `/api/orders/${encodeURIComponent(o.order.id)}`;
+      const ten = bh
+        ? (await api<BanHangGhiResponse>(`${goc}/ban-hang`, { method: "PUT", body: { staffId: target.staffId } })).banHang?.name ?? target.name
+        : (await api<Api.SetHandlerResponse>(`${goc}/handler`, { method: "PUT", body: { staffId: target.staffId } })).handler.name;
       close(false);
-      o.onSaved(res.handler);
+      o.onSaved(ten);
     } catch (err) {
       setSaving(false); // đặt lại TRƯỚC khi vẽ banner: nếu bước vẽ ném lỗi thì bảng vẫn không kẹt "Đang lưu…"
-      const failure = handlerFailure(err instanceof ApiError ? { status: err.status, code: err.code, message: err.message } : null, "assign");
+      const loi = err instanceof ApiError ? { status: err.status, code: err.code, message: err.message } : null;
+      const failure = bh ? banHangFailure(loi, "doi") : handlerFailure(loi, "assign");
       if (failure.reload) {
         close(false);
         o.onOutdated(failure.banner);

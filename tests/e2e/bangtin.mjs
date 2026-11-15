@@ -14,7 +14,7 @@
 // S20-9) — CA 4 đếm cả tin đó và khoá thêm: văn phòng sửa/xác nhận/huỷ đơn HDV khác đang phụ trách thì field không nhận thêm khung nào.
 import assert from "node:assert/strict";
 import { laSuKienHopLe } from "../../src/shared/bang-tin.ts";
-import { ACCOUNTS, BASE, batTay, call, cho, ensureFakeCatalog, gieoTaiKhoanLai, login, moBangTin, orderInput, randomPhone, session, sql } from "./lib.mjs";
+import { ACCOUNTS, BASE, batTay, call, cho, ensureFakeCatalog, gieoTaiKhoanLai, login, moBangTin, orderInput, randomPhone, session, sql, thanQuyenTaiKhoan } from "./lib.mjs";
 
 await ensureFakeCatalog(); // "catalog" (Sheet thật) chạy trước "bangtin" trong ALL và đặt in_sheet = 0 cho mã giả — orderInput() dùng ZE1.
 const ADMIN = await session(ACCOUNTS.admin);
@@ -54,7 +54,7 @@ function doiToiDa(promise, ms) {
  * các kịch bản khác (đặc biệt `passkey.mjs`, chạy cuối cùng) cần giữ nguyên trạng. */
 async function taoTaiKhoanDungMotLan(name, permissions = ["SALES"]) {
   const phone = randomPhone();
-  const r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, permissions });
+  const r = await call(TAO_TK, "POST", "/api/staff", { taoHoSoMoi: true, fullName: name, phone, ...thanQuyenTaiKhoan(permissions) }); // ADR-0185: Đối tác thuần tạo qua vai
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const cookie = await session({ phone, pin: r.body.pin });
   return { id: r.body.staff.id, phone, pin: r.body.pin, cookie };
@@ -293,7 +293,10 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     try {
       const r = await call(salesACookie, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" });
       assert.equal(r.status, 200, JSON.stringify(r.body));
-      await motTinDung(phien, o.id, "xac_nhan", "ca 5d POST /api/orders/:id/status thành công");
+      // ADR-0142 L9: đơn xác nhận mà không mời ai thì có thêm MỘT tin phụ «Chờ Bán hàng nhận»; mỗi loại đúng một tin.
+      assert.ok(await phien.cho((tin) => tin.some((t) => t.orderId === o.id && t.thayDoi === "xac_nhan") && tin.some((t) => t.orderId === o.id && t.thayDoi === "cho_ban_hang")), "ca 5d: phải có tin xac_nhan và tin cho_ban_hang");
+      await yen(ON_DINH_MS);
+      assert.deepEqual(phien.tin.filter((t) => t.orderId === o.id).map((t) => t.thayDoi).sort(), ["cho_ban_hang", "xac_nhan"], "ca 5d: mỗi loại đúng một tin");
     } finally { dongHet(phien); }
 
     phien = (await moiPhien(salesACookie))[0];

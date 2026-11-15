@@ -2,18 +2,18 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { EXTERNAL_PERMISSIONS, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 import {
-  ROLES, ROLE_CODES, SUPER_ADMIN_GRANTED, TIEN_CHI_TOAN_QUYEN_MESSAGE, canManageAccount, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc, tatHaiLopDuoc, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, laiNoiBoBenNgoaiProblem, parseRoleAssignment,
-  permissionsLabel, roleAssignmentProblem, rolesLabel, rolesLabelTheo, taiKhoanLaiProblem, tuDoiQuyenCuaMinh, vaiTaiXeDoiTacXungDot, type RoleAssignment, type RoleCode,
+  CAU_DUONG_CU_QUYEN_NGOAI, ROLES, ROLE_CODES, SUPER_ADMIN_GRANTED, TIEN_CHI_TOAN_QUYEN_MESSAGE, canManageAccount, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc, tatHaiLopDuoc, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, laiNoiBoBenNgoaiProblem, parseRoleAssignment,
+  permissionsLabel, quyenNgoaiDuongCuProblem, roleAssignmentProblem, rolesLabel, rolesLabelTheo, taiKhoanLaiProblem, tuDoiQuyenCuaMinh, vaiTaiXeDoiTacXungDot, type RoleAssignment, type RoleCode,
 } from "./roles.ts";
 
 const VAI_QUAN_LY = "Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai trò Giám đốc, Điều hành chung, Kế toán, IT, Hành chính nhân sự.";
 const TIEN = "Tài khoản giữ tiền — chỉ người phụ trách hệ thống (Toàn quyền) làm việc này."; // ADR-0090 đ1, nguyên văn
 const assignment = (roles: RoleAssignment["roles"], extra: Partial<RoleAssignment> = {}): RoleAssignment => ({ roles, adds: [], removes: [], reason: null, ...extra });
 
-test("danh mục: đủ 15 vai, 9 nội bộ + 6 bên ngoài (ADR-0044 thêm vai IT; ADR-0040 D3 thêm vai Tài xế công ty; ADR-0048 D2 thêm vai Tài xế đối tác; ADR-0071 thêm vai Hành chính nhân sự), bộ mặc định là mã quyền hợp lệ", () => {
-  assert.equal(ROLE_CODES.length, 15);
+test("danh mục: đủ 16 vai, 10 nội bộ + 6 bên ngoài (ADR-0044 thêm vai IT; ADR-0040 D3 thêm vai Tài xế công ty; ADR-0048 D2 thêm vai Tài xế đối tác; ADR-0071 thêm vai Hành chính nhân sự; ADR-0169 thêm vai Quản lý bán hàng), bộ mặc định là mã quyền hợp lệ", () => {
+  assert.equal(ROLE_CODES.length, 16);
   assert.deepEqual(Object.keys(ROLES).sort(), [...ROLE_CODES].sort());
-  assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "INTERNAL").length, 9);
+  assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "INTERNAL").length, 10);
   assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "EXTERNAL").length, 6);
   for (const r of ROLE_CODES) for (const p of ROLES[r].defaults) assert.ok((PERMISSION_CODES as readonly string[]).includes(p), `${r} → ${p}`);
   // Mọi vai bên ngoài sinh ĐÚNG MỘT quyền bên ngoài: Đối tác, trừ ngoại lệ có tên "Tài xế đối tác" sinh Tài xế đối tác (ADR-0048 D2 — người lái chuyến,
@@ -255,6 +255,18 @@ test("laiNoiBoBenNgoaiProblem (ADR-0083 1b): quyền bên ngoài + quyền nội
   for (const p of PERMISSION_CODES.filter((c) => !(EXTERNAL_PERMISSIONS as readonly PermissionCode[]).includes(c))) {
     assert.ok(laiNoiBoBenNgoaiProblem(["PARTNER", p]), `PARTNER+${p}`);
   }
+});
+
+// ADR-0185 Đ2 mục 1, 4: đường ghi quyền KHÔNG qua vai trò (POST /api/staff không `roles`, PUT /api/staff/:id/permissions) không cấp quyền bên ngoài —
+// tài khoản Đối tác, Tài xế đối tác tạo bằng cách chọn vai trò. Gọi SAU taiKhoanLaiProblem và laiNoiBoBenNgoaiProblem (K7: tài khoản lai giữ câu cũ).
+test("quyenNgoaiDuongCuProblem (ADR-0185 Đ2): có quyền bên ngoài → 400 câu chỉ đường chọn vai trò; chỉ quyền nội bộ hoặc rỗng → null", () => {
+  assert.equal(CAU_DUONG_CU_QUYEN_NGOAI, "Tài khoản Đối tác hoặc Tài xế đối tác phải tạo bằng cách chọn vai trò.");
+  for (const ngoai of [["PARTNER"], ["DRIVER_PARTNER"], ["PARTNER", "DRIVER_PARTNER"]] as PermissionCode[][]) {
+    assert.deepEqual(quyenNgoaiDuongCuProblem(ngoai), { forbidden: false, message: CAU_DUONG_CU_QUYEN_NGOAI }, ngoai.join("+"));
+  }
+  for (const ok of [["SALES"], ["SALES", "ADMIN"], ["SUPER_ADMIN"], []] as PermissionCode[][]) assert.equal(quyenNgoaiDuongCuProblem(ok), null, ok.join("+") || "rỗng");
+  // Mọi mã quyền bên ngoài (EXTERNAL_PERMISSIONS) đều bị từ chối, mọi mã nội bộ đều qua — không danh sách chép tay.
+  for (const c of PERMISSION_CODES) assert.equal(quyenNgoaiDuongCuProblem([c]) !== null, (EXTERNAL_PERMISSIONS as readonly PermissionCode[]).includes(c), c);
 });
 
 // ADR-0048 B2.2 — MỘT hàm thuần cho máy chủ (roleAssignmentProblem) và giao diện (web/role-picker.ts khoá chéo ô vai, Task B1).

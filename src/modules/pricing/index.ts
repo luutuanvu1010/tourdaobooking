@@ -4,9 +4,11 @@ import { auditStatement } from "../audit";
 import { getEffectiveServices, tenCacNhom, tenDacDiemTheoMa } from "../catalog";
 import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, suaLoaiDoiTacStatement, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
 import { khoaTen } from "../../shared/khoa-ten.ts";
+import { kiemThanGioiHan, mucVuotGiaBan, viPhamGioiHanNhap } from "../../shared/gioi-han-nhap-muc.ts";
+import { nhanDong, nhanTyLeBp } from "../../shared/so-dai-ly-nhan.ts";
 import { kiemGhiChu } from "../../shared/ghi-chu-danh-muc.ts";
 import type { AuditAction } from "../../shared/audit-actions.ts";
-import type { CapHienHanhResponse, CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
+import type { CapDaiLyResponse, CapHienHanhResponse, GioiHanNhapResponse, CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
   LuatBanDto, LuatBanListResponse, LuatBanResponse, NguoiHuongTimResponse, SuaGanLoaiResponse, SuaMucResponse, SuaXemTruocResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
 import { coTheTimDoiTac } from "../../shared/hoa-hong-hien-thi";
@@ -14,16 +16,20 @@ import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule, type HoiDaChup } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { ngayDayDu, vnToday } from "../../shared/vn-date";
-import { cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
-  insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, openBeneficiaryRolesAll, openRolesOf, partyTiersHistory, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
-  roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, soHoSoTheoVai, suaMucTaStatement, suppliers, tenNhanVienTheoId, termById, termsOn, type PartyTierRow, type RoleTierRow, type RuleRow, type TermRow, type TierRow, type XuLyDongCu } from "./repository";
+import { cauThemGioiHanNhap, gioiHanNhapMoiNhat, type GioiHanNhapRow, cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
+  insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, hoSoCapDaiLy, openBeneficiaryRolesAll, openRolesOf, partyTiersHistory, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
+  roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, soHoSoTheoVai, suaMucTaStatement, suppliers, tenNhanVienTheoId, termById, termsOn, type PartyTierRow, type RoleTierRow, type RuleRow, type TermRow, type TierRow, type XuLyDongCu , viecDoKhiThoiVai as viecDoKhiThoiVaiRepo } from "./repository";
 import { MA_RE, MUC_TA_RE, PARTY_RE, capHienHanhCuaHoSo, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemNgung, kiemSua, xemTruocSua, kiemThanDoiChinhSach, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
-  type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type GanRieng, type MucTheoLoai, type NguoiHuong } from "./rules";
+  type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type GanRieng, type KieuMuc, type MucTheoLoai, type NguoiHuong, type PhamVi } from "./rules";
 
 import { coCacGiaTri, coGiaTri, danhSachLuatBan, demLuatBanChuaHetHan, giaTriDacDiemCua, ketThucLuatBanStatement, luatBanHieuLuc, luatBanTheoId, themLuatBanStatement, type LuatBanRow } from "./luat-ban-repo";
 import { chanBan, kiemThanLuatBan, ngayKetThucLuat, type PhamViLuatBan, type TrungLuat } from "./luat-ban-rules";
+import { phiDonRoutes } from "./phi-don-route";
 
 export { cauBiChan } from "./luat-ban-rules";
+// Phí đưa đón (ADR-0147 Đ2, ADR-0203): hàm công bố cho Đợt C — đọc bảng phí + cấp của bên đặt; luật thuần chọn mức và tính tiền một chặng. Chỉ đọc, KHÔNG tự kiểm quyền.
+export { docBangPhiDonChoDon, type BangPhiDonChoDon } from "./phi-don-repo.ts";
+export { chonMucPhiDon, tinhPhiChang, type ChangTinhPhi, type KetQuaPhiDon, type MucPhiDon, type CapCuaHoSo } from "./phi-don-rules.ts";
 export { chupDon, soKhachTinhHoaHong, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type NguoiHuong } from "./rules";
 
 /** ADR-0133: ba số tiền của dòng phụ; người lớn = per_pax_amount. null khi dòng không khai theo loại (không có dòng phụ). */
@@ -50,6 +56,11 @@ export async function docBangChoChup(db: D1Database, v: { bookerPartyId: string 
   const nguoiHuong = nguoiHuongCua({ bookerPartyId: v.bookerPartyId, vaiMo: vai.map((r) => ({ roleTypeCode: r.role_type_code, roleGroup: r.role_group, nhanDoiTac: r.is_partner_label === 1 })), vaiDuocHuong: new Set(duocHuong), congTyChuId: cty?.partyId ?? null });
   return { nguoiHuong, muc: muc.map(dongMuc), gan: gan.map(dongGan), ganRieng: ganRieng.map(dongGanRieng), dieuKhoan: dk.map(dongDk), nhom };
 }
+/**
+ * ADR-0155 C3 — việc dở của MỘT hồ sơ khi gỡ vai được hưởng: cấp riêng còn áp dụng, mức riêng còn hiệu lực, và `vaiConLai` (mã vai còn mở sau khi gỡ) còn vai được hưởng không.
+ * CHỈ gốc lắp ráp gọi (ghép với đơn nháp của `orders`, đưa vào `ctx.viecDoKhiThoiVai` của route gỡ vai ở `parties`). Chỉ đọc; không kiểm quyền (route đã kiểm).
+ */
+export const viecDoKhiThoiVai = (db: D1Database, v: { partyId: string; homNay: string; vaiConLai: readonly string[] }) => viecDoKhiThoiVaiRepo(db, v);
 export const laNguoiHuong = (db: D1Database, partyId: string): Promise<boolean> => isBeneficiary(db, partyId);
 /**
  * Task 11 (Ruling 21): hồ sơ `partyId` đang mang vai được hưởng (CÙNG điều kiện `laNguoiHuong`) ⇒ `{ partyId, ten }`, không thì null. CHỈ gốc lắp ráp gọi, để `GET /api/auth/me` báo
@@ -285,6 +296,11 @@ async function hoaHongHoSo(db: D1Database, id: string): Promise<HoaHongHoSoRespo
  * (số câu không đổi khi số hồ sơ đổi); rồi từng hồ sơ đi qua đúng `tomTatHoaHongHoSo` trong bộ nhớ — không luật thứ hai trong SQL. Chỉ đọc; không tên hồ sơ, không SĐT.
  */
 async function capHienHanhMoiHoSo(db: D1Database): Promise<CapHienHanhResponse> {
+  const { homNay, hoSo } = await capVaVaiMoiHoSo(db);
+  return { homNay, hoSo };
+}
+/** Phần chung của cột «Cấp độ đại lý» và màn gom: cấp từng hồ sơ, kèm vai trò được hưởng đang mở và số cấp đang bật (hai khoá sau không ra phản hồi của cột). */
+async function capVaVaiMoiHoSo(db: D1Database): Promise<CapHienHanhResponse & { vaiTheoHoSo: ReadonlyMap<string, readonly string[]>; soCapDangBat: number }> {
   const homNay = vnToday(new Date());
   const [vaiMo, duocHuong, gan, muc, ganRieng, tenMuc] = await Promise.all([
     openBeneficiaryRolesAll(db), beneficiaryRoles(db), roleTiersOn(db, homNay), rulesOn(db, homNay), partyTiersCurrent(db, homNay), rateTiers(db),
@@ -301,7 +317,25 @@ async function capHienHanhMoiHoSo(db: D1Database): Promise<CapHienHanhResponse> 
       tomTatHoaHongHoSo({ partyId, vaiMo: vaiMoCua, vaiDuocHuong, gan: ganLoai, ganRieng: ganRiengLuat, muc: luatMuc, ngay: homNay }),
       { partyId, homNay, tenCuaMuc, ganCuaHoSo: ganTheoHoSo.get(partyId) ?? [] },
     ));
-  return { homNay, hoSo };
+  return { homNay, hoSo, vaiTheoHoSo, soCapDangBat: tenMuc.filter((m) => m.active === 1).length };
+}
+/**
+ * Màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): MỌI hồ sơ đang mở mang vai trò được hưởng, có hay chưa có tài khoản. Cấp lấy nguyên từ `capVaVaiMoiHoSo` (cùng hàm với cột ở Quản lý tài khoản, không luật thứ hai);
+ * thêm đúng hai câu đọc (nhãn hồ sơ, tên vai trò), số câu không đổi theo số hồ sơ. Danh sách trắng: không SĐT, email, mã số thuế, địa chỉ. Chỉ đọc.
+ */
+async function capDaiLyMoiHoSo(db: D1Database): Promise<CapDaiLyResponse> {
+  const [{ homNay, hoSo, vaiTheoHoSo, soCapDangBat }, nhan, tenVai] = await Promise.all([capVaVaiMoiHoSo(db), hoSoCapDaiLy(db), tenLoaiVai(db)]);
+  const capCua = new Map(hoSo.map((c) => [c.partyId, c]));
+  const dong = nhan.flatMap((n) => {
+    const cap = capCua.get(n.id);
+    return cap === undefined ? [] : [{
+      partyId: n.id, ten: n.display_name, loaiHoSo: n.party_kind, coTaiKhoan: n.co_tai_khoan === 1,
+      vaiTro: (vaiTheoHoSo.get(n.id) ?? []).map((code) => ({ code, ten: tenVai.get(code) ?? code })),
+      cap,
+    }];
+  });
+  dong.sort((a, b) => a.ten.localeCompare(b.ten, "vi") || (a.partyId < b.partyId ? -1 : 1));
+  return { homNay, soCapDangBat, hoSo: dong };
 }
 const MUC_KHONG_CO = () => error(404, "not_found", "Không tìm thấy cấp độ đại lý này.");
 const dtoGan = (r: RoleTierRow, tenVai: ReadonlyMap<string, string>, tenMuc: ReadonlyMap<string, string>, homNay: string): GanLoaiMucDto => ({
@@ -342,6 +376,32 @@ async function doiTrangThaiMuc(db: D1Database, code: string, bat: boolean, staff
   if (res instanceof Response) return res;
   if (dongDaDong(res)) return error(409, "stale", bat ? "Cấp này đang mở rồi — tải lại." : "Cấp này đã khoá rồi — tải lại.");
   return json({ muc: (await docMucTa(db, vnToday(new Date()))).find((m) => m.code === code)! } satisfies MucTaResponse);
+}
+
+// ===== Giới hạn nhập mức hoa hồng (ADR-0161 Đ3, Đ4) =====
+const CHUA_CO_GIOI_HAN = () => error(503, "chua_co_gioi_han", "Chưa đọc được giới hạn nhập hoa hồng — thử lại sau ít phút.");
+const dtoGioiHan = (r: GioiHanNhapRow): GioiHanNhapResponse => ({ tranTyLeBp: r.max_rate_bp, buocTien: r.amount_step, tuLuc: r.valid_from_at });
+/**
+ * CỔNG DUY NHẤT cho mọi route ghi mức có SỐ MỚI (ADR-0161 Đ3, Đ4): Thêm mức, Thêm dòng của cấp, Đổi, Sửa có số mới — gọi NGAY TRƯỚC lô ghi (sau mọi lời kiểm thân, nên số quá lớn vẫn nhận câu cũ).
+ * Trả `Response` 400 (câu tiếng Việt của luật thuần) hoặc null. Đọc giới hạn MỚI NHẤT mỗi lần gọi: Toàn quyền vừa đổi thì hộp đang mở bị từ chối theo số mới. Không áp lại dòng đã có, không đụng đơn
+ * đã chụp; «Ghi mức tay» của đơn không đi qua đây (đường ngoại lệ). Bài quét `ghi-muc-qua-cong.test.ts` canh: không route nào gọi câu ghi mức mà thiếu cổng này.
+ */
+async function kiemSoMucMoi(db: D1Database, m: { kind: KieuMuc; rateBp: number | null; perPaxAmount: number | null; theoLoai?: MucTheoLoai | null }, pv: { scope: PhamVi; catalogCode: string | null }): Promise<Response | null> {
+  const gh = await gioiHanNhapMoiNhat(db);
+  if (!gh) return CHUA_CO_GIOI_HAN();
+  const soTien = [m.perPaxAmount, m.theoLoai?.child ?? null, m.theoLoai?.senior ?? null].filter((x): x is number => x !== null);
+  const loi = viPhamGioiHanNhap({ tyLeBp: m.kind === "RATE" ? m.rateBp : null, soTien: m.kind === "PER_PAX" ? soTien : [] }, { tranTyLeBp: gh.max_rate_bp, buocTien: gh.amount_step });
+  if (loi) return error(400, "invalid_input", loi);
+  // ADR-0161 Đ4: chỉ dòng phạm vi MỘT dịch vụ tính bằng số tiền có MỘT giá bán lẻ để so (nhóm / tất cả: dựa vào rào Đã giao và trần giảm giá). Dịch vụ không còn trong danh mục, đã rời Sheet hoặc
+  // đang ẩn (`visible` false: không còn giá bán hiện hành), đơn vị lạ, loại chưa có giá: bỏ qua, nhập được (Review Focus). Giá đọc qua chỗ `catalog` công bố, không đọc thẳng bảng.
+  if (pv.scope === "SERVICE" && m.kind === "PER_PAX" && pv.catalogCode !== null && m.perPaxAmount !== null) {
+    const dv = (await getEffectiveServices(db, [pv.catalogCode])).get(pv.catalogCode);
+    if (dv?.visible) {
+      const vuot = mucVuotGiaBan({ unit: dv.unit, gia: dv.prices, moiKhach: m.perPaxAmount, theoLoai: m.theoLoai ? { treEm: m.theoLoai.child, nguoiCaoTuoi: m.theoLoai.senior } : null, ten: dv.name });
+      if (vuot) return error(400, "invalid_input", vuot);
+    }
+  }
+  return null;
 }
 
 // ===== Luật bán theo loại đối tác (ADR-0146 Đ1, Đ5; ADR-0152 Đ2; kế hoạch 2026-10-30 T6) =====
@@ -396,6 +456,8 @@ export const pricingModule: AppModule = {
       if (!kq.ok) return error(400, "invalid_input", kq.message);
       const v = kq.value;
       if (v.scope === "SERVICE" && !(await getEffectiveServices(env.DB, [v.catalogCode!])).has(v.catalogCode!)) return error(400, "invalid_input", "Không có dịch vụ này trong danh mục.");
+      const chanSo = await kiemSoMucMoi(env.DB, v, { scope: v.scope, catalogCode: v.catalogCode });
+      if (chanSo) return chanSo;
       const tenVai = await tenLoaiVai(env.DB);
       const at = new Date().toISOString();
       const id = crypto.randomUUID();
@@ -444,6 +506,8 @@ export const pricingModule: AppModule = {
       const doi = kiemDoi({ cu: dongCoNgay(row), tuNgay: than.value.validFrom, homNay, ngayChup: chup.ngay });
       if (!doi.ok) return error(400, "invalid_input", doi.error);
       if (cungMuc(dongMuc(row), than.value)) return error(400, "invalid_input", "Mức mới giống hệt mức cũ.");
+      const chanSo = await kiemSoMucMoi(env.DB, than.value, { scope: row.scope, catalogCode: row.catalog_code });
+      if (chanSo) return chanSo;
       const tenVai = await tenLoaiVai(env.DB);
       const at = new Date().toISOString();
       const moiId = crypto.randomUUID();
@@ -484,6 +548,11 @@ export const pricingModule: AppModule = {
       const giongSo = cungMuc(dongMuc(row), than.value) && than.value.note === row.note;
       const k = kiemSua({ cu: dongCoNgay(row), moi: { validFrom: than.value.validFrom, validTo: than.value.validTo }, ngayChup: chup.ngay, homNay, lyDo: lyDoCua(body), giongSo });
       if (!k.ok) return error(400, "invalid_input", k.error);
+      // ADR-0161 Đ3: chỉ kiểm khi SỐ đổi (không so ghi chú) — dòng cũ vượt giới hạn mới (Toàn quyền vừa hạ trần) vẫn sửa được ngày.
+      if (!cungMuc(dongMuc(row), than.value)) {
+        const chanSo = await kiemSoMucMoi(env.DB, than.value, { scope: row.scope, catalogCode: row.catalog_code });
+        if (chanSo) return chanSo;
+      }
       const tenVai = await tenLoaiVai(env.DB);
       const at = new Date().toISOString();
       const moiId = crypto.randomUUID();
@@ -498,6 +567,41 @@ export const pricingModule: AppModule = {
       if (dongDaDong(res)) return error(409, "stale", "Dòng này vừa được người khác sửa hoặc ngừng. Tải lại trang.");
       const [cu, moi] = await Promise.all([ruleById(env.DB, id), ruleById(env.DB, moiId)]);
       return json({ duong: k.duong, cu: dtoMuc(cu!, tenVai, homNay), moi: dtoMuc(moi!, tenVai, homNay) } satisfies SuaMucResponse);
+    }),
+    // ADR-0161 Đ3: GIỚI HẠN NHẬP mức hoa hồng. ĐỌC: cổng `office`, ô `partner.commission.view` và không giữ quyền Đối tác (hộp nhập hỏi giới hạn để báo sớm; máy chủ vẫn kiểm lại). GHI: cổng `admin`,
+    // thân hỏi `settings.ops` (chỉ Toàn quyền). Khuôn `/api/cai-dat/an-thong-tin-khach`: bảng chỉ-thêm, MỘT lô = dòng mới + nhật ký; `tuLuc` ≠ mốc dòng mới nhất ⇒ 409 `stale`; gửi đúng số đang
+    // hiệu lực ⇒ 200, không ghi; khoá lạc quan nằm TRONG câu chèn (`WHERE max(valid_from_at) = tuLuc`): người khác chèn xong giữa bước so và lô ghi ⇒ chèn 0 dòng, nhật ký `changes() > 0` không ghi, 409 `stale`; va UNIQUE `valid_from_at` cũng 409 (lô lui trọn). Đổi giới hạn KHÔNG đổi dòng mức đã có hay đơn đã chụp.
+    route("GET", "/api/pricing/gioi-han-nhap", "office", async ({ env, staff }) => {
+      if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
+      const r = await gioiHanNhapMoiNhat(env.DB);
+      return r ? json(dtoGioiHan(r)) : CHUA_CO_GIOI_HAN();
+    }),
+    route("POST", "/api/pricing/gioi-han-nhap", "admin", async ({ env, request, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi giới hạn nhập hoa hồng.");
+      const kq = kiemThanGioiHan(await readJson(request));
+      if (!kq.ok) return error(400, "invalid_input", kq.message);
+      const hien = await gioiHanNhapMoiNhat(env.DB);
+      if (!hien) return CHUA_CO_GIOI_HAN();
+      const v = kq.value;
+      if (v.tuLuc !== hien.valid_from_at) return error(409, "stale", "Giới hạn vừa được người khác đổi — tải lại rồi thử lại.");
+      if (v.tranTyLeBp === hien.max_rate_bp && v.buocTien === hien.amount_step) return json(dtoGioiHan(hien));
+      // Mốc dòng mới = max(lúc ghi, mốc dòng mới nhất + 1 ms): hai lần đổi liền nhau không va UNIQUE, dòng sau luôn đi sau dòng trước (khuôn `lanSau` của orders, chép một dòng — không import).
+      const now = new Date();
+      const tuLuc = (Date.parse(hien.valid_from_at) >= now.getTime() ? new Date(Date.parse(hien.valid_from_at) + 1) : now).toISOString();
+      const at = now.toISOString();
+      try {
+        // Khoá lạc quan trong chính câu chèn (`tuLucDaDoc`): người khác chèn xong giữa bước so ở trên và lô này ⇒ câu chèn 0 dòng, nhật ký `changes() > 0` không ghi ⇒ 409.
+        const res = await env.DB.batch([
+          cauThemGioiHanNhap(env.DB, { id: crypto.randomUUID(), tranTyLeBp: v.tranTyLeBp, buocTien: v.buocTien, tuLuc, tuLucDaDoc: v.tuLuc, at, by: staff.id }),
+          auditStatement(env.DB, { staffId: staff.id, action: "prc_entry_limit_changed", at, targetType: "ledger",
+            detail: `trần ${nhanTyLeBp(hien.max_rate_bp)} → ${nhanTyLeBp(v.tranTyLeBp)} · bước ${nhanDong(hien.amount_step)}đ → ${nhanDong(v.buocTien)}đ` }, "changes() > 0"),
+        ]);
+        if (dongDaDong(res)) return error(409, "stale", "Giới hạn vừa được người khác đổi — tải lại rồi thử lại.");
+      } catch (e) {
+        if (/UNIQUE constraint failed: prc_entry_limit_policy/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Giới hạn vừa được người khác đổi — tải lại rồi thử lại.");
+        throw e;
+      }
+      return json({ tranTyLeBp: v.tranTyLeBp, buocTien: v.buocTien, tuLuc } satisfies GioiHanNhapResponse);
     }),
     // ADR-0146 Đ5: LUẬT BÁN theo loại đối tác — cổng văn phòng, ô `sales.block.write` (Bán hàng, Quản trị, Toàn quyền) ở dòng đầu thân; tài khoản giữ quyền Đối tác (kể cả lai) bị
     // chặn ở cả đọc lẫn ghi (chủ chọn Q-2 (a): không tự gỡ luật đang chặn chính mình). Bảng chỉ thêm: thêm dòng, đặt ngày kết thúc MỘT lần; dữ liệu + nhật ký MỘT lô.
@@ -787,6 +891,8 @@ export const pricingModule: AppModule = {
       if (!kq.ok) return error(400, "invalid_input", kq.message);
       const v = kq.value;
       if (v.scope === "SERVICE" && !(await getEffectiveServices(env.DB, [v.catalogCode!])).has(v.catalogCode!)) return error(400, "invalid_input", "Không có dịch vụ này trong danh mục.");
+      const chanSo = await kiemSoMucMoi(env.DB, v, { scope: v.scope, catalogCode: v.catalogCode });
+      if (chanSo) return chanSo;
       const at = new Date().toISOString();
       const id = crypto.randomUUID();
       const res = await chayLo(env.DB, [
@@ -796,6 +902,11 @@ export const pricingModule: AppModule = {
       ]);
       if (res instanceof Response) return res;
       return kemLocation(json({ dong: dtoMuc((await ruleById(env.DB, id))!, await tenLoaiVai(env.DB), vnToday(new Date())) }, 201), "/hoa-hong");
+    }),
+    // Màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly): danh sách gom tên đối tác với cấp của họ. Cổng hẹp hơn cột: ô GHI `partner.commission.write` và không giữ quyền Đối tác; Bán hàng có ô xem nhưng không đọc được danh sách này.
+    route("GET", "/api/pricing/cap-dai-ly", "office", async ({ env, staff }) => {
+      if (!can(staff, "partner.commission.write") || holdsPartner(staff)) return FORBIDDEN();
+      return json(await capDaiLyMoiHoSo(env.DB));
     }),
     // ADR-0155 Đ2.5: cấp hiện hành của mọi hồ sơ được hưởng — một route chỉ đọc cho cột «Cấp độ đại lý» ở Quản lý tài khoản. Cùng cổng với route hồ sơ phía dưới: `partner.commission.view`
     // và KHÔNG giữ quyền Đối tác (tài khoản lai cũng bị chặn). Không nhận danh sách mã; trả mọi hồ sơ đang mang vai trò được hưởng, đường dẫn cố định đứng trước các đường có `:id`.
@@ -1003,6 +1114,6 @@ export const pricingModule: AppModule = {
       // Câu SQL tự bọc '%' || ?1 || '%': đưa vào phần giữa của mauLikeChua (≤ 48 byte) để cả mẫu ≤ 50 byte (D1 từ chối quá giới hạn).
       const rows = await findBeneficiaries(env.DB, mauLikeChua(q).slice(1, -1));
       return json({ ketQua: rows.map((r) => ({ partyId: r.id, ten: r.display_name, loai: r.party_kind })) } satisfies NguoiHuongTimResponse);
-    }),
+    }),    ...phiDonRoutes, // ADR-0147 Đ2: bảng phí đưa đón (phi-don-route.ts; đã khai ở TEP_ROUTE_PHU của route-write-guard.test.ts)
   ],
 };

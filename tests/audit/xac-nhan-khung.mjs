@@ -25,6 +25,7 @@ export function setup(tuyChon = {}) {
   seedStaff(w.sqlite, { id: B, phone: "0900000002", name: "Bình", perms: ["SALES"] });
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: H, phone: "0900000004", name: "Hướng Dẫn", perms: ["FIELD"] });
+  // Tài khoản lai Bán hàng + Đối tác chỉ còn trong dữ liệu cũ (ADR-0083 1c): seedStaff dựng theo hình dạng kiểu cũ, không vai trò đối tác (ADR-0185).
   seedStaff(w.sqlite, { id: LAI, phone: "0900000006", name: "Lai", perms: ["SALES", "PARTNER"] });
   seedStaff(w.sqlite, { id: ACC, phone: "0900000005", name: "Kế toán", perms: ["ACCOUNTING"] });
   seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
@@ -32,6 +33,8 @@ export function setup(tuyChon = {}) {
   seedStaff(w.sqlite, { id: INTERN, phone: "0900000009", name: "Thực tập", perms: ["INTERN"] });
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZB1', 'Tour thường', 'perPax', 300000, 1, '2026-01-01', '2026-01-01')");
+  // ADR-0174: ZA1 mặc định Có vé (như dieu-phoi-khung) để các bài vé không phải tự khai; ZB1 chưa khai là Không vé. Bài cần ZA1 chưa khai truyền `chuaKhaiCoVe`.
+  if (!tuyChon.chuaKhaiCoVe) w.sqlite.exec("INSERT INTO ctl_service_ticket_flag (id, scope, code, has_ticket, valid_from_at, created_at, updated_at) VALUES ('co-ve-za1', 'SERVICE', 'ZA1', 1, '2026-01-01T00:00:00.000Z', '2026-01-01', '2026-01-01')");
   return w;
 }
 /** Đánh dấu «cần xác nhận» thẳng CSDL (route cài đặt có bài riêng ở xac-nhan-cai-dat.test.ts). */

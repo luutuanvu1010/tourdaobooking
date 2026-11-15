@@ -42,6 +42,35 @@ const HIEN_HANH = defineSql("orders", "terms_current",
      t.supply_status, t.seller_party_id, t.supplier_party_id, t.cost_rate_bp, t.supply_term_id, t.source, t.captured_date,
      x.adult_amount AS pax_adult, x.child_amount AS pax_child, x.senior_amount AS pax_senior
    FROM ord_service_terms t LEFT JOIN ord_service_terms_pax x ON x.terms_id = t.id WHERE t.order_id = ?1 AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = t.id)`);
+// ADR-0182 Đ1 (công nợ đại lý): bản chụp hiện hành, dịch vụ và dòng tiền GỐC của NHIỀU đơn trong một lượt (màn hạn mức tính nợ mọi đơn Trả sau — không truy vấn lặp theo đơn).
+// Cùng điều kiện «hiện hành» với `terms_current`. Dòng điều chỉnh số khách áp sau (`getLatestAdjustments`, cùng đường chi tiết đơn).
+const HIEN_HANH_NHIEU = defineSql("orders", "terms_current_many",
+  `SELECT t.order_id, t.id, t.order_service_id, t.beneficiary_party_id, t.commission_status, t.missing_reason, t.commission_kind, t.commission_rate_bp, t.commission_per_pax, t.commission_rule_id,
+     t.supply_status, t.seller_party_id, t.supplier_party_id, t.cost_rate_bp, t.supply_term_id, t.source, t.captured_date,
+     x.adult_amount AS pax_adult, x.child_amount AS pax_child, x.senior_amount AS pax_senior
+   FROM ord_service_terms t LEFT JOIN ord_service_terms_pax x ON x.terms_id = t.id
+   WHERE t.order_id IN (SELECT value FROM json_each(?1)) AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = t.id)`);
+const DICH_VU_NHIEU = defineSql("orders", "services_money_many",
+  `SELECT order_id, id, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant FROM order_service WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, sort_order`);
+const DONG_TIEN_NHIEU = defineSql("orders", "items_money_many",
+  `SELECT order_id, service_id, pax_code, quantity, unit_price, catalog_price, line_total FROM order_item WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, sort_order`);
+// «Đơn đại lý» (ADR-0182 Đ1 mục 1 = luật `mauBienNhan`): cờ bên đặt mang vai được hưởng — CÙNG câu với `BOOKER_LA_DOI_TAC` của chi tiết đơn — và người lập (để hỏi «Đối tác thuần»).
+const DON_DAI_LY_NHIEU = defineSql("orders", "orders_agent_flags_many",
+  `SELECT o.id, o.staff_id, o.status, EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code WHERE r.party_id = o.booker_party_id) AS la
+   FROM orders o WHERE o.id IN (SELECT value FROM json_each(?1))`);
+export interface DichVuTienRow { order_id: string; id: string; catalog_code: string | null; name: string; unit: string; pax_adult: number; pax_child: number; pax_senior: number; pax_infant: number }
+export interface DongTienRow { order_id: string; service_id: string | null; pax_code: string | null; quantity: number; unit_price: number; catalog_price: number | null; line_total: number }
+export interface DonDaiLyRow { id: string; staff_id: string; status: "draft" | "confirmed" | "cancelled"; la: number }
+export async function docGiaDaiLyNhieu(db: D1Database, orderIds: readonly string[]): Promise<{ chup: (TermRowDb & { order_id: string })[]; dichVu: DichVuTienRow[]; dong: DongTienRow[]; don: DonDaiLyRow[] }> {
+  const ids = JSON.stringify([...new Set(orderIds)]);
+  const [chup, dichVu, dong, don] = await Promise.all([
+    db.prepare(HIEN_HANH_NHIEU).bind(ids).all<TermRowDb & { order_id: string }>(),
+    db.prepare(DICH_VU_NHIEU).bind(ids).all<DichVuTienRow>(),
+    db.prepare(DONG_TIEN_NHIEU).bind(ids).all<DongTienRow>(),
+    db.prepare(DON_DAI_LY_NHIEU).bind(ids).all<DonDaiLyRow>(),
+  ]);
+  return { chup: chup.results, dichVu: dichVu.results, dong: dong.results, don: don.results };
+}
 const DEM = defineSql("orders", "terms_count", "SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?1");
 // Tên hồ sơ (người hưởng, người bán) cho DTO văn phòng: view công bố của parties, chỉ khoá + nhãn. Hồ sơ không còn trong view ⇒ DTO ghi "Hồ sơ không còn".
 const NHAN_HO_SO = defineSql("orders", "party_labels", "SELECT id, display_name FROM v_pty_party_label WHERE id IN (SELECT value FROM json_each(?1))");

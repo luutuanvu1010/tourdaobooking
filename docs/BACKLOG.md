@@ -407,7 +407,7 @@ Nêu bởi chủ dự án trong lúc trả lời từng ca sổ vàng; hồ sơ 
 - **BL-SV-NOP-BU** · **Trạng thái:** `chưa làm` · **Ca liên quan:** SV-SC-06 (còn chờ xác nhận).
   - **Vấn đề:** Hướng dẫn viên khai «Công ty thu – CK» nhưng tiền chưa về, nên nộp bù tiền mặt (Kế toán ghi «Đã nộp»). Sau đó Kế toán bấm «Xác nhận đã nhận» cho khoản chuyển khoản thì máy chủ từ chối (ADR-0092 Đ2b) để hướng dẫn viên không bị âm. Chủ nêu: tiền khách có thể về trễ vì chuyển khoản bị gián đoạn, khi đó công ty đang giữ cả hai khoản.
   - **Việc khi làm:** thêm đường trả lại cho hướng dẫn viên phần đã nộp bù khi tiền chuyển khoản thật sự về (có người duyệt khác người ghi, có nhật ký, không âm số dư). Quyết định luật tiền nên qua ADR; ca sổ vàng SV-SC-06 viết thêm bước này rồi mới xác nhận.
-- **BL-SV-CHUNG-TU-HOAN-NGOAI** · **Trạng thái:** `chưa làm` · **Ca liên quan:** SV-DH-07 (còn chờ xác nhận).
+- **BL-SV-CHUNG-TU-HOAN-NGOAI** · **Trạng thái:** `chưa làm` · **Ca liên quan:** SV-DH-07 (chủ xác nhận 14/11 với lý do phiếu thu chi viết tay ngoài Nền tảng vẫn là chứng từ gốc; việc này nay là việc để sau, không chặn ca 07 hay mục TNV-G1).
   - **Vấn đề:** Khoản «đã hoàn ngoài hệ thống» (công ty trả tay cho khách) hiện chỉ ghi số tiền. Chủ yêu cầu thu chi phải có chứng từ nội bộ: ghi rõ chi vì mục đích gì, số tiền, chi cho ai, hình thức nào (ví dụ tiền mặt), số chứng từ và ngày.
   - **Việc khi làm:** thêm các trường chứng từ vào khoản hoàn ngoài (bắt buộc, không đưa số tài khoản/giấy tờ cá nhân vào nhật ký — CLAUDE.md §7), cập nhật migration + `docs/data-dictionary.json`, viết lại ca SV-DH-07 cho khớp, chủ xác nhận lại.
 
@@ -662,7 +662,8 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 
 ## 55. Thiết kế lại giao diện — chủ tạm gác (mã `BL-TKL-…`, 2026-10-30)
 
-- **Trạng thái:** `để sau` · Chủ dự án 30/10/2026: «việc thiết kế lại giao diện chúng ta để làm về sau đi, ghi backlog». Đợt 0 (khung chung, bản 2.47) đã lên production và giữ nguyên; phần chưa phát hành dừng tại chỗ, không xoá.
+- **13/11/2026: chủ MỞ LẠI** («Mở lại, nhưng nâng cấp độ lên mức toàn diện hơn»), gộp vào kế hoạch `docs/superpowers/plans/2026-11-13-kiem-giao-dien-toan-dien-ke-hoach.md`; mục này giữ làm lịch sử.
+- **Trạng thái (cũ):** `để sau` · Chủ dự án 30/10/2026: «việc thiết kế lại giao diện chúng ta để làm về sau đi, ghi backlog». Đợt 0 (khung chung, bản 2.47) đã lên production và giữ nguyên; phần chưa phát hành dừng tại chỗ, không xoá.
 - **BL-TKL-0B · Đợt 0b khung tải — thi công xong, CHƯA gộp, chưa phát hành.** Nhánh `dot-0b-khung-tai` (17 commit trên `dac-ta-dot-0b`, đầu `86fb949d`, chưa push); nhật ký `docs/superpowers/plans/2026-10-29-dot-0b-khung-tai-nhat-ky.md`, bằng chứng `docs/evidence/2026-10-29-dot-0b-khung-tai/` (đều nằm trên nhánh). Đạt: tổng JS thô −73 % (5,46 MB → 1,47 MB), nạp sẵn lúc cài 108 mục / 2,0 MB → 24 mục / 0,31 MB nén, mọi bài kiểm xanh. **Không đạt 11.4:** trung vị FCP lạnh chậm hơn ≈ 570 ms ở 390 và 1040 (984 → 1550 / 1558 ms, đo 30/10 trên `main` `a129d3dd`), do `preload` phông + `modulepreload` ở `<head>` tranh băng thông với `app.css` trên 4G chậm. Đo riêng `/orders`: bản nhánh 1660 · bỏ preload phông 1236 · bỏ cả hai 1000 · `main` 996 ms — không cách nào đạt «nhanh hơn ≥ 150 ms» vì FCP do CSS quyết. Khi mở lại: chủ chọn bỏ cả hai loại tải trước (đề xuất) hay chỉ bỏ phông, rồi đo đủ 45 trang hai khổ, sửa tiêu chí 11.4 (đặc tả bản 5 đang đóng băng), QA2, cổng phát hành. Nợ kèm: 11.6 còn trượt (`/` ở 390 do vỏ; 4 trang do dải nhắc bảo mật hai lớp `#strips`; nhiều trang do thân chưa tách phần khung xương); bộ DS v2 đã xuất bản lệch mã cho tới khi xuất bản lại.
 - **BL-TKL-CHANG-3 · Chặng 3 (lưới bố cục và thân trang)** — gác cùng; đề bài lưới bố cục 1b nằm trên nhánh `chang-3-luoi-bo-cuc` (phiên khác soạn), chưa gửi Claude Design.
 - **Nếu để nguyên:** Nền tảng chạy như bản 2.47 hiện tại; không mất dữ liệu, không đổi quyền. Nhánh `dot-0b-khung-tai` càng để lâu càng phải gộp lại với `main` và đo lại «trước».
@@ -720,16 +721,99 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 
 - **Trạng thái:** `để sau` · Chủ quyết 2026-11-03 sau kiểm độc lập ADR-0159 vòng 3, nguyên văn: *«Để nguyên, ghi sổ việc»*. Cả hai đường dưới đây chỉ Kế toán đi được, đối tác không tự làm được; vé có thể mở khi công ty chưa nhận tiền. Nên xem lại khi có ca thật hoặc khi có trần công nợ của đối tác.
 - **BL-DC-HUY-GHI-TAY** — Kế toán huỷ khoản khai rồi ghi tay khoản mới: khoản mới không còn ghi chú «Khách đặt cọc trước» nên `thuDu` coi như đã thu thật, vé mở dù đối tác còn giữ tiền. Một người làm được. Có thể tính tiền hai lần nếu thêm đối tác huỷ đơn và Quản trị duyệt. Muốn chặn thì phải có dấu thật cho khoản khai thay vì ghi chú, cần chủ duyệt.
-- **BL-DC-CHUYEN-CONG-TY-GIU** — khi chuyển cọc của đơn huỷ sang đơn mới, Kế toán chọn «Công ty đang giữ» trong khi đối tác chưa nộp: khoản chuyển mang vai công ty nên vé mở (`ghiChuyen` trong `src/modules/billing/coc.ts`). Cần Quản trị duyệt khoản chuyển trước. Muốn chặn thì máy phải đối chiếu số đối tác còn giữ của khoản nguồn.
+- **BL-DC-CHUYEN-CONG-TY-GIU** — khi chuyển cọc của đơn huỷ sang đơn mới, Kế toán chọn «Công ty đang giữ» trong khi đối tác chưa nộp: khoản chuyển mang vai công ty nên vé mở (`ghiChuyen` trong `src/modules/billing/coc.ts`). Cần Quản trị duyệt khoản chuyển trước. Muốn chặn thì máy phải đối chiếu số đối tác còn giữ của khoản nguồn. **Đã xử lý 5/11 theo ADR-0171 Đ3**: nút tự chọn đúng người giữ; máy chủ từ chối «Công ty giữ» khi đơn cũ còn người chưa nộp (409 `coc_con_nguoi_giu`). Đơn đã chuyển nhầm trước đây (nếu có) xử lý riêng.
 - **BL-DC-LY-DO-HUY** — huỷ với lý do khách đổi ý rồi khai lại cọc vẫn đi qua luật chặn (ADR-0159 Đ2 mục 1, chủ đã biết). Ghi lại để không quên, chưa định làm.
 - **BL-DC-CHUA-KIEM** — chưa kiểm: iPhone; câu «chờ đối tác nộp tiền» trên màn vé bằng Chrome; bản in biên nhận (chữ ghi «Khách hàng đã trả trước», không nói đối tác giữ hộ); tải đồng thời; `/ve/:token` đã tạo khi việc nộp bị đảo.
-- **BL-DC-KHO-390** — thẻ «Xác nhận đơn» hẹp, chữ tràn ở khổ 390 và dòng «Chưa tải được» có sẵn trên `main`, không do đặt cọc; chưa sửa.
+- **BL-DC-KHO-390** — thẻ «Xác nhận đơn» hẹp, chữ tràn ở khổ 390 và dòng «Chưa tải được» có sẵn trên `main`, không do đặt cọc; chưa sửa. Phần thẻ hẹp, chữ tràn đã sửa ở lần đổi 12 tên 4/11 (ADR-0166); dòng «Chưa tải được» còn.
 
-## 62. Việc còn lại sau khi viết lại `CLAUDE.md` (mã `BL-CM-…`, 2026-11-03)
+## 62. Các việc để sau từ buổi bàn chính sách chiết khấu (mã `BL-CK-…`, 2026-11-03)
+
+- **Trạng thái:** `để sau` · Chủ nêu trong chat 2026-11-03 khi chốt đặc tả `docs/superpowers/specs/2026-11-03-chinh-sach-chiet-khau-bon-truc-design.md`.
+- **BL-CK-NHAP-TEP** (chủ 3/11 đưa vào bảng việc hoàn thiện hoa hồng, `docs/superpowers/plans/2026-11-03-hoan-thien-hoa-hong-bang-viec.md`) — nhập mức từ tệp bảng tính, mỗi hàng một dịch vụ, mỗi cột một cấp, có xem trước và máy kiểm; làm ngay sau đặc tả trên vì 720 ô bằng tay vẫn nặng. Không dùng Sheet bảng giá vì Sheet đọc công khai.
+- **BL-CK-DIEU-KIEN** — chủ: «Điều kiện áp dụng» hôm nay là ghi chú để đọc, sau này cụ thể hoá theo doanh thu, quy mô, cam kết của đối tác. Khi mở lại cần ADR mới, vì lời chủ 8/10 và ADR-0117 ghi mức «không theo doanh số». Trong Oracle Advanced Pricing đây là phần điều kiện (qualifier).
+- **BL-CK-BANG-DONG-BO** — chủ: Sheet là một nguồn sự thật cho bảng dịch vụ, cần trực quan hoá việc đồng bộ ở bảng điều khiển Quản trị, không đồng bộ tự động. Hiện trạng: Cron 15 phút chạy `runScheduledSync`, cùng Cron còn chạy `donHangChoXoaVe` nên chỉ gỡ việc đồng bộ, không gỡ Cron; trang Dịch vụ & giá đã có đồng bộ tay, lần cuối, dòng lỗi, nhưng chưa xem trước thay đổi; đây là đảo quyết định 2026-09-19. Hệ quả cần nói với chủ: quên bấm thì giá Nền tảng lệch giá trên Sheet và website. Giá ghi đè của Quản trị (`catalog_override`) vẫn còn, nên «một nguồn» có ngoại lệ, cần chủ quyết giữ hay bỏ.
+- **BL-CK-BANG-QUYEN** — chủ: trực quan hoá việc thiết lập quyền của mọi vai ở bảng điều khiển của Toàn quyền. Hiện trạng: chưa có màn nào; bản đồ quyền chỉ ở `src/shared/permissions.ts` (ADR-0007), có bài kiểm khoá. AI khuyên làm trước bản **chỉ xem**, sinh từ chính bản đồ nên không lệch; sửa quyền trên màn hình là cửa một chiều về tiền, cần ADR riêng do chủ duyệt. Chưa hỏi chủ chốt.
+
+## 63. Xoá hẳn dữ liệu trên bản chính thức (mã `BL-XOA-HAN`, 2026-11-04)
+
+- **Trạng thái:** `để sau` · Chủ 4/11, nguyên văn: «ok tạm chưa xóa dữ liệu trong Production, mà cho ẩn». Đề xuất nằm ở ADR-0163 (proposed, tạm gác).
+- **Vướng:** Hiến pháp 5.8 xếp N5 trên dữ liệu đã phát hành vào hạng «không bao giờ bẻ, kể cả chủ dự án». Muốn mở lại phải sửa Hiến pháp ở kho luật gốc theo Điều 9 (ít nhất 7 ngày cân nhắc), và phải trả lời trước câu: hạng tuyệt đối có sửa được không, vì câu đầu của 9.4 chỉ cho siết.
+- **Trong lúc chờ:** ẩn dữ liệu theo ADR-0164, ADR-0165; thử nghiệm trên bản Development theo ADR-0162.
+
+## 64. Kịch bản Chrome cũ đỏ sẵn trên bản chính và chữ chờ bảng tham chiếu (mã `BL-KB-…`, 2026-11-04)
+
+- **Trạng thái:** `để sau` · Phát hiện khi chạy lại kịch bản cho ADR-0166. So với `main` aa4086f6 từng dòng lỗi giống hệt, tức không do ADR-0166.
+- **BL-KB-DO-SAN** — mười hai kịch bản đỏ hoặc dừng sớm vì đã cũ so với mã: `dat-gap-smoke` (dựng dữ liệu nhận 404, đơn nháp chỉ người lập đọc), `dieu-phoi-smoke` ở 2026-09-29 (6 bước) và ở 2026-10-12-c3 (3 bước), `chon-hdv-lap-don-smoke` (bước 8, 11), `xe-dang-chay-smoke` (dừng lúc dựng dữ liệu), `nhat-ky-loc-smoke` (đếm cứng 47 hành động), `v1-xac-nhan-png` (11 bước), `qr-smoke` (ô trả trước đã bỏ 26/10), `loc-don-smoke` (hết giờ ở «3 đơn, chưa lọc»), `hdv-viec-cua-toi-smoke` (lần thu nhận 409), `ve-ho-tro-2a-smoke` (hết giờ ở bước 1), `adr-0114-smoke` (bước 9 Trợ giúp). Chữ ADR-0166 sửa trong các kịch bản này chưa được trình duyệt thật chạy tới.
+- **BL-KB-THE-CHUA-NGAY** — đơn chưa có ngày: chữ «Chưa có ngày đón» bị cắt ở thẻ điện thoại (nhãn trạng thái dài hơn một chút làm cắt sớm hơn) và đè sang cột Khách ở bảng máy tính. Thấy trên ảnh thật 4/11; đơn có ngày không bị.
+- **BL-KB-CHUA-CHAY** — `kiem-tra-giao-dien`, `hanh-trinh`: cần dựng máy chủ riêng, chưa chạy lại sau ADR-0166.
+- **BL-THAM-CHIEU-DOT-2** — bảng tham chiếu ngôn ngữ, đợt 2 (ADR-0167): trình chủ theo lô 102 việc chờ chọn, trả lời «theo khuyến nghị» được. Đọc tay cột đường lệnh: hàng còn trống (đường ghép từ hàm như Vận chuyển) và hàng chưa đối chiếu. `kiemNguonTen` nhận mọi nguồn có chữ «chủ», kể cả câu phủ định; phép kiểm khái niệm đã chốt chỉ kiểm dạng ngày kèm nguồn, chưa đọc nguồn của Hướng dẫn, Việc của nhóm, Đơn đi và các khái niệm nguồn là bàn giao. Để sau nữa: trang giải nghĩa cho nhân viên, Trợ lý Mai đọc bảng.
+- **BL-KB-CHU-DOT-2** — đưa vào đợt 2 của bảng tham chiếu (đặc tả `docs/superpowers/specs/2026-11-04-bang-tham-chieu-ngon-ngu-design.md`): hộp hỏi của nút «Xác nhận đơn» của người lập nói ít hậu quả hơn hộp «Còn vé, xác nhận đơn»; ô «Đơn nháp» ở Trang chủ gọi cùng loại đơn bằng tên khác; chữ «ẩn» trong thông báo đồng bộ Sheet giữ nguyên vì nói về dịch vụ đã rời Sheet, khác «Ngừng bán» do người bấm.
+
+## 65. Nợ của «Cho xe thiếu giấy tờ xuất bến» (mã `BL-CC-…`, ADR-0184, 2026-11-07)
+
+- **Trạng thái:** `để sau` · Ghi khi thi công ADR-0184; chưa việc nào có kế hoạch.
+- **BL-CC-RUT-LAI** — nút rút lại sự cho phép chạy thiếu giấy tờ trước giờ xe chạy. Chủ chọn «Chưa cần, để sau» ngày 2026-11-07. Hôm nay dòng cho phép chỉ-thêm và không có lệnh thu hồi: cho nhầm thì chỉ còn cách đổi xe. Làm thì cần một dòng «đã rút» mới (không sửa, không xoá dòng cũ) và cổng xuất bến bỏ qua dòng đã rút.
+- **BL-CC-DOI-XE-VE-CU** — đổi xe rồi đổi về xe cũ: dòng cho phép cũ của xe đó áp lại, vì trigger chỉ kiểm dòng ghi đúng xe hiện tại lúc cấp, còn lúc xuất bến chỉ so chuyến + xe + loại giấy. Có thể chấp nhận (sự cho phép vẫn là của đúng chuyến, đúng xe); chủ xem lại nếu muốn bắt cho chạy lại sau mỗi lần đổi xe.
+- **BL-KB-CHINH-SACH-DIEU-PHOI** — kịch bản Chrome `chinh-sach-dieu-phoi-smoke` đỏ 6/14 bước từ trước ADR-0184 (thanh bên, chữ «Đang áp dụng», quyền xem chính sách); không do ADR-0184. Cùng nhóm với `BL-KB-DO-SAN` ở mục 64.
+
+## 66. Nhà cung cấp và giá mua vé (mã `BL-VE-VON`, 2026-11-05)
+
+- **Trạng thái:** `để sau` · Chủ 5/11, nguyên văn: «à không cần, cái đó sẽ nằm trong phân hệ kế toán, làm về sau».
+- **Việc:** ghi mua vé của ai, giá mua bao nhiêu theo từng lô; từ đó có số tiền mua theo nhà cung cấp, vốn và chênh lệch. Phân hệ vé điện tử chỉ quản lý số lượng, không làm phần này (đề xuất `docs/superpowers/specs/2026-11-05-ve-dien-tu-danh-sach-man.md`).
+
+## 67. Hàng rào chữ nút trong kịch bản Chrome và kịch bản đỏ sẵn (mã `BL-KB-…`, Đợt 1 sửa nhỏ, 2026-11-09)
+
+- **Trạng thái:** `để sau` · Chỉ làm khi chủ xin.
+- **BL-KB-QUET-CHU-NUT** — bài tự quét: mọi chữ nút/nhãn mà kịch bản Chrome gõ cứng phải có trong `docs/BANG-THAM-CHIEU.md` hoặc trong mã giao diện. Mỗi đợt đổi tên nút (ADR-0166 và sau) làm vài kịch bản đỏ vì lệch chữ; hôm nay chỉ sửa tay (Task 1.9).
+- **BL-KB-DO-SAN-DOT-1** — còn đỏ sẵn trên bản chính, không do Đợt 1 (đã đối chiếu bằng bản gốc): doi-tac-lap-don bước 6 và 7, a2-form, a2-order, trang-chu, quyen-thieu phần C, huong-dan a/b/e, dot-0 #20, v1-npt-1030, và vài bước của tra-sau, xac-nhan, chup-anh, chon-hdv, v1-xac-nhan-png.
+
+## 68. Hai phát hiện phụ của lần dò R3d (mã `BL-HS-…`, ADR-0190, 2026-11-09)
+
+- **Trạng thái:** `để sau` · Ghi theo ADR-0190 mục 6 (lần dò 8/11 của hồ sơ rà soát trước ngày dùng thật lần 2); ngoài phạm vi ADR-0190, chưa có kế hoạch.
+- **BL-HS-XAC-NHAN-BEN-NGUNG** — xác nhận đơn nháp có bên đặt (người đặt) đã ngừng dùng vẫn qua: lúc lưu nháp thì máy từ chối hồ sơ đã ngừng, nhưng bước xác nhận không kiểm lại. Từ ADR-0190 chỉ Quản trị, Toàn quyền ngừng dùng được nên ít gặp hơn, nhưng vẫn còn.
+- **BL-HS-TRUNG-SDT** — đơn mới nhập khách mới cùng số điện thoại với hồ sơ đã có (kể cả hồ sơ đã ngừng dùng) thì tạo thêm một hồ sơ trùng, không gợi ý dùng hồ sơ cũ. Dọn bằng gộp hồ sơ (ADR-0068) khi gặp.
+
+## 69. Nối cột ẩn/hiện vào Danh sách đơn và số Face ID (mã `BL-GD-…`, ADR-0195, 2026-11-10)
+
+- **Trạng thái:** `để sau` · Chủ 10/11, nguyên văn: «Để sau (khuyến nghị)».
+- **BL-GD-DS-DON** — màn `danh-sach-don` (ghi chú khách, điểm đón, người lập, giờ lập, số khách) đã có trong danh mục và máy chủ, nhưng giao diện chưa nối: nối vào thì gói trang Đơn hàng vượt trần 111.118 byte khoảng 261 byte. Hai cách mở: chủ nâng trần, hoặc một lượt thi công tách `traCuuChinhSach` khỏi `ui-truong.ts` thành tệp nhỏ. Bản vá cũ chỉ nằm ở thư mục tạm của phiên, không còn đáng tin; làm lại từ danh mục.
+- **BL-GD-FACE-ID** — ẩn số Face ID ở danh sách tài khoản: con số nằm trong chữ nút «Gỡ Face ID (N)» mà bài bảng tham chiếu canh; ẩn tức là đổi tên nút (chủ chọn tên).
+- **BL-GD-NHO** — hai lỗi nhỏ do người kiểm độc lập nêu, chưa sửa: (1) màn chỉnh: đặt dòng điều kiện khi dòng «Mọi dịch vụ» đang đổi mà chưa lưu thì ô bật lại theo dòng chính; (2) ẩn ô số người chiều về mà lỗi chặn Lưu về số vé vẫn hiện.
+
+## 70. Ảnh biên lai chuyển khoản — việc để sau (mã `BL-BL-…`, ADR-0196, Đợt 6A, 2026-11-11)
+
+- **Trạng thái:** `để sau` · ghi khi thi công Đợt 6A; chưa hỏi chủ.
+- **BL-BL-XOA-DLCN** — phiếu yêu cầu xoá dữ liệu cá nhân (ADR-0126) chưa quét kho `BIEN_LAI` (ADR-0196 Hệ quả, cùng nợ với kho vé hỗ trợ).
+- **BL-BL-NUT-GO** — lệnh gỡ ảnh gửi nhầm (`POST …/bien-lai/go`) và hàng chờ dọn kho (`/api/ledger/bien-lai-cho-xoa`) chỉ có đường máy chủ; chưa có nút trên giao diện (ADR không đặt chữ nút). Muốn có nút thì chủ chọn tên.
+- **BL-BL-BO-SUNG** — Đối tác không gửi bổ sung ảnh được khi ảnh tải hỏng hay bị gỡ (ADR-0196 Đ11); muốn có thì là quyết định riêng.
+- **BL-BL-THU-THAT** — chưa thử trên iPhone thật (HEIC từ camera, thu nhỏ trên Safari) và chưa đo bộ nhớ Worker với thân ~14 MB (`BL-TEP-THAN-HAI-LAN`).
+
+## 71. Khoản nộp của đại lý — việc để sau (mã `BL-KN-…`, ADR-0182 phần B, 2026-11-13)
+
+- **Trạng thái:** `để sau` · ghi khi thi công phần B; chưa hỏi chủ.
+- **BL-KN-VIEC-DAI-LY** — ADR Đ2 mục 11: danh sách việc của đại lý (đơn đã xác nhận, còn công nợ, chưa có khoản chờ). Trang chủ hiện chưa có thẻ việc nào cho tài khoản Đối tác, nên lần này chỉ có câu nhắc sau Gửi đơn (ADR mục «Chưa kiểm» cho phép).
+- **BL-KN-NUT-GO** — gỡ ảnh biên lai khoản nộp chỉ có đường máy chủ (như BL-BL-NUT-GO), chưa có nút trên giao diện.
+- **BL-KN-TRAN-ANH** — trần 20 ảnh / giờ có thể chặn đại lý lớn gửi nhiều đơn liền (ADR Hệ quả V3); chưa nâng.
+- **BL-KN-THU-THAT** — chưa thử iPhone thật (HEIC từ camera) cho ô ảnh biên lai khoản nộp.
+
+## 72. Kiểm toán cách làm bằng AI — việc để sau (mã `BL-AI-…`, 2026-11-13)
+
+- **Trạng thái:** `để sau` · Chủ 13/11, nguyên văn: «Để sau». Hồ sơ: `docs/superpowers/specs/2026-11-13-kiem-toan-cach-lam-vibe-coding.md`. Mục này mang số 71 lúc ghi; đổi thành 72 khi nhận bản chính ngày 15/11 vì trùng số.
+- **Cập nhật 15/11:** chủ yêu cầu kiểm toán lại và đề xuất cách thi công cho một người; hồ sơ mới `docs/superpowers/specs/2026-11-15-kiem-toan-harness-va-cach-thi-cong-mot-nguoi.md` thay phần đề xuất của bản 13/11. Chủ đã cho làm Bước 1 cùng ngày (nút «Làm Bước 1»; kế hoạch `docs/superpowers/plans/2026-11-15-buoc-1-dong-cho-ho-harness.md`). Còn chờ chủ: kho mã công khai hay riêng tư; hướng A, B hay C. Các mã dưới đây nằm trong Bước 1–3 của hồ sơ đó.
+- **BL-AI-KHO-CONG-KHAI** (gấp, chờ chủ) — kho GitHub đang công khai, còn địa chỉ bảng Google Sheet nhân viên và bảng giá, vài dòng số điện thoại, sổ lỗi bảo mật đang mở; người lạ tải được cả hai bảng (kiểm 15/11, chỉ lấy tiêu đề). Chủ tắt chia sẻ bảng nhân viên; quyết kho riêng tư hay công khai.
+- **BL-AI-GITHUB-KHOA-BAN-CHINH** — bản chính trên GitHub chưa có luật bảo vệ nhánh; chủ bật trong cài đặt GitHub, cần thử với luồng `day-len`.
+- **BL-AI-MO-TA-MOI-TRUONG** — `autoMode.environment` trong `~/.claude/settings.json` tả dự án khác và đã cũ; AI soạn, chủ dán.
+- **BL-AI-TERMINAL** — hàng rào lệnh nguy hiểm chỉ canh công cụ Bash; lệnh gõ qua công cụ Terminal của ứng dụng (`mcp__terminal__run_in_terminal`) không qua `guard-remote.mjs` và không khớp luật cấm `Bash(...)`. ĐÃ THI CÔNG 15/11 trên nhánh `claude/vibe-coding-audit-2bdc6e`: móc canh thêm công cụ Terminal và thêm luật cấm cả công cụ; đã ghi `docs/SO-HANG-RAO.md`. Còn nợ: quan sát trên Claude Code thật ở phiên mở sau khi nhánh vào `main`.
+- **BL-AI-BO-NHO** — mục lục bộ nhớ phần lớn là dòng trạng thái production. 15/11 đã rút gọn cơ học (cắt mô tả dài, gộp mười mục tính năng cũ; còn 156 dòng, khoảng 16,7 nghìn ký tự, dưới trần đọc); việc bỏ hẳn dòng trạng thái, chỉ giữ sở thích và cách làm, còn chờ chủ.
+- **BL-AI-KIEU-TRA-LOI** — kiểu trả lời "Explanatory" trong cài đặt ứng dụng ngược luật "Cách trả lời tôi"; chủ tự đổi.
+- **BL-AI-CLAUDE-MD** — việc rút gọn CLAUDE.md (ADR-0160) đứng từ 3/11; kèm chuyển công thức `CHANGE-GUIDE.md` thành skill.
+- **BL-AI-NGUOI-KIEM** — người kiểm độc lập có Bash, "chỉ đọc" chỉ bằng lời dặn. ĐÃ THI CÔNG 15/11 trên nhánh `claude/vibe-coding-audit-2bdc6e`: tệp trợ lý thêm `isolation: worktree` (chạy trên bản sao riêng). Có hiệu lực ở phiên mở sau khi nhánh vào `main`.
+
+## 73. Việc còn lại sau khi viết lại `CLAUDE.md` (mã `BL-CM-…`, 2026-11-03)
 
 - **Trạng thái:** `để sau` · Từ ADR-0160. Không chạm dữ liệu, quyền, tiền của Nền tảng.
 - **BL-CM-RAO-DOI-CHIEU** — sau khi chủ duyệt ADR-0160: thêm bài đỏ cho ADR số lớn hơn 0160 thiếu mục `## Đối chiếu`, kèm một dòng sổ hàng rào. Chưa làm vì đổi quy trình mọi ADR sau và có thể làm đỏ nhánh đang chạy song song.
 - **BL-CM-HAN-4KB** — ngoại lệ `EXC-2026-002` (ADR-0160 Đ6) hạn **2027-02-03**, không có máy canh. Tới hạn xem lại: nén tiếp §3, §8, §9 của `CLAUDE.md` gốc, hoặc đặt ngưỡng mới cho dự án production bằng ADR mới.
-- **BL-CM-WEB** — `web/CLAUDE.md` 32 KB, còn nặng hơn tệp gốc, phần lớn là danh sách kịch bản Chrome; chưa rà. `src/CLAUDE.md` 10 KB.
+- **BL-CM-WEB** — `web/CLAUDE.md` từng 34 KB, phần lớn là bảng kịch bản Chrome. 15/11 bảng chuyển nguyên văn sang `docs/KICH-BAN-CHROME.md` (vượt trần khi gộp bản chính), `web/CLAUDE.md` còn khoảng 7 KB. Đường dẫn trong bảng vẫn được `src/claude-md-gioi-han.test.ts` kiểm. Còn nợ: bảng không tự nạp khi đọc tệp `web/`; chủ chọn giữ cách này hay đưa lại. `src/CLAUDE.md` 10 KB.
 - **BL-CM-KERNEL** — tờ khai `docs/kernel-18.md`: dòng 12 (`PH-TDS-01`) quá hạn 31/10, chủ quyết làm hay gia hạn có lý do; tờ khai chưa có người duyệt và mục kiểm lại bằng người còn trống.
 - **BL-CM-TRO-LY-MAY** — `tro-ly-may/tho-san-loi/agent.md` chỉ dặn đọc `CLAUDE.md` và `src/CLAUDE.md`, nên trợ lý trên mây chỉ tới bẫy ở `CLAUDE.md` con nếu tự theo chỉ mục §10. Phạm vi săn lỗi hôm nay chỉ về tiền nên chưa thiệt. Sửa một dòng ở lần đổi phiên bản trợ lý tới.
