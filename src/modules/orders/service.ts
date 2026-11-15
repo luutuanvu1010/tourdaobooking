@@ -11,7 +11,7 @@ import { auditStatement } from "../audit";
 import { datGapTheoVai } from "./dat-gap";
 import { getEffectiveServices, maDatKhongDon, tenNhomHienHanh } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
-import { laNguoiHuong } from "../pricing";
+import { laNguoiHuong, tinhPhiDonChoDon, type KetQuaPhiDonDon, type LyDoThieuPhiDon } from "../pricing";
 import {
   LY_DO_DONG_CHANG, MAX_CHANG_MOI_DICH_VU, chiDoiOPhu, chieuDiDau, docSoNguoiVe, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
 } from "../../shared/chang-dua-don";
@@ -20,9 +20,16 @@ import { laLyDoThayChang, type LyDoThayChang } from "../../shared/thay-chang";
 import {
   activeLocations, dichVuTatDuaDon, legById, passengerRowsByOrders, servicePaxByIds, servicePaxByOrder, type LegFields, type OPhuGhi, type PassengerRow,
 } from "./chang-hanh-khach-repo";
-import { applyAdjustmentToOrder } from "./money-adjustment";
+import { applyAdjustmentToOrder, effectiveMoney } from "./money-adjustment";
 import {
-  effectivePax, findOrder, getLatestAdjustment, getMeta, getStoredServices, type BookerWrite, type LegOp, type StoredLeg, type StoredServiceRow,
+  KHONG_PHI, NGOAI_VUNG, dauVaoLamPhang, diaDiemKhachSan, dongPhiThanhItem, ghepPhiNhap, phiDuaDonDto, type DichVuChoPhi, type PhiNhap,
+} from "./phi-don-don";
+import { khuVucCuaDiaDiemDanhMuc } from "../locations";
+import {
+  feeItemInsert, feeItemInsertTruoc, feeItemsDeleteTruoc, tenKhuVuc, type DongPhiGhi, type GacTruoc,
+} from "./chang-hanh-khach-repo";
+import {
+  cauTienXacNhanPhi, effectivePax, findOrder, getLatestAdjustment, getMeta, getStoredServices, type BookerWrite, type KemPhiDon, type LegOp, type StoredLeg, type StoredServiceRow,
 } from "./repository";
 import { cauNhomTatDuaDon, dichVuCanHoiDuaDon, type CuaDuaDon, type ValidOrder } from "./rules";
 import { catalogStatusOf, type ServiceContext, type ValidTrip } from "./service-rules";
@@ -490,8 +497,14 @@ export async function loadOrderView(db: D1Database, id: string, xemDuDatGap: boo
   if (order.status === "draft") {
     const codes = order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : []));
     const catalog = await getEffectiveServices(db, codes);
+    // Phí đưa đón của NHÁP: dòng đã lưu (dự kiến) + chặng chưa tính được phí — tính lúc đọc theo bảng hôm nay (Đợt C, Task 3).
+    const song = await tinhPhiNhap(db, order.bookerPartyId, order.services.map((s) => ({ ref: s.id, catalogCode: s.catalogCode, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) })), vnToday(new Date()));
     return datGapTheoVai(
-      { ...order, services: order.services.map((s) => ({ ...s, catalogStatus: catalogStatusOf(s, s.catalogCode ? catalog.get(s.catalogCode) : undefined) })) },
+      {
+        ...order,
+        phiDuaDon: phiDuaDonDto({ nhap: true, dong: order.phiDuaDon?.dong ?? [], songNhap: song }),
+        services: order.services.map((s) => ({ ...s, catalogStatus: catalogStatusOf(s, s.catalogCode ? catalog.get(s.catalogCode) : undefined) })),
+      },
       xemDuDatGap,
     );
   }
@@ -535,4 +548,124 @@ export async function resolveBooker(
   // Nhật ký của hồ sơ: như POST /api/parties (loại + tên), KHÔNG SĐT.
   const log = auditStatement(db, { staffId, action: "party_created", at, targetType: "party", targetId: made.partyId, detail: `cá nhân "${display}" (tạo khi lập/sửa đơn)` });
   return { ok: true, write: { partyId: made.partyId, before: [...made.statements, log], note: describeBookerChange(current, { id: made.partyId, name: display }) } };
+}
+
+// ---- Phí đưa đón trên đơn NHÁP (Đợt C, Task 3; ADR-0147, ADR-0203) ------------------------------------------------------------------------------------
+
+/**
+ * Vùng của các địa điểm (`vung`: id địa điểm → mã khu vực — hàm công bố của `locations`, đọc view `v_loc_location_zone`) và tên khu vực (`ten`: mã → tên, view
+ * `v_loc_zone_label`, luôn kèm `NGOAI_VUNG`). Đặt ở đây (không ở phi-don-don.ts) vì gọi `../locations` lúc chạy.
+ */
+export async function vungCuaDiaDiem(db: D1Database, ids: readonly string[]): Promise<{ vung: Map<string, string>; ten: Map<string, string> }> {
+  const vung = await khuVucCuaDiaDiemDanhMuc(db, ids);
+  const ten = await tenKhuVuc(db, [...new Set([...vung.values(), NGOAI_VUNG])]);
+  return { vung, ten };
+}
+
+/**
+ * Phí đưa đón của một đơn NHÁP theo bảng ngày `ngay` (giờ Việt Nam — đơn nháp tính theo hôm nay): vùng của đầu khách sạn (view của locations) → làm phẳng chặng
+ * → `tinhPhiDonChoDon` (hàm tính duy nhất của pricing) → ghép chiều + tên khu vực. Đơn không có chặng mở nào ⇒ `KHONG_PHI` (không đọc bảng phí).
+ * Không ném lỗi tràn: số khách mỗi dịch vụ ≤ MAX_GUESTS_PER_SERVICE (50) và một mức ≤ 5.000.000 đ ⇒ tích luôn là số nguyên an toàn.
+ */
+export async function tinhPhiNhap(db: D1Database, bookerPartyId: string | null, dv: readonly DichVuChoPhi[], ngay: string): Promise<PhiNhap> {
+  if (!dv.some((s) => s.legs.some((l) => !l.closed))) return KHONG_PHI;
+  const { vung, ten } = await vungCuaDiaDiem(db, diaDiemKhachSan(dv));
+  const chang = dauVaoLamPhang(dv, vung);
+  if (chang.length === 0) return KHONG_PHI;
+  const ketQua = await tinhPhiDonChoDon(db, { bookerPartyId, ngay, chang });
+  return ghepPhiNhap(ketQua, chang, ten);
+}
+
+/** Dịch vụ của thân lập / lưu nháp → đầu vào tính phí, khoá chặng = vị trí `"<dịch vụ>|<chặng>"` (cùng khoá với nơi sinh id chặng ở repository `legWrites`). */
+export const dichVuNhapChoPhi = (services: readonly ValidOrder["services"][number][]): DichVuChoPhi[] =>
+  services.map((s, i) => ({ ref: String(i), catalogCode: s.catalogCode, pax: s.pax, legs: s.legs.map((l, j) => ({ ...l, legKey: `${i}|${j}` })) }));
+
+/** Cộng phí vào tạm tính và tổng của đơn sẽ ghi (giảm giá đã kiểm trên dòng dịch vụ ở `validateOrder` — không đổi). */
+export const congPhiVaoDon = <T extends { subtotal: number; total: number }>(order: T, phi: PhiNhap): T => ({ ...order, subtotal: order.subtotal + phi.tong, total: order.total + phi.tong });
+
+/**
+ * Chặng của đơn nháp SAU một lệnh sửa chặng (đọc từ CSDL, áp lệnh trong bộ nhớ) → đầu vào tính phí, khoá chặng = id chặng. `ops`: cập nhật nơi đón / trả, đóng,
+ * thêm chặng (chặng thêm PHẢI có id sinh sẵn — `idChangMoi`). `paxOverride`: số người chiều về mới của một chặng.
+ */
+export function dichVuDangLuuChoPhi(
+  stored: readonly StoredServiceRow[], sua: { ops?: readonly LegOp[]; paxOverride?: { legId: string; giaTri: number | null } } = {},
+): DichVuChoPhi[] {
+  return stored.map((s) => {
+    const legs: DichVuChoPhi["legs"][number][] = [];
+    for (const l of s.legs) {
+      const op = sua.ops?.find((o) => (o.kind === "update" || o.kind === "close") && o.legId === l.id);
+      if (op?.kind === "close") continue;
+      const f = op?.kind === "update" ? op.fields : l;
+      legs.push({
+        legKey: l.id, direction: l.direction, pickupLocationId: f.pickupLocationId, dropoffLocationId: f.dropoffLocationId, exclusiveVehicle: l.exclusiveVehicle,
+        paxOverride: sua.paxOverride?.legId === l.id ? sua.paxOverride.giaTri : l.paxOverride,
+      });
+    }
+    for (const op of sua.ops ?? []) {
+      if (op.kind !== "insert" || op.serviceId !== s.id || op.leg.id === null) continue;
+      legs.push({ ...op.leg, legKey: op.leg.id });
+    }
+    return { ref: s.id, catalogCode: s.catalogCode, pax: s.pax, legs };
+  });
+}
+
+/** Lệnh `PUT /trip` của đơn nháp: chặng THÊM nhận id sinh sẵn — để dòng phí của chặng mới trỏ đúng id trước khi lô chạy. */
+export const idChangMoi = (ops: readonly LegOp[]): LegOp[] => ops.map((op) => (op.kind === "insert" && op.leg.id === null ? { ...op, leg: { ...op.leg, id: crypto.randomUUID() } } : op));
+
+/**
+ * Câu dòng phí của đơn NHÁP cho lô sửa chặng (`PUT …/legs/:legId` nhánh nháp, `PUT …/trip` của nháp). `truoc` đứng TRƯỚC câu khoá lạc quan của lô (gác bằng đúng
+ * điều kiện của câu đó — `GacTruoc`): xoá dòng phí cũ, chèn dòng phí của chặng ĐÃ CÓ. `sau` đứng SAU chặng mới: dòng phí của chặng MỚI (khoá ngoại tới chặng vừa
+ * chèn; gác = chính id chặng mới). Tạm tính / tổng tính lại bằng `cauTienNhapSauPhi` (repository.ts, gác wonGuard). `sortTu` = số dòng dịch vụ đang lưu.
+ */
+export function cauPhiNhap(db: D1Database, orderId: string, phi: PhiNhap, g: GacTruoc, changMoi: ReadonlySet<string>, sortTu: number): { truoc: D1PreparedStatement[]; sau: D1PreparedStatement[] } {
+  const dong: (DongPhiGhi & { moi: boolean })[] = [];
+  for (const [legKey, p] of phi.theoChang) {
+    dong.push({ ...dongPhiThanhItem(p.dong, legKey, p.tenVung, p.chieu), id: crypto.randomUUID(), orderId, sortOrder: sortTu + dong.length, moi: changMoi.has(legKey) });
+  }
+  return {
+    truoc: [feeItemsDeleteTruoc(db, g), ...dong.filter((d) => !d.moi).map((d) => feeItemInsertTruoc(db, d, g))],
+    sau: dong.filter((d) => d.moi).map((d) => feeItemInsert(db, d, d.legId)),
+  };
+}
+
+// ---- Phí đưa đón LÚC XÁC NHẬN (Đợt C, Task 4; ADR-0147 Đ3, ADR-0203; trang ghép 2026-10-28 §3) -------------------------------------------------------------
+
+/** Kết quả chuẩn bị phí của bước xác nhận. `cauLenh(mốc)` = câu đứng TRƯỚC câu đổi trạng thái trong lô (rỗng ⇔ đơn phí chưa áp và không còn dòng phí cũ). */
+export interface PhiDonXacNhan {
+  ketQua: KetQuaPhiDonDon;
+  /** Chặng chưa tính được phí (tên khu vực đã tra) — khác rỗng thì cửa xác nhận từ chối (hoặc Gửi đơn đi nhánh A). */
+  thieu: { legKey: string; tenVung: string; lyDo: LyDoThieuPhiDon }[];
+  /** Σ dòng dịch vụ + Σ dòng phí tìm được (chặng thiếu chưa có tiền). */
+  subtotalMoi: number;
+  /** Tổng phải thu theo `subtotalMoi` (giảm giá chỉ so với dòng dịch vụ — đã chặn lúc lưu nháp; `effectiveMoney` kẹp ≥ 0). Cổng Trả sau và lời khai đặt cọc đọc số này. */
+  totalMoi: number;
+  cauLenh: KemPhiDon;
+}
+
+/**
+ * CHỈ ĐỌC: tính lại phí đưa đón của đơn NHÁP `don` theo bảng ngày xác nhận `ngay` (giờ Việt Nam, `cong.today`) — KHÔNG tin dòng phí «dự kiến» đã lưu (mức có thể đổi, phí có
+ * thể vừa bật / tắt, bên đặt có thể đổi cấp sau lần lưu cuối). Cùng một hàm tính với lưu nháp (`tinhPhiNhap` → `tinhPhiDonChoDon` của pricing).
+ * Câu (khi có): xoá mọi dòng phí cũ → chèn dòng phí mới → tạm tính / tổng mới (`cauTienXacNhanPhi`), đều gác bằng «đơn còn nháp ĐÚNG mốc `prevUpdatedAt`» (cùng điều kiện khoá của
+ * câu xác nhận) và không đổi `updated_at`. Có câu khi phí đang áp HOẶC nháp còn dòng phí cũ (phí vừa tắt ⇒ phải bỏ dòng cũ và trả tạm tính về tổng dịch vụ).
+ * Đặt ở service.ts (không ở phi-don-don.ts như brief): hàm gọi `vungCuaDiaDiem` (locations) và `tinhPhiDonChoDon` (pricing) lúc chạy — phi-don-don.ts phải nạp được bằng node trần.
+ * `remaining_amount` không tính ở đây: cột cọc cũ không được đọc ngoài câu SQL (NT-R9) — `COC_CU_THEO_TONG` trong câu tiền tự đặt theo `totalMoi`.
+ * Không ném lỗi tràn: số khách mỗi dịch vụ ≤ MAX_GUESTS_PER_SERVICE (50), một mức ≤ 5.000.000 đ ⇒ mỗi dòng ≤ 2,5e8 (như `tinhPhiNhap`).
+ */
+export async function chuanBiPhiDonXacNhan(db: D1Database, don: NonNullable<Awaited<ReturnType<typeof findOrder>>>, ngay: string): Promise<PhiDonXacNhan> {
+  const dv: DichVuChoPhi[] = don.services.map((s) => ({ ref: s.id, catalogCode: s.catalogCode, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) }));
+  const phi = await tinhPhiNhap(db, don.bookerPartyId, dv, ngay);
+  const coDongCu = (don.phiDuaDon?.dong.length ?? 0) > 0;
+  if (!phi.ketQua.apDung && !coDongCu) return { ketQua: phi.ketQua, thieu: [], subtotalMoi: don.subtotal, totalMoi: don.total, cauLenh: () => [] };
+  const tongDichVu = don.services.reduce((t, s) => t + s.items.reduce((u, i) => u + i.lineTotal, 0), 0);
+  const subtotalMoi = tongDichVu + phi.tong;
+  const totalMoi = effectiveMoney(tongDichVu, don.discount, phi.tong).total;
+  const thieu = phi.ketQua.apDung ? phi.ketQua.thieu.map((t) => ({ legKey: t.legKey, tenVung: phi.ten.get(t.zoneCode) ?? t.zoneCode, lyDo: t.lyDo })) : [];
+  const soDongDichVu = don.services.reduce((t, s) => t + s.items.length, 0);
+  return {
+    ketQua: phi.ketQua, thieu, subtotalMoi, totalMoi,
+    cauLenh: (moc) => [
+      ...cauPhiNhap(db, don.id, phi, { orderId: don.id, mocDon: moc, legId: null, mocChang: null }, new Set(), soDongDichVu).truoc,
+      cauTienXacNhanPhi(db, don.id, moc, { subtotal: subtotalMoi, total: totalMoi }),
+    ],
+  };
 }

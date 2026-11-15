@@ -25,7 +25,7 @@ import { cauAnDanhBanKhai, cauChotDuyet, cauDuyetPhieu, chuaKichHoat, dangKyModu
 import { banHangNoi, dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
 import { chinhSachChoNguoi, giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
-import { locationsModule } from "./modules/locations";
+import { locationsModule, vungDangBat } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { canBangVeTheoSoKhach, cauChanDuoiSoDaDung, cauChanVeDaDung, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soVeDaDungTheoDichVu, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule, veHangNgoaiDaMoCuaDon } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
@@ -270,6 +270,8 @@ const APP_OPTIONS: AppOptions = {
     // LÔ DUYỆT PHIẾU ĐĂNG KÝ (ADR-0207 Đ5): dang-ky không import pricing — gốc lắp ráp ghép lô (hàm ở trên), route dang-ky chạy.
     loDuyetDangKy: (env, v) => loDuyetDangKy(env.DB, v),
     // CHÍNH SÁCH GIAO DIỆN (ADR-0194 đợt 1): `orders` không import `giao-dien` — gốc lắp ráp tiêm hàm công bố (khuôn mocToiThieu).
+    // KHU VỰC ĐÓN (Task 4, phí đưa đón): `pricing` không import `locations` — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố (khuôn mocToiThieu).
+    vungDon: (env) => vungDangBat(env.DB),
     chinhSachGiaoDien: (env, actor) => chinhSachChoNguoi(env.DB, actor.permissions),
     // ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1): orders / dispatch không import van-chuyen — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố (bài siết architecture.test.ts).
     // `env` ở đây là env BỌC của lệnh (router truyền envH): câu chuyến đi vào CHÍNH lô của lệnh đơn. Không gọi hàm hẹp của orders (src/CLAUDE.md, phán quyết G10).

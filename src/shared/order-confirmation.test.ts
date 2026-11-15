@@ -542,3 +542,23 @@ test("HD-02-DT: nhiều người bán ⇒ giữ các dòng Phần … và câu v
   assert.deepEqual(one(dt, "footer"), one(nb, "footer"));
   assert.match(one(dt, "footer").lines.join("\n"), /Phần 2 do i-resort bán; Tour Đảo là đối tác đặt vé\./);
 });
+
+// ---- Đợt C, Task 6: khối «Phí đưa đón» trên biên nhận (chủ 15/11, câu 3) ----
+test("khối Phí đưa đón: «Miễn phí» chỉ cho dòng đơn giá 0 đồng; dòng số lượng 0 (đơn giá > 0) in 0 ₫; đơn nháp ghi «Phí đưa đón (dự kiến)»", () => {
+  const dong = (o: Record<string, unknown>) => ({
+    id: "fee_INTERNAL", legId: "leg_INTERNAL", serviceId: "svc_INTERNAL_1", direction: "OUT" as const, zoneCode: "ZONE_INTERNAL", zoneName: "Bãi Dài",
+    kind: "PER_PAX" as const, returnPax: null, quantity: 2, unitPrice: 70000, lineTotal: 140000, description: "Phí đưa đón — chiều đi, Bãi Dài", ...o,
+  });
+  const phi = (duKien: boolean) => ({
+    dong: [dong({}), dong({ id: "fee2", direction: "RETURN", unitPrice: 0, lineTotal: 0, description: "Phí đưa đón — chiều về, Bãi Dài" }), dong({ id: "fee3", quantity: 0, lineTotal: 0 })],
+    thieu: [],
+    duKien,
+  });
+  const lay = (m: ConfirmationModel) => blocksOf(m, "service").find((b) => b.name.startsWith("Phí đưa đón"))!;
+  const nhap = lay(build(order({ phiDuaDon: phi(true) })));
+  assert.equal(nhap.name, "Phí đưa đón (dự kiến)");
+  assert.deepEqual(nhap.lines.map((l) => [l.quantity, l.lineTotal]), [["2", "140.000 ₫"], ["2", "Miễn phí"], ["0", "0 ₫"]]);
+  const daChup = lay(build(order({ status: "confirmed", confirmedAt: "2026-09-21T01:00:00.000Z", phiDuaDon: phi(false) })));
+  assert.equal(daChup.name, "Phí đưa đón");
+  assert.deepEqual(daChup.lines.map((l) => l.lineTotal), ["140.000 ₫", "Miễn phí", "0 ₫"]);
+});

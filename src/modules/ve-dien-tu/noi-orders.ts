@@ -2,7 +2,7 @@
 // gốc lắp ráp (src/index.ts) đọc dịch vụ của đơn qua hàm công bố `orders.dichVuChoVe` (số khách HIỆU LỰC) rồi đưa vào đây. Không SQL thô ở tệp này — mọi câu đi qua cap-ve.ts.
 import { soanCapVe, soanTraVe, veDangGiu, type DichCapVe, type GhiNhatKy } from "./cap-ve.ts";
 import { NHOM_VE, canVe } from "./rules.ts";
-import { cauChanVeDaDung, cauChanVeDaMo, cauChanVeHangNgoaiDaMo, daBaoThieuVeGanDay } from "./repository.ts";
+import { cauTraPhanBoLechNgay, cauChanVeDaDung, cauChanVeDaMo, cauChanVeHangNgoaiDaMo, daBaoThieuVeGanDay } from "./repository.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import type { NguonVe } from "../../shared/nguon-ve.ts";
 
@@ -90,14 +90,18 @@ export async function soanTraVeKhiHuy(db: D1Database, p: { orderId: string; lyDo
 }
 
 /**
- * Cân lại vé theo số khách hiệu lực SAU khi sửa số khách: bớt khách thì trả vé CHƯA LỘ (vé đã lộ không tự thu hồi), thêm khách thì cấp thêm. Một `db.batch`; nơi gọi bắt lỗi
+ * Cân lại vé theo số khách hiệu lực VÀ NGÀY ĐI hiện tại SAU khi sửa số khách / dời ngày đi (V1): bớt khách thì trả vé CHƯA LỘ (vé đã lộ không tự thu hồi), thêm khách thì cấp thêm. Một `db.batch`; nơi gọi bắt lỗi
  * (đơn đã sửa xong, vé lệch được cấp bù ở lần sau). Mỗi dịch vụ: trả trước, cấp sau.
  */
 export async function canBangVeTheoSoKhach(db: D1Database, dichVu: readonly DichCapVeCoO[], nguoi: string | null, nhatKy: GhiNhatKy, at: string, homNay: string): Promise<void> {
   const cau: D1PreparedStatement[] = [];
   for (const dv of dichVu) {
+    // V1 (kiểm toán 14/11): TRƯỚC khi đếm theo số khách, đóng phân bổ mà vé không còn trùm NGÀY ĐI hiện tại (đơn dời ngày). Chưa lộ → về kho; đã lộ → VOID (cùng `cauVeVeKho` bên dưới); đã dùng → giữ.
+    // Chỉ dịch vụ «Có vé» (ADR-0174 Đ3: Không vé thì vé đã giữ còn nguyên). Phân bổ đóng thì đơn thành «thiếu» và `soanCapVe` bên dưới cấp vé hợp ngày mới nếu kho có.
+    const lech = dv.coVe ? [cauTraPhanBoLechNgay(db, { orderId: dv.orderId, serviceId: dv.serviceId, at, by: nguoi, ngayDi: dv.ngayDi }),
+      nhatKy({ staffId: nguoi, action: "ve_tra_ve", at, orderId: dv.orderId, targetType: "ve", targetId: dv.serviceId, detail: "Trả vé · vé không còn hợp ngày đi mới · lý do GIAM_SO_KHACH" }, "changes() > 0")] : [];
     const tra = await soanTraVe(db, { orderId: dv.orderId, serviceId: dv.serviceId, lyDo: "GIAM_SO_KHACH", at, by: nguoi, homNay, conLai: canVe(dv.pax) }, nhatKy);
-    cau.push(...tra.cau, ...(dv.coVe ? soanCapVe(db, dv, nguoi, at, nhatKy).cau : [])); // ADR-0174 Đ3: Không vé thì vẫn trả vé thừa, không cấp thêm
+    cau.push(...lech, ...tra.cau, ...(dv.coVe ? soanCapVe(db, dv, nguoi, at, nhatKy).cau : [])); // ADR-0174 Đ3: Không vé thì vẫn trả vé thừa, không cấp thêm
   }
   if (cau.length > 0) await db.batch(cau);
 }

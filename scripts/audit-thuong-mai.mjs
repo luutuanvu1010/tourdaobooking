@@ -174,7 +174,7 @@ export function dsRORDDC1(rows) {
     const luu = dongDon.map((r) => tienDichVu(r, false));
     const nay = dongDon.map((r) => tienDichVu(r, true));
     const vuotLucXacNhan = !discountWithinCap(giam, tongHoaHongDon(chup, luu, "tinh0") ?? 0);
-    const giamHieuLuc = effectiveMoney(nay.reduce((t, d) => t + d.thanhTien, 0), giam).giamGiaHieuLuc;
+    const giamHieuLuc = effectiveMoney(nay.reduce((t, d) => t + d.thanhTien, 0), giam, 0).giamGiaHieuLuc; // phần dịch vụ; phí đưa đón không vào hoa hồng, chỉ đọc giảm giá hiệu lực
     const vuotHienHanh = !discountWithinCap(giamHieuLuc, tongHoaHongDon(chup, nay, "tinh0") ?? 0);
     if (vuotLucXacNhan && vuotHienHanh) vp.push(dongDon[0].ma_don);
   }

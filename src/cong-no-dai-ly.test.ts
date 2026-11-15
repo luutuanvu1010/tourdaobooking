@@ -1,12 +1,15 @@
 // ADR-0182 phần A — Đ1: công nợ đại lý = Σ giá đại lý (thành tiền − hoa hồng, bản chụp lúc xác nhận) − tiền Tour Đảo đã nhận (đã xác nhận). Số nợ Trả sau (hạn mức,
 // danh sách nợ) đọc ĐÚNG công thức này; số KHÔNG đổi khi qua «Khách đã trả đủ» (bản cũ đổi giữa chừng — Bối cảnh ADR-0182). Khung thử thật (tests/audit/xac-nhan-khung.mjs).
 // Tên người, SĐT là GIẢ.
+// ĐỔI CÓ CHỦ ĐÍCH 15/11 (phí đưa đón Đợt C, Task 5; ADR-0203 ĐB3, chủ chọn 14/11 «có, cộng vào số đại lý nợ»; sổ vàng SV-PD-25): bài «Đ1 mục 9» trước khoá «tổng công nợ trùng
+// `phanThuongMaiCuaDon` từng đơn»; nay đơn có dòng phí đưa đón nên khoá thành «trùng `phanThuongMaiCuaDon` + Σ phí đón hiện hành của đơn» (`phiDon` riêng, hoa hồng không tính trên phí;
+// đơn đã sửa số khách: phí theo khách tính lại cùng hàm với chi tiết đơn). Lý do: tổng công nợ phải gồm phí, mà các dòng dịch vụ (hoa hồng) không được nhận phí vào.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { app, seedStaff } from "../tests/audit/harness.mjs";
 import { tinhDongDoiTac } from "./shared/hoa-hong-dong.ts";
-import { A, ACC, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
+import { A, ACC, ADM, SUP, inDays, leg, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
 
 const DT = "88888888-8888-4888-8888-888888888801";
 const BEN = `pty-${DT}`;
@@ -26,8 +29,8 @@ async function hanMuc(w: W, coMuc: boolean): Promise<void> {
   const m = await w.call("POST", "/api/pricing/hoa-hong", { as: ACC, body: { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "PER_PAX", moiKhach: 50_000, tuNgay: "2026-01-01" } });
   assert.equal(m.status, 201, m.text);
 }
-async function donDaiLy(w: W, giam = 0): Promise<string> {
-  const r = await w.call("POST", "/api/orders", { as: DT, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc("ZB1", inDays(3))], paymentTerm: "CREDIT", discount: giam } });
+async function donDaiLy(w: W, giam = 0, legs: unknown[] = []): Promise<string> {
+  const r = await w.call("POST", "/api/orders", { as: DT, body: { customerName: "Khách Thử", customerPhone: "0912345678", services: [svc("ZB1", inDays(3), legs)], paymentTerm: "CREDIT", discount: giam } });
   assert.equal(r.status, 201, r.text);
   const id = r.json.order.id as string;
   const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: DT, body: {} });
@@ -84,12 +87,22 @@ test("Đ1 mục 6a: khách trả thẳng công ty (Kế toán ghi) tính vào Đ
   assert.equal(await dangNo(w), 0);
 });
 
-test("Đ1 mục 9: giá đại lý đọc NHIỀU đơn một lượt trùng từng đơn (`phanThuongMaiCuaDon` + `tinhDongDoiTac`), kể cả đơn đã sửa số khách và đơn văn phòng lập cho đối tác", async () => {
+/** Phí đưa đón: mức chung «Ngoài khu vực» (lượt đón gõ tay của `leg`) 20.000 đ/khách, áp từ hôm nay. */
+async function batPhiDon(w: W): Promise<void> {
+  const m = await w.call("POST", "/api/pricing/phi-don", { as: ADM, body: { kind: "PER_PAX", amount: 20_000, validFrom: "2026-01-01", validTo: null, note: null, dieuKien: [{ khoa: "ZONE", giaTri: "NGOAI_VUNG" }] } });
+  assert.equal(m.status, 201, m.text);
+  const tuLuc = (await w.call("GET", "/api/pricing/phi-don", { as: ADM })).json.batDauAp.tuLuc;
+  const b = await w.call("POST", "/api/pricing/phi-don/bat-dau-ap", { as: ADM, body: { ngay: inDays(0), tuLucDaDoc: tuLuc } });
+  assert.equal(b.status, 200, b.text);
+}
+
+test("Đ1 mục 9: giá đại lý đọc NHIỀU đơn một lượt trùng từng đơn (`phanThuongMaiCuaDon` + `tinhDongDoiTac`) + Σ phí đón, kể cả đơn đã sửa số khách và đơn văn phòng lập cho đối tác", async () => {
   const w = dung();
   await hanMuc(w, true);
+  await batPhiDon(w);
   const a = await donDaiLy(w, GIAM);
-  const b = await donDaiLy(w);
-  const r = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Ba", customerPhone: "0912345670", bookerPartyId: BEN, paymentTerm: "CREDIT", services: [svc("ZB1", inDays(3)), svc("ZA1", inDays(3))] } });
+  const b = await donDaiLy(w, 0, [leg(inDays(3), "06:30")]);
+  const r = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Ba", customerPhone: "0912345670", bookerPartyId: BEN, paymentTerm: "CREDIT", services: [svc("ZB1", inDays(3), [leg(inDays(3), "06:30")]), svc("ZA1", inDays(3))] } });
   assert.equal(r.status, 201, r.text);
   const c = r.json.order.id as string;
   assert.equal((await w.call("POST", `/api/orders/${c}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
@@ -106,9 +119,15 @@ test("Đ1 mục 9: giá đại lý đọc NHIỀU đơn một lượt trùng t�
     const g = nhieu.get(id);
     assert.ok(g, `đơn ${id} có trong kết quả`);
     assert.deepEqual(g.dong.map(({ serviceId, thanhTien, hoaHong, giaDaiLy }: Record<string, unknown>) => ({ serviceId, thanhTien, hoaHong, giaDaiLy })), motDon);
+    // Phí đón HIỆN HÀNH của đơn (chi tiết đơn đã áp dòng điều chỉnh) = `phiDon`; tổng = Σ giá đại lý dịch vụ + phí.
+    const phiDon = ((await w.call("GET", `/api/orders/${id}`, { as: ACC })).json.order.phiDuaDon?.dong ?? []).reduce((t: number, d: { lineTotal: number }) => t + d.lineTotal, 0);
+    assert.equal(g.phiDon, phiDon, `đơn ${id}: phí đón trùng chi tiết đơn`);
+    assert.equal(g.tong, motDon.reduce((t: number, d: { giaDaiLy: number }) => t + d.giaDaiLy, 0) + phiDon, `đơn ${id}: tổng = Σ giá đại lý + phí đón`);
     assert.equal(g.laDonDaiLy, true, "bên đặt mang vai được hưởng");
   }
-  assert.equal(nhieu.get(b).tong, 3 * 300_000 - 3 * 50_000, "đơn sửa thành 3 người lớn: tính theo số hiện hành");
+  assert.deepEqual([nhieu.get(a).phiDon, nhieu.get(c).phiDon], [0, 40_000], "đơn không lượt đón: 0; đơn văn phòng lập: 20.000 × 2");
+  assert.equal(nhieu.get(b).phiDon, 60_000, "đơn sửa thành 3 người lớn: phí theo khách tính lại 20.000 × 3");
+  assert.equal(nhieu.get(b).tong, 3 * 300_000 - 3 * 50_000 + 60_000, "đơn sửa thành 3 người lớn: tính theo số hiện hành, gồm phí");
 });
 
 // ---- Đ2 mục 2: phiếu công nợ với Tour Đảo (route `GET /api/orders/:id/cong-no-dai-ly`) ----

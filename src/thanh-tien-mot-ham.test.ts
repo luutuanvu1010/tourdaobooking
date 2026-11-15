@@ -3,6 +3,9 @@
 // chỗ (vd làm tròn, giới hạn) thì chỗ khác lệch. Bài này quét MÃ CHẠY THẬT (`src/**`, `web/**`, bỏ `*.test.ts`), che chuỗi/chú thích (SQL trong chuỗi
 // — trigger `0007` ép `line_total = quantity * unit_price` ở CSDL — không tính), và đỏ khi thấy phép nhân giữa một tên "quantity…" và "unitPrice…".
 // Giới hạn: chỉ bắt cách viết dùng đúng hai tên trường đó (đổi tên biến trung gian thì lọt) — phần còn lại dựa vào người rà.
+// ĐỔI CÓ CHỦ ĐÍCH 15/11 (phí đưa đón Đợt C, Task 5; trang ghép 2026-10-28 §6): dòng phí đưa đón là NGUỒN DÒNG TIỀN MỚI của `order_item` — thành tiền tính ở `pricing` (`tinhPhiChang`,
+// tên `soLuong` × `donGia`/`amount`) lúc chụp và ở `orders` (`phiHieuLuc`) lúc sửa số khách. Bộ quét nay bắt thêm cặp tên đó, và cả hai chỗ đi qua `thanhTienDong` (trước đó
+// `tinhPhiChang` tự nhân `amount * soLuong` — bài này đỏ ở đó trước khi sửa).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -13,7 +16,11 @@ import { thanhTienDong } from "./shared/order-lines.ts";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 const DEFINITION = "src/shared/order-lines.ts";
-const NHAN = /\bquantity\b[\w.]*\s*\*\s*[\w.]*\bunitPrice\b|\bunitPrice\b[\w.]*\s*\*\s*[\w.]*\bquantity\b/;
+const NHAN = new RegExp([
+  String.raw`\bquantity\b[\w.]*\s*\*\s*[\w.]*\bunitPrice\b`, String.raw`\bunitPrice\b[\w.]*\s*\*\s*[\w.]*\bquantity\b`,
+  // dòng phí đưa đón (Đợt C): số lượng `soLuong` × đơn giá `donGia` / mức `amount`, hai chiều
+  String.raw`\bsoLuong\b[\w.]*\s*\*\s*[\w.]*\b(?:donGia|amount)\b`, String.raw`\b(?:donGia|amount)\b[\w.]*\s*\*\s*[\w.]*\bsoLuong\b`,
+].join("|"));
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(dir)) {
@@ -45,6 +52,7 @@ test("thanhTienDong: số lượng × đơn giá (cùng công thức trigger 000
 test("hàng rào F-03: bộ quét bắt được cách tự nhân (tự kiểm)", () => {
   assert.deepEqual(choTuNhan([{ file: "web/x.ts", src: "const t = l.quantity * l.unitPrice;\nconst u = unitPrice.value * quantity.value;" }]), ["web/x.ts:1", "web/x.ts:2"]);
   assert.deepEqual(choTuNhan([{ file: "web/x.ts", src: "// l.quantity * l.unitPrice\nconst s = \"quantity * unitPrice\";" }]), []);
+  assert.deepEqual(choTuNhan([{ file: "src/x.ts", src: "const t = v.muc.amount * soLuong;\nconst u = d.soLuong * d.donGia;" }]), ["src/x.ts:1", "src/x.ts:2"], "dòng phí đưa đón (Đợt C)");
 });
 
 test("hàng rào F-03: mã chạy thật không tự nhân số lượng × đơn giá — dùng thanhTienDong", () => {

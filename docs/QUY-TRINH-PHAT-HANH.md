@@ -82,8 +82,9 @@ Thay `<tên-nhánh>` bằng tên AI báo ở bước 2. Nếu nhánh chính đã
 5. **Chờ GitHub kiểm đủ bộ** (toàn bộ bài kiểm và kiểm thử đầu-cuối, chia nhiều máy chạy cùng lúc, khoảng 6 phút). Lệnh in tiến độ, ví dụ "đang kiểm: 7/13 phần xong".
 6. Nếu kiểm **đỏ**, lệnh nêu tên bài đỏ và hỏi: chạy lại phần đỏ (`r`, nên chọn trước, vì kiểm thử đầu-cuối từng đỏ giả rồi chạy lại xanh), dừng (`d`), hay cho qua (`q`). Cho qua thì phải **gõ lý do**, ví dụ "giá Sheet thật vừa đổi". Lý do được ghi lại và in ra lúc phát hành.
 7. Nếu lần này **đổi cách kiểm** (sửa tệp điều khiển việc kiểm, hoặc số bài kiểm ít đi, hoặc số bài bị bỏ qua nhiều lên), lệnh in danh sách và đòi bạn **gõ lý do**, dù kiểm vẫn xanh. Lần đầu dùng cách mới cũng hỏi câu này, vì chưa có lần kiểm cũ để so.
-8. In danh sách những gì sắp đẩy. Nếu có **thay đổi dữ liệu mới (migration)** thì in cảnh báo.
-9. Hỏi **"Đẩy lên GitHub? (c/k)"**. Gõ `c` để đẩy nhánh chính. Lệnh ghi một bản ghi kết luận trên máy bạn (trong thư mục ẩn `.git`), bước 6 sẽ đọc lại bản ghi này.
+8. Nếu lần này **sửa luật dành cho AI** (các tệp `CLAUDE.md`, thư mục `.claude/`, `playbook/`, `docs/adr/`), lệnh in khối **«TỆP LUẬT ĐÃ ĐỔI»** liệt kê từng tệp, kèm lệnh xem đủ khác biệt, và đòi bạn **gõ lý do**. Câu này tách riêng với câu ở bước 7: lần nào đổi cả hai thì bạn gõ hai lý do. Lý do được ghi vào bản ghi kết luận và in lại lúc phát hành. Không đổi tệp luật thì lệnh không hỏi gì thêm. Nhờ khối này, mọi lần AI sửa luật đều hiện ở một chỗ trước khi vào bản chính.
+9. In danh sách những gì sắp đẩy. Nếu có **thay đổi dữ liệu mới (migration)** thì in cảnh báo.
+10. Hỏi **"Đẩy lên GitHub? (c/k)"**. Gõ `c` để đẩy nhánh chính. Lệnh ghi một bản ghi kết luận trên máy bạn (trong thư mục ẩn `.git`), bước 6 sẽ đọc lại bản ghi này.
 
 Lệnh **không còn chạy kiểm ở máy bạn** nữa: kiểm chạy một lần trên GitHub, kết quả nằm trên GitHub nên không ai trên máy (kể cả AI) làm giả được.
 

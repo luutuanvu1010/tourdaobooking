@@ -3,6 +3,7 @@
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { HoiDaChup } from "../../shared/router.ts";
 import type { DongGhiChup, TermRowDb } from "./thuong-mai.ts";
+import { dongPhiTienNhieuDon, type FeeMoneyRow } from "./chang-hanh-khach-repo.ts";
 
 const COT = `id, order_id, order_service_id, beneficiary_party_id, commission_status, missing_reason, commission_kind, commission_rate_bp, commission_per_pax, commission_rule_id,
   supply_status, seller_party_id, supplier_party_id, cost_rate_bp, supply_term_id, source, reason, supersedes_id, captured_date, created_at, created_by, updated_at, updated_by`;
@@ -52,8 +53,9 @@ const HIEN_HANH_NHIEU = defineSql("orders", "terms_current_many",
    WHERE t.order_id IN (SELECT value FROM json_each(?1)) AND NOT EXISTS (SELECT 1 FROM ord_service_terms n WHERE n.supersedes_id = t.id)`);
 const DICH_VU_NHIEU = defineSql("orders", "services_money_many",
   `SELECT order_id, id, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant FROM order_service WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, sort_order`);
+// Chỉ dòng DỊCH VỤ (Đợt C, Task 5): dòng phí đưa đón không vào hoa hồng / giá đại lý — đọc riêng bằng `dongPhiTienNhieuDon` (chang-hanh-khach-repo.ts) rồi cộng vào tổng công nợ.
 const DONG_TIEN_NHIEU = defineSql("orders", "items_money_many",
-  `SELECT order_id, service_id, pax_code, quantity, unit_price, catalog_price, line_total FROM order_item WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, sort_order`);
+  `SELECT order_id, service_id, pax_code, quantity, unit_price, catalog_price, line_total FROM order_item WHERE order_id IN (SELECT value FROM json_each(?1)) AND line_kind = 'SERVICE' ORDER BY order_id, sort_order`);
 // «Đơn đại lý» (ADR-0182 Đ1 mục 1 = luật `mauBienNhan`): cờ bên đặt mang vai được hưởng — CÙNG câu với `BOOKER_LA_DOI_TAC` của chi tiết đơn — và người lập (để hỏi «Đối tác thuần»).
 const DON_DAI_LY_NHIEU = defineSql("orders", "orders_agent_flags_many",
   `SELECT o.id, o.staff_id, o.status, EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code WHERE r.party_id = o.booker_party_id) AS la
@@ -61,15 +63,16 @@ const DON_DAI_LY_NHIEU = defineSql("orders", "orders_agent_flags_many",
 export interface DichVuTienRow { order_id: string; id: string; catalog_code: string | null; name: string; unit: string; pax_adult: number; pax_child: number; pax_senior: number; pax_infant: number }
 export interface DongTienRow { order_id: string; service_id: string | null; pax_code: string | null; quantity: number; unit_price: number; catalog_price: number | null; line_total: number }
 export interface DonDaiLyRow { id: string; staff_id: string; status: "draft" | "confirmed" | "cancelled"; la: number }
-export async function docGiaDaiLyNhieu(db: D1Database, orderIds: readonly string[]): Promise<{ chup: (TermRowDb & { order_id: string })[]; dichVu: DichVuTienRow[]; dong: DongTienRow[]; don: DonDaiLyRow[] }> {
+export async function docGiaDaiLyNhieu(db: D1Database, orderIds: readonly string[]): Promise<{ chup: (TermRowDb & { order_id: string })[]; dichVu: DichVuTienRow[]; dong: DongTienRow[]; don: DonDaiLyRow[]; phi: FeeMoneyRow[] }> {
   const ids = JSON.stringify([...new Set(orderIds)]);
-  const [chup, dichVu, dong, don] = await Promise.all([
+  const [chup, dichVu, dong, don, phi] = await Promise.all([
     db.prepare(HIEN_HANH_NHIEU).bind(ids).all<TermRowDb & { order_id: string }>(),
     db.prepare(DICH_VU_NHIEU).bind(ids).all<DichVuTienRow>(),
     db.prepare(DONG_TIEN_NHIEU).bind(ids).all<DongTienRow>(),
     db.prepare(DON_DAI_LY_NHIEU).bind(ids).all<DonDaiLyRow>(),
+    dongPhiTienNhieuDon(db, orderIds),
   ]);
-  return { chup: chup.results, dichVu: dichVu.results, dong: dong.results, don: don.results };
+  return { chup: chup.results, dichVu: dichVu.results, dong: dong.results, don: don.results, phi };
 }
 const DEM = defineSql("orders", "terms_count", "SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?1");
 // Tên hồ sơ (người hưởng, người bán) cho DTO văn phòng: view công bố của parties, chỉ khoá + nhãn. Hồ sơ không còn trong view ⇒ DTO ghi "Hồ sơ không còn".

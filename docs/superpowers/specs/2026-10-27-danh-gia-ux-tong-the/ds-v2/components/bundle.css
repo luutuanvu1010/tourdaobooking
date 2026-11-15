@@ -496,6 +496,14 @@ body.login-bao-tri:not(.login-mo-form) .login-dang-ky { display: none; }
 .dau-xm { vertical-align: middle; margin-left: var(--s1); }
 .dau-xm svg { width: var(--fs-badge); height: var(--fs-badge); }
 .dk-hang-nut > select.o { width: auto; margin-top: 0; }
+/* Màn «Phí đưa đón» (kế hoạch Phí đưa đón, Đợt B Task 8): chỉ token. */
+.pd-khoi { margin-bottom: var(--s4); }
+.pd-o { display: grid; gap: var(--s1); }
+.pd-kq { display: grid; gap: var(--s1); }
+.pd-kq-chinh { font-weight: var(--fw-semibold); }
+.pd-vung { margin-bottom: var(--s4); }
+.pd-vung h3 { margin: var(--s3) 0 var(--s2); }
+.pd-form { margin-bottom: var(--s4); }
 /* ===== CHÉP TỪ MÃ — hết ===== */
 
 /* ===== RIÊNG CỦA BỘ (1) — lớp xem trước ===== */

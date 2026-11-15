@@ -87,6 +87,20 @@ const DEM_TRA = defineSql(
    WHERE order_id = ?1 AND released_at IS NULL AND (?2 IS NULL OR order_service_id = ?2) GROUP BY pax_group`,
 );
 
+// Trả vé LỆCH NGÀY (V1 kiểm toán 14/11): dịch vụ của đơn ĐÃ XÁC NHẬN dời ngày đi; phân bổ đang mở mà vé không còn trùm ngày mới thì đóng (lý do GIAM_SO_KHACH — CHECK của bảng không có mã
+// lý do riêng và không có migration cho việc này). Vé CHƯA lộ về kho / vé ĐÃ lộ sang VOID là việc của `TRA_VE_VE_KHO` (cùng `at` + lý do). Vé ĐÃ DÙNG (lượt quét DA_TINH chưa bỏ) không đụng.
+// Cổng trạng thái đơn `?6` như `TRA_PHAN_BO`: chỉ trả khi đơn còn `confirmed` (lệnh dời ngày chạy SAU lô nên đơn vừa huỷ thì không trả nhầm).
+const TRA_PHAN_BO_LECH_NGAY = defineSql(
+  "ve-dien-tu",
+  "tra_phan_bo_lech_ngay",
+  `UPDATE vdt_allocation SET released_at = ?3, release_reason = 'GIAM_SO_KHACH', updated_at = ?3, updated_by = ?4
+   WHERE order_id = ?1 AND order_service_id = ?2 AND released_at IS NULL
+     AND ticket_id IN (SELECT t.id FROM vdt_ticket t WHERE t.valid_from > ?5 OR t.valid_to < ?5)
+     AND NOT EXISTS (SELECT 1 FROM vdt_scan s WHERE s.ticket_id = vdt_allocation.ticket_id AND s.ket_qua = 'DA_TINH' AND s.voided_at IS NULL)
+     AND EXISTS (SELECT 1 FROM v_ord_order_state o WHERE o.id = ?1 AND o.status = ?6)`,
+);
+export const cauTraPhanBoLechNgay = (db: D1Database, p: { orderId: string; serviceId: string; at: string; by: string | null; ngayDi: string }): D1PreparedStatement =>
+  db.prepare(TRA_PHAN_BO_LECH_NGAY).bind(p.orderId, p.serviceId, p.at, p.by, p.ngayDi, "confirmed");
 export interface TraVeNhom { orderId: string; serviceId: string | null; nhom: string; lyDo: string; at: string; by: string | null; conLai: number; chiVeChuaLo: boolean;
   /** Cổng trạng thái đơn (view công bố `v_ord_order_state` của orders): chỉ trả khi đơn ĐANG ở trạng thái này — lô huỷ thua thì không trả nhầm vé của đơn còn sống. null = không cổng. */
   chiKhiDon: "cancelled" | "draft" | null }

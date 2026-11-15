@@ -31,6 +31,7 @@ type Lib = {
   docCacKhoTuCauHinh: (text: string) => { binding: string; ten: string }[] | null;
   docCacKhoMacDinh: () => Promise<{ binding: string; ten: string }[] | null>;
   parseR2BucketNames: (out: string) => string[];
+  TEP_LUAT: string[];
 };
 const lib = (await import(new URL("../scripts/release-lib.mjs", import.meta.url).href)) as Lib;
 
@@ -161,6 +162,8 @@ const RUNVIEW = (id: number) => `gh run view ${id} -R ${R} --json ${RUN_FIELDS},
 const RERUN = (id: number) => `gh run rerun ${id} -R ${R} --failed`;
 const PUSH_CHO = `git push origin ${NEW}:refs/heads/cho-kiem/${NEW}`;
 const CTRL_DIFF = `git diff --name-only --no-renames origin/main main -- ${TEP_DIEU_KHIEN.filter((t) => t !== "package.json").join(" ")}`;
+/** 2.1 (kế hoạch 2026-11-15): tệp LUẬT (CLAUDE.md, .claude/, playbook/, docs/adr/) đổi giữa origin/main và main — khối riêng, khác "đổi quy trình kiểm". */
+const LUAT_DIFF = `git diff --name-only --no-renames origin/main main -- ${(lib.TEP_LUAT ?? ["(chưa có TEP_LUAT)"]).join(" ")}`;
 const PKG = JSON.stringify({ scripts: { test: "node scripts/chay-test.mjs", typecheck: "tsc", "test:e2e": "node tests/e2e/run.mjs", "build:web": "esbuild a" }, devDependencies: { wrangler: "^4" } });
 const luot = (o: Record<string, unknown> = {}) => ({ databaseId: 4242, headSha: NEW, status: "completed", conclusion: "success", url: "https://github.com/x/actions/runs/4242", attempt: 1, event: "push", createdAt: "2026-09-23T01:55:00Z", updatedAt: "2026-09-23T02:00:00Z", ...o });
 const viewOf = (o: Record<string, unknown> = {}, jobs = [{ name: "npm test phần 1", status: "completed", conclusion: "success" }, { name: "Gom kết quả kiểm", status: "completed", conclusion: "success" }]) => out(JSON.stringify({ ...luot(o), jobs }));
@@ -186,6 +189,7 @@ function dayLenScript(over: Record<string, RunResult | RunResult[]> = {}, coNhan
     [CTRL_DIFF]: out(""),
     "git show origin/main:package.json": out(PKG),
     "git show main:package.json": out(PKG),
+    [LUAT_DIFF]: out(""),
     "gh auth status": OK,
     [PUSH_CHO]: OK,
     [RUNLIST(NEW)]: out(JSON.stringify([luot()])),
@@ -212,6 +216,7 @@ const DAYLEN_HAPPY = [
   CTRL_DIFF,
   "git show origin/main:package.json",
   "git show main:package.json",
+  LUAT_DIFF,
   "gh auth status",
   PUSH_CHO,
   RUNLIST(NEW),
@@ -253,6 +258,7 @@ test("day-len (ADR-0179 Đ2.1): mọi thứ đạt + c → đẩy cho-kiem/<sha>
   assert.equal(b.runId, 4242);
   assert.equal(b.choQua, null);
   assert.equal(b.quyTrinh, null);
+  assert.equal(b.luat, null, "không đổi tệp luật ⇒ bản ghi ghi luat: null, không hỏi thêm");
   assert.equal(b.xanhLuc, "2026-09-23T02:00:00Z");
   assert.ok(Number.isInteger(b.giayDayLen) && Array.isArray(b.chang));
 });
@@ -295,6 +301,8 @@ const DAYLEN_REFUSALS: { name: string; over?: Record<string, RunResult | RunResu
   { name: "git diff migration lỗi", over: { "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/": FAIL }, reason: /không liệt kê được migration mới/, lastCall: "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/" },
   { name: "không đọc được sha origin/main", over: { "git rev-parse origin/main": FAIL }, reason: /không đọc được mã commit/, lastCall: "git rev-parse origin/main", khongDayPhu: true },
   { name: "so tệp điều khiển kiểm lỗi", over: { [CTRL_DIFF]: FAIL }, reason: /tệp điều khiển việc kiểm/, lastCall: CTRL_DIFF, khongDayPhu: true },
+  { name: "so tệp luật lỗi", over: { [LUAT_DIFF]: FAIL }, reason: /không so được các tệp luật/, lastCall: LUAT_DIFF, khongDayPhu: true },
+  { name: "đổi tệp luật mà không gõ lý do", over: { [LUAT_DIFF]: out("CLAUDE.md\n"), "git diff --stat origin/main main -- CLAUDE.md": out(" CLAUDE.md | 2 +-\n") }, answers: [""], reason: /không có lý do đổi tệp luật/ },
   { name: "chưa đăng nhập gh", over: { "gh auth status": FAIL }, reason: /gh auth login/, lastCall: "gh auth status", khongDayPhu: true },
   { name: "đẩy nhánh chờ kiểm lỗi", over: { [PUSH_CHO]: FAIL }, reason: /nhánh chờ kiểm/, lastCall: PUSH_CHO },
   { name: "không đọc được danh sách lượt kiểm", over: { [RUNLIST(NEW)]: FAIL }, reason: /gh run list/, lastCall: RUNLIST(NEW) },
@@ -415,6 +423,46 @@ test("day-len (Đ2.3 + Đ3.2): tệp điều khiển việc kiểm đổi (dù l
   assert.equal(b.ketQua, "xanh");
   assert.equal(b.quyTrinh.lyDo, "bỏ phần e2e số 6 vì gộp");
   assert.ok(b.quyTrinh.doi.some((x: string) => /kiem\.yml/.test(x)));
+});
+
+test("day-len (2.1): TEP_LUAT phủ đủ tệp luật của kế hoạch; tách khỏi TEP_DIEU_KHIEN (nghĩa khác: đổi quy trình kiểm)", () => {
+  for (const t of ["CLAUDE.md", "src/CLAUDE.md", "web/CLAUDE.md", "src/modules/*/CLAUDE.md", ".claude", "playbook", "docs/adr"]) assert.ok(lib.TEP_LUAT.includes(t), t);
+  for (const t of lib.TEP_LUAT) assert.ok(!TEP_DIEU_KHIEN.includes(t), `${t} không được nằm cả ở TEP_DIEU_KHIEN`);
+});
+
+test("day-len (2.1): tệp luật đổi (lượt kiểm XANH) → khối «TỆP LUẬT ĐÃ ĐỔI» liệt kê từng tệp + khác biệt, đòi lý do, bản ghi ghi luat = { doi, lyDo }", async () => {
+  const h = dl(dayLenScript({ [LUAT_DIFF]: out(".claude/settings.json\nCLAUDE.md\ndocs/adr/0200-x.md\n"), "git diff --stat origin/main main -- .claude/settings.json CLAUDE.md docs/adr/0200-x.md": out(" 3 files changed\n") }), ["bỏ hộp hỏi vì đã có khối này", "c"]);
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  const t = h.text();
+  assert.match(t, /TỆP LUẬT ĐÃ ĐỔI/);
+  assert.doesNotMatch(t, /ĐỔI QUY TRÌNH KIỂM/, "tệp luật không phải đổi quy trình kiểm");
+  for (const f of [".claude/settings.json", "CLAUDE.md", "docs/adr/0200-x.md"]) assert.ok(t.includes(`• ${f}`), f);
+  assert.match(t, /3 files changed/);
+  assert.match(t, /Tệp luật đã đổi — lý do: bỏ hộp hỏi vì đã có khối này/);
+  assert.equal(h.questions.length, 2);
+  assert.match(h.questions[0]!, /LÝ DO đổi tệp luật/);
+  const b = h.daGhi[0]!.banGhi;
+  assert.deepEqual(b.luat, { doi: [".claude/settings.json", "CLAUDE.md", "docs/adr/0200-x.md"], lyDo: "bỏ hộp hỏi vì đã có khối này" });
+  assert.equal(b.quyTrinh, null);
+});
+
+test("day-len (2.1): đổi CẢ tệp điều khiển kiểm LẪN tệp luật → hai khối, hỏi HAI lý do riêng, ghi riêng", async () => {
+  const h = dl(
+    dayLenScript({
+      [CTRL_DIFF]: out("scripts/release-lib.mjs\n"),
+      "git diff --stat origin/main main -- scripts/release-lib.mjs": out(" 1 file changed\n"),
+      [LUAT_DIFF]: out(".claude/hooks/cong-xanh.mjs\n"),
+      "git diff --stat origin/main main -- .claude/hooks/cong-xanh.mjs": out(" 1 file changed\n"),
+    }),
+    ["thêm khối tệp luật cho day-len", "cổng xanh bản nhẹ", "c"],
+  );
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.equal(h.questions.length, 3);
+  assert.match(h.questions[0]!, /LÝ DO đổi quy trình kiểm/);
+  assert.match(h.questions[1]!, /LÝ DO đổi tệp luật/);
+  const b = h.daGhi[0]!.banGhi;
+  assert.equal(b.quyTrinh.lyDo, "thêm khối tệp luật cho day-len");
+  assert.deepEqual(b.luat, { doi: [".claude/hooks/cong-xanh.mjs"], lyDo: "cổng xanh bản nhẹ" });
 });
 
 test("day-len (Đ2.3): package.json đổi lệnh test → đổi quy trình; đổi danh sách trang build:web → KHÔNG phải đổi quy trình", async () => {
@@ -706,6 +754,7 @@ const DOC_KQ_REFUSALS: { name: string; over?: Record<string, RunResult | RunResu
   { name: "không có bản ghi của day-len (commit không qua day-len)", banGhi: {}, reason: /không có bản ghi kết luận kiểm/, khongGoiGh: true },
   { name: "bản ghi của commit khác", banGhi: { [HEAD]: { ...BAN_GHI_XANH, sha: KHAC_SHA } }, reason: /không khớp commit/, khongGoiGh: true },
   { name: "đổi quy trình kiểm mà bản ghi không có lý do (Đ3.2)", banGhi: { [HEAD]: { ...BAN_GHI_XANH, quyTrinh: { doi: ["tệp điều khiển việc kiểm đổi: .github/workflows/kiem.yml"], lyDo: "" } } }, reason: /quy trình kiểm đã đổi mà không có lý do/, khongGoiGh: true },
+  { name: "đổi tệp luật mà bản ghi không có lý do (2.1)", banGhi: { [HEAD]: { ...BAN_GHI_XANH, luat: { doi: ["CLAUDE.md"], lyDo: " " } } }, reason: /tệp luật đã đổi mà không có lý do/, khongGoiGh: true },
   { name: "gh api lỗi", over: { [CHECKS]: FAIL }, reason: /không đọc được kết quả kiểm trên GitHub/ },
   { name: "gh api trả JSON lạ", over: { [CHECKS]: out("<html>") }, reason: /không đọc được kết quả kiểm trên GitHub/ },
   { name: "thiếu kết quả (không check-run nào)", over: { [CHECKS]: checksOut([]) }, reason: /không có kết quả kiểm nào do GitHub Actions tạo/ },
@@ -747,6 +796,13 @@ test("trien-khai (Đ3.2): bản ghi có 'đổi quy trình kiểm' KÈM lý do �
   const h = tk({ [LIST]: out(LIST_NONE) }, ["c"], banGhi);
   assert.equal(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
   assert.match(h.text(), /Đổi quy trình kiểm — lý do của chủ: chia lại phần e2e \(tệp điều khiển việc kiểm đổi: scripts\/kiem-phan\.mjs\)/);
+});
+
+test("trien-khai (2.1): bản ghi có 'tệp luật đã đổi' KÈM lý do → đi tiếp; tóm tắt in lý do và tên tệp", async () => {
+  const banGhi = { [HEAD]: { ...BAN_GHI_XANH, luat: { doi: [".claude/settings.json", "CLAUDE.md"], lyDo: "bỏ hộp hỏi" } } };
+  const h = tk({ [LIST]: out(LIST_NONE) }, ["c"], banGhi);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
+  assert.match(h.text(), /Tệp luật đã đổi — lý do của chủ: bỏ hộp hỏi \(\.claude\/settings\.json; CLAUDE\.md\)/);
 });
 
 test("trien-khai (Đ2.5): tóm tắt ghi thời gian từng chặng, KHÔNG tính lúc chờ chủ trả lời; cộng day-len từ bản ghi; vượt 10 phút thì cảnh báo, không chặn", async () => {

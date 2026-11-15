@@ -26,7 +26,8 @@
       "Bash(npm run lam-moi-dev)",
       "Bash(npm run lam-moi-dev *)",
       "Bash(node scripts/lam-moi-dev.mjs)",
-      "Bash(node scripts/lam-moi-dev.mjs *)"
+      "Bash(node scripts/lam-moi-dev.mjs *)",
+      "mcp__terminal__run_in_terminal"
     ],
     "ask": [
       "Edit(CLAUDE.md)",
@@ -59,6 +60,38 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-tep.mjs\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__terminal__run_in_terminal",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/guard-remote.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/cong-xanh.mjs\"",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/trang-thai-phien.mjs\"",
             "timeout": 10
           }
         ]

@@ -82,4 +82,5 @@ export const GHI_NHIEU_LAN: readonly MucGhiNhieuLan[] = [
   { duong: "POST /api/orders/:id/quyet-dinh", lyDo: "ADR-0153: cùng khuôn `/status` — quyết định xác nhận cấp vé ở lần ghi thứ hai (capVeSauXacNhan), cố ý NUỐT lỗi; xử lý thiếu vé như trên." },
   { duong: "POST /api/orders/:id/money-edit", lyDo: "ADR-0153: lô sửa đơn và tiền vẫn nguyên khối; chỉ phần cân vé theo số khách mới ở lần ghi thứ hai (canBangVeSauSuaKhach), cố ý NUỐT lỗi. Lần hai hỏng ⇒ tiền và số khách đã đúng, số vé giữ lệch; trang đơn báo thiếu vé và nút «Cấp vé» cân lại." },
   { duong: "POST /api/orders/:id/handler-money-edit", lyDo: "ADR-0153: cùng khuôn `POST /api/orders/:id/money-edit` — chỉ phần cân vé ở lần ghi thứ hai (canBangVeSauSuaKhach), cố ý NUỐT lỗi." },
+  { duong: "PUT /api/orders/:id/trip", lyDo: "Kiểm toán 14/11 (V1), cùng khuôn `POST /api/orders/:id/money-edit`: lô sửa chuyến vẫn nguyên khối; khi đơn đã xác nhận đổi ngày đi, phần cân vé theo ngày mới ở lần ghi thứ hai (canBangVeSauSuaKhach), cố ý NUỐT lỗi. Lần hai hỏng ⇒ ngày đi đã đổi, vé giữ còn lệch ngày; trang đơn báo thiếu vé sau khi bấm «Cấp vé» cân lại." },
 ];

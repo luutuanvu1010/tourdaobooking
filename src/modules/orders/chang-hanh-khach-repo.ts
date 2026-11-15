@@ -878,3 +878,117 @@ const ORDER_CREDIT_EXTEND = defineSql(
 );
 export const noiHanTraSauStatement = (db: D1Database, v: { orderId: string; hanMoi: string; hetAnHanMoi: string; ngayMoi: string; at: string; hanCu: string }) =>
   db.prepare(ORDER_CREDIT_EXTEND).bind(v.orderId, v.hanMoi, v.hetAnHanMoi, v.ngayMoi, v.at, v.hanCu);
+
+// ---- Phí đưa đón trên đơn (Đợt C, Task 3; ADR-0147, ADR-0203; migration 0169) ---------------------------------------------------------------------
+// Dòng phí là dòng `order_item` loại `TRANSFER_FEE`: không dịch vụ, không danh mục; trỏ chặng; mang bản chụp mức (mã mức, kiểu, vùng, cấp, số người chiều về).
+// Chỉ ĐƠN NHÁP mới ghi / xoá dòng phí: điều kiện `status = 'draft'` nằm TRONG mọi câu (đơn đã xác nhận ⇒ câu không khớp dòng nào, không chạm trigger 0081).
+// Câu tính lại tạm tính / tổng của đơn nháp sau khi đổi dòng phí ở lô sửa chặng nằm ở repository.ts (`cauTienNhapSauPhi` — ba cột cọc cũ chỉ được ghi ở đó, NT-R9).
+// Không câu nào ở đây đọc `audit_log`: lính gác «lô này thắng» dùng hai cách không cần ngoại lệ DOC_AUDIT_LOG_WONGUARD —
+//   (a) câu ĐỨNG TRƯỚC câu khoá lạc quan của lô (`*_truoc`): điều kiện = đúng mốc đã đọc (lô D1 chạy tuần tự, nguyên tử: lô nào chạy trước đổi mốc, lô sau 0 dòng);
+//   (b) câu ĐỨNG SAU (`fee_item_insert`): có mặt một dòng id MỚI SINH của chính lô (dòng tiền dịch vụ vừa chèn, hoặc chặng vừa chèn) — dòng đó chỉ tồn tại khi lô thắng.
+
+/** Tên khu vực theo mã (view công bố của locations; kể cả khu vực đã ngưng — dòng phí cũ vẫn có tên). */
+const ZONE_LABEL_BY_CODES = defineSql("orders", "zone_label_by_codes", `SELECT code, name FROM v_loc_zone_label WHERE code IN (SELECT value FROM json_each(?1))`);
+
+export async function tenKhuVuc(db: D1Database, codes: readonly string[]): Promise<Map<string, string>> {
+  if (codes.length === 0) return new Map();
+  const { results } = await db.prepare(ZONE_LABEL_BY_CODES).bind(JSON.stringify([...new Set(codes)])).all<{ code: string; name: string }>();
+  return new Map(results.map((r) => [r.code, r.name] as const));
+}
+
+/** Nội dung một dòng phí (chưa có id dòng, id đơn, thứ tự) — `dongPhiThanhItem` (phi-don-don.ts) dựng từ kết quả của `pricing`. */
+export interface OrderItemRowPhiDon {
+  legId: string;
+  feeRuleId: string;
+  feeKind: "PER_PAX" | "PER_TRIP";
+  feeZoneCode: string;
+  /** null = mức không có cấp. */
+  feeTierCode: string | null;
+  /** Số người chiều về (`pax_override`) lúc tính; null = theo số khách của dịch vụ. */
+  feeReturnPax: number | null;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+export type DongPhiGhi = OrderItemRowPhiDon & { id: string; orderId: string; sortOrder: number };
+const FEE_COLS = "id, order_id, line_kind, transfer_leg_id, fee_rule_id, fee_kind, fee_zone_code, fee_tier_code, fee_return_pax, description, detail, quantity, unit_price, line_total, sort_order";
+const FEE_VALUES = "?1, ?2, 'TRANSFER_FEE', ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13";
+const feeBinds = (d: DongPhiGhi) =>
+  [d.id, d.orderId, d.legId, d.feeRuleId, d.feeKind, d.feeZoneCode, d.feeTierCode, d.feeReturnPax, d.description, d.quantity, d.unitPrice, d.lineTotal, d.sortOrder];
+
+/** (b) Chèn dòng phí SAU chặng của lô (khoá ngoại tới chặng): đơn còn nháp VÀ dòng id mới sinh ?14 của chính lô có mặt (dòng tiền dịch vụ hoặc chặng của đơn). */
+const FEE_ITEM_INSERT = defineSql(
+  "orders",
+  "fee_item_insert",
+  `INSERT INTO order_item (${FEE_COLS}) SELECT ${FEE_VALUES}
+   WHERE EXISTS (SELECT 1 FROM orders WHERE id = ?2 AND status = 'draft')
+     AND (EXISTS (SELECT 1 FROM order_item WHERE id = ?14 AND order_id = ?2) OR EXISTS (SELECT 1 FROM ord_transfer_leg WHERE id = ?14 AND order_id = ?2))`,
+);
+export const feeItemInsert = (db: D1Database, d: DongPhiGhi, idMoiCuaLo: string): D1PreparedStatement => db.prepare(FEE_ITEM_INSERT).bind(...feeBinds(d), idMoiCuaLo);
+
+/**
+ * (a) Lính gác của câu ĐỨNG TRƯỚC = ĐÚNG điều kiện của câu khoá lạc quan đi ngay sau trong lô (không câu nào ở giữa đổi đơn / chặng), nên câu này ghi ⇔ câu khoá lạc
+ * quan thắng ⇔ câu tính lại tiền (gác `wonGuard`, ở repository.ts) chạy — tạm tính luôn khớp Σ dòng. Đơn còn nháp; `PUT /trip`: đúng mốc ĐƠN đã đọc (?moc, câu khoá
+ * là `UPDATE orders … updated_at = ?`); `PUT /legs/:id` nhánh nháp: chặng còn mở, đúng mốc CHẶNG đã đọc (?mocChang, câu khoá là `leg_pax_override_checked`), ?moc trống.
+ */
+const GAC_TRUOC = (o: string, moc: string, chang: string, mocChang: string) =>
+  `EXISTS (SELECT 1 FROM orders WHERE id = ${o} AND status = 'draft' AND (${moc} IS NULL OR updated_at = ${moc}))
+   AND (${chang} IS NULL OR EXISTS (SELECT 1 FROM ord_transfer_leg WHERE id = ${chang} AND order_id = ${o} AND closed_at IS NULL AND updated_at = ${mocChang}))`;
+export interface GacTruoc { orderId: string; mocDon: string | null; legId: string | null; mocChang: string | null }
+
+const FEE_ITEMS_DELETE_TRUOC = defineSql(
+  "orders",
+  "fee_items_delete_truoc",
+  `DELETE FROM order_item WHERE order_id = ?1 AND line_kind = 'TRANSFER_FEE' AND ${GAC_TRUOC("?1", "?2", "?3", "?4")}`,
+);
+export const feeItemsDeleteTruoc = (db: D1Database, g: GacTruoc): D1PreparedStatement => db.prepare(FEE_ITEMS_DELETE_TRUOC).bind(g.orderId, g.mocDon, g.legId, g.mocChang);
+
+const FEE_ITEM_INSERT_TRUOC = defineSql(
+  "orders",
+  "fee_item_insert_truoc",
+  `INSERT INTO order_item (${FEE_COLS}) SELECT ${FEE_VALUES} WHERE ${GAC_TRUOC("?2", "?14", "?15", "?16")}`,
+);
+export const feeItemInsertTruoc = (db: D1Database, d: DongPhiGhi, g: GacTruoc): D1PreparedStatement =>
+  db.prepare(FEE_ITEM_INSERT_TRUOC).bind(...feeBinds(d), g.mocDon, g.legId, g.mocChang);
+
+/** Dòng phí đã lưu của một đơn (cho `OrderDto.phiDuaDon`) — kèm chiều + dịch vụ của chặng và tên khu vực (view công bố của locations). */
+const FEE_ROWS_BY_ORDER = defineSql(
+  "orders",
+  "fee_rows_by_order",
+  `SELECT i.id, i.transfer_leg_id, l.order_service_id, l.direction, i.fee_kind, i.fee_zone_code, z.name AS zone_name, i.fee_tier_code, i.fee_return_pax,
+     i.description, i.quantity, i.unit_price, i.line_total
+   FROM order_item i JOIN ord_transfer_leg l ON l.id = i.transfer_leg_id LEFT JOIN v_loc_zone_label z ON z.code = i.fee_zone_code
+   WHERE i.order_id = ?1 AND i.line_kind = 'TRANSFER_FEE' ORDER BY i.sort_order`,
+);
+export interface FeeRow {
+  id: string; transfer_leg_id: string; order_service_id: string; direction: "OUT" | "RETURN"; fee_kind: "PER_PAX" | "PER_TRIP"; fee_zone_code: string; zone_name: string | null;
+  fee_tier_code: string | null; fee_return_pax: number | null; description: string; quantity: number; unit_price: number; line_total: number;
+}
+export const feeRowsStatement = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(FEE_ROWS_BY_ORDER).bind(orderId);
+
+/**
+ * Dòng phí đã lưu của NHIỀU đơn, đủ để tính tiền hiệu lực (Đợt C, Task 5): dịch vụ của chặng, kiểu mức, số người chiều về ĐÃ CHỤP, số lượng, đơn giá, thành tiền. KHÔNG lọc chặng đã
+ * đóng (phí đã chụp theo dòng, không theo chặng — chặng đóng sau xác nhận vẫn giữ dòng phí). Dùng cho phải thu / danh sách / Trang chủ (`getPhiChoHieuLuc`) và công nợ đại lý.
+ */
+const FEE_MONEY_MANY = defineSql(
+  "orders",
+  "fee_money_many",
+  `SELECT i.order_id, l.order_service_id, i.fee_kind, i.fee_return_pax, i.description, i.quantity, i.unit_price, i.line_total
+   FROM order_item i JOIN ord_transfer_leg l ON l.id = i.transfer_leg_id
+   WHERE i.order_id IN (SELECT value FROM json_each(?1)) AND i.line_kind = 'TRANSFER_FEE' ORDER BY i.order_id, i.sort_order`,
+);
+/** `description` = tên dòng «Phí đưa đón — chiều đi/về, <khu vực>» đã lưu — phiếu công nợ in mỗi chặng một dòng với đúng tên này (ADR-0203 ĐB3, cùng tên với biên nhận). */
+export interface FeeMoneyRow { order_id: string; order_service_id: string; fee_kind: "PER_PAX" | "PER_TRIP"; fee_return_pax: number | null; description: string; quantity: number; unit_price: number; line_total: number }
+export async function dongPhiTienNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<FeeMoneyRow[]> {
+  if (orderIds.length === 0) return [];
+  return (await db.prepare(FEE_MONEY_MANY).bind(JSON.stringify([...new Set(orderIds)])).all<FeeMoneyRow>()).results;
+}
+
+/**
+ * CÂU CHỐT của lô xác nhận có câu phí (Đợt C, Task 4; migration 0169 mục 5): chèn vào bảng đổ `ord_xac_nhan_phi_gac` — đơn đã 'confirmed' ⇒ trigger bỏ qua (không lưu dòng);
+ * chưa ⇒ trigger ném `transfer_fee_confirm_lost` ⇒ CẢ lô lui, kể cả câu xoá / chèn dòng phí và câu tiền đứng TRƯỚC câu xác nhận. Phải đứng SAU chuỗi `changes() > 0` của
+ * nhật ký `confirmed` và bản chụp (câu bị bỏ qua để lại `changes() = 0`) — `soanXacNhan` đặt nó CUỐI phần soạn.
+ */
+const ORDER_FEE_CONFIRM_LOCK = defineSql("orders", "order_fee_confirm_lock", `INSERT INTO ord_xac_nhan_phi_gac (order_id) VALUES (?1)`);
+export const chotLoPhiDon = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(ORDER_FEE_CONFIRM_LOCK).bind(orderId);

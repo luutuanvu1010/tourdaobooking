@@ -3982,6 +3982,49 @@ test("R-ORD-T1 + R-ORD-T1w: đơn trước mốc / trong ân hạn thiếu chụ
   assert.deepEqual(hang.map((r) => Object.values(r)), [["TD-o-sat"]], "T1w liệt kê MÃ ĐƠN (order_code), mỗi đơn một dòng");
 });
 
+test("R-ORD-PD-1: dòng phí đưa đón đúng (chặng cùng đơn, thành tiền = số lượng × đơn giá, theo chuyến thì số lượng 1) → 0; mỗi vế lệch → 1; dòng dịch vụ không xét", () => {
+  const c = one("R-ORD-PD-1");
+  assert.equal(c.level, "fail");
+  const db = build();
+  for (const o of ["o-pd", "o-khac"]) addOrder(db, o);
+  db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult) VALUES ('sv-pd', 'o-pd', 0, 'S1', 'Tour', 'perPax', 2)").run();
+  db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult) VALUES ('sv-khac', 'o-khac', 0, 'S1', 'Tour', 'perPax', 2)").run();
+  const chang = (id: string, order: string, svc: string) =>
+    db.prepare(`INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_place, created_at, updated_at) VALUES (?, ?, ?, 'OUT', '2026-12-10', 'KS A', ?, ?)`).run(id, order, svc, T1, T1);
+  chang("l-pd", "o-pd", "sv-pd");
+  chang("l-khac", "o-khac", "sv-khac");
+  db.prepare(`INSERT INTO prc_transfer_fee_rule (id, kind, amount, valid_from_date, valid_to_date, condition_sig, note, created_at, created_by, updated_at, updated_by)
+    VALUES ('r1', 'PER_PAX', 70000, '2026-12-01', NULL, 'ZONE=CR', NULL, ?, NULL, ?, NULL)`).run(T1, T1);
+  // Dòng dịch vụ thường (không xét): quantity × unit_price khớp, không cột phí.
+  db.prepare("INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES ('i-dv', 'o-pd', 'sv-pd', 'Người lớn', 2, 300000, 600000)").run();
+  const phi = (id: string, leg: string, kind: string, qty: number, price: number) =>
+    db.prepare(`INSERT INTO order_item (id, order_id, description, quantity, unit_price, line_total, line_kind, transfer_leg_id, fee_rule_id, fee_kind, fee_zone_code)
+      VALUES (?, 'o-pd', 'Phí đưa đón', ?, ?, ?, 'TRANSFER_FEE', ?, 'r1', ?, 'CR')`).run(id, qty, price, qty * price, leg, kind);
+  phi("f-ok-pax", "l-pd", "PER_PAX", 2, 70000);
+  assert.equal(violations(db, c), 0, "dòng phí đúng ⇒ 0");
+  // Chặng của đơn khác: trigger không chặn (luật do máy chủ giữ) ⇒ kiểm định kỳ bắt.
+  phi("f-sai-don", "l-khac", "PER_PAX", 2, 70000);
+  assert.equal(violations(db, c), 1, "dòng phí trỏ chặng của đơn khác ⇒ 1");
+  db.prepare("DELETE FROM order_item WHERE id = 'f-sai-don'").run();
+  // Mức phí không có thật (cột không có khoá ngoại): lỗi.
+  db.prepare("DELETE FROM order_item WHERE id = 'f-ok-pax'").run(); // mỗi chặng một dòng phí (chỉ mục duy nhất)
+  phi("f-mat-muc", "l-pd", "PER_PAX", 2, 70000);
+  db.prepare("UPDATE order_item SET fee_rule_id = 'khong-co' WHERE id = 'f-mat-muc'").run();
+  assert.equal(violations(db, c), 1, "trỏ mức phí không còn ⇒ 1");
+  db.prepare("DELETE FROM order_item WHERE id = 'f-mat-muc'").run();
+  // Theo chuyến mà số lượng 2: lỗi.
+  db.prepare("DELETE FROM order_item WHERE id = 'f-ok-pax'").run();
+  phi("f-chuyen-2", "l-pd", "PER_TRIP", 2, 100000);
+  assert.equal(violations(db, c), 1, "theo chuyến, số lượng 2 ⇒ 1");
+  db.prepare("DELETE FROM order_item WHERE id = 'f-chuyen-2'").run();
+  phi("f-chuyen-1", "l-pd", "PER_TRIP", 1, 100000);
+  assert.equal(violations(db, c), 0, "theo chuyến, số lượng 1 ⇒ 0");
+  // Thành tiền lệch (gỡ trigger 0007 để dựng ca, như các bài khác): lỗi.
+  db.exec("DROP TRIGGER order_item_money_update");
+  db.prepare("UPDATE order_item SET line_total = 1 WHERE id = 'f-chuyen-1'").run();
+  assert.equal(violations(db, c), 1, "thành tiền khác số lượng × đơn giá ⇒ 1");
+});
+
 test("R-ORD-T1 + R-ORD-T1w: chỉ đơn ĐÃ XÁC NHẬN; T1w bỏ đơn đã Đã giao; mốc xác nhận thiếu lấy ngày tạo (như R-ORD-15); hai bản hiện hành hoặc thiếu hẳn đều là lỗi, bản MANUAL thay AUTO vẫn đúng một", () => {
   const t1 = one("R-ORD-T1");
   const w = one("R-ORD-T1w");
@@ -4739,4 +4782,55 @@ test("R-VC-36 (ADR-0184): xuất bến thiếu giấy tờ phải có dòng cho 
   assert.equal(violations(db, c), 9, "(b) Kiểm định do người ghi trống (hệ thống) — không phải Toàn quyền");
   cho(t, "xe-1", { nguoi: null });
   assert.equal(violations(db, c), 9, "dòng mềm có lý do, người ghi trống: trigger 0147 cho qua nên lưới này cũng không báo");
+});
+
+// ---- Phí đưa đón (ADR-0147 Đ2, ADR-0203 ĐB1; migration 0165): R-PRC-PD-1, R-PRC-PD-2 — lưới THỨ HAI sau trigger / CHECK ----
+test("R-PRC-PD-1/2: dữ liệu sạch → 0; chữ ký lệch dòng con, thiếu ZONE, kiểu ↔ EXCLUSIVE lệch, vừa SERVICE vừa SERVICE_GROUP → vi phạm", () => {
+  const c1 = one("R-PRC-PD-1");
+  const c2 = one("R-PRC-PD-2");
+  assert.equal(c1.level, "fail");
+  assert.equal(c2.level, "fail");
+  const db = build();
+  let k = 0;
+  const muc = (kind: string, sig: string, dks: [string, string][]): string => {
+    const id = `pd-${++k}`;
+    db.prepare("INSERT INTO prc_transfer_fee_rule (id, kind, amount, valid_from_date, valid_to_date, condition_sig, note, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 1000, '2026-12-01', NULL, ?, NULL, ?, NULL, ?, NULL)").run(id, kind, sig, T1, T1);
+    for (const [key, value] of dks) db.prepare("INSERT INTO prc_transfer_fee_condition (rule_id, key_code, value, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, NULL, ?, NULL)").run(id, key, value, T1, T1);
+    return id;
+  };
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [0, 0], "chưa dòng nào");
+  muc("PER_PAX", "TIER=C1|ZONE=CR", [["ZONE", "CR"], ["TIER", "C1"]]);
+  muc("PER_TRIP", "EXCLUSIVE=1|ZONE=TT", [["ZONE", "TT"], ["EXCLUSIVE", "1"]]);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [0, 0], "ca sạch");
+  muc("PER_PAX", "ZONE=BAC|TIER=C9", [["ZONE", "BAC"], ["TIER", "C1"]]);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 0], "chữ ký lệch dòng con");
+  muc("PER_PAX", "TIER=C1", [["TIER", "C1"]]);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 1], "thiếu ZONE");
+  muc("PER_TRIP", "ZONE=TT", [["ZONE", "TT"]]);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 2], "PER_TRIP mà không có EXCLUSIVE");
+  muc("PER_PAX", "EXCLUSIVE=1|ZONE=CR", [["ZONE", "CR"], ["EXCLUSIVE", "1"]]);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 3], "có EXCLUSIVE mà PER_PAX");
+  muc("PER_PAX", "SERVICE=S1|SERVICE_GROUP=G1|ZONE=CR", [["ZONE", "CR"], ["SERVICE", "S1"], ["SERVICE_GROUP", "G1"]]);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 4], "vừa SERVICE vừa SERVICE_GROUP");
+});
+
+// ---- R-PRC-PD-3 (Đợt C, Task 2): khu vực bật chưa có mức chung khi phí đã bật → cảnh báo ----
+test("R-PRC-PD-3: phí chưa bật → 0; đã bật mà thiếu dòng chung → 1 vùng/vi phạm; thêm dòng chung (chỉ ZONE, đi chung) → 0; dòng có thêm điều kiện không tính", () => {
+  const c = one("R-PRC-PD-3");
+  assert.equal(c.level, "warn");
+  const db = build();
+  const vung = Number(db.prepare("SELECT count(*) AS n FROM loc_zone WHERE active = 1").get()!.n);
+  assert.ok(vung >= 1, "CSDL dựng sẵn có ít nhất vùng Ngoài khu vực");
+  assert.equal(violations(db, c), 0, "chưa có ngày bắt đầu áp");
+  db.prepare("INSERT INTO prc_transfer_fee_start (id, start_date, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('s1', '2026-01-01', '2026-01-01T00:00:00.000Z', ?, NULL, ?, NULL)").run(T1, T1);
+  assert.equal(violations(db, c), vung, "phí đã bật mà chưa có mức nào");
+  const muc = (id: string, dks: [string, string][]) => {
+    db.prepare("INSERT INTO prc_transfer_fee_rule (id, kind, amount, valid_from_date, valid_to_date, condition_sig, note, created_at, created_by, updated_at, updated_by) VALUES (?, 'PER_PAX', 1000, '2026-01-01', NULL, ?, NULL, ?, NULL, ?, NULL)").run(id, dks.map(([k, v]) => `${k}=${v}`).sort().join("|"), T1, T1);
+    for (const [k, v] of dks) db.prepare("INSERT INTO prc_transfer_fee_condition (rule_id, key_code, value, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, NULL, ?, NULL)").run(id, k, v, T1, T1);
+  };
+  const ma = String(db.prepare("SELECT code FROM loc_zone WHERE active = 1 ORDER BY code LIMIT 1").get()!.code);
+  muc("pd-a", [["ZONE", ma], ["TIER", "C1"]]);
+  assert.equal(violations(db, c), vung, "dòng có cấp không phải dòng chung");
+  muc("pd-b", [["ZONE", ma]]);
+  assert.equal(violations(db, c), vung - 1, "vùng đã có dòng chung");
 });

@@ -12,7 +12,7 @@ import type {
 import { CATALOG_CODE_RE as CODE_RE, MAX_AMOUNT_VND as MAX_PRICE, PAX_LABEL, PAX_ORDER, parseUnit, type EffectiveService, type PaxCode } from "../../shared/order-lines";
 import { getSyncState, loadAll, loadOne, saveOverride, type StoredItem } from "./repository";
 import { acknowledge, applyOverride, money, patchOverride, toEffective, type OverridePatch } from "./rules";
-import { bootstrapIfNeverSynced, syncCatalog } from "./service";
+import { bootstrapIfNeverSynced, syncCatalog, type BaoTinDongHong } from "./service";
 import {
   danhSachNhom, demDichVuCuaNhom, doiQuyTacDuaDonStatements, ganNhomStatements, lichSuNhom, maDangKhongDon, maNhomMoi, nhomHienHanhTheoMa, nhomTheoMa, quyTacDuaDonCua, quyTacDuaDonTheoMa,
   suaNhom, tenNhomCuaCacMa, themNhom, type NhomRow,
@@ -503,6 +503,6 @@ export const catalogModule: AppModule = {
  * Cron Trigger: đồng bộ Sheet định kỳ dưới tác nhân DONG_BO_DANH_MUC (ADR-0186) — cùng hàm lệnh, cùng cổng với nút; nhật ký mang mã tác nhân, màn Nhật ký
  * vẫn hiện «Hệ thống (tự động)». Lỗi Sheet và bị từ chối chỉ ghi vào trạng thái đồng bộ, không ném ra.
  */
-export async function runScheduledSync(env: Env): Promise<void> {
-  await syncCatalog(env, DONG_BO_DANH_MUC);
+export async function runScheduledSync(env: Env, baoTin?: BaoTinDongHong): Promise<void> {
+  await syncCatalog(env, DONG_BO_DANH_MUC, { baoTin });
 }

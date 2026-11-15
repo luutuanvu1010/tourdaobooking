@@ -1,7 +1,7 @@
 // Cảnh báo sớm LÚC XÁC NHẬN đơn (lời chủ 1/10 "2 — Có"; kế hoạch docs/superpowers/plans/2026-10-01-giao-dien-dua-don-hanh-khach.md mục "Cảnh báo sớm").
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CAU_CAN_NOI_TRA, CAU_XE_RIENG_CHUA_GIA_NHOM, canhBaoXacNhan, cauThieuTen } from "./canh-bao-xac-nhan.ts";
+import { CAU_CAN_NOI_TRA, CAU_XE_RIENG_CHUA_GIA_NHOM, canhBaoXacNhan, cauGiaDanhMucDaDoi, cauThieuTen } from "./canh-bao-xac-nhan.ts";
 import type { LegDto, OrderServiceDto } from "./contracts.ts";
 import { lyDoNoiTra, lyDoThieuTen, soTenThieu } from "./dieu-phoi-kiem.ts";
 
@@ -92,4 +92,11 @@ test("C12: không chặng nào bật Xe riêng → không cảnh báo; đơn v�
 test("C12: câu xe riêng đứng SAU hai câu cũ (nơi trả, tên) — thứ tự cũ giữ nguyên", () => {
   const r = canhBaoXacNhan([svc([leg({ exclusiveVehicle: true, dropoffLocationId: null, dropoffLabel: null })])], ten(0));
   assert.deepEqual(r, [CAU_CAN_NOI_TRA, cauThieuTen(4), CAU_XE_RIENG_CHUA_GIA_NHOM]);
+});
+
+test("T3 (kiểm toán 14/11, Q11): dịch vụ có giá danh mục đã đổi ⇒ câu nhắc đứng ĐẦU, nêu tên dịch vụ, nói đơn giữ giá đã lưu; dịch vụ ok / đã ẩn / không có dấu ⇒ không nhắc", () => {
+  const dv = (catalogStatus: "ok" | "price_changed" | "unavailable" | null | undefined, name = "Tour ba đảo") => ({ pax: { adult: 2, child: 0, senior: 0, infant: 0 }, legs: [], unit: "perPax", name, catalogStatus });
+  assert.deepEqual(canhBaoXacNhan([dv("price_changed")] as never, []), [cauGiaDanhMucDaDoi("Tour ba đảo")]);
+  assert.match(cauGiaDanhMucDaDoi("Tour ba đảo"), /«Tour ba đảo».*giá đã lưu/);
+  assert.deepEqual(canhBaoXacNhan([dv("ok"), dv("unavailable"), dv(null), dv(undefined)] as never, []), []);
 });

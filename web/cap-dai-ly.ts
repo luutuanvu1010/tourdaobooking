@@ -119,6 +119,9 @@ if (!coQuyenSua(staff)) {
   hienLoi(CHU_MAN.chiMoDuoc);
 } else {
   replaceChildren(baoCapEl, CHU_MAN.khongCoCap, " ", h("a", { href: "/hoa-hong" }, CHU_MAN.trangHoaHong), ".");
+  const nhacPhiDonEl = byId("cdl-nhac-phi-don");
+  nhacPhiDonEl.textContent = CHU_MAN.nhacPhiDon;
+  nhacPhiDonEl.hidden = false;
   timEl.addEventListener("input", () => {
     if (tre !== undefined) clearTimeout(tre);
     tre = setTimeout(() => {

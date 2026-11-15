@@ -70,6 +70,9 @@ export interface PhanThuongMai {
   /** Giảm giá HIỆU LỰC của đơn (`OrderDto.giamGiaHieuLuc`, số do `effectiveMoney` trả — cùng số biên nhận in). Billing dùng để tính trần phần của quầy nhà cung cấp SAU giảm
    *  giá bằng CÙNG hàm chia của biên nhận (`chiaPhanNguoiBan`, Ruling R-154). Không vào DTO thương mại (`dungThuongMai` chép theo danh sách trắng). */
   giamGiaHieuLuc: number;
+  /** Σ phí đưa đón HIỆN HÀNH của đơn (Đợt C, Task 5). KHÔNG vào hoa hồng, chia phần người bán hay trần quầy nhà cung cấp; billing chỉ cộng vào thành tiền trước giảm (`gross`) để
+   *  gross − phải thu = giảm giá hiệu lực. Không vào DTO thương mại. */
+  phiDon: number;
   /** Mã dịch vụ mà bản chụp hiện hành là bản GHI TAY (cột `source = 'MANUAL'`); vắng = không dòng nào. */
   ghiTay?: ReadonlySet<string>;
 }

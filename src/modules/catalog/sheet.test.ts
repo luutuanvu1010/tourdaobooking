@@ -75,3 +75,18 @@ test("ADR-0058 Đ7 (NT-A10): bộ đọc Sheet KHÔNG đọc nhóm — cột 'Gh
   const json = JSON.stringify(r.items);
   for (const s of ["Tour đảo\"", "TDA", "Thể thao biển", "\"TTB\"", "group"]) assert.ok(!json.includes(s), `lọt chữ nhóm: ${s}`);
 });
+
+test("TT1: dòng hỏng vẫn trả kèm MÃ dịch vụ khi ô mã đọc được; ô mã hỏng thì không có mã", () => {
+  const r = parseCatalogSheet(
+    csv(
+      "TD1,Tốt,k,d,perPax,100000,,,,,,,",
+      "TD2,Giá sai,k,d,perPax,850k,,,,,,,",
+      "TD3,Thiếu đơn vị,k,d,,100000,,,,,,,",
+      ",Thiếu mã,k,d,perPax,1,,,,,,,",
+      "TD 4 !,Mã sai chữ,k,d,perPax,1,,,,,,,",
+      "TD1,Trùng mã,k,d,perPax,1,,,,,,,",
+    ),
+  );
+  assert.ok(r.ok);
+  assert.deepEqual(r.problems.map((p) => [p.row, p.code ?? null]), [[3, "TD2"], [4, "TD3"], [5, null], [6, null], [7, null]]);
+});

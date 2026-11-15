@@ -1,6 +1,8 @@
 // Khung thử phá: nạp CẢ ứng dụng (src/index.ts: router + mọi module) bằng esbuild, chạy trên D1 giả = SQLite thật (node:sqlite) với schema dựng
 // từ migrations/*.sql. Không mạng, không Turnstile (thiếu TURNSTILE_SECRET_KEY = tắt), không đụng D1 local/remote.
-import { readdirSync, readFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import * as esbuild from "esbuild";
 import { mfaGraceOnCreate } from "../../src/modules/staff/rules.ts";
@@ -9,10 +11,45 @@ import { isExternalPermission } from "../../src/shared/permissions.ts";
 export const ROOT = process.env.AUDIT_ROOT ?? new URL("../../", import.meta.url).pathname;
 const MIG = `${ROOT}/migrations/`;
 
-export function openDb() {
-  const db = new DatabaseSync(":memory:");
-  db.exec("PRAGMA foreign_keys = ON");
+/** Dựng THẲNG một CSDL mới từ migrations/*.sql (chậm: ~0,4–1 giây cho ~150 tệp). Chỉ dùng để dựng bản mẫu, và cho bài khoá bản mẫu so với nó. */
+export function dungTuMigration(duongDan = ":memory:") {
+  const db = new DatabaseSync(duongDan);
+  db.exec("PRAGMA journal_mode = MEMORY; PRAGMA synchronous = OFF; PRAGMA foreign_keys = ON");
   for (const f of readdirSync(MIG).filter((f) => f.endsWith(".sql")).sort()) db.exec(readFileSync(MIG + f, "utf8"));
+  return db;
+}
+
+// Việc 2.5 (kế hoạch 2026-11-15): áp migration chiếm gần hết thời gian của mỗi `world()` (~0,8 giây). Dựng bản mẫu MỘT lần mỗi tiến trình (lần gọi
+// openDb đầu tiên), mỗi lần sau sao chép tệp mẫu (~10 ms). Thư mục tạm dọn khi tiến trình thoát. Mỗi CSDL vẫn là một tệp riêng ⇒ độc lập như `:memory:` cũ
+// (bài khoá: src/khung-thu-ban-mau.test.ts).
+let thuMucTam = null;
+let tepMau = null;
+let soBan = 0;
+function banMau() {
+  if (tepMau) return tepMau;
+  thuMucTam = mkdtempSync(join(tmpdir(), "tourdao-khung-thu-"));
+  process.on("exit", () => {
+    try {
+      rmSync(thuMucTam, { recursive: true, force: true });
+    } catch {
+      /* thoát rồi: không làm gì thêm được */
+    }
+  });
+  const p = join(thuMucTam, "mau.sqlite");
+  dungTuMigration(p).close();
+  tepMau = p;
+  return tepMau;
+}
+
+export function openDb() {
+  const mau = banMau();
+  const dich = join(thuMucTam, `db-${++soBan}.sqlite`);
+  copyFileSync(mau, dich);
+  const db = new DatabaseSync(dich);
+  db.exec("PRAGMA journal_mode = MEMORY; PRAGMA synchronous = OFF; PRAGMA foreign_keys = ON");
+  // Bỏ tên tệp ngay sau khi mở: kết nối giữ tệp tới khi đóng / tiến trình thoát, thư mục tạm không phình theo số world (mỗi bản ~3 MB). Nhật ký ghi
+  // trong bộ nhớ (journal_mode = MEMORY) nên SQLite không cần tạo tệp cạnh tên đã xoá.
+  rmSync(dich, { force: true });
   return db;
 }
 
