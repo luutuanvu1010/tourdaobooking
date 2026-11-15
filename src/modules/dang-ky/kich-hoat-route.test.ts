@@ -173,6 +173,7 @@ test("(4) Quá hạn đặt PIN ⇒ 409 activation_expired TRƯỚC khi kiểm m
   const r2 = await datPin(w, await cookie(id, ident), { ma: await gieoMa(w, email, "553311"), pin: PIN });
   assert.equal(r2.status, 409, r2.text);
   assert.equal(r2.json.error.code, "activation_expired");
+  assert.match(r2.json.error.message, /xin mã mới/, "mã đã bị tiêu trước lô ⇒ câu báo bảo xin mã mới");
   assert.equal(tk(w).active, 0);
   assert.equal(reg(w, id).activated_at, null);
   assert.equal(dt(w, ident).contact_email, "lien-he@example.com");
@@ -186,6 +187,7 @@ test("(5) Câu canh 0 dòng: tài khoản đã bật (khác đường) ⇒ cả 
   const r = await datPin(w, await cookie(id, ident), { ma: await gieoMa(w, email), pin: PIN });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "activation_not_pending");
+  assert.match(r.json.error.message, /xin mã mới/, "lô hỏng sau khi mã đã tiêu ⇒ câu báo bảo xin mã mới");
   assert.equal(n(w, "SELECT count(*) n FROM dk_decision WHERE kind = 'KICH_HOAT'"), 0);
   assert.equal(tk(w).pin_hash, hash);
   assert.equal(reg(w, id).activated_at, null);

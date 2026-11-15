@@ -336,6 +336,15 @@ const SU_KIEN_NGUOI_DANG_KY = defineSql(
 export const suKienNguoiDangKyStatement = (db: D1Database, v: { registrationId: string; identityId: string; command: string; at: string }): D1PreparedStatement =>
   db.prepare(SU_KIEN_NGUOI_DANG_KY).bind(crypto.randomUUID(), v.registrationId, v.identityId, v.command, v.at);
 
+// Hạn phiếu ĐANG ĐIỀN tính từ THAO TÁC cuối (ADR-0206: «quá 7 ngày không thao tác»; đợt 1 Task 9 vòng sửa 1): mọi lệnh ghi của người đăng ký trên phiếu đang điền (lưu nháp, tải tệp)
+// đẩy `expires_at` = lúc thao tác + draft_expire_days, TRONG cùng lô với lệnh đó. Điều kiện trạng thái nằm trong câu (phiếu đã gửi / kết thúc không bị đẩy hạn).
+const KEO_DAI_HAN_NHAP = defineSql(
+  "dang-ky",
+  "registration_touch_draft",
+  "UPDATE dk_registration SET expires_at = ?2 WHERE id = ?1 AND status = 'DANG_DIEN'",
+);
+export const cauKeoDaiHanNhap = (db: D1Database, v: { registrationId: string; expiresAt: string }): D1PreparedStatement => db.prepare(KEO_DAI_HAN_NHAP).bind(v.registrationId, v.expiresAt);
+
 // Đổi loại đối tác: chỉ khi còn sửa được VÀ chưa gửi lần nào (trigger dk_registration_immutable khoá loại sau lần gửi đầu — route kiểm trước, trigger là lớp cuối).
 const LOAI_DOI = defineSql(
   "dang-ky",
@@ -458,7 +467,9 @@ export const cauDuyetPhieu = (db: D1Database, v: { registrationId: string; versi
   db.prepare(DUYET_CAP).bind(v.registrationId, v.version, v.partyId, v.staffId, v.at, v.deadlineAt, v.by);
 
 // Câu 10c — ẨN DANH mọi bản khai của phiếu (ADR-0207 Đ5 câu 9; ADR-0208 Đ6): giá trị đã chép sang hồ sơ nên bản khai không còn giữ; danh tính và email liên lạc (dk_identity) GIỮ tới khi
-// kích hoạt. Đúng dấu mà trigger dk_submission_erase_shape đòi. Ngoại lệ có tên của bài src/xoa-mot-lenh-co-ten.test.ts (2).
+// kích hoạt. Đúng dấu mà trigger dk_submission_erase_shape đòi. Ngoại lệ có tên của bài src/xoa-mot-lenh-co-ten.test.ts (2). HAI người gọi (đợt 1 Task 9 vòng sửa 1): lô duyệt (câu phiếu
+// ĐÃ DUYỆT đứng trước trong lô) và tác nhân dọn phiếu cho phiếu đã kết thúc — khi đó câu CHỈ đổi dòng nếu câu mốc «đã ẩn danh» của CHÍNH lượt này vừa ghi mốc đó (bằng `?2`) lên phiếu
+// (chuỗi trong câu: câu mốc mang điều kiện trạng thái + tuổi; khớp 0 dòng thì câu này cũng 0 dòng).
 const AN_DANH_BAN_KHAI = defineSql(
   "dang-ky",
   "submission_erase_on_approve",
@@ -467,7 +478,8 @@ const AN_DANH_BAN_KHAI = defineSql(
           document_number = CASE WHEN document_number IS NULL THEN NULL ELSE 'XOA' || upper(replace(id, '-', '')) END,
           number_key = CASE WHEN number_key IS NULL THEN NULL ELSE 'XOA' || upper(replace(id, '-', '')) END,
           updated_at = ?2, updated_by = ?3
-   WHERE registration_id = ?1 AND erased_at IS NULL`,
+   WHERE registration_id = ?1 AND erased_at IS NULL
+     AND EXISTS (SELECT 1 FROM dk_registration r WHERE r.id = ?1 AND (r.status = 'DA_DUYET' OR r.erased_at = ?2))`,
 );
 export const cauAnDanhBanKhai = (db: D1Database, v: { registrationId: string; at: string; by: string }): D1PreparedStatement => db.prepare(AN_DANH_BAN_KHAI).bind(v.registrationId, v.at, v.by);
 
@@ -553,7 +565,7 @@ const KICH_HOAT_CAP = defineSql(
 export const cauKichHoatPhieu = (db: D1Database, v: { registrationId: string; at: string; by: string }): D1PreparedStatement => db.prepare(KICH_HOAT_CAP).bind(v.registrationId, v.at, v.by);
 
 // ẨN DANH DANH TÍNH (ADR-0208 Đ6): thay email đã chứng minh bằng dấu, bỏ email liên lạc, đặt mốc — đúng dấu trigger dk_identity_shape đòi. Điều kiện NẰM TRONG câu: chỉ phiếu đã kết thúc
-// (TỪ CHỐI, ĐÃ RÚT, HẾT HẠN), hoặc ĐÃ DUYỆT mà đã kích hoạt (lô kích hoạt) hay đã quá hạn kích hoạt CỘNG ân hạn (`?4` = bây giờ − activation_grace_days; tác nhân) — danh tính của phiếu
+// (TỪ CHỐI, ĐÃ RÚT, HẾT HẠN) mà câu mốc «đã ẩn danh» của CHÍNH lượt này vừa ghi mốc đó bằng `?2` (chuỗi với điều kiện tuổi của câu mốc — vòng sửa 1), hoặc ĐÃ DUYỆT mà đã kích hoạt (lô kích hoạt) hay đã quá hạn kích hoạt CỘNG ân hạn (`?4` = bây giờ − activation_grace_days; tác nhân) — danh tính của phiếu
 // đang sống, và của phiếu còn trong ân hạn (Nhân sự còn gửi lại lời mời được), không bao giờ bị xoá qua câu này.
 // Ngoại lệ có tên của bài src/xoa-mot-lenh-co-ten.test.ts (2b), chờ chủ duyệt.
 const AN_DANH_DANH_TINH = defineSql(
@@ -562,7 +574,7 @@ const AN_DANH_DANH_TINH = defineSql(
   `UPDATE dk_identity SET erased_at = ?2, subject = 'XOA' || upper(replace(id, '-', '')), contact_email = NULL, is_open = 0, updated_at = ?2, updated_by = ?3
    WHERE registration_id = ?1 AND erased_at IS NULL
      AND EXISTS (SELECT 1 FROM dk_registration r WHERE r.id = ?1
-                   AND (r.status IN ('TU_CHOI', 'DA_RUT', 'HET_HAN') OR (r.status = 'DA_DUYET' AND (r.activated_at IS NOT NULL OR r.activation_deadline_at < ?4))))`,
+                   AND ((r.status IN ('TU_CHOI', 'DA_RUT', 'HET_HAN') AND r.erased_at = ?2) OR (r.status = 'DA_DUYET' AND (r.activated_at IS NOT NULL OR r.activation_deadline_at < ?4))))`,
 );
 export const cauAnDanhDanhTinh = (db: D1Database, v: { registrationId: string; at: string; by: string; mocAnHan: string }): D1PreparedStatement =>
   db.prepare(AN_DANH_DANH_TINH).bind(v.registrationId, v.at, v.by, v.mocAnHan);

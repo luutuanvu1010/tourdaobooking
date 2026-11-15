@@ -26,7 +26,7 @@ const KHONG_CON_CHO = () => error(409, "registration_state_changed", "Phiếu v�
 const DOI_PHIEN_BAN = () => error(409, "registration_version_changed", "Phiếu đã thay đổi từ lúc bạn mở. Hãy mở lại phiếu để xem bản mới.");
 const NGAY_MS = 24 * 3600 * 1000;
 const DANH_TINH_DA_AN = () =>
-  error(409, "registration_identity_erased", "Đã quá hạn đặt mã PIN và thông tin liên lạc của người đăng ký đã được xoá, nên không gửi lại lời mời được. Người này cần đăng ký lại.");
+  error(409, "registration_identity_erased", "Đã quá hạn đặt mã PIN và cả thời gian chờ thêm, nên thông tin liên lạc của người đăng ký đã được xoá và không gửi lại lời mời được nữa. Tài khoản vẫn tắt; hãy báo Toàn quyền quyết định cách xử lý.");
 
 const idPhieu = (params: Record<string, string>): string | null => (laMaPhieu(params.id) ? params.id! : null);
 

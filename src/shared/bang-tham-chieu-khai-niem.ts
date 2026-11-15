@@ -375,12 +375,12 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Câu báo lỗi của bước đặt mã PIN (kích hoạt)",
-    giaiNghia: "Các câu máy chủ trả khi người được duyệt chưa đặt được mã PIN: phiếu không còn chờ đặt mã PIN (đã đặt rồi thì vào màn Đăng nhập); đã quá hạn đặt mã PIN (liên hệ Tour Đảo để được gửi lại lời mời); và câu cho Nhân sự khi bấm gửi lại lời mời mà thông tin liên lạc của người đăng ký đã bị xoá vì quá hạn (người này cần đăng ký lại).",
+    giaiNghia: "Các câu máy chủ trả khi người được duyệt chưa đặt được mã PIN: phiếu không còn chờ đặt mã PIN (đã đặt rồi thì vào màn Đăng nhập); đã quá hạn đặt mã PIN (liên hệ Tour Đảo để được gửi lại lời mời); khi lỗi xảy ra sau lúc mã xác nhận đã được dùng, câu báo thêm «hãy xin mã mới». Câu cho Nhân sự khi bấm gửi lại lời mời mà đã quá hạn và cả thời gian chờ thêm, thông tin liên lạc của người đăng ký đã bị xoá: không gửi lại lời mời được nữa, tài khoản vẫn tắt, báo Toàn quyền quyết định (không hứa đăng ký lại, vì số điện thoại còn thuộc tài khoản tắt — chờ chủ quyết cách xử lý tài khoản).",
     khacVoi: "Khác câu «mã không đúng hoặc đã hết hạn» của bước nhập mã: câu đó dùng chung cho cả bước đặt mã PIN.",
     chuDaLoai: [],
     maNoiBo: ["activation_not_pending", "activation_expired", "registration_identity_erased"],
     trangThai: "cho-chon",
-    chuChon: "AI viết các câu 2026-11-15 (đợt 1 Task 9), chờ chủ chọn tên",
+    chuChon: "AI viết các câu 2026-11-15 (đợt 1 Task 9, sửa vòng 1), chờ chủ chọn tên",
   }),
   KN({
     ten: "Công việc tại đâu",

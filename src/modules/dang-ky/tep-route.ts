@@ -9,7 +9,7 @@ import { cauTepChoMoi, datKhoTepCho, demTepChoCuaPhieu, timTepChoTrung, trangTha
 import { chanNguoiKhongTaiKhoan } from "../../shared/maintenance.ts";
 import { getMaintenanceState, maintenanceResponse } from "../maintenance";
 import { cookiePhienDangKy, dkTepIpKey, docPhienDangKy, taoPhienDangKy } from "./phien.ts";
-import { chinhSachHienHanh, datChoTepMang, phieuCuaPhien, suKienThemTepStatement } from "./repository.ts";
+import { cauKeoDaiHanNhap, chinhSachHienHanh, datChoTepMang, phieuCuaPhien, suKienThemTepStatement } from "./repository.ts";
 import { TRANG_THAI_CHO_TAI_TEP, kiemTepPhieu, laOTepPhieu, tranThanTep, type TrangThai } from "./rules.ts";
 
 const HAN_TEP_MANG_MS = 3_600_000;
@@ -40,9 +40,12 @@ export async function taiTepPhieu({ request, env }: Ctx<"public">): Promise<Resp
   const bam = await bamSha256(k.bytes);
   const slot = body.o;
 
+  // Tải tệp là một thao tác: đẩy hạn phiếu đang điền (ADR-0206 «quá 7 ngày không thao tác»; câu tự canh trạng thái ĐANG ĐIỀN).
+  const keoDaiHan = cauKeoDaiHanNhap(env.DB, { registrationId: phieu.id, expiresAt: new Date(nowMs + chinhSach.draft_expire_days * 86_400_000).toISOString() });
   const trung = await timTepChoTrung(env.DB, phieu.id, slot, bam);
   if (trung) {
     // Bấm hai lần, hoặc gửi lại sau «tải dở dang»: không thêm dòng, không tốn lượt theo địa chỉ mạng. Chưa lưu thì đặt kho lại đúng khoá cũ.
+    await env.DB.batch([keoDaiHan]);
     if (!trung.daLuu) await datKhoTepCho(env, trung.id, trung.storageKey, k.bytes);
   } else {
     // Chỉ tệp đã qua mọi kiểm tra mới tốn lượt theo địa chỉ mạng.
@@ -51,11 +54,11 @@ export async function taiTepPhieu({ request, env }: Ctx<"public">): Promise<Resp
       return error(429, "too_many_uploads", "Đã tải quá nhiều tệp trong một giờ. Hãy thử lại sau.");
     }
     const moi = cauTepChoMoi(env.DB, { registrationId: phieu.id, slot, contentKind: k.loai, byteSize: k.bytes.length, contentHash: bam, actorRef: phien.identityId, toiDaMoiPhieu: chinhSach.photo_max_count }, at);
-    // Thứ tự CỐ ĐỊNH: [chèn tệp, dòng lịch sử (đọc changes() của câu chèn; trigger canh trạng thái phiếu), gỡ tệp cũ cùng ô].
+    // Thứ tự CỐ ĐỊNH: [chèn tệp, dòng lịch sử (đọc changes() của câu chèn; trigger canh trạng thái phiếu), gỡ tệp cũ cùng ô, đẩy hạn phiếu đang điền (thao tác cuối — vòng sửa 1 Task 9)].
     const [chen, goCu] = moi.statements as [D1PreparedStatement, D1PreparedStatement];
     let kq: D1Result[];
     try {
-      kq = await env.DB.batch([chen, suKienThemTepStatement(env.DB, { registrationId: phieu.id, identityId: phien.identityId, at }), goCu]);
+      kq = await env.DB.batch([chen, suKienThemTepStatement(env.DB, { registrationId: phieu.id, identityId: phien.identityId, at }), goCu, keoDaiHan]);
     } catch (e) {
       if (/dk_event_tep_status/.test(e instanceof Error ? e.message : "")) return error(409, "registration_not_editable", "Phiếu này không còn nhận thêm tệp.");
       throw e;

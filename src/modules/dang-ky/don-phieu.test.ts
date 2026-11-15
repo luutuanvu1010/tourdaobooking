@@ -3,6 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as P from "../../shared/permissions.ts";
+import { DK_COOKIE, taoPhienDangKy } from "./phien.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { app, world, seedStaff } from "../../../tests/audit/harness.mjs";
 
@@ -155,6 +156,8 @@ test("(4) Phiếu ĐÃ DUYỆT quá hạn đặt PIN + ÂN HẠN (activation_gra
   const r = await w.call("POST", `/api/dang-ky/phieu/${a.id}/gui-lai-loi-moi`, { as: HR });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "registration_identity_erased");
+  assert.doesNotMatch(r.json.error.message, /đăng ký lại/, "không hứa đăng ký lại (số điện thoại còn thuộc tài khoản tắt)");
+  assert.match(r.json.error.message, /Toàn quyền/);
   assert.equal(reg(w, a.id).activation_deadline_at, han, "không mở lại hạn");
   assert.equal(n(w, "SELECT count(*) n FROM audit_log WHERE action = 'registration_invite_resent'"), 0);
   assert.equal((await w.call("POST", `/api/dang-ky/phieu/${giu.id}/gui-lai-loi-moi`, { as: HR })).status, 200, "phiếu còn danh tính: gửi lại được");
@@ -300,4 +303,42 @@ test("(13) Ân hạn sau hạn đặt PIN (phán quyết điều phối 15/11): 
   assert.equal(r.status, 200, r.text);
   assert.ok(Date.parse(reg(w, a.id).activation_deadline_at) >= truocMs + 14 * NGAY - 1000, "hạn mới = bây giờ + activation_days");
   assert.equal(n(w, "SELECT count(*) n FROM audit_log WHERE action = 'registration_invite_resent'"), 1);
+});
+
+test("(14) Hạn phiếu đang điền tính từ THAO TÁC cuối (ADR-0206: «quá 7 ngày không thao tác»): mở ngày 0, lưu nháp (PUT) ngày 6 / tải tệp ngày 6 ⇒ ngày 8 vẫn ĐANG ĐIỀN; không thao tác ⇒ ngày 8 HẾT HẠN", async () => {
+  const w = setup();
+  // Ngày 0 = 6 ngày trước «bây giờ»; mốc hạn gieo như lúc mở (ngày 0 + 7 ngày). Thao tác chạy «bây giờ» (= ngày 6); tác nhân chạy ngày 8.
+  const mo = (): ReturnType<typeof phieu> => phieu(w, "DANG_DIEN", { taoLuc: new Date(Date.now() - 6 * NGAY).toISOString(), hetHanLuc: new Date(Date.now() + NGAY).toISOString() });
+  const luu = mo();
+  const tai = mo();
+  const khong = mo();
+  const ck = async (x: { id: string; ident: string }) => `${DK_COOKIE}=${await taoPhienDangKy(w.env.SESSION_SECRET, x.id, x.ident, Date.now())}`;
+  const r1 = await w.call("PUT", "/api/dang-ky/phieu", { body: { loai: "GUIDE_FREELANCE" }, headers: { cookie: await ck(luu) } });
+  assert.equal(r1.status, 200, r1.text);
+  const than = { o: "CCCD_MAT_TRUOC", noiDung: Buffer.from(new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 7, 7, 7])).toString("base64") };
+  const r2 = await w.call("POST", "/api/dang-ky/phieu/tep", { body: than, headers: { cookie: await ck(tai), "content-length": String(Buffer.byteLength(JSON.stringify(than))) } });
+  assert.equal(r2.status, 200, r2.text);
+  const ngay8 = new Date(Date.now() + 2 * NGAY);
+  const kq = await chay(w, TAC_NHAN, ngay8);
+  assert.equal(kq.hetHan, 1, "chỉ phiếu không thao tác hết hạn");
+  assert.equal(reg(w, luu.id).status, "DANG_DIEN", "lưu nháp ngày 6 đẩy hạn");
+  assert.equal(reg(w, tai.id).status, "DANG_DIEN", "tải tệp ngày 6 đẩy hạn");
+  assert.equal(reg(w, khong.id).status, "HET_HAN");
+});
+
+test("(15) Lô ẩn danh phiếu đã kết thúc tự canh TRONG câu: câu mốc «đã ẩn danh» khớp 0 dòng (phiếu chưa đủ tuổi) ⇒ hai câu xoá (bản khai, danh tính) cũng 0 dòng, kể cả gọi thẳng", async () => {
+  const w = setup();
+  const { cauDanhDauAnDanh, cauAnDanhBanKhai, cauAnDanhDanhTinh } = await import("./repository.ts");
+  const x = phieu(w, "TU_CHOI", { quyetLuc: truoc(29 * NGAY), banKhai: true });
+  const at = BAY_GIO.toISOString();
+  const moc = truoc(30 * NGAY);
+  const kq = await w.env.DB.batch([
+    cauDanhDauAnDanh(w.env.DB, { registrationId: x.id, at, moc, by: "DON_PHIEU_DANG_KY" }),
+    cauAnDanhBanKhai(w.env.DB, { registrationId: x.id, at, by: "DON_PHIEU_DANG_KY" }),
+    cauAnDanhDanhTinh(w.env.DB, { registrationId: x.id, at, by: "DON_PHIEU_DANG_KY", mocAnHan: moc }),
+  ]);
+  assert.deepEqual(kq.map((r: any) => r.meta.changes), [0, 0, 0], "phiếu 29 ngày: không câu nào đổi dòng");
+  assert.equal(bk(w, x.id).given_name, "Thử");
+  assert.equal(dt(w, x.ident).contact_email, x.email);
+  assert.equal(reg(w, x.id).erased_at, null);
 });

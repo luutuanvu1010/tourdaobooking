@@ -66,7 +66,8 @@ export async function donPhieuDangKy(env: Env, nguoiChay: PermissionHolder, homN
   // Việc 2 — ẩn danh.
   if (cs && can(nguoiChay, "registration.agent.purge")) {
     try {
-      // 2a: phiếu đã kết thúc không được duyệt, quá số ngày. Lô: [mốc đã ẩn danh (điều kiện TRONG câu), lịch sử (changes() > 0), bản khai, danh tính] — hai câu cuối tự canh trạng thái.
+      // 2a: phiếu đã kết thúc không được duyệt, quá số ngày. Lô: [mốc đã ẩn danh (điều kiện trạng thái + tuổi TRONG câu), lịch sử (changes() > 0), bản khai, danh tính]. Hai câu xoá
+      // CHUỖI TRONG CÂU vào câu mốc: chỉ đổi dòng khi mốc «đã ẩn danh» của phiếu = đúng mốc `at` của lượt này (câu mốc khớp 0 dòng ⇒ cả hai cũng 0 dòng). Câu bản khai là câu của lô duyệt dùng lại.
       const moc = new Date(nowMs - cs.anonymize_days * NGAY_MS).toISOString();
       const mocAnHan = new Date(nowMs - cs.activation_grace_days * NGAY_MS).toISOString();
       for (const id of await phieuCanAnDanh(env.DB, moc, TOI_DA_MOI_LUOT)) {
@@ -76,7 +77,7 @@ export async function donPhieuDangKy(env: Env, nguoiChay: PermissionHolder, homN
           cauAnDanhBanKhai(env.DB, { registrationId: id, at, by }),
           cauAnDanhDanhTinh(env.DB, { registrationId: id, at, by, mocAnHan }),
         ]);
-        if ([r[0], r[2], r[3]].some((x) => (x?.meta.changes ?? 0) > 0)) kq.anDanh++;
+        if ((r[0]?.meta.changes ?? 0) > 0) kq.anDanh++;
       }
       // 2b: phiếu ĐÃ DUYỆT, chưa kích hoạt, quá hạn đặt PIN + ân hạn `activation_grace_days` ⇒ ẩn danh danh tính (tài khoản vẫn tắt; «gửi lại lời mời» từ đây trả 409).
       // Trong ân hạn danh tính còn: Nhân sự gửi lại lời mời được (phán quyết điều phối 15/11, chủ xác nhận sau).

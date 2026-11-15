@@ -23,11 +23,16 @@ const KHONG_CHO_KICH_HOAT = (): Response =>
   error(409, "activation_not_pending", "Phiếu này không còn chờ đặt mã PIN. Nếu bạn đã đặt mã PIN, hãy vào màn Đăng nhập.");
 const QUA_HAN = (): Response => error(409, "activation_expired", "Đã quá hạn đặt mã PIN. Hãy liên hệ Tour Đảo để được gửi lại lời mời.");
 
-/** Lỗi của lô kích hoạt do câu chốt / câu canh / chỉ mục một-lần — map sang 409; lỗi lạ ⇒ null (ném lên, 500 có mã yêu cầu). */
+/** Câu thêm khi lô hỏng SAU khi mã email đã bị tiêu (mã không dùng lại được). */
+const XIN_MA_MOI = " Mã xác nhận vừa nhập đã dùng rồi; nếu cần thử lại, hãy xin mã mới.";
+
+/** Lỗi của lô kích hoạt do câu chốt / câu canh / chỉ mục một-lần — map sang 409 (mã đã tiêu ⇒ câu báo bảo xin mã mới); lỗi lạ ⇒ null (ném lên, 500 có mã yêu cầu). */
 function loiLoKichHoat(e: unknown): Response | null {
   const m = e instanceof Error ? e.message : "";
-  if (/dk_activation_late/.test(m)) return QUA_HAN();
-  if (/dk_activation_state|dk_activation_done|dk_activation_account|UNIQUE constraint failed: dk_decision/.test(m)) return KHONG_CHO_KICH_HOAT();
+  if (/dk_activation_late/.test(m)) return error(409, "activation_expired", `Đã quá hạn đặt mã PIN. Hãy liên hệ Tour Đảo để được gửi lại lời mời.${XIN_MA_MOI}`);
+  if (/dk_activation_state|dk_activation_done|dk_activation_account|UNIQUE constraint failed: dk_decision/.test(m)) {
+    return error(409, "activation_not_pending", `Phiếu này không còn chờ đặt mã PIN. Nếu bạn đã đặt mã PIN, hãy vào màn Đăng nhập.${XIN_MA_MOI}`);
+  }
   return null;
 }
 

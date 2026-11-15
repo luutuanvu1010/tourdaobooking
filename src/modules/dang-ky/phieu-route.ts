@@ -18,7 +18,7 @@ import {
 } from "../parties";
 import { cookiePhienDangKy, docPhienDangKy, taoPhienDangKy } from "./phien.ts";
 import {
-  banKhaiTruoc, chinhSachHienHanh, chinhSachRiengTuHienHanh, doiLoaiStatement, guiChenStatement, guiTienStatement, mucRiengCuaPhieu, phieuDeXem, rutStatement, suKienNguoiDangKyStatement,
+  banKhaiTruoc, cauKeoDaiHanNhap, chinhSachHienHanh, chinhSachRiengTuHienHanh, doiLoaiStatement, guiChenStatement, guiTienStatement, mucRiengCuaPhieu, phieuDeXem, rutStatement, suKienNguoiDangKyStatement,
   type BanKhaiMoi, type ChinhSachDangKyRow, type PhieuDeXemRow,
 } from "./repository.ts";
 import { dsLoaiMo, mucChuaDapUng, type DuLieuKiemMuc } from "./rules.ts";
@@ -107,7 +107,10 @@ export async function luuNhapPhieu(ctx: Ctx<"public">): Promise<Response> {
   if (typeof loai !== "string" || !dsLoaiMo(v.chinhSach.open_role_codes).includes(loai)) return error(400, "invalid_input", CAU_PHIEU.loaiDong);
   const { env } = ctx;
   const { registrationId, identityId } = v.phien;
-  if (loai !== v.phieu.role_code) {
+  // Lưu nháp là một thao tác: đẩy hạn phiếu đang điền (câu tự canh trạng thái ĐANG ĐIỀN), cùng lô với đổi loại nếu có.
+  const keoDaiHan = cauKeoDaiHanNhap(env.DB, { registrationId, expiresAt: new Date(v.nowMs + v.chinhSach.draft_expire_days * 86_400_000).toISOString() });
+  if (loai === v.phieu.role_code) await env.DB.batch([keoDaiHan]);
+  else {
     // Loại khoá sau lần gửi đầu (trigger dk_registration_immutable): báo trước bằng 409, không để trigger làm hỏng lô.
     if (v.phieu.current_version > 0) return error(409, "role_locked", CAU_PHIEU.loaiKhoa);
     let kq: D1Result[];
@@ -115,6 +118,7 @@ export async function luuNhapPhieu(ctx: Ctx<"public">): Promise<Response> {
       kq = await env.DB.batch([
         doiLoaiStatement(env.DB, { registrationId, role: loai, identityId, at: v.at }),
         suKienNguoiDangKyStatement(env.DB, { registrationId, identityId, command: "LUU_NHAP", at: v.at }),
+        keoDaiHan,
       ]);
     } catch (e) {
       if (/dk_registration_immutable/.test(e instanceof Error ? e.message : "")) return error(409, "role_locked", CAU_PHIEU.loaiKhoa);
