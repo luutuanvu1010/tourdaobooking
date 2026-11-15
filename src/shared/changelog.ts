@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sau Phí đưa đón Đợt C (chủ chốt bốn câu chờ 15/11, «ok theo khuyến nghị»): câu báo trần giảm giá nói đúng «tiền dịch vụ».
+    // SỐ TẠM 3.10: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.10",
+    date: "2026-11-15",
+    items: [
+      { kind: "sua", text: "Câu báo khi giảm giá quá mức nay ghi «Giảm giá không được vượt quá tiền dịch vụ.», vì tạm tính trên đơn đã gồm phí đưa đón mà giảm giá không trừ vào phí." },
+    ],
+  },
+  {
     // Phí đưa đón, Đợt C (ADR-0147 Đ3, ADR-0203 ĐB2–ĐB3; 15/11): migration 0169; phí chỉ chạy khi Quản trị đặt «ngày bắt đầu áp» (Đợt D).
     // Sổ: docs/superpowers/plans/2026-11-15-phi-don-dot-c-thi-cong-nhat-ky.md. SỐ TẠM 3.9: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.9",

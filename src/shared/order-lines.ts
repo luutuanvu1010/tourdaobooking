@@ -11,6 +11,8 @@ export type PaxCounts = Record<PaxCode, number>;
 
 /** Trần mọi số tiền VNĐ (100 tỷ) — chặn số phi lý, giữ mọi phép cộng/nhân trong số nguyên an toàn. */
 export const MAX_AMOUNT_VND = 100_000_000_000;
+/** Câu báo khi giảm giá vượt trần (Phí đưa đón Đợt C, chủ chốt 15/11): trần là tiền dịch vụ, vì «Tạm tính» trên đơn nay gồm phí đưa đón. MỘT câu cho máy chủ và biểu mẫu. */
+export const CAU_GIAM_GIA_VUOT_TIEN_DICH_VU = "Giảm giá không được vượt quá tiền dịch vụ.";
 
 /** Trần số khách của MỘT dịch vụ trong đơn (tổng các loại). Nguồn duy nhất: luật máy chủ, `buildLines` và giao diện cùng dùng. */
 export const MAX_GUESTS_PER_SERVICE = 50;

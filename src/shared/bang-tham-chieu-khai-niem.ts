@@ -969,6 +969,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuChon: "2026-11-14 (chủ dự án: «Dùng tên đó, làm đi» — tên màn hình; dùng lại làm tên dòng phí trên đơn và biên nhận, kế hoạch Đợt C)",
   }),
   KN({
+    ten: "tiền dịch vụ",
+    giaiNghia: "Tổng tiền các dòng dịch vụ của đơn, chưa gồm phí đưa đón. Giảm giá của đơn tối đa bằng số này.",
+    khacVoi: "Khác «Tạm tính»: tạm tính trên đơn và biên nhận gồm cả phí đưa đón; tiền dịch vụ thì không. (Tạm tính xem trước trên biểu mẫu lập đơn chỉ có tiền dịch vụ vì phí tính khi lưu.)",
+    chuDaLoai: [],
+    maNoiBo: ["CAU_GIAM_GIA_VUOT_TIEN_DICH_VU", "validateOrder"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-15 (chủ dự án «ok theo khuyến nghị», câu chờ 2 của nhật ký Phí đưa đón Đợt C)",
+  }),
+  KN({
     ten: "Miễn phí",
     giaiNghia: "Chữ in thay số tiền cho một dòng phí đưa đón có mức 0 đồng được Quản trị đặt rõ.",
     khacVoi: "Khác «chưa có mức»: thiếu mức thì đơn không xác nhận được, không bao giờ hiện «Miễn phí». Dòng phí còn 0 khách trả tiền (dịch vụ sửa còn toàn em bé) mà mức khác 0 thì in đúng 0 đồng, không gọi là miễn phí.",

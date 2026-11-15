@@ -61,6 +61,8 @@ test("số tiền phải là số nguyên không âm, không nhận chuỗi/th�
 
 test("giảm giá ≤ tạm tính", () => {
   assert.match(message({ ...base, discount: 1400001 }), /Giảm giá/);
+  // Phí đưa đón Đợt C, chủ chốt 15/11 («ok theo khuyến nghị»): trần giảm giá là tiền dịch vụ (tạm tính trên đơn nay gồm phí đưa đón) — câu nói đúng trần.
+  assert.equal(message({ ...base, discount: 1400001 }), "Giảm giá không được vượt quá tiền dịch vụ.");
   assert.equal(ok({ ...base, discount: 1400000 }).total, 0);
 });
 
