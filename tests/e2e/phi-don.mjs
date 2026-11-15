@@ -7,7 +7,8 @@
 //   (5) đặt ngày bắt đầu áp: khu vực đang bật thiếu mức chung → 409 nêu TÊN khu vực; đủ mức thì 200; mốc đọc cũ → 409; khi đang áp không kết thúc được
 //       mức chung cuối của khu vực (409) nhưng ĐỔI mức chung bằng `thayCho` vẫn được;
 //   (6) nhật ký: có dòng theo từng lần ghi, không lộ số điện thoại;
-//   (7) tiêu chí «chưa đơn nào bị đổi tiền» (Đợt C chưa có): với phí ĐANG ÁP, đơn có chặng đưa đón đã xác nhận vẫn không có dòng phí nào và tổng tiền như đơn không chặng.
+//   (7) từ Đợt C (Task 3, sửa có chủ đích tiêu chí cũ «chưa đơn nào bị đổi tiền»): với phí ĐANG ÁP, đơn có chặng đưa đón mang MỘT dòng phí (cộng vào tạm tính, không lẫn
+//       vào dòng dịch vụ); đơn không chặng không có phí; dòng dịch vụ của hai đơn như nhau.
 // Dữ liệu dùng một lần: khu vực đón và cấp đại lý mang hậu tố theo Date.now(); mọi ngày của bảng phí rơi vào QUÁ KHỨ xa (từ 2000, mỗi lần chạy sau lần trước ≥ 40 ngày) nên không đụng
 // ngày nào của đơn thật và mức của lần chạy trước không chồng ngày với lần này. Ở `finally`: ĐẶT LẠI ngày bắt đầu áp = tắt, kết thúc mọi mức đã thêm (bảng chỉ
 // thêm, không xoá), đưa địa điểm thử ra khỏi khu vực rồi ngưng khu vực thử — để kịch bản sau trên D1 chung không bị «khu vực đang bật thiếu mức chung» chặn.
@@ -237,8 +238,8 @@ try {
   assert.equal((await thuTra({ ...base, cap: CAP, ngay: D30, chieu: "RETURN" })).body.ketQua.tien, 105_000, "chiều về không khớp dòng nêu chiều đi ⇒ rơi về mức chung");
   console.log("✓ (5c) mức nhiều điều kiện thắng theo bậc");
 
-  // ---- (7) chưa đơn nào bị đổi tiền (phí đang áp từ quá khứ xa; Đợt C chưa có)
-  // Điều kiện đầu của (7): phí ĐANG ÁP và mức khu vực thử đúng 35.000 ngay hôm nay — thiếu một trong hai thì phép so «không dòng phí» thành vô nghĩa (đổi thứ tự kịch bản không được làm nó rỗng).
+  // ---- (7) phí đang áp (từ quá khứ xa): đơn có chặng mang dòng phí, đơn không chặng thì không (Đợt C, Task 3 — trước Đợt C tiêu chí này là «không dòng phí nào»)
+  // Điều kiện đầu của (7): phí ĐANG ÁP và mức khu vực thử đúng 35.000 ngay hôm nay — thiếu một trong hai thì phép so thành vô nghĩa (đổi thứ tự kịch bản không được làm nó rỗng).
   const apNay = (await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp;
   assert.ok(apNay.ngay !== null && apNay.ngay <= vnDate(0), `phí phải đang áp trước khi lập đơn (ngày áp: ${apNay.ngay})`);
   r = await thuTra({ ...base, ngay: vnDate(0) });
@@ -256,12 +257,15 @@ try {
   const lay = async (id) => (await call(SALES, "GET", `/api/orders/${id}`)).body.order;
   const [a, b] = [await lay(coChang.id), await lay(khongChang.id)];
   assert.equal(a.status, "confirmed");
-  assert.equal(a.total, 200_000, "2 người lớn × 100.000₫, không cộng phí đưa đón");
-  assert.equal(a.total, b.total, "tổng tiền đơn có chặng = đơn không chặng");
-  assert.equal(a.subtotal, b.subtotal);
-  assert.equal(a.services[0].items.length, b.services[0].items.length, "không sinh thêm dòng phí nào");
+  assert.equal(b.total, 200_000, "2 người lớn × 100.000₫");
+  assert.equal(a.total, b.total + 70_000, "đơn có chặng = dịch vụ + phí đưa đón 2 × 35.000₫");
+  assert.equal(a.subtotal, b.subtotal + 70_000);
+  assert.deepEqual(a.phiDuaDon?.dong.map((d) => [d.zoneCode, d.direction, d.quantity, d.unitPrice, d.lineTotal]), [[ZONE, "OUT", 2, 35_000, 70_000]], "một dòng phí của chặng chiều đi");
+  assert.equal(a.phiDuaDon.duKien, false, "đơn đã xác nhận: phí không còn «dự kiến»");
+  assert.equal(b.phiDuaDon, null, "đơn không chặng: không phí");
+  assert.equal(a.services[0].items.length, b.services[0].items.length, "dòng phí không lẫn vào dòng dịch vụ");
   assert.deepEqual(a.services[0].items.map((i) => i.lineTotal), b.services[0].items.map((i) => i.lineTotal));
-  console.log("✓ (7) phí đang áp mà đơn có chặng đã xác nhận vẫn không có dòng phí, tổng tiền như đơn không chặng");
+  console.log("✓ (7) phí đang áp: đơn có chặng mang một dòng phí cộng vào tạm tính, đơn không chặng không phí, dòng dịch vụ như nhau");
 
   // ---- (6) nhật ký
   r = await call(TOAN_QUYEN, "GET", "/api/audit?action=prc_transfer_fee_added&limit=100");

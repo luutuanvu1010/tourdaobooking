@@ -417,6 +417,35 @@ export interface OrderDto {
   deliveredAt: string | null;
   /** Mốc "Hoàn thành" (Kế toán). */
   completedAt: string | null;
+  /**
+   * Phí đưa đón của đơn (Đợt C, ADR-0147, ADR-0203). null = phí chưa áp (chưa bật / trước ngày bắt đầu áp) và đơn không có dòng phí nào. `dong` đọc từ dòng phí ĐÃ LƯU
+   * trên đơn (đã cộng vào `subtotal`), không từ chặng đang mở. `thieu` chỉ có ở đơn nháp: chặng chưa tính được phí (tính lúc đọc). `duKien` = đơn còn nháp (chữ «dự kiến»).
+   */
+  phiDuaDon: PhiDuaDonCuaDonDto | null;
+}
+
+/** Lý do một chặng chưa tính được phí đưa đón (trùng chữ `ly_do` của sổ vàng golden/phi-dua-don.json; câu báo do Task 4 / giao diện dựng). */
+export type LyDoThieuPhiDonDto = "KHONG_CO_MUC" | "XUNG_DOT" | "DAI_LY_HAI_CAP";
+/** Một dòng phí đưa đón đã lưu trên đơn (một chặng tối đa một dòng). */
+export interface PhiDuaDonDto {
+  id: string;
+  legId: string;
+  serviceId: string;
+  direction: "OUT" | "RETURN";
+  zoneCode: string;
+  zoneName: string;
+  /** Cấp đại lý của mức đã dùng; null = mức không có cấp. */
+  tierCode: string | null;
+  kind: "PER_PAX" | "PER_TRIP";
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  description: string;
+}
+export interface PhiDuaDonCuaDonDto {
+  dong: PhiDuaDonDto[];
+  thieu: { legId: string; zoneName: string; lyDo: LyDoThieuPhiDonDto }[];
+  duKien: boolean;
 }
 
 export interface OrderDetailDto extends OrderDto {
