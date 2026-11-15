@@ -124,7 +124,7 @@ test("Review Focus 2: DTO 'Hồ sơ của tôi' đúng DANH SÁCH CHO PHÉP cho 
   for (const as of [PARTNER, DRVP, HYB, SALES, DRV]) {
     const d = await cuaToi(w, as);
     assert.deepEqual(Object.keys(d).sort(), ["chinhSach", "coTheGui", "coTheGuiXoa", "dongY", "dongYPhienBan", "hangGplx", "hoSo", "loaiGiayTo", "lyDoKhongGui", "lyDoKhongGuiXoa", "phieu", "phieuXoa"], as);
-    assert.deepEqual(Object.keys(d.hoSo).sort(), ["daXoa", "diaChi", "dienThoai", "email", "giayTo", "hoTen", "loai", "ngaySinh"], as);
+    assert.deepEqual(Object.keys(d.hoSo).sort(), ["daXoa", "dauXacMinh", "diaChi", "dienThoai", "email", "giayTo", "hoTen", "loai", "ngaySinh"], as);
     assert.deepEqual(Object.keys(d.chinhSach).sort(), ["hanGiuPhienNgay", "hanXuLyXoaNgay", "hieuLucTu", "id", "mucDich", "noiDung", "phienBan"], as);
     assert.doesNotMatch(JSON.stringify(d), /"(roles|relationships|mergedFrom|mergedInto|accountLinked|editable|createdAt|updatedAt|createdBy|staffId|partyId)"/, as);
   }

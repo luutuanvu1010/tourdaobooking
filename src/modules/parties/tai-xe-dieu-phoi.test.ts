@@ -172,5 +172,7 @@ test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCua
     // ADR-0208 Đ8 (tác nhân dọn phiếu đăng ký, đợt 1 Task 9): quét toàn bảng tệp chờ «chờ xoá» / «tải dở dang» rồi xoá kho — dang-ky không chạm bảng tệp hay kho
     "donKhoTepCho",
     // ADR-0207 Đ5 (lô duyệt phiếu đăng ký, đợt 1 Task 8): câu CHƯA CHẠY cho gốc lắp ráp ghép (hồ sơ + vai, giá trị, dòng xác minh, đồng ý, quan hệ giới thiệu) + một kiểm trước lô (CCCD một người)
-    "cauMoHoSoDangKy", "cauGhiGiaTriDaXacMinh", "cauXacMinhTuPhieu", "cauDongYTuPhieu", "cauQuanHeGioiThieu", "canCuocThuocHoSoKhac"].sort());
+    "cauMoHoSoDangKy", "cauGhiGiaTriDaXacMinh", "cauXacMinhTuPhieu", "cauDongYTuPhieu", "cauQuanHeGioiThieu", "canCuocThuocHoSoKhac",
+    // ADR-0210 Đ3 (dấu xác minh, đợt 1 Task 10): `staff` bọc hàm này cho màn Quản lý tài khoản; ba màn của Đ3 là chỗ DUY NHẤT đọc (bài src/dau-xac-minh-chi-de-biet.test.ts canh)
+    "dauXacMinhTheoHoSo"].sort());
 });
