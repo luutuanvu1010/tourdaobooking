@@ -281,7 +281,6 @@
   --vc-radio: 20px;            /* vòng chọn lý do "Sửa sai" */
   --vc-radio-on: 6px;          /* viền vòng chọn khi đã chọn */
   --vc-check: 22px;            /* ô đánh dấu "Giấy này không có hạn" */
-  --w-vc-form: 640px;          /* thẻ form thêm / sửa xe (máy tính) */
   --w-vc-mine: 720px;          /* khối "Giấy tờ của tôi" ở trang Tôi (máy tính) */
   --w-vc-head-min: 260px;      /* phần chữ ở đầu thẻ chi tiết xe (máy tính) */
   --w-vc-plate: 140px;         /* cột BIỂN SỐ */
@@ -606,6 +605,10 @@
   --le-trang: 16px;
   --le-trang-rong: 32px;
   --nhip-khoi: 24px;
+  --luoi-le: 16px;             /* bước 2 lưới bố cục: lề trang (đệm hai bên vùng nội dung) — điện thoại; từ 641px đặt lại 24px ở @media ngay sau :root */
+  --luoi-rong-hep: 720px;      /* bước 2: bề rộng nội dung mức hẹp (biểu mẫu một cột, trang đọc) */
+  --luoi-rong-vua: 1120px;     /* bước 2: bề rộng nội dung mức vừa (chi tiết, biểu mẫu hai cột, thiết lập) */
+  --luoi-nhip: 16px;           /* bước 2: nhịp giữa các khối con trực tiếp của vùng nội dung */
   --h-o-nhieu-dong: 96px;
   --vanh-cach: 2px;
   --skel-dong: 16px;
@@ -630,6 +633,7 @@
   --w-tim-thanh-tren-hep: 120px; /* ô tìm thanh trên ở máy tính: co tới mức này (thay --w-tim-thanh-tren-min 160px) để tiêu đề trang không bị cắt ở laptop */
   --w-nhom-ten: 240px;          /* Danh mục: cột tên nhóm dịch vụ ở máy tính — điều khiển đứng ngay sau */
 }
+@media (min-width: 641px) { :root { --luoi-le: 24px; } } /* bước 2 lưới bố cục: lề trang từ iPad trở lên */
 @media (min-width: 641px) { :root { --giu-cho-tu-kiem: 128px; --giu-cho-xac-minh: 216px; } } /* bước 1 (N10): khối «tự kiểm vé» ở iPad cao ~130 */
 @media (min-width: 960px) { :root { --giu-cho-tu-kiem: 104px; } } /* … ở máy tính ~106 */
 @media (min-width: 960px) { :root { --h-danh-sach: 448px; } } /* khung danh sách dịch vụ ~8 dòng ở máy tính (bản vẽ 18/10) — đặt TRƯỚC dấu mốc app iPhone vì có px */
@@ -652,7 +656,14 @@ a { color: var(--c-primary); }
 .brand .brand-name { min-width: 0; font-weight: inherit; line-height: 1.25; opacity: 1; } /* chữ tên app là MỘT khối: "Island Booking System" hẹp chỗ thì ngắt dòng như câu (sidebar máy tính), không tách "System" thành cột riêng */
 .brand-logo { width: var(--logo-bar); height: var(--logo-bar); border-radius: var(--radius-pill); display: block; } /* Đợt D Task 7: sửa cho khớp bản mẫu 00 Trang chu v2.dc.html (dòng 44 VÀ 280 đều vẽ logo tròn hết cỡ) — luật gốc trước đây bo góc nhẹ (--radius-sm), chỉ thanh bên máy tính được sửa tròn riêng (:310), bỏ sót thanh đầu trang điện thoại */
 
-main { max-width: var(--w-main); margin: 0 auto; padding: var(--s4) max(var(--s4), env(safe-area-inset-right)) var(--s4) max(var(--s4), env(safe-area-inset-left)); }
+/* Lưới bố cục chung (bước 2, chủ duyệt 15/11/2026 «Duyệt, bám trái»; docs/superpowers/plans/2026-11-14-buoc-2-luoi-bo-cuc.md). Một lề trang mỗi khổ (--luoi-le), ba mức
+   bề rộng nội dung khai ở <body data-rong>: hep (biểu mẫu một cột, trang đọc), vua (chi tiết, biểu mẫu hai cột, thiết lập), rong (danh sách, bảng điều khiển: kín vùng).
+   Mức hep / vua thắng trần riêng cũ `main.form-page`, `main.gd` (cùng một trần cho cả họ trang). Máy tính có thanh bên: vùng nội dung bám trái (luật `body.has-sidebar main`).
+   Ngoại lệ có tên: Trang chủ (bản vẽ riêng), Đăng nhập. Bài canh: src/luoi-bo-cuc.test.ts. */
+main { max-width: var(--w-main); margin: 0 auto; padding: var(--luoi-le) max(var(--luoi-le), env(safe-area-inset-right)) var(--s4) max(var(--luoi-le), env(safe-area-inset-left)); }
+body[data-rong="hep"] main { max-width: calc(var(--luoi-rong-hep) + 2 * var(--luoi-le)); }
+body[data-rong="vua"] main { max-width: calc(var(--luoi-rong-vua) + 2 * var(--luoi-le)); }
+:where(body:not(.trang-chu)) main > p { margin: 0 0 var(--luoi-nhip); }
 .card { background: var(--c-bg); border-radius: var(--radius-md); padding: var(--s4); margin-bottom: var(--s4); box-shadow: var(--ring-card), var(--shadow-card); } /* 1.70: viền bằng bóng + bóng mềm (trước: thẻ phẳng) — không đổi kích thước thẻ */
 .card h2 { margin-bottom: var(--s3); }
 
@@ -1383,7 +1394,8 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
      phần tử flex không co được dưới bề rộng nội dung. Cùng cách khổ điện thoại đã cắt chữ từ lâu (dòng `body[data-title]
      .bar-title` trong khối @media (max-width: 899px)), không phát minh gì mới. */
   body.has-sidebar #topbar .bar-title { display: block; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-label); font-weight: var(--fw-semibold); }
-  /* GIỮ trần bề rộng đã duyệt (--w-main 1200px, và --w-form 1120px riêng của trang Lập đơn), chỉ BỎ CĂN GIỮA:
+  /* (Từ bước 2 lưới bố cục 15/11/2026 trần bề rộng do `body[data-rong]` đặt — hẹp 720, vừa 1120, rộng kín vùng; các con số 1200 / 1120 dưới đây là lịch sử.)
+     GIỮ trần bề rộng đã duyệt (--w-main 1200px, và --w-form 1120px riêng của trang Lập đơn), chỉ BỎ CĂN GIỮA:
      `main` bám mép trái ngay sau thanh bên, đúng dáng bản mẫu. `margin-inline: 0` triệt tiêu `margin: 0 auto` của
      `main` — thiếu nó thì trong ô lưới `main` co về bề rộng nội dung rồi tự căn giữa (đo thật ở 1920px: cột nội
      dung 1684px nhưng main chỉ 886px, trống 399px mỗi bên). KHÔNG đặt lại max-width ở đây: bản trước gỡ hẳn trần
@@ -2594,7 +2606,7 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 
 /* 02 Thêm / sửa xe */
 .vc-form { display: flex; flex-direction: column; gap: var(--s4); padding: var(--s4); }
-@media (min-width: 641px) { .vc-form { max-width: var(--w-vc-form); padding: var(--s5); } }
+@media (min-width: 641px) { .vc-form { padding: var(--s5); } } /* bề rộng: mức hẹp của lưới (body data-rong="hep"), không còn trần riêng 640 */
 .vc-grid-2 { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); }
 @media (min-width: 641px) { .vc-grid-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 .vc-field { display: flex; flex-direction: column; gap: var(--gap-vc-label); min-width: 0; }

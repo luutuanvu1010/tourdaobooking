@@ -56,3 +56,13 @@ test("khối theo quyền: tệp đầu trang đặt data-giu-khoi theo trang; t
   assert.match(css, /html\[data-giu-khoi~="add-card"\] \[id="add-card"\]\[hidden\], html\[data-giu-khoi~="xac-minh"\] #xac-minh\[hidden\] \{ display: block !important; visibility: hidden; \}/);
   assert.match(doc("web/login.ts"), /k\.startsWith\(KHOA_KHOI\)\) sessionStorage\.removeItem\(k\)/, "đăng nhập xoá mọi chỗ giữ khối");
 });
+
+// Bước 2 lưới bố cục (14/11/2026, nợ chuyển từ bước 1 — chủ 13/11 «Làm ở bước 2»): thanh bên máy tính dựng muộn từng đẩy vùng nội dung ngang 0 → 248 px ở 70/78 trang
+// (docs/superpowers/plans/2026-11-14-buoc-2-luoi-bo-cuc.md, L4). Tệp đầu trang gắn sẵn lớp lưới hai cột khi đã có bản nhớ khung; web/shell.ts không đổi (trần gói).
+test("thanh bên máy tính có chỗ từ lần vẽ đầu: tệp đầu trang gắn has-sidebar khi bản nhớ khung hợp lệ, tự gỡ nếu thanh bên không về", () => {
+  const g = doc("web/giu-cho-dai.ts");
+  assert.match(g, /docKhungNho\(localStorage\.getItem\(KHOA_KHUNG\)\)/, "cùng phép đọc bản nhớ với web/shell.ts — bản nhớ hỏng thì không giữ chỗ");
+  assert.match(g, /document\.body\.classList\.add\("has-sidebar"\)/, "gắn lớp lưới ngay khi <body> có mặt");
+  assert.match(g, /if \(!document\.getElementById\("sidebar"\)\) document\.body\.classList\.remove\("has-sidebar"\)/, "thanh bên không về thì gỡ cột trống");
+  assert.doesNotMatch(doc("web/shell.ts"), /giuBen|giu-ben/, "gói trang không mang mã giữ chỗ thanh bên (trần dung lượng)");
+});
