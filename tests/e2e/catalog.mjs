@@ -17,7 +17,20 @@ const TOAN_QUYEN = await session(ACCOUNTS.superAdmin); // ADR-0038 điều 6: tr
 // ghi rõ; Sheet chỉ cho ĐỌC công khai) nên chép lại ở đây là an toàn.
 const { parseCatalogSheet } = await import("../../src/modules/catalog/sheet.ts");
 const SERVICES_SHEET_ID = "1XPx1g0JVTdevdX35MeCpt6Cc6Dgxdmfer6okEWleD3s"; // = wrangler.jsonc vars.SERVICES_SHEET_ID
-const sheetCsvRes = await fetch(`https://docs.google.com/spreadsheets/d/${SERVICES_SHEET_ID}/export?format=csv`, { redirect: "follow" });
+// Việc 2.4 (kế hoạch 2026-11-15): một lượt GitHub đỏ giả vì ETIMEDOUT lúc tải Sheet. Lỗi MẠNG thì thử lại tối đa 3 lần, lùi dần; lỗi khác (HTTP ≠ 200, sai cột) không thử lại.
+const laLoiMang = (e) => /ETIMEDOUT|ENETUNREACH|ECONNRESET|EAI_AGAIN|UND_ERR_CONNECT_TIMEOUT|fetch failed/i.test(`${e?.message ?? ""} ${e?.cause?.code ?? ""} ${e?.cause?.message ?? ""}`);
+async function taiSheet(url) {
+  for (let lan = 1; ; lan++) {
+    try {
+      return await fetch(url, { redirect: "follow" });
+    } catch (e) {
+      if (lan >= 3 || !laLoiMang(e)) throw e;
+      console.warn(`⚠ tải Sheet thật lỗi mạng (${e?.cause?.code ?? e?.message}), thử lại lần ${lan + 1}/3`);
+      await new Promise((res) => setTimeout(res, 2000 * lan));
+    }
+  }
+}
+const sheetCsvRes = await taiSheet(`https://docs.google.com/spreadsheets/d/${SERVICES_SHEET_ID}/export?format=csv`);
 assert.equal(sheetCsvRes.status, 200, `đọc CSV Sheet thật để đối chiếu: HTTP ${sheetCsvRes.status}`);
 const sheetParsed = parseCatalogSheet(await sheetCsvRes.text());
 assert.ok(sheetParsed.ok, `đọc Sheet thật để đối chiếu: ${JSON.stringify(sheetParsed)}`);

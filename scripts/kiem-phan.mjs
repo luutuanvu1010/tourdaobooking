@@ -22,6 +22,11 @@ import { ALL, chiaNhom } from "../tests/e2e/danh-sach.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 export const TEP_DO_GIO = "src/claude-guard-thoi-gian.test.ts";
 export const BUOC_RIENG = ["buoc-0", "typecheck", TEP_DO_GIO];
+// Việc 2.4 (kế hoạch 2026-11-15): trần cho MỘT TỆP kiểm (`--test-timeout`; chạy mỗi tệp một tiến trình thì trần áp cho cả tệp — đã đo: tệp treo trong bài, tệp
+// treo ở cấp tệp và tệp xong bài mà còn giữ bộ hẹn giờ đều bị cắt đúng trần, báo tên tệp). Trước đây một tệp treo làm «npm test phần 2» chờ tới khi GitHub huỷ
+// (7 lượt). 10 phút: gấp ~5 lần tệp chậm nhất trong scripts/thoi-gian-test.json (audit-invariants ~127 giây trên GitHub), vẫn đỏ có tên trước khi bị huỷ.
+export const TRAN_TEP_MS = 600_000;
+export const CO_TRAN_TEP = `--test-timeout=${TRAN_TEP_MS}`;
 // Số phần chỉnh theo số đo (ADR-0179 Đ1.2). Lượt đầu 6/11 (4 + 6 phần, chia theo cỡ tệp): 19 phút, phần npm test chậm nhất 17,5 phút ⇒ 10 + 8 phần,
 // chia theo giây thật. Mức tối thiểu ADR (≥ 4, ≥ 6) do MIN_* canh. Kho công khai: mỗi lượt ≤ 20 việc chạy cùng lúc (giới hạn gói miễn phí).
 export const SO_PHAN_TEST = 10;
@@ -244,7 +249,7 @@ const REPORTER = pathToFileURL(join(ROOT, "scripts", "dem-bai.mjs")).href;
 
 /** node --test cho danh sách tệp, in kết quả kiểu spec ra màn hình và đếm bài bằng scripts/dem-bai.mjs. */
 function chayNodeTest(files, tepDem, them = []) {
-  const r = spawnSync(process.execPath, ["--test", ...them, "--test-reporter=spec", "--test-reporter-destination=stdout", `--test-reporter=${REPORTER}`, `--test-reporter-destination=${tepDem}`, ...files], { cwd: ROOT, stdio: "inherit" });
+  const r = spawnSync(process.execPath, ["--test", CO_TRAN_TEP, ...them, "--test-reporter=spec", "--test-reporter-destination=stdout", `--test-reporter=${REPORTER}`, `--test-reporter-destination=${tepDem}`, ...files], { cwd: ROOT, stdio: "inherit" });
   let dem = null;
   try {
     dem = JSON.parse(readFileSync(tepDem, "utf8"));
