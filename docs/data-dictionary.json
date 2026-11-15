@@ -1002,6 +1002,12 @@
       "note": "mức TA gắn RIÊNG cho một hồ sơ đối tác theo ngày (ADR-0138; migration 0118): chỉ thêm, đóng / rút ngắn ngày kết thúc, hoặc huỷ một lần khi chưa đơn nào chụp (ADR-0148, migration 0126 — như prc_role_tier); mỗi hồ sơ tối đa một mức riêng chưa huỷ tại một ngày (prc_party_tier_overlap); hồ sơ phải đang mở vai thuộc loại được hưởng còn bật (prc_target_not_beneficiary, đọc v_pty_open_role), mức phải còn bật (prc_tier_inactive). Có gắn riêng thì `chonMuc` xét mức này ở bậc 10–12 và bỏ qua mức TA của loại"
     },
     {
+      "name": "prc_signup_tier_policy",
+      "module": "pricing",
+      "kind": "table",
+      "note": "«Cấp cho đối tác tự đăng ký» theo từng loại đối tác (ADR-0209 Đ1; migration 0170): CHỈ-THÊM (trigger cấm sửa / xoá); dòng hiệu lực của một loại = valid_from_at lớn nhất ≤ lúc xét (UNIQUE loại + mốc); tier_code NULL = «Theo cấp của vai trò»; lúc đặt cấp phải đang bật (prc_tier_inactive) và loại phải được hưởng còn bật (prc_tier_target). Không gieo dòng. Đặt: Quản lý bán hàng, Quản trị, Toàn quyền (partner.signup_tier.write). Lô duyệt phiếu đăng ký đọc dòng hiệu lực lúc duyệt và chèn MỘT dòng prc_party_tier (câu 8, INSERT … SELECT … WHERE lặp điều kiện trigger — thiếu điều kiện thì bỏ qua); đổi chính sách sau đó không đổi cấp riêng đã ghi"
+    },
+    {
       "name": "prc_commission_rule",
       "module": "pricing",
       "kind": "table",
@@ -1935,6 +1941,7 @@
     "prc_entry_limit_policy": { "id": "N1", "max_rate_bp": "N1", "amount_step": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_sales_block": { "id": "N1", "role_type_code": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "attribute_code": "N1", "value_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_role_tier": { "id": "N1", "role_type_code": "N1", "tier_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
+    "prc_signup_tier_policy": { "id": "N1", "role_type_code": "N1", "tier_code": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_party_tier": { "id": "N1", "party_id": "N1", "tier_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
     "prc_supply_term": { "id": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "seller_party_id": "N1", "supplier_party_id": "N1", "cost_rate_bp": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_bank": { "code": "N1", "bin": "N1", "short_name": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
