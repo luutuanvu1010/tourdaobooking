@@ -3,13 +3,14 @@
 > **Hồ sơ có ngày; viết xong là đóng băng.** Trạng thái: **đề xuất, chờ chủ duyệt khung**. Chưa có ADR, chưa có kế hoạch thi công, chưa có mã. Đã qua một lượt đọc soát độc lập (chỉ đọc) ngày 15/11.
 > Trang cho chủ đọc: `README.md` cùng thư mục. Phiên soạn giữ vai **lập kế hoạch** (P15): không thi công, không tự nghiệm thu.
 > Nguồn yêu cầu: chat của chủ 15/11/2026. Chủ chốt cùng ngày (nút trả lời, nguyên văn): «Ghi cho công ty» — công ty đăng ký thì đơn, hoa hồng, công nợ ghi cho công ty.
+> **Sửa lần 2, cùng ngày, theo lời chủ** (nguyên văn): «Cho phép tài khoản đăng ký mặc định được hưởng chính sách đại lý cụ thể (Ví dụ là TA1), tùy chỉnh trong bảng điều khiển của Quản lý bán hàng, Quản trị và Toàn quyền (Super Admin). Tất cả các tài khoản nào được xác minh sẽ có nút biểu tượng Đã xác minh, ngược lại là Chưa xác minh, cần xác minh lại.» Phần thêm nằm ở mục 5.6, 5.7 và các đợt; phần này **chưa** qua người đọc độc lập.
 > `ĐK-1…ĐK-6`, tên bảng `dk_*`, tên trạng thái, tên nút trong tệp này là **tên giữ chỗ**. Tên hiện cho người dùng do chủ chọn theo công thức z34 trước khi làm giao diện (Hiến chương 5.27).
 
 ## 1. Mục đích và phạm vi
 
-**Chủ muốn:** đối tác **tự đăng ký** tài khoản, cá nhân hoặc tổ chức; tự cung cấp thông tin và giấy tờ (tuỳ thân, doanh nghiệp) để công ty **xác minh**; thông tin đã xác minh dùng luôn cho **hoá đơn VAT**; tệp đính kèm nằm ở kho R2 và Toàn quyền **xem lại, ẩn, xoá** được; đăng ký được bằng **Google, Apple** cho nhanh trên iPhone; **sẵn cho mở rộng** như Affiliates.
+**Chủ muốn:** đối tác **tự đăng ký** tài khoản, cá nhân hoặc tổ chức; tự cung cấp thông tin và giấy tờ (tuỳ thân, doanh nghiệp) để công ty **xác minh**; thông tin đã xác minh dùng luôn cho **hoá đơn VAT**; tệp đính kèm nằm ở kho R2 và Toàn quyền **xem lại, ẩn, xoá** được; đăng ký được bằng **Google, Apple** cho nhanh trên iPhone; **sẵn cho mở rộng** như Affiliates. Thêm ở lần sửa 2: đối tác tự đăng ký **nhận sẵn một cấp độ đại lý mặc định** (ví dụ TA1) do Quản lý bán hàng, Quản trị, Toàn quyền đặt; và mọi tài khoản có **dấu xác minh**: «Đã xác minh», «Chưa xác minh», «Cần xác minh lại».
 
-**Làm, chia bốn đợt (mục 6):** (1) phiếu đăng ký, xác minh, duyệt mở tài khoản cho cá nhân; (2) phiếu đăng ký cho tổ chức; (3) màn quản lý tệp hồ sơ của Toàn quyền; (4) đăng ký và đăng nhập bằng Google, Apple.
+**Làm, chia bốn đợt (mục 6):** (1) phiếu đăng ký, xác minh, duyệt mở tài khoản cho cá nhân; (2) phiếu đăng ký cho tổ chức; (3) màn quản lý tệp hồ sơ của Toàn quyền; (4) đăng ký và đăng nhập bằng Google, Apple. Người soạn đề xuất thêm đợt 5 cho người đã có tài khoản tự nộp giấy tờ; đợt này chờ chủ gật.
 
 **Không làm trong khung này:** khách lẻ tự đăng ký; chương trình Affiliates có tính tiền; nhiều nhân viên của một tổ chức cùng đăng nhập và thấy chung đơn (`BL-DAI-LY-TO-CHUC`, chủ gác 24/10); xác nhận số điện thoại bằng SMS hay Zalo; máy tự đọc giấy tờ; hoá đơn điện tử (ADR-0004 đã loại).
 
@@ -29,6 +30,8 @@
 | Xác nhận liên hệ | Gửi mã qua email đã có trong mã và đã phát hành (cho lớp hai) | Theo `docs/HANDOFF-N1.md`, **chưa ai thử gửi thư thật** trên bản chính thức. Không có SMS hay Zalo, nên chưa xác nhận được số điện thoại bằng mã |
 | Lớp hai của đối tác | Tài khoản đối tác tự bật được lớp hai (ADR-0074) | ADR-0121 «bắt buộc lớp hai cho tài khoản bên ngoài» đã duyệt nhưng **chưa thi công**: hôm nay đối tác đăng nhập chỉ bằng số điện thoại và PIN |
 | Hoa hồng, giới thiệu | Vai trò bên ngoài, loại đối tác, cấp độ đại lý, sổ công nợ | Quan hệ giữa hai hồ sơ mới có hai loại («Người liên hệ của», «Tài xế của»); chưa có «người giới thiệu», chưa có «người đại diện» |
+| Cấp độ đại lý | Cấp là dữ liệu do Kế toán tạo (`prc_rate_tier`). Gán cho cả một vai trò («Gán cho vai trò», `prc_role_tier`) hoặc cho một đối tác («cấp riêng», `prc_party_tier`); cấp riêng được tính trước cấp của vai trò. Người gán và đổi: Kế toán, Quản trị, Toàn quyền (`partner.commission.write`). Quản lý bán hàng chỉ xem | Chưa có «cấp mặc định cho đối tác mới». Quản lý bán hàng chưa có ô nào chạm điều khoản thương mại |
+| Dấu xác minh | Bảng kết quả xác minh theo từng mục (`pty_verification`), đã có ba kết luận: đạt, từ chối, cần xác minh lại | Chưa nơi nào đọc kết quả ra để hiện. Chưa có trạng thái gộp cho cả một hồ sơ. Sửa tay trường của tổ chức chưa ghi «cần xác minh lại» |
 
 ## 3. Hai luật xuyên suốt (khuôn trước, việc sau)
 
@@ -97,9 +100,10 @@ Từ mọi trạng thái chưa kết thúc:  TỪ CHỐI (người của công t
 | **Xác minh và đối chiếu Danh bạ**: mở ảnh và số đủ của phiếu đang chờ, đánh dấu từng mục đạt hay không đạt, gọi số điện thoại để xác nhận, rồi chọn «gắn vào hồ sơ có sẵn» hay «hồ sơ mới» | **Quản trị, Toàn quyền**: giữ hai ô xác minh sẵn có (`party.verify`, `party.verify.attachment`) và xem được Danh bạ | Mỗi lần mở ảnh ghi nhật ký **trước** (ADR-0125 đ1). Xử lý xong thì không xem lại được nội dung khai. Nhân sự cũng giữ hai ô xác minh nhưng không xem Danh bạ (ADR-0071), nên không làm trọn bước này |
 | **Duyệt mở tài khoản**: chọn vai trò, bấm duyệt hoặc từ chối | **Nhân sự, Toàn quyền**: dùng lại ô tạo tài khoản sẵn có (`account.create`), không thêm ô mới | **Khác người đã xác minh phiếu đó** (áp ADR-0125 đ5 vào ca mới: người xác minh khác người tạo tài khoản). «Người xác minh» ở đây là người đã bấm «đạt» cho bản được duyệt. Ngoại lệ duy nhất: không còn ai hợp lệ thì **Toàn quyền** được làm cả hai bước, và dòng duyệt mang cờ (khuôn «chốt cuối» của ADR-0125 đ5). Người duyệt thấy họ tên, số điện thoại, loại đối tác xin đăng ký, kết luận xác minh và kết luận «gắn hồ sơ có sẵn» hay «hồ sơ mới»; **không** thấy ảnh, số giấy tờ, ngày sinh, địa chỉ, không thấy Danh bạ |
 | Mở hay đóng việc đăng ký; đặt hạn ngày; danh sách mục bắt buộc | Toàn quyền | Dữ liệu chính sách có ngày hiệu lực, chỉ thêm dòng (khuôn `ord_pickup_time_policy`) |
+| Đặt **cấp độ đại lý mặc định** cho đối tác tự đăng ký (mục 5.6) | **Quản lý bán hàng, Quản trị, Toàn quyền** (lời chủ 15/11) | Một hàng quyền mới, hẹp, theo khuôn `quanLyBanHang()` sẵn có. Chỉ chọn trong các cấp đang bật; không tạo cấp, không sửa mức, không đổi cấp của đối tác đang có |
 | Cho phiếu hết hạn; đưa ảnh của phiếu đã kết thúc vào hàng xoá | Tác nhân tự động có định danh riêng | Khuôn ADR-0186: một ô quyền riêng, có dòng nhật ký |
 
-Không thêm **mã quyền** nào (thêm một mã là nhân đôi mọi bài «tập con quyền»). Chỉ thêm **hàng** vào bản đồ quyền cho ba việc mới: xem hàng chờ phiếu, đặt chính sách đăng ký, và việc của tác nhân tự động.
+Không thêm **mã quyền** nào (thêm một mã là nhân đôi mọi bài «tập con quyền»). Chỉ thêm **hàng** vào bản đồ quyền cho bốn việc mới: xem hàng chờ phiếu, đặt chính sách đăng ký, đặt cấp độ đại lý mặc định, và việc của tác nhân tự động.
 
 Hai điểm ADR `ĐK-2` phải viết rõ, vì chúng chạm quyết định cũ:
 
@@ -115,8 +119,9 @@ Một lần bấm duyệt là **một `db.batch()`** (K8), câu đầu mang đi�
 3. tệp chờ của phiếu thành tệp của hồ sơ, nối với dòng giấy tờ vừa tạo (xem «Dữ liệu mới» của đợt 1);
 4. tài khoản: số điện thoại đăng nhập, vai trò đối tác và bộ quyền sinh từ vai trò (đường tạo theo vai trò sẵn có của `staff`). PIN do máy sinh **không hiện cho ai**, nên chưa ai đăng nhập được cho tới bước kích hoạt;
 5. email liên lạc đã xác nhận ghi thành liên hệ của hồ sơ. Lệnh duyệt **không** tự bật lớp hai (xem câu còn chờ chủ ở mục 11). Đợt 4 thêm: danh tính Google, Apple đã chứng minh ở bước phiếu thành chìa khoá đăng nhập của tài khoản;
-6. nếu người xác minh đã chọn được hồ sơ của người giới thiệu: một dòng quan hệ giữa hai hồ sơ (mục 9);
-7. phiếu sang ĐÃ DUYỆT, ghi mã hồ sơ và tài khoản kết quả; nhật ký chỉ mang mã và tên vai trò.
+6. cấp độ đại lý mặc định của loại đối tác đó, ghi thành **cấp riêng** của hồ sơ (mục 5.6); câu này đứng sau câu gán vai trò, vì cấp riêng chỉ gắn được cho hồ sơ đang mang vai trò được hưởng;
+7. nếu người xác minh đã chọn được hồ sơ của người giới thiệu: một dòng quan hệ giữa hai hồ sơ (mục 9);
+8. phiếu sang ĐÃ DUYỆT, ghi mã hồ sơ và tài khoản kết quả; nhật ký chỉ mang mã, tên vai trò và mã cấp đã áp.
 
 Mỗi module chỉ ghi bảng của mình và cấp **câu lệnh chưa chạy** cho gốc lắp ráp ghép lô (Hiến chương 5.3). Thư báo «đã duyệt» gửi **sau** lô, có trạng thái chờ gửi lại (5.16).
 
@@ -128,13 +133,56 @@ Người được duyệt mở lại trang trạng thái bằng **đúng danh t�
 
 Kích hoạt **chỉ đặt PIN, không cấp phiên**. Đặt xong, người dùng đăng nhập ở màn Đăng nhập như mọi người, rồi được mời bật Face ID (ADR-0016). Nhờ vậy không phải thêm cửa cấp phiên, và không vướng luật «`auth` không gọi `audit`». Đây vẫn là một **đường đặt PIN mới**, phải khai vào các bài rào về bí mật đăng nhập của `staff`. Đường này đóng khi tài khoản đã đặt PIN. Quá hạn kích hoạt thì người duyệt bấm gửi lại lời mời.
 
-## 6. Bốn đợt
+### 5.6 Cấp độ đại lý mặc định cho đối tác tự đăng ký (lời chủ 15/11)
+
+**Điều chủ muốn:** đối tác được duyệt từ phiếu đăng ký nhận sẵn một cấp độ đại lý cụ thể, ví dụ TA1; cấp mặc định do Quản lý bán hàng, Quản trị, Toàn quyền đặt.
+
+**Cách làm: dùng cơ chế «cấp riêng» đang chạy, không thêm tầng tính tiền nào.**
+
+- Lúc duyệt, lô ghi thêm một dòng cấp riêng (`prc_party_tier`) cho hồ sơ vừa có, bằng cấp mặc định đang hiệu lực của loại đối tác đó, từ ngày duyệt. Thứ tự tính hoa hồng giữ nguyên: mức riêng của đối tác, rồi cấp riêng, rồi mức riêng của vai trò, rồi cấp của vai trò. Sổ vàng hiện có không đổi.
+- Cấp mặc định là **dữ liệu chính sách có ngày hiệu lực, chỉ thêm dòng**, đặt theo **từng loại đối tác** được chọn ở phiếu; đặt cùng một cấp cho mọi loại cũng được. Chỉ chọn được trong các cấp đang bật do Kế toán tạo.
+- **Chụp lúc duyệt** (Hiến chương 5.6): đổi cấp mặc định chỉ áp cho phiếu duyệt sau đó; đối tác đã duyệt giữ cấp đã nhận. Muốn đổi cấp của một đối tác thì dùng «Đổi cấp riêng» sẵn có (Kế toán, Quản trị, Toàn quyền).
+- Loại nào chưa đặt mặc định thì lệnh duyệt không ghi cấp riêng; đối tác theo cấp của vai trò như hôm nay.
+- Duyệt «gắn vào hồ sơ có sẵn» mà hồ sơ đó đã có cấp riêng: **giữ cấp đang có**, không ghi đè.
+- Cấp gắn vào **hồ sơ**, không gắn vào tài khoản (Hiến chương 2.3). Đợt 2: với công ty thì gắn vào hồ sơ công ty.
+
+**Quyền:** một hàng mới theo khuôn `quanLyBanHang()` sẵn có (Quản trị, Toàn quyền, Quản lý bán hàng). Đây là ô đầu tiên cho Quản lý bán hàng chạm điều khoản thương mại; ADR-0169 đã định mỗi ô mới của vai này đi bằng một ADR. Kế toán **không** nằm trong danh sách đặt mặc định (đúng lời chủ), nhưng vẫn giữ quyền đổi cấp riêng của từng đối tác.
+
+**Ai thấy:** người xác minh (Quản trị) thấy «cấp sẽ áp» trên màn phiếu. Nhân sự không thấy tên cấp, vì không giữ ô xem hoa hồng.
+
+**Ranh giới module:** `pricing` cấp câu lệnh chưa chạy cho lô duyệt (Hiến chương 5.3); hôm nay `pricing` chưa công bố câu nào cho việc này. Mỗi lần đổi cấp mặc định có một dòng nhật ký mang mã cấp cũ và mới.
+
+**Điều nói một lần:** ô này cho một vai bán hàng quyết mức hoa hồng của người mới vào. Ba lớp giữ: chỉ áp cho phiếu duyệt về sau, mọi lần đổi có nhật ký, và người đặt không tạo được cấp hay sửa được mức.
+
+### 5.7 Dấu xác minh (lời chủ 15/11)
+
+**Ba trạng thái, tên do chủ đặt:** «Đã xác minh», «Chưa xác minh», «Cần xác minh lại».
+
+**Luật tính nằm ở một chỗ**, trong `parties`, công bố cho nơi khác bằng một view:
+
+- «Đã xác minh»: mọi mục bắt buộc của loại hồ sơ đó có kết luận mới nhất là đạt, và giấy tờ bắt buộc còn hạn.
+- «Cần xác minh lại»: đã từng đủ, nay có ít nhất một mục bắt buộc mà kết luận mới nhất là «cần xác minh lại» (giá trị bị sửa sau khi xác minh), hoặc giấy tờ đã hết hạn hay bị huỷ.
+- «Chưa xác minh»: mọi trường hợp còn lại.
+
+Dữ liệu gốc đã có: bảng kết quả xác minh theo từng mục, với đúng ba kết luận trên. Việc mới là gộp thành trạng thái của cả hồ sơ và đưa ra màn hình. Danh sách mục bắt buộc dùng chung một bảng chính sách với phiếu đăng ký.
+
+**Hiện ở đâu:** trang Tôi và «Hồ sơ của tôi» của chính chủ; màn Quản lý tài khoản; Danh bạ và chi tiết hồ sơ. Ai vốn đã thấy tài khoản hay hồ sơ ở đâu thì thấy dấu ở đó; không mở thêm quyền xem nào. Dấu không mang dữ liệu cá nhân.
+
+**Bấm vào dấu:** chính chủ được đưa tới chỗ nộp hay bổ sung; người giữ ô xác minh được đưa tới mục đang chờ; người khác chỉ thấy dấu.
+
+**Áp cho mọi tài khoản**, cả nội bộ lẫn đối tác (lời chủ: «tất cả»; ADR-0125 đã cho xác minh cả nhân viên).
+
+**Giả định của người soạn:** dấu chỉ để biết, **không chặn việc gì**. Muốn chặn (ví dụ chưa xác minh thì chưa được Trả sau) là một quyết định riêng, chạm tiền.
+
+**Hệ quả phải biết:** đối tác duyệt từ phiếu mang «Đã xác minh» ngay từ đầu. Tài khoản do Nhân sự tạo sẽ mang «Chưa xác minh», và hôm nay họ **chưa có đường nào để tự nộp ảnh giấy tờ**. Vì vậy người soạn đề xuất thêm đợt 5 (mục 6).
+
+## 6. Bốn đợt, và một đợt đề xuất thêm
 
 Mỗi đợt tự dùng được khi xong. Kế hoạch thi công từng đợt soạn **sát lúc làm**, sau khi nhập bản chính mới nhất, để khỏi cũ.
 
 ### Đợt 1 — Phiếu đăng ký, xác minh, duyệt, cho cá nhân
 
-**Người dùng nhận được:** đối tác cá nhân tự đăng ký trên điện thoại; công ty xác minh rồi duyệt; người được duyệt tự đặt PIN và dùng ngay.
+**Người dùng nhận được:** đối tác cá nhân tự đăng ký trên điện thoại; công ty xác minh rồi duyệt; người được duyệt tự đặt PIN và dùng ngay, **nhận sẵn cấp độ đại lý mặc định** và mang dấu **«Đã xác minh»**. Mọi tài khoản khác bắt đầu hiện dấu xác minh của mình.
 
 **Dữ liệu mới** — module mới `dang-ky`, tiền tố bảng `dk_`, xếp hạng «nghiêm» ngay từ đầu:
 
@@ -142,13 +190,16 @@ Mỗi đợt tự dùng được khi xong. Kế hoạch thi công từng đợt 
 - **ảnh của phiếu nằm ở một bảng «tệp chờ» riêng do `parties` giữ**, cùng kho `HO_SO` (chỉ `parties` chạm kho này), khoá theo mã phiếu. Không dùng được bảng tệp hôm nay, vì mỗi dòng `pty_attachment` bắt buộc thuộc một hồ sơ có thật và không đổi được hồ sơ, mà Luật 2 cấm sinh hồ sơ trước khi duyệt. Lúc duyệt, lệnh duyệt sinh dòng `pty_attachment` cho hồ sơ vừa có, trỏ đúng tệp đã nằm trong kho (không chép tệp), rồi nối với dòng giấy tờ; dòng tệp chờ ghi mốc «đã chuyển». Phương án bị loại: dựng lại bảng tệp cho phép chưa có hồ sơ (bảng chỉ-thêm đang có trigger khoá, dựng lại là việc lớn và rủi ro hơn);
 - **lịch sử các lệnh của người đăng ký** (gửi, gửi lại, rút, tải ảnh) nằm ở bảng sự kiện chỉ-thêm của chính phiếu, **không** vào nhật ký chung. Người đăng ký không phải tài khoản, cũng không phải tác nhân, mà nhật ký chung chỉ nhận một trong hai. Lệnh của người trong công ty và của tác nhân vẫn vào nhật ký chung như mọi lệnh khác.
 
-**Quyền:** thêm hàng cho «xem hàng chờ phiếu đăng ký», «đặt chính sách đăng ký», và một hàng cho tác nhân «cho phiếu hết hạn». Duyệt mở tài khoản dùng lại ô `account.create`. Việc xác minh dùng lại hai ô `party.verify`, `party.verify.attachment`, kèm quyền xem Danh bạ: hai ô này từ nay chạm thêm một loại «phiếu đang chờ», nên trang ghép của lượt duyệt phải nêu rõ.
+- **cấp độ đại lý mặc định** theo từng loại đối tác: một bảng chính sách chỉ-thêm, có ngày hiệu lực (mục 5.6). Chủ của bảng do ADR `ĐK-7` chốt; người soạn nghiêng về `pricing`, vì mọi thứ chạm cấp đều nằm ở đó;
+- **trạng thái xác minh của hồ sơ**: một view công bố của `parties`, tính từ bảng kết quả xác minh và bảng mục bắt buộc (mục 5.7). Không thêm cột trạng thái nào để khỏi có hai nguồn sự thật.
+
+**Quyền:** thêm hàng cho «xem hàng chờ phiếu đăng ký», «đặt chính sách đăng ký», «đặt cấp độ đại lý mặc định» (Quản lý bán hàng, Quản trị, Toàn quyền), và một hàng cho tác nhân «cho phiếu hết hạn». Duyệt mở tài khoản dùng lại ô `account.create`. Việc xác minh dùng lại hai ô `party.verify`, `party.verify.attachment`, kèm quyền xem Danh bạ: hai ô này từ nay chạm thêm một loại «phiếu đang chờ», nên trang ghép của lượt duyệt phải nêu rõ.
 
 **Nội dung phiếu cá nhân** (mặc định; danh sách mục bắt buộc là dữ liệu chính sách): họ tên; số điện thoại; loại đối tác muốn đăng ký; ngày sinh; địa chỉ; giấy tờ tuỳ thân (loại, số, ngày cấp, nơi cấp, ảnh hai mặt); người giới thiệu (tuỳ chọn). Email liên lạc đã xác nhận cũng là nơi nhận hoá đơn của cá nhân; trường hoá đơn khác (ví dụ mã số thuế cá nhân) chờ Kế toán xác nhận, nếu cần thì thêm một loại giấy tờ chứ không thêm cột.
 
 **Loại đối tác cho phiếu cá nhân:** bốn vai trò của cá nhân (Hướng dẫn viên độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên). **«Công ty lữ hành» chỉ đăng ký được bằng phiếu tổ chức của đợt 2.** Nếu cho chọn ở phiếu cá nhân thì công ty sẽ đứng tên một người, trái điều chủ đã chốt, và đợt 2 phải chuyển cả tài khoản lẫn sổ.
 
-**Màn hình:** người đăng ký có trang đăng ký công khai nhiều bước và trang trạng thái (nơi thấy lý do cần bổ sung, và nơi đặt PIN khi được duyệt). Công ty có hàng chờ phiếu trong khu Quản lý tài khoản, cạnh hàng chờ xác minh sẵn có; màn một phiếu cho người xác minh (từng mục, ảnh, kết luận, hồ sơ có thể trùng); bước duyệt cho Nhân sự (chọn vai trò). Toàn quyền có công tắc và chính sách. Màn Đăng nhập thêm lối vào đăng ký, đặt cùng chỗ với ba liên kết công khai của ADR-0200 Đ3.
+**Màn hình:** người đăng ký có trang đăng ký công khai nhiều bước và trang trạng thái (nơi thấy lý do cần bổ sung, và nơi đặt PIN khi được duyệt). Công ty có hàng chờ phiếu trong khu Quản lý tài khoản, cạnh hàng chờ xác minh sẵn có; màn một phiếu cho người xác minh (từng mục, ảnh, kết luận, hồ sơ có thể trùng); bước duyệt cho Nhân sự (chọn vai trò). Toàn quyền có công tắc và chính sách. Quản lý bán hàng, Quản trị, Toàn quyền có một chỗ đặt cấp độ đại lý mặc định cho từng loại đối tác. Dấu xác minh hiện ở trang Tôi, màn Quản lý tài khoản và Danh bạ. Màn Đăng nhập thêm lối vào đăng ký, đặt cùng chỗ với ba liên kết công khai của ADR-0200 Đ3.
 
 **Dùng lại, không làm mới:** luật kiểm ngày sinh, địa chỉ, giấy tờ của phiếu tự khai; hàm nhận loại tệp theo chữ ký và hàm thu nhỏ ảnh ở trình duyệt; danh sách lý do từ chối sẵn có (tám mã) làm gốc cho danh sách của phiếu; đường tạo tài khoản theo vai trò; luật đặt PIN; bộ đếm chống dò; Turnstile; hàm tìm hồ sơ có thể trùng (theo số điện thoại liên hệ và tên; thêm số giấy tờ).
 
@@ -175,10 +226,16 @@ Mỗi đợt tự dùng được khi xong. Kế hoạch thi công từng đợt 
 9. Kích hoạt chỉ nhận đúng danh tính của phiếu, chỉ khi tài khoản chưa đặt PIN; đặt xong thì cửa đóng.
 10. Từ chối, rút, hết hạn: ảnh vào hàng xoá; nội dung phiếu ẩn danh sau hạn; lỗi kho thì còn dòng chờ để chạy lại.
 11. `audit-invariants` có bất biến mới: phiếu ĐÃ DUYỆT khi và chỉ khi có tài khoản kết quả; không phiếu đã kết thúc nào còn ảnh ngoài hàng xoá.
+12. Cấp mặc định: Quản lý bán hàng, Quản trị, Toàn quyền đặt được; Kế toán, Bán hàng, Nhân sự bị từ chối. Duyệt một phiếu thì hồ sơ mới có đúng một cấp riêng bằng cấp mặc định lúc duyệt. Đổi cấp mặc định sau đó không đổi cấp của người đã duyệt. Loại chưa đặt mặc định thì không sinh cấp riêng. Hồ sơ có sẵn đã có cấp riêng thì giữ nguyên.
+13. Đơn đầu tiên của một đối tác vừa duyệt tính hoa hồng theo đúng cấp mặc định đã áp (đi đường xác nhận thật); mọi ca sổ vàng hiện có xanh nguyên, không sửa đáp án.
+14. Dấu xác minh: hồ sơ duyệt từ phiếu hiện «Đã xác minh»; tài khoản do Nhân sự tạo, chưa có kết quả xác minh, hiện «Chưa xác minh»; sửa một giá trị đã xác minh hoặc để giấy tờ bắt buộc hết hạn thì thành «Cần xác minh lại». Ba màn hiện cùng một trạng thái cho cùng một hồ sơ; không màn nào tự tính lại.
 
-**Việc lớn** (dữ liệu, quyền, luật): thi công xong phải có người kiểm độc lập, e2e, kịch bản Chrome, và thử iPhone thật (máy ảnh chụp giấy tờ, ảnh HEIC).
+**Việc lớn** (dữ liệu, quyền, luật, và chạm vùng tiền ở phần cấp mặc định): thi công xong phải có người kiểm độc lập, e2e, kịch bản Chrome, và thử iPhone thật (máy ảnh chụp giấy tờ, ảnh HEIC).
 
-**Cần chủ duyệt, một lượt, ba quyết định, kèm trang ghép:** `ĐK-1` phiếu đăng ký và phiên đăng ký (kèm diff điều Hiến chương của mục 3); `ĐK-2` xác minh, duyệt mở tài khoản, kích hoạt; `ĐK-3` tệp của phiếu và việc máy tự dọn phiếu đã kết thúc.
+**Cần chủ duyệt, chia hai lượt vì mỗi lượt không quá ba quyết định, mỗi lượt kèm trang ghép:**
+
+- **Lượt A:** `ĐK-1` phiếu đăng ký và phiên đăng ký (kèm diff điều Hiến chương của mục 3); `ĐK-2` xác minh, duyệt mở tài khoản, kích hoạt; `ĐK-3` tệp của phiếu và việc máy tự dọn phiếu đã kết thúc.
+- **Lượt B:** `ĐK-7` cấp độ đại lý mặc định và ô quyền mới của Quản lý bán hàng; `ĐK-8` dấu xác minh: luật tính, nơi hiện, ai thấy.
 
 ### Đợt 2 — Phiếu đăng ký cho tổ chức
 
@@ -196,7 +253,9 @@ Mỗi đợt tự dùng được khi xong. Kế hoạch thi công từng đợt 
 - Bước xác minh đối chiếu Danh bạ **theo mã số thuế** (hôm nay hàm tìm trùng chỉ xét hồ sơ cá nhân). Lệnh duyệt cho tổ chức gắn hoặc tạo hồ sơ tổ chức theo kết luận đó; gắn vai trò đối tác cho hồ sơ tổ chức; tạo tài khoản trỏ hồ sơ tổ chức. Người đại diện là một **hồ sơ người** nối với tổ chức bằng một loại quan hệ mới («Người đại diện của»), giấy tờ của họ nằm ở hồ sơ người. Ngày công ty cần thêm nhân viên, người đại diện đã có sẵn hồ sơ.
 - Dựng đường ghi cho giấy tờ tổ chức (hôm nay mới có bảng).
 - Gỡ chốt «chỉ hồ sơ cá nhân» ở đường tạo tài khoản, **chỉ cho lệnh duyệt phiếu tổ chức**. Rà các đường đang giả định hồ sơ của tài khoản là người: đổi tên tài khoản, «Hồ sơ của tôi», phiếu xin xoá.
-- Danh bạ hiện dấu «đã xác minh» cạnh bốn trường hoá đơn, để Kế toán biết thông tin nào dùng được.
+- Danh bạ hiện dấu «đã xác minh» cạnh bốn trường hoá đơn, để Kế toán biết thông tin nào dùng được. Dấu xác minh của mục 5.7 áp luôn cho hồ sơ công ty, với mục bắt buộc riêng của tổ chức.
+- Sửa tay một trường của tổ chức phải ghi «cần xác minh lại», như đang làm với hồ sơ người; hôm nay chưa ghi.
+- Cấp độ đại lý mặc định của mục 5.6 gắn vào hồ sơ công ty.
 
 **Biết trước:**
 
@@ -248,6 +307,16 @@ Mỗi đợt tự dùng được khi xong. Kế hoạch thi công từng đợt 
 
 **Chuyển cho phiên lo ADR-0200, không thuộc khung này:** tài liệu của Capacitor ghi cách «nạp trang từ xa» không nhằm cho bản chính thức; và khi có tự đăng ký thì câu «mọi tài khoản do công ty tạo» ở phần bối cảnh của ADR-0200 không còn đúng.
 
+### Đợt 5 — Người đã có tài khoản tự nộp giấy tờ (đề xuất thêm, chờ chủ gật)
+
+**Vì sao đề xuất:** dấu xác minh áp cho mọi tài khoản (mục 5.7). Tài khoản do Nhân sự tạo sẽ hiện «Chưa xác minh», mà hôm nay họ không tự nộp được ảnh giấy tờ, và phiếu khai giấy tờ của họ chỉ từ chối được chứ chưa chấp nhận được. Không có đợt này thì dấu của nhóm đó đứng yên ở «Chưa xác minh».
+
+**Phải làm:** mở việc đã gác `BL-TK-ANH` và `BL-XM-ANH`: người đã đăng nhập gắn ảnh vào phiếu tự khai; người xác minh mở ảnh của phiếu đang chờ; chấp nhận được phiếu giấy tờ. Dùng lại màn xác minh và cách giữ tệp của đợt 1. Với tài khoản công ty thì thêm `BL-TK-TO-CHUC`.
+
+**Điều phải giải trước:** `BL-TEP-PHAT-LAI-500`, vì đường tải ảnh của người đã đăng nhập đi qua lớp chống ghi trùng (cần chủ chọn hướng sửa).
+
+**Nên đi sau đợt 1**, để dùng lại màn hình; thứ tự so với đợt 2, 3, 4 do chủ chọn. Thêm đợt này là thêm việc vào bảng, nên chỉ làm khi chủ gật.
+
 ## 7. Chống lạm dụng
 
 Đây là **cửa ghi công khai đầu tiên** của Nền tảng (ADR-0200 từng từ chối mở một biểu mẫu công khai vì lý do này), nên mỗi mối nguy có một lớp chặn có tên:
@@ -297,6 +366,7 @@ Các con số (số lần xin mã mỗi giờ, hạn ngày của từng trạng 
 | 4 | Thử gửi mã qua email tới một địa chỉ bất kỳ trên bản chính thức. Sổ bàn giao ghi chưa ai thử, mà mã email là cách xác nhận danh tính duy nhất của đợt 1 | Chủ | **Lập kế hoạch đợt 1**: thư không tới thì phải đổi cách xác nhận danh tính, tức đổi nền của đợt |
 | 5 | Duyệt các mục miễn lớp chống ghi trùng cho những route ghi của người đăng ký (ADR-0094 điều 1 đòi chủ duyệt từng mục) | Chủ, trong ADR `ĐK-1` | Thi công đợt 1 |
 | 6 | Mã số thuế có thành khoá duy nhất không (`BL-MST-UNIQUE`) | Chủ, trong ADR `ĐK-4` | Đợt 2 |
+| 6b | Các cấp độ đại lý (TA1…) đã được Kế toán tạo và bật trên bản chính thức; chưa có cấp nào thì không đặt được cấp mặc định | Kế toán | Đặt cấp mặc định sau khi đợt 1 phát hành |
 | 7 | Tài khoản nhà phát triển Apple (dùng chung với ADR-0200), khoá ứng dụng của Google ở trạng thái chính thức; thử trên máy thật (nấc 0) | Chủ | Đợt 4 |
 | 8 | Lối xin xoá tài khoản trong Nền tảng (ADR-0200 Đ4, đang chờ HC-5.19), nhận cả tài khoản công ty | Chủ duyệt | Đưa bản có đăng ký lên kho ứng dụng |
 
@@ -316,9 +386,14 @@ Các con số (số lần xin mã mỗi giờ, hạn ngày của từng trạng 
 12. Ảnh của phiếu nằm ở bảng tệp chờ riêng cho tới lúc duyệt; không dựng lại bảng tệp của hồ sơ.
 13. Toàn quyền được làm cả hai bước khi không còn ai hợp lệ, có gắn cờ.
 14. Lệnh của người đăng ký ghi vào lịch sử của chính phiếu, không vào nhật ký chung.
-15. Người đã có tài khoản muốn tự nộp ảnh giấy tờ (`BL-TK-ANH`, `BL-XM-ANH`) **không thuộc bốn đợt này**. Màn xác minh của đợt 1 nên dựng sao cho sau này hiện được cả ảnh của phiếu tự khai, nhưng mở việc đó là một việc thêm, phải hỏi chủ.
+15. Cấp độ đại lý mặc định: ghi thành cấp riêng lúc duyệt, đặt theo từng loại đối tác, chụp lúc duyệt; hồ sơ có sẵn đã có cấp riêng thì giữ nguyên; Kế toán không đặt mặc định nhưng vẫn đổi được cấp riêng (mục 5.6).
+16. Dấu xác minh chỉ để biết, không chặn việc gì; hiện ở trang Tôi, Quản lý tài khoản, Danh bạ; áp cho cả tài khoản nội bộ (mục 5.7).
 
-**Một câu còn chờ chủ, hỏi cùng lúc duyệt khung:** tài khoản tự đăng ký có **bắt buộc lớp hai ngay** không?
+**Hai câu còn chờ chủ, hỏi cùng lúc duyệt khung.**
+
+Câu 1: có **thêm đợt 5** không (người đã có tài khoản tự nộp giấy tờ để được dấu «Đã xác minh»)? Người soạn khuyến nghị thêm, đi sau đợt 1; không thêm thì dấu của các tài khoản do Nhân sự tạo đứng yên ở «Chưa xác minh».
+
+Câu 2: tài khoản tự đăng ký có **bắt buộc lớp hai ngay** không?
 
 - (a) **Chưa bắt buộc, khuyến nghị.** Người tự đăng ký đăng nhập bằng số điện thoại và PIN như mọi đối tác hôm nay, được mời bật lớp hai sau lần đăng nhập đầu. Việc bắt buộc đi cùng lát ADR-0121 cho mọi đối tác, làm riêng. Đợt 1 giữ nguyên cỡ.
 - (b) Bắt buộc ngay. Bước kích hoạt phải bật luôn yếu tố email (kèm mã dự phòng và màn riêng), hoặc đợt 1 phải gồm cả lát ADR-0121. Đợt 1 lớn hơn rõ rệt.
@@ -333,6 +408,7 @@ Các con số (số lần xin mã mỗi giờ, hạn ngày của từng trạng 
 - Tên trạng thái, tên nút, tên bảng đều là tên giữ chỗ.
 - Bản này đã qua **một** lượt đọc soát độc lập ngày 15/11 (chỉ đọc, không chạy thử): khoảng bảy mươi khẳng định được đối chiếu với mã, năm chỗ sai hoặc nói quá đã sửa, bảy chỗ tự mâu thuẫn đã gỡ. Con số «32 đường» người soát không đếm lại từng đường, chỉ ước lượng ra cùng cỡ.
 - Nhánh viết bản này đi sau bản chính vài lần lưu; kế hoạch thi công phải soạn sau khi nhập bản chính mới nhất.
+- Phần sửa lần 2 (cấp độ đại lý mặc định, dấu xác minh, đợt 5) **chưa** qua người đọc độc lập. Người soạn đã tự đối chiếu với mã: ba bảng cấp (`prc_rate_tier`, `prc_role_tier`, `prc_party_tier`), hai ô `partner.commission.view` và `.write`, hàng `quanLyBanHang()`, bảng `pty_verification`. Chưa kiểm: bản chính thức đang có những cấp nào.
 
 ## 13. Nguồn
 
