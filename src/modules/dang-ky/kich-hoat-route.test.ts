@@ -222,6 +222,7 @@ test("(T12) Danh sách tài khoản: tài khoản vừa duyệt mang chuaKichHoa
   w.env.EMAIL = { send: async (m: { to: string; text?: string }) => { thu.push(m); } };
   seedStaff(w.sqlite, { id: "11111111-1111-4111-8111-111111111119", phone: "0900000019", name: "Đã Ngưng", perms: ["SALES"] });
   w.sqlite.exec("UPDATE staff SET active = 0 WHERE phone = '0900000019'");
+  seedStaff(w.sqlite, { id: "11111111-1111-4111-8111-111111111121", phone: "0900000021", name: "Đối Tác Thường", perms: ["PARTNER"] });
   const { id, ident, email } = await phieuDaDuyet(w);
   const dong = async () => {
     const r = await w.call("GET", "/api/staff", { as: HR });
@@ -230,10 +231,13 @@ test("(T12) Danh sách tài khoản: tài khoản vừa duyệt mang chuaKichHoa
   };
   let m = await dong();
   assert.equal(m.get(DT_KHOA), true, "vừa duyệt, chưa đặt PIN");
-  // Vòng sửa 1 (I-1, rail nút theo cờ): cờ máy chủ của dòng chưa kích hoạt không mời bấm Đặt lại PIN / Tắt bảo mật hai lớp (máy chủ trả 409).
-  const dongDu = ((await w.call("GET", "/api/staff", { as: HR })).json.staff as { phone: string; datLaiPinDuoc: boolean; canResetMfa: boolean }[]).find((s) => s.phone === DT_KHOA)!;
-  assert.equal(dongDu.datLaiPinDuoc, false);
-  assert.equal(dongDu.canResetMfa, false);
+  // Vòng sửa 1–2 (rail nút theo cờ): cờ máy chủ của dòng chưa kích hoạt không mời bấm Đặt lại PIN / Tắt bảo mật hai lớp (máy chủ trả 409). Người xem là QUẢN TRỊ — người có cả hai ô
+  // và là cấp trên của tài khoản Đối tác, nên với một tài khoản Đối tác thường cả hai cờ ĐÚNG (dòng đối chứng); chỉ điều kiện «chưa kích hoạt» làm hai cờ sai.
+  const coCua = async () => new Map(((await w.call("GET", "/api/staff", { as: ADM })).json.staff as { phone: string; datLaiPinDuoc: boolean; canResetMfa: boolean }[]).map((s) => [s.phone, s]));
+  const co = await coCua();
+  assert.deepEqual([co.get("0900000021")?.datLaiPinDuoc, co.get("0900000021")?.canResetMfa], [true, true], "đối chứng: tài khoản Đối tác thường, Quản trị xem ⇒ hai cờ đúng");
+  assert.equal(co.get(DT_KHOA)?.datLaiPinDuoc, false, "chưa kích hoạt ⇒ không Đặt lại PIN");
+  assert.equal(co.get(DT_KHOA)?.canResetMfa, false, "chưa kích hoạt ⇒ không Tắt bảo mật hai lớp");
   assert.equal(m.get("0900000019"), false, "ngưng thường");
   assert.equal(m.get("0900000003"), false, "đang bật");
   assert.equal((await w.call("POST", "/api/dang-ky/ma", { body: { email, turnstileToken: "token-tot" }, headers: { "cf-connecting-ip": "203.0.113.19" } })).status, 200);

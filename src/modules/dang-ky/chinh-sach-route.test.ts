@@ -3,6 +3,8 @@ import { after, test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { registeredSql } from "../../shared/sql-registry.ts";
+import "./repository.ts"; // đăng ký các câu defineSql của dang-ky
 
 const SUP = "77777777-7777-4777-8777-777777777777";
 const ADM = "33333333-3333-4333-8333-333333333333";
@@ -143,4 +145,22 @@ test("(6) Đóng ⇒ xin mã cho email mới KHÔNG gửi thư (cùng câu 200);
   assert.equal(r2.status, 200, r2.text);
   await w.choNen();
   assert.deepEqual(thu.map((m) => m.to), ["mo.cua@example.com"]);
+});
+
+test("(7) Câu đổi chính sách chép ĐỦ mọi cột của dk_policy (so PRAGMA table_info): chỉ mã, công tắc, loại mở và các cột mốc / người ghi do route tự đặt; cột thêm sau này không bị bỏ rơi lặng lẽ", () => {
+  const w = setup();
+  const cot = (w.q("PRAGMA table_info(dk_policy)") as { name: string }[]).map((c) => c.name);
+  assert.ok(cot.length >= 20, "đọc được bảng");
+  const sql = registeredSql().find((e) => e.module === "dang-ky" && e.name === "policy_switch_insert")?.sql ?? "";
+  const m = /INSERT INTO dk_policy \(([^)]*)\)\s*SELECT ([\s\S]*?)\s+FROM dk_policy p\b/.exec(sql);
+  assert.ok(m, "tìm thấy câu INSERT … SELECT … FROM dk_policy p");
+  const chen = m![1]!.split(",").map((x) => x.trim());
+  const chon = m![2]!.split(",").map((x) => x.trim());
+  assert.equal(chen.length, chon.length, "số cột chèn = số biểu thức chọn");
+  assert.deepEqual([...chen].sort(), [...cot].sort(), "câu chèn liệt kê ĐÚNG mọi cột của bảng (thêm cột vào bảng thì phải thêm vào câu)");
+  const ROUTE_DAT = new Set(["id", "registration_open", "open_role_codes", "valid_from_at", "created_at", "created_by", "updated_at", "updated_by"]);
+  for (const [i, c] of chen.entries()) {
+    if (ROUTE_DAT.has(c)) assert.match(chon[i]!, /^\?\d+$/, `${c}: route tự đặt bằng tham số`);
+    else assert.equal(chon[i], `p.${c}`, `${c}: phải chép nguyên từ dòng hiện hành`);
+  }
 });
