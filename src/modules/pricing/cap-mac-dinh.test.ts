@@ -240,6 +240,58 @@ test("(6d) KHÔNG LÀM HỎNG LÔ — vai trò bị tắt khỏi danh sách đư
   assert.deepEqual(capRieng(w, party), []);
 });
 
+test("(6e) Vai người duyệt chọn bị tắt khỏi danh sách được hưởng, dù hồ sơ có sẵn còn một vai được hưởng khác ⇒ lô thành công, không dòng cấp riêng", async () => {
+  const w = setup();
+  const { ta2 } = await nen(w);
+  await ok(datCs(w, SM, "COLLABORATOR", ta2), 200);
+  const goc = await hoSoCoSan(w); // đang mở vai Công ty lữ hành (được hưởng, còn bật)
+  w.sqlite.exec("UPDATE prc_beneficiary_role SET active = 0 WHERE role_type_code = 'COLLABORATOR'");
+  const id = phieu(w);
+  await xacMinh(w, id, { kieu: "CO_SAN", partyId: goc });
+  await ok(duyet(w, id, "COLLABORATOR"), 200, "duyệt vai Cộng tác viên");
+  assert.deepEqual(capRieng(w, goc), []);
+});
+
+test("(6f) Dòng chính sách hiệu lực LÚC BẤM đổi sau khi gốc lắp ráp đọc, trước khi lô chạy (lệnh đặt lấy mốc trước lúc bấm nhưng ghi sau) ⇒ lô thành công, KHÔNG ghi cấp, nhật ký không ghi cấp sai", async () => {
+  const w = setup();
+  const { ta1, ta2 } = await nen(w);
+  await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200);
+  const cu = w.q("SELECT valid_from_at FROM prc_signup_tier_policy")[0].valid_from_at as string;
+  const id = phieu(w);
+  await xacMinh(w, id);
+  await new Promise((r) => setTimeout(r, 5)); // lúc bấm duyệt sau mốc dòng cũ ít nhất vài phần nghìn giây
+  let daChen = 0;
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /INSERT INTO dk_decision/.test(s.sql)), async () => {
+    daChen++;
+    const moc = new Date(Date.parse(cu) + 1).toISOString(); // sau dòng cũ, trước lúc bấm
+    w.sqlite.prepare(`INSERT INTO prc_signup_tier_policy (id, role_type_code, tier_code, valid_from_at, created_at, created_by, updated_at, updated_by)
+      VALUES ('cs-chen', 'TRAVEL_AGENCY', ?, ?, ?, ?, ?, ?)`).run(ta1, moc, moc, ADM, moc, ADM);
+  });
+  await ok(duyet(w, id), 200, "duyệt");
+  assert.equal(daChen, 1);
+  const party = w.q("SELECT party_id FROM staff WHERE phone = ?", DT_KHOA)[0].party_id;
+  assert.deepEqual(capRieng(w, party), []);
+  assert.equal(dem1(w, "SELECT count(*) n FROM audit_log WHERE action = 'prc_party_tier_set'"), 0);
+});
+
+test("(6g) Chính sách đặt SAU lúc bấm duyệt (trước khi lô chạy) ⇒ lô ghi cấp hiệu lực lúc bấm, nhật ký cùng cấp đó", async () => {
+  const w = setup();
+  const { ta1, ta2 } = await nen(w);
+  await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200);
+  const id = phieu(w);
+  await xacMinh(w, id);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /INSERT INTO dk_decision/.test(s.sql)), async () => {
+    await new Promise((r) => setTimeout(r, 2));
+    await ok(datCs(w, ADM, "TRAVEL_AGENCY", ta1), 200, "Quản trị đổi sang TA1");
+  });
+  await ok(duyet(w, id), 200, "duyệt");
+  const party = w.q("SELECT party_id FROM staff WHERE phone = ?", DT_KHOA)[0].party_id;
+  assert.deepEqual(capRieng(w, party).map((r: any) => r.tier_code), [ta2]);
+  const nk = w.q("SELECT detail FROM audit_log WHERE action = 'prc_party_tier_set'");
+  assert.equal(nk.length, 1);
+  assert.ok(nk[0].detail.includes(ta2), nk[0].detail);
+});
+
 test("(7) Đổi chính sách SAU khi duyệt ⇒ cấp riêng đã ghi không đổi", async () => {
   const w = setup();
   const { ta1, ta2 } = await nen(w);
