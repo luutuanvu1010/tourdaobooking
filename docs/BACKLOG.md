@@ -795,3 +795,16 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-KN-NUT-GO** — gỡ ảnh biên lai khoản nộp chỉ có đường máy chủ (như BL-BL-NUT-GO), chưa có nút trên giao diện.
 - **BL-KN-TRAN-ANH** — trần 20 ảnh / giờ có thể chặn đại lý lớn gửi nhiều đơn liền (ADR Hệ quả V3); chưa nâng.
 - **BL-KN-THU-THAT** — chưa thử iPhone thật (HEIC từ camera) cho ô ảnh biên lai khoản nộp.
+
+## 72. Kiểm toán cách làm bằng AI — việc để sau (mã `BL-AI-…`, 2026-11-13)
+
+- **Trạng thái:** `để sau` · Chủ 13/11, nguyên văn: «Để sau». Hồ sơ: `docs/superpowers/specs/2026-11-13-kiem-toan-cach-lam-vibe-coding.md`. Mục này mang số 71 lúc ghi; đổi thành 72 khi nhận bản chính ngày 15/11 vì trùng số.
+- **Cập nhật 15/11:** chủ yêu cầu kiểm toán lại và đề xuất cách thi công cho một người; hồ sơ mới `docs/superpowers/specs/2026-11-15-kiem-toan-harness-va-cach-thi-cong-mot-nguoi.md` thay phần đề xuất của bản 13/11. Chủ đã cho làm Bước 1 cùng ngày (nút «Làm Bước 1»; kế hoạch `docs/superpowers/plans/2026-11-15-buoc-1-dong-cho-ho-harness.md`). Còn chờ chủ: kho mã công khai hay riêng tư; hướng A, B hay C. Các mã dưới đây nằm trong Bước 1–3 của hồ sơ đó.
+- **BL-AI-KHO-CONG-KHAI** (gấp, chờ chủ) — kho GitHub đang công khai, còn địa chỉ bảng Google Sheet nhân viên và bảng giá, vài dòng số điện thoại, sổ lỗi bảo mật đang mở; người lạ tải được cả hai bảng (kiểm 15/11, chỉ lấy tiêu đề). Chủ tắt chia sẻ bảng nhân viên; quyết kho riêng tư hay công khai.
+- **BL-AI-GITHUB-KHOA-BAN-CHINH** — bản chính trên GitHub chưa có luật bảo vệ nhánh; chủ bật trong cài đặt GitHub, cần thử với luồng `day-len`.
+- **BL-AI-MO-TA-MOI-TRUONG** — `autoMode.environment` trong `~/.claude/settings.json` tả dự án khác và đã cũ; AI soạn, chủ dán.
+- **BL-AI-TERMINAL** — hàng rào lệnh nguy hiểm chỉ canh công cụ Bash; lệnh gõ qua công cụ Terminal của ứng dụng (`mcp__terminal__run_in_terminal`) không qua `guard-remote.mjs` và không khớp luật cấm `Bash(...)`. ĐÃ THI CÔNG 15/11 trên nhánh `claude/vibe-coding-audit-2bdc6e`: móc canh thêm công cụ Terminal và thêm luật cấm cả công cụ; đã ghi `docs/SO-HANG-RAO.md`. Còn nợ: quan sát trên Claude Code thật ở phiên mở sau khi nhánh vào `main`.
+- **BL-AI-BO-NHO** — mục lục bộ nhớ phần lớn là dòng trạng thái production. 15/11 đã rút gọn cơ học (cắt mô tả dài, gộp mười mục tính năng cũ; còn 156 dòng, khoảng 16,7 nghìn ký tự, dưới trần đọc); việc bỏ hẳn dòng trạng thái, chỉ giữ sở thích và cách làm, còn chờ chủ.
+- **BL-AI-KIEU-TRA-LOI** — kiểu trả lời "Explanatory" trong cài đặt ứng dụng ngược luật "Cách trả lời tôi"; chủ tự đổi.
+- **BL-AI-CLAUDE-MD** — việc rút gọn CLAUDE.md (ADR-0160) đứng từ 3/11; kèm chuyển công thức `CHANGE-GUIDE.md` thành skill.
+- **BL-AI-NGUOI-KIEM** — người kiểm độc lập có Bash, "chỉ đọc" chỉ bằng lời dặn. ĐÃ THI CÔNG 15/11 trên nhánh `claude/vibe-coding-audit-2bdc6e`: tệp trợ lý thêm `isolation: worktree` (chạy trên bản sao riêng). Có hiệu lực ở phiên mở sau khi nhánh vào `main`.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Móc PreToolUse cho công cụ Bash (đăng ký ở .claude/settings.json). Đọc JSON từ stdin, hỏi guard-remote-lib.mjs (lệnh cấm: push, deploy, ghi D1 remote…)
+// Móc PreToolUse cho công cụ Bash và công cụ gõ lệnh vào tab Terminal của ứng dụng (mcp__terminal__run_in_terminal, từ 2026-11-15; đăng ký ở .claude/settings.json). Đọc JSON từ stdin, hỏi guard-remote-lib.mjs (lệnh cấm: push, deploy, ghi D1 remote…)
 // rồi guard-luat-lib.mjs (sửa tệp luật bằng dòng lệnh — Hiến pháp N9), và nếu lệnh bị cấm thì trả quyết định "deny" cho Claude Code.
 // Không bị cấm mà lệnh có dấu hiệu GHI vào docs/adr/ theo đường guard-luat không thấy (python/node heredoc, -c/-e, tệp script, vòng lặp, xargs)
 // thì trả "ask" (hỏi chủ; luật `adr-bash-write`, chủ quyết "Siết lại" 30/9). THỨ TỰ CỐ ĐỊNH, deny luôn thắng ask:
@@ -27,12 +27,15 @@ try {
 } catch {
   process.exit(0);
 }
-if (input?.tool_name !== "Bash") process.exit(0);
+const CONG_CU_CHAY_LENH = new Set(["Bash", "mcp__terminal__run_in_terminal"]);
+if (!CONG_CU_CHAY_LENH.has(input?.tool_name)) process.exit(0);
+const quaTerminal = input.tool_name !== "Bash";
 
 const command = String(input?.tool_input?.command ?? "");
-const cwd = input.cwd || process.cwd();
+const cwd = (quaTerminal && input?.tool_input?.cwd) || input.cwd || process.cwd();
 let branch = null;
-if (mentionsGitMerge(command)) {
+// Qua Terminal: tab dùng lại có thể đang đứng ở thư mục khác nên không xác định được nhánh; branch = null để luật git-merge-main chặn.
+if (!quaTerminal && mentionsGitMerge(command)) {
   try {
     branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }).trim();
   } catch {
