@@ -237,7 +237,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
       quanDuoc(s) && btn("Sửa", () => void openEdit(s)),
       // Cờ máy chủ theo dòng (ADR-0090 đ2): cùng hàm với cổng route — hai ô, cấp dưới, không phải chính mình (DK-T3-02: đổi PIN của mình ở trang "Tôi"),
       // tài khoản có quyền tiền chỉ Toàn quyền. Trang không tự tính.
-      s.datLaiPinDuoc && !s.chuaKichHoat &&
+      s.datLaiPinDuoc &&
         btn("Đặt lại PIN", async () => {
           if (!(await hoiXacNhan({ tieuDe: "Đặt lại PIN", hauQua: `Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi máy đang đăng nhập sẽ mất hiệu lực.`, nhanNguyHiem: "Đặt lại PIN" }))) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
@@ -250,7 +250,7 @@ function row(s: Api.StaffListRowDto): HTMLElement {
         if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
       }),
       // Cờ máy chủ theo dòng (ADR-0074 điều 5, ADR-0090 đ1 iv) — cùng hàm cổng với route POST /api/staff/:id/mfa-reset; Nhân sự không có.
-      s.canResetMfa && !s.chuaKichHoat && btn("Tắt bảo mật hai lớp", () => openTatHaiLop(s), "btn btn-link danger"),
+      s.canResetMfa && btn("Tắt bảo mật hai lớp", () => openTatHaiLop(s), "btn btn-link danger"),
       // Không hiện trên hàng của chính admin đang đăng nhập: route quản trị đăng xuất người bị gỡ NGAY mà không cấp cookie mới cho người gọi — tự gỡ của mình làm ở trang "Tôi".
       canAccessManage && quanDuoc(s) &&
         !isMe &&
@@ -298,7 +298,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
       quanDuoc(s) && btn("Sửa", () => void openEdit(s)),
       // Cờ máy chủ theo dòng (ADR-0090 đ2): cùng hàm với cổng route — hai ô, cấp dưới, không phải chính mình (DK-T3-02: đổi PIN của mình ở trang "Tôi"),
       // tài khoản có quyền tiền chỉ Toàn quyền. Trang không tự tính.
-      s.datLaiPinDuoc && !s.chuaKichHoat &&
+      s.datLaiPinDuoc &&
         btn("Đặt lại PIN", async () => {
           if (!(await hoiXacNhan({ tieuDe: "Đặt lại PIN", hauQua: `Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi máy đang đăng nhập sẽ mất hiệu lực.`, nhanNguyHiem: "Đặt lại PIN" }))) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
@@ -310,7 +310,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
       canAccessManage && quanDuoc(s) && s.locked && !s.chuaKichHoat && btn("Mở khoá", async () => {
         if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
       }),
-      s.canResetMfa && !s.chuaKichHoat && btn("Tắt bảo mật hai lớp", () => openTatHaiLop(s), true),
+      s.canResetMfa && btn("Tắt bảo mật hai lớp", () => openTatHaiLop(s), true),
       // Không hiện trên thẻ của chính admin đang đăng nhập: route quản trị đăng xuất người bị gỡ NGAY mà không cấp cookie mới cho người gọi — tự gỡ của mình làm ở trang "Tôi".
       canAccessManage && quanDuoc(s) &&
         !isMe &&

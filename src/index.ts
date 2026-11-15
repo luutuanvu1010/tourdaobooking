@@ -21,7 +21,7 @@ import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
-import { cauAnDanhBanKhai, cauChotDuyet, cauDuyetPhieu, chuaKichHoat, dangKyModule, donPhieuDangKyDinhGio, suKienDuyetStatement } from "./modules/dang-ky";
+import { cauAnDanhBanKhai, cauChotDuyet, cauDuyetPhieu, chuaKichHoat, dangKyModule, donPhieuDangKyDinhGio, suKienDuyetStatement, taiKhoanChuaKichHoat } from "./modules/dang-ky";
 import { banHangNoi, dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
 import { chinhSachChoNguoi, giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
@@ -266,6 +266,7 @@ const APP_OPTIONS: AppOptions = {
     mocToiThieu: (env) => mocToiThieuHienHanh(env.DB),
     // TÀI KHOẢN CHƯA KÍCH HOẠT (ADR-0207 Đ7): `accounts` không import `dang-ky` — gốc lắp ráp tiêm hàm công bố (khuôn isAssigned).
     chuaKichHoat: (env, staffId) => chuaKichHoat(env.DB, staffId),
+    taiKhoanChuaKichHoat: (env) => taiKhoanChuaKichHoat(env.DB),
     // LÔ DUYỆT PHIẾU ĐĂNG KÝ (ADR-0207 Đ5): dang-ky không import pricing — gốc lắp ráp ghép lô (hàm ở trên), route dang-ky chạy.
     loDuyetDangKy: (env, v) => loDuyetDangKy(env.DB, v),
     // CHÍNH SÁCH GIAO DIỆN (ADR-0194 đợt 1): `orders` không import `giao-dien` — gốc lắp ráp tiêm hàm công bố (khuôn mocToiThieu).

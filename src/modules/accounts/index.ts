@@ -462,7 +462,7 @@ export const accountsModule: AppModule = {
     }),
 
     // ---- Danh sách / tạo thủ công ------------------------------------------------
-    route("GET", "/api/staff", "accounts", async ({ env, staff: admin, chuaKichHoat }) => {
+    route("GET", "/api/staff", "accounts", async ({ env, staff: admin, taiKhoanChuaKichHoat }) => {
       if (!can(admin, "account.view")) return NOT_ACCOUNT_VIEW();
       const [staff, locked, mfaLocked, passkeys, loaiYeuTo, anHan, tenVai] = await Promise.all([
         listStaffAccounts(env.DB), lockedPhones(env.DB), lockedMfaStaffIds(env.DB), countActivePasskeys(env.DB), factorKindsByStaff(env.DB), mfaGraceTheoId(env.DB),
@@ -470,17 +470,16 @@ export const accountsModule: AppModule = {
       ]);
       const roles = await accountRoleCodes(env.DB, staff);
       const dau = await dauXacMinhTaiKhoan(env.DB, staff.map((s) => s.partyId), vnToday(new Date())); // ADR-0210 Đ3: chỉ người giữ account.view (cổng ở trên)
-      // ADR-0207 Đ7: tài khoản sinh từ phiếu đăng ký chưa đặt PIN hiện «Chưa kích hoạt» thay cho «Ngưng». Chỉ hỏi dòng đang tắt (ít), mỗi dòng một truy vấn qua hàm tiêm sẵn có.
-      const tat = staff.filter((s) => !s.active);
-      const chuaKH = new Set((await Promise.all(tat.map(async (s) => ((await chuaKichHoat(s.id)) ? s.id : null)))).filter((x): x is string => x !== null));
+      // ADR-0207 Đ7: tài khoản sinh từ phiếu đăng ký chưa đặt PIN hiện «Chưa kích hoạt» thay cho «Ngưng». MỘT truy vấn cho cả danh sách (hàm tiêm của gốc lắp ráp), không truy vấn theo dòng.
+      const chuaKH = await taiKhoanChuaKichHoat();
       const seesHidden = can(admin, "admin.manage.superadmin"); // ADR-0042: Toàn quyền là vai ẩn với người khác
       // ADR-0090 đ2: cờ theo dòng tính trên quyền THẬT (trước khi che Toàn quyền thành Quản trị). Kế hoạch Task 6: nhãn hai lớp + cờ "tắt lớp hai được" cũng vậy.
       return json({
         staff: staff.map((s) => {
           const daBat = daBatHaiLop(s.permissions, loaiYeuTo.get(s.id) ?? []); // dòng EMAIL lệch của vai lớn không tính (Phần C Task 4)
           return {
-            ...dto(s, locked, mfaLocked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden), datLaiPinDuoc: datLaiPinDuocTheoDong(admin, s),
-            canResetMfa: tatHaiLopDuoc(admin, s), chuaKichHoat: chuaKH.has(s.id), dauXacMinh: s.partyId ? (dau.get(s.partyId) ?? null) : null, mfa: { enabled: daBat, graceUntil: daBat || !isInternal(s.permissions) ? null : (anHan.get(s.id) ?? null) },
+            ...dto(s, locked, mfaLocked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden), datLaiPinDuoc: datLaiPinDuocTheoDong(admin, s) && !chuaKH.has(s.id), // ADR-0207 Đ7: tài khoản chưa kích hoạt — máy chủ trả 409, cờ không mời bấm
+            canResetMfa: tatHaiLopDuoc(admin, s) && !chuaKH.has(s.id), chuaKichHoat: !s.active && chuaKH.has(s.id), dauXacMinh: s.partyId ? (dau.get(s.partyId) ?? null) : null, mfa: { enabled: daBat, graceUntil: daBat || !isInternal(s.permissions) ? null : (anHan.get(s.id) ?? null) },
           };
         }),
         tenVai, // Task 3b: tên hiện hành của mọi mã vai tài khoản (đổi tên loại đối tác Có sẵn ở màn Hoa hồng → màn này hiện tên mới)

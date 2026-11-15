@@ -407,6 +407,16 @@ const CHUA_KICH_HOAT = defineSql(
 export async function chuaKichHoat(db: D1Database, staffId: string): Promise<boolean> {
   return (await db.prepare(CHUA_KICH_HOAT).bind(staffId).first<{ co: number }>()) !== null;
 }
+// Cùng điều kiện, cho CẢ danh sách tài khoản (Task 12 vòng sửa 1, I-1): MỘT câu, trả mọi mã tài khoản chưa kích hoạt — danh sách không gọi một truy vấn cho mỗi tài khoản tắt
+// (tài khoản không bao giờ xoá cứng nên số tài khoản tắt chỉ tăng; quá trần truy vấn của một lần gọi D1 thì cả trang hỏng). Các lệnh ghi vẫn hỏi từng mã bằng `chuaKichHoat`.
+const TAI_KHOAN_CHUA_KICH_HOAT = defineSql(
+  "dang-ky",
+  "tai_khoan_chua_kich_hoat",
+  `SELECT DISTINCT staff_id FROM dk_registration WHERE status = 'DA_DUYET' AND activated_at IS NULL AND staff_id IS NOT NULL`,
+);
+export async function taiKhoanChuaKichHoat(db: D1Database): Promise<Set<string>> {
+  return new Set((await db.prepare(TAI_KHOAN_CHUA_KICH_HOAT).all<{ staff_id: string }>()).results.map((r) => r.staff_id));
+}
 
 // ---- Bước DUYỆT của Nhân sự (ADR-0207 Đ4, Đ5, Đ7; đợt 1 Task 8) ----
 export interface BanKhaiDuyetRow {

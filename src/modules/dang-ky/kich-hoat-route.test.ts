@@ -230,6 +230,10 @@ test("(T12) Danh sách tài khoản: tài khoản vừa duyệt mang chuaKichHoa
   };
   let m = await dong();
   assert.equal(m.get(DT_KHOA), true, "vừa duyệt, chưa đặt PIN");
+  // Vòng sửa 1 (I-1, rail nút theo cờ): cờ máy chủ của dòng chưa kích hoạt không mời bấm Đặt lại PIN / Tắt bảo mật hai lớp (máy chủ trả 409).
+  const dongDu = ((await w.call("GET", "/api/staff", { as: HR })).json.staff as { phone: string; datLaiPinDuoc: boolean; canResetMfa: boolean }[]).find((s) => s.phone === DT_KHOA)!;
+  assert.equal(dongDu.datLaiPinDuoc, false);
+  assert.equal(dongDu.canResetMfa, false);
   assert.equal(m.get("0900000019"), false, "ngưng thường");
   assert.equal(m.get("0900000003"), false, "đang bật");
   assert.equal((await w.call("POST", "/api/dang-ky/ma", { body: { email, turnstileToken: "token-tot" }, headers: { "cf-connecting-ip": "203.0.113.19" } })).status, 200);
@@ -238,4 +242,26 @@ test("(T12) Danh sách tài khoản: tài khoản vừa duyệt mang chuaKichHoa
   assert.equal((await datPin(w, await cookie(id, ident), { ma, pin: PIN })).status, 200);
   m = await dong();
   assert.equal(m.get(DT_KHOA), false, "đã kích hoạt");
+});
+
+test("(T12b) Danh sách tài khoản hỏi «chưa kích hoạt» bằng ĐÚNG MỘT truy vấn, dù có nhiều tài khoản tắt (không truy vấn theo dòng — vòng sửa 1, I-1)", async () => {
+  const w = setup();
+  for (let i = 0; i < 12; i++) {
+    seedStaff(w.sqlite, { id: `11111111-1111-4111-8111-1111111111${String(i).padStart(2, "0")}`, phone: `09000002${String(i).padStart(2, "0")}`, name: `Tắt ${i}`, perms: ["SALES"] });
+  }
+  w.sqlite.exec("UPDATE staff SET active = 0 WHERE phone LIKE '09000002%'");
+  await phieuDaDuyet(w);
+  const goc = w.env.DB.prepare.bind(w.env.DB);
+  const cau: string[] = [];
+  w.env.DB.prepare = (sql: string) => { if (/FROM dk_registration/.test(sql)) cau.push(sql); return goc(sql); };
+  try {
+    const r = await w.call("GET", "/api/staff", { as: HR });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(cau.length, 1, `số câu đọc dk_registration: ${cau.length}`);
+    assert.match(cau[0]!, /SELECT DISTINCT staff_id FROM dk_registration/);
+    const tat = (r.json.staff as { phone: string; chuaKichHoat: boolean }[]).filter((s) => s.chuaKichHoat).map((s) => s.phone);
+    assert.deepEqual(tat, [DT_KHOA]);
+  } finally {
+    w.env.DB.prepare = goc;
+  }
 });

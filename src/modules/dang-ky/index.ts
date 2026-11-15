@@ -12,7 +12,7 @@ import { CAM_DUYET, duyetPhieu, guiLaiLoiMoi, tuChoiDuyet, xemDeDuyet } from "./
 import { CAM, ketLuanMuc, moTep, tuChoiPhieu, xacMinhDat, xemHangCho, xemPhieu, xemSo, yeuCauBoSung } from "./xac-minh-route";
 
 export { cauLyDoChoNguoiDangKy } from "../../shared/dang-ky-hien-thi";
-export { chuaKichHoat, lyDoCuaPhieu } from "./repository";
+export { chuaKichHoat, lyDoCuaPhieu, taiKhoanChuaKichHoat } from "./repository";
 // Câu CHƯA CHẠY của dang-ky cho LÔ DUYỆT (ADR-0207 Đ5; đợt 1 Task 8): gốc lắp ráp ghép với câu của parties, staff (và pricing) — câu 1 chốt, câu 10 phiếu + lịch sử + ẩn danh bản khai.
 export { cauAnDanhBanKhai, cauChotDuyet, cauDuyetPhieu, suKienNhanVienStatement as suKienDuyetStatement } from "./repository";
 export { TRANG_THAI, TRANG_THAI_KET_THUC, chuyenHopLe, daKetThuc, type TrangThai } from "./rules";

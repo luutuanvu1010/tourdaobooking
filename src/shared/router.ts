@@ -229,6 +229,8 @@ export interface Ctx<A extends Access = Access> {
    * `createApp` (thiếu thì typecheck đỏ): không có đường mặc định cho qua.
    */
   chuaKichHoat: (staffId: string) => Promise<boolean>;
+  /** Cùng luật, MỘT truy vấn cho cả danh sách tài khoản (Task 12 vòng sửa 1, I-1): mọi mã tài khoản chưa kích hoạt. BẮT BUỘC như `chuaKichHoat`. */
+  taiKhoanChuaKichHoat: () => Promise<Set<string>>;
   /**
    * LÔ DUYỆT PHIẾU ĐĂNG KÝ (ADR-0207 Đ5; đợt 1 Task 8) — do gốc lắp ráp tiêm: ghép câu CHƯA CHẠY của dang-ky (câu chốt, phiếu, ẩn danh), parties, staff (và pricing ở Task 11)
    * theo đúng thứ tự Đ5 (ADR-0206 Đ2, ADR-0209 Đ6). Không chạy gì; route `dang-ky` chạy MỘT `db.batch`. BẮT BUỘC (như `chuaKichHoat`): thiếu thì typecheck đỏ.
@@ -490,6 +492,8 @@ export interface AppOptions {
     mocToiThieu: (env: Env) => Promise<MocToiThieu | null>;
     /** TÀI KHOẢN CHƯA KÍCH HOẠT (ADR-0207 Đ7). BẮT BUỘC (như `mocToiThieu`): bản thật ở `src/index.ts` (`chuaKichHoat` của dang-ky); thiếu thì typecheck đỏ — không có mặc định cho qua. */
     chuaKichHoat: (env: Env, staffId: string) => Promise<boolean>;
+    /** Danh sách tài khoản chưa kích hoạt — MỘT truy vấn (Task 12 vòng sửa 1). BẮT BUỘC: bản thật ở `src/index.ts` (`taiKhoanChuaKichHoat` của dang-ky). */
+    taiKhoanChuaKichHoat: (env: Env) => Promise<Set<string>>;
     /** LÔ DUYỆT PHIẾU ĐĂNG KÝ (ADR-0207 Đ5). BẮT BUỘC: bản thật ở `src/index.ts`; thiếu thì typecheck đỏ. */
     loDuyetDangKy: (env: Env, v: LoDuyetDangKyVao) => Promise<LoDuyetDangKyRa>;
     /** CHÍNH SÁCH GIAO DIỆN (ADR-0194 đợt 1). Bản thật ở `src/index.ts` (`chinhSachChoNguoi` của giao-dien); thiếu (khung thử cũ) ⇒ `[]` — không đổi hành vi. */
@@ -689,6 +693,7 @@ export function createApp(opts: AppOptions) {
       // Thiếu hàm tiêm (khung thử cố ý) → null: route chặn, không đoán (I25). Kiểm lúc GỌI, không lúc dựng app (typeof — JS không kiểm kiểu).
       mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(envH) : Promise.resolve(null)),
       chuaKichHoat: (staffId) => opts.injected.chuaKichHoat(envH, staffId),
+      taiKhoanChuaKichHoat: () => opts.injected.taiKhoanChuaKichHoat(envH),
       loDuyetDangKy: (v) => opts.injected.loDuyetDangKy(envH, v),
       chinhSachGiaoDien: async () => {
         if (!who || typeof opts.injected.chinhSachGiaoDien !== "function") return [];

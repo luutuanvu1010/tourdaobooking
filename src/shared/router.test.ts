@@ -546,6 +546,7 @@ test("ctx.chuaKichHoat: chuyển env + id tài khoản tới hàm tiêm, trả n
       isAssigned: async () => false, banHang: () => ({}) as never, defaultHandlerStatement: () => null, maintenanceBlock: async () => null, partyAccount: async () => ({ linked: false }),
       baoThayDoi: async () => {}, dongBangTin: async () => {}, giaoLoDay: async () => [],
       chuaKichHoat: async (e: Env, id: string) => { seen.push([e, id]); return id === "s-1"; },
+      taiKhoanChuaKichHoat: async () => new Set<string>(),
     },
   } as any);
   assert.deepEqual(await (await app.fetch(new Request("http://x/api/ckh"), env, {} as ExecutionContext)).json(), { a: true, b: false });
