@@ -88,7 +88,7 @@ async function xacMinh(w: W, id: string, hoSo: any = { kieu: "MOI" }) {
   for (const m of MUC) await ok(w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as: ADM, body: { phienBan: 1, muc: m, dat: true } }), 200, m);
   await ok(w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as: ADM, body: { phienBan: 1, hoSo } }), 200, "đạt");
 }
-const duyet = (w: W, id: string, roleCode = "TRAVEL_AGENCY", as = HR) => w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as, body: { roleCode } });
+const duyet = (w: W, id: string, roleCode = "TRAVEL_AGENCY", as = HR) => w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as, body: { roleCode, phienBan: 1 } });
 /** Phiếu mới → xác minh → duyệt (200) ⇒ mã hồ sơ của tài khoản vừa mở. */
 async function duyetMoi(w: W, o: { xin?: string; chon?: string; hoSo?: any } = {}): Promise<string> {
   const id = phieu(w, o.xin);
@@ -354,4 +354,97 @@ test("(9) Đơn đầu tiên của đối tác vừa duyệt (ĐƯỜNG XÁC NH�
   assert.deepEqual([chup[0].commission_status, chup[0].commission_rule_id, chup[0].commission_rate_bp], ["SET", d2, 1200]);
   const tm = await ok(w.call("GET", `/api/orders/${id}/thuong-mai`, { as: KT }), 200, "thương mại");
   assert.equal(tm.json.vanPhong.dong[0].hoaHong, 240_000);
+});
+
+// ---- «Cấp sẽ áp» và kết quả cấp của lệnh duyệt (ADR-0209 Đ3, Đ4; Task 12, mục I-1 và m-2 của bài kiểm Task 11) ----
+const seAp = (w: W, loai: string, hoSo?: string, as = ADM) => w.call("GET", `/api/pricing/cap-mac-dinh/se-ap?loai=${loai}${hoSo ? `&hoSo=${hoSo}` : ""}`, { as });
+
+test("(10) Xem trước «cấp sẽ áp»: Quản trị thấy tên cấp; Nhân sự, Đối tác ⇒ 403; tham số sai ⇒ 400", async () => {
+  const w = setup();
+  const { ta2 } = await nen(w);
+  await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200);
+  const r = await ok(seAp(w, "TRAVEL_AGENCY"), 200, "Quản trị xem trước");
+  assert.deepEqual(r.json, { ap: true, cap: { code: ta2, ten: "TA2" }, lyDo: null, cau: null });
+  assert.equal(r.headers.get("cache-control"), "no-store");
+  assert.equal((await seAp(w, "TRAVEL_AGENCY", undefined, HR)).status, 403, "Nhân sự không giữ partner.commission.view");
+  assert.equal((await seAp(w, "TRAVEL_AGENCY", undefined, DTAC)).status, 403, "Đối tác");
+  assert.equal((await w.call("GET", "/api/pricing/cap-mac-dinh/se-ap?loai=a b", { as: ADM })).status, 400);
+  assert.equal((await w.call("GET", "/api/pricing/cap-mac-dinh/se-ap?loai=TRAVEL_AGENCY&hoSo=%27x", { as: ADM })).status, 400);
+});
+
+test("(11) Lệnh duyệt trả kết quả cấp: Nhân sự KHÔNG thấy tên cấp; Toàn quyền thấy; nhật ký prc_party_tier_set trỏ đúng hồ sơ mới (m-2)", async () => {
+  const w = setup();
+  const { ta2 } = await nen(w);
+  await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200);
+  const id = phieu(w);
+  await xacMinh(w, id);
+  const r = await ok(duyet(w, id), 200, "Nhân sự duyệt");
+  assert.deepEqual(r.json.cap, { ap: true, cap: null, lyDo: null, cau: null });
+  assert.ok(!r.text.includes("TA2") && !r.text.includes(ta2), "Nhân sự không thấy tên hay mã cấp");
+  const party = w.q("SELECT party_id FROM staff WHERE phone = ?", DT_KHOA)[0].party_id;
+  const nk = w.q("SELECT target_type, target_id FROM audit_log WHERE action = 'prc_party_tier_set'");
+  assert.deepEqual(nk.map((x: any) => [x.target_type, x.target_id]), [["party", party]]);
+
+  const w2 = setup();
+  const n2 = await nen(w2);
+  await ok(datCs(w2, SM, "TRAVEL_AGENCY", n2.ta2), 200);
+  const id2 = phieu(w2);
+  await xacMinh(w2, id2);
+  const r2 = await ok(duyet(w2, id2, "TRAVEL_AGENCY", SUP), 200, "Toàn quyền duyệt (người xác minh là Quản trị)");
+  assert.deepEqual(r2.json.cap, { ap: true, cap: { code: n2.ta2, ten: "TA2" }, lyDo: null, cau: null });
+});
+
+/** Mỗi ca dựng một thế giới, trả phiếu đã xác minh + hồ sơ đích (nếu gắn). Bài (12) so «cấp sẽ áp» với việc câu 8 THẬT có chèn hay không. */
+const CA: { ten: string; lyDo: string | null; dung: (w: W) => Promise<{ id: string; hoSo?: string; vai?: string }> }[] = [
+  { ten: "áp được", lyDo: null, dung: async (w) => { const { ta2 } = await nen(w); await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200); return { id: phieu(w) }; } },
+  { ten: "chưa đặt chính sách", lyDo: "CHUA_DAT", dung: async (w) => { await nen(w); return { id: phieu(w) }; } },
+  { ten: "«Theo cấp của vai trò»", lyDo: "CHUA_DAT", dung: async (w) => { const { ta2 } = await nen(w); await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200); await ok(datCs(w, SM, "TRAVEL_AGENCY", null), 200); return { id: phieu(w) }; } },
+  { ten: "cấp mặc định bị khoá", lyDo: "CAP_TAT", dung: async (w) => { const { ta2 } = await nen(w); await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200); await ok(w.call("POST", `/api/pricing/muc-ta/${ta2}/tat`, { as: KT }), 200); return { id: phieu(w) }; } },
+  { ten: "vai không còn được hưởng", lyDo: "VAI_KHONG_HUONG", dung: async (w) => {
+    const { ta2 } = await nen(w); await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200); w.sqlite.exec("UPDATE prc_beneficiary_role SET active = 0 WHERE role_type_code = 'TRAVEL_AGENCY'"); return { id: phieu(w) };
+  } },
+  { ten: "hồ sơ có sẵn đã có cấp riêng từ ngày mai", lyDo: "DA_CO_CAP_RIENG", dung: async (w) => {
+    const { ta1, ta2 } = await nen(w); await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200); const goc = await hoSoCoSan(w);
+    await ok(w.call("POST", `/api/pricing/ho-so/${goc}/muc-rieng`, { as: KT, body: { muc: ta1, tuNgay: inDays(1) } }), 201); return { id: phieu(w), hoSo: goc };
+  } },
+  { ten: "hồ sơ có sẵn có cấp riêng đã hết trước hôm nay", lyDo: null, dung: async (w) => {
+    const { ta1, ta2 } = await nen(w); await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200); const goc = await hoSoCoSan(w);
+    await ok(w.call("POST", `/api/pricing/ho-so/${goc}/muc-rieng`, { as: KT, body: { muc: ta1, tuNgay: "2026-01-01", denNgay: inDays(-1) } }), 201); return { id: phieu(w), hoSo: goc };
+  } },
+];
+
+test("(12) «Cấp sẽ áp» trùng ĐÚNG kết quả thật của câu 8 ở từng ca; lệnh duyệt báo cùng lý do (câu không mang tên cấp)", async () => {
+  for (const ca of CA) {
+    const w = setup();
+    const { id, hoSo } = await ca.dung(w);
+    const truoc = await ok(seAp(w, "TRAVEL_AGENCY", hoSo), 200, `${ca.ten}: xem trước`);
+    assert.equal(truoc.json.lyDo, ca.lyDo, `${ca.ten}: lý do xem trước`);
+    assert.equal(truoc.json.ap, ca.lyDo === null, `${ca.ten}: ap`);
+    if (ca.lyDo) assert.equal(typeof truoc.json.cau, "string");
+    await xacMinh(w, id, hoSo ? { kieu: "CO_SAN", partyId: hoSo } : { kieu: "MOI" });
+    const soTruoc = dem1(w, "SELECT count(*) n FROM prc_party_tier");
+    const r = await ok(duyet(w, id), 200, `${ca.ten}: duyệt`);
+    const daChen = dem1(w, "SELECT count(*) n FROM prc_party_tier") - soTruoc;
+    assert.equal(daChen, ca.lyDo === null ? 1 : 0, `${ca.ten}: câu 8 thật`);
+    assert.equal(r.json.cap.ap, daChen === 1, `${ca.ten}: kết quả lệnh duyệt khớp câu 8`);
+    assert.equal(r.json.cap.lyDo, ca.lyDo, `${ca.ten}: lý do của lệnh duyệt`);
+    assert.equal(r.json.cap.cau, truoc.json.cau, `${ca.ten}: cùng câu`);
+  }
+});
+
+test("(13) Chính sách đổi giữa lúc bấm (câu 8 chèn 0 dòng dù dự đoán là áp) ⇒ lệnh duyệt báo VUA_DOI, không ghi cấp", async () => {
+  const w = setup();
+  const { ta1, ta2 } = await nen(w);
+  await ok(datCs(w, SM, "TRAVEL_AGENCY", ta2), 200);
+  const cu = w.q("SELECT valid_from_at FROM prc_signup_tier_policy")[0].valid_from_at as string;
+  const id = phieu(w);
+  await xacMinh(w, id);
+  await new Promise((r) => setTimeout(r, 5));
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /INSERT INTO dk_decision/.test(s.sql)), async () => {
+    const moc = new Date(Date.parse(cu) + 1).toISOString();
+    w.sqlite.prepare(`INSERT INTO prc_signup_tier_policy (id, role_type_code, tier_code, valid_from_at, created_at, created_by, updated_at, updated_by)
+      VALUES ('cs-chen', 'TRAVEL_AGENCY', ?, ?, ?, ?, ?, ?)`).run(ta1, moc, moc, ADM, moc, ADM);
+  });
+  const r = await ok(duyet(w, id), 200, "duyệt");
+  assert.deepEqual(r.json.cap, { ap: false, cap: null, lyDo: "VUA_DOI", cau: "Cấp mặc định vừa đổi lúc duyệt nên chưa ghi cấp riêng." });
 });

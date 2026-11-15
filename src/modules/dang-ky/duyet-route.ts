@@ -4,6 +4,7 @@
 // lô vẫn an toàn khi không có chúng (chỉ mục duy nhất staff.phone, staff_party_uq, dk_decision_once_uq; trigger CCCD một người, vai, quan hệ).
 // Nhật ký và lịch sử phiếu không chứa SĐT, email, số giấy tờ, ngày sinh, địa chỉ; câu báo lỗi không nhắc lại dữ liệu khai, không nói số điện thoại thuộc tài khoản nào.
 import type { LoDuyetDangKyVao } from "../../shared/dang-ky-duyet.ts";
+import { ketQuaCapChoNguoiXem } from "../../shared/cap-se-ap-hien-thi.ts";
 import { MUC_XAC_MINH_MO } from "../../shared/dau-xac-minh.ts";
 import { error, json, readJson } from "../../shared/http.ts";
 import { can } from "../../shared/permissions.ts";
@@ -76,7 +77,7 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy }:
   });
   if (vaiLoi) return error(vaiLoi.forbidden ? 403 : 400, vaiLoi.forbidden ? "forbidden" : "invalid_input", vaiLoi.message);
   if (p.status !== "CHO_DUYET" || p.current_version < 1) return KHONG_CON_CHO();
-  if (phienBan !== null && phienBan !== p.current_version) return DOI_PHIEN_BAN();
+  if (phienBan !== p.current_version) return DOI_PHIEN_BAN();
   const version = p.current_version;
   const bk = await banKhaiDeDuyet(env.DB, p.id, version);
   if (!bk) return KHONG_CON_CHO();
@@ -132,8 +133,9 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy }:
     if (loiDungLoDuyet(e)) return error(400, "invalid_input", "Vai trò này không mở được tài khoản đối tác.");
     throw e;
   }
+  let kq: D1Result[];
   try {
-    await env.DB.batch(lo.statements);
+    kq = await env.DB.batch(lo.statements);
   } catch (e) {
     const l = loiLoDuyet(e);
     if (l) return error(l.status, l.code, l.message);
@@ -141,7 +143,11 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy }:
   }
   // Tệp chờ chưa lưu đã nhận quyết gỡ trong lô; xoá kho chạy SAU (Hiến chương 5.16). Không bao giờ chạm tệp đã chuyển.
   await xoaKhoTepChoDaGo(env, p.id);
-  return json({ trangThai: "DA_DUYET" }); // không PIN, không mã tài khoản
+  // Cấp độ đại lý mặc định (ADR-0209 Đ3, Đ4): câu 8 có chèn ⇒ đã áp; không có câu 8 / chèn 0 dòng ⇒ lý do dự đoán (dự đoán nói «sẽ áp» mà câu chèn 0 dòng ⇒ chính sách vừa đổi giữa lúc bấm).
+  // Tên cấp chỉ cho người duyệt giữ `partner.commission.view` (Nhân sự không thấy — Đ4).
+  const daAp = lo.cap.viTri !== null && (kq[lo.cap.viTri]?.meta.changes ?? 0) > 0;
+  const cap = ketQuaCapChoNguoiXem(daAp ? lo.cap.duDoan : { cap: null, lyDo: lo.cap.duDoan.lyDo ?? "VUA_DOI" }, can(staff, "partner.commission.view"));
+  return json({ trangThai: "DA_DUYET", cap }); // không PIN, không mã tài khoản
 }
 
 // ---- POST /api/dang-ky/phieu/:id/tu-choi-duyet ----
@@ -153,7 +159,7 @@ export async function tuChoiDuyet({ request, env, staff, params }: Ctx<"accounts
   if (!k.ok) return error(400, "invalid_input", k.message);
   if (p.status !== "CHO_DUYET") return KHONG_CON_CHO();
   const { lyDo, phienBan } = k.value;
-  if (phienBan !== null && phienBan !== p.current_version) return DOI_PHIEN_BAN();
+  if (phienBan !== p.current_version) return DOI_PHIEN_BAN();
   const at = new Date().toISOString();
   // MỘT lô: đổi trạng thái (điều kiện CHỜ DUYỆT) → lịch sử → nhật ký → quyết gỡ tệp chờ (chỉ khi câu liền trước đã ghi). Xoá kho chạy SAU lô.
   const kq = await env.DB.batch([

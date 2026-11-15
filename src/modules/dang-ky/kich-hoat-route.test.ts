@@ -45,7 +45,7 @@ async function phieuDaDuyet(w: any): Promise<{ id: string; ident: string; email:
   w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(id);
   for (const m of MUC) assert.equal((await w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as: ADM, body: { phienBan: 1, muc: m, dat: true } })).status, 200, m);
   assert.equal((await w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as: ADM, body: { phienBan: 1, hoSo: { kieu: "MOI" } } })).status, 200);
-  const r = await w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as: HR, body: { roleCode: "TRAVEL_AGENCY" } });
+  const r = await w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as: HR, body: { roleCode: "TRAVEL_AGENCY", phienBan: 1 } });
   assert.equal(r.status, 200, r.text);
   return { id, ident, email };
 }

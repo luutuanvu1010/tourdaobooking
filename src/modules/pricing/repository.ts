@@ -224,6 +224,11 @@ const CS_DK_AP = defineSql("pricing", "signup_tier_apply_on_approval",
      AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = ?2)
      AND NOT EXISTS (SELECT 1 FROM prc_party_tier o WHERE o.voided_at IS NULL AND o.party_id = ?2 AND COALESCE(o.valid_to_date, '9999-12-31') >= ?4)`);
 
+// «Cấp sẽ áp» (ADR-0209 Đ3; Task 12 mục I-1): hồ sơ đã có cấp riêng chưa huỷ, khoảng ngày giao [ngày duyệt, mãi mãi) — ĐÚNG điều kiện NOT EXISTS cuối của CS_DK_AP.
+const CS_DK_CO_CAP_RIENG = defineSql("pricing", "signup_tier_party_has_tier",
+  `SELECT 1 AS co FROM prc_party_tier o WHERE o.voided_at IS NULL AND o.party_id = ?1 AND COALESCE(o.valid_to_date, '9999-12-31') >= ?2 LIMIT 1`);
+export const coCapRiengTuNgay = async (db: D1Database, partyId: string, ngay: string): Promise<boolean> => (await db.prepare(CS_DK_CO_CAP_RIENG).bind(partyId, ngay).first()) !== null;
+
 export const allRules = async (db: D1Database) => (await db.prepare(MUC_TAT_CA).all<RuleRow>()).results;
 export const rulesOn = async (db: D1Database, ngay: string) => (await db.prepare(MUC_NGAY).bind(ngay).all<RuleRow>()).results;
 export const ruleById = (db: D1Database, id: string) => db.prepare(MUC_ID).bind(id).first<RuleRow>();

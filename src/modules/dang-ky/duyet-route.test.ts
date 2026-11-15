@@ -82,8 +82,9 @@ const reg = (w: any, id: string) => w.q("SELECT * FROM dk_registration WHERE id 
 const dem1 = (w: any, sql: string, ...a: unknown[]): number => Number(w.q(sql, ...a)[0].n);
 const ketLuan = (w: any, as: string, id: string, body: any) => w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as, body: { phienBan: 1, ...body } });
 const dat = (w: any, as: string, id: string, body: any) => w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as, body: { phienBan: 1, ...body } });
-const duyet = (w: any, as: string, id: string, body: any = { roleCode: "TRAVEL_AGENCY" }) => w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as, body });
-const tuChoiDuyet = (w: any, as: string, id: string, body: any = { lyDo: "KHONG_THUOC_DIEN" }) => w.call("POST", `/api/dang-ky/phieu/${id}/tu-choi-duyet`, { as, body });
+// Giao diện luôn gửi `phienBan` (bắt buộc từ Task 12): mặc định 1 như ket-luan / dat; bài muốn thử thiếu hay sai thì truyền thẳng thân qua `w.call`.
+const duyet = (w: any, as: string, id: string, body: any = { roleCode: "TRAVEL_AGENCY" }) => w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as, body: { phienBan: 1, ...body } });
+const tuChoiDuyet = (w: any, as: string, id: string, body: any = { lyDo: "KHONG_THUOC_DIEN" }) => w.call("POST", `/api/dang-ky/phieu/${id}/tu-choi-duyet`, { as, body: { phienBan: 1, ...body } });
 const guiLai = (w: any, as: string, id: string) => w.call("POST", `/api/dang-ky/phieu/${id}/gui-lai-loi-moi`, { as });
 const xemDuyet = (w: any, as: string, id: string) => w.call("GET", `/api/dang-ky/phieu/${id}/xem-duyet`, { as });
 /** Bước xác minh bằng route thật: kết luận đạt mọi mục rồi «đạt». */
@@ -156,7 +157,8 @@ test("(2) Duyệt hồ sơ mới: một lô sinh đúng 1 hồ sơ, vai, 1 tài 
   assert.ok(p.decided_at);
   const han = Date.parse(p.activation_deadline_at) - Date.parse(p.decided_at);
   assert.equal(han, 14 * 24 * 3600 * 1000, "hạn đặt PIN = dòng chính sách activation_days");
-  assert.deepEqual(r.json, { trangThai: "DA_DUYET" });
+  // Không PIN, không mã tài khoản; chỉ trạng thái và kết quả cấp mặc định (ADR-0209 Đ3 — chưa đặt chính sách nên không áp, kèm câu lý do).
+  assert.deepEqual(r.json, { trangThai: "DA_DUYET", cap: { ap: false, cap: null, lyDo: "CHUA_DAT", cau: "Loại này chưa đặt cấp." } });
   // hồ sơ, vai, quyền
   const ho = w.q("SELECT p.party_kind, p.display_name, n.family_name, n.given_name, n.birth_date FROM pty_party p JOIN pty_person n ON n.party_id = p.id WHERE p.id = ?", tk.party_id)[0];
   assert.deepEqual({ ...ho }, { party_kind: "PERSON", display_name: "Phạm Thử Nghiệm", family_name: "Phạm", given_name: "Thử Nghiệm", birth_date: "1990-05-06" });
@@ -482,6 +484,19 @@ test("(16) Thân sai: vai không phải vai bên ngoài, vai lạ, ô lạ, phi�
   assert.equal((await duyet(w, HR, id, { roleCode: "TRAVEL_AGENCY", ghiChu: "x" })).status, 400);
   const cu = await duyet(w, HR, id, { roleCode: "TRAVEL_AGENCY", phienBan: 2 });
   assert.equal(cu.status, 409, cu.text);
+  assert.equal(cu.json.error.code, "registration_version_changed");
+  // Task 12 (mục 4): `phienBan` BẮT BUỘC ở duyet và tu-choi-duyet — thiếu hay null ⇒ 400, không ghi.
+  for (const than of [{ roleCode: "TRAVEL_AGENCY" }, { roleCode: "TRAVEL_AGENCY", phienBan: null }]) {
+    const r = await w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as: HR, body: than });
+    assert.equal(r.status, 400, `duyet ${JSON.stringify(than)}: ${r.text}`);
+  }
+  for (const than of [{ lyDo: "KHONG_THUOC_DIEN" }, { lyDo: "KHONG_THUOC_DIEN", phienBan: null }]) {
+    const r = await w.call("POST", `/api/dang-ky/phieu/${id}/tu-choi-duyet`, { as: HR, body: than });
+    assert.equal(r.status, 400, `tu-choi-duyet ${JSON.stringify(than)}: ${r.text}`);
+  }
+  const tcCu = await tuChoiDuyet(w, HR, id, { lyDo: "KHONG_THUOC_DIEN", phienBan: 2 });
+  assert.equal(tcCu.status, 409, tcCu.text);
+  assert.equal(tcCu.json.error.code, "registration_version_changed");
   assert.deepEqual(anh(w), truoc);
 });
 

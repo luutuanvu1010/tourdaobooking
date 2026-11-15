@@ -76,18 +76,18 @@ export function loiLoXacMinh(e: unknown): { status: 409; code: string; message: 
   return null;
 }
 
-/** Thân `duyet`: `{ roleCode, phienBan? }` — mã vai (kiểm nhóm / luật gán ở route) và, tuỳ chọn, số bản khai người duyệt đã xem. Không trường nào khác. */
-export function kiemDuyet(body: Record<string, unknown> | null): Kiem<{ roleCode: string; phienBan: number | null }> {
+/** Thân `duyet`: `{ roleCode, phienBan }` — mã vai (kiểm nhóm / luật gán ở route) và số bản khai người duyệt đã xem (BẮT BUỘC từ Task 12, như các lệnh của bước xác minh). Không trường nào khác. */
+export function kiemDuyet(body: Record<string, unknown> | null): Kiem<{ roleCode: string; phienBan: number }> {
   if (!body || !khongThua(body, ["roleCode", "phienBan"]) || typeof body.roleCode !== "string" || !/^[A-Z][A-Z0-9_]{1,39}$/.test(body.roleCode)) return { ok: false, message: "Hãy chọn một vai trò đối tác." };
-  if (body.phienBan !== undefined && body.phienBan !== null && !laPhienBan(body.phienBan)) return { ok: false, message: "Yêu cầu không hợp lệ." };
-  return { ok: true, value: { roleCode: body.roleCode, phienBan: laPhienBan(body.phienBan) ? body.phienBan : null } };
+  if (!laPhienBan(body.phienBan)) return { ok: false, message: "Yêu cầu không hợp lệ." };
+  return { ok: true, value: { roleCode: body.roleCode, phienBan: body.phienBan } };
 }
 
-/** Thân `tu-choi-duyet`: `{ lyDo, phienBan? }` — một mã trong danh sách đóng (ADR-0207 Đ3); không trường nào khác. */
-export function kiemLyDoDuyet(body: Record<string, unknown> | null): Kiem<{ lyDo: MaLyDoPhieu; phienBan: number | null }> {
+/** Thân `tu-choi-duyet`: `{ lyDo, phienBan }` — một mã trong danh sách đóng (ADR-0207 Đ3) và số bản khai người duyệt đã xem (BẮT BUỘC từ Task 12); không trường nào khác. */
+export function kiemLyDoDuyet(body: Record<string, unknown> | null): Kiem<{ lyDo: MaLyDoPhieu; phienBan: number }> {
   if (!body || !khongThua(body, ["lyDo", "phienBan"]) || !laMaLyDoPhieu(body.lyDo)) return { ok: false, message: "Hãy chọn một lý do trong danh sách." };
-  if (body.phienBan !== undefined && body.phienBan !== null && !laPhienBan(body.phienBan)) return { ok: false, message: "Yêu cầu không hợp lệ." };
-  return { ok: true, value: { lyDo: body.lyDo, phienBan: laPhienBan(body.phienBan) ? body.phienBan : null } };
+  if (!laPhienBan(body.phienBan)) return { ok: false, message: "Yêu cầu không hợp lệ." };
+  return { ok: true, value: { lyDo: body.lyDo, phienBan: body.phienBan } };
 }
 
 /**

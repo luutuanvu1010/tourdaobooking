@@ -16,13 +16,14 @@ import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule, type HoiDaChup } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { ngayDayDu, vnToday } from "../../shared/vn-date";
-import { cauApCsDangKy, cauThemCsDangKy, csDangKyCuaLoai, csDangKyHieuLuc, cauThemGioiHanNhap, gioiHanNhapMoiNhat, type GioiHanNhapRow, cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
+import { cauApCsDangKy, cauThemCsDangKy, coCapRiengTuNgay, csDangKyCuaLoai, csDangKyHieuLuc, cauThemGioiHanNhap, gioiHanNhapMoiNhat, type GioiHanNhapRow, cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
   insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, hoSoCapDaiLy, openBeneficiaryRolesAll, openRolesOf, partyTiersHistory, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
   roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, soHoSoTheoVai, suaMucTaStatement, suppliers, tenNhanVienTheoId, termById, termsOn, type PartyTierRow, type RoleTierRow, type RuleRow, type TermRow, type TierRow, type XuLyDongCu , viecDoKhiThoiVai as viecDoKhiThoiVaiRepo } from "./repository";
 import { MA_RE, MUC_TA_RE, PARTY_RE, capHienHanhCuaHoSo, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemNgung, kiemSua, xemTruocSua, kiemThanDoiChinhSach, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
   type DongDieuKhoan, type DongMuc, type GanLoaiMuc, type GanRieng, type KieuMuc, type MucTheoLoai, type NguoiHuong, type PhamVi } from "./rules";
 
 import { coCacGiaTri, coGiaTri, danhSachLuatBan, demLuatBanChuaHetHan, giaTriDacDiemCua, ketThucLuatBanStatement, luatBanHieuLuc, luatBanTheoId, themLuatBanStatement, type LuatBanRow } from "./luat-ban-repo";
+import { ketQuaCapChoNguoiXem, type LyDoKhongApCap } from "../../shared/cap-se-ap-hien-thi";
 import { chanBan, kiemThanLuatBan, ngayKetThucLuat, type PhamViLuatBan, type TrungLuat } from "./luat-ban-rules";
 
 export { cauBiChan } from "./luat-ban-rules";
@@ -71,6 +72,22 @@ export const nguoiHuongCuaHoSo = (db: D1Database, partyId: string): Promise<{ pa
 export async function capMacDinhChoDuyet(db: D1Database, roleCode: string, at: string): Promise<{ policyId: string; tierCode: string; tierName: string } | null> {
   const r = await csDangKyCuaLoai(db, roleCode, at);
   return r && r.tier_code !== null ? { policyId: r.id, tierCode: r.tier_code, tierName: r.tier_name ?? r.tier_code } : null;
+}
+/**
+ * ADR-0209 Đ3, Đ4 (Task 12, mục I-1 của bài kiểm Task 11) — «CẤP SẼ ÁP» nếu duyệt lúc `at` với vai `roleCode`, hồ sơ đích `partyId` (null = hồ sơ mới): xét LẠI ĐÚNG các điều kiện
+ * của câu 8 (`CS_DK_AP`), theo thứ tự trả lý do đầu tiên trượt: chưa đặt / «Theo cấp của vai trò» ⇒ CHUA_DAT; vai không còn được hưởng ⇒ VAI_KHONG_HUONG; cấp đang khoá ⇒ CAP_TAT;
+ * hồ sơ có sẵn đã có cấp riêng giao [ngày duyệt, mãi mãi) ⇒ DA_CO_CAP_RIENG. (Điều kiện «hồ sơ đang mở một vai được hưởng» của câu 8 tự đúng khi vai người duyệt chọn được hưởng,
+ * vì câu mở vai đứng trước trong lô.) Chỉ đọc, không kiểm quyền: nơi gọi cắt tên cấp theo `partner.commission.view` (`ketQuaCapChoNguoiXem`). Bài cap-mac-dinh.test.ts so dự đoán này
+ * với kết quả thật của câu 8 ở từng ca.
+ */
+export async function capSeApChoDuyet(db: D1Database, v: { roleCode: string; partyId: string | null; at: string; ngay: string }): Promise<{ cap: { code: string; ten: string } | null; lyDo: LyDoKhongApCap | null }> {
+  const cs = await csDangKyCuaLoai(db, v.roleCode, v.at);
+  if (!cs || cs.tier_code === null) return { cap: null, lyDo: "CHUA_DAT" };
+  const [huong, muc, coRieng] = await Promise.all([beneficiaryRolesAll(db), rateTierByCode(db, cs.tier_code), v.partyId ? coCapRiengTuNgay(db, v.partyId, v.ngay) : Promise.resolve(false)]);
+  if (!huong.some((h) => h.role_type_code === v.roleCode && h.active === 1)) return { cap: null, lyDo: "VAI_KHONG_HUONG" };
+  if (!muc || muc.active !== 1) return { cap: null, lyDo: "CAP_TAT" };
+  if (coRieng) return { cap: null, lyDo: "DA_CO_CAP_RIENG" };
+  return { cap: { code: cs.tier_code, ten: cs.tier_name ?? cs.tier_code }, lyDo: null };
 }
 /**
  * ADR-0209 Đ3, Đ6 — câu 8 của lô duyệt phiếu đăng ký (câu chưa chạy; `pricing` là chủ duy nhất của prc_party_tier). Chèn MỘT cấp riêng cho hồ sơ kết quả = cấp của dòng chính sách `policyId`
@@ -962,6 +979,15 @@ export const pricingModule: AppModule = {
     route("GET", "/api/pricing/cap-mac-dinh", "office", async ({ env, staff }) => {
       if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
       return json(await docCapMacDinh(env.DB, new Date().toISOString()));
+    }),
+    // ADR-0209 Đ4 (Task 12, I-1): «cấp sẽ áp» cho người xác minh — vai `loai` (loại người đăng ký xin), hồ sơ đích `hoSo` (vắng = hồ sơ mới). Cùng cổng với route xem ở trên; chỉ đọc.
+    route("GET", "/api/pricing/cap-mac-dinh/se-ap", "office", async ({ env, staff, url }) => {
+      if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
+      const loai = url.searchParams.get("loai") ?? "";
+      const hoSo = url.searchParams.get("hoSo");
+      if (!MA_RE.test(loai) || (hoSo !== null && !PARTY_RE.test(hoSo))) return error(400, "invalid_input", "Yêu cầu không hợp lệ.");
+      const at = new Date().toISOString();
+      return json(ketQuaCapChoNguoiXem(await capSeApChoDuyet(env.DB, { roleCode: loai, partyId: hoSo, at, ngay: vnToday(new Date(at)) }), true));
     }),
     // Đặt: ô MỚI `partner.signup_tier.write` (Quản lý bán hàng, Quản trị, Toàn quyền — Kế toán KHÔNG). Chỉ chọn trong cấp đang bật; không tạo cấp, không sửa mức, không đổi cấp riêng đã có.
     // MỘT lô: câu chèn có khoá lạc quan (dòng hiệu lực đã thấy) → nhật ký `changes() > 0` mang loại, cấp cũ, cấp mới. Chỉ áp cho phiếu duyệt về sau (lô duyệt đọc dòng hiệu lực lúc duyệt).

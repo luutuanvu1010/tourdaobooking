@@ -32,7 +32,7 @@ import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./mo
 import {
   LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauDongYTuPhieu, cauGhiGiaTriDaXacMinh, cauGoTepCho, cauMoHoSoDangKy, cauQuanHeGioiThieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule,
 } from "./modules/parties";
-import { capMacDinhChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
+import { capMacDinhChoDuyet, capSeApChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
 import { cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
 import { accountOfParty, createAccountOnPartyStatements, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
@@ -84,7 +84,12 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
     return docId && v.giayTo?.typeCode === m.ma ? [{ id: crypto.randomUUID(), targetKind: "PERSON_DOCUMENT" as const, targetId: docId, attributeCode: null }] : [];
   });
   const base = { actorId: v.approverId, at: v.at };
-  const capMacDinh = await capMacDinhChoDuyet(db, v.roleCode, v.at);
+  const [capMacDinh, duDoan] = await Promise.all([
+    capMacDinhChoDuyet(db, v.roleCode, v.at),
+    capSeApChoDuyet(db, { roleCode: v.roleCode, partyId: v.hoSo.kieu === "CO_SAN" ? v.hoSo.partyId : null, at: v.at, ngay: v.today }),
+  ]);
+  let viTriCap: number | null = null;
+  const cauCap = capMacDinh ? cauCapMacDinhChoHoSo(db, { partyId, roleCode: v.roleCode, ngayDuyet: v.today, approverId: v.approverId, at: v.at, policyId: capMacDinh.policyId }) : null;
   const statements: D1PreparedStatement[] = [
     // 1 — dang-ky: câu chốt (dòng quyết định DUYET).
     cauChotDuyet(db, { id: crypto.randomUUID(), registrationId: v.registrationId, version: v.version, by: v.approverId, co: v.co, at: v.at }),
@@ -108,9 +113,9 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
       : cauGoTepCho(db, v.registrationId, LY_DO_GO_TEP_CHO.KHONG_THUOC_BAN_KHAI, v.at)),
     // 8 — pricing: cấp độ đại lý mặc định (ADR-0209 Đ3, Đ6): MỘT cấp riêng cho hồ sơ kết quả, từ ngày duyệt; thiếu điều kiện ⇒ chèn 0 dòng, lô vẫn chạy. Nhật ký mang mã cấp CHỈ khi câu
     //     liền trước đã chèn (`changes() > 0`), người làm = người duyệt (ghi thay mặt chính sách — Đ4). Loại chưa đặt / «Theo cấp của vai trò» ⇒ không câu nào.
-    ...(capMacDinh ? [
-      cauCapMacDinhChoHoSo(db, { partyId, roleCode: v.roleCode, ngayDuyet: v.today, approverId: v.approverId, at: v.at, policyId: capMacDinh.policyId }),
-      auditStatement(db, { staffId: v.approverId, action: "prc_party_tier_set", at: v.at,
+    ...(capMacDinh && cauCap ? [
+      cauCap,
+      auditStatement(db, { staffId: v.approverId, action: "prc_party_tier_set", at: v.at, targetType: "party", targetId: partyId,
         detail: `mức riêng ${capMacDinh.tierName} (${capMacDinh.tierCode}) · từ ${v.today} · cấp cho đối tác tự đăng ký, phiếu ${v.registrationId}` }, "changes() > 0"),
     ] : []),
     // 9 — parties: quan hệ «Người giới thiệu của».
@@ -123,7 +128,8 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
     auditStatement(db, { staffId: v.approverId, action: "staff_created", at: v.at, targetType: "staff", targetId: tk.id,
       detail: `phiếu đăng ký ${v.registrationId}; vai trò: ${v.roleLabel}; ${v.hoSo.kieu === "MOI" ? "hồ sơ mới" : "dùng hồ sơ có sẵn"}; chưa kích hoạt${v.co ? "; Toàn quyền làm cả hai bước" : ""}` }),
   ];
-  return { partyId, staffId: tk.id, statements };
+  if (cauCap) viTriCap = statements.indexOf(cauCap);
+  return { partyId, staffId: tk.id, statements, cap: { viTri: viTriCap !== null && viTriCap >= 0 ? viTriCap : null, duDoan } };
 }
 
 const APP_OPTIONS: AppOptions = {
