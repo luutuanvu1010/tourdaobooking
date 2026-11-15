@@ -15,20 +15,28 @@
 
 ## Bối cảnh
 
-Bảng `pty_verification` đã ghi kết quả xác minh theo từng mục (thuộc tính như ngày sinh, liên hệ, dòng giấy tờ), với ba kết luận: đạt, từ chối, cần xác minh lại. Sửa giá trị đã xác minh thì máy ghi «cần xác minh lại» cùng lô. Nhưng chưa nơi nào đọc kết quả ra màn hình, và chưa có trạng thái gộp cho cả một hồ sơ.
+Bảng `pty_verification` đã ghi kết quả xác minh theo từng mục (thuộc tính như ngày sinh, liên hệ, dòng giấy tờ), với ba kết luận: đạt, từ chối, cần xác minh lại. Hôm nay máy chỉ ghi «cần xác minh lại» khi sửa **ngày sinh** hoặc **dòng giấy tờ** đã xác minh; sửa họ tên chưa ghi gì, và chưa có đường nào ghi «đạt» cho họ tên (phiếu tự khai không có mục họ tên). Nhưng chưa nơi nào đọc kết quả ra màn hình, và chưa có trạng thái gộp cho cả một hồ sơ.
 
 ## Quyết định
 
-**Đ1 — Mục bắt buộc là dữ liệu chính sách của `parties`.** Bảng mới (tên giữ chỗ `pty_verification_requirement`), chỉ thêm dòng, có ngày hiệu lực: mỗi dòng gồm loại hồ sơ (cá nhân, tổ chức), loại mục (thuộc tính, hoặc loại giấy tờ), mã. Mặc định đề xuất cho **cá nhân**: họ tên, ngày sinh, và một căn cước còn hiệu lực. Danh sách cho **tổ chức** để đợt 2 đặt. Người đặt: Toàn quyền (một hàng quyền mới, khuôn `chiToanQuyen()`).
+**Đ1 — Mục bắt buộc là dữ liệu chính sách của `parties`, chọn trong một tập đóng.** Bảng mới (tên giữ chỗ `pty_verification_requirement`), chỉ thêm dòng, có ngày hiệu lực: mỗi dòng gồm loại hồ sơ (cá nhân, tổ chức), loại mục (thuộc tính, hoặc loại giấy tờ), mã. Mã chỉ chọn trong **tập mục mà phiếu đăng ký đã có ô để khai** (tập đóng trong mã); muốn thêm mục ngoài tập đó thì phải thêm ô vào phiếu trước, bằng một lần sửa mã. Mặc định đề xuất cho **cá nhân**: họ tên, ngày sinh, và một căn cước còn hiệu lực (Toàn quyền đổi được). Danh sách cho **tổ chức** để đợt 2 đặt. Người đặt: Toàn quyền (một hàng quyền mới, khuôn `chiToanQuyen()`). Thêm một mục thì mọi hồ sơ đang «Đã xác minh» mà thiếu mục đó chuyển sang «Cần xác minh lại» cùng lúc; màn đặt báo trước số hồ sơ sẽ đổi và đòi xác nhận.
 
-**Đ2 — Luật tính ở một chỗ:** một view công bố của `parties` (tên giữ chỗ `v_pty_verification_status`, chỉ khoá hồ sơ và trạng thái, không dữ liệu cá nhân), kèm một hàm thuần cùng bảng ca để giao diện và bài kiểm đối chiếu:
+**Danh sách nào chi phối lệnh «đạt» của ADR-0207 Đ2:** người xác minh phải kết luận đạt cho **mọi mục của danh sách này** (bản đang hiệu lực lúc bấm «đạt»), cộng các mục chỉ phiếu cần (loại đối tác, «đã gọi»), nằm ở chính sách đăng ký của ADR-0206. Lô duyệt ghi kết luận đạt cho mọi mục của danh sách này, gồm cả họ tên.
+
+**Đ1b — Sửa họ tên đã xác minh thì «cần xác minh lại».** Mọi đường sửa họ tên của hồ sơ cá nhân (sửa hồ sơ, đổi tên tài khoản) ghi thêm một dòng «cần xác minh lại» cho mục họ tên trong cùng lô, như đã làm với ngày sinh.
+
+**Đ2 — Luật tính ở một chỗ.** View của SQLite không nhận tham số ngày, nên chia hai phần:
+- một view công bố của `parties` (tên giữ chỗ `v_pty_verification_facts`) trả **dữ kiện theo từng mục bắt buộc** của mỗi hồ sơ: kết luận mới nhất, mã dòng giấy tờ hiện hành, ngày hết hạn, đã huỷ chưa, hồ sơ đã gộp vào đâu, đã ẩn danh chưa, đã từng đạt chưa. Không dữ liệu cá nhân, không số giấy tờ;
+- **một hàm thuần** (trong `src/shared/`, dùng chung máy chủ và giao diện) nhận dữ kiện cùng ngày hôm nay theo giờ Việt Nam (`vnToday`) và trả một trong ba trạng thái. Máy chủ gọi hàm này rồi gửi trạng thái đã tính cho giao diện; giao diện không tự tính lại.
+
+Luật của hàm:
 
 - **«Đã xác minh»:** mọi mục bắt buộc đang hiệu lực của loại hồ sơ đó có kết luận **mới nhất** là đạt; với mục giấy tờ, kết luận đó nằm trên **dòng giấy tờ hiện hành** của loại đó, dòng chưa huỷ và chưa hết hạn (so ngày giờ Việt Nam truyền vào làm tham số).
 - **«Cần xác minh lại»:** chưa đủ điều kiện trên, **và** hồ sơ đã từng có kết luận đạt cho ít nhất một mục bắt buộc (giá trị bị sửa sau khi xác minh, giấy tờ hết hạn, bị huỷ, hay được gia hạn mà dòng mới chưa xác minh).
 - **«Chưa xác minh»:** mọi trường hợp còn lại, kể cả hồ sơ chưa có kết luận nào.
 - Hồ sơ đã gộp lấy trạng thái của hồ sơ chính. Hồ sơ đã ẩn danh theo yêu cầu xoá: «Chưa xác minh».
 
-**Đ3 — Hiện ở đâu, ai thấy.** Không mở thêm quyền xem nào: ai vốn đã thấy tài khoản hay hồ sơ ở màn nào thì thấy dấu ở màn đó.
+**Đ3 — Hiện ở đâu, ai thấy.** Dấu chỉ hiện cho hồ sơ **có tài khoản** hoặc **đang mang vai trò đối tác**; khách lẻ trong Danh bạ không mang dấu, để khỏi nhiễu. Không mở thêm quyền xem nào: ai vốn đã thấy tài khoản hay hồ sơ ở màn nào thì thấy dấu ở màn đó. Chấp nhận có tên: Nhân sự thấy dấu ở Quản lý tài khoản, nên gián tiếp biết căn cước của một người còn hạn hay không, dù không xem được hồ sơ.
 
 | Màn | Ai thấy | Đọc qua |
 |---|---|---|
@@ -40,7 +48,7 @@ Dấu không mang dữ liệu cá nhân, chỉ một trong ba giá trị.
 
 **Đ4 — Bấm vào dấu:** chính chủ đi tới chỗ nộp hay bổ sung (với người đã có tài khoản là «Hồ sơ của tôi»; đường tự nộp ảnh là đợt 5); người giữ `party.verify` đi tới mục đang chờ của hồ sơ đó nếu có; người khác chỉ thấy dấu.
 
-**Đ5 — Chỉ để biết, không chặn việc gì.** Không luật nào (đơn, tiền, Trả sau, đăng nhập) đọc dấu này. Muốn chặn theo dấu là quyết định riêng, chạm tiền, cần ADR riêng. Bài kiểm canh: chỉ ba màn ở Đ3 và phiếu đăng ký đọc view.
+**Đ5 — Chỉ để biết, không chặn việc gì.** Không luật nào (đơn, tiền, Trả sau, đăng nhập) đọc dấu này. Muốn chặn theo dấu là quyết định riêng, chạm tiền, cần ADR riêng. Bài kiểm canh: chỉ ba màn ở Đ3 đọc view dữ kiện; phiếu đăng ký chỉ đọc **danh sách mục bắt buộc** (một view công bố riêng, tên giữ chỗ `v_pty_verification_requirement`), không đọc trạng thái.
 
 **Đ6 — Hồ sơ duyệt từ phiếu đăng ký** mang «Đã xác minh» ngay, vì lô duyệt (ADR-0207 Đ5) ghi kết luận đạt cho mọi mục bắt buộc; nếu danh sách mục bắt buộc nhiều hơn những gì phiếu đòi, hồ sơ mang «Chưa xác minh» — vì vậy phiếu đăng ký luôn đòi ít nhất các mục ở Đ1.
 
@@ -52,7 +60,7 @@ Dấu không mang dữ liệu cá nhân, chỉ một trong ba giá trị.
 
 ## Bài kiểm (đỏ trước, xanh sau)
 
-- Hàm thuần và view cùng bảng ca: chưa có kết luận → «Chưa»; đủ mục, căn cước còn hạn → «Đã»; sửa ngày sinh sau khi xác minh → «Cần lại»; căn cước hết hạn → «Cần lại»; gia hạn căn cước mà dòng mới chưa xác minh → «Cần lại»; hồ sơ gộp lấy theo hồ sơ chính.
+- Hàm thuần và view cùng bảng ca: chưa có kết luận → «Chưa»; đủ mục, căn cước còn hạn → «Đã»; sửa ngày sinh sau khi xác minh → «Cần lại»; **sửa họ tên sau khi xác minh → «Cần lại»** (cả đường sửa hồ sơ lẫn đổi tên tài khoản); thêm một mục bắt buộc → hồ sơ đang «Đã» thành «Cần lại»; khách lẻ không có dấu; căn cước hết hạn → «Cần lại»; gia hạn căn cước mà dòng mới chưa xác minh → «Cần lại»; hồ sơ gộp lấy theo hồ sơ chính.
 - Ba màn ở Đ3 hiện cùng một giá trị cho cùng một hồ sơ; không màn nào tự tính.
 - Bán hàng không thấy dấu ở Quản lý tài khoản (không có `account.view`); Nhân sự không thấy ở Danh bạ (không có `party.view`).
 - Bài quét: không route đơn, tiền, đăng nhập nào đọc view trạng thái.
@@ -64,5 +72,6 @@ Cạnh tên mỗi tài khoản và mỗi hồ sơ có một dấu nhỏ: «Đã 
 
 ## Hệ quả
 
+- Khi ADR này được duyệt: thêm dòng «Sửa bởi ADR-0210 (cụm danh sách mục bắt buộc ở Đ3)» vào đầu ADR-0206, chỉ thêm dòng trỏ, không sửa câu nào (khuôn «Sửa bởi» của ADR-0018).
 - Migration số kế tiếp lúc thi công; `docs/data-dictionary.json` + `npm run dict`; `src/architecture.test.ts` (view công bố mới, cạnh `accounts → parties` qua view); `src/shared/permissions.test.ts` (hàng mới).
 - **Phải nói thẳng:** tài khoản do Nhân sự tạo sẽ mang «Chưa xác minh», và cho tới đợt 5 họ chưa tự nộp ảnh giấy tờ được; phiếu giấy tờ tự khai của họ hôm nay chỉ từ chối được. Biểu tượng và chữ của dấu chờ chủ chọn (phụ lục trang trình).

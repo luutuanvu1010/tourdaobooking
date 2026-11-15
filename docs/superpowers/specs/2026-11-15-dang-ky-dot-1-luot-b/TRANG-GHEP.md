@@ -10,7 +10,9 @@
 | **chính sách cấp mặc định (mới, `pricing`)** | — | 0209 | mỗi loại đối tác một cấp hoặc «không đặt», có ngày hiệu lực, chỉ thêm | chỉ `pricing` ghi; cấp phải đang bật lúc đặt |
 | `pty_verification` | kết quả xác minh từng mục | 0210 | không đổi bảng; nay được **đọc** để tính dấu | — |
 | **mục bắt buộc để xác minh (mới, `parties`)** | — | 0210 | danh sách mục theo loại hồ sơ; phiếu đăng ký đọc qua view | một danh sách, một nơi (thay cụm tương ứng ở ADR-0206 Đ3) |
-| **view trạng thái xác minh (mới, `parties`)** | — | 0210 | khoá hồ sơ + một trong ba trạng thái | không dữ liệu cá nhân; không luật đơn, tiền, đăng nhập nào đọc |
+| **view dữ kiện xác minh (mới, `parties`)** | — | 0210 | dữ kiện từng mục bắt buộc của mỗi hồ sơ (kết luận mới nhất, hạn, huỷ, gộp, ẩn danh); một hàm thuần cùng ngày giờ Việt Nam ra một trong ba trạng thái | không dữ liệu cá nhân; chỉ ba màn ở (3) đọc; không luật đơn, tiền, đăng nhập nào đọc |
+| **view danh sách mục bắt buộc (mới, `parties`)** | — | 0210 | danh sách mục đang hiệu lực theo loại hồ sơ | phiếu đăng ký (module `dang-ky`) đọc view này, không đọc trạng thái |
+| `pty_person` khi sửa họ tên | sửa không ghi «cần xác minh lại» | 0210 | mọi đường sửa họ tên ghi thêm «cần xác minh lại» cùng lô | gồm cả đổi tên tài khoản của `staff` |
 
 ## (2) Dòng bản đồ quyền
 
@@ -18,6 +20,8 @@
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | **(mới)** đặt cấp mặc định | none | none | any | none | none | any | none | none | none | none | any | khuôn `quanLyBanHang()`; ô đầu tiên của Quản lý bán hàng chạm điều khoản thương mại |
 | **(mới)** đặt mục bắt buộc xác minh | none | none | none | none | none | any | none | none | none | none | none | khuôn `chiToanQuyen()` |
+| `partner.commission.view` (đã có) — nay cũng là ô **xem chính sách cấp mặc định** | any | any | any | none | none | any | none | none | none | none | none | Quản lý bán hàng xem được nhờ mã Bán hàng đi kèm; Bán hàng thường xem được nhưng không đặt |
+| `account.create` (đã có) | none | none | none | none | none | any | none | none | none | any | none | **rộng ra:** lô duyệt do Nhân sự bấm nay ghi thêm một dòng vào bảng tiền `prc_party_tier` (ghi thay mặt chính sách, ADR-0209 Đ4) |
 | `partner.commission.write` (đã có) | none | any | any | none | none | any | none | none | none | none | none | **không đổi**; Kế toán vẫn đổi cấp riêng từng đối tác |
 | `account.view` (đã có) | none | none | any | none | none | any | none | none | none | any | none | nay thấy thêm dấu xác minh |
 | `party.view` (đã có) | any | any | any | none | none | any | none | none | none | none | none | nay thấy thêm dấu xác minh |
@@ -25,6 +29,7 @@
 ## (3) Cổng nào canh cửa nào, và chỗ giao diện đổi
 
 - Đặt cấp mặc định: route cổng `office`, thân hỏi ô mới. Quản lý bán hàng qua cổng `office` nhờ quyền Bán hàng đi kèm (ADR-0169).
+- **Cửa mới vào bảng tiền:** route duyệt (cổng `accounts`, ô `account.create`, Nhân sự hay Toàn quyền bấm) ghi một dòng `prc_party_tier`. Câu ghi lặp đúng điều kiện của ba trigger trên bảng đó (cấp đang bật; vai trò đang được hưởng, đọc `v_prc_beneficiary_role`; không chồng ngày với cấp riêng chưa huỷ), nên thiếu điều kiện thì bỏ qua chứ không làm hỏng lô. Kế toán hay Quản trị tắt một cấp hoặc một loại sau khi đặt: phiếu duyệt sau đó không nhận cấp mặc định.
 - Xem dấu: theo đúng cổng và ô của ba màn (Tôi, Quản lý tài khoản, Danh bạ); không route mới để đọc dấu riêng.
 - **Giao diện đổi nghĩa:** màn hẹp của Quản lý bán hàng có thêm lối vào khối cấp mặc định; danh sách tài khoản và Danh bạ có thêm một cột dấu.
 
