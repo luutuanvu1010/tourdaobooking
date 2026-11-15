@@ -1,6 +1,6 @@
 // Đ1b (ADR-0210): đổi họ tên hồ sơ cá nhân đã xác minh ⇒ dòng «cần xác minh lại» cho HO_TEN, trong CÙNG lô, ở MỌI đường sửa tên: sửa hồ sơ (updatePartyStatements),
 // đổi tên tài khoản (renameAccountStatements → renamePersonStatements), và câu SQL thô (trigger giữ luật ở CSDL nên đường nào thêm sau cũng lọt vào). Mọi giá trị là GIẢ.
-// Phá thử: bỏ trigger pty_person_name_reverify khỏi migration 0168 → cả bốn ca đỏ (xem task-10-report).
+// Phá thử: bỏ trigger pty_person_name_reverify khỏi migration 0171 → cả bốn ca đỏ (xem task-10-report).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts

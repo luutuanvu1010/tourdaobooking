@@ -195,7 +195,7 @@ const GIOI_HAN_THEM = defineSql("pricing", "entry_limit_insert",
   `INSERT INTO prc_entry_limit_policy (id, max_rate_bp, amount_step, valid_from_at, created_at, created_by, updated_at, updated_by)
    SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6 WHERE (SELECT max(valid_from_at) FROM prc_entry_limit_policy) = ?7`);
 
-// ===== Cấp cho đối tác tự đăng ký (ADR-0209; migration 0170) =====
+// ===== Cấp cho đối tác tự đăng ký (ADR-0209; migration 0172) =====
 // MỘT đoạn «dòng hiệu lực của loại X lúc T» cho cả đọc lẫn ghi: `valid_from_at` lớn nhất ≤ T (UNIQUE theo loại + mốc nên không hoà). Đoạn nhận hai chỗ giữ tham số đặt tên ở nơi dùng.
 const HIEU_LUC = (loai: string, luc: string) =>
   `(SELECT e.id FROM prc_signup_tier_policy e WHERE e.role_type_code = ${loai} AND e.valid_from_at <= ${luc} ORDER BY e.valid_from_at DESC LIMIT 1)`;

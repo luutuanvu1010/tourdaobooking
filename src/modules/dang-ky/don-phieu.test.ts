@@ -1,5 +1,5 @@
 // TÁC NHÂN DỌN PHIẾU ĐĂNG KÝ (ADR-0208 Đ6–Đ8, khuôn ADR-0186; đợt 1 Task 9) chạy trên khung thử THẬT (tests/audit/harness.mjs, SQLite thật, kho R2 giả). Phiếu gieo bằng SQL theo đúng đồ thị
-// trạng thái (trigger 0167 canh), mốc giờ đặt lùi để mô phỏng tuổi phiếu. Bốn việc: hết hạn, ẩn danh, xoá kho tệp chờ, xoá mã email / lượt tải cũ; một dòng nhật ký mang mã tác nhân.
+// trạng thái (trigger 0170 canh), mốc giờ đặt lùi để mô phỏng tuổi phiếu. Bốn việc: hết hạn, ẩn danh, xoá kho tệp chờ, xoá mã email / lượt tải cũ; một dòng nhật ký mang mã tác nhân.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as P from "../../shared/permissions.ts";

@@ -242,7 +242,7 @@ test("(k) ẩn danh bản khai: chỉ cột cá nhân đổi sang dấu / NULL; 
   assert.throws(() => sua(du), loi(/dk_submission_content/));
 });
 
-test("Fix 6 (Task 5): dk_policy.photo_max_mb bị CHECK ≤ 10 — chính sách không thể vượt trần byte_size của bảng tệp chờ (0168)", () => {
+test("Fix 6 (Task 5): dk_policy.photo_max_mb bị CHECK ≤ 10 — chính sách không thể vượt trần byte_size của bảng tệp chờ (0171)", () => {
   const db = all();
   const them = (mb: number, at: string) => db.prepare(`INSERT INTO dk_policy (id, registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour,
     session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, phieu_required_items, valid_from_at, created_at, updated_at)

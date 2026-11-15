@@ -1,5 +1,5 @@
--- Migration 0170 — ADR-0209 (accepted 2026-11-15) Đ1: CẤP ĐỘ ĐẠI LÝ MẶC ĐỊNH cho đối tác tự đăng ký, module pricing. CHỈ THÊM: một bảng chính sách, bốn trigger; không đổi bảng, dòng nào đang có.
--- Số: ngày 15/11, lớn nhất ở mọi nhánh / worktree là 0169 (`0169_phi_don_tren_don.sql`, nhánh khác) ⇒ 0170.
+-- Migration 0172 — ADR-0209 (accepted 2026-11-15) Đ1: CẤP ĐỘ ĐẠI LÝ MẶC ĐỊNH cho đối tác tự đăng ký, module pricing. CHỈ THÊM: một bảng chính sách, bốn trigger; không đổi bảng, dòng nào đang có.
+-- Số: ngày 15/11, lớn nhất ở mọi nhánh / worktree là 0169 (`0169_phi_don_tren_don.sql`, nhánh khác) ⇒ 0170; đổi thành 0172 ngày 16/11 khi nhập `main` (0170, 0171 nay là hai tệp đăng ký đi trước).
 -- Xây trên lỗ đang hở HC-5.19 (khoá `xay_tren_cho_phep_adr_0209_0210` ở docs/quyen-hoan.json): chỉ thêm bảng cài đặt, không gieo dòng nào (chưa đặt = theo cấp của vai trò như hôm nay).
 -- Khuôn `ord_pickup_time_policy` (0157): đổi = chèn dòng mới; dòng hiệu lực của MỘT loại = `valid_from_at` lớn nhất ≤ lúc xét (UNIQUE theo loại + mốc nên không hoà; một đoạn câu dùng chung ở repository).
 -- `tier_code` NULL = «Theo cấp của vai trò» (không đặt). Lô duyệt (ADR-0209 Đ3) đọc dòng hiệu lực để ghi MỘT dòng prc_party_tier, câu INSERT … SELECT … WHERE tự bỏ qua khi thiếu điều kiện.

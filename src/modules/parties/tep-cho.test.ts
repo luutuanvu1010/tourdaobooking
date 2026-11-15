@@ -1,4 +1,4 @@
-// Tệp chờ của phiếu đăng ký (ADR-0208 Đ1, Đ2, Đ5, Đ7; migration 0168) trên SQLite THẬT + kho R2 giả: lô D1 trước, đặt kho sau, đánh dấu đã lưu; thay tệp cùng ô;
+// Tệp chờ của phiếu đăng ký (ADR-0208 Đ1, Đ2, Đ5, Đ7; migration 0171) trên SQLite THẬT + kho R2 giả: lô D1 trước, đặt kho sau, đánh dấu đã lưu; thay tệp cùng ô;
 // trần tệp mỗi phiếu nguyên tử; gỡ không chạm tệp đã chuyển; chuyển lúc duyệt dùng lại đúng khoá kho, băm về rỗng; mục bắt buộc + hai view công bố (ADR-0210 Đ1).
 import { test } from "node:test";
 import assert from "node:assert/strict";

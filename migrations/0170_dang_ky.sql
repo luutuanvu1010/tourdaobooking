@@ -1,5 +1,5 @@
--- Migration 0167 — ADR-0206 (accepted) Đ2–Đ4 + ADR-0207 Đ5: phiếu đăng ký đối tác tự đăng ký (đợt 1, Task 1). Module MỚI `dang-ky`, tiền tố `dk_`. CHỈ THÊM: tám bảng mới, không đổi bảng nào đang có.
--- Số: `main` và mọi nhánh / worktree chưa gộp tới 0166 ⇒ 0167.
+-- Migration 0170 — ADR-0206 (accepted) Đ2–Đ4 + ADR-0207 Đ5: phiếu đăng ký đối tác tự đăng ký (đợt 1, Task 1). Module MỚI `dang-ky`, tiền tố `dk_`. CHỈ THÊM: tám bảng mới, không đổi bảng nào đang có.
+-- Số: soạn dưới số 0167 (15/11); đổi thành 0170 ngày 16/11 khi nhập `main` có 0169_phi_don_tren_don (CLAUDE.md §10: lớn nhất mọi nhánh + 1, giữ thứ tự đơn điệu).
 -- Trigger CHỈ đọc bảng dk_* (Hiến chương 5.3). Cột người làm / hồ sơ / tài khoản (`*_by`, `party_id`, `staff_id`, `match_party_id`) là tham chiếu LOGIC, không khoá ngoại sang module khác (ADR-0003); khoá ngoại ngoài module duy nhất là `dk_submission.policy_id` → `pty_privacy_policy` (cạnh dang-ky → parties đã khai ở ALLOWED_EDGES).
 -- Hạng dữ liệu (5.20): tên, ngày sinh, địa chỉ, số điện thoại, email N2; số giấy tờ, số chuẩn hoá, nơi cấp N3; băm mã gửi email N4 — KHÔNG BAO GIỜ vào nhật ký, view công bố, câu báo lỗi. Không có view v_dk_*.
 -- Chưa gieo gì ngoài MỘT dòng chính sách đóng (registration_open = 0): mở đăng ký là quyết định riêng của chủ (ADR-0206).
@@ -22,7 +22,7 @@ CREATE TABLE dk_policy (
   supplement_expire_days  INTEGER NOT NULL CHECK (supplement_expire_days > 0),
   activation_days         INTEGER NOT NULL CHECK (activation_days > 0),
   activation_grace_days   INTEGER NOT NULL CHECK (activation_grace_days > 0), -- ân hạn SAU hạn đặt PIN: trong khoảng này Nhân sự còn «gửi lại lời mời» được; qua rồi tác nhân dọn phiếu ẩn danh danh tính (đợt 1 Task 9, phán quyết điều phối; chủ xác nhận sau)
-  photo_max_mb            INTEGER NOT NULL CHECK (photo_max_mb BETWEEN 1 AND 10),   -- ≤ 10 MB: trần cấu trúc của pty_registration_attachment.byte_size (0168)
+  photo_max_mb            INTEGER NOT NULL CHECK (photo_max_mb BETWEEN 1 AND 10),   -- ≤ 10 MB: trần cấu trúc của pty_registration_attachment.byte_size (0171)
   photo_max_count         INTEGER NOT NULL CHECK (photo_max_count > 0),
   anonymize_days          INTEGER NOT NULL CHECK (anonymize_days > 0),       -- ĐỔI SỐ NÀY LÀ ĐỔI THỜI GIAN GIỮ DỮ LIỆU CÁ NHÂN CỦA NGƯỜI LẠ
   files_per_network_hour  INTEGER NOT NULL CHECK (files_per_network_hour > 0),  -- tệp tải lên mỗi giờ mỗi địa chỉ mạng (ADR-0208 Đ2)
@@ -35,7 +35,7 @@ CREATE TABLE dk_policy (
 );
 INSERT INTO dk_policy (id, registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour,
   session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, phieu_required_items, valid_from_at, created_at, created_by, updated_at, updated_by)
-VALUES ('gieo-0167', 0, 'GUIDE_FREELANCE,HOTEL_RECEPTION,TAXI_DRIVER,COLLABORATOR', 6, 10, 5, 3, 10, 15, 60, 30, 12, 7, 14, 14, 30, 5, 8, 30, 20, 'ROLE,CALLED',
+VALUES ('gieo-0170', 0, 'GUIDE_FREELANCE,HOTEL_RECEPTION,TAXI_DRIVER,COLLABORATOR', 6, 10, 5, 3, 10, 15, 60, 30, 12, 7, 14, 14, 30, 5, 8, 30, 20, 'ROLE,CALLED',
   strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
 CREATE TRIGGER dk_policy_no_update BEFORE UPDATE ON dk_policy
 BEGIN SELECT RAISE(ABORT, 'dk_policy_append_only: chính sách đăng ký chỉ thêm dòng mới, không sửa'); END;

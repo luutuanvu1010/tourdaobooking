@@ -1,5 +1,5 @@
-// ADR-0210 (vòng sửa 1 Task 10, I-1): kế hoạch truy vấn của view `v_pty_verification_facts` trên CSDL có NHIỀU căn cước chưa chạy ANALYZE (như bản thật) phải đi bằng hai chỉ mục ghép của 0168,
-// không rơi vào `pty_person_document_number_ix` / `pty_verification_target_ix` (quét cả loại cho mỗi hồ sơ ⇒ bình phương). Phá thử: bỏ một trong hai chỉ mục khỏi 0168 ⇒ bài đỏ.
+// ADR-0210 (vòng sửa 1 Task 10, I-1): kế hoạch truy vấn của view `v_pty_verification_facts` trên CSDL có NHIỀU căn cước chưa chạy ANALYZE (như bản thật) phải đi bằng hai chỉ mục ghép của 0171,
+// không rơi vào `pty_person_document_number_ix` / `pty_verification_target_ix` (quét cả loại cho mỗi hồ sơ ⇒ bình phương). Phá thử: bỏ một trong hai chỉ mục khỏi 0171 ⇒ bài đỏ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts

@@ -1,6 +1,6 @@
 // Chỗ mở, đóng đăng ký của Toàn quyền (ADR-0206 Đ9 «Toàn quyền có thêm chỗ mở, đóng đăng ký»; đợt 1 Task 12 vòng sửa 1, I-3). Cổng `accounts`; ô `registration.policy.write`
 // (chỉ Toàn quyền) hỏi ở THÂN route trong index.ts. Lệnh đổi = MỘT lô: chèn một dòng dk_policy mới (chép dòng hiện hành, chỉ đổi công tắc và loại mở — mọi con số giữ nguyên) → nhật ký
-// `changes() > 0`. Không bao giờ sửa dòng cũ (bảng chỉ thêm, trigger 0167). Nhật ký không chứa dữ liệu cá nhân.
+// `changes() > 0`. Không bao giờ sửa dòng cũ (bảng chỉ thêm, trigger 0170). Nhật ký không chứa dữ liệu cá nhân.
 import { VAI_MO_DUOC_CHO_PHIEU_CA_NHAN } from "../../shared/dang-ky-hien-thi.ts";
 import { error, json, readJson } from "../../shared/http.ts";
 import { ROLES } from "../../shared/roles.ts";

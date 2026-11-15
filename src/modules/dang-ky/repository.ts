@@ -29,7 +29,7 @@ const CHINH_SACH = defineSql("dang-ky", "policy_current", `SELECT id, registrati
   ask_window_minutes, ask_global_per_hour, session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count,
   anonymize_days, files_per_network_hour, valid_from_at FROM dk_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`);
 
-// Đổi công tắc «Nhận đăng ký mới» và danh sách loại mở (ADR-0206 Đ9; Task 12 vòng sửa 1, I-3). dk_policy CHỈ THÊM DÒNG (trigger dk_policy_no_update / no_delete, migration 0167): chép dòng
+// Đổi công tắc «Nhận đăng ký mới» và danh sách loại mở (ADR-0206 Đ9; Task 12 vòng sửa 1, I-3). dk_policy CHỈ THÊM DÒNG (trigger dk_policy_no_update / no_delete, migration 0170): chép dòng
 // đang hiệu lực, chỉ đổi hai cột `registration_open`, `open_role_codes`; mọi con số khác GIỮ NGUYÊN. Khoá lạc quan: dòng người đặt đã thấy (?4) phải còn là dòng MỚI NHẤT (không xét mốc —
 // lệnh của người khác đã ghi thì 0 dòng ⇒ 409; `valid_from_at` UNIQUE là lưới cuối khi hai lệnh cùng mốc). Mở (?2 = 1) mà không có chính sách riêng tư đang hiệu lực ⇒ 0 dòng (lưới sau kiểm ở route).
 const DOI_CHINH_SACH = defineSql("dang-ky", "policy_switch_insert", `INSERT INTO dk_policy (id, registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox,
@@ -323,7 +323,7 @@ const PHIEU_DE_XEM = defineSql(
 export const phieuDeXem = (db: D1Database, registrationId: string, identityId: string): Promise<PhieuDeXemRow | null> =>
   db.prepare(PHIEU_DE_XEM).bind(registrationId, identityId).first<PhieuDeXemRow>();
 
-// Phiên bản chính sách riêng tư ĐANG CÓ HIỆU LỰC để người đăng ký đồng ý lúc gửi: view công bố của parties (0168) — cùng nghĩa với GET cau-hinh và GET chinh-sach-rieng-tu (bản ngày hiệu lực ở tương lai không tính). Bản mới đăng giữa lúc đọc và lúc ghi
+// Phiên bản chính sách riêng tư ĐANG CÓ HIỆU LỰC để người đăng ký đồng ý lúc gửi: view công bố của parties (0171) — cùng nghĩa với GET cau-hinh và GET chinh-sach-rieng-tu (bản ngày hiệu lực ở tương lai không tính). Bản mới đăng giữa lúc đọc và lúc ghi
 // làm câu chèn bản khai (điều kiện id = id hiện hành) khớp 0 dòng.
 const CHINH_SACH_RIENG_TU = defineSql("dang-ky", "privacy_policy_current", "SELECT id, version FROM v_pty_privacy_effective");
 export const chinhSachRiengTuHienHanh = (db: D1Database): Promise<{ id: string; version: number } | null> => db.prepare(CHINH_SACH_RIENG_TU).first<{ id: string; version: number }>();
@@ -508,7 +508,7 @@ const AN_DANH_BAN_KHAI = defineSql(
 );
 export const cauAnDanhBanKhai = (db: D1Database, v: { registrationId: string; at: string; by: string }): D1PreparedStatement => db.prepare(AN_DANH_BAN_KHAI).bind(v.registrationId, v.at, v.by);
 
-// «Từ chối duyệt» (ADR-0207 Đ4): CHỜ DUYỆT → TỪ CHỐI theo đồ thị 0167; `?5` = phiên bản người duyệt đã xem (NULL = không gửi ⇒ không ghim).
+// «Từ chối duyệt» (ADR-0207 Đ4): CHỜ DUYỆT → TỪ CHỐI theo đồ thị 0170; `?5` = phiên bản người duyệt đã xem (NULL = không gửi ⇒ không ghim).
 const TU_CHOI_DUYET_CAP = defineSql(
   "dang-ky",
   "registration_reject_at_approval",

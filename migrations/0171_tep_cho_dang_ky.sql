@@ -1,5 +1,5 @@
--- Migration 0168 — ADR-0208 (accepted) Đ1, Đ5 + ADR-0210 (accepted) Đ1: tệp chờ của phiếu đăng ký đối tác, mục bắt buộc để được «Đã xác minh», hai view công bố (đợt 1, Task 5). Module parties. CHỈ THÊM.
--- Số: `main` và mọi nhánh / worktree chưa gộp tới 0167 ⇒ 0168.
+-- Migration 0171 — ADR-0208 (accepted) Đ1, Đ5 + ADR-0210 (accepted) Đ1: tệp chờ của phiếu đăng ký đối tác, mục bắt buộc để được «Đã xác minh», hai view công bố (đợt 1, Task 5). Module parties. CHỈ THÊM.
+-- Số: soạn dưới số 0168 (15/11); đổi thành 0171 ngày 16/11 khi nhập `main` có 0169 (đi ngay sau 0170_dang_ky).
 -- Nội dung tệp KHÔNG nằm trong D1 — ở kho R2 `HO_SO`, khoá `pty/` + 32 hex như pty_attachment (để lúc duyệt dùng lại đúng khoá, không chép tệp). Không lưu tên tệp gốc.
 -- storage_key và content_hash là dữ liệu hạng N3 (ảnh giấy tờ — Hiến chương 5.20): KHÔNG BAO GIỜ vào nhật ký, DTO, câu báo lỗi.
 -- `registration_id` là mã phiếu do module dang-ky truyền vào — chuỗi, KHÔNG khoá ngoại sang bảng của module khác (ADR-0003). Trigger chỉ đọc bảng pty_*.
@@ -16,7 +16,7 @@ CREATE TABLE pty_registration_attachment (
   slot             TEXT NOT NULL CHECK (slot = upper(slot) AND length(slot) BETWEEN 2 AND 40 AND slot NOT GLOB '*[^A-Z0-9_]*'),   -- ô của tệp trong phiếu (vd căn cước mặt trước)
   storage_key      TEXT NOT NULL UNIQUE CHECK (length(storage_key) = 36 AND substr(storage_key, 1, 4) = 'pty/' AND substr(storage_key, 5) NOT GLOB '*[^0-9a-f]*'),
   content_kind     TEXT NOT NULL CHECK (content_kind IN ('jpg', 'png', 'heic', 'pdf')),
-  byte_size        INTEGER NOT NULL CHECK (byte_size BETWEEN 1 AND 10485760),   -- 10 MB là TRẦN CẤU TRÚC (khuôn pty_attachment); trần thật 5 MB ở dk_policy.photo_max_mb, bị CHECK ≤ 10 ở 0167
+  byte_size        INTEGER NOT NULL CHECK (byte_size BETWEEN 1 AND 10485760),   -- 10 MB là TRẦN CẤU TRÚC (khuôn pty_attachment); trần thật 5 MB ở dk_policy.photo_max_mb, bị CHECK ≤ 10 ở 0170
   content_hash     TEXT CHECK (content_hash IS NULL OR (length(content_hash) = 64 AND content_hash NOT GLOB '*[^0-9a-f]*')),
   stored_at        TEXT,
   purged_at        TEXT,
@@ -93,9 +93,9 @@ WHEN NOT ((NEW.item_kind = 'ATTRIBUTE' AND NEW.item_code IN ('HO_TEN', 'NGAY_SIN
 BEGIN SELECT RAISE(ABORT, 'verification_requirement_item_closed: mục này chưa có ô khai trong phiếu đăng ký — thêm ô vào phiếu trước'); END;
 -- Mặc định đề xuất cho CÁ NHÂN (ADR-0210 Đ1): họ tên, ngày sinh, một căn cước còn hiệu lực. Danh sách cho tổ chức để đợt 2 đặt.
 INSERT INTO pty_verification_requirement (id, subject_kind, item_kind, item_code, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES
-  ('gieo-0168-ho-ten',    'PERSON', 'ATTRIBUTE', 'HO_TEN',    strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL),
-  ('gieo-0168-ngay-sinh', 'PERSON', 'ATTRIBUTE', 'NGAY_SINH', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL),
-  ('gieo-0168-cccd',      'PERSON', 'DOCUMENT',  'CCCD',      strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+  ('gieo-0171-ho-ten',    'PERSON', 'ATTRIBUTE', 'HO_TEN',    strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL),
+  ('gieo-0171-ngay-sinh', 'PERSON', 'ATTRIBUTE', 'NGAY_SINH', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL),
+  ('gieo-0171-cccd',      'PERSON', 'DOCUMENT',  'CCCD',      strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
 
 -- View công bố 1 (ADR-0210 Đ1, ADR-0002 đ3): danh sách mục bắt buộc ĐANG hiệu lực theo từng loại hồ sơ. Module khác (dang-ky, accounts) đọc view này, không đọc bảng.
 CREATE VIEW v_pty_verification_requirement AS

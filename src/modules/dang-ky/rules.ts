@@ -1,5 +1,5 @@
 // dang-ky/rules.ts — luật thuần của phiếu đăng ký đối tác (ADR-0206 Đ4). Không I/O.
-// Đồ thị phải khớp trigger `dk_registration_transition` (migration 0167); bài rules.test.ts đối chiếu hai bên.
+// Đồ thị phải khớp trigger `dk_registration_transition` (migration 0170); bài rules.test.ts đối chiếu hai bên.
 import { CAU_SAI_LOAI, doDaiBase64, giaiBase64, nhanLoaiTep, type LoaiTep } from "../../shared/tep-dinh-kem.ts";
 
 export const TRANG_THAI = ["DANG_DIEN", "CHO_XAC_MINH", "CAN_BO_SUNG", "CHO_DUYET", "DA_DUYET", "TU_CHOI", "DA_RUT", "HET_HAN"] as const;

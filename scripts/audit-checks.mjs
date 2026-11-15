@@ -173,7 +173,7 @@ export const COT_N3_NHAT_KY = {
   "fbk_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 vé hỗ trợ — không bao giờ vào nhật ký
   "pty_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0123 (lát H-2 Gói 2): băm ảnh giấy tờ — nhật ký chỉ mang mã tệp
   "pty_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 — không bao giờ vào nhật ký
-  "pty_registration_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0208 Đ1 (migration 0168): băm tệp chờ của phiếu đăng ký — nhật ký chỉ mang mã phiếu
+  "pty_registration_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0208 Đ1 (migration 0171): băm tệp chờ của phiếu đăng ký — nhật ký chỉ mang mã phiếu
   "pty_registration_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false },
   "pty_organization_document.document_number": { kiem: "R-PD-1", chuanHoa: false },
   "pty_organization_document.number_key": { kiem: "R-PD-1", chuanHoa: true },
@@ -184,7 +184,7 @@ export const COT_N3_NHAT_KY = {
   "pty_self_submission.document_number": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0124 (lát H-3): số giấy tờ TỰ KHAI — nhật ký chỉ mang mã phiếu
   "pty_self_submission.number_key": { kiem: "R-PD-1", chuanHoa: true },
   "pty_self_submission.issued_place": { kiem: "R-PD-1", chuanHoa: false },
-  "dk_submission.document_number": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0206 Đ3 (migration 0167): số giấy tờ ở bản khai đăng ký — nhật ký chỉ mang mã phiếu
+  "dk_submission.document_number": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0206 Đ3 (migration 0170): số giấy tờ ở bản khai đăng ký — nhật ký chỉ mang mã phiếu
   "dk_submission.number_key": { kiem: "R-PD-1", chuanHoa: true },
   "dk_submission.issued_place": { kiem: "R-PD-1", chuanHoa: false },
 };

@@ -152,5 +152,5 @@ test("chỉ để biết (Đ5, M-4): trong migrations/*.sql chỉ MỘT dòng kh
     }
   }
   assert.equal(hit.length, 1, hit.join("\n"));
-  assert.match(hit[0]!, /^0168_tep_cho_dang_ky\.sql:\d+: CREATE VIEW v_pty_verification_facts AS$/);
+  assert.match(hit[0]!, /^0171_tep_cho_dang_ky\.sql:\d+: CREATE VIEW v_pty_verification_facts AS$/);
 });

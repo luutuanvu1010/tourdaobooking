@@ -1,4 +1,4 @@
-// Dấu «đã xác minh» của hồ sơ (ADR-0210): TẬP ĐÓNG của mục bắt buộc (Task 5, migration 0168) và hàm THUẦN tính ba trạng thái (Task 10), dùng chung máy chủ và giao diện.
+// Dấu «đã xác minh» của hồ sơ (ADR-0210): TẬP ĐÓNG của mục bắt buộc (Task 5, migration 0171) và hàm THUẦN tính ba trạng thái (Task 10), dùng chung máy chủ và giao diện.
 // Tập này phải khớp trigger `pty_verification_requirement_item_closed` (bài src/modules/parties/tep-cho.test.ts đối chiếu): muốn thêm mục thì thêm ô vào phiếu đăng ký
 // trước (một lần sửa mã), rồi sửa tập này và tạo lại trigger bằng migration mới.
 

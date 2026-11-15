@@ -1603,7 +1603,7 @@ export function anDanhStatements(db: D1Database, v: { id: string; partyId: strin
 export const datChoXoaAnhHetGiuStatement = (db: D1Database, v: { tepId: string; actorId: string; at: string; homNay: string }): D1PreparedStatement =>
   db.prepare(DAT_CHO_XOA_ANH_HET_GIU).bind(v.tepId, v.actorId, v.at, v.homNay);
 
-// ---- Tệp chờ của phiếu đăng ký (ADR-0208 Đ1, Đ2, Đ5, Đ7; migration 0168) — bảng pty_registration_attachment. Chỉ parties ghi; khoá kho và băm là N3, không ra DTO/nhật ký. ----
+// ---- Tệp chờ của phiếu đăng ký (ADR-0208 Đ1, Đ2, Đ5, Đ7; migration 0171) — bảng pty_registration_attachment. Chỉ parties ghi; khoá kho và băm là N3, không ra DTO/nhật ký. ----
 const INSERT_TEP_CHO = defineSql(
   "parties",
   "insert_registration_attachment",
