@@ -143,3 +143,46 @@ BEGIN SELECT RAISE(ABORT, 'dk_event_tep_status: phiếu không còn nhận tệp
 
 -- Loại quan hệ «Người giới thiệu của» (ADR-0207 Đ2 mục 5, Đ5 câu 9; đợt 1 Task 8): chiều đọc như CONTACT_OF / DRIVES_FOR — from = người giới thiệu, to = hồ sơ được giới thiệu. Chỉ ghi nhận, không sinh tiền.
 INSERT INTO pty_relationship_type (code, name, sort_order) VALUES ('REFERRED_BY', 'Người giới thiệu của', 3);
+
+-- View công bố 4 (ADR-0210 Đ2, Task 10): DỮ KIỆN xác minh theo TỪNG mục bắt buộc của MỖI hồ sơ — hàm thuần `tinhDauXacMinh` (src/shared/dau-xac-minh.ts) đổi dữ kiện thành ba dấu; view không tự
+-- tính dấu vì SQLite không nhận tham số ngày (so hạn căn cước với `vnToday`). KHÔNG số giấy tờ, KHÔNG dữ liệu cá nhân. Hồ sơ đã gộp (`merged_into_id`) lấy dữ kiện của hồ sơ chính (`party_id` vẫn là hồ sơ hỏi).
+-- Loại hồ sơ chưa có mục bắt buộc (tổ chức) vẫn ra MỘT hàng với item_kind NULL, để cờ vai đối tác không mất. `is_partner`: mang vai đối tác đang mở (v_pty_party_partner_label). `anonymized`: đã có lệnh xoá DA_THUC_HIEN.
+-- Giấy tờ hiện hành = dòng cùng loại chưa huỷ, chưa ẩn danh, chưa có dòng gia hạn chưa huỷ nối tiếp. `ever_passed`: từng có «đạt» (mục thuộc tính; hoặc dòng giấy tờ BẤT KỲ cùng loại của hồ sơ).
+-- Dấu CHỈ ĐỂ BIẾT (Đ5): chỉ ba màn ở Đ3 đọc view này; không luật đơn, tiền, đăng nhập nào đọc (bài src/dau-xac-minh-chi-de-biet.test.ts).
+CREATE VIEW v_pty_verification_facts AS
+SELECT x.party_id, x.subject_kind, x.item_kind, x.item_code, x.is_partner, x.anonymized, x.doc_id, d.expiry_date,
+  CASE x.item_kind
+    WHEN 'ATTRIBUTE' THEN (SELECT v.outcome FROM pty_verification v WHERE v.party_id = x.eff_id AND v.target_kind = 'ATTRIBUTE' AND v.attribute_code = x.item_code
+                            ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1)
+    WHEN 'DOCUMENT' THEN (SELECT v.outcome FROM pty_verification v WHERE v.party_id = x.eff_id AND v.target_kind = 'PERSON_DOCUMENT' AND v.target_id = x.doc_id
+                           ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1)
+  END AS last_outcome,
+  CASE x.item_kind
+    WHEN 'ATTRIBUTE' THEN EXISTS (SELECT 1 FROM pty_verification v WHERE v.party_id = x.eff_id AND v.target_kind = 'ATTRIBUTE' AND v.attribute_code = x.item_code AND v.outcome = 'DA_XAC_MINH')
+    WHEN 'DOCUMENT' THEN EXISTS (SELECT 1 FROM pty_verification v JOIN pty_person_document g ON g.id = v.target_id
+                                  WHERE v.party_id = x.eff_id AND v.target_kind = 'PERSON_DOCUMENT' AND v.outcome = 'DA_XAC_MINH' AND g.document_type_code = x.item_code)
+    ELSE 0
+  END AS ever_passed
+FROM (
+  SELECT p.id AS party_id, COALESCE(p.merged_into_id, p.id) AS eff_id, p.party_kind AS subject_kind, r.item_kind, r.item_code,
+    EXISTS (SELECT 1 FROM v_pty_party_partner_label l WHERE l.party_id IN (p.id, COALESCE(p.merged_into_id, p.id))) AS is_partner,
+    EXISTS (SELECT 1 FROM pty_erasure_request e WHERE e.party_id = COALESCE(p.merged_into_id, p.id) AND e.status = 'DA_THUC_HIEN') AS anonymized,
+    CASE WHEN r.item_kind = 'DOCUMENT' THEN
+      (SELECT g.id FROM pty_person_document g
+        WHERE g.party_id = COALESCE(p.merged_into_id, p.id) AND g.document_type_code = r.item_code AND g.voided_at IS NULL AND g.erased_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = g.id AND n.voided_at IS NULL)
+        ORDER BY g.created_at DESC, g.id DESC LIMIT 1)
+    END AS doc_id
+  FROM pty_party p LEFT JOIN v_pty_verification_requirement r ON r.subject_kind = p.party_kind
+) x LEFT JOIN pty_person_document d ON d.id = x.doc_id;
+
+-- Đ1b (ADR-0210, Task 10): đổi họ tên của hồ sơ cá nhân đã xác minh ⇒ «cần xác minh lại» cho mục HO_TEN, trong CÙNG câu sửa, MỌI đường (sửa hồ sơ, đổi tên tài khoản, đường nào thêm sau này).
+-- Cơ chế là trigger vì có hai câu sửa tên riêng (UPDATE_PERSON, RENAME_PERSON) và sẽ có thêm; một chỗ giữ luật thì không đường nào lọt. Chỉ ghi khi tên THẬT SỰ đổi và kết luận mới nhất của HO_TEN đang là «đạt»
+-- (như ngày sinh: đã cần lại / từ chối thì không thêm). Câu ẩn danh (AN_DANH_NGUOI) đánh dấu mọi mục trước khi sửa tên nên không ghi trùng.
+CREATE TRIGGER pty_person_name_reverify AFTER UPDATE OF family_name, middle_name, given_name ON pty_person
+WHEN (OLD.family_name IS NOT NEW.family_name OR OLD.middle_name IS NOT NEW.middle_name OR OLD.given_name IS NOT NEW.given_name)
+  AND (SELECT v.outcome FROM pty_verification v WHERE v.party_id = NEW.party_id AND v.target_kind = 'ATTRIBUTE' AND v.attribute_code = 'HO_TEN' ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1) = 'DA_XAC_MINH'
+BEGIN
+  INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, reason_code, verifier_touched_account, created_at, created_by, updated_at, updated_by)
+  VALUES (lower(hex(randomblob(16))), NEW.party_id, 'ATTRIBUTE', NULL, 'HO_TEN', 'CAN_XAC_MINH_LAI', NULL, 0, NEW.updated_at, NEW.updated_by, NEW.updated_at, NEW.updated_by);
+END;

@@ -1273,6 +1273,22 @@
       ]
     },
     {
+      "name": "v_pty_verification_facts",
+      "module": "parties",
+      "columns": [
+        "party_id",
+        "subject_kind",
+        "item_kind",
+        "item_code",
+        "is_partner",
+        "anonymized",
+        "doc_id",
+        "expiry_date",
+        "last_outcome",
+        "ever_passed"
+      ]
+    },
+    {
       "name": "v_pty_privacy_current",
       "module": "parties",
       "columns": [
@@ -1947,6 +1963,7 @@
     "pty_verification_requirement": { "id": "N1", "subject_kind": "N1", "item_kind": "N1", "item_code": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dk_upload_attempt": { "id": "N1", "ip_key": "N2", "at_ms": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "v_pty_verification_requirement": { "subject_kind": "N1", "item_kind": "N1", "item_code": "N1", "valid_from_at": "N1" },
+    "v_pty_verification_facts": { "party_id": "N1", "subject_kind": "N1", "item_kind": "N1", "item_code": "N1", "is_partner": "N1", "anonymized": "N1", "doc_id": "N1", "expiry_date": "N1", "last_outcome": "N1", "ever_passed": "N1" },
     "v_pty_privacy_current": { "id": "N1", "version": "N1", "purposes": "N1", "body": "N1", "valid_from_at": "N1" },
     "v_pty_privacy_effective": { "id": "N1", "version": "N1", "valid_from_at": "N1" },
     "pty_attachment_link": {
