@@ -2,9 +2,12 @@
 // chuyển khoản» thiếu ảnh 400 bien_lai_required (không khoản thu) → sai loại 415 → kèm PNG 201 (khoản đang đối chiếu, DTO chỉ trạng thái) → tiền mặt không cần ảnh
 // → xem: Kế toán / Đối tác chính chủ 200 (image/png, no-store), Quản trị / Bán hàng 403 → gỡ: Kế toán 403, Toàn quyền thiếu lý do 400, có lý do 200, lần hai 409
 // → DTO «DA_GO», xem 404 → hàng chờ dọn kho chỉ Toàn quyền → nhật ký không chép khoá kho.
+// Phí đưa đón Đợt C, Task 5: đơn có lượt đón 50.000 đ/khách × 3 ⇒ phải thu và biên nhận khách gồm phí (dòng «Phí đưa đón»); Đối tác chuyển khoản đủ số gồm phí kèm ảnh 201.
+// Phí bật từ hôm nay rồi tắt ở `finally` (tests/e2e/lib-phi-don.mjs).
 // D1 chung với kịch bản khác: tài khoản Đối tác dùng một lần (tên theo Date.now()), mã danh mục riêng ZBL1 (cờ «cần xác nhận» tắt, trả về cuối kịch bản).
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { dungPhiDon, luotDon } from "./lib-phi-don.mjs";
 
 await ensureFakeCatalog();
 const AT = "'2026-01-01T00:00:00.000Z'";
@@ -81,6 +84,28 @@ try {
   const nk = await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE action LIKE 'payment_proof_%' AND (detail LIKE '%bln/%' OR detail LIKE '%${dong.storage_key.slice(4, 20)}%')`);
   assert.equal(nk[0].n, 0, "nhật ký không chép khoá kho");
   console.log("✓ nhật ký ảnh biên lai không chép khoá kho");
+
+  // ---- Phí đưa đón (Đợt C, Task 5): phải thu, biên nhận khách và chuyển khoản kèm ảnh tính cả phí
+  const phi = await dungPhiDon(ADM, { nhan: "BLA", muc: 50_000 });
+  try {
+    const lap2 = await call(DT, "POST", "/api/orders", orderInput({
+      customerName: `Khách Biên Lai Phí E2E ${tag}`, customerPhone: "0913579138",
+      services: [catalogService({ catalogCode: "ZBL1", catalogPriceSeen: { adult: 100000 }, pax: { adult: 3 }, departDate: vnDate(4), legs: [luotDon(phi.ks.id)] })],
+    }));
+    assert.equal(lap2.status, 201, JSON.stringify(lap2.body));
+    const id2 = lap2.body.order.id;
+    assert.equal((await call(DT, "POST", `/api/orders/${id2}/gui-don`, {})).status, 200);
+    assert.equal((await call(ACC, "GET", `/api/orders/${id2}/payments`)).body.phaiThu, 450000, "phải thu = 300.000 + phí 150.000");
+    const bn = (await call(DT, "GET", `/api/orders/${id2}/receipt`)).body.receipt;
+    assert.deepEqual([bn.subtotal, bn.total, bn.conLai], [450000, 450000, 450000]);
+    assert.deepEqual(bn.phiDuaDon.map((d) => [d.quantity, d.unitPrice, d.lineTotal]), [[3, 50000, 150000]], "biên nhận khách có dòng phí đưa đón");
+    const ck2 = await call(DT, "POST", `/api/orders/${id2}/payments`, ck(450000, { bienLai: anh(PNG) }));
+    assert.equal(ck2.status, 201, JSON.stringify(ck2.body));
+    assert.equal((await call(ACC, "GET", `/api/orders/${id2}/payments`)).body.lanThu.find((l) => l.soTien === 450000)?.bienLai, "CO", "khoản chuyển khoản đủ số gồm phí, có ảnh");
+    console.log("✓ đơn có phí đưa đón: phải thu và biên nhận khách 450.000 (gồm phí 150.000), chuyển khoản đủ số kèm ảnh 201");
+  } finally {
+    await phi.donDep();
+  }
 } finally {
   await call(SUPER, "POST", URL_CD, { pham: "SERVICE", ma: "ZBL1", canXacNhan: false });
 }

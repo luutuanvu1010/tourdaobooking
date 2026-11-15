@@ -122,7 +122,9 @@ try {
     assert.equal((await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp.ngay, null, "cuối kịch bản: ngày bắt đầu áp = tắt");
   });
   await thu("kết thúc mức", async () => {
-    const mo = (await bang()).muc.filter((m) => da.mucDaThem.includes(m.id) && m.denNgay === null);
+    // Chỉ kết thúc mức của KHU VỰC THỬ (Đợt C, Task 5): mức chung đã thêm cho khu vực đang bật còn thiếu để MỞ — phí đã tắt nên không đổi tiền đơn nào; kết thúc nó (ngày cuối = ngày đầu
+    // = hôm qua) làm kịch bản phí sau trên CÙNG D1 không thêm lại được mức từ hôm qua (409 prc_overlap — đã gặp khi chạy nối phi-don-don → phi-don-xac-nhan).
+    const mo = (await bang()).muc.filter((m) => da.mucDaThem.includes(m.id) && m.denNgay === null && m.dieuKien.vung === ZONE);
     for (const m of mo) await call(ADMIN, "POST", `/api/pricing/phi-don/${m.id}/ket-thuc`, { validTo: m.tuNgay, expectedUpdatedAt: m.updatedAt });
   });
   await thu("đưa địa điểm ra khỏi khu vực", async () => {

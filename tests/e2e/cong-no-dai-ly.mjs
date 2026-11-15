@@ -2,9 +2,12 @@
 // (không đụng mức theo vai dùng chung) → đơn nháp: phiếu 409 câu tiếng Việt → gửi đơn (đã xác nhận) → phiếu = giá đại lý 270.000, QR (nếu công ty đã cài tài khoản) đúng số
 // đó, tiền tố DL, không đọc ?soTien → Đối tác gọi QR giá bán lẻ ⇒ «không có QR» → Kế toán, Quản trị, Toàn quyền xem được, Bán hàng 403 → khách trả thẳng công ty
 // 300.000 ⇒ còn lại −30.000, không QR → biên nhận khách mẫu đối tác không mang QR / tài khoản.
+// Phí đưa đón Đợt C, Task 5 (sổ vàng SV-PD-25): đơn đại lý có lượt đón 50.000 đ/khách × 3 ⇒ tổng công nợ = giá đại lý 270.000 + phí 150.000 = 420.000 (hoa hồng không tính trên phí),
+// phiếu có dòng «Phí đưa đón» 150.000; phí bật từ hôm nay rồi tắt ở `finally` (tests/e2e/lib-phi-don.mjs).
 // D1 chung với kịch bản khác: mã danh mục riêng ZCN1 (cờ «cần xác nhận» tắt, trả về cuối kịch bản); chỉ đọc tài khoản dùng chung.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { dungPhiDon, luotDon } from "./lib-phi-don.mjs";
 
 await ensureFakeCatalog();
 const AT = "'2026-01-01T00:00:00.000Z'";
@@ -65,6 +68,26 @@ try {
   assert.equal(bn.body.receipt.mau, "doi_tac");
   assert.doesNotMatch(JSON.stringify(bn.body), /payload|soTaiKhoan|nganHang|chuTaiKhoan|noiDung/, "biên nhận khách không mang QR / tài khoản");
   console.log("✓ biên nhận khách mẫu đối tác: không QR, không tài khoản");
+
+  // ---- Phí đưa đón (Đợt C, Task 5 — SV-PD-25): phí cộng vào tổng công nợ, không vào hoa hồng
+  const phi = await dungPhiDon(ADM, { nhan: "CNO", muc: 50_000 });
+  try {
+    const lap2 = await call(DT, "POST", "/api/orders", orderInput({
+      customerName: `Khách Công Nợ Phí E2E ${tag}`, customerPhone: "0913579137",
+      services: [catalogService({ catalogCode: "ZCN1", catalogPriceSeen: { adult: 100000 }, pax: { adult: 3 }, departDate: vnDate(4), legs: [luotDon(phi.ks.id)] })],
+    }));
+    assert.equal(lap2.status, 201, JSON.stringify(lap2.body));
+    const id2 = lap2.body.order.id;
+    assert.equal((await call(DT, "POST", `/api/orders/${id2}/gui-don`, {})).status, 200);
+    const p2 = (await phieu(ACC, id2)).body.phieu;
+    assert.deepEqual([p2.tong, p2.daThu, p2.conLai], [420000, 0, 420000], JSON.stringify(p2));
+    assert.deepEqual(p2.dong.map((d) => [d.ten, d.giaDaiLy]), [["Dịch vụ công nợ thử", 270000], ["Phí đưa đón", 150000]], "các dòng cộng khớp tổng; hoa hồng không tính trên phí");
+    const bn2 = (await call(DT, "GET", `/api/orders/${id2}/receipt`)).body.receipt;
+    assert.deepEqual([bn2.total, bn2.phiDuaDon.map((d) => d.lineTotal)], [450000, [150000]], "khách trả 300.000 + phí 150.000");
+    console.log("✓ đơn đại lý có phí đưa đón: tổng công nợ 270.000 + phí 150.000 = 420.000, phiếu có dòng «Phí đưa đón»; biên nhận khách 450.000");
+  } finally {
+    await phi.donDep();
+  }
 } finally {
   await call(SUPER, "POST", URL_CD, { pham: "SERVICE", ma: "ZCN1", canXacNhan: false });
 }
