@@ -77,3 +77,25 @@ export function sinhMaEmail(soChuSo: number, ngauNhien: (b: Uint8Array) => void 
   if (ma.length < soChuSo) throw new Error("Không sinh được mã.");
   return ma;
 }
+
+// ---- Phiếu của người đăng ký: loại mở, mục bắt buộc (ADR-0206 Đ6; ADR-0210 Đ1) ----
+
+/** Danh sách loại đối tác mở cho phiếu (`dk_policy.open_role_codes`, cách nhau dấu phẩy); rỗng ⇒ chưa mở loại nào. */
+export const dsLoaiMo = (csv: string): string[] => csv.split(",").map((x) => x.trim()).filter(Boolean);
+
+/** Những điều máy chủ biết về bản khai ĐANG GỬI, đủ để kiểm từng mã mục bắt buộc. «Đã gọi» do người xác minh kết luận; ở phía người đăng ký nó chỉ có nghĩa «có số điện thoại để gọi». */
+export interface DuLieuKiemMuc { loaiHopLe: boolean; hoTen: boolean; ngaySinh: boolean; dienThoai: boolean; cccdConHan: boolean }
+const KIEM_MUC: Readonly<Record<string, (d: DuLieuKiemMuc) => boolean>> = {
+  ROLE: (d) => d.loaiHopLe,
+  CALLED: (d) => d.dienThoai,
+  HO_TEN: (d) => d.hoTen,
+  NGAY_SINH: (d) => d.ngaySinh,
+  CCCD: (d) => d.cccdConHan,
+};
+/**
+ * Mục bắt buộc mà bản khai chưa đáp ứng, theo thứ tự `batBuoc`. Mã mục máy chưa biết cách kiểm bị coi là CHƯA ĐÁP ỨNG (đóng khi không rõ — không bỏ qua lặng lẽ): thêm mục vào chính sách
+ * mà chưa thêm ô khai thì phiếu không gửi được, chứ không gửi thiếu.
+ */
+export function mucChuaDapUng(batBuoc: readonly string[], d: DuLieuKiemMuc): string[] {
+  return batBuoc.filter((ma) => !(Object.hasOwn(KIEM_MUC, ma) && KIEM_MUC[ma]!(d)));
+}

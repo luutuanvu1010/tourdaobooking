@@ -16,6 +16,9 @@ export const LAN_GUI_MIEN: readonly MucMien[] = [
   { method: "POST", path: "/api/dang-ky/phieu/tep", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
   { method: "POST", path: "/api/dang-ky/ma", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
   { method: "POST", path: "/api/dang-ky/xac-nhan", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
+  { method: "PUT", path: "/api/dang-ky/phieu", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
+  { method: "POST", path: "/api/dang-ky/phieu/gui", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
+  { method: "POST", path: "/api/dang-ky/phieu/rut", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
 ];
 
 export const laMienLanGui = (method: string, path: string): boolean => LAN_GUI_MIEN.some((m) => m.method === method && m.path === path);

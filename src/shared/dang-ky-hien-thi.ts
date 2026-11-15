@@ -32,3 +32,31 @@ export const NHAN_MUC_XAC_MINH: Readonly<Record<string, string>> = {
   CALLED: "Đã gọi số điện thoại đã khai",
 };
 export const nhanMucXacMinh = (ma: string): string => NHAN_MUC_XAC_MINH[ma] ?? ma;
+
+/** Trạng thái của phiếu người đăng ký thấy (PHU-LUC lượt A, cột khuyến nghị; chủ duyệt «chữ theo khuyến nghị» 15/11). Khoá = trạng thái của `dk_registration.status`. */
+export const NHAN_TRANG_THAI_PHIEU = {
+  DANG_DIEN: "Đang điền",
+  CHO_XAC_MINH: "Đang chờ xác minh",
+  CAN_BO_SUNG: "Cần bổ sung",
+  CHO_DUYET: "Đang chờ duyệt",
+  DA_DUYET: "Đã duyệt",
+  TU_CHOI: "Bị từ chối",
+  DA_RUT: "Đã rút",
+  HET_HAN: "Hết hạn",
+} as const;
+export type TrangThaiPhieuDangKy = keyof typeof NHAN_TRANG_THAI_PHIEU;
+export const nhanTrangThaiPhieu = (t: string): string => (Object.hasOwn(NHAN_TRANG_THAI_PHIEU, t) ? NHAN_TRANG_THAI_PHIEU[t as TrangThaiPhieuDangKy] : "Không rõ");
+
+/** Câu báo lỗi của bốn route phiếu cho người đăng ký (chữ AI viết, chờ chủ chọn — BANG-THAM-CHIEU «Câu báo lỗi của phiếu đăng ký»). */
+export const CAU_PHIEU = {
+  hetPhien: "Lần đăng nhập để điền phiếu đã hết hạn. Hãy đăng nhập lại bằng email để tiếp tục.",
+  daDuyet: "Phiếu này đã được duyệt nên không sửa được nữa.",
+  daKetThuc: "Phiếu này đã kết thúc nên không sửa được nữa.",
+  khongSua: "Phiếu này đang chờ xử lý nên chưa sửa được.",
+  loaiKhoa: "Phiếu đã gửi một lần nên không đổi loại đối tác được.",
+  loaiDong: "Loại đối tác này hiện chưa nhận đăng ký.",
+  chuaChinhSach: "Chưa có chính sách riêng tư nên chưa gửi được thông tin. Hãy quay lại sau.",
+  chuaDongY: "Bạn cần đọc và đồng ý chính sách riêng tư hiện hành trước khi gửi.",
+  doiChinhSach: "Chính sách riêng tư vừa được cập nhật. Hãy đọc lại rồi gửi.",
+  doiTrangThai: "Phiếu vừa thay đổi. Hãy tải lại phiếu rồi làm tiếp.",
+} as const;

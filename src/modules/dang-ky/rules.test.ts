@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
-import { TRANG_THAI, chuanHoaEmail, chuyenHopLe, daKetThuc, sinhMaEmail, type TrangThai } from "./rules.ts";
+import { TRANG_THAI, chuanHoaEmail, chuyenHopLe, daKetThuc, dsLoaiMo, mucChuaDapUng, sinhMaEmail, type TrangThai } from "./rules.ts";
 
 const HOP_LE = new Set([
   "DANG_DIEN>CHO_XAC_MINH", "CHO_XAC_MINH>CAN_BO_SUNG", "CHO_XAC_MINH>CHO_DUYET", "CAN_BO_SUNG>CHO_XAC_MINH", "CHO_DUYET>DA_DUYET",
@@ -55,4 +55,16 @@ test("sinhMaEmail: đúng độ dài với MỌI giá trị CHECK cho phép (4, 
   const dem = new Array(10).fill(0);
   for (let i = 0; i < 300; i++) for (const c of sinhMaEmail(10)) dem[Number(c)]++;
   for (const d of dem) assert.ok(d > 150 && d < 450, `phân bố lệch: ${dem.join(",")}`);
+});
+
+test("dsLoaiMo: cắt khoảng trắng, bỏ ô rỗng; rỗng ⇒ chưa mở loại nào", () => {
+  assert.deepEqual(dsLoaiMo(" A, B ,,C"), ["A", "B", "C"]);
+  assert.deepEqual(dsLoaiMo(""), []);
+});
+
+test("mucChuaDapUng: mục đã biết theo dữ kiện; mục LẠ luôn chưa đáp ứng (đóng khi không rõ)", () => {
+  const du = { loaiHopLe: true, hoTen: true, ngaySinh: true, dienThoai: true, cccdConHan: true };
+  assert.deepEqual(mucChuaDapUng(["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"], du), []);
+  assert.deepEqual(mucChuaDapUng(["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"], { loaiHopLe: false, hoTen: true, ngaySinh: false, dienThoai: false, cccdConHan: false }), ["ROLE", "CALLED", "NGAY_SINH", "CCCD"]);
+  assert.deepEqual(mucChuaDapUng(["ROLE", "MUC_LA", "toString", "constructor"], du), ["MUC_LA", "toString", "constructor"]);
 });

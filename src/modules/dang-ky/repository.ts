@@ -286,3 +286,97 @@ export function moPhieuNhap(db: D1Database, v: { registrationId: string; identit
     db.prepare(SU_KIEN_MO).bind(crypto.randomUUID(), v.registrationId, v.identityId, v.at),
   ];
 }
+
+// ---- Phiếu của chính người đăng ký: xem, lưu nháp, gửi, rút (ADR-0206 Đ6, Đ7; đợt 1 Task 4) ----
+export interface PhieuDeXemRow { id: string; status: string; role_code: string; current_version: number; reason_code: string | null; submitted_at: string | null; expires_at: string | null }
+// Khác `phieuCuaPhien` (chỉ danh tính còn mở — cổng của tải tệp): đây là cổng ĐỌC phiếu của chính mình ở mọi trạng thái, vì phiếu ĐÃ DUYỆT (danh tính đã hạ is_open ở bước duyệt, ADR-0207 Đ7),
+// TỪ CHỐI, ĐÃ RÚT, HẾT HẠN vẫn phải xem được lý do và trạng thái bằng cookie còn sống. Quyền GHI do từng route kiểm theo trạng thái (không phải ở câu này).
+const PHIEU_DE_XEM = defineSql(
+  "dang-ky",
+  "registration_for_registrant",
+  `SELECT r.id, r.status, r.role_code, r.current_version, r.reason_code, r.submitted_at, r.expires_at
+   FROM dk_registration r JOIN dk_identity i ON i.registration_id = r.id WHERE r.id = ?1 AND i.id = ?2`,
+);
+export const phieuDeXem = (db: D1Database, registrationId: string, identityId: string): Promise<PhieuDeXemRow | null> =>
+  db.prepare(PHIEU_DE_XEM).bind(registrationId, identityId).first<PhieuDeXemRow>();
+
+// Phiên bản chính sách riêng tư HIỆN HÀNH để người đăng ký đồng ý lúc gửi: view công bố của parties (0168), chỉ bản đã có hiệu lực. Bản mới đăng giữa lúc đọc và lúc ghi
+// làm câu chèn bản khai (điều kiện id = id hiện hành) khớp 0 dòng.
+const CHINH_SACH_RIENG_TU = defineSql("dang-ky", "privacy_policy_current", "SELECT id, version FROM v_pty_privacy_current WHERE valid_from_at <= ?1");
+export const chinhSachRiengTuHienHanh = (db: D1Database, at: string): Promise<{ id: string; version: number } | null> =>
+  db.prepare(CHINH_SACH_RIENG_TU).bind(at).first<{ id: string; version: number }>();
+
+// Bản khai gần nhất chưa ẩn danh, để người đăng ký sửa khi CẦN BỔ SUNG. KHÔNG chọn document_number, issued_place, phone_value, phone_key (chỉ «đã khai điện thoại»): DTO không trả các giá trị đó.
+export interface BanKhaiTruocRow {
+  family_name: string | null; middle_name: string | null; given_name: string; gender: string | null; birth_date: string | null; address_value: string | null; co_dien_thoai: number;
+  document_type_code: string | null; number_key: string | null; license_class_code: string | null; issued_date: string | null; expiry_date: string | null;
+}
+const BAN_KHAI_TRUOC = defineSql(
+  "dang-ky",
+  "submission_latest_for_registrant",
+  `SELECT family_name, middle_name, given_name, gender, birth_date, address_value, phone_key IS NOT NULL AS co_dien_thoai, document_type_code, number_key, license_class_code, issued_date, expiry_date
+   FROM dk_submission WHERE registration_id = ?1 AND erased_at IS NULL ORDER BY version DESC LIMIT 1`,
+);
+export const banKhaiTruoc = (db: D1Database, registrationId: string): Promise<BanKhaiTruocRow | null> => db.prepare(BAN_KHAI_TRUOC).bind(registrationId).first<BanKhaiTruocRow>();
+
+// Dòng lịch sử lệnh của người đăng ký; chỉ ghi khi câu LIỀN TRƯỚC trong lô đổi dòng. `command` là mã chữ hoa (LUU_NHAP, GUI, GUI_LAI, RUT); lịch sử KHÔNG mang số, tên, liên hệ.
+const SU_KIEN_NGUOI_DANG_KY = defineSql(
+  "dang-ky",
+  "event_registrant_if_prev",
+  `INSERT INTO dk_event (id, registration_id, actor_kind, actor_ref, command, reason_code, at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, 'REGISTRANT', ?3, ?4, NULL, ?5, ?5, ?3, ?5, ?3 WHERE changes() > 0`,
+);
+export const suKienNguoiDangKyStatement = (db: D1Database, v: { registrationId: string; identityId: string; command: string; at: string }): D1PreparedStatement =>
+  db.prepare(SU_KIEN_NGUOI_DANG_KY).bind(crypto.randomUUID(), v.registrationId, v.identityId, v.command, v.at);
+
+// Đổi loại đối tác: chỉ khi còn sửa được VÀ chưa gửi lần nào (trigger dk_registration_immutable khoá loại sau lần gửi đầu — route kiểm trước, trigger là lớp cuối).
+const LOAI_DOI = defineSql(
+  "dang-ky",
+  "registration_set_role",
+  `UPDATE dk_registration SET role_code = ?2, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND status IN ('DANG_DIEN', 'CAN_BO_SUNG') AND current_version = 0 AND role_code <> ?2`,
+);
+export const doiLoaiStatement = (db: D1Database, v: { registrationId: string; role: string; identityId: string; at: string }): D1PreparedStatement =>
+  db.prepare(LOAI_DOI).bind(v.registrationId, v.role, v.at, v.identityId);
+
+export interface BanKhaiMoi {
+  family: string | null; middle: string | null; given: string; gender: string | null; birthDate: string | null; address: string | null; phoneValue: string | null; phoneKey: string | null;
+  documentType: string | null; documentNumber: string | null; numberKey: string | null; licenseClass: string | null; issuedDate: string | null; issuedPlace: string | null; expiryDate: string | null;
+  referrer: string | null;
+}
+// GỬI là hai câu có điều kiện NẰM TRONG câu ghi (không dựa vào đọc trước rồi ghi): (1) chèn bản khai kế tiếp CHỈ khi phiếu còn ĐANG ĐIỀN / CẦN BỔ SUNG, đúng số bản khai đã đọc, đã chọn loại, và `?3` vẫn là
+// phiên bản chính sách hiện hành; (2) đưa phiếu sang CHỜ XÁC MINH + tăng current_version CHỈ khi bản khai vừa chèn (đúng mã `?2`) có thật. Bấm hai lần: lô thứ hai khớp 0 dòng ở cả hai câu.
+// Thứ tự lô CỐ ĐỊNH [chèn, đổi phiếu, dòng lịch sử]: trigger dk_submission_version đòi version = current_version + 1 TRƯỚC khi phiếu tăng.
+const GUI_CHEN = defineSql(
+  "dang-ky",
+  "registration_submit_insert",
+  `INSERT INTO dk_submission (id, registration_id, version, family_name, middle_name, given_name, gender, birth_date, address_value, phone_value, phone_key, document_type_code, document_number, number_key,
+     license_class_code, issued_date, issued_place, expiry_date, referrer_text, policy_id, consented_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, r.id, r.current_version + 1, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?3, ?4, ?4, ?5, ?4, ?5
+   FROM dk_registration r
+   WHERE r.id = ?2 AND r.status IN ('DANG_DIEN', 'CAN_BO_SUNG') AND r.current_version = ?22 AND r.role_code <> ''
+     AND ?3 = (SELECT id FROM v_pty_privacy_current)`,
+);
+export const guiChenStatement = (db: D1Database, v: { id: string; registrationId: string; policyId: string; at: string; identityId: string; phienBanDaDoc: number; b: BanKhaiMoi }): D1PreparedStatement =>
+  db.prepare(GUI_CHEN).bind(
+    v.id, v.registrationId, v.policyId, v.at, v.identityId, v.b.family, v.b.middle, v.b.given, v.b.gender, v.b.birthDate, v.b.address, v.b.phoneValue, v.b.phoneKey, v.b.documentType,
+    v.b.documentNumber, v.b.numberKey, v.b.licenseClass, v.b.issuedDate, v.b.issuedPlace, v.b.expiryDate, v.b.referrer, v.phienBanDaDoc,
+  );
+const GUI_TIEN = defineSql(
+  "dang-ky",
+  "registration_submit_advance",
+  `UPDATE dk_registration SET status = 'CHO_XAC_MINH', current_version = current_version + 1, reason_code = NULL, submitted_at = ?3, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND status IN ('DANG_DIEN', 'CAN_BO_SUNG')
+     AND EXISTS (SELECT 1 FROM dk_submission s WHERE s.id = ?2 AND s.registration_id = dk_registration.id AND s.version = dk_registration.current_version + 1)`,
+);
+export const guiTienStatement = (db: D1Database, v: { registrationId: string; submissionId: string; at: string; identityId: string }): D1PreparedStatement =>
+  db.prepare(GUI_TIEN).bind(v.registrationId, v.submissionId, v.at, v.identityId);
+
+// Rút: mọi trạng thái chưa kết thúc (khớp đồ thị của trigger dk_registration_transition). Mốc `decided_at` là lúc phiếu kết thúc (đồng hồ ẩn danh của phiếu không được duyệt, ADR-0208 Đ8).
+const RUT_CAP = defineSql(
+  "dang-ky",
+  "registration_withdraw",
+  `UPDATE dk_registration SET status = 'DA_RUT', decided_at = ?2, updated_at = ?2, updated_by = ?3
+   WHERE id = ?1 AND status IN ('DANG_DIEN', 'CHO_XAC_MINH', 'CAN_BO_SUNG', 'CHO_DUYET')`,
+);
+export const rutStatement = (db: D1Database, v: { registrationId: string; identityId: string; at: string }): D1PreparedStatement => db.prepare(RUT_CAP).bind(v.registrationId, v.at, v.identityId);

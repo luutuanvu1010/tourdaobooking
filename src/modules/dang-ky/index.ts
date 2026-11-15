@@ -3,6 +3,7 @@
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { chinhSachHienHanh } from "./repository";
+import { guiPhieu, luuNhapPhieu, rutPhieu, xemPhieuCuaToi } from "./phieu-route";
 import { taiTepPhieu } from "./tep-route";
 import { cauHinhDangKy, xacNhanMa, xinMa } from "./xin-ma-route";
 import { CAM, ketLuanMuc, moTep, tuChoiPhieu, xacMinhDat, xemHangCho, xemPhieu, xemSo, yeuCauBoSung } from "./xac-minh-route";
@@ -26,6 +27,20 @@ export const dangKyModule: AppModule = {
     }),
     route("POST", "/api/dang-ky/xac-nhan", "public", async (ctx) => {
       return xacNhanMa(ctx);
+    }),
+    // Phiếu của CHÍNH người đăng ký (ADR-0206 Đ6; đợt 1 Task 4): xem, lưu nháp, gửi, rút. Công khai; cổng là cookie đăng ký kiểm trong thân (phieu-route.ts). Phiếu lấy từ cookie, không từ đường dẫn.
+    // Khai các đường chữ (`/phieu/gui`, `/phieu/rut`) TRƯỚC các đường `/phieu/:id…` của người trong công ty.
+    route("GET", "/api/dang-ky/phieu", "public", async (ctx) => {
+      return xemPhieuCuaToi(ctx);
+    }),
+    route("PUT", "/api/dang-ky/phieu", "public", async (ctx) => {
+      return luuNhapPhieu(ctx);
+    }),
+    route("POST", "/api/dang-ky/phieu/gui", "public", async (ctx) => {
+      return guiPhieu(ctx);
+    }),
+    route("POST", "/api/dang-ky/phieu/rut", "public", async (ctx) => {
+      return rutPhieu(ctx);
     }),
     // Tải một tệp vào ô của phiếu (ADR-0208 Đ2). Công khai: người đăng ký chưa có tài khoản; cổng là cookie đăng ký kiểm trong thân (ADR-0206 Đ7).
     route("POST", "/api/dang-ky/phieu/tep", "public", async (ctx) => {

@@ -68,6 +68,12 @@ export {
   trangThaiTepChoTheoO, xoaKhoTepChoDaGo, type TepChoDeXem,
 } from "./tep-cho";
 export { cheSo } from "./giay-to";
+// Luật kiểm của tự khai dùng lại cho bản khai của phiếu đăng ký (ADR-0206 Đ6; đợt 1 Task 4): hàm thuần kiểm hình thức, không đọc / ghi hồ sơ nào. Danh mục giấy tờ đọc qua `danhMucGiayToChoDangKy`.
+export { kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
+export { kiemNgaySinh, validateContact } from "./rules";
+export async function danhMucGiayToChoDangKy(db: D1Database, homNay: string): Promise<DanhMucGiayTo> {
+  return (await danhMucGiayTo(db, homNay)).dm;
+}
 export { demTepChoCuaPhieu } from "./repository";
 /**
  * Chính sách riêng tư hiệu lực tại `nowIso` cho người CHƯA có tài khoản (ADR-0206 Đ6, ADR-0200 Đ3): CHỈ phiên bản, ngày hiệu lực, toàn văn — không mục đích thu, không số ngày giữ.

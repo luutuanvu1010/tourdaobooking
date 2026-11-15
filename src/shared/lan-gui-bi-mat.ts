@@ -52,7 +52,9 @@ export const KHONG_VE: readonly MauRoute[] = [
   "/api/dang-ky/ma", // ADR-0206 Đ6: xin mã gửi email, công khai, thân có email — không vé, không lưu
   "/api/dang-ky/xac-nhan", // nhập mã, công khai, thân có email và mã — không vé, không lưu
   "/api/dang-ky/phieu/tep", // ADR-0208 Đ2: người đăng ký chưa có tài khoản tải tệp vào phiếu — công khai, cookie đăng ký; thân là ảnh giấy tờ, không vé, không lưu gì
-].map((path): MauRoute => ({ method: "POST", path }));
+  "/api/dang-ky/phieu/gui", // ADR-0206 Đ6: gửi phiếu — thân có số giấy tờ, ngày sinh, điện thoại; công khai, cookie đăng ký — không vé, không lưu gì
+  "/api/dang-ky/phieu/rut", // rút phiếu — công khai, cookie đăng ký
+].map((path): MauRoute => ({ method: "POST", path })).concat({ method: "PUT", path: "/api/dang-ky/phieu" }); // lưu nháp (chọn loại) — cùng đường với GET, nên khác phương thức
 
 /** Đường dẫn thật (có thể kèm `?query`) có khớp MẪU route không — `:x` khớp đúng một đoạn không rỗng. */
 export function khopMau(mau: string, duongDan: string): boolean {

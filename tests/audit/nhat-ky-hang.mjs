@@ -37,6 +37,9 @@ export const PHU_TRACH = {
   "pty_attachment.storage_key": "src/modules/parties/tep-route.test.ts",
   "pty_registration_attachment.content_hash": "src/modules/dang-ky/tep-route.test.ts", // ADR-0208: người đăng ký tải tệp chờ (cả đường kho hỏng)
   "pty_registration_attachment.storage_key": "src/modules/dang-ky/tep-route.test.ts",
+  "dk_submission.document_number": "src/modules/dang-ky/phieu-route.test.ts", // ADR-0206 Đ6 (Task 4): người đăng ký gửi, gửi lại, rút phiếu qua route thật (quét nhật ký + lịch sử phiếu)
+  "dk_submission.number_key": "src/modules/dang-ky/phieu-route.test.ts",
+  "dk_submission.issued_place": "src/modules/dang-ky/phieu-route.test.ts",
   "dk_email_code.code_hash": "src/modules/dang-ky/xin-ma-route.test.ts", // ADR-0206 Đ8: người đăng ký xin mã gửi email (chỉ bản băm có khoá; quét nhật ký + lịch sử phiếu)
   "pty_self_submission.document_number": "src/giay-to-khong-lo-so.test.ts",
   "pty_self_submission.number_key": "src/giay-to-khong-lo-so.test.ts",
@@ -49,11 +52,6 @@ export const MIEN = {
   "pty_organization_document.number_key": "chưa có route ghi giấy tờ tổ chức (lát H-1 chỉ có bảng) — lát H-2 chuyển sang src/giay-to-khong-lo-so.test.ts",
   "pty_organization_document.issued_place": "chưa có route ghi giấy tờ tổ chức (lát H-1 chỉ có bảng) — lát H-2 chuyển sang src/giay-to-khong-lo-so.test.ts",
 };
-
-// ADR-0206 (migration 0167): cột N3/N4 của bảng dk_submission chưa có route ghi (Task 4 ghi bản khai) — chuyển sang PHU_TRACH khi route ra đời. Mã email (dk_email_code) đã sang PHU_TRACH ở Task 3.
-MIEN["dk_submission.document_number"] = "chưa có route ghi bản khai đăng ký (đợt 1 Task 4) — chuyển sang bài của route đó";
-MIEN["dk_submission.number_key"] = "chưa có route ghi bản khai đăng ký (đợt 1 Task 4) — chuyển sang bài của route đó";
-MIEN["dk_submission.issued_place"] = "chưa có route ghi bản khai đăng ký (đợt 1 Task 4) — chuyển sang bài của route đó";
 
 const chuan = (s) => s.normalize("NFC").toUpperCase().replace(/[\s.\-/]/g, "");
 

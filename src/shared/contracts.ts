@@ -3463,3 +3463,30 @@ export interface ChuaCoBanHangResponse { don: TheDonDto[]; soDonChoXacNhanAn: nu
 export interface BanHangChinhSachResponse { phutUuTien: number; tuPhut: number; denPhut: number; mocPhatHanh: string | null; doiDuoc: boolean }
 /** `GET`/`POST /api/kenh-thu-doi-tac` (ADR-0178 Đ1 mục 1): công tắc «Khách của đối tác trả cho Công ty». `congTyThu` = Bật; `tuLuc` = lúc dòng hiện hành có hiệu lực (null = chưa ai đổi, mặc định Bật). `lichSu` mới nhất trước. */
 export interface KenhThuDoiTacDto { congTyThu: boolean; tuLuc: string | null; lichSu: { congTyThu: boolean; tuLuc: string; nguoiDoi: string }[] }
+
+/**
+ * Phiếu đăng ký của CHÍNH người đăng ký (`GET`, `PUT /api/dang-ky/phieu`, `POST …/gui`, `…/rut`; ADR-0206 Đ6). KHÔNG mang số giấy tờ đủ, nơi cấp, số điện thoại, email, khoá kho:
+ * bản khai trước chỉ có số che; điện thoại chỉ «đã khai hay chưa»; tệp chỉ «đã gửi / chưa tải xong» theo ô.
+ */
+export interface PhieuDangKyDto {
+  maPhieu: string;
+  trangThai: "DANG_DIEN" | "CHO_XAC_MINH" | "CAN_BO_SUNG" | "CHO_DUYET" | "DA_DUYET" | "TU_CHOI" | "DA_RUT" | "HET_HAN";
+  nhanTrangThai: string;
+  /** Đúng khi phiếu không sửa, gửi được nữa (chỉ ĐANG ĐIỀN và CẦN BỔ SUNG sửa được). */
+  chiXem: boolean;
+  loai: { ma: string; ten: string } | null;
+  /** Số bản khai đã gửi (0 khi chưa gửi lần nào). */
+  phienBan: number;
+  guiLuc: string | null;
+  hanLuc: string | null;
+  lyDo: { ma: string; cau: string } | null;
+  tep: { o: string; trangThai: "DA_GUI" | "CHUA_TAI_XONG" }[];
+  banKhaiTruoc: {
+    hoTen: string;
+    gioiTinh: string | null;
+    ngaySinh: string | null;
+    diaChi: string | null;
+    daKhaiDienThoai: boolean;
+    giayTo: { loai: string; soChe: string | null; hang: string | null; ngayCap: string | null; hetHan: string | null } | null;
+  } | null;
+}
