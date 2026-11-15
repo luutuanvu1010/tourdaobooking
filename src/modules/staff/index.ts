@@ -3,7 +3,7 @@
 // audit vào một db.batch() — đổi tài khoản và ghi dấu vết thành công/thất bại cùng nhau. Tên người thuộc hồ sơ (module parties):
 // tạo/đổi tên tài khoản gọi hàm của parties (cạnh staff → parties, ADR-0002); staff.full_name/role là cột chết (ADR-0005).
 import {
-  accountRolesOf, closeAccountRoleStatement, hoSoCaNhanKhop, hoSoMangNhanDoiTac, newPersonStatements, openAccountRoleStatement, openRoleCodesByParty, partySummary, renamePersonStatements,
+  accountRolesOf, closeAccountRoleStatement, dauXacMinhTheoHoSo, hoSoCaNhanKhop, hoSoMangNhanDoiTac, newPersonStatements, openAccountRoleStatement, openRoleCodesByParty, partySummary, renamePersonStatements,
   reopenAccountRoleStatement, splitPersonName, tenLoaiVai, validatePersonFullName, type AccountRole,
 } from "../parties";
 import { hashPin, verifyDummy, verifyPin } from "./password";
@@ -59,6 +59,15 @@ export const chuPhienTheoId = (
   ids: readonly string[],
 ): Promise<Map<string, { label: string; credentialsChangedAt: number | null; permissions: PermissionCode[] }>> =>
   sessionOwnersByIds(db, ids);
+
+/**
+ * HÀM CÔNG BỐ (ADR-0210 Đ3): dấu xác minh của hồ sơ gắn các tài khoản — CHỈ route Quản lý tài khoản (cổng `account.view`) gọi. Mọi hồ sơ ở đây CÓ tài khoản nên khách lẻ không xuất hiện.
+ * Trả theo mã hồ sơ; tài khoản chưa có hồ sơ (`partyId` null) không có dấu.
+ */
+export async function dauXacMinhTaiKhoan(db: D1Database, partyIds: readonly (string | null)[], homNay: string): Promise<Map<string, import("../../shared/dau-xac-minh").DauXacMinh | null>> {
+  const ids = partyIds.flatMap((p) => (p ? [p] : []));
+  return dauXacMinhTheoHoSo(db, ids, homNay, new Set(ids));
+}
 
 /** HÀM CÔNG BỐ (ADR-0068 Đ8) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo.soDangNhap): SĐT đăng nhập theo hồ sơ, cho lý do "số đăng nhập trùng số liên hệ". */
 export const soDangNhapTheoHoSo = (db: D1Database): Promise<{ partyId: string; phone: string }[]> => phonesByParty(db);

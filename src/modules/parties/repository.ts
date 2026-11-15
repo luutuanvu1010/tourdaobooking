@@ -4,6 +4,7 @@
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { ContactInput, OrgFields, PersonName, RelationshipInput, RoleInput } from "./rules.ts";
 import type { GioiTinh } from "../../shared/xung-ho.ts";
+import { dkienTuView, tinhDauXacMinh, type DauXacMinh, type DuKienXacMinh } from "../../shared/dau-xac-minh.ts";
 import { composePersonName } from "./rules.ts";
 import type { LoaiTep } from "./tep.ts";
 import type { ChamTaiKhoan, LoaiCham } from "./xac-minh.ts";
@@ -1727,6 +1728,32 @@ const MUC_XAC_MINH_BAT_BUOC = defineSql(
 );
 export async function mucXacMinhBatBuocCua(db: D1Database, subjectKind: "PERSON" | "ORGANIZATION"): Promise<{ item_kind: string; item_code: string }[]> {
   return (await db.prepare(MUC_XAC_MINH_BAT_BUOC).bind(subjectKind).all<{ item_kind: string; item_code: string }>()).results;
+}
+// Dấu xác minh (ADR-0210 Đ2, Đ3): đọc DỮ KIỆN từ view công bố rồi đưa qua hàm thuần dùng chung. Chỉ ba màn của Đ3 gọi hàm này (bài src/dau-xac-minh-chi-de-biet.test.ts canh).
+const DU_KIEN_XAC_MINH = defineSql(
+  "parties",
+  "verification_facts_of_parties",
+  `SELECT party_id, item_kind, item_code, last_outcome, ever_passed, doc_id, expiry_date, is_partner, anonymized
+   FROM v_pty_verification_facts WHERE party_id IN (SELECT value FROM json_each(?1))`,
+);
+/**
+ * Dấu của từng hồ sơ trong `partyIds`. `coTaiKhoan` = tập hồ sơ CÓ tài khoản (do người gọi biết — view không đọc bảng tài khoản); `homNay` = `vnToday` (ngày giờ Việt Nam).
+ * Hồ sơ không có trong CSDL hoặc khách lẻ ⇒ null (không hiện dấu).
+ */
+export async function dauXacMinhTheoHoSo(db: D1Database, partyIds: readonly string[], homNay: string, coTaiKhoan: ReadonlySet<string>): Promise<Map<string, DauXacMinh | null>> {
+  const ids = [...new Set(partyIds)];
+  const kq = new Map<string, DauXacMinh | null>(ids.map((id) => [id, null]));
+  if (ids.length === 0) return kq;
+  const hang = (await db.prepare(DU_KIEN_XAC_MINH).bind(JSON.stringify(ids)).all<Record<string, unknown>>()).results;
+  const theoHoSo = new Map<string, DuKienXacMinh[]>();
+  for (const h of hang) {
+    const id = String(h.party_id);
+    const ds = theoHoSo.get(id) ?? [];
+    ds.push(dkienTuView(h));
+    theoHoSo.set(id, ds);
+  }
+  for (const [id, ds] of theoHoSo) kq.set(id, tinhDauXacMinh(ds, homNay, coTaiKhoan.has(id)));
+  return kq;
 }
 export interface TepChoXemRow { id: string; slot: string; content_kind: string; storage_key: string; stored_at: string | null }
 const TEP_CHO_DE_XEM_DS = defineSql(
