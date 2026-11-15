@@ -10,6 +10,8 @@ import { fileURLToPath } from "node:url";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 // Danh sách tệp kiểm và tên bài đo giờ: MỘT nguồn với bảng chia phần của lượt kiểm trên GitHub (scripts/kiem-phan.mjs, ADR-0179 Đ1.3).
 import { danhSachTest, TEP_DO_GIO } from "./kiem-phan.mjs";
+// Trần mỗi tệp kiểm (việc 2.4): một tệp treo đỏ có tên sau 10 phút thay cho treo cả bộ. Một nguồn với lượt kiểm trên GitHub.
+import { CO_TRAN_TEP } from "./kiem-phan.mjs";
 
 const tatCa = danhSachTest(ROOT);
 if (!tatCa.includes(TEP_DO_GIO)) {
@@ -33,7 +35,7 @@ try {
 }
 
 console.log(`▶ Bước 1/2 — bộ kiểm chính (${chinh.length} tệp, song song; trừ ${TEP_DO_GIO})`);
-const b1 = spawnSync(process.execPath, ["--test", ...chinh], { cwd: ROOT, stdio: "inherit" });
+const b1 = spawnSync(process.execPath, ["--test", CO_TRAN_TEP, ...chinh], { cwd: ROOT, stdio: "inherit" });
 console.log(`\n▶ Bước 2/2 — bài đo giờ của hook, chạy MỘT MÌNH (${TEP_DO_GIO}, --test-concurrency=1)`);
 const b2 = spawnSync(process.execPath, ["--test", "--test-concurrency=1", TEP_DO_GIO], { cwd: ROOT, stdio: "inherit" });
 

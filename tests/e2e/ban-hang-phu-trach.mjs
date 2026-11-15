@@ -12,6 +12,12 @@ import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, ord
 
 await ensureFakeCatalog();
 const AT = "'2026-01-01T00:00:00.000Z'";
+/** Việc 2.4 (kế hoạch 2026-11-15): một lượt GitHub đỏ «actual 500, expected 200» mà không in thân ⇒ không biết lỗi gì. Mọi kiểm mã trả lời kèm thân. */
+async function coMa(hua, ma, loi = "") {
+  const r = await hua;
+  assert.equal(r.status, ma, `${loi}${loi ? " — " : ""}thân ${JSON.stringify(r.body)}`);
+  return r;
+}
 await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES
   ('ZXN1','Dịch vụ xác nhận thử','perPax',100000,NULL,NULL,NULL,NULL,NULL,NULL,95,1,${AT},${AT}),('ZXN2','Dịch vụ thường thử','perPax',100000,NULL,NULL,NULL,NULL,NULL,NULL,96,1,${AT},${AT})
   ON CONFLICT(code) DO UPDATE SET name = excluded.name, price_adult = excluded.price_adult, in_sheet = 1`);
@@ -58,9 +64,9 @@ let r;
 
 const dauChinhSach = (await call(SUPER, "GET", URL_BH)).body;
 assert.ok(dauChinhSach.phutUuTien >= 1, JSON.stringify(dauChinhSach));
-assert.equal((await call(SUPER, "POST", URL_CD, { pham: "SERVICE", ma: "ZXN1", canXacNhan: true })).status, 200);
-assert.equal((await call(SUPER, "POST", URL_CD, { pham: "SERVICE", ma: "ZXN2", canXacNhan: false })).status, 200);
-assert.equal((await call(SUPER, "POST", URL_CD, { tuXacNhanNoiBo: false })).status, 200);
+await coMa(call(SUPER, "POST", URL_CD, { pham: "SERVICE", ma: "ZXN1", canXacNhan: true }), 200);
+await coMa(call(SUPER, "POST", URL_CD, { pham: "SERVICE", ma: "ZXN2", canXacNhan: false }), 200);
+await coMa(call(SUPER, "POST", URL_CD, { tuXacNhanNoiBo: false }), 200);
 
 try {
   // ---- B.10 ca 9: danh sách mời chỉ mã + tên; mời người không hợp lệ → 400 -----------------------------------------------------------------------------------------------
@@ -81,7 +87,7 @@ try {
   r = await call(SALES, "GET", `/api/orders/${o1.id}`);
   assert.deepEqual(r.body.banHangMoi?.staffId, ID_B, "người lập thấy người mình mời trên nháp");
   assert.equal((await loiMoi(o1.id)).length, 0, "nháp chưa có dòng lời mời");
-  assert.equal((await status(SALES, o1.id, "confirmed")).status, 200);
+  await coMa(status(SALES, o1.id, "confirmed"), 200);
   assert.equal(((await loiMoi(o1.id)).length), 1, "lời mời có từ lúc ghi nhận");
   assert.equal(await nhatKy(o1.id, "sales_invited"), 1);
   assert.ok((await tin(SALES_B, o1.orderCode)).includes("moi_ban_hang"), "X có tin lời mời ở hộp thư");
@@ -111,25 +117,25 @@ try {
   r = await status(SALES_B, o1.id, "cancelled", { lyDo: "KHACH_DOI_Y" });
   assert.equal(r.status, 403, `Bán hàng phụ trách chưa huỷ được: ${JSON.stringify(r.body)}`);
   assert.equal(await trangThai(o1.id), "confirmed");
-  assert.equal((await nhan(Y.cookie, o1.id)).status, 409, "đã có người → 409");
+  await coMa(nhan(Y.cookie, o1.id), 409, "đã có người → 409");
   console.log("✓ ca 1 + 8 + ADR: Bán hàng khác 409; X nhận 200; lời mời NHAN; sửa chuyến 200, huỷ 403");
 
   // ---- ca 2: X từ chối → Y nhận ngay --------------------------------------------------------------------------------------------------------------------------------------
   const o2 = await lap(SALES, "ZXN2", { banHangMoiStaffId: ID_B });
-  assert.equal((await status(SALES, o2.id, "confirmed")).status, 200);
-  assert.equal((await tuChoi(Y.cookie, o2.id)).status, 409, "chỉ X từ chối được");
-  assert.equal((await tuChoi(SALES_B, o2.id)).status, 200);
+  await coMa(status(SALES, o2.id, "confirmed"), 200);
+  await coMa(tuChoi(Y.cookie, o2.id), 409, "chỉ X từ chối được");
+  await coMa(tuChoi(SALES_B, o2.id), 200);
   assert.equal((await loiMoi(o2.id))[0].outcome, "TU_CHOI");
   assert.equal(await nhatKy(o2.id, "sales_invite_refused"), 1);
   assert.ok((await tin(SALES, o2.orderCode)).includes("ban_hang_tu_choi"), "người lập có tin X từ chối");
   assert.ok(!(await tin(SALES_B, o2.orderCode)).includes("ban_hang_tu_choi"), "X không tự nhận tin của mình");
-  assert.equal((await nhan(Y.cookie, o2.id)).status, 200, "sau khi X từ chối, Bán hàng khác nhận ngay");
+  await coMa(nhan(Y.cookie, o2.id), 200, "sau khi X từ chối, Bán hàng khác nhận ngay");
   assert.equal(await chuO(o2.id), await partyCua(Y.id));
   console.log("✓ ca 2: X từ chối → TU_CHOI, Y nhận 200");
 
   // ---- ADR: Quản trị nhận thay trong ưu tiên ----------------------------------------------------------------------------------------------------------------------------
   const o3 = await lap(SALES, "ZXN2", { banHangMoiStaffId: ID_B });
-  assert.equal((await status(SALES, o3.id, "confirmed")).status, 200);
+  await coMa(status(SALES, o3.id, "confirmed"), 200);
   r = await nhan(ADMIN, o3.id);
   assert.equal(r.status, 200, `Quản trị nhận thay: ${JSON.stringify(r.body)}`);
   assert.equal((await loiMoi(o3.id))[0].outcome, "NGUOI_KHAC");
@@ -137,12 +143,12 @@ try {
 
   // ---- ca 3 + ca 4: đơn cần kiểm, Còn vé mở ô trong cùng lô --------------------------------------------------------------------------------------------------------------
   const o4 = await lap(SALES, "ZXN1", { banHangMoiStaffId: ID_B });
-  assert.equal((await gui(SALES, o4.id)).status, 201);
+  await coMa(gui(SALES, o4.id), 201);
   assert.equal((await loiMoi(o4.id)).length, 1, "lời mời mở lúc gửi xác nhận");
   // Đơn còn NHÁP chờ xác nhận mà X vẫn nhận tin mời; trong ưu tiên chỉ X nhận tin «chờ xác nhận» (Quản trị, Toàn quyền, Bán hàng khác không).
   assert.deepEqual((await tin(SALES_B, o4.orderCode)).filter((l) => l === "moi_ban_hang" || l === "cho_xac_nhan"), ["cho_xac_nhan", "moi_ban_hang"]);
   for (const [ten, who] of [["Quản trị", ADMIN], ["Toàn quyền", SUPER], ["Bán hàng khác", Y.cookie]]) assert.ok(!(await tin(who, o4.orderCode)).includes("cho_xac_nhan"), `${ten} không có tin chờ xác nhận trong ưu tiên của X`);
-  for (const [ten, who] of [["Kế toán", ACC], ["HDV", FIELD]]) assert.equal((await quyet(who, o4.id, "CON_VE")).status, 403, `${ten} quyết định 403`);
+  for (const [ten, who] of [["Kế toán", ACC], ["HDV", FIELD]]) await coMa(quyet(who, o4.id, "CON_VE"), 403, `${ten} quyết định 403`);
   r = await quyet(Y.cookie, o4.id, "CON_VE");
   assert.deepEqual([r.status, r.body.error?.code], [409, "dang_cho_nguoi_khac"], `Bán hàng khác chen trong ưu tiên: ${JSON.stringify(r.body)}`);
   r = await call(SALES, "POST", `/api/orders/${o4.id}/quyet-dinh`, { ketQua: "CON_VE", yeuCauId: await yeuCauMo(o4.id), updatedAt: await sqlMoc(o4.id) });
@@ -172,21 +178,21 @@ try {
 
   // ---- ca 14: Rút lại rồi gửi lại -------------------------------------------------------------------------------------------------------------------------------------------
   const o5 = await lap(SALES, "ZXN1", { banHangMoiStaffId: ID_B });
-  assert.equal((await gui(SALES, o5.id)).status, 201);
-  assert.equal((await call(SALES, "POST", `/api/orders/${o5.id}/rut-xac-nhan`, {})).status, 200);
+  await coMa(gui(SALES, o5.id), 201);
+  await coMa(call(SALES, "POST", `/api/orders/${o5.id}/rut-xac-nhan`, {}), 200);
   assert.equal((await loiMoi(o5.id))[0].outcome, "RUT_LAI");
-  assert.equal((await gui(SALES, o5.id)).status, 201);
+  await coMa(gui(SALES, o5.id), 201);
   const ds5 = await loiMoi(o5.id);
   assert.deepEqual(ds5.map((x) => x.outcome), ["RUT_LAI", null], "gửi lại là lời mời MỚI, không bao giờ hai lời mời mở");
   console.log("✓ ca 14: Rút lại khép RUT_LAI; gửi lại mở lời mời mới");
 
   // ---- Hết vé khép HUY_DON; R2 huỷ trong ưu tiên -------------------------------------------------------------------------------------------------------------------------
-  assert.equal((await quyet(SALES_B, o5.id, "HET_VE")).status, 200);
+  await coMa(quyet(SALES_B, o5.id, "HET_VE"), 200);
   assert.deepEqual((await loiMoi(o5.id)).map((x) => x.outcome), ["RUT_LAI", "HUY_DON"]);
   assert.equal(await oMo(o5.id), 0, "Hết vé không mở ô");
   const o6 = await lap(SALES, "ZXN2", { banHangMoiStaffId: ID_B });
-  assert.equal((await status(SALES, o6.id, "confirmed")).status, 200);
-  assert.equal((await status(ADMIN, o6.id, "cancelled", { lyDo: "KHACH_DOI_Y" })).status, 200);
+  await coMa(status(SALES, o6.id, "confirmed"), 200);
+  await coMa(status(ADMIN, o6.id, "cancelled", { lyDo: "KHACH_DOI_Y" }), 200);
   assert.equal((await loiMoi(o6.id))[0].outcome, "HUY_DON");
   r = await nhan(SALES_B, o6.id);
   assert.deepEqual([r.status, r.body.error?.code], [409, "cancelled"], JSON.stringify(r.body));
@@ -194,34 +200,34 @@ try {
 
   // ---- R1: X mất quyền ------------------------------------------------------------------------------------------------------------------------------------------------------
   const o7 = await lap(SALES, "ZXN2", { banHangMoiStaffId: X2.id });
-  assert.equal((await status(SALES, o7.id, "confirmed")).status, 200);
+  await coMa(status(SALES, o7.id, "confirmed"), 200);
   assert.equal((await loiMoi(o7.id)).length, 1);
   await sql(`UPDATE stf_permission SET valid_to_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE staff_id = '${X2.id}' AND permission_type_code = 'SALES'`);
   r = await nhan(X2.cookie, o7.id);
   assert.equal(r.status, 403, `X mất quyền Bán hàng bấm Nhận: ${JSON.stringify(r.body)}`);
-  assert.equal((await nhan(Y.cookie, o7.id)).status, 200, "người khác nhận được ngay khi X mất quyền");
+  await coMa(nhan(Y.cookie, o7.id), 200, "người khác nhận được ngay khi X mất quyền");
   const x3 = await gieoTaiKhoanLai(`Bán hàng X3 ${tag}`, ["SALES", "FIELD"]);
   const o8 = await lap(SALES, "ZXN2", { banHangMoiStaffId: x3.id });
   await sql(`UPDATE stf_permission SET valid_to_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now') WHERE staff_id = '${x3.id}' AND permission_type_code = 'SALES'`);
-  assert.equal((await status(SALES, o8.id, "confirmed")).status, 200);
+  await coMa(status(SALES, o8.id, "confirmed"), 200);
   assert.equal((await loiMoi(o8.id)).length, 0, "lúc ghi nhận X đã mất quyền ⇒ không có dòng lời mời");
   console.log("✓ R1: X mất quyền → Nhận 403, Y nhận ngay; mất quyền trước lúc ghi nhận → không mời");
 
   // ---- R4: tài khoản lai ------------------------------------------------------------------------------------------------------------------------------------------------------
   const o9 = await lap(SALES, "ZXN1"); // không lời mời: trong ưu tiên của người khác thì lai cũng bị chặn như mọi Bán hàng khác (409); bài Node phủ ca «lời mời đã hết ưu tiên»
-  assert.equal((await gui(SALES, o9.id)).status, 201);
+  await coMa(gui(SALES, o9.id), 201);
   r = await quyet(LAI.cookie, o9.id, "CON_VE");
   assert.equal(r.status, 200, `lai bấm Còn vé (ADR-0136 cho phép): ${JSON.stringify(r.body)}`);
   assert.deepEqual([await trangThai(o9.id), await oMo(o9.id)], ["confirmed", 0], "đơn xác nhận, KHÔNG mở ô cho người bấm");
   const o10 = await lap(SALES, "ZXN2");
-  assert.equal((await status(SALES, o10.id, "confirmed")).status, 200);
+  await coMa(status(SALES, o10.id, "confirmed"), 200);
   r = await nhan(LAI.cookie, o10.id);
   assert.equal(r.status, 403, `lai bấm Nhận: ${JSON.stringify(r.body)}`);
   console.log("✓ R4: lai Còn vé → xác nhận nhưng không ô; Nhận 403");
 
   // ---- lô nguyên khối: ô đã có người thì Còn vé hỏng cả lô -----------------------------------------------------------------------------------------------------------------
   const o11 = await lap(SALES, "ZXN1");
-  assert.equal((await gui(SALES, o11.id)).status, 201);
+  await coMa(gui(SALES, o11.id), 201);
   const yc11 = await yeuCauMo(o11.id);
   const luc = new Date().toISOString();
   await sql(`INSERT INTO dsp_sales_owner (id, order_id, party_id, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('so-e2e-${tag}', '${o11.id}', '${await partyCua(Y.id)}', '${luc}', '${luc}', NULL, '${luc}', NULL)`);
@@ -232,27 +238,27 @@ try {
 
   // ---- ca 7 + Đổi ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
   const o12 = await lap(SALES, "ZXN2");
-  assert.equal((await status(SALES, o12.id, "confirmed")).status, 200);
+  await coMa(status(SALES, o12.id, "confirmed"), 200);
   await sql(`UPDATE orders SET confirmed_at = '2020-01-01T00:00:00.000Z' WHERE id = '${o12.id}'`);
   r = await nhan(SALES_B, o12.id);
   assert.deepEqual([r.status, r.body.error?.code], [409, "don_cu"], JSON.stringify(r.body));
   r = await doi(ADMIN, o12.id, ID_B);
   assert.equal(r.status, 200, `Quản trị đổi trên đơn cũ: ${JSON.stringify(r.body)}`);
   assert.equal(await chuO(o12.id), await partyCua(ID_B));
-  assert.equal((await doi(SALES_B, o12.id, null)).status, 403, "Bán hàng không tự trả / đổi ô");
-  assert.equal((await doi(ADMIN, o12.id, ID_B)).status, 409, "không đổi gì → 409");
-  assert.equal((await doi(ADMIN, o12.id, null)).status, 200, "bỏ trống");
+  await coMa(doi(SALES_B, o12.id, null), 403, "Bán hàng không tự trả / đổi ô");
+  await coMa(doi(ADMIN, o12.id, ID_B), 409, "không đổi gì → 409");
+  await coMa(doi(ADMIN, o12.id, null), 200, "bỏ trống");
   assert.equal(await oMo(o12.id), 0);
   const nhap = await lap(SALES, "ZXN2");
-  assert.equal((await doi(ADMIN, nhap.id, ID_B)).status, 404, "nháp riêng tư của người khác ⇒ 404 (ADR-0135 Đ2)");
+  await coMa(doi(ADMIN, nhap.id, ID_B), 404, "nháp riêng tư của người khác ⇒ 404 (ADR-0135 Đ2)");
   const cho = await lap(SALES, "ZXN1");
-  assert.equal((await gui(SALES, cho.id)).status, 201);
+  await coMa(gui(SALES, cho.id), 201);
   r = await doi(ADMIN, cho.id, ID_B);
   assert.deepEqual([r.status, r.body.error?.code], [409, "don_nhap"], `đơn nháp đang chờ xác nhận (Quản trị thấy được): ${JSON.stringify(r.body)}`);
-  assert.equal((await call(SALES, "POST", `/api/orders/${cho.id}/rut-xac-nhan`, {})).status, 200);
+  await coMa(call(SALES, "POST", `/api/orders/${cho.id}/rut-xac-nhan`, {}), 200);
   const o13 = await lap(SALES, "ZXN2", { banHangMoiStaffId: ID_B });
-  assert.equal((await status(SALES, o13.id, "confirmed")).status, 200);
-  assert.equal((await doi(ADMIN, o13.id, Y.id)).status, 200);
+  await coMa(status(SALES, o13.id, "confirmed"), 200);
+  await coMa(doi(ADMIN, o13.id, Y.id), 200);
   assert.equal((await loiMoi(o13.id))[0].outcome, "NGUOI_KHAC", "Đổi khép lời mời đang mở");
   assert.ok((await tin(Y.cookie, o13.orderCode)).includes("doi_ban_hang"), "người mới có tin Đổi");
   assert.ok((await tin(SALES, o13.orderCode)).includes("doi_ban_hang"), "người lập có tin Đổi");
@@ -261,12 +267,12 @@ try {
 
   // ---- ca 6: hai người Nhận cùng lúc (đơn không lời mời — trạng thái tương đương «sau hạn»), và X cùng Quản trị trong ưu tiên --------------------------------------------------
   const o14 = await lap(SALES, "ZXN2");
-  assert.equal((await status(SALES, o14.id, "confirmed")).status, 200);
+  await coMa(status(SALES, o14.id, "confirmed"), 200);
   const kq = await Promise.all([SALES_B, Y.cookie].map((who) => nhan(who, o14.id)));
   assert.deepEqual(kq.map((x) => x.status).sort(), [200, 409], `đua: ${JSON.stringify(kq.map((x) => x.body))}`);
   assert.equal(await oMo(o14.id), 1, "không bao giờ hai dòng mở");
   const o15 = await lap(SALES, "ZXN2", { banHangMoiStaffId: ID_B });
-  assert.equal((await status(SALES, o15.id, "confirmed")).status, 200);
+  await coMa(status(SALES, o15.id, "confirmed"), 200);
   const kq2 = await Promise.all([SALES_B, ADMIN].map((who) => nhan(who, o15.id)));
   assert.deepEqual(kq2.map((x) => x.status).sort(), [200, 409], `X và Quản trị: ${JSON.stringify(kq2.map((x) => x.body))}`);
   assert.equal(await oMo(o15.id), 1);
@@ -278,14 +284,14 @@ try {
   r = await call(DOI_TAC.cookie, "POST", `/api/orders/${o16.id}/gui-don`, {});
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal((await loiMoi(o16.id)).length, 1, "đơn của Đối tác nhánh B: lời mời mở");
-  assert.equal((await nhan(SALES_B, o16.id)).status, 200);
+  await coMa(nhan(SALES_B, o16.id), 200);
   r = await call(DOI_TAC.cookie, "GET", `/api/dispatch/ban-hang?orderIds=${o16.id}`);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual(r.body[o16.id], { banHang: { name: r.body[o16.id].banHang.name }, loiMoi: null, laBanHangPhuTrach: false }, "Đối tác chỉ nhận TÊN");
   assert.ok(!JSON.stringify(r.body).includes(ID_B), "không lộ mã tài khoản");
   r = await call(DOI_TAC.cookie, "GET", `/api/dispatch/ban-hang?orderIds=${o1.id}`);
   assert.deepEqual(r.body, {}, "đơn của người khác không trả");
-  assert.equal((await call(DOI_TAC.cookie, "GET", `/api/dispatch/handlers?orderIds=${o16.id}`)).status, 403, "danh sách người phụ trách (HDV) vẫn 403");
+  await coMa(call(DOI_TAC.cookie, "GET", `/api/dispatch/handlers?orderIds=${o16.id}`), 403, "danh sách người phụ trách (HDV) vẫn 403");
   console.log("✓ ADR: Đối tác thấy TÊN Bán hàng phụ trách trên đơn của mình; handlers 403");
 
   // ---- thẻ cảnh báo + cài đặt giờ hành chính ------------------------------------------------------------------------------------------------------------------------------------------
@@ -294,12 +300,12 @@ try {
     assert.equal(r.status, ma, `${ten}: ${JSON.stringify(r.body)}`);
     if (ma === 200) assert.ok(Array.isArray(r.body.don) && typeof r.body.soDonChoXacNhanAn === "number");
   }
-  assert.equal((await call(ADMIN, "GET", URL_BH)).status, 403, "chỉ Toàn quyền xem cài đặt");
+  await coMa(call(ADMIN, "GET", URL_BH), 403, "chỉ Toàn quyền xem cài đặt");
   const bh = (await call(SUPER, "GET", URL_BH)).body;
   const truoc = (await sqlRows("SELECT count(*) AS n FROM dsp_sales_policy"))[0].n;
-  assert.equal((await call(SUPER, "POST", URL_BH, { phutUuTien: bh.phutUuTien, tuPhut: bh.tuPhut, denPhut: bh.denPhut })).status, 200);
+  await coMa(call(SUPER, "POST", URL_BH, { phutUuTien: bh.phutUuTien, tuPhut: bh.tuPhut, denPhut: bh.denPhut }), 200);
   assert.equal((await sqlRows("SELECT count(*) AS n FROM dsp_sales_policy"))[0].n, truoc, "gửi đúng giá trị đang hiệu lực → không ghi");
-  assert.equal((await call(SUPER, "POST", URL_BH, { phutUuTien: 0, tuPhut: 420, denPhut: 1020 })).status, 400);
+  await coMa(call(SUPER, "POST", URL_BH, { phutUuTien: 0, tuPhut: 420, denPhut: 1020 }), 400);
   assert.equal((await call(SUPER, "POST", URL_BH, { phutUuTien: 20, tuPhut: 420, denPhut: 1020 })).body.phutUuTien, 20);
   assert.equal((await call(SUPER, "POST", URL_BH, { phutUuTien: bh.phutUuTien, tuPhut: bh.tuPhut, denPhut: bh.denPhut })).body.phutUuTien, bh.phutUuTien);
   assert.equal((await nhatKyHeThong()).length >= 2, true, "đổi cài đặt có nhật ký không gắn đơn");

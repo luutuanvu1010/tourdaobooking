@@ -394,6 +394,19 @@ async function tepDieuKhienDoi(run) {
   return doi;
 }
 
+/**
+ * Tệp LUẬT chi phối AI (kế hoạch 2026-11-15 việc 2.1; Hiến pháp N9): đổi chúng KHÔNG làm đổi cách kiểm (khác TEP_DIEU_KHIEN), nhưng chủ phải thấy MỌI lần
+ * đổi ở một chỗ trước khi nhập bản chính, nên day-len liệt kê và đòi lý do riêng. Thư mục = mọi tệp bên dưới; "src/modules/*\/CLAUDE.md" là pathspec glob của git.
+ */
+export const TEP_LUAT = ["CLAUDE.md", "src/CLAUDE.md", "web/CLAUDE.md", "src/modules/*/CLAUDE.md", ".claude", "playbook", "docs/adr"];
+
+/** 2.1: tệp luật khác nhau giữa origin/main và main. Trả mảng đường dẫn (có thể rỗng), hoặc null khi lệnh lỗi. */
+async function tepLuatDoi(run) {
+  const d = await run("git", ["diff", "--name-only", "--no-renames", "origin/main", "main", "--", ...TEP_LUAT]);
+  if (d.code !== 0) return null;
+  return trimOut(d).split("\n").map((x) => x.trim()).filter(Boolean);
+}
+
 /** Đ2.3: số tệp / bài / kịch bản giảm hay số bài bỏ qua tăng so với lượt kiểm của origin/main. Thiếu một bên ⇒ một dòng "không so được". */
 export function soSanhSoLieu(cu, moi) {
   const so = (x) => x?.tong && ["soTep", "soBai", "soBoQua", "soKichBan"].every((k) => Number.isInteger(x.tong[k]));
@@ -483,6 +496,8 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
   // Đ2.3 — so TRƯỚC khi đẩy gì: chỉ day-len có mốc so đúng (origin/main trước khi đẩy).
   const doiQuyTrinh = await tepDieuKhienDoi(run);
   if (doiQuyTrinh === null) return stop("không so được các tệp điều khiển việc kiểm với `origin/main` (`git diff` / `git show` lỗi) — không đẩy.", ...undo());
+  const doiLuat = await tepLuatDoi(run);
+  if (doiLuat === null) return stop("không so được các tệp luật (CLAUDE.md, .claude/, playbook/, docs/adr/) với `origin/main` (`git diff` lỗi) — không đẩy.", ...undo());
 
   const gh = await run("gh", ["auth", "status"]);
   if (gh.code !== 0) return stop("chưa đăng nhập GitHub CLI (`gh auth status` lỗi) — không đọc được kết quả kiểm trên GitHub.", "Chạy: gh auth login (chọn GitHub.com, tài khoản luutuanvu1010), rồi chạy lại.", ...undo());
@@ -554,6 +569,19 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
     quyTrinh = { doi: canhBao, lyDo };
   }
 
+  // 2.1 — khối RIÊNG cho tệp luật (N9): liệt kê từng tệp, đòi lý do riêng (không gộp với lý do đổi quy trình kiểm).
+  let luat = null;
+  if (doiLuat.length) {
+    log(`\n${RED}${BOLD}TỆP LUẬT ĐÃ ĐỔI (CLAUDE.md, .claude/, playbook/, docs/adr/ — luật chi phối AI):${RESET}`);
+    for (const t of doiLuat) log(`  • ${t}`);
+    const df = await run("git", ["diff", "--stat", "origin/main", "main", "--", ...doiLuat]);
+    if (df.code === 0 && trimOut(df)) log(trimOut(df));
+    log(`Xem đủ khác biệt: git diff origin/main main -- ${doiLuat.join(" ")}`);
+    const lyDo = await hoiLyDo(ask, `Gõ LÝ DO đổi tệp luật (ít nhất ${LY_DO_TOI_THIEU} chữ); để trống = dừng: `);
+    if (!lyDo) return stop("không có lý do đổi tệp luật — không đẩy `main`.", ...undo());
+    luat = { doi: doiLuat, lyDo };
+  }
+
   log("\n══════════ SẮP ĐẨY LÊN GITHUB ══════════");
   log(`${count} commit (origin/main..main):`);
   for (const l of commits.split("\n").filter(Boolean)) log(`  ${l}`);
@@ -566,6 +594,7 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
   }
   log(`Kiểm đủ bộ trên GitHub: ${ketQua === "xanh" ? "XANH" : `ĐỎ — chủ cho qua: ${choQua?.lyDo}`} (${luot.url ?? ""})`);
   if (quyTrinh) log(`Đổi quy trình kiểm — lý do: ${quyTrinh.lyDo}`);
+  if (luat) log(`Tệp luật đã đổi — lý do: ${luat.lyDo} (${luat.doi.length} tệp)`);
   log("════════════════════════════════════════");
   dh.moc("so sánh và tóm tắt");
 
@@ -581,6 +610,7 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
     xanhLuc: ketQua === "xanh" ? (luot.updatedAt ?? null) : null,
     choQua,
     quyTrinh,
+    luat,
     soLieu: tong?.tong ?? null,
     chang: dh.chang,
     giayDayLen: dh.tong(),
@@ -610,6 +640,7 @@ export async function docKetQuaKiem({ run, kho, sha, nowMs }) {
   if (!banGhi || typeof banGhi !== "object") return { ok: false, ly: `không có bản ghi kết luận kiểm của \`npm run day-len\` cho commit ${sha.slice(0, 8)} (commit lên main không qua day-len trên máy này?).`, huongDan: ["Báo người phụ trách kỹ thuật tạo một lần lưu mới, đưa lên bằng `npm run day-len`, rồi chạy lại `npm run trien-khai`."] };
   if (banGhi.sha !== sha) return { ok: false, ly: `bản ghi kết luận kiểm không khớp commit (${String(banGhi.sha).slice(0, 8)} ≠ ${sha.slice(0, 8)}).`, huongDan: ["Chạy lại `npm run day-len`."] };
   if (Array.isArray(banGhi.quyTrinh?.doi) && banGhi.quyTrinh.doi.length && !String(banGhi.quyTrinh.lyDo ?? "").trim()) return { ok: false, ly: "bản ghi nói quy trình kiểm đã đổi mà không có lý do của chủ.", huongDan: ["Chạy lại `npm run day-len`."] };
+  if (Array.isArray(banGhi.luat?.doi) && banGhi.luat.doi.length && !String(banGhi.luat.lyDo ?? "").trim()) return { ok: false, ly: "bản ghi nói tệp luật đã đổi mà không có lý do của chủ.", huongDan: ["Chạy lại `npm run day-len`."] };
   const r = await run("gh", ["api", `repos/${REPO}/commits/${sha}/check-runs?per_page=100`]);
   const j = parseJson(r);
   if (!j || !Array.isArray(j.check_runs)) return { ok: false, ly: "không đọc được kết quả kiểm trên GitHub (`gh api … check-runs` lỗi — mất mạng hay chưa đăng nhập gh?).", huongDan: ["Kiểm `gh auth status` rồi chạy lại `npm run trien-khai`."] };
@@ -908,6 +939,7 @@ export async function trienKhai({ run, ask: askGoc, isTTY, log, now = () => new 
   log(`- Lượt kiểm: ${kq.banGhi?.runUrl ?? "không rõ"}`);
   if (kq.banGhi?.choQua) log(`- Cho qua lượt kiểm đỏ — lý do của chủ: ${kq.banGhi.choQua.lyDo} (bài đỏ: ${(kq.banGhi.choQua.baiDo ?? []).join("; ") || "không rõ"})`);
   if (kq.banGhi?.quyTrinh) log(`- Đổi quy trình kiểm — lý do của chủ: ${kq.banGhi.quyTrinh.lyDo} (${(kq.banGhi.quyTrinh.doi ?? []).join("; ")})`);
+  if (kq.banGhi?.luat) log(`- Tệp luật đã đổi — lý do của chủ: ${kq.banGhi.luat.lyDo} (${(kq.banGhi.luat.doi ?? []).join("; ")})`);
   log(`- Migration đã áp: ${applied.length ? applied.join(", ") : "không có"}`);
   if (bookmark) log(`- Điểm khôi phục Time Travel trước khi áp: ${bookmark}`);
   log(`- Worker Version ID: ${versionId ?? "chưa lấy được (xem đầu ra deploy ở trên hoặc `npx wrangler deployments list`)"}`);

@@ -1,10 +1,8 @@
 #!/usr/bin/env node
-// Móc Stop — "cổng xanh" (đăng ký ở .claude/settings.json). Đọc JSON từ stdin, hỏi cong-xanh-lib.mjs: cây làm việc khác main mà kiểm kiểu
-// hoặc bộ kiểm chính chưa xanh thì trả {"decision":"block"} để Claude Code giữ AI lại (kèm tên bài đỏ). Xanh / không có gì đổi / đã khai → im lặng.
-// CHỈ sự kiện Stop của phiên chính. SubagentStop (trợ lý con) cố ý KHÔNG canh: trợ lý con nộp báo cáo qua SubagentHandback nên `last_assistant_message`
-// không phải bản báo cáo — câu khai không tới được cổng, trợ lý sẽ bị giữ vô ích tới 8 vòng (người kiểm độc lập, I-1, 2026-10-01).
-// Đầu vào hỏng hoặc sự kiện khác → im lặng cho qua. Lỗi nội bộ → cho qua CÓ KHAI (thoát 1 + một dòng stderr) — hàng rào hỏng thì phải kêu (P16).
-// Không có công tắc tạm, không đọc biến môi trường nào ngoài CLAUDE_PROJECT_DIR (để biết kho của mình).
+// Móc Stop — "cổng xanh" bản nhẹ (đăng ký ở .claude/settings.json; kế hoạch 2026-11-15 việc 2.2). Đọc JSON từ stdin, hỏi cong-xanh-lib.mjs:
+// đỏ ⇒ in {"decision":"block","reason":…} để Claude Code giữ AI lại (kèm tên bài đỏ); quá trần / lỗi nội bộ ⇒ in {"systemMessage":…} và cho dừng;
+// xanh / không có gì đổi / stop_hook_active ⇒ im lặng. Luôn thoát 0: móc không bao giờ khoá phiên.
+// Chỉ sự kiện Stop của phiên chính (không đăng ký cho SubagentStop). Không có công tắc tạm, không đọc biến môi trường nào ngoài CLAUDE_PROJECT_DIR.
 import { readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -17,15 +15,16 @@ try {
 } catch {
   process.exit(0);
 }
-if (input?.hook_event_name !== "Stop") process.exit(0);
+if (!input || typeof input !== "object") process.exit(0);
+if (input.hook_event_name !== undefined && input.hook_event_name !== "Stop") process.exit(0);
+if (input.stop_hook_active === true) process.exit(0);
 
 try {
   const khoChung = khoChungCua(process.env.CLAUDE_PROJECT_DIR || dirname(fileURLToPath(import.meta.url)));
   const v = canhCong(input, { khoChung });
   if (v.chan) process.stdout.write(JSON.stringify({ decision: "block", reason: v.lyDo }));
-  else if (v.ghiChu) process.stderr.write(`${v.ghiChu}\n`);
+  else if (v.canhBao) process.stdout.write(JSON.stringify({ systemMessage: v.canhBao }));
 } catch (e) {
-  process.stderr.write(`cổng xanh: lỗi nội bộ, cho qua có khai — ${e instanceof Error ? e.message : String(e)}\n`);
-  process.exit(1);
+  process.stdout.write(JSON.stringify({ systemMessage: `Cổng xanh: lỗi nội bộ, cho dừng — ${e instanceof Error ? e.message : String(e)}` }));
 }
 process.exit(0);
