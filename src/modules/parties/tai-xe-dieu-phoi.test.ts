@@ -162,5 +162,7 @@ test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCua
   assert.deepEqual(Object.keys(parties).sort(), [...TRUOC_ADR_0049, "taiXeChoDieuPhoi", "hoSoCaNhanKhop", "taiKhoanNhanTienHienHanh", "tenLoaiVai", "hoSoMangNhanDoiTac",
     "loaiVaiChiTiet", "kiemTenLoaiDoiTac", "maLoaiDoiTac", "themLoaiDoiTacStatement", "datHoatDongLoaiDoiTacStatement", "hanGiuPhienNgay", "sdtChinhCuaHoSo", "suaLoaiDoiTacStatement",
     // ADR-0208 (tệp chờ của phiếu đăng ký, đợt 1 Task 5): dang-ky chỉ gọi các hàm này, không chạm bảng pty_registration_attachment, không chạm kho HO_SO
-    "LY_DO_GO_TEP_CHO", "cauChuyenTepCho", "cauGoTepCho", "cauTepChoMoi", "datKhoTepCho", "demTepChoCuaPhieu", "timTepChoTrung", "trangThaiTepChoTheoO", "xoaKhoTepChoDaGo"].sort());
+    "LY_DO_GO_TEP_CHO", "cauChuyenTepCho", "cauGoTepCho", "cauTepChoMoi", "datKhoTepCho", "demTepChoCuaPhieu", "timTepChoTrung", "trangThaiTepChoTheoO", "xoaKhoTepChoDaGo",
+    // ADR-0207 (bước xác minh phiếu đăng ký, đợt 1 Task 6): tìm theo số giấy tờ, mục bắt buộc, xem / mở tệp chờ (nhật ký ở dang-ky), gỡ tệp có điều kiện, mặt nạ số
+    "hoSoTheoSoGiayTo", "mucXacMinhBatBuocCaNhan", "tepChoDeXemCuaPhieu", "timTepChoDeXem", "moTepChoTuKho", "khoTepChoSanSang", "cauGoTepChoNeuTruocDoi", "cheSo"].sort());
 });

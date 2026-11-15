@@ -194,8 +194,9 @@ test("Đ3: KHÔNG có route đọc tệp nhận cookie đăng ký — GET trên 
   assert.notEqual(g.status, 200);
   assert.equal(g.text.includes(key), false);
   const index = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
-  const gets = [...index.matchAll(/route\(\s*"GET",\s*"([^"]+)"/g)].map((m) => m[1]!);
-  assert.deepEqual(gets.filter((p) => /tep|file|anh/i.test(p)), []);
+  // Route CÔNG KHAI (nơi duy nhất cookie đăng ký được nhận) không có đường GET nào nhắc tệp. Đường GET tệp của người xác minh (ADR-0207 Đ9, cổng accounts, nhật ký trước) KHÔNG nhận cookie đăng ký.
+  const gets = [...index.matchAll(/route\(\s*"GET",\s*"([^"]+)",\s*"([^"]+)"/g)].map((m) => ({ p: m[1]!, access: m[2]! }));
+  assert.deepEqual(gets.filter((g) => g.access === "public" && /tep|file|anh/i.test(g.p)), []);
 });
 
 test("nhật ký không chứa khoá kho / băm của tệp chờ (bộ dò doNhatKyHang — PHU_TRACH của hai cột N3 của pty_registration_attachment), kể cả đường kho hỏng", async () => {

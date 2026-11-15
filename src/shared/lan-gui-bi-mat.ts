@@ -49,6 +49,7 @@ export const KHONG_VE: readonly MauRoute[] = [
   "/api/auth/mfa/enroll/start", // bật lại lớp hai ở bước đăng nhập (ADR-0074 đ5, Task 6): công khai, cookie chờ "enroll"
   "/api/auth/mfa/enroll/confirm", // như trên; thân có mã TOTP — không vé, không lưu gì
   "/api/auth/mfa/email", // gửi mã email ở bước hai (ADR-0074 đ4, Phần C): công khai, cookie chờ "verify" — không vé, không lưu gì
+  "/api/dang-ky/phieu/tep", // ADR-0208 Đ2: người đăng ký chưa có tài khoản tải tệp vào phiếu — công khai, cookie đăng ký; thân là ảnh giấy tờ, không vé, không lưu gì
 ].map((path): MauRoute => ({ method: "POST", path }));
 
 /** Đường dẫn thật (có thể kèm `?query`) có khớp MẪU route không — `:x` khớp đúng một đoạn không rỗng. */
