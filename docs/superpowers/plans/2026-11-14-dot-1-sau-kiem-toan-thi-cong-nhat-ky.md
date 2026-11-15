@@ -39,6 +39,14 @@ Ba lần giao song song, tệp không chồng nhau: A (T1 + T2, phần tiền), 
 - Thi công lại: bước chặn chỉ áp khi người bấm bị áp R2 hoặc người lập giữ quyền Đối tác / Thực tập; nhân viên nội bộ giữ Q11, thêm câu nhắc trước khi xác nhận. Văn bản: ADR-0205 (đề xuất).
 - Bài học ghi lại: trước khi gọi một hành vi là lỗi, tra đặc tả và kịch bản thử xem có quyết định của chủ đứng sau không.
 
+## TT1 — chủ quyết 15/11: «Chỉ cảnh báo đỏ»
+
+Không gửi tin cho Quản trị, Toàn quyền khi dòng Sheet gõ sai; chỉ giữ khối cảnh báo ở đầu màn Danh mục. Phần soạn tin và chống lặp ở `catalog/service.ts` (`baoTin`, `soanTinDongHong`, cờ `daBao`) để nguyên, không nối vào đâu; muốn bật sau này cần chủ quyết cách hiện người gửi.
+
+## Nhật ký thay đổi
+
+Mục số tạm 3.6 (15/11) trong `src/shared/changelog.ts`, năm dòng lời thường. Bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+
 ## Ruling, nợ
 
 - Chưa có nút nhận giá mới ngay trong nháp (phải bỏ dịch vụ rồi chọn lại). Câu nhắc nhân viên «Giá danh mục của «…» đã đổi…» là câu mới, chờ chủ duyệt chữ.

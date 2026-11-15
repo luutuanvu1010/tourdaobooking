@@ -17,6 +17,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 1 sau kiểm toán 14/11 (chủ: «Làm Đợt 1», «Chặn Đối tác, Thực tập», «Chỉ cảnh báo đỏ»): mã giao dịch cho khoản nộp đại lý (ADR-0204, migration 0166), dời ngày cân lại vé,
+    // dòng Sheet hỏng giữ dịch vụ, nháp giá cũ chặn Đối tác / Thực tập (ADR-0205). Sổ: docs/superpowers/plans/2026-11-14-dot-1-sau-kiem-toan-thi-cong-nhat-ky.md.
+    // SỐ TẠM 3.6: main có 3.5; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.6",
+    date: "2026-11-15",
+    items: [
+      { kind: "doi", text: "Kế toán xác nhận khoản nộp của đại lý phải nhập mã giao dịch ngân hàng và số tiền thực chuyển; một lần chuyển khoản không còn bị ghi nhận hai lần." },
+      { kind: "doi", text: "Dòng sổ của khoản nộp đã xác nhận không huỷ lẻ được nữa; muốn sửa thì dùng điều chỉnh có người thứ hai duyệt." },
+      { kind: "sua", text: "Dời ngày đi của đơn đã có vé: vé không còn hợp ngày được thu lại, đơn nhận vé hợp ngày mới hoặc báo thiếu vé.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+      { kind: "sua", text: "Một ô gõ sai trên Sheet không còn làm dịch vụ biến khỏi form lập đơn: dịch vụ vẫn bán theo giá đã lưu, màn Danh mục hiện cảnh báo đỏ." },
+      { kind: "doi", text: "Đối tác và Thực tập không xác nhận được đơn nháp lưu giá danh mục cũ sau khi bảng giá đổi; nhân viên được nhắc trước khi xác nhận." },
+    ],
+  },
+  {
     // Chủ dự án 14/11 (sau khi lên 3.4): «ở giao diện điện thoại cần kéo, như thế là ngoài phạm vi». Thẻ gọn lại, ô đăng nhập thu sau nút «Quản trị đăng nhập» (tên chủ chọn 14/11). Chỉ giao diện.
     // SỐ TẠM 3.5: main có 3.4; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.5",
