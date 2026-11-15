@@ -21,7 +21,7 @@ import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
-import { dangKyModule } from "./modules/dang-ky";
+import { chuaKichHoat, dangKyModule } from "./modules/dang-ky";
 import { banHangNoi, dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
 import { chinhSachChoNguoi, giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
@@ -195,6 +195,8 @@ const APP_OPTIONS: AppOptions = {
     giaoLoDay: (env, ds) => xepHangDay(env, ds),
     // MỐC TỐI THIỂU (ADR-0049 D2, I25): `orders` không đọc bảng vc_ — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của van-chuyen (TC-26, A12 quét nơi gọi).
     mocToiThieu: (env) => mocToiThieuHienHanh(env.DB),
+    // TÀI KHOẢN CHƯA KÍCH HOẠT (ADR-0207 Đ7): `accounts` không import `dang-ky` — gốc lắp ráp tiêm hàm công bố (khuôn isAssigned).
+    chuaKichHoat: (env, staffId) => chuaKichHoat(env.DB, staffId),
     // CHÍNH SÁCH GIAO DIỆN (ADR-0194 đợt 1): `orders` không import `giao-dien` — gốc lắp ráp tiêm hàm công bố (khuôn mocToiThieu).
     chinhSachGiaoDien: (env, actor) => chinhSachChoNguoi(env.DB, actor.permissions),
     // ĐỒNG BỘ CHUYẾN THEO ĐƠN (ADR-0104 Đ2.1): orders / dispatch không import van-chuyen — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố (bài siết architecture.test.ts).

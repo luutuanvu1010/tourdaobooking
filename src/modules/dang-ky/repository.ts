@@ -379,3 +379,14 @@ const RUT_CAP = defineSql(
    WHERE id = ?1 AND status IN ('DANG_DIEN', 'CHO_XAC_MINH', 'CAN_BO_SUNG', 'CHO_DUYET')`,
 );
 export const rutStatement = (db: D1Database, v: { registrationId: string; identityId: string; at: string }): D1PreparedStatement => db.prepare(RUT_CAP).bind(v.registrationId, v.at, v.identityId);
+
+// Tài khoản CHƯA KÍCH HOẠT (ADR-0207 Đ7): phiếu đã duyệt (`DA_DUYET`) sinh ra tài khoản này mà người đăng ký chưa đặt PIN (`activated_at` còn rỗng). Liên kết là cột `dk_registration.staff_id`
+// (ghi ở lô duyệt). Gốc lắp ráp tiêm hàm này cho `accounts` (`ctx.chuaKichHoat`) để các lệnh hỗ trợ đăng nhập từ chối — `accounts` không import `dang-ky`.
+const CHUA_KICH_HOAT = defineSql(
+  "dang-ky",
+  "chua_kich_hoat",
+  `SELECT 1 AS co FROM dk_registration WHERE staff_id = ?1 AND status = 'DA_DUYET' AND activated_at IS NULL LIMIT 1`,
+);
+export async function chuaKichHoat(db: D1Database, staffId: string): Promise<boolean> {
+  return (await db.prepare(CHUA_KICH_HOAT).bind(staffId).first<{ co: number }>()) !== null;
+}

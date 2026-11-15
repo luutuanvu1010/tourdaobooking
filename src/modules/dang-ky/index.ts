@@ -9,7 +9,7 @@ import { cauHinhDangKy, xacNhanMa, xinMa } from "./xin-ma-route";
 import { CAM, ketLuanMuc, moTep, tuChoiPhieu, xacMinhDat, xemHangCho, xemPhieu, xemSo, yeuCauBoSung } from "./xac-minh-route";
 
 export { cauLyDoChoNguoiDangKy } from "../../shared/dang-ky-hien-thi";
-export { lyDoCuaPhieu } from "./repository";
+export { chuaKichHoat, lyDoCuaPhieu } from "./repository";
 export { TRANG_THAI, TRANG_THAI_KET_THUC, chuyenHopLe, daKetThuc, type TrangThai } from "./rules";
 
 /** Chính sách đăng ký hiệu lực tại `at`; null ⇒ coi là đóng đăng ký. */
