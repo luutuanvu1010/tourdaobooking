@@ -109,6 +109,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/dang-ky/phieu/dat-pin", access: "public" }, // ADR-0207 Đ7 (đợt 1 Task 9): người được duyệt tự đặt PIN — cookie đăng ký + mã email MỚI kiểm trong thân; KHÔNG cấp td_session
   { method: "POST", path: "/api/dang-ky/phieu/tep", access: "public" }, // ADR-0208 Đ2: tải tệp vào ô của phiếu — công khai, cổng là cookie đăng ký td_dang_ky kiểm trong thân route (ADR-0206 Đ7)
   // ADR-0207 Đ9 (đợt 1 Task 6): bước xác minh phiếu đăng ký — cổng accounts; thân hỏi registration.queue.view (hàng chờ) hoặc party.verify + party.view (+ party.verify.attachment cho số, ảnh).
+  { method: "GET", path: "/api/dang-ky/chinh-sach", access: "accounts" }, // registration.policy.write (chỉ Toàn quyền) — ADR-0206 Đ9 chỗ mở, đóng đăng ký (Task 12 vòng sửa 1): công tắc, loại mở
+  { method: "POST", path: "/api/dang-ky/chinh-sach", access: "accounts" }, // registration.policy.write — thêm một dòng dk_policy (chỉ đổi công tắc và loại mở), khoá lạc quan
   { method: "GET", path: "/api/dang-ky/hang-cho", access: "accounts" },
   { method: "GET", path: "/api/dang-ky/phieu/:id", access: "accounts" },
   { method: "POST", path: "/api/dang-ky/phieu/:id/ket-luan", access: "accounts" },
@@ -842,6 +844,7 @@ test("mức truy cập của 528 route hiện có khớp ảnh chụp đã duy�
   // ADR-0207 Đ7 (đợt 1 Task 9): + 1 route kích hoạt (POST /api/dang-ky/phieu/dat-pin; public) = 526.
   // ADR-0209 (đợt 1 Task 11): + 2 route «Cấp cho đối tác tự đăng ký» (GET, POST /api/pricing/cap-mac-dinh; office) = 528.
   // ADR-0209 Đ4 (đợt 1 Task 12): + 1 GET /api/pricing/cap-mac-dinh/se-ap (office) = 529.
-  assert.equal(actual.length, 529, "số route thực tế lệch 529 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 529, "SNAPSHOT phải có đúng 529 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // ADR-0206 Đ9 (đợt 1 Task 12 vòng sửa 1): + 2 GET, POST /api/dang-ky/chinh-sach (accounts) = 531.
+  assert.equal(actual.length, 531, "số route thực tế lệch 531 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 531, "SNAPSHOT phải có đúng 531 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

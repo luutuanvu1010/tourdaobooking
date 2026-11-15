@@ -32,13 +32,6 @@
       "nguoi_chiu_trach_nhiem": "chủ dự án"
     },
     {
-      "ma": "registration.policy.write",
-      "ly_do": "Ô thêm ở đợt 1 Task 6 (ADR-0206 / ADR-0207, đăng ký đối tác) cho việc đổi chính sách đăng ký và công tắc «Nhận đăng ký mới»; route đổi chính sách thuộc task sau của cùng đợt, chưa có.",
-      "ke_hoach": "Thi hành trong đợt 1 đăng ký đối tác (kế hoạch docs/superpowers/plans/2026-11-15-dang-ky-dot-1-ke-hoach.md, task chính sách đăng ký). Nếu chưa xong trước hạn, chủ dự án gia hạn có ghi lý do.",
-      "han": "2026-12-31",
-      "nguoi_chiu_trach_nhiem": "chủ dự án"
-    },
-    {
       "ma": "verification.requirement.write",
       "ly_do": "Ô thêm ở đợt 1 Task 10 (ADR-0210 Đ1, dấu xác minh) cho việc Toàn quyền đặt danh sách mục bắt buộc để hồ sơ được «Đã xác minh»; màn và route đặt danh sách chưa có (kế hoạch chỉ đòi ô và bảng chính sách; hôm nay danh sách đổi bằng migration).",
       "ke_hoach": "Thi hành khi dựng màn đặt mục bắt buộc (ADR-0210 Đ1: báo trước số hồ sơ sẽ đổi và đòi xác nhận). Nếu chưa xong trước hạn, chủ dự án gia hạn có ghi lý do.",

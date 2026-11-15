@@ -29,6 +29,21 @@ const CHINH_SACH = defineSql("dang-ky", "policy_current", `SELECT id, registrati
   ask_window_minutes, ask_global_per_hour, session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count,
   anonymize_days, files_per_network_hour, valid_from_at FROM dk_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`);
 
+// Đổi công tắc «Nhận đăng ký mới» và danh sách loại mở (ADR-0206 Đ9; Task 12 vòng sửa 1, I-3). dk_policy CHỈ THÊM DÒNG (trigger dk_policy_no_update / no_delete, migration 0167): chép dòng
+// đang hiệu lực, chỉ đổi hai cột `registration_open`, `open_role_codes`; mọi con số khác GIỮ NGUYÊN. Khoá lạc quan: dòng người đặt đã thấy (?4) phải còn là dòng MỚI NHẤT (không xét mốc —
+// lệnh của người khác đã ghi thì 0 dòng ⇒ 409; `valid_from_at` UNIQUE là lưới cuối khi hai lệnh cùng mốc). Mở (?2 = 1) mà không có chính sách riêng tư đang hiệu lực ⇒ 0 dòng (lưới sau kiểm ở route).
+const DOI_CHINH_SACH = defineSql("dang-ky", "policy_switch_insert", `INSERT INTO dk_policy (id, registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox,
+    ask_per_network, ask_window_minutes, ask_global_per_hour, session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb,
+    photo_max_count, anonymize_days, files_per_network_hour, phieu_required_items, valid_from_at, created_at, created_by, updated_at, updated_by)
+  SELECT ?1, ?2, ?3, p.code_digits, p.code_ttl_minutes, p.code_max_attempts, p.ask_per_mailbox, p.ask_per_network, p.ask_window_minutes, p.ask_global_per_hour, p.session_idle_minutes,
+    p.session_max_hours, p.draft_expire_days, p.supplement_expire_days, p.activation_days, p.activation_grace_days, p.photo_max_mb, p.photo_max_count, p.anonymize_days, p.files_per_network_hour,
+    p.phieu_required_items, ?5, ?5, ?6, ?5, ?6
+  FROM dk_policy p
+  WHERE p.id = ?4 AND p.id = (SELECT e.id FROM dk_policy e ORDER BY e.valid_from_at DESC LIMIT 1) AND p.valid_from_at < ?5
+    AND (?2 = 0 OR EXISTS (SELECT 1 FROM v_pty_privacy_effective))`);
+export const doiChinhSachStatement = (db: D1Database, v: { id: string; mo: boolean; loaiMo: string; dangHieuLuc: string; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(DOI_CHINH_SACH).bind(v.id, v.mo ? 1 : 0, v.loaiMo, v.dangHieuLuc, v.at, v.by);
+
 /** Dòng chính sách hiệu lực tại `at` (ISO UTC); chưa có dòng nào ⇒ null (người gọi coi là ĐÓNG đăng ký). */
 export const chinhSachHienHanh = (db: D1Database, at: string): Promise<ChinhSachDangKyRow | null> => db.prepare(CHINH_SACH).bind(at).first<ChinhSachDangKyRow>();
 

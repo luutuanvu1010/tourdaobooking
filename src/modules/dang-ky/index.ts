@@ -5,6 +5,7 @@ import { route, type AppModule } from "../../shared/router";
 import { chinhSachHienHanh } from "./repository";
 import { guiPhieu, luuNhapPhieu, rutPhieu, xemPhieuCuaToi } from "./phieu-route";
 import { taiTepPhieu } from "./tep-route";
+import { CAM_CHINH_SACH, doiChinhSach, xemChinhSach } from "./chinh-sach-route";
 import { datPinKichHoat } from "./kich-hoat-route";
 import { donPhieuDangKy } from "./don-phieu";
 import { cauHinhDangKy, xacNhanMa, xinMa } from "./xin-ma-route";
@@ -67,6 +68,15 @@ export const dangKyModule: AppModule = {
     // Tải một tệp vào ô của phiếu (ADR-0208 Đ2). Công khai: người đăng ký chưa có tài khoản; cổng là cookie đăng ký kiểm trong thân (ADR-0206 Đ7).
     route("POST", "/api/dang-ky/phieu/tep", "public", async (ctx) => {
       return taiTepPhieu(ctx);
+    }),
+    // Chỗ mở, đóng đăng ký của Toàn quyền (ADR-0206 Đ9; đợt 1 Task 12 vòng sửa 1). Cổng `accounts`; ô `registration.policy.write` (chỉ Toàn quyền). Lệnh đổi chỉ thêm một dòng dk_policy.
+    route("GET", "/api/dang-ky/chinh-sach", "accounts", async (ctx) => {
+      if (!can(ctx.staff, "registration.policy.write")) return CAM_CHINH_SACH();
+      return xemChinhSach(ctx);
+    }),
+    route("POST", "/api/dang-ky/chinh-sach", "accounts", async (ctx) => {
+      if (!can(ctx.staff, "registration.policy.write")) return CAM_CHINH_SACH();
+      return doiChinhSach(ctx);
     }),
     // Bước xác minh của người trong công ty (ADR-0207 Đ2, Đ9; đợt 1 Task 6). Cổng `accounts`; mỗi route hỏi ô quyền trong thân (xac-minh-route.ts).
     route("GET", "/api/dang-ky/hang-cho", "accounts", async (ctx) => {

@@ -319,6 +319,7 @@
  "src/modules/company/rules.test.ts": 0.1,
  "src/modules/dang-ky/don-phieu.test.ts": 12.5,
  "src/modules/dang-ky/duyet-route.test.ts": 7.0,
+ "src/modules/dang-ky/chinh-sach-route.test.ts": 1.5,
  "src/modules/dang-ky/kich-hoat-route.test.ts": 3.1,
  "src/modules/dang-ky/phien.test.ts": 0.1,
  "src/modules/dang-ky/phieu-route.test.ts": 8.6,

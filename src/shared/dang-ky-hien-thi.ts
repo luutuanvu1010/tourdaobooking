@@ -70,3 +70,9 @@ export const NHAN_MUC_CHO_NGUOI_DANG_KY: Readonly<Record<string, string>> = {
   CALLED: "Số điện thoại",
 };
 export const nhanMucChoNguoiDangKy = (ma: string): string => NHAN_MUC_CHO_NGUOI_DANG_KY[ma] ?? ma;
+
+/**
+ * Vai người dùng mở được cho phiếu ĐĂNG KÝ CÁ NHÂN (ADR-0206 Đ11): bốn vai bên ngoài mang quyền Đối tác. «Công ty lữ hành» (TRAVEL_AGENCY) KHÔNG BAO GIỜ mở cho phiếu cá nhân
+ * (dk_registration chỉ nhận PERSON; công ty không đứng tên một người — đợt 2 phiếu tổ chức). Máy chủ kiểm lệnh đổi chính sách đăng ký bằng đúng danh sách này; giao diện dựng ô chọn từ nó.
+ */
+export const VAI_MO_DUOC_CHO_PHIEU_CA_NHAN = ["GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAXI_DRIVER", "COLLABORATOR"] as const;
