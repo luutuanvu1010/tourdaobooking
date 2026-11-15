@@ -142,7 +142,19 @@ const buoc = async (khung, hau) => {
     await sleep(400);
     // Hỏi lại ngay trong dòng khoản nộp (phiếu đã là bảng trượt): hàng xác nhận có nút «Xác nhận đã nhận» thứ hai.
     await p.waitFor(`!!document.querySelector('[data-action="xac-nhan-nop-chac"]')`, "hàng hỏi lại");
+    // ADR-0204 (14/11): hàng hỏi lại có hai ô bắt buộc «Mã giao dịch ngân hàng», «Số tiền thực chuyển (₫)». Bấm khi còn trống ⇒ máy chủ trả 400, khoản vẫn chờ.
+    assert.equal(await p.ev(`!!document.querySelector('[data-khoi="xac-nhan-nop"] [data-o="ma-giao-dich"] input') && !!document.querySelector('[data-khoi="xac-nhan-nop"] [data-o="so-thuc-chuyen"] input')`), true);
     await chup(p, `05b-hoi-lai-${hau}`, khung);
+    await p.ev(`document.querySelector('[data-action="xac-nhan-nop-chac"]').click(), true`);
+    await sleep(900);
+    assert.equal(await p.ev(`!!document.querySelector('[data-khoan-nop][data-trang-thai="PENDING"]')`), true, "thiếu mã ⇒ khoản vẫn chờ");
+    await chup(p, `05c-thieu-ma-${hau}`, khung);
+    const go = (sel, v) => `(() => { const i = document.querySelector('[data-khoi="xac-nhan-nop"] [data-o="${sel}"] input'); i.value = ${JSON.stringify(v)}; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`;
+    const soNop = await p.ev(`(() => { const m = (document.querySelector('[data-khoan-nop][data-trang-thai="PENDING"]')?.innerText ?? '').match(/([\\d.]+) ₫/); return m ? m[1].replace(/\\./g, '') : ''; })()`);
+    await p.ev(go("ma-giao-dich", `FT${hau}${Date.now() % 1e6}`));
+    await p.ev(go("so-thuc-chuyen", String(soNop)));
+    await chup(p, `05d-da-nhap-ma-${hau}`, khung);
+    await axe(p, `hàng xác nhận có hai ô mã ${hau}`);
     await p.ev(`document.querySelector('[data-action="xac-nhan-nop-chac"]').click(), true`);
     await p.waitFor(`!!document.querySelector('[data-khoan-nop][data-trang-thai="CONFIRMED"]')`, "khoản đã xác nhận", 15000);
     const t = await chuTrang(p);

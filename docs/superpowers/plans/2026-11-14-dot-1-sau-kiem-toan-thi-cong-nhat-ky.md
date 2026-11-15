@@ -47,6 +47,12 @@ Không gửi tin cho Quản trị, Toàn quyền khi dòng Sheet gõ sai; chỉ 
 
 Mục số tạm 3.6 (15/11) trong `src/shared/changelog.ts`, năm dòng lời thường. Bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
 
+## Bằng chứng giao diện (15/11)
+
+- `docs/evidence/2026-11-13-khoan-nop-dai-ly/kich-ban/khoan-nop-smoke.mjs` thêm bước nhập mã: hàng hỏi lại có hai ô; bấm khi trống ⇒ khoản vẫn chờ; nhập mã + số ⇒ xác nhận được. 10/10 bước xanh, có axe, hai khổ 390 và 1280.
+- `docs/evidence/2026-11-15-dot-1-sau-kiem-toan/kich-ban/hai-man-smoke.mjs` (mới): cảnh báo đỏ ở Danh mục (TT1), câu nhắc giá đổi trên trang đơn nháp của nhân viên (T3). 4/4 bước xanh, có axe. Ảnh ở `anh/` cùng thư mục.
+- Trang ghép cho lượt duyệt ADR-0204 + ADR-0205: `docs/superpowers/specs/2026-11-15-trang-ghep-adr-0204-0205.md`.
+
 ## Ruling, nợ
 
 - Chưa có nút nhận giá mới ngay trong nháp (phải bỏ dịch vụ rồi chọn lại). Câu nhắc nhân viên «Giá danh mục của «…» đã đổi…» là câu mới, chờ chủ duyệt chữ.
