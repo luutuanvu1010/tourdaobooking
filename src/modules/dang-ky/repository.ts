@@ -17,6 +17,7 @@ export interface ChinhSachDangKyRow {
   draft_expire_days: number;
   supplement_expire_days: number;
   activation_days: number;
+  activation_grace_days: number;
   photo_max_mb: number;
   photo_max_count: number;
   anonymize_days: number;
@@ -25,7 +26,7 @@ export interface ChinhSachDangKyRow {
 }
 
 const CHINH_SACH = defineSql("dang-ky", "policy_current", `SELECT id, registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network,
-  ask_window_minutes, ask_global_per_hour, session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, photo_max_mb, photo_max_count,
+  ask_window_minutes, ask_global_per_hour, session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count,
   anonymize_days, files_per_network_hour, valid_from_at FROM dk_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`);
 
 /** Dòng chính sách hiệu lực tại `at` (ISO UTC); chưa có dòng nào ⇒ null (người gọi coi là ĐÓNG đăng ký). */
@@ -552,7 +553,8 @@ const KICH_HOAT_CAP = defineSql(
 export const cauKichHoatPhieu = (db: D1Database, v: { registrationId: string; at: string; by: string }): D1PreparedStatement => db.prepare(KICH_HOAT_CAP).bind(v.registrationId, v.at, v.by);
 
 // ẨN DANH DANH TÍNH (ADR-0208 Đ6): thay email đã chứng minh bằng dấu, bỏ email liên lạc, đặt mốc — đúng dấu trigger dk_identity_shape đòi. Điều kiện NẰM TRONG câu: chỉ phiếu đã kết thúc
-// (TỪ CHỐI, ĐÃ RÚT, HẾT HẠN), hoặc ĐÃ DUYỆT mà đã kích hoạt (lô kích hoạt) hay đã quá hạn kích hoạt (tác nhân) — danh tính của phiếu đang sống không bao giờ bị xoá qua câu này.
+// (TỪ CHỐI, ĐÃ RÚT, HẾT HẠN), hoặc ĐÃ DUYỆT mà đã kích hoạt (lô kích hoạt) hay đã quá hạn kích hoạt CỘNG ân hạn (`?4` = bây giờ − activation_grace_days; tác nhân) — danh tính của phiếu
+// đang sống, và của phiếu còn trong ân hạn (Nhân sự còn gửi lại lời mời được), không bao giờ bị xoá qua câu này.
 // Ngoại lệ có tên của bài src/xoa-mot-lenh-co-ten.test.ts (2b), chờ chủ duyệt.
 const AN_DANH_DANH_TINH = defineSql(
   "dang-ky",
@@ -560,9 +562,10 @@ const AN_DANH_DANH_TINH = defineSql(
   `UPDATE dk_identity SET erased_at = ?2, subject = 'XOA' || upper(replace(id, '-', '')), contact_email = NULL, is_open = 0, updated_at = ?2, updated_by = ?3
    WHERE registration_id = ?1 AND erased_at IS NULL
      AND EXISTS (SELECT 1 FROM dk_registration r WHERE r.id = ?1
-                   AND (r.status IN ('TU_CHOI', 'DA_RUT', 'HET_HAN') OR (r.status = 'DA_DUYET' AND (r.activated_at IS NOT NULL OR r.activation_deadline_at < ?2))))`,
+                   AND (r.status IN ('TU_CHOI', 'DA_RUT', 'HET_HAN') OR (r.status = 'DA_DUYET' AND (r.activated_at IS NOT NULL OR r.activation_deadline_at < ?4))))`,
 );
-export const cauAnDanhDanhTinh = (db: D1Database, v: { registrationId: string; at: string; by: string }): D1PreparedStatement => db.prepare(AN_DANH_DANH_TINH).bind(v.registrationId, v.at, v.by);
+export const cauAnDanhDanhTinh = (db: D1Database, v: { registrationId: string; at: string; by: string; mocAnHan: string }): D1PreparedStatement =>
+  db.prepare(AN_DANH_DANH_TINH).bind(v.registrationId, v.at, v.by, v.mocAnHan);
 
 // ---- TÁC NHÂN DỌN PHIẾU (ADR-0208 Đ8; đợt 1 Task 9) ----
 // Việc 1 — hết hạn: phiếu ĐANG ĐIỀN / CẦN BỔ SUNG có `expires_at` đã qua. `expires_at` đặt lúc mở phiếu và lúc yêu cầu bổ sung (theo chính sách); dòng thiếu mốc (đường cũ quên đặt) dùng
@@ -605,7 +608,7 @@ const PHIEU_DANH_DAU_AN_DANH = defineSql(
 export const cauDanhDauAnDanh = (db: D1Database, v: { registrationId: string; at: string; moc: string; by: string }): D1PreparedStatement =>
   db.prepare(PHIEU_DANH_DAU_AN_DANH).bind(v.registrationId, v.at, v.moc, v.by);
 
-// Việc 2b — phiếu ĐÃ DUYỆT, chưa kích hoạt, đã quá hạn đặt PIN, danh tính còn email ⇒ ẩn danh danh tính (ADR-0207 Đ7, ADR-0208 Đ6).
+// Việc 2b — phiếu ĐÃ DUYỆT, chưa kích hoạt, đã quá hạn đặt PIN CỘNG ân hạn (`?1` = bây giờ − activation_grace_days), danh tính còn email ⇒ ẩn danh danh tính (ADR-0207 Đ7, ADR-0208 Đ6).
 const PHIEU_QUA_HAN_KICH_HOAT = defineSql(
   "dang-ky",
   "registration_activation_lapsed",
@@ -614,8 +617,8 @@ const PHIEU_QUA_HAN_KICH_HOAT = defineSql(
      AND EXISTS (SELECT 1 FROM dk_identity i WHERE i.registration_id = r.id AND i.contact_email IS NOT NULL)
    ORDER BY r.id LIMIT ?2`,
 );
-export async function phieuQuaHanKichHoat(db: D1Database, at: string, toiDa: number): Promise<string[]> {
-  return (await db.prepare(PHIEU_QUA_HAN_KICH_HOAT).bind(at, toiDa).all<{ id: string }>()).results.map((r) => r.id);
+export async function phieuQuaHanKichHoat(db: D1Database, mocAnHan: string, toiDa: number): Promise<string[]> {
+  return (await db.prepare(PHIEU_QUA_HAN_KICH_HOAT).bind(mocAnHan, toiDa).all<{ id: string }>()).results.map((r) => r.id);
 }
 
 // Dòng lịch sử của tác nhân; chỉ ghi khi câu liền trước đổi dòng. `actor_ref` = mã tác nhân (chữ hoa — CHECK của bảng). Không số, tên, liên hệ, khoá kho.

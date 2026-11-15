@@ -136,10 +136,10 @@ test("(3) Ẩn danh: TỪ CHỐI 31 ngày ⇒ bản khai thay dấu, danh tính 
   assert.equal((await chay(w)).anDanh, 0);
 });
 
-test("(4) Phiếu ĐÃ DUYỆT quá hạn đặt PIN, chưa kích hoạt ⇒ danh tính ẩn danh, phiếu giữ ĐÃ DUYỆT; còn hạn: không đụng; sau đó «gửi lại lời mời» ⇒ 409 rõ ràng, không mở lại hạn", async () => {
+test("(4) Phiếu ĐÃ DUYỆT quá hạn đặt PIN + ÂN HẠN (activation_grace_days, gieo 30 ngày), chưa kích hoạt ⇒ danh tính ẩn danh, phiếu giữ ĐÃ DUYỆT; còn hạn: không đụng; sau đó «gửi lại lời mời» ⇒ 409 rõ ràng, không mở lại hạn", async () => {
   const w = setup();
   seedStaff(w.sqlite, { id: HR, phone: "0900000013", name: "Nhân Sự", perms: ["HR"] });
-  const a = phieu(w, "DA_DUYET", { hanKichHoat: truoc(PHUT) });
+  const a = phieu(w, "DA_DUYET", { hanKichHoat: truoc(31 * NGAY) });
   const giu = phieu(w, "DA_DUYET", { hanKichHoat: sau(NGAY) });
   const kq = await chay(w);
   assert.equal(kq.anDanh, 1);
@@ -163,7 +163,7 @@ test("(4) Phiếu ĐÃ DUYỆT quá hạn đặt PIN, chưa kích hoạt ⇒ dan
 test("(5) «Gửi lại lời mời» đua với tác nhân: danh tính bị ẩn danh NGAY TRƯỚC lô (sau kiểm của route) ⇒ câu ghi tự canh, 409, không lịch sử / nhật ký", async () => {
   const w = setup();
   seedStaff(w.sqlite, { id: HR, phone: "0900000013", name: "Nhân Sự", perms: ["HR"] });
-  const a = phieu(w, "DA_DUYET", { hanKichHoat: truoc(PHUT) });
+  const a = phieu(w, "DA_DUYET", { hanKichHoat: truoc(31 * NGAY) });
   const han = reg(w, a.id).activation_deadline_at;
   w.chenTruocLo((stmts: any[]) => stmts.length === 3, async () => { await chay(w); });
   const r = await w.call("POST", `/api/dang-ky/phieu/${a.id}/gui-lai-loi-moi`, { as: HR });
@@ -279,8 +279,25 @@ test("(12) Câu ẩn danh danh tính tự canh trạng thái: phiếu đang số
   const { cauAnDanhDanhTinh } = await import("./repository.ts");
   for (const [t, o] of [["DANG_DIEN", {}], ["CHO_XAC_MINH", {}], ["CAN_BO_SUNG", {}], ["DA_DUYET", { hanKichHoat: sau(NGAY) }]] as [string, Gieo][]) {
     const x = phieu(w, t, o);
-    const [r] = await w.env.DB.batch([cauAnDanhDanhTinh(w.env.DB, { registrationId: x.id, at: BAY_GIO.toISOString(), by: "DON_PHIEU_DANG_KY" })]);
+    const [r] = await w.env.DB.batch([cauAnDanhDanhTinh(w.env.DB, { registrationId: x.id, at: BAY_GIO.toISOString(), by: "DON_PHIEU_DANG_KY", mocAnHan: new Date(BAY_GIO.getTime() - 30 * NGAY).toISOString() })]);
     assert.equal(r.meta.changes, 0, t);
     assert.equal(dt(w, x.ident).contact_email, x.email, t);
   }
+});
+
+test("(13) Ân hạn sau hạn đặt PIN (phán quyết điều phối 15/11): hạn đã qua 29 ngày (< 30) ⇒ tác nhân GIỮ danh tính, «gửi lại lời mời» thành công và mở lại hạn; câu ẩn danh gọi thẳng cũng 0 dòng", async () => {
+  const w = setup();
+  seedStaff(w.sqlite, { id: HR, phone: "0900000013", name: "Nhân Sự", perms: ["HR"] });
+  const a = phieu(w, "DA_DUYET", { hanKichHoat: truoc(29 * NGAY) });
+  const kq = await chay(w);
+  assert.equal(kq.anDanh, 0);
+  assert.equal(dt(w, a.ident).contact_email, a.email, "trong ân hạn: danh tính còn");
+  const { cauAnDanhDanhTinh } = await import("./repository.ts");
+  const [r0] = await w.env.DB.batch([cauAnDanhDanhTinh(w.env.DB, { registrationId: a.id, at: BAY_GIO.toISOString(), by: "DON_PHIEU_DANG_KY", mocAnHan: new Date(BAY_GIO.getTime() - 30 * NGAY).toISOString() })]);
+  assert.equal(r0.meta.changes, 0, "câu ẩn danh tự canh ân hạn");
+  const truocMs = Date.now();
+  const r = await w.call("POST", `/api/dang-ky/phieu/${a.id}/gui-lai-loi-moi`, { as: HR });
+  assert.equal(r.status, 200, r.text);
+  assert.ok(Date.parse(reg(w, a.id).activation_deadline_at) >= truocMs + 14 * NGAY - 1000, "hạn mới = bây giờ + activation_days");
+  assert.equal(n(w, "SELECT count(*) n FROM audit_log WHERE action = 'registration_invite_resent'"), 1);
 });

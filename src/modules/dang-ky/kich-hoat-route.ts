@@ -68,7 +68,7 @@ export async function datPinKichHoat({ request, env }: Ctx<"public">): Promise<R
       cauCanhKichHoat(env.DB, { registrationId, identityId, at }), // PHẢI liền sau câu của staff: `changes()` đọc câu đó
       cauKichHoatPhieu(env.DB, { registrationId, at, by: staffId }),
       suKienNguoiDangKyStatement(env.DB, { registrationId, identityId, command: "KICH_HOAT", at }),
-      cauAnDanhDanhTinh(env.DB, { registrationId, at, by: staffId }),
+      cauAnDanhDanhTinh(env.DB, { registrationId, at, by: staffId, mocAnHan: new Date(nowMs - chinhSach.activation_grace_days * 86_400_000).toISOString() }),
       auditStatement(env.DB, { staffId, action: "registration_activated", at, targetType: "party", targetId: registrationId, detail: `phiếu ${registrationId} · tự đặt mã PIN, kích hoạt tài khoản` }),
     ]);
   } catch (e) {

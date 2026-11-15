@@ -75,6 +75,8 @@ test("(b) chính sách: gieo đúng một dòng, registration_open = 0, con số
     [p.code_digits, p.code_ttl_minutes, p.code_max_attempts, p.ask_per_mailbox, p.ask_per_network, p.ask_window_minutes, p.ask_global_per_hour],
     [6, 10, 5, 3, 10, 15, 60]);
   assert.deepEqual([p.session_idle_minutes, p.session_max_hours, p.draft_expire_days, p.supplement_expire_days, p.activation_days], [30, 12, 7, 14, 14]);
+  assert.equal(p.activation_grace_days, 30, "ân hạn sau hạn đặt PIN: 30 ngày (phán quyết điều phối đợt 1 Task 9, chủ xác nhận sau)");
+  assert.throws(() => db.prepare("INSERT INTO dk_policy SELECT 'g0', registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour, session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, 0, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, phieu_required_items, '2099-01-01T00:00:00.000Z', created_at, created_by, updated_at, updated_by FROM dk_policy LIMIT 1").run(), /CHECK/);
   assert.deepEqual([p.photo_max_mb, p.photo_max_count, p.anonymize_days, p.files_per_network_hour, p.phieu_required_items], [5, 8, 30, 20, "ROLE,CALLED"]);
   assert.throws(() => db.prepare("UPDATE dk_policy SET registration_open = 1").run(), loi(/dk_policy_append_only/));
   assert.throws(() => db.prepare("DELETE FROM dk_policy").run(), loi(/dk_policy_append_only/));
@@ -243,8 +245,8 @@ test("(k) ẩn danh bản khai: chỉ cột cá nhân đổi sang dấu / NULL; 
 test("Fix 6 (Task 5): dk_policy.photo_max_mb bị CHECK ≤ 10 — chính sách không thể vượt trần byte_size của bảng tệp chờ (0168)", () => {
   const db = all();
   const them = (mb: number, at: string) => db.prepare(`INSERT INTO dk_policy (id, registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour,
-    session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, phieu_required_items, valid_from_at, created_at, updated_at)
-    VALUES (?, 0, '', 6, 10, 5, 3, 10, 15, 60, 30, 12, 7, 14, 14, ?, 8, 30, 20, '', ?, ?, ?)`).run(`t-${mb}`, mb, at, at, at);
+    session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, phieu_required_items, valid_from_at, created_at, updated_at)
+    VALUES (?, 0, '', 6, 10, 5, 3, 10, 15, 60, 30, 12, 7, 14, 14, 30, ?, 8, 30, 20, '', ?, ?, ?)`).run(`t-${mb}`, mb, at, at, at);
   assert.doesNotThrow(() => them(10, "2099-01-01T00:00:00.000Z"));
   assert.throws(() => them(11, "2099-01-02T00:00:00.000Z"), /CHECK/);
 });

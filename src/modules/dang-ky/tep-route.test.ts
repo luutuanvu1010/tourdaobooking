@@ -173,9 +173,9 @@ test("20 tệp mỗi giờ mỗi địa chỉ mạng (đọc dk_policy): vượt
   const w = setup();
   const t = new Date().toISOString();
   w.sqlite.prepare(`INSERT INTO dk_policy (id, registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour,
-    session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, phieu_required_items, valid_from_at, created_at, updated_at)
+    session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, phieu_required_items, valid_from_at, created_at, updated_at)
     SELECT 'test-2', registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour,
-    session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, photo_max_mb, photo_max_count, anonymize_days, 2, phieu_required_items, ?, ?, ?
+    session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count, anonymize_days, 2, phieu_required_items, ?, ?, ?
     FROM dk_policy WHERE id = 'gieo-0167'`).run(t, t, t);
   const ip = (x: string) => ({ "cf-connecting-ip": x });
   const khac = (i: number) => { const u = new Uint8Array(PNG.length + 1); u.set(PNG); u[PNG.length] = i; return u; };

@@ -1,7 +1,7 @@
 // TÁC NHÂN DỌN PHIẾU ĐĂNG KÝ (ADR-0208 Đ8, khuôn ADR-0186; đợt 1 Task 9). Mỗi lượt Cron, bốn việc — MỖI việc qua `can()` của người phát lệnh (ô `registration.agent.purge`; tác nhân
 // DON_PHIEU_DANG_KY giữ đúng một ô đó) và gọi đúng hàm lệnh của nó:
 //   1. cho HẾT HẠN phiếu ĐANG ĐIỀN / CẦN BỔ SUNG đã qua `expires_at` (kèm quyết gỡ tệp — ADR-0208 Đ7; xoá kho sau lô);
-//   2. ẨN DANH (ADR-0208 Đ6): phiếu TỪ CHỐI / ĐÃ RÚT / HẾT HẠN quá `anonymize_days` (bản khai + danh tính + mốc), và danh tính của phiếu ĐÃ DUYỆT đã quá hạn đặt PIN mà chưa kích hoạt;
+//   2. ẨN DANH (ADR-0208 Đ6): phiếu TỪ CHỐI / ĐÃ RÚT / HẾT HẠN quá `anonymize_days` (bản khai + danh tính + mốc), và danh tính của phiếu ĐÃ DUYỆT chưa kích hoạt đã quá hạn đặt PIN + `activation_grace_days`;
 //   3. chạy lại việc XOÁ KHO cho tệp chờ ở «chờ xoá» và «tải dở dang» quá hạn (do parties làm — dang-ky không chạm bảng tệp hay kho);
 //   4. XOÁ dòng mã email cũ (giữ ít nhất max(hạn mã, 1 giờ) vì trần theo giờ của xin mã đếm các dòng đó) và dòng đếm lượt tải tệp ra khỏi cửa sổ một giờ.
 // Lượt có việc ghi MỘT dòng nhật ký mang mã tác nhân, chỉ các số đếm (không mã phiếu, không khoá kho, không email). Lỗi KHÔNG ném ra ngoài (ADR-0186 Đ6): mỗi việc bắt lỗi riêng, log chỉ tên lỗi.
@@ -68,19 +68,21 @@ export async function donPhieuDangKy(env: Env, nguoiChay: PermissionHolder, homN
     try {
       // 2a: phiếu đã kết thúc không được duyệt, quá số ngày. Lô: [mốc đã ẩn danh (điều kiện TRONG câu), lịch sử (changes() > 0), bản khai, danh tính] — hai câu cuối tự canh trạng thái.
       const moc = new Date(nowMs - cs.anonymize_days * NGAY_MS).toISOString();
+      const mocAnHan = new Date(nowMs - cs.activation_grace_days * NGAY_MS).toISOString();
       for (const id of await phieuCanAnDanh(env.DB, moc, TOI_DA_MOI_LUOT)) {
         const r = await env.DB.batch([
           cauDanhDauAnDanh(env.DB, { registrationId: id, at, moc, by }),
           suKienTacNhanStatement(env.DB, { registrationId: id, agentCode: by, command: "AN_DANH", at }),
           cauAnDanhBanKhai(env.DB, { registrationId: id, at, by }),
-          cauAnDanhDanhTinh(env.DB, { registrationId: id, at, by }),
+          cauAnDanhDanhTinh(env.DB, { registrationId: id, at, by, mocAnHan }),
         ]);
         if ([r[0], r[2], r[3]].some((x) => (x?.meta.changes ?? 0) > 0)) kq.anDanh++;
       }
-      // 2b: phiếu ĐÃ DUYỆT, chưa kích hoạt, quá hạn đặt PIN ⇒ ẩn danh danh tính (tài khoản vẫn tắt; «gửi lại lời mời» từ đây trả 409).
-      for (const id of await phieuQuaHanKichHoat(env.DB, at, TOI_DA_MOI_LUOT)) {
+      // 2b: phiếu ĐÃ DUYỆT, chưa kích hoạt, quá hạn đặt PIN + ân hạn `activation_grace_days` ⇒ ẩn danh danh tính (tài khoản vẫn tắt; «gửi lại lời mời» từ đây trả 409).
+      // Trong ân hạn danh tính còn: Nhân sự gửi lại lời mời được (phán quyết điều phối 15/11, chủ xác nhận sau).
+      for (const id of await phieuQuaHanKichHoat(env.DB, mocAnHan, TOI_DA_MOI_LUOT)) {
         const r = await env.DB.batch([
-          cauAnDanhDanhTinh(env.DB, { registrationId: id, at, by }),
+          cauAnDanhDanhTinh(env.DB, { registrationId: id, at, by, mocAnHan }),
           suKienTacNhanStatement(env.DB, { registrationId: id, agentCode: by, command: "AN_DANH_DANH_TINH", at }),
         ]);
         if ((r[0]?.meta.changes ?? 0) > 0) kq.anDanh++;

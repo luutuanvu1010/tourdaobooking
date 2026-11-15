@@ -21,6 +21,7 @@ CREATE TABLE dk_policy (
   draft_expire_days       INTEGER NOT NULL CHECK (draft_expire_days > 0),
   supplement_expire_days  INTEGER NOT NULL CHECK (supplement_expire_days > 0),
   activation_days         INTEGER NOT NULL CHECK (activation_days > 0),
+  activation_grace_days   INTEGER NOT NULL CHECK (activation_grace_days > 0), -- ân hạn SAU hạn đặt PIN: trong khoảng này Nhân sự còn «gửi lại lời mời» được; qua rồi tác nhân dọn phiếu ẩn danh danh tính (đợt 1 Task 9, phán quyết điều phối; chủ xác nhận sau)
   photo_max_mb            INTEGER NOT NULL CHECK (photo_max_mb BETWEEN 1 AND 10),   -- ≤ 10 MB: trần cấu trúc của pty_registration_attachment.byte_size (0168)
   photo_max_count         INTEGER NOT NULL CHECK (photo_max_count > 0),
   anonymize_days          INTEGER NOT NULL CHECK (anonymize_days > 0),       -- ĐỔI SỐ NÀY LÀ ĐỔI THỜI GIAN GIỮ DỮ LIỆU CÁ NHÂN CỦA NGƯỜI LẠ
@@ -33,8 +34,8 @@ CREATE TABLE dk_policy (
   updated_by              TEXT
 );
 INSERT INTO dk_policy (id, registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour,
-  session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, phieu_required_items, valid_from_at, created_at, created_by, updated_at, updated_by)
-VALUES ('gieo-0167', 0, 'GUIDE_FREELANCE,HOTEL_RECEPTION,TAXI_DRIVER,COLLABORATOR', 6, 10, 5, 3, 10, 15, 60, 30, 12, 7, 14, 14, 5, 8, 30, 20, 'ROLE,CALLED',
+  session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, phieu_required_items, valid_from_at, created_at, created_by, updated_at, updated_by)
+VALUES ('gieo-0167', 0, 'GUIDE_FREELANCE,HOTEL_RECEPTION,TAXI_DRIVER,COLLABORATOR', 6, 10, 5, 3, 10, 15, 60, 30, 12, 7, 14, 14, 30, 5, 8, 30, 20, 'ROLE,CALLED',
   strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
 CREATE TRIGGER dk_policy_no_update BEFORE UPDATE ON dk_policy
 BEGIN SELECT RAISE(ABORT, 'dk_policy_append_only: chính sách đăng ký chỉ thêm dòng mới, không sửa'); END;

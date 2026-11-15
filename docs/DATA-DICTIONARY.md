@@ -351,7 +351,7 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
-| `dk_policy` | bảng | chính sách đăng ký (ADR-0206 Đ3; migration 0167), CHỈ-THÊM, dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét; gieo một dòng ĐÓNG (registration_open = 0). Con số lấy từ PHU-LUC đợt 1; anonymize_days là thời gian giữ dữ liệu cá nhân của người lạ |
+| `dk_policy` | bảng | chính sách đăng ký (ADR-0206 Đ3; migration 0167), CHỈ-THÊM, dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét; gieo một dòng ĐÓNG (registration_open = 0). Con số lấy từ PHU-LUC đợt 1; anonymize_days là thời gian giữ dữ liệu cá nhân của người lạ; activation_grace_days (gieo 30, phán quyết điều phối đợt 1 Task 9 — chủ xác nhận sau) là ân hạn SAU hạn đặt PIN: trong khoảng này Nhân sự còn gửi lại lời mời, qua rồi tác nhân dọn phiếu ẩn danh danh tính |
 | `dk_registration` | bảng | phiếu đăng ký đối tác (ADR-0206 Đ3, Đ4; 0167): id DK_XXXXXXXX; loại mở PERSON; trạng thái đi theo đồ thị trigger dk_registration_transition (bốn trạng thái kết thúc không đổi). match_*, verified_* là kết luận Danh bạ và người xác minh để trigger dk_decision_guard chỉ đọc dk_*. party_id, staff_id, match_party_id, referrer_party_id (hồ sơ người giới thiệu chọn lúc «đạt», lô duyệt ghi quan hệ REFERRED_BY) là tham chiếu logic, không khoá ngoại |
 | `dk_identity` | bảng | danh tính đã chứng minh của phiếu (0167): đợt 1 chỉ EMAIL; chỉ mục duy nhất dk_identity_open_uq: một phiếu đang mở mỗi (provider, subject); is_open do trigger hạ về 0 khi phiếu kết thúc |
 | `dk_submission` | bảng | bản khai bất biến (0167): mỗi lần gửi một dòng, version kế tiếp current_version; chỉ cho đặt erased_at một lần (ẩn danh, ADR-0208). Cột soi theo pty_person / pty_contact_point / pty_person_document. Hạng N2/N3 không bao giờ vào nhật ký |
