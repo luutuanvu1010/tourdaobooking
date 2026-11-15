@@ -27,10 +27,12 @@ function setup(trangThai = "DANG_DIEN") {
 async function cookie(w: any, nowMs = Date.now(), ident = IDENT): Promise<string> {
   return `${DK_COOKIE}=${await taoPhienDangKy(w.env.SESSION_SECRET, PHIEU, ident, nowMs)}`;
 }
-async function tai(w: any, o: { slot?: unknown; bytes?: Uint8Array; cookie?: string | null; headers?: Record<string, string>; body?: unknown } = {}) {
+async function tai(w: any, o: { slot?: unknown; bytes?: Uint8Array; cookie?: string | null; headers?: Record<string, string>; body?: unknown; khongContentLength?: boolean } = {}) {
   const ck = o.cookie === undefined ? await cookie(w) : o.cookie;
-  const headers: Record<string, string> = { ...(ck ? { cookie: ck } : {}), ...(o.headers ?? {}) };
   const body = o.body !== undefined ? o.body : { o: o.slot ?? TRUOC, noiDung: b64(o.bytes ?? PNG) };
+  // Khung thử không tự đặt Content-Length; trình duyệt thật luôn gửi — bài đặt đúng cỡ thân JSON (route công khai đòi có).
+  const cl = o.khongContentLength ? {} : { "content-length": String(Buffer.byteLength(JSON.stringify(body))) };
+  const headers: Record<string, string> = { ...(ck ? { cookie: ck } : {}), ...cl, ...(o.headers ?? {}) };
   return w.call("POST", DUONG, { body, headers });
 }
 const dongTep = (w: any): any[] => w.q("SELECT id, slot, storage_key, content_hash, stored_at, purged_at, purge_reason FROM pty_registration_attachment ORDER BY created_at, rowid").map((x: any) => ({ ...x }));
@@ -176,11 +178,12 @@ test("20 tệp mỗi giờ mỗi địa chỉ mạng (đọc dk_policy): vượt
     session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, photo_max_mb, photo_max_count, anonymize_days, 2, phieu_required_items, ?, ?, ?
     FROM dk_policy WHERE id = 'gieo-0167'`).run(t, t, t);
   const ip = (x: string) => ({ "cf-connecting-ip": x });
-  assert.equal((await tai(w, { headers: ip("1.1.1.1") })).status, 200);
-  assert.equal((await tai(w, { headers: ip("1.1.1.1") })).status, 200);
-  const r = await tai(w, { headers: ip("1.1.1.1") });
+  const khac = (i: number) => { const u = new Uint8Array(PNG.length + 1); u.set(PNG); u[PNG.length] = i; return u; };
+  assert.equal((await tai(w, { bytes: khac(1), headers: ip("1.1.1.1") })).status, 200);
+  assert.equal((await tai(w, { bytes: khac(2), headers: ip("1.1.1.1") })).status, 200);
+  const r = await tai(w, { bytes: khac(3), headers: ip("1.1.1.1") });
   assert.equal(r.status, 429, r.text);
-  assert.equal((await tai(w, { headers: ip("2.2.2.2") })).status, 200);
+  assert.equal((await tai(w, { bytes: khac(4), headers: ip("2.2.2.2") })).status, 200);
 });
 
 test("Đ3: KHÔNG có route đọc tệp nhận cookie đăng ký — GET trên đường tải không trả byte; không route GET nào của dang-ky nhắc tệp", async () => {
@@ -205,4 +208,66 @@ test("nhật ký không chứa khoá kho / băm của tệp chờ (bộ dò doNh
   assert.deepEqual(ds.lo, [], "nhật ký chứa giá trị hạng N3");
   const sk = w.q("SELECT command, reason_code FROM dk_event").map((x: any) => JSON.stringify(x)).join("");
   assert.equal(/pty\/[0-9a-f]{32}/.test(sk), false, "lịch sử phiếu không mang khoá kho");
+});
+
+const soLuotMang = (w: any): number => w.q("SELECT count(*) n FROM dk_upload_attempt")[0].n;
+const soSuKien = (w: any): number => w.q("SELECT count(*) n FROM dk_event WHERE command = 'THEM_TEP'")[0].n;
+
+test("Fix 1 — bảo trì BẬT ⇒ 503 `maintenance` cho người đăng ký (ADR-0206 Đ8), không dòng, không kho, không lượt đếm; TẮT lại thì tải được", async () => {
+  const w = setup();
+  w.sqlite.exec("UPDATE mnt_setting SET enabled = 1, ends_at = NULL WHERE id = 'default'");
+  const r = await tai(w);
+  assert.equal(r.status, 503, r.text);
+  assert.equal(r.json.error.code, "maintenance");
+  assert.deepEqual([dongTep(w).length, w.r2.soLan.put, soSuKien(w), soLuotMang(w)], [0, 0, 0, 0]);
+  assert.equal((await tai(w, { cookie: null })).status, 503, "chặn TRƯỚC khi kiểm cookie");
+  w.sqlite.exec("UPDATE mnt_setting SET enabled = 0 WHERE id = 'default'");
+  assert.equal((await tai(w)).status, 200);
+});
+
+test("Fix 2 — vượt trần trong khe đua (câu chèn đổi 0 dòng) ⇒ KHÔNG dòng lịch sử THEM_TEP và tệp cũ cùng ô không bị gỡ", async () => {
+  const w = setup();
+  const at = new Date().toISOString();
+  // Giả khe đua: kiểm trước ở route thấy ít hơn trần, nhưng đến lúc chèn đã đủ — nhét tám dòng tệp chờ SAU lượt kiểm trước bằng cách hạ trần xuống 1 sau khi đã có 1 tệp.
+  assert.equal((await tai(w)).status, 200);
+  const cu = dongTep(w)[0];
+  const { cauTepChoMoi } = await import("../parties/tep-cho.ts");
+  const { suKienThemTepStatement } = await import("./repository.ts");
+  const moi = cauTepChoMoi(w.env.DB, { registrationId: PHIEU, slot: TRUOC, contentKind: "png", byteSize: 3, contentHash: "e".repeat(64), actorRef: IDENT, toiDaMoiPhieu: 1 }, at);
+  const kq = await w.env.DB.batch([moi.statements[0], suKienThemTepStatement(w.env.DB, { registrationId: PHIEU, identityId: IDENT, at }), moi.statements[1]]);
+  assert.equal(kq[0].meta.changes, 0);
+  assert.equal(soSuKien(w), 1, "chỉ còn dòng lịch sử của lần tải thành công trước");
+  assert.equal(dongTep(w).length, 1);
+  assert.equal(dongTep(w)[0].purged_at, null, cu.id);
+});
+
+test("Fix 3 — câu ghi tệp có điều kiện trạng thái phiếu: phiếu rời ĐANG ĐIỀN giữa lúc kiểm và lúc ghi ⇒ cả lô hỏng, không dòng tệp", async () => {
+  const w = setup();
+  const at = new Date().toISOString();
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(PHIEU);
+  const { cauTepChoMoi } = await import("../parties/tep-cho.ts");
+  const { suKienThemTepStatement } = await import("./repository.ts");
+  const moi = cauTepChoMoi(w.env.DB, { registrationId: PHIEU, slot: TRUOC, contentKind: "png", byteSize: 3, contentHash: "f".repeat(64), actorRef: IDENT, toiDaMoiPhieu: 8 }, at);
+  await assert.rejects(w.env.DB.batch([moi.statements[0], suKienThemTepStatement(w.env.DB, { registrationId: PHIEU, identityId: IDENT, at }), moi.statements[1]]), /dk_event_tep_status/);
+  assert.equal(dongTep(w).length, 0, "lô hỏng ⇒ dòng tệp đã chèn bị huỷ");
+  assert.equal(soSuKien(w), 0);
+});
+
+test("Fix 4 — chỗ theo địa chỉ mạng chỉ đặt SAU khi tệp qua kiểm tra, và không đặt khi gửi lại cùng tệp (tải dở dang)", async () => {
+  const w = setup();
+  for (const x of [{ bytes: new TextEncoder().encode("<html/>") }, { slot: "O_LA" }, { body: { o: TRUOC, noiDung: "@@@@" } }]) await tai(w, x);
+  assert.equal(soLuotMang(w), 0, "tệp bị từ chối 415/400 không tốn lượt");
+  w.r2.hong.put = true;
+  await tai(w);
+  assert.equal(soLuotMang(w), 1);
+  w.r2.hong.put = false;
+  assert.equal((await tai(w)).status, 200);
+  assert.equal(soLuotMang(w), 1, "gửi lại đúng tệp sau «tải dở dang» không tốn thêm lượt");
+});
+
+test("Fix 5 — thiếu Content-Length ⇒ 411, không đọc thân, không dòng", async () => {
+  const w = setup();
+  const r = await tai(w, { khongContentLength: true });
+  assert.equal(r.status, 411, r.text);
+  assert.deepEqual([dongTep(w).length, w.r2.soLan.put, soLuotMang(w)], [0, 0, 0]);
 });

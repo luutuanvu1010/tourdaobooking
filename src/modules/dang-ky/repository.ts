@@ -42,13 +42,14 @@ const PHIEU_CUA_PHIEN = defineSql(
 export const phieuCuaPhien = (db: D1Database, registrationId: string, identityId: string): Promise<{ id: string; status: string } | null> =>
   db.prepare(PHIEU_CUA_PHIEN).bind(registrationId, identityId).first<{ id: string; status: string }>();
 
-// Dòng lịch sử «thêm tệp» (chỉ mã, không tên ô hay khoá kho); chỉ chèn khi phiếu còn ở trạng thái cho tải.
+// Dòng lịch sử «thêm tệp» (chỉ mã, không tên ô hay khoá kho). PHẢI đứng NGAY SAU câu chèn tệp trong lô: `changes() > 0` đọc kết quả của câu liền trước — câu chèn bị trần phiếu từ chối
+// (0 dòng) thì không có dòng lịch sử. Trạng thái phiếu do trigger dk_event_tep_status canh (sai ⇒ cả lô hỏng).
 const SU_KIEN_THEM_TEP = defineSql(
   "dang-ky",
   "event_add_file",
   `INSERT INTO dk_event (id, registration_id, actor_kind, actor_ref, command, reason_code, at, created_at, created_by, updated_at, updated_by)
    SELECT ?1, ?2, 'REGISTRANT', ?3, 'THEM_TEP', NULL, ?4, ?4, ?3, ?4, ?3
-   WHERE EXISTS (SELECT 1 FROM dk_registration WHERE id = ?2 AND status IN ('DANG_DIEN', 'CAN_BO_SUNG'))`,
+   WHERE changes() > 0`,
 );
 export const suKienThemTepStatement = (db: D1Database, v: { registrationId: string; identityId: string; at: string }): D1PreparedStatement =>
   db.prepare(SU_KIEN_THEM_TEP).bind(crypto.randomUUID(), v.registrationId, v.identityId, v.at);

@@ -16,7 +16,7 @@ CREATE TABLE pty_registration_attachment (
   slot             TEXT NOT NULL CHECK (slot = upper(slot) AND length(slot) BETWEEN 2 AND 40 AND slot NOT GLOB '*[^A-Z0-9_]*'),   -- ô của tệp trong phiếu (vd căn cước mặt trước)
   storage_key      TEXT NOT NULL UNIQUE CHECK (length(storage_key) = 36 AND substr(storage_key, 1, 4) = 'pty/' AND substr(storage_key, 5) NOT GLOB '*[^0-9a-f]*'),
   content_kind     TEXT NOT NULL CHECK (content_kind IN ('jpg', 'png', 'heic', 'pdf')),
-  byte_size        INTEGER NOT NULL CHECK (byte_size BETWEEN 1 AND 10485760),
+  byte_size        INTEGER NOT NULL CHECK (byte_size BETWEEN 1 AND 10485760),   -- 10 MB là TRẦN CẤU TRÚC (khuôn pty_attachment); trần thật 5 MB ở dk_policy.photo_max_mb, bị CHECK ≤ 10 ở 0167
   content_hash     TEXT CHECK (content_hash IS NULL OR (length(content_hash) = 64 AND content_hash NOT GLOB '*[^0-9a-f]*')),
   stored_at        TEXT,
   purged_at        TEXT,
@@ -124,3 +124,9 @@ CREATE TABLE dk_upload_attempt (
   updated_by  TEXT
 );
 CREATE INDEX dk_upload_attempt_ix ON dk_upload_attempt(ip_key, at_ms);
+
+-- Cổng trạng thái của lệnh «thêm tệp» (ADR-0208 Đ2): dòng lịch sử THEM_TEP là câu CUỐI trong lô tải (sau câu chèn tệp của parties); phiếu không còn ở ĐANG ĐIỀN / CẦN BỔ SUNG thì trigger làm hỏng
+-- CẢ LÔ (D1 hoàn tác), nên dòng tệp vừa chèn cũng mất — parties không phải đọc bảng dk_. Trigger chỉ đọc bảng dk_*.
+CREATE TRIGGER dk_event_tep_status BEFORE INSERT ON dk_event
+WHEN NEW.command = 'THEM_TEP' AND NOT EXISTS (SELECT 1 FROM dk_registration r WHERE r.id = NEW.registration_id AND r.status IN ('DANG_DIEN', 'CAN_BO_SUNG'))
+BEGIN SELECT RAISE(ABORT, 'dk_event_tep_status: phiếu không còn nhận tệp (chỉ khi đang điền hoặc cần bổ sung)'); END;

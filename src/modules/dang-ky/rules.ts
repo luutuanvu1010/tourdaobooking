@@ -1,5 +1,6 @@
 // dang-ky/rules.ts — luật thuần của phiếu đăng ký đối tác (ADR-0206 Đ4). Không I/O.
 // Đồ thị phải khớp trigger `dk_registration_transition` (migration 0167); bài rules.test.ts đối chiếu hai bên.
+import { CAU_SAI_LOAI, doDaiBase64, giaiBase64, nhanLoaiTep, type LoaiTep } from "../../shared/tep-dinh-kem.ts";
 
 export const TRANG_THAI = ["DANG_DIEN", "CHO_XAC_MINH", "CAN_BO_SUNG", "CHO_DUYET", "DA_DUYET", "TU_CHOI", "DA_RUT", "HET_HAN"] as const;
 export type TrangThai = (typeof TRANG_THAI)[number];
@@ -28,7 +29,6 @@ export function chuyenHopLe(tu: TrangThai, den: TrangThai): boolean {
 }
 
 // ---- Tệp của phiếu (ADR-0208 Đ2): luật thuần kiểm MỘT tệp tải lên ----
-import { CAU_SAI_LOAI, doDaiBase64, giaiBase64, nhanLoaiTep, type LoaiTep } from "../../shared/tep-dinh-kem.ts";
 
 /** Ô tệp của phiếu cá nhân (đợt 1): căn cước mặt trước, mặt sau. Ô mới = thêm vào đây cùng ô khai ở phiếu. */
 export const O_TEP_PHIEU = ["CCCD_MAT_TRUOC", "CCCD_MAT_SAU"] as const;

@@ -21,7 +21,7 @@ CREATE TABLE dk_policy (
   draft_expire_days       INTEGER NOT NULL CHECK (draft_expire_days > 0),
   supplement_expire_days  INTEGER NOT NULL CHECK (supplement_expire_days > 0),
   activation_days         INTEGER NOT NULL CHECK (activation_days > 0),
-  photo_max_mb            INTEGER NOT NULL CHECK (photo_max_mb > 0),
+  photo_max_mb            INTEGER NOT NULL CHECK (photo_max_mb BETWEEN 1 AND 10),   -- ≤ 10 MB: trần cấu trúc của pty_registration_attachment.byte_size (0168)
   photo_max_count         INTEGER NOT NULL CHECK (photo_max_count > 0),
   anonymize_days          INTEGER NOT NULL CHECK (anonymize_days > 0),       -- ĐỔI SỐ NÀY LÀ ĐỔI THỜI GIAN GIỮ DỮ LIỆU CÁ NHÂN CỦA NGƯỜI LẠ
   files_per_network_hour  INTEGER NOT NULL CHECK (files_per_network_hour > 0),  -- tệp tải lên mỗi giờ mỗi địa chỉ mạng (ADR-0208 Đ2)
