@@ -45,7 +45,8 @@ try {
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const p = r.body.phieu;
   assert.deepEqual([p.tong, p.daThu, p.conLai], [270000, 0, 270000], JSON.stringify(p));
-  assert.deepEqual(Object.keys(p.dong[0]).sort(), ["giaDaiLy", "ten", "thieuMuc"], "dòng phiếu chỉ giá đại lý");
+  // Thêm CÓ CHỦ ĐÍCH khoá `mienPhi` (ADR-0203 ĐB3: dòng phí mức 0 đồng ghi «Miễn phí»; dòng dịch vụ luôn false) — vẫn không có hoa hồng / tỷ lệ.
+  assert.deepEqual(Object.keys(p.dong[0]).sort(), ["giaDaiLy", "mienPhi", "ten", "thieuMuc"], "dòng phiếu chỉ giá đại lý");
   if (p.qr) {
     assert.equal(p.qr.soTien, 270000, "QR = Công nợ còn lại, không đọc ?soTien");
     assert.match(p.qr.noiDung, /^DL/);
