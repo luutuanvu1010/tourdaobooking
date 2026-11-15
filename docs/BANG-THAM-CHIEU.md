@@ -136,6 +136,8 @@ Mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn. 
 | **Dịch vụ có đón** | Điều kiện khi chỉnh «Hiển thị trường theo màn hình»: dịch vụ trong đơn được chọn «Đón». Dòng chỉnh gắn điều kiện này chỉ áp cho những dịch vụ đó. | Khác «Không đón»; dịch vụ chưa chọn đón thì không thuộc điều kiện nào, chỉ theo dòng không gắn điều kiện. |  | `DICH_VU_CO_DON` `src/shared/ui-dieu-kien.ts` | chờ chọn |  |
 | **Chi tiết đơn** | Màn chỉ xem trong phần chỉnh hiển thị trường: trang một đơn (email khách, ghi chú khách, ghi chú thanh toán, người lập). Ẩn ở đây chỉ ẩn chữ trên màn hình, không phải cấm xem. | Quyền xem đơn vẫn do quyền của tài khoản quyết định; dữ liệu vẫn có trong phản hồi của máy chủ. |  | `MAN_UI.chi-tiet-don` | chờ chọn |  |
 | **Danh sách đơn** | Màn chỉ xem trong phần chỉnh hiển thị trường: danh sách các đơn (ghi chú khách, điểm đón, người lập, giờ lập, số khách). Ẩn ở đây chỉ ẩn chữ trên màn hình, không phải cấm xem. | Quyền xem đơn vẫn do quyền của tài khoản quyết định. |  | `MAN_UI.danh-sach-don` | chờ chọn |  |
+| **Khu vực đón** | Nhóm các điểm đón dùng chung một mức phí đưa đón. Mỗi địa điểm thuộc đúng một khu vực; địa điểm chưa xếp được tính vào «Ngoài khu vực». | «Địa điểm» là một nơi cụ thể (bến tàu, khách sạn, quầy vé); khu vực là nhóm nhiều địa điểm để tính phí. |  | `loc_zone` `zone_code` `VungDonDto` | đã chốt | 2026-11-14 (chủ dự án: «Dùng tên đó, làm đi») |
+| **Ngoài khu vực** | Khu vực gieo sẵn, luôn bật, không ngưng được. Địa điểm chưa xếp và nơi đón gõ tay được tính vào đây. | Không phải «chưa có mức phí»: khu vực này vẫn phải có mức phí đặt rõ, thiếu mức thì chặn chứ không tính 0 đồng. |  | `NGOAI_VUNG` | đã chốt | 2026-11-14 (chủ dự án: «Dùng tên đó, làm đi») |
 
 ## Thuật ngữ trong mã
 
@@ -227,7 +229,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (91)
+## Việc chờ chọn (95)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -312,6 +314,10 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Khôi phục mặc định | `web/bang-dieu-khien-truong.ts`: Khôi phục mặc định | Giao diện công ty | ADR-0194 đợt 1: chữ «Khôi phục mặc định» do ADR nêu; chủ chưa chọn riêng tên nút (phương án khác: «Về mặc định», «Đặt lại màn này») |
 | Gửi thông báo | `web/gui-thong-bao.ts`: [biểu tượng megaphone] / Gửi thông báo | Gửi thông báo | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Thu hồi | `web/gui-thong-bao.ts`: Thu hồi | Gửi thông báo | rà soát 2026-11-04: chưa rõ, chờ chủ |
+| Tắt phí đưa đón | `web/phi-don.ts`: Tắt phí đưa đón | Phí đưa đón | tên tạm của Task 8 (2026-11-14), chưa chủ chọn |
+| ＋ Thêm mức phí | `public/phi-don.html`: Thêm mức phí<br>`web/phi-don.ts`: Lưu ngày bắt đầu áp / Lưu ngày kết thúc / Lưu mức phí | Phí đưa đón | tên tạm của Task 8 (2026-11-14), chưa chủ chọn; «Thêm mức» đã dùng cho mức hoa hồng |
+| Đổi mức phí | `web/phi-don.ts`: Đổi mức phí | Phí đưa đón | tên tạm của Task 8 (2026-11-14), chưa chủ chọn; «Đổi mức» đã dùng cho mức hoa hồng |
+| Kết thúc mức | `web/phi-don.ts`: Kết thúc mức | Phí đưa đón | tên tạm của Task 8 (2026-11-14), chưa chủ chọn |
 | Thêm công việc | `web/parties.ts`: Thêm công việc<br>`web/parties.ts`: Thêm công việc | Vai trò hồ sơ · công ty chủ | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Kết thúc | `web/parties.ts`: Kết thúc | Vai trò hồ sơ · công ty chủ | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Gửi | `web/ho-tro-luong.ts`: Gửi<br>`web/ho-tro-luong.ts`: Trả lời người gửi<br>`web/ho-tro-luong.ts`: Ghi chú nội bộ | Vé hỗ trợ: trả lời | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -325,7 +331,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu bộ não | `web/tro-ly-cai-dat.ts`: Lưu bộ não | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Lưu thành bản mới | `web/tro-ly-cai-dat.ts`: Lưu thành bản mới | Cài đặt Trợ lý: bộ não và lời dặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 
-## Việc quan trọng (337)
+## Việc quan trọng (345)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -1579,6 +1585,19 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 |---|---|---|---|---|---|---|---|
 | **Thêm** | Địa điểm › khung «Thêm địa điểm» | Thêm một địa điểm mới (mã, tên, loại, địa chỉ, thứ tự) vào danh mục dùng cho nơi đón, nơi trả, nơi làm. Mã không đổi được sau khi tạo. | không | một phần: không xoá được, chỉ Ngưng dùng bằng nút Sửa | `/api/locations`<br>nhật ký `location_created` | `public/locations.html`: Thêm | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
 | **Sửa** | Địa điểm › mỗi dòng (bảng và thẻ) › khung «Sửa: <mã>» | Sửa tên, loại, địa chỉ, thứ tự, số «Chọn nhanh» (hiện thành nút bấm ở form Tạo đơn) và công tắc «Đang dùng» (bỏ tick = ngưng dùng). Có khoá chống ghi đè khi hai người cùng sửa. | không | được: sửa lại; tick lại «Đang dùng» để dùng lại | `/api/locations/:x`<br>nhật ký `location_updated` | `web/locations.ts`: Sửa<br>`web/locations.ts`: Lưu | tên hiện tại, chủ chưa chọn riêng (rà soát 2026-11-04: tên đúng) |
+| **Thêm khu vực đón** | Địa điểm › thẻ «Khu vực đón» › khung thêm | Thêm một khu vực đón mới (mã, tên, thứ tự). Khu vực gom các địa điểm dùng chung một mức phí đưa đón. Mã không đổi được sau khi tạo. | không | một phần: không xoá được, chỉ ngưng bằng nút Sửa khu vực đón | `/api/location-zones`<br>nhật ký `location_zone_created` | `public/locations.html`: Thêm khu vực đón | đã chốt (chủ chọn 2026-11-14) |
+| **Sửa khu vực đón** | Địa điểm › thẻ «Khu vực đón» › mỗi khu vực › khung «Sửa: <mã>» | Sửa tên, thứ tự và công tắc «Đang dùng» của một khu vực đón (bỏ tick = ngưng). Khu vực còn địa điểm, và khu vực «Ngoài khu vực», không ngưng được. Có khoá chống ghi đè khi hai người cùng sửa. | không | được: sửa lại; tick lại «Đang dùng» để dùng lại | `/api/location-zones/:x`<br>nhật ký `location_zone_updated` | `web/locations.ts`: Sửa khu vực đón | đã chốt (chủ chọn 2026-11-14) |
+
+### Phí đưa đón
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Đặt ngày bắt đầu áp** | Phí đưa đón › khối đầu › nút «Đặt ngày bắt đầu áp» và khung «Đặt ngày bắt đầu áp» | Đặt (hoặc đổi) ngày từ đó Nền tảng tính phí đưa đón theo bảng mức. Máy chủ chỉ cho đặt khi mọi khu vực đang dùng có một mức chung còn hiệu lực vào ngày đó; thiếu thì báo đúng danh sách khu vực còn thiếu. Có khoá chống ghi đè khi hai người cùng đặt. | có khung nhập ngày | được: đặt ngày khác, hoặc «Tắt phí đưa đón» | `/api/pricing/phi-don/bat-dau-ap`<br>nhật ký `prc_transfer_fee_start_set` | `web/phi-don.ts`: Đặt ngày bắt đầu áp | đã chốt (chủ chọn 2026-11-14) |
+| **Tắt phí đưa đón** | Phí đưa đón › khối đầu › nút «Tắt phí đưa đón» (chỉ hiện khi đang có ngày áp) › hộp xác nhận | Ghi dòng «chưa áp phí đưa đón»: từ lúc này đơn có đưa đón không tính phí đón nữa. Các mức đã đặt vẫn còn. | có (hộp xác nhận nói hậu quả) | được: «Đặt ngày bắt đầu áp» để bật lại (cần đủ mức chung cho mọi khu vực) | `/api/pricing/phi-don/bat-dau-ap`<br>nhật ký `prc_transfer_fee_start_set` | `web/phi-don.ts`: Tắt phí đưa đón | chờ chọn (tên tạm của Task 8 (2026-11-14), chưa chủ chọn) |
+| **Thử tra** | Phí đưa đón › khối «Thử tra» | Hỏi máy chủ mức phí đón sẽ áp cho một tình huống (khu vực, dịch vụ, cấp, chiều, đi chung hay xe riêng, số khách, ngày) và vì sao các mức khác thua. Chỉ đọc, không ghi gì; số tiền do máy chủ tính. | không | không áp dụng (chỉ xem) | (chưa nối) | `web/phi-don.ts`: Thử tra | đã chốt (chủ chọn 2026-11-14) |
+| **＋ Thêm mức phí** | Phí đưa đón › nút «＋ Thêm mức phí» và hộp «Đổi mức phí» (cùng một khung nhập) | Thêm một mức phí đưa đón: khu vực, đi chung (theo khách) hay xe riêng (theo chuyến), cấp, dịch vụ hoặc nhóm, chiều, số tiền (0 = miễn phí), ngày bắt đầu và kết thúc. Mức mới không được chồng ngày với mức cùng điều kiện. Sau khi lưu, máy chủ nhắc nếu có cấp trả cao hơn bên không có cấp (không chặn). | có khung nhập | một phần: «Kết thúc mức» hoặc «Đổi mức phí»; dòng đã đặt không xoá được | `/api/pricing/phi-don`<br>nhật ký `prc_transfer_fee_added` | `public/phi-don.html`: Thêm mức phí<br>`web/phi-don.ts`: Lưu ngày bắt đầu áp / Lưu ngày kết thúc / Lưu mức phí | chờ chọn (tên tạm của Task 8 (2026-11-14), chưa chủ chọn; «Thêm mức» đã dùng cho mức hoa hồng) |
+| **Đổi mức phí** | Phí đưa đón › dòng mức đang mở › nút «Đổi mức phí» › khung nhập | Mức cũ kết thúc vào ngày liền trước ngày bắt đầu của mức mới, rồi mở mức mới cùng kiểu tính và cùng điều kiện với số tiền mới, trong một lần ghi (thất bại thì không đổi gì). Cần cho mức chung của khu vực khi phí đang áp, vì không được để hở ngày. | có khung nhập | một phần: đổi lại bằng một lần «Đổi mức phí» nữa; mức cũ không mở lại được | `/api/pricing/phi-don`<br>nhật ký `prc_transfer_fee_ended`<br>nhật ký `prc_transfer_fee_added` | `web/phi-don.ts`: Đổi mức phí | chờ chọn (tên tạm của Task 8 (2026-11-14), chưa chủ chọn; «Đổi mức» đã dùng cho mức hoa hồng) |
+| **Kết thúc mức** | Phí đưa đón › dòng mức đang mở › nút «Kết thúc mức» › khung nhập ngày | Đặt ngày kết thúc cho một mức phí đưa đón (chỉ rút ngắn, không kéo dài). Khi phí đang áp, không kết thúc được mức chung cuối cùng của một khu vực; máy chủ báo khu vực còn thiếu. | có khung nhập ngày | không: ngày kết thúc không nới lại được; thêm mức mới nếu cần | `/api/pricing/phi-don/:x/ket-thuc`<br>nhật ký `prc_transfer_fee_ended` | `web/phi-don.ts`: Kết thúc mức | chờ chọn (tên tạm của Task 8 (2026-11-14), chưa chủ chọn) |
 
 ### Hồ sơ Danh bạ
 

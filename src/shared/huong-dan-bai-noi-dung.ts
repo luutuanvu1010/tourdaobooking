@@ -239,4 +239,28 @@ Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân h�
 | Áp dụng xong thấy chữ nhạt, đọc không rõ | Bấm [[Về mặc định toàn bộ]]. |
 | Chỉ muốn trả một ô về như cũ | Bấm [[Về mặc định]] ngay ô đó. |`,
   },
+  {
+    id: "phi-don",
+    tieuDe: "Đặt phí đưa đón theo khu vực",
+    nhomViec: "Cài đặt",
+    trang: "phiDon",
+    o: ["admin.manage"],
+    gioiHan: [],
+    neo: ["web/phi-don.ts", "public/phi-don.html", "src/shared/phi-don-hien-thi.ts"],
+    moDau: "Hiện phí đưa đón chưa được cộng vào đơn; bảng này để chuẩn bị trước. Phí đưa đón tính theo bảng mức của từng khu vực đón. Khi phí được cộng vào đơn, thiếu mức thì đơn không xác nhận được, Nền tảng không bao giờ tự tính 0 đồng; muốn miễn phí thì đặt một mức 0 đồng.",
+    noiDung: `### Các bước
+1. Mở **Phí đưa đón**. Bấm [[＋ Thêm mức phí]], chọn khu vực, đi chung hay xe riêng, gõ số tiền (0 là miễn phí) và ngày bắt đầu, rồi bấm [[Lưu mức phí]].
+2. Mỗi khu vực cần ít nhất một mức chung (không chọn cấp, dịch vụ hay nhóm). Mức riêng hơn (theo cấp, dịch vụ, nhóm, chiều) được ưu tiên khi khớp.
+3. Muốn xem một đơn sẽ bị tính bao nhiêu, điền khối **Thử tra** rồi bấm [[Thử tra]]. Kết quả ghi mức nào được dùng và vì sao các mức khác không được dùng.
+4. Khi mọi khu vực đã có mức chung, bấm [[Đặt ngày bắt đầu áp]] để bắt đầu tính phí. Thiếu khu vực nào thì màn báo đúng tên khu vực đó.
+
+### Đổi giá và kết thúc mức
+- Đổi số tiền: bấm [[Đổi mức phí]] ở dòng đó, gõ số tiền mới và ngày bắt đầu. Mức cũ tự kết thúc vào ngày liền trước.
+- Ngừng một mức: bấm [[Kết thúc mức]]. Khi phí đang áp, mức chung cuối cùng của một khu vực không kết thúc được.
+- Muốn dừng tính phí: bấm [[Tắt phí đưa đón]]. Các mức đã đặt vẫn còn.
+
+### Điều dễ sai
+- Khung màu vàng trên bảng là lời nhắc: một cấp đang trả cao hơn bên không có cấp. Vẫn lưu được, chỉ nhắc để xem lại.
+- Mức đã đặt không xoá được, chỉ kết thúc hoặc đổi.`,
+  },
 ];

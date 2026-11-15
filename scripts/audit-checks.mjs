@@ -2389,6 +2389,29 @@ export const CHECKS = [
     level: "fail",
     note: "tiền khách của đối tác đã vào tay Công ty hoặc người khác dù công tắc đang Tắt (đường ghi tiền lọt cổng, hoặc SQL chạy tay): đối chiếu từng đơn nêu mã, đảo khoản và nhờ Kế toán ghi lại đúng người thu",
   },
+
+  // ---- Phí đưa đón (ADR-0147 Đ2, ADR-0203 ĐB1; migration 0165). Trigger / CHECK là đường chặn thứ nhất; hai kiểm này là lưới thứ hai cho SQL chạy tay. ----
+  {
+    // R-PRC-PD-1: chữ ký điều kiện = các dòng con sắp theo key_code, nối «KEY=value» bằng «|» (cùng công thức chuKyDieuKien ở phi-don-rules.ts); lệch thì trigger chồng ngày canh sai khoá.
+    code: "R-PRC-PD-1",
+    what: "dòng mức phí đưa đón có chữ ký điều kiện (condition_sig) khác chữ ký tính lại từ các dòng điều kiện con",
+    sql: `SELECT count(*) FROM prc_transfer_fee_rule r
+      WHERE r.condition_sig IS NOT COALESCE((SELECT group_concat(key_code || '=' || value, '|') FROM (SELECT key_code, value FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id ORDER BY key_code)), '')`,
+    level: "fail",
+    note: "ADR-0203 ĐB1: chữ ký lệch dòng con (SQL chạy tay hoặc mã ghi sai) làm chặn trùng ngày không còn đúng — đóng dòng mức đó, thêm lại dòng đúng",
+  },
+  {
+    // R-PRC-PD-2: dòng mức đúng luật khuôn: đúng một ZONE; PER_TRIP ⇔ có EXCLUSIVE; không vừa SERVICE vừa SERVICE_GROUP.
+    code: "R-PRC-PD-2",
+    what: "dòng mức phí đưa đón sai khuôn: không đúng một điều kiện khu vực, hoặc kiểu theo chuyến không đi cùng điều kiện xe riêng, hoặc vừa nêu dịch vụ vừa nêu nhóm dịch vụ",
+    sql: `SELECT count(*) FROM prc_transfer_fee_rule r
+      WHERE (SELECT count(*) FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id AND c.key_code = 'ZONE') <> 1
+         OR (r.kind = 'PER_TRIP') <> EXISTS (SELECT 1 FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id AND c.key_code = 'EXCLUSIVE')
+         OR (EXISTS (SELECT 1 FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id AND c.key_code = 'SERVICE')
+             AND EXISTS (SELECT 1 FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id AND c.key_code = 'SERVICE_GROUP'))`,
+    level: "fail",
+    note: "ADR-0203 ĐB1: mỗi dòng mức có đúng một khu vực; theo chuyến ⇔ xe riêng; không vừa dịch vụ vừa nhóm — đóng dòng mức sai, thêm lại dòng đúng",
+  },
 ];
 
 /**

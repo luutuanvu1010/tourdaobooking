@@ -4740,3 +4740,33 @@ test("R-VC-36 (ADR-0184): xuất bến thiếu giấy tờ phải có dòng cho 
   cho(t, "xe-1", { nguoi: null });
   assert.equal(violations(db, c), 9, "dòng mềm có lý do, người ghi trống: trigger 0147 cho qua nên lưới này cũng không báo");
 });
+
+// ---- Phí đưa đón (ADR-0147 Đ2, ADR-0203 ĐB1; migration 0165): R-PRC-PD-1, R-PRC-PD-2 — lưới THỨ HAI sau trigger / CHECK ----
+test("R-PRC-PD-1/2: dữ liệu sạch → 0; chữ ký lệch dòng con, thiếu ZONE, kiểu ↔ EXCLUSIVE lệch, vừa SERVICE vừa SERVICE_GROUP → vi phạm", () => {
+  const c1 = one("R-PRC-PD-1");
+  const c2 = one("R-PRC-PD-2");
+  assert.equal(c1.level, "fail");
+  assert.equal(c2.level, "fail");
+  const db = build();
+  let k = 0;
+  const muc = (kind: string, sig: string, dks: [string, string][]): string => {
+    const id = `pd-${++k}`;
+    db.prepare("INSERT INTO prc_transfer_fee_rule (id, kind, amount, valid_from_date, valid_to_date, condition_sig, note, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 1000, '2026-12-01', NULL, ?, NULL, ?, NULL, ?, NULL)").run(id, kind, sig, T1, T1);
+    for (const [key, value] of dks) db.prepare("INSERT INTO prc_transfer_fee_condition (rule_id, key_code, value, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, NULL, ?, NULL)").run(id, key, value, T1, T1);
+    return id;
+  };
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [0, 0], "chưa dòng nào");
+  muc("PER_PAX", "TIER=C1|ZONE=CR", [["ZONE", "CR"], ["TIER", "C1"]]);
+  muc("PER_TRIP", "EXCLUSIVE=1|ZONE=TT", [["ZONE", "TT"], ["EXCLUSIVE", "1"]]);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [0, 0], "ca sạch");
+  muc("PER_PAX", "ZONE=BAC|TIER=C9", [["ZONE", "BAC"], ["TIER", "C1"]]);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 0], "chữ ký lệch dòng con");
+  muc("PER_PAX", "TIER=C1", [["TIER", "C1"]]);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 1], "thiếu ZONE");
+  muc("PER_TRIP", "ZONE=TT", [["ZONE", "TT"]]);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 2], "PER_TRIP mà không có EXCLUSIVE");
+  muc("PER_PAX", "EXCLUSIVE=1|ZONE=CR", [["ZONE", "CR"], ["EXCLUSIVE", "1"]]);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 3], "có EXCLUSIVE mà PER_PAX");
+  muc("PER_PAX", "SERVICE=S1|SERVICE_GROUP=G1|ZONE=CR", [["ZONE", "CR"], ["SERVICE", "S1"], ["SERVICE_GROUP", "G1"]]);
+  assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 4], "vừa SERVICE vừa SERVICE_GROUP");
+});

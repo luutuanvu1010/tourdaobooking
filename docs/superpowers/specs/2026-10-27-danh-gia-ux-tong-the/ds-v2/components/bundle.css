@@ -469,6 +469,15 @@ body.trang-chu #topbar button.bar-avatar { padding: 0; margin-right: 0; }
 @media (max-height: 500px) { /* chỉ màn thấp: điện thoại cầm dọc luôn cao hơn; một điều kiện để khớp luật miễn điều kiện @media của máy quét giá trị cứng */
   .form-actions, #order-form .form-actions, .vc-bottom-bar, .vc-form-actions, .chan-dinh { position: static; }
 }
+
+/* Màn «Phí đưa đón» (kế hoạch Phí đưa đón, Đợt B Task 8): chỉ token. */
+.pd-khoi { margin-bottom: var(--s4); }
+.pd-o { display: grid; gap: var(--s1); }
+.pd-kq { display: grid; gap: var(--s1); }
+.pd-kq-chinh { font-weight: var(--fw-semibold); }
+.pd-vung { margin-bottom: var(--s4); }
+.pd-vung h3 { margin: var(--s3) 0 var(--s2); }
+.pd-form { margin-bottom: var(--s4); }
 /* ===== CHÉP TỪ MÃ — hết ===== */
 
 /* ===== RIÊNG CỦA BỘ (1) — lớp xem trước ===== */
