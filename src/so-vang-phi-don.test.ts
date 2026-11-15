@@ -1,5 +1,6 @@
 // Sổ vàng golden/phi-dua-don.json (Hiến chương 5.17; ADR-0147, ADR-0203). CHƯA có mã phí đón, nên hôm nay chỉ có LỚP 1: mỗi ca tự cân (bắt CA MẪU viết sai) —
 // khuôn, trạng thái xác nhận, dòng mức có thật và còn hiệu lực ngày xác nhận, tiền = đơn giá × số lượng, tổng = tổng các chặng, 0 đồng ⇔ nhãn «Miễn phí».
+// LỚP 3 (Đợt C, Task 2): chạy cả ca đã xác nhận qua `tinhPhiDonThuan` (hàm của đơn) và so từng chặng, tổng, xác nhận được.
 // LỚP 2 (từ Đợt B, Task 6): chạy ca đã xác nhận qua luật thuần `src/modules/pricing/phi-don-rules.ts`; chỉ ca "da_xac_nhan" được đếm, ca còn chờ là test.todo, và danh sách MA_BAT_BUOC canh để ca không lặng lẽ rơi — không «xanh vì rỗng».
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -7,7 +8,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isISODate } from "./shared/vn-date.ts";
-import { capCuaHoSoNgay, chonMucPhiDon, tinhPhiChang, type ChangTinhPhi, type DieuKienPhiDon, type MucPhiDon } from "./modules/pricing/phi-don-rules.ts";
+import { capCuaHoSoNgay, chonMucPhiDon, tinhPhiChang, tinhPhiDonThuan, type ChangDauVao, type ChangTinhPhi, type DieuKienPhiDon, type MucPhiDon } from "./modules/pricing/phi-don-rules.ts";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 type Muc = { id: string; kieu: "PER_PAX" | "PER_TRIP"; vung: string; cap: string | null; dich_vu: string | null; nhom: string | null; chieu: string | null; xe_rieng: boolean; tien: number; tu: string; den: string | null };
@@ -163,4 +164,41 @@ test("sổ vàng phí đón — lớp 2: luật thuần ra đúng đáp án", ()
     assert.equal(c.dap_an.tong_phi_don, thieu ? null : tong, `${c.ma}: tổng`);
   }
   assert.ok(soChang >= 25, `chỉ ${soChang} chặng được chạy`);
+});
+
+// ---- LỚP 3: hàm tính phí của MỘT đơn (`tinhPhiDonThuan`) ra đúng đáp án, kể cả tổng và «xác nhận được» (Đợt C, Task 2) ----
+/** Đầu vào của hàm đơn từ một ca sổ vàng: bảng + cấp dựng như lớp 2, nhóm dịch vụ lấy từ sổ. */
+export function dauVaoDon(c: Ca) {
+  const nhom = new Map<string, string | null>(Object.entries(so.dich_vu).map(([ma, d]) => [ma, d.nhom]));
+  const chang: ChangDauVao[] = c.dau_vao.chang.map((ch, i) => ({
+    legKey: `c${i + 1}`, zoneCode: ch.vung, direction: ch.chieu, exclusive: ch.xe_rieng, catalogCode: ch.dich_vu,
+    soKhachTinhTien: (ch.khach.nguoi_lon ?? 0) + (ch.khach.tre_em ?? 0) + (ch.khach.cao_tuoi ?? 0), paxOverride: ch.so_nguoi_rieng ?? null,
+  }));
+  return { bang: { batDauAp: so.ngay_bat_dau_ap, muc: bangMuc(), cap: capCuaCa(c) }, nhom, ngay: c.dau_vao.ngay_xac_nhan, chang };
+}
+test("sổ vàng phí đón — lớp 3: hàm tính phí của đơn ra đúng đáp án", () => {
+  const chay = so.cac_ca.filter((c) => c.xac_nhan.trang_thai === "da_xac_nhan");
+  for (const ma of MA_BAT_BUOC) assert.ok(chay.some((c) => c.ma === ma), `ca bắt buộc ${ma} không được rơi khỏi lớp 3`);
+  for (const c of chay) {
+    const kq = tinhPhiDonThuan(dauVaoDon(c));
+    assert.equal(kq.apDung, c.dap_an.ap_dung, `${c.ma}: áp dụng`);
+    if (!kq.apDung) { assert.equal(c.dap_an.chang.length, 0, c.ma); continue; }
+    const cap = capCuaCa(c);
+    const capChup = cap.loai === "CO_CAP" ? cap.tierCode : null;
+    let tong = 0;
+    c.dau_vao.chang.forEach((_, i) => {
+      const k = c.dap_an.chang[i]!;
+      const nhan = `${c.ma} chặng ${i + 1}`;
+      const dong = kq.dong.find((d) => d.legKey === `c${i + 1}`);
+      const thieu = kq.thieu.find((d) => d.legKey === `c${i + 1}`);
+      if (k.ket_qua === "THIEU_MUC") { assert.equal(dong, undefined, nhan); assert.equal(thieu?.lyDo, k.ly_do, `${nhan}: lý do`); return; }
+      assert.equal(thieu, undefined, nhan);
+      assert.ok(dong, `${nhan}: phải ra dòng`);
+      assert.deepEqual([dong!.ruleId, dong!.kind, dong!.donGia, dong!.soLuong, dong!.tien, dong!.tierCode], [k.quy_tac, k.kieu, k.don_gia, k.so_luong, k.tien, k.cap_da_chup ?? null], nhan);
+      assert.equal(dong!.tierCode, capChup, `${nhan}: cấp đã chụp`);
+      tong += dong!.tien;
+    });
+    assert.equal(kq.thieu.length === 0 ? tong : null, c.dap_an.tong_phi_don, `${c.ma}: tổng (null ⇔ có thiếu)`);
+    assert.equal(kq.thieu.length === 0, c.dap_an.xac_nhan_duoc, `${c.ma}: xác nhận được`);
+  }
 });

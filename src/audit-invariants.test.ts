@@ -4813,3 +4813,24 @@ test("R-PRC-PD-1/2: dữ liệu sạch → 0; chữ ký lệch dòng con, thiế
   muc("PER_PAX", "SERVICE=S1|SERVICE_GROUP=G1|ZONE=CR", [["ZONE", "CR"], ["SERVICE", "S1"], ["SERVICE_GROUP", "G1"]]);
   assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 4], "vừa SERVICE vừa SERVICE_GROUP");
 });
+
+// ---- R-PRC-PD-3 (Đợt C, Task 2): khu vực bật chưa có mức chung khi phí đã bật → cảnh báo ----
+test("R-PRC-PD-3: phí chưa bật → 0; đã bật mà thiếu dòng chung → 1 vùng/vi phạm; thêm dòng chung (chỉ ZONE, đi chung) → 0; dòng có thêm điều kiện không tính", () => {
+  const c = one("R-PRC-PD-3");
+  assert.equal(c.level, "warn");
+  const db = build();
+  const vung = Number(db.prepare("SELECT count(*) AS n FROM loc_zone WHERE active = 1").get()!.n);
+  assert.ok(vung >= 1, "CSDL dựng sẵn có ít nhất vùng Ngoài khu vực");
+  assert.equal(violations(db, c), 0, "chưa có ngày bắt đầu áp");
+  db.prepare("INSERT INTO prc_transfer_fee_start (id, start_date, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('s1', '2026-01-01', '2026-01-01T00:00:00.000Z', ?, NULL, ?, NULL)").run(T1, T1);
+  assert.equal(violations(db, c), vung, "phí đã bật mà chưa có mức nào");
+  const muc = (id: string, dks: [string, string][]) => {
+    db.prepare("INSERT INTO prc_transfer_fee_rule (id, kind, amount, valid_from_date, valid_to_date, condition_sig, note, created_at, created_by, updated_at, updated_by) VALUES (?, 'PER_PAX', 1000, '2026-01-01', NULL, ?, NULL, ?, NULL, ?, NULL)").run(id, dks.map(([k, v]) => `${k}=${v}`).sort().join("|"), T1, T1);
+    for (const [k, v] of dks) db.prepare("INSERT INTO prc_transfer_fee_condition (rule_id, key_code, value, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, NULL, ?, NULL)").run(id, k, v, T1, T1);
+  };
+  const ma = String(db.prepare("SELECT code FROM loc_zone WHERE active = 1 ORDER BY code LIMIT 1").get()!.code);
+  muc("pd-a", [["ZONE", ma], ["TIER", "C1"]]);
+  assert.equal(violations(db, c), vung, "dòng có cấp không phải dòng chung");
+  muc("pd-b", [["ZONE", ma]]);
+  assert.equal(violations(db, c), vung - 1, "vùng đã có dòng chung");
+});

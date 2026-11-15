@@ -3190,7 +3190,8 @@ export interface MucPhiDonDto { id: string; kieu: "PER_PAX" | "PER_TRIP"; tien: 
   dieuKien: { vung: string; cap: string | null; dichVu: string | null; nhom: string | null; chieu: "OUT" | "RETURN" | null; xeRieng: boolean }; updatedAt: string }
 /** Cảnh báo KHÔNG CHẶN: cấp `cap` đang trả `tienCap` đ, CAO HƠN mức không có cấp `tienKhongCap` đ ở cùng chặng (vùng, chiều, xe riêng, dịch vụ hoặc nhóm). */
 export interface CanhBaoPhiDonDto { cap: string; vung: string; chieu: "OUT" | "RETURN"; xeRieng: boolean; dichVu: string | null; nhom: string | null; tienCap: number; tienKhongCap: number }
-export interface PhiDonResponse { muc: MucPhiDonDto[]; batDauAp: { ngay: string | null; tuLuc: string | null }; canhBao: CanhBaoPhiDonDto[];
+/** `vungThieuMucChung`: vùng đón đang bật chưa có mức chung còn hiệu lực hôm nay (hoặc vào ngày bắt đầu áp, nếu ở tương lai) — màn hiện băng báo, không chặn. */
+export interface PhiDonResponse { muc: MucPhiDonDto[]; vungThieuMucChung: { code: string; name: string }[]; batDauAp: { ngay: string | null; tuLuc: string | null }; canhBao: CanhBaoPhiDonDto[];
   vung: { code: string; name: string }[]; cap: { code: string; name: string }[]; nhom: { code: string; name: string }[]; dichVu: { code: string; name: string; nhom: string | null }[] }
 /** Thân `POST /api/pricing/phi-don`: `thayCho` (tuỳ chọn) = đổi mức — đóng dòng `id` ngày liền trước `validFrom` rồi thêm dòng mới trong một lần ghi; dòng mới phải cùng kiểu tính và cùng bộ điều kiện. `expectedUpdatedAt` = `updatedAt` đã đọc của dòng cũ. */
 export interface PhiDonThayCho { id: string; expectedUpdatedAt: string }

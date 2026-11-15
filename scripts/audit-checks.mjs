@@ -2447,6 +2447,21 @@ export const CHECKS = [
     level: "fail",
     note: "ADR-0203 ĐB1: mỗi dòng mức có đúng một khu vực; theo chuyến ⇔ xe riêng; không vừa dịch vụ vừa nhóm — đóng dòng mức sai, thêm lại dòng đúng",
   },
+  {
+    // R-PRC-PD-3: khi phí đưa đón ĐÃ bật (ngày bắt đầu áp mới nhất không trống và đã tới), mỗi khu vực đang bật cần một dòng chung đi chung (chỉ khoá ZONE) còn hiệu lực hôm nay
+    // (cùng nghĩa `vungThieuDongChung`); thiếu thì đơn có đón ở khu vực đó không xác nhận được. Cảnh báo, không chặn — route đã chặn lúc bật và lúc kết thúc.
+    code: "R-PRC-PD-3",
+    what: "khu vực đón đang bật chưa có mức chung đi chung còn hiệu lực hôm nay, trong khi phí đưa đón đã bật",
+    sql: `SELECT count(*) FROM loc_zone z
+      WHERE z.active = 1
+        AND (SELECT s.start_date FROM prc_transfer_fee_start s ORDER BY s.valid_from_at DESC LIMIT 1) <= ${HOM_NAY_VN}
+        AND NOT EXISTS (SELECT 1 FROM prc_transfer_fee_rule r
+          WHERE r.kind = 'PER_PAX' AND r.valid_from_date <= ${HOM_NAY_VN} AND ${CHUA_HET_HAN("r")}
+            AND (SELECT count(*) FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id) = 1
+            AND EXISTS (SELECT 1 FROM prc_transfer_fee_condition c WHERE c.rule_id = r.id AND c.key_code = 'ZONE' AND c.value = z.code))`,
+    level: "warn",
+    note: "ADR-0203 ĐB1: thêm mức chung cho khu vực nêu mã trên màn Phí đưa đón; đến lúc đó đơn có đón ở khu vực này không xác nhận được",
+  },
 ];
 
 /**

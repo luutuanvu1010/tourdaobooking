@@ -8,7 +8,8 @@ import { fileURLToPath } from "node:url";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff, fakeD1 } from "../../../tests/audit/harness.mjs";
 // index.ts nhập "../audit" (không đuôi) nên node không nạp trực tiếp; hàm công bố nằm ở phi-don-repo.ts và index.ts chỉ xuất lại.
-import { docBangPhiDonChoDon } from "./phi-don-repo.ts";
+import { docBangPhiDonChoDon, tinhPhiDonChoDon } from "./phi-don-repo.ts";
+import { tinhPhiDonThuan, type ChangDauVao } from "./phi-don-rules.ts";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..", "..", "..");
 const SALES = "11111111-1111-4111-8111-111111111111";
@@ -437,6 +438,85 @@ test("docBangPhiDonChoDon: ngày bắt đầu áp, mức hiệu lực, cấp c�
   assert.deepEqual((await docBangPhiDonChoDon(db, { bookerPartyId: "dd000000-0000-4000-8000-000000000003", ngay })).cap, { loai: "KHONG_CAP" });
   const p06 = mot.muc.find((m) => m.id === c.id.get("P06"))!;
   assert.deepEqual([p06.kind, p06.amount, p06.dieuKien], ["PER_PAX", 80000, { ZONE: "CR", TIER: c.cap.C3 }]);
+});
+
+test("Thử tra = đơn thật: mọi ca sổ vàng ra cùng số tiền và cùng dòng mức ở Thử tra, ở hàm thuần và ở hàm của đơn (đọc CSDL)", async () => {
+  const c = await setup();
+  await gieo(c);
+  await ok(batDau(c, NGAY_AP, null), 200);
+  const db = fakeD1(c.w.sqlite);
+  const nhom = new Map<string, string | null>(Object.entries(golden.dich_vu as Record<string, { nhom: string }>).map(([ma, d]) => [ma, d.nhom]));
+  // một hồ sơ tổ chức có cấp C3 (vai TRAVEL_AGENCY ↔ cấp 3) cho ca có cấp; hồ sơ không vai cho ca không cấp
+  const mo = (id: string, ten: string, vai: string | null) => {
+    c.w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', ?, 1, ?, ?)").run(id, ten, AT, AT);
+    c.w.sqlite.prepare("INSERT INTO pty_organization (party_id, created_at, updated_at) VALUES (?, ?, ?)").run(id, AT, AT);
+    if (vai) c.w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, '2026-01-01', ?, ?)").run(`v-${id}`, id, vai, AT, AT);
+  };
+  const P3 = "ee000000-0000-4000-8000-000000000003";
+  const P0 = "ee000000-0000-4000-8000-000000000000";
+  mo(P3, "Đại lý cấp ba", "TRAVEL_AGENCY");
+  mo(P0, "Khách không cấp", null);
+  await ok(c.w.call("POST", "/api/pricing/muc-ta/gan", { as: KT, body: { loai: "TRAVEL_AGENCY", muc: c.cap.C3, tuNgay: "2026-01-01" } }), 201);
+  const idThat = new Map([...c.id].map(([p, u]) => [u, p]));
+  let soChang = 0;
+  for (const ca of golden.cac_ca) {
+    if (ca.xac_nhan.trang_thai !== "da_xac_nhan" || !ca.dap_an.ap_dung) continue;
+    const bd = ca.dau_vao.ben_dat;
+    if (bd.hai_cap || (bd.cap && bd.cap !== "C3")) continue; // hồ sơ dựng ở đây chỉ có cấp 3 hoặc không cấp
+    const chang: ChangDauVao[] = ca.dau_vao.chang.map((ch: any, i: number) => ({ legKey: `c${i}`, zoneCode: ch.vung, direction: ch.chieu, exclusive: ch.xe_rieng, catalogCode: ch.dich_vu,
+      soKhachTinhTien: (ch.khach.nguoi_lon ?? 0) + (ch.khach.tre_em ?? 0) + (ch.khach.cao_tuoi ?? 0), paxOverride: ch.so_nguoi_rieng ?? null }));
+    const ngay = ca.dau_vao.ngay_xac_nhan;
+    const doc = await tinhPhiDonChoDon(db, { bookerPartyId: bd.cap ? P3 : P0, ngay, chang });
+    const bang = await docBangPhiDonChoDon(db, { bookerPartyId: bd.cap ? P3 : P0, ngay });
+    const thuan = tinhPhiDonThuan({ bang, nhom, ngay, chang });
+    assert.deepEqual(doc, thuan, `${ca.ma}: hàm của đơn = hàm thuần`);
+    assert.ok(doc.apDung);
+    if (!doc.apDung) continue;
+    for (const [i, ch] of ca.dau_vao.chang.entries()) {
+      const q: Record<string, string | number> = { vung: ch.vung, chieu: ch.chieu, xeRieng: ch.xe_rieng ? 1 : 0, dichVu: ch.dich_vu, cap: bd.cap ? c.cap.C3! : "", ngay, soKhach: chang[i]!.soKhachTinhTien };
+      if (ch.so_nguoi_rieng != null) q.soNguoiVe = ch.so_nguoi_rieng;
+      const r = (await ok(kqThu(c, q), 200, `${ca.ma} chặng ${i + 1}`)).json.ketQua;
+      const dong = doc.dong.find((d) => d.legKey === `c${i}`);
+      soChang += 1;
+      if (!dong) { assert.equal(r.trangThai, "THIEU_MUC", `${ca.ma} chặng ${i + 1}`); continue; }
+      assert.deepEqual([r.trangThai, r.tien, r.donGia, r.soLuong, idThat.get(r.mucId)], ["CO_MUC", dong.tien, dong.donGia, dong.soLuong, idThat.get(dong.ruleId)], `${ca.ma} chặng ${i + 1}: Thử tra = đơn`);
+    }
+  }
+  assert.ok(soChang >= 20, `chỉ ${soChang} chặng so`);
+});
+
+test("trần số tiền một mức: 5.000.000 đ nhận, 5.000.001 đ → 400 (chủ chốt 15/11)", async () => {
+  const c = await setup();
+  const goc = than(c, { kieu: "PER_PAX", vung: "BAC", tien: 5_000_000, tu: NGAY_AP, den: null });
+  await ok(c.w.call("POST", "/api/pricing/phi-don", { as: ADM, body: goc }), 201, "đúng trần");
+  const r = await ok(c.w.call("POST", "/api/pricing/phi-don", { as: ADM, body: { ...goc, amount: 5_000_001, dieuKien: [{ khoa: "ZONE", giaTri: "TT" }] } }), 400);
+  assert.ok(String(r.json.error.message).includes("5.000.000"), r.text);
+});
+
+test("thayCho: dòng mới kết thúc sớm hơn dòng cũ → 409 nêu khoảng ngày bỏ trống, không ghi gì (kể cả khi phí chưa bật)", async () => {
+  const c = await setup();
+  await gieo(c);
+  const p07 = c.id.get("P07")!; // dòng riêng, không phải dòng chung ⇒ không dính chốt «đủ mức»
+  const m7 = golden.bang_phi.find((m: any) => m.id === "P07");
+  const truoc = trangThai(c);
+  const r = await ok(thay(c, p07, { ...m7, tu: "2027-01-01", den: "2027-06-30" }), 409);
+  assert.equal(r.json.error.code, "transfer_fee_gap");
+  assert.ok(String(r.json.error.message).includes("1 tháng 7") || /01\/07\/2027|2027/.test(String(r.json.error.message)), r.text);
+  assert.deepEqual(trangThai(c), truoc);
+  // không kết thúc sớm hơn: cùng kết thúc, hoặc dòng mới mở → qua
+  await ok(thay(c, p07, { ...m7, tu: "2027-01-01", den: null }), 201);
+});
+
+test("GET phi-don trả vungThieuMucChung: vùng chưa có dòng chung hôm nay, hoặc chưa có vào ngày bắt đầu áp ở tương lai", async () => {
+  const c = await setup();
+  const thieu = async () => ((await ok(lay(c), 200)).json.vungThieuMucChung as { code: string; name: string }[]).map((v) => v.code).sort();
+  const tatCaVung = ((await ok(lay(c), 200)).json.vung as { code: string }[]).map((v) => v.code).sort();
+  assert.deepEqual(await thieu(), tatCaVung, "chưa có dòng nào ⇒ mọi vùng thiếu");
+  assert.deepEqual(((await lay(c)).json.vungThieuMucChung as any[]).find((v) => v.code === "BAC"), { code: "BAC", name: "Bắc Nha Trang" });
+  // bảng mẫu có dòng chung bắt đầu 2026-12-01 (tương lai so với hôm nay): chưa bật ngày áp ⇒ hôm nay vẫn thiếu
+  await gieo(c);
+  const homNay = new Date().toISOString().slice(0, 10);
+  if (homNay < NGAY_AP) assert.ok((await thieu()).includes("BAC"), "hôm nay chưa có dòng chung của BAC");
 });
 
 // ---- hàng rào ----
