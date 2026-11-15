@@ -28,6 +28,22 @@ export function chuyenHopLe(tu: TrangThai, den: TrangThai): boolean {
   return DUONG_CHINH[tu].includes(den) || THOAT.includes(den);
 }
 
+// ---- Thư báo người đăng ký (ADR-0206 Đ13): mã lệnh của dòng lịch sử mang trạng thái chờ ----
+/** Bốn loại thư sau lệnh của người trong công ty: cần bổ sung, đã duyệt, bị từ chối ở bước xác minh, bị từ chối ở bước duyệt (cùng nội dung thư, khác người được gửi lại). */
+export const LOAI_THU = ["BO_SUNG", "DA_DUYET", "TU_CHOI", "TU_CHOI_DUYET"] as const;
+export type LoaiThu = (typeof LOAI_THU)[number];
+/** CHO = đã xếp, chưa biết kết quả; GUI = đã giao cho nhà cung cấp; LOI = gửi không được. */
+export type TrangThaiThu = "CHO" | "GUI" | "LOI";
+/** Trạng thái phiếu mà loại thư đó đi kèm (thư chỉ gửi lại khi phiếu còn ở trạng thái này). */
+export const TRANG_THAI_CUA_THU: Readonly<Record<LoaiThu, TrangThai>> = { BO_SUNG: "CAN_BO_SUNG", DA_DUYET: "DA_DUYET", TU_CHOI: "TU_CHOI", TU_CHOI_DUYET: "TU_CHOI" };
+export const maLenhThu = (loai: LoaiThu, tt: TrangThaiThu): string => `THU_${loai}_${tt}`;
+const LENH_THU_RE = /^THU_(BO_SUNG|DA_DUYET|TU_CHOI_DUYET|TU_CHOI)_(CHO|GUI|LOI)$/;
+/** Đọc mã lệnh thư; không phải lệnh thư ⇒ null. */
+export function docLenhThu(lenh: string | null): { loai: LoaiThu; trangThai: TrangThaiThu } | null {
+  const m = lenh ? LENH_THU_RE.exec(lenh) : null;
+  return m ? { loai: m[1] as LoaiThu, trangThai: m[2] as TrangThaiThu } : null;
+}
+
 // ---- Tệp của phiếu (ADR-0208 Đ2): luật thuần kiểm MỘT tệp tải lên ----
 
 /** Ô tệp của phiếu cá nhân (đợt 1): căn cước mặt trước, mặt sau. Ô mới = thêm vào đây cùng ô khai ở phiếu. */

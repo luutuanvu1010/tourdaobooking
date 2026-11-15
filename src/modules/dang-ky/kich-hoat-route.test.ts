@@ -79,6 +79,11 @@ test("(1) Đường thật: xin mã MỚI → đặt PIN ⇒ tài khoản bật,
   const thu: { to: string; text?: string }[] = [];
   w.env.EMAIL = { send: async (m: { to: string; text?: string }) => { thu.push(m); } };
   const { id, ident, email } = await phieuDaDuyet(w);
+  await w.choNen();
+  // Lô duyệt gửi thư «đã duyệt» (ADR-0206 Đ13, rà soát cuối I-1) tới EMAIL LIÊN LẠC của danh tính của phiếu (dk_identity.contact_email; bài gieo khác email đã chứng minh để thấy rõ cột nào);
+  // thư mã của bước đặt PIN đi tới email đã chứng minh.
+  assert.deepEqual(thu.map((t) => [t.to, /đã được duyệt/.test(t.text ?? "")]), [["lien-he@example.com", true]]);
+  thu.length = 0;
   const log = batLog();
   try {
     assert.equal((await dangNhap(w, PIN)).status, 401, "trước kích hoạt: tài khoản tắt");
@@ -224,6 +229,8 @@ test("(T12) Danh sách tài khoản: tài khoản vừa duyệt mang chuaKichHoa
   w.sqlite.exec("UPDATE staff SET active = 0 WHERE phone = '0900000019'");
   seedStaff(w.sqlite, { id: "11111111-1111-4111-8111-111111111121", phone: "0900000021", name: "Đối Tác Thường", perms: ["PARTNER"] });
   const { id, ident, email } = await phieuDaDuyet(w);
+  await w.choNen();
+  thu.length = 0; // bỏ thư «đã duyệt» của lô duyệt (ADR-0206 Đ13)
   const dong = async () => {
     const r = await w.call("GET", "/api/staff", { as: HR });
     assert.equal(r.status, 200, r.text);

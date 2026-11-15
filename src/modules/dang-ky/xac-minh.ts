@@ -90,6 +90,12 @@ export function kiemLyDoDuyet(body: Record<string, unknown> | null): Kiem<{ lyDo
   return { ok: true, value: { lyDo: body.lyDo, phienBan: body.phienBan } };
 }
 
+/** Thân `tra-ve-xac-minh`: `{ phienBan }` — số bản khai người duyệt đã xem (bắt buộc); không trường nào khác. */
+export function kiemTraVe(body: Record<string, unknown> | null): Kiem<{ phienBan: number }> {
+  if (!body || !khongThua(body, ["phienBan"]) || !laPhienBan(body.phienBan)) return { ok: false, message: "Yêu cầu không hợp lệ." };
+  return { ok: true, value: { phienBan: body.phienBan } };
+}
+
 /**
  * Gói lỗi của LÔ DUYỆT → 409 có câu rõ (ADR-0207 Đ5: «máy chủ dịch lỗi đó thành 409»). Câu chốt (dk_decision_guard) trước; rồi lưới cuối của các bảng khác (chỉ mục duy nhất, trigger
  * CCCD một người, vai, quan hệ) — mọi câu KHÔNG nhắc dữ liệu khai, không chép chữ lỗi thô. null = lỗi lạ (route ném lên ⇒ 500 có mã yêu cầu).
@@ -99,12 +105,12 @@ export function loiLoDuyet(e: unknown): { status: 409; code: string; message: st
   const doi = { status: 409 as const, code: "registration_state_changed", message: "Phiếu vừa được người khác xử lý hoặc không còn chờ duyệt. Hãy mở lại phiếu." };
   if (m.includes("dk_decision_state")) return doi;
   if (m.includes("dk_decision_version")) return { status: 409, code: "registration_version_changed", message: "Phiếu đã thay đổi từ lúc bạn mở. Hãy mở lại phiếu để xem bản mới." };
-  if (m.includes("dk_decision_no_match") || m.includes("dk_decision_not_verified")) return { status: 409, code: "registration_not_verified", message: "Phiếu chưa được xác minh đạt đầy đủ nên chưa duyệt được. Hãy từ chối phiếu." };
+  if (m.includes("dk_decision_no_match") || m.includes("dk_decision_not_verified")) return { status: 409, code: "registration_not_verified", message: "Phiếu chưa được xác minh đạt đầy đủ nên chưa duyệt được. Hãy bấm «Trả về xác minh» để người xác minh kết luận lại." };
   if (m.includes("dk_decision_same_person")) return { status: 409, code: "registration_same_person", message: "Người duyệt phải khác người đã xác minh phiếu này. Hãy nhờ một người khác duyệt." };
   if (/UNIQUE constraint failed: dk_decision/.test(m)) return doi;
-  if (/NOT NULL constraint failed: pty_consent\.party_id/.test(m)) return { status: 409, code: "target_changed", message: "Hồ sơ đích vừa ngưng hoạt động hoặc vừa gộp vào hồ sơ khác nên chưa mở được tài khoản. Hãy từ chối phiếu." };
-  if (/NOT NULL constraint failed: pty_party_relationship\.from_party_id/.test(m)) return { status: 409, code: "referrer_changed", message: "Hồ sơ người giới thiệu vừa ngưng hoạt động hoặc vừa gộp vào hồ sơ khác nên chưa mở được tài khoản. Hãy từ chối phiếu." };
-  if (m.includes("person_document_cccd_other_person")) return { status: 409, code: "document_other_person", message: "Số căn cước của phiếu đã thuộc một hồ sơ khác. Hãy từ chối phiếu (lý do «Thông tin này đã có trong hệ thống»)." };
+  if (/NOT NULL constraint failed: pty_consent\.party_id/.test(m)) return { status: 409, code: "target_changed", message: "Hồ sơ đích vừa ngưng hoạt động hoặc vừa gộp vào hồ sơ khác nên chưa mở được tài khoản. Hãy bấm «Trả về xác minh» để người xác minh chọn lại hồ sơ." };
+  if (/NOT NULL constraint failed: pty_party_relationship\.from_party_id/.test(m)) return { status: 409, code: "referrer_changed", message: "Hồ sơ người giới thiệu vừa ngưng hoạt động hoặc vừa gộp vào hồ sơ khác nên chưa mở được tài khoản. Hãy bấm «Trả về xác minh» để người xác minh chọn lại người giới thiệu." };
+  if (m.includes("person_document_cccd_other_person")) return { status: 409, code: "document_other_person", message: "Số căn cước của phiếu đã thuộc một hồ sơ khác. Hãy bấm «Trả về xác minh» để người xác minh đối chiếu lại Danh bạ, hoặc từ chối phiếu (lý do «Thông tin này đã có trong hệ thống»)." };
   if (/UNIQUE constraint failed|party_role_|lc1|registration_attachment_|verification_target_mismatch|person_document_/i.test(m)) {
     return { status: 409, code: "registration_conflict", message: "Dữ liệu vừa thay đổi nên chưa mở được tài khoản (ví dụ số điện thoại vừa được dùng cho tài khoản khác). Hãy mở lại phiếu." };
   }

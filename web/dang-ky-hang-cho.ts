@@ -8,7 +8,7 @@
 import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
 import { ROLES, ROLE_CODES, isRoleCode } from "../src/shared/roles";
-import { NHAN_O_TEP, CHU_HANG_CHO_DK } from "../src/shared/dang-ky-giao-dien";
+import { NHAN_O_TEP, CHU_HANG_CHO_DK, NHAN_LOAI_THU } from "../src/shared/dang-ky-giao-dien";
 import { LY_DO_PHIEU, nhanTrangThaiPhieu, type MaLyDoPhieu } from "../src/shared/dang-ky-hien-thi";
 import { CAU_DOI_VAI_CAP, type KetQuaCapDto } from "../src/shared/cap-se-ap-hien-thi";
 import { vnDateTimeText } from "../src/shared/vn-date";
@@ -16,7 +16,8 @@ import { ngayVN } from "../src/shared/giay-to-hien-thi";
 import { h, replaceChildren } from "./dom";
 
 type Staff = Api.StaffProfile;
-type DongHangCho = { id: string; trangThai: string; loai: string; phienBan: number; guiLuc: string | null };
+type ThuBao = { loai: string; trangThai: "CHO" | "GUI" | "LOI" };
+type DongHangCho = { id: string; trangThai: string; loai: string; phienBan: number; guiLuc: string | null; thu?: ThuBao | null };
 type Muc = { ma: string; nhan: string; ketLuan: "DAT" | "KHONG_DAT" | null; lyDo: { ma: string; nhan: string } | null };
 type PhieuXacMinh = {
   id: string; loai: string; trangThai: string; phienBan: number; guiLuc?: string | null; daXuLy?: boolean;
@@ -54,9 +55,10 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     const mine = ++luot;
     replaceChildren(danhSach, h("p", { class: "muted" }, "Đang tải…"));
     try {
-      const d = await api<{ phieu: DongHangCho[] }>("/api/dang-ky/hang-cho");
+      const d = await api<{ phieu: DongHangCho[]; conNua?: boolean }>("/api/dang-ky/hang-cho");
       if (mine !== luot) return;
-      replaceChildren(danhSach, ...(d.phieu.length ? d.phieu.map(the) : [h("p", { class: "muted" }, CHU_HANG_CHO_DK.rong)]));
+      replaceChildren(danhSach, ...(d.phieu.length ? d.phieu.map(the) : [h("p", { class: "muted" }, CHU_HANG_CHO_DK.rong)]),
+        d.conNua ? h("p", { class: "muted", id: "dk-hc-con-nua" }, CHU_HANG_CHO_DK.conNua) : null);
     } catch (e) {
       if (mine !== luot) return;
       replaceChildren(danhSach);
@@ -64,13 +66,18 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     }
   }
 
+  /** Thư báo chưa gửi xong (ADR-0206 Đ13): «đang chờ gửi» / «chưa gửi được»; đã gửi ⇒ không hiện. */
+  const chuThu = (t: ThuBao | null | undefined): string | null =>
+    !t || t.trangThai === "GUI" ? null : `${t.trangThai === "LOI" ? CHU_HANG_CHO_DK.thuLoi : CHU_HANG_CHO_DK.thuCho}: ${NHAN_LOAI_THU[t.loai] ?? ""}`;
+
   function the(p: DongHangCho): HTMLElement {
     // Phiếu ĐÃ DUYỆT còn trong hàng chờ = người đăng ký chưa tự đặt PIN (ADR-0207 Đ7: «Chưa kích hoạt»).
     const nhan = p.trangThai === "DA_DUYET" ? CHU_HANG_CHO_DK.chuaKichHoat : nhanTrangThaiPhieu(p.trangThai);
     return h("button", { type: "button", class: "xm-the xm-the-cho", "data-phieu": p.id, onclick: () => void moChiTiet(p) },
       h("span", { class: "xm-the-dong" }, h("strong", null, p.id), h("span", { class: "huy-hieu", "data-tong": p.trangThai === "DA_DUYET" ? "cat" : "bien" }, nhan)),
       h("span", null, tenVai(p.loai)),
-      p.guiLuc ? h("span", { class: "muted" }, `Gửi lúc ${vnDateTimeText(p.guiLuc)}`) : null);
+      p.guiLuc ? h("span", { class: "muted" }, `Gửi lúc ${vnDateTimeText(p.guiLuc)}`) : null,
+      chuThu(p.thu) ? h("span", { class: "huy-hieu", "data-tong": p.thu?.trangThai === "LOI" ? "do" : "cat", "data-thu": p.thu?.trangThai ?? "" }, chuThu(p.thu)) : null);
   }
 
   const dong = (nhan: string, giaTri: string | Node) => h("div", { class: "hs-dong" }, h("span", { class: "muted" }, nhan), h("span", null, giaTri));
@@ -113,6 +120,8 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
         if (mine === luot) veDuyet(p, d);
       } else if (p.trangThai === "DA_DUYET" && duyetDuoc) {
         veLoiMoi(p);
+      } else if (chuThu(p.thu)) {
+        veThu(p);
       } else {
         const k = dauKhung(`Phiếu ${p.id}`);
         moKhung(k.el, dong("Trạng thái", nhanTrangThaiPhieu(p.trangThai)), h("p", { class: "muted" }, "Bước này không thuộc việc của bạn."));
@@ -242,6 +251,12 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       const cap = r.cap.ap ? (r.cap.cap ? ` ${CHU_HANG_CHO_DK.capDaAp}: ${r.cap.cap.ten}.` : "") : r.cap.cau ? ` ${r.cap.cau}` : "";
       return `Đã duyệt. Tài khoản chưa kích hoạt cho tới khi người đăng ký tự đặt mã PIN.${cap}`;
     }));
+    // «Trả về xác minh» (ADR-0207 Đ5): phiếu quay lại bước xác minh, người xác minh kết luận lại Danh bạ.
+    const nutTraVe = h("button", { type: "button", class: "nut", "data-cap": "phu", id: "dk-hc-tra-ve" }, CHU_HANG_CHO_DK.traVeXacMinh) as HTMLButtonElement;
+    nutTraVe.addEventListener("click", () => void lenhDk(p, async () => {
+      await api(`/api/dang-ky/phieu/${d.id}/tra-ve-xac-minh`, { method: "POST", body: { phienBan: d.phienBan } });
+      return "Đã trả phiếu về bước xác minh. Người xác minh sẽ kết luận lại.";
+    }));
     const nutTuChoi = h("button", { type: "button", class: "nut", "data-tong": "nguy-hiem", id: "dk-hc-tu-choi-duyet" }, "Từ chối") as HTMLButtonElement;
     nutTuChoi.addEventListener("click", () => {
       const ma = lyTuChoi.gia();
@@ -253,7 +268,18 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       dong("Kết luận Danh bạ", d.ketLuanDanhBa ? (d.ketLuanDanhBa.kieu === "EXISTING" ? `Gắn hồ sơ có sẵn${d.ketLuanDanhBa.tenHoSo ? `: ${d.ketLuanDanhBa.tenHoSo}` : ""}` : CHU_HANG_CHO_DK.hoSoMoi) : "Chưa có"),
       d.nguoiXacMinhLaBan ? h("p", { class: "xm-chan" }, "Bạn là người đã xác minh phiếu này; người duyệt phải là người khác (trừ Toàn quyền).") : null,
       h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Vai trò đối tác"), vai), baoDoiVai,
-      h("div", { class: "dk-hang-nut" }, nutDuyet), h("div", { class: "dk-hang-nut" }, lyTuChoi.el, nutTuChoi));
+      h("div", { class: "dk-hang-nut" }, nutDuyet, nutTraVe), h("div", { class: "dk-hang-nut" }, lyTuChoi.el, nutTuChoi));
+  }
+
+  // ---- Thư báo chưa gửi được (ADR-0206 Đ13): phiếu cần bổ sung / đã từ chối — «Gửi lại thư» ----
+  function veThu(p: DongHangCho): void {
+    const k = dauKhung(`Phiếu ${p.id}`);
+    const nut = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "dk-hc-gui-lai-thu" }, CHU_HANG_CHO_DK.guiLaiThu) as HTMLButtonElement;
+    nut.addEventListener("click", () => void lenhDk(p, async () => {
+      await api(`/api/dang-ky/phieu/${p.id}/gui-lai-thu`, { method: "POST" });
+      return "Đã xếp thư để gửi lại. Tải lại sau ít phút để xem đã gửi được chưa.";
+    }));
+    moKhung(k.el, dong("Trạng thái", nhanTrangThaiPhieu(p.trangThai)), dong("Thư báo người đăng ký", chuThu(p.thu) ?? ""), nut);
   }
 
   // ---- Đã duyệt, chưa kích hoạt: «Gửi lại lời mời» (ADR-0207 Đ7 — mở lại hạn đặt PIN) ----
@@ -262,9 +288,10 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     const nutGui = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "dk-hc-gui-lai-loi-moi" }, "Gửi lại lời mời") as HTMLButtonElement;
     nutGui.addEventListener("click", () => void lenhDk(p, async () => {
       const r = await api<{ hanKichHoat: string }>(`/api/dang-ky/phieu/${p.id}/gui-lai-loi-moi`, { method: "POST" });
-      return `Đã mở lại hạn đặt mã PIN tới ${vnDateTimeText(r.hanKichHoat)}.`;
+      return `Đã mở lại hạn đặt mã PIN tới ${vnDateTimeText(r.hanKichHoat)} và xếp thư báo để gửi lại.`;
     }));
-    moKhung(k.el, dong("Trạng thái", CHU_HANG_CHO_DK.chuaKichHoat), h("p", { class: "muted" }, "Người đăng ký chưa tự đặt mã PIN. Quá hạn thì mở lại hạn bằng nút dưới."), nutGui);
+    moKhung(k.el, dong("Trạng thái", CHU_HANG_CHO_DK.chuaKichHoat), chuThu(p.thu) ? dong("Thư báo người đăng ký", chuThu(p.thu)!) : null,
+      h("p", { class: "muted" }, "Người đăng ký chưa tự đặt mã PIN. Nút dưới mở lại hạn đặt mã PIN và gửi lại thư báo đã duyệt."), nutGui);
   }
 
   replaceChildren(goc,

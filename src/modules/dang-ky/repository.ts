@@ -105,19 +105,34 @@ const PHIEU_XET = defineSql(
 );
 export const phieuXet = (db: D1Database, id: string): Promise<PhieuXetRow | null> => db.prepare(PHIEU_XET).bind(id).first<PhieuXetRow>();
 
-export interface HangChoRow { id: string; status: string; role_code: string; current_version: number; submitted_at: string | null; created_at: string }
-// Hàng chờ dựng theo NĂNG LỰC của người xem (không theo «thiếu party.view»): xác minh được (party.verify + party.view) ⇒ mọi phiếu chưa kết thúc (không gồm ĐÃ DUYỆT, TỪ CHỐI, ĐÃ RÚT, HẾT HẠN);
-// duyệt được (account.create) ⇒ CHỜ DUYỆT và ĐÃ DUYỆT mà tài khoản chưa kích hoạt (ADR-0207 Đ4, Đ7); có cả hai (Toàn quyền, Quản trị + Nhân sự) ⇒ hợp. Chỉ mã, loại, mốc — không tên, không liên hệ.
+export interface HangChoRow { id: string; status: string; role_code: string; current_version: number; submitted_at: string | null; created_at: string; thu: string | null }
+/** Số dòng tối đa hàng chờ trả về; câu đọc lấy THÊM một dòng để biết «còn nữa» (rà soát cuối I-4). */
+export const TRAN_HANG_CHO = 200;
+// Hàng chờ dựng theo NĂNG LỰC của người xem (không theo «thiếu party.view»): xác minh được (party.verify + party.view) ⇒ phiếu ĐÃ GỬI chưa kết thúc (CHỜ XÁC MINH, CẦN BỔ SUNG, CHỜ DUYỆT —
+// KHÔNG gồm ĐANG ĐIỀN: phiếu nháp chưa gửi không phải việc của ai và không được đẩy phiếu thật ra khỏi trần, rà soát cuối I-4); duyệt được (account.create) ⇒ CHỜ DUYỆT và ĐÃ DUYỆT mà tài khoản
+// chưa kích hoạt (ADR-0207 Đ4, Đ7); có cả hai (Toàn quyền, Quản trị + Nhân sự) ⇒ hợp. Thêm: phiếu TỪ CHỐI có thư báo chưa gửi được (ADR-0206 Đ13, Hiến chương 5.16 «thấy được và gửi lại được»)
+// cho đúng bước đã từ chối (xác minh ⇒ người xác minh; duyệt ⇒ người duyệt), chỉ khi danh tính còn email. Cột `thu` = lệnh thư báo MỚI NHẤT của phiếu (một câu, không hỏi từng dòng).
+// Xếp: việc làm được ngay (CHỜ XÁC MINH, CHỜ DUYỆT) trước, rồi gửi sớm nhất trước. Chỉ mã, loại, mốc — không tên, không liên hệ.
 const HANG_CHO = defineSql(
   "dang-ky",
   "queue_by_capability",
-  `SELECT id, status, role_code, current_version, submitted_at, created_at FROM dk_registration
-   WHERE (?1 = 1 AND status IN ('DANG_DIEN', 'CHO_XAC_MINH', 'CAN_BO_SUNG', 'CHO_DUYET'))
-      OR (?2 = 1 AND (status = 'CHO_DUYET' OR (status = 'DA_DUYET' AND activated_at IS NULL)))
-   ORDER BY COALESCE(submitted_at, created_at), id LIMIT 200`,
+  `SELECT id, status, role_code, current_version, submitted_at, created_at, thu FROM (
+     SELECT r.id, r.status, r.role_code, r.current_version, r.submitted_at, r.created_at, r.activated_at,
+            (SELECT e.command FROM dk_event e WHERE e.registration_id = r.id AND e.command GLOB 'THU_*' ORDER BY e.at DESC, e.rowid DESC LIMIT 1) AS thu,
+            EXISTS (SELECT 1 FROM dk_identity i WHERE i.registration_id = r.id AND i.contact_email IS NOT NULL) AS con_email
+     FROM dk_registration r
+     WHERE r.status IN ('CHO_XAC_MINH', 'CAN_BO_SUNG', 'CHO_DUYET', 'DA_DUYET', 'TU_CHOI')
+       AND (r.status <> 'DA_DUYET' OR r.activated_at IS NULL) AND (r.status <> 'TU_CHOI' OR r.erased_at IS NULL)
+   ) q
+   WHERE (?1 = 1 AND status IN ('CHO_XAC_MINH', 'CAN_BO_SUNG', 'CHO_DUYET'))
+      OR (?2 = 1 AND (status = 'CHO_DUYET' OR status = 'DA_DUYET'))
+      OR (status = 'TU_CHOI' AND con_email = 1 AND thu NOT GLOB '*_GUI'
+          AND ((?1 = 1 AND thu GLOB 'THU_TU_CHOI_[CL]*') OR (?2 = 1 AND thu GLOB 'THU_TU_CHOI_DUYET_*')))
+   ORDER BY CASE WHEN status IN ('CHO_XAC_MINH', 'CHO_DUYET') THEN 0 ELSE 1 END, COALESCE(submitted_at, created_at), id LIMIT 201`,
 );
-export async function hangCho(db: D1Database, nangLuc: { xacMinh: boolean; duyet: boolean }): Promise<HangChoRow[]> {
-  return (await db.prepare(HANG_CHO).bind(nangLuc.xacMinh ? 1 : 0, nangLuc.duyet ? 1 : 0).all<HangChoRow>()).results;
+export async function hangCho(db: D1Database, nangLuc: { xacMinh: boolean; duyet: boolean }): Promise<{ ds: HangChoRow[]; conNua: boolean }> {
+  const r = (await db.prepare(HANG_CHO).bind(nangLuc.xacMinh ? 1 : 0, nangLuc.duyet ? 1 : 0).all<HangChoRow>()).results;
+  return { ds: r.slice(0, TRAN_HANG_CHO), conNua: r.length > TRAN_HANG_CHO };
 }
 
 export interface BanKhaiRow {
@@ -187,6 +202,64 @@ const SU_KIEN_NEU = defineSql(
 /** Dòng lịch sử của người trong công ty; chỉ ghi khi câu liền trước đổi dòng. `command` là mã chữ hoa (KET_LUAN, DAT, BO_SUNG, TU_CHOI…); lịch sử KHÔNG mang số, tên, liên hệ. */
 export const suKienNhanVienStatement = (db: D1Database, v: { registrationId: string; staffId: string; command: string; lyDo: string | null; at: string }): D1PreparedStatement =>
   db.prepare(SU_KIEN_NEU).bind(crypto.randomUUID(), v.registrationId, v.staffId, v.command, v.lyDo, v.at);
+
+// ---- Thư báo người đăng ký (ADR-0206 Đ13; Hiến chương 5.16; rà soát cuối I-1) ----
+// Trạng thái chờ của thư = dòng lịch sử dk_event, lệnh `THU_<loại>_<trạng thái>` (mã ở rules.ts `maLenhThu`): CHO ghi TRONG lô của lệnh sinh ra thư; GUI / LOI ghi SAU khi gửi (trong waitUntil).
+// Không ghi email, không ghi câu lỗi của nhà cung cấp. Danh tính đã ẩn danh (không còn email) ⇒ câu xếp thư khớp 0 dòng: không gửi, không ghi gì.
+// Câu xếp thư sau một lệnh ĐỔI phiếu: điều kiện ĐỘC LẬP với `changes()` (lô từ chối kết thúc bằng câu gỡ tệp đọc changes() của câu liền trước) — phiếu phải đang ở `?6` VÀ vừa được CHÍNH lệnh
+// này đổi (updated_at = ?5, updated_by = ?3); lệnh khớp 0 dòng thì phiếu không mang đúng mốc đó ⇒ không xếp thư.
+const THU_XEP = defineSql(
+  "dang-ky",
+  "notice_queue_after_change",
+  `INSERT INTO dk_event (id, registration_id, actor_kind, actor_ref, command, reason_code, at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, 'STAFF', ?3, ?4, NULL, ?5, ?5, ?3, ?5, ?3
+   WHERE EXISTS (SELECT 1 FROM dk_registration r WHERE r.id = ?2 AND r.status = ?6 AND r.updated_at = ?5 AND r.updated_by = ?3)
+     AND EXISTS (SELECT 1 FROM dk_identity i WHERE i.registration_id = ?2 AND i.contact_email IS NOT NULL)`,
+);
+export const cauXepThu = (db: D1Database, v: { registrationId: string; staffId: string; lenh: string; at: string; trangThaiPhieu: string }): D1PreparedStatement =>
+  db.prepare(THU_XEP).bind(crypto.randomUUID(), v.registrationId, v.staffId, v.lenh, v.at, v.trangThaiPhieu);
+// Câu xếp thư khi GỬI LẠI (phiếu không đổi): phiếu còn ở `?6` và danh tính còn email.
+const THU_XEP_LAI = defineSql(
+  "dang-ky",
+  "notice_requeue",
+  `INSERT INTO dk_event (id, registration_id, actor_kind, actor_ref, command, reason_code, at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, 'STAFF', ?3, ?4, NULL, ?5, ?5, ?3, ?5, ?3
+   WHERE EXISTS (SELECT 1 FROM dk_registration r WHERE r.id = ?2 AND r.status = ?6)
+     AND EXISTS (SELECT 1 FROM dk_identity i WHERE i.registration_id = ?2 AND i.contact_email IS NOT NULL)`,
+);
+export const cauXepThuLai = (db: D1Database, v: { registrationId: string; staffId: string; lenh: string; at: string; trangThaiPhieu: string }): D1PreparedStatement =>
+  db.prepare(THU_XEP_LAI).bind(crypto.randomUUID(), v.registrationId, v.staffId, v.lenh, v.at, v.trangThaiPhieu);
+// Kết quả gửi (GUI / LOI) — ghi sau khi gửi, ngoài lô.
+const THU_KET_QUA = defineSql(
+  "dang-ky",
+  "notice_result",
+  `INSERT INTO dk_event (id, registration_id, actor_kind, actor_ref, command, reason_code, at, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, 'STAFF', ?3, ?4, NULL, ?5, ?5, ?3, ?5, ?3)`,
+);
+export const ghiKetQuaThu = async (db: D1Database, v: { registrationId: string; staffId: string; lenh: string; at: string }): Promise<void> => {
+  await db.prepare(THU_KET_QUA).bind(crypto.randomUUID(), v.registrationId, v.staffId, v.lenh, v.at).run();
+};
+const THU_MOI_NHAT = defineSql(
+  "dang-ky",
+  "notice_latest",
+  "SELECT command FROM dk_event WHERE registration_id = ?1 AND command GLOB 'THU_*' ORDER BY at DESC, rowid DESC LIMIT 1",
+);
+/** Lệnh thư báo MỚI NHẤT của phiếu (THU_…); chưa có ⇒ null. */
+export async function lenhThuMoiNhat(db: D1Database, registrationId: string): Promise<string | null> {
+  return (await db.prepare(THU_MOI_NHAT).bind(registrationId).first<{ command: string }>())?.command ?? null;
+}
+
+// «Trả về xác minh» (ADR-0207 Đ5; rà soát cuối I-3): CHỜ DUYỆT → CHỜ XÁC MINH, ghim phiên bản người duyệt đã xem TRONG câu; xoá kết luận Danh bạ, người giới thiệu đã chọn và người / bản /
+// lúc xác minh (trigger dk_registration_return_clear bắt buộc) — người xác minh phải kết luận lại; kết luận từng mục (chỉ thêm) giữ nguyên.
+const TRA_VE_CAP = defineSql(
+  "dang-ky",
+  "registration_return_to_verification",
+  `UPDATE dk_registration SET status = 'CHO_XAC_MINH', verified_by = NULL, verified_version = NULL, verified_at = NULL, match_kind = NULL, match_party_id = NULL, referrer_party_id = NULL,
+          updated_at = ?2, updated_by = ?3
+   WHERE id = ?1 AND status = 'CHO_DUYET' AND current_version = ?4`,
+);
+export const traVeXacMinhStatement = (db: D1Database, v: { registrationId: string; by: string; at: string; phienBan: number }): D1PreparedStatement =>
+  db.prepare(TRA_VE_CAP).bind(v.registrationId, v.at, v.by, v.phienBan);
 
 // «Đạt»: mọi mục bắt buộc có kết luận MỚI NHẤT là DAT ở bản khai hiện hành VÀ đã có kết luận Danh bạ (cột match_*, hoặc đặt cùng lệnh). Danh sách mục là tham số JSON (?6).
 const DAT_CAP = defineSql(
@@ -508,14 +581,14 @@ const AN_DANH_BAN_KHAI = defineSql(
 );
 export const cauAnDanhBanKhai = (db: D1Database, v: { registrationId: string; at: string; by: string }): D1PreparedStatement => db.prepare(AN_DANH_BAN_KHAI).bind(v.registrationId, v.at, v.by);
 
-// «Từ chối duyệt» (ADR-0207 Đ4): CHỜ DUYỆT → TỪ CHỐI theo đồ thị 0170; `?5` = phiên bản người duyệt đã xem (NULL = không gửi ⇒ không ghim).
+// «Từ chối duyệt» (ADR-0207 Đ4): CHỜ DUYỆT → TỪ CHỐI theo đồ thị 0170; `?5` = phiên bản người duyệt đã xem — BẮT BUỘC, ghim trong câu (rà soát cuối M-1: bỏ COALESCE).
 const TU_CHOI_DUYET_CAP = defineSql(
   "dang-ky",
   "registration_reject_at_approval",
   `UPDATE dk_registration SET status = 'TU_CHOI', reason_code = ?2, decided_at = ?3, updated_at = ?3, updated_by = ?4
-   WHERE id = ?1 AND status = 'CHO_DUYET' AND current_version = COALESCE(?5, current_version)`,
+   WHERE id = ?1 AND status = 'CHO_DUYET' AND current_version = ?5`,
 );
-export const tuChoiDuyetStatement = (db: D1Database, v: { registrationId: string; lyDo: string; by: string; at: string; phienBan: number | null }): D1PreparedStatement =>
+export const tuChoiDuyetStatement = (db: D1Database, v: { registrationId: string; lyDo: string; by: string; at: string; phienBan: number }): D1PreparedStatement =>
   db.prepare(TU_CHOI_DUYET_CAP).bind(v.registrationId, v.lyDo, v.at, v.by, v.phienBan);
 
 // «Gửi lại lời mời» (ADR-0207 Đ7): mở lại hạn đặt PIN; chỉ phiếu ĐÃ DUYỆT chưa kích hoạt (trigger dk_registration_deadline là lớp thứ hai) VÀ danh tính còn email (tác nhân dọn phiếu

@@ -334,6 +334,7 @@
  "src/modules/dang-ky/phieu-route.test.ts": 8.6,
  "src/modules/dang-ky/rules.test.ts": 0.7,
  "src/modules/dang-ky/tep-route.test.ts": 8.5,
+ "src/modules/dang-ky/thu-bao-tra-ve.test.ts": 4.0,
  "src/modules/dang-ky/xac-minh-route.test.ts": 5.9,
  "src/modules/dang-ky/xac-minh.test.ts": 0.1,
  "src/modules/dang-ky/xin-ma-route.test.ts": 33.3,

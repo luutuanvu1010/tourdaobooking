@@ -16,10 +16,12 @@ import {
 } from "../parties";
 import { getStaffAccountOfParty } from "../staff";
 import {
-  banKhaiXet, boSungStatement, chinhSachHienHanh, datStatement, hangCho, ketLuanMoiNhat, ketLuanMucStatement, mucRiengCuaPhieu, phieuXet, soDayDuCuaBanKhai, suKienNhanVienStatement, tuChoiStatement,
+  banKhaiXet, boSungStatement, cauXepThu, chinhSachHienHanh, datStatement, hangCho, ketLuanMoiNhat, ketLuanMucStatement, mucRiengCuaPhieu, phieuXet, soDayDuCuaBanKhai, suKienNhanVienStatement, tuChoiStatement,
   type PhieuXetRow,
 } from "./repository.ts";
 import { kiemDat, kiemKetLuan, kiemLyDo, laMaPhieu, laMaTep, loiLoXacMinh, mucBatBuoc, mucChuaDat, type KetQuaMuc } from "./xac-minh.ts";
+import { TRANG_THAI_CUA_THU, docLenhThu, maLenhThu } from "./rules.ts";
+import { guiThuSauLo } from "./thu-bao.ts";
 
 type Staff = Ctx<"accounts">["staff"];
 
@@ -46,11 +48,18 @@ export async function moiNhat(db: D1Database, p: PhieuXetRow): Promise<Map<strin
 export const dsMuc = (batBuoc: readonly string[], kl: Map<string, { ketQua: KetQuaMuc; lyDo: string | null }>) =>
   batBuoc.map((ma) => ({ ma, nhan: nhanMucXacMinh(ma), ketLuan: kl.get(ma)?.ketQua ?? null, lyDo: kl.get(ma)?.lyDo ? { ma: kl.get(ma)!.lyDo!, nhan: nhanLyDoPhieu(kl.get(ma)!.lyDo!) } : null }));
 
+/** Thư báo mới nhất của dòng hàng chờ, CHỈ khi phiếu còn ở đúng trạng thái của thư đó (thư «cần bổ sung» cũ của phiếu đã gửi lại thì không hiện). */
+function thuCuaDong(r: { status: string; thu: string | null }): ReturnType<typeof docLenhThu> {
+  const t = docLenhThu(r.thu);
+  return t && TRANG_THAI_CUA_THU[t.loai] === r.status ? t : null;
+}
+
 // ---- GET /api/dang-ky/hang-cho ----
 export async function xemHangCho({ env, staff }: Ctx<"accounts">): Promise<Response> {
   // Lọc theo năng lực (không phải cổng): xác minh được ⇒ phiếu chưa kết thúc; account.create ⇒ CHỜ DUYỆT + ĐÃ DUYỆT chưa kích hoạt; cả hai ⇒ hợp. Chỉ mã, loại, mốc — không tên, không liên hệ.
-  const ds = await hangCho(env.DB, { xacMinh: can(staff, "party.verify") && can(staff, "party.view"), duyet: can(staff, "account.create") });
-  return json({ phieu: ds.map((r) => ({ id: r.id, trangThai: r.status, loai: r.role_code, phienBan: r.current_version, guiLuc: r.submitted_at })) });
+  // `thu` = thư báo mới nhất của phiếu (loại + chờ / đã gửi / lỗi — ADR-0206 Đ13); `conNua` = còn phiếu ngoài trần (rà soát cuối I-4).
+  const { ds, conNua } = await hangCho(env.DB, { xacMinh: can(staff, "party.verify") && can(staff, "party.view"), duyet: can(staff, "account.create") });
+  return json({ phieu: ds.map((r) => ({ id: r.id, trangThai: r.status, loai: r.role_code, phienBan: r.current_version, guiLuc: r.submitted_at, thu: thuCuaDong(r) })), conNua });
 }
 
 // ---- GET /api/dang-ky/phieu/:id ----
@@ -221,7 +230,7 @@ export async function xacMinhDat({ request, env, staff, params }: Ctx<"accounts"
 }
 
 // ---- POST /api/dang-ky/phieu/:id/bo-sung ----
-export async function yeuCauBoSung({ request, env, staff, params }: Ctx<"accounts">): Promise<Response> {
+export async function yeuCauBoSung({ request, env, staff, params, exec }: Ctx<"accounts">): Promise<Response> {
   const r = await phieuChoXacMinh(env, params);
   if (r instanceof Response) return r;
   const k = kiemLyDo(await readJson(request));
@@ -240,6 +249,7 @@ export async function yeuCauBoSung({ request, env, staff, params }: Ctx<"account
       boSungStatement(env.DB, { registrationId: p.id, lyDo, by: staff.id, at, phienBan, expiresAt }),
       suKienNhanVienStatement(env.DB, { registrationId: p.id, staffId: staff.id, command: "BO_SUNG", lyDo, at }),
       auditStatement(env.DB, { staffId: staff.id, action: "registration_supplement_requested", at, targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · yêu cầu bổ sung · ${lyDo}` }, "changes() > 0"),
+      cauXepThu(env.DB, { registrationId: p.id, staffId: staff.id, lenh: maLenhThu("BO_SUNG", "CHO"), at, trangThaiPhieu: "CAN_BO_SUNG" }), // thư «cần bổ sung» (ADR-0206 Đ13)
     ]);
   } catch (e) {
     const l = loiLoXacMinh(e);
@@ -247,11 +257,12 @@ export async function yeuCauBoSung({ request, env, staff, params }: Ctx<"account
     throw e;
   }
   if ((kq[0]?.meta.changes ?? 0) === 0) return loiKhongGhi(env, p.id, phienBan);
+  guiThuSauLo(env, exec, { registrationId: p.id, staffId: staff.id, loai: "BO_SUNG", daXep: (kq[3]?.meta.changes ?? 0) > 0 });
   return json({ trangThai: "CAN_BO_SUNG", lyDo: { ma: lyDo, nhan: cauLyDoChoNguoiDangKy(lyDo) } });
 }
 
 // ---- POST /api/dang-ky/phieu/:id/tu-choi ----
-export async function tuChoiPhieu({ request, env, staff, params }: Ctx<"accounts">): Promise<Response> {
+export async function tuChoiPhieu({ request, env, staff, params, exec }: Ctx<"accounts">): Promise<Response> {
   const r = await phieuChoXacMinh(env, params);
   if (r instanceof Response) return r;
   const k = kiemLyDo(await readJson(request));
@@ -268,6 +279,8 @@ export async function tuChoiPhieu({ request, env, staff, params }: Ctx<"accounts
       suKienNhanVienStatement(env.DB, { registrationId: p.id, staffId: staff.id, command: "TU_CHOI", lyDo, at }),
       auditStatement(env.DB, { staffId: staff.id, action: "registration_rejected", at, targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · từ chối · ${lyDo}` }, "changes() > 0"),
       cauGoTepChoNeuTruocDoi(env.DB, p.id, "TU_CHOI", at),
+      // Thư «bị từ chối» (ADR-0206 Đ13): đứng CUỐI lô — câu gỡ tệp ngay trên đọc changes() của câu nhật ký; câu xếp thư có điều kiện riêng (phiếu vừa được chính lệnh này đổi).
+      cauXepThu(env.DB, { registrationId: p.id, staffId: staff.id, lenh: maLenhThu("TU_CHOI", "CHO"), at, trangThaiPhieu: "TU_CHOI" }),
     ]);
   } catch (e) {
     const l = loiLoXacMinh(e);
@@ -275,6 +288,7 @@ export async function tuChoiPhieu({ request, env, staff, params }: Ctx<"accounts
     throw e;
   }
   if ((kq[0]?.meta.changes ?? 0) === 0) return loiKhongGhi(env, p.id, phienBan);
+  guiThuSauLo(env, exec, { registrationId: p.id, staffId: staff.id, loai: "TU_CHOI", daXep: (kq[4]?.meta.changes ?? 0) > 0, lyDo });
   await xoaKhoTepChoDaGo(env, p.id);
   return json({ trangThai: "TU_CHOI" });
 }

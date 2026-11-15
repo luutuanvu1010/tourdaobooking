@@ -121,11 +121,12 @@ test("(2) Hàng chờ: Quản trị, Toàn quyền thấy mọi phiếu chưa k�
   const g = phieu(w, { trangThai: "DA_DUYET" });
   w.sqlite.prepare("UPDATE dk_registration SET activated_at = ? WHERE id = ?").run(AT, g); // đã kích hoạt: không còn ở hàng chờ
   const ids = async (as: string) => (await w.call("GET", "/api/dang-ky/hang-cho", { as })).json.phieu.map((x: any) => x.id).sort();
-  assert.deepEqual(await ids(ADM), [a, b, c, e].sort());
-  assert.deepEqual(await ids(SUP), [a, b, c, e, f].sort(), "Toàn quyền: xác minh được + có account.create ⇒ hợp (có cả ĐÃ DUYỆT chưa kích hoạt)");
+  // Phiếu ĐANG ĐIỀN (`e`) chưa gửi: không ở hàng chờ của ai (rà soát cuối I-4).
+  assert.deepEqual(await ids(ADM), [a, b, c].sort());
+  assert.deepEqual(await ids(SUP), [a, b, c, f].sort(), "Toàn quyền: xác minh được + có account.create ⇒ hợp (có cả ĐÃ DUYỆT chưa kích hoạt)");
   assert.deepEqual(await ids(HR), [c, f].sort());
   const r = await w.call("GET", "/api/dang-ky/hang-cho", { as: HR });
-  for (const lo of ["Phạm", "Thử Nghiệm", "0912", "khach@", "079", d, g]) assert.equal(boUuid(r.text).includes(lo), false, `lộ ${lo}`);
+  for (const lo of ["Phạm", "Thử Nghiệm", "0912", "khach@", "079", d, e, g]) assert.equal(boUuid(r.text).includes(lo), false, `lộ ${lo}`);
 });
 
 test("(3) «đạt» khi còn mục chưa đạt ⇒ 409; mục «không đạt» ⇒ 409; đủ mục nhưng chưa có kết luận Danh bạ ⇒ 409; không đổi trạng thái", async () => {
@@ -244,7 +245,9 @@ test("(6) «bổ sung»: CAN_BO_SUNG + lý do; người đăng ký thấy câu l
   assert.equal(row?.status, "CAN_BO_SUNG");
   assert.equal(row?.reason_code, "KHONG_DOC_DUOC");
   assert.equal(cauLyDoChoNguoiDangKy(row!.reason_code), "Ảnh hoặc thông tin không đọc được. Vui lòng gửi lại bản rõ hơn.");
-  assert.deepEqual(events(w, id), [{ actor_kind: "STAFF", actor_ref: ADM, command: "BO_SUNG", reason_code: "KHONG_DOC_DUOC" }]);
+  // + thư «cần bổ sung» (ADR-0206 Đ13): xếp trong lô (CHO), kết quả sau lô (bài này không có bộ gửi ⇒ LOI); lịch sử thư không mang email hay lý do.
+  assert.deepEqual(events(w, id), [{ actor_kind: "STAFF", actor_ref: ADM, command: "BO_SUNG", reason_code: "KHONG_DOC_DUOC" },
+    { actor_kind: "STAFF", actor_ref: ADM, command: "THU_BO_SUNG_CHO", reason_code: null }, { actor_kind: "STAFF", actor_ref: ADM, command: "THU_BO_SUNG_LOI", reason_code: null }]);
   assert.equal(audits(w, "registration_supplement_requested").length, 1);
   // mã «số giấy tờ đã thuộc hồ sơ khác» hiện cho người ngoài bằng câu KHÔNG nói «đã có tài khoản»
   const cau = cauLyDoChoNguoiDangKy("TRUNG_HO_SO_KHAC")!;
@@ -270,7 +273,8 @@ test("(7) «từ chối»: TU_CHOI + tệp chờ gỡ CÙNG lô; kho xoá sau; l
   for (const x of d) { assert.ok(x.purged_at); assert.equal(x.purge_reason, "TU_CHOI"); assert.equal(x.content_hash, null); }
   assert.equal(w.r2.co(t1.key), false);
   assert.equal(w.r2.co(t2.key), false);
-  assert.deepEqual(events(w, id), [{ actor_kind: "STAFF", actor_ref: ADM, command: "TU_CHOI", reason_code: "KHONG_PHAI_CHINH_CHU" }]);
+  assert.deepEqual(events(w, id), [{ actor_kind: "STAFF", actor_ref: ADM, command: "TU_CHOI", reason_code: "KHONG_PHAI_CHINH_CHU" },
+    { actor_kind: "STAFF", actor_ref: ADM, command: "THU_TU_CHOI_CHO", reason_code: null }, { actor_kind: "STAFF", actor_ref: ADM, command: "THU_TU_CHOI_LOI", reason_code: null }]);
   assert.equal(audits(w, "registration_rejected").length, 1);
   // danh tính đóng (trigger) và không xem lại được
   const ct = await chiTiet(w, ADM, id);
@@ -372,7 +376,7 @@ test("(10) Đua: hai người cùng xử lý — chỉ một thắng; bên thua 
   assert.equal(d.purged_at, null);
   assert.equal(w.r2.co(t.key), true);
   assert.equal(reg(w, id).status, "CAN_BO_SUNG");
-  assert.equal(events(w, id).length, 1);
+  assert.deepEqual(events(w, id).map((e: any) => e.command), ["BO_SUNG", "THU_BO_SUNG_CHO", "THU_BO_SUNG_LOI"], "bên thua không ghi lịch sử, không xếp thư từ chối");
 });
 
 test("(10b) Lô «từ chối» khi câu đổi trạng thái trúng 0 dòng: tệp ở lại, không dòng lịch sử (khoá điều kiện nằm TRONG lô, không chỉ ở kiểm trước)", async () => {

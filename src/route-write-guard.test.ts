@@ -339,7 +339,12 @@ test("hàng rào cổng quản trị: bộ đánh giá nhận đúng khuôn, t�
 });
 
 /** ADR-0207 Đ4, Đ7, Đ9 (đợt 1 Task 8): bốn route DUYỆT phiếu đăng ký — danh sách có tên, mỗi route hỏi đúng `account.create`. */
-const DK_DUYET = ["GET /api/dang-ky/phieu/:id/xem-duyet", "POST /api/dang-ky/phieu/:id/duyet", "POST /api/dang-ky/phieu/:id/tu-choi-duyet", "POST /api/dang-ky/phieu/:id/gui-lai-loi-moi"];
+/** Rà soát cuối (ADR-0207 Đ5, I-3): thêm «Trả về xác minh» — cùng ô account.create với bước duyệt. */
+const DK_DUYET = ["GET /api/dang-ky/phieu/:id/xem-duyet", "POST /api/dang-ky/phieu/:id/duyet", "POST /api/dang-ky/phieu/:id/tu-choi-duyet", "POST /api/dang-ky/phieu/:id/gui-lai-loi-moi",
+  "POST /api/dang-ky/phieu/:id/tra-ve-xac-minh"];
+/** Rà soát cuối (ADR-0206 Đ13, I-1): gửi lại thư báo — danh sách CÓ TÊN. Cổng ở đầu thân = ĐÚNG ô registration.queue.view (thư thuộc bước xác minh HOẶC bước duyệt); ô theo bước
+ *  (party.verify + party.view, hay account.create) kiểm tiếp trong thân (thu-bao.ts, bài duyet-route.test.ts «gửi lại thư»). */
+const DK_THU = ["POST /api/dang-ky/phieu/:id/gui-lai-thu"];
 /** ADR-0206 Đ9 (đợt 1 Task 12 vòng sửa 1): hai route chỗ mở, đóng đăng ký — danh sách có tên, mỗi route hỏi ĐÚNG `registration.policy.write` (chỉ Toàn quyền). */
 const DK_CHINH_SACH = ["GET /api/dang-ky/chinh-sach", "POST /api/dang-ky/chinh-sach"];
 
@@ -355,8 +360,10 @@ test("hàng rào cổng accounts (ADR-0071): mọi route cổng accounts có `if
     // ADR-0207 Đ4, Đ7, Đ9 (đợt 1 Task 8): bước DUYỆT mở tài khoản — chỉ `account.create` (Nhân sự không có party.view)
     ...DK_DUYET,
     // ADR-0206 Đ9 (Task 12 vòng sửa 1): chỗ mở, đóng đăng ký — chỉ `registration.policy.write`
-    ...DK_CHINH_SACH];
-  assert.deepEqual(thuoc.map((r) => key(r.method, r.path)).sort(), [...known].sort(), "đúng bảy route Quản lý tài khoản + năm route xác minh phiếu (ADR-0125) + tám route xác minh và bốn route duyệt phiếu đăng ký (ADR-0207) + hai route chỗ mở, đóng đăng ký (ADR-0206 Đ9) ở cổng accounts");
+    ...DK_CHINH_SACH,
+    // ADR-0206 Đ13 (rà soát cuối I-1): gửi lại thư báo — registration.queue.view
+    ...DK_THU];
+  assert.deepEqual(thuoc.map((r) => key(r.method, r.path)).sort(), [...known].sort(), "đúng bảy route Quản lý tài khoản + năm route xác minh phiếu (ADR-0125) + tám route xác minh và năm route duyệt phiếu đăng ký (ADR-0207, có «Trả về xác minh») + hai route chỗ mở, đóng đăng ký (ADR-0206 Đ9) + một route gửi lại thư báo (ADR-0206 Đ13) ở cổng accounts");
   const missing = thuoc.filter((r) => !hasAdminDenial(r.body, ACCOUNTS_DENIAL_RE)).map((r) => `${r.method} ${r.path} (${r.module})`);
   assert.deepEqual(missing, [], `Route cổng accounts không hỏi ô tài khoản: ${missing.join("; ")}. Đầu thân: if (!can(staff, "<ô>")) return …; ô thuộc ${ACCOUNTS_OPS.join(", ")}.`);
   // Vòng sửa 1 (m-2): ô theo NHÓM đường dẫn — một route xác minh không được "mượn" ô account.* và ngược lại (ACCOUNTS_OPS dùng chung 12 route sẽ cho qua cả hai).
@@ -365,7 +372,13 @@ test("hàng rào cổng accounts (ADR-0071): mọi route cổng accounts có `if
   const NHOM_DANG_KY = denialRe(["registration.queue.view", "party.verify", "party.verify.attachment"]);
   const NHOM_DK_DUYET = denialRe(["account.create"]);
   const NHOM_DK_CHINH_SACH = denialRe(["registration.policy.write"]);
+  const NHOM_DK_THU = denialRe(["registration.queue.view"]);
   for (const r of thuoc) {
+    // Gửi lại thư báo (danh sách CÓ TÊN): ĐÚNG ô registration.queue.view ở đầu thân; ô theo bước nằm trong hàm xử lý.
+    if (DK_THU.includes(key(r.method, r.path))) {
+      assert.ok(hasAdminDenial(r.body, NHOM_DK_THU), `${r.method} ${r.path}: gửi lại thư báo phải hỏi registration.queue.view`);
+      continue;
+    }
     // Chỗ mở, đóng đăng ký (danh sách CÓ TÊN): ĐÚNG ô registration.policy.write; ô này không được dùng ở route nào khác của cổng.
     if (DK_CHINH_SACH.includes(key(r.method, r.path))) {
       assert.ok(hasAdminDenial(r.body, NHOM_DK_CHINH_SACH), `${r.method} ${r.path}: chỗ mở, đóng đăng ký phải hỏi registration.policy.write`);

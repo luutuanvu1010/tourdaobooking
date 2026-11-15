@@ -50,4 +50,18 @@ export const CHU_HANG_CHO_DK = {
   ganHoSo: "Gắn vào hồ sơ này",
   capSeAp: "Cấp sẽ áp",
   capDaAp: "Cấp đã áp",
+  // cho-chon (rà soát cuối 2026-11-16): «Trả về xác minh» (ADR-0207 Đ5), thư báo người đăng ký (ADR-0206 Đ13), cờ «còn nữa» của hàng chờ
+  traVeXacMinh: "Trả về xác minh",
+  guiLaiThu: "Gửi lại thư",
+  thuCho: "Thư đang chờ gửi",
+  thuLoi: "Thư chưa gửi được",
+  conNua: "Còn phiếu khác chưa hiện. Hãy xử lý bớt các phiếu trên rồi tải lại.",
 } as const;
+
+/** Tên loại thư báo người đăng ký, để người trong công ty biết thư nào đang chờ (ADR-0206 Đ13; cho-chon). */
+export const NHAN_LOAI_THU: Readonly<Record<string, string>> = {
+  BO_SUNG: "thư «cần bổ sung»",
+  DA_DUYET: "thư «đã được duyệt»",
+  TU_CHOI: "thư «không được duyệt»",
+  TU_CHOI_DUYET: "thư «không được duyệt»",
+};

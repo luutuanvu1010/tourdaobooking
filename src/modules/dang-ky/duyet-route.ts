@@ -16,9 +16,12 @@ import { auditStatement } from "../audit";
 import { canCuocThuocHoSoKhac, cauGoTepChoNeuTruocDoi, partySummary, validateContact, xoaKhoTepChoDaGo } from "../parties";
 import { findStaffByPhone, tenVaiTaiKhoan } from "../staff";
 import {
-  banKhaiDeDuyet, chinhSachHienHanh, danhTinhConEmail, emailLienLacCuaPhieu, guiLaiLoiMoiStatement, ketLuanMoiNhat, phieuXet, suKienNhanVienStatement, tomTatDeDuyet, tuChoiDuyetStatement,
+  banKhaiDeDuyet, cauXepThu, chinhSachHienHanh, danhTinhConEmail, emailLienLacCuaPhieu, guiLaiLoiMoiStatement, ketLuanMoiNhat, phieuXet, suKienNhanVienStatement, tomTatDeDuyet,
+  traVeXacMinhStatement, tuChoiDuyetStatement,
 } from "./repository.ts";
-import { kiemDuyet, kiemLyDoDuyet, laMaPhieu, loiDungLoDuyet, loiLoDuyet } from "./xac-minh.ts";
+import { maLenhThu } from "./rules.ts";
+import { guiThuSauLo } from "./thu-bao.ts";
+import { kiemDuyet, kiemLyDoDuyet, kiemTraVe, laMaPhieu, loiDungLoDuyet, loiLoDuyet } from "./xac-minh.ts";
 import { dsMuc, kiemHoSoDich, kiemNguoiGioiThieu, moiNhat, mucPhaiDat } from "./xac-minh-route.ts";
 
 export const CAM_DUYET = () => error(403, "forbidden", "Bạn không có quyền duyệt phiếu đăng ký.");
@@ -62,7 +65,7 @@ export async function xemDeDuyet({ env, staff, params }: Ctx<"accounts">): Promi
 }
 
 // ---- POST /api/dang-ky/phieu/:id/duyet ----
-export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy }: Ctx<"accounts">): Promise<Response> {
+export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, exec }: Ctx<"accounts">): Promise<Response> {
   const id = idPhieu(params);
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p) return KHONG_THAY();
@@ -83,7 +86,7 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy }:
   if (!bk) return KHONG_CON_CHO();
   // Kiểm TRƯỚC lô (câu báo rõ). Số điện thoại: CÙNG hàm chuẩn hoá với số đăng nhập (`+84 9…` và `09…` là một số).
   const loginPhone = normalizePhone(bk.phone_value ?? "");
-  if (!loginPhone) return error(409, "phone_missing", "Phiếu chưa có số điện thoại hợp lệ để làm số đăng nhập. Hãy từ chối phiếu và nhờ người đăng ký gửi lại.");
+  if (!loginPhone) return error(409, "phone_missing", "Phiếu chưa có số điện thoại hợp lệ để làm số đăng nhập. Hãy bấm «Trả về xác minh» để người xác minh yêu cầu bổ sung, hoặc từ chối phiếu.");
   if (await findStaffByPhone(env.DB, loginPhone)) return error(409, "phone_taken", "Số điện thoại của phiếu đã là số đăng nhập của một tài khoản. Hãy từ chối phiếu (lý do «Thông tin này đã có trong hệ thống»).");
   const dich = p.match_kind === "EXISTING" ? p.match_party_id : null;
   if (dich) {
@@ -91,7 +94,7 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy }:
     if (loi) return error(409, loi.code, loi.message);
   }
   if (bk.document_type_code === "CCCD" && bk.number_key && (await canCuocThuocHoSoKhac(env.DB, bk.number_key, dich))) {
-    return error(409, "document_other_person", "Số căn cước của phiếu đã thuộc một hồ sơ khác. Hãy từ chối phiếu (lý do «Thông tin này đã có trong hệ thống»).");
+    return error(409, "document_other_person", "Số căn cước của phiếu đã thuộc một hồ sơ khác. Hãy bấm «Trả về xác minh» để người xác minh đối chiếu lại Danh bạ, hoặc từ chối phiếu (lý do «Thông tin này đã có trong hệ thống»).");
   }
   if (p.referrer_party_id) {
     const loi = await kiemNguoiGioiThieu(env.DB, p.referrer_party_id, dich);
@@ -133,9 +136,11 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy }:
     if (loiDungLoDuyet(e)) return error(400, "invalid_input", "Vai trò này không mở được tài khoản đối tác.");
     throw e;
   }
+  // Thư «đã duyệt» (ADR-0206 Đ13): câu xếp thư đứng CUỐI lô (chỉ số câu 8 `lo.cap.viTri` giữ nguyên); câu chốt làm hỏng cả lô nếu phiếu không được duyệt.
+  const xepThu = cauXepThu(env.DB, { registrationId: p.id, staffId: staff.id, lenh: maLenhThu("DA_DUYET", "CHO"), at, trangThaiPhieu: "DA_DUYET" });
   let kq: D1Result[];
   try {
-    kq = await env.DB.batch(lo.statements);
+    kq = await env.DB.batch([...lo.statements, xepThu]);
   } catch (e) {
     const l = loiLoDuyet(e);
     if (l) return error(l.status, l.code, l.message);
@@ -143,6 +148,7 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy }:
   }
   // Tệp chờ chưa lưu đã nhận quyết gỡ trong lô; xoá kho chạy SAU (Hiến chương 5.16). Không bao giờ chạm tệp đã chuyển.
   await xoaKhoTepChoDaGo(env, p.id);
+  guiThuSauLo(env, exec, { registrationId: p.id, staffId: staff.id, loai: "DA_DUYET", daXep: (kq[kq.length - 1]?.meta.changes ?? 0) > 0, hanKichHoat: deadlineAt });
   // Cấp độ đại lý mặc định (ADR-0209 Đ3, Đ4): câu 8 có chèn ⇒ đã áp; không có câu 8 / chèn 0 dòng ⇒ lý do dự đoán (dự đoán nói «sẽ áp» mà câu chèn 0 dòng ⇒ chính sách vừa đổi giữa lúc bấm).
   // Tên cấp chỉ cho người duyệt giữ `partner.commission.view` (Nhân sự không thấy — Đ4).
   const daAp = lo.cap.viTri !== null && (kq[lo.cap.viTri]?.meta.changes ?? 0) > 0;
@@ -152,7 +158,7 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy }:
 }
 
 // ---- POST /api/dang-ky/phieu/:id/tu-choi-duyet ----
-export async function tuChoiDuyet({ request, env, staff, params }: Ctx<"accounts">): Promise<Response> {
+export async function tuChoiDuyet({ request, env, staff, params, exec }: Ctx<"accounts">): Promise<Response> {
   const id = idPhieu(params);
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p) return KHONG_THAY();
@@ -168,15 +174,42 @@ export async function tuChoiDuyet({ request, env, staff, params }: Ctx<"accounts
     suKienNhanVienStatement(env.DB, { registrationId: p.id, staffId: staff.id, command: "TU_CHOI_DUYET", lyDo, at }),
     auditStatement(env.DB, { staffId: staff.id, action: "registration_approval_rejected", at, targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · từ chối duyệt · ${lyDo}` }, "changes() > 0"),
     cauGoTepChoNeuTruocDoi(env.DB, p.id, "TU_CHOI", at),
+    // Thư «bị từ chối» (ADR-0206 Đ13): CUỐI lô, điều kiện riêng (không nằm giữa chuỗi changes() của câu gỡ tệp).
+    cauXepThu(env.DB, { registrationId: p.id, staffId: staff.id, lenh: maLenhThu("TU_CHOI_DUYET", "CHO"), at, trangThaiPhieu: "TU_CHOI" }),
   ]);
   if ((kq[0]?.meta.changes ?? 0) === 0) return KHONG_CON_CHO();
+  guiThuSauLo(env, exec, { registrationId: p.id, staffId: staff.id, loai: "TU_CHOI_DUYET", daXep: (kq[4]?.meta.changes ?? 0) > 0, lyDo });
   await xoaKhoTepChoDaGo(env, p.id);
   return json({ trangThai: "TU_CHOI" });
 }
 
+// ---- POST /api/dang-ky/phieu/:id/tra-ve-xac-minh ----
+// «Trả về xác minh» (ADR-0207 Đ5; rà soát cuối I-3): CHỜ DUYỆT → CHỜ XÁC MINH, ghim phiên bản trong câu; xoá kết luận Danh bạ và người xác minh (người xác minh phải kết luận lại — luật
+// «người duyệt ≠ người xác minh» tính theo người kết luận LẦN SAU). MỘT lô: đổi → lịch sử → nhật ký (không dữ liệu khai). Không thư cho người đăng ký (phiếu vẫn trong tay công ty).
+export async function traVeXacMinh({ request, env, staff, params }: Ctx<"accounts">): Promise<Response> {
+  const id = idPhieu(params);
+  const p = id ? await phieuXet(env.DB, id) : null;
+  if (!p) return KHONG_THAY();
+  const k = kiemTraVe(await readJson(request));
+  if (!k.ok) return error(400, "invalid_input", k.message);
+  if (p.status !== "CHO_DUYET") return KHONG_CON_CHO();
+  if (k.value.phienBan !== p.current_version) return DOI_PHIEN_BAN();
+  const at = new Date().toISOString();
+  const kq = await env.DB.batch([
+    traVeXacMinhStatement(env.DB, { registrationId: p.id, by: staff.id, at, phienBan: k.value.phienBan }),
+    suKienNhanVienStatement(env.DB, { registrationId: p.id, staffId: staff.id, command: "TRA_VE_XAC_MINH", lyDo: null, at }),
+    auditStatement(env.DB, { staffId: staff.id, action: "registration_returned_to_verification", at, targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · trả về xác minh` }, "changes() > 0"),
+  ]);
+  if ((kq[0]?.meta.changes ?? 0) === 0) {
+    const n = await phieuXet(env.DB, p.id);
+    return n && n.status === "CHO_DUYET" && n.current_version !== k.value.phienBan ? DOI_PHIEN_BAN() : KHONG_CON_CHO();
+  }
+  return json({ trangThai: "CHO_XAC_MINH" });
+}
+
 // ---- POST /api/dang-ky/phieu/:id/gui-lai-loi-moi ----
-// ADR-0207 Đ7 chỉ định «mở lại hạn, có nhật ký»; ADR không chốt nội dung hay kênh của lời mời (thư), nên lệnh này mở lại hạn + lịch sử + nhật ký, KHÔNG gửi thư.
-export async function guiLaiLoiMoi({ env, staff, params }: Ctx<"accounts">): Promise<Response> {
+// ADR-0207 Đ7 «mở lại hạn, có nhật ký» + ADR-0206 Đ13: lệnh này cũng GỬI LẠI thư «đã duyệt» (kèm hạn mới) — đây là đường gửi lại của thư đó (rà soát cuối I-1; thay phán quyết Task 8 «không gửi thư»).
+export async function guiLaiLoiMoi({ env, staff, params, exec }: Ctx<"accounts">): Promise<Response> {
   const id = idPhieu(params);
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p) return KHONG_THAY();
@@ -190,10 +223,12 @@ export async function guiLaiLoiMoi({ env, staff, params }: Ctx<"accounts">): Pro
     guiLaiLoiMoiStatement(env.DB, { registrationId: p.id, deadlineAt, at, by: staff.id }),
     suKienNhanVienStatement(env.DB, { registrationId: p.id, staffId: staff.id, command: "GUI_LAI_LOI_MOI", lyDo: null, at }),
     auditStatement(env.DB, { staffId: staff.id, action: "registration_invite_resent", at, targetType: "party", targetId: p.id, detail: `phiếu ${p.id} · mở lại hạn đặt PIN` }, "changes() > 0"),
+    cauXepThu(env.DB, { registrationId: p.id, staffId: staff.id, lenh: maLenhThu("DA_DUYET", "CHO"), at, trangThaiPhieu: "DA_DUYET" }),
   ]);
   if ((kq[0]?.meta.changes ?? 0) === 0) {
     if (!(await danhTinhConEmail(env.DB, p.id))) return DANH_TINH_DA_AN();
     return error(409, "registration_not_pending_activation", "Phiếu không ở trạng thái đã duyệt, chưa kích hoạt.");
   }
+  guiThuSauLo(env, exec, { registrationId: p.id, staffId: staff.id, loai: "DA_DUYET", daXep: (kq[3]?.meta.changes ?? 0) > 0, hanKichHoat: deadlineAt });
   return json({ hanKichHoat: deadlineAt });
 }

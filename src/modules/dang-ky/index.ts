@@ -9,7 +9,8 @@ import { CAM_CHINH_SACH, doiChinhSach, xemChinhSach } from "./chinh-sach-route";
 import { datPinKichHoat } from "./kich-hoat-route";
 import { donPhieuDangKy } from "./don-phieu";
 import { cauHinhDangKy, xacNhanMa, xinMa } from "./xin-ma-route";
-import { CAM_DUYET, duyetPhieu, guiLaiLoiMoi, tuChoiDuyet, xemDeDuyet } from "./duyet-route";
+import { CAM_DUYET, duyetPhieu, guiLaiLoiMoi, traVeXacMinh, tuChoiDuyet, xemDeDuyet } from "./duyet-route";
+import { guiLaiThu } from "./thu-bao";
 import { CAM, ketLuanMuc, moTep, tuChoiPhieu, xacMinhDat, xemHangCho, xemPhieu, xemSo, yeuCauBoSung } from "./xac-minh-route";
 
 export { cauLyDoChoNguoiDangKy } from "../../shared/dang-ky-hien-thi";
@@ -128,6 +129,17 @@ export const dangKyModule: AppModule = {
     route("POST", "/api/dang-ky/phieu/:id/gui-lai-loi-moi", "accounts", async (ctx) => {
       if (!can(ctx.staff, "account.create")) return CAM_DUYET();
       return guiLaiLoiMoi(ctx);
+    }),
+    // «Trả về xác minh» (ADR-0207 Đ5; rà soát cuối I-3): cùng ô account.create với bước duyệt.
+    route("POST", "/api/dang-ky/phieu/:id/tra-ve-xac-minh", "accounts", async (ctx) => {
+      if (!can(ctx.staff, "account.create")) return CAM_DUYET();
+      return traVeXacMinh(ctx);
+    }),
+    // Gửi lại thư báo chưa gửi được (ADR-0206 Đ13; rà soát cuối I-1). Cổng: người xem được hàng chờ; ô theo BƯỚC đã sinh thư kiểm trong thân (thu-bao.ts): xác minh ⇒ party.verify + party.view,
+    // từ chối ở bước duyệt ⇒ account.create.
+    route("POST", "/api/dang-ky/phieu/:id/gui-lai-thu", "accounts", async (ctx) => {
+      if (!can(ctx.staff, "registration.queue.view")) return CAM();
+      return guiLaiThu(ctx);
     }),
   ],
 };

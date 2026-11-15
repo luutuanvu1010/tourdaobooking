@@ -168,13 +168,15 @@ test("(5) «Gửi lại lời mời» đua với tác nhân: danh tính bị ẩ
   seedStaff(w.sqlite, { id: HR, phone: "0900000013", name: "Nhân Sự", perms: ["HR"] });
   const a = phieu(w, "DA_DUYET", { hanKichHoat: truoc(31 * NGAY) });
   const han = reg(w, a.id).activation_deadline_at;
-  w.chenTruocLo((stmts: any[]) => stmts.length === 3, async () => { await chay(w); });
+  // Lô gửi lại lời mời: [mở lại hạn, lịch sử, nhật ký, xếp thư «đã duyệt»] = 4 câu (rà soát cuối I-1 thêm câu xếp thư).
+  w.chenTruocLo((stmts: any[]) => stmts.length === 4, async () => { await chay(w); });
   const r = await w.call("POST", `/api/dang-ky/phieu/${a.id}/gui-lai-loi-moi`, { as: HR });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "registration_identity_erased");
   assert.equal(reg(w, a.id).activation_deadline_at, han);
   assert.equal(n(w, "SELECT count(*) n FROM dk_event WHERE registration_id = ? AND command = 'GUI_LAI_LOI_MOI'", a.id), 0);
   assert.equal(n(w, "SELECT count(*) n FROM audit_log WHERE action = 'registration_invite_resent'"), 0);
+  assert.equal(n(w, "SELECT count(*) n FROM dk_event WHERE registration_id = ? AND command GLOB 'THU_*'", a.id), 0, "danh tính đã ẩn danh ⇒ không xếp thư, không ghi gì");
 });
 
 test("(6) Kho: tệp «chờ xoá» (xoá kho hỏng / lần rút thứ hai) ⇒ xoá và đánh dấu; «tải dở dang» 11 phút ⇒ quyết gỡ + xoá; tải dở dang 5 phút và tệp đã chuyển: không đụng", async () => {
