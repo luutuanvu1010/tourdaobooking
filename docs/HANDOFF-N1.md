@@ -2,7 +2,25 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.9 ĐÃ LÊN PRODUCTION (Phí đưa đón Đợt C: đơn có lượt đón tự có dòng «Phí đưa đón» do máy tính, chụp lúc xác nhận, thiếu mức thì không xác nhận được; phí vào công nợ đại lý và biên nhận ở phần Tour Đảo, không hoa hồng, không bị giảm giá của đơn trừ — ADR-0147 Đ3, ADR-0203 ĐB2–ĐB3) — migration `0169` — triển khai 2026-11-15 21:44 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.10 ĐÃ LÊN PRODUCTION (câu báo trần giảm giá đổi thành «Giảm giá không được vượt quá tiền dịch vụ.»; thêm dòng kịch bản Chrome cho phí đưa đón vào `web/CLAUDE.md` — chủ chốt câu chờ 2 và 3 của Đợt C) — không migration — triển khai 2026-11-16 06:53 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy (đọc ở ô Terminal của phiên). Chỉ đổi chữ, không đổi dữ liệu. **Phí đưa đón vẫn chưa thu đồng nào** tới khi Quản trị đặt «ngày bắt đầu áp» (Đợt D).
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-16 06:53 (giờ Việt Nam)
+- Commit: aceda8584 web/CLAUDE.md: thêm dòng kịch bản Chrome cho phí đưa đón trên đơn và màn Phí đưa đón; nhật ký ghi bốn câu chủ chốt
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-15T15:12:48Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/43727701522
+- Tệp luật đã đổi — lý do của chủ: Chủ duyệt thêm dòng kịch bản kiểm Chrome cho phí đưa đón trên đơn và màn Phí đưa đón (web/CLAUDE.md)
+- Migration đã áp: không có
+- Worker Version ID: 72edb728-19aa-4d2c-8852-a19a0b9eacb1
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT, 2 cảnh báo có sẵn (R-VC-14 xe thiếu giấy tờ điều kiện xuất bến — 7; R-ORD-9 danh sách có tên nhiều hơn số khách — 1).
+- Phiên bản: 3.10 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: TỔNG 10 phút 37 giây (day-len 9 phút 55 giây, trong đó chờ GitHub kiểm 9 phút 49 giây; trien-khai 0 phút 42 giây) — vượt mục tiêu khoảng 10 phút của ADR-0179 Đ1.1 (máy cảnh báo, không chặn; phần lớn là chờ GitHub kiểm).
+- Lúc triển khai, chế độ bảo trì ĐANG BẬT (dự kiến tới 2026-11-16 13:34 giờ Việt Nam). Chưa thử iPhone thật.
+- Kế tiếp: Đợt D — Quản trị đặt đủ mức chung mỗi khu vực rồi «ngày bắt đầu áp».
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.9 ĐÃ LÊN PRODUCTION (Phí đưa đón Đợt C: đơn có lượt đón tự có dòng «Phí đưa đón» do máy tính, chụp lúc xác nhận, thiếu mức thì không xác nhận được; phí vào công nợ đại lý và biên nhận ở phần Tour Đảo, không hoa hồng, không bị giảm giá của đơn trừ — ADR-0147 Đ3, ADR-0203 ĐB2–ĐB3) — migration `0169` — triển khai 2026-11-15 21:44 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy (đọc ở ô Terminal của phiên). **Phí chưa thu đồng nào**: chỉ chạy khi Quản trị đặt «ngày bắt đầu áp» trên màn Phí đưa đón (Đợt D). Nhật ký thi công: `docs/superpowers/plans/2026-11-15-phi-don-dot-c-thi-cong-nhat-ky.md`.
 

@@ -4,10 +4,12 @@
 // (đọc, commit, chép RA ngoài, dọn worktree… — chặn nhầm là lỗi). Đặc tả: docs/superpowers/specs/2026-10-01-ba-hook-moi.md.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { danhGiaGhiLuat, gocKho } from "../.claude/hooks/guard-luat-lib.mjs";
+import { danhGiaGhiLuat, danhGiaScriptLuat, gocKho } from "../.claude/hooks/guard-luat-lib.mjs";
 
 const HERE = fileURLToPath(new URL("../", import.meta.url));
 const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
@@ -199,4 +201,143 @@ test("guard-luat (ADR-0179 Đ2.6): .github/workflows/ là TỆP LUẬT (sửa b�
   }
   const s = read(".claude/settings.json");
   assert.ok(s.includes('"Edit(.github/workflows/**)"'), "settings.json: sửa quy trình GitHub bằng công cụ sửa tệp phải HỎI chủ");
+});
+
+// ─── Trình thông dịch (node/python/perl/ruby/bun/deno/php) ghi tệp luật — vá chỗ hở 15/11/2026 ─────────────────────────────────────
+// Sự cố 15/11: một phiên chạy `node -e '…fs.writeFileSync("docs/adr/README.md", …)'` qua Bash; guard-luat không thấy (mã trong chuỗi), luật HỎI
+// `adr-bash-write` chỉ trả `ask` (chế độ tự động / trợ lý con bấm qua được), còn `CLAUDE.md`, `.claude/**`, `playbook/**` thì không ai hỏi.
+// Nay: mã chạy bằng trình thông dịch (-e/-c/-p/--eval, heredoc nạp vào trình thông dịch) nhắc đường dẫn tệp luật VÀ có dấu hiệu ghi ⇒ CHẶN.
+const SU_CO_15_11 = `node -e 'const fs=require("fs");const p="docs/adr/README.md";const s=fs.readFileSync(p,"utf8");fs.writeFileSync(p,s.replace("a","b"))'`;
+const TRINH_PHAI_CHAN: [string, string?][] = [
+  [SU_CO_15_11],
+  [`node -e "require('fs').appendFileSync('CLAUDE.md', 'x')"`],
+  [`node --input-type=module -e "import {writeFileSync} from 'node:fs'; writeFileSync('.claude/settings.json', '{}')"`],
+  [`node -p "require('fs').writeFileSync('src/CLAUDE.md','x')"`],
+  [`node -e "require('fs').rmSync('.claude/hooks', {recursive:true})"`],
+  [`node -e "require('fs').unlinkSync('playbook/CONSTITUTION.md')"`],
+  [`node -e "require('fs').renameSync('/tmp/x.md','docs/adr/0300-x.md')"`],
+  [`node -e "require('fs').copyFileSync('/tmp/x.mjs','.claude/hooks/guard-tep.mjs')"`],
+  [`node -e "const fs=require('fs'),path=require('path'); fs.writeFileSync(path.join('docs','adr','README.md'),'x')"`],
+  [`node -e "require('fs').writeFileSync(process.argv[1],'x')" CLAUDE.md`],
+  [`bun -e "await Bun.write('CLAUDE.md','x')"`],
+  [`deno eval "Deno.writeTextFileSync('.github/workflows/kiem.yml','x')"`],
+  [`python3 -c "open('CLAUDE.md','w').write('x')"`],
+  [`python3 -c "open('docs/adr/README.md','a').write('x')"`],
+  [`python3 -c "import os; os.remove('.claude/settings.local.json')"`],
+  [`python3 -c "import shutil; shutil.copy('/tmp/x', '.claude/agents/nguoi-kiem-doc-lap.md')"`],
+  [`python3 -c "from pathlib import Path; Path('playbook/PIN-README.md').write_text('x')"`],
+  [`python3 -c "import os; open(os.path.join('.claude','settings.json'),'w')"`],
+  [`python3 -c "from pathlib import Path; (Path('.') / 'docs' / 'adr' / 'README.md').write_text('x')"`],
+  [`python -c "import subprocess; subprocess.run(['rm','CLAUDE.md'])"`],
+  [`perl -e 'open(my $f, ">", "CLAUDE.md"); print $f "x"'`],
+  [`perl -e 'open(F, ">>docs/adr/README.md"); print F "x"'`],
+  [`perl -e 'unlink "playbook/CONSTITUTION.md"'`],
+  [`ruby -e 'File.write("CLAUDE.md", "x")'`],
+  [`php -r 'file_put_contents("CLAUDE.md", "x");'`],
+  ["python3 - <<'EOF'\np='CLAUDE.md'\ns=open(p,encoding='utf-8').read()\nopen(p,'w',encoding='utf-8').write(s)\nEOF"],
+  ["cat <<'EOF' | node\nrequire('fs').appendFileSync('.claude/settings.json', 'x')\nEOF"],
+  ["node <<'EOF'\nconst fs = require('fs');\nfs.writeFileSync('docs/adr/README.md', 'x');\nEOF"],
+  ["npm test && node -e \"require('fs').writeFileSync('CLAUDE.md','x')\""],
+  [`bash -c "node -e \\"require('fs').writeFileSync('CLAUDE.md','x')\\""`],
+  [`env FOO=1 /usr/bin/python3 -c "open('CLAUDE.md','w')"`],
+  // Người kiểm độc lập 15/11: chế độ ghi đứng một mình trong .open('w') (pathlib); env gõ bằng đường dẫn tuyệt đối.
+  [`python3 -c "import pathlib;pathlib.Path('docs/adr/README.md').open('w')"`],
+  [`/usr/bin/env node -e "require('fs').writeFileSync('CLAUDE.md','x')"`],
+  // cd rồi đường dẫn tương đối; worktree; đường dẫn tuyệt đối vào kho.
+  [`cd docs && node -e "require('fs').writeFileSync('adr/README.md','x')"`],
+  [`node -e "require('fs').writeFileSync('CLAUDE.md','x')"`, WT],
+  [`node -e "require('fs').writeFileSync('/repo/.claude/worktrees/x/.claude/settings.json','x')"`, "/tmp"],
+  [`node -e "require('fs').writeFileSync(\`\${process.cwd()}/.claude/settings.json\`,'x')"`],
+];
+const TRINH_PHAI_CHO_QUA: [string, string?][] = [
+  [`node -e "console.log(require('fs').readFileSync('CLAUDE.md','utf8').length)"`],
+  [`node -e "process.stdout.write(require('fs').readFileSync('docs/adr/README.md','utf8').slice(0,200))"`],
+  [`node -e "const s=require('./.claude/settings.json'); console.log(JSON.stringify(s.permissions.deny))"`],
+  [`node -p "require('fs').readdirSync('docs/adr').length"`],
+  [`python3 -c "print(open('CLAUDE.md').read()[:100])"`],
+  [`python3 -c "print(open('playbook/CONSTITUTION.md', 'r', encoding='utf-8').read().count('N9'))"`],
+  [`python3 -c "import json; print(json.load(open('.claude/settings.json'))['hooks'].keys())"`],
+  [`perl -ne 'print if /N9/' playbook/CONSTITUTION.md`],
+  [`ruby -e 'puts File.read("CLAUDE.md").lines.count'`],
+  // Ghi ra NGOÀI tệp luật (tệp thường, /tmp) thì không phải việc của hàng rào này.
+  [`node -e "require('fs').writeFileSync('docs/BACKLOG.md','x')"`],
+  [`python3 -c "open('/tmp/x.md','w').write('x')"`],
+  [`node -e "require('fs').writeFileSync('/tmp/thu/CLAUDE.md','x')"`],
+  // Chạy tệp trong kho, bài kiểm, móc: không đọc mã (luật khác lo), không chặn.
+  ["node --test src/claude-guard-luat.test.ts src/claude-guard-tep.test.ts"],
+  ["node scripts/gen-bang-tham-chieu.mjs"],
+  ["node .claude/hooks/guard-remote.mjs < /tmp/in.json"],
+  // Thông điệp commit / tài liệu nhắc lại đúng câu lệnh sự cố — dữ liệu, không phải lệnh.
+  [`git commit -m "Vá: node -e 'fs.writeFileSync(\\"CLAUDE.md\\")' trước đây lọt"`],
+  ["git commit -m \"$(cat <<'EOF'\nVá chỗ hở: node -e writeFileSync('docs/adr/README.md') và python3 open('CLAUDE.md','w')\nEOF\n)\""],
+  ["cat > docs/superpowers/specs/x.md <<'EOF'\nTrợ lý chạy node -e \"require('fs').writeFileSync('CLAUDE.md','x')\" qua Bash\nEOF"],
+  [`grep -n "writeFileSync('CLAUDE.md'" docs/SO-HANG-RAO.md`],
+];
+
+test("guard-luat (15/11): mã chạy bằng trình thông dịch GHI tệp luật bị chặn, lý do trỏ về công cụ sửa tệp", () => {
+  for (const [cmd, cwd] of TRINH_PHAI_CHAN) {
+    const v = danhGia(cmd, cwd);
+    assert.equal(v.deny, true, `phải CHẶN (cwd ${cwd ?? ROOT}): ${cmd}`);
+    if (v.deny) {
+      assert.equal(v.rule, "sua-luat-bang-lenh", cmd);
+      assert.match(v.reason, /công cụ sửa tệp/, cmd);
+    }
+  }
+  // Bản ghi kết luận kiểm của day-len: ghi bằng trình thông dịch cũng giữ đúng luật riêng của nó.
+  const k = danhGia(`node -e "require('fs').writeFileSync('.git/tourdao-kiem/abc.json','{}')"`);
+  assert.equal(k.deny, true);
+  if (k.deny) assert.equal(k.rule, "ghi-ban-ghi-kiem");
+});
+
+test("guard-luat (15/11): mã trình thông dịch CHỈ ĐỌC tệp luật, ghi ra ngoài, chạy tệp trong kho, thông điệp commit đều cho qua", () => {
+  for (const [cmd, cwd] of TRINH_PHAI_CHO_QUA) assert.equal(danhGia(cmd, cwd).deny, false, `phải CHO QUA (cwd ${cwd ?? ROOT}): ${cmd}`);
+});
+
+test("guard-luat (15/11): tệp script NGOÀI thư mục mã của kho (/tmp, ~/.claude/jobs, tệp tạm ở gốc worktree) ghi tệp luật bị chặn; script của kho và script chỉ đọc cho qua", () => {
+  const ghi = 'const fs = require("fs");\nconst p = "docs/adr/README.md";\nfs.writeFileSync(p, fs.readFileSync(p, "utf8") + "x");\n';
+  const ghiPy = 'D = "CLAUDE.md"\nopen(D, "w", encoding="utf-8").write("x")\n';
+  const ghiArgv = 'import sys\nopen(sys.argv[1], "w").write("x")\n';
+  const doc = 'print(open("CLAUDE.md", encoding="utf-8").read())\n';
+  const dg = (command: string, scripts: { path: string; content: string }[], cwd = ROOT) => danhGiaScriptLuat(command, scripts, { cwd, root: ROOT });
+  assert.equal(dg("node /tmp/sua.mjs", [{ path: "/tmp/sua.mjs", content: ghi }]).deny, true);
+  assert.equal(dg("python3 ~/.claude/jobs/a/duyet.py", [{ path: "/Users/ai/.claude/jobs/a/duyet.py", content: ghiPy }]).deny, true);
+  assert.equal(dg("node tam.mjs", [{ path: `${WT}/tam.mjs`, content: ghi }], WT).deny, true, "tệp tạm đặt ở gốc worktree vẫn bị đọc");
+  assert.equal(dg("python3 /tmp/w.py CLAUDE.md", [{ path: "/tmp/w.py", content: ghiArgv }]).deny, true, "đường dẫn tệp luật đi qua đối số dòng lệnh");
+  assert.equal(dg("python3 /tmp/doc.py", [{ path: "/tmp/doc.py", content: doc }]).deny, false, "script chỉ đọc");
+  assert.equal(dg("node scripts/gen-bang-tham-chieu.mjs", [{ path: `${ROOT}/scripts/gen-bang-tham-chieu.mjs`, content: ghi }]).deny, false, "script của kho (scripts/) không bị đọc");
+  assert.equal(dg("node scripts/x.mjs", [{ path: `${WT}/scripts/x.mjs`, content: ghi }], WT).deny, false, "script của kho trong worktree");
+  assert.equal(dg("node /tmp/sua.mjs", [{ path: "/tmp/sua.mjs", content: 'require("fs").writeFileSync("/tmp/out.md", "x")\n' }]).deny, false, "ghi ra ngoài");
+  assert.equal(danhGiaScriptLuat("node /tmp/sua.mjs", [{ path: "/tmp/sua.mjs", content: ghi }], { cwd: ROOT, root: null }).deny, false, "thiếu gốc kho thì không phán");
+});
+
+test("guard-remote (15/11): script móc thật CHẶN đúng lệnh sự cố 15/11 và ghi tệp luật bằng trình thông dịch; im lặng với lệnh chỉ đọc", () => {
+  const run = (command: string) => spawnSync("node", [".claude/hooks/guard-remote.mjs"], { cwd: HERE, input: JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd: HERE }), encoding: "utf8" });
+  const quyet = (command: string) => JSON.parse(run(command).stdout || "{}").hookSpecificOutput;
+  for (const command of [SU_CO_15_11, `node -e "require('fs').appendFileSync('CLAUDE.md','x')"`, `python3 -c "open('.claude/settings.json','w').write('x')"`]) {
+    const o = quyet(command);
+    assert.equal(o?.permissionDecision, "deny", `móc phải CHẶN: ${command}`);
+    assert.match(o?.permissionDecisionReason ?? "", /công cụ sửa tệp/);
+  }
+  const dir = mkdtempSync(join(tmpdir(), "guard-luat-"));
+  const tep = join(dir, "sua.mjs");
+  writeFileSync(tep, 'import { writeFileSync } from "node:fs";\nwriteFileSync(".claude/settings.json", "{}");\n');
+  assert.equal(quyet(`node ${tep}`)?.permissionDecision, "deny", "tệp script tạm ghi tệp luật phải bị chặn");
+  writeFileSync(tep, 'import { readFileSync } from "node:fs";\nconsole.log(readFileSync("CLAUDE.md", "utf8").length);\n');
+  assert.equal(run(`node ${tep}`).stdout, "", "tệp script tạm chỉ đọc phải im lặng");
+  rmSync(dir, { recursive: true, force: true });
+  for (const command of [`node -e "console.log(require('fs').readFileSync('CLAUDE.md','utf8').length)"`, `python3 -c "print(open('docs/adr/README.md').read()[:50])"`, "node scripts/gen-bang-tham-chieu.mjs --kiem"]) {
+    assert.equal(run(command).stdout, "", `phải im lặng với: ${command}`);
+  }
+});
+
+test("guard-luat (15/11): quét chặn nhầm — mọi script của kho, mọi lệnh trong package.json đều cho qua (kể cả khi móc đọc nội dung script)", () => {
+  const goc = HERE.replace(/\/$/, "");
+  const pkg = JSON.parse(read("package.json")).scripts as Record<string, string>;
+  const lenh = [...readdirSync(new URL("../scripts/", import.meta.url)).filter((f) => /\.m?js$/.test(f)).map((f) => `node scripts/${f}`), ...Object.values(pkg)];
+  const chanNham = lenh.filter((cmd) => {
+    if (danhGiaGhiLuat(cmd, { cwd: goc, root: goc }).deny) return true;
+    const tep = (cmd.match(/(?:^|\s)node\s+(scripts\/[\w.-]+\.m?js)/g) ?? []).map((m) => m.trim().split(/\s+/)[1]);
+    return danhGiaScriptLuat(cmd, tep.map((p) => ({ path: p, content: read(p) })), { cwd: goc, root: goc }).deny;
+  });
+  assert.deepEqual(chanNham, []);
 });

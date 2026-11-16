@@ -6,6 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { evaluateBash, interpreterHeredocs, scriptPaths } from "../.claude/hooks/guard-remote-lib.mjs";
+import { danhGiaGhiLuat, danhGiaScriptLuat } from "../.claude/hooks/guard-luat-lib.mjs";
 
 test("guard-remote: lệnh dị dạng không làm hook quá giờ (timeout 10 s của hook)", () => {
   // Đo thời gian CPU của chính tiến trình (process.cpuUsage), không đo đồng hồ: máy bận vì việc khác (nhiều phiên song song)
@@ -38,6 +39,16 @@ test("guard-remote: lệnh dị dạng không làm hook quá giờ (timeout 10 s
     // từng làm bản cũ (hai \s* kẹp một nhóm tuỳ chọn) quay lui mũ ~37 s CPU (người kiểm độc lập vòng 2) — qua evaluateBash (không chỉ regex lẻ).
     evaluateBash("'docs'" + " ".repeat(199_990), { branch: "worktree-x" });
     evaluateBash("Path('docs')" + " ".repeat(199_980), { branch: "worktree-x" });
+    // guard-luat, nhánh trình thông dịch (15/11): chạy ở bước (2) của móc — chậm ở đây làm móc quá giờ TRƯỚC khi mọi luật deny kịp chạy.
+    const luat = { cwd: "/repo", root: "/repo" };
+    danhGiaGhiLuat("node -e '" + "fs.writeFileSync(\"CLAUDE.md\"),".repeat(6_000) + "'", luat);
+    danhGiaGhiLuat("python3 -c \"" + "open(\'x".repeat(40_000) + "\"", luat); // chuỗi không đóng lặp lại
+    danhGiaGhiLuat("node -e '" + "\"" + "a".repeat(499) + "\\".repeat(1) + "x".repeat(199_000) + "'", luat);
+    danhGiaGhiLuat("node -e '" + "`".repeat(1) + "x".repeat(199_990) + "'", luat);
+    // (Không đo heredoc không đóng lặp lại qua danhGiaGhiLuat: chi phí đó nằm ở `candidates`/stripHeredocs — nợ có từ trước, ghi ở sổ hàng rào;
+    // phần mới gọi interpreterHeredocs, đã đo riêng ở trên.)
+    danhGiaGhiLuat("python3 - <<'A'\n" + "'docs' , ".repeat(20_000) + "open(p, 'w')\nA", luat);
+    danhGiaScriptLuat("node /tmp/x.mjs", [{ path: "/tmp/x.mjs", content: "'CLAUDE.md' / ".repeat(18_000) + "writeFileSync" }], luat);
     const used = process.cpuUsage(cpu);
     runs.push(Math.round((used.user + used.system) / 1000));
   }
