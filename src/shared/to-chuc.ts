@@ -124,3 +124,12 @@ export function kiemPhanToChuc(raw: Record<string, unknown>, dm: DanhMucGiayToTo
     },
   };
 }
+
+// ---- ADR-0213 Đ2.7 (Task 9 vòng sửa 1): liên kết người → tổ chức ---------------------------------------------------------------
+/**
+ * «Người quản lý của» (MANAGER_OF) và «Thành viên của» (MEMBER_OF) — chỉ đường riêng của màn tổ chức ghi được (Đ2.7). Một nguồn cho máy chủ (route quan hệ chung của
+ * Danh bạ từ chối, `parties/rules.ts` tái xuất) và giao diện (Danh bạ ẩn nút «Kết thúc» của hai loại này).
+ */
+export const LIEN_KET_TO_CHUC: readonly string[] = ["MANAGER_OF", "MEMBER_OF"];
+export const laLienKetToChuc = (code: string): boolean => LIEN_KET_TO_CHUC.includes(code);
+

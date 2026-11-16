@@ -4,6 +4,7 @@
 // Hệ quả (phán quyết F16): các đường đọc cũ dùng `>= hôm nay`, nên dòng của A đóng đúng hôm nay vẫn hiện là hiệu lực trong ngày ở đó — chấp nhận được vì A bị ẩn sau khi gộp.
 
 import { vaiMoChoHoSoKhongTaiKhoan } from "../../shared/roles.ts";
+import { laLienKetToChuc } from "../../shared/to-chuc.ts";
 
 export type NhomVai = "INTERNAL" | "EXTERNAL" | "OTHER";
 export interface LienHeGop { id: string; kind: string; value: string; valueNormalized: string; label: string | null; isPrimary: boolean; validFrom: string; validTo: string | null }
@@ -38,7 +39,7 @@ export interface NgoaiGop { phuTrachDon: number; laiChuyen: number; toLaiChuyen:
 export type MaChanGop =
   | "merge_same" | "merge_not_person" | "merge_inactive" | "merge_owner_company" | "merge_both_accounts" | "merge_source_has_account" | "merge_source_account_role"
   | "merge_role_group_conflict" | "merge_source_busy" | "merge_source_is_target" | "merge_source_future_row" | "merge_order_invalid" | "merge_source_owns_vehicle"
-  | "merge_partner_label_internal" | "merge_erasure" | "merge_credit_debt" | "merge_credit_no_limit" | "merge_credit_overdue";
+  | "merge_partner_label_internal" | "merge_erasure" | "merge_credit_debt" | "merge_credit_no_limit" | "merge_credit_overdue" | "merge_org_link";
 export interface LyDoChan { code: MaChanGop; message: string }
 export interface KeHoachGop {
   chan: LyDoChan[];
@@ -64,6 +65,8 @@ const CAU: Record<Exclude<MaChanGop, "merge_source_busy" | "merge_order_invalid"
   merge_source_is_target: "Đã có hồ sơ khác gộp vào hồ sơ phụ này — hãy chọn nó làm hồ sơ chính (không gộp nối tiếp).",
   merge_source_future_row: "Hồ sơ phụ có liên hệ, công việc hoặc quan hệ bắt đầu sau hôm nay — kết thúc hoặc sửa dòng đó trước khi gộp.",
   merge_source_owns_vehicle: "Hồ sơ phụ đang đứng tên xe — đổi chủ xe ở mục Xe trước khi gộp.",
+  // ADR-0213 Đ2.6, Đ2.7 (Task 9 vòng sửa 1): lô gộp không phải đường ghi liên kết tổ chức — văn phòng chuyển hoặc gỡ ở màn tổ chức trước.
+  merge_org_link: "Một trong hai hồ sơ đang là người quản lý hoặc thành viên của một tổ chức — hãy chuyển hoặc gỡ liên kết đó ở màn tổ chức trước, rồi gộp lại.",
   // ADR-0126 (lát H-5): chặn ở route (đọc phiếu xoá của CẢ HAI hồ sơ trước lô) và ở trigger party_merge_erasure; cùng câu.
   merge_erasure: "Hồ sơ đang có hoặc đã thực hiện yêu cầu xoá dữ liệu — không gộp được.",
   // ADR-0188 mục 4(a): cùng câu a / b của đường đổi bên đặt, đổi «bên đặt mới» thành «hồ sơ chính» (câu a viết lại cho đúng việc gộp). Route tính (cổng hạn mức của billing), không phải luật thuần.
@@ -146,6 +149,8 @@ export function keHoachGop(a: HoSoGop, b: HoSoGop, ngoai: NgoaiGop, homNay: stri
   }
   // [Dừng Q2] — khuyến nghị: chặn khi hồ sơ phụ đứng tên xe.
   if (ngoai.soXe > 0) chan.push(chanCo("merge_source_owns_vehicle"));
+  // ADR-0213 Đ2.7: liên kết tổ chức đang mở (kể cả dòng bắt đầu sau hôm nay) ở hồ sơ phụ HOẶC hồ sơ chính ⇒ chặn. Hai loại này cũng bị loại khỏi bước 3 bên dưới.
+  if ([a, b].some((h) => h.quanHe.some((x) => laLienKetToChuc(x.typeCode) && conMo(x.validTo, homNay)))) chan.push(chanCo("merge_org_link"));
 
   // ---- Đ1 bước 1: liên hệ ---------------------------------------------------------------------------------------------
   const lhMoA = a.lienHe.filter((c) => conMo(c.validTo, homNay));
@@ -173,7 +178,7 @@ export function keHoachGop(a: HoSoGop, b: HoSoGop, ngoai: NgoaiGop, homNay: stri
   }
 
   // ---- Đ1 bước 3: quan hệ ----------------------------------------------------------------------------------------------
-  const qhMoA = a.quanHe.filter((x) => x.validFrom <= homNay && conMo(x.validTo, homNay));
+  const qhMoA = a.quanHe.filter((x) => x.validFrom <= homNay && conMo(x.validTo, homNay) && !laLienKetToChuc(x.typeCode));
   ke.quanHe.dong = qhMoA;
   for (const x of qhMoA) {
     const khac = x.fromId === a.id ? x.toId : x.fromId;

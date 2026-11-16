@@ -562,6 +562,7 @@ const ROLE_PARTNER_LABEL_CONFLICT = () => error(409, "role_partner_label_conflic
 const coQuyenNoiBoCua = (acc: PartyAccountVerdict): boolean => acc.linked && acc.coQuyenNoiBo !== false;
 
 /** Lỗi ràng buộc của CSDL → phản hồi rõ nghĩa; lỗi lạ trả null để ném lên (500 có requestId). */
+const TO_CHUC_DA_CO_NGUOI_QUAN_LY = "Tổ chức này đã có người quản lý. Muốn đổi người thì dùng «Chuyển quyền quản lý» ở màn tổ chức.";
 function constraintProblem(e: unknown): Response | null {
   const m = e instanceof Error ? e.message : "";
   // Lớp CSDL của vai "Công ty chủ" (trigger *_keep_last, *_start_today): chỉ tới đây khi lớp route bị vượt — mã riêng để phân biệt với lớp route (P16).
@@ -576,6 +577,8 @@ function constraintProblem(e: unknown): Response | null {
   if (/party_relationship_drives_for_(person|carrier)/.test(m)) {
     return error(409, "drives_for_rule", "Quan hệ “Tài xế của” phải đi từ hồ sơ cá nhân tới hồ sơ đang là nhà xe đối tác.");
   }
+  // ADR-0213 Đ2.2 (Task 9 vòng sửa 1, Minor 8): chỉ mục một người quản lý — câu riêng, đúng nghĩa (TRƯỚC nhánh chung «trùng thời gian»).
+  if (/pty_relationship_one_manager_uq|UNIQUE constraint failed: pty_party_relationship\.to_party_id/.test(m)) return error(409, "org_has_manager", TO_CHUC_DA_CO_NGUOI_QUAN_LY);
   if (/party_relationship_overlap|UNIQUE constraint failed: pty_party_relationship/.test(m)) return error(409, "relationship_overlap", "Quan hệ này đã được ghi trong khoảng thời gian trùng.");
   if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Loại công việc, địa điểm hoặc hồ sơ liên quan không tồn tại.");
   return null;

@@ -308,16 +308,27 @@ export const CHECKS = [
   // ---- Liên kết người quản lý / thành viên của tổ chức (ADR-0213 Đ2, migration *_dang_ky_quan_ly_to_chuc). Trigger chỉ canh lúc ghi; bốn kiểm dưới là lưới cho
   // SQL gõ tay, trigger bị gỡ, và trạng thái đổi SAU khi gắn. «Đang mở» = valid_to_date IS NULL.
   {
-    // R-TC-1 (Đ2.4): tổ chức có thành viên đang mở có ĐÚNG một người quản lý đang mở (chỉ mục pty_relationship_one_manager_uq giữ «tối đa một»; trigger
-    // pty_relationship_manager_close_needs_replacement giữ «không đóng người quản lý khi còn thành viên»). Liệt kê mã tổ chức.
+    // R-TC-1 (Đ2.4, CẢNH BÁO — Task 9 vòng sửa 1, ruling điều phối 16/11): tổ chức có thành viên đang mở mà KHÔNG có người quản lý đang mở. Đ6 cho văn phòng mời thành viên
+    // «để giúp tổ chức chưa có người quản lý», nên đây là việc cần làm (giao người quản lý), không phải lỗi dữ liệu. «Từ hai người quản lý» là R-TC-1b (fail). Liệt kê mã tổ chức.
     code: "R-TC-1",
-    what: "tổ chức có thành viên đang mở mà không có đúng một người quản lý đang mở",
+    what: "tổ chức có thành viên đang mở mà chưa có người quản lý (văn phòng cần giao người quản lý)",
     sql: `SELECT DISTINCT m.to_party_id FROM pty_party_relationship m
      WHERE m.relationship_type_code = 'MEMBER_OF' AND m.valid_to_date IS NULL
-       AND (SELECT count(*) FROM pty_party_relationship g WHERE g.to_party_id = m.to_party_id AND g.relationship_type_code = 'MANAGER_OF' AND g.valid_to_date IS NULL) <> 1`,
+       AND NOT EXISTS (SELECT 1 FROM pty_party_relationship g WHERE g.to_party_id = m.to_party_id AND g.relationship_type_code = 'MANAGER_OF' AND g.valid_to_date IS NULL)`,
+    mode: "rows",
+    level: "warn",
+    note: "ADR-0213 Đ2.4, Đ6: thành viên vẫn soạn được nhưng không ai gửi lên Tour Đảo — văn phòng giao người quản lý ở màn tổ chức",
+  },
+  {
+    // R-TC-1b (Đ2.2): một tổ chức có TỪ HAI người quản lý đang mở — chỉ có thể khi chỉ mục pty_relationship_one_manager_uq bị gỡ hoặc SQL gõ tay. Liệt kê mã tổ chức.
+    code: "R-TC-1b",
+    what: "tổ chức có từ hai người quản lý đang mở",
+    sql: `SELECT g.to_party_id FROM pty_party_relationship g
+     WHERE g.relationship_type_code = 'MANAGER_OF' AND g.valid_to_date IS NULL
+     GROUP BY g.to_party_id HAVING count(*) > 1`,
     mode: "rows",
     level: "fail",
-    note: "ADR-0213 Đ2.4: lô «chuyển» và lô gỡ phải giữ đúng một người quản lý khi còn thành viên — lệch là SQL chạy tay hoặc trigger bị gỡ; văn phòng giao người quản lý (Đ6)",
+    note: "ADR-0213 Đ2.2: mỗi tổ chức đúng một người quản lý — lệch là chỉ mục duy nhất bị gỡ hoặc SQL chạy tay; đóng dòng thừa theo nhật ký liên kết của tổ chức",
   },
   {
     // R-TC-2 (Đ2.4): mọi replaced_by_id nằm trên dòng MANAGER_OF đã đóng và trỏ một dòng MANAGER_OF có thật, cùng tổ chức, mở đúng ngày dòng cũ đóng. Liệt kê dòng cũ.

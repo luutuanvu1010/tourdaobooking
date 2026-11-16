@@ -5103,9 +5103,12 @@ function tcLienKet(db: DatabaseSync, id: string, nguoi: string, org: string, loa
 /** Người có tài khoản Đối tác thuần, hồ sơ KHÔNG vai (chỉ làm việc cho tổ chức). */
 const tcNguoi = (db: DatabaseSync, id: string, quyen: string[] = ["PARTNER"]) => (guardSeed(db, id, [], quyen), `p-${id}`);
 
-test("R-TC-1 (ADR-0213 Đ2.4): tổ chức có thành viên đang mở mà không có đúng một người quản lý đang mở → vi phạm (liệt kê tổ chức)", () => {
+test("R-TC-1 (ADR-0213 Đ2.4, Đ6 — CẢNH BÁO): tổ chức có thành viên đang mở mà chưa có người quản lý → liệt kê tổ chức; R-TC-1b (fail): từ hai người quản lý đang mở", () => {
   const c = one("R-TC-1");
-  assert.equal(c.level, "fail");
+  const c2 = one("R-TC-1b");
+  assert.equal(c.level, "warn", "Đ6: văn phòng được mời thành viên cho tổ chức chưa có người quản lý — không phải lỗi dữ liệu");
+  assert.equal(c2.level, "fail");
+  assert.equal(c2.mode, "rows");
   assert.equal(c.mode, "rows");
   const db = schemaWithoutGuards();
   const ok = tcToChuc(db);
@@ -5119,9 +5122,13 @@ test("R-TC-1 (ADR-0213 Đ2.4): tổ chức có thành viên đang mở mà khôn
   const mo = tcToChuc(db);
   tcLienKet(db, "tc1-e", tcNguoi(db, "tc1e"), mo, "MEMBER_OF");
   assert.equal(violations(db, c), 1, "thành viên mở, không người quản lý");
+  assert.equal(violations(db, c2), 0);
   db.exec("DROP INDEX pty_relationship_one_manager_uq");
   tcLienKet(db, "tc1-f", tcNguoi(db, "tc1f"), ok, "MANAGER_OF");
-  assert.equal(violations(db, c), 2, "hai người quản lý mở (chỉ mục duy nhất bị gỡ)");
+  assert.equal(violations(db, c), 1, "R-TC-1 không đếm ca hai người quản lý");
+  assert.equal(violations(db, c2), 1, "hai người quản lý mở (chỉ mục duy nhất bị gỡ)");
+  tcLienKet(db, "tc1-g", tcNguoi(db, "tc1g"), chiQuanLy, "MANAGER_OF");
+  assert.equal(violations(db, c2), 2, "R-TC-1b bắt cả tổ chức KHÔNG có thành viên");
 });
 
 test("R-TC-2 (ADR-0213 Đ2.4): replaced_by_id phải trỏ dòng MANAGER_OF có thật, cùng tổ chức, mở đúng ngày dòng cũ đóng → sai thì vi phạm (liệt kê dòng)", () => {

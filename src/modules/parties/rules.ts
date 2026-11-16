@@ -6,6 +6,7 @@ import { khoaTen } from "../../shared/khoa-ten.ts";
 import { sinhMa } from "../../shared/ma-dinh-danh.ts";
 import { coSoHoacEmail } from "../../shared/ghi-chu-danh-muc.ts";
 import { PARTY_ID_RE } from "../../shared/party-id.ts";
+import { LIEN_KET_TO_CHUC, laLienKetToChuc } from "../../shared/to-chuc.ts";
 import { kiemGioiTinh, type GioiTinh } from "../../shared/xung-ho.ts";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; message: string };
@@ -315,8 +316,7 @@ export const QUAN_HE_TAI_XE_CUA = "DRIVES_FOR";
  * ADR-0213 Đ2.1, Đ2.7: «Người quản lý của» (MANAGER_OF) và «Thành viên của» (MEMBER_OF) — liên kết người → tổ chức chỉ đường riêng của màn tổ chức ghi được.
  * Route quan hệ chung của Danh bạ (thêm VÀ kết thúc) từ chối hai mã này; danh sách loại quan hệ của Danh bạ không chào chúng. Một nguồn cho cả ba chỗ.
  */
-export const LIEN_KET_TO_CHUC: readonly string[] = ["MANAGER_OF", "MEMBER_OF"];
-export const laLienKetToChuc = (code: string): boolean => LIEN_KET_TO_CHUC.includes(code);
+export { LIEN_KET_TO_CHUC, laLienKetToChuc }; // nguồn: src/shared/to-chuc.ts (giao diện cũng đọc)
 export const CHI_DOI_O_MAN_TO_CHUC = "Người quản lý và thành viên của tổ chức chỉ đổi ở màn tổ chức.";
 
 export interface RelationshipInput {

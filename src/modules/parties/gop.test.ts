@@ -156,3 +156,19 @@ test("ADR-0155 Đ1.4: nguồn KHÔNG tài khoản giữ một trong năm vai →
   const dx = ke(hs("a", { congViec: [cv("r", "DRIVER_EXTERNAL", { group: "EXTERNAL" })] }), hs("b")).chan.find((c) => c.code === "merge_source_account_role")!;
   assert.match(dx.message, /Quản lý tài khoản/, "DRIVER_EXTERNAL không thuộc năm vai: câu cũ");
 });
+
+// Task 9 vòng sửa 1 (người kiểm độc lập, ruling điều phối 16/11): lô gộp là đường ghi thứ hai cho liên kết tổ chức (ADR-0213 Đ2.7) ⇒ TỪ CHỐI khi hồ sơ phụ HOẶC hồ sơ chính có
+// «Người quản lý của» / «Thành viên của» đang mở; hai loại này không bao giờ vào danh sách tự đóng / tự chép của lô.
+test("ADR-0213 Đ2.7: hồ sơ phụ hoặc hồ sơ chính có liên kết tổ chức đang mở → merge_org_link; liên kết đã đóng không chặn và không bị chép", () => {
+  for (const loai of ["MANAGER_OF", "MEMBER_OF"]) {
+    const lk = (from: string) => qh(`l-${from}`, from, "org", { typeCode: loai });
+    for (const [a, b, ten] of [[hs("a", { quanHe: [lk("a")] }), hs("b"), "phụ"], [hs("a"), hs("b", { quanHe: [lk("b")] }), "chính"]] as const) {
+      const k = ke(a, b);
+      assert.ok(ma(k).includes("merge_org_link" as never), `${loai} ${ten}: ${JSON.stringify(ma(k))}`);
+      assert.match(k.chan.find((c) => c.code === "merge_org_link")!.message, /tổ chức/);
+      assert.deepEqual([k.quanHe.dong, k.quanHe.mo], [[], []], "không tự đóng, không tự chép liên kết tổ chức");
+    }
+    const daDong = ke(hs("a", { quanHe: [qh("l", "a", "org", { typeCode: loai, validTo: "2026-09-20" })] }), hs("b"));
+    assert.deepEqual(ma(daDong), []);
+  }
+});

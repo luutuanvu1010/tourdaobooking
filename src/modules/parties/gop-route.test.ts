@@ -457,3 +457,28 @@ test("(p11b) phiếu xoá được gửi GIỮA lúc route tính và lúc ghi l�
   assert.equal(w.q("SELECT active FROM pty_party WHERE id = ?", A)[0].active, 1);
   assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'party_merged'")[0].n, 0);
 });
+
+// ---- Task 9 vòng sửa 1 (ADR-0213 Đ2.6, Đ2.7): lô gộp không được là đường ghi thứ hai cho liên kết tổ chức ----------------------------------------------------------------
+test("(to-chuc) hồ sơ phụ hoặc hồ sơ chính có liên kết tổ chức đang mở → 409 merge_org_link trước lô (không lỗi thô needs_replacement), xem trước báo cùng mã, không đổi gì", async () => {
+  const w = nen();
+  const org = "bbbbbbbb-0000-4000-8000-000000000001";
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Khách sạn Sunrise', 1, ?, ?)").run(org, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('bbbbbbbb-0000-4000-8000-000000000002', ?, 'TRAVEL_AGENCY', NULL, '2026-01-01', ?, ?)").run(org, AT, AT);
+  const lk = (id: string, p: string, loai: string) => w.sqlite.prepare("INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, ?, '2026-09-01', ?, ?)").run(id, p, org, loai, AT, AT);
+  const A = await taoA(w);
+  const B = await taoB(w);
+  // A là người quản lý, tổ chức còn một thành viên: trước đây lô gộp hỏng ở pty_relationship_manager_close_needs_replacement (lỗi thô).
+  lk("bbbbbbbb-0000-4000-8000-000000000003", A, "MANAGER_OF");
+  lk("bbbbbbbb-0000-4000-8000-000000000004", `pty-${PARTNER}`, "MEMBER_OF");
+  const truoc = w.q("SELECT * FROM pty_party_relationship ORDER BY id");
+  for (const [tu, den, ten] of [[A, B.partyId, "hồ sơ phụ có liên kết"], [B.partyId, A, "hồ sơ chính có liên kết"]] as const) {
+    const r = await gop(w, ADM, tu, den, "bất kỳ");
+    assert.equal(r.status, 409, `${ten}: ${r.text}`);
+    assert.equal(r.json.error.code, ten.includes("phụ") ? "merge_org_link" : r.json.error.code, ten);
+    const xt = await xemTruoc(w, ADM, tu, den);
+    assert.equal(xt.status, 200, xt.text);
+    assert.ok(xt.json.chan.some((c: { code: string }) => c.code === "merge_org_link"), `${ten}: xem trước phải báo`);
+  }
+  assert.deepEqual(w.q("SELECT * FROM pty_party_relationship ORDER BY id"), truoc);
+  assert.equal(w.q("SELECT merged_into_id FROM pty_party WHERE id = ?", A)[0].merged_into_id, null);
+});
