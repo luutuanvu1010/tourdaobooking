@@ -887,15 +887,6 @@ export const noiHanTraSauStatement = (db: D1Database, v: { orderId: string; hanM
 //   (a) câu ĐỨNG TRƯỚC câu khoá lạc quan của lô (`*_truoc`): điều kiện = đúng mốc đã đọc (lô D1 chạy tuần tự, nguyên tử: lô nào chạy trước đổi mốc, lô sau 0 dòng);
 //   (b) câu ĐỨNG SAU (`fee_item_insert`): có mặt một dòng id MỚI SINH của chính lô (dòng tiền dịch vụ vừa chèn, hoặc chặng vừa chèn) — dòng đó chỉ tồn tại khi lô thắng.
 
-/** Tên khu vực theo mã (view công bố của locations; kể cả khu vực đã ngưng — dòng phí cũ vẫn có tên). */
-const ZONE_LABEL_BY_CODES = defineSql("orders", "zone_label_by_codes", `SELECT code, name FROM v_loc_zone_label WHERE code IN (SELECT value FROM json_each(?1))`);
-
-export async function tenKhuVuc(db: D1Database, codes: readonly string[]): Promise<Map<string, string>> {
-  if (codes.length === 0) return new Map();
-  const { results } = await db.prepare(ZONE_LABEL_BY_CODES).bind(JSON.stringify([...new Set(codes)])).all<{ code: string; name: string }>();
-  return new Map(results.map((r) => [r.code, r.name] as const));
-}
-
 /** Nội dung một dòng phí (chưa có id dòng, id đơn, thứ tự) — `dongPhiThanhItem` (phi-don-don.ts) dựng từ mức văn phòng chọn (ADR-0214, nguồn CHON). */
 export interface OrderItemRowPhiDon {
   legId: string;
