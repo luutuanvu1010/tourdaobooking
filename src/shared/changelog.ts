@@ -17,6 +17,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đăng ký đối tác đợt 2, mốc A (ADR-0212; migration 0174; nhánh claude/account-signup-approval-flow-ee612c): production đã ở 3.12 (kiểm 16/11),
+    // mục 3.11 bên dưới là đợt 1 chưa lên. SỐ TẠM 3.13: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    // Phần tổ chức của phiếu ẨN cho tới khi chủ đăng chính sách riêng tư có ô «Thu thông tin tổ chức» (văn bản: PHAN-THEM-TO-CHUC.md, cần luật sư).
+    version: "3.13",
+    date: "2026-11-16",
+    items: [
+      { kind: "moi", text: "Phiếu đăng ký có thêm phần khai tổ chức (giấy phép, mã số thuế). Phần này chỉ hiện sau khi Toàn quyền đăng chính sách riêng tư có ô «Thu thông tin tổ chức»." },
+      { kind: "moi", text: "Phiếu đăng ký có thêm ô «Giới tính», và các loại đối tác cho chọn lấy từ danh sách loại đối tác thật; loại Kế toán vừa thêm hiện ngay, không cần sửa mã." },
+      { kind: "moi", text: "Màn xác minh chia hai nhóm mục, người và tổ chức; mã số thuế, giấy phép kinh doanh được đối chiếu với hồ sơ tổ chức trong Danh bạ để báo trùng." },
+      { kind: "moi", text: "Khi Nhân sự duyệt phiếu có phần tổ chức, máy tạo hoặc gắn hồ sơ tổ chức và nối người đăng ký là «Người liên hệ của» tổ chức đó." },
+      { kind: "doi", text: "Mọi hồ sơ tổ chức đã có nay hiện «Chưa xác minh» cho tới khi Quản trị xác minh từng mục; đây chỉ là nhãn thông tin, không khoá việc gì." },
+    ],
+  },
+  {
     // Đăng ký đối tác đợt 1 (ADR-0206 … ADR-0210; migration 0170–0172; nhánh claude/account-signup-approval-flow-ee612c, vào main 16/11): production đã ở 3.10 (kiểm 16/11),
     // nên các dòng của đợt này tách khỏi mục 3.10 sang mục mới 3.11. Công tắc «Nhận đăng ký mới» gieo TẮT; lối «Đăng ký làm đối tác» ở màn Đăng nhập hiện ngay.
     // SỐ TẠM 3.11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.

@@ -414,6 +414,32 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
 
+## ĐANG CHỜ NHẬP: Đăng ký đợt 2 — mốc A (ADR-0212: vai đăng ký là dữ liệu, phiếu có phần tổ chức); migration `0174_dang_ky_to_chuc`; mục nhật ký 3.13 (số tạm) — RUNBOOK
+
+Ghi 16/11/2026, nhánh `claude/account-signup-approval-flow-ee612c`. Chưa làm bước nào trên production. **Lần này CẦN triển khai và CÓ MỘT migration** `0174_dang_ky_to_chuc` (số 0173 đã thuộc nhánh khác; kiểm lại số `main` lớn nhất khi nhập). Nếu đợt 1 (`0170`–`0172`, mục 3.11 ở khối ngay dưới) chưa lên thì hai khối đi CHUNG một lần triển khai; mục nhật ký đợt 1 đang mang số 3.11 trong khi production đã ở 3.12, nên bước A.0 phải đặt lại số cho cả hai mục theo `node scripts/kiem-phien-ban.mjs` lúc nhập.
+- **Bước A.0:** mục 3.13 (ngày 2026-11-16) ở `src/shared/changelog.ts`, viết bằng lời thường: phiếu có phần khai tổ chức (ẩn tới khi có chính sách), ô «Giới tính», loại đối tác lấy từ danh sách thật, màn xác minh hai nhóm, duyệt phiếu tạo / gắn hồ sơ tổ chức và nối «Người liên hệ của». Số 3.13 là số tạm (production 3.12 lúc kiểm 16/11).
+- **Migration `0174`** chỉ thêm cột, bảng, chỉ mục, nhưng **tạo lại (DROP + CREATE) trigger và view** của `parties` và `dang-ky` (trong đó `v_pty_verification_facts`, hai view chính sách riêng tư, trigger khớp phiếu–phần tổ chức). Không sửa dòng dữ liệu cũ nào. Thêm cột `pty_privacy_policy.covers_org_data` (mặc định 0).
+- **Điều kiện trước cho chủ:**
+  1. **KHÔNG tích ô «Thu thông tin tổ chức»** khi đăng chính sách riêng tư cho tới khi luật sư soát và phần thêm `docs/superpowers/specs/2026-11-16-chinh-sach-rieng-tu-ban-nhap/PHAN-THEM-TO-CHUC.md` đã nhập vào một bản chính sách được đăng. Chưa tích thì phần tổ chức của phiếu ẨN hẳn ở trang đăng ký và máy chủ từ chối lệnh gửi có phần tổ chức. Triển khai mốc A không làm gì thay đổi với người đăng ký cho tới lúc đó.
+  2. Sau triển khai, **mọi hồ sơ tổ chức đang có hiện «Chưa xác minh»** (nhãn thông tin, không khoá việc gì); Quản trị xác minh dần khi cần.
+  3. Các điều kiện của đợt 1 (kho R2 `HO_SO`, `TURNSTILE_SECRET_KEY`, thư báo, chính sách riêng tư thật) vẫn áp nếu bật «Nhận đăng ký mới».
+- **Xây trên chỗ cho phép:** mốc A phát hành TRƯỚC diễn tập khôi phục 25/11 theo quyết định của chủ 16/11 (khoá `xay_tren_cho_phep_adr_0212_0213` ở `docs/quyen-hoan.json`). Hai ADR tạo lại trigger đang chạy, nên nếu phải khôi phục D1 thì còn phải triển khai lại bản mã trước đó — bước chưa ai diễn tập (HC-5.19). Chủ nói khác thì đưa mốc A về «chờ sau diễn tập».
+- **Ghi lại lúc triển khai** (người phát hành): Worker Version ID bản đang chạy TRƯỚC lần này `<ghi từ wrangler deployments list>`, và điểm khôi phục Time Travel `<ghi trước khi áp migration>`; hai giá trị này dùng cho bước Hoàn tác.
+- **Hoàn tác (thứ tự bắt buộc)** — lý do: mã cũ chạy được trên CSDL đã thêm cột / bảng, còn mã mới KHÔNG chạy đúng trên CSDL cũ, nên lùi mã trước, khôi phục dữ liệu sau; chế độ bảo trì giữ hai khoảng trống đó không ai ghi.
+  1. Bật chế độ bảo trì (trang Tôi › Chế độ bảo trì).
+  2. Lùi mã (đứng ở thư mục dự án; kiểm cú pháp bằng `npx wrangler rollback --help`):
+     ```
+     CI=1 npx wrangler rollback <mã phiên bản trước>
+     ```
+  3. Khôi phục D1 về điểm đã ghi trước khi áp migration:
+     ```
+     CI=1 npx wrangler d1 time-travel restore tourdao-sales-db --bookmark=<điểm khôi phục>
+     ```
+  4. Công tắc bảo trì nằm trong D1 nên bước 3 có thể đưa nó về trạng thái cũ: bật lại bảo trì nếu cần, rồi chạy `node scripts/audit-invariants.mjs --db remote` (phải thoát 0).
+  5. Tắt chế độ bảo trì.
+  Phiếu, hồ sơ, liên kết sinh sau điểm khôi phục mất cùng nhau; người đăng ký gửi lại được. Nhiều mốc đã lên thì lùi NGƯỢC thứ tự (B2 → B1 → A), mỗi lần đúng cặp phiên bản / điểm khôi phục của mốc đó. Bước này **chưa từng diễn tập**.
+- **Kiểm đã có (16/11):** xem mục «Mốc A — kiểm cuối» ở `docs/superpowers/plans/2026-11-16-dang-ky-dot-2-thi-cong-nhat-ky.md`.
+
 ## ĐANG CHỜ NHẬP: Đăng ký đối tác tự phục vụ, đợt 1 (ADR-0206 … ADR-0210, Hiến chương 5.29); migration `0170_dang_ky`, `0171_tep_cho_dang_ky`, `0172_cap_mac_dinh_dang_ky`; mục nhật ký 3.11 (tách khỏi 3.10: production đã lên 3.10 ngày 16/11 nên cổng phiên bản dừng lần `trien-khai` đầu) — RUNBOOK
 
 Ghi 16/11/2026, nhánh `claude/account-signup-approval-flow-ee612c` (worktree `soan-adr-a-b-ed0d40`; đã nhập `main` `aceda8584` có `0169`). Chưa làm bước nào trên production. **Lần này CẦN triển khai và CÓ BA migration**, áp theo thứ tự tên: `0170_dang_ky` (tám bảng `dk_*`, gieo MỘT dòng chính sách với công tắc **Tắt**), `0171_tep_cho_dang_ky` (tệp chờ của phiếu, mục xác minh bắt buộc, bốn view, trigger đổi tên ⇒ «Cần xác minh lại»), `0172_cap_mac_dinh_dang_ky` (bảng «Cấp cho đối tác tự đăng ký», không gieo dòng). Ba tệp soạn dưới số 0167, 0168, 0170 và đổi số 16/11 khi nhập `main`; chưa tệp nào lên `main` hay production. Ba migration chỉ THÊM bảng / view / trigger, riêng trigger `pty_person_name_reverify` chạy cho mọi lần đổi tên người từ nay (hồ sơ đã xác minh HO_TEN đổi tên ⇒ «Cần xác minh lại»).
