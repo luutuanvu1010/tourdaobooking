@@ -1056,12 +1056,14 @@ export const billingModule: AppModule = {
       return json(res);
     }),
     // Đường đọc HẸP cho người lập đơn (ADR-0168 Đ1 mục 3): chỉ «còn được dùng» của đúng bên đặt, không danh sách đơn. Tài khoản Đối tác bị ÉP về hồ sơ của phiên (bỏ qua `benDat`).
-    // ADR-0213 Đ4.4 (Task 11, nhóm THAY_MAT): Đối tác xem theo BÊN ĐANG THAY MẶT — `benDat` là một tư cách của mình thì dùng nó; vắng hoặc ngoài danh sách thì tư cách mặc định
+    // ADR-0213 Đ4.4 (Task 11, nhóm THAY_MAT): Đối tác xem theo BÊN ĐANG THAY MẶT — `benDat` là một tư cách của mình thì dùng nó; vắng thì tư cách mặc định (ngoài danh sách ⇒ 403, vòng sửa 1)
     // (cá nhân) như hôm nay; không có tư cách nào ⇒ hồ sơ của phiên (hôm nay). Chỉ là đường đọc gợi ý — cổng thật là lô lưu / xác nhận theo bên đặt đã ghi.
     route("GET", "/api/tra-sau/con-duoc-dung", "orders", async ({ env, request, staff, benDangThayMat }) => {
       if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không xem được hạn mức trả sau.");
       const q = new URL(request.url).searchParams.get("benDat");
       const thayMat = holdsPartner(staff) ? await benDangThayMat(q) : null;
+      // ADR-0213 Đ3.2 (Task 11 vòng sửa 1): Đối tác GỬI một bên đặt không thuộc tư cách của mình ⇒ 403 (không lặng lẽ đổi sang tư cách mặc định). Vắng ⇒ tư cách mặc định như cũ.
+      if (thayMat && !thayMat.ok && q !== null && q !== "") return error(403, "not_acting_for_org", "Bạn không còn thay mặt tổ chức này");
       const macDinh = thayMat && !thayMat.ok ? await benDangThayMat(undefined) : thayMat;
       const benDat = macDinh ? (macDinh.ok && macDinh.chon ? macDinh.chon.partyId : staff.partyId) : q;
       if (benDat !== null && !PARTY_ID_RE.test(benDat)) return error(400, "invalid_input", "Mã bên đặt không hợp lệ.");

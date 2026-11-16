@@ -165,11 +165,17 @@ test("đường đọc hẹp con-duoc-dung: Đối tác luôn bị ép về hồ
   await datHanMuc(w, `pty-${PT}`, 10_000_000);
   await donTraSau(w, { tong: 4_000_000 });
   const cua = (as: string, q = "") => w.call("GET", `/api/tra-sau/con-duoc-dung${q}`, { as });
+  // ADR-0213 Đ3.2 (Task 11 vòng sửa 1, ruling điều phối): Đối tác GỬI bên đặt ngoài tư cách của mình ⇒ 403 (trước: lặng lẽ bỏ qua benDat); vắng ⇒ số của chính mình.
   let r = await cua(PT, `?benDat=pty-${PT2}`);
+  assert.deepEqual([r.status, r.json.error?.code], [403, "not_acting_for_org"], r.text);
+  r = await cua(PT);
   assert.equal(r.status, 200, r.text);
-  assert.deepEqual([r.json.coHanMuc, r.json.conDuocDung, r.json.coDonQuaHan], [true, 6_000_000, false], "bỏ qua benDat, đọc số của chính mình");
+  assert.deepEqual([r.json.coHanMuc, r.json.conDuocDung, r.json.coDonQuaHan], [true, 6_000_000, false], "vắng benDat: đọc số của chính mình");
   assert.equal(Object.keys(r.json).sort().join(), "coDonQuaHan,coHanMuc,conDuocDung", "không lộ thêm trường nào");
+  assert.deepEqual([(await cua(PT, `?benDat=pty-${PT}`)).json.conDuocDung], [6_000_000], "gửi đúng tư cách của mình");
   r = await cua(PT2, `?benDat=pty-${PT}`);
+  assert.equal(r.status, 403, "đối tác B không đọc được số của A");
+  r = await cua(PT2);
   assert.deepEqual([r.status, r.json.coHanMuc, r.json.conDuocDung], [200, false, 0], "đối tác B không thấy số của A");
   r = await cua(SALES, `?benDat=pty-${PT}`);
   assert.deepEqual([r.status, r.json.conDuocDung], [200, 6_000_000]);

@@ -1,4 +1,6 @@
-// ADR-0213 Đ4.4 (mốc B1 Task 11) — bài quét XẾP NHÓM mọi chỗ đọc hồ sơ của tài khoản (`staff.partyId` / `actor.partyId`, kể cả `ctx.staff.partyId`) trong `src/` (trừ tệp test):
+// ADR-0213 Đ4.4 (mốc B1 Task 11; vòng sửa 1 theo người kiểm độc lập) — bài quét XẾP NHÓM mọi chỗ đọc hồ sơ của tài khoản NGƯỜI GỌI trong `src/` (trừ tệp test). «Đọc» = `<tên>.partyId`
+// (kể cả `?.`, `ctx.staff.partyId`) hoặc gỡ `{ …partyId… } = <tên>`, với <tên> = `staff`, `actor`, `who`, `viewer`, `caller`, MỌI tên khai kiểu `StaffProfile` / `PermissionHolder`
+// (kể cả `Pick<…>`, `Readonly<…>`) trong cùng tệp, và tên gán lại `const x = <tên>` — đổi tên biến không còn lọt (bài cũ chỉ bắt `staff|actor`).
 //   THAY_MAT    = «bên đang thay mặt» (bên đặt khi lập, «Bên đặt của tôi» ở /api/auth/me, lọc danh mục theo luật bán, dịch vụ bị chặn bán, phiếu nộp tiền, hạn mức khi lập) — chỉ
 //                 được đọc qua `benDangThayMat` / tư cách của gốc lắp ráp, hoặc so với BÊN ĐẶT ĐÃ CHỐT của đơn;
 //   CHINH_NGUOI = chính người đó (hồ sơ của tôi, giấy tờ, xưng hô, tin cho người, việc văn phòng và tài xế, tự đặt Trả sau, Trả sau / sổ của tôi — xem tổ chức là Đ5, Task 12).
@@ -49,7 +51,10 @@ const XEP: Record<string, Muc[]> = {
     { doan: "const partyId = staff.partyId;", nhom: "CHINH_NGUOI", so: 1 }, // «Trả sau của tôi»
     { doan: "macDinh.ok && macDinh.chon ? macDinh.chon.partyId : staff.partyId", nhom: "THAY_MAT", so: 1 }, // hạn mức khi lập — qua benDangThayMat
   ],
-  "src/modules/receipt/index.ts": [{ doan: "coPhieuNopTien({ nguoi: staff, partyId: staff.partyId, bookerPartyId: order.bookerPartyId", nhom: "THAY_MAT", so: 1 }],
+  "src/modules/receipt/index.ts": [
+    { doan: "coPhieuNopTien({ nguoi: staff, partyId: staff.partyId, bookerPartyId: order.bookerPartyId", nhom: "THAY_MAT", so: 1 },
+    { doan: "const qlPhieu = quanLyBenDat || (staff.partyId !== order.bookerPartyId", nhom: "THAY_MAT", so: 1 }, // phiếu: so với bên đặt ĐÃ CHỐT; khác thì hỏi vai người quản lý (Đ5)
+  ],
   "src/modules/dispatch/ban-hang-route.ts": [
     { doan: "if (staff.partyId === null) return KHONG_HO_SO();", nhom: "CHINH_NGUOI", so: 2 },
     { doan: "partyId: staff.partyId, actorId: staff.id", nhom: "CHINH_NGUOI", so: 1 },
@@ -72,10 +77,16 @@ const XEP: Record<string, Muc[]> = {
     { doan: "listPersonDocuments(env.DB, staff.partyId, true)", nhom: "CHINH_NGUOI", so: 1 },
   ],
   "src/modules/parties/to-chuc-route.ts": [
-    { doan: "!ctx.staff.partyId) return KHONG();", nhom: "CHINH_NGUOI", so: 1 },
     { doan: "x.personPartyId === ctx.staff.partyId", nhom: "CHINH_NGUOI", so: 1 },
-    { doan: "dongThanhVien(ctx, org, ctx.staff.partyId, \"org_member_left\"", nhom: "CHINH_NGUOI", so: 1 },
+    { doan: "if (body.personPartyId === ctx.staff.partyId) return LOI_THAN(", nhom: "CHINH_NGUOI", so: 1 }, // người quản lý không yêu cầu chuyển cho chính mình (Task 10)
+    { doan: "dongThanhVien(ctx, org, ctx.staff.partyId!, \"org_member_left\"", nhom: "CHINH_NGUOI", so: 1 }, // tự rời tổ chức
   ],
+  "src/modules/parties/quyen-to-chuc.ts": [ // vai của CHÍNH người gọi trên tổ chức (Đ6, Task 10)
+    { doan: "if (who.partyId === null) return { quanLy: false, thanhVien: false, laQuanLyMo: false };", nhom: "CHINH_NGUOI", so: 1 },
+    { doan: "v.hl.personPartyId === who.partyId", nhom: "CHINH_NGUOI", so: 1 },
+  ],
+  // Phiếu công nợ đại lý: so hồ sơ người gọi với BÊN ĐẶT ĐÃ CHỐT của đơn (như phiếu nộp tiền), cộng vế người quản lý có hiệu lực của bên đặt (Đ5 — route tính, kể cả khi chính mình lập).
+  "src/shared/cong-no-dai-ly.ts": [{ doan: "(who.partyId === bookerPartyId || laQuanLyBenDat)", nhom: "THAY_MAT", so: 1 }],
   "src/modules/thongbao/index.ts": [{ doan: "staff.partyId !== null && can(staff, \"trip.view\", { assigned: true })", nhom: "CHINH_NGUOI", so: 1 }],
   "src/modules/van-chuyen/index.ts": [
     { doan: "nen.trip.driver_party_id === staff.partyId", nhom: "CHINH_NGUOI", so: 1 },
@@ -104,8 +115,48 @@ const tepTs = (d: string): string[] =>
 /** Bỏ chú thích khối và chú thích dòng (`//` đứng sau khoảng trắng / dấu câu — không cắt `https://` trong chuỗi). Giữ số dòng. */
 export const boChuThich = (s: string): string =>
   s.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " ")).replace(/(^|[\s;,(){}])\/\/.*$/gm, "$1");
-const DOC_HO_SO = /\b(?:staff|actor)\.partyId\b/;
+/** Tên luôn coi là tài khoản người gọi, cộng tên khai kiểu tài khoản và tên gán lại trong cùng tệp (điểm tựa kiểu chữ — không có bộ kiểu kiểu TS ở bài). */
+const TEN_MAC_DINH = ["staff", "actor", "who", "viewer", "caller"];
+export function tenTaiKhoan(s: string): Set<string> {
+  const ten = new Set(TEN_MAC_DINH);
+  for (const m of s.matchAll(/\b([A-Za-z_$][\w$]*)\??\s*:\s*(?:Readonly<\s*)?(?:(?:Pick|Omit)<\s*)?(?:StaffProfile|PermissionHolder)\b/g)) ten.add(m[1]!);
+  for (let doi = true; doi;) {
+    doi = false;
+    for (const m of s.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*(?::[^=]+)?=\s*([A-Za-z_$][\w$]*)\s*[;,)]/g)) if (ten.has(m[2]!) && !ten.has(m[1]!)) { ten.add(m[1]!); doi = true; }
+  }
+  return ten;
+}
+/** Các dòng (đã bỏ chú thích) đọc hồ sơ của tài khoản người gọi. */
+export function dongDocHoSo(nguon: string): string[] {
+  const s = boChuThich(nguon);
+  const ten = [...tenTaiKhoan(s)].map((t) => t.replace(/\$/g, "\\$")).join("|");
+  const doc = new RegExp(`(?<![\\w$.])(?:${ten})\\??\\.partyId\\b|\\bctx\\.staff\\??\\.partyId\\b|\\{[^{}]*\\bpartyId\\b[^{}]*\\}\\s*(?::[^=;]+)?=\\s*(?:ctx\\.)?(?:${ten})\\b`);
+  return s.split("\n").filter((x) => doc.test(x)).map((x) => x.trim());
+}
+/**
+ * CHO PHÉP KHÔNG XẾP NHÓM (có lý do từng dòng): tên trùng kiểu tài khoản nhưng KHÔNG phải người gọi.
+ */
+const KHONG_PHAI_NGUOI_GOI: Record<string, { doan: string; so: number; lyDo: string }[]> = {
+  "src/modules/dispatch/rules.ts": [
+    { doan: "if (!who.partyId) return { ok: false, message: \"Nhân viên này chưa có hồ sơ", so: 1, lyDo: "checkAssignee: `who` là người ĐƯỢC GIAO phụ trách, không phải người gọi" },
+    { doan: "return { ok: true, partyId: who.partyId, name: who.fullName };", so: 1, lyDo: "checkAssignee: hồ sơ của người được giao" },
+  ],
+  "src/shared/cap-hien-hanh-hien-thi.ts": [
+    { doan: "dong.partyId === null) return { chu: CHU_CAP.chuaCoVaiTro", so: 1, lyDo: "oCapCuaDong: `dong` là một dòng tài khoản ở bảng Quản lý tài khoản (đích), không phải người gọi" },
+  ],
+};
+const DOC_HO_SO = /\b(?:staff|actor)\.partyId\b/; // chỉ còn dùng cho bài dương cũ
 
+function quetHoSo(): Map<string, string[]> {
+  const ra = new Map<string, string[]>();
+  for (const p of tepTs(join(GOC, "src"))) {
+    const tep = relative(GOC, p);
+    const mien = KHONG_PHAI_NGUOI_GOI[tep] ?? [];
+    const dong = dongDocHoSo(readFileSync(p, "utf8")).filter((d) => !mien.some((m) => d.includes(m.doan)));
+    if (dong.length > 0) ra.set(tep, dong);
+  }
+  return ra;
+}
 function quet(re: RegExp): Map<string, string[]> {
   const ra = new Map<string, string[]>();
   for (const p of tepTs(join(GOC, "src"))) {
@@ -129,8 +180,13 @@ export function loiXepNhom(tep: string, dong: readonly string[], muc: readonly M
   return loi;
 }
 
-test("Đ4.4: mọi chỗ đọc staff.partyId / actor.partyId trong src/ đã được xếp nhóm THAY_MAT hoặc CHINH_NGUOI (chỗ mới chưa xếp ⇒ đỏ)", () => {
-  const hit = quet(DOC_HO_SO);
+test("Đ4.4: mọi chỗ đọc hồ sơ của tài khoản người gọi (mọi tên biến, cả gỡ { partyId }) trong src/ đã được xếp nhóm THAY_MAT hoặc CHINH_NGUOI (chỗ mới chưa xếp ⇒ đỏ)", () => {
+  const hit = quetHoSo();
+  // Miễn «không phải người gọi» phải còn khớp đúng số dòng (miễn thừa / lệch ⇒ đỏ).
+  for (const [tep, ds] of Object.entries(KHONG_PHAI_NGUOI_GOI)) {
+    const tat = dongDocHoSo(readFileSync(join(GOC, tep), "utf8"));
+    for (const m of ds) assert.equal(tat.filter((d) => d.includes(m.doan)).length, m.so, `${tep}: miễn «${m.doan}» (${m.lyDo})`);
+  }
   assert.ok(hit.size >= 15, "chống bài rỗng: bộ quét phải thấy các chỗ đọc hiện có");
   const loi = [...hit].flatMap(([tep, dong]) => loiXepNhom(tep, dong, XEP[tep]));
   for (const tep of Object.keys(XEP)) if (!hit.has(tep)) loi.push(`${tep}: bảng xếp nhóm có tệp nhưng mã không còn chỗ đọc nào — bỏ dòng ở bảng`);
@@ -139,12 +195,26 @@ test("Đ4.4: mọi chỗ đọc staff.partyId / actor.partyId trong src/ đã đ
 
 test("Đ4.4: bộ xếp nhóm bắt một chỗ đọc mới (bài dương — mô phỏng thêm một dòng đọc staff.partyId)", () => {
   const tep = "src/modules/billing/index.ts";
-  const goc = quet(DOC_HO_SO).get(tep)!;
+  const goc = quetHoSo().get(tep)!;
   assert.deepEqual(loiXepNhom(tep, goc, XEP[tep]), []);
   assert.equal(loiXepNhom(tep, [...goc, "const ben = staff.partyId;"], XEP[tep]).length, 1);
   assert.equal(loiXepNhom(tep, [...goc, "return json((await soCuaToi(env.DB, staff.partyId)) satisfies X);"], XEP[tep]).length, 1, "thêm dòng cùng mẩu ⇒ lệch số");
   assert.equal(loiXepNhom("src/modules/moi/index.ts", ["staff.partyId"], undefined).length, 1);
   assert.equal(boChuThich("const a = 1; // staff.partyId\n/* actor.partyId */ const u = \"https://x\";").match(/partyId/g), null);
+  void DOC_HO_SO;
+});
+
+test("Đ4.4 (vòng sửa 1): bộ đọc bắt đổi tên biến, `?.`, gỡ `{ partyId }`, tên khai kiểu tài khoản, tên gán lại — và không bắt hồ sơ của đối tượng khác", () => {
+  assert.deepEqual(dongDocHoSo("const ben = who.partyId;"), ["const ben = who.partyId;"]);
+  assert.deepEqual(dongDocHoSo("function f(nguoiGoi: StaffProfile) {\n  return nguoiGoi?.partyId;\n}"), ["return nguoiGoi?.partyId;"]);
+  assert.deepEqual(dongDocHoSo("function f(u: Pick<PermissionHolder, \"id\"> & { partyId: string | null }) { return u.partyId; }").length, 1);
+  assert.deepEqual(dongDocHoSo("const { partyId } = staff;"), ["const { partyId } = staff;"]);
+  assert.deepEqual(dongDocHoSo("const { id, partyId: p } = ctx.staff;").length, 1);
+  assert.deepEqual(dongDocHoSo("const tk = actor;\nconst x = tk.partyId;"), ["const x = tk.partyId;"]);
+  assert.deepEqual(dongDocHoSo("const x = ctx.staff.partyId;").length, 1);
+  assert.deepEqual(dongDocHoSo("const a = t.partyId; const b = order.bookerPartyId; const c = huong.partyId;"), [], "hồ sơ của tư cách / đơn / người hưởng không phải hồ sơ người gọi");
+  // Phá thử của người kiểm: thêm `who.partyId` vào pricing ⇒ tệp chưa có trong bảng ⇒ đỏ.
+  assert.equal(loiXepNhom("src/modules/pricing/index.ts", dongDocHoSo("const ben = who.partyId;"), XEP["src/modules/pricing/index.ts"]).length, 1);
 });
 
 test("Đ3.5 (Ruling R3): acting_party_id / actingPartyId chỉ ở hàm ghi nhật ký và câu của đơn; không dòng nào ngoài module audit đưa nó vào nhật ký", () => {

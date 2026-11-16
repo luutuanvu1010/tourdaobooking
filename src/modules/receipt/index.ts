@@ -87,7 +87,9 @@ export const receiptModule: AppModule = {
       const scopeXem = { ownerId: order.staffId, assigned, quanLyBenDat };
       const xem = ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scopeXem), status: order.status, laNguoiLap: order.staffId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
       if (xem !== "ok") return xem === "404" ? NOT_FOUND() : FORBIDDEN_VIEW();
-      if (!xemDuocPhieuCongNo(staff, order.bookerPartyId, quanLyBenDat)) return FORBIDDEN_VIEW();
+      // ADR-0213 Đ5 (Task 11 vòng sửa 1): phiếu của tổ chức mở cho người quản lý có hiệu lực KỂ CẢ khi chính họ lập đơn thay mặt tổ chức (hồ sơ phiên ≠ bên đặt). Hồ sơ phiên = bên đặt ⇒ không hỏi thêm.
+      const qlPhieu = quanLyBenDat || (staff.partyId !== order.bookerPartyId && (await laQuanLyCuaBen(order.bookerPartyId)));
+      if (!xemDuocPhieuCongNo(staff, order.bookerPartyId, qlPhieu)) return FORBIDDEN_VIEW();
       if (order.status !== "confirmed") return error(409, "phieu_requires_confirmed", CAU_PHIEU_CHUA_XAC_NHAN);
       const so = await soNopCuaDon(env.DB, { id: order.id, bookerPartyId: order.bookerPartyId, status: order.status });
       if (!so) return error(409, "khong_phai_don_dai_ly", "Đơn này không phải đơn đại lý, không có phiếu công nợ.");

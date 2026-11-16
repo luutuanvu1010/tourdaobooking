@@ -265,3 +265,54 @@ test("Đ4.5 TU_DAT_TRA_SAU: người đặt hạn mức không bật / ngừng T
   const ok = await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: SUNRISE, hanMuc: 5_000_000, gioTra: 24, gioAnHan: 0 } });
   assert.equal(ok.status, 201, `chống bài rỗng: tổ chức không gắn thì đặt được — ${ok.text}`);
 });
+
+// ---- Task 11 vòng sửa 1 (người kiểm độc lập + ruling điều phối, 16/11) ----
+
+test("vòng sửa 1 (Important 2): người quản lý MẤT HIỆU LỰC (hồ sơ đã gộp) mà liên kết còn mở ⇒ lập đơn tư cách tổ chức 403; lưu nháp cũ 403", async () => {
+  const w = await setup();
+  const cu = await lap(w, NAM, { tuCach: SUNRISE });
+  assert.equal(cu.status, 201, cu.text);
+  // Đ2.8: hồ sơ của người quản lý đã gộp vào hồ sơ khác ⇒ không còn người quản lý có hiệu lực; liên kết MANAGER_OF vẫn mở, tổ chức vẫn còn vai (chỉ điều kiện «có hiệu lực» quyết).
+  w.sqlite.prepare("UPDATE pty_party SET merged_into_id = ?, merged_at = ?, active = 0 WHERE id = ?").run(KHACH, AT, `pty-${NAM}`);
+  const moi = await lap(w, NAM, { tuCach: SUNRISE });
+  assert.equal(moi.status, 403, moi.text);
+  assert.deepEqual(moi.json.error, { code: "not_acting_for_org", message: CAU_KHONG_CON });
+  const k = await luu(w, NAM, cu.json.order.id, {});
+  assert.equal(k.status, 403, k.text);
+  assert.equal(k.json.error.code, "not_acting_for_org");
+});
+
+test("vòng sửa 1 (ruling Đ3.4): mọi route ghi nháp qua MỘT cổng — người đã rời tổ chức huỷ / ghi nháp tổ chức qua route khác cũng 403", async () => {
+  const w = await setup();
+  const r = await lap(w, NAM, { tuCach: SUNRISE });
+  const id = r.json.order.id as string;
+  w.sqlite.prepare("UPDATE pty_party_relationship SET valid_to_date = '2026-10-02' WHERE id = ?").run(`lk-pty-${TV}-${SUNRISE}`);
+  w.sqlite.prepare("UPDATE pty_party_relationship SET valid_to_date = '2026-10-02' WHERE id = ?").run(`lk-pty-${NAM}-${SUNRISE}`);
+  const huy = await w.call("POST", `/api/orders/${id}/status`, { as: NAM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+  assert.equal(huy.status, 403, huy.text);
+  assert.equal(huy.json.error.code, "not_acting_for_org");
+  assert.equal(w.q("SELECT status AS s FROM orders WHERE id = ?", id)[0].s, "draft");
+  // Nháp cá nhân của anh Nam không bị cổng này đụng.
+  const caNhan = await lap(w, NAM, {});
+  assert.equal((await w.call("POST", `/api/orders/${caNhan.json.order.id}/status`, { as: NAM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status === 403, false);
+});
+
+test("vòng sửa 1 (Important 1): người quản lý xem phiếu công nợ đại lý của đơn tổ chức DO CHÍNH MÌNH lập; Đối tác lạ 403", async () => {
+  const w = await setup();
+  const r = await lap(w, NAM, { tuCach: SUNRISE });
+  const id = r.json.order.id as string;
+  assert.equal((await w.xacNhanDon(id, NAM)).status, 200);
+  const p = await w.call("GET", `/api/orders/${id}/cong-no-dai-ly`, { as: NAM });
+  assert.equal(p.status, 200, p.text);
+  assert.equal((await w.call("GET", `/api/orders/${id}/cong-no-dai-ly`, { as: TV })).status, 403);
+});
+
+test("vòng sửa 1 (Đ3.2): con-duoc-dung — Đối tác gửi bên đặt ngoài tư cách của mình ⇒ 403; tư cách của mình / vắng ⇒ 200", async () => {
+  const w = await setup();
+  const ngoai = await w.call("GET", `/api/tra-sau/con-duoc-dung?benDat=${KHAC}`, { as: NAM });
+  assert.equal(ngoai.status, 403, ngoai.text);
+  assert.equal(ngoai.json.error.code, "not_acting_for_org");
+  assert.equal((await w.call("GET", `/api/tra-sau/con-duoc-dung?benDat=${SUNRISE}`, { as: NAM })).status, 200);
+  assert.equal((await w.call("GET", "/api/tra-sau/con-duoc-dung", { as: NAM })).status, 200);
+  assert.equal((await w.call("GET", `/api/tra-sau/con-duoc-dung?benDat=${KHAC}`, { as: SALES })).status, 200, "văn phòng chọn bên đặt tự do như hôm nay");
+});
