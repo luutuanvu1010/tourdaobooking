@@ -389,6 +389,7 @@ test("Đ2.8 qua route của người quản lý: người quản lý không có 
     const c = doiTac(w, `Đề Xuất ${ten}`);
     lienKet(w, a.partyId, org, "MANAGER_OF");
     lienKet(w, b.partyId, org, "MEMBER_OF");
+    lienKet(w, c.partyId, org, "MEMBER_OF"); // người được đề xuất chuyển quyền phải là thành viên đang có
     f?.(a, org);
     const yc = await w.call("POST", `/api/to-chuc/${org}/yeu-cau-chuyen`, { as: a.staffId, body: { personPartyId: c.partyId } });
     const gv = await w.call("POST", `/api/to-chuc/${org}/go-thanh-vien`, { as: a.staffId, body: { personPartyId: b.partyId } });
@@ -402,7 +403,7 @@ test("Đ2.8 qua route của người quản lý: người quản lý không có 
       assert.ok([401, 403].includes(yc.status), `${ten}: ${yc.status} ${yc.text}`);
       assert.ok([401, 403].includes(gv.status), `${ten}: ${gv.status} ${gv.text}`);
       assert.equal(liet, true, `${ten}: R-TC-4 phải liệt kê`);
-      assert.deepEqual(mo(w, org).map(([, k]) => k).sort(), ["MANAGER", "MEMBER"]);
+      assert.deepEqual(mo(w, org).map(([, k]) => k).sort(), ["MANAGER", "MEMBER", "MEMBER"]);
     }
   }
 });
@@ -427,6 +428,29 @@ test("Người quản lý: một yêu cầu chuyển đang mở mỗi tổ chứ
   assert.equal(g.json.toChuc.yeuCauChuyen.length, 1);
   assert.equal(g.json.toChuc.yeuCauChuyen[0].nguoiDeXuat.partyId, b.partyId);
   assert.doesNotMatch(g.text, SO_DT);
+});
+
+test("Người quản lý: yêu cầu chuyển chỉ nhận THÀNH VIÊN đang có của chính tổ chức đó (người lạ, thành viên tổ chức khác, người đã rời ⇒ 409 not_org_member, không ghi gì)", async () => {
+  const { w } = setup();
+  const org = toChuc(w);
+  const org2 = toChuc(w);
+  const a = doiTac(w, "Quản");
+  const b = doiTac(w, "Viên");
+  const la = doiTac(w, "Người Lạ");
+  const khac = doiTac(w, "Viên Tổ Chức Khác");
+  const roi = doiTac(w, "Viên Đã Rời");
+  lienKet(w, a.partyId, org, "MANAGER_OF");
+  lienKet(w, b.partyId, org, "MEMBER_OF");
+  lienKet(w, khac.partyId, org2, "MEMBER_OF");
+  w.sqlite.prepare("INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, updated_at) VALUES ('rel-da-roi', ?, ?, 'MEMBER_OF', '2026-11-01', '2026-11-05', ?, ?)").run(roi.partyId, org, AT, AT);
+  const yc = (p: string) => w.call("POST", `/api/to-chuc/${org}/yeu-cau-chuyen`, { as: a.staffId, body: { personPartyId: p } });
+  for (const [ten, p] of [["người lạ", la.partyId], ["thành viên tổ chức khác", khac.partyId], ["người đã rời", roi.partyId]] as const) {
+    const r = await yc(p);
+    assert.equal(r.status, 409, `${ten}: ${r.text}`);
+    assert.equal(r.json.error.code, "not_org_member", ten);
+  }
+  assert.equal(w.q("SELECT count(*) n FROM pty_org_transfer_request WHERE org_party_id = ?", org)[0].n, 0, "không ghi yêu cầu nào");
+  assert.equal((await yc(b.partyId)).status, 201);
 });
 
 test("PF14: thành viên tự rời ⇒ được (nhật ký org_member_left); người quản lý tự rời ⇒ 409 câu rõ; người không gắn ⇒ 404", async () => {

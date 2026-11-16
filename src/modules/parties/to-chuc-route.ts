@@ -263,6 +263,9 @@ export async function yeuCauChuyen(ctx: Ctx<"staff">, org: { id: string; ten: st
   if (body.personPartyId === ctx.staff.partyId) return LOI_THAN("Hãy chọn một người khác bạn.");
   const nguoi = await tcHoSo(ctx.env.DB, body.personPartyId);
   if (!nguoi || nguoi.kind !== "PERSON" || nguoi.daGop || !nguoi.active) return LOI_THAN("Hãy chọn một hồ sơ cá nhân đang dùng.");
+  // Chỉ đề xuất một THÀNH VIÊN đang có của chính tổ chức này (liên kết «Thành viên của» đang mở); người lạ, thành viên tổ chức khác, người đã rời ⇒ 409.
+  const lk = await tcLienKetMo(ctx.env.DB, org.id);
+  if (!lk.some((x) => x.loai === "MEMBER_OF" && x.personPartyId === body.personPartyId)) return error(409, "not_org_member", "Chỉ chọn được một thành viên đang có của tổ chức.");
   const id = crypto.randomUUID();
   const at = new Date().toISOString();
   const kq = await ctx.env.DB.batch([
