@@ -104,14 +104,15 @@ function docPhiDonChang(l: unknown): { ok: true; co: false } | { ok: true; co: t
 }
 
 /**
- * Thân yêu cầu có MỨC phí đưa đón (khoá `phiDon` khác null/vắng) ở bất kỳ đâu (ADR-0214 Đ2, ruling P4): tài khoản Đối tác gửi kèm ⇒ route trả 400 `transfer_fee_not_allowed` — áp
- * ở mọi đường ghi (lập, lưu nháp, sửa chặng, sửa chuyến), quét thân GỐC (trước khi «Ẩn thông tin khách» viết lại thân). `phiDon: null` không tính là gửi mức. Giới hạn độ sâu.
+ * Thân yêu cầu CÓ KHOÁ `phiDon` ở bất kỳ đâu, dưới bất kỳ giá trị nào — kể cả `null` (ADR-0214 Đ2, ruling P4 + P4b): tài khoản Đối tác gửi kèm ⇒ route trả 400 `transfer_fee_not_allowed`
+ * — áp ở mọi đường ghi (lập, lưu nháp, sửa chặng, sửa chuyến, Gửi đơn, Còn vé), quét thân GỐC (trước khi «Ẩn thông tin khách» viết lại thân). P4b: `null` = «bỏ chọn» trên nháp, nên
+ * nhận `null` từ Đối tác là để họ XOÁ mức văn phòng đã chọn. Giao diện của Đối tác không gửi khoá này. Giới hạn độ sâu.
  */
 export function coPhiDonTrongThan(raw: unknown, sau = 0): boolean {
   if (sau > 6 || raw === null || typeof raw !== "object") return false;
   if (Array.isArray(raw)) return raw.some((x) => coPhiDonTrongThan(x, sau + 1));
   for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
-    if (k === "phiDon" && v !== undefined && v !== null) return true;
+    if (k === "phiDon") return true;
     if (coPhiDonTrongThan(v, sau + 1)) return true;
   }
   return false;

@@ -18,6 +18,7 @@ Kế hoạch: `docs/superpowers/plans/2026-11-16-phi-don-van-phong-chon.md`. Ngu
 - **P2:** «Đối tác» xác định theo quyền `PARTNER` (kế hoạch nói «theo quyền, không theo vai hồ sơ»); `DRIVER_PARTNER` không lập đơn.
 - **P3:** route đặt ngày bắt đầu áp đang đòi «mọi khu vực có mức chung» (ADR-0203 ĐB1) — đặc tả đã duyệt §6 bỏ yêu cầu này, ADR-0214 thay ĐB1 ⇒ gỡ ở Task 3; gỡ cùng cổng «không đóng mức chung cuối» khi đang áp. Sai thì: Quản trị phải nhập bảng vô dụng mới bật được.
 - **P4:** 400 `transfer_fee_not_allowed` cho Đối tác áp ở MỌI đường ghi nhận `phiDon` (tạo, lưu nháp, sửa chặng, sửa chuyến, Gửi đơn, Còn vé).
+- **P4b** (sau kiểm độc lập Task 4, 16/11): tài khoản giữ quyền Đối tác (thuần và lai) gửi khoá `phiDon` dưới BẤT KỲ giá trị nào, kể cả `null`, ⇒ 400 `transfer_fee_not_allowed` ở mọi đường dùng `coPhiDonTrongThan` (tạo, lưu nháp, sửa chuyến, sửa chặng, Gửi đơn, Còn vé). Lý do: `null` = «bỏ chọn» trên nháp, nhận nó từ Đối tác là cho họ xoá mức văn phòng đã chọn. Giao diện Đối tác / lai không gửi khoá (`coOChonPhi` = phí áp và không form gọn — `formGonDoiTac` theo `holdsPartner`; Còn vé không ô phí cho người giữ quyền Đối tác) nên không vỡ giao diện. Sai thì: một đường Đối tác nào đó gửi `null` sẽ nhận 400.
 - **P5:** Còn vé: id chặng không phải chặng mở của CHÍNH đơn này ⇒ 400.
 - **P6:** lúc xác nhận, dòng phí đã lưu nguồn `BANG_PHI` / không nguồn (nháp Đợt C cũ) ⇒ coi là chưa chọn (409), không bao giờ tự 0.
 - **P7:** chọn mô hình cho từng task; kiểm cuối = người kiểm độc lập (thay lượt soát toàn nhánh).

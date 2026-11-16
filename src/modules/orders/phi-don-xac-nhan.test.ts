@@ -431,6 +431,25 @@ test("[vòng sửa 1b] đơn Đối tác ĐANG CHỜ còn dòng bảng phí cũ,
   assert.deepEqual(moiDong(w, o.id), truoc.dong);
 });
 
+test("[vòng sửa 3 — V2] Đối tác Gửi đơn với nháp còn dòng bảng phí cũ (phí đang áp, không cọc) ⇒ nhánh A, cờ thiếu phí; dòng cũ không thành mức; Còn vé kèm mức ⇒ xác nhận chỉ với dòng CHON", async () => {
+  const w = await setup();
+  const o = await lap(w, [OUT()], {}, DT);
+  await chenDongBangCu(w, o.id);
+  assert.deepEqual(dongPhi(w, o.id).map((d: any) => [d.fee_source, d.line_total]), [["BANG_PHI", 200_000]]);
+  const g = await ok(w.call("POST", `/api/orders/${o.id}/gui-don`, { as: DT, body: {} }), 201, "gửi đơn");
+  assert.equal(g.json.nhanh, "A");
+  assert.deepEqual(g.json.yeuCau.vi, ["PHI_DON"]);
+  assert.equal(w.q("SELECT transfer_fee_missing AS f FROM ord_confirm_request WHERE order_id = ?", o.id)[0].f, 1, "cờ thiếu phí");
+  assert.equal(trangThai(w, o.id), "draft");
+  const v = (await ok(w.call("GET", `/api/orders/${o.id}`, { as: ADM }), 200)).json;
+  const l0 = v.order.services[0].legs[0];
+  assert.deepEqual(v.order.phiDuaDon.thieu.map((t: any) => [t.legId, t.lyDo]), [[l0.id, "CHUA_CHON"]], "dòng bảng cũ không thành mức đã chọn (ruling P6)");
+  await ok(w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon: [{ legId: l0.id, muc: DS(30_000) }] } }), 200, "Còn vé");
+  assert.equal(trangThai(w, o.id), "confirmed");
+  assert.deepEqual(dongPhi(w, o.id), [DONG_30K], "dòng bảng cũ bị thay, chỉ còn dòng CHON");
+  assert.deepEqual(tien(w, o.id), { subtotal: 1_060_000, discount: 0, total: 1_060_000, remaining_amount: 1_060_000 });
+});
+
 test("[vòng sửa 2] Còn vé + Trả sau: mức văn phòng chọn đẩy tổng vượt hạn mức ⇒ 409 vuot_han_muc, không dòng phí, tiền nháp không đổi; mức vừa hạn mức ⇒ xác nhận", async () => {
   const w = await setup();
   assert.equal((await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN_DT, hanMuc: 1_100_000, gioTra: 168, gioAnHan: 0, lyDo: "thử" } })).status, 201);

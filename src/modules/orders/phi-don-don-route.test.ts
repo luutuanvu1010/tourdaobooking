@@ -206,14 +206,15 @@ test("sửa số người chiều về trên NHÁP (PUT …/legs/:legId) ⇒ ph�
   assert.deepEqual(dongPhi(w, o.id), truoc);
 });
 
-test("tài khoản Đối tác gửi mức phí ⇒ 400 transfer_fee_not_allowed ở lập đơn, lưu nháp, sửa chặng, sửa chuyến — không ghi gì; không gửi mức (hoặc null) thì như thường", async () => {
+test("tài khoản Đối tác gửi mức phí ⇒ 400 transfer_fee_not_allowed ở lập đơn, lưu nháp, sửa chặng, sửa chuyến — không ghi gì; không gửi khoá thì như thường", async () => {
   const w = await setup();
   const truoc = Number(w.q("SELECT count(*) AS n FROM orders")[0].n);
   const lapCo = await w.call("POST", "/api/orders", { as: DT, body: body([svc({ adult: 2 }, [OUT({ phiDon: DS(30_000) })])]) });
   assert.equal(lapCo.status, 400, lapCo.text);
   assert.equal(lapCo.json.error.code, "transfer_fee_not_allowed");
   assert.equal(Number(w.q("SELECT count(*) AS n FROM orders")[0].n), truoc);
-  const o = await lap(w, [svc({ adult: 2 }, [OUT(), RET({ phiDon: null })])], DT);
+  // ĐỔI CÓ CHỦ ĐÍCH (vòng sửa 3, ruling P4b): trước đây khoá `phiDon: null` của Đối tác được nhận; nay CÓ KHOÁ (kể cả null) ⇒ 400 — bài riêng bên dưới. Ở đây không gửi khoá.
+  const o = await lap(w, [svc({ adult: 2 }, [OUT(), RET()])], DT);
   assert.deepEqual(dongPhi(w, o.id), []);
   assert.deepEqual(o.phiDuaDon.thieu.map((t: any) => t.lyDo), ["CHUA_CHON", "CHUA_CHON"]);
   const [l0, l1] = o.services[0].legs;
@@ -237,6 +238,38 @@ test("tài khoản Đối tác gửi mức phí ⇒ 400 transfer_fee_not_allowed
   assert.equal(Number(w.q("SELECT updated_at = ? AS same FROM orders WHERE id = ?", k.updatedAt, k.id)[0].same), 1, "đơn không đổi");
   assert.deepEqual(dongPhi(w, o.id), []);
   assert.equal(Number(w.q("SELECT updated_at = ? AS same FROM orders WHERE id = ?", o.updatedAt, o.id)[0].same), 1, "đơn không đổi");
+});
+
+/** Nháp mang sẵn mức đã chọn (dòng CHON 30.000 × 2 cho chặng đầu) — dựng thẳng bằng SQL: nháp của Đối tác không có đường API để có mức (dữ liệu cũ / quyền đổi sau khi lưu). */
+function chenMucDaChon(w: W, orderId: string, legId: string) {
+  w.sqlite.prepare(`INSERT INTO order_item (id, order_id, line_kind, transfer_leg_id, fee_kind, description, quantity, unit_price, line_total, sort_order, fee_source, fee_choice)
+    VALUES (?, ?, 'TRANSFER_FEE', ?, 'PER_PAX', 'Phí đưa đón — chiều đi', 2, 30000, 60000, 9, 'CHON', 'DANH_SACH')`).run(crypto.randomUUID(), orderId, legId);
+  w.sqlite.prepare("UPDATE orders SET subtotal = subtotal + 60000, total = total + 60000, remaining_amount = remaining_amount + 60000 WHERE id = ?").run(orderId);
+}
+
+test("[ruling P4b] tài khoản giữ quyền Đối tác (thuần và lai) gửi khoá phiDon = null ⇒ 400 transfer_fee_not_allowed ở lập đơn, lưu nháp, sửa chặng, sửa chuyến — mức đã lưu còn nguyên", async () => {
+  const w = await setup();
+  const lapNull = await w.call("POST", "/api/orders", { as: DT, body: body([svc({ adult: 2 }, [OUT({ phiDon: null })])]) });
+  assert.deepEqual([lapNull.status, lapNull.json?.error?.code], [400, "transfer_fee_not_allowed"], lapNull.text);
+  for (const ai of [DT, LAI]) {
+    const o = await lap(w, [svc({ adult: 2 }, [OUT(), RET()])], ai);
+    const [l0, l1] = o.services[0].legs;
+    chenMucDaChon(w, o.id, l0.id);
+    const truoc = { dong: dongPhi(w, o.id), tong: subtotal(w, o.id) };
+    const moi = (await ok(w.call("GET", `/api/orders/${o.id}`, { as: ai }), 200)).json.order;
+    const r = await luu(w, moi, { adult: 2 }, [changGuiLai(l0, { phiDon: null }), changGuiLai(l1)], ai);
+    assert.deepEqual([r.status, r.json?.error?.code], [400, "transfer_fee_not_allowed"], `${ai}: ${r.text}`);
+    assert.deepEqual(dongPhi(w, o.id), truoc.dong, "mức đã lưu còn nguyên");
+    assert.equal(subtotal(w, o.id), truoc.tong);
+    if (ai === LAI) {
+      const ret = moi.services[0].legs.find((l: any) => l.direction === "RETURN");
+      const chang = await w.call("PUT", `/api/orders/${o.id}/legs/${ret.id}`, { as: LAI, body: { paxOverride: 1, expectedUpdatedAt: ret.updatedAt, phiDon: null } });
+      assert.deepEqual([chang.status, chang.json?.error?.code], [400, "transfer_fee_not_allowed"], chang.text);
+      const trip = await w.call("PUT", `/api/orders/${o.id}/trip`, { as: LAI, body: { expectedUpdatedAt: moi.updatedAt, services: [{ id: moi.services[0].id, departDate: D, pickupTime: "07:10", legs: [{ phiDon: null }] }] } });
+      assert.deepEqual([trip.status, trip.json?.error?.code], [400, "transfer_fee_not_allowed"], trip.text);
+      assert.deepEqual(dongPhi(w, o.id), truoc.dong, "mức đã lưu còn nguyên sau sửa chặng / sửa chuyến");
+    }
+  }
 });
 
 test("đơn ĐÃ XÁC NHẬN: sửa chuyến không đụng dòng phí đã chụp", async () => {

@@ -615,7 +615,7 @@ export interface LegInput {
   pickupSlotEnd?: string;
   /**
    * Phí đưa đón do văn phòng chọn cho lượt đón này (ADR-0214): mức trong danh sách hoặc «Số khác» (`src/shared/phi-don-chon.ts`, máy chủ kiểm lại bằng `kiemMucChon`).
-   * Chỉ lập đơn / lưu nháp nhận khoá này. VẮNG khoá = GIỮ mức đã lưu của chặng cùng id (chặng mới vắng = chưa chọn); `null` = bỏ chọn. Tài khoản Đối tác gửi mức (khác null) ⇒ 400
+   * Chỉ lập đơn / lưu nháp nhận khoá này. VẮNG khoá = GIỮ mức đã lưu của chặng cùng id (chặng mới vắng = chưa chọn); `null` = bỏ chọn. Tài khoản Đối tác gửi khoá này (kể cả `null`) ⇒ 400
    * `transfer_fee_not_allowed`. Trước ngày bắt đầu áp: kiểm nhưng không sinh dòng phí.
    */
   phiDon?: MucChon | null;
@@ -3437,7 +3437,7 @@ export interface QuyetDinhXacNhanInput {
   gioDon?: { legId: string; pickupTime: string; pickupSlotEnd?: string; datGap?: { lyDo: string; ghiChu?: string | null } }[];
   /**
    * Phí đưa đón người xét chọn cho các lượt đón CHƯA có mức (ADR-0214 Đ2, Task 4): chỉ nhánh Còn vé đọc. Lượt đã có mức ⇒ 400 «Lượt đón này đã có phí đưa đón.»; lượt không phải lượt mở của
-   * đơn hoặc nhắc hai lần ⇒ 400; mức sai ⇒ 400 cùng câu của `kiemMucChon`. Tài khoản giữ quyền Đối tác gửi khoá này khác null ⇒ 400 `transfer_fee_not_allowed`.
+   * đơn hoặc nhắc hai lần ⇒ 400; mức sai ⇒ 400 cùng câu của `kiemMucChon`. Tài khoản giữ quyền Đối tác gửi khoá này (kể cả `null`) ⇒ 400 `transfer_fee_not_allowed`.
    */
   phiDon?: { legId: string; muc: MucChon }[];
   lyDo?: string;
