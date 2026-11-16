@@ -104,3 +104,42 @@ test("createAccountOnPartyStatements: vai rỗng hoặc không mang quyền nào
   const { db } = seed();
   await assert.rejects(staff.createAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0933333333", roles: [] }, "s-hr", AT), /không mang quyền/);
 });
+
+// ---- ADR-0212 Đ3 (đợt 2 Task 2): loại đối tác do Kế toán thêm (nhóm OTHER, không sinh quyền theo vai) ----
+/** Như `seed` nhưng hồ sơ mang vai LOẠI ĐỐI TÁC `LD_THU` (thêm vào pty_role_type TRƯỚC khi mở vai, như route Kế toán). */
+function seedLoaiDoiTac(): { sqlite: DatabaseSync; db: D1Database } {
+  const sqlite = new DatabaseSync(":memory:");
+  sqlite.exec("PRAGMA foreign_keys = ON");
+  for (const f of readdirSync(DIR).filter((n) => n.endsWith(".sql")).sort()) sqlite.exec(readFileSync(new URL(f, DIR), "utf8"));
+  sqlite.prepare("INSERT INTO pty_role_type (code, name, sort_order, active, role_group, is_partner_label, created_at, created_by, updated_at, updated_by) VALUES ('LD_THU', 'Loại thử', 150, 1, 'OTHER', 1, ?, 'x', ?, 'x')").run(AT, AT);
+  sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('p-moi', 'PERSON', 'Người Mới', 1, ?, ?)").run(AT, AT);
+  sqlite.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('p-moi', 'Mới', ?, ?)").run(AT, AT);
+  return { sqlite, db: fakeD1(sqlite) };
+}
+const moVai = (sqlite: DatabaseSync) =>
+  sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('r-moi', 'p-moi', 'LD_THU', NULL, '2026-11-15', ?, ?)").run(AT, AT);
+
+test("createPartnerAccountOnPartyStatements: tài khoản TẮT, đúng MỘT dòng quyền PARTNER và MỘT dòng chỉnh tay ADD PARTNER; PIN ngẫu nhiên không trả ra; câu chưa chạy", async () => {
+  const { sqlite, db } = seedLoaiDoiTac();
+  const made = await staff.createPartnerAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0933333333", reason: "Loại đối tác do Kế toán thêm: Loại thử" }, "s-hr", AT);
+  assert.equal("pin" in made, false);
+  assert.equal(Number((sqlite.prepare("SELECT count(*) AS n FROM staff WHERE id = ?").get(made.id) as { n: number }).n), 0, "chưa chạy thì chưa có dòng nào");
+  moVai(sqlite); // `parties` mở vai TRƯỚC trong cùng lô (LC-1c)
+  await db.batch(made.statements as never);
+  const r = row(sqlite, made.id);
+  assert.equal(r.active, 0);
+  assert.equal(r.party_id, "p-moi");
+  assert.match(String(r.pin_hash), /^pbkdf2\$sha256\$/);
+  assert.equal(r.mfa_grace_until, null);
+  assert.deepEqual(perms(sqlite, made.id), ["PARTNER"]);
+  const dc = sqlite.prepare("SELECT permission_type_code AS c, direction AS d, reason AS ly, created_by AS by, valid_to_at AS den FROM stf_permission_adjustment WHERE staff_id = ?").all(made.id) as Record<string, unknown>[];
+  assert.deepEqual(dc.map((x) => ({ ...x })), [{ c: "PARTNER", d: "ADD", ly: "Loại đối tác do Kế toán thêm: Loại thử", by: "s-hr", den: null }]);
+  for (const pin of ["000000", "123456"]) assert.equal(await staff.authenticate(db, "0933333333", pin), null, "tài khoản tắt không đăng nhập được");
+});
+
+test("createPartnerAccountOnPartyStatements: hồ sơ KHÔNG mang vai loại đối tác ⇒ trigger LC-1c làm hỏng cả lô, không còn dòng nào", async () => {
+  const { sqlite, db } = seedLoaiDoiTac(); // không mở vai
+  const made = await staff.createPartnerAccountOnPartyStatements(db, { partyId: "p-moi", phone: "0933333333", reason: "thử" }, "s-hr", AT);
+  await assert.rejects(() => db.batch(made.statements as never), /lc1c_partner_needs_role/);
+  for (const t of ["staff", "stf_permission", "stf_permission_adjustment"]) assert.equal(Number((sqlite.prepare(`SELECT count(*) AS n FROM ${t} WHERE ${t === "staff" ? "id" : "staff_id"} = ?`).get(made.id) as { n: number }).n), 0, t);
+});

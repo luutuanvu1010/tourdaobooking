@@ -23,6 +23,7 @@ import {
 import { kiemDat, kiemKetLuan, kiemLyDo, laMaPhieu, laMaTep, loiLoXacMinh, mucBatBuoc, mucChuaDat, type KetQuaMuc } from "./xac-minh.ts";
 import { TRANG_THAI_CUA_THU, docLenhThu, maLenhThu } from "./rules.ts";
 import { guiThuSauLo } from "./thu-bao.ts";
+import { kiemVaiKhiDuyet } from "./vai.ts";
 
 type Staff = Ctx<"accounts">["staff"];
 
@@ -179,7 +180,16 @@ export async function kiemHoSoDich(db: D1Database, partyId: string, vaiXin: stri
   if (!ho.active) return { code: "target_inactive", message: "Hồ sơ đã chọn đang ngưng hoạt động." };
   if (await getStaffAccountOfParty(db, partyId)) return { code: "target_has_account", message: "Hồ sơ này đã có tài khoản." };
   const dangMo = (await accountRolesOf(db, partyId, vnToday(new Date()))).filter((r) => r.validTo === null).map((r) => r.roleTypeCode).filter((c): c is RoleCode => isRoleCode(c));
-  if (groupOf([...dangMo, ...(isRoleCode(vaiXin) ? [vaiXin] : [])]) === "MIXED") return { code: "target_mixed_group", message: "Hồ sơ này đang giữ vai trò khác nhóm (nội bộ/bên ngoài) — hãy đóng vai trò đó trước." };
+  // Vai xin là loại đối tác do Kế toán thêm (`LD_…`, không phải RoleCode): hợp lệ CHỈ khi có trong `vaiDangKyDuoc` (một nguồn, ADR-0212 Đ1); tính là nhóm bên ngoài khi xét lẫn nhóm.
+  let loaiDoiTac = false;
+  if (!isRoleCode(vaiXin)) {
+    const v = await kiemVaiKhiDuyet(db, vaiXin);
+    if (v.kq === "DA_TAT") return { code: "role_inactive", message: "Loại đối tác này đã tắt. Hãy chọn loại khác hoặc từ chối phiếu." };
+    if (v.kq !== "HOP_LE") return { code: "role_invalid", message: "Loại xin đăng ký không hợp lệ. Hãy từ chối phiếu hoặc trả về để người đăng ký chọn lại." };
+    loaiDoiTac = true;
+  }
+  const nhomDangMo = groupOf(dangMo);
+  if (groupOf([...dangMo, ...(isRoleCode(vaiXin) ? [vaiXin] : [])]) === "MIXED" || (loaiDoiTac && (nhomDangMo === "INTERNAL" || nhomDangMo === "MIXED"))) return { code: "target_mixed_group", message: "Hồ sơ này đang giữ vai trò khác nhóm (nội bộ/bên ngoài) — hãy đóng vai trò đó trước." };
   return null;
 }
 

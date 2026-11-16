@@ -34,7 +34,7 @@ import {
 } from "./modules/parties";
 import { capMacDinhChoDuyet, capSeApChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
 import { cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
-import { accountOfParty, createAccountOnPartyStatements, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
+import { accountOfParty, createAccountOnPartyStatements, createPartnerAccountOnPartyStatements, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
 import { chuyenChoTinTheoId, dongBoChuyenChoDon, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
@@ -45,7 +45,7 @@ import { can, holdsPartner } from "./shared/permissions";
 import { vnToday } from "./shared/vn-date";
 import { createApp, type AppOptions } from "./shared/router";
 import type { LoDuyetDangKyRa, LoDuyetDangKyVao } from "./shared/dang-ky-duyet";
-import { isRoleCode } from "./shared/roles";
+import { isRoleCode, type RoleCode } from "./shared/roles";
 
 export { BangTin } from "./modules/bangtin/tram";
 
@@ -74,10 +74,13 @@ async function nemNeuLoi(viec: [string, Promise<unknown> | null][]): Promise<voi
  * làm hỏng CẢ lô khi phiếu không còn hợp lệ; các câu sau không đọc kết quả của nhau (trừ dòng nhật ký / lịch sử `changes() > 0` ngay sau câu nó ghi lại, khuôn chung).
  */
 async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuyetDangKyRa> {
-  if (!isRoleCode(v.roleCode)) throw new Error("loDuyetDangKy: mã vai không hợp lệ");
+  // Vai là RoleCode (đường cũ) HOẶC loại đối tác do Kế toán thêm (ADR-0212 Đ3); mã khác ⇒ lỗi lạ (route đã kiểm theo `vaiDangKyDuoc`).
+  if (!v.laLoaiDoiTac && !isRoleCode(v.roleCode)) throw new Error("loDuyetDangKy: mã vai không hợp lệ");
   const partyId = v.hoSo.kieu === "MOI" ? crypto.randomUUID() : v.hoSo.partyId;
   const docId = v.giayTo ? crypto.randomUUID() : null;
-  const tk = await createAccountOnPartyStatements(db, { partyId, phone: v.loginPhone, roles: [v.roleCode] }, v.approverId, v.at);
+  const tk = v.laLoaiDoiTac
+    ? await createPartnerAccountOnPartyStatements(db, { partyId, phone: v.loginPhone, reason: `Loại đối tác do Kế toán thêm: ${v.roleLabel}`.slice(0, 200) }, v.approverId, v.at)
+    : await createAccountOnPartyStatements(db, { partyId, phone: v.loginPhone, roles: [v.roleCode as RoleCode] }, v.approverId, v.at);
   type MucXacMinh = { id: string; targetKind: "ATTRIBUTE" | "PERSON_DOCUMENT"; targetId: string | null; attributeCode: string | null };
   const mucXacMinh = v.mucDat.flatMap((m): MucXacMinh[] => {
     if (m.loai === "ATTRIBUTE") return m.ma === "NGAY_SINH" && !v.birthDate ? [] : [{ id: crypto.randomUUID(), targetKind: "ATTRIBUTE" as const, targetId: null, attributeCode: m.ma }];

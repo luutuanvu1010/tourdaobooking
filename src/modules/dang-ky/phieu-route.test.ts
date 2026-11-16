@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world } from "../../../tests/audit/harness.mjs";
 import { doNhatKyHang } from "../../../tests/audit/nhat-ky-hang.mjs";
+import { CAU_PHIEU } from "../../shared/dang-ky-hien-thi.ts";
 import { DK_COOKIE, taoPhienDangKy } from "./phien.ts";
 import { guiChenStatement, guiTienStatement, suKienNguoiDangKyStatement, type BanKhaiMoi } from "./repository.ts";
 
@@ -601,5 +602,6 @@ test("ADR-0212 Đ1: loại do Kế toán thêm lưu nháp được; sau khi bị
   w.sqlite.exec("UPDATE pty_role_type SET active = 0 WHERE code = 'LD_TEST'");
   const r = await luu(w, "LD_TEST");
   assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.message, CAU_PHIEU.loaiDong);
   assert.equal((await w.call("GET", "/api/dang-ky/cau-hinh")).json.loaiMo.some((x: any) => x.ma === "LD_TEST"), false);
 });

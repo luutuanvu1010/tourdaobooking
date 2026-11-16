@@ -206,7 +206,7 @@ test("(9) Vai nội bộ, vai OTHER không cờ, vai lạ ⇒ 400; Công ty lữ
   assert.equal(soDong(w), truoc);
 });
 
-test("(10) Cấu hình công khai: chính sách còn mã đã tắt ⇒ không có trong loaiMo; loaiMo là {ma, ten, phan}; lưu nháp mã đó ⇒ 400", async () => {
+test("(10) Cấu hình công khai: loaiMo là {ma, ten, phan}; loại đã tắt tự biến khỏi loaiMo dù chính sách còn mã", async () => {
   const w = setup();
   themLoai(w);
   const r = await doi(w, { nhanDangKy: true, loaiMo: ["COLLABORATOR", "LD_TEST"], dangHieuLuc: moiNhat(w).id });

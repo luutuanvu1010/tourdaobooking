@@ -383,6 +383,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuChon: "AI viết mười câu 2026-11-15, chờ chủ chọn tên",
   }),
   KN({
+    ten: "Lý do chưa mở được vai người dùng đăng ký",
+    giaiNghia: "Hai câu máy nói cho Toàn quyền ở khối «Nhận đăng ký mới» khi một vai người dùng chưa chọn mở được: «Chưa mở được cho Công ty lữ hành: …» (nêu từng điều còn thiếu: phiếu chưa có phần khai tổ chức, chính sách riêng tư chưa nêu việc thu thập thông tin của tổ chức) và «Chưa mở được cho Tài xế đối tác: biểu mẫu chưa có ô bằng lái và hạng, và người xác minh chưa chọn được nhà xe của người lái.». Vai người dùng khác (kể cả loại do Kế toán thêm) không có câu này.",
+    khacVoi: "Khác «Câu báo lỗi của phiếu đăng ký»: câu ở đây chỉ hiện cho Toàn quyền khi chọn loại mở, không hiện cho người đăng ký.",
+    chuDaLoai: [],
+    maNoiBo: ["lyDoChuaMoDuoc", "lyDoChuaMo", "src/shared/dang-ky-vai.ts"],
+    trangThai: "cho-chon",
+    chuChon: "AI viết hai câu 2026-11-16 (đợt 2 Task 2), chờ chủ chọn tên",
+  }),
+  KN({
     ten: "Tên mục của phiếu đăng ký (người đăng ký thấy)",
     giaiNghia: "Tên từng mục khi máy nói với người đăng ký về điều còn thiếu để gửi phiếu: Họ tên, Ngày sinh, Căn cước công dân còn hạn, Vai người dùng xin đăng ký, Số điện thoại.",
     khacVoi: "Khác «Mục xác minh của phiếu đăng ký» (viết cho người xác minh): ở đó «Đã gọi số điện thoại đã khai» là việc của người xác minh, người đăng ký chỉ cần đưa số điện thoại.",

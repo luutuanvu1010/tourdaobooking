@@ -34,7 +34,7 @@ export function kiemThanChinhSach(raw: Record<string, unknown> | null, coThe: re
   const gui = raw.loaiMo as unknown[];
   for (const x of gui) {
     const v = typeof x === "string" ? coThe.find((c) => c.ma === x) : undefined;
-    if (!v) return { ok: false, message: "Chỉ mở được cho các vai đang có trong danh sách vai người dùng đăng ký được." };
+    if (!v) return { ok: false, message: "Chỉ mở được cho các vai người dùng đang có trong danh sách đăng ký được." };
     if (v.lyDoChuaMo) return { ok: false, message: v.lyDoChuaMo };
   }
   const loai = coThe.map((c) => c.ma).filter((x) => gui.includes(x)); // thứ tự chuẩn của danh sách, bỏ trùng

@@ -7,7 +7,6 @@
 // (mất khi đóng), không lưu ở đâu. Không ô chữ tự do: lý do chọn trong danh sách đóng. Chỉ dựng DOM bằng h().
 import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
-import { ROLES, ROLE_CODES } from "../src/shared/roles";
 import { NHAN_O_TEP, CHU_HANG_CHO_DK, NHAN_LOAI_THU } from "../src/shared/dang-ky-giao-dien";
 import { LY_DO_PHIEU, nhanTrangThaiPhieu, type MaLyDoPhieu } from "../src/shared/dang-ky-hien-thi";
 import { CAU_DOI_VAI_CAP, type KetQuaCapDto } from "../src/shared/cap-se-ap-hien-thi";
@@ -27,13 +26,12 @@ type PhieuXacMinh = {
   ketLuanDanhBa?: { kieu: string; partyId: string | null } | null;
 };
 type PhieuDuyet = {
-  id: string; loai: string; tenLoai: string; trangThai: string; phienBan: number; daXuLy?: boolean; guiLuc?: string | null; hoTen?: string; soDienThoai?: string | null; muc?: Muc[];
+  id: string; loai: string; tenLoai: string; vaiChon?: { ma: string; ten: string; laLoaiDoiTac: boolean }[]; trangThai: string; phienBan: number; daXuLy?: boolean; guiLuc?: string | null; hoTen?: string; soDienThoai?: string | null; muc?: Muc[];
   ketLuanDanhBa?: { kieu: string; tenHoSo?: string } | null; coNguoiGioiThieu?: boolean; nguoiXacMinhLaBan?: boolean;
 };
 
 const cauLoi = (e: unknown) => (e instanceof ApiError ? e.message : "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
-// Tên vai do máy chủ trả (`tenLoai`, từ pty_role_type — ADR-0212 Đ1 mục 5); không tra ROLES trong mã.
-const VAI_DOI_TAC = ROLE_CODES.filter((r) => ROLES[r].group === "EXTERNAL" && ROLES[r].defaults.includes("PARTNER"));
+// Tên vai và danh sách vai chọn lúc duyệt do máy chủ trả (`tenLoai`, `vaiChon` — từ pty_role_type, ADR-0212 Đ1 mục 5, Đ3); không tra bảng vai tĩnh trong mã.
 const LY_DO_KHOP: Record<string, string> = { PHONE: "trùng số điện thoại", NAME: "trùng tên", DOCUMENT: "trùng số giấy tờ" };
 
 export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
@@ -245,7 +243,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     const k = dauKhung(`Duyệt phiếu ${d.id}`);
     if (d.daXuLy) { moKhung(k.el, dong("Trạng thái", nhanTrangThaiPhieu(d.trangThai)), h("p", { class: "muted" }, "Phiếu đã được xử lý.")); return; }
     const vai = h("select", { class: "o", id: "dk-hc-vai", "aria-label": "Vai trò đối tác" },
-      ...VAI_DOI_TAC.map((r) => h("option", { value: r, selected: r === d.loai }, ROLES[r].name))) as HTMLSelectElement;
+      ...(d.vaiChon ?? []).map((r) => h("option", { value: r.ma, selected: r.ma === d.loai }, r.ten))) as HTMLSelectElement;
     const baoDoiVai = h("p", { class: "dk-hc-cap", id: "dk-hc-doi-vai", hidden: true }, CAU_DOI_VAI_CAP);
     vai.addEventListener("change", () => { baoDoiVai.hidden = vai.value === d.loai; });
     const muc = (d.muc ?? []).map((m) => dong(m.nhan, m.ketLuan === "DAT" ? "Đạt" : m.ketLuan === "KHONG_DAT" ? "Không đạt" : "Chưa kết luận"));

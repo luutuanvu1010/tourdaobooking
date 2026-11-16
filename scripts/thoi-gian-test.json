@@ -911,6 +911,7 @@
  "src/so-la-thuong-mai-toan-nen-tang.test.ts": 9,
  "src/so-nguoi-chang-mot-luat.test.ts": 0.9,
  "src/so-vang-chi-phi-xe.test.ts": 0.2,
+ "src/so-vang-dang-ky-loai-doi-tac.test.ts": 3,
  "src/so-vang-dat-coc.test.ts": 3.9,
  "src/so-vang-dieu-chinh.test.ts": 4.7,
  "src/so-vang-don-huy.test.ts": 0.3,

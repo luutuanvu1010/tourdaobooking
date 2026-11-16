@@ -5618,7 +5618,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Phiếu đăng ký đối tác",
     manHinh: "Quản lý tài khoản › khối «Nhận đăng ký mới» (chỉ Toàn quyền)",
     ten: "Lưu (nhận đăng ký mới)",
-    thatSuLam: "Bật hoặc tắt «Nhận đăng ký mới» và chọn vai người dùng được đăng ký (bốn vai cá nhân, không có Công ty lữ hành). Mỗi lần lưu thêm một dòng chính sách đăng ký mới, chỉ đổi công tắc và loại mở, các con số khác giữ nguyên. Chưa có chính sách riêng tư đang hiệu lực thì không bật được. Tắt chỉ chặn mở phiếu mới; phiếu đã có vẫn đi tiếp.",
+    thatSuLam: "Bật hoặc tắt «Nhận đăng ký mới» và chọn vai người dùng được đăng ký, lấy từ danh sách loại đối tác đang dùng (gồm cả loại do Kế toán thêm; loại tắt thì tự biến). Công ty lữ hành và Tài xế đối tác chưa mở được khi biểu mẫu còn thiếu phần khai riêng của họ, màn hình nói rõ thiếu gì. Mỗi lần lưu thêm một dòng chính sách đăng ký mới, chỉ đổi công tắc và loại mở, các con số khác giữ nguyên. Chưa có chính sách riêng tư đang hiệu lực thì không bật được. Tắt chỉ chặn mở phiếu mới; phiếu đã có vẫn đi tiếp.",
     hoiLai: "không",
     hoanTac: "được: lưu lại lựa chọn khác (dòng cũ giữ trong lịch sử chính sách)",
     duongLenh: ["/api/dang-ky/chinh-sach"],

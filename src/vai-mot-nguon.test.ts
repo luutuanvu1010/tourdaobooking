@@ -71,8 +71,11 @@ test("trang đăng ký phía giao diện không import roles (tên vai do máy c
   }
 });
 
-test("hàng chờ duyệt: tên vai hiện từ máy chủ, không tra ROLES trong mã (ô chọn vai lúc duyệt thuộc Task 2)", () => {
+test("hàng chờ duyệt: tên vai và ô chọn vai lúc duyệt đọc từ máy chủ (`vaiChon`), không import / tra ROLES, ROLE_CODES (ADR-0212 Đ3, PF2)", () => {
   const nd = readFileSync(join(GOC, "web/dang-ky-hang-cho.ts"), "utf8");
+  assert.equal(/from\s+["'][^"']*\/roles(\.ts)?["']/.test(nd), false, "web/dang-ky-hang-cho.ts không được import roles");
+  assert.equal(/\bROLE_CODES\b|\bROLES\b/.test(nd), false, "không dựng danh sách vai từ ROLES / ROLE_CODES (kể cả dẫn xuất .filter)");
+  assert.equal(/\.vaiChon\b/.test(nd), true, "ô chọn vai đọc `vaiChon` của máy chủ");
   assert.equal(/const tenVai\b[^\n]*ROLES/.test(nd), false, "tenVai không được tra ROLES");
   assert.equal(/isRoleCode\(/.test(nd), false, "không đoán tên vai bằng isRoleCode");
 });

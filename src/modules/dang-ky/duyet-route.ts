@@ -9,7 +9,7 @@ import { MUC_XAC_MINH_MO } from "../../shared/dau-xac-minh.ts";
 import { error, json, readJson } from "../../shared/http.ts";
 import { can } from "../../shared/permissions.ts";
 import { normalizePhone } from "../../shared/phone.ts";
-import { groupOf, isRoleCode, roleAssignmentProblem } from "../../shared/roles.ts";
+import { groupOf, isRoleCode, roleAssignmentProblem, type RoleCode } from "../../shared/roles.ts";
 import type { Ctx } from "../../shared/router.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import { auditStatement } from "../audit";
@@ -20,6 +20,7 @@ import {
   traVeXacMinhStatement, tuChoiDuyetStatement,
 } from "./repository.ts";
 import { maLenhThu } from "./rules.ts";
+import { kiemVaiKhiDuyet, vaiChonKhiDuyet } from "./vai.ts";
 import { guiThuSauLo } from "./thu-bao.ts";
 import { kiemDuyet, kiemLyDoDuyet, kiemTraVe, laMaPhieu, loiDungLoDuyet, loiLoDuyet } from "./xac-minh.ts";
 import { dsMuc, kiemHoSoDich, kiemNguoiGioiThieu, moiNhat, mucPhaiDat } from "./xac-minh-route.ts";
@@ -50,9 +51,11 @@ export async function xemDeDuyet({ env, staff, params }: Ctx<"accounts">): Promi
   const bk = await tomTatDeDuyet(env.DB, p.id, p.current_version);
   if (!bk) return json({ ...tomTatPhieu, daXuLy: true });
   const [batBuoc, kl] = await Promise.all([mucPhaiDat(env.DB, new Date().toISOString()), moiNhat(env.DB, p)]);
+  const vaiChon = await vaiChonKhiDuyet(env.DB);
   const dich = p.match_kind === "EXISTING" && p.match_party_id && can(staff, "party.view") ? await partySummary(env.DB, p.match_party_id) : null;
   return json({
     ...tomTatPhieu,
+    vaiChon, // ô chọn vai ở màn duyệt đọc từ đây (PF2): loại do Kế toán thêm có mặt, loại đã tắt thì không
     guiLuc: p.submitted_at,
     hoTen: [bk.family_name, bk.middle_name, bk.given_name].filter((x): x is string => !!x).join(" "),
     soDienThoai: bk.phone_value,
@@ -72,13 +75,20 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
   const k = kiemDuyet(await readJson(request));
   if (!k.ok) return error(400, "invalid_input", k.message);
   const { roleCode, phienBan } = k.value;
-  // Vai: mã có thật, thuộc nhóm bên ngoài (biến thể tạo tài khoản tắt chỉ nhận vai bên ngoài), và qua đúng luật gán vai sẵn có của người duyệt (ADR-0207 Đ4).
-  if (!isRoleCode(roleCode) || groupOf([roleCode]) !== "EXTERNAL") return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
-  const vaiLoi = roleAssignmentProblem({
-    actorIsSuper: can(staff, "admin.manage.superadmin"), actorLaQuanTri: can(staff, "admin.manage"), currentRoles: [], currentPermissions: [], currentAdjustments: { adds: [], removes: [] },
-    next: { roles: [roleCode], adds: [], removes: [], reason: null },
-  });
-  if (vaiLoi) return error(vaiLoi.forbidden ? 403 : 400, vaiLoi.forbidden ? "forbidden" : "invalid_input", vaiLoi.message);
+  // Vai: hợp lệ khi CÓ TRONG `vaiDangKyDuoc` lúc duyệt (ADR-0212 Đ3). Là vai bên ngoài sẵn có ⇒ qua đúng luật gán vai của người duyệt (ADR-0207 Đ4); là loại đối tác do Kế toán thêm ⇒ không qua luật đó
+  // (loại nhóm OTHER không sinh quyền; quyền Đối tác cấp bằng dòng chỉnh tay trong lô). Loại vừa bị tắt ⇒ 409, không dòng nào sinh.
+  const vai = await kiemVaiKhiDuyet(env.DB, roleCode);
+  if (vai.kq === "DA_TAT") return error(409, "role_inactive", "Loại đối tác này đã tắt. Hãy chọn loại khác hoặc từ chối phiếu.");
+  if (vai.kq !== "HOP_LE") return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
+  const laLoaiDoiTac = vai.laLoaiDoiTac;
+  if (!laLoaiDoiTac) {
+    if (!isRoleCode(roleCode) || groupOf([roleCode]) !== "EXTERNAL") return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
+    const vaiLoi = roleAssignmentProblem({
+      actorIsSuper: can(staff, "admin.manage.superadmin"), actorLaQuanTri: can(staff, "admin.manage"), currentRoles: [], currentPermissions: [], currentAdjustments: { adds: [], removes: [] },
+      next: { roles: [roleCode], adds: [], removes: [], reason: null },
+    });
+    if (vaiLoi) return error(vaiLoi.forbidden ? 403 : 400, vaiLoi.forbidden ? "forbidden" : "invalid_input", vaiLoi.message);
+  }
   if (p.status !== "CHO_DUYET" || p.current_version < 1) return KHONG_CON_CHO();
   if (phienBan !== p.current_version) return DOI_PHIEN_BAN();
   const version = p.current_version;
@@ -123,7 +133,8 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
   let lo;
   try {
     lo = await loDuyetDangKy({
-      registrationId: p.id, version, approverId: staff.id, at, today: vnToday(new Date(at)), co, roleCode, roleLabel: (await tenVaiTaiKhoan(env.DB))[roleCode] ?? roleCode,
+      registrationId: p.id, version, approverId: staff.id, at, today: vnToday(new Date(at)), co, roleCode, laLoaiDoiTac,
+      roleLabel: laLoaiDoiTac ? ((await tenLoaiVai(env.DB)).get(roleCode) ?? roleCode) : ((await tenVaiTaiKhoan(env.DB))[roleCode as RoleCode] ?? roleCode),
       hoSo: dich ? { kieu: "CO_SAN", partyId: dich } : { kieu: "MOI" },
       ten: { family: bk.family_name, middle: bk.middle_name, given: bk.given_name }, gender: bk.gender, birthDate: bk.birth_date, loginPhone, lienHe,
       giayTo: bk.document_type_code

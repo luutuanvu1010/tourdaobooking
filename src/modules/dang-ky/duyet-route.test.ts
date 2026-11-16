@@ -5,6 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff, SECRET } from "../../../tests/audit/harness.mjs";
+// @ts-ignore tệp .mjs không có khai kiểu
+import { CHECKS, demViPham } from "../../../scripts/audit-checks.mjs";
 import { DK_COOKIE, khoaBam, taoPhienDangKy } from "./phien.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
@@ -606,4 +608,104 @@ test("(23) M4: lỗi lạ khi dựng câu lô ⇒ 500 (không đội lốt «vai
   const r = await duyet(w, HR, id);
   assert.equal(r.status, 500, r.text);
   assert.equal(r.text.includes("loi_la_khong_ten"), false);
+});
+
+// ---- ADR-0212 Đ3 (đợt 2 Task 2): duyệt phiếu với loại đối tác do Kế toán thêm (`LD_…`, nhóm OTHER, không sinh quyền theo vai) ----
+// Loại thêm bằng route THẬT của Kế toán (cùng lô: loại vai + danh sách được hưởng + nhật ký), không gieo SQL.
+async function themLoaiThat(w: any, ten = "Loại thử nghiệm"): Promise<string> {
+  const r = await w.call("POST", "/api/pricing/loai-doi-tac", { as: ACC, body: { ten } });
+  assert.equal(r.status, 201, r.text);
+  return r.json.loai.code as string;
+}
+const checkSql = (w: any, ma: string): number => {
+  const c = CHECKS.find((x: any) => x.code === ma);
+  assert.ok(c, ma);
+  return demViPham(c, w.sqlite.prepare(c.sql.replace(/\s+/g, " ").trim()).all());
+};
+
+test("(24) Duyệt loại do Kế toán thêm: hồ sơ có đúng MỘT vai (loại đó), tài khoản đúng quyền Đối tác, đúng MỘT dòng chỉnh tay «ADD PARTNER»; R-DK-4 và R-LC-1c không đỏ sau kích hoạt", async () => {
+  const w = setup();
+  const loai = await themLoaiThat(w);
+  const id = phieu(w);
+  await xacMinh(w, id);
+  // ô chọn vai của màn duyệt đọc danh sách do máy chủ trả, có loại vừa thêm (PF2)
+  const xd = await xemDuyet(w, HR, id);
+  assert.equal(xd.status, 200, xd.text);
+  assert.ok(xd.json.vaiChon.some((v: any) => v.ma === loai && v.ten === "Loại thử nghiệm" && v.laLoaiDoiTac === true), "vaiChon có loại mới");
+  assert.ok(xd.json.vaiChon.some((v: any) => v.ma === "TRAVEL_AGENCY" && v.laLoaiDoiTac === false), "vaiChon vẫn có vai bên ngoài sẵn có");
+  const r = await duyet(w, HR, id, { roleCode: loai });
+  assert.equal(r.status, 200, r.text);
+  const tk = taiKhoanMoi(w);
+  assert.equal(tk.active, 0);
+  assert.deepEqual(w.q("SELECT role_type_code FROM pty_party_role WHERE party_id = ? AND valid_to_date IS NULL", tk.party_id).map((x: any) => x.role_type_code), [loai]);
+  assert.deepEqual(w.q("SELECT permission_type_code FROM stf_permission WHERE staff_id = ? AND valid_to_at IS NULL", tk.id).map((x: any) => x.permission_type_code), ["PARTNER"]);
+  const dc = w.q("SELECT permission_type_code, direction, reason, created_by FROM stf_permission_adjustment WHERE staff_id = ?", tk.id).map((x: any) => ({ ...x }));
+  assert.equal(dc.length, 1);
+  assert.deepEqual([dc[0].permission_type_code, dc[0].direction, dc[0].created_by], ["PARTNER", "ADD", HR]);
+  assert.ok(String(dc[0].reason).includes("Loại thử nghiệm") && !String(dc[0].reason).includes(DT_KHOA), "lý do không dữ liệu cá nhân");
+  const nk = w.q("SELECT detail FROM audit_log WHERE action = 'staff_created'")[0].detail as string;
+  assert.ok(nk.includes("Loại thử nghiệm"), "nhật ký mang tên loại");
+  assert.equal(checkSql(w, "R-DK-4"), 0, "R-DK-4 (tài khoản chưa kích hoạt) không đỏ");
+  await kichHoatThat(w, id);
+  assert.equal(checkSql(w, "R-DK-4"), 0);
+  assert.equal(checkSql(w, "R-LC-1c"), 0, "R-LC-1c: tài khoản đang hoạt động giữ quyền Đối tác có hồ sơ mang vai loại đối tác");
+});
+
+test("(25) Tắt loại giữa lúc xác minh và lúc duyệt ⇒ 409 role_inactive, không dòng nào sinh; loại biến khỏi ô chọn; mã lạ và vai nội bộ vẫn 400", async () => {
+  const w = setup();
+  const loai = await themLoaiThat(w);
+  const id = phieu(w);
+  await xacMinh(w, id);
+  const tat = await w.call("POST", `/api/pricing/loai-doi-tac/${loai}/tat`, { as: ACC });
+  assert.equal(tat.status, 200, tat.text);
+  const truoc = anh(w);
+  const r = await duyet(w, HR, id, { roleCode: loai });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "role_inactive");
+  assert.equal(r.json.error.message, "Loại đối tác này đã tắt. Hãy chọn loại khác hoặc từ chối phiếu.");
+  assert.deepEqual(anh(w), truoc);
+  assert.equal(dem1(w, "SELECT count(*) n FROM stf_permission_adjustment"), 0);
+  assert.equal(reg(w, id).status, "CHO_DUYET");
+  assert.equal((await xemDuyet(w, HR, id)).json.vaiChon.some((v: any) => v.ma === loai), false, "loại đã tắt không còn trong ô chọn");
+  assert.equal((await duyet(w, HR, id, { roleCode: "LD_KHONG_CO" })).status, 400);
+  assert.equal((await duyet(w, HR, id, { roleCode: "SALES_STAFF" })).status, 400);
+  assert.equal((await duyet(w, HR, id, { roleCode: "TRAVEL_AGENCY" })).status, 200, "vai bên ngoài sẵn có vẫn duyệt được qua đường cũ");
+});
+
+test("(26) Hồ sơ có sẵn đang giữ vai nội bộ mà duyệt loại do Kế toán thêm ⇒ 409 target_mixed_group trước lô", async () => {
+  const w = setup();
+  const loai = await themLoaiThat(w);
+  const goc = hoSoCoSan(w);
+  const id = phieu(w);
+  await xacMinh(w, id, ADM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
+  // vai nội bộ mở SAU bước xác minh (xác minh «đạt» với vai xin sẵn có đã bắt lẫn nhóm; ở đây thử cổng của lúc duyệt)
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('r-nb', ?, 'SALES_STAFF', NULL, '2026-01-01', ?, ?)").run(goc, AT, AT);
+  const truoc = anh(w);
+  const r = await duyet(w, HR, id, { roleCode: loai });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "target_mixed_group");
+  assert.deepEqual(anh(w), truoc);
+});
+
+test("(27) «Lưu vai» với danh sách vai RỖNG bị route từ chối (400) — KHÔNG nới (ADR-0212 Đ3 «chưa kiểm»): quyền Đối tác, vai loại đối tác và dòng chỉnh tay giữ nguyên", async () => {
+  const w = setup();
+  const loai = await themLoaiThat(w);
+  const id = phieu(w);
+  await xacMinh(w, id);
+  assert.equal((await duyet(w, HR, id, { roleCode: loai })).status, 200);
+  await kichHoatThat(w, id);
+  const tk = taiKhoanMoi(w);
+  const quyen = () => w.q("SELECT permission_type_code p FROM stf_permission WHERE staff_id = ? AND valid_to_at IS NULL", tk.id).map((x: any) => x.p);
+  const r = await w.call("PUT", `/api/staff/${tk.id}/roles`, { as: SUP, body: { roles: [], adds: ["PARTNER"], removes: [], reason: "Loại đối tác do Kế toán thêm" } });
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.message, "Chọn ít nhất một vai trò (mỗi vai trò một lần).");
+  assert.deepEqual(quyen(), ["PARTNER"]);
+  assert.deepEqual(w.q("SELECT role_type_code FROM pty_party_role WHERE party_id = ? AND valid_to_date IS NULL", tk.party_id).map((x: any) => x.role_type_code), [loai], "vai loại đối tác không bị đóng");
+  assert.equal(dem1(w, "SELECT count(*) n FROM stf_permission_adjustment WHERE staff_id = ? AND valid_to_at IS NULL", tk.id), 1);
+  // Lưu vai với MỘT vai bên ngoài sẵn có (đường hợp lệ): vai loại đối tác KHÔNG bị đóng (`roleChangeStatements` bỏ qua dòng không phải RoleCode), quyền Đối tác còn nhờ dòng chỉnh tay
+  const r2 = await w.call("PUT", `/api/staff/${tk.id}/roles`, { as: SUP, body: { roles: ["TRAVEL_AGENCY"], adds: ["PARTNER"], removes: [], reason: "Loại đối tác do Kế toán thêm" } });
+  assert.equal(r2.status, 200, r2.text);
+  assert.deepEqual(w.q("SELECT role_type_code FROM pty_party_role WHERE party_id = ? AND valid_to_date IS NULL ORDER BY 1", tk.party_id).map((x: any) => x.role_type_code).sort(), [loai, "TRAVEL_AGENCY"].sort());
+  assert.deepEqual(quyen(), ["PARTNER"]);
+  assert.equal(checkSql(w, "R-LC-1c"), 0);
 });

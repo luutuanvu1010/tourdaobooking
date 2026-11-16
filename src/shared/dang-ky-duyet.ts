@@ -14,7 +14,10 @@ export interface LoDuyetDangKyVao {
   today: string;
   /** 1 khi Toàn quyền làm cả hai bước (người duyệt = người xác minh và giữ `admin.manage.superadmin`). Ghi lên dòng quyết định và dòng xác minh. */
   co: 0 | 1;
+  /** Mã vai: `RoleCode` nhóm bên ngoài, HOẶC mã loại đối tác do Kế toán thêm (`LD_…`, khi `laLoaiDoiTac`). */
   roleCode: string;
+  /** true = loại đối tác (nhóm OTHER, cờ `is_partner_label`): tài khoản nhận quyền Đối tác bằng dòng chỉnh tay (ADR-0212 Đ3). */
+  laLoaiDoiTac: boolean;
   /** Tên vai cho chi tiết nhật ký (không dữ liệu cá nhân). */
   roleLabel: string;
   hoSo: { kieu: "MOI" } | { kieu: "CO_SAN"; partyId: string };

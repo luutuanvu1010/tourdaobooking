@@ -244,6 +244,29 @@ export async function createAccountOnPartyStatements(
   };
 }
 
+/**
+ * Tạo tài khoản TẮT cho người mang LOẠI ĐỐI TÁC do Kế toán thêm (ADR-0212 Đ3; đợt 2 Task 2). Loại đó thuộc nhóm OTHER nên KHÔNG sinh quyền theo vai: quyền Đối tác (`PARTNER`) được cấp
+ * bằng một dòng quyền + MỘT dòng chỉnh tay `ADD PARTNER` (lý do do người gọi đưa, không dữ liệu cá nhân) — để lần «Lưu vai» ở Quản lý tài khoản sau này không gỡ mất quyền
+ * (`roleChangeStatements` giữ dòng chỉnh tay còn khớp). Như `createAccountOnPartyStatements`: câu CHƯA CHẠY, PIN ngẫu nhiên không trả ra, hồ sơ và vai do `parties` mở TRƯỚC trong cùng lô
+ * (LC-1c đòi hồ sơ mang vai loại đối tác lúc mở quyền). Dùng lại được cho người chỉ làm cho tổ chức (Task 13).
+ */
+export async function createPartnerAccountOnPartyStatements(
+  db: D1Database,
+  input: { partyId: string; phone: string; reason: string },
+  actorId: string,
+  at: string,
+): Promise<{ id: string; statements: D1PreparedStatement[] }> {
+  const id = crypto.randomUUID();
+  return {
+    id,
+    statements: [
+      insertStaffInactiveStatement(db, { id, phone: input.phone, pinHash: await hashPin(generatePin()), createdAt: at, partyId: input.partyId }),
+      insertPermissionStatement(db, id, "PARTNER", actorId, at, false),
+      insertAdjustmentStatement(db, { staffId: id, code: "PARTNER", direction: "ADD", reason: input.reason, at, actorId, guarded: false }),
+    ],
+  };
+}
+
 /** Kích hoạt (ADR-0207 Đ6): đặt PIN người đăng ký tự chọn (đã băm), bật tài khoản, đẩy `credentials_changed_at` (= `at`, mili giây). Chỉ tác động tài khoản đang TẮT. */
 export const datPinKichHoatStatements = (db: D1Database, staffId: string, pinHash: string, at: number): D1PreparedStatement[] => [setPinActivateStatement(db, staffId, pinHash, at)];
 
