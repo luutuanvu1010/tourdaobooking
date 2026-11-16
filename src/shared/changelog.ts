@@ -17,18 +17,25 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Sau Phí đưa đón Đợt C (chủ chốt bốn câu chờ 15/11, «ok theo khuyến nghị»): câu báo trần giảm giá nói đúng «tiền dịch vụ».
-    // + Đăng ký đối tác đợt 1 (ADR-0206 … ADR-0210; migration 0170–0172; nhánh claude/account-signup-approval-flow-ee612c, bước A.0 làm 16/11): mục 3.10 chưa lên
-    //   production (production 3.9, kiểm 16/11) nên GỘP vào mục này theo công thức t. Công tắc «Nhận đăng ký mới» gieo TẮT; lối «Đăng ký làm đối tác» ở màn Đăng nhập hiện ngay.
-    // SỐ TẠM 3.10: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.10",
+    // Đăng ký đối tác đợt 1 (ADR-0206 … ADR-0210; migration 0170–0172; nhánh claude/account-signup-approval-flow-ee612c, vào main 16/11): production đã ở 3.10 (kiểm 16/11),
+    // nên các dòng của đợt này tách khỏi mục 3.10 sang mục mới 3.11. Công tắc «Nhận đăng ký mới» gieo TẮT; lối «Đăng ký làm đối tác» ở màn Đăng nhập hiện ngay.
+    // SỐ TẠM 3.11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.11",
     date: "2026-11-16",
     items: [
-      { kind: "sua", text: "Câu báo khi giảm giá quá mức nay ghi «Giảm giá không được vượt quá tiền dịch vụ.», vì tạm tính trên đơn đã gồm phí đưa đón mà giảm giá không trừ vào phí." },
       { kind: "moi", text: "Màn Đăng nhập có lối «Đăng ký làm đối tác». Người ngoài chỉ gửi được phiếu khi Toàn quyền bật «Nhận đăng ký mới»; lúc mới cập nhật công tắc đang tắt." },
       { kind: "moi", text: "Quản lý tài khoản có hàng chờ phiếu đăng ký: Quản trị xác minh từng mục, Nhân sự bấm «Duyệt mở tài khoản»; hai bước do hai người khác nhau làm." },
       { kind: "moi", text: "Tài khoản mở từ phiếu ghi «Chưa kích hoạt» cho tới khi chính người đăng ký tự đặt mã PIN; trong công ty không ai đặt hộ được." },
       { kind: "moi", text: "Danh sách tài khoản hiện dấu «Đã xác minh», «Chưa xác minh» hoặc «Cần xác minh lại» theo hồ sơ của từng người." },
+    ],
+  },
+  {
+    // Sau Phí đưa đón Đợt C (chủ chốt bốn câu chờ 15/11, «ok theo khuyến nghị»): câu báo trần giảm giá nói đúng «tiền dịch vụ».
+    // SỐ TẠM 3.10: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.10",
+    date: "2026-11-15",
+    items: [
+      { kind: "sua", text: "Câu báo khi giảm giá quá mức nay ghi «Giảm giá không được vượt quá tiền dịch vụ.», vì tạm tính trên đơn đã gồm phí đưa đón mà giảm giá không trừ vào phí." },
     ],
   },
   {
