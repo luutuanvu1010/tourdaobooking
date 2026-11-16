@@ -13,6 +13,7 @@
 ## Ba câu còn mở
 
 **1. Bạn đồng ý hai mặc định bảo vệ tổ chức chứ?** (khuyến nghị: đồng ý)
+Bạn từng nói người quản lý tự thêm, gỡ và chuyển quyền được; AI đề nghị bớt phần «tự chuyển», vì kẻ cầm được mã PIN của người quản lý có thể chiếm tổ chức trong vài phút. Người quản lý vẫn tự thêm và gỡ thành viên.
 - Chỉ văn phòng (Quản lý bán hàng, Quản trị, Toàn quyền) chuyển quyền quản lý; người quản lý chỉ gửi yêu cầu. Lý do: nếu người quản lý tự chuyển được, kẻ lấy được mã PIN của họ chiếm cả tổ chức trong vài phút.
 - Người đăng ký gắn vào một tổ chức đã có trong Danh bạ không bao giờ tự thành người quản lý; văn phòng giao. Lý do: người lạ khai trúng tên công ty không được nắm công nợ của công ty đó.
 
@@ -28,7 +29,7 @@ Chế độ còn lại thì người quản lý chỉ thấy nháp thành viên 
 - Người chỉ làm việc cho công ty, không tự làm đối tác riêng, vẫn có tài khoản: AI sửa một luật nằm sẵn trong cơ sở dữ liệu (nơi máy tự chặn dù mã có sai) để họ vào được; họ không có hoa hồng riêng.
 - Loại Kế toán thêm: khi duyệt chỉ gắn đúng loại đó, không gắn kèm «Cộng tác viên» (hai loại cùng có mức thì đơn bị giữ).
 - «Tài xế đối tác» có trong danh sách nhưng chưa mở được cho tới khi phiếu có ô bằng lái và bước chọn nhà xe (đợt sau).
-- Mã mời sống 7 ngày; mỗi tổ chức tối đa 10 lời mời một ngày và 20 lời mời đang chờ; một số điện thoại tối đa 3 lời mời một ngày trên toàn Nền tảng.
+- Mã mời sống 7 ngày; mỗi tổ chức tối đa 10 lời mời một ngày và 20 lời mời đang chờ; một số điện thoại tối đa 3 lời mời một ngày trên toàn Nền tảng; nhập sai mã tối đa 5 lần mỗi giờ.
 - Không chuyển quyền qua lại giữa cùng hai người trong một ngày.
 - Mã số thuế của tổ chức được coi là dữ liệu cần giữ kín như số căn cước.
 
