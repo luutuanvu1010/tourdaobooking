@@ -15,7 +15,8 @@ export type { OrderItemRowPhiDon };
 export type NoiDungPhi = Omit<OrderItemRowPhiDon, "legId">;
 /** Khoá chặng của lần tính (vị trí `"<dịch vụ>|<chặng>"` khi lập / lưu nháp, hoặc id chặng khi sửa chặng / đọc) → dòng phí. */
 export type PhiTheoChang = ReadonlyMap<string, NoiDungPhi>;
-export interface ThieuPhiNhap { legKey: string; serviceRef: string; direction: "OUT" | "RETURN"; zoneName: string | null; lyDo: LyDoThieuPhiDonDto }
+/** Lượt đón còn mở chưa chọn mức: chiều + tên dịch vụ cho câu «Chọn phí đưa đón cho lượt đón …» (`cauThieuPhiDon`). */
+export interface ThieuPhiNhap { legKey: string; serviceRef: string; tenDichVu: string; direction: "OUT" | "RETURN"; lyDo: LyDoThieuPhiDonDto }
 /** `apDung` = phí đang áp ở ngày tính (công tắc «ngày bắt đầu áp» của pricing). Chưa áp ⇒ không dòng, không thiếu. */
 export interface PhiNhap { apDung: boolean; tong: number; theoChang: PhiTheoChang; thieu: ThieuPhiNhap[] }
 export const KHONG_PHI: PhiNhap = { apDung: false, tong: 0, theoChang: new Map(), thieu: [] };
@@ -23,6 +24,8 @@ export const KHONG_PHI: PhiNhap = { apDung: false, tong: 0, theoChang: new Map()
 /** Một dịch vụ (thân lập / lưu nháp, hoặc đang lưu) ở dạng đủ để tính phí: số khách + chặng (chiều, xe riêng, số người chiều về, đã đóng). */
 export interface DichVuChoPhi {
   ref: string;
+  /** Tên dịch vụ (câu báo lượt đón chưa chọn phí). */
+  ten: string;
   pax: PaxCounts;
   legs: readonly { legKey: string; direction: "OUT" | "RETURN"; exclusiveVehicle?: boolean; paxOverride?: number | null; closed?: boolean }[];
 }
@@ -54,7 +57,7 @@ export function phiNhapChon(dv: readonly DichVuChoPhi[], muc: ReadonlyMap<string
       if (l.closed) continue;
       const m = muc.get(l.legKey);
       if (!m) {
-        thieu.push({ legKey: l.legKey, serviceRef: s.ref, direction: l.direction, zoneName: null, lyDo: "CHUA_CHON" });
+        thieu.push({ legKey: l.legKey, serviceRef: s.ref, tenDichVu: s.ten, direction: l.direction, lyDo: "CHUA_CHON" });
         continue;
       }
       const d = dongPhiThanhItem({ muc: m, xeRieng: l.exclusiveVehicle ?? false, direction: l.direction, soKhachTinhTien: payingGuests(s.pax), paxOverride: l.paxOverride ?? null });
@@ -120,7 +123,7 @@ export function phiDongDto(rows: readonly FeeRow[]): PhiDuaDonDto[] {
  */
 export function phiDuaDonDto(v: { nhap: boolean; dong: readonly PhiDuaDonDto[]; songNhap: PhiNhap | null }): PhiDuaDonCuaDonDto | null {
   const thieu = v.nhap && v.songNhap?.apDung
-    ? v.songNhap.thieu.map((t) => ({ legId: t.legKey, serviceId: t.serviceRef, direction: t.direction, zoneName: t.zoneName, lyDo: t.lyDo }))
+    ? v.songNhap.thieu.map((t) => ({ legId: t.legKey, serviceId: t.serviceRef, serviceName: t.tenDichVu, direction: t.direction, lyDo: t.lyDo }))
     : [];
   if (v.dong.length === 0 && thieu.length === 0) return null;
   return { dong: [...v.dong], thieu, duKien: v.nhap };

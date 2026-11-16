@@ -1,7 +1,7 @@
 // Chữ hiển thị của màn «Phí đưa đón» (kế hoạch Phí đưa đón, Đợt B Task 8) và của phí đưa đón trên đơn / biên nhận (Đợt C, Task 6). Thuần: không I/O, KHÔNG tính tiền
 // (mọi số tiền do máy chủ trả). Không hàm nào để lọt mã thô (PER_PAX, OUT, NGOAI_VUNG…) ra chữ người dùng; mã không có tên thì hiện mã kèm lời giải («đã khoá»).
 import { ngayDayDu } from "./vn-date.ts";
-import type { CanhBaoPhiDonDto, LyDoThieuPhiDonDto, MucPhiDonDto, PhiDuaDonCuaDonDto, ThuTraPhiDonResponse } from "./contracts.ts";
+import type { CanhBaoPhiDonDto, MucPhiDonDto, PhiDuaDonCuaDonDto, ThuTraPhiDonResponse } from "./contracts.ts";
 
 export interface TenPhiDon {
   vung: ReadonlyMap<string, string>;
@@ -131,13 +131,11 @@ export function chuThanhTienPhi(d: { unitPrice: number; lineTotal: number }, tie
 export const tenKhoiPhiDon = (duKien: boolean): string => (duKien ? `${TEN_PHI_DUA_DON} (${CHU_DU_KIEN})` : TEN_PHI_DUA_DON);
 
 /**
- * Câu khi một chặng chưa tính được phí đưa đón — MỘT nguồn cho câu 409 `transfer_fee_missing` lúc xác nhận (orders re-export) và băng báo trên trang đơn nháp.
- * Chữ theo kế hoạch Đợt C (Task 4).
+ * Câu khi một lượt đón còn mở chưa được chọn phí (ADR-0214 Đ3, lý do `CHUA_CHON`) — MỘT nguồn cho câu 409 `transfer_fee_missing` lúc xác nhận (orders re-export) và băng báo trên
+ * trang đơn nháp. Chiều viết thường theo nhãn sẵn có (`chieuChu`, cùng chữ với `CHIEU_LABEL`).
  */
-export function cauThieuPhiDon(t: { lyDo: LyDoThieuPhiDonDto; tenVung: string }, tenDoiTac: string | null): string {
-  if (t.lyDo === "XUNG_DOT") return `Phí đưa đón khu vực ${t.tenVung} có hai mức trùng nhau; Quản trị cần kết thúc một mức trước khi xác nhận.`;
-  if (t.lyDo === "DAI_LY_HAI_CAP") return `Cần gán cấp riêng cho đối tác ${tenDoiTac ?? "bên đặt"} trước khi xác nhận.`;
-  return `Quản trị cần đặt phí đưa đón cho khu vực ${t.tenVung} trước khi xác nhận.`;
+export function cauThieuPhiDon(t: { direction: "OUT" | "RETURN"; tenDichVu: string }): string {
+  return `Chọn phí đưa đón cho lượt đón ${chieuChu(t.direction).toLowerCase()} của dịch vụ ${t.tenDichVu} trước khi xác nhận.`;
 }
 
 export interface DongPhiTrang {
@@ -150,7 +148,7 @@ export interface DongPhiTrang {
 }
 
 /** `OrderDto.phiDuaDon` → chữ của mục «Phí đưa đón» trong thẻ tiền của trang đơn: tiêu đề, mỗi chặng một dòng (nhãn + dòng phụ số khách × đơn giá, thành tiền bên phải), câu băng báo thiếu mức (bỏ trùng). */
-export function dongPhiTrenDon(p: PhiDuaDonCuaDonDto, tien: (n: number) => string, tenDoiTac: string | null): { tieuDe: string; dong: DongPhiTrang[]; thieu: string[] } {
+export function dongPhiTrenDon(p: PhiDuaDonCuaDonDto, tien: (n: number) => string): { tieuDe: string; dong: DongPhiTrang[]; thieu: string[] } {
   const dong = p.dong.map((d) => ({
     nhan: d.zoneName === null ? chieuChu(d.direction) : `${chieuChu(d.direction)} · ${d.zoneName}`, // ADR-0214: dòng văn phòng chọn không có khu vực (Task 6 hoàn thiện chữ)
     chiTiet: d.unitPrice === 0 ? null : `${d.quantity} ${d.kind === "PER_PAX" ? "khách" : "chuyến"} × ${tien(d.unitPrice)}`,
@@ -158,7 +156,7 @@ export function dongPhiTrenDon(p: PhiDuaDonCuaDonDto, tien: (n: number) => strin
   }));
   const thieu: string[] = [];
   for (const t of p.thieu) {
-    const cau = cauThieuPhiDon({ lyDo: t.lyDo, tenVung: t.zoneName ?? "" }, tenDoiTac);
+    const cau = cauThieuPhiDon({ direction: t.direction, tenDichVu: t.serviceName });
     if (!thieu.includes(cau)) thieu.push(cau);
   }
   return { tieuDe: tenKhoiPhiDon(p.duKien), dong, thieu };

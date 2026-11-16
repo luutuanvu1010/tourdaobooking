@@ -6,7 +6,7 @@ import { mucDaLuuTheoChang, mucTheoThan, moTaPhiDonNhatKy, phiNhapChon, type Dic
 
 const PAX = (adult: number, child = 0, senior = 0, infant = 0) => ({ adult, child, senior, infant });
 const leg = (legKey: string, direction: "OUT" | "RETURN", them: Partial<{ exclusiveVehicle: boolean; paxOverride: number | null; closed: boolean }> = {}) => ({ legKey, direction, ...them });
-const dv = (ref: string, pax: ReturnType<typeof PAX>, legs: DichVuChoPhi["legs"]): DichVuChoPhi => ({ ref, pax, legs });
+const dv = (ref: string, pax: ReturnType<typeof PAX>, legs: DichVuChoPhi["legs"]): DichVuChoPhi => ({ ref, ten: `Dịch vụ ${ref}`, pax, legs });
 const DS = (soTien: number) => ({ loai: "DANH_SACH" as const, soTien });
 const SK = (soTien: number) => ({ loai: "SO_KHAC" as const, soTien });
 
@@ -39,8 +39,8 @@ test("chặng mở chưa có mức ⇒ CHUA_CHON (không dòng, không 0 đồng
     new Map([["a", DS(0)]]),
   );
   assert.deepEqual(p.thieu, [
-    { legKey: "b", serviceRef: "s1", direction: "RETURN", zoneName: null, lyDo: "CHUA_CHON" },
-    { legKey: "d", serviceRef: "s2", direction: "OUT", zoneName: null, lyDo: "CHUA_CHON" },
+    { legKey: "b", serviceRef: "s1", tenDichVu: "Dịch vụ s1", direction: "RETURN", lyDo: "CHUA_CHON" },
+    { legKey: "d", serviceRef: "s2", tenDichVu: "Dịch vụ s2", direction: "OUT", lyDo: "CHUA_CHON" },
   ]);
   assert.deepEqual([...p.theoChang.keys()], ["a"]);
   assert.deepEqual([p.theoChang.get("a")!.unitPrice, p.theoChang.get("a")!.lineTotal], [0, 0]);

@@ -114,7 +114,7 @@ test("chặng không có mức ⇒ không dòng, thieu CHUA_CHON (có chiều + 
   const o = await lap(w, [svc({ adult: 2 }, [OUT({ phiDon: DS(15_000) }), RET()])]);
   const ret = o.services[0].legs.find((l: any) => l.direction === "RETURN");
   assert.deepEqual(gon(w, o.id), [["OUT", "DANH_SACH", 15_000, 2, 30_000]]);
-  assert.deepEqual(o.phiDuaDon.thieu, [{ legId: ret.id, serviceId: o.services[0].id, direction: "RETURN", zoneName: null, lyDo: "CHUA_CHON" }]);
+  assert.deepEqual(o.phiDuaDon.thieu, [{ legId: ret.id, serviceId: o.services[0].id, serviceName: "Tour lặn biển", direction: "RETURN", lyDo: "CHUA_CHON" }]);
   assert.equal(subtotal(w, o.id), tongDichVu(w, o.id) + 30_000);
 });
 

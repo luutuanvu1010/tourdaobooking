@@ -426,9 +426,11 @@ export interface OrderDto {
   phiDuaDon: PhiDuaDonCuaDonDto | null;
 }
 
-/** Lý do một chặng chưa tính được phí đưa đón (trùng chữ `ly_do` của sổ vàng golden/phi-dua-don.json; câu báo do Task 4 / giao diện dựng). */
-/** `CHUA_CHON` (ADR-0214): lượt đón còn mở chưa được văn phòng chọn mức — lý do duy nhất trên đường đơn từ ADR-0214; ba lý do còn lại là của bảng phí Đợt C (dòng cũ). */
-export type LyDoThieuPhiDonDto = "KHONG_CO_MUC" | "XUNG_DOT" | "DAI_LY_HAI_CAP" | "CHUA_CHON";
+/**
+ * Lý do một chặng chưa có phí đưa đón trên đơn. Từ ADR-0214 chỉ còn `CHUA_CHON` (lượt đón còn mở chưa được văn phòng chọn mức); ba lý do của bảng phí Đợt C (`KHONG_CO_MUC`, `XUNG_DOT`,
+ * `DAI_LY_HAI_CAP`) không còn sinh ra trên đường đơn — «Thử tra» của pricing có kiểu riêng (`ThuTraPhiDonResponse`).
+ */
+export type LyDoThieuPhiDonDto = "CHUA_CHON";
 /** Một dòng phí đưa đón đã lưu trên đơn (một chặng tối đa một dòng). */
 export interface PhiDuaDonDto {
   id: string;
@@ -451,8 +453,8 @@ export interface PhiDuaDonDto {
 }
 export interface PhiDuaDonCuaDonDto {
   dong: PhiDuaDonDto[];
-  /** Chặng mở chưa có phí (đơn nháp): `serviceId` + `direction` để nói «lượt đón chiều … của dịch vụ …»; `zoneName` chỉ có với lý do của bảng phí cũ. */
-  thieu: { legId: string; serviceId: string; direction: "OUT" | "RETURN"; zoneName: string | null; lyDo: LyDoThieuPhiDonDto }[];
+  /** Chặng mở chưa chọn phí (đơn nháp): chiều + tên dịch vụ để nói «Chọn phí đưa đón cho lượt đón chiều … của dịch vụ …» (`cauThieuPhiDon`). */
+  thieu: { legId: string; serviceId: string; serviceName: string; direction: "OUT" | "RETURN"; lyDo: LyDoThieuPhiDonDto }[];
   duKien: boolean;
 }
 
