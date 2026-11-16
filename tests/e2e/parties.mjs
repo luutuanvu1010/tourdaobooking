@@ -32,7 +32,8 @@ assert.equal(r.body.roleTypes.find((t) => t.code === "STAFF").active, false);
 assert.deepEqual(r.body.roleTypes.find((t) => t.code === "OWNER_COMPANY"), { code: "OWNER_COMPANY", name: "Công ty chủ", group: "OTHER", active: false, partnerLabel: false });
 // ADR-0048 D1: vai hồ sơ "Nhà xe đối tác" (nhóm OTHER, đang dùng — tự hiện ở ô "Thêm công việc") và quan hệ "Tài xế của" (migration *_nha_xe_doi_tac).
 assert.deepEqual(r.body.roleTypes.find((t) => t.code === "CARRIER"), { code: "CARRIER", name: "Nhà xe đối tác", group: "OTHER", active: true, partnerLabel: false });
-assert.deepEqual(r.body.relationshipTypes.map((t) => t.code), ["CONTACT_OF", "DRIVES_FOR"]);
+// ADR-0207 Đ2 mục 5 (đăng ký đối tác, migration 0171): quan hệ «Người giới thiệu của» (REFERRED_BY) do lô duyệt ghi; có mặt ở danh sách loại quan hệ.
+assert.deepEqual(r.body.relationshipTypes.map((t) => t.code), ["CONTACT_OF", "DRIVES_FOR", "REFERRED_BY"]);
 const locations = (await call(SALES, "GET", "/api/locations")).body.locations;
 const vinpearl = locations.find((l) => l.code === "CANG_VINPEARL");
 const pier = locations.find((l) => l.code === "BEN_TAU_NHA_TRANG");
