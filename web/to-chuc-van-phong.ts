@@ -86,7 +86,7 @@ export function dungKhoiToChucVanPhong(goc: HTMLElement, orgId: string): void {
         } catch (e) { hienLoi(cauLoi(e)); }
       }, 300);
     });
-    const giu = h("input", { type: "checkbox", id: "tc-vp-giu", checked: true }) as HTMLInputElement;
+    const giu = h("input", { type: "checkbox", id: "tc-vp-giu", class: "o-tick", checked: true }) as HTMLInputElement;
     const nhan = ql ? "Chuyển quyền quản lý" : "Giao người quản lý";
     const nut = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "tc-vp-giao" }, nhan) as HTMLButtonElement;
     nut.addEventListener("click", () => void (async () => {
