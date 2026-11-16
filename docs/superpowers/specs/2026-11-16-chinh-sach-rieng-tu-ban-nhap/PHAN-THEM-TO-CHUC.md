@@ -6,6 +6,8 @@ Hồ sơ có ngày 16/11/2026. Đây là PHẦN THÊM cho `BAN-NHAP.md` (cùng t
 
 Trong form «Đăng chính sách riêng tư mới» (trang Tôi), tích ô **«Bản này có phần thu thông tin tổ chức»** khi và chỉ khi toàn văn đã ghép đủ các đoạn dưới đây. Ô này mặc định không tích và không kéo từ bản cũ sang. Chưa tích thì phần khai tổ chức của biểu mẫu đăng ký chưa mở được, kể cả khi biểu mẫu đã làm xong. Dấu này chỉ Nền tảng đọc, không hiện ra cho người đăng ký.
 
+Điều kiện trước khi tích ô (đối chiếu mã ngày 16/11, sau đợt 2 Task 5): lời hứa «không ghi số vào nhật ký, lịch sử phiếu» và «khi mở lại phiếu chỉ hiện vài số cuối» đã đúng; ảnh tổ chức của phiếu không duyệt bị gỡ cùng ảnh căn cước (đường gỡ tệp chung). Lời hứa «phần tổ chức bị ẩn danh cùng lúc với phần cá nhân» **chưa đúng** cho tới khi lô duyệt và tác nhân dọn phiếu ẩn danh cả phần tổ chức (đợt 2 Task 7): không tích ô trước mốc đó.
+
 ## 1. Thêm vào ô «Mục đích thu thập»
 
 Nối thêm vào CUỐI đoạn mục đích của bản nháp (sau câu «Chúng tôi không bán thông tin của bạn.»):
@@ -21,7 +23,7 @@ Dán các đoạn dưới đây vào toàn văn của `BAN-NHAP.md` theo chỗ g
 Chèn vào cuối mục 2 («Chúng tôi thu thập gì»):
 
 ```
-Nếu bạn đăng ký thay mặt một tổ chức, chúng tôi hỏi thêm về tổ chức đó: tên gọi, tên pháp lý, mã số thuế, địa chỉ, email nhận hoá đơn, số điện thoại của tổ chức; số giấy phép kinh doanh và ảnh giấy phép; các giấy phép khác tuỳ loại hình (nếu có) và ảnh của chúng. Nếu bạn đại diện cho nhiều hơn một tổ chức, hãy gửi từng tổ chức bằng một phiếu riêng.
+Nếu bạn đăng ký thay mặt một tổ chức, chúng tôi hỏi thêm về tổ chức đó: tên gọi, tên pháp lý, mã số thuế, địa chỉ, email nhận hoá đơn, số điện thoại của tổ chức; số giấy chứng nhận đăng ký kinh doanh, ngày cấp, nơi cấp và ảnh giấy đó; nếu có, một giấy phép khác tuỳ loại hình (loại giấy phép, số, ngày cấp, nơi cấp, ngày hết hạn và ảnh giấy phép). Nếu bạn đại diện cho nhiều hơn một tổ chức, hãy gửi từng tổ chức bằng một phiếu riêng.
 ```
 
 Chèn vào cuối mục 3 («Chúng tôi dùng để làm gì»):
@@ -34,7 +36,7 @@ Thêm mục mới, ngay sau mục 3:
 
 ```
 Việc bạn khai thay cho tổ chức
-Khi bạn khai thông tin của một tổ chức, bạn xác nhận rằng tổ chức đó cho phép bạn đăng ký thay và cho phép chúng tôi dùng thông tin của tổ chức theo chính sách này. Chúng tôi ghi lại việc bạn đã xác nhận, kèm thời điểm xác nhận, làm bằng chứng. Nếu bạn không có quyền đại diện, xin đừng gửi phiếu cho tổ chức đó. Thông tin của tổ chức mà bạn khai cũng được bảo vệ như thông tin cá nhân của bạn: chỉ người có quyền xem phiếu đăng ký mới xem được, số mã số thuế và số giấy phép được che, và chúng tôi không ghi các số này vào nhật ký thao tác.
+Khi bạn khai thông tin của một tổ chức, bạn xác nhận rằng tổ chức đó cho phép bạn đăng ký thay và cho phép chúng tôi dùng thông tin của tổ chức theo chính sách này. Chúng tôi ghi lại việc bạn đã xác nhận, kèm thời điểm xác nhận, làm bằng chứng. Nếu bạn không có quyền đại diện, xin đừng gửi phiếu cho tổ chức đó. Thông tin của tổ chức mà bạn khai cũng được bảo vệ như thông tin cá nhân của bạn: chỉ người có quyền xem phiếu đăng ký mới xem được; khi bạn mở lại phiếu, mã số thuế và số giấy phép chỉ hiện vài số cuối; và chúng tôi không ghi các số này vào nhật ký thao tác hay lịch sử của phiếu.
 ```
 
 Chèn vào mục 6 («Chúng tôi giữ bao lâu»), ngay sau dòng về phiếu bị từ chối, bị rút lại hoặc hết hạn:
@@ -55,7 +57,7 @@ Một tổ chức đã có trên Nền tảng có thể mời bạn vào làm vi
 Đếm theo ký tự, so với giới hạn của `kiemChinhSach` (mục đích 1–2.000, toàn văn 1–20.000):
 
 - Mục đích: đoạn của `BAN-NHAP.md` + đoạn thêm = 507 ký tự, dưới 2.000.
-- Toàn văn: `BAN-NHAP.md` (3.705 ký tự) + năm đoạn thêm (2.148 ký tự) ≈ 5.900 ký tự, dưới 20.000.
+- Toàn văn: `BAN-NHAP.md` (3.705 ký tự) + năm đoạn thêm (2.285 ký tự, đếm lại 16/11 sau khi đợt 2 Task 5 thêm ngày cấp, nơi cấp GPKD và các trường của giấy phép thêm) ≈ 6.000 ký tự, dưới 20.000.
 
 Còn dư nhiều. Nếu luật sư thêm chữ, kiểm lại giới hạn trước khi đăng.
 

@@ -12,7 +12,7 @@ export interface LoaiMo { ma: string; ten: string; phan: PhanCuaVai }
 /** Mọi vai đăng ký được lúc này, kèm câu nói vì sao CHƯA mở được (null = mở được). */
 export async function loaiCoThe(db: D1Database): Promise<LoaiCoThe[]> {
   const ds = await vaiDangKyDuoc(db);
-  const dk = { coThayMatToChuc: DA_CO_THAY_MAT_TO_CHUC, chinhSachCoToChuc: await phanToChucMo(db, new Date().toISOString()), coOBangLai: CO_O_BANG_LAI };
+  const dk = { coThayMatToChuc: DA_CO_THAY_MAT_TO_CHUC, chinhSachCoToChuc: await phanToChucMo(db), coOBangLai: CO_O_BANG_LAI };
   return ds.map((v) => ({ ma: v.ma, ten: v.ten, laLoaiDoiTac: v.laLoaiDoiTac, lyDoChuaMo: lyDoChuaMoDuoc(v.ma, dk) }));
 }
 

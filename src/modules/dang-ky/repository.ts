@@ -1,5 +1,6 @@
 // dang-ky/repository.ts — SQL của module dang-ky (ADR-0206). Câu TĨNH, qua defineSql. Chỉ đọc/ghi bảng dk_*.
 import { defineSql } from "../../shared/sql-registry.ts";
+import type { PhanToChucMoi } from "../../shared/to-chuc.ts";
 
 export interface ChinhSachDangKyRow {
   id: string;
@@ -252,12 +253,12 @@ export async function lenhThuMoiNhat(db: D1Database, registrationId: string): Pr
 }
 
 // «Trả về xác minh» (ADR-0207 Đ5; rà soát cuối I-3): CHỜ DUYỆT → CHỜ XÁC MINH, ghim phiên bản người duyệt đã xem TRONG câu; xoá kết luận Danh bạ, người giới thiệu đã chọn và người / bản /
-// lúc xác minh (trigger dk_registration_return_clear bắt buộc) — người xác minh phải kết luận lại; kết luận từng mục (chỉ thêm) giữ nguyên.
+// lúc xác minh, kể cả kết luận Danh bạ của tổ chức (trigger dk_registration_return_clear bắt buộc; ADR-0212 Đ4) — người xác minh phải kết luận lại; kết luận từng mục (chỉ thêm) giữ nguyên.
 const TRA_VE_CAP = defineSql(
   "dang-ky",
   "registration_return_to_verification",
   `UPDATE dk_registration SET status = 'CHO_XAC_MINH', verified_by = NULL, verified_version = NULL, verified_at = NULL, match_kind = NULL, match_party_id = NULL, referrer_party_id = NULL,
-          updated_at = ?2, updated_by = ?3
+          org_match_kind = NULL, org_match_party_id = NULL, updated_at = ?2, updated_by = ?3
    WHERE id = ?1 AND status = 'CHO_DUYET' AND current_version = ?4`,
 );
 export const traVeXacMinhStatement = (db: D1Database, v: { registrationId: string; by: string; at: string; phienBan: number }): D1PreparedStatement =>
@@ -386,13 +387,15 @@ export function moPhieuNhap(db: D1Database, v: { registrationId: string; identit
 }
 
 // ---- Phiếu của chính người đăng ký: xem, lưu nháp, gửi, rút (ADR-0206 Đ6, Đ7; đợt 1 Task 4) ----
-export interface PhieuDeXemRow { id: string; status: string; role_code: string; current_version: number; reason_code: string | null; submitted_at: string | null; expires_at: string | null }
+export interface PhieuDeXemRow {
+  id: string; status: string; role_code: string; org_role_code: string | null; current_version: number; reason_code: string | null; submitted_at: string | null; expires_at: string | null;
+}
 // Khác `phieuCuaPhien` (chỉ danh tính còn mở — cổng của tải tệp): đây là cổng ĐỌC phiếu của chính mình ở mọi trạng thái, vì phiếu ĐÃ DUYỆT (danh tính đã hạ is_open ở bước duyệt, ADR-0207 Đ7),
 // TỪ CHỐI, ĐÃ RÚT, HẾT HẠN vẫn phải xem được lý do và trạng thái bằng cookie còn sống. Quyền GHI do từng route kiểm theo trạng thái (không phải ở câu này).
 const PHIEU_DE_XEM = defineSql(
   "dang-ky",
   "registration_for_registrant",
-  `SELECT r.id, r.status, r.role_code, r.current_version, r.reason_code, r.submitted_at, r.expires_at
+  `SELECT r.id, r.status, r.role_code, r.org_role_code, r.current_version, r.reason_code, r.submitted_at, r.expires_at
    FROM dk_registration r JOIN dk_identity i ON i.registration_id = r.id WHERE r.id = ?1 AND i.id = ?2`,
 );
 export const phieuDeXem = (db: D1Database, registrationId: string, identityId: string): Promise<PhieuDeXemRow | null> =>
@@ -408,9 +411,9 @@ export async function chinhSachRiengTuHienHanh(db: D1Database): Promise<{ id: st
 }
 /**
  * Phần tổ chức của biểu mẫu mở được về phía chính sách riêng tư không (ADR-0212 Đ7): bản ĐANG hiệu lực có dấu «Thu thông tin tổ chức». Bản hẹn giờ tương lai chưa tính.
- * `at` là lúc xét; view công bố của parties tính hiệu lực theo đồng hồ CSDL, nên hai lúc trùng nhau khi gọi bằng giờ hiện tại (mọi nơi gọi đều vậy).
+ * Lúc xét luôn là «bây giờ» theo đồng hồ CSDL (view công bố của parties tính hiệu lực bằng `strftime('now')`), nên hàm không nhận tham số giờ.
  */
-export async function phanToChucMo(db: D1Database, _at: string): Promise<boolean> {
+export async function phanToChucMo(db: D1Database): Promise<boolean> {
   return (await chinhSachRiengTuHienHanh(db))?.coToChuc === true;
 }
 
@@ -426,6 +429,22 @@ const BAN_KHAI_TRUOC = defineSql(
    FROM dk_submission WHERE registration_id = ?1 ORDER BY version DESC LIMIT 1`,
 );
 export const banKhaiTruoc = (db: D1Database, registrationId: string): Promise<BanKhaiTruocRow | null> => db.prepare(BAN_KHAI_TRUOC).bind(registrationId).first<BanKhaiTruocRow>();
+
+// Phần tổ chức của bản khai MỚI NHẤT (ADR-0212 Đ4), để người đăng ký sửa khi CẦN BỔ SUNG. KHÔNG chọn mã số thuế, số GPKD, số giấy phép đầy đủ, nơi cấp, số điện thoại (chỉ «đã khai»):
+// DTO chỉ trả số che (từ khoá). Đã ẩn danh = tên gọi là dấu «(đã ẩn)» — route kiểm dấu (khuôn banKhaiTruoc).
+export interface BanKhaiToChucTruocRow {
+  display_name: string; legal_name: string | null; tax_key: string | null; address: string | null; invoice_email: string | null; co_dien_thoai: number;
+  gpkd_key: string; gpkd_issued_date: string | null; extra_type_code: string | null; extra_key: string | null; extra_issued_date: string | null; extra_expiry_date: string | null;
+}
+const BAN_KHAI_TO_CHUC_TRUOC = defineSql(
+  "dang-ky",
+  "submission_org_for_registrant",
+  `SELECT display_name, legal_name, tax_key, address, invoice_email, phone_key IS NOT NULL AS co_dien_thoai, gpkd_key, gpkd_issued_date, extra_type_code, extra_key,
+          extra_issued_date, extra_expiry_date
+   FROM dk_submission_org WHERE registration_id = ?1 AND version = ?2`,
+);
+export const banKhaiToChucTruoc = (db: D1Database, registrationId: string, version: number): Promise<BanKhaiToChucTruocRow | null> =>
+  db.prepare(BAN_KHAI_TO_CHUC_TRUOC).bind(registrationId, version).first<BanKhaiToChucTruocRow>();
 
 // Dòng lịch sử lệnh của người đăng ký; chỉ ghi khi câu LIỀN TRƯỚC trong lô đổi dòng. `command` là mã chữ hoa (LUU_NHAP, GUI, GUI_LAI, RUT); lịch sử KHÔNG mang số, tên, liên hệ.
 const SU_KIEN_NGUOI_DANG_KY = defineSql(
@@ -446,15 +465,16 @@ const KEO_DAI_HAN_NHAP = defineSql(
 );
 export const cauKeoDaiHanNhap = (db: D1Database, v: { registrationId: string; expiresAt: string }): D1PreparedStatement => db.prepare(KEO_DAI_HAN_NHAP).bind(v.registrationId, v.expiresAt);
 
-// Đổi loại đối tác: chỉ khi còn sửa được VÀ chưa gửi lần nào (trigger dk_registration_immutable khoá loại sau lần gửi đầu — route kiểm trước, trigger là lớp cuối).
+// Đổi vai cá nhân và vai của tổ chức (ADR-0212 Đ4) trong MỘT câu: chỉ khi còn sửa được VÀ chưa gửi lần nào (trigger dk_registration_immutable khoá cả hai sau lần gửi đầu — route kiểm trước,
+// trigger là lớp cuối). Không đổi gì ⇒ khớp 0 dòng (dòng lịch sử LUU_NHAP liền sau không ghi).
 const LOAI_DOI = defineSql(
   "dang-ky",
   "registration_set_role",
-  `UPDATE dk_registration SET role_code = ?2, updated_at = ?3, updated_by = ?4
-   WHERE id = ?1 AND status IN ('DANG_DIEN', 'CAN_BO_SUNG') AND current_version = 0 AND role_code <> ?2`,
+  `UPDATE dk_registration SET role_code = ?2, org_role_code = ?5, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND status IN ('DANG_DIEN', 'CAN_BO_SUNG') AND current_version = 0 AND (role_code <> ?2 OR org_role_code IS NOT ?5)`,
 );
-export const doiLoaiStatement = (db: D1Database, v: { registrationId: string; role: string; identityId: string; at: string }): D1PreparedStatement =>
-  db.prepare(LOAI_DOI).bind(v.registrationId, v.role, v.at, v.identityId);
+export const doiLoaiStatement = (db: D1Database, v: { registrationId: string; role: string; roleToChuc: string | null; identityId: string; at: string }): D1PreparedStatement =>
+  db.prepare(LOAI_DOI).bind(v.registrationId, v.role, v.at, v.identityId, v.roleToChuc);
 
 export interface BanKhaiMoi {
   family: string | null; middle: string | null; given: string; gender: string | null; birthDate: string | null; address: string | null; phoneValue: string | null; phoneKey: string | null;
@@ -478,6 +498,23 @@ export const guiChenStatement = (db: D1Database, v: { id: string; registrationId
   db.prepare(GUI_CHEN).bind(
     v.id, v.registrationId, v.policyId, v.at, v.identityId, v.b.family, v.b.middle, v.b.given, v.b.gender, v.b.birthDate, v.b.address, v.b.phoneValue, v.b.phoneKey, v.b.documentType,
     v.b.documentNumber, v.b.numberKey, v.b.licenseClass, v.b.issuedDate, v.b.issuedPlace, v.b.expiryDate, v.b.referrer, v.phienBanDaDoc,
+  );
+// Phần tổ chức (ADR-0212 Đ4): câu thứ HAI của lô gửi, CÙNG phiên bản với bản khai vừa chèn — chỉ chèn khi bản khai mã `?2` có thật và đúng phiên bản kế tiếp (khớp 0 dòng khi lô bấm
+// hai lần thua, thay vì để trigger dk_submission_org_version làm hỏng lô). Mọi giá trị đã kiểm ở `kiemPhanToChuc` (src/shared/to-chuc.ts).
+const GUI_CHEN_TO_CHUC = defineSql(
+  "dang-ky",
+  "registration_submit_insert_org",
+  `INSERT INTO dk_submission_org (id, registration_id, version, display_name, legal_name, tax_code, tax_key, address, invoice_email, phone_value, phone_key, gpkd_number, gpkd_key,
+     gpkd_issued_date, gpkd_issued_place, extra_type_code, extra_number, extra_key, extra_issued_date, extra_issued_place, extra_expiry_date, authority_confirmed_at,
+     created_at, created_by, updated_at, updated_by)
+   SELECT ?1, s.registration_id, s.version, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?3, ?3, ?4, ?3, ?4
+   FROM dk_submission s JOIN dk_registration r ON r.id = s.registration_id
+   WHERE s.id = ?2 AND s.version = r.current_version + 1`,
+);
+export const guiChenToChucStatement = (db: D1Database, v: { id: string; submissionId: string; at: string; identityId: string; t: PhanToChucMoi }): D1PreparedStatement =>
+  db.prepare(GUI_CHEN_TO_CHUC).bind(
+    v.id, v.submissionId, v.at, v.identityId, v.t.displayName, v.t.legalName, v.t.taxCode, v.t.taxKey, v.t.address, v.t.invoiceEmail, v.t.phoneValue, v.t.phoneKey, v.t.gpkdNumber, v.t.gpkdKey,
+    v.t.gpkdIssuedDate, v.t.gpkdIssuedPlace, v.t.extraTypeCode, v.t.extraNumber, v.t.extraKey, v.t.extraIssuedDate, v.t.extraIssuedPlace, v.t.extraExpiryDate,
   );
 const GUI_TIEN = defineSql(
   "dang-ky",

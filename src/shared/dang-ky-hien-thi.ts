@@ -47,7 +47,7 @@ export const NHAN_TRANG_THAI_PHIEU = {
 export type TrangThaiPhieuDangKy = keyof typeof NHAN_TRANG_THAI_PHIEU;
 export const nhanTrangThaiPhieu = (t: string): string => (Object.hasOwn(NHAN_TRANG_THAI_PHIEU, t) ? NHAN_TRANG_THAI_PHIEU[t as TrangThaiPhieuDangKy] : "Không rõ");
 
-/** Câu báo lỗi của bốn route phiếu cho người đăng ký (chữ AI viết, chờ chủ chọn — BANG-THAM-CHIEU «Câu báo lỗi của phiếu đăng ký»). */
+/** Câu báo lỗi của bốn route phiếu và route tải tệp cho người đăng ký (chữ AI viết, chờ chủ chọn — BANG-THAM-CHIEU «Câu báo lỗi của phiếu đăng ký»). */
 export const CAU_PHIEU = {
   hetPhien: "Lần đăng nhập để điền phiếu đã hết hạn. Hãy đăng nhập lại bằng email để tiếp tục.",
   daDuyet: "Phiếu này đã được duyệt nên không sửa được nữa.",
@@ -59,6 +59,14 @@ export const CAU_PHIEU = {
   chuaDongY: "Bạn cần đọc và đồng ý chính sách riêng tư hiện hành trước khi gửi.",
   doiChinhSach: "Chính sách riêng tư vừa được cập nhật. Hãy đọc lại rồi gửi.",
   doiTrangThai: "Phiếu vừa thay đổi. Hãy tải lại phiếu rồi làm tiếp.",
+  // Phần tổ chức (ADR-0212 Đ2, Đ4; đợt 2 Task 5). Không câu nào nhắc lại mã số thuế, số GPKD hay điều đã khai.
+  toChucDong: "Phần thông tin tổ chức hiện chưa nhận đăng ký.",
+  loaiToChucDong: "Vai người dùng này của tổ chức hiện chưa nhận đăng ký.",
+  canPhanToChuc: "Vai người dùng này cần phần thông tin tổ chức. Hãy khai thông tin tổ chức hoặc chọn vai người dùng khác.",
+  taiXeKhongKemToChuc: "Tài xế đối tác đăng ký riêng, không kèm thông tin tổ chức.",
+  chonVaiCaNhan: "Hãy chọn một vai người dùng cá nhân.", // brief viết «Hãy chọn một vai cá nhân»; bảng từ ADR-0130 cấm «vai» trơn — ruling 16/11,
+  khongBoToChuc: "Phiếu đã gửi kèm thông tin tổ chức nên không bỏ phần này được.",
+  thieuAnhGpkd: "Cần tải xong ảnh giấy chứng nhận đăng ký kinh doanh trước khi gửi.",
 } as const;
 
 /** Tên mục khi NÓI VỚI NGƯỜI ĐĂNG KÝ về điều còn thiếu (chữ AI viết, chờ chủ chọn — BANG-THAM-CHIEU «Tên mục của phiếu đăng ký (người đăng ký thấy)»). Khác `NHAN_MUC_XAC_MINH` viết cho người xác minh («Đã gọi số điện thoại đã khai» là việc của họ). */
@@ -66,7 +74,7 @@ export const NHAN_MUC_CHO_NGUOI_DANG_KY: Readonly<Record<string, string>> = {
   HO_TEN: "Họ tên",
   NGAY_SINH: "Ngày sinh",
   CCCD: "Căn cước công dân còn hạn",
-  ROLE: "Vai người dùng xin đăng ký",
+  ROLE: "Vai người dùng xin đăng ký (của bạn hoặc của tổ chức)", // ADR-0212 Đ4: đạt khi có vai cá nhân hoặc vai của tổ chức
   CALLED: "Số điện thoại",
 };
 export const nhanMucChoNguoiDangKy = (ma: string): string => NHAN_MUC_CHO_NGUOI_DANG_KY[ma] ?? ma;

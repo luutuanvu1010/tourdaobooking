@@ -3583,4 +3583,20 @@ export interface PhieuDangKyDto {
     daKhaiDienThoai: boolean;
     giayTo: { loai: string; soChe: string | null; hang: string | null; ngayCap: string | null; hetHan: string | null } | null;
   } | null;
+  /** Vai của tổ chức đã chọn ở lưu nháp (ADR-0212 Đ4; `dk_registration.org_role_code`); null = chưa chọn. Khoá sau lần gửi đầu như `loai`. */
+  loaiToChuc: { ma: string; ten: string } | null;
+  /**
+   * Phần tổ chức của bản khai MỚI NHẤT (chỉ phiếu CẦN BỔ SUNG, như `banKhaiTruoc`); null = không có / đã ẩn danh. KHÔNG BAO GIỜ mang mã số thuế, số GPKD, số giấy phép, nơi cấp,
+   * số điện thoại đầy đủ (N3 / N2, ADR-0212 Đ7): chỉ số che từ khoá chuẩn hoá và cờ «đã khai điện thoại».
+   */
+  toChuc: {
+    tenToChuc: string;
+    tenPhapLy: string | null;
+    maSoThueChe: string | null;
+    diaChi: string | null;
+    emailHoaDon: string | null;
+    daKhaiDienThoai: boolean;
+    gpkd: { soChe: string | null; ngayCap: string | null };
+    giayPhepThem: { loai: string; soChe: string | null; ngayCap: string | null; hetHan: string | null } | null;
+  } | null;
 }

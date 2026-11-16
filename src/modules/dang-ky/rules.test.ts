@@ -63,8 +63,10 @@ test("dsLoaiMo: cắt khoảng trắng, bỏ ô rỗng; rỗng ⇒ chưa mở lo
 });
 
 test("mucChuaDapUng: mục đã biết theo dữ kiện; mục LẠ luôn chưa đáp ứng (đóng khi không rõ)", () => {
-  const du = { loaiHopLe: true, hoTen: true, ngaySinh: true, dienThoai: true, cccdConHan: true };
+  const du = { loaiHopLe: true, loaiToChucHopLe: false, hoTen: true, ngaySinh: true, dienThoai: true, cccdConHan: true };
   assert.deepEqual(mucChuaDapUng(["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"], du), []);
-  assert.deepEqual(mucChuaDapUng(["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"], { loaiHopLe: false, hoTen: true, ngaySinh: false, dienThoai: false, cccdConHan: false }), ["ROLE", "CALLED", "NGAY_SINH", "CCCD"]);
+  assert.deepEqual(mucChuaDapUng(["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"], { loaiHopLe: false, loaiToChucHopLe: false, hoTen: true, ngaySinh: false, dienThoai: false, cccdConHan: false }), ["ROLE", "CALLED", "NGAY_SINH", "CCCD"]);
+  // ADR-0212 Đ4: ROLE đạt khi có vai cá nhân HOẶC vai của tổ chức.
+  assert.deepEqual(mucChuaDapUng(["ROLE"], { ...du, loaiHopLe: false, loaiToChucHopLe: true }), []);
   assert.deepEqual(mucChuaDapUng(["ROLE", "MUC_LA", "toString", "constructor"], du), ["MUC_LA", "toString", "constructor"]);
 });

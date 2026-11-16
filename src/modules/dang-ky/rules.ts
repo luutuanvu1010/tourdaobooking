@@ -46,8 +46,10 @@ export function docLenhThu(lenh: string | null): { loai: LoaiThu; trangThai: Tra
 
 // ---- Tệp của phiếu (ADR-0208 Đ2): luật thuần kiểm MỘT tệp tải lên ----
 
-/** Ô tệp của phiếu cá nhân (đợt 1): căn cước mặt trước, mặt sau. Ô mới = thêm vào đây cùng ô khai ở phiếu. */
-export const O_TEP_PHIEU = ["CCCD_MAT_TRUOC", "CCCD_MAT_SAU"] as const;
+/** Ô tệp của phiếu: căn cước mặt trước, mặt sau (đợt 1); ảnh GPKD và ảnh giấy phép thêm của phần tổ chức (ADR-0212 Đ4). Ô mới = thêm vào đây cùng ô khai ở phiếu. */
+export const O_TEP_PHIEU = ["CCCD_MAT_TRUOC", "CCCD_MAT_SAU", "GPKD", "GIAY_PHEP_THEM"] as const;
+/** Ô tệp của phần tổ chức: chỉ nhận khi phần tổ chức mở (chính sách riêng tư đang hiệu lực có dấu thu thông tin tổ chức — ADR-0212 Đ7). */
+export const O_TEP_TO_CHUC: readonly string[] = ["GPKD", "GIAY_PHEP_THEM"];
 export const laOTepPhieu = (s: unknown): s is (typeof O_TEP_PHIEU)[number] => typeof s === "string" && (O_TEP_PHIEU as readonly string[]).includes(s);
 /** Phiếu chỉ nhận tệp khi còn ở hai trạng thái này (ADR-0208 Đ2). */
 export const TRANG_THAI_CHO_TAI_TEP: readonly TrangThai[] = ["DANG_DIEN", "CAN_BO_SUNG"];
@@ -100,9 +102,10 @@ export function sinhMaEmail(soChuSo: number, ngauNhien: (b: Uint8Array) => void 
 export const dsLoaiMo = (csv: string): string[] => csv.split(",").map((x) => x.trim()).filter(Boolean);
 
 /** Những điều máy chủ biết về bản khai ĐANG GỬI, đủ để kiểm từng mã mục bắt buộc. «Đã gọi» do người xác minh kết luận; ở phía người đăng ký nó chỉ có nghĩa «có số điện thoại để gọi». */
-export interface DuLieuKiemMuc { loaiHopLe: boolean; hoTen: boolean; ngaySinh: boolean; dienThoai: boolean; cccdConHan: boolean }
+/** `loaiHopLe` = vai cá nhân đang mở; `loaiToChucHopLe` = phiếu có phần tổ chức và vai của tổ chức đang mở. */
+export interface DuLieuKiemMuc { loaiHopLe: boolean; loaiToChucHopLe: boolean; hoTen: boolean; ngaySinh: boolean; dienThoai: boolean; cccdConHan: boolean }
 const KIEM_MUC: Readonly<Record<string, (d: DuLieuKiemMuc) => boolean>> = {
-  ROLE: (d) => d.loaiHopLe,
+  ROLE: (d) => d.loaiHopLe || d.loaiToChucHopLe, // ADR-0212 Đ4: có vai cá nhân HOẶC vai của tổ chức
   CALLED: (d) => d.dienThoai,
   HO_TEN: (d) => d.hoTen,
   NGAY_SINH: (d) => d.ngaySinh,

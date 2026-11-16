@@ -9,8 +9,11 @@ export type PhanDangKy = "CA_NHAN" | "TO_CHUC";
 export type NhomTruong = "giayTo" | "toChuc" | "giayPhepThem";
 /** Khu của biểu mẫu cá nhân (thứ tự hiện trên trang). */
 export const KHU_CA_NHAN = ["thongTin", "canCuoc", "gioiThieu"] as const;
-export type KhuO = (typeof KHU_CA_NHAN)[number];
-export type KieuO = "text" | "date" | "tel" | "chon";
+/** Khu của phần tổ chức (ADR-0212 Đ4; giao diện dựng ở đợt 2 Task 8). */
+export const KHU_TO_CHUC = ["toChuc", "gpkd", "giayPhepThem", "uyQuyen"] as const;
+export type KhuO = (typeof KHU_CA_NHAN)[number] | (typeof KHU_TO_CHUC)[number];
+/** `chon`: ô chọn (danh sách giới tính ở tệp này; loại giấy phép thêm do máy chủ đưa); `tich`: ô tích có / không. */
+export type KieuO = "text" | "date" | "tel" | "email" | "chon" | "tich";
 
 /** Mô tả ô nhập (chỉ trường nào có ô mới có). `id` giữ nguyên tên cũ để kịch bản Chrome còn tìm được. */
 export interface MoTaO {
@@ -42,6 +45,9 @@ export interface TruongDangKy {
 export const CHO_O: readonly { readonly cot: string; readonly hetHan: string }[] = [{ cot: "license_class_code", hetHan: "2027-03-31" }];
 
 const THONG_TIN_GIAY_TO = { bang: "dk_submission", phan: "CA_NHAN", nhom: "giayTo", batBuoc: false } as const;
+const TO_CHUC = { bang: "dk_submission_org", phan: "TO_CHUC", nhom: "toChuc" } as const;
+const GIAY_PHEP_THEM_TC = { ...TO_CHUC, nhom: "giayPhepThem", batBuoc: false } as const;
+const GIAY_TO_TC = "pty_organization_document";
 
 export const TRUONG_DANG_KY: readonly TruongDangKy[] = [
   { khoa: "chinhSachPhienBan", phan: "CA_NHAN", bang: "dk_submission", cot: ["policy_id", "consented_at"], noiLuu: ["pty_consent.policy_id"], batBuoc: true },
@@ -78,6 +84,22 @@ export const TRUONG_DANG_KY: readonly TruongDangKy[] = [
     khoa: "nguoiGioiThieu", phan: "CA_NHAN", bang: "dk_submission", cot: ["referrer_text"], noiLuu: "CHI_PHIEU", batBuoc: false,
     o: { id: "dk-gioi-thieu", nhan: "Người giới thiệu (không bắt buộc)", kieu: "text", khu: "gioiThieu", thuocTinh: { maxlength: 200 } },
   },
+  // ---- Phần tổ chức (ADR-0212 Đ4, phụ lục A.2): thân gửi `toChuc: { … }`; vắng / null = phiếu không có phần tổ chức. Vai của tổ chức (`dk_registration.org_role_code`) đi qua PUT nháp, không ở đây. ----
+  { khoa: "toChuc.tenToChuc", ...TO_CHUC, cot: ["display_name"], noiLuu: ["pty_party.display_name"], batBuoc: true, o: { id: "dk-tc-ten", nhan: "Tên tổ chức (tên thường gọi)", kieu: "text", khu: "toChuc", thuocTinh: { maxlength: 200, autocomplete: "organization" } } },
+  { khoa: "toChuc.tenPhapLy", ...TO_CHUC, cot: ["legal_name"], noiLuu: ["pty_organization.legal_name"], batBuoc: false, o: { id: "dk-tc-ten-phap-ly", nhan: "Tên pháp lý", kieu: "text", khu: "toChuc", thuocTinh: { maxlength: 300 } } },
+  { khoa: "toChuc.maSoThue", ...TO_CHUC, cot: ["tax_code"], noiLuu: ["pty_organization.tax_code"], batBuoc: false, o: { id: "dk-tc-mst", nhan: "Mã số thuế", kieu: "text", khu: "toChuc", thuocTinh: { inputmode: "numeric", autocomplete: "off" } } },
+  { khoa: "toChuc.diaChi", ...TO_CHUC, cot: ["address"], noiLuu: ["pty_organization.address"], batBuoc: false, o: { id: "dk-tc-dia-chi", nhan: "Địa chỉ tổ chức", kieu: "text", khu: "toChuc", thuocTinh: { maxlength: 300 } } },
+  { khoa: "toChuc.emailHoaDon", ...TO_CHUC, cot: ["invoice_email"], noiLuu: ["pty_organization.invoice_email"], batBuoc: false, o: { id: "dk-tc-email", nhan: "Email nhận hoá đơn", kieu: "email", khu: "toChuc", thuocTinh: { autocomplete: "email" } } },
+  { khoa: "toChuc.dienThoai", ...TO_CHUC, cot: ["phone_value"], noiLuu: ["pty_contact_point.value"], batBuoc: false, o: { id: "dk-tc-dien-thoai", nhan: "Số điện thoại tổ chức (không bắt buộc)", kieu: "tel", khu: "toChuc", thuocTinh: { inputmode: "tel" } } },
+  { khoa: "toChuc.soGpkd", ...TO_CHUC, cot: ["gpkd_number"], noiLuu: [`${GIAY_TO_TC}.document_number`], batBuoc: true, o: { id: "dk-tc-so-gpkd", nhan: "Số giấy chứng nhận đăng ký kinh doanh", kieu: "text", khu: "gpkd", thuocTinh: { autocomplete: "off" } } },
+  { khoa: "toChuc.ngayCapGpkd", ...TO_CHUC, cot: ["gpkd_issued_date"], noiLuu: [`${GIAY_TO_TC}.issued_date`], batBuoc: false, o: { id: "dk-tc-ngay-cap-gpkd", nhan: "Ngày cấp", kieu: "date", khu: "gpkd" } },
+  { khoa: "toChuc.noiCapGpkd", ...TO_CHUC, cot: ["gpkd_issued_place"], noiLuu: [`${GIAY_TO_TC}.issued_place`], batBuoc: false, o: { id: "dk-tc-noi-cap-gpkd", nhan: "Nơi cấp", kieu: "text", khu: "gpkd" } },
+  { khoa: "toChuc.loaiGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_type_code"], noiLuu: [`${GIAY_TO_TC}.document_type_code`], o: { id: "dk-tc-loai-gp", nhan: "Giấy phép thêm (không bắt buộc)", kieu: "chon", khu: "giayPhepThem" } },
+  { khoa: "toChuc.soGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_number"], noiLuu: [`${GIAY_TO_TC}.document_number`], o: { id: "dk-tc-so-gp", nhan: "Số giấy phép", kieu: "text", khu: "giayPhepThem", thuocTinh: { autocomplete: "off" } } },
+  { khoa: "toChuc.ngayCapGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_issued_date"], noiLuu: [`${GIAY_TO_TC}.issued_date`], o: { id: "dk-tc-ngay-cap-gp", nhan: "Ngày cấp", kieu: "date", khu: "giayPhepThem" } },
+  { khoa: "toChuc.noiCapGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_issued_place"], noiLuu: [`${GIAY_TO_TC}.issued_place`], o: { id: "dk-tc-noi-cap-gp", nhan: "Nơi cấp", kieu: "text", khu: "giayPhepThem" } },
+  { khoa: "toChuc.hetHanGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_expiry_date"], noiLuu: [`${GIAY_TO_TC}.expiry_date`], o: { id: "dk-tc-het-han-gp", nhan: "Ngày hết hạn", kieu: "date", khu: "giayPhepThem" } },
+  { khoa: "toChuc.duocUyQuyen", ...TO_CHUC, cot: ["authority_confirmed_at"], noiLuu: "CHI_PHIEU", batBuoc: true, o: { id: "dk-tc-uy-quyen", nhan: "Tôi được tổ chức cho phép đăng ký thay", kieu: "tich", khu: "uyQuyen" } },
 ];
 
 /** Cột hệ thống / máy tính của từng bảng — KHÔNG cần trường trỏ tới. Thêm cột vào đây là quyết định có chủ đích (bài khớp cột canh). */
@@ -85,26 +107,35 @@ export const COT_HE_THONG: Readonly<Record<string, readonly string[]>> = {
   dk_submission: ["id", "registration_id", "version", "phone_key", "number_key", "erased_at", "created_at", "created_by", "updated_at", "updated_by"],
   pty_person: ["party_id", "created_at", "created_by", "updated_at", "updated_by"],
   pty_person_document: ["id", "party_id", "number_key", "previous_id", "voided_at", "erased_at", "created_at", "created_by", "updated_at", "updated_by"],
+  dk_submission_org: ["id", "registration_id", "version", "tax_key", "phone_key", "gpkd_key", "extra_key", "erased_at", "created_at", "created_by", "updated_at", "updated_by"],
+  pty_organization: ["party_id", "created_at", "created_by", "updated_at", "updated_by"],
+  pty_organization_document: ["id", "party_id", "number_key", "previous_id", "voided_at", "created_at", "created_by", "updated_at", "updated_by"],
 };
 
 // ---- Dẫn xuất (thuần) ----
 /** Các trường máy chủ nhận ở mức ngoài cùng của thân gửi (`giayTo.x` chỉ góp `giayTo`). */
 export const truongGuiMucNgoai = (): string[] => [...new Set(TRUONG_DANG_KY.map((t) => t.khoa.split(".")[0]!))];
+/** Các trường con của một nhóm lồng (`giayTo`, `toChuc`) — chỉ một tầng lồng. */
+export const truongCon = (nhom: string): string[] => TRUONG_DANG_KY.filter((t) => t.khoa.startsWith(`${nhom}.`)).map((t) => t.khoa.slice(nhom.length + 1));
 /** Các trường con của `giayTo`. */
-export const truongGiayTo = (): string[] => TRUONG_DANG_KY.filter((t) => t.khoa.startsWith("giayTo.")).map((t) => t.khoa.slice("giayTo.".length));
+export const truongGiayTo = (): string[] => truongCon("giayTo");
+/** Các nhóm lồng của thân gửi (khoá ngoài cùng có trường con). */
+export const NHOM_LONG: readonly string[] = [...new Set(TRUONG_DANG_KY.filter((t) => t.khoa.includes(".")).map((t) => t.khoa.split(".")[0]!))];
 
 /** Tập trường máy chủ nhận (dựng từ tệp này, không khai tay). */
 export const TRUONG_GUI: readonly string[] = truongGuiMucNgoai();
 export const TRUONG_GIAY_TO: readonly string[] = truongGiayTo();
+export const TRUONG_TO_CHUC: readonly string[] = truongCon("toChuc");
 const laVat = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
-/** Thân gửi chỉ có trường trong tệp ánh xạ (kể cả trong `giayTo`); trường lạ ⇒ false. */
+/** Thân gửi chỉ có trường trong tệp ánh xạ (kể cả trong mỗi nhóm lồng); trường lạ ⇒ false. */
 export const truongDung = (body: Record<string, unknown>): boolean =>
-  Object.keys(body).every((k) => TRUONG_GUI.includes(k)) && (!laVat(body.giayTo) || Object.keys(body.giayTo).every((k) => TRUONG_GIAY_TO.includes(k)));
+  Object.keys(body).every((k) => TRUONG_GUI.includes(k))
+  && NHOM_LONG.every((nhom) => { const con = body[nhom]; return !laVat(con) || Object.keys(con).every((k) => truongCon(nhom).includes(k)); });
 
 export type ODung = MoTaO & { readonly khoa: string; readonly tuyChon?: readonly { readonly value: string; readonly label: string }[] };
 const thanhO = (t: TruongDangKy): ODung => ({
   ...t.o!, khoa: t.khoa,
-  ...(t.o!.kieu === "chon" ? { tuyChon: GIOI_TINH.map((g) => ({ value: g, label: GIOI_TINH_NHAN[g] })) } : {}),
+  ...(t.khoa === "gioiTinh" ? { tuyChon: GIOI_TINH.map((g) => ({ value: g, label: GIOI_TINH_NHAN[g] })) } : {}),
 });
 /** Các ô của một phần biểu mẫu, đúng thứ tự khai. */
 export const oCuaPhan = (phan: PhanDangKy): ODung[] => TRUONG_DANG_KY.filter((t) => t.phan === phan && t.o).map(thanhO);

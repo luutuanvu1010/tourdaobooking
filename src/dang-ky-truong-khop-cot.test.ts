@@ -1,15 +1,19 @@
 // BÀI KHỚP CỘT (ADR-0212 Đ9; đợt 2 Task 3). Đỏ khi biểu mẫu đăng ký, máy chủ và nơi lưu lệch nhau, theo bốn chiều:
 //   (1) ô biểu mẫu dựng từ tệp ánh xạ và `web/dang-ky.ts` không tự khai ô tay;  (2) trường máy chủ nhận = khoá của tệp ánh xạ;
-//   (3) cột `dk_submission` trừ cột hệ thống = cột tệp ánh xạ trỏ tới;  (4) cột người dùng khai của `pty_person`, `pty_person_document` đều có trường trỏ tới.
-// Task 5 thêm `dk_submission_org`, `pty_organization*`: chỉ thêm tên bảng vào BANG_PHIEU / BANG_HO_SO và khoá ở COT_HE_THONG.
+//   (3) cột `dk_submission`, `dk_submission_org` trừ cột hệ thống = cột tệp ánh xạ trỏ tới;
+//   (4) cột người dùng khai của `pty_person`, `pty_person_document`, `pty_organization`, `pty_organization_document` đều có trường trỏ tới (Task 5 thêm phần tổ chức).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
-import { CHO_O, COT_HE_THONG, KHU_CA_NHAN, TRUONG_DANG_KY, TRUONG_GIAY_TO, TRUONG_GUI, dungThanGui, oCuaKhu, oCuaPhan, truongDung, truongGiayTo, truongGuiMucNgoai } from "./shared/dang-ky-truong.ts";
+import {
+  CHO_O, COT_HE_THONG, KHU_CA_NHAN, KHU_TO_CHUC, NHOM_LONG, TRUONG_DANG_KY, TRUONG_GUI, dungThanGui, oCuaKhu, oCuaPhan, truongCon, truongDung, truongGuiMucNgoai,
+} from "./shared/dang-ky-truong.ts";
 
-const BANG_PHIEU = ["dk_submission"];
-const BANG_HO_SO = ["pty_person", "pty_person_document"];
+const BANG_PHIEU = ["dk_submission", "dk_submission_org"];
+const BANG_HO_SO = ["pty_person", "pty_person_document", "pty_organization", "pty_organization_document"];
+/** Phần tổ chức có ô trong tệp ánh xạ nhưng biểu mẫu `web/dang-ky.ts` CHƯA dựng (đợt 2 Task 8). Có hạn: quá hạn mà biểu mẫu chưa dựng khu tổ chức ⇒ đỏ (khuôn CHO_O). */
+const WEB_CHUA_DUNG_TO_CHUC = { hetHan: "2026-12-31", viec: "đợt 2 Task 8" };
 
 function cotCua(): Map<string, string[]> {
   const db = new DatabaseSync(":memory:");
@@ -23,13 +27,15 @@ const COT = cotCua();
 const sap = (xs: Iterable<string>) => [...new Set(xs)].sort();
 const KHOA = sap(TRUONG_DANG_KY.map((t) => t.khoa));
 const KHOA_CO_O = sap(TRUONG_DANG_KY.filter((t) => t.o).map((t) => t.khoa));
+const coOCuaPhan = (phan: "CA_NHAN" | "TO_CHUC") => sap(TRUONG_DANG_KY.filter((t) => t.o && t.phan === phan).map((t) => t.khoa));
 const web = readFileSync(new URL("../web/dang-ky.ts", import.meta.url), "utf8");
 /** Bỏ chú thích để câu chữ trong chú thích không làm đỏ/xanh giả. */
 const webMa = web.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`])\/\/.*$/gm, "$1");
 
 test("(1) ô biểu mẫu: oCuaPhan/oCuaKhu trả đúng tập khoá có ô; web/dang-ky.ts dựng ô từ tệp ánh xạ, không khai ô tay", () => {
-  assert.deepEqual(sap(oCuaPhan("CA_NHAN").map((o) => o.khoa)), KHOA_CO_O);
-  assert.deepEqual(sap(KHU_CA_NHAN.flatMap((k) => oCuaKhu("CA_NHAN", k).map((o) => o.khoa))), KHOA_CO_O, "có ô mà không thuộc khu nào ⇒ không bao giờ hiện");
+  assert.deepEqual(sap([...oCuaPhan("CA_NHAN"), ...oCuaPhan("TO_CHUC")].map((o) => o.khoa)), KHOA_CO_O);
+  assert.deepEqual(sap(KHU_CA_NHAN.flatMap((k) => oCuaKhu("CA_NHAN", k).map((o) => o.khoa))), coOCuaPhan("CA_NHAN"), "có ô mà không thuộc khu nào ⇒ không bao giờ hiện");
+  assert.deepEqual(sap(KHU_TO_CHUC.flatMap((k) => oCuaKhu("TO_CHUC", k).map((o) => o.khoa))), coOCuaPhan("TO_CHUC"), "ô tổ chức không thuộc khu tổ chức nào");
   // Trường không có ô chỉ được là: dữ kiện trang tự đưa, giá trị cố định, hoặc cột «chờ ô» có tên.
   for (const t of TRUONG_DANG_KY.filter((x) => !x.o)) {
     const hopLe = t.khoa === "chinhSachPhienBan" || t.coDinh !== undefined || CHO_O.some((c) => t.cot.includes(c.cot));
@@ -38,6 +44,9 @@ test("(1) ô biểu mẫu: oCuaPhan/oCuaKhu trả đúng tập khoá có ô; web
   assert.match(webMa, /oCuaKhu\(/, "web/dang-ky.ts phải dựng ô bằng oCuaKhu");
   assert.match(webMa, /dungThanGui\(/, "web/dang-ky.ts phải dựng thân gửi bằng dungThanGui");
   for (const k of KHU_CA_NHAN) assert.match(webMa, new RegExp(`khuO\\(\\s*"${k}"`), `web/dang-ky.ts không dựng khu «${k}»`);
+  // Khu tổ chức: biểu mẫu dựng ở Task 8; tới hạn mà chưa dựng ⇒ đỏ.
+  const homNay = new Date().toISOString().slice(0, 10);
+  if (homNay > WEB_CHUA_DUNG_TO_CHUC.hetHan) for (const k of KHU_TO_CHUC) assert.match(webMa, new RegExp(`"${k}"`), `web/dang-ky.ts chưa dựng khu tổ chức «${k}» (${WEB_CHUA_DUNG_TO_CHUC.viec}, quá hạn)`);
   assert.doesNotMatch(webMa, /oCuaKhu\([^)]*\)\s*\.(filter|slice|splice|pop|shift|reverse)\b/, "bớt ô sau khi dựng làm lệch tập ô");
   assert.doesNotMatch(webMa, /oCuaPhan\([^)]*\)\s*\.(filter|slice|splice|pop|shift|reverse)\b/, "bớt ô sau khi dựng làm lệch tập ô");
   // Không viết tay tên trường: dạng chuỗi ("hoTen") hoặc khoá đối tượng (hoTen:).
@@ -49,9 +58,12 @@ test("(1) ô biểu mẫu: oCuaPhan/oCuaKhu trả đúng tập khoá có ô; web
 });
 
 test("(2) máy chủ nhận đúng tập khoá của tệp ánh xạ", () => {
+  // TRUONG_GUI dựng từ cùng nguồn với KHOA: so tập dựng lại từ TRUONG_GUI + trường con với khoá của tệp ánh xạ (không so một nguồn với chính nó — Minor a vòng trước).
+  assert.deepEqual(sap([...NHOM_LONG]), ["giayTo", "toChuc"]);
+  const dungLai = [...TRUONG_GUI.filter((k) => !NHOM_LONG.includes(k)), ...NHOM_LONG.flatMap((n) => truongCon(n).map((k) => `${n}.${k}`))];
+  assert.deepEqual(sap(dungLai), KHOA);
   assert.deepEqual(sap(TRUONG_GUI), sap(truongGuiMucNgoai()));
-  assert.deepEqual(sap(TRUONG_GIAY_TO), sap(truongGiayTo()));
-  assert.deepEqual(sap([...TRUONG_GUI.filter((k) => k !== "giayTo"), ...TRUONG_GIAY_TO.map((k) => `giayTo.${k}`)].concat("giayTo")), sap([...KHOA, "giayTo"]));
+  assert.equal(TRUONG_GUI.includes("loaiToChuc"), false, "vai của tổ chức đi qua PUT nháp, không phải trường của thân gửi");
   // Route thật dùng đúng hàm kiểm của tệp ánh xạ, không giữ danh sách tay.
   const route = readFileSync(new URL("./modules/dang-ky/phieu-route.ts", import.meta.url), "utf8");
   assert.match(route, /dang-ky-truong\.ts/);
@@ -60,10 +72,12 @@ test("(2) máy chủ nhận đúng tập khoá của tệp ánh xạ", () => {
   // Hành vi thật của hàm kiểm: mỗi khoá được nhận, khoá lạ bị từ chối.
   for (const k of KHOA) {
     const [a, b] = k.split(".");
-    assert.equal(truongDung(b ? { giayTo: { [b]: "x" } } : { [a!]: "x" }), true, `máy chủ không nhận «${k}»`);
+    assert.equal(truongDung(b ? { [a!]: { [b]: "x" } } : { [a!]: "x" }), true, `máy chủ không nhận «${k}»`);
   }
   assert.equal(truongDung({ truongLa: "x" }), false);
   assert.equal(truongDung({ giayTo: { truongLa: "x" } }), false);
+  assert.equal(truongDung({ toChuc: { truongLa: "x" } }), false);
+  assert.equal(truongDung({ toChuc: { number: "x" } }), false, "trường của nhóm này không lọt sang nhóm kia");
   // Thân dựng từ giá trị MỌI ô phải được máy chủ nhận.
   const giaTri = Object.fromEntries(KHOA_CO_O.map((k) => [k, "1"]));
   assert.equal(truongDung(dungThanGui(giaTri, 3)), true);
@@ -81,7 +95,7 @@ test("(3) cột dk_submission trừ cột hệ thống = cột tệp ánh xạ t
   }
 });
 
-test("(4) mọi cột người dùng khai của hồ sơ người đều có trường trỏ tới", () => {
+test("(4) mọi cột người dùng khai của hồ sơ người và tổ chức đều có trường trỏ tới", () => {
   const troToi = new Set([...TRUONG_DANG_KY.flatMap((t) => (t.noiLuu === "CHI_PHIEU" ? [] : t.noiLuu))]);
   for (const bang of BANG_HO_SO) {
     const he = new Set(COT_HE_THONG[bang]);

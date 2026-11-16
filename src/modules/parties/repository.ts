@@ -551,6 +551,11 @@ const LIST_DOC_TYPES = defineSql(
   "list_person_document_types",
   "SELECT code, name, has_expiry, sort_order, active, updated_at FROM pty_person_document_type ORDER BY sort_order, code",
 );
+// Danh mục loại giấy tờ của TỔ CHỨC (ADR-0122 đ2) cho phần tổ chức của phiếu đăng ký (ADR-0212 Đ4): chỉ mã, cờ hạn, cờ bật — không tên, không số.
+const LIST_ORG_DOC_TYPES = defineSql("parties", "list_org_document_types_for_registration", "SELECT code, has_expiry, active FROM pty_organization_document_type ORDER BY sort_order, code");
+export async function listOrgDocumentTypes(db: D1Database): Promise<{ code: string; has_expiry: number; active: number }[]> {
+  return (await db.prepare(LIST_ORG_DOC_TYPES).all<{ code: string; has_expiry: number; active: number }>()).results;
+}
 const LIST_LICENSE_CLASSES = defineSql("parties", "list_license_classes", "SELECT code, name, sort_order, active, updated_at FROM pty_license_class ORDER BY sort_order, code");
 
 export async function listPersonDocuments(db: D1Database, partyId: string, onlyCurrent: boolean): Promise<PersonDocRow[]> {

@@ -9,8 +9,9 @@ import { cauTepChoMoi, datKhoTepCho, demTepChoCuaPhieu, timTepChoTrung, trangTha
 import { chanNguoiKhongTaiKhoan } from "../../shared/maintenance.ts";
 import { getMaintenanceState, maintenanceResponse } from "../maintenance";
 import { cookiePhienDangKy, dkTepIpKey, docPhienDangKy, taoPhienDangKy } from "./phien.ts";
-import { cauKeoDaiHanNhap, chinhSachHienHanh, datChoTepMang, phieuCuaPhien, suKienThemTepStatement } from "./repository.ts";
-import { TRANG_THAI_CHO_TAI_TEP, kiemTepPhieu, laOTepPhieu, tranThanTep, type TrangThai } from "./rules.ts";
+import { CAU_PHIEU } from "../../shared/dang-ky-hien-thi.ts";
+import { cauKeoDaiHanNhap, chinhSachHienHanh, datChoTepMang, phanToChucMo, phieuCuaPhien, suKienThemTepStatement } from "./repository.ts";
+import { O_TEP_TO_CHUC, TRANG_THAI_CHO_TAI_TEP, kiemTepPhieu, laOTepPhieu, tranThanTep, type TrangThai } from "./rules.ts";
 
 const HAN_TEP_MANG_MS = 3_600_000;
 const CAU_HET_PHIEN = "Lần đăng nhập để điền phiếu đã hết hạn. Hãy đăng nhập lại bằng email để tiếp tục.";
@@ -35,6 +36,8 @@ export async function taiTepPhieu({ request, env }: Ctx<"public">): Promise<Resp
   if (Number(cl) > tranThanTep(chinhSach.photo_max_mb)) return error(413, "file_too_large", `Tệp lớn hơn ${chinhSach.photo_max_mb} MB.`);
   const body = await readJson(request);
   if (!laOTepPhieu(body?.o)) return error(400, "invalid_input", "Ô tệp không hợp lệ.");
+  // Ảnh GPKD, giấy phép thêm (ADR-0212 Đ4): chỉ nhận khi phần tổ chức mở (Đ7) — đóng thì không tệp tổ chức nào lọt vào kho rồi bị lô duyệt cá nhân chuyển nhầm sang hồ sơ người.
+  if (O_TEP_TO_CHUC.includes(body.o) && !(await phanToChucMo(env.DB))) return error(409, "org_section_closed", CAU_PHIEU.toChucDong);
   const k = kiemTepPhieu(body?.noiDung, chinhSach.photo_max_mb);
   if (!k.ok) return error(k.status, k.code, k.message);
   const bam = await bamSha256(k.bytes);

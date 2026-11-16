@@ -53,6 +53,11 @@ export function mucHan(hetHan: string | null, homNay: string, nguongNgay: number
   return con <= nguongNgay ? "sap-het" : "con-han";
 }
 
+/** Số giấy tờ đã chuẩn hoá (luật `number_key`) để so trùng và che: NFC, chữ HOA, bỏ khoảng trắng . - / — một nguồn cho giấy tờ của người (parties) và GPKD, giấy phép của tổ chức (`to-chuc.ts`). */
+export function chuanHoaSo(so: string): string {
+  return so.normalize("NFC").toUpperCase().replace(/[\s.\-/]/g, "");
+}
+
 export type KetQua<T> = { ok: true; value: T } | { ok: false; message: string };
 const rong = (v: unknown): boolean => v === undefined || v === null || (typeof v === "string" && v.trim() === "");
 

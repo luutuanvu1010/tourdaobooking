@@ -175,6 +175,7 @@ export const COT_N3_NHAT_KY = {
   "pty_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 — không bao giờ vào nhật ký
   "pty_registration_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0208 Đ1 (migration 0171): băm tệp chờ của phiếu đăng ký — nhật ký chỉ mang mã phiếu
   "pty_registration_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false },
+  "pty_organization.tax_code": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0212 Đ7 (R8)
   "pty_organization_document.document_number": { kiem: "R-PD-1", chuanHoa: false },
   "pty_organization_document.number_key": { kiem: "R-PD-1", chuanHoa: true },
   "pty_organization_document.issued_place": { kiem: "R-PD-1", chuanHoa: false },
@@ -187,6 +188,15 @@ export const COT_N3_NHAT_KY = {
   "dk_submission.document_number": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0206 Đ3 (migration 0170): số giấy tờ ở bản khai đăng ký — nhật ký chỉ mang mã phiếu
   "dk_submission.number_key": { kiem: "R-PD-1", chuanHoa: true },
   "dk_submission.issued_place": { kiem: "R-PD-1", chuanHoa: false },
+  // ADR-0212 Đ7 (migration 0174): phần tổ chức của bản khai đăng ký — nhật ký chỉ mang mã phiếu. Khoá mã số thuế giữ dấu '-' của hậu tố nên so nguyên văn (chuanHoa false).
+  "dk_submission_org.tax_code": { kiem: "R-PD-1", chuanHoa: false },
+  "dk_submission_org.tax_key": { kiem: "R-PD-1", chuanHoa: false },
+  "dk_submission_org.gpkd_number": { kiem: "R-PD-1", chuanHoa: false },
+  "dk_submission_org.gpkd_key": { kiem: "R-PD-1", chuanHoa: true },
+  "dk_submission_org.gpkd_issued_place": { kiem: "R-PD-1", chuanHoa: false },
+  "dk_submission_org.extra_number": { kiem: "R-PD-1", chuanHoa: false },
+  "dk_submission_org.extra_key": { kiem: "R-PD-1", chuanHoa: true },
+  "dk_submission_org.extra_issued_place": { kiem: "R-PD-1", chuanHoa: false },
 };
 const DETAIL_CHUAN = "upper(replace(replace(replace(replace(a.detail, ' ', ''), '.', ''), '-', ''), '/', ''))";
 const DO_COT_N3 = Object.entries(COT_N3_NHAT_KY)

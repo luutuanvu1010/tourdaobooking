@@ -43,6 +43,12 @@ const NOI_DK = "NOI CAP DANG KY DANH DAU";
 // ADR-0206 Đ6 (đợt 1 Task 4): bản khai gửi QUA ROUTE THẬT của người đăng ký (cookie đăng ký, chưa có tài khoản) — số + nơi cấp đánh dấu riêng.
 const SO_DK2 = "079222111000";
 const NOI_DK2 = "NOI CAP GUI QUA ROUTE DANH DAU";
+// ADR-0212 Đ7 (đợt 2 Task 5): phần tổ chức của phiếu đăng ký gửi qua route thật — mã số thuế, số GPKD, nơi cấp đánh dấu (N3 trên phiếu); mã số thuế của hồ sơ tổ chức (R8: N3).
+const MST_DK = "0377766655-002";
+const GPKD_DK = "41B7 665544";
+const NOI_GPKD_DK = "NOI CAP GPKD GUI DANH DAU";
+const MST_HO_SO = "0366655544";
+const DAU_SO_TO_CHUC = [MST_DK, "0377766655", GPKD_DK, "41B7665544", MST_HO_SO, NOI_GPKD_DK];
 const NOI_XOA = "NOI CAP XOA DANH DAU";
 const NOI_PHIEU = "NOI CAP PHIEU DANH DAU";
 const NOI = "NOI CAP DANH DAU";
@@ -89,7 +95,7 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   const TUYEN: Record<string, () => Promise<void>> = {
     // Lát H-3 (ADR-0124): bốn route "của tôi" chạy TRƯỚC — ca đầu đăng chính sách (Toàn quyền), hồ sơ TX lúc này chưa có giấy tờ.
     "GET /api/parties/cua-toi": async () => {
-      await goi("Toàn quyền đăng chính sách (thử)", "POST", "/api/parties/chinh-sach-rieng-tu", SUP, { mucDich: "thử", noiDung: "thử" }, 201);
+      await goi("Toàn quyền đăng chính sách (thử)", "POST", "/api/parties/chinh-sach-rieng-tu", SUP, { mucDich: "thử", noiDung: "thử", coPhanToChuc: true }, 201); // ADR-0212 Đ7: mở phần tổ chức cho ca gửi phiếu
       await goi("hồ sơ của tôi", "GET", "/api/parties/cua-toi", TX, undefined, 200);
     },
     "POST /api/parties/cua-toi/dong-y": async () => {
@@ -295,9 +301,13 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
       const r = await goiDk("gửi phiếu", "POST", "/api/dang-ky/phieu/gui", {
         chinhSachPhienBan: phienBan, hoTen: "Người Gửi Dò Số", ngaySinh: "1991-02-03", dienThoai: "0912000222", diaChi: "9 Đường Gửi Dò Số",
         giayTo: { typeCode: "CCCD", number: "079 222 111 000", issuedPlace: NOI_DK2, issuedDate: "2022-01-02", expiryDate: "2037-02-03" },
+        toChuc: { tenToChuc: "Công ty Gửi Dò Số", maSoThue: MST_DK, soGpkd: GPKD_DK, noiCapGpkd: NOI_GPKD_DK, duocUyQuyen: true }, // ADR-0212 Đ4
       });
       assert.equal(r.json.trangThai, "CHO_XAC_MINH");
       assert.equal(w.q("SELECT number_key FROM dk_submission WHERE registration_id = 'DK_GUIGUIGI'")[0].number_key, SO_DK2, "chống bài rỗng: số đã vào bảng qua route thật");
+      assert.deepEqual({ ...w.q("SELECT tax_code, gpkd_key FROM dk_submission_org WHERE registration_id = 'DK_GUIGUIGI'")[0] }, { tax_code: MST_DK, gpkd_key: "41B7665544" }, "chống bài rỗng: mã số thuế, số GPKD đã vào bảng qua route thật");
+      const lichSu = JSON.stringify(w.q("SELECT * FROM dk_event WHERE registration_id = 'DK_GUIGUIGI'"));
+      for (const s of DAU_SO_TO_CHUC) assert.equal(lichSu.includes(s), false, `lịch sử phiếu lộ "${s}"`);
     },
     "POST /api/dang-ky/phieu/rut": async () => {
       const r = await goiDk("rút phiếu", "POST", "/api/dang-ky/phieu/rut", {});
@@ -332,6 +342,10 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
     const at = new Date().toISOString();
     w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES ('DK_GUIGUIGI', 'PERSON', 'DANG_DIEN', '', ?, ?)").run(at, at);
     w.sqlite.prepare("INSERT INTO dk_identity (id, registration_id, provider, subject, contact_email, created_at, updated_at) VALUES ('ident-gui', 'DK_GUIGUIGI', 'EMAIL', 'gui-do-so@example.com', 'gui-do-so@example.com', ?, ?)").run(at, at);
+    // Ảnh GPKD đã lưu (ADR-0212 Đ4: bắt buộc khi gửi kèm phần tổ chức) — gieo thẳng như tệp chờ của gieoPhieuDk.
+    w.sqlite.prepare(`INSERT INTO pty_registration_attachment (id, registration_id, slot, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+      VALUES ('tep-gpkd-gui', 'DK_GUIGUIGI', 'GPKD', ?, 'png', 11, ?, ?, 'ident-gui', ?, 'ident-gui')`).run(`pty/${crypto.randomUUID().replace(/-/g, "")}`, "c".repeat(64), at, at);
+    w.sqlite.prepare("UPDATE pty_registration_attachment SET stored_at = ? WHERE id = 'tep-gpkd-gui'").run(at);
   };
   const goiDk = async (khoa: string, method: string, path: string, body?: unknown, mongDoi = 200) => {
     const ck = `${DK_COOKIE}=${await taoPhienDangKy(w.env.SESSION_SECRET, "DK_GUIGUIGI", "ident-gui", Date.now())}`;
@@ -361,7 +375,8 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   const tkDt = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Tài Xế Đối Tác Dò Số", phone: "0900000096", roles: ["DRIVER_EXTERNAL"] } });
   assert.equal(tkDt.status, 201, tkDt.text);
   const PDT = w.q("SELECT party_id FROM staff WHERE id = ?", tkDt.json.staff.id)[0].party_id as string;
-  const nhaXe = (await w.call("POST", "/api/parties", { as: ADM, body: { kind: "ORGANIZATION", displayName: "Nhà Xe Dò Số" } })).json.party.id as string;
+  const taoNhaXe = await goi("tạo hồ sơ tổ chức có mã số thuế", "POST", "/api/parties", ADM, { kind: "ORGANIZATION", displayName: "Nhà Xe Dò Số", taxCode: MST_HO_SO }, 201); // R8: tax_code N3
+  const nhaXe = taoNhaXe.json.party.id as string;
   await goi("gán Nhà xe đối tác", "POST", `/api/parties/${nhaXe}/roles`, ADM, { roleTypeCode: "CARRIER" }, 201);
   await goi("Tài xế của", "POST", `/api/parties/${nhaXe}/relationships`, ADM, { fromPartyId: PDT, toPartyId: nhaXe, relationshipTypeCode: "DRIVES_FOR" }, 201);
   await goi("thêm CCCD tài xế đối tác", "POST", `/api/parties/${PDT}/documents`, ADM, { typeCode: "CCCD", number: SO_CCCD_DT, issuedPlace: NOI, expiryDate: ngay(4) }, 201);
@@ -375,12 +390,14 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   // (2) NHẬT KÝ: không số (người lẫn xe), không nơi cấp; bỏ dấu cách/chấm/gạch cũng không có.
   const nhatKy = JSON.stringify(w.q("SELECT * FROM audit_log"));
   const nhatKyGon = nhatKy.replace(/[\s.\-]/g, "");
-  for (const s of [...DAU_SO_NGUOI, ...DAU_SO_XE]) assert.ok(!nhatKy.includes(s) && !nhatKyGon.includes(s.replace(/[\s.\-]/g, "")), `nhật ký lộ "${s}"`);
+  for (const s of [...DAU_SO_NGUOI, ...DAU_SO_XE, ...DAU_SO_TO_CHUC]) assert.ok(!nhatKy.includes(s) && !nhatKyGon.includes(s.replace(/[\s.\-]/g, "")), `nhật ký lộ "${s}"`);
   for (const noi of [NOI, NOI_MOI, NOI_PHIEU, NOI_XOA, NOI_DK, NOI_DK2]) assert.ok(!nhatKy.includes(noi), `nhật ký lộ nơi cấp "${noi}"`);
   assert.ok(w.q("SELECT count(*) n FROM audit_log WHERE action LIKE 'party_document_%' OR action LIKE 'vehicle_document_%'")[0].n >= 10, "chống bài rỗng: có nhật ký giấy tờ để quét");
 
   // (3) THÂN TRẢ VỀ (trừ "xem đủ số"): không số của NGƯỜI.
   for (const t of than) for (const s of DAU_SO_NGUOI) assert.ok(!t.text.includes(s), `thân "${t.khoa}" lộ "${s}"`);
+  // ADR-0212 Đ7: mã số thuế, số GPKD, nơi cấp của PHẦN TỔ CHỨC CỦA PHIẾU không ở thân trả về nào. Mã số thuế của hồ sơ tổ chức (R8) văn phòng vẫn xem ở hồ sơ — chỉ dò ở nhật ký.
+  for (const t of than) for (const s of DAU_SO_TO_CHUC.filter((x) => x !== MST_HO_SO)) assert.ok(!t.text.includes(s), `thân "${t.khoa}" lộ "${s}"`);
   for (const t of than.filter((x) => /phiếu xoá|chạy lại xoá/.test(x.khoa))) assert.ok(!t.text.includes(NOI_XOA), `thân "${t.khoa}" lộ nơi cấp`); // xem trước / thực hiện chỉ số đếm
   assert.ok(than.some((t) => t.text.includes(NOI)), "chống bài rỗng: nơi cấp CÓ hiện ở danh sách giấy tờ (không phải số)");
   assert.ok(than.some((t) => t.text.includes("••••7665")), "chống bài rỗng: số che có mặt");
@@ -398,6 +415,8 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
     "pty_person_document.document_number", "pty_person_document.number_key", "pty_person_document.issued_place",
     "pty_self_submission.document_number", "pty_self_submission.number_key", "pty_self_submission.issued_place", // lát H-3 Task 4: phiếu tự khai qua route thật
     "dk_submission.document_number", "dk_submission.number_key", "dk_submission.issued_place", // ADR-0207 Đ9: bản khai phiếu đăng ký
+    "dk_submission_org.tax_code", "dk_submission_org.gpkd_key", // ADR-0212 Đ4: phần tổ chức gửi qua route thật (bài phụ trách chính: dang-ky/phieu-route.test.ts)
+    "pty_organization.tax_code", // ADR-0212 Đ7 (R8): mã số thuế hồ sơ tổ chức N3 — bài này phụ trách
     "pty_self_submission.birth_date", "pty_self_submission.address_value", // vòng sửa 1 (M-5): hai cột N2 của phiếu cũng dò (cột thêm bên dưới)
   ], ["pty_self_submission.birth_date", "pty_self_submission.address_value"]);
   assert.deepEqual(dsN3.rong, [], "bài rỗng: cột N3 phụ trách chưa có dữ liệu thật");

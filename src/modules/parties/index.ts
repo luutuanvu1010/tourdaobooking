@@ -24,13 +24,14 @@ import { cauConNoTraSau, laLoiPhienBanTraSau, type MaKhongTraSau } from "../../s
 import type { DonCuaNguoiDatTom, GopHoSoNoi, PartyAccountVerdict, TaiKhoanXacMinh, ViecDoKhiThoiVai } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import type { DauXacMinh } from "../../shared/dau-xac-minh";
+import type { DanhMucGiayToToChuc } from "../../shared/to-chuc";
 import { gioiTinhHopLe } from "../../shared/xung-ho";
 import {
   activeBanks, bankAccountCloseStatement, bankAccountInsertStatement, bankAccountOpenOf, bankActive, ownerBankAccountRows,
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
   companyIdentityOf, docsForMerge, driverDocsForDispatch, driversForDispatch, expiringDocumentsOfRoles, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
-  listCarriers, listPartiesByIds, openPersonPhones, personsForMatch, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
+  listCarriers, listPartiesByIds, openPersonPhones, personsForMatch, listOrgDocumentTypes, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement, maHoSoTheoSoGiayTo, mucXacMinhBatBuocCua,
   datChoXoaTepStatement, findTepDeTai, insertTepLinkStatement, insertTepStatement, listTepChoXoa, listTepCuaGiayTo, markTepStored, tepCuaGiayTo,
   chinhSachHienHanh, phienBanLonNhat, dangChinhSachStatement, phienBanDangDongY, ghiDongYStatement, rutMoiPhieuChoStatement, listPhieuCuaHoSo, type PhieuRow,
@@ -80,6 +81,10 @@ export async function danhMucGiayToChoDangKy(db: D1Database, homNay: string): Pr
   return (await danhMucGiayTo(db, homNay)).dm;
 }
 export { demTepChoCuaPhieu } from "./repository";
+/** Danh mục loại giấy tờ của tổ chức cho phần tổ chức của phiếu đăng ký (ADR-0212 Đ4; đợt 2 Task 5): mã → có hạn, đang bật. Kiểm hình thức ở `src/shared/to-chuc.ts`. */
+export async function danhMucGiayToToChucChoDangKy(db: D1Database): Promise<DanhMucGiayToToChuc> {
+  return { loai: new Map((await listOrgDocumentTypes(db)).map((t) => [t.code, { hasExpiry: t.has_expiry === 1, active: t.active === 1 }])) };
+}
 
 // ---- Lô DUYỆT phiếu đăng ký (ADR-0207 Đ5; đợt 1 Task 8): câu CHƯA CHẠY, gốc lắp ráp ghép vào MỘT db.batch sau câu chốt của dang-ky. Mã dòng do người gọi sinh sẵn. ----
 /** Câu 2: hồ sơ cá nhân MỚI (mã `partyId` sinh sẵn) — hoặc không gì khi gắn hồ sơ có sẵn — rồi mở vai đối tác với Tour Đảo (TRƯỚC câu cấp quyền của staff: LC-1c đòi vai đã mở). */

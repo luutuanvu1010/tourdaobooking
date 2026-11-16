@@ -476,7 +476,7 @@
       "name": "pty_privacy_policy",
       "module": "parties",
       "kind": "table",
-      "note": "chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào. erasure_days (hạn xử lý phiếu xoá) và session_retention_days (thời hạn giữ IP / User-Agent của phiên) thêm ở migration 0108: rỗng được, không DEFAULT — con số chờ luật sư, đi cùng bản đăng mới (ADR-0126 đ2, đ8). covers_org_data thêm ở migration 0174: dấu «bản này đã nêu việc thu thông tin tổ chức» (0/1, mặc định 0), đặt lúc đăng bản mới; phần tổ chức của biểu mẫu đăng ký chỉ mở khi bản đang hiệu lực có dấu này (ADR-0212 Đ7); không lộ ở điểm cuối công khai"
+      "note": "chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào. erasure_days (hạn xử lý phiếu xoá) và session_retention_days (thời hạn giữ IP / User-Agent của phiên) thêm ở migration 0108: rỗng được, không DEFAULT — con số chờ luật sư, đi cùng bản đăng mới (ADR-0126 đ2, đ8). covers_org_data thêm ở migration 0174: dấu «bản này đã nêu việc thu thông tin tổ chức» (0/1, mặc định 0), đặt lúc đăng bản mới; phần tổ chức của biểu mẫu đăng ký chỉ mở khi bản đang hiệu lực có dấu này (ADR-0212 Đ7); không lộ ở GET /api/chinh-sach-rieng-tu (GET /api/dang-ky/cau-hinh chỉ trả cờ «phần tổ chức mở» suy ra từ nó)"
     },
     {
       "name": "pty_attachment",
@@ -1143,7 +1143,7 @@
       "name": "dk_registration",
       "module": "dang-ky",
       "kind": "table",
-      "note": "phiếu đăng ký đối tác (ADR-0206 Đ3, Đ4; 0170): id DK_XXXXXXXX; loại mở PERSON; trạng thái đi theo đồ thị trigger dk_registration_transition (bốn trạng thái kết thúc không đổi). match_*, verified_* là kết luận Danh bạ và người xác minh để trigger dk_decision_guard chỉ đọc dk_*. party_id, staff_id, match_party_id, referrer_party_id (hồ sơ người giới thiệu chọn lúc «đạt», lô duyệt ghi quan hệ REFERRED_BY) là tham chiếu logic, không khoá ngoại"
+      "note": "phiếu đăng ký đối tác (ADR-0206 Đ3, Đ4; 0170): id DK_XXXXXXXX; loại mở PERSON; trạng thái đi theo đồ thị trigger dk_registration_transition (bốn trạng thái kết thúc không đổi). match_*, verified_* là kết luận Danh bạ và người xác minh để trigger dk_decision_guard chỉ đọc dk_*. party_id, staff_id, match_party_id, referrer_party_id (hồ sơ người giới thiệu chọn lúc «đạt», lô duyệt ghi quan hệ REFERRED_BY) là tham chiếu logic, không khoá ngoại. org_role_code (vai của tổ chức, khoá sau lần gửi đầu như role_code), org_match_kind / org_match_party_id (kết luận Danh bạ của tổ chức, khuôn match_* bằng trigger dk_registration_org_match_shape; xoá khi «trả về xác minh»; dk_decision_guard đòi khi bản khai đang duyệt có phần tổ chức) thêm ở migration 0174 (ADR-0212 Đ4)"
     },
     {
       "name": "dk_identity",
@@ -1156,6 +1156,12 @@
       "module": "dang-ky",
       "kind": "table",
       "note": "bản khai bất biến (0170): mỗi lần gửi một dòng, version kế tiếp current_version; chỉ cho đặt erased_at một lần (ẩn danh, ADR-0208). Cột soi theo pty_person / pty_contact_point / pty_person_document. Hạng N2/N3 không bao giờ vào nhật ký"
+    },
+    {
+      "name": "dk_submission_org",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "phần tổ chức của bản khai (ADR-0212 Đ4; migration 0174): một dòng BẤT BIẾN mỗi (phiếu, phiên bản) có phần tổ chức, sinh CÙNG lô với dk_submission lúc gửi (trigger dk_submission_org_version: phiên bản kế tiếp và có bản khai cá nhân cùng phiên bản); chỉ cho đặt erased_at một lần (khuôn dk_submission_erase_shape). Cột soi theo pty_party / pty_organization / pty_organization_document; tax_key, gpkd_key, extra_key là khoá chuẩn hoá do máy chủ tính (src/shared/to-chuc.ts). authority_confirmed_at = lúc tích «tôi được tổ chức cho phép đăng ký thay» (chứng cứ của phiếu, không chép sang hồ sơ). Hạng N2/N3 không bao giờ vào nhật ký, lịch sử phiếu, câu báo lỗi"
     },
     {
       "name": "dk_item_result",
@@ -2017,7 +2023,7 @@
     "pty_contact_kind": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
     "pty_contact_point": { "id": "N1", "party_id": "N1", "contact_kind_code": "N1", "value": "N2", "value_normalized": "N2", "label": "N1", "is_primary": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_license_class": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "pty_organization": { "party_id": "N1", "legal_name": "N2", "tax_code": "N2", "address": "N2", "invoice_email": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "pty_organization": { "party_id": "N1", "legal_name": "N2", "tax_code": "N3", "address": "N2", "invoice_email": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_party": { "id": "N1", "party_kind": "N1", "display_name": "N2", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "merged_into_id": "N1", "merged_at": "N1" },
     "pty_party_relationship": { "id": "N1", "from_party_id": "N1", "to_party_id": "N1", "relationship_type_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_party_role": { "id": "N1", "party_id": "N1", "role_type_code": "N1", "location_id": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -2168,9 +2174,10 @@
     "bil_soat_tu_ghi": { "audit_id": "N1", "order_id": "N1", "soat_boi": "N1", "soat_luc": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "v_aud_tu_ghi": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
     "dk_policy": { "id": "N1", "registration_open": "N1", "open_role_codes": "N1", "code_digits": "N1", "code_ttl_minutes": "N1", "code_max_attempts": "N1", "ask_per_mailbox": "N1", "ask_per_network": "N1", "ask_window_minutes": "N1", "ask_global_per_hour": "N1", "session_idle_minutes": "N1", "session_max_hours": "N1", "draft_expire_days": "N1", "supplement_expire_days": "N1", "activation_days": "N1", "activation_grace_days": "N1", "photo_max_mb": "N1", "photo_max_count": "N1", "anonymize_days": "N1", "files_per_network_hour": "N1", "phieu_required_items": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "dk_registration": { "id": "N1", "kind": "N1", "status": "N1", "role_code": "N1", "current_version": "N1", "reason_code": "N1", "match_kind": "N1", "match_party_id": "N1", "referrer_party_id": "N1", "verified_by": "N1", "verified_version": "N1", "verified_at": "N1", "party_id": "N1", "staff_id": "N1", "submitted_at": "N1", "decided_at": "N1", "activated_at": "N1", "expires_at": "N1", "activation_deadline_at": "N1", "erased_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_registration": { "id": "N1", "kind": "N1", "status": "N1", "role_code": "N1", "current_version": "N1", "reason_code": "N1", "match_kind": "N1", "match_party_id": "N1", "referrer_party_id": "N1", "verified_by": "N1", "verified_version": "N1", "verified_at": "N1", "party_id": "N1", "staff_id": "N1", "submitted_at": "N1", "decided_at": "N1", "activated_at": "N1", "expires_at": "N1", "activation_deadline_at": "N1", "erased_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "org_role_code": "N1", "org_match_kind": "N1", "org_match_party_id": "N1" },
     "dk_identity": { "id": "N1", "registration_id": "N1", "provider": "N1", "subject": "N2", "contact_email": "N2", "is_open": "N1", "erased_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dk_submission": { "id": "N1", "registration_id": "N1", "version": "N1", "family_name": "N2", "middle_name": "N2", "given_name": "N2", "gender": "N2", "birth_date": "N2", "address_value": "N2", "phone_value": "N2", "phone_key": "N2", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "license_class_code": "N1", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "referrer_text": "N2", "policy_id": "N1", "consented_at": "N1", "erased_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_submission_org": { "id": "N1", "registration_id": "N1", "version": "N1", "display_name": "N2", "legal_name": "N2", "tax_code": "N3", "tax_key": "N3", "address": "N2", "invoice_email": "N2", "phone_value": "N2", "phone_key": "N2", "gpkd_number": "N3", "gpkd_key": "N3", "gpkd_issued_date": "N1", "gpkd_issued_place": "N3", "extra_type_code": "N1", "extra_number": "N3", "extra_key": "N3", "extra_issued_date": "N1", "extra_issued_place": "N3", "extra_expiry_date": "N1", "authority_confirmed_at": "N1", "erased_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dk_item_result": { "id": "N1", "registration_id": "N1", "version": "N1", "item_code": "N1", "result": "N1", "reason_code": "N1", "verified_by": "N1", "verified_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dk_decision": { "id": "N1", "registration_id": "N1", "kind": "N1", "version": "N1", "decided_by": "N1", "super_admin_flag": "N1", "decided_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "dk_event": { "id": "N1", "registration_id": "N1", "actor_kind": "N1", "actor_ref": "N1", "command": "N1", "reason_code": "N1", "at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

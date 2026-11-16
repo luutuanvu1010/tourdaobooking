@@ -375,12 +375,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Câu báo lỗi của phiếu đăng ký (người đăng ký thấy)",
-    giaiNghia: "Mười câu máy chủ trả cho người đăng ký khi xem, lưu, gửi hay rút phiếu không được: hết phiên, phiếu đã duyệt, đã kết thúc, đang chờ xử lý, đã gửi nên không đổi loại, loại chưa mở, chưa có chính sách riêng tư, chưa đồng ý, chính sách vừa đổi, phiếu vừa thay đổi. Không câu nào nhắc lại điều người đăng ký đã khai.",
+    giaiNghia: "Mười bảy câu máy chủ trả cho người đăng ký khi xem, lưu, gửi, rút phiếu hay tải ảnh không được: hết phiên, phiếu đã duyệt, đã kết thúc, đang chờ xử lý, đã gửi nên không đổi loại, loại chưa mở, chưa có chính sách riêng tư, chưa đồng ý, chính sách vừa đổi, phiếu vừa thay đổi; và bảy câu của phần tổ chức (ADR-0212 Đ2, Đ4): phần thông tin tổ chức chưa nhận đăng ký, vai người dùng này của tổ chức chưa nhận đăng ký, vai người dùng cần phần thông tin tổ chức, Tài xế đối tác không kèm thông tin tổ chức, hãy chọn một vai người dùng cá nhân, đã gửi kèm thông tin tổ chức nên không bỏ được, cần tải xong ảnh giấy chứng nhận đăng ký kinh doanh. Không câu nào nhắc lại điều người đăng ký đã khai.",
     khacVoi: "Khác chín câu «lý do» (do người xác minh chọn): các câu này do máy chủ tự nói theo trạng thái phiếu.",
     chuDaLoai: [],
-    maNoiBo: ["CAU_PHIEU", "registration_approved", "registration_closed", "registration_not_editable", "role_locked", "consent_required", "policy_changed", "no_privacy_policy"],
+    maNoiBo: [
+      "CAU_PHIEU", "registration_approved", "registration_closed", "registration_not_editable", "role_locked", "consent_required", "policy_changed", "no_privacy_policy",
+      "org_section_closed", "org_section_required", "driver_without_org", "personal_role_required", "org_section_locked", "org_photo_missing",
+    ],
     trangThai: "cho-chon",
-    chuChon: "AI viết mười câu 2026-11-15, chờ chủ chọn tên",
+    chuChon: "AI viết mười câu 2026-11-15, bảy câu phần tổ chức 2026-11-16 (đợt 2 Task 5), chờ chủ chọn tên",
   }),
   KN({
     ten: "Câu «vai người dùng đã tắt» lúc duyệt và lúc xác minh",
@@ -402,12 +405,12 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Tên mục của phiếu đăng ký (người đăng ký thấy)",
-    giaiNghia: "Tên từng mục khi máy nói với người đăng ký về điều còn thiếu để gửi phiếu: Họ tên, Ngày sinh, Căn cước công dân còn hạn, Vai người dùng xin đăng ký, Số điện thoại.",
+    giaiNghia: "Tên từng mục khi máy nói với người đăng ký về điều còn thiếu để gửi phiếu: Họ tên, Ngày sinh, Căn cước công dân còn hạn, Vai người dùng xin đăng ký (của bạn hoặc của tổ chức), Số điện thoại. Mục vai đạt khi có vai cá nhân hoặc vai của tổ chức (ADR-0212 Đ4).",
     khacVoi: "Khác «Mục xác minh của phiếu đăng ký» (viết cho người xác minh): ở đó «Đã gọi số điện thoại đã khai» là việc của người xác minh, người đăng ký chỉ cần đưa số điện thoại.",
     chuDaLoai: [],
     maNoiBo: ["NHAN_MUC_CHO_NGUOI_DANG_KY", "items_missing"],
     trangThai: "cho-chon",
-    chuChon: "AI viết năm tên 2026-11-15, chờ chủ chọn tên",
+    chuChon: "AI viết năm tên 2026-11-15 (tên mục vai đổi 2026-11-16, đợt 2 Task 5), chờ chủ chọn tên",
   }),
   KN({
     ten: "Nhật ký duyệt phiếu đăng ký",

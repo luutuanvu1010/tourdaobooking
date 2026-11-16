@@ -272,3 +272,27 @@ test("Fix 5 — thiếu Content-Length ⇒ 411, không đọc thân, không dòn
   assert.equal(r.status, 411, r.text);
   assert.deepEqual([dongTep(w).length, w.r2.soLan.put, soLuotMang(w)], [0, 0, 0]);
 });
+
+test("ADR-0212 Đ4, Đ7: ô ảnh GPKD, giấy phép thêm chỉ nhận khi chính sách riêng tư đang hiệu lực có dấu thu thông tin tổ chức; đóng ⇒ 409, không chạm kho", async () => {
+  const w = setup();
+  const chinhSach = (v: number, coToChuc: 0 | 1) => {
+    const at = new Date(Date.now() - 3_600_000).toISOString();
+    w.sqlite.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, covers_org_data) VALUES (?, ?, 'mục đích', 'Toàn văn.', ?, ?, 'x', ?, 'x', ?)")
+      .run(`cs-${v}`, v, at, at, at, coToChuc);
+  };
+  for (const slot of ["GPKD", "GIAY_PHEP_THEM"]) {
+    const r = await tai(w, { slot });
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "org_section_closed");
+  }
+  chinhSach(1, 0);
+  assert.equal((await tai(w, { slot: "GPKD" })).status, 409, "bản hiệu lực chưa có dấu");
+  assert.equal(w.r2.soLan.put, 0);
+  assert.equal(dongTep(w).length, 0);
+  chinhSach(2, 1);
+  const r = await tai(w, { slot: "GPKD" });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { tep: [{ o: "GPKD", trangThai: "DA_GUI" }] });
+  assert.equal((await tai(w, { slot: "GIAY_PHEP_THEM", bytes: heic(40) })).status, 200);
+  assert.equal((await tai(w, { slot: TRUOC })).status, 200, "ô cá nhân không đổi");
+});

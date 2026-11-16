@@ -1,7 +1,7 @@
 // Luật thuần giấy tờ của NGƯỜI (ADR-0040 D2) — module parties. Không I/O, không SQL (SQL chỉ ở repository.ts). Import bằng đuôi .ts.
 // Số giấy tờ và nơi cấp là dữ liệu cá nhân: KHÔNG BAO GIỜ vào nhật ký, Bảng tin, thông báo, câu báo lỗi (ADR-0040 D2). Hàm dựng chi tiết nhật ký dưới đây
 // không nhận số hay nơi cấp — lỡ truyền vào ô trước/sau cũng bị bỏ (chỉ nhận ngày YYYY-MM-DD cho lý do về ngày, tên hạng cho lý do về hạng).
-import { LOAI_CO_DINH, LY_DO_SUA_SAI, isLyDoSuaSai, kiemNgayCap, kiemNgayHetHan, kiemTenDanhMuc, kiemThuTu, type LyDoSuaSai, type TruongSua } from "../../shared/giay-to.ts";
+import { LOAI_CO_DINH, LY_DO_SUA_SAI, chuanHoaSo, isLyDoSuaSai, kiemNgayCap, kiemNgayHetHan, kiemTenDanhMuc, kiemThuTu, type LyDoSuaSai, type TruongSua } from "../../shared/giay-to.ts";
 import { isISODate } from "../../shared/vn-date.ts";
 import type { Result } from "./rules.ts";
 
@@ -9,10 +9,8 @@ const fail = (message: string): { ok: false; message: string } => ({ ok: false, 
 const rong = (v: unknown): boolean => v === undefined || v === null || (typeof v === "string" && v.trim() === "");
 const squash = (s: string): string => s.trim().replace(/\s+/g, " ");
 
-/** Số đã chuẩn hoá để so trùng (CCCD) và che: NFC, chữ HOA, bỏ khoảng trắng . - / */
-export function chuanHoaSo(so: string): string {
-  return so.normalize("NFC").toUpperCase().replace(/[\s.\-/]/g, "");
-}
+/** Số đã chuẩn hoá (luật `number_key`) — một nguồn ở `src/shared/giay-to.ts`, dùng chung với GPKD của phiếu đăng ký (ADR-0212 Đ4). */
+export { chuanHoaSo };
 
 /** "••••" + 4 ký tự cuối khi số chuẩn hoá dài ≥ 8; ngắn hơn → "••••" (4 ký tự cuối gần là cả số). null → null. */
 export function cheSo(numberKey: string | null): string | null {

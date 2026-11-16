@@ -46,8 +46,12 @@ const N3_GHIM = [
   "bil_receipt_proof.content_hash", "bil_receipt_proof.storage_key", // ADR-0196: ảnh biên lai có số tài khoản, tên người chuyển — cùng hạng với fbk_attachment
   "bil_remittance_proof.content_hash", "bil_remittance_proof.storage_key", // ADR-0182 phần B: ảnh biên lai khoản nộp — cùng hạng
   "dk_submission.document_number", "dk_submission.issued_place", "dk_submission.number_key", // ADR-0206 Đ3: bản khai đăng ký chép giấy tờ một–một sang pty_person_document — cùng hạng
+  // ADR-0212 Đ7: phần tổ chức của bản khai — mã số thuế, số GPKD / giấy phép (số của hộ kinh doanh là của một người, Hiến chương 5.20), khoá chuẩn hoá và nơi cấp cùng hạng pty_organization_document
+  "dk_submission_org.extra_issued_place", "dk_submission_org.extra_key", "dk_submission_org.extra_number", "dk_submission_org.gpkd_issued_place", "dk_submission_org.gpkd_key",
+  "dk_submission_org.gpkd_number", "dk_submission_org.tax_code", "dk_submission_org.tax_key",
   "fbk_attachment.content_hash", "fbk_attachment.storage_key", // ADR-0144: tệp kèm vé có thể là ảnh giấy tờ gửi nhầm — cùng hạng với pty_attachment
   "pty_attachment.content_hash", "pty_attachment.storage_key",
+  "pty_organization.tax_code", // ADR-0212 Đ7 (R8): nâng từ N2 — mã số thuế của hộ kinh doanh là mã của một người
   "pty_organization_document.document_number", "pty_organization_document.issued_place", "pty_organization_document.number_key",
   "pty_person_document.document_number", "pty_person_document.issued_place", "pty_person_document.number_key",
   "pty_registration_attachment.content_hash", "pty_registration_attachment.storage_key", // ADR-0208 Đ1: tệp chờ của phiếu đăng ký — ảnh giấy tờ, cùng hạng với pty_attachment
