@@ -867,7 +867,9 @@ test("hàng rào tĩnh: route xem ảnh lô đã huỷ theo thứ tự quyền �
 test("việc dọn hàng chờ thật sự được gắn vào lịch chạy định kỳ của Nền tảng", () => {
   const goc = readFileSync(new URL("../../index.ts", import.meta.url), "utf8");
   const than = goc.slice(goc.indexOf("async scheduled("));
-  assert.match(than, /ctx\.waitUntil\(donHangChoXoaVe\(env\)\)/);
+  // Đợt 2 sau kiểm toán: gốc lắp ráp gom các việc định giờ vào một bảng rồi giao từng promise cho waitUntil (và cho thư báo việc tự động lỗi).
+  assert.match(than, /"don-anh-ve": donHangChoXoaVe\(env\)/);
+  assert.match(than, /for \(const p of Object\.values\(viec\)\) ctx\.waitUntil\(/);
 });
 
 test("lô dở cũ vẫn ở danh sách bỏ được dù đã có hơn 50 lô mới hơn: không thành vé kẹt", async () => {

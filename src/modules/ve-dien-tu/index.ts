@@ -170,7 +170,7 @@ const DON_ANH_VE = tacNhan("DON_ANH_VE");
  */
 export async function donHangChoXoaVe(env: Pick<Env, "DB"> & { VE_DIEN_TU?: R2Bucket }): Promise<void> {
   if (!env.VE_DIEN_TU) return;
-  const daXoa = await donHangChoXoa(env.DB, env.VE_DIEN_TU, DON_ANH_VE, TOI_DA_DON_MOI_LAN, () => new Date().toISOString());
+  const daXoa = await donHangChoXoa(env.DB, env.VE_DIEN_TU, DON_ANH_VE, TOI_DA_DON_MOI_LAN, () => new Date().toISOString()); // lỗi ở đây NÉM: gốc lắp ráp bắt và báo thư (Đợt 2 sau kiểm toán)
   if (daXoa === 0) return;
   try {
     await auditStatement(env.DB, { ...nguoiLam(DON_ANH_VE), action: "ve_xoa_anh_het_han", at: new Date().toISOString(), targetType: "system", targetId: "ve-dien-tu", detail: `${daXoa} ảnh` }).run();

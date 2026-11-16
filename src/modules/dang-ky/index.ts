@@ -23,12 +23,16 @@ export { donPhieuDangKy, type KetQuaDonPhieu } from "./don-phieu";
 
 /** Tác nhân tự động dọn phiếu đăng ký (ADR-0208 Đ8, khuôn ADR-0186 Đ1): chỉ Cron dùng; giữ đúng ô `registration.agent.purge`, không có nút hay route nào cho người. */
 const DON_PHIEU_DANG_KY = tacNhan("DON_PHIEU_DANG_KY");
-/** Cron ở gốc lắp ráp: một lượt dọn phiếu dưới tác nhân DON_PHIEU_DANG_KY. KHÔNG BAO GIỜ NÉM (lỗi ở đây không kéo theo việc định kỳ khác). */
-export async function donPhieuDangKyDinhGio(env: Env): Promise<void> {
+/** Cron ở gốc lắp ráp: một lượt dọn phiếu dưới tác nhân DON_PHIEU_DANG_KY. KHÔNG BAO GIỜ NÉM (lỗi ở đây không kéo theo việc định kỳ khác).
+ *  Trả tên lỗi khi hỏng (gốc lắp ráp báo thư lỗi việc định giờ — Đợt 2 sau kiểm toán), `null` khi thành. */
+export async function donPhieuDangKyDinhGio(env: Env): Promise<string | null> {
   try {
     await donPhieuDangKy(env, DON_PHIEU_DANG_KY, new Date());
+    return null;
   } catch (e) {
-    console.error(JSON.stringify({ level: "error", event: "dk_don_phieu_loi", viec: "luot", loi: e instanceof Error ? e.name : "unknown" }));
+    const loi = e instanceof Error ? e.name : "unknown";
+    console.error(JSON.stringify({ level: "error", event: "dk_don_phieu_loi", viec: "luot", loi }));
+    return loi;
   }
 }
 

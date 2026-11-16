@@ -44,6 +44,11 @@ const DA_RA: Record<string, { soCho: number; cach: Cach[]; lyDo: string }> = {
     cach: ["BO_QUA"],
     lyDo: "chữ «mã nội bộ» của hai khái niệm «Dòng tiền» và «Phí đưa đón» (`order_item.fee_choice`, ADR-0214 Task 6) trong bảng tham chiếu ngôn ngữ — chữ cho người đọc, không truy vấn.",
   },
+  "scripts/sao-luu-lib.mjs": {
+    soCho: 1,
+    cach: ["BO_QUA"],
+    lyDo: "CAU_DEM (Đợt 2 sau kiểm toán): chỉ ĐẾM số dòng order_item khi diễn tập khôi phục để so bản nạp lại với production — không đọc tiền, đếm mọi loại dòng là đúng ý.",
+  },
   "scripts/audit-checks.mjs": {
     soCho: 5,
     cach: ["TINH_VAO", "LUAT_RIENG", "BO_RA"],

@@ -12,6 +12,8 @@ import {
 
 export type { AuditAction, AuditEntry, AuditInput, AuditRecord };
 export { CHAM_TAI_KHOAN, CHI_TIET_DOI_SDT, type LoaiCham } from "./cham-tai-khoan";
+// Đợt 2 sau kiểm toán: soát tiền hằng ngày (tác nhân SOAT_TIEN_HANG_NGAY, chỉ đọc) — gốc lắp ráp gọi ở Cron.
+export { soatTienHangNgay } from "./soat-tien-hang-ngay";
 
 /**
  * Câu lệnh ghi nhật ký. `onlyIf` (mệnh đề SQL, ví dụ "changes() > 0") làm dòng chỉ được ghi khi

@@ -98,7 +98,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // `registration.agent.purge`, `partner.signup_tier.write`, `verification.requirement.write`) và các route công khai/ghi của đăng ký vào danh sách dùng chung mà gói Đơn hàng
 // nhúng (bản đồ quyền, `KHONG_VE`); không mã giao diện nào vào gói này. Trần = đúng số đo, không khoảng dư. Chủ dự án duyệt 16/11/2026 (chat, khung «Duyệt theo khuyến nghị»
 // cho câu «Nới trần dung lượng trang Đơn hàng thêm 362 byte»).
-const TRAN_ORDERS = 114_890;
+// Nới 114.890 → 114.978 (+88, Đợt 2 sau kiểm toán, đặc tả 2026-11-16 «lấy lại được dữ liệu», 16/11/2026): thêm ô quyền `audit.money.daily` và tác nhân
+// SOAT_TIEN_HANG_NGAY vào bản đồ quyền mà gói Đơn hàng nhúng; không mã giao diện nào vào gói này. Trần = đúng số đo. CHỜ chủ dự án duyệt con số này (hỏi cùng báo cáo Đợt 2).
+const TRAN_ORDERS = 114_978;
 
 function dung(trang: string) {
   const r = buildSync({
