@@ -914,3 +914,22 @@ test("(34) Giấy phép thêm: dòng giấy tờ tổ chức thứ hai, ảnh ô
   assert.deepEqual(w.q("SELECT tier_code FROM prc_party_tier WHERE party_id = ?", tk.party_id).map((x: any) => x.tier_code), [muc], "hồ sơ người vẫn có cấp của mình");
   assert.equal(dem1(w, "SELECT count(*) n FROM audit_log WHERE action = 'prc_party_tier_set' AND target_id = ?", org), 1);
 });
+
+test("(35) Vòng sửa 1 I-1: phiếu có phần tổ chức, ảnh ở ô GIAY_PHEP_THEM mà KHÔNG khai giấy phép thêm ⇒ ảnh đó nhận quyết gỡ, không thành tệp của hồ sơ người, không nối dòng căn cước", async () => {
+  const w = setup();
+  const id = phieu(w, { toChuc: {} });
+  const cccd = await tep(w, id);
+  await tep(w, id, "GPKD");
+  const leLoi = await tep(w, id, "GIAY_PHEP_THEM");
+  await xacMinhTC(w, id);
+  const r = await duyet(w, HR, id);
+  assert.equal(r.status, 200, r.text);
+  const tk = taiKhoanMoi(w);
+  const t = w.q("SELECT purged_at, transferred_at FROM pty_registration_attachment WHERE id = ?", leLoi.id)[0];
+  assert.ok(t.purged_at, "ảnh lẻ nhận quyết gỡ");
+  assert.equal(t.transferred_at, null);
+  assert.equal(dem1(w, "SELECT count(*) n FROM pty_attachment WHERE id = ?", leLoi.id), 0, "không thành tệp của hồ sơ nào");
+  assert.equal(dem1(w, "SELECT count(*) n FROM pty_attachment_link WHERE attachment_id = ?", leLoi.id), 0, "không nối dòng giấy tờ nào");
+  assert.deepEqual(w.q("SELECT a.id FROM pty_attachment a WHERE a.party_id = ?", tk.party_id).map((x: any) => x.id), [cccd.id], "hồ sơ người chỉ có ảnh căn cước");
+  assert.equal(w.r2.co(leLoi.key), false, "kho xoá sau lô");
+});

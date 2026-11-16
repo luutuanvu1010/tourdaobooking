@@ -726,4 +726,12 @@ test("(16b) m4: mã số thuế chi nhánh — hồ sơ lưu nguyên văn «0123
   assert.equal(x.json.error.code, "org_tax_other_org");
   w.sqlite.exec("UPDATE pty_organization SET tax_code = '0123456789 001' WHERE party_id = 'org-lien'");
   assert.deepEqual((await chiTiet(w, ADM, id)).json.goiYToChuc.map((g: any) => g.id), ["org-lien"]);
+  // Vòng sửa 1 I-3: kiểm trùng TRƯỚC lệnh ghi chuẩn hoá cả cột đã lưu — hai cách viết khác của cùng mã vẫn 409.
+  for (const luu of ["0123456789-001", "0123456789 001"]) {
+    w.sqlite.prepare("UPDATE pty_organization SET tax_code = ? WHERE party_id = 'org-lien'").run(luu);
+    const y = await dat(w, ADM, id, { hoSo: { kieu: "MOI" }, hoSoToChuc: { kieu: "MOI" } });
+    assert.equal(y.status, 409, luu);
+    assert.equal(y.json.error.code, "org_tax_other_org", luu);
+  }
+  assert.equal(reg(w, id).status, "CHO_XAC_MINH");
 });

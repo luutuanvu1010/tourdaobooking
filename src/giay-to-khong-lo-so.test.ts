@@ -613,3 +613,53 @@ test("ADR-0184: cho chạy dù thiếu giấy tờ — thân trả về, câu l�
     tat();
   }
 });
+
+test("ADR-0212 Đ7 (đợt 2 vòng sửa 1 I-2): phiếu đăng ký CÓ PHẦN TỔ CHỨC đi hết xác minh → «đạt» (kèm kết luận Danh bạ tổ chức) → màn duyệt → duyệt: thân trả về, nhật ký, lịch sử phiếu không chứa mã số thuế, số GPKD, nơi cấp GPKD", async () => {
+  const w = world();
+  const HR_DK = "99999999-9999-4999-8999-999999999999";
+  seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản Trị", perms: ["ADMIN"] });
+  seedStaff(w.sqlite, { id: HR_DK, phone: "0900000013", name: "Nhân Sự", perms: ["HR"] });
+  const at = new Date().toISOString();
+  if (w.q("SELECT 1 FROM pty_privacy_policy LIMIT 1").length === 0) {
+    w.sqlite.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('pol', 1, 'thử', 'thử', ?, ?, 'x', ?, 'x')").run(at, at, at);
+  }
+  const id = "DK_TOCHUCDS";
+  w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, org_role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', 'GUIDE_FREELANCE', 'TRAVEL_AGENCY', ?, ?)").run(id, at, at);
+  w.sqlite.prepare("INSERT INTO dk_identity (id, registration_id, provider, subject, contact_email, created_at, updated_at) VALUES ('ident-tc', ?, 'EMAIL', 'tc-do-so@example.com', 'tc-do-so@example.com', ?, ?)").run(id, at, at);
+  w.sqlite.prepare(`INSERT INTO dk_submission (id, registration_id, version, given_name, birth_date, phone_value, phone_key, document_type_code, document_number, number_key, issued_place, policy_id, consented_at, created_at, updated_at)
+    VALUES ('sub-tc', ?, 1, 'Dò Tổ Chức', '1990-05-06', '0912 000 333', '0912000333', 'CCCD', '079 444 333 222', '079444333222', 'Cục thử', (SELECT id FROM pty_privacy_policy LIMIT 1), ?, ?, ?)`).run(id, at, at, at);
+  w.sqlite.prepare(`INSERT INTO dk_submission_org (id, registration_id, version, display_name, legal_name, tax_code, tax_key, gpkd_number, gpkd_key, gpkd_issued_place, authority_confirmed_at, created_at, updated_at)
+    VALUES ('org-tc', ?, 1, 'Công ty Dò Số Tổ Chức', 'CÔNG TY TNHH DÒ SỐ', ?, ?, ?, '41B7665544', ?, ?, ?, ?)`).run(id, MST_DK, MST_DK, GPKD_DK, NOI_GPKD_DK, at, at, at);
+  w.sqlite.prepare("UPDATE dk_registration SET current_version = 1, submitted_at = ? WHERE id = ?").run(at, id);
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(id);
+  const tid = crypto.randomUUID();
+  const key = `pty/${crypto.randomUUID().replace(/-/g, "")}`;
+  w.sqlite.prepare(`INSERT INTO pty_registration_attachment (id, registration_id, slot, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, 'GPKD', ?, 'png', 11, ?, ?, 'ident-tc', ?, 'ident-tc')`).run(tid, id, key, "e".repeat(64), at, at);
+  await w.r2.put(key, new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]), { httpMetadata: { contentType: "image/png" } });
+  w.sqlite.prepare("UPDATE pty_registration_attachment SET stored_at = ? WHERE id = ?").run(at, tid);
+  const than: { khoa: string; text: string }[] = [];
+  const goi = async (khoa: string, method: string, path: string, as: string, body?: unknown, mongDoi = 200) => {
+    const r = await w.call(method, path, { as, body });
+    assert.equal(r.status, mongDoi, `${khoa}: ${r.text}`);
+    than.push({ khoa, text: r.text });
+    return r;
+  };
+  const ct = await goi("chi tiết phiếu có phần tổ chức", "GET", `/api/dang-ky/phieu/${id}`, ADM);
+  assert.equal(ct.json.toChuc.tenToChuc, "Công ty Dò Số Tổ Chức", "chống bài rỗng: phần tổ chức có mặt");
+  for (const muc of ["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD", "TEN_PHAP_LY", "MA_SO_THUE", "GPKD"]) await goi(`kết luận ${muc}`, "POST", `/api/dang-ky/phieu/${id}/ket-luan`, ADM, { muc, dat: true, phienBan: 1 });
+  await goi("mở ảnh GPKD", "GET", `/api/dang-ky/phieu/${id}/tep/${tid}`, ADM);
+  await goi("xác minh đạt kèm hồ sơ tổ chức mới", "POST", `/api/dang-ky/phieu/${id}/dat`, ADM, { hoSo: { kieu: "MOI" }, hoSoToChuc: { kieu: "MOI" }, phienBan: 1 });
+  await goi("màn duyệt", "GET", `/api/dang-ky/phieu/${id}/xem-duyet`, HR_DK);
+  await goi("duyệt", "POST", `/api/dang-ky/phieu/${id}/duyet`, HR_DK, { roleCode: "GUIDE_FREELANCE", phienBan: 1 });
+  assert.equal(w.q("SELECT count(*) n FROM pty_organization_document WHERE number_key = '41B7665544'")[0].n, 1, "chống bài rỗng: GPKD đã sang hồ sơ tổ chức");
+  const nhatKy = JSON.stringify(w.q("SELECT * FROM audit_log"));
+  const lichSu = JSON.stringify(w.q("SELECT * FROM dk_event"));
+  const gon = (t: string) => t.replace(/[\s.\-]/g, "");
+  for (const s of DAU_SO_TO_CHUC.filter((x) => x !== MST_HO_SO)) {
+    // Nơi cấp GPKD được hiện cho người xác minh ở chi tiết phiếu (đối chiếu với ảnh) — cùng luật nơi cấp căn cước ở đầu tệp; mọi thân khác không có. Số thì không thân nào có.
+    for (const t of than) if (!(s === NOI_GPKD_DK && t.khoa === "chi tiết phiếu có phần tổ chức")) assert.ok(!t.text.includes(s) && !gon(t.text).includes(gon(s)), `thân «${t.khoa}» lộ «${s}»`);
+    assert.ok(!nhatKy.includes(s) && !gon(nhatKy).includes(gon(s)), `nhật ký lộ «${s}»`);
+    assert.ok(!lichSu.includes(s) && !gon(lichSu).includes(gon(s)), `lịch sử phiếu lộ «${s}»`);
+  }
+});
