@@ -16,11 +16,12 @@ export function vaiCaNhanRongDuoc(mt: MoiTruongMo, coPhanToChuc: boolean): boole
 }
 
 /**
- * Lô duyệt nối người đăng ký với hồ sơ tổ chức bằng liên kết nào (ADR-0213 Đ6; chủ 16/11): tổ chức MỚI sinh từ phiếu ⇒ «Người quản lý của» khi đã có thay mặt tổ chức;
- * tổ chức CÓ SẴN ⇒ không bao giờ người quản lý (văn phòng giao) — giữ «Người liên hệ của» như mốc A (ruling điều phối Task 13). Chưa có thay mặt ⇒ «Người liên hệ của».
+ * Lô duyệt nối người đăng ký với hồ sơ tổ chức bằng liên kết nào (ADR-0212 Đ6; ADR-0213 Đ6; chủ 16/11). Đã có thay mặt tổ chức: tổ chức MỚI sinh từ phiếu ⇒ «Người quản lý của»;
+ * tổ chức CÓ SẴN ⇒ KHÔNG dòng nào (`null`; «Thành viên của» khi có lời mời giữ chỗ là việc B2 — không bao giờ người quản lý, văn phòng giao). Chưa có thay mặt (mốc A) ⇒ «Người liên hệ của».
  */
-export function lienKetLoDuyet(mt: MoiTruongMo, hoSoToChuc: "MOI" | "CO_SAN"): "MANAGER_OF" | "CONTACT_OF" {
-  return mt.coThayMatToChuc && hoSoToChuc === "MOI" ? "MANAGER_OF" : "CONTACT_OF";
+export function lienKetLoDuyet(mt: MoiTruongMo, hoSoToChuc: "MOI" | "CO_SAN"): "MANAGER_OF" | "CONTACT_OF" | null {
+  if (!mt.coThayMatToChuc) return "CONTACT_OF";
+  return hoSoToChuc === "MOI" ? "MANAGER_OF" : null;
 }
 
 export type PhanCuaVai = "CA_NHAN" | "CHI_TO_CHUC" | "CA_NHAN_HOAC_TO_CHUC";

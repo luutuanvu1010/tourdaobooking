@@ -167,7 +167,7 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
   let viTriCap: number | null = null;
   const cauCap = capMacDinh && vaiRieng ? cauCapMacDinhChoHoSo(db, { partyId, roleCode: vaiRieng, ngayDuyet: v.today, approverId: v.approverId, at: v.at, policyId: capMacDinh.policyId }) : null;
   // PHẦN TỔ CHỨC (ADR-0212 Đ6; đợt 2 Task 7). Mã hồ sơ tổ chức mới do parties sinh; mã dòng giấy tờ, dòng xác minh sinh ở đây. Gắn tổ chức CÓ SẴN không bao giờ sinh «người quản lý của»
-  // (Đ5 mục 3; ADR-0213 Đ6; chủ 16/11) — giữ «Người liên hệ của»; tổ chức MỚI ⇒ «Người quản lý của» (mốc B1 Task 13, `tc.lienKet`).
+  // (ADR-0212 Đ5 mục 3, Đ6; ADR-0213 Đ6; chủ 16/11) — không dòng liên kết nào (B2: «Thành viên của» khi có lời mời); tổ chức MỚI ⇒ «Người quản lý của» (mốc B1 Task 13, `tc.lienKet`).
   const tc = v.toChuc ?? null;
   const toChuc = tc ? (() => {
     const mo = cauMoHoSoToChucDangKy(db, {
@@ -196,10 +196,12 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
     // 2 — parties: hồ sơ mới (hoặc hồ sơ có sẵn) + vai đối tác (trước câu cấp quyền: LC-1c). Vai rỗng ⇒ chỉ hồ sơ.
     ...cauMoHoSoDangKy(db, { ...base, partyId, moi: v.hoSo.kieu === "MOI", name: v.ten, gender: v.gender, roleId: crypto.randomUUID(), roleCode: vaiRieng, today: v.today }),
     // 2b — parties: hồ sơ tổ chức mới (hoặc có sẵn) + vai của tổ chức. 2c — liên kết người → tổ chức, SAU câu mở vai của tổ chức (trigger hai đầu đòi vai được hưởng) và TRƯỚC câu cấp
-    //      quyền (LC-1c / lc1d đọc liên kết): tổ chức MỚI ⇒ «Người quản lý của»; có sẵn ⇒ «Người liên hệ của» (không bao giờ người quản lý).
-    ...(toChuc && tc ? [...toChuc.moStatements, tc.lienKet === "MANAGER_OF" && tc.hoSo.kieu === "MOI"
-      ? cauQuanLyToChucDangKy(db, { ...base, personPartyId: partyId, orgPartyId: toChuc.partyId, today: v.today })
-      : cauLienKetNguoiToChuc(db, { ...base, personPartyId: partyId, orgPartyId: toChuc.partyId, today: v.today })] : []),
+    //      quyền (LC-1c / lc1d đọc liên kết): tổ chức MỚI ⇒ «Người quản lý của»; có sẵn ⇒ không dòng nào (không bao giờ người quản lý); mốc A (hằng tắt) ⇒ «Người liên hệ của» (chống trùng PF7).
+    ...(toChuc && tc ? [
+      ...toChuc.moStatements,
+      ...(tc.lienKet === "MANAGER_OF" && tc.hoSo.kieu === "MOI" ? [cauQuanLyToChucDangKy(db, { ...base, personPartyId: partyId, orgPartyId: toChuc.partyId, today: v.today })]
+        : tc.lienKet === "CONTACT_OF" ? [cauLienKetNguoiToChuc(db, { ...base, personPartyId: partyId, orgPartyId: toChuc.partyId, today: v.today })] : []),
+    ] : []),
     // 3 — staff: tài khoản TẮT + quyền theo vai (biến thể «trên hồ sơ có sẵn»; PIN ngẫu nhiên không trả ra).
     ...tk.statements,
     // 4 — parties: giá trị đã xác minh.

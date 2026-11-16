@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { MA_LY_DO_PHIEU, laMaLyDoPhieu, nhanLyDoPhieu } from "../../shared/dang-ky-hien-thi.ts";
 import { LY_DO_TU_CHOI } from "../../shared/xac-minh-hien-thi.ts";
-import { kiemDat, kiemKetLuan, kiemLyDo, laMaPhieu, laMaTep, mucBatBuoc, mucChuaDat } from "./xac-minh.ts";
+import { kiemDat, kiemDuyet, kiemKetLuan, kiemLyDo, laMaPhieu, laMaTep, loiLoDuyet, mucBatBuoc, mucChuaDat } from "./xac-minh.ts";
 
 const BAT_BUOC = ["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"];
 
@@ -58,4 +58,19 @@ test("kiemLyDo, kiemDat, mã phiếu, mã tệp", () => {
   assert.equal(laMaPhieu("DK_abcdefgh"), false);
   assert.equal(laMaTep(crypto.randomUUID()), true);
   assert.equal(laMaTep("../x"), false);
+});
+
+test("Task 13 vòng sửa 1: lô hỏng ở liên kết người quản lý (trigger hai đầu, chỉ mục một người quản lý) ⇒ 409 org_link_failed, KHÔNG câu chung «số điện thoại»", () => {
+  for (const m of ["pty_relationship_org_link_org: liên kết phải trỏ tới hồ sơ tổ chức đang mang vai đối tác", "pty_relationship_org_link_person: x", "UNIQUE constraint failed: pty_party_relationship.to_party_id"]) {
+    const l = loiLoDuyet(new Error(m));
+    assert.equal(l?.code, "org_link_failed", m);
+    assert.equal(/điện thoại/.test(l!.message), false);
+  }
+  assert.equal(loiLoDuyet(new Error("UNIQUE constraint failed: staff.phone"))?.code, "registration_conflict");
+});
+
+test("Task 13: thân lệnh duyệt — roleCode null được (route kiểm tiếp); roleCodeToChuc vắng ⇒ undefined, null ⇒ null; ô lạ / mã sai ⇒ không hợp lệ", () => {
+  assert.deepEqual(kiemDuyet({ roleCode: null, phienBan: 1 }), { ok: true, value: { roleCode: null, roleCodeToChuc: undefined, phienBan: 1 } });
+  assert.deepEqual(kiemDuyet({ roleCode: "GUIDE_FREELANCE", roleCodeToChuc: null, phienBan: 1 }), { ok: true, value: { roleCode: "GUIDE_FREELANCE", roleCodeToChuc: null, phienBan: 1 } });
+  for (const b of [{ phienBan: 1 }, { roleCode: "x", phienBan: 1 }, { roleCode: null, roleCodeToChuc: 7, phienBan: 1 }, { roleCode: null, phienBan: 1, la: 1 }]) assert.equal(kiemDuyet(b as any).ok, false, JSON.stringify(b));
 });

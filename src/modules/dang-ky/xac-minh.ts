@@ -124,6 +124,10 @@ export function loiLoDuyet(e: unknown): { status: 409; code: string; message: st
   if (m.includes("dk_decision_no_org_match")) return { status: 409, code: "registration_not_verified", message: "Phiếu chưa có kết luận Danh bạ cho tổ chức nên chưa duyệt được. Hãy bấm «Trả về xác minh» để người xác minh kết luận lại." };
   if (m.includes("organization_document_gpkd_other_org")) return { status: 409, code: "org_gpkd_other_org", message: "Số giấy chứng nhận đăng ký kinh doanh của phiếu đã thuộc một hồ sơ tổ chức khác. Hãy bấm «Trả về xác minh» để người xác minh gắn vào hồ sơ tổ chức đó, hoặc từ chối phiếu." };
   if (/NOT NULL constraint failed: pty_party_relationship\.to_party_id/.test(m)) return { status: 409, code: "org_target_changed", message: "Hồ sơ tổ chức đã chọn vừa ngưng hoạt động nên chưa mở được tài khoản. Hãy bấm «Trả về xác minh» để người xác minh chọn lại hồ sơ tổ chức." };
+  // Liên kết người quản lý của phiếu «chỉ tổ chức» / tổ chức mới (Task 13 vòng sửa 1): trigger hai đầu hoặc chỉ mục một người quản lý — câu riêng, không đổ cho số điện thoại.
+  if (m.includes("pty_relationship_org_link_") || /UNIQUE constraint failed: pty_party_relationship\.to_party_id/.test(m)) {
+    return { status: 409, code: "org_link_failed", message: "Chưa nối được người đăng ký làm người quản lý của hồ sơ tổ chức (hồ sơ tổ chức vừa thay đổi) nên chưa mở được tài khoản. Hãy mở lại phiếu." };
+  }
   if (m.includes("party_relationship_overlap") || m.includes("organization_document_")) return { status: 409, code: "registration_conflict", message: "Dữ liệu vừa thay đổi nên chưa mở được tài khoản. Hãy mở lại phiếu." };
   if (m.includes("person_document_cccd_other_person")) return { status: 409, code: "document_other_person", message: "Số căn cước của phiếu đã thuộc một hồ sơ khác. Hãy bấm «Trả về xác minh» để người xác minh đối chiếu lại Danh bạ, hoặc từ chối phiếu (lý do «Thông tin này đã có trong hệ thống»)." };
   if (/UNIQUE constraint failed|party_role_|lc1|registration_attachment_|verification_target_mismatch|person_document_/i.test(m)) {

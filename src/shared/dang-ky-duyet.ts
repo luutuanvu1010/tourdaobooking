@@ -53,8 +53,8 @@ export interface LoDuyetToChucVao {
   hoSo: { kieu: "MOI" } | { kieu: "CO_SAN"; partyId: string };
   /** Vai của tổ chức (người duyệt chọn; mặc định `dk_registration.org_role_code`); null = không mở vai cho tổ chức (chỉ phiếu mốc A cũ). */
   roleCode: string | null;
-  /** Liên kết người → tổ chức (ADR-0213 Đ6; `lienKetLoDuyet`): tổ chức MỚI ⇒ «Người quản lý của»; tổ chức có sẵn ⇒ «Người liên hệ của», không bao giờ người quản lý. */
-  lienKet: "MANAGER_OF" | "CONTACT_OF";
+  /** Liên kết người → tổ chức (ADR-0212 Đ6, ADR-0213 Đ6; `lienKetLoDuyet`): tổ chức MỚI ⇒ «Người quản lý của»; tổ chức có sẵn ⇒ `null` (không dòng nào); mốc A (hằng tắt) ⇒ «Người liên hệ của». */
+  lienKet: "MANAGER_OF" | "CONTACT_OF" | null;
   displayName: string;
   legalName: string | null;
   taxCode: string | null;

@@ -54,7 +54,7 @@ function phieu(w: any, o: { so?: string | null; dienThoai?: string; hoTen?: [str
   dem++;
   const so = o.so === undefined ? SO : o.so;
   const dt = o.dienThoai ?? DT;
-  w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', ?, ?, ?)").run(id, o.vai ?? "TRAVEL_AGENCY", AT, AT);
+  w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', ?, ?, ?)").run(id, o.vai ?? "GUIDE_FREELANCE", AT, AT);
   w.sqlite.prepare("INSERT INTO dk_identity (id, registration_id, provider, subject, contact_email, created_at, updated_at) VALUES (?, ?, 'EMAIL', ?, ?, ?, ?)").run(`ident-${id}`, id, `khach-${id.toLowerCase()}@example.com`, EMAIL, AT, AT);
   const [ho, ten] = o.hoTen ?? ["Phạm", "Thử Nghiệm"];
   w.sqlite.prepare(`INSERT INTO dk_submission (id, registration_id, version, family_name, given_name, birth_date, address_value, phone_value, phone_key, document_type_code, document_number, number_key, issued_date, issued_place,
@@ -115,7 +115,7 @@ const dem1 = (w: any, sql: string, ...a: unknown[]): number => Number(w.q(sql, .
 const ketLuan = (w: any, as: string, id: string, body: any) => w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as, body: { phienBan: 1, ...body } });
 const dat = (w: any, as: string, id: string, body: any) => w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as, body: { phienBan: 1, ...body } });
 // Giao diện luôn gửi `phienBan` (bắt buộc từ Task 12): mặc định 1 như ket-luan / dat; bài muốn thử thiếu hay sai thì truyền thẳng thân qua `w.call`.
-const duyet = (w: any, as: string, id: string, body: any = { roleCode: "TRAVEL_AGENCY" }) => w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as, body: { phienBan: 1, ...body } });
+const duyet = (w: any, as: string, id: string, body: any = { roleCode: "GUIDE_FREELANCE" }) => w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as, body: { phienBan: 1, ...body } });
 const tuChoiDuyet = (w: any, as: string, id: string, body: any = { lyDo: "KHONG_THUOC_DIEN" }) => w.call("POST", `/api/dang-ky/phieu/${id}/tu-choi-duyet`, { as, body: { phienBan: 1, ...body } });
 const guiLai = (w: any, as: string, id: string) => w.call("POST", `/api/dang-ky/phieu/${id}/gui-lai-loi-moi`, { as });
 const xemDuyet = (w: any, as: string, id: string) => w.call("GET", `/api/dang-ky/phieu/${id}/xem-duyet`, { as });
@@ -194,7 +194,7 @@ test("(2) Duyệt hồ sơ mới: một lô sinh đúng 1 hồ sơ, vai, 1 tài 
   // hồ sơ, vai, quyền
   const ho = w.q("SELECT p.party_kind, p.display_name, n.family_name, n.given_name, n.birth_date FROM pty_party p JOIN pty_person n ON n.party_id = p.id WHERE p.id = ?", tk.party_id)[0];
   assert.deepEqual({ ...ho }, { party_kind: "PERSON", display_name: "Phạm Thử Nghiệm", family_name: "Phạm", given_name: "Thử Nghiệm", birth_date: "1990-05-06" });
-  assert.deepEqual(w.q("SELECT role_type_code FROM pty_party_role WHERE party_id = ? AND valid_to_date IS NULL", tk.party_id).map((x: any) => x.role_type_code), ["TRAVEL_AGENCY"]);
+  assert.deepEqual(w.q("SELECT role_type_code FROM pty_party_role WHERE party_id = ? AND valid_to_date IS NULL", tk.party_id).map((x: any) => x.role_type_code), ["GUIDE_FREELANCE"]);
   assert.deepEqual(w.q("SELECT permission_type_code FROM stf_permission WHERE staff_id = ? AND valid_to_at IS NULL", tk.id).map((x: any) => x.permission_type_code), ["PARTNER"]);
   // liên hệ: điện thoại, email, địa chỉ
   const lh = w.q("SELECT contact_kind_code, value_normalized FROM pty_contact_point WHERE party_id = ? ORDER BY contact_kind_code", tk.party_id).map((x: any) => ({ ...x }));
@@ -513,12 +513,12 @@ test("(16) Thân sai: vai không phải vai bên ngoài, vai lạ, ô lạ, phi�
   const truoc = anh(w);
   assert.equal((await duyet(w, HR, id, { roleCode: "SALES" })).status, 400);
   assert.equal((await duyet(w, HR, id, { roleCode: "KHONG_CO" })).status, 400);
-  assert.equal((await duyet(w, HR, id, { roleCode: "TRAVEL_AGENCY", ghiChu: "x" })).status, 400);
-  const cu = await duyet(w, HR, id, { roleCode: "TRAVEL_AGENCY", phienBan: 2 });
+  assert.equal((await duyet(w, HR, id, { roleCode: "GUIDE_FREELANCE", ghiChu: "x" })).status, 400);
+  const cu = await duyet(w, HR, id, { roleCode: "GUIDE_FREELANCE", phienBan: 2 });
   assert.equal(cu.status, 409, cu.text);
   assert.equal(cu.json.error.code, "registration_version_changed");
   // Task 12 (mục 4): `phienBan` BẮT BUỘC ở duyet và tu-choi-duyet — thiếu hay null ⇒ 400, không ghi.
-  for (const than of [{ roleCode: "TRAVEL_AGENCY" }, { roleCode: "TRAVEL_AGENCY", phienBan: null }]) {
+  for (const than of [{ roleCode: "GUIDE_FREELANCE" }, { roleCode: "GUIDE_FREELANCE", phienBan: null }]) {
     const r = await w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as: HR, body: than });
     assert.equal(r.status, 400, `duyet ${JSON.stringify(than)}: ${r.text}`);
   }
@@ -542,7 +542,7 @@ test("(17) Màn duyệt của Nhân sự: họ tên, số điện thoại, loạ
   assert.equal(r.headers.get("cache-control"), "no-store");
   assert.equal(r.json.hoTen, "Phạm Thử Nghiệm");
   assert.equal(r.json.soDienThoai, DT);
-  assert.equal(r.json.loai, "TRAVEL_AGENCY");
+  assert.equal(r.json.loai, "GUIDE_FREELANCE");
   assert.equal(r.json.ketLuanDanhBa.kieu, "NEW");
   assert.deepEqual(r.json.muc.map((m: any) => [m.ma, m.ketLuan]), MUC.map((m) => [m, "DAT"]));
   for (const lo of [KHOA_SO, SO, "1990-05-06", "Đường Thử", "pty/", "tep", "CCCD_MAT"]) assert.equal(boUuid(r.text).includes(lo), false, `lộ ${lo}`);
@@ -662,7 +662,10 @@ test("(24) Duyệt loại do Kế toán thêm: hồ sơ có đúng MỘT vai (lo
   const xd = await xemDuyet(w, HR, id);
   assert.equal(xd.status, 200, xd.text);
   assert.ok(xd.json.vaiChon.some((v: any) => v.ma === loai && v.ten === "Loại thử nghiệm" && v.laLoaiDoiTac === true), "vaiChon có loại mới");
-  assert.ok(xd.json.vaiChon.some((v: any) => v.ma === "TRAVEL_AGENCY" && v.laLoaiDoiTac === false), "vaiChon vẫn có vai bên ngoài sẵn có");
+  assert.ok(xd.json.vaiChon.some((v: any) => v.ma === "GUIDE_FREELANCE" && v.laLoaiDoiTac === false), "vaiChon vẫn có vai bên ngoài sẵn có");
+  assert.equal(xd.json.vaiChon.some((v: any) => v.ma === "TRAVEL_AGENCY"), false, "Task 13 vòng sửa 1 I-2: vai «chỉ tổ chức» không ở ô vai cá nhân");
+  assert.ok(xd.json.vaiChonToChuc.some((v: any) => v.ma === "TRAVEL_AGENCY") && xd.json.vaiChonToChuc.some((v: any) => v.ma === loai), "ô vai của tổ chức: Công ty lữ hành + loại do Kế toán thêm");
+  assert.equal(xd.json.vaiChonToChuc.some((v: any) => v.ma === "GUIDE_FREELANCE"), false);
   const r = await duyet(w, HR, id, { roleCode: loai });
   assert.equal(r.status, 200, r.text);
   const tk = taiKhoanMoi(w);
@@ -699,7 +702,7 @@ test("(25) Tắt loại giữa lúc xác minh và lúc duyệt ⇒ 409 role_inac
   assert.equal((await xemDuyet(w, HR, id)).json.vaiChon.some((v: any) => v.ma === loai), false, "loại đã tắt không còn trong ô chọn");
   assert.equal((await duyet(w, HR, id, { roleCode: "LD_KHONG_CO" })).status, 400);
   assert.equal((await duyet(w, HR, id, { roleCode: "SALES_STAFF" })).status, 400);
-  assert.equal((await duyet(w, HR, id, { roleCode: "TRAVEL_AGENCY" })).status, 200, "vai bên ngoài sẵn có vẫn duyệt được qua đường cũ");
+  assert.equal((await duyet(w, HR, id, { roleCode: "GUIDE_FREELANCE" })).status, 200, "vai bên ngoài sẵn có vẫn duyệt được qua đường cũ");
 });
 
 test("(26) Hồ sơ có sẵn đang giữ vai nội bộ mà duyệt loại do Kế toán thêm ⇒ 409 target_mixed_group trước lô", async () => {
@@ -792,7 +795,7 @@ test("(28) Duyệt phiếu có phần tổ chức MỚI: đúng một hồ sơ t
   assert.equal(demViPham(w.sqlite, CHECKS.find((c: any) => c.code === "R-DK-5")), 0);
 });
 
-test("(29) Gắn tổ chức CÓ SẴN: không hồ sơ tổ chức mới, có «Người liên hệ của», không «người quản lý»; cột pháp lý đã có không bị ghi đè (chỉ điền chỗ trống); dòng GPKD là dòng gia hạn; ảnh GPKD về hồ sơ tổ chức có sẵn; màn duyệt nói văn phòng giao người quản lý", async () => {
+test("(29) Gắn tổ chức CÓ SẴN: không hồ sơ tổ chức mới, KHÔNG dòng liên kết nào (ADR-0212 Đ6, ADR-0213 Đ6 — Task 13 vòng sửa 1), không «người quản lý»; cột pháp lý đã có không bị ghi đè (chỉ điền chỗ trống); dòng GPKD là dòng gia hạn; ảnh GPKD về hồ sơ tổ chức có sẵn; màn duyệt nói văn phòng giao người quản lý", async () => {
   const w = setup();
   const coSan = toChucCoSan(w, "org-co-san", { ten: "Biển Xanh Có Sẵn", tenPhapLy: "Tên Pháp Lý Cũ", gpkdKhoa: TO_CHUC.gpkdKhoa });
   const id = phieu(w, { toChuc: {} });
@@ -815,12 +818,13 @@ test("(29) Gắn tổ chức CÓ SẴN: không hồ sơ tổ chức mới, có �
   assert.equal(gp[1].previous_id, `gpkd-${coSan}`, "dòng gia hạn");
   // Tên pháp lý khai khác tên đang có ⇒ không khẳng định TEN_PHAP_LY; MA_SO_THUE (vừa điền) và GPKD (dòng mới) thì có.
   assert.deepEqual(w.q("SELECT target_kind k, attribute_code a FROM pty_verification WHERE party_id = ? ORDER BY target_kind, attribute_code", coSan).map((x: any) => [x.k, x.a]), [["ATTRIBUTE", "MA_SO_THUE"], ["ORG_DOCUMENT", null]]);
-  assert.deepEqual(w.q("SELECT from_party_id, relationship_type_code FROM pty_party_relationship WHERE to_party_id = ?", coSan).map((x: any) => [x.from_party_id, x.relationship_type_code]), [[tk.party_id, "CONTACT_OF"]]);
+  assert.equal(tk.party_id.length > 0, true);
+  assert.deepEqual(w.q("SELECT from_party_id, relationship_type_code FROM pty_party_relationship WHERE to_party_id = ? OR from_party_id = ?", coSan, tk.party_id).map((x: any) => [x.from_party_id, x.relationship_type_code]), [], "không dòng liên kết nào (kể cả «Người liên hệ của»)");
   assert.equal(w.q("SELECT party_id FROM pty_attachment WHERE id = ?", anhGpkd.id)[0].party_id, coSan);
   assert.match(w.q("SELECT detail FROM audit_log WHERE action = 'staff_created'")[0].detail, /gắn tổ chức có sẵn/);
 });
 
-test("(30) PF7: người đăng ký (hồ sơ có sẵn) đã có «Người liên hệ của» mở tới tổ chức có sẵn đó ⇒ lô vẫn chạy, không dòng thứ hai; dòng đã đóng HÔM NAY cũng không làm hỏng lô", async () => {
+test("(30) PF7: người đăng ký (hồ sơ có sẵn) đã có «Người liên hệ của» mở / đóng hôm nay tới tổ chức có sẵn đó ⇒ lô vẫn chạy, không dòng mới (hằng bật: tổ chức có sẵn không nhận dòng nào; dòng mốc A giữ nguyên)", async () => {
   for (const dong of [false, true]) {
     const w = setup();
     const nguoi = hoSoCoSan(w, `pty-ng-${dong}`, "Phạm Thử Nghiệm");
@@ -912,7 +916,7 @@ test("(34) Giấy phép thêm: dòng giấy tờ tổ chức thứ hai, ảnh ô
   assert.deepEqual(w.q("SELECT a.party_id, l.target_id FROM pty_attachment a JOIN pty_attachment_link l ON l.attachment_id = a.id WHERE a.id = ?", anhGp.id).map((x: any) => [x.party_id, x.target_id]), [[org, gp.id]]);
   const tk = taiKhoanMoi(w);
   assert.deepEqual(w.q("SELECT tier_code FROM prc_party_tier WHERE party_id = ?", org).map((x: any) => x.tier_code), [muc], "cấp riêng trên hồ sơ tổ chức");
-  assert.deepEqual(w.q("SELECT tier_code FROM prc_party_tier WHERE party_id = ?", tk.party_id).map((x: any) => x.tier_code), [muc], "hồ sơ người vẫn có cấp của mình");
+  assert.deepEqual(w.q("SELECT tier_code FROM prc_party_tier WHERE party_id = ?", tk.party_id).map((x: any) => x.tier_code), [], "hồ sơ người (Hướng dẫn viên tự do, chưa đặt cấp) không nhận cấp của vai tổ chức");
   assert.equal(dem1(w, "SELECT count(*) n FROM audit_log WHERE action = 'prc_party_tier_set' AND target_id = ?", org), 1);
 });
 
@@ -1017,6 +1021,7 @@ test("(38) Đ7.7: vai cá nhân rỗng + tổ chức CÓ SẴN (chưa có lời 
   const r2 = await duyet(w, HR, id, { roleCode: "GUIDE_FREELANCE" });
   assert.equal(r2.status, 200, r2.text);
   assert.equal(dem1(w, "SELECT count(*) n FROM pty_party_relationship WHERE relationship_type_code = 'MANAGER_OF'"), 0);
+  assert.equal(dem1(w, "SELECT count(*) n FROM pty_party_relationship WHERE to_party_id = ?", coSan), 0, "tổ chức có sẵn: không dòng liên kết nào (ADR-0212 Đ6)");
   assert.deepEqual(mucToChucViPham(w), SACH);
 });
 
@@ -1027,10 +1032,15 @@ test("(39) Thân lệnh duyệt mới: roleCodeToChuc chọn được vai khác 
   await tep(w, id, "GPKD");
   await xacMinhTC(w, id);
   const truoc = anh(w);
-  const sai = await duyet(w, HR, id, { roleCode: "TRAVEL_AGENCY", roleCodeToChuc: "GUIDE_FREELANCE" });
+  // I-2 (vòng sửa 1): vai «chỉ tổ chức» ở phần cá nhân ⇒ 400, không ghi gì.
+  const chiToChuc = await duyet(w, HR, id, { roleCode: "TRAVEL_AGENCY" });
+  assert.equal(chiToChuc.status, 400, chiToChuc.text);
+  assert.match(chiToChuc.json.error.message, /chỉ dành cho tổ chức/);
+  assert.deepEqual(anh(w), truoc);
+  const sai = await duyet(w, HR, id, { roleCode: "GUIDE_FREELANCE", roleCodeToChuc: "GUIDE_FREELANCE" });
   assert.equal(sai.status, 400, sai.text);
   assert.deepEqual(anh(w), truoc);
-  const ok = await duyet(w, HR, id, { roleCode: "TRAVEL_AGENCY", roleCodeToChuc: loai });
+  const ok = await duyet(w, HR, id, { roleCode: "GUIDE_FREELANCE", roleCodeToChuc: loai });
   assert.equal(ok.status, 200, ok.text);
   const org = w.q("SELECT to_party_id FROM pty_party_relationship WHERE relationship_type_code = 'MANAGER_OF'")[0].to_party_id;
   assert.deepEqual(w.q("SELECT role_type_code FROM pty_party_role WHERE party_id = ? AND valid_to_date IS NULL", org).map((x: any) => x.role_type_code), [loai]);
@@ -1047,8 +1057,47 @@ test("(39) Thân lệnh duyệt mới: roleCodeToChuc chọn được vai khác 
   await xacMinhTC(w3, id3);
   w3.sqlite.exec("DROP TRIGGER IF EXISTS dk_registration_immutable");
   w3.sqlite.prepare("UPDATE dk_registration SET org_role_code = NULL WHERE id = ?").run(id3);
-  const r3 = await duyet(w3, HR, id3, { roleCode: "TRAVEL_AGENCY" });
+  const r3 = await duyet(w3, HR, id3, { roleCode: "GUIDE_FREELANCE" });
   assert.equal(r3.status, 400, r3.text);
-  const r3b = await duyet(w3, HR, id3, { roleCode: "TRAVEL_AGENCY", roleCodeToChuc: "TRAVEL_AGENCY" });
+  const r3b = await duyet(w3, HR, id3, { roleCode: "GUIDE_FREELANCE", roleCodeToChuc: "TRAVEL_AGENCY" });
   assert.equal(r3b.status, 200, r3b.text);
+});
+
+// ---- Task 13 vòng sửa 1 (I-3): «cấp» báo cho người duyệt khi phiếu «chỉ tổ chức» — trỏ câu 8b (cấp của HỒ SƠ TỔ CHỨC), «sẽ áp» theo vai của tổ chức ----
+async function capMacDinhLuHanh(w: any): Promise<string> {
+  const muc = (await w.call("POST", "/api/pricing/muc-ta", { as: ACC, body: { ten: "TA9" } })).json.muc.code;
+  assert.equal((await w.call("POST", `/api/pricing/muc-ta/${muc}/dong`, { as: ACC, body: { phamVi: "ALL", kieu: "RATE", tuNgay: "2026-01-01", tyLeBp: 1000 } })).status, 201);
+  assert.equal((await w.call("POST", "/api/pricing/muc-ta/gan", { as: ACC, body: { loai: "TRAVEL_AGENCY", muc, tuNgay: "2026-01-01" } })).status, 201);
+  const cs = (await w.call("GET", "/api/pricing/cap-mac-dinh", { as: SUP })).json.loai.find((l: any) => l.code === "TRAVEL_AGENCY")?.hienHanh?.id ?? null;
+  const dcs = await w.call("POST", "/api/pricing/cap-mac-dinh", { as: SUP, body: { loai: "TRAVEL_AGENCY", muc, dangHieuLuc: cs } });
+  assert.ok(dcs.status === 200 || dcs.status === 201, dcs.text);
+  await new Promise((r) => setTimeout(r, 5));
+  return muc;
+}
+
+test("(40) I-3a: phiếu «chỉ tổ chức», vai của tổ chức có cấp mặc định ⇒ `cap` trả người duyệt là cấp ĐÃ ÁP trên hồ sơ tổ chức (Toàn quyền thấy tên cấp); hồ sơ người không cấp riêng", async () => {
+  const w = setup();
+  const muc = await capMacDinhLuHanh(w);
+  const id = phieuChiToChuc(w);
+  await tep(w, id, "GPKD");
+  await xacMinhTC(w, id);
+  const r = await duyet(w, SUP, id, { roleCode: null });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.cap.ap, true, r.text);
+  assert.equal(r.json.cap.cap?.code, muc);
+  const tk = taiKhoanMoi(w);
+  const org = w.q("SELECT to_party_id FROM pty_party_relationship WHERE relationship_type_code = 'MANAGER_OF'")[0].to_party_id;
+  assert.deepEqual(w.q("SELECT tier_code FROM prc_party_tier WHERE party_id = ?", org).map((x: any) => x.tier_code), [muc]);
+  assert.deepEqual(w.q("SELECT tier_code FROM prc_party_tier WHERE party_id = ?", tk.party_id).map((x: any) => x.tier_code), []);
+});
+
+test("(41) I-3b: phiếu «chỉ tổ chức», vai của tổ chức chưa đặt cấp ⇒ lý do của VAI TỔ CHỨC («chưa đặt cấp»), không rơi về «vừa đổi» hay «không hưởng»", async () => {
+  const w = setup();
+  const id = phieuChiToChuc(w);
+  await tep(w, id, "GPKD");
+  await xacMinhTC(w, id);
+  const r = await duyet(w, SUP, id, { roleCode: null });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual({ ap: r.json.cap.ap, lyDo: r.json.cap.lyDo }, { ap: false, lyDo: "CHUA_DAT" });
+  // Lý do là của «sẽ áp» theo vai tổ chức (pricing). Nhánh dự phòng VAI_KHONG_HUONG chỉ chạy khi tổ chức không có vai — route đã chặn (400), không tới được bằng đường thật.
 });

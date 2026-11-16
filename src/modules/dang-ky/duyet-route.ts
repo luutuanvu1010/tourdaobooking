@@ -21,7 +21,7 @@ import {
   traVeXacMinhStatement, tuChoiDuyetStatement,
 } from "./repository.ts";
 import { maLenhThu } from "./rules.ts";
-import { kiemVaiKhiDuyet, vaiChonKhiDuyet } from "./vai.ts";
+import { kiemVaiKhiDuyet, vaiChonKhiDuyet, vaiChonToChucKhiDuyet } from "./vai.ts";
 import { lienKetLoDuyet, MOI_TRUONG_MO, phanCuaVai, vaiCaNhanRongDuoc } from "../../shared/dang-ky-vai.ts";
 import { guiThuSauLo } from "./thu-bao.ts";
 import { kiemDuyet, kiemLyDoDuyet, kiemTraVe, laMaPhieu, loiDungLoDuyet, loiLoDuyet } from "./xac-minh.ts";
@@ -61,12 +61,13 @@ export async function xemDeDuyet({ env, staff, params }: Ctx<"accounts">): Promi
   const bk = await tomTatDeDuyet(env.DB, p.id, p.current_version);
   if (!bk) return json({ ...tomTatPhieu, daXuLy: true });
   const [batBuoc, kl] = await Promise.all([mucPhaiDat(env.DB, new Date().toISOString(), p), moiNhat(env.DB, p)]);
-  const vaiChon = await vaiChonKhiDuyet(env.DB);
+  const [vaiChon, vaiChonToChuc] = await Promise.all([vaiChonKhiDuyet(env.DB), vaiChonToChucKhiDuyet(env.DB)]);
   const dich = p.match_kind === "EXISTING" && p.match_party_id && can(staff, "party.view") ? await partySummary(env.DB, p.match_party_id) : null;
   const dichToChuc = p.org_match_kind === "EXISTING" && p.org_match_party_id && can(staff, "party.view") ? await partySummary(env.DB, p.org_match_party_id) : null;
   return json({
     ...tomTatPhieu,
-    vaiChon, // ô chọn vai ở màn duyệt đọc từ đây (PF2): loại do Kế toán thêm có mặt, loại đã tắt thì không
+    vaiChon, // ô chọn vai ở màn duyệt đọc từ đây (PF2): loại do Kế toán thêm có mặt, loại đã tắt thì không; vai «chỉ tổ chức» không có (Task 13 vòng sửa 1)
+    vaiChonToChuc, // ô chọn vai của tổ chức (Task 13): vai «chỉ tổ chức» + loại do Kế toán thêm
     guiLuc: p.submitted_at,
     hoTen: [bk.family_name, bk.middle_name, bk.given_name].filter((x): x is string => !!x).join(" "),
     soDienThoai: bk.phone_value,
@@ -97,6 +98,8 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
   if (vai.kq === "DA_TAT") return error(409, "role_inactive", CAU_LOAI_DA_TAT);
   if (vai.kq !== "HOP_LE") return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
   const laLoaiDoiTac = vai.laLoaiDoiTac;
+  // Vai «chỉ tổ chức» (Công ty lữ hành — ADR-0212 Đ2) không đứng ở phần cá nhân (Task 13 vòng sửa 1, I-2).
+  if (roleCode !== null && phanCuaVai(roleCode, laLoaiDoiTac) === "CHI_TO_CHUC") return error(400, "invalid_input", "Vai người dùng này chỉ dành cho tổ chức. Hãy chọn một vai người dùng cá nhân.");
   if (roleCode !== null && !laLoaiDoiTac) {
     if (!isRoleCode(roleCode) || groupOf([roleCode]) !== "EXTERNAL") return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
     const vaiLoi = roleAssignmentProblem({

@@ -59,7 +59,7 @@ test("Đảo hằng (ADR-0212 Đ2, Đ4; ADR-0213 Đ6): BA hành vi đổi CÙNG 
   assert.ok(lyDoChuaMoDuoc("TRAVEL_AGENCY", { coThayMatToChuc: true, chinhSachCoToChuc: false, coOBangLai: false }));
   // Vai cá nhân rỗng KHÔNG BAO GIỜ gửi được khi không có phần tổ chức.
   assert.equal(vaiCaNhanRongDuoc(bat, false), false);
-  // Tổ chức có sẵn: không bao giờ người quản lý (chủ 16/11) — giữ «Người liên hệ của» (ruling điều phối Task 13).
-  assert.equal(lienKetLoDuyet(bat, "CO_SAN"), "CONTACT_OF");
+  // Tổ chức có sẵn (ADR-0212 Đ6, ADR-0213 Đ6; Task 13 vòng sửa 1): bật ⇒ KHÔNG dòng nào (B2: «Thành viên của» khi có lời mời), không bao giờ người quản lý; tắt (mốc A) ⇒ «Người liên hệ của».
+  assert.equal(lienKetLoDuyet(bat, "CO_SAN"), null);
   assert.equal(lienKetLoDuyet(tat, "CO_SAN"), "CONTACT_OF");
 });

@@ -29,6 +29,16 @@ export interface VaiChonDuyet { ma: string; ten: string; laLoaiDoiTac: boolean }
  * Một nguồn cho cả ô chọn ở màn duyệt lẫn kiểm trong lệnh duyệt; loại đã tắt tự biến khỏi danh sách.
  */
 export async function vaiChonKhiDuyet(db: D1Database): Promise<VaiChonDuyet[]> {
+  // Phần CÁ NHÂN: vai «chỉ tổ chức» (Công ty lữ hành — ADR-0212 Đ2) không đứng ở đây (Task 13 vòng sửa 1, I-2).
+  return (await vaiDuyetDuoc(db)).filter((v) => phanCuaVai(v.ma, v.laLoaiDoiTac) !== "CHI_TO_CHUC");
+}
+
+/** Ô chọn vai của TỔ CHỨC ở màn duyệt (Task 13): vai «chỉ tổ chức» và loại do Kế toán thêm (`phanCuaVai ≠ CA_NHAN`), cùng nguồn `vaiDangKyDuoc`. */
+export async function vaiChonToChucKhiDuyet(db: D1Database): Promise<VaiChonDuyet[]> {
+  return (await vaiDuyetDuoc(db)).filter((v) => phanCuaVai(v.ma, v.laLoaiDoiTac) !== "CA_NHAN");
+}
+
+async function vaiDuyetDuoc(db: D1Database): Promise<VaiChonDuyet[]> {
   return (await vaiDangKyDuoc(db))
     .filter((v) => v.laLoaiDoiTac || (isRoleCode(v.ma) && ROLES[v.ma].defaults.includes("PARTNER")))
     .map((v) => ({ ma: v.ma, ten: v.ten, laLoaiDoiTac: v.laLoaiDoiTac }));
