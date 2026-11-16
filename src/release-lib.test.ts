@@ -23,6 +23,7 @@ type Lib = {
   parseVersionId: (out: string) => string | null;
   dayLen: (deps: Deps & { target?: string; now?: () => Date; sleep?: (ms: number) => Promise<void>; thongBao?: (tieuDe: string, noiDung: string) => void; giuThuc?: () => void }) => Promise<number>;
   CAU_CHON_DAY_LEN: string;
+  SO_LAN_DOC_LOI_TOI_DA: number;
   trienKhai: (deps: Deps & { now?: () => Date; sleep?: (ms: number) => Promise<void>; version?: string; docMocTinDoi?: () => Promise<string>; docCacKho?: () => Promise<{ binding: string; ten: string }[] | null> }) => Promise<number>;
   DUOI_MIGRATION_TIN_DOI: string;
   coMigrationTinDoi: (pending: string[]) => boolean;
@@ -370,6 +371,34 @@ test("day-len: lượt kiểm chưa hiện / đang chạy → chờ (sleep), in 
   assert.equal(h.waits.length, 3);
   assert.match(h.text(), /đang kiểm: 1\/2 phần xong/);
   assert.match(h.text(), /xong: 2\/2 phần xong/);
+});
+
+// 17/11: một lần `gh run view` lỗi giữa chừng (chập mạng) làm day-len dừng dù lượt kiểm 43973043301 xanh đủ 21 phần. Lỗi đọc thoáng qua: chờ một nhịp rồi hỏi lại;
+// lỗi liền nhau tới trần thì vẫn DỪNG (không bao giờ đoán xanh).
+test("day-len: `gh run view` / `gh run list` lỗi thoáng qua (dưới trần liền nhau) → chờ một nhịp rồi hỏi lại, xanh thì vẫn đẩy main", async () => {
+  const h = dl(dayLenScript({ [RUNLIST(NEW)]: [FAIL, out(JSON.stringify([luot()]))], [RUNVIEW(4242)]: [FAIL, FAIL, FAIL, viewOf()] }), ["c"]);
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.equal(h.calls.filter((c) => c === RUNLIST(NEW)).length, 2);
+  assert.equal(h.calls.filter((c) => c === RUNVIEW(4242)).length, 4);
+  assert.equal(h.waits.length, 4, "mỗi lần đọc lỗi chờ đúng một nhịp trước khi hỏi lại");
+  assert.ok(h.calls.includes("git push origin main"));
+  assert.match(h.text(), /hỏi lại/);
+});
+
+test("day-len: `gh run view` lỗi liền nhau quá trần → DỪNG, không đẩy main; một lần đọc được ở giữa thì đếm lại từ đầu", async () => {
+  const h1 = dl(dayLenScript({ [RUNVIEW(4242)]: FAIL }), ["c"]);
+  assert.notEqual(await lib.dayLen({ ...h1.deps, target: "worktree-x" }), 0);
+  assert.match(h1.text(), /không đọc được lượt kiểm 4242/);
+  assert.equal(h1.calls.filter((c) => c === RUNVIEW(4242)).length, lib.SO_LAN_DOC_LOI_TOI_DA + 1);
+  assert.ok(!h1.calls.includes("git push origin main"));
+  const h2 = dl(dayLenScript({ [RUNLIST(NEW)]: FAIL }), ["c"]);
+  assert.notEqual(await lib.dayLen({ ...h2.deps, target: "worktree-x" }), 0);
+  assert.match(h2.text(), /gh run list/);
+  assert.equal(h2.calls.filter((c) => c === RUNLIST(NEW)).length, lib.SO_LAN_DOC_LOI_TOI_DA + 1);
+  assert.ok(!h2.calls.includes("git push origin main"));
+  const dangChay = viewOf({ status: "in_progress", conclusion: "" });
+  const h3 = dl(dayLenScript({ [RUNVIEW(4242)]: [FAIL, FAIL, FAIL, dangChay, FAIL, FAIL, FAIL, viewOf()] }), ["c"]);
+  assert.equal(await lib.dayLen({ ...h3.deps, target: "worktree-x" }), 0, "đếm lỗi LIỀN NHAU, không cộng dồn cả lượt");
 });
 
 test("day-len: GitHub không có lượt kiểm sau 5 phút / lượt chạy quá 45 phút → DỪNG (không treo mãi), không đẩy main", async () => {

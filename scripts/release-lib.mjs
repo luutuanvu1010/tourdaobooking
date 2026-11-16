@@ -245,6 +245,8 @@ export const MUC_TIEU_GIAY = 600;
 const CHO_LUOT_HIEN_MS = 5 * 60e3;
 const CHO_LUOT_XONG_MS = 45 * 60e3;
 const NHIP_HOI_MS = 15e3;
+/** 17/11: một lần `gh run view` chập mạng từng làm day-len dừng dù lượt kiểm đã xanh. Đọc lỗi liền nhau tới số này thì chờ một nhịp rồi hỏi lại; lần kế tiếp lỗi nữa thì dừng. */
+export const SO_LAN_DOC_LOI_TOI_DA = 3;
 const LY_DO_TOI_THIEU = 5;
 const isSha = (s) => typeof s === "string" && /^[0-9a-f]{40}$/.test(s);
 export const nhanhChoKiem = (sha) => `cho-kiem/${sha}`;
@@ -343,9 +345,17 @@ const phut = (giay) => `${Math.floor(giay / 60)} phút ${String(giay % 60).padSt
 async function choLuot(run, log, sleep, now, sha, { id = null, attemptToiThieu = 1 } = {}) {
   const batDau = now().getTime();
   let luotId = id;
+  // Số lần đọc lỗi LIỀN NHAU (một lần đọc được thì về 0). Lỗi thoáng qua thì hỏi lại; quá trần thì dừng — không bao giờ đoán xanh.
+  let docLoi = 0;
   while (luotId === null) {
     const ds = await cacLuot(run, sha);
-    if (ds === null) return { loi: "không đọc được danh sách lượt kiểm (`gh run list` lỗi — mất mạng hay chưa đăng nhập gh?)" };
+    if (ds === null) {
+      if (++docLoi > SO_LAN_DOC_LOI_TOI_DA) return { loi: `không đọc được danh sách lượt kiểm (\`gh run list\` lỗi ${docLoi} lần liền — mất mạng hay chưa đăng nhập gh?)` };
+      log(`  (\`gh run list\` lỗi — chờ ${NHIP_HOI_MS / 1e3} giây rồi hỏi lại, lần ${docLoi}/${SO_LAN_DOC_LOI_TOI_DA})`);
+      await sleep(NHIP_HOI_MS);
+      continue;
+    }
+    docLoi = 0;
     const dung = ds.filter((l) => l?.headSha === sha).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
     if (dung.length) luotId = dung[0].databaseId;
     else {
@@ -356,7 +366,13 @@ async function choLuot(run, log, sleep, now, sha, { id = null, attemptToiThieu =
   let inCu = "";
   for (;;) {
     const l = await xemLuot(run, luotId);
-    if (l === null) return { loi: `không đọc được lượt kiểm ${luotId} (\`gh run view\` lỗi)` };
+    if (l === null) {
+      if (++docLoi > SO_LAN_DOC_LOI_TOI_DA) return { loi: `không đọc được lượt kiểm ${luotId} (\`gh run view\` lỗi ${docLoi} lần liền)` };
+      log(`  (\`gh run view\` lỗi — chờ ${NHIP_HOI_MS / 1e3} giây rồi hỏi lại, lần ${docLoi}/${SO_LAN_DOC_LOI_TOI_DA})`);
+      await sleep(NHIP_HOI_MS);
+      continue;
+    }
+    docLoi = 0;
     if (l.headSha !== sha) return { loi: `lượt kiểm ${luotId} thuộc commit ${String(l.headSha).slice(0, 8)}, không phải ${sha.slice(0, 8)}` };
     const jobs = Array.isArray(l.jobs) ? l.jobs : [];
     const xong = jobs.filter((j) => j.status === "completed").length;
