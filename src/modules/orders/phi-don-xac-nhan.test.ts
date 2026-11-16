@@ -7,7 +7,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { app, world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { cauThieuPhiDon } from "./phi-don-don.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
@@ -384,9 +384,13 @@ test("[vòng sửa 1a] Đối tác khai cọc, Còn vé kèm mức ⇒ xác nh�
   assert.deepEqual(dongPhi(w, o.id), [DONG_30K]);
   // `remaining_amount` là cột cọc CŨ (NT-R9, chỉ theo tổng); lời khai cọc (ADR-0159) vào sổ thu — «còn phải thu» thật đọc từ sổ thu.
   assert.deepEqual(tien(w, o.id), { subtotal: 1_060_000, discount: 0, total: 1_060_000, remaining_amount: 1_060_000 });
-  assert.equal(w.q("SELECT COALESCE(SUM(amount), 0) AS n FROM bil_payment_receipt WHERE order_id = ?", o.id)[0].n, 300_000, "khoản trả trước = lời khai cọc");
+  // Sổ thu đọc qua route của `billing` (ADR-0024 điều 4: orders — kể cả tệp bài — không đọc bảng/view của billing).
   const so = (await ok(w.call("GET", `/api/orders/${o.id}/payments`, { as: SUP }), 200, "sổ thu")).json;
+  assert.deepEqual(so.lanThu.map((l: { soTien: number }) => l.soTien), [300_000], "đúng một khoản trả trước = lời khai cọc");
   assert.deepEqual([so.phaiThu, so.daThu, so.conLai], [1_060_000, 300_000, 760_000], JSON.stringify(so));
+  // Cùng hàm công bố mà bài «đơn chờ … 409» dùng để khẳng định «không khoản thu nào» — ở đây nó THẤY khoản cọc (đường đọc không mù).
+  const t = await app.tienDonVe(w.env.DB, o.id);
+  assert.equal(t!.daThu + t!.choNop + t!.choXacNhan, 300_000, JSON.stringify(t));
 });
 
 test("[vòng sửa 1b] nháp Đối tác còn dòng bảng phí cũ, cọc khai bằng tổng cũ (gồm dòng đó) ⇒ Gửi đơn 409 declared_deposit_exceeds_total (tổng mới không gồm dòng cũ), ở lại nháp", async () => {
@@ -417,7 +421,11 @@ test("[vòng sửa 1b] đơn Đối tác ĐANG CHỜ còn dòng bảng phí cũ,
   assert.equal(r.json.error.code, "declared_deposit_exceeds_total");
   // Câu của NGƯỜI XÉT (cổng route so với tổng mới, trước khi ghi) — không phải câu của lớp CSDL (trigger 0136 bắt khi câu tiền hạ tổng dưới lời khai, lớp lưới thứ hai).
   assert.equal(r.json.error.message, "Số tiền khách đặt cọc cho đối tác đang lớn hơn tổng tiền của đơn. Hãy trả đơn để người lập sửa số khai, rồi xác nhận lại.");
-  assert.equal(w.q("SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", o.id)[0].n, 0, "không khoản thu nào");
+  // Không khoản thu nào: đọc qua hàm công bố của `billing` (`tienDonVe` — route sổ thu trả 404 với đơn nháp; ADR-0024 điều 4: orders, kể cả tệp bài, không đọc bảng/view của billing).
+  // Khoản trả trước của Đối tác nằm ở `daThu` (đã về công ty) hoặc `choNop` / `choXacNhan` (còn ở tay người lập) — cả ba phải 0.
+  const t = await app.tienDonVe(w.env.DB, o.id);
+  assert.ok(t, "đọc được số tiền của đơn");
+  assert.deepEqual([t.daThu, t.choNop, t.choXacNhan], [0, 0, 0], "không khoản thu nào");
   assert.equal(trangThai(w, o.id), "draft");
   assert.deepEqual(tien(w, o.id), truoc.tien);
   assert.deepEqual(moiDong(w, o.id), truoc.dong);
