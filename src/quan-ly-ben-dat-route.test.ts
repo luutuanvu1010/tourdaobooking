@@ -147,3 +147,26 @@ test("Đ8.1: người quản lý Gửi đơn đơn tư cách tổ chức mình l
   assert.equal((await w.call("GET", `/api/orders/${d1}`, { as: NAM })).status, 403, "cờ tính lại mỗi request — mất hiệu lực thì thôi thấy");
   assert.ok(!(await idsDanhSach(w, NAM)).includes(d1));
 });
+
+// ---- Task 12 vòng sửa 1 (người kiểm độc lập) ----
+
+test("vòng sửa 1: gửi vé qua route thật (`POST /api/ve/giao`, `POST /api/ve/cap`) trên đơn tổ chức người khác lập ⇒ người quản lý 403 (ve.cap.send không nhận cờ)", async () => {
+  const { w, d1 } = await setup();
+  const giao = await w.call("POST", "/api/ve/giao", { as: NAM, body: { orderId: d1, requestId: "99999999-9999-4999-8999-999999999999" } });
+  assert.equal(giao.status, 403, giao.text);
+  const cap = await w.call("POST", "/api/ve/cap", { as: NAM, body: { orderId: d1 } });
+  assert.equal(cap.status, 403, cap.text);
+});
+
+test("vòng sửa 1: văn phòng chuyển quyền quản lý sang người khác ⇒ người quản lý cũ mất quyền xem đơn và công nợ tổ chức ngay (request kế tiếp)", async () => {
+  const { w, d1 } = await setup();
+  assert.equal((await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: SUNRISE, hanMuc: 10_000_000, gioTra: 168, gioAnHan: 12, lyDo: "thử" } })).status, 201);
+  assert.equal((await w.call("GET", `/api/orders/${d1}`, { as: NAM })).status, 200, "trước khi chuyển");
+  const chuyen = await w.call("POST", `/api/parties/${SUNRISE}/to-chuc/nguoi-quan-ly`, { as: SUP, body: { lyDo: "THEO_YEU_CAU_TO_CHUC", nguoiQuanLyHienTai: `pty-${NAM}`, personPartyId: `pty-${TV}` } });
+  assert.equal(chuyen.status, 200, chuyen.text);
+  assert.equal((await w.call("GET", `/api/orders/${d1}`, { as: NAM })).status, 403, "người quản lý cũ: đơn tổ chức đóng ngay");
+  assert.ok(!(await idsDanhSach(w, NAM)).includes(d1));
+  assert.deepEqual((await w.call("GET", "/api/tra-sau/cua-toi", { as: NAM })).json.toChuc, [], "không còn sổ Trả sau của tổ chức");
+  assert.equal((await w.call("GET", `/api/orders/${d1}/cong-no-dai-ly`, { as: NAM })).status, 403, "không còn phiếu công nợ tổ chức");
+  assert.equal((await w.call("GET", `/api/orders/${d1}`, { as: TV })).status, 200, "người quản lý mới thấy");
+});

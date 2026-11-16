@@ -122,7 +122,10 @@ export function tenTaiKhoan(s: string): Set<string> {
   for (const m of s.matchAll(/\b([A-Za-z_$][\w$]*)\??\s*:\s*(?:Readonly<\s*)?(?:(?:Pick|Omit)<\s*)?(?:StaffProfile|PermissionHolder)\b/g)) ten.add(m[1]!);
   for (let doi = true; doi;) {
     doi = false;
-    for (const m of s.matchAll(/\bconst\s+([A-Za-z_$][\w$]*)\s*(?::[^=]+)?=\s*([A-Za-z_$][\w$]*)\s*[;,)]/g)) if (ten.has(m[2]!) && !ten.has(m[1]!)) { ten.add(m[1]!); doi = true; }
+    // gán lại, kể cả qua thuộc tính: `const x = staff;`, `const u = ctx.staff;` (vế phải là đường thuộc tính kết thúc bằng một tên tài khoản)
+    for (const m of s.matchAll(/\b(?:const|let)\s+([A-Za-z_$][\w$]*)\s*(?::[^=]+)?=\s*(?:[A-Za-z_$][\w$]*\??\.)*([A-Za-z_$][\w$]*)\s*[;,)]/g)) if (ten.has(m[2]!) && !ten.has(m[1]!)) { ten.add(m[1]!); doi = true; }
+    // gỡ đổi tên: `const { staff: x } = ctx;`, tham số `({ staff: x })` — `<tên tài khoản>: <định danh>` theo sau bởi `,` `}` `=`
+    for (const m of s.matchAll(/\b([A-Za-z_$][\w$]*)\s*:\s*([a-z_$][\w$]*)\s*[,}=]/g)) if (ten.has(m[1]!) && !ten.has(m[2]!)) { ten.add(m[2]!); doi = true; }
   }
   return ten;
 }
@@ -212,6 +215,10 @@ test("Đ4.4 (vòng sửa 1): bộ đọc bắt đổi tên biến, `?.`, gỡ `{
   assert.deepEqual(dongDocHoSo("const { id, partyId: p } = ctx.staff;").length, 1);
   assert.deepEqual(dongDocHoSo("const tk = actor;\nconst x = tk.partyId;"), ["const x = tk.partyId;"]);
   assert.deepEqual(dongDocHoSo("const x = ctx.staff.partyId;").length, 1);
+  // vòng sửa 1 Task 12 (người kiểm): gán lại qua thuộc tính và gỡ đổi tên
+  assert.deepEqual(dongDocHoSo("const u = ctx.staff;\nconst p = u.partyId;"), ["const p = u.partyId;"]);
+  assert.deepEqual(dongDocHoSo("const { staff: x } = ctx;\nreturn x.partyId;"), ["return x.partyId;"]);
+  assert.deepEqual(dongDocHoSo("route(\"GET\", \"/x\", \"orders\", async ({ env, staff: nguoi }) => nguoi?.partyId);").length, 1);
   assert.deepEqual(dongDocHoSo("const a = t.partyId; const b = order.bookerPartyId; const c = huong.partyId;"), [], "hồ sơ của tư cách / đơn / người hưởng không phải hồ sơ người gọi");
   // Phá thử của người kiểm: thêm `who.partyId` vào pricing ⇒ tệp chưa có trong bảng ⇒ đỏ.
   assert.equal(loiXepNhom("src/modules/pricing/index.ts", dongDocHoSo("const ben = who.partyId;"), XEP["src/modules/pricing/index.ts"]).length, 1);

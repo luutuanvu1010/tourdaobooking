@@ -51,20 +51,20 @@ function doiSoBa(s: string, tu: number): string | null {
 const gon = (x: string) => x.replace(/\s+/g, " ").trim();
 
 /**
- * MIỄN CÓ TÊN: `tệp|ô|ngữ cảnh` → lý do. Mỗi dòng phải còn khớp đúng một lời gọi (miễn thừa ⇒ đỏ).
+ * MIỄN CÓ TÊN: `tệp|ô|ngữ cảnh` → số lời gọi khớp + lý do. Số khớp phải ĐÚNG `so` (vòng sửa 1: thêm một lời gọi cùng khoá — ví dụ `const scope = { ownerId, assigned }` ở route mới — ⇒ lệch số ⇒ đỏ; miễn thừa ⇒ đỏ).
  */
-const MIEN: Record<string, string> = {
+const MIEN: Record<string, { so: number; lyDo: string }> = {
   // Kho vé (ADR-0170 Đ1): sau `order.view` route còn hỏi `ve.cap.send` (không nhận cờ — vé giữ cho người lập) ⇒ cờ không đổi kết quả; kho vé không đọc bên đặt của đơn.
-  "src/modules/ve-dien-tu/index.ts|order.view|{ ownerId: chu, assigned }": "ADR-0170 Đ1: ve.cap.send chặn ngay sau",
+  "src/modules/ve-dien-tu/index.ts|order.view|{ ownerId: chu, assigned }": { so: 1, lyDo: "ADR-0170 Đ1: ve.cap.send chặn ngay sau" },
   // Quét vé (ADR-0175 Đ3): Đối tác không có ô quét (`ve.quet.*` none) — không bao giờ tới đây.
-  "src/index.ts|order.view|ctx": "ADR-0175: Đối tác không quét vé",
-  "src/index.ts|money.view|ctx": "ADR-0175: Đối tác không quét vé",
+  "src/index.ts|order.view|ctx": { so: 1, lyDo: "ADR-0175: Đối tác không quét vé" },
+  "src/index.ts|money.view|ctx": { so: 1, lyDo: "ADR-0175: Đối tác không quét vé" },
   // Bán hàng phụ trách (ADR-0142): thông tin người Bán hàng của đơn — việc của văn phòng; dispatch (module nghiêm) không đọc bên đặt. B1 không mở cho người quản lý tổ chức.
-  "src/modules/dispatch/ban-hang-route.ts|order.view|{ ownerId: o.staffId, assigned: duocGiao }": "ADR-0142: việc văn phòng, không thuộc Đ5",
+  "src/modules/dispatch/ban-hang-route.ts|order.view|{ ownerId: o.staffId, assigned: duocGiao }": { so: 1, lyDo: "ADR-0142: việc văn phòng, không thuộc Đ5" },
   // Phần thương mại (hoa hồng) của đơn: `order.terms.view` không thuộc R13 và `cheDoThuongMai` chặn Đối tác trên đơn không phải của mình — B1 không mở hoa hồng tổ chức cho người quản lý.
-  "src/modules/orders/index.ts|order.view|scope": "order.terms.view ngoài R13 (thuong-mai)",
+  "src/modules/orders/index.ts|order.view|scope": { so: 1, lyDo: "order.terms.view ngoài R13 (thuong-mai)" },
   // Dấu nhập phần mềm kế toán: `accounting.entry.view` của Đối tác = none ⇒ 403 dù cờ đúng.
-  "src/modules/billing/index.ts|order.view|scope": "accounting.entry.view của Đối tác none (nhap-ke-toan)",
+  "src/modules/billing/index.ts|order.view|scope": { so: 1, lyDo: "accounting.entry.view của Đối tác none (nhap-ke-toan)" },
 };
 
 test("mọi `can()` xét ô thuộc danh sách R13 truyền cờ `quanLyBenDat` (hoặc là ngữ cảnh của chính mình / đang phụ trách / miễn có tên)", () => {
@@ -97,5 +97,6 @@ test("mọi `can()` xét ô thuộc danh sách R13 truyền cờ `quanLyBenDat` 
     }
   }
   assert.deepEqual(thieu, [], "lời gọi xét ô của đơn mà không truyền cờ quanLyBenDat — truyền cờ (ctx.laQuanLyCuaBen) hoặc thêm miễn có tên kèm lý do");
-  assert.deepEqual(Object.keys(MIEN).filter((k) => !dungMien.has(k)), [], "miễn không còn khớp lời gọi nào — xoá dòng miễn");
+  assert.deepEqual(Object.entries(MIEN).filter(([k, m]) => (dungMien.get(k) ?? 0) !== m.so).map(([k, m]) => `${k}: khớp ${dungMien.get(k) ?? 0}, bảng ghi ${m.so} (${m.lyDo})`), [],
+    "miễn lệch số — lời gọi mới cùng kiểu phải truyền cờ hoặc tự mang miễn có lý do; miễn thừa thì xoá");
 });

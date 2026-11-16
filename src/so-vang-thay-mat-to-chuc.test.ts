@@ -316,3 +316,17 @@ test("vòng sửa 1 (Đ3.2): con-duoc-dung — Đối tác gửi bên đặt ngo
   assert.equal((await w.call("GET", "/api/tra-sau/con-duoc-dung", { as: NAM })).status, 200);
   assert.equal((await w.call("GET", `/api/tra-sau/con-duoc-dung?benDat=${KHAC}`, { as: SALES })).status, 200, "văn phòng chọn bên đặt tự do như hôm nay");
 });
+
+test("vòng sửa 1 Task 12: người đã thôi thay mặt tổ chức không «Rút lại» được đơn tổ chức đang chờ (rut-xac-nhan đi qua cổng chung)", async () => {
+  const w = await setup();
+  const r = await lap(w, NAM, { tuCach: SUNRISE });
+  const id = r.json.order.id as string;
+  w.sqlite.prepare("INSERT INTO ord_confirm_request (id, order_id, submitted_at, submitted_by, deadline_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .run(`yc-${id}`, id, AT, NAM, "2099-01-01T00:00:00.000Z", AT, AT);
+  w.sqlite.prepare("UPDATE pty_party_relationship SET valid_to_date = '2026-10-02' WHERE id = ?").run(`lk-pty-${TV}-${SUNRISE}`);
+  w.sqlite.prepare("UPDATE pty_party_relationship SET valid_to_date = '2026-10-02' WHERE id = ?").run(`lk-pty-${NAM}-${SUNRISE}`);
+  const rut = await w.call("POST", `/api/orders/${id}/rut-xac-nhan`, { as: NAM, body: {} });
+  assert.equal(rut.status, 403, rut.text);
+  assert.equal(rut.json.error.code, "not_acting_for_org");
+  assert.equal(dem(w, "SELECT count(*) AS n FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id), 1, "yêu cầu vẫn mở");
+});

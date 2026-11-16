@@ -124,6 +124,12 @@
   - T13-7 Xác minh «đạt» với vai cá nhân rỗng kiểm vai của tổ chức (trước: `role_invalid` chặn mọi phiếu «chỉ tổ chức»); `kiemHoSoDich` nhận vai null (vẫn kiểm cá nhân / ngưng / gộp / có tài khoản / lẫn nhóm nội bộ).
   - T13-8 Giao diện: chỉ `web/dang-ky.ts` (`luuVai` lưu được khi vai cá nhân rỗng mà công tắc tổ chức bật và đã chọn vai tổ chức). Màn duyệt (`web/dang-ky-hang-cho.ts`) CHƯA gửi `roleCode: null` / `roleCodeToChuc` — phiếu «chỉ tổ chức» chưa duyệt được từ màn hình (người duyệt chọn một vai cá nhân thì được): Task 14.
   - Nợ: duyệt không chặn vai cá nhân «chỉ tổ chức» (Công ty lữ hành) ở phần cá nhân — bài cũ dùng nó làm vai cá nhân; chưa siết.
+- **Task 12 vòng sửa 1 (16/11, người kiểm độc lập + phần còn lại vòng sửa Task 11):**
+  - V12-1 Miễn của bài quét cờ `quanLyBenDat` mang SỐ LẦN khớp (trước chỉ xét có/không — một lời gọi mới cùng khoá `scope` lọt).
+  - V12-2 `chanGhiNhap` dời sang `xac-nhan-chung.ts` (nhận hàm 404 của route) để `xac-nhan-route.ts` dùng chung: gửi kiểm vé, Gửi đơn (thay cặp `chiNguoiLapGhiNhap` + `conThayMatToChuc`; mã lỗi giữ nguyên), Rút lại. Bài quét `src/cong-ghi-nhap-chung.test.ts`: lời gọi thẳng `chiNguoiLapGhiNhap` / `ghiDuocNhap` chỉ ở danh sách miễn có mẩu mã + số lần + lý do.
+  - V12-3 Bài xếp nhóm Đ4.4 bắt thêm `const u = ctx.staff;` và `const { staff: x } = ctx;` (cả tham số route `{ staff: nguoi }`); dòng sổ hàng rào ghi lại điểm mù còn thật.
+  - V12-4 Hai bài thêm: chuyển quyền quản lý (lệnh văn phòng thật) ⇒ người cũ mất đơn, danh sách, Trả sau, phiếu tổ chức ngay; gửi vé qua `POST /api/ve/giao`, `POST /api/ve/cap` ⇒ 403.
+  - Ruling điều phối (16/11): màn xem cấp độ đại lý của tổ chức chuyển sang Task 14 (hôm nay chưa có màn cấp nào cho Đối tác). `nguoiLapLaNguoiBam` và `canChotGioCuaNguoiLap` (xac-nhan-chung.ts) để Task 16 (B2) sửa, khi người quản lý bấm gửi nháp của thành viên. Thành viên mở đơn đã xác nhận của người khác vẫn 403 như luật cũ, không đổi sang 404. Trần gói trang Đơn hàng +180 byte (115.103): điều phối trình chủ, người thi công giữ nguyên con số.
 
 ## Mốc A — kiểm cuối (16/11, Task 18)
 - **Cách chạy:** cây làm việc chính có người khác sửa cùng lúc (commit «Mốc A kiểm cuối» của điều phối, việc mốc B1 chưa commit), nên bộ kiểm đủ chạy trên một bản chép sạch tại commit đã commit (không lẫn việc B1). Lần đầu trên cây chung đỏ giả do tải máy (bài `audit-invariants.test.ts` quá 600 giây khi chạy chung với bộ khác; chạy riêng 139 giây xanh) và do `audit-checks.mjs` của B1 sửa dở giữa chừng.

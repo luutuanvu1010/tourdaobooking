@@ -32,6 +32,7 @@
  "src/claude-guard.test.ts": 1.3,
  "src/claude-trang-thai-phien.test.ts": 5.1,
  "src/coc-cu-khong-doc.test.ts": 1,
+ "src/cong-ghi-nhap-chung.test.ts": 0.4,
  "src/cong-no-dai-ly.test.ts": 3.1,
  "src/cong-phat-hanh-anh-tu-khai.test.ts": 0.4,
  "src/cot-cap-dai-ly-noi-day.test.ts": 1,

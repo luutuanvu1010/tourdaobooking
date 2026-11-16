@@ -86,6 +86,17 @@ export const NOT_ACTING_FOR_ORG = (): Response => error(403, "not_acting_for_org
  * ADR-0213 Đ3.4, Đ5 (Task 11): đơn lập THAY MẶT TỔ CHỨC — mỗi lệnh đưa nháp đi tiếp (lưu nháp, Gửi đơn) kiểm lại người gọi còn tư cách tổ chức đó (`benDangThayMat`, một chỗ kiểm);
  * người đã rời tổ chức không lưu, không gửi được. Đơn cá nhân, đơn văn phòng, đơn trước B1 ⇒ luôn đạt (không truy vấn).
  */
+/**
+ * MỘT chỗ canh đường GHI cho mọi route ghi đơn của `orders` (ADR-0135 Đ2 + ADR-0213 Đ3.4 «kiểm lại mỗi lần lưu» — Task 11/12 vòng sửa 1): nháp của người khác ⇒ `khongThay()` (404 của route);
+ * nháp lập THAY MẶT TỔ CHỨC mà người lập đã thôi thay mặt (liên kết đóng, mất hiệu lực) ⇒ 403 `not_acting_for_org`. Đơn đã xác nhận / huỷ: luật này không chặn. Route gọi thẳng
+ * `chiNguoiLapGhiNhap` / `ghiDuocNhap` phải có tên trong danh sách miễn của src/cong-ghi-nhap-chung.test.ts.
+ */
+export async function chanGhiNhap(meta: { status: OrderStatus; staffId: string; actingPartyId: string | null; actingLinkKind: string | null }, staff: { id: string }, benDangThayMat: (t: unknown) => Promise<KetQuaChonTuCach>, khongThay: () => Response): Promise<Response | null> {
+  if (meta.status === "draft" && meta.staffId !== staff.id) return khongThay(); // = chiNguoiLapGhiNhap (ADR-0135 Đ2)
+  if (meta.status === "draft" && !(await conThayMatToChuc(meta, benDangThayMat))) return NOT_ACTING_FOR_ORG();
+  return null;
+}
+
 export async function conThayMatToChuc(meta: { actingPartyId: string | null; actingLinkKind: string | null }, benDangThayMat: (t: unknown) => Promise<KetQuaChonTuCach>): Promise<boolean> {
   if (tuCachCuaDon(meta.actingLinkKind) !== "TO_CHUC" || meta.actingPartyId === null) return true;
   const t = await benDangThayMat(meta.actingPartyId);
