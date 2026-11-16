@@ -1663,25 +1663,51 @@ const MARK_TEP_CHO_R2_DELETED = defineSql(
   "UPDATE pty_registration_attachment SET r2_deleted_at = ?2, updated_at = ?2 WHERE id = ?1 AND purged_at IS NOT NULL AND r2_deleted_at IS NULL AND transferred_at IS NULL",
 );
 // Lúc duyệt (ADR-0208 Đ5): chèn dòng pty_attachment DÙNG LẠI mã và khoá kho của dòng chờ; nối vào dòng giấy tờ vừa tạo; đánh dấu đã chuyển + băm về rỗng; phần còn lại (chưa lưu) nhận quyết gỡ.
+// Ô của PHẦN TỔ CHỨC (GPKD, GIAY_PHEP_THEM — ADR-0212 Đ4) KHÔNG BAO GIỜ đi về hồ sơ người: ba câu của hồ sơ người lọc chúng ra (nợ Task 5 → Task 7); ba câu `…_org` dưới đây chuyển chúng
+// sang hồ sơ TỔ CHỨC, nối dòng giấy tờ tổ chức đúng loại.
 const CHUYEN_TEP_CHO_CHEN = defineSql(
   "parties",
   "transfer_registration_attachment_insert",
   `INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at, updated_by)
    SELECT id, ?2, storage_key, content_kind, byte_size, content_hash, stored_at, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
-   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL`,
+   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL AND slot NOT IN ('GPKD', 'GIAY_PHEP_THEM')`,
 );
 const CHUYEN_TEP_CHO_NOI = defineSql(
   "parties",
   "transfer_registration_attachment_link",
   `INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by)
    SELECT id, 'PERSON_DOCUMENT', ?2, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
-   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL`,
+   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL AND slot NOT IN ('GPKD', 'GIAY_PHEP_THEM')`,
 );
 const CHUYEN_TEP_CHO_DANH_DAU = defineSql(
   "parties",
   "transfer_registration_attachment_mark",
   `UPDATE pty_registration_attachment SET transferred_at = ?2, content_hash = NULL, updated_at = ?2, updated_by = ?3
-   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL`,
+   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL AND slot NOT IN ('GPKD', 'GIAY_PHEP_THEM')`,
+);
+// Tệp của phần tổ chức → hồ sơ tổ chức ?2. Ô GPKD nối dòng GPKD ?5; ô GIAY_PHEP_THEM nối dòng giấy phép thêm ?6 — CHỈ khi có dòng đó (không khai giấy phép thêm ⇒ ảnh ở lại, câu gỡ phần còn
+// lại của lô quyết gỡ). Cùng điều kiện ở cả ba câu ⇒ cùng tập dòng.
+const DIEU_KIEN_TEP_TO_CHUC = `registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL
+     AND (slot = 'GPKD' OR (slot = 'GIAY_PHEP_THEM' AND ?6 IS NOT NULL))`;
+const CHUYEN_TEP_CHO_CHEN_TO_CHUC = defineSql(
+  "parties",
+  "transfer_registration_attachment_insert_org",
+  `INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at, updated_by)
+   SELECT id, ?2, storage_key, content_kind, byte_size, content_hash, stored_at, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
+   WHERE ${DIEU_KIEN_TEP_TO_CHUC}`,
+);
+const CHUYEN_TEP_CHO_NOI_TO_CHUC = defineSql(
+  "parties",
+  "transfer_registration_attachment_link_org",
+  `INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by)
+   SELECT id, 'ORG_DOCUMENT', CASE slot WHEN 'GPKD' THEN ?5 ELSE ?6 END, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
+   WHERE ${DIEU_KIEN_TEP_TO_CHUC} AND ?2 IS NOT NULL`,
+);
+const CHUYEN_TEP_CHO_DANH_DAU_TO_CHUC = defineSql(
+  "parties",
+  "transfer_registration_attachment_mark_org",
+  `UPDATE pty_registration_attachment SET transferred_at = ?3, content_hash = NULL, updated_at = ?3, updated_by = ?4
+   WHERE ${DIEU_KIEN_TEP_TO_CHUC} AND ?2 IS NOT NULL AND ?5 IS NOT NULL`,
 );
 
 export const insertTepChoStatement = (
@@ -1715,6 +1741,12 @@ export const chuyenTepChoStatements = (db: D1Database, v: { registrationId: stri
   db.prepare(CHUYEN_TEP_CHO_NOI).bind(v.registrationId, v.documentId, v.at, v.approverId),
   db.prepare(CHUYEN_TEP_CHO_DANH_DAU).bind(v.registrationId, v.at, v.approverId),
 ];
+export const chuyenTepChoToChucStatements = (
+  db: D1Database, v: { registrationId: string; orgPartyId: string; gpkdDocId: string; extraDocId: string | null; approverId: string; at: string },
+): D1PreparedStatement[] => {
+  const tham = [v.registrationId, v.orgPartyId, v.at, v.approverId, v.gpkdDocId, v.extraDocId] as const;
+  return [CHUYEN_TEP_CHO_CHEN_TO_CHUC, CHUYEN_TEP_CHO_NOI_TO_CHUC, CHUYEN_TEP_CHO_DANH_DAU_TO_CHUC].map((q) => db.prepare(q).bind(...tham));
+};
 
 // ---- Bước xác minh phiếu đăng ký (ADR-0207 Đ2, ADR-0208 Đ3, ADR-0210 Đ1; đợt 1 Task 6) ----
 const HO_SO_THEO_SO = defineSql(
@@ -1877,7 +1909,7 @@ export const dkGiayToStatement = (db: D1Database, v: { id: string; partyId: stri
   db.prepare(DK_GIAY_TO).bind(v.id, v.partyId, v.doc.typeCode, v.doc.number, v.doc.numberKey, v.doc.classCode, v.doc.issuedDate, v.doc.issuedPlace, v.doc.expiryDate, v.at, v.actorId);
 export const dkXacMinhStatement = (
   db: D1Database,
-  v: { id: string; partyId: string; targetKind: "ATTRIBUTE" | "PERSON_DOCUMENT"; targetId: string | null; attributeCode: string | null; co: 0 | 1; verifiedBy: string; verifiedAt: string },
+  v: { id: string; partyId: string; targetKind: "ATTRIBUTE" | "PERSON_DOCUMENT" | "ORG_DOCUMENT"; targetId: string | null; attributeCode: string | null; co: 0 | 1; verifiedBy: string; verifiedAt: string },
 ): D1PreparedStatement => db.prepare(DK_XAC_MINH).bind(v.id, v.partyId, v.targetKind, v.targetId, v.attributeCode, v.co, v.verifiedAt, v.verifiedBy);
 export const dkXacMinhTenStatement = (db: D1Database, v: { id: string; partyId: string; tenKhai: string; co: 0 | 1; verifiedBy: string; verifiedAt: string }): D1PreparedStatement =>
   db.prepare(DK_XAC_MINH_TEN).bind(v.id, v.partyId, v.co, v.verifiedAt, v.verifiedBy, v.tenKhai);
@@ -1909,6 +1941,47 @@ const DK_GPKD_O_TO_CHUC_KHAC = defineSql("parties", "registration_gpkd_elsewhere
 const DK_MST_O_TO_CHUC_KHAC = defineSql("parties", "registration_tax_elsewhere",
   `SELECT 1 AS x FROM pty_organization o JOIN pty_party p ON p.id = o.party_id
    WHERE p.merged_into_id IS NULL AND o.tax_code IS NOT NULL AND replace(replace(o.tax_code, '-', ''), ' ', '') = replace(replace(?1, '-', ''), ' ', '') AND (?2 IS NULL OR o.party_id <> ?2) LIMIT 1`);
+// ---- Lô DUYỆT: phần tổ chức (ADR-0212 Đ6; đợt 2 Task 7). Câu CHƯA CHẠY, mã dòng sinh sẵn, giá trị đọc từ bản khai bất biến TRƯỚC lô. ----
+// Hồ sơ tổ chức CÓ SẴN: chỉ điền cột pháp lý đang TRỐNG (người lạ không ghi đè tên pháp lý / mã số thuế / email hoá đơn của một công ty có sẵn — Đ5 mục 3; ruling T7-2). Hồ sơ mới: giá trị
+// đã nằm trong câu chèn hồ sơ (newOrganizationStatements) nên câu này không đổi gì.
+const DK_GIA_TRI_TO_CHUC = defineSql("parties", "registration_org_fill_legal",
+  `UPDATE pty_organization SET legal_name = COALESCE(legal_name, ?2), tax_code = COALESCE(tax_code, ?3), address = COALESCE(address, ?4), invoice_email = COALESCE(invoice_email, ?5),
+          updated_at = ?6, updated_by = ?7
+   WHERE party_id = ?1 AND (legal_name IS NULL AND ?2 IS NOT NULL OR tax_code IS NULL AND ?3 IS NOT NULL OR address IS NULL AND ?4 IS NOT NULL OR invoice_email IS NULL AND ?5 IS NOT NULL)`);
+// Dòng giấy tờ tổ chức: hồ sơ đã có dòng HIỆN HÀNH cùng loại ⇒ dòng mới là dòng GIA HẠN (previous_id tính TRONG câu — khuôn registration_add_document). Trigger một-GPKD-một-tổ-chức là lưới cuối.
+const DK_GIAY_TO_TO_CHUC = defineSql("parties", "registration_add_org_document",
+  `INSERT INTO pty_organization_document (id, party_id, document_type_code, document_number, number_key, issued_date, issued_place, expiry_date, previous_id, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8,
+     (SELECT d.id FROM pty_organization_document d WHERE d.party_id = ?2 AND d.document_type_code = ?3 AND d.voided_at IS NULL
+        AND NOT EXISTS (SELECT 1 FROM pty_organization_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL)
+        ORDER BY d.created_at DESC, d.id DESC LIMIT 1),
+     ?9, ?10, ?9, ?10)`);
+// Dòng xác minh THUỘC TÍNH của tổ chức: chỉ ghi khi giá trị ĐANG CÓ của hồ sơ bằng giá trị khai ?7 (mã số thuế so bỏ '-' và khoảng trắng) — khuôn registration_add_name_verification:
+// gắn hồ sơ có sẵn mang giá trị khác thì không khẳng định gì. Người tạo = người xác minh, giờ = giờ xác minh.
+const DK_XAC_MINH_TO_CHUC = defineSql("parties", "registration_add_org_attribute_verification",
+  `INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, reason_code, verifier_touched_account, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, o.party_id, 'ATTRIBUTE', NULL, ?3, 'DA_XAC_MINH', NULL, ?4, ?5, ?6, ?5, ?6 FROM pty_organization o
+   WHERE o.party_id = ?2 AND ?7 IS NOT NULL
+     AND (CASE ?3 WHEN 'TEN_PHAP_LY' THEN o.legal_name WHEN 'DIA_CHI_TO_CHUC' THEN o.address WHEN 'EMAIL_HOA_DON' THEN o.invoice_email
+            WHEN 'MA_SO_THUE' THEN replace(replace(o.tax_code, '-', ''), ' ', '') END)
+         = (CASE ?3 WHEN 'MA_SO_THUE' THEN replace(replace(?7, '-', ''), ' ', '') ELSE ?7 END)`);
+// «Người liên hệ của» (CONTACT_OF; người → tổ chức). Bỏ qua khi đã có dòng cùng cặp còn hiệu lực từ hôm nay trở đi (chỉ mục pty_relationship_open_uq và trigger chồng lấn ngày sẽ làm hỏng
+// CẢ lô — điều phối PF7). Lính gác: hồ sơ tổ chức hết dùng / gộp ⇒ to_party_id NULL ⇒ hỏng cả lô.
+const DK_LIEN_HE_CUA_TO_CHUC = defineSql("parties", "registration_add_contact_of_org",
+  `INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, (SELECT g.id FROM pty_party g WHERE g.id = ?3 AND g.party_kind = 'ORGANIZATION' AND g.active = 1 AND g.merged_into_id IS NULL), 'CONTACT_OF', ?4, NULL, ?5, ?6, ?5, ?6
+   WHERE NOT EXISTS (SELECT 1 FROM pty_party_relationship r WHERE r.from_party_id = ?2 AND r.to_party_id = ?3 AND r.relationship_type_code = 'CONTACT_OF'
+                       AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?4))`);
+export interface OrgDocInsert { id: string; typeCode: string; number: string; numberKey: string; issuedDate: string | null; issuedPlace: string | null; expiryDate: string | null }
+export const dkGiaTriToChucStatement = (db: D1Database, v: { partyId: string; legalName: string | null; taxCode: string | null; address: string | null; invoiceEmail: string | null; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_GIA_TRI_TO_CHUC).bind(v.partyId, v.legalName, v.taxCode, v.address, v.invoiceEmail, v.at, v.actorId);
+export const dkGiayToToChucStatement = (db: D1Database, v: { partyId: string; doc: OrgDocInsert; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_GIAY_TO_TO_CHUC).bind(v.doc.id, v.partyId, v.doc.typeCode, v.doc.number, v.doc.numberKey, v.doc.issuedDate, v.doc.issuedPlace, v.doc.expiryDate, v.at, v.actorId);
+export const dkXacMinhToChucStatement = (db: D1Database, v: { id: string; partyId: string; attributeCode: string; giaTriKhai: string | null; co: 0 | 1; verifiedBy: string; verifiedAt: string }): D1PreparedStatement =>
+  db.prepare(DK_XAC_MINH_TO_CHUC).bind(v.id, v.partyId, v.attributeCode, v.co, v.verifiedAt, v.verifiedBy, v.giaTriKhai);
+export const dkLienHeCuaToChucStatement = (db: D1Database, v: { id: string; personPartyId: string; orgPartyId: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_LIEN_HE_CUA_TO_CHUC).bind(v.id, v.personPartyId, v.orgPartyId, v.today, v.at, v.actorId);
+
 export async function dkToChucTheoMst(db: D1Database, taxKey: string): Promise<string[]> {
   return (await db.prepare(DK_TO_CHUC_THEO_MST).bind(taxKey).all<{ id: string }>()).results.map((r) => r.id);
 }

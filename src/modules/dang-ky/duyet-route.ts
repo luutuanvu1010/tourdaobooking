@@ -6,7 +6,7 @@
 import type { LoDuyetDangKyVao } from "../../shared/dang-ky-duyet.ts";
 import { CAU_LOAI_DA_TAT } from "../../shared/dang-ky-chon-vai.ts";
 import { ketQuaCapChoNguoiXem } from "../../shared/cap-se-ap-hien-thi.ts";
-import { MUC_XAC_MINH_MO_CA_NHAN } from "../../shared/dau-xac-minh.ts";
+import { MUC_XAC_MINH_MO_CA_NHAN, MUC_XAC_MINH_MO_TO_CHUC } from "../../shared/dau-xac-minh.ts";
 import { error, json, readJson } from "../../shared/http.ts";
 import { can } from "../../shared/permissions.ts";
 import { normalizePhone } from "../../shared/phone.ts";
@@ -14,17 +14,17 @@ import { groupOf, isRoleCode, roleAssignmentProblem, type RoleCode } from "../..
 import type { Ctx } from "../../shared/router.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import { auditStatement } from "../audit";
-import { canCuocThuocHoSoKhac, cauGoTepChoNeuTruocDoi, partySummary, tenLoaiVai, validateContact, xoaKhoTepChoDaGo } from "../parties";
+import { canCuocThuocHoSoKhac, cauGoTepChoNeuTruocDoi, partySummary, tenLoaiVai, toChucDichHopLe, trungToChucKhac, validateContact, xoaKhoTepChoDaGo } from "../parties";
 import { findStaffByPhone, tenVaiTaiKhoan } from "../staff";
 import {
-  banKhaiDeDuyet, cauXepThu, chinhSachHienHanh, danhTinhConEmail, emailLienLacCuaPhieu, guiLaiLoiMoiStatement, ketLuanMoiNhat, phieuXet, suKienNhanVienStatement, tomTatDeDuyet,
+  banKhaiDeDuyet, banKhaiToChucDayDu, cauXepThu, chinhSachHienHanh, danhTinhConEmail, emailLienLacCuaPhieu, guiLaiLoiMoiStatement, ketLuanMoiNhat, phieuXet, suKienNhanVienStatement, tomTatDeDuyet,
   traVeXacMinhStatement, tuChoiDuyetStatement,
 } from "./repository.ts";
 import { maLenhThu } from "./rules.ts";
 import { kiemVaiKhiDuyet, vaiChonKhiDuyet } from "./vai.ts";
 import { guiThuSauLo } from "./thu-bao.ts";
 import { kiemDuyet, kiemLyDoDuyet, kiemTraVe, laMaPhieu, loiDungLoDuyet, loiLoDuyet } from "./xac-minh.ts";
-import { dsMuc, kiemHoSoDich, kiemNguoiGioiThieu, moiNhat, mucPhaiDat, tachMuc } from "./xac-minh-route.ts";
+import { dsMuc, kiemHoSoDich, kiemNguoiGioiThieu, kiemVaiXin, moiNhat, mucPhaiDat, tachMuc } from "./xac-minh-route.ts";
 
 export const CAM_DUYET = () => error(403, "forbidden", "Bạn không có quyền duyệt phiếu đăng ký.");
 const KHONG_THAY = () => error(404, "not_found", "Không tìm thấy phiếu.");
@@ -119,6 +119,22 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
     const loi = await kiemNguoiGioiThieu(env.DB, p.referrer_party_id, dich);
     if (loi) return error(409, loi.code, loi.message);
   }
+  // Phần tổ chức (ADR-0212 Đ5 mục 4, Đ6): kiểm TRƯỚC lô để trả câu rõ — trigger một-GPKD-một-tổ-chức, câu chốt (đòi org_match_kind) và lính gác hồ sơ tổ chức là lưới cuối.
+  const org = await banKhaiToChucDayDu(env.DB, p.id, version);
+  const dichToChuc = org && p.org_match_kind === "EXISTING" ? p.org_match_party_id : null;
+  if (org) {
+    if (p.org_match_kind === null) return error(409, "registration_not_verified", "Phiếu chưa có kết luận Danh bạ cho tổ chức nên chưa duyệt được. Hãy bấm «Trả về xác minh» để người xác minh kết luận lại.");
+    if (dichToChuc) {
+      const loi = await toChucDichHopLe(env.DB, dichToChuc);
+      if (loi) return error(409, loi.code, loi.message);
+    }
+    const trung = await trungToChucKhac(env.DB, { gpkdKey: org.gpkd_key, taxKey: org.tax_key, dich: dichToChuc });
+    if (trung) return error(409, trung.code, trung.message);
+    if (p.org_role_code) {
+      const loiVai = await kiemVaiXin(env.DB, p.org_role_code, "DUYET");
+      if (loiVai) return error(409, loiVai.code, "Vai người dùng của tổ chức trong phiếu không còn nhận đăng ký. Hãy từ chối phiếu hoặc trả về để người đăng ký bổ sung.");
+    }
+  }
   const at = new Date().toISOString();
   const deadlineAt = await hanKichHoat(env.DB, at);
   if (!deadlineAt) return error(503, "registration_policy_missing", "Chưa có chính sách đăng ký. Hãy báo quản trị viên.");
@@ -138,6 +154,24 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
     ...MUC_XAC_MINH_MO_CA_NHAN.ATTRIBUTE.filter((m) => datMa.has(m)).map((ma) => ({ loai: "ATTRIBUTE" as const, ma })),
     ...MUC_XAC_MINH_MO_CA_NHAN.DOCUMENT.filter((m) => datMa.has(m)).map((ma) => ({ loai: "DOCUMENT" as const, ma })),
   ];
+  let toChuc: LoDuyetDangKyVao["toChuc"];
+  if (org) {
+    const sdt = org.phone_value ? validateContact({ kind: "PHONE", value: org.phone_value }) : null;
+    toChuc = {
+      hoSo: dichToChuc ? { kieu: "CO_SAN", partyId: dichToChuc } : { kieu: "MOI" },
+      roleCode: p.org_role_code, displayName: org.display_name, legalName: org.legal_name, taxCode: org.tax_code, address: org.address, invoiceEmail: org.invoice_email,
+      phone: sdt && sdt.ok ? { value: sdt.value.value, valueNormalized: sdt.value.valueNormalized } : null,
+      gpkd: { typeCode: "GPKD", number: org.gpkd_number, numberKey: org.gpkd_key, issuedDate: org.gpkd_issued_date, issuedPlace: org.gpkd_issued_place, expiryDate: null },
+      giayPhepThem: org.extra_type_code && org.extra_number && org.extra_key
+        ? { typeCode: org.extra_type_code, number: org.extra_number, numberKey: org.extra_key, issuedDate: org.extra_issued_date, issuedPlace: org.extra_issued_place, expiryDate: org.extra_expiry_date }
+        : null,
+      // CHỈ mục tổ chức (PF5).
+      mucDat: [
+        ...MUC_XAC_MINH_MO_TO_CHUC.ATTRIBUTE.filter((m) => datMa.has(m)).map((ma) => ({ loai: "ATTRIBUTE" as const, ma })),
+        ...MUC_XAC_MINH_MO_TO_CHUC.DOCUMENT.filter((m) => datMa.has(m)).map((ma) => ({ loai: "DOCUMENT" as const, ma })),
+      ],
+    };
+  }
   // Cờ Toàn quyền (ADR-0207 Đ1, Đ5): CHỈ khi người duyệt CHÍNH là người xác minh VÀ bảng quyền nói người đó là Toàn quyền. Toàn quyền duyệt phiếu người khác xác minh ⇒ không cờ.
   const co: 0 | 1 = p.verified_by === staff.id && can(staff, "admin.manage.superadmin") ? 1 : 0;
   let lo;
@@ -151,6 +185,7 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
         ? { typeCode: bk.document_type_code, number: bk.document_number, numberKey: bk.number_key, classCode: bk.license_class_code, issuedDate: bk.issued_date, issuedPlace: bk.issued_place, expiryDate: bk.expiry_date }
         : null,
       policyId: bk.policy_id, consentedAt: bk.consented_at, verifiedBy: p.verified_by ?? "", verifiedAt: p.verified_at ?? at, mucDat, referrerPartyId: p.referrer_party_id, deadlineAt,
+      ...(toChuc ? { toChuc } : {}),
     });
   } catch (e) {
     // CHỈ hai lỗi đã biết của staff (vai không mang quyền nào / mang quyền nội bộ — đã chặn ở trên, đây là lưới) thành 400; lỗi khác ném lên (500).

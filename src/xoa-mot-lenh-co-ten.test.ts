@@ -54,7 +54,8 @@ test("(1) câu SQL đăng ký đặt erased_at = ĐÚNG hai câu của lệnh �
 // «phiếu đã kết thúc và vừa nhận mốc đã ẩn danh của lượt này / đã kích hoạt / quá hạn kích hoạt + ân hạn» NẰM TRONG câu) và `registration_mark_erased` (mốc «đã ẩn danh» của phiếu — tác nhân;
 // điều kiện trạng thái + tuổi trong câu). Tác nhân DÙNG LẠI `submission_erase_on_approve` cho bản khai của phiếu đã kết thúc (cùng câu, không thêm tên); câu đó nay chuỗi trong câu vào phiếu:
 // ĐÃ DUYỆT (lô duyệt) hoặc vừa nhận mốc đã ẩn danh của chính lượt này (tác nhân) — vòng sửa 1 Task 9.
-const DK_TEN_DUOC_PHEP = ["dang-ky:submission_erase_on_approve", "dang-ky:identity_erase", "dang-ky:registration_mark_erased"];
+// Đợt 2 Task 7 (ADR-0212 Đ7; chỉ thêm ĐÚNG TÊN): `submission_org_erase` — phần tổ chức của bản khai ẩn danh cùng câu điều kiện chuỗi với `submission_erase_on_approve`.
+const DK_TEN_DUOC_PHEP = ["dang-ky:submission_erase_on_approve", "dang-ky:identity_erase", "dang-ky:registration_mark_erased", "dang-ky:submission_org_erase"];
 const DK_DAT_ERASED_AT = /^\s*UPDATE\s+dk_[a-z_]+\b[\s\S]*?\bSET\b[\s\S]*?\berased_at\s*=/i;
 
 test("(2) chữ erased_at trong mã nguồn chỉ ở parties/repository.ts (ngoài migrations/ và scripts/audit-checks.mjs) — và ở dang-ky/repository.ts CHỈ trong chuỗi SQL của câu ngoại lệ có tên", async () => {

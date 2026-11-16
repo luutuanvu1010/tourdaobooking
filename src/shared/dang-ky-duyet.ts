@@ -37,6 +37,30 @@ export interface LoDuyetDangKyVao {
   referrerPartyId: string | null;
   /** Hạn đặt PIN (ISO UTC) = lúc duyệt + `dk_policy.activation_days`. */
   deadlineAt: string;
+  /** Phần tổ chức của bản khai (ADR-0212 Đ6; đợt 2 Task 7). Vắng = phiếu không có phần tổ chức. */
+  toChuc?: LoDuyetToChucVao;
+}
+
+/** Một giấy tờ của tổ chức chép một–một từ bản khai (`dk_submission_org`) sang `pty_organization_document`. Số / khoá / nơi cấp là N3: không vào nhật ký. */
+export interface OrgDocValues { typeCode: string; number: string; numberKey: string; issuedDate: string | null; issuedPlace: string | null; expiryDate: string | null }
+
+/** Phần tổ chức của lô duyệt (ADR-0212 Đ6). Mọi giá trị đọc TRƯỚC lô từ bản khai bất biến. */
+export interface LoDuyetToChucVao {
+  /** Kết luận Danh bạ của tổ chức: hồ sơ tổ chức mới, hay gắn hồ sơ tổ chức có sẵn (không bao giờ làm người đăng ký thành người quản lý — Đ5 mục 3). */
+  hoSo: { kieu: "MOI" } | { kieu: "CO_SAN"; partyId: string };
+  /** Vai của tổ chức (`dk_registration.org_role_code`); null = không mở vai cho tổ chức. */
+  roleCode: string | null;
+  displayName: string;
+  legalName: string | null;
+  taxCode: string | null;
+  address: string | null;
+  invoiceEmail: string | null;
+  /** Số điện thoại của tổ chức (đã chuẩn hoá cho liên hệ «Số điện thoại»); null = không khai. */
+  phone: { value: string; valueNormalized: string } | null;
+  gpkd: OrgDocValues;
+  giayPhepThem: OrgDocValues | null;
+  /** Mục tổ chức đã đạt (CHỈ từ `MUC_XAC_MINH_MO_TO_CHUC` — điều phối PF5). */
+  mucDat: readonly { loai: "ATTRIBUTE" | "DOCUMENT"; ma: string }[];
 }
 
 export interface LoDuyetDangKyRa {

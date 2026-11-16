@@ -21,7 +21,7 @@ import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
-import { cauAnDanhBanKhai, cauChotDuyet, cauDuyetPhieu, chuaKichHoat, dangKyModule, donPhieuDangKyDinhGio, suKienDuyetStatement, taiKhoanChuaKichHoat } from "./modules/dang-ky";
+import { cauAnDanhBanKhai, cauAnDanhBanKhaiToChuc, cauChotDuyet, cauDuyetPhieu, chuaKichHoat, dangKyModule, donPhieuDangKyDinhGio, suKienDuyetStatement, taiKhoanChuaKichHoat } from "./modules/dang-ky";
 import { banHangNoi, dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
 import { chinhSachChoNguoi, giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
@@ -30,7 +30,8 @@ import { feedbackModule } from "./modules/feedback";
 import { canBangVeTheoSoKhach, cauChanDuoiSoDaDung, cauChanVeDaDung, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soVeDaDungTheoDichVu, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule, veHangNgoaiDaMoCuaDon } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import {
-  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauDongYTuPhieu, cauGhiGiaTriDaXacMinh, cauGoTepCho, cauMoHoSoDangKy, cauQuanHeGioiThieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule,
+  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauDongYTuPhieu, cauGhiGiaTriDaXacMinh, cauGhiGiaTriToChuc, cauGoTepCho, cauLienKetNguoiToChuc, cauMoHoSoDangKy, cauMoHoSoToChucDangKy,
+  cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule,
 } from "./modules/parties";
 import { capMacDinhChoDuyet, capSeApChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
 import { cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
@@ -93,11 +94,34 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
   ]);
   let viTriCap: number | null = null;
   const cauCap = capMacDinh ? cauCapMacDinhChoHoSo(db, { partyId, roleCode: v.roleCode, ngayDuyet: v.today, approverId: v.approverId, at: v.at, policyId: capMacDinh.policyId }) : null;
+  // PHẦN TỔ CHỨC (ADR-0212 Đ6; đợt 2 Task 7). Mã hồ sơ tổ chức mới do parties sinh; mã dòng giấy tờ, dòng xác minh sinh ở đây. Gắn tổ chức CÓ SẴN không bao giờ sinh «người quản lý của»
+  // (Đ5 mục 3; ADR-0213 chưa thi công ⇒ chỉ «Người liên hệ của»).
+  const tc = v.toChuc ?? null;
+  const toChuc = tc ? (() => {
+    const mo = cauMoHoSoToChucDangKy(db, {
+      ...base, coSan: tc.hoSo.kieu === "CO_SAN" ? tc.hoSo.partyId : null, roleId: crypto.randomUUID(), roleCode: tc.roleCode, today: v.today,
+      org: { displayName: tc.displayName, legalName: tc.legalName, taxCode: tc.taxCode, address: tc.address, invoiceEmail: tc.invoiceEmail },
+    });
+    const gpkdId = crypto.randomUUID();
+    const extraId = tc.giayPhepThem ? crypto.randomUUID() : null;
+    const giaTriKhai: Record<string, string | null> = { TEN_PHAP_LY: tc.legalName, MA_SO_THUE: tc.taxCode, DIA_CHI_TO_CHUC: tc.address, EMAIL_HOA_DON: tc.invoiceEmail };
+    type MucToChuc = { id: string; loai: "ATTRIBUTE"; ma: string; giaTriKhai: string | null } | { id: string; loai: "DOCUMENT"; docId: string };
+    const muc = tc.mucDat.flatMap((m): MucToChuc[] => m.loai === "ATTRIBUTE"
+      ? [{ id: crypto.randomUUID(), loai: "ATTRIBUTE" as const, ma: m.ma, giaTriKhai: giaTriKhai[m.ma] ?? null }]
+      : m.ma === "GPKD" ? [{ id: crypto.randomUUID(), loai: "DOCUMENT" as const, docId: gpkdId }] : []);
+    return { partyId: mo.partyId, moStatements: mo.statements, gpkdId, extraId, muc };
+  })() : null;
+  const [capToChuc] = await Promise.all([toChuc && tc?.roleCode ? capMacDinhChoDuyet(db, tc.roleCode, v.at) : Promise.resolve(null)]);
+  const cauCapToChuc = toChuc && tc?.roleCode && capToChuc
+    ? cauCapMacDinhChoHoSo(db, { partyId: toChuc.partyId, roleCode: tc.roleCode, ngayDuyet: v.today, approverId: v.approverId, at: v.at, policyId: capToChuc.policyId })
+    : null;
   const statements: D1PreparedStatement[] = [
     // 1 — dang-ky: câu chốt (dòng quyết định DUYET).
     cauChotDuyet(db, { id: crypto.randomUUID(), registrationId: v.registrationId, version: v.version, by: v.approverId, co: v.co, at: v.at }),
     // 2 — parties: hồ sơ mới (hoặc hồ sơ có sẵn) + vai đối tác (trước câu cấp quyền: LC-1c).
     ...cauMoHoSoDangKy(db, { ...base, partyId, moi: v.hoSo.kieu === "MOI", name: v.ten, gender: v.gender, roleId: crypto.randomUUID(), roleCode: v.roleCode, today: v.today }),
+    // 2b — parties: hồ sơ tổ chức mới (hoặc có sẵn) + vai của tổ chức. 2c — «Người liên hệ của» người → tổ chức, TRƯỚC câu cấp quyền (LC-1c mới đọc liên kết khi ADR-0213 lên).
+    ...(toChuc ? [...toChuc.moStatements, cauLienKetNguoiToChuc(db, { ...base, personPartyId: partyId, orgPartyId: toChuc.partyId, today: v.today })] : []),
     // 3 — staff: tài khoản TẮT + quyền theo vai (biến thể «trên hồ sơ có sẵn»; PIN ngẫu nhiên không trả ra).
     ...tk.statements,
     // 4 — parties: giá trị đã xác minh.
@@ -106,11 +130,22 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
       lienHe: v.lienHe.map((c) => ({ ...c, id: crypto.randomUUID() })),
       giayTo: v.giayTo && docId ? { ...v.giayTo, id: docId } : null,
     }),
+    // 4b — parties: giá trị của tổ chức (cột pháp lý trống của hồ sơ có sẵn; số điện thoại tổ chức; dòng GPKD + giấy phép thêm — dòng gia hạn nếu đã có dòng hiện hành cùng loại).
+    ...(toChuc && tc ? cauGhiGiaTriToChuc(db, {
+      ...base, partyId: toChuc.partyId, coSan: tc.hoSo.kieu === "CO_SAN", today: v.today,
+      legal: { legalName: tc.legalName, taxCode: tc.taxCode, address: tc.address, invoiceEmail: tc.invoiceEmail },
+      phone: tc.phone ? { id: crypto.randomUUID(), ...tc.phone } : null,
+      giayTo: [{ id: toChuc.gpkdId, ...tc.gpkd }, ...(tc.giayPhepThem && toChuc.extraId ? [{ id: toChuc.extraId, ...tc.giayPhepThem }] : [])],
+    }) : []),
     // 5 — parties: dòng xác minh (người + giờ XÁC MINH).
     ...cauXacMinhTuPhieu(db, { partyId, muc: mucXacMinh, co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt, tenKhai: v.ten }),
+    // 5b — parties: dòng xác minh của TỔ CHỨC — chỉ mục tổ chức (PF5), người + giờ XÁC MINH.
+    ...(toChuc ? cauXacMinhToChucTuPhieu(db, { partyId: toChuc.partyId, muc: toChuc.muc, co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt }) : []),
     // 6 — parties: dòng đồng ý, người tạo = tài khoản mới; câu LUÔN chạy này mang lính gác hồ sơ đích còn dùng, chưa gộp (I1).
     cauDongYTuPhieu(db, { id: crypto.randomUUID(), partyId, policyId: v.policyId, consentedAt: v.consentedAt, staffId: tk.id }),
-    // 7 — parties: tệp của phiếu thành tệp của hồ sơ (nối dòng giấy tờ); không có dòng giấy tờ thì tệp chờ nhận quyết gỡ.
+    // 7a — parties: tệp ô GPKD / GIAY_PHEP_THEM thành tệp của hồ sơ TỔ CHỨC (nối dòng giấy tờ tổ chức). Đứng TRƯỚC câu 7 vì câu 7 gỡ mọi tệp chờ còn lại.
+    ...(toChuc ? cauChuyenTepChoToChuc(db, { registrationId: v.registrationId, orgPartyId: toChuc.partyId, gpkdDocId: toChuc.gpkdId, extraDocId: toChuc.extraId, approverId: v.approverId, at: v.at }) : []),
+    // 7 — parties: tệp của phiếu (trừ ô tổ chức) thành tệp của hồ sơ người (nối dòng giấy tờ); không có dòng giấy tờ thì tệp chờ còn lại nhận quyết gỡ.
     ...(docId
       ? cauChuyenTepCho(db, { registrationId: v.registrationId, version: v.version, partyId, documentId: docId, approverId: v.approverId, at: v.at })
       : cauGoTepCho(db, v.registrationId, LY_DO_GO_TEP_CHO.KHONG_THUOC_BAN_KHAI, v.at)),
@@ -121,15 +156,23 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
       auditStatement(db, { staffId: v.approverId, action: "prc_party_tier_set", at: v.at, targetType: "party", targetId: partyId,
         detail: `mức riêng ${capMacDinh.tierName} (${capMacDinh.tierCode}) · từ ${v.today} · cấp cho đối tác tự đăng ký, phiếu ${v.registrationId}` }, "changes() > 0"),
     ] : []),
+    // 8b — pricing: cấp độ đại lý mặc định cho HỒ SƠ TỔ CHỨC theo vai của tổ chức (ADR-0209 Đ3); nhật ký ngay sau, chỉ khi câu đã chèn. `cap.viTri` vẫn trỏ câu 8 của hồ sơ người.
+    ...(cauCapToChuc && capToChuc && toChuc ? [
+      cauCapToChuc,
+      auditStatement(db, { staffId: v.approverId, action: "prc_party_tier_set", at: v.at, targetType: "party", targetId: toChuc.partyId,
+        detail: `mức riêng ${capToChuc.tierName} (${capToChuc.tierCode}) · từ ${v.today} · cấp cho tổ chức tự đăng ký, phiếu ${v.registrationId}` }, "changes() > 0"),
+    ] : []),
     // 9 — parties: quan hệ «Người giới thiệu của».
     ...(v.referrerPartyId ? [cauQuanHeGioiThieu(db, { ...base, referrerPartyId: v.referrerPartyId, partyId, today: v.today })] : []),
     // 10 — dang-ky: phiếu ĐÃ DUYỆT + hạn đặt PIN (cùng câu), dòng lịch sử, ẩn danh bản khai (trừ danh tính và email).
     cauDuyetPhieu(db, { registrationId: v.registrationId, version: v.version, partyId, staffId: tk.id, at: v.at, deadlineAt: v.deadlineAt, by: v.approverId }),
     suKienDuyetStatement(db, { registrationId: v.registrationId, staffId: v.approverId, command: "DUYET", lyDo: null, at: v.at }),
     cauAnDanhBanKhai(db, { registrationId: v.registrationId, at: v.at, by: v.approverId }),
+    // 10b — dang-ky: ẩn danh phần tổ chức cùng câu điều kiện (ADR-0212 Đ7).
+    cauAnDanhBanKhaiToChuc(db, { registrationId: v.registrationId, at: v.at, by: v.approverId }),
     // 11 — audit: `staff_created` trỏ TÀI KHOẢN MỚI, người làm = người duyệt (ADR-0207 Đ6). Không SĐT, email, số giấy tờ.
     auditStatement(db, { staffId: v.approverId, action: "staff_created", at: v.at, targetType: "staff", targetId: tk.id,
-      detail: `phiếu đăng ký ${v.registrationId}; vai trò: ${v.roleLabel}; ${v.hoSo.kieu === "MOI" ? "hồ sơ mới" : "dùng hồ sơ có sẵn"}; chưa kích hoạt${v.co ? "; Toàn quyền làm cả hai bước" : ""}` }),
+      detail: `phiếu đăng ký ${v.registrationId}; vai trò: ${v.roleLabel}; ${v.hoSo.kieu === "MOI" ? "hồ sơ mới" : "dùng hồ sơ có sẵn"}${tc ? (tc.hoSo.kieu === "MOI" ? "; kèm hồ sơ tổ chức mới" : "; gắn tổ chức có sẵn") : ""}; chưa kích hoạt${v.co ? "; Toàn quyền làm cả hai bước" : ""}` }),
   ];
   if (cauCap) viTriCap = statements.indexOf(cauCap);
   return { partyId, staffId: tk.id, statements, cap: { viTri: viTriCap !== null && viTriCap >= 0 ? viTriCap : null, duDoan, capCau8: capMacDinh ? { code: capMacDinh.tierCode, ten: capMacDinh.tierName } : null } };

@@ -6,6 +6,8 @@ import * as P from "../../shared/permissions.ts";
 import { DK_COOKIE, taoPhienDangKy } from "./phien.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { app, world, seedStaff } from "../../../tests/audit/harness.mjs";
+// @ts-ignore tệp .mjs không có khai kiểu
+import { CHECKS, demViPham } from "../../../scripts/audit-checks.mjs";
 
 const NGAY = 86_400_000;
 const PHUT = 60_000;
@@ -22,7 +24,7 @@ function setup() {
   w.sqlite.exec(`INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('pol', 1, 'thử', 'thử', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', 'x', '2026-01-01T00:00:00.000Z', 'x')`);
   return w;
 }
-type Gieo = { taoLuc?: string; hetHanLuc?: string | null; quyetLuc?: string; hanKichHoat?: string; doiLuc?: string; banKhai?: boolean };
+type Gieo = { taoLuc?: string; hetHanLuc?: string | null; quyetLuc?: string; hanKichHoat?: string; doiLuc?: string; banKhai?: boolean; toChuc?: boolean };
 /** Gieo phiếu ở `trangThai` (đi đúng đồ thị), có danh tính (email riêng) và — nếu `banKhai` — một bản khai đủ dữ liệu cá nhân. Trả mã phiếu và mã danh tính. */
 function phieu(w: any, trangThai: string, o: Gieo = {}): { id: string; ident: string; email: string } {
   const id = `DK_${String.fromCharCode(65 + (so % 26))}${String.fromCharCode(65 + Math.floor(so / 26) % 26)}AAAAAA`;
@@ -36,6 +38,10 @@ function phieu(w: any, trangThai: string, o: Gieo = {}): { id: string; ident: st
     w.sqlite.prepare(`INSERT INTO dk_submission (id, registration_id, version, family_name, given_name, birth_date, address_value, phone_value, phone_key, document_type_code, document_number, number_key,
         issued_place, policy_id, consented_at, created_at, updated_at) VALUES (?, ?, 1, 'Phạm', 'Thử', '1990-05-06', '12 Đường Thử', '0912 000 111', '0912000111', 'CCCD', '079 111 000 222', '079111000222', 'Cục thử', 'pol', ?, ?, ?)`)
       .run(`sub-${id}`, id, tao, tao, tao);
+    // Phần tổ chức (ADR-0212 Đ4): cùng phiên bản, chèn TRƯỚC câu tăng current_version.
+    if (o.toChuc) w.sqlite.prepare(`INSERT INTO dk_submission_org (id, registration_id, version, display_name, legal_name, tax_code, tax_key, address, invoice_email, phone_value, phone_key, gpkd_number, gpkd_key,
+        gpkd_issued_place, authority_confirmed_at, created_at, updated_at) VALUES (?, ?, 1, 'Công ty Thử', 'CÔNG TY TNHH THỬ', '0123456789', '0123456789', '5 Tổ Chức', 'hd@example.com', '0258 381 234', '0258381234',
+        '41-0398', '410398', 'Sở thử', ?, ?, ?)`).run(`org-${id}`, id, tao, tao, tao);
     w.sqlite.prepare("UPDATE dk_registration SET current_version = 1 WHERE id = ?").run(id);
   }
   const duong: Record<string, string[]> = {
@@ -343,4 +349,19 @@ test("(15) Lô ẩn danh phiếu đã kết thúc tự canh TRONG câu: câu m�
   assert.equal(bk(w, x.id).given_name, "Thử");
   assert.equal(dt(w, x.ident).contact_email, x.email);
   assert.equal(reg(w, x.id).erased_at, null);
+});
+
+test("(T7) ADR-0212 Đ7 (đợt 2 Task 7): TỪ CHỐI 31 ngày có phần tổ chức ⇒ tác nhân ẩn danh CẢ phần tổ chức cùng lô (đúng khuôn trigger), R-DK-8 sạch; 29 ngày: phần tổ chức giữ nguyên", async () => {
+  const w = setup();
+  const a = phieu(w, "TU_CHOI", { quyetLuc: truoc(31 * NGAY), banKhai: true, toChuc: true });
+  const giu = phieu(w, "TU_CHOI", { quyetLuc: truoc(29 * NGAY), banKhai: true, toChuc: true });
+  assert.equal((await chay(w)).anDanh, 1);
+  const o = { ...w.q("SELECT * FROM dk_submission_org WHERE registration_id = ?", a.id)[0] };
+  assert.ok(o.erased_at);
+  assert.equal(o.display_name, "(đã ẩn)");
+  for (const c of ["legal_name", "address", "invoice_email", "phone_value", "phone_key", "gpkd_issued_place"]) assert.equal(o[c], null, c);
+  for (const c of ["tax_code", "tax_key", "gpkd_number", "gpkd_key"]) assert.match(String(o[c]), /^XOA/, c);
+  const r8 = CHECKS.find((c: any) => c.code === "R-DK-8");
+  assert.equal(demViPham(w.sqlite, r8), 0, "R-DK-8 sạch sau lượt tác nhân");
+  assert.equal(w.q("SELECT display_name FROM dk_submission_org WHERE registration_id = ?", giu.id)[0].display_name, "Công ty Thử");
 });

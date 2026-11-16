@@ -4841,7 +4841,7 @@ const DK_AT = "2026-11-16T01:00:00.000Z";
 const DK_AT2 = "2026-11-16T02:00:00.000Z";
 let dkSo = 0;
 /** Phiếu đăng ký đi tới `trangThai` qua đúng đồ thị; ĐÃ DUYỆT thì gắn tài khoản Đối tác `staffId` (đã dựng sẵn) và hồ sơ của nó, bản khai ẩn danh như lô duyệt. */
-function dkPhieu(db: DatabaseSync, trangThai: string, o: { staffId?: string; partyId?: string; anDanhBanKhai?: boolean } = {}): string {
+function dkPhieu(db: DatabaseSync, trangThai: string, o: { staffId?: string; partyId?: string; anDanhBanKhai?: boolean; toChuc?: boolean } = {}): string {
   const id = `DK_${"ABCDEFGHIJKLMNOPQRSTUVWXYZ".slice(dkSo % 18, (dkSo % 18) + 8)}`;
   dkSo++;
   if (!db.prepare("SELECT 1 FROM pty_privacy_policy WHERE id = 'dk-pol'").get()) {
@@ -4852,6 +4852,7 @@ function dkPhieu(db: DatabaseSync, trangThai: string, o: { staffId?: string; par
   if (trangThai === "DANG_DIEN") return id;
   db.prepare(`INSERT INTO dk_submission (id, registration_id, version, given_name, phone_value, phone_key, document_type_code, document_number, number_key, policy_id, consented_at, created_at, updated_at)
     VALUES (?, ?, 1, 'Thử', '0912000000', '0912000000', 'CCCD', '079000000999', '079000000999', 'dk-pol', ?, ?, ?)`).run(`dks-${id}`, id, DK_AT, DK_AT, DK_AT);
+  if (o.toChuc) dkPhanToChuc(db, id); // phần tổ chức (ADR-0212 Đ4): chèn cùng phiên bản, TRƯỚC câu tăng current_version (trigger dk_submission_org_version)
   db.prepare("UPDATE dk_registration SET current_version = 1, submitted_at = ? WHERE id = ?").run(DK_AT, id);
   db.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(id);
   if (["TU_CHOI", "DA_RUT", "HET_HAN"].includes(trangThai)) {
@@ -5003,6 +5004,38 @@ test("R-DK-5 (ADR-0207 Đ5, Đ7; ADR-0208 Đ6 — Task 9 M7): Đã duyệt có b
   const mo = dkPhieu(db, "DA_DUYET", dkTaiKhoan(db, "dk55"));
   db.prepare("UPDATE dk_registration SET erased_at = ? WHERE id = ?").run(DK_AT2, mo);
   assert.equal(violations(db, c), 3, "phiếu Đã duyệt mang mốc ẩn danh của phiếu");
+  // Đợt 2 Task 7 (ADR-0212 Đ7): phần tổ chức của bản khai còn chưa ẩn danh trên phiếu Đã duyệt cũng là vi phạm.
+  const tcd = dkPhieu(db, "DA_DUYET", { ...dkTaiKhoan(db, "dk56"), toChuc: true });
+  assert.equal(violations(db, c), 4, "Đã duyệt còn phần tổ chức chưa ẩn danh");
+  dkAnDanhToChuc(db, tcd);
+  assert.equal(violations(db, c), 3, "phần tổ chức ẩn danh đúng khuôn ⇒ hết vi phạm");
+});
+
+/** Phần tổ chức của bản khai 1 (gieo thẳng lúc phiếu còn current_version = 0). */
+function dkPhanToChuc(db: DatabaseSync, id: string): void {
+  db.prepare(`INSERT INTO dk_submission_org (id, registration_id, version, display_name, tax_code, tax_key, gpkd_number, gpkd_key, authority_confirmed_at, created_at, updated_at)
+    VALUES (?, ?, 1, 'Công ty Thử', '0123456789', '0123456789', '41-9', '419', ?, ?, ?)`).run(`dko-${id}`, id, DK_AT, DK_AT, DK_AT);
+}
+/** Khuôn của câu `dang-ky:submission_org_erase`. */
+const dkAnDanhToChuc = (db: DatabaseSync, id: string) =>
+  db.prepare(`UPDATE dk_submission_org SET erased_at = ?2, display_name = '(đã ẩn)', legal_name = NULL, address = NULL, invoice_email = NULL, phone_value = NULL, phone_key = NULL,
+    gpkd_issued_place = NULL, extra_issued_place = NULL, tax_code = 'XOA' || upper(replace(id, '-', '')), tax_key = 'XOA' || upper(replace(id, '-', '')),
+    gpkd_number = 'XOA' || upper(replace(id, '-', '')), gpkd_key = 'XOA' || upper(replace(id, '-', '')), updated_at = ?2 WHERE registration_id = ?1`).run(id, DK_AT2);
+
+test("R-DK-8 (ADR-0208 Đ6, ADR-0212 Đ7; đợt 2 Task 7): phiếu kết thúc không duyệt có mốc ẩn danh, bản khai và phần tổ chức đã ẩn danh → 0; còn bản khai hay phần tổ chức chưa ẩn danh → vi phạm", () => {
+  const c = one("R-DK-8");
+  assert.equal(c.level, "fail");
+  const db = schemaWithoutGuards();
+  const sach = dkPhieu(db, "TU_CHOI", { toChuc: true });
+  assert.equal(violations(db, c), 0, "chưa có mốc ẩn danh ⇒ chưa xét");
+  db.prepare("UPDATE dk_registration SET erased_at = ? WHERE id = ?").run(DK_AT2, sach);
+  dkAnDanhBanKhai(db, sach);
+  assert.equal(violations(db, c), 1, "mốc ẩn danh mà phần tổ chức còn");
+  dkAnDanhToChuc(db, sach);
+  assert.equal(violations(db, c), 0, "ẩn danh đủ hai phần");
+  const con = dkPhieu(db, "HET_HAN");
+  db.prepare("UPDATE dk_registration SET erased_at = ? WHERE id = ?").run(DK_AT2, con);
+  assert.equal(violations(db, c), 1, "mốc ẩn danh mà bản khai cá nhân còn");
 });
 
 test("R-DK-6 (ADR-0212 Đ1 mục 5 b): cờ bật / tắt của loại đối tác trùng ở pty_role_type và prc_beneficiary_role → 0; lệch hoặc thiếu dòng được hưởng → vi phạm", () => {

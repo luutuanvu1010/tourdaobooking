@@ -10,7 +10,7 @@ import { can, type PermissionHolder } from "../../shared/permissions.ts";
 import { auditStatement, nguoiLam } from "../audit";
 import { cauGoTepChoNeuTruocDoi, donKhoTepCho, xoaKhoTepChoDaGo } from "../parties";
 import {
-  cauAnDanhBanKhai, cauAnDanhDanhTinh, cauDanhDauAnDanh, cauHetHan, chinhSachHienHanh, phieuCanAnDanh, phieuCanHetHan, phieuQuaHanKichHoat, suKienTacNhanStatement, xoaLuotTaiCu, xoaMaEmailCu,
+  cauAnDanhBanKhai, cauAnDanhBanKhaiToChuc, cauAnDanhDanhTinh, cauDanhDauAnDanh, cauHetHan, chinhSachHienHanh, phieuCanAnDanh, phieuCanHetHan, phieuQuaHanKichHoat, suKienTacNhanStatement, xoaLuotTaiCu, xoaMaEmailCu,
 } from "./repository.ts";
 
 const NGAY_MS = 86_400_000;
@@ -75,6 +75,7 @@ export async function donPhieuDangKy(env: Env, nguoiChay: PermissionHolder, homN
           cauDanhDauAnDanh(env.DB, { registrationId: id, at, moc, by }),
           suKienTacNhanStatement(env.DB, { registrationId: id, agentCode: by, command: "AN_DANH", at }),
           cauAnDanhBanKhai(env.DB, { registrationId: id, at, by }),
+          cauAnDanhBanKhaiToChuc(env.DB, { registrationId: id, at, by }), // phần tổ chức cùng lúc, cùng hạn (ADR-0212 Đ7)
           cauAnDanhDanhTinh(env.DB, { registrationId: id, at, by, mocAnHan }),
         ]);
         if ((r[0]?.meta.changes ?? 0) > 0) kq.anDanh++;

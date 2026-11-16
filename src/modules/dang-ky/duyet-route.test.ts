@@ -49,7 +49,7 @@ function setup() {
 }
 
 /** Gieo phiếu cá nhân đã gửi bản khai 1, ở CHỜ XÁC MINH. */
-function phieu(w: any, o: { so?: string | null; dienThoai?: string; hoTen?: [string, string] } = {}): string {
+function phieu(w: any, o: { so?: string | null; dienThoai?: string; hoTen?: [string, string]; toChuc?: Partial<ToChucKhai> } = {}): string {
   const id = `DK_${"ABCDEFGHIJKLMNOPQRSTUVWXYZ".slice(dem % 18, (dem % 18) + 8)}`;
   dem++;
   const so = o.so === undefined ? SO : o.so;
@@ -60,10 +60,40 @@ function phieu(w: any, o: { so?: string | null; dienThoai?: string; hoTen?: [str
   w.sqlite.prepare(`INSERT INTO dk_submission (id, registration_id, version, family_name, given_name, birth_date, address_value, phone_value, phone_key, document_type_code, document_number, number_key, issued_date, issued_place,
       expiry_date, policy_id, consented_at, created_at, updated_at) VALUES (?, ?, 1, ?, ?, '1990-05-06', '12 Đường Thử, Nha Trang', ?, ?, ?, ?, ?, '2021-01-02', 'Cục thử', '2040-01-02', (SELECT id FROM pty_privacy_policy LIMIT 1), ?, ?, ?)`)
     .run(`sub-${id}`, id, ho, ten, dt, dt.replace(/\s/g, ""), so ? "CCCD" : null, so, so ? so.replace(/\s/g, "") : null, AT, AT, AT);
+  if (o.toChuc) {
+    w.sqlite.prepare("UPDATE dk_registration SET org_role_code = 'TRAVEL_AGENCY' WHERE id = ?").run(id);
+    gieoToChuc(w, id, o.toChuc);
+  }
   w.sqlite.prepare("UPDATE dk_registration SET current_version = 1, submitted_at = ? WHERE id = ?").run(AT, id);
   w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(id);
   return id;
 }
+// ---- Phần tổ chức (ADR-0212 Đ6; đợt 2 Task 7). Giá trị GIẢ. ----
+interface ToChucKhai { ten: string; tenPhapLy: string | null; mst: string | null; mstKhoa: string | null; gpkd: string; gpkdKhoa: string; giayPhep: boolean }
+const TO_CHUC: ToChucKhai = { ten: "Công ty Lữ hành Biển Xanh", tenPhapLy: "Công ty TNHH Lữ hành Biển Xanh", mst: "0123456789", mstKhoa: "0123456789", gpkd: "41-0398-7712", gpkdKhoa: "4103987712", giayPhep: false };
+const DT_TC = "0258 381 234";
+function gieoToChuc(w: any, reg: string, o: Partial<ToChucKhai> = {}): void {
+  const t = { ...TO_CHUC, ...o };
+  w.sqlite.prepare(`INSERT INTO dk_submission_org (id, registration_id, version, display_name, legal_name, tax_code, tax_key, address, invoice_email, phone_value, phone_key, gpkd_number, gpkd_key,
+      gpkd_issued_date, gpkd_issued_place, extra_type_code, extra_number, extra_key, extra_issued_date, extra_expiry_date, authority_confirmed_at, created_at, updated_at)
+      VALUES (?, ?, 1, ?, ?, ?, ?, '5 Trần Phú, Nha Trang', 'hoadon@bienxanh.example', ?, '0258381234', ?, ?, '2019-03-04', 'Sở Kế hoạch và Đầu tư Khánh Hoà', ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(`org-${reg}`, reg, t.ten, t.tenPhapLy, t.mst, t.mstKhoa, DT_TC, t.gpkd, t.gpkdKhoa,
+      t.giayPhep ? "TRAVEL_DOMESTIC" : null, t.giayPhep ? "GP-77/2025" : null, t.giayPhep ? "GP772025" : null, t.giayPhep ? "2024-01-01" : null, t.giayPhep ? "2029-01-01" : null, AT, AT, AT);
+}
+const MUC_TC = ["TEN_PHAP_LY", "MA_SO_THUE", "GPKD"];
+/** Xác minh phiếu có phần tổ chức bằng route thật: mọi mục (cá nhân + tổ chức) đạt, kết luận Danh bạ hai lần. */
+async function xacMinhTC(w: any, id: string, hoSoToChuc: any = { kieu: "MOI" }, hoSo: any = { kieu: "MOI" }) {
+  for (const m of [...MUC, ...MUC_TC]) assert.equal((await ketLuan(w, ADM, id, { muc: m, dat: true })).status, 200, m);
+  const r = await dat(w, ADM, id, { hoSo, hoSoToChuc });
+  assert.equal(r.status, 200, r.text);
+}
+function toChucCoSan(w: any, id: string, o: { ten?: string; mst?: string | null; tenPhapLy?: string | null; gpkdKhoa?: string } = {}): string {
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', ?, 1, ?, ?)").run(id, o.ten ?? "Tổ Chức Có Sẵn", AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_organization (party_id, legal_name, tax_code, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").run(id, o.tenPhapLy ?? null, o.mst ?? null, AT, AT);
+  if (o.gpkdKhoa) w.sqlite.prepare("INSERT INTO pty_organization_document (id, party_id, document_type_code, document_number, number_key, created_at, updated_at) VALUES (?, ?, 'GPKD', ?, ?, ?, ?)").run(`gpkd-${id}`, id, o.gpkdKhoa, o.gpkdKhoa, AT, AT);
+  return id;
+}
+
 async function tep(w: any, reg: string, slot = "CCCD_MAT_TRUOC"): Promise<{ id: string; key: string }> {
   const id = crypto.randomUUID();
   const key = `pty/${crypto.randomUUID().replace(/-/g, "")}`;
@@ -708,4 +738,179 @@ test("(27) «Lưu vai» với danh sách vai RỖNG bị route từ chối (400)
   assert.deepEqual(w.q("SELECT role_type_code FROM pty_party_role WHERE party_id = ? AND valid_to_date IS NULL ORDER BY 1", tk.party_id).map((x: any) => x.role_type_code).sort(), [loai, "TRAVEL_AGENCY"].sort());
   assert.deepEqual(quyen(), ["PARTNER"]);
   assert.equal(checkSql(w, "R-LC-1c"), 0);
+});
+
+// ===== Lô duyệt có phần tổ chức (ADR-0212 Đ6; đợt 2 Task 7) =====
+
+test("(28) Duyệt phiếu có phần tổ chức MỚI: đúng một hồ sơ tổ chức (giá trị pháp lý), vai của tổ chức, dòng GPKD, liên hệ điện thoại của tổ chức, dòng xác minh tổ chức (người + giờ xác minh), đúng một «Người liên hệ của», không «người quản lý»; hồ sơ người không có dòng xác minh mục tổ chức (PF5); ảnh GPKD về hồ sơ tổ chức, không bao giờ về hồ sơ người", async () => {
+  const w = setup();
+  const id = phieu(w, { toChuc: {} });
+  const cccd = await tep(w, id);
+  const anhGpkd = await tep(w, id, "GPKD");
+  await xacMinhTC(w, id);
+  const xm = reg(w, id);
+  const truoc = anh(w);
+  const r = await duyet(w, HR, id);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(anh(w).party - truoc.party, 2, "một hồ sơ người + một hồ sơ tổ chức");
+  const tk = taiKhoanMoi(w);
+  const orgs = w.q("SELECT p.id, p.display_name, o.legal_name, o.tax_code, o.address, o.invoice_email FROM pty_party p JOIN pty_organization o ON o.party_id = p.id WHERE p.created_at = (SELECT decided_at FROM dk_registration WHERE id = ?)", id);
+  assert.equal(orgs.length, 1);
+  const org = orgs[0];
+  assert.deepEqual({ ...org, id: undefined }, { id: undefined, display_name: TO_CHUC.ten, legal_name: TO_CHUC.tenPhapLy, tax_code: TO_CHUC.mst, address: "5 Trần Phú, Nha Trang", invoice_email: "hoadon@bienxanh.example" });
+  assert.deepEqual(w.q("SELECT role_type_code FROM pty_party_role WHERE party_id = ? AND valid_to_date IS NULL", org.id).map((x: any) => x.role_type_code), ["TRAVEL_AGENCY"]);
+  const gp = w.q("SELECT id, document_type_code, number_key, previous_id FROM pty_organization_document WHERE party_id = ?", org.id);
+  assert.deepEqual(gp.map((x: any) => [x.document_type_code, x.number_key, x.previous_id]), [["GPKD", TO_CHUC.gpkdKhoa, null]]);
+  assert.deepEqual(w.q("SELECT contact_kind_code, value_normalized FROM pty_contact_point WHERE party_id = ?", org.id).map((x: any) => [x.contact_kind_code, x.value_normalized]), [["PHONE", "0258381234"]]);
+  const v = w.q("SELECT target_kind, target_id, attribute_code, created_by, created_at FROM pty_verification WHERE party_id = ? ORDER BY target_kind, attribute_code", org.id).map((x: any) => ({ ...x }));
+  assert.deepEqual(v, [
+    { target_kind: "ATTRIBUTE", target_id: null, attribute_code: "MA_SO_THUE", created_by: ADM, created_at: xm.verified_at },
+    { target_kind: "ATTRIBUTE", target_id: null, attribute_code: "TEN_PHAP_LY", created_by: ADM, created_at: xm.verified_at },
+    { target_kind: "ORG_DOCUMENT", target_id: gp[0].id, attribute_code: null, created_by: ADM, created_at: xm.verified_at },
+  ]);
+  assert.deepEqual(w.q("SELECT attribute_code FROM pty_verification WHERE party_id = ? AND target_kind = 'ATTRIBUTE' ORDER BY attribute_code", tk.party_id).map((x: any) => x.attribute_code), ["HO_TEN", "NGAY_SINH"], "PF5: hồ sơ người chỉ mục cá nhân");
+  const qh = w.q("SELECT from_party_id, to_party_id, relationship_type_code FROM pty_party_relationship WHERE to_party_id = ? OR from_party_id = ?", org.id, org.id).map((x: any) => ({ ...x }));
+  assert.deepEqual(qh, [{ from_party_id: tk.party_id, to_party_id: org.id, relationship_type_code: "CONTACT_OF" }], "đúng một «Người liên hệ của», không quan hệ nào khác");
+  // Ảnh: GPKD về hồ sơ tổ chức (nối dòng GPKD); CCCD về hồ sơ người. Không ảnh tổ chức nào trên hồ sơ người.
+  const tepTC = w.q("SELECT a.id, a.party_id, l.target_kind, l.target_id FROM pty_attachment a JOIN pty_attachment_link l ON l.attachment_id = a.id WHERE a.id = ?", anhGpkd.id).map((x: any) => ({ ...x }));
+  assert.deepEqual(tepTC, [{ id: anhGpkd.id, party_id: org.id, target_kind: "ORG_DOCUMENT", target_id: gp[0].id }]);
+  assert.equal(w.q("SELECT party_id FROM pty_attachment WHERE id = ?", cccd.id)[0].party_id, tk.party_id);
+  assert.equal(dem1(w, "SELECT count(*) n FROM pty_attachment a JOIN pty_registration_attachment r ON r.id = a.id WHERE a.party_id = ? AND r.slot IN ('GPKD', 'GIAY_PHEP_THEM')", tk.party_id), 0);
+  assert.equal(w.r2.co(anhGpkd.key), true);
+  // Phần tổ chức của bản khai đúng khuôn ẩn danh; nhật ký và lịch sử không chứa mã số thuế, số GPKD.
+  const o = w.q("SELECT * FROM dk_submission_org WHERE registration_id = ?", id)[0];
+  assert.ok(o.erased_at);
+  assert.equal(o.display_name, "(đã ẩn)");
+  for (const c of ["legal_name", "address", "invoice_email", "phone_value", "gpkd_issued_place"]) assert.equal(o[c], null, c);
+  assert.ok(String(o.tax_code).startsWith("XOA") && String(o.gpkd_number).startsWith("XOA") && String(o.gpkd_key).startsWith("XOA"));
+  const nk = w.q("SELECT detail FROM audit_log WHERE action = 'staff_created'")[0].detail;
+  assert.match(nk, /kèm hồ sơ tổ chức mới/);
+  const chu = JSON.stringify([...w.q("SELECT detail FROM audit_log"), ...w.q("SELECT * FROM dk_event")]);
+  for (const lo of [TO_CHUC.mst!, TO_CHUC.gpkd, TO_CHUC.gpkdKhoa, "0258381234", TO_CHUC.ten]) assert.equal(chu.includes(lo), false, `lộ ${lo}`);
+  // Bất biến ẩn danh của phiếu đã duyệt (R-DK-5) phủ phần tổ chức: sạch.
+  assert.equal(demViPham(w.sqlite, CHECKS.find((c: any) => c.code === "R-DK-5")), 0);
+});
+
+test("(29) Gắn tổ chức CÓ SẴN: không hồ sơ tổ chức mới, có «Người liên hệ của», không «người quản lý»; cột pháp lý đã có không bị ghi đè (chỉ điền chỗ trống); dòng GPKD là dòng gia hạn; ảnh GPKD về hồ sơ tổ chức có sẵn; màn duyệt nói văn phòng giao người quản lý", async () => {
+  const w = setup();
+  const coSan = toChucCoSan(w, "org-co-san", { ten: "Biển Xanh Có Sẵn", tenPhapLy: "Tên Pháp Lý Cũ", gpkdKhoa: TO_CHUC.gpkdKhoa });
+  const id = phieu(w, { toChuc: {} });
+  const anhGpkd = await tep(w, id, "GPKD");
+  await xacMinhTC(w, id, { kieu: "CO_SAN", partyId: coSan });
+  const xd = await xemDuyet(w, HR, id);
+  assert.equal(xd.status, 200, xd.text);
+  assert.equal(xd.json.ketLuanDanhBaToChuc.kieu, "EXISTING");
+  assert.match(xd.json.ketLuanDanhBaToChuc.ghiChu, /văn phòng sẽ giao người quản lý/);
+  assert.equal(xd.text.includes("Biển Xanh Có Sẵn"), false, "Nhân sự không thấy tên hồ sơ tổ chức");
+  assert.deepEqual(xd.json.mucToChuc.map((m: any) => m.ma).sort(), [...MUC_TC].sort());
+  const truoc = anh(w);
+  const r = await duyet(w, HR, id);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(anh(w).party - truoc.party, 1, "chỉ hồ sơ người mới");
+  const tk = taiKhoanMoi(w);
+  assert.deepEqual({ ...w.q("SELECT legal_name, tax_code, address FROM pty_organization WHERE party_id = ?", coSan)[0] }, { legal_name: "Tên Pháp Lý Cũ", tax_code: TO_CHUC.mst, address: "5 Trần Phú, Nha Trang" }, "giữ tên pháp lý cũ, điền mã số thuế và địa chỉ đang trống");
+  const gp = w.q("SELECT id, previous_id FROM pty_organization_document WHERE party_id = ? ORDER BY created_at", coSan);
+  assert.equal(gp.length, 2);
+  assert.equal(gp[1].previous_id, `gpkd-${coSan}`, "dòng gia hạn");
+  // Tên pháp lý khai khác tên đang có ⇒ không khẳng định TEN_PHAP_LY; MA_SO_THUE (vừa điền) và GPKD (dòng mới) thì có.
+  assert.deepEqual(w.q("SELECT target_kind k, attribute_code a FROM pty_verification WHERE party_id = ? ORDER BY target_kind, attribute_code", coSan).map((x: any) => [x.k, x.a]), [["ATTRIBUTE", "MA_SO_THUE"], ["ORG_DOCUMENT", null]]);
+  assert.deepEqual(w.q("SELECT from_party_id, relationship_type_code FROM pty_party_relationship WHERE to_party_id = ?", coSan).map((x: any) => [x.from_party_id, x.relationship_type_code]), [[tk.party_id, "CONTACT_OF"]]);
+  assert.equal(w.q("SELECT party_id FROM pty_attachment WHERE id = ?", anhGpkd.id)[0].party_id, coSan);
+  assert.match(w.q("SELECT detail FROM audit_log WHERE action = 'staff_created'")[0].detail, /gắn tổ chức có sẵn/);
+});
+
+test("(30) PF7: người đăng ký (hồ sơ có sẵn) đã có «Người liên hệ của» mở tới tổ chức có sẵn đó ⇒ lô vẫn chạy, không dòng thứ hai; dòng đã đóng HÔM NAY cũng không làm hỏng lô", async () => {
+  for (const dong of [false, true]) {
+    const w = setup();
+    const nguoi = hoSoCoSan(w, `pty-ng-${dong}`, "Phạm Thử Nghiệm");
+    const coSan = toChucCoSan(w, `org-${dong}`);
+    const homNay = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+    w.sqlite.prepare("INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, updated_at) VALUES ('qh-cu', ?, ?, 'CONTACT_OF', '2026-01-01', ?, ?, ?)")
+      .run(nguoi, coSan, dong ? homNay : null, AT, AT);
+    const id = phieu(w, { toChuc: {} });
+    await tep(w, id, "GPKD");
+    await xacMinhTC(w, id, { kieu: "CO_SAN", partyId: coSan }, { kieu: "CO_SAN", partyId: nguoi });
+    const r = await duyet(w, HR, id);
+    assert.equal(r.status, 200, `${dong}: ${r.text}`);
+    assert.equal(dem1(w, "SELECT count(*) n FROM pty_party_relationship WHERE from_party_id = ? AND to_party_id = ?", nguoi, coSan), 1, `${dong}: không dòng thứ hai`);
+  }
+});
+
+test("(31) Giả lỗi ở câu giữa phần tổ chức (dòng xác minh tổ chức) ⇒ không còn dòng nào: không hồ sơ tổ chức, không giấy tờ, không quan hệ, ảnh chưa chuyển, bản khai chưa ẩn danh", async () => {
+  const w = setup();
+  const id = phieu(w, { toChuc: {} });
+  const anhGpkd = await tep(w, id, "GPKD");
+  await xacMinhTC(w, id);
+  const truoc = { ...anh(w), org: dem1(w, "SELECT count(*) n FROM pty_organization"), gt: dem1(w, "SELECT count(*) n FROM pty_organization_document") };
+  w.sqlite.exec("CREATE TEMP TRIGGER thu_hong_xm_tc BEFORE INSERT ON pty_verification WHEN NEW.target_kind = 'ORG_DOCUMENT' BEGIN SELECT RAISE(ABORT, 'gia_loi_giua_lo'); END");
+  const r = await duyet(w, HR, id);
+  assert.notEqual(r.status, 200);
+  assert.equal(r.text.includes("gia_loi_giua_lo"), false);
+  w.sqlite.exec("DROP TRIGGER thu_hong_xm_tc");
+  assert.deepEqual({ ...anh(w), org: dem1(w, "SELECT count(*) n FROM pty_organization"), gt: dem1(w, "SELECT count(*) n FROM pty_organization_document") }, truoc);
+  assert.equal(w.q("SELECT transferred_at FROM pty_registration_attachment WHERE id = ?", anhGpkd.id)[0].transferred_at, null);
+  assert.equal(w.q("SELECT erased_at FROM dk_submission_org WHERE registration_id = ?", id)[0].erased_at, null);
+  assert.equal(reg(w, id).status, "CHO_DUYET");
+});
+
+test("(32) GPKD đã thuộc tổ chức khác (xuất hiện SAU bước xác minh) ⇒ 409 trước lô, câu không nhắc số; lưới cuối là trigger: bỏ kiểm trước (lô chạy) vẫn 409 không lỗi thô", async () => {
+  const w = setup();
+  const id = phieu(w, { toChuc: {} });
+  await tep(w, id, "GPKD");
+  await xacMinhTC(w, id);
+  toChucCoSan(w, "org-khac", { gpkdKhoa: TO_CHUC.gpkdKhoa });
+  const truoc = anh(w);
+  const r = await duyet(w, HR, id);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "org_gpkd_other_org");
+  assert.equal(r.text.includes(TO_CHUC.gpkdKhoa) || r.text.includes(TO_CHUC.gpkd), false);
+  assert.deepEqual(anh(w), truoc);
+  // Đua: dòng GPKD của tổ chức khác chèn NGAY TRƯỚC lô (sau kiểm của route) ⇒ trigger làm hỏng cả lô, 409.
+  w.sqlite.exec("UPDATE pty_organization_document SET voided_at = '2026-11-16T00:00:00.000Z' WHERE party_id = 'org-khac'");
+  w.chenTruocLo((stmts: any[]) => stmts.some((s: any) => /INSERT INTO dk_decision/.test(s.sql)), async () => {
+    w.sqlite.prepare("INSERT INTO pty_organization_document (id, party_id, document_type_code, document_number, number_key, created_at, updated_at) VALUES ('gpkd-dua', 'org-khac', 'GPKD', ?, ?, ?, ?)").run(TO_CHUC.gpkdKhoa, TO_CHUC.gpkdKhoa, AT, AT);
+  });
+  const r2 = await duyet(w, HR, id);
+  assert.equal(r2.status, 409, r2.text);
+  assert.equal(r2.json.error.code, "org_gpkd_other_org");
+  assert.equal(reg(w, id).status, "CHO_DUYET");
+});
+
+test("(33) Phiếu có phần tổ chức không được duyệt: ảnh GPKD nhận quyết gỡ cùng lô từ chối (khuôn ADR-0208), kho xoá sau", async () => {
+  const w = setup();
+  const id = phieu(w, { toChuc: {} });
+  const anhGpkd = await tep(w, id, "GPKD");
+  await xacMinhTC(w, id);
+  const r = await tuChoiDuyet(w, HR, id);
+  assert.equal(r.status, 200, r.text);
+  const t = w.q("SELECT purged_at, transferred_at FROM pty_registration_attachment WHERE id = ?", anhGpkd.id)[0];
+  assert.ok(t.purged_at);
+  assert.equal(t.transferred_at, null);
+  assert.equal(w.r2.co(anhGpkd.key), false);
+});
+
+test("(34) Giấy phép thêm: dòng giấy tờ tổ chức thứ hai, ảnh ô GIAY_PHEP_THEM nối đúng dòng đó; vai của tổ chức có cấp mặc định ⇒ cấp riêng trên HỒ SƠ TỔ CHỨC (ADR-0209 Đ3)", async () => {
+  const w = setup();
+  // Cấp mặc định cho Công ty lữ hành (đường route thật của Kế toán + Toàn quyền).
+  const muc = (await w.call("POST", "/api/pricing/muc-ta", { as: ACC, body: { ten: "TA1" } })).json.muc.code;
+  assert.equal((await w.call("POST", `/api/pricing/muc-ta/${muc}/dong`, { as: ACC, body: { phamVi: "ALL", kieu: "RATE", tuNgay: "2026-01-01", tyLeBp: 1000 } })).status, 201);
+  assert.equal((await w.call("POST", "/api/pricing/muc-ta/gan", { as: ACC, body: { loai: "TRAVEL_AGENCY", muc, tuNgay: "2026-01-01" } })).status, 201);
+  const cs = (await w.call("GET", "/api/pricing/cap-mac-dinh", { as: SUP })).json.loai.find((l: any) => l.code === "TRAVEL_AGENCY")?.hienHanh?.id ?? null;
+  const dcs = await w.call("POST", "/api/pricing/cap-mac-dinh", { as: SUP, body: { loai: "TRAVEL_AGENCY", muc, dangHieuLuc: cs } });
+  assert.ok(dcs.status === 200 || dcs.status === 201, dcs.text);
+  await new Promise((r) => setTimeout(r, 5));
+  const id = phieu(w, { toChuc: { giayPhep: true } });
+  const anhGp = await tep(w, id, "GIAY_PHEP_THEM");
+  await tep(w, id, "GPKD");
+  await xacMinhTC(w, id);
+  const r = await duyet(w, HR, id);
+  assert.equal(r.status, 200, r.text);
+  const org = w.q("SELECT party_id FROM pty_organization_document WHERE document_type_code = 'TRAVEL_DOMESTIC'")[0].party_id;
+  const gp = w.q("SELECT id, number_key, expiry_date FROM pty_organization_document WHERE party_id = ? AND document_type_code = 'TRAVEL_DOMESTIC'", org)[0];
+  assert.deepEqual([gp.number_key, gp.expiry_date], ["GP772025", "2029-01-01"]);
+  assert.deepEqual(w.q("SELECT a.party_id, l.target_id FROM pty_attachment a JOIN pty_attachment_link l ON l.attachment_id = a.id WHERE a.id = ?", anhGp.id).map((x: any) => [x.party_id, x.target_id]), [[org, gp.id]]);
+  const tk = taiKhoanMoi(w);
+  assert.deepEqual(w.q("SELECT tier_code FROM prc_party_tier WHERE party_id = ?", org).map((x: any) => x.tier_code), [muc], "cấp riêng trên hồ sơ tổ chức");
+  assert.deepEqual(w.q("SELECT tier_code FROM prc_party_tier WHERE party_id = ?", tk.party_id).map((x: any) => x.tier_code), [muc], "hồ sơ người vẫn có cấp của mình");
+  assert.equal(dem1(w, "SELECT count(*) n FROM audit_log WHERE action = 'prc_party_tier_set' AND target_id = ?", org), 1);
 });

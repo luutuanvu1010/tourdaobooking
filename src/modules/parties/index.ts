@@ -40,6 +40,7 @@ import {
   anDanhStatements, chanLoNeuThuaXoaStatement, coPhieuXoaChoHoacDa, demHoSoGopVao, demXemTruocXoa, listPhieuChuaChepNgoai, listPhieuXoaChoCoTen, listPhieuXoaDaXuLy, quyetPhieuXoaStatement, tepChoXoaCuaPhieu,
   tepChoXoaLyDoPhieu, timPhieuXoaCoTen, tuChoiPhieuXoaStatement, datChoXoaAnhHetGiuStatement, listAnhHetLyDoGiu, type AnhHetGiuRow,
   dauXacMinhTheoHoSo, canXacMinhLaiStatement, chamCuaTaiKhoan, ghiDiaChiTuPhieuStatement, ghiGiayToTuPhieuStatement, ghiNgaySinhTuPhieuStatement, ghiXacMinhTuPhieuStatement, lamMoiHoSoTuPhieuStatement, quyetPhieuStatement, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
+  dkGiaTriToChucStatement, dkGiayToToChucStatement, dkLienHeCuaToChucStatement, dkXacMinhToChucStatement, type OrgDocInsert,
   dkGpkdOToChucKhac, dkMstOToChucKhac, dkToChucDeSoTen, dkToChucTheoGpkd, dkToChucTheoMst,
   dkDongYStatement, dkGiayToStatement, dkGioiThieuStatement, dkLienHeStatement, dkMoHoSoStatements, dkMoVaiStatement, dkNgaySinhStatement, dkSoCanCuocOHoSoKhac, dkXacMinhStatement, dkXacMinhTenStatement,
   datHoatDongLoaiDoiTacStatement, suaLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
@@ -71,7 +72,7 @@ export { hanGiuPhienNgay } from "./repository";
 export { dauXacMinhTheoHoSo };
 // Tệp chờ của phiếu đăng ký (ADR-0208; đợt 1 Task 5): dang-ky chỉ gọi các hàm này, không đọc bảng pty_registration_attachment, không chạm kho HO_SO.
 export {
-  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauGoTepCho, cauGoTepChoNeuTruocDoi, cauTepChoMoi, datKhoTepCho, donKhoTepCho, khoTepChoSanSang, moTepChoTuKho, tepChoDeXemCuaPhieu, timTepChoDeXem, timTepChoTrung,
+  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauGoTepCho, cauGoTepChoNeuTruocDoi, cauTepChoMoi, datKhoTepCho, donKhoTepCho, khoTepChoSanSang, moTepChoTuKho, tepChoDeXemCuaPhieu, timTepChoDeXem, timTepChoTrung,
   trangThaiTepChoTheoO, xoaKhoTepChoDaGo, type TepChoDeXem,
 } from "./tep-cho";
 export { cheSo } from "./giay-to";
@@ -133,6 +134,60 @@ export const cauDongYTuPhieu = (db: D1Database, v: { id: string; partyId: string
 /** Câu 9: quan hệ «Người giới thiệu của» — từ hồ sơ người giới thiệu tới hồ sơ được duyệt, từ hôm nay. Chỉ ghi nhận, không sinh tiền. Lính gác: người giới thiệu ngưng / gộp ⇒ hỏng CẢ lô. */
 export const cauQuanHeGioiThieu = (db: D1Database, v: { referrerPartyId: string; partyId: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
   dkGioiThieuStatement(db, { id: crypto.randomUUID(), ...v });
+// ---- Lô DUYỆT: phần TỔ CHỨC (ADR-0212 Đ6; đợt 2 Task 7). Câu CHƯA CHẠY; gốc lắp ráp ghép theo thứ tự ghi ở src/index.ts. ----
+/**
+ * Câu 2b: hồ sơ tổ chức MỚI (`newOrganizationStatements` — mã hồ sơ do hàm sinh, trả kèm; giá trị pháp lý nằm luôn trong câu chèn) hoặc không gì khi gắn có sẵn; rồi mở vai của tổ chức (nếu
+ * có) — câu mở vai bỏ qua khi hồ sơ có sẵn đã mở đúng vai này.
+ */
+export function cauMoHoSoToChucDangKy(
+  db: D1Database,
+  v: { coSan: string | null; org: { displayName: string; legalName: string | null; taxCode: string | null; address: string | null; invoiceEmail: string | null }; roleId: string; roleCode: string | null; today: string; actorId: string; at: string },
+): { partyId: string; statements: D1PreparedStatement[] } {
+  const moi = v.coSan === null ? newOrganizationStatements(db, { org: v.org, contactsFrom: v.today }, v.actorId, v.at) : null;
+  const partyId = moi ? moi.partyId : v.coSan!;
+  return {
+    partyId,
+    statements: [
+      ...(moi ? moi.statements : []),
+      ...(v.roleCode ? [dkMoVaiStatement(db, { id: v.roleId, partyId, roleCode: v.roleCode, today: v.today, actorId: v.actorId, at: v.at })] : []),
+    ],
+  };
+}
+/** Câu 2c: «Người liên hệ của» người đăng ký → hồ sơ tổ chức (khi ADR-0213 chưa thi công — Đ6). Chỉ ghi nhận, không cho quyền gì; bỏ qua khi đã có dòng cùng cặp còn hiệu lực (PF7). */
+export const cauLienKetNguoiToChuc = (db: D1Database, v: { personPartyId: string; orgPartyId: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  dkLienHeCuaToChucStatement(db, { id: crypto.randomUUID(), ...v });
+/**
+ * Câu 4b: giá trị đã xác minh của tổ chức — cột pháp lý của hồ sơ CÓ SẴN chỉ điền khi đang trống (ruling T7-2); số điện thoại của tổ chức thành liên hệ «Số điện thoại» khi hồ sơ chưa có đúng
+ * liên hệ đó; dòng GPKD và giấy phép thêm (dòng gia hạn nếu hồ sơ đã có dòng hiện hành cùng loại).
+ */
+export function cauGhiGiaTriToChuc(
+  db: D1Database,
+  v: {
+    partyId: string; coSan: boolean; legal: { legalName: string | null; taxCode: string | null; address: string | null; invoiceEmail: string | null };
+    phone: { id: string; value: string; valueNormalized: string } | null; giayTo: readonly OrgDocInsert[]; today: string; actorId: string; at: string;
+  },
+): D1PreparedStatement[] {
+  return [
+    ...(v.coSan ? [dkGiaTriToChucStatement(db, { partyId: v.partyId, ...v.legal, actorId: v.actorId, at: v.at })] : []),
+    ...(v.phone ? [dkLienHeStatement(db, { id: v.phone.id, partyId: v.partyId, kind: "PHONE", value: v.phone.value, valueNormalized: v.phone.valueNormalized, today: v.today, actorId: v.actorId, at: v.at })] : []),
+    ...v.giayTo.map((doc) => dkGiayToToChucStatement(db, { partyId: v.partyId, doc, actorId: v.actorId, at: v.at })),
+  ];
+}
+/**
+ * Câu 5b: dòng `pty_verification` cho từng mục TỔ CHỨC đã đạt — thuộc tính (chỉ khi giá trị đang có của hồ sơ bằng giá trị khai), giấy tờ (`ORG_DOCUMENT` trỏ dòng giấy tờ vừa chèn). Người
+ * và giờ là NGƯỜI XÁC MINH, GIỜ XÁC MINH.
+ */
+export function cauXacMinhToChucTuPhieu(
+  db: D1Database,
+  v: {
+    partyId: string; muc: readonly ({ id: string; loai: "ATTRIBUTE"; ma: string; giaTriKhai: string | null } | { id: string; loai: "DOCUMENT"; docId: string })[];
+    co: 0 | 1; verifiedBy: string; verifiedAt: string;
+  },
+): D1PreparedStatement[] {
+  return v.muc.map((m) => m.loai === "ATTRIBUTE"
+    ? dkXacMinhToChucStatement(db, { id: m.id, partyId: v.partyId, attributeCode: m.ma, giaTriKhai: m.giaTriKhai, co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt })
+    : dkXacMinhStatement(db, { id: m.id, partyId: v.partyId, targetKind: "ORG_DOCUMENT", targetId: m.docId, attributeCode: null, co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt }));
+}
 /** Kiểm TRƯỚC lô duyệt (câu báo rõ; trigger CCCD một người vẫn là lưới cuối): số CCCD chuẩn hoá đã nằm ở dòng chưa huỷ của hồ sơ KHÁC `partyId` (null = hồ sơ mới ⇒ mọi hồ sơ). Chỉ đúng / sai. */
 export const canCuocThuocHoSoKhac = dkSoCanCuocOHoSoKhac;
 /**

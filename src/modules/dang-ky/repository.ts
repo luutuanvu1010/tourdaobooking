@@ -657,6 +657,23 @@ const AN_DANH_BAN_KHAI = defineSql(
      AND EXISTS (SELECT 1 FROM dk_registration r WHERE r.id = ?1 AND (r.status = 'DA_DUYET' OR r.erased_at = ?2))`,
 );
 export const cauAnDanhBanKhai = (db: D1Database, v: { registrationId: string; at: string; by: string }): D1PreparedStatement => db.prepare(AN_DANH_BAN_KHAI).bind(v.registrationId, v.at, v.by);
+// Câu 10c' — ẨN DANH phần tổ chức của mọi bản khai (ADR-0212 Đ7: cùng lúc, cùng hạn với phần cá nhân), đúng dấu trigger dk_submission_org_erase_shape đòi. CÙNG điều kiện chuỗi của câu trên
+// (phiếu ĐÃ DUYỆT — lô duyệt; hoặc vừa nhận mốc đã ẩn danh của chính lượt này — tác nhân dọn phiếu). Ngoại lệ có tên của bài src/xoa-mot-lenh-co-ten.test.ts (2), đợt 2 Task 7.
+const AN_DANH_BAN_KHAI_TO_CHUC = defineSql(
+  "dang-ky",
+  "submission_org_erase",
+  `UPDATE dk_submission_org SET erased_at = ?2, display_name = '(đã ẩn)', legal_name = NULL, address = NULL, invoice_email = NULL, phone_value = NULL, phone_key = NULL,
+          gpkd_issued_place = NULL, extra_issued_place = NULL,
+          tax_code = CASE WHEN tax_code IS NULL THEN NULL ELSE 'XOA' || upper(replace(id, '-', '')) END,
+          tax_key = CASE WHEN tax_key IS NULL THEN NULL ELSE 'XOA' || upper(replace(id, '-', '')) END,
+          gpkd_number = 'XOA' || upper(replace(id, '-', '')), gpkd_key = 'XOA' || upper(replace(id, '-', '')),
+          extra_number = CASE WHEN extra_number IS NULL THEN NULL ELSE 'XOA' || upper(replace(id, '-', '')) END,
+          extra_key = CASE WHEN extra_key IS NULL THEN NULL ELSE 'XOA' || upper(replace(id, '-', '')) END,
+          updated_at = ?2, updated_by = ?3
+   WHERE registration_id = ?1 AND erased_at IS NULL
+     AND EXISTS (SELECT 1 FROM dk_registration r WHERE r.id = ?1 AND (r.status = 'DA_DUYET' OR r.erased_at = ?2))`,
+);
+export const cauAnDanhBanKhaiToChuc = (db: D1Database, v: { registrationId: string; at: string; by: string }): D1PreparedStatement => db.prepare(AN_DANH_BAN_KHAI_TO_CHUC).bind(v.registrationId, v.at, v.by);
 
 // «Từ chối duyệt» (ADR-0207 Đ4): CHỜ DUYỆT → TỪ CHỐI theo đồ thị 0170; `?5` = phiên bản người duyệt đã xem — BẮT BUỘC, ghim trong câu (rà soát cuối M-1: bỏ COALESCE).
 const TU_CHOI_DUYET_CAP = defineSql(
@@ -779,7 +796,8 @@ const PHIEU_CAN_AN_DANH = defineSql(
   `SELECT r.id FROM dk_registration r
    WHERE r.status IN ('TU_CHOI', 'DA_RUT', 'HET_HAN') AND r.decided_at <= ?1
      AND (EXISTS (SELECT 1 FROM dk_identity i WHERE i.registration_id = r.id AND i.contact_email IS NOT NULL)
-       OR EXISTS (SELECT 1 FROM dk_submission s WHERE s.registration_id = r.id AND s.given_name <> '(đã ẩn)'))
+       OR EXISTS (SELECT 1 FROM dk_submission s WHERE s.registration_id = r.id AND s.given_name <> '(đã ẩn)')
+       OR EXISTS (SELECT 1 FROM dk_submission_org o WHERE o.registration_id = r.id AND o.display_name <> '(đã ẩn)'))
    ORDER BY r.id LIMIT ?2`,
 );
 export async function phieuCanAnDanh(db: D1Database, moc: string, toiDa: number): Promise<string[]> {

@@ -2546,15 +2546,29 @@ export const CHECKS = [
     // CHỈ của phiếu kết thúc không duyệt — câu `registration_mark_erased`). Với phiếu đã duyệt, «đã ẩn danh» đọc ở dòng con: mọi bản khai có `erased_at` (lô duyệt ẩn danh trong CÙNG lô),
     // và khi đã kích hoạt thì mọi danh tính có `erased_at` (lô kích hoạt ẩn danh trong CÙNG lô). Phiếu đã duyệt chưa kích hoạt quá hạn + ân hạn do tác nhân ẩn danh theo giờ — không xét ở đây.
     code: "R-DK-5",
-    what: "phiếu «Đã duyệt» mang mốc ẩn danh của phiếu, còn bản khai chưa ẩn danh, hoặc đã kích hoạt mà danh tính chưa ẩn danh",
+    what: "phiếu «Đã duyệt» mang mốc ẩn danh của phiếu, còn bản khai (kể cả phần tổ chức — ADR-0212 Đ7) chưa ẩn danh, hoặc đã kích hoạt mà danh tính chưa ẩn danh",
     sql: `SELECT r.id FROM dk_registration r
      WHERE r.status = 'DA_DUYET'
        AND (r.erased_at IS NOT NULL
          OR EXISTS (SELECT 1 FROM dk_submission s WHERE s.registration_id = r.id AND s.erased_at IS NULL)
+         OR EXISTS (SELECT 1 FROM dk_submission_org o WHERE o.registration_id = r.id AND o.erased_at IS NULL)
          OR (r.activated_at IS NOT NULL AND EXISTS (SELECT 1 FROM dk_identity i WHERE i.registration_id = r.id AND i.erased_at IS NULL)))`,
     mode: "rows",
     level: "fail",
     note: "ADR-0208 Đ6: dữ liệu cá nhân của bản khai phải ẩn danh ngay lúc duyệt, email danh tính ngay lúc kích hoạt — đối chiếu lô duyệt / kích hoạt của phiếu nêu mã",
+  },
+  {
+    // R-DK-8 (ADR-0208 Đ6, ADR-0212 Đ7; đợt 2 Task 7): phiếu kết thúc KHÔNG duyệt đã nhận mốc «đã ẩn danh» (câu `registration_mark_erased` của tác nhân) thì mọi bản khai VÀ mọi phần tổ chức
+    // của nó đã ẩn danh — cùng lô của tác nhân (`submission_erase_on_approve`, `submission_org_erase` chuỗi trong câu vào mốc đó).
+    code: "R-DK-8",
+    what: "phiếu kết thúc không duyệt đã có mốc ẩn danh mà còn bản khai hoặc phần tổ chức chưa ẩn danh",
+    sql: `SELECT r.id FROM dk_registration r
+     WHERE r.status IN ('TU_CHOI', 'DA_RUT', 'HET_HAN') AND r.erased_at IS NOT NULL
+       AND (EXISTS (SELECT 1 FROM dk_submission s WHERE s.registration_id = r.id AND s.erased_at IS NULL)
+         OR EXISTS (SELECT 1 FROM dk_submission_org o WHERE o.registration_id = r.id AND o.erased_at IS NULL))`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0212 Đ7: phần tổ chức ẩn danh cùng lúc, cùng hạn với phần cá nhân — đối chiếu lượt tác nhân DON_PHIEU_DANG_KY của phiếu nêu mã",
   },
   {
     // R-DK-6 (ADR-0212 Đ1 mục 5 b): MỘT nguồn bật / tắt của loại đối tác. Chỉ xét dòng MANG CỜ loại đối tác (`is_partner_label = 1`; vai có mã như Tài xế đối tác không có dòng được hưởng nên
