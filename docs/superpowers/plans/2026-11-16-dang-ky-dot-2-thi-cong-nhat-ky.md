@@ -12,3 +12,4 @@
 ## Ruling và nợ nhỏ
 
 (ghi theo thứ tự task)
+- **Soát trước (16/11):** 18 ruling PF1–PF18 sửa thứ tự và chỗ thiếu của kế hoạch (bảng ở sổ điều phối). Đáng báo chủ: gieo mục bắt buộc cho tổ chức làm mọi hồ sơ tổ chức đang có hiện dấu «Chưa xác minh» (dấu chỉ để biết, ADR-0210) — PF6. «Đổi khách» xoá tư cách của đơn (PF10).
