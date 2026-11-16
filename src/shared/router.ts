@@ -20,6 +20,7 @@ import type { KetQuaLoiMoi, KhungGioHanhChinh } from "./ban-hang-phu-trach.ts";
 import { canAccessOrders, isOffice, passesAccountsGate, passesAdminGate, type PermissionCode } from "./permissions.ts";
 import { quyenThat } from "./xem-nhu-vai.ts";
 import type { TruongDaGiai } from "./ui-truong.ts";
+import { chonTuCach, type KetQuaChonTuCach, type TuCachDong } from "./booker.ts";
 
 /**
  * public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); orders: văn phòng HOẶC Đối tác (ADR-0014);
@@ -309,6 +310,16 @@ export interface Ctx<A extends Access = Access> {
    */
   benDatCuaToi: () => Promise<{ partyId: string; ten: string } | null>;
   /**
+   * TƯ CÁCH CỦA NGƯỜI GỌI (ADR-0213 Đ3.1–Đ3.3; mốc B1 Task 11) — do gốc lắp ráp tiêm (`pricing` + `parties` + `staff`; `orders`, `parties` không import nhau, khuôn `mocToiThieu`).
+   * Tư cách cá nhân khi hồ sơ của mình mang vai được hưởng (ĐÚNG điều kiện ép bên đặt hôm nay); tổ chức nơi mình là người quản lý CÓ HIỆU LỰC (Đ2.8) và tổ chức còn vai được hưởng.
+   * Ruling R4: thành viên mở ở B2. Người không giữ quyền Đối tác, chưa đăng nhập, môi trường không tiêm ⇒ `[]` (đường hôm nay — không ai thay mặt tổ chức nào).
+   */
+  tuCachCuaToi: () => Promise<TuCachDong[]>;
+  /**
+   * KIỂM TƯ CÁCH Ở MỘT CHỖ (Đ3.2): `chonTuCach(tuCachCuaToi(), tuCach)` — route lập / lưu đơn gọi hàm này, không tự tính. `chon: null` = đường «không tư cách» (hành vi hôm nay).
+   */
+  benDangThayMat: (tuCach: unknown) => Promise<KetQuaChonTuCach>;
+  /**
    * DỊCH VỤ BỊ LUẬT BÁN CHẶN CHO NGƯỜI GỌI (ADR-0146 Đ4; kế hoạch 2026-10-30 T9, R-3) — do gốc lắp ráp tiêm (`pricing.kiemLuatBan`; `catalog` KHÔNG import `pricing`). Trong `codes`,
    * các mã mà luật bán đang chặn cho BÊN ĐẶT MÁY CHỦ ÉP của người gọi (cùng điều kiện `benDatCuaToi`); người gọi không bị ép bên đặt ⇒ tập rỗng. Chỉ để LỌC danh mục form lập đơn —
    * cổng thật là 409 `sales_blocked` ở các cửa ghi đơn. Môi trường không tiêm (khung thử cũ), mảng rỗng, chưa đăng nhập ⇒ tập rỗng (không lọc).
@@ -542,6 +553,8 @@ export interface AppOptions {
     hanGiuPhienNgay: (env: Env) => Promise<number | null>;
     /** Task 11 (Ruling 21). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguoiHuongCuaHoSo` của pricing, chỉ cho tài khoản giữ quyền Đối tác); thiếu (khung thử cũ) → router trả `null`. */
     benDatCuaToi: (env: Env, actor: StaffProfile) => Promise<{ partyId: string; ten: string } | null>;
+    /** ADR-0213 Đ3 (Task 11). BẮT BUỘC (như `mocToiThieu`): bản thật ở `src/index.ts`; thiếu thì typecheck đỏ. Khung thử dựng `injected` thiếu hàm ⇒ router trả `[]` (đường hôm nay). */
+    tuCachCuaToi: (env: Env, actor: StaffProfile) => Promise<TuCachDong[]>;
     /** ADR-0146 Đ4 (T9). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguoiHuongCuaHoSo` + `kiemLuatBan` của pricing); thiếu (khung thử cũ) → router trả tập rỗng. */
     dichVuBiChanChoToi: (env: Env, actor: StaffProfile, codes: readonly string[]) => Promise<ReadonlySet<string>>;
     /** GỘP HỒ SƠ (ADR-0068). BẮT BUỘC trong mã chạy thật (`src/index.ts`). */
@@ -758,6 +771,8 @@ export function createApp(opts: AppOptions) {
       cauAnDanhPhien: (id, at, by) => (typeof opts.injected.cauAnDanhPhien === "function" ? opts.injected.cauAnDanhPhien(envH, id, at, by) : null),
       hanGiuPhienNgay: () => (who && typeof opts.injected.hanGiuPhienNgay === "function" ? opts.injected.hanGiuPhienNgay(envH) : Promise.resolve(null)),
       benDatCuaToi: () => (who && typeof opts.injected.benDatCuaToi === "function" ? opts.injected.benDatCuaToi(envH, who) : Promise.resolve(null)),
+      tuCachCuaToi: () => (who && typeof opts.injected.tuCachCuaToi === "function" ? opts.injected.tuCachCuaToi(envH, who) : Promise.resolve([])),
+      benDangThayMat: async (tuCach) => chonTuCach(who && typeof opts.injected.tuCachCuaToi === "function" ? await opts.injected.tuCachCuaToi(envH, who) : [], tuCach),
       dichVuBiChanChoToi: (codes) =>
         who && codes.length > 0 && typeof opts.injected.dichVuBiChanChoToi === "function" ? opts.injected.dichVuBiChanChoToi(envH, who, codes) : Promise.resolve(new Set<string>()),
       // Lười (kế hoạch R9): gọi opts.injected.gopHoSo(env) trong từng phương thức — app dựng bằng injected cũ (src/shared/router.test.ts) không vỡ ở route khác.

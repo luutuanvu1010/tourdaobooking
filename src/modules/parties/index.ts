@@ -10,6 +10,7 @@ import type {
   PhieuChoXacMinhDto, PhieuDaXuLyDto, PhieuXacMinhChiTietDto, PhieuXemSoResponse, PhieuXoaCuaToiDto, PhieuXoaRutResponse, PhieuXoaTaoResponse, TrangThaiPhieuXoa,
   AnhCanXoaDto, AnhCanXoaResponse, AnhCanXoaXoaResponse,
   PhieuXoaChoDto, PhieuXoaChoResponse, PhieuXoaChayLaiResponse, PhieuXoaDaXuLyDto, PhieuXoaThucHienResponse, PhieuXoaTuChoiResponse, PhieuXoaXemTruocDto,
+  TuCachCuaToiResponse,
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
@@ -72,7 +73,7 @@ export { hanGiuPhienNgay } from "./repository";
 // Dấu xác minh của hồ sơ (ADR-0210): `staff` (Quản lý tài khoản) gọi hàm này; ba màn của Đ3 là chỗ DUY NHẤT đọc.
 export { dauXacMinhTheoHoSo };
 // Người quản lý có hiệu lực (ADR-0213 Đ2.8): gốc lắp ráp ghép phần của parties (liên kết mở, hồ sơ chưa gộp, tổ chức còn vai) với phần tài khoản của staff.
-export { tcQuanLyMo } from "./repository";
+export { tcQuanLyMo, tcToChucCuaNguoi } from "./repository";
 // Tệp chờ của phiếu đăng ký (ADR-0208; đợt 1 Task 5): dang-ky chỉ gọi các hàm này, không đọc bảng pty_registration_attachment, không chạm kho HO_SO.
 export {
   LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauGoTepCho, cauGoTepChoCuaONeuTruocDoi, cauGoTepChoNeuTruocDoi, cauTepChoMoi, datKhoTepCho, donKhoTepCho, khoTepChoSanSang, moTepChoTuKho, tepChoDeXemCuaPhieu, timTepChoDeXem, timTepChoTrung,
@@ -2552,6 +2553,13 @@ export const partiesModule: AppModule = {
     // Đối tác bị từ chối như route cấp mặc định. Lời kiểm nằm ở ĐÂY (một chỗ) để hàng rào route-write-guard đọc được; thân handler coi như đã qua.
     // Ba route của người quản lý có hiệu lực / thành viên (POST /api/to-chuc/:id/{yeu-cau-chuyen, go-thanh-vien, roi}) đã viết (yeuCauChuyen, goThanhVienQuanLy, roiToChuc) nhưng CHƯA khai:
     // vai trên đối tượng không qua hàng quyền (Đ6) mà hàng rào route-write-guard đòi một lời kiểm bảng quyền — chờ điều phối chọn cách (báo cáo Task 10).
+    // ADR-0213 Đ3.1–Đ3.3 (mốc B1 Task 11): tư cách của CHÍNH người gọi (cổng staff — chỉ đọc phiên, không nhận tham số). Danh sách do gốc lắp ráp dựng (`ctx.tuCachCuaToi`);
+    // route chỉ chiếu ra ba trường. Người không giữ quyền Đối tác ⇒ rỗng.
+    route("GET", "/api/to-chuc/cua-toi", "staff", async ({ staff, tuCachCuaToi }) => {
+      if (!can(staff, "order.create")) return json({ tuCach: [] } satisfies TuCachCuaToiResponse); // tư cách chỉ dùng khi lập đơn
+      const ds = await tuCachCuaToi();
+      return json({ tuCach: ds.map((t) => ({ partyId: t.partyId, ten: t.ten, laToChuc: t.laToChuc })) } satisfies TuCachCuaToiResponse);
+    }),
     route("GET", "/api/parties/:id/to-chuc", "office", async (ctx) => {
       if (!can(ctx.staff, "partner.org.manager.write") || holdsPartner(ctx.staff)) return CAM_TO_CHUC();
       return xemToChuc(ctx);

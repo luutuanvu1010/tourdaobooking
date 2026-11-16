@@ -31,7 +31,7 @@ import { canBangVeTheoSoKhach, cauChanDuoiSoDaDung, cauChanVeDaDung, capVeChoDon
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import {
   LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauDongYTuPhieu, cauGhiGiaTriDaXacMinh, cauGhiGiaTriToChuc, cauGoTepCho, cauLienKetNguoiToChuc, cauMoHoSoDangKy, cauMoHoSoToChucDangKy,
-  cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule, tcQuanLyMo,
+  cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule, tcQuanLyMo, tcToChucCuaNguoi,
 } from "./modules/parties";
 import { capMacDinhChoDuyet, capSeApChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
 import { cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
@@ -45,6 +45,8 @@ import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { can, holdsPartner } from "./shared/permissions";
 import { vnToday } from "./shared/vn-date";
 import { createApp, type AppOptions, type KetLuanGanToChuc, type NguoiQuanLyHieuLuc } from "./shared/router";
+import { chonTuCach, type TuCachDong } from "./shared/booker";
+import type { StaffProfile } from "./shared/contracts";
 import type { LoDuyetDangKyRa, LoDuyetDangKyVao } from "./shared/dang-ky-duyet";
 import { isRoleCode, type RoleCode } from "./shared/roles";
 
@@ -95,6 +97,33 @@ async function taiKhoanGanDuoc(db: D1Database, personPartyId: string): Promise<K
   if (!tk.permissions.includes("PARTNER")) return "KHONG_DOI_TAC";
   if (!tk.active && !(await chuaKichHoat(db, tk.id))) return "NGUNG";
   return "DUOC";
+}
+
+/**
+ * TƯ CÁCH CỦA MỘT TÀI KHOẢN (ADR-0213 Đ3.1–Đ3.3; mốc B1 Task 11) — gốc lắp ráp ghép pricing (vai được hưởng), parties (liên kết đang mở) và `nguoiQuanLyCoHieuLuc` (Đ2.8 — MỘT định nghĩa).
+ * - Cá nhân: hồ sơ của tài khoản mang vai được hưởng — ĐÚNG điều kiện ép bên đặt hôm nay (`benDatChoTaiKhoan`), nên «chỉ cá nhân» = hành vi hôm nay.
+ * - Tổ chức: nơi tài khoản là người quản lý có hiệu lực VÀ tổ chức còn vai được hưởng (pricing — bên đặt phải ghi được). Ruling R4: liên kết «Thành viên» mở ở B2 (Task 16) —
+ *   chỉ cần thêm nhánh `MEMBER_OF` ở dưới.
+ * Không giữ quyền Đối tác hoặc chưa gắn hồ sơ ⇒ `[]`, không truy vấn (đường hôm nay).
+ */
+async function tuCachCuaToi(db: D1Database, actor: StaffProfile): Promise<TuCachDong[]> {
+  if (!holdsPartner(actor) || actor.partyId === null) return [];
+  const minh = actor.partyId;
+  const [caNhan, lienKet] = await Promise.all([nguoiHuongCuaHoSo(db, minh), tcToChucCuaNguoi(db, minh)]);
+  const toChuc = await Promise.all(lienKet.map(async (k): Promise<TuCachDong | null> => {
+    if (k.loai !== "MANAGER_OF") return null; // R4
+    const ql = await nguoiQuanLyCoHieuLuc(db, k.orgPartyId);
+    if (!ql || ql.personPartyId !== minh || ql.staffId !== actor.id) return null;
+    const huong = await nguoiHuongCuaHoSo(db, k.orgPartyId);
+    return huong ? { partyId: huong.partyId, ten: huong.ten, laToChuc: true, loai: "MANAGER" } : null;
+  }));
+  const ds: TuCachDong[] = caNhan ? [{ partyId: caNhan.partyId, ten: caNhan.ten, laToChuc: false, loai: "CA_NHAN" }] : [];
+  return [...ds, ...toChuc.filter((t): t is TuCachDong => t !== null).sort((a, b) => a.ten.localeCompare(b.ten, "vi"))];
+}
+/** Tư cách MẶC ĐỊNH (không gửi `tuCach`) — «Bên đặt của tôi» ở `/api/auth/me` và lọc danh mục theo luật bán (Đ4.4, nhóm THAY_MAT) tới khi màn Tạo đơn gửi ô «Tư cách» (Task 14). */
+async function tuCachMacDinh(db: D1Database, actor: StaffProfile): Promise<TuCachDong | null> {
+  const t = chonTuCach(await tuCachCuaToi(db, actor), undefined);
+  return t.ok ? t.chon : null;
 }
 
 async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuyetDangKyRa> {
@@ -361,12 +390,16 @@ const APP_OPTIONS: AppOptions = {
     hanGiuPhienNgay: (env) => hanGiuPhienNgay(env.DB),
     // BÊN ĐẶT MÁY CHỦ ÉP (sổ đại lý đợt 1, Task 11 — Ruling 21): `auth` không import `pricing` (không nới ALLOWED_EDGES) — gốc lắp ráp là NƠI DUY NHẤT nối. Chỉ tài khoản giữ quyền Đối tác
     // CÓ hồ sơ mới tốn một truy vấn; mọi người khác trả null ngay (`/api/auth/me` đi qua đây ở MỌI trang). Điều kiện y hệt `benDatChoTaiKhoan` (holdsPartner + hồ sơ mang vai được hưởng).
-    benDatCuaToi: (env, actor) => (holdsPartner(actor) && actor.partyId !== null ? nguoiHuongCuaHoSo(env.DB, actor.partyId) : Promise.resolve(null)),
+    // ADR-0213 Đ4.4 (Task 11): đọc qua tư cách mặc định — người có tư cách cá nhân thấy đúng như cũ; người chỉ làm cho tổ chức ⇒ null (chọn tư cách ở form — Task 14).
+    benDatCuaToi: async (env, actor) => {
+      const t = await tuCachMacDinh(env.DB, actor);
+      return t ? { partyId: t.partyId, ten: t.ten } : null;
+    },
+    tuCachCuaToi: (env, actor) => tuCachCuaToi(env.DB, actor),
     // LỌC DANH MỤC FORM LẬP ĐƠN THEO LUẬT BÁN (ADR-0146 Đ4; T9, R-3): `catalog` không import `pricing` — gốc lắp ráp nối. Cùng điều kiện ép bên đặt như dòng trên (bên đặt máy chủ ép);
     // văn phòng / Thực tập không bị ép ⇒ không truy vấn, thấy đủ. Ngày xét = ngày Việt Nam lúc gọi.
     dichVuBiChanChoToi: async (env, actor, codes) => {
-      if (!holdsPartner(actor) || actor.partyId === null) return new Set<string>();
-      const ben = await nguoiHuongCuaHoSo(env.DB, actor.partyId);
+      const ben = await tuCachMacDinh(env.DB, actor); // ADR-0213 Đ4.4: bên đang thay mặt (mặc định), không phải staff.partyId
       if (!ben) return new Set<string>();
       return new Set((await kiemLuatBan(env.DB, { bookerPartyId: ben.partyId, catalogCodes: codes, ngay: vnToday(new Date()) })).map((t) => t.catalogCode));
     },

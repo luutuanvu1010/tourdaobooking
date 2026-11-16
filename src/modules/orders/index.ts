@@ -16,14 +16,14 @@ import { CAU_CHUA_KIEM_DUOC_VE_DA_DUNG, CAU_DUOI_SO_VE_DA_DUNG, chanDoiTacHuy, c
 import { duocGiaoTheoO, laVaChamOBanHang } from "../../shared/ban-hang-phu-trach";
 import { route, type AppModule, type BanHangNoi } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
-import { benDatChoTaiKhoan, benDatDoiTacBiCam, type BookerInput } from "../../shared/booker";
+import { benDatChoTaiKhoan, benDatDoiTacBiCam, tuCachCuaDon, type BookerInput, type KetQuaChonTuCach, type TuCachDong } from "../../shared/booker";
 import { docLocDon } from "../../shared/loc-don";
 import { LOC_NHAP_TOI_DA_NGAY, LOC_NHAP_TOI_DA_UNG_VIEN, laDongNhapKeToan, soNgayKhoang } from "../../shared/nhap-ke-toan";
 import { maDonTuNoiDung } from "../../shared/noi-dung-chuyen-khoan";
 import { dungLichSuSoKhach } from "../../shared/lich-su-so-khach";
 import { editablePaxCodesOf, effectiveMoney, effectiveSubtotal, planMoneyEdit, type AdjustmentEntry } from "./money-adjustment";
 import {
-  addLeg, cauTienNhapSauPhi, changeBooker, daXacNhan, soanDoiKhach, soanHuyDon, soanXacNhan, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getGiamGia, getLatestAdjustment, getMeta, getOrderRef, bookerLaDoiTacCuaDon, nextStamp,
+  type OrderMeta, addLeg, cauTienNhapSauPhi, changeBooker, daXacNhan, soanDoiKhach, soanHuyDon, soanXacNhan, soanSuaChang, soanThayChang, thangCauDau, changeLeg, cocCuNhap, countDrafts, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getGiamGia, getLatestAdjustment, getMeta, getOrderRef, bookerLaDoiTacCuaDon, nextStamp,
   chayLoSuaSoKhach, demThanCu, getPhiChoHieuLuc, getServicesForSubtotal, getStoredPax, getStoredServices, type StoredServiceRow, insertMoneyAdjustment, listAdjustments, listOrderIds, listOrders, listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
 import {
@@ -198,7 +198,8 @@ async function chanBenDatDoiTac(
   const laDoiTac = holdsPartner(staff);
   if (!laDoiTac || guiLen.kind !== "existing") return null;
   const huong = guiLaHuong ?? (await laNguoiHuong(db, guiLen.partyId));
-  return benDatDoiTacBiCam({ laDoiTac, partyId: staff.partyId, guiLen, guiLaNguoiHuong: huong, benDatDangLuu: dangLuu }) ? BEN_DAT_DOI_TAC_CAM() : null;
+  // ADR-0213 Đ4.1: «bên đang thay mặt». Hai nơi gọi chỉ tới đây khi KHÔNG có tư cách (đường hôm nay: lập / lưu nháp không tư cách, đổi khách) ⇒ bên đang thay mặt = hồ sơ của tài khoản.
+  return benDatDoiTacBiCam({ laDoiTac, benThayMat: staff.partyId, guiLen, guiLaNguoiHuong: huong, benDatDangLuu: dangLuu }) ? BEN_DAT_DOI_TAC_CAM() : null;
 }
 
 /**
@@ -210,18 +211,49 @@ async function chanBenDatDoiTac(
 async function benDatCuaTaiKhoan(
   db: D1Database,
   staff: Pick<StaffProfile, "partyId" | "permissions">,
+  thayMat: TuCachDong | null,
   guiLen: BookerInput,
   dangLuu: string | null,
 ): Promise<{ ok: true; booker: BookerInput; ep: boolean } | { ok: false; res: Response }> {
   const laDoiTac = holdsPartner(staff);
-  const huong = laDoiTac && staff.partyId !== null && (await laNguoiHuong(db, staff.partyId));
-  if (laDoiTac && !huong && guiLen.kind === "existing") {
+  // ADR-0213 Đ4.1 (Task 11): ép bên đặt = hồ sơ của TƯ CÁCH đã chọn (`benDangThayMat`). Tư cách cá nhân có đúng khi hồ sơ của tài khoản mang vai được hưởng — cùng điều kiện
+  // `laNguoiHuong(staff.partyId)` hôm nay, nên đường cá nhân và đường «không tư cách» (`thayMat` null) giữ nguyên hành vi.
+  const ep = laDoiTac && thayMat !== null;
+  if (laDoiTac && !ep && guiLen.kind === "existing") {
     const guiLaHuong = await laNguoiHuong(db, guiLen.partyId);
     if (staff.partyId === null && guiLaHuong) return { ok: false, res: PARTNER_NO_PARTY() };
     const cam = await chanBenDatDoiTac(db, staff, guiLen, dangLuu, guiLaHuong);
     if (cam) return { ok: false, res: cam };
   }
-  return { ok: true, booker: benDatChoTaiKhoan({ laDoiTac, partyId: staff.partyId, laNguoiHuong: huong, guiLen }), ep: huong };
+  return { ok: true, booker: benDatChoTaiKhoan({ laDoiTac, benThayMat: thayMat?.partyId ?? null, laNguoiHuong: ep, guiLen }), ep };
+}
+
+/** ADR-0213 Đ3.2: lỗi chọn tư cách → phản hồi (một chỗ cho lập đơn và lưu nháp). */
+function loiTuCach(loi: "CAN_CHON" | "KHONG_CON_THAY_MAT" | "KHONG_HOP_LE"): Response {
+  if (loi === "CAN_CHON") return error(400, "tu_cach_required", "Hãy chọn tư cách");
+  if (loi === "KHONG_HOP_LE") return error(400, "invalid_input", "Tư cách không hợp lệ.");
+  return NOT_ACTING_FOR_ORG();
+}
+const NOT_ACTING_FOR_ORG = () => error(403, "not_acting_for_org", "Bạn không còn thay mặt tổ chức này");
+const BOOKER_LOCKED = () => error(409, "booker_locked", "Đơn đã lập theo một tư cách nên không đổi bên đặt được. Hãy lập đơn mới.");
+/** Thân lệnh lập đơn: trường `tuCach` (Đ3.1 — tên giữ chỗ của ADR). Đọc từ thân GỐC (thân «Ẩn thông tin khách» viết lại không giữ khoá này). */
+const tuCachGui = (than: unknown): unknown => (than !== null && typeof than === "object" && !Array.isArray(than) ? (than as Record<string, unknown>).tuCach : undefined);
+
+/**
+ * ADR-0213 Đ3.4 — bên đặt CHỐT của đơn lập theo tư cách (lưu nháp). null = đơn không tư cách (đường hôm nay). `{ giu: true }` = giữ bên đặt đang lưu. Thứ tự: liên kết (403) → bên đặt khác (409).
+ * Tư cách cá nhân không kiểm liên kết (hồ sơ của chính mình). Hồ sơ mới (`newBooker`) cũng là «khác».
+ */
+async function bookerChot(
+  meta: Pick<OrderMeta, "actingPartyId" | "actingLinkKind" | "bookerPartyId">, gui: BookerInput, benDangThayMat: (t: unknown) => Promise<KetQuaChonTuCach>,
+): Promise<{ giu: true } | { res: Response } | null> {
+  const loai = tuCachCuaDon(meta.actingLinkKind);
+  if (loai === null || meta.actingPartyId === null) return null;
+  if (loai === "TO_CHUC") {
+    const t = await benDangThayMat(meta.actingPartyId);
+    if (!t.ok || t.chon?.partyId !== meta.actingPartyId) return { res: NOT_ACTING_FOR_ORG() };
+  }
+  if (gui.kind === "new" || (gui.kind === "existing" && gui.partyId !== meta.bookerPartyId)) return { res: BOOKER_LOCKED() };
+  return { giu: true };
 }
 
 /** Cảnh báo mốc (I27) + con số mốc (I31) cho phản hồi LẬP / SỬA NHÁP. `moc` null = nháp không chặng (không hỏi mốc). */
@@ -1300,7 +1332,7 @@ export const ordersModule: AppModule = {
     // tuỳ chọn); không chọn → đơn chờ người nhận. Thứ tự: 403 (không lập đơn được) → đọc thân → 403 (có chọn người mà không có `dispatch.assign` trên đơn
     // của chính mình — Thực tập, Đối tác: G4; đứng TRƯỚC mọi 400 và mọi đọc CSDL) → 400 (dạng mã người được chọn) → 400/409 (đơn: validateOrder,
     // priceGuard, người đặt) → 400 `invalid_assignee` (người được chọn không đủ điều kiện — `dispatch` xét bằng `checkAssignee`; KHÔNG tạo đơn) → ghi.
-    route("POST", "/api/orders", "orders", async ({ env, request, staff, newOrderHandler, baoThayDoi, mocToiThieu, chanKhaiCocLai, banHang, kiemTraSau, kenhThuHienTai, chinhSachGiaoDien }) => {
+    route("POST", "/api/orders", "orders", async ({ env, request, staff, newOrderHandler, baoThayDoi, mocToiThieu, chanKhaiCocLai, banHang, kiemTraSau, kenhThuHienTai, chinhSachGiaoDien, benDangThayMat }) => {
       if (!can(staff, "order.create")) return CANNOT_CREATE();
       const thanGui = await readJson(request);
       // ADR-0047 A2: thân có khoá `passengers` (danh sách khách của đơn nháp — Ruling R1) → hỏi thêm ô nhập tên khách trên đơn của chính mình.
@@ -1338,7 +1370,10 @@ export const ordersModule: AppModule = {
       const placed = oPhuNhap(staff, { ownerId: staff.id, assigned: false }, dvLap.order, []); // kế hoạch ô mới Task 3.3
       if (!placed.ok) return placed.res;
       // Sổ đại lý đợt 1 (ADR-0077 đ3 (i), thu hẹp): Đối tác có hồ sơ được hưởng ⇒ bên đặt luôn là hồ sơ của tài khoản, bỏ qua điều trình duyệt gửi.
-      const ben = await benDatCuaTaiKhoan(env.DB, staff, placed.value.booker, null);
+      // ADR-0213 Đ3.1, Đ3.2 (Task 11): tư cách chọn theo từng đơn — kiểm ở MỘT chỗ (`benDangThayMat`, gốc lắp ráp tiêm); chỉ tài khoản giữ quyền Đối tác (văn phòng không có tư cách).
+      const thayMat = holdsPartner(staff) ? await benDangThayMat(tuCachGui(thanGui)) : { ok: true as const, chon: null };
+      if (!thayMat.ok) return loiTuCach(thayMat.loi);
+      const ben = await benDatCuaTaiKhoan(env.DB, staff, thayMat.chon, placed.value.booker, null);
       if (!ben.ok) return ben.res;
       const booker = await resolveBooker(env.DB, ben.booker, staff.id, new Date());
       if (!booker.ok) return error(400, "invalid_input", booker.message);
@@ -1370,7 +1405,8 @@ export const ordersModule: AppModule = {
       const taoThem = handler || xMoi
         ? (orderId: string, at: string) => [...(handler?.statements(orderId, at) ?? []), ...(xMoi?.ok ? [cauGhiNguoiMoi(env.DB, { orderId, partyId: xMoi.partyId })] : [])]
         : undefined;
-      const id = await createOrder(env.DB, staff.id, { ...donGhi, declaredDeposit: khai.giaTri }, taoThem, booker.write, an, kenhThu, phi.theoChang);
+      const tuCachDon = thayMat.chon ? { partyId: thayMat.chon.partyId, loai: thayMat.chon.loai } : null; // Đ3.4: loại liên kết LÚC LẬP, ghi trong chính câu chèn đơn
+      const id = await createOrder(env.DB, staff.id, { ...donGhi, declaredDeposit: khai.giaTri }, taoThem, booker.write, an, kenhThu, phi.theoChang, tuCachDon);
       // Bảng tin (ADR-0022 điều 4/7): "tao" — KHÔNG truyền `handlerTruoc` (ADR-0030 Review Focus 5); gốc lắp ráp (src/index.ts) tự đổi thành
       // "tao_cho_nhan" khi đơn không có người phụ trách (chỉ làm mới màn hình, KHÔNG thông báo nổi/gõ cửa — ADR-0045). Không bao giờ phát "giao" cho đơn vừa lập.
       baoThayDoi({ orderId: id, thayDoi: "tao" });
@@ -1457,7 +1493,7 @@ export const ordersModule: AppModule = {
       } satisfies OrderDetailResponse);
     }),
 
-    route("PUT", "/api/orders/:id", "orders", async ({ env, request, params, staff, isAssigned, isSalesOwner, baoThayDoi, mocToiThieu, chanKhaiCocLai, banHang, kiemTraSau, chinhSachGiaoDien }) => {
+    route("PUT", "/api/orders/:id", "orders", async ({ env, request, params, staff, isAssigned, isSalesOwner, baoThayDoi, mocToiThieu, chanKhaiCocLai, banHang, kiemTraSau, chinhSachGiaoDien, benDangThayMat }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [meta, assigned, laBanHang] = await Promise.all([getMeta(env.DB, id), isAssigned(id), isSalesOwner(id)]);
@@ -1513,10 +1549,15 @@ export const ordersModule: AppModule = {
       // người đặt đang lưu, không gọi resolveBooker (đơn đang phụ trách bởi hồ sơ đã bị ngưng sẽ 400 nếu resolveBooker chạy lại). `bookerPartyId: null`
       // tường minh vẫn bỏ gắn như cũ. Giới hạn đã biết: BOOKER_VALUE ghi NULL nếu hồ sơ giữ lại không còn đủ điều kiện (cá nhân đang hoạt động, hoặc tổ chức đang mang vai được hưởng) — chấp nhận được.
       const noBookerKeys = body !== null && typeof body === "object" && !("bookerPartyId" in body) && !("newBooker" in body);
+      // ADR-0213 Đ3.4 (Task 11): đơn do Đối tác lập theo một tư cách ⇒ bên đặt CHỐT. Thân thiếu khoá bên đặt, gửi rỗng hoặc gửi trùng ⇒ giữ; gửi khác (kể cả hồ sơ mới) ⇒ 409, không
+      // âm thầm đổi. Tư cách tổ chức: mỗi lần lưu kiểm lại liên kết (Đ3.2) — người đã rời không lưu được (403). Đơn tư cách NULL (văn phòng, nháp trước B1): hành vi hôm nay.
+      const chot = await bookerChot(meta, placed.value.booker, benDangThayMat);
+      if (chot && "res" in chot) return chot.res;
       // Sổ đại lý đợt 1: Đối tác có hồ sơ được hưởng luôn ghi hồ sơ của mình — kể cả khi thân cũ không có khoá bên đặt (nhường nhánh "giữ bên đặt cũ").
-      const ben = await benDatCuaTaiKhoan(env.DB, staff, placed.value.booker, meta.bookerPartyId);
+      const thayMat = chot || !holdsPartner(staff) ? { ok: true as const, chon: null } : await benDangThayMat(undefined);
+      const ben = chot ? { ok: true as const, booker: placed.value.booker, ep: false } : await benDatCuaTaiKhoan(env.DB, staff, thayMat.ok ? thayMat.chon : null, placed.value.booker, meta.bookerPartyId);
       if (!ben.ok) return ben.res;
-      const booker = noBookerKeys && !ben.ep
+      const booker = chot || (noBookerKeys && !ben.ep)
         ? { ok: true as const, write: { partyId: meta.bookerPartyId, before: [], note: null } }
         : await resolveBooker(env.DB, ben.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
       if (!booker.ok) return error(400, "invalid_input", booker.message);
@@ -1948,6 +1989,8 @@ export const ordersModule: AppModule = {
       if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned: giao })) return FORBIDDEN();
       if (meta.deliveredAt) return DA_GIAO();
       if (meta.status === "cancelled") return CANCELLED();
+      // ADR-0213 Đ3.4 (Task 11): bên đặt của đơn lập theo tư cách đã chốt — tài khoản giữ quyền Đối tác không đổi được ở đường này (chỉ văn phòng đổi khách, PF10).
+      if (meta.actingLinkKind !== null && holdsPartner(staff)) return BOOKER_LOCKED();
       const parsed = validateBookerChange(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const v = parsed.value;
@@ -2002,7 +2045,7 @@ export const ordersModule: AppModule = {
       }
       let daDoi: boolean;
       try {
-        daDoi = await changeBooker(env.DB, id, staff.id, v, booker.write, detail, congDoiBen.qua, kemChup);
+        daDoi = await changeBooker(env.DB, id, staff.id, v, booker.write, detail, congDoiBen.qua, kemChup, benMoi !== meta.bookerPartyId && meta.actingLinkKind !== null);
       } catch (e) {
         const loi = e instanceof Error ? e.message : String(e);
         const traSauThua = dichLoiTraSau(e); // ADR-0168, ADR-0188: phiên bản bên đặt cũ hoặc mới vừa đổi chen giữa (khoản thu bị đảo, hạn mức đổi…)

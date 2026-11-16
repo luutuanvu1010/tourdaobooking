@@ -25,7 +25,7 @@ import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, orderStatuses
 import { daTraTheoThuCho } from "./rules";
 import { GIO_TOI_DA, kiemSoGio } from "../../shared/tra-sau";
 import { benCoLienQuanTraSau, cauTangPhienBan, hanMucHieuLuc, hanMucMoiBen, homQua, noCacBenDat, noCuaBenDat, traSauCuaDon } from "./tra-sau";
-import { dongHanMucKhiHetVaiStatement, dongHanMucStatement, ghiGoiYStatement, goiYTheoCap, hanMucDangMo, mucToiDaQuanTri, themHanMucStatement, themMucToiDaStatement } from "./tra-sau-repo";
+import { dangGanToChuc, dongHanMucKhiHetVaiStatement, dongHanMucStatement, ghiGoiYStatement, goiYTheoCap, hanMucDangMo, mucToiDaQuanTri, themHanMucStatement, themMucToiDaStatement } from "./tra-sau-repo";
 import { dongKenhThuStatement, themKenhThuStatement } from "./kenh-thu-repo";
 import { kenhThuDto, kenhThuHienTai as kenhThuDangBat } from "./kenh-thu";
 import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
@@ -68,6 +68,9 @@ const CANNOT_APPROVE_ADJUSTMENT = () => error(403, "forbidden", "Chỉ Kế toá
 const FORBIDDEN_CREDIT_VIEW = () => error(403, "forbidden", "Chỉ Kế toán, Quản trị hoặc Toàn quyền mới xem được hạn mức trả sau.");
 /** ADR-0172 «Chỗ dễ nhầm»: không ai bật, đổi hay ngừng Trả sau cho hồ sơ của chính mình. */
 const TU_DAT_TRA_SAU = () => error(403, "tu_dat_tra_sau", "Không tự bật, đổi hay ngừng Trả sau cho hồ sơ của chính mình. Nhờ người khác có quyền làm việc này.");
+/** ADR-0172 «Chỗ dễ nhầm» + ADR-0213 Đ4.5 (Task 11): hồ sơ đích là chính mình, HOẶC là tổ chức mình đang gắn (người quản lý / thành viên) ⇒ tự đặt Trả sau. */
+const tuDatTraSau = async (db: D1Database, staff: { partyId: string | null }, dich: string): Promise<boolean> =>
+  staff.partyId !== null && (staff.partyId === dich || (await dangGanToChuc(db, staff.partyId, dich)));
 /**
  * ADR-0173 Đ1 mục 1: người KHÔNG giữ ô `credit.ceiling.write` (Quản trị) chỉ đặt hạn mức tới mức tối đa hiện hành; chưa có mức tối đa thì không đặt được. Toàn quyền không bị giới hạn.
  * `null` = qua. So ở máy chủ; giao diện chỉ báo trước.
@@ -900,7 +903,7 @@ export const billingModule: AppModule = {
       const [h, no] = await Promise.all([hanMucHieuLuc(env.DB, partyId), noCuaBenDat(env.DB, partyId)]);
       const res: TraSauHoSoResponse = {
         partyId, hanMuc: h?.hanMuc ?? null, gioTra: h?.gioTra ?? null, gioAnHan: h?.gioAnHan ?? null, dangNo: no.tong, conDuocDung: h ? Math.max(0, h.hanMuc - no.tong) : null,
-        coQuyenSua: can(staff, "credit.limit.write") && staff.partyId !== partyId,
+        coQuyenSua: can(staff, "credit.limit.write") && !(await tuDatTraSau(env.DB, staff, partyId)),
       };
       return json(res);
     }),
@@ -915,7 +918,7 @@ export const billingModule: AppModule = {
       if (!kiemSoGio(b.gioAnHan, 0)) return error(400, "invalid_input", `Ân hạn là số giờ nguyên từ 0 đến ${GIO_TOI_DA}.`);
       const lyDo = docLyDo(b.lyDo, false);
       if (!lyDo.ok) return lyDo.res;
-      if (staff.partyId === b.partyId) return TU_DAT_TRA_SAU();
+      if (await tuDatTraSau(env.DB, staff, b.partyId)) return TU_DAT_TRA_SAU();
       const chanMuc = await chanVuotMucToiDa(env.DB, staff, b.hanMuc);
       if (chanMuc) return chanMuc;
       if (!(await partyLabels(env.DB, [b.partyId])).has(b.partyId)) return error(404, "not_found", "Không tìm thấy hồ sơ.");
@@ -939,7 +942,7 @@ export const billingModule: AppModule = {
     route("POST", "/api/tra-sau/han-muc/:partyId/ngung", "office", async ({ env, params, staff }) => {
       if (!can(staff, "credit.limit.write") || holdsPartner(staff)) return error(403, "forbidden", "Chỉ Quản trị, Toàn quyền mới ngừng được Trả sau của đại lý.");
       const partyId = params.partyId!;
-      if (staff.partyId === partyId) return TU_DAT_TRA_SAU();
+      if (await tuDatTraSau(env.DB, staff, partyId)) return TU_DAT_TRA_SAU();
       if (!PARTY_ID_RE.test(partyId) || !(await hanMucDangMo(env.DB, partyId))) return error(404, "not_found", "Hồ sơ này chưa có hạn mức trả sau đang hiệu lực.");
       const at = new Date().toISOString();
       await env.DB.batch([
@@ -1026,10 +1029,14 @@ export const billingModule: AppModule = {
       return json(res);
     }),
     // Đường đọc HẸP cho người lập đơn (ADR-0168 Đ1 mục 3): chỉ «còn được dùng» của đúng bên đặt, không danh sách đơn. Tài khoản Đối tác bị ÉP về hồ sơ của phiên (bỏ qua `benDat`).
-    route("GET", "/api/tra-sau/con-duoc-dung", "orders", async ({ env, request, staff }) => {
+    // ADR-0213 Đ4.4 (Task 11, nhóm THAY_MAT): Đối tác xem theo BÊN ĐANG THAY MẶT — `benDat` là một tư cách của mình thì dùng nó; vắng hoặc ngoài danh sách thì tư cách mặc định
+    // (cá nhân) như hôm nay; không có tư cách nào ⇒ hồ sơ của phiên (hôm nay). Chỉ là đường đọc gợi ý — cổng thật là lô lưu / xác nhận theo bên đặt đã ghi.
+    route("GET", "/api/tra-sau/con-duoc-dung", "orders", async ({ env, request, staff, benDangThayMat }) => {
       if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không xem được hạn mức trả sau.");
       const q = new URL(request.url).searchParams.get("benDat");
-      const benDat = holdsPartner(staff) ? staff.partyId : q;
+      const thayMat = holdsPartner(staff) ? await benDangThayMat(q) : null;
+      const macDinh = thayMat && !thayMat.ok ? await benDangThayMat(undefined) : thayMat;
+      const benDat = macDinh ? (macDinh.ok && macDinh.chon ? macDinh.chon.partyId : staff.partyId) : q;
       if (benDat !== null && !PARTY_ID_RE.test(benDat)) return error(400, "invalid_input", "Mã bên đặt không hợp lệ.");
       if (benDat === null) return json({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false } satisfies ConDuocDungTraSauResponse);
       const [h, no] = await Promise.all([hanMucHieuLuc(env.DB, benDat), noCuaBenDat(env.DB, benDat)]);

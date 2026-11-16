@@ -68,6 +68,13 @@ const ACTING_ROLE_SUBQUERY =
 const TU_GHI_SUBQUERY = `(CASE WHEN ?4 IN (${HANH_DONG_GHI_TIEN.map((a) => `'${a}'`).join(", ")})
        AND EXISTS (SELECT 1 FROM v_ord_order_owner o WHERE o.id = ?2 AND o.staff_id = ?3) THEN 1 END)`;
 
+/**
+ * ADR-0213 Đ3.5, Ruling R3 (mốc B1 Task 11) — `acting_party_id` của dòng gắn đơn (?2): TỔ CHỨC mà đơn được lập thay mặt, đọc qua view công bố `v_ord_order_acting` của orders
+ * (view chỉ lộ tư cách MANAGER / MEMBER — đơn cá nhân và đơn văn phòng ra NULL; PF8: không FROM orders). Điền NGAY TRONG câu chèn: handler không truyền (khuôn acting_role).
+ * Câu đọc lúc CHẠY nên dòng nhật ký phải đứng SAU câu chèn đơn trong lô (createOrder). Dòng quản trị tổ chức (Task 10) truyền thẳng ?11 và thắng (COALESCE).
+ */
+const THAY_MAT_SUBQUERY = `(SELECT v.acting_party_id FROM v_ord_order_acting v WHERE v.order_id = ?2)`;
+
 export function insertStatement(db: D1Database, e: AuditInput, onlyIf?: string, actingPartyId: string | null = null): D1PreparedStatement {
   // SQL không còn CHECK liệt kê (0007) → chốt ở đây để giá trị lạ không bao giờ vào nhật ký.
   if (!isAuditAction(e.action)) throw new Error(`Hành động nhật ký không hợp lệ: ${String(e.action)}`);
@@ -81,7 +88,7 @@ export function insertStatement(db: D1Database, e: AuditInput, onlyIf?: string, 
   return db
     .prepare(
       `INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at, acting_role, tu_ghi_don_minh_lap, agent_code, acting_party_id)
-       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ${ACTING_ROLE_SUBQUERY}, ${TU_GHI_SUBQUERY}, ?10, ?11 ${onlyIf ? `WHERE ${onlyIf}` : ""}`,
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ${ACTING_ROLE_SUBQUERY}, ${TU_GHI_SUBQUERY}, ?10, COALESCE(?11, ${THAY_MAT_SUBQUERY}) ${onlyIf ? `WHERE ${onlyIf}` : ""}`,
     )
     .bind(e.id ?? crypto.randomUUID(), e.orderId ?? null, e.staffId ?? null, e.action, targetType, targetId, e.detail ?? null, e.at, mocHan, e.agentCode ?? null, actingPartyId);
 }

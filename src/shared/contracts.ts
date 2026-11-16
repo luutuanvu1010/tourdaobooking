@@ -1135,6 +1135,8 @@ export interface ToChucDto {
   thu: { trangThai: "CHO" | "DA_GUI" | "KHONG_EMAIL"; ngay: string } | null;
 }
 export interface ToChucResponse { toChuc: ToChucDto }
+/** ADR-0213 Đ3.1 (Task 11): các tư cách của người gọi cho ô «Tư cách» ở màn Tạo đơn — `GET /api/to-chuc/cua-toi`. Chỉ mã hồ sơ, tên, cờ tổ chức. */
+export interface TuCachCuaToiResponse { tuCach: { partyId: string; ten: string; laToChuc: boolean }[] }
 
 export interface PartyRelationshipDto {
   id: string;

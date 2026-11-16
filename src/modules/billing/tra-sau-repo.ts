@@ -34,6 +34,9 @@ export const hanMucRowMoiBen = async (db: D1Database, ngay: string): Promise<Han
 
 const HAN_MUC_DANG_MO = defineSql("billing", "credit_limit_open", `SELECT id FROM bil_credit_limit WHERE party_id = ?1 AND valid_to_date IS NULL LIMIT 1`);
 export const hanMucDangMo = async (db: D1Database, partyId: string): Promise<boolean> => (await db.prepare(HAN_MUC_DANG_MO).bind(partyId).first()) !== null;
+// ADR-0213 Đ4.5 (Task 11): hồ sơ ?1 đang gắn tổ chức ?2 (người quản lý hoặc thành viên, liên kết đang mở — view công bố `v_pty_org_link` của parties). Chỉ để SIẾT `TU_DAT_TRA_SAU`.
+const GAN_TO_CHUC = defineSql("billing", "credit_self_org_link", `SELECT 1 AS x FROM v_pty_org_link WHERE person_party_id = ?1 AND org_party_id = ?2 LIMIT 1`);
+export const dangGanToChuc = async (db: D1Database, person: string, org: string): Promise<boolean> => (await db.prepare(GAN_TO_CHUC).bind(person, org).first()) !== null;
 
 const HAN_MUC_DONG = defineSql(
   "billing",

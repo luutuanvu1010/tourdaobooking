@@ -104,8 +104,10 @@ CREATE TRIGGER orders_acting_immutable BEFORE UPDATE OF acting_party_id, acting_
 WHEN (NEW.acting_party_id IS NOT OLD.acting_party_id OR NEW.acting_link_kind IS NOT OLD.acting_link_kind)
   AND NOT (NEW.acting_party_id IS NULL AND NEW.acting_link_kind IS NULL)
 BEGIN SELECT RAISE(ABORT, 'orders_acting_immutable: tư cách của đơn chỉ ghi lúc lập, chỉ được xoá cả hai cùng lúc khi đổi khách'); END;
--- PF8: module audit đọc tư cách của đơn qua view này, không FROM orders.
-CREATE VIEW v_ord_order_acting AS SELECT o.id AS order_id, o.acting_party_id FROM orders o;
+-- PF8: module audit đọc tư cách của đơn qua view này, không FROM orders. Ruling T11-1 (Task 11, Ruling R3): view chỉ lộ TỔ CHỨC được thay mặt (MANAGER / MEMBER);
+-- đơn cá nhân (CA_NHAN) và đơn văn phòng ra NULL — nhật ký chỉ mang tổ chức (Đ3.5).
+CREATE VIEW v_ord_order_acting AS
+  SELECT o.id AS order_id, CASE WHEN o.acting_link_kind IN ('MANAGER', 'MEMBER') THEN o.acting_party_id END AS acting_party_id FROM orders o;
 -- Khoá «đơn đã xong» phủ MỌI cột (NT-R6, NT-R6b ở src/migrations-orders-da-giao.test.ts): chép NGUYÊN thân 0146, thêm hai cột acting_* ở cả hai trường hợp được phép.
 DROP TRIGGER orders_delivered_lock;
 CREATE TRIGGER orders_delivered_lock BEFORE UPDATE ON orders

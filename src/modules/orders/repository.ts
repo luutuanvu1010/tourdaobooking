@@ -436,6 +436,9 @@ export interface OrderMeta {
   customerPhone: string;
   /** ADR-0168: hình thức thanh toán đang lưu. */
   paymentTerm: "PREPAID" | "CREDIT";
+  /** ADR-0213 Đ3.4 (Task 11): tư cách lúc lập — hồ sơ và loại liên kết (`CA_NHAN` | `MANAGER` | `MEMBER`); cả hai NULL = đơn văn phòng hoặc lập trước B1. */
+  actingPartyId: string | null;
+  actingLinkKind: string | null;
 }
 
 /** Giảm giá cấp đơn đang lưu (đóng băng sau xác nhận) — để tính tổng phải thu SAU lần sửa số khách của đơn Trả sau (ADR-0168 Đ2 mục 5). Không có đơn ⇒ 0. */
@@ -457,15 +460,19 @@ export async function getOrderRef(db: D1Database, id: string): Promise<{ staffId
 export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | null> {
   const row = await db
     .prepare(
-      `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone, o.delivered_at, o.payment_term
+      `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone, o.delivered_at, o.payment_term,
+              o.acting_party_id, o.acting_link_kind
        FROM orders o LEFT JOIN v_pty_party_label b ON b.id = o.booker_party_id WHERE o.id = ?`,
     )
     .bind(id)
-    .first<{ status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string; delivered_at: string | null; payment_term: "PREPAID" | "CREDIT" }>();
+    .first<{
+      status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string; delivered_at: string | null;
+      payment_term: "PREPAID" | "CREDIT"; acting_party_id: string | null; acting_link_kind: string | null;
+    }>();
   return row
     ? {
         status: row.status, staffId: row.staff_id, updatedAt: row.updated_at, bookerPartyId: row.booker_party_id, bookerName: row.booker_name, customerName: row.customer_name,
-        customerPhone: row.customer_phone, deliveredAt: row.delivered_at, paymentTerm: row.payment_term,
+        customerPhone: row.customer_phone, deliveredAt: row.delivered_at, paymentTerm: row.payment_term, actingPartyId: row.acting_party_id, actingLinkKind: row.acting_link_kind,
       }
     : null;
 }
@@ -1029,6 +1036,9 @@ export async function createOrder(
   kenhThu: 0 | 1 | null = null,
   /** Phí đưa đón (Đợt C) route đã tính TRƯỚC lô (`tinhPhiNhap`) — `order.subtotal/total` đã gồm phí; dòng phí dựng theo id chặng của từng lần thử. */
   phi: PhiTheoChang = new Map(),
+  /** Tư cách lúc lập (ADR-0213 Đ3.4): hồ sơ + loại liên kết, ghi trong CHÍNH câu chèn đơn; null = đơn văn phòng / đường «không tư cách». Dòng nhật ký `created` đứng SAU câu chèn
+   * nên đọc được tổ chức qua `v_ord_order_acting` (Ruling R3). */
+  tuCach: { partyId: string; loai: "CA_NHAN" | "MANAGER" | "MEMBER" } | null = null,
 ): Promise<string> {
   const MAX_ATTEMPTS = 3;
   for (let attempt = 1; ; attempt++) {
@@ -1050,15 +1060,16 @@ export async function createOrder(
         db
           .prepare(
             `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, customer_email, customer_note,
-               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt, declared_deposit, payment_term, company_collects_snapshot)
+               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt, declared_deposit, payment_term, company_collects_snapshot,
+               acting_party_id, acting_link_kind)
              SELECT ?, ? || printf('%04d', COALESCE((SELECT MAX(CAST(substr(order_code, length(?) + 1) AS INTEGER)) FROM orders WHERE order_code LIKE ?), 0) + 1),
-               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?, ?, ?, ?`,
+               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?, ?, ?, ?, ?, ?`,
           )
           .bind(
             id, prefix, prefix, `${prefix}%`, staffId, order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
             // Ba cột cọc cũ KHÔNG mang nghĩa nữa (ADR-0026 đ9): đơn mới ghi 0 / NULL / total — chỉ để thoả trigger 0007 (không ai đọc).
             order.subtotal, order.discount, order.total, 0, null, order.total, order.paymentNote, at, at,
-            booker.partyId, manifestExempt ? 1 : 0, order.declaredDeposit ?? 0, order.paymentTerm ?? "PREPAID", kenhThu,
+            booker.partyId, manifestExempt ? 1 : 0, order.declaredDeposit ?? 0, order.paymentTerm ?? "PREPAID", kenhThu, tuCach?.partyId ?? null, tuCach?.loai ?? null,
           ),
         ...services.stmts,
         ...legs,
@@ -1757,16 +1768,20 @@ export async function changeBooker(
   /** Kế hoạch 2026-11-05 Task 2: BẮT BUỘC, chỉ `congDoiBenDatTraSau` tạo được; câu gác của nó nối CUỐI lô. */
   qua: QuaCongDoiBen,
   alsoChange?: (at: string) => D1PreparedStatement[],
+  /** ADR-0213 PF10 (Task 11): bên đặt ĐỔI THẬT ⇒ xoá tư cách (cả hai cột, cùng câu — trigger `orders_acting_immutable` chỉ cho về NULL cả hai). Đơn thành đơn thường (luật hôm nay).
+   * Nhật ký `booker_changed` đứng SAU câu này nên không mang tổ chức. */
+  xoaTuCach = false,
 ): Promise<boolean> {
   const at = nextStamp(change.expectedUpdatedAt);
   const results = await db.batch([
     ...booker.before,
     db
       .prepare(
-        `UPDATE orders SET customer_name = ?, customer_phone = ?, booker_party_id = ${BOOKER_VALUE}, updated_at = ?
+        `UPDATE orders SET customer_name = ?, customer_phone = ?, booker_party_id = ${BOOKER_VALUE}, updated_at = ?,
+           acting_party_id = CASE WHEN ? = 1 THEN NULL ELSE acting_party_id END, acting_link_kind = CASE WHEN ? = 1 THEN NULL ELSE acting_link_kind END
          WHERE id = ? AND status IN ('draft', 'confirmed') AND updated_at = ? AND (? IS NULL OR ${BOOKER_VALUE} IS NOT NULL)`,
       )
-      .bind(change.customerName, change.customerPhone, booker.partyId, at, orderId, change.expectedUpdatedAt, booker.partyId, booker.partyId),
+      .bind(change.customerName, change.customerPhone, booker.partyId, at, xoaTuCach ? 1 : 0, xoaTuCach ? 1 : 0, orderId, change.expectedUpdatedAt, booker.partyId, booker.partyId),
     auditStatement(db, { orderId, staffId, action: "booker_changed", at, detail }, "changes() > 0"),
     ...(alsoChange?.(at) ?? []),
     ...qua.kem(at),

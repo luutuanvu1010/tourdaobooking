@@ -2046,6 +2046,20 @@ export async function tcLienKetMo(db: D1Database, org: string): Promise<TcLienKe
   return results.map((r) => ({ id: r.id, personPartyId: r.from_party_id, loai: r.relationship_type_code, tuNgay: r.valid_from_date, ten: r.display_name }));
 }
 
+// Tổ chức mà MỘT người đang gắn (ADR-0213 Đ3.1; Task 11): nguồn danh sách «Tư cách». Chỉ ứng viên — gốc lắp ráp lọc lại bằng `nguoiQuanLyCoHieuLuc` (Đ2.8, một định nghĩa)
+// và vai được hưởng của tổ chức (pricing). Không đọc tài khoản (parties không đọc bảng staff).
+const TC_TO_CHUC_CUA_NGUOI = defineSql(
+  "parties",
+  "tc_to_chuc_cua_nguoi",
+  `SELECT r.to_party_id, r.relationship_type_code FROM pty_party_relationship r
+   WHERE r.from_party_id = ?1 AND r.relationship_type_code IN ('MANAGER_OF', 'MEMBER_OF') AND r.valid_to_date IS NULL
+   ORDER BY r.to_party_id`,
+);
+export async function tcToChucCuaNguoi(db: D1Database, person: string): Promise<{ orgPartyId: string; loai: "MANAGER_OF" | "MEMBER_OF" }[]> {
+  const { results } = await db.prepare(TC_TO_CHUC_CUA_NGUOI).bind(person).all<{ to_party_id: string; relationship_type_code: "MANAGER_OF" | "MEMBER_OF" }>();
+  return results.map((r) => ({ orgPartyId: r.to_party_id, loai: r.relationship_type_code }));
+}
+
 // Liên kết của tổ chức đã đóng TỪ ngày ?2 trở đi — lệnh mở lại cùng loại cho cùng người trong ngày đó sẽ vướng trigger chống chồng lấn (Đ2.9); route báo trước lô.
 const TC_DONG_TU_NGAY = defineSql(
   "parties",
