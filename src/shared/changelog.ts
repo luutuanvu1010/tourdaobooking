@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đợt 2 sau kiểm toán (đặc tả docs/superpowers/specs/2026-11-16-dot-2-lay-lai-duoc-du-lieu.md, chủ duyệt 16/11): soát tiền hằng ngày + thư báo việc tự động lỗi;
+    // không migration. Sao lưu và diễn tập chạy trên máy Mac của chủ, không thuộc bản triển khai. SỐ TẠM 3.12: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.12",
+    date: "2026-11-16",
+    items: [
+      { kind: "moi", text: "Mỗi sáng 7 giờ Nền tảng tự soát số liệu tiền và vé; có chỗ lệch, hoặc việc tự động nào bị lỗi, thì gửi một thư báo cho quản trị." },
+    ],
+  },
+  {
     // Đăng ký đối tác đợt 1 (ADR-0206 … ADR-0210; migration 0170–0172; nhánh claude/account-signup-approval-flow-ee612c, vào main 16/11): production đã ở 3.10 (kiểm 16/11),
     // nên các dòng của đợt này tách khỏi mục 3.10 sang mục mới 3.11. Công tắc «Nhận đăng ký mới» gieo TẮT; lối «Đăng ký làm đối tác» ở màn Đăng nhập hiện ngay.
     // SỐ TẠM 3.11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.

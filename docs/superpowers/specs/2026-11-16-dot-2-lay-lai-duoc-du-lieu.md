@@ -1,6 +1,6 @@
 # Đợt 2 sau kiểm toán — Lấy lại được dữ liệu (đặc tả ngắn, 16/11/2026)
 
-> Trạng thái: **chờ chủ duyệt**. Nguồn: kế hoạch `docs/superpowers/specs/2026-11-14-kiem-toan-tien-ve-du-lieu-va-ke-hoach.md` mục 8, Đợt 2 (LT1–LT4, BM4). Đóng lỗ `HC-5.19` (hạn 31/12). Dùng lại bản thảo `docs/superpowers/specs/2026-09-22-dien-tap-khoi-phuc.md` (cập nhật cho hiện trạng).
+> Trạng thái: **đã duyệt** — chủ dự án 16/11/2026, nút «Duyệt khuyến nghị» cho ba câu ở mục 5 (Mac tự chạy + Google Drive; người thứ hai giữ phong bì, chủ chỉ ghi vai; thư tới địa chỉ nhận Góp ý). Thi công: `docs/superpowers/plans/2026-11-16-dot-2-lay-lai-duoc-du-lieu-thi-cong-nhat-ky.md`. Nguồn: kế hoạch `docs/superpowers/specs/2026-11-14-kiem-toan-tien-ve-du-lieu-va-ke-hoach.md` mục 8, Đợt 2 (LT1–LT4, BM4). Đóng lỗ `HC-5.19` (hạn 31/12). Dùng lại bản thảo `docs/superpowers/specs/2026-09-22-dien-tap-khoi-phuc.md` (cập nhật cho hiện trạng).
 
 ## 1. Việc gì, cho ai, vì sao
 Hôm nay nếu dữ liệu hỏng, bị xoá nhầm phát hiện muộn, hoặc mất tài khoản Cloudflare, thì chưa có đường lấy lại nào đã được thử; máy hỏng cũng không ai được báo. Đợt 2 cho chủ dự án: một bản sao dữ liệu ngoài Cloudflare mỗi tuần, đã thử nạp lại được; một lá thư mỗi khi số liệu tiền lệch hoặc việc chạy tự động bị lỗi; và một trang hướng dẫn cho lúc mất tài khoản hay chủ vắng mặt.
