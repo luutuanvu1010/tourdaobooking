@@ -306,7 +306,7 @@ function veBieuMau(p: PhieuDangKyDto): void {
   });
 
   const gui = nut(p.phienBan > 0 ? h("button", B("chinh", { id: "dk-gui-phieu", "data-co": "lon" }), "Gửi lại") as HTMLButtonElement : h("button", B("chinh", { id: "dk-gui-phieu", "data-co": "lon" }), "Gửi phiếu") as HTMLButtonElement, () => void bamNutDk(gui, async () => {
-    if (!chonVai.value) { hienLoi("Hãy chọn vai người dùng xin đăng ký."); return; }
+    if (!chonVai.value && !toChucBat()) { hienLoi("Hãy chọn vai người dùng xin đăng ký."); return; }
     if (toChucBat() && !chonVaiTc.value) { hienLoi(CHU_DANG_KY.hayChonVaiToChuc); return; }
     if (cauHinh.chinhSachRiengTu === null) { hienLoi("Chưa có chính sách riêng tư nên chưa gửi được thông tin. Hãy quay lại sau."); return; }
     if (!dongY.checked) { hienLoi("Bạn cần đọc và đồng ý chính sách riêng tư hiện hành trước khi gửi."); return; }
