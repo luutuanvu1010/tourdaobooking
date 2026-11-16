@@ -17,7 +17,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, assert, axe, axeNote, boDem, click, dungMoiTruong, noCode, noOverflowX, sleep, typeInto, vnDate } from "../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs";
-import { CAU_KHONG_HOP_LE_PHI_DON, CAU_VUOT_TRAN_PHI_DON } from "../../../../src/shared/phi-don-chon.ts";
+import { CAU_KHONG_HOP_LE_PHI_DON, CAU_VAN_PHONG_CHON_PHI_DON, CAU_VUOT_TRAN_PHI_DON } from "../../../../src/shared/phi-don-chon.ts";
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-11-phi-don";
 mkdirSync(OUT, { recursive: true });
@@ -34,10 +34,13 @@ const dung = (r, ma, viec) => { assert.equal(r.status, ma, `${viec}: ${r.status}
 const so = (s) => Number(String(s).replace(/[^\d]/g, ""));
 const loiThat = (p) => p.consoleErrors.filter((e) => !/Failed to load resource/.test(e));
 const khoiPhi = (p) => p.ev("(() => { const k = document.querySelector('[data-khoi=phi-dua-don]'); return k ? { tieuDe: k.querySelector('.phi-don-tieu-de').textContent, dong: [...k.querySelectorAll('.kv-phi-don')].map((d) => [d.firstChild.firstChild.textContent, d.querySelector('.phi-don-chi-tiet')?.textContent ?? null, d.lastChild.textContent]), thieu: [...k.querySelectorAll('[data-canh-bao=phi-don-thieu]')].map((x) => x.textContent) } : null; })()");
-/** Ảnh đúng khung một phần tử: cuộn phần tử vào giữa rồi cắt theo toạ độ trang (thanh trên dính không đè lên phần tử). */
+/**
+ * Ảnh đúng khung một phần tử: cuộn về ĐẦU trang rồi cắt theo toạ độ trang với `captureBeyondViewport` — thanh trên dính chỉ nằm ở đỉnh trang nên không đè lên phần tử (vòng sửa 1:
+ * cuộn phần tử vào giữa làm thanh trên che dòng đầu của thẻ ở điện thoại).
+ */
 const anh = async (p, chon, tep) => {
   await sleep(350);
-  const r = await p.ev(`(() => { const e = document.querySelector(${JSON.stringify(chon)}); e.scrollIntoView({ block: 'center' }); const b = e.getBoundingClientRect(); return { x: b.left + scrollX, y: b.top + scrollY, w: b.width, h: b.height }; })()`);
+  const r = await p.ev(`(() => { const e = document.querySelector(${JSON.stringify(chon)}); scrollTo(0, 0); const b = e.getBoundingClientRect(); return { x: b.left + scrollX, y: b.top + scrollY, w: b.width, h: b.height }; })()`);
   await sleep(250);
   const k = await p.send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true, clip: { x: Math.max(0, r.x - 8), y: Math.max(0, r.y - 8), width: r.w + 16, height: r.h + 16, scale: 1 } });
   writeFileSync(join(OUT, tep), Buffer.from(k.result.data, "base64"));
@@ -51,9 +54,9 @@ const doiKhung = async (p, khung) => {
 };
 const ten = (khung) => (khung.mobile ? "dien-thoai" : "may-tinh");
 /** Ô phí của lượt thứ `i` (0 = chiều đi, 1 = chiều về) trong biểu mẫu. */
-const oPhi = (i) => `document.querySelectorAll('select[data-phi-don=chon]')[${i}]`;
+const oPhi = (i) => `document.querySelectorAll('select[data-o-phi=chon]')[${i}]`;
 const chonPhi = (i, v) => `(() => { const s = ${oPhi(i)}; s.value = ${JSON.stringify(v)}; s.dispatchEvent(new Event('change', { bubbles: true })); return s.value; })()`;
-const goKhac = (i, v) => `(() => { const e = document.querySelectorAll('input[data-phi-don=so-khac]')[${i}]; e.value = ${JSON.stringify(v)}; e.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`;
+const goKhac = (i, v) => `(() => { const e = document.querySelectorAll('input[data-o-phi=so-khac]')[${i}]; e.value = ${JSON.stringify(v)}; e.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`;
 const loiLuot = (i) => `(() => { const s = ${oPhi(i)}; const l = document.getElementById(s.getAttribute('aria-describedby')); return l && !l.hidden ? l.textContent : null; })()`;
 /** Mở danh sách để chụp: đặt `size` tạm (ô chọn của máy không chụp được khi đang mở). */
 const moDanhSach = (i, mo) => `(() => { const s = ${oPhi(i)}; if (${mo}) s.size = s.options.length; else s.removeAttribute('size'); return s.options.length; })()`;
@@ -73,13 +76,14 @@ try {
   const d1 = dung(await call(ACCOUNTS.salesA, "POST", "/api/orders", { customerName: "Khách Thử Phí", customerPhone: "0901 214 001", services: svc(legs) }), 201, "Bán hàng lập nháp hai lượt, chưa chọn phí").order;
   assert.deepEqual(d1.phiDuaDon?.thieu.map((t) => t.direction), ["OUT", "RETURN"], "máy chủ: hai lượt «chưa chọn»");
   const d2 = dung(await call(DOITAC, "POST", "/api/orders", { customerName: "Khách Đối Tác Phí", customerPhone: "0901 214 002", services: svc([{ ...legs[0], pickupTime: "" }]) }), 201, "Đối tác lập nháp một lượt").order;
+  const d3 = dung(await call(DOITAC, "POST", "/api/orders", { customerName: "Khách Đối Tác Nháp", customerPhone: "0901 214 003", services: svc([{ ...legs[0], pickupTime: "" }]) }), 201, "Đối tác lập nháp thứ hai (để mở biểu mẫu)").order;
   const gui = await call(DOITAC, "POST", `/api/orders/${d2.id}/gui-don`, {});
   assert.equal(gui.status, 201, `Đối tác Gửi đơn ⇒ nhánh «chờ xác nhận» vì lượt chưa có phí: ${gui.status} ${gui.text}`);
 
   // ---- 1) Biểu mẫu 1280: chọn phí, câu trần, câu không hợp lệ, Lưu ------------------------------------------------------------------------------------------------
   let p = await env.as(ACCOUNTS.salesA, `/order-form?id=${d1.id}`, DESK);
   await b.step("1", `1280 biểu mẫu: hai ô «Phí đưa đón»; Số khác 6.000.000 ⇒ câu trần; 70.5 ⇒ câu không hợp lệ; 70.000 + 30.000 đ ⇒ Lưu gửi phiDon cả hai lượt${axeNote()}`, async () => {
-    await p.waitFor("document.querySelectorAll('select[data-phi-don=chon]').length === 2", "hai ô phí (lượt chưa chọn mở sẵn)", 15000);
+    await p.waitFor("document.querySelectorAll('select[data-o-phi=chon]').length === 2", "hai ô phí (lượt chưa chọn mở sẵn)", 15000);
     assert.equal(await p.ev(moThe), true, "mở thẻ dịch vụ");
     assert.deepEqual(await p.ev(`[...${oPhi(0)}.options].map((o) => o.textContent)`), ["Chưa chọn", "Miễn phí", "5.000 đ", "10.000 đ", "15.000 đ", "20.000 đ", "30.000 đ", "50.000 đ", "100.000 đ", "Số khác"]);
     assert.equal(await p.ev(`${oPhi(0)}.value`), "", "lượt chưa chọn hiện «Chưa chọn», không tự Miễn phí");
@@ -87,8 +91,8 @@ try {
     await anh(p, anhLuot(0), "phi-don-chon-form-danh-sach-may-tinh.png");
     await p.ev(moDanhSach(0, false));
     assert.equal(await p.ev(chonPhi(0, "khac")), "khac");
-    assert.equal(await p.ev("document.querySelectorAll('input[data-phi-don=so-khac]')[0].getClientRects().length > 0"), true, "chọn Số khác ⇒ hiện ô gõ số");
-    assert.equal(await p.ev("(() => { const e = document.querySelectorAll('input[data-phi-don=so-khac]')[0]; return [getComputedStyle(e).fontSize, e.inputMode]; })()").then((x) => x.join()), "16px,numeric", "ô gõ 16px, bàn phím số");
+    assert.equal(await p.ev("document.querySelectorAll('input[data-o-phi=so-khac]')[0].getClientRects().length > 0"), true, "chọn Số khác ⇒ hiện ô gõ số");
+    assert.equal(await p.ev("(() => { const e = document.querySelectorAll('input[data-o-phi=so-khac]')[0]; return [getComputedStyle(e).fontSize, e.inputMode]; })()").then((x) => x.join()), "16px,numeric", "ô gõ 16px, bàn phím số");
     await p.ev(goKhac(0, "6.000.000"));
     assert.equal(await p.ev(loiLuot(0)), CAU_VUOT_TRAN_PHI_DON, "6.000.000 ⇒ câu trần của máy chủ");
     await anh(p, anhLuot(0), "phi-don-chon-form-so-khac-tran-may-tinh.png");
@@ -130,14 +134,16 @@ try {
   // ---- 3) Mở lại biểu mẫu ở 375: ô hiện đúng mức đã lưu; ảnh danh sách + câu trần (không lưu) ---------------------------------------------------------------------
   p = await env.as(ACCOUNTS.salesA, `/order-form?id=${d1.id}`, MOB);
   await b.step("3", `375 biểu mẫu nạp lại: Số khác 70.000 và 30.000 đ giữ nguyên; ảnh danh sách và câu trần ở điện thoại${axeNote()}`, async () => {
-    await p.waitFor("document.querySelectorAll('select[data-phi-don=chon]').length === 2", "hai ô phí", 15000);
+    await p.waitFor("document.querySelectorAll('select[data-o-phi=chon]').length === 2", "hai ô phí", 15000);
     assert.equal(await p.ev(moThe), true, "mở thẻ dịch vụ");
     // Lượt đã chọn phí và đủ nơi đón thì hiện GỌN một dòng (dòng tóm tắt kèm « · Phí …»): bấm để mở như người dùng.
-    assert.deepEqual(await p.ev("[...document.querySelectorAll('.dd-tom-tat')].map((b) => b.textContent.includes('· Phí '))"), [true, true], "dòng tóm tắt lượt gọn có mức phí đã chọn");
+    assert.deepEqual(await p.ev("[...document.querySelectorAll('.dd-tom-tat')].map((b) => b.textContent.includes('· Phí đưa đón '))"), [true, true], "dòng tóm tắt lượt gọn có mức phí đã chọn (« · Phí đưa đón …»)");
+    assert.match(await p.ev("document.querySelectorAll('.dd-tom-tat')[1].textContent"), /· Phí đưa đón 30\.000 đ/, "tóm tắt dùng chữ «Phí đưa đón» của bảng tham chiếu");
     await p.ev("(() => { for (const b of document.querySelectorAll('.dd-tom-tat')) if (b.getClientRects().length > 0) b.click(); return true; })()");
-    await p.waitFor("document.querySelectorAll('input[data-phi-don=so-khac]')[0].getClientRects().length > 0", "lượt mở ra");
-    assert.deepEqual(await p.ev(`[${oPhi(0)}.value, document.querySelectorAll('input[data-phi-don=so-khac]')[0].value, ${oPhi(1)}.value]`), ["khac", "70.000", "30000"], "nạp đúng mức đã lưu theo id lượt");
+    await p.waitFor("document.querySelectorAll('input[data-o-phi=so-khac]')[0].getClientRects().length > 0", "lượt mở ra");
+    assert.deepEqual(await p.ev(`[${oPhi(0)}.value, document.querySelectorAll('input[data-o-phi=so-khac]')[0].value, ${oPhi(1)}.value]`), ["khac", "70.000", "30000"], "nạp đúng mức đã lưu theo id lượt");
     assert.equal(await p.ev(noOverflowX), true, "375 không tràn ngang");
+    await anh(p, anhLuot(1), "phi-don-chon-form-chon-muc-dien-thoai.png"); // mức đã chọn (30.000 đ) trên biểu mẫu, điện thoại
     await p.ev(moDanhSach(1, true));
     await anh(p, anhLuot(1), "phi-don-chon-form-danh-sach-dien-thoai.png");
     await p.ev(moDanhSach(1, false));
@@ -163,15 +169,36 @@ try {
   });
   p.close();
 
+  // ---- 4b) Đối tác: biểu mẫu không có ô chọn phí, chỉ câu nhắc; thân lưu không có khoá phiDon --------------------------------------------------------------------
+  p = await env.as(DOITAC, `/order-form?id=${d3.id}`, MOB);
+  await b.step("4b", `375 Đối tác mở biểu mẫu nháp có lượt đón: câu «${CAU_VAN_PHONG_CHON_PHI_DON}», không ô chọn phí; Lưu không gửi khoá phiDon${axeNote()}`, async () => {
+    await p.waitFor("!!document.querySelector('[data-o-phi=doi-tac]')", "câu nhắc của Đối tác", 15000);
+    assert.equal(await p.ev(moThe), true, "mở thẻ dịch vụ");
+    await p.ev("(() => { for (const b of document.querySelectorAll('.dd-tom-tat')) if (b.getClientRects().length > 0) b.click(); return true; })()");
+    await p.waitFor("document.querySelector('[data-o-phi=doi-tac]').getClientRects().length > 0", "câu nhắc thấy được");
+    assert.equal(await p.ev("document.querySelector('[data-o-phi=doi-tac]').textContent"), CAU_VAN_PHONG_CHON_PHI_DON);
+    assert.equal(await p.ev("document.querySelectorAll('[data-o-phi=chon], [data-o-phi=so-khac]').length"), 0, "Đối tác không có ô chọn phí");
+    assert.equal(await p.ev(noOverflowX), true, "375 không tràn ngang");
+    await anh(p, ".dd-chang[data-chieu=OUT]", "phi-don-chon-form-doi-tac-dien-thoai.png");
+    await axe(p, "biểu mẫu Đối tác 375");
+    assert.equal(await p.ev("(() => { const b = document.getElementById('save'); if (b.disabled) return false; b.click(); return true; })()"), true, "bấm Lưu");
+    await p.waitFor("location.pathname === '/order'", "lưu xong về trang đơn", 15000);
+    const put = p.requests.find((r) => r.method === "PUT" && new URL(r.url).pathname === `/api/orders/${d3.id}`);
+    assert.ok(put, "có lệnh lưu nháp");
+    assert.deepEqual(JSON.parse(put.postData).services[0].legs.map((l) => "phiDon" in l), [false], "thân lưu của Đối tác không có khoá phiDon");
+    assert.deepEqual(loiThat(p), [], `lỗi console: ${loiThat(p)}`);
+  });
+  p.close();
+
   // ---- 5) Bán hàng khác (người xét, không lập đơn): Còn vé với ô chọn phí cho đơn Đối tác (mở SAU CÙNG) --------------------------------------------------------------------------------------------
   p = await env.as(ACCOUNTS.salesB, `/order?id=${d2.id}`, DESK); // Bán hàng KHÔNG phải người lập (ruling T4-c1, SV-PC-10): DTO người xét vẫn có phiDuaDon.thieu
   const chonGio = "(() => { for (const s of document.querySelectorAll('.cx-luot[data-leg-id] select')) { if (s.options.length > 1 && s.value === '') { s.value = s.options[1].value; s.dispatchEvent(new Event('change', { bubbles: true })); } } return true; })()";
-  const oCv = "document.querySelector('[data-khoi=phi-don-con-ve] select[data-phi-don=chon]')";
+  const oCv = "document.querySelector('[data-khoi=phi-don-con-ve] select[data-o-phi=chon]')";
   for (const khung of [DESK, MOB]) {
     await b.step(`5-${khung.width}`, `${khung.width} Bán hàng khác (không lập đơn) mở đơn Đối tác đang chờ: bảng «Xác nhận đơn» có ô phí cho lượt chưa có mức; chưa chọn mà bấm Còn vé ⇒ câu báo tại chỗ${axeNote()}`, async () => {
       if (khung === MOB) await doiKhung(p, MOB);
       await p.waitFor("!!document.querySelector('[data-khoi=phi-don-con-ve]')", "ô phí trong bảng Còn vé", 15000);
-      assert.equal(await p.ev(`document.querySelectorAll('[data-khoi=phi-don-con-ve] select[data-phi-don=chon]').length`), 1, "một lượt chưa có mức");
+      assert.equal(await p.ev(`document.querySelectorAll('[data-khoi=phi-don-con-ve] select[data-o-phi=chon]').length`), 1, "một lượt chưa có mức");
       await p.waitFor("[...document.querySelectorAll('.cx-luot[data-leg-id] select')].every((s) => s.options.length > 1)", "khung giờ đã nạp");
       await p.ev(chonGio);
       const truoc = p.requests.filter((r) => r.url.includes("/quyet-dinh")).length;
@@ -180,6 +207,7 @@ try {
       assert.equal(await p.ev(`document.getElementById(${oCv}.getAttribute('aria-describedby')).textContent`), `Chọn phí đưa đón cho lượt đón chiều đi của dịch vụ ${TEN_DV} trước khi xác nhận.`);
       assert.equal(p.requests.filter((r) => r.url.includes("/quyet-dinh")).length, truoc, "chưa chọn phí: không gọi máy chủ");
       assert.equal(await p.ev("!document.querySelector('.sheet-foot-xac-nhan .btn-danger')"), true, "không mở hộp hỏi lại");
+      await anh(p, "[data-khoi=xac-nhan-don]", `phi-don-chon-con-ve-chua-chon-${ten(khung)}.png`); // Còn vé lúc chưa chọn: câu báo tại chỗ
       await p.ev(`(() => { const s = ${oCv}; s.value = '20000'; s.dispatchEvent(new Event('change', { bubbles: true })); return true; })()`);
       assert.equal(await p.ev(noOverflowX), true, "không tràn ngang");
       assert.equal(await p.ev(noCode), "");

@@ -1,7 +1,8 @@
 // Kịch bản Chrome THẬT cho khu vực đón (màn Địa điểm) và màn «Phí đưa đón» (kế hoạch Phí đưa đón, Đợt A + B, Task 9). Bấm ĐẾN CÙNG, không chỉ mở trang:
 //   Địa điểm  — «Sửa khu vực đón»: khung sửa THAY HẲN thẻ (không lồng thẻ trong thẻ), «Lưu» lưu và đóng khung, «Đóng» đóng khung (1040 và 390);
-//   Phí đưa đón — thêm mức chung, «Thử tra» ra số, «Đổi mức phí» lưu được (dòng cũ hết nút), «Kết thúc mức» lưu được, «Đặt ngày bắt đầu áp», bị chặn khi kết thúc
-//                 mức chung cuối lúc đang áp (câu lỗi của máy chủ hiện ra, khung giữ nguyên), «Tắt phí đưa đón» qua hộp xác nhận (1040), rồi bố cục 390.
+//   Phí đưa đón — (ADR-0214, Task 6 vòng sửa 1) màn hiện câu «Từ ADR-0214 phí trên đơn do văn phòng chọn; bảng này không còn dùng cho đơn.»; «Đặt ngày bắt đầu áp» lưu được
+//                 khi bảng mức còn TRỐNG (ruling P3); thêm mức chung, «Thử tra» ra số, «Đổi mức phí» lưu được (dòng cũ hết nút), «Kết thúc mức» lưu được; kết thúc mức chung
+//                 cuối lúc đang áp nay LƯU ĐƯỢC (không còn chốt «mức chung»), không băng «chưa có mức chung»; «Tắt phí đưa đón» qua hộp xác nhận (1040), rồi bố cục 390.
 // Dùng lại cơ chế CDP của A2 (a2-cdp.mjs): D1 tạm + wrangler dev + Chrome headless; Turnstile TẮT; không đụng dữ liệu thật.
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=<…/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh> node docs/evidence/2026-11-phi-don/kich-ban/phi-don-smoke.mjs
@@ -105,6 +106,16 @@ try {
 
     assert.match(await trangThai(), /Chưa áp phí đưa đón/, "mở màn: chưa có ngày bắt đầu áp");
     assert.match(await p.ev("document.getElementById('pd-muc').innerText"), /Chưa có mức nào cho khu vực này/, "khu vực chưa có mức hiện câu «chưa có mức» (không bao giờ là 0 đồng)");
+    assert.equal(await p.ev("document.querySelector('[data-chu=adr-0214]')?.textContent"), "Từ ADR-0214 phí trên đơn do văn phòng chọn; bảng này không còn dùng cho đơn.", "câu ADR-0214 trên màn");
+
+    // --- «Đặt ngày bắt đầu áp» khi bảng mức còn TRỐNG (ADR-0214, ruling P3: ngày áp là công tắc ô chọn phí trên đơn, không đòi mức chung)
+    assert.equal(await bam("#pd-trang-thai", "Đặt ngày bắt đầu áp"), true, "bấm «Đặt ngày bắt đầu áp»");
+    await doiForm("!!document.querySelector('#pd-form [data-testid=pd-form-khung]')", "khung đặt ngày hiện");
+    assert.equal(await bam("#pd-form", "Lưu ngày bắt đầu áp"), true, "bấm «Lưu ngày bắt đầu áp»");
+    await doiForm(formDong, "khung đặt ngày đóng sau khi lưu (bảng trống vẫn lưu được)");
+    await p.waitFor("/đang áp từ/.test(document.getElementById('pd-trang-thai').innerText)", "trạng thái «đang áp từ …»");
+    assert.equal(await p.ev("document.getElementById('pd-thieu-chung').hidden"), true, "không băng «chưa có mức chung» (đã tắt từ ADR-0214)");
+    ok(`Phí đưa đón: câu ADR-0214 hiện; «Đặt ngày bắt đầu áp» lưu được khi bảng TRỐNG — «${(await trangThai()).split("\n")[0]}»`);
 
     // --- thêm mức chung cho hai khu vực, bằng giao diện
     for (const [vung, tien] of [[TEN_VUNG_SAU, "30000"], ["Ngoài khu vực", "20000"]]) {
@@ -159,24 +170,16 @@ try {
     await p.waitFor(`(() => { const tr = ${dongCap}; return !!tr && tr.querySelectorAll('button').length === 0; })()`, "mức theo cấp đã kết thúc: hết nút");
     ok("Phí đưa đón: «Kết thúc mức» lưu được (mức theo cấp hết nút)");
 
-    // --- «Đặt ngày bắt đầu áp»
-    assert.equal(await bam("#pd-trang-thai", "Đặt ngày bắt đầu áp"), true, "bấm «Đặt ngày bắt đầu áp»");
-    await doiForm("!!document.querySelector('#pd-form [data-testid=pd-form-khung]')", "khung đặt ngày hiện");
-    assert.equal(await bam("#pd-form", "Lưu ngày bắt đầu áp"), true, "bấm «Lưu ngày bắt đầu áp»");
-    await doiForm(formDong, "khung đặt ngày đóng sau khi lưu");
-    await p.waitFor("/đang áp từ/.test(document.getElementById('pd-trang-thai').innerText)", "trạng thái «đang áp từ …»");
-    ok(`Phí đưa đón: «Đặt ngày bắt đầu áp» lưu được — «${(await trangThai()).split("\n")[0]}»`);
-
-    // --- đang áp: kết thúc mức chung CUỐI của «Ngoài khu vực» bị máy chủ chặn, câu lỗi hiện ra, khung giữ nguyên
+    // --- đang áp: kết thúc mức chung CUỐI của «Ngoài khu vực» nay LƯU ĐƯỢC (ADR-0214 / ruling P3 gỡ chốt «mức chung»)
     const dongNgoai = `[...document.querySelectorAll('#pd-muc table tbody tr')].find((tr) => tr.textContent.includes('20.000 đ/khách'))`;
     assert.equal(await p.ev(`(() => { const b = [...${dongNgoai}.querySelectorAll('button')].find((x) => x.textContent.trim() === 'Kết thúc mức'); if (!b) return false; b.click(); return true; })()`), true);
-    await doiForm("!!document.querySelector('#pd-form [data-testid=pd-form-khung]')", "khung kết thúc mức hiện (ca bị chặn)");
+    await doiForm("!!document.querySelector('#pd-form [data-testid=pd-form-khung]')", "khung kết thúc mức hiện");
     assert.equal(await bam("#pd-form", "Lưu ngày kết thúc"), true);
-    await p.waitFor("!document.getElementById('error').hidden && /mức chung/.test(document.getElementById('error').innerText)", "câu lỗi «cần một mức chung» của máy chủ hiện");
-    assert.equal(await p.ev("document.querySelectorAll('#pd-form [data-testid=pd-form-khung]').length"), 1, "bị chặn thì khung nhập còn mở");
-    assert.equal(await bam("#pd-form", "Đóng"), true);
-    await doiForm(formDong, "khung đóng bằng «Đóng»");
-    ok("Phí đưa đón: đang áp mà kết thúc mức chung cuối ⇒ bị chặn, câu lỗi tiếng Việt, khung giữ nguyên");
+    await doiForm(formDong, "khung đóng sau khi lưu (không còn bị chặn)");
+    await p.waitFor(`(() => { const tr = ${dongNgoai}; return !!tr && tr.querySelectorAll('button').length === 0; })()`, "mức chung cuối đã kết thúc: hết nút");
+    assert.equal(await p.ev("document.getElementById('error').hidden"), true, "không câu lỗi");
+    assert.equal(await p.ev("document.getElementById('pd-thieu-chung').hidden"), true, "không băng «chưa có mức chung»");
+    ok("Phí đưa đón: đang áp mà kết thúc mức chung cuối ⇒ lưu được, không băng «chưa có mức chung»");
 
     // --- «Tắt phí đưa đón» qua hộp xác nhận
     assert.equal(await bam("#pd-trang-thai", "Tắt phí đưa đón"), true, "bấm «Tắt phí đưa đón»");

@@ -1,10 +1,11 @@
-// Kịch bản Chrome THẬT cho phí đưa đón TRÊN ĐƠN (kế hoạch Phí đưa đón Đợt C, Task 6). Bấm đến cùng, không chỉ mở trang:
+// Kịch bản Chrome THẬT cho phí đưa đón TRÊN ĐƠN (kế hoạch Phí đưa đón Đợt C, Task 6; vòng sửa 1 Task 6 ADR-0214: phí nay do văn phòng chọn — đơn lập kèm `phiDon` thay cho
+// bảng mức theo khu vực; nhãn dòng không còn tên khu vực; câu nhắc ở Cấp độ đại lý đã ẩn). Ô chọn phí trên biểu mẫu và Còn vé: `phi-don-chon-smoke.mjs` cùng thư mục. Bấm đến cùng:
 //   1) Biểu mẫu sửa đơn nháp có lượt đưa đón: Tóm tắt có dòng «Phí đưa đón — Tính khi lưu» (trình duyệt không tính phí); bấm «Lưu thay đổi» ⇒ về trang đơn.
 //   2) Trang đơn nháp: thẻ Thanh toán có mục «Phí đưa đón (dự kiến)», mỗi lượt một dòng (chiều, khu vực, dòng phụ số khách × đơn giá, thành tiền bên phải); lượt về mức 0 đồng ghi
 //      «Miễn phí»; «Tạm tính» = tiền dịch vụ + phí. Ảnh thẻ ở 1280 và 390.
 //   3) Bấm «Xác nhận đơn» qua hộp hỏi lại ⇒ mục đổi thành «Phí đưa đón» (đã chụp, không còn «dự kiến»), số không đổi. Ảnh thẻ ở 1280 và 390.
 //   4) «Xem ảnh gửi khách»: biên nhận máy chủ trả có khối phí với dòng 0 đồng; ảnh PNG thật của hộp thoại được lưu.
-//   5) Màn Cấp độ đại lý (Kế toán): câu nhắc «Cấp độ đại lý cũng quyết định mức phí đưa đón; đơn đã xác nhận giữ mức cũ.»
+//   5) Màn Cấp độ đại lý (Kế toán): câu nhắc «Cấp độ đại lý cũng quyết định mức phí đưa đón…» KHÔNG hiện (ADR-0214: cấp không còn quyết định phí).
 // Dùng lại cơ chế CDP của A2 (a2-cdp.mjs): D1 tạm + wrangler dev + Chrome headless; Turnstile TẮT; không đụng dữ liệu thật. Không cần mạng ngoài.
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=<…/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh> node docs/evidence/2026-11-phi-don/kich-ban/phi-don-don-smoke.mjs
@@ -26,8 +27,6 @@ const HOM_NAY = vnDate(0);
 const NGAY_DI = vnDate(3); // xa hơn mốc 6 giờ để xác nhận không cần đặt gấp
 const S = String(Date.now()).slice(-6);
 const CHU = S.replace(/\d/g, (d) => "ABCDEGHKLM"[d]); // tên không chứa dãy số dài
-const ZONE = `CHR_PDD_${S}`;
-const TEN_VUNG = `Bãi Dài ${CHU}`;
 const BEN = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha Trang (migration 0010)
 const MUC = 70_000;
 
@@ -59,21 +58,12 @@ try {
   const so = (s) => Number(String(s).replace(/[^\d]/g, ""));
 
   // ---- dữ liệu bằng API thật TRƯỚC khi mở trang ----
-  phai(await call(ACCOUNTS.admin, "POST", "/api/location-zones", { code: ZONE, name: TEN_VUNG, sortOrder: 5 }), 201, "khu vực thử");
-  const ks0 = phai(await call(ACCOUNTS.admin, "POST", "/api/locations", { code: `${ZONE}_KS`, name: `Khách sạn ${CHU}`, locationTypeCode: "HOTEL", address: null, sortOrder: 90 }), 201, "khách sạn").location;
-  phai(await call(ACCOUNTS.admin, "PUT", `/api/locations/${ks0.id}`, { name: ks0.name, locationTypeCode: ks0.locationTypeCode, address: null, sortOrder: ks0.sortOrder, active: true, zoneCode: ZONE, expectedUpdatedAt: ks0.updatedAt }), 200, "xếp khách sạn vào khu vực");
-  const bang = phai(await call(ACCOUNTS.admin, "GET", "/api/pricing/phi-don?ngay=0001-01-01"), 200, "đọc bảng phí");
-  for (const v of bang.vung.map((x) => x.code)) {
-    // mỗi khu vực đang bật cần một mức chung trước khi bật phí; khu vực thử 70.000 đ/khách
-    phai(await call(ACCOUNTS.admin, "POST", "/api/pricing/phi-don", { kind: "PER_PAX", amount: v === ZONE ? MUC : 20_000, validFrom: HOM_NAY, validTo: null, note: null, dieuKien: [{ khoa: "ZONE", giaTri: v }] }), 201, `mức chung ${v}`);
-  }
-  // chiều về của khu vực thử: mức 0 đồng đặt rõ ⇒ «Miễn phí»
-  phai(await call(ACCOUNTS.admin, "POST", "/api/pricing/phi-don", { kind: "PER_PAX", amount: 0, validFrom: HOM_NAY, validTo: null, note: null, dieuKien: [{ khoa: "ZONE", giaTri: ZONE }, { khoa: "DIRECTION", giaTri: "RETURN" }] }), 201, "mức chiều về 0 đồng");
+  // ADR-0214: bật phí khi bảng mức TRỐNG (ruling P3); mức đi theo từng lượt trên đơn — chiều đi «Số khác» 70.000 đ/khách, chiều về «Miễn phí».
   const tuLuc = phai(await call(ACCOUNTS.admin, "GET", "/api/pricing/phi-don"), 200, "đọc ngày áp").batDauAp.tuLuc;
   phai(await call(ACCOUNTS.admin, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay: HOM_NAY, tuLucDaDoc: tuLuc }), 200, "bật phí từ hôm nay");
   const legs = [
-    { direction: "OUT", pickupDate: "", pickupTime: "07:00", pickupLocationId: ks0.id, pickupPlace: "", dropoffLocationId: BEN, dropoffPlace: "" },
-    { direction: "RETURN", pickupDate: NGAY_DI, pickupTime: "16:00", pickupLocationId: BEN, pickupPlace: "", dropoffLocationId: ks0.id, dropoffPlace: "" },
+    { direction: "OUT", pickupDate: "", pickupTime: "07:00", pickupLocationId: null, pickupPlace: `Khách sạn ${CHU}`, dropoffLocationId: BEN, dropoffPlace: "", phiDon: { loai: "SO_KHAC", soTien: MUC } },
+    { direction: "RETURN", pickupDate: NGAY_DI, pickupTime: "16:00", pickupLocationId: BEN, pickupPlace: "", dropoffLocationId: null, dropoffPlace: `Khách sạn ${CHU}`, phiDon: { loai: "DANH_SACH", soTien: 0 } },
   ];
   const tao = phai(await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: "Nguyễn Văn A", customerPhone: "0901 234 567",
@@ -82,7 +72,7 @@ try {
   const don = tao.order;
   assert.equal(don.phiDuaDon?.duKien, true, "máy chủ: đơn nháp có phí dự kiến");
   assert.equal(don.subtotal, 2 * 1_350_000 + 2 * MUC, "máy chủ: tạm tính = dịch vụ + phí chiều đi (chiều về 0 đồng)");
-  ok(`Dựng dữ liệu: khu vực «${TEN_VUNG}» 70.000 đ/khách, chiều về 0 đồng, phí áp từ hôm nay; đơn nháp ${don.orderCode}`);
+  ok(`Dựng dữ liệu: phí áp từ hôm nay (bảng mức trống); đơn nháp ${don.orderCode} chiều đi Số khác 70.000 đ/khách, chiều về Miễn phí`);
 
   // ===================== 1) Biểu mẫu sửa nháp: «Phí đưa đón — Tính khi lưu», rồi Lưu =====================
   {
@@ -99,8 +89,8 @@ try {
   }
 
   const mongDoi = [
-    ["Chiều đi · " + TEN_VUNG, "2 khách × 70.000 ₫", "140.000 ₫"],
-    ["Chiều về · " + TEN_VUNG, null, "Miễn phí"],
+    ["Chiều đi", "2 khách × 70.000 ₫", "140.000 ₫"],
+    ["Chiều về", null, "Miễn phí"],
   ];
   // ===================== 2) Trang đơn nháp: «Phí đưa đón (dự kiến)» =====================
   for (const [nhan, vp] of [["máy tính 1280", DESK], ["điện thoại 390", MOB]]) {
@@ -160,13 +150,14 @@ try {
   // ===================== 5) Màn Cấp độ đại lý: câu nhắc phí đưa đón (Kế toán, mở SAU CÙNG vì đổi tài khoản) =====================
   {
     const p = await env.as(ACCOUNTS.accounting, "/cap-dai-ly", MOB);
-    await p.waitFor("!document.getElementById('cdl-nhac-phi-don').hidden", "câu nhắc phí đưa đón hiện");
-    assert.equal(await p.ev("document.getElementById('cdl-nhac-phi-don').textContent"), "Cấp độ đại lý cũng quyết định mức phí đưa đón; đơn đã xác nhận giữ mức cũ.");
+    await p.waitFor("!!document.getElementById('cdl-nhac-phi-don') && document.readyState === 'complete'", "màn Cấp độ đại lý sẵn sàng");
+    await new Promise((r) => setTimeout(r, 800)); // trang dựng xong phần đầu (initShell) rồi mới xét
+    assert.equal(await p.ev("document.getElementById('cdl-nhac-phi-don').hidden"), true, "ADR-0214: câu nhắc «cấp quyết định phí đưa đón» không hiện");
     assert.equal(await p.ev("document.documentElement.scrollWidth <= window.innerWidth + 1"), true, "không tràn ngang (390)");
     await axe(p, "Cấp độ đại lý 390");
     assert.deepEqual(loiThat(p), [], `lỗi console (Cấp độ đại lý): ${loiThat(p)}`);
     p.close();
-    ok(`Cấp độ đại lý (390): câu nhắc «cấp cũng quyết định mức phí đưa đón» hiện${AXE ? ", axe sạch" : ""}`);
+    ok(`Cấp độ đại lý (390): câu nhắc «cấp cũng quyết định mức phí đưa đón» KHÔNG hiện (ADR-0214)${AXE ? ", axe sạch" : ""}`);
   }
 
   console.log(AXE ? "SMOKE OK (đã gồm kiểm màu axe)" : "SMOKE OK (KHÔNG gồm kiểm màu: thiếu AXE_JS)");

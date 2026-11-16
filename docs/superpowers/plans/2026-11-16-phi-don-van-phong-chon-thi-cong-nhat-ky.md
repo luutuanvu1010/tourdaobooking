@@ -37,7 +37,7 @@ Kế hoạch: `docs/superpowers/plans/2026-11-16-phi-don-van-phong-chon.md`. Ngu
 - Bảng tham chiếu: «Số khác» (đã chốt, ADR-0214 Đ1), «Chưa chọn» (chờ chọn), «Câu báo của ô chọn phí đưa đón» (chờ chọn); sửa nghĩa «Phí đưa đón», «Miễn phí», «dự kiến», hàng «Đặt ngày bắt đầu áp» / «Tắt phí đưa đón».
 - Kịch bản Chrome `docs/evidence/2026-11-phi-don/kich-ban/phi-don-chon-smoke.mjs` (8 bước, 1280 + 375, có `AXE_JS`) xanh; ảnh `docs/evidence/2026-11-phi-don/phi-don-chon-*.png`.
 
-**Kịch bản Chrome cũ đỏ từ ADR-0214 (không do Task 6):** `phi-don-don-smoke.mjs` đỏ ở bước dựng (đơn lập không mang `phiDon` ⇒ chưa chọn, tạm tính không gồm phí); `phi-don-smoke.mjs` đỏ ở bước chờ câu «cần một mức chung» (P3 gỡ chốt). `xac-nhan-smoke.mjs` 8/9: bước 3b đỏ vì chờ nút «Xem biên nhận» đã đổi tên từ trước (không liên quan phí). Đề xuất: ghi «thay bằng `phi-don-chon-smoke.mjs`» đầu hai tệp cũ và dòng mới ở bảng kịch bản của `web/CLAUDE.md` (tệp luật — chủ duyệt).
+**Kịch bản Chrome cũ (vòng sửa 1 Task 6):** `phi-don-don-smoke.mjs` (đơn lập kèm `phiDon`, nhãn dòng không còn khu vực, câu nhắc Cấp độ đại lý ẩn) và `phi-don-smoke.mjs` (câu ADR-0214, đặt ngày áp khi bảng trống, kết thúc mức chung cuối lúc đang áp lưu được) đã sửa theo luật mới, cả hai xanh có `AXE_JS`. `xac-nhan-smoke.mjs` 8/9: bước 3b đỏ từ trước vì chờ nút «Xem biên nhận» đã đổi tên (không liên quan phí, không sửa). Đề xuất dòng mới ở bảng kịch bản của `web/CLAUDE.md` (tệp luật — chủ duyệt).
 
 ## Nợ kỹ thuật
 - Dịch vụ toàn em bé (không khách trả tiền) không có dòng phí ⇒ mức chọn không được lưu; lần sửa sau ô hiện «Chưa chọn», phải chọn lại. Cửa xác nhận buộc có người lớn nên không lọt xác nhận.
@@ -46,3 +46,5 @@ Kế hoạch: `docs/superpowers/plans/2026-11-16-phi-don-van-phong-chon.md`. Ngu
 - Biểu mẫu khôi phục sau hết phiên (ADR-0192) chưa giữ lựa chọn phí đang gõ dở: lượt đã lưu quay về mức đã lưu, lượt mới về «Chưa chọn».
 - Hai dịch vụ cùng chiều có hai dòng phí cùng nhãn «Chiều đi» trên trang đơn (dòng không nêu tên dịch vụ).
 - Bảng Còn vé ghi «Tổng» của đơn chưa gồm phí người xét sắp chọn (phí chỉ tính lúc xác nhận).
+- Tài khoản lai Đối tác + Bán hàng xét đơn còn lượt thiếu phí: nút «Còn vé, xác nhận đơn» bị khoá, chỉ câu nhắc (vòng sửa 1); chưa kiểm bằng trình duyệt (khó dựng: tài khoản giữ PARTNER chỉ mở đơn của chính mình).
+- «Thử tra» ở màn Quản trị khi thiếu mức vẫn nói «… nên đơn như vậy không xác nhận được.» — câu cũ của bảng mức, nay không còn đúng với đơn (chữ cần chủ chọn).
