@@ -216,7 +216,8 @@ function veBieuMau(p: PhieuDangKyDto): void {
     ...tuyChonVai(cauHinh.loaiMo.filter((l) => l.phan !== "CA_NHAN"), p.loaiToChuc).map((l) => h("option", { value: l.ma, selected: p.loaiToChuc?.ma === l.ma }, l.ten))) as HTMLSelectElement;
   // Công tắc phần tổ chức: ẩn hẳn khi chính sách chưa mở phần này; sau lần gửi đầu chỉ còn khi phiếu ĐÃ có phần tổ chức (khoá bật — máy chủ không cho bỏ).
   const coCongTac = cauHinh.phanToChucMo && (!khoaVai || p.loaiToChuc !== null);
-  const congTac = coCongTac ? h("input", { type: "checkbox", id: "dk-cong-tac-to-chuc", class: "o-tick", disabled: khoaVai, checked: p.loaiToChuc !== null || p.tep.some((t) => t.o in NHAN_O_TEP_TO_CHUC) }) as HTMLInputElement : null;
+  const oCongTac = h("input", { type: "checkbox", id: "dk-cong-tac-to-chuc", class: "o-tick", disabled: khoaVai, checked: p.loaiToChuc !== null || p.tep.some((t) => t.o in NHAN_O_TEP_TO_CHUC) }) as HTMLInputElement;
+  const congTac = coCongTac ? oCongTac : null;
   const toChucBat = (): boolean => congTac !== null && congTac.checked;
   // Lưu nháp vai (ADR-0212 Đ4): vai cá nhân bắt buộc; vai của tổ chức chỉ khi công tắc bật (tắt ⇒ xoá vai đã lưu). Chỉ gọi khi có đổi.
   const daLuu = { loai: p.loai?.ma ?? "", tc: p.loaiToChuc?.ma ?? "" };
@@ -327,7 +328,7 @@ function veBieuMau(p: PhieuDangKyDto): void {
       ...khuO("canCuoc"),
       h("p", { class: "muted" }, CHU_DANG_KY.giaiThichAnh), tepKhoi),
     congTac
-      ? h("section", { class: "the dk-buoc" }, h("label", { class: "check" }, congTac, h("span", null, CHU_DANG_KY.congTacToChuc)), h("p", { class: "muted" }, CHU_DANG_KY.giaiThichToChuc), hoiBo)
+      ? h("section", { class: "the dk-buoc" }, h("label", { class: "check" }, oCongTac, h("span", null, CHU_DANG_KY.congTacToChuc)), h("p", { class: "muted" }, CHU_DANG_KY.giaiThichToChuc), hoiBo)
       : (p.loaiToChuc !== null ? h("p", { class: "alert warn", id: "dk-to-chuc-dong", role: "status" }, CHU_DANG_KY.toChucDangDong) : null),
     phanToChuc,
     h("section", { class: "the dk-buoc" },
