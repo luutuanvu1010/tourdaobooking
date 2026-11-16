@@ -340,7 +340,8 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   /** Phiếu đăng ký ĐANG ĐIỀN cho người đăng ký chưa có tài khoản (không có route công khai nào tạo phiếu ở đây — route nhập mã thuộc task khác); email riêng, cookie đăng ký ký thật. */
   const gieoDangKy = async () => {
     const at = new Date().toISOString();
-    w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES ('DK_GUIGUIGI', 'PERSON', 'DANG_DIEN', '', ?, ?)").run(at, at);
+    // Vai của tổ chức chọn trước lần gửi đầu (Task 5 vòng sửa 1: phần tổ chức đòi vai của tổ chức) — gieo thẳng lúc phiếu còn đang điền.
+    w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, org_role_code, created_at, updated_at) VALUES ('DK_GUIGUIGI', 'PERSON', 'DANG_DIEN', '', 'TRAVEL_AGENCY', ?, ?)").run(at, at);
     w.sqlite.prepare("INSERT INTO dk_identity (id, registration_id, provider, subject, contact_email, created_at, updated_at) VALUES ('ident-gui', 'DK_GUIGUIGI', 'EMAIL', 'gui-do-so@example.com', 'gui-do-so@example.com', ?, ?)").run(at, at);
     // Ảnh GPKD đã lưu (ADR-0212 Đ4: bắt buộc khi gửi kèm phần tổ chức) — gieo thẳng như tệp chờ của gieoPhieuDk.
     w.sqlite.prepare(`INSERT INTO pty_registration_attachment (id, registration_id, slot, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)

@@ -176,5 +176,7 @@ test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCua
     // ADR-0210 Đ3 (dấu xác minh, đợt 1 Task 10): `staff` bọc hàm này cho màn Quản lý tài khoản; ba màn của Đ3 là chỗ DUY NHẤT đọc (bài src/dau-xac-minh-chi-de-biet.test.ts canh)
     "dauXacMinhTheoHoSo",
     // ADR-0212 Đ1 (vai đăng ký là dữ liệu, đợt 2 Task 1): dang-ky đọc danh sách vai đăng ký được từ pty_role_type qua một hàm hẹp, không chạm bảng
-    "vaiDangKyDuoc"].sort());
+    "vaiDangKyDuoc",
+    // ADR-0212 Đ4 (phần tổ chức của phiếu, đợt 2 Task 5): danh mục loại giấy tờ tổ chức cho lần kiểm hình thức (`kiemPhanToChuc`) — dang-ky không đọc bảng pty_organization_document_type
+    "danhMucGiayToToChucChoDangKy"].sort());
 });

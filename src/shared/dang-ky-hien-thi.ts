@@ -67,6 +67,9 @@ export const CAU_PHIEU = {
   chonVaiCaNhan: "Hãy chọn một vai người dùng cá nhân.", // brief viết «Hãy chọn một vai cá nhân»; bảng từ ADR-0130 cấm «vai» trơn — ruling 16/11,
   khongBoToChuc: "Phiếu đã gửi kèm thông tin tổ chức nên không bỏ phần này được.",
   thieuAnhGpkd: "Cần tải xong ảnh giấy chứng nhận đăng ký kinh doanh trước khi gửi.",
+  // Task 5 vòng sửa 1 (ruling điều phối 16/11): vai của tổ chức khoá sau lần gửi đầu, nên phải chọn TRƯỚC lần gửi đầu.
+  chonVaiToChuc: "Muốn khai thông tin tổ chức, bạn cần chọn vai người dùng của tổ chức trước lần gửi đầu. Phiếu đã gửi một lần mà chưa chọn thì không thêm phần tổ chức được nữa.",
+  anhToChucKhongPhan: "Hãy gỡ ảnh giấy phép hoặc khai phần tổ chức.",
 } as const;
 
 /** Tên mục khi NÓI VỚI NGƯỜI ĐĂNG KÝ về điều còn thiếu (chữ AI viết, chờ chủ chọn — BANG-THAM-CHIEU «Tên mục của phiếu đăng ký (người đăng ký thấy)»). Khác `NHAN_MUC_XAC_MINH` viết cho người xác minh («Đã gọi số điện thoại đã khai» là việc của họ). */

@@ -25,7 +25,7 @@ import {
   phanToChucMo, phieuDeXem, rutStatement, suKienNguoiDangKyStatement,
   type BanKhaiMoi, type ChinhSachDangKyRow, type PhieuDeXemRow,
 } from "./repository.ts";
-import { mucChuaDapUng, type DuLieuKiemMuc } from "./rules.ts";
+import { O_TEP_TO_CHUC, mucChuaDapUng, type DuLieuKiemMuc } from "./rules.ts";
 import { loaiMoHienTai } from "./vai.ts";
 import { mucBatBuoc } from "./xac-minh.ts";
 
@@ -235,6 +235,8 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   const roleCaNhan = v.phieu.role_code;
   const roleToChuc = v.phieu.org_role_code;
   if (coToChuc && !chinhSachRT.coToChuc) return error(409, "org_section_closed", CAU_PHIEU.toChucDong);
+  // Task 5 vòng sửa 1 (I2): phần tổ chức đòi vai của tổ chức. Vai này khoá sau lần gửi đầu (trigger dk_registration_immutable) ⇒ gửi lại kèm phần tổ chức mà vai còn rỗng cũng 400.
+  if (coToChuc && roleToChuc === null) return error(400, "org_role_required", CAU_PHIEU.chonVaiToChuc);
   if (!coToChuc && [roleCaNhan, roleToChuc].some((r) => r && phanCuaVai(r, false) === "CHI_TO_CHUC")) return error(400, "org_section_required", CAU_PHIEU.canPhanToChuc);
   if (coToChuc && roleCaNhan === "DRIVER_EXTERNAL") return error(400, "driver_without_org", CAU_PHIEU.taiXeKhongKemToChuc);
   if (roleCaNhan === "" && !DA_CO_THAY_MAT_TO_CHUC) return error(400, "personal_role_required", CAU_PHIEU.chonVaiCaNhan);
@@ -242,7 +244,10 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   if (!coToChuc && roleToChuc !== null) {
     return v.phieu.current_version > 0 ? error(400, "org_section_locked", CAU_PHIEU.khongBoToChuc) : error(400, "org_section_required", CAU_PHIEU.canPhanToChuc);
   }
-  if (coToChuc && !(await trangThaiTepChoTheoO(env.DB, registrationId)).some((t) => t.slot === "GPKD" && t.daLuu)) return error(400, "org_photo_missing", CAU_PHIEU.thieuAnhGpkd);
+  const tepTheoO = await trangThaiTepChoTheoO(env.DB, registrationId);
+  // Ruling điều phối 16/11 (chặn phát hành mốc A): không khai phần tổ chức thì không để ảnh của ô tổ chức nằm chờ — lô duyệt sẽ không có hồ sơ tổ chức nào để nhận chúng.
+  if (!coToChuc && tepTheoO.some((t) => O_TEP_TO_CHUC.includes(t.slot))) return error(400, "org_photo_without_org", CAU_PHIEU.anhToChucKhongPhan);
+  if (coToChuc && !tepTheoO.some((t) => t.slot === "GPKD" && t.daLuu)) return error(400, "org_photo_missing", CAU_PHIEU.thieuAnhGpkd);
 
   const homNay = vnToday(new Date(v.nowMs));
   const k = kiemBanKhai(body, await danhMucGiayToChoDangKy(env.DB, homNay), homNay);
