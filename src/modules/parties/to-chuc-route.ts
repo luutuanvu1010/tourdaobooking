@@ -27,6 +27,7 @@ export const CAM_TO_CHUC = () => error(403, "forbidden", "Chỉ Quản lý bán 
 const CAM_QUAN_LY = () => error(403, "forbidden", "Chỉ người quản lý của tổ chức làm được việc này.");
 const KHONG_THAY_TO_CHUC = () => error(404, "not_found", "Không tìm thấy tổ chức.");
 const LOI_THAN = (m: string) => error(400, "invalid_input", m);
+const VUA_DOI = () => error(409, "org_manager_changed", "Người quản lý của tổ chức vừa đổi, hãy tải lại.");
 const DA_DOI = () => error(409, "org_manager_changed", "Người quản lý của tổ chức vừa thay đổi. Hãy tải lại màn tổ chức rồi làm lại.");
 const CUNG_NGAY = () => error(409, "org_same_day", "Không chuyển lại cho người vừa thôi quản lý trong cùng ngày.");
 const CON_THANH_VIEN = () =>
@@ -108,7 +109,9 @@ export async function giaoNguoiQuanLy(ctx: Ctx<"office">): Promise<Response> {
   const org = await docToChuc(env.DB, ctx.params.id);
   if (!org) return KHONG_THAY_TO_CHUC();
   const body = await readJson(ctx.request);
-  if (!docThan(body, ["personPartyId", "nguoiCuThanhThanhVien", "lyDo"]) || !laMaHoSo(body.personPartyId)) return LOI_THAN("Hãy chọn người sẽ làm người quản lý.");
+  if (!docThan(body, ["personPartyId", "nguoiCuThanhThanhVien", "lyDo", "nguoiQuanLyHienTai"]) || !laMaHoSo(body.personPartyId)) return LOI_THAN("Hãy chọn người sẽ làm người quản lý.");
+  // Vòng sửa 1 (M-1, Review Focus 4 «đúng một lệnh thắng»): BẮT BUỘC gửi người quản lý màn hình đang thấy (mã hồ sơ, null = chưa có). Task 14: giao diện gửi trường này.
+  if (!("nguoiQuanLyHienTai" in body) || (body.nguoiQuanLyHienTai !== null && !laMaHoSo(body.nguoiQuanLyHienTai))) return LOI_THAN("Thiếu người quản lý hiện tại mà màn hình đang thấy. Hãy tải lại màn tổ chức.");
   if (body.nguoiCuThanhThanhVien !== undefined && typeof body.nguoiCuThanhThanhVien !== "boolean") return LOI_THAN("Lựa chọn giữ người cũ làm thành viên không hợp lệ.");
   if (!laMaLyDoToChuc(body.lyDo)) return LOI_THAN("Hãy chọn một lý do trong danh sách.");
   const person = body.personPartyId;
@@ -122,6 +125,9 @@ export async function giaoNguoiQuanLy(ctx: Ctx<"office">): Promise<Response> {
   const today = vnToday(new Date());
   const [lk, daDong] = await Promise.all([tcLienKetMo(env.DB, org.id), tcLienKetDongTuNgay(env.DB, org.id, today)]);
   const cu = lk.find((x) => x.loai === "MANAGER_OF") ?? null;
+  // Màn hình cũ (văn phòng khác vừa đổi người): 409, không ghi. Phần «trong lô»: lính gác TC_GAC buộc dòng `cu` (chính dòng vừa so ở đây) vẫn là người quản lý lúc ghi —
+  // lô chỉ ghi được khi người quản lý lúc ghi = người màn hình thấy.
+  if ((cu?.personPartyId ?? null) !== body.nguoiQuanLyHienTai) return VUA_DOI();
   if (cu?.personPartyId === person) return error(409, "org_already_manager", "Người này đang là người quản lý của tổ chức.");
   // Đ2.9: quan hệ hiệu lực theo ngày — mở lại cùng loại cho cùng người trong ngày đã đóng sẽ vướng trigger chống chồng lấn; báo trước lô.
   if (daDong.some((d) => d.personPartyId === person && d.loai === "MANAGER_OF")) return CUNG_NGAY();

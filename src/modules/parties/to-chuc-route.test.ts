@@ -78,7 +78,12 @@ function daDuyetChuaKichHoat(w: W, staffId: string) {
   for (const t of ["CHO_XAC_MINH", "CHO_DUYET"]) w.sqlite.prepare("UPDATE dk_registration SET status = ? WHERE id = ?").run(t, id);
   w.sqlite.prepare("UPDATE dk_registration SET status = 'DA_DUYET', staff_id = ?, decided_at = ?, activation_deadline_at = '2099-01-01T00:00:00.000Z' WHERE id = ?").run(staffId, AT, id);
 }
-const giao = (w: W, as: string, org: string, body: Record<string, unknown>) => w.call("POST", `/api/parties/${org}/to-chuc/nguoi-quan-ly`, { as, body: { lyDo: LY_DO, ...body } });
+/** Người quản lý đang mở (mã hồ sơ) — màn hình «đang thấy» lúc bấm (vòng sửa 1, M-1). */
+const quanLyMo = (w: W, org: string): string | null =>
+  w.q("SELECT person_party_id AS p FROM v_pty_org_link WHERE org_party_id = ? AND kind = 'MANAGER'", org)[0]?.p ?? null;
+/** Lệnh giao / chuyển; `nguoiQuanLyHienTai` vắng thì lấy người quản lý đang mở ĐÚNG LÚC GỌI (màn hình vừa tải). */
+const giao = (w: W, as: string, org: string, body: Record<string, unknown>) =>
+  w.call("POST", `/api/parties/${org}/to-chuc/nguoi-quan-ly`, { as, body: { lyDo: LY_DO, nguoiQuanLyHienTai: quanLyMo(w, org), ...body } });
 const kiem = (w: W, code: string): unknown[] => {
   const c = CHECKS.find((x: { code: string }) => x.code === code);
   return w.q(c.sql.replace(/\s+/g, " ").trim()).map((r: Record<string, unknown>) => Object.values(r)[0]);
@@ -246,8 +251,9 @@ test("Review Focus 4: hai lệnh chuyển cùng lúc (cùng hoặc khác ngườ
   lienKet(w, doiTac(w, "Cũ").partyId, org, "MANAGER_OF");
   lienKet(w, doiTac(w, "Thành Viên").partyId, org, "MEMBER_OF");
   const [x, y] = await Promise.all([giao(w, ADM, org, { personPartyId: doiTac(w, "Một").partyId }), giao(w, SUP, org, { personPartyId: doiTac(w, "Hai").partyId })]);
+  // Hai lệnh cùng «đang thấy» người cũ: dù khung thử chạy nối đuôi hay xen kẽ, chỉ một lệnh thắng (M-1 + lính gác).
   const st = [x.status, y.status].sort();
-  assert.ok(JSON.stringify(st) === "[200,409]" || JSON.stringify(st) === "[200,200]", `${x.text} | ${y.text}`);
+  assert.deepEqual(st, [200, 409], `${x.text} | ${y.text}`);
   assert.equal(nhatKy(w, org).filter((r: { action: string }) => r.action === "org_manager_transferred").length, st.filter((s) => s === 200).length);
   assert.equal(mo(w, org).filter(([, k]) => k === "MANAGER").length, 1);
   assert.deepEqual(kiem(w, "R-TC-1"), []);
@@ -321,4 +327,44 @@ test("Đ2.8 đối chiếu R-TC-4: người quản lý có hiệu lực ⇔ R-TC
     assert.equal(coHieuLuc, f === null, `${ten}: coHieuLuc`);
     assert.equal(kiem(w, "R-TC-4").includes(org), !coHieuLuc, `${ten}: R-TC-4 phải liệt kê đúng khi và chỉ khi không có hiệu lực`);
   }
+});
+
+test("I-1 lính gác lô chuyển: văn phòng A GỠ người quản lý (tổ chức không còn thành viên) xen giữa lúc lệnh chuyển của văn phòng B đọc và lúc ghi ⇒ B 409 org_manager_changed, không mở dòng nào, không gửi thư", async () => {
+  const { w, thu } = setup();
+  const org = toChuc(w);
+  const a = doiTac(w, "Bị Gỡ");
+  const c = doiTac(w, "Định Giao");
+  lienKet(w, a.partyId, org, "MANAGER_OF");
+  let go: { status: number; text: string } | null = null;
+  w.chenTruocLo((stmts: { sql: string }[]) => stmts.some((x) => /INSERT INTO pty_party_relationship/.test(x.sql)), async () => {
+    go = await w.call("POST", `/api/parties/${org}/to-chuc/go-nguoi-quan-ly`, { as: ADM, body: { lyDo: "NGUOI_QUAN_LY_NGHI_VIEC" } });
+  });
+  const r = await giao(w, QLBH, org, { personPartyId: c.partyId });
+  await w.choNen();
+  assert.equal(go!.status, 200, go!.text);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "org_manager_changed");
+  assert.deepEqual(mo(w, org), [], "không mở người quản lý mới, người vừa bị gỡ không bị thêm lại làm thành viên");
+  assert.equal(thu.length, 0, "không gửi thư cho người vừa bị gỡ");
+  assert.equal(w.q("SELECT count(*) n FROM pty_party_relationship WHERE to_party_id = ? AND notice_state IS NOT NULL", org)[0].n, 0);
+  assert.deepEqual(nhatKy(w, org).map((x: { action: string }) => x.action), ["org_manager_removed"]);
+});
+
+test("M-1: hai văn phòng mở cùng một màn cũ rồi bấm nối đuôi ⇒ lệnh đầu 200, lệnh sau 409 «Người quản lý của tổ chức vừa đổi, hãy tải lại.»; thiếu trường ⇒ 400; giao lần đầu với màn thấy người khác ⇒ 409", async () => {
+  const { w } = setup();
+  const org = toChuc(w);
+  const a = doiTac(w, "Ban Đầu");
+  lienKet(w, a.partyId, org, "MANAGER_OF");
+  const r1 = await giao(w, ADM, org, { personPartyId: doiTac(w, "Một").partyId, nguoiQuanLyHienTai: a.partyId });
+  assert.equal(r1.status, 200, r1.text);
+  const r2 = await giao(w, SUP, org, { personPartyId: doiTac(w, "Hai").partyId, nguoiQuanLyHienTai: a.partyId });
+  assert.equal(r2.status, 409, r2.text);
+  assert.equal(r2.json.error.message, "Người quản lý của tổ chức vừa đổi, hãy tải lại.");
+  assert.equal(nhatKy(w, org).filter((x: { action: string }) => x.action === "org_manager_transferred").length, 1);
+  const thieu = await w.call("POST", `/api/parties/${org}/to-chuc/nguoi-quan-ly`, { as: ADM, body: { lyDo: LY_DO, personPartyId: doiTac(w, "Ba").partyId } });
+  assert.equal(thieu.status, 400, thieu.text);
+  const org2 = toChuc(w);
+  const r3 = await giao(w, ADM, org2, { personPartyId: doiTac(w, "Bốn").partyId, nguoiQuanLyHienTai: a.partyId });
+  assert.equal(r3.status, 409, r3.text);
+  assert.deepEqual(mo(w, org2), []);
 });

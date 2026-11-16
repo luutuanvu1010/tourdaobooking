@@ -471,10 +471,14 @@ test("(to-chuc) hồ sơ phụ hoặc hồ sơ chính có liên kết tổ chứ
   lk("bbbbbbbb-0000-4000-8000-000000000003", A, "MANAGER_OF");
   lk("bbbbbbbb-0000-4000-8000-000000000004", `pty-${PARTNER}`, "MEMBER_OF");
   const truoc = w.q("SELECT * FROM pty_party_relationship ORDER BY id");
-  for (const [tu, den, ten] of [[A, B.partyId, "hồ sơ phụ có liên kết"], [B.partyId, A, "hồ sơ chính có liên kết"]] as const) {
+  // Chiều «hồ sơ chính có liên kết»: hồ sơ phụ C không tài khoản (B có tài khoản nên làm hồ sơ phụ sẽ bị chặn trước bởi merge_source_has_account).
+  const C = await taoA(w, "Trần Văn Cường", "0912000222");
+  const truocC = w.q("SELECT * FROM pty_party_relationship ORDER BY id");
+  assert.deepEqual(truocC, truoc);
+  for (const [tu, den, ten] of [[A, B.partyId, "hồ sơ phụ có liên kết"], [C, A, "hồ sơ chính có liên kết"]] as const) {
     const r = await gop(w, ADM, tu, den, "bất kỳ");
     assert.equal(r.status, 409, `${ten}: ${r.text}`);
-    assert.equal(r.json.error.code, ten.includes("phụ") ? "merge_org_link" : r.json.error.code, ten);
+    assert.equal(r.json.error.code, "merge_org_link", ten);
     const xt = await xemTruoc(w, ADM, tu, den);
     assert.equal(xt.status, 200, xt.text);
     assert.ok(xt.json.chan.some((c: { code: string }) => c.code === "merge_org_link"), `${ten}: xem trước phải báo`);
