@@ -324,13 +324,13 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     return cat > 0 ? nhan.slice(0, cat) : nhan;
   };
 
-  /** Dòng tóm tắt chặng gọn: chữ của `tomTatChang` + « · Phí <mức>» khi lượt đã chọn phí (ADR-0214, Task 6) — chặng gọn vẫn cho thấy mức đã chọn. */
+  /** Dòng tóm tắt chặng gọn: chữ của `tomTatChang` + « · Phí đưa đón <mức>» khi lượt đã chọn phí (ADR-0214, Task 6) — chặng gọn vẫn cho thấy mức đã chọn. */
   const tomTatCoPhi = (l: ChangNhap): string => {
     const goc = tomTatChang(l, nhanNgan, o.anGio === true);
     const pdc = o.phiDon?.();
     if (pdc?.kieu !== "chon") return goc;
     const kq = mucTuO(pdc.lay(l));
-    return kq.ok && kq.muc !== null ? `${goc} · Phí ${nhanMucPhi(kq.muc.soTien)}` : goc;
+    return kq.ok && kq.muc !== null ? `${goc} · ${TEN_PHI_DUA_DON} ${nhanMucPhi(kq.muc.soTien)}` : goc;
   };
 
   function changEl(l: ChangNhap, i: number): HTMLElement {
@@ -519,17 +519,17 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     let loiPhi: HTMLElement | null = null;
     const pd = nn ? (o.phiDon?.() ?? null) : null;
     if (pd?.kieu === "doi-tac") {
-      phu.push(h("p", { class: "hint dd-phi-nhac", "data-phi-don": "doi-tac" }, CAU_VAN_PHONG_CHON_PHI_DON));
+      phu.push(h("p", { class: "hint dd-phi-nhac", "data-o-phi": "doi-tac" }, CAU_VAN_PHONG_CHON_PHI_DON));
     } else if (pd?.kieu === "chon") {
       const v = pd.lay(l);
       const sel = h(
         "select",
-        { id: id("phi"), "data-o": `${l.key}:phi`, "data-phi-don": "chon" },
+        { id: id("phi"), "data-o": `${l.key}:phi`, "data-o-phi": "chon" },
         h("option", { value: "" }, NHAN_CHUA_CHON_PHI),
         ...LUA_CHON_PHI_DON.map((x) => h("option", { value: x.giaTri }, x.nhan)),
       ) as HTMLSelectElement;
       sel.value = v.chon;
-      const khac = h("input", { id: id("phi-khac"), type: "text", inputMode: "numeric", maxLength: 13, autocomplete: "off", placeholder: "VD: 70.000", value: v.khac, "data-o": `${l.key}:phi-khac`, "data-phi-don": "so-khac" }) as HTMLInputElement;
+      const khac = h("input", { id: id("phi-khac"), type: "text", inputMode: "numeric", maxLength: 13, autocomplete: "off", placeholder: "VD: 70.000", value: v.khac, "data-o": `${l.key}:phi-khac`, "data-o-phi": "so-khac" }) as HTMLInputElement;
       const loi = loiEl();
       loi.id = id("phi-loi");
       sel.setAttribute("aria-describedby", loi.id);

@@ -3437,7 +3437,7 @@ export interface QuyetDinhXacNhanInput {
   gioDon?: { legId: string; pickupTime: string; pickupSlotEnd?: string; datGap?: { lyDo: string; ghiChu?: string | null } }[];
   /**
    * Phí đưa đón người xét chọn cho các lượt đón CHƯA có mức (ADR-0214 Đ2, Task 4): chỉ nhánh Còn vé đọc. Lượt đã có mức ⇒ 400 «Lượt đón này đã có phí đưa đón.»; lượt không phải lượt mở của
-   * đơn hoặc nhắc hai lần ⇒ 400; mức sai ⇒ 400 cùng câu của `kiemMucChon`. Tài khoản giữ quyền Đối tác gửi khoá này ⇒ 400 `transfer_fee_not_allowed`.
+   * đơn hoặc nhắc hai lần ⇒ 400; mức sai ⇒ 400 cùng câu của `kiemMucChon`. Tài khoản giữ quyền Đối tác gửi khoá này khác null ⇒ 400 `transfer_fee_not_allowed`.
    */
   phiDon?: { legId: string; muc: MucChon }[];
   lyDo?: string;

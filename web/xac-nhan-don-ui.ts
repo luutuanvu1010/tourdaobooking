@@ -265,20 +265,24 @@ function taoOPhiConVe(t: NonNullable<Order["phiDuaDon"]>["thieu"][number]): OPhi
   const loi = h("p", { class: "cx-loi", id: `${id}-loi`, role: "alert", hidden: true });
   const sel = h(
     "select",
-    { class: "vc-input", id, "aria-describedby": loi.id, "data-phi-don": "chon" },
+    { class: "vc-input", id, "aria-describedby": loi.id, "data-o-phi": "chon" },
     h("option", { value: "" }, NHAN_CHUA_CHON_PHI),
     ...LUA_CHON_PHI_DON.map((x) => h("option", { value: x.giaTri }, x.nhan)),
   ) as HTMLSelectElement;
-  const khac = h("input", { type: "text", inputMode: "numeric", maxLength: 13, autocomplete: "off", class: "vc-input", id: `${id}-khac`, placeholder: "VD: 70.000", "aria-label": `${NHAN_SO_KHAC} — ${TEN_PHI_DUA_DON} ${CHIEU_LABEL[t.direction].toLowerCase()} · ${t.serviceName}`, "aria-describedby": loi.id, hidden: true, "data-phi-don": "so-khac" }) as HTMLInputElement;
+  const khac = h("input", { type: "text", inputMode: "numeric", maxLength: 13, autocomplete: "off", class: "vc-input", id: `${id}-khac`, placeholder: "VD: 70.000", "aria-describedby": loi.id, "data-o-phi": "so-khac" }) as HTMLInputElement;
+  // Nhãn thấy được như biểu mẫu đơn («Số khác»), ẩn cùng ô khi chưa chọn «Số khác».
+  const oKhac = h("label", { class: "cx-truong", for: khac.id, hidden: true }, h("span", { class: "cx-nhan" }, NHAN_SO_KHAC), khac);
   const datLoi = (cau: string | null): void => {
     loi.hidden = cau === null;
     loi.textContent = cau ?? "";
-    (sel.value === CHON_SO_KHAC ? khac : sel).setAttribute("aria-invalid", cau === null ? "false" : "true");
+    sel.setAttribute("aria-invalid", "false");
+    khac.setAttribute("aria-invalid", "false");
+    if (cau !== null) (sel.value === CHON_SO_KHAC ? khac : sel).setAttribute("aria-invalid", "true");
   };
   sel.addEventListener("change", () => {
-    khac.hidden = sel.value !== CHON_SO_KHAC;
+    oKhac.hidden = sel.value !== CHON_SO_KHAC;
     datLoi(null);
-    if (!khac.hidden) khac.focus();
+    if (!oKhac.hidden) khac.focus();
   });
   khac.addEventListener("input", () => {
     const kq = mucTuO({ chon: sel.value, khac: khac.value });
@@ -297,7 +301,7 @@ function taoOPhiConVe(t: NonNullable<Order["phiDuaDon"]>["thieu"][number]): OPhi
       "div",
       { class: "cx-luot", "data-phi-leg-id": t.legId },
       h("label", { class: "cx-truong", for: id }, h("span", { class: "cx-nhan" }, `${TEN_PHI_DUA_DON} · ${CHIEU_LABEL[t.direction]} · ${t.serviceName}`), sel),
-      khac,
+      oKhac,
       loi,
     ),
   };
@@ -326,7 +330,9 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
       // Các câu 409 này nói người xét còn thiếu giờ / thiếu đặt gấp (ADR-0154 Đ1.3, Đ1.4; ADR-0193 câu (ii) `chua_gio_sat_ngay`) / thiếu phí đưa đón (ADR-0214 Đ3 `transfer_fee_missing`), KHÔNG phải đơn vừa đổi: giữ bảng để không mất giờ, phí vừa chọn.
       // 409 / 404 khác: đơn đã đổi → tải lại.
       const thieuNhapLieu = err instanceof ApiError && (err.code === "pickup_time_required" || err.code === "short_notice_required" || err.code === "chua_gio_sat_ngay" || (err.code === "transfer_fee_missing" && oPhi.length > 0));
-      if (err instanceof ApiError && (err.status === 409 || err.status === 404) && !thieuNhapLieu) await c.lamMoi();
+      // Thiếu phí mà bảng chưa có ô (ngày áp vừa tới sau lúc mở trang): tải lại để ô hiện, và giữ lý do bằng băng (câu tại chỗ mất khi bảng dựng lại).
+      if (err instanceof ApiError && err.code === "transfer_fee_missing" && !thieuNhapLieu) await c.lamMoi({ tone: "info", text: err.message });
+      else if (err instanceof ApiError && (err.status === 409 || err.status === 404) && !thieuNhapLieu) await c.lamMoi();
     }
   };
 
@@ -365,6 +371,13 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
     ? h("div", { class: "cx-gio", "data-khoi": "phi-don-con-ve" }, ...oPhi.map((x) => x.el))
     : doiTacXet && thieuPhi.length > 0 ? h("p", { class: "muted", "data-khoi": "phi-don-con-ve" }, CAU_VAN_PHONG_CHON_PHI_DON) : null;
   const nutConVe = h("button", { type: "button", class: "btn btn-accent", "data-action": "quyet-dinh-con-ve" }, NHAN_KET_QUA.CON_VE);
+  // Tài khoản lai Đối tác + Bán hàng trên đơn còn lượt thiếu phí: không chọn được phí (máy chủ 400) nên Còn vé chắc chắn 409 ⇒ khoá nút, câu nhắc ngay trên giải thích; Hết vé, Huỷ vẫn dùng được.
+  const khoaConVe = doiTacXet && thieuPhi.length > 0;
+  nutConVe.disabled = khoaConVe;
+  if (khoaConVe && hangPhi) {
+    hangPhi.id = "cx-phi-nhac";
+    nutConVe.setAttribute("aria-describedby", hangPhi.id);
+  }
   nutConVe.addEventListener("click", async () => {
     // Lượt BẮT BUỘC chưa có giờ: báo tại chỗ, không gọi máy chủ (máy chủ vẫn từ chối 409 `pickup_time_required` nếu ai gửi thẳng).
     let dauTien: HTMLElement | null = null;
@@ -398,7 +411,7 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
     if (gioDon.length > 0) than.gioDon = gioDon;
     if (phiDon.length > 0) than.phiDon = phiDon;
     await guiQuyet(than, "Đã xác nhận đơn: còn vé.");
-    nutConVe.disabled = false;
+    nutConVe.disabled = khoaConVe;
   });
 
   // ---- Hết vé ----
