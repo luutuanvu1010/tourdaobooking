@@ -117,6 +117,8 @@ console.log(`\n▶ Lọc ảnh trên bản sao mới ${daLoc}`);
 git(thuMuc, "clone", "-q", "--bare", "--no-local", saoLuu, daLoc);
 const loc = spawnSync("git", ["filter-repo", "--invert-paths", ...MAU.flatMap((m) => ["--path-glob", m])], { cwd: daLoc, stdio: "inherit" });
 if (loc.status !== 0) dung("git filter-repo báo lỗi — kho đang dùng và GitHub chưa bị đụng.");
+// filter-repo chỉ gỡ remote origin khi có refs/remotes để chuyển; bản --bare không có, nên gỡ tay (trỏ về bản sao lưu, vô dụng).
+thu(daLoc, "remote", "remove", "origin");
 
 // ── 4. Đối chiếu ───────────────────────────────────────────────────────────
 console.log("\n▶ Đối chiếu");
