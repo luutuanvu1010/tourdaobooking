@@ -26,7 +26,7 @@ Chủ phải ngồi chờ 9 phút mỗi lần `npm run day-len`, trả lời câ
 
 ## 3. Không làm lần này
 - Không kiểm riêng phần vừa sửa (chủ đã gạt hôm 6/11).
-- Không xoá ảnh trong `docs/evidence/` (xem câu hỏi 1); không viết lại lịch sử kho.
+- Không viết lại lịch sử kho trong việc này (ảnh trong lịch sử: ADR-0216, một chiều, quyết riêng).
 - Không tự nối `trien-khai` sau `day-len`; chủ vẫn gõ `trien-khai` sau khi thấy «Đã đẩy».
 - Không trả tiền để chạy hơn 20 máy; không viết lại các kịch bản dài (hướng C).
 
@@ -35,7 +35,7 @@ Chủ phải ngồi chờ 9 phút mỗi lần `npm run day-len`, trả lời câ
 - Cần ADR: có, ADR-0215 cho phần B.
 
 ## 5. Câu hỏi cho chủ
-1. **Ảnh bằng chứng (`docs/evidence/`, ~717 MB ảnh, 172 đợt từ 19/9):** khuyến nghị **giữ nguyên**, lượt kiểm chỉ bỏ không tải ảnh. Lý do: xoá khỏi bản mới nhất không làm kho trên GitHub nhỏ đi (lịch sử vẫn giữ, ~1 GB), còn xoá khỏi lịch sử phải đẩy cưỡng bức — điều cấm. Muốn kho thôi phình thì quyết riêng: ảnh mới từ nay lưu ngoài kho.
+1. ~~Ảnh bằng chứng giữ hay bỏ?~~ **Đã chốt 16/11:** bỏ khỏi kho, cả ở máy lẫn trên GitHub (nguyên văn ở ADR-0215 Đ3). **Xong khi:** bản hiện tại không còn tệp `.png`/`.jpg` nào dưới `docs/evidence/`; chụp ảnh mới vào đó thì `git status` không thấy; bản làm việc mới nhẹ hơn ~700 MB. Ảnh trong lịch sử: ADR-0216.
 
 ## 6. Điều AI tự quyết (chủ bác được)
 - Đỏ khi chủ vắng: tự chạy lại phần đỏ đúng một lần rồi dừng, không tự «cho qua».
