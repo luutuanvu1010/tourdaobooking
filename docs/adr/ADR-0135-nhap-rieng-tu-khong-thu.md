@@ -1,6 +1,7 @@
 # ADR-0135 — Đơn nháp chỉ người tạo thấy; nháp không ghi thu, không có QR; bỏ ô Thanh toán trước; hàng chờ nhận chỉ đơn đã xác nhận
 
 - **Trạng thái:** **accepted** — chủ dự án, chat 2026-10-19: *«duyệt lượt 1»* (lượt 1 = ADR-0134 + ADR này, trang ghép `docs/superpowers/specs/2026-10-19-xac-nhan-don/TRANG-GHEP-LUOT-1.md`). Hai câu của lượt chủ đã trả lời trước đó cùng ngày: Q2 *«câu 2- đồng ý»* (Đ2), Q1 chọn *«a»* (đặc tả `docs/superpowers/specs/2026-10-19-xac-nhan-don-design.md` mục 5e, 5f).
+- **Nới bởi:** [ADR-0213](ADR-0213-thao-tac-theo-tu-cach-nguoi-quan-ly-va-thanh-vien-to-chuc-loi-moi.md) (duyệt 2026-11-16) — Đ1–Đ2: một ngoại lệ có tên cho nháp có bên đặt là tổ chức và người lập là thành viên của tổ chức đó; người quản lý có hiệu lực của tổ chức đọc, sửa và gửi được nháp ấy theo chế độ của tổ chức. Nháp cá nhân giữ luật cũ.
 - **Số:** bản đề xuất mang số tạm 0134 (`docs/superpowers/specs/2026-10-19-xac-nhan-don/DE-XUAT-ADR-0135-nhap-rieng-tu-khong-thu.md`); đổi sang **0135** vì số 0133 đã bị nhánh khác giữ ngay trước khi cấp (cả lượt lùi một số). Các mục từ «Bối cảnh» trở xuống giữ nguyên từng chữ của bản chủ duyệt, trừ hai dòng Q1, Q2 ở cuối rút gọn thành câu đã chốt (bản đầy đủ: tệp đề xuất).
 - **Phát hành:** **không phát hành trước ADR-0136** (bước xác nhận) — hệ quả của lựa chọn A ở Q1: nháp riêng tư lên một mình thì Quản trị không mở được nháp sát giờ để Đặt gấp.
 - **Ngày:** 2026-10-19. Mở Đợt 2 của kế hoạch `docs/superpowers/plans/2026-10-19-xac-nhan-don.md`.
