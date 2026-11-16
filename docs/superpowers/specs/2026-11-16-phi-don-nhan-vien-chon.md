@@ -1,6 +1,6 @@
 # Phí đưa đón do nhân viên chọn trên đơn — đặc tả ngắn
 
-- **Ngày:** 2026-11-16. **Trạng thái:** đề xuất, chờ chủ duyệt. **Loại:** việc lớn (tiền); cần ADR mới thay một phần ADR-0147 và ADR-0203.
+- **Ngày:** 2026-11-16. **Trạng thái:** **chủ duyệt 2026-11-16** trong chat, nguyên văn «Duyệt theo khuyến nghị» — cả ba câu ở mục 5 theo khuyến nghị và các điều ở mục 6. **Loại:** việc lớn (tiền); cần ADR mới thay một phần ADR-0147 và ADR-0203.
 - **Lời chủ (16/11, chat):** «nơi đón gõ tay là 1 trường tùy chọn, vì thế không nên lấy nó làm căn cứ để xác định phí vận chuyển, mà nên đặt phí vận chuyển bằng 1 danh sách chọn trước: 5000đ, 10000đ, 15000đ, 20000đ, 30000đ, 50000đ 100000đ, và số khác». Hỏi lại chọn ở đâu, chủ chọn «Nhân viên chọn trên đơn», sau khi được báo cách này trái ADR-0147 (máy tính, nhân viên không sửa số) và Hiến chương 5.4 (P18, đã nói một lần).
 - **Hiện trạng:** Đợt C đã lên production (3.9–3.10): máy tính phí theo khu vực, cấp đại lý, dịch vụ; **chưa bật** (chưa có «ngày bắt đầu áp»), nên chưa khách nào bị tính phí.
 
