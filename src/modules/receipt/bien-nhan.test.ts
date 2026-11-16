@@ -28,11 +28,14 @@ const donBiMat = (): OrderDetailDto => ({
 });
 
 test("NT-B1 (luật): số lạ 480017 ở mọi ô KHÔNG được phép của đơn không lọt vào ReceiptDto; khoá đúng danh sách trắng", () => {
-  const r = dungBienNhan(donBiMat(), COMPANY, { daTra: 300_000, conLai: 700_000 }, null);
+  // Đợt C, Task 5: dòng phí 0 đồng mang số lạ ở mọi ô KHÔNG được phép (id, chặng, dịch vụ, vùng, số người chiều về — DTO dòng phí không còn mã cấp) — chỉ mô tả / số lượng / đơn giá / thành tiền được chép.
+  const r = dungBienNhan({ ...donBiMat(), phiDuaDon: { dong: [{ id: `fee-${LA}`, legId: `leg-${LA}`, serviceId: `svc-${LA}`, direction: "OUT", zoneCode: `Z${LA}`, zoneName: `Vùng ${LA}`, kind: "PER_PAX", returnPax: Number(LA), quantity: 2, unitPrice: 0, lineTotal: 0, description: "Phí đưa đón — chiều đi, Trung tâm" }], thieu: [], duKien: false } }, COMPANY, { daTra: 300_000, conLai: 700_000 }, null);
   assert.equal(coLo(JSON.stringify(r)), false, JSON.stringify(r));
   assert.deepEqual(Object.keys(r).sort(), [
-    "company", "conLai", "createdAt", "customerEmail", "customerName", "customerNote", "customerPhone", "daTra", "discount", "huy", "mau", "orderCode", "phan", "services", "status", "subtotal", "total",
-  ]);
+    "company", "conLai", "createdAt", "customerEmail", "customerName", "customerNote", "customerPhone", "daTra", "discount", "huy", "mau", "orderCode", "phan", "phiDuKien", "phiDuaDon", "services", "status", "subtotal", "total",
+  ]); // Đợt C, Task 5: thêm CÓ CHỦ ĐÍCH khoá `phiDuaDon` (dòng phí đưa đón trên biên nhận — SV-PD-01; bốn trường mỗi dòng, khoá dưới) và cờ `phiDuKien` (phí của đơn nháp).
+  assert.equal(r.phiDuKien, false, "đơn đã xác nhận: phí đã chụp");
+  assert.deepEqual(Object.keys(r.phiDuaDon![0]!).sort(), ["description", "lineTotal", "quantity", "unitPrice"]);
   assert.deepEqual(Object.keys(r.services[0]!).sort(), ["checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "giaKhacCongBo", "items", "name", "pax", "pickupPlace", "pickupTime", "unit"]);
   assert.deepEqual(Object.keys(r.services[0]!.items[0]!).sort(), ["description", "detail", "lineTotal", "quantity", "unitPrice"]);
   assert.deepEqual([r.daTra, r.conLai, r.status.nhan], [300_000, 700_000, "Đã xác nhận"]);

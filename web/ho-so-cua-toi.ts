@@ -8,6 +8,7 @@ import { nhanLoaiPhieu, nhanTrangThaiPhieu } from "../src/shared/tu-khai-hien-th
 import { CAU_CAN_CU_GIU_LAI, LY_DO_TU_CHOI_XOA, PHAN_GIU_LAI, nhanTrangThaiPhieuXoa } from "../src/shared/xoa-an-danh-hien-thi";
 import { vnDateTimeText, vnToday } from "../src/shared/vn-date";
 import { h, replaceChildren } from "./dom";
+import { dauXacMinh } from "./dau-xac-minh";
 
 type Staff = Api.StaffProfile;
 type Du = Api.HoSoCuaToiResponse;
@@ -45,7 +46,7 @@ export async function initHoSoCuaToi(staff: Staff, khung: HTMLElement, baoLoi: (
   khung.hidden = false;
 }
 
-function dong(nhan: string, giaTri: string): HTMLElement {
+function dong(nhan: string, giaTri: string | HTMLElement): HTMLElement {
   return h("div", { class: "hs-dong" }, h("span", { class: "muted" }, nhan), h("span", null, giaTri));
 }
 function khoiHoSo(d: Du): (HTMLElement | null)[] {
@@ -63,6 +64,8 @@ function khoiHoSo(d: Du): (HTMLElement | null)[] {
   }
   return [
     h("h3", null, "Thông tin đang có"),
+    // ADR-0210 Đ3, Đ4: dấu xác minh của chính chủ; bấm dấu tới khối khai thông tin để xác minh ngay dưới (#hs-khai-tieu-de), nơi bổ sung.
+    s.dauXacMinh ? dong("Xác minh", dauXacMinh(s.dauXacMinh, "#hs-khai-tieu-de")!) : null,
     dong("Họ tên", s.hoTen),
     caNhan ? dong("Ngày sinh", s.ngaySinh ? ngayVN(s.ngaySinh) : "Chưa có") : null,
     caNhan ? dong("Địa chỉ", s.diaChi.join("; ") || "Chưa có") : null,
@@ -135,7 +138,7 @@ function formKhai(d: Du, baoLoi: (m: string | null) => void): HTMLElement {
   hien();
   const rong = (v: string) => (v.trim() === "" ? null : v.trim());
   const form = h("form", { id: "hs-form", autocomplete: "off" },
-    h("h3", null, "Khai thông tin để xác minh"), h("label", null, "Bạn muốn khai", loai), oNgay, oDiaChi, oGiay,
+    h("h3", { id: "hs-khai-tieu-de" }, "Khai thông tin để xác minh"), h("label", null, "Bạn muốn khai", loai), oNgay, oDiaChi, oGiay,
     h("button", { class: "btn btn-primary", type: "submit" }, "Gửi xác minh")) as HTMLFormElement;
   form.addEventListener("submit", async (ev) => {
     ev.preventDefault();

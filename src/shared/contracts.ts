@@ -10,6 +10,7 @@ import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
 import type { BanChup } from "./hoa-hong-dong.ts";
+import type { DauXacMinh } from "./dau-xac-minh.ts";
 import type { MaintenanceContent } from "./maintenance.ts";
 import type { KhungGio, LuaChonDon } from "./khung-gio-don.ts";
 import type { QuyTacDuaDon } from "./dua-don-dich-vu.ts";
@@ -308,7 +309,7 @@ export type MaintenanceContentRequest = MaintenanceContent;
  * POST /api/staff/:id/mfa-reset sẽ nhận (ADR-0074 đ5, ADR-0090 đ1 iv). `mfa` (kế hoạch Task 6): `enabled` = có ít nhất một yếu tố sống; `graceUntil` = hạn ân
  * hạn đang lưu (có thể đã qua) khi tài khoản nội bộ chưa bật, null khi đã bật hoặc tài khoản bên ngoài.
  */
-export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean; canResetMfa: boolean; mfa: { enabled: boolean; graceUntil: string | null } }
+export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean; canResetMfa: boolean; /** ADR-0207 Đ7: tài khoản sinh từ phiếu đăng ký đã duyệt, chưa tự đặt PIN (giao diện gọi «Chưa kích hoạt», không phải «Ngưng»). */ chuaKichHoat: boolean; mfa: { enabled: boolean; graceUntil: string | null }; /** ADR-0210: dấu xác minh của hồ sơ gắn tài khoản (máy chủ tính; null = chưa có hồ sơ). */ dauXacMinh: DauXacMinh | null }
 /** `tenVai`: tên HIỆN HÀNH (CSDL) của mọi mã vai tài khoản — giao diện dùng thay ROLES[c].name (Task 3b kế hoạch 2026-10-31). */
 export interface StaffListResponse { staff: StaffListRowDto[]; tenVai: Record<string, string> }
 export interface StaffResponse { staff: StaffAccountDto }
@@ -417,6 +418,36 @@ export interface OrderDto {
   deliveredAt: string | null;
   /** Mốc "Hoàn thành" (Kế toán). */
   completedAt: string | null;
+  /**
+   * Phí đưa đón của đơn (Đợt C, ADR-0147, ADR-0203). null = phí chưa áp (chưa bật / trước ngày bắt đầu áp) và đơn không có dòng phí nào. `dong` đọc từ dòng phí ĐÃ LƯU
+   * trên đơn (đã cộng vào `subtotal`), không từ chặng đang mở. `thieu` chỉ có ở đơn nháp: chặng chưa tính được phí (tính lúc đọc). `duKien` = đơn còn nháp (chữ «dự kiến»).
+   */
+  phiDuaDon: PhiDuaDonCuaDonDto | null;
+}
+
+/** Lý do một chặng chưa tính được phí đưa đón (trùng chữ `ly_do` của sổ vàng golden/phi-dua-don.json; câu báo do Task 4 / giao diện dựng). */
+export type LyDoThieuPhiDonDto = "KHONG_CO_MUC" | "XUNG_DOT" | "DAI_LY_HAI_CAP";
+/** Một dòng phí đưa đón đã lưu trên đơn (một chặng tối đa một dòng). */
+export interface PhiDuaDonDto {
+  id: string;
+  legId: string;
+  serviceId: string;
+  direction: "OUT" | "RETURN";
+  zoneCode: string;
+  zoneName: string;
+  // KHÔNG có mã cấp đại lý (kiểm độc lập Đợt C, Nhỏ 2): DTO này tới mọi người có quyền xem tiền (cả Đối tác, hướng dẫn viên); cấp của đại lý chỉ nằm ở cột chụp `order_item.fee_tier_code`.
+  kind: "PER_PAX" | "PER_TRIP";
+  /** Số người chiều về đã chụp lúc tính (`order_item.fee_return_pax`); null = theo số khách của dịch vụ. Máy chủ dùng để tính lại phí khi «Sửa số khách» (không đọc số người chiều về hiện tại). */
+  returnPax: number | null;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  description: string;
+}
+export interface PhiDuaDonCuaDonDto {
+  dong: PhiDuaDonDto[];
+  thieu: { legId: string; zoneName: string; lyDo: LyDoThieuPhiDonDto }[];
+  duKien: boolean;
 }
 
 export interface OrderDetailDto extends OrderDto {
@@ -1111,6 +1142,8 @@ export interface PartyListItemDto {
   primaryPhone: string | null;
   /** Mã vai trò đang hiệu lực hôm nay (giờ VN). */
   roleCodes: string[];
+  /** ADR-0210: dấu xác minh do MÁY CHỦ tính (giao diện không tự tính). null = khách lẻ, không hiện dấu. Vắng mặt ở các phản hồi không phải danh sách / chi tiết Danh bạ (tra cứu, trùng). Chỉ để biết, không chặn việc gì. */
+  dauXacMinh?: DauXacMinh | null;
 }
 
 export interface PartyDto extends PartyListItemDto {
@@ -1245,7 +1278,7 @@ export type TrangThaiPhieuTuKhai = "CHO_XAC_MINH" | "DA_CHAP_NHAN" | "TU_CHOI" |
 export interface GiayToCuaToiDto { loai: string; soChe: string | null; hetHan: string | null }
 /** Giá trị HIỆN HÀNH (đã có trong hồ sơ). Hồ sơ tổ chức: ngaySinh null, diaChi [], giayTo []. */
 /** `daXoa` (ADR-0126, Review Focus 1): hồ sơ đã ẩn danh hoá theo yêu cầu xoá — ngày sinh null, liên hệ / giấy tờ rỗng; giao diện hiện "Đã xoá", không bao giờ hiện dấu ẩn danh như dữ liệu. */
-export interface HoSoCuaToiDto { loai: "PERSON" | "ORGANIZATION"; hoTen: string; ngaySinh: string | null; diaChi: string[]; dienThoai: string[]; email: string[]; giayTo: GiayToCuaToiDto[]; daXoa: boolean }
+export interface HoSoCuaToiDto { loai: "PERSON" | "ORGANIZATION"; hoTen: string; ngaySinh: string | null; diaChi: string[]; dienThoai: string[]; email: string[]; giayTo: GiayToCuaToiDto[]; daXoa: boolean; dauXacMinh: DauXacMinh | null }
 /** `hanXuLyXoaNgay` / `hanGiuPhienNgay`: số ngày do chính sách quy định (ADR-0126 đ2, đ8); null = chưa có số (không hạn). */
 export interface ChinhSachRiengTuDto { id: string; phienBan: number; mucDich: string; noiDung: string; hieuLucTu: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null }
 export interface PhieuTuKhaiGiayToDto { loai: string; soChe: string | null; ngayCap: string | null; noiCap: string | null; hetHan: string | null }
@@ -2739,6 +2772,13 @@ export interface ReceiptLineDto {
 }
 /** Mẫu in biên nhận do MÁY CHỦ quyết (HD-02-DT): «noi_bo» hay «doi_tac» (đơn của Đối tác — bên đặt là đối tác hoặc người lập là Đối tác thuần). */
 export type MauBienNhan = "noi_bo" | "doi_tac";
+/** Một dòng phí đưa đón trên biên nhận (Đợt C) — xem `ReceiptDto.phiDuaDon`. */
+export interface ReceiptPhiDto {
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
 export interface ReceiptServiceDto {
   name: string;
   /** Đơn vị (để in số khách "2 người lớn" hay "N khách"); "manual" = nhập tay. */
@@ -2768,6 +2808,14 @@ export interface ReceiptDto {
   customerEmail: string | null;
   customerNote: string | null;
   services: ReceiptServiceDto[];
+  /**
+   * Phí đưa đón (Đợt C, Task 5; ADR-0147 Đ3, ADR-0203 ĐB3; sổ vàng SV-PD-01): mỗi dòng phí ĐÃ LƯU trên đơn một dòng (đơn đã sửa số khách: số lượng / thành tiền hiện hành) — kể cả chặng đã
+   * đóng sau xác nhận. Danh sách trắng: mô tả («Phí đưa đón — chiều đi/về, <khu vực>»), số lượng, đơn giá, thành tiền; không mã mức, cấp, vùng. Dòng 0 đồng in chữ «Miễn phí».
+   * Rỗng = đơn không phí (hoặc máy chủ cũ). `subtotal` đã gồm các dòng này.
+   */
+  phiDuaDon?: ReceiptPhiDto[];
+  /** Dòng phí còn là số «dự kiến» (đơn NHÁP — phí chưa chụp, tính lại lúc xác nhận; chủ 15/11 câu 3). Chữ «dự kiến» trên ảnh do Task 6 đặt; máy chủ chỉ báo cờ. Vắng = máy chủ cũ. */
+  phiDuKien?: boolean;
   subtotal: number;
   /** Giảm giá IN TRÊN BIÊN NHẬN = giảm giá hiệu lực (`OrderDto.giamGiaHieuLuc`, ADR-0109 QĐ4); bằng giảm giá đã lưu trừ khi tạm tính hiện hành nhỏ hơn. subtotal − discount = total. */
   discount: number;
@@ -2863,7 +2911,8 @@ export interface QrThanhToanResponse {
  */
 export interface PhieuCongNoDto {
   maDon: string;
-  dong: { ten: string; giaDaiLy: number; thieuMuc: boolean }[];
+  /** `mienPhi` (Đợt C, ADR-0203 ĐB3): dòng phí đưa đón mức 0 đồng — giao diện ghi «Miễn phí» thay số; dòng dịch vụ luôn false. Dòng phí: mỗi chặng một dòng, tên như biên nhận. */
+  dong: { ten: string; giaDaiLy: number; thieuMuc: boolean; mienPhi: boolean }[];
   tong: number;
   daThu: number;
   conLai: number;
@@ -3190,7 +3239,8 @@ export interface MucPhiDonDto { id: string; kieu: "PER_PAX" | "PER_TRIP"; tien: 
   dieuKien: { vung: string; cap: string | null; dichVu: string | null; nhom: string | null; chieu: "OUT" | "RETURN" | null; xeRieng: boolean }; updatedAt: string }
 /** Cảnh báo KHÔNG CHẶN: cấp `cap` đang trả `tienCap` đ, CAO HƠN mức không có cấp `tienKhongCap` đ ở cùng chặng (vùng, chiều, xe riêng, dịch vụ hoặc nhóm). */
 export interface CanhBaoPhiDonDto { cap: string; vung: string; chieu: "OUT" | "RETURN"; xeRieng: boolean; dichVu: string | null; nhom: string | null; tienCap: number; tienKhongCap: number }
-export interface PhiDonResponse { muc: MucPhiDonDto[]; batDauAp: { ngay: string | null; tuLuc: string | null }; canhBao: CanhBaoPhiDonDto[];
+/** `vungThieuMucChung`: vùng đón đang bật chưa có mức chung còn hiệu lực hôm nay (hoặc vào ngày bắt đầu áp, nếu ở tương lai) — màn hiện băng báo, không chặn. */
+export interface PhiDonResponse { muc: MucPhiDonDto[]; vungThieuMucChung: { code: string; name: string }[]; batDauAp: { ngay: string | null; tuLuc: string | null }; canhBao: CanhBaoPhiDonDto[];
   vung: { code: string; name: string }[]; cap: { code: string; name: string }[]; nhom: { code: string; name: string }[]; dichVu: { code: string; name: string; nhom: string | null }[] }
 /** Thân `POST /api/pricing/phi-don`: `thayCho` (tuỳ chọn) = đổi mức — đóng dòng `id` ngày liền trước `validFrom` rồi thêm dòng mới trong một lần ghi; dòng mới phải cùng kiểu tính và cùng bộ điều kiện. `expectedUpdatedAt` = `updatedAt` đã đọc của dòng cũ. */
 export interface PhiDonThayCho { id: string; expectedUpdatedAt: string }
@@ -3243,6 +3293,14 @@ export interface CapHienHanhDto {
   doiDuoc: boolean;
 }
 export interface CapHienHanhResponse { homNay: string; hoSo: CapHienHanhDto[] }
+/**
+ * «Cấp cho đối tác tự đăng ký» (ADR-0209; `GET|POST /api/pricing/cap-mac-dinh`): mỗi loại trong danh sách được hưởng một dòng. `hienHanh` = dòng chính sách đang hiệu lực (null = chưa từng đặt);
+ * `hienHanh.muc` null = «Theo cấp của vai trò». `hienHanh.id` là khoá lạc quan gửi lại ở lệnh đặt (`dangHieuLuc`). `cap` = các cấp đang bật để chọn.
+ */
+export interface CapMacDinhResponse {
+  loai: { code: string; ten: string; dangBat: boolean; hienHanh: { id: string; muc: { code: string; ten: string; dangBat: boolean } | null; tuLuc: string } | null }[];
+  cap: { code: string; ten: string }[];
+}
 /**
  * Một dòng của màn «Cấp độ đại lý» (`GET /api/pricing/cap-dai-ly`, đặc tả 2026-11-04-man-cap-dai-ly): hồ sơ đang mở mang vai trò được hưởng, có hay chưa có tài khoản. `vaiTro` chỉ gồm vai trò được hưởng đang bật.
  * `coTaiKhoan` tính cả tài khoản đã ngưng. Danh sách trắng: không SĐT, email, mã số thuế, địa chỉ. `cap` là nguyên `CapHienHanhDto` của cột ở Quản lý tài khoản.
@@ -3312,9 +3370,10 @@ export interface ChupBuResponse { chup: BanChup[] }
 // ---- Bước xác nhận đơn (ADR-0136, Task 3.3) -----------------------------------------------------------------------------------------------------------
 /**
  * Vì sao đơn phải qua bước xác nhận: có dịch vụ «cần xác nhận» (Đ1) và/hoặc còn chặng đón dưới mốc 6 giờ chưa đặt gấp, và/hoặc (ADR-0154 Đ1.2) đơn của tài khoản Đối tác có lượt đầu của
- * một dịch vụ chọn Đón mà chưa có giờ (`CHOT_GIO` — văn phòng phải ghi giờ ở Còn vé; máy chủ chụp một lần vào yêu cầu, KHÔNG suy từ `tinhCanXacNhan`). Giao diện đổi sang chữ thường, không hiện mã.
+ * một dịch vụ chọn Đón mà chưa có giờ (`CHOT_GIO` — văn phòng phải ghi giờ ở Còn vé; máy chủ chụp một lần vào yêu cầu, KHÔNG suy từ `tinhCanXacNhan`), và/hoặc (Đợt C, Task 4) Gửi đơn
+ * của Đối tác còn chặng chưa tính được phí đưa đón (`PHI_DON` — Quản trị đặt mức trước khi Còn vé; chụp vào yêu cầu như `CHOT_GIO`). Giao diện đổi sang chữ thường, không hiện mã.
  */
-export type LyDoCanXacNhan = "DICH_VU" | "DAT_GAP" | "CHOT_GIO";
+export type LyDoCanXacNhan = "DICH_VU" | "DAT_GAP" | "CHOT_GIO" | "PHI_DON";
 /** Một yêu cầu xác nhận (đang mở). `quaHan` chỉ để CẢNH BÁO (Đ9) — không tự huỷ. */
 export interface YeuCauXacNhanDto {
   id: string;
@@ -3498,3 +3557,30 @@ export interface ChuaCoBanHangResponse { don: TheDonDto[]; soDonChoXacNhanAn: nu
 export interface BanHangChinhSachResponse { phutUuTien: number; tuPhut: number; denPhut: number; mocPhatHanh: string | null; doiDuoc: boolean }
 /** `GET`/`POST /api/kenh-thu-doi-tac` (ADR-0178 Đ1 mục 1): công tắc «Khách của đối tác trả cho Công ty». `congTyThu` = Bật; `tuLuc` = lúc dòng hiện hành có hiệu lực (null = chưa ai đổi, mặc định Bật). `lichSu` mới nhất trước. */
 export interface KenhThuDoiTacDto { congTyThu: boolean; tuLuc: string | null; lichSu: { congTyThu: boolean; tuLuc: string; nguoiDoi: string }[] }
+
+/**
+ * Phiếu đăng ký của CHÍNH người đăng ký (`GET`, `PUT /api/dang-ky/phieu`, `POST …/gui`, `…/rut`; ADR-0206 Đ6). KHÔNG mang số giấy tờ đủ, nơi cấp, số điện thoại, email, khoá kho:
+ * bản khai trước chỉ có số che; điện thoại chỉ «đã khai hay chưa»; tệp chỉ «đã gửi / chưa tải xong» theo ô.
+ */
+export interface PhieuDangKyDto {
+  maPhieu: string;
+  trangThai: "DANG_DIEN" | "CHO_XAC_MINH" | "CAN_BO_SUNG" | "CHO_DUYET" | "DA_DUYET" | "TU_CHOI" | "DA_RUT" | "HET_HAN";
+  nhanTrangThai: string;
+  /** Đúng khi phiếu không sửa, gửi được nữa (chỉ ĐANG ĐIỀN và CẦN BỔ SUNG sửa được). */
+  chiXem: boolean;
+  loai: { ma: string; ten: string } | null;
+  /** Số bản khai đã gửi (0 khi chưa gửi lần nào). */
+  phienBan: number;
+  guiLuc: string | null;
+  hanLuc: string | null;
+  lyDo: { ma: string; cau: string } | null;
+  tep: { o: string; trangThai: "DA_GUI" | "CHUA_TAI_XONG" }[];
+  banKhaiTruoc: {
+    hoTen: string;
+    gioiTinh: string | null;
+    ngaySinh: string | null;
+    diaChi: string | null;
+    daKhaiDienThoai: boolean;
+    giayTo: { loai: string; soChe: string | null; hang: string | null; ngayCap: string | null; hetHan: string | null } | null;
+  } | null;
+}

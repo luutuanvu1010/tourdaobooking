@@ -9,7 +9,7 @@ import { route, type AppModule } from "../../shared/router";
 import { findLocation, insertLocationStatement, listLocationTypes, listLocations, locationTypeExists, updateLocationStatement, type LocationRow } from "./repository";
 import { validateLocationCreate, validateLocationUpdate } from "./rules";
 import { MA_NGOAI_VUNG, kiemThanVungSua, kiemThanVungTao } from "./vung-rules";
-import { findVung, insertVungStatement, listVung, listVungDangBat, updateVungStatement, vungDangBatTonTai, type VungRow } from "./vung-repo";
+import { findVung, insertVungStatement, khuVucCuaDiaDiem, listVung, listVungDangBat, updateVungStatement, vungDangBatTonTai, type VungRow } from "./vung-repo";
 
 const toDto = (r: LocationRow): LocationDto => ({
   id: r.id,
@@ -30,6 +30,14 @@ const vungToDto = (r: VungRow): VungDonDto => ({ code: r.code, name: r.name, sor
 /** Khu vực đón đang bật (sắp theo thứ tự, rồi mã) — hàm công bố cho gốc lắp ráp (ADR-0147 Đ1). Module khác KHÔNG import repository. */
 export function vungDangBat(db: D1Database): Promise<{ code: string; name: string }[]> {
   return listVungDangBat(db);
+}
+
+/**
+ * Khu vực đón của các địa điểm (id địa điểm → mã khu vực; chưa xếp vùng ⇒ NGOAI_VUNG) — hàm công bố cho `orders` làm phẳng chặng tính phí đưa đón (Đợt C; ADR-0147 Đ1).
+ * Tên cột khu vực chỉ nằm trong `locations` (bài «khoá điều kiện chỉ được biết ở pricing» quét `orders`). Id không có trong danh mục: vắng khỏi kết quả.
+ */
+export function khuVucCuaDiaDiemDanhMuc(db: D1Database, ids: readonly string[]): Promise<Map<string, string>> {
+  return khuVucCuaDiaDiem(db, ids);
 }
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy địa điểm.");

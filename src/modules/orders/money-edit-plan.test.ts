@@ -22,6 +22,7 @@ const manualSvc: SubtotalServiceInput = {
 
 const ctx = (over: Partial<Parameters<typeof planMoneyEdit>[0]> = {}): Parameters<typeof planMoneyEdit>[0] => ({
   services: [catalogSvc],
+  phi: [],
   storedPax: new Map([["svc-1", pax(2)]]),
   latestAfter: null,
   body: { reason: "Khách báo thêm 1 người", services: [{ id: "svc-1", pax: pax(3) }] },
@@ -84,7 +85,7 @@ const GIA_DINH: SubtotalServiceInput = {
 const khach = (adult: number, child = 0, senior = 0) => ({ ...ZERO, adult, child, senior });
 const suaGiaDinh = (truoc: ReturnType<typeof khach>, sau: ReturnType<typeof khach>, over: Partial<Parameters<typeof planMoneyEdit>[0]> = {}) =>
   planMoneyEdit({
-    services: [GIA_DINH], storedPax: new Map([["svc-g", truoc]]), latestAfter: null,
+    services: [GIA_DINH], phi: [], storedPax: new Map([["svc-g", truoc]]), latestAfter: null,
     body: { reason: "Khách bớt người", services: [{ id: "svc-g", pax: sau }] },
     ...over,
   });
@@ -132,11 +133,11 @@ test("D3: 'trước' là số HIỆN HÀNH (dòng điều chỉnh gần nhất),
 
 test("phát lại dòng cũ KHÔNG có unitPrices (ghi trước bản vá) → tính theo đơn giá của order_item gốc, không phải giá niêm yết", () => {
   const after = parseAdjustmentAfter(JSON.stringify([{ serviceId: "svc-1", pax: pax(3) }]));
-  assert.equal(effectiveSubtotal([catalogSvc], after), 3 * DEAL);
+  assert.equal(effectiveSubtotal([catalogSvc], [], after), 3 * DEAL);
 });
 
 test("MỘT nguồn đơn giá: unitPrices ghi trong after_json chỉ để truy vết — số đọc lại LUÔN theo order_item gốc, kể cả khi after_json ghi giá khác", () => {
   const after = parseAdjustmentAfter(JSON.stringify([{ serviceId: "svc-1", pax: pax(3), unitPrices: { adult: 1 } }]));
   assert.deepEqual(after, [{ serviceId: "svc-1", pax: pax(3) }], "parseAdjustmentAfter không mang unitPrices ra ngoài");
-  assert.equal(effectiveSubtotal([catalogSvc], after), 3 * DEAL);
+  assert.equal(effectiveSubtotal([catalogSvc], [], after), 3 * DEAL);
 });

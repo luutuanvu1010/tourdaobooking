@@ -620,7 +620,8 @@ export function nhaCungCapCuaDon(phan: PhanChoNguoiThu | null): Map<string, numb
   const out = new Map<string, number>();
   if (!phan || phan.duKien || phan.chuaChup) return out;
   const chupCua = new Map(phan.chup.map((c) => [c.serviceId, c]));
-  for (const p of chiaPhanNguoiBan(phan.dichVu, (d) => nguoiBanCuaDong(chupCua.get(d.id), phan.congTyChuId), (d) => d.thanhTien, phan.giamGiaHieuLuc)) {
+  // Phí đưa đón 0 (Đợt C, Task 5): phí luôn thuộc phần Tour Đảo, không bao giờ vào phần quầy nhà cung cấp ⇒ trần «thu cho» quầy không tăng vì phí.
+  for (const p of chiaPhanNguoiBan(phan.dichVu, (d) => nguoiBanCuaDong(chupCua.get(d.id), phan.congTyChuId), (d) => d.thanhTien, phan.giamGiaHieuLuc, 0)) {
     if (p.nguoiBan !== null) out.set(p.nguoiBan, p.tong);
   }
   return out;

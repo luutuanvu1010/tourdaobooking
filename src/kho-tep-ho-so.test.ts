@@ -44,7 +44,11 @@ test("(3) tải xuống: hỏi ô → ghi nhật ký → MỚI đọc kho; trong
   assert.ok(o !== -1 && nk !== -1 && doc !== -1, "thiếu một trong ba mốc");
   assert.ok(o < nk && nk < doc, `thứ tự sai: can=${o}, nhật ký=${nk}, đọc kho=${doc}`);
   const soLanDoc = TEP.filter((f) => f.p.startsWith("modules/parties/")).reduce((n, f) => n + (f.src.match(/\bkho\.get\(/g)?.length ?? 0), 0);
-  assert.equal(soLanDoc, 1, "đường đọc kho thứ hai trong parties — phải đi qua cùng cổng nhật ký");
+  // Ngoại lệ có tên (ADR-0208 Đ3 + ADR-0207 Đ9): chỗ đọc thứ hai là tep-cho.ts#moTepChoTuKho — tệp CHỜ của phiếu đăng ký; chỉ dang-ky gọi, và route xem tệp của dang-ky cũng ghi nhật ký TRƯỚC khi gọi
+  // (bài src/modules/dang-ky/xac-minh-route.test.ts ca 9b). Chỗ thứ ba trở đi vẫn đỏ.
+  assert.equal(soLanDoc, 2, "đường đọc kho thứ ba trong parties — phải đi qua cổng nhật ký và có tên ở đây");
+  const trongTepCho = TEP.find((f) => f.p === "modules/parties/tep-cho.ts")!.src.match(/\bkho\.get\(/g)?.length ?? 0;
+  assert.equal(trongTepCho, 1, "chỗ đọc thứ hai phải nằm đúng ở tep-cho.ts#moTepChoTuKho");
 });
 
 test("(4) tải lên: chặn Content-Length TRƯỚC khi đọc thân; lô D1 TRƯỚC khi đặt kho; trong parties chỉ MỘT chỗ đặt kho", () => {
@@ -57,15 +61,15 @@ test("(4) tải lên: chặn Content-Length TRƯỚC khi đọc thân; lô D1 TR
 });
 
 // (5) ADR-0126 đ7 (lát H-5): ngoại lệ có tên duy nhất cho khoá kho ngoài `pty/` — bản ngoài D1 của phiếu xoá `xoa/<mã phiếu>.json`, ghi ở ĐÚNG một hàm (chepBanNgoai, kho-tep.ts) và chỉ chứa
-// ba khoá { phieu, hoSo, luc } (mã + thời điểm, không tên / số). Tổng số chỗ ĐẶT vào kho trong parties = 2 (tải ảnh lên + bản ngoài).
-test("(5) khoá kho `xoa/` chỉ xuất hiện trong chepBanNgoai (kho-tep.ts); tổng chỗ đặt vào kho trong parties = 2; nội dung bản ngoài đúng ba khoá", () => {
+// ba khoá { phieu, hoSo, luc } (mã + thời điểm, không tên / số). Tổng số chỗ ĐẶT vào kho trong parties = 3 (tải ảnh lên + bản ngoài + tệp chờ của phiếu đăng ký, ADR-0208, tep-cho.ts#datKhoTepCho).
+test("(5) khoá kho `xoa/` chỉ xuất hiện trong chepBanNgoai (kho-tep.ts); tổng chỗ đặt vào kho trong parties = 3; nội dung bản ngoài đúng ba khoá", () => {
   const coXoa = TEP.filter((f) => /["'`]xoa\//.test(f.src)).map((f) => f.p);
   assert.deepEqual(coXoa, ["modules/parties/kho-tep.ts"]);
   const kho = TEP.find((f) => f.p === "modules/parties/kho-tep.ts")!.src;
   const ham = /export async function chepBanNgoai\b[\s\S]*?\n\}\n/.exec(kho)?.[0] ?? "";
   assert.match(ham, /kho\.put\(`xoa\/\$\{v\.id\}\.json`, JSON\.stringify\(\{ phieu: v\.id, hoSo: v\.partyId, luc: v\.luc \}\)/, "ba khoá, không khoá nào khác");
   const soDat = TEP.filter((f) => f.p.startsWith("modules/parties/")).reduce((n, f) => n + (f.src.match(/\b(?:kho|r2|HO_SO)\.put\(/g)?.length ?? 0), 0);
-  assert.equal(soDat, 2, "chỗ đặt vào kho thứ ba trong parties — phải có tên ở đây");
+  assert.equal(soDat, 3, "chỗ đặt vào kho thứ tư trong parties — phải có tên ở đây");
 });
 
 // (6) ADR-0144: từ khi có kho thứ hai, (4)(5) đếm trong parties — bài này giữ phần "toàn src/" cũ và SIẾT hơn bản cũ (bản cũ chỉ bắt `.put(key` và ba tên biến;

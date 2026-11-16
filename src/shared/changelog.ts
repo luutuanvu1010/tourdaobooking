@@ -17,6 +17,39 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đăng ký đối tác đợt 1 (ADR-0206 … ADR-0210; migration 0170–0172; nhánh claude/account-signup-approval-flow-ee612c, vào main 16/11): production đã ở 3.10 (kiểm 16/11),
+    // nên các dòng của đợt này tách khỏi mục 3.10 sang mục mới 3.11. Công tắc «Nhận đăng ký mới» gieo TẮT; lối «Đăng ký làm đối tác» ở màn Đăng nhập hiện ngay.
+    // SỐ TẠM 3.11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.11",
+    date: "2026-11-16",
+    items: [
+      { kind: "moi", text: "Màn Đăng nhập có lối «Đăng ký làm đối tác». Người ngoài chỉ gửi được phiếu khi Toàn quyền bật «Nhận đăng ký mới»; lúc mới cập nhật công tắc đang tắt." },
+      { kind: "moi", text: "Quản lý tài khoản có hàng chờ phiếu đăng ký: Quản trị xác minh từng mục, Nhân sự bấm «Duyệt mở tài khoản»; hai bước do hai người khác nhau làm." },
+      { kind: "moi", text: "Tài khoản mở từ phiếu ghi «Chưa kích hoạt» cho tới khi chính người đăng ký tự đặt mã PIN; trong công ty không ai đặt hộ được." },
+      { kind: "moi", text: "Danh sách tài khoản hiện dấu «Đã xác minh», «Chưa xác minh» hoặc «Cần xác minh lại» theo hồ sơ của từng người." },
+    ],
+  },
+  {
+    // Sau Phí đưa đón Đợt C (chủ chốt bốn câu chờ 15/11, «ok theo khuyến nghị»): câu báo trần giảm giá nói đúng «tiền dịch vụ».
+    // SỐ TẠM 3.10: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.10",
+    date: "2026-11-15",
+    items: [
+      { kind: "sua", text: "Câu báo khi giảm giá quá mức nay ghi «Giảm giá không được vượt quá tiền dịch vụ.», vì tạm tính trên đơn đã gồm phí đưa đón mà giảm giá không trừ vào phí." },
+    ],
+  },
+  {
+    // Phí đưa đón, Đợt C (ADR-0147 Đ3, ADR-0203 ĐB2–ĐB3; 15/11): migration 0169; phí chỉ chạy khi Quản trị đặt «ngày bắt đầu áp» (Đợt D).
+    // Sổ: docs/superpowers/plans/2026-11-15-phi-don-dot-c-thi-cong-nhat-ky.md. SỐ TẠM 3.9: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.9",
+    date: "2026-11-15",
+    items: [
+      { kind: "moi", text: "Đơn có lượt đưa đón tự có dòng «Phí đưa đón» do máy tính theo bảng phí, kể từ ngày bắt đầu áp Quản trị đặt; đơn nháp ghi «dự kiến», mức 0 đồng in «Miễn phí»." },
+      { kind: "doi", text: "Khu vực đón chưa có mức phí thì văn phòng chưa xác nhận được đơn; đơn Đối tác gửi sẽ chuyển sang chờ xác nhận cho tới khi Quản trị đặt mức." },
+      { kind: "doi", text: "Phí đưa đón được cộng vào công nợ đại lý và biên nhận ở phần của Tour Đảo, không tính hoa hồng và không bị giảm giá của đơn trừ vào." },
+    ],
+  },
+  {
     // Đợt 1 sau kiểm toán 14/11 (chủ: «Làm Đợt 1», «Chặn Đối tác, Thực tập», «Chỉ cảnh báo đỏ»): mã giao dịch cho khoản nộp đại lý (ADR-0204, migration 0166), dời ngày cân lại vé,
     // dòng Sheet hỏng giữ dịch vụ, nháp giá cũ chặn Đối tác / Thực tập (ADR-0205). Sổ: docs/superpowers/plans/2026-11-14-dot-1-sau-kiem-toan-thi-cong-nhat-ky.md.
     // SỐ TẠM 3.8: main có 3.7 (Phí đưa đón); bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.

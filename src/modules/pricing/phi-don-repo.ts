@@ -3,8 +3,8 @@
 // BẤT BIẾN GÁC CỔNG: CSDL KHÔNG có trigger chặn chèn thêm điều kiện vào dòng mức đã có (chèn thêm sẽ đổi nghĩa mức mà không đổi `condition_sig`). Vì vậy câu chèn điều kiện
 // chỉ được dùng trong `cauThemMucPhiDon` — dòng mức và mọi điều kiện của nó đi CÙNG MỘT lô — và không có hàm nào khác xuất câu đó (bài `phi-don-route.test.ts` khoá điều này).
 import { defineSql } from "../../shared/sql-registry.ts";
-import { capCuaHoSoNgay, chuKyDieuKien, type CapCuaHoSo, type DieuKienPhiDon, type KhoaPhiDon, type KieuPhiDon, type MucPhiDon } from "./phi-don-rules.ts";
-import { openRolesOf, partyTiersOf, roleTiersOn } from "./repository.ts";
+import { capCuaHoSoNgay, chuKyDieuKien, tinhPhiDonThuan, type ChangDauVao, type KetQuaPhiDonDon, type CapCuaHoSo, type DieuKienPhiDon, type KhoaPhiDon, type KieuPhiDon, type MucPhiDon } from "./phi-don-rules.ts";
+import { groupsOf, openRolesOf, partyTiersOf, roleTiersOn } from "./repository.ts";
 import { hieuLuc } from "./rules.ts";
 
 export interface DongMucPhiDon { muc: MucPhiDon; ghiChu: string | null; updatedAt: string }
@@ -74,6 +74,7 @@ export interface BangPhiDonChoDon { batDauAp: string | null; muc: MucPhiDon[]; c
 /**
  * Hàm công bố cho Đợt C (gốc lắp ráp / `orders` gọi qua `pricing/index.ts`): ngày bắt đầu áp hiện hành, các mức hiệu lực ngày `ngay` kèm điều kiện, và cấp của hồ sơ bên đặt tại ngày đó
  * (cùng nguồn vai + cấp với `docBangChoChup`, cùng MỘT `capCuaHoSoNgay`). KHÔNG tự kiểm quyền. `bookerPartyId` null ⇒ KHONG_CAP.
+ * Cố ý đọc vai đang mở HÔM NAY (`openRolesOf`): ngày tính phí luôn là hôm nay (ràng buộc của kế hoạch Đợt C), nên không cần vai theo ngày khác.
  */
 export async function docBangPhiDonChoDon(db: D1Database, v: { bookerPartyId: string | null; ngay: string }): Promise<BangPhiDonChoDon> {
   const [ap, dong, vai, gan, ganRieng] = await Promise.all([
@@ -86,4 +87,13 @@ export async function docBangPhiDonChoDon(db: D1Database, v: { bookerPartyId: st
     ganRieng: ganRieng.map((r) => ({ partyId: r.party_id, tierCode: r.tier_code, validFrom: r.valid_from_date, validTo: r.valid_to_date })),
   });
   return { batDauAp: ap?.start_date ?? null, muc: dong.map((d) => d.muc).filter((m) => hieuLuc(m, v.ngay)), cap };
+}
+
+/** Phí đưa đón của MỘT đơn: đọc bảng + cấp bên đặt + nhóm dịch vụ, rồi gọi hàm thuần `tinhPhiDonThuan` (cùng hàm với «Thử tra»). Không ghi gì. */
+export async function tinhPhiDonChoDon(db: D1Database, v: { bookerPartyId: string | null; ngay: string; chang: readonly ChangDauVao[] }): Promise<KetQuaPhiDonDon> {
+  const bang = await docBangPhiDonChoDon(db, { bookerPartyId: v.bookerPartyId, ngay: v.ngay });
+  if (bang.batDauAp === null || v.ngay < bang.batDauAp || v.chang.length === 0) return tinhPhiDonThuan({ bang, nhom: new Map(), ngay: v.ngay, chang: v.chang });
+  const ma = [...new Set(v.chang.map((c) => c.catalogCode).filter((x): x is string => x !== null))];
+  const nhom = ma.length === 0 ? new Map<string, string | null>() : await groupsOf(db, ma);
+  return tinhPhiDonThuan({ bang, nhom, ngay: v.ngay, chang: v.chang });
 }

@@ -64,6 +64,7 @@ const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/van-chuyen/index.ts", exportName: "vanChuyenModule" }, // ADR-0040 D1
   { entry: "./modules/tro-ly/index.ts", exportName: "troLyModule" }, // ADR-0066: trợ lý Hỗ trợ
   { entry: "./modules/ve-dien-tu/index.ts", exportName: "veDienTuModule" }, // ADR-0153 (đề xuất): kho vé điện tử — khung chưa có route; mỗi route mới phải vào SNAPSHOT
+  { entry: "./modules/dang-ky/index.ts", exportName: "dangKyModule" }, // ADR-0206: đăng ký đối tác tự đăng ký; route công khai kiểm cookie đăng ký trong thân (bài src/dang-ky-route-dong.test.ts)
 ];
 
 /** Sắp xếp tất định: theo `path` rồi theo `method` (so sánh chuỗi thường, không qua `localeCompare`). */
@@ -97,6 +98,34 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/account/change-pin", access: "staff" },
   { method: "GET", path: "/api/audit", access: "admin" },
   { method: "GET", path: "/api/auth/config", access: "public" },
+  { method: "GET", path: "/api/dang-ky/cau-hinh", access: "public" }, // ADR-0206 Đ6 (đợt 1 Task 3): công tắc, loại mở, mục bắt buộc, phiên bản chính sách — không cookie, không con số chống lạm dụng
+  { method: "POST", path: "/api/dang-ky/ma", access: "public" }, // ADR-0206 Đ6, Đ8: xin mã gửi email — Turnstile + bộ đếm `dk:`; luôn cùng một câu trả lời
+  { method: "POST", path: "/api/dang-ky/xac-nhan", access: "public" }, // ADR-0206 Đ6: nhập mã — đúng thì CẤP cookie đăng ký (không route nào ở đây đọc nó)
+  { method: "GET", path: "/api/chinh-sach-rieng-tu", access: "public" }, // ADR-0206 Đ6, ADR-0200 Đ3 (module parties): chính sách riêng tư hiệu lực — chỉ phiên bản, ngày hiệu lực, toàn văn
+  { method: "GET", path: "/api/dang-ky/phieu", access: "public" }, // ADR-0206 Đ6 (đợt 1 Task 4): phiếu CỦA CHÍNH người đăng ký — cổng là cookie đăng ký kiểm trong thân route (phiếu lấy từ cookie, không từ đường dẫn)
+  { method: "PUT", path: "/api/dang-ky/phieu", access: "public" }, // lưu nháp (chọn loại đối tác)
+  { method: "POST", path: "/api/dang-ky/phieu/gui", access: "public" }, // gửi / gửi lại: bản khai bất biến
+  { method: "POST", path: "/api/dang-ky/phieu/rut", access: "public" }, // rút phiếu (kèm quyết gỡ tệp chờ, ADR-0208 Đ7)
+  { method: "POST", path: "/api/dang-ky/phieu/dat-pin", access: "public" }, // ADR-0207 Đ7 (đợt 1 Task 9): người được duyệt tự đặt PIN — cookie đăng ký + mã email MỚI kiểm trong thân; KHÔNG cấp td_session
+  { method: "POST", path: "/api/dang-ky/phieu/tep", access: "public" }, // ADR-0208 Đ2: tải tệp vào ô của phiếu — công khai, cổng là cookie đăng ký td_dang_ky kiểm trong thân route (ADR-0206 Đ7)
+  // ADR-0207 Đ9 (đợt 1 Task 6): bước xác minh phiếu đăng ký — cổng accounts; thân hỏi registration.queue.view (hàng chờ) hoặc party.verify + party.view (+ party.verify.attachment cho số, ảnh).
+  { method: "GET", path: "/api/dang-ky/chinh-sach", access: "accounts" }, // registration.policy.write (chỉ Toàn quyền) — ADR-0206 Đ9 chỗ mở, đóng đăng ký (Task 12 vòng sửa 1): công tắc, loại mở
+  { method: "POST", path: "/api/dang-ky/chinh-sach", access: "accounts" }, // registration.policy.write — thêm một dòng dk_policy (chỉ đổi công tắc và loại mở), khoá lạc quan
+  { method: "GET", path: "/api/dang-ky/hang-cho", access: "accounts" },
+  { method: "GET", path: "/api/dang-ky/phieu/:id", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/ket-luan", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/xem-so", access: "accounts" },
+  { method: "GET", path: "/api/dang-ky/phieu/:id/tep/:tid", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/dat", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/bo-sung", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/tu-choi", access: "accounts" },
+  // ADR-0207 Đ4, Đ7, Đ9 (đợt 1 Task 8): bước DUYỆT — thân hỏi account.create (Nhân sự, Toàn quyền); màn duyệt riêng không ảnh, không số giấy tờ
+  { method: "GET", path: "/api/dang-ky/phieu/:id/xem-duyet", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/duyet", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/tu-choi-duyet", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/gui-lai-loi-moi", access: "accounts" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/tra-ve-xac-minh", access: "accounts" }, // account.create — ADR-0207 Đ5 «Trả về xác minh» (rà soát cuối I-3)
+  { method: "POST", path: "/api/dang-ky/phieu/:id/gui-lai-thu", access: "accounts" }, // registration.queue.view ở cổng + ô theo bước trong thân — ADR-0206 Đ13 gửi lại thư báo (rà soát cuối I-1)
   { method: "GET", path: "/api/bang-tin", access: "staff" }, // bắt tay WebSocket Bảng tin (ADR-0022) — mọi tài khoản đăng nhập; nhãn nhận tin tính ở máy chủ bằng can()
   { method: "POST", path: "/api/auth/login", access: "public" },
   { method: "POST", path: "/api/auth/logout", access: "public" },
@@ -268,6 +297,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/pricing/thu-tra", access: "office" }, // partner.commission.view — thử tra, chỉ đọc
   { method: "GET", path: "/api/pricing/cap-dai-ly", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — màn «Cấp độ đại lý» (đặc tả 2026-11-04-man-cap-dai-ly), chỉ đọc: tên, loại hồ sơ, vai trò, có tài khoản hay chưa, cấp; không SĐT, email, MST, địa chỉ
   { method: "GET", path: "/api/pricing/cap-hien-hanh", access: "office" }, // partner.commission.view + không giữ quyền Đối tác — ADR-0155 Đ2.5 cột «Cấp độ đại lý», chỉ đọc (mã hồ sơ, mã + tên cấp, ngày; không tên hồ sơ, không SĐT)
+  { method: "GET", path: "/api/pricing/cap-mac-dinh", access: "office" }, // partner.commission.view + không giữ quyền Đối tác — ADR-0209 «Cấp cho đối tác tự đăng ký», chỉ đọc (mã, tên loại, tên cấp, mốc giờ)
+  { method: "GET", path: "/api/pricing/cap-mac-dinh/se-ap", access: "office" }, // partner.commission.view + không giữ quyền Đối tác — ADR-0209 Đ4 «cấp sẽ áp» cho người xác minh (Task 12), chỉ đọc
+  { method: "POST", path: "/api/pricing/cap-mac-dinh", access: "office" }, // partner.signup_tier.write + không giữ quyền Đối tác — ADR-0209 Đ2 đặt cấp mặc định theo loại (chỉ thêm dòng chính sách, khoá lạc quan)
   { method: "GET", path: "/api/pricing/ho-so/:id/hoa-hong", access: "office" }, // partner.commission.view — YC-0020 khối «Hoa hồng hiện hành» trên hồ sơ, chỉ đọc (mã, tên, số đếm; không tiền)
   { method: "POST", path: "/api/pricing/ho-so/:id/muc-rieng", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0138 gắn mức TA riêng
   { method: "POST", path: "/api/pricing/muc-rieng/:id/ket-thuc", access: "office" }, // partner.commission.write + không giữ quyền Đối tác — ADR-0138 kết thúc mức riêng
@@ -648,7 +680,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 511 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 540 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -815,6 +847,17 @@ test("mức truy cập của 511 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-13 (ADR-0201 Đ1): + GET, PUT /api/catalog/:code/chi-tiet (admin; thân hỏi admin.manage) = 501.
   // 2026-11-13 (ADR-0201 Đ3): + PUT (admin) / GET (office) /api/catalog/:code/anh = 503.
   // ADR-0202 (nội dung màn bảo trì): +1 PUT (admin) /api/maintenance/content = 504.
-  assert.equal(actual.length, 511, "số route thực tế lệch 511 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 511, "SNAPSHOT phải có đúng 511 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // ADR-0208 Đ2 (đăng ký đối tác, đợt 1 Task 5): +1 POST (public) /api/dang-ky/phieu/tep = 505.
+  // ADR-0207 Đ9 (đợt 1 Task 6): + 8 route /api/dang-ky/* (accounts) = 513.
+  // ADR-0206 Đ6 (đợt 1 Task 3): + 4 route công khai (GET /api/dang-ky/cau-hinh, POST /api/dang-ky/ma, POST /api/dang-ky/xac-nhan, GET /api/chinh-sach-rieng-tu) = 513 + 4 = 517.
+  // ADR-0206 Đ6 (đợt 1 Task 4): + 4 route của chính người đăng ký (GET, PUT /api/dang-ky/phieu, POST …/gui, POST …/rut; public) = 517 + 4 = 521.
+  // ADR-0207 Đ4, Đ7, Đ9 (đợt 1 Task 8): + 4 route duyệt (GET …/xem-duyet, POST …/duyet, …/tu-choi-duyet, …/gui-lai-loi-moi; accounts) = 521 + 4 = 525.
+  // ADR-0207 Đ7 (đợt 1 Task 9): + 1 route kích hoạt (POST /api/dang-ky/phieu/dat-pin; public) = 526.
+  // ADR-0209 (đợt 1 Task 11): + 2 route «Cấp cho đối tác tự đăng ký» (GET, POST /api/pricing/cap-mac-dinh; office) = 528.
+  // ADR-0209 Đ4 (đợt 1 Task 12): + 1 GET /api/pricing/cap-mac-dinh/se-ap (office) = 529.
+  // ADR-0206 Đ9 (đợt 1 Task 12 vòng sửa 1): + 2 GET, POST /api/dang-ky/chinh-sach (accounts) = 531.
+  // Gộp main 16/11: ADR-0147 Đ1+Đ2 (Phí đưa đón): + 2 location-zones, + 5 pricing/phi-don (admin) = 538.
+  // Rà soát cuối đợt 1 đăng ký (ADR-0207 Đ5, ADR-0206 Đ13): + 2 POST /api/dang-ky/phieu/:id/{tra-ve-xac-minh, gui-lai-thu} (accounts) = 540.
+  assert.equal(actual.length, 540, "số route thực tế lệch 540 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 540, "SNAPSHOT phải có đúng 540 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -45,3 +45,25 @@ test(`G17 (4): lô updateTrip xấu nhất = công thức (${congThuc} câu) và
   assert.equal(dem.n, congThuc, "số câu lô thật lệch công thức — đổi công thức / trần cùng lúc, có lý do");
   assert.ok(congThuc <= TRAN_CAU_LO_SUA_CHUYEN, `lô xấu nhất ${congThuc} câu vượt trần ${TRAN_CAU_LO_SUA_CHUYEN}`);
 });
+
+// Phí đưa đón (Đợt C, Task 3): đơn NHÁP thêm câu phí vào CÙNG lô — xoá dòng phí cũ + một dòng phí mỗi chặng (kể cả chặng thêm) + tính lại tiền. Câu «thắng» dời xuống sau `truoc`.
+const congThucPhi = 2 + MAX_SERVICES * (MAX_CHANG_MOI_DICH_VU + 1);
+test(`Phí đưa đón: lô updateTrip xấu nhất của đơn nháp có phí = ${congThuc} + ${congThucPhi} câu và ≤ ${TRAN_CAU_LO_SUA_CHUYEN}; câu thắng đọc sau phần phí`, async () => {
+  const trip = { departDate: "2027-03-12", departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
+  const fields = { pickupDate: "2027-03-12", pickupTime: "07:00", pickupLocationId: null, pickupPlace: "Nơi thử", dropoffLocationId: null, dropoffPlace: null };
+  const updates = Array.from({ length: MAX_SERVICES }, (_x, i) => ({ id: `sv-${i}`, trip }));
+  const ops = updates.flatMap((u) => [
+    ...Array.from({ length: MAX_CHANG_MOI_DICH_VU }, (_x, j) => ({ kind: "update" as const, legId: `${u.id}-l${j}`, fields, nhatKy: "Chiều về · Tour thử: ngày đón 2027-03-11 → 2027-03-12" })),
+    { kind: "insert" as const, serviceId: u.id, leg: { id: `${u.id}-moi`, direction: "OUT" as const, ...fields } },
+  ]);
+  const cau = { bind: () => cau };
+  // xoá dòng phí cũ + dòng phí mỗi chặng đã có (trước câu khoá); dòng phí mỗi chặng mới (sau); câu tính lại tiền do `updateTrip` tự nối cuối lô
+  const truoc = [cau, ...Array.from({ length: MAX_SERVICES * MAX_CHANG_MOI_DICH_VU }, () => cau)] as unknown as D1PreparedStatement[];
+  const sau = Array.from({ length: MAX_SERVICES }, () => cau) as unknown as D1PreparedStatement[];
+  let n = -1;
+  // câu đầu của lô (phần phí) "không đổi dòng nào", câu khoá lạc quan ngay sau phần phí "thắng" ⇒ hàm phải đọc thắng ở chỉ số truoc.length
+  const db = { prepare: () => cau, batch: async (s: unknown[]) => ((n = s.length), s.map((_x, i) => ({ meta: { changes: i === truoc.length ? 1 : 0 } }))) } as unknown as D1Database;
+  assert.equal(await updateTrip(db, "don-thu", "nguoi-thu", updates as never, "2027-03-11T00:00:00.000Z", "ngày khởi hành 2027-03-11 → 2027-03-12", ops as never, { truoc, sau, tien: { subtotal: 1, total: 1 } }), true);
+  assert.equal(n, congThuc + congThucPhi);
+  assert.ok(congThuc + congThucPhi <= TRAN_CAU_LO_SUA_CHUYEN, `lô xấu nhất ${congThuc + congThucPhi} câu vượt trần ${TRAN_CAU_LO_SUA_CHUYEN}`);
+});

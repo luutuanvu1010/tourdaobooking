@@ -14,13 +14,14 @@
 // chuyến (nhóm `dieu-xe` + tài xế có dòng lái lúc sự kiện) và gõ cửa tin chuyến (`dayGoCua` với `{ chuyen }`); hộp thông báo đọc dữ kiện qua `ctx.chuyenChoTin`.
 
 import { accountsModule } from "./modules/accounts";
-import { auditModule } from "./modules/audit";
+import { auditModule, auditStatement } from "./modules/audit";
 import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
 import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan, chanKhaiCocLai, daThuCuaDon, kiemTraSau, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi, noCuaBenDat, maDonTraSauDaXacNhan, traSauCuaDon, kenhThuHienTai, coHanMucTraSauMo, cauDongHanMucKhiHetVai } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
+import { cauAnDanhBanKhai, cauChotDuyet, cauDuyetPhieu, chuaKichHoat, dangKyModule, donPhieuDangKyDinhGio, suKienDuyetStatement, taiKhoanChuaKichHoat } from "./modules/dang-ky";
 import { banHangNoi, dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
 import { chinhSachChoNguoi, giaoDienModule } from "./modules/giao-dien";
 import { checkLanGuiConfig, lanGuiNoi } from "./modules/lan-gui";
@@ -28,10 +29,12 @@ import { locationsModule, vungDangBat } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { canBangVeTheoSoKhach, cauChanDuoiSoDaDung, cauChanVeDaDung, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soVeDaDungTheoDichVu, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule, veHangNgoaiDaMoCuaDon } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
-import { hanGiuPhienNgay, partiesModule } from "./modules/parties";
-import { kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
+import {
+  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauDongYTuPhieu, cauGhiGiaTriDaXacMinh, cauGoTepCho, cauMoHoSoDangKy, cauQuanHeGioiThieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule,
+} from "./modules/parties";
+import { capMacDinhChoDuyet, capSeApChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
 import { cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
-import { accountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
+import { accountOfParty, createAccountOnPartyStatements, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
 import { chuyenChoTinTheoId, dongBoChuyenChoDon, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
@@ -41,6 +44,8 @@ import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { can, holdsPartner } from "./shared/permissions";
 import { vnToday } from "./shared/vn-date";
 import { createApp, type AppOptions } from "./shared/router";
+import type { LoDuyetDangKyRa, LoDuyetDangKyVao } from "./shared/dang-ky-duyet";
+import { isRoleCode } from "./shared/roles";
 
 export { BangTin } from "./modules/bangtin/tram";
 
@@ -62,8 +67,73 @@ async function nemNeuLoi(viec: [string, Promise<unknown> | null][]): Promise<voi
   }
 }
 
+/**
+ * LÔ DUYỆT PHIẾU ĐĂNG KÝ (ADR-0207 Đ5; ADR-0206 Đ2; ADR-0209 Đ6; đợt 1 Task 8). Gốc lắp ráp là NƠI DUY NHẤT ghép câu chưa chạy của dang-ky, parties, staff (và pricing — câu 8,
+ * cấp độ đại lý mặc định, Task 11) theo ĐÚNG thứ tự Đ5. Không chạy gì; đọc ĐÚNG MỘT lần: dòng chính sách cấp mặc định đang hiệu lực của vai người duyệt chọn (ADR-0209 Đ3 — để nhật ký
+ * mang mã cấp; câu 8 tự xét lại dòng đó còn hiệu lực cùng mọi điều kiện trigger, nên lần đọc không quyết gì). Mọi giá trị khác route đã đọc trước lô, mọi mã dòng sinh ở đây. Câu 1 (chốt)
+ * làm hỏng CẢ lô khi phiếu không còn hợp lệ; các câu sau không đọc kết quả của nhau (trừ dòng nhật ký / lịch sử `changes() > 0` ngay sau câu nó ghi lại, khuôn chung).
+ */
+async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuyetDangKyRa> {
+  if (!isRoleCode(v.roleCode)) throw new Error("loDuyetDangKy: mã vai không hợp lệ");
+  const partyId = v.hoSo.kieu === "MOI" ? crypto.randomUUID() : v.hoSo.partyId;
+  const docId = v.giayTo ? crypto.randomUUID() : null;
+  const tk = await createAccountOnPartyStatements(db, { partyId, phone: v.loginPhone, roles: [v.roleCode] }, v.approverId, v.at);
+  type MucXacMinh = { id: string; targetKind: "ATTRIBUTE" | "PERSON_DOCUMENT"; targetId: string | null; attributeCode: string | null };
+  const mucXacMinh = v.mucDat.flatMap((m): MucXacMinh[] => {
+    if (m.loai === "ATTRIBUTE") return m.ma === "NGAY_SINH" && !v.birthDate ? [] : [{ id: crypto.randomUUID(), targetKind: "ATTRIBUTE" as const, targetId: null, attributeCode: m.ma }];
+    return docId && v.giayTo?.typeCode === m.ma ? [{ id: crypto.randomUUID(), targetKind: "PERSON_DOCUMENT" as const, targetId: docId, attributeCode: null }] : [];
+  });
+  const base = { actorId: v.approverId, at: v.at };
+  const [capMacDinh, duDoan] = await Promise.all([
+    capMacDinhChoDuyet(db, v.roleCode, v.at),
+    capSeApChoDuyet(db, { roleCode: v.roleCode, partyId: v.hoSo.kieu === "CO_SAN" ? v.hoSo.partyId : null, at: v.at, ngay: v.today }),
+  ]);
+  let viTriCap: number | null = null;
+  const cauCap = capMacDinh ? cauCapMacDinhChoHoSo(db, { partyId, roleCode: v.roleCode, ngayDuyet: v.today, approverId: v.approverId, at: v.at, policyId: capMacDinh.policyId }) : null;
+  const statements: D1PreparedStatement[] = [
+    // 1 — dang-ky: câu chốt (dòng quyết định DUYET).
+    cauChotDuyet(db, { id: crypto.randomUUID(), registrationId: v.registrationId, version: v.version, by: v.approverId, co: v.co, at: v.at }),
+    // 2 — parties: hồ sơ mới (hoặc hồ sơ có sẵn) + vai đối tác (trước câu cấp quyền: LC-1c).
+    ...cauMoHoSoDangKy(db, { ...base, partyId, moi: v.hoSo.kieu === "MOI", name: v.ten, gender: v.gender, roleId: crypto.randomUUID(), roleCode: v.roleCode, today: v.today }),
+    // 3 — staff: tài khoản TẮT + quyền theo vai (biến thể «trên hồ sơ có sẵn»; PIN ngẫu nhiên không trả ra).
+    ...tk.statements,
+    // 4 — parties: giá trị đã xác minh.
+    ...cauGhiGiaTriDaXacMinh(db, {
+      ...base, partyId, birthDate: v.birthDate, today: v.today,
+      lienHe: v.lienHe.map((c) => ({ ...c, id: crypto.randomUUID() })),
+      giayTo: v.giayTo && docId ? { ...v.giayTo, id: docId } : null,
+    }),
+    // 5 — parties: dòng xác minh (người + giờ XÁC MINH).
+    ...cauXacMinhTuPhieu(db, { partyId, muc: mucXacMinh, co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt, tenKhai: v.ten }),
+    // 6 — parties: dòng đồng ý, người tạo = tài khoản mới; câu LUÔN chạy này mang lính gác hồ sơ đích còn dùng, chưa gộp (I1).
+    cauDongYTuPhieu(db, { id: crypto.randomUUID(), partyId, policyId: v.policyId, consentedAt: v.consentedAt, staffId: tk.id }),
+    // 7 — parties: tệp của phiếu thành tệp của hồ sơ (nối dòng giấy tờ); không có dòng giấy tờ thì tệp chờ nhận quyết gỡ.
+    ...(docId
+      ? cauChuyenTepCho(db, { registrationId: v.registrationId, version: v.version, partyId, documentId: docId, approverId: v.approverId, at: v.at })
+      : cauGoTepCho(db, v.registrationId, LY_DO_GO_TEP_CHO.KHONG_THUOC_BAN_KHAI, v.at)),
+    // 8 — pricing: cấp độ đại lý mặc định (ADR-0209 Đ3, Đ6): MỘT cấp riêng cho hồ sơ kết quả, từ ngày duyệt; thiếu điều kiện ⇒ chèn 0 dòng, lô vẫn chạy. Nhật ký mang mã cấp CHỈ khi câu
+    //     liền trước đã chèn (`changes() > 0`), người làm = người duyệt (ghi thay mặt chính sách — Đ4). Loại chưa đặt / «Theo cấp của vai trò» ⇒ không câu nào.
+    ...(capMacDinh && cauCap ? [
+      cauCap,
+      auditStatement(db, { staffId: v.approverId, action: "prc_party_tier_set", at: v.at, targetType: "party", targetId: partyId,
+        detail: `mức riêng ${capMacDinh.tierName} (${capMacDinh.tierCode}) · từ ${v.today} · cấp cho đối tác tự đăng ký, phiếu ${v.registrationId}` }, "changes() > 0"),
+    ] : []),
+    // 9 — parties: quan hệ «Người giới thiệu của».
+    ...(v.referrerPartyId ? [cauQuanHeGioiThieu(db, { ...base, referrerPartyId: v.referrerPartyId, partyId, today: v.today })] : []),
+    // 10 — dang-ky: phiếu ĐÃ DUYỆT + hạn đặt PIN (cùng câu), dòng lịch sử, ẩn danh bản khai (trừ danh tính và email).
+    cauDuyetPhieu(db, { registrationId: v.registrationId, version: v.version, partyId, staffId: tk.id, at: v.at, deadlineAt: v.deadlineAt, by: v.approverId }),
+    suKienDuyetStatement(db, { registrationId: v.registrationId, staffId: v.approverId, command: "DUYET", lyDo: null, at: v.at }),
+    cauAnDanhBanKhai(db, { registrationId: v.registrationId, at: v.at, by: v.approverId }),
+    // 11 — audit: `staff_created` trỏ TÀI KHOẢN MỚI, người làm = người duyệt (ADR-0207 Đ6). Không SĐT, email, số giấy tờ.
+    auditStatement(db, { staffId: v.approverId, action: "staff_created", at: v.at, targetType: "staff", targetId: tk.id,
+      detail: `phiếu đăng ký ${v.registrationId}; vai trò: ${v.roleLabel}; ${v.hoSo.kieu === "MOI" ? "hồ sơ mới" : "dùng hồ sơ có sẵn"}; chưa kích hoạt${v.co ? "; Toàn quyền làm cả hai bước" : ""}` }),
+  ];
+  if (cauCap) viTriCap = statements.indexOf(cauCap);
+  return { partyId, staffId: tk.id, statements, cap: { viTri: viTriCap !== null && viTriCap >= 0 ? viTriCap : null, duDoan, capCau8: capMacDinh ? { code: capMacDinh.tierCode, ten: capMacDinh.tierName } : null } };
+}
+
 const APP_OPTIONS: AppOptions = {
-  modules: [authModule, accountsModule, ordersModule, dispatchModule, billingModule, pricingModule, receiptModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, giaoDienModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule, troLyModule, veDienTuModule],
+  modules: [authModule, accountsModule, ordersModule, dispatchModule, billingModule, pricingModule, receiptModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, giaoDienModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule, troLyModule, veDienTuModule, dangKyModule],
   currentStaff,
   // Cấu hình bắt buộc: khoá phiên (auth) VÀ khoá HMAC của lớp vé (lan-gui, ADR-0094 đ4) — mỗi module kiểm khoá của mình; thiếu một ⇒ mọi API 500.
   checkConfig: (env) => checkAuthConfig(env) ?? checkLanGuiConfig(env),
@@ -194,6 +264,11 @@ const APP_OPTIONS: AppOptions = {
     giaoLoDay: (env, ds) => xepHangDay(env, ds),
     // MỐC TỐI THIỂU (ADR-0049 D2, I25): `orders` không đọc bảng vc_ — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của van-chuyen (TC-26, A12 quét nơi gọi).
     mocToiThieu: (env) => mocToiThieuHienHanh(env.DB),
+    // TÀI KHOẢN CHƯA KÍCH HOẠT (ADR-0207 Đ7): `accounts` không import `dang-ky` — gốc lắp ráp tiêm hàm công bố (khuôn isAssigned).
+    chuaKichHoat: (env, staffId) => chuaKichHoat(env.DB, staffId),
+    taiKhoanChuaKichHoat: (env) => taiKhoanChuaKichHoat(env.DB),
+    // LÔ DUYỆT PHIẾU ĐĂNG KÝ (ADR-0207 Đ5): dang-ky không import pricing — gốc lắp ráp ghép lô (hàm ở trên), route dang-ky chạy.
+    loDuyetDangKy: (env, v) => loDuyetDangKy(env.DB, v),
     // CHÍNH SÁCH GIAO DIỆN (ADR-0194 đợt 1): `orders` không import `giao-dien` — gốc lắp ráp tiêm hàm công bố (khuôn mocToiThieu).
     // KHU VỰC ĐÓN (Task 4, phí đưa đón): `pricing` không import `locations` — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố (khuôn mocToiThieu).
     vungDon: (env) => vungDangBat(env.DB),
@@ -334,10 +409,11 @@ export function taoAppChoKhungThu(ghiDe: Partial<AppOptions["injected"]>): Retur
 
 export default {
   fetch: app.fetch,
-  // Cron Trigger (wrangler.jsonc "triggers.crons"): tự đồng bộ danh mục dịch vụ từ Google Sheet; dọn ảnh vé còn ở hàng chờ xoá (ADR-0156); nhắc hạn trả sau (ADR-0173 Đ3 mục 2).
+  // Cron Trigger (wrangler.jsonc "triggers.crons"): tự đồng bộ danh mục dịch vụ từ Google Sheet; dọn ảnh vé còn ở hàng chờ xoá (ADR-0156); nhắc hạn trả sau (ADR-0173 Đ3 mục 2); dọn phiếu đăng ký (ADR-0208 Đ8).
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(runScheduledSync(env));
     ctx.waitUntil(donHangChoXoaVe(env));
     ctx.waitUntil(nhacHanTraSauAnToan(env));
+    ctx.waitUntil(donPhieuDangKyDinhGio(env)); // ADR-0208 Đ8 (đợt 1 Task 9): tác nhân dọn phiếu đăng ký
   },
 } satisfies ExportedHandler<Env>;

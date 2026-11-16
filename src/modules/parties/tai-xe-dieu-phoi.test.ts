@@ -153,12 +153,26 @@ test("tenLoaiVai (sổ đại lý đợt 1): mã vai → tên tiếng Việt đ�
   assert.equal(ten.get("SUPPLIER"), "Nhà cung cấp");
 });
 
-test("TC-3 parties/index.ts xuất đúng mười ba hàm mới (sdtChinhCuaHoSo — ADR-0139, SĐT người đi kèm cho tài xế công ty; hanGiuPhienNgay — ADR-0126 đ8, gốc lắp ráp tiêm cho sổ phiên;taiXeChoDieuPhoi; hoSoCaNhanKhop — ADR-0068 Đ9; taiKhoanNhanTienHienHanh — ADR-0108 đ2; tenLoaiVai — sổ đại lý đợt 1; hoSoMangNhanDoiTac — ADR-0117 điều 4; loaiVaiChiTiet, kiemTenLoaiDoiTac, maLoaiDoiTac, themLoaiDoiTacStatement, datHoatDongLoaiDoiTacStatement — ADR-0117 điều 1, cho route loại đối tác ở pricing; suaLoaiDoiTacStatement — mã định danh 5.26, sửa loại đối tác) so với trước ADR-0049 — mọi tên khác giữ nguyên (thêm tên = đổi hợp đồng công bố, sửa bài có chủ đích)", () => {
+test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCuaHoSo — ADR-0139, SĐT người đi kèm cho tài xế công ty; hanGiuPhienNgay — ADR-0126 đ8, gốc lắp ráp tiêm cho sổ phiên;taiXeChoDieuPhoi; hoSoCaNhanKhop — ADR-0068 Đ9; taiKhoanNhanTienHienHanh — ADR-0108 đ2; tenLoaiVai — sổ đại lý đợt 1; hoSoMangNhanDoiTac — ADR-0117 điều 4; loaiVaiChiTiet, kiemTenLoaiDoiTac, maLoaiDoiTac, themLoaiDoiTacStatement, datHoatDongLoaiDoiTacStatement — ADR-0117 điều 1, cho route loại đối tác ở pricing; suaLoaiDoiTacStatement — mã định danh 5.26, sửa loại đối tác) so với trước ADR-0049 — mọi tên khác giữ nguyên (thêm tên = đổi hợp đồng công bố, sửa bài có chủ đích)", () => {
   const TRUOC_ADR_0049 = [
     "accountRolesOf", "closeAccountRoleStatement", "composePersonName", "expiringDriverDocuments", "findPartiesByPhone", "newOrganizationStatements", "newPersonStatements",
     "nhaXeDangHopTac", "openAccountRoleStatement", "openRoleCodesByParty", "ownerCompany", "partiesModule", "partySummary", "renamePersonStatements",
     "reopenAccountRoleStatement", "splitPersonName", "validatePersonFullName",
   ];
   assert.deepEqual(Object.keys(parties).sort(), [...TRUOC_ADR_0049, "taiXeChoDieuPhoi", "hoSoCaNhanKhop", "taiKhoanNhanTienHienHanh", "tenLoaiVai", "hoSoMangNhanDoiTac",
-    "loaiVaiChiTiet", "kiemTenLoaiDoiTac", "maLoaiDoiTac", "themLoaiDoiTacStatement", "datHoatDongLoaiDoiTacStatement", "hanGiuPhienNgay", "sdtChinhCuaHoSo", "suaLoaiDoiTacStatement"].sort());
+    "loaiVaiChiTiet", "kiemTenLoaiDoiTac", "maLoaiDoiTac", "themLoaiDoiTacStatement", "datHoatDongLoaiDoiTacStatement", "hanGiuPhienNgay", "sdtChinhCuaHoSo", "suaLoaiDoiTacStatement",
+    // ADR-0208 (tệp chờ của phiếu đăng ký, đợt 1 Task 5): dang-ky chỉ gọi các hàm này, không chạm bảng pty_registration_attachment, không chạm kho HO_SO
+    "LY_DO_GO_TEP_CHO", "cauChuyenTepCho", "cauGoTepCho", "cauTepChoMoi", "datKhoTepCho", "demTepChoCuaPhieu", "timTepChoTrung", "trangThaiTepChoTheoO", "xoaKhoTepChoDaGo",
+    // ADR-0207 (bước xác minh phiếu đăng ký, đợt 1 Task 6): tìm theo số giấy tờ, mục bắt buộc, xem / mở tệp chờ (nhật ký ở dang-ky), gỡ tệp có điều kiện, mặt nạ số
+    "hoSoTheoSoGiayTo", "mucXacMinhBatBuocCaNhan", "tepChoDeXemCuaPhieu", "timTepChoDeXem", "moTepChoTuKho", "khoTepChoSanSang", "cauGoTepChoNeuTruocDoi", "cheSo",
+    // ADR-0206 Đ6 (xin mã, đợt 1 Task 3): dang-ky đọc chính sách riêng tư hiệu lực qua một hàm hẹp (chỉ phiên bản, ngày hiệu lực, toàn văn) — không đọc bảng pty_privacy_policy
+    "chinhSachRiengTuCongKhai",
+    // ADR-0206 Đ6 (route của phiếu, đợt 1 Task 4): luật kiểm HÌNH THỨC của tự khai dùng lại cho bản khai của phiếu đăng ký (hàm thuần) + danh mục giấy tờ cho lần kiểm
+    "danhMucGiayToChoDangKy", "kiemThemGiayTo", "kiemNgaySinh", "validateContact",
+    // ADR-0208 Đ8 (tác nhân dọn phiếu đăng ký, đợt 1 Task 9): quét toàn bảng tệp chờ «chờ xoá» / «tải dở dang» rồi xoá kho — dang-ky không chạm bảng tệp hay kho
+    "donKhoTepCho",
+    // ADR-0207 Đ5 (lô duyệt phiếu đăng ký, đợt 1 Task 8): câu CHƯA CHẠY cho gốc lắp ráp ghép (hồ sơ + vai, giá trị, dòng xác minh, đồng ý, quan hệ giới thiệu) + một kiểm trước lô (CCCD một người)
+    "cauMoHoSoDangKy", "cauGhiGiaTriDaXacMinh", "cauXacMinhTuPhieu", "cauDongYTuPhieu", "cauQuanHeGioiThieu", "canCuocThuocHoSoKhac",
+    // ADR-0210 Đ3 (dấu xác minh, đợt 1 Task 10): `staff` bọc hàm này cho màn Quản lý tài khoản; ba màn của Đ3 là chỗ DUY NHẤT đọc (bài src/dau-xac-minh-chi-de-biet.test.ts canh)
+    "dauXacMinhTheoHoSo"].sort());
 });

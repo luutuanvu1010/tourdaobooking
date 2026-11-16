@@ -1640,6 +1640,12 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .services { margin-bottom: var(--s4); }
 .kv > span:first-child { flex: none; } /* nhãn không bị ép gãy chữ ("Ghi / chú") khi giá trị dài */
 .kv-dat-coc > span:first-child { flex: 1 1 auto; min-width: 0; } /* nhãn «Khách đặt cọc cho đối tác (chờ xác nhận)» dài: nhãn xuống dòng, số tiền giữ nguyên một dòng */
+/* Phí đưa đón Đợt C (trang đơn, thẻ Thanh toán): mục «Phí đưa đón» trên «Tạm tính», ngăn bằng một đường mảnh; nhãn «Chiều đi · <khu vực>» được xuống dòng, số giữ bên phải. */
+.phi-don-tien { padding-bottom: var(--s2); margin-bottom: var(--s2); border-bottom: 1px solid var(--c-line); }
+.phi-don-tieu-de { font-weight: var(--fw-bold); }
+.kv-phi-don > span:first-child { flex: 1 1 auto; min-width: 0; }
+.kv-phi-don > span:last-child { white-space: nowrap; }
+.phi-don-chi-tiet { display: block; font-size: var(--fs-label); }
 .kv-dat-coc > span:last-child { flex: none; white-space: nowrap; }
 .svc-view .svc-facts { margin-top: var(--s3); }
 .kv-warn > span:last-child { font-weight: var(--fw-bold); color: var(--c-sand-text); }
@@ -4754,6 +4760,32 @@ body.trang-chu #topbar button.bar-avatar { padding: 0; margin-right: 0; }
   .form-actions, #order-form .form-actions, .vc-bottom-bar, .vc-form-actions, .chan-dinh { position: static; }
 }
 
+/* ---------- Đăng ký đối tác (ADR-0206 Đ14, ADR-0207, ADR-0208, ADR-0210; đợt 1 Task 12) — chỉ token. Trang công khai /dang-ky (không khung chung), hàng chờ phiếu ở Quản lý tài khoản, dấu xác minh ---------- */
+.login-dang-ky { margin: var(--s4) 0 0; text-align: center; font-size: var(--fs-label); }
+.login-dang-ky a { display: inline-flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--s3); font-weight: var(--fw-semibold); color: var(--c-primary); }
+body.login-bao-tri:not(.login-mo-form) .login-dang-ky { display: none; }
+.dk-dau { display: flex; align-items: center; gap: var(--s3); margin-bottom: var(--s4); }
+.dk-dau h1 { margin: 0; }
+.dk-logo { width: var(--logo-bar); height: var(--logo-bar); border-radius: var(--radius-pill); }
+.dk-buoc, .dk-tom-tat { display: grid; gap: var(--s3); margin-bottom: var(--s4); }
+.dk-buoc h2, .dk-tom-tat p { margin: 0; }
+.dk-o { display: grid; gap: var(--s1); color: var(--c-text); }
+.dk-o .o { margin-top: 0; }
+.dk-goi-y { font-size: var(--fs-label); }
+.dk-hang-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.dk-o-tep { display: grid; gap: var(--s1); padding: var(--s3); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+.dk-tep { display: grid; gap: var(--s3); }
+.dk-ly-do { padding: var(--s2) var(--s3); color: var(--c-sand-text); background: var(--c-sand-soft); border-radius: var(--radius-sm); }
+.dk-chinh-sach { max-height: var(--h-o-nhieu-dong); overflow-y: auto; padding: var(--s3); background: var(--c-surface-alt); border-radius: var(--radius-sm); }
+.dk-hoi { display: grid; gap: var(--s2); padding: var(--s3); background: var(--c-surface-alt); border-radius: var(--radius-sm); }
+.dk-rut-khoi { display: grid; gap: var(--s2); margin-bottom: var(--s4); }
+.dk-ve-dang-nhap { margin-top: var(--s5); text-align: center; }
+.dk-hc-muc { display: grid; gap: var(--s1); padding: var(--s2) 0; border-bottom: 1px solid var(--c-border); }
+.dk-hc-muc:last-child { border-bottom: 0; }
+.dk-hc-cap { padding: var(--s2) var(--s3); background: var(--c-surface-alt); border-radius: var(--radius-sm); }
+.dau-xm { vertical-align: middle; margin-left: var(--s1); }
+.dau-xm svg { width: var(--fs-badge); height: var(--fs-badge); }
+.dk-hang-nut > select.o { width: auto; margin-top: 0; }
 /* Màn «Phí đưa đón» (kế hoạch Phí đưa đón, Đợt B Task 8): chỉ token. */
 .pd-khoi { margin-bottom: var(--s4); }
 .pd-o { display: grid; gap: var(--s1); }

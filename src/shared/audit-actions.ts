@@ -160,6 +160,9 @@ export const AUDIT_ACTIONS = {
   prc_role_tier_closed: { label: "Ngừng áp dụng cấp độ đại lý cho vai trò", group: "ledger" },
   prc_party_tier_set: { label: "Chọn cấp riêng cho đối tác", group: "ledger" },
   prc_party_tier_closed: { label: "Ngừng áp dụng cấp riêng của đối tác", group: "ledger" },
+  // ADR-0209 Đ4: đặt «Cấp cho đối tác tự đăng ký» của một loại (POST /api/pricing/cap-mac-dinh) — `target_type = 'ledger'`, `target_id` = mã loại; `detail` = «tên loại (mã) · cấp cũ → cấp mới»
+  // (tên cấp hoặc «Theo cấp của vai trò»; không dữ liệu cá nhân). Lô duyệt phiếu ghi cấp đã áp qua `prc_party_tier_set` (người làm = người duyệt).
+  prc_signup_tier_set: { label: "Đặt cấp cho đối tác tự đăng ký", group: "ledger" },
   // ADR-0148 Đ1: nút «Sửa» huỷ dòng chưa đơn nào chụp và thay hẳn bằng dòng mới (đi cùng `_added` / `_set` của dòng mới). `detail` = «sửa · dòng <cũ> → <mới> · huỷ dòng cũ» —
   // KHÔNG chép lý do sửa (lý do ở cột `change_reason` của dòng mới). Sửa dòng ĐÃ có đơn chụp đóng dòng cũ ⇒ đi qua `_closed`.
   prc_commission_rule_voided: { label: "Huỷ mức hoa hồng nhập sai (đã thay bằng dòng sửa)", group: "ledger" },
@@ -247,6 +250,25 @@ export const AUDIT_ACTIONS = {
   party_erasure_retried: { label: "Chạy lại việc xoá dữ liệu", group: "system" },
   sessions_anonymized: { label: "Ẩn danh IP và thông tin máy đã đăng xuất", group: "system" }, // ADR-0126 đ8: chỉ số phiên + mốc kết thúc, KHÔNG IP / User-Agent
   self_submission_number_viewed: { label: "Xem đủ số giấy tờ của phiếu tự khai", group: "party" },
+  // ADR-0207 Đ6 (đợt 1 Task 6): xác minh phiếu đăng ký đối tác. target_type 'party' (KHÔNG 'staff' — không chạm tài khoản, view v_aud_cham_tai_khoan), target_id = mã phiếu (DK_…), không phải mã hồ sơ.
+  // `detail` CHỈ mã mục / mã lý do / tên loại giấy tờ — KHÔNG SĐT, email, số giấy tờ, ngày sinh, địa chỉ, khoá kho.
+  registration_item_concluded: { label: "Kết luận một mục của phiếu đăng ký", group: "party" },
+  registration_verified: { label: "Xác minh đạt phiếu đăng ký", group: "party" },
+  registration_supplement_requested: { label: "Yêu cầu bổ sung phiếu đăng ký", group: "party" },
+  registration_rejected: { label: "Từ chối phiếu đăng ký", group: "party" },
+  registration_number_viewed: { label: "Xem đủ số giấy tờ của phiếu đăng ký", group: "party" },
+  registration_file_viewed: { label: "Mở ảnh của phiếu đăng ký", group: "party" },
+  registration_approval_rejected: { label: "Từ chối duyệt phiếu đăng ký", group: "party" },
+  registration_invite_resent: { label: "Gửi lại lời mời đặt PIN", group: "party" },
+  // ADR-0207 Đ5 (rà soát cuối I-3): Nhân sự trả phiếu chờ duyệt về bước xác minh; detail CHỈ mã phiếu. ADR-0206 Đ13 (I-1): gửi lại thư báo chưa gửi được; detail CHỈ mã phiếu + mã loại thư.
+  registration_returned_to_verification: { label: "Trả phiếu đăng ký về xác minh", group: "party" },
+  registration_notice_resent: { label: "Gửi lại thư báo phiếu đăng ký", group: "party" },
+  // ADR-0207 Đ7 (đợt 1 Task 9): người được duyệt tự đặt PIN — do CHÍNH tài khoản mới đứng tên (không dùng staff_reactivated, để không ghi «chạm tài khoản» thay một người quản trị). target = phiếu.
+  registration_activated: { label: "Tự đặt mã PIN, kích hoạt tài khoản", group: "party" },
+  // ADR-0208 Đ8 (đợt 1 Task 9): tác nhân DON_PHIEU_DANG_KY ghi MỘT dòng mỗi lượt có việc; detail CHỈ các số đếm (KHÔNG mã phiếu, KHÔNG khoá kho, KHÔNG email).
+  registration_cleanup_run: { label: "Dọn phiếu đăng ký", group: "party" },
+  // ADR-0206 Đ9 (đợt 1 Task 12 vòng sửa 1): Toàn quyền bật / tắt «Nhận đăng ký mới» và chọn loại mở; detail CHỈ «Bật / Tắt» và mã loại (không dữ liệu cá nhân).
+  registration_policy_set: { label: "Đổi công tắc nhận đăng ký mới", group: "system" },
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
   // ADR-0108 đ2: cài / đổi tài khoản nhận tiền của công ty chủ — target = hồ sơ công ty; `detail` = "cài|đổi tài khoản nhận tiền" (chữ cố định); KHÔNG chép số tài khoản (5.12).
   party_bank_account_changed: { label: "Đổi tài khoản nhận tiền", group: "party" },

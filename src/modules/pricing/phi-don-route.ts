@@ -10,7 +10,7 @@ import { route, type Route } from "../../shared/router";
 import { addDays, ngayDayDu, vnToday } from "../../shared/vn-date";
 import { nhanDong } from "../../shared/so-dai-ly-nhan";
 import { batDauApMoiNhat, cauDatBatDauAp, cauDongMucPhiDon, cauThemMucPhiDon, docMucPhiDonTu, quyTacTheoId, type DongMucPhiDon } from "./phi-don-repo";
-import { canhBaoCapCaoHon, chonMucPhiDon, chuKyDieuKien, kiemThanMucPhiDon, tinhPhiChang, vungThieuDongChung, type ChangTinhPhi, type MucPhiDon } from "./phi-don-rules";
+import { canhBaoCapCaoHon, chonMucPhiDon, chuKyDieuKien, kiemThanMucPhiDon, tinhPhiDonThuan, vungThieuDongChung, type MucPhiDon } from "./phi-don-rules";
 import { groupsOf, rateTiers } from "./repository";
 import { laNgay } from "./rules";
 
@@ -70,8 +70,13 @@ export const phiDonRoutes: Route[] = [
     if (!laNgay(ngay)) return error(400, "invalid_input", "Ngày không hợp lệ.");
     const [dong, ap, b] = await Promise.all([docMucPhiDonTu(env.DB, ngay), batDauApMoiNhat(env.DB), bietMa(env.DB, vungDon)]);
     const nhomDv = await groupsOf(env.DB, [...b.dichVu.values()].filter((s) => s.visible).map((s) => s.code));
+    // Điểm 1: vùng đang bật chưa có dòng chung còn hiệu lực hôm nay, hoặc vào ngày bắt đầu áp nếu ở tương lai (`dong` đọc từ `ngay` hỏi; mốc kiểm đều không sớm hơn hôm nay).
+    const homNay = vnToday(new Date());
+    const mocKiem = [homNay, ...(ap?.start_date != null && ap.start_date > homNay ? [ap.start_date] : [])];
+    const dongKiem = ngay <= homNay ? dong : await docMucPhiDonTu(env.DB, homNay);
+    const thieuMa = new Set(mocKiem.flatMap((m) => vungThieuDongChung({ vung: b.vung.map((x) => x.code), muc: dongKiem.map((d) => d.muc), ngay: m })));
     return json({
-      muc: dong.map(dtoMuc), batDauAp: { ngay: ap?.start_date ?? null, tuLuc: ap?.valid_from_at ?? null }, canhBao: await canhBaoNgay(env.DB, dong, ngay),
+      muc: dong.map(dtoMuc), vungThieuMucChung: b.vung.filter((x) => thieuMa.has(x.code)), batDauAp: { ngay: ap?.start_date ?? null, tuLuc: ap?.valid_from_at ?? null }, canhBao: await canhBaoNgay(env.DB, dong, ngay),
       vung: b.vung, cap: b.cap.filter((c) => c.active === 1).map((c) => ({ code: c.code, name: c.name })), nhom: [...b.nhom].map(([code, name]) => ({ code, name })),
       dichVu: [...b.dichVu.values()].filter((s) => s.visible).map((s) => ({ code: s.code, name: s.name, nhom: nhomDv.get(s.code) ?? null })),
     } satisfies PhiDonResponse);
@@ -121,6 +126,11 @@ export const phiDonRoutes: Route[] = [
             if (thieu.length > 0) return THIEU_CHUNG(vung, thieu);
           }
         }
+      }
+      // Điểm 5: dòng mới kết thúc SỚM hơn dòng cũ (hoặc dòng cũ không có ngày kết thúc mà dòng mới có) ⇒ khoảng sau đó bị bỏ trống. Siết chặt, không đổi tiền của ai.
+      if (v.validTo !== null && (row.valid_to_date === null || v.validTo < row.valid_to_date)) {
+        const tu = ngayDayDu(addDays(v.validTo, 1));
+        return error(409, "transfer_fee_gap", `Mức mới kết thúc ${ngayDayDu(v.validTo)}, sớm hơn mức cũ, nên từ ${tu} ${row.valid_to_date === null ? "trở đi" : `đến ${ngayDayDu(row.valid_to_date)}`} sẽ không còn mức nào. Hãy để trống ngày kết thúc, hoặc đặt cùng ngày kết thúc với mức cũ.`);
       }
       // Dòng cũ đã đóng đúng ngày liền trước thì KHÔNG đóng lại (câu đóng sẽ không đổi gì và nhật ký «kết thúc» sẽ nói dối).
       dongCu = { ketThuc, chuKy: chuKyDieuKien(k), canDong: row.valid_to_date !== ketThuc };
@@ -235,17 +245,28 @@ export const phiDonRoutes: Route[] = [
     if (!dv.has(dichVu)) return SAI("Dịch vụ không có.");
     if (cap !== "" && !tiers.some((t) => t.code === cap)) return SAI("Cấp độ đại lý không có.");
     const nhom = (await groupsOf(env.DB, [dichVu])).get(dichVu) ?? null;
-    const chang: ChangTinhPhi = { zoneCode: vung, direction: chieu, exclusive: xeRieng === "1", catalogCode: dichVu, groupCode: nhom, tierCode: cap === "" ? null : cap };
     const muc = (await docMucPhiDonTu(env.DB, ngay)).map((d) => d.muc);
-    const kq = chonMucPhiDon({ chang, ngay, muc });
     const ap = await batDauApMoiNhat(env.DB);
     const chuaApNgayNay = ap?.start_date == null || ngay < ap.start_date;
-    if (kq.trangThai === "THIEU_MUC") return json({ ketQua: { trangThai: "THIEU_MUC", lyDo: kq.lyDo }, thua: [], chuaApNgayNay } satisfies ThuTraPhiDonResponse);
-    const t = tinhPhiChang({ muc: kq.muc, direction: chieu, soKhachTinhTien: Number(soKhachRaw), paxOverride: soVeRaw ? Number(soVeRaw) : null });
-    if (!t || !Number.isSafeInteger(t.tien)) return SAI("Số khách hoặc số tiền quá lớn để tính.");
+    // Cùng MỘT hàm `tinhPhiDonThuan` với đơn thật (tiêu chí «Thử tra = đơn thật»); Thử tra không xét ngày bắt đầu áp nên đưa mốc sớm nhất, còn «chưa áp» báo riêng ở `chuaApNgayNay`.
+    let kq;
+    try {
+      kq = tinhPhiDonThuan({
+        bang: { batDauAp: TAT_CA, muc, cap: cap === "" ? { loai: "KHONG_CAP" } : { loai: "CO_CAP", tierCode: cap } },
+        nhom: new Map([[dichVu, nhom]]), ngay,
+        chang: [{ legKey: "thu-tra", zoneCode: vung, direction: chieu, exclusive: xeRieng === "1", catalogCode: dichVu, soKhachTinhTien: Number(soKhachRaw), paxOverride: soVeRaw ? Number(soVeRaw) : null }],
+      });
+    } catch (e) { if (e instanceof RangeError) return SAI("Số khách hoặc số tiền quá lớn để tính."); throw e; }
+    if (!kq.apDung) return SAI("Số khách hoặc số tiền quá lớn để tính.");
+    const thieu = kq.thieu[0];
+    if (thieu) return json({ ketQua: { trangThai: "THIEU_MUC", lyDo: thieu.lyDo === "XUNG_DOT" ? "XUNG_DOT" : "KHONG_CO_MUC" }, thua: [], chuaApNgayNay } satisfies ThuTraPhiDonResponse);
+    const d = kq.dong[0];
+    if (!d) return SAI("Số khách hoặc số tiền quá lớn để tính.");
+    // Danh sách dòng thua chỉ để giải thích; chọn mức đã nằm trong hàm của đơn, đây chỉ đọc lại phần «thua vì».
+    const chon = chonMucPhiDon({ chang: { zoneCode: vung, direction: chieu, exclusive: xeRieng === "1", catalogCode: dichVu, groupCode: nhom, tierCode: cap === "" ? null : cap }, ngay, muc });
     return json({
-      ketQua: { trangThai: "CO_MUC", mucId: kq.muc.id, kieu: kq.muc.kind, donGia: t.donGia, soLuong: t.soLuong, tien: t.tien },
-      thua: kq.thua.map((x) => ({ mucId: x.muc.id, tien: x.muc.amount, viSao: x.viSao })),
+      ketQua: { trangThai: "CO_MUC", mucId: d.ruleId, kieu: d.kind, donGia: d.donGia, soLuong: d.soLuong, tien: d.tien },
+      thua: chon.trangThai === "CO_MUC" ? chon.thua.map((x) => ({ mucId: x.muc.id, tien: x.muc.amount, viSao: x.viSao })) : [],
       chuaApNgayNay,
     } satisfies ThuTraPhiDonResponse);
   }),

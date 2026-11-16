@@ -21,7 +21,8 @@
     "lan-gui",
     "pricing",
     "ky-so",
-    "ve-dien-tu"
+    "ve-dien-tu",
+    "dang-ky"
   ],
   "tables": [
     {
@@ -269,7 +270,7 @@
       "module": "orders",
       "kind": "table",
       "legacy": true,
-      "note": "dòng tiền của dịch vụ: line_total = quantity × unit_price (trigger 0007; ở mã MỘT hàm thanhTienDong). 0081 (F-03): đơn hết nháp (đã xác nhận / đã huỷ) không thêm / xoá dòng, không sửa cột tiền (quantity, unit_price, line_total, catalog_price, pax_code, service_id, order_id) — mô tả / chi tiết vẫn sửa được; lúc xác nhận orders.subtotal phải = Σ line_total (kiểm định kỳ R-ORD-15)"
+      "note": "dòng tiền của dịch vụ: line_total = quantity × unit_price (trigger 0007; ở mã MỘT hàm thanhTienDong). 0081 (F-03): đơn hết nháp (đã xác nhận / đã huỷ) không thêm / xoá dòng, không sửa cột tiền (quantity, unit_price, line_total, catalog_price, pax_code, service_id, order_id) — mô tả / chi tiết vẫn sửa được; lúc xác nhận orders.subtotal phải = Σ line_total (kiểm định kỳ R-ORD-15) Phí đưa đón trên đơn (Đợt C, ADR-0147/0203, migration 0169): line_kind SERVICE (mặc định, mọi dòng cũ) hoặc TRANSFER_FEE; dòng phí có transfer_leg_id (mỗi chặng tối đa một dòng phí, chỉ mục duy nhất một phần), fee_rule_id, fee_kind (PER_PAX / PER_TRIP), fee_zone_code, fee_tier_code (trống = không có cấp), fee_return_pax (số người chiều về lúc tính, trống = theo số khách dịch vụ) và KHÔNG có service_id / catalog_code / catalog_price / pax_code; dòng SERVICE thì sáu cột phí đều trống (trigger order_item_line_kind_insert/update). Đơn hết nháp: bảy cột chụp (line_kind và sáu cột phí) không đổi (trigger order_item_fee_frozen_update, SIẾT thêm trên 0081). Kiểm định kỳ R-ORD-PD-1. Không dữ liệu cá nhân."
     },
     {
       "name": "order_money_adjustment",
@@ -290,6 +291,12 @@
       "legacy": true,
       "deprecatedColumns": ["deposit_amount", "deposit_method", "remaining_amount"],
       "note": "payment_term (0139, ADR-0168): hình thức thanh toán PREPAID (mặc định, đơn cũ) hoặc CREDIT (Trả sau), chỉ đổi được khi đơn còn nháp (orders_payment_term_locked); credit_due_date: hạn trả = ngày xác nhận + số ngày đang áp, chụp một lần lúc xác nhận đơn CREDIT, NULL ở đơn PREPAID; cả hai cột nằm trong danh sách khoá sau «Đã giao». declared_deposit (0136, ADR-0159): LỜI KHAI «Khách đặt cọc cho đối tác» (tên ADR-0197; có cả ở đơn Trả sau) của tài khoản Đối tác — chỉ có nghĩa khi đơn còn nháp, không phải khoản thu; xác nhận thì billing sinh khoản thu cùng lô; sau đó đọc từ sổ, không đọc cột. Ba cột cọc KHÔNG DÙNG NỮA — xem ADR-0026 điều 9 (đơn mới ghi 0 / NULL / total để thoả trigger 0007; số đã thu, còn lại lấy từ billing). Cột mốc delivered_at/_by, completed_at/_by từ 0044 (ADR-0024 điều 3) Cột manifest_exempt từ 0133 (ADR-0154 Đ3.1): dấu «miễn danh sách khách» 0/1, chụp một lần lúc lập đơn khi công tắc ẩn thông tin khách BẬT và người lập giữ quyền Đối tác; trigger cấm đổi sau khi chèn; đơn cũ = 0; từ migration 0143 (ADR-0172): credit_due_at (hạn trả, ISO UTC = giờ xác nhận + giờ được nợ) và credit_grace_until (hết ân hạn = hạn trả + giờ ân hạn) là nguồn đúng, credit_due_date chỉ ghi kép (ngày giờ Việt Nam của hạn trả); hai mốc chỉ lùi về sau (orders_credit_due_forward_only) và chỉ lệnh Ân hạn đổi được; từ migration 0144 (ADR-0178 Đ1): company_collects_snapshot = trạng thái công tắc «Khách của đối tác trả cho Công ty» lúc LẬP đơn của tài khoản Đối tác (1 Bật, 0 Tắt; NULL = đơn không do tài khoản Đối tác lập); ghi một lần, trigger orders_company_collects_locked cấm đổi (kể cả NULL sang 0/1), nằm trong danh sách khoá sau «Đã giao»; từ migration 0146 (ADR-0181 Đ1): khoá «Đã giao» (orders_delivered_lock) có thêm ĐÚNG MỘT trường hợp được phép ngoài câu Hoàn thành — đơn Trả sau đã tới bước «Khách đã trả đủ» lùi hạn trả (lệnh Ân hạn khi còn nợ): credit_due_at phải đổi sang mốc khác NULL, chỉ credit_due_at / credit_grace_until / credit_due_date / updated_at được khác, mọi cột còn lại (kể cả completed_at/_by) bằng nhau; orders_credit_due_forward_only vẫn canh"
+    },
+    {
+      "name": "ord_xac_nhan_phi_gac",
+      "module": "orders",
+      "kind": "table",
+      "note": "BẢNG ĐỔ làm chốt lô xác nhận (Đợt C, migration 0169): KHÔNG BAO GIỜ lưu dòng. INSERT (order_id) ném transfer_fee_confirm_lost khi đơn chưa ở 'confirmed' (trigger ord_xac_nhan_phi_gac_chot) và bỏ qua dòng (RAISE IGNORE) khi đã 'confirmed'. Đặt CUỐI lô xác nhận (sau câu chuyển trạng thái và mọi câu gác bằng changes() — câu bị bỏ qua để lại changes() = 0; ruling R8 của Đợt C) trong cùng db.batch để câu không khớp dòng nào thì cả lô hoàn tác. Không dữ liệu cá nhân."
     },
     {
       "name": "ord_transfer_leg",
@@ -324,7 +331,7 @@
       "name": "ord_confirm_request",
       "module": "orders",
       "kind": "table",
-      "note": "yêu cầu xác nhận đơn (ADR-0136 Đ2, migration 0119): đơn draft có một dòng còn mở (decided_at IS NULL) = đang chờ xác nhận; chỉ mục duy nhất một yêu cầu mở mỗi đơn; khép đúng MỘT lần (trigger) rồi đóng băng, không xoá; outcome XAC_NHAN | HUY | RUT_LAI và ticket CON_VE | HET_VE | HUY (NULL khi RUT_LAI) kiểm ở mã (src/shared/xac-nhan-don.ts); deadline_at = hạn 15 phút làm việc trừ 22:00–06:00 giờ VN. Cột pickup_time_required từ 0133 (ADR-0154 Đ1.2): cờ «cần chốt giờ» 0/1, máy chủ chụp một lần lúc Gửi đơn của tài khoản Đối tác khi lượt đầu của một dịch vụ chọn Đón mà chưa có giờ; 1 = Còn vé bắt buộc có giờ; trigger cấm đổi; yêu cầu cũ = 0"
+      "note": "yêu cầu xác nhận đơn (ADR-0136 Đ2, migration 0119): đơn draft có một dòng còn mở (decided_at IS NULL) = đang chờ xác nhận; chỉ mục duy nhất một yêu cầu mở mỗi đơn; khép đúng MỘT lần (trigger) rồi đóng băng, không xoá; outcome XAC_NHAN | HUY | RUT_LAI và ticket CON_VE | HET_VE | HUY (NULL khi RUT_LAI) kiểm ở mã (src/shared/xac-nhan-don.ts); deadline_at = hạn 15 phút làm việc trừ 22:00–06:00 giờ VN. Cột pickup_time_required từ 0133 (ADR-0154 Đ1.2): cờ «cần chốt giờ» 0/1, máy chủ chụp một lần lúc Gửi đơn của tài khoản Đối tác khi lượt đầu của một dịch vụ chọn Đón mà chưa có giờ; 1 = Còn vé bắt buộc có giờ; trigger cấm đổi; yêu cầu cũ = 0 transfer_fee_missing (Đợt C, migration 0169): cờ 0/1 máy chủ chụp một lần lúc Gửi đơn, 1 = có chặng chưa tính được phí đưa đón lúc gửi; mặc định 0 (mọi yêu cầu cũ); không đổi sau khi chèn (trigger ord_confirm_request_transfer_fee_missing_immutable)."
     },
     {
       "name": "ord_service_confirm_flag",
@@ -476,6 +483,18 @@
       "module": "parties",
       "kind": "table",
       "note": "tệp hồ sơ (ảnh / PDF giấy tờ) ở kho R2 riêng HO_SO (ADR-0123; migration 0104): khoá kho ngẫu nhiên, loại theo chữ ký, cỡ, băm SHA-256; KHÔNG tên tệp gốc; không xoá dòng — ba mốc một chiều stored_at / purged_at (+ lý do, băm về rỗng) / r2_deleted_at; 'chờ xoá' = purged_at có, r2_deleted_at rỗng"
+    },
+    {
+      "name": "pty_registration_attachment",
+      "module": "parties",
+      "kind": "table",
+      "note": "tệp chờ của phiếu đăng ký đối tác (ADR-0208 Đ1; migration 0171), kho R2 HO_SO, khoá kho pty/ + 32 hex như pty_attachment để lúc duyệt dùng lại đúng khoá; mã phiếu (registration_id) là chuỗi, không khoá ngoại; slot = ô của tệp trong phiếu. CHỈ-THÊM: không xoá dòng, các mốc stored_at / purged_at / r2_deleted_at / transferred_at đi một chiều; chuyển xong thì băm về rỗng và dòng không bao giờ bị gỡ"
+    },
+    {
+      "name": "pty_verification_requirement",
+      "module": "parties",
+      "kind": "table",
+      "note": "mục bắt buộc để hồ sơ được «Đã xác minh» (ADR-0210 Đ1; migration 0171), CHỈ-THÊM; một bản danh sách = mọi dòng cùng (loại hồ sơ, valid_from_at), bản hiệu lực là bản mới nhất ≤ lúc xét; mã chỉ trong tập đóng (src/shared/dau-xac-minh.ts, trigger item_closed). Gieo cho cá nhân: HO_TEN, NGAY_SINH, CCCD"
     },
     {
       "name": "pty_attachment_link",
@@ -1025,6 +1044,12 @@
       "note": "mức TA gắn RIÊNG cho một hồ sơ đối tác theo ngày (ADR-0138; migration 0118): chỉ thêm, đóng / rút ngắn ngày kết thúc, hoặc huỷ một lần khi chưa đơn nào chụp (ADR-0148, migration 0126 — như prc_role_tier); mỗi hồ sơ tối đa một mức riêng chưa huỷ tại một ngày (prc_party_tier_overlap); hồ sơ phải đang mở vai thuộc loại được hưởng còn bật (prc_target_not_beneficiary, đọc v_pty_open_role), mức phải còn bật (prc_tier_inactive). Có gắn riêng thì `chonMuc` xét mức này ở bậc 10–12 và bỏ qua mức TA của loại"
     },
     {
+      "name": "prc_signup_tier_policy",
+      "module": "pricing",
+      "kind": "table",
+      "note": "«Cấp cho đối tác tự đăng ký» theo từng loại đối tác (ADR-0209 Đ1; migration 0172): CHỈ-THÊM (trigger cấm sửa / xoá); dòng hiệu lực của một loại = valid_from_at lớn nhất ≤ lúc xét (UNIQUE loại + mốc); tier_code NULL = «Theo cấp của vai trò»; lúc đặt cấp phải đang bật (prc_tier_inactive) và loại phải được hưởng còn bật (prc_tier_target). Không gieo dòng. Đặt: Quản lý bán hàng, Quản trị, Toàn quyền (partner.signup_tier.write). Lô duyệt phiếu đăng ký đọc dòng hiệu lực lúc duyệt và chèn MỘT dòng prc_party_tier (câu 8, INSERT … SELECT … WHERE lặp điều kiện trigger — thiếu điều kiện thì bỏ qua); đổi chính sách sau đó không đổi cấp riêng đã ghi"
+    },
+    {
       "name": "prc_commission_rule",
       "module": "pricing",
       "kind": "table",
@@ -1107,6 +1132,60 @@
       "module": "ve-dien-tu",
       "kind": "table",
       "note": "Cài đặt kho vé (ADR-0156 Đ3, 0132): một dòng id = 'default', khuôn gd_setting. `batch_limit` = số vé tối đa mỗi lô, mặc định 50, Toàn quyền đặt qua ô settings.ops; `version` là khoá lạc quan; lịch sử ở audit_log (`ve_doi_tran_lo`)."
+    },
+    {
+      "name": "dk_policy",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "chính sách đăng ký (ADR-0206 Đ3; migration 0170), CHỈ-THÊM, dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét; gieo một dòng ĐÓNG (registration_open = 0). Con số lấy từ PHU-LUC đợt 1; anonymize_days là thời gian giữ dữ liệu cá nhân của người lạ; activation_grace_days (gieo 30, phán quyết điều phối đợt 1 Task 9 — chủ xác nhận sau) là ân hạn SAU hạn đặt PIN: trong khoảng này Nhân sự còn gửi lại lời mời, qua rồi tác nhân dọn phiếu ẩn danh danh tính"
+    },
+    {
+      "name": "dk_registration",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "phiếu đăng ký đối tác (ADR-0206 Đ3, Đ4; 0170): id DK_XXXXXXXX; loại mở PERSON; trạng thái đi theo đồ thị trigger dk_registration_transition (bốn trạng thái kết thúc không đổi). match_*, verified_* là kết luận Danh bạ và người xác minh để trigger dk_decision_guard chỉ đọc dk_*. party_id, staff_id, match_party_id, referrer_party_id (hồ sơ người giới thiệu chọn lúc «đạt», lô duyệt ghi quan hệ REFERRED_BY) là tham chiếu logic, không khoá ngoại"
+    },
+    {
+      "name": "dk_identity",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "danh tính đã chứng minh của phiếu (0170): đợt 1 chỉ EMAIL; chỉ mục duy nhất dk_identity_open_uq: một phiếu đang mở mỗi (provider, subject); is_open do trigger hạ về 0 khi phiếu kết thúc"
+    },
+    {
+      "name": "dk_submission",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "bản khai bất biến (0170): mỗi lần gửi một dòng, version kế tiếp current_version; chỉ cho đặt erased_at một lần (ẩn danh, ADR-0208). Cột soi theo pty_person / pty_contact_point / pty_person_document. Hạng N2/N3 không bao giờ vào nhật ký"
+    },
+    {
+      "name": "dk_item_result",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "kết luận từng mục khi xác minh (0170), CHỈ-THÊM"
+    },
+    {
+      "name": "dk_decision",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "quyết định của phiếu (ADR-0207 Đ5; 0170), CHỈ-THÊM: DUYET và KICH_HOAT, mỗi loại một dòng mỗi phiếu. Trigger dk_decision_guard làm hỏng cả lô nếu sai điều kiện (trạng thái, phiên bản, kết luận Danh bạ, người duyệt ≠ người xác minh trừ cờ Toàn quyền do máy chủ đặt; kích hoạt: đã duyệt, chưa kích hoạt, còn hạn)"
+    },
+    {
+      "name": "dk_event",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "lịch sử lệnh của phiếu (0170), CHỈ-THÊM; actor_kind REGISTRANT | STAFF | AGENT (AGENT: mã tác nhân DON_PHIEU_DANG_KY). Không ghi SĐT, email, số giấy tờ, ngày sinh, địa chỉ. Lệnh dấu KICH_HOAT_LECH không bao giờ nằm lại: trigger dk_event_activation_account làm hỏng lô kích hoạt khi câu đặt PIN khớp 0 dòng (đợt 1 Task 9)"
+    },
+    {
+      "name": "dk_upload_attempt",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "bộ đếm tệp tải lên mỗi giờ mỗi địa chỉ mạng của đăng ký (ADR-0208 Đ2; migration 0171): đếm theo cửa sổ at_ms; dòng ra khỏi cửa sổ một giờ bị tác nhân dọn phiếu xoá (bảng kỹ thuật — ngoại lệ có tên XOA_CUNG_KY_THUAT của R-N1-9, chờ chủ duyệt); ip_key là địa chỉ mạng (N2), không vào nhật ký"
+    },
+    {
+      "name": "dk_email_code",
+      "module": "dang-ky",
+      "kind": "table",
+      "note": "mã gửi email của đăng ký (0170): chỉ lưu bản băm (N4), có hạn, có đếm lần nhập; bảng kỹ thuật, được cập nhật và xoá: tác nhân dọn phiếu xoá dòng đã hết hạn VÀ tạo trước bây giờ − max(hạn mã, 1 giờ) (trần theo giờ của xin mã đếm các dòng đó; ngoại lệ có tên XOA_CUNG_KY_THUAT, chờ chủ duyệt)"
     }
   ],
   "views": [
@@ -1246,6 +1325,52 @@
       "module": "parties",
       "columns": [
         "party_id"
+      ]
+    },
+    {
+      "name": "v_pty_verification_requirement",
+      "module": "parties",
+      "columns": [
+        "subject_kind",
+        "item_kind",
+        "item_code",
+        "valid_from_at"
+      ]
+    },
+    {
+      "name": "v_pty_verification_facts",
+      "module": "parties",
+      "columns": [
+        "party_id",
+        "subject_kind",
+        "item_kind",
+        "item_code",
+        "is_partner",
+        "anonymized",
+        "doc_id",
+        "expiry_date",
+        "last_outcome",
+        "ever_passed"
+      ]
+    },
+    {
+      "name": "v_pty_privacy_current",
+      "module": "parties",
+      "columns": [
+        "id",
+        "version",
+        "purposes",
+        "body",
+        "valid_from_at"
+      ]
+    },
+    {
+      "name": "v_pty_privacy_effective",
+      "module": "parties",
+      "columns": [
+        "id",
+        "version",
+        "valid_from_at"
       ]
     },
     {
@@ -1853,7 +1978,7 @@
     "ord_audit_cutoff": { "code": "N1", "cutoff_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_cancel_reason": { "id": "N1", "order_id": "N1", "reason_code": "N1", "group_code": "N1", "note": "N2", "cancelled_date": "N1", "reclassifies_id": "N1", "legacy": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_manual_service_policy": { "id": "N1", "enabled": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "ord_confirm_request": { "id": "N1", "order_id": "N1", "submitted_at": "N1", "submitted_by": "N1", "deadline_at": "N1", "decided_at": "N1", "decided_by": "N1", "outcome": "N1", "ticket": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "pickup_time_required": "N1" },
+    "ord_confirm_request": { "id": "N1", "order_id": "N1", "submitted_at": "N1", "submitted_by": "N1", "deadline_at": "N1", "decided_at": "N1", "decided_by": "N1", "outcome": "N1", "ticket": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "pickup_time_required": "N1", "transfer_fee_missing": "N1" },
     "ctl_service_detail": { "id": "N1", "code": "N1", "display_name": "N1", "description": "N1", "image_key": "N1", "sheet_name_at": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ctl_service_ticket_source": { "id": "N1", "code": "N1", "source": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ctl_service_ticket_flag": { "id": "N1","scope": "N1", "code": "N1", "has_ticket": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -1865,8 +1990,9 @@
     "ord_passenger": { "id": "N1", "order_id": "N1", "full_name": "N2", "birth_year": "N2", "pax_code": "N1", "previous_id": "N1", "person_key": "N2", "voided_at": "N1", "source": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_service_terms": { "id": "N1", "order_id": "N1", "order_service_id": "N1", "beneficiary_party_id": "N1", "commission_status": "N1", "missing_reason": "N1", "commission_kind": "N1", "commission_rate_bp": "N1", "commission_per_pax": "N1", "commission_rule_id": "N1", "supply_status": "N1", "seller_party_id": "N1", "supplier_party_id": "N1", "cost_rate_bp": "N1", "supply_term_id": "N1", "source": "N1", "reason": "N2", "supersedes_id": "N1", "captured_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_service_terms_pax": { "terms_id": "N1", "adult_amount": "N1", "child_amount": "N1", "senior_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ord_xac_nhan_phi_gac": { "order_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_transfer_leg": { "id": "N1", "order_id": "N1", "order_service_id": "N1", "direction": "N1", "pickup_date": "N1", "pickup_time": "N1", "pickup_location_id": "N1", "pickup_place": "N2", "dropoff_location_id": "N1", "dropoff_place": "N2", "closed_at": "N1", "close_reason_code": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "short_notice_reason": "N1", "short_notice_note": "N2", "short_notice_by": "N1", "short_notice_at": "N1", "short_notice_lead_minutes": "N1", "flight_code": "N1", "pax_override": "N1", "exclusive_vehicle": "N1", "min_vehicle_seats": "N1", "pickup_slot_end": "N1" },
-    "order_item": { "id": "N1", "order_id": "N1", "description": "N1", "detail": "N1", "quantity": "N1", "unit_price": "N1", "line_total": "N1", "sort_order": "N1", "catalog_code": "N1", "service_id": "N1", "catalog_price": "N1", "pax_code": "N1" },
+    "order_item": { "id": "N1", "order_id": "N1", "description": "N1", "detail": "N1", "quantity": "N1", "unit_price": "N1", "line_total": "N1", "sort_order": "N1", "catalog_code": "N1", "service_id": "N1", "catalog_price": "N1", "pax_code": "N1", "line_kind": "N1", "transfer_leg_id": "N1", "fee_rule_id": "N1", "fee_kind": "N1", "fee_zone_code": "N1", "fee_tier_code": "N1", "fee_return_pax": "N1" },
     "order_money_adjustment": { "id": "N1", "order_id": "N1", "seq": "N1", "before_json": "N1", "after_json": "N1", "subtotal_before": "N1", "subtotal_after": "N1" },
     "order_service": { "id": "N1", "order_id": "N1", "sort_order": "N1", "catalog_code": "N1", "name": "N1", "unit": "N1", "pax_adult": "N1", "pax_child": "N1", "pax_senior": "N1", "pax_infant": "N1", "depart_date": "N1", "depart_time": "N1", "pickup_time": "N1", "pickup_place": "N2", "checkin_date": "N1", "checkin_time": "N1", "checkin_place": "N2", "note": "N2", "pickup_choice": "N1" },
     "orders": { "id": "N1", "order_code": "N1", "staff_id": "N1", "status": "N1", "customer_name": "N2", "customer_phone": "N2", "customer_email": "N2", "customer_note": "N2", "subtotal": "N1", "discount": "N1", "total": "N1", "declared_deposit": "N1", "deposit_amount": "N1", "deposit_method": "N1", "remaining_amount": "N1", "payment_note": "N2", "created_at": "N1", "updated_at": "N1", "confirmed_at": "N1", "booker_party_id": "N1", "delivered_at": "N1", "delivered_by": "N1", "completed_at": "N1", "completed_by": "N1", "manifest_exempt": "N1", "sales_invitee_party_id": "N1", "payment_term": "N1", "credit_due_date": "N1", "credit_due_at": "N1", "credit_grace_until": "N1", "company_collects_snapshot": "N1" },
@@ -1881,6 +2007,7 @@
     "prc_entry_limit_policy": { "id": "N1", "max_rate_bp": "N1", "amount_step": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_sales_block": { "id": "N1", "role_type_code": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "attribute_code": "N1", "value_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_role_tier": { "id": "N1", "role_type_code": "N1", "tier_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
+    "prc_signup_tier_policy": { "id": "N1", "role_type_code": "N1", "tier_code": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "prc_party_tier": { "id": "N1", "party_id": "N1", "tier_code": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "voided_at": "N1", "voided_by": "N1", "replaces_id": "N1", "change_reason": "N2" },
     "prc_supply_term": { "id": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "seller_party_id": "N1", "supplier_party_id": "N1", "cost_rate_bp": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_bank": { "code": "N1", "bin": "N1", "short_name": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
@@ -1902,6 +2029,16 @@
       "id": "N1", "party_id": "N1", "storage_key": "N3", "content_kind": "N1", "byte_size": "N1", "content_hash": "N3", "stored_at": "N1",
       "purged_at": "N1", "purge_reason": "N1", "r2_deleted_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
     },
+    "pty_registration_attachment": {
+      "id": "N1", "registration_id": "N1", "slot": "N1", "storage_key": "N3", "content_kind": "N1", "byte_size": "N1", "content_hash": "N3", "stored_at": "N1", "purged_at": "N1",
+      "purge_reason": "N1", "r2_deleted_at": "N1", "transferred_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
+    },
+    "pty_verification_requirement": { "id": "N1", "subject_kind": "N1", "item_kind": "N1", "item_code": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_upload_attempt": { "id": "N1", "ip_key": "N2", "at_ms": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "v_pty_verification_requirement": { "subject_kind": "N1", "item_kind": "N1", "item_code": "N1", "valid_from_at": "N1" },
+    "v_pty_verification_facts": { "party_id": "N1", "subject_kind": "N1", "item_kind": "N1", "item_code": "N1", "is_partner": "N1", "anonymized": "N1", "doc_id": "N1", "expiry_date": "N1", "last_outcome": "N1", "ever_passed": "N1" },
+    "v_pty_privacy_current": { "id": "N1", "version": "N1", "purposes": "N1", "body": "N1", "valid_from_at": "N1" },
+    "v_pty_privacy_effective": { "id": "N1", "version": "N1", "valid_from_at": "N1" },
     "pty_attachment_link": {
       "attachment_id": "N1", "target_kind": "N1", "target_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
     },
@@ -2027,6 +2164,14 @@
     "vdt_setting": { "id": "N1", "batch_limit": "N1", "version": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_ticket": { "id": "N1", "batch_id": "N1", "ticket_code": "N2", "valid_from": "N1", "valid_to": "N1", "slot_time": "N1", "storage_key": "N2", "content_kind": "N1", "byte_size": "N1", "content_hash": "N2", "status": "N1", "stored_at": "N1", "purged_at": "N1", "r2_deleted_at": "N1", "withdrawn_at": "N1", "opened_at": "N1", "opened_by": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "bil_soat_tu_ghi": { "audit_id": "N1", "order_id": "N1", "soat_boi": "N1", "soat_luc": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "v_aud_tu_ghi": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" }
+    "v_aud_tu_ghi": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
+    "dk_policy": { "id": "N1", "registration_open": "N1", "open_role_codes": "N1", "code_digits": "N1", "code_ttl_minutes": "N1", "code_max_attempts": "N1", "ask_per_mailbox": "N1", "ask_per_network": "N1", "ask_window_minutes": "N1", "ask_global_per_hour": "N1", "session_idle_minutes": "N1", "session_max_hours": "N1", "draft_expire_days": "N1", "supplement_expire_days": "N1", "activation_days": "N1", "activation_grace_days": "N1", "photo_max_mb": "N1", "photo_max_count": "N1", "anonymize_days": "N1", "files_per_network_hour": "N1", "phieu_required_items": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_registration": { "id": "N1", "kind": "N1", "status": "N1", "role_code": "N1", "current_version": "N1", "reason_code": "N1", "match_kind": "N1", "match_party_id": "N1", "referrer_party_id": "N1", "verified_by": "N1", "verified_version": "N1", "verified_at": "N1", "party_id": "N1", "staff_id": "N1", "submitted_at": "N1", "decided_at": "N1", "activated_at": "N1", "expires_at": "N1", "activation_deadline_at": "N1", "erased_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_identity": { "id": "N1", "registration_id": "N1", "provider": "N1", "subject": "N2", "contact_email": "N2", "is_open": "N1", "erased_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_submission": { "id": "N1", "registration_id": "N1", "version": "N1", "family_name": "N2", "middle_name": "N2", "given_name": "N2", "gender": "N2", "birth_date": "N2", "address_value": "N2", "phone_value": "N2", "phone_key": "N2", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "license_class_code": "N1", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "referrer_text": "N2", "policy_id": "N1", "consented_at": "N1", "erased_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_item_result": { "id": "N1", "registration_id": "N1", "version": "N1", "item_code": "N1", "result": "N1", "reason_code": "N1", "verified_by": "N1", "verified_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_decision": { "id": "N1", "registration_id": "N1", "kind": "N1", "version": "N1", "decided_by": "N1", "super_admin_flag": "N1", "decided_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_event": { "id": "N1", "registration_id": "N1", "actor_kind": "N1", "actor_ref": "N1", "command": "N1", "reason_code": "N1", "at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "dk_email_code": { "id": "N1", "email_key": "N2", "code_hash": "N4", "expires_at": "N1", "attempts": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" }
   }
 }

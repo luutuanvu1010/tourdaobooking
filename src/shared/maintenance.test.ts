@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  MAINTENANCE_CONTENT_DEFAULT, MAX_MAINTENANCE_MS, checkMaintenanceContent, contentFromStored, checkMaintenanceInput, countdownBoxes, formatCountdown, phoneVnText, isBlocked, maintenanceMessage, maintenanceMessageParts, stateFromRow, type MaintenanceState,
+  MAINTENANCE_CONTENT_DEFAULT, MAX_MAINTENANCE_MS, checkMaintenanceContent, contentFromStored, checkMaintenanceInput, countdownBoxes, formatCountdown, phoneVnText, isBlocked, chanNguoiKhongTaiKhoan, maintenanceMessage, maintenanceMessageParts, stateFromRow, type MaintenanceState,
 } from "./maintenance.ts";
 
 const NOW = Date.parse("2026-09-22T03:00:00.000Z");
@@ -195,4 +195,10 @@ test("contentFromStored: chưa lưu / hỏng / không qua bộ kiểm → mặc 
   assert.deepEqual(contentFromStored("{không phải json"), MAINTENANCE_CONTENT_DEFAULT);
   assert.deepEqual(contentFromStored(JSON.stringify({ ...HOP_LE, zalo: "javascript:x" })), MAINTENANCE_CONTENT_DEFAULT);
   assert.deepEqual(contentFromStored(JSON.stringify({ ...HOP_LE, sdt: "0905123456" })), { ...HOP_LE, sdt: "0905123456" });
+});
+
+test("chanNguoiKhongTaiKhoan (ADR-0206 Đ8): bảo trì BẬT thì chặn người đăng ký chưa có tài khoản; TẮT thì không", () => {
+  assert.equal(chanNguoiKhongTaiKhoan(ON), true);
+  assert.equal(chanNguoiKhongTaiKhoan(OFF), false);
+  assert.equal(chanNguoiKhongTaiKhoan({ on: false, endsAt: null }), false);
 });

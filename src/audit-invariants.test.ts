@@ -3982,6 +3982,49 @@ test("R-ORD-T1 + R-ORD-T1w: đơn trước mốc / trong ân hạn thiếu chụ
   assert.deepEqual(hang.map((r) => Object.values(r)), [["TD-o-sat"]], "T1w liệt kê MÃ ĐƠN (order_code), mỗi đơn một dòng");
 });
 
+test("R-ORD-PD-1: dòng phí đưa đón đúng (chặng cùng đơn, thành tiền = số lượng × đơn giá, theo chuyến thì số lượng 1) → 0; mỗi vế lệch → 1; dòng dịch vụ không xét", () => {
+  const c = one("R-ORD-PD-1");
+  assert.equal(c.level, "fail");
+  const db = build();
+  for (const o of ["o-pd", "o-khac"]) addOrder(db, o);
+  db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult) VALUES ('sv-pd', 'o-pd', 0, 'S1', 'Tour', 'perPax', 2)").run();
+  db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult) VALUES ('sv-khac', 'o-khac', 0, 'S1', 'Tour', 'perPax', 2)").run();
+  const chang = (id: string, order: string, svc: string) =>
+    db.prepare(`INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_place, created_at, updated_at) VALUES (?, ?, ?, 'OUT', '2026-12-10', 'KS A', ?, ?)`).run(id, order, svc, T1, T1);
+  chang("l-pd", "o-pd", "sv-pd");
+  chang("l-khac", "o-khac", "sv-khac");
+  db.prepare(`INSERT INTO prc_transfer_fee_rule (id, kind, amount, valid_from_date, valid_to_date, condition_sig, note, created_at, created_by, updated_at, updated_by)
+    VALUES ('r1', 'PER_PAX', 70000, '2026-12-01', NULL, 'ZONE=CR', NULL, ?, NULL, ?, NULL)`).run(T1, T1);
+  // Dòng dịch vụ thường (không xét): quantity × unit_price khớp, không cột phí.
+  db.prepare("INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total) VALUES ('i-dv', 'o-pd', 'sv-pd', 'Người lớn', 2, 300000, 600000)").run();
+  const phi = (id: string, leg: string, kind: string, qty: number, price: number) =>
+    db.prepare(`INSERT INTO order_item (id, order_id, description, quantity, unit_price, line_total, line_kind, transfer_leg_id, fee_rule_id, fee_kind, fee_zone_code)
+      VALUES (?, 'o-pd', 'Phí đưa đón', ?, ?, ?, 'TRANSFER_FEE', ?, 'r1', ?, 'CR')`).run(id, qty, price, qty * price, leg, kind);
+  phi("f-ok-pax", "l-pd", "PER_PAX", 2, 70000);
+  assert.equal(violations(db, c), 0, "dòng phí đúng ⇒ 0");
+  // Chặng của đơn khác: trigger không chặn (luật do máy chủ giữ) ⇒ kiểm định kỳ bắt.
+  phi("f-sai-don", "l-khac", "PER_PAX", 2, 70000);
+  assert.equal(violations(db, c), 1, "dòng phí trỏ chặng của đơn khác ⇒ 1");
+  db.prepare("DELETE FROM order_item WHERE id = 'f-sai-don'").run();
+  // Mức phí không có thật (cột không có khoá ngoại): lỗi.
+  db.prepare("DELETE FROM order_item WHERE id = 'f-ok-pax'").run(); // mỗi chặng một dòng phí (chỉ mục duy nhất)
+  phi("f-mat-muc", "l-pd", "PER_PAX", 2, 70000);
+  db.prepare("UPDATE order_item SET fee_rule_id = 'khong-co' WHERE id = 'f-mat-muc'").run();
+  assert.equal(violations(db, c), 1, "trỏ mức phí không còn ⇒ 1");
+  db.prepare("DELETE FROM order_item WHERE id = 'f-mat-muc'").run();
+  // Theo chuyến mà số lượng 2: lỗi.
+  db.prepare("DELETE FROM order_item WHERE id = 'f-ok-pax'").run();
+  phi("f-chuyen-2", "l-pd", "PER_TRIP", 2, 100000);
+  assert.equal(violations(db, c), 1, "theo chuyến, số lượng 2 ⇒ 1");
+  db.prepare("DELETE FROM order_item WHERE id = 'f-chuyen-2'").run();
+  phi("f-chuyen-1", "l-pd", "PER_TRIP", 1, 100000);
+  assert.equal(violations(db, c), 0, "theo chuyến, số lượng 1 ⇒ 0");
+  // Thành tiền lệch (gỡ trigger 0007 để dựng ca, như các bài khác): lỗi.
+  db.exec("DROP TRIGGER order_item_money_update");
+  db.prepare("UPDATE order_item SET line_total = 1 WHERE id = 'f-chuyen-1'").run();
+  assert.equal(violations(db, c), 1, "thành tiền khác số lượng × đơn giá ⇒ 1");
+});
+
 test("R-ORD-T1 + R-ORD-T1w: chỉ đơn ĐÃ XÁC NHẬN; T1w bỏ đơn đã Đã giao; mốc xác nhận thiếu lấy ngày tạo (như R-ORD-15); hai bản hiện hành hoặc thiếu hẳn đều là lỗi, bản MANUAL thay AUTO vẫn đúng một", () => {
   const t1 = one("R-ORD-T1");
   const w = one("R-ORD-T1w");
@@ -4769,4 +4812,195 @@ test("R-PRC-PD-1/2: dữ liệu sạch → 0; chữ ký lệch dòng con, thiế
   assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 3], "có EXCLUSIVE mà PER_PAX");
   muc("PER_PAX", "SERVICE=S1|SERVICE_GROUP=G1|ZONE=CR", [["ZONE", "CR"], ["SERVICE", "S1"], ["SERVICE_GROUP", "G1"]]);
   assert.deepEqual([violations(db, c1), violations(db, c2)], [1, 4], "vừa SERVICE vừa SERVICE_GROUP");
+});
+
+// ---- R-PRC-PD-3 (Đợt C, Task 2): khu vực bật chưa có mức chung khi phí đã bật → cảnh báo ----
+test("R-PRC-PD-3: phí chưa bật → 0; đã bật mà thiếu dòng chung → 1 vùng/vi phạm; thêm dòng chung (chỉ ZONE, đi chung) → 0; dòng có thêm điều kiện không tính", () => {
+  const c = one("R-PRC-PD-3");
+  assert.equal(c.level, "warn");
+  const db = build();
+  const vung = Number(db.prepare("SELECT count(*) AS n FROM loc_zone WHERE active = 1").get()!.n);
+  assert.ok(vung >= 1, "CSDL dựng sẵn có ít nhất vùng Ngoài khu vực");
+  assert.equal(violations(db, c), 0, "chưa có ngày bắt đầu áp");
+  db.prepare("INSERT INTO prc_transfer_fee_start (id, start_date, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('s1', '2026-01-01', '2026-01-01T00:00:00.000Z', ?, NULL, ?, NULL)").run(T1, T1);
+  assert.equal(violations(db, c), vung, "phí đã bật mà chưa có mức nào");
+  const muc = (id: string, dks: [string, string][]) => {
+    db.prepare("INSERT INTO prc_transfer_fee_rule (id, kind, amount, valid_from_date, valid_to_date, condition_sig, note, created_at, created_by, updated_at, updated_by) VALUES (?, 'PER_PAX', 1000, '2026-01-01', NULL, ?, NULL, ?, NULL, ?, NULL)").run(id, dks.map(([k, v]) => `${k}=${v}`).sort().join("|"), T1, T1);
+    for (const [k, v] of dks) db.prepare("INSERT INTO prc_transfer_fee_condition (rule_id, key_code, value, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, NULL, ?, NULL)").run(id, k, v, T1, T1);
+  };
+  const ma = String(db.prepare("SELECT code FROM loc_zone WHERE active = 1 ORDER BY code LIMIT 1").get()!.code);
+  muc("pd-a", [["ZONE", ma], ["TIER", "C1"]]);
+  assert.equal(violations(db, c), vung, "dòng có cấp không phải dòng chung");
+  muc("pd-b", [["ZONE", ma]]);
+  assert.equal(violations(db, c), vung - 1, "vùng đã có dòng chung");
+});
+
+// ---- Đăng ký đối tác (ADR-0206 … ADR-0208; migration 0170, 0171; đợt 1 Task 13): R-DK-1 … R-DK-5 — lưới THỨ HAI sau trigger và câu tự canh của các lô ----
+// Dữ liệu dựng bằng đúng các bước trigger cho phép (đồ thị trạng thái, khuôn ẩn danh); ca vi phạm là SQL «chạy tay» mà trigger không chặn.
+const DK_AT = "2026-11-16T01:00:00.000Z";
+const DK_AT2 = "2026-11-16T02:00:00.000Z";
+let dkSo = 0;
+/** Phiếu đăng ký đi tới `trangThai` qua đúng đồ thị; ĐÃ DUYỆT thì gắn tài khoản Đối tác `staffId` (đã dựng sẵn) và hồ sơ của nó, bản khai ẩn danh như lô duyệt. */
+function dkPhieu(db: DatabaseSync, trangThai: string, o: { staffId?: string; partyId?: string; anDanhBanKhai?: boolean } = {}): string {
+  const id = `DK_${"ABCDEFGHIJKLMNOPQRSTUVWXYZ".slice(dkSo % 18, (dkSo % 18) + 8)}`;
+  dkSo++;
+  if (!db.prepare("SELECT 1 FROM pty_privacy_policy WHERE id = 'dk-pol'").get()) {
+    db.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('dk-pol', 1, 'thử', 'thử', ?, ?, 'x', ?, 'x')").run(DK_AT, DK_AT, DK_AT);
+  }
+  db.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', 'TRAVEL_AGENCY', ?, ?)").run(id, DK_AT, DK_AT);
+  db.prepare("INSERT INTO dk_identity (id, registration_id, provider, subject, contact_email, created_at, updated_at) VALUES (?, ?, 'EMAIL', ?, ?, ?, ?)").run(`dki-${id}`, id, `${id.toLowerCase()}@example.com`, "lh@example.com", DK_AT, DK_AT);
+  if (trangThai === "DANG_DIEN") return id;
+  db.prepare(`INSERT INTO dk_submission (id, registration_id, version, given_name, phone_value, phone_key, document_type_code, document_number, number_key, policy_id, consented_at, created_at, updated_at)
+    VALUES (?, ?, 1, 'Thử', '0912000000', '0912000000', 'CCCD', '079000000999', '079000000999', 'dk-pol', ?, ?, ?)`).run(`dks-${id}`, id, DK_AT, DK_AT, DK_AT);
+  db.prepare("UPDATE dk_registration SET current_version = 1, submitted_at = ? WHERE id = ?").run(DK_AT, id);
+  db.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(id);
+  if (["TU_CHOI", "DA_RUT", "HET_HAN"].includes(trangThai)) {
+    db.prepare("UPDATE dk_registration SET status = ?, decided_at = ? WHERE id = ?").run(trangThai, DK_AT2, id);
+    return id;
+  }
+  if (trangThai === "CHO_XAC_MINH") return id;
+  db.prepare("UPDATE dk_registration SET status = 'CHO_DUYET' WHERE id = ?").run(id);
+  if (trangThai === "CHO_DUYET") return id;
+  db.prepare("UPDATE dk_registration SET status = 'DA_DUYET', staff_id = ?, party_id = ?, decided_at = ?, activation_deadline_at = ? WHERE id = ?")
+    .run(o.staffId ?? null, o.partyId ?? null, DK_AT2, "2026-11-23T02:00:00.000Z", id);
+  if (o.anDanhBanKhai !== false) dkAnDanhBanKhai(db, id);
+  return id;
+}
+/** Khuôn của câu `dang-ky:submission_erase_on_approve` (trigger dk_submission_erase_shape đòi đúng dấu). */
+const dkAnDanhBanKhai = (db: DatabaseSync, id: string) =>
+  db.prepare(`UPDATE dk_submission SET erased_at = ?2, given_name = '(đã ẩn)', family_name = NULL, middle_name = NULL, gender = NULL, birth_date = NULL, address_value = NULL,
+    phone_value = NULL, phone_key = NULL, issued_place = NULL, referrer_text = NULL,
+    document_number = CASE WHEN document_number IS NULL THEN NULL ELSE 'XOA' || upper(replace(id, '-', '')) END,
+    number_key = CASE WHEN number_key IS NULL THEN NULL ELSE 'XOA' || upper(replace(id, '-', '')) END, updated_at = ?2
+    WHERE registration_id = ?1 AND erased_at IS NULL`).run(id, DK_AT2);
+/** Khuôn của câu `dang-ky:identity_erase`. */
+const dkAnDanhDanhTinh = (db: DatabaseSync, id: string) =>
+  db.prepare("UPDATE dk_identity SET erased_at = ?2, subject = 'XOA' || upper(replace(id, '-', '')), contact_email = NULL, is_open = 0, updated_at = ?2 WHERE registration_id = ?1 AND erased_at IS NULL").run(id, DK_AT2);
+/** Tài khoản Đối tác TẮT (chưa kích hoạt) trên hồ sơ mang vai Công ty lữ hành — hình dạng lô duyệt tạo. */
+function dkTaiKhoan(db: DatabaseSync, id: string, o: { vai?: string[]; quyen?: string[]; active?: 0 | 1 } = {}): { staffId: string; partyId: string } {
+  guardSeed(db, id, o.vai ?? ["TRAVEL_AGENCY"], o.quyen ?? ["PARTNER"]);
+  db.prepare("UPDATE staff SET active = ? WHERE id = ?").run(o.active ?? 0, id);
+  return { staffId: id, partyId: `p-${id}` };
+}
+const dkKhoa = (n: number) => `pty/${n.toString(16).padStart(32, "0")}`;
+const BAM = "a".repeat(64);
+/** Tệp chờ của phiếu, đã lưu kho. */
+function dkTep(db: DatabaseSync, id: string, phieu: string, n: number): void {
+  db.prepare("INSERT INTO pty_registration_attachment (id, registration_id, slot, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at) VALUES (?, ?, 'CCCD_MAT_TRUOC', ?, 'png', 100, ?, ?, 'dki', ?)")
+    .run(id, phieu, dkKhoa(n), BAM, DK_AT, DK_AT);
+  db.prepare("UPDATE pty_registration_attachment SET stored_at = ?, updated_at = ? WHERE id = ?").run(DK_AT, DK_AT, id);
+}
+const dkGoTep = (db: DatabaseSync, id: string) =>
+  db.prepare("UPDATE pty_registration_attachment SET purged_at = ?, purge_reason = 'PHIEU_KET_THUC', content_hash = NULL, updated_at = ? WHERE id = ?").run(DK_AT2, DK_AT2, id);
+/** Lô duyệt (ADR-0208 Đ5): dòng tệp của hồ sơ DÙNG LẠI mã và khoá kho, rồi đánh dấu đã chuyển. */
+function dkChuyenTep(db: DatabaseSync, id: string, party: string, o: { chenHoSo?: boolean; danhDau?: boolean } = {}): void {
+  if (o.chenHoSo !== false) {
+    db.prepare(`INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at)
+      SELECT id, ?, storage_key, content_kind, byte_size, content_hash, stored_at, ?, 'duyet', ? FROM pty_registration_attachment WHERE id = ?`).run(party, DK_AT2, DK_AT2, id);
+  }
+  if (o.danhDau !== false) db.prepare("UPDATE pty_registration_attachment SET transferred_at = ?, content_hash = NULL, updated_at = ? WHERE id = ?").run(DK_AT2, DK_AT2, id);
+}
+
+test("R-DK-1 (ADR-0207 Đ5): phiếu Đã duyệt có tài khoản thật → 0; Đã duyệt thiếu tài khoản, trỏ tài khoản không có, phiếu chưa duyệt mang tài khoản → vi phạm", () => {
+  const c = one("R-DK-1");
+  assert.equal(c.level, "fail");
+  const db = schemaWithoutGuards();
+  const tk = dkTaiKhoan(db, "dk11");
+  dkPhieu(db, "DA_DUYET", tk);
+  dkPhieu(db, "CHO_DUYET");
+  dkPhieu(db, "TU_CHOI");
+  assert.equal(violations(db, c), 0, "dữ liệu sạch");
+  dkPhieu(db, "DA_DUYET", { partyId: tk.partyId });
+  assert.equal(violations(db, c), 1, "Đã duyệt mà thiếu tài khoản");
+  dkPhieu(db, "DA_DUYET", { staffId: "khong-co", partyId: tk.partyId });
+  assert.equal(violations(db, c), 2, "tài khoản không có thật");
+  const cho = dkPhieu(db, "CHO_DUYET");
+  db.prepare("UPDATE dk_registration SET staff_id = ? WHERE id = ?").run(tk.staffId, cho);
+  assert.equal(violations(db, c), 3, "phiếu chưa duyệt mang tài khoản");
+});
+
+test("R-DK-2 (ADR-0208 Đ5, Đ7): phiếu kết thúc chỉ còn tệp đã gỡ / đã chuyển → 0; phiếu đang điền giữ tệp sống → 0; phiếu kết thúc còn tệp sống → vi phạm (đếm phiếu)", () => {
+  const c = one("R-DK-2");
+  assert.equal(c.level, "fail");
+  const db = schemaWithoutGuards();
+  const tk = dkTaiKhoan(db, "dk21");
+  const dien = dkPhieu(db, "DANG_DIEN");
+  dkTep(db, "t-dien", dien, 1);
+  const rut = dkPhieu(db, "DA_RUT");
+  dkTep(db, "t-rut", rut, 2);
+  dkGoTep(db, "t-rut");
+  const duyet = dkPhieu(db, "DA_DUYET", tk);
+  dkTep(db, "t-duyet", duyet, 3);
+  dkChuyenTep(db, "t-duyet", tk.partyId);
+  assert.equal(violations(db, c), 0, "dữ liệu sạch");
+  const tuChoi = dkPhieu(db, "TU_CHOI");
+  dkTep(db, "t-tc-1", tuChoi, 4);
+  dkTep(db, "t-tc-2", tuChoi, 5);
+  assert.equal(violations(db, c), 1, "phiếu Từ chối còn hai tệp sống = MỘT vi phạm");
+  dkTep(db, "t-duyet-2", duyet, 6);
+  assert.equal(violations(db, c), 2, "phiếu Đã duyệt còn tệp chưa chuyển, chưa gỡ");
+});
+
+test("R-DK-3 (ADR-0208 Đ5): khoá kho một chủ → 0; tệp chờ chưa chuyển mà hồ sơ đã có cùng khoá, tệp đã chuyển mà không có dòng hồ sơ → vi phạm", () => {
+  const c = one("R-DK-3");
+  assert.equal(c.level, "fail");
+  const db = schemaWithoutGuards();
+  const tk = dkTaiKhoan(db, "dk31");
+  const duyet = dkPhieu(db, "DA_DUYET", tk);
+  dkTep(db, "t31-a", duyet, 11);
+  dkChuyenTep(db, "t31-a", tk.partyId);
+  const dien = dkPhieu(db, "DANG_DIEN");
+  dkTep(db, "t31-b", dien, 12);
+  assert.equal(violations(db, c), 0, "dữ liệu sạch");
+  dkTep(db, "t31-c", duyet, 13);
+  dkChuyenTep(db, "t31-c", tk.partyId, { danhDau: false });
+  assert.equal(violations(db, c), 1, "hai nơi cùng giữ một khoá");
+  dkTep(db, "t31-d", duyet, 14);
+  dkChuyenTep(db, "t31-d", tk.partyId, { chenHoSo: false });
+  assert.equal(violations(db, c), 2, "đã chuyển mà mất dòng tệp của hồ sơ");
+});
+
+test("R-DK-4 (ADR-0207 Đ4, Đ5): tài khoản Đối tác thuần trên đúng hồ sơ mang vai đối tác → 0; khác hồ sơ, (chưa kích hoạt) thêm quyền nội bộ, thiếu quyền đối tác, hồ sơ mất vai → vi phạm; đã kích hoạt rồi thôi vai → 0", () => {
+  const c = one("R-DK-4");
+  assert.equal(c.level, "fail");
+  const db = schemaWithoutGuards();
+  dkPhieu(db, "DA_DUYET", dkTaiKhoan(db, "dk41"));
+  dkPhieu(db, "DA_DUYET", dkTaiKhoan(db, "dk42", { vai: ["DRIVER_EXTERNAL"], quyen: ["DRIVER_PARTNER"] }));
+  // Đã kích hoạt rồi thôi làm đối tác (vai đóng, tài khoản ngưng): vòng đời sau kích hoạt thuộc R-LC-*, không đếm ở đây.
+  const sau = dkTaiKhoan(db, "dk43", { active: 1 });
+  const pSau = dkPhieu(db, "DA_DUYET", sau);
+  db.prepare("UPDATE dk_registration SET activated_at = ? WHERE id = ?").run(DK_AT2, pSau);
+  db.prepare("UPDATE pty_party_role SET valid_to_date = '2026-11-16' WHERE party_id = ?").run(sau.partyId);
+  db.prepare("UPDATE staff SET active = 0 WHERE id = ?").run(sau.staffId);
+  assert.equal(violations(db, c), 0, "dữ liệu sạch");
+  const lech = dkTaiKhoan(db, "dk44");
+  dkPhieu(db, "DA_DUYET", { staffId: lech.staffId, partyId: dkTaiKhoan(db, "dk45").partyId });
+  assert.equal(violations(db, c), 1, "tài khoản gắn hồ sơ khác hồ sơ của phiếu");
+  dkPhieu(db, "DA_DUYET", dkTaiKhoan(db, "dk46", { quyen: ["PARTNER", "SALES"] }));
+  assert.equal(violations(db, c), 2, "chưa kích hoạt mà giữ quyền nội bộ");
+  dkPhieu(db, "DA_DUYET", dkTaiKhoan(db, "dk47", { quyen: [] }));
+  assert.equal(violations(db, c), 3, "chưa kích hoạt mà không có quyền đối tác nào");
+  dkPhieu(db, "DA_DUYET", dkTaiKhoan(db, "dk48", { vai: [] }));
+  assert.equal(violations(db, c), 4, "chưa kích hoạt mà hồ sơ không mang vai đối tác");
+});
+
+test("R-DK-5 (ADR-0207 Đ5, Đ7; ADR-0208 Đ6 — Task 9 M7): Đã duyệt có bản khai ẩn danh, đã kích hoạt có danh tính ẩn danh → 0; mốc ẩn danh của phiếu trên phiếu Đã duyệt, bản khai còn, danh tính còn sau kích hoạt → vi phạm", () => {
+  const c = one("R-DK-5");
+  assert.equal(c.level, "fail");
+  const db = schemaWithoutGuards();
+  dkPhieu(db, "DA_DUYET", dkTaiKhoan(db, "dk51"));
+  const kh = dkPhieu(db, "DA_DUYET", dkTaiKhoan(db, "dk52", { active: 1 }));
+  db.prepare("UPDATE dk_registration SET activated_at = ? WHERE id = ?").run(DK_AT2, kh);
+  dkAnDanhDanhTinh(db, kh);
+  const tc = dkPhieu(db, "TU_CHOI");
+  db.prepare("UPDATE dk_registration SET erased_at = ? WHERE id = ?").run(DK_AT2, tc);
+  assert.equal(violations(db, c), 0, "dữ liệu sạch (mốc ẩn danh của phiếu chỉ ở phiếu kết thúc không duyệt)");
+  dkPhieu(db, "DA_DUYET", { ...dkTaiKhoan(db, "dk53"), anDanhBanKhai: false });
+  assert.equal(violations(db, c), 1, "Đã duyệt còn bản khai chưa ẩn danh");
+  const kh2 = dkPhieu(db, "DA_DUYET", dkTaiKhoan(db, "dk54", { active: 1 }));
+  db.prepare("UPDATE dk_registration SET activated_at = ? WHERE id = ?").run(DK_AT2, kh2);
+  assert.equal(violations(db, c), 2, "đã kích hoạt mà danh tính chưa ẩn danh");
+  const mo = dkPhieu(db, "DA_DUYET", dkTaiKhoan(db, "dk55"));
+  db.prepare("UPDATE dk_registration SET erased_at = ? WHERE id = ?").run(DK_AT2, mo);
+  assert.equal(violations(db, c), 3, "phiếu Đã duyệt mang mốc ẩn danh của phiếu");
 });

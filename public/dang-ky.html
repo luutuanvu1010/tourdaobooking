@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Đăng ký làm đối tác — Island Booking System</title></head>
+<body data-rong="hep" class="dk-trang">
+<!-- Trang CÔNG KHAI đăng ký đối tác (ADR-0206 Đ14, ADR-0207 Đ7, ADR-0208): người chưa có tài khoản — không khung chung (không thanh trên, không thanh bên), như màn Đăng nhập.
+     web/dang-ky.ts dựng mọi bước (email → mã → phiếu → ảnh → gửi; trang trạng thái; đặt PIN) bằng h() vào #dk-goc. Service worker không đệm /api/dang-ky/* (src/shared/sw-policy.ts). -->
+<main>
+  <div class="dk-dau"><img class="dk-logo" src="/icons/icon-192.png" alt="" width="48" height="48"><h1>Đăng ký làm đối tác</h1></div>
+  <div id="dk-loi" class="alert" role="alert" hidden></div>
+  <div id="dk-bao" class="alert ok" role="status" hidden></div>
+  <div id="dk-goc"><p class="muted">Đang tải…</p></div>
+  <p class="dk-ve-dang-nhap"><a href="/login">Quay lại màn Đăng nhập</a></p>
+</main>
+<script type="module" src="/js/dang-ky.js"></script>
+</body></html>

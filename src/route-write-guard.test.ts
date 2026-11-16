@@ -103,7 +103,8 @@ export function isGuardedBody(body: string): boolean {
 const ADMIN_OPS = ["admin.manage", "admin.manage.superadmin", "feedback.triage", "settings.ops", "notice.send", "auth.session.viewAll", "auth.session.revoke", "auth.session.policy"];
 /** Luật (4b) — ADR-0071: ô Quản lý tài khoản được công nhận ở route cổng "accounts". Thêm ô = sửa hàng rào. */
 // ADR-0125 đ1: hai ô xác minh phiếu tự khai mở ở cổng accounts — nới có tên (kế hoạch H-4 sự thật 8); ba route /api/parties/xac-minh* hỏi chúng ở đầu thân.
-const ACCOUNTS_OPS = ["account.create", "account.view", "account.edit", "party.verify", "party.verify.attachment"];
+// ADR-0207 Đ9 (đợt 1 Task 6): thêm `registration.queue.view` — hàng chờ phiếu đăng ký; tám route /api/dang-ky/* ở cổng accounts hỏi ô này hoặc `party.verify*` (cùng `party.view`).
+const ACCOUNTS_OPS = ["account.create", "account.view", "account.edit", "party.verify", "party.verify.attachment", "registration.queue.view", "registration.policy.write"];
 const denialRe = (ops: readonly string[]) =>
   new RegExp(`!\\s*can\\s*\\(\\s*[A-Za-z_$][\\w$]*(?:\\s*\\.\\s*[A-Za-z_$][\\w$]*)*\\s*,\\s*"(?:${ops.map((o) => o.replace(/\./g, "\\.")).join("|")})"\\s*\\)`, "g");
 const ADMIN_DENIAL_RE = denialRe(ADMIN_OPS);
@@ -337,22 +338,64 @@ test("hàng rào cổng quản trị: bộ đánh giá nhận đúng khuôn, t�
   assert.equal(hasAdminDenial(`{ if (x) return y; const v = !can(staff, "admin.manage"); return v; }`), false, "lời gọi sau câu if, không nằm trong điều kiện");
 });
 
+/** ADR-0207 Đ4, Đ7, Đ9 (đợt 1 Task 8): bốn route DUYỆT phiếu đăng ký — danh sách có tên, mỗi route hỏi đúng `account.create`. */
+/** Rà soát cuối (ADR-0207 Đ5, I-3): thêm «Trả về xác minh» — cùng ô account.create với bước duyệt. */
+const DK_DUYET = ["GET /api/dang-ky/phieu/:id/xem-duyet", "POST /api/dang-ky/phieu/:id/duyet", "POST /api/dang-ky/phieu/:id/tu-choi-duyet", "POST /api/dang-ky/phieu/:id/gui-lai-loi-moi",
+  "POST /api/dang-ky/phieu/:id/tra-ve-xac-minh"];
+/** Rà soát cuối (ADR-0206 Đ13, I-1): gửi lại thư báo — danh sách CÓ TÊN. Cổng ở đầu thân = ĐÚNG ô registration.queue.view (thư thuộc bước xác minh HOẶC bước duyệt); ô theo bước
+ *  (party.verify + party.view, hay account.create) kiểm tiếp trong thân (thu-bao.ts, bài duyet-route.test.ts «gửi lại thư»). */
+const DK_THU = ["POST /api/dang-ky/phieu/:id/gui-lai-thu"];
+/** ADR-0206 Đ9 (đợt 1 Task 12 vòng sửa 1): hai route chỗ mở, đóng đăng ký — danh sách có tên, mỗi route hỏi ĐÚNG `registration.policy.write` (chỉ Toàn quyền). */
+const DK_CHINH_SACH = ["GET /api/dang-ky/chinh-sach", "POST /api/dang-ky/chinh-sach"];
+
 // ---- Luật (4b) — ADR-0071: hàng rào cổng Quản lý tài khoản, cùng khuôn luật (4) với ba ô account.*. Không có mục hoãn nào. ----
 test("hàng rào cổng accounts (ADR-0071): mọi route cổng accounts có `if (!can(<người gọi>, \"account.*\")) return …` ở cấp thân handler", () => {
   const thuoc = routes.filter((r) => r.access === "accounts");
   const known = ["GET /api/staff", "POST /api/staff", "GET /api/staff/ho-so-khop", "PATCH /api/staff/:id", "PUT /api/staff/:id/permissions", "GET /api/staff/:id/roles", "PUT /api/staff/:id/roles",
     "GET /api/parties/xac-minh", "GET /api/parties/xac-minh/:pid", "POST /api/parties/xac-minh/:pid/xem-so",
-    "POST /api/parties/xac-minh/:pid/chap-nhan", "POST /api/parties/xac-minh/:pid/tu-choi"];
-  assert.deepEqual(thuoc.map((r) => key(r.method, r.path)).sort(), [...known].sort(), "đúng bảy route Quản lý tài khoản + năm route xác minh phiếu (ADR-0125) ở cổng accounts");
+    "POST /api/parties/xac-minh/:pid/chap-nhan", "POST /api/parties/xac-minh/:pid/tu-choi",
+    // ADR-0207 Đ9: bước xác minh phiếu đăng ký đối tác (module dang-ky)
+    "GET /api/dang-ky/hang-cho", "GET /api/dang-ky/phieu/:id", "POST /api/dang-ky/phieu/:id/ket-luan", "POST /api/dang-ky/phieu/:id/xem-so", "GET /api/dang-ky/phieu/:id/tep/:tid",
+    "POST /api/dang-ky/phieu/:id/dat", "POST /api/dang-ky/phieu/:id/bo-sung", "POST /api/dang-ky/phieu/:id/tu-choi",
+    // ADR-0207 Đ4, Đ7, Đ9 (đợt 1 Task 8): bước DUYỆT mở tài khoản — chỉ `account.create` (Nhân sự không có party.view)
+    ...DK_DUYET,
+    // ADR-0206 Đ9 (Task 12 vòng sửa 1): chỗ mở, đóng đăng ký — chỉ `registration.policy.write`
+    ...DK_CHINH_SACH,
+    // ADR-0206 Đ13 (rà soát cuối I-1): gửi lại thư báo — registration.queue.view
+    ...DK_THU];
+  assert.deepEqual(thuoc.map((r) => key(r.method, r.path)).sort(), [...known].sort(), "đúng bảy route Quản lý tài khoản + năm route xác minh phiếu (ADR-0125) + tám route xác minh và năm route duyệt phiếu đăng ký (ADR-0207, có «Trả về xác minh») + hai route chỗ mở, đóng đăng ký (ADR-0206 Đ9) + một route gửi lại thư báo (ADR-0206 Đ13) ở cổng accounts");
   const missing = thuoc.filter((r) => !hasAdminDenial(r.body, ACCOUNTS_DENIAL_RE)).map((r) => `${r.method} ${r.path} (${r.module})`);
   assert.deepEqual(missing, [], `Route cổng accounts không hỏi ô tài khoản: ${missing.join("; ")}. Đầu thân: if (!can(staff, "<ô>")) return …; ô thuộc ${ACCOUNTS_OPS.join(", ")}.`);
   // Vòng sửa 1 (m-2): ô theo NHÓM đường dẫn — một route xác minh không được "mượn" ô account.* và ngược lại (ACCOUNTS_OPS dùng chung 12 route sẽ cho qua cả hai).
   const NHOM_XAC_MINH = denialRe(["party.verify", "party.verify.attachment"]);
   const NHOM_TAI_KHOAN = denialRe(["account.create", "account.view", "account.edit"]);
+  const NHOM_DANG_KY = denialRe(["registration.queue.view", "party.verify", "party.verify.attachment"]);
+  const NHOM_DK_DUYET = denialRe(["account.create"]);
+  const NHOM_DK_CHINH_SACH = denialRe(["registration.policy.write"]);
+  const NHOM_DK_THU = denialRe(["registration.queue.view"]);
   for (const r of thuoc) {
+    // Gửi lại thư báo (danh sách CÓ TÊN): ĐÚNG ô registration.queue.view ở đầu thân; ô theo bước nằm trong hàm xử lý.
+    if (DK_THU.includes(key(r.method, r.path))) {
+      assert.ok(hasAdminDenial(r.body, NHOM_DK_THU), `${r.method} ${r.path}: gửi lại thư báo phải hỏi registration.queue.view`);
+      continue;
+    }
+    // Chỗ mở, đóng đăng ký (danh sách CÓ TÊN): ĐÚNG ô registration.policy.write; ô này không được dùng ở route nào khác của cổng.
+    if (DK_CHINH_SACH.includes(key(r.method, r.path))) {
+      assert.ok(hasAdminDenial(r.body, NHOM_DK_CHINH_SACH), `${r.method} ${r.path}: chỗ mở, đóng đăng ký phải hỏi registration.policy.write`);
+      continue;
+    }
+    assert.equal(/"registration\.policy\.write"/.test(r.body), false, `${r.method} ${r.path}: ô registration.policy.write chỉ dành cho chỗ mở, đóng đăng ký`);
+    // Bước duyệt (danh sách CÓ TÊN, không theo tiền tố): ĐÚNG ô account.create, không party.view (Nhân sự duyệt dù không xem Danh bạ — ADR-0207 Đ4); không mượn ô xác minh.
+    if (DK_DUYET.includes(key(r.method, r.path))) {
+      assert.ok(hasAdminDenial(r.body, NHOM_DK_DUYET), `${r.method} ${r.path}: bước duyệt phiếu đăng ký phải hỏi account.create`);
+      assert.equal(/"party\.verify/.test(r.body), false, `${r.method} ${r.path}: bước duyệt không hỏi ô xác minh`);
+      continue;
+    }
+    const dk = r.path.startsWith("/api/dang-ky/");
     const xm = r.path.startsWith("/api/parties/xac-minh");
-    assert.ok(xm || r.path.startsWith("/api/staff"), `${r.method} ${r.path}: route cổng accounts ngoài hai nhóm đã biết — thêm nhóm có chủ đích`);
-    assert.ok(hasAdminDenial(r.body, xm ? NHOM_XAC_MINH : NHOM_TAI_KHOAN), `${r.method} ${r.path}: phải hỏi ${xm ? "party.verify*" : "account.*"}`);
+    assert.ok(dk || xm || r.path.startsWith("/api/staff"), `${r.method} ${r.path}: route cổng accounts ngoài ba nhóm đã biết — thêm nhóm có chủ đích`);
+    assert.ok(hasAdminDenial(r.body, dk ? NHOM_DANG_KY : xm ? NHOM_XAC_MINH : NHOM_TAI_KHOAN), `${r.method} ${r.path}: phải hỏi ${dk ? "registration.queue.view hoặc party.verify*" : xm ? "party.verify*" : "account.*"}`);
+    if (dk && r.path !== "/api/dang-ky/hang-cho") assert.ok(/"party\.view"/.test(r.body), `${r.method} ${r.path}: bước xác minh phiếu đăng ký đòi thêm party.view (ADR-0207 Đ1)`);
   }
   assert.equal(thuoc.filter((r) => r.path.startsWith("/api/parties/xac-minh")).length, 5, "chống bài rỗng: năm route xác minh");
   assert.equal(hasAdminDenial(`{ if (!can(actor, "account.view")) return F(); }`, denialRe(["party.verify", "party.verify.attachment"])), false, "ô tài khoản không thay ô xác minh");

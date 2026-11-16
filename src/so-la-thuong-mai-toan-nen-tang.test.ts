@@ -118,6 +118,10 @@ const MIEN_200: Record<string, string> = {
   "/api/parties/:id/documents/:did/tep/:tid": "ADR-0123: thân là byte ảnh / PDF giấy tờ (không phải JSON, không chở tiền) — chỉ Toàn quyền, cần tệp đã tải lên; bài này không gieo ảnh; bangDien gọi bằng mã lạ nên thân 4xx vẫn được quét",
   "/api/feedback/:id/tep/:tid": "ADR-0144: thân là byte ảnh / PDF kèm tin vé (không phải JSON, không chở tiền) — cần tệp đã tải lên; bài này không gieo tệp; bangDien gọi vé thật với mã tệp lạ nên thân 404 vẫn được quét",
   "/api/parties/xac-minh/:pid": "ADR-0125 (lát H-4): chi tiết MỘT phiếu tự khai đang chờ — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ ngày sinh / địa chỉ / số che / cờ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
+  "/api/dang-ky/phieu": "ADR-0206 Đ6 (đợt 1 Task 4): phiếu CỦA CHÍNH người đăng ký — cổng là cookie đăng ký (không phải tài khoản) nên không tài khoản nào của bài nhận 200 (401); DTO chỉ mã phiếu, trạng thái, nhãn, loại, tệp theo ô, bản khai trước với số che — không chở tiền; bangDien gọi không cookie nên thân 401 vẫn được quét",
+  "/api/dang-ky/phieu/:id": "ADR-0207 Đ9: chi tiết MỘT phiếu đăng ký đang chờ xác minh — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ họ tên, số che, mã mục, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
+  "/api/dang-ky/phieu/:id/xem-duyet": "ADR-0207 Đ4 (đợt 1 Task 8): màn duyệt của Nhân sự cho MỘT phiếu đang chờ duyệt — cần phiếu gieo sẵn và đã xác minh (bài này không gieo); DTO chỉ họ tên, số điện thoại, mã mục, kiểu kết luận Danh bạ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
+  "/api/dang-ky/phieu/:id/tep/:tid": "ADR-0207 Đ9 + ADR-0208 Đ3: thân là byte ảnh / PDF giấy tờ của phiếu đăng ký (không phải JSON, không chở tiền) — cần tệp chờ đã lưu, quyền xác minh và nhật ký ghi trước; bài này không gieo tệp; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
   "/api/parties/phieu-xoa/:pid": "ADR-0126 (lát H-5 việc 5): xem trước MỘT phiếu yêu cầu xoá đang chờ — cần phiếu gieo sẵn (bài này không gieo); DTO chỉ tên hồ sơ, hạn và SỐ ĐẾM, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
   "/api/pricing/muc-rieng/:id/sua": "ADR-0148 Đ1: xem trước «Sửa» MỘT gắn mức riêng của hồ sơ — bài này không gieo gắn riêng (gieo sẽ đổi bậc mức của B); DTO chỉ hôm nay / đường / hai ngày, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
 };
@@ -205,6 +209,7 @@ function bangDien(g: Gieo): Record<string, string[]> {
     // chuỗi truy vấn. Nhật ký toàn hệ thống: trang đầu (100 dòng) + lọc đúng các hành động chở mức — thế giới lớn dần thì dòng cũ không rơi khỏi phép quét.
     "/api/audit": ["/api/audit?limit=100", "/api/audit?action=prc_commission_rule_added", "/api/audit?action=prc_supply_term_added", "/api/audit?action=order_terms_manual", "/api/audit?q=SL"],
     "/api/pricing/thu-tra": [`/api/pricing/thu-tra?doiTac=${PTY_B}&dichVu=SLX&ngay=${NGAY}`, `/api/pricing/thu-tra?doiTac=${PTY_B}&dichVu=SLY&ngay=${NGAY}`],
+    "/api/pricing/cap-mac-dinh/se-ap": [`/api/pricing/cap-mac-dinh/se-ap?loai=TRAVEL_AGENCY&hoSo=${PTY_B}`], // ADR-0209 Đ4 (Task 12): «cấp sẽ áp» — tên cấp hoặc câu lý do, không tiền; văn phòng xem được hoa hồng 200, Đối tác / tài khoản lai 403
     "/api/pricing/ho-so/:id/hoa-hong": [`/api/pricing/ho-so/${PTY_B}/hoa-hong`], // YC-0020: chỉ mã, tên mức, số đếm — văn phòng 200, Đối tác / tài khoản lai 403
     "/api/pricing/nguoi-huong": ["/api/pricing/nguoi-huong?q=Đại"],
     // ADR-0148 Đ1: xem trước «Sửa» (chỉ hôm nay / đường / hai ngày) — dòng mức riêng 37,29% của B và gắn loại Đại lý lữ hành → mức TA lạ; văn phòng 200, Đối tác / lai 403.

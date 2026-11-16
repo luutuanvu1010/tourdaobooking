@@ -8,7 +8,7 @@ import { MAX_CHANG_MOI_DICH_VU, doiNgayChang, kiemChang, tronChangCu, type Chang
 import type { OrderStatus } from "../../shared/contracts.ts";
 import { kiemDanhSachHanhKhach, type HanhKhachHopLe } from "../../shared/hanh-khach.ts";
 import { CAU_THIEU_NGUOI_LON, donThieuNguoiLon } from "../../shared/nguoi-di-kem.ts";
-import { MAX_AMOUNT_VND as MAX_AMOUNT } from "../../shared/order-lines.ts";
+import { CAU_GIAM_GIA_VUOT_TIEN_DICH_VU, MAX_AMOUNT_VND as MAX_AMOUNT } from "../../shared/order-lines.ts";
 import { UUID_RE } from "../../shared/http.ts";
 import { ONE_DATE_MESSAGE, sameDepartDate } from "../../shared/trip-rules.ts";
 import { vnToday } from "../../shared/vn-date.ts";
@@ -198,7 +198,7 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
 
   const discount = int(b.discount, "Giảm giá", 0, MAX_AMOUNT, 0);
   if (discount.error) return fail(discount.error);
-  if (discount.value > subtotal) return fail("Giảm giá không được vượt quá tạm tính.");
+  if (discount.value > subtotal) return fail(CAU_GIAM_GIA_VUOT_TIEN_DICH_VU); // `subtotal` ở đây là tổng dòng dịch vụ (phí đưa đón cộng ở route sau)
   const total = subtotal - discount.value;
   const datCoc = docLoiKhai(b.declaredDeposit);
   if (!datCoc.ok) return fail(datCoc.message);

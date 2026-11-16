@@ -190,6 +190,8 @@ export const MATRIX = {
   // Sổ đại lý đợt 1 (ADR-0077 điều 11, ADR-0078 điều 6; đặc tả 2026-10-08 §6). Cột HR = none (ADR-0071). Route: /api/pricing/* (module pricing).
   "partner.commission.view": row("any", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   "partner.commission.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  // ADR-0209 Đ2 (chủ duyệt 2026-11-15): đặt «Cấp cho đối tác tự đăng ký» theo từng loại — Quản lý bán hàng, Quản trị, Toàn quyền (Kế toán KHÔNG). Route POST /api/pricing/cap-mac-dinh; xem dùng partner.commission.view.
+  "partner.signup_tier.write": quanLyBanHang(),
   // ADR-0146 Đ5 (bổ sung 28/10): đặt / kết thúc LUẬT BÁN theo loại đối tác (route /api/pricing/luat-ban*, cổng office) — Bán hàng, Quản trị, Toàn quyền `any` (luật không có người sở hữu).
   "sales.block.write": banHangQuanTri(),
   // ADR-0168 Đ1 mục 3, sửa bởi ADR-0172 Đ1: đặt / đổi / ngừng Trả sau của đại lý và số gợi ý theo cấp — Quản trị, Toàn quyền (Quản trị bị giới hạn bởi mức tối đa — ADR-0173 Đ1,
@@ -324,8 +326,16 @@ export const MATRIX = {
   // Cột ADMIN, HR, SUPER_ADMIN (đảo ADR-0083 đ2, thay ADR-0071 đ1e chỉ trong phạm vi phiếu đang chờ — HR vẫn party.view = none). Còn hỏi cấp bậc canManageAccount
   // và tách nhiệm vụ (đ5 — lính gác trong câu ghi). Route: GET /api/parties/xac-minh*, POST …/:pid/chap-nhan, POST …/:pid/tu-choi (cổng accounts).
   "party.verify": quanTriNhanSu(),
+  "verification.requirement.write": chiToanQuyen(), // ADR-0210 Đ1: đặt danh sách mục bắt buộc để hồ sơ được «Đã xác minh» — chỉ Toàn quyền (khuôn payment.proof.purge). Chưa có route ghi ở Task 10 (màn đặt thuộc việc sau); ô có trước để bản đồ và bài canh khoá sẵn.
   // ADR-0125 đ1: XEM ĐỦ SỐ (và ảnh — lát mở loại nối SELF_SUBMISSION) CHỈ của phiếu ĐANG CHỜ; nhật ký ghi TRƯỚC, không chứa số. Route: POST /api/parties/xac-minh/:pid/xem-so.
   "party.verify.attachment": quanTriNhanSu(),
+  // ADR-0206 / ADR-0207 (accepted 2026-11-15; đợt 1 Task 6): phiếu đăng ký đối tác. `registration.queue.view` = xem hàng chờ của phiếu (Quản trị, Toàn quyền thấy mọi phiếu chưa kết thúc; Nhân sự chỉ phiếu CHỜ DUYỆT chưa kích hoạt);
+  // xem nội dung / kết luận / xem đủ số / mở ảnh còn đòi `party.verify` VÀ `party.view` (+ `party.verify.attachment` cho số và ảnh) — Nhân sự không có `party.view` nên không làm bước xác minh.
+  // `registration.policy.write` (đổi chính sách đăng ký, công tắc) và `registration.agent.purge` (tác nhân dọn phiếu DON_PHIEU_DANG_KY — Cron, src/modules/dang-ky/don-phieu.ts, đợt 1 Task 9;
+  // không route cho người) chỉ Toàn quyền; ô chính sách còn chờ route ở task sau (docs/quyen-hoan.json).
+  "registration.queue.view": quanTriNhanSu(),
+  "registration.policy.write": chiToanQuyen(),
+  "registration.agent.purge": chiToanQuyen(),
   // ADR-0040 D1: quản lý xe, giấy tờ xe, xem danh sách giấy tờ sắp hết hạn (xe + tài xế, không số) — Quản trị + Toàn quyền (việc kinh doanh, ADR-0038
   // điều 6). Route: /api/van-chuyen/* (module van-chuyen, cổng office). Danh mục loại giấy tờ xe: admin.manage; ngưỡng sắp hết hạn: settings.ops.
   "vehicle.manage": quanTri(),
@@ -421,7 +431,7 @@ export interface OperationContext {
  * ADR-0186 Đ1 (đóng HC-5.11): TÁC NHÂN TỰ ĐỘNG — mỗi việc định giờ một mã; không phải tài khoản đăng nhập (không số điện thoại, PIN, phiên). Chỉ ba việc
  * định giờ (và đồng bộ lần đầu) dựng tác nhân — bài src/tac-nhan-tu-dong.test.ts canh chỗ gọi hàm dựng. Dòng nhật ký của tác nhân mang `audit_log.agent_code`.
  */
-export const MA_TAC_NHAN = ["DONG_BO_DANH_MUC", "NHAC_HAN_TRA_SAU", "DON_ANH_VE"] as const;
+export const MA_TAC_NHAN = ["DONG_BO_DANH_MUC", "NHAC_HAN_TRA_SAU", "DON_ANH_VE", "DON_PHIEU_DANG_KY"] as const;
 export type MaTacNhan = (typeof MA_TAC_NHAN)[number];
 export const laMaTacNhan = (v: unknown): v is MaTacNhan => typeof v === "string" && (MA_TAC_NHAN as readonly string[]).includes(v);
 /** ADR-0186 Đ2: quyền riêng của mỗi tác nhân — đúng ô nó cần. Không bao giờ ô ghi tiền (`O_GHI_TIEN`), không `admin.manage` (bài canh). */
@@ -429,6 +439,7 @@ export const QUYEN_TAC_NHAN: Readonly<Record<MaTacNhan, readonly OperationCode[]
   DONG_BO_DANH_MUC: ["catalog.sync"],
   NHAC_HAN_TRA_SAU: ["credit.due.remind"],
   DON_ANH_VE: ["ve.kho.purge"],
+  DON_PHIEU_DANG_KY: ["registration.agent.purge"], // ADR-0208 Đ8 (đợt 1 Task 9): dọn phiếu đăng ký — hết hạn, ẩn danh, xoá kho tệp chờ, xoá mã email cũ
 };
 /** Người phát lệnh là tác nhân: không giữ mã quyền nào của người, nên mọi cổng router từ chối nó; `can()` chỉ tra `QUYEN_TAC_NHAN`. */
 export interface TacNhan extends PermissionHolder {

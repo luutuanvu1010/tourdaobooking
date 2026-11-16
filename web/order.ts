@@ -41,6 +41,7 @@ import { CAU_CAN_NOI_TRA, canhBaoXacNhan, cauThieuTen, thieuNoiTra } from "../sr
 import { dongThongTinQr } from "../src/shared/qr-thong-tin";
 import { PAX_LABEL } from "../src/shared/order-lines";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
+import { CHU_MIEN_PHI, dongPhiTrenDon } from "../src/shared/phi-don-hien-thi";
 import { nhanCamKet } from "../src/shared/cam-ket-xe";
 import { can, holdsPartner } from "../src/shared/permissions";
 import { CAU_NHAC_NOP_TIEN, CAU_PHIEU_CHUA_XAC_NHAN, TEN_PHIEU_CONG_NO, laTaiKhoanDoiTac, xemDuocPhieuCongNo } from "../src/shared/cong-no-dai-ly";
@@ -640,7 +641,24 @@ function badgeTrangThai(order: Order): HTMLElement {
 function tienCard(order: Order): HTMLElement {
   const t = tien;
   moGhiThu = null;
-  const rows: HTMLElement[] = [kv("Tạm tính", vnd(order.subtotal)), kv("Giảm giá", vnd(order.discount)), kv("Tổng cộng", vnd(order.total), "strong")];
+  // Phí đưa đón Đợt C (ADR-0147 Đ3, ADR-0203 ĐB3): mục «Phí đưa đón» đứng TRÊN «Tạm tính» vì tạm tính đã gồm phí. Số do máy chủ tính và lưu; đơn nháp ghi «dự kiến»;
+  // chặng thiếu mức ⇒ băng báo đúng câu 409 lúc xác nhận. Cổng tiền: route đơn chỉ trả đơn cho người qua `money.view` (hoặc nhánh người xét duyệt giữ tiền có chủ đích).
+  const phi = order.phiDuaDon ? dongPhiTrenDon(order.phiDuaDon, vnd, order.bookerName) : null;
+  const rows: HTMLElement[] = [];
+  if (phi) {
+    rows.push(
+      h(
+        "div",
+        { class: "phi-don-tien", "data-khoi": "phi-dua-don" },
+        h("div", { class: "phi-don-tieu-de" }, phi.tieuDe),
+        ...phi.dong.map((d) =>
+          h("div", { class: "kv kv-phi-don" }, h("span", { class: "muted" }, d.nhan, d.chiTiet ? h("span", { class: "phi-don-chi-tiet" }, d.chiTiet) : null), h("span", null, d.giaTri)),
+        ),
+        ...phi.thieu.map((c) => h("p", { class: "dd-canh-xn is-do", "data-canh-bao": "phi-don-thieu" }, icon("alert", 16), c)),
+      ),
+    );
+  }
+  rows.push(kv("Tạm tính", vnd(order.subtotal)), kv("Giảm giá", vnd(order.discount)), kv("Tổng cộng", vnd(order.total), "strong"));
   // ADR-0159 Đ1 mục 6: lời khai chỉ có trên đơn nháp (máy chủ trả 0 khi đơn rời nháp); sau xác nhận số tiền là một khoản thu trong sổ, hiện như mọi khoản thu.
   if (order.status === "draft" && order.declaredDeposit > 0) rows.push(kv(NHAN_DAT_COC_CHO, vnd(order.declaredDeposit), "kv-dat-coc"));
   if (t?.coc) {
@@ -1440,7 +1458,7 @@ async function moPhieuCongNo(order: Order, opener: HTMLElement): Promise<void> {
     const canvas = h("canvas", { class: "qr-anh", role: "img", "aria-label": "Mã QR công nợ với Tour Đảo", hidden: true }) as HTMLCanvasElement;
     replaceChildren(
       than,
-      h("ul", { class: "pay-list" }, ...p.dong.map((d) => h("li", null, `${d.ten} — ${vnd(d.giaDaiLy)}${d.thieuMuc ? " (chưa có mức hoa hồng, tính theo giá bán lẻ)" : ""}`))),
+      h("ul", { class: "pay-list" }, ...p.dong.map((d) => h("li", null, `${d.ten} — ${d.mienPhi ? CHU_MIEN_PHI : vnd(d.giaDaiLy)}${d.thieuMuc ? " (chưa có mức hoa hồng, tính theo giá bán lẻ)" : ""}`))),
       dong("Tổng công nợ", vnd(p.tong), "tong"),
       dong("Đã thu", vnd(p.daThu), "da-thu"),
       p.conLai < 0 ? dong("Tour Đảo nợ đại lý", vnd(-p.conLai), "con-lai") : dong("Công nợ còn lại", vnd(p.conLai), "con-lai"),

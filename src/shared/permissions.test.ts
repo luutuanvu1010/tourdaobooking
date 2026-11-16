@@ -126,6 +126,11 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "party.erasure.process": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0126 đ2 (lát H-5): xử lý phiếu yêu cầu xoá dữ liệu — Quản trị, Toàn quyền (còn hỏi cấp bậc ở route)
   "party.verify": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "none"], // ADR-0125 đ1, đ2 (lát H-4): hàng chờ xác minh phiếu tự khai — Quản trị, Toàn quyền, Nhân sự (HR vẫn party.view = none)
   "party.verify.attachment": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "none"], // ADR-0125 đ1: xem đủ số của phiếu ĐANG CHỜ — nhật ký trước, không số trong nhật ký
+  // ADR-0207 Đ9 (đợt 1 Task 6): hàng chờ phiếu đăng ký — Quản trị, Toàn quyền, Nhân sự (Nhân sự chỉ thấy phiếu CHỜ DUYỆT, lọc ở route); hai ô sau chỉ Toàn quyền, chờ route (docs/quyen-hoan.json).
+  "registration.queue.view": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "none"],
+  "registration.policy.write": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
+  "registration.agent.purge": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
+  "verification.requirement.write": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0210 Đ1: chỉ Toàn quyền đặt mục bắt buộc của dấu xác minh
   "vehicle.manage": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0040 D1: xe, giấy tờ xe, danh sách sắp hết hạn — Quản trị + Toàn quyền (ADR-0038 điều 6)
   "transport.rate.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0057 B3: xem bảng giá thuê xe — Kế toán = Quản trị (lần 18), Toàn quyền
   "transport.rate.manage": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0057 B3: thêm / đóng giá, danh mục tuyến, cỡ xe
@@ -138,6 +143,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   // Sổ đại lý đợt 1 (ADR-0077 điều 11, ADR-0078 điều 6; đặc tả 2026-10-08 §6): xem bảng mức — Bán hàng, Kế toán, Quản trị, Toàn quyền; đặt mức và người bán — Kế toán, Quản trị, Toàn quyền.
   "partner.commission.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"],
   "partner.commission.write": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"],
+  "partner.signup_tier.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any"], // ADR-0209 Đ2: Quản lý bán hàng, Quản trị, Toàn quyền (Kế toán KHÔNG)
   "credit.limit.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0172 Đ1: đặt Trả sau — Quản trị (tới mức tối đa), Toàn quyền
   "credit.limit.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0172 trang ghép (2): xem hạn mức và nợ — Kế toán, Quản trị, Toàn quyền
   "billing.partner_channel.write": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0178 Đ1 mục 1: đổi công tắc «Khách của đối tác trả cho Công ty» — chỉ Toàn quyền
@@ -320,6 +326,7 @@ test("mặc định từ chối: không quyền, thao tác lạ, chủ đơn thi
 // ADR-0040 D2: party.document.view — ô `own` của Quản trị (giấy tờ của chính mình); Quản trị xem giấy tờ NGƯỜI KHÁC qua party.document.write.
 // ADR-0119: feedback.team.manage — quản lý nhóm hỗ trợ chỉ Toàn quyền (Quản trị không có đường tắt vào nhóm nhạy cảm).
 const ADMIN_NONE_OPS: readonly OperationCode[] = [
+  "registration.policy.write", "registration.agent.purge", "verification.requirement.write", // ADR-0206 / ADR-0207 (đợt 1 Task 6): chính sách đăng ký, tác nhân dọn phiếu — chỉ Toàn quyền
   "admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "settings.ops", "order.pool.view",
   "notice.send", "feedback.view", "feedback.triage", "feedback.team.manage", "account.create", "audit.view", "company.legal.write", "party.document.view",
   "payment.refund", // sổ tiền lượt 1 (ADR-0026 điều 10): hoàn khách chỉ Kế toán, Toàn quyền (H4)
@@ -441,6 +448,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "me.favorites.write": "own", // ADR-0187 Đ2.3: tài xế công ty tự chọn nút thanh dưới của chính mình
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): xử lý phiếu xoá dữ liệu của người khác — không
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1
+    "registration.queue.view": "none", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: hàng chờ phiếu đăng ký (Nhân sự thấy, lọc ở route); hai ô còn lại chỉ Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     // ADR-0049 D3 — NỚI (ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
@@ -459,7 +467,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "attribution.decide": "none",
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ cách dùng app — trợ lý không đọc dữ liệu nghiệp vụ
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
-    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế không xem bảng mức, người bán
+    "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế không xem bảng mức, người bán
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
     "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
@@ -505,6 +513,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "me.favorites.write": "none", // ADR-0187 Đ2.3: chủ 8/11 — tài xế đối tác chỉ có hai trang, không tự chọn nút thanh dưới
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): xử lý phiếu xoá dữ liệu của người khác — không
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1
+    "registration.queue.view": "none", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: hàng chờ phiếu đăng ký (Nhân sự thấy, lọc ở route); hai ô còn lại chỉ Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.passenger.add": "none", // ADR-0052 D5b × lời chủ 5/10 ("chỉ tài xế công ty"): tài xế đối tác KHÔNG bổ sung tên
@@ -525,7 +534,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "attribution.decide": "none",
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
-    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế đối tác không thấy mọi con số hoa hồng
+    "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế đối tác không thấy mọi con số hoa hồng
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
     "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
@@ -577,6 +586,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "me.favorites.write": "own", // ADR-0187 Đ2.3: tự chọn nút thanh dưới của chính mình, như mọi tài khoản nội bộ
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): Nhân sự không xử lý phiếu xoá — chỉ Quản trị, Toàn quyền
     "party.verify": "any", "party.verify.attachment": "any", // ADR-0125 đ1
+    "registration.queue.view": "any", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: hàng chờ phiếu đăng ký (Nhân sự thấy, lọc ở route); hai ô còn lại chỉ Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.override.giay_to_cung": "none", "trip.urgent_adjust": "none", "dispatch.policy.lead": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none",
@@ -585,7 +595,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "trip.transfer": "none", // ADR-0111: Nhân sự không điều xe
     "assistant.ask": "any",
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
-    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1 (ADR-0071: Nhân sự chỉ ba ô tài khoản)
+    "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1 (ADR-0071: Nhân sự chỉ ba ô tài khoản)
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
     "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
@@ -843,10 +853,10 @@ test("ADR-0125 đ1, đ2: party.verify / party.verify.attachment — ADMIN, HR, S
   assert.equal(MATRIX["party.document.reveal"].HR, "none");
 });
 
-test("ADR-0125: HR đúng năm ô `any` ngoài hai ô của mọi tài khoản nội bộ", () => {
+test("ADR-0125 + ADR-0207: HR đúng sáu ô `any` ngoài hai ô của mọi tài khoản nội bộ", () => {
   const MOI_TAI_KHOAN = new Set(["feedback.submit", "assistant.ask"]);
   const hrAny = Object.entries(MATRIX).filter(([, r]) => r.HR === "any").map(([k]) => k).filter((k) => !MOI_TAI_KHOAN.has(k)).sort();
-  assert.deepEqual(hrAny, ["account.create", "account.edit", "account.view", "party.verify", "party.verify.attachment"]);
+  assert.deepEqual(hrAny, ["account.create", "account.edit", "account.view", "party.verify", "party.verify.attachment", "registration.queue.view"]);
 });
 
 test("ADR-0125 đ1 (lát H-4): party.verify / party.verify.attachment trên cả 2048 tập con quyền — được khi có ADMIN, HR hoặc SUPER_ADMIN, có hay không có ngữ cảnh", () => {

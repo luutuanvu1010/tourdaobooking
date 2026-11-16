@@ -47,9 +47,36 @@ test("(1) câu SQL đăng ký đặt erased_at = ĐÚNG hai câu của lệnh �
   assert.deepEqual(chen, []);
 });
 
-test("(2) chữ erased_at trong mã nguồn chỉ ở parties/repository.ts (ngoài migrations/ và scripts/audit-checks.mjs)", () => {
-  const co = [...tepTs(SRC), ...tepTs(WEB)].filter((p) => readFileSync(p, "utf8").includes("erased_at")).map((p) => (p.startsWith(SRC) ? p.slice(SRC.length) : `web/${p.slice(WEB.length)}`));
-  assert.deepEqual(co, ["modules/parties/repository.ts"]);
+// NGOẠI LỆ CÓ TÊN (đợt 1 Task 8 — ADR-0207 Đ5 câu 9, ADR-0208 Đ6; CHỜ CHỦ DUYỆT vì nới rào): lô duyệt phiếu đăng ký ẩn danh bản khai `dk_submission` (bảng của dang-ky — parties không
+// được ghi bảng dk_*, architecture.test.ts). Chữ `erased_at` được nằm ở dang-ky/repository.ts CHỈ bên trong chuỗi SQL của ĐÚNG MỘT câu đăng ký có tên dưới đây; câu đặt erased_at trên
+// bảng dk_* phải đúng danh sách này. Phá thử: thêm một câu `UPDATE dk_identity SET erased_at = ?1 …` → (2b) đỏ; nhắc chữ đó ngoài chuỗi SQL (chú thích, biến) → (2) đỏ.
+// Đợt 1 Task 9 (ADR-0207 Đ7, ADR-0208 Đ6, Đ8; CHỜ CHỦ DUYỆT — nới thêm, chỉ thêm ĐÚNG TÊN, không nới mẫu): `identity_erase` (ẩn danh danh tính — lô kích hoạt và tác nhân dọn phiếu; điều kiện
+// «phiếu đã kết thúc và vừa nhận mốc đã ẩn danh của lượt này / đã kích hoạt / quá hạn kích hoạt + ân hạn» NẰM TRONG câu) và `registration_mark_erased` (mốc «đã ẩn danh» của phiếu — tác nhân;
+// điều kiện trạng thái + tuổi trong câu). Tác nhân DÙNG LẠI `submission_erase_on_approve` cho bản khai của phiếu đã kết thúc (cùng câu, không thêm tên); câu đó nay chuỗi trong câu vào phiếu:
+// ĐÃ DUYỆT (lô duyệt) hoặc vừa nhận mốc đã ẩn danh của chính lượt này (tác nhân) — vòng sửa 1 Task 9.
+const DK_TEN_DUOC_PHEP = ["dang-ky:submission_erase_on_approve", "dang-ky:identity_erase", "dang-ky:registration_mark_erased"];
+const DK_DAT_ERASED_AT = /^\s*UPDATE\s+dk_[a-z_]+\b[\s\S]*?\bSET\b[\s\S]*?\berased_at\s*=/i;
+
+test("(2) chữ erased_at trong mã nguồn chỉ ở parties/repository.ts (ngoài migrations/ và scripts/audit-checks.mjs) — và ở dang-ky/repository.ts CHỈ trong chuỗi SQL của câu ngoại lệ có tên", async () => {
+  const co = [...tepTs(SRC), ...tepTs(WEB)].filter((p) => readFileSync(p, "utf8").includes("erased_at")).map((p) => (p.startsWith(SRC) ? p.slice(SRC.length) : `web/${p.slice(WEB.length)}`)).sort();
+  assert.deepEqual(co, ["modules/dang-ky/repository.ts", "modules/parties/repository.ts"]);
+  await import("./modules/dang-ky/repository.ts");
+  const { registeredSql } = await import("./shared/sql-registry.ts");
+  let nguon = readFileSync(join(SRC, "modules/dang-ky/repository.ts"), "utf8");
+  for (const ten of DK_TEN_DUOC_PHEP) {
+    const e = registeredSql().find((x) => `${x.module}:${x.name}` === ten);
+    assert.ok(e && nguon.includes(e.sql), `câu ${ten} phải có trong dang-ky/repository.ts nguyên văn`);
+    nguon = nguon.replace(e!.sql, "");
+  }
+  assert.equal(nguon.includes("erased_at"), false, "ở dang-ky/repository.ts, chữ erased_at chỉ được nằm trong chuỗi SQL của câu ngoại lệ có tên");
+});
+
+test("(2b) câu SQL đăng ký đặt erased_at trên bảng dk_* = ĐÚNG danh sách ngoại lệ có tên", async () => {
+  await import("./modules/dang-ky/repository.ts");
+  const { registeredSql } = await import("./shared/sql-registry.ts");
+  assert.ok(DK_DAT_ERASED_AT.test("UPDATE dk_submission SET erased_at = ?2 WHERE registration_id = ?1"), "bộ bắt tự kiểm");
+  const dat = registeredSql().filter((e) => DK_DAT_ERASED_AT.test(e.sql)).map((e) => `${e.module}:${e.name}`).sort();
+  assert.deepEqual(dat, [...DK_TEN_DUOC_PHEP].sort());
 });
 
 test("(3) anDanhStatements chỉ được GỌI trong thân route thực hiện phiếu của parties/index.ts", () => {

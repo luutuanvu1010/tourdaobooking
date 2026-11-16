@@ -17,6 +17,7 @@ const khungEl = byId("pd-khung");
 const trangThaiEl = byId("pd-trang-thai");
 const thuTraEl = byId("pd-thu-tra");
 const canhBaoEl = byId("pd-canh-bao");
+const thieuChungEl = byId("pd-thieu-chung");
 const themEl = byId<HTMLButtonElement>("pd-them");
 const formEl = byId("pd-form");
 const mucEl = byId("pd-muc");
@@ -149,6 +150,13 @@ function veThuTra(): void {
 }
 
 // ---------- Khối 3: bảng mức ----------
+/** Băng báo: khu vực đang bật chưa có mức chung còn hiệu lực (hôm nay hoặc ngày bắt đầu áp). Chỉ nhắc, không chặn. */
+function veThieuChung(): void {
+  const v = du!.vungThieuMucChung;
+  thieuChungEl.hidden = v.length === 0;
+  replaceChildren(thieuChungEl, h("strong", null, `Chưa có mức chung cho: ${v.map((x) => x.name).join(", ")}.`), h("div", null, "Khi phí đang áp, đơn có đón ở khu vực này không xác nhận được. Hãy thêm mức chung (không nêu cấp, dịch vụ hay nhóm)."));
+}
+
 function veCanhBao(): void {
   const dong = cauCanhBaoGop([...du!.canhBao, ...canhBaoSauLuu], ten());
   canhBaoEl.hidden = dong.length === 0;
@@ -300,6 +308,7 @@ function ve(): void {
   veTrangThai();
   veThuTra();
   veCanhBao();
+  veThieuChung();
   veMuc();
 }
 

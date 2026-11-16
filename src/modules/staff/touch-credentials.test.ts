@@ -25,3 +25,17 @@ test("touch_credentials_if_changed: chỉ đẩy khi câu gỡ passkey ngay trư
   db.prepare(sqlOf("touch_credentials")).run("s1", 333);
   assert.equal((db.prepare("SELECT credentials_changed_at AS c FROM staff WHERE id = 's1'").get() as { c: number }).c, 333);
 });
+
+// ADR-0207 Đ6, Đ7 (đợt 1 Task 7): đường kích hoạt `set_pin_activate` là một đường đặt PIN → PHẢI đẩy credentials_changed_at (cookie/phiên cấp trước đó hết hiệu lực) và chỉ tác động tài khoản đang tắt.
+test("set_pin_activate: đặt PIN + bật + ĐẨY credentials_changed_at; tài khoản đang bật thì không đổi gì", () => {
+  const db = new DatabaseSync(":memory:");
+  for (const f of readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort()) db.exec(readFileSync(new URL(f, DIR), "utf8"));
+  db.exec("INSERT INTO staff (id, phone, pin_hash, role, full_name, active, created_at) VALUES ('t1', '0900000011', 'cu', 'sales', '', 0, '2026-01-01T00:00:00Z'), ('t2', '0900000012', 'cu', 'sales', '', 1, '2026-01-01T00:00:00Z')");
+  const act = db.prepare(sqlOf("set_pin_activate"));
+  act.run("t1", "moi", 777);
+  const t1 = db.prepare("SELECT pin_hash AS p, active AS a, credentials_changed_at AS c FROM staff WHERE id = 't1'").get() as { p: string; a: number; c: number };
+  assert.deepEqual({ ...t1 }, { p: "moi", a: 1, c: 777 });
+  act.run("t2", "moi", 888);
+  const t2 = db.prepare("SELECT pin_hash AS p, credentials_changed_at AS c FROM staff WHERE id = 't2'").get() as { p: string; c: number | null };
+  assert.deepEqual({ ...t2 }, { p: "cu", c: null });
+});

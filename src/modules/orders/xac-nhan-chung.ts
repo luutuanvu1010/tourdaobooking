@@ -28,7 +28,8 @@ import { cauChupChuoi } from "./thuong-mai-repo";
 import { donChoTran, dongGhiTuChup, moTaChup } from "./thuong-mai";
 import { catalogStatusOf, confirmGaps, summarizeDeviations } from "./service-rules";
 import { getEffectiveServices } from "../catalog";
-import { kiemNhomChoPhepDuaDon } from "./service";
+import { chuanBiPhiDonXacNhan, kiemNhomChoPhepDuaDon, type PhiDonXacNhan } from "./service";
+import { cauThieuPhiDon } from "./phi-don-don";
 import { congLuatBan } from "./cong-ban";
 import { traSauChoXacNhan, type HamTraSau, type KemTraSau } from "./tra-sau-cong";
 import { laDoiTacTraSau } from "../../shared/tra-sau";
@@ -46,6 +47,17 @@ export const GIA_DANH_MUC = (cau: string) => error(403, "forbidden", cau);
 export const TRAN_GIAM_GIA = (v: NonNullable<ReturnType<typeof viPhamTranGiamGia>>) => error(v.status, v.code, v.cau);
 /** Mốc tối thiểu chưa có (bảng chính sách rỗng / môi trường không tiêm) — CHẶN lệnh cần mốc, không đoán con số (I25). */
 export const MOC_CHUA_CO = () => error(503, "moc_toi_thieu_chua_co", "Chưa có chính sách điều phối đang hiệu lực (hạn chốt trước giờ đón) — báo người phụ trách hệ thống.");
+/**
+ * Đợt C, Task 4 (trang ghép 2026-10-28 §3 cổng 6): còn chặng chưa tính được phí đưa đón ⇒ 409 `transfer_fee_missing`, câu theo lý do của chặng thiếu ĐẦU TIÊN (`cauThieuPhiDon`).
+ * MỘT chốt cho `kiemCongXacNhan` (chế độ «Từ chối») và Gửi xác nhận (không qua `kiemCongXacNhan` — chốt riêng). `tenBenDat` = tên bên đặt (câu «gán cấp riêng»). Trả `null` khi qua.
+ */
+export function congThieuPhiDon(phiDon: Pick<PhiDonXacNhan, "thieu">, tenBenDat: string | null): Response | null {
+  const t = phiDon.thieu[0];
+  return t ? error(409, "transfer_fee_missing", cauThieuPhiDon(t, tenBenDat)) : null;
+}
+/** Lô xác nhận có câu chốt phí mà câu đổi trạng thái thua ⇒ `db.batch` ném lỗi này (cả lô lui). Nơi gọi coi như lô thua (`daXacNhan` false): đọc lại lý do bằng `chanDoanXacNhan`. */
+export const laThuaChotPhiDon = (e: unknown): boolean => /\btransfer_fee_confirm_lost\b/.test(e instanceof Error ? e.message : String(e));
+
 /** ADR-0118 Đ3 (Ruling R-D): nhóm dịch vụ đã tắt đưa đón → 409 `transfer_disabled`, câu nêu tên dịch vụ + nhóm + cách sửa (từ `kiemNhomChoPhepDuaDon`). */
 export const TRANSFER_DISABLED = (message: string): Response => error(409, "transfer_disabled", message);
 
@@ -153,15 +165,20 @@ export async function chayLoNoiChuyen(db: D1Database, dong: DongBoTheoDon, thang
  * (ADR-0168 Đ2) → R2 giá danh mục (Đối tác / Thực tập) → thiếu người lớn (ADR-0114 D3) →
  * nhóm tắt đưa đón (ADR-0118 Đ3 (b), thêm 28/10 — đứng TRƯỚC cổng chọn đón để câu báo nói đúng việc phải làm) → chọn Đón/Không đón (ADR-0134 Đ2) → [mốc tối thiểu, chỉ khi `kiemMoc`: chưa có → 503] → dựng bản chụp mức hoa hồng theo bảng HÔM NAY → R3 trần giảm giá theo bản chụp vừa tính.
  * `kiemMoc` = lô sau đó có vế mốc trong câu xác nhận (Còn vé, `/status`); lúc chỉ GỬI yêu cầu thì không đòi mốc (mốc chỉ chặn ở Còn vé — Review Focus 10).
+ * Đợt C, Task 4: phí đưa đón tính lại ở ĐẦU hàm (`chuanBiPhiDonXacNhan`, chỉ đọc) — cổng Trả sau đọc tổng ĐÃ GỒM phí; lỗi thiếu phí chỉ báo SAU cổng chọn Đón, TRƯỚC cổng mốc
+ * (trang ghép §3 cổng 6). `cheDoThieuPhi`: «TU_CHOI» (`/status`, Còn vé) ⇒ 409; «NHANH_A» (Gửi đơn) ⇒ không lỗi, nơi gọi đọc `phiDon.thieu` để đi nhánh A. Trả `phiDon` để nơi gọi đưa
+ * `phiDon.cauLenh` vào `soanXacNhan` và `phiDon.totalMoi` vào `cocChoXacNhan`. Trần giảm giá R3 vẫn tính trên dòng dịch vụ (`tienChoHoaHong`, không có dòng phí).
  * `nguoiLapDoiTac` BẮT BUỘC (ADR-0185): `nguoiLapLaNguoiBam(staff)` ở Gửi đơn và `/status`; ở Còn vé tính theo quyền thật của người lập (`nguoiLapGiuDoiTac`).
  * Trả `{ loi }` (Response đã dịch) hoặc `{ ok, chup, detail, today }`: `chup` + `detail` đưa vào `kemChupXacNhan` / `soanXacNhan`.
  */
 export async function kiemCongXacNhan(
   db: D1Database,
-  i: { actor: StaffProfile; order: DonXacNhan; kiemMoc: boolean; mocToiThieu: MocToiThieu | null; cuaDuaDon?: CuaDuaDon; traSau: HamTraSau; nguoiLapDoiTac: NguoiLapDoiTac },
-): Promise<{ loi: Response } | { ok: true; chup: BanChup[]; detail: string | undefined; today: string; traSau: KemTraSau }> {
+  i: { actor: StaffProfile; order: DonXacNhan; kiemMoc: boolean; mocToiThieu: MocToiThieu | null; cuaDuaDon?: CuaDuaDon; traSau: HamTraSau; nguoiLapDoiTac: NguoiLapDoiTac; cheDoThieuPhi: "TU_CHOI" | "NHANH_A" },
+): Promise<{ loi: Response } | { ok: true; chup: BanChup[]; detail: string | undefined; today: string; traSau: KemTraSau; phiDon: PhiDonXacNhan }> {
   const { actor, order } = i;
   const today = vnToday(new Date());
+  // Đợt C, Task 4: phí theo bảng NGÀY XÁC NHẬN (chỉ đọc, không tin dòng «dự kiến» của nháp). Tính trước mọi cổng vì cổng Trả sau (và lời khai đặt cọc ở nơi gọi) đọc tổng đã gồm phí.
+  const phiDon = await chuanBiPhiDonXacNhan(db, order, today);
   // ADR-0146 Đ3 + R-7 (Q-8 (a) của chủ): luật bán đứng ĐẦU mọi cổng xác nhận — đơn vừa bị chặn bán vừa vướng cổng khác luôn nhận `sales_blocked` (sửa cổng kia cũng vô ích).
   const chanBan = await congLuatBan(db, { bookerPartyId: order.bookerPartyId, dong: order.services });
   if (chanBan) return { loi: chanBan };
@@ -171,7 +188,7 @@ export async function kiemCongXacNhan(
   if ("loi" in vaiTro) return { loi: vaiTro.loi };
   // ADR-0168 Đ2 mục 3, 4: cổng hạn mức Trả sau — MỘT chỗ cho cả ba đường xác nhận (`/status`, `quyet-dinh` Còn vé, `gui-don` nhánh B). Đơn Trả trước: không tốn một câu đọc.
   // Thứ tự (kế hoạch ADR-0185 K4): ADR-0168 ghi cổng này «ngay sau luật bán»; từ ADR-0185 cổng vai trò đối tác xen giữa, vì cổng này đọc bên đặt.
-  const traSau = await traSauChoXacNhan({ ...i.traSau, nguoiGuiLaDoiTac: laDoiTacTraSau(actor) }, db, { order: { id: order.id, paymentTerm: order.paymentTerm, bookerPartyId: order.bookerPartyId, total: order.total } });
+  const traSau = await traSauChoXacNhan({ ...i.traSau, nguoiGuiLaDoiTac: laDoiTacTraSau(actor) }, db, { order: { id: order.id, paymentTerm: order.paymentTerm, bookerPartyId: order.bookerPartyId, total: phiDon.totalMoi } });
   if ("loi" in traSau) return { loi: traSau.loi };
   // DK-T3-01 R2: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản có quyền Đối tác HOẶC Thực tập (ADR-0100) chỉ xác nhận được đơn
   // mà MỌI dòng đúng giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục). R3 (trần giảm giá ĐÃ LƯU) kiểm SAU khi tính bản chụp (Task 7).
@@ -192,6 +209,11 @@ export async function kiemCongXacNhan(
   // ADR-0134 Đ2: mỗi dịch vụ phải chọn Đón (có chặng mở) hoặc Không đón (không chặng mở). Đọc từ `order` đã nạp (dịch vụ + chặng CÒN HIỆU LỰC).
   const thieuDon = thieuChonDon(order.services.map((s) => ({ pickupChoice: s.pickupChoice, soChangMo: s.legs.length })));
   if (thieuDon.length > 0) return { loi: error(409, "pickup_choice_required", cauThieuChonDon(thieuDon[0]!)) };
+  // Đợt C, Task 4 (trang ghép §3 cổng 6): còn chặng chưa tính được phí — sau cổng chọn Đón (biết chặng nào còn mở), trước cổng mốc. Gửi đơn («NHANH_A») không lỗi: đi nhánh A.
+  if (i.cheDoThieuPhi === "TU_CHOI") {
+    const thieuPhi = congThieuPhiDon(phiDon, order.bookerName);
+    if (thieuPhi) return { loi: thieuPhi };
+  }
   const detail = summarizeDeviations(order.services.flatMap((s) => s.items));
   // ADR-0049 D2 (I15, I25): mốc chưa có → 503, không đoán.
   if (i.kiemMoc && !i.mocToiThieu) return { loi: MOC_CHUA_CO() };
@@ -206,7 +228,7 @@ export async function kiemCongXacNhan(
   const tien = order.services.map((s) => ({ id: s.id, ...tienChoHoaHong(s) }));
   const tranLoi = viPhamTranGiamGia(actor, order.discount, donChoTran(chup, tien)); // I-1: Đối tác trên đơn đại lý KHÁC ⇒ luật cũ, không nêu số
   if (tranLoi) return { loi: TRAN_GIAM_GIA(tranLoi) };
-  return { ok: true, chup, detail, today, traSau: traSau.traSau };
+  return { ok: true, chup, detail, today, traSau: traSau.traSau, phiDon };
 }
 
 /** Câu kèm của lô xác nhận: bản chụp mức hoa hồng + nhật ký `order_terms_captured`, cùng mốc `at` của lô (`soanXacNhan`/`confirmOrder` truyền `at`). */
@@ -240,6 +262,8 @@ export async function cocChoXacNhan(
 /**
  * Dịch LỖI do trigger khi chạy lô xác nhận → phản hồi, hoặc `null` (lỗi lạ: nơi gọi ném tiếp). F-03 (0081): tạm tính lệch Σ thành tiền dòng; bảng mức / điều khoản
  * đổi giữa lúc đọc và lúc ghi (`terms_rule_stale` / `terms_term_stale`) — cả lô rơi, đơn vẫn nháp; dịch vụ đổi mã giữa lúc đọc và lúc ghi (`terms_service_mismatch`).
+ * KHÔNG dịch `transfer_fee_confirm_lost` (câu chốt phí của Đợt C): đó không phải lỗi người dùng mà là «câu xác nhận thua» — nơi gọi hỏi `laThuaChotPhiDon` TRƯỚC hàm này và đi
+ * đường lô thua (`chanDoanXacNhan`, cùng câu báo như khi câu xác nhận đổi 0 dòng).
  */
 export function dichLoiXacNhan(e: unknown): Response | null {
   if (/order_subtotal_mismatch/.test(String((e as Error)?.message ?? e))) {
@@ -332,11 +356,16 @@ export async function tinhCanXacNhan(db: D1Database, order: DonXacNhan, moc: Moc
 export const canChotGioCuaNguoiLap = (nguoiLap: Pick<StaffProfile, "permissions">, services: DonXacNhan["services"]): boolean => holdsPartner(nguoiLap) && thieuGioChangDau(services).length > 0;
 
 /**
- * Lý do của MỘT yêu cầu đang mở = lý do TÍNH ĐƯỢC (`tinhCanXacNhan`, theo cờ dịch vụ / mốc hôm nay) cộng `CHOT_GIO` khi yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.2). Cờ là DỮ LIỆU CHỤP lúc
+ * Lý do của MỘT yêu cầu đang mở = lý do TÍNH ĐƯỢC (`tinhCanXacNhan`, theo cờ dịch vụ / mốc hôm nay) cộng `CHOT_GIO` khi yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.2) và `PHI_DON` khi mang cờ «thiếu phí đưa đón» (Đợt C). Cờ là DỮ LIỆU CHỤP lúc
  * Gửi đơn — không tính lại theo giờ đang lưu, để người xét thấy lý do đúng như lúc người lập gửi. Dùng ở danh sách chờ và khối `xacNhan` của chi tiết đơn.
  */
-export const viCuaYeuCau = (y: Pick<YeuCauRow, "pickup_time_required">, viTinh: readonly LyDoCanXacNhan[]): LyDoCanXacNhan[] =>
-  y.pickup_time_required === 1 && !viTinh.includes("CHOT_GIO") ? [...viTinh, "CHOT_GIO"] : [...viTinh];
+export const viCuaYeuCau = (y: Pick<YeuCauRow, "pickup_time_required" | "transfer_fee_missing">, viTinh: readonly LyDoCanXacNhan[]): LyDoCanXacNhan[] => {
+  const vi = [...viTinh];
+  if (y.pickup_time_required === 1 && !vi.includes("CHOT_GIO")) vi.push("CHOT_GIO");
+  // Đợt C, Task 4: cờ «thiếu phí đưa đón» CHỤP lúc Gửi đơn (nhánh A vì có chặng chưa tính được phí) — người xét thấy đúng lý do như lúc gửi; Còn vé vẫn chốt phí thật lúc xác nhận.
+  if (y.transfer_fee_missing === 1 && !vi.includes("PHI_DON")) vi.push("PHI_DON");
+  return vi;
+};
 
 /**
  * KHOÁ KHI CHỜ (Đ3): đơn nháp đang có yêu cầu xác nhận mở ⇒ người lập không sửa / xác nhận / huỷ được — phải Rút lại. Gọi ngay SAU cổng 404 của nháp (`ghiDuocNhap`)

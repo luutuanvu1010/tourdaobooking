@@ -2,7 +2,64 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.0 ĐÃ LÊN PRODUCTION (ADR-0202: nội dung màn bảo trì do Toàn quyền tự sửa ở trang Tôi › Chế độ bảo trì — SĐT hỗ trợ, Zalo, website, chữ, công tắc ẩn/hiện; gồm luôn 2.99 chi tiết dịch vụ ADR-0201) — migration `0162` — triển khai 2026-11-13 21:42 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.10 ĐÃ LÊN PRODUCTION (câu báo trần giảm giá đổi thành «Giảm giá không được vượt quá tiền dịch vụ.»; thêm dòng kịch bản Chrome cho phí đưa đón vào `web/CLAUDE.md` — chủ chốt câu chờ 2 và 3 của Đợt C) — không migration — triển khai 2026-11-16 06:53 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy (đọc ở ô Terminal của phiên). Chỉ đổi chữ, không đổi dữ liệu. **Phí đưa đón vẫn chưa thu đồng nào** tới khi Quản trị đặt «ngày bắt đầu áp» (Đợt D).
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-16 06:53 (giờ Việt Nam)
+- Commit: aceda8584 web/CLAUDE.md: thêm dòng kịch bản Chrome cho phí đưa đón trên đơn và màn Phí đưa đón; nhật ký ghi bốn câu chủ chốt
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-15T15:12:48Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/43727701522
+- Tệp luật đã đổi — lý do của chủ: Chủ duyệt thêm dòng kịch bản kiểm Chrome cho phí đưa đón trên đơn và màn Phí đưa đón (web/CLAUDE.md)
+- Migration đã áp: không có
+- Worker Version ID: 72edb728-19aa-4d2c-8852-a19a0b9eacb1
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT, 2 cảnh báo có sẵn (R-VC-14 xe thiếu giấy tờ điều kiện xuất bến — 7; R-ORD-9 danh sách có tên nhiều hơn số khách — 1).
+- Phiên bản: 3.10 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: TỔNG 10 phút 37 giây (day-len 9 phút 55 giây, trong đó chờ GitHub kiểm 9 phút 49 giây; trien-khai 0 phút 42 giây) — vượt mục tiêu khoảng 10 phút của ADR-0179 Đ1.1 (máy cảnh báo, không chặn; phần lớn là chờ GitHub kiểm).
+- Lúc triển khai, chế độ bảo trì ĐANG BẬT (dự kiến tới 2026-11-16 13:34 giờ Việt Nam). Chưa thử iPhone thật.
+- Kế tiếp: Đợt D — Quản trị đặt đủ mức chung mỗi khu vực rồi «ngày bắt đầu áp».
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.9 ĐÃ LÊN PRODUCTION (Phí đưa đón Đợt C: đơn có lượt đón tự có dòng «Phí đưa đón» do máy tính, chụp lúc xác nhận, thiếu mức thì không xác nhận được; phí vào công nợ đại lý và biên nhận ở phần Tour Đảo, không hoa hồng, không bị giảm giá của đơn trừ — ADR-0147 Đ3, ADR-0203 ĐB2–ĐB3) — migration `0169` — triển khai 2026-11-15 21:44 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy (đọc ở ô Terminal của phiên). **Phí chưa thu đồng nào**: chỉ chạy khi Quản trị đặt «ngày bắt đầu áp» trên màn Phí đưa đón (Đợt D). Nhật ký thi công: `docs/superpowers/plans/2026-11-15-phi-don-dot-c-thi-cong-nhat-ky.md`.
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-15 21:44 (giờ Việt Nam)
+- Commit: 58d39e904 Sổ hàng rào và nhật ký Đợt C: lần quan sát thứ năm (cổng thiếu phí) và e2e đủ bộ trên bản cuối
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-15T14:00:55Z (có đổi quy trình kiểm)
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/43721284671
+- Đổi quy trình kiểm — lý do của chủ: «hoan thanh» (`scripts/audit-checks.mjs`, `scripts/audit-thuong-mai.mjs`, `scripts/thoi-gian-test.json`, `tests/e2e/danh-sach.mjs`, `tests/e2e/thoi-gian.json`)
+- Migration đã áp: 0169_phi_don_tren_don.sql
+- Điểm khôi phục Time Travel trước khi áp: 00002bf5-00000000-00005124-64576162caf4864c102ff6e712c4205e
+- Worker Version ID: 3378f825-4495-405d-8d13-c5a5aee7ff8a
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT, 2 cảnh báo. Luật mới R-ORD-PD-1, R-PRC-PD-3 đạt.
+- Phiên bản: 3.9 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: TỔNG 9 phút 54 giây (day-len 8 phút 52 giây, trong đó chờ GitHub kiểm 8 phút 45 giây; trien-khai 1 phút 02 giây)
+- Chủ chốt bốn câu chờ của Đợt C (15/11, «ok theo khuyến nghị»): giảm sau khi giao giữ như hiện nay; đổi câu trần giảm giá thành «Giảm giá không được vượt quá tiền dịch vụ.» (bản sau); thêm dòng kịch bản Chrome vào `web/CLAUDE.md`; dòng «Tính khi lưu» của biểu mẫu giữ nguyên, Quản trị đặt ngày áp sớm.
+- Kế tiếp: Đợt D — Quản trị đặt đủ mức chung mỗi khu vực rồi «ngày bắt đầu áp».
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.8 ĐÃ LÊN PRODUCTION (Đợt 1 sau kiểm toán 14/11: ADR-0204 mã giao dịch bắt buộc khi Kế toán xác nhận khoản nộp đại lý, dòng sổ của khoản nộp đã xác nhận không huỷ lẻ; ADR-0205 nháp lưu giá danh mục cũ — chặn Đối tác, Thực tập khi xác nhận, nhân viên chỉ được nhắc; dời ngày đi cân lại vé; dòng Sheet gõ sai giữ dịch vụ, cảnh báo đỏ ở Danh mục) — migration `0166` — triển khai 2026-11-15 12:02 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy (đọc ở ô Terminal của phiên). Các bản 3.1–3.7 do phiên khác triển khai; trạng thái của chúng ghi ở nhánh của phiên đó (chưa có trên dòng này khi ghi).
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-15 12:02 (giờ Việt Nam)
+- Commit: f68ec4c11 Nhập origin/main 266ecb465 (Bước 2–3 cách làm một người, ADR-0211 đề xuất) vào nhánh Đợt 1 sau kiểm toán
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-15T04:57:22Z (có đổi quy trình kiểm)
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/43678451777
+- Đổi quy trình kiểm — lý do của chủ: «hoan tat» (`scripts/audit-checks.mjs`, `scripts/thoi-gian-test.json`)
+- Tệp luật đã đổi — lý do của chủ: «hoan tat roi» (ADR-0204, ADR-0205, `docs/adr/README.md`)
+- Migration đã áp: 0166_ma_giao_dich_khoan_nop.sql
+- Điểm khôi phục Time Travel trước khi áp: 00002bbd-00000004-00005124-d7d23e2d2738d1a8fba3230a4a973e51
+- Worker Version ID: 0938a9c2-2d0c-43ca-9126-5f023b9304a4
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (2 cảnh báo có sẵn: R-VC-14 xe thiếu giấy tờ điều kiện xuất bến — 7; R-ORD-9 danh sách có tên nhiều hơn số khách — 1). Hai luật mới R-BIL-NP1, R-BIL-NP2 đạt.
+- Phiên bản: 3.8 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: TỔNG 9 phút 18 giây (day-len 7 phút 57 giây, trong đó chờ GitHub kiểm 7 phút 52 giây; trien-khai 1 phút 21 giây)
+- Kiểm lại sau triển khai (AI, chỉ đọc): `node scripts/kiem-phien-ban.mjs --sau-deploy` ĐẠT — production chạy 3.8. Lúc kiểm, chế độ bảo trì ĐANG BẬT (tới 2026-11-16 13:34 giờ Việt Nam). Chưa thử iPhone thật.
+- Kế tiếp: Đợt 2 của kế hoạch kiểm toán (diễn tập khôi phục, xuất dữ liệu ra ngoài Cloudflare, soát tiền hằng ngày) — phải xong trước hạn sổ HC-5.19 31/12; HC-4.2 hạn 30/11.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.0 ĐÃ LÊN PRODUCTION (ADR-0202: nội dung màn bảo trì do Toàn quyền tự sửa ở trang Tôi › Chế độ bảo trì — SĐT hỗ trợ, Zalo, website, chữ, công tắc ẩn/hiện; gồm luôn 2.99 chi tiết dịch vụ ADR-0201) — migration `0162` — triển khai 2026-11-13 21:42 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy (đọc ở ô Terminal của phiên). Bản 2.98 (màn bảo trì 2a) và 2.99 (chi tiết dịch vụ, migration 0160, kho R2 `tourdao-sales-anh-dich-vu`) lên trước đó trong ngày từ hai lần triển khai khác; hồ sơ này không có khối máy của hai lần đó.
 
@@ -356,6 +413,42 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Đổi hợp đồng (thêm, không đổi): `GET /api/pricing/ho-so/:id/hoa-hong` trả thêm `ganRieng` (lịch sử gắn riêng, kể cả dòng huỷ; KHÔNG lý do sửa vì Bán hàng cũng đọc khối này). Route, quyền không đổi.
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
+
+## ĐANG CHỜ NHẬP: Đăng ký đối tác tự phục vụ, đợt 1 (ADR-0206 … ADR-0210, Hiến chương 5.29); migration `0170_dang_ky`, `0171_tep_cho_dang_ky`, `0172_cap_mac_dinh_dang_ky`; mục nhật ký 3.11 (tách khỏi 3.10: production đã lên 3.10 ngày 16/11 nên cổng phiên bản dừng lần `trien-khai` đầu) — RUNBOOK
+
+Ghi 16/11/2026, nhánh `claude/account-signup-approval-flow-ee612c` (worktree `soan-adr-a-b-ed0d40`; đã nhập `main` `aceda8584` có `0169`). Chưa làm bước nào trên production. **Lần này CẦN triển khai và CÓ BA migration**, áp theo thứ tự tên: `0170_dang_ky` (tám bảng `dk_*`, gieo MỘT dòng chính sách với công tắc **Tắt**), `0171_tep_cho_dang_ky` (tệp chờ của phiếu, mục xác minh bắt buộc, bốn view, trigger đổi tên ⇒ «Cần xác minh lại»), `0172_cap_mac_dinh_dang_ky` (bảng «Cấp cho đối tác tự đăng ký», không gieo dòng). Ba tệp soạn dưới số 0167, 0168, 0170 và đổi số 16/11 khi nhập `main`; chưa tệp nào lên `main` hay production. Ba migration chỉ THÊM bảng / view / trigger, riêng trigger `pty_person_name_reverify` chạy cho mọi lần đổi tên người từ nay (hồ sơ đã xác minh HO_TEN đổi tên ⇒ «Cần xác minh lại»).
+- **Bước A.0 (làm 16/11, sửa lần hai cùng ngày):** gạch của đợt này nằm ở mục 3.11 của `src/shared/changelog.ts`, ngày 2026-11-16. Lần `trien-khai` đầu bị cổng phiên bản dừng («bản ở máy 3.10 không mới hơn production 3.10») vì bản 3.10 đã lên production trong lúc chờ; gạch đăng ký được tách ra khỏi mục 3.10 (mục 3.10 giữ nguyên như đang chạy). Người phát hành kiểm lại số lúc triển khai bằng `GET /api/auth/config`.
+- **Công tắc «Nhận đăng ký mới» gieo TẮT.** Sau triển khai không ai gửi được phiếu mới; lối «Đăng ký làm đối tác» ở màn Đăng nhập vẫn HIỆN ngay (trang `/dang-ky` nói «Tour Đảo tạm ngừng nhận đăng ký mới.»). Toàn quyền bật ở Quản lý tài khoản › khối «Nhận đăng ký mới».
+- **Không mở đăng ký trước khi đăng chính sách riêng tư thật** (bản luật sư duyệt). Máy chủ nay TỪ CHỐI mở khi chưa có chính sách riêng tư đang hiệu lực (409 `no_privacy_policy`), nhưng nếu production đang có một bản thử thì máy chủ không phân biệt được — chủ tự kiểm nội dung bản đang hiệu lực trước khi bật.
+- **Kho R2 `HO_SO`** (`tourdao-sales-ho-so`, binding đã có ở `wrangler.jsonc` từ ADR-0123): ảnh căn cước của phiếu vào đây. Bắt buộc có trước khi bật công tắc; kiểm bằng lệnh chỉ đọc `npx wrangler r2 bucket list` (phải thấy `tourdao-sales-ho-so`). Thiếu kho thì ảnh không lưu được (lần tải báo lỗi, dòng ảnh còn «tải dở dang»).
+- **Bí mật `TURNSTILE_SECRET_KEY` BẮT BUỘC cho đăng ký** (khác màn Đăng nhập, nơi thiếu khoá thì bỏ qua kiểm): thiếu khoá thì `POST /api/dang-ky/ma` trả **503** «Tạm ngừng nhận đăng ký» cho mọi người — không ai xin được mã (ADR-0206 Đ8, `xin-ma-route.ts`). Production đã có khoá này cho màn Đăng nhập; kiểm bằng lệnh chỉ đọc `npx wrangler secret list` (phải thấy `TURNSTILE_SECRET_KEY`) trước khi bật công tắc. Khoá site (`TURNSTILE_SITE_KEY`, ở `vars`) đi cùng mã.
+- **Thư mã xác nhận và ba thư báo** («cần bổ sung», «đã được duyệt», «không được duyệt» — ADR-0206 Đ13, rà soát cuối 16/11) dùng lại Email Service: binding `EMAIL` (`send_email` ở `wrangler.jsonc`) và bí mật CÓ SẴN `FEEDBACK_MAIL_FROM` (địa chỉ người gửi; `src/shared/gui-thu.ts` `cauHinhThu`). KHÔNG cần `FEEDBACK_NOTIFY_EMAIL`, không cần bí mật mới. Thiếu một trong hai thì máy chủ không gửi thư (ghi `dk_mail_failed`): người đăng ký không nhận được mã; thư báo hiện «Thư chưa gửi được» ở hàng chờ, gửi lại bằng «Gửi lại thư» (thư đã duyệt: «Gửi lại lời mời»). Thư thật CHƯA thử trên production (TRINH-CHU).
+- **Tác nhân `DON_PHIEU_DANG_KY`** chạy trong Cron có sẵn (`*/15 * * * *`, `src/index.ts` `scheduled`): cho phiếu bỏ dở hết hạn, ẩn danh phiếu kết thúc sau số ngày của chính sách (30), ẩn danh danh tính của phiếu đã duyệt quá hạn kích hoạt + ân hạn (30 ngày), xoá kho ảnh đã quyết gỡ, xoá mã email / lượt tải cũ. Mỗi lượt có việc ghi MỘT dòng nhật ký `agent_code = DON_PHIEU_DANG_KY` chỉ có số đếm. Không cần cấu hình thêm.
+- **Mười một việc CHỦ ĐÃ DUYỆT 16/11/2026 («Duyệt theo khuyến nghị»; trước đó chờ chủ duyệt)** (danh sách đủ theo người kiểm toàn nhánh 16/11, `final-review.md` «Owner-gated items»; dòng tương ứng ở `docs/SO-HANG-RAO.md`):
+  1. `src/xoa-mot-lenh-co-ten.test.ts` (2)/(2b): danh sách câu được đặt `erased_at` trên bảng `dk_*` (`DK_TEN_DUOC_PHEP`) nay có BA tên; kèm câu ẩn danh bản khai lúc duyệt dùng lại cho tác nhân dọn phiếu (dòng «Lớp 1»).
+  2. `src/architecture.test.ts` `XOA_CUNG_KY_THUAT`: hai câu xoá cứng có tên của bảng kỹ thuật (`dk_email_code`, `dk_upload_attempt`).
+  3. Bản chụp quyền của vai Quản lý bán hàng (`quan-ly-ban-hang`) nay gồm ô `partner.signup_tier.write`.
+  4. Mục hoãn ở `docs/quyen-hoan.json` cho ô `verification.requirement.write` (chưa có route ghi), hạn 31/12/2026.
+  5. Trần gói trang Đơn hàng `TRAN_ORDERS` = 114.528 byte mà gói đo được 114.890 (+362) — chủ duyệt nới 16/11/2026 («Duyệt theo khuyến nghị»); trần nay 114.890 (`src/goi-trang-nhe.test.ts`, có dòng ghi lời duyệt).
+  6. Gỡ dấu xung đột gộp ở `docs/adr/README.md` (việc của điều phối, tệp luật).
+  7. Cạnh phụ thuộc mới `dang-ky → maintenance` ở `ALLOWED_EDGES`.
+  8. Hai con số nới của `src/kho-tep-ho-so.test.ts` (chỗ đọc kho 1→2, chỗ đặt kho 2→3; ngoại lệ có tên `tep-cho.ts`).
+  9. Ngoại lệ `KHONG_DOI_KET_THUC_PHIEN` của `src/modules/accounts/phien-cung-lo.test.ts` (đặt PIN lần đầu cho tài khoản đang tắt).
+  10. Dòng 5.29 (trạng thái và dòng bảng thi hành) ở `docs/ARCHITECTURE.md` do AI viết.
+  11. (mới ở vòng sửa cuối 16/11, ngoài danh sách của người kiểm) Danh sách có tên `DK_THU` ở `src/route-write-guard.test.ts`: route «Gửi lại thư» không có chữ `party.view` ở thân route, cổng là `registration.queue.view`, ô theo bước kiểm trong `thu-bao.ts`.
+  Câu chủ còn phải quyết (không chặn gộp nhưng cần trả lời): tài khoản «Chưa kích hoạt» sau hết ân hạn (đóng + nhả số điện thoại hay giữ — mã đang giữ, I-2), khớp HO_TEN đúng từng chữ, Nhân sự gán được mọi vai bên ngoài, phiếu CHỜ XÁC MINH / CHỜ DUYỆT không bao giờ hết hạn, tài khoản giữ cả Nhân sự lẫn Kế toán xác minh được (M-8).
+- **Sau triển khai:** `audit-invariants --db remote` có thêm năm kiểm R-DK-1 … R-DK-5 (phải 0 vì chưa có phiếu nào). Thử thật trên iPhone (chụp căn cước bằng máy ảnh, ảnh HEIC, Face ID sau kích hoạt) CHƯA làm — việc của chủ trên bản thử `node scripts/dev-iphone.mjs` trước khi bật công tắc.
+- **Hoàn tác:** `wrangler rollback` an toàn khi công tắc còn Tắt (mã cũ không đọc bảng `dk_*`; bảng thừa không hại). Đã có phiếu thì lùi mã làm người đăng ký mất trang của mình, tài khoản «Chưa kích hoạt» vẫn tắt — bật lại công tắc sau khi lên lại bản mới. Migration không lùi (chỉ thêm).
+- **Kiểm đã có (16/11, máy):** typecheck ba phần; `npm test` đủ bộ một lần (kết quả ở báo cáo Task 13); `npm run test:e2e -- dang-ky` xanh trên D1 tạm; `audit-invariants --strict` trên D1 tạm sau kịch bản: mọi bất biến đạt. Người kiểm độc lập toàn nhánh do người điều phối chạy (kết luận CHƯA ĐẠT, năm việc Important); vòng sửa cuối 16/11 (thư báo, «Trả về xác minh», hàng chờ, các mục nhỏ) — kết quả ở `.superpowers/sdd/2026-11-15-dang-ky-dot-1-ke-hoach/final-fix-report.md`.
+
+## (ĐÃ LÊN 3.9, 15/11) Phí đưa đón, Đợt C — đưa phí vào đơn (ADR-0147 Đ3, ADR-0203 ĐB2–ĐB3); migration `0169_phi_don_tren_don`
+
+Ghi 15/11/2026, nhánh `claude/jolly-kepler-fffdb4` (worktree `two-factor-auth-expiry-328f96`). Chưa làm bước nào trên production. **Lần này CẦN triển khai và CÓ MỘT migration** `0169_phi_don_tren_don` (chỉ thêm: cột loại dòng và cột chụp phí trên `order_item`, bảng chốt lô `ord_xac_nhan_phi_gac`, cờ `ord_confirm_request.transfer_fee_missing`, trigger chỉ siết). Số `0169` đã kiểm 15/11 (`main` lớn nhất `0166`; `0167`–`0168` thuộc nhánh đăng ký tài khoản chưa gộp) — nhánh nào gộp trước thì kiểm lại số.
+- **Bước A.0 (mục nhật ký thay đổi, `src/shared/changelog.ts`) CHƯA làm** — người phát hành viết lúc triển khai. Thay đổi nhân viên thấy: đơn có lượt đưa đón có mục «Phí đưa đón» trên trang đơn và biên nhận (đơn chưa xác nhận ghi «dự kiến», mức 0 đồng ghi «Miễn phí»); biểu mẫu lập đơn ghi «Phí đưa đón — Tính khi lưu»; chặng chưa có mức thì không xác nhận được; màn Cấp độ đại lý có câu nhắc cấp cũng quyết định phí. Dòng phí trên đơn chỉ sinh khi có ngày bắt đầu áp; **nhưng dòng «Phí đưa đón — Tính khi lưu» của biểu mẫu và câu nhắc ở Cấp độ đại lý hiện ngay sau triển khai**, kể cả khi chưa đặt ngày (biểu mẫu không biết phí đang bật hay tắt) — xem câu chờ chủ ở nhật ký thi công.
+- **Điều không đổi sau khi lên production nếu chưa đặt ngày bắt đầu áp:** không đơn nào có dòng phí, tiền mọi đơn như cũ (phí chỉ sinh khi có ngày áp). **Đặt ngày bắt đầu áp là quyết định của chủ** và có hiệu lực ngay với mọi đơn lưu nháp / xác nhận từ hôm đó; trước đó phải có mức chung cho mọi khu vực đang bật.
+- **Câu chờ chủ:** xem mục «Câu chờ chủ» của `docs/superpowers/plans/2026-11-15-phi-don-dot-c-thi-cong-nhat-ky.md` (giảm sau khi giao có ăn vào phí không — Q1; câu báo trần giảm giá; dòng mới cho bảng kịch bản Chrome của `web/CLAUDE.md`).
+- **Hoàn tác:** lùi mã bằng `wrangler rollback` an toàn khi CHƯA có đơn nào mang dòng phí (mã cũ không biết `line_kind`; chưa kiểm mã cũ hiện và tính đơn có dòng phí ra sao). Đã có đơn mang dòng phí thì đừng lùi mã: tắt phí bằng «Tắt phí đưa đón» (đơn đã xác nhận giữ phí đã chụp). D1 không có «down»; gỡ cột / bảng chỉ bằng migration SAU theo expand–contract.
+- **Kiểm đã có:** typecheck, bài nhắm đúng và e2e lẻ của từng task (nhật ký thi công), kịch bản Chrome `phi-don-don-smoke` (có kiểm màu). Bộ kiểm đủ và người kiểm độc lập (việc tiền + dữ liệu) do người điều phối chạy — kết quả ghi ở nhật ký thi công mục «Kết quả bộ kiểm cuối». Chưa thử iPhone thật.
 
 ## ĐANG CHỜ NHẬP: Phí đưa đón, Đợt A + B (ADR-0147 Đ1–Đ2, ADR-0203 ĐB1–ĐB2); migration `0164_vung_don`, `0165_phi_don_bang`; mục nhật ký mới 3.7 (số tạm)
 

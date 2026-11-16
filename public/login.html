@@ -38,6 +38,8 @@
       </form>
       <!-- Lời mời bật Face ID sau khi đăng nhập bằng PIN thành công (A-2: đặt NGOÀI form vì showInvite ẩn chính form login-form). -->
       <section id="passkey-invite" class="card login-invite" hidden></section>
+      <!-- Lối vào đăng ký đối tác (ADR-0206 Đ14; PHU-LUC lượt A «Đăng ký làm đối tác»): LUÔN hiện; công tắc đóng thì trang /dang-ky tự nói «tạm ngừng nhận đăng ký mới». -->
+      <p class="login-dang-ky"><a id="lien-ket-dang-ky" href="/dang-ky">Đăng ký làm đối tác</a></p>
       <div id="support" class="login-support"><span>Hỗ trợ kỹ thuật</span><a href="tel:0989929373">0989 929 373</a></div>
       <!-- Dòng phiên bản do web/login.ts điền từ src/shared/app-info.ts (nhật ký thay đổi), theo định dạng của bản thiết kế. -->
       <span id="release" class="login-release"></span>
