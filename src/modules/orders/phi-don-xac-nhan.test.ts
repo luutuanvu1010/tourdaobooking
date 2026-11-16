@@ -363,6 +363,103 @@ test("Còn vé trước ngày áp: mức gửi kèm vẫn được kiểm, khôn
   assert.doesNotMatch(String(nhatKyXacNhan(w2, k.id)[0].detail), /phí đưa đón/);
 });
 
+// ---- Vòng sửa Task 4: lời khai đặt cọc và hạn mức Trả sau ở cửa Còn vé so với tổng MỚI (gồm phí văn phòng chọn); chặng đã đóng ----
+
+/** Giả lập nháp Đợt C còn dòng phí theo bảng cũ: chèn dòng BANG_PHI 100.000 × 2 cho chặng đầu, cộng vào tạm tính / tổng (khớp Σ dòng như máy chủ từng ghi). Trả mã mức bảng. */
+async function chenDongBangCu(w: W, orderId: string) {
+  await ok(w.call("POST", "/api/pricing/phi-don", { as: ADM, body: { kind: "PER_PAX", amount: 100_000, validFrom: "2026-01-01", validTo: null, note: null, dieuKien: [{ khoa: "ZONE", giaTri: "NGOAI_VUNG" }] } }), 201, "mức bảng cũ");
+  const maMuc = (await ok(w.call("GET", "/api/pricing/phi-don", { as: ADM }), 200)).json.muc[0].id;
+  const legId = w.q("SELECT id FROM ord_transfer_leg WHERE order_id = ? AND closed_at IS NULL ORDER BY rowid LIMIT 1", orderId)[0].id;
+  w.sqlite.prepare(`INSERT INTO order_item (id, order_id, line_kind, transfer_leg_id, fee_rule_id, fee_kind, fee_zone_code, description, quantity, unit_price, line_total, sort_order, fee_source)
+    VALUES (?, ?, 'TRANSFER_FEE', ?, ?, 'PER_PAX', 'NGOAI_VUNG', 'Phí đưa đón — chiều đi, Ngoài khu vực', 2, 100000, 200000, 9, 'BANG_PHI')`).run(crypto.randomUUID(), orderId, legId, maMuc);
+  w.sqlite.prepare("UPDATE orders SET subtotal = subtotal + 200000, total = total + 200000, remaining_amount = remaining_amount + 200000 WHERE id = ?").run(orderId);
+}
+
+test("[vòng sửa 1a] Đối tác khai cọc, Còn vé kèm mức ⇒ xác nhận; khoản trả trước = cọc, sổ thu: phải thu = tổng GỒM phí, còn lại = tổng − cọc", async () => {
+  const w = await setup();
+  const o = await lap(w, [OUT()], { declaredDeposit: 300_000 }, DT);
+  await ok(w.call("POST", `/api/orders/${o.id}/gui-don`, { as: DT, body: {} }), 201, "gửi đơn");
+  const v = (await ok(w.call("GET", `/api/orders/${o.id}`, { as: ADM }), 200)).json;
+  await ok(w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon: [{ legId: v.order.services[0].legs[0].id, muc: DS(30_000) }] } }), 200, "Còn vé");
+  assert.deepEqual(dongPhi(w, o.id), [DONG_30K]);
+  // `remaining_amount` là cột cọc CŨ (NT-R9, chỉ theo tổng); lời khai cọc (ADR-0159) vào sổ thu — «còn phải thu» thật đọc từ sổ thu.
+  assert.deepEqual(tien(w, o.id), { subtotal: 1_060_000, discount: 0, total: 1_060_000, remaining_amount: 1_060_000 });
+  assert.equal(w.q("SELECT COALESCE(SUM(amount), 0) AS n FROM bil_payment_receipt WHERE order_id = ?", o.id)[0].n, 300_000, "khoản trả trước = lời khai cọc");
+  const so = (await ok(w.call("GET", `/api/orders/${o.id}/payments`, { as: SUP }), 200, "sổ thu")).json;
+  assert.deepEqual([so.phaiThu, so.daThu, so.conLai], [1_060_000, 300_000, 760_000], JSON.stringify(so));
+});
+
+test("[vòng sửa 1b] nháp Đối tác còn dòng bảng phí cũ, cọc khai bằng tổng cũ (gồm dòng đó) ⇒ Gửi đơn 409 declared_deposit_exceeds_total (tổng mới không gồm dòng cũ), ở lại nháp", async () => {
+  const w = await setup();
+  const o = await lap(w, [OUT()], { declaredDeposit: 1_000_000 }, DT);
+  await chenDongBangCu(w, o.id);
+  w.sqlite.prepare("UPDATE orders SET declared_deposit = 1200000 WHERE id = ?").run(o.id);
+  const r = await w.call("POST", `/api/orders/${o.id}/gui-don`, { as: DT, body: {} });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "declared_deposit_exceeds_total");
+  assert.equal(trangThai(w, o.id), "draft");
+  assert.equal(w.q("SELECT count(*) AS n FROM ord_confirm_request WHERE order_id = ?", o.id)[0].n, 0);
+});
+
+test("[vòng sửa 1b] đơn Đối tác ĐANG CHỜ còn dòng bảng phí cũ, cọc 1.100.000; Còn vé chọn 30.000 (tổng mới 1.060.000) ⇒ 409 declared_deposit_exceeds_total, không dòng mới, tiền nháp y như trước", async () => {
+  const w = await setup();
+  const { o, xem, conVe } = await donChoCuaDoiTac(w);
+  await chenDongBangCu(w, o.id);
+  // Dữ liệu cũ: yêu cầu mở dưới Đợt C khi tổng (gồm phí bảng) 1.200.000 cho phép khai 1.100.000. Lời khai khoá khi đang chờ ⇒ tạm gỡ trigger khoá của khung thử rồi dựng lại y nguyên.
+  const khoa = w.q("SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = 'orders_declared_deposit_locked'")[0].sql as string;
+  w.sqlite.exec("DROP TRIGGER orders_declared_deposit_locked");
+  w.sqlite.prepare("UPDATE orders SET declared_deposit = 1100000 WHERE id = ?").run(o.id);
+  w.sqlite.exec(khoa);
+  const truoc = { tien: tien(w, o.id), dong: moiDong(w, o.id) };
+  const l0 = (await xem()).order.services[0].legs[0];
+  const r = await conVe({ phiDon: [{ legId: l0.id, muc: DS(30_000) }] });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "declared_deposit_exceeds_total");
+  // Câu của NGƯỜI XÉT (cổng route so với tổng mới, trước khi ghi) — không phải câu của lớp CSDL (trigger 0136 bắt khi câu tiền hạ tổng dưới lời khai, lớp lưới thứ hai).
+  assert.equal(r.json.error.message, "Số tiền khách đặt cọc cho đối tác đang lớn hơn tổng tiền của đơn. Hãy trả đơn để người lập sửa số khai, rồi xác nhận lại.");
+  assert.equal(w.q("SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = ?", o.id)[0].n, 0, "không khoản thu nào");
+  assert.equal(trangThai(w, o.id), "draft");
+  assert.deepEqual(tien(w, o.id), truoc.tien);
+  assert.deepEqual(moiDong(w, o.id), truoc.dong);
+});
+
+test("[vòng sửa 2] Còn vé + Trả sau: mức văn phòng chọn đẩy tổng vượt hạn mức ⇒ 409 vuot_han_muc, không dòng phí, tiền nháp không đổi; mức vừa hạn mức ⇒ xác nhận", async () => {
+  const w = await setup();
+  assert.equal((await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN_DT, hanMuc: 1_100_000, gioTra: 168, gioAnHan: 0, lyDo: "thử" } })).status, 201);
+  const o = await lap(w, [OUT()], { paymentTerm: "CREDIT" }, DT);
+  await ok(w.call("POST", `/api/orders/${o.id}/gui-don`, { as: DT, body: {} }), 201, "gửi đơn (tổng dịch vụ 1.000.000 vừa hạn mức)");
+  const xem = async () => (await ok(w.call("GET", `/api/orders/${o.id}`, { as: ADM }), 200)).json;
+  const truoc = { tien: tien(w, o.id), dong: moiDong(w, o.id) };
+  const conVe = async (muc: unknown) => {
+    const v = await xem();
+    return w.call("POST", `/api/orders/${o.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon: [{ legId: v.order.services[0].legs[0].id, muc }] } });
+  };
+  const r = await conVe(DS(100_000));
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "vuot_han_muc");
+  assert.equal(trangThai(w, o.id), "draft");
+  assert.deepEqual(dongPhi(w, o.id), []);
+  assert.deepEqual(tien(w, o.id), truoc.tien);
+  assert.deepEqual(moiDong(w, o.id), truoc.dong);
+  await ok(conVe(DS(50_000)), 200, "1.100.000 vừa hạn mức");
+  assert.equal(tien(w, o.id).total, 1_100_000);
+});
+
+test("[vòng sửa 3] Còn vé gửi mức cho chặng ĐÃ ĐÓNG của chính đơn ⇒ 400, không đổi gì (chặng đóng dựng thẳng bằng SQL — nháp không có đường đóng chặng qua API)", async () => {
+  const w = await setup();
+  const { o, xem, conVe } = await donChoCuaDoiTac(w, [OUT(), RET()]);
+  const legs = (await xem()).order.services[0].legs;
+  const ve = legs.find((l: any) => l.direction === "RETURN");
+  w.sqlite.prepare("UPDATE ord_transfer_leg SET closed_at = ?, close_reason_code = 'WRONG_ENTRY' WHERE id = ?").run(new Date().toISOString(), ve.id);
+  const di = (await xem()).order.services[0].legs;
+  assert.deepEqual(di.map((l: any) => l.direction), ["OUT"], "chặng về đã đóng, đơn còn một chặng mở");
+  const r = await conVe({ phiDon: [{ legId: di[0].id, muc: DS(30_000) }, { legId: ve.id, muc: DS(30_000) }] });
+  assert.equal(r.status, 400, r.text);
+  assert.match(r.json.error.message, /không có trong đơn/);
+  assert.equal(trangThai(w, o.id), "draft");
+  assert.deepEqual(dongPhi(w, o.id), []);
+});
+
 test("câu báo thiếu phí (CHUA_CHON): đúng chữ ADR-0214 Đ3, chiều viết thường", () => {
   assert.equal(cauThieuPhiDon({ direction: "OUT", tenDichVu: "Tour lặn biển" }), CAU_DI);
   assert.equal(cauThieuPhiDon({ direction: "RETURN", tenDichVu: "Tour lặn biển" }), CAU_VE);

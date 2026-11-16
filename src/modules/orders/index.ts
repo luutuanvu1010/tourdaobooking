@@ -85,7 +85,6 @@ type LenhChang = { res: Response } | { sua: Parameters<typeof changeLeg>[4] | nu
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, Hướng dẫn viên của đơn hoặc quản trị viên mới được thay đổi đơn này.");
 const CANNOT_CREATE = () => error(403, "forbidden", "Tài khoản này không được lập đơn.");
-/** ADR-0214 Đ2 (ruling P4): tài khoản Đối tác (giữ quyền PARTNER) gửi mức phí đưa đón ⇒ từ chối, không lặng lẽ bỏ. Câu của kế hoạch (Task 6 đưa vào bảng tham chiếu). */
 
 /**
  * Câu nhật ký mức phí đưa đón của lần lập / lưu nháp (ADR-0214 Đ2): mỗi chặng của thân — mức cũ (đã lưu theo id chặng) so với mức sẽ ghi. Chỉ khi phí đang áp (chưa áp thì không dòng
