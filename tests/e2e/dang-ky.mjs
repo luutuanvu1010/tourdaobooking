@@ -62,7 +62,7 @@ const csMo = r.body.id;
 r = await call(null, "GET", "/api/dang-ky/cau-hinh");
 assert.equal(r.status, 200, than(r));
 assert.equal(r.body.nhanDangKy, true);
-assert.ok(r.body.loaiMo.includes(VAI));
+assert.ok(r.body.loaiMo.some((x) => x.ma === VAI));
 const phienBanRiengTu = r.body.chinhSachRiengTu;
 assert.equal(typeof phienBanRiengTu, "number");
 console.log("✓ 1. Toàn quyền mở «Nhận đăng ký mới» qua route chính sách; trang công khai thấy công tắc Bật và phiên bản chính sách riêng tư");
