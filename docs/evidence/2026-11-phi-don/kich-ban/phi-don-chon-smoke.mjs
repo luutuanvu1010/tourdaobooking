@@ -5,7 +5,7 @@
 //   2) Trang đơn nháp: «Phí đưa đón (dự kiến)» — chiều đi 2 khách × 70.000, chiều về 2 khách × 30.000 (số do máy chủ tính). 1280 + 375.
 //   3) Mở lại biểu mẫu ở 375: ô của hai lượt hiện ĐÚNG mức đã lưu (Số khác 70.000, 30.000 đ) — lần lưu sau không xoá mức. Ảnh ô mở danh sách và câu trần ở 375.
 //   4) Bán hàng bấm «Xác nhận đơn» qua hộp hỏi lại ⇒ mục thành «Phí đưa đón» (đã chụp).
-//   5) Đối tác lập đơn có lượt đón và Gửi đơn bằng API (không gửi mức; đơn vào «chờ xác nhận»). Quản trị mở đơn: bảng «Xác nhận đơn» có ô phí cho lượt chưa có mức; bấm
+//   5) Đối tác lập đơn có lượt đón và Gửi đơn bằng API (không gửi mức; đơn vào «chờ xác nhận»). Một Bán hàng KHÁC (người xét, không lập đơn — ruling T4-c1) mở đơn: bảng «Xác nhận đơn» có ô phí cho lượt chưa có mức; bấm
 //      «Còn vé, xác nhận đơn» khi chưa chọn ⇒ câu «Chọn phí đưa đón cho lượt đón chiều đi của dịch vụ … trước khi xác nhận.», không gọi máy chủ; chọn 20.000 đ ⇒ xác nhận,
 //      đơn có dòng 2 khách × 20.000. Ảnh bảng ở 1280 + 375.
 // Dùng khung dp-lib.mjs (D1 tạm + wrangler dev + Chrome headless; Turnstile TẮT; không đụng dữ liệu thật; không cần mạng ngoài).
@@ -13,7 +13,7 @@
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=<…/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh> OUT=docs/evidence/2026-11-phi-don node docs/evidence/2026-11-phi-don/kich-ban/phi-don-chon-smoke.mjs
 // `AXE_JS` thiếu thì BỎ QUA kiểm màu và tên bước ghi «(chưa chạy axe: thiếu AXE_JS)». Ảnh `phi-don-chon-*.png` ra thư mục `OUT` (mặc định docs/evidence/2026-11-phi-don).
 // Ảnh «mở danh sách»: ô chọn của máy không chụp được khi đang mở trong Chrome không đầu, nên kịch bản tạm đặt `size` cho ô để vẽ danh sách ra trang rồi trả lại (chỉ để chụp).
-// Luật một máy (ADR-0075): đăng nhập lại đá phiên cũ — mọi lệnh API làm TRƯỚC khi mở trang; trang Bán hàng mở trước, trang Quản trị mở sau cùng.
+// Luật một máy (ADR-0075): đăng nhập lại đá phiên cũ — mọi lệnh API làm TRƯỚC khi mở trang; trang Bán hàng A mở trước, trang Bán hàng B (người xét) mở sau cùng.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, assert, axe, axeNote, boDem, click, dungMoiTruong, noCode, noOverflowX, sleep, typeInto, vnDate } from "../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs";
@@ -163,12 +163,12 @@ try {
   });
   p.close();
 
-  // ---- 5) Quản trị: Còn vé với ô chọn phí cho đơn Đối tác (mở SAU CÙNG) --------------------------------------------------------------------------------------------
-  p = await env.as(ACCOUNTS.admin, `/order?id=${d2.id}`, DESK);
+  // ---- 5) Bán hàng khác (người xét, không lập đơn): Còn vé với ô chọn phí cho đơn Đối tác (mở SAU CÙNG) --------------------------------------------------------------------------------------------
+  p = await env.as(ACCOUNTS.salesB, `/order?id=${d2.id}`, DESK); // Bán hàng KHÔNG phải người lập (ruling T4-c1, SV-PC-10): DTO người xét vẫn có phiDuaDon.thieu
   const chonGio = "(() => { for (const s of document.querySelectorAll('.cx-luot[data-leg-id] select')) { if (s.options.length > 1 && s.value === '') { s.value = s.options[1].value; s.dispatchEvent(new Event('change', { bubbles: true })); } } return true; })()";
   const oCv = "document.querySelector('[data-khoi=phi-don-con-ve] select[data-phi-don=chon]')";
   for (const khung of [DESK, MOB]) {
-    await b.step(`5-${khung.width}`, `${khung.width} Quản trị mở đơn Đối tác đang chờ: bảng «Xác nhận đơn» có ô phí cho lượt chưa có mức; chưa chọn mà bấm Còn vé ⇒ câu báo tại chỗ${axeNote()}`, async () => {
+    await b.step(`5-${khung.width}`, `${khung.width} Bán hàng khác (không lập đơn) mở đơn Đối tác đang chờ: bảng «Xác nhận đơn» có ô phí cho lượt chưa có mức; chưa chọn mà bấm Còn vé ⇒ câu báo tại chỗ${axeNote()}`, async () => {
       if (khung === MOB) await doiKhung(p, MOB);
       await p.waitFor("!!document.querySelector('[data-khoi=phi-don-con-ve]')", "ô phí trong bảng Còn vé", 15000);
       assert.equal(await p.ev(`document.querySelectorAll('[data-khoi=phi-don-con-ve] select[data-phi-don=chon]').length`), 1, "một lượt chưa có mức");

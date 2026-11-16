@@ -15,7 +15,8 @@ import { taoKhungDatGap } from "./dat-gap-ui";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
 import { TEN_PHI_DUA_DON, cauThieuPhiDon } from "../src/shared/phi-don-hien-thi";
 import { CHON_SO_KHAC, LUA_CHON_PHI_DON, NHAN_CHUA_CHON_PHI, NHAN_SO_KHAC, mucTuO } from "../src/shared/phi-don-o-chon";
-import type { MucChon } from "../src/shared/phi-don-chon";
+import { CAU_VAN_PHONG_CHON_PHI_DON, type MucChon } from "../src/shared/phi-don-chon";
+import { formGonDoiTac } from "../src/shared/form-dat-ve";
 
 /** Những gì trang đơn cung cấp: tải lại đơn, báo thành công / lỗi. */
 export interface BoiCanhXacNhan {
@@ -324,7 +325,7 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
       baoLoiTaiCho(err);
       // Các câu 409 này nói người xét còn thiếu giờ / thiếu đặt gấp (ADR-0154 Đ1.3, Đ1.4; ADR-0193 câu (ii) `chua_gio_sat_ngay`) / thiếu phí đưa đón (ADR-0214 Đ3 `transfer_fee_missing`), KHÔNG phải đơn vừa đổi: giữ bảng để không mất giờ, phí vừa chọn.
       // 409 / 404 khác: đơn đã đổi → tải lại.
-      const thieuNhapLieu = err instanceof ApiError && (err.code === "pickup_time_required" || err.code === "short_notice_required" || err.code === "chua_gio_sat_ngay" || err.code === "transfer_fee_missing");
+      const thieuNhapLieu = err instanceof ApiError && (err.code === "pickup_time_required" || err.code === "short_notice_required" || err.code === "chua_gio_sat_ngay" || (err.code === "transfer_fee_missing" && oPhi.length > 0));
       if (err instanceof ApiError && (err.status === 409 || err.status === 404) && !thieuNhapLieu) await c.lamMoi();
     }
   };
@@ -356,8 +357,13 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
   });
   // ADR-0214 Đ2 (Task 6): lượt đón còn mở chưa có phí (máy chủ báo trong `phiDuaDon.thieu` — đã xét ngày bắt đầu áp và dòng bảng phí cũ) ⇒ người xét chọn phí ngay trong bảng, gửi cùng lệnh Còn vé.
   // Lượt đã có mức thì không hiện ô (máy chủ trả 400 nếu gửi lại).
-  const oPhi = (order.phiDuaDon?.thieu ?? []).map(taoOPhiConVe);
-  const hangPhi = oPhi.length > 0 ? h("div", { class: "cx-gio", "data-khoi": "phi-don-con-ve" }, ...oPhi.map((x) => x.el)) : null;
+  // Người xét giữ quyền Đối tác (tài khoản lai) không được gửi mức (máy chủ trả 400 `transfer_fee_not_allowed`) ⇒ không ô, chỉ câu nhắc — cùng luật `formGonDoiTac` của biểu mẫu.
+  const thieuPhi = order.phiDuaDon?.thieu ?? [];
+  const doiTacXet = formGonDoiTac(c.staff);
+  const oPhi = doiTacXet ? [] : thieuPhi.map(taoOPhiConVe);
+  const hangPhi = oPhi.length > 0
+    ? h("div", { class: "cx-gio", "data-khoi": "phi-don-con-ve" }, ...oPhi.map((x) => x.el))
+    : doiTacXet && thieuPhi.length > 0 ? h("p", { class: "muted", "data-khoi": "phi-don-con-ve" }, CAU_VAN_PHONG_CHON_PHI_DON) : null;
   const nutConVe = h("button", { type: "button", class: "btn btn-accent", "data-action": "quyet-dinh-con-ve" }, NHAN_KET_QUA.CON_VE);
   nutConVe.addEventListener("click", async () => {
     // Lượt BẮT BUỘC chưa có giờ: báo tại chỗ, không gọi máy chủ (máy chủ vẫn từ chối 409 `pickup_time_required` nếu ai gửi thẳng).
