@@ -3,6 +3,7 @@
 import { mayPickHandlerOnCreate } from "../src/shared/assignee-pick";
 import type { SuKienDon } from "../src/shared/bang-tin";
 import type { AssigneeDto, CatalogServiceDto } from "../src/shared/contracts";
+import { CAU_GIAM_GIA_VUOT_TIEN_DICH_VU } from "../src/shared/order-lines";
 import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
 import { chipDatGap, theMoKhiNap } from "../src/shared/dong-gap-the";
 import { CHIEU_LABEL, type LyDoDatGap } from "../src/shared/chang-dua-don";
@@ -581,7 +582,7 @@ function datLoiO(id: string, cau: string | null): void {
 function loiTienForm(): { cau: string[] } {
   const lines: string[] = [];
   const s = orderSummary(drafts(), num("discount"), 0);
-  if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
+  if (s.discount > s.subtotal) lines.push(CAU_GIAM_GIA_VUOT_TIEN_DICH_VU); // tạm tính xem trước của biểu mẫu chỉ là tiền dịch vụ
   if (coODatCoc && vuotTong(num("declaredDeposit"), s.total)) lines.push(CAU_VUOT_TONG);
   return { cau: lines };
 }

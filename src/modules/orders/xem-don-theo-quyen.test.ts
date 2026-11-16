@@ -294,6 +294,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "me.favorites.write": "own", // ADR-0187 Đ2.3: Đối tác tự chọn nút thanh dưới của CHÍNH MÌNH (ô tự phục vụ, không chạm đơn / tiền)
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): Đối tác không xử lý phiếu xoá dữ liệu của người khác
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1: Đối tác không xác minh hồ sơ
+    "registration.queue.view": "none", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: Đối tác không xử lý phiếu đăng ký; ADR-0210 Đ1: chỉ Toàn quyền đặt mục bắt buộc
     "vehicle.manage": "none", // ADR-0040 D1: quản lý xe chỉ Quản trị + Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
@@ -315,7 +316,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "trip.transfer": "none", // ADR-0052 D4 / ADR-0111: Đối tác không điều xe
     "assistant.ask": "any", // ADR-0066 điều 1: hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: sổ phiên chỉ Toàn quyền
-    "partner.commission.view": "none", "partner.commission.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: Đối tác không thấy bảng mức, người bán (ADR-0077 điều 11; tỷ lệ chỉ văn phòng)
+    "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: Đối tác không thấy bảng mức, người bán (ADR-0077 điều 11; tỷ lệ chỉ văn phòng)
     "credit.limit.write": "none", // ADR-0168: hạn mức trả sau do Toàn quyền đặt
     "credit.limit.view": "none",
     "credit.ceiling.write": "none", // ADR-0172: chỉ Toàn quyền

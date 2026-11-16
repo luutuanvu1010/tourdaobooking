@@ -3,14 +3,14 @@
 // audit vào một db.batch() — đổi tài khoản và ghi dấu vết thành công/thất bại cùng nhau. Tên người thuộc hồ sơ (module parties):
 // tạo/đổi tên tài khoản gọi hàm của parties (cạnh staff → parties, ADR-0002); staff.full_name/role là cột chết (ADR-0005).
 import {
-  accountRolesOf, closeAccountRoleStatement, hoSoCaNhanKhop, hoSoMangNhanDoiTac, newPersonStatements, openAccountRoleStatement, openRoleCodesByParty, partySummary, renamePersonStatements,
+  accountRolesOf, closeAccountRoleStatement, dauXacMinhTheoHoSo, hoSoCaNhanKhop, hoSoMangNhanDoiTac, newPersonStatements, openAccountRoleStatement, openRoleCodesByParty, partySummary, renamePersonStatements,
   reopenAccountRoleStatement, splitPersonName, tenLoaiVai, validatePersonFullName, type AccountRole,
 } from "../parties";
 import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
-  insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinStatement as setPinRow, taiKhoanChoXacMinhRows, touchCredentialsStatement, updateStaffStatement, upsertThanhDuoiStatement,
+  insertStaffInactiveStatement, insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinActivateStatement, setPinStatement as setPinRow, taiKhoanChoXacMinhRows, touchCredentialsStatement, updateStaffStatement, upsertThanhDuoiStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import {
@@ -59,6 +59,15 @@ export const chuPhienTheoId = (
   ids: readonly string[],
 ): Promise<Map<string, { label: string; credentialsChangedAt: number | null; permissions: PermissionCode[] }>> =>
   sessionOwnersByIds(db, ids);
+
+/**
+ * HÀM CÔNG BỐ (ADR-0210 Đ3): dấu xác minh của hồ sơ gắn các tài khoản — CHỈ route Quản lý tài khoản (cổng `account.view`) gọi. Mọi hồ sơ ở đây CÓ tài khoản nên khách lẻ không xuất hiện.
+ * Trả theo mã hồ sơ; tài khoản chưa có hồ sơ (`partyId` null) không có dấu.
+ */
+export async function dauXacMinhTaiKhoan(db: D1Database, partyIds: readonly (string | null)[], homNay: string): Promise<Map<string, import("../../shared/dau-xac-minh").DauXacMinh | null>> {
+  const ids = partyIds.flatMap((p) => (p ? [p] : []));
+  return dauXacMinhTheoHoSo(db, ids, homNay, new Set(ids));
+}
 
 /** HÀM CÔNG BỐ (ADR-0068 Đ8) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo.soDangNhap): SĐT đăng nhập theo hồ sơ, cho lý do "số đăng nhập trùng số liên hệ". */
 export const soDangNhapTheoHoSo = (db: D1Database): Promise<{ partyId: string; phone: string }[]> => phonesByParty(db);
@@ -208,6 +217,35 @@ export async function createAccountStatements(
     ],
   };
 }
+
+/**
+ * Tạo tài khoản TẮT trên hồ sơ CÓ SẴN (ADR-0207 Đ5; đợt 1 Task 7) cho lô duyệt phiếu đăng ký: chỉ `staff` (`active = 0`) + `stf_permission` theo quyền hiệu lực của vai.
+ * Không sinh hồ sơ, không mở vai (`parties` mở vai TRƯỚC trong cùng lô — LC-1 đòi vai đã mở); không chỉnh tay. PIN ngẫu nhiên chỉ để lấp cột, được băm và KHÔNG trả ra:
+ * không ai trong công ty biết PIN nào cho tới khi người đăng ký tự đặt (`datPinKichHoatStatements`). Trả câu CHƯA CHẠY, không đọc gì phụ thuộc câu khác của lô; `id` sinh sẵn.
+ */
+export async function createAccountOnPartyStatements(
+  db: D1Database,
+  input: { partyId: string; phone: string; roles: readonly RoleCode[] },
+  actorId: string,
+  at: string,
+): Promise<{ id: string; statements: D1PreparedStatement[]; permissions: PermissionCode[] }> {
+  const { permissions } = effectivePermissions(input.roles, { adds: [], removes: [] });
+  if (permissions.length === 0) throw new Error("createAccountOnPartyStatements: vai trò không mang quyền nào"); // LC-1c không bắt được tài khoản không quyền
+  // Chỉ vai bên ngoài (đợt 1: bốn loại đối tác mở): biến thể này không ghi ân hạn lớp hai nên không nhận quyền nội bộ.
+  if (coQuyenNoiBo(permissions)) throw new Error("createAccountOnPartyStatements: chỉ dùng cho vai trò bên ngoài");
+  const id = crypto.randomUUID();
+  return {
+    id,
+    permissions,
+    statements: [
+      insertStaffInactiveStatement(db, { id, phone: input.phone, pinHash: await hashPin(generatePin()), createdAt: at, partyId: input.partyId }),
+      ...permissions.map((code) => insertPermissionStatement(db, id, code, actorId, at, false)),
+    ],
+  };
+}
+
+/** Kích hoạt (ADR-0207 Đ6): đặt PIN người đăng ký tự chọn (đã băm), bật tài khoản, đẩy `credentials_changed_at` (= `at`, mili giây). Chỉ tác động tài khoản đang TẮT. */
+export const datPinKichHoatStatements = (db: D1Database, staffId: string, pinHash: string, at: number): D1PreparedStatement[] => [setPinActivateStatement(db, staffId, pinHash, at)];
 
 /**
  * Đổi tên hiển thị của tài khoản = đổi tên hồ sơ (parties). Trả null nếu tài khoản chưa có hồ sơ (khoảng giữa hai lần triển khai N1).

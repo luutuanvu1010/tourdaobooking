@@ -10,6 +10,7 @@ import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
 import type { BanChup } from "./hoa-hong-dong.ts";
+import type { DauXacMinh } from "./dau-xac-minh.ts";
 import type { MaintenanceContent } from "./maintenance.ts";
 import type { KhungGio, LuaChonDon } from "./khung-gio-don.ts";
 import type { QuyTacDuaDon } from "./dua-don-dich-vu.ts";
@@ -308,7 +309,7 @@ export type MaintenanceContentRequest = MaintenanceContent;
  * POST /api/staff/:id/mfa-reset sẽ nhận (ADR-0074 đ5, ADR-0090 đ1 iv). `mfa` (kế hoạch Task 6): `enabled` = có ít nhất một yếu tố sống; `graceUntil` = hạn ân
  * hạn đang lưu (có thể đã qua) khi tài khoản nội bộ chưa bật, null khi đã bật hoặc tài khoản bên ngoài.
  */
-export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean; canResetMfa: boolean; mfa: { enabled: boolean; graceUntil: string | null } }
+export interface StaffListRowDto extends StaffAccountDto { datLaiPinDuoc: boolean; canResetMfa: boolean; /** ADR-0207 Đ7: tài khoản sinh từ phiếu đăng ký đã duyệt, chưa tự đặt PIN (giao diện gọi «Chưa kích hoạt», không phải «Ngưng»). */ chuaKichHoat: boolean; mfa: { enabled: boolean; graceUntil: string | null }; /** ADR-0210: dấu xác minh của hồ sơ gắn tài khoản (máy chủ tính; null = chưa có hồ sơ). */ dauXacMinh: DauXacMinh | null }
 /** `tenVai`: tên HIỆN HÀNH (CSDL) của mọi mã vai tài khoản — giao diện dùng thay ROLES[c].name (Task 3b kế hoạch 2026-10-31). */
 export interface StaffListResponse { staff: StaffListRowDto[]; tenVai: Record<string, string> }
 export interface StaffResponse { staff: StaffAccountDto }
@@ -1141,6 +1142,8 @@ export interface PartyListItemDto {
   primaryPhone: string | null;
   /** Mã vai trò đang hiệu lực hôm nay (giờ VN). */
   roleCodes: string[];
+  /** ADR-0210: dấu xác minh do MÁY CHỦ tính (giao diện không tự tính). null = khách lẻ, không hiện dấu. Vắng mặt ở các phản hồi không phải danh sách / chi tiết Danh bạ (tra cứu, trùng). Chỉ để biết, không chặn việc gì. */
+  dauXacMinh?: DauXacMinh | null;
 }
 
 export interface PartyDto extends PartyListItemDto {
@@ -1275,7 +1278,7 @@ export type TrangThaiPhieuTuKhai = "CHO_XAC_MINH" | "DA_CHAP_NHAN" | "TU_CHOI" |
 export interface GiayToCuaToiDto { loai: string; soChe: string | null; hetHan: string | null }
 /** Giá trị HIỆN HÀNH (đã có trong hồ sơ). Hồ sơ tổ chức: ngaySinh null, diaChi [], giayTo []. */
 /** `daXoa` (ADR-0126, Review Focus 1): hồ sơ đã ẩn danh hoá theo yêu cầu xoá — ngày sinh null, liên hệ / giấy tờ rỗng; giao diện hiện "Đã xoá", không bao giờ hiện dấu ẩn danh như dữ liệu. */
-export interface HoSoCuaToiDto { loai: "PERSON" | "ORGANIZATION"; hoTen: string; ngaySinh: string | null; diaChi: string[]; dienThoai: string[]; email: string[]; giayTo: GiayToCuaToiDto[]; daXoa: boolean }
+export interface HoSoCuaToiDto { loai: "PERSON" | "ORGANIZATION"; hoTen: string; ngaySinh: string | null; diaChi: string[]; dienThoai: string[]; email: string[]; giayTo: GiayToCuaToiDto[]; daXoa: boolean; dauXacMinh: DauXacMinh | null }
 /** `hanXuLyXoaNgay` / `hanGiuPhienNgay`: số ngày do chính sách quy định (ADR-0126 đ2, đ8); null = chưa có số (không hạn). */
 export interface ChinhSachRiengTuDto { id: string; phienBan: number; mucDich: string; noiDung: string; hieuLucTu: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null }
 export interface PhieuTuKhaiGiayToDto { loai: string; soChe: string | null; ngayCap: string | null; noiCap: string | null; hetHan: string | null }
@@ -3291,6 +3294,14 @@ export interface CapHienHanhDto {
 }
 export interface CapHienHanhResponse { homNay: string; hoSo: CapHienHanhDto[] }
 /**
+ * «Cấp cho đối tác tự đăng ký» (ADR-0209; `GET|POST /api/pricing/cap-mac-dinh`): mỗi loại trong danh sách được hưởng một dòng. `hienHanh` = dòng chính sách đang hiệu lực (null = chưa từng đặt);
+ * `hienHanh.muc` null = «Theo cấp của vai trò». `hienHanh.id` là khoá lạc quan gửi lại ở lệnh đặt (`dangHieuLuc`). `cap` = các cấp đang bật để chọn.
+ */
+export interface CapMacDinhResponse {
+  loai: { code: string; ten: string; dangBat: boolean; hienHanh: { id: string; muc: { code: string; ten: string; dangBat: boolean } | null; tuLuc: string } | null }[];
+  cap: { code: string; ten: string }[];
+}
+/**
  * Một dòng của màn «Cấp độ đại lý» (`GET /api/pricing/cap-dai-ly`, đặc tả 2026-11-04-man-cap-dai-ly): hồ sơ đang mở mang vai trò được hưởng, có hay chưa có tài khoản. `vaiTro` chỉ gồm vai trò được hưởng đang bật.
  * `coTaiKhoan` tính cả tài khoản đã ngưng. Danh sách trắng: không SĐT, email, mã số thuế, địa chỉ. `cap` là nguyên `CapHienHanhDto` của cột ở Quản lý tài khoản.
  */
@@ -3546,3 +3557,30 @@ export interface ChuaCoBanHangResponse { don: TheDonDto[]; soDonChoXacNhanAn: nu
 export interface BanHangChinhSachResponse { phutUuTien: number; tuPhut: number; denPhut: number; mocPhatHanh: string | null; doiDuoc: boolean }
 /** `GET`/`POST /api/kenh-thu-doi-tac` (ADR-0178 Đ1 mục 1): công tắc «Khách của đối tác trả cho Công ty». `congTyThu` = Bật; `tuLuc` = lúc dòng hiện hành có hiệu lực (null = chưa ai đổi, mặc định Bật). `lichSu` mới nhất trước. */
 export interface KenhThuDoiTacDto { congTyThu: boolean; tuLuc: string | null; lichSu: { congTyThu: boolean; tuLuc: string; nguoiDoi: string }[] }
+
+/**
+ * Phiếu đăng ký của CHÍNH người đăng ký (`GET`, `PUT /api/dang-ky/phieu`, `POST …/gui`, `…/rut`; ADR-0206 Đ6). KHÔNG mang số giấy tờ đủ, nơi cấp, số điện thoại, email, khoá kho:
+ * bản khai trước chỉ có số che; điện thoại chỉ «đã khai hay chưa»; tệp chỉ «đã gửi / chưa tải xong» theo ô.
+ */
+export interface PhieuDangKyDto {
+  maPhieu: string;
+  trangThai: "DANG_DIEN" | "CHO_XAC_MINH" | "CAN_BO_SUNG" | "CHO_DUYET" | "DA_DUYET" | "TU_CHOI" | "DA_RUT" | "HET_HAN";
+  nhanTrangThai: string;
+  /** Đúng khi phiếu không sửa, gửi được nữa (chỉ ĐANG ĐIỀN và CẦN BỔ SUNG sửa được). */
+  chiXem: boolean;
+  loai: { ma: string; ten: string } | null;
+  /** Số bản khai đã gửi (0 khi chưa gửi lần nào). */
+  phienBan: number;
+  guiLuc: string | null;
+  hanLuc: string | null;
+  lyDo: { ma: string; cau: string } | null;
+  tep: { o: string; trangThai: "DA_GUI" | "CHUA_TAI_XONG" }[];
+  banKhaiTruoc: {
+    hoTen: string;
+    gioiTinh: string | null;
+    ngaySinh: string | null;
+    diaChi: string | null;
+    daKhaiDienThoai: boolean;
+    giayTo: { loai: string; soChe: string | null; hang: string | null; ngayCap: string | null; hetHan: string | null } | null;
+  } | null;
+}

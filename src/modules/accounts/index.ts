@@ -18,7 +18,7 @@ import {
 } from "../auth";
 import {
   KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
-  generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, mfaDeadlinesOf, normalizePhone, renameAccountStatements, roleChangeStatements,
+  dauXacMinhTaiKhoan, generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, mfaDeadlinesOf, normalizePhone, renameAccountStatements, roleChangeStatements,
   setPermissionStatements, setPinStatement, tenVaiTaiKhoan, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
   MFA_ENROLL_WINDOW_MS, mfaEnrollWindowStatement, mfaGraceIfNullStatement, mfaSauDoiQuyen, mfaGraceOnReactivate, mfaGraceTheoId, datThanhDuoiStatement,
 } from "../staff";
@@ -74,6 +74,8 @@ const chinhSachDto = (rows: readonly { id: string; permissionCode: QuyenDatDuoc;
     return { permissionCode: c, label: PERMISSION_LABEL[c], multi: r?.multi ?? false, banId: r?.id ?? null };
   });
 const NOT_SUPER_ONLY = () => error(403, "forbidden", "Việc này chỉ người phụ trách hệ thống làm được.");
+// ADR-0207 Đ7: tài khoản sinh từ phiếu đã duyệt mà người đăng ký chưa đặt PIN — các lệnh hỗ trợ đăng nhập từ chối, đường duy nhất là «Gửi lại lời mời» (để câu «không ai trong công ty biết PIN» đúng thật).
+const CHUA_KICH_HOAT = () => error(409, "chua_kich_hoat", "Tài khoản chưa kích hoạt — dùng \"Gửi lại lời mời\"");
 const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tài khoản cấp dưới.");
 // DK-T3-02: đặt lại PIN ở đây KHÔNG hỏi PIN cũ — áp lên chính mình thì một phiên bỏ quên đủ để chiếm hẳn tài khoản (vượt ADR-0016 điều 2a).
 const SELF_RESET_PIN = () => error(403, "forbidden", "Không tự đặt lại PIN của chính mình ở đây. Để đổi PIN, vào trang Tôi, mục “Đổi mã PIN”, rồi nhập PIN hiện tại.");
@@ -460,21 +462,24 @@ export const accountsModule: AppModule = {
     }),
 
     // ---- Danh sách / tạo thủ công ------------------------------------------------
-    route("GET", "/api/staff", "accounts", async ({ env, staff: admin }) => {
+    route("GET", "/api/staff", "accounts", async ({ env, staff: admin, taiKhoanChuaKichHoat }) => {
       if (!can(admin, "account.view")) return NOT_ACCOUNT_VIEW();
       const [staff, locked, mfaLocked, passkeys, loaiYeuTo, anHan, tenVai] = await Promise.all([
         listStaffAccounts(env.DB), lockedPhones(env.DB), lockedMfaStaffIds(env.DB), countActivePasskeys(env.DB), factorKindsByStaff(env.DB), mfaGraceTheoId(env.DB),
         tenVaiTaiKhoan(env.DB),
       ]);
       const roles = await accountRoleCodes(env.DB, staff);
+      const dau = await dauXacMinhTaiKhoan(env.DB, staff.map((s) => s.partyId), vnToday(new Date())); // ADR-0210 Đ3: chỉ người giữ account.view (cổng ở trên)
+      // ADR-0207 Đ7: tài khoản sinh từ phiếu đăng ký chưa đặt PIN hiện «Chưa kích hoạt» thay cho «Ngưng». MỘT truy vấn cho cả danh sách (hàm tiêm của gốc lắp ráp), không truy vấn theo dòng.
+      const chuaKH = await taiKhoanChuaKichHoat();
       const seesHidden = can(admin, "admin.manage.superadmin"); // ADR-0042: Toàn quyền là vai ẩn với người khác
       // ADR-0090 đ2: cờ theo dòng tính trên quyền THẬT (trước khi che Toàn quyền thành Quản trị). Kế hoạch Task 6: nhãn hai lớp + cờ "tắt lớp hai được" cũng vậy.
       return json({
         staff: staff.map((s) => {
           const daBat = daBatHaiLop(s.permissions, loaiYeuTo.get(s.id) ?? []); // dòng EMAIL lệch của vai lớn không tính (Phần C Task 4)
           return {
-            ...dto(s, locked, mfaLocked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden), datLaiPinDuoc: datLaiPinDuocTheoDong(admin, s),
-            canResetMfa: tatHaiLopDuoc(admin, s), mfa: { enabled: daBat, graceUntil: daBat || !isInternal(s.permissions) ? null : (anHan.get(s.id) ?? null) },
+            ...dto(s, locked, mfaLocked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden), datLaiPinDuoc: datLaiPinDuocTheoDong(admin, s) && !chuaKH.has(s.id), // ADR-0207 Đ7: tài khoản chưa kích hoạt — máy chủ trả 409, cờ không mời bấm
+            canResetMfa: tatHaiLopDuoc(admin, s) && !chuaKH.has(s.id), chuaKichHoat: !s.active && chuaKH.has(s.id), dauXacMinh: s.partyId ? (dau.get(s.partyId) ?? null) : null, mfa: { enabled: daBat, graceUntil: daBat || !isInternal(s.permissions) ? null : (anHan.get(s.id) ?? null) },
           };
         }),
         tenVai, // Task 3b: tên hiện hành của mọi mã vai tài khoản (đổi tên loại đối tác Có sẵn ở màn Hoa hồng → màn này hiện tên mới)
@@ -597,6 +602,7 @@ export const accountsModule: AppModule = {
         if (body.active !== t.active) patch.active = body.active;
       }
       if (Object.keys(patch).length === 0) return json({ staff: await one(db, t.id) } satisfies StaffResponse);
+      if (patch.active === true && (await ctx.chuaKichHoat(t.id))) return CHUA_KICH_HOAT(); // ADR-0207 Đ7: kích hoạt lại bằng tay không thay được «Gửi lại lời mời» — TRƯỚC mọi ghi
 
       const problem = checkAccountChange(admin.id, t, { active: patch.active }, await countActiveAdmins(db));
       if (problem) return error(409, "account_rule", problem);
@@ -802,6 +808,7 @@ export const accountsModule: AppModule = {
       if (t.id === ctx.staff.id) return SELF_RESET_PIN(); // DK-T3-02: chặn TRƯỚC mọi ghi; tự đổi PIN chỉ qua change-pin (PIN hiện tại) hoặc pin-by-passkey (ký Face ID mới)
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
       if (!chamTaiKhoanTienDuoc(ctx.staff, t)) return error(403, "forbidden", TIEN_CHI_TOAN_QUYEN_MESSAGE); // ADR-0090 đ1(i): QT04 — TRƯỚC mọi ghi
+      if (await ctx.chuaKichHoat(t.id)) return CHUA_KICH_HOAT(); // ADR-0207 Đ7: TRƯỚC mọi ghi
       const pin = generatePin();
       const now = Date.now();
       const at = new Date(now).toISOString();
@@ -847,6 +854,7 @@ export const accountsModule: AppModule = {
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
+      if (await ctx.chuaKichHoat(t.id)) return CHUA_KICH_HOAT(); // ADR-0207 Đ7: TRƯỚC mọi ghi
       // Kế hoạch Task 6, nhóm (c): gỡ CẢ khoá sai PIN lẫn khoá sai mã bước hai (`mfa:<id>`), cùng phạm vi quyền như cũ. MỘT lô, nhật ký TRƯỚC (vòng sửa 1 lát H-4, I-3):
       // nhật ký hỏng thì lô hỏng cả, không có chuyện đã mở khoá mà thiếu dòng `login_unlocked` (tầng CUA_SO_30 của lính gác ADR-0125 đ5).
       await db.batch([adminAudit(db, ctx.staff.id, "login_unlocked", t.id), ...unlockLoginStatements(db, t.phone, t.id)]);
@@ -872,6 +880,7 @@ export const accountsModule: AppModule = {
       if (chan === "khong_cap_duoi") return NOT_MANAGER();
       if (chan === "chi_toan_quyen") return error(403, "forbidden", "Chỉ Toàn quyền tắt được bảo mật hai lớp của Quản trị/Toàn quyền."); // ADR-0074 đ5
       if (chan === "quyen_tien") return error(403, "forbidden", TIEN_CHI_TOAN_QUYEN_MESSAGE); // ADR-0090 đ1(iv)
+      if (await ctx.chuaKichHoat(t.id)) return CHUA_KICH_HOAT(); // ADR-0207 Đ7: TRƯỚC mọi ghi
       const now = Date.now();
       const at = new Date(now).toISOString();
       await db.batch([

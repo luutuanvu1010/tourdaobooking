@@ -71,7 +71,10 @@ export const revokeAllPasskeysIfSuspendedStatement = (db: D1Database, staffId: s
 
 const ATTEMPT_COUNT = defineSql("auth", "attempt_count", "SELECT count(*) AS n, min(at) AS oldest FROM login_attempt WHERE key = ?1 AND at > ?2");
 const ATTEMPT_INSERT = defineSql("auth", "attempt_insert", "INSERT INTO login_attempt (id, key, at) VALUES (?1, ?2, ?3)");
-const ATTEMPT_PRUNE = defineSql("auth", "attempt_prune", "DELETE FROM login_attempt WHERE at < ?1");
+// Dọn dòng cũ của ĐĂNG NHẬP (cửa sổ cố định 15 phút). Khoá `dk:` (đăng ký đối tác, ADR-0206 Đ8) có cửa sổ riêng do chính sách quyết định nên do câu dọn riêng bên dưới lo,
+// để một lần đăng nhập không cắt ngắn cửa sổ của đăng ký (và ngược lại).
+const ATTEMPT_PRUNE = defineSql("auth", "attempt_prune", "DELETE FROM login_attempt WHERE at < ?1 AND key NOT LIKE 'dk:%'");
+const ATTEMPT_PRUNE_DK = defineSql("auth", "attempt_prune_dk", "DELETE FROM login_attempt WHERE at < ?1 AND key LIKE 'dk:%'");
 const ATTEMPT_DELETE_ID = defineSql("auth", "attempt_delete_id", "DELETE FROM login_attempt WHERE id = ?1");
 const ATTEMPT_DELETE_KEY = defineSql("auth", "attempt_delete_key", "DELETE FROM login_attempt WHERE key = ?1");
 // ADR-0074 (kế hoạch Task 6): tài khoản đang bị khoá bước hai (khoá đếm `mfa:<staffId>` đủ số lần sai trong cửa sổ) — danh sách Quản lý tài khoản hiện "bị khoá".
@@ -91,6 +94,7 @@ export async function attemptCount(db: D1Database, key: string, since: number): 
   return { n: row?.n ?? 0, oldest: row?.oldest ?? null };
 }
 export const attemptInsertStatement = (db: D1Database, id: string, key: string, at: number): D1PreparedStatement => db.prepare(ATTEMPT_INSERT).bind(id, key, at);
+export const attemptPruneDkStatement = (db: D1Database, before: number): D1PreparedStatement => db.prepare(ATTEMPT_PRUNE_DK).bind(before);
 export const attemptPruneStatement = (db: D1Database, before: number): D1PreparedStatement => db.prepare(ATTEMPT_PRUNE).bind(before);
 export const attemptDeleteIdStatement = (db: D1Database, id: string): D1PreparedStatement => db.prepare(ATTEMPT_DELETE_ID).bind(id);
 export async function lockedMfaKeys(db: D1Database, since: number, limit: number): Promise<string[]> {

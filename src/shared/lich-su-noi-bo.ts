@@ -75,7 +75,7 @@ export const LICH_SU_NOI_BO_CHO_PHEP = {
 export const LICH_SU_NOI_BO_AN = [
   "order_accounting_entry_marked", "order_accounting_entry_unmarked", "exported_png", "exported_pdf", "ledger_settlement", "prc_commission_rule_added",
   "prc_commission_rule_closed", "prc_supply_term_added", "prc_supply_term_closed", "prc_partner_type_added", "prc_partner_type_off",
-  "prc_partner_type_on", "prc_partner_type_renamed", "prc_partner_type_note", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_rate_tier_renamed", "prc_rate_tier_note", "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed",
+  "prc_partner_type_on", "prc_partner_type_renamed", "prc_partner_type_note", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_rate_tier_renamed", "prc_rate_tier_note", "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed", "prc_signup_tier_set",
   "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "prc_entry_limit_changed", "prc_transfer_fee_added", "prc_transfer_fee_ended", "prc_transfer_fee_start_set", "credit_limit_set", "credit_limit_stopped",
   // ADR-0172, ADR-0173: mức tối đa, số gợi ý, ân hạn đơn, tin nhắc — loại dòng MỚI nên mặc định ẩn cho tới khi chủ xếp loại; trang Nhật ký (Toàn quyền) vẫn đọc được.
   "partner_channel_set", "credit_ceiling_set", "credit_tier_default_set", "credit_due_extended", "credit_due_soon_reminded", "credit_overdue_reminded", "ledger_period_closed", "ledger_receipt_collector_changed", "ledger_duplicate_overridden", "attribution_requested", "attribution_ruled", "attribution_posted", "attribution_reassigned", "attribution_reversed", "attribution_responded", /* ADR-0116, ADR-0092 Đ6a: chi tiết có lý do, số tiền; chưa có trong bản chủ duyệt nên ẩn */ "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed",
@@ -120,6 +120,7 @@ export const LICH_SU_NOI_BO_AN = [
   // ADR-0182 phần B: khoản nộp của đại lý (ghi, xác nhận, từ chối) và ảnh biên lai của nó — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; phiếu công nợ
   // hiện trạng thái và lý do từ chối; trang Nhật ký (Toàn quyền) vẫn đọc được.
   "agent_remittance_recorded", "agent_remittance_confirmed", "agent_remittance_rejected", "agent_remittance_proof_viewed", "agent_remittance_proof_purged",
+  "registration_item_concluded", "registration_verified", "registration_supplement_requested", "registration_rejected", "registration_number_viewed", "registration_file_viewed", "registration_approval_rejected", "registration_invite_resent", "registration_returned_to_verification", "registration_notice_resent", "registration_activated", "registration_cleanup_run", "registration_policy_set", // ADR-0207 Đ6, Đ7, ADR-0208 Đ8: xác minh phiếu đăng ký — không thuộc đơn nào
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nội bộ nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

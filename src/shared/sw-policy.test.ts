@@ -163,3 +163,10 @@ test("lớp 3 sống trong service worker thật: mọi lời gọi isCacheable 
   assert.ok(goi.length >= 1, "không thấy lời gọi isCacheable({ … }) nào trong web/sw/sw.ts (mẫu quét hỏng?)");
   for (const g of goi) assert.match(g, /cacheControl:\s*res\.headers\.get\("cache-control"\)/, `lời gọi thiếu cacheControl: ${g}`);
 });
+
+// Đăng ký đối tác (ADR-0206 Đ14; đợt 1 Task 12): trang công khai /dang-ky vào khung (nạp sẵn); MỌI dữ liệu của phiếu (/api/dang-ky/*, kể cả biến thể đường dẫn) đi thẳng ra mạng.
+test("trang /dang-ky vào cache khung và nạp sẵn; /api/dang-ky/* không bao giờ vào cache", () => {
+  assert.equal(shell("/dang-ky"), "shell");
+  assert.ok(PRECACHE.includes("/dang-ky") && PRECACHE.includes("/js/dang-ky.js"));
+  for (const p of ["/api/dang-ky/phieu", "/api/dang-ky/cau-hinh", "/api/dang-ky/phieu/tep", "//api/dang-ky/phieu", "/api/dang-ky/phieu/DK_ABCDEFGH/tep/x", "/api/chinh-sach-rieng-tu"]) assert.equal(shell(p), "pass", p);
+});

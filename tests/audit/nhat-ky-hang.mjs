@@ -35,6 +35,12 @@ export const PHU_TRACH = {
   "aut_trusted_device.token_hash": "src/hai-lop-email-khong-lo.test.ts",
   "pty_attachment.content_hash": "src/modules/parties/tep-route.test.ts",
   "pty_attachment.storage_key": "src/modules/parties/tep-route.test.ts",
+  "pty_registration_attachment.content_hash": "src/modules/dang-ky/tep-route.test.ts", // ADR-0208: người đăng ký tải tệp chờ (cả đường kho hỏng)
+  "pty_registration_attachment.storage_key": "src/modules/dang-ky/tep-route.test.ts",
+  "dk_submission.document_number": "src/modules/dang-ky/phieu-route.test.ts", // ADR-0206 Đ6 (Task 4): người đăng ký gửi, gửi lại, rút phiếu qua route thật (quét nhật ký + lịch sử phiếu)
+  "dk_submission.number_key": "src/modules/dang-ky/phieu-route.test.ts",
+  "dk_submission.issued_place": "src/modules/dang-ky/phieu-route.test.ts",
+  "dk_email_code.code_hash": "src/modules/dang-ky/xin-ma-route.test.ts", // ADR-0206 Đ8: người đăng ký xin mã gửi email (chỉ bản băm có khoá; quét nhật ký + lịch sử phiếu)
   "pty_self_submission.document_number": "src/giay-to-khong-lo-so.test.ts",
   "pty_self_submission.number_key": "src/giay-to-khong-lo-so.test.ts",
   "pty_self_submission.issued_place": "src/giay-to-khong-lo-so.test.ts", // lát H-3 Task 4: route gửi phiếu tự khai (ADR-0124)

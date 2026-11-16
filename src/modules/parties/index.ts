@@ -23,6 +23,7 @@ import { route, type AppModule, type Ctx } from "../../shared/router";
 import { cauConNoTraSau, laLoiPhienBanTraSau, type MaKhongTraSau } from "../../shared/tra-sau";
 import type { DonCuaNguoiDatTom, GopHoSoNoi, PartyAccountVerdict, TaiKhoanXacMinh, ViecDoKhiThoiVai } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
+import type { DauXacMinh } from "../../shared/dau-xac-minh";
 import { gioiTinhHopLe } from "../../shared/xung-ho";
 import {
   activeBanks, bankAccountCloseStatement, bankAccountInsertStatement, bankAccountOpenOf, bankActive, ownerBankAccountRows,
@@ -30,14 +31,15 @@ import {
   companyIdentityOf, docsForMerge, driverDocsForDispatch, driversForDispatch, expiringDocumentsOfRoles, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
   listCarriers, listPartiesByIds, openPersonPhones, personsForMatch, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, mergedFromOf, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
-  voidPersonDocStatement,
+  voidPersonDocStatement, maHoSoTheoSoGiayTo, mucXacMinhBatBuocCua,
   datChoXoaTepStatement, findTepDeTai, insertTepLinkStatement, insertTepStatement, listTepChoXoa, listTepCuaGiayTo, markTepStored, tepCuaGiayTo,
   chinhSachHienHanh, phienBanLonNhat, dangChinhSachStatement, phienBanDangDongY, ghiDongYStatement, rutMoiPhieuChoStatement, listPhieuCuaHoSo, type PhieuRow,
   ghiPhieuStatement, timPhieuCuaHoSo, rutPhieuStatement,
   guiPhieuXoaStatement, listPhieuXoaCuaHoSo, rutPhieuTuKhaiKhiGuiXoaStatement, rutPhieuXoaStatement, timPhieuXoa, type PhieuXoaRow,
   anDanhStatements, chanLoNeuThuaXoaStatement, coPhieuXoaChoHoacDa, demHoSoGopVao, demXemTruocXoa, listPhieuChuaChepNgoai, listPhieuXoaChoCoTen, listPhieuXoaDaXuLy, quyetPhieuXoaStatement, tepChoXoaCuaPhieu,
   tepChoXoaLyDoPhieu, timPhieuXoaCoTen, tuChoiPhieuXoaStatement, datChoXoaAnhHetGiuStatement, listAnhHetLyDoGiu, type AnhHetGiuRow,
-  canXacMinhLaiStatement, chamCuaTaiKhoan, ghiDiaChiTuPhieuStatement, ghiGiayToTuPhieuStatement, ghiNgaySinhTuPhieuStatement, ghiXacMinhTuPhieuStatement, lamMoiHoSoTuPhieuStatement, quyetPhieuStatement, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
+  dauXacMinhTheoHoSo, canXacMinhLaiStatement, chamCuaTaiKhoan, ghiDiaChiTuPhieuStatement, ghiGiayToTuPhieuStatement, ghiNgaySinhTuPhieuStatement, ghiXacMinhTuPhieuStatement, lamMoiHoSoTuPhieuStatement, quyetPhieuStatement, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
+  dkDongYStatement, dkGiayToStatement, dkGioiThieuStatement, dkLienHeStatement, dkMoHoSoStatements, dkMoVaiStatement, dkNgaySinhStatement, dkSoCanCuocOHoSoKhac, dkXacMinhStatement, dkXacMinhTenStatement,
   datHoatDongLoaiDoiTacStatement, suaLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
@@ -59,9 +61,82 @@ import {
   validatePersonFullName, validateRelationship, validateRole,
 } from "./rules";
 
+import type { PersonName } from "./rules";
 export { kiemTenLoaiDoiTac, maLoaiDoiTac } from "./rules";
 /** ADR-0126 đ8 — số ngày giữ IP / User-Agent của phiên đã kết thúc, theo chính sách riêng tư phiên bản lớn nhất; null = chưa có số. Gốc lắp ráp tiêm cho nơi cần (auth/accounts không import parties). */
 export { hanGiuPhienNgay } from "./repository";
+// Dấu xác minh của hồ sơ (ADR-0210): `staff` (Quản lý tài khoản) gọi hàm này; ba màn của Đ3 là chỗ DUY NHẤT đọc.
+export { dauXacMinhTheoHoSo };
+// Tệp chờ của phiếu đăng ký (ADR-0208; đợt 1 Task 5): dang-ky chỉ gọi các hàm này, không đọc bảng pty_registration_attachment, không chạm kho HO_SO.
+export {
+  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauGoTepCho, cauGoTepChoNeuTruocDoi, cauTepChoMoi, datKhoTepCho, donKhoTepCho, khoTepChoSanSang, moTepChoTuKho, tepChoDeXemCuaPhieu, timTepChoDeXem, timTepChoTrung,
+  trangThaiTepChoTheoO, xoaKhoTepChoDaGo, type TepChoDeXem,
+} from "./tep-cho";
+export { cheSo } from "./giay-to";
+// Luật kiểm của tự khai dùng lại cho bản khai của phiếu đăng ký (ADR-0206 Đ6; đợt 1 Task 4): hàm thuần kiểm hình thức, không đọc / ghi hồ sơ nào. Danh mục giấy tờ đọc qua `danhMucGiayToChoDangKy`.
+export { kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
+export { kiemNgaySinh, validateContact } from "./rules";
+export async function danhMucGiayToChoDangKy(db: D1Database, homNay: string): Promise<DanhMucGiayTo> {
+  return (await danhMucGiayTo(db, homNay)).dm;
+}
+export { demTepChoCuaPhieu } from "./repository";
+
+// ---- Lô DUYỆT phiếu đăng ký (ADR-0207 Đ5; đợt 1 Task 8): câu CHƯA CHẠY, gốc lắp ráp ghép vào MỘT db.batch sau câu chốt của dang-ky. Mã dòng do người gọi sinh sẵn. ----
+/** Câu 2: hồ sơ cá nhân MỚI (mã `partyId` sinh sẵn) — hoặc không gì khi gắn hồ sơ có sẵn — rồi mở vai đối tác với Tour Đảo (TRƯỚC câu cấp quyền của staff: LC-1c đòi vai đã mở). */
+export function cauMoHoSoDangKy(
+  db: D1Database,
+  v: { partyId: string; moi: boolean; name: PersonName; gender: string | null; roleId: string; roleCode: string; today: string; actorId: string; at: string },
+): D1PreparedStatement[] {
+  return [
+    ...(v.moi ? dkMoHoSoStatements(db, { partyId: v.partyId, name: v.name, gender: v.gender, actorId: v.actorId, at: v.at }) : []),
+    dkMoVaiStatement(db, { id: v.roleId, partyId: v.partyId, roleCode: v.roleCode, today: v.today, actorId: v.actorId, at: v.at }),
+  ];
+}
+/** Câu 4: giá trị đã xác minh — ngày sinh; liên hệ (điện thoại, email, địa chỉ: chỉ khi hồ sơ chưa có đúng liên hệ đó); dòng giấy tờ (dòng gia hạn nếu hồ sơ có sẵn đã có dòng cùng loại). */
+export function cauGhiGiaTriDaXacMinh(
+  db: D1Database,
+  v: {
+    partyId: string; birthDate: string | null; lienHe: readonly { id: string; kind: "PHONE" | "EMAIL" | "ADDRESS"; value: string; valueNormalized: string }[];
+    giayTo: (PersonDocValues & { id: string }) | null; today: string; actorId: string; at: string;
+  },
+): D1PreparedStatement[] {
+  return [
+    ...(v.birthDate ? [dkNgaySinhStatement(db, { partyId: v.partyId, birthDate: v.birthDate, actorId: v.actorId, at: v.at })] : []),
+    ...v.lienHe.map((c) => dkLienHeStatement(db, { id: c.id, partyId: v.partyId, kind: c.kind, value: c.value, valueNormalized: c.valueNormalized, today: v.today, actorId: v.actorId, at: v.at })),
+    ...(v.giayTo ? [dkGiayToStatement(db, { id: v.giayTo.id, partyId: v.partyId, doc: v.giayTo, actorId: v.actorId, at: v.at })] : []),
+  ];
+}
+/** Câu 5: một dòng `pty_verification` cho từng mục đã đạt có đích (thuộc tính, dòng giấy tờ) — người tạo và giờ là NGƯỜI XÁC MINH, GIỜ XÁC MINH; `co` = Toàn quyền làm cả hai bước. */
+export function cauXacMinhTuPhieu(
+  db: D1Database,
+  v: {
+    partyId: string; muc: readonly { id: string; targetKind: "ATTRIBUTE" | "PERSON_DOCUMENT"; targetId: string | null; attributeCode: string | null }[]; co: 0 | 1; verifiedBy: string; verifiedAt: string;
+    /** Tên khai (họ, đệm, tên): dòng HO_TEN chỉ ghi khi tên đang có của hồ sơ ghép ra đúng tên này (gắn hồ sơ có sẵn khác tên ⇒ không ghi; không đổi tên). */
+    tenKhai: PersonName;
+  },
+): D1PreparedStatement[] {
+  return v.muc.map((m) => m.targetKind === "ATTRIBUTE" && m.attributeCode === "HO_TEN"
+    ? dkXacMinhTenStatement(db, { id: m.id, partyId: v.partyId, tenKhai: composePersonName(v.tenKhai), co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt })
+    : dkXacMinhStatement(db, { ...m, partyId: v.partyId, co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt }));
+}
+/**
+ * Câu 6: dòng đồng ý chép từ bản khai — đúng phiên bản chính sách, GIỜ ĐỒNG Ý trong bản khai, người tạo là TÀI KHOẢN MỚI (câu 3 đứng trước). Câu luôn chạy nên mang LÍNH GÁC hồ sơ đích:
+ * hồ sơ vừa ngưng / gộp giữa lúc kiểm trước lô và lúc ghi ⇒ hỏng CẢ lô (`NOT NULL constraint failed: pty_consent.party_id`).
+ */
+export const cauDongYTuPhieu = (db: D1Database, v: { id: string; partyId: string; policyId: string; consentedAt: string; staffId: string }): D1PreparedStatement => dkDongYStatement(db, v);
+/** Câu 9: quan hệ «Người giới thiệu của» — từ hồ sơ người giới thiệu tới hồ sơ được duyệt, từ hôm nay. Chỉ ghi nhận, không sinh tiền. Lính gác: người giới thiệu ngưng / gộp ⇒ hỏng CẢ lô. */
+export const cauQuanHeGioiThieu = (db: D1Database, v: { referrerPartyId: string; partyId: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  dkGioiThieuStatement(db, { id: crypto.randomUUID(), ...v });
+/** Kiểm TRƯỚC lô duyệt (câu báo rõ; trigger CCCD một người vẫn là lưới cuối): số CCCD chuẩn hoá đã nằm ở dòng chưa huỷ của hồ sơ KHÁC `partyId` (null = hồ sơ mới ⇒ mọi hồ sơ). Chỉ đúng / sai. */
+export const canCuocThuocHoSoKhac = dkSoCanCuocOHoSoKhac;
+/**
+ * Chính sách riêng tư hiệu lực tại `nowIso` cho người CHƯA có tài khoản (ADR-0206 Đ6, ADR-0200 Đ3): CHỈ phiên bản, ngày hiệu lực, toàn văn — không mục đích thu, không số ngày giữ.
+ * Cùng bộ lọc hiệu lực (`valid_from_at <= nowIso`) với `chinhSachHienHanh`, nên «phiên bản đang hiệu lực» của mọi nơi là MỘT con số. null = chưa có bản nào.
+ */
+export async function chinhSachRiengTuCongKhai(db: D1Database, nowIso: string): Promise<{ phienBan: number; hieuLucTu: string; noiDung: string } | null> {
+  const p = await chinhSachHienHanh(db, nowIso);
+  return p ? { phienBan: p.version, hieuLucTu: p.valid_from_at, noiDung: p.body } : null;
+}
 /**
  * HÀM CÔNG BỐ HẸP (ADR-0139): SĐT liên hệ chính của các hồ sơ — chỉ cho DTO tài xế công ty (người đi kèm chuyến, trong ngày chạy). Không tự kiểm quyền:
  * chỉ gọi sau khi `van-chuyen` đã xác định người gọi đang lái chuyến và đủ điều kiện. Không bao giờ SĐT đăng nhập.
@@ -139,6 +214,25 @@ export async function hoSoCaNhanKhop(db: D1Database, v: { phone: string | null; 
     lyDo: lyDo.get(r.id)!,
     vai: [...new Set((r.role_codes ?? "").split(",").filter(Boolean))].map((c) => tenVai.get(c) ?? c),
   }));
+}
+
+/**
+ * HÀM CÔNG BỐ (ADR-0207 Đ2 mục 4; đợt 1 Task 6) cho module dang-ky: hồ sơ CÁ NHÂN đang dùng, chưa gộp, đang giữ một dòng giấy tờ còn hiệu lực mang đúng số chuẩn hoá `numberKey`.
+ * Cùng dạng trả về với `hoSoCaNhanKhop` (không SĐT, không số). KHÔNG tự kiểm quyền: nơi gọi kiểm `party.view` trước.
+ */
+export async function hoSoTheoSoGiayTo(db: D1Database, numberKey: string): Promise<{ id: string; displayName: string; vai: string[] }[]> {
+  const ids = await maHoSoTheoSoGiayTo(db, numberKey);
+  if (ids.length === 0) return [];
+  const [dong, loai] = await Promise.all([listPartiesByIds(db, ids, vnToday(new Date())), listRoleTypes(db)]);
+  const tenVai = new Map(loai.map((t) => [t.code, t.name]));
+  return dong
+    .filter((r) => r.party_kind === "PERSON" && r.active === 1)
+    .map((r) => ({ id: r.id, displayName: r.display_name, vai: [...new Set((r.role_codes ?? "").split(",").filter(Boolean))].map((c) => tenVai.get(c) ?? c) }));
+}
+
+/** Mục xác minh bắt buộc đang hiệu lực của hồ sơ cá nhân (ADR-0210 Đ1): đọc view công bố. `loai` = ATTRIBUTE | DOCUMENT; `ma` = HO_TEN, NGAY_SINH, CCCD… */
+export async function mucXacMinhBatBuocCaNhan(db: D1Database): Promise<{ loai: string; ma: string }[]> {
+  return (await mucXacMinhBatBuocCua(db, "PERSON")).map((r) => ({ loai: r.item_kind, ma: r.item_code }));
 }
 
 /** Định danh Tour Đảo cho nơi đọc ngoài module (ADR-0024 điều 6 + 6.2). Trường có thể null: dữ liệu hồ sơ tổ chức cho phép trống. */
@@ -501,6 +595,11 @@ function chiTietGop(t: TinhGop): string {
     + `giấy tờ ${k.giayTo.chep.length}${giayTo}, đơn đổi người đặt ${t.don.doi}`;
 }
 
+/** ADR-0210: dấu của các hồ sơ trong một trang danh sách; hồ sơ nào có tài khoản biết qua `ctx.taiKhoanXacMinh` (parties không import staff). */
+async function dauCuaDanhSach(db: D1Database, ids: readonly string[], taiKhoan: readonly { partyId: string | null }[]): Promise<Map<string, DauXacMinh | null>> {
+  return dauXacMinhTheoHoSo(db, ids, vnToday(new Date()), new Set(taiKhoan.flatMap((t) => (t.partyId ? [t.partyId] : []))));
+}
+
 const toListItem = (r: PartyListRow): PartyListItemDto => ({
   id: r.id,
   kind: r.party_kind,
@@ -711,6 +810,8 @@ async function respondParty<A extends "office" | "admin">(ctx: Ctx<A>, id: strin
   const activeEditable = editable && !acc.linked && !chu && can(ctx.staff, "party.deactivate");
   const today = vnToday(new Date());
   const party = toDetail(detail, today, { accountLinked: acc.linked, editable, activeEditable }, vao);
+  // ADR-0210 Đ3: người giữ party.view (cổng route) thấy dấu của hồ sơ — cùng hàm, cùng giá trị với màn danh sách và Hồ sơ của tôi.
+  party.dauXacMinh = (await dauXacMinhTheoHoSo(ctx.env.DB, [id], today, new Set(acc.linked ? [id] : []))).get(id) ?? null;
   // ADR-0044 (chủ chọn 28/9): hồ sơ của tài khoản Toàn quyền — người xem không giữ Toàn quyền chỉ thấy vai ĐANG MỞ, không thấy lịch sử vai.
   if (acc.linked && acc.vaiAn && !can(ctx.staff, "admin.manage.superadmin")) party.roles = party.roles.filter((r) => r.validFrom <= today && (r.validTo === null || r.validTo >= today));
   // ADR-0122 đ5: ngày sinh + liên hệ ADDRESS chỉ cho chính chủ hoặc người giữ party.personal.view (Quản trị theo cấp bậc — ruling R6). Mọi phản hồi hồ sơ đi qua đây.
@@ -815,7 +916,7 @@ const tenGiayTo = (typeName: string | null, typeCode: string, className: string 
   return className ? `${ten} hạng ${className}` : ten;
 };
 /** DTO "Hồ sơ của tôi" — DANH SÁCH CHO PHÉP, mọi quyền như nhau (tiền lệ vá D-1; ADR-0124 đ6). Không vai, quan hệ, gộp, tài khoản, người tạo, mốc. Số giấy tờ CHE. */
-function hoSoCuaToiDto(d: { party: PartyRow; contacts: ContactRow[] }, giayTo: PersonDocRow[], daXoa: boolean): HoSoCuaToiDto {
+function hoSoCuaToiDto(d: { party: PartyRow; contacts: ContactRow[] }, giayTo: PersonDocRow[], daXoa: boolean, dauXacMinh: DauXacMinh | null): HoSoCuaToiDto {
   const mo = (k: string) => d.contacts.filter((c) => c.contact_kind_code === k && c.valid_to_date === null).map((c) => c.value);
   const caNhan = d.party.party_kind === "PERSON";
   return {
@@ -827,6 +928,7 @@ function hoSoCuaToiDto(d: { party: PartyRow; contacts: ContactRow[] }, giayTo: P
     email: mo("EMAIL"),
     giayTo: caNhan ? giayTo.map((r) => ({ loai: tenGiayTo(r.type_name, r.document_type_code, r.class_name), soChe: cheSo(r.number_key), hetHan: r.expiry_date })) : [],
     daXoa,
+    dauXacMinh,
   };
 }
 function phieuDto(r: PhieuRow): PhieuTuKhaiDto {
@@ -866,6 +968,11 @@ function phieuXoaDto(r: PhieuXoaRow): PhieuXoaCuaToiDto {
 export const partiesModule: AppModule = {
   name: "parties",
   routes: [
+    // Chính sách riêng tư hiệu lực, công khai (ADR-0206 Đ6): người đăng ký đọc TRƯỚC khi có tài khoản. Chỉ đọc; không cookie.
+    route("GET", "/api/chinh-sach-rieng-tu", "public", async ({ env }) => {
+      const p = await chinhSachRiengTuCongKhai(env.DB, new Date().toISOString());
+      return json(p ?? { dangCapNhat: true }, 200, { "cache-control": "no-store" });
+    }),
     // ---- Tra cứu (khai TRƯỚC :id để "meta"/"lookup" không bị hiểu là id) ------------------------------------------------
     route("GET", "/api/parties/meta", "office", async ({ env, staff }) => {
       if (!can(staff, "party.view")) return FORBIDDEN_VIEW();
@@ -941,8 +1048,10 @@ export const partiesModule: AppModule = {
       const ly = lyDoKhongGui(tt);
       const lyXoa = await lyDoKhongGuiXoa(env.DB, tt, detail?.party.id ?? null, phieuXoa.some((x) => x.status === "CHO_XU_LY"));
       const daXoa = phieuXoa.some((x) => x.status === "DA_THUC_HIEN");
+      // ADR-0210 Đ3: chính chủ — tài khoản này CÓ tài khoản (đang đăng nhập), nên hồ sơ của nó luôn có dấu.
+      const dau = detail ? (await dauXacMinhTheoHoSo(env.DB, [detail.party.id], vnToday(new Date()), new Set([detail.party.id]))).get(detail.party.id) ?? null : null;
       return json({
-        hoSo: detail ? hoSoCuaToiDto(detail, giayTo, daXoa) : null,
+        hoSo: detail ? hoSoCuaToiDto(detail, giayTo, daXoa, dau) : null,
         chinhSach: chinhSach
           ? {
               id: chinhSach.id, phienBan: chinhSach.version, mucDich: chinhSach.purposes, noiDung: chinhSach.body, hieuLucTu: chinhSach.valid_from_at,
@@ -1501,7 +1610,7 @@ export const partiesModule: AppModule = {
       return json({ daXoa: kq.daXoa, conLai: kq.loi } satisfies HoSoTepChayLaiResponse);
     }),
 
-    route("GET", "/api/parties", "office", async ({ env, url, staff }) => {
+    route("GET", "/api/parties", "office", async ({ env, url, staff, taiKhoanXacMinh }) => {
       if (!can(staff, "party.view")) return FORBIDDEN_VIEW();
       const kindRaw = url.searchParams.get("kind");
       if (kindRaw && kindRaw !== "PERSON" && kindRaw !== "ORGANIZATION") return error(400, "invalid_input", "Loại hồ sơ lọc không hợp lệ.");
@@ -1523,7 +1632,8 @@ export const partiesModule: AppModule = {
         limit,
         offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
       });
-      return json({ parties: rows.map(toListItem), hasMore } satisfies PartyListResponse);
+      const dau = await dauCuaDanhSach(env.DB, rows.map((r) => r.id), await taiKhoanXacMinh());
+      return json({ parties: rows.map((r) => ({ ...toListItem(r), dauXacMinh: dau.get(r.id) ?? null })), hasMore } satisfies PartyListResponse);
     }),
 
     // ---- Giấy tờ của người (ADR-0040 D2) — hai route tra cứu khai TRƯỚC các route :id (thói quen của tệp) ----------------------------------------------

@@ -11,7 +11,15 @@ export interface MucMien {
   readonly congKhai?: true;
 }
 
-/** Hôm nay rỗng: mọi route ghi có đăng nhập đều đi qua lớp vé. */
-export const LAN_GUI_MIEN: readonly MucMien[] = [];
+/** Route ghi có đăng nhập đều đi qua lớp vé; mục miễn duy nhất là route công khai của người đăng ký chưa có tài khoản. */
+export const LAN_GUI_MIEN: readonly MucMien[] = [
+  { method: "POST", path: "/api/dang-ky/phieu/tep", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
+  { method: "POST", path: "/api/dang-ky/ma", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
+  { method: "POST", path: "/api/dang-ky/xac-nhan", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
+  { method: "PUT", path: "/api/dang-ky/phieu", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
+  { method: "POST", path: "/api/dang-ky/phieu/gui", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
+  { method: "POST", path: "/api/dang-ky/phieu/rut", congKhai: true, lyDo: "người đăng ký chưa có tài khoản — ADR-0206 Đ7, chủ duyệt 15/11" },
+  { method: "POST", path: "/api/dang-ky/phieu/dat-pin", congKhai: true, lyDo: "người được duyệt chưa có tài khoản đang bật — ADR-0206 Đ7 (route đặt PIN của ADR-0207), chủ duyệt 15/11" },
+];
 
 export const laMienLanGui = (method: string, path: string): boolean => LAN_GUI_MIEN.some((m) => m.method === method && m.path === path);

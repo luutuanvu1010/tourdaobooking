@@ -20,6 +20,7 @@ import { chipEl, loiCua, moFormGiayTo, moXacNhanXemSo, taoBoCheSo, type GiayToDo
 import { khoiLichSuGan } from "./hoa-hong-lich-su";
 import { icon } from "./icons";
 import { dungKhoiPhieuXoa } from "./phieu-xoa";
+import { dauXacMinh } from "./dau-xac-minh";
 import { initShell, showError } from "./shell";
 import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
 
@@ -125,7 +126,7 @@ function card(p: Api.PartyListItemDto): HTMLElement {
     h(
       "div",
       { style: "flex:1" },
-      h("div", null, p.displayName, !p.active && h("span", { class: "badge badge-cancelled" }, " Ngưng")),
+      h("div", null, p.displayName, dauXacMinh(p.dauXacMinh), !p.active && h("span", { class: "badge badge-cancelled" }, " Ngưng")),
       h("div", { class: "muted" }, p.primaryPhone ?? "—", ...(anCot("roleCodes") ? [] : [" · ", p.roleCodes.map(roleLabel).join(", ") || "—"])),
       h("div", { class: "muted" }, KIND_LABEL[p.kind]),
     ),
@@ -140,7 +141,7 @@ async function search(reset = true): Promise<void> {
   const r = await act(() => api<Api.PartyListResponse>(`/api/parties?${queryString({ offset: String(offset) })}`));
   if (!r) return;
   const rows = r.parties.map((p) => {
-    const tr = h("tr", { class: p.active ? "" : "row-off", style: "cursor:pointer" }, h("td", null, p.displayName, !p.active && h("span", { class: "badge badge-cancelled" }, "Ngưng")), h("td", null, KIND_LABEL[p.kind]), h("td", null, p.primaryPhone ?? ""), h("td", { hidden: anCot("roleCodes") }, p.roleCodes.map(roleLabel).join(", ")));
+    const tr = h("tr", { class: p.active ? "" : "row-off", style: "cursor:pointer" }, h("td", null, p.displayName, dauXacMinh(p.dauXacMinh), !p.active && h("span", { class: "badge badge-cancelled" }, "Ngưng")), h("td", null, KIND_LABEL[p.kind]), h("td", null, p.primaryPhone ?? ""), h("td", { hidden: anCot("roleCodes") }, p.roleCodes.map(roleLabel).join(", ")));
     tr.addEventListener("click", () => void openDetail(p.id));
     return tr;
   });
@@ -406,7 +407,7 @@ async function openDetail(id: string): Promise<void> {
 
   replaceChildren(
     detailEl,
-    h("h2", null, p.displayName, " ", h("span", { class: "muted" }, KIND_LABEL[p.kind])),
+    h("h2", null, p.displayName, " ", h("span", { class: "muted" }, KIND_LABEL[p.kind]), dauXacMinh(p.dauXacMinh)),
     ...khoiGop,
     info,
     h("h3", null, "Liên hệ"),

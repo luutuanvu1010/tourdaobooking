@@ -2,6 +2,7 @@
 // Khổ ≥ 900: BẢNG NHẬP cấp × dịch vụ (mọi nhóm, mọi dịch vụ, giá bán lẻ; khung cuộn hai chiều riêng, đầu cột dính; ô tìm, nhóm, «Còn thiếu mức»), bấm ô để thêm / đổi / sửa / ngừng, bấm tên cấp ở đầu cột để mở chi tiết.
 // Khổ < 900: chọn cấp bằng `.tab-phu[data-kieu="vien"]`, chi tiết cấp chính là danh sách mức của cấp đó. Ô ma trận chỉ là dòng có thật của đúng phạm vi (`maTranCap`), không có thì «—»; trang không chọn mức, không suy con số.
 // Nút ghi chỉ dựng cho người có `partner.commission.write` (Sửa: `coQuyenSua`); máy chủ kiểm lại. Việc của dòng theo `viecDongMuc` / `viecLanGan` (cấp đang khoá: dòng mức chỉ còn Ngừng).
+import { khoiCapDangKy } from "./cap-dang-ky";
 import {
   CAU_CAP_CHUA_AP_LOAI,
   CAU_CHUA_CO_GIA,
@@ -431,7 +432,7 @@ export function veTheCap(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
   }
   const m = d.mucTa.muc.find((x) => x.code === capChon);
   if (!m) {
-    replaceChildren(goc, h("section", { class: "hh-cap" }, dau, h("p", { class: "muted" }, CAU_KHONG_CO_MUC_TA)));
+    replaceChildren(goc, h("section", { class: "hh-cap" }, dau, h("p", { class: "muted" }, CAU_KHONG_CO_MUC_TA)), khoiCapDangKy(d.nguoiDung));
     traViTri(goc, viTri);
     return;
   }
@@ -463,6 +464,7 @@ export function veTheCap(goc: HTMLElement, d: DuLieuHoaHong, mo: MoHop): void {
       veChonCap(mt, chon),
       khung,
     ),
+    khoiCapDangKy(d.nguoiDung), // ADR-0209 Đ5: «Cấp cho đối tác tự đăng ký», dựng một lần, giữ qua các lần vẽ lại
   );
   traViTri(goc, viTri);
 }

@@ -94,3 +94,10 @@ test("(5b) accounts / auth không tự ghi cột hạn lớp hai bằng SQL thô
     }
   }
 });
+
+test("(5) ADR-0207 Đ6 (M-4): không hành động registration_* nào thuộc nhóm staff — bước xác minh phiếu đăng ký không chạm tài khoản", () => {
+  const dk = Object.entries(AUDIT_ACTIONS).filter(([k]) => k.startsWith("registration_"));
+  assert.ok(dk.length >= 6, "chống bài rỗng: có sáu hành động registration_*");
+  assert.deepEqual(dk.filter(([, v]) => v.group === "staff").map(([k]) => k), []);
+  for (const [k] of dk) assert.ok(!xep.includes(k), `${k} không được xếp vào tầng chạm tài khoản`);
+});

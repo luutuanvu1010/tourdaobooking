@@ -58,7 +58,7 @@ export const LICH_SU_DOI_TAC_AN = [
   "deposit_refund_approved", "deposit_transfer_approved", "deposit_approval_voided", "deposit_refund_paid", "deposit_transferred_out", "deposit_transferred_in",
   "deposit_outside_recorded", "deposit_outside_confirmed", "deposit_outside_rejected", "prc_commission_rule_added", "prc_commission_rule_closed", "prc_supply_term_added",
   "prc_supply_term_closed", "prc_partner_type_added", "prc_partner_type_off", "prc_partner_type_on", "prc_partner_type_renamed", "prc_partner_type_note", "prc_sales_block_added", "prc_sales_block_ended", "prc_rate_tier_added", "prc_rate_tier_off", "prc_rate_tier_on", "prc_rate_tier_renamed", "prc_rate_tier_note",
-  "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed", "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "prc_entry_limit_changed", "prc_transfer_fee_added", "prc_transfer_fee_ended", "prc_transfer_fee_start_set", "ledger_period_closed",
+  "prc_role_tier_set", "prc_role_tier_closed", "prc_party_tier_set", "prc_party_tier_closed", "prc_signup_tier_set", "prc_commission_rule_voided", "prc_role_tier_voided", "prc_party_tier_voided", "prc_entry_limit_changed", "prc_transfer_fee_added", "prc_transfer_fee_ended", "prc_transfer_fee_start_set", "ledger_period_closed",
   // Không gắn đơn: tài khoản, hồ sơ
   "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed", "pin_reset", "pin_changed", "passkey_added", "passkey_removed",
   "pin_set_by_passkey", "login_unlocked", "staff_synced", "permission_changed", "account_roles_changed", "session_policy_changed", "session_revoked",
@@ -105,6 +105,7 @@ export const LICH_SU_DOI_TAC_AN = [
   // ADR-0182 phần B: khoản nộp của đại lý (ghi, xác nhận, từ chối) và ảnh biên lai của nó — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; phiếu công nợ
   // hiện trạng thái và lý do từ chối; trang Nhật ký (Toàn quyền) vẫn đọc được.
   "agent_remittance_recorded", "agent_remittance_confirmed", "agent_remittance_rejected", "agent_remittance_proof_viewed", "agent_remittance_proof_purged",
+  "registration_item_concluded", "registration_verified", "registration_supplement_requested", "registration_rejected", "registration_number_viewed", "registration_file_viewed", "registration_approval_rejected", "registration_invite_resent", "registration_returned_to_verification", "registration_notice_resent", "registration_activated", "registration_cleanup_run", "registration_policy_set", // ADR-0207 Đ6, Đ7, ADR-0208 Đ8: xác minh phiếu đăng ký — không thuộc đơn nào
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

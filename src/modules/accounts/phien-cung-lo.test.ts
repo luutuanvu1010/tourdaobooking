@@ -14,13 +14,19 @@ import { join, relative } from "node:path";
 
 const SRC = new URL("../..", import.meta.url).pathname;
 const SELF = new URL(import.meta.url).pathname;
-const CALLS = /\b(setPinStatement|touchCredentialsStatement)\s*\(/g;
+const CALLS = /\b(setPinStatement|touchCredentialsStatement|datPinKichHoatStatements)\s*\(/g;
+/**
+ * NGOẠI LỆ CÓ TÊN (ADR-0207 Đ7; đợt 1 Task 7): `datPinKichHoatStatements` là đường đặt PIN MỚI — người đăng ký tự đặt PIN lần đầu cho tài khoản đang TẮT (`active = 0`).
+ * Tài khoản tắt không có phiên nào để kết thúc (`getActiveStaff` từ chối nó), nên lô kích hoạt không đòi câu kết thúc phiên; bù lại câu ghi đẩy `credentials_changed_at`
+ * (bài `touch-credentials.test.ts`) và lời gọi vẫn phải nằm thẳng trong một lô phân tích được. Đây là lý do duy nhất để một lời gọi PIN khỏi `ENDS`.
+ */
+const KHONG_DOI_KET_THUC_PHIEN = new Set(["datPinKichHoatStatements"]);
 const ENDS = /\b(endOtherSessionsStatement|endAllSessionsStatement|endAllSessionsIfSuspendedStatement)\s*\(/;
 /**
  * Số chỗ đổi thông tin đăng nhập hôm nay (2026-10-01): accounts/index.ts — ngưng, đổi PIN, gỡ mọi Face ID, gỡ một Face ID, đặt PIN bằng Face ID, đặt lại PIN, quản
  * trị gỡ Face ID. 2026-10-16 (ADR-0074 Phần B Task 6): + Quản trị/Toàn quyền tắt bảo mật hai lớp (POST /api/staff/:id/mfa-reset, kết thúc phiên 'tat_hai_lop') = 8.
  */
-const SO_CHO = 8;
+const SO_CHO = 8; // chưa tính lời gọi `datPinKichHoatStatements` (đếm riêng bên dưới; Task 9 dựng route kích hoạt)
 
 function walk(dir: string): string[] {
   return readdirSync(dir).flatMap((n) => {
@@ -120,11 +126,11 @@ for (const file of files) {
 
 test("phân tích được mọi chỗ đổi thông tin đăng nhập (không bỏ qua chỗ nào)", () => {
   assert.deepEqual(loi, []);
-  assert.equal(sites.length, SO_CHO, `tìm thấy ${sites.length} chỗ đổi thông tin đăng nhập, kỳ vọng ${SO_CHO} — chỗ mới: xem lại có kết thúc phiên trong cùng lô chưa rồi sửa SO_CHO\n${sites.map((s) => s.file).join("\n")}`);
+  assert.equal(sites.filter((x) => !KHONG_DOI_KET_THUC_PHIEN.has(x.fn)).length, SO_CHO, `tìm thấy ${sites.length} chỗ đổi thông tin đăng nhập, kỳ vọng ${SO_CHO} — chỗ mới: xem lại có kết thúc phiên trong cùng lô chưa rồi sửa SO_CHO\n${sites.map((s) => s.file).join("\n")}`);
 });
 
 test("mỗi lô đổi PIN / đổi Face ID / ngưng tài khoản có câu kết thúc phiên (ADR-0075 điều 4–5)", () => {
-  const thieu = sites.filter((s) => !ENDS.test(s.group)).map((s) => `${s.file} (${s.fn})`);
+  const thieu = sites.filter((s) => !KHONG_DOI_KET_THUC_PHIEN.has(s.fn) && !ENDS.test(s.group)).map((s) => `${s.file} (${s.fn})`);
   assert.deepEqual(thieu, [], "lô đổi thông tin đăng nhập thiếu endOtherSessionsStatement / endAllSessionsStatement / endAllSessionsIfSuspendedStatement");
 });
 
@@ -166,4 +172,14 @@ test("bộ quét: nhận nhóm trong chuỗi/regex/template, báo lệch ngoặc
   assert.ok(g.some((x) => x.open === "[" && x.start === 10));
   assert.throws(() => groupsOf("const a = [1, (2];", "mau"), /lệch ngoặc/);
   assert.throws(() => groupsOf("f(1", "mau"), /chưa đóng/);
+});
+
+test("đường kích hoạt (datPinKichHoatStatements) nằm trong rào: ngoại lệ chỉ có đúng tên đó, và mỗi lời gọi (nếu có) nằm thẳng trong một lô", () => {
+  assert.deepEqual([...KHONG_DOI_KET_THUC_PHIEN], ["datPinKichHoatStatements"]);
+  const kichHoat = sites.filter((x) => x.fn === "datPinKichHoatStatements");
+  // Đợt 1 Task 9 (SIẾT): route kích hoạt đã có ⇒ ĐÚNG MỘT lời gọi, ở kich-hoat-route.ts, nằm thẳng trong mảng của lô (không bí danh, không gán biến) — bộ dò mất dấu thì đỏ, không qua với 0 chỗ.
+  assert.deepEqual(kichHoat.map((k) => k.file.split(":")[0]), ["modules/dang-ky/kich-hoat-route.ts"], "đúng một lời gọi datPinKichHoatStatements, ở route kích hoạt");
+  for (const k of kichHoat) assert.ok(/^\[/.test(k.group), `${k.file}: lô kích hoạt không phân tích được (phải nằm thẳng trong mảng của db.batch)`);
+  // Chống bài rỗng: bộ dò thật sự nhận ra tên mới (một lời gọi giả trong nguồn mẫu).
+  assert.ok([..."x([datPinKichHoatStatements(db, id, h, 1)])".matchAll(CALLS)].length === 1);
 });

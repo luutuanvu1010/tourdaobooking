@@ -65,6 +65,15 @@
       "doc_chi_tiet": ["docs/SYSTEM-DESIGN.md", "docs/CHANGE-GUIDE.md"]
     },
     {
+      "ma": "dang-ky",
+      "ten_viet": "Đăng ký đối tác",
+      "muc_dich": "Giữ phiếu đăng ký của người chưa có tài khoản, các bản khai, kết luận xác minh từng mục và lịch sử xử lý phiếu; người trong công ty xác minh rồi duyệt (ADR-0206, ADR-0207).",
+      "ai_dung": ["ADMIN", "SUPER_ADMIN", "HR"],
+      "tien_to_bang": ["dk_"],
+      "khong_lam": ["Không tự tạo hồ sơ hay tài khoản ngoài lệnh duyệt", "Không để số giấy tờ, số điện thoại, email vào nhật ký hay lịch sử phiếu"],
+      "doc_chi_tiet": ["docs/adr/ADR-0206-phieu-dang-ky-doi-tac-va-phien-dang-ky.md", "docs/adr/ADR-0207-xac-minh-duyet-mo-tai-khoan-va-kich-hoat.md"]
+    },
+    {
       "ma": "dispatch",
       "ten_viet": "Phân công",
       "muc_dich": "Chỉ định ai phụ trách từng đơn và cho hướng dẫn viên nhận hoặc từ chối việc được giao.",

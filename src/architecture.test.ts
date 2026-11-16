@@ -79,6 +79,8 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   "tro-ly": ["audit", "staff"],
   // ADR-0153 Đ1 (ĐỀ XUẤT 2026-10-31, CHỜ CHỦ DUYỆT): kho vé điện tử. Hiện chỉ cạnh → audit (nhật ký chỉ số lượng); các cạnh staff / thongbao / catalog / orders (chỉ đọc view)
   // thêm KHI ADR được duyệt. Không module nào import ve-dien-tu (orders đi bằng tiêm ở gốc lắp ráp).
+  // dang-ky (ADR-0206 Đ2, đợt 1): phiếu đăng ký đối tác — tới parties (hồ sơ, tệp), staff (tài khoản), auth (Turnstile, bộ đếm chống dò), audit (nhật ký lệnh của người trong công ty và tác nhân). KHÔNG tới pricing: câu của pricing do gốc lắp ráp (src/index.ts) ghép vào lô duyệt (ADR-0209 Đ6).
+  "dang-ky": ["parties", "staff", "auth", "audit", "maintenance"], // + maintenance: ADR-0206 Đ8 — bảo trì BẬT chặn mọi lệnh của người đăng ký (cùng cạnh auth → maintenance); chỉ đọc trạng thái, cần chủ duyệt khi gộp
   "ve-dien-tu": ["audit", "auth", "catalog", "orders"], // + auth: ADR-0153 Đ2 — dùng lại bộ đếm chống dò (`reserveAttempts`) cho route công khai của đường dẫn khách. + orders: ADR-0153 Đ1 mục 4 — chỉ ĐỌC view công bố `v_ord_order_state` làm cổng cho câu trả vé của lô huỷ (không import mã orders). + catalog: ADR-0153 Đ1 mục 2 (đã duyệt 31/10) — chỉ ĐỌC dịch vụ qua hàm công bố getEffectiveServices để kiểm mã tour
 };
 
@@ -100,6 +102,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/han-muc-repo.ts" }, // ADR-0032 (kế hoạch 2026-10-23 mục 3c): sổ sự kiện phân công + cài đặt hạn mức Từ chối — EXPLAIN từng câu
   { module: "dispatch", file: "modules/dispatch/ban-hang.ts" }, // ADR-0142 (migration 0138): ô Bán hàng phụ trách, lời mời có ưu tiên, chính sách giờ hành chính — EXPLAIN từng câu
+  { module: "dang-ky", file: "modules/dang-ky/repository.ts" }, // ADR-0206 Đ2 (migration 0170): nghiêm từ ngày đầu — SQL phiếu đăng ký đi qua defineSql + EXPLAIN
   { module: "feedback", file: "modules/feedback/repository.ts" },
   { module: "giao-dien", file: "modules/giao-dien/repository.ts" },
   { module: "ky-so", file: "modules/ky-so/repository.ts" }, // ADR-0080 D1 (sổ đại lý đợt 1): khoá tháng — nghiêm từ ngày đầu. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
@@ -210,6 +213,14 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
 const XOA_CUNG_NHAP: readonly string[] = ["orders.leg_delete_draft", "orders.passenger_delete_draft"];
 
 /**
+ * NGOẠI LỆ CÓ TÊN THỨ HAI của R-N1-9 (đợt 1 đăng ký Task 9 — ADR-0208 Đ8 việc 4; ruling điều phối: dk_upload_attempt là bảng đếm kỹ thuật như dk_email_code) — **NỚI hàng rào, CHỜ
+ * CHỦ DUYỆT** (Điều 9.4): tác nhân dọn phiếu XOÁ CỨNG dòng cũ của hai bảng KỸ THUẬT của dang-ky (mã gửi email đã hết hạn; lượt tải tệp ra khỏi cửa sổ một giờ) — như `login_attempt`, các bảng này
+ * không chứa sự thật nghiệp vụ, chỉ là bộ đếm / băm có hạn. Chỉ tên trong danh sách; bảng đích phải là một trong hai bảng; điều kiện TUỔI phải nằm TRONG câu (bài dưới). Danh sách chỉ được co lại.
+ */
+const XOA_CUNG_KY_THUAT: readonly string[] = ["dang-ky.email_code_purge", "dang-ky.upload_attempt_purge"];
+const BANG_KY_THUAT_XOA_DUOC: readonly string[] = ["dk_email_code", "dk_upload_attempt"];
+
+/**
  * NỢ CÓ TÊN, CÓ HẠN (ADR-0047 A3 "ghi nợ có tên, có hạn"): câu của tệp nửa nghiêm được đọc thẳng `audit_log` CHỈ trong lính gác `wonGuard`
  * (`EXISTS (SELECT 1 FROM audit_log WHERE id = ?)`) cùng lô với lưu nháp / sửa chuyến / route chặng / route hành khách (nợ LEGACY hiện có của orders:
  * "`wonGuard` của orders (đọc audit_log) ở lại tới N2" — xem LEGACY ở trên; `v_aud_order_event` lọc bỏ `updated`/`trip_updated` nên không thay được).
@@ -236,7 +247,7 @@ const DOC_AUDIT_LOG_WONGUARD = {
 // ctl_/catalog: ADR-0058 điều 1 (nhóm dịch vụ; bảng cũ catalog_* giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4), chủ duyệt ADR-0058 ngày 2026-09-30 (lượt 1a).
 // ky_/ky-so (ADR-0080 D1, sổ đại lý đợt 1): khoá tháng. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
 // VIEW_PREFIX thêm `ctl` (view công bố v_ctl_service_group của catalog) và `ky` (v_ky_closed_period của ky-so) — cùng khoản nới đã duyệt.
-const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien", lg_: "lan-gui", ky_: "ky-so", vdt_: "ve-dien-tu" };
+const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien", lg_: "lan-gui", ky_: "ky-so", vdt_: "ve-dien-tu", dk_: "dang-ky" };
 const VIEW_PREFIX: Record<string, string> = { prc: "pricing", pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen", ctl: "catalog", ky: "ky-so" };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -463,7 +474,7 @@ function violations(e: Pick<SqlEntry, "module" | "sql"> & { name?: string }, opt
   const key = `${e.module}.${e.name ?? ""}`;
   const useExceptions = opts.exceptions !== false;
   // R-N1-9 (ADR-0003 điều 8): không xoá cứng bản ghi bảng MỚI — đóng hiệu lực (`valid_to`) hoặc `active = 0`. Ngoại lệ có tên XOA_CUNG_NHAP (ADR-0047).
-  if (isHardDelete(e.sql) && !(useExceptions && XOA_CUNG_NHAP.includes(key)))
+  if (isHardDelete(e.sql) && !(useExceptions && (XOA_CUNG_NHAP.includes(key) || XOA_CUNG_KY_THUAT.includes(key))))
     for (const w of writes) if (dict.tables.find((t) => t.name === w)?.legacy !== true) out.push(`xoá cứng bảng ${w} (R-N1-9: đóng hiệu lực hoặc active = 0, không DELETE/REPLACE)`);
   const parentsOfWrites = new Map<string, string[]>();
   for (const w of writes) {
@@ -1000,6 +1011,22 @@ test("ADR-0047 A1/A2 (ngoại lệ XOA_CUNG_NHAP — ĐÃ DUYỆT 2026-09-29 (l�
     assert.match(e.sql, /\bstatus = 'draft'/, `${key}: điều kiện "đơn nháp" phải nằm TRONG câu xoá`);
     for (const w of touched(e.sql).writes) assert.ok(triggerNames.has(`${w}_no_delete`), `${key}: bảng ${w} phải có trigger ${w}_no_delete (cấm xoá khi đơn không còn nháp)`);
   }
+});
+
+test("R-N1-9 ngoại lệ XOA_CUNG_KY_THUAT (đợt 1 đăng ký Task 9, CHỜ CHỦ DUYỆT): đúng hai tên; mỗi tên THẬT là câu xoá cứng (không ngoại lệ thì đỏ), chỉ ghi một trong hai bảng kỹ thuật, có điều kiện tuổi TRONG câu", async () => {
+  await import(pathToFileURL(join(SRC, "modules/dang-ky/repository.ts")).href);
+  const entries = registeredSql();
+  assert.deepEqual([...XOA_CUNG_KY_THUAT].sort(), ["dang-ky.email_code_purge", "dang-ky.upload_attempt_purge"], "danh sách chỉ được co lại — thêm tên là NỚI, cần chủ duyệt");
+  for (const key of XOA_CUNG_KY_THUAT) {
+    const e = sqlByKey(entries, key);
+    assert.ok(e, `${key}: không còn đăng ký — bỏ khỏi XOA_CUNG_KY_THUAT (ngoại lệ thừa)`);
+    assert.ok(violations(e, { exceptions: false }).some((v) => v.startsWith("xoá cứng bảng")), `${key}: không còn xoá cứng — ngoại lệ thừa`);
+    const ghi = [...touched(e.sql).writes];
+    assert.ok(ghi.length > 0 && ghi.every((w) => BANG_KY_THUAT_XOA_DUOC.includes(w)), `${key}: chỉ được xoá ở ${BANG_KY_THUAT_XOA_DUOC.join(", ")} (ghi: ${ghi.join(", ")})`);
+    assert.match(e.sql, /\bWHERE\b[\s\S]*\b(created_at|at_ms)\s*(<|<=)\s*\?\d/, `${key}: điều kiện tuổi (mốc thời gian) phải nằm TRONG câu xoá`);
+  }
+  // Mọi câu xoá cứng khác trên hai bảng kỹ thuật vẫn bị R-N1-9 bắt (ngoại lệ theo TÊN, không theo bảng).
+  assert.ok(violations({ module: "dang-ky", name: "thu_xoa", sql: "DELETE FROM dk_email_code WHERE id = ?1" }).some((v) => /xoá cứng bảng dk_email_code/.test(v)));
 });
 
 test("ADR-0047 A3 (nợ có hạn DOC_AUDIT_LOG_WONGUARD — ĐÃ DUYỆT 2026-09-29 (lần 5), đề xuất luật mục 3): còn hạn (giờ VN); mỗi tên đang đăng ký, THẬT đọc audit_log (không ngoại lệ thì đỏ), và CHỈ qua lính gác `EXISTS (SELECT 1 FROM audit_log WHERE id = ?N)`", async () => {

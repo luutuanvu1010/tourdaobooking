@@ -15,6 +15,7 @@ import type { AppModule } from "./shared/router.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../tests/audit/harness.mjs";
 import { doNhatKyHang } from "../tests/audit/nhat-ky-hang.mjs";
+import { DK_COOKIE, taoPhienDangKy } from "./modules/dang-ky/phien.ts";
 import { DRIVER, DRIVER2, SALES, batDongHo, denGio, don, setup, taoChuyen, uuid, xe, xepHet } from "../tests/audit/dieu-phoi-khung.mjs";
 
 async function routesOf(entry: string, exportName: string): Promise<string[]> {
@@ -22,8 +23,8 @@ async function routesOf(entry: string, exportName: string): Promise<string[]> {
   const mod = (await import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0]!.text).toString("base64")}`)) as Record<string, AppModule>;
   return mod[exportName]!.routes.map((r) => `${r.method} ${r.path}`);
 }
-const TUYEN_THAT = [...(await routesOf("./modules/parties/index.ts", "partiesModule")), ...(await routesOf("./modules/van-chuyen/index.ts", "vanChuyenModule"))]
-  .filter((k) => /\/documents|\/giay-to|^\/api\/parties\/cua-toi|^\/api\/parties\/xac-minh|^\/api\/parties\/(phieu-xoa|anh-can-xoa)/.test(k.split(" ")[1]!)) // lát H-5: năm route xử lý phiếu xoá (ADR-0126) — KHÔNG bắt route khác; lát H-3: route "của tôi" (phiếu tự khai mang số giấy tờ) — không bắt /api/van-chuyen/ban/cua-toi; lát H-4: ba route xác minh phiếu (ADR-0125)
+const TUYEN_THAT = [...(await routesOf("./modules/parties/index.ts", "partiesModule")), ...(await routesOf("./modules/van-chuyen/index.ts", "vanChuyenModule")), ...(await routesOf("./modules/dang-ky/index.ts", "dangKyModule"))]
+  .filter((k) => /\/documents|\/giay-to|^\/api\/parties\/cua-toi|^\/api\/parties\/xac-minh|^\/api\/parties\/(phieu-xoa|anh-can-xoa)|^\/api\/dang-ky\/phieu\/:id(\/xem-so|\/tep\/:tid|\/xem-duyet|\/duyet)?$|^\/api\/dang-ky\/phieu(\/gui|\/rut)?$/.test(k.split(" ")[1]!)) // lát H-5: năm route xử lý phiếu xoá (ADR-0126) — KHÔNG bắt route khác; lát H-3: route "của tôi" (phiếu tự khai mang số giấy tờ) — không bắt /api/van-chuyen/ban/cua-toi; lát H-4: ba route xác minh phiếu (ADR-0125)
   .sort();
 
 const ADM = "33333333-3333-4333-8333-333333333333";
@@ -36,6 +37,12 @@ const SO_SUC_KHOE = "SK888777444";
 const SO_PHIEU = "079666555444";
 // ADR-0126 (lát H-5): giấy tờ của hồ sơ KHÔNG tài khoản bị ẩn danh hoá qua route Thực hiện — số + nơi cấp đánh dấu không được lọt vào xem trước / thực hiện / nhật ký.
 const SO_XOA = "079777666555";
+// ADR-0207 Đ9 (đợt 1 Task 6): bản khai của PHIẾU ĐĂNG KÝ (người chưa có tài khoản) — số + nơi cấp đánh dấu; chỉ route xem-so của phiếu được trả số đầy đủ, sau khi nhật ký đã ghi.
+const SO_DK = "079333222111";
+const NOI_DK = "NOI CAP DANG KY DANH DAU";
+// ADR-0206 Đ6 (đợt 1 Task 4): bản khai gửi QUA ROUTE THẬT của người đăng ký (cookie đăng ký, chưa có tài khoản) — số + nơi cấp đánh dấu riêng.
+const SO_DK2 = "079222111000";
+const NOI_DK2 = "NOI CAP GUI QUA ROUTE DANH DAU";
 const NOI_XOA = "NOI CAP XOA DANH DAU";
 const NOI_PHIEU = "NOI CAP PHIEU DANH DAU";
 const NOI = "NOI CAP DANH DAU";
@@ -47,7 +54,7 @@ const SO_XE = "KD-DANHDAU-9";
 const SO_XE_MOI = "KD-DANHDAU-8";
 const PNG_B64 = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]).toString("base64"); // ADR-0123: ảnh giả (chữ ký PNG)
 /** Mọi dạng lộ của số người: đủ số, 8 ký tự đầu, 8 ký tự cuối (số che chỉ để lộ 4 ký tự cuối). */
-const DAU_SO_NGUOI = [SO_CCCD, SO_CCCD_MOI, SO_GPLX, SO_SUC_KHOE, SO_CCCD_DT, SO_GPLX_DT, SO_PHIEU, SO_XOA].flatMap((s) => [s, s.slice(0, 8), s.slice(-8)]);
+const DAU_SO_NGUOI = [SO_CCCD, SO_CCCD_MOI, SO_GPLX, SO_SUC_KHOE, SO_CCCD_DT, SO_GPLX_DT, SO_PHIEU, SO_XOA, SO_DK, SO_DK2].flatMap((s) => [s, s.slice(0, 8), s.slice(-8)]);
 const DAU_SO_XE = [SO_XE, SO_XE_MOI, "DANHDAU"];
 const HOM_NAY = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 const ngay = (n: number) => new Date(Date.parse(`${HOM_NAY}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
@@ -67,6 +74,8 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   const than: { khoa: string; text: string }[] = [];
   let lanXemSo = "";
   let lanXemSoPhieu = "";
+  let lanXemSoDk = "";
+  let phieuDk = "";
   const goi = async (khoa: string, method: string, path: string, as: string, body?: unknown, mongDoi?: number) => {
     const r = await w.call(method, path, { as, body });
     if (mongDoi !== undefined) assert.equal(r.status, mongDoi, `${khoa}: ${r.text}`);
@@ -241,10 +250,95 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
       const r = await goi("danh sách ảnh hết lý do giữ", "GET", "/api/parties/anh-can-xoa", SUP, undefined, 200);
       assert.deepEqual(r.json.anh.map((x: { id: string; lyDo: string }) => [x.id, x.lyDo]), [[ANH_XOA, "KHONG_NOI"]], "chống bài rỗng: có tệp hết lý do giữ");
     },
+    // ADR-0207 Đ9 (Task 6): ba route của phiếu đăng ký mang số giấy tờ. Chi tiết chỉ số CHE; mở ảnh trả byte ảnh (không số); xem-so là route trả số đầy đủ DUY NHẤT của nhóm (vào `lanXemSoDk`).
+    "GET /api/dang-ky/phieu/:id": async () => {
+      await gieoPhieuDk();
+      const r = await goi("chi tiết phiếu đăng ký", "GET", `/api/dang-ky/phieu/${phieuDk}`, ADM, undefined, 200);
+      assert.equal(r.json.noiDung.giayTo.soChe, "••••2111", "chống bài rỗng: chi tiết phiếu đăng ký mang số che");
+    },
+    "GET /api/dang-ky/phieu/:id/tep/:tid": async () => {
+      const tid = w.q("SELECT id FROM pty_registration_attachment WHERE registration_id = ?", phieuDk)[0].id as string;
+      await goi("mở ảnh phiếu đăng ký", "GET", `/api/dang-ky/phieu/${phieuDk}/tep/${tid}`, ADM, undefined, 200);
+    },
+    "POST /api/dang-ky/phieu/:id/xem-so": async () => {
+      const x = await w.call("POST", `/api/dang-ky/phieu/${phieuDk}/xem-so`, { as: ADM });
+      assert.equal(x.status, 200, x.text);
+      lanXemSoDk += x.text; // KHÔNG đưa vào `than`
+    },
+    // ADR-0207 Đ4, Đ5 (đợt 1 Task 8, vòng sửa 1 I4): màn duyệt KHÔNG mang số (kể cả số che); lệnh duyệt ĐỌC số đầy đủ (chép sang hồ sơ) nhưng phản hồi, nhật ký, lịch sử không có số.
+    "GET /api/dang-ky/phieu/:id/xem-duyet": async () => {
+      for (const muc of ["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"]) await goi(`kết luận ${muc}`, "POST", `/api/dang-ky/phieu/${phieuDk}/ket-luan`, ADM, { muc, dat: true, phienBan: 1 }, 200);
+      await goi("xác minh đạt phiếu đăng ký", "POST", `/api/dang-ky/phieu/${phieuDk}/dat`, ADM, { hoSo: { kieu: "MOI" }, phienBan: 1 }, 200);
+      const r = await goi("màn duyệt phiếu đăng ký", "GET", `/api/dang-ky/phieu/${phieuDk}/xem-duyet`, SUP, undefined, 200);
+      assert.equal(r.json.hoTen, "Dò Số", "chống bài rỗng: màn duyệt có nội dung");
+      assert.equal(r.text.includes("••••"), false, "màn duyệt không mang cả số che");
+    },
+    "POST /api/dang-ky/phieu/:id/duyet": async () => {
+      await goi("duyệt phiếu đăng ký", "POST", `/api/dang-ky/phieu/${phieuDk}/duyet`, SUP, { roleCode: "TRAVEL_AGENCY", phienBan: 1 }, 200);
+      assert.equal(w.q("SELECT count(*) n FROM pty_person_document WHERE number_key = ?", SO_DK)[0].n, 1, "chống bài rỗng: lệnh duyệt đã chép số sang hồ sơ");
+      const lichSu = JSON.stringify(w.q("SELECT * FROM dk_event WHERE registration_id = ?", phieuDk));
+      for (const s of DAU_SO_NGUOI) assert.equal(lichSu.includes(s), false, `lịch sử phiếu lộ "${s}"`);
+      assert.equal(lichSu.includes(NOI_DK), false, "lịch sử phiếu lộ nơi cấp");
+    },
+    // ADR-0206 Đ6 (đợt 1 Task 4): bốn route của CHÍNH người đăng ký (cookie đăng ký, không tài khoản). Gửi thật qua route: bản khai mang SO_DK2 + NOI_DK2 — số chỉ ở bảng, không ở thân trả về, nhật ký, lịch sử phiếu.
+    "GET /api/dang-ky/phieu": async () => {
+      await gieoDangKy();
+      const r = await goiDk("xem phiếu của tôi", "GET", "/api/dang-ky/phieu");
+      assert.equal(r.json.trangThai, "DANG_DIEN", "chống bài rỗng: đọc được phiếu của chính mình");
+    },
+    "PUT /api/dang-ky/phieu": async () => {
+      const r = await goiDk("lưu nháp phiếu", "PUT", "/api/dang-ky/phieu", { loai: "GUIDE_FREELANCE" });
+      assert.equal(r.json.loai.ma, "GUIDE_FREELANCE");
+    },
+    "POST /api/dang-ky/phieu/gui": async () => {
+      const phienBan = w.q("SELECT version FROM v_pty_privacy_current")[0].version as number;
+      const r = await goiDk("gửi phiếu", "POST", "/api/dang-ky/phieu/gui", {
+        chinhSachPhienBan: phienBan, hoTen: "Người Gửi Dò Số", ngaySinh: "1991-02-03", dienThoai: "0912000222", diaChi: "9 Đường Gửi Dò Số",
+        giayTo: { typeCode: "CCCD", number: "079 222 111 000", issuedPlace: NOI_DK2, issuedDate: "2022-01-02", expiryDate: "2037-02-03" },
+      });
+      assert.equal(r.json.trangThai, "CHO_XAC_MINH");
+      assert.equal(w.q("SELECT number_key FROM dk_submission WHERE registration_id = 'DK_GUIGUIGI'")[0].number_key, SO_DK2, "chống bài rỗng: số đã vào bảng qua route thật");
+    },
+    "POST /api/dang-ky/phieu/rut": async () => {
+      const r = await goiDk("rút phiếu", "POST", "/api/dang-ky/phieu/rut", {});
+      assert.equal(r.json.trangThai, "DA_RUT");
+    },
     "POST /api/parties/anh-can-xoa/xoa": async () => {
       const r = await goi("xoá ảnh hết lý do giữ", "POST", "/api/parties/anh-can-xoa/xoa", SUP, { ids: [ANH_XOA] }, 200);
       assert.equal(r.json.daQuyet, 1, "chống bài rỗng: đã quyết xoá tệp");
     },
+  };
+  /** Phiếu đăng ký CHỜ XÁC MINH gieo thẳng (route công khai tạo phiếu thuộc task khác): bản khai 1 mang SO_DK + NOI_DK, một tệp chờ đã lưu trong kho giả. */
+  const gieoPhieuDk = async () => {
+    const at = new Date().toISOString();
+    const id = "DK_DOSODANH";
+    w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', 'TRAVEL_AGENCY', ?, ?)").run(id, at, at);
+    w.sqlite.prepare("INSERT INTO dk_identity (id, registration_id, provider, subject, contact_email, created_at, updated_at) VALUES ('ident-dk', ?, 'EMAIL', 'dk-do-so@example.com', 'dk-do-so@example.com', ?, ?)").run(id, at, at);
+    w.sqlite.prepare(`INSERT INTO dk_submission (id, registration_id, version, given_name, birth_date, phone_value, phone_key, document_type_code, document_number, number_key, issued_place, policy_id, consented_at, created_at, updated_at)
+      VALUES ('sub-dk', ?, 1, 'Dò Số', '1990-05-06', '0912 000 111', '0912000111', 'CCCD', '079 333 222 111', ?, ?, (SELECT id FROM pty_privacy_policy LIMIT 1), ?, ?, ?)`).run(id, SO_DK, NOI_DK, at, at, at);
+    w.sqlite.prepare("UPDATE dk_registration SET current_version = 1, submitted_at = ? WHERE id = ?").run(at, id);
+    w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(id);
+    const tid = crypto.randomUUID();
+    const key = `pty/${crypto.randomUUID().replace(/-/g, "")}`;
+    w.sqlite.prepare(`INSERT INTO pty_registration_attachment (id, registration_id, slot, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+      VALUES (?, ?, 'CCCD_MAT_TRUOC', ?, 'png', 11, ?, ?, 'ident-dk', ?, 'ident-dk')`).run(tid, id, key, "d".repeat(64), at, at);
+    await w.r2.put(key, new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]), { httpMetadata: { contentType: "image/png" } });
+    w.sqlite.prepare("UPDATE pty_registration_attachment SET stored_at = ? WHERE id = ?").run(at, tid);
+    phieuDk = id;
+    return tid;
+  };
+  /** Phiếu đăng ký ĐANG ĐIỀN cho người đăng ký chưa có tài khoản (không có route công khai nào tạo phiếu ở đây — route nhập mã thuộc task khác); email riêng, cookie đăng ký ký thật. */
+  const gieoDangKy = async () => {
+    const at = new Date().toISOString();
+    w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES ('DK_GUIGUIGI', 'PERSON', 'DANG_DIEN', '', ?, ?)").run(at, at);
+    w.sqlite.prepare("INSERT INTO dk_identity (id, registration_id, provider, subject, contact_email, created_at, updated_at) VALUES ('ident-gui', 'DK_GUIGUIGI', 'EMAIL', 'gui-do-so@example.com', 'gui-do-so@example.com', ?, ?)").run(at, at);
+  };
+  const goiDk = async (khoa: string, method: string, path: string, body?: unknown, mongDoi = 200) => {
+    const ck = `${DK_COOKIE}=${await taoPhienDangKy(w.env.SESSION_SECRET, "DK_GUIGUIGI", "ident-gui", Date.now())}`;
+    const r = await w.call(method, path, { ...(body !== undefined ? { body } : {}), headers: { cookie: ck } });
+    assert.equal(r.status, mongDoi, `${khoa}: ${r.text}`);
+    than.push({ khoa, text: r.text });
+    return r;
   };
   const ANH_XOA = "0b1e5c2a-2222-4000-8000-000000000001";
   /** Phiếu xoá đang chờ chèn THẲNG cho hồ sơ không tài khoản (người gửi = TX: hồ sơ này không đăng nhập được để tự gửi); route Thực hiện đọc phiếu như mọi phiếu khác. */
@@ -282,7 +376,7 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   const nhatKy = JSON.stringify(w.q("SELECT * FROM audit_log"));
   const nhatKyGon = nhatKy.replace(/[\s.\-]/g, "");
   for (const s of [...DAU_SO_NGUOI, ...DAU_SO_XE]) assert.ok(!nhatKy.includes(s) && !nhatKyGon.includes(s.replace(/[\s.\-]/g, "")), `nhật ký lộ "${s}"`);
-  for (const noi of [NOI, NOI_MOI, NOI_PHIEU, NOI_XOA]) assert.ok(!nhatKy.includes(noi), `nhật ký lộ nơi cấp "${noi}"`);
+  for (const noi of [NOI, NOI_MOI, NOI_PHIEU, NOI_XOA, NOI_DK, NOI_DK2]) assert.ok(!nhatKy.includes(noi), `nhật ký lộ nơi cấp "${noi}"`);
   assert.ok(w.q("SELECT count(*) n FROM audit_log WHERE action LIKE 'party_document_%' OR action LIKE 'vehicle_document_%'")[0].n >= 10, "chống bài rỗng: có nhật ký giấy tờ để quét");
 
   // (3) THÂN TRẢ VỀ (trừ "xem đủ số"): không số của NGƯỜI.
@@ -295,12 +389,15 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
   // (4) "xem đủ số" có đúng số.
   assert.ok(lanXemSo.includes(SO_CCCD_MOI), "thân 'xem đủ số' phải có số đầy đủ");
   assert.ok(lanXemSoPhieu.includes("079 666 555 444"), "thân 'xem đủ số' của phiếu (ADR-0125) phải có số đầy đủ như khai");
+  assert.ok(lanXemSoDk.includes("079 333 222 111"), "thân 'xem đủ số' của phiếu đăng ký (ADR-0207 Đ9) phải có số đầy đủ như khai");
+  assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'registration_number_viewed'")[0].n, 1, "mỗi lần xem số phiếu đăng ký đúng một dòng nhật ký (ghi TRƯỚC khi trả)");
   assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'self_submission_number_viewed'")[0].n, 1, "mỗi lần xem số phiếu đúng một dòng nhật ký");
 
   // Hiến chương 5.20 (lát H-0 Gói 2): dò MỌI cột N3/N4 của sổ dữ liệu trong nhật ký; bài này chịu trách nhiệm sinh dữ liệu thật cho cột giấy tờ người.
   const dsN3 = doNhatKyHang(w.sqlite, [
     "pty_person_document.document_number", "pty_person_document.number_key", "pty_person_document.issued_place",
     "pty_self_submission.document_number", "pty_self_submission.number_key", "pty_self_submission.issued_place", // lát H-3 Task 4: phiếu tự khai qua route thật
+    "dk_submission.document_number", "dk_submission.number_key", "dk_submission.issued_place", // ADR-0207 Đ9: bản khai phiếu đăng ký
     "pty_self_submission.birth_date", "pty_self_submission.address_value", // vòng sửa 1 (M-5): hai cột N2 của phiếu cũng dò (cột thêm bên dưới)
   ], ["pty_self_submission.birth_date", "pty_self_submission.address_value"]);
   assert.deepEqual(dsN3.rong, [], "bài rỗng: cột N3 phụ trách chưa có dữ liệu thật");
