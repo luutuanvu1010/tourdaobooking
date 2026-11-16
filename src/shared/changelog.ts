@@ -17,6 +17,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Phí đưa đón do văn phòng chọn (ADR-0214; migration 0173; nhánh claude/heuristic-turing-a00d98). Phí chỉ chạy sau khi Quản trị đặt «ngày bắt đầu áp»;
+    // lúc mới cập nhật chưa đặt ngày nên đơn chạy như cũ. SỐ TẠM 3.13: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.13",
+    date: "2026-11-16",
+    items: [
+      { kind: "moi", text: "Mỗi lượt đón trên đơn có ô «Phí đưa đón»: Miễn phí, 5.000 đến 100.000 đ hoặc Số khác. Văn phòng chọn; chưa chọn thì không xác nhận được đơn." },
+      { kind: "moi", text: "Đơn của Đối tác có lượt đón sẽ vào «chờ xác nhận»; văn phòng chọn phí đưa đón ngay ở bảng Còn vé rồi xác nhận." },
+      { kind: "doi", text: "Ô phí chỉ hiện sau khi Quản trị đặt ngày bắt đầu áp phí đưa đón; bảng phí theo khu vực không còn dùng để tính tiền cho đơn." },
+    ],
+  },
+  {
     // Đợt 2 sau kiểm toán (đặc tả docs/superpowers/specs/2026-11-16-dot-2-lay-lai-duoc-du-lieu.md, chủ duyệt 16/11): soát tiền hằng ngày + thư báo việc tự động lỗi;
     // không migration. Sao lưu và diễn tập chạy trên máy Mac của chủ, không thuộc bản triển khai. SỐ TẠM 3.12: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.12",
