@@ -383,6 +383,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuChon: "AI viết mười câu 2026-11-15, chờ chủ chọn tên",
   }),
   KN({
+    ten: "Câu «vai người dùng đã tắt» lúc duyệt và lúc xác minh",
+    giaiNghia: "Khi Kế toán tắt một loại đối tác mà phiếu đang xin loại đó: ở màn duyệt, ô chọn để trống kèm câu «Loại đối tác này đã tắt. Hãy chọn loại khác hoặc từ chối phiếu.»; ở bước xác minh, câu «Loại đối tác của phiếu này đã tắt. Hãy trả phiếu về để người đăng ký bổ sung hoặc từ chối phiếu.» (người xác minh không đổi được loại).",
+    khacVoi: "Khác «Lý do chưa mở được vai người dùng đăng ký»: câu ở đây nói về phiếu đã nộp, không phải việc chọn loại mở đăng ký.",
+    chuDaLoai: [],
+    maNoiBo: ["CAU_LOAI_DA_TAT", "role_inactive", "kiemVaiXin"],
+    trangThai: "cho-chon",
+    chuChon: "AI viết hai câu 2026-11-16 (đợt 2 Task 2, vòng sửa 1), chờ chủ chọn tên",
+  }),
+  KN({
     ten: "Lý do chưa mở được vai người dùng đăng ký",
     giaiNghia: "Hai câu máy nói cho Toàn quyền ở khối «Nhận đăng ký mới» khi một vai người dùng chưa chọn mở được: «Chưa mở được cho Công ty lữ hành: …» (nêu từng điều còn thiếu: phiếu chưa có phần khai tổ chức, chính sách riêng tư chưa nêu việc thu thập thông tin của tổ chức) và «Chưa mở được cho Tài xế đối tác: biểu mẫu chưa có ô bằng lái và hạng, và người xác minh chưa chọn được nhà xe của người lái.». Vai người dùng khác (kể cả loại do Kế toán thêm) không có câu này.",
     khacVoi: "Khác «Câu báo lỗi của phiếu đăng ký»: câu ở đây chỉ hiện cho Toàn quyền khi chọn loại mở, không hiện cho người đăng ký.",

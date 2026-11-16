@@ -9,6 +9,7 @@ import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
 import { NHAN_O_TEP, CHU_HANG_CHO_DK, NHAN_LOAI_THU } from "../src/shared/dang-ky-giao-dien";
 import { LY_DO_PHIEU, nhanTrangThaiPhieu, type MaLyDoPhieu } from "../src/shared/dang-ky-hien-thi";
+import { CAU_LOAI_DA_TAT, canhBaoDoiVai, maDuyetGui, trangThaiChonVai } from "../src/shared/dang-ky-chon-vai";
 import { CAU_DOI_VAI_CAP, type KetQuaCapDto } from "../src/shared/cap-se-ap-hien-thi";
 import { vnDateTimeText } from "../src/shared/vn-date";
 import { ngayVN } from "../src/shared/giay-to-hien-thi";
@@ -242,15 +243,23 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
   function veDuyet(p: DongHangCho, d: PhieuDuyet): void {
     const k = dauKhung(`Duyệt phiếu ${d.id}`);
     if (d.daXuLy) { moKhung(k.el, dong("Trạng thái", nhanTrangThaiPhieu(d.trangThai)), h("p", { class: "muted" }, "Phiếu đã được xử lý.")); return; }
+    const { conDung, giaTriDau } = trangThaiChonVai(d.loai, d.vaiChon ?? []);
+    // Loại của phiếu đã tắt ⇒ mục trống, khoá, chọn sẵn; người duyệt phải chọn rõ một loại khác (không nhảy sang mục đầu).
     const vai = h("select", { class: "o", id: "dk-hc-vai", "aria-label": "Vai trò đối tác" },
+      ...(conDung ? [] : [h("option", { value: "", disabled: true, selected: true }, "Chọn loại đối tác")]),
       ...(d.vaiChon ?? []).map((r) => h("option", { value: r.ma, selected: r.ma === d.loai }, r.ten))) as HTMLSelectElement;
-    const baoDoiVai = h("p", { class: "dk-hc-cap", id: "dk-hc-doi-vai", hidden: true }, CAU_DOI_VAI_CAP);
-    vai.addEventListener("change", () => { baoDoiVai.hidden = vai.value === d.loai; });
+    vai.value = giaTriDau;
+    const baoLoaiTat = h("p", { class: "dk-hc-cap", id: "dk-hc-loai-tat", hidden: conDung }, CAU_LOAI_DA_TAT);
+    const baoDoiVai = h("p", { class: "dk-hc-cap", id: "dk-hc-doi-vai", hidden: !canhBaoDoiVai(vai.value, d.loai) }, CAU_DOI_VAI_CAP);
     const muc = (d.muc ?? []).map((m) => dong(m.nhan, m.ketLuan === "DAT" ? "Đạt" : m.ketLuan === "KHONG_DAT" ? "Không đạt" : "Chưa kết luận"));
     const lyTuChoi = chonLyDo("ly-do-tu-choi-duyet");
     const nutDuyet = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "dk-hc-duyet" }, "Duyệt mở tài khoản") as HTMLButtonElement;
+    nutDuyet.disabled = maDuyetGui(vai.value) === null;
+    vai.addEventListener("change", () => { baoDoiVai.hidden = !canhBaoDoiVai(vai.value, d.loai); nutDuyet.disabled = maDuyetGui(vai.value) === null; });
     nutDuyet.addEventListener("click", () => void lenhDk(p, async () => {
-      const r = await api<{ trangThai: string; cap: KetQuaCapDto }>(`/api/dang-ky/phieu/${d.id}/duyet`, { method: "POST", body: { roleCode: vai.value, phienBan: d.phienBan } });
+      const ma = maDuyetGui(vai.value);
+      if (ma === null) throw new ApiError(400, "invalid_input", CAU_LOAI_DA_TAT);
+      const r = await api<{ trangThai: string; cap: KetQuaCapDto }>(`/api/dang-ky/phieu/${d.id}/duyet`, { method: "POST", body: { roleCode: ma, phienBan: d.phienBan } });
       const cap = r.cap.ap ? (r.cap.cap ? ` ${CHU_HANG_CHO_DK.capDaAp}: ${r.cap.cap.ten}.` : "") : r.cap.cau ? ` ${r.cap.cau}` : "";
       return `Đã duyệt. Tài khoản chưa kích hoạt cho tới khi người đăng ký tự đặt mã PIN.${cap}`;
     }));
@@ -270,7 +279,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       dong("Họ tên", d.hoTen ?? ""), dong("Số điện thoại", d.soDienThoai ?? "Không có"), dong("Vai trò xin", d.tenLoai), ...muc,
       dong("Kết luận Danh bạ", d.ketLuanDanhBa ? (d.ketLuanDanhBa.kieu === "EXISTING" ? `Gắn hồ sơ có sẵn${d.ketLuanDanhBa.tenHoSo ? `: ${d.ketLuanDanhBa.tenHoSo}` : ""}` : CHU_HANG_CHO_DK.hoSoMoi) : "Chưa có"),
       d.nguoiXacMinhLaBan ? h("p", { class: "xm-chan" }, "Bạn là người đã xác minh phiếu này; người duyệt phải là người khác (trừ Toàn quyền).") : null,
-      h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Vai trò đối tác"), vai), baoDoiVai,
+      h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Vai trò đối tác"), vai), baoLoaiTat, baoDoiVai,
       h("div", { class: "dk-hang-nut" }, nutDuyet, nutTraVe), h("div", { class: "dk-hang-nut" }, lyTuChoi.el, nutTuChoi));
   }
 

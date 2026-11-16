@@ -4,6 +4,7 @@
 // lô vẫn an toàn khi không có chúng (chỉ mục duy nhất staff.phone, staff_party_uq, dk_decision_once_uq; trigger CCCD một người, vai, quan hệ).
 // Nhật ký và lịch sử phiếu không chứa SĐT, email, số giấy tờ, ngày sinh, địa chỉ; câu báo lỗi không nhắc lại dữ liệu khai, không nói số điện thoại thuộc tài khoản nào.
 import type { LoDuyetDangKyVao } from "../../shared/dang-ky-duyet.ts";
+import { CAU_LOAI_DA_TAT } from "../../shared/dang-ky-chon-vai.ts";
 import { ketQuaCapChoNguoiXem } from "../../shared/cap-se-ap-hien-thi.ts";
 import { MUC_XAC_MINH_MO } from "../../shared/dau-xac-minh.ts";
 import { error, json, readJson } from "../../shared/http.ts";
@@ -78,7 +79,7 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
   // Vai: hợp lệ khi CÓ TRONG `vaiDangKyDuoc` lúc duyệt (ADR-0212 Đ3). Là vai bên ngoài sẵn có ⇒ qua đúng luật gán vai của người duyệt (ADR-0207 Đ4); là loại đối tác do Kế toán thêm ⇒ không qua luật đó
   // (loại nhóm OTHER không sinh quyền; quyền Đối tác cấp bằng dòng chỉnh tay trong lô). Loại vừa bị tắt ⇒ 409, không dòng nào sinh.
   const vai = await kiemVaiKhiDuyet(env.DB, roleCode);
-  if (vai.kq === "DA_TAT") return error(409, "role_inactive", "Loại đối tác này đã tắt. Hãy chọn loại khác hoặc từ chối phiếu.");
+  if (vai.kq === "DA_TAT") return error(409, "role_inactive", CAU_LOAI_DA_TAT);
   if (vai.kq !== "HOP_LE") return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
   const laLoaiDoiTac = vai.laLoaiDoiTac;
   if (!laLoaiDoiTac) {

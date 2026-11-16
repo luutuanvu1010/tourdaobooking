@@ -42,11 +42,11 @@ function setup() {
 }
 const DUONG: Record<string, string[]> = { DA_DUYET: ["CHO_XAC_MINH", "CHO_DUYET", "DA_DUYET"], DANG_DIEN: [], CHO_XAC_MINH: ["CHO_XAC_MINH"], CAN_BO_SUNG: ["CHO_XAC_MINH", "CAN_BO_SUNG"], CHO_DUYET: ["CHO_XAC_MINH", "CHO_DUYET"], TU_CHOI: ["CHO_XAC_MINH", "TU_CHOI"] };
 /** Gieo phiếu cá nhân đã gửi bản khai 1 rồi đưa tới `trangThai` theo đường hợp lệ của trigger. */
-function phieu(w: any, o: { id?: string; trangThai?: string; so?: string | null; hoTen?: [string, string]; dienThoai?: string } = {}): string {
+function phieu(w: any, o: { id?: string; trangThai?: string; so?: string | null; hoTen?: [string, string]; dienThoai?: string; vai?: string } = {}): string {
   const id = o.id ?? `DK_${"ABCDEFGHIJKLMNOPQRSTUVWXYZ".slice(dem % 18, (dem % 18) + 8)}`;
   dem++;
   const so = o.so === undefined ? SO : o.so;
-  w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', 'TRAVEL_AGENCY', ?, ?)").run(id, AT, AT);
+  w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', ?, ?, ?)").run(id, o.vai ?? "TRAVEL_AGENCY", AT, AT);
   w.sqlite.prepare("INSERT INTO dk_identity (id, registration_id, provider, subject, contact_email, created_at, updated_at) VALUES (?, ?, 'EMAIL', ?, 'khach@example.com', ?, ?)").run(`ident-${id}`, id, `khach-${id}@example.com`, AT, AT);
   const [ho, ten] = o.hoTen ?? ["Phạm", "Thử Nghiệm"];
   w.sqlite.prepare(`INSERT INTO dk_submission (id, registration_id, version, family_name, given_name, birth_date, address_value, phone_value, phone_key, document_type_code, document_number, number_key, issued_date, issued_place,
@@ -568,3 +568,35 @@ test("(15) M-1: hàng chờ dựng theo năng lực — Toàn quyền, Quản tr
   assert.deepEqual(await ids(HR), [c, f].sort());
   assert.deepEqual(await ids(ADM), [a, c].sort(), "Quản trị một mình: chỉ xác minh, không duyệt");
 });
+
+// ---- ADR-0212 Đ1 (đợt 2 Task 2, vòng sửa 1): vai của phiếu kiểm lúc «Xác minh đạt», cả hồ sơ mới lẫn hồ sơ có sẵn ----
+function loaiThu(w: any, active = 1): void {
+  w.sqlite.exec(`INSERT INTO pty_role_type (code, name, sort_order, active, role_group, is_partner_label, created_at, created_by, updated_at, updated_by) VALUES ('LD_TEST', 'Loại thử', 150, ${active}, 'OTHER', 1, '${AT}', 'x', '${AT}', 'x')`);
+}
+
+for (const kieu of ["MOI", "CO_SAN"] as const) {
+  test(`(16) «đạt» ${kieu === "MOI" ? "hồ sơ mới" : "hồ sơ có sẵn"}: loại do Kế toán thêm đang dùng ⇒ 200; đã tắt ⇒ 409 role_inactive (câu không bảo «chọn loại khác»); mã lạ ⇒ 409 role_invalid; không ghi gì`, async () => {
+    const w = setup();
+    loaiThu(w);
+    const caNhan = kieu === "CO_SAN" ? ((await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: "Người Có Sẵn", contacts: [] } })).json.party.id as string) : "";
+    const body = kieu === "MOI" ? { hoSo: { kieu: "MOI" } } : { hoSo: { kieu: "CO_SAN", partyId: caNhan } };
+    const moi = async (vai: string, dt: string, so: string) => { const id = phieu(w, { vai, dienThoai: dt, so }); await datHetMuc(w, ADM, id); return id; };
+    const idTat = await moi("LD_TEST", "0911111111", "079 000 000 301");
+    const idLa = await moi("LD_KHONG_CO", "0911111112", "079 000 000 302");
+    const idDung = await moi("LD_TEST", "0911111113", "079 000 000 303");
+    w.sqlite.exec("UPDATE pty_role_type SET active = 0 WHERE code = 'LD_TEST'");
+    const truoc = soDong(w);
+    const tat = await dat(w, ADM, idTat, body);
+    assert.equal(tat.status, 409, tat.text);
+    assert.equal(tat.json.error.code, "role_inactive");
+    assert.equal(tat.json.error.message, "Loại đối tác của phiếu này đã tắt. Hãy trả phiếu về để người đăng ký bổ sung hoặc từ chối phiếu.");
+    assert.equal(/chọn loại khác/.test(tat.json.error.message), false);
+    const la = await dat(w, ADM, idLa, body);
+    assert.equal(la.status, 409, la.text);
+    assert.equal(la.json.error.code, "role_invalid");
+    assert.deepEqual(soDong(w), truoc);
+    assert.equal(reg(w, idTat).status, "CHO_XAC_MINH");
+    w.sqlite.exec("UPDATE pty_role_type SET active = 1 WHERE code = 'LD_TEST'");
+    assert.equal((await dat(w, ADM, idDung, body)).status, 200, "loại đang dùng ⇒ đạt được");
+  });
+}
