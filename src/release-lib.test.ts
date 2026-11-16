@@ -482,6 +482,33 @@ test("day-len (ADR-0215 Đ2.4): chọn c + lượt kiểm nhận được cũ h�
   assert.match(h2.text(), /CẢNH BÁO:.*cũ hơn 24 giờ/);
 });
 
+test("day-len (ADR-0215 Đ2.1 + Đ2.4): chọn x, đổi quy trình kiểm (lý do hỏi trước) RỒI số liệu lạ sau kiểm → bản ghi giữ CẢ HAI lý do và cả hai danh sách", async () => {
+  const h = dlTuDong(
+    dayLenScript({ [CTRL_DIFF]: out("scripts/kiem-phan.mjs\n"), "git diff --stat origin/main main -- scripts/kiem-phan.mjs": out(" 1 file changed\n") }),
+    ["chia lại phần", "x", "bớt bài trùng, chủ biết", "c"],
+    { ketQua: { 4242: TONG({ soBai: 8000 }), 4100: TONG() } },
+  );
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  const q = h.daGhi[0]!.banGhi.quyTrinh;
+  assert.equal(q.lyDo, "chia lại phần; bớt bài trùng, chủ biết");
+  assert.ok(q.doi.some((x: string) => /kiem-phan\.mjs/.test(x)), "giữ tệp điều khiển đổi (hỏi trước)");
+  assert.ok(q.doi.some((x: string) => /số bài kiểm giảm/.test(x)), "giữ số liệu lạ (biết sau)");
+});
+
+test("day-len (ADR-0215 Đ2.4): chọn c mà tải tệp gom LỖI (ném lỗi) → không sập lặng lẽ: dừng, thông báo, không đẩy", async () => {
+  const k = khoGia({}, {});
+  k.kho.taiKetQua = async () => {
+    throw new Error("mất mạng giả");
+  };
+  const h = harness(dayLenScript(), ["c"], true, k.kho);
+  const d = dongHoGia();
+  const tb: string[] = [];
+  assert.notEqual(await lib.dayLen({ ...h.deps, now: d.now, sleep: d.sleep, thongBao: (a: string) => void tb.push(a), target: "worktree-x" }), 0);
+  assert.ok(!h.calls.includes("git push origin main"));
+  assert.match(h.text(), /không đọc được số tệp/);
+  assert.equal(tb.length, 1);
+});
+
 test("day-len (ADR-0215 Đ2.1): đổi tệp luật → lý do hỏi TRƯỚC câu chọn và trước lần đẩy phụ", async () => {
   const h = dlTuDong(dayLenScript({ [LUAT_DIFF]: out("CLAUDE.md\n"), "git diff --stat origin/main main -- CLAUDE.md": out(" CLAUDE.md | 2 +-\n") }), ["sửa luật vì chủ yêu cầu", "c"]);
   assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);

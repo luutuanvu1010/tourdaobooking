@@ -582,7 +582,9 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
   let luot = w.luot;
   let ketQua = luot.conclusion === "success" ? "xanh" : "do";
   let choQua = null;
-  let tong = await kk.taiKetQua(luot.databaseId);
+  // Tải tệp gom lỗi ⇒ coi như không đọc được số liệu (soSanhSoLieu báo, chế độ c dừng có thông báo) — không để lệnh sập lặng lẽ khi chủ đã rời máy.
+  const taiTong = (id) => Promise.resolve().then(() => kk.taiKetQua(id)).catch(() => null);
+  let tong = await taiTong(luot.databaseId);
   let daTuChayLai = false;
   // Đ3.1 — đỏ: nêu tên bài / kịch bản đỏ. `x`: hỏi chạy lại / dừng / cho qua có lý do. `c` (ADR-0215 Đ2.3): tự chạy lại ĐÚNG MỘT lần, vẫn đỏ ⇒ dừng.
   while (ketQua === "do") {
@@ -606,7 +608,7 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
       if (w.loi) return dung(`${w.loi} — không đẩy \`main\`.`, ...undo());
       luot = w.luot;
       ketQua = luot.conclusion === "success" ? "xanh" : "do";
-      tong = await kk.taiKetQua(luot.databaseId);
+      tong = await taiTong(luot.databaseId);
     } else if (tl === "q") {
       const lyDo = await hoiLyDo(ask, `Gõ LÝ DO cho qua (ít nhất ${LY_DO_TOI_THIEU} chữ, ví dụ "giá Sheet thật vừa đổi"); để trống = dừng: `);
       if (!lyDo) return stop("không có lý do cho qua — không đẩy `main`.", ...undo());
@@ -630,7 +632,7 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
   const dsGoc = await cacLuot(run, goc);
   // Mốc so chỉ là lượt XANH của origin/main (lượt đỏ dù được cho qua không làm mốc — kiểm độc lập N3).
   const luotGoc = (dsGoc ?? []).filter((l) => l?.headSha === goc && l.status === "completed" && l.conclusion === "success").sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
-  if (luotGoc) tongGoc = await kk.taiKetQua(luotGoc.databaseId);
+  if (luotGoc) tongGoc = await taiTong(luotGoc.databaseId);
   const canhBaoSau = soSanhSoLieu(tongGoc, tong);
   if (canhBaoSau.length) {
     log(`\n${RED}${BOLD}ĐỔI QUY TRÌNH KIỂM (không coi là xanh thường):${RESET}`);
