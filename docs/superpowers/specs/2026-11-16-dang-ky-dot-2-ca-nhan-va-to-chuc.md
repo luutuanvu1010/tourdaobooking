@@ -33,3 +33,9 @@ Người ngoài đăng ký làm đối tác hôm nay chỉ chọn được bốn
 - Email người đăng ký hôm nay chỉ dùng để gửi mã, chưa ghi vào hồ sơ; đợt này ghi thành liên hệ «Email» của hồ sơ cá nhân cho khớp «hỏi gì lưu nấy». (Chưa kiểm hết các trường khác; bước kế hoạch sẽ lập bảng đối chiếu từng trường.)
 - Làm thành hai lượt: lượt A (vai là dữ liệu, bảng đối chiếu trường, phiếu có phần tổ chức), lượt B (thao tác theo tư cách, người quản lý tổ chức). Lượt A dùng được ngay cả khi lượt B chưa xong.
 - Chính sách riêng tư nháp phải thêm phần dữ liệu tổ chức trước khi đăng.
+
+## 7. Chủ trả lời 16/11/2026 (nguyên văn rút gọn, thay các khuyến nghị ở mục 5 và dòng «một tổ chức nhiều người quản lý» ở mục 3)
+1. Vai nội bộ: KHÔNG. «Chức năng đăng ký không dành cho nội bộ… nội bộ thêm tài khoản thì vai Nhân sự sẽ cấp.»
+2. «Tài khoản tổ chức chỉ để gắn đơn, công nợ, cấp đại lý. Tài khoản cá nhân liên kết với tài khoản tổ chức để đảm nhận vai quản lý (cao nhất, duyệt đơn, thêm/gỡ/chuyển quyền quản trị tài khoản tổ chức...). Tóm lại, hệ thống biết được cá nhân thao tác với tư cách cá nhân hay tư cách tổ chức.»
+3. «Quản lý bán hàng, Quản trị và Toàn quyền đổi được người quản lý của tổ chức, và họ [người quản lý] cũng có thể tự mời người khác làm quản lý (tìm số điện thoại, nếu có thì gửi lời mời, nếu chưa có thì mời tạo tài khoản).»
+Hệ quả: một tổ chức có thể có nhiều người quản lý; có lời mời theo số điện thoại. Chữ «duyệt đơn» của người quản lý chưa rõ phạm vi (tổ chức có thành viên không phải quản lý hay không) — ADR phải nêu thành một câu để chủ chốt.
