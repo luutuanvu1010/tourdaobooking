@@ -1,12 +1,14 @@
-// Sổ vàng golden/phi-dua-don-chon.json (ADR-0214: phí đưa đón do nhân viên văn phòng chọn; Hiến chương 5.17). CHƯA có mã ADR-0214, nên hôm nay chỉ có LỚP 1:
+// Sổ vàng golden/phi-dua-don-chon.json (ADR-0214: phí đưa đón do nhân viên văn phòng chọn; Hiến chương 5.17). Lớp 1:
 // mỗi ca tự cân (bắt CA MẪU viết sai) — mức thuộc danh sách hoặc «Số khác» trong trần, số lượng đúng quy ước, tiền = đơn giá × số lượng, tổng = tổng các lượt, 0 đồng ⇔ «Miễn phí»,
-// chưa chọn hoặc bị từ chối ⇒ không xác nhận được và tổng null (không bao giờ 0). Lớp 2 (chạy qua luật thuần của mã) thêm khi thi công; chỉ ca `da_xac_nhan` được tính là chuẩn.
+// chưa chọn hoặc bị từ chối ⇒ không xác nhận được và tổng null (không bao giờ 0). Lớp 2: chạy từng ca qua luật thuần src/shared/phi-don-chon.ts; chỉ ca `da_xac_nhan` được tính là chuẩn.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { isISODate } from "./shared/vn-date.ts";
+import { kiemMucChon, tinhPhiChon } from "./shared/phi-don-chon.ts";
+import { payingGuests, type PaxCode } from "./shared/order-lines.ts";
 
 const ROOT = join(fileURLToPath(new URL(".", import.meta.url)), "..");
 type Chon = { loai: "DANH_SACH" | "SO_KHAC"; so_tien: number } | null;
@@ -74,4 +76,40 @@ test("sổ vàng phí đón chọn — ca có tiền đơn tự cân", () => {
   const s = ca("SV-PC-11").sau_khi_sua_so_khach!;
   assert.equal(s.tong_phi_don, s.don_gia_da_chon! * s.nguoi_lon!, "sửa số khách tính lại theo mức đã chọn");
   assert.equal(ca("SV-PC-15").sau_khi_them_chieu_ve!.tong_phi_don, ca("SV-PC-15").tong_phi_don, "thêm lượt đón sau xác nhận không đổi tiền");
+});
+
+const MA_BAT_BUOC = ["SV-PC-01", "SV-PC-02", "SV-PC-03", "SV-PC-04", "SV-PC-05", "SV-PC-06", "SV-PC-07", "SV-PC-08", "SV-PC-09", "SV-PC-10", "SV-PC-11", "SV-PC-12", "SV-PC-13", "SV-PC-14", "SV-PC-15"];
+const MA_PAX: Record<string, PaxCode> = { nguoi_lon: "adult", tre_em: "child", cao_tuoi: "senior", em_be: "infant" };
+const LY_DO_LOI: Record<string, string> = { VUOT_TRAN: "VUOT_TRAN", SO_KHAC_KHONG_HOP_LE: "KHONG_HOP_LE" };
+
+test("sổ vàng phí đón chọn — lớp 2: chạy qua luật thuần của mã", () => {
+  const daXacNhan = so.cac_ca.filter((c) => c.xac_nhan.trang_thai === "da_xac_nhan");
+  for (const ma of MA_BAT_BUOC) assert.ok(daXacNhan.some((c) => c.ma === ma), `${ma}: ca bắt buộc phải có và đã xác nhận`);
+  for (const ca of daXacNhan) {
+    const { dau_vao: v, dap_an: d } = ca;
+    if (!d.ap_dung) continue; // công tắc nằm ở máy chủ
+    const tong: (number | null)[] = [];
+    v.chang.forEach((c, i) => {
+      const k = d.chang[i]!;
+      if (c.chon === null) { assert.equal(k.ket_qua, "CHUA_CHON", `${ca.ma}#${i}`); tong.push(null); return; }
+      const pax: Partial<Record<PaxCode, number>> = {};
+      for (const [m, n] of Object.entries(c.khach)) pax[MA_PAX[m]!] = n;
+      const kiem = kiemMucChon({ loai: c.chon.loai, soTien: c.chon.so_tien });
+      if (!kiem.ok) {
+        assert.equal(k.ket_qua, "TU_CHOI", `${ca.ma}#${i}`);
+        if (k.ly_do) assert.equal(kiem.loi, LY_DO_LOI[k.ly_do], `${ca.ma}#${i}: lý do`);
+        tong.push(null); return;
+      }
+      assert.equal(k.ket_qua, "CO_PHI", `${ca.ma}#${i}`);
+      const t = tinhPhiChon({ muc: kiem.muc, xeRieng: c.xe_rieng, direction: c.chieu, soKhachTinhTien: payingGuests(pax), paxOverride: c.so_nguoi_rieng ?? null });
+      assert.ok(t, `${ca.ma}#${i}: có dòng phí`);
+      assert.equal(t.donGia, k.don_gia, `${ca.ma}#${i}: đơn giá`);
+      assert.equal(t.soLuong, k.so_luong, `${ca.ma}#${i}: số lượng`);
+      assert.equal(t.tien, k.tien, `${ca.ma}#${i}: tiền`);
+      tong.push(t.tien);
+    });
+    const du = tong.every((t) => t !== null);
+    assert.equal(du, d.xac_nhan_duoc, `${ca.ma}: xác nhận được`);
+    assert.equal(du ? tong.reduce<number>((s, t) => s + t!, 0) : null, d.tong_phi_don, `${ca.ma}: tổng`);
+  }
 });
