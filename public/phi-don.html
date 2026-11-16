@@ -6,7 +6,9 @@
 <main>
   <!-- Màn bảng phí đưa đón (kế hoạch Phí đưa đón, Đợt B Task 8): chỉ ô admin.manage. web/phi-don.ts dựng nội dung; chữ hiển thị ở src/shared/phi-don-hien-thi.ts. -->
   <h1>Phí đưa đón</h1>
-  <p class="muted">Mức phí đưa đón theo khu vực đón. Từ ngày bắt đầu áp, phí được cộng vào đơn có đưa đón; thiếu mức thì đơn không xác nhận được, không bao giờ tính 0 đồng; muốn miễn phí thì đặt mức 0 đồng.</p>
+  <p class="muted">Mức phí đưa đón theo khu vực đón.</p>
+  <!-- ADR-0214 (Task 6): bảng mức chỉ còn cho «Thử tra»; «ngày bắt đầu áp» vẫn là công tắc bật ô chọn phí trên đơn. -->
+  <div class="alert warn" role="note" data-chu="adr-0214">Từ ADR-0214 phí trên đơn do văn phòng chọn; bảng này không còn dùng cho đơn.</div>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="pd-khung" hidden>
     <section id="pd-trang-thai" class="card card-col pd-khoi"></section>

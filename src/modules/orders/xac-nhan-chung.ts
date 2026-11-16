@@ -30,7 +30,7 @@ import { catalogStatusOf, confirmGaps, summarizeDeviations } from "./service-rul
 import { getEffectiveServices } from "../catalog";
 import { chuanBiPhiDonXacNhan, kiemNhomChoPhepDuaDon, type PhiDonXacNhan } from "./service";
 import { cauThieuPhiDon } from "./phi-don-don";
-import type { MucChon } from "../../shared/phi-don-chon";
+import { CAU_VAN_PHONG_CHON_PHI_DON, type MucChon } from "../../shared/phi-don-chon";
 import { congLuatBan } from "./cong-ban";
 import { traSauChoXacNhan, type HamTraSau, type KemTraSau } from "./tra-sau-cong";
 import { laDoiTacTraSau } from "../../shared/tra-sau";
@@ -57,7 +57,7 @@ export function congThieuPhiDon(phiDon: Pick<PhiDonXacNhan, "thieu">): Response 
   return t ? error(409, "transfer_fee_missing", cauThieuPhiDon({ direction: t.direction, tenDichVu: t.tenDichVu })) : null;
 }
 /** ADR-0214 Đ2 (ruling P4): tài khoản giữ quyền Đối tác gửi mức phí đưa đón ở bất kỳ đường nào (lập, lưu nháp, sửa chặng, sửa chuyến, Gửi đơn, Còn vé) ⇒ 400, không lặng lẽ bỏ. */
-export const TRANSFER_FEE_NOT_ALLOWED = () => error(400, "transfer_fee_not_allowed", "Văn phòng sẽ chọn phí đưa đón khi xác nhận.");
+export const TRANSFER_FEE_NOT_ALLOWED = () => error(400, "transfer_fee_not_allowed", CAU_VAN_PHONG_CHON_PHI_DON);
 /** Lô xác nhận có câu chốt phí mà câu đổi trạng thái thua ⇒ `db.batch` ném lỗi này (cả lô lui). Nơi gọi coi như lô thua (`daXacNhan` false): đọc lại lý do bằng `chanDoanXacNhan`. */
 export const laThuaChotPhiDon = (e: unknown): boolean => /\btransfer_fee_confirm_lost\b/.test(e instanceof Error ? e.message : String(e));
 

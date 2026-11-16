@@ -32,7 +32,7 @@ import { moneyInput, setMoneyValue } from "./money-input";
 import { khungNhanNoi } from "./o-nhan-noi";
 import { tripFields } from "./trip-fields";
 import type { DiemNhanh } from "../src/shared/chon-nhanh";
-import { taoKhoiDuaDon, type DiemChon } from "./khoi-dua-don";
+import { taoKhoiDuaDon, type DiemChon, type KhoiDuaDonOptions } from "./khoi-dua-don";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
 
 export interface CardOptions {
@@ -62,6 +62,8 @@ export interface CardOptions {
     coDuaDon?: () => boolean;
     /** ADR-0134 Đ5: bộ khung giờ đón + câu lưu ý của trang; vắng = chỉ ô giờ. */
     khungGio?: () => { khung: readonly KhungGio[]; luuY: string } | null;
+    /** ADR-0214 (Task 6): ô «Phí đưa đón» mỗi lượt — chuyển thẳng vào khối Đưa đón (`KhoiDuaDonOptions.phiDon`); vắng = không ô. */
+    phiDon?: KhoiDuaDonOptions["phiDon"];
   };
   /** Thẻ MỞ lúc dựng: thẻ vừa thêm (phải điền), thẻ của nháp nạp lại khi `theMoKhiNap` (có lỗi / giá trị bị giấu), thẻ được trỏ tới bằng `?focus=`. Thẻ có lỗi chặn Lưu đang hiện luôn mở. */
   moThe: boolean;

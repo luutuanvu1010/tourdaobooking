@@ -150,11 +150,13 @@ function veThuTra(): void {
 }
 
 // ---------- Khối 3: bảng mức ----------
-/** Băng báo: khu vực đang bật chưa có mức chung còn hiệu lực (hôm nay hoặc ngày bắt đầu áp). Chỉ nhắc, không chặn. */
+/**
+ * Băng báo «chưa có mức chung» của Đợt B: TẮT từ ADR-0214 (Task 6) — phí trên đơn do văn phòng chọn, bảng mức không còn chặn xác nhận đơn nên câu «đơn … không xác nhận được» đã sai. Máy chủ vẫn trả
+ * `vungThieuMucChung` (ruling P3 của Task 3 để giao diện quyết); giữ phần tử để dễ bật lại nếu chủ muốn dùng bảng cho việc khác.
+ */
 function veThieuChung(): void {
-  const v = du!.vungThieuMucChung;
-  thieuChungEl.hidden = v.length === 0;
-  replaceChildren(thieuChungEl, h("strong", null, `Chưa có mức chung cho: ${v.map((x) => x.name).join(", ")}.`), h("div", null, "Khi phí đang áp, đơn có đón ở khu vực này không xác nhận được. Hãy thêm mức chung (không nêu cấp, dịch vụ hay nhóm)."));
+  thieuChungEl.hidden = true;
+  replaceChildren(thieuChungEl);
 }
 
 function veCanhBao(): void {

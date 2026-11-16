@@ -242,26 +242,20 @@ Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân h�
   },
   {
     id: "phi-don",
-    tieuDe: "Đặt phí đưa đón theo khu vực",
+    tieuDe: "Bật phí đưa đón trên đơn",
     nhomViec: "Cài đặt",
     trang: "phiDon",
     o: ["admin.manage"],
     gioiHan: [],
     neo: ["web/phi-don.ts", "public/phi-don.html", "src/shared/phi-don-hien-thi.ts"],
-    moDau: "Phí đưa đón tính theo bảng mức của từng khu vực đón. Từ ngày bắt đầu áp, phí được cộng vào đơn có đưa đón và chụp lại lúc xác nhận; thiếu mức thì đơn không xác nhận được, Nền tảng không bao giờ tự tính 0 đồng; muốn miễn phí thì đặt một mức 0 đồng.",
+    moDau: "Từ ADR-0214 phí trên đơn do văn phòng chọn; bảng này không còn dùng cho đơn. Màn Phí đưa đón còn giữ ngày bắt đầu áp: từ ngày đó, mỗi lượt đón trên đơn có ô chọn phí, và lượt chưa chọn phí thì đơn không xác nhận được.",
     noiDung: `### Các bước
-1. Mở **Phí đưa đón**. Bấm [[＋ Thêm mức phí]], chọn khu vực, đi chung hay xe riêng, gõ số tiền (0 là miễn phí) và ngày bắt đầu, rồi bấm [[Lưu mức phí]].
-2. Mỗi khu vực cần ít nhất một mức chung (không chọn cấp, dịch vụ hay nhóm). Mức riêng hơn (theo cấp, dịch vụ, nhóm, chiều) được ưu tiên khi khớp.
-3. Muốn xem một đơn sẽ bị tính bao nhiêu, điền khối **Thử tra** rồi bấm [[Thử tra]]. Kết quả ghi mức nào được dùng và vì sao các mức khác không được dùng.
-4. Khi mọi khu vực đã có mức chung, bấm [[Đặt ngày bắt đầu áp]] để bắt đầu tính phí. Thiếu khu vực nào thì màn báo đúng tên khu vực đó.
-
-### Đổi giá và kết thúc mức
-- Đổi số tiền: bấm [[Đổi mức phí]] ở dòng đó, gõ số tiền mới và ngày bắt đầu. Mức cũ tự kết thúc vào ngày liền trước.
-- Ngừng một mức: bấm [[Kết thúc mức]]. Khi phí đang áp, mức chung cuối cùng của một khu vực không kết thúc được.
-- Muốn dừng tính phí: bấm [[Tắt phí đưa đón]]. Các mức đã đặt vẫn còn.
+1. Mở **Phí đưa đón**, bấm [[Đặt ngày bắt đầu áp]] và chọn ngày. Không cần nhập bảng mức trước.
+2. Từ ngày đó, nhân viên văn phòng chọn phí cho từng lượt đón ngay trên đơn: Miễn phí, một mức có sẵn trong danh sách, hoặc Số khác (tự gõ số tiền, có mức tối đa). Đơn do Đối tác gửi thì người kiểm vé chọn phí lúc bấm [[Còn vé, xác nhận đơn]].
+3. Muốn dừng tính phí: bấm [[Tắt phí đưa đón]]. Đơn đã xác nhận giữ nguyên phí đã chụp.
 
 ### Điều dễ sai
-- Khung màu vàng trên bảng là lời nhắc: một cấp đang trả cao hơn bên không có cấp. Vẫn lưu được, chỉ nhắc để xem lại.
-- Mức đã đặt không xoá được, chỉ kết thúc hoặc đổi.`,
+- Bảng mức theo khu vực và khối **Thử tra** vẫn còn để tra cứu, nhưng không còn tính vào đơn.
+- Chưa chọn phí khác với Miễn phí: lượt chưa chọn thì đơn không xác nhận được; muốn không thu phí thì chọn Miễn phí.`,
   },
 ];

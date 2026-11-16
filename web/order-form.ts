@@ -2,7 +2,7 @@
 // Trang chỉ NỐI: luật ở src/shared (service-form, trip-form, order-errors), DOM ở các khối web/ (service-card, catalog-picker, banner).
 import { mayPickHandlerOnCreate } from "../src/shared/assignee-pick";
 import type { SuKienDon } from "../src/shared/bang-tin";
-import type { AssigneeDto, CatalogServiceDto } from "../src/shared/contracts";
+import type { AssigneeDto, CatalogServiceDto, ServiceInput } from "../src/shared/contracts";
 import { CAU_GIAM_GIA_VUOT_TIEN_DICH_VU } from "../src/shared/order-lines";
 import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
 import { chipDatGap, theMoKhiNap } from "../src/shared/dong-gap-the";
@@ -21,6 +21,8 @@ import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieu
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
 import { GOI_Y_GIAM_GIA_DOI_TAC, formGonDoiTac } from "../src/shared/form-dat-ve";
+import { O_PHI_TRONG, mucDaLuuTheoLuot, mucTuO, oTuMuc, type OPhiDon } from "../src/shared/phi-don-o-chon";
+import type { MucChon } from "../src/shared/phi-don-chon";
 import { cauTranGiamGiaForm, oGiamGiaChiGiaDanhMuc } from "../src/shared/ben-kia-hien-thi";
 import { dongVuotThanhTien, tongTinhTran } from "../src/shared/hoa-hong-dong";
 import { coXemPhanDoiTac } from "../src/shared/phan-doi-tac-hien-thi";
@@ -258,6 +260,16 @@ let retailOnly = false;
 // dịch vụ (khuôn `retailOnly`): thẻ ẩn "Thông tin chuyến" và dựng dòng Ghi chú; ô giảm giá bỏ nhãn nổi, chữ gợi ý «Giảm giá cho khách». Chỉ ẩn / hiện + đổi chữ — luật khoá ô và trần giảm giá không đổi.
 let formGon = false;
 /**
+ * ADR-0214 (Task 6): phí đưa đón có đang áp hôm nay (máy chủ trả — `GET /api/orders/phi-don-ap`). Chưa áp ⇒ không ô chọn, không gửi khoá `phiDon` (máy chủ giữ mức đang lưu).
+ * `phiChon`: giá trị ô của lượt người lập ĐÃ đụng tới (theo khoá lượt); `phiDaLuu`: mức đã lưu của nháp theo id lượt (chỉ dòng do văn phòng chọn). Lượt chưa đụng tới ⇒ mức đã lưu.
+ */
+let phiDangAp = false;
+const phiChon = new Map<string, OPhiDon>();
+let phiDaLuu = new Map<string, MucChon>();
+const oPhiCua = (l: ChangNhap): OPhiDon => phiChon.get(l.key) ?? (l.id ? oTuMuc(phiDaLuu.get(l.id)) : O_PHI_TRONG);
+/** Có ô chọn phí (và gửi `phiDon`) không: phí đang áp và tài khoản không giữ quyền Đối tác (máy chủ trả 400 nếu Đối tác gửi mức — kể cả tài khoản lai). */
+const coOChonPhi = (): boolean => phiDangAp && !formGon;
+/**
  * ADR-0154 Đ2.2: công tắc «Ẩn thông tin khách khi đối tác đặt vé» đang ÁP cho tài khoản này (`apChoToi` của GET /api/cai-dat/an-thong-tin-khach — máy chủ quyết, giao diện không suy từ mã quyền).
  * Áp thì khối Khách hàng (trừ Ngày khởi hành) và khối Hành khách ẩn, và thân gửi lên không có các khoá khách (máy chủ điền lại). Chỉ ẩn / hiện: máy chủ viết lại thân theo công tắc HIỆN HÀNH.
  */
@@ -295,7 +307,8 @@ function mount(d: ServiceDraft, moThe: boolean, open?: boolean): Entry {
     formGonDoiTac: formGon,
     chinhSachDichVu: chinhSachDichVu, // ADR-0195: ô cấp dịch vụ theo chính sách + điều kiện «không đón / có đón» của chính dịch vụ
     duocNhapTay,
-    duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, diemNhanh: () => diemNhanh, suaSoVe, newKey, khungGio: () => khungGio, coDuaDon: () => coDuaDon(entry.draft) },
+    duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, diemNhanh: () => diemNhanh, suaSoVe, newKey, khungGio: () => khungGio, coDuaDon: () => coDuaDon(entry.draft),
+      phiDon: () => (!phiDangAp ? null : formGon ? { kieu: "doi-tac" as const } : { kieu: "chon" as const, lay: oPhiCua, dat: (l: ChangNhap, v: OPhiDon) => void phiChon.set(l.key, v) }) },
     moThe,
     onMo: () => chiMoMot(entry, true),
     cuoiThe: entry.mocEl, // dải đặt gấp nằm TRONG phần gập của thẻ (gập thì thành chip "Cần đặt gấp" trên dòng gập)
@@ -622,6 +635,16 @@ function validate(guiDon: boolean): { banner: Banner; focus: HTMLElement; cacO: 
     if (can("note") && e.draft.trip.note.trim() === "") { lines.push(`${nameOf(e.draft, i)}: cần nhập «${NHAN_O_DICH_VU.note}».`); focusables.push(e.card.root); }
     if (can("flightCode") && e.draft.legs.some((l) => coOSoHieu(l, (id) => diem.some((d) => d.id === id && d.sanBay)) && l.flightCode.trim() === "")) { lines.push(`${nameOf(e.draft, i)}: cần nhập «${NHAN_O_DICH_VU.flightCode}».`); focusables.push(e.card.root); }
   });
+  // ADR-0214 [Điểm 5]: ô «Số khác» gõ sai / vượt trần ⇒ báo ngay, cùng câu với máy chủ (`mucTuO` → `kiemMucChon`). Chưa chọn phí thì vẫn lưu được (chặn lúc xác nhận).
+  if (coOChonPhi()) entries.forEach((e, i) => {
+    for (const l of e.draft.legs) {
+      const kq = mucTuO(oPhiCua(l));
+      if (kq.ok) continue;
+      lines.push(`${nameOf(e.draft, i)}: ${kq.cau}`);
+      focusables.push(e.card.root);
+      break;
+    }
+  });
   lines.push(...orderIssues(drafts()));
   if (hk && batBuocTruong("passengers") && passengersNhap(hk.rows()).length === 0) {
     lines.push("Thêm ít nhất một khách vào danh sách khách.");
@@ -653,10 +676,22 @@ function validate(guiDon: boolean): { banner: Banner; focus: HTMLElement; cacO: 
 /** Thân gửi lên khi khối khách đang ẩn: KHÔNG có tên, SĐT, email, ghi chú khách, danh sách hành khách, hồ sơ khách (`bookerPartyId`, `newBooker`) — máy chủ điền lại / giữ bản đang lưu (ADR-0154 Đ2.3). */
 type OrderInputAn = Omit<OrderInput, "customerName" | "customerPhone" | "customerEmail" | "customerNote" | "passengers" | "bookerPartyId" | "newBooker">;
 
+/**
+ * ADR-0214 (Task 6): có ô chọn phí ⇒ MỌI lượt gửi khoá `phiDon` — mức, hoặc `null` khi chưa chọn / người lập bỏ chọn (máy chủ hiểu khoá vắng là «giữ mức đã lưu», nên không được để vắng
+ * khi người lập đã xoá mức). Không có ô ⇒ để vắng (máy chủ giữ mức đang lưu). `toServiceInput` giữ thứ tự lượt nên ghép theo vị trí. Mức sai đã bị `validate` chặn trước khi gửi.
+ */
+function kemPhiDon(legs: readonly ChangNhap[], s: ServiceInput): ServiceInput {
+  if (!coOChonPhi() || !s.legs) return s;
+  return { ...s, legs: s.legs.map((x, j) => {
+    const kq = mucTuO(oPhiCua(legs[j]!));
+    return { ...x, phiDon: kq.ok ? kq.muc : null };
+  }) };
+}
+
 function collect(): OrderInput | OrderInputAn {
   const chung: OrderInputAn = {
     // Form gọn của Đối tác (ADR-0154 Đ1.1): lượt đầu của dịch vụ luôn gửi trống giờ (`legsGuiFormGon`); form khác giữ nguyên.
-    services: entries.map((e) => toServiceInput({ ...e.draft, legs: formGon ? legsGuiFormGon(e.draft.legs, orderDate) : e.draft.legs, pickupChoice: chonDonTheoNhom(coDuaDon(e.draft), e.draft.pickupChoice) }, suaSoVe)), // Ruling R-M
+    services: entries.map((e) => kemPhiDon(e.draft.legs, toServiceInput({ ...e.draft, legs: formGon ? legsGuiFormGon(e.draft.legs, orderDate) : e.draft.legs, pickupChoice: chonDonTheoNhom(coDuaDon(e.draft), e.draft.pickupChoice) }, suaSoVe))), // Ruling R-M
     discount: num("discount"),
     paymentNote: field("paymentNote").value, // trường ẩn vẫn gửi giá trị đang nạp: máy chủ quyết (ẩn ⇒ giữ giá trị lưu), chính sách đổi giữa chừng không xoá mất giá trị
     // Trả sau (ADR-0168): khối chỉ hiện khi bên đặt có hạn mức; Trả sau không kèm tiền đặt cọc (gửi 0 để máy chủ không giữ số cũ).
@@ -970,6 +1005,7 @@ function napThe(taoThe: readonly (() => ServiceDraft)[], ngay: string): string[]
 function fill(o: Api.OrderDetailDto): string[] {
   napO(o, () => napBenDat(o));
   orderUpdatedAt = o.updatedAt;
+  phiDaLuu = mucDaLuuTheoLuot(o.phiDuaDon?.dong ?? []); // ADR-0214: trước khi dựng thẻ — ô phí của lượt đã lưu hiện đúng mức đã chọn
   const ngayDv = new Set(o.services.map((s) => s.departDate ?? ""));
   return napThe(o.services.map((s) => () => draftFromDto(s, live, newKey())), ngayDv.size === 1 ? [...ngayDv][0]! : "");
 }
@@ -1401,7 +1437,10 @@ const layKhung = can(staff, "order.create") && !formGon // form gọn của Đ�
 // ADR-0154 Đ2.2: chỉ tài khoản giữ quyền Đối tác mới có thể bị áp công tắc (`apCongTacAnKhach` ⊂ `holdsPartner`) nên người khác không hỏi. Lỗi mạng → không ẩn (máy chủ vẫn quyết lại ở lần lưu).
 const layAnKhach = formGon ? docCongTacAnKhach() : Promise.resolve(null);
 const layChinhSach = taiChinhSach(); // ADR-0194: gửi song song
-const [viTri, mauVe, khungVe, anKhachMay] = await Promise.all([layDiem, layMau, layKhung, layAnKhach]);
+// ADR-0214 (Task 6): công tắc phí đưa đón — chỉ người lập đơn (máy chủ hỏi order.create). Lỗi → coi như chưa áp (không ô chọn, không gửi khoá; máy chủ vẫn chặn lúc xác nhận).
+const layPhiAp = can(staff, "order.create") ? api<Api.PhiDonApResponse>("/api/orders/phi-don-ap").then((r) => r.dangAp, () => false) : Promise.resolve(false);
+const [viTri, mauVe, khungVe, anKhachMay, phiApMay] = await Promise.all([layDiem, layMau, layKhung, layAnKhach, layPhiAp]);
+phiDangAp = phiApMay;
 chinhSach = await layChinhSach; // ADR-0194: trước khi dựng khối / nạp đơn; lỗi tải đã thành mặc định đầy đủ
 datAnKhach(anKhachMay === true);
 diem = viTri.diem;

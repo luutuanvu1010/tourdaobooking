@@ -379,6 +379,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/orders/pool", access: "orders" }, // hàng chờ nhận (phần hẹp) — ADR-0030 S23-1/S23-2: thân hỏi can(order.pool.view) + !holdsPartner trước mọi đọc
   { method: "GET", path: "/api/orders/nguoi-lap", access: "orders" }, // ADR-0067: thân hỏi ba ô "xem mọi đơn" (order.view/money.view/contact.view, không ngữ cảnh) trước mọi đọc
   { method: "GET", path: "/api/orders/moc-toi-thieu", access: "orders" }, // ruling R-P15 (ADR-0049 I31 cách a): thân hỏi can(order.create) trước mọi đọc; mốc qua ctx.mocToiThieu
+  { method: "GET", path: "/api/orders/phi-don-ap", access: "orders" }, // ADR-0214 Task 6: thân hỏi can(order.create) trước mọi đọc; chỉ trả cờ «phí đưa đón đang áp hôm nay»
   { method: "GET", path: "/api/cai-dat/nhap-tay", access: "orders" }, // ADR-0061 điều 6: công tắc nhập tay (module orders) — thân hỏi can(order.create); trả duocNhapTay của người gọi
   { method: "POST", path: "/api/cai-dat/nhap-tay", access: "admin" }, // ADR-0061 điều 6: bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/cai-dat/xac-nhan-don", access: "office" }, // ADR-0136 Đ1, Đ5 + ADR-0169 Đ5: cờ cần xác nhận + công tắc tự xác nhận — thân hỏi ô theo từng việc
@@ -858,6 +859,7 @@ test("mức truy cập của 540 route hiện có khớp ảnh chụp đã duy�
   // ADR-0206 Đ9 (đợt 1 Task 12 vòng sửa 1): + 2 GET, POST /api/dang-ky/chinh-sach (accounts) = 531.
   // Gộp main 16/11: ADR-0147 Đ1+Đ2 (Phí đưa đón): + 2 location-zones, + 5 pricing/phi-don (admin) = 538.
   // Rà soát cuối đợt 1 đăng ký (ADR-0207 Đ5, ADR-0206 Đ13): + 2 POST /api/dang-ky/phieu/:id/{tra-ve-xac-minh, gui-lai-thu} (accounts) = 540.
-  assert.equal(actual.length, 540, "số route thực tế lệch 540 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 540, "SNAPSHOT phải có đúng 540 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // ADR-0214 Task 6: + 1 GET /api/orders/phi-don-ap (orders) = 541.
+  assert.equal(actual.length, 541, "số route thực tế lệch 541 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 541, "SNAPSHOT phải có đúng 541 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -2,11 +2,11 @@
 // Mọi nhân viên đang hoạt động xem được mọi đơn (§2.4-4); chỉ người lập đơn, người phụ trách đang mở của đơn (ADR-0009) hoặc admin được sửa/xác nhận/huỷ.
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
 import { auditStatement, donDuocTraLai, getAuditTrail } from "../audit";
-import { chupDon, docBangChoChup, laNguoiHuong, soKhachTinhHoaHong, type BanChup } from "../pricing";
+import { chupDon, docBangChoChup, laNguoiHuong, ngayBatDauApPhiDon, soKhachTinhHoaHong, type BanChup } from "../pricing";
 import { ownerCompany } from "../parties";
 import type {
   CanhBaoMocDto, CatalogChangeDto, ChoChupBuResponse, ChupBuResponse, CatalogChangedBody, DashboardResponse, DongBoChuyenDto, DongLichSuSoKhachDto, DraftCountResponse, KhungGioDonResponse, MoneyEditResponse, MyAssignmentDto, NhapTayResponse, OrderDetailDto,
-  OrderDetailResponse, OrderListResponse, MocToiThieuResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse,
+  OrderDetailResponse, OrderListResponse, MocToiThieuResponse, PhiDonApResponse, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse,
   SuaSoKhachDichVuDto, StaffProfile, ThuongMaiResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
@@ -1118,6 +1118,14 @@ export const ordersModule: AppModule = {
       const moc = await mocToiThieu();
       if (!moc) return MOC_CHUA_CO();
       return json({ mocToiThieuPhut: moc.phut, canhBaoPhut: moc.canhBaoPhut } satisfies MocToiThieuResponse);
+    }),
+
+    // ADR-0214 Đ3 (Task 6): công tắc phí đưa đón cho biểu mẫu đơn CHƯA lưu — người lập đơn đọc «phí có đang áp hôm nay không» để hiện / ẩn ô chọn phí của mỗi lượt đón. Máy chủ so ngày (giờ
+    // Việt Nam), trình duyệt không tính. CHỈ hiển thị: máy chủ vẫn quyết lúc lưu / xác nhận. PHẢI đứng TRƯỚC "GET /api/orders/:id" (cùng lý do với route mốc ở trên).
+    route("GET", "/api/orders/phi-don-ap", "orders", async ({ env, staff }) => {
+      if (!can(staff, "order.create")) return error(403, "forbidden", "Bạn không lập đơn nên không cần biết phí đưa đón có đang áp không.");
+      const batDau = await ngayBatDauApPhiDon(env.DB);
+      return json({ dangAp: batDau !== null && vnToday(new Date()) >= batDau } satisfies PhiDonApResponse);
     }),
 
     // ADR-0067 (chủ duyệt 30/9): danh sách NHỮNG NGƯỜI ĐÃ TỪNG LẬP ĐƠN cho ô "Người lập" của bộ lọc danh sách đơn. Hỏi ĐÚNG ba câu của nhánh "xem mọi

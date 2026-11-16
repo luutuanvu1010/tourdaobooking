@@ -259,3 +259,15 @@ test("[Điểm 2] xe riêng: lưu nháp KHÔNG gửi khoá exclusiveVehicle, phi
   assert.deepEqual(dongPhi(w, o.id).map((d: any) => [d.fee_kind, d.fee_choice, d.quantity, d.line_total]), [["PER_TRIP", "SO_KHAC", 1, 500_000]]);
   assert.equal(subtotal(w, o.id), tongDichVu(w, o.id) + 500_000);
 });
+
+test("Task 6 — GET /api/orders/phi-don-ap: công tắc cho biểu mẫu đơn chưa lưu (máy chủ so ngày, trình duyệt không tính); người không lập đơn ⇒ 403; không bị route /api/orders/:id nuốt", async () => {
+  const ACC = "33333333-3333-4333-8333-333333333333";
+  const chuaBat = await setup(null);
+  assert.deepEqual((await ok(chuaBat.call("GET", "/api/orders/phi-don-ap", { as: SALES }), 200, "chưa bật")).json, { dangAp: false });
+  const mai = await setup(ngayVN(1));
+  assert.deepEqual((await ok(mai.call("GET", "/api/orders/phi-don-ap", { as: SALES }), 200, "áp từ mai")).json, { dangAp: false });
+  const w = await setup(HOM_NAY);
+  for (const as of [SALES, ADM, DT, LAI]) assert.deepEqual((await ok(w.call("GET", "/api/orders/phi-don-ap", { as }), 200, `áp hôm nay ${as}`)).json, { dangAp: true });
+  seedStaff(w.sqlite, { id: ACC, phone: "0900000003", name: "Kế Toán", perms: ["ACCOUNTING"] });
+  await ok(w.call("GET", "/api/orders/phi-don-ap", { as: ACC }), 403, "kế toán");
+});

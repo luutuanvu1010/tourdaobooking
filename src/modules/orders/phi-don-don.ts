@@ -4,7 +4,8 @@
 import { CHIEU_LABEL } from "../../shared/chang-dua-don.ts";
 import type { PaxCounts } from "../../shared/order-lines.ts";
 import { payingGuests } from "../../shared/order-lines.ts";
-import { kiemMucChon, tinhPhiChon, type MucChon } from "../../shared/phi-don-chon.ts";
+import { tinhPhiChon, type MucChon } from "../../shared/phi-don-chon.ts";
+import { mucDaLuuTheoLuot } from "../../shared/phi-don-o-chon.ts";
 import { CHU_MIEN_PHI, soTien } from "../../shared/phi-don-hien-thi.ts";
 import type { LyDoThieuPhiDonDto, PhiDuaDonCuaDonDto, PhiDuaDonDto } from "../../shared/contracts";
 import type { FeeRow, OrderItemRowPhiDon } from "./chang-hanh-khach-repo.ts";
@@ -82,16 +83,8 @@ export function mucTheoThan(services: readonly { legs: readonly { id: string | n
   return out;
 }
 
-/** Mức đã lưu theo id chặng (THUẦN): chỉ dòng do văn phòng chọn (có kiểu chọn); dòng bảng phí cũ của Đợt C (không kiểu chọn) coi như chưa chọn (ruling P6). Kiểm lại bằng `kiemMucChon`. */
-export function mucDaLuuTheoChang(dong: readonly { legId: string; loaiChon: "DANH_SACH" | "SO_KHAC" | null; unitPrice: number }[]): Map<string, MucChon> {
-  const out = new Map<string, MucChon>();
-  for (const d of dong) {
-    if (d.loaiChon === null) continue;
-    const k = kiemMucChon({ loai: d.loaiChon, soTien: d.unitPrice });
-    if (k.ok) out.set(d.legId, k.muc);
-  }
-  return out;
-}
+/** Mức đã lưu theo id chặng (THUẦN): chỉ dòng do văn phòng chọn (có kiểu chọn); dòng bảng phí cũ của Đợt C coi như chưa chọn (ruling P6). MỘT luật với giao diện (`src/shared/phi-don-o-chon.ts`). */
+export const mucDaLuuTheoChang = mucDaLuuTheoLuot;
 
 const chuMuc = (m: MucChon | null): string =>
   m === null ? "chưa chọn" : m.loai === "DANH_SACH" && m.soTien === 0 ? CHU_MIEN_PHI : `${soTien(m.soTien)} ₫ (${m.loai === "DANH_SACH" ? "trong danh sách" : "số khác"})`;

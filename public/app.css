@@ -3433,6 +3433,8 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dd-luoi2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s3); }
 .dd-luoi-noi { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w-dd-noi), 1fr)); gap: var(--s3); }
 .dd-luoi-phu { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w-dd-phu), 1fr)); gap: var(--s3); }
+.dd-phi { display: grid; gap: var(--s2); align-content: start; } /* ADR-0214: ô «Phí đưa đón» + ô «Số khác» + câu lỗi của một lượt */
+.dd-phi-nhac { margin: 0; }
 .dd-cot { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
 .dd-chang label, .hk label { min-width: 0; }
 .dd-gio { position: relative; display: block; }

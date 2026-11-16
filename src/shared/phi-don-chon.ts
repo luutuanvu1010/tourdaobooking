@@ -4,8 +4,9 @@ export const DANH_SACH_PHI_DON: readonly number[] = [0, 5000, 10000, 15000, 2000
 export const TRAN_PHI_DON = 5_000_000;
 
 export const CAU_VUOT_TRAN_PHI_DON = "Mức phí tối đa 5.000.000 đ.";
-/** Câu tạm: chưa có trong docs/BANG-THAM-CHIEU.md (đưa vào ở Task 6). */
 export const CAU_KHONG_HOP_LE_PHI_DON = "Chọn phí đưa đón trong danh sách hoặc gõ số tiền hợp lệ.";
+/** Câu 400 `transfer_fee_not_allowed` (tài khoản Đối tác gửi mức) và lời nhắc trên biểu mẫu của Đối tác — MỘT nguồn (ADR-0214 Đ2). */
+export const CAU_VAN_PHONG_CHON_PHI_DON = "Văn phòng sẽ chọn phí đưa đón khi xác nhận.";
 
 export type MucChon = { loai: "DANH_SACH" | "SO_KHAC"; soTien: number };
 export type LoiMucChon = "VUOT_TRAN" | "KHONG_HOP_LE";
