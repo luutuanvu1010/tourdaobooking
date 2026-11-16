@@ -49,24 +49,27 @@ export type HoSoDich = { kieu: "MOI" } | { kieu: "CO_SAN"; partyId: string };
 const PARTY_ID_RE = /^[A-Za-z0-9_-]{1,100}$/;
 
 /**
- * Thân `dat`: `{ phienBan, hoSo?: { kieu: "MOI" } | { kieu: "CO_SAN"; partyId }, nguoiGioiThieuPartyId? }`. `hoSo` là KẾT LUẬN DANH BẠ; vắng mặt thì dùng kết luận đã ghi trước đó (nếu có —
- * không có thì route trả 409). Người giới thiệu: mã hồ sơ, tuỳ chọn.
+ * Thân `dat`: `{ phienBan, hoSo?: { kieu: "MOI" } | { kieu: "CO_SAN"; partyId }, hoSoToChuc?: (cùng dạng), nguoiGioiThieuPartyId? }`. `hoSo` là KẾT LUẬN DANH BẠ của người,
+ * `hoSoToChuc` của tổ chức (ADR-0212 Đ5 — chỉ khi bản khai có phần tổ chức; route kiểm); vắng mặt thì dùng kết luận đã ghi trước đó (nếu có — không có thì route trả 409). Người giới thiệu:
+ * mã hồ sơ, tuỳ chọn.
  */
-export function kiemDat(body: Record<string, unknown> | null): Kiem<{ hoSo: HoSoDich | null; nguoiGioiThieuPartyId: string | null; phienBan: number }> {
+export function kiemDat(body: Record<string, unknown> | null): Kiem<{ hoSo: HoSoDich | null; hoSoToChuc: HoSoDich | null; nguoiGioiThieuPartyId: string | null; phienBan: number }> {
   const loi = { ok: false, message: "Yêu cầu không hợp lệ." } as const;
-  if (!body || !khongThua(body, ["hoSo", "nguoiGioiThieuPartyId", "phienBan"]) || !laPhienBan(body.phienBan)) return loi;
-  let hoSo: HoSoDich | null = null;
-  const h = body.hoSo;
-  if (h !== undefined && h !== null) {
-    if (typeof h !== "object" || Array.isArray(h)) return loi;
+  if (!body || !khongThua(body, ["hoSo", "hoSoToChuc", "nguoiGioiThieuPartyId", "phienBan"]) || !laPhienBan(body.phienBan)) return loi;
+  const docHoSo = (h: unknown): HoSoDich | null | "LOI" => {
+    if (h === undefined || h === null) return null;
+    if (typeof h !== "object" || Array.isArray(h)) return "LOI";
     const o = h as Record<string, unknown>;
-    if (o.kieu === "MOI" && khongThua(o, ["kieu"])) hoSo = { kieu: "MOI" };
-    else if (o.kieu === "CO_SAN" && khongThua(o, ["kieu", "partyId"]) && typeof o.partyId === "string" && PARTY_ID_RE.test(o.partyId)) hoSo = { kieu: "CO_SAN", partyId: o.partyId };
-    else return loi;
-  }
+    if (o.kieu === "MOI" && khongThua(o, ["kieu"])) return { kieu: "MOI" };
+    if (o.kieu === "CO_SAN" && khongThua(o, ["kieu", "partyId"]) && typeof o.partyId === "string" && PARTY_ID_RE.test(o.partyId)) return { kieu: "CO_SAN", partyId: o.partyId };
+    return "LOI";
+  };
+  const hoSo = docHoSo(body.hoSo);
+  const hoSoToChuc = docHoSo(body.hoSoToChuc);
+  if (hoSo === "LOI" || hoSoToChuc === "LOI") return loi;
   const g = body.nguoiGioiThieuPartyId;
   if (g !== undefined && g !== null && !(typeof g === "string" && PARTY_ID_RE.test(g))) return loi;
-  return { ok: true, value: { hoSo, nguoiGioiThieuPartyId: typeof g === "string" ? g : null, phienBan: body.phienBan } };
+  return { ok: true, value: { hoSo, hoSoToChuc, nguoiGioiThieuPartyId: typeof g === "string" ? g : null, phienBan: body.phienBan } };
 }
 
 /** Gói lỗi lô → 409 có câu rõ (trigger của phiếu). null = không phải lỗi của bước này. */

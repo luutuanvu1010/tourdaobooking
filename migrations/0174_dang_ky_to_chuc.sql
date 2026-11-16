@@ -145,3 +145,60 @@ BEGIN
   SELECT RAISE(ABORT, 'dk_activation_late: quá hạn đặt mã PIN, cần gửi lại lời mời')
     WHERE NEW.kind = 'KICH_HOAT' AND NOT COALESCE(NEW.decided_at <= (SELECT activation_deadline_at FROM dk_registration WHERE id = NEW.registration_id), 0);
 END;
+
+-- ===== parties — mục xác minh của tổ chức (ADR-0212 Đ5; đợt 2 Task 6) =====
+-- Tập đóng mở thêm bốn thuộc tính và giấy tờ GPKD (phiếu đăng ký đã có ô cho chúng từ Task 5). Phải khớp hằng MUC_XAC_MINH_MO (src/shared/dau-xac-minh.ts; bài tep-cho.test.ts đối chiếu).
+-- Thân CHÉP NGUYÊN 0171, chỉ thêm mã vào hai danh sách IN.
+DROP TRIGGER pty_verification_requirement_item_closed;
+CREATE TRIGGER pty_verification_requirement_item_closed BEFORE INSERT ON pty_verification_requirement
+WHEN NOT ((NEW.item_kind = 'ATTRIBUTE' AND NEW.item_code IN ('HO_TEN', 'NGAY_SINH', 'TEN_PHAP_LY', 'MA_SO_THUE', 'DIA_CHI_TO_CHUC', 'EMAIL_HOA_DON')) OR (NEW.item_kind = 'DOCUMENT' AND NEW.item_code IN ('CCCD', 'GPKD')))
+  AND NEW.item_code = upper(NEW.item_code) AND length(NEW.item_code) BETWEEN 2 AND 40 AND NEW.item_code NOT GLOB '*[^A-Z0-9_]*'   -- sai khuôn thì để CHECK báo (trigger BEFORE chạy trước CHECK)
+BEGIN SELECT RAISE(ABORT, 'verification_requirement_item_closed: mục này chưa có ô khai trong phiếu đăng ký — thêm ô vào phiếu trước'); END;
+-- Mặc định cho TỔ CHỨC (ADR-0212 Đ5 mục 2): tên pháp lý, mã số thuế, GPKD. Hệ quả có chủ đích (điều phối PF6): mọi hồ sơ tổ chức đang có hiện «Chưa xác minh» (dấu chỉ để biết, ADR-0210 Đ5).
+INSERT INTO pty_verification_requirement (id, subject_kind, item_kind, item_code, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES
+  ('gieo-0174-ten-phap-ly', 'ORGANIZATION', 'ATTRIBUTE', 'TEN_PHAP_LY', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL),
+  ('gieo-0174-ma-so-thue',  'ORGANIZATION', 'ATTRIBUTE', 'MA_SO_THUE',  strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL),
+  ('gieo-0174-gpkd',        'ORGANIZATION', 'DOCUMENT',  'GPKD',        strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+
+-- View dữ kiện xác minh (0171) tạo lại: mục GIẤY TỜ của hồ sơ TỔ CHỨC đọc dòng pty_organization_document hiện hành và dòng xác minh ORG_DOCUMENT (0171 chỉ đọc giấy tờ cá nhân ⇒ GPKD
+-- của tổ chức không bao giờ «đạt»). Nhánh cá nhân CHÉP NGUYÊN 0171 (thêm điều kiện loại hồ sơ). Giấy tờ tổ chức không có cột ẩn danh. Chỉ mục ghép cho truy vấn con theo từng tổ chức.
+CREATE INDEX pty_organization_document_party_type_ix ON pty_organization_document(party_id, document_type_code);
+DROP VIEW v_pty_verification_facts;
+CREATE VIEW v_pty_verification_facts AS
+SELECT x.party_id, x.subject_kind, x.item_kind, x.item_code, x.is_partner, x.anonymized, x.doc_id, COALESCE(d.expiry_date, od.expiry_date) AS expiry_date,
+  CASE x.item_kind
+    WHEN 'ATTRIBUTE' THEN (SELECT v.outcome FROM pty_verification v WHERE v.party_id = x.eff_id AND v.target_kind = 'ATTRIBUTE' AND v.attribute_code = x.item_code
+                            ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1)
+    WHEN 'DOCUMENT' THEN (SELECT v.outcome FROM pty_verification v WHERE v.party_id = x.eff_id
+                            AND v.target_kind = CASE x.subject_kind WHEN 'ORGANIZATION' THEN 'ORG_DOCUMENT' ELSE 'PERSON_DOCUMENT' END AND v.target_id = x.doc_id
+                           ORDER BY v.created_at DESC, v.rowid DESC LIMIT 1)
+  END AS last_outcome,
+  CASE x.item_kind
+    WHEN 'ATTRIBUTE' THEN EXISTS (SELECT 1 FROM pty_verification v WHERE v.party_id = x.eff_id AND v.target_kind = 'ATTRIBUTE' AND v.attribute_code = x.item_code AND v.outcome = 'DA_XAC_MINH')
+    WHEN 'DOCUMENT' THEN CASE x.subject_kind
+      WHEN 'ORGANIZATION' THEN EXISTS (SELECT 1 FROM pty_verification v JOIN pty_organization_document g ON g.id = v.target_id
+                                        WHERE v.party_id = x.eff_id AND v.target_kind = 'ORG_DOCUMENT' AND v.outcome = 'DA_XAC_MINH' AND g.document_type_code = x.item_code)
+      ELSE EXISTS (SELECT 1 FROM pty_verification v JOIN pty_person_document g ON g.id = v.target_id
+                    WHERE v.party_id = x.eff_id AND v.target_kind = 'PERSON_DOCUMENT' AND v.outcome = 'DA_XAC_MINH' AND g.document_type_code = x.item_code)
+    END
+    ELSE 0
+  END AS ever_passed
+FROM (
+  SELECT p.id AS party_id, COALESCE(p.merged_into_id, p.id) AS eff_id, p.party_kind AS subject_kind, r.item_kind, r.item_code,
+    EXISTS (SELECT 1 FROM pty_party_role pr JOIN pty_role_type rt ON rt.code = pr.role_type_code
+            WHERE pr.party_id IN (p.id, COALESCE(p.merged_into_id, p.id)) AND pr.valid_to_date IS NULL AND rt.is_partner_label = 1) AS is_partner,
+    EXISTS (SELECT 1 FROM pty_erasure_request e WHERE e.party_id = COALESCE(p.merged_into_id, p.id) AND e.status = 'DA_THUC_HIEN') AS anonymized,
+    CASE WHEN r.item_kind = 'DOCUMENT' AND p.party_kind = 'PERSON' THEN
+      (SELECT g.id FROM pty_person_document g
+        WHERE g.party_id = COALESCE(p.merged_into_id, p.id) AND g.document_type_code = r.item_code AND g.voided_at IS NULL AND g.erased_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = g.id AND n.voided_at IS NULL)
+        ORDER BY g.created_at DESC, g.id DESC LIMIT 1)
+    WHEN r.item_kind = 'DOCUMENT' AND p.party_kind = 'ORGANIZATION' THEN
+      (SELECT g.id FROM pty_organization_document g
+        WHERE g.party_id = COALESCE(p.merged_into_id, p.id) AND g.document_type_code = r.item_code AND g.voided_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM pty_organization_document n WHERE n.previous_id = g.id AND n.voided_at IS NULL)
+        ORDER BY g.created_at DESC, g.id DESC LIMIT 1)
+    END AS doc_id
+  FROM pty_party p LEFT JOIN v_pty_verification_requirement r ON r.subject_kind = p.party_kind
+) x LEFT JOIN pty_person_document d ON d.id = x.doc_id AND x.subject_kind = 'PERSON'
+    LEFT JOIN pty_organization_document od ON od.id = x.doc_id AND x.subject_kind = 'ORGANIZATION';

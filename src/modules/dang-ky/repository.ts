@@ -96,12 +96,14 @@ export interface PhieuXetRow {
   id: string; kind: string; status: string; role_code: string; current_version: number; reason_code: string | null;
   match_kind: string | null; match_party_id: string | null; verified_by: string | null; verified_version: number | null;
   submitted_at: string | null; activated_at: string | null; created_at: string; referrer_party_id: string | null; verified_at: string | null;
+  /** Phần tổ chức (ADR-0212 Đ4): vai của tổ chức và kết luận Danh bạ của tổ chức. */
+  org_role_code: string | null; org_match_kind: "NEW" | "EXISTING" | null; org_match_party_id: string | null;
 }
 const PHIEU_XET = defineSql(
   "dang-ky",
   "registration_for_review",
   `SELECT id, kind, status, role_code, current_version, reason_code, match_kind, match_party_id, verified_by, verified_version, submitted_at, activated_at, created_at,
-          referrer_party_id, verified_at
+          referrer_party_id, verified_at, org_role_code, org_match_kind, org_match_party_id
    FROM dk_registration WHERE id = ?1`,
 );
 export const phieuXet = (db: D1Database, id: string): Promise<PhieuXetRow | null> => db.prepare(PHIEU_XET).bind(id).first<PhieuXetRow>();
@@ -265,21 +267,29 @@ export const traVeXacMinhStatement = (db: D1Database, v: { registrationId: strin
   db.prepare(TRA_VE_CAP).bind(v.registrationId, v.at, v.by, v.phienBan);
 
 // «Đạt»: mọi mục bắt buộc có kết luận MỚI NHẤT là DAT ở bản khai hiện hành VÀ đã có kết luận Danh bạ (cột match_*, hoặc đặt cùng lệnh). Danh sách mục là tham số JSON (?6).
+// Bản khai có phần tổ chức (ADR-0212 Đ5): cũng phải có kết luận Danh bạ của tổ chức (org_match_*, ?9/?10, ghi CÙNG câu với match_*) — thiếu thì câu khớp 0 dòng.
 const DAT_CAP = defineSql(
   "dang-ky",
   "registration_verify_pass",
   `UPDATE dk_registration
       SET status = 'CHO_DUYET', verified_by = ?2, verified_version = current_version, verified_at = ?3,
-          match_kind = COALESCE(?4, match_kind), match_party_id = CASE WHEN ?4 IS NULL THEN match_party_id ELSE ?5 END, referrer_party_id = ?8, updated_at = ?3, updated_by = ?2
+          match_kind = COALESCE(?4, match_kind), match_party_id = CASE WHEN ?4 IS NULL THEN match_party_id ELSE ?5 END, referrer_party_id = ?8,
+          org_match_kind = COALESCE(?9, org_match_kind), org_match_party_id = CASE WHEN ?9 IS NULL THEN org_match_party_id ELSE ?10 END, updated_at = ?3, updated_by = ?2
     WHERE id = ?1 AND status = 'CHO_XAC_MINH' AND current_version = ?7 AND COALESCE(?4, match_kind) IS NOT NULL
+      AND (COALESCE(?9, org_match_kind) IS NOT NULL
+           OR NOT EXISTS (SELECT 1 FROM dk_submission_org o WHERE o.registration_id = dk_registration.id AND o.version = dk_registration.current_version))
       AND (SELECT count(*) FROM json_each(?6) j
             WHERE (SELECT x.result FROM dk_item_result x WHERE x.registration_id = dk_registration.id AND x.version = dk_registration.current_version AND x.item_code = j.value
                     ORDER BY x.created_at DESC, x.rowid DESC LIMIT 1) = 'DAT') = json_array_length(?6)`,
 );
 export const datStatement = (
   db: D1Database,
-  v: { registrationId: string; by: string; at: string; matchKind: "NEW" | "EXISTING" | null; matchPartyId: string | null; mucBatBuoc: readonly string[]; phienBan: number; referrerPartyId?: string | null },
-): D1PreparedStatement => db.prepare(DAT_CAP).bind(v.registrationId, v.by, v.at, v.matchKind, v.matchPartyId, JSON.stringify(v.mucBatBuoc), v.phienBan, v.referrerPartyId ?? null);
+  v: {
+    registrationId: string; by: string; at: string; matchKind: "NEW" | "EXISTING" | null; matchPartyId: string | null; mucBatBuoc: readonly string[]; phienBan: number; referrerPartyId?: string | null;
+    orgMatchKind?: "NEW" | "EXISTING" | null; orgMatchPartyId?: string | null;
+  },
+): D1PreparedStatement =>
+  db.prepare(DAT_CAP).bind(v.registrationId, v.by, v.at, v.matchKind, v.matchPartyId, JSON.stringify(v.mucBatBuoc), v.phienBan, v.referrerPartyId ?? null, v.orgMatchKind ?? null, v.orgMatchPartyId ?? null);
 
 const BO_SUNG_CAP = defineSql(
   "dang-ky",
@@ -445,6 +455,23 @@ const BAN_KHAI_TO_CHUC_TRUOC = defineSql(
 );
 export const banKhaiToChucTruoc = (db: D1Database, registrationId: string, version: number): Promise<BanKhaiToChucTruocRow | null> =>
   db.prepare(BAN_KHAI_TO_CHUC_TRUOC).bind(registrationId, version).first<BanKhaiToChucTruocRow>();
+
+// Phần tổ chức ĐẦY ĐỦ của một bản khai cho người trong công ty (ADR-0212 Đ5, Đ6): bước xác minh (route chỉ trả số CHE, tên, địa chỉ, email, điện thoại) và lô duyệt (chép một–một sang hồ sơ
+// tổ chức). Chỉ gọi sau cổng quyền của route. Không ghi giá trị nào vào nhật ký / lịch sử.
+export interface BanKhaiToChucRow {
+  id: string; display_name: string; legal_name: string | null; tax_code: string | null; tax_key: string | null; address: string | null; invoice_email: string | null;
+  phone_value: string | null; phone_key: string | null; gpkd_number: string; gpkd_key: string; gpkd_issued_date: string | null; gpkd_issued_place: string | null;
+  extra_type_code: string | null; extra_number: string | null; extra_key: string | null; extra_issued_date: string | null; extra_issued_place: string | null; extra_expiry_date: string | null;
+}
+const BAN_KHAI_TO_CHUC_DAY_DU = defineSql(
+  "dang-ky",
+  "submission_org_full_for_staff",
+  `SELECT id, display_name, legal_name, tax_code, tax_key, address, invoice_email, phone_value, phone_key, gpkd_number, gpkd_key, gpkd_issued_date, gpkd_issued_place,
+          extra_type_code, extra_number, extra_key, extra_issued_date, extra_issued_place, extra_expiry_date
+   FROM dk_submission_org WHERE registration_id = ?1 AND version = ?2`,
+);
+export const banKhaiToChucDayDu = (db: D1Database, registrationId: string, version: number): Promise<BanKhaiToChucRow | null> =>
+  db.prepare(BAN_KHAI_TO_CHUC_DAY_DU).bind(registrationId, version).first<BanKhaiToChucRow>();
 
 // Dòng lịch sử lệnh của người đăng ký; chỉ ghi khi câu LIỀN TRƯỚC trong lô đổi dòng. `command` là mã chữ hoa (LUU_NHAP, GUI, GUI_LAI, RUT); lịch sử KHÔNG mang số, tên, liên hệ.
 const SU_KIEN_NGUOI_DANG_KY = defineSql(

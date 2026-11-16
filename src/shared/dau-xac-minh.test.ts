@@ -27,6 +27,22 @@ function giayTo(db: Db, party: string, id: string, hetHan: string | null, extra:
   db.prepare(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, expiry_date, previous_id, voided_at, created_at, updated_at)
     VALUES (?, ?, 'CCCD', ?, ?, ?, ?, ?, ?, ?)`).run(id, party, `000${id}`, `000${id}`.toUpperCase(), hetHan, extra.truoc ?? null, extra.huy ? t : null, t, t);
 }
+function toChuc(db: Db, id: string): void {
+  const t = luc();
+  db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${id}', 'ORGANIZATION', 'Công ty Thử', 1, '${t}', '${t}')`);
+  db.exec(`INSERT INTO pty_organization (party_id, created_at, updated_at) VALUES ('${id}', '${t}', '${t}')`);
+}
+function gpkd(db: Db, party: string, id: string, truoc: string | null = null): void {
+  const t = luc();
+  db.prepare(`INSERT INTO pty_organization_document (id, party_id, document_type_code, document_number, number_key, previous_id, created_at, updated_at) VALUES (?, ?, 'GPKD', ?, ?, ?, ?, ?)`)
+    .run(id, party, `41${id}`, `41${id}`.toUpperCase(), truoc, t, t);
+}
+const datToChuc = (db: Db, p: string, doc: string): void => {
+  xm(db, p, "ATTRIBUTE", "TEN_PHAP_LY", "DA_XAC_MINH"); xm(db, p, "ATTRIBUTE", "MA_SO_THUE", "DA_XAC_MINH");
+  const t = luc();
+  db.prepare(`INSERT INTO pty_verification (id, party_id, target_kind, target_id, attribute_code, outcome, created_at, created_by, updated_at, updated_by) VALUES (?, ?, 'ORG_DOCUMENT', ?, NULL, 'DA_XAC_MINH', ?, 'ng', ?, 'ng')`)
+    .run(`xm-${++dem}`, p, doc, t, t);
+};
 const datDu = (db: Db, p: string, doc: string): void => { xm(db, p, "ATTRIBUTE", "HO_TEN", "DA_XAC_MINH"); xm(db, p, "ATTRIBUTE", "NGAY_SINH", "DA_XAC_MINH"); xm(db, p, "PERSON_DOCUMENT", doc, "DA_XAC_MINH"); };
 
 interface Ca { ten: string; lap: (db: Db) => void; coTaiKhoan?: boolean; mong: DauXacMinh | null; hoSo?: string }
@@ -74,12 +90,17 @@ const CA: (Ca & { dk: DuKienXacMinh[] })[] = [
       db.exec("UPDATE pty_party SET merged_into_id = 'p', merged_at = '2026-11-10T00:00:00.000Z', active = 0 WHERE id = 'm'");
     }, coTaiKhoan: true, mong: "DA",
     dk: [MUC("HO_TEN", "ATTRIBUTE", DAT), MUC("NGAY_SINH", "ATTRIBUTE", DAT), MUC("CCCD", "DOCUMENT", { ...DAT, maGiayTo: "d1", hetHan: HAN })] },
-  { ten: "hồ sơ tổ chức (danh sách mục bắt buộc của tổ chức còn rỗng) ⇒ Chưa, không bao giờ Đã (chủ sẽ xác nhận)", hoSo: "o", lap: (db) => {
-      const t = "2026-11-01T00:00:00.000Z";
-      db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('o', 'ORGANIZATION', 'Công ty Thử', 1, '${t}', '${t}')`);
-      db.exec(`INSERT INTO pty_organization (party_id, created_at, updated_at) VALUES ('o', '${t}', '${t}')`);
-    }, coTaiKhoan: true, mong: "CHUA",
-    dk: [{ loaiMuc: null, maMuc: null, ketLuanMoiNhat: null, tungDat: false, maGiayTo: null, hetHan: null, laDoiTac: false, anDanh: false }] },
+  // Đợt 2 Task 6 (ADR-0212 Đ5; điều phối PF6, sửa có chủ đích): tổ chức có mục bắt buộc gieo sẵn (tên pháp lý, mã số thuế, GPKD) ⇒ hồ sơ tổ chức cũ chưa kết luận gì hiện «Chưa».
+  { ten: "hồ sơ tổ chức cũ, chưa kết luận mục nào ⇒ Chưa (hệ quả có chủ đích của mục bắt buộc gieo cho tổ chức)", hoSo: "o", lap: (db) => toChuc(db, "o"), coTaiKhoan: true, mong: "CHUA",
+    dk: [MUC("MA_SO_THUE", "ATTRIBUTE"), MUC("TEN_PHAP_LY", "ATTRIBUTE"), MUC("GPKD", "DOCUMENT")] },
+  { ten: "hồ sơ tổ chức: tên pháp lý, mã số thuế đạt và dòng GPKD hiện hành đạt (ORG_DOCUMENT) ⇒ Đã", hoSo: "o", lap: (db) => { toChuc(db, "o"); gpkd(db, "o", "g1"); datToChuc(db, "o", "g1"); }, coTaiKhoan: true, mong: "DA",
+    dk: [MUC("MA_SO_THUE", "ATTRIBUTE", DAT), MUC("TEN_PHAP_LY", "ATTRIBUTE", DAT), MUC("GPKD", "DOCUMENT", { ...DAT, maGiayTo: "g1" })] },
+  { ten: "hồ sơ tổ chức: GPKD gia hạn bằng dòng mới chưa xác minh ⇒ Cần lại", hoSo: "o", lap: (db) => { toChuc(db, "o"); gpkd(db, "o", "g1"); datToChuc(db, "o", "g1"); gpkd(db, "o", "g2", "g1"); }, coTaiKhoan: true, mong: "CAN_LAI",
+    dk: [MUC("MA_SO_THUE", "ATTRIBUTE", DAT), MUC("TEN_PHAP_LY", "ATTRIBUTE", DAT), MUC("GPKD", "DOCUMENT", { tungDat: true, maGiayTo: "g2" })] },
+  { ten: "dòng xác minh PERSON_DOCUMENT không bao giờ tính cho GPKD của tổ chức (đúng loại đích)", hoSo: "o", lap: (db) => {
+      toChuc(db, "o"); gpkd(db, "o", "g1"); xm(db, "o", "ATTRIBUTE", "TEN_PHAP_LY", "DA_XAC_MINH"); xm(db, "o", "ATTRIBUTE", "MA_SO_THUE", "DA_XAC_MINH");
+    }, coTaiKhoan: true, mong: "CAN_LAI",
+    dk: [MUC("MA_SO_THUE", "ATTRIBUTE", DAT), MUC("TEN_PHAP_LY", "ATTRIBUTE", DAT), MUC("GPKD", "DOCUMENT", { maGiayTo: "g1" })] },
   { ten: "hồ sơ đã ẩn danh theo yêu cầu xoá ⇒ Chưa", lap: (db) => {
       giayTo(db, "p", "d1", HAN); datDu(db, "p", "d1");
       db.exec(`INSERT INTO pty_erasure_request (id, party_id, status, created_at, created_by, updated_at, updated_by) VALUES ('x1', 'p', 'CHO_XU_LY', '2026-11-11T00:00:00.000Z', 'p', '2026-11-11T00:00:00.000Z', 'p')`);

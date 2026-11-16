@@ -6,7 +6,7 @@
 import type { LoDuyetDangKyVao } from "../../shared/dang-ky-duyet.ts";
 import { CAU_LOAI_DA_TAT } from "../../shared/dang-ky-chon-vai.ts";
 import { ketQuaCapChoNguoiXem } from "../../shared/cap-se-ap-hien-thi.ts";
-import { MUC_XAC_MINH_MO } from "../../shared/dau-xac-minh.ts";
+import { MUC_XAC_MINH_MO_CA_NHAN } from "../../shared/dau-xac-minh.ts";
 import { error, json, readJson } from "../../shared/http.ts";
 import { can } from "../../shared/permissions.ts";
 import { normalizePhone } from "../../shared/phone.ts";
@@ -24,7 +24,7 @@ import { maLenhThu } from "./rules.ts";
 import { kiemVaiKhiDuyet, vaiChonKhiDuyet } from "./vai.ts";
 import { guiThuSauLo } from "./thu-bao.ts";
 import { kiemDuyet, kiemLyDoDuyet, kiemTraVe, laMaPhieu, loiDungLoDuyet, loiLoDuyet } from "./xac-minh.ts";
-import { dsMuc, kiemHoSoDich, kiemNguoiGioiThieu, moiNhat, mucPhaiDat } from "./xac-minh-route.ts";
+import { dsMuc, kiemHoSoDich, kiemNguoiGioiThieu, moiNhat, mucPhaiDat, tachMuc } from "./xac-minh-route.ts";
 
 export const CAM_DUYET = () => error(403, "forbidden", "Bạn không có quyền duyệt phiếu đăng ký.");
 const KHONG_THAY = () => error(404, "not_found", "Không tìm thấy phiếu.");
@@ -33,6 +33,9 @@ const DOI_PHIEN_BAN = () => error(409, "registration_version_changed", "Phiếu 
 const NGAY_MS = 24 * 3600 * 1000;
 const DANH_TINH_DA_AN = () =>
   error(409, "registration_identity_erased", "Đã quá hạn đặt mã PIN và cả thời gian chờ thêm, nên thông tin liên lạc của người đăng ký đã được xoá và không gửi lại lời mời được nữa. Tài khoản vẫn tắt; hãy báo Toàn quyền quyết định cách xử lý.");
+
+/** Dòng màn duyệt khi phiếu gắn vào hồ sơ tổ chức có sẵn (ADR-0212 Đ5 mục 3; ADR-0213 Đ6): người đăng ký không tự thành người quản lý. */
+export const GHI_CHU_TO_CHUC_CO_SAN = "Gắn vào hồ sơ tổ chức có sẵn: người đăng ký không tự thành người quản lý của tổ chức — văn phòng sẽ giao người quản lý.";
 
 const idPhieu = (params: Record<string, string>): string | null => (laMaPhieu(params.id) ? params.id! : null);
 
@@ -51,18 +54,23 @@ export async function xemDeDuyet({ env, staff, params }: Ctx<"accounts">): Promi
   if (p.status !== "CHO_DUYET" || p.current_version < 1) return json({ ...tomTatPhieu, daXuLy: true });
   const bk = await tomTatDeDuyet(env.DB, p.id, p.current_version);
   if (!bk) return json({ ...tomTatPhieu, daXuLy: true });
-  const [batBuoc, kl] = await Promise.all([mucPhaiDat(env.DB, new Date().toISOString()), moiNhat(env.DB, p)]);
+  const [batBuoc, kl] = await Promise.all([mucPhaiDat(env.DB, new Date().toISOString(), p), moiNhat(env.DB, p)]);
   const vaiChon = await vaiChonKhiDuyet(env.DB);
   const dich = p.match_kind === "EXISTING" && p.match_party_id && can(staff, "party.view") ? await partySummary(env.DB, p.match_party_id) : null;
+  const dichToChuc = p.org_match_kind === "EXISTING" && p.org_match_party_id && can(staff, "party.view") ? await partySummary(env.DB, p.org_match_party_id) : null;
   return json({
     ...tomTatPhieu,
     vaiChon, // ô chọn vai ở màn duyệt đọc từ đây (PF2): loại do Kế toán thêm có mặt, loại đã tắt thì không
     guiLuc: p.submitted_at,
     hoTen: [bk.family_name, bk.middle_name, bk.given_name].filter((x): x is string => !!x).join(" "),
     soDienThoai: bk.phone_value,
-    muc: dsMuc(batBuoc, kl),
+    ...tachMuc(dsMuc(batBuoc, kl)),
     // Kiểu kết luận Danh bạ; tên hồ sơ đích CHỈ khi người xem được xem Danh bạ (ADR-0207 Đ4).
     ketLuanDanhBa: p.match_kind ? { kieu: p.match_kind, ...(dich ? { tenHoSo: dich.displayName } : {}) } : null,
+    // Kết luận Danh bạ của tổ chức (ADR-0212 Đ5): cùng luật tên. Gắn tổ chức có sẵn KHÔNG làm người đăng ký thành người quản lý (Đ5 mục 3) — màn duyệt nói rõ văn phòng giao sau.
+    ketLuanDanhBaToChuc: p.org_match_kind
+      ? { kieu: p.org_match_kind, ...(dichToChuc ? { tenHoSo: dichToChuc.displayName } : {}), ...(p.org_match_kind === "EXISTING" ? { ghiChu: GHI_CHU_TO_CHUC_CO_SAN } : {}) }
+      : null,
     coNguoiGioiThieu: p.referrer_party_id !== null,
     nguoiXacMinhLaBan: p.verified_by === staff.id,
   });
@@ -126,8 +134,9 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
   });
   const datMa = new Set((await ketLuanMoiNhat(env.DB, p.id, version)).filter((r) => r.result === "DAT").map((r) => r.item_code));
   const mucDat: LoDuyetDangKyVao["mucDat"] = [
-    ...MUC_XAC_MINH_MO.ATTRIBUTE.filter((m) => datMa.has(m)).map((ma) => ({ loai: "ATTRIBUTE" as const, ma })),
-    ...MUC_XAC_MINH_MO.DOCUMENT.filter((m) => datMa.has(m)).map((ma) => ({ loai: "DOCUMENT" as const, ma })),
+    // CHỈ mục cá nhân (điều phối PF5): mục tổ chức đã đạt đi vào `toChuc.mucDat` của hồ sơ tổ chức, không bao giờ thành dòng xác minh của hồ sơ người.
+    ...MUC_XAC_MINH_MO_CA_NHAN.ATTRIBUTE.filter((m) => datMa.has(m)).map((ma) => ({ loai: "ATTRIBUTE" as const, ma })),
+    ...MUC_XAC_MINH_MO_CA_NHAN.DOCUMENT.filter((m) => datMa.has(m)).map((ma) => ({ loai: "DOCUMENT" as const, ma })),
   ];
   // Cờ Toàn quyền (ADR-0207 Đ1, Đ5): CHỈ khi người duyệt CHÍNH là người xác minh VÀ bảng quyền nói người đó là Toàn quyền. Toàn quyền duyệt phiếu người khác xác minh ⇒ không cờ.
   const co: 0 | 1 = p.verified_by === staff.id && can(staff, "admin.manage.superadmin") ? 1 : 0;

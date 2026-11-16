@@ -1888,3 +1888,39 @@ export const dkGioiThieuStatement = (db: D1Database, v: { id: string; referrerPa
 export async function dkSoCanCuocOHoSoKhac(db: D1Database, numberKey: string, partyId: string | null): Promise<boolean> {
   return (await db.prepare(DK_SO_O_HO_SO_KHAC).bind(numberKey, partyId).first()) !== null;
 }
+
+// ---- Phần TỔ CHỨC của phiếu đăng ký: đối chiếu Danh bạ tổ chức và kiểm trước lô (ADR-0212 Đ5; đợt 2 Task 6) ----
+// Mã số thuế ở hồ sơ lưu «chữ số, có thể có dấu '-'» (0011); khoá của phiếu là 10 số [+ '-' + 3 số] (`chuanHoaMaSoThue`). So bằng cách bỏ '-' và khoảng trắng CẢ HAI bên.
+// Chỉ trả mã hồ sơ — không mã số thuế, không số GPKD.
+const DK_TO_CHUC_THEO_MST = defineSql("parties", "registration_org_by_tax",
+  `SELECT p.id FROM pty_party p JOIN pty_organization o ON o.party_id = p.id
+   WHERE p.party_kind = 'ORGANIZATION' AND p.active = 1 AND p.merged_into_id IS NULL AND o.tax_code IS NOT NULL
+     AND replace(replace(o.tax_code, '-', ''), ' ', '') = replace(replace(?1, '-', ''), ' ', '')`);
+const DK_TO_CHUC_THEO_GPKD = defineSql("parties", "registration_org_by_gpkd",
+  `SELECT DISTINCT p.id FROM pty_organization_document d JOIN pty_party p ON p.id = d.party_id
+   WHERE d.document_type_code = 'GPKD' AND d.number_key = ?1 AND d.voided_at IS NULL AND p.active = 1 AND p.merged_into_id IS NULL`);
+const DK_TO_CHUC_DE_SO_TEN = defineSql("parties", "registration_orgs_for_name_match",
+  `SELECT p.id, p.display_name, o.legal_name FROM pty_party p LEFT JOIN pty_organization o ON o.party_id = p.id
+   WHERE p.party_kind = 'ORGANIZATION' AND p.active = 1 AND p.merged_into_id IS NULL`);
+// Lưới của trigger pty_organization_document_gpkd_one_org_ins: dòng GPKD chưa huỷ mang khoá này ở hồ sơ KHÁC `?2` (null = mọi hồ sơ), BẤT KỂ hồ sơ đó đang dùng hay không (trigger cũng vậy).
+const DK_GPKD_O_TO_CHUC_KHAC = defineSql("parties", "registration_gpkd_elsewhere",
+  `SELECT 1 AS x FROM pty_organization_document d WHERE d.document_type_code = 'GPKD' AND d.number_key = ?1 AND d.voided_at IS NULL AND (?2 IS NULL OR d.party_id <> ?2) LIMIT 1`);
+// Mã số thuế đã nằm ở hồ sơ tổ chức KHÁC `?2` chưa gộp (ADR-0212 Đ5 mục 4).
+const DK_MST_O_TO_CHUC_KHAC = defineSql("parties", "registration_tax_elsewhere",
+  `SELECT 1 AS x FROM pty_organization o JOIN pty_party p ON p.id = o.party_id
+   WHERE p.merged_into_id IS NULL AND o.tax_code IS NOT NULL AND replace(replace(o.tax_code, '-', ''), ' ', '') = replace(replace(?1, '-', ''), ' ', '') AND (?2 IS NULL OR o.party_id <> ?2) LIMIT 1`);
+export async function dkToChucTheoMst(db: D1Database, taxKey: string): Promise<string[]> {
+  return (await db.prepare(DK_TO_CHUC_THEO_MST).bind(taxKey).all<{ id: string }>()).results.map((r) => r.id);
+}
+export async function dkToChucTheoGpkd(db: D1Database, gpkdKey: string): Promise<string[]> {
+  return (await db.prepare(DK_TO_CHUC_THEO_GPKD).bind(gpkdKey).all<{ id: string }>()).results.map((r) => r.id);
+}
+export async function dkToChucDeSoTen(db: D1Database): Promise<{ id: string; display_name: string; legal_name: string | null }[]> {
+  return (await db.prepare(DK_TO_CHUC_DE_SO_TEN).all<{ id: string; display_name: string; legal_name: string | null }>()).results;
+}
+export async function dkGpkdOToChucKhac(db: D1Database, gpkdKey: string, partyId: string | null): Promise<boolean> {
+  return (await db.prepare(DK_GPKD_O_TO_CHUC_KHAC).bind(gpkdKey, partyId).first()) !== null;
+}
+export async function dkMstOToChucKhac(db: D1Database, taxKey: string, partyId: string | null): Promise<boolean> {
+  return (await db.prepare(DK_MST_O_TO_CHUC_KHAC).bind(taxKey, partyId).first()) !== null;
+}

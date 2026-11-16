@@ -43,9 +43,13 @@ test("kiemLyDo, kiemDat, mã phiếu, mã tệp", () => {
   assert.equal(kiemLyDo({ lyDo: "KHONG_THUOC_DIEN", phienBan: 0 }).ok, false);
   assert.equal(kiemLyDo({ lyDo: "KHONG_THUOC_DIEN", phienBan: 1, ghiChu: "x" }).ok, false);
   assert.equal(kiemLyDo(null).ok, false);
-  assert.deepEqual(kiemDat({ phienBan: 1 }), { ok: true, value: { hoSo: null, nguoiGioiThieuPartyId: null, phienBan: 1 } });
-  assert.deepEqual(kiemDat({ hoSo: { kieu: "MOI" }, phienBan: 2 }), { ok: true, value: { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: null, phienBan: 2 } });
-  assert.deepEqual(kiemDat({ hoSo: { kieu: "CO_SAN", partyId: "pty-1" }, nguoiGioiThieuPartyId: "pty-2", phienBan: 1 }), { ok: true, value: { hoSo: { kieu: "CO_SAN", partyId: "pty-1" }, nguoiGioiThieuPartyId: "pty-2", phienBan: 1 } });
+  assert.deepEqual(kiemDat({ phienBan: 1 }), { ok: true, value: { hoSo: null, hoSoToChuc: null, nguoiGioiThieuPartyId: null, phienBan: 1 } });
+  assert.deepEqual(kiemDat({ hoSo: { kieu: "MOI" }, phienBan: 2 }), { ok: true, value: { hoSo: { kieu: "MOI" }, hoSoToChuc: null, nguoiGioiThieuPartyId: null, phienBan: 2 } });
+  assert.deepEqual(kiemDat({ hoSo: { kieu: "CO_SAN", partyId: "pty-1" }, nguoiGioiThieuPartyId: "pty-2", phienBan: 1 }), { ok: true, value: { hoSo: { kieu: "CO_SAN", partyId: "pty-1" }, hoSoToChuc: null, nguoiGioiThieuPartyId: "pty-2", phienBan: 1 } });
+  // Kết luận Danh bạ của tổ chức (ADR-0212 Đ5; đợt 2 Task 6): cùng dạng với của người, độc lập.
+  assert.deepEqual(kiemDat({ hoSoToChuc: { kieu: "CO_SAN", partyId: "org-1" }, phienBan: 1 }), { ok: true, value: { hoSo: null, hoSoToChuc: { kieu: "CO_SAN", partyId: "org-1" }, nguoiGioiThieuPartyId: null, phienBan: 1 } });
+  assert.equal(kiemDat({ hoSoToChuc: { kieu: "MOI", partyId: "x" }, phienBan: 1 }).ok, false, "hồ sơ tổ chức mới không kèm mã");
+  assert.equal(kiemDat({ hoSoToChuc: "MOI", phienBan: 1 }).ok, false);
   assert.equal(kiemDat({}).ok, false, "thiếu phienBan");
   for (const x of [{ hoSo: { kieu: "CO_SAN" } }, { hoSo: { kieu: "MOI", partyId: "p" } }, { hoSo: "MOI" }, { hoSo: { kieu: "CO_SAN", partyId: "a b" } }, { x: 1 }, { nguoiGioiThieuPartyId: 5 }].map((o) => ({ ...o, phienBan: 1 }))) {
     assert.equal(kiemDat(x as never).ok, false, JSON.stringify(x));

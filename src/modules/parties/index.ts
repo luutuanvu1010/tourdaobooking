@@ -40,6 +40,7 @@ import {
   anDanhStatements, chanLoNeuThuaXoaStatement, coPhieuXoaChoHoacDa, demHoSoGopVao, demXemTruocXoa, listPhieuChuaChepNgoai, listPhieuXoaChoCoTen, listPhieuXoaDaXuLy, quyetPhieuXoaStatement, tepChoXoaCuaPhieu,
   tepChoXoaLyDoPhieu, timPhieuXoaCoTen, tuChoiPhieuXoaStatement, datChoXoaAnhHetGiuStatement, listAnhHetLyDoGiu, type AnhHetGiuRow,
   dauXacMinhTheoHoSo, canXacMinhLaiStatement, chamCuaTaiKhoan, ghiDiaChiTuPhieuStatement, ghiGiayToTuPhieuStatement, ghiNgaySinhTuPhieuStatement, ghiXacMinhTuPhieuStatement, lamMoiHoSoTuPhieuStatement, quyetPhieuStatement, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
+  dkGpkdOToChucKhac, dkMstOToChucKhac, dkToChucDeSoTen, dkToChucTheoGpkd, dkToChucTheoMst,
   dkDongYStatement, dkGiayToStatement, dkGioiThieuStatement, dkLienHeStatement, dkMoHoSoStatements, dkMoVaiStatement, dkNgaySinhStatement, dkSoCanCuocOHoSoKhac, dkXacMinhStatement, dkXacMinhTenStatement,
   datHoatDongLoaiDoiTacStatement, suaLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
   type BankAccountRow, type BankRow, type GopDocRow, type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
@@ -248,6 +249,61 @@ export async function hoSoTheoSoGiayTo(db: D1Database, numberKey: string): Promi
 /** Mục xác minh bắt buộc đang hiệu lực của hồ sơ cá nhân (ADR-0210 Đ1): đọc view công bố. `loai` = ATTRIBUTE | DOCUMENT; `ma` = HO_TEN, NGAY_SINH, CCCD… */
 export async function mucXacMinhBatBuocCaNhan(db: D1Database): Promise<{ loai: string; ma: string }[]> {
   return (await mucXacMinhBatBuocCua(db, "PERSON")).map((r) => ({ loai: r.item_kind, ma: r.item_code }));
+}
+
+/** Mục xác minh bắt buộc đang hiệu lực của hồ sơ TỔ CHỨC (ADR-0212 Đ5 mục 2): đọc view công bố. Gieo mặc định: TEN_PHAP_LY, MA_SO_THUE, GPKD. */
+export async function mucXacMinhBatBuocToChuc(db: D1Database): Promise<{ loai: string; ma: string }[]> {
+  return (await mucXacMinhBatBuocCua(db, "ORGANIZATION")).map((r) => ({ loai: r.item_kind, ma: r.item_code }));
+}
+
+/**
+ * HÀM CÔNG BỐ (ADR-0212 Đ5 mục 3; đợt 2 Task 6) cho module dang-ky: hồ sơ TỔ CHỨC đang dùng, chưa gộp, có thể trùng phần tổ chức của phiếu — theo mã số thuế (khoá chuẩn hoá, so bỏ dấu
+ * '-' và khoảng trắng), số GPKD (khoá, dòng chưa huỷ), rồi tên (tên gọi hoặc tên pháp lý, `chuanHoaTen`). Thứ tự kết quả: khớp mã số thuế trước, rồi GPKD, rồi tên. Hồ sơ cá nhân không bao giờ vào.
+ * Không trả mã số thuế, số GPKD. KHÔNG tự kiểm quyền: nơi gọi kiểm `party.view` trước.
+ */
+export async function hoSoToChucKhop(db: D1Database, v: { taxKey: string | null; gpkdKey: string | null; ten: string | null }): Promise<{ id: string; displayName: string; lyDo: ("MST" | "GPKD" | "TEN")[] }[]> {
+  const tenChuan = v.ten ? chuanHoaTen(v.ten) : "";
+  const [theoMst, theoGpkd, deSoTen] = await Promise.all([
+    v.taxKey ? dkToChucTheoMst(db, v.taxKey) : Promise.resolve([]),
+    v.gpkdKey ? dkToChucTheoGpkd(db, v.gpkdKey) : Promise.resolve([]),
+    dkToChucDeSoTen(db),
+  ]);
+  const ten = new Map(deSoTen.map((r) => [r.id, r.display_name]));
+  const lyDo = new Map<string, ("MST" | "GPKD" | "TEN")[]>();
+  const them = (id: string, l: "MST" | "GPKD" | "TEN") => { if (ten.has(id)) lyDo.set(id, [...(lyDo.get(id) ?? []), l]); };
+  for (const id of theoMst) them(id, "MST");
+  for (const id of theoGpkd) them(id, "GPKD");
+  if (tenChuan) for (const r of deSoTen) if (chuanHoaTen(r.display_name) === tenChuan || (r.legal_name !== null && chuanHoaTen(r.legal_name) === tenChuan)) them(r.id, "TEN");
+  const hang = (l: ("MST" | "GPKD" | "TEN")[]) => (l.includes("MST") ? 0 : l.includes("GPKD") ? 1 : 2);
+  return [...lyDo].map(([id, l]) => ({ id, displayName: ten.get(id)!, lyDo: l })).sort((a, b) => hang(a.lyDo) - hang(b.lyDo));
+}
+
+/**
+ * Hồ sơ đích «gắn tổ chức có sẵn» (ADR-0212 Đ5 mục 3): phải là tổ chức, đang dùng, chưa gộp. Thêm (siết, ghi ở nhật ký thi công): không phải hồ sơ công ty chủ — người lạ không gắn vào Tour Đảo.
+ * null = hợp lệ. Câu báo không nhắc dữ liệu khai.
+ */
+export async function toChucDichHopLe(db: D1Database, partyId: string): Promise<{ code: string; message: string } | null> {
+  const p = await findParty(db, partyId);
+  if (!p) return { code: "org_target_not_found", message: "Không tìm thấy hồ sơ tổ chức đã chọn." };
+  if (p.party_kind !== "ORGANIZATION") return { code: "org_target_not_org", message: "Chỉ gắn được vào hồ sơ tổ chức." };
+  if (p.merged_into_id) return { code: "org_target_merged", message: "Hồ sơ tổ chức này đã gộp vào hồ sơ khác — hãy chọn hồ sơ chính." };
+  if (p.active !== 1) return { code: "org_target_inactive", message: "Hồ sơ tổ chức đã chọn đang ngưng hoạt động." };
+  if (await laCongTyChu(db, partyId)) return { code: "org_target_owner_company", message: "Không gắn phiếu đăng ký vào hồ sơ công ty chủ." };
+  return null;
+}
+
+/**
+ * Kiểm phần tổ chức TRƯỚC lệnh ghi (ADR-0212 Đ5 mục 4): số GPKD đã thuộc tổ chức khác (lưới cuối là trigger một-GPKD-một-tổ-chức); mã số thuế đã ở hồ sơ tổ chức khác chưa gộp. `dich` = hồ sơ
+ * được chọn để gắn (null = hồ sơ mới ⇒ mọi hồ sơ là «khác»). Câu báo không nhắc số.
+ */
+export async function trungToChucKhac(db: D1Database, v: { gpkdKey: string; taxKey: string | null; dich: string | null }): Promise<{ code: string; message: string } | null> {
+  if (await dkGpkdOToChucKhac(db, v.gpkdKey, v.dich)) {
+    return { code: "org_gpkd_other_org", message: "Số giấy chứng nhận đăng ký kinh doanh của phiếu đã thuộc một hồ sơ tổ chức khác. Hãy gắn vào hồ sơ tổ chức đó, hoặc từ chối phiếu." };
+  }
+  if (v.taxKey && (await dkMstOToChucKhac(db, v.taxKey, v.dich))) {
+    return { code: "org_tax_other_org", message: "Mã số thuế của phiếu đã thuộc một hồ sơ tổ chức khác. Hãy gắn vào hồ sơ tổ chức đó, hoặc từ chối phiếu." };
+  }
+  return null;
 }
 
 /** Định danh Tour Đảo cho nơi đọc ngoài module (ADR-0024 điều 6 + 6.2). Trường có thể null: dữ liệu hồ sơ tổ chức cho phép trống. */

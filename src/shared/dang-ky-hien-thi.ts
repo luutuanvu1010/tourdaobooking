@@ -30,6 +30,12 @@ export const NHAN_MUC_XAC_MINH: Readonly<Record<string, string>> = {
   CCCD: "Căn cước công dân",
   ROLE: "Vai người dùng xin đăng ký",
   CALLED: "Đã gọi số điện thoại đã khai",
+  // Nhóm tổ chức (ADR-0212 Đ5): chữ CHÉP tên đã có ở `pty_verification_attribute` / `pty_organization_document_type` (0103) — một khái niệm một tên.
+  TEN_PHAP_LY: "Tên pháp lý",
+  MA_SO_THUE: "Mã số thuế",
+  DIA_CHI_TO_CHUC: "Địa chỉ tổ chức",
+  EMAIL_HOA_DON: "Email nhận hoá đơn",
+  GPKD: "Giấy chứng nhận đăng ký kinh doanh",
 };
 export const nhanMucXacMinh = (ma: string): string => NHAN_MUC_XAC_MINH[ma] ?? ma;
 

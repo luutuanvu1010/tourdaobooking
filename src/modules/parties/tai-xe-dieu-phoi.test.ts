@@ -178,5 +178,7 @@ test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCua
     // ADR-0212 Đ1 (vai đăng ký là dữ liệu, đợt 2 Task 1): dang-ky đọc danh sách vai đăng ký được từ pty_role_type qua một hàm hẹp, không chạm bảng
     "vaiDangKyDuoc",
     // ADR-0212 Đ4 (phần tổ chức của phiếu, đợt 2 Task 5): danh mục loại giấy tờ tổ chức cho lần kiểm hình thức (`kiemPhanToChuc`) — dang-ky không đọc bảng pty_organization_document_type
-    "danhMucGiayToToChucChoDangKy"].sort());
+    "danhMucGiayToToChucChoDangKy",
+    // ADR-0212 Đ5 (xác minh phần tổ chức, đợt 2 Task 6): mục bắt buộc của tổ chức, đối chiếu Danh bạ tổ chức (không trả số), kiểm hồ sơ đích và trùng GPKD / mã số thuế trước lệnh ghi
+    "mucXacMinhBatBuocToChuc", "hoSoToChucKhop", "toChucDichHopLe", "trungToChucKhac"].sort());
 });

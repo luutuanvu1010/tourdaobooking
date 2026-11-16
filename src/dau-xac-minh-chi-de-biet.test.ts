@@ -143,7 +143,7 @@ test("chỉ để biết (Đ5): `dauXacMinhTheoHoSo(` được gọi đúng ba n
   assert.match(a, /route\("GET", "\/api\/staff", "accounts"[\s\S]{0,400}account\.view[\s\S]{0,600}dauXacMinhTaiKhoan\(/);
 });
 
-test("chỉ để biết (Đ5, M-4): trong migrations/*.sql chỉ MỘT dòng không phải chú thích nhắc view dữ kiện — chính câu `CREATE VIEW` của nó; không trigger, view, câu gieo nào khác đọc", () => {
+test("chỉ để biết (Đ5, M-4): trong migrations/*.sql chỉ các câu tạo / bỏ CHÍNH view dữ kiện (0171 tạo, 0174 tạo lại) nhắc nó; không trigger, view, câu gieo nào khác đọc", () => {
   const dir = join(ROOT, "migrations");
   const hit: string[] = [];
   for (const t of readdirSync(dir).filter((x) => x.endsWith(".sql")).sort()) {
@@ -151,6 +151,10 @@ test("chỉ để biết (Đ5, M-4): trong migrations/*.sql chỉ MỘT dòng kh
       if (/v_pty_verification_facts/i.test(dong) && !/^\s*--/.test(dong)) hit.push(`${t}:${i + 1}: ${dong.trim().slice(0, 60)}`);
     }
   }
-  assert.equal(hit.length, 1, hit.join("\n"));
-  assert.match(hit[0]!, /^0171_tep_cho_dang_ky\.sql:\d+: CREATE VIEW v_pty_verification_facts AS$/);
+  // Đợt 2 Task 6 (ADR-0212 Đ5; sửa có chủ đích): 0174 tạo lại view (DROP + CREATE, thêm nhánh giấy tờ tổ chức). Dòng hợp lệ CHỈ là câu tạo / bỏ chính view — vẫn không câu nào khác đọc nó.
+  assert.deepEqual(hit.map((h) => h.replace(/:\d+:/, ":")), [
+    "0171_tep_cho_dang_ky.sql: CREATE VIEW v_pty_verification_facts AS",
+    "0174_dang_ky_to_chuc.sql: DROP VIEW v_pty_verification_facts;",
+    "0174_dang_ky_to_chuc.sql: CREATE VIEW v_pty_verification_facts AS",
+  ], hit.join("\n"));
 });
