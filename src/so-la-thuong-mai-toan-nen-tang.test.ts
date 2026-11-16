@@ -194,6 +194,8 @@ function bangDien(g: Gieo): Record<string, string[]> {
     // ADR-0126 (lát H-5 việc 5): như trên — bài không gieo phiếu xoá ⇒ mã phiếu lạ (Quản trị / Toàn quyền 404, người khác 403) — vẫn GỌI để thân được quét.
     "/api/parties/phieu-xoa/:pid": [`/api/parties/phieu-xoa/${uuid()}`],
     "/api/parties/:id/tai-khoan-nhan-tien": [`/api/parties/${PTY_B}/tai-khoan-nhan-tien`, `/api/parties/${g.congTy}/tai-khoan-nhan-tien`],
+    // ADR-0213 Đ6 (mốc B1 Task 10): màn tổ chức — hồ sơ B là cá nhân (404 cho văn phòng có ô), hồ sơ tổ chức công ty chủ trả 200 cho Quản trị / Toàn quyền; DTO chỉ mã, tên, ngày, không chở tiền.
+    "/api/parties/:id/to-chuc": [`/api/parties/${PTY_B}/to-chuc`, `/api/parties/${g.congTy}/to-chuc`],
     "/api/van-chuyen/xe/:id": [`/api/van-chuyen/xe/${g.xe}`],
     "/api/van-chuyen/xe/:id/ban": [`/api/van-chuyen/xe/${g.xe}/ban`],
     "/api/van-chuyen/mau-chang/:code": ["/api/van-chuyen/mau-chang/SLX"],

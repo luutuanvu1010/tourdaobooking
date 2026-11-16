@@ -3,7 +3,7 @@
 //   - VĂN PHÒNG (cổng `office` + ô `partner.org.manager.write`, kiểm ở chỗ khai route trong index.ts; người giữ quyền Đối tác bị từ chối như route cấp mặc định): giao / chuyển người
 //     quản lý (lô đúng thứ tự Đ2.4, mã dòng mới sinh sẵn), gỡ người quản lý khi tổ chức không còn thành viên, gỡ thành viên, gửi lại thư báo người quản lý cũ, xem màn tổ chức.
 //   - NGƯỜI QUẢN LÝ CÓ HIỆU LỰC (cổng `staff`, vai trên đối tượng — không qua hàng quyền): gửi yêu cầu chuyển quyền (một dòng chờ văn phòng), gỡ thành viên. Thành viên tự rời; người quản lý thì không.
-//     Ba handler này CHƯA khai route (xem chú thích ở parties/index.ts): hàng rào route-write-guard đòi lời kiểm bảng quyền, chờ điều phối chọn cách.
+//     Lời kiểm là hàm vai trên đối tượng `quyenToChuc` (quyen-to-chuc.ts, trong GUARDS — chủ duyệt 16/11 «Duyệt cả hai»), gọi ở chỗ khai route trong index.ts.
 // `parties` không đọc bảng `staff`: «người quản lý có hiệu lực» (ctx.nguoiQuanLyCoHieuLuc) và «tài khoản gắn được» (ctx.taiKhoanGanDuoc, Đ2.6) do gốc lắp ráp tiêm.
 // Nhật ký: hành động `org_*`, đích là hồ sơ tổ chức, `acting_party_id` = tổ chức (ruling PF18 — `auditToChucStatement`); không số điện thoại, không email.
 // Thư báo người quản lý cũ (Đ6, Ruling R5): lô chuyển đặt `notice_state` CHO (KHONG_EMAIL khi hồ sơ không có email); thư gửi trong `exec.waitUntil` SAU lô, xong thì một câu đặt DA_GUI.
@@ -19,12 +19,12 @@ import {
   LOI_GAC_TO_CHUC, tcDatThuDaGui, tcDongQuanLyStatement, tcDongThanhVienGacStatement, tcDongThanhVienStatement, tcDongYeuCauStatement, tcEmailCua, tcHoSo, tcLienKetDongTuNgay,
   tcLienKetMo, tcMoLienKetStatement, tcTaoYeuCauStatement, tcThuMoiNhat, tcYeuCauMo, type TcLienKet,
 } from "./repository";
+import type { VaiToChuc } from "./quyen-to-chuc";
 import { PARTY_ID_RE } from "./rules";
 
 // ---- Câu báo (chữ mới — chờ chủ chọn ở bảng tham chiếu; tên đã duyệt: «Người quản lý tổ chức», «Thành viên», «Chuyển quyền quản lý») -------------------------
 /** Câu từ chối của cổng văn phòng — lời kiểm ô partner.org.manager.write nằm ở chỗ khai route (parties/index.ts), không lặp ở thân handler. */
 export const CAM_TO_CHUC = () => error(403, "forbidden", "Chỉ Quản lý bán hàng, Quản trị và Toàn quyền đổi được người quản lý của tổ chức.");
-const CAM_QUAN_LY = () => error(403, "forbidden", "Chỉ người quản lý của tổ chức làm được việc này.");
 const KHONG_THAY_TO_CHUC = () => error(404, "not_found", "Không tìm thấy tổ chức.");
 const LOI_THAN = (m: string) => error(400, "invalid_input", m);
 const VUA_DOI = () => error(409, "org_manager_changed", "Người quản lý của tổ chức vừa đổi, hãy tải lại.");
@@ -235,54 +235,47 @@ export async function guiLaiThuToChuc(ctx: Ctx<"office">): Promise<Response> {
   return json({ thu: { trangThai: "CHO" as const } });
 }
 
-// ---- Lệnh của người quản lý có hiệu lực (cổng staff, vai trên đối tượng) ----
-async function quanLyHieuLuc(ctx: Ctx<"staff">): Promise<{ org: { id: string; ten: string }; personPartyId: string } | Response> {
-  const id = ctx.params.id;
-  if (!id || !PARTY_ID_RE.test(id)) return CAM_QUAN_LY();
-  const hl = await ctx.nguoiQuanLyCoHieuLuc(id);
-  if (!hl || hl.staffId !== ctx.staff.id) return CAM_QUAN_LY();
-  const org = await docToChuc(ctx.env.DB, id);
-  return org ? { org, personPartyId: hl.personPartyId } : CAM_QUAN_LY();
+// ---- Lệnh của người quản lý có hiệu lực / thành viên (cổng staff, vai trên đối tượng — hàm kiểm `quyenToChuc`, gọi ở chỗ khai route trong index.ts) ----
+/** Câu từ chối khi người gọi không phải người quản lý có hiệu lực của tổ chức. */
+export const CAM_QUAN_LY = () => error(403, "forbidden", "Chỉ người quản lý của tổ chức làm được việc này.");
+/** Người gọi không phải thành viên của tổ chức (kể cả tổ chức không có). */
+export const KHONG_LA_THANH_VIEN_CUA_TOI = () => error(404, "not_found", "Bạn không phải thành viên của tổ chức này.");
+export const QUAN_LY_KHONG_ROI = () => error(409, "org_manager_cannot_leave", "Người quản lý không tự rời tổ chức. Hãy nhờ Tour Đảo giao người quản lý khác trước.");
+
+/** Dữ kiện cho `quyenToChuc`: tổ chức (hồ sơ tổ chức chưa gộp) + người quản lý có hiệu lực + liên kết đang mở của chính người gọi. Tổ chức không có ⇒ null. */
+export async function vaiToChucCuaToi(ctx: Ctx<"staff">): Promise<{ org: { id: string; ten: string }; vai: VaiToChuc } | null> {
+  const org = await docToChuc(ctx.env.DB, ctx.params.id);
+  if (!org) return null;
+  const [hl, lk] = await Promise.all([ctx.nguoiQuanLyCoHieuLuc(org.id), tcLienKetMo(ctx.env.DB, org.id)]);
+  const cuaToi = ctx.staff.partyId ? lk.find((x) => x.personPartyId === ctx.staff.partyId) : undefined;
+  return { org, vai: { hl, lienKetCuaToi: cuaToi ? (cuaToi.loai === "MANAGER_OF" ? "MANAGER" : "MEMBER") : null } };
 }
 
-// ---- POST /api/to-chuc/:id/yeu-cau-chuyen — một dòng chờ văn phòng (Đ6: người quản lý chỉ gửi yêu cầu) ----
-export async function yeuCauChuyen(ctx: Ctx<"staff">): Promise<Response> {
-  const q = await quanLyHieuLuc(ctx);
-  if (q instanceof Response) return q;
+// ---- POST /api/to-chuc/:id/yeu-cau-chuyen — một dòng chờ văn phòng (Đ6: người quản lý chỉ gửi yêu cầu). Gọi SAU khi quyenToChuc(...).quanLy đúng. ----
+export async function yeuCauChuyen(ctx: Ctx<"staff">, org: { id: string; ten: string }): Promise<Response> {
   const body = await readJson(ctx.request);
   if (!docThan(body, ["personPartyId"]) || !laMaHoSo(body.personPartyId)) return LOI_THAN("Hãy chọn người bạn muốn chuyển quyền quản lý.");
-  if (body.personPartyId === q.personPartyId) return LOI_THAN("Hãy chọn một người khác bạn.");
+  if (body.personPartyId === ctx.staff.partyId) return LOI_THAN("Hãy chọn một người khác bạn.");
   const nguoi = await tcHoSo(ctx.env.DB, body.personPartyId);
   if (!nguoi || nguoi.kind !== "PERSON" || nguoi.daGop || !nguoi.active) return LOI_THAN("Hãy chọn một hồ sơ cá nhân đang dùng.");
   const id = crypto.randomUUID();
   const at = new Date().toISOString();
   const kq = await ctx.env.DB.batch([
-    tcTaoYeuCauStatement(ctx.env.DB, { id, org: q.org.id, staffId: ctx.staff.id, person: body.personPartyId, at }),
-    auditToChucStatement(ctx.env.DB, { staffId: ctx.staff.id, action: "org_transfer_requested", at, targetId: q.org.id, detail: `đề xuất ${body.personPartyId}` }, "changes() > 0"),
+    tcTaoYeuCauStatement(ctx.env.DB, { id, org: org.id, staffId: ctx.staff.id, person: body.personPartyId, at }),
+    auditToChucStatement(ctx.env.DB, { staffId: ctx.staff.id, action: "org_transfer_requested", at, targetId: org.id, detail: `đề xuất ${body.personPartyId}` }, "changes() > 0"),
   ]);
   if ((kq[0]?.meta.changes ?? 0) === 0) return error(409, "org_request_open", "Tổ chức đã có một yêu cầu chuyển quyền quản lý đang chờ Tour Đảo xử lý.");
-  return kemLocation(json({ yeuCau: { id } }, 201), `/parties?id=${q.org.id}`);
+  return kemLocation(json({ yeuCau: { id } }, 201), `/parties?id=${org.id}`);
 }
 
-// ---- POST /api/to-chuc/:id/go-thanh-vien (người quản lý) ----
-export async function goThanhVienQuanLy(ctx: Ctx<"staff">): Promise<Response> {
-  const q = await quanLyHieuLuc(ctx);
-  if (q instanceof Response) return q;
+// ---- POST /api/to-chuc/:id/go-thanh-vien (người quản lý). Gọi SAU khi quyenToChuc(...).quanLy đúng. ----
+export async function goThanhVienQuanLy(ctx: Ctx<"staff">, org: { id: string; ten: string }): Promise<Response> {
   const body = await readJson(ctx.request);
   if (!docThan(body, ["personPartyId"]) || !laMaHoSo(body.personPartyId)) return LOI_THAN("Hãy chọn thành viên cần gỡ.");
-  return (await dongThanhVien(ctx, q.org, body.personPartyId, "org_member_removed", null)) ?? KHONG_LA_THANH_VIEN();
+  return (await dongThanhVien(ctx, org, body.personPartyId, "org_member_removed", null)) ?? KHONG_LA_THANH_VIEN();
 }
 
-// ---- POST /api/to-chuc/:id/roi — thành viên tự rời; người quản lý thì không (Đ2.4, Đ6) ----
-export async function roiToChuc(ctx: Ctx<"staff">): Promise<Response> {
-  const id = ctx.params.id;
-  const KHONG = () => error(404, "not_found", "Bạn không phải thành viên của tổ chức này.");
-  if (!id || !PARTY_ID_RE.test(id) || !ctx.staff.partyId) return KHONG();
-  const org = await docToChuc(ctx.env.DB, id);
-  if (!org) return KHONG();
-  const lk = await tcLienKetMo(ctx.env.DB, org.id);
-  if (lk.some((x) => x.loai === "MANAGER_OF" && x.personPartyId === ctx.staff.partyId)) {
-    return error(409, "org_manager_cannot_leave", "Người quản lý không tự rời tổ chức. Hãy nhờ Tour Đảo giao người quản lý khác trước.");
-  }
-  return (await dongThanhVien(ctx, org, ctx.staff.partyId, "org_member_left", null)) ?? KHONG();
+// ---- POST /api/to-chuc/:id/roi — thành viên tự rời (Đ6). Gọi SAU khi quyenToChuc(...).thanhVien đúng; người quản lý đã nhận 409 ở chỗ khai route. ----
+export async function roiToChuc(ctx: Ctx<"staff">, org: { id: string; ten: string }): Promise<Response> {
+  return (await dongThanhVien(ctx, org, ctx.staff.partyId!, "org_member_left", null)) ?? KHONG_LA_THANH_VIEN_CUA_TOI();
 }

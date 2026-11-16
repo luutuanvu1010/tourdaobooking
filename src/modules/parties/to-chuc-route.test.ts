@@ -1,7 +1,8 @@
 // ADR-0213 Đ2.4–Đ2.8, Đ6 (mốc B1 đợt 2 đăng ký, Task 10) qua route thật (tests/audit/harness.mjs, SQLite thật dựng từ migrations/). Mọi giá trị là GIẢ.
 // Người quản lý có hiệu lực (đối chiếu R-TC-4); văn phòng (Quản lý bán hàng, Quản trị, Toàn quyền — ô partner.org.manager.write) giao, chuyển, gỡ người quản lý, gỡ thành viên;
 // người quản lý gọi lệnh văn phòng ⇒ 403; thư báo người quản lý cũ (notice_state CHO → DA_GUI, gửi lại); hai lệnh chuyển cùng lúc. Ba route của người quản lý / thành viên
-// (/api/to-chuc/:id/*) chưa khai (chờ điều phối) nên bài của chúng chưa ở đây.
+// (/api/to-chuc/:id/*, hàm kiểm vai trên đối tượng `quyenToChuc` — chủ duyệt 16/11 «Duyệt cả hai»): yêu cầu chuyển, gỡ thành viên, tự rời; người lạ, thành viên tổ chức khác,
+// tài khoản văn phòng không liên kết đều bị từ chối.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
@@ -367,4 +368,110 @@ test("M-1: hai văn phòng mở cùng một màn cũ rồi bấm nối đuôi �
   const r3 = await giao(w, ADM, org2, { personPartyId: doiTac(w, "Bốn").partyId, nguoiQuanLyHienTai: a.partyId });
   assert.equal(r3.status, 409, r3.text);
   assert.deepEqual(mo(w, org2), []);
+});
+
+test("Đ2.8 qua route của người quản lý: người quản lý không có hiệu lực (tài khoản ngưng, mất PARTNER, hồ sơ gộp, tổ chức mất vai) ⇒ yêu cầu chuyển và gỡ thành viên 403; R-TC-4 liệt kê tổ chức đó; có hiệu lực thì không", async () => {
+  const { w } = setup();
+  const lam: Record<string, (x: { staffId: string; partyId: string }, org: string) => void> = {
+    ngung: (x) => w.sqlite.prepare("UPDATE staff SET active = 0 WHERE id = ?").run(x.staffId),
+    matDoiTac: (x) => w.sqlite.prepare("UPDATE stf_permission SET valid_to_at = ? WHERE staff_id = ? AND permission_type_code = 'PARTNER'").run(AT, x.staffId),
+    gop: (x) => {
+      const dich = uuid();
+      w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', 'Đích', 1, ?, ?)").run(dich, AT, AT);
+      w.sqlite.prepare("UPDATE pty_party SET merged_into_id = ?, merged_at = ?, active = 0 WHERE id = ?").run(dich, AT, x.partyId);
+    },
+    matVai: (_x, org) => w.sqlite.prepare("UPDATE pty_party_role SET valid_to_date = '2026-11-02' WHERE party_id = ?").run(org),
+  };
+  for (const [ten, f] of [["coHieuLuc", null], ...Object.entries(lam)] as [string, ((x: { staffId: string; partyId: string }, org: string) => void) | null][]) {
+    const org = toChuc(w);
+    const a = doiTac(w, `Quản ${ten}`);
+    const b = doiTac(w, `Viên ${ten}`);
+    const c = doiTac(w, `Đề Xuất ${ten}`);
+    lienKet(w, a.partyId, org, "MANAGER_OF");
+    lienKet(w, b.partyId, org, "MEMBER_OF");
+    f?.(a, org);
+    const yc = await w.call("POST", `/api/to-chuc/${org}/yeu-cau-chuyen`, { as: a.staffId, body: { personPartyId: c.partyId } });
+    const gv = await w.call("POST", `/api/to-chuc/${org}/go-thanh-vien`, { as: a.staffId, body: { personPartyId: b.partyId } });
+    const liet = kiem(w, "R-TC-4").includes(org);
+    if (f === null) {
+      assert.equal(yc.status, 201, yc.text);
+      assert.equal(gv.status, 200, gv.text);
+      assert.equal(liet, false);
+    } else {
+      // ngưng / mất PARTNER chặn cả ở cổng đăng nhập hay cổng route — cổng nào cũng là 401/403, không ghi gì.
+      assert.ok([401, 403].includes(yc.status), `${ten}: ${yc.status} ${yc.text}`);
+      assert.ok([401, 403].includes(gv.status), `${ten}: ${gv.status} ${gv.text}`);
+      assert.equal(liet, true, `${ten}: R-TC-4 phải liệt kê`);
+      assert.deepEqual(mo(w, org).map(([, k]) => k).sort(), ["MANAGER", "MEMBER"]);
+    }
+  }
+});
+
+test("Người quản lý: một yêu cầu chuyển đang mở mỗi tổ chức (409 lần hai); không đề xuất chính mình; thành viên gửi yêu cầu, gỡ người khác ⇒ 403", async () => {
+  const { w } = setup();
+  const org = toChuc(w);
+  const a = doiTac(w, "Quản");
+  const b = doiTac(w, "Viên");
+  const c = doiTac(w, "Viên Hai");
+  lienKet(w, a.partyId, org, "MANAGER_OF");
+  lienKet(w, b.partyId, org, "MEMBER_OF");
+  lienKet(w, c.partyId, org, "MEMBER_OF");
+  const yc = (as: string, p: string) => w.call("POST", `/api/to-chuc/${org}/yeu-cau-chuyen`, { as, body: { personPartyId: p } });
+  assert.equal((await yc(a.staffId, a.partyId)).status, 400);
+  assert.equal((await yc(b.staffId, c.partyId)).status, 403);
+  assert.equal((await w.call("POST", `/api/to-chuc/${org}/go-thanh-vien`, { as: b.staffId, body: { personPartyId: c.partyId } })).status, 403);
+  assert.equal((await yc(a.staffId, b.partyId)).status, 201);
+  assert.equal((await yc(a.staffId, c.partyId)).status, 409);
+  assert.equal(w.q("SELECT count(*) n FROM pty_org_transfer_request WHERE org_party_id = ? AND status = 'MO'", org)[0].n, 1);
+  const g = await w.call("GET", `/api/parties/${org}/to-chuc`, { as: ADM });
+  assert.equal(g.json.toChuc.yeuCauChuyen.length, 1);
+  assert.equal(g.json.toChuc.yeuCauChuyen[0].nguoiDeXuat.partyId, b.partyId);
+  assert.doesNotMatch(g.text, SO_DT);
+});
+
+test("PF14: thành viên tự rời ⇒ được (nhật ký org_member_left); người quản lý tự rời ⇒ 409 câu rõ; người không gắn ⇒ 404", async () => {
+  const { w } = setup();
+  const org = toChuc(w);
+  const a = doiTac(w, "Quản");
+  const b = doiTac(w, "Viên");
+  const la = doiTac(w, "Người Lạ");
+  lienKet(w, a.partyId, org, "MANAGER_OF");
+  lienKet(w, b.partyId, org, "MEMBER_OF");
+  const roi = (as: string) => w.call("POST", `/api/to-chuc/${org}/roi`, { as, body: {} });
+  const ra = await roi(a.staffId);
+  assert.equal(ra.status, 409, ra.text);
+  assert.match(ra.json.error.message, /Người quản lý không tự rời tổ chức/);
+  assert.equal((await roi(la.staffId)).status, 404);
+  assert.equal((await roi(b.staffId)).status, 200);
+  assert.deepEqual(mo(w, org), [[a.partyId, "MANAGER"]]);
+  const nk = nhatKy(w, org);
+  assert.deepEqual(nk.map((x: { action: string; staff_id: string }) => [x.action, x.staff_id]), [["org_member_left", b.staffId]]);
+  assert.equal(nk[0].acting_party_id, org);
+});
+
+test("quyenToChuc từ chối: người lạ (Đối tác không liên kết), thành viên của tổ chức KHÁC, người quản lý của tổ chức KHÁC, tài khoản văn phòng không liên kết ⇒ yêu cầu chuyển, gỡ thành viên 403; tự rời 404; không ghi gì", async () => {
+  const { w } = setup();
+  const org = toChuc(w);
+  const khac = toChuc(w, "Khách sạn Khác");
+  const ql = doiTac(w, "Quản");
+  const tv = doiTac(w, "Viên");
+  lienKet(w, ql.partyId, org, "MANAGER_OF");
+  lienKet(w, tv.partyId, org, "MEMBER_OF");
+  const la = doiTac(w, "Người Lạ");
+  const tvKhac = doiTac(w, "Viên Khác");
+  lienKet(w, tvKhac.partyId, khac, "MEMBER_OF");
+  const qlKhac = doiTac(w, "Quản Khác");
+  lienKet(w, qlKhac.partyId, khac, "MANAGER_OF");
+  const truoc = w.q("SELECT * FROM pty_party_relationship ORDER BY id");
+  for (const [ten, as] of [["người lạ", la.staffId], ["thành viên tổ chức khác", tvKhac.staffId], ["người quản lý tổ chức khác", qlKhac.staffId], ["Quản trị", ADM], ["Toàn quyền", SUP], ["Quản lý bán hàng", QLBH]] as const) {
+    const yc = await w.call("POST", `/api/to-chuc/${org}/yeu-cau-chuyen`, { as, body: { personPartyId: tv.partyId } });
+    assert.equal(yc.status, 403, `${ten} yêu cầu chuyển: ${yc.text}`);
+    const gv = await w.call("POST", `/api/to-chuc/${org}/go-thanh-vien`, { as, body: { personPartyId: tv.partyId } });
+    assert.equal(gv.status, 403, `${ten} gỡ thành viên: ${gv.text}`);
+    const roi = await w.call("POST", `/api/to-chuc/${org}/roi`, { as, body: {} });
+    assert.equal(roi.status, 404, `${ten} tự rời: ${roi.text}`);
+  }
+  assert.deepEqual(w.q("SELECT * FROM pty_party_relationship ORDER BY id"), truoc);
+  assert.equal(w.q("SELECT count(*) n FROM pty_org_transfer_request")[0].n, 0);
+  assert.deepEqual(nhatKy(w, org), []);
 });

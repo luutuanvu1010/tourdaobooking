@@ -51,7 +51,11 @@ import { chanCo, keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, typ
 import { loGop } from "./gop-lo";
 import { anTruongRiengTu, ghiDuocRiengTu, laLienHeRiengTu, xemDuocRiengTu, type NguoiXem } from "./rieng-tu";
 import { docTaiKhoanNhanTien } from "./tai-khoan-nhan-tien";
-import { CAM_TO_CHUC, giaoNguoiQuanLy, goNguoiQuanLy, goThanhVienVanPhong, guiLaiThuToChuc, xemToChuc } from "./to-chuc-route";
+import {
+  CAM_QUAN_LY, CAM_TO_CHUC, KHONG_LA_THANH_VIEN_CUA_TOI, QUAN_LY_KHONG_ROI, giaoNguoiQuanLy, goNguoiQuanLy, goThanhVienQuanLy, goThanhVienVanPhong, guiLaiThuToChuc, roiToChuc, vaiToChucCuaToi,
+  xemToChuc, yeuCauChuyen,
+} from "./to-chuc-route";
+import { quyenToChuc } from "./quyen-to-chuc";
 import { DO_DANG_SAU_MS, LOAI_NOI_DUNG, LY_DO_XOA_TEP, TOI_DA_THAN, bamSha256, dauPhanHoiTep, khoaNgauNhien, kiemTepTaiLen } from "./tep";
 import { chepBanNgoai, ghiRoiXoaKho, xoaKhoiKho } from "./kho-tep";
 import { CAU_KHONG_GUI, kiemChinhSach, kiemPhieuTuKhai, lyDoKhongGhi, lyDoKhongGui, type LoaiPhieu, type TinhTrangTuKhai } from "./tu-khai";
@@ -2551,8 +2555,25 @@ export const partiesModule: AppModule = {
     // ADR-0019 điều 2 / Q11: một quan hệ chạm HAI hồ sơ nên luật cấp bậc xét CẢ HAI đầu (siết, AI hiểu vậy — ghi ở commit).
     // ---- Màn tổ chức (ADR-0213 Đ2.4–Đ2.8, Đ6; mốc B1 Task 10) — thân ở to-chuc-route.ts. Cổng office + ô partner.org.manager.write (Quản lý bán hàng, Quản trị, Toàn quyền); người giữ quyền
     // Đối tác bị từ chối như route cấp mặc định. Lời kiểm nằm ở ĐÂY (một chỗ) để hàng rào route-write-guard đọc được; thân handler coi như đã qua.
-    // Ba route của người quản lý có hiệu lực / thành viên (POST /api/to-chuc/:id/{yeu-cau-chuyen, go-thanh-vien, roi}) đã viết (yeuCauChuyen, goThanhVienQuanLy, roiToChuc) nhưng CHƯA khai:
-    // vai trên đối tượng không qua hàng quyền (Đ6) mà hàng rào route-write-guard đòi một lời kiểm bảng quyền — chờ điều phối chọn cách (báo cáo Task 10).
+    // Ba route của người quản lý có hiệu lực / thành viên (POST /api/to-chuc/:id/{yeu-cau-chuyen, go-thanh-vien, roi}): cổng staff, vai trên ĐỐI TƯỢNG (Đ6, không qua hàng quyền) —
+    // lời kiểm là hàm `quyenToChuc` (quyen-to-chuc.ts; trong GUARDS của route-write-guard, chủ duyệt 16/11 «Duyệt cả hai»), gọi NGAY ở đây và dùng kết quả.
+    route("POST", "/api/to-chuc/:id/yeu-cau-chuyen", "staff", async (ctx) => {
+      const v = await vaiToChucCuaToi(ctx);
+      if (!v || !quyenToChuc(ctx.staff, v.vai).quanLy) return CAM_QUAN_LY();
+      return yeuCauChuyen(ctx, v.org);
+    }),
+    route("POST", "/api/to-chuc/:id/go-thanh-vien", "staff", async (ctx) => {
+      const v = await vaiToChucCuaToi(ctx);
+      if (!v || !quyenToChuc(ctx.staff, v.vai).quanLy) return CAM_QUAN_LY();
+      return goThanhVienQuanLy(ctx, v.org);
+    }),
+    route("POST", "/api/to-chuc/:id/roi", "staff", async (ctx) => {
+      const v = await vaiToChucCuaToi(ctx);
+      const q = v ? quyenToChuc(ctx.staff, v.vai) : null;
+      if (q?.laQuanLyMo) return QUAN_LY_KHONG_ROI(); // Đ2.4, Đ6: người quản lý nhờ Tour Đảo giao người khác trước
+      if (!v || !q?.thanhVien) return KHONG_LA_THANH_VIEN_CUA_TOI();
+      return roiToChuc(ctx, v.org);
+    }),
     // ADR-0213 Đ3.1–Đ3.3 (mốc B1 Task 11): tư cách của CHÍNH người gọi (cổng staff — chỉ đọc phiên, không nhận tham số). Danh sách do gốc lắp ráp dựng (`ctx.tuCachCuaToi`);
     // route chỉ chiếu ra ba trường. Người không giữ quyền Đối tác ⇒ rỗng.
     route("GET", "/api/to-chuc/cua-toi", "staff", async ({ staff, tuCachCuaToi }) => {

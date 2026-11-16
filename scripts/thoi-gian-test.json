@@ -481,6 +481,7 @@
  "src/modules/parties/nghi-trung.test.ts": 1.6,
  "src/modules/parties/ngung-ho-so.test.ts": 11.6,
  "src/modules/parties/nha-xe.test.ts": 4.8,
+ "src/modules/parties/quyen-to-chuc.test.ts": 0.1,
  "src/modules/parties/rieng-tu-route.test.ts": 13,
  "src/modules/parties/rieng-tu.test.ts": 0.1,
  "src/modules/parties/rules.test.ts": 0.2,

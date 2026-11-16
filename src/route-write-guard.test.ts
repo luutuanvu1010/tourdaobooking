@@ -59,6 +59,9 @@ const GUARDS: { name: string; file: string; hoiBang: boolean }[] = [
   { name: "handlerChangeVerdict", file: "src/modules/dispatch/rules.ts", hoiBang: true },
   { name: "mayManage", file: "src/modules/accounts/index.ts", hoiBang: false },
   { name: "canManageAccount", file: "src/shared/roles.ts", hoiBang: false }, // ADR-0071: chuyển về src/shared (một nguồn cho máy chủ và giao diện)
+  // ADR-0213 Đ6; chủ duyệt 16/11 "Duyệt cả hai" (phương án (b), tiền lệ quyenPhieu ADR-0119): vai trên ĐỐI TƯỢNG của người gọi với tổ chức (người quản lý có hiệu lực / thành viên
+  // đang mở) cho ba route /api/to-chuc/:id/*. Đ6 nói việc này KHÔNG qua hàng quyền nào ⇒ hàm không hỏi MATRIX (hoiBang: false, như luật cấp bậc mayManage).
+  { name: "quyenToChuc", file: "src/modules/parties/quyen-to-chuc.ts", hoiBang: false },
 ];
 const GUARD_CALL_RE = new RegExp(`\\b(?:${GUARDS.map((g) => g.name).join("|")})\\s*\\(|\\bMATRIX\\[`, "g");
 
