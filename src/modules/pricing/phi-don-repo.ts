@@ -53,6 +53,8 @@ export async function docMucPhiDonTu(db: D1Database, ngay: string): Promise<Dong
 }
 export const quyTacTheoId = async (db: D1Database, id: string): Promise<DongQuyTac | null> => (await db.prepare(MUC_TIM).bind(id).first<DongQuyTac>()) ?? null;
 export const batDauApMoiNhat = async (db: D1Database): Promise<DongBatDauAp | null> => (await db.prepare(AP_MOI_NHAT).first<DongBatDauAp>()) ?? null;
+/** «Ngày bắt đầu áp» phí đưa đón đang hiệu lực (giờ Việt Nam, YYYY-MM-DD); null = tắt. Từ ADR-0214 đây là CÔNG TẮC duy nhất `orders` đọc của pricing cho phí trên đơn. Chỉ đọc. */
+export const ngayBatDauApPhiDon = async (db: D1Database): Promise<string | null> => (await batDauApMoiNhat(db))?.start_date ?? null;
 
 export interface ThemMucPhiDon { id: string; kind: KieuPhiDon; amount: number; validFrom: string; validTo: string | null; note: string | null; dieuKien: DieuKienPhiDon; at: string; by: string;
   /** Chỉ khi đổi mức (`thayCho`): dòng mới chỉ được chèn nếu dòng cũ SAU câu đóng đang ở `denNgay` với `updated_at` = `updatedAt` (mốc câu đóng vừa ghi, hoặc mốc đã đọc khi dòng đã đóng sẵn). Sai ⇒ không chèn gì (route trả 409 stale). */

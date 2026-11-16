@@ -13,7 +13,7 @@ import {
   serviceMirrorUpdateGuarded, type DauChepNhap, type DauDatGapMoi, type DauGhi, type LegFields, type LegRow, type LegWrite, type OPhuGhi, type PassengerWrite, type ServicePaxRow,
   dongPhiTienNhieuDon, feeItemInsert, feeRowsStatement, type DongPhiGhi, type FeeRow,
 } from "./chang-hanh-khach-repo";
-import { dongPhiThanhItem, phiDongDto, phiDuaDonDto, type PhiTheoChang } from "./phi-don-don";
+import { phiDongDto, phiDuaDonDto, type PhiTheoChang } from "./phi-don-don";
 import type { LocDon } from "../../shared/loc-don";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
@@ -993,7 +993,7 @@ function legWrites(
   const legs = services.flatMap((s, i) => s.legs.map((l, j) => {
     const w = legWriteOf(l, serviceIds[i]!, orderId, staffId, at, meta, datGap.get(`${i}|${j}`) ?? null);
     const p = phi.get(`${i}|${j}`);
-    if (p) dongPhi.push({ ...dongPhiThanhItem(p.dong, w.id, p.tenVung, p.chieu), id: crypto.randomUUID(), orderId, sortOrder: sortTu + dongPhi.length });
+    if (p) dongPhi.push({ ...p, legId: w.id, id: crypto.randomUUID(), orderId, sortOrder: sortTu + dongPhi.length });
     return w;
   }));
   return { legs, phi: dongPhi };
@@ -1029,6 +1029,8 @@ export async function createOrder(
   kenhThu: 0 | 1 | null = null,
   /** Phí đưa đón (Đợt C) route đã tính TRƯỚC lô (`tinhPhiNhap`) — `order.subtotal/total` đã gồm phí; dòng phí dựng theo id chặng của từng lần thử. */
   phi: PhiTheoChang = new Map(),
+  /** ADR-0214 Đ2: mẩu nhật ký mức phí đưa đón người lập chọn (chiều, dịch vụ, mức, kiểu chọn — không tên khách); null = không có. Nối vào dòng `created`. */
+  ghiChuPhi: string | null = null,
 ): Promise<string> {
   const MAX_ATTEMPTS = 3;
   for (let attempt = 1; ; attempt++) {
@@ -1064,7 +1066,7 @@ export async function createOrder(
         ...legs,
         ...dongPhi,
         ...passengers,
-        auditStatement(db, { orderId: id, staffId, action: "created", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote, moTaLoiKhai(order.declaredDeposit)) }),
+        auditStatement(db, { orderId: id, staffId, action: "created", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote, moTaLoiKhai(order.declaredDeposit), ghiChuPhi) }),
         ...(alsoCreate?.(id, at) ?? []),
       ]);
       return id;

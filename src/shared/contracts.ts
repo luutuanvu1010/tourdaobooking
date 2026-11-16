@@ -10,6 +10,7 @@ import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
 import type { BanChup } from "./hoa-hong-dong.ts";
+import type { MucChon } from "./phi-don-chon.ts";
 import type { DauXacMinh } from "./dau-xac-minh.ts";
 import type { MaintenanceContent } from "./maintenance.ts";
 import type { KhungGio, LuaChonDon } from "./khung-gio-don.ts";
@@ -426,15 +427,19 @@ export interface OrderDto {
 }
 
 /** Lý do một chặng chưa tính được phí đưa đón (trùng chữ `ly_do` của sổ vàng golden/phi-dua-don.json; câu báo do Task 4 / giao diện dựng). */
-export type LyDoThieuPhiDonDto = "KHONG_CO_MUC" | "XUNG_DOT" | "DAI_LY_HAI_CAP";
+/** `CHUA_CHON` (ADR-0214): lượt đón còn mở chưa được văn phòng chọn mức — lý do duy nhất trên đường đơn từ ADR-0214; ba lý do còn lại là của bảng phí Đợt C (dòng cũ). */
+export type LyDoThieuPhiDonDto = "KHONG_CO_MUC" | "XUNG_DOT" | "DAI_LY_HAI_CAP" | "CHUA_CHON";
 /** Một dòng phí đưa đón đã lưu trên đơn (một chặng tối đa một dòng). */
 export interface PhiDuaDonDto {
   id: string;
   legId: string;
   serviceId: string;
   direction: "OUT" | "RETURN";
-  zoneCode: string;
-  zoneName: string;
+  /** Khu vực của dòng bảng phí Đợt C; null với dòng do văn phòng chọn (ADR-0214 — không dùng khu vực). */
+  zoneCode: string | null;
+  zoneName: string | null;
+  /** Kiểu chọn của dòng do văn phòng chọn (ADR-0214): «trong danh sách» hoặc «số khác»; null = dòng bảng phí cũ của Đợt C. */
+  loaiChon: "DANH_SACH" | "SO_KHAC" | null;
   // KHÔNG có mã cấp đại lý (kiểm độc lập Đợt C, Nhỏ 2): DTO này tới mọi người có quyền xem tiền (cả Đối tác, hướng dẫn viên); cấp của đại lý chỉ nằm ở cột chụp `order_item.fee_tier_code`.
   kind: "PER_PAX" | "PER_TRIP";
   /** Số người chiều về đã chụp lúc tính (`order_item.fee_return_pax`); null = theo số khách của dịch vụ. Máy chủ dùng để tính lại phí khi «Sửa số khách» (không đọc số người chiều về hiện tại). */
@@ -446,7 +451,8 @@ export interface PhiDuaDonDto {
 }
 export interface PhiDuaDonCuaDonDto {
   dong: PhiDuaDonDto[];
-  thieu: { legId: string; zoneName: string; lyDo: LyDoThieuPhiDonDto }[];
+  /** Chặng mở chưa có phí (đơn nháp): `serviceId` + `direction` để nói «lượt đón chiều … của dịch vụ …»; `zoneName` chỉ có với lý do của bảng phí cũ. */
+  thieu: { legId: string; serviceId: string; direction: "OUT" | "RETURN"; zoneName: string | null; lyDo: LyDoThieuPhiDonDto }[];
   duKien: boolean;
 }
 
@@ -605,9 +611,15 @@ export interface LegInput {
    * lập đơn, lưu nháp, thêm / thay chặng nhận khoá này; route sửa chặng KHÔNG nhận — đổi giờ đón ở đó thì máy chủ tự xoá cuối khung, giữ giờ thì giữ.
    */
   pickupSlotEnd?: string;
+  /**
+   * Phí đưa đón do văn phòng chọn cho lượt đón này (ADR-0214): mức trong danh sách hoặc «Số khác» (`src/shared/phi-don-chon.ts`, máy chủ kiểm lại bằng `kiemMucChon`).
+   * Chỉ lập đơn / lưu nháp nhận khoá này. VẮNG khoá = GIỮ mức đã lưu của chặng cùng id (chặng mới vắng = chưa chọn); `null` = bỏ chọn. Tài khoản Đối tác gửi mức (khác null) ⇒ 400
+   * `transfer_fee_not_allowed`. Trước ngày bắt đầu áp: kiểm nhưng không sinh dòng phí.
+   */
+  phiDon?: MucChon | null;
 }
-/** `PUT /api/orders/:id/legs/:legId` — sửa trường vận hành của chặng (không đổi chiều, không đổi dịch vụ; cuối khung theo luật ở `LegInput.pickupSlotEnd`). */
-export type LegEditInput = Omit<LegInput, "id" | "direction" | "pickupSlotEnd">;
+/** `PUT /api/orders/:id/legs/:legId` — sửa trường vận hành của chặng (không đổi chiều, không đổi dịch vụ; cuối khung theo luật ở `LegInput.pickupSlotEnd`; không nhận mức phí). */
+export type LegEditInput = Omit<LegInput, "id" | "direction" | "pickupSlotEnd" | "phiDon">;
 
 /** Một chặng CÒN HIỆU LỰC trả về trong chi tiết đơn. `pickupLabel`/`dropoffLabel` = tên điểm danh mục hoặc chữ tự do (null = nơi trả chưa chốt). */
 export interface LegDto {

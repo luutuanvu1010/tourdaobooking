@@ -152,13 +152,13 @@ export interface DongPhiTrang {
 /** `OrderDto.phiDuaDon` → chữ của mục «Phí đưa đón» trong thẻ tiền của trang đơn: tiêu đề, mỗi chặng một dòng (nhãn + dòng phụ số khách × đơn giá, thành tiền bên phải), câu băng báo thiếu mức (bỏ trùng). */
 export function dongPhiTrenDon(p: PhiDuaDonCuaDonDto, tien: (n: number) => string, tenDoiTac: string | null): { tieuDe: string; dong: DongPhiTrang[]; thieu: string[] } {
   const dong = p.dong.map((d) => ({
-    nhan: `${chieuChu(d.direction)} · ${d.zoneName}`,
+    nhan: d.zoneName === null ? chieuChu(d.direction) : `${chieuChu(d.direction)} · ${d.zoneName}`, // ADR-0214: dòng văn phòng chọn không có khu vực (Task 6 hoàn thiện chữ)
     chiTiet: d.unitPrice === 0 ? null : `${d.quantity} ${d.kind === "PER_PAX" ? "khách" : "chuyến"} × ${tien(d.unitPrice)}`,
     giaTri: chuThanhTienPhi(d, tien),
   }));
   const thieu: string[] = [];
   for (const t of p.thieu) {
-    const cau = cauThieuPhiDon({ lyDo: t.lyDo, tenVung: t.zoneName }, tenDoiTac);
+    const cau = cauThieuPhiDon({ lyDo: t.lyDo, tenVung: t.zoneName ?? "" }, tenDoiTac);
     if (!thieu.includes(cau)) thieu.push(cau);
   }
   return { tieuDe: tenKhoiPhiDon(p.duKien), dong, thieu };

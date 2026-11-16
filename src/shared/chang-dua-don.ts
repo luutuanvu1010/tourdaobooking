@@ -6,6 +6,7 @@
 // Phát hành 1 (expand): hai ô cũ `pickupTime`/`pickupPlace` của dịch vụ là DẪN XUẤT của chặng chiều đi đầu (`chieuDiDau`, Ruling R2a); thân yêu cầu cũ
 // được trộn vào chặng (`tronChangCu`, R2b/c).
 import type { LegDirection } from "./contracts.ts";
+import type { MucChon } from "./phi-don-chon.ts";
 import { UUID_RE } from "./http.ts";
 import { cleanText, maskLongDigits } from "./text-guards.ts";
 import { addDays, isHHMM, isISODate } from "./vn-date.ts";
@@ -90,6 +91,11 @@ export interface ChangHopLe {
    * đang lưu (`toGhi`): thân cũ không biết khung, chèn lại không có cuối khung là an toàn (CHECK của 0115 không bao giờ vỡ).
    */
   pickupSlotEnd?: string | null;
+  /**
+   * Mức phí đưa đón văn phòng chọn (ADR-0214) — chỉ `validateOrder` (lập đơn / lưu nháp) điền, sau `kiemMucChon`; `kiemChang` KHÔNG đọc khoá này (route sửa chặng không nhận mức).
+   * `undefined` = thân không có khoá (giữ mức đã lưu của chặng cùng id); `null` = bỏ chọn. Không phải cột của chặng: mức nằm trong dòng phí `order_item` (giữ ADR-0047).
+   */
+  phiDon?: MucChon | null;
 }
 
 /** Chặng CÒN HIỆU LỰC đã lưu (đọc từ CSDL): dạng ghi + nhãn đọc (tên điểm danh mục hoặc chữ); hai ô phụ LUÔN có (đọc từ cột). */

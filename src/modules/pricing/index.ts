@@ -29,7 +29,8 @@ import { phiDonRoutes } from "./phi-don-route";
 
 export { cauBiChan } from "./luat-ban-rules";
 // Phí đưa đón (ADR-0147 Đ2, ADR-0203): hàm công bố cho Đợt C — đọc bảng phí + cấp của bên đặt; luật thuần chọn mức và tính tiền một chặng. Chỉ đọc, KHÔNG tự kiểm quyền.
-export { docBangPhiDonChoDon, tinhPhiDonChoDon, type BangPhiDonChoDon } from "./phi-don-repo.ts";
+// ADR-0214: `orders` chỉ còn đọc `ngayBatDauApPhiDon` (công tắc); `docBangPhiDonChoDon` / `tinhPhiDonChoDon` để lại cho «Thử tra» và bài đối chiếu sổ vàng cũ.
+export { docBangPhiDonChoDon, ngayBatDauApPhiDon, tinhPhiDonChoDon, type BangPhiDonChoDon } from "./phi-don-repo.ts";
 export { chonMucPhiDon, tinhPhiChang, tinhPhiDonThuan, type ChangDauVao, type DongPhiDon, type LyDoThieuPhiDon, type ThieuPhiDon, type KetQuaPhiDonDon, type ChangTinhPhi, type KetQuaPhiDon, type MucPhiDon, type CapCuaHoSo } from "./phi-don-rules.ts";
 export { chupDon, soKhachTinhHoaHong, tinhDongDoiTac, type BanChup, type DongPhanDoiTac, type KieuMuc, type LyDoThieu, type NguoiHuong } from "./rules";
 
