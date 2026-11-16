@@ -17,7 +17,7 @@ import { soKhachDoan } from "../src/shared/hanh-khach";
 import { banHangSuaDuoc, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { can as canNv } from "../src/shared/permissions";
 import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
-import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieuVaiTro, gopBenDat, hienNutDienDoiTac, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon } from "../src/shared/phan-doi-tac-hien-thi";
+import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieuVaiTro, gopBenDat, hienNutDienDoiTac, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon, type KhoiBenDatForm } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
 import { GOI_Y_GIAM_GIA_DOI_TAC, formGonDoiTac } from "../src/shared/form-dat-ve";
@@ -43,6 +43,8 @@ import { createBookerPicker } from "./booker-picker";
 import { canhBaoDoiTac } from "./canh-bao-doi-tac";
 import { createCatalogPicker } from "./catalog-picker";
 import { dongBenDatChiDoc, oDatQuaDoiTac, type DatQuaDoiTac } from "./dat-qua-doi-tac";
+import { docTuCachCuoi, luuTuCachCuoi } from "./tu-cach-nho";
+import { cheDoTuCach, nhanMucTuCach, tuCachBanDau, type TuCachHienThi } from "../src/shared/tu-cach-hien-thi";
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
 import { CAU_COC_TRA_SAU, CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
@@ -663,6 +665,8 @@ function collect(): OrderInput | OrderInputAn {
     paymentTerm: hinhThucChon(), // luôn gửi: khối ẩn thì là Trả trước, để PUT không giữ Trả sau cũ mà không còn chỗ chọn lại
     ...(coODatCoc ? { declaredDeposit: num("declaredDeposit") } : {}), // ADR-0197 Đ2: đơn Trả sau cũng gửi lời khai, không ép 0
     ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
+    // Tư cách (ADR-0213 Đ3.1): chỉ khi LẬP đơn mà có tư cách để chọn; sửa đơn không gửi (đơn đã lập theo một tư cách thì không đổi bên đặt — máy chủ 409).
+    ...(tuCachChon && !editId ? { tuCach: tuCachChon.partyId } : {}),
     // Chỉ khi LẬP đơn và đã chọn người: chưa chọn → KHÔNG gửi trường này (đơn "Chờ nhận"), sửa đơn → không bao giờ gửi (PUT không đổi người phụ trách).
     ...(canPickHandler && !editId && handlerPick ? { handlerStaffId: handlerPick.staffId } : {}),
     // ADR-0142 L1: lập mới chỉ gửi khi đã mời; sửa nháp chỉ gửi khi người dùng đã đổi (vắng khoá = giữ lời mời đang lưu; null = bỏ lời mời).
@@ -910,8 +914,9 @@ async function loadCatalog(): Promise<void> {
  * Nạp bên đặt đang lưu của đơn nháp. Đối tác mà máy chủ ép bên đặt: không nạp gì (dòng chỉ đọc). Bên đặt là đối tác (cờ `bookerLaDoiTac` do MÁY CHỦ tính) và người sửa có ô "Đặt qua đối tác" ⇒ nạp vào ô đó,
  * không vào ô tra SĐT; còn lại giữ cách cũ (ô tra SĐT nạp hồ sơ đang lưu — kể cả Đối tác / tài khoản lai mở nháp có đại lý do văn phòng gắn). Nạp lại sau 409 phải dọn lựa chọn cũ của ô kia.
  */
+let datTuCachTheoDon: ((o: Api.OrderDetailDto) => void) | null = null;
 function napBenDat(o: Api.OrderDetailDto): void {
-  if (khoiBenDat.kieu === "chi-doc") return;
+  if (khoiBenDat.kieu === "chi-doc") { datTuCachTheoDon?.(o); return; }
   if (noiNapBenDat({ coODatQua: datQua !== null, bookerLaDoiTac: o.bookerLaDoiTac, bookerPartyId: o.bookerPartyId }) === "dat-qua" && o.bookerPartyId) {
     const chon: BenDatChon = { partyId: o.bookerPartyId, ten: o.bookerName ?? "" };
     datQua?.datChon(chon);
@@ -1225,10 +1230,18 @@ duocDatGap = can(staff, "order.leg.short_notice");
 // ---- bên đặt (sổ đại lý đợt 1, Task 11; đặc tả §7) ----
 // Quyết định hiện gì do `khoiBenDatForm` (src/shared/phan-doi-tac-hien-thi.ts): Đối tác mà máy chủ ÉP bên đặt (trường `benDatCuaToi` của /api/auth/me — giao diện không suy) → dòng chỉ đọc "Bên đặt: <tên>"
 // thay ô tra hồ sơ khách; văn phòng (người lập đơn, KHÔNG giữ quyền Đối tác) → thêm ô "Đặt qua đối tác"; còn lại → ô tra SĐT như hôm nay. Dựng TRƯỚC loadOrder (nạp nháp cần biết có ô nào).
-const khoiBenDat = khoiBenDatForm(staff, benDatCuaToi());
+// Tư cách (ADR-0213 Đ3.1, mốc B1 Task 14): danh sách do MÁY CHỦ trả (`GET /api/to-chuc/cua-toi`). Chỉ cá nhân ⇒ form như hôm nay; chỉ làm cho một tổ chức ⇒ chỉ thấy tên tổ chức;
+// từ hai tư cách ⇒ ô «Tư cách», nhớ lựa chọn cuối ở máy này. Không đọc được danh sách ⇒ như hôm nay (máy chủ vẫn đòi tư cách khi cần).
+let tuCachDs: TuCachHienThi[] = [];
+if (holdsPartner(staff)) {
+  try { tuCachDs = (await api<Api.TuCachCuaToiResponse>("/api/to-chuc/cua-toi")).tuCach; } catch { tuCachDs = []; }
+}
+const cheDoTC = cheDoTuCach(tuCachDs);
+let tuCachChon: TuCachHienThi | null = cheDoTC === "khong" ? null : tuCachBanDau(tuCachDs, docTuCachCuoi());
+let khoiBenDat: KhoiBenDatForm = tuCachChon ? { kieu: "chi-doc", benDat: { partyId: tuCachChon.partyId, ten: tuCachChon.ten } } : khoiBenDatForm(staff, benDatCuaToi());
 // ADR-0185 Đ1 (kế hoạch K10): giữ quyền Đối tác mà máy chủ không ép bên đặt ⇒ Gửi đơn sẽ bị chặn — báo trước bằng dải vàng ở ĐẦU thẻ Khách hàng. Đặt trong dòng «Ngày khởi hành»
 // vì công tắc «Ẩn thông tin khách» (ADR-0154 Đ2.2, áp cho đối tác) chỉ để lại dòng đó của khối; đặt chỗ khác thì đối tác bị ẩn khách không thấy dải.
-if (doiTacThieuVaiTro(staff, benDatCuaToi())) khoiKhach.querySelector(".khach-ngay")?.prepend(h("p", { class: "alert warn", role: "status" }, CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO));
+if (tuCachChon === null && doiTacThieuVaiTro(staff, benDatCuaToi())) khoiKhach.querySelector(".khach-ngay")?.prepend(h("p", { class: "alert warn", role: "status" }, CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO));
 bookerPicker.datCoODatQuaDoiTac(khoiBenDat.kieu === "tra-sdt-va-dat-qua"); // câu cạnh hồ sơ tổ chức chỉ trỏ tới ô «Đặt qua đối tác» khi ô đó CÓ ở form này (Task 14, nợ (d))
 let datQua: DatQuaDoiTac | null = null;
 let daChonBenDat: BenDatChon | null = null;
@@ -1317,7 +1330,38 @@ for (const v of ["PREPAID", "CREDIT"]) oHinhThuc(v).addEventListener("change", (
 void napTraSau();
 if (khoiBenDat.kieu === "chi-doc") {
   bookerPicker.tat();
-  bookerPicker.root.replaceWith(dongBenDatChiDoc(khoiBenDat.benDat));
+  const dongBen = { el: dongBenDatChiDoc(khoiBenDat.benDat) };
+  const khoiTuCach = h("div", { id: "tu-cach-khoi" });
+  if (cheDoTC === "chon") {
+    const oTuCach = h("select", { class: "o", id: "tu-cach", "aria-label": "Tư cách" },
+      ...tuCachDs.map((t) => h("option", { value: t.partyId, selected: t.partyId === tuCachChon?.partyId }, nhanMucTuCach(t)))) as HTMLSelectElement;
+    oTuCach.addEventListener("change", () => {
+      const moi = tuCachDs.find((t) => t.partyId === oTuCach.value);
+      if (!moi) return;
+      tuCachChon = moi;
+      luuTuCachCuoi(moi.partyId);
+      khoiBenDat = { kieu: "chi-doc", benDat: { partyId: moi.partyId, ten: moi.ten } };
+      const moiEl = dongBenDatChiDoc(khoiBenDat.benDat);
+      dongBen.el.replaceWith(moiEl);
+      dongBen.el = moiEl;
+      void napTraSau(); // Trả sau theo bên đặt mới
+    });
+    khoiTuCach.append(h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Tư cách"), oTuCach));
+  }
+  khoiTuCach.append(dongBen.el);
+  bookerPicker.root.replaceWith(khoiTuCach);
+  datTuCachTheoDon = (o) => {
+    // Sửa đơn đã lập: tư cách là của đơn, không đổi được — ô chọn đứng đúng tư cách của đơn và khoá.
+    const t = tuCachDs.find((x) => x.partyId === o.bookerPartyId);
+    if (!t) return;
+    tuCachChon = t;
+    khoiBenDat = { kieu: "chi-doc", benDat: { partyId: t.partyId, ten: t.ten } };
+    const moiEl = dongBenDatChiDoc(khoiBenDat.benDat);
+    dongBen.el.replaceWith(moiEl);
+    dongBen.el = moiEl;
+    const o2 = document.getElementById("tu-cach") as HTMLSelectElement | null;
+    if (o2) { o2.value = t.partyId; o2.disabled = true; }
+  };
   datNhanKhach(true); // bên đặt là đối tác (máy chủ ép): hai ô khách là của người đi tour
 } else if (khoiBenDat.kieu === "tra-sdt-va-dat-qua") {
   datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat }); // công tắc "Đơn của: Khách lẻ | Qua đối tác" ở hàng đầu khối Khách hàng

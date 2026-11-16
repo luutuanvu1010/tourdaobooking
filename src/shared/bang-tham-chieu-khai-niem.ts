@@ -1285,6 +1285,7 @@ export const TEN_NHIEU_HANG: readonly TenNhieuHang[] = [
   { chu: "Gia hạn", loai: "cung-viec", vi: "Giấy tờ của xe và giấy tờ của người: cùng một việc trên hai màn." },
   { chu: "Sửa sai", loai: "cung-viec", vi: "Giấy tờ của xe và giấy tờ của người: cùng một việc trên hai màn." },
   { chu: "Xem đủ số", loai: "cung-viec", vi: "Cùng một việc xem số giấy tờ của người (máy chủ ghi nhật ký trước rồi mới trả số), vào từ hai màn Danh bạ và từ chi tiết phiếu đăng ký đối tác." },
+  { chu: "Chuyển quyền quản lý", loai: "cung-viec", vi: "Cùng một việc đổi người quản lý tổ chức: người quản lý gửi yêu cầu ở màn Hồ sơ tổ chức, văn phòng thực hiện ở Danh bạ (ADR-0213 Đ6)." },
   { chu: "Rút phiếu", loai: "cho-chu", vi: "Hai việc cùng kiểu trên hai loại phiếu của chính người bấm: phiếu tự khai (Tôi › Hồ sơ của tôi) và phiếu đăng ký đối tác (trang /dang-ky, chữ chủ duyệt ở PHU-LUC lượt A). Khác bảng, khác đường lệnh; chủ chọn có tách tên hay không." },
   { chu: "Huỷ đơn", loai: "cung-viec", vi: "Cùng một việc huỷ đơn, vào từ trang đơn, bảng Kiểm vé và Việc của tôi." },
   { chu: "Xác nhận khách đã trả đủ", loai: "cung-viec", vi: "Cùng một nút ở trang đơn, đổi chữ theo bước chốt của đơn." },

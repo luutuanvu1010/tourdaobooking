@@ -57,6 +57,8 @@ export interface StaffAccountDto extends StaffAccount {
   passkeyCount: number;
   /** Vai với Tour Đảo đang mở (ADR-0018). Rỗng = tài khoản chưa chuyển sang cách mới (đang dùng quyền cũ). */
   roles: RoleCode[];
+  /** ADR-0213 (Task 14): chỉ ở danh sách Quản lý tài khoản. Không vai riêng nhưng đang là người quản lý hoặc thành viên của một tổ chức ⇒ KHÔNG phải «chưa gán vai trò». */
+  lamChoToChuc?: boolean;
 }
 
 /** Thân yêu cầu PUT /api/staff/:id/permissions: TOÀN BỘ tập quyền mong muốn (không rỗng). */
@@ -547,6 +549,8 @@ export interface OrderInput {
   declaredDeposit?: number;
   /** ADR-0168: hình thức thanh toán; vắng = giữ hình thức đang lưu (đơn mới: Trả trước). Trả sau chỉ nhận được khi bên đặt có hạn mức còn hiệu lực. */
   paymentTerm?: HinhThucThanhToan;
+  /** ADR-0213 Đ3.1: tư cách lập đơn (mã hồ sơ cá nhân hoặc tổ chức trong `GET /api/to-chuc/cua-toi`); chỉ khi lập đơn mới, người giữ quyền Đối tác; vắng = tư cách mặc định. */
+  tuCach?: string;
   /** Gắn hồ sơ có sẵn (id `pty_party`, chỉ cá nhân đang hoạt động); null/vắng = không gắn. Không gửi kèm `newBooker`. */
   bookerPartyId?: string | null;
   /** Tạo hồ sơ cá nhân mới + vai CUSTOMER cùng lúc lưu đơn (ADR-0011 điều 1). Không gửi kèm `bookerPartyId`. */
@@ -3309,6 +3313,8 @@ export interface CapHienHanhDto {
   doiDuoc: boolean;
 }
 export interface CapHienHanhResponse { homNay: string; hoSo: CapHienHanhDto[] }
+/** `GET /api/pricing/cap-cua-to-chuc/:id` (mốc B1 Task 14): cấp của một tổ chức cho người quản lý của nó; `cap` null = tổ chức chưa mang loại được hưởng. */
+export interface CapCuaToChucResponse { homNay: string; cap: CapHienHanhDto | null }
 /**
  * «Cấp cho đối tác tự đăng ký» (ADR-0209; `GET|POST /api/pricing/cap-mac-dinh`): mỗi loại trong danh sách được hưởng một dòng. `hienHanh` = dòng chính sách đang hiệu lực (null = chưa từng đặt);
  * `hienHanh.muc` null = «Theo cấp của vai trò». `hienHanh.id` là khoá lạc quan gửi lại ở lệnh đặt (`dangHieuLuc`). `cap` = các cấp đang bật để chọn.

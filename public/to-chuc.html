@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Hồ sơ tổ chức — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
+<body data-rong="vua" data-title="Hồ sơ tổ chức" data-back="/account">
+<header id="topbar"></header>
+<div id="strips"></div>
+<main>
+  <!-- Màn của người quản lý tổ chức (ADR-0213 Đ6; mốc B1 Task 14): thành viên, yêu cầu chuyển quyền quản lý, gỡ thành viên, cấp độ đại lý và Trả sau của tổ chức. web/to-chuc.ts dựng nội dung; máy chủ kiểm lại từng lời gọi. -->
+  <h1 id="tc-ten">Hồ sơ tổ chức</h1>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="ok" class="alert ok" role="status" hidden></div>
+  <div id="tc-khung" hidden>
+    <section class="card" aria-labelledby="tc-ql-tieu-de"><h2 id="tc-ql-tieu-de">Người quản lý tổ chức</h2><div id="tc-ql"></div></section>
+    <section class="card" aria-labelledby="tc-tv-tieu-de"><h2 id="tc-tv-tieu-de">Thành viên</h2><div id="tc-tv"></div></section>
+    <section class="card" aria-labelledby="tc-cap-tieu-de"><h2 id="tc-cap-tieu-de">Cấp của tổ chức</h2><div id="tc-cap"></div></section>
+    <section class="card" aria-labelledby="tc-ts-tieu-de"><h2 id="tc-ts-tieu-de">Công nợ của tổ chức</h2><div id="tc-ts"></div></section>
+  </div>
+</main>
+<script type="module" src="/js/to-chuc.js"></script>
+</body></html>

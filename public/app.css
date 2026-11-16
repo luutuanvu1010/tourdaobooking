@@ -4796,3 +4796,7 @@ body.login-bao-tri:not(.login-mo-form) .login-dang-ky { display: none; }
 .pd-vung { margin-bottom: var(--s4); }
 .pd-vung h3 { margin: var(--s3) 0 var(--s2); }
 .pd-form { margin-bottom: var(--s4); }
+
+/* ---------- Hồ sơ tổ chức (ADR-0213, mốc B1 Task 14) — chỉ token ---------- */
+.tc-dong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.tc-dong-ten { flex: 1 1 100%; }

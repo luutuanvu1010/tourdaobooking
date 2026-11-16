@@ -53,7 +53,7 @@ import { anTruongRiengTu, ghiDuocRiengTu, laLienHeRiengTu, xemDuocRiengTu, type 
 import { docTaiKhoanNhanTien } from "./tai-khoan-nhan-tien";
 import {
   CAM_QUAN_LY, CAM_TO_CHUC, KHONG_LA_THANH_VIEN_CUA_TOI, QUAN_LY_KHONG_ROI, giaoNguoiQuanLy, goNguoiQuanLy, goThanhVienQuanLy, goThanhVienVanPhong, guiLaiThuToChuc, roiToChuc, vaiToChucCuaToi,
-  xemToChuc, yeuCauChuyen,
+  xemToChuc, xemToChucCuaQuanLy, yeuCauChuyen,
 } from "./to-chuc-route";
 import { quyenToChuc } from "./quyen-to-chuc";
 import { DO_DANG_SAU_MS, LOAI_NOI_DUNG, LY_DO_XOA_TEP, TOI_DA_THAN, bamSha256, dauPhanHoiTep, khoaNgauNhien, kiemTepTaiLen } from "./tep";
@@ -2584,6 +2584,12 @@ export const partiesModule: AppModule = {
       if (!can(staff, "order.create")) return json({ tuCach: [] } satisfies TuCachCuaToiResponse); // tư cách chỉ dùng khi lập đơn
       const ds = await tuCachCuaToi();
       return json({ tuCach: ds.map((t) => ({ partyId: t.partyId, ten: t.ten, laToChuc: t.laToChuc })) } satisfies TuCachCuaToiResponse);
+    }),
+    // Màn tổ chức của người quản lý (Task 14): chỉ đọc, đứng SAU `/api/to-chuc/cua-toi`; chỉ người quản lý có hiệu lực của tổ chức đó (thành viên, người lạ ⇒ 403).
+    route("GET", "/api/to-chuc/:id", "staff", async (ctx) => {
+      const v = await vaiToChucCuaToi(ctx);
+      if (!v || !quyenToChuc(ctx.staff, v.vai).quanLy) return CAM_QUAN_LY();
+      return xemToChucCuaQuanLy(ctx, v.org);
     }),
     route("GET", "/api/parties/:id/to-chuc", "office", async (ctx) => {
       if (!can(ctx.staff, "partner.org.manager.write") || holdsPartner(ctx.staff)) return CAM_TO_CHUC();

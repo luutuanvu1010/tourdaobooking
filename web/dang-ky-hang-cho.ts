@@ -35,11 +35,15 @@ type PhieuXacMinh = {
   ketLuanDanhBaToChuc?: { kieu: string; partyId: string | null } | null;
 };
 type PhieuDuyet = {
-  id: string; loai: string; tenLoai: string; vaiChon?: { ma: string; ten: string; laLoaiDoiTac: boolean }[]; trangThai: string; phienBan: number; daXuLy?: boolean; guiLuc?: string | null; hoTen?: string; soDienThoai?: string | null; muc?: Muc[];
+  id: string; loai: string; tenLoai: string; loaiToChuc?: string | null; tenLoaiToChuc?: string | null; vaiChon?: { ma: string; ten: string; laLoaiDoiTac: boolean }[]; vaiChonToChuc?: { ma: string; ten: string; laLoaiDoiTac: boolean }[]; trangThai: string; phienBan: number; daXuLy?: boolean; guiLuc?: string | null; hoTen?: string; soDienThoai?: string | null; muc?: Muc[];
   ketLuanDanhBa?: { kieu: string; tenHoSo?: string } | null; coNguoiGioiThieu?: boolean; nguoiXacMinhLaBan?: boolean;
   mucToChuc?: Muc[]; ketLuanDanhBaToChuc?: { kieu: string; tenHoSo?: string; ghiChu?: string } | null;
 };
 
+/** Tên vai ở hàng chờ; phiếu «chỉ tổ chức» (vai cá nhân rỗng) ghi «Chỉ làm cho tổ chức». */
+const tenLoaiHang = (p: { tenLoai: string }): string => p.tenLoai || CHU_HANG_CHO_DK.chiToChuc;
+/** Giá trị riêng của ô vai cá nhân khi phiếu chỉ làm cho tổ chức: người duyệt chọn rõ «không vai riêng» (gửi `roleCode: null`). */
+const KHONG_VAI_RIENG = "__KHONG_VAI_RIENG__";
 const cauLoi = (e: unknown) => (e instanceof ApiError ? e.message : "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
 // Tên vai và danh sách vai chọn lúc duyệt do máy chủ trả (`tenLoai`, `vaiChon` — từ pty_role_type, ADR-0212 Đ1 mục 5, Đ3); không tra bảng vai tĩnh trong mã.
 const LY_DO_KHOP: Record<string, string> = { PHONE: "trùng số điện thoại", NAME: "trùng tên", DOCUMENT: "trùng số giấy tờ", MST: "trùng mã số thuế", GPKD: "trùng số giấy chứng nhận đăng ký kinh doanh", TEN: "trùng tên" };
@@ -65,7 +69,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     try {
       const d = await api<{ phieu: DongHangCho[]; conNua?: boolean }>("/api/dang-ky/hang-cho");
       if (mine !== luot) return;
-      replaceChildren(danhSach, ...(d.phieu.length ? d.phieu.map(the) : [h("p", { class: "muted" }, CHU_HANG_CHO_DK.rong)]),
+      replaceChildren(danhSach, ...(d.phieu.length ? d.phieu.map((x) => the({ ...x, tenLoai: tenLoaiHang(x) })) : [h("p", { class: "muted" }, CHU_HANG_CHO_DK.rong)]),
         d.conNua ? h("p", { class: "muted", id: "dk-hc-con-nua" }, CHU_HANG_CHO_DK.conNua) : null);
     } catch (e) {
       if (mine !== luot) return;
@@ -283,25 +287,33 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
   function veDuyet(p: DongHangCho, d: PhieuDuyet): void {
     const k = dauKhung(`Duyệt phiếu ${d.id}`);
     if (d.daXuLy) { moKhung(k.el, dong("Trạng thái", nhanTrangThaiPhieu(d.trangThai)), h("p", { class: "muted" }, "Phiếu đã được xử lý.")); return; }
+    // Phiếu «chỉ tổ chức» (Task 13/14): vai cá nhân rỗng, có phần tổ chức — duyệt được với vai cá nhân để trống; nếu tổ chức là hồ sơ CÓ SẴN, máy chủ trả câu 409 (văn phòng giao người quản lý sau).
+    const chiToChuc = d.loai === "" && !!d.loaiToChuc;
     const { conDung, giaTriDau } = trangThaiChonVai(d.loai, d.vaiChon ?? []);
     // Loại của phiếu đã tắt ⇒ mục trống, khoá, chọn sẵn; người duyệt phải chọn rõ một loại khác (không nhảy sang mục đầu).
     const vai = h("select", { class: "o", id: "dk-hc-vai", "aria-label": "Vai trò đối tác" },
-      ...(conDung ? [] : [h("option", { value: "", disabled: true, selected: true }, "Chọn vai người dùng")]),
+      ...(chiToChuc ? [h("option", { value: KHONG_VAI_RIENG, selected: true }, CHU_HANG_CHO_DK.khongVaiRieng)] : conDung ? [] : [h("option", { value: "", disabled: true, selected: true }, "Chọn vai người dùng")]),
       ...(d.vaiChon ?? []).map((r) => h("option", { value: r.ma, selected: r.ma === d.loai }, r.ten))) as HTMLSelectElement;
-    vai.value = giaTriDau;
-    const baoLoaiTat = h("p", { class: "dk-hc-cap", id: "dk-hc-loai-tat", hidden: conDung }, CAU_LOAI_DA_TAT);
+    vai.value = chiToChuc ? KHONG_VAI_RIENG : giaTriDau;
+    const baoLoaiTat = h("p", { class: "dk-hc-cap", id: "dk-hc-loai-tat", hidden: conDung || chiToChuc }, CAU_LOAI_DA_TAT);
     const baoDoiVai = h("p", { class: "dk-hc-cap", id: "dk-hc-doi-vai", hidden: !canhBaoDoiVai(vai.value, d.loai) }, CAU_DOI_VAI_CAP);
+    if (chiToChuc) baoDoiVai.hidden = true; // phiếu «chỉ tổ chức» không có «loại của phiếu» để so
+    // Vai của tổ chức (Task 13): danh sách do máy chủ trả (`vaiChonToChuc`), chọn sẵn vai trong phiếu; gửi kèm `roleCodeToChuc`.
+    const vaiTc = d.loaiToChuc ? h("select", { class: "o", id: "dk-hc-vai-to-chuc", "aria-label": "Vai trò của tổ chức" },
+      ...(d.vaiChonToChuc ?? []).map((r) => h("option", { value: r.ma, selected: r.ma === d.loaiToChuc }, r.ten))) as HTMLSelectElement : null;
+    if (vaiTc) vaiTc.value = d.loaiToChuc ?? "";
     const dongKetLuan = (m: Muc) => dong(m.nhan, m.ketLuan === "DAT" ? "Đạt" : m.ketLuan === "KHONG_DAT" ? "Không đạt" : "Chưa kết luận");
     const muc = (d.muc ?? []).map(dongKetLuan);
     const kl = d.ketLuanDanhBaToChuc;
     const lyTuChoi = chonLyDo("ly-do-tu-choi-duyet");
     const nutDuyet = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "dk-hc-duyet" }, "Duyệt mở tài khoản") as HTMLButtonElement;
     nutDuyet.disabled = maDuyetGui(vai.value) === null;
-    vai.addEventListener("change", () => { baoDoiVai.hidden = !canhBaoDoiVai(vai.value, d.loai); nutDuyet.disabled = maDuyetGui(vai.value) === null; });
+    vai.addEventListener("change", () => { baoDoiVai.hidden = chiToChuc && vai.value === KHONG_VAI_RIENG ? true : !canhBaoDoiVai(vai.value, d.loai); nutDuyet.disabled = maDuyetGui(vai.value) === null; });
     nutDuyet.addEventListener("click", () => void lenhDk(p, async () => {
-      const ma = maDuyetGui(vai.value);
-      if (ma === null) throw new ApiError(400, "invalid_input", CAU_LOAI_DA_TAT);
-      const r = await api<{ trangThai: string; cap: KetQuaCapDto }>(`/api/dang-ky/phieu/${d.id}/duyet`, { method: "POST", body: { roleCode: ma, phienBan: d.phienBan } });
+      const chon = maDuyetGui(vai.value);
+      if (chon === null) throw new ApiError(400, "invalid_input", CAU_LOAI_DA_TAT);
+      const ma = chon === KHONG_VAI_RIENG ? null : chon; // «không vai riêng» là lựa chọn rõ của người duyệt (phiếu chỉ tổ chức), không phải mã thay thế
+      const r = await api<{ trangThai: string; cap: KetQuaCapDto }>(`/api/dang-ky/phieu/${d.id}/duyet`, { method: "POST", body: { roleCode: ma, ...(vaiTc ? { roleCodeToChuc: vaiTc.value } : {}), phienBan: d.phienBan } });
       const cap = r.cap.ap ? (r.cap.cap ? ` ${CHU_HANG_CHO_DK.capDaAp}: ${r.cap.cap.ten}.` : "") : r.cap.cau ? ` ${r.cap.cau}` : "";
       return `Đã duyệt. Tài khoản chưa kích hoạt cho tới khi người đăng ký tự đặt mã PIN.${cap}`;
     }));
@@ -318,13 +330,14 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       void lenhDk(p, async () => { await api(`/api/dang-ky/phieu/${d.id}/tu-choi-duyet`, { method: "POST", body: { lyDo: ma, phienBan: d.phienBan } }); return "Đã từ chối phiếu."; });
     });
     moKhung(k.el,
-      dong("Họ tên", d.hoTen ?? ""), dong("Số điện thoại", d.soDienThoai ?? "Không có"), dong("Vai trò xin", d.tenLoai), ...muc,
+      dong("Họ tên", d.hoTen ?? ""), dong("Số điện thoại", d.soDienThoai ?? "Không có"), dong("Vai trò xin", d.tenLoai || CHU_HANG_CHO_DK.chiToChuc), ...muc,
       dong("Kết luận Danh bạ", d.ketLuanDanhBa ? (d.ketLuanDanhBa.kieu === "EXISTING" ? `Gắn hồ sơ có sẵn${d.ketLuanDanhBa.tenHoSo ? `: ${d.ketLuanDanhBa.tenHoSo}` : ""}` : CHU_HANG_CHO_DK.hoSoMoi) : "Chưa có"),
       ...(d.mucToChuc ?? []).map(dongKetLuan),
       kl ? dong(CHU_HANG_CHO_DK.ketLuanToChuc, kl.kieu === "EXISTING" ? `Gắn tổ chức có sẵn${kl.tenHoSo ? `: ${kl.tenHoSo}` : ""}` : CHU_HANG_CHO_DK.hoSoToChucMoi) : null,
       kl?.ghiChu ? h("p", { class: "dk-hc-cap", id: "dk-hc-ghi-chu-to-chuc" }, kl.ghiChu) : null,
       d.nguoiXacMinhLaBan ? h("p", { class: "xm-chan" }, "Bạn là người đã xác minh phiếu này; người duyệt phải là người khác (trừ Toàn quyền).") : null,
       h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Vai trò đối tác"), vai), baoLoaiTat, baoDoiVai,
+      vaiTc ? h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Vai trò của tổ chức"), vaiTc) : null,
       h("div", { class: "dk-hang-nut" }, nutDuyet, nutTraVe), h("div", { class: "dk-hang-nut" }, lyTuChoi.el, nutTuChoi));
   }
 

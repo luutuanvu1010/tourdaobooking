@@ -239,6 +239,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Gia hạn | cùng một việc | Giấy tờ của xe và giấy tờ của người: cùng một việc trên hai màn. |
 | Sửa sai | cùng một việc | Giấy tờ của xe và giấy tờ của người: cùng một việc trên hai màn. |
 | Xem đủ số | cùng một việc | Cùng một việc xem số giấy tờ của người (máy chủ ghi nhật ký trước rồi mới trả số), vào từ hai màn Danh bạ và từ chi tiết phiếu đăng ký đối tác. |
+| Chuyển quyền quản lý | cùng một việc | Cùng một việc đổi người quản lý tổ chức: người quản lý gửi yêu cầu ở màn Hồ sơ tổ chức, văn phòng thực hiện ở Danh bạ (ADR-0213 Đ6). |
 | Rút phiếu | chờ chủ | Hai việc cùng kiểu trên hai loại phiếu của chính người bấm: phiếu tự khai (Tôi › Hồ sơ của tôi) và phiếu đăng ký đối tác (trang /dang-ky, chữ chủ duyệt ở PHU-LUC lượt A). Khác bảng, khác đường lệnh; chủ chọn có tách tên hay không. |
 | Huỷ đơn | cùng một việc | Cùng một việc huỷ đơn, vào từ trang đơn, bảng Kiểm vé và Việc của tôi. |
 | Xác nhận khách đã trả đủ | cùng một việc | Cùng một nút ở trang đơn, đổi chữ theo bước chốt của đơn. |
@@ -260,7 +261,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (104)
+## Việc chờ chọn (107)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -367,11 +368,14 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Gửi lại lời mời | `web/dang-ky-hang-cho.ts`: Gửi lại lời mời | Phiếu đăng ký đối tác | AI viết 2026-11-15 (đợt 1 Task 7 câu báo 409, Task 12 nút), chờ chủ chọn tên; 2026-11-16 thêm gửi lại thư (ADR-0206 Đ13) |
 | Trả về xác minh | `web/dang-ky-hang-cho.ts`: Trả về xác minh | Phiếu đăng ký đối tác | AI viết 2026-11-16 theo chữ ADR-0207 Đ5 «trả phiếu về bước xác minh» (rà soát cuối I-3), chờ chủ chọn tên |
 | Gửi lại thư | `web/dang-ky-hang-cho.ts`: Gửi lại thư | Phiếu đăng ký đối tác | AI viết 2026-11-16 (ADR-0206 Đ13 «gửi lại được», rà soát cuối I-1), chờ chủ chọn tên |
+| Giao hoặc chuyển người quản lý | `web/to-chuc-van-phong.ts`: Chuyển quyền quản lý / Giao người quản lý | Hồ sơ tổ chức | AI viết 2026-11-16 (ADR-0213 Đ2.4, Đ6, mốc B1 Task 14); «Chuyển quyền quản lý» đã chốt, «Giao người quản lý» chờ chủ chọn |
+| Gỡ thành viên | `web/to-chuc.ts`: Gỡ thành viên<br>`web/to-chuc-van-phong.ts`: Gỡ thành viên | Hồ sơ tổ chức | AI viết 2026-11-16 (ADR-0213 Đ6, mốc B1 Task 14), chờ chủ chọn tên |
+| Gửi lại thư báo | `web/to-chuc-van-phong.ts`: Gửi lại thư báo | Hồ sơ tổ chức | AI viết 2026-11-16 (ADR-0213 Đ6, mốc B1 Task 14), chờ chủ chọn tên |
 | Xem đủ số (phiếu đăng ký) | `web/dang-ky-hang-cho.ts`: Xem đủ số | Phiếu đăng ký đối tác | AI dùng lại tên «Xem đủ số» của Danh bạ 2026-11-15 (đợt 1 Task 12), chờ chủ chọn |
 | Lưu (cấp cho đối tác tự đăng ký) | `web/cap-dang-ky.ts`: Lưu | Phiếu đăng ký đối tác | tên khối theo trang trình lượt B (ADR-0209 Đ5); nút dùng chữ chung «Lưu», AI chọn 2026-11-15, chờ chủ |
 | Lưu (nhận đăng ký mới) | `web/dang-ky-chinh-sach.ts`: Lưu | Phiếu đăng ký đối tác | tên công tắc «Nhận đăng ký mới» (Bật, Tắt) theo PHU-LUC lượt A; nút dùng chữ chung «Lưu», AI chọn 2026-11-16 (Task 12 vòng sửa 1), chờ chủ |
 
-## Việc quan trọng (362)
+## Việc quan trọng (366)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -1824,6 +1828,15 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | **Xem đủ số (phiếu đăng ký)** | Quản lý tài khoản › Phiếu đăng ký đối tác › chi tiết phiếu › Số căn cước | Hỏi máy chủ số căn cước đầy đủ của bản khai đang xem; máy chủ ghi nhật ký TRƯỚC rồi mới trả số. Số chỉ nằm trong khung chi tiết, mất khi đóng khung. | không | không: dòng nhật ký xem đã ghi | `/api/dang-ky/phieu/:x/xem-so`<br>nhật ký `registration_number_viewed` | `web/dang-ky-hang-cho.ts`: Xem đủ số | chờ chọn (AI dùng lại tên «Xem đủ số» của Danh bạ 2026-11-15 (đợt 1 Task 12), chờ chủ chọn) |
 | **Lưu (cấp cho đối tác tự đăng ký)** | Hoa hồng đối tác › Cấp độ đại lý › khối «Cấp cho đối tác tự đăng ký» | Đặt cấp mặc định cho một loại đối tác: một cấp đang bật, hoặc «Theo cấp của vai trò». Chỉ áp cho phiếu duyệt về sau; đối tác đã duyệt giữ cấp đã nhận. | không | được: đặt lại cấp khác (chỉ thêm dòng chính sách) | `/api/pricing/cap-mac-dinh`<br>nhật ký `prc_signup_tier_set` | `web/cap-dang-ky.ts`: Lưu | chờ chọn (tên khối theo trang trình lượt B (ADR-0209 Đ5); nút dùng chữ chung «Lưu», AI chọn 2026-11-15, chờ chủ) |
 | **Lưu (nhận đăng ký mới)** | Quản lý tài khoản › khối «Nhận đăng ký mới» (chỉ Toàn quyền) | Bật hoặc tắt «Nhận đăng ký mới» và chọn vai người dùng được đăng ký, lấy từ danh sách loại đối tác đang dùng (gồm cả loại do Kế toán thêm; loại tắt thì tự biến). Công ty lữ hành và Tài xế đối tác chưa mở được khi biểu mẫu còn thiếu phần khai riêng của họ, màn hình nói rõ thiếu gì. Mỗi lần lưu thêm một dòng chính sách đăng ký mới, chỉ đổi công tắc và loại mở, các con số khác giữ nguyên. Chưa có chính sách riêng tư đang hiệu lực thì không bật được. Tắt chỉ chặn mở phiếu mới; phiếu đã có vẫn đi tiếp. | không | được: lưu lại lựa chọn khác (dòng cũ giữ trong lịch sử chính sách) | `/api/dang-ky/chinh-sach`<br>nhật ký `registration_policy_set` | `web/dang-ky-chinh-sach.ts`: Lưu | chờ chọn (tên công tắc «Nhận đăng ký mới» (Bật, Tắt) theo PHU-LUC lượt A; nút dùng chữ chung «Lưu», AI chọn 2026-11-16 (Task 12 vòng sửa 1), chờ chủ) |
+
+### Hồ sơ tổ chức
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Chuyển quyền quản lý** | Trang Tôi › Hồ sơ tổ chức › màn của người quản lý › Thành viên | Người quản lý chọn một thành viên và gửi yêu cầu chuyển quyền quản lý cho người đó. Chỉ gửi yêu cầu: Tour Đảo (văn phòng) xem rồi quyết định, người quản lý không tự chuyển được. Mỗi tổ chức chỉ có một yêu cầu đang mở. | có: hộp hỏi lại nói Tour Đảo sẽ xem và quyết định | không: yêu cầu đã gửi chỉ văn phòng xử lý | `/api/to-chuc/:x/yeu-cau-chuyen`<br>nhật ký `org_transfer_requested` | `web/to-chuc.ts`: Chuyển quyền quản lý | đã chốt (chủ duyệt 2026-11-16 (TRINH-CHU «Chữ đề xuất», ADR-0213 Đ6)) |
+| **Giao hoặc chuyển người quản lý** | Danh bạ › chi tiết hồ sơ tổ chức › Người quản lý tổ chức | Văn phòng chọn một người có tài khoản Đối tác làm người quản lý của tổ chức, kèm lý do trong danh sách đóng. Tổ chức chưa có người quản lý thì nút ghi «Giao người quản lý»; đã có thì ghi «Chuyển quyền quản lý»: người cũ mặc định thành thành viên (bỏ chọn thì không còn liên kết), yêu cầu chuyển đang mở được đóng, người cũ nhận thư báo. Gửi kèm người quản lý màn hình đang thấy; người khác đổi trước thì máy chủ báo tải lại. | có: hộp hỏi lại nêu người mới và việc xảy ra với người cũ | một phần: giao hoặc chuyển lại cho người khác bằng chính nút này (mỗi lần một dòng nhật ký) | `/api/parties/:x/to-chuc/nguoi-quan-ly`<br>nhật ký `org_manager_assigned`<br>nhật ký `org_manager_transferred` | `web/to-chuc-van-phong.ts`: Chuyển quyền quản lý / Giao người quản lý | chờ chọn (AI viết 2026-11-16 (ADR-0213 Đ2.4, Đ6, mốc B1 Task 14); «Chuyển quyền quản lý» đã chốt, «Giao người quản lý» chờ chủ chọn) |
+| **Gỡ thành viên** | Danh bạ › Người quản lý tổ chức; Trang Tôi › Hồ sơ tổ chức › Thành viên | Đóng liên kết «Thành viên của» của một người với tổ chức, từ hôm nay: người đó không còn đặt đơn thay mặt tổ chức. Người quản lý gỡ thành viên của tổ chức mình; văn phòng gỡ kèm lý do trong danh sách đóng. Người quản lý không gỡ được chính mình. | có: hộp hỏi lại nêu tên người bị gỡ | không bằng nút: muốn thêm lại phải có mã vào tổ chức hoặc việc của văn phòng | `/api/to-chuc/:x/go-thanh-vien`<br>`/api/parties/:x/to-chuc/go-thanh-vien`<br>nhật ký `org_member_removed` | `web/to-chuc.ts`: Gỡ thành viên<br>`web/to-chuc-van-phong.ts`: Gỡ thành viên | chờ chọn (AI viết 2026-11-16 (ADR-0213 Đ6, mốc B1 Task 14), chờ chủ chọn tên) |
+| **Gửi lại thư báo** | Danh bạ › chi tiết hồ sơ tổ chức › Người quản lý tổ chức | Gửi lại thư báo người quản lý cũ (sau khi chuyển quyền quản lý) khi lần gửi trước chưa gửi được. Hồ sơ người cũ không còn email liên hệ thì máy chủ báo không gửi được. | không | không: thư đã gửi không thu lại được | `/api/parties/:x/to-chuc/gui-lai-thu`<br>nhật ký `org_notice_resent` | `web/to-chuc-van-phong.ts`: Gửi lại thư báo | chờ chọn (AI viết 2026-11-16 (ADR-0213 Đ6, mốc B1 Task 14), chờ chủ chọn tên) |
 
 ## Mục bỏ qua (70)
 

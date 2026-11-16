@@ -33,7 +33,7 @@ const sameSet = (a: readonly string[], b: readonly string[]): boolean => a.lengt
 /** Tài khoản đã gán vai → tên vai; chưa gán → quyền cũ kèm ghi chú (chờ chuyển sang cách mới, đặc tả §14). */
 // Task 3b: tên vai hiện hành từ máy chủ (GET /api/staff → tenVai); trước lần nạp đầu / nạp lỗi thì rỗng ⇒ tên gốc.
 let tenVai: Readonly<Record<string, string>> = {};
-const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabelTheo(s.roles, tenVai) : `${permissionsLabel(s.permissions)} (chưa gán vai trò)`);
+const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabelTheo(s.roles, tenVai) : s.lamChoToChuc ? "Người làm cho tổ chức" : `${permissionsLabel(s.permissions)} (chưa gán vai trò)`);
 const EMPTY: RolePickerValue = { roles: [], adds: [], removes: [], reason: "" };
 const TU_DOI_QUYEN = "Vai trò vừa chọn làm đổi quyền của chính bạn — không ai tự đổi quyền của mình được (chống tự khoá). Hãy nhờ người quản trị khác. Chưa lưu gì.";
 const TU_DOI_QUYEN_TOAN_QUYEN =
@@ -336,7 +336,7 @@ function card(s: Api.StaffListRowDto): HTMLElement {
 }
 
 async function openEdit(s: StaffAccount): Promise<void> {
-  const legacy = s.roles.length === 0; // chưa gán vai: đang dùng quyền cũ
+  const legacy = s.roles.length === 0 && !s.lamChoToChuc; // chưa gán vai: đang dùng quyền cũ (tài khoản chỉ làm cho tổ chức, ADR-0213, không tính)
   // ADR-0083 điều 1a, 1d: sửa quyền kiểu cũ (PUT …/permissions) chỉ người hỏi được ô gán/gỡ Toàn quyền — cùng bảng với máy chủ; người khác chuyển sang vai.
   const quyenCu = legacy && meSuper;
   let saved = EMPTY;

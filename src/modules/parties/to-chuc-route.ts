@@ -251,6 +251,11 @@ export async function vaiToChucCuaToi(ctx: Ctx<"staff">): Promise<{ org: { id: s
   return { org, vai: { hl, lienKetCuaToi: cuaToi ? (cuaToi.loai === "MANAGER_OF" ? "MANAGER" : "MEMBER") : null } };
 }
 
+// ---- GET /api/to-chuc/:id — màn tổ chức của người quản lý có hiệu lực (Task 14): chỉ đọc, cùng ToChucDto với văn phòng. Gọi SAU khi quyenToChuc(...).quanLy đúng. ----
+export async function xemToChucCuaQuanLy(ctx: Ctx<"staff">, org: { id: string; ten: string }): Promise<Response> {
+  return json({ toChuc: await dtoToChuc(ctx, org) } satisfies ToChucResponse);
+}
+
 // ---- POST /api/to-chuc/:id/yeu-cau-chuyen — một dòng chờ văn phòng (Đ6: người quản lý chỉ gửi yêu cầu). Gọi SAU khi quyenToChuc(...).quanLy đúng. ----
 export async function yeuCauChuyen(ctx: Ctx<"staff">, org: { id: string; ten: string }): Promise<Response> {
   const body = await readJson(ctx.request);

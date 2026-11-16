@@ -8,7 +8,7 @@ import { kiemThanGioiHan, mucVuotGiaBan, viPhamGioiHanNhap } from "../../shared/
 import { nhanDong, nhanTyLeBp } from "../../shared/so-dai-ly-nhan.ts";
 import { kiemGhiChu } from "../../shared/ghi-chu-danh-muc.ts";
 import type { AuditAction } from "../../shared/audit-actions.ts";
-import type { CapDaiLyResponse, CapHienHanhResponse, CapMacDinhResponse, GioiHanNhapResponse, CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
+import type { CapCuaToChucResponse, CapDaiLyResponse, CapHienHanhResponse, CapMacDinhResponse, GioiHanNhapResponse, CommissionRuleDto, DoiMucResponse, HoaHongHoSoResponse, CommissionRuleListResponse, GanLoaiMucDto, GanLoaiMucResponse, LoaiDoiTacDto, LoaiDoiTacListResponse, LoaiDoiTacResponse, MucTaDto, MucTaListResponse, MucTaResponse,
   LuatBanDto, LuatBanListResponse, LuatBanResponse, NguoiHuongTimResponse, SuaGanLoaiResponse, SuaMucResponse, SuaXemTruocResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
 import { coTheTimDoiTac } from "../../shared/hoa-hong-hien-thi";
@@ -978,6 +978,15 @@ export const pricingModule: AppModule = {
     route("GET", "/api/pricing/cap-hien-hanh", "office", async ({ env, staff }) => {
       if (!can(staff, "partner.commission.view") || holdsPartner(staff)) return FORBIDDEN();
       return json(await capHienHanhMoiHoSo(env.DB));
+    }),
+    // ADR-0213 (mốc B1 Task 14): cấp đại lý của MỘT tổ chức, cho người quản lý có hiệu lực của tổ chức đó xem ở màn tổ chức. Chỉ đọc, cổng `staff`; đường dẫn có `:id` nên đứng SAU hai đường cố định
+    // cùng tiền tố. Hỏi `ctx.laQuanLyCuaBen` (cùng định nghĩa Đ5 với đơn và Trả sau); người khác (văn phòng, thành viên, người lạ) ⇒ 403. Không đổi gì ở máy chủ, không quyền mới.
+    route("GET", "/api/pricing/cap-cua-to-chuc/:id", "staff", async ({ env, params, staff, laQuanLyCuaBen }) => {
+      const id = params.id!;
+      if (!PARTY_RE.test(id)) return error(400, "invalid_input", "Mã hồ sơ không hợp lệ.");
+      if (!can(staff, "order.create") || !holdsPartner(staff) || !(await laQuanLyCuaBen(id))) return error(403, "forbidden", "Chỉ người quản lý của tổ chức xem được cấp độ đại lý của tổ chức.");
+      const { homNay, hoSo } = await capHienHanhMoiHoSo(env.DB);
+      return json({ homNay, cap: hoSo.find((x) => x.partyId === id) ?? null } satisfies CapCuaToChucResponse);
     }),
     // ADR-0209 Đ2, Đ5: «Cấp cho đối tác tự đăng ký». Xem: ô sẵn có `partner.commission.view` (Bán hàng, Kế toán, Quản trị, Toàn quyền; Quản lý bán hàng nhờ mã Bán hàng đi kèm), không giữ quyền Đối tác.
     route("GET", "/api/pricing/cap-mac-dinh", "office", async ({ env, staff }) => {

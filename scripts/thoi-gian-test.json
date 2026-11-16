@@ -887,6 +887,7 @@
  "src/shared/tro-ly-van-nghia.test.ts": 1.6,
  "src/shared/tro-ly.test.ts": 0.6,
  "src/shared/truong-thoi-gian.test.ts": 0.1,
+ "src/shared/tu-cach-hien-thi.test.ts": 0.3,
  "src/shared/tu-choi-man.test.ts": 0.1,
  "src/shared/tu-khai-hien-thi.test.ts": 0.1,
  "src/shared/ui-truong.test.ts": 0.1,

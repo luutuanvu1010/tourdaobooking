@@ -62,6 +62,9 @@ export const CHU_DANG_KY = {
 
 /** Hàng chờ phiếu đăng ký ở Quản lý tài khoản. */
 export const CHU_HANG_CHO_DK = {
+  // Phiếu «chỉ tổ chức» (mốc B1 Task 14; nhãn, chờ chủ chọn)
+  chiToChuc: "Chỉ làm cho tổ chức",
+  khongVaiRieng: "Không có vai người dùng riêng (chỉ làm cho tổ chức)",
   // PHU-LUC (da-chot)
   dat: "Đạt",
   khongDat: "Không đạt",

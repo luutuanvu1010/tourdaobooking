@@ -228,6 +228,13 @@ export async function partiesWithAccount(db: D1Database, partyIds: readonly stri
   if (partyIds.length === 0) return new Set();
   return new Set((await db.prepare(ACCOUNTS_OF_PARTIES).bind(JSON.stringify(partyIds)).all<{ party_id: string }>()).results.map((r) => r.party_id));
 }
+// ADR-0213 (mốc B1 Task 14): hồ sơ nào trong tập có liên kết «Người quản lý của» / «Thành viên của» đang mở (view công bố v_pty_org_link) — cho màn Quản lý tài khoản: tài khoản chỉ làm cho tổ chức
+// không phải «thiếu vai trò». Chỉ đọc khoá.
+const PARTIES_WITH_ORG_LINK = defineSql("staff", "parties_with_org_link", "SELECT DISTINCT person_party_id AS party_id FROM v_pty_org_link WHERE person_party_id IN (SELECT value FROM json_each(?1))");
+export async function partiesWithOrgLink(db: D1Database, partyIds: readonly string[]): Promise<Set<string>> {
+  if (partyIds.length === 0) return new Set();
+  return new Set((await db.prepare(PARTIES_WITH_ORG_LINK).bind(JSON.stringify(partyIds)).all<{ party_id: string }>()).results.map((r) => r.party_id));
+}
 export const insertAdjustmentStatement = (
   db: D1Database,
   v: { staffId: string; code: PermissionCode; direction: "ADD" | "REMOVE"; reason: string; at: string; actorId: string; guarded: boolean },

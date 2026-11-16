@@ -10,7 +10,7 @@ import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
-  insertStaffInactiveStatement, insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinActivateStatement, setPinStatement as setPinRow, taiKhoanChoXacMinhRows, touchCredentialsStatement, updateStaffStatement, upsertThanhDuoiStatement,
+  insertStaffInactiveStatement, insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, partiesWithOrgLink, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinActivateStatement, setPinStatement as setPinRow, taiKhoanChoXacMinhRows, touchCredentialsStatement, updateStaffStatement, upsertThanhDuoiStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import {
@@ -68,6 +68,9 @@ export async function dauXacMinhTaiKhoan(db: D1Database, partyIds: readonly (str
   const ids = partyIds.flatMap((p) => (p ? [p] : []));
   return dauXacMinhTheoHoSo(db, ids, homNay, new Set(ids));
 }
+
+/** HÀM CÔNG BỐ (ADR-0213; mốc B1 Task 14): mã hồ sơ (trong tập) đang có liên kết «Người quản lý của» / «Thành viên của» — CHỈ route Quản lý tài khoản gọi, để không báo «thiếu vai trò» cho tài khoản chỉ làm cho tổ chức. */
+export const hoSoCoLienKetToChuc = (db: D1Database, partyIds: readonly (string | null)[]): Promise<Set<string>> => partiesWithOrgLink(db, partyIds.flatMap((p) => (p ? [p] : [])));
 
 /** HÀM CÔNG BỐ (ADR-0068 Đ8) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo.soDangNhap): SĐT đăng nhập theo hồ sơ, cho lý do "số đăng nhập trùng số liên hệ". */
 export const soDangNhapTheoHoSo = (db: D1Database): Promise<{ partyId: string; phone: string }[]> => phonesByParty(db);

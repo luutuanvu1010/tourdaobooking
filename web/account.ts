@@ -2,6 +2,7 @@ import { ApiError, api, type Api } from "./api";
 import { chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
 import { PERMISSION_LABEL, can, hasPermission } from "../src/shared/permissions";
 import { initTraSauCuaToi } from "./tra-sau-cua-toi";
+import { initToChucCuaToi } from "./to-chuc-cua-toi";
 import { CAU_CHI_UNG_DUNG_XAC_THUC } from "../src/shared/hai-lop-hien-thi";
 import { coPhanTaiXe } from "../src/shared/start-page";
 import { trangToi, type MucHien } from "../src/shared/muc-giao-dien";
@@ -119,6 +120,7 @@ void initGiayToCuaToi();
 // Hồ sơ của tôi (ADR-0124, lát H-3): mọi tài khoản có hồ sơ + ô party.self.view (kể cả Đối tác) — khối tự ẩn khi không đủ điều kiện.
 void initHoSoCuaToi(staff, byId("ho-so-cua-toi"), (m) => showError(errorEl, m));
 void initTraSauCuaToi(staff, byId("tra-sau-cua-toi"));
+void initToChucCuaToi(staff, byId("to-chuc-cua-toi"));
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   showError(errorEl, null);

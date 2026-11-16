@@ -475,3 +475,28 @@ test("quyenToChuc từ chối: người lạ (Đối tác không liên kết), t
   assert.equal(w.q("SELECT count(*) n FROM pty_org_transfer_request")[0].n, 0);
   assert.deepEqual(nhatKy(w, org), []);
 });
+
+test("Task 14: người quản lý đọc màn tổ chức của mình (GET /api/to-chuc/:id) và cấp độ đại lý của tổ chức; thành viên, văn phòng, người lạ ⇒ 403; không lộ số điện thoại", async () => {
+  const { w } = setup();
+  const org = toChuc(w);
+  const khac = toChuc(w, "Công ty Khác");
+  const ql = doiTac(w, "Quản");
+  const tv = doiTac(w, "Viên");
+  const la = doiTac(w, "Lạ");
+  lienKet(w, ql.partyId, org, "MANAGER_OF");
+  lienKet(w, tv.partyId, org, "MEMBER_OF");
+  const g = await w.call("GET", `/api/to-chuc/${org}`, { as: ql.staffId });
+  assert.equal(g.status, 200);
+  assert.equal(g.json.toChuc.partyId, org);
+  assert.equal(g.json.toChuc.nguoiQuanLy.partyId, ql.partyId);
+  assert.deepEqual(g.json.toChuc.thanhVien.map((x: { partyId: string }) => x.partyId), [tv.partyId]);
+  assert.doesNotMatch(g.text, SO_DT);
+  for (const as of [tv.staffId, la.staffId, ADM, SUP]) assert.equal((await w.call("GET", `/api/to-chuc/${org}`, { as })).status, 403, `màn ${as}`);
+  assert.equal((await w.call("GET", `/api/to-chuc/${khac}`, { as: ql.staffId })).status, 403);
+  // Cấp độ đại lý: cùng cổng — người quản lý thấy (tổ chức mang loại được hưởng nhưng chưa gắn mức ⇒ cap null), người khác 403.
+  const c = await w.call("GET", `/api/pricing/cap-cua-to-chuc/${org}`, { as: ql.staffId });
+  assert.equal(c.status, 200);
+  assert.equal(c.json.cap?.partyId ?? org, org);
+  assert.equal((await w.call("GET", `/api/pricing/cap-cua-to-chuc/${khac}`, { as: ql.staffId })).status, 403);
+  for (const as of [tv.staffId, la.staffId, ADM, SUP]) assert.equal((await w.call("GET", `/api/pricing/cap-cua-to-chuc/${org}`, { as })).status, 403, `cấp ${as}`);
+});

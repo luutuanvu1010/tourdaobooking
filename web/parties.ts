@@ -8,7 +8,7 @@ import { chipHan, lichSuCua, ngayVN, tenGiayTo, xepTheoHan } from "../src/shared
 import { NHAN_LY_DO_KHOP, chuanHoaTen } from "../src/shared/ho-so-trung";
 import { cauXemTruocSua, chiaLanGan, coQuyenSua, nhanSapAp, nutSua } from "../src/shared/hoa-hong-hien-thi";
 import { nhanLoaiLienHe } from "../src/shared/lien-he";
-import { can } from "../src/shared/permissions";
+import { can, holdsPartner } from "../src/shared/permissions";
 import { vaiMoChoHoSoKhongTaiKhoan } from "../src/shared/roles";
 import { docLyDoSua } from "../src/shared/so-dai-ly-nhap";
 import { laLienKetToChuc } from "../src/shared/to-chuc";
@@ -21,6 +21,7 @@ import { chipEl, loiCua, moFormGiayTo, moXacNhanXemSo, taoBoCheSo, type GiayToDo
 import { khoiLichSuGan } from "./hoa-hong-lich-su";
 import { icon } from "./icons";
 import { dungKhoiPhieuXoa } from "./phieu-xoa";
+import { dungKhoiToChucVanPhong } from "./to-chuc-van-phong";
 import { dauXacMinh } from "./dau-xac-minh";
 import { initShell, showError } from "./shell";
 import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
@@ -390,6 +391,9 @@ async function openDetail(id: string): Promise<void> {
   const taiKhoan = can(me, "company.legal.write") && laChu ? h("section", { id: "tai-khoan-nhan-tien", "aria-labelledby": "tknt-title" }) : null;
   if (taiKhoan) void veTaiKhoanNhanTien(taiKhoan, p);
   // Mục «Hoa hồng hiện hành» (góp ý YC-0020): người giữ ô partner.commission.view đọc; ô partner.commission.write gắn / kết thúc mức riêng (ADR-0138). Hồ sơ không mang loại được hưởng thì mục tự ẩn; máy chủ từ chối (tài khoản lai…) cũng ẩn.
+  // Khối «Người quản lý tổ chức» (ADR-0213 Đ6): hồ sơ TỔ CHỨC, ba vai văn phòng giữ ô partner.org.manager.write, không Đối tác — cùng cổng máy chủ.
+  const khoiToChuc = p.kind === "ORGANIZATION" && !p.mergedInto && can(me, "partner.org.manager.write") && !holdsPartner(me) ? h("section", { id: "to-chuc-van-phong", "aria-label": "Người quản lý tổ chức" }) : null;
+  if (khoiToChuc) dungKhoiToChucVanPhong(khoiToChuc, id);
   const hoaHong = can(me, "partner.commission.view") && !p.mergedInto ? h("section", { id: "hoa-hong-hien-hanh", "aria-labelledby": "hhhh-title", hidden: true }) : null;
   if (hoaHong) void veHoaHongHienHanh(hoaHong, p);
 
@@ -423,6 +427,7 @@ async function openDetail(id: string): Promise<void> {
     h("h3", null, "Người liên hệ, tài xế"), // G3 (ADR-0048): mục này nay gồm cả quan hệ "Tài xế của"
     h("table", { class: "items" }, h("tbody", null, ...relRows)),
     quanTri ? h("div", null, h("div", { class: "grid three" }, field("Loại", relDir), field("Tìm hồ sơ", relQ), field("Chọn", relPick)), h("div", { class: "actions" }, addRel)) : null,
+    khoiToChuc,
     ...mucDaGop,
     giayTo,
     taiKhoan,
