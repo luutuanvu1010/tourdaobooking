@@ -42,6 +42,16 @@ Kế hoạch: `docs/superpowers/plans/2026-11-16-phi-don-van-phong-chon.md`. Ngu
 
 **Vòng sửa 2 (bài canh chữ nguồn đỏ ở `npm test` đủ bộ):** `src/form-dat-ve-noi-day.test.ts` — bài (a) đếm hai lời gọi `tomTatChang(…, o.anGio === true)`; nay tóm tắt đi qua hàm bọc `tomTatCoPhi` (một lời gọi, vẫn truyền anGio) nên bài khẳng định MỌI lời gọi truyền anGio và cả chỗ dựng lẫn chỗ vẽ lại đi qua hàm bọc (đột biến bỏ anGio trong hàm bọc ⇒ đỏ, hoàn nguyên ⇒ xanh); bài công tắc ẩn khách nhận `layPhiAp` trong cùng `Promise.all` và thêm khẳng định chỉ đọc công tắc một lần. `src/doc-dong-tien-phi-don.test.ts` — bảng tham chiếu nay nhắc `order_item` hai lần (thêm `order_item.fee_choice` ở «Phí đưa đón»): BỎ QUA, chữ cho người đọc.
 
+## Task 7 — bộ kiểm đủ, hàng rào, người kiểm độc lập (16/11/2026, điều phối ghi)
+- Sổ vàng cũ `golden/phi-dua-don.json`: `_mo_ta` ghi không còn là luật của đơn; bài lớp 3 cũ chỉ gọi hàm thuần của «Thử tra», không chạy đường đơn ⇒ giữ (`512b483a2`).
+- Hàng rào chặn thật (P16), ghi ở `docs/SO-HANG-RAO.md`: bỏ cổng «chưa chọn» ⇒ 7 bài đỏ gồm SV-PC-09; bỏ kiểm Đối tác ⇒ bài 400 đỏ; cho mọi mức «Danh sách» lọt `kiemMucChon` ⇒ 4 bài đỏ, lớp hai là trigger `0173` (500 thay vì 400); trigger `0173` (Task 1, 4 đột biến); P4b trả lại `v !== null` ⇒ bài P4b đỏ.
+- `npm run typecheck`: 0 lỗi (ở `edc869797`).
+- `npm test`: lần 1 ở `512b483a2` 9.582/9.589, 3 đỏ (bài canh chữ nguồn đổi vì giao diện Task 6) → sửa `be1d59b4c`; lần 2 ở `be1d59b4c` 9.585 đạt, 0 đỏ; lần 3 ở `edc869797` (sau P4b) 9.587 đạt, 0 đỏ, thoát 0.
+- `npm run test:e2e` (ở `512b483a2`; sau đó chỉ đổi bài và `coPhiDonTrongThan`): 97/97 kịch bản xanh, kèm `audit-invariants` trên dữ liệu gieo. Sau P4b chạy lại `phi-don-don`, `phi-don-xac-nhan`, `gui-don`: 6/6 xanh.
+- `node scripts/audit-invariants.mjs --db local`: D1 local vừa migrate còn rỗng ⇒ chỉ R-N1-5 «còn ít nhất một quản trị viên» vi phạm (CSDL không có tài khoản nào), không do mã; mọi bất biến phí (R-ORD-PD-*) đạt.
+- Người kiểm độc lập (`nguoi-kiem-doc-lap`, chỉ đọc, bản sao riêng): lần 1 ở `be1d59b4c` ĐẠT CÓ ĐIỀU KIỆN (V1 Đối tác gửi `null` xoá được mức; V2 thiếu bài Gửi đơn với dòng bảng phí cũ) → sửa `edc869797` (Ruling P4b: tài khoản giữ quyền Đối tác gửi khoá `phiDon`, kể cả `null` ⇒ 400; bài V2) → lần 2 ở `edc869797` **ĐẠT**. Còn Thấp: lỗi mạng ở `GET /api/orders/phi-don-ap` làm ô phí ẩn tạm (máy chủ vẫn chặn); tham số `vungDon` thừa ở pricing.
+- Route mới ngoài kế hoạch `GET /api/orders/phi-don-ap` (chỉ đọc, gác `order.create`, trả một giá trị đúng/sai) — điều phối chấp nhận (Ruling T6-a), báo chủ.
+
 ## Nợ kỹ thuật
 - Dịch vụ toàn em bé (không khách trả tiền) không có dòng phí ⇒ mức chọn không được lưu; lần sửa sau ô hiện «Chưa chọn», phải chọn lại. Cửa xác nhận buộc có người lớn nên không lọt xác nhận.
 - Trigger `SO_KHAC` của `0173` không kiểm số nguyên — máy chủ kiểm (T1-m1).
