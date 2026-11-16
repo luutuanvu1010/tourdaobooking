@@ -24,7 +24,7 @@
 
 | Hàng quyền (`src/shared/permissions.ts`) | Hôm nay | Sau hai ADR | Đổi nghĩa? |
 |---|---|---|---|
-| `order.view`, `money.view`, `order.history.view`, `contact.view`, `order.modify` — cột Đối tác `own` | đơn có `orders.staff_id` = tài khoản gọi | **thêm:** đơn có bên đặt là tổ chức mà người gọi **đang là người quản lý** (cờ `quanLyBenDat`, tiêm từ gốc). Thành viên: không đổi | **có** — nghĩa của `own` cột Đối tác rộng ra cho người quản lý |
+| `order.view`, `money.view`, `order.history.view`, `order.modify` — cột Đối tác `own`; `contact.view` — cột Đối tác `ownOrAssigned` (vế `own` đổi như các hàng kia, vế `assigned` giữ nguyên) | đơn có `orders.staff_id` = tài khoản gọi | **thêm:** đơn có bên đặt là tổ chức mà người gọi **đang là người quản lý** (cờ `quanLyBenDat`, tiêm từ gốc). Thành viên: không đổi | **có** — nghĩa của `own` cột Đối tác rộng ra cho người quản lý |
 | `order.submit` — cột Đối tác `own` | gửi đơn mình lập | với phương án (a) của quyết định 1: bên đặt là tổ chức thì **chỉ người quản lý** gửi; bên đặt cá nhân như cũ | **có** (theo lựa chọn của chủ) |
 | `dai-ly.nop.xem`, `dai-ly.nop.ghi`, `payment.proof.view` — cột Đối tác `own` | phiếu nộp của đơn có bên đặt = hồ sơ của tài khoản (`coPhieuNopTien`) | bên đặt = bên đang thay mặt hoặc tổ chức mình quản lý | **có** (đầu vào `partyId` đổi) |
 | Sổ của tôi, khoản của tôi (route billing, xét `staff.partyId`) | hồ sơ của tài khoản | người quản lý: thêm sổ của tổ chức; thành viên: chỉ của mình | **có** |
@@ -47,8 +47,8 @@
 | Gửi đơn | `order.submit` + cờ `quanLyBenDat` (phương án a) | — | nút «Gửi đơn» **ẩn với thành viên** khi bên đặt là tổ chức; hiện với người quản lý trên nháp của thành viên |
 | Xem đơn, sổ công nợ tổ chức | ô `own` cột Đối tác + cờ `quanLyBenDat` | — | «Đơn của tôi» của người quản lý gồm đơn tổ chức; khối sổ công nợ tổ chức chỉ người quản lý thấy |
 | Mời, gỡ thành viên; chuyển quyền quản lý | vai trên đối tượng (người quản lý) hoặc `partner.org.manager.write` | chỉ mục duy nhất người quản lý; trigger `replaced_by_id`; trigger hai đầu | màn «Thành viên» chỉ hiện cho người quản lý; nút «Chuyển quyền quản lý» ở Danh bạ chỉ hiện cho ba vai văn phòng |
-| Nhận lời mời | số đăng nhập trùng số mời; tài khoản hợp lệ; trần | băm mã, một lần, hạn | lời mời trong ứng dụng chỉ chính chủ số thấy |
-| Cấp quyền Đối tác | `staff` | LC-1c tạo lại (thêm vế liên kết), LC-1, LC-1b, `adr0117_permission_partner_label_internal` | màn Quản lý tài khoản: tài khoản không vai mà có quyền Đối tác (người chỉ làm cho tổ chức) không còn là «thiếu vai trò» khi có liên kết |
+| Nhận lời mời | số đăng nhập trùng số mời; tài khoản hợp lệ; trần (tổ chức: nói thật; theo số: câu trung tính, không mã giả) | băm mã, một lần, hạn; phiếu đăng ký chỉ lưu mã định danh lời mời | lời mời trong ứng dụng chỉ chính chủ số thấy |
+| Cấp quyền Đối tác | `staff` | LC-1c tạo lại (thêm vế liên kết); **trigger anh em mới** chặn mọi quyền ngoài Đối tác cho tài khoản chỉ có liên kết (LC-1 và trigger nhãn không bắt ca này); LC-1, LC-1b, `adr0117_permission_partner_label_internal` giữ; bất biến `R-LC-1c`, `R-DK-4` mở rộng cùng vế | màn Quản lý tài khoản: tài khoản không vai mà có quyền Đối tác (người chỉ làm cho tổ chức) không còn là «thiếu vai trò» khi có liên kết |
 | Tự bật Trả sau | `TU_DAT_TRA_SAU` thêm vế tổ chức đang gắn | — | — |
 
 **Chỗ chỉ dựa vào máy chủ (nói thẳng):** chặn gắn tài khoản nội bộ hay Tài xế đối tác vào tổ chức (trigger của `parties` không đọc được `staff`); nghĩa rộng của ô `own` (một hàm trong `permissions.ts`, các route phải truyền cờ — có bài quét). Lưới thứ hai: bất biến định kỳ ở `scripts/audit-checks.mjs`.
