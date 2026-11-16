@@ -37,6 +37,7 @@ interface TaiKhoan { id: string; ten: string; permissions: PermissionCode[] }
 
 const DT_B = "88888888-8888-4888-8888-88888888888b"; // đại lý B — chủ của mọi số lạ (không quét: số của chính B)
 const PTY_B = `pty-${DT_B}`;
+const TO_CHUC_THU = "pty-abcdef01-2345-4678-8abc-def012345678"; // ADR-0213 (lượt B1): tổ chức đối tác thử, Đối tác thuần A là người quản lý
 const AT = "2026-09-01T00:00:00.000Z";
 /** Hai dịch vụ của mọi đơn mang số của B: SLX (mức riêng đ/khách của B + nhà cung cấp mua lại), SLY (mức riêng % của B; đơn đã xác nhận: Kế toán ghi tay %). */
 const DV: [string, number][] = [["SLX", 1_000_000], ["SLY", 2_000_000]];
@@ -195,6 +196,9 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/parties/phieu-xoa/:pid": [`/api/parties/phieu-xoa/${uuid()}`],
     "/api/parties/:id/tai-khoan-nhan-tien": [`/api/parties/${PTY_B}/tai-khoan-nhan-tien`, `/api/parties/${g.congTy}/tai-khoan-nhan-tien`],
     // ADR-0213 Đ6 (mốc B1 Task 10): màn tổ chức — hồ sơ B là cá nhân (404 cho văn phòng có ô), hồ sơ tổ chức công ty chủ trả 200 cho Quản trị / Toàn quyền; DTO chỉ mã, tên, ngày, không chở tiền.
+    // ADR-0213 Đ5 (lượt B1): hai route của người quản lý — Đối tác thuần A là người quản lý của tổ chức thử (gieo ở gieo()), nên 200 cho A và 403 cho mọi tài khoản khác; thân được quét cho cả hai.
+    "/api/to-chuc/:id": [`/api/to-chuc/${TO_CHUC_THU}`],
+    "/api/pricing/cap-cua-to-chuc/:id": [`/api/pricing/cap-cua-to-chuc/${TO_CHUC_THU}`],
     "/api/parties/:id/to-chuc": [`/api/parties/${PTY_B}/to-chuc`, `/api/parties/${g.congTy}/to-chuc`],
     "/api/van-chuyen/xe/:id": [`/api/van-chuyen/xe/${g.xe}`],
     "/api/van-chuyen/xe/:id/ban": [`/api/van-chuyen/xe/${g.xe}/ban`],
@@ -275,6 +279,10 @@ async function gieo(w: W): Promise<Gieo> {
   THUAN.forEach((t, i) => { if (!KHUNG[t.permissions[0]!]) seedStaff(w.sqlite, { id: t.id, phone: `0911000${String(i).padStart(3, "0")}`, name: `Thuần ${t.permissions[0]}`, perms: t.permissions }); });
   LAI.forEach((t, i) => seedStaff(w.sqlite, { id: t.id, phone: `0912000${String(i).padStart(3, "0")}`, name: `Lai ${t.permissions[0]}`, perms: t.permissions }));
   seedStaff(w.sqlite, { id: DT_B, phone: "0913000001", name: "Đại Lý Bê", perms: ["PARTNER"] });
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Tổ chức thử', 1, ?, ?)").run(TO_CHUC_THU, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_organization (party_id, legal_name, created_at, updated_at) VALUES (?, 'Tổ chức thử', ?, ?)").run(TO_CHUC_THU, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-sl-tc', ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(TO_CHUC_THU, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES ('rel-sl-ql', ?, ?, 'MANAGER_OF', '2026-01-02', ?, ?)").run(`pty-${PARTNER}`, TO_CHUC_THU, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'Nhà cung cấp Lạ', 1, ?, ?)").run(AT, AT);
   w.sqlite.prepare("INSERT INTO pty_organization (party_id, legal_name, created_at, updated_at) VALUES ('pty-ncc', 'Nhà cung cấp Lạ', ?, ?)").run(AT, AT);
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-sl-ncc', 'pty-ncc', 'SUPPLIER', '2026-01-01', ?, ?)").run(AT, AT);
