@@ -39,6 +39,8 @@ Kế hoạch: `docs/superpowers/plans/2026-11-16-phi-don-van-phong-chon.md`. Ngu
 
 **Kịch bản Chrome cũ (vòng sửa 1 Task 6):** `phi-don-don-smoke.mjs` (đơn lập kèm `phiDon`, nhãn dòng không còn khu vực, câu nhắc Cấp độ đại lý ẩn) và `phi-don-smoke.mjs` (câu ADR-0214, đặt ngày áp khi bảng trống, kết thúc mức chung cuối lúc đang áp lưu được) đã sửa theo luật mới, cả hai xanh có `AXE_JS`. `xac-nhan-smoke.mjs` 8/9: bước 3b đỏ từ trước vì chờ nút «Xem biên nhận» đã đổi tên (không liên quan phí, không sửa). Đề xuất dòng mới ở bảng kịch bản của `web/CLAUDE.md` (tệp luật — chủ duyệt).
 
+**Vòng sửa 2 (bài canh chữ nguồn đỏ ở `npm test` đủ bộ):** `src/form-dat-ve-noi-day.test.ts` — bài (a) đếm hai lời gọi `tomTatChang(…, o.anGio === true)`; nay tóm tắt đi qua hàm bọc `tomTatCoPhi` (một lời gọi, vẫn truyền anGio) nên bài khẳng định MỌI lời gọi truyền anGio và cả chỗ dựng lẫn chỗ vẽ lại đi qua hàm bọc (đột biến bỏ anGio trong hàm bọc ⇒ đỏ, hoàn nguyên ⇒ xanh); bài công tắc ẩn khách nhận `layPhiAp` trong cùng `Promise.all` và thêm khẳng định chỉ đọc công tắc một lần. `src/doc-dong-tien-phi-don.test.ts` — bảng tham chiếu nay nhắc `order_item` hai lần (thêm `order_item.fee_choice` ở «Phí đưa đón»): BỎ QUA, chữ cho người đọc.
+
 ## Nợ kỹ thuật
 - Dịch vụ toàn em bé (không khách trả tiền) không có dòng phí ⇒ mức chọn không được lưu; lần sửa sau ô hiện «Chưa chọn», phải chọn lại. Cửa xác nhận buộc có người lớn nên không lọt xác nhận.
 - Trigger `SO_KHAC` của `0173` không kiểm số nguyên — máy chủ kiểm (T1-m1).

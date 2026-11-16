@@ -40,9 +40,9 @@ const DA_RA: Record<string, { soCho: number; cach: Cach[]; lyDo: string }> = {
     lyDo: "items_money_many (giá đại lý / hoa hồng nhiều đơn): chỉ dòng SERVICE — phí không vào hoa hồng; tổng công nợ cộng phí riêng ở ghepGiaDaiLy (phiDon, SV-PD-25).",
   },
   "src/shared/bang-tham-chieu-khai-niem.ts": {
-    soCho: 1,
+    soCho: 2,
     cach: ["BO_QUA"],
-    lyDo: "chữ «mã nội bộ» của khái niệm «Dòng tiền» trong bảng tham chiếu ngôn ngữ — không truy vấn.",
+    lyDo: "chữ «mã nội bộ» của hai khái niệm «Dòng tiền» và «Phí đưa đón» (`order_item.fee_choice`, ADR-0214 Task 6) trong bảng tham chiếu ngôn ngữ — chữ cho người đọc, không truy vấn.",
   },
   "scripts/audit-checks.mjs": {
     soCho: 5,
