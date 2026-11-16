@@ -13,6 +13,8 @@
 // TIN CHUYẾN (ADR-0052 D6): route van-chuyen gọi `ctx.baoThayDoiChuyen` sau lô thành công; gốc lắp ráp đọc hành động theo requestId (van-chuyen), phát Bảng tin
 // chuyến (nhóm `dieu-xe` + tài xế có dòng lái lúc sự kiện) và gõ cửa tin chuyến (`dayGoCua` với `{ chuyen }`); hộp thông báo đọc dữ kiện qua `ctx.chuyenChoTin`.
 
+import { soatTienHangNgay } from "./soat-tien-hang-ngay.ts";
+import { baoLoiDinhGio } from "./bao-loi-dinh-gio.ts";
 import { accountsModule } from "./modules/accounts";
 import { auditModule, auditStatement } from "./modules/audit";
 import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, currentStaff } from "./modules/auth";
@@ -410,10 +412,16 @@ export function taoAppChoKhungThu(ghiDe: Partial<AppOptions["injected"]>): Retur
 export default {
   fetch: app.fetch,
   // Cron Trigger (wrangler.jsonc "triggers.crons"): tự đồng bộ danh mục dịch vụ từ Google Sheet; dọn ảnh vé còn ở hàng chờ xoá (ADR-0156); nhắc hạn trả sau (ADR-0173 Đ3 mục 2); dọn phiếu đăng ký (ADR-0208 Đ8).
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(runScheduledSync(env));
-    ctx.waitUntil(donHangChoXoaVe(env));
-    ctx.waitUntil(nhacHanTraSauAnToan(env));
-    ctx.waitUntil(donPhieuDangKyDinhGio(env)); // ADR-0208 Đ8 (đợt 1 Task 9): tác nhân dọn phiếu đăng ký
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    // Đợt 2 sau kiểm toán: gom kết quả bốn việc — việc hỏng vẫn log; lượt 7 giờ sáng giờ VN gửi MỘT thư liệt kê việc đang hỏng (src/bao-loi-dinh-gio.ts).
+    const viec = {
+      "dong-bo-danh-muc": runScheduledSync(env),
+      "don-anh-ve": donHangChoXoaVe(env),
+      "nhac-han-tra-sau": nhacHanTraSauAnToan(env),
+      "don-phieu-dang-ky": donPhieuDangKyDinhGio(env), // ADR-0208 Đ8 (đợt 1 Task 9): tác nhân dọn phiếu đăng ký
+    } as const;
+    for (const p of Object.values(viec)) ctx.waitUntil(p.catch(() => undefined)); // lỗi được baoLoiDinhGio log; không để lời từ chối trôi
+    ctx.waitUntil(baoLoiDinhGio(env as unknown as Record<string, unknown>, event.scheduledTime, viec)); // hai địa chỉ thư là bí mật, không có trong kiểu Env (như mailConfig của feedback)
+    ctx.waitUntil(soatTienHangNgay(env, event.scheduledTime)); // Đợt 2 sau kiểm toán: chỉ lượt 7 giờ sáng giờ VN; chỉ đọc, thư khi lệch
   },
 } satisfies ExportedHandler<Env>;
