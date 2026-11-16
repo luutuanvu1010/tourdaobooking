@@ -42,6 +42,7 @@
  "src/dac-diem-khong-lo-ma.test.ts": 1.1,
  "src/dai-ngoai-mang-web.test.ts": 0.2,
  "src/dang-ky-route-dong.test.ts": 0.2,
+ "src/dang-ky-truong-khop-cot.test.ts": 1.5,
  "src/dang-nhap-tat-may-cu.test.ts": 4.6,
  "src/danh-muc-don-vi-web.test.ts": 0.2,
  "src/dat-coc-noi-goi.test.ts": 0.3,

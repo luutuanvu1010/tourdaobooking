@@ -6,6 +6,7 @@
 import type { PhieuDangKyDto } from "../src/shared/contracts";
 import { nhanLoaiTep } from "../src/shared/tep-dinh-kem";
 import { maBase64 } from "../src/shared/tep-hien-thi";
+import { dungThanGui, giaTriTruoc, goiYTruoc, oCuaKhu, type KhuO, type ODung } from "../src/shared/dang-ky-truong";
 import { CAU_DONG_DANG_KY, CHU_DANG_KY, NHAN_O_TEP } from "../src/shared/dang-ky-giao-dien";
 import { ApiError, api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
@@ -207,15 +208,17 @@ function veBieuMau(p: PhieuDangKyDto): void {
       try { await goiDk<PhieuDangKyDto>("/api/dang-ky/phieu", "PUT", { loai: chonVai.value }); } catch (e) { hienLoi(cauCua(e)); }
     })();
   });
-  const hoTen = oGo("dk-ho-ten", "text", { autocomplete: "name", value: bk?.hoTen ?? "" });
-  const ngaySinh = oGo("dk-ngay-sinh", "date", { value: bk?.ngaySinh ?? "" });
-  const diaChi = oGo("dk-dia-chi", "text", { autocomplete: "street-address", value: bk?.diaChi ?? "" });
-  const dienThoai = oGo("dk-dien-thoai", "tel", { autocomplete: "tel", inputmode: "tel" });
-  const soCc = oGo("dk-so-cccd", "text", { inputmode: "numeric", autocomplete: "off" });
-  const ngayCap = oGo("dk-ngay-cap", "date", { value: bk?.giayTo?.ngayCap ?? "" });
-  const noiCap = oGo("dk-noi-cap", "text");
-  const hetHan = oGo("dk-het-han", "date", { value: bk?.giayTo?.hetHan ?? "" });
-  const gioiThieu = oGo("dk-gioi-thieu", "text", { maxlength: 200 });
+  // Ô của biểu mẫu dựng từ tệp ánh xạ trường (ADR-0212 Đ9): không khai ô tay ở đây.
+  const oVao = new Map<string, HTMLInputElement | HTMLSelectElement>();
+  const dungO = (m: ODung): HTMLElement => {
+    const dau = giaTriTruoc(m.khoa, bk);
+    const el = m.kieu === "chon"
+      ? h("select", { id: m.id, class: "o" }, h("option", { value: "" }, "(để trống)"), ...(m.tuyChon ?? []).map((t) => h("option", { value: t.value, selected: t.value === dau }, t.label))) as HTMLSelectElement
+      : oGo(m.id, m.kieu, { ...m.thuocTinh, value: dau });
+    oVao.set(m.khoa, el);
+    return o(m.nhan, el, goiYTruoc(m.khoa, bk));
+  };
+  const khuO = (khu: KhuO): HTMLElement[] => oCuaKhu("CA_NHAN", khu).map(dungO);
   const dongY = h("input", { type: "checkbox", id: "dk-dong-y", class: "o-tick" }) as HTMLInputElement;
   const chinhSach = h("div", { class: "dk-chinh-sach", hidden: true, id: "dk-chinh-sach-than" });
   const xemChinhSach = nut(h("button", B("loi", { id: "dk-doc-chinh-sach" }), "Đọc chính sách riêng tư") as HTMLButtonElement, () => void (async () => {
@@ -233,11 +236,7 @@ function veBieuMau(p: PhieuDangKyDto): void {
     if (cauHinh.chinhSachRiengTu === null) { hienLoi("Chưa có chính sách riêng tư nên chưa gửi được thông tin. Hãy quay lại sau."); return; }
     if (!dongY.checked) { hienLoi("Bạn cần đọc và đồng ý chính sách riêng tư hiện hành trước khi gửi."); return; }
     if (p.phienBan === 0 && chonVai.value !== p.loai?.ma) await goiDk<PhieuDangKyDto>("/api/dang-ky/phieu", "PUT", { loai: chonVai.value });
-    const rong = (x: HTMLInputElement) => (x.value.trim() === "" ? undefined : x.value.trim());
-    const ketQua = await goiDk<PhieuDangKyDto>("/api/dang-ky/phieu/gui", "POST", {
-      chinhSachPhienBan: cauHinh.chinhSachRiengTu, hoTen: hoTen.value, ngaySinh: rong(ngaySinh), diaChi: rong(diaChi), dienThoai: rong(dienThoai), nguoiGioiThieu: rong(gioiThieu),
-      giayTo: rong(soCc) ? { typeCode: "CCCD", number: soCc.value.trim(), issuedDate: rong(ngayCap) ?? null, issuedPlace: rong(noiCap) ?? null, expiryDate: rong(hetHan) ?? null } : undefined,
-    });
+    const ketQua = await goiDk<PhieuDangKyDto>("/api/dang-ky/phieu/gui", "POST", dungThanGui(Object.fromEntries([...oVao].map(([k, el]) => [k, el.value])), cauHinh.chinhSachRiengTu));
     hienBao(CHU_DANG_KY.daGui);
     vePhieu(ketQua);
     window.scrollTo(0, 0);
@@ -248,13 +247,13 @@ function veBieuMau(p: PhieuDangKyDto): void {
       h("h2", null, CHU_DANG_KY.tieuDeThongTin),
       p.trangThai === "CAN_BO_SUNG" ? h("p", { class: "muted" }, CHU_DANG_KY.nhapLaiSo) : null,
       o("Vai người dùng xin đăng ký", chonVai, p.phienBan > 0 ? "Phiếu đã gửi một lần nên không đổi vai được." : undefined),
-      o("Họ tên", hoTen), o("Ngày sinh", ngaySinh), o("Số điện thoại", dienThoai, bk?.daKhaiDienThoai ? "Hãy nhập lại số điện thoại." : undefined), o("Địa chỉ", diaChi)),
+      ...khuO("thongTin")),
     h("section", { class: "the dk-buoc" },
       h("h2", null, "Căn cước công dân"),
-      o("Số căn cước", soCc, bk?.giayTo?.soChe ? `Số đã khai: ${bk.giayTo.soChe}. Hãy nhập lại đủ số.` : undefined), o("Ngày cấp", ngayCap), o("Nơi cấp", noiCap), o("Ngày hết hạn", hetHan),
+      ...khuO("canCuoc"),
       h("p", { class: "muted" }, CHU_DANG_KY.giaiThichAnh), tepKhoi),
     h("section", { class: "the dk-buoc" },
-      h("h2", null, "Người giới thiệu"), o("Người giới thiệu (không bắt buộc)", gioiThieu)),
+      h("h2", null, "Người giới thiệu"), ...khuO("gioiThieu")),
     h("section", { class: "the dk-buoc" },
       h("label", { class: "check" }, dongY, h("span", null, CHU_DANG_KY.dongY)), xemChinhSach, chinhSach,
       h("div", { class: "dk-hang-nut" }, gui)),

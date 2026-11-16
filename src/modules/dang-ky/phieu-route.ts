@@ -9,6 +9,7 @@ import type { PhieuDangKyDto } from "../../shared/contracts.ts";
 import { error, json, readJson } from "../../shared/http.ts";
 import { chanNguoiKhongTaiKhoan } from "../../shared/maintenance.ts";
 import type { Ctx } from "../../shared/router.ts";
+import { truongDung } from "../../shared/dang-ky-truong.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import { kiemGioiTinh } from "../../shared/xung-ho.ts";
 import { getMaintenanceState, maintenanceResponse } from "../maintenance";
@@ -131,11 +132,8 @@ export async function luuNhapPhieu(ctx: Ctx<"public">): Promise<Response> {
 }
 
 // ---- POST /api/dang-ky/phieu/gui ---- thân `{ chinhSachPhienBan, hoTen, ngaySinh?, diaChi?, dienThoai?, gioiTinh?, giayTo?, nguoiGioiThieu? }`
-const TRUONG_GUI = ["chinhSachPhienBan", "hoTen", "gioiTinh", "ngaySinh", "diaChi", "dienThoai", "giayTo", "nguoiGioiThieu"];
-const TRUONG_GIAY_TO = ["typeCode", "number", "classCode", "issuedDate", "issuedPlace", "expiryDate"];
+// Tập trường nhận và hàm kiểm dựng từ tệp ánh xạ (ADR-0212 Đ9), không khai tay.
 const laVat = (x: unknown): x is Record<string, unknown> => typeof x === "object" && x !== null && !Array.isArray(x);
-const truongDung = (body: Record<string, unknown>): boolean =>
-  Object.keys(body).every((k) => TRUONG_GUI.includes(k)) && (!laVat(body.giayTo) || Object.keys(body.giayTo).every((k) => TRUONG_GIAY_TO.includes(k)));
 const co = (x: unknown): boolean => x !== undefined && x !== null && !(typeof x === "string" && x.trim() === "");
 const loi = (message: string): { ok: false; message: string } => ({ ok: false, message });
 
