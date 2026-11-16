@@ -54,7 +54,7 @@ Lịch giữ 8 bản tuần gần nhất và 1 bản mỗi tháng trong 12 thán
 - **Mở tệp sao lưu trên máy khác (không có Keychain của chủ):** `node scripts/dien-tap-khoi-phuc.mjs "<tệp>" --khong-so-production` — công cụ hỏi mật khẩu, gõ mật khẩu trong phong bì.
 
 ## 6. Thư báo tự động của máy chủ
-Mỗi sáng 7 giờ máy chủ tự soát số liệu tiền và vé; có chỗ lệch thì gửi **một thư** tới địa chỉ đang nhận thư Góp ý / Báo lỗi, nêu mã luật và số chỗ lệch (không tên khách, không số tiền). Cùng lúc, việc tự động nào (đồng bộ Sheet, nhắc hạn trả sau, dọn ảnh vé, dọn phiếu đăng ký) đang lỗi thì có **một thư** liệt kê. Không có gì bất thường thì không có thư. Nhận thư: mở phiên làm việc với AI trong dự án, dán thư và nhờ tra.
+Mỗi sáng 7 giờ máy chủ tự soát số liệu tiền và vé; có chỗ lệch thì gửi **một thư** tới địa chỉ đang nhận thư Góp ý / Báo lỗi, nêu mã luật và số chỗ lệch (không tên khách, không số tiền). Cùng lúc, việc tự động nào (đồng bộ Sheet, nhắc hạn trả sau, dọn ảnh vé, dọn phiếu đăng ký) đang lỗi thì có **một thư** liệt kê. Không có gì bất thường thì không có thư. Nhận thư: dán nguyên thư cho AI trong dự án tourdao-sales và nhờ tra.
 
 ## Còn hở (dựa vào kỷ luật)
 Bản sao lưu nằm ở Google Drive của một tài khoản cá nhân; chưa có bản thứ hai ở nơi khác. Lỗi việc tự động chỉ báo khi còn hỏng lúc 7 giờ sáng. Bộ soát hằng ngày chỉ phủ nhóm luật tiền và vé.

@@ -55,7 +55,7 @@ export function soanThuSoat(lech: readonly LuatLech[], ngay: string): { subject:
       "",
       ...dong,
       "",
-      "Việc cần làm: mở phiên làm việc với AI trong dự án tourdao-sales, dán thư này và nhờ tra. Muốn tự xem lại, chạy ở thư mục dự án:",
+      "Việc cần làm: dán nguyên thư này cho AI trong dự án tourdao-sales và nhờ tra. Muốn tự xem lại, chạy ở thư mục dự án:",
       "node scripts/audit-invariants.mjs --db remote --strict",
       "",
       "Thư này không chứa tên khách hay số tiền. Không lệch thì không có thư.",

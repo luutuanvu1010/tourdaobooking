@@ -34,7 +34,7 @@ export function soanThuLoi(loi: readonly { viec: ViecDinhGio; ma: string }[], ng
       "",
       ...loi.map((l) => `- ${TEN_VIEC_DINH_GIO[l.viec]} — mã lỗi: ${l.ma}`),
       "",
-      "Việc cần làm: mở phiên làm việc với AI trong dự án tourdao-sales, dán thư này và nhờ tra log Cloudflare của Worker tourdao-sales.",
+      "Việc cần làm: dán nguyên thư này cho AI trong dự án tourdao-sales và nhờ tra log Cloudflare của Worker tourdao-sales.",
       "Mỗi sáng tối đa một thư; lỗi tự lành thì không có thư.",
     ].join("\n"),
   };
