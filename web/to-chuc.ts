@@ -47,7 +47,7 @@ function veThanhVien(t: Api.ToChucDto): void {
         nutChuyen.addEventListener("click", () => void (async () => {
           const dongY = await hoiXacNhan({
             tieuDe: "Chuyển quyền quản lý",
-            hauQua: `Tour Đảo sẽ xem yêu cầu và quyết định. Khi đã chuyển, ${tv.ten} làm người quản lý và bạn trở thành thành viên.`,
+            hauQua: `Tour Đảo sẽ xem yêu cầu và quyết định. Nếu được duyệt, ${tv.ten} làm người quản lý; văn phòng sẽ xem và quyết định bạn còn là thành viên hay không.`,
             nhanNguyHiem: "Chuyển quyền quản lý", nhanGiu: "Thôi", opener: nutChuyen,
           });
           if (!dongY) return;
