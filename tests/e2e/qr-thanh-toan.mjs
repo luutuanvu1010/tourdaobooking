@@ -130,7 +130,7 @@ console.log("✓ QR mặc định bằng còn lại, nội dung = mã đơn bỏ
 {
   const phi = await dungPhiDon(ADM, { nhan: "QR", muc: 50_000 });
   try {
-    const r = await call(A, "POST", "/api/orders", { ...orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: vnDate(10), legs: [luotDon(phi.ks.id)] })] }), handlerStaffId: fld.id });
+    const r = await call(A, "POST", "/api/orders", { ...orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: vnDate(10), legs: [luotDon(phi.ks.id, phi.phiDon)] })] }), handlerStaffId: fld.id });
     assert.equal(r.status, 201, JSON.stringify(r.body));
     const id = r.body.order.id;
     assert.equal((await call(A, "POST", `/api/orders/${id}/status`, { status: "confirmed" })).status, 200);

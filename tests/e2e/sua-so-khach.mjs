@@ -250,7 +250,7 @@ const tienDon = async (id) => (await call(ACC, "GET", `/api/orders/${id}/payment
 {
   const phi = await dungPhiDon(ADM, { nhan: "SSK", muc: 50_000 });
   try {
-    const r = await call(A, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: vnDate(7), legs: [luotDon(phi.ks.id)] })] }));
+    const r = await call(A, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: vnDate(7), legs: [luotDon(phi.ks.id, phi.phiDon)] })] }));
     assert.equal(r.status, 201, JSON.stringify(r.body));
     const id = r.body.order.id;
     assert.equal((await call(A, "POST", `/api/orders/${id}/status`, { status: "confirmed" })).status, 200);

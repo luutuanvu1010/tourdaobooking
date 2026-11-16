@@ -250,3 +250,12 @@ test("đơn ĐÃ XÁC NHẬN: sửa chuyến không đụng dòng phí đã ch�
   await ok(w.call("PUT", `/api/orders/${o.id}/trip`, { as: SALES, body: { expectedUpdatedAt: c.updatedAt, services: [{ id: c.services[0].id, departDate: D, pickupTime: "07:10", pickupPlace: "Nhà riêng Dò Tìm" }] } }), 200, "sửa chuyến sau xác nhận");
   assert.deepEqual(dongPhi(w, o.id), truoc);
 });
+
+test("[Điểm 2] xe riêng: lưu nháp KHÔNG gửi khoá exclusiveVehicle, phiDon ⇒ vẫn PER_TRIP × 1 = 500.000 (khoá vắng được giải TRƯỚC khi tính phí)", async () => {
+  const w = await setup();
+  const o = await lap(w, [svc({ adult: 4 }, [OUT({ exclusiveVehicle: true, phiDon: SK(500_000) })])]);
+  assert.deepEqual(dongPhi(w, o.id).map((d: any) => [d.fee_kind, d.quantity, d.line_total]), [["PER_TRIP", 1, 500_000]]);
+  await ok(luu(w, o, { adult: 4 }, [changGuiLai(o.services[0].legs[0])]), 200, "lưu vắng khoá");
+  assert.deepEqual(dongPhi(w, o.id).map((d: any) => [d.fee_kind, d.fee_choice, d.quantity, d.line_total]), [["PER_TRIP", "SO_KHAC", 1, 500_000]]);
+  assert.equal(subtotal(w, o.id), tongDichVu(w, o.id) + 500_000);
+});

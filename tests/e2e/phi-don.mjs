@@ -4,10 +4,10 @@
 //   (3) bảng phí: đầu vào sai 400; mức chung cho mọi khu vực đang bật; mức theo cấp; trùng cùng điều kiện cùng khoảng ngày 409;
 //       cảnh báo «cấp trả cao hơn mức không cấp» ra đúng số; Thử tra ra đúng số, dòng thắng, dòng thua; thiếu mức không bao giờ là 0 đồng;
 //   (4) đổi mức nguyên tử `thayCho` (đóng dòng cũ ngày liền trước, thêm dòng mới); mốc cũ → 409 `stale`;
-//   (5) đặt ngày bắt đầu áp: khu vực đang bật thiếu mức chung → 409 nêu TÊN khu vực; đủ mức thì 200; mốc đọc cũ → 409; khi đang áp không kết thúc được
-//       mức chung cuối của khu vực (409) nhưng ĐỔI mức chung bằng `thayCho` vẫn được;
+//   (5) đặt ngày bắt đầu áp: ĐỔI CÓ CHỦ ĐÍCH 16/11 (ADR-0214 thay ADR-0203 ĐB1 — bảng không còn dùng cho đơn): khu vực đang bật thiếu mức chung vẫn đặt được (200);
+//       mốc đọc cũ → 409; khi đang áp kết thúc được mức chung cuối của một khu vực (trước đây 409); ĐỔI mức chung bằng `thayCho` vẫn được;
 //   (6) nhật ký: có dòng theo từng lần ghi, không lộ số điện thoại;
-//   (7) từ Đợt C (Task 3, sửa có chủ đích tiêu chí cũ «chưa đơn nào bị đổi tiền»): với phí ĐANG ÁP, đơn có chặng đưa đón mang MỘT dòng phí (cộng vào tạm tính, không lẫn
+//   (7) từ Đợt C (Task 3, sửa có chủ đích tiêu chí cũ «chưa đơn nào bị đổi tiền»): với phí ĐANG ÁP, đơn có chặng đưa đón mang MỘT dòng phí theo mức VĂN PHÒNG CHỌN (ADR-0214, không theo bảng) (cộng vào tạm tính, không lẫn
 //       vào dòng dịch vụ); đơn không chặng không có phí; dòng dịch vụ của hai đơn như nhau.
 // Dữ liệu dùng một lần: khu vực đón và cấp đại lý mang hậu tố theo Date.now(); mọi ngày của bảng phí rơi vào QUÁ KHỨ xa (từ 2000, mỗi lần chạy sau lần trước ≥ 40 ngày) nên không đụng
 // ngày nào của đơn thật và mức của lần chạy trước không chồng ngày với lần này. Ở `finally`: ĐẶT LẠI ngày bắt đầu áp = tắt, kết thúc mọi mức đã thêm (bảng chỉ
@@ -184,29 +184,27 @@ try {
   const ap0 = (await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp;
   const vung2 = (await call(ADMIN, "POST", "/api/location-zones", { code: ZONE2, name: `Khu vực thiếu mức ${S}`, sortOrder: 6 })).body.zone;
   da.vungDaTao.push(ZONE2);
-  r = await call(ADMIN, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay: D, tuLucDaDoc: ap0.tuLuc });
-  assert.equal(r.status, 409, "khu vực đang bật thiếu mức chung");
-  assert.equal(r.body.error.code, "transfer_fee_general_required");
-  assert.match(r.body.error.message, new RegExp(`Khu vực thiếu mức ${S}`), "nêu TÊN khu vực thiếu");
-  assert.equal((await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp.ngay, ap0.ngay, "bị chặn thì không ghi gì");
   for (const sai of [{ ngay: "2000-02-31", tuLucDaDoc: ap0.tuLuc }, { ngay: 5, tuLucDaDoc: ap0.tuLuc }, { ngay: D }])
     assert.equal((await call(ADMIN, "POST", "/api/pricing/phi-don/bat-dau-ap", sai)).status, 400, JSON.stringify(sai));
-  r = await call(ADMIN, "PUT", `/api/location-zones/${ZONE2}`, { name: vung2.name, sortOrder: 6, active: false, expectedUpdatedAt: vung2.updatedAt });
-  assert.equal(r.status, 200, JSON.stringify(r.body)); // ngưng khu vực không có địa điểm
   assert.equal((await call(ADMIN, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay: D, tuLucDaDoc: "mốc-sai" })).status, 409, "mốc đọc sai");
+  // ADR-0214: khu vực ZONE2 đang bật, chưa có mức chung — vẫn đặt được ngày bắt đầu áp
   r = await call(ADMIN, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay: D, tuLucDaDoc: ap0.tuLuc });
-  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.status, 200, `khu vực thiếu mức chung vẫn đặt được (ADR-0214): ${JSON.stringify(r.body)}`);
   const ap1 = r.body.batDauAp;
   assert.equal(ap1.ngay, D);
   assert.equal((await call(ADMIN, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay: D, tuLucDaDoc: ap0.tuLuc })).status, 409, "đọc cũ, người khác đã đặt");
   assert.equal((await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp.ngay, D);
-  console.log("✓ (5a) đặt ngày bắt đầu áp: thiếu mức chung 409 nêu tên khu vực, đủ thì 200, mốc cũ 409");
+  // ADR-0214: đang áp, kết thúc mức chung CUỐI của ZONE2 (một dòng duy nhất) ⇒ 200 (trước đây 409 transfer_fee_general_required)
+  const chungZ2Cuoi = (await them(ADMIN, muc(dk(["ZONE", ZONE2]), 15_000, D))).muc;
+  da.mucDaThem.push(chungZ2Cuoi.id);
+  r = await call(ADMIN, "POST", `/api/pricing/phi-don/${chungZ2Cuoi.id}/ket-thuc`, { validTo: cong(D, 5), expectedUpdatedAt: chungZ2Cuoi.updatedAt });
+  assert.equal(r.status, 200, `kết thúc mức chung cuối khi đang áp (ADR-0214): ${JSON.stringify(r.body)}`);
+  r = await call(ADMIN, "PUT", `/api/location-zones/${ZONE2}`, { name: vung2.name, sortOrder: 6, active: false, expectedUpdatedAt: vung2.updatedAt });
+  assert.equal(r.status, 200, JSON.stringify(r.body)); // ngưng khu vực không có địa điểm
+  console.log("✓ (5a) đặt ngày bắt đầu áp: khu vực thiếu mức chung vẫn đặt được (ADR-0214), mốc cũ 409; kết thúc được mức chung cuối khi đang áp");
 
-  // khi ĐANG ÁP: không kết thúc mức chung cuối; đổi mức chung bằng thayCho vẫn được
+  // khi ĐANG ÁP: đổi mức chung bằng thayCho vẫn được
   const ctZ = await mucTheoId(chungZ.id);
-  r = await call(ADMIN, "POST", `/api/pricing/phi-don/${chungZ.id}/ket-thuc`, { validTo: cong(D, 5), expectedUpdatedAt: ctZ.updatedAt });
-  assert.equal(r.status, 409, "khu vực hết mức chung ⇒ chặn");
-  assert.equal(r.body.error.code, "transfer_fee_general_required");
   assert.equal((await call(ADMIN, "POST", `/api/pricing/phi-don/${KHONG_ID}/ket-thuc`, { validTo: D, expectedUpdatedAt: ctZ.updatedAt })).status, 404);
   assert.equal((await call(ADMIN, "POST", `/api/pricing/phi-don/${chungZ.id}/ket-thuc`, { validTo: cong(D, 5) })).status, 400, "thiếu mốc cập nhật");
   assert.equal((await call(ADMIN, "POST", `/api/pricing/phi-don/${chungZ.id}/ket-thuc`, { validTo: cong(D, -1), expectedUpdatedAt: ctZ.updatedAt })).status, 400, "ngày kết thúc trước ngày bắt đầu");
@@ -227,7 +225,7 @@ try {
   assert.equal(r.body.muc.denNgay, cong(D10, 2));
   assert.equal((await call(ADMIN, "POST", `/api/pricing/phi-don/${moiCap.id}/ket-thuc`, { validTo: cong(D10, 1), expectedUpdatedAt: mcMoi.updatedAt })).status, 409, "mốc cũ sau khi đã kết thúc");
   assert.equal((await call(ADMIN, "POST", `/api/pricing/phi-don/${moiCap.id}/ket-thuc`, { validTo: cong(D10, 5), expectedUpdatedAt: (await mucTheoId(moiCap.id)).updatedAt })).status, 400, "chỉ được rút ngắn");
-  console.log("✓ (5b) đang áp: không kết thúc mức chung cuối (409), đổi mức chung bằng thayCho vẫn được, mức cấp kết thúc được");
+  console.log("✓ (5b) đang áp: đổi mức chung bằng thayCho vẫn được, mức cấp kết thúc được");
 
   // mức nhiều điều kiện (khu vực + cấp + chiều + dịch vụ), chỉ một ngày: thắng mọi dòng ít điều kiện hơn; cũng là dữ liệu cho kiểm «chữ ký điều kiện» của audit-invariants (R-PRC-PD-1)
   const D30 = cong(D, 30);
@@ -246,7 +244,8 @@ try {
   assert.deepEqual([r.body.ketQua.trangThai, r.body.ketQua.mucId, r.body.ketQua.donGia], ["CO_MUC", chungZ2.id, 35_000], "hôm nay khu vực thử có mức 35.000");
   const DON = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: diem.id, pickupPlace: "", dropoffLocationId: LOC, dropoffPlace: "" };
   const dichVuDon = (extra = {}) => catalogService({ pax: { adult: 2 }, departDate: vnDate(7), ...extra });
-  r = await call(SALES, "POST", "/api/orders", orderInput({ services: [dichVuDon({ legs: [DON] })] }));
+  // ĐỔI CÓ CHỦ ĐÍCH 16/11 (ADR-0214): phí trên đơn do văn phòng CHỌN (30.000 trong danh sách), KHÔNG theo bảng khu vực (35.000) — bảng không còn dùng cho đơn.
+  r = await call(SALES, "POST", "/api/orders", orderInput({ services: [dichVuDon({ legs: [{ ...DON, phiDon: { loai: "DANH_SACH", soTien: 30_000 } }] })] }));
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const coChang = r.body.order;
   r = await call(SALES, "POST", "/api/orders", orderInput({ services: [dichVuDon({ legs: [] })] }));
@@ -258,9 +257,9 @@ try {
   const [a, b] = [await lay(coChang.id), await lay(khongChang.id)];
   assert.equal(a.status, "confirmed");
   assert.equal(b.total, 200_000, "2 người lớn × 100.000₫");
-  assert.equal(a.total, b.total + 70_000, "đơn có chặng = dịch vụ + phí đưa đón 2 × 35.000₫");
-  assert.equal(a.subtotal, b.subtotal + 70_000);
-  assert.deepEqual(a.phiDuaDon?.dong.map((d) => [d.zoneCode, d.direction, d.quantity, d.unitPrice, d.lineTotal]), [[ZONE, "OUT", 2, 35_000, 70_000]], "một dòng phí của chặng chiều đi");
+  assert.equal(a.total, b.total + 60_000, "đơn có chặng = dịch vụ + phí đưa đón văn phòng chọn 2 × 30.000₫ (không theo bảng 35.000₫)");
+  assert.equal(a.subtotal, b.subtotal + 60_000);
+  assert.deepEqual(a.phiDuaDon?.dong.map((d) => [d.zoneCode, d.loaiChon, d.direction, d.quantity, d.unitPrice, d.lineTotal]), [[null, "DANH_SACH", "OUT", 2, 30_000, 60_000]], "một dòng phí của chặng chiều đi");
   assert.equal(a.phiDuaDon.duKien, false, "đơn đã xác nhận: phí không còn «dự kiến»");
   assert.equal(b.phiDuaDon, null, "đơn không chặng: không phí");
   assert.equal(a.services[0].items.length, b.services[0].items.length, "dòng phí không lẫn vào dòng dịch vụ");
