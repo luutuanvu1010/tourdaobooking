@@ -1,4 +1,4 @@
-// Khai kiểu cho scripts/audit-checks.mjs — để máy chủ (src/soat-tien-hang-ngay.ts, Đợt 2 sau kiểm toán) dùng CHÍNH danh sách kiểm của script soát (một nguồn,
+// Khai kiểu cho scripts/audit-checks.mjs — để gốc lắp ráp src/index.ts tiêm vào soát tiền hằng ngày (src/modules/audit/soat-tien-hang-ngay.ts, Đợt 2 sau kiểm toán) — dùng CHÍNH danh sách kiểm của script soát (một nguồn,
 // không chép câu SQL sang src/). Chỉ khai phần máy chủ đọc.
 export interface KiemBatBien {
   readonly code: string;

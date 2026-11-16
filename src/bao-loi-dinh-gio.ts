@@ -4,13 +4,14 @@
 // Đổi lại: lỗi thoáng qua (hỏng một lượt rồi tự lành trước 7 giờ sáng hôm sau) không có thư; lỗi kéo dài thì sáng hôm sau có thư. Thư chỉ có tên việc và tên lỗi
 // (mã ngắn, vd `sheet_unreachable`, `TypeError`) — không dữ liệu khách, không địa chỉ, không câu lỗi thô của nhà cung cấp.
 import { cauHinhThu, guiThu } from "./shared/gui-thu.ts";
-import { laLuotBayGioSang } from "./soat-tien-hang-ngay.ts";
+import { laLuotBayGioSang } from "./shared/luot-bay-gio-sang.ts";
 
 export const TEN_VIEC_DINH_GIO = {
   "dong-bo-danh-muc": "Đồng bộ danh mục dịch vụ từ Google Sheet",
   "don-anh-ve": "Xoá ảnh vé hết hạn lưu",
   "nhac-han-tra-sau": "Nhắc hạn trả sau",
   "don-phieu-dang-ky": "Dọn phiếu đăng ký",
+  "soat-tien": "Soát tiền và vé hằng ngày",
 } as const;
 export type ViecDinhGio = keyof typeof TEN_VIEC_DINH_GIO;
 

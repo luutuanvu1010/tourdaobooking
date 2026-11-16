@@ -8,7 +8,7 @@
 | Sao lưu: xuất D1 + R2, mã hoá AES-256 (Keychain), thử mở lại, giữ 8 tuần + 12 tháng, chạy bù | `scripts/sao-luu.mjs`, `scripts/sao-luu-lib.mjs` | `src/sao-luu.test.ts`; chạy thật `--thu-local` trên D1 thử 16/11: XONG, xoá đúng ba bản tháng 9 dư, không đụng tệp lạ, `--neu-cu-hon` bỏ qua đúng |
 | Diễn tập: giải mã → D1 tạm → soát `--strict` → năm con số | `scripts/dien-tap-khoi-phuc.mjs` | chạy thật trên bản thử 16/11: **ĐẠT** (sau khi gieo một Quản trị thử; trước đó R-N1-5 đỏ ở CẢ bản gốc thử — đúng); sai mật khẩu ⇒ thoát 1 |
 | Sửa bộ tách bản xuất | `scripts/tach-ban-xuat-d1.mjs` | xem Ruling R1; bài `src/sao-luu.test.ts` (schema đầy đủ từ mọi migration) — bỏ đếm CASE ⇒ đỏ 2 bài, hoàn nguyên ⇒ xanh |
-| Soát tiền hằng ngày, tác nhân `SOAT_TIEN_HANG_NGAY`, ô `audit.money.daily` | `src/soat-tien-hang-ngay.ts`, `scripts/audit-checks.d.mts`, `src/shared/permissions.ts`, `src/shared/tro-ly-cau-truc-ten.ts` | `src/soat-tien-hang-ngay.test.ts` (6 bài); tháo dây ở `scheduled` ⇒ bài 4 đỏ; đổi bộ lọc nhóm ⇒ bài 1, 4 đỏ |
+| Soát tiền hằng ngày, tác nhân `SOAT_TIEN_HANG_NGAY`, ô `audit.money.daily` | `src/modules/audit/soat-tien-hang-ngay.ts`, `scripts/audit-checks.d.mts`, `src/shared/permissions.ts`, `src/shared/tro-ly-cau-truc-ten.ts` | `src/modules/audit/soat-tien-hang-ngay.test.ts` (6 bài); tháo dây ở `scheduled` ⇒ bài 4 đỏ; đổi bộ lọc nhóm ⇒ bài 1, 4 đỏ |
 | Thư báo việc tự động lỗi | `src/bao-loi-dinh-gio.ts`, bốn hàm Cron trả mã lỗi | `src/bao-loi-dinh-gio.test.ts` (4 bài); tháo dây ⇒ bài 2 đỏ |
 | Lịch chạy Mac | `scripts/cai-lich-sao-luu.mjs` | chỉ `node --check`; **chưa cài thử** (cài là đổi máy của chủ) |
 
@@ -24,3 +24,13 @@
 - Thư soát / thư lỗi trên production: chưa kiểm (cần triển khai; Email Service đã có).
 - `HC-5.19` chỉ đóng sau khi chủ dán khối diễn tập ĐẠT từ bản xuất production.
 - Người giữ phong bì: chủ chưa ghi vai (hướng dẫn mục 5 ghi «còn thiếu»).
+
+## Kiểm độc lập (16/11, người kiểm chỉ đọc) và vòng sửa 1
+Kết luận người kiểm: **ĐẠT**, không Critical/High; 141/141 bài, typecheck 0 lỗi; đo lại trần gói Đơn hàng đúng +88 byte; thử 18 ca bộ tách. Đã sửa:
+- I-1 `--thu-local` thiếu thư mục rơi về `--remote` ⇒ nay báo HỎNG và dừng (đã chạy thử hai cách gõ thiếu).
+- I-2 diễn tập `--khong-so-production` ra ĐẠT cả khi dữ liệu rỗng ⇒ nay đòi có tài khoản và hồ sơ, in «ĐẠT (không so production)».
+- I-3 lượt soát tự hỏng chỉ nằm trong log ⇒ `soatTienHangNgay` trả mã lỗi, vào thư báo việc tự động lỗi (việc thứ năm «Soát tiền và vé hằng ngày»); bài mới, quan sát đỏ khi cho trả `null`.
+- M-4 bản chưa mã hoá ở lại khi bị tắt ngang ⇒ bắt SIGINT/SIGTERM/SIGHUP; lượt sau dọn thư mục tạm và tệp `.dang-chep` cũ hơn 6 giờ.
+- Nhỏ: chú thích `/* */` cuối tệp ở bộ tách; chú thích lỗi thời (bộ tách, «ba việc» ở permissions.ts); hướng dẫn: đường dẫn đầy đủ thay `~`, ghi đánh đổi `-T /usr/bin/security`, thông báo lúc Drive chưa mở.
+- Bộ kiểm toàn phần lần 1 đỏ 4 bài canh cũ chưa biết phần mới: thêm dòng `audit.money.daily` vào dòng ghim của Đối tác; `scripts/sao-luu-lib.mjs` vào DA_RA (chỉ đếm `order_item`); bài nối Cron của dọn ảnh vé theo cách gom mới; **chuyển soát tiền vào module `audit`** (bài «mọi ô được máy chủ hỏi» chỉ quét module) — module không nhập `scripts/` nên gốc lắp ráp tiêm `CHECKS`/`demViPham`; hàm giờ 7 giờ sáng ra `src/shared/luot-bay-gio-sang.ts`.
+- Chưa sửa, ghi nợ: M-5 production có luật `warn-unless-strict` lệch kinh niên thì ngày nào cũng có thư — `npm run trien-khai` đã chạy `audit-invariants --db remote --strict` sau mỗi lần triển khai (3.8: ĐẠT), nên kỳ vọng không có; M-6 giới hạn câu D1 mỗi lần gọi Worker cho lô 51 câu — chưa kiểm gói Cloudflare (gói trả phí: 1000 câu).

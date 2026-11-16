@@ -278,7 +278,7 @@ export const MATRIX = {
   // cho người. Toàn quyền có ô chỉ vì ADR-0014 điều 2; Trợ lý không kể ô này là việc người làm được.
   "ve.kho.purge": chiToanQuyen(),
   // Đợt 2 sau kiểm toán (đặc tả 2026-11-16 «lấy lại được dữ liệu», chủ duyệt 16/11): soát số liệu tiền và vé mỗi sáng — chỉ tác nhân SOAT_TIEN_HANG_NGAY dùng
-  // (Cron, src/soat-tien-hang-ngay.ts). CHỈ ĐỌC + gửi một thư tên luật và số vi phạm; không ghi gì. Toàn quyền có ô chỉ vì ADR-0014 điều 2; không route cho người.
+  // (Cron, src/modules/audit/soat-tien-hang-ngay.ts). CHỈ ĐỌC + gửi một thư tên luật và số vi phạm; không ghi gì. Toàn quyền có ô chỉ vì ADR-0014 điều 2; không route cho người.
   "audit.money.daily": chiToanQuyen(),
   "settings.ops": chiToanQuyen(), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
   // hàng chờ nhận — PHẦN HẸP của đơn chưa có người phụ trách (ADR-0030 S23-1, S23-2; route GET /api/orders/pool, module orders, còn chặn tài khoản có quyền
@@ -431,7 +431,7 @@ export interface OperationContext {
 }
 
 /**
- * ADR-0186 Đ1 (đóng HC-5.11): TÁC NHÂN TỰ ĐỘNG — mỗi việc định giờ một mã; không phải tài khoản đăng nhập (không số điện thoại, PIN, phiên). Chỉ ba việc
+ * ADR-0186 Đ1 (đóng HC-5.11): TÁC NHÂN TỰ ĐỘNG — mỗi việc định giờ một mã; không phải tài khoản đăng nhập (không số điện thoại, PIN, phiên). Chỉ năm việc
  * định giờ (và đồng bộ lần đầu) dựng tác nhân — bài src/tac-nhan-tu-dong.test.ts canh chỗ gọi hàm dựng. Dòng nhật ký của tác nhân mang `audit_log.agent_code`.
  */
 export const MA_TAC_NHAN = ["DONG_BO_DANH_MUC", "NHAC_HAN_TRA_SAU", "DON_ANH_VE", "DON_PHIEU_DANG_KY", "SOAT_TIEN_HANG_NGAY"] as const;

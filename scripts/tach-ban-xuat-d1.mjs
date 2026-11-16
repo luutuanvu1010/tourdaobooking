@@ -59,11 +59,11 @@ export function tachCau(sql) {
     }
     i++;
   }
-  if (sql.slice(start).replace(/--[^\n]*/g, "").trim()) throw new Error(`câu cuối chưa kết thúc: ${sql.slice(start, start + 200)}`);
+  if (sql.slice(start).replace(/--[^\n]*/g, "").replace(/\/\*[\s\S]*?\*\//g, "").trim()) throw new Error(`câu cuối chưa kết thúc: ${sql.slice(start, start + 200)}`);
   return out;
 }
 
-/** Chia thành { cauTruc, trigger } (chuỗi). Kiểm chéo: số câu trigger = số chữ CREATE TRIGGER đứng đầu câu; không câu cấu trúc nào bắt đầu bằng END. */
+/** Chia thành { cauTruc, trigger } (chuỗi). Chặn: câu cấu trúc nào bắt đầu bằng END (dấu hiệu trigger bị cắt đôi) ⇒ ném. Số trigger do bài src/sao-luu.test.ts canh trên schema đầy đủ. */
 export function tachBanXuat(sql) {
   const cau = tachCau(sql);
   const trig = cau.filter((c) => c.trigger), struct = cau.filter((c) => !c.trigger);

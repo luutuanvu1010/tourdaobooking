@@ -44,8 +44,11 @@ function baoHong(e) {
 
 function main() {
   if (!dich) hong("thiếu --dich <thư mục đích>");
+  // Người kiểm độc lập 16/11: `--thu-local` thiếu thư mục từng rơi về `--remote` (đọc production trong khi người gõ tưởng chạy thử) — chặn.
+  if (args.includes("--thu-local") && (!thuLocal || thuLocal.startsWith("--") || !existsSync(thuLocal))) hong("--thu-local cần đường dẫn tới một thư mục D1 local có thật");
   if (neuCuHon !== undefined && !(neuCuHon >= 0)) hong("--neu-cu-hon phải là số ngày ≥ 0");
   if (!existsSync(dich)) hong(`không thấy thư mục đích ${dich} (Google Drive chưa mở?)`);
+  donThuMucTamCu();
 
   if (neuCuHon !== undefined) {
     const tuoi = soNgayTuBanMoiNhat(readdirSync(dich), new Date());
@@ -55,7 +58,25 @@ function main() {
     }
   }
 
-  function matKhau() {
+  /** Dọn bản chưa mã hoá do một lượt trước bị tắt ngang để lại (finally không chạy khi bị giết/mất điện), và tệp `.dang-chep` dở ở thư mục đích. Chỉ thư mục/tệp cũ hơn 6 giờ. */
+function donThuMucTamCu() {
+  const cu = Date.now() - 6 * 3_600_000;
+  for (const d of readdirSync(tmpdir())) {
+    if (!d.startsWith("tourdao-sao-luu-")) continue;
+    const p = join(tmpdir(), d);
+    try {
+      if (statSync(p).mtimeMs < cu) rmSync(p, { recursive: true, force: true });
+    } catch {}
+  }
+  for (const t of readdirSync(dich)) {
+    if (!t.endsWith(".tar.gz.enc.dang-chep")) continue;
+    try {
+      if (statSync(join(dich, t)).mtimeMs < cu) rmSync(join(dich, t));
+    } catch {}
+  }
+}
+
+function matKhau() {
   if (process.env[BIEN_MAT_KHAU] && thuLocal) return process.env[BIEN_MAT_KHAU]; // chạy thử: mật khẩu thử qua biến môi trường
     const r = spawnSync("security", ["find-generic-password", "-s", KEYCHAIN.dichVu, "-a", KEYCHAIN.taiKhoan, "-w"], { encoding: "utf8" });
     const mk = (r.stdout ?? "").replace(/\n$/, "");
@@ -76,6 +97,8 @@ function main() {
   const mk = matKhau();
   const ten = tenBan(new Date());
   const tam = mkdtempSync(join(tmpdir(), "tourdao-sao-luu-"));
+  // Bị dừng bằng Ctrl-C / launchd tắt: xoá bản chưa mã hoá rồi thoát (finally không chạy khi tiến trình bị tín hiệu giết). Mất điện thì lượt sau dọn.
+  for (const tin of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(tin, () => { rmSync(tam, { recursive: true, force: true }); process.exit(130); });
   const noiDung = join(tam, ten);
   try {
     mkdirSync(join(noiDung, "d1"), { recursive: true });
@@ -129,7 +152,7 @@ function main() {
       log(`xoá bản cũ ${cu}`);
     }
   } finally {
-    rmSync(tam, { recursive: true, force: true }); // bản chưa mã hoá không bao giờ ở lại trên đĩa
+    rmSync(tam, { recursive: true, force: true }); // bản chưa mã hoá không ở lại sau lượt chạy (bị tắt ngang: tín hiệu ở trên, hoặc lượt sau dọn)
   }
   log("XONG");
 }

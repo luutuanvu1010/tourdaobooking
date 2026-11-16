@@ -68,7 +68,13 @@ try {
   };
   ketQua.banNap = dem(["--local", "--persist-to", db]);
   ketQua.dungLai = `${Math.round((Date.now() - batDau) / 60000)} phút`;
-  if (!khongSo) {
+  if (khongSo) {
+    // Người kiểm độc lập 16/11: không so production thì ít nhất bản nạp phải CÓ dữ liệu (tệp dữ liệu rỗng mà nạp «được» không được ra ĐẠT).
+    if (!(Number(ketQua.banNap.tai_khoan) > 0 && Number(ketQua.banNap.ho_so) > 0)) {
+      dat = false;
+      ketQua.khop = "bản nạp không có tài khoản hoặc hồ sơ nào — tệp dữ liệu rỗng?";
+    } else ketQua.khop = "không so production (--khong-so-production)";
+  } else {
     ketQua.production = dem(["--remote"]);
     const khop = JSON.stringify(ketQua.banNap) === JSON.stringify(ketQua.production);
     ketQua.khop = khop ? "khớp" : "LỆCH (có người vừa ghi trong lúc diễn tập? so lại, hoặc xuất bản mới rồi chạy lại)";
@@ -87,6 +93,6 @@ console.log("\n===== DÁN CHO AI (không có dữ liệu khách) =====");
 console.log(`Ngày: ${new Date().toISOString()}`);
 for (const [k, v] of Object.entries(ketQua)) console.log(`${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`);
 console.log(`Thời gian dựng lại: ${Math.round((Date.now() - batDau) / 60000)} phút (tính cả giải mã, nạp, soát, đếm)`);
-console.log(`KẾT LUẬN: ${dat ? "ĐẠT" : "CHƯA ĐẠT"}`);
+console.log(`KẾT LUẬN: ${dat ? (khongSo ? "ĐẠT (không so production)" : "ĐẠT") : "CHƯA ĐẠT"}`);
 console.log("================================================");
 process.exit(dat ? 0 : 1);

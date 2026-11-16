@@ -12,8 +12,8 @@ Mất cả tài khoản Cloudflare thì mất tối đa **1 tuần** dữ liệu
    ```bash
    security add-generic-password -s tourdao-sao-luu -a tourdao -T /usr/bin/security -w
    ```
-   Chép mật khẩu này vào trình quản lý mật khẩu của bạn **và** vào phong bì niêm phong (mục 5). **Mất mật khẩu = mọi bản sao lưu thành vô dụng.**
-2. **Chọn thư mục cất**: tạo một thư mục riêng trong Google Drive trên máy, ví dụ `~/Library/CloudStorage/GoogleDrive-<tài khoản>/My Drive/TourDao-SaoLuu`. Không chia sẻ thư mục này cho ai.
+   Chép mật khẩu này vào trình quản lý mật khẩu của bạn **và** vào phong bì niêm phong (mục 5). **Mất mật khẩu = mọi bản sao lưu thành vô dụng.** Đánh đổi đã chọn: phần `-T /usr/bin/security` cho lịch chạy nền đọc mật khẩu mà không hỏi, nên chương trình nào chạy dưới tài khoản máy của bạn cũng đọc được nó — giữ máy có mật khẩu đăng nhập.
+2. **Chọn thư mục cất**: tạo một thư mục riêng trong Google Drive trên máy, ví dụ `/Users/tuanbao/Library/CloudStorage/GoogleDrive-<tài khoản>/My Drive/TourDao-SaoLuu`. Trong các lệnh dưới, gõ **đường dẫn đầy đủ** như vậy (trong ngoặc kép, dấu `~` không được hiểu). Không chia sẻ thư mục này cho ai.
 3. **Khoá chỉ-đọc cho kho tệp R2** (để sao lưu cả ảnh giấy tờ, vé, biên lai): Cloudflare → R2 → *Manage R2 API Tokens* → *Create API token* → quyền **Object Read only**, chỉ áp cho 5 kho `tourdao-sales-*` → lưu lại *Access Key ID*, *Secret Access Key* và địa chỉ *S3 endpoint* (`https://<mã tài khoản>.r2.cloudflarestorage.com`). Rồi chạy, dán đúng giá trị khi được hỏi (vùng gõ `auto`):
    ```bash
    aws configure --profile tourdao-r2
@@ -41,7 +41,7 @@ Sau khi diễn tập đạt, cài lịch chạy (máy tự sao lưu mỗi tuần
 ```bash
 node scripts/cai-lich-sao-luu.mjs --dich "<thư mục cất>"
 ```
-Lịch giữ 8 bản tuần gần nhất và 1 bản mỗi tháng trong 12 tháng; tệp khác trong thư mục không bị đụng. Lỗi thì góc màn hình hiện thông báo «Tour Đảo: sao lưu HỎNG»; nhật ký ở `~/Library/Logs/tourdao-sao-luu.log`. Lần đầu chạy nền, macOS có thể hỏi cho phép đọc Keychain (bấm *Luôn cho phép*) và cho phép ghi vào Google Drive. Gỡ lịch: `node scripts/cai-lich-sao-luu.mjs --go`.
+Lịch giữ 8 bản tuần gần nhất và 1 bản mỗi tháng trong 12 tháng; tệp khác trong thư mục không bị đụng. Lỗi thì góc màn hình hiện thông báo «Tour Đảo: sao lưu HỎNG»; nhật ký ở `~/Library/Logs/tourdao-sao-luu.log`. Lúc vừa đăng nhập máy mà Google Drive chưa mở xong thì có thể hiện một thông báo «không thấy thư mục đích» — lần chạy 10:00 sẽ làm lại. Bản chưa mã hoá chỉ nằm tạm trong máy lúc đang chạy; bị tắt ngang thì lượt sau tự dọn. Lần đầu chạy nền, macOS có thể hỏi cho phép đọc Keychain (bấm *Luôn cho phép*) và cho phép ghi vào Google Drive. Gỡ lịch: `node scripts/cai-lich-sao-luu.mjs --go`.
 
 ## 4. Khi có sự cố thật
 - **Dữ liệu vừa hỏng, còn trong thời hạn Time Travel** (xem thời hạn ở khối diễn tập): làm theo phần «Hoàn tác» của `docs/HANDOFF-N1.md` (lùi cơ sở dữ liệu về một điểm, lùi Worker cùng lúc). Chủ quyết, chủ chạy.

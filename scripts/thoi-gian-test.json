@@ -967,6 +967,6 @@
  "src/xoa-khong-so-thoi-han.test.ts": 0.3,
  "src/xoa-mot-lenh-co-ten.test.ts": 0.5,
  "src/sao-luu.test.ts": 1.5,
- "src/soat-tien-hang-ngay.test.ts": 4,
+ "src/modules/audit/soat-tien-hang-ngay.test.ts": 4,
  "src/bao-loi-dinh-gio.test.ts": 3
 }

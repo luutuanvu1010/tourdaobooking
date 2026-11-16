@@ -4,10 +4,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { app, world, seedStaff } from "../tests/audit/harness.mjs";
-import { CHECKS } from "../scripts/audit-checks.mjs";
-import { KIEM_TIEN_VE, laLuotBayGioSang, soatTienVe, soatTienHangNgay } from "./soat-tien-hang-ngay.ts";
-import { tacNhan } from "./shared/permissions.ts";
+import { app, world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { CHECKS, demViPham } from "../../../scripts/audit-checks.mjs";
+import { locKiemTienVe, laLuotBayGioSang, soatTienVe, soatTienHangNgay } from "./soat-tien-hang-ngay.ts";
+import { baoLoiDinhGio } from "../../bao-loi-dinh-gio.ts";
+
+const NGUON = { kiem: CHECKS, demViPham };
+const KIEM_TIEN_VE = locKiemTienVe(CHECKS);
+import { tacNhan } from "../../shared/permissions.ts";
 
 const BAY_GIO_SANG = Date.parse("2026-11-16T00:05:00Z"); // 07:05 giờ VN
 const TAM_GIO_SANG = Date.parse("2026-11-16T01:05:00Z"); // 08:05 giờ VN
@@ -51,7 +55,7 @@ test("chỉ lượt 00:00–00:14 UTC (7 giờ sáng giờ VN) là lượt soát
 
 test("dữ liệu sạch: Cron 7 giờ chạy đủ nhóm kiểm trên SQLite thật, không gửi thư", async () => {
   const { env, thu } = moiTruong();
-  const lech = await soatTienVe(env.DB, tacNhan("SOAT_TIEN_HANG_NGAY"));
+  const lech = await soatTienVe(env.DB, tacNhan("SOAT_TIEN_HANG_NGAY"), NGUON);
   assert.deepEqual(lech, [], "cơ sở dữ liệu mới không lệch luật nào — mọi câu SQL chạy được");
   await chayCron(env, BAY_GIO_SANG);
   assert.equal(thu.length, 0);
@@ -80,9 +84,9 @@ test("bên không giữ ô audit.money.daily (tác nhân khác, người có quy
   for (const ben of [tacNhan("DON_ANH_VE"), { id: "s-an", permissions: ["SALES", "ACCOUNTING", "ADMIN"] as const }]) {
     let goi = 0;
     const db = { ...env.DB, batch: async () => (goi++, []), prepare: () => (goi++, {}) } as unknown as D1Database;
-    assert.equal(await soatTienVe(db, ben as any), null);
+    assert.equal(await soatTienVe(db, ben as any, NGUON), null);
     assert.equal(goi, 0);
-    await soatTienHangNgay({ ...env }, BAY_GIO_SANG, ben as any);
+    await soatTienHangNgay({ ...env }, BAY_GIO_SANG, NGUON, ben as any);
   }
   assert.equal(thu.length, 0);
 });
@@ -90,7 +94,19 @@ test("bên không giữ ô audit.money.daily (tác nhân khác, người có quy
 test("thiếu người nhận hoặc bộ gửi ném ⇒ không ném ra Cron (việc định giờ khác vẫn chạy)", async () => {
   const { w, env } = moiTruong();
   lamLechMotDong(w);
-  await soatTienHangNgay({ ...env, FEEDBACK_NOTIFY_EMAIL: "" }, BAY_GIO_SANG);
-  await soatTienHangNgay({ ...env, EMAIL: { send: async () => { throw new Error("hỏng"); } } }, BAY_GIO_SANG);
-  await soatTienHangNgay({ ...env, DB: { batch: async () => { throw new Error("D1 hỏng"); }, prepare: () => ({}) } as unknown as D1Database }, BAY_GIO_SANG);
+  await soatTienHangNgay({ ...env, FEEDBACK_NOTIFY_EMAIL: "" }, BAY_GIO_SANG, NGUON);
+  await soatTienHangNgay({ ...env, EMAIL: { send: async () => { throw new Error("hỏng"); } } }, BAY_GIO_SANG, NGUON);
+  await soatTienHangNgay({ ...env, DB: { batch: async () => { throw new Error("D1 hỏng"); }, prepare: () => ({}) } as unknown as D1Database }, BAY_GIO_SANG, NGUON);
+});
+
+test("lượt soát tự hỏng (lô đọc ném, nguồn kiểm rỗng) ⇒ trả mã lỗi và vào thư báo việc tự động lỗi — không mất lượt soát âm thầm (người kiểm độc lập 16/11)", async () => {
+  const { env } = moiTruong();
+  const hong = { ...env, DB: { batch: async () => { throw new TypeError("D1 hỏng"); }, prepare: () => ({}) } as unknown as D1Database };
+  assert.equal(await soatTienHangNgay(hong, BAY_GIO_SANG, NGUON), "TypeError");
+  assert.equal(await soatTienHangNgay(env, BAY_GIO_SANG, { kiem: [], demViPham }), "Error");
+  assert.equal(await soatTienHangNgay(hong, TAM_GIO_SANG, NGUON), null, "không phải lượt 7 giờ thì không chạy");
+  const thuLoi: { subject: string; text?: string }[] = [];
+  await baoLoiDinhGio({ EMAIL: { send: async (m: (typeof thuLoi)[number]) => void thuLoi.push(m) }, FEEDBACK_MAIL_FROM: "a@b.test", FEEDBACK_NOTIFY_EMAIL: "c@d.test" }, BAY_GIO_SANG, { "soat-tien": soatTienHangNgay(hong, BAY_GIO_SANG, NGUON) });
+  assert.equal(thuLoi.length, 1);
+  assert.match(thuLoi[0]!.text ?? "", /Soát tiền và vé hằng ngày — mã lỗi: TypeError/);
 });

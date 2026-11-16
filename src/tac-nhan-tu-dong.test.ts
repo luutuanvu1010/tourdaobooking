@@ -65,7 +65,7 @@ function walk(dir: string): string[] {
   }
   return out;
 }
-const CHO_DUNG_TAC_NHAN = ["src/modules/billing/tra-sau-nhac.ts", "src/modules/catalog/index.ts", "src/modules/dang-ky/index.ts", "src/modules/ve-dien-tu/index.ts", "src/shared/permissions.ts", "src/soat-tien-hang-ngay.ts"];
+const CHO_DUNG_TAC_NHAN = ["src/modules/audit/soat-tien-hang-ngay.ts", "src/modules/billing/tra-sau-nhac.ts", "src/modules/catalog/index.ts", "src/modules/dang-ky/index.ts", "src/modules/ve-dien-tu/index.ts", "src/shared/permissions.ts"];
 
 test("N7: chỉ năm việc định giờ dựng tác nhân — không route, không trang giao diện nào dựng được", () => {
   const co = [...walk(join(ROOT, "src")), ...walk(join(ROOT, "web"))]
