@@ -1,6 +1,6 @@
 # ADR-0216 — Xoá ảnh bằng chứng khỏi toàn bộ lịch sử kho (một lần, chủ tự chạy)
 
-- **Trạng thái:** **đề xuất** 2026-11-16. Chủ dự án, nguyên văn: «đồng ý bỏ ảnh, vì giữ lại không có tác dụng gì sau khi việc đã hoàn thành, áp dụng không chỉ ở Local mà còn cả trên Github, nếu luật không phù hợp thì phải sửa luật». Chưa có lời duyệt văn bản này.
+- **Trạng thái:** **accepted** 2026-11-16 (chủ dự án: «Duyệt ADR-0216»). Trước đó, nguyên văn: «đồng ý bỏ ảnh, vì giữ lại không có tác dụng gì sau khi việc đã hoàn thành, áp dụng không chỉ ở Local mà còn cả trên Github, nếu luật không phù hợp thì phải sửa luật». Cách chạy từng lệnh: `docs/superpowers/plans/2026-11-16-adr-0216-cach-chay.md`.
 - **Loại:** việc lớn (triển khai, luật git). **Cửa:** **một chiều** — viết lại lịch sử đổi mã mọi lần lưu cũ; bản sao lưu ở bước 1 là đường lùi duy nhất.
 - **Số quyết định:** 1. Không chạm quyền hay dữ liệu nghiệp vụ.
 - **Quan hệ:** làm SAU ADR-0215 Đ3 (ảnh đã ra khỏi bản hiện tại). Là **ngoại lệ một lần, có ghi** của `CLAUDE.md` §8 «Không `--force`»: luật đó cấm AI; ở đây **chủ tự gõ** trong Terminal, AI chỉ soạn lệnh và kiểm trước/sau. Không nới luật chung, không tắt hook.
