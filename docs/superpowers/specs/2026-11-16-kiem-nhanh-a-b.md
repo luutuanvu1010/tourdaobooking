@@ -12,7 +12,7 @@ Chủ phải ngồi chờ 9 phút mỗi lần `npm run day-len`, trả lời câ
 ## 2. Xong khi
 **A — lượt kiểm:**
 - Một lần lưu bình thường: lượt kiểm trên GitHub xong trong **≤ 6 phút** (mục tiêu, đo ba lượt liên tiếp; vượt thì in cảnh báo, không chặn — như ADR-0179 Đ2.5).
-- Bước tải mã mỗi máy **≤ 10 giây** (mục tiêu, chưa thử): ảnh `.png`/`.jpg` của `docs/evidence/` không được tải. Cơ chế: tải mờ (`filter: blob:none` của `actions/checkout`, chỉ tải nội dung tệp được ghi ra) **cộng** tải thưa kiểu mẫu loại theo đuôi (`sparse-checkout-cone-mode: false`). Chỉ tải thưa thôi thì không đủ: thử ở máy, bản sao vẫn kéo về 674 MB. Các tệp khác trong `docs/evidence/` (kịch bản Chrome `.mjs`, `.sql`, báo cáo) vẫn tải, vì có hai bài kiểm đọc chúng (`d1-thamdo.test.ts`, `migrations-ho-so-cong-ty-chu.test.ts`); không bài nào đọc ảnh.
+- Bước tải mã mỗi máy **≤ 10 giây** (mục tiêu, chưa thử): sau ADR-0215 Đ3 bản hiện tại không còn ảnh, và lượt kiểm chỉ tải đúng một lần lưu (độ sâu 1), nên không cần cấu hình tải gì thêm. Các tệp khác trong `docs/evidence/` (kịch bản Chrome `.mjs`, `.sql`, báo cáo) vẫn ở đó, vì có hai bài kiểm đọc chúng (`d1-thamdo.test.ts`, `migrations-ho-so-cong-ty-chu.test.ts`); không bài nào đọc ảnh.
 - Số tệp kiểm, số bài, số kịch bản e2e **bằng đúng** lượt trước; máy gom vẫn đỏ nếu thiếu hay trùng (ADR-0179 Đ1.3 giữ nguyên; việc «thiếu/trùng» lệnh `ma-tran` đang làm chuyển hẳn sang máy gom).
 - Không còn việc «Chia phần» riêng; vẫn ≤ 20 việc chạy cùng lúc. Sửa theo hai bài đang khoá cấu trúc cũ: `src/release-lib.test.ts` (khoá `needs: [chia, rieng, test, e2e]`) và `src/kiem-phan.test.ts` (lệnh `ma-tran`).
 

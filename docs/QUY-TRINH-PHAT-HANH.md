@@ -11,7 +11,7 @@
 | 2 | AI | Thêm mục nhật ký (số mới, ví dụ 1.5), kiểm, báo **tên nhánh** | — |
 | 3 | Bạn | Đọc lướt mấy dòng nhật ký, đồng ý hoặc bảo sửa | Trong Claude |
 | 4 | Bạn | `cd …tourdao-sales` → `git checkout main` → `git pull --ff-only` | Ứng dụng **Terminal** |
-| 5 | Bạn | `npm run day-len -- <tên-nhánh>` → chờ GitHub kiểm (~6 phút) → gõ `c` | Terminal |
+| 5 | Bạn | `npm run day-len -- <tên-nhánh>` → trả lời các câu trong phút đầu → gõ `c` (tự đẩy khi kiểm xanh, rời máy được) | Terminal |
 | 6 | Bạn | `npm run trien-khai` → trả lời các câu hỏi | Terminal |
 | 7 | Bạn | Báo AI: **"Đã chạy xong"** | Trong Claude |
 | 8 | AI | Kiểm production, ghi trạng thái, báo tên nhánh ghi chép | — |
@@ -74,17 +74,24 @@ npm run day-len -- <tên-nhánh>
 ```
 Thay `<tên-nhánh>` bằng tên AI báo ở bước 2. Nếu nhánh chính đã có sẵn mọi thứ, gõ `npm run day-len` (không kèm tên nhánh).
 
-**Lệnh tự làm theo thứ tự, và dừng ngay khi có gì sai:**
+**Lệnh hỏi hết trong khoảng phút đầu, rồi tự làm tiếp (ADR-0215). Nó dừng ngay khi có gì sai:**
 1. Kiểm bạn đang ở Terminal thật, đang ở nhánh `main`, không còn thay đổi chưa lưu.
 2. Kiểm GitHub không có thứ gì mới hơn máy bạn. Nếu có, lệnh dừng và bảo bạn chạy `git pull --ff-only`.
 3. Gộp nhánh vào `main` trên máy bạn. Chỉ gộp khi nối thẳng được; không bao giờ trộn hay ghi đè.
-4. **Đẩy đúng bản vừa gộp lên một nhánh phụ trên GitHub** tên `cho-kiem/<mã bản>`. Đây là **lần đẩy phụ**: nhánh chính trên GitHub chưa đổi, nhưng nhánh phụ này công khai như mọi nhánh khác của kho.
-5. **Chờ GitHub kiểm đủ bộ** (toàn bộ bài kiểm và kiểm thử đầu-cuối, chia nhiều máy chạy cùng lúc, khoảng 6 phút). Lệnh in tiến độ, ví dụ "đang kiểm: 7/13 phần xong".
-6. Nếu kiểm **đỏ**, lệnh nêu tên bài đỏ và hỏi: chạy lại phần đỏ (`r`, nên chọn trước, vì kiểm thử đầu-cuối từng đỏ giả rồi chạy lại xanh), dừng (`d`), hay cho qua (`q`). Cho qua thì phải **gõ lý do**, ví dụ "giá Sheet thật vừa đổi". Lý do được ghi lại và in ra lúc phát hành.
-7. Nếu lần này **đổi cách kiểm** (sửa tệp điều khiển việc kiểm, hoặc số bài kiểm ít đi, hoặc số bài bị bỏ qua nhiều lên), lệnh in danh sách và đòi bạn **gõ lý do**, dù kiểm vẫn xanh. Lần đầu dùng cách mới cũng hỏi câu này, vì chưa có lần kiểm cũ để so.
-8. Nếu lần này **sửa luật dành cho AI** (các tệp `CLAUDE.md`, thư mục `.claude/`, `playbook/`, `docs/adr/`), lệnh in khối **«TỆP LUẬT ĐÃ ĐỔI»** liệt kê từng tệp, kèm lệnh xem đủ khác biệt, và đòi bạn **gõ lý do**. Câu này tách riêng với câu ở bước 7: lần nào đổi cả hai thì bạn gõ hai lý do. Lý do được ghi vào bản ghi kết luận và in lại lúc phát hành. Không đổi tệp luật thì lệnh không hỏi gì thêm. Nhờ khối này, mọi lần AI sửa luật đều hiện ở một chỗ trước khi vào bản chính.
-9. In danh sách những gì sắp đẩy. Nếu có **thay đổi dữ liệu mới (migration)** thì in cảnh báo.
-10. Hỏi **"Đẩy lên GitHub? (c/k)"**. Gõ `c` để đẩy nhánh chính. Lệnh ghi một bản ghi kết luận trên máy bạn (trong thư mục ẩn `.git`), bước 6 sẽ đọc lại bản ghi này.
+4. Nếu lần này **đổi cách kiểm** (sửa tệp điều khiển việc kiểm), lệnh in danh sách và đòi bạn **gõ lý do**.
+5. Nếu lần này **sửa luật dành cho AI** (các tệp `CLAUDE.md`, thư mục `.claude/`, `playbook/`, `docs/adr/`), lệnh in khối **«TỆP LUẬT ĐÃ ĐỔI»** liệt kê từng tệp, kèm lệnh xem đủ khác biệt, và đòi bạn **gõ lý do**. Câu này tách riêng với câu ở bước 4: lần nào đổi cả hai thì bạn gõ hai lý do. Không đổi tệp luật thì lệnh không hỏi câu này.
+6. In danh sách những gì sắp đẩy. Nếu có **thay đổi dữ liệu mới (migration)** thì in cảnh báo.
+7. Hỏi **một câu ba lựa chọn** (chỉ nhận chữ thường):
+   - `c`: **kiểm xanh thì tự đẩy**. Lệnh in «Bạn có thể rời máy», giữ máy không ngủ, và báo bằng thông báo trên máy khi xong. **Để nguyên cửa sổ Terminal mở**; đóng cửa sổ là dừng, nhánh chính trên GitHub không đổi.
+   - `x`: **ngồi chờ**, xem kết quả rồi mới quyết (đúng cách cũ: đỏ thì hỏi `r`/`d`/`q`, cuối cùng hỏi "Đẩy lên GitHub? (c/k)").
+   - `k` (hay bất cứ chữ nào khác): dừng, không đẩy gì lên GitHub.
+8. **Đẩy đúng bản vừa gộp lên một nhánh phụ trên GitHub** tên `cho-kiem/<mã bản>`. Đây là **lần đẩy phụ**: nhánh chính trên GitHub chưa đổi, nhưng nhánh phụ này công khai như mọi nhánh khác của kho.
+9. **Chờ GitHub kiểm đủ bộ** (toàn bộ bài kiểm và kiểm thử đầu-cuối, chia nhiều máy chạy cùng lúc). Lệnh in tiến độ, ví dụ "đang kiểm: 7/13 phần xong".
+10. Nếu kiểm **đỏ**:
+    - đã chọn `c`: lệnh **tự chạy lại phần đỏ đúng một lần** (kiểm thử đầu-cuối từng đỏ giả rồi chạy lại xanh). Vẫn đỏ thì **dừng, không đẩy**, báo bằng thông báo và in tên bài đỏ. Lệnh **không bao giờ tự cho qua**.
+    - đã chọn `x`: lệnh nêu tên bài đỏ và hỏi chạy lại (`r`), dừng (`d`), hay cho qua (`q`). Cho qua thì phải **gõ lý do**, ví dụ "giá Sheet thật vừa đổi".
+11. So số bài với lần kiểm của nhánh chính trên GitHub. Nếu **số bài kiểm ít đi, số bài bị bỏ qua nhiều lên, không đọc được số liệu, hay chưa có lần kiểm cũ để so**: đã chọn `c` thì **dừng, không đẩy**, báo bằng thông báo; bạn chạy lại lệnh, chọn `x` rồi gõ lý do. Lượt kiểm nhận được **cũ hơn 24 giờ** cũng vậy.
+12. Ghi một bản ghi kết luận trên máy bạn (trong thư mục ẩn `.git`), bước 6 sẽ đọc lại bản ghi này, rồi đẩy nhánh chính. Đã chọn `c` thì có thông báo «ĐÃ đẩy lên bản chính».
 
 Lệnh **không còn chạy kiểm ở máy bạn** nữa: kiểm chạy một lần trên GitHub, kết quả nằm trên GitHub nên không ai trên máy (kể cả AI) làm giả được.
 

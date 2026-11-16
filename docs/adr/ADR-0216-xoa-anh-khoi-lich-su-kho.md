@@ -12,9 +12,9 @@ Sau ADR-0215 Đ3, bản hiện tại hết ảnh, nhưng lịch sử vẫn giữ
 Một lần, vào lúc không phiên nào đang làm, theo thứ tự:
 1. **Sao lưu nguyên kho** (bản gương, có mọi nhánh) ra ổ ngoài; kiểm mở được.
 2. Gộp hoặc bỏ mọi nhánh và bản làm việc đang mở (hiện ~20, 7 bản còn phần sửa chưa lưu) — việc nào bỏ thì chủ quyết từng việc.
-3. Trên một bản sao mới: xoá mọi `docs/evidence/**/*.png` và `*.jpg` khỏi toàn bộ lịch sử bằng `git filter-repo` (chủ cài: `brew install git-filter-repo`).
-4. Chủ đẩy cưỡng bức `main` lên GitHub, xoá các nhánh cũ trên GitHub (kể cả 86 nhánh `cho-kiem/*`, vì chúng còn giữ lịch sử cũ).
-5. Gửi yêu cầu tới bộ phận hỗ trợ GitHub dọn bản lưu tạm của các lần lưu cũ (GitHub có thể vẫn trả về theo mã cũ cho tới khi họ dọn).
+3. Trên một bản sao mới: xoá mọi `docs/evidence/**/*.png` và `*.jpg` khỏi toàn bộ lịch sử bằng `git filter-repo` (chủ cài: `brew install git-filter-repo`). Công cụ này tự gỡ địa chỉ GitHub (`origin`) khỏi bản sao: gắn lại trước bước 4.
+4. Chủ đẩy cưỡng bức `main` lên GitHub, xoá các nhánh cũ trên GitHub (kể cả 86 nhánh `cho-kiem/*`, vì chúng còn giữ lịch sử cũ). Gõ trong ứng dụng Terminal, không dùng `!` trong phiên AI.
+5. Gửi yêu cầu tới bộ phận hỗ trợ GitHub dọn các lần lưu cũ, **kể cả 19 yêu cầu gộp (PR số 1–19)**: GitHub giữ riêng một bản lịch sử cho mỗi PR (`refs/pull/N/head`) mà chủ kho không xoá hay đẩy đè được, nên ảnh vẫn lấy được qua PR cho tới khi GitHub dọn. Nếu GitHub không dọn, cách duy nhất để sạch hẳn là tạo kho mới và bỏ kho cũ (quyết định khác).
 6. Trên máy: lấy lại kho từ GitHub, dựng lại bản làm việc; chạy một lượt `day-len` mới để có bản ghi kết luận kiểm theo mã mới trước lần `trien-khai` kế.
 
 ## Hệ quả
@@ -22,6 +22,7 @@ Một lần, vào lúc không phiên nào đang làm, theo thứ tự:
 - **Mất / rủi ro:**
   - Mã mọi lần lưu cũ đổi: tài liệu, nhật ký, sổ trạng thái triển khai ghi mã cũ sẽ trỏ vào mã không còn (hồ sơ có ngày, không sửa lại).
   - Bản ghi kết luận kiểm theo mã cũ mất hiệu lực (bước 6 xử lý).
+  - 19 PR trên GitHub vẫn giữ lịch sử cũ có ảnh cho tới khi bộ phận hỗ trợ GitHub dọn (bước 5); không chắc họ nhận dọn.
   - Ai đã tải kho về trước đó vẫn giữ ảnh của họ — không thu hồi được. Nếu lý do là ảnh lộ thông tin thật thì phải coi như đã lộ.
   - Làm sai thứ tự (chưa gộp nhánh) là mất việc đang dở; vì thế bước 1–2 là điều kiện bắt buộc.
 - **Không làm:** đổi kho sang riêng tư (quyết định khác, có chi phí lượt kiểm — xem ADR-0179 «Hệ quả»).

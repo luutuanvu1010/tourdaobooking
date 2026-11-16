@@ -1,6 +1,6 @@
 # ADR-0215 — `day-len` hỏi hết trong phút đầu rồi tự chờ kiểm; lượt kiểm gọn hơn; ảnh bằng chứng ra khỏi kho
 
-- **Trạng thái:** **đề xuất** 2026-11-16. Chủ dự án chọn hướng trong phiên, nguyên văn: «ok làm A và B, soạn đề xuất đi». Chưa có lời duyệt văn bản này; nhập vào bản chính KHÔNG phải là duyệt.
+- **Trạng thái:** **accepted** 2026-11-16 — chủ dự án duyệt trong phiên, nguyên văn: «Duyệt ADR-0215 và hoàn tất nhiệm vụ của phiên». Trước đó chọn hướng: «ok làm A và B, soạn đề xuất đi».
 - **Loại:** việc lớn (luật phát hành, triển khai, tệp luật `.github/workflows/`). **Cửa:** hai chiều — quay lại = trả `day-len` và tệp quy trình về bản trước (còn trong lịch sử git); không đụng dữ liệu production.
 - **Số quyết định trong lượt duyệt:** 3 (Đ1–Đ3). Không chạm quyền hay dữ liệu nghiệp vụ, nên không cần trang ghép (`CLAUDE.md` §9).
 - **Xây trên lỗi an toàn chưa sửa:** không.
