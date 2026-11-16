@@ -33,13 +33,16 @@
       "Edit(CLAUDE.md)",
       "Edit(src/CLAUDE.md)",
       "Edit(web/CLAUDE.md)",
-      "Edit(.claude/**)",
-      "Edit(playbook/**)",
-      "Edit(src/shared/bang-tham-chieu*.ts)",
-      "Edit(scripts/bang-tham-chieu-lib.mjs)",
-      "Edit(scripts/quet-nut-lib.mjs)",
-      "Edit(src/bang-tham-chieu.test.ts)",
-      "Edit(.github/workflows/**)"
+      "Edit(**/.claude/settings*.json)",
+      "Edit(**/.claude/hooks/**)",
+      "Edit(**/.claude/agents/**)",
+      "Edit(**/.claude/skills/**)",
+      "Edit(**/playbook/**)",
+      "Edit(**/src/shared/bang-tham-chieu*.ts)",
+      "Edit(**/scripts/bang-tham-chieu-lib.mjs)",
+      "Edit(**/scripts/quet-nut-lib.mjs)",
+      "Edit(**/src/bang-tham-chieu.test.ts)",
+      "Edit(**/.github/workflows/**)"
     ]
   },
   "hooks": {
