@@ -39,3 +39,7 @@ Người ngoài đăng ký làm đối tác hôm nay chỉ chọn được bốn
 2. «Tài khoản tổ chức chỉ để gắn đơn, công nợ, cấp đại lý. Tài khoản cá nhân liên kết với tài khoản tổ chức để đảm nhận vai quản lý (cao nhất, duyệt đơn, thêm/gỡ/chuyển quyền quản trị tài khoản tổ chức...). Tóm lại, hệ thống biết được cá nhân thao tác với tư cách cá nhân hay tư cách tổ chức.»
 3. «Quản lý bán hàng, Quản trị và Toàn quyền đổi được người quản lý của tổ chức, và họ [người quản lý] cũng có thể tự mời người khác làm quản lý (tìm số điện thoại, nếu có thì gửi lời mời, nếu chưa có thì mời tạo tài khoản).»
 Hệ quả: một tổ chức có thể có nhiều người quản lý; có lời mời theo số điện thoại. Chữ «duyệt đơn» của người quản lý chưa rõ phạm vi (tổ chức có thành viên không phải quản lý hay không) — ADR phải nêu thành một câu để chủ chốt.
+
+## 8. Chủ đính chính 16/11/2026 (thay dòng «Hệ quả» ở mục 7)
+«Mỗi tổ chức chỉ 01 người quản lý cao nhất, những người còn lại là thành viên thôi.»
+Hệ quả: tổ chức có đúng MỘT người quản lý và nhiều thành viên; «chuyển quyền quản lý» là đổi người quản lý duy nhất đó; lời mời theo số điện thoại là mời làm thành viên. Phạm vi việc của thành viên (lập đơn, người quản lý «duyệt đơn») vẫn là câu ADR phải nêu để chủ chốt.
