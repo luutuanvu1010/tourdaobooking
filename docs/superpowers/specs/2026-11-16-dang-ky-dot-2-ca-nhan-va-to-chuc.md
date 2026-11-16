@@ -43,3 +43,8 @@ Hệ quả: một tổ chức có thể có nhiều người quản lý; có l�
 ## 8. Chủ đính chính 16/11/2026 (thay dòng «Hệ quả» ở mục 7)
 «Mỗi tổ chức chỉ 01 người quản lý cao nhất, những người còn lại là thành viên thôi.»
 Hệ quả: tổ chức có đúng MỘT người quản lý và nhiều thành viên; «chuyển quyền quản lý» là đổi người quản lý duy nhất đó; lời mời theo số điện thoại là mời làm thành viên. Phạm vi việc của thành viên (lập đơn, người quản lý «duyệt đơn») vẫn là câu ADR phải nêu để chủ chốt.
+
+## 9. Chủ trả lời ba câu của ADR-0212/0213 (16/11/2026, nguyên văn)
+1. «Thành viên được soạn đơn hoặc soạn và gửi quản lý tổ chức xác nhận (thiết lập trong bảng điều khiển của chính Người quản lý đó và của Super Admin).» ⇒ công tắc theo từng tổ chức, người quản lý và Toàn quyền đặt; người quản lý xác nhận đơn của thành viên. Chủ biết đây là nới luật «nháp chỉ người tạo xem» (ADR-0135) cho đơn thành viên của tổ chức — ADR-0213 phải ghi rõ phần sửa.
+2. «Có chứ, loại đối tác luôn chỉ tham chiếu từ 1 nguồn trong cơ sở dữ liệu và nó không được lệch.» ⇒ mở cả loại do Kế toán thêm; một nguồn duy nhất, có bài canh lệch.
+3. «Một cá nhân có thể tạo đơn với tư cách cá nhân hoặc tổ chức, tùy họ chọn vai nào. Ví dụ: Anh Nam là lễ tân khách sạn Sunrise Nha Trang… vừa có thể tạo đơn với vai trò Lễ tân, nhưng cũng có thể tạo đơn với vai trò Khách sạn Sunrise (là đối tác cấp 2 của Tour Đảo Booking).»
