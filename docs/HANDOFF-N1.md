@@ -414,6 +414,32 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
 
+## ĐANG CHỜ NHẬP: Đăng ký đợt 2 — mốc B1 (ADR-0212 Đ2, Đ4, Đ6; ADR-0213: người quản lý tổ chức, tư cách khi lập đơn, Công ty lữ hành); migration `0175_dang_ky_quan_ly_to_chuc`; mục nhật ký 3.14 (số tạm) — RUNBOOK
+
+Ghi 17/11/2026, nhánh `claude/account-signup-approval-flow-ee612c`. Chưa làm bước nào trên production. **Lần này CẦN triển khai và CÓ MỘT migration** `0175_dang_ky_quan_ly_to_chuc`, áp SAU `0174` của mốc A (mốc A phải lên trước hoặc cùng một lần; kiểm lại số lớn nhất ở `main` khi nhập).
+- **Bước A.0:** mục 3.14 (ngày 2026-11-17) ở `src/shared/changelog.ts`, lời thường: ô «Tư cách» khi lập đơn, màn «Tổ chức của tôi», người quản lý và thư báo người quản lý cũ, văn phòng giao / chuyển quyền quản lý, Công ty lữ hành và phiếu chỉ tổ chức. 3.14 là số tạm (mốc A đang mang 3.13; đặt lại nếu `main` đã có số khác).
+- **Migration `0175`** thêm dòng danh mục (hai loại liên kết «Người quản lý của», «Thành viên của»), cột (`pty_party_relationship.replaced_by_id`, `notice_state`; `audit_log.acting_party_id`; `orders.acting_party_id`, `acting_link_kind`), bảng yêu cầu chuyển quyền, chỉ mục, view và trigger; **tạo lại (DROP + CREATE) trigger** `lc1c_stf_permission_partner_needs_role` và `orders_delivered_lock`. Không sửa dòng dữ liệu cũ nào; đơn nháp cũ có tư cách rỗng và chạy như hôm nay.
+- **Điều kiện trước cho chủ (lời thường):**
+  1. **Soát các tài khoản công ty lữ hành đang có** trước khi bật gì: máy KHÔNG tự chuyển ai thành người quản lý; chủ xem từng tổ chức đang dùng nền tảng rồi nhờ văn phòng giao người quản lý ở hồ sơ tổ chức.
+  2. Sau triển khai, tổ chức chưa có người quản lý thì chưa ai lập đơn thay mặt được; không ảnh hưởng đơn đang có.
+  3. Người quản lý chỉ xem và gửi đơn của tổ chức; sửa, huỷ, gửi vé đơn người khác đã gửi vẫn là việc của người lập.
+  4. Phần tổ chức của phiếu vẫn chỉ mở khi chính sách riêng tư có ô «Thu thông tin tổ chức» (điều kiện mốc A không đổi).
+- **Ghi lại lúc triển khai** (người phát hành): Worker Version ID bản đang chạy TRƯỚC lần này `<ghi từ wrangler deployments list>`, và điểm khôi phục Time Travel `<ghi trước khi áp migration>`.
+- **Hoàn tác (thứ tự bắt buộc)** — lý do: mã cũ chạy được trên CSDL đã thêm cột / bảng; mã mới KHÔNG chạy đúng trên CSDL cũ, nên lùi mã trước, khôi phục dữ liệu sau; bảo trì giữ hai khoảng trống đó không ai ghi.
+  1. Bật chế độ bảo trì (trang Tôi › Chế độ bảo trì).
+  2. Lùi mã (đứng ở thư mục dự án; kiểm cú pháp bằng `npx wrangler rollback --help`):
+     ```
+     CI=1 npx wrangler rollback <mã phiên bản trước>
+     ```
+  3. Khôi phục D1 về điểm đã ghi trước khi áp `0175`:
+     ```
+     CI=1 npx wrangler d1 time-travel restore tourdao-sales-db --bookmark=<điểm khôi phục>
+     ```
+  4. Công tắc bảo trì nằm trong D1 nên bước 3 có thể đưa nó về trạng thái cũ: bật lại nếu cần, rồi `node scripts/audit-invariants.mjs --db remote` (phải thoát 0).
+  5. Tắt chế độ bảo trì.
+  Liên kết quản lý, yêu cầu chuyển quyền, đơn có tư cách sinh sau điểm khôi phục mất cùng nhau. Lùi NGƯỢC thứ tự (B2 → B1 → A), mỗi lần đúng cặp phiên bản / điểm khôi phục của mốc đó. Bước này **chưa từng diễn tập** (HC-5.19).
+- **Kiểm đã có (17/11):** xem `.superpowers/sdd/2026-11-16-dang-ky-dot-2-ke-hoach/task-18B1-report.md`; người kiểm độc lập toàn mốc do điều phối chạy riêng.
+
 ## ĐANG CHỜ NHẬP: Đăng ký đợt 2 — mốc A (ADR-0212: vai đăng ký là dữ liệu, phiếu có phần tổ chức); migration `0174_dang_ky_to_chuc`; mục nhật ký 3.13 (số tạm) — RUNBOOK
 
 Ghi 16/11/2026, nhánh `claude/account-signup-approval-flow-ee612c`. Chưa làm bước nào trên production. **Lần này CẦN triển khai và CÓ MỘT migration** `0174_dang_ky_to_chuc` (số 0173 đã thuộc nhánh khác; kiểm lại số `main` lớn nhất khi nhập). Nếu đợt 1 (`0170`–`0172`, mục 3.11 ở khối ngay dưới) chưa lên thì hai khối đi CHUNG một lần triển khai; mục nhật ký đợt 1 đang mang số 3.11 trong khi production đã ở 3.12, nên bước A.0 phải đặt lại số cho cả hai mục theo `node scripts/kiem-phien-ban.mjs` lúc nhập.

@@ -17,6 +17,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đăng ký đối tác đợt 2, mốc B1 (ADR-0212 Đ2, Đ4, Đ6; ADR-0213 Đ1–Đ9 phần người quản lý; migration 0175; nhánh claude/account-signup-approval-flow-ee612c):
+    // đứng sau mốc A (3.13, migration 0174). SỐ TẠM 3.14: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.14",
+    date: "2026-11-17",
+    items: [
+      { kind: "moi", text: "Khi lập đơn, người quản lý của một tổ chức có ô «Tư cách»: lập cho chính mình hoặc thay mặt tổ chức. Đơn ghi tư cách lúc lập, không đổi về sau." },
+      { kind: "moi", text: "Có màn «Tổ chức của tôi» cho người quản lý: xem tổ chức và đơn của tổ chức, gỡ thành viên, rời tổ chức hoặc xin chuyển quyền quản lý." },
+      { kind: "moi", text: "Mỗi tổ chức có đúng một người quản lý. Khi giao cho người mới, người quản lý cũ nhận thư báo; thư chưa đi được thì văn phòng bấm gửi lại." },
+      { kind: "moi", text: "Văn phòng giao, chuyển, gỡ người quản lý hoặc thành viên ngay trên hồ sơ tổ chức, và xử lý các yêu cầu chuyển quyền từ người quản lý." },
+      { kind: "moi", text: "Có loại đối tác «Công ty lữ hành» và phiếu đăng ký «chỉ tổ chức»: được duyệt thì người đăng ký làm người quản lý, không có hồ sơ cá nhân riêng." },
+      { kind: "doi", text: "Người quản lý thấy đơn của tổ chức (kể cả tiền, lịch sử) và gửi được đơn lên Tour Đảo; sửa, huỷ, gửi vé đơn người khác vẫn do người lập làm." },
+    ],
+  },
+  {
     // Đăng ký đối tác đợt 2, mốc A (ADR-0212; migration 0174; nhánh claude/account-signup-approval-flow-ee612c): production đã ở 3.12 (kiểm 16/11),
     // mục 3.11 bên dưới là đợt 1 chưa lên. SỐ TẠM 3.13: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     // Phần tổ chức của phiếu ẨN cho tới khi chủ đăng chính sách riêng tư có ô «Thu thông tin tổ chức» (văn bản: PHAN-THEM-TO-CHUC.md, cần luật sư).
