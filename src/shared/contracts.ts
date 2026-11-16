@@ -3525,8 +3525,20 @@ export interface ConDuocDungTraSauResponse {
   conDuocDung: number;
   coDonQuaHan: boolean;
 }
-/** «Trả sau của tôi» (ADR-0173 Đ3 mục 3): chỉ hồ sơ của phiên. */
+/** «Trả sau của tôi» (ADR-0173 Đ3 mục 3): hồ sơ của phiên; `toChuc` (ADR-0213 Đ5, Task 12) = cùng các số cho từng tổ chức người gọi là người quản lý có hiệu lực (thành viên: rỗng). */
 export interface TraSauCuaToiResponse {
+  coHanMuc: boolean;
+  hanMuc: number | null;
+  gioTra: number | null;
+  gioAnHan: number | null;
+  dangNo: number;
+  conDuocDung: number | null;
+  don: DonNoTraSauDto[];
+  toChuc: TraSauToChucDto[];
+}
+/** Trả sau của MỘT tổ chức người gọi quản lý (ADR-0213 Đ5): hạn mức, đang nợ, còn được dùng, từng đơn nợ — như phần hồ sơ của phiên. Tên tổ chức đọc ở `GET /api/to-chuc/cua-toi`. */
+export interface TraSauToChucDto {
+  partyId: string;
   coHanMuc: boolean;
   hanMuc: number | null;
   gioTra: number | null;

@@ -424,11 +424,22 @@ export interface PermissionHolder {
   readonly permissions: readonly PermissionCode[];
 }
 
-/** Ngữ cảnh của một thao tác: `ownerId` = người lập đơn; `assigned` = người dùng đang được giao (N2, do gốc lắp ráp tiêm). */
+/**
+ * Ngữ cảnh của một thao tác: `ownerId` = người lập đơn; `assigned` = người dùng đang được giao (N2, do gốc lắp ráp tiêm); `quanLyBenDat` = người gọi đang là người quản lý
+ * CÓ HIỆU LỰC của bên đặt của đơn (ADR-0213 Đ5, Đ2.8 — gốc lắp ráp tiêm `ctx.laQuanLyCuaBen`, tính mỗi request; route đọc chỉ bật khi đơn đã gửi lên Tour Đảo).
+ */
 export interface OperationContext {
   readonly ownerId?: string;
   readonly assigned?: boolean;
+  readonly quanLyBenDat?: boolean;
 }
+
+/**
+ * ADR-0213 Đ5, Đ8.1 (ruling R13 của điều phối, mốc B1 Task 12): các ô DUY NHẤT nhận cờ `quanLyBenDat` — và chỉ ở cột Đối tác, chỉ vế «của mình» (own / own của ownOrAssigned).
+ * KHÔNG có `order.modify`, `order.passenger.write`, `dai-ly.nop.ghi`, `ve.cap.send`: người quản lý không sửa, không huỷ đơn đã gửi, không nộp tiền thay, vé giữ cho người lập (ADR-0170 Đ1).
+ * Bài quét src/quan-ly-ben-dat-truyen-co.test.ts ghim danh sách (đỏ cả khi thiếu lẫn khi thừa) và mọi route xét các ô này phải truyền cờ.
+ */
+export const O_NHAN_QUAN_LY_BEN_DAT = ["order.view", "money.view", "order.history.view", "contact.view", "order.submit", "dai-ly.nop.xem", "payment.proof.view"] as const satisfies readonly OperationCode[];
 
 /**
  * ADR-0186 Đ1 (đóng HC-5.11): TÁC NHÂN TỰ ĐỘNG — mỗi việc định giờ một mã; không phải tài khoản đăng nhập (không số điện thoại, PIN, phiên). Chỉ ba việc
@@ -467,8 +478,10 @@ export function quyenHienThi(perms: readonly PermissionCode[], viewerSeesHidden:
 
 export const hasPermission = (who: { readonly permissions: readonly PermissionCode[] }, code: PermissionCode): boolean => who.permissions.includes(code);
 
-function allows(scope: Scope | undefined, whoId: string, ctx: OperationContext): boolean {
-  const own = ctx.ownerId !== undefined && ctx.ownerId === whoId;
+function allows(scope: Scope | undefined, whoId: string, ctx: OperationContext, ma: PermissionCode, op: OperationCode): boolean {
+  // ADR-0213 Đ5: vế «của mình» = mình lập HOẶC (cờ người quản lý bên đặt VÀ đang xét cột Đối tác VÀ ô thuộc danh sách R13). Định nghĩa viết MỘT lần ở đây.
+  const own = (ctx.ownerId !== undefined && ctx.ownerId === whoId)
+    || (ctx.quanLyBenDat === true && ma === "PARTNER" && (O_NHAN_QUAN_LY_BEN_DAT as readonly string[]).includes(op));
   switch (scope) {
     case "any":
       return true;
@@ -488,7 +501,7 @@ export function can(who: PermissionHolder, op: OperationCode, ctx: OperationCont
   const cells = (MATRIX as Record<string, Row | undefined>)[op];
   if (!cells) return false;
   if (laTacNhan(who)) return QUYEN_TAC_NHAN[who.tacNhan].includes(op); // ADR-0186 Đ2: tác nhân chỉ có ô của nó, không xét phạm vi người
-  return who.permissions.some((p) => allows(cells[p], who.id, ctx));
+  return who.permissions.some((p) => allows(cells[p], who.id, ctx, p, op));
 }
 
 /**

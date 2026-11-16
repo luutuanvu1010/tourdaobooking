@@ -19,8 +19,9 @@ export const TIEN_TO_NOI_DUNG_DAI_LY = "DL";
  * nhóm này) và đại lý CHỦ ĐƠN (ô `credit.own.view`, hồ sơ của PHIÊN phải là bên đặt của đơn). Bán hàng, Hướng dẫn viên, Thực tập: không. Không thêm ô mới, không nới ô nào.
  * Tài khoản giữ quyền Đối tác chỉ đi nhánh đại lý (khuôn route hạn mức: `credit.limit.view || holdsPartner` ⇒ chặn).
  */
-export function xemDuocPhieuCongNo(who: Pick<PermissionHolder, "id" | "permissions"> & { partyId: string | null }, bookerPartyId: string | null): boolean {
-  if (holdsPartner(who)) return laTaiKhoanDoiTac(who) && can(who, "credit.own.view", { ownerId: who.id }) && who.partyId !== null && who.partyId === bookerPartyId;
+export function xemDuocPhieuCongNo(who: Pick<PermissionHolder, "id" | "permissions"> & { partyId: string | null }, bookerPartyId: string | null, laQuanLyBenDat = false): boolean {
+  // ADR-0213 Đ5 (Task 12): người quản lý CÓ HIỆU LỰC của bên đặt (gốc lắp ráp tính, route truyền) xem phiếu công nợ của tổ chức như chính đại lý. Chỉ XEM — nút nộp (`coPhieuNopTien`) không đổi (R13).
+  if (holdsPartner(who)) return laTaiKhoanDoiTac(who) && can(who, "credit.own.view", { ownerId: who.id }) && bookerPartyId !== null && (who.partyId === bookerPartyId || laQuanLyBenDat);
   return can(who, "credit.limit.view");
 }
 

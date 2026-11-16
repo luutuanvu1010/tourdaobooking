@@ -18,6 +18,11 @@ const XEP: Record<string, Muc[]> = {
   "src/index.ts": [
     { doan: "if (!holdsPartner(actor) || actor.partyId === null) return [];", nhom: "THAY_MAT", so: 1 }, // tuCachCuaToi — nguồn của benDangThayMat
     { doan: "const minh = actor.partyId;", nhom: "THAY_MAT", so: 1 },
+    // ADR-0213 Đ5 (Task 12): người quản lý có hiệu lực là vai của CHÍNH người đó trên tổ chức (cờ quanLyBenDat, «tổ chức tôi quản lý») — không phải bên đang thay mặt.
+    { doan: "if (!holdsPartner(actor) || actor.partyId === null) return false;", nhom: "CHINH_NGUOI", so: 1 }, // laQuanLyCoHieuLuc
+    { doan: "ql.personPartyId === actor.partyId && ql.staffId === actor.id", nhom: "CHINH_NGUOI", so: 1 },
+    { doan: "if (actor.partyId === null || !holdsPartner(actor)) return [];", nhom: "CHINH_NGUOI", so: 1 }, // toChucToiQuanLy
+    { doan: "tcToChucCuaNguoi(db, actor.partyId)", nhom: "CHINH_NGUOI", so: 1 },
   ],
   "src/modules/orders/index.ts": [
     { doan: "benDatDoiTacBiCam({ laDoiTac, benThayMat: staff.partyId", nhom: "THAY_MAT", so: 1 }, // K1 ở đường «không tư cách» (bên đang thay mặt = chính mình)

@@ -100,7 +100,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // cho câu «Nới trần dung lượng trang Đơn hàng thêm 362 byte»).
 // Nới 114.890 → 114.923 (ADR-0213 Đ6, mốc B1 Task 10, 16/11/2026): ô quyền mới `partner.org.manager.write` vào bản đồ quyền dùng chung, bảy hành động nhật ký `org_*` vào `audit-actions.ts`
 // và hai bảng phân loại lịch sử (chỉ dữ liệu; đo thật 114.923 byte, +33 so với trần cũ). Không mã giao diện nào vào gói Đơn hàng. Trần = đúng số đo (cách lần duyệt 16/11 trước). CHƯA có lời duyệt riêng của chủ dự án cho con số này.
-const TRAN_ORDERS = 114_923;
+// Nới 114.923 → 115.103 (ADR-0213 Đ5, ruling R13, mốc B1 Task 12, 16/11/2026): `can()` dùng chung nhận cờ `quanLyBenDat` — danh sách bảy ô `O_NHAN_QUAN_LY_BEN_DAT` và một vế
+// trong `allows()` (luật quyền phải ở MỘT nơi, giao diện cùng import). Đo thật 115.103 byte (+180). Không mã giao diện nào vào gói Đơn hàng. Trần = đúng số đo. CHƯA có lời duyệt riêng của chủ dự án cho con số này.
+const TRAN_ORDERS = 115_103;
 
 function dung(trang: string) {
   const r = buildSync({

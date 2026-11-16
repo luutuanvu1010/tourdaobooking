@@ -908,3 +908,32 @@ test("ADR-0187 Đ2.3: me.favorites.write — chính mình với mọi tập quy�
   }
   assert.equal(count, 2048);
 });
+
+// ADR-0213 Đ5, Đ8.1 (mốc B1 Task 12; ruling R13): cờ `quanLyBenDat` — người gọi là người quản lý CÓ HIỆU LỰC của bên đặt của đơn. Chỉ vế «của mình» của cột Đối tác, chỉ bảy ô.
+test("ADR-0213 Đ5 (R13): `quanLyBenDat` mở đúng bảy ô cho cột Đối tác, không ô nào khác, không mã quyền nào khác", async () => {
+  const { O_NHAN_QUAN_LY_BEN_DAT } = await import("./permissions.ts");
+  assert.deepEqual([...O_NHAN_QUAN_LY_BEN_DAT].sort(), ["contact.view", "dai-ly.nop.xem", "money.view", "order.history.view", "order.submit", "order.view", "payment.proof.view"]);
+  const nguoiKhac = { ownerId: "nguoi-lap-khac" };
+  const ops = Object.keys(MATRIX) as OperationCode[];
+  for (const op of ops) {
+    const doiTac = { id: "ql", permissions: ["PARTNER"] as PermissionCode[] };
+    const mo = (O_NHAN_QUAN_LY_BEN_DAT as readonly string[]).includes(op);
+    // Đối tác: ô own / ownOrAssigned trong danh sách ⇒ mở; ngoài danh sách ⇒ như không có cờ.
+    assert.equal(can(doiTac, op, { ...nguoiKhac, quanLyBenDat: true }), mo ? true : can(doiTac, op, nguoiKhac), `PARTNER ${op}`);
+    if (mo) assert.ok(["own", "ownOrAssigned"].includes(MATRIX[op].PARTNER), `${op}: ô Đối tác phải là own / ownOrAssigned`);
+    // Mọi mã khác (một mình, và Thực tập, Bán hàng có ô own) — cờ không đổi gì.
+    for (const p of PERMISSION_CODES.filter((x) => x !== "PARTNER")) {
+      const ai = { id: "x", permissions: [p] };
+      assert.equal(can(ai, op, { ...nguoiKhac, quanLyBenDat: true }), can(ai, op, nguoiKhac), `${p} ${op}`);
+    }
+  }
+  const p = { id: "ql", permissions: ["PARTNER"] as PermissionCode[] };
+  assert.equal(can(p, "order.view", nguoiKhac), false, "không cờ: đơn người khác vẫn đóng");
+  assert.equal(can(p, "order.view", { ...nguoiKhac, quanLyBenDat: false }), false);
+  assert.equal(can(p, "order.modify", { ...nguoiKhac, quanLyBenDat: true }), false, "R13: không sửa, không huỷ");
+  assert.equal(can(p, "ve.cap.send", { ...nguoiKhac, quanLyBenDat: true }), false, "ADR-0170 Đ1: vé giữ cho người lập");
+  assert.equal(can(p, "dai-ly.nop.ghi", { ...nguoiKhac, quanLyBenDat: true }), false);
+  assert.equal(can(p, "order.passenger.write", { ...nguoiKhac, quanLyBenDat: true }), false);
+  assert.equal(can(p, "contact.view", { ...nguoiKhac, quanLyBenDat: true }), true, "ownOrAssigned: vế own đổi y như own");
+  assert.equal(can(p, "order.submit", { quanLyBenDat: true }), true, "cờ đứng một mình (không ownerId) vẫn là vế «của mình»");
+});

@@ -106,14 +106,29 @@ async function taiKhoanGanDuoc(db: D1Database, personPartyId: string): Promise<K
  *   chỉ cần thêm nhánh `MEMBER_OF` ở dưới.
  * Không giữ quyền Đối tác hoặc chưa gắn hồ sơ ⇒ `[]`, không truy vấn (đường hôm nay).
  */
+/**
+ * NGƯỜI GỌI CÓ PHẢI NGƯỜI QUẢN LÝ CÓ HIỆU LỰC CỦA `org` (ADR-0213 Đ2.8, Đ5) — MỘT định nghĩa cho tư cách tổ chức (Đ3), cờ `quanLyBenDat` của `can()` và «tổ chức tôi quản lý» (Task 12):
+ * `nguoiQuanLyCoHieuLuc(org)` trỏ đúng hồ sơ VÀ tài khoản của người gọi. Không giữ quyền Đối tác / chưa gắn hồ sơ ⇒ false, không truy vấn.
+ */
+async function laQuanLyCoHieuLuc(db: D1Database, actor: StaffProfile, org: string): Promise<boolean> {
+  if (!holdsPartner(actor) || actor.partyId === null) return false;
+  const ql = await nguoiQuanLyCoHieuLuc(db, org);
+  return ql !== null && ql.personPartyId === actor.partyId && ql.staffId === actor.id;
+}
+/** Các tổ chức người gọi đang là người quản lý có hiệu lực (liên kết `MANAGER_OF` mở + `laQuanLyCoHieuLuc`) — «Đơn của tôi», sổ Trả sau tổ chức (ADR-0213 Đ5; Task 12). */
+async function toChucToiQuanLy(db: D1Database, actor: StaffProfile): Promise<string[]> {
+  if (actor.partyId === null || !holdsPartner(actor)) return [];
+  const lienKet = (await tcToChucCuaNguoi(db, actor.partyId)).filter((k) => k.loai === "MANAGER_OF");
+  const co = await Promise.all(lienKet.map((k) => laQuanLyCoHieuLuc(db, actor, k.orgPartyId)));
+  return lienKet.filter((_, i) => co[i]).map((k) => k.orgPartyId);
+}
 async function tuCachCuaToi(db: D1Database, actor: StaffProfile): Promise<TuCachDong[]> {
   if (!holdsPartner(actor) || actor.partyId === null) return [];
   const minh = actor.partyId;
   const [caNhan, lienKet] = await Promise.all([nguoiHuongCuaHoSo(db, minh), tcToChucCuaNguoi(db, minh)]);
   const toChuc = await Promise.all(lienKet.map(async (k): Promise<TuCachDong | null> => {
     if (k.loai !== "MANAGER_OF") return null; // R4
-    const ql = await nguoiQuanLyCoHieuLuc(db, k.orgPartyId);
-    if (!ql || ql.personPartyId !== minh || ql.staffId !== actor.id) return null;
+    if (!(await laQuanLyCoHieuLuc(db, actor, k.orgPartyId))) return null;
     const huong = await nguoiHuongCuaHoSo(db, k.orgPartyId);
     return huong ? { partyId: huong.partyId, ten: huong.ten, laToChuc: true, loai: "MANAGER" } : null;
   }));
@@ -396,6 +411,9 @@ const APP_OPTIONS: AppOptions = {
       return t ? { partyId: t.partyId, ten: t.ten } : null;
     },
     tuCachCuaToi: (env, actor) => tuCachCuaToi(env.DB, actor),
+    // ADR-0213 Đ5 (Task 12): cờ `quanLyBenDat` và tập tổ chức cho «Đơn của tôi» — CÙNG hàm `laQuanLyCoHieuLuc` với tư cách tổ chức ở trên.
+    laQuanLyCuaBen: (env, actor, partyId) => laQuanLyCoHieuLuc(env.DB, actor, partyId),
+    toChucToiQuanLy: (env, actor) => toChucToiQuanLy(env.DB, actor),
     // LỌC DANH MỤC FORM LẬP ĐƠN THEO LUẬT BÁN (ADR-0146 Đ4; T9, R-3): `catalog` không import `pricing` — gốc lắp ráp nối. Cùng điều kiện ép bên đặt như dòng trên (bên đặt máy chủ ép);
     // văn phòng / Thực tập không bị ép ⇒ không truy vấn, thấy đủ. Ngày xét = ngày Việt Nam lúc gọi.
     dichVuBiChanChoToi: async (env, actor, codes) => {

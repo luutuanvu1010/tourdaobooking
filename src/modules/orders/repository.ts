@@ -566,6 +566,12 @@ export interface ListOrdersOpts {
   chiTrongIds?: readonly string[] | null;
   /** Người đang xem (ADR-0135 Đ1): đơn NHÁP chỉ hiện cho chính người lập — mọi người khác, kể cả Toàn quyền, không thấy (kể cả khi tìm theo mã đơn). BẮT BUỘC. */
   nguoiXem: string;
+  /**
+   * ADR-0213 Đ5 (mốc B1 Task 12): người xem là người quản lý CÓ HIỆU LỰC của các tổ chức `toChuc` (gốc lắp ráp tiêm `ctx.toChucToiQuanLy`) ⇒ phạm vi cộng thêm «bên đặt thuộc tập này» (HỢP với
+   * `ownerId` / `orderIds`), và đơn nháp của người khác chỉ hiện khi thuộc `nhapDangCho` (nháp của các tổ chức đó đang có yêu cầu xác nhận mở — đã gửi lên Tour Đảo). null / tập rỗng = không cộng.
+   * BẮT BUỘC (không tuỳ chọn): mọi nơi gọi tự nói rõ.
+   */
+  quanLy: { toChuc: readonly string[]; nhapDangCho: readonly string[] } | null;
 }
 
 /** MỘT bộ dựng điều kiện cho cả trang danh sách và tập ứng viên của bộ lọc dấu kế toán — hai câu không bao giờ lệch phạm vi / bộ lọc. */
@@ -573,9 +579,16 @@ function dieuKienDanhSach(opts: ListOrdersOpts): { whereSql: string; binds: (str
   const where: string[] = [];
   const binds: (string | number)[] = [];
   const scope: string[] = [];
-  // ADR-0135 Đ1: đơn nháp là vùng riêng của người lập — điều kiện này AND với mọi phạm vi và bộ lọc bên dưới, không nhánh nào nới được.
-  where.push("(o.status <> 'draft' OR o.staff_id = ?)");
-  binds.push(opts.nguoiXem);
+  const ql = opts.quanLy !== null && opts.quanLy.toChuc.length > 0 ? opts.quanLy : null;
+  // ADR-0135 Đ1: đơn nháp là vùng riêng của người lập — điều kiện này AND với mọi phạm vi và bộ lọc bên dưới. Ngoại lệ có tên DUY NHẤT (ADR-0213 Đ5): nháp ĐANG CHỜ văn phòng của
+  // tổ chức người xem quản lý (`nhapDangCho` — route tính bằng câu của xac-nhan-repo, đã lọc bên đặt).
+  if (ql) {
+    where.push("(o.status <> 'draft' OR o.staff_id = ? OR o.id IN (SELECT value FROM json_each(?)))");
+    binds.push(opts.nguoiXem, JSON.stringify(ql.nhapDangCho));
+  } else {
+    where.push("(o.status <> 'draft' OR o.staff_id = ?)");
+    binds.push(opts.nguoiXem);
+  }
   if (opts.ownerId !== null) {
     scope.push("o.staff_id = ?");
     binds.push(opts.ownerId);
@@ -583,6 +596,10 @@ function dieuKienDanhSach(opts: ListOrdersOpts): { whereSql: string; binds: (str
   if (opts.orderIds !== null) {
     scope.push("o.id IN (SELECT value FROM json_each(?))");
     binds.push(JSON.stringify(opts.orderIds));
+  }
+  if (ql) {
+    scope.push("o.booker_party_id IN (SELECT value FROM json_each(?))");
+    binds.push(JSON.stringify(ql.toChuc));
   }
   if (scope.length) where.push(`(${scope.join(" OR ")})`);
   if (opts.chiTrongIds != null) {

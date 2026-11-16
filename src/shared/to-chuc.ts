@@ -144,3 +144,11 @@ export const NHAN_LY_DO_TO_CHUC: Record<MaLyDoToChuc, string> = {
   KHAC_DA_GOI_XAC_NHAN: "Lý do khác, đã gọi điện xác nhận",
 };
 export const laMaLyDoToChuc = (v: unknown): v is MaLyDoToChuc => typeof v === "string" && (MA_LY_DO_TO_CHUC as readonly string[]).includes(v);
+
+/**
+ * ADR-0213 Đ8.1 (mốc B1 Task 12): ai bấm «Gửi đơn» lên Tour Đảo. Đơn lập theo tư cách TỔ CHỨC (`tuCachCuaDon(acting_link_kind)` = "TO_CHUC") ⇒ CHỈ người quản lý có hiệu lực (Đ2.8) —
+ * thành viên không bao giờ gửi thẳng; đơn cá nhân / đơn không tư cách ⇒ người lập như hôm nay (ADR-0136). Hàm thuần — route `gui-don` tính hai cờ.
+ */
+export function duocGuiLenTourDao(v: { tuCach: "CA_NHAN" | "TO_CHUC" | null; laNguoiLap: boolean; laQuanLyCoHieuLuc: boolean }): boolean {
+  return v.tuCach === "TO_CHUC" ? v.laQuanLyCoHieuLuc : v.laNguoiLap;
+}

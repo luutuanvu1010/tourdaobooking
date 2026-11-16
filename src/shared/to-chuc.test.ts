@@ -87,3 +87,16 @@ test("kiemPhanToChuc: giấy phép thêm đủ trường; loại không hạn th
   const dm2: DanhMucGiayToToChuc = { loai: new Map([["KHONG_HAN", { hasExpiry: false, active: true }]]) };
   assert.equal(kiemPhanToChuc(du({ loaiGiayPhep: "KHONG_HAN", hetHanGiayPhep: "2030-01-01" }), dm2, HOM_NAY).ok, false);
 });
+
+// ADR-0213 Đ8.1 (mốc B1 Task 12): ai bấm «Gửi đơn» lên Tour Đảo.
+test("duocGuiLenTourDao: đơn tư cách tổ chức chỉ người quản lý có hiệu lực; còn lại người lập", async () => {
+  const { duocGuiLenTourDao } = await import("./to-chuc.ts");
+  assert.equal(duocGuiLenTourDao({ tuCach: "TO_CHUC", laNguoiLap: true, laQuanLyCoHieuLuc: true }), true);
+  assert.equal(duocGuiLenTourDao({ tuCach: "TO_CHUC", laNguoiLap: false, laQuanLyCoHieuLuc: true }), true);
+  assert.equal(duocGuiLenTourDao({ tuCach: "TO_CHUC", laNguoiLap: true, laQuanLyCoHieuLuc: false }), false, "thành viên / người quản lý mất hiệu lực");
+  assert.equal(duocGuiLenTourDao({ tuCach: "TO_CHUC", laNguoiLap: false, laQuanLyCoHieuLuc: false }), false);
+  for (const tuCach of ["CA_NHAN", null] as const) {
+    assert.equal(duocGuiLenTourDao({ tuCach, laNguoiLap: true, laQuanLyCoHieuLuc: false }), true, `${tuCach}: người lập như hôm nay`);
+    assert.equal(duocGuiLenTourDao({ tuCach, laNguoiLap: false, laQuanLyCoHieuLuc: true }), false, `${tuCach}: người quản lý không gửi đơn cá nhân của người khác`);
+  }
+});

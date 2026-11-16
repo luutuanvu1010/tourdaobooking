@@ -197,6 +197,12 @@ const BEN_DAT_CUA_DON = defineSql(
 const QUYEN_MO_CUA = defineSql("billing", "open_permissions_of_staff", "SELECT permission_code FROM v_stf_quyen_mo WHERE staff_id = ?1");
 export interface BenDatRow { staff_id: string; booker_party_id: string | null; order_code: string | null }
 export const benDatCuaDon = (db: D1Database, orderId: string): Promise<BenDatRow | null> => db.prepare(BEN_DAT_CUA_DON).bind(orderId).first<BenDatRow>();
+/** ADR-0213 Đ5 (Task 12): bên đặt của nhiều đơn (tiền nhiều đơn trên «Đơn của tôi» của người quản lý tổ chức). Rỗng ⇒ không truy vấn. */
+const BEN_DAT_NHIEU_DON = defineSql("billing", "order_bookers_of_orders", "SELECT id, booker_party_id FROM v_ord_order_booker WHERE id IN (SELECT value FROM json_each(?1))");
+export async function benDatNhieuDon(db: D1Database, ids: readonly string[]): Promise<Map<string, string | null>> {
+  if (ids.length === 0) return new Map();
+  return new Map((await db.prepare(BEN_DAT_NHIEU_DON).bind(JSON.stringify(ids)).all<{ id: string; booker_party_id: string | null }>()).results.map((r) => [r.id, r.booker_party_id]));
+}
 export async function quyenMoCua(db: D1Database, staffId: string): Promise<string[]> {
   return (await db.prepare(QUYEN_MO_CUA).bind(staffId).all<{ permission_code: string }>()).results.map((r) => r.permission_code);
 }

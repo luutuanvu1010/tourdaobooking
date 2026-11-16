@@ -44,3 +44,17 @@ test("chiNguoiLapGhiNhap: nháp chỉ người lập; đơn khác trạng thái 
     assert.equal(chiNguoiLapGhiNhap({ status, laNguoiLap }), status !== "draft" || laNguoiLap, `${status}/${laNguoiLap}`);
   }
 });
+
+// ADR-0213 Đ5 (mốc B1 Task 12): cờ chỉ mở đơn ĐÃ GỬI LÊN Tour Đảo — đã xác nhận, đã huỷ, hoặc nháp đang chờ văn phòng. Nháp khác giữ nguyên ADR-0135.
+test("ADR-0213 Đ5: donDaGuiLen + `quanLyBenDat` chỉ mở nháp ĐANG CHỜ (và chỉ khi coQuyenXem đã gồm cờ)", async () => {
+  const { donDaGuiLen } = await import("./xem-don-nhap.ts");
+  assert.equal(donDaGuiLen({ status: "confirmed", coYeuCauMo: false }), true);
+  assert.equal(donDaGuiLen({ status: "cancelled", coYeuCauMo: false }), true);
+  assert.equal(donDaGuiLen({ status: "draft", coYeuCauMo: true }), true);
+  assert.equal(donDaGuiLen({ status: "draft", coYeuCauMo: false }), false);
+  for (const coQuyenXem of BOOL) for (const dangCho of BOOL) for (const quanLyBenDat of BOOL) {
+    const mong = dangCho && quanLyBenDat && coQuyenXem;
+    assert.equal(xemDuocDon({ coQuyenXem, status: "draft", laNguoiLap: false, dangCho, xetDuyetDuoc: false, quanLyBenDat }), mong, JSON.stringify({ coQuyenXem, dangCho, quanLyBenDat }));
+    assert.equal(ketQuaXemDon({ coQuyenXem, status: "draft", laNguoiLap: false, dangCho, xetDuyetDuoc: false, quanLyBenDat, chiXemDonDuocGiao: false }), mong ? "ok" : "404");
+  }
+});

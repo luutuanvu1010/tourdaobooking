@@ -320,6 +320,17 @@ export interface Ctx<A extends Access = Access> {
    */
   benDangThayMat: (tuCach: unknown) => Promise<KetQuaChonTuCach>;
   /**
+   * NGƯỜI QUẢN LÝ CỦA BÊN ĐẶT (ADR-0213 Đ5, Đ2.8; mốc B1 Task 12) — do gốc lắp ráp tiêm (`parties` + `staff` qua `nguoiQuanLyCoHieuLuc`; `orders`, `billing`, `receipt` không đọc bảng của
+   * `parties`, khuôn `isAssigned`). Đúng khi người gọi giữ quyền Đối tác VÀ đang là người quản lý CÓ HIỆU LỰC của hồ sơ `partyId` (thường là bên đặt của đơn). Tính MỖI LẦN GỌI, không nhớ giữa
+   * các request. Người gọi không giữ quyền Đối tác / `partyId` null / chưa đăng nhập / môi trường không tiêm ⇒ `false` KHÔNG truy vấn (đóng kín). Kết quả đi vào `can()` ở cờ `quanLyBenDat`.
+   */
+  laQuanLyCuaBen: (partyId: string | null) => Promise<boolean>;
+  /**
+   * CÁC TỔ CHỨC NGƯỜI GỌI ĐANG LÀ NGƯỜI QUẢN LÝ CÓ HIỆU LỰC (ADR-0213 Đ5; Task 12) — cùng định nghĩa với `laQuanLyCuaBen` (gốc lắp ráp dùng chung một hàm). Cho các câu danh sách / đếm lọc bằng SQL
+   * («Đơn của tôi») và sổ Trả sau của tổ chức. Không giữ quyền Đối tác / không tiêm ⇒ `[]` không truy vấn.
+   */
+  toChucToiQuanLy: () => Promise<string[]>;
+  /**
    * DỊCH VỤ BỊ LUẬT BÁN CHẶN CHO NGƯỜI GỌI (ADR-0146 Đ4; kế hoạch 2026-10-30 T9, R-3) — do gốc lắp ráp tiêm (`pricing.kiemLuatBan`; `catalog` KHÔNG import `pricing`). Trong `codes`,
    * các mã mà luật bán đang chặn cho BÊN ĐẶT MÁY CHỦ ÉP của người gọi (cùng điều kiện `benDatCuaToi`); người gọi không bị ép bên đặt ⇒ tập rỗng. Chỉ để LỌC danh mục form lập đơn —
    * cổng thật là 409 `sales_blocked` ở các cửa ghi đơn. Môi trường không tiêm (khung thử cũ), mảng rỗng, chưa đăng nhập ⇒ tập rỗng (không lọc).
@@ -555,6 +566,9 @@ export interface AppOptions {
     benDatCuaToi: (env: Env, actor: StaffProfile) => Promise<{ partyId: string; ten: string } | null>;
     /** ADR-0213 Đ3 (Task 11). BẮT BUỘC (như `mocToiThieu`): bản thật ở `src/index.ts`; thiếu thì typecheck đỏ. Khung thử dựng `injected` thiếu hàm ⇒ router trả `[]` (đường hôm nay). */
     tuCachCuaToi: (env: Env, actor: StaffProfile) => Promise<TuCachDong[]>;
+    /** ADR-0213 Đ5 (Task 12). BẮT BUỘC (như `tuCachCuaToi`): bản thật ở `src/index.ts`. Khung thử dựng `injected` thiếu hàm ⇒ router trả `false` / `[]` (đóng kín). */
+    laQuanLyCuaBen: (env: Env, actor: StaffProfile, partyId: string) => Promise<boolean>;
+    toChucToiQuanLy: (env: Env, actor: StaffProfile) => Promise<string[]>;
     /** ADR-0146 Đ4 (T9). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguoiHuongCuaHoSo` + `kiemLuatBan` của pricing); thiếu (khung thử cũ) → router trả tập rỗng. */
     dichVuBiChanChoToi: (env: Env, actor: StaffProfile, codes: readonly string[]) => Promise<ReadonlySet<string>>;
     /** GỘP HỒ SƠ (ADR-0068). BẮT BUỘC trong mã chạy thật (`src/index.ts`). */
@@ -773,6 +787,10 @@ export function createApp(opts: AppOptions) {
       benDatCuaToi: () => (who && typeof opts.injected.benDatCuaToi === "function" ? opts.injected.benDatCuaToi(envH, who) : Promise.resolve(null)),
       tuCachCuaToi: () => (who && typeof opts.injected.tuCachCuaToi === "function" ? opts.injected.tuCachCuaToi(envH, who) : Promise.resolve([])),
       benDangThayMat: async (tuCach) => chonTuCach(who && typeof opts.injected.tuCachCuaToi === "function" ? await opts.injected.tuCachCuaToi(envH, who) : [], tuCach),
+      laQuanLyCuaBen: (partyId) =>
+        who && partyId !== null && who.permissions.includes("PARTNER") && typeof opts.injected.laQuanLyCuaBen === "function" ? opts.injected.laQuanLyCuaBen(envH, who, partyId) : Promise.resolve(false),
+      toChucToiQuanLy: () =>
+        who && who.permissions.includes("PARTNER") && typeof opts.injected.toChucToiQuanLy === "function" ? opts.injected.toChucToiQuanLy(envH, who) : Promise.resolve([]),
       dichVuBiChanChoToi: (codes) =>
         who && codes.length > 0 && typeof opts.injected.dichVuBiChanChoToi === "function" ? opts.injected.dichVuBiChanChoToi(envH, who, codes) : Promise.resolve(new Set<string>()),
       // Lười (kế hoạch R9): gọi opts.injected.gopHoSo(env) trong từng phương thức — app dựng bằng injected cũ (src/shared/router.test.ts) không vỡ ở route khác.

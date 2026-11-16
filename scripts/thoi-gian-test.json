@@ -679,6 +679,8 @@
  "src/phi-don-doc-tien.test.ts": 3,
  "src/phong-chu.test.ts": 0.1,
  "src/push-ui-web.test.ts": 0.1,
+ "src/quan-ly-ben-dat-route.test.ts": 4,
+ "src/quan-ly-ben-dat-truyen-co.test.ts": 0.5,
  "src/quet-gia-tri-cung.test.ts": 0.1,
  "src/quet-gio-xau-tinh.test.ts": 0.5,
  "src/quet-ve-camera.test.ts": 0.1,

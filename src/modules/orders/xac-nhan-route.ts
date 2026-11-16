@@ -21,6 +21,8 @@ import type { BanHangNoi } from "../../shared/router";
 import { docKhungGio, soanGhiNhan } from "./ban-hang-ghi-nhan";
 import { CAU_BAO_GUI_DON } from "../../shared/gui-don-cau-bao";
 import { chiNguoiLapGhiNhap } from "../../shared/xem-don-nhap";
+import { tuCachCuaDon } from "../../shared/booker";
+import { duocGuiLenTourDao } from "../../shared/to-chuc";
 import { canhBaoMocCua, type XetDatGapSua } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
 import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, cauThemGioDon, docBatBuocGioDon, gioDonMoiNhat, nguoiLapGiuDoiTac, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
@@ -33,6 +35,8 @@ import { chuanBiPhiDonXacNhan } from "./service";
 import { confirmGaps, confirmWindow } from "./service-rules";
 import { congLuatBan } from "./cong-ban";
 import { coChotGio } from "./gio-don-cai-dat";
+/** ADR-0213 Đ8.1 (Task 12): đơn tư cách tổ chức — chỉ người quản lý có hiệu lực của tổ chức bấm «Gửi đơn». */
+const ORG_MANAGER_REQUIRED = (): Response => error(403, "org_manager_required", "Chỉ người quản lý tổ chức gửi được đơn này lên Tour Đảo.");
 
 const NHAN_VI: Record<LyDoCanXacNhan, string> = { DICH_VU: "dịch vụ cần xác nhận", DAT_GAP: "lượt đón dưới hạn chốt, cần đặt gấp", CHOT_GIO: "có lượt đưa đón chưa có giờ đón", PHI_DON: "có lượt đưa đón chưa có mức phí" };
 const dtoYeuCau = (y: YeuCauRow, vi: LyDoCanXacNhan[], nowMs: number): YeuCauXacNhanDto => ({ id: y.id, guiLuc: y.submitted_at, hanLuc: y.deadline_at, quaHan: quaHanXacNhan(y.deadline_at, nowMs), vi });
@@ -215,18 +219,24 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
   // Thứ tự: nháp của người khác 404 (ADR-0135 Đ2) → `can(order.submit)` 403 → đã giao → không phải nháp / đã có yêu cầu mở 409 → mọi cổng của Xác nhận ngay THEO NGƯỜI GỬI (R2 giá danh mục, người lớn,
   // chọn Đón, R3 trần; mốc chỉ cần CÓ để phân nhánh — chặng dưới mốc KHÔNG bị từ chối lúc gửi) → phân nhánh bằng `canXacNhan`. Cổng hỏng ⇒ đơn ở lại nháp, không câu báo thứ ba. (Cổng «luật bán» — ADR-0146 Đ3:
   // dòng đầu `kiemCongXacNhan`, nên đứng trước mọi cổng khác và trước phân nhánh.) Nhánh A mở yêu cầu như Gửi xác nhận (kèm chặn khoản thu); nhánh B xác nhận ngay trong lô `soanXacNhan` (không mở yêu cầu, không kiểm khoản thu).
-  route("POST", "/api/orders/:id/gui-don", "orders", async ({ env, params, staff, baoThayDoi, mocToiThieu, daThuCuaDon, capVeSauXacNhan, cauCocKhiXacNhan, banHang, kiemTraSau, cauGacPhienBanTraSau, benDangThayMat }) => {
+  route("POST", "/api/orders/:id/gui-don", "orders", async ({ env, params, staff, baoThayDoi, mocToiThieu, daThuCuaDon, capVeSauXacNhan, cauCocKhiXacNhan, banHang, kiemTraSau, cauGacPhienBanTraSau, benDangThayMat, laQuanLyCuaBen }) => {
     const id = params.id!;
     if (!UUID_RE.test(id)) return NOT_FOUND_DON();
     const meta = await getMeta(env.DB, id);
     if (!meta) return NOT_FOUND_DON();
-    if (!chiNguoiLapGhiNhap({ status: meta.status, laNguoiLap: meta.staffId === staff.id })) return NOT_FOUND_DON();
-    if (!can(staff, "order.submit", { ownerId: meta.staffId })) return error(403, "forbidden", "Chỉ tài khoản Đối tác mới dùng nút Gửi đơn.");
+    if (!chiNguoiLapGhiNhap({ status: meta.status, laNguoiLap: meta.staffId === staff.id })) return NOT_FOUND_DON(); // B1: nháp của người khác 404 (ngoại lệ Đ8 của ADR-0135 mở ở B2)
+    // ADR-0213 Đ8.1 (Task 12): đơn lập theo tư cách TỔ CHỨC — cờ `quanLyBenDat` là điều kiện của ô `order.submit` (không kèm điều kiện «đã gửi lên»: gửi lên là chính việc này). Đơn khác không hỏi.
+    const tuCach = tuCachCuaDon(meta.actingLinkKind);
+    const quanLyBenDat = tuCach === "TO_CHUC" && (await laQuanLyCuaBen(meta.bookerPartyId));
+    if (!can(staff, "order.submit", { ownerId: meta.staffId, quanLyBenDat })) return error(403, "forbidden", "Chỉ tài khoản Đối tác mới dùng nút Gửi đơn.");
     if (meta.deliveredAt) return DA_GIAO_DON();
-    if (meta.status !== "draft" || meta.staffId !== staff.id) return error(409, "order_not_draft", "Chỉ gửi được đơn nháp của chính bạn.");
+    if (meta.status !== "draft") return error(409, "order_not_draft", "Chỉ gửi được đơn nháp của chính bạn.");
     if (await yeuCauMoCuaDon(env.DB, id)) return error(409, "confirm_already_open", "Đơn này đã gửi kiểm vé và đang chờ.");
     // ADR-0213 Đ3.4, Đ5 (Task 11): nháp lập thay mặt tổ chức — người đã rời tổ chức không gửi được (TRƯỚC phân nhánh: không mở yêu cầu, không xác nhận, không bản chụp).
     if (!(await conThayMatToChuc(meta, benDangThayMat))) return NOT_ACTING_FOR_ORG();
+    // ADR-0213 Đ8.1: thay cho vế «người lập» của câu 409 cũ — đơn tổ chức chỉ người quản lý có hiệu lực gửi lên; đơn khác người lập như hôm nay. Đứng SAU cổng Task 11 (người mất hiệu lực
+    // không còn tư cách ⇒ giữ mã `not_acting_for_org`); ở B1 nhánh này là lưới phòng thủ (thành viên chưa thay mặt được — R4), B2 mới có đường tới.
+    if (!duocGuiLenTourDao({ tuCach, laNguoiLap: meta.staffId === staff.id, laQuanLyCoHieuLuc: quanLyBenDat })) return ORG_MANAGER_REQUIRED();
     const order = await findOrder(env.DB, id);
     if (!order) return NOT_FOUND_DON();
     const moc = await mocToiThieu(); // MỘT lần mỗi request (TC-26); chưa có ⇒ không xét được «chặng dưới mốc» ⇒ từ chối kín
