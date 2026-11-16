@@ -4,6 +4,8 @@
 // ĐỔI CÓ CHỦ ĐÍCH 15/11 (phí đưa đón Đợt C, Task 5; ADR-0203 ĐB3, chủ chọn 14/11 «có, cộng vào số đại lý nợ»; sổ vàng SV-PD-25): bài «Đ1 mục 9» trước khoá «tổng công nợ trùng
 // `phanThuongMaiCuaDon` từng đơn»; nay đơn có dòng phí đưa đón nên khoá thành «trùng `phanThuongMaiCuaDon` + Σ phí đón hiện hành của đơn» (`phiDon` riêng, hoa hồng không tính trên phí;
 // đơn đã sửa số khách: phí theo khách tính lại cùng hàm với chi tiết đơn). Lý do: tổng công nợ phải gồm phí, mà các dòng dịch vụ (hoa hồng) không được nhận phí vào.
+// ĐỔI CÓ CHỦ ĐÍCH 16/11 (ADR-0214, Task 4): mức phí do văn phòng chọn, không tra bảng — đơn Đối tác có lượt đón Gửi đơn ⇒ nhánh A, văn phòng chọn 20.000 ở Còn vé (cùng số bảng cũ cho
+// ra); đơn văn phòng lập mang mức trong thân. Bỏ phần gieo bảng mức (không còn tác dụng với đơn). Số tiền khẳng định giữ nguyên.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
@@ -34,9 +36,19 @@ async function donDaiLy(w: W, giam = 0, legs: unknown[] = []): Promise<string> {
   assert.equal(r.status, 201, r.text);
   const id = r.json.order.id as string;
   const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: DT, body: {} });
-  assert.equal(g.status, 200, g.text);
+  if (legs.length === 0) {
+    assert.equal(g.status, 200, g.text);
+    return id;
+  }
+  // ADR-0214: nháp Đối tác không mang mức ⇒ nhánh A; văn phòng chọn mức ở Còn vé, xác nhận trong cùng lô.
+  assert.equal(g.status, 201, g.text);
+  const v = (await w.call("GET", `/api/orders/${id}`, { as: ADM })).json;
+  const phiDon = v.order.services.flatMap((s: { legs: { id: string }[] }) => s.legs.map((l) => ({ legId: l.id, muc: MUC_20K })));
+  const c = await w.call("POST", `/api/orders/${id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon } });
+  assert.equal(c.status, 200, c.text);
   return id;
 }
+const MUC_20K = { loai: "DANH_SACH", soTien: 20_000 };
 const toiThu = (w: W, id: string, soTien: number) => w.call("POST", `/api/orders/${id}/payments`, { as: DT, body: { soTien, hinhThuc: "CASH", nguoiThu: "toi" } });
 const congTyThu = (w: W, id: string, soTien: number) => w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien, hinhThuc: "CASH", nguoiThu: "cong_ty" } });
 const nop = (w: W, id: string, soTien: number) => w.call("POST", "/api/ledger/settlements", { as: ACC, body: { chieu: "nop", partyId: BEN, phanBo: [{ orderId: id, soTien }] } });
@@ -87,10 +99,8 @@ test("Đ1 mục 6a: khách trả thẳng công ty (Kế toán ghi) tính vào Đ
   assert.equal(await dangNo(w), 0);
 });
 
-/** Phí đưa đón: mức chung «Ngoài khu vực» (lượt đón gõ tay của `leg`) 20.000 đ/khách, áp từ hôm nay. */
+/** Phí đưa đón áp từ hôm nay (ngày bắt đầu áp — công tắc của pricing). Mức do văn phòng chọn trên đơn (ADR-0214): 20.000 đ/khách. */
 async function batPhiDon(w: W): Promise<void> {
-  const m = await w.call("POST", "/api/pricing/phi-don", { as: ADM, body: { kind: "PER_PAX", amount: 20_000, validFrom: "2026-01-01", validTo: null, note: null, dieuKien: [{ khoa: "ZONE", giaTri: "NGOAI_VUNG" }] } });
-  assert.equal(m.status, 201, m.text);
   const tuLuc = (await w.call("GET", "/api/pricing/phi-don", { as: ADM })).json.batDauAp.tuLuc;
   const b = await w.call("POST", "/api/pricing/phi-don/bat-dau-ap", { as: ADM, body: { ngay: inDays(0), tuLucDaDoc: tuLuc } });
   assert.equal(b.status, 200, b.text);
@@ -102,7 +112,7 @@ test("Đ1 mục 9: giá đại lý đọc NHIỀU đơn một lượt trùng t�
   await batPhiDon(w);
   const a = await donDaiLy(w, GIAM);
   const b = await donDaiLy(w, 0, [leg(inDays(3), "06:30")]);
-  const r = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Ba", customerPhone: "0912345670", bookerPartyId: BEN, paymentTerm: "CREDIT", services: [svc("ZB1", inDays(3), [leg(inDays(3), "06:30")]), svc("ZA1", inDays(3))] } });
+  const r = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Ba", customerPhone: "0912345670", bookerPartyId: BEN, paymentTerm: "CREDIT", services: [svc("ZB1", inDays(3), [{ ...leg(inDays(3), "06:30"), phiDon: MUC_20K }]), svc("ZA1", inDays(3))] } });
   assert.equal(r.status, 201, r.text);
   const c = r.json.order.id as string;
   assert.equal((await w.call("POST", `/api/orders/${c}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
