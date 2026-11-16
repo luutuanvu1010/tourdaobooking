@@ -1,5 +1,5 @@
 // POST /api/dang-ky/phieu/tep — người đăng ký (chưa có tài khoản) tải MỘT tệp vào một ô của phiếu (ADR-0208 Đ2). Route khai `public`; cổng là cookie đăng ký, kiểm ở ĐÂY (ADR-0206 Đ5, Đ7).
-// Thứ tự: phiên → phiếu (trạng thái) → trần tệp mỗi phiếu → trần theo địa chỉ mạng → Content-Length (413 TRƯỚC khi đọc thân) → thân (400/413/415) → trùng băm →
+// Thứ tự: phiên → phiếu (trạng thái) → Content-Length (411; 413 TRƯỚC khi đọc thân) → thân (400) → nhánh gỡ `go:true` (đợt 2 Task 8, đứng trước trần để gỡ được cả khi phiếu đã đủ tệp) → trần tệp mỗi phiếu → trần theo địa chỉ mạng → kiểm tệp (400/413/415) → trùng băm →
 // MỘT lô D1 (dòng tệp chờ, thay tệp cùng ô, dòng lịch sử) → đặt kho → đánh dấu đã lưu. Kho hỏng KHÔNG thành 5xx: ô báo «chưa tải xong», gửi lại cùng tệp là xong.
 // KHÔNG có route đọc tệp nào nhận cookie đăng ký (ADR-0208 Đ3): trả lời chỉ mang «đã gửi / chưa tải xong» theo ô, không khoá kho, không băm.
 import { bamSha256 } from "../../shared/tep-dinh-kem.ts";

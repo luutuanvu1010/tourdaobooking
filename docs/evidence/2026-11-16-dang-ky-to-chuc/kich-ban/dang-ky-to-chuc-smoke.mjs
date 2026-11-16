@@ -137,6 +137,29 @@ try {
       await p.waitFor(`document.querySelector('#dk-phan-to-chuc').hidden === false`, "phần tổ chức mở", 5000);
       await go(p, "#dk-vai-to-chuc", "LD_THU");
       await sleep(500);
+      if (hau === "390") {
+        // Chính sách mất dấu tổ chức khi phiếu còn ảnh GPKD (mốc A kiểm cuối I-1): công tắc ẩn, nhưng ảnh vẫn gỡ được ngay trên trang.
+        await tep(p, "#dk-tep-GPKD");
+        await p.waitFor(`document.querySelector('[data-trang-thai-tep="GPKD"]').innerText === 'Đã gửi'`, "ảnh GPKD đã gửi (trước khi chính sách đổi)", 20000);
+        const t2 = new Date(Date.now() - 120000).toISOString();
+        env.sql(`INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, covers_org_data) VALUES ('cs-ban-2', 2, 'm', 'Bản không có phần tổ chức.', '${t2}', '${t2}', 'x', '${t2}', 'x', 0)`);
+        await p.send("Page.reload", {});
+        await p.waitFor(`!!document.querySelector('#dk-ho-ten')`, "phiếu sau khi chính sách đổi", 15000);
+        assert.equal(await dem(p, "#dk-cong-tac-to-chuc"), 0, "công tắc ẩn khi chính sách không còn dấu tổ chức");
+        assert.equal(await dem(p, "#dk-to-chuc-dong"), 1, "câu báo + ô ảnh còn lại");
+        assert.equal(await p.ev(`document.querySelector('#dk-go-tep-GPKD').hidden`), false, "«Bỏ ảnh này» hiện dù công tắc ẩn");
+        await chup(p, `01b-chinh-sach-mat-dau-to-chuc-con-anh-${hau}`, khung);
+        await axe(p, `chính sách mất dấu tổ chức, còn ảnh ${hau}`);
+        await bam(p, "#dk-go-tep-GPKD");
+        await p.waitFor(`document.querySelector('[data-trang-thai-tep="GPKD"]').innerText === 'Chưa gửi'`, "đã bỏ ảnh", 10000);
+        assert.equal(env.sql(`SELECT count(*) AS n FROM pty_registration_attachment WHERE slot = 'GPKD' AND purged_at IS NULL`)[0].n, 0);
+        const t3 = new Date(Date.now() - 60000).toISOString();
+        env.sql(`INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, covers_org_data) VALUES ('cs-ban-3', 3, 'm', 'Bản có phần tổ chức.', '${t3}', '${t3}', 'x', '${t3}', 'x', 1)`);
+        await p.send("Page.reload", {});
+        await p.waitFor(`!!document.querySelector('#dk-cong-tac-to-chuc')`, "công tắc hiện lại khi chính sách có dấu", 15000);
+        assert.equal(await p.ev(`document.querySelector('#dk-cong-tac-to-chuc').checked`), true, "vai tổ chức đã lưu ⇒ công tắc bật");
+        assert.equal(await p.ev(`document.querySelector('#dk-vai-to-chuc').value`), "LD_THU");
+      }
       assert.equal(await p.ev(`document.querySelector('#dk-tc-so-gp').closest('label').hidden`), true, "chưa chọn loại giấy phép thêm: ô số ẩn");
       await go(p, "#dk-tc-ten", `Công ty Thử ${hau}`);
       await go(p, "#dk-tc-ten-phap-ly", `Công ty TNHH Thử ${hau}`);

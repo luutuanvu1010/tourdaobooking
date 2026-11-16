@@ -128,3 +128,14 @@ test("(4) mọi cột người dùng khai của hồ sơ người và tổ chứ
     if (BANG_HO_SO.includes(bang!)) assert.ok(COT.get(bang!)!.includes(cot!), `${n} không phải cột thật`);
   }
 });
+
+test("(5) ô ảnh tổ chức còn tệp luôn hiện được kèm «Bỏ ảnh này» dù phần tổ chức đóng (mốc A kiểm cuối I-1)", async () => {
+  const { anhToChucConLai, NHAN_O_TEP_TO_CHUC } = await import("./shared/dang-ky-giao-dien.ts");
+  assert.deepEqual(anhToChucConLai([]), []);
+  assert.deepEqual(anhToChucConLai([{ o: "CCCD_MAT_TRUOC" }, { o: "CCCD_MAT_SAU" }]), [], "ảnh căn cước không phải ảnh tổ chức");
+  assert.deepEqual(anhToChucConLai([{ o: "GIAY_PHEP_THEM" }, { o: "GPKD" }]), Object.keys(NHAN_O_TEP_TO_CHUC), "đủ hai ô, theo thứ tự khai");
+  assert.deepEqual(anhToChucConLai([{ o: "GPKD" }]), ["GPKD"]);
+  // Nhánh «công tắc ẩn» của biểu mẫu phải dùng đúng hàm này và dựng ô có nút gỡ (goDuoc = true).
+  const webMa = readFileSync(new URL("../web/dang-ky.ts", import.meta.url), "utf8");
+  assert.match(webMa, /anhToChucConLai\(p\.tep\)\.map\(\(ma\) => oTep\([^)]*\bp, true\)/, "web/dang-ky.ts: ảnh tổ chức còn lại phải dựng bằng oTep(..., true)");
+});

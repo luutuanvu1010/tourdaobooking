@@ -7,7 +7,7 @@ import type { PhieuDangKyDto } from "../src/shared/contracts";
 import { nhanLoaiTep } from "../src/shared/tep-dinh-kem";
 import { maBase64 } from "../src/shared/tep-hien-thi";
 import { KHU_TO_CHUC, NHOM_TO_CHUC, dungThanGui, giaTriTruoc, giaTriTruocToChuc, goiYTruoc, goiYTruocToChuc, oCuaKhu, type KhuO, type ODung } from "../src/shared/dang-ky-truong";
-import { CAU_DONG_DANG_KY, CHU_DANG_KY, NHAN_O_TEP, NHAN_O_TEP_TO_CHUC, O_TEP_CUA_KHU, TIEU_DE_KHU_TO_CHUC } from "../src/shared/dang-ky-giao-dien";
+import { CAU_DONG_DANG_KY, CHU_DANG_KY, NHAN_O_TEP, NHAN_O_TEP_TO_CHUC, O_TEP_CUA_KHU, TIEU_DE_KHU_TO_CHUC, anhToChucConLai } from "../src/shared/dang-ky-giao-dien";
 import { ApiError, api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { ACCEPT_ANH_PDF, thuNhoAnh } from "./thu-nho-anh";
@@ -307,7 +307,7 @@ function veBieuMau(p: PhieuDangKyDto): void {
 
   const gui = nut(p.phienBan > 0 ? h("button", B("chinh", { id: "dk-gui-phieu", "data-co": "lon" }), "Gửi lại") as HTMLButtonElement : h("button", B("chinh", { id: "dk-gui-phieu", "data-co": "lon" }), "Gửi phiếu") as HTMLButtonElement, () => void bamNutDk(gui, async () => {
     if (!chonVai.value) { hienLoi("Hãy chọn vai người dùng xin đăng ký."); return; }
-    if (toChucBat() && !chonVaiTc.value) { hienLoi("Hãy chọn vai trò của tổ chức."); return; }
+    if (toChucBat() && !chonVaiTc.value) { hienLoi(CHU_DANG_KY.hayChonVaiToChuc); return; }
     if (cauHinh.chinhSachRiengTu === null) { hienLoi("Chưa có chính sách riêng tư nên chưa gửi được thông tin. Hãy quay lại sau."); return; }
     if (!dongY.checked) { hienLoi("Bạn cần đọc và đồng ý chính sách riêng tư hiện hành trước khi gửi."); return; }
     await luuVai();
@@ -329,7 +329,11 @@ function veBieuMau(p: PhieuDangKyDto): void {
       h("p", { class: "muted" }, CHU_DANG_KY.giaiThichAnh), tepKhoi),
     congTac
       ? h("section", { class: "the dk-buoc" }, h("label", { class: "check" }, oCongTac, h("span", null, CHU_DANG_KY.congTacToChuc)), h("p", { class: "muted" }, CHU_DANG_KY.giaiThichToChuc), hoiBo)
-      : (p.loaiToChuc !== null ? h("p", { class: "alert warn", id: "dk-to-chuc-dong", role: "status" }, CHU_DANG_KY.toChucDangDong) : null),
+      : (p.loaiToChuc !== null || anhToChucConLai(p.tep).length > 0
+        // Công tắc ẩn (chính sách đã mất dấu tổ chức) mà phiếu còn ảnh tổ chức: vẫn cho bỏ ảnh, nếu không phiếu kẹt ở `org_photo_without_org`.
+        ? h("section", { class: "the dk-buoc", id: "dk-to-chuc-dong" }, h("p", { class: "alert warn", role: "status" }, CHU_DANG_KY.toChucDangDong),
+          ...anhToChucConLai(p.tep).map((ma) => oTep(ma, NHAN_O_TEP_TO_CHUC[ma] ?? ma, p, true).el))
+        : null),
     phanToChuc,
     h("section", { class: "the dk-buoc" },
       h("h2", null, "Người giới thiệu"), ...khuO("gioiThieu")),

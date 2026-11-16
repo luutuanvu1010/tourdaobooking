@@ -6,7 +6,7 @@ Hồ sơ có ngày 16/11/2026. Đây là PHẦN THÊM cho `BAN-NHAP.md` (cùng t
 
 Trong form «Đăng chính sách riêng tư mới» (trang Tôi), tích ô **«Bản này có phần thu thông tin tổ chức»** khi và chỉ khi toàn văn đã ghép đủ các đoạn dưới đây. Ô này mặc định không tích và không kéo từ bản cũ sang. Chưa tích thì phần khai tổ chức của biểu mẫu đăng ký chưa mở được, kể cả khi biểu mẫu đã làm xong. Dấu này chỉ Nền tảng đọc, không hiện ra cho người đăng ký.
 
-Điều kiện trước khi tích ô (đối chiếu mã ngày 16/11, sau đợt 2 Task 5): lời hứa «không ghi số vào nhật ký, lịch sử phiếu» và «khi mở lại phiếu chỉ hiện vài số cuối» đã đúng; ảnh tổ chức của phiếu không duyệt bị gỡ cùng ảnh căn cước (đường gỡ tệp chung). Lời hứa «phần tổ chức bị ẩn danh cùng lúc với phần cá nhân» **chưa đúng** cho tới khi lô duyệt và tác nhân dọn phiếu ẩn danh cả phần tổ chức (đợt 2 Task 7): không tích ô trước mốc đó.
+Điều kiện trước khi tích ô (đối chiếu mã ngày 16/11, sau đợt 2 Task 5): lời hứa «không ghi số vào nhật ký, lịch sử phiếu» và «khi mở lại phiếu chỉ hiện vài số cuối» đã đúng; ảnh tổ chức của phiếu không duyệt bị gỡ cùng ảnh căn cước (đường gỡ tệp chung). Lời hứa «phần tổ chức bị ẩn danh cùng lúc với phần cá nhân» **đã đúng** từ đợt 2 Task 7: phần tổ chức của phiếu bị ẩn danh khi phiếu được duyệt, và tác nhân dọn phiếu ẩn danh nó cho phiếu bị từ chối, rút hoặc hết hạn. Việc tích ô vẫn chờ luật sư: bản nháp này **chưa được luật sư duyệt**.
 
 ## 1. Thêm vào ô «Mục đích thu thập»
 

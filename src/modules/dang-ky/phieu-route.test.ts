@@ -780,24 +780,27 @@ test("Task 5: PUT vai của tổ chức (loại do Kế toán thêm) khi phần 
   assert.deepEqual(w.q("SELECT version FROM dk_submission_org ORDER BY version").map((r: any) => r.version), [1, 2]);
 });
 
-test("Task 5: mục bắt buộc ROLE đạt nhờ vai của tổ chức khi vai cá nhân đóng sau khi chọn; vai tổ chức bị tắt ⇒ câu «Vai người dùng xin đăng ký (của bạn hoặc của tổ chức)»", async () => {
+test("Mốc A kiểm cuối (m2): vai đã lưu phải còn mở — vai cá nhân đóng sau khi chọn ⇒ 400 «chưa nhận đăng ký» dù vai của tổ chức còn mở; vai tổ chức đóng hoặc tắt ⇒ 400 riêng; không bản khai nào", async () => {
   const w = setup();
   loaiDoiTacMo(w);
   chinhSachToChuc(w);
   anhGpkd(w);
   assert.equal((await goi(w, "PUT", DUONG, { body: { loai: VAI, loaiToChuc: "LD_TEST" } })).status, 200);
   w.sqlite.exec(`UPDATE dk_policy SET open_role_codes = replace(open_role_codes, '${VAI},', '')`); // vai cá nhân đóng sau khi chọn
-  assert.equal((await gui(w, banKhaiTC())).status, 200, "vai của tổ chức còn mở ⇒ ROLE đạt");
+  const r = await gui(w, banKhaiTC());
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.message, CAU_PHIEU.loaiDong, "vai cá nhân đã lưu mà đóng thì không lọt nhờ vai tổ chức còn mở");
+  assert.equal(soDong(w, "dk_submission") + soDong(w, "dk_submission_org"), 0);
   const w2 = setup();
   loaiDoiTacMo(w2);
   chinhSachToChuc(w2);
   anhGpkd(w2);
   await goi(w2, "PUT", DUONG, { body: { loai: VAI, loaiToChuc: "LD_TEST" } });
-  w2.sqlite.exec(`UPDATE dk_policy SET open_role_codes = replace(open_role_codes, '${VAI},', '')`);
   w2.sqlite.exec("UPDATE pty_role_type SET active = 0 WHERE code = 'LD_TEST'");
-  const r = await gui(w2, banKhaiTC());
-  assert.equal(r.status, 400, r.text);
-  assert.match(r.json.error.message, /Vai người dùng xin đăng ký \(của bạn hoặc của tổ chức\)/);
+  const r2 = await gui(w2, banKhaiTC());
+  assert.equal(r2.status, 400, r2.text);
+  assert.equal(r2.json.error.message, CAU_PHIEU.loaiToChucDong);
+  assert.equal(soDong(w2, "dk_submission") + soDong(w2, "dk_submission_org"), 0);
 });
 
 test("Task 5: lịch sử phiếu và nhật ký không mang mã số thuế, số GPKD, số giấy phép, nơi cấp (bộ dò doNhatKyHang — PHỤ TRÁCH các cột N3 của dk_submission_org)", async () => {

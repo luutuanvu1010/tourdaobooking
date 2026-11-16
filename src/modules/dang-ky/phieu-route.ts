@@ -266,6 +266,9 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   const mo = await loaiMoHienTai(env.DB, v.chinhSach.open_role_codes);
   const loaiHopLe = roleCaNhan !== "" && mo.some((x) => x.ma === roleCaNhan);
   const loaiToChucHopLe = coToChuc && roleToChuc !== null && mo.some((x) => x.ma === roleToChuc && x.phan !== "CA_NHAN");
+  // Mốc A kiểm cuối (m2): vai đã lưu phải TỰ NÓ còn mở — vai cá nhân đóng sau khi chọn không được lọt nhờ vai của tổ chức còn mở (và ngược lại).
+  if (roleCaNhan !== "" && !loaiHopLe) return error(400, "invalid_input", CAU_PHIEU.loaiDong);
+  if (coToChuc && roleToChuc !== null && !loaiToChucHopLe) return error(400, "invalid_input", CAU_PHIEU.loaiToChucDong);
   const thieu = mucChuaDapUng(batBuoc, { loaiHopLe, loaiToChucHopLe, ...k.muc });
   if (thieu.length > 0) return error(400, "items_missing", `Chưa đủ thông tin để gửi: ${thieu.map(nhanMucChoNguoiDangKy).join(", ")}.`);
 

@@ -14,6 +14,8 @@ export const NHAN_O_TEP: Readonly<Record<string, string>> = { CCCD_MAT_TRUOC: "�
 
 /** Hai ô ảnh của PHẦN TỔ CHỨC (khoá = `O_TEP_TO_CHUC` của máy chủ; đợt 2 Task 8). Chỉ hiện khi phiếu có phần tổ chức. */
 export const NHAN_O_TEP_TO_CHUC: Readonly<Record<string, string>> = { GPKD: "Ảnh giấy chứng nhận đăng ký kinh doanh", GIAY_PHEP_THEM: "Ảnh giấy phép thêm" };
+/** Ô ảnh của phần tổ chức mà phiếu còn tệp chờ (theo thứ tự khai). Biểu mẫu LUÔN hiện các ô này kèm «Bỏ ảnh này», kể cả khi phần tổ chức đã đóng — nếu không, máy chủ báo `org_photo_without_org` mà không có lối ra. */
+export const anhToChucConLai = (tep: readonly { o: string }[]): string[] => Object.keys(NHAN_O_TEP_TO_CHUC).filter((ma) => tep.some((t) => t.o === ma));
 /** Khu của phần tổ chức → ô ảnh nằm ở khu đó (khu không có ô ảnh thì vắng). */
 export const O_TEP_CUA_KHU: Readonly<Partial<Record<KhuO, string>>> = { gpkd: "GPKD", giayPhepThem: "GIAY_PHEP_THEM" };
 /** Tiêu đề từng khu của phần tổ chức (chờ chủ chọn). */
@@ -48,7 +50,8 @@ export const CHU_DANG_KY = {
   nhanVaiToChuc: "Vai trò của tổ chức",
   chonVaiToChuc: "Chọn vai trò của tổ chức",
   giaiThichAnhToChuc: "Chụp hoặc chọn ảnh giấy chứng nhận đăng ký kinh doanh. Giấy phép thêm không bắt buộc.",
-  toChucDangDong: "Tour Đảo tạm ngừng nhận thông tin tổ chức. Phiếu này đã có phần tổ chức nên chưa gửi lại được; hãy quay lại sau.",
+  toChucDangDong: "Tour Đảo tạm ngừng nhận thông tin tổ chức. Nếu bạn đã tải ảnh giấy phép, hãy bỏ ảnh ở dưới. Phiếu đã gửi kèm phần tổ chức thì chưa gửi lại được, hãy quay lại sau.",
+  hayChonVaiToChuc: "Hãy chọn vai trò của tổ chức.",
   hoiBoToChuc: "Bỏ phần tổ chức? Ảnh giấy phép đã gửi sẽ bị gỡ.",
   khoiPhucToChuc: "Thôi",
   daGoAnh: "Đã gỡ ảnh.",
