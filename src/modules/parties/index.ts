@@ -175,6 +175,16 @@ export const hoSoMangNhanDoiTac = (db: D1Database, partyIds: readonly string[]):
 export async function loaiVaiChiTiet(db: D1Database): Promise<{ code: string; ten: string; nhom: string; partnerLabel: boolean; dangBat: boolean; ghiChu: string | null; taoLuc: string | null; taoBoi: string | null; suaLuc: string | null; suaBoi: string | null }[]> {
   return (await listRoleTypes(db)).map((t) => ({ code: t.code, ten: t.name, nhom: t.role_group, partnerLabel: t.partnerLabel, dangBat: t.active === 1, ghiChu: t.note, taoLuc: t.created_at, taoBoi: t.created_by, suaLuc: t.updated_at, suaBoi: t.updated_by }));
 }
+/**
+ * HÀM CÔNG BỐ (ADR-0212 Đ1) cho module dang-ky: các vai ĐĂNG KÝ ĐƯỢC = mọi `pty_role_type` đang dùng (`active = 1`) thuộc nhóm bên ngoài (`EXTERNAL`) HOẶC mang cờ loại đối tác
+ * (`is_partner_label = 1`), theo `sort_order`. Vai nội bộ và vai khác nhóm OTHER không cờ (Nhà xe, công ty chủ) không bao giờ vào. Đây là NGUỒN DUY NHẤT của danh sách (mã, tên, nhóm, cờ);
+ * Kế toán thêm / tắt loại ở trang Hoa hồng thì danh sách đổi theo, không sửa mã. Đọc lại `listRoleTypes`, không thêm câu SQL.
+ */
+export async function vaiDangKyDuoc(db: D1Database): Promise<{ ma: string; ten: string; nhom: string; laLoaiDoiTac: boolean }[]> {
+  return (await listRoleTypes(db))
+    .filter((t) => t.active === 1 && (t.role_group === "EXTERNAL" || t.partnerLabel))
+    .map((t) => ({ ma: t.code, ten: t.name, nhom: t.role_group, laLoaiDoiTac: t.partnerLabel }));
+}
 /** CÂU CHƯA CHẠY: thêm một loại đối tác (nhóm OTHER, nhãn, đang dùng) — pricing gộp vào cùng `db.batch()` với dòng danh sách được hưởng và nhật ký. Chỉ module parties ghi `pty_role_type`. */
 export { themLoaiDoiTacStatement };
 /** CÂU CHƯA CHẠY: tắt / bật một loại đối tác (chỉ loại có nhãn; loại khác hoặc đã đúng trạng thái ⇒ 0 dòng đổi). */

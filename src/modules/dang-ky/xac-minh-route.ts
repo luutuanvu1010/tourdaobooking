@@ -13,6 +13,7 @@ import { auditStatement } from "../audit";
 import {
   accountRolesOf, cauGoTepChoNeuTruocDoi, cheSo, hoSoCaNhanKhop, hoSoTheoSoGiayTo, khoTepChoSanSang, moTepChoTuKho, mucXacMinhBatBuocCaNhan, partySummary, tepChoDeXemCuaPhieu,
   timTepChoDeXem, xoaKhoTepChoDaGo,
+  tenLoaiVai,
 } from "../parties";
 import { getStaffAccountOfParty } from "../staff";
 import {
@@ -59,7 +60,8 @@ export async function xemHangCho({ env, staff }: Ctx<"accounts">): Promise<Respo
   // Lọc theo năng lực (không phải cổng): xác minh được ⇒ phiếu chưa kết thúc; account.create ⇒ CHỜ DUYỆT + ĐÃ DUYỆT chưa kích hoạt; cả hai ⇒ hợp. Chỉ mã, loại, mốc — không tên, không liên hệ.
   // `thu` = thư báo mới nhất của phiếu (loại + chờ / đã gửi / lỗi — ADR-0206 Đ13); `conNua` = còn phiếu ngoài trần (rà soát cuối I-4).
   const { ds, conNua } = await hangCho(env.DB, { xacMinh: can(staff, "party.verify") && can(staff, "party.view"), duyet: can(staff, "account.create") });
-  return json({ phieu: ds.map((r) => ({ id: r.id, trangThai: r.status, loai: r.role_code, phienBan: r.current_version, guiLuc: r.submitted_at, thu: thuCuaDong(r) })), conNua });
+  const ten = await tenLoaiVai(env.DB);
+  return json({ phieu: ds.map((r) => ({ id: r.id, trangThai: r.status, loai: r.role_code, tenLoai: ten.get(r.role_code) ?? r.role_code, phienBan: r.current_version, guiLuc: r.submitted_at, thu: thuCuaDong(r) })), conNua });
 }
 
 // ---- GET /api/dang-ky/phieu/:id ----
@@ -67,11 +69,12 @@ export async function xemPhieu({ env, staff, params }: Ctx<"accounts">): Promise
   const id = idPhieu(params);
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p) return KHONG_THAY();
+  const tenLoai = (await tenLoaiVai(env.DB)).get(p.role_code) ?? p.role_code;
   // Chỉ phiếu CHỜ XÁC MINH có nội dung. Đã xử lý, đã chuyển bước, hay đang điền: chỉ tóm tắt (mã, loại, trạng thái) — không tên, không liên hệ, không số.
-  if (p.status !== "CHO_XAC_MINH" || p.current_version < 1) return json({ id: p.id, loai: p.role_code, trangThai: p.status, phienBan: p.current_version, daXuLy: true });
+  if (p.status !== "CHO_XAC_MINH" || p.current_version < 1) return json({ id: p.id, loai: p.role_code, tenLoai, trangThai: p.status, phienBan: p.current_version, daXuLy: true });
   const at = new Date().toISOString();
   const [bk, batBuoc, kl, tep] = await Promise.all([banKhaiXet(env.DB, p.id, p.current_version), mucPhaiDat(env.DB, at), moiNhat(env.DB, p), tepChoDeXemCuaPhieu(env.DB, p.id)]);
-  if (!bk) return json({ id: p.id, loai: p.role_code, trangThai: p.status, phienBan: p.current_version, daXuLy: true });
+  if (!bk) return json({ id: p.id, loai: p.role_code, tenLoai, trangThai: p.status, phienBan: p.current_version, daXuLy: true });
   const hoTen = [bk.family_name, bk.middle_name, bk.given_name].filter((x): x is string => !!x).join(" ");
   const [theoTen, theoSo] = await Promise.all([
     hoSoCaNhanKhop(env.DB, { phone: bk.phone_key, ten: hoTen }),
@@ -85,7 +88,7 @@ export async function xemPhieu({ env, staff, params }: Ctx<"accounts">): Promise
     else goiY.set(r.id, { id: r.id, tenHoSo: r.displayName, vai: r.vai, lyDo: ["DOCUMENT"] });
   }
   return json({
-    id: p.id, loai: p.role_code, trangThai: p.status, phienBan: p.current_version, guiLuc: p.submitted_at,
+    id: p.id, loai: p.role_code, tenLoai, trangThai: p.status, phienBan: p.current_version, guiLuc: p.submitted_at,
     noiDung: {
       hoTen, gioiTinh: bk.gender, ngaySinh: bk.birth_date, diaChi: bk.address_value, soDienThoai: bk.phone_value, nguoiGioiThieuKhai: bk.referrer_text,
       giayTo: bk.document_type_code ? { loai: bk.document_type_code, soChe: cheSo(bk.number_key), hang: bk.license_class_code, ngayCap: bk.issued_date, noiCap: bk.issued_place, hetHan: bk.expiry_date } : null,

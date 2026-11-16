@@ -7,7 +7,7 @@
 // (mất khi đóng), không lưu ở đâu. Không ô chữ tự do: lý do chọn trong danh sách đóng. Chỉ dựng DOM bằng h().
 import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
-import { ROLES, ROLE_CODES, isRoleCode } from "../src/shared/roles";
+import { ROLES, ROLE_CODES } from "../src/shared/roles";
 import { NHAN_O_TEP, CHU_HANG_CHO_DK, NHAN_LOAI_THU } from "../src/shared/dang-ky-giao-dien";
 import { LY_DO_PHIEU, nhanTrangThaiPhieu, type MaLyDoPhieu } from "../src/shared/dang-ky-hien-thi";
 import { CAU_DOI_VAI_CAP, type KetQuaCapDto } from "../src/shared/cap-se-ap-hien-thi";
@@ -17,22 +17,22 @@ import { h, replaceChildren } from "./dom";
 
 type Staff = Api.StaffProfile;
 type ThuBao = { loai: string; trangThai: "CHO" | "GUI" | "LOI" };
-type DongHangCho = { id: string; trangThai: string; loai: string; phienBan: number; guiLuc: string | null; thu?: ThuBao | null };
+type DongHangCho = { id: string; trangThai: string; loai: string; tenLoai: string; phienBan: number; guiLuc: string | null; thu?: ThuBao | null };
 type Muc = { ma: string; nhan: string; ketLuan: "DAT" | "KHONG_DAT" | null; lyDo: { ma: string; nhan: string } | null };
 type PhieuXacMinh = {
-  id: string; loai: string; trangThai: string; phienBan: number; guiLuc?: string | null; daXuLy?: boolean;
+  id: string; loai: string; tenLoai: string; trangThai: string; phienBan: number; guiLuc?: string | null; daXuLy?: boolean;
   noiDung?: { hoTen: string; ngaySinh: string | null; diaChi: string | null; soDienThoai: string | null; nguoiGioiThieuKhai: string | null;
     giayTo: { loai: string; soChe: string | null; ngayCap: string | null; noiCap: string | null; hetHan: string | null } | null };
   muc?: Muc[]; tep?: { id: string; o: string }[]; goiY?: { id: string; tenHoSo: string; vai: string[]; lyDo: string[] }[];
   ketLuanDanhBa?: { kieu: string; partyId: string | null } | null;
 };
 type PhieuDuyet = {
-  id: string; loai: string; trangThai: string; phienBan: number; daXuLy?: boolean; guiLuc?: string | null; hoTen?: string; soDienThoai?: string | null; muc?: Muc[];
+  id: string; loai: string; tenLoai: string; trangThai: string; phienBan: number; daXuLy?: boolean; guiLuc?: string | null; hoTen?: string; soDienThoai?: string | null; muc?: Muc[];
   ketLuanDanhBa?: { kieu: string; tenHoSo?: string } | null; coNguoiGioiThieu?: boolean; nguoiXacMinhLaBan?: boolean;
 };
 
 const cauLoi = (e: unknown) => (e instanceof ApiError ? e.message : "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
-const tenVai = (ma: string) => (isRoleCode(ma) ? ROLES[ma].name : ma);
+// Tên vai do máy chủ trả (`tenLoai`, từ pty_role_type — ADR-0212 Đ1 mục 5); không tra ROLES trong mã.
 const VAI_DOI_TAC = ROLE_CODES.filter((r) => ROLES[r].group === "EXTERNAL" && ROLES[r].defaults.includes("PARTNER"));
 const LY_DO_KHOP: Record<string, string> = { PHONE: "trùng số điện thoại", NAME: "trùng tên", DOCUMENT: "trùng số giấy tờ" };
 
@@ -80,7 +80,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     const nhan = p.trangThai === "DA_DUYET" ? CHU_HANG_CHO_DK.chuaKichHoat : nhanTrangThaiPhieu(p.trangThai);
     return h("button", { type: "button", class: "xm-the xm-the-cho", "data-phieu": p.id, onclick: () => void moChiTiet(p) },
       h("span", { class: "xm-the-dong" }, h("strong", null, p.id), h("span", { class: "huy-hieu", "data-tong": p.trangThai === "DA_DUYET" ? "cat" : "bien" }, nhan)),
-      h("span", null, tenVai(p.loai)),
+      h("span", null, p.tenLoai),
       p.guiLuc ? h("span", { class: "muted" }, `Gửi lúc ${vnDateTimeText(p.guiLuc)}`) : null,
       huyHieuThu(p.thu));
   }
@@ -230,7 +230,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     });
     replaceChildren(ketThuc, nutDat);
     moKhung(k.el,
-      dong("Vai trò xin", tenVai(d.loai)), d.guiLuc ? dong("Gửi lúc", vnDateTimeText(d.guiLuc)) : null,
+      dong("Vai trò xin", d.tenLoai), d.guiLuc ? dong("Gửi lúc", vnDateTimeText(d.guiLuc)) : null,
       dong("Họ tên", n.hoTen), dong("Ngày sinh", n.ngaySinh ? ngayVN(n.ngaySinh) : "Không có"), dong("Địa chỉ", n.diaChi ?? "Không có"), dong("Số điện thoại", n.soDienThoai ?? "Không có"),
       n.nguoiGioiThieuKhai ? dong("Người giới thiệu (khai)", n.nguoiGioiThieuKhai) : null,
       g ? h("div", { class: "hs-dong" }, h("span", { class: "muted" }, "Số căn cước"), soEl, hienSo) : null,
@@ -269,7 +269,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       void lenhDk(p, async () => { await api(`/api/dang-ky/phieu/${d.id}/tu-choi-duyet`, { method: "POST", body: { lyDo: ma, phienBan: d.phienBan } }); return "Đã từ chối phiếu."; });
     });
     moKhung(k.el,
-      dong("Họ tên", d.hoTen ?? ""), dong("Số điện thoại", d.soDienThoai ?? "Không có"), dong("Vai trò xin", tenVai(d.loai)), ...muc,
+      dong("Họ tên", d.hoTen ?? ""), dong("Số điện thoại", d.soDienThoai ?? "Không có"), dong("Vai trò xin", d.tenLoai), ...muc,
       dong("Kết luận Danh bạ", d.ketLuanDanhBa ? (d.ketLuanDanhBa.kieu === "EXISTING" ? `Gắn hồ sơ có sẵn${d.ketLuanDanhBa.tenHoSo ? `: ${d.ketLuanDanhBa.tenHoSo}` : ""}` : CHU_HANG_CHO_DK.hoSoMoi) : "Chưa có"),
       d.nguoiXacMinhLaBan ? h("p", { class: "xm-chan" }, "Bạn là người đã xác minh phiếu này; người duyệt phải là người khác (trừ Toàn quyền).") : null,
       h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Vai trò đối tác"), vai), baoDoiVai,

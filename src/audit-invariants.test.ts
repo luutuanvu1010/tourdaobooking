@@ -5004,3 +5004,36 @@ test("R-DK-5 (ADR-0207 Đ5, Đ7; ADR-0208 Đ6 — Task 9 M7): Đã duyệt có b
   db.prepare("UPDATE dk_registration SET erased_at = ? WHERE id = ?").run(DK_AT2, mo);
   assert.equal(violations(db, c), 3, "phiếu Đã duyệt mang mốc ẩn danh của phiếu");
 });
+
+test("R-DK-6 (ADR-0212 Đ1 mục 5 b): cờ bật / tắt của loại đối tác trùng ở pty_role_type và prc_beneficiary_role → 0; lệch hoặc thiếu dòng được hưởng → vi phạm", () => {
+  const c = one("R-DK-6");
+  assert.equal(c.level, "fail");
+  const db = build();
+  assert.equal(violations(db, c), 0, "CSDL khoẻ (vai có mã không xét)");
+  db.prepare("INSERT INTO pty_role_type (code, name, sort_order, role_group, is_partner_label, active) VALUES ('LD_A', 'Loại A', 40, 'OTHER', 1, 1)").run();
+  db.prepare("INSERT INTO prc_beneficiary_role (role_type_code, active, created_at, updated_at) VALUES ('LD_A', 1, ?, ?)").run(T1, T1);
+  assert.equal(violations(db, c), 0, "cả hai bật");
+  db.prepare("UPDATE prc_beneficiary_role SET active = 0, updated_at = ? WHERE role_type_code = 'LD_A'").run(T2);
+  assert.equal(violations(db, c), 1, "pty_role_type bật, danh sách được hưởng tắt");
+  db.prepare("UPDATE pty_role_type SET active = 0 WHERE code = 'LD_A'").run();
+  assert.equal(violations(db, c), 0, "cả hai tắt");
+  db.prepare("INSERT INTO pty_role_type (code, name, sort_order, role_group, is_partner_label, active) VALUES ('LD_B', 'Loại B', 41, 'OTHER', 1, 1)").run();
+  assert.equal(violations(db, c), 1, "loại có cờ mà không có dòng được hưởng");
+});
+
+test("R-DK-7 (ADR-0212 Đ1 mục 5 c): chính sách đăng ký hiện hành chỉ mở mã có trong pty_role_type → 0; mở mã lạ → vi phạm; dòng tương lai không xét", () => {
+  const c = one("R-DK-7");
+  assert.equal(c.level, "fail");
+  const db = build();
+  assert.equal(violations(db, c), 0, "dòng gieo 0170: bốn mã có thật");
+  db.exec("DROP TRIGGER dk_policy_no_update");
+  db.prepare("UPDATE dk_policy SET open_role_codes = 'GUIDE_FREELANCE, MA_LA ,TAXI_DRIVER'").run();
+  assert.equal(violations(db, c), 1, "một mã lạ (dấu cách quanh mã được bỏ)");
+  db.prepare("UPDATE dk_policy SET open_role_codes = 'MA_LA,MA_LA_2'").run();
+  assert.equal(violations(db, c), 2, "hai mã lạ");
+  db.prepare("UPDATE dk_policy SET open_role_codes = ''").run();
+  assert.equal(violations(db, c), 0, "chưa mở loại nào");
+  db.prepare("UPDATE dk_policy SET open_role_codes = 'GUIDE_FREELANCE'").run();
+  db.prepare("INSERT INTO dk_policy SELECT 'tuong-lai', registration_open, 'MA_LA', code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour, session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, 'ROLE,CALLED', '2999-01-01T00:00:00.000Z', created_at, created_by, updated_at, updated_by FROM dk_policy LIMIT 1").run();
+  assert.equal(violations(db, c), 0, "dòng có mốc ở tương lai chưa hiện hành");
+});

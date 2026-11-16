@@ -5633,7 +5633,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
 
 /** Nút máy dò là ghi dữ liệu hay nút chính nhưng không phải việc quan trọng (chỉ tải lại, chỉ ẩn khung…); mỗi mục có lý do. */
 export const BO_QUA: readonly MucBoQua[] = [
-  { tep: "web/dang-ky-hang-cho.ts", chu: "⟪p.id⟫ / Chưa kích hoạt / ⟪nhanTrangThaiPhieu(p.trangThai)⟫ / ⟪tenVai(p.loai)⟫ / Gửi lúc ‹…› / ⟪huyHieuThu(p.thu)⟫", lyDo: "thẻ một phiếu trong hàng chờ đăng ký: chỉ mở khung chi tiết của phiếu, không ghi gì; việc ghi nằm ở các nút trong khung (huy hiệu thư báo chỉ là chữ, thêm 2026-11-16)" },
+  { tep: "web/dang-ky-hang-cho.ts", chu: "⟪p.id⟫ / Chưa kích hoạt / ⟪nhanTrangThaiPhieu(p.trangThai)⟫ / ⟪p.tenLoai⟫ / Gửi lúc ‹…› / ⟪huyHieuThu(p.thu)⟫", lyDo: "thẻ một phiếu trong hàng chờ đăng ký: chỉ mở khung chi tiết của phiếu, không ghi gì; việc ghi nằm ở các nút trong khung (huy hiệu thư báo chỉ là chữ, thêm 2026-11-16)" },
   { tep: "web/dang-ky.ts", chu: "Đăng nhập", lyDo: "liên kết sang màn Đăng nhập sau khi đã đặt mã PIN; không ghi gì (việc đăng nhập là hàng «Đăng nhập» ở public/login.html)" },
   { tep: "web/shell.ts", chu: "⟪nho.tat⟫", lyDo: "ô chữ cái đầu ở thanh trên (điện thoại): chỉ mở menu tên tài khoản, không ghi gì; việc ghi nằm ở các mục trong menu (web/menu-tai-khoan.ts). Khung tạm từ bản nhớ không dựng nút này" },
   { tep: "web/shell.ts", chu: "⟪initials(staff.fullName)⟫", lyDo: "ô chữ cái đầu ở thanh trên (điện thoại): chỉ mở menu tên tài khoản, không ghi gì; việc ghi nằm ở các mục trong menu (web/menu-tai-khoan.ts)" },

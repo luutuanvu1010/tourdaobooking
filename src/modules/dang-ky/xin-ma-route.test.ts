@@ -384,7 +384,9 @@ test("GET /api/dang-ky/cau-hinh: công tắc, loại đối tác mở, mục b�
   const r = await w.call("GET", "/api/dang-ky/cau-hinh");
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.nhanDangKy, true);
-  assert.deepEqual(r.json.loaiMo, ["GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAXI_DRIVER", "COLLABORATOR"], "gieo 0170: bốn loại mở, không có TRAVEL_AGENCY");
+  assert.deepEqual(r.json.loaiMo.map((x: any) => x.ma), ["GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAXI_DRIVER", "COLLABORATOR"], "gieo 0170: bốn loại mở, không có TRAVEL_AGENCY");
+  for (const x of r.json.loaiMo) assert.deepEqual(Object.keys(x).sort(), ["ma", "phan", "ten"]);
+  assert.equal(r.json.loaiMo[0].ten, "Hướng dẫn viên độc lập", "tên từ pty_role_type");
   assert.ok(Array.isArray(r.json.mucBatBuoc) && r.json.mucBatBuoc.length >= 1);
   for (const m of r.json.mucBatBuoc) assert.deepEqual(Object.keys(m).sort(), ["ma", "nhan"]);
   assert.equal(r.json.chinhSachRiengTu, 1);

@@ -43,8 +43,15 @@ test("(1) Chỉ Toàn quyền xem và đổi; Quản trị, Nhân sự, Bán hà
   const r = await xem(w);
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.nhanDangKy, false, "bản gieo: công tắc tắt");
-  assert.deepEqual(r.json.loaiCoThe.map((x: any) => x.ma), LOAI);
-  assert.ok(!r.json.loaiCoThe.some((x: any) => x.ma === "TRAVEL_AGENCY"));
+  // ADR-0212 Đ1: danh sách đọc từ pty_role_type (sáu vai bên ngoài), kèm tên từ bảng và câu «chưa mở được» (null = mở được).
+  assert.deepEqual(r.json.loaiCoThe.map((x: any) => x.ma), ["TRAVEL_AGENCY", ...LOAI, "DRIVER_EXTERNAL"], "theo sort_order của bảng");
+  const tuBang = Object.fromEntries(w.q("SELECT code, name FROM pty_role_type").map((x: any) => [x.code, x.name]));
+  for (const l of r.json.loaiCoThe) assert.equal(l.ten, tuBang[l.ma], `tên ${l.ma} từ bảng`);
+  const lyDo = Object.fromEntries(r.json.loaiCoThe.map((x: any) => [x.ma, x.lyDoChuaMo]));
+  for (const ma of LOAI) assert.equal(lyDo[ma], null, ma);
+  assert.match(lyDo.TRAVEL_AGENCY, /Công ty lữ hành/);
+  assert.match(lyDo.DRIVER_EXTERNAL, /bằng lái/);
+  assert.equal(r.json.loaiCoThe.every((x: any) => x.laLoaiDoiTac === false), true, "sáu vai có sẵn không mang cờ loại đối tác");
   const truoc = soDong(w);
   for (const as of [ADM, HR, SALES]) {
     assert.equal((await xem(w, as)).status, 403, `xem ${as}`);
@@ -163,4 +170,52 @@ test("(7) Câu đổi chính sách chép ĐỦ mọi cột của dk_policy (so P
     if (ROUTE_DAT.has(c)) assert.match(chon[i]!, /^\?\d+$/, `${c}: route tự đặt bằng tham số`);
     else assert.equal(chon[i], `p.${c}`, `${c}: phải chép nguyên từ dòng hiện hành`);
   }
+});
+
+// ---- ADR-0212 Đ1, Đ2: danh sách vai là dữ liệu ----
+const themLoai = (w: any, ma = "LD_TEST", ten = "Loại thử", active = 1) =>
+  w.sqlite.exec(`INSERT INTO pty_role_type (code, name, sort_order, active, role_group, is_partner_label, created_at, created_by, updated_at, updated_by) VALUES ('${ma}', '${ten}', 150, ${active}, 'OTHER', 1, '${AT}', '${SUP}', '${AT}', '${SUP}')`);
+
+test("(8) Loại do Kế toán thêm (có cờ) tự hiện với tên từ bảng; tắt thì biến mất; mở được ⇒ 200", async () => {
+  const w = setup();
+  themLoai(w);
+  const r = await xem(w);
+  const l = r.json.loaiCoThe.find((x: any) => x.ma === "LD_TEST");
+  assert.deepEqual(l, { ma: "LD_TEST", ten: "Loại thử", laLoaiDoiTac: true, lyDoChuaMo: null });
+  const mo = await doi(w, { nhanDangKy: true, loaiMo: ["LD_TEST"], dangHieuLuc: r.json.id });
+  assert.equal(mo.status, 200, mo.text);
+  assert.deepEqual(mo.json.loaiMo, ["LD_TEST"]);
+  w.sqlite.exec("UPDATE pty_role_type SET active = 0 WHERE code = 'LD_TEST'");
+  assert.equal((await xem(w)).json.loaiCoThe.some((x: any) => x.ma === "LD_TEST"), false, "tắt ⇒ biến khỏi danh sách");
+});
+
+test("(9) Vai nội bộ, vai OTHER không cờ, vai lạ ⇒ 400; Công ty lữ hành và Tài xế đối tác ⇒ 400 kèm câu nói thiếu gì", async () => {
+  const w = setup();
+  const id = moiNhat(w).id;
+  const truoc = soDong(w);
+  for (const ma of ["ACCOUNTANT", "DIRECTOR", "CARRIER", "OWNER_COMPANY", "KHONG_CO"]) {
+    const r = await doi(w, { nhanDangKy: true, loaiMo: [ma], dangHieuLuc: id });
+    assert.equal(r.status, 400, `${ma}: ${r.text}`);
+  }
+  const ta = await doi(w, { nhanDangKy: true, loaiMo: ["TRAVEL_AGENCY"], dangHieuLuc: id });
+  assert.equal(ta.status, 400);
+  assert.match(ta.json.error.message, /Công ty lữ hành/);
+  const tx = await doi(w, { nhanDangKy: true, loaiMo: ["DRIVER_EXTERNAL"], dangHieuLuc: id });
+  assert.equal(tx.status, 400);
+  assert.match(tx.json.error.message, /bằng lái/);
+  assert.equal(soDong(w), truoc);
+});
+
+test("(10) Cấu hình công khai: chính sách còn mã đã tắt ⇒ không có trong loaiMo; loaiMo là {ma, ten, phan}; lưu nháp mã đó ⇒ 400", async () => {
+  const w = setup();
+  themLoai(w);
+  const r = await doi(w, { nhanDangKy: true, loaiMo: ["COLLABORATOR", "LD_TEST"], dangHieuLuc: moiNhat(w).id });
+  assert.equal(r.status, 200, r.text);
+  const ch = await w.call("GET", "/api/dang-ky/cau-hinh");
+  const mo = Object.fromEntries(ch.json.loaiMo.map((x: any) => [x.ma, x]));
+  assert.deepEqual(mo.LD_TEST, { ma: "LD_TEST", ten: "Loại thử", phan: "CA_NHAN_HOAC_TO_CHUC" });
+  assert.equal(mo.COLLABORATOR.phan, "CA_NHAN");
+  w.sqlite.exec("UPDATE pty_role_type SET active = 0 WHERE code = 'LD_TEST'");
+  const ch2 = await w.call("GET", "/api/dang-ky/cau-hinh");
+  assert.deepEqual(ch2.json.loaiMo.map((x: any) => x.ma), ["COLLABORATOR"]);
 });

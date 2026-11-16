@@ -2546,6 +2546,33 @@ export const CHECKS = [
     level: "fail",
     note: "ADR-0208 Đ6: dữ liệu cá nhân của bản khai phải ẩn danh ngay lúc duyệt, email danh tính ngay lúc kích hoạt — đối chiếu lô duyệt / kích hoạt của phiếu nêu mã",
   },
+  {
+    // R-DK-6 (ADR-0212 Đ1 mục 5 b): MỘT nguồn bật / tắt của loại đối tác. Chỉ xét dòng MANG CỜ loại đối tác (`is_partner_label = 1`; vai có mã như Tài xế đối tác không có dòng được hưởng nên
+    // không xét): `pty_role_type.active` và `prc_beneficiary_role.active` cùng mã phải trùng (ADR-0117 Đ1 đặt cả hai trong một lô). Thiếu dòng được hưởng cũng là lệch.
+    code: "R-DK-6",
+    what: "loại đối tác mang cờ mà cờ bật / tắt ở pty_role_type lệch với danh sách được hưởng hoa hồng (prc_beneficiary_role)",
+    sql: `SELECT t.code FROM pty_role_type t LEFT JOIN prc_beneficiary_role b ON b.role_type_code = t.code
+     WHERE t.is_partner_label = 1 AND (b.role_type_code IS NULL OR b.active <> t.active)`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0212 Đ1: danh sách vai đăng ký đọc pty_role_type, hoa hồng đọc prc_beneficiary_role — lệch nghĩa là loại hiện ở nơi này mà tắt ở nơi kia; đối chiếu lô thêm / tắt loại ở trang Hoa hồng",
+  },
+  {
+    // R-DK-7 (ADR-0212 Đ1 mục 5 c): dòng chính sách đăng ký HIỆN HÀNH (mốc mới nhất không ở tương lai) không được mở một mã vai không còn trong `pty_role_type`. Tách `open_role_codes` (cách nhau dấu phẩy) bằng CTE đệ quy.
+    code: "R-DK-7",
+    what: "chính sách đăng ký hiện hành mở một mã vai không có trong pty_role_type",
+    sql: `WITH RECURSIVE cur(csv) AS (
+         SELECT open_role_codes || ',' FROM dk_policy
+          WHERE valid_from_at = (SELECT max(valid_from_at) FROM dk_policy WHERE valid_from_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))),
+       tach(ma, con) AS (
+         SELECT trim(substr(csv, 1, instr(csv, ',') - 1)), substr(csv, instr(csv, ',') + 1) FROM cur
+         UNION ALL
+         SELECT trim(substr(con, 1, instr(con, ',') - 1)), substr(con, instr(con, ',') + 1) FROM tach WHERE con <> '')
+       SELECT ma FROM tach WHERE ma <> '' AND ma NOT IN (SELECT code FROM pty_role_type)`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0212 Đ1: lệnh đổi chính sách chỉ nhận mã có trong danh sách vai; mã lạ là SQL chạy tay hoặc loại bị xoá cứng khỏi pty_role_type",
+  },
 ];
 
 /**

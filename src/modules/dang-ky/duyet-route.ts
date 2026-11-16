@@ -13,7 +13,7 @@ import { groupOf, isRoleCode, roleAssignmentProblem } from "../../shared/roles.t
 import type { Ctx } from "../../shared/router.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import { auditStatement } from "../audit";
-import { canCuocThuocHoSoKhac, cauGoTepChoNeuTruocDoi, partySummary, validateContact, xoaKhoTepChoDaGo } from "../parties";
+import { canCuocThuocHoSoKhac, cauGoTepChoNeuTruocDoi, partySummary, tenLoaiVai, validateContact, xoaKhoTepChoDaGo } from "../parties";
 import { findStaffByPhone, tenVaiTaiKhoan } from "../staff";
 import {
   banKhaiDeDuyet, cauXepThu, chinhSachHienHanh, danhTinhConEmail, emailLienLacCuaPhieu, guiLaiLoiMoiStatement, ketLuanMoiNhat, phieuXet, suKienNhanVienStatement, tomTatDeDuyet,
@@ -45,7 +45,7 @@ export async function xemDeDuyet({ env, staff, params }: Ctx<"accounts">): Promi
   const id = idPhieu(params);
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p) return KHONG_THAY();
-  const tomTatPhieu = { id: p.id, loai: p.role_code, trangThai: p.status, phienBan: p.current_version };
+  const tomTatPhieu = { id: p.id, loai: p.role_code, tenLoai: (await tenLoaiVai(env.DB)).get(p.role_code) ?? p.role_code, trangThai: p.status, phienBan: p.current_version };
   if (p.status !== "CHO_DUYET" || p.current_version < 1) return json({ ...tomTatPhieu, daXuLy: true });
   const bk = await tomTatDeDuyet(env.DB, p.id, p.current_version);
   if (!bk) return json({ ...tomTatPhieu, daXuLy: true });

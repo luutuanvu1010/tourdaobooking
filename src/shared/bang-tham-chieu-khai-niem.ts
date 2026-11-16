@@ -468,7 +468,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     giaiNghia: "Công tắc của Toàn quyền ở Quản lý tài khoản (Bật, Tắt) cùng danh sách vai người dùng được đăng ký. Tắt: không ai mở được phiếu đăng ký mới, trang /dang-ky nói «Tour Đảo tạm ngừng nhận đăng ký mới.»; phiếu đã có vẫn đi tiếp. Lời giải thích, câu báo của khối do AI viết.",
     khacVoi: "Khác chế độ bảo trì (chặn mọi lệnh của người đăng ký).",
     chuDaLoai: [],
-    maNoiBo: ["registration_open", "open_role_codes", "/api/dang-ky/chinh-sach", "registration_policy_set", "VAI_MO_DUOC_CHO_PHIEU_CA_NHAN"],
+    maNoiBo: ["registration_open", "open_role_codes", "/api/dang-ky/chinh-sach", "registration_policy_set"],
     trangThai: "cho-chon",
     chuChon: "tên «Nhận đăng ký mới» (Bật, Tắt) theo PHU-LUC lượt A; câu chữ của khối AI viết 2026-11-16 (Task 12 vòng sửa 1), chờ chủ chọn",
   }),

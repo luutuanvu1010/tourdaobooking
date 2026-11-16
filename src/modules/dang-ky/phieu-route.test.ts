@@ -588,3 +588,18 @@ test("m4: bản chính sách riêng tư có ngày hiệu lực ở TƯƠNG LAI k
   w2.sqlite.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('cs-2', 2, 'm', 'Toàn văn mới.', ?, ?, 'x', ?, 'x')").run(tuongLai, tuongLai, tuongLai);
   assert.equal((await gui(w2, banKhai({ chinhSachPhienBan: 2 }))).json.error.code, "policy_changed", "bản chưa hiệu lực không đồng ý được");
 });
+
+test("ADR-0212 Đ1: loại do Kế toán thêm lưu nháp được; sau khi bị tắt thì lưu nháp mã đó ⇒ 400 và không còn trong cấu hình", async () => {
+  const w = setup();
+  const at = new Date().toISOString();
+  w.sqlite.exec(`INSERT INTO pty_role_type (code, name, sort_order, active, role_group, is_partner_label, created_at, created_by, updated_at, updated_by) VALUES ('LD_TEST', 'Loại thử', 150, 1, 'OTHER', 1, '${at}', 'x', '${at}', 'x')`);
+  w.sqlite.exec("DROP TRIGGER dk_policy_no_update"); // thử: chính sách có sẵn mã LD_TEST (đường thật là lệnh đổi chính sách)
+  w.sqlite.exec("UPDATE dk_policy SET open_role_codes = open_role_codes || ',LD_TEST'");
+  assert.equal((await luu(w, "LD_TEST")).status, 200);
+  assert.equal(w.q("SELECT role_code FROM dk_registration")[0].role_code, "LD_TEST");
+  w.sqlite.exec("UPDATE dk_registration SET role_code = ''");
+  w.sqlite.exec("UPDATE pty_role_type SET active = 0 WHERE code = 'LD_TEST'");
+  const r = await luu(w, "LD_TEST");
+  assert.equal(r.status, 400, r.text);
+  assert.equal((await w.call("GET", "/api/dang-ky/cau-hinh")).json.loaiMo.some((x: any) => x.ma === "LD_TEST"), false);
+});

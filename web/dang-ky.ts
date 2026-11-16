@@ -4,7 +4,6 @@
 // Cổng là cookie đăng ký (HttpOnly, máy chủ tự kiểm); trang không giữ dữ liệu khai ở đâu ngoài các ô đang mở (không localStorage). Ảnh thu nhỏ trên máy trước khi gửi (bỏ toạ độ chụp);
 // HEIC trình duyệt không mở được và PDF gửi nguyên (ADR-0208 Đ9). Trang KHÔNG xem lại được ảnh đã gửi (Đ3) — chỉ «Đã gửi» / «Chưa tải xong» theo ô. Chỉ dựng DOM bằng h().
 import type { PhieuDangKyDto } from "../src/shared/contracts";
-import { ROLES, isRoleCode } from "../src/shared/roles";
 import { nhanLoaiTep } from "../src/shared/tep-dinh-kem";
 import { maBase64 } from "../src/shared/tep-hien-thi";
 import { CAU_DONG_DANG_KY, CHU_DANG_KY, NHAN_O_TEP } from "../src/shared/dang-ky-giao-dien";
@@ -12,7 +11,7 @@ import { ApiError, api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { ACCEPT_ANH_PDF, thuNhoAnh } from "./thu-nho-anh";
 
-type CauHinh = { nhanDangKy: boolean; loaiMo: string[]; mucBatBuoc: { ma: string; nhan: string }[]; chinhSachRiengTu: number | null };
+type CauHinh = { nhanDangKy: boolean; loaiMo: { ma: string; ten: string; phan: string }[]; mucBatBuoc: { ma: string; nhan: string }[]; chinhSachRiengTu: number | null };
 class Loi extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
 }
@@ -162,7 +161,6 @@ async function taiPhieu(): Promise<void> {
   const p = await goiDk<PhieuDangKyDto>("/api/dang-ky/phieu");
   vePhieu(p);
 }
-const tenVai = (ma: string) => (isRoleCode(ma) ? ROLES[ma].name : ma);
 const ngayGio = (iso: string | null) => (iso ? new Date(iso).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "");
 
 function dauPhieu(p: PhieuDangKyDto): HTMLElement {
@@ -200,7 +198,8 @@ function veBieuMau(p: PhieuDangKyDto): void {
   const bk = p.banKhaiTruoc;
   const chonVai = h("select", { id: "dk-vai", class: "o", disabled: p.phienBan > 0 },
     h("option", { value: "" }, "Chọn vai người dùng"),
-    ...[...new Set([...cauHinh.loaiMo, ...(p.loai ? [p.loai.ma] : [])])].map((ma) => h("option", { value: ma, selected: p.loai?.ma === ma }, p.loai?.ma === ma ? p.loai.ten : tenVai(ma)))) as HTMLSelectElement;
+    // Tên vai do máy chủ trả (ADR-0212 Đ1 mục 5): loại đang mở lấy từ cấu hình, loại của phiếu lấy từ phiếu (kể cả khi đã tắt sau đó).
+    ...[...cauHinh.loaiMo.filter((l) => l.ma !== p.loai?.ma), ...(p.loai ? [p.loai] : [])].map((l) => h("option", { value: l.ma, selected: p.loai?.ma === l.ma }, l.ten))) as HTMLSelectElement;
   chonVai.addEventListener("change", () => {
     if (!chonVai.value) return;
     void (async () => {

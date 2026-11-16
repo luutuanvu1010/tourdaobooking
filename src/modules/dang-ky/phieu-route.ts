@@ -21,7 +21,8 @@ import {
   banKhaiTruoc, cauKeoDaiHanNhap, chinhSachHienHanh, chinhSachRiengTuHienHanh, doiLoaiStatement, guiChenStatement, guiTienStatement, mucRiengCuaPhieu, phieuDeXem, rutStatement, suKienNguoiDangKyStatement,
   type BanKhaiMoi, type ChinhSachDangKyRow, type PhieuDeXemRow,
 } from "./repository.ts";
-import { dsLoaiMo, mucChuaDapUng, type DuLieuKiemMuc } from "./rules.ts";
+import { mucChuaDapUng, type DuLieuKiemMuc } from "./rules.ts";
+import { loaiMoHienTai } from "./vai.ts";
 import { mucBatBuoc } from "./xac-minh.ts";
 
 type Vao = { phien: { registrationId: string; identityId: string; startMs: number }; chinhSach: ChinhSachDangKyRow; phieu: PhieuDeXemRow; nowMs: number; at: string };
@@ -104,7 +105,7 @@ export async function luuNhapPhieu(ctx: Ctx<"public">): Promise<Response> {
   if (chan) return chan;
   const body = await readJson(ctx.request);
   const loai = body?.loai;
-  if (typeof loai !== "string" || !dsLoaiMo(v.chinhSach.open_role_codes).includes(loai)) return error(400, "invalid_input", CAU_PHIEU.loaiDong);
+  if (typeof loai !== "string" || !(await loaiMoHienTai(ctx.env.DB, v.chinhSach.open_role_codes)).some((x) => x.ma === loai)) return error(400, "invalid_input", CAU_PHIEU.loaiDong);
   const { env } = ctx;
   const { registrationId, identityId } = v.phien;
   // Lưu nháp là một thao tác: đẩy hạn phiếu đang điền (câu tự canh trạng thái ĐANG ĐIỀN), cùng lô với đổi loại nếu có.
@@ -206,7 +207,7 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   // Mục bắt buộc = HỢP của mục chỉ phiếu cần (chính sách đăng ký) và mục bắt buộc của hồ sơ cá nhân (parties, view công bố) — ADR-0210 Đ1. Vai (ROLE) luôn bắt buộc: phiếu loại '' không gửi được.
   const [rieng, hoSo] = await Promise.all([mucRiengCuaPhieu(env.DB, v.at), mucXacMinhBatBuocCaNhan(env.DB)]);
   const batBuoc = [...new Set(["ROLE", ...mucBatBuoc(rieng, hoSo.map((m) => m.ma))])];
-  const loaiHopLe = v.phieu.role_code !== "" && dsLoaiMo(v.chinhSach.open_role_codes).includes(v.phieu.role_code);
+  const loaiHopLe = v.phieu.role_code !== "" && (await loaiMoHienTai(env.DB, v.chinhSach.open_role_codes)).some((x) => x.ma === v.phieu.role_code);
   const thieu = mucChuaDapUng(batBuoc, { loaiHopLe, ...k.muc });
   if (thieu.length > 0) return error(400, "items_missing", `Chưa đủ thông tin để gửi: ${thieu.map(nhanMucChoNguoiDangKy).join(", ")}.`);
 
