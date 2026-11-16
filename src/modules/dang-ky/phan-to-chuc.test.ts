@@ -71,16 +71,14 @@ test("GET /api/chinh-sach-rieng-tu công khai KHÔNG lộ dấu: chỉ phiên b�
   for (const cam of ["covers_org", "coToChuc", "phanToChuc", "coPhanToChuc"]) assert.equal(r.text.includes(cam), false, cam);
 });
 
-test("Công ty lữ hành cần ĐỦ HAI điều kiện: chính sách có dấu một mình chưa đủ (biểu mẫu chưa có phần tổ chức); thiếu dấu thì câu nêu cả hai", async () => {
+test("Công ty lữ hành cần ĐỦ HAI điều kiện: từ Task 13 biểu mẫu đã có phần tổ chức (hằng bật) ⇒ chỉ còn thiếu dấu của chính sách; có dấu ⇒ mở được (null)", async () => {
   const w = setup();
   const lyDo = async () => Object.fromEntries((await w.call("GET", "/api/dang-ky/chinh-sach", { as: SUP })).json.loaiCoThe.map((x: any) => [x.ma, x.lyDoChuaMo]));
   assert.equal((await dang(w)).status, 201);
   const khongDau = (await lyDo()).TRAVEL_AGENCY as string;
-  assert.match(khongDau, /phiếu đăng ký chưa có phần khai tổ chức/);
+  assert.doesNotMatch(khongDau, /phiếu đăng ký chưa có phần khai tổ chức/, "Task 13: biểu mẫu đã có phần tổ chức");
   assert.match(khongDau, /chính sách riêng tư chưa nêu việc thu thập thông tin của tổ chức/);
   assert.equal((await dang(w, { coPhanToChuc: true })).status, 201);
-  const coDau = (await lyDo()).TRAVEL_AGENCY as string;
-  assert.match(coDau, /phiếu đăng ký chưa có phần khai tổ chức/, "thiếu điều kiện còn lại ⇒ vẫn đóng");
-  assert.doesNotMatch(coDau, /chính sách riêng tư chưa nêu/, "điều kiện chính sách đã đủ nên câu không nhắc nữa");
-  assert.equal((await cauHinh(w)).loaiMo.some((x: any) => x.ma === "TRAVEL_AGENCY"), false);
+  assert.equal((await lyDo()).TRAVEL_AGENCY, null, "đủ hai điều kiện ⇒ mở được");
+  assert.equal((await cauHinh(w)).loaiMo.some((x: any) => x.ma === "TRAVEL_AGENCY"), false, "chưa có trong chính sách đăng ký ⇒ chưa mở cho người đăng ký");
 });

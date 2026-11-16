@@ -210,7 +210,7 @@ export async function kiemVaiXin(db: D1Database, vaiXin: string, buoc: "XAC_MINH
 }
 
 /** Hồ sơ đích «gắn hồ sơ có sẵn» phải qua đúng điều kiện của đường tạo tài khoản trên hồ sơ có sẵn (ADR-0207 Đ2 mục 4): cá nhân, đang dùng, chưa gộp, chưa có tài khoản, không lẫn nhóm vai. */
-export async function kiemHoSoDich(db: D1Database, partyId: string, vaiXin: string): Promise<{ code: string; message: string } | null> {
+export async function kiemHoSoDich(db: D1Database, partyId: string, vaiXin: string | null): Promise<{ code: string; message: string } | null> {
   const ho = await partySummary(db, partyId);
   if (!ho) return { code: "target_not_found", message: "Không tìm thấy hồ sơ đã chọn." };
   if (ho.kind !== "PERSON") return { code: "target_not_person", message: "Chỉ gắn được vào hồ sơ cá nhân." };
@@ -219,11 +219,14 @@ export async function kiemHoSoDich(db: D1Database, partyId: string, vaiXin: stri
   if (await getStaffAccountOfParty(db, partyId)) return { code: "target_has_account", message: "Hồ sơ này đã có tài khoản." };
   const dangMo = (await accountRolesOf(db, partyId, vnToday(new Date()))).filter((r) => r.validTo === null).map((r) => r.roleTypeCode).filter((c): c is RoleCode => isRoleCode(c));
   // Vai xin là loại đối tác do Kế toán thêm (`LD_…`, không phải RoleCode): hợp lệ CHỈ khi có trong `vaiDangKyDuoc` (một nguồn, ADR-0212 Đ1); tính là nhóm bên ngoài khi xét lẫn nhóm.
-  const loiVai = await kiemVaiXin(db, vaiXin, "DUYET");
-  if (loiVai) return loiVai;
-  const loaiDoiTac = !isRoleCode(vaiXin);
+  // Không vai cá nhân (phiếu «chỉ tổ chức», Task 13): tài khoản chỉ nhận quyền Đối tác (nhóm bên ngoài) ⇒ hồ sơ đang giữ vai nội bộ vẫn là lẫn nhóm.
+  if (vaiXin !== null) {
+    const loiVai = await kiemVaiXin(db, vaiXin, "DUYET");
+    if (loiVai) return loiVai;
+  }
+  const loaiDoiTac = vaiXin === null || !isRoleCode(vaiXin);
   const nhomDangMo = groupOf(dangMo);
-  if (groupOf([...dangMo, ...(isRoleCode(vaiXin) ? [vaiXin] : [])]) === "MIXED" || (loaiDoiTac && (nhomDangMo === "INTERNAL" || nhomDangMo === "MIXED"))) return { code: "target_mixed_group", message: "Hồ sơ này đang giữ vai trò khác nhóm (nội bộ/bên ngoài) — hãy đóng vai trò đó trước." };
+  if (groupOf([...dangMo, ...(vaiXin !== null && isRoleCode(vaiXin) ? [vaiXin] : [])]) === "MIXED" || (loaiDoiTac && (nhomDangMo === "INTERNAL" || nhomDangMo === "MIXED"))) return { code: "target_mixed_group", message: "Hồ sơ này đang giữ vai trò khác nhóm (nội bộ/bên ngoài) — hãy đóng vai trò đó trước." };
   return null;
 }
 
@@ -256,10 +259,12 @@ export async function xacMinhDat({ request, env, staff, params }: Ctx<"accounts"
   if (thieu.length > 0) return error(409, "items_not_passed", `Còn mục chưa đạt: ${thieu.map(nhanMucXacMinh).join(", ")}.`);
   if (k.value.hoSo === null && p.match_kind === null) return error(409, "registry_conclusion_missing", "Chưa có kết luận Danh bạ: hãy chọn «hồ sơ mới» hoặc gắn vào một hồ sơ có sẵn.");
   // Vai của phiếu kiểm cho CẢ hồ sơ mới lẫn hồ sơ có sẵn (một nguồn, chặn sớm): loại đã tắt không «đạt» để rồi kẹt ở bước duyệt.
-  const loiVai = await kiemVaiXin(env.DB, p.role_code, "XAC_MINH");
+  // Phiếu «chỉ tổ chức» (vai cá nhân rỗng — Task 13): kiểm vai của tổ chức thay vai cá nhân; rỗng cả hai ⇒ vai không hợp lệ.
+  const vaiCaNhan = p.role_code === "" ? null : p.role_code;
+  const loiVai = await kiemVaiXin(env.DB, vaiCaNhan ?? p.org_role_code ?? "", "XAC_MINH");
   if (loiVai) return error(409, loiVai.code, loiVai.message);
   if (k.value.hoSo?.kieu === "CO_SAN") {
-    const loi = await kiemHoSoDich(env.DB, k.value.hoSo.partyId, p.role_code);
+    const loi = await kiemHoSoDich(env.DB, k.value.hoSo.partyId, vaiCaNhan);
     if (loi) return error(409, loi.code, loi.message);
   }
   // Phần tổ chức (ADR-0212 Đ5 mục 3, 4): bắt buộc kết luận Danh bạ của tổ chức (trong thân hoặc đã ghi); bản khai không có phần tổ chức thì không nhận kết luận này.

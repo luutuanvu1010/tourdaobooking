@@ -521,7 +521,7 @@ export interface BanKhaiMoi {
   referrer: string | null;
 }
 // GỬI là hai câu có điều kiện NẰM TRONG câu ghi (không dựa vào đọc trước rồi ghi): (1) chèn bản khai kế tiếp CHỈ khi phiếu còn ĐANG ĐIỀN / CẦN BỔ SUNG, đúng số bản khai đã đọc, đã chọn loại, và `?3` vẫn là
-// phiên bản chính sách hiện hành; (2) đưa phiếu sang CHỜ XÁC MINH + tăng current_version CHỈ khi bản khai vừa chèn (đúng mã `?2`) có thật. Bấm hai lần: lô thứ hai khớp 0 dòng ở cả hai câu.
+// phiên bản chính sách hiện hành (đã chọn loại = vai cá nhân HOẶC vai của tổ chức — phiếu «chỉ tổ chức», Task 13; route đòi phần tổ chức đi cùng); (2) đưa phiếu sang CHỜ XÁC MINH + tăng current_version CHỈ khi bản khai vừa chèn (đúng mã `?2`) có thật. Bấm hai lần: lô thứ hai khớp 0 dòng ở cả hai câu.
 // Thứ tự lô CỐ ĐỊNH [chèn, đổi phiếu, dòng lịch sử]: trigger dk_submission_version đòi version = current_version + 1 TRƯỚC khi phiếu tăng.
 const GUI_CHEN = defineSql(
   "dang-ky",
@@ -530,7 +530,7 @@ const GUI_CHEN = defineSql(
      license_class_code, issued_date, issued_place, expiry_date, referrer_text, policy_id, consented_at, created_at, created_by, updated_at, updated_by)
    SELECT ?1, r.id, r.current_version + 1, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?3, ?4, ?4, ?5, ?4, ?5
    FROM dk_registration r
-   WHERE r.id = ?2 AND r.status IN ('DANG_DIEN', 'CAN_BO_SUNG') AND r.current_version = ?22 AND r.role_code <> ''
+   WHERE r.id = ?2 AND r.status IN ('DANG_DIEN', 'CAN_BO_SUNG') AND r.current_version = ?22 AND (r.role_code <> '' OR r.org_role_code IS NOT NULL)
      AND ?3 = (SELECT id FROM v_pty_privacy_effective)`,
 );
 export const guiChenStatement = (db: D1Database, v: { id: string; registrationId: string; policyId: string; at: string; identityId: string; phienBanDaDoc: number; b: BanKhaiMoi }): D1PreparedStatement =>

@@ -662,7 +662,7 @@ test("Task 5 nhánh 1: có phần tổ chức mà chính sách riêng tư đang 
   assert.equal((await gui(w, banKhai({ toChuc: null }))).status, 200, "toChuc: null = không có phần tổ chức, gửi bình thường");
 });
 
-test("Task 5 nhánh 2–4: vai «chỉ tổ chức» thiếu phần tổ chức ⇒ 400; Tài xế đối tác kèm phần tổ chức ⇒ 400; vai cá nhân rỗng ⇒ 400 «Hãy chọn một vai cá nhân»", async () => {
+test("Task 5 nhánh 2–4: vai «chỉ tổ chức» thiếu phần tổ chức ⇒ 400; Tài xế đối tác kèm phần tổ chức ⇒ 400; vai cá nhân rỗng KHÔNG kèm phần tổ chức ⇒ 400 «Hãy chọn một vai cá nhân»", async () => {
   const w = setup();
   chinhSachToChuc(w);
   anhGpkd(w);
@@ -679,8 +679,10 @@ test("Task 5 nhánh 2–4: vai «chỉ tổ chức» thiếu phần tổ chức 
   assert.equal(r3.status, 400, r3.text);
   assert.equal(r3.json.error.code, "driver_without_org");
   assert.equal(r3.json.error.message, CAU_PHIEU.taiXeKhongKemToChuc);
-  dat("", "TRAVEL_AGENCY");
-  const r4 = await gui(w, banKhaiTC());
+  // Task 13: vai cá nhân rỗng chỉ đi được KÈM phần tổ chức có vai («chỉ tổ chức»); không phần tổ chức ⇒ vẫn 400. Gỡ ảnh GPKD trước (ruling 16/11).
+  dat("", null);
+  w.sqlite.exec("UPDATE pty_registration_attachment SET purged_at = updated_at, purge_reason = 'THAY_TEP', content_hash = NULL");
+  const r4 = await gui(w, banKhai({ chinhSachPhienBan: 2 }));
   assert.equal(r4.status, 400, r4.text);
   assert.equal(r4.json.error.code, "personal_role_required");
   assert.equal(r4.json.error.message, "Hãy chọn một vai người dùng cá nhân.");
@@ -858,4 +860,44 @@ test("Ruling 16/11: gửi KHÔNG kèm phần tổ chức mà còn ảnh chờ �
   }
   assert.equal(soDong(w, "dk_submission"), 0);
   assert.equal((await gui(w, banKhai({ chinhSachPhienBan: 2 }))).status, 200);
+});
+
+// ---- Task 13 (B1): phiếu «chỉ tổ chức» và Công ty lữ hành (ADR-0212 Đ2, Đ4; DA_CO_THAY_MAT_TO_CHUC bật) ----
+test("Task 13: Công ty lữ hành mở được khi chính sách có phần tổ chức (chỉ ở phần tổ chức); phiếu «chỉ tổ chức» lưu nháp vai cá nhân rỗng + vai tổ chức, gửi kèm phần tổ chức ⇒ CHỜ XÁC MINH; rỗng cả hai hay thiếu phần tổ chức ⇒ 400", async () => {
+  const w = setup();
+  chinhSachToChuc(w);
+  w.sqlite.exec("DROP TRIGGER dk_policy_no_update");
+  w.sqlite.exec("UPDATE dk_policy SET open_role_codes = open_role_codes || ',TRAVEL_AGENCY'");
+  const ch = await w.call("GET", "/api/dang-ky/cau-hinh");
+  assert.equal(ch.status, 200, ch.text);
+  assert.deepEqual(ch.json.loaiMo.filter((x: any) => x.ma === "TRAVEL_AGENCY").map((x: any) => x.phan), ["CHI_TO_CHUC"]);
+  // Công ty lữ hành không đứng ở phần cá nhân; rỗng cả hai ⇒ 400.
+  assert.equal((await goi(w, "PUT", DUONG, { body: { loai: "TRAVEL_AGENCY" } })).status, 400);
+  assert.equal((await goi(w, "PUT", DUONG, { body: { loai: "", loaiToChuc: null } })).status, 400);
+  assert.equal((await goi(w, "PUT", DUONG, { body: { loai: "" } })).status, 400, "chưa có vai tổ chức nào đã lưu");
+  const luuOk = await goi(w, "PUT", DUONG, { body: { loai: "", loaiToChuc: "TRAVEL_AGENCY" } });
+  assert.equal(luuOk.status, 200, luuOk.text);
+  assert.deepEqual([phieu(w).role_code, phieu(w).org_role_code], ["", "TRAVEL_AGENCY"]);
+  assert.equal(luuOk.json.loai, null);
+  assert.equal(luuOk.json.loaiToChuc.ma, "TRAVEL_AGENCY");
+  // Thiếu phần tổ chức ⇒ 400 (vai «chỉ tổ chức» không đứng một mình).
+  const thieu = await gui(w, banKhai({ chinhSachPhienBan: 2 }));
+  assert.equal(thieu.status, 400, thieu.text);
+  assert.equal(soDong(w, "dk_submission"), 0);
+  anhGpkd(w);
+  const ok = await gui(w, banKhaiTC());
+  assert.equal(ok.status, 200, ok.text);
+  assert.equal(phieu(w).status, "CHO_XAC_MINH");
+  assert.equal(soDong(w, "dk_submission"), 1);
+  assert.equal(soDong(w, "dk_submission_org"), 1);
+});
+
+test("Task 13: câu chèn bản khai mang điều kiện «có vai cá nhân HOẶC vai của tổ chức» NGAY TRONG câu ghi (gọi thẳng): rỗng cả hai ⇒ không ghi", async () => {
+  const w = setup();
+  const loGui = (id: string) => w.env.DB.batch([guiChenStatement(w.env.DB, { id, registrationId: PHIEU, policyId: w.q("SELECT id FROM pty_privacy_policy ORDER BY version DESC LIMIT 1")[0].id, at: new Date().toISOString(), identityId: IDENT, phienBanDaDoc: 0, b: banKhaiMoi() })]);
+  const r = await loGui("sub-rong");
+  assert.equal(r[0].meta.changes, 0);
+  w.sqlite.prepare("UPDATE dk_registration SET org_role_code = 'TRAVEL_AGENCY' WHERE id = ?").run(PHIEU);
+  const r2 = await loGui("sub-to-chuc");
+  assert.equal(r2[0].meta.changes, 1);
 });

@@ -1981,6 +1981,13 @@ const DK_LIEN_HE_CUA_TO_CHUC = defineSql("parties", "registration_add_contact_of
    SELECT ?1, ?2, (SELECT g.id FROM pty_party g WHERE g.id = ?3 AND g.party_kind = 'ORGANIZATION' AND g.active = 1 AND g.merged_into_id IS NULL), 'CONTACT_OF', ?4, NULL, ?5, ?6, ?5, ?6
    WHERE NOT EXISTS (SELECT 1 FROM pty_party_relationship r WHERE r.from_party_id = ?2 AND r.to_party_id = ?3 AND r.relationship_type_code = 'CONTACT_OF'
                        AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?4))`);
+// «Người quản lý của» (MANAGER_OF; người → tổ chức MỚI sinh trong cùng lô duyệt — ADR-0213 Đ6, mốc B1 Task 13). Lính gác NULL-on-invalid: hồ sơ tổ chức hết dùng / gộp ⇒ to_party_id NULL ⇒
+// hỏng CẢ lô. Lớp cuối: trigger hai đầu (người là hồ sơ cá nhân; tổ chức đang mang vai được hưởng — câu mở vai của tổ chức đứng TRƯỚC), chỉ mục một người quản lý mỗi tổ chức.
+const DK_QUAN_LY_TO_CHUC = defineSql("parties", "registration_add_manager_of_org",
+  `INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, (SELECT g.id FROM pty_party g WHERE g.id = ?3 AND g.party_kind = 'ORGANIZATION' AND g.active = 1 AND g.merged_into_id IS NULL), 'MANAGER_OF', ?4, NULL, ?5, ?6, ?5, ?6`);
+export const dkQuanLyToChucStatement = (db: D1Database, v: { id: string; personPartyId: string; orgPartyId: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  db.prepare(DK_QUAN_LY_TO_CHUC).bind(v.id, v.personPartyId, v.orgPartyId, v.today, v.at, v.actorId);
 export interface OrgDocInsert { id: string; typeCode: string; number: string; numberKey: string; issuedDate: string | null; issuedPlace: string | null; expiryDate: string | null }
 export const dkGiaTriToChucStatement = (db: D1Database, v: { partyId: string; legalName: string | null; taxCode: string | null; address: string | null; invoiceEmail: string | null; actorId: string; at: string }): D1PreparedStatement =>
   db.prepare(DK_GIA_TRI_TO_CHUC).bind(v.partyId, v.legalName, v.taxCode, v.address, v.invoiceEmail, v.at, v.actorId);

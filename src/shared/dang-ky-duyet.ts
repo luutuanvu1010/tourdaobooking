@@ -14,8 +14,11 @@ export interface LoDuyetDangKyVao {
   today: string;
   /** 1 khi Toàn quyền làm cả hai bước (người duyệt = người xác minh và giữ `admin.manage.superadmin`). Ghi lên dòng quyết định và dòng xác minh. */
   co: 0 | 1;
-  /** Mã vai: `RoleCode` nhóm bên ngoài, HOẶC mã loại đối tác do Kế toán thêm (`LD_…`, khi `laLoaiDoiTac`). */
-  roleCode: string;
+  /**
+   * Mã vai: `RoleCode` nhóm bên ngoài, HOẶC mã loại đối tác do Kế toán thêm (`LD_…`, khi `laLoaiDoiTac`). `null` = phiếu «chỉ tổ chức» (mốc B1 Task 13): hồ sơ người không vai riêng,
+   * tài khoản chỉ quyền Đối tác (dòng chỉnh tay), BẮT BUỘC `toChuc` với `lienKet = "MANAGER_OF"` (lc1d / LC-1c đọc liên kết).
+   */
+  roleCode: string | null;
   /** true = loại đối tác (nhóm OTHER, cờ `is_partner_label`): tài khoản nhận quyền Đối tác bằng dòng chỉnh tay (ADR-0212 Đ3). */
   laLoaiDoiTac: boolean;
   /** Tên vai cho chi tiết nhật ký (không dữ liệu cá nhân). */
@@ -48,8 +51,10 @@ export interface OrgDocValues { typeCode: string; number: string; numberKey: str
 export interface LoDuyetToChucVao {
   /** Kết luận Danh bạ của tổ chức: hồ sơ tổ chức mới, hay gắn hồ sơ tổ chức có sẵn (không bao giờ làm người đăng ký thành người quản lý — Đ5 mục 3). */
   hoSo: { kieu: "MOI" } | { kieu: "CO_SAN"; partyId: string };
-  /** Vai của tổ chức (`dk_registration.org_role_code`); null = không mở vai cho tổ chức. */
+  /** Vai của tổ chức (người duyệt chọn; mặc định `dk_registration.org_role_code`); null = không mở vai cho tổ chức (chỉ phiếu mốc A cũ). */
   roleCode: string | null;
+  /** Liên kết người → tổ chức (ADR-0213 Đ6; `lienKetLoDuyet`): tổ chức MỚI ⇒ «Người quản lý của»; tổ chức có sẵn ⇒ «Người liên hệ của», không bao giờ người quản lý. */
+  lienKet: "MANAGER_OF" | "CONTACT_OF";
   displayName: string;
   legalName: string | null;
   taxCode: string | null;

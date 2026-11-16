@@ -41,7 +41,7 @@ import {
   anDanhStatements, chanLoNeuThuaXoaStatement, coPhieuXoaChoHoacDa, demHoSoGopVao, demXemTruocXoa, listPhieuChuaChepNgoai, listPhieuXoaChoCoTen, listPhieuXoaDaXuLy, quyetPhieuXoaStatement, tepChoXoaCuaPhieu,
   tepChoXoaLyDoPhieu, timPhieuXoaCoTen, tuChoiPhieuXoaStatement, datChoXoaAnhHetGiuStatement, listAnhHetLyDoGiu, type AnhHetGiuRow,
   dauXacMinhTheoHoSo, canXacMinhLaiStatement, chamCuaTaiKhoan, ghiDiaChiTuPhieuStatement, ghiGiayToTuPhieuStatement, ghiNgaySinhTuPhieuStatement, ghiXacMinhTuPhieuStatement, lamMoiHoSoTuPhieuStatement, quyetPhieuStatement, listPhieuCho, listPhieuDaXuLy, soDuCuaPhieuCho, timPhieuChoXet, trungSoHoSoKhac,
-  dkGiaTriToChucStatement, dkGiayToToChucStatement, dkLienHeCuaToChucStatement, dkXacMinhToChucStatement, type OrgDocInsert,
+  dkGiaTriToChucStatement, dkGiayToToChucStatement, dkLienHeCuaToChucStatement, dkQuanLyToChucStatement, dkXacMinhToChucStatement, type OrgDocInsert,
   dkGpkdOToChucKhac, dkMstOToChucKhac, dkToChucDeSoTen, dkToChucTheoGpkd, dkToChucTheoMst,
   dkDongYStatement, dkGiayToStatement, dkGioiThieuStatement, dkLienHeStatement, dkMoHoSoStatements, dkMoVaiStatement, dkNgaySinhStatement, dkSoCanCuocOHoSoKhac, dkXacMinhStatement, dkXacMinhTenStatement,
   datHoatDongLoaiDoiTacStatement, suaLoaiDoiTacStatement, hoSoMangNhan, openRoleCodesFor, themLoaiDoiTacStatement, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements, vaiDangMo,
@@ -108,11 +108,12 @@ export async function danhMucGiayToToChucChoDangKy(db: D1Database): Promise<Danh
 /** Câu 2: hồ sơ cá nhân MỚI (mã `partyId` sinh sẵn) — hoặc không gì khi gắn hồ sơ có sẵn — rồi mở vai đối tác với Tour Đảo (TRƯỚC câu cấp quyền của staff: LC-1c đòi vai đã mở). */
 export function cauMoHoSoDangKy(
   db: D1Database,
-  v: { partyId: string; moi: boolean; name: PersonName; gender: string | null; roleId: string; roleCode: string; today: string; actorId: string; at: string },
+  v: { partyId: string; moi: boolean; name: PersonName; gender: string | null; roleId: string; roleCode: string | null; today: string; actorId: string; at: string },
 ): D1PreparedStatement[] {
+  // `roleCode = null`: phiếu «chỉ tổ chức» (mốc B1 Task 13) — hồ sơ người không vai riêng; tài khoản đứng nhờ liên kết «Người quản lý của» (LC-1c, lc1d).
   return [
     ...(v.moi ? dkMoHoSoStatements(db, { partyId: v.partyId, name: v.name, gender: v.gender, actorId: v.actorId, at: v.at }) : []),
-    dkMoVaiStatement(db, { id: v.roleId, partyId: v.partyId, roleCode: v.roleCode, today: v.today, actorId: v.actorId, at: v.at }),
+    ...(v.roleCode ? [dkMoVaiStatement(db, { id: v.roleId, partyId: v.partyId, roleCode: v.roleCode, today: v.today, actorId: v.actorId, at: v.at })] : []),
   ];
 }
 /** Câu 4: giá trị đã xác minh — ngày sinh; liên hệ (điện thoại, email, địa chỉ: chỉ khi hồ sơ chưa có đúng liên hệ đó); dòng giấy tờ (dòng gia hạn nếu hồ sơ có sẵn đã có dòng cùng loại). */
@@ -172,6 +173,9 @@ export function cauMoHoSoToChucDangKy(
 /** Câu 2c: «Người liên hệ của» người đăng ký → hồ sơ tổ chức (khi ADR-0213 chưa thi công — Đ6). Chỉ ghi nhận, không cho quyền gì; bỏ qua khi đã có dòng cùng cặp còn hiệu lực (PF7). */
 export const cauLienKetNguoiToChuc = (db: D1Database, v: { personPartyId: string; orgPartyId: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
   dkLienHeCuaToChucStatement(db, { id: crypto.randomUUID(), ...v });
+/** Câu 2c (mốc B1 Task 13; ADR-0213 Đ6): «Người quản lý của» người đăng ký → hồ sơ tổ chức MỚI sinh trong cùng lô; đứng SAU câu mở vai của tổ chức và TRƯỚC câu cấp quyền. Không dùng cho tổ chức có sẵn. */
+export const cauQuanLyToChucDangKy = (db: D1Database, v: { personPartyId: string; orgPartyId: string; today: string; actorId: string; at: string }): D1PreparedStatement =>
+  dkQuanLyToChucStatement(db, { id: crypto.randomUUID(), ...v });
 /**
  * Câu 4b: giá trị đã xác minh của tổ chức — cột pháp lý của hồ sơ CÓ SẴN chỉ điền khi đang trống (ruling T7-2); số điện thoại của tổ chức thành liên hệ «Số điện thoại» khi hồ sơ chưa có đúng
  * liên hệ đó; dòng GPKD và giấy phép thêm (dòng gia hạn nếu hồ sơ đã có dòng hiện hành cùng loại).

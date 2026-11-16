@@ -80,10 +80,17 @@ export function loiLoXacMinh(e: unknown): { status: 409; code: string; message: 
 }
 
 /** Thân `duyet`: `{ roleCode, phienBan }` — mã vai (kiểm nhóm / luật gán ở route) và số bản khai người duyệt đã xem (BẮT BUỘC từ Task 12, như các lệnh của bước xác minh). Không trường nào khác. */
-export function kiemDuyet(body: Record<string, unknown> | null): Kiem<{ roleCode: string; phienBan: number }> {
-  if (!body || !khongThua(body, ["roleCode", "phienBan"]) || typeof body.roleCode !== "string" || !/^[A-Z][A-Z0-9_]{1,39}$/.test(body.roleCode)) return { ok: false, message: "Hãy chọn một vai trò đối tác." };
+/**
+ * Thân `duyet` (mốc B1 Task 13): `{ roleCode, roleCodeToChuc?, phienBan }`. `roleCode` = mã vai, hoặc `null` (phiếu «chỉ tổ chức» — route kiểm phiếu có phần tổ chức và hằng bật).
+ * `roleCodeToChuc` = vai của tổ chức người duyệt chọn; VẮNG ⇒ giữ vai của tổ chức trong phiếu (`undefined`), `null` ⇒ không chọn (route đòi khi phiếu có phần tổ chức).
+ */
+export function kiemDuyet(body: Record<string, unknown> | null): Kiem<{ roleCode: string | null; roleCodeToChuc: string | null | undefined; phienBan: number }> {
+  const laMa = (x: unknown): x is string => typeof x === "string" && /^[A-Z][A-Z0-9_]{1,39}$/.test(x);
+  if (!body || !khongThua(body, ["roleCode", "roleCodeToChuc", "phienBan"]) || !(body.roleCode === null || laMa(body.roleCode))) return { ok: false, message: "Hãy chọn một vai trò đối tác." };
+  const coToChuc = Object.hasOwn(body, "roleCodeToChuc");
+  if (coToChuc && !(body.roleCodeToChuc === null || laMa(body.roleCodeToChuc))) return { ok: false, message: "Hãy chọn vai người dùng của tổ chức." };
   if (!laPhienBan(body.phienBan)) return { ok: false, message: "Yêu cầu không hợp lệ." };
-  return { ok: true, value: { roleCode: body.roleCode, phienBan: body.phienBan } };
+  return { ok: true, value: { roleCode: body.roleCode, roleCodeToChuc: coToChuc ? (body.roleCodeToChuc as string | null) : undefined, phienBan: body.phienBan } };
 }
 
 /** Thân `tu-choi-duyet`: `{ lyDo, phienBan }` — một mã trong danh sách đóng (ADR-0207 Đ3) và số bản khai người duyệt đã xem (BẮT BUỘC từ Task 12); không trường nào khác. */

@@ -182,7 +182,7 @@ test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCua
     // ADR-0212 Đ5 (xác minh phần tổ chức, đợt 2 Task 6): mục bắt buộc của tổ chức, đối chiếu Danh bạ tổ chức (không trả số), kiểm hồ sơ đích và trùng GPKD / mã số thuế trước lệnh ghi
     "mucXacMinhBatBuocToChuc", "hoSoToChucKhop", "toChucDichHopLe", "trungToChucKhac",
     // ADR-0212 Đ6 (lô duyệt sinh hồ sơ tổ chức, đợt 2 Task 7): câu CHƯA CHẠY cho gốc lắp ráp ghép — hồ sơ + vai tổ chức, «Người liên hệ của», giá trị + giấy tờ, dòng xác minh, chuyển ảnh tổ chức
-    "cauMoHoSoToChucDangKy", "cauLienKetNguoiToChuc", "cauGhiGiaTriToChuc", "cauXacMinhToChucTuPhieu", "cauChuyenTepChoToChuc",
+    "cauMoHoSoToChucDangKy", "cauLienKetNguoiToChuc", "cauQuanLyToChucDangKy", "cauGhiGiaTriToChuc", "cauXacMinhToChucTuPhieu", "cauChuyenTepChoToChuc",
     // ADR-0212 Đ4, Đ7 (giao diện phần tổ chức, đợt 2 Task 8): loại giấy phép thêm chọn được (mã, tên, cờ hạn), tên loại giấy tờ tổ chức cho màn xác minh, và câu gỡ tệp chờ của người đăng ký (có điều kiện trạng thái)
     "loaiGiayPhepThemChoDangKy", "tenLoaiGiayToToChuc", "cauGoTepChoCuaONeuTruocDoi",
     // ADR-0213 Đ2.8 (mốc B1 Task 10): người quản lý đang mở + hồ sơ chưa gộp + tổ chức còn vai — gốc lắp ráp ghép với phần tài khoản của staff thành «người quản lý có hiệu lực»

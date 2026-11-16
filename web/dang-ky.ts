@@ -219,11 +219,11 @@ function veBieuMau(p: PhieuDangKyDto): void {
   const oCongTac = h("input", { type: "checkbox", id: "dk-cong-tac-to-chuc", class: "o-tick", disabled: khoaVai, checked: p.loaiToChuc !== null || p.tep.some((t) => t.o in NHAN_O_TEP_TO_CHUC) }) as HTMLInputElement;
   const congTac = coCongTac ? oCongTac : null;
   const toChucBat = (): boolean => congTac !== null && congTac.checked;
-  // Lưu nháp vai (ADR-0212 Đ4): vai cá nhân bắt buộc; vai của tổ chức chỉ khi công tắc bật (tắt ⇒ xoá vai đã lưu). Chỉ gọi khi có đổi.
+  // Lưu nháp vai (ADR-0212 Đ4): vai cá nhân bắt buộc, TRỪ phiếu «chỉ tổ chức» (công tắc bật + vai của tổ chức đã chọn — Task 13); tắt công tắc ⇒ xoá vai tổ chức đã lưu. Chỉ gọi khi có đổi.
   const daLuu = { loai: p.loai?.ma ?? "", tc: p.loaiToChuc?.ma ?? "" };
   const luuVai = async (): Promise<void> => {
-    if (khoaVai || !chonVai.value) return;
     const tc = toChucBat() ? chonVaiTc.value : "";
+    if (khoaVai || (!chonVai.value && !tc)) return;
     if (chonVai.value === daLuu.loai && tc === daLuu.tc) return;
     await goiDk<PhieuDangKyDto>("/api/dang-ky/phieu", "PUT", { loai: chonVai.value, loaiToChuc: tc || null });
     daLuu.loai = chonVai.value;

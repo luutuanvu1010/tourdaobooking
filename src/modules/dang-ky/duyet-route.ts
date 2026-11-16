@@ -22,9 +22,10 @@ import {
 } from "./repository.ts";
 import { maLenhThu } from "./rules.ts";
 import { kiemVaiKhiDuyet, vaiChonKhiDuyet } from "./vai.ts";
+import { lienKetLoDuyet, MOI_TRUONG_MO, phanCuaVai, vaiCaNhanRongDuoc } from "../../shared/dang-ky-vai.ts";
 import { guiThuSauLo } from "./thu-bao.ts";
 import { kiemDuyet, kiemLyDoDuyet, kiemTraVe, laMaPhieu, loiDungLoDuyet, loiLoDuyet } from "./xac-minh.ts";
-import { dsMuc, kiemHoSoDich, kiemNguoiGioiThieu, kiemVaiXin, moiNhat, mucPhaiDat, tachMuc } from "./xac-minh-route.ts";
+import { dsMuc, kiemHoSoDich, kiemNguoiGioiThieu, moiNhat, mucPhaiDat, tachMuc } from "./xac-minh-route.ts";
 
 export const CAM_DUYET = () => error(403, "forbidden", "Bạn không có quyền duyệt phiếu đăng ký.");
 const KHONG_THAY = () => error(404, "not_found", "Không tìm thấy phiếu.");
@@ -50,7 +51,12 @@ export async function xemDeDuyet({ env, staff, params }: Ctx<"accounts">): Promi
   const id = idPhieu(params);
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p) return KHONG_THAY();
-  const tomTatPhieu = { id: p.id, loai: p.role_code, tenLoai: (await tenLoaiVai(env.DB)).get(p.role_code) ?? p.role_code, trangThai: p.status, phienBan: p.current_version };
+  const ten = await tenLoaiVai(env.DB);
+  // Vai của tổ chức đi kèm (Task 13): màn duyệt chọn lại được; phiếu «chỉ tổ chức» có `loai` rỗng.
+  const tomTatPhieu = {
+    id: p.id, loai: p.role_code, tenLoai: ten.get(p.role_code) ?? p.role_code, loaiToChuc: p.org_role_code, tenLoaiToChuc: p.org_role_code ? (ten.get(p.org_role_code) ?? p.org_role_code) : null,
+    trangThai: p.status, phienBan: p.current_version,
+  };
   if (p.status !== "CHO_DUYET" || p.current_version < 1) return json({ ...tomTatPhieu, daXuLy: true });
   const bk = await tomTatDeDuyet(env.DB, p.id, p.current_version);
   if (!bk) return json({ ...tomTatPhieu, daXuLy: true });
@@ -83,14 +89,15 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
   if (!p) return KHONG_THAY();
   const k = kiemDuyet(await readJson(request));
   if (!k.ok) return error(400, "invalid_input", k.message);
-  const { roleCode, phienBan } = k.value;
+  const { roleCode, roleCodeToChuc, phienBan } = k.value;
   // Vai: hợp lệ khi CÓ TRONG `vaiDangKyDuoc` lúc duyệt (ADR-0212 Đ3). Là vai bên ngoài sẵn có ⇒ qua đúng luật gán vai của người duyệt (ADR-0207 Đ4); là loại đối tác do Kế toán thêm ⇒ không qua luật đó
   // (loại nhóm OTHER không sinh quyền; quyền Đối tác cấp bằng dòng chỉnh tay trong lô). Loại vừa bị tắt ⇒ 409, không dòng nào sinh.
-  const vai = await kiemVaiKhiDuyet(env.DB, roleCode);
+  // `roleCode = null` (phiếu «chỉ tổ chức», Task 13): kiểm ở dưới khi đã đọc phần tổ chức.
+  const vai = roleCode === null ? ({ kq: "HOP_LE", laLoaiDoiTac: false } as const) : await kiemVaiKhiDuyet(env.DB, roleCode);
   if (vai.kq === "DA_TAT") return error(409, "role_inactive", CAU_LOAI_DA_TAT);
   if (vai.kq !== "HOP_LE") return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
   const laLoaiDoiTac = vai.laLoaiDoiTac;
-  if (!laLoaiDoiTac) {
+  if (roleCode !== null && !laLoaiDoiTac) {
     if (!isRoleCode(roleCode) || groupOf([roleCode]) !== "EXTERNAL") return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
     const vaiLoi = roleAssignmentProblem({
       actorIsSuper: can(staff, "admin.manage.superadmin"), actorLaQuanTri: can(staff, "admin.manage"), currentRoles: [], currentPermissions: [], currentAdjustments: { adds: [], removes: [] },
@@ -122,6 +129,23 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
   // Phần tổ chức (ADR-0212 Đ5 mục 4, Đ6): kiểm TRƯỚC lô để trả câu rõ — trigger một-GPKD-một-tổ-chức, câu chốt (đòi org_match_kind) và lính gác hồ sơ tổ chức là lưới cuối.
   const org = await banKhaiToChucDayDu(env.DB, p.id, version);
   const dichToChuc = org && p.org_match_kind === "EXISTING" ? p.org_match_party_id : null;
+  // Vai cá nhân rỗng (Task 13; ADR-0212 Đ4): chỉ khi phiếu có phần tổ chức VÀ đã có thay mặt tổ chức. Đ7.7 (ADR-0213; chủ 16/11): gắn tổ chức CÓ SẴN không bao giờ sinh người quản lý ⇒
+  // người đó sẽ không vai, không liên kết ⇒ 409 TRƯỚC lô, không câu ghi nào chạy (B2 thêm nhánh «đã có lời mời giữ chỗ»).
+  if (roleCode === null) {
+    if (!vaiCaNhanRongDuoc(MOI_TRUONG_MO, org !== null)) return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
+    if (p.org_match_kind === "EXISTING") {
+      return error(409, "org_member_needs_invite", "Người đăng ký chưa có vai người dùng riêng và chưa được tổ chức mời. Hãy trả phiếu về để họ chọn một vai người dùng cá nhân, hoặc chờ người quản lý tổ chức gửi mã vào tổ chức.");
+    }
+  }
+  // Vai của tổ chức (Task 13): người duyệt chọn lại được như vai cá nhân; vắng ⇒ vai trong phiếu. Phải là vai «tổ chức» (Công ty lữ hành, loại do Kế toán thêm) — trigger liên kết đòi vai được hưởng.
+  const vaiToChuc = roleCodeToChuc === undefined ? p.org_role_code : roleCodeToChuc;
+  if (!org && roleCodeToChuc) return error(400, "invalid_input", "Phiếu này không có phần tổ chức.");
+  if (org) {
+    if (vaiToChuc === null) return error(400, "invalid_input", "Hãy chọn vai người dùng của tổ chức.");
+    const kv = await kiemVaiKhiDuyet(env.DB, vaiToChuc);
+    if (kv.kq === "DA_TAT") return error(409, "role_inactive", "Vai người dùng của tổ chức trong phiếu không còn nhận đăng ký. Hãy từ chối phiếu hoặc trả về để người đăng ký bổ sung.");
+    if (kv.kq !== "HOP_LE" || phanCuaVai(vaiToChuc, kv.laLoaiDoiTac) === "CA_NHAN") return error(400, "invalid_input", "Hãy chọn vai người dùng của tổ chức.");
+  }
   if (org) {
     if (p.org_match_kind === null) return error(409, "registration_not_verified", "Phiếu chưa có kết luận Danh bạ cho tổ chức nên chưa duyệt được. Hãy bấm «Trả về xác minh» để người xác minh kết luận lại.");
     if (dichToChuc) {
@@ -130,10 +154,6 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
     }
     const trung = await trungToChucKhac(env.DB, { gpkdKey: org.gpkd_key, taxKey: org.tax_key, dich: dichToChuc });
     if (trung) return error(409, trung.code, trung.message);
-    if (p.org_role_code) {
-      const loiVai = await kiemVaiXin(env.DB, p.org_role_code, "DUYET");
-      if (loiVai) return error(409, loiVai.code, "Vai người dùng của tổ chức trong phiếu không còn nhận đăng ký. Hãy từ chối phiếu hoặc trả về để người đăng ký bổ sung.");
-    }
   }
   const at = new Date().toISOString();
   const deadlineAt = await hanKichHoat(env.DB, at);
@@ -159,7 +179,7 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
     const sdt = org.phone_value ? validateContact({ kind: "PHONE", value: org.phone_value }) : null;
     toChuc = {
       hoSo: dichToChuc ? { kieu: "CO_SAN", partyId: dichToChuc } : { kieu: "MOI" },
-      roleCode: p.org_role_code, displayName: org.display_name, legalName: org.legal_name, taxCode: org.tax_code, address: org.address, invoiceEmail: org.invoice_email,
+      roleCode: vaiToChuc, lienKet: lienKetLoDuyet(MOI_TRUONG_MO, dichToChuc ? "CO_SAN" : "MOI"), displayName: org.display_name, legalName: org.legal_name, taxCode: org.tax_code, address: org.address, invoiceEmail: org.invoice_email,
       phone: sdt && sdt.ok ? { value: sdt.value.value, valueNormalized: sdt.value.valueNormalized } : null,
       gpkd: { typeCode: "GPKD", number: org.gpkd_number, numberKey: org.gpkd_key, issuedDate: org.gpkd_issued_date, issuedPlace: org.gpkd_issued_place, expiryDate: null },
       giayPhepThem: org.extra_type_code && org.extra_number && org.extra_key
@@ -178,7 +198,7 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
   try {
     lo = await loDuyetDangKy({
       registrationId: p.id, version, approverId: staff.id, at, today: vnToday(new Date(at)), co, roleCode, laLoaiDoiTac,
-      roleLabel: laLoaiDoiTac ? ((await tenLoaiVai(env.DB)).get(roleCode) ?? roleCode) : ((await tenVaiTaiKhoan(env.DB))[roleCode as RoleCode] ?? roleCode),
+      roleLabel: roleCode === null ? "không có vai trò riêng (người làm cho tổ chức)" : laLoaiDoiTac ? ((await tenLoaiVai(env.DB)).get(roleCode) ?? roleCode) : ((await tenVaiTaiKhoan(env.DB))[roleCode as RoleCode] ?? roleCode),
       hoSo: dich ? { kieu: "CO_SAN", partyId: dich } : { kieu: "MOI" },
       ten: { family: bk.family_name, middle: bk.middle_name, given: bk.given_name }, gender: bk.gender, birthDate: bk.birth_date, loginPhone, lienHe,
       giayTo: bk.document_type_code

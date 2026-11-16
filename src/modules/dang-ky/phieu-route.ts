@@ -10,7 +10,7 @@ import { error, json, readJson } from "../../shared/http.ts";
 import { chanNguoiKhongTaiKhoan } from "../../shared/maintenance.ts";
 import type { Ctx } from "../../shared/router.ts";
 import { truongDung } from "../../shared/dang-ky-truong.ts";
-import { DA_CO_THAY_MAT_TO_CHUC, phanCuaVai } from "../../shared/dang-ky-vai.ts";
+import { MOI_TRUONG_MO, phanCuaVai, vaiCaNhanRongDuoc } from "../../shared/dang-ky-vai.ts";
 import { kiemPhanToChuc, type PhanToChucMoi } from "../../shared/to-chuc.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import { kiemGioiTinh } from "../../shared/xung-ho.ts";
@@ -128,16 +128,18 @@ export async function luuNhapPhieu(ctx: Ctx<"public">): Promise<Response> {
   const body = await readJson(ctx.request);
   const loai = body?.loai;
   const mo = await loaiMoHienTai(ctx.env.DB, v.chinhSach.open_role_codes);
-  // Vai cá nhân: đang mở và KHÔNG phải vai «chỉ tổ chức» (Công ty lữ hành chỉ đứng ở phần tổ chức — ADR-0212 Đ2).
-  if (typeof loai !== "string" || !mo.some((x) => x.ma === loai && x.phan !== "CHI_TO_CHUC")) return error(400, "invalid_input", CAU_PHIEU.loaiDong);
+  if (typeof loai !== "string") return error(400, "invalid_input", CAU_PHIEU.loaiDong);
   let loaiToChuc = v.phieu.org_role_code;
   if (body && Object.hasOwn(body, "loaiToChuc")) {
     const x = body.loaiToChuc;
     if (x === null || x === "") loaiToChuc = null;
     else if (typeof x === "string" && mo.some((m) => m.ma === x && m.phan !== "CA_NHAN")) loaiToChuc = x;
     else return error(400, "invalid_input", CAU_PHIEU.loaiToChucDong);
-    if (loaiToChuc !== null && loaiToChuc !== v.phieu.org_role_code && !(await phanToChucMo(ctx.env.DB))) return error(409, "org_section_closed", CAU_PHIEU.toChucDong);
   }
+  // Vai cá nhân: đang mở và KHÔNG phải vai «chỉ tổ chức» (Công ty lữ hành chỉ đứng ở phần tổ chức — ADR-0212 Đ2). Rỗng được CHỈ khi phiếu «chỉ tổ chức» (vai của tổ chức đã chọn — Task 13).
+  const rongDuoc = loai === "" && vaiCaNhanRongDuoc(MOI_TRUONG_MO, loaiToChuc !== null);
+  if (!rongDuoc && !mo.some((x) => x.ma === loai && x.phan !== "CHI_TO_CHUC")) return error(400, "invalid_input", CAU_PHIEU.loaiDong);
+  if (loaiToChuc !== null && loaiToChuc !== v.phieu.org_role_code && !(await phanToChucMo(ctx.env.DB))) return error(409, "org_section_closed", CAU_PHIEU.toChucDong);
   const { env } = ctx;
   const { registrationId, identityId } = v.phien;
   // Lưu nháp là một thao tác: đẩy hạn phiếu đang điền (câu tự canh trạng thái ĐANG ĐIỀN), cùng lô với đổi loại nếu có.
@@ -239,7 +241,8 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   if (coToChuc && roleToChuc === null) return error(400, "org_role_required", CAU_PHIEU.chonVaiToChuc);
   if (!coToChuc && [roleCaNhan, roleToChuc].some((r) => r && phanCuaVai(r, false) === "CHI_TO_CHUC")) return error(400, "org_section_required", CAU_PHIEU.canPhanToChuc);
   if (coToChuc && roleCaNhan === "DRIVER_EXTERNAL") return error(400, "driver_without_org", CAU_PHIEU.taiXeKhongKemToChuc);
-  if (roleCaNhan === "" && !DA_CO_THAY_MAT_TO_CHUC) return error(400, "personal_role_required", CAU_PHIEU.chonVaiCaNhan);
+  // Vai cá nhân rỗng chỉ đi kèm phần tổ chức có vai («chỉ tổ chức», Task 13; vai tổ chức đã kiểm ở trên).
+  if (roleCaNhan === "" && !vaiCaNhanRongDuoc(MOI_TRUONG_MO, coToChuc)) return error(400, "personal_role_required", CAU_PHIEU.chonVaiCaNhan);
   // Vai của tổ chức không đứng một mình: đã khoá (phiếu đã gửi kèm phần tổ chức) thì không bỏ phần đó được; chưa gửi thì phải khai phần tổ chức.
   if (!coToChuc && roleToChuc !== null) {
     return v.phieu.current_version > 0 ? error(400, "org_section_locked", CAU_PHIEU.khongBoToChuc) : error(400, "org_section_required", CAU_PHIEU.canPhanToChuc);

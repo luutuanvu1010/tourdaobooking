@@ -30,7 +30,7 @@ import { feedbackModule } from "./modules/feedback";
 import { canBangVeTheoSoKhach, cauChanDuoiSoDaDung, cauChanVeDaDung, capVeChoDon, conThieuVe, donHangChoXoaVe, nhatKyThat, soVeDaDungTheoDichVu, soanTraVeKhiHuy, veDaMoCuaDon, veDienTuModule, veHangNgoaiDaMoCuaDon } from "./modules/ve-dien-tu";
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import {
-  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauDongYTuPhieu, cauGhiGiaTriDaXacMinh, cauGhiGiaTriToChuc, cauGoTepCho, cauLienKetNguoiToChuc, cauMoHoSoDangKy, cauMoHoSoToChucDangKy,
+  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauDongYTuPhieu, cauGhiGiaTriDaXacMinh, cauGhiGiaTriToChuc, cauGoTepCho, cauLienKetNguoiToChuc, cauMoHoSoDangKy, cauMoHoSoToChucDangKy, cauQuanLyToChucDangKy,
   cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule, tcQuanLyMo, tcToChucCuaNguoi,
 } from "./modules/parties";
 import { capMacDinhChoDuyet, capSeApChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
@@ -143,26 +143,31 @@ async function tuCachMacDinh(db: D1Database, actor: StaffProfile): Promise<TuCac
 
 async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuyetDangKyRa> {
   // Vai là RoleCode (đường cũ) HOẶC loại đối tác do Kế toán thêm (ADR-0212 Đ3); mã khác ⇒ lỗi lạ (route đã kiểm theo `vaiDangKyDuoc`).
-  if (!v.laLoaiDoiTac && !isRoleCode(v.roleCode)) throw new Error("loDuyetDangKy: mã vai không hợp lệ");
+  // Vai rỗng (phiếu «chỉ tổ chức», mốc B1 Task 13): CHỈ khi lô mở «Người quản lý của» cho tổ chức MỚI — nếu không, tài khoản sẽ không vai, không liên kết (route đã chặn: Đ7.7).
+  const vaiRieng = v.roleCode;
+  if (vaiRieng === null ? v.toChuc?.lienKet !== "MANAGER_OF" || v.toChuc.hoSo.kieu !== "MOI" : !v.laLoaiDoiTac && !isRoleCode(vaiRieng)) throw new Error("loDuyetDangKy: mã vai không hợp lệ");
   const partyId = v.hoSo.kieu === "MOI" ? crypto.randomUUID() : v.hoSo.partyId;
   const docId = v.giayTo ? crypto.randomUUID() : null;
-  const tk = v.laLoaiDoiTac
-    ? await createPartnerAccountOnPartyStatements(db, { partyId, phone: v.loginPhone, reason: `Loại đối tác do Kế toán thêm: ${v.roleLabel}`.slice(0, 200) }, v.approverId, v.at)
-    : await createAccountOnPartyStatements(db, { partyId, phone: v.loginPhone, roles: [v.roleCode as RoleCode] }, v.approverId, v.at);
+  const tk = vaiRieng === null
+    ? await createPartnerAccountOnPartyStatements(db, { partyId, phone: v.loginPhone, reason: "Người làm cho tổ chức, đăng ký đợt 2" }, v.approverId, v.at)
+    : v.laLoaiDoiTac
+      ? await createPartnerAccountOnPartyStatements(db, { partyId, phone: v.loginPhone, reason: `Loại đối tác do Kế toán thêm: ${v.roleLabel}`.slice(0, 200) }, v.approverId, v.at)
+      : await createAccountOnPartyStatements(db, { partyId, phone: v.loginPhone, roles: [vaiRieng as RoleCode] }, v.approverId, v.at);
   type MucXacMinh = { id: string; targetKind: "ATTRIBUTE" | "PERSON_DOCUMENT"; targetId: string | null; attributeCode: string | null };
   const mucXacMinh = v.mucDat.flatMap((m): MucXacMinh[] => {
     if (m.loai === "ATTRIBUTE") return m.ma === "NGAY_SINH" && !v.birthDate ? [] : [{ id: crypto.randomUUID(), targetKind: "ATTRIBUTE" as const, targetId: null, attributeCode: m.ma }];
     return docId && v.giayTo?.typeCode === m.ma ? [{ id: crypto.randomUUID(), targetKind: "PERSON_DOCUMENT" as const, targetId: docId, attributeCode: null }] : [];
   });
   const base = { actorId: v.approverId, at: v.at };
-  const [capMacDinh, duDoan] = await Promise.all([
-    capMacDinhChoDuyet(db, v.roleCode, v.at),
-    capSeApChoDuyet(db, { roleCode: v.roleCode, partyId: v.hoSo.kieu === "CO_SAN" ? v.hoSo.partyId : null, at: v.at, ngay: v.today }),
+  // Vai rỗng ⇒ không cấp mặc định cho hồ sơ người; «cấp sẽ áp» báo cho người duyệt là cấp của HỒ SƠ TỔ CHỨC mới (câu 8b) — xem `cap` ở cuối.
+  const [capMacDinh, duDoanNguoi] = vaiRieng === null ? [null, null] : await Promise.all([
+    capMacDinhChoDuyet(db, vaiRieng, v.at),
+    capSeApChoDuyet(db, { roleCode: vaiRieng, partyId: v.hoSo.kieu === "CO_SAN" ? v.hoSo.partyId : null, at: v.at, ngay: v.today }),
   ]);
   let viTriCap: number | null = null;
-  const cauCap = capMacDinh ? cauCapMacDinhChoHoSo(db, { partyId, roleCode: v.roleCode, ngayDuyet: v.today, approverId: v.approverId, at: v.at, policyId: capMacDinh.policyId }) : null;
+  const cauCap = capMacDinh && vaiRieng ? cauCapMacDinhChoHoSo(db, { partyId, roleCode: vaiRieng, ngayDuyet: v.today, approverId: v.approverId, at: v.at, policyId: capMacDinh.policyId }) : null;
   // PHẦN TỔ CHỨC (ADR-0212 Đ6; đợt 2 Task 7). Mã hồ sơ tổ chức mới do parties sinh; mã dòng giấy tờ, dòng xác minh sinh ở đây. Gắn tổ chức CÓ SẴN không bao giờ sinh «người quản lý của»
-  // (Đ5 mục 3; ADR-0213 chưa thi công ⇒ chỉ «Người liên hệ của»).
+  // (Đ5 mục 3; ADR-0213 Đ6; chủ 16/11) — giữ «Người liên hệ của»; tổ chức MỚI ⇒ «Người quản lý của» (mốc B1 Task 13, `tc.lienKet`).
   const tc = v.toChuc ?? null;
   const toChuc = tc ? (() => {
     const mo = cauMoHoSoToChucDangKy(db, {
@@ -178,17 +183,23 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
       : m.ma === "GPKD" ? [{ id: crypto.randomUUID(), loai: "DOCUMENT" as const, docId: gpkdId }] : []);
     return { partyId: mo.partyId, moStatements: mo.statements, gpkdId, extraId, muc };
   })() : null;
-  const [capToChuc] = await Promise.all([toChuc && tc?.roleCode ? capMacDinhChoDuyet(db, tc.roleCode, v.at) : Promise.resolve(null)]);
+  const [capToChuc, duDoanToChuc] = await Promise.all([
+    toChuc && tc?.roleCode ? capMacDinhChoDuyet(db, tc.roleCode, v.at) : Promise.resolve(null),
+    vaiRieng === null && tc?.roleCode ? capSeApChoDuyet(db, { roleCode: tc.roleCode, partyId: null, at: v.at, ngay: v.today }) : Promise.resolve(null),
+  ]);
   const cauCapToChuc = toChuc && tc?.roleCode && capToChuc
     ? cauCapMacDinhChoHoSo(db, { partyId: toChuc.partyId, roleCode: tc.roleCode, ngayDuyet: v.today, approverId: v.approverId, at: v.at, policyId: capToChuc.policyId })
     : null;
   const statements: D1PreparedStatement[] = [
     // 1 — dang-ky: câu chốt (dòng quyết định DUYET).
     cauChotDuyet(db, { id: crypto.randomUUID(), registrationId: v.registrationId, version: v.version, by: v.approverId, co: v.co, at: v.at }),
-    // 2 — parties: hồ sơ mới (hoặc hồ sơ có sẵn) + vai đối tác (trước câu cấp quyền: LC-1c).
-    ...cauMoHoSoDangKy(db, { ...base, partyId, moi: v.hoSo.kieu === "MOI", name: v.ten, gender: v.gender, roleId: crypto.randomUUID(), roleCode: v.roleCode, today: v.today }),
-    // 2b — parties: hồ sơ tổ chức mới (hoặc có sẵn) + vai của tổ chức. 2c — «Người liên hệ của» người → tổ chức, TRƯỚC câu cấp quyền (LC-1c mới đọc liên kết khi ADR-0213 lên).
-    ...(toChuc ? [...toChuc.moStatements, cauLienKetNguoiToChuc(db, { ...base, personPartyId: partyId, orgPartyId: toChuc.partyId, today: v.today })] : []),
+    // 2 — parties: hồ sơ mới (hoặc hồ sơ có sẵn) + vai đối tác (trước câu cấp quyền: LC-1c). Vai rỗng ⇒ chỉ hồ sơ.
+    ...cauMoHoSoDangKy(db, { ...base, partyId, moi: v.hoSo.kieu === "MOI", name: v.ten, gender: v.gender, roleId: crypto.randomUUID(), roleCode: vaiRieng, today: v.today }),
+    // 2b — parties: hồ sơ tổ chức mới (hoặc có sẵn) + vai của tổ chức. 2c — liên kết người → tổ chức, SAU câu mở vai của tổ chức (trigger hai đầu đòi vai được hưởng) và TRƯỚC câu cấp
+    //      quyền (LC-1c / lc1d đọc liên kết): tổ chức MỚI ⇒ «Người quản lý của»; có sẵn ⇒ «Người liên hệ của» (không bao giờ người quản lý).
+    ...(toChuc && tc ? [...toChuc.moStatements, tc.lienKet === "MANAGER_OF" && tc.hoSo.kieu === "MOI"
+      ? cauQuanLyToChucDangKy(db, { ...base, personPartyId: partyId, orgPartyId: toChuc.partyId, today: v.today })
+      : cauLienKetNguoiToChuc(db, { ...base, personPartyId: partyId, orgPartyId: toChuc.partyId, today: v.today })] : []),
     // 3 — staff: tài khoản TẮT + quyền theo vai (biến thể «trên hồ sơ có sẵn»; PIN ngẫu nhiên không trả ra).
     ...tk.statements,
     // 4 — parties: giá trị đã xác minh.
@@ -239,10 +250,14 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
     cauAnDanhBanKhaiToChuc(db, { registrationId: v.registrationId, at: v.at, by: v.approverId }),
     // 11 — audit: `staff_created` trỏ TÀI KHOẢN MỚI, người làm = người duyệt (ADR-0207 Đ6). Không SĐT, email, số giấy tờ.
     auditStatement(db, { staffId: v.approverId, action: "staff_created", at: v.at, targetType: "staff", targetId: tk.id,
-      detail: `phiếu đăng ký ${v.registrationId}; vai trò: ${v.roleLabel}; ${v.hoSo.kieu === "MOI" ? "hồ sơ mới" : "dùng hồ sơ có sẵn"}${tc ? (tc.hoSo.kieu === "MOI" ? "; kèm hồ sơ tổ chức mới" : "; gắn tổ chức có sẵn") : ""}; chưa kích hoạt${v.co ? "; Toàn quyền làm cả hai bước" : ""}` }),
+      detail: `phiếu đăng ký ${v.registrationId}; vai trò: ${v.roleLabel}; ${v.hoSo.kieu === "MOI" ? "hồ sơ mới" : "dùng hồ sơ có sẵn"}${tc ? (tc.hoSo.kieu === "MOI" ? "; kèm hồ sơ tổ chức mới" : "; gắn tổ chức có sẵn") : ""}${tc?.lienKet === "MANAGER_OF" && tc.hoSo.kieu === "MOI" ? "; là người quản lý tổ chức" : ""}; chưa kích hoạt${v.co ? "; Toàn quyền làm cả hai bước" : ""}` }),
   ];
-  if (cauCap) viTriCap = statements.indexOf(cauCap);
-  return { partyId, staffId: tk.id, statements, cap: { viTri: viTriCap !== null && viTriCap >= 0 ? viTriCap : null, duDoan, capCau8: capMacDinh ? { code: capMacDinh.tierCode, ten: capMacDinh.tierName } : null } };
+  // Vai rỗng: «cấp» báo cho người duyệt là cấp của hồ sơ tổ chức mới (câu 8b); không có vai tổ chức ⇒ lý do «không hưởng» (không để route rơi về «vừa đổi»).
+  const cauBao = vaiRieng === null ? cauCapToChuc : cauCap;
+  if (cauBao) viTriCap = statements.indexOf(cauBao);
+  const capBao = vaiRieng === null ? capToChuc : capMacDinh;
+  const duDoan = duDoanNguoi ?? duDoanToChuc ?? { cap: null, lyDo: "VAI_KHONG_HUONG" as const };
+  return { partyId, staffId: tk.id, statements, cap: { viTri: viTriCap !== null && viTriCap >= 0 ? viTriCap : null, duDoan, capCau8: capBao ? { code: capBao.tierCode, ten: capBao.tierName } : null } };
 }
 
 const APP_OPTIONS: AppOptions = {
