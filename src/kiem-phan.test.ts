@@ -50,6 +50,16 @@ test("bảng chia THẬT: phần riêng đủ ba bước; npm test ≥ 4 phần,
   for (const p of [...bang.test, ...bang.e2e]) assert.ok(p.length > 0, "không phần nào rỗng");
 });
 
+// ADR-0215 Đ1.2–Đ1.3: bảng phần ghi THẲNG trong quy trình (không còn việc «Chia phần» in ra lúc chạy) ⇒ phải khớp hằng số; tổng việc chạy cùng lúc ≤ 20
+// (trần gói GitHub miễn phí — vượt thì lượt kiểm tự xếp hàng, chậm đi chứ không nhanh lên).
+test("quy trình kiem.yml: danh sách phần npm test / e2e khớp SO_PHAN_TEST / SO_PHAN_E2E; 1 phần riêng + các phần ≤ 20 việc cùng lúc", () => {
+  const yml = readFileSync(new URL("../.github/workflows/kiem.yml", import.meta.url), "utf8");
+  const day = (n: number) => `[${Array.from({ length: n }, (_, i) => i + 1).join(", ")}]`;
+  const maTran = [...yml.matchAll(/^\s+phan: (\[[\d, ]+\])$/gm)].map((m) => m[1]);
+  assert.deepEqual(maTran, [day(lib.SO_PHAN_TEST), day(lib.SO_PHAN_E2E)], "ma trận phần (npm test rồi e2e) phải đúng 1…SO_PHAN_*");
+  assert.ok(1 + lib.SO_PHAN_TEST + lib.SO_PHAN_E2E <= 20, `1 + ${lib.SO_PHAN_TEST} + ${lib.SO_PHAN_E2E} việc vượt trần 20 của gói miễn phí`);
+});
+
 test("bảng chia e2e: mỗi phần là DÃY CON của ALL (giữ ràng buộc thứ tự: feedback trước maintenance, passkey cuối…); phanE2e(k) = phần k", () => {
   const bang = lib.bangChia();
   for (const p of bang.e2e) assert.deepEqual(p, [...p].sort((a, b) => ALL.indexOf(a) - ALL.indexOf(b)));

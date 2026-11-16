@@ -9,7 +9,7 @@
   - **"Riêng của Tour Đảo Booking"** (kích thước điện thoại/PWA): cần kích thước hay giá trị giao diện mới thì **thêm token vào nhóm này**, không viết cứng.
   - Màu/chữ mới (thương hiệu hay chức năng), hoặc đổi giá trị nhóm đầu: **hỏi chủ**.
 - **Thiết kế màn hình** (bố cục, trạng thái, nội dung chữ): `docs/superpowers/specs/2026-09-19-a2-giao-dien-design.md`; trang nào gọi API nào: `docs/SYSTEM-DESIGN.md` §9; iPhone/PWA: `docs/PWA-IPHONE.md`.
-- **Bản thiết kế gốc và ảnh tham chiếu:** `docs/design/a2-mockup/` (trong `refs/`: `tourdaovn-design-brief.md`, `tourdaovn-tokens.css`); ảnh giao diện thật: `docs/evidence/`.
+- **Bản thiết kế gốc và ảnh tham chiếu:** `docs/design/a2-mockup/` (trong `refs/`: `tourdaovn-design-brief.md`, `tourdaovn-tokens.css`); ảnh giao diện thật: chụp vào `docs/evidence/<đợt>/`, chỉ nằm trên máy (`.gitignore` chặn, không commit — ADR-0215 Đ3); gửi chủ xem bằng tệp đính kèm trong phiên.
 
 ## Luật
 - **Không `innerHTML`.** Dựng DOM bằng `h()` ở `web/dom.ts`.

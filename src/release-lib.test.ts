@@ -21,7 +21,8 @@ type Lib = {
   parsePendingMigrations: (out: string) => { ok: true; names: string[] } | { ok: false; reason: string };
   parseBookmark: (out: string) => string | null;
   parseVersionId: (out: string) => string | null;
-  dayLen: (deps: Deps & { target?: string; now?: () => Date; sleep?: (ms: number) => Promise<void> }) => Promise<number>;
+  dayLen: (deps: Deps & { target?: string; now?: () => Date; sleep?: (ms: number) => Promise<void>; thongBao?: (tieuDe: string, noiDung: string) => void; giuThuc?: () => void }) => Promise<number>;
+  CAU_CHON_DAY_LEN: string;
   trienKhai: (deps: Deps & { now?: () => Date; sleep?: (ms: number) => Promise<void>; version?: string; docMocTinDoi?: () => Promise<string>; docCacKho?: () => Promise<{ binding: string; ten: string }[] | null> }) => Promise<number>;
   DUOI_MIGRATION_TIN_DOI: string;
   coMigrationTinDoi: (pending: string[]) => boolean;
@@ -249,7 +250,7 @@ test("day-len (ADR-0179 Đ2.1): mọi thứ đạt + c → đẩy cho-kiem/<sha>
   assert.match(h.text(), /PHẢI áp các migration này trước; dùng `npm run trien-khai`/);
   assert.match(h.text(), /2 commit/);
   assert.match(h.text(), /lần đẩy phụ/);
-  assert.deepEqual(h.questions, ["Đẩy lên GitHub? (c/k) "]);
+  assert.deepEqual(h.questions, [lib.CAU_CHON_DAY_LEN], "ADR-0215 Đ2.1: chỉ MỘT câu, hỏi TRƯỚC khi kiểm; chọn c thì không hỏi lại ở cuối");
   assert.equal(h.daGhi.length, 1);
   const b = h.daGhi[0]!.banGhi;
   assert.equal(h.daGhi[0]!.sha, NEW);
@@ -288,10 +289,13 @@ const DAYLEN_REFUSALS: { name: string; over?: Record<string, RunResult | RunResu
   { name: "origin/main không phải tổ tiên", over: { "git merge-base --is-ancestor origin/main main": FAIL }, reason: /đã có người đẩy/, lastCall: "git merge-base --is-ancestor origin/main main" },
   { name: "nhánh không tiến thẳng được", over: { "git merge-base --is-ancestor main worktree-x": FAIL }, reason: /không tiến thẳng/, lastCall: "git merge-base --is-ancestor main worktree-x" },
   { name: "ff-only lỗi", over: { "git merge --ff-only worktree-x": FAIL }, reason: /gộp/, lastCall: "git merge --ff-only worktree-x" },
-  { name: "chủ trả lời k", answers: ["k"], reason: /Không đẩy/, lastCall: RUNLIST(GOC) },
-  { name: "chủ trả lời 'có' (không đúng c)", answers: ["có"], reason: /Không đẩy/ },
-  { name: "chủ trả lời 'C' hoa", answers: ["C"], reason: /Không đẩy/ },
-  { name: "chủ bấm Enter", answers: [""], reason: /Không đẩy/ },
+  // ADR-0215 Đ2.1: câu c/x/k hỏi TRƯỚC lần đẩy phụ ⇒ trả lời k / lạ thì không đẩy gì lên GitHub, kể cả nhánh chờ kiểm.
+  { name: "chủ trả lời k", answers: ["k"], reason: /Không đẩy/, lastCall: "gh auth status", khongDayPhu: true },
+  { name: "chủ trả lời 'có' (không đúng c)", answers: ["có"], reason: /Không đẩy/, khongDayPhu: true },
+  { name: "chủ trả lời 'C' hoa", answers: ["C"], reason: /Không đẩy/, khongDayPhu: true },
+  { name: "chủ trả lời 'X' hoa", answers: ["X"], reason: /Không đẩy/, khongDayPhu: true },
+  { name: "chủ bấm Enter", answers: [""], reason: /Không đẩy/, khongDayPhu: true },
+  { name: "chọn x rồi trả lời k ở câu cuối", answers: ["x", "k"], reason: /Không đẩy/, lastCall: RUNLIST(GOC) },
   // Mọi lệnh đọc trạng thái mà lỗi thì DỪNG, không bao giờ đoán (không bỏ sót).
   { name: "git rev-parse main lỗi (trước khi gộp)", over: { "git rev-parse main": FAIL }, reason: /không đọc được mã hiện tại của `main`/, lastCall: "git rev-parse main" },
   { name: "git rev-parse main trả rỗng", over: { "git rev-parse main": out("") }, reason: /không đọc được mã hiện tại của `main`/, lastCall: "git rev-parse main" },
@@ -304,14 +308,17 @@ const DAYLEN_REFUSALS: { name: string; over?: Record<string, RunResult | RunResu
   { name: "so tệp luật lỗi", over: { [LUAT_DIFF]: FAIL }, reason: /không so được các tệp luật/, lastCall: LUAT_DIFF, khongDayPhu: true },
   { name: "đổi tệp luật mà không gõ lý do", over: { [LUAT_DIFF]: out("CLAUDE.md\n"), "git diff --stat origin/main main -- CLAUDE.md": out(" CLAUDE.md | 2 +-\n") }, answers: [""], reason: /không có lý do đổi tệp luật/ },
   { name: "chưa đăng nhập gh", over: { "gh auth status": FAIL }, reason: /gh auth login/, lastCall: "gh auth status", khongDayPhu: true },
-  { name: "đẩy nhánh chờ kiểm lỗi", over: { [PUSH_CHO]: FAIL }, reason: /nhánh chờ kiểm/, lastCall: PUSH_CHO },
-  { name: "không đọc được danh sách lượt kiểm", over: { [RUNLIST(NEW)]: FAIL }, reason: /gh run list/, lastCall: RUNLIST(NEW) },
-  { name: "lượt kiểm thuộc commit khác", over: { [RUNVIEW(4242)]: viewOf({ headSha: GOC }) }, reason: /thuộc commit/, lastCall: RUNVIEW(4242) },
-  { name: "lượt kiểm đỏ + chủ chọn dừng (d)", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, answers: ["d"], reason: /lượt kiểm đỏ — dừng/, lastCall: RUNVIEW(4242) },
-  { name: "lượt kiểm đỏ + trả lời lạ (coi là dừng)", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, answers: ["c"], reason: /lượt kiểm đỏ — dừng/ },
-  { name: "lượt kiểm đỏ + cho qua mà không gõ lý do", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, answers: ["q", "  "], reason: /không có lý do cho qua/ },
-  { name: "lượt kiểm đỏ + lý do quá ngắn", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, answers: ["q", "ok"], reason: /không có lý do cho qua/ },
-  { name: "chạy lại phần đỏ lỗi", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }), [RERUN(4242)]: FAIL }, answers: ["r"], reason: /gh run rerun/, lastCall: RERUN(4242) },
+  { name: "đẩy nhánh chờ kiểm lỗi", over: { [PUSH_CHO]: FAIL }, answers: ["c"], reason: /nhánh chờ kiểm/, lastCall: PUSH_CHO },
+  { name: "không đọc được danh sách lượt kiểm", over: { [RUNLIST(NEW)]: FAIL }, answers: ["c"], reason: /gh run list/, lastCall: RUNLIST(NEW) },
+  { name: "lượt kiểm thuộc commit khác", over: { [RUNVIEW(4242)]: viewOf({ headSha: GOC }) }, answers: ["x"], reason: /thuộc commit/, lastCall: RUNVIEW(4242) },
+  { name: "lượt kiểm đỏ + chủ chọn dừng (d)", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, answers: ["x", "d"], reason: /lượt kiểm đỏ — dừng/, lastCall: RUNVIEW(4242) },
+  { name: "lượt kiểm đỏ + trả lời lạ (coi là dừng)", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, answers: ["x", "c"], reason: /lượt kiểm đỏ — dừng/ },
+  { name: "lượt kiểm đỏ + cho qua mà không gõ lý do", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, answers: ["x", "q", "  "], reason: /không có lý do cho qua/ },
+  { name: "lượt kiểm đỏ + lý do quá ngắn", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, answers: ["x", "q", "ok"], reason: /không có lý do cho qua/ },
+  { name: "chạy lại phần đỏ lỗi", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }), [RERUN(4242)]: FAIL }, answers: ["x", "r"], reason: /gh run rerun/, lastCall: RERUN(4242) },
+  // ADR-0215 Đ2.3 — chọn c mà đỏ: tự chạy lại đúng một lần; vẫn đỏ ⇒ dừng, không hỏi thêm, không tự cho qua.
+  { name: "chọn c + đỏ, tự chạy lại một lần vẫn đỏ", over: { [RUNVIEW(4242)]: [viewOf({ conclusion: "failure" }), viewOf({ conclusion: "failure", attempt: 2 })], [RERUN(4242)]: OK }, answers: ["c"], reason: /vẫn ĐỎ sau một lần tự chạy lại/ },
+  { name: "chọn c + đỏ, tự chạy lại lỗi", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }), [RERUN(4242)]: FAIL }, answers: ["c"], reason: /gh run rerun/, lastCall: RERUN(4242) },
   { name: "đổi quy trình kiểm mà không gõ lý do", over: { [CTRL_DIFF]: out(".github/workflows/kiem.yml\n"), "git diff --stat origin/main main -- .github/workflows/kiem.yml": out(" kiem.yml | 2 +-\n") }, answers: [""], reason: /không có lý do đổi quy trình kiểm/ },
 ];
 
@@ -331,7 +338,7 @@ for (const c of DAYLEN_REFUSALS) {
 }
 
 test("day-len: đã gộp rồi mà lượt kiểm đỏ / trả lời k → in lệnh quay main về chỗ cũ, KHÔNG tự chạy", async () => {
-  for (const [over, answers] of [[{ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, ["d"]], [{}, ["k"]]] as const) {
+  for (const [over, answers] of [[{ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, ["x", "d"]], [{}, ["k"]], [{ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }), [RERUN(4242)]: OK }, ["c"]]] as const) {
     const h = dl(dayLenScript(over), [...answers]);
     assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
     assert.ok(h.text().includes(`git reset --hard ${OLD}`), "phải in lệnh quay lại");
@@ -366,32 +373,32 @@ test("day-len: lượt kiểm chưa hiện / đang chạy → chờ (sleep), in 
 });
 
 test("day-len: GitHub không có lượt kiểm sau 5 phút / lượt chạy quá 45 phút → DỪNG (không treo mãi), không đẩy main", async () => {
-  const h1 = dl(dayLenScript({ [RUNLIST(NEW)]: out("[]") }));
+  const h1 = dl(dayLenScript({ [RUNLIST(NEW)]: out("[]") }), ["c"]);
   assert.notEqual(await lib.dayLen({ ...h1.deps, target: "worktree-x" }), 0);
   assert.match(h1.text(), /chưa có lượt kiểm/);
   assert.ok(!h1.calls.includes("git push origin main"));
-  const h2 = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ status: "in_progress", conclusion: "" }) }));
+  const h2 = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ status: "in_progress", conclusion: "" }) }), ["x"]);
   assert.notEqual(await lib.dayLen({ ...h2.deps, target: "worktree-x" }), 0);
   assert.match(h2.text(), /chưa xong/);
   assert.ok(!h2.calls.includes("git push origin main"));
 });
 
 test("day-len (Đ3.1): lượt kiểm đỏ → nêu TÊN bài đỏ (từ tệp gom), hỏi r/d/q", async () => {
-  const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }), ["d"], { ketQua: { 4242: { ...TONG(), ok: false, baiDo: ["e2e catalog", "src/x.test.ts: ca giả"] }, 4100: TONG() } });
+  const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }), ["x", "d"], { ketQua: { 4242: { ...TONG(), ok: false, baiDo: ["e2e catalog", "src/x.test.ts: ca giả"] }, 4100: TONG() } });
   assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
   assert.match(h.text(), /✘ e2e catalog/);
   assert.match(h.text(), /✘ src\/x\.test\.ts: ca giả/);
-  assert.match(h.questions[0] ?? "", /Chạy lại phần đỏ \(r/);
+  assert.match(h.questions[1] ?? "", /Chạy lại phần đỏ \(r/);
 });
 
 test("day-len (Đ3.1): đỏ mà không đọc được tệp gom → nêu tên PHẦN đỏ từ GitHub", async () => {
-  const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }, [{ name: "e2e phần 3", status: "completed", conclusion: "failure" }, { name: "Gom kết quả kiểm", status: "completed", conclusion: "failure" }]) }), ["d"], { ketQua: {} });
+  const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }, [{ name: "e2e phần 3", status: "completed", conclusion: "failure" }, { name: "Gom kết quả kiểm", status: "completed", conclusion: "failure" }]) }), ["x", "d"], { ketQua: {} });
   assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
   assert.match(h.text(), /✘ phần e2e phần 3/);
 });
 
 test("day-len (Đ3.1): đỏ + cho qua có lý do → bản ghi ghi lý do, tên bài đỏ; vẫn hỏi c/k rồi mới đẩy main", async () => {
-  const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }), ["q", "giá Sheet thật vừa đổi", "c"], { ketQua: { 4242: { ...TONG(), ok: false, baiDo: ["e2e catalog"] }, 4100: TONG() } });
+  const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }), ["x", "q", "giá Sheet thật vừa đổi", "c"], { ketQua: { 4242: { ...TONG(), ok: false, baiDo: ["e2e catalog"] }, 4100: TONG() } });
   assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
   assert.ok(h.calls.includes("git push origin main"));
   const b = h.daGhi[0]!.banGhi;
@@ -404,12 +411,112 @@ test("day-len (Đ3.1): đỏ + cho qua có lý do → bản ghi ghi lý do, tên
 });
 
 test("day-len (Đ3.1): đỏ + chạy lại phần đỏ (r) → gh run rerun --failed, chờ lượt chạy lại (attempt mới) xanh rồi đi tiếp như xanh thường", async () => {
-  const h = dl(dayLenScript({ [RUNVIEW(4242)]: [viewOf({ conclusion: "failure" }), viewOf({ conclusion: "failure" }), viewOf({ attempt: 2 })], [RERUN(4242)]: OK }), ["r", "c"]);
+  const h = dl(dayLenScript({ [RUNVIEW(4242)]: [viewOf({ conclusion: "failure" }), viewOf({ conclusion: "failure" }), viewOf({ attempt: 2 })], [RERUN(4242)]: OK }), ["x", "r", "c"]);
   assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
   assert.ok(h.calls.includes(RERUN(4242)));
   assert.equal(h.calls.filter((c) => c === RUNVIEW(4242)).length, 3, "lần đọc ngay sau rerun vẫn là lượt cũ (attempt 1) — phải chờ attempt 2");
   assert.equal(h.daGhi[0]!.banGhi.ketQua, "xanh");
   assert.equal(h.daGhi[0]!.banGhi.choQua, null);
+});
+
+// ─── ADR-0215 Đ2: chọn `c` ⇒ chủ rời máy được; lệnh tự chạy tới khi xong ───
+function dlTuDong(script: Record<string, RunResult | RunResult[]>, answers: string[] = ["c"], opts: { ketQua?: Record<number, any> } = {}) {
+  const h = dl(script, answers, opts);
+  const thongBao: [string, string][] = [];
+  let giuThuc = 0;
+  return { ...h, thongBao, demGiuThuc: () => giuThuc, deps: { ...h.deps, thongBao: (a: string, b: string) => void thongBao.push([a, b]), giuThuc: () => void giuThuc++ } };
+}
+
+test("day-len (ADR-0215 Đ2): chọn c + xanh → giữ máy thức, tự đẩy main, thông báo «ĐÃ đẩy»; không hỏi câu nào sau câu chọn", async () => {
+  const h = dlTuDong(dayLenScript());
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.ok(h.calls.includes("git push origin main"));
+  assert.deepEqual(h.questions, [lib.CAU_CHON_DAY_LEN]);
+  assert.equal(h.demGiuThuc(), 1, "giữ máy thức đúng một lần, ngay sau câu chọn");
+  assert.equal(h.thongBao.length, 1);
+  assert.match(h.thongBao[0]![0], /ĐÃ đẩy lên bản chính/);
+  assert.match(h.text(), /Bạn có thể rời máy/);
+  // Tóm tắt in TRƯỚC câu chọn (danh sách lần lưu, migration mới) — chủ thấy thứ sắp đẩy trước khi gõ c (kiểm độc lập T2).
+  const iTomTat = h.lines.findIndex((l) => /SẮP ĐẨY LÊN GITHUB/.test(l));
+  const iRoiMay = h.lines.findIndex((l) => /Bạn có thể rời máy/.test(l));
+  assert.ok(iTomTat >= 0 && iTomTat < iRoiMay, "khối tóm tắt phải in trước câu chọn");
+  assert.ok(h.lines.slice(iTomTat, iRoiMay).some((l) => /0023_auth_passkey\.sql/.test(l)), "migration mới nằm trong tóm tắt trước câu chọn");
+});
+
+test("day-len (ADR-0215 Đ2.1): chọn x → không giữ máy thức, không thông báo; vẫn hỏi c/k ở cuối như ADR-0179", async () => {
+  const h = dlTuDong(dayLenScript(), ["x", "c"]);
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.deepEqual(h.questions, [lib.CAU_CHON_DAY_LEN, "Đẩy lên GitHub? (c/k) "]);
+  assert.equal(h.demGiuThuc(), 0);
+  assert.equal(h.thongBao.length, 0);
+});
+
+test("day-len (ADR-0215 Đ2.3): chọn c + đỏ → tự chạy lại phần đỏ đúng một lần; lần chạy lại xanh thì tự đẩy, bản ghi xanh, không cho qua", async () => {
+  const h = dlTuDong(dayLenScript({ [RUNVIEW(4242)]: [viewOf({ conclusion: "failure" }), viewOf({ attempt: 2 })], [RERUN(4242)]: OK }));
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.equal(h.calls.filter((c) => c === RERUN(4242)).length, 1);
+  assert.deepEqual(h.questions, [lib.CAU_CHON_DAY_LEN], "không hỏi r/d/q khi chủ đã chọn c");
+  assert.equal(h.daGhi[0]!.banGhi.ketQua, "xanh");
+  assert.equal(h.daGhi[0]!.banGhi.choQua, null);
+});
+
+test("day-len (ADR-0215 Đ2.3): chọn c + vẫn đỏ sau một lần chạy lại → dừng, thông báo «CHƯA đẩy», không chạy lại lần hai", async () => {
+  const h = dlTuDong(dayLenScript({ [RUNVIEW(4242)]: [viewOf({ conclusion: "failure" }), viewOf({ conclusion: "failure", attempt: 2 })], [RERUN(4242)]: OK }));
+  assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.equal(h.calls.filter((c) => c === RERUN(4242)).length, 1);
+  assert.ok(!h.calls.includes("git push origin main"));
+  assert.equal(h.thongBao.length, 1);
+  assert.match(h.thongBao[0]![0], /CHƯA đẩy/);
+  assert.match(h.thongBao[0]![1], /vẫn ĐỎ/);
+});
+
+test("day-len (ADR-0215 Đ2.4): chọn c + lượt kiểm nhận được cũ hơn 24 giờ → không tự đẩy, thông báo; chọn x thì chỉ cảnh báo như cũ", async () => {
+  const cu = { [RUNVIEW(4242)]: viewOf({ updatedAt: "2026-09-21T02:00:00Z" }) };
+  const h = dlTuDong(dayLenScript(cu));
+  assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.ok(!h.calls.includes("git push origin main"));
+  assert.match(h.text(), /cũ hơn 24 giờ — không tự đẩy/);
+  assert.equal(h.thongBao.length, 1);
+  const h2 = dlTuDong(dayLenScript(cu), ["x", "c"]);
+  assert.equal(await lib.dayLen({ ...h2.deps, target: "worktree-x" }), 0);
+  assert.match(h2.text(), /CẢNH BÁO:.*cũ hơn 24 giờ/);
+});
+
+test("day-len (ADR-0215 Đ2.1 + Đ2.4): chọn x, đổi quy trình kiểm (lý do hỏi trước) RỒI số liệu lạ sau kiểm → bản ghi giữ CẢ HAI lý do và cả hai danh sách", async () => {
+  const h = dlTuDong(
+    dayLenScript({ [CTRL_DIFF]: out("scripts/kiem-phan.mjs\n"), "git diff --stat origin/main main -- scripts/kiem-phan.mjs": out(" 1 file changed\n") }),
+    ["chia lại phần", "x", "bớt bài trùng, chủ biết", "c"],
+    { ketQua: { 4242: TONG({ soBai: 8000 }), 4100: TONG() } },
+  );
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  const q = h.daGhi[0]!.banGhi.quyTrinh;
+  assert.equal(q.lyDo, "chia lại phần; bớt bài trùng, chủ biết");
+  assert.ok(q.doi.some((x: string) => /kiem-phan\.mjs/.test(x)), "giữ tệp điều khiển đổi (hỏi trước)");
+  assert.ok(q.doi.some((x: string) => /số bài kiểm giảm/.test(x)), "giữ số liệu lạ (biết sau)");
+});
+
+test("day-len (ADR-0215 Đ2.4): chọn c mà tải tệp gom LỖI (ném lỗi) → không sập lặng lẽ: dừng, thông báo, không đẩy", async () => {
+  const k = khoGia({}, {});
+  k.kho.taiKetQua = async () => {
+    throw new Error("mất mạng giả");
+  };
+  const h = harness(dayLenScript(), ["c"], true, k.kho);
+  const d = dongHoGia();
+  const tb: string[] = [];
+  assert.notEqual(await lib.dayLen({ ...h.deps, now: d.now, sleep: d.sleep, thongBao: (a: string) => void tb.push(a), target: "worktree-x" }), 0);
+  assert.ok(!h.calls.includes("git push origin main"));
+  assert.match(h.text(), /không đọc được số tệp/);
+  assert.equal(tb.length, 1);
+});
+
+test("day-len (ADR-0215 Đ2.1): đổi tệp luật → lý do hỏi TRƯỚC câu chọn và trước lần đẩy phụ", async () => {
+  const h = dlTuDong(dayLenScript({ [LUAT_DIFF]: out("CLAUDE.md\n"), "git diff --stat origin/main main -- CLAUDE.md": out(" CLAUDE.md | 2 +-\n") }), ["sửa luật vì chủ yêu cầu", "c"]);
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.match(h.questions[0]!, /LÝ DO đổi tệp luật/);
+  assert.equal(h.questions[1], lib.CAU_CHON_DAY_LEN);
+  assert.equal(h.questions.length, 2);
+  assert.ok(h.calls.indexOf("git diff --stat origin/main main -- CLAUDE.md") < h.calls.indexOf(PUSH_CHO));
+  assert.deepEqual(h.daGhi[0]!.banGhi.luat, { doi: ["CLAUDE.md"], lyDo: "sửa luật vì chủ yêu cầu" });
 });
 
 test("day-len (Đ2.3 + Đ3.2): tệp điều khiển việc kiểm đổi (dù lượt kiểm XANH) → in tệp + khác biệt, đòi lý do, bản ghi ghi 'đổi quy trình kiểm'", async () => {
@@ -487,20 +594,27 @@ test("day-len (Đ2.3): số tệp / bài / kịch bản giảm, số bài bỏ q
     ["không tải được tệp gom của lượt này", { 4100: TONG() }, {}, /không đọc được số tệp/],
   ];
   for (const [ten, ketQua, over, re] of ca) {
-    const h = dl(dayLenScript(over), ["", "c"], { ketQua });
+    const h = dl(dayLenScript(over), ["x", ""], { ketQua });
     assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0, `${ten}: không lý do ⇒ dừng`);
     assert.match(h.text(), re, ten);
     assert.ok(!h.calls.includes("git push origin main"), ten);
-    const h2 = dl(dayLenScript(over), ["chủ đã biết và đồng ý", "c"], { ketQua });
+    const h2 = dl(dayLenScript(over), ["x", "chủ đã biết và đồng ý", "c"], { ketQua });
     assert.equal(await lib.dayLen({ ...h2.deps, target: "worktree-x" }), 0, `${ten}: có lý do ⇒ đi tiếp`);
     assert.equal(h2.daGhi[0]!.banGhi.quyTrinh.lyDo, "chủ đã biết và đồng ý");
+    // ADR-0215 Đ2.4: chọn c ⇒ điều chỉ biết sau khi kiểm thì KHÔNG tự đẩy, không hỏi lý do, có thông báo.
+    const h3 = dlTuDong(dayLenScript(over), ["c"], { ketQua });
+    assert.notEqual(await lib.dayLen({ ...h3.deps, target: "worktree-x" }), 0, `${ten}: chọn c ⇒ dừng`);
+    assert.match(h3.text(), re, ten);
+    assert.ok(!h3.calls.includes("git push origin main"), ten);
+    assert.deepEqual(h3.questions, [lib.CAU_CHON_DAY_LEN], `${ten}: chọn c thì không hỏi lý do`);
+    assert.equal(h3.thongBao.length, 1, ten);
   }
 });
 
 test("day-len: số liệu tăng / bằng (thêm bài) → xanh thường, không hỏi lý do", async () => {
   const h = dl(dayLenScript(), ["c"], { ketQua: { 4242: TONG({ soBai: 8040, soTep: 834 }), 4100: TONG() } });
   assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
-  assert.deepEqual(h.questions, ["Đẩy lên GitHub? (c/k) "]);
+  assert.deepEqual(h.questions, [lib.CAU_CHON_DAY_LEN]);
 });
 
 test("day-len: ghi bản ghi kết luận lỗi → KHÔNG đẩy main (trien-khai sẽ thiếu bản ghi)", async () => {
@@ -844,7 +958,10 @@ test("trien-khai: quy trình .github/workflows/kiem.yml có việc gom ĐÚNG t�
   const soTai = (yml.match(/uses: actions\/upload-artifact@v4/g) ?? []).length;
   assert.equal(soTai, 4);
   assert.equal((yml.match(/^\s+overwrite: true$/gm) ?? []).length, soTai, "mọi bước tải báo cáo phải có overwrite: true");
-  assert.match(yml, /needs: \[chia, rieng, test, e2e\]\n\s+if: always\(\)/, "việc gom chạy cả khi phần khác đỏ, và đợi mọi phần");
+  assert.match(yml, /needs: \[rieng, test, e2e\]\n\s+if: always\(\)/, "việc gom chạy cả khi phần khác đỏ, và đợi mọi phần");
+  // ADR-0215 Đ1.2: không còn việc «Chia phần» chạy trước mọi phần (tốn ~20 giây nối đuôi); bảng phần ghi thẳng trong quy trình, máy gom vẫn soi đủ/trùng.
+  assert.doesNotMatch(yml, /kiem-phan\.mjs ma-tran/, "không còn việc chia phần riêng");
+  assert.doesNotMatch(yml, /needs\.chia|needs: chia/, "các phần không còn chờ việc chia");
 });
 
 // ─────────────── cổng số phiên bản trong trien-khai (chủ quyết 2026-09-23) ───────────────
@@ -1401,11 +1518,11 @@ test("day-len (kiểm độc lập N3): mốc so số liệu chỉ lấy lượt
   const doGoc = { ...LUOT_GOC, databaseId: 4101, conclusion: "failure", createdAt: "2026-09-22T02:00:00Z" };
   const h = dl(dayLenScript({ [RUNLIST(GOC)]: out(JSON.stringify([doGoc, LUOT_GOC])) }), ["c"], { ketQua: { 4242: TONG(), 4100: TONG(), 4101: TONG({ soBai: 9999 }) } });
   assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0, "so với lượt xanh 4100 (bằng số) ⇒ xanh thường, không hỏi lý do");
-  assert.deepEqual(h.questions, ["Đẩy lên GitHub? (c/k) "]);
+  assert.deepEqual(h.questions, [lib.CAU_CHON_DAY_LEN]);
 });
 
-test("day-len (kiểm độc lập N4): lượt kiểm nhận được đã cũ hơn 24 giờ → cảnh báo sớm (trien-khai sẽ dừng), kèm lệnh chạy lại", async () => {
-  const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ updatedAt: "2026-09-21T01:00:00Z" }) }), ["c"]);
+test("day-len (kiểm độc lập N4): lượt kiểm nhận được đã cũ hơn 24 giờ → cảnh báo sớm (trien-khai sẽ dừng), kèm lệnh chạy lại (chọn x; chọn c thì dừng — ADR-0215 Đ2.4)", async () => {
+  const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ updatedAt: "2026-09-21T01:00:00Z" }) }), ["x", "c"]);
   assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
   assert.match(h.text(), /cũ hơn 24 giờ/);
   assert.match(h.text(), /gh run rerun 4242/);

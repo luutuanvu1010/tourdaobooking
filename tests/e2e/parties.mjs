@@ -14,7 +14,11 @@ assert.equal((await call(null, "GET", "/api/parties")).status, 401);
 let r = await call(SALES, "GET", "/api/parties/meta");
 assert.equal(r.status, 200);
 // ADR-0018: meta trả MỌI loại vai (kể cả vai cũ đã ngưng) kèm nhóm và trạng thái; vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên.
-assert.deepEqual(r.body.roleTypes.map((t) => t.code).sort(), [
+// Loại đối tác do Kế toán thêm (ADR-0117: mã `LD_…`, partnerLabel = true) có thể đã do kịch bản chạy TRƯỚC trên cùng D1 của phần tạo ra (16/11, lượt
+// 43836327847: `phi-don-xac-nhan` tạo hai loại, `parties` cùng phần 12 ⇒ đỏ). Chỉ so loại CÓ SẴN; loại thêm thì phải đúng dạng `LD_…`.
+const loaiThem = r.body.roleTypes.filter((t) => t.partnerLabel === true);
+for (const t of loaiThem) assert.match(t.code, /^LD_[A-Z]{8}$/, `loại đối tác thêm phải mang mã LD_…: ${t.code}`);
+assert.deepEqual(r.body.roleTypes.filter((t) => t.partnerLabel !== true).map((t) => t.code).sort(), [
   "ACCOUNTANT", "AGENT", "BOAT_CAPTAIN", "CARRIER", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "DRIVER_EXTERNAL", "DRIVER_INTERNAL", "GUIDE", "GUIDE_FREELANCE", "GUIDE_INTERNAL",
   "HOTEL_RECEPTION", "HR_STAFF", "INTERN", "IT", "OPERATIONS_MANAGER", "OWNER_COMPANY", "SALES", "SALES_MANAGER", "SALES_STAFF", "STAFF", "SUPPLIER", "TAXI_DRIVER", "TRAVEL_AGENCY", // IT: ADR-0044; OWNER_COMPANY: T2b; DRIVER_INTERNAL: ADR-0040; DRIVER_EXTERNAL, CARRIER: ADR-0048; HR_STAFF: ADR-0071; SUPPLIER: sổ đại lý đợt 1 (migration 0090)
 ]);
