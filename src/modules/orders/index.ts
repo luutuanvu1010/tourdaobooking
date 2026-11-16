@@ -70,7 +70,7 @@ import {
 } from "./service";
 import { CAU_CHUA_GAN_HO_SO, CAU_KHONG_PHAI_DOI_TAC, CAU_VUOT_TONG, vuotTong } from "../../shared/dat-coc-truoc";
 import type { ChanKhaiLai } from "../../shared/dat-coc-kieu";
-import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRANSFER_DISABLED, TRAN_GIAM_GIA, catChoXetDuyet, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
+import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRANSFER_DISABLED, TRANSFER_FEE_NOT_ALLOWED, TRAN_GIAM_GIA, catChoXetDuyet, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
 import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { congLuatBan } from "./cong-ban";
 import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu, dichLoiLoHuy, dichLoiTraSau, VE_CHUA_SOAN_DUOC, type HamNoTraSau, type HamTraSau, type NguoiGuiTraSau } from "./tra-sau-cong";
@@ -86,7 +86,6 @@ type LenhChang = { res: Response } | { sua: Parameters<typeof changeLeg>[4] | nu
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, Hướng dẫn viên của đơn hoặc quản trị viên mới được thay đổi đơn này.");
 const CANNOT_CREATE = () => error(403, "forbidden", "Tài khoản này không được lập đơn.");
 /** ADR-0214 Đ2 (ruling P4): tài khoản Đối tác (giữ quyền PARTNER) gửi mức phí đưa đón ⇒ từ chối, không lặng lẽ bỏ. Câu của kế hoạch (Task 6 đưa vào bảng tham chiếu). */
-const TRANSFER_FEE_NOT_ALLOWED = () => error(400, "transfer_fee_not_allowed", "Văn phòng sẽ chọn phí đưa đón khi xác nhận.");
 
 /**
  * Câu nhật ký mức phí đưa đón của lần lập / lưu nháp (ADR-0214 Đ2): mỗi chặng của thân — mức cũ (đã lưu theo id chặng) so với mức sẽ ghi. Chỉ khi phí đang áp (chưa áp thì không dòng

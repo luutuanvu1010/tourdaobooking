@@ -28,8 +28,11 @@ import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, type DauDatGapMoi } 
 import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { congHuyTraSau, VE_CHUA_SOAN_DUOC } from "./tra-sau-cong";
 import { CAU_VUOT_TONG_NGUOI_XET } from "../../shared/dat-coc-truoc";
-import { MOC_CHUA_CO, RACED, STALE, type KetQuaLenhDon, canChotGioCuaNguoiLap, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, congDoiTacChuaCoVaiTro, congNhomTatDuaDon, congThieuPhiDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tinhCanXacNhan, viCuaYeuCau, type NguoiLapDoiTac } from "./xac-nhan-chung";
-import { chuanBiPhiDonXacNhan } from "./service";
+import { MOC_CHUA_CO, RACED, STALE, type KetQuaLenhDon, canChotGioCuaNguoiLap, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, congDoiTacChuaCoVaiTro, congNhomTatDuaDon, congThieuPhiDon, TRANSFER_FEE_NOT_ALLOWED, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tinhCanXacNhan, viCuaYeuCau, type NguoiLapDoiTac } from "./xac-nhan-chung";
+import { chuanBiPhiDonXacNhan, mucTuDongPhi } from "./service";
+import { coPhiDonTrongThan } from "./rules";
+import { moTaPhiDonNhatKy } from "./phi-don-don";
+import { CAU_KHONG_HOP_LE_PHI_DON, CAU_VUOT_TRAN_PHI_DON, kiemMucChon, type MucChon } from "../../shared/phi-don-chon";
 import { confirmGaps, confirmWindow } from "./service-rules";
 import { congLuatBan } from "./cong-ban";
 import { coChotGio } from "./gio-don-cai-dat";
@@ -196,7 +199,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     // Đợt C, Task 4 (trang ghép §3): cửa này không qua kiemCongXacNhan — CHỐT RIÊNG «thiếu phí đưa đón» (cùng câu 409), sau cổng chọn Đón; tính theo bảng hôm nay (chỉ đọc).
     const homNay = vnToday(new Date(nowMs));
     const phiDon = await chuanBiPhiDonXacNhan(env.DB, order, homNay);
-    const thieuPhi = congThieuPhiDon(phiDon, order.bookerName);
+    const thieuPhi = congThieuPhiDon(phiDon);
     if (thieuPhi) return thieuPhi;
     // Đ3 «chưa có khoản thu»: hàm TIÊM từ gốc lắp ráp (orders không đọc bảng bil_).
     const chan = await chanKhoanThu(daThuCuaDon, id);
@@ -215,13 +218,14 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
   // Thứ tự: nháp của người khác 404 (ADR-0135 Đ2) → `can(order.submit)` 403 → đã giao → không phải nháp / đã có yêu cầu mở 409 → mọi cổng của Xác nhận ngay THEO NGƯỜI GỬI (R2 giá danh mục, người lớn,
   // chọn Đón, R3 trần; mốc chỉ cần CÓ để phân nhánh — chặng dưới mốc KHÔNG bị từ chối lúc gửi) → phân nhánh bằng `canXacNhan`. Cổng hỏng ⇒ đơn ở lại nháp, không câu báo thứ ba. (Cổng «luật bán» — ADR-0146 Đ3:
   // dòng đầu `kiemCongXacNhan`, nên đứng trước mọi cổng khác và trước phân nhánh.) Nhánh A mở yêu cầu như Gửi xác nhận (kèm chặn khoản thu); nhánh B xác nhận ngay trong lô `soanXacNhan` (không mở yêu cầu, không kiểm khoản thu).
-  route("POST", "/api/orders/:id/gui-don", "orders", async ({ env, params, staff, baoThayDoi, mocToiThieu, daThuCuaDon, capVeSauXacNhan, cauCocKhiXacNhan, banHang, kiemTraSau, cauGacPhienBanTraSau }) => {
+  route("POST", "/api/orders/:id/gui-don", "orders", async ({ env, request, params, staff, baoThayDoi, mocToiThieu, daThuCuaDon, capVeSauXacNhan, cauCocKhiXacNhan, banHang, kiemTraSau, cauGacPhienBanTraSau }) => {
     const id = params.id!;
     if (!UUID_RE.test(id)) return NOT_FOUND_DON();
     const meta = await getMeta(env.DB, id);
     if (!meta) return NOT_FOUND_DON();
     if (!chiNguoiLapGhiNhap({ status: meta.status, laNguoiLap: meta.staffId === staff.id })) return NOT_FOUND_DON();
     if (!can(staff, "order.submit", { ownerId: meta.staffId })) return error(403, "forbidden", "Chỉ tài khoản Đối tác mới dùng nút Gửi đơn.");
+    if (holdsPartner(staff) && coPhiDonTrongThan(await readJson(request))) return TRANSFER_FEE_NOT_ALLOWED(); // ADR-0214 Đ2 (ruling P4): Gửi đơn không nhận mức phí — văn phòng chọn ở Còn vé
     if (meta.deliveredAt) return DA_GIAO_DON();
     if (meta.status !== "draft" || meta.staffId !== staff.id) return error(409, "order_not_draft", "Chỉ gửi được đơn nháp của chính bạn.");
     if (await yeuCauMoCuaDon(env.DB, id)) return error(409, "confirm_already_open", "Đơn này đã gửi kiểm vé và đang chờ.");
@@ -328,6 +332,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     const body = await readJson(request);
     const ketQua = body?.ketQua;
     if (ketQua !== "CON_VE" && ketQua !== "HET_VE" && ketQua !== "HUY") return error(400, "invalid_input", "Chọn Hết vé, Huỷ, hoặc Còn vé, xác nhận đơn.");
+    if (holdsPartner(staff) && coPhiDonTrongThan(body)) return TRANSFER_FEE_NOT_ALLOWED(); // ADR-0214 Đ2 (ruling P4): tài khoản giữ quyền Đối tác (kể cả tài khoản lai) không chọn phí đưa đón
     if (typeof body?.yeuCauId !== "string" || body.yeuCauId === "" || typeof body?.updatedAt !== "string" || body.updatedAt === "") return error(400, "invalid_input", "Thiếu yêu cầu xác nhận hoặc mốc cập nhật của đơn — tải lại rồi thử lại.");
     const meta = await getMeta(env.DB, id);
     if (!meta) return NOT_FOUND_DON();
@@ -426,6 +431,22 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
         if (o.datGap !== undefined && o.datGap !== null) datGapLuot.set(o.legId, o); // ADR-0154 Đ1.4: lý do đặt gấp CỦA LƯỢT NÀY — xét ở chỗ canh `xetDatGap` sau khi biết giờ, ngày SAU lệnh
       }
     }
+    // ADR-0214 Đ2–Đ3 (ruling P5): mức phí đưa đón văn phòng chọn ở Còn vé — `phiDon: [{ legId, muc: { loai, soTien } }]`, chỉ cho lượt đón MỞ của chính đơn này đang CHƯA có mức
+    // (dòng bảng phí cũ / không nguồn = chưa có, ruling P6). Lượt đã có mức ⇒ 400: không có đường sửa phí ngoài lưu nháp của người lập (người xét không ghi đè mức đã chọn).
+    // Mức kiểm bằng `kiemMucChon` (cùng câu với lưu nháp). Phí chưa áp ở hôm nay ⇒ mức vẫn kiểm nhưng không sinh dòng (như lưu nháp). Ghép vào CÙNG lô xác nhận qua `cong.phiDon.cauLenh`.
+    const mucPhiChon = new Map<string, MucChon>();
+    if (body.phiDon !== undefined && body.phiDon !== null) {
+      if (!Array.isArray(body.phiDon)) return error(400, "invalid_input", CAU_KHONG_HOP_LE_PHI_DON);
+      const daCo = mucTuDongPhi(order.phiDuaDon?.dong ?? []);
+      for (const p of body.phiDon as unknown[]) {
+        const o = p as { legId?: unknown; muc?: unknown } | null;
+        if (!o || typeof o.legId !== "string" || !chang.has(o.legId) || mucPhiChon.has(o.legId)) return error(400, "invalid_input", "Lượt đưa đón không có trong đơn hoặc bị nhắc hai lần.");
+        if (daCo.has(o.legId)) return error(400, "invalid_input", "Lượt đón này đã có phí đưa đón.");
+        const k = kiemMucChon(o.muc);
+        if (!k.ok) return error(400, "invalid_input", k.loi === "VUOT_TRAN" ? CAU_VUOT_TRAN_PHI_DON : CAU_KHONG_HOP_LE_PHI_DON);
+        mucPhiChon.set(o.legId, k.muc);
+      }
+    }
     // (0) KIỂM TRƯỚC KHI GHI — mốc tối thiểu / đặt gấp tính trên ngày + giờ MỚI (cùng `canhBaoMocCua`, cùng ngưỡng `nguongMocVn` với câu xác nhận): không để người xét duyệt đổi sang khung sớm hơn mà qua mặt mốc.
     // ADR-0118 Đ3 (b) TRƯỚC mốc (cùng thứ tự với `/status`): lượt của nhóm đã tắt đưa đón phải bỏ, đừng đẩy người xét duyệt đi đặt gấp cho nó trước.
     // ADR-0146 Đ3 (R-7): luật bán đứng TRƯỚC cả nhóm tắt đưa đón và mốc — đừng đẩy người xét duyệt đi bỏ lượt / đặt gấp cho một đơn không bán được. (Dòng đầu
@@ -441,7 +462,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     if (tatDuaDon) return tatDuaDon;
     // Đợt C, Task 4 (trang ghép §3 cổng 6, cùng lý do R-7): thiếu phí đưa đón ⇒ 409 NGAY ĐÂY, trước phần kiểm mốc / đặt gấp của route — không đẩy người xét đi đặt gấp, ghi giờ cho đơn
     // chưa xác nhận được (đơn mang cờ «thiếu phí» của Gửi đơn là ca chính). Cổng chọn Đón (cổng 5) không đổi được trong lúc chờ (khoá khi chờ; đã kiểm lúc Gửi đơn). `kiemCongXacNhan` gọi lại (lưới).
-    const thieuPhiXd = congThieuPhiDon(await chuanBiPhiDonXacNhan(env.DB, order, homNay), order.bookerName);
+    const thieuPhiXd = congThieuPhiDon(await chuanBiPhiDonXacNhan(env.DB, order, homNay, mucPhiChon));
     if (thieuPhiXd) return thieuPhiXd;
     const daDatGap = new Set((await legDatGapByOrder(env.DB, id)).map((r) => r.id));
     const legsMoi = [...chang.values()].map(({ l, dichVu }) => ({
@@ -480,7 +501,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     // Các cổng còn lại (R2 giá, người lớn, nhóm tắt đưa đón, chọn đón, R3 trần) xét theo NGƯỜI BẤM Còn vé — như hôm nay; mốc đã kiểm ở trên.
     // Đợt C, Task 4: thiếu phí ⇒ 409 (đơn Gửi đơn mang cờ «thiếu phí» chốt phí THẬT ở đây). Cổng thiếu phí đứng ngay sau cổng chọn Đón TRONG kiemCongXacNhan — ở cửa này cả hai
     // đứng sau phần kiểm mốc / đặt gấp của route (thứ tự sẵn có của Còn vé).
-    const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc, cuaDuaDon: "xet-duyet", nguoiLapDoiTac, traSau: { kiemTraSau, cauGacPhienBanTraSau }, cheDoThieuPhi: "TU_CHOI" });
+    const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc, cuaDuaDon: "xet-duyet", nguoiLapDoiTac, traSau: { kiemTraSau, cauGacPhienBanTraSau }, cheDoThieuPhi: "TU_CHOI", mucPhiThem: mucPhiChon });
     if ("loi" in cong) return cong.loi;
     // ADR-0159 Đ1 mục 3, 4: người LẬP là người thu dù người xét bấm; người xét không sửa được số khai nên câu vượt tổng nói phải trả đơn. `cong.chup` là bản chụp của CHÍNH lô này.
     // Đợt C: so với tổng ĐÃ GỒM phí tính lại ở ngày xác nhận.
@@ -528,7 +549,11 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     }
     const doi = doiNgay && doiGio ? ", đổi ngày và giờ" : doiNgay ? ", đổi ngày" : doiGio ? ", đổi giờ" : "";
     const lyDoNhatKy = [...dauMoi.values()][0]?.lyDo ?? null; // đuôi nhật ký đi theo LÝ DO (G16); mỗi lượt đã có dòng nhật ký riêng với lý do của nó
-    const detail = [`Còn vé, xác nhận đơn${doi}${lyDoNhatKy ? ghiDatGapNhatKy(LY_DO_DAT_GAP[lyDoNhatKy]) : ""}`, cong.detail].filter(Boolean).join(" | ");
+    // ADR-0214 Đ2: mức văn phòng chọn ở Còn vé — lượt đón (chiều, dịch vụ), mức, kiểu chọn; người chọn = người ghi dòng nhật ký `confirmed`. Không tên khách. Phí chưa áp ⇒ không ghi (mức bị bỏ qua).
+    const nhatKyPhi = cong.phiDon.apDung
+      ? moTaPhiDonNhatKy([...mucPhiChon].map(([legId, moi]) => ({ chieu: chang.get(legId)!.l.direction, tenDichVu: chang.get(legId)!.dichVu.name, cu: null, moi })))
+      : null;
+    const detail = [`Còn vé, xác nhận đơn${doi}${lyDoNhatKy ? ghiDatGapNhatKy(LY_DO_DAT_GAP[lyDoNhatKy]) : ""}`, nhatKyPhi, cong.detail].filter(Boolean).join(" | ");
     const auditId = crypto.randomUUID();
     const xn = soanXacNhan(env.DB, id, staff.id, cong.today, meta.updatedAt, nguongMocVn(nowMs, moc.phut), detail, kemChupXacNhan(env.DB, { orderId: id, staffId: staff.id, today: cong.today, chup: cong.chup }), cocXn.coc, cong.traSau, cong.phiDon.cauLenh, { auditId, yeuCauId: y.id });
     const khep = cauKhepYeuCau(env.DB, { id: y.id, at: xn.at, by: staff.id, outcome: "XAC_NHAN", ticket: "CON_VE", note: null, auditId });

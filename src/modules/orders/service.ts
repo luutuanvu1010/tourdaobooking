@@ -497,7 +497,7 @@ export async function loadOrderView(db: D1Database, id: string, xemDuDatGap: boo
     const codes = order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : []));
     const catalog = await getEffectiveServices(db, codes);
     // Phí đưa đón của NHÁP: dòng đã lưu (dự kiến) + chặng mở chưa chọn mức (CHUA_CHON) — tính lúc đọc theo công tắc hôm nay, mức đã lưu theo id chặng (ADR-0214).
-    const dvNhap = order.services.map((s) => ({ ref: s.id, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) }));
+    const dvNhap = order.services.map((s) => ({ ref: s.id, ten: s.name, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) }));
     const song = await tinhPhiNhap(db, dvNhap, mucTuDongPhi(order.phiDuaDon?.dong ?? []), vnToday(new Date()));
     return datGapTheoVai(
       {
@@ -576,7 +576,7 @@ export async function mucDaLuu(db: D1Database, orderId: string): Promise<Map<str
 
 /** Dịch vụ của thân lập / lưu nháp → đầu vào tính phí, khoá chặng = vị trí `"<dịch vụ>|<chặng>"` (cùng khoá với nơi sinh id chặng ở repository `legWrites`). */
 export const dichVuNhapChoPhi = (services: readonly ValidOrder["services"][number][]): DichVuChoPhi[] =>
-  services.map((s, i) => ({ ref: String(i), pax: s.pax, legs: s.legs.map((l, j) => ({ ...l, legKey: `${i}|${j}` })) }));
+  services.map((s, i) => ({ ref: String(i), ten: s.name, pax: s.pax, legs: s.legs.map((l, j) => ({ ...l, legKey: `${i}|${j}` })) }));
 
 /** Cộng phí vào tạm tính và tổng của đơn sẽ ghi (giảm giá đã kiểm trên dòng dịch vụ ở `validateOrder` — không đổi). */
 export const congPhiVaoDon = <T extends { subtotal: number; total: number }>(order: T, phi: PhiNhap): T => ({ ...order, subtotal: order.subtotal + phi.tong, total: order.total + phi.tong });
@@ -602,7 +602,7 @@ export function dichVuDangLuuChoPhi(
       if (op.kind !== "insert" || op.serviceId !== s.id || op.leg.id === null) continue;
       legs.push({ legKey: op.leg.id, direction: op.leg.direction, exclusiveVehicle: op.leg.exclusiveVehicle, paxOverride: op.leg.paxOverride });
     }
-    return { ref: s.id, pax: s.pax, legs };
+    return { ref: s.id, ten: s.name, pax: s.pax, legs };
   });
 }
 
@@ -631,8 +631,8 @@ export function cauPhiNhap(db: D1Database, orderId: string, phi: PhiNhap, g: Gac
 export interface PhiDonXacNhan {
   /** Phí đang áp ở ngày xác nhận (công tắc «ngày bắt đầu áp»). */
   apDung: boolean;
-  /** Chặng chưa có phí (từ ADR-0214: CHUA_CHON) — khác rỗng thì cửa xác nhận từ chối (hoặc Gửi đơn đi nhánh A). `tenVung` chỉ có nghĩa với lý do của bảng phí cũ (rỗng với CHUA_CHON). */
-  thieu: { legKey: string; tenVung: string; lyDo: LyDoThieuPhiDonDto }[];
+  /** Lượt đón còn mở chưa chọn phí (ADR-0214: CHUA_CHON) — khác rỗng thì cửa xác nhận từ chối (hoặc Gửi đơn đi nhánh A). Chiều + tên dịch vụ cho câu `cauThieuPhiDon`. */
+  thieu: { legKey: string; direction: "OUT" | "RETURN"; tenDichVu: string; lyDo: LyDoThieuPhiDonDto }[];
   /** Σ dòng dịch vụ + Σ dòng phí tìm được (chặng thiếu chưa có tiền). */
   subtotalMoi: number;
   /** Tổng phải thu theo `subtotalMoi` (giảm giá chỉ so với dòng dịch vụ — đã chặn lúc lưu nháp; `effectiveMoney` kẹp ≥ 0). Cổng Trả sau và lời khai đặt cọc đọc số này. */
@@ -641,23 +641,26 @@ export interface PhiDonXacNhan {
 }
 
 /**
- * CHỈ ĐỌC: tính lại phí đưa đón của đơn NHÁP `don` ở ngày xác nhận `ngay` (giờ Việt Nam, `cong.today`). Task 3 của ADR-0214 (BẮT BUỘC vì `tinhPhiNhap` đổi chữ ký — Task 4 hoàn thiện):
- * mức = mức đã lưu trong dòng phí theo id chặng (`mucTuDongPhi` — chỉ dòng do văn phòng chọn; dòng bảng phí cũ coi như chưa chọn, ruling P6), số lượng tính lại theo số khách hiện tại;
- * chặng mở không mức ⇒ thiếu CHUA_CHON ⇒ cửa xác nhận từ chối / Gửi đơn đi nhánh A. Phí chưa áp ⇒ không thiếu.
+ * CHỈ ĐỌC: tính lại phí đưa đón của đơn NHÁP `don` ở ngày xác nhận `ngay` (giờ Việt Nam, `cong.today`) — ADR-0214 Đ2–Đ3:
+ * mức = mức đã lưu trong dòng phí theo id chặng (`mucTuDongPhi` — chỉ dòng do văn phòng chọn; dòng bảng phí cũ / không nguồn coi như chưa chọn, ruling P6 — không bao giờ tự 0 đồng),
+ * cộng `mucThem` = mức văn phòng chọn ở cửa Còn vé theo id chặng (route đã kiểm: chặng mở của chính đơn, chưa có mức, `kiemMucChon`); số lượng tính lại theo số khách hiện tại;
+ * chặng mở không mức ⇒ thiếu CHUA_CHON ⇒ cửa xác nhận từ chối / Gửi đơn đi nhánh A. Phí chưa áp ⇒ không thiếu (mức gửi kèm bị bỏ qua sau khi đã kiểm).
  * Câu (khi có): xoá mọi dòng phí cũ → chèn dòng phí mới → tạm tính / tổng mới (`cauTienXacNhanPhi`), đều gác bằng «đơn còn nháp ĐÚNG mốc `prevUpdatedAt`» (cùng điều kiện khoá của
  * câu xác nhận) và không đổi `updated_at`. Có câu khi phí đang áp HOẶC nháp còn dòng phí cũ (phí vừa tắt ⇒ phải bỏ dòng cũ và trả tạm tính về tổng dịch vụ).
  * `remaining_amount` không tính ở đây: cột cọc cũ không được đọc ngoài câu SQL (NT-R9) — `COC_CU_THEO_TONG` trong câu tiền tự đặt theo `totalMoi`.
  * Không ném lỗi tràn: số khách mỗi dịch vụ ≤ MAX_GUESTS_PER_SERVICE (50), một mức ≤ 5.000.000 đ ⇒ mỗi dòng ≤ 2,5e8 (như `tinhPhiNhap`).
  */
-export async function chuanBiPhiDonXacNhan(db: D1Database, don: NonNullable<Awaited<ReturnType<typeof findOrder>>>, ngay: string): Promise<PhiDonXacNhan> {
-  const dv: DichVuChoPhi[] = don.services.map((s) => ({ ref: s.id, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) }));
-  const phi = await tinhPhiNhap(db, dv, mucTuDongPhi(don.phiDuaDon?.dong ?? []), ngay);
+export async function chuanBiPhiDonXacNhan(
+  db: D1Database, don: NonNullable<Awaited<ReturnType<typeof findOrder>>>, ngay: string, mucThem: ReadonlyMap<string, MucChon> = new Map(),
+): Promise<PhiDonXacNhan> {
+  const dv: DichVuChoPhi[] = don.services.map((s) => ({ ref: s.id, ten: s.name, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) }));
+  const phi = await tinhPhiNhap(db, dv, new Map([...mucTuDongPhi(don.phiDuaDon?.dong ?? []), ...mucThem]), ngay);
   const coDongCu = (don.phiDuaDon?.dong.length ?? 0) > 0;
   if (!phi.apDung && !coDongCu) return { apDung: false, thieu: [], subtotalMoi: don.subtotal, totalMoi: don.total, cauLenh: () => [] };
   const tongDichVu = don.services.reduce((t, s) => t + s.items.reduce((u, i) => u + i.lineTotal, 0), 0);
   const subtotalMoi = tongDichVu + phi.tong;
   const totalMoi = effectiveMoney(tongDichVu, don.discount, phi.tong).total;
-  const thieu = phi.thieu.map((t) => ({ legKey: t.legKey, tenVung: t.zoneName ?? "", lyDo: t.lyDo }));
+  const thieu = phi.thieu.map((t) => ({ legKey: t.legKey, direction: t.direction, tenDichVu: t.tenDichVu, lyDo: t.lyDo }));
   const soDongDichVu = don.services.reduce((t, s) => t + s.items.length, 0);
   return {
     apDung: phi.apDung, thieu, subtotalMoi, totalMoi,
