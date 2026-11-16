@@ -194,6 +194,7 @@
  "src/migrations-tien-xe-thue.test.ts": 11.2,
  "src/migrations-tin-cho-xac-nhan.test.ts": 2.5,
  "src/migrations-tin-doi-don.test.ts": 2,
+ "src/migrations-to-chuc.test.ts": 4,
  "src/migrations-tro-ly-bang-dieu-khien.test.ts": 5,
  "src/migrations-tro-ly-bo-nao.test.ts": 2.5,
  "src/migrations-tro-ly-van-nghia.test.ts": 1.3,

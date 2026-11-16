@@ -104,6 +104,8 @@ function ruleViolation(e: unknown): Response | null {
   if (/lc1b_driver_partner_alone/.test(m)) return error(409, "account_rule", "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác.");
   // ADR-0185 Đ2 mục 3: trigger lc1c (mở quyền Đối tác khi hồ sơ chưa mang vai trò đối tác) — chỉ tới đây khi lời kiểm máy chủ (quyenNgoaiDuongCuProblem, K6) bị vượt.
   if (/lc1c_partner_needs_role/.test(m)) return error(409, "account_rule", CAU_DUONG_CU_QUYEN_NGOAI);
+  // ADR-0213 Đ9: trigger lc1d (hồ sơ chỉ có liên kết người quản lý / thành viên của tổ chức, không vai riêng) — lưới cuối; lời kiểm máy chủ thuộc Task 10.
+  if (/lc1d_link_only_partner/.test(m)) return error(409, "account_rule", "Tài khoản của người làm việc cho tổ chức chỉ giữ quyền Đối tác.");
   // ADR-0117 điều 4: hồ sơ mang loại đối tác được hưởng không nhận vai / quyền nội bộ (trigger *_partner_label_conflict ở vai hồ sơ và ở quyền). Câu KHÔNG nêu
   // tên loại: người gọi có thể là Nhân sự (không xem Danh bạ). Lưới cuối cho PUT …/permissions kiểu cũ và lô hai của PUT …/roles.
   if (/partner_label_conflict/.test(m)) return error(409, "account_rule", KHONG_NHAN_VAI_NOI_BO);

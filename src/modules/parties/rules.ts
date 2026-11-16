@@ -311,6 +311,14 @@ export function ownerCompanyAssignProblem(kind: "PERSON" | "ORGANIZATION", r: Ro
 /** Mã loại quan hệ "Tài xế của" (ADR-0048 D1): từ hồ sơ NGƯỜI (tài xế) tới hồ sơ đang mở vai Nhà xe đối tác (CARRIER). */
 export const QUAN_HE_TAI_XE_CUA = "DRIVES_FOR";
 
+/**
+ * ADR-0213 Đ2.1, Đ2.7: «Người quản lý của» (MANAGER_OF) và «Thành viên của» (MEMBER_OF) — liên kết người → tổ chức chỉ đường riêng của màn tổ chức ghi được.
+ * Route quan hệ chung của Danh bạ (thêm VÀ kết thúc) từ chối hai mã này; danh sách loại quan hệ của Danh bạ không chào chúng. Một nguồn cho cả ba chỗ.
+ */
+export const LIEN_KET_TO_CHUC: readonly string[] = ["MANAGER_OF", "MEMBER_OF"];
+export const laLienKetToChuc = (code: string): boolean => LIEN_KET_TO_CHUC.includes(code);
+export const CHI_DOI_O_MAN_TO_CHUC = "Người quản lý và thành viên của tổ chức chỉ đổi ở màn tổ chức.";
+
 export interface RelationshipInput {
   fromPartyId: string;
   toPartyId: string;
@@ -327,6 +335,7 @@ export function validateRelationship(body: Record<string, unknown> | null, party
   if (fromPartyId === toPartyId) return fail("Một hồ sơ không thể có quan hệ với chính nó.");
   if (fromPartyId !== partyId && toPartyId !== partyId) return fail("Quan hệ phải gắn với hồ sơ đang xem.");
   if (typeof relationshipTypeCode !== "string" || !CODE_RE.test(relationshipTypeCode)) return fail("Loại quan hệ không hợp lệ.");
+  if (laLienKetToChuc(relationshipTypeCode)) return fail(CHI_DOI_O_MAN_TO_CHUC);
   const period = validatePeriod(body.validFrom, body.validTo, today);
   return period.ok ? { ok: true, value: { fromPartyId, toPartyId, typeCode: relationshipTypeCode, from: period.value.from, to: period.value.to } } : period;
 }

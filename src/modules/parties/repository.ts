@@ -470,7 +470,7 @@ const ROLE_ROW_OF = defineSql(
 const RELATIONSHIP_ENDS = defineSql(
   "parties",
   "relationship_ends",
-  "SELECT from_party_id, to_party_id FROM pty_party_relationship WHERE id = ?1 AND (from_party_id = ?2 OR to_party_id = ?2)",
+  "SELECT from_party_id, to_party_id, relationship_type_code FROM pty_party_relationship WHERE id = ?1 AND (from_party_id = ?2 OR to_party_id = ?2)",
 );
 const REOPEN_ROLE = defineSql(
   "parties",
@@ -506,9 +506,9 @@ export async function roleRowOf(db: D1Database, partyId: string, roleId: string)
   const r = await db.prepare(ROLE_ROW_OF).bind(roleId, partyId).first<{ role_group: string; role_type_code: string }>();
   return r ? { group: r.role_group, code: r.role_type_code } : null;
 }
-export async function relationshipEnds(db: D1Database, partyId: string, relationshipId: string): Promise<{ from: string; to: string } | null> {
-  const r = await db.prepare(RELATIONSHIP_ENDS).bind(relationshipId, partyId).first<{ from_party_id: string; to_party_id: string }>();
-  return r ? { from: r.from_party_id, to: r.to_party_id } : null;
+export async function relationshipEnds(db: D1Database, partyId: string, relationshipId: string): Promise<{ from: string; to: string; typeCode: string } | null> {
+  const r = await db.prepare(RELATIONSHIP_ENDS).bind(relationshipId, partyId).first<{ from_party_id: string; to_party_id: string; relationship_type_code: string }>();
+  return r ? { from: r.from_party_id, to: r.to_party_id, typeCode: r.relationship_type_code } : null;
 }
 export const reopenRoleStatement = (db: D1Database, partyId: string, roleId: string, actorId: string, at: string): D1PreparedStatement =>
   db.prepare(REOPEN_ROLE).bind(roleId, partyId, at, actorId);

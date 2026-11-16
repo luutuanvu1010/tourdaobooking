@@ -61,7 +61,7 @@ import { chuyenToanQuyen, kiemTuChoi, loiLoChapNhan, lyDoKhongChapNhan, xetNguoi
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
   PARTY_ID_RE, QUAN_HE_TAI_XE_CUA, ROW_ID_RE, composePersonName, hoSoNoiBo, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
-  validatePersonFullName, validateRelationship, validateRole,
+  validatePersonFullName, validateRelationship, validateRole, laLienKetToChuc, CHI_DOI_O_MAN_TO_CHUC,
 } from "./rules";
 
 import type { PersonName } from "./rules";
@@ -1113,7 +1113,7 @@ export const partiesModule: AppModule = {
       const [roleTypes, relationshipTypes] = await Promise.all([listRoleTypes(env.DB), listRelationshipTypes(env.DB)]);
       return json({
         roleTypes: roleTypes.map((t) => ({ code: t.code, name: t.name, group: t.role_group as "INTERNAL" | "EXTERNAL" | "OTHER", active: t.active === 1, partnerLabel: t.partnerLabel })),
-        relationshipTypes,
+        relationshipTypes: relationshipTypes.filter((t) => !laLienKetToChuc(t.code)), // ADR-0213 Đ2.7: Danh bạ không chào hai loại liên kết tổ chức
       } satisfies PartyMetaResponse);
     }),
 
@@ -2596,6 +2596,7 @@ export const partiesModule: AppModule = {
         if (acc.linked && !acc.manageable) return FORBIDDEN_WRITE();
       }
       if (hoSo.merged_into_id) return DA_GOP();
+      if (ends && laLienKetToChuc(ends.typeCode)) return error(400, "invalid_input", CHI_DOI_O_MAN_TO_CHUC); // ADR-0213 Đ2.7: chỉ màn tổ chức đóng hai loại này
       const now = new Date();
       const to = validateEndDate(await readJson(request), vnToday(now));
       if (!to.ok) return error(400, "invalid_input", to.message);

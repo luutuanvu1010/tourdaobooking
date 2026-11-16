@@ -780,6 +780,7 @@ function schemaWithoutGuards(): DatabaseSync {
   db.exec("DROP TRIGGER lc1_stf_permission_external_partner_only; DROP TRIGGER pty_party_role_group_conflict_ins; DROP TRIGGER pty_party_role_group_conflict_upd;");
   db.exec("DROP TRIGGER lc1b_stf_permission_driver_partner_alone;");
   db.exec("DROP TRIGGER lc1c_stf_permission_partner_needs_role;"); // ADR-0185 Đ2: dựng được tài khoản Đối tác thiếu vai trò (R-LC-1c phải bắt)
+  db.exec("DROP TRIGGER lc1d_stf_permission_link_only_partner;"); // ADR-0213 Đ9: dựng được tài khoản chỉ có liên kết mà giữ quyền khác Đối tác (R-TC-3 phải bắt)
   return db;
 }
 function guardSeed(db: DatabaseSync, id: string, roles: string[], perms: string[]): void {
@@ -854,13 +855,18 @@ test("R-LC-1c (ADR-0185 Đ3): tài khoản đang hoạt động giữ Đối tá
 });
 
 test("H4 (ADR-0185, kế hoạch K5): trigger lc1c, R-LC-1c và câu đọc của chủ cùng MỘT điều kiện — với mỗi hình dạng hồ sơ: kiểm đếm ⇔ câu đọc trả tài khoản ⇔ CSDL có trigger từ chối mở Đối tác", () => {
-  const HINH: { ten: string; vai: string[]; dongVai?: boolean; khongHoSo?: boolean; viPham: boolean }[] = [
+  const HINH: { ten: string; vai: string[]; dongVai?: boolean; khongHoSo?: boolean; lienKet?: "MANAGER_OF" | "MEMBER_OF"; toChucThoiVai?: boolean; dongLienKet?: boolean; viPham: boolean }[] = [
     { ten: "hồ sơ chỉ vai STAFF (kiểu cũ)", vai: ["STAFF"], viPham: true },
     { ten: "tài khoản chưa gắn hồ sơ", vai: [], khongHoSo: true, viPham: true },
     { ten: "vai trò đối tác đã kết thúc", vai: ["TRAVEL_AGENCY"], dongVai: true, viPham: true },
     { ten: "Công ty lữ hành đang mở", vai: ["TRAVEL_AGENCY"], viPham: false },
     { ten: "vai trò do Kế toán thêm (nhóm OTHER, cờ nhãn đối tác)", vai: [NHAN_THU], viPham: false },
     { ten: "chỉ Tài xế đối tác (ca lọt có ghi, K5)", vai: ["DRIVER_EXTERNAL"], viPham: false },
+    // ADR-0213 Đ9 (LC-1c tạo lại ở migration *_dang_ky_quan_ly_to_chuc): vế liên kết đang mở tới tổ chức mang vai được hưởng.
+    { ten: "không vai, chỉ có liên kết thành viên tới tổ chức đối tác", vai: [], lienKet: "MEMBER_OF", viPham: false },
+    { ten: "không vai, chỉ có liên kết người quản lý tới tổ chức đối tác", vai: [], lienKet: "MANAGER_OF", viPham: false },
+    { ten: "liên kết tới tổ chức đã thôi vai đối tác (vai đóng sau khi gắn)", vai: [], lienKet: "MEMBER_OF", toChucThoiVai: true, viPham: true },
+    { ten: "liên kết đã đóng", vai: [], lienKet: "MEMBER_OF", dongLienKet: true, viPham: true },
   ];
   const khongGac = schemaWithoutGuards();
   const coGac = new DatabaseSync(":memory:"); // schema đầy đủ, GIỮ mọi trigger
@@ -873,6 +879,14 @@ test("H4 (ADR-0185, kế hoạch K5): trigger lc1c, R-LC-1c và câu đọc củ
     db.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(`p-${id}`, id, T1, T1);
     h.vai.forEach((v, i) => db.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, NULL, '2026-09-20', ?, ?)").run(`r-${id}-${i}`, `p-${id}`, v, T1, T1));
     if (h.dongVai) db.prepare("UPDATE pty_party_role SET valid_to_date = '2026-10-01' WHERE party_id = ?").run(`p-${id}`);
+    if (h.lienKet) {
+      // Tổ chức mang vai Công ty lữ hành LÚC GẮN (trigger hai đầu của liên kết); thôi vai / đóng liên kết thì làm SAU — đúng ca trigger chỉ canh lúc mở.
+      db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', ?, 1, ?, ?)").run(`o-${id}`, `Tổ chức ${id}`, T1, T1);
+      db.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', NULL, '2026-09-20', ?, ?)").run(`r-o-${id}`, `o-${id}`, T1, T1);
+      db.prepare("INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, ?, '2026-09-20', ?, ?)").run(`l-${id}`, `p-${id}`, `o-${id}`, h.lienKet, T1, T1);
+      if (h.toChucThoiVai) db.prepare("UPDATE pty_party_role SET valid_to_date = '2026-10-01' WHERE party_id = ?").run(`o-${id}`);
+      if (h.dongLienKet) db.prepare("UPDATE pty_party_relationship SET valid_to_date = '2026-10-01' WHERE id = ?").run(`l-${id}`);
+    }
     db.prepare("INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES (?, '', ?, 'x', 'sales', 1, ?, ?)").run(id, `09${id.padStart(8, "0")}`, T1, h.khongHoSo ? null : `p-${id}`);
   };
   const moDoiTac = (db: DatabaseSync, id: string) =>
@@ -5069,4 +5083,134 @@ test("R-DK-7 (ADR-0212 Đ1 mục 5 c): chính sách đăng ký hiện hành ch�
   db.prepare("UPDATE dk_policy SET open_role_codes = 'GUIDE_FREELANCE'").run();
   db.prepare("INSERT INTO dk_policy SELECT 'tuong-lai', registration_open, 'MA_LA', code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour, session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour, 'ROLE,CALLED', '2999-01-01T00:00:00.000Z', created_at, created_by, updated_at, updated_by FROM dk_policy LIMIT 1").run();
   assert.equal(violations(db, c), 0, "dòng có mốc ở tương lai chưa hiện hành");
+});
+
+// ---- ADR-0213 Đ2.4, Đ2.6, Đ2.8, Đ9 (mốc B1 đợt 2, Task 9): liên kết người quản lý / thành viên của tổ chức. Lưới cho SQL gõ tay, trigger bị gỡ, và trạng thái
+// đổi SAU khi gắn (tài khoản ngưng, mất quyền, hồ sơ gộp, tổ chức thôi vai) — các trigger chỉ canh lúc ghi. Dựng trên schemaWithoutGuards (gỡ chỉ mục duy nhất /
+// trigger liên kết khi cần dựng dữ liệu vi phạm).
+let tcN = 0;
+function tcToChuc(db: DatabaseSync, vai: string[] = ["TRAVEL_AGENCY"]): string {
+  const id = `o-tc-${++tcN}`;
+  db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', ?, 1, ?, ?)").run(id, id, T1, T1);
+  vai.forEach((v, i) => db.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, NULL, '2026-09-20', ?, ?)").run(`r-${id}-${i}`, id, v, T1, T1));
+  return id;
+}
+function tcLienKet(db: DatabaseSync, id: string, nguoi: string, org: string, loai: "MANAGER_OF" | "MEMBER_OF", o: { tu?: string; den?: string | null; thay?: string | null } = {}): string {
+  db.prepare("INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, replaced_by_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .run(id, nguoi, org, loai, o.tu ?? "2026-11-01", o.den ?? null, o.thay ?? null, T1, T1);
+  return id;
+}
+/** Người có tài khoản Đối tác thuần, hồ sơ KHÔNG vai (chỉ làm việc cho tổ chức). */
+const tcNguoi = (db: DatabaseSync, id: string, quyen: string[] = ["PARTNER"]) => (guardSeed(db, id, [], quyen), `p-${id}`);
+
+test("R-TC-1 (ADR-0213 Đ2.4): tổ chức có thành viên đang mở mà không có đúng một người quản lý đang mở → vi phạm (liệt kê tổ chức)", () => {
+  const c = one("R-TC-1");
+  assert.equal(c.level, "fail");
+  assert.equal(c.mode, "rows");
+  const db = schemaWithoutGuards();
+  const ok = tcToChuc(db);
+  tcLienKet(db, "tc1-a", tcNguoi(db, "tc1a"), ok, "MANAGER_OF");
+  tcLienKet(db, "tc1-b", tcNguoi(db, "tc1b"), ok, "MEMBER_OF");
+  const chiQuanLy = tcToChuc(db);
+  tcLienKet(db, "tc1-c", tcNguoi(db, "tc1c"), chiQuanLy, "MANAGER_OF");
+  const thanhVienDaRoi = tcToChuc(db);
+  tcLienKet(db, "tc1-d", tcNguoi(db, "tc1d"), thanhVienDaRoi, "MEMBER_OF", { den: "2026-11-10" });
+  assert.equal(violations(db, c), 0, "dữ liệu sạch (tổ chức chỉ có người quản lý, thành viên đã rời không tính)");
+  const mo = tcToChuc(db);
+  tcLienKet(db, "tc1-e", tcNguoi(db, "tc1e"), mo, "MEMBER_OF");
+  assert.equal(violations(db, c), 1, "thành viên mở, không người quản lý");
+  db.exec("DROP INDEX pty_relationship_one_manager_uq");
+  tcLienKet(db, "tc1-f", tcNguoi(db, "tc1f"), ok, "MANAGER_OF");
+  assert.equal(violations(db, c), 2, "hai người quản lý mở (chỉ mục duy nhất bị gỡ)");
+});
+
+test("R-TC-2 (ADR-0213 Đ2.4): replaced_by_id phải trỏ dòng MANAGER_OF có thật, cùng tổ chức, mở đúng ngày dòng cũ đóng → sai thì vi phạm (liệt kê dòng)", () => {
+  const c = one("R-TC-2");
+  assert.equal(c.level, "fail");
+  const db = schemaWithoutGuards();
+  const org = tcToChuc(db);
+  const [a, b] = [tcNguoi(db, "tc2a"), tcNguoi(db, "tc2b")];
+  tcLienKet(db, "tc2-cu", a, org, "MANAGER_OF", { den: "2026-11-16", thay: "tc2-moi" });
+  tcLienKet(db, "tc2-moi", b, org, "MANAGER_OF", { tu: "2026-11-16" });
+  assert.equal(violations(db, c), 0, "lô chuyển đúng");
+  const org2 = tcToChuc(db);
+  tcLienKet(db, "tc2-ma", a, org2, "MANAGER_OF", { den: "2026-11-16", thay: "khong-co" });
+  assert.equal(violations(db, c), 1, "trỏ dòng không có");
+  const org3 = tcToChuc(db);
+  tcLienKet(db, "tc2-khac-to-chuc", a, org3, "MANAGER_OF", { den: "2026-11-16", thay: "tc2-moi" });
+  assert.equal(violations(db, c), 2, "trỏ người quản lý của tổ chức khác");
+  const org4 = tcToChuc(db);
+  tcLienKet(db, "tc2-lech-ngay", a, org4, "MANAGER_OF", { den: "2026-11-15", thay: "tc2-moi4" });
+  tcLienKet(db, "tc2-moi4", b, org4, "MANAGER_OF", { tu: "2026-11-16" });
+  assert.equal(violations(db, c), 3, "mở khác ngày đóng");
+  const org5 = tcToChuc(db);
+  tcLienKet(db, "tc2-tv", a, org5, "MEMBER_OF", { den: "2026-11-16", thay: "tc2-moi" });
+  assert.equal(violations(db, c), 4, "replaced_by_id trên dòng không phải người quản lý");
+});
+
+test("R-TC-3 (ADR-0213 Đ2.6): liên kết đang mở trỏ tới tài khoản giữ quyền nội bộ hoặc Tài xế đối tác → vi phạm; tài khoản Đối tác thuần, người chưa có tài khoản, liên kết đã đóng → 0", () => {
+  const c = one("R-TC-3");
+  assert.equal(c.level, "fail");
+  const db = schemaWithoutGuards();
+  const org = tcToChuc(db);
+  tcLienKet(db, "tc3-a", tcNguoi(db, "tc3a"), org, "MANAGER_OF");
+  db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('p-tc3-khong-tk', 'PERSON', 'x', 1, ?, ?)").run(T1, T1);
+  tcLienKet(db, "tc3-b", "p-tc3-khong-tk", org, "MEMBER_OF");
+  tcLienKet(db, "tc3-c", tcNguoi(db, "tc3c", ["SALES"]), org, "MEMBER_OF", { den: "2026-11-10" });
+  assert.equal(violations(db, c), 0, "dữ liệu sạch");
+  tcLienKet(db, "tc3-d", tcNguoi(db, "tc3d", ["SALES"]), org, "MEMBER_OF");
+  assert.equal(violations(db, c), 1, "tài khoản nội bộ");
+  tcLienKet(db, "tc3-e", tcNguoi(db, "tc3e", ["DRIVER_PARTNER"]), org, "MEMBER_OF");
+  assert.equal(violations(db, c), 2, "Tài xế đối tác");
+  tcLienKet(db, "tc3-f", tcNguoi(db, "tc3f", ["PARTNER", "ACCOUNTING"]), org, "MEMBER_OF");
+  assert.equal(violations(db, c), 3, "tài khoản lai");
+});
+
+test("R-TC-4 (ADR-0213 Đ2.8, warn): tổ chức có liên kết mà không có người quản lý có hiệu lực (tài khoản ngưng, mất Đối tác, hồ sơ gộp, tổ chức thôi vai, không ai quản lý) → liệt kê", () => {
+  const c = one("R-TC-4");
+  assert.equal(c.level, "warn");
+  assert.equal(c.mode, "rows");
+  const db = schemaWithoutGuards();
+  const quanLy = (id: string, o: { org?: string; quyen?: string[] } = {}) => {
+    const org = o.org ?? tcToChuc(db);
+    tcLienKet(db, `tc4-${id}`, tcNguoi(db, `tc4${id}`, o.quyen), org, "MANAGER_OF");
+    db.prepare("UPDATE staff SET active = 1 WHERE id = ?").run(`tc4${id}`);
+    return org;
+  };
+  quanLy("ok");
+  const coThanhVien = quanLy("ok2");
+  tcLienKet(db, "tc4-tv", tcNguoi(db, "tc4tv"), coThanhVien, "MEMBER_OF");
+  assert.equal(violations(db, c), 0, "người quản lý có hiệu lực");
+  const ngung = quanLy("ngung");
+  db.prepare("UPDATE staff SET active = 0 WHERE id = 'tc4ngung'").run();
+  assert.equal(violations(db, c), 1, "tài khoản ngưng");
+  quanLy("matquyen", { quyen: [] });
+  assert.equal(violations(db, c), 2, "mất quyền Đối tác");
+  quanLy("gop");
+  db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('p-tc4-chinh', 'PERSON', 'x', 1, ?, ?)").run(T1, T1);
+  db.prepare("UPDATE pty_party SET merged_into_id = 'p-tc4-chinh', merged_at = ?, active = 0 WHERE id = 'p-tc4gop'").run(T2);
+  assert.equal(violations(db, c), 3, "hồ sơ người quản lý đã gộp");
+  const thoiVai = quanLy("thoivai");
+  db.prepare("UPDATE pty_party_role SET valid_to_date = '2026-11-10' WHERE party_id = ?").run(thoiVai);
+  assert.equal(violations(db, c), 4, "tổ chức thôi vai được hưởng");
+  const khongAi = tcToChuc(db);
+  tcLienKet(db, "tc4-le", tcNguoi(db, "tc4le"), khongAi, "MEMBER_OF");
+  assert.equal(violations(db, c), 5, "chỉ có thành viên");
+  assert.ok(ngung);
+});
+
+test("R-DK-4 + ADR-0213 Đ9: tài khoản chưa kích hoạt sinh từ phiếu, hồ sơ không vai nhưng có liên kết đang mở tới tổ chức đối tác → 0; liên kết tới tổ chức đã thôi vai → vi phạm", () => {
+  const c = one("R-DK-4");
+  const db = schemaWithoutGuards();
+  const org = tcToChuc(db);
+  const tk = dkTaiKhoan(db, "dk4l1", { vai: [] });
+  tcLienKet(db, "dk4-l1", tk.partyId, org, "MEMBER_OF");
+  dkPhieu(db, "DA_DUYET", tk);
+  assert.equal(violations(db, c), 0, "liên kết thay cho vai");
+  const org2 = tcToChuc(db);
+  const tk2 = dkTaiKhoan(db, "dk4l2", { vai: [] });
+  tcLienKet(db, "dk4-l2", tk2.partyId, org2, "MANAGER_OF");
+  dkPhieu(db, "DA_DUYET", tk2);
+  db.prepare("UPDATE pty_party_role SET valid_to_date = '2026-11-10' WHERE party_id = ?").run(org2);
+  assert.equal(violations(db, c), 1, "tổ chức thôi vai");
 });
