@@ -5,12 +5,12 @@
 import { bamSha256 } from "../../shared/tep-dinh-kem.ts";
 import { error, json, readJson } from "../../shared/http.ts";
 import type { Ctx } from "../../shared/router.ts";
-import { cauTepChoMoi, datKhoTepCho, demTepChoCuaPhieu, timTepChoTrung, trangThaiTepChoTheoO, xoaKhoTepChoDaGo } from "../parties";
+import { cauGoTepChoCuaONeuTruocDoi, cauTepChoMoi, datKhoTepCho, demTepChoCuaPhieu, timTepChoTrung, trangThaiTepChoTheoO, xoaKhoTepChoDaGo } from "../parties";
 import { chanNguoiKhongTaiKhoan } from "../../shared/maintenance.ts";
 import { getMaintenanceState, maintenanceResponse } from "../maintenance";
 import { cookiePhienDangKy, dkTepIpKey, docPhienDangKy, taoPhienDangKy } from "./phien.ts";
 import { CAU_PHIEU } from "../../shared/dang-ky-hien-thi.ts";
-import { cauKeoDaiHanNhap, chinhSachHienHanh, datChoTepMang, phanToChucMo, phieuCuaPhien, suKienThemTepStatement } from "./repository.ts";
+import { cauKeoDaiHanNhap, chinhSachHienHanh, datChoTepMang, phanToChucMo, phieuCuaPhien, suKienGoTepStatement, suKienThemTepStatement } from "./repository.ts";
 import { O_TEP_TO_CHUC, TRANG_THAI_CHO_TAI_TEP, kiemTepPhieu, laOTepPhieu, tranThanTep, type TrangThai } from "./rules.ts";
 
 const HAN_TEP_MANG_MS = 3_600_000;
@@ -29,13 +29,15 @@ export async function taiTepPhieu({ request, env }: Ctx<"public">): Promise<Resp
   const phieu = await phieuCuaPhien(env.DB, phien.registrationId, phien.identityId);
   if (!phieu) return error(401, "registration_session_required", CAU_HET_PHIEN);
   if (!TRANG_THAI_CHO_TAI_TEP.includes(phieu.status as TrangThai)) return error(409, "registration_not_editable", "Phiếu này không còn nhận thêm tệp.");
-  if ((await demTepChoCuaPhieu(env.DB, phieu.id)) >= chinhSach.photo_max_count) return error(409, "too_many_files", `Mỗi phiếu tối đa ${chinhSach.photo_max_count} tệp.`);
   // Route công khai: đòi Content-Length (411) để trần cỡ thân có hiệu lực TRƯỚC khi đọc; thân không khai cỡ (chunked) không được đọc.
   const cl = request.headers.get("content-length");
   if (cl === null || !/^\d+$/.test(cl)) return error(411, "length_required", "Yêu cầu thiếu độ dài nội dung.");
   if (Number(cl) > tranThanTep(chinhSach.photo_max_mb)) return error(413, "file_too_large", `Tệp lớn hơn ${chinhSach.photo_max_mb} MB.`);
   const body = await readJson(request);
   if (!laOTepPhieu(body?.o)) return error(400, "invalid_input", "Ô tệp không hợp lệ.");
+  // Gỡ tệp chờ của MỘT ô (đợt 2 Task 8): thân `{ o, go: true }`, không `noiDung`. Đứng TRƯỚC trần tệp mỗi phiếu vì gỡ luôn được, kể cả khi phiếu đã đủ tệp.
+  if (body.go === true) return goTepCuaO({ request, env }, { phien, phieu, chinhSach, slot: body.o, at, nowMs });
+  if ((await demTepChoCuaPhieu(env.DB, phieu.id)) >= chinhSach.photo_max_count) return error(409, "too_many_files", `Mỗi phiếu tối đa ${chinhSach.photo_max_count} tệp.`);
   // Ảnh GPKD, giấy phép thêm (ADR-0212 Đ4): chỉ nhận khi phần tổ chức mở (Đ7) — đóng thì không tệp tổ chức nào lọt vào kho rồi bị lô duyệt cá nhân chuyển nhầm sang hồ sơ người.
   if (O_TEP_TO_CHUC.includes(body.o) && !(await phanToChucMo(env.DB))) return error(409, "org_section_closed", CAU_PHIEU.toChucDong);
   const k = kiemTepPhieu(body?.noiDung, chinhSach.photo_max_mb);
@@ -73,4 +75,22 @@ export async function taiTepPhieu({ request, env }: Ctx<"public">): Promise<Resp
   const tep = (await trangThaiTepChoTheoO(env.DB, phieu.id)).map((x) => ({ o: x.slot, trangThai: x.daLuu ? ("DA_GUI" as const) : ("CHUA_TAI_XONG" as const) }));
   const token = await taoPhienDangKy(env.SESSION_SECRET, phien.registrationId, phien.identityId, nowMs, phien.startMs);
   return json({ tep }, 200, { "set-cookie": cookiePhienDangKy(token, chinhSach.session_max_hours, new URL(request.url).protocol === "https:"), "cache-control": "no-store" });
+}
+
+
+/**
+ * Gỡ tệp chờ của MỘT ô của chính người đăng ký — nhánh `{ o, go: true }` của `POST /api/dang-ky/phieu/tep` (đợt 2 Task 8; lối thoát khỏi `org_photo_without_org`). Đã qua cổng của tải tệp (bảo trì, phiên, phiếu ĐANG ĐIỀN / CẦN BỔ SUNG);
+ * KHÔNG đòi phần tổ chức đang mở. Ô không còn tệp ⇒ 200, không ghi gì. Lô: [dòng lịch sử `GO_TEP` có điều kiện trạng thái, quyết gỡ `changes() > 0`], rồi xoá kho SAU lô. Lịch sử không mang tên ô, khoá kho, băm.
+ */
+async function goTepCuaO(
+  { request, env }: Pick<Ctx<"public">, "request" | "env">,
+  v: { phien: { registrationId: string; identityId: string; startMs: number }; phieu: { id: string }; chinhSach: { session_max_hours: number }; slot: string; at: string; nowMs: number },
+): Promise<Response> {
+  if ((await trangThaiTepChoTheoO(env.DB, v.phieu.id)).some((x) => x.slot === v.slot)) {
+    await env.DB.batch([suKienGoTepStatement(env.DB, { registrationId: v.phieu.id, identityId: v.phien.identityId, at: v.at }), cauGoTepChoCuaONeuTruocDoi(env.DB, v.phieu.id, v.slot, v.at)]);
+    await xoaKhoTepChoDaGo(env, v.phieu.id);
+  }
+  const tep = (await trangThaiTepChoTheoO(env.DB, v.phieu.id)).map((x) => ({ o: x.slot, trangThai: x.daLuu ? ("DA_GUI" as const) : ("CHUA_TAI_XONG" as const) }));
+  const token = await taoPhienDangKy(env.SESSION_SECRET, v.phien.registrationId, v.phien.identityId, v.nowMs, v.phien.startMs);
+  return json({ tep }, 200, { "set-cookie": cookiePhienDangKy(token, v.chinhSach.session_max_hours, new URL(request.url).protocol === "https:"), "cache-control": "no-store" });
 }

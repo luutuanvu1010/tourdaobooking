@@ -1,7 +1,7 @@
 // Ô chọn vai ở màn DUYỆT phiếu (ADR-0212 Đ3, PF2): luật thuần dùng ở cả giao diện (`web/dang-ky-hang-cho.ts`) lẫn máy chủ (câu báo). Danh sách `vaiChon` do máy chủ trả; không tra bảng vai tĩnh.
 // Loại của phiếu không còn trong danh sách (Kế toán vừa tắt) ⇒ ô KHÔNG tự nhảy sang mục đầu: để trống, nút Duyệt chỉ gửi khi người duyệt chọn rõ một loại.
 
-export const CAU_LOAI_DA_TAT = "Loại đối tác này đã tắt. Hãy chọn loại khác hoặc từ chối phiếu.";
+export const CAU_LOAI_DA_TAT = "Vai người dùng này đã tắt. Hãy chọn vai người dùng khác hoặc từ chối phiếu.";
 
 export interface VaiChonDong { ma: string; ten: string }
 

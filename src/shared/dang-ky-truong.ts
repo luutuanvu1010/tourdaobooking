@@ -22,6 +22,10 @@ export interface MoTaO {
   readonly kieu: KieuO;
   readonly khu: KhuO;
   readonly thuocTinh?: Readonly<Record<string, string | number>>;
+  /** Ô chọn mà danh sách lựa chọn do máy chủ đưa lúc chạy (cấu hình công khai), không phải hằng ở tệp này. */
+  readonly nguonTuyChon?: "giayPhepThem";
+  /** Ô chỉ hiện khi đã chọn loại giấy phép thêm («co-loai»), hoặc khi loại đã chọn có ngày hết hạn («co-han»). */
+  readonly hienKhi?: "co-loai" | "co-han";
 }
 
 export interface TruongDangKy {
@@ -94,11 +98,11 @@ export const TRUONG_DANG_KY: readonly TruongDangKy[] = [
   { khoa: "toChuc.soGpkd", ...TO_CHUC, cot: ["gpkd_number"], noiLuu: [`${GIAY_TO_TC}.document_number`], batBuoc: true, o: { id: "dk-tc-so-gpkd", nhan: "Số giấy chứng nhận đăng ký kinh doanh", kieu: "text", khu: "gpkd", thuocTinh: { autocomplete: "off" } } },
   { khoa: "toChuc.ngayCapGpkd", ...TO_CHUC, cot: ["gpkd_issued_date"], noiLuu: [`${GIAY_TO_TC}.issued_date`], batBuoc: false, o: { id: "dk-tc-ngay-cap-gpkd", nhan: "Ngày cấp", kieu: "date", khu: "gpkd" } },
   { khoa: "toChuc.noiCapGpkd", ...TO_CHUC, cot: ["gpkd_issued_place"], noiLuu: [`${GIAY_TO_TC}.issued_place`], batBuoc: false, o: { id: "dk-tc-noi-cap-gpkd", nhan: "Nơi cấp", kieu: "text", khu: "gpkd" } },
-  { khoa: "toChuc.loaiGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_type_code"], noiLuu: [`${GIAY_TO_TC}.document_type_code`], o: { id: "dk-tc-loai-gp", nhan: "Giấy phép thêm (không bắt buộc)", kieu: "chon", khu: "giayPhepThem" } },
-  { khoa: "toChuc.soGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_number"], noiLuu: [`${GIAY_TO_TC}.document_number`], o: { id: "dk-tc-so-gp", nhan: "Số giấy phép", kieu: "text", khu: "giayPhepThem", thuocTinh: { autocomplete: "off" } } },
-  { khoa: "toChuc.ngayCapGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_issued_date"], noiLuu: [`${GIAY_TO_TC}.issued_date`], o: { id: "dk-tc-ngay-cap-gp", nhan: "Ngày cấp", kieu: "date", khu: "giayPhepThem" } },
-  { khoa: "toChuc.noiCapGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_issued_place"], noiLuu: [`${GIAY_TO_TC}.issued_place`], o: { id: "dk-tc-noi-cap-gp", nhan: "Nơi cấp", kieu: "text", khu: "giayPhepThem" } },
-  { khoa: "toChuc.hetHanGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_expiry_date"], noiLuu: [`${GIAY_TO_TC}.expiry_date`], o: { id: "dk-tc-het-han-gp", nhan: "Ngày hết hạn", kieu: "date", khu: "giayPhepThem" } },
+  { khoa: "toChuc.loaiGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_type_code"], noiLuu: [`${GIAY_TO_TC}.document_type_code`], o: { id: "dk-tc-loai-gp", nhan: "Giấy phép thêm (không bắt buộc)", kieu: "chon", khu: "giayPhepThem", nguonTuyChon: "giayPhepThem" } },
+  { khoa: "toChuc.soGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_number"], noiLuu: [`${GIAY_TO_TC}.document_number`], o: { id: "dk-tc-so-gp", nhan: "Số giấy phép", kieu: "text", khu: "giayPhepThem", thuocTinh: { autocomplete: "off" }, hienKhi: "co-loai" } },
+  { khoa: "toChuc.ngayCapGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_issued_date"], noiLuu: [`${GIAY_TO_TC}.issued_date`], o: { id: "dk-tc-ngay-cap-gp", nhan: "Ngày cấp", kieu: "date", khu: "giayPhepThem", hienKhi: "co-loai" } },
+  { khoa: "toChuc.noiCapGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_issued_place"], noiLuu: [`${GIAY_TO_TC}.issued_place`], o: { id: "dk-tc-noi-cap-gp", nhan: "Nơi cấp", kieu: "text", khu: "giayPhepThem", hienKhi: "co-loai" } },
+  { khoa: "toChuc.hetHanGiayPhep", ...GIAY_PHEP_THEM_TC, cot: ["extra_expiry_date"], noiLuu: [`${GIAY_TO_TC}.expiry_date`], o: { id: "dk-tc-het-han-gp", nhan: "Ngày hết hạn", kieu: "date", khu: "giayPhepThem", hienKhi: "co-han" } },
   { khoa: "toChuc.duocUyQuyen", ...TO_CHUC, cot: ["authority_confirmed_at"], noiLuu: "CHI_PHIEU", batBuoc: true, o: { id: "dk-tc-uy-quyen", nhan: "Tôi được tổ chức cho phép đăng ký thay", kieu: "tich", khu: "uyQuyen" } },
 ];
 
@@ -164,11 +168,14 @@ export function goiYTruoc(khoa: string, bk: BanKhaiTruoc): string | undefined {
   return undefined;
 }
 
-/** Dựng thân «gửi phiếu» từ giá trị các ô (khoá = `khoa`). Ô trống không gửi; `giayTo` chỉ gửi khi có số, kèm loại cố định. Mọi kiểm giá trị là việc của máy chủ. */
-export function dungThanGui(giaTri: Readonly<Record<string, string>>, chinhSachPhienBan: number): Record<string, unknown> {
+/**
+ * Dựng thân «gửi phiếu» từ giá trị các ô (khoá = `khoa`). Ô trống không gửi; `giayTo` chỉ gửi khi có số, kèm loại cố định. Mọi kiểm giá trị là việc của máy chủ.
+ * `coToChuc` đúng ⇒ thân có thêm nhóm tổ chức dựng từ các ô tổ chức (ô tích: «1» ⇒ `true`, còn lại vắng — máy chủ đòi đúng `true`); sai ⇒ KHÔNG có nhóm tổ chức (phiếu không có phần tổ chức).
+ */
+export function dungThanGui(giaTri: Readonly<Record<string, string>>, chinhSachPhienBan: number, coToChuc = false): Record<string, unknown> {
   const rong = (k: string): string | undefined => { const v = (giaTri[k] ?? "").trim(); return v === "" ? undefined : v; };
   const than: Record<string, unknown> = { chinhSachPhienBan, hoTen: giaTri.hoTen ?? "" };
-  for (const t of TRUONG_DANG_KY) if (t.o && !t.khoa.includes(".") && t.khoa !== "hoTen") than[t.khoa] = rong(t.khoa);
+  for (const t of TRUONG_DANG_KY) if (t.phan === "CA_NHAN" && t.o && !t.khoa.includes(".") && t.khoa !== "hoTen") than[t.khoa] = rong(t.khoa);
   const giayTo: Record<string, unknown> = {};
   for (const t of TRUONG_DANG_KY) {
     if (!t.khoa.startsWith("giayTo.")) continue;
@@ -179,5 +186,42 @@ export function dungThanGui(giaTri: Readonly<Record<string, string>>, chinhSachP
     giayTo.number = rong("giayTo.number");
     than.giayTo = giayTo;
   }
+  if (coToChuc) {
+    const toChuc: Record<string, unknown> = {};
+    for (const t of TRUONG_DANG_KY) {
+      if (t.phan !== "TO_CHUC" || !t.o) continue;
+      const con = t.khoa.slice(t.khoa.indexOf(".") + 1);
+      const v = rong(t.khoa);
+      toChuc[con] = t.o.kieu === "tich" ? (v === "1" ? true : undefined) : v;
+    }
+    than[NHOM_TO_CHUC] = toChuc;
+  }
   return than;
+}
+/** Tên nhóm lồng của phần tổ chức trong thân gửi (một nơi; web không viết tay tên trường). */
+export const NHOM_TO_CHUC: string = NHOM_LONG.find((n) => TRUONG_DANG_KY.some((t) => t.phan === "TO_CHUC" && t.khoa.startsWith(`${n}.`)))!;
+
+/** Giá trị điền sẵn của ô tổ chức từ phần tổ chức của bản khai trước (phiếu CẦN BỔ SUNG). Mã số thuế, số GPKD, số giấy phép, số điện thoại KHÔNG điền lại (máy chủ chỉ trả bản che). */
+export function giaTriTruocToChuc(khoa: string, tc: PhieuDangKyDto["toChuc"]): string {
+  if (!tc) return "";
+  switch (khoa) {
+    case "toChuc.tenToChuc": return tc.tenToChuc;
+    case "toChuc.tenPhapLy": return tc.tenPhapLy ?? "";
+    case "toChuc.diaChi": return tc.diaChi ?? "";
+    case "toChuc.emailHoaDon": return tc.emailHoaDon ?? "";
+    case "toChuc.ngayCapGpkd": return tc.gpkd.ngayCap ?? "";
+    case "toChuc.loaiGiayPhep": return tc.giayPhepThem?.loai ?? "";
+    case "toChuc.ngayCapGiayPhep": return tc.giayPhepThem?.ngayCap ?? "";
+    case "toChuc.hetHanGiayPhep": return tc.giayPhepThem?.hetHan ?? "";
+    default: return "";
+  }
+}
+/** Gợi ý dưới ô tổ chức khi nhập lại bản khai trước (số đã che). */
+export function goiYTruocToChuc(khoa: string, tc: PhieuDangKyDto["toChuc"]): string | undefined {
+  if (!tc) return undefined;
+  if (khoa === "toChuc.maSoThue" && tc.maSoThueChe) return `Số đã khai: ${tc.maSoThueChe}. Hãy nhập lại đủ số.`;
+  if (khoa === "toChuc.soGpkd" && tc.gpkd.soChe) return `Số đã khai: ${tc.gpkd.soChe}. Hãy nhập lại đủ số.`;
+  if (khoa === "toChuc.soGiayPhep" && tc.giayPhepThem?.soChe) return `Số đã khai: ${tc.giayPhepThem.soChe}. Hãy nhập lại đủ số.`;
+  if (khoa === "toChuc.dienThoai" && tc.daKhaiDienThoai) return "Hãy nhập lại số điện thoại.";
+  return undefined;
 }

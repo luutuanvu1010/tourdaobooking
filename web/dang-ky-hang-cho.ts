@@ -7,7 +7,7 @@
 // (mất khi đóng), không lưu ở đâu. Không ô chữ tự do: lý do chọn trong danh sách đóng. Chỉ dựng DOM bằng h().
 import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
-import { NHAN_O_TEP, CHU_HANG_CHO_DK, NHAN_LOAI_THU } from "../src/shared/dang-ky-giao-dien";
+import { NHAN_O_TEP, NHAN_O_TEP_TO_CHUC, CHU_HANG_CHO_DK, NHAN_LOAI_THU } from "../src/shared/dang-ky-giao-dien";
 import { LY_DO_PHIEU, nhanTrangThaiPhieu, type MaLyDoPhieu } from "../src/shared/dang-ky-hien-thi";
 import { CAU_LOAI_DA_TAT, canhBaoDoiVai, maDuyetGui, trangThaiChonVai } from "../src/shared/dang-ky-chon-vai";
 import { CAU_DOI_VAI_CAP, type KetQuaCapDto } from "../src/shared/cap-se-ap-hien-thi";
@@ -25,15 +25,24 @@ type PhieuXacMinh = {
     giayTo: { loai: string; soChe: string | null; ngayCap: string | null; noiCap: string | null; hetHan: string | null } | null };
   muc?: Muc[]; tep?: { id: string; o: string }[]; goiY?: { id: string; tenHoSo: string; vai: string[]; lyDo: string[] }[];
   ketLuanDanhBa?: { kieu: string; partyId: string | null } | null;
+  // Phần tổ chức (ADR-0212 Đ5): số chỉ ở dạng che; mã vai và loại giấy phép đã đổi sang tên ở máy chủ.
+  toChuc?: {
+    tenLoaiToChuc: string | null; tenToChuc: string; tenPhapLy: string | null; maSoThueChe: string | null; diaChi: string | null; emailHoaDon: string | null; soDienThoai: string | null;
+    gpkd: { soChe: string | null; ngayCap: string | null; noiCap: string | null };
+    giayPhepThem: { tenLoai: string; soChe: string | null; ngayCap: string | null; noiCap: string | null; hetHan: string | null } | null;
+  } | null;
+  mucToChuc?: Muc[]; goiYToChuc?: { id: string; tenHoSo: string; lyDo: string[] }[];
+  ketLuanDanhBaToChuc?: { kieu: string; partyId: string | null } | null;
 };
 type PhieuDuyet = {
   id: string; loai: string; tenLoai: string; vaiChon?: { ma: string; ten: string; laLoaiDoiTac: boolean }[]; trangThai: string; phienBan: number; daXuLy?: boolean; guiLuc?: string | null; hoTen?: string; soDienThoai?: string | null; muc?: Muc[];
   ketLuanDanhBa?: { kieu: string; tenHoSo?: string } | null; coNguoiGioiThieu?: boolean; nguoiXacMinhLaBan?: boolean;
+  mucToChuc?: Muc[]; ketLuanDanhBaToChuc?: { kieu: string; tenHoSo?: string; ghiChu?: string } | null;
 };
 
 const cauLoi = (e: unknown) => (e instanceof ApiError ? e.message : "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
 // Tên vai và danh sách vai chọn lúc duyệt do máy chủ trả (`tenLoai`, `vaiChon` — từ pty_role_type, ADR-0212 Đ1 mục 5, Đ3); không tra bảng vai tĩnh trong mã.
-const LY_DO_KHOP: Record<string, string> = { PHONE: "trùng số điện thoại", NAME: "trùng tên", DOCUMENT: "trùng số giấy tờ" };
+const LY_DO_KHOP: Record<string, string> = { PHONE: "trùng số điện thoại", NAME: "trùng tên", DOCUMENT: "trùng số giấy tờ", MST: "trùng mã số thuế", GPKD: "trùng số giấy chứng nhận đăng ký kinh doanh", TEN: "trùng tên" };
 
 export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
   if (!can(staff, "registration.queue.view")) return;
@@ -150,6 +159,18 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       k.ap ? (k.cap ? k.cap.ten : "Có cấp mặc định") : `Không ghi cấp riêng — ${k.cau ?? ""}`);
   }
 
+  /** Phần tổ chức của bản khai (ADR-0212 Đ5): số chỉ ở dạng che (MST, GPKD, giấy phép); nơi cấp có mặt để đối chiếu với ảnh. */
+  function khoiToChuc(t: NonNullable<PhieuXacMinh["toChuc"]>): HTMLElement {
+    const g = t.giayPhepThem;
+    return h("div", { class: "dk-hc-to-chuc", id: "dk-hc-to-chuc" }, h("h4", null, CHU_HANG_CHO_DK.thongTinToChuc),
+      t.tenLoaiToChuc ? dong("Vai trò của tổ chức", t.tenLoaiToChuc) : null,
+      dong("Tên tổ chức", t.tenToChuc), t.tenPhapLy ? dong("Tên pháp lý", t.tenPhapLy) : null, dong("Mã số thuế", t.maSoThueChe ?? "Không có"),
+      dong("Địa chỉ tổ chức", t.diaChi ?? "Không có"), dong("Email nhận hoá đơn", t.emailHoaDon ?? "Không có"), dong("Số điện thoại tổ chức", t.soDienThoai ?? "Không có"),
+      dong("Số giấy chứng nhận đăng ký kinh doanh", t.gpkd.soChe ?? "Không có"), t.gpkd.ngayCap ? dong("Ngày cấp", ngayVN(t.gpkd.ngayCap)) : null, t.gpkd.noiCap ? dong("Nơi cấp", t.gpkd.noiCap) : null,
+      g ? dong("Giấy phép thêm", g.tenLoai) : null, g ? dong("Số giấy phép", g.soChe ?? "Không có") : null, g?.ngayCap ? dong("Ngày cấp giấy phép", ngayVN(g.ngayCap)) : null,
+      g?.noiCap ? dong("Nơi cấp giấy phép", g.noiCap) : null, g?.hetHan ? dong("Hết hạn giấy phép", ngayVN(g.hetHan)) : null);
+  }
+
   // ---- Bước xác minh (ADR-0207 Đ2) ----
   function veXacMinh(p: DongHangCho, d: PhieuXacMinh): void {
     const k = dauKhung(`Xác minh phiếu ${d.id}`);
@@ -161,30 +182,36 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     hienSo?.addEventListener("click", async () => {
       try { soEl.textContent = (await api<{ so: string }>(`/api/dang-ky/phieu/${d.id}/xem-so`, { method: "POST" })).so; hienSo.hidden = true; } catch (e) { hienLoi(cauLoi(e)); }
     });
-    const anh = xemTep ? (d.tep ?? []).map((t) => h("a", { href: `/api/dang-ky/phieu/${d.id}/tep/${t.id}`, target: "_blank", rel: "noopener", class: "btn btn-link", "data-tep": t.o }, NHAN_O_TEP[t.o] ?? t.o)) : [];
-    // Kết luận từng mục: «Đạt» hoặc «Không đạt» + lý do; mỗi lần bấm ghi một dòng (chỉ thêm), máy chủ trả lại danh sách mục.
+    const anh = xemTep ? (d.tep ?? []).map((t) => h("a", { href: `/api/dang-ky/phieu/${d.id}/tep/${t.id}`, target: "_blank", rel: "noopener", class: "btn btn-link", "data-tep": t.o }, NHAN_O_TEP[t.o] ?? NHAN_O_TEP_TO_CHUC[t.o] ?? t.o)) : [];
+    // Kết luận từng mục: «Đạt» hoặc «Không đạt» + lý do; mỗi lần bấm ghi một dòng (chỉ thêm), máy chủ trả lại HAI nhóm mục (cá nhân, tổ chức) — vẽ lại cả hai.
     const khoiMuc = h("div", { class: "dk-hc-muc-ds" });
-    const veMuc = (ds: Muc[]) => replaceChildren(khoiMuc, ...ds.map((m) => {
-      const ly = chonLyDo(`ly-do-${m.ma}`);
-      const dat = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-muc-dat": m.ma }, "Đạt") as HTMLButtonElement;
-      const khong = h("button", { type: "button", class: "nut", "data-cap": "loi", "data-muc-khong": m.ma }, "Không đạt") as HTMLButtonElement;
-      const ghi = async (laDat: boolean) => {
-        if (!laDat && !ly.gia()) { hienLoi("Chọn lý do trước khi bấm «Không đạt»."); return; }
-        hienLoi(null);
-        try {
-          const r = await api<{ muc: Muc[] }>(`/api/dang-ky/phieu/${d.id}/ket-luan`, { method: "POST", body: { phienBan: d.phienBan, muc: m.ma, dat: laDat, ...(laDat ? {} : { lyDo: ly.gia() }) } });
-          veMuc(r.muc);
-        } catch (e) {
-          hienLoi(cauLoi(e));
-          if (e instanceof ApiError && e.code === "registration_version_changed") void moChiTiet(p, true);
-        }
+    const khoiMucTc = h("div", { class: "dk-hc-muc-ds", id: "dk-hc-muc-to-chuc" });
+    const veMuc = (ds: Muc[], dsTc: Muc[]) => {
+      const dongMuc = (m: Muc) => {
+        const ly = chonLyDo(`ly-do-${m.ma}`);
+        const dat = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-muc-dat": m.ma }, "Đạt") as HTMLButtonElement;
+        const khong = h("button", { type: "button", class: "nut", "data-cap": "loi", "data-muc-khong": m.ma }, "Không đạt") as HTMLButtonElement;
+        const ghi = async (laDat: boolean) => {
+          if (!laDat && !ly.gia()) { hienLoi("Chọn lý do trước khi bấm «Không đạt»."); return; }
+          hienLoi(null);
+          try {
+            const r = await api<{ muc: Muc[]; mucToChuc: Muc[] }>(`/api/dang-ky/phieu/${d.id}/ket-luan`, { method: "POST", body: { phienBan: d.phienBan, muc: m.ma, dat: laDat, ...(laDat ? {} : { lyDo: ly.gia() }) } });
+            veMuc(r.muc, r.mucToChuc);
+          } catch (e) {
+            hienLoi(cauLoi(e));
+            if (e instanceof ApiError && e.code === "registration_version_changed") void moChiTiet(p, true);
+          }
+        };
+        dat.addEventListener("click", () => void ghi(true));
+        khong.addEventListener("click", () => void ghi(false));
+        const kq = m.ketLuan === "DAT" ? h("span", { class: "huy-hieu", "data-tong": "la" }, "Đạt") : m.ketLuan === "KHONG_DAT" ? h("span", { class: "huy-hieu", "data-tong": "do" }, `Không đạt · ${m.lyDo?.nhan ?? ""}`) : h("span", { class: "muted" }, "Chưa kết luận");
+        return h("div", { class: "dk-hc-muc", "data-muc": m.ma }, h("span", { class: "xm-the-dong" }, h("strong", null, m.nhan), kq), h("div", { class: "dk-hang-nut" }, dat, ly.el, khong));
       };
-      dat.addEventListener("click", () => void ghi(true));
-      khong.addEventListener("click", () => void ghi(false));
-      const kq = m.ketLuan === "DAT" ? h("span", { class: "huy-hieu", "data-tong": "la" }, "Đạt") : m.ketLuan === "KHONG_DAT" ? h("span", { class: "huy-hieu", "data-tong": "do" }, `Không đạt · ${m.lyDo?.nhan ?? ""}`) : h("span", { class: "muted" }, "Chưa kết luận");
-      return h("div", { class: "dk-hc-muc", "data-muc": m.ma }, h("span", { class: "xm-the-dong" }, h("strong", null, m.nhan), kq), h("div", { class: "dk-hang-nut" }, dat, ly.el, khong));
-    }));
-    veMuc(d.muc ?? []);
+      replaceChildren(khoiMuc, ...ds.map(dongMuc));
+      replaceChildren(khoiMucTc, ...dsTc.map(dongMuc));
+      khoiMucTc.hidden = dsTc.length === 0;
+    };
+    veMuc(d.muc ?? [], d.mucToChuc ?? []);
     // Kết luận Danh bạ: «Hồ sơ mới» hoặc gắn đúng MỘT hồ sơ gợi ý (máy chủ kiểm lại điều kiện hồ sơ đích).
     let hoSo: { kieu: "MOI" } | { kieu: "CO_SAN"; partyId: string } | null = d.ketLuanDanhBa
       ? (d.ketLuanDanhBa.kieu === "EXISTING" && d.ketLuanDanhBa.partyId ? { kieu: "CO_SAN", partyId: d.ketLuanDanhBa.partyId } : { kieu: "MOI" }) : null;
@@ -206,13 +233,25 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       ...(d.goiY ?? []).map((gy) => radio(gy.id, `${CHU_HANG_CHO_DK.ganHoSo}: ${gy.tenHoSo} (${gy.lyDo.map((l) => LY_DO_KHOP[l] ?? l).join(", ")})`, hoSo?.kieu === "CO_SAN" && hoSo.partyId === gy.id)),
       (d.goiY ?? []).length === 0 ? h("p", { class: "muted" }, "Không có hồ sơ nào có thể trùng.") : null);
     void taiCap();
+    // Kết luận Danh bạ của TỔ CHỨC (ADR-0212 Đ5): chỉ khi phiếu có phần tổ chức; gắn tổ chức có sẵn không làm người đăng ký thành người quản lý.
+    let hoSoToChuc: { kieu: "MOI" } | { kieu: "CO_SAN"; partyId: string } | null = d.ketLuanDanhBaToChuc
+      ? (d.ketLuanDanhBaToChuc.kieu === "EXISTING" && d.ketLuanDanhBaToChuc.partyId ? { kieu: "CO_SAN", partyId: d.ketLuanDanhBaToChuc.partyId } : { kieu: "MOI" }) : null;
+    const radioTc = (gia: string, nhan: string, chon: boolean) => {
+      const r = h("input", { type: "radio", name: "dk-ho-so-to-chuc", value: gia, checked: chon }) as HTMLInputElement;
+      r.addEventListener("change", () => { hoSoToChuc = gia === "MOI" ? { kieu: "MOI" } : { kieu: "CO_SAN", partyId: gia }; });
+      return h("label", { class: "xm-ly-do" }, r, h("span", null, nhan));
+    };
+    const danhBaTc = d.toChuc ? h("fieldset", { class: "xm-tu-choi", id: "dk-hc-danh-ba-to-chuc" }, h("legend", null, CHU_HANG_CHO_DK.doiChieuToChuc),
+      radioTc("MOI", CHU_HANG_CHO_DK.hoSoToChucMoi, hoSoToChuc?.kieu === "MOI"),
+      ...(d.goiYToChuc ?? []).map((gy) => radioTc(gy.id, `${CHU_HANG_CHO_DK.ganToChuc}: ${gy.tenHoSo} (${gy.lyDo.map((l) => LY_DO_KHOP[l] ?? l).join(", ")})`, hoSoToChuc?.kieu === "CO_SAN" && hoSoToChuc.partyId === gy.id)),
+      (d.goiYToChuc ?? []).length === 0 ? h("p", { class: "muted" }, "Không có hồ sơ tổ chức nào có thể trùng.") : null) : null;
 
     const ketThuc = h("div", { class: "dk-hang-nut" });
     const lyBoSung = chonLyDo("ly-do-bo-sung");
     const lyTuChoi = chonLyDo("ly-do-tu-choi");
     const nutDat = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "dk-hc-xac-minh-dat" }, "Xác minh đạt") as HTMLButtonElement;
     nutDat.addEventListener("click", () => void lenhDk(p, async () => {
-      await api(`/api/dang-ky/phieu/${d.id}/dat`, { method: "POST", body: { phienBan: d.phienBan, ...(hoSo ? { hoSo } : {}) } });
+      await api(`/api/dang-ky/phieu/${d.id}/dat`, { method: "POST", body: { phienBan: d.phienBan, ...(hoSo ? { hoSo } : {}), ...(d.toChuc && hoSoToChuc ? { hoSoToChuc } : {}) } });
       return "Đã xác minh đạt. Phiếu chuyển sang chờ duyệt.";
     }));
     const nutBoSung = h("button", { type: "button", class: "nut", "data-cap": "phu", id: "dk-hc-bo-sung" }, "Yêu cầu bổ sung") as HTMLButtonElement;
@@ -235,7 +274,8 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       g ? h("div", { class: "hs-dong" }, h("span", { class: "muted" }, "Số căn cước"), soEl, hienSo) : null,
       g?.ngayCap ? dong("Ngày cấp", ngayVN(g.ngayCap)) : null, g?.noiCap ? dong("Nơi cấp", g.noiCap) : null, g?.hetHan ? dong("Hết hạn", ngayVN(g.hetHan)) : null,
       anh.length ? h("div", { class: "dk-hang-nut", id: "dk-hc-anh" }, ...anh) : null,
-      h("h4", null, "Kết luận từng mục"), khoiMuc, danhBa, capEl, ketThuc,
+      d.toChuc ? khoiToChuc(d.toChuc) : null,
+      h("h4", null, "Kết luận từng mục"), khoiMuc, d.toChuc ? h("h4", null, CHU_HANG_CHO_DK.mucToChuc) : null, khoiMucTc, danhBa, danhBaTc, capEl, ketThuc,
       h("div", { class: "dk-hang-nut" }, lyBoSung.el, nutBoSung), h("div", { class: "dk-hang-nut" }, lyTuChoi.el, nutTuChoi));
   }
 
@@ -246,12 +286,14 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     const { conDung, giaTriDau } = trangThaiChonVai(d.loai, d.vaiChon ?? []);
     // Loại của phiếu đã tắt ⇒ mục trống, khoá, chọn sẵn; người duyệt phải chọn rõ một loại khác (không nhảy sang mục đầu).
     const vai = h("select", { class: "o", id: "dk-hc-vai", "aria-label": "Vai trò đối tác" },
-      ...(conDung ? [] : [h("option", { value: "", disabled: true, selected: true }, "Chọn loại đối tác")]),
+      ...(conDung ? [] : [h("option", { value: "", disabled: true, selected: true }, "Chọn vai người dùng")]),
       ...(d.vaiChon ?? []).map((r) => h("option", { value: r.ma, selected: r.ma === d.loai }, r.ten))) as HTMLSelectElement;
     vai.value = giaTriDau;
     const baoLoaiTat = h("p", { class: "dk-hc-cap", id: "dk-hc-loai-tat", hidden: conDung }, CAU_LOAI_DA_TAT);
     const baoDoiVai = h("p", { class: "dk-hc-cap", id: "dk-hc-doi-vai", hidden: !canhBaoDoiVai(vai.value, d.loai) }, CAU_DOI_VAI_CAP);
-    const muc = (d.muc ?? []).map((m) => dong(m.nhan, m.ketLuan === "DAT" ? "Đạt" : m.ketLuan === "KHONG_DAT" ? "Không đạt" : "Chưa kết luận"));
+    const dongKetLuan = (m: Muc) => dong(m.nhan, m.ketLuan === "DAT" ? "Đạt" : m.ketLuan === "KHONG_DAT" ? "Không đạt" : "Chưa kết luận");
+    const muc = (d.muc ?? []).map(dongKetLuan);
+    const kl = d.ketLuanDanhBaToChuc;
     const lyTuChoi = chonLyDo("ly-do-tu-choi-duyet");
     const nutDuyet = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "dk-hc-duyet" }, "Duyệt mở tài khoản") as HTMLButtonElement;
     nutDuyet.disabled = maDuyetGui(vai.value) === null;
@@ -278,6 +320,9 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     moKhung(k.el,
       dong("Họ tên", d.hoTen ?? ""), dong("Số điện thoại", d.soDienThoai ?? "Không có"), dong("Vai trò xin", d.tenLoai), ...muc,
       dong("Kết luận Danh bạ", d.ketLuanDanhBa ? (d.ketLuanDanhBa.kieu === "EXISTING" ? `Gắn hồ sơ có sẵn${d.ketLuanDanhBa.tenHoSo ? `: ${d.ketLuanDanhBa.tenHoSo}` : ""}` : CHU_HANG_CHO_DK.hoSoMoi) : "Chưa có"),
+      ...(d.mucToChuc ?? []).map(dongKetLuan),
+      kl ? dong(CHU_HANG_CHO_DK.ketLuanToChuc, kl.kieu === "EXISTING" ? `Gắn tổ chức có sẵn${kl.tenHoSo ? `: ${kl.tenHoSo}` : ""}` : CHU_HANG_CHO_DK.hoSoToChucMoi) : null,
+      kl?.ghiChu ? h("p", { class: "dk-hc-cap", id: "dk-hc-ghi-chu-to-chuc" }, kl.ghiChu) : null,
       d.nguoiXacMinhLaBan ? h("p", { class: "xm-chan" }, "Bạn là người đã xác minh phiếu này; người duyệt phải là người khác (trừ Toàn quyền).") : null,
       h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Vai trò đối tác"), vai), baoLoaiTat, baoDoiVai,
       h("div", { class: "dk-hang-nut" }, nutDuyet, nutTraVe), h("div", { class: "dk-hang-nut" }, lyTuChoi.el, nutTuChoi));

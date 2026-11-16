@@ -71,6 +71,18 @@ const SU_KIEN_THEM_TEP = defineSql(
 export const suKienThemTepStatement = (db: D1Database, v: { registrationId: string; identityId: string; at: string }): D1PreparedStatement =>
   db.prepare(SU_KIEN_THEM_TEP).bind(crypto.randomUUID(), v.registrationId, v.identityId, v.at);
 
+// Dòng lịch sử «gỡ tệp» của người đăng ký (đợt 2 Task 8): chỉ mã lệnh — không tên ô, không khoá kho. ĐỨNG ĐẦU lô gỡ và canh trạng thái phiếu: phiếu không còn ĐANG ĐIỀN / CẦN BỔ SUNG ⇒ 0 dòng
+// ⇒ câu gỡ liền sau (`changes() > 0`) cũng không chạy.
+const SU_KIEN_GO_TEP = defineSql(
+  "dang-ky",
+  "event_remove_file",
+  `INSERT INTO dk_event (id, registration_id, actor_kind, actor_ref, command, reason_code, at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, 'REGISTRANT', ?3, 'GO_TEP', NULL, ?4, ?4, ?3, ?4, ?3
+   WHERE EXISTS (SELECT 1 FROM dk_registration WHERE id = ?2 AND status IN ('DANG_DIEN', 'CAN_BO_SUNG'))`,
+);
+export const suKienGoTepStatement = (db: D1Database, v: { registrationId: string; identityId: string; at: string }): D1PreparedStatement =>
+  db.prepare(SU_KIEN_GO_TEP).bind(crypto.randomUUID(), v.registrationId, v.identityId, v.at);
+
 const TEP_MANG_CHEN = defineSql(
   "dang-ky",
   "upload_attempt_insert",

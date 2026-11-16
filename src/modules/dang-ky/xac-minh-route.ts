@@ -12,7 +12,7 @@ import type { Ctx } from "../../shared/router.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import { auditStatement } from "../audit";
 import {
-  accountRolesOf, cauGoTepChoNeuTruocDoi, cheSo, hoSoCaNhanKhop, hoSoTheoSoGiayTo, hoSoToChucKhop, khoTepChoSanSang, moTepChoTuKho, mucXacMinhBatBuocCaNhan, mucXacMinhBatBuocToChuc,
+  accountRolesOf, cauGoTepChoNeuTruocDoi, cheSo, hoSoCaNhanKhop, hoSoTheoSoGiayTo, hoSoToChucKhop, khoTepChoSanSang, moTepChoTuKho, mucXacMinhBatBuocCaNhan, mucXacMinhBatBuocToChuc, tenLoaiGiayToToChuc,
   partySummary, tepChoDeXemCuaPhieu, timTepChoDeXem, toChucDichHopLe, trungToChucKhac, xoaKhoTepChoDaGo,
   tenLoaiVai,
 } from "../parties";
@@ -112,9 +112,9 @@ export async function xemPhieu({ env, staff, params }: Ctx<"accounts">): Promise
     // Phần tổ chức (ADR-0212 Đ5): mã số thuế, số GPKD, số giấy phép CHỈ ở dạng che (vài số cuối, từ khoá). Nơi cấp có mặt vì người xác minh đối chiếu với ảnh — cùng cách với nơi cấp căn cước
     // ở `noiDung.giayTo`. Phiếu không có phần tổ chức ⇒ null.
     toChuc: org ? {
-      loaiToChuc: p.org_role_code, tenToChuc: org.display_name, tenPhapLy: org.legal_name, maSoThueChe: cheSo(org.tax_key), diaChi: org.address, emailHoaDon: org.invoice_email,
+      loaiToChuc: p.org_role_code, tenLoaiToChuc: p.org_role_code ? (await tenLoaiVai(env.DB)).get(p.org_role_code) ?? p.org_role_code : null, tenToChuc: org.display_name, tenPhapLy: org.legal_name, maSoThueChe: cheSo(org.tax_key), diaChi: org.address, emailHoaDon: org.invoice_email,
       soDienThoai: org.phone_value, gpkd: { soChe: cheSo(org.gpkd_key), ngayCap: org.gpkd_issued_date, noiCap: org.gpkd_issued_place },
-      giayPhepThem: org.extra_type_code ? { loai: org.extra_type_code, soChe: cheSo(org.extra_key), ngayCap: org.extra_issued_date, noiCap: org.extra_issued_place, hetHan: org.extra_expiry_date } : null,
+      giayPhepThem: org.extra_type_code ? { loai: org.extra_type_code, tenLoai: (await tenLoaiGiayToToChuc(env.DB)).get(org.extra_type_code) ?? org.extra_type_code, soChe: cheSo(org.extra_key), ngayCap: org.extra_issued_date, noiCap: org.extra_issued_place, hetHan: org.extra_expiry_date } : null,
     } : null,
     mucToChuc: nhom.mucToChuc,
     tep: tep.map((t) => ({ id: t.id, o: t.slot })),
@@ -204,7 +204,7 @@ export async function kiemVaiXin(db: D1Database, vaiXin: string, buoc: "XAC_MINH
   const v = await kiemVaiKhiDuyet(db, vaiXin);
   if (v.kq === "HOP_LE") return null;
   if (v.kq === "DA_TAT") {
-    return { code: "role_inactive", message: buoc === "DUYET" ? "Loại đối tác này đã tắt. Hãy chọn loại khác hoặc từ chối phiếu." : "Loại đối tác của phiếu này đã tắt. Hãy trả phiếu về để người đăng ký bổ sung hoặc từ chối phiếu." };
+    return { code: "role_inactive", message: buoc === "DUYET" ? "Vai người dùng này đã tắt. Hãy chọn vai người dùng khác hoặc từ chối phiếu." : "Vai người dùng của phiếu này đã tắt. Hãy trả phiếu về để người đăng ký bổ sung hoặc từ chối phiếu." };
   }
   return { code: "role_invalid", message: "Loại xin đăng ký không hợp lệ. Hãy từ chối phiếu hoặc trả về để người đăng ký chọn lại." };
 }

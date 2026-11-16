@@ -387,7 +387,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Câu «vai người dùng đã tắt» lúc duyệt và lúc xác minh",
-    giaiNghia: "Khi Kế toán tắt một loại đối tác mà phiếu đang xin loại đó: ở màn duyệt, ô chọn để trống kèm câu «Loại đối tác này đã tắt. Hãy chọn loại khác hoặc từ chối phiếu.»; ở bước xác minh, câu «Loại đối tác của phiếu này đã tắt. Hãy trả phiếu về để người đăng ký bổ sung hoặc từ chối phiếu.» (người xác minh không đổi được loại).",
+    giaiNghia: "Khi Kế toán tắt một vai người dùng mà phiếu đang xin vai đó: ở màn duyệt, ô chọn để trống kèm câu «Vai người dùng này đã tắt. Hãy chọn vai người dùng khác hoặc từ chối phiếu.»; ở bước xác minh, câu «Vai người dùng của phiếu này đã tắt. Hãy trả phiếu về để người đăng ký bổ sung hoặc từ chối phiếu.» (người xác minh không đổi được loại).",
     khacVoi: "Khác «Lý do chưa mở được vai người dùng đăng ký»: câu ở đây nói về phiếu đã nộp, không phải việc chọn loại mở đăng ký.",
     chuDaLoai: [],
     maNoiBo: ["CAU_LOAI_DA_TAT", "role_inactive", "kiemVaiXin"],

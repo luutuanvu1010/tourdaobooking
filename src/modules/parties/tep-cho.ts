@@ -3,11 +3,11 @@
 // Thứ tự an toàn: lô D1 TRƯỚC, đặt kho SAU, đánh dấu đã lưu; xoá kho chạy SAU lô ghi quyết gỡ (Hiến chương 5.16). Lỗi kho KHÔNG ném.
 import { DO_DANG_SAU_MS, LOAI_NOI_DUNG, dauPhanHoiTep, khoaNgauNhien, nhanLoaiTep, type LoaiTep } from "./tep.ts";
 import {
-  chuyenTepChoStatements, chuyenTepChoToChucStatements, demTepChoCuaPhieu, findTepChoTrung, goTepChoCuaOStatement, goTepChoCuaPhieuNeuTruocDoiStatement, goTepChoCuaPhieuStatement, insertTepChoStatement, markTepChoR2Deleted, markTepChoStored,
+  chuyenTepChoStatements, chuyenTepChoToChucStatements, demTepChoCuaPhieu, findTepChoTrung, goTepChoCuaONeuTruocDoiStatement, goTepChoCuaOStatement, goTepChoCuaPhieuNeuTruocDoiStatement, goTepChoCuaPhieuStatement, insertTepChoStatement, markTepChoR2Deleted, markTepChoStored,
   goTepChoDoDang, tepChoChoXoaToanBang, tepChoDaGoCanXoaKho, tepChoDeXemDs, tepChoDeXemMot, tepChoTheoO, type TepChoXemRow,
 } from "./repository.ts";
 
-export const LY_DO_GO_TEP_CHO = { THAY_TEP: "THAY_TEP", KHONG_THUOC_BAN_KHAI: "KHONG_THUOC_BAN_KHAI" } as const;
+export const LY_DO_GO_TEP_CHO = { THAY_TEP: "THAY_TEP", KHONG_THUOC_BAN_KHAI: "KHONG_THUOC_BAN_KHAI", NGUOI_DANG_KY_GO: "NGUOI_DANG_KY_GO" } as const;
 
 export interface TepChoMoi { registrationId: string; slot: string; contentKind: LoaiTep; byteSize: number; contentHash: string; actorRef: string; toiDaMoiPhieu?: number | null }
 
@@ -159,3 +159,10 @@ export async function moTepChoTuKho(env: Env, tep: TepChoDeXem): Promise<{ body:
   }
   return { body: obj.body, headers: dauPhanHoiTep({ id: tep.id, loai: tep.loai }) };
 }
+
+/**
+ * Người đăng ký tự gỡ tệp chờ của MỘT ô (đợt 2 Task 8: lối thoát khỏi `org_photo_without_org`). CHỈ gỡ khi câu liền trước trong lô đã đổi dòng — câu đó là dòng lịch sử `GO_TEP` của `dang-ky`,
+ * canh trạng thái phiếu (ĐANG ĐIỀN / CẦN BỔ SUNG) — nên phiếu đã rời hai trạng thái ấy thì lô không gỡ gì. Xoá kho chạy SAU lô bằng `xoaKhoTepChoDaGo`.
+ */
+export const cauGoTepChoCuaONeuTruocDoi = (db: D1Database, registrationId: string, slot: string, at: string): D1PreparedStatement =>
+  goTepChoCuaONeuTruocDoiStatement(db, { registrationId, slot, at, lyDo: LY_DO_GO_TEP_CHO.NGUOI_DANG_KY_GO });

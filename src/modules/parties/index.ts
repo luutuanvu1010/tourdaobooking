@@ -72,7 +72,7 @@ export { hanGiuPhienNgay } from "./repository";
 export { dauXacMinhTheoHoSo };
 // Tệp chờ của phiếu đăng ký (ADR-0208; đợt 1 Task 5): dang-ky chỉ gọi các hàm này, không đọc bảng pty_registration_attachment, không chạm kho HO_SO.
 export {
-  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauGoTepCho, cauGoTepChoNeuTruocDoi, cauTepChoMoi, datKhoTepCho, donKhoTepCho, khoTepChoSanSang, moTepChoTuKho, tepChoDeXemCuaPhieu, timTepChoDeXem, timTepChoTrung,
+  LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauGoTepCho, cauGoTepChoCuaONeuTruocDoi, cauGoTepChoNeuTruocDoi, cauTepChoMoi, datKhoTepCho, donKhoTepCho, khoTepChoSanSang, moTepChoTuKho, tepChoDeXemCuaPhieu, timTepChoDeXem, timTepChoTrung,
   trangThaiTepChoTheoO, xoaKhoTepChoDaGo, type TepChoDeXem,
 } from "./tep-cho";
 export { cheSo } from "./giay-to";
@@ -83,6 +83,14 @@ export async function danhMucGiayToChoDangKy(db: D1Database, homNay: string): Pr
   return (await danhMucGiayTo(db, homNay)).dm;
 }
 export { demTepChoCuaPhieu } from "./repository";
+/** Loại giấy phép THÊM mà người đăng ký chọn được ở phần tổ chức (đợt 2 Task 8): loại đang bật, trừ GPKD (đã có ô riêng). Mã, tên, có hạn hay không — không dữ liệu nào của hồ sơ. */
+export async function loaiGiayPhepThemChoDangKy(db: D1Database): Promise<{ ma: string; ten: string; coHan: boolean }[]> {
+  return (await listOrgDocumentTypes(db)).filter((t) => t.active === 1 && t.code !== "GPKD").map((t) => ({ ma: t.code, ten: t.name, coHan: t.has_expiry === 1 }));
+}
+/** Mã → tên loại giấy tờ của tổ chức (kể cả loại đã ngưng) — để màn xác minh nói tên thay vì mã (đợt 2 Task 8). */
+export async function tenLoaiGiayToToChuc(db: D1Database): Promise<Map<string, string>> {
+  return new Map((await listOrgDocumentTypes(db)).map((t) => [t.code, t.name]));
+}
 /** Danh mục loại giấy tờ của tổ chức cho phần tổ chức của phiếu đăng ký (ADR-0212 Đ4; đợt 2 Task 5): mã → có hạn, đang bật. Kiểm hình thức ở `src/shared/to-chuc.ts`. */
 export async function danhMucGiayToToChucChoDangKy(db: D1Database): Promise<DanhMucGiayToToChuc> {
   return { loai: new Map((await listOrgDocumentTypes(db)).map((t) => [t.code, { hasExpiry: t.has_expiry === 1, active: t.active === 1 }])) };

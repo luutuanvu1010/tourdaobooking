@@ -389,6 +389,10 @@ test("GET /api/dang-ky/cau-hinh: công tắc, loại đối tác mở, mục b�
   assert.equal(r.json.loaiMo[0].ten, "Hướng dẫn viên độc lập", "tên từ pty_role_type");
   assert.ok(Array.isArray(r.json.mucBatBuoc) && r.json.mucBatBuoc.length >= 1);
   for (const m of r.json.mucBatBuoc) assert.deepEqual(Object.keys(m).sort(), ["ma", "nhan"]);
+  assert.equal(r.json.phanToChucMo, false, "bản chính sách chưa có dấu thu thông tin tổ chức");
+  // Loại giấy phép thêm chọn được ở phần tổ chức (đợt 2 Task 8): đang bật, trừ GPKD; chỉ mã, tên, cờ hạn.
+  assert.deepEqual(r.json.giayPhepThem.map((x: any) => x.ma), ["TRAVEL_DOMESTIC", "TRAVEL_INTERNATIONAL", "ACCOMMODATION", "TRANSPORT"]);
+  for (const x of r.json.giayPhepThem) assert.deepEqual(Object.keys(x).sort(), ["coHan", "ma", "ten"]);
   assert.equal(r.json.chinhSachRiengTu, 1);
   for (const cam of ["ask_per", "code_", "anonymize", "session_"]) assert.equal(r.text.includes(cam), false);
   const tat = setup({ mo: false });

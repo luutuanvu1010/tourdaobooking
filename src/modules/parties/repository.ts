@@ -551,10 +551,10 @@ const LIST_DOC_TYPES = defineSql(
   "list_person_document_types",
   "SELECT code, name, has_expiry, sort_order, active, updated_at FROM pty_person_document_type ORDER BY sort_order, code",
 );
-// Danh mục loại giấy tờ của TỔ CHỨC (ADR-0122 đ2) cho phần tổ chức của phiếu đăng ký (ADR-0212 Đ4): chỉ mã, cờ hạn, cờ bật — không tên, không số.
-const LIST_ORG_DOC_TYPES = defineSql("parties", "list_org_document_types_for_registration", "SELECT code, has_expiry, active FROM pty_organization_document_type ORDER BY sort_order, code");
-export async function listOrgDocumentTypes(db: D1Database): Promise<{ code: string; has_expiry: number; active: number }[]> {
-  return (await db.prepare(LIST_ORG_DOC_TYPES).all<{ code: string; has_expiry: number; active: number }>()).results;
+// Danh mục loại giấy tờ của TỔ CHỨC (ADR-0122 đ2) cho phần tổ chức của phiếu đăng ký (ADR-0212 Đ4): mã, tên loại, cờ hạn, cờ bật — không số. Tên để ô «Giấy phép thêm» của biểu mẫu công khai (đợt 2 Task 8).
+const LIST_ORG_DOC_TYPES = defineSql("parties", "list_org_document_types_for_registration", "SELECT code, name, has_expiry, active FROM pty_organization_document_type ORDER BY sort_order, code");
+export async function listOrgDocumentTypes(db: D1Database): Promise<{ code: string; name: string; has_expiry: number; active: number }[]> {
+  return (await db.prepare(LIST_ORG_DOC_TYPES).all<{ code: string; name: string; has_expiry: number; active: number }>()).results;
 }
 const LIST_LICENSE_CLASSES = defineSql("parties", "list_license_classes", "SELECT code, name, sort_order, active, updated_at FROM pty_license_class ORDER BY sort_order, code");
 
@@ -1623,6 +1623,15 @@ const GO_TEP_CHO_CUA_O = defineSql(
    WHERE registration_id = ?1 AND slot = ?2 AND purged_at IS NULL AND transferred_at IS NULL
      AND id <> ?5 AND EXISTS (SELECT 1 FROM pty_registration_attachment WHERE id = ?5)`,   // chỉ gỡ tệp cũ KHI tệp mới đã được chèn (trần phiếu có thể từ chối câu chèn)
 );
+// Người đăng ký tự gỡ tệp chờ của MỘT ô (đợt 2 Task 8): chỉ chạy khi câu liền trước trong lô (dòng lịch sử `GO_TEP` của dang-ky, có điều kiện trạng thái phiếu) đã đổi dòng.
+const GO_TEP_CHO_CUA_O_NEU_TRUOC_DOI = defineSql(
+  "parties",
+  "purge_registration_attachment_slot_if_prev",
+  `UPDATE pty_registration_attachment SET purged_at = ?3, purge_reason = ?4, content_hash = NULL, updated_at = ?3
+   WHERE registration_id = ?1 AND slot = ?2 AND purged_at IS NULL AND transferred_at IS NULL AND changes() > 0`,
+);
+export const goTepChoCuaONeuTruocDoiStatement = (db: D1Database, v: { registrationId: string; slot: string; at: string; lyDo: string }): D1PreparedStatement =>
+  db.prepare(GO_TEP_CHO_CUA_O_NEU_TRUOC_DOI).bind(v.registrationId, v.slot, v.at, v.lyDo);
 const GO_TEP_CHO_CUA_PHIEU = defineSql(
   "parties",
   "purge_registration_attachment_all",

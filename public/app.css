@@ -4772,6 +4772,8 @@ body.login-bao-tri:not(.login-mo-form) .login-dang-ky { display: none; }
 .dk-o { display: grid; gap: var(--s1); color: var(--c-text); }
 .dk-o .o { margin-top: 0; }
 .dk-goi-y { font-size: var(--fs-label); }
+.dk-o[hidden], .dk-buoc[hidden] { display: none; }
+.xm-ly-do:has(input:disabled) { opacity: var(--hero-muted); } /* vai chưa đủ điều kiện mở: hiện mờ kèm lý do (đợt 2 Task 8) */
 .dk-hang-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .dk-o-tep { display: grid; gap: var(--s1); padding: var(--s3); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
 .dk-tep { display: grid; gap: var(--s3); }

@@ -7,13 +7,11 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import {
-  CHO_O, COT_HE_THONG, KHU_CA_NHAN, KHU_TO_CHUC, NHOM_LONG, TRUONG_DANG_KY, TRUONG_GUI, dungThanGui, oCuaKhu, oCuaPhan, truongCon, truongDung, truongGuiMucNgoai,
+  CHO_O, COT_HE_THONG, KHU_CA_NHAN, KHU_TO_CHUC, NHOM_LONG, NHOM_TO_CHUC, TRUONG_DANG_KY, TRUONG_GUI, dungThanGui, giaTriTruocToChuc, goiYTruocToChuc, oCuaKhu, oCuaPhan, truongCon, truongDung, truongGuiMucNgoai,
 } from "./shared/dang-ky-truong.ts";
 
 const BANG_PHIEU = ["dk_submission", "dk_submission_org"];
 const BANG_HO_SO = ["pty_person", "pty_person_document", "pty_organization", "pty_organization_document"];
-/** Phần tổ chức có ô trong tệp ánh xạ nhưng biểu mẫu `web/dang-ky.ts` CHƯA dựng (đợt 2 Task 8). Có hạn: quá hạn mà biểu mẫu chưa dựng khu tổ chức ⇒ đỏ (khuôn CHO_O). */
-const WEB_CHUA_DUNG_TO_CHUC = { hetHan: "2026-12-31", viec: "đợt 2 Task 8" };
 
 function cotCua(): Map<string, string[]> {
   const db = new DatabaseSync(":memory:");
@@ -44,9 +42,8 @@ test("(1) ô biểu mẫu: oCuaPhan/oCuaKhu trả đúng tập khoá có ô; web
   assert.match(webMa, /oCuaKhu\(/, "web/dang-ky.ts phải dựng ô bằng oCuaKhu");
   assert.match(webMa, /dungThanGui\(/, "web/dang-ky.ts phải dựng thân gửi bằng dungThanGui");
   for (const k of KHU_CA_NHAN) assert.match(webMa, new RegExp(`khuO\\(\\s*"${k}"`), `web/dang-ky.ts không dựng khu «${k}»`);
-  // Khu tổ chức: biểu mẫu dựng ở Task 8; tới hạn mà chưa dựng ⇒ đỏ.
-  const homNay = new Date().toISOString().slice(0, 10);
-  if (homNay > WEB_CHUA_DUNG_TO_CHUC.hetHan) for (const k of KHU_TO_CHUC) assert.match(webMa, new RegExp(`"${k}"`), `web/dang-ky.ts chưa dựng khu tổ chức «${k}» (${WEB_CHUA_DUNG_TO_CHUC.viec}, quá hạn)`);
+  // Khu tổ chức (đợt 2 Task 8): không còn hạn nào. Tên khu là giá trị của KHU_TO_CHUC, không viết tay (tên «toChuc» cũng là một đoạn khoá trường nên bị cấm ở dưới) — web phải lặp qua đúng danh sách ấy.
+  assert.match(webMa, /for \(const \w+ of KHU_TO_CHUC\)[^\n]*oCuaKhu\(\s*"TO_CHUC"/, "web/dang-ky.ts phải dựng MỌI khu tổ chức bằng KHU_TO_CHUC + oCuaKhu(\"TO_CHUC\", khu)");
   assert.doesNotMatch(webMa, /oCuaKhu\([^)]*\)\s*\.(filter|slice|splice|pop|shift|reverse)\b/, "bớt ô sau khi dựng làm lệch tập ô");
   assert.doesNotMatch(webMa, /oCuaPhan\([^)]*\)\s*\.(filter|slice|splice|pop|shift|reverse)\b/, "bớt ô sau khi dựng làm lệch tập ô");
   // Không viết tay tên trường: dạng chuỗi ("hoTen") hoặc khoá đối tượng (hoTen:).
@@ -81,6 +78,30 @@ test("(2) máy chủ nhận đúng tập khoá của tệp ánh xạ", () => {
   // Thân dựng từ giá trị MỌI ô phải được máy chủ nhận.
   const giaTri = Object.fromEntries(KHOA_CO_O.map((k) => [k, "1"]));
   assert.equal(truongDung(dungThanGui(giaTri, 3)), true);
+  assert.equal(truongDung(dungThanGui(giaTri, 3, true)), true, "thân có phần tổ chức cũng được máy chủ nhận");
+});
+
+test("(2b) dungThanGui: tắt phần tổ chức ⇒ không có nhóm tổ chức; bật ⇒ ô trống bị bỏ, ô tích gửi đúng true, ô khác gửi chuỗi đã cắt", () => {
+  const giaTri: Record<string, string> = { hoTen: "A B" };
+  for (const t of TRUONG_DANG_KY) if (t.o && t.phan === "TO_CHUC") giaTri[t.khoa] = t.o.kieu === "tich" ? "1" : " x ";
+  const tat = dungThanGui(giaTri, 3, false);
+  assert.equal(NHOM_TO_CHUC in tat, false, "phần tổ chức tắt thì thân không mang nhóm tổ chức dù ô còn giá trị");
+  const bat = dungThanGui(giaTri, 3, true)[NHOM_TO_CHUC] as Record<string, unknown>;
+  assert.deepEqual(sap(Object.keys(bat)), sap(truongCon(NHOM_TO_CHUC)));
+  for (const t of TRUONG_DANG_KY.filter((x) => x.phan === "TO_CHUC" && x.o)) assert.equal(bat[t.khoa.slice(NHOM_TO_CHUC.length + 1)], t.o!.kieu === "tich" ? true : "x", t.khoa);
+  const bo = dungThanGui({ hoTen: "A", [`${NHOM_TO_CHUC}.${truongCon(NHOM_TO_CHUC)[0]}`]: "  " }, 3, true)[NHOM_TO_CHUC] as Record<string, unknown>;
+  assert.equal(Object.values(bo).filter((v) => v !== undefined).length, 0, "ô trống / chỉ khoảng trắng không gửi");
+  const chuaTick = Object.fromEntries(Object.entries(giaTri).map(([k, v]) => [k, v === "1" ? "" : v]));
+  assert.equal((dungThanGui(chuaTick, 3, true)[NHOM_TO_CHUC] as Record<string, unknown>).duocUyQuyen, undefined, "chưa tích ⇒ vắng (máy chủ đòi đúng true)");
+});
+
+test("(2c) điền sẵn khi cần bổ sung: ô tổ chức lấy từ phần tổ chức của bản khai trước, số che không điền mà nhắc nhập lại", () => {
+  const tc = { tenToChuc: "Công ty A", tenPhapLy: "A TNHH", maSoThueChe: "••••6789", diaChi: "1 Phố", emailHoaDon: "a@b.vn", daKhaiDienThoai: true, gpkd: { soChe: "••12", ngayCap: "2020-01-02" }, giayPhepThem: { loai: "TRANSPORT", soChe: "••34", ngayCap: "2021-01-01", hetHan: "2030-01-01" } };
+  const gt = (k: string) => giaTriTruocToChuc(`toChuc.${k}`, tc as any);
+  assert.deepEqual([gt("tenToChuc"), gt("tenPhapLy"), gt("diaChi"), gt("emailHoaDon"), gt("ngayCapGpkd"), gt("loaiGiayPhep"), gt("hetHanGiayPhep")], ["Công ty A", "A TNHH", "1 Phố", "a@b.vn", "2020-01-02", "TRANSPORT", "2030-01-01"]);
+  for (const k of ["maSoThue", "soGpkd", "soGiayPhep", "dienThoai"]) { assert.equal(gt(k), "", `${k} không điền lại số`); assert.match(goiYTruocToChuc(`toChuc.${k}`, tc as any) ?? "", /nhập lại/); }
+  assert.equal(giaTriTruocToChuc("toChuc.tenToChuc", null), "");
+  assert.equal(goiYTruocToChuc("toChuc.maSoThue", null), undefined);
 });
 
 test("(3) cột dk_submission trừ cột hệ thống = cột tệp ánh xạ trỏ tới (kể cả cột «chờ ô»)", () => {

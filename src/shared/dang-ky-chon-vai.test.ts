@@ -30,5 +30,5 @@ test("màn duyệt dùng đúng luật thuần: mục trống khoá, câu «đã
   assert.ok(nd.includes("nutDuyet.disabled = maDuyetGui(vai.value) === null"), "nút Duyệt khoá khi chưa chọn");
   assert.ok(nd.includes("hidden: !canhBaoDoiVai(vai.value, d.loai)"), "cảnh báo đúng ngay lúc dựng");
   assert.ok(nd.includes("body: { roleCode: ma,"), "gửi mã đã kiểm, không gửi vai.value thô");
-  assert.equal(CAU_LOAI_DA_TAT, "Loại đối tác này đã tắt. Hãy chọn loại khác hoặc từ chối phiếu.");
+  assert.equal(CAU_LOAI_DA_TAT, "Vai người dùng này đã tắt. Hãy chọn vai người dùng khác hoặc từ chối phiếu.");
 });
