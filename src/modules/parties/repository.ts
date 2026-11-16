@@ -1127,8 +1127,8 @@ const CURRENT_POLICY = defineSql("parties", "current_privacy_policy",
   "SELECT id, version, purposes, body, valid_from_at, erasure_days, session_retention_days FROM pty_privacy_policy WHERE valid_from_at <= ?1 ORDER BY version DESC LIMIT 1");
 const MAX_POLICY_VERSION = defineSql("parties", "max_privacy_policy_version", "SELECT COALESCE(MAX(version), 0) AS v FROM pty_privacy_policy");
 const INSERT_POLICY = defineSql("parties", "insert_privacy_policy",
-  `INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, erasure_days, session_retention_days)
-   VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6, ?5, ?6, ?7, ?8)`);
+  `INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, erasure_days, session_retention_days, covers_org_data)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6, ?5, ?6, ?7, ?8, ?9)`);
 // Phiên bản chính sách mà quyết định MỚI NHẤT của hồ sơ là DONG_Y (vòng sửa 1, ruling I-2: rút được mọi phiên bản đang đồng ý, không chỉ bản hiện hành).
 // Cùng khuôn "mới nhất" với trigger 0105 pty_self_submission_consent_ins và bất biến R-PTY-13 (created_at DESC, rowid DESC).
 const CONSENTED_POLICIES = defineSql("parties", "consented_policies_of_party",
@@ -1162,8 +1162,8 @@ export async function phienBanLonNhat(db: D1Database): Promise<number> {
 /** `hanXuLyXoaNgay` → cột `erasure_days`, `hanGiuPhienNgay` → `session_retention_days` (ADR-0126 đ2, đ8): null = chưa có số; con số do người đăng nhập, mã không gieo. */
 export const dangChinhSachStatement = (
   db: D1Database,
-  v: { id: string; version: number; mucDich: string; noiDung: string; at: string; actorId: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null },
-): D1PreparedStatement => db.prepare(INSERT_POLICY).bind(v.id, v.version, v.mucDich, v.noiDung, v.at, v.actorId, v.hanXuLyXoaNgay, v.hanGiuPhienNgay);
+  v: { id: string; version: number; mucDich: string; noiDung: string; at: string; actorId: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null; coPhanToChuc: boolean },
+): D1PreparedStatement => db.prepare(INSERT_POLICY).bind(v.id, v.version, v.mucDich, v.noiDung, v.at, v.actorId, v.hanXuLyXoaNgay, v.hanGiuPhienNgay, v.coPhanToChuc ? 1 : 0);
 export async function phienBanDangDongY(db: D1Database, partyId: string): Promise<{ id: string; version: number }[]> {
   return (await db.prepare(CONSENTED_POLICIES).bind(partyId).all<{ id: string; version: number }>()).results;
 }

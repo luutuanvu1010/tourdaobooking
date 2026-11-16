@@ -3,6 +3,7 @@
 import { CO_O_BANG_LAI, DA_CO_THAY_MAT_TO_CHUC, lyDoChuaMoDuoc, phanCuaVai, type PhanCuaVai } from "../../shared/dang-ky-vai.ts";
 import { isRoleCode, ROLES } from "../../shared/roles.ts";
 import { loaiVaiChiTiet, vaiDangKyDuoc } from "../parties";
+import { phanToChucMo } from "./repository.ts";
 import { dsLoaiMo } from "./rules.ts";
 
 export interface LoaiCoThe { ma: string; ten: string; laLoaiDoiTac: boolean; lyDoChuaMo: string | null }
@@ -11,8 +12,7 @@ export interface LoaiMo { ma: string; ten: string; phan: PhanCuaVai }
 /** Mọi vai đăng ký được lúc này, kèm câu nói vì sao CHƯA mở được (null = mở được). */
 export async function loaiCoThe(db: D1Database): Promise<LoaiCoThe[]> {
   const ds = await vaiDangKyDuoc(db);
-  // Task 4 nối phanToChucMo: `chinhSachCoToChuc` sẽ đọc từ chính sách riêng tư đang hiệu lực; trước đó coi là chưa có.
-  const dk = { coThayMatToChuc: DA_CO_THAY_MAT_TO_CHUC, chinhSachCoToChuc: false, coOBangLai: CO_O_BANG_LAI };
+  const dk = { coThayMatToChuc: DA_CO_THAY_MAT_TO_CHUC, chinhSachCoToChuc: await phanToChucMo(db, new Date().toISOString()), coOBangLai: CO_O_BANG_LAI };
   return ds.map((v) => ({ ma: v.ma, ten: v.ten, laLoaiDoiTac: v.laLoaiDoiTac, lyDoChuaMo: lyDoChuaMoDuoc(v.ma, dk) }));
 }
 

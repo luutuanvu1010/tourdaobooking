@@ -400,8 +400,19 @@ export const phieuDeXem = (db: D1Database, registrationId: string, identityId: s
 
 // Phiên bản chính sách riêng tư ĐANG CÓ HIỆU LỰC để người đăng ký đồng ý lúc gửi: view công bố của parties (0171) — cùng nghĩa với GET cau-hinh và GET chinh-sach-rieng-tu (bản ngày hiệu lực ở tương lai không tính). Bản mới đăng giữa lúc đọc và lúc ghi
 // làm câu chèn bản khai (điều kiện id = id hiện hành) khớp 0 dòng.
-const CHINH_SACH_RIENG_TU = defineSql("dang-ky", "privacy_policy_current", "SELECT id, version FROM v_pty_privacy_effective");
-export const chinhSachRiengTuHienHanh = (db: D1Database): Promise<{ id: string; version: number } | null> => db.prepare(CHINH_SACH_RIENG_TU).first<{ id: string; version: number }>();
+const CHINH_SACH_RIENG_TU = defineSql("dang-ky", "privacy_policy_current", "SELECT id, version, covers_org_data FROM v_pty_privacy_effective");
+/** `coToChuc` = bản này đã nêu việc thu thông tin tổ chức (ADR-0212 Đ7, cột `covers_org_data`). */
+export async function chinhSachRiengTuHienHanh(db: D1Database): Promise<{ id: string; version: number; coToChuc: boolean } | null> {
+  const r = await db.prepare(CHINH_SACH_RIENG_TU).first<{ id: string; version: number; covers_org_data: number }>();
+  return r ? { id: r.id, version: r.version, coToChuc: r.covers_org_data === 1 } : null;
+}
+/**
+ * Phần tổ chức của biểu mẫu mở được về phía chính sách riêng tư không (ADR-0212 Đ7): bản ĐANG hiệu lực có dấu «Thu thông tin tổ chức». Bản hẹn giờ tương lai chưa tính.
+ * `at` là lúc xét; view công bố của parties tính hiệu lực theo đồng hồ CSDL, nên hai lúc trùng nhau khi gọi bằng giờ hiện tại (mọi nơi gọi đều vậy).
+ */
+export async function phanToChucMo(db: D1Database, _at: string): Promise<boolean> {
+  return (await chinhSachRiengTuHienHanh(db))?.coToChuc === true;
+}
 
 // Bản khai MỚI NHẤT (không bao giờ lùi về bản cũ hơn), để người đăng ký sửa khi CẦN BỔ SUNG. Đã ẩn danh = tên bị thay bằng dấu «(đã ẩn)» (trigger dk_submission_erase_shape bắt buộc đúng dấu đó) — route kiểm dấu, vì chữ cột ẩn danh chỉ nằm ở parties/repository.ts (bài src/xoa-mot-lenh-co-ten.test.ts). KHÔNG chọn document_number, issued_place, phone_value, phone_key (chỉ «đã khai điện thoại»): DTO không trả các giá trị đó.
 export interface BanKhaiTruocRow {

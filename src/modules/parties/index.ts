@@ -1035,7 +1035,7 @@ export const partiesModule: AppModule = {
       const version = (await phienBanLonNhat(env.DB)) + 1;
       try {
         await env.DB.batch([
-          dangChinhSachStatement(env.DB, { id: crypto.randomUUID(), version, mucDich: k.value.mucDich, noiDung: k.value.noiDung, at, actorId: staff.id, hanXuLyXoaNgay: k.value.hanXuLyXoaNgay, hanGiuPhienNgay: k.value.hanGiuPhienNgay }),
+          dangChinhSachStatement(env.DB, { id: crypto.randomUUID(), version, mucDich: k.value.mucDich, noiDung: k.value.noiDung, at, actorId: staff.id, hanXuLyXoaNgay: k.value.hanXuLyXoaNgay, hanGiuPhienNgay: k.value.hanGiuPhienNgay, coPhanToChuc: k.value.coPhanToChuc }),
           auditStatement(env.DB, { staffId: staff.id, action: "privacy_policy_published", at, targetType: "system", targetId: "chinh-sach-rieng-tu", detail: `phiên bản ${version}` }),
         ]);
       } catch (e) {

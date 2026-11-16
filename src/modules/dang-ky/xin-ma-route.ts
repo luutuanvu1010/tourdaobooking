@@ -14,7 +14,7 @@ import { chinhSachRiengTuCongKhai, mucXacMinhBatBuocCaNhan } from "../parties";
 import { guiThuMa } from "./mail.ts";
 import { loaiMoHienTai } from "./vai.ts";
 import { cookiePhienDangKy, dkEmailKey, dkIpKey, dkXacNhanIpKey, khoaBam, taoPhienDangKy } from "./phien.ts";
-import { chenMaEmail, chinhSachHienHanh, danhTinhTheoEmail, demLanNhapSai, maGanNhat, moPhieuNhap, mucRiengCuaPhieu, tieuMa, type ChinhSachDangKyRow, type MaGanNhat } from "./repository.ts";
+import { chenMaEmail, chinhSachHienHanh, danhTinhTheoEmail, demLanNhapSai, maGanNhat, moPhieuNhap, mucRiengCuaPhieu, phanToChucMo, tieuMa, type ChinhSachDangKyRow, type MaGanNhat } from "./repository.ts";
 import { chuanHoaEmail, sinhMaEmail } from "./rules.ts";
 import { sinhMa } from "../../shared/ma-dinh-danh.ts";
 import { mucBatBuoc } from "./xac-minh.ts";
@@ -27,7 +27,7 @@ const enc = new TextEncoder();
 const OK = (): Response => json({ ok: true }, 200, { "cache-control": "no-store" });
 const TAM_NGUNG = (): Response => error(503, "registration_unavailable", CAU_TAM_NGUNG);
 
-/** GET /api/dang-ky/cau-hinh — công tắc, loại đối tác mở (mã, tên, phần của phiếu), mục bắt buộc, phiên bản chính sách riêng tư đang hiệu lực. Không con số chống lạm dụng. */
+/** GET /api/dang-ky/cau-hinh — công tắc, loại đối tác mở (mã, tên, phần của phiếu), mục bắt buộc, phiên bản chính sách riêng tư đang hiệu lực, cờ `phanToChucMo`. Không con số chống lạm dụng. */
 export async function cauHinhDangKy({ env }: Ctx<"public">): Promise<Response> {
   const at = new Date().toISOString();
   const chinhSach = await chinhSachHienHanh(env.DB, at);
@@ -38,6 +38,7 @@ export async function cauHinhDangKy({ env }: Ctx<"public">): Promise<Response> {
       loaiMo, // giao của chính sách với danh sách vai lúc này (ADR-0212 Đ1), kèm tên và phần của phiếu
       mucBatBuoc: mucBatBuoc(rieng, hoSo.map((m) => m.ma)).map((ma) => ({ ma, nhan: nhanMucChoNguoiDangKy(ma) })),
       chinhSachRiengTu: riengTu?.phienBan ?? null,
+      phanToChucMo: await phanToChucMo(env.DB, at), // bản chính sách riêng tư đang hiệu lực có dấu thu thông tin tổ chức (ADR-0212 Đ7); biểu mẫu chỉ mở phần tổ chức khi đủ cả điều kiện kia
     },
     200,
     { "cache-control": "no-store" },
