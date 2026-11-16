@@ -17,6 +17,7 @@ import { canXacNhan, duocQuyetDinh, quaHanXacNhan } from "../../shared/xac-nhan-
 import { trangThaiLoiMoi } from "../../shared/ban-hang-phu-trach";
 import type { BanHangNoi } from "../../shared/router";
 import { thieuGioChangDau } from "../../shared/chang-dua-don";
+import { tuCachCuaDon, type KetQuaChonTuCach } from "../../shared/booker";
 import { canhBaoMocCua } from "./dat-gap";
 import { coHienHanh, nhomTheoMa, quyenMoCuaNguoiLap, tuXacNhanNoiBo, yeuCauMoCuaDon, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder } from "./chang-hanh-khach-repo";
@@ -78,6 +79,18 @@ export const CAU_NHAP_LUU_TRUOC_KHI_CO_VAI_TRO = "Đơn nháp này lưu khi tài
 /** Ca 3: văn phòng bấm Còn vé cho đơn mà người lập là tài khoản Đối tác chưa có vai trò. */
 export const CAU_NGUOI_LAP_CHUA_CO_VAI_TRO = "Người lập đơn là tài khoản Đối tác chưa gán vai trò đối tác. Quản trị, Nhân sự hoặc Toàn quyền gán vai trò ở màn Quản lý tài khoản, rồi người lập bấm Rút lại, Sửa, Lưu thay đổi và Gửi đơn lại.";
 export const DOI_TAC_CHUA_CO_VAI_TRO = (cau: string): Response => error(409, "doi_tac_chua_co_vai_tro", cau);
+
+/** ADR-0213 Đ3.2 (Task 11): người gọi không còn thay mặt tổ chức là bên đặt chốt của đơn. */
+export const NOT_ACTING_FOR_ORG = (): Response => error(403, "not_acting_for_org", "Bạn không còn thay mặt tổ chức này");
+/**
+ * ADR-0213 Đ3.4, Đ5 (Task 11): đơn lập THAY MẶT TỔ CHỨC — mỗi lệnh đưa nháp đi tiếp (lưu nháp, Gửi đơn) kiểm lại người gọi còn tư cách tổ chức đó (`benDangThayMat`, một chỗ kiểm);
+ * người đã rời tổ chức không lưu, không gửi được. Đơn cá nhân, đơn văn phòng, đơn trước B1 ⇒ luôn đạt (không truy vấn).
+ */
+export async function conThayMatToChuc(meta: { actingPartyId: string | null; actingLinkKind: string | null }, benDangThayMat: (t: unknown) => Promise<KetQuaChonTuCach>): Promise<boolean> {
+  if (tuCachCuaDon(meta.actingLinkKind) !== "TO_CHUC" || meta.actingPartyId === null) return true;
+  const t = await benDangThayMat(meta.actingPartyId);
+  return t.ok && t.chon?.partyId === meta.actingPartyId;
+}
 
 /**
  * Người LẬP đơn có giữ quyền Đối tác không, và ai đang bấm (chỉ để chọn câu). Xét theo người lập, không theo người bấm (ADR-0185 Đ1): ở Gửi đơn người bấm là người lập, xét bộ quyền

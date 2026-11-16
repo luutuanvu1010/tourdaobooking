@@ -51,7 +51,7 @@ async function setup(): Promise<W> {
   lienKet(w, `pty-${NAM}`, SUNRISE, "MANAGER_OF");
   lienKet(w, `pty-${CHI}`, BIEN_XANH, "MANAGER_OF");
   lienKet(w, `pty-${TV}`, SUNRISE, "MEMBER_OF");
-  // Sổ vàng: cấp chung của Công ty lữ hành 10%; cấp riêng của Sunrise 15% (ADR-0209) — đơn «Sunrise» phải đi theo cấp của Sunrise, đơn «Lễ tân» theo cấp của anh Nam.
+  // Sổ vàng: mức chung của Công ty lữ hành 10%; mức riêng của Sunrise 15% (mức theo đối tác — ADR-0161) — đơn «Sunrise» phải đi theo cấp của Sunrise, đơn «Lễ tân» theo cấp của anh Nam.
   assert.equal((await muc(w, { doiTuong: { loai: "VAI", code: "TRAVEL_AGENCY" }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1000 })).status, 201);
   assert.equal((await muc(w, { doiTuong: { loai: "DOI_TAC", partyId: SUNRISE }, phamVi: "ALL", kieu: "RATE", tyLeBp: 1500 })).status, 201);
   return w;
@@ -112,12 +112,13 @@ test("ví dụ của chủ: anh Nam lập hai đơn «Lễ tân» và «Khách s
   assert.deepEqual(nhatKyThayMat(w, vp.json.order.id), [null]);
 });
 
-test("Đ4.2 sổ vàng: cùng một đơn — văn phòng lập cho Sunrise / người quản lý thay mặt Sunrise ⇒ cùng dòng tiền, cùng người hưởng, cùng hoa hồng tới từng đồng", async () => {
+test("Đ4.2 sổ vàng: cùng một đơn Trả sau — văn phòng lập cho Sunrise / người quản lý thay mặt Sunrise ⇒ cùng dòng tiền, cùng hoa hồng, cùng công nợ đại lý tới từng đồng; nợ ghi cho Sunrise", async () => {
   const w = await setup();
-  const vp = await lap(w, SALES, { bookerPartyId: SUNRISE });
+  assert.equal((await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: SUNRISE, hanMuc: 10_000_000, gioTra: 168, gioAnHan: 12, lyDo: "thử" } })).status, 201);
+  const vp = await lap(w, SALES, { bookerPartyId: SUNRISE, paymentTerm: "CREDIT" });
   assert.equal(vp.status, 201, vp.text);
   assert.equal((await w.xacNhanDon(vp.json.order.id, SALES)).status, 200);
-  const ql = await lap(w, NAM, { tuCach: SUNRISE });
+  const ql = await lap(w, NAM, { tuCach: SUNRISE, paymentTerm: "CREDIT" });
   assert.equal(ql.status, 201, ql.text);
   assert.equal((await w.xacNhanDon(ql.json.order.id, NAM)).status, 200);
   const x = dongTien(w, vp.json.order.id);
@@ -125,7 +126,27 @@ test("Đ4.2 sổ vàng: cùng một đơn — văn phòng lập cho Sunrise / ng
   assert.equal(x.chup.length, 1, "chống bài rỗng: có bản chụp");
   assert.equal(x.chup[0].beneficiary_party_id, SUNRISE);
   assert.equal(x.don[0].total, 1_000_000);
+  assert.equal(x.don[0].payment_term, "CREDIT");
   assert.deepEqual(y, x);
+  // Công nợ đại lý (ADR-0182: giá đại lý = thành tiền − hoa hồng chụp lúc xác nhận): cùng phiếu (trừ mã đơn).
+  const phieu = async (id: string) => {
+    const r = await w.call("GET", `/api/orders/${id}/cong-no-dai-ly`, { as: SUP });
+    assert.equal(r.status, 200, r.text);
+    const { maDon: _m, hanTra, ...con } = r.json.phieu; // mã đơn, hạn trả (theo giờ xác nhận) khác nhau là đúng — không phải tiền
+    assert.ok(hanTra, "đơn Trả sau có hạn trả");
+    return con;
+  };
+  const px = await phieu(vp.json.order.id);
+  assert.equal(px.tong, 850_000, "1.000.000 − 15% hoa hồng của Sunrise");
+  assert.deepEqual(await phieu(ql.json.order.id), px);
+  // Nợ Trả sau ghi cho hồ sơ bên đặt Sunrise (cả hai đơn), không cho anh Nam.
+  const noCua = async (party: string) => {
+    const r = await w.call("GET", `/api/tra-sau/han-muc/${party}/don`, { as: SUP });
+    assert.equal(r.status, 200, r.text);
+    return (r.json.don as { orderId: string; no: number }[]).map((d) => [d.orderId, d.no]).sort();
+  };
+  assert.deepEqual(await noCua(SUNRISE), [[vp.json.order.id, 850_000], [ql.json.order.id, 850_000]].sort());
+  assert.deepEqual(await noCua(`pty-${NAM}`), []);
   // B2 (Task 16) thêm đường thứ ba: thành viên thay mặt Sunrise — cùng dòng tiền.
 });
 
@@ -168,7 +189,7 @@ test("Đ3.4: lưu nháp — gửi bên đặt khác hay hồ sơ mới ⇒ 409, 
   assert.equal(k.status, 409, k.text);
 });
 
-test("Đ3.4: liên kết đóng rồi lưu nháp cũ ⇒ 403; đơn văn phòng và đơn lập trước B1 (tư cách NULL) giữ hành vi hôm nay", async () => {
+test("Đ3.4, Đ5: liên kết đóng rồi lưu nháp cũ ⇒ 403; gửi đơn cũng không được (đơn ở lại nháp, không bản chụp, không nhật ký); đơn văn phòng và đơn lập trước B1 (tư cách NULL) giữ hành vi hôm nay", async () => {
   const w = await setup();
   const r = await lap(w, NAM, { tuCach: SUNRISE });
   const id = r.json.order.id as string;
@@ -178,6 +199,14 @@ test("Đ3.4: liên kết đóng rồi lưu nháp cũ ⇒ 403; đơn văn phòng 
   const k = await luu(w, NAM, id, {});
   assert.equal(k.status, 403, k.text);
   assert.deepEqual(k.json.error, { code: "not_acting_for_org", message: CAU_KHONG_CON });
+  const nkTruoc = dem(w, "SELECT count(*) AS n FROM audit_log WHERE order_id = ?", id);
+  const gui = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.equal(gui.status, 403, gui.text);
+  assert.equal(gui.json.error.code, "not_acting_for_org");
+  assert.equal(w.q("SELECT status AS s FROM orders WHERE id = ?", id)[0].s, "draft");
+  assert.equal(dem(w, "SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?", id), 0, "không bản chụp");
+  assert.equal(dem(w, "SELECT count(*) AS n FROM ord_confirm_request WHERE order_id = ?", id), 0, "không mở yêu cầu");
+  assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE order_id = ?", id), nkTruoc, "không nhật ký mới");
   // Nháp lập trước B1: tư cách NULL ⇒ ép bên đặt như hôm nay (hồ sơ được hưởng của chính tài khoản), không 409.
   const cu = await lap(w, NAM, {});
   const cid = cu.json.order.id as string;

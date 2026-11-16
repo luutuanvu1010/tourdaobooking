@@ -144,11 +144,13 @@ test("Đ4.4: bộ xếp nhóm bắt một chỗ đọc mới (bài dương — m
 
 test("Đ3.5 (Ruling R3): acting_party_id / actingPartyId chỉ ở hàm ghi nhật ký và câu của đơn; không dòng nào ngoài module audit đưa nó vào nhật ký", () => {
   const hit = quet(/\b(?:acting_party_id|actingPartyId)\b/);
-  assert.deepEqual([...hit.keys()].sort(), ["src/modules/audit/repository.ts", "src/modules/orders/index.ts", "src/modules/orders/repository.ts"]);
+  assert.deepEqual([...hit.keys()].sort(), ["src/modules/audit/repository.ts", "src/modules/orders/index.ts", "src/modules/orders/repository.ts", "src/modules/orders/xac-nhan-chung.ts"]);
   for (const [tep, dong] of hit) {
     if (tep.startsWith("src/modules/audit/")) continue;
     for (const d of dong) assert.doesNotMatch(d, /audit/i, `${tep}: ${d}`);
   }
-  // orders/index.ts chỉ ĐỌC tư cách của đơn để chốt bên đặt (bookerChot) — không dựng câu nào.
-  for (const d of hit.get("src/modules/orders/index.ts")!) assert.match(d, /meta\.actingPartyId|"actingPartyId"/, d);
+  // orders/index.ts (bookerChot) và xac-nhan-chung.ts (conThayMatToChuc) chỉ ĐỌC tư cách của đơn để kiểm — không dựng câu nào.
+  for (const tep of ["src/modules/orders/index.ts", "src/modules/orders/xac-nhan-chung.ts"]) {
+    for (const d of hit.get(tep)!) assert.match(d, /meta\.actingPartyId|"actingPartyId"|actingPartyId: string \| null/, `${tep}: ${d}`);
+  }
 });

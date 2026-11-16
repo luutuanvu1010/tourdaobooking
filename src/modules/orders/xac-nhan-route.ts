@@ -28,7 +28,7 @@ import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, type DauDatGapMoi } 
 import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { congHuyTraSau, VE_CHUA_SOAN_DUOC } from "./tra-sau-cong";
 import { CAU_VUOT_TONG_NGUOI_XET } from "../../shared/dat-coc-truoc";
-import { MOC_CHUA_CO, RACED, STALE, type KetQuaLenhDon, canChotGioCuaNguoiLap, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, congDoiTacChuaCoVaiTro, congNhomTatDuaDon, congThieuPhiDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tinhCanXacNhan, viCuaYeuCau, type NguoiLapDoiTac } from "./xac-nhan-chung";
+import { MOC_CHUA_CO, NOT_ACTING_FOR_ORG, RACED, STALE, conThayMatToChuc, type KetQuaLenhDon, canChotGioCuaNguoiLap, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, congDoiTacChuaCoVaiTro, congNhomTatDuaDon, congThieuPhiDon, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tinhCanXacNhan, viCuaYeuCau, type NguoiLapDoiTac } from "./xac-nhan-chung";
 import { chuanBiPhiDonXacNhan } from "./service";
 import { confirmGaps, confirmWindow } from "./service-rules";
 import { congLuatBan } from "./cong-ban";
@@ -215,7 +215,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
   // Thứ tự: nháp của người khác 404 (ADR-0135 Đ2) → `can(order.submit)` 403 → đã giao → không phải nháp / đã có yêu cầu mở 409 → mọi cổng của Xác nhận ngay THEO NGƯỜI GỬI (R2 giá danh mục, người lớn,
   // chọn Đón, R3 trần; mốc chỉ cần CÓ để phân nhánh — chặng dưới mốc KHÔNG bị từ chối lúc gửi) → phân nhánh bằng `canXacNhan`. Cổng hỏng ⇒ đơn ở lại nháp, không câu báo thứ ba. (Cổng «luật bán» — ADR-0146 Đ3:
   // dòng đầu `kiemCongXacNhan`, nên đứng trước mọi cổng khác và trước phân nhánh.) Nhánh A mở yêu cầu như Gửi xác nhận (kèm chặn khoản thu); nhánh B xác nhận ngay trong lô `soanXacNhan` (không mở yêu cầu, không kiểm khoản thu).
-  route("POST", "/api/orders/:id/gui-don", "orders", async ({ env, params, staff, baoThayDoi, mocToiThieu, daThuCuaDon, capVeSauXacNhan, cauCocKhiXacNhan, banHang, kiemTraSau, cauGacPhienBanTraSau }) => {
+  route("POST", "/api/orders/:id/gui-don", "orders", async ({ env, params, staff, baoThayDoi, mocToiThieu, daThuCuaDon, capVeSauXacNhan, cauCocKhiXacNhan, banHang, kiemTraSau, cauGacPhienBanTraSau, benDangThayMat }) => {
     const id = params.id!;
     if (!UUID_RE.test(id)) return NOT_FOUND_DON();
     const meta = await getMeta(env.DB, id);
@@ -225,6 +225,8 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     if (meta.deliveredAt) return DA_GIAO_DON();
     if (meta.status !== "draft" || meta.staffId !== staff.id) return error(409, "order_not_draft", "Chỉ gửi được đơn nháp của chính bạn.");
     if (await yeuCauMoCuaDon(env.DB, id)) return error(409, "confirm_already_open", "Đơn này đã gửi kiểm vé và đang chờ.");
+    // ADR-0213 Đ3.4, Đ5 (Task 11): nháp lập thay mặt tổ chức — người đã rời tổ chức không gửi được (TRƯỚC phân nhánh: không mở yêu cầu, không xác nhận, không bản chụp).
+    if (!(await conThayMatToChuc(meta, benDangThayMat))) return NOT_ACTING_FOR_ORG();
     const order = await findOrder(env.DB, id);
     if (!order) return NOT_FOUND_DON();
     const moc = await mocToiThieu(); // MỘT lần mỗi request (TC-26); chưa có ⇒ không xét được «chặng dưới mốc» ⇒ từ chối kín

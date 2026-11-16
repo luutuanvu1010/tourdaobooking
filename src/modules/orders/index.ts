@@ -68,7 +68,7 @@ import {
 } from "./service";
 import { CAU_CHUA_GAN_HO_SO, CAU_KHONG_PHAI_DOI_TAC, CAU_VUOT_TONG, vuotTong } from "../../shared/dat-coc-truoc";
 import type { ChanKhaiLai } from "../../shared/dat-coc-kieu";
-import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, RACED, STALE, TRANSFER_DISABLED, TRAN_GIAM_GIA, catChoXetDuyet, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
+import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, NOT_ACTING_FOR_ORG, RACED, conThayMatToChuc, STALE, TRANSFER_DISABLED, TRAN_GIAM_GIA, catChoXetDuyet, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
 import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { congLuatBan } from "./cong-ban";
 import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu, dichLoiLoHuy, dichLoiTraSau, VE_CHUA_SOAN_DUOC, type HamNoTraSau, type HamTraSau, type NguoiGuiTraSau } from "./tra-sau-cong";
@@ -234,7 +234,6 @@ function loiTuCach(loi: "CAN_CHON" | "KHONG_CON_THAY_MAT" | "KHONG_HOP_LE"): Res
   if (loi === "KHONG_HOP_LE") return error(400, "invalid_input", "Tư cách không hợp lệ.");
   return NOT_ACTING_FOR_ORG();
 }
-const NOT_ACTING_FOR_ORG = () => error(403, "not_acting_for_org", "Bạn không còn thay mặt tổ chức này");
 const BOOKER_LOCKED = () => error(409, "booker_locked", "Đơn đã lập theo một tư cách nên không đổi bên đặt được. Hãy lập đơn mới.");
 /** Thân lệnh lập đơn: trường `tuCach` (Đ3.1 — tên giữ chỗ của ADR). Đọc từ thân GỐC (thân «Ẩn thông tin khách» viết lại không giữ khoá này). */
 const tuCachGui = (than: unknown): unknown => (than !== null && typeof than === "object" && !Array.isArray(than) ? (than as Record<string, unknown>).tuCach : undefined);
@@ -246,12 +245,8 @@ const tuCachGui = (than: unknown): unknown => (than !== null && typeof than === 
 async function bookerChot(
   meta: Pick<OrderMeta, "actingPartyId" | "actingLinkKind" | "bookerPartyId">, gui: BookerInput, benDangThayMat: (t: unknown) => Promise<KetQuaChonTuCach>,
 ): Promise<{ giu: true } | { res: Response } | null> {
-  const loai = tuCachCuaDon(meta.actingLinkKind);
-  if (loai === null || meta.actingPartyId === null) return null;
-  if (loai === "TO_CHUC") {
-    const t = await benDangThayMat(meta.actingPartyId);
-    if (!t.ok || t.chon?.partyId !== meta.actingPartyId) return { res: NOT_ACTING_FOR_ORG() };
-  }
+  if (tuCachCuaDon(meta.actingLinkKind) === null || meta.actingPartyId === null) return null;
+  if (!(await conThayMatToChuc(meta, benDangThayMat))) return { res: NOT_ACTING_FOR_ORG() };
   if (gui.kind === "new" || (gui.kind === "existing" && gui.partyId !== meta.bookerPartyId)) return { res: BOOKER_LOCKED() };
   return { giu: true };
 }
