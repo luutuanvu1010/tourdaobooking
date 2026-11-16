@@ -931,7 +931,10 @@ test("trien-khai: quy trình .github/workflows/kiem.yml có việc gom ĐÚNG t�
   const soTai = (yml.match(/uses: actions\/upload-artifact@v4/g) ?? []).length;
   assert.equal(soTai, 4);
   assert.equal((yml.match(/^\s+overwrite: true$/gm) ?? []).length, soTai, "mọi bước tải báo cáo phải có overwrite: true");
-  assert.match(yml, /needs: \[chia, rieng, test, e2e\]\n\s+if: always\(\)/, "việc gom chạy cả khi phần khác đỏ, và đợi mọi phần");
+  assert.match(yml, /needs: \[rieng, test, e2e\]\n\s+if: always\(\)/, "việc gom chạy cả khi phần khác đỏ, và đợi mọi phần");
+  // ADR-0215 Đ1.2: không còn việc «Chia phần» chạy trước mọi phần (tốn ~20 giây nối đuôi); bảng phần ghi thẳng trong quy trình, máy gom vẫn soi đủ/trùng.
+  assert.doesNotMatch(yml, /kiem-phan\.mjs ma-tran/, "không còn việc chia phần riêng");
+  assert.doesNotMatch(yml, /needs\.chia|needs: chia/, "các phần không còn chờ việc chia");
 });
 
 // ─────────────── cổng số phiên bản trong trien-khai (chủ quyết 2026-09-23) ───────────────

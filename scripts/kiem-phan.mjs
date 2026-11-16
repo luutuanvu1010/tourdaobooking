@@ -9,7 +9,8 @@
 // chia; phần e2e không báo audit-invariants (hoặc audit đỏ); bất kỳ phần nào đỏ. Tệp này là TỆP ĐIỀU KHIỂN VIỆC KIỂM (Đ2.3): đổi nó thì day-len đòi lý do.
 //
 // Dòng lệnh (chỉ dùng trên máy GitHub; ở máy vẫn chạy `npm test` / `npm run test:e2e` như cũ):
-//   node scripts/kiem-phan.mjs ma-tran                  → in "test=[1,…]" và "e2e=[1,…]" (cho $GITHUB_OUTPUT); bảng chia hỏng ⇒ thoát 1
+//   node scripts/kiem-phan.mjs ma-tran                  → in "test=[1,…]" và "e2e=[1,…]"; bảng chia hỏng ⇒ thoát 1 (để thử ở máy; từ ADR-0215 quy trình
+//                                                          không gọi nữa — máy gom kiểm cùng điều đó)
 //   node scripts/kiem-phan.mjs rieng --ket-qua <tệp>    → Bước 0 + typecheck + bài đo giờ (--test-concurrency=1)
 //   node scripts/kiem-phan.mjs test <k> --ket-qua <tệp> → phần k của npm test
 //   node scripts/kiem-phan.mjs gom <thư mục> --ket-qua <tệp> → gom mọi báo cáo; đỏ ⇒ thoát 1. (Phần e2e: node tests/e2e/run.mjs --phan k --ket-qua <tệp>)
@@ -28,9 +29,11 @@ export const BUOC_RIENG = ["buoc-0", "typecheck", TEP_DO_GIO];
 export const TRAN_TEP_MS = 600_000;
 export const CO_TRAN_TEP = `--test-timeout=${TRAN_TEP_MS}`;
 // Số phần chỉnh theo số đo (ADR-0179 Đ1.2). Lượt đầu 6/11 (4 + 6 phần, chia theo cỡ tệp): 19 phút, phần npm test chậm nhất 17,5 phút ⇒ 10 + 8 phần,
-// chia theo giây thật. Mức tối thiểu ADR (≥ 4, ≥ 6) do MIN_* canh. Kho công khai: mỗi lượt ≤ 20 việc chạy cùng lúc (giới hạn gói miễn phí).
-export const SO_PHAN_TEST = 10;
-export const SO_PHAN_E2E = 8;
+// chia theo giây thật. 16/11 (ADR-0215 Đ1.3, lượt 43819969293): 10 phần npm test chạy bài 54–333 giây (tổng ~1.280), 8 phần e2e 275–413 giây (e2e là
+// phần lâu) ⇒ 7 + 12 phần. Mức tối thiểu ADR (≥ 4, ≥ 6) do MIN_* canh. Kho công khai: mỗi lượt ≤ 20 việc chạy cùng lúc (1 phần riêng + các phần;
+// bài src/kiem-phan.test.ts khoá). Danh sách phần còn ghi thẳng ở ma trận của .github/workflows/kiem.yml — đổi số ở đây thì đổi cả ở đó.
+export const SO_PHAN_TEST = 7;
+export const SO_PHAN_E2E = 12;
 const MIN_PHAN_TEST = 4;
 const MIN_PHAN_E2E = 6;
 
