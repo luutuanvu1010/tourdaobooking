@@ -122,6 +122,13 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "POST /api/parties/cua-toi/phieu/:pid/rut": { ma: 404, ly_do: "ADR-0124 đ1: chỉ phiếu của hồ sơ PHIÊN — mã lạ / phiếu người khác → 404 (không dò được)" },
   "POST /api/parties/cua-toi/phieu-xoa": { ma: 400, ly_do: "ADR-0126 đ2 (lát H-5; ô party.erasure.request own, hồ sơ = staff.partyId); thân rỗng thiếu xacNhan → 400 trước mọi ghi" },
   "POST /api/parties/cua-toi/phieu-xoa/:pid/rut": { ma: 404, ly_do: "ADR-0126 đ2: chỉ yêu cầu xoá của hồ sơ PHIÊN — mã lạ / của người khác → 404 (không dò được)" },
+  // ADR-0213 Đ5, Đ6 (đợt 2 đăng ký, lượt B1): các route «Tổ chức của tôi» — chỉ người đang là người quản lý / thành viên của tổ chức mới qua; tài xế không có liên kết → bị chặn, không dữ liệu đơn.
+  "GET /api/to-chuc/cua-toi": { ma: 200, ly_do: "ADR-0213 Đ5: danh sách tư cách của CHÍNH MÌNH (người quản lý / thành viên); tài xế không có liên kết → danh sách rỗng, không dữ liệu đơn" },
+  "GET /api/to-chuc/:id": { ma: 403, ly_do: "ADR-0213 Đ5: chỉ người quản lý của tổ chức xem màn tổ chức; tài xế không có liên kết → 403 trước khi đọc" },
+  "POST /api/to-chuc/:id/yeu-cau-chuyen": { ma: 403, ly_do: "ADR-0213 Đ6: chỉ người quản lý của tổ chức gửi yêu cầu chuyển quyền → 403 trước mọi ghi" },
+  "POST /api/to-chuc/:id/go-thanh-vien": { ma: 403, ly_do: "ADR-0213 Đ4: chỉ người quản lý của tổ chức gỡ thành viên → 403 trước mọi ghi" },
+  "POST /api/to-chuc/:id/roi": { ma: 404, ly_do: "ADR-0213 Đ4: chỉ thành viên của tổ chức mới rời; không phải thành viên → 404 (không dò được tổ chức có thật)" },
+  "GET /api/pricing/cap-cua-to-chuc/:id": { ma: 403, ly_do: "ADR-0213 Đ5: chỉ người quản lý của tổ chức xem cấp độ đại lý của tổ chức → 403; không dữ liệu đơn" },
   "GET /api/thong-bao": { ma: 200, ly_do: "hộp thông báo gửi cho mình (D3)" },
   "GET /api/thong-bao/tom-tat": { ma: 200, ly_do: "như trên" },
   "GET /api/thong-bao/moi-nhat": { ma: 200, ly_do: "như trên (Web Push)" },
