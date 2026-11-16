@@ -46,7 +46,7 @@ function kiemSoNgay(v: unknown, ten: string): Result<number | null> {
 /**
  * Thân POST /api/parties/chinh-sach-rieng-tu: `{ mucDich, noiDung, hanXuLyXoaNgay?, hanGiuPhienNgay?, coPhanToChuc? }` — trần = CHECK của pty_privacy_policy (0103). Hai số ngày (ADR-0126 đ2, đ8;
  * migration 0108) tuỳ chọn: số nguyên ≥ 1, hoặc vắng / null = chưa có số (không hạn). Mã KHÔNG gieo con số nào.
- * `coPhanToChuc` (ADR-0212 Đ7, migration 0173): bản này đã nêu việc thu thông tin tổ chức; vắng / null = false, chỉ nhận đúng / sai.
+ * `coPhanToChuc` (ADR-0212 Đ7, migration 0174): bản này đã nêu việc thu thông tin tổ chức; vắng / null = false, chỉ nhận đúng / sai.
  */
 export function kiemChinhSach(body: Record<string, unknown> | null): Result<{ mucDich: string; noiDung: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null; coPhanToChuc: boolean }> {
   if (!body) return fail("Dữ liệu không hợp lệ.");

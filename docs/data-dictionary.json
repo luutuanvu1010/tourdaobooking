@@ -476,7 +476,7 @@
       "name": "pty_privacy_policy",
       "module": "parties",
       "kind": "table",
-      "note": "chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào. erasure_days (hạn xử lý phiếu xoá) và session_retention_days (thời hạn giữ IP / User-Agent của phiên) thêm ở migration 0108: rỗng được, không DEFAULT — con số chờ luật sư, đi cùng bản đăng mới (ADR-0126 đ2, đ8). covers_org_data thêm ở migration 0173: dấu «bản này đã nêu việc thu thông tin tổ chức» (0/1, mặc định 0), đặt lúc đăng bản mới; phần tổ chức của biểu mẫu đăng ký chỉ mở khi bản đang hiệu lực có dấu này (ADR-0212 Đ7); không lộ ở điểm cuối công khai"
+      "note": "chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào. erasure_days (hạn xử lý phiếu xoá) và session_retention_days (thời hạn giữ IP / User-Agent của phiên) thêm ở migration 0108: rỗng được, không DEFAULT — con số chờ luật sư, đi cùng bản đăng mới (ADR-0126 đ2, đ8). covers_org_data thêm ở migration 0174: dấu «bản này đã nêu việc thu thông tin tổ chức» (0/1, mặc định 0), đặt lúc đăng bản mới; phần tổ chức của biểu mẫu đăng ký chỉ mở khi bản đang hiệu lực có dấu này (ADR-0212 Đ7); không lộ ở điểm cuối công khai"
     },
     {
       "name": "pty_attachment",
