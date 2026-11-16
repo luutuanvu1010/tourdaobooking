@@ -692,7 +692,7 @@ test("(25) Tắt loại giữa lúc xác minh và lúc duyệt ⇒ 409 role_inac
   const r = await duyet(w, HR, id, { roleCode: loai });
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "role_inactive");
-  assert.equal(r.json.error.message, "Loại đối tác này đã tắt. Hãy chọn loại khác hoặc từ chối phiếu.");
+  assert.equal(r.json.error.message, "Vai người dùng này đã tắt. Hãy chọn vai người dùng khác hoặc từ chối phiếu.");
   assert.deepEqual(anh(w), truoc);
   assert.equal(dem1(w, "SELECT count(*) n FROM stf_permission_adjustment"), 0);
   assert.equal(reg(w, id).status, "CHO_DUYET");

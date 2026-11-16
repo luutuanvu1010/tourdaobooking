@@ -597,7 +597,7 @@ function loaiThu(w: any, active = 1): void {
 }
 
 for (const kieu of ["MOI", "CO_SAN"] as const) {
-  test(`(16) «đạt» ${kieu === "MOI" ? "hồ sơ mới" : "hồ sơ có sẵn"}: loại do Kế toán thêm đang dùng ⇒ 200; đã tắt ⇒ 409 role_inactive (câu không bảo «chọn loại khác»); mã lạ ⇒ 409 role_invalid; không ghi gì`, async () => {
+  test(`(16) «đạt» ${kieu === "MOI" ? "hồ sơ mới" : "hồ sơ có sẵn"}: loại do Kế toán thêm đang dùng ⇒ 200; đã tắt ⇒ 409 role_inactive (câu không bảo «chọn vai người dùng khác»); mã lạ ⇒ 409 role_invalid; không ghi gì`, async () => {
     const w = setup();
     loaiThu(w);
     const caNhan = kieu === "CO_SAN" ? ((await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: "Người Có Sẵn", contacts: [] } })).json.party.id as string) : "";
@@ -611,8 +611,8 @@ for (const kieu of ["MOI", "CO_SAN"] as const) {
     const tat = await dat(w, ADM, idTat, body);
     assert.equal(tat.status, 409, tat.text);
     assert.equal(tat.json.error.code, "role_inactive");
-    assert.equal(tat.json.error.message, "Loại đối tác của phiếu này đã tắt. Hãy trả phiếu về để người đăng ký bổ sung hoặc từ chối phiếu.");
-    assert.equal(/chọn loại khác/.test(tat.json.error.message), false);
+    assert.equal(tat.json.error.message, "Vai người dùng của phiếu này đã tắt. Hãy trả phiếu về để người đăng ký bổ sung hoặc từ chối phiếu.");
+    assert.equal(/chọn vai người dùng khác/.test(tat.json.error.message), false);
     const la = await dat(w, ADM, idLa, body);
     assert.equal(la.status, 409, la.text);
     assert.equal(la.json.error.code, "role_invalid");
