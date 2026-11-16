@@ -25,9 +25,9 @@
       "mo_ta": "Chọn mức trong danh sách, em bé không tính. Khách lẻ 2 người lớn + 1 em bé, chiều đi chọn 30.000 đ ⇒ 30.000 × 2 = 60.000 đ.",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -67,9 +67,9 @@
       "mo_ta": "Chọn «Miễn phí». 2 người lớn ⇒ 0 đ; biên nhận vẫn in dòng «Phí đưa đón — Miễn phí».",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -108,9 +108,9 @@
       "mo_ta": "Số khác hợp lệ. 3 người lớn, gõ 70.000 đ ⇒ 70.000 × 3 = 210.000 đ.",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -149,9 +149,9 @@
       "mo_ta": "Số khác vượt trần. Gõ 6.000.000 đ ⇒ máy từ chối «Mức phí tối đa 5.000.000 đ.», không lưu, không xác nhận được.",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -187,9 +187,9 @@
       "mo_ta": "Số khác bằng 0. Gõ 0 ở «Số khác» ⇒ máy từ chối; muốn miễn phí thì chọn «Miễn phí».",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -225,9 +225,9 @@
       "mo_ta": "Xe riêng tính cả chuyến. 4 người lớn, xe riêng, gõ 500.000 đ ⇒ 500.000 đ, không nhân số khách.",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -266,9 +266,9 @@
       "mo_ta": "Đi và về, chiều về ít người hơn. 3 người lớn; chiều đi chọn 20.000 ⇒ 60.000 đ; chiều về 1 người đi xe, chọn 20.000 ⇒ 20.000 đ. Tổng 80.000 đ, hai dòng phí.",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -326,9 +326,9 @@
       "mo_ta": "Chiều về ghi số người nhiều hơn số khách tính tiền. 2 người lớn + 1 em bé, chiều về ghi 3 người, chọn 10.000 ⇒ vẫn tính 2 khách = 20.000 đ.",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -369,9 +369,9 @@
       "mo_ta": "Quên chọn phí. Chiều đi đã chọn 15.000, chiều về chưa chọn ⇒ văn phòng bấm Xác nhận bị chặn «Chọn phí đưa đón cho lượt đón chiều về…». Máy không lấy 0 đ.",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -421,9 +421,9 @@
       "mo_ta": "Đối tác gửi đơn có lượt đón. Đối tác không chọn được phí ⇒ đơn vào «chờ xác nhận» (lý do thiếu phí đưa đón); văn phòng chọn 30.000 rồi xác nhận ⇒ 30.000 × 2 = 60.000 đ. Nếu tài khoản Đối tác tự gửi kèm mức phí ⇒ máy từ chối (400).",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -464,9 +464,9 @@
       "mo_ta": "Sửa số khách sau xác nhận. Đã xác nhận 2 người lớn, chọn 15.000 ⇒ 30.000 đ. Người có quyền sửa tiền sửa thành 3 người lớn ⇒ 15.000 × 3 = 45.000 đ (theo mức đã chọn).",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -510,9 +510,9 @@
       "mo_ta": "Phí đón trong số đại lý nợ. Đại lý, đơn trả sau: tour 600.000 × 2 = 1.200.000 đ, hoa hồng 120.000 đ; phí đón chọn 30.000 × 2 = 60.000 đ. Khách trả 1.260.000 đ; đại lý nợ 1.200.000 − 120.000 + 60.000 = 1.140.000 đ; hoa hồng vẫn 120.000 đ.",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -558,9 +558,9 @@
       "mo_ta": "Giảm giá không trừ vào phí. Khách lẻ, Tắm bùn Hòn Tằm (Hòn Tằm bán) 500.000 × 2 = 1.000.000 đ, phí đón chọn 50.000 × 2 = 100.000 đ, giảm giá 100.000 đ ⇒ phần Hòn Tằm 900.000 đ, phần Tour Đảo 100.000 đ, khách trả 1.000.000 đ; giảm giá tối đa 1.000.000 đ.",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
@@ -608,9 +608,9 @@
       "mo_ta": "Trước ngày bật thì chưa có phí. Ngày bắt đầu áp 01/12/2026; đơn xác nhận 25/11/2026 có lượt đón ⇒ không có ô chọn, không có dòng phí, xác nhận như hôm nay.",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-11-25",
@@ -638,9 +638,9 @@
       "mo_ta": "Thêm lượt đón sau xác nhận không tự cộng tiền. Đơn SV-PC-01 (60.000 đ) đã xác nhận, khách xin thêm chiều về ⇒ máy thêm lượt đón, tổng phí vẫn 60.000 đ; muốn thu thêm thì ghi điều chỉnh công nợ có người duyệt.",
       "nguon": "ADR-0214",
       "xac_nhan": {
-        "trang_thai": "cho_xac_nhan",
-        "nguoi": null,
-        "ngay": null
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
       },
       "dau_vao": {
         "ngay_xac_nhan": "2026-12-10",
