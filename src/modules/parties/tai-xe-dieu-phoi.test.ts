@@ -184,5 +184,7 @@ test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCua
     // ADR-0212 Đ6 (lô duyệt sinh hồ sơ tổ chức, đợt 2 Task 7): câu CHƯA CHẠY cho gốc lắp ráp ghép — hồ sơ + vai tổ chức, «Người liên hệ của», giá trị + giấy tờ, dòng xác minh, chuyển ảnh tổ chức
     "cauMoHoSoToChucDangKy", "cauLienKetNguoiToChuc", "cauGhiGiaTriToChuc", "cauXacMinhToChucTuPhieu", "cauChuyenTepChoToChuc",
     // ADR-0212 Đ4, Đ7 (giao diện phần tổ chức, đợt 2 Task 8): loại giấy phép thêm chọn được (mã, tên, cờ hạn), tên loại giấy tờ tổ chức cho màn xác minh, và câu gỡ tệp chờ của người đăng ký (có điều kiện trạng thái)
-    "loaiGiayPhepThemChoDangKy", "tenLoaiGiayToToChuc", "cauGoTepChoCuaONeuTruocDoi"].sort());
+    "loaiGiayPhepThemChoDangKy", "tenLoaiGiayToToChuc", "cauGoTepChoCuaONeuTruocDoi",
+    // ADR-0213 Đ2.8 (mốc B1 Task 10): người quản lý đang mở + hồ sơ chưa gộp + tổ chức còn vai — gốc lắp ráp ghép với phần tài khoản của staff thành «người quản lý có hiệu lực»
+    "tcQuanLyMo"].sort());
 });

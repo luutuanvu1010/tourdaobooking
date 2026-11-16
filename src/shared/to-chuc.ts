@@ -125,7 +125,7 @@ export function kiemPhanToChuc(raw: Record<string, unknown>, dm: DanhMucGiayToTo
   };
 }
 
-// ---- ADR-0213 Đ2.7 (Task 9 vòng sửa 1): liên kết người → tổ chức ---------------------------------------------------------------
+// ---- ADR-0213 Đ2, Đ6 (mốc B1, Task 10): liên kết người → tổ chức; lý do của lệnh văn phòng ---------------------------------------------------------------
 /**
  * «Người quản lý của» (MANAGER_OF) và «Thành viên của» (MEMBER_OF) — chỉ đường riêng của màn tổ chức ghi được (Đ2.7). Một nguồn cho máy chủ (route quan hệ chung của
  * Danh bạ từ chối, `parties/rules.ts` tái xuất) và giao diện (Danh bạ ẩn nút «Kết thúc» của hai loại này).
@@ -133,3 +133,14 @@ export function kiemPhanToChuc(raw: Record<string, unknown>, dm: DanhMucGiayToTo
 export const LIEN_KET_TO_CHUC: readonly string[] = ["MANAGER_OF", "MEMBER_OF"];
 export const laLienKetToChuc = (code: string): boolean => LIEN_KET_TO_CHUC.includes(code);
 
+/** Lý do (tập đóng) văn phòng chọn khi giao, chuyển, gỡ người quản lý hay gỡ thành viên (Đ6: «Văn phòng làm thì kèm lý do thuộc danh sách đóng»). Nhãn: chờ chủ chọn. */
+export const MA_LY_DO_TO_CHUC = ["THEO_YEU_CAU_TO_CHUC", "NGUOI_QUAN_LY_NGHI_VIEC", "GIAO_LAN_DAU", "SAI_NGUOI", "KHAC_DA_GOI_XAC_NHAN"] as const;
+export type MaLyDoToChuc = (typeof MA_LY_DO_TO_CHUC)[number];
+export const NHAN_LY_DO_TO_CHUC: Record<MaLyDoToChuc, string> = {
+  THEO_YEU_CAU_TO_CHUC: "Theo yêu cầu của tổ chức",
+  NGUOI_QUAN_LY_NGHI_VIEC: "Người quản lý đã nghỉ việc",
+  GIAO_LAN_DAU: "Giao lần đầu",
+  SAI_NGUOI: "Gắn nhầm người",
+  KHAC_DA_GOI_XAC_NHAN: "Lý do khác, đã gọi điện xác nhận",
+};
+export const laMaLyDoToChuc = (v: unknown): v is MaLyDoToChuc => typeof v === "string" && (MA_LY_DO_TO_CHUC as readonly string[]).includes(v);

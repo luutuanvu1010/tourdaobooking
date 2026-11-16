@@ -401,6 +401,11 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/parties/:id/contacts/:cid/end", access: "office" },
   { method: "GET", path: "/api/parties/:id/tai-khoan-nhan-tien", access: "office" }, // ADR-0108 đ2: company.legal.write (chỉ Toàn quyền); hồ sơ phải đang là công ty chủ
   { method: "PUT", path: "/api/parties/:id/tai-khoan-nhan-tien", access: "office" }, // ADR-0108 đ2: đóng + mở + nhật ký một lô; nhật ký không chép số
+  { method: "GET", path: "/api/parties/:id/to-chuc", access: "office" }, // ADR-0213 Đ6: màn tổ chức — partner.org.manager.write (Quản lý bán hàng, Quản trị, Toàn quyền) + không giữ quyền Đối tác
+  { method: "POST", path: "/api/parties/:id/to-chuc/nguoi-quan-ly", access: "office" }, // ADR-0213 Đ2.4, Đ6: giao / chuyển người quản lý — cùng ô
+  { method: "POST", path: "/api/parties/:id/to-chuc/go-nguoi-quan-ly", access: "office" }, // ADR-0213 Đ2.5: gỡ người quản lý khi không còn thành viên — cùng ô
+  { method: "POST", path: "/api/parties/:id/to-chuc/go-thanh-vien", access: "office" }, // ADR-0213 Đ6: văn phòng gỡ thành viên — cùng ô
+  { method: "POST", path: "/api/parties/:id/to-chuc/gui-lai-thu", access: "office" }, // ADR-0213 Đ6: gửi lại thư báo người quản lý cũ — cùng ô
   { method: "POST", path: "/api/parties/:id/relationships", access: "admin" },
   { method: "POST", path: "/api/parties/:id/relationships/:rid/end", access: "admin" },
   { method: "POST", path: "/api/parties/:id/roles", access: "admin" },
@@ -680,7 +685,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 540 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 545 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -858,6 +863,7 @@ test("mức truy cập của 540 route hiện có khớp ảnh chụp đã duy�
   // ADR-0206 Đ9 (đợt 1 Task 12 vòng sửa 1): + 2 GET, POST /api/dang-ky/chinh-sach (accounts) = 531.
   // Gộp main 16/11: ADR-0147 Đ1+Đ2 (Phí đưa đón): + 2 location-zones, + 5 pricing/phi-don (admin) = 538.
   // Rà soát cuối đợt 1 đăng ký (ADR-0207 Đ5, ADR-0206 Đ13): + 2 POST /api/dang-ky/phieu/:id/{tra-ve-xac-minh, gui-lai-thu} (accounts) = 540.
-  assert.equal(actual.length, 540, "số route thực tế lệch 540 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 540, "SNAPSHOT phải có đúng 540 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // ADR-0213 Đ6 (mốc B1 Task 10): + 5 route màn tổ chức của văn phòng (office) = 545 (ba route của người quản lý / thành viên chưa khai — chờ điều phối).
+  assert.equal(actual.length, 545, "số route thực tế lệch 545 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 545, "SNAPSHOT phải có đúng 545 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

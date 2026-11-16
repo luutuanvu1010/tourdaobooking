@@ -1122,6 +1122,20 @@ export interface PartyRoleDto {
   validTo: string | null;
 }
 
+/** Màn tổ chức (ADR-0213 Đ2, Đ6; mốc B1 Task 10): người quản lý, thành viên, yêu cầu chuyển đang mở, thư báo người quản lý cũ. Chỉ mã hồ sơ và tên — không số điện thoại, không email. */
+export interface ToChucNguoiDto { partyId: string; ten: string; tuNgay: string }
+export interface ToChucDto {
+  partyId: string;
+  ten: string;
+  /** `coHieuLuc` = người quản lý có hiệu lực (Đ2.8): tài khoản đang bật, còn quyền Đối tác, hồ sơ chưa gộp, tổ chức còn vai. */
+  nguoiQuanLy: (ToChucNguoiDto & { coHieuLuc: boolean }) | null;
+  thanhVien: ToChucNguoiDto[];
+  yeuCauChuyen: { id: string; nguoiDeXuat: { partyId: string; ten: string }; luc: string }[];
+  /** Thư báo người quản lý cũ của lần chuyển gần nhất (CHO = chưa gửi được, gửi lại được). */
+  thu: { trangThai: "CHO" | "DA_GUI" | "KHONG_EMAIL"; ngay: string } | null;
+}
+export interface ToChucResponse { toChuc: ToChucDto }
+
 export interface PartyRelationshipDto {
   id: string;
   typeCode: string;

@@ -192,6 +192,9 @@ export const MATRIX = {
   "partner.commission.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // ADR-0209 Đ2 (chủ duyệt 2026-11-15): đặt «Cấp cho đối tác tự đăng ký» theo từng loại — Quản lý bán hàng, Quản trị, Toàn quyền (Kế toán KHÔNG). Route POST /api/pricing/cap-mac-dinh; xem dùng partner.commission.view.
   "partner.signup_tier.write": quanLyBanHang(),
+  // ADR-0213 Đ6 (chủ duyệt 2026-11-16): giao, chuyển, gỡ người quản lý của tổ chức; gỡ thành viên; gửi lại thư báo người quản lý cũ — Quản lý bán hàng, Quản trị, Toàn quyền.
+  // Việc của người quản lý (yêu cầu chuyển, gỡ thành viên) đi theo vai trên đối tượng (người quản lý có hiệu lực, Đ2.8), KHÔNG qua hàng này. Route /api/parties/:id/to-chuc*.
+  "partner.org.manager.write": quanLyBanHang(),
   // ADR-0146 Đ5 (bổ sung 28/10): đặt / kết thúc LUẬT BÁN theo loại đối tác (route /api/pricing/luat-ban*, cổng office) — Bán hàng, Quản trị, Toàn quyền `any` (luật không có người sở hữu).
   "sales.block.write": banHangQuanTri(),
   // ADR-0168 Đ1 mục 3, sửa bởi ADR-0172 Đ1: đặt / đổi / ngừng Trả sau của đại lý và số gợi ý theo cấp — Quản trị, Toàn quyền (Quản trị bị giới hạn bởi mức tối đa — ADR-0173 Đ1,

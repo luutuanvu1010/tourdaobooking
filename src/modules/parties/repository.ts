@@ -2006,3 +2006,170 @@ export async function dkGpkdOToChucKhac(db: D1Database, gpkdKey: string, partyId
 export async function dkMstOToChucKhac(db: D1Database, taxKey: string, partyId: string | null): Promise<boolean> {
   return (await db.prepare(DK_MST_O_TO_CHUC_KHAC).bind(taxKey, partyId).first()) !== null;
 }
+
+// ---- Tổ chức: người quản lý, thành viên, yêu cầu chuyển, thư báo người quản lý cũ (ADR-0213 Đ2.4–Đ2.8, Đ6; mốc B1 Task 10) ---------------------------------------
+// «Vai được hưởng» của tổ chức ở tầng dữ liệu = vai nhóm bên ngoài HOẶC loại đối tác (cùng định nghĩa trigger pty_relationship_org_link_org và bất biến R-TC-4).
+const TC_CO_VAI = (cot: string) => `EXISTS (SELECT 1 FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code
+  WHERE r.party_id = ${cot} AND r.valid_to_date IS NULL AND (t.role_group = 'EXTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 1)))`;
+/**
+ * Lính gác của lô tổ chức (NULL-on-invalid trên `valid_from_date` NOT NULL — lô hỏng ở lỗi NOT NULL nhận ra được, trước mọi trigger chồng lấn):
+ * - lệnh CHUYỂN (?gOld khác NULL): dòng người quản lý cũ ?gOld VỪA được CHÍNH lô này đóng với `replaced_by_id` = ?gNew — người khác đã chuyển trước thì sai;
+ * - lệnh GIAO lần đầu (?gOld NULL): tổ chức ?org chưa có người quản lý đang mở.
+ */
+const TC_GAC = (gOld: string, gNew: string, org: string) => `(CASE WHEN ${gOld} IS NULL
+    THEN NOT EXISTS (SELECT 1 FROM pty_party_relationship g WHERE g.to_party_id = ${org} AND g.relationship_type_code = 'MANAGER_OF' AND g.valid_to_date IS NULL)
+    ELSE EXISTS (SELECT 1 FROM pty_party_relationship g WHERE g.id = ${gOld} AND g.to_party_id = ${org} AND g.replaced_by_id = ${gNew}) END)`;
+/** Lỗi lính gác của lô tổ chức (route dịch thành 409 «Người quản lý của tổ chức vừa thay đổi»). */
+export const LOI_GAC_TO_CHUC = /NOT NULL constraint failed: pty_party_relationship\.valid_from_date|UNIQUE constraint failed: pty_party_relationship/;
+
+const TC_HO_SO = defineSql(
+  "parties",
+  "tc_ho_so",
+  `SELECT p.id, p.party_kind, p.display_name, p.active, p.merged_into_id, ${TC_CO_VAI("p.id")} AS co_vai FROM pty_party p WHERE p.id = ?1`,
+);
+export interface TcHoSo { id: string; kind: string; ten: string; active: boolean; daGop: boolean; coVaiDoiTac: boolean }
+export async function tcHoSo(db: D1Database, id: string): Promise<TcHoSo | null> {
+  const r = await db.prepare(TC_HO_SO).bind(id).first<{ id: string; party_kind: string; display_name: string; active: number; merged_into_id: string | null; co_vai: number }>();
+  return r ? { id: r.id, kind: r.party_kind, ten: r.display_name, active: r.active === 1, daGop: r.merged_into_id !== null, coVaiDoiTac: r.co_vai === 1 } : null;
+}
+
+const TC_LIEN_KET_MO = defineSql(
+  "parties",
+  "tc_lien_ket_mo",
+  `SELECT r.id, r.from_party_id, r.relationship_type_code, r.valid_from_date, p.display_name FROM pty_party_relationship r JOIN pty_party p ON p.id = r.from_party_id
+   WHERE r.to_party_id = ?1 AND r.relationship_type_code IN ('MANAGER_OF', 'MEMBER_OF') AND r.valid_to_date IS NULL
+   ORDER BY r.relationship_type_code, p.display_name, r.id`,
+);
+export interface TcLienKet { id: string; personPartyId: string; loai: "MANAGER_OF" | "MEMBER_OF"; tuNgay: string; ten: string }
+export async function tcLienKetMo(db: D1Database, org: string): Promise<TcLienKet[]> {
+  const { results } = await db.prepare(TC_LIEN_KET_MO).bind(org).all<{ id: string; from_party_id: string; relationship_type_code: "MANAGER_OF" | "MEMBER_OF"; valid_from_date: string; display_name: string }>();
+  return results.map((r) => ({ id: r.id, personPartyId: r.from_party_id, loai: r.relationship_type_code, tuNgay: r.valid_from_date, ten: r.display_name }));
+}
+
+// Liên kết của tổ chức đã đóng TỪ ngày ?2 trở đi — lệnh mở lại cùng loại cho cùng người trong ngày đó sẽ vướng trigger chống chồng lấn (Đ2.9); route báo trước lô.
+const TC_DONG_TU_NGAY = defineSql(
+  "parties",
+  "tc_dong_tu_ngay",
+  `SELECT from_party_id, relationship_type_code FROM pty_party_relationship
+   WHERE to_party_id = ?1 AND relationship_type_code IN ('MANAGER_OF', 'MEMBER_OF') AND valid_to_date IS NOT NULL AND valid_to_date >= ?2`,
+);
+export async function tcLienKetDongTuNgay(db: D1Database, org: string, ngay: string): Promise<{ personPartyId: string; loai: string }[]> {
+  const { results } = await db.prepare(TC_DONG_TU_NGAY).bind(org, ngay).all<{ from_party_id: string; relationship_type_code: string }>();
+  return results.map((r) => ({ personPartyId: r.from_party_id, loai: r.relationship_type_code }));
+}
+
+const TC_YEU_CAU_MO = defineSql(
+  "parties",
+  "tc_yeu_cau_mo",
+  `SELECT q.id, q.proposed_person_party_id, p.display_name, q.created_at FROM pty_org_transfer_request q JOIN pty_party p ON p.id = q.proposed_person_party_id
+   WHERE q.org_party_id = ?1 AND q.status = 'MO' ORDER BY q.created_at, q.id`,
+);
+export async function tcYeuCauMo(db: D1Database, org: string): Promise<{ id: string; personPartyId: string; ten: string; luc: string }[]> {
+  const { results } = await db.prepare(TC_YEU_CAU_MO).bind(org).all<{ id: string; proposed_person_party_id: string; display_name: string; created_at: string }>();
+  return results.map((r) => ({ id: r.id, personPartyId: r.proposed_person_party_id, ten: r.display_name, luc: r.created_at }));
+}
+
+// Thư báo người quản lý cũ mới nhất của tổ chức (Ruling R5: trạng thái nằm trên dòng MANAGER_OF vừa đóng).
+const TC_THU_MOI_NHAT = defineSql(
+  "parties",
+  "tc_thu_moi_nhat",
+  `SELECT id, from_party_id, notice_state, valid_to_date FROM pty_party_relationship
+   WHERE to_party_id = ?1 AND relationship_type_code = 'MANAGER_OF' AND notice_state IS NOT NULL ORDER BY valid_to_date DESC, updated_at DESC, id LIMIT 1`,
+);
+export async function tcThuMoiNhat(db: D1Database, org: string): Promise<{ relationshipId: string; personPartyId: string; trangThai: "CHO" | "DA_GUI" | "KHONG_EMAIL"; ngay: string } | null> {
+  const r = await db.prepare(TC_THU_MOI_NHAT).bind(org).first<{ id: string; from_party_id: string; notice_state: "CHO" | "DA_GUI" | "KHONG_EMAIL"; valid_to_date: string }>();
+  return r ? { relationshipId: r.id, personPartyId: r.from_party_id, trangThai: r.notice_state, ngay: r.valid_to_date } : null;
+}
+
+// Email liên hệ đang mở của một hồ sơ (chỉ để GỬI thư báo — không bao giờ vào nhật ký, DTO, câu lỗi, log).
+const TC_EMAIL = defineSql(
+  "parties",
+  "tc_email",
+  `SELECT value FROM pty_contact_point WHERE party_id = ?1 AND contact_kind_code = 'EMAIL' AND valid_to_date IS NULL ORDER BY is_primary DESC, valid_from_date DESC, id LIMIT 1`,
+);
+export async function tcEmailCua(db: D1Database, partyId: string): Promise<string | null> {
+  return (await db.prepare(TC_EMAIL).bind(partyId).first<{ value: string }>())?.value ?? null;
+}
+
+// Người quản lý đang mở + hai vế của «có hiệu lực» mà parties tự trả lời (hồ sơ chưa gộp, tổ chức còn vai). Vế tài khoản do gốc lắp ráp hỏi staff.
+const TC_QUAN_LY_MO = defineSql(
+  "parties",
+  "tc_quan_ly_mo",
+  `SELECT r.from_party_id, pp.merged_into_id, ${TC_CO_VAI("r.to_party_id")} AS co_vai
+   FROM pty_party_relationship r JOIN pty_party pp ON pp.id = r.from_party_id
+   WHERE r.to_party_id = ?1 AND r.relationship_type_code = 'MANAGER_OF' AND r.valid_to_date IS NULL`,
+);
+export async function tcQuanLyMo(db: D1Database, org: string): Promise<{ personPartyId: string; daGop: boolean; toChucCoVai: boolean } | null> {
+  const r = await db.prepare(TC_QUAN_LY_MO).bind(org).first<{ from_party_id: string; merged_into_id: string | null; co_vai: number }>();
+  return r ? { personPartyId: r.from_party_id, daGop: r.merged_into_id !== null, toChucCoVai: r.co_vai === 1 } : null;
+}
+
+// ---- Câu ghi (chưa chạy) ----
+// Đóng người quản lý đang mở. ?1 id, ?2 tổ chức, ?3 ngày, ?4 replaced_by_id (NULL khi gỡ), ?5 notice_state (NULL khi gỡ), ?6 lúc, ?7 người
+const TC_DONG_QUAN_LY = defineSql(
+  "parties",
+  "tc_dong_quan_ly",
+  `UPDATE pty_party_relationship SET valid_to_date = ?3, replaced_by_id = ?4, notice_state = ?5, updated_at = ?6, updated_by = ?7
+   WHERE id = ?1 AND to_party_id = ?2 AND relationship_type_code = 'MANAGER_OF' AND valid_to_date IS NULL`,
+);
+export const tcDongQuanLyStatement = (db: D1Database, v: { id: string; org: string; ngay: string; thay: string | null; thu: "CHO" | "KHONG_EMAIL" | null; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(TC_DONG_QUAN_LY).bind(v.id, v.org, v.ngay, v.thay, v.thu, v.at, v.by);
+
+// Đóng một thành viên đang mở. ?1 id, ?2 tổ chức, ?3 ngày, ?4 lúc, ?5 người
+const TC_DONG_THANH_VIEN = defineSql(
+  "parties",
+  "tc_dong_thanh_vien",
+  `UPDATE pty_party_relationship SET valid_to_date = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND to_party_id = ?2 AND relationship_type_code = 'MEMBER_OF' AND valid_to_date IS NULL`,
+);
+export const tcDongThanhVienStatement = (db: D1Database, v: { id: string; org: string; ngay: string; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(TC_DONG_THANH_VIEN).bind(v.id, v.org, v.ngay, v.at, v.by);
+
+// Như trên, có lính gác của lô giao / chuyển (người mới đang là thành viên). ?6 gOld, ?7 gNew
+const TC_DONG_THANH_VIEN_GAC = defineSql(
+  "parties",
+  "tc_dong_thanh_vien_gac",
+  `UPDATE pty_party_relationship SET valid_to_date = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND to_party_id = ?2 AND relationship_type_code = 'MEMBER_OF' AND valid_to_date IS NULL AND ${TC_GAC("?6", "?7", "?2")}`,
+);
+export const tcDongThanhVienGacStatement = (db: D1Database, v: { id: string; org: string; ngay: string; at: string; by: string; gOld: string | null; gNew: string }): D1PreparedStatement =>
+  db.prepare(TC_DONG_THANH_VIEN_GAC).bind(v.id, v.org, v.ngay, v.at, v.by, v.gOld, v.gNew);
+
+// Mở một liên kết (mã dòng sinh sẵn). Lính gác NULL-on-invalid ở valid_from_date. ?1 id, ?2 người, ?3 tổ chức, ?4 loại, ?5 ngày, ?6 gOld, ?7 gNew, ?8 lúc, ?9 người làm
+const TC_MO_LIEN_KET = defineSql(
+  "parties",
+  "tc_mo_lien_ket",
+  `INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, CASE WHEN ${TC_GAC("?6", "?7", "?3")} THEN ?5 ELSE NULL END, NULL, ?8, ?9, ?8, ?9`,
+);
+export const tcMoLienKetStatement = (
+  db: D1Database, v: { id: string; person: string; org: string; loai: "MANAGER_OF" | "MEMBER_OF"; ngay: string; gOld: string | null; gNew: string; at: string; by: string },
+): D1PreparedStatement => db.prepare(TC_MO_LIEN_KET).bind(v.id, v.person, v.org, v.loai, v.ngay, v.gOld, v.gNew, v.at, v.by);
+
+// Yêu cầu chuyển đang mở của tổ chức → Đã xử lý (lệnh giao / chuyển của văn phòng). ?1 tổ chức, ?2 lúc, ?3 người
+const TC_DONG_YEU_CAU = defineSql(
+  "parties",
+  "tc_dong_yeu_cau",
+  `UPDATE pty_org_transfer_request SET status = 'DA_XU_LY', closed_at = ?2, closed_by = ?3, updated_at = ?2, updated_by = ?3 WHERE org_party_id = ?1 AND status = 'MO'`,
+);
+export const tcDongYeuCauStatement = (db: D1Database, org: string, at: string, by: string): D1PreparedStatement => db.prepare(TC_DONG_YEU_CAU).bind(org, at, by);
+
+// Yêu cầu chuyển mới — chỉ khi tổ chức chưa có yêu cầu đang mở. ?1 id, ?2 tổ chức, ?3 tài khoản gửi, ?4 người đề xuất, ?5 lúc
+const TC_TAO_YEU_CAU = defineSql(
+  "parties",
+  "tc_tao_yeu_cau",
+  `INSERT INTO pty_org_transfer_request (id, org_party_id, requested_by_staff_id, proposed_person_party_id, status, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, 'MO', ?5, ?3, ?5, ?3 WHERE NOT EXISTS (SELECT 1 FROM pty_org_transfer_request q WHERE q.org_party_id = ?2 AND q.status = 'MO')`,
+);
+export const tcTaoYeuCauStatement = (db: D1Database, v: { id: string; org: string; staffId: string; person: string; at: string }): D1PreparedStatement =>
+  db.prepare(TC_TAO_YEU_CAU).bind(v.id, v.org, v.staffId, v.person, v.at);
+
+// Thư đã gửi: CHO → DA_GUI (một câu sau khi gửi xong; dòng không còn CHO thì không đổi). ?1 id, ?2 lúc
+const TC_DAT_DA_GUI = defineSql(
+  "parties",
+  "tc_dat_da_gui",
+  `UPDATE pty_party_relationship SET notice_state = 'DA_GUI', updated_at = ?2 WHERE id = ?1 AND notice_state = 'CHO'`,
+);
+export async function tcDatThuDaGui(db: D1Database, id: string, at: string): Promise<void> {
+  await db.prepare(TC_DAT_DA_GUI).bind(id, at).run();
+}

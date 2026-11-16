@@ -50,6 +50,7 @@ import { chanCo, keHoachGop, type CongViecGop, type GiayToGop, type HoSoGop, typ
 import { loGop } from "./gop-lo";
 import { anTruongRiengTu, ghiDuocRiengTu, laLienHeRiengTu, xemDuocRiengTu, type NguoiXem } from "./rieng-tu";
 import { docTaiKhoanNhanTien } from "./tai-khoan-nhan-tien";
+import { CAM_TO_CHUC, giaoNguoiQuanLy, goNguoiQuanLy, goThanhVienVanPhong, guiLaiThuToChuc, xemToChuc } from "./to-chuc-route";
 import { DO_DANG_SAU_MS, LOAI_NOI_DUNG, LY_DO_XOA_TEP, TOI_DA_THAN, bamSha256, dauPhanHoiTep, khoaNgauNhien, kiemTepTaiLen } from "./tep";
 import { chepBanNgoai, ghiRoiXoaKho, xoaKhoiKho } from "./kho-tep";
 import { CAU_KHONG_GUI, kiemChinhSach, kiemPhieuTuKhai, lyDoKhongGhi, lyDoKhongGui, type LoaiPhieu, type TinhTrangTuKhai } from "./tu-khai";
@@ -70,6 +71,8 @@ export { kiemTenLoaiDoiTac, maLoaiDoiTac } from "./rules";
 export { hanGiuPhienNgay } from "./repository";
 // Dấu xác minh của hồ sơ (ADR-0210): `staff` (Quản lý tài khoản) gọi hàm này; ba màn của Đ3 là chỗ DUY NHẤT đọc.
 export { dauXacMinhTheoHoSo };
+// Người quản lý có hiệu lực (ADR-0213 Đ2.8): gốc lắp ráp ghép phần của parties (liên kết mở, hồ sơ chưa gộp, tổ chức còn vai) với phần tài khoản của staff.
+export { tcQuanLyMo } from "./repository";
 // Tệp chờ của phiếu đăng ký (ADR-0208; đợt 1 Task 5): dang-ky chỉ gọi các hàm này, không đọc bảng pty_registration_attachment, không chạm kho HO_SO.
 export {
   LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauGoTepCho, cauGoTepChoCuaONeuTruocDoi, cauGoTepChoNeuTruocDoi, cauTepChoMoi, datKhoTepCho, donKhoTepCho, khoTepChoSanSang, moTepChoTuKho, tepChoDeXemCuaPhieu, timTepChoDeXem, timTepChoTrung,
@@ -2545,6 +2548,30 @@ export const partiesModule: AppModule = {
 
     // ---- Quan hệ giữa hai hồ sơ (chỉ quản trị viên — đề xuất của đặc tả N1 §7.2, đã duyệt) ------------------------------------------
     // ADR-0019 điều 2 / Q11: một quan hệ chạm HAI hồ sơ nên luật cấp bậc xét CẢ HAI đầu (siết, AI hiểu vậy — ghi ở commit).
+    // ---- Màn tổ chức (ADR-0213 Đ2.4–Đ2.8, Đ6; mốc B1 Task 10) — thân ở to-chuc-route.ts. Cổng office + ô partner.org.manager.write (Quản lý bán hàng, Quản trị, Toàn quyền); người giữ quyền
+    // Đối tác bị từ chối như route cấp mặc định. Lời kiểm nằm ở ĐÂY (một chỗ) để hàng rào route-write-guard đọc được; thân handler coi như đã qua.
+    // Ba route của người quản lý có hiệu lực / thành viên (POST /api/to-chuc/:id/{yeu-cau-chuyen, go-thanh-vien, roi}) đã viết (yeuCauChuyen, goThanhVienQuanLy, roiToChuc) nhưng CHƯA khai:
+    // vai trên đối tượng không qua hàng quyền (Đ6) mà hàng rào route-write-guard đòi một lời kiểm bảng quyền — chờ điều phối chọn cách (báo cáo Task 10).
+    route("GET", "/api/parties/:id/to-chuc", "office", async (ctx) => {
+      if (!can(ctx.staff, "partner.org.manager.write") || holdsPartner(ctx.staff)) return CAM_TO_CHUC();
+      return xemToChuc(ctx);
+    }),
+    route("POST", "/api/parties/:id/to-chuc/nguoi-quan-ly", "office", async (ctx) => {
+      if (!can(ctx.staff, "partner.org.manager.write") || holdsPartner(ctx.staff)) return CAM_TO_CHUC();
+      return giaoNguoiQuanLy(ctx);
+    }),
+    route("POST", "/api/parties/:id/to-chuc/go-nguoi-quan-ly", "office", async (ctx) => {
+      if (!can(ctx.staff, "partner.org.manager.write") || holdsPartner(ctx.staff)) return CAM_TO_CHUC();
+      return goNguoiQuanLy(ctx);
+    }),
+    route("POST", "/api/parties/:id/to-chuc/go-thanh-vien", "office", async (ctx) => {
+      if (!can(ctx.staff, "partner.org.manager.write") || holdsPartner(ctx.staff)) return CAM_TO_CHUC();
+      return goThanhVienVanPhong(ctx);
+    }),
+    route("POST", "/api/parties/:id/to-chuc/gui-lai-thu", "office", async (ctx) => {
+      if (!can(ctx.staff, "partner.org.manager.write") || holdsPartner(ctx.staff)) return CAM_TO_CHUC();
+      return guiLaiThuToChuc(ctx);
+    }),
     route("POST", "/api/parties/:id/relationships", "admin", async (ctx) => {
       const { request, env, params, staff } = ctx;
       if (!can(staff, "admin.manage")) return FORBIDDEN_WRITE();

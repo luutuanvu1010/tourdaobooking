@@ -131,6 +131,11 @@ export interface GopHoSoNoi {
  */
 export type HoiDaChup = { loai: "MUC"; ruleId: string } | { loai: "GAN"; tierCode: string; tu: string; den: string | null; partyId: string | null };
 
+/** ADR-0213 Đ2.8: người quản lý có hiệu lực của một tổ chức (hồ sơ + tài khoản). */
+export interface NguoiQuanLyHieuLuc { personPartyId: string; staffId: string }
+/** ADR-0213 Đ2.6: kết luận «gắn được vào tổ chức» của một hồ sơ cá nhân. */
+export type KetLuanGanToChuc = "DUOC" | "KHONG_TAI_KHOAN" | "KHONG_DOI_TAC" | "QUYEN_KHAC" | "NGUNG";
+
 export interface Ctx<A extends Access = Access> {
   request: Request;
   env: Env;
@@ -279,6 +284,17 @@ export interface Ctx<A extends Access = Access> {
    * Chưa đăng nhập → `[]`, không truy vấn. Không tiêm (khung thử cũ) → `[]` ⇒ chỉ Toàn quyền xác minh được (mặc định từ chối). Không SĐT, không email, không tên.
    */
   taiKhoanXacMinh: () => Promise<TaiKhoanXacMinh[]>;
+  /**
+   * NGƯỜI QUẢN LÝ CÓ HIỆU LỰC của một tổ chức (ADR-0213 Đ2.8; mốc B1 Task 10) — do gốc lắp ráp tiêm (`parties` không import `staff`; khuôn `partyAccount`). Khác null khi và chỉ khi:
+   * liên kết «Người quản lý của» đang mở VÀ tài khoản của người đó đang bật (`active = 1`) VÀ còn quyền Đối tác VÀ hồ sơ của họ chưa gộp VÀ tổ chức còn vai nhóm bên ngoài hoặc loại
+   * đối tác — đúng điều kiện bất biến R-TC-4. Trả id hồ sơ + id tài khoản (route so `staffId` với người gọi). Chưa đăng nhập hoặc môi trường không tiêm ⇒ null (từ chối, không đoán).
+   */
+  nguoiQuanLyCoHieuLuc: (orgPartyId: string) => Promise<NguoiQuanLyHieuLuc | null>;
+  /**
+   * TÀI KHOẢN GẮN ĐƯỢC VÀO TỔ CHỨC (ADR-0213 Đ2.6) — do gốc lắp ráp tiêm (`staff` + `dang-ky.chuaKichHoat`). Kết luận, không trả quyền hay số điện thoại: hồ sơ có tài khoản giữ quyền
+   * Đối tác, KHÔNG giữ quyền nào khác (nội bộ, Tài xế đối tác), và đang bật HOẶC đã duyệt từ phiếu mà chưa kích hoạt (ADR-0207 Đ7). Môi trường không tiêm ⇒ `KHONG_TAI_KHOAN` (từ chối).
+   */
+  taiKhoanGanDuoc: (personPartyId: string) => Promise<KetLuanGanToChuc>;
   /**
    * ADR-0126 đ8 — câu ẩn danh IP / User-Agent mọi phiên của MỘT tài khoản, do `auth` cấp, gốc lắp ráp tiêm (parties không import auth — khuôn `gopHoSo.cauDoiDon`).
    * Không tiêm (khung thử cũ) → null ⇒ route Thực hiện trả 503, KHÔNG thực hiện thiếu phần sổ phiên.
@@ -516,6 +532,10 @@ export interface AppOptions {
     nhanNhanVien: (env: Env, ids: readonly string[]) => Promise<Map<string, string>>;
     /** ADR-0125 đ3, đ5. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `taiKhoanChoXacMinh` của staff); thiếu (khung thử cũ) → router trả `[]` (chỉ Toàn quyền xác minh được). */
     taiKhoanXacMinh: (env: Env) => Promise<TaiKhoanXacMinh[]>;
+    /** ADR-0213 Đ2.8. Mã chạy thật (`src/index.ts`: parties + staff); thiếu (khung thử cố ý) → router trả `null` (không ai là người quản lý có hiệu lực). */
+    nguoiQuanLyCoHieuLuc?: (env: Env, orgPartyId: string) => Promise<NguoiQuanLyHieuLuc | null>;
+    /** ADR-0213 Đ2.6. Mã chạy thật (`src/index.ts`: staff + dang-ky); thiếu (khung thử cố ý) → router trả `KHONG_TAI_KHOAN`. */
+    taiKhoanGanDuoc?: (env: Env, personPartyId: string) => Promise<KetLuanGanToChuc>;
     /** ADR-0126 đ8. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `anDanhPhienCuaTaiKhoanStatement` của auth); thiếu (khung thử cũ) → router trả `null` (route Thực hiện 503). */
     cauAnDanhPhien: (env: Env, staffId: string, at: string, by: string) => D1PreparedStatement;
     /** ADR-0126 đ8. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `hanGiuPhienNgay` của parties); thiếu (khung thử cũ) hoặc chưa đăng nhập → `null`. */
@@ -733,6 +753,8 @@ export function createApp(opts: AppOptions) {
       nhanNhanVien: (ids) =>
         typeof opts.injected.nhanNhanVien !== "function" ? Promise.resolve(null) : ids.length === 0 ? Promise.resolve(new Map()) : opts.injected.nhanNhanVien(envH, ids),
       taiKhoanXacMinh: () => (who && typeof opts.injected.taiKhoanXacMinh === "function" ? opts.injected.taiKhoanXacMinh(envH) : Promise.resolve([])),
+      nguoiQuanLyCoHieuLuc: (org) => (who && typeof opts.injected.nguoiQuanLyCoHieuLuc === "function" ? opts.injected.nguoiQuanLyCoHieuLuc(envH, org) : Promise.resolve(null)),
+      taiKhoanGanDuoc: (p) => (who && typeof opts.injected.taiKhoanGanDuoc === "function" ? opts.injected.taiKhoanGanDuoc(envH, p) : Promise.resolve("KHONG_TAI_KHOAN" as const)),
       cauAnDanhPhien: (id, at, by) => (typeof opts.injected.cauAnDanhPhien === "function" ? opts.injected.cauAnDanhPhien(envH, id, at, by) : null),
       hanGiuPhienNgay: () => (who && typeof opts.injected.hanGiuPhienNgay === "function" ? opts.injected.hanGiuPhienNgay(envH) : Promise.resolve(null)),
       benDatCuaToi: () => (who && typeof opts.injected.benDatCuaToi === "function" ? opts.injected.benDatCuaToi(envH, who) : Promise.resolve(null)),

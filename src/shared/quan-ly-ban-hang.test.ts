@@ -33,6 +33,7 @@ test("Đ1 + ADR-0186 + ADR-0209: cột mới có ba ô nghiệp vụ, ô partner
   const co = Object.entries(MATRIX).filter(([, r]) => r.SALES_MANAGER !== "none").map(([o]) => o).sort();
   assert.deepEqual(co, [
     "assistant.ask", "catalog.confirm_flag.write", "catalog.hidden.write", "catalog.sync", "feedback.submit", "feedback.view", "me.favorites.write",
+    "partner.org.manager.write", // ADR-0213 Đ6 (chủ duyệt 2026-11-16): giao, chuyển, gỡ người quản lý của tổ chức — không tiền, không tài khoản
     "partner.signup_tier.write", // ADR-0209 Đ2 (chủ duyệt 2026-11-15): ô đầu tiên của Quản lý bán hàng chạm điều khoản thương mại — chỉ chọn cấp đang bật cho đối tác tự đăng ký, không sửa mức
     "party.document.view", "party.erasure.request",
     "party.self.submit",

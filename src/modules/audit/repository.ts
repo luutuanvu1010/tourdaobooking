@@ -68,7 +68,7 @@ const ACTING_ROLE_SUBQUERY =
 const TU_GHI_SUBQUERY = `(CASE WHEN ?4 IN (${HANH_DONG_GHI_TIEN.map((a) => `'${a}'`).join(", ")})
        AND EXISTS (SELECT 1 FROM v_ord_order_owner o WHERE o.id = ?2 AND o.staff_id = ?3) THEN 1 END)`;
 
-export function insertStatement(db: D1Database, e: AuditInput, onlyIf?: string): D1PreparedStatement {
+export function insertStatement(db: D1Database, e: AuditInput, onlyIf?: string, actingPartyId: string | null = null): D1PreparedStatement {
   // SQL không còn CHECK liệt kê (0007) → chốt ở đây để giá trị lạ không bao giờ vào nhật ký.
   if (!isAuditAction(e.action)) throw new Error(`Hành động nhật ký không hợp lệ: ${String(e.action)}`);
   // ADR-0186 Đ4: mã tác nhân lạ, hoặc dòng vừa có người vừa có tác nhân, không bao giờ vào nhật ký.
@@ -80,10 +80,10 @@ export function insertStatement(db: D1Database, e: AuditInput, onlyIf?: string):
   const mocHan = new Date(Date.now() - HAN_XEM_NHU_VAI_PHUT * 60 * 1000 - AN_HAN_NHAT_KY_MS).toISOString();
   return db
     .prepare(
-      `INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at, acting_role, tu_ghi_don_minh_lap, agent_code)
-       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ${ACTING_ROLE_SUBQUERY}, ${TU_GHI_SUBQUERY}, ?10 ${onlyIf ? `WHERE ${onlyIf}` : ""}`,
+      `INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at, acting_role, tu_ghi_don_minh_lap, agent_code, acting_party_id)
+       SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ${ACTING_ROLE_SUBQUERY}, ${TU_GHI_SUBQUERY}, ?10, ?11 ${onlyIf ? `WHERE ${onlyIf}` : ""}`,
     )
-    .bind(e.id ?? crypto.randomUUID(), e.orderId ?? null, e.staffId ?? null, e.action, targetType, targetId, e.detail ?? null, e.at, mocHan, e.agentCode ?? null);
+    .bind(e.id ?? crypto.randomUUID(), e.orderId ?? null, e.staffId ?? null, e.action, targetType, targetId, e.detail ?? null, e.at, mocHan, e.agentCode ?? null, actingPartyId);
 }
 
 export const SYSTEM_ACTOR_NAME = "Hệ thống (tự động)";

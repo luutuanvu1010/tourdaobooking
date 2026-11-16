@@ -31,11 +31,11 @@ import { canBangVeTheoSoKhach, cauChanDuoiSoDaDung, cauChanVeDaDung, capVeChoDon
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import {
   LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauDongYTuPhieu, cauGhiGiaTriDaXacMinh, cauGhiGiaTriToChuc, cauGoTepCho, cauLienKetNguoiToChuc, cauMoHoSoDangKy, cauMoHoSoToChucDangKy,
-  cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule,
+  cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule, tcQuanLyMo,
 } from "./modules/parties";
 import { capMacDinhChoDuyet, capSeApChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
 import { cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
-import { accountOfParty, createAccountOnPartyStatements, createPartnerAccountOnPartyStatements, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
+import { accountOfParty, createAccountOnPartyStatements, createPartnerAccountOnPartyStatements, getStaffAccountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
 import { chuyenChoTinTheoId, dongBoChuyenChoDon, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
@@ -44,7 +44,7 @@ import { dangChayLucSuKien, dongCoTheSinhTin, taiXeNhanSuKien, thayDoiCuaHanhDon
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { can, holdsPartner } from "./shared/permissions";
 import { vnToday } from "./shared/vn-date";
-import { createApp, type AppOptions } from "./shared/router";
+import { createApp, type AppOptions, type KetLuanGanToChuc, type NguoiQuanLyHieuLuc } from "./shared/router";
 import type { LoDuyetDangKyRa, LoDuyetDangKyVao } from "./shared/dang-ky-duyet";
 import { isRoleCode, type RoleCode } from "./shared/roles";
 
@@ -74,6 +74,29 @@ async function nemNeuLoi(viec: [string, Promise<unknown> | null][]): Promise<voi
  * mang mã cấp; câu 8 tự xét lại dòng đó còn hiệu lực cùng mọi điều kiện trigger, nên lần đọc không quyết gì). Mọi giá trị khác route đã đọc trước lô, mọi mã dòng sinh ở đây. Câu 1 (chốt)
  * làm hỏng CẢ lô khi phiếu không còn hợp lệ; các câu sau không đọc kết quả của nhau (trừ dòng nhật ký / lịch sử `changes() > 0` ngay sau câu nó ghi lại, khuôn chung).
  */
+/**
+ * NGƯỜI QUẢN LÝ CÓ HIỆU LỰC (ADR-0213 Đ2.8; mốc B1 Task 10) — gốc lắp ráp ghép parties (liên kết «Người quản lý của» đang mở, hồ sơ chưa gộp, tổ chức còn vai nhóm bên ngoài
+ * hoặc loại đối tác) với staff (tài khoản `active = 1`, còn quyền Đối tác). CÙNG điều kiện với bất biến R-TC-4 (bài to-chuc-route.test.ts đối chiếu). Hai lượt đọc.
+ */
+async function nguoiQuanLyCoHieuLuc(db: D1Database, org: string): Promise<NguoiQuanLyHieuLuc | null> {
+  const q = await tcQuanLyMo(db, org);
+  if (!q || q.daGop || !q.toChucCoVai) return null;
+  const tk = await getStaffAccountOfParty(db, q.personPartyId);
+  return tk && tk.active && tk.permissions.includes("PARTNER") ? { personPartyId: q.personPartyId, staffId: tk.id } : null;
+}
+/**
+ * TÀI KHOẢN GẮN ĐƯỢC VÀO TỔ CHỨC (ADR-0213 Đ2.6): có tài khoản, giữ quyền Đối tác và KHÔNG giữ quyền nào khác (nội bộ, Tài xế đối tác — cùng vế R-TC-3), đang bật HOẶC đã duyệt
+ * từ phiếu mà chưa kích hoạt (ADR-0207 Đ7: lô duyệt sinh tài khoản tắt) — tách khỏi tài khoản ngưng hẳn bằng `chuaKichHoat` của dang-ky.
+ */
+async function taiKhoanGanDuoc(db: D1Database, personPartyId: string): Promise<KetLuanGanToChuc> {
+  const tk = await getStaffAccountOfParty(db, personPartyId);
+  if (!tk) return "KHONG_TAI_KHOAN";
+  if (tk.permissions.some((p) => p !== "PARTNER")) return "QUYEN_KHAC";
+  if (!tk.permissions.includes("PARTNER")) return "KHONG_DOI_TAC";
+  if (!tk.active && !(await chuaKichHoat(db, tk.id))) return "NGUNG";
+  return "DUOC";
+}
+
 async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuyetDangKyRa> {
   // Vai là RoleCode (đường cũ) HOẶC loại đối tác do Kế toán thêm (ADR-0212 Đ3); mã khác ⇒ lỗi lạ (route đã kiểm theo `vaiDangKyDuoc`).
   if (!v.laLoaiDoiTac && !isRoleCode(v.roleCode)) throw new Error("loDuyetDangKy: mã vai không hợp lệ");
@@ -330,6 +353,9 @@ const APP_OPTIONS: AppOptions = {
     nhanNhanVien: (env, ids) => nhanNhanVienTheoId(env.DB, ids),
     // XÁC MINH PHIẾU TỰ KHAI (ADR-0125 đ3, đ5): parties không import staff — gốc lắp ráp tiêm MỘT truy vấn đọc mọi tài khoản (id, quyền hiện hiệu lực, hoạt động, hồ sơ).
     taiKhoanXacMinh: (env) => taiKhoanChoXacMinh(env.DB),
+    // NGƯỜI QUẢN LÝ TỔ CHỨC (ADR-0213 Đ2.6, Đ2.8): parties không import staff — gốc lắp ráp ghép (khuôn partyAccount).
+    nguoiQuanLyCoHieuLuc: (env, org) => nguoiQuanLyCoHieuLuc(env.DB, org),
+    taiKhoanGanDuoc: (env, p) => taiKhoanGanDuoc(env.DB, p),
     // ẨN DANH SỔ PHIÊN (ADR-0126 đ8): parties không import auth / accounts không import parties — gốc lắp ráp tiêm câu của auth và số ngày giữ (chính sách riêng tư) của parties.
     cauAnDanhPhien: (env, staffId, at, by) => anDanhPhienCuaTaiKhoanStatement(env.DB, staffId, at, by),
     hanGiuPhienNgay: (env) => hanGiuPhienNgay(env.DB),

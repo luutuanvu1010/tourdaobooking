@@ -11,6 +11,7 @@ import { nhanLoaiLienHe } from "../src/shared/lien-he";
 import { can } from "../src/shared/permissions";
 import { vaiMoChoHoSoKhongTaiKhoan } from "../src/shared/roles";
 import { docLyDoSua } from "../src/shared/so-dai-ly-nhap";
+import { laLienKetToChuc } from "../src/shared/to-chuc";
 import { GIOI_TINH, GIOI_TINH_NHAN } from "../src/shared/xung-ho";
 import { ApiError, api, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
@@ -349,7 +350,7 @@ async function openDetail(id: string): Promise<void> {
 
   // -- quan hệ
   const relRows = p.relationships.map((x) =>
-    h("tr", { class: x.validTo ? "row-off" : "" }, h("td", null, `${x.fromPartyName} — ${x.typeName} — ${x.toPartyName}`), h("td", { class: "muted" }, period(x.validFrom, x.validTo)), h("td", null, quanTri && !x.validTo && button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/relationships/${x.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
+    h("tr", { class: x.validTo ? "row-off" : "" }, h("td", null, `${x.fromPartyName} — ${x.typeName} — ${x.toPartyName}`), h("td", { class: "muted" }, period(x.validFrom, x.validTo)), h("td", null, quanTri && !x.validTo && !laLienKetToChuc(x.typeCode) && button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/relationships/${x.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
   );
   const relQ = input("", { placeholder: "Gõ tên hồ sơ cần liên kết…" });
   const relPick = h("select", null);

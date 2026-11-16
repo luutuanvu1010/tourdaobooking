@@ -121,6 +121,7 @@ export const LICH_SU_NOI_BO_AN = [
   // hiện trạng thái và lý do từ chối; trang Nhật ký (Toàn quyền) vẫn đọc được.
   "agent_remittance_recorded", "agent_remittance_confirmed", "agent_remittance_rejected", "agent_remittance_proof_viewed", "agent_remittance_proof_purged",
   "registration_item_concluded", "registration_verified", "registration_supplement_requested", "registration_rejected", "registration_number_viewed", "registration_file_viewed", "registration_approval_rejected", "registration_invite_resent", "registration_returned_to_verification", "registration_notice_resent", "registration_activated", "registration_cleanup_run", "registration_policy_set", // ADR-0207 Đ6, Đ7, ADR-0208 Đ8: xác minh phiếu đăng ký — không thuộc đơn nào
+  "org_manager_assigned", "org_manager_transferred", "org_manager_removed", "org_transfer_requested", "org_member_removed", "org_member_left", "org_notice_resent", // ADR-0213 Đ6: quản trị tổ chức — không thuộc đơn nào
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nội bộ nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */

@@ -113,6 +113,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "partner.commission.view": { ten: "xem bảng mức hoa hồng đối tác", moTa: "Xem mức hoa hồng theo vai người dùng, theo đối tác, theo dịch vụ hoặc nhóm dịch vụ." },
   "partner.commission.write": { ten: "đặt mức hoa hồng đối tác", moTa: "Thêm mức hoa hồng mới, đóng mức cũ (không sửa, không xoá)." },
   "partner.signup_tier.write": { ten: "đặt cấp cho đối tác tự đăng ký", moTa: "Chọn cấp mà người được duyệt từ phiếu đăng ký nhận sẵn, tuỳ vai trò lúc duyệt." },
+  "partner.org.manager.write": { ten: "giao, chuyển quyền quản lý tổ chức", moTa: "Giao hoặc chuyển người quản lý tổ chức, gỡ người quản lý khi tổ chức không còn thành viên, gỡ thành viên. Quản lý bán hàng, Quản trị và Toàn quyền." },
   "catalog.ticket_flag.write": { ten: "đặt ô Có vé", moTa: "Chọn dịch vụ hoặc cả nhóm có vé điện tử hay không; máy chỉ giữ vé và báo thiếu vé cho dịch vụ Có vé." },
   "catalog.confirm_flag.write": { ten: "bật, tắt cần kiểm vé", moTa: "Chọn vé hoặc cả nhóm vé phải chờ người kiểm vé trước khi đơn được xác nhận." },
   "catalog.hidden.write": { ten: "ngừng bán, mở bán lại dịch vụ", moTa: "Tạm không cho lập đơn với một dịch vụ, rồi mở lại khi bán được." },

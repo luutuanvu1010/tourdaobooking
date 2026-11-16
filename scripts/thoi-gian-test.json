@@ -489,6 +489,7 @@
  "src/modules/parties/tep-cho.test.ts": 4.9,
  "src/modules/parties/tep-route.test.ts": 27.5,
  "src/modules/parties/tep.test.ts": 0.3,
+ "src/modules/parties/to-chuc-route.test.ts": 4,
  "src/modules/parties/tu-khai-route.test.ts": 15,
  "src/modules/parties/tu-khai.test.ts": 0.2,
  "src/modules/parties/vai-an-lich-su.test.ts": 3,
