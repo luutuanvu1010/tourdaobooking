@@ -61,3 +61,9 @@ Kế hoạch: `docs/superpowers/plans/2026-11-16-phi-don-van-phong-chon.md`. Ngu
 - Bảng Còn vé ghi «Tổng» của đơn chưa gồm phí người xét sắp chọn (phí chỉ tính lúc xác nhận).
 - Tài khoản lai Đối tác + Bán hàng xét đơn còn lượt thiếu phí: nút «Còn vé, xác nhận đơn» bị khoá, chỉ câu nhắc (vòng sửa 1); chưa kiểm bằng trình duyệt (khó dựng: tài khoản giữ PARTNER chỉ mở đơn của chính mình).
 - «Thử tra» ở màn Quản trị khi thiếu mức vẫn nói «… nên đơn như vậy không xác nhận được.» — câu cũ của bảng mức, nay không còn đúng với đơn (chữ cần chủ chọn).
+
+## Gộp main lần cuối (16/11, tối)
+
+- Gộp `origin/main` 519c3652a (ADR-0215, ADR-0216 đề xuất) vào nhánh, lần lưu gộp 57c4f028c. Hai chỗ trùng gộp cả hai bên: mục lục `docs/adr/README.md` (dòng 0214 rồi 0215, 0216; số kế tiếp 0217) và `docs/SO-HANG-RAO.md` (bốn dòng phí đưa đón chọn + hai dòng ADR-0215).
+- Theo ADR-0215 Đ3: bỏ 19 ảnh `docs/evidence/2026-11-phi-don/*.png` khỏi kho (`git rm --cached`), ảnh vẫn trên máy và đã bị `.gitignore` chặn.
+- Kiểm sau gộp: `npm run typecheck` 0 lỗi; 63 tệp bài chạm vùng gộp (sổ hàng rào, mục lục ADR, `docs/evidence`, `release-lib`, `kiem-phan`, `changelog`, `audit-invariants`) 1101/1101 đạt. Bộ `npm test` đủ trước gộp (fb42b1363): 9587 đạt, 0 đỏ. Không chạy lại `npm test` đủ sau gộp vì phần gộp chỉ chạm kịch bản phát hành và tài liệu; `day-len` sẽ chạy lại toàn bộ.
