@@ -104,11 +104,12 @@ function tuChoiXem(staff: PermissionHolder & { id: string }, o: { status: OrderS
  * Chủ duyệt 17/11/2026 (Q3; ADR-0213 mục «Xem»): một lần ĐỌC đơn đã bị từ chối 403 ⇒ đổi thành 404 khi người xem là thành viên cùng tổ chức của đơn thành viên khác lập (luật thuần
  * `thanhVienCungToChucXemDonNguoiKhac`). Chỉ đổi mã từ chối, không bao giờ cho xem. Không giữ quyền Đối tác ⇒ false, không truy vấn. Dùng chung cho billing / receipt (qua index).
  */
-export async function donThanhVienCungToChuc(db: D1Database, staff: PermissionHolder & { id: string }, orderId: string, tuCachCuaToi: () => Promise<readonly { partyId: string; laToChuc: boolean }[]>): Promise<boolean> {
+export async function donThanhVienCungToChuc(db: D1Database, staff: PermissionHolder & { id: string }, orderId: string, tuCachCuaToi: () => Promise<readonly { partyId: string; laToChuc: boolean; loai?: string }[]>): Promise<boolean> {
   if (!holdsPartner(staff)) return false;
   const meta = await getMeta(db, orderId);
   if (!meta || meta.actingLinkKind !== "MEMBER" || meta.staffId === staff.id) return false;
-  const toChuc = (await tuCachCuaToi()).filter((t) => t.laToChuc).map((t) => t.partyId);
+  // Vòng sửa cuối (m-a): chỉ tổ chức người xem là THÀNH VIÊN (liên kết «Thành viên của» — `loai` MEMBER); người quản lý giữ mã từ chối cũ (lời chủ duyệt Q3 chỉ nói thành viên).
+  const toChuc = (await tuCachCuaToi()).filter((t) => t.laToChuc && t.loai === "MEMBER").map((t) => t.partyId);
   return thanhVienCungToChucXemDonNguoiKhac({ laNguoiLap: false, actingLinkKind: meta.actingLinkKind, toChucCuaDon: meta.actingPartyId, toChucCuaToi: toChuc });
 }
 /**

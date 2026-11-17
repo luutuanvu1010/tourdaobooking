@@ -581,4 +581,6 @@ test("Q3: thành viên A mở đơn đã gửi lên (đã xác nhận) của th�
   assert.deepEqual(lo, [], "thành viên cùng tổ chức phân biệt được đơn có thật");
   assert.equal((await w.call("GET", `/api/orders/${id}`, { as: LA })).status, 403, "Đối tác lạ: như hôm nay");
   assert.equal((await w.call("GET", `/api/orders/${id}`, { as: NAM })).status, 200, "người quản lý thấy");
+  // Vòng sửa cuối (m-a): chỉ THÀNH VIÊN đổi 403 → 404; người quản lý bị từ chối theo ô (nhập kế toán: Đối tác không có ô) giữ 403 như cũ.
+  assert.equal((await w.call("GET", `/api/orders/${id}/nhap-ke-toan`, { as: NAM })).status, 403, "người quản lý: mã cũ");
 });
