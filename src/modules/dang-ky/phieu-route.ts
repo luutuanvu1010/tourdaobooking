@@ -24,7 +24,7 @@ import {
 } from "../parties";
 import { cookiePhienDangKy, dkMoiKey, docPhienDangKy, taoPhienDangKy } from "./phien.ts";
 import {
-  banKhaiToChucTruoc, banKhaiTruoc, cauKeoDaiHanNhap, ganLoiMoiStatement, chinhSachHienHanh, chinhSachRiengTuHienHanh, doiLoaiStatement, guiChenStatement, guiChenToChucStatement, guiTienStatement, mucRiengCuaPhieu,
+  banKhaiToChucTruoc, banKhaiTruoc, cauKeoDaiHanNhap, ganLoiMoiStatement, guiChotThangStatement, LOI_CHOT_GUI_THUA, chinhSachHienHanh, chinhSachRiengTuHienHanh, doiLoaiStatement, guiChenStatement, guiChenToChucStatement, guiTienStatement, mucRiengCuaPhieu,
   phanToChucMo, phieuDeXem, rutStatement, suKienNguoiDangKyStatement,
   type BanKhaiMoi, type ChinhSachDangKyRow, type PhieuDeXemRow,
 } from "./repository.ts";
@@ -343,6 +343,8 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
       suKienNguoiDangKyStatement(env.DB, { registrationId, identityId, command: v.phieu.current_version === 0 ? "GUI" : "GUI_LAI", at: v.at }),
       // ADR-0213 Đ7.5 — CUỐI lô (chỉ số `iTien` giữ nguyên): bỏ giữ chỗ lời mời cũ (số đổi / mã mới), rồi gắn mã định danh lời mời mới vào phiếu (chỉ khi lần gửi này thắng) và giữ chỗ
       // (lính gác NULL-on-invalid: lời mời vừa bị huỷ / dùng / hết hạn ⇒ CẢ lô hỏng, không bản khai nào sinh ra). Phiếu không bao giờ chứa mã.
+      // Vòng sửa 1 Task 15 (m4): câu chốt «lô này đã thắng» đứng TRƯỚC mọi câu lời mời — lô thua (bản khai khớp 0 dòng) hỏng cả lô, không giữ chỗ / bỏ giữ chỗ mồ côi.
+      ...(loiMoi.boGiu || (loiMoi.hopLe && loiMoi.dung) ? [guiChotThangStatement(env.DB, { registrationId, submissionId })] : []),
       ...(loiMoi.boGiu ? [cauBoGiuChoLoiMoi(env.DB, { id: loiMoi.boGiu.id, registrationId, at: v.at, by: identityId })] : []),
       ...(loiMoi.giu ? [ganLoiMoiStatement(env.DB, { registrationId, inviteId: loiMoi.giu.id, at: v.at })] : []),
       // Mọi lần gửi dựa vào lời mời (mã mới, hoặc lời mời phiếu đang giữ) đều chạy câu giữ chỗ: lính gác xét lại NGAY TRONG lô (còn mở / đang giữ cho phiếu này, còn hạn, cùng số).
@@ -350,8 +352,8 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
     ]);
   } catch (e) {
     if (LOI_GAC_LOI_MOI.test(e instanceof Error ? e.message : "")) return error(400, "invite_code_invalid", CAU_MA_VAO_SAI);
-    // Hai lô đua nhau: lớp cuối là UNIQUE(registration_id, version) và trigger dk_submission_version — coi như lô này khớp 0 dòng, đọc lại.
-    if (!/dk_submission_version|dk_submission_org_version|UNIQUE constraint failed: dk_submission/.test(e instanceof Error ? e.message : "")) throw e;
+    // Hai lô đua nhau: lớp cuối là UNIQUE(registration_id, version) và trigger dk_submission_version — coi như lô này khớp 0 dòng, đọc lại. Câu chốt «lô đã thắng» (vòng sửa 1 m4) cũng vậy.
+    if (!/dk_submission_version|dk_submission_org_version|UNIQUE constraint failed: dk_submission/.test(e instanceof Error ? e.message : "") && !LOI_CHOT_GUI_THUA.test(e instanceof Error ? e.message : "")) throw e;
   }
   if (kq !== null && (kq[iTien]?.meta.changes ?? 0) === 1) return tra(ctx, v, await dtoPhieu(env.DB, registrationId, identityId));
   // Khớp 0 dòng: lần gửi khác đã thắng (kết quả y như lần đầu), hoặc chính sách mới vừa đăng, hoặc phiếu đổi trạng thái.

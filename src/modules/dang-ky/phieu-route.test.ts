@@ -1023,3 +1023,18 @@ test("Đ7.5: phiếu đang giữ lời mời từ lần gửi trước, gửi l�
   assert.equal(r2.json.error.code, "invite_with_org");
   assert.match(r2.json.error.message, /bỏ mã/);
 });
+
+// Task 15 vòng sửa 1 (m4 của người kiểm, mục 4 điều phối): lô gửi THUA (câu chèn bản khai khớp 0 dòng — lần gửi khác vừa đổi phiếu) không được giữ chỗ / bỏ giữ chỗ lời mời.
+// Trước khi sửa: hai câu của parties chạy vô điều kiện ⇒ lời mời GIU_CHO_PHIEU mồ côi (phiếu không trỏ tới).
+test("Đ7.5: lô gửi thua (phiếu vừa đổi trạng thái giữa lúc đọc và lúc ghi) ⇒ lời mời KHÔNG bị giữ chỗ, phiếu không gắn lời mời, không bản khai", async () => {
+  const w = setup();
+  const mv = await loiMoiMo(w);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /pty_org_invite/.test(s.sql) && /GIU_CHO_PHIEU/.test(s.sql)), async () => {
+    w.sqlite.prepare("UPDATE dk_registration SET status = 'DA_RUT' WHERE id = ?").run(PHIEU);
+  });
+  const r = await gui(w, banKhai({ maVaoToChuc: MA_VAO }));
+  assert.notEqual(r.status, 200, r.text);
+  assert.equal(soDong(w, "dk_submission"), 0);
+  assert.equal(phieu(w).invite_id, null);
+  assert.deepEqual(loiMoiDong(w, mv), { status: "MO", held_registration_id: null }, "không giữ chỗ mồ côi");
+});

@@ -819,6 +819,18 @@ const GAN_LOI_MOI = defineSql(
 );
 export const ganLoiMoiStatement = (db: D1Database, v: { registrationId: string; inviteId: string; at: string }): D1PreparedStatement =>
   db.prepare(GAN_LOI_MOI).bind(v.registrationId, v.inviteId, v.at);
+// Task 15 vòng sửa 1 (m4): CHỐT «lô gửi này đã thắng» cho các câu lời mời của parties đứng sau (parties không đọc được bảng dk_*). Bản khai của chính lô (?2) chưa có ⇒ đặt
+// `status` = NULL trên đúng phiếu ⇒ ràng buộc / trigger của dk_registration làm CẢ lô hỏng (khuôn NULL-on-invalid); thắng ⇒ WHERE sai, không dòng nào bị chạm, không trigger nào chạy.
+// ?1 phiếu, ?2 mã bản khai của lô.
+const GUI_CHOT_THANG = defineSql(
+  "dang-ky",
+  "registration_submit_won_guard",
+  "UPDATE dk_registration SET status = NULL WHERE id = ?1 AND NOT EXISTS (SELECT 1 FROM dk_submission WHERE id = ?2)",
+);
+export const guiChotThangStatement = (db: D1Database, v: { registrationId: string; submissionId: string }): D1PreparedStatement =>
+  db.prepare(GUI_CHOT_THANG).bind(v.registrationId, v.submissionId);
+/** Lỗi do câu chốt «lô gửi đã thắng» (lô thua): trigger chuyển trạng thái hoặc ràng buộc NOT NULL của dk_registration. Nơi gọi coi như lô khớp 0 dòng. */
+export const LOI_CHOT_GUI_THUA = /NOT NULL constraint failed: dk_registration\.status|dk_registration_transition/;
 // Mốc `decided_at` = lúc phiếu kết thúc: đồng hồ ẩn danh (việc 2) chạy từ đây.
 const HET_HAN_CAP = defineSql(
   "dang-ky",
