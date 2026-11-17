@@ -17,6 +17,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đăng ký đối tác đợt 2, mốc B2 (ADR-0213 Đ7, Đ8: lời mời, mã vào tổ chức, thành viên; migration 0176; nhánh claude/account-signup-approval-flow-ee612c):
+    // đứng sau mốc B1 (3.14, migration 0175). SỐ TẠM 3.15: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.15",
+    date: "2026-11-17",
+    items: [
+      { kind: "moi", text: "Người quản lý mời thành viên vào tổ chức bằng số điện thoại: Nền tảng tạo một mã dùng một lần, hạn 7 ngày, người quản lý tự gửi mã cho người được mời." },
+      { kind: "moi", text: "Phiếu đăng ký có ô «Mã vào tổ chức»: có mã thì được duyệt xong là thành viên của tổ chức. Người đã có tài khoản nhận lời mời ở trang Tôi." },
+      { kind: "moi", text: "Người quản lý chọn chế độ thành viên: «Chỉ soạn» (tự xem mọi nháp của thành viên) hoặc «Soạn và gửi người quản lý xác nhận»." },
+      { kind: "moi", text: "Thành viên lập đơn thay mặt tổ chức rồi gửi người quản lý; người quản lý gửi đơn lên Tour Đảo hoặc trả lại kèm lý do, thành viên thấy lý do." },
+      { kind: "moi", text: "Màn tổ chức có mục «Nháp chờ»: các nháp của thành viên mà người quản lý được mở, bấm vào là tới trang đơn." },
+    ],
+  },
+  {
     // Đăng ký đối tác đợt 2, mốc B1 (ADR-0212 Đ2, Đ4, Đ6; ADR-0213 Đ1–Đ9 phần người quản lý; migration 0175; nhánh claude/account-signup-approval-flow-ee612c):
     // đứng sau mốc A (3.13, migration 0174). SỐ TẠM 3.14: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.14",
