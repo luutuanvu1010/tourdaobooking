@@ -479,3 +479,15 @@ test("1c: `thanhVien.rutDuoc` — chỉ người quản lý đã mở yêu cầu
   assert.ok(t2.status === 404 || t2.json.thanhVien === null || t2.json.thanhVien.rutDuoc === false, t2.text);
   assert.notEqual((await w.call("POST", `/api/orders/${id2}/rut-xac-nhan`, { as: NAM, body: {} })).status, 200);
 });
+
+// ---- Kiểm toàn mốc B2 (m1): nhật ký «Trả lại» ghi nhãn tiếng Việt, không mã thô (tiền lệ soanHuyDon, ADR-0089 đ8) ----
+test("toàn mốc B2 (m1): nhật ký order_member_returned ghi nhãn lý do tiếng Việt, không mã thô", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await traLai(w, NAM, id, "SAI_SO_KHACH")).status, 200);
+  const d = nk(w, "order_member_returned");
+  assert.equal(d.length, 1);
+  assert.equal(d[0].detail, "Trả lại: Sai số khách");
+  assert.ok(!/SAI_/.test(d[0].detail));
+});

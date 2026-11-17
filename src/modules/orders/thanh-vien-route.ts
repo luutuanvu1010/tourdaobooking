@@ -6,7 +6,7 @@ import { auditStatement } from "../audit";
 import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { can } from "../../shared/permissions";
 import { route } from "../../shared/router";
-import { MA_LY_DO_TRA_LAI, laMaLyDoTraLai } from "../../shared/to-chuc";
+import { MA_LY_DO_TRA_LAI, NHAN_LY_DO_TRA_LAI, laMaLyDoTraLai } from "../../shared/to-chuc";
 import { NOT_ACTING_FOR_ORG, chanGhiNhap, conThayMatToChuc, quyenGhiNhap } from "./xac-nhan-chung";
 import { orderTouchDraft, yeuCauMoCuaDon } from "./xac-nhan-repo";
 import { tvChoMo, tvDongStatement, tvMoStatement } from "./chang-hanh-khach-repo";
@@ -101,7 +101,7 @@ export const thanhVienRoutes = () => [
     const kq = await env.DB.batch([
       orderTouchDraft(env.DB, id, at, meta.updatedAt),
       tvDongStatement(env.DB, { orderId: id, trangThai: "TRA_LAI", lyDo: body.lyDo, at, by: staff.id }),
-      auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_member_returned", at, targetType: "staff", targetId: meta.staffId, detail: `Trả lại: ${body.lyDo}` }, "changes() > 0"),
+      auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_member_returned", at, targetType: "staff", targetId: meta.staffId, detail: `Trả lại: ${NHAN_LY_DO_TRA_LAI[body.lyDo]}` }, "changes() > 0"),
     ]);
     if ((kq[0]!.meta.changes ?? 0) === 0 || (kq[1]!.meta.changes ?? 0) === 0) return STALE();
     baoThayDoi({ orderId: id, thayDoi: "sua" });
