@@ -272,9 +272,9 @@ test("Task 17 (giao diện B2): trang đơn biết nháp thành viên — khối
   assert.equal(await loaiCua(NAM), "MANAGER");
   const tv = async (as: string, id: string) => (await w.call("GET", `/api/orders/${id}`, { as })).json.thanhVien;
   const id = await lap(w, TV);
-  assert.deepEqual(await tv(TV, id), { dangCho: false, cheDo: "SOAN_VA_GUI", quanLyThay: false, choVanPhong: false, rutDuoc: false });
+  assert.deepEqual(await tv(TV, id), { dangCho: false, cheDo: "SOAN_VA_GUI", quanLyThay: false, choVanPhong: false, rutDuoc: false, lyDoTraLai: null });
   assert.equal((await guiQl(w, TV, id)).status, 201);
-  assert.deepEqual(await tv(TV, id), { dangCho: true, cheDo: "SOAN_VA_GUI", quanLyThay: false, choVanPhong: false, rutDuoc: false });
+  assert.deepEqual(await tv(TV, id), { dangCho: true, cheDo: "SOAN_VA_GUI", quanLyThay: false, choVanPhong: false, rutDuoc: false, lyDoTraLai: null });
   assert.deepEqual(await tv(NAM, id), { dangCho: true, cheDo: "SOAN_VA_GUI", quanLyThay: true, choVanPhong: false, rutDuoc: false });
   assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
   const id2 = await lap(w, TV);
@@ -293,7 +293,7 @@ test("Task 17 (người kiểm trước bàn giao): người quản lý Gửi đ
   const id = await lap(w, TV);
   assert.equal((await guiQl(w, TV, id)).status, 201);
   assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 201);
-  assert.deepEqual(await tv(TV, id), { dangCho: false, cheDo: "SOAN_VA_GUI", quanLyThay: false, choVanPhong: true, rutDuoc: false });
+  assert.deepEqual(await tv(TV, id), { dangCho: false, cheDo: "SOAN_VA_GUI", quanLyThay: false, choVanPhong: true, rutDuoc: false, lyDoTraLai: null });
   assert.equal((await guiQl(w, TV, id)).status, 409, "máy chủ chặn gửi người quản lý lại");
   // «Chỉ soạn»: người quản lý gửi lên ⇒ nếu còn khối thì phải mang choVanPhong.
   assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
@@ -490,4 +490,24 @@ test("toàn mốc B2 (m1): nhật ký order_member_returned ghi nhãn lý do ti�
   assert.equal(d.length, 1);
   assert.equal(d[0].detail, "Trả lại: Sai số khách");
   assert.ok(!/SAI_/.test(d[0].detail));
+});
+
+// ---- Kiểm toàn mốc B2 (I-B, ruling điều phối): thành viên thấy lý do bị trả lại (ADR-0213 Đ8.2 «trả lại kèm lý do») ----
+test("toàn mốc B2 (I-B): khối thanhVien của NGƯỜI LẬP có nhãn lý do lần trả lại gần nhất (tiếng Việt); gửi lại thì hết; người quản lý / người khác không nhận trường này", async () => {
+  const w = setup();
+  const tvCua = async (as: string, id: string) => (await w.call("GET", `/api/orders/${id}`, { as })).json.thanhVien;
+  const id = await lap(w, TV);
+  assert.equal((await tvCua(TV, id)).lyDoTraLai, null);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal("lyDoTraLai" in (await tvCua(NAM, id)), false, "người quản lý không nhận trường này");
+  assert.equal((await traLai(w, NAM, id, "SAI_NGAY")).status, 200);
+  assert.equal((await tvCua(TV, id)).lyDoTraLai, "Sai ngày");
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await tvCua(TV, id)).lyDoTraLai, null, "đã gửi lại ⇒ không còn câu trả lại");
+  assert.equal((await traLai(w, NAM, id, "KHONG_DAT_NUA")).status, 200);
+  assert.equal((await tvCua(TV, id)).lyDoTraLai, "Khách không đặt nữa", "lần trả lại GẦN NHẤT");
+  // «Chỉ soạn»: người quản lý mở nháp vẫn không nhận trường này.
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const q = await tvCua(NAM, id);
+  assert.ok(q && !("lyDoTraLai" in q), JSON.stringify(q));
 });

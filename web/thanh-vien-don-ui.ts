@@ -38,10 +38,13 @@ export function nutThanhVien(c: BoiCanhXacNhan, tv: Api.ThanhVienTrenDonDto, cha
       }),
     ];
   }
-  if (tv.cheDo === "CHI_SOAN") return [h("p", { class: "muted", "data-thanh-vien": "chi-soan" }, `Tổ chức đang ở chế độ «${NHAN_CHE_DO_THANH_VIEN.CHI_SOAN}»: người quản lý tự xem nháp này và gửi lên Tour Đảo.`)];
+  // Kiểm toàn mốc B2 (I-B): lý do lần trả lại gần nhất (máy chủ chỉ gửi cho người lập, nhãn tiếng Việt).
+  const traLai: HTMLElement | null = tv.lyDoTraLai ? h("p", { class: "dd-canh-xn", "data-thanh-vien": "tra-lai" }, `Người quản lý đã trả lại đơn. Lý do: ${tv.lyDoTraLai}.`) : null;
+  const chiSoan: HTMLElement = h("p", { class: "muted", "data-thanh-vien": "chi-soan" }, `Tổ chức đang ở chế độ «${NHAN_CHE_DO_THANH_VIEN.CHI_SOAN}»: người quản lý tự xem nháp này và gửi lên Tour Đảo.`);
+  if (tv.cheDo === "CHI_SOAN") return traLai ? [traLai, chiSoan] : [chiSoan];
   const g = nut("Gửi người quản lý xác nhận", "btn btn-accent", "gui-quan-ly", () => goi(c, "gui-quan-ly", {}, "Đã gửi người quản lý. Đơn đang chờ người quản lý xác nhận."));
   if (chan) g.disabled = true;
-  return [g];
+  return traLai ? [traLai, g] : [g];
 }
 
 /** «Trả lại» (người quản lý, nháp đang chờ): bảng trượt chọn một lý do trong danh sách đóng. */

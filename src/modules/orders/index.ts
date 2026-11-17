@@ -33,7 +33,7 @@ import {
 } from "./chang-hanh-khach-repo";
 import { coVeTheoMa, nguonVeTheoMa } from "../catalog";
 import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
-import { mocTraSauCuaDon, nhapThanhVienCuaToChuc, noiHanTraSauStatement, soHanhKhachDangLuu } from "./chang-hanh-khach-repo";
+import { mocTraSauCuaDon, nhapThanhVienCuaToChuc, tvLyDoTraLaiGanNhat, noiHanTraSauStatement, soHanhKhachDangLuu } from "./chang-hanh-khach-repo";
 import { kiemNoiHan, laDoiTacTraSau, ngayCuaMoc, trangThaiHan } from "../../shared/tra-sau";
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP, type LyDoDatGap } from "../../shared/chang-dua-don";
@@ -60,6 +60,7 @@ import { apGhiTay, banChupTuDb, cheDoThuongMai, chuaCoBanChup, coDongVuotDon, co
 import { banChupHienHanh, cauChupChuoi, cauDoiMocSauGhiTay, cauGhiTayKemPax, cauKhoaChupBu, demBanChup, donChoChupBu, laNhaCungCap, nhomCuaMa, tenHoSo } from "./thuong-mai-repo";
 import { laThanDonCu, laThanTripCu } from "./than-cu";
 import { canhBaoGiamGiaDon, cauDoiBenDatVuotHoaHong, duocNhapTay, holdsPartner, lyDoKhongNhapTay, manualFreezeViolation, viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
+import { NHAN_LY_DO_TRA_LAI, laMaLyDoTraLai } from "../../shared/to-chuc";
 import { chiNguoiLapGhiNhap, donDaGuiLen, ketQuaXemDon, quanLyThayNhapThanhVien, type CheDoThanhVien, type NgoaiLeToChuc } from "../../shared/xem-don-nhap";
 import { canTransition, hasHandlerPick, parseBanHangMoi, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import {
@@ -146,7 +147,9 @@ async function thanhVienTrenDon(
   if (thayNhap && ngoaiLe) return { dangCho: ngoaiLe.dangChoQuanLy, cheDo: ngoaiLe.cheDo, quanLyThay: true, choVanPhong, rutDuoc };
   if (rutDuoc) return { dangCho: false, cheDo: await q.cheDoThanhVien(meta.actingPartyId), quanLyThay: true, choVanPhong, rutDuoc };
   if (o.staffId !== staff.id) return null;
-  return { dangCho: meta.dangChoQuanLy, cheDo: await q.cheDoThanhVien(meta.actingPartyId), quanLyThay: false, choVanPhong, rutDuoc: false };
+  const [cheDo, maTraLai] = await Promise.all([q.cheDoThanhVien(meta.actingPartyId), tvLyDoTraLaiGanNhat(db, o.id)]);
+  // Kiểm toàn mốc B2 (I-B): nhãn lý do trả lại chỉ cho NGƯỜI LẬP (nhãn tiếng Việt, không mã thô).
+  return { dangCho: meta.dangChoQuanLy, cheDo, quanLyThay: false, choVanPhong, rutDuoc: false, lyDoTraLai: laMaLyDoTraLai(maTraLai) ? NHAN_LY_DO_TRA_LAI[maTraLai] : null };
 }
 /** ADR-0135 Đ2: MỘT chỗ canh đường GHI của đơn nháp — chỉ người lập (luật thuần `chiNguoiLapGhiNhap`); người khác nhận 404 như đơn không tồn tại. */
 const ghiDuocNhap = (meta: { status: OrderStatus; staffId: string }, staff: { id: string }): boolean => chiNguoiLapGhiNhap({ status: meta.status, laNguoiLap: meta.staffId === staff.id });

@@ -789,6 +789,8 @@ export interface ThanhVienTrenDonDto {
   dangCho: boolean; cheDo: "CHI_SOAN" | "SOAN_VA_GUI"; quanLyThay: boolean; /** người quản lý đã gửi lên, yêu cầu xác nhận đang chờ văn phòng */ choVanPhong: boolean;
   /** Task 18 (1c): người xem là người quản lý đã mở yêu cầu xác nhận đang chờ và route «Rút lại» (`rut-xac-nhan`) sẽ nhận — cùng cổng `quyenGhiNhap` của route. Chỉ để hiện nút. */
   rutDuoc: boolean;
+  /** Kiểm toàn mốc B2 (I-B): nhãn tiếng Việt lý do lần trả lại GẦN NHẤT (null = không có). CHỈ có khi người xem là người lập; người quản lý / người khác không nhận khoá này. */
+  lyDoTraLai?: string | null;
 }
 /** ADR-0213 Đ8 (Task 18 phần 1a): một dòng «Nháp chờ» trên màn tổ chức của người quản lý — `GET /api/to-chuc/:id/nhap-thanh-vien`. Không tên / số điện thoại khách. */
 export interface NhapThanhVienDto { id: string; maDon: string; /** tên người lập (thành viên lúc lập) */ nguoiLap: string; ngayDi: string | null; /** đang chờ người quản lý xác nhận */ choQuanLy: boolean; /** đã gửi lên, chờ kiểm vé */ choVanPhong: boolean }

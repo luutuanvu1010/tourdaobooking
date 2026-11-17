@@ -1078,3 +1078,15 @@ export interface NhapThanhVienRow { id: string; order_code: string; created_at: 
 export async function nhapThanhVienCuaToChuc(db: D1Database, orgPartyId: string, nguoiGoi: string): Promise<NhapThanhVienRow[]> {
   return (await db.prepare(NHAP_THANH_VIEN_CUA_TO_CHUC).bind(orgPartyId, nguoiGoi).all<NhapThanhVienRow>()).results;
 }
+
+// ---- Kiểm toàn mốc B2 (I-B): mã lý do của lần «chờ người quản lý» GẦN NHẤT nếu lần đó là TRẢ LẠI (ADR-0213 Đ8.2 «trả lại kèm lý do») — cho khối `thanhVien` của NGƯỜI LẬP. ----
+const TV_LY_DO_TRA_LAI_GAN_NHAT = defineSql(
+  "orders",
+  "member_submit_last_return_reason",
+  `SELECT status, reason_code FROM ord_member_submit WHERE order_id = ?1 ORDER BY opened_at DESC, rowid DESC LIMIT 1`,
+);
+/** null = chưa từng gửi, hoặc lần gần nhất không phải trả lại (đang chờ, đã rút, đã gửi lên). */
+export async function tvLyDoTraLaiGanNhat(db: D1Database, orderId: string): Promise<string | null> {
+  const r = await db.prepare(TV_LY_DO_TRA_LAI_GAN_NHAT).bind(orderId).first<{ status: string; reason_code: string | null }>();
+  return r && r.status === "TRA_LAI" ? r.reason_code : null;
+}
