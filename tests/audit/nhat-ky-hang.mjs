@@ -49,6 +49,7 @@ export const PHU_TRACH = {
   "dk_submission_org.extra_number": "src/modules/dang-ky/phieu-route.test.ts",
   "dk_submission_org.extra_key": "src/modules/dang-ky/phieu-route.test.ts",
   "dk_submission_org.extra_issued_place": "src/modules/dang-ky/phieu-route.test.ts",
+  "pty_org_invite.code_hash": "src/modules/parties/loi-moi.test.ts", // ADR-0213 Đ7.2: bản băm mã vào tổ chức (quét nhật ký lời mời; dò thêm số điện thoại N2 của lời mời)
   "dk_email_code.code_hash": "src/modules/dang-ky/xin-ma-route.test.ts", // ADR-0206 Đ8: người đăng ký xin mã gửi email (chỉ bản băm có khoá; quét nhật ký + lịch sử phiếu)
   "pty_self_submission.document_number": "src/giay-to-khong-lo-so.test.ts",
   "pty_self_submission.number_key": "src/giay-to-khong-lo-so.test.ts",

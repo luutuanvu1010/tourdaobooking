@@ -5,6 +5,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+// @ts-expect-error tệp .mjs không có khai kiểu
+import { doNhatKyHang } from "../../../tests/audit/nhat-ky-hang.mjs";
 
 /** Bản băm viết LẠI độc lập theo đặc tả (HMAC-SHA256, khoá = HMAC(SESSION_SECRET, "td-ma-vao-to-chuc-v1"), hex) — không gọi hàm của mã đang thử. */
 async function bamMaVao(secret: string, ma: string): Promise<string> {
@@ -97,6 +99,8 @@ test("Đ7.1: số CÓ tài khoản và số CHƯA có tài khoản ⇒ cùng mã
     assert.doesNotMatch(x.detail, SO_DT);
     assert.doesNotMatch(x.detail, MA_RE);
   }
+  // Hiến chương 5.20: bản băm mã (N4) và số điện thoại của lời mời (N2) không lộ ở bất kỳ dòng nhật ký nào.
+  assert.deepEqual(doNhatKyHang(w.sqlite, ["pty_org_invite.code_hash", "pty_org_invite.phone_key"], ["pty_org_invite.phone_key"]), { lo: [], rong: [] });
 });
 
 test("Quyền: người quản lý có hiệu lực, Quản lý bán hàng ⇒ tạo được; thành viên, Bán hàng, người lạ ⇒ 403; tổ chức không có ⇒ 403; số sai khuôn ⇒ 400", async () => {
