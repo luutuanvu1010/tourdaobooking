@@ -349,6 +349,37 @@ test("vòng sửa 1 (I-3): lô Gửi đơn nhánh B THUA (đơn đã được l�
   assert.equal(nk(w, "order_member_forwarded").length, 0, "không nhật ký forwarded thừa");
 });
 
+// Người kiểm toàn mốc B2 (I-A): hai lính gác của bản sửa I-3 phải được thấy chặn — câu đóng nhánh B khi ĐÃ có dòng mở lúc đọc («Soạn và gửi»), và nhánh A (dấu yêu cầu của chính lô).
+test("toàn mốc B2 (I-A1): «Soạn và gửi», thành viên đã gửi, lô Gửi đơn nhánh B THUA (đơn bị xác nhận ngay trước) ⇒ dòng chờ vẫn MO, không DA_GUI_LEN giả, không nhật ký forwarded", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /ord_member_submit/.test(s.sql) && /DA_GUI_LEN/.test(s.sql)), async () => {
+    const t = new Date(Date.now() + 5).toISOString();
+    w.sqlite.prepare("UPDATE orders SET status = 'confirmed', updated_at = ? WHERE id = ?").run(t, id);
+  });
+  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.notEqual(g.status, 200, g.text);
+  assert.deepEqual(cho(w, id).map((x: { status: string }) => x.status), ["MO"], "không DA_GUI_LEN giả");
+  assert.equal(nk(w, "order_member_forwarded").length, 0, "không nhật ký forwarded thừa");
+});
+
+test("toàn mốc B2 (I-A2): nhánh A (dịch vụ cần xác nhận), lô Gửi đơn THUA khoá lạc quan (đơn bị sửa ngay trước) ⇒ không yêu cầu mở, dòng chờ vẫn MO, không nhật ký forwarded", async () => {
+  const w = setup();
+  w.sqlite.prepare("INSERT INTO ord_service_confirm_flag (id, scope, code, required, valid_from_at, created_at, updated_at) VALUES ('coIA', 'SERVICE', 'ZA1', 1, ?, ?, ?)").run(AT, AT, AT);
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /ord_member_submit/.test(s.sql) && /DA_GUI_LEN/.test(s.sql)), async () => {
+    const t = new Date(Date.now() + 60_000).toISOString();
+    w.sqlite.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(t, id);
+  });
+  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.notEqual(g.status, 201, g.text);
+  assert.equal(w.q("SELECT count(*) AS n FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id)[0].n, 0, "không yêu cầu mở");
+  assert.deepEqual(cho(w, id).map((x: { status: string }) => x.status), ["MO"], "không DA_GUI_LEN giả");
+  assert.equal(nk(w, "order_member_forwarded").length, 0, "không nhật ký forwarded thừa");
+});
+
 test("vòng sửa 1 (m-2): ngoại lệ nháp chỉ đổi người chủ cho ô sửa (canModify) ở chi tiết đơn — phạm vi các ô own khác giữ người lập", async () => {
   const { readFileSync } = await import("node:fs");
   const src = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
