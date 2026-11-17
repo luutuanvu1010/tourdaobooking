@@ -1,0 +1,41 @@
+# Kế hoạch thi công — Số sê-ri vé, tra bằng số sê-ri, huỷ vé lẻ, huỷ lô đã cấp (ADR-0217)
+
+> Nguồn: ADR-0217 (đề xuất), đặc tả `docs/superpowers/specs/2026-11-17-so-seri-ve-va-huy-ve.md` (chủ duyệt 17/11). Mâu thuẫn thì ADR thắng. Nhánh `claude/ticket-series-management-0cca10`. Việc lớn: có người kiểm độc lập. Nhật ký thi công ở cuối tệp.
+
+## Phần A — Máy chủ (một trợ lý)
+
+**A1. Migration `0177_ve_so_seri.sql`** (chỉ thêm; theo khuôn chú thích đầu tệp của 0155):
+- `vdt_serial (serial TEXT PRIMARY KEY CHECK (serial GLOB 'VE_[A-Z][A-Z][A-Z][A-Z][A-Z][A-Z][A-Z][A-Z]'), batch_id TEXT NOT NULL REFERENCES vdt_batch(id), created_at, created_by, updated_at, updated_by)`; trigger cấm xoá, cấm sửa.
+- `vdt_ticket` thêm `serial TEXT`, `voided_at`, `voided_by`, `void_reason`. Gán số cho vé cũ bằng SQL (`'VE_' || char(65 + abs(random()) % 26)` × 8), chèn các số đó vào `vdt_serial`, rồi `CREATE UNIQUE INDEX vdt_ticket_serial_uq ON vdt_ticket(serial)`. Trigger: chèn vé phải có `serial` đã có trong `vdt_serial` cùng `batch_id`; `serial` không đổi; bộ ba `voided_*` chỉ ghi một lần, chỉ khi `status = 'VOID'`, `void_reason` 5–300 ký tự.
+- `vdt_scan` thêm `nhap_tay INTEGER NOT NULL DEFAULT 0 CHECK (nhap_tay IN (0,1))`; DROP rồi tạo lại `vdt_scan_only_void` có thêm `nhap_tay` trong danh sách bất biến.
+- Cập nhật `docs/data-dictionary.json` + `npm run dict`. Bài `migration.test.ts` của module: thêm ca cho từng trigger (đỏ trước).
+
+**A2. Cấp số.** `TIEN_TO_MA` thêm `{ tienTo: "VE", loai: "Vé điện tử" }`; cấp bằng `sinhMa` với `crypto.getRandomValues`.
+- Vé hãng ngoài: `POST /api/ve/lo/:id/ve` cấp số cho từng vé, câu chèn `vdt_serial` đứng trước câu chèn vé trong cùng `db.batch`.
+- Vé Tour Đảo: `POST /api/ve/lo` với `nguon = TOUR_DAO` bắt buộc `soVeDuKien`; cấp đủ số vào `vdt_serial` trong cùng lô lệnh mở lô; phản hồi thêm `soSeri: string[]`. `POST /api/ve/lo/:id/ve` của lô Tour Đảo: mỗi vé phải mang `soSeri` thuộc lô đó, chưa dùng (sai ⇒ loại vé đó, lý do lời thường).
+- Phản hồi `veDaNhap` thêm `soSeri`.
+
+**A3. Tra bằng số sê-ri ở `POST /api/ve/quet`.** `ma` khớp `MA_DINH_DANH_RE` và tiền tố `VE` ⇒ tra theo `serial` (câu mới cạnh `DOC_VE_QUET`), đặt `nhapTay = true`. Luật thuần `src/shared/ket-qua-quet.ts`: thêm cảnh báo vàng `NHAP_TAY` (cần `xacNhan.nhapTay`), đứng sau mọi điều đỏ; Tài xế công ty vẫn chỉ `CHI_XEM`. Ghi `nhap_tay` vào lượt quét; nhật ký `ve_quet` thêm «nhập tay» và số sê-ri. Phản hồi quét thêm `soSeri`. Bài đỏ trước.
+
+**A4. Huỷ vé lẻ** `POST /api/ve/huy-ve` thân `{ soSeri, lyDo, lenhId }`: `coQuyenLo` theo nguồn của lô; bảng kết quả ADR-0217 Đ3 mục 2; lý do theo khuôn `chuaMaHoacSdt`; một `db.batch`: (trả suất `THU_HOI` nếu có phân bổ mở, gác vé chưa dùng) → vé VOID + `voided_*` → nhật ký `ve_huy_ve` (detail: số sê-ri + lý do). Sau lô: chạy đường cấp vé thay sẵn có (`capVeSauXacNhan`/`donChoCapBu`, xem cách `/lo/:id/xac-nhan` gọi) cho đơn bị trả suất. Vé đã mở: báo người phụ trách đơn theo cách `ve_thieu` vào hộp thư (migration 0152, view `v_aud_ledger_event`, chỗ tính người nhận); nếu cách đó không đặt được người nhận là người phụ trách đơn mà không đụng hợp đồng `orders`, **dừng và báo lại** thay vì tự mở đường mới. Chống ghi trùng theo ADR-0094 như các lệnh vé khác.
+
+**A5. Huỷ lô đã cấp.** `GET /api/ve/lo/:id/xem-truoc-huy` (con số: huỷ được, giữ nguyên vì đã dùng, giữ nguyên vì vé hãng ngoài đã mở, số đơn cấp thay, số vé đã gửi phải gửi lại). `POST /api/ve/lo/:id/bo`: lô chưa từng cấp ⇒ đường cũ không đổi; lô đã cấp ⇒ bắt buộc `lyDo`, huỷ từng vé huỷ được theo A4 trong một lô lệnh, lô ⇒ VOID, rồi cấp vé thay. Nhật ký `ve_bo_lo` ghi số vé huỷ.
+
+**A6. Danh sách vé của lô** `GET /api/ve/lo/:id/ve-trong-lo` và tìm `GET /api/ve/tim?soSeri=`: mỗi vé số sê-ri, hạn, tình trạng (Trong kho / Đã giữ cho đơn / Đã gửi khách / Đã dùng / Đã huỷ), mã đơn chỉ khi người xem có `order.view` trên đơn đó (theo cách route quét làm). Không bao giờ mã vé, khoá kho. Quyền xem như `GET /api/ve/lo`.
+
+**A7.** Hành động nhật ký mới ở `src/shared/audit-actions.ts` (nhãn tiếng Việt). Bài `src/giay-to-khong-lo-so.test.ts`-kiểu cho vé (nếu có bài «mã vé không lộ» của module: thêm ca cho mọi route mới). e2e `tests/e2e` kịch bản vé: thêm ca huỷ vé lẻ (trong kho, đã giữ ⇒ có vé thay, đã dùng ⇒ 409), gõ số sê-ri (vàng nhập tay ⇒ xác nhận ⇒ đã dùng), huỷ lô đã cấp.
+
+## Phần B — Giao diện (trợ lý thứ hai, sau Phần A)
+
+- `web/ve-tao.ts` + `web/ve-anh-tour-dao.ts`: lấy `soSeri` từ lệnh mở lô, vẽ «Số sê-ri VE_… / Serial No.» thay dòng «Số vé …»; gửi `soSeri` kèm từng vé; bài bố cục.
+- `web/quet-ve.ts` + `public/quet-ve.html`: ô «Nhập số sê-ri» (16px, chữ hoa, bỏ khoảng trắng) + nút tra; kết quả dùng chung khung hiện có; cảnh báo vàng nhập tay đi qua nút «Xác nhận cho đi» sẵn có.
+- `web/ve-kho.ts`: danh sách vé của lô, ô tìm số sê-ri, nút «Huỷ vé» (hộp xác nhận + lý do), «Huỷ lô» cho lô đã cấp hiện bản xem trước con số trước khi xác nhận.
+- Bảng tham chiếu (`src/shared/bang-tham-chieu*.ts` → sinh `docs/BANG-THAM-CHIEU.md`): «Số sê-ri» (đã chốt 17/11), «Huỷ vé», «Nhập số sê-ri» (chờ chọn), cập nhật «Huỷ lô», «Tạo vé».
+- Trần gói của trang (nếu bài trần gói đỏ): ghi số mới vào nhật ký, không tự nới — báo điều phối.
+- Kịch bản Chrome của kho vé và quét vé chạy lại.
+
+## Xong khi
+Ví dụ ở mục 2 của đặc tả chạy được trên bản thử; `npm test`, `npm run typecheck`, e2e `ve-dien-tu` xanh; người kiểm độc lập ĐẠT.
+
+## Nhật ký thi công
+- 2026-11-17: đặc tả duyệt; ADR-0217 soạn (đề xuất); kế hoạch này.
