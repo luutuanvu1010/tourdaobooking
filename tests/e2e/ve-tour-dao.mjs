@@ -45,9 +45,10 @@ const datNguon = (ma, nguon) => call(SA, "POST", "/api/catalog/nguon-ve", { ma, 
 assert.equal((await datNguon("ZTD1", "TOUR_DAO")).status, 200);
 assert.equal((await datNguon("ZTD2", "HANG_NGOAI")).status, 200);
 async function nhapLo(cookie, ma, nguon, n) {
-  const lo = await call(cookie, "POST", "/api/ve/lo", { catalogCode: ma, nhomKhach: "ADULT", tenSanPham: "Vé thử Tour Đảo e2e", nguon });
+  const lo = await call(cookie, "POST", "/api/ve/lo", { catalogCode: ma, nhomKhach: "ADULT", tenSanPham: "Vé thử Tour Đảo e2e", nguon, ...(nguon === "TOUR_DAO" ? { soVeDuKien: n } : {}) });
   assert.equal(lo.status, 201, JSON.stringify(lo.body));
-  const ve = Array.from({ length: n }, () => { dem++; return { noiDung: PNG(dem), maVe: nguon === "TOUR_DAO" ? maTD() : `E2E.${tag}.hn.${dem}`, tuNgay: vnDate(-1), denNgay: vnDate(60) }; });
+  // ADR-0217: lô Tour Đảo được cấp sẵn số sê-ri lúc mở lô; mỗi vé mang một số.
+  const ve = Array.from({ length: n }, (_x, i) => { dem++; return { noiDung: PNG(dem), maVe: nguon === "TOUR_DAO" ? maTD() : `E2E.${tag}.hn.${dem}`, tuNgay: vnDate(-1), denNgay: vnDate(60), ...(nguon === "TOUR_DAO" ? { soSeri: lo.body.soSeri[i] } : {}) }; });
   for (let i = 0; i < n; i += 10) { // mỗi đợt tối đa 10 vé
     const them = await call(cookie, "POST", `/api/ve/lo/${lo.body.loId}/ve`, { ve: ve.slice(i, i + 10) });
     assert.equal(them.body?.themDuoc, Math.min(10, n - i), JSON.stringify(them.body));
@@ -213,7 +214,7 @@ assert.equal(huyDT.status, 409, JSON.stringify(huyDT.body));
 assert.equal((await sqlRows(`SELECT status FROM orders WHERE id = '${D1.id}'`))[0].status, "confirmed");
 
 // ---- Tiêu chí 8: quyền lô, kho Kế toán, «Không vé», đổi ô «Vé do ai phát»
-const taoLo = (cookie, nguon) => call(cookie, "POST", "/api/ve/lo", { catalogCode: "ZTD1", nhomKhach: "ADULT", tenSanPham: "Vé thử quyền", ...(nguon ? { nguon } : {}) });
+const taoLo = (cookie, nguon) => call(cookie, "POST", "/api/ve/lo", { catalogCode: "ZTD1", nhomKhach: "ADULT", tenSanPham: "Vé thử quyền", ...(nguon ? { nguon } : {}), ...(nguon === "TOUR_DAO" ? { soVeDuKien: 1 } : {}) });
 assert.equal((await taoLo(SALES, "TOUR_DAO")).status, 403, "Bán hàng thường không tạo lô Tour Đảo");
 for (const c of [SA, ADM, QLBH, KT]) assert.equal((await taoLo(c, "TOUR_DAO")).status, 201);
 assert.equal((await taoLo(KT)).status, 403, "Kế toán không tạo lô hãng ngoài");
@@ -243,6 +244,57 @@ assert.equal((await call(KT, "GET", `/api/ve/nguoi-quet?ngay=${hom}`)).status, 2
 assert.equal((await call(ADM, "GET", `/api/ve/luot-quet?ngay=${hom}`)).status, 200);
 assert.equal((await call(KT, "GET", `/api/ve/luot-quet?ngay=${hom}`)).status, 403);
 assert.equal((await call(DT, "POST", "/api/ve/quet", { ma: "x" })).status, 403, "Đối tác không quét");
+
+
+// ---- ADR-0217: số sê-ri, gõ số sê-ri ở Quét vé, huỷ vé lẻ, huỷ lô đã cấp, tìm vé
+const DANG_SERI = /^VE_[A-Z]{8}$/;
+const soSeriCuaDon = async (id) => (await sqlRows(`SELECT t.serial AS s, t.ticket_code AS ma FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE a.order_id = '${id}' AND a.released_at IS NULL AND t.ticket_code LIKE 'TD1.%' ORDER BY a.slot_no`));
+const H = await lap(SALES, [sv("ZTD1", 3)]);
+assert.equal((await giao(SALES, H)).body.daGiao, 3);
+const [h1, h2, h3] = await soSeriCuaDon(H.id);
+for (const x of [h1, h2, h3]) assert.match(x.s, DANG_SERI);
+const goTay = await quet(FIELD, h1.s.toLowerCase());
+assert.deepEqual([goTay.body.mau, goTay.body.ma, goTay.body.ghi], ["VANG", "NHAP_TAY", null]);
+assert.equal(goTay.body.soSeri, h1.s);
+assert.equal(await nLuot(h1.ma), 0, "gõ tay chưa xác nhận thì chưa ghi");
+const goXn = await quet(FIELD, h1.s, { nhapTay: true });
+assert.deepEqual([goXn.body.mau, goXn.body.ghi], ["XANH", "DA_TINH"]);
+assert.equal(Number((await sqlRows(`SELECT s.nhap_tay AS n FROM vdt_scan s JOIN vdt_ticket t ON t.id = s.ticket_id WHERE t.serial = '${h1.s}' AND s.ket_qua = 'DA_TINH'`))[0].n), 1);
+assert.match((await sqlRows("SELECT detail FROM audit_log WHERE action = 've_quet' AND detail LIKE '%nhập tay%' ORDER BY created_at DESC LIMIT 1"))[0].detail, new RegExp(h1.s));
+assert.equal((await quet(FIELD, "VE_ZZZZZZZZ")).body.ma, "KHONG_PHAI_VE_TD", "số lạ cùng câu đỏ với mã lạ");
+// huỷ vé lẻ: đã dùng 409; chưa dùng huỷ được (vé đã mở) kèm vé thay; quyền; mã vé không lộ
+const huyVe = (cookie, soSeri, lyDo = "In sai ngày, huỷ vé e2e") => call(cookie, "POST", "/api/ve/huy-ve", { soSeri, lyDo });
+const x1 = await huyVe(KT, h1.s);
+assert.equal(x1.status, 409, JSON.stringify(x1.body));
+assert.equal(x1.body.error.code, "ve_da_dung");
+assert.equal((await huyVe(SALES, h2.s)).status, 403, "Bán hàng thường không huỷ vé Tour Đảo");
+assert.equal((await huyVe(FIELD, h2.s)).status, 403);
+const x2 = await huyVe(KT, h2.s);
+assert.equal(x2.status, 200, JSON.stringify(x2.body));
+assert.deepEqual([x2.body.trangThai, x2.body.traSuat, x2.body.canGuiLai], ["DA_HUY", true, true]);
+assert.ok(["DA_CAP", "THIEU"].includes(x2.body.veThay));
+assert.equal((await quet(FIELD, h2.ma)).body.ma, "VE_DA_HUY", "vé đã gửi bị huỷ: quét ra đỏ");
+assert.equal((await soSeriCuaDon(H.id)).length, 3, "đơn vẫn đủ suất khi kho còn vé");
+const tim = await call(KT, "GET", `/api/ve/tim?soSeri=${h2.s}`);
+assert.equal(tim.status, 200, JSON.stringify(tim.body));
+assert.equal(tim.body.ve.tinhTrang, "DA_HUY");
+const dsLo = await call(KT, "GET", `/api/ve/lo/${loTD1}/ve-trong-lo`);
+assert.equal(dsLo.status, 200, JSON.stringify(dsLo.body));
+assert.ok(dsLo.body.ve.every((v) => DANG_SERI.test(v.soSeri)));
+assert.ok(dsLo.body.ve.some((v) => v.tinhTrang === "DA_HUY") && dsLo.body.ve.some((v) => v.tinhTrang === "DA_DUNG"));
+// huỷ lô đã cấp: bản xem trước máy chủ đếm; lý do bắt buộc; vé đã dùng giữ nguyên; lô sang VOID
+const xem = await call(KT, "GET", `/api/ve/lo/${loTD1}/xem-truoc-huy`);
+assert.equal(xem.status, 200, JSON.stringify(xem.body));
+assert.equal(xem.body.daCap, true);
+assert.ok(xem.body.giuNguyenDaDung >= 1 && xem.body.huyDuoc >= 1);
+assert.equal((await call(KT, "POST", `/api/ve/lo/${loTD1}/bo`, {})).status, 400, "lô đã cấp cần lý do");
+const boLo = await call(KT, "POST", `/api/ve/lo/${loTD1}/bo`, { lyDo: "Nhà cung cấp thu hồi lô e2e" });
+assert.equal(boLo.status, 200, JSON.stringify(boLo.body));
+assert.equal(boLo.body.veDaHuy, xem.body.huyDuoc);
+assert.equal((await sqlRows(`SELECT status FROM vdt_batch WHERE id = '${loTD1}'`))[0].status, "VOID");
+assert.equal(Number((await sqlRows(`SELECT count(*) AS n FROM vdt_ticket t WHERE t.batch_id = '${loTD1}' AND t.status <> 'VOID'`))[0].n), xem.body.giuNguyenDaDung, "chỉ còn vé đã dùng");
+assert.equal((await quet(FIELD, h1.ma)).body.ma, "DA_DUNG", "vé giữ nguyên vẫn quét được như cũ");
+for (const t of [JSON.stringify(x1.body), JSON.stringify(x2.body), JSON.stringify(tim.body), JSON.stringify(dsLo.body), JSON.stringify(xem.body), JSON.stringify(boLo.body)]) assert.doesNotMatch(t, DANG_MA);
 
 // ---- Tiêu chí 9: Permissions-Policy thật (camera chỉ ở /quet-ve); chưa thử iPhone thật
 const pp = async (duong) => { const r = await fetch(`${BASE}${duong}`, { headers: { "cf-connecting-ip": "198.51.100.77" } }); return { status: r.status, pp: r.headers.get("permissions-policy") ?? "" }; };
