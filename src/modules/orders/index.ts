@@ -109,7 +109,7 @@ export async function donThanhVienCungToChuc(db: D1Database, staff: PermissionHo
   const meta = await getMeta(db, orderId);
   if (!meta || meta.actingLinkKind !== "MEMBER" || meta.staffId === staff.id) return false;
   const toChuc = (await tuCachCuaToi()).filter((t) => t.laToChuc).map((t) => t.partyId);
-  return thanhVienCungToChucXemDonNguoiKhac({ laNguoiLap: false, actingLinkKind: meta.actingLinkKind, actingPartyId: meta.actingPartyId, toChucCuaToi: toChuc });
+  return thanhVienCungToChucXemDonNguoiKhac({ laNguoiLap: false, actingLinkKind: meta.actingLinkKind, toChucCuaDon: meta.actingPartyId, toChucCuaToi: toChuc });
 }
 /**
  * ADR-0213 Đ5 (mốc B1 Task 12): cờ `quanLyBenDat` của đường ĐỌC một đơn — người gọi là người quản lý có hiệu lực của bên đặt (`ctx.laQuanLyCuaBen`, gốc lắp ráp tiêm) VÀ đơn đã gửi lên Tour Đảo

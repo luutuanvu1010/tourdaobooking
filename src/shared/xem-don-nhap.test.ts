@@ -92,7 +92,7 @@ test("ADR-0213 Đ8: «đang chờ người quản lý» KHÔNG mở cửa của 
 });
 
 test("Q3 (chủ 17/11): thanhVienCungToChucXemDonNguoiKhac — chỉ đơn tư cách thành viên của tổ chức người xem đang ở, không phải người lập", () => {
-  const co = { laNguoiLap: false, actingLinkKind: "MEMBER", actingPartyId: "org", toChucCuaToi: ["org"] };
+  const co = { laNguoiLap: false, actingLinkKind: "MEMBER", toChucCuaDon: "org", toChucCuaToi: ["org"] };
   assert.equal(thanhVienCungToChucXemDonNguoiKhac(co), true);
   assert.equal(thanhVienCungToChucXemDonNguoiKhac({ ...co, laNguoiLap: true }), false);
   assert.equal(thanhVienCungToChucXemDonNguoiKhac({ ...co, actingLinkKind: "MANAGER" }), false, "đơn của người quản lý: giữ hành vi cũ");
