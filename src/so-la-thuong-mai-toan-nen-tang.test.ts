@@ -198,6 +198,7 @@ function bangDien(g: Gieo): Record<string, string[]> {
     // ADR-0213 Đ6 (mốc B1 Task 10): màn tổ chức — hồ sơ B là cá nhân (404 cho văn phòng có ô), hồ sơ tổ chức công ty chủ trả 200 cho Quản trị / Toàn quyền; DTO chỉ mã, tên, ngày, không chở tiền.
     // ADR-0213 Đ5 (lượt B1): hai route của người quản lý — Đối tác thuần A là người quản lý của tổ chức thử (gieo ở gieo()), nên 200 cho A và 403 cho mọi tài khoản khác; thân được quét cho cả hai.
     "/api/to-chuc/:id": [`/api/to-chuc/${TO_CHUC_THU}`],
+    "/api/to-chuc/:id/nhap-thanh-vien": [`/api/to-chuc/${TO_CHUC_THU}/nhap-thanh-vien`], // ADR-0213 Đ8 (Task 18 phần 1a): Đối tác A (người quản lý) ⇒ 200; DTO chỉ mã đơn, tên người lập, ngày đi, cờ — không tiền
     "/api/pricing/cap-cua-to-chuc/:id": [`/api/pricing/cap-cua-to-chuc/${TO_CHUC_THU}`],
     "/api/parties/:id/to-chuc": [`/api/parties/${PTY_B}/to-chuc`, `/api/parties/${g.congTy}/to-chuc`],
     "/api/van-chuyen/xe/:id": [`/api/van-chuyen/xe/${g.xe}`],

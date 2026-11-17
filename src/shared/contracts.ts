@@ -786,6 +786,9 @@ export interface OrderDetailResponse {
  * `cheDo` = chế độ thành viên hiện hành của tổ chức; `quanLyThay` = người xem là người quản lý có hiệu lực (không phải người lập). Chỉ để ẩn / hiện nút.
  */
 export interface ThanhVienTrenDonDto { dangCho: boolean; cheDo: "CHI_SOAN" | "SOAN_VA_GUI"; quanLyThay: boolean; /** người quản lý đã gửi lên, yêu cầu xác nhận đang chờ văn phòng */ choVanPhong: boolean }
+/** ADR-0213 Đ8 (Task 18 phần 1a): một dòng «Nháp chờ» trên màn tổ chức của người quản lý — `GET /api/to-chuc/:id/nhap-thanh-vien`. Không tên / số điện thoại khách. */
+export interface NhapThanhVienDto { id: string; maDon: string; /** tên người lập (thành viên lúc lập) */ nguoiLap: string; ngayDi: string | null; /** đang chờ người quản lý xác nhận */ choQuanLy: boolean; /** đã gửi lên, chờ kiểm vé */ choVanPhong: boolean }
+export interface NhapThanhVienResponse { nhap: NhapThanhVienDto[] }
 export interface XacNhanTrenDonDto { yeuCau: YeuCauXacNhanDto | null; canXacNhan: boolean; quyetDinhDuoc: boolean }
 /**
  * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` (tên khoá GIỮ, nghĩa

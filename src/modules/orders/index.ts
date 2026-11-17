@@ -9,6 +9,7 @@ import type {
   OrderDetailResponse, OrderListResponse, MocToiThieuResponse, ThanhVienTrenDonDto, NguoiLapResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse,
   SuaSoKhachDichVuDto, StaffProfile, ThuongMaiResponse,
 } from "../../shared/contracts";
+import type { NhapThanhVienResponse } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
@@ -32,7 +33,7 @@ import {
 } from "./chang-hanh-khach-repo";
 import { coVeTheoMa, nguonVeTheoMa } from "../catalog";
 import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
-import { mocTraSauCuaDon, noiHanTraSauStatement, soHanhKhachDangLuu } from "./chang-hanh-khach-repo";
+import { mocTraSauCuaDon, nhapThanhVienCuaToChuc, noiHanTraSauStatement, soHanhKhachDangLuu } from "./chang-hanh-khach-repo";
 import { kiemNoiHan, laDoiTacTraSau, ngayCuaMoc, trangThaiHan } from "../../shared/tra-sau";
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP, type LyDoDatGap } from "../../shared/chang-dua-don";
@@ -1046,6 +1047,20 @@ export const ordersModule: AppModule = {
     // ADR-0136 (Task 3.3): Gửi xác nhận / Rút lại / Quyết định / danh sách chờ / cài đặt cờ. ĐỨNG ĐẦU mảng: `GET /api/orders/cho-xac-nhan` phải thắng `GET /api/orders/:id` (router lấy route ĐẦU TIÊN khớp).
     ...xacNhanRoutes(xetDatGapSua satisfies XetDatGapSua),
     ...thanhVienRoutes(), // ADR-0213 Đ8 (mốc B2 Task 16): gửi người quản lý / rút lại / trả lại — thân ở thanh-vien-route.ts
+    // «NHÁP CHỜ» TRÊN MÀN TỔ CHỨC (ADR-0213 Đ8; mốc B2 Task 18 phần 1a): chỉ đọc. Cổng `staff` + `order.create` + giữ quyền Đối tác + người quản lý CÓ HIỆU LỰC của chính tổ chức `:id` —
+    // `ctx.laQuanLyCuaBen` (gốc lắp ráp; MỘT định nghĩa Đ2.8 `laQuanLyCoHieuLuc`, cùng định nghĩa `quyenToChuc().quanLy` của parties — orders không import được hàm vai của parties), đúng khuôn
+    // route anh em GET /api/pricing/cap-cua-to-chuc/:id. Toàn quyền, văn phòng, thành viên, người quản lý tổ chức khác ⇒ 403 trước mọi câu đọc đơn. «Ai thấy nháp nào»: câu SQL chỉ chọn ỨNG VIÊN
+    // (nháp tư cách thành viên lúc lập có bên đặt là tổ chức này), từng dòng lọc bằng `quanLyThayNhapThanhVien` (xem-don-nhap.ts — cùng hàm của đường đọc một nháp) nên mọi dòng mở được bằng
+    // GET /api/orders/:id. Không tên / số điện thoại khách. Đường dẫn 4 đoạn: không đụng GET /api/to-chuc/:id của parties.
+    route("GET", "/api/to-chuc/:id/nhap-thanh-vien", "staff", async ({ env, params, staff, laQuanLyCuaBen, cheDoThanhVien }) => {
+      const org = params.id!;
+      if (!can(staff, "order.create") || !holdsPartner(staff) || !(await laQuanLyCuaBen(org))) return error(403, "forbidden", "Chỉ người quản lý của tổ chức mới xem được nháp của thành viên.");
+      const [cheDo, dong] = await Promise.all([cheDoThanhVien(org), nhapThanhVienCuaToChuc(env.DB, org, staff.id)]);
+      const nhap = dong
+        .filter((d) => quanLyThayNhapThanhVien({ laQuanLyCoHieuLuc: true, nguoiLapLaThanhVienLucLap: true, cheDo, dangChoQuanLy: d.cho_quan_ly === 1 }))
+        .map((d) => ({ id: d.id, maDon: d.order_code, nguoiLap: d.nguoi_lap, ngayDi: d.ngay_di, choQuanLy: d.cho_quan_ly === 1, choVanPhong: d.cho_van_phong === 1 }));
+      return json({ nhap } satisfies NhapThanhVienResponse);
+    }),
     // ADR-0061 điều 6: công tắc "Dịch vụ nhập tay". Hai route thuộc module orders (bảng ord_manual_service_policy) nhưng CỐ Ý không nằm dưới /api/orders:
     // đổi chính sách không phải thay đổi một đơn (không thuộc bài baoThayDoi của src/bang-tin-guard.test.ts), và tránh bẫy router ":id".
     // ĐỌC (cổng orders): form lập đơn biết hiện nút theo `duocDung` (= duocNhapTay của CHÍNH người gọi). Chỉ người lập đơn cần biết → hỏi order.create

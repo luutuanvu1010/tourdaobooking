@@ -358,3 +358,63 @@ test("vòng sửa 1 (m-2): ngoại lệ nháp chỉ đổi người chủ cho ô
   assert.equal((than.match(/thayNhap \? staff\.id/g) ?? []).length, 1, "đúng một chỗ đổi người chủ");
   assert.match(than, /canModify: can\(staff, "order\.modify", \{ ownerId: thayNhap \? staff\.id : order\.staffId, assigned \}\)/);
 });
+
+// ---- Task 18 phần 1a (ADR-0213 Đ8): «Nháp chờ» trên màn tổ chức — GET /api/to-chuc/:id/nhap-thanh-vien ----
+
+const QL2 = "66666666-6666-4666-8666-666666666607"; // người quản lý của tổ chức khác
+const ORG2 = "dda00000-0000-4000-8000-0000000000a2";
+const nhapCho = (w: W, as: string, org = SUNRISE) => w.call("GET", `/api/to-chuc/${org}/nhap-thanh-vien`, { as });
+const maCua = (r: { json: { nhap: { id: string }[] } }) => r.json.nhap.map((x) => x.id).sort();
+
+test("1a: danh sách nháp chờ — chỉ người quản lý có hiệu lực của chính tổ chức; Toàn quyền, văn phòng, thành viên, người quản lý tổ chức khác ⇒ 403", async () => {
+  const w = setup();
+  seedStaff(w.sqlite, { id: QL2, phone: "0900000027", name: "Lan Quản Lý Khác", perms: ["PARTNER"] });
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Khách sạn Khác', 1, ?, ?)").run(ORG2, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${ORG2}`, ORG2, AT, AT);
+  lienKet(w, `pty-${QL2}`, ORG2, "MANAGER_OF");
+  await lap(w, TV);
+  for (const ai of [SUP, ADM, SM, SALES, TV, TV2, QL2]) {
+    const r = await nhapCho(w, ai);
+    assert.ok(r.status === 403 || r.status === 404, `${ai}: ${r.status} ${r.text}`);
+  }
+  assert.equal((await nhapCho(w, QL2, ORG2)).status, 200, "người quản lý xem tổ chức của chính mình");
+  const la = await nhapCho(w, NAM, "khong-co-to-chuc-nay");
+  assert.ok(la.status === 403 || la.status === 404, la.text);
+});
+
+test("1a: «Soạn và gửi» chỉ nháp đang chờ người quản lý; «Chỉ soạn» mọi nháp của thành viên (cả người đã rời); không nháp của chính người quản lý, không đơn huỷ / đã xác nhận; mọi dòng mở được; không số điện thoại", async () => {
+  const w = setup();
+  const id1 = await lap(w, TV); // chưa gửi
+  const id2 = await lap(w, TV2);
+  assert.equal((await guiQl(w, TV2, id2)).status, 201);
+  await lap(w, NAM); // nháp tư cách MANAGER của chính người quản lý
+  await lap(w, SALES, {}); // đơn văn phòng
+  const id5 = await lap(w, TV);
+  assert.equal((await w.call("POST", `/api/orders/${id5}/status`, { as: TV, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
+  const moDuoc = async (r: { json: { nhap: { id: string }[] } }) => { for (const x of r.json.nhap) assert.equal(await xem(w, NAM, x.id), 200, `dòng ${x.id} phải mở được`); };
+
+  const a = await nhapCho(w, NAM);
+  assert.equal(a.status, 200, a.text);
+  assert.deepEqual(maCua(a), [id2]);
+  assert.deepEqual(Object.keys(a.json.nhap[0]).sort(), ["choQuanLy", "choVanPhong", "id", "maDon", "ngayDi", "nguoiLap"]);
+  assert.equal(a.json.nhap[0].nguoiLap, "Vy Thành Viên");
+  assert.equal(a.json.nhap[0].choQuanLy, true);
+  assert.equal(a.json.nhap[0].ngayDi, inDays(4));
+  await moDuoc(a);
+
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const b = await nhapCho(w, NAM);
+  assert.deepEqual(maCua(b), [id1, id2].sort());
+  await moDuoc(b);
+  assert.ok(!/0912345678|09000000/.test(b.text), "không số điện thoại khách / người lập");
+
+  // R10: thành viên đã rời — nháp vẫn của «thành viên lúc lập», người quản lý vẫn thấy ở «Chỉ soạn».
+  w.sqlite.prepare("UPDATE pty_party_relationship SET valid_to_date = '2026-10-02' WHERE id = ?").run(`lk-pty-${TV}-${SUNRISE}`);
+  const c = await nhapCho(w, NAM);
+  assert.deepEqual(maCua(c), [id1, id2].sort());
+  await moDuoc(c);
+
+  // Người quản lý gửi lên (nhánh B — đã xác nhận) ⇒ không còn là nháp.
+  assert.equal((await w.call("POST", `/api/orders/${id2}/gui-don`, { as: NAM, body: {} })).status, 200);
+  assert.deepEqual(maCua(await nhapCho(w, NAM)), [id1]);
+});

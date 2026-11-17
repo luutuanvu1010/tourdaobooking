@@ -1059,3 +1059,22 @@ export const tvGuiLenTheoChuoi = (db: D1Database, v: { orderId: string; at: stri
   ...(v.coDongMo ? [] : [db.prepare(TV_MO_KHI_GUI_CHUOI).bind(v.orderId, v.at, v.by, crypto.randomUUID(), v.memberStaffId, v.orgPartyId)]),
   db.prepare(TV_GUI_LEN_CHUOI).bind(v.orderId, v.at, v.by),
 ];
+
+// ---- ADR-0213 Đ8 (mốc B2, Task 18 phần 1a): «Nháp chờ» trên màn tổ chức của người quản lý — CHỈ ỨNG VIÊN: nháp tư cách THÀNH VIÊN lúc lập (R10) có bên đặt là chính tổ chức ?1,
+// không do người gọi ?2 lập. Câu KHÔNG quyết «ai thấy nháp nào» (chế độ, dòng chờ mở): nơi gọi lọc từng dòng bằng `quanLyThayNhapThanhVien` (src/shared/xem-don-nhap.ts — một nơi).
+// Tên người lập qua view công bố `v_stf_staff_label`; ngày đi = dịch vụ đầu tiên theo `sort_order` (cùng quy ước `OrderSummaryTripDto`). Không tên / số điện thoại khách.
+const NHAP_THANH_VIEN_CUA_TO_CHUC = defineSql(
+  "orders",
+  "member_drafts_of_org",
+  `SELECT o.id, o.order_code, o.created_at, sl.label AS nguoi_lap,
+          (SELECT s.depart_date FROM order_service s WHERE s.order_id = o.id ORDER BY s.sort_order LIMIT 1) AS ngay_di,
+          EXISTS (SELECT 1 FROM ord_member_submit m WHERE m.order_id = o.id AND m.status = 'MO') AS cho_quan_ly,
+          EXISTS (SELECT 1 FROM ord_confirm_request r WHERE r.order_id = o.id AND r.decided_at IS NULL) AS cho_van_phong
+   FROM orders o JOIN v_stf_staff_label sl ON sl.id = o.staff_id
+   WHERE o.status = 'draft' AND o.acting_link_kind = 'MEMBER' AND o.acting_party_id = ?1 AND o.booker_party_id = ?1 AND o.staff_id <> ?2
+   ORDER BY o.created_at DESC`,
+);
+export interface NhapThanhVienRow { id: string; order_code: string; created_at: string; nguoi_lap: string; ngay_di: string | null; cho_quan_ly: number; cho_van_phong: number }
+export async function nhapThanhVienCuaToChuc(db: D1Database, orgPartyId: string, nguoiGoi: string): Promise<NhapThanhVienRow[]> {
+  return (await db.prepare(NHAP_THANH_VIEN_CUA_TO_CHUC).bind(orgPartyId, nguoiGoi).all<NhapThanhVienRow>()).results;
+}

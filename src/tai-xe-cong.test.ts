@@ -125,6 +125,7 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   // ADR-0213 Đ5, Đ6 (đợt 2 đăng ký, lượt B1): các route «Tổ chức của tôi» — chỉ người đang là người quản lý / thành viên của tổ chức mới qua; tài xế không có liên kết → bị chặn, không dữ liệu đơn.
   "GET /api/to-chuc/cua-toi": { ma: 200, ly_do: "ADR-0213 Đ5: danh sách tư cách của CHÍNH MÌNH (người quản lý / thành viên); tài xế không có liên kết → danh sách rỗng, không dữ liệu đơn" },
   "GET /api/to-chuc/:id": { ma: 403, ly_do: "ADR-0213 Đ5: chỉ người quản lý của tổ chức xem màn tổ chức; tài xế không có liên kết → 403 trước khi đọc" },
+  "GET /api/to-chuc/:id/nhap-thanh-vien": { ma: 403, ly_do: "ADR-0213 Đ8 (Task 18 phần 1a): chỉ người quản lý của tổ chức (giữ quyền Đối tác, lập đơn được) xem nháp của thành viên; tài xế → 403 trước mọi câu đọc đơn" },
   "POST /api/to-chuc/:id/yeu-cau-chuyen": { ma: 403, ly_do: "ADR-0213 Đ6: chỉ người quản lý của tổ chức gửi yêu cầu chuyển quyền → 403 trước mọi ghi" },
   "POST /api/to-chuc/:id/go-thanh-vien": { ma: 403, ly_do: "ADR-0213 Đ4: chỉ người quản lý của tổ chức gỡ thành viên → 403 trước mọi ghi" },
   "POST /api/to-chuc/:id/loi-moi": { ma: 403, ly_do: "ADR-0213 Đ7.1: chỉ người quản lý của tổ chức hoặc văn phòng tạo lời mời → 403 trước mọi ghi" },
