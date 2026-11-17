@@ -785,7 +785,7 @@ export interface OrderDetailResponse {
  * Task 17 (ADR-0213 Đ8, giao diện B2): nháp tư cách tổ chức của THÀNH VIÊN — chỉ người lập và người quản lý đang thay nháp nhận khối này. `dangCho` = đang chờ người quản lý xác nhận;
  * `cheDo` = chế độ thành viên hiện hành của tổ chức; `quanLyThay` = người xem là người quản lý có hiệu lực (không phải người lập). Chỉ để ẩn / hiện nút.
  */
-export interface ThanhVienTrenDonDto { dangCho: boolean; cheDo: "CHI_SOAN" | "SOAN_VA_GUI"; quanLyThay: boolean }
+export interface ThanhVienTrenDonDto { dangCho: boolean; cheDo: "CHI_SOAN" | "SOAN_VA_GUI"; quanLyThay: boolean; /** người quản lý đã gửi lên, yêu cầu xác nhận đang chờ văn phòng */ choVanPhong: boolean }
 export interface XacNhanTrenDonDto { yeuCau: YeuCauXacNhanDto | null; canXacNhan: boolean; quyetDinhDuoc: boolean }
 /**
  * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` (tên khoá GIỮ, nghĩa

@@ -1522,12 +1522,12 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   // ADR-0213 Đ8 (Task 17): nháp thành viên tổ chức. Thành viên không bao giờ «Gửi đơn» (Đ8.1) — thay bằng nút / câu của thanh-vien-don-ui; đang chờ người quản lý thì không sửa, không huỷ
   // (máy chủ trả 409 tới khi Rút lại). Người quản lý thay nháp: không «Xác nhận đơn» / «Gửi kiểm vé», chỉ «Gửi đơn» (Đ8.5) và «Trả lại» khi nháp đang chờ.
   const tv = order.status === "draft" ? thanhVien : null;
-  if (tv && !tv.quanLyThay) Object.assign(a, { submit: false, ...(tv.dangCho ? { edit: false, cancel: false } : {}) });
-  if (tv?.quanLyThay) Object.assign(a, { confirm: false, send: false, submit: true });
+  if (tv && !tv.quanLyThay) Object.assign(a, { submit: false, ...(tv.dangCho || tv.choVanPhong ? { edit: false, cancel: false, withdraw: false } : {}) });
+  if (tv?.quanLyThay) Object.assign(a, { confirm: false, send: false, submit: !tv.choVanPhong, ...(tv.choVanPhong ? { edit: false, cancel: false } : {}) });
   // Người xét duyệt (không phải người lập) mở đơn ĐANG CHỜ: khối "Người phụ trách" ẩn (HDV tự coi mình là người phụ trách — sai với đơn chưa giao cho họ) và không có "Xem ảnh gửi khách" (Đ11: ảnh chỉ sau khi xác nhận).
   const nguoiXetDuyet = cho?.dangCho === true && order.staffId !== staff!.id;
   if (nguoiXetDuyet) handler = HANDLER_HIDDEN;
-  const suaKhach = suaKhachDuoc(staff!, order.staffId, canModify, banHangSuaDuoc(order, laBanHang)) && order.deliveredAt === null && !(tv?.dangCho && !tv.quanLyThay); // ADR-0142; Task 17: thành viên đang chờ người quản lý không sửa (máy chủ 409)
+  const suaKhach = suaKhachDuoc(staff!, order.staffId, canModify, banHangSuaDuoc(order, laBanHang)) && order.deliveredAt === null && !((tv?.dangCho && !tv.quanLyThay) || tv?.choVanPhong); // ADR-0142; Task 17: đang chờ người quản lý / chờ văn phòng thì không sửa (máy chủ 409)
   // ADR-0063 D1: người lập đơn (Bán hàng), Kế toán, Quản trị, Toàn quyền sửa số khách đơn đã xác nhận, chưa Đã giao — cùng luật ẩn/hiện với máy chủ
   // (`duocSuaSoKhachVanPhong`, hỏi bảng quyền) VÀ máy chủ phải gửi loại khách sửa được (`suaSoKhach`); không dịch vụ nào sửa được thì không có nút.
   const nguonSoKhach = duocSuaSoKhachVanPhong(staff!, order) ? nguonBangSuaSoKhach(order.services, suaSoKhach) : null;

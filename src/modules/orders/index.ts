@@ -131,11 +131,13 @@ async function thanhVienTrenDon(
   cheDoThanhVien: (org: string) => Promise<CheDoThanhVien>,
 ): Promise<ThanhVienTrenDonDto | null> {
   if (o.status !== "draft" || !holdsPartner(staff)) return null;
-  if (thayNhap && ngoaiLe) return { dangCho: ngoaiLe.dangChoQuanLy, cheDo: ngoaiLe.cheDo, quanLyThay: true };
+  // `choVanPhong`: người quản lý đã «Gửi đơn» và yêu cầu xác nhận đang chờ văn phòng — không còn nút gửi người quản lý / Gửi đơn / sửa / huỷ cho ai trong hai người (máy chủ 409).
+  const choVanPhong = async (): Promise<boolean> => (await yeuCauMoCuaDon(db, o.id)) !== null;
+  if (thayNhap && ngoaiLe) return { dangCho: ngoaiLe.dangChoQuanLy, cheDo: ngoaiLe.cheDo, quanLyThay: true, choVanPhong: await choVanPhong() };
   if (o.staffId !== staff.id) return null;
   const meta = await getMeta(db, o.id);
   if (!meta || meta.actingLinkKind !== "MEMBER" || meta.actingPartyId === null) return null;
-  return { dangCho: meta.dangChoQuanLy, cheDo: await cheDoThanhVien(meta.actingPartyId), quanLyThay: false };
+  return { dangCho: meta.dangChoQuanLy, cheDo: await cheDoThanhVien(meta.actingPartyId), quanLyThay: false, choVanPhong: await choVanPhong() };
 }
 /** ADR-0135 Đ2: MỘT chỗ canh đường GHI của đơn nháp — chỉ người lập (luật thuần `chiNguoiLapGhiNhap`); người khác nhận 404 như đơn không tồn tại. */
 const ghiDuocNhap = (meta: { status: OrderStatus; staffId: string }, staff: { id: string }): boolean => chiNguoiLapGhiNhap({ status: meta.status, laNguoiLap: meta.staffId === staff.id });

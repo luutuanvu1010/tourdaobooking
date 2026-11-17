@@ -28,6 +28,7 @@ const goi = async (c: BoiCanhXacNhan, duong: string, than: unknown, cau: string)
 
 /** Nút và câu cho người lập là thành viên (không phải người quản lý đang thay nháp). */
 export function nutThanhVien(c: BoiCanhXacNhan, tv: Api.ThanhVienTrenDonDto, chan: string | null): HTMLElement[] {
+  if (tv.choVanPhong) return [h("p", { class: "muted", "data-thanh-vien": "cho-van-phong" }, "Người quản lý đã gửi đơn lên Tour Đảo. Đơn đang chờ kiểm vé.")];
   if (tv.dangCho) {
     return [
       h("p", { class: "muted", "data-thanh-vien": "dang-cho" }, "Đơn đang chờ người quản lý của tổ chức xác nhận. Muốn sửa, bấm «Rút lại»."),
