@@ -264,3 +264,24 @@ test("Tin «đang chờ bạn xác nhận» khép theo trạng thái hiện tạ
   assert.equal((await w.call("POST", `/api/orders/${id2}/status`, { as: NAM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
   assert.equal(await tinCho(id2), 0, "người quản lý huỷ");
 });
+
+test("Task 17 (giao diện B2): trang đơn biết nháp thành viên — khối `thanhVien` chỉ đọc (chờ, chế độ, người quản lý thay); ô Tư cách trả loại liên kết", async () => {
+  const w = setup();
+  const loaiCua = async (as: string) => (await w.call("GET", "/api/to-chuc/cua-toi", { as })).json.tuCach.find((t: { partyId: string }) => t.partyId === SUNRISE)?.loai;
+  assert.equal(await loaiCua(TV), "MEMBER");
+  assert.equal(await loaiCua(NAM), "MANAGER");
+  const tv = async (as: string, id: string) => (await w.call("GET", `/api/orders/${id}`, { as })).json.thanhVien;
+  const id = await lap(w, TV);
+  assert.deepEqual(await tv(TV, id), { dangCho: false, cheDo: "SOAN_VA_GUI", quanLyThay: false });
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.deepEqual(await tv(TV, id), { dangCho: true, cheDo: "SOAN_VA_GUI", quanLyThay: false });
+  assert.deepEqual(await tv(NAM, id), { dangCho: true, cheDo: "SOAN_VA_GUI", quanLyThay: true });
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const id2 = await lap(w, TV);
+  assert.deepEqual(await tv(NAM, id2), { dangCho: false, cheDo: "CHI_SOAN", quanLyThay: true });
+  // Đơn của người quản lý tự lập (tư cách MANAGER) và đơn văn phòng: không có khối.
+  const id3 = await lap(w, NAM);
+  assert.equal(await tv(NAM, id3), null);
+  const id4 = await lap(w, SALES, {});
+  assert.equal(await tv(SALES, id4), null);
+});

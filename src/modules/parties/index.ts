@@ -2601,11 +2601,11 @@ export const partiesModule: AppModule = {
       return datCheDoThanhVien(ctx, v.org);
     }),
     // ADR-0213 Đ3.1–Đ3.3 (mốc B1 Task 11): tư cách của CHÍNH người gọi (cổng staff — chỉ đọc phiên, không nhận tham số). Danh sách do gốc lắp ráp dựng (`ctx.tuCachCuaToi`);
-    // route chỉ chiếu ra ba trường. Người không giữ quyền Đối tác ⇒ rỗng.
+    // route chỉ chiếu ra bốn trường (Task 17 thêm `loai`). Người không giữ quyền Đối tác ⇒ rỗng.
     route("GET", "/api/to-chuc/cua-toi", "staff", async ({ staff, tuCachCuaToi }) => {
       if (!can(staff, "order.create")) return json({ tuCach: [] } satisfies TuCachCuaToiResponse); // tư cách chỉ dùng khi lập đơn
       const ds = await tuCachCuaToi();
-      return json({ tuCach: ds.map((t) => ({ partyId: t.partyId, ten: t.ten, laToChuc: t.laToChuc })) } satisfies TuCachCuaToiResponse);
+      return json({ tuCach: ds.map((t) => ({ partyId: t.partyId, ten: t.ten, laToChuc: t.laToChuc, loai: t.loai })) } satisfies TuCachCuaToiResponse);
     }),
     // ADR-0213 Đ7 (mốc B2, Task 15) — lời mời vào tổ chức, thân ở loi-moi.ts. Tạo / huỷ: người quản lý CÓ HIỆU LỰC (vai trên đối tượng, `quyenToChuc`) HOẶC văn phòng
     // (ô partner.org.manager.write, không giữ quyền Đối tác — cùng cổng các route văn phòng ở dưới). Thành viên, người lạ ⇒ 403.

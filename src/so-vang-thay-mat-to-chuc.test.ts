@@ -83,9 +83,9 @@ test("GET /api/to-chuc/cua-toi: cá nhân (nếu hồ sơ mang vai riêng) + t�
   const w = await setup();
   const nam = await w.call("GET", "/api/to-chuc/cua-toi", { as: NAM });
   assert.equal(nam.status, 200, nam.text);
-  assert.deepEqual(nam.json, { tuCach: [{ partyId: `pty-${NAM}`, ten: "Nam Lễ Tân", laToChuc: false }, { partyId: SUNRISE, ten: "Khách sạn Sunrise", laToChuc: true }] });
-  assert.deepEqual((await w.call("GET", "/api/to-chuc/cua-toi", { as: CHI })).json, { tuCach: [{ partyId: BIEN_XANH, ten: "Khách sạn Biển Xanh", laToChuc: true }] }, "Đ3.3: không vai riêng ⇒ không tư cách cá nhân");
-  assert.deepEqual((await w.call("GET", "/api/to-chuc/cua-toi", { as: TV })).json, { tuCach: [{ partyId: `pty-${TV}`, ten: "Tú Thành Viên", laToChuc: false }, { partyId: SUNRISE, ten: "Khách sạn Sunrise", laToChuc: true }] }, "B2 (Task 16): thành viên có tư cách tổ chức (R4 hết hiệu lực)");
+  assert.deepEqual(nam.json, { tuCach: [{ partyId: `pty-${NAM}`, ten: "Nam Lễ Tân", laToChuc: false, loai: "CA_NHAN" }, { partyId: SUNRISE, ten: "Khách sạn Sunrise", laToChuc: true, loai: "MANAGER" }] });
+  assert.deepEqual((await w.call("GET", "/api/to-chuc/cua-toi", { as: CHI })).json, { tuCach: [{ partyId: BIEN_XANH, ten: "Khách sạn Biển Xanh", laToChuc: true, loai: "MANAGER" }] }, "Đ3.3: không vai riêng ⇒ không tư cách cá nhân");
+  assert.deepEqual((await w.call("GET", "/api/to-chuc/cua-toi", { as: TV })).json, { tuCach: [{ partyId: `pty-${TV}`, ten: "Tú Thành Viên", laToChuc: false, loai: "CA_NHAN" }, { partyId: SUNRISE, ten: "Khách sạn Sunrise", laToChuc: true, loai: "MEMBER" }] }, "B2 (Task 16): thành viên có tư cách tổ chức (R4 hết hiệu lực)");
   assert.deepEqual((await w.call("GET", "/api/to-chuc/cua-toi", { as: SALES })).json, { tuCach: [] });
   w.sqlite.prepare("UPDATE pty_party_role SET valid_to_date = '2026-10-02' WHERE id = ?").run(`r-${SUNRISE}`);
   assert.deepEqual((await w.call("GET", "/api/to-chuc/cua-toi", { as: NAM })).json.tuCach.map((t: { partyId: string }) => t.partyId), [`pty-${NAM}`], "tổ chức thôi vai được hưởng ⇒ không ai thay mặt (Đ1)");
