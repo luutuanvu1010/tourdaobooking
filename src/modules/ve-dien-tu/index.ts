@@ -204,8 +204,10 @@ const TOI_DON_THAY_MOI_LENH = TRAN_LO_LON_NHAT;
 /** ADR-0217 Đ3 mục 4: sau khi trả suất, chạy lại đường cấp vé sẵn có cho từng đơn (cùng dịch vụ, cùng loại khách, lô đúng nguồn). Nuốt lỗi như mọi đường cấp (thiếu vé suy ra lúc đọc). Trần `TOI_DON_THAY_MOI_LENH` = trần lô lớn nhất: một lô không có quá ngần ấy suất nên không đơn nào bị bỏ sót. */
 async function capVeThayChoDon(capVe: Ctx["capVeSauXacNhan"], donIds: readonly string[]): Promise<{ daXet: number; conNua: boolean }> {
   const xet = donIds.slice(0, TOI_DON_THAY_MOI_LENH);
-  for (const orderId of xet) { try { await capVe(orderId); } catch (e) { console.error("ve_cap_thay_loi", orderId, e instanceof Error ? e.name : "loi"); } }
-  return { daXet: xet.length, conNua: donIds.length > xet.length };
+  let loi = 0;
+  for (const orderId of xet) { try { await capVe(orderId); } catch (e) { loi++; console.error("ve_cap_thay_loi", orderId, e instanceof Error ? e.name : "loi"); } }
+  // Đơn mà lời gọi cấp ném lỗi KHÔNG được coi là đã xét: báo `conNua` để giao diện bảo cấp tay (đừng để lỗi nuốt im lặng như lỗi trần 30 cũ).
+  return { daXet: xet.length - loi, conNua: donIds.length > xet.length || loi > 0 };
 }
 /** Một dòng vé cho màn kho: số sê-ri, hạn, tình trạng. KHÔNG mã vé, KHÔNG khoá kho. Mã đơn chỉ khi người xem có `order.view` trên đơn đó (`maDon` do gốc lắp ráp tính theo quyền). */
 const dongVeTrongLo = (r: VeTrongLoRow, maDon: Map<string, string>) => {

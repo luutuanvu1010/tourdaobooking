@@ -88,13 +88,15 @@ export interface ChoDongVe {
   sauHuy: (ok: string, guiLai: string | null) => Promise<void>;
   /** Chữ phụ thêm (tìm vé: tên sản phẩm của lô). */
   phu?: string;
+  /** Nguồn của lô chứa vé: vé hãng ngoài đã gửi khách (đã mở) máy chủ không cho huỷ, nên không hiện nút. */
+  nguon?: string;
 }
 
 /** Một dòng vé: số sê-ri, tình trạng, hạn, mã đơn nếu có; nút «Huỷ vé» khi huỷ được. */
 export function dongVe(v: VeTrongLo, o: ChoDongVe): HTMLElement {
   const chiTiet = [v.nhan, ngayDung(v.tuNgay, v.denNgay), v.maDon ? `Đơn ${v.maDon}` : "", o.phu ?? ""].filter(Boolean).join(" · ");
   const li = h("li", { "data-so-seri": v.soSeri, "data-tinh-trang": v.tinhTrang }, h("strong", null, v.soSeri), h("p", { class: "muted" }, chiTiet));
-  if (o.huyDuoc && v.tinhTrang !== "DA_HUY" && v.tinhTrang !== "DA_DUNG") {
+  if (o.huyDuoc && v.tinhTrang !== "DA_HUY" && v.tinhTrang !== "DA_DUNG" && !(o.nguon === "HANG_NGOAI" && v.tinhTrang === "DA_GUI")) {
     const nut = h("button", { type: "button", class: "btn", "data-action": "huy-ve", "data-so-seri": v.soSeri }, "Huỷ vé");
     nut.addEventListener("click", async () => {
       let r: HuyVeRes | null = null;
@@ -140,7 +142,7 @@ export function khoiTimVe(huyDuocTheoNguon: (nguon: string) => boolean, sauHuy: 
     nut.disabled = true;
     try {
       const r = await api<{ ve: VeTrongLo & { tenSanPham: string; nguon: string } }>(`/api/ve/tim?soSeri=${encodeURIComponent(so)}`);
-      replaceChildren(kq, dongVe(r.ve, { huyDuoc: huyDuocTheoNguon(r.ve.nguon), phu: r.ve.tenSanPham, sauHuy: async (ok, guiLai) => { replaceChildren(kq); await sauHuy(ok, guiLai); } }));
+      replaceChildren(kq, dongVe(r.ve, { huyDuoc: huyDuocTheoNguon(r.ve.nguon), nguon: r.ve.nguon, phu: r.ve.tenSanPham, sauHuy: async (ok, guiLai) => { replaceChildren(kq); await sauHuy(ok, guiLai); } }));
     } catch (err) {
       loi.textContent = lyDoLoi(err); loi.hidden = false;
     } finally { nut.disabled = false; }

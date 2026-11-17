@@ -441,6 +441,10 @@ body.trang-chu #topbar button.bar-avatar { padding: 0; margin-right: 0; }
 .qv-khung { background: var(--c-surface-alt); border-radius: var(--radius-md); overflow: hidden; }
 .qv-video { display: block; width: 100%; max-height: var(--h-quet-video); object-fit: cover; background: var(--c-surface-alt); }
 .qv-nut { display: flex; flex-wrap: wrap; gap: var(--s3); margin-top: var(--s3); }
+.qv-so-seri { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s3); }
+.qv-so-seri .lb-truong { width: 100%; }
+.qv-so-seri .alert { margin: 0; width: 100%; }
+.qv-so-seri .muted { margin: 0; }
 .qv-anh { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
 .qv-luot { padding: var(--s3) 0; border-bottom: 1px solid var(--c-border); }
 .qv-luot:last-child { border-bottom: 0; }

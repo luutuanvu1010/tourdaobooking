@@ -1438,9 +1438,9 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Vé điện tử: kho",
     manHinh: "Kho vé điện tử › khối nhập lô",
     ten: "Nhập lô vé",
-    thatSuLam: "Đọc mã QR của từng ảnh ngay trên máy, loại ảnh hỏng hoặc trùng, tạo lô, gửi các ảnh lên kho rồi đưa lô vào kho để bán. Ảnh nào bị loại thì báo kèm tên tệp. Lô gửi dở thì để lại trong danh sách «Các lô» để bấm «Huỷ lô».",
+    thatSuLam: "Đọc mã QR của từng ảnh ngay trên máy, loại ảnh hỏng hoặc trùng, tạo lô, gửi các ảnh lên kho rồi đưa lô vào kho để bán. Ảnh nào bị loại thì báo kèm tên tệp. Lô gửi dở thì để lại trong khối «Lô trong kho» để bấm «Huỷ lô».",
     hoiLai: "không",
-    hoanTac: "được: «Huỷ lô» cho tới khi có vé được giữ cho đơn",
+    hoanTac: "được: «Huỷ lô» (lô chưa cấp thì nhập lại được các ảnh; lô đã cấp thì huỷ phần còn lại, không hoàn tác)",
     duongLenh: ["/api/ve/lo","/api/ve/lo/:x/ve","/api/ve/lo/:x/xac-nhan"],
     maNhatKy: ["ve_nhap_lo","ve_xac_nhan_lo"],
     noiDat: [
@@ -1455,7 +1455,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     ten: "Tạo vé",
     thatSuLam: "Mở một lô vé Tour Đảo (máy chủ cấp sẵn đủ số sê-ri cho lô), vẽ từng vé với mã riêng do máy sinh và số sê-ri in thành chữ trên vé, tự đọc lại mã trên từng ảnh; chỉ khi mọi vé đều đọc lại đúng mới gửi ảnh lên kho rồi đưa lô vào kho và cấp bù cho đơn đang thiếu. Một vé hỏng thì huỷ cả lô, không vé nào vào kho. Người tạo không thấy mã vé nhưng thấy số sê-ri trên ảnh.",
     hoiLai: "không",
-    hoanTac: "được: «Huỷ lô» cho tới khi có vé được giữ cho đơn",
+    hoanTac: "được: «Huỷ lô» (lô đã cấp thì huỷ phần còn lại) hoặc «Huỷ vé» từng vé theo số sê-ri",
     duongLenh: ["/api/ve/lo","/api/ve/lo/:x/ve","/api/ve/lo/:x/xac-nhan","/api/ve/lo/:x/bo"],
     maNhatKy: ["ve_nhap_lo","ve_xac_nhan_lo","ve_bo_lo"],
     noiDat: [

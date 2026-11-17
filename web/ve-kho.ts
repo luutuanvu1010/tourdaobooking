@@ -214,7 +214,7 @@ if (!nhapLo && !taoVe) {
         nutXem.addEventListener("click", async () => {
           if (!khuVe.hidden) { khuVe.hidden = true; nutXem.setAttribute("aria-expanded", "false"); return; }
           khuVe.hidden = false; nutXem.setAttribute("aria-expanded", "true");
-          await veCuaLo(khuVe, l.loId, { huyDuoc: thaoTacLo(l.nguon), sauHuy: sauHuyVe });
+          await veCuaLo(khuVe, l.loId, { huyDuoc: thaoTacLo(l.nguon), nguon: l.nguon, sauHuy: sauHuyVe });
         });
         const nut: HTMLElement[] = [nutXem];
         if (thaoTacLo(l.nguon)) {
