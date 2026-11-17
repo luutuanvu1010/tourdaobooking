@@ -1670,6 +1670,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   if (tv && !tv.quanLyThay) btns.push(...nutThanhVien(boiCanh, tv, chuaCoNgay));
   if (tv?.quanLyThay && tv.dangCho) btns.push(nutTraLai(boiCanh));
   if (a.withdraw) btns.push(nutRutLai(boiCanh));
+  // Task 18 (1c): người quản lý đã gửi lên (yêu cầu xác nhận mở với chính họ) — máy chủ gửi cờ `rutDuoc` tính bằng cổng của route «Rút lại»; người lập (thành viên) không có nút này.
+  else if (tv?.quanLyThay && tv.rutDuoc) btns.push(nutRutLai(boiCanh));
   if (a.decide && xacNhan?.yeuCau) btns.push(bangXacNhanDon(boiCanh, order, xacNhan.yeuCau));
   if (a.cancel) btns.push(coVeDaMo ? h("p", { class: "muted", "data-chan": "huy-da-mo-ve" }, CAU_DON_DA_MO_VE) : nutHuyDon());
   for (const cau of canhBaoXN) btns.push(h("p", { class: "dd-canh-xn", "data-canh-bao": "xac-nhan" }, icon("alert", 16), cau));

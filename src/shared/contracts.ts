@@ -785,7 +785,11 @@ export interface OrderDetailResponse {
  * Task 17 (ADR-0213 Đ8, giao diện B2): nháp tư cách tổ chức của THÀNH VIÊN — chỉ người lập và người quản lý đang thay nháp nhận khối này. `dangCho` = đang chờ người quản lý xác nhận;
  * `cheDo` = chế độ thành viên hiện hành của tổ chức; `quanLyThay` = người xem là người quản lý có hiệu lực (không phải người lập). Chỉ để ẩn / hiện nút.
  */
-export interface ThanhVienTrenDonDto { dangCho: boolean; cheDo: "CHI_SOAN" | "SOAN_VA_GUI"; quanLyThay: boolean; /** người quản lý đã gửi lên, yêu cầu xác nhận đang chờ văn phòng */ choVanPhong: boolean }
+export interface ThanhVienTrenDonDto {
+  dangCho: boolean; cheDo: "CHI_SOAN" | "SOAN_VA_GUI"; quanLyThay: boolean; /** người quản lý đã gửi lên, yêu cầu xác nhận đang chờ văn phòng */ choVanPhong: boolean;
+  /** Task 18 (1c): người xem là người quản lý đã mở yêu cầu xác nhận đang chờ và route «Rút lại» (`rut-xac-nhan`) sẽ nhận — cùng cổng `quyenGhiNhap` của route. Chỉ để hiện nút. */
+  rutDuoc: boolean;
+}
 /** ADR-0213 Đ8 (Task 18 phần 1a): một dòng «Nháp chờ» trên màn tổ chức của người quản lý — `GET /api/to-chuc/:id/nhap-thanh-vien`. Không tên / số điện thoại khách. */
 export interface NhapThanhVienDto { id: string; maDon: string; /** tên người lập (thành viên lúc lập) */ nguoiLap: string; ngayDi: string | null; /** đang chờ người quản lý xác nhận */ choQuanLy: boolean; /** đã gửi lên, chờ kiểm vé */ choVanPhong: boolean }
 export interface NhapThanhVienResponse { nhap: NhapThanhVienDto[] }
