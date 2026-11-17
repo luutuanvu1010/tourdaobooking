@@ -199,7 +199,7 @@ test("Đ7.4: người xem lời mời của CHÍNH số đăng nhập (người 
   assert.doesNotMatch(cua.text, SO_DT);
   assert.deepEqual((await w.call("GET", "/api/to-chuc/loi-moi-cua-toi", { as: khac.staffId })).json, { loiMoi: [] });
   assert.equal((await nhan(w, khac.staffId, { loiMoiId: r.json.loiMoi.id })).status, 400, "lời mời của số khác");
-  assert.equal((await nhan(w, SALES, { loiMoiId: r.json.loiMoi.id })).status, 400, "Bán hàng qua cổng (lập đơn được) nhưng không phải số được mời");
+  assert.equal((await nhan(w, SALES, { loiMoiId: r.json.loiMoi.id })).status, 403, "Bán hàng (lập đơn được, không giữ quyền Đối tác) ⇒ 403 ở cổng (Đ2.6 — vòng sửa 1)");
   const taiXe = doiTac(w, "Tài Xế", { perms: ["DRIVER"] });
   assert.equal((await nhan(w, taiXe.staffId, { loiMoiId: r.json.loiMoi.id })).status, 403, "tài khoản không lập đơn được ⇒ 403 ở cổng");
   // Người mời mất quyền: tài khoản người quản lý bị ngưng (không còn người quản lý có hiệu lực).
@@ -282,3 +282,16 @@ for (const [ten, trangThai] of [["bị huỷ", "DA_HUY"], ["đã dùng", "DA_DUN
     assert.notEqual(dong.used_by_staff_id, nguoi.staffId);
   });
 }
+
+// Task 15 vòng sửa 1 (mục 3): cổng hai route của người được mời nói đúng Đ2.6 — ô `order.create` VÀ giữ quyền Đối tác. Tài khoản văn phòng có số đăng nhập TRÙNG số được mời ⇒ 403 ở cổng.
+test("Đ2.6: tài khoản văn phòng có số trùng số được mời ⇒ 403 ở cổng ở cả xem lời mời của tôi lẫn nhận; lời mời không đổi", async () => {
+  const w = setup();
+  const { org, ql } = toChucCoQuanLy(w);
+  const r = await tao(w, ql.staffId, org, "0900000001"); // số đăng nhập của SALES
+  const xem = await w.call("GET", "/api/to-chuc/loi-moi-cua-toi", { as: SALES });
+  assert.equal(xem.status, 403, xem.text);
+  const kq = await nhan(w, SALES, { loiMoiId: r.json.loiMoi.id });
+  assert.equal(kq.status, 403, kq.text);
+  assert.equal(loiMoi(w, r.json.loiMoi.id).status, "MO");
+  assert.deepEqual(mo(w, org), [[ql.partyId, "MANAGER"]]);
+});

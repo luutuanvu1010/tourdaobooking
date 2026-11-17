@@ -409,8 +409,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/to-chuc/:id/roi", access: "staff" }, // ADR-0213 Đ6 (PF14): thành viên tự rời; người quản lý 409 — quyenToChuc
   { method: "POST", path: "/api/to-chuc/:id/loi-moi", access: "staff" }, // ADR-0213 Đ7.1 (mốc B2 Task 15): tạo lời mời — người quản lý có hiệu lực (quyenToChuc) hoặc văn phòng (partner.org.manager.write, không giữ Đối tác)
   { method: "POST", path: "/api/to-chuc/:id/loi-moi/:mid/huy", access: "staff" }, // ADR-0213 Đ7.2: huỷ lời mời còn mở / đang giữ — cùng cổng tạo
-  { method: "GET", path: "/api/to-chuc/loi-moi-cua-toi", access: "staff" }, // ADR-0213 Đ7.4: lời mời gửi tới số đăng nhập của CHÍNH người gọi — hỏi order.create, chỉ đọc phiên
-  { method: "POST", path: "/api/to-chuc/loi-moi/nhan", access: "staff" }, // ADR-0213 Đ7.4: nhận lời mời — order.create ở cổng; số đăng nhập trùng, Đ2.6, người mời còn quyền ở thân
+  { method: "GET", path: "/api/to-chuc/loi-moi-cua-toi", access: "staff" }, // ADR-0213 Đ7.4: lời mời gửi tới số đăng nhập của CHÍNH người gọi — hỏi order.create + quyền Đối tác (Đ2.6), chỉ đọc phiên
+  { method: "POST", path: "/api/to-chuc/loi-moi/nhan", access: "staff" }, // ADR-0213 Đ7.4: nhận lời mời — order.create + quyền Đối tác ở cổng; số đăng nhập trùng, Đ2.6, người mời còn quyền ở thân
   { method: "GET", path: "/api/parties/:id/to-chuc", access: "office" }, // ADR-0213 Đ6: màn tổ chức — partner.org.manager.write (Quản lý bán hàng, Quản trị, Toàn quyền) + không giữ quyền Đối tác
   { method: "POST", path: "/api/parties/:id/to-chuc/nguoi-quan-ly", access: "office" }, // ADR-0213 Đ2.4, Đ6: giao / chuyển người quản lý — cùng ô
   { method: "POST", path: "/api/parties/:id/to-chuc/go-nguoi-quan-ly", access: "office" }, // ADR-0213 Đ2.5: gỡ người quản lý khi không còn thành viên — cùng ô

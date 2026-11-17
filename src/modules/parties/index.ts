@@ -2612,12 +2612,13 @@ export const partiesModule: AppModule = {
     // Lời mời gửi tới số đăng nhập của CHÍNH người gọi (Đ7.4): chỉ đọc phiên, không tham số; đứng TRƯỚC `/api/to-chuc/:id`.
     // Cổng: ô `order.create` — liên kết thành viên chỉ để lập đơn thay mặt tổ chức (cùng lý do với `GET /api/to-chuc/cua-toi`); tài khoản không lập đơn được ⇒ không có lời mời nào để xem / nhận.
     // Lời kiểm thật của lệnh nhận ở thân (`nhanLoiMoi`): số đăng nhập trùng số được mời, tài khoản chỉ giữ quyền Đối tác (Đ2.6), lời mời còn mở và còn hạn, người mời còn quyền mời.
+    // Vòng sửa 1 Task 15 (chỉ siết): cổng thêm «giữ quyền Đối tác» — Đ2.6 chỉ tài khoản Đối tác gắn được vào tổ chức; văn phòng có số trùng số được mời ⇒ 403 ở cổng.
     route("GET", "/api/to-chuc/loi-moi-cua-toi", "staff", async (ctx) => {
-      if (!can(ctx.staff, "order.create")) return json({ loiMoi: [] } satisfies LoiMoiCuaToiResponse);
+      if (!can(ctx.staff, "order.create") || !holdsPartner(ctx.staff)) return error(403, "forbidden", "Tài khoản này không nhận lời mời vào tổ chức được.");
       return loiMoiCuaToi(ctx);
     }),
     route("POST", "/api/to-chuc/loi-moi/nhan", "staff", async (ctx) => {
-      if (!can(ctx.staff, "order.create")) return error(403, "forbidden", "Tài khoản này không nhận lời mời vào tổ chức được.");
+      if (!can(ctx.staff, "order.create") || !holdsPartner(ctx.staff)) return error(403, "forbidden", "Tài khoản này không nhận lời mời vào tổ chức được.");
       return nhanLoiMoi(ctx, ctx.luotThu);
     }),
     // Màn tổ chức của người quản lý (Task 14): chỉ đọc, đứng SAU `/api/to-chuc/cua-toi`; chỉ người quản lý có hiệu lực của tổ chức đó (thành viên, người lạ ⇒ 403).
