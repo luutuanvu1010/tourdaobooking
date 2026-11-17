@@ -406,11 +406,10 @@ test("1a: danh sách nháp chờ — chỉ người quản lý có hiệu lực 
   await lap(w, TV);
   for (const ai of [SUP, ADM, SM, SALES, TV, TV2, QL2]) {
     const r = await nhapCho(w, ai);
-    assert.ok(r.status === 403 || r.status === 404, `${ai}: ${r.status} ${r.text}`);
+    assert.equal(r.status, 403, `${ai}: ${r.text}`); // vòng sửa cuối (m-d): ghim đúng 403
   }
   assert.equal((await nhapCho(w, QL2, ORG2)).status, 200, "người quản lý xem tổ chức của chính mình");
-  const la = await nhapCho(w, NAM, "khong-co-to-chuc-nay");
-  assert.ok(la.status === 403 || la.status === 404, la.text);
+  assert.equal((await nhapCho(w, NAM, "khong-co-to-chuc-nay")).status, 403, "mã tổ chức lạ: 403 như tổ chức không quản lý (không dò được)");
 });
 
 test("1a: «Soạn và gửi» chỉ nháp đang chờ người quản lý; «Chỉ soạn» mọi nháp của thành viên (cả người đã rời); không nháp của chính người quản lý, không đơn huỷ / đã xác nhận; mọi dòng mở được; không số điện thoại", async () => {
