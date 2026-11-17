@@ -20,10 +20,10 @@ import { chuanHoaSoSeri } from "../../shared/so-seri-ve.ts";
 import { sinhMa } from "../../shared/ma-dinh-danh.ts";
 import { DANG_TOKEN, bamToken, hanDuongDan, soSanhHangThoiGian, taoToken, trangVeKhach } from "./duong-dan-khach.ts";
 import { NHAN_NHOM, NHAN_NHOM_LO, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
-import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_DON_XET_CAP_BU, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, tranLoHopLe } from "../../shared/ve-nhap-lo";
+import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_DON_XET_CAP_BU, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, TRAN_LO_LON_NHAT, tranLoHopLe } from "../../shared/ve-nhap-lo";
 import { datVeVaoKho, donHangChoXoa, type VeChuanBi } from "./kho-tep.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
-import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho, cauBoLuotQuet, cauChenLuotQuet, coLuotQuet, demLuotDaTinh, docLuotDaTinh, docLuotQuet, docVeQuet } from "./repository.ts";
+import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoTatCa, type LoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho, cauBoLuotQuet, cauChenLuotQuet, coLuotQuet, demLuotDaTinh, docLuotDaTinh, docLuotQuet, docVeQuet } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
 import { DAU_LOI_HUY_VE, cauBoLoDaCap, cauChanHuyVe, cauChenSoSeri, cauHuyVe, cauHuyVeCuaLo, cauThuHoiPhanBoCuaLo, cauThuHoiPhanBoCuaVe, dieuKienLenhHuyLoThang, docVeDeHuy, docVeQuetTheoSeri, donBiTraSuatCuaLo, loTungCap, soSeriConDungDuoc, veTheoSoSeri, veTrongLo, xemTruocHuyLo, type VeTrongLoRow } from "./repository.ts";
@@ -199,9 +199,11 @@ export async function donHangChoXoaVe(env: Pick<Env, "DB"> & { VE_DIEN_TU?: R2Bu
   }
 }
 
-/** ADR-0217 Đ3 mục 4: sau khi trả suất, chạy lại đường cấp vé sẵn có cho từng đơn (cùng dịch vụ, cùng loại khách, lô đúng nguồn). Nuốt lỗi như mọi đường cấp (thiếu vé suy ra lúc đọc). Tối đa `TOI_DA_DON_XET_CAP_BU` đơn mỗi lệnh. */
+/** Một lô không quá `TRAN_LO_LON_NHAT` vé nên không quá ngần ấy đơn bị trả suất khi huỷ lô: xét hết, không để đơn nào bị trả suất mà không được cấp thay hay ghi nhật ký. */
+const TOI_DON_THAY_MOI_LENH = TRAN_LO_LON_NHAT;
+/** ADR-0217 Đ3 mục 4: sau khi trả suất, chạy lại đường cấp vé sẵn có cho từng đơn (cùng dịch vụ, cùng loại khách, lô đúng nguồn). Nuốt lỗi như mọi đường cấp (thiếu vé suy ra lúc đọc). Trần `TOI_DON_THAY_MOI_LENH` = trần lô lớn nhất: một lô không có quá ngần ấy suất nên không đơn nào bị bỏ sót. */
 async function capVeThayChoDon(capVe: Ctx["capVeSauXacNhan"], donIds: readonly string[]): Promise<{ daXet: number; conNua: boolean }> {
-  const xet = donIds.slice(0, TOI_DA_DON_XET_CAP_BU);
+  const xet = donIds.slice(0, TOI_DON_THAY_MOI_LENH);
   for (const orderId of xet) { try { await capVe(orderId); } catch (e) { console.error("ve_cap_thay_loi", orderId, e instanceof Error ? e.name : "loi"); } }
   return { daXet: xet.length, conNua: donIds.length > xet.length };
 }
@@ -272,14 +274,16 @@ export const veDienTuModule: AppModule = {
     }),
 
     // Các lô còn huỷ được (ADR-0156 Đ2 mục 3): đang dở hoặc đã vào kho nhưng chưa vé nào từng được giữ chỗ. Chỉ nhãn và số đếm, không mã vé, không khoá kho.
-    route("GET", "/api/ve/lo", "office", async ({ env, staff }) => {
+    // `?tatCa=1` (ADR-0217 Phần B): thêm cả lô ĐÃ cấp, mỗi lô kèm `daCap`; mặc định giữ nguyên.
+    route("GET", "/api/ve/lo", "office", async ({ env, staff, url }) => {
       if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN(); // cửa thô; từng nguồn lọc tiếp bằng nguonDuocXem
       const nguon = nguonDuocXem(staff, true);
       if (nguon.length === 0) return KHONG_QUYEN();
-      const ds = await dsLoBoDuoc(env.DB, TOI_DA_DS_LO, nguon);
+      const tatCa = url.searchParams.get("tatCa") === "1";
+      const ds: (LoBoDuoc & { da_cap?: number })[] = tatCa ? await dsLoTatCa(env.DB, TOI_DA_DS_LO, nguon) : await dsLoBoDuoc(env.DB, TOI_DA_DS_LO, nguon);
       const ten = await getEffectiveServices(env.DB, [...new Set(ds.map((d) => d.catalog_code))]);
       return json({
-        lo: ds.map((d) => ({ loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, nguon: d.source, trangThai: d.status, soVe: d.so_ve, taoLuc: d.created_at })),
+        lo: ds.map((d) => ({ loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, nguon: d.source, trangThai: d.status, soVe: d.so_ve, taoLuc: d.created_at, ...(tatCa ? { daCap: d.da_cap === 1 } : {}) })),
       });
     }),
 
@@ -544,13 +548,13 @@ export const veDienTuModule: AppModule = {
         if (lo.status === "VOID") return error(409, "batch_in_use", "Lô này đã huỷ trước đó.");
         const ly = kiemLyDoHuy((await readJson(request))?.lyDo);
         if ("loi" in ly) return ly.loi;
-        const [xem, donIds] = await Promise.all([xemTruocHuyLo(env.DB, loId), donBiTraSuatCuaLo(env.DB, loId, TOI_DA_DON_XET_CAP_BU + 1)]);
+        const [xem, donIds] = await Promise.all([xemTruocHuyLo(env.DB, loId), donBiTraSuatCuaLo(env.DB, loId, TOI_DON_THAY_MOI_LENH + 1)]);
         const thang = dieuKienLenhHuyLoThang(loId, lenh);
         const kq = await env.DB.batch([
           cauBoLoDaCap(env.DB, loId, at, staff.id, lenh),
           auditStatement(env.DB, { staffId: staff.id, action: "ve_bo_lo", at, targetType: "ve", targetId: lo.catalog_code, detail: `Huỷ lô vé đã cấp · ${NHAN_NHOM_LO[lo.pax_group as keyof typeof NHAN_NHOM_LO]} · huỷ ${xem.huy_duoc} vé · giữ nguyên ${xem.giu_da_dung + xem.giu_hang_ngoai_da_mo} vé · lý do: ${ly.lyDo}` }, "changes() > 0"),
           cauThuHoiPhanBoCuaLo(env.DB, loId, at, staff.id, lenh),
-          ...donIds.slice(0, TOI_DA_DON_XET_CAP_BU).map((orderId) => auditStatement(env.DB, { staffId: staff.id, action: "ve_tra_ve", at, orderId, targetType: "ve", targetId: orderId, detail: "Trả vé · lô vé bị huỷ · lý do THU_HOI" }, thang)),
+          ...donIds.slice(0, TOI_DON_THAY_MOI_LENH).map((orderId) => auditStatement(env.DB, { staffId: staff.id, action: "ve_tra_ve", at, orderId, targetType: "ve", targetId: orderId, detail: "Trả vé · lô vé bị huỷ · lý do THU_HOI" }, thang)),
           cauHuyVeCuaLo(env.DB, loId, at, staff.id, lenh, ly.lyDo),
         ]);
         if ((kq[0]?.meta?.changes ?? 0) === 0) return error(409, "batch_in_use", "Lô này đã huỷ trước đó.");

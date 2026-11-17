@@ -165,6 +165,7 @@ const CHEN_VE = defineSql(
    SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, 'AVAILABLE', ?11, ?12, ?11, ?12, ?13
    WHERE EXISTS (SELECT 1 FROM vdt_batch b WHERE b.id = ?2 AND b.status = 'PENDING')
      AND NOT EXISTS (SELECT 1 FROM vdt_ticket t WHERE (t.withdrawn_at IS NULL OR t.opened_at IS NOT NULL) AND (t.ticket_code = ?3 OR t.content_hash = ?10))
+     AND NOT EXISTS (SELECT 1 FROM vdt_ticket t WHERE t.serial = ?13)
      AND NOT EXISTS (SELECT 1 FROM vdt_ticket t WHERE t.opened_at IS NOT NULL AND (length(t.ticket_code) = 36 AND length(?3) = 36 AND t.ticket_code NOT GLOB '*[^0-9]*' AND ?3 NOT GLOB '*[^0-9]*' AND substr(t.ticket_code, -12) = substr(?3, -12)))`,
 );
 const MA_VE_DA_CO = defineSql("ve-dien-tu", "ma_ve_da_co", "SELECT ticket_code FROM vdt_ticket WHERE withdrawn_at IS NULL AND ticket_code IN (SELECT value FROM json_each(?1))");
@@ -198,6 +199,17 @@ const DS_LO_BO_DUOC = defineSql(
           (SELECT count(*) FROM vdt_ticket t WHERE t.batch_id = b.id AND t.stored_at IS NOT NULL AND t.purged_at IS NULL) AS so_ve
    FROM vdt_batch b
    WHERE b.status <> 'VOID' AND b.source IN (SELECT value FROM json_each(?2)) AND NOT EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE t.batch_id = b.id)
+   ORDER BY (b.status = 'PENDING') DESC, b.created_at DESC, b.id LIMIT ?1`,
+);
+// ADR-0217 Phần B: mọi lô chưa huỷ kèm cờ `da_cap` (có suất từng được cấp) — để màn kho mở được cả lô đã cấp. Mặc định `DS_LO_BO_DUOC` giữ nguyên.
+const DS_LO_TAT_CA = defineSql(
+  "ve-dien-tu",
+  "ds_lo_tat_ca",
+  `SELECT b.id, b.catalog_code, b.pax_group, b.printed_name, b.status, b.source, b.created_at,
+          (SELECT count(*) FROM vdt_ticket t WHERE t.batch_id = b.id AND t.stored_at IS NOT NULL AND t.purged_at IS NULL) AS so_ve,
+          EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE t.batch_id = b.id) AS da_cap
+   FROM vdt_batch b
+   WHERE b.status <> 'VOID' AND b.source IN (SELECT value FROM json_each(?2))
    ORDER BY (b.status = 'PENDING') DESC, b.created_at DESC, b.id LIMIT ?1`,
 );
 // Lô đã huỷ gần đây (chủ quyết 2/11/2026): để tra cứu. Mã đầy đủ KHÔNG ra khỏi câu đọc; không khoá kho, không dấu vân. Vé chưa từng vào kho (`stored_at` rỗng) không tính; lô không có vé nào vào kho (trang tự huỷ lô nhập hỏng hết) không hiện vì không có gì để tra.
@@ -289,6 +301,8 @@ export const cauBoLo = (db: D1Database, id: string, at: string, by: string | nul
 export const cauRutVeCuaLo = (db: D1Database, id: string, at: string, by: string | null, lenh: string): D1PreparedStatement => db.prepare(RUT_VE_CUA_LO).bind(id, at, by, lenh);
 export interface LoBoDuoc { id: string; catalog_code: string; pax_group: string; printed_name: string; status: string; source: NguonVe; created_at: string; so_ve: number }
 /** `nguon`: chỉ các nguồn người gọi được xem (lọc NGAY TRONG câu, để giới hạn số dòng không bị lô nguồn khác chiếm chỗ). */
+export interface LoTatCa extends LoBoDuoc { da_cap: number }
+export const dsLoTatCa = async (db: D1Database, gioiHan: number, nguon: readonly NguonVe[]): Promise<LoTatCa[]> => (await db.prepare(DS_LO_TAT_CA).bind(gioiHan, JSON.stringify(nguon)).all<LoTatCa>()).results;
 export const dsLoBoDuoc = async (db: D1Database, gioiHan: number, nguon: readonly NguonVe[]): Promise<LoBoDuoc[]> => (await db.prepare(DS_LO_BO_DUOC).bind(gioiHan, JSON.stringify(nguon)).all<LoBoDuoc>()).results;
 /** Mỗi dòng một vé. */
 export interface DongLoDaHuy { id: string; catalog_code: string; pax_group: string; printed_name: string; source: NguonVe; huy_luc: string; huy_boi: string | null; ve_id: string; duoi_ma: string; valid_from: string; valid_to: string; opened_at: string | null; r2_deleted_at: string | null; da_nhap_lai: number }
