@@ -1,6 +1,6 @@
 # Số sê-ri của vé, tra vé bằng số sê-ri, huỷ vé lẻ và huỷ phần còn lại của lô
 
-> Đặc tả ngắn, **chờ chủ duyệt** (2026-11-17). Việc lớn: đổi một điều của ADR-0175 đã duyệt, thêm dữ liệu, thêm quyền huỷ. Duyệt xong mới soạn ADR mới (kèm dòng lịch sử cho ADR-0175 và trang ghép) rồi mới thi công.
+> Đặc tả ngắn, **chủ đã duyệt** 2026-11-17 («duyệt theo khuyến nghị, tiếp tục»); hồ sơ có ngày, không sửa thêm — quyết định cuối ở ADR-0217 (accepted 18/11). Việc lớn: đổi một điều của ADR-0175 đã duyệt, thêm dữ liệu, thêm quyền huỷ. Duyệt xong mới soạn ADR mới (kèm dòng lịch sử cho ADR-0175 và trang ghép) rồi mới thi công.
 
 ## 1. Việc gì, cho ai, vì sao
 
