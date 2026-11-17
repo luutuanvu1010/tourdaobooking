@@ -233,7 +233,8 @@ test("Đ4.4 (vòng sửa 1): bộ đọc bắt đổi tên biến, `?.`, gỡ `{
 
 test("Đ3.5 (Ruling R3): acting_party_id / actingPartyId chỉ ở hàm ghi nhật ký và câu của đơn; không dòng nào ngoài module audit đưa nó vào nhật ký", () => {
   const hit = quet(/\b(?:acting_party_id|actingPartyId)\b/);
-  assert.deepEqual([...hit.keys()].sort(), ["src/modules/audit/repository.ts", "src/modules/orders/index.ts", "src/modules/orders/repository.ts", "src/modules/orders/thanh-vien-route.ts", "src/modules/orders/xac-nhan-chung.ts", "src/modules/orders/xac-nhan-route.ts"]);
+  // Task 18 (1a): chang-hanh-khach-repo.ts — câu «Nháp chờ» (`member_drafts_of_org`) chỉ LỌC ứng viên theo tư cách của đơn (WHERE), không đưa vào nhật ký.
+  assert.deepEqual([...hit.keys()].sort(), ["src/modules/audit/repository.ts", "src/modules/orders/chang-hanh-khach-repo.ts", "src/modules/orders/index.ts", "src/modules/orders/repository.ts", "src/modules/orders/thanh-vien-route.ts", "src/modules/orders/xac-nhan-chung.ts", "src/modules/orders/xac-nhan-route.ts"]);
   for (const [tep, dong] of hit) {
     if (tep.startsWith("src/modules/audit/")) continue;
     for (const d of dong) assert.doesNotMatch(d, /audit/i, `${tep}: ${d}`);
