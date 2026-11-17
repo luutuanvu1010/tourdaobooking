@@ -455,6 +455,11 @@ const APP_OPTIONS: AppOptions = {
     // ADR-0213 Đ5 (Task 12): cờ `quanLyBenDat` và tập tổ chức cho «Đơn của tôi» — CÙNG hàm `laQuanLyCoHieuLuc` với tư cách tổ chức ở trên.
     laQuanLyCuaBen: (env, actor, partyId) => laQuanLyCoHieuLuc(env.DB, actor, partyId),
     // ADR-0213 Đ8.2 (Task 16): chế độ thành viên hiện hành của tổ chức (parties) cho ngoại lệ nháp có tên ở orders — không dòng ⇒ «Soạn và gửi».
+    // ADR-0213 Đ5 (Task 16 vòng sửa 1, I-2): người lập (thành viên) còn thay mặt tổ chức — CÙNG `tuCachCuaToi` của Đ3.2; tài khoản ngưng ⇒ false.
+    nguoiLapConThayMat: async (env, staffId, org) => {
+      const tk = await getStaffAccount(env.DB, staffId);
+      return tk !== null && tk.active && (await tuCachCuaToi(env.DB, tk)).some((t) => t.partyId === org && t.laToChuc);
+    },
     cheDoThanhVien: async (env, org) => (await tcCheDo(env.DB, org, new Date().toISOString())) ?? "SOAN_VA_GUI",
     toChucToiQuanLy: (env, actor) => toChucToiQuanLy(env.DB, actor),
     // LỌC DANH MỤC FORM LẬP ĐƠN THEO LUẬT BÁN (ADR-0146 Đ4; T9, R-3): `catalog` không import `pricing` — gốc lắp ráp nối. Cùng điều kiện ép bên đặt như dòng trên (bên đặt máy chủ ép);

@@ -350,6 +350,11 @@ export interface Ctx<A extends Access = Access> {
    */
   cheDoThanhVien: (orgPartyId: string) => Promise<"CHI_SOAN" | "SOAN_VA_GUI">;
   /**
+   * NGƯỜI LẬP CÒN THAY MẶT TỔ CHỨC (ADR-0213 Đ5 «Nháp của người đã rời tổ chức»; Task 16 vòng sửa 1, I-2) — do gốc lắp ráp tiêm (staff + parties + pricing, cùng định nghĩa tư cách của Đ3.2).
+   * Đúng khi tài khoản `staffId` đang bật và `orgPartyId` có trong tư cách hiện có của tài khoản đó. Thiếu hàm (khung thử cũ) ⇒ false (đóng kín: không trả lại).
+   */
+  nguoiLapConThayMat: (staffId: string, orgPartyId: string) => Promise<boolean>;
+  /**
    * DỊCH VỤ BỊ LUẬT BÁN CHẶN CHO NGƯỜI GỌI (ADR-0146 Đ4; kế hoạch 2026-10-30 T9, R-3) — do gốc lắp ráp tiêm (`pricing.kiemLuatBan`; `catalog` KHÔNG import `pricing`). Trong `codes`,
    * các mã mà luật bán đang chặn cho BÊN ĐẶT MÁY CHỦ ÉP của người gọi (cùng điều kiện `benDatCuaToi`); người gọi không bị ép bên đặt ⇒ tập rỗng. Chỉ để LỌC danh mục form lập đơn —
    * cổng thật là 409 `sales_blocked` ở các cửa ghi đơn. Môi trường không tiêm (khung thử cũ), mảng rỗng, chưa đăng nhập ⇒ tập rỗng (không lọc).
@@ -595,6 +600,8 @@ export interface AppOptions {
     toChucToiQuanLy: (env: Env, actor: StaffProfile) => Promise<string[]>;
     /** ADR-0213 Đ8.2 (Task 16). Bản thật ở `src/index.ts`; thiếu (khung thử cũ) ⇒ router trả «SOAN_VA_GUI». */
     cheDoThanhVien?: (env: Env, orgPartyId: string) => Promise<"CHI_SOAN" | "SOAN_VA_GUI">;
+    /** ADR-0213 Đ5 (Task 16 vòng sửa 1). Bản thật ở `src/index.ts`; thiếu ⇒ router trả false. */
+    nguoiLapConThayMat?: (env: Env, staffId: string, orgPartyId: string) => Promise<boolean>;
     /** ADR-0146 Đ4 (T9). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguoiHuongCuaHoSo` + `kiemLuatBan` của pricing); thiếu (khung thử cũ) → router trả tập rỗng. */
     dichVuBiChanChoToi: (env: Env, actor: StaffProfile, codes: readonly string[]) => Promise<ReadonlySet<string>>;
     /** GỘP HỒ SƠ (ADR-0068). BẮT BUỘC trong mã chạy thật (`src/index.ts`). */
@@ -822,6 +829,7 @@ export function createApp(opts: AppOptions) {
         who && partyId !== null && who.permissions.includes("PARTNER") && typeof opts.injected.laQuanLyCuaBen === "function" ? opts.injected.laQuanLyCuaBen(envH, who, partyId) : Promise.resolve(false),
       toChucToiQuanLy: () =>
         who && who.permissions.includes("PARTNER") && typeof opts.injected.toChucToiQuanLy === "function" ? opts.injected.toChucToiQuanLy(envH, who) : Promise.resolve([]),
+      nguoiLapConThayMat: (sid, org) => (who && typeof opts.injected.nguoiLapConThayMat === "function" ? opts.injected.nguoiLapConThayMat(envH, sid, org) : Promise.resolve(false)),
       cheDoThanhVien: (org) => (who && typeof opts.injected.cheDoThanhVien === "function" ? opts.injected.cheDoThanhVien(envH, org) : Promise.resolve("SOAN_VA_GUI" as const)),
       dichVuBiChanChoToi: (codes) =>
         who && codes.length > 0 && typeof opts.injected.dichVuBiChanChoToi === "function" ? opts.injected.dichVuBiChanChoToi(envH, who, codes) : Promise.resolve(new Set<string>()),

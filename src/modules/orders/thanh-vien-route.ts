@@ -19,6 +19,7 @@ const DA_GIAO_DON = () => error(409, "order_delivered", "Đơn đã ở bước 
 const ORG_NO_MANAGER = () => error(409, "org_no_manager", "Tổ chức chưa có người quản lý, hãy liên hệ Tour Đảo");
 const KHONG_PHAI_DON_THANH_VIEN = () => error(409, "not_member_order", "Chỉ đơn lập thay mặt tổ chức với tư cách thành viên mới gửi người quản lý xác nhận.");
 const CHE_DO_CHI_SOAN = () => error(409, "org_mode_draft_only", "Tổ chức đang ở chế độ Chỉ soạn: người quản lý tự xem nháp của bạn, không cần gửi.");
+const NGUOI_LAP_DA_ROI = () => error(409, "member_left_org", "Người lập đơn không còn là thành viên của tổ chức nên không trả lại được. Hãy gửi đơn lên Tour Đảo hoặc huỷ đơn.");
 const KHONG_CHO = () => error(409, "member_submit_not_open", "Đơn này không có yêu cầu gửi người quản lý đang chờ.");
 
 export const thanhVienRoutes = () => [
@@ -79,7 +80,7 @@ export const thanhVienRoutes = () => [
 
   // TRẢ LẠI (Đ8.2): người quản lý có hiệu lực trả nháp đang chờ về thành viên, lý do thuộc danh sách đóng; người quản lý thôi thấy nháp («Soạn và gửi»). Ô `order.submit` với cờ `quanLyBenDat`
   // (ruling R13 — ô gửi nhận cờ; trả lại là quyết định của bước gửi). Người lập gọi ⇒ 403.
-  route("POST", "/api/orders/:id/tra-lai", "orders", async ({ env, request, params, staff, benDangThayMat, laQuanLyCuaBen, cheDoThanhVien, baoThayDoi }) => {
+  route("POST", "/api/orders/:id/tra-lai", "orders", async ({ env, request, params, staff, benDangThayMat, laQuanLyCuaBen, cheDoThanhVien, nguoiLapConThayMat, baoThayDoi }) => {
     const id = params.id!;
     if (!UUID_RE.test(id)) return NOT_FOUND_DON();
     const meta = await getMeta(env.DB, id);
@@ -94,6 +95,8 @@ export const thanhVienRoutes = () => [
     const body = await readJson(request);
     if (!laMaLyDoTraLai(body?.lyDo)) return error(400, "invalid_input", `Lý do trả lại phải là một trong: ${MA_LY_DO_TRA_LAI.join(", ")}.`);
     if (!(await conThayMatToChuc(meta, benDangThayMat))) return NOT_ACTING_FOR_ORG();
+    // Vòng sửa 1 (I-2; ADR-0213 Đ5 «Nháp của người đã rời tổ chức»: người quản lý chỉ gửi lên hoặc huỷ): trả lại cho người đã rời làm nháp kẹt vĩnh viễn ⇒ 409.
+    if (meta.actingPartyId === null || !(await nguoiLapConThayMat(meta.staffId, meta.actingPartyId))) return NGUOI_LAP_DA_ROI();
     const at = nextStamp(meta.updatedAt);
     const kq = await env.DB.batch([
       orderTouchDraft(env.DB, id, at, meta.updatedAt),

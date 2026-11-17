@@ -305,6 +305,18 @@ test("vòng sửa 1 (I-1, K1): người quản lý Gửi đơn nhánh A (dịch 
   assert.equal(w.q("SELECT count(*) AS n FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id)[0].n, 0);
 });
 
+test("vòng sửa 1 (I-2, K2): thành viên đã bị gỡ ⇒ người quản lý không trả lại được (409, nháp không kẹt), vẫn gửi lên được", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await w.call("POST", `/api/to-chuc/${SUNRISE}/go-thanh-vien`, { as: NAM, body: { personPartyId: `pty-${TV}` } })).status, 200);
+  const tl = await traLai(w, NAM, id);
+  assert.equal(tl.status, 409, tl.text);
+  assert.equal(tl.json.error.code, "member_left_org");
+  assert.equal(cho(w, id)[0].status, "MO");
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 200);
+});
+
 test("vòng sửa 1 (I-3): lô Gửi đơn nhánh B THUA (đơn đã được lô khác xác nhận ngay trước) ⇒ không dòng chờ mới, không nhật ký forwarded thừa", async () => {
   const w = setup();
   assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
