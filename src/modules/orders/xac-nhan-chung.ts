@@ -121,7 +121,7 @@ export async function quyenGhiNhap(
   const laNguoiLap = meta.staffId === staff.id;
   // Vòng sửa 1 (I-1; ADR-0213 Đ8.1, Đ8.5 «yêu cầu xác nhận mở với người gửi»): RÚT LẠI yêu cầu xác nhận của nháp tư cách thành viên — chỉ NGƯỜI MỞ yêu cầu (người quản lý đã gửi lên), và
   // người đó phải vẫn là người quản lý có hiệu lực, còn thay mặt tổ chức. Người lập (thành viên) không rút được yêu cầu người quản lý đã mở.
-  if (opts.yeuCauMoBoi !== undefined && meta.actingLinkKind === "MEMBER" && meta.actingPartyId !== null) {
+  if (opts.yeuCauMoBoi !== undefined && opts.yeuCauMoBoi !== null && meta.actingLinkKind === "MEMBER" && meta.actingPartyId !== null) { // kiểm toàn mốc B2 (m2): không có yêu cầu mở ⇒ đường thường (route trả 409 confirm_not_open)
     if (opts.yeuCauMoBoi !== staff.id) return { chan: laNguoiLap ? CHI_NGUOI_GUI_RUT() : khongThay() };
     if (!q.laQuanLyCuaBen || !(await q.laQuanLyCuaBen(meta.actingPartyId))) return { chan: khongThay() };
     if (!(await conThayMatToChuc(meta, q.benDangThayMat))) return { chan: NOT_ACTING_FOR_ORG() };

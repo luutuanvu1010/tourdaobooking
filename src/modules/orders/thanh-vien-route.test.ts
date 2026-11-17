@@ -511,3 +511,12 @@ test("toàn mốc B2 (I-B): khối thanhVien của NGƯỜI LẬP có nhãn lý 
   const q = await tvCua(NAM, id);
   assert.ok(q && !("lyDoTraLai" in q), JSON.stringify(q));
 });
+
+// ---- Kiểm toàn mốc B2 (m2): nháp thành viên KHÔNG có yêu cầu xác nhận mở ⇒ «Rút lại» trả 409 confirm_not_open như đơn thường (không 403 câu «chỉ người quản lý đã gửi …») ----
+test("toàn mốc B2 (m2): thành viên bấm rut-xac-nhan trên nháp chưa gửi lên ⇒ 409 confirm_not_open", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  const r = await w.call("POST", `/api/orders/${id}/rut-xac-nhan`, { as: TV, body: {} });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "confirm_not_open");
+});
