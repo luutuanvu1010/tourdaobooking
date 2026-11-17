@@ -5228,3 +5228,27 @@ test("R-DK-4 + ADR-0213 Đ9: tài khoản chưa kích hoạt sinh từ phiếu, 
   db.prepare("UPDATE pty_party_role SET valid_to_date = '2026-11-10' WHERE party_id = ?").run(org2);
   assert.equal(violations(db, c), 1, "tổ chức thôi vai");
 });
+
+test("R-ORD-TV1 (ADR-0213 Đ8, CẢNH BÁO): dòng chờ người quản lý còn MO mà đơn không còn là nháp → liệt kê mã đơn; dòng đã đóng hoặc đơn còn nháp thì sạch", () => {
+  const c = one("R-ORD-TV1");
+  assert.equal(c.level, "warn", "dòng thừa không đổi tiền hay quyền — cảnh báo, như R-TC-1 và R-TC-4");
+  assert.equal(c.mode, "rows");
+  const db = build();
+  // Dòng sinh ra MỞ (trigger insert_open), muốn trạng thái đóng thì đóng sau như lô thật.
+  const dongCho = (id: string, order: string, status: string) => {
+    db.prepare("INSERT INTO ord_member_submit (id, order_id, member_staff_id, org_party_id, status, opened_at, created_at, updated_at) VALUES (?, ?, 's-an', 'org-tv1', 'MO', ?, ?, ?)").run(id, order, T1, T1, T1);
+    if (status !== "MO") db.prepare("UPDATE ord_member_submit SET status = ?, closed_at = ?, closed_by = 's-an', updated_at = ? WHERE id = ?").run(status, T2, T2, id);
+  };
+  // Chèn thẳng với trạng thái đích (UPDATE sang «đã xác nhận» bị trigger chặn khi thiếu chuyến — không cần cho bài này).
+  const don = (id: string, status: string) => db.prepare("INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at) VALUES (?, ?, 's-an', ?, 'K', '0900000009', ?, ?)")
+    .run(id, `TD-${id}`, status, T1, T1);
+  don("tv1-nhap", "draft"); dongCho("tv1-m1", "tv1-nhap", "MO");
+  don("tv1-gui", "confirmed"); dongCho("tv1-m2", "tv1-gui", "DA_GUI_LEN");
+  don("tv1-huy-dong", "cancelled"); dongCho("tv1-m3", "tv1-huy-dong", "DON_HUY");
+  assert.equal(violations(db, c), 0, "nháp đang chờ, dòng đã đóng trên đơn đã gửi / đã huỷ: sạch");
+  don("tv1-xn", "confirmed"); dongCho("tv1-m4", "tv1-xn", "MO");
+  assert.equal(violations(db, c), 1, "đơn đã xác nhận mà dòng còn mở");
+  don("tv1-huy", "cancelled"); dongCho("tv1-m5", "tv1-huy", "MO");
+  assert.equal(violations(db, c), 2, "đơn đã huỷ mà dòng còn mở");
+  assert.deepEqual(db.prepare(c.sql.replace(/\s+/g, " ").trim()).all().map((r) => Object.values(r as object)[0]).sort(), ["tv1-huy", "tv1-xn"]);
+});

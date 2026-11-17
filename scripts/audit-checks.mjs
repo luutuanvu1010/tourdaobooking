@@ -373,6 +373,19 @@ export const CHECKS = [
     note: "ADR-0213 Đ2.8, Đ8.7: thành viên vẫn soạn được nhưng không ai gửi lên Tour Đảo — văn phòng giao người quản lý (Đ6). Tài khoản sinh từ phiếu chưa kích hoạt (đang tắt) cũng hiện ở đây cho tới khi kích hoạt",
   },
   {
+    // R-ORD-TV1 (ADR-0213 Đ8, CẢNH BÁO — nghiệm thu đợt 2, 17/11/2026): dòng «chờ người quản lý» (ord_member_submit) còn MO mà đơn KHÔNG còn là nháp (đã xác nhận, đã huỷ, đã giao…).
+    // Các lệnh gửi lên / huỷ đóng dòng trong CÙNG lô với việc đổi trạng thái đơn (DA_GUI_LEN, DON_HUY), nên trạng thái này chỉ do SQL gõ tay hoặc một lô thua đua. Mức «warn», không «fail»:
+    // dòng thừa không làm sai tiền hay quyền (tin «đang chờ bạn xác nhận» khép theo trạng thái hiện tại của đơn, bài thanh-vien-route «Tin … khép theo trạng thái hiện tại»), và tiền lệ
+    // của các kiểm dọn việc (R-TC-1, R-TC-4) là cảnh báo; nâng lên «fail» nếu sau một thời gian chạy production vẫn luôn 0. Liệt kê mã đơn.
+    code: "R-ORD-TV1",
+    what: "dòng chờ người quản lý còn mở mà đơn không còn là nháp",
+    sql: `SELECT m.order_id FROM ord_member_submit m JOIN orders o ON o.id = m.order_id
+     WHERE m.status = 'MO' AND o.status <> 'draft'`,
+    mode: "rows",
+    level: "warn",
+    note: "ADR-0213 Đ8: đóng dòng bằng SQL (DA_GUI_LEN hoặc DON_HUY, kèm closed_at, closed_by) sau khi xem nhật ký của đơn; dòng thừa không đổi tiền hay quyền",
+  },
+  {
     code: "R-LC-3",
     what: "một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài đang mở",
     sql: `SELECT count(*) FROM (SELECT r.party_id FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code
