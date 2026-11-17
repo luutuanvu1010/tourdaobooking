@@ -3,6 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { ACC, ADM, DRIVER, FIELD, SALES, batDongHo, don, setup } from "../../../tests/audit/dieu-phoi-khung.mjs";
+import { CHECKS } from "../../../scripts/audit-checks.mjs";
 
 const PNG = (n: number) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); return Buffer.from(u).toString("base64"); };
 const AT = "2026-01-01T00:00:00.000Z";
@@ -41,6 +42,12 @@ const quet = (w: any, as: string, ma: string, xacNhan?: object) => w.call("POST"
 const huy = (w: any, as: string, soSeri: string, lyDo = "In sai ngày, huỷ vé", extra: object = {}) => w.call("POST", "/api/ve/huy-ve", { as, body: { soSeri, lyDo, ...extra } });
 const trangThai = (w: any, serial: string) => w.q("SELECT status, voided_at, voided_by, void_reason FROM vdt_ticket WHERE serial = ?", serial)[0];
 const luot = (w: any): any[] => w.q("SELECT * FROM vdt_scan ORDER BY scanned_at, id");
+/** Mọi bất biến R-VDT-* (scripts/audit-checks.mjs) vẫn bằng 0 sau các trạng thái MỚI của ADR-0217: lô VOID còn vé giữ nguyên, vé VOID có dấu huỷ, suất trả THU_HOI. */
+const batBienVeSach = (w: any) => {
+  const ds = CHECKS.filter((c: { code: string; level: string }) => c.code.startsWith("R-VDT-") && c.level === "fail");
+  assert.ok(ds.length >= 7, "có đủ bất biến kho vé để kiểm");
+  for (const c of ds) assert.equal(Number(Object.values(w.sqlite.prepare(c.sql).get() as Record<string, unknown>)[0]), 0, c.code);
+};
 const khongLoMa = (text: string) => { assert.doesNotMatch(text, MA_TD); assert.doesNotMatch(text, /vdt\/|storage_key|ticket_code/); };
 
 // ======================================================================= A2: cấp số ==================================================================================
@@ -247,6 +254,7 @@ test("huỷ vé đã mở (Tour Đảo): được, canGuiLai = true, vé cũ qu�
     assert.equal(r2.json.veThay, "THIEU");
     assert.equal(veCuaDon(w, d.id).length, 1);
     assert.ok(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 've_thieu'")[0].n >= 1);
+    batBienVeSach(w);
   } finally { tat(); }
 });
 
@@ -411,6 +419,7 @@ test("huỷ lô đã cấp: bắt buộc lý do; huỷ mọi vé huỷ được,
     // lô VOID không cấp thêm vé: đơn mới lấy từ lô B
     const d3 = await don(w, { soNguoi: 1 });
     assert.deepEqual(w.q("SELECT t.batch_id AS lo FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE a.order_id = ?", d3.id).map((x: any) => x.lo), [b.loId]);
+    batBienVeSach(w); // lô VOID còn vé đã dùng ALLOCATED, vé huỷ có dấu huỷ, suất THU_HOI: các bất biến kho vé vẫn sạch
   } finally { tat(); }
 });
 
@@ -432,6 +441,7 @@ test("huỷ lô hãng ngoài đã cấp: vé đã mở giữ nguyên (đếm ri�
     assert.equal(trangThai(w, veCuaDon(w, d1.id)[0]!.serial).status, "ALLOCATED");
     assert.equal(veCuaDon(w, d2.id).length, 0, "đơn 2 mất suất, không còn lô nào cấp thay");
     assert.ok(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 've_thieu'")[0].n >= 1);
+    batBienVeSach(w);
   } finally { tat(); }
 });
 
