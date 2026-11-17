@@ -566,15 +566,19 @@ test("Q3: thành viên A mở đơn đã gửi lên (đã xác nhận) của th�
     const r = await w.call("GET", `/api/orders/${id}${d}`, { as: TV });
     assert.equal(r.status, 404, `thành viên A ${d || "(chi tiết)"}: ${r.status} ${r.text}`);
   }
-  // Rà mọi GET theo mã đơn (route-access SNAPSHOT): đúng «ca này» = người lập 200 mà thành viên A 403 ⇒ phải không còn (404). Người lập cũng bị từ chối = từ chối theo thao tác, giữ nguyên.
-  const ra = ["/han-muc-tu-choi", "/tu-choi-truoc", "/thuong-mai", `/payments/${crypto.randomUUID()}/bien-lai`, `/khoan-nop/${crypto.randomUUID()}/bien-lai`].map((d) => `/api/orders/${id}${d}`)
-    .concat([`/api/van-chuyen/xe-cua-don/${id}`, `/api/ve/don/${id}`], duong.map((d) => `/api/orders/${id}${d}`));
-  const conLai: string[] = [];
-  for (const u of ra) {
-    const [nguoiLap, a] = [(await w.call("GET", u, { as: TV2 })).status, (await w.call("GET", u, { as: TV })).status];
-    if (nguoiLap === 200 && a === 403) conLai.push(u);
+  // Rà mọi GET theo mã đơn (route-access SNAPSHOT): thành viên A trên đơn thật của B phải nhận ĐÚNG mã như với một mã đơn KHÔNG tồn tại (không dò được đơn có hay không).
+  // So với mã đơn lạ (không so với người lập — mã con lạ như receiptId làm người lập cũng 404, che mất ca 403 — vòng sửa cuối I-1).
+  const lam = crypto.randomUUID();
+  const con = [crypto.randomUUID(), crypto.randomUUID()];
+  const mau = (don: string) => [...duong.map((d) => `/api/orders/${don}${d}`), `/api/orders/${don}/han-muc-tu-choi`, `/api/orders/${don}/tu-choi-truoc`, `/api/orders/${don}/thuong-mai`,
+    `/api/orders/${don}/payments/${con[0]}/bien-lai`, `/api/orders/${don}/khoan-nop/${con[1]}/bien-lai`, `/api/van-chuyen/xe-cua-don/${don}`, `/api/ve/don/${don}`];
+  const [that, la] = [mau(id), mau(lam)];
+  const lo: string[] = [];
+  for (let i = 0; i < that.length; i++) {
+    const [a, b] = [(await w.call("GET", that[i]!, { as: TV })).status, (await w.call("GET", la[i]!, { as: TV })).status];
+    if (a !== b) lo.push(`${that[i]}: đơn thật ${a}, mã lạ ${b}`);
   }
-  assert.deepEqual(conLai, [], "đường đọc còn 403 cho thành viên cùng tổ chức");
+  assert.deepEqual(lo, [], "thành viên cùng tổ chức phân biệt được đơn có thật");
   assert.equal((await w.call("GET", `/api/orders/${id}`, { as: LA })).status, 403, "Đối tác lạ: như hôm nay");
   assert.equal((await w.call("GET", `/api/orders/${id}`, { as: NAM })).status, 200, "người quản lý thấy");
 });

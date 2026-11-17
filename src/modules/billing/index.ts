@@ -229,7 +229,7 @@ export const billingModule: AppModule = {
     // → ảnh thuộc khoản thu CỦA ĐÚNG đơn :id, đã lưu, chưa quyết xoá (mọi cách hỏng ⇒ CÙNG một 404) → GHI NHẬT KÝ chỉ mã → đọc kho → thân + header no-store, nosniff,
     // CSP sandbox. Ghi nhật ký lỗi thì ném lên (500), KHÔNG đọc kho. Bài src/kho-tep-bien-lai.test.ts (2) ghim thứ tự ô → nhật ký → đọc kho (chú thích đừng viết
     // tên hàm đọc kho kèm ngoặc).
-    route("GET", "/api/orders/:id/payments/:receiptId/bien-lai", "orders", async ({ request, env, staff, params, laQuanLyCuaBen }) => {
+    route("GET", "/api/orders/:id/payments/:receiptId/bien-lai", "orders", async ({ request, env, staff, params, laQuanLyCuaBen, tuCachCuaToi }) => {
       const sfs = request.headers.get("sec-fetch-site");
       if (sfs !== null && sfs !== "same-origin" && sfs !== "none") return BIEN_LAI_TRANG_KHAC();
       const kho = env.BIEN_LAI;
@@ -240,7 +240,7 @@ export const billingModule: AppModule = {
       const info = await thongTinGiaoDon(env.DB, id);
       if (!info) return BIEN_LAI_NOT_FOUND();
       const quanLyBenDat = await quanLyBenDatCuaDon(env.DB, staff, { id, ownerId: info.ownerId, status: info.status }, laQuanLyCuaBen); // ADR-0213 Đ5
-      if (!can(staff, "payment.proof.view", { ownerId: info.ownerId, quanLyBenDat })) return BIEN_LAI_FORBIDDEN();
+      if (!can(staff, "payment.proof.view", { ownerId: info.ownerId, quanLyBenDat })) return (await donThanhVienCungToChuc(env.DB, staff, id, tuCachCuaToi)) ? BIEN_LAI_NOT_FOUND() : BIEN_LAI_FORBIDDEN(); // Q3 (chủ 17/11)
       const anh = await anhCuaKhoan(env.DB, id, rid);
       if (!anh || anh.stored_at === null || anh.purged_at !== null) return BIEN_LAI_NOT_FOUND();
       await env.DB.batch([
@@ -301,7 +301,7 @@ export const billingModule: AppModule = {
     }),
     // Xem ảnh biên lai của khoản nộp (khuôn route xem ảnh khoản thu, ADR-0196 Đ6): sec-fetch-site → 503 kho → mã → đơn → ô xem (403) → ảnh thuộc khoản nộp CỦA ĐÚNG đơn, đã lưu,
     // chưa quyết xoá (mọi cách hỏng ⇒ CÙNG một 404) → GHI NHẬT KÝ chỉ mã → đọc kho → thân + header no-store, nosniff, CSP sandbox.
-    route("GET", "/api/orders/:id/khoan-nop/:nopId/bien-lai", "orders", async ({ request, env, staff, params, laQuanLyCuaBen }) => {
+    route("GET", "/api/orders/:id/khoan-nop/:nopId/bien-lai", "orders", async ({ request, env, staff, params, laQuanLyCuaBen, tuCachCuaToi }) => {
       const sfs = request.headers.get("sec-fetch-site");
       if (sfs !== null && sfs !== "same-origin" && sfs !== "none") return BIEN_LAI_TRANG_KHAC();
       const kho = env.BIEN_LAI;
@@ -318,7 +318,7 @@ export const billingModule: AppModule = {
           ? can(staff, "dai-ly.nop.xem", { ownerId: staff.id })
           : laTaiKhoanDoiTac(staff) && ben.staff_id !== staff.id && can(staff, "dai-ly.nop.xem", { quanLyBenDat: await laQuanLyCuaBen(ben.booker_party_id) })
         : can(staff, "dai-ly.nop.xem");
-      if (!xemDuoc) return BIEN_LAI_FORBIDDEN();
+      if (!xemDuoc) return (await donThanhVienCungToChuc(env.DB, staff, id, tuCachCuaToi)) ? BIEN_LAI_NOT_FOUND() : BIEN_LAI_FORBIDDEN(); // Q3 (chủ 17/11)
       const anh = await anhCuaKhoanNop(env.DB, id, nid);
       if (!anh || anh.stored_at === null || anh.purged_at !== null) return BIEN_LAI_NOT_FOUND();
       await env.DB.batch([
