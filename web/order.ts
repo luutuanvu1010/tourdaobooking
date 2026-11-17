@@ -44,6 +44,7 @@ import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
 import { CHU_MIEN_PHI, dongPhiTrenDon } from "../src/shared/phi-don-hien-thi";
 import { nhanCamKet } from "../src/shared/cam-ket-xe";
 import { can, holdsPartner } from "../src/shared/permissions";
+import { anTienNhapNguoiKhac } from "../src/shared/tu-cach-hien-thi";
 import { CAU_NHAC_NOP_TIEN, CAU_PHIEU_CHUA_XAC_NHAN, TEN_PHIEU_CONG_NO, laTaiKhoanDoiTac, xemDuocPhieuCongNo } from "../src/shared/cong-no-dai-ly";
 import { khoiKhoanNop } from "./khoan-nop-ui";
 import { GHI_CHU_HUY_TOI_DA, NHOM_HUY_NHAN, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
@@ -669,7 +670,7 @@ function tienCard(order: Order): HTMLElement {
   } else if (t) {
     rows.push(kv(nhanTienDaTra(order).nhan, vnd(t.daThu)));
     rows.push(t.du > 0 ? kv("Khách trả dư", `${vnd(t.du)} — chờ Kế toán hoàn`, "strong") : kv("Còn lại", vnd(t.conLai), "strong"));
-  } else rows.push(kv("Đã thu / còn lại", "Chưa tải được"));
+  } else if (!anTienNhapNguoiKhac({ status: order.status, laNguoiLap: order.staffId === staff!.id, giuDoiTac: holdsPartner(staff!) })) rows.push(kv("Đã thu / còn lại", "Chưa tải được")); // Task 18 (1b)
   if (order.paymentTerm === "CREDIT") rows.push(kv("Hình thức thanh toán", nhanHinhThucDon(order.paymentTerm, order.hanTra)), ...dongTraSauDon(order, traSauDon ?? null, () => load(true)));
   if (!anChiTiet("paymentNote")) rows.push(kv("Ghi chú thanh toán", order.paymentNote));
   // ADR-0063 D1 + ADR-0109 QĐ3: bớt khách tới mức giảm giá lớn hơn tạm tính KHÔNG bị chặn — câu cảnh báo hiện thường trực trên khối tiền (phải thu đã kẹp 0).

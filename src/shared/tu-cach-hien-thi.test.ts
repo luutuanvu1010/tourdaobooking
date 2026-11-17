@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cheDoTuCach, laTuCachThanhVien, nhanMucTuCach, tuCachBanDau, type TuCachHienThi } from "./tu-cach-hien-thi.ts";
+import { anTienNhapNguoiKhac, cheDoTuCach, laTuCachThanhVien, nhanMucTuCach, tuCachBanDau, type TuCachHienThi } from "./tu-cach-hien-thi.ts";
 
 const NAM: TuCachHienThi = { partyId: "p-nam", ten: "Anh Nam", laToChuc: false };
 const SUN: TuCachHienThi = { partyId: "p-sun", ten: "Khách sạn Sunrise", laToChuc: true };
@@ -33,4 +33,13 @@ test("laTuCachThanhVien (Task 17): chỉ tư cách THÀNH VIÊN ẩn «Gửi đ�
   assert.equal(laTuCachThanhVien({ partyId: "p", ten: "Nam", laToChuc: false, loai: "CA_NHAN" }), false);
   assert.equal(laTuCachThanhVien({ partyId: "o", ten: "Sunrise", laToChuc: true }), false);
   assert.equal(laTuCachThanhVien(null), false);
+});
+
+// Task 18 phần 1b: người quản lý (giữ quyền Đối tác) mở nháp của người khác — route tiền của đơn từ chối (không mở quyền tiền), nên trang không hiện dòng «Chưa tải được».
+test("anTienNhapNguoiKhac: chỉ nháp, người xem không phải người lập, giữ quyền Đối tác", () => {
+  assert.equal(anTienNhapNguoiKhac({ status: "draft", laNguoiLap: false, giuDoiTac: true }), true);
+  assert.equal(anTienNhapNguoiKhac({ status: "draft", laNguoiLap: true, giuDoiTac: true }), false, "nháp của chính mình: route tiền trả số");
+  assert.equal(anTienNhapNguoiKhac({ status: "draft", laNguoiLap: false, giuDoiTac: false }), false, "văn phòng: giữ hành vi cũ");
+  assert.equal(anTienNhapNguoiKhac({ status: "confirmed", laNguoiLap: false, giuDoiTac: true }), false, "đơn đã gửi lên: route tiền mở cho người quản lý bên đặt");
+  assert.equal(anTienNhapNguoiKhac({ status: "cancelled", laNguoiLap: false, giuDoiTac: true }), false);
 });

@@ -27,3 +27,10 @@ export function tuCachBanDau(ds: readonly TuCachHienThi[], lanCuoi: string | nul
 
 /** Nhãn một mục của ô chọn: tổ chức ghi tên tổ chức; cá nhân ghi «<tên> (cá nhân)». */
 export const nhanMucTuCach = (t: TuCachHienThi): string => (t.laToChuc ? t.ten : `${t.ten} (cá nhân)`);
+
+/**
+ * Trang đơn (Task 18 phần 1b, ADR-0213 Đ5, Đ8): người giữ quyền Đối tác mở NHÁP của người khác (người quản lý thay nháp thành viên, hoặc nháp đang chờ văn phòng) — route tiền của đơn
+ * (`GET /api/orders/:id/payments`) từ chối nháp không phải của mình; KHÔNG mở quyền tiền ở máy chủ, nên trang ẩn phần số đã thu / còn lại thay vì hiện «Chưa tải được».
+ * Tạm tính / Tổng cộng vẫn hiện (đến từ chi tiết đơn, đã qua `money.view`).
+ */
+export const anTienNhapNguoiKhac = (v: { status: "draft" | "confirmed" | "cancelled"; laNguoiLap: boolean; giuDoiTac: boolean }): boolean => v.status === "draft" && !v.laNguoiLap && v.giuDoiTac;
