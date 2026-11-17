@@ -180,6 +180,7 @@
 | `ord_service_terms_pax` | bảng | bản chụp ba số tiền «mỗi khách» theo loại cùng bản chụp điều khoản (ADR-0133; migration 0116), CHỈ-THÊM: chỉ gắn vào bản chụp hoa hồng SET kiểu PER_PAX còn là bản hiện hành của đơn chưa Đã giao; số người lớn bằng commission_per_pax; bản AUTO phải khớp dòng phụ của mức nguồn (trigger terms_pax_rule_stale). Không sửa, không xoá. Số tiền KHÔNG vào DTO của Đối tác |
 | `ord_audit_cutoff` | bảng | mốc của kiểm định kỳ R-ORD-T1 (đặc tả sổ đại lý đợt 1 §9; khuôn bil_audit_cutoff; migration 0090), CHỈ-THÊM: code → cutoff_at = lúc áp migration. Đơn xác nhận từ mốc + 60 phút mà thiếu bản chụp = LỖI, trước đó = cảnh báo kèm danh sách. Không tiền, không dữ liệu cá nhân. Dòng 'R-ORD-DC1' (0112, ADR-0079 điều 9): mốc kiểm «đơn có người hưởng xác nhận sau mốc: giảm giá ≤ tổng hoa hồng chụp lúc xác nhận» |
 | `v_ord_order_label` | view công bố | cột: id, order_code |
+| `v_ord_member_submit_open` | view công bố | cột: order_id, opened_at |
 | `v_ord_order_owner` | view công bố | cột: id, staff_id |
 | `v_ord_order_flag` | view công bố | cột: id, is_confirmed, is_cancelled |
 | `v_ord_kenh_thu` | view công bố | cột: id, staff_id, company_collects_snapshot |

@@ -238,3 +238,29 @@ test("Tin đích danh (Đ8.6, Ruling R11): gửi ⇒ người quản lý; trả 
   assert.ok(t3.some((t) => t.cau === `Người quản lý đã gửi đơn ${ma} lên Tour Đảo`), JSON.stringify(t3));
   for (const a of ["order_member_submitted", "order_member_returned", "order_member_forwarded"]) for (const d of nk(w, a)) assert.doesNotMatch(String(d.detail ?? ""), /0\d{9}/);
 });
+
+// Chủ dự án 27/10 (khuôn tin «đang chờ xác nhận», yeuCauDaKhep): tin «đang chờ bạn xác nhận» chỉ còn khi dòng chờ CÒN MỞ và nháp còn là nháp — rút lại, trả lại, gửi lên, người quản lý huỷ
+// ⇒ tin biến mất; gửi lại ⇒ đúng MỘT tin (lần gửi mới nhất), tin cũ không quay lại.
+test("Tin «đang chờ bạn xác nhận» khép theo trạng thái hiện tại: rút lại, trả lại, gửi lên, huỷ ⇒ hết tin; gửi lại ⇒ một tin", async () => {
+  const w = setup();
+  const tinCho = async (id: string): Promise<number> => {
+    const ma = w.q("SELECT order_code AS m FROM orders WHERE id = ?", id)[0].m;
+    return ((await w.call("GET", "/api/thong-bao?ngan=tat-ca", { as: NAM })).json.tin as { maDon: string; cau: string }[]).filter((t) => t.maDon === ma && t.cau === `Đơn ${ma} đang chờ bạn xác nhận`).length;
+  };
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal(await tinCho(id), 1);
+  assert.equal((await rutQl(w, TV, id)).status, 200);
+  assert.equal(await tinCho(id), 0, "rút lại");
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal(await tinCho(id), 1, "gửi lại: đúng một tin");
+  assert.equal((await traLai(w, NAM, id)).status, 200);
+  assert.equal(await tinCho(id), 0, "trả lại");
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 200);
+  assert.equal(await tinCho(id), 0, "gửi lên");
+  const id2 = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id2)).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${id2}/status`, { as: NAM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
+  assert.equal(await tinCho(id2), 0, "người quản lý huỷ");
+});

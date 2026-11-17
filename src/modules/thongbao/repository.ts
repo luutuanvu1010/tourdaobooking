@@ -1,5 +1,5 @@
 // SQL của module thongbao (bảng ntf_*; ADR-0034 + ADR-0036). Mọi câu qua defineSql, tham số ?N. Đọc xuyên module CHỈ qua view công bố:
-// v_aud_order_event + v_aud_order_notice_direct (ADR-0213 Đ8.6) + v_aud_order_change + v_aud_trip_event + v_aud_account_event + v_aud_ledger_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler + v_dsp_sales_owner + v_dsp_sales_invite_open (dispatch; ADR-0142), v_stf_staff_label (staff).
+// v_aud_order_event + v_aud_order_notice_direct (ADR-0213 Đ8.6) + v_ord_member_submit_open (orders, Task 16) + v_aud_order_change + v_aud_trip_event + v_aud_account_event + v_aud_ledger_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler + v_dsp_sales_owner + v_dsp_sales_invite_open (dispatch; ADR-0142), v_stf_staff_label (staff).
 // Không DELETE, không OR REPLACE (R-N1-9).
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { DongDichDanh, DongDieuChinh, DongDon, DongThuCong } from "../../shared/thong-bao.ts";
@@ -315,6 +315,9 @@ const LIST_DICH_DANH = defineSql("thongbao", "list_dich_danh", `
   SELECT e.id, e.order_id, o.order_code AS ma_don, e.action, e.staff_id AS actor_id, e.target_id, e.created_at AS luc
   FROM v_aud_order_notice_direct e JOIN v_ord_order_label o ON o.id = e.order_id
   WHERE e.created_at >= ?1 AND e.target_id = ?2
+    -- «đang chờ bạn xác nhận» chỉ còn khi CHÍNH lần gửi đó còn mở (dòng mở cùng mốc) và nháp còn là nháp — rút lại / trả lại / gửi lên / huỷ ⇒ hết tin (khuôn yeuCauDaKhep, chủ 27/10).
+    AND (e.action <> 'order_member_submitted' OR EXISTS (SELECT 1 FROM v_ord_member_submit_open m JOIN v_ord_order_state st ON st.id = m.order_id
+                                                         WHERE m.order_id = e.order_id AND m.opened_at = e.created_at AND st.status = 'draft'))
   ORDER BY e.created_at DESC LIMIT 500`);
 export async function listTinDichDanh(db: D1Database, tu: string, staffId: string): Promise<DongDichDanh[]> {
   const r = (await db.prepare(LIST_DICH_DANH).bind(tu, staffId).all<{ id: string; order_id: string; ma_don: string; action: DongDichDanh["action"]; actor_id: string | null; target_id: string; luc: string }>()).results;

@@ -146,6 +146,9 @@ WHEN (NEW.status = 'MO' AND (NEW.closed_at IS NOT NULL OR NEW.closed_by IS NOT N
 BEGIN SELECT RAISE(ABORT, 'ord_member_submit_shape: đóng phải có giờ và người đóng; lý do chỉ và luôn có khi trả lại; dòng mở chưa có dấu đóng'); END;
 CREATE TRIGGER ord_member_submit_no_delete BEFORE DELETE ON ord_member_submit
 BEGIN SELECT RAISE(ABORT, 'ord_member_submit_no_delete: dòng chờ người quản lý không xoá'); END;
+-- View công bố của orders (chỉ khoá): dòng chờ người quản lý ĐANG MỞ — thongbao chỉ còn tin «đang chờ bạn xác nhận» khi dòng còn mở và nháp còn là nháp (khuôn yeuCauDaKhep, chủ 27/10).
+CREATE VIEW v_ord_member_submit_open AS                 -- module orders
+  SELECT order_id, opened_at FROM ord_member_submit WHERE status = 'MO';
 
 -- audit: tin ĐÍCH DANH về đơn (Ruling R11; ADR-0213 Đ8.6) — chỉ khoá. Ba hành động ghi `target_type = 'staff'`, `target_id` = người nhận. KHÔNG đổi `v_aud_order_event`.
 -- Người đọc: chỉ thongbao (hộp thông báo của người nhận). Tập hành động = HANH_DONG_TIN_DICH_DANH (src/shared/thong-bao.ts — bài src/migrations-thanh-vien.test.ts).

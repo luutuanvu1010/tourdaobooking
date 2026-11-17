@@ -1500,6 +1500,7 @@
       ]
     },
     { "name": "v_aud_order_notice_direct", "module": "audit", "columns": ["id", "order_id", "staff_id", "action", "target_id", "created_at"] },
+    { "name": "v_ord_member_submit_open", "module": "orders", "columns": ["order_id", "opened_at"] },
     {
       "name": "v_aud_trip_event",
       "module": "audit",
@@ -2139,6 +2140,7 @@
     "v_aud_order_cmd": { "id": "N1", "order_id": "N1", "action": "N1" },
     "v_aud_order_ban_hang": { "id": "N1", "order_id": "N1" },
     "v_aud_order_event": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
+    "v_ord_member_submit_open": { "order_id": "N1", "opened_at": "N1" },
     "v_aud_order_notice_direct": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "target_id": "N1", "created_at": "N1" },
     "v_aud_trip_event": { "id": "N1", "trip_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
     "v_bil_coc_don": { "order_id": "N1", "da_tra": "N1", "dang_doi_chieu": "N1", "hoan_truoc_huy": "N1", "da_duyet": "N1", "da_chi": "N1", "da_chuyen": "N1", "hoan_ngoai": "N1", "con_giu_luc_huy": "N1", "con_giu": "N1", "cho_chi": "N1" },
