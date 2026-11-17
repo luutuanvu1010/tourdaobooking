@@ -393,7 +393,7 @@ async function openDetail(id: string): Promise<void> {
   // Mục «Hoa hồng hiện hành» (góp ý YC-0020): người giữ ô partner.commission.view đọc; ô partner.commission.write gắn / kết thúc mức riêng (ADR-0138). Hồ sơ không mang loại được hưởng thì mục tự ẩn; máy chủ từ chối (tài khoản lai…) cũng ẩn.
   // Khối «Người quản lý tổ chức» (ADR-0213 Đ6): hồ sơ TỔ CHỨC, ba vai văn phòng giữ ô partner.org.manager.write, không Đối tác — cùng cổng máy chủ.
   const khoiToChuc = p.kind === "ORGANIZATION" && !p.mergedInto && can(me, "partner.org.manager.write") && !holdsPartner(me) ? h("section", { id: "to-chuc-van-phong", "aria-label": "Người quản lý tổ chức" }) : null;
-  if (khoiToChuc) dungKhoiToChucVanPhong(khoiToChuc, id);
+  if (khoiToChuc) dungKhoiToChucVanPhong(khoiToChuc, id, can(me, "admin.manage.superadmin")); // B2 Task 17: Toàn quyền đặt chế độ thành viên (cùng cổng PUT …/che-do)
   const hoaHong = can(me, "partner.commission.view") && !p.mergedInto ? h("section", { id: "hoa-hong-hien-hanh", "aria-labelledby": "hhhh-title", hidden: true }) : null;
   if (hoaHong) void veHoaHongHienHanh(hoaHong, p);
 

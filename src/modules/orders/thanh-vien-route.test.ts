@@ -288,6 +288,20 @@ test("Task 17 (giao diện B2): trang đơn biết nháp thành viên — khối
 
 // ---- Task 16 vòng sửa 1 (người kiểm độc lập) ----
 
+test("vòng sửa 1 (I-3): lô Gửi đơn nhánh B THUA (đơn đã được lô khác xác nhận ngay trước) ⇒ không dòng chờ mới, không nhật ký forwarded thừa", async () => {
+  const w = setup();
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const id = await lap(w, TV);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /ord_member_submit/.test(s.sql) && /DA_GUI_LEN/.test(s.sql)), async () => {
+    const t = new Date(Date.now() + 5).toISOString();
+    w.sqlite.prepare("UPDATE orders SET status = 'confirmed', updated_at = ? WHERE id = ?").run(t, id);
+  });
+  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.notEqual(g.status, 200, g.text);
+  assert.deepEqual(cho(w, id), [], "không dòng chờ giả");
+  assert.equal(nk(w, "order_member_forwarded").length, 0, "không nhật ký forwarded thừa");
+});
+
 test("vòng sửa 1 (m-2): ngoại lệ nháp chỉ đổi người chủ cho ô sửa (canModify) ở chi tiết đơn — phạm vi các ô own khác giữ người lập", async () => {
   const { readFileSync } = await import("node:fs");
   const src = readFileSync(new URL("./index.ts", import.meta.url), "utf8");

@@ -44,7 +44,7 @@ import { canhBaoDoiTac } from "./canh-bao-doi-tac";
 import { createCatalogPicker } from "./catalog-picker";
 import { dongBenDatChiDoc, oDatQuaDoiTac, type DatQuaDoiTac } from "./dat-qua-doi-tac";
 import { docTuCachCuoi, luuTuCachCuoi } from "./tu-cach-nho";
-import { cheDoTuCach, nhanMucTuCach, tuCachBanDau, type TuCachHienThi } from "../src/shared/tu-cach-hien-thi";
+import { cheDoTuCach, laTuCachThanhVien, nhanMucTuCach, tuCachBanDau, type TuCachHienThi } from "../src/shared/tu-cach-hien-thi";
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
 import { CAU_COC_TRA_SAU, CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
@@ -1238,6 +1238,7 @@ if (holdsPartner(staff)) {
 }
 const cheDoTC = cheDoTuCach(tuCachDs);
 let tuCachChon: TuCachHienThi | null = cheDoTC === "khong" ? null : tuCachBanDau(tuCachDs, docTuCachCuoi());
+guiDonKhiLuu = holdsPartner(staff) && !laTuCachThanhVien(tuCachChon); // ADR-0213 Đ8.1 (Task 17): thành viên chỉ lưu nháp
 let khoiBenDat: KhoiBenDatForm = tuCachChon ? { kieu: "chi-doc", benDat: { partyId: tuCachChon.partyId, ten: tuCachChon.ten } } : khoiBenDatForm(staff, benDatCuaToi());
 // ADR-0185 Đ1 (kế hoạch K10): giữ quyền Đối tác mà máy chủ không ép bên đặt ⇒ Gửi đơn sẽ bị chặn — báo trước bằng dải vàng ở ĐẦU thẻ Khách hàng. Đặt trong dòng «Ngày khởi hành»
 // vì công tắc «Ẩn thông tin khách» (ADR-0154 Đ2.2, áp cho đối tác) chỉ để lại dòng đó của khối; đặt chỗ khác thì đối tác bị ẩn khách không thấy dải.
@@ -1339,6 +1340,8 @@ if (khoiBenDat.kieu === "chi-doc") {
       const moi = tuCachDs.find((t) => t.partyId === oTuCach.value);
       if (!moi) return;
       tuCachChon = moi;
+      guiDonKhiLuu = holdsPartner(staff) && !laTuCachThanhVien(moi);
+      recompute();
       luuTuCachCuoi(moi.partyId);
       khoiBenDat = { kieu: "chi-doc", benDat: { partyId: moi.partyId, ten: moi.ten } };
       const moiEl = dongBenDatChiDoc(khoiBenDat.benDat);

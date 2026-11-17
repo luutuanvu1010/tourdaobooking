@@ -156,6 +156,12 @@ export function duocGuiLenTourDao(v: { tuCach: "CA_NHAN" | "TO_CHUC" | null; laN
 // ---- ADR-0213 Đ8.2 (mốc B2, Task 16): lý do người quản lý trả lại nháp của thành viên — tập đóng (CHECK của ord_member_submit.reason_code cùng tập).
 export const MA_LY_DO_TRA_LAI = ["SAI_DICH_VU", "SAI_NGAY", "SAI_SO_KHACH", "KHONG_DAT_NUA", "KHAC"] as const;
 export type MaLyDoTraLai = (typeof MA_LY_DO_TRA_LAI)[number];
+/** Nhãn hiện cho người quản lý ở hộp «Trả lại» (Task 17; AI viết, chờ chủ chọn — bảng tham chiếu). Khoá = tập đóng ở trên. */
+export const NHAN_LY_DO_TRA_LAI: Readonly<Record<MaLyDoTraLai, string>> = {
+  SAI_DICH_VU: "Sai dịch vụ", SAI_NGAY: "Sai ngày", SAI_SO_KHACH: "Sai số khách", KHONG_DAT_NUA: "Khách không đặt nữa", KHAC: "Lý do khác",
+};
+/** Hai chế độ thành viên (Đ8.2) — tên nguyên văn ADR-0213. */
+export const NHAN_CHE_DO_THANH_VIEN = { CHI_SOAN: "Chỉ soạn", SOAN_VA_GUI: "Soạn và gửi người quản lý xác nhận" } as const;
 export const laMaLyDoTraLai = (v: unknown): v is MaLyDoTraLai => typeof v === "string" && (MA_LY_DO_TRA_LAI as readonly string[]).includes(v);
 
 // ---- ADR-0213 Đ7 (mốc B2, Task 15): mã vào tổ chức ---------------------------------------------------------------------------------------------------------

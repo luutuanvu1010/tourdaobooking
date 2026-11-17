@@ -1,6 +1,7 @@
 // Màn «Hồ sơ tổ chức» của NGƯỜI QUẢN LÝ tổ chức (ADR-0213 Đ2, Đ5, Đ6; mốc B1 Task 14): ai là người quản lý, thành viên, gửi yêu cầu «Chuyển quyền quản lý» (chỉ gửi — văn phòng quyết, Đ6),
 // gỡ thành viên, cấp độ đại lý của tổ chức (chỉ đọc) và công nợ Trả sau của tổ chức. Mở bằng `/to-chuc?id=<mã hồ sơ tổ chức>` từ trang Tôi.
 //   GET /api/to-chuc/:id · GET /api/pricing/cap-cua-to-chuc/:id · GET /api/tra-sau/cua-toi (phần `toChuc`) · POST /api/to-chuc/:id/{yeu-cau-chuyen, go-thanh-vien}
+//   B2 (Task 17): POST /api/to-chuc/:id/loi-moi (mã hiện MỘT lần, chỉ trong trang — không lưu ở máy) · POST /api/to-chuc/:id/loi-moi/:mid/huy · PUT /api/to-chuc/:id/che-do
 // Màn chỉ ẩn / hiện; máy chủ kiểm lại vai người quản lý có hiệu lực ở mọi lời gọi. Số nợ và hạn do máy chủ tính, giờ theo giờ Việt Nam. Không innerHTML; dựng bằng h().
 import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
@@ -10,7 +11,8 @@ import { cauDonNo, cauGio } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { holdsPartner } from "../src/shared/permissions";
 import { dongTien } from "../src/shared/tra-sau";
 import { ngayVN } from "../src/shared/giay-to-hien-thi";
-import { vnDateTimeText } from "../src/shared/vn-date";
+import { ngayDayDu, vnDateTimeText, vnToday } from "../src/shared/vn-date";
+import { NHAN_CHE_DO_THANH_VIEN } from "../src/shared/to-chuc";
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -65,6 +67,78 @@ function veThanhVien(t: Api.ToChucDto): void {
     dangCho ? h("p", { class: "muted", id: "tc-yeu-cau" }, `Đang chờ Tour Đảo xử lý yêu cầu chuyển quyền quản lý cho ${dangCho.nguoiDeXuat.ten} (gửi ${vnDateTimeText(dangCho.luc)}).`) : null);
 }
 
+/** Ngày Việt Nam (dd/mm/yyyy) của một mốc ISO. */
+const ngayCua = (iso: string): string => ngayDayDu(vnToday(new Date(iso)));
+const NHAN_TRANG_THAI_LOI_MOI = { MO: "Chưa dùng", GIU_CHO_PHIEU: "Đang chờ phiếu đăng ký được duyệt" } as const;
+
+/** Mã vừa tạo: chỉ nằm trong khối này của trang (không localStorage, không địa chỉ); tải lại trang là mất — người mời huỷ và tạo lời mời mới nếu quên mã. */
+function hienMa(cau: string | null, ma?: string): void {
+  const el = byId("tc-ma");
+  el.hidden = cau === null;
+  replaceChildren(el, ...(cau === null ? [] : [h("p", { class: "alert ok" }, cau), ma ? h("p", { class: "tc-ma" }, h("strong", null, ma)) : null]));
+}
+
+function veLoiMoi(t: Api.ToChucDto): void {
+  const oSo = h("input", { type: "tel", class: "o", id: "tc-moi-so", inputmode: "tel", autocomplete: "off", "aria-describedby": "tc-moi-goi-y" }) as HTMLInputElement;
+  const nutTao = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "tc-moi-tao" }, "Tạo lời mời") as HTMLButtonElement;
+  nutTao.addEventListener("click", () => void (async () => {
+    hienLoi(null); hienOk(null); hienMa(null);
+    if (oSo.value.trim() === "") { hienLoi("Hãy nhập số điện thoại của người được mời."); oSo.focus(); return; }
+    nutTao.disabled = true;
+    try {
+      const r = await api<Partial<Api.TaoLoiMoiResponse>>(`/api/to-chuc/${encodeURIComponent(id)}/loi-moi`, { method: "POST", body: { soDienThoai: oSo.value.trim() } });
+      oSo.value = "";
+      await nap();
+      // Lớp chống ghi trùng chỉ lưu địa chỉ trả về: bấm lại cùng lượt thì máy chủ KHÔNG trả lại mã — nói rõ cách làm tiếp, không đoán mã.
+      if (r.loiMoi?.ma && r.message) hienMa(r.message, r.loiMoi.ma);
+      else hienMa("Lời mời đã được tạo ở lần bấm trước nhưng mã không hiện lại được. Hãy huỷ lời mời đó ở danh sách dưới rồi tạo lời mời mới.");
+      byId("tc-ma").scrollIntoView({ block: "nearest" });
+    } catch (e) {
+      hienLoi(lyDoLoi(e));
+    } finally {
+      nutTao.disabled = false;
+    }
+  })());
+  const ds = t.loiMoi ?? [];
+  replaceChildren(byId("tc-lm"),
+    h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Số điện thoại người được mời"), oSo),
+    h("p", { class: "muted", id: "tc-moi-goi-y" }, "Nền tảng tạo một mã dùng một lần, hạn 7 ngày. Bạn tự gửi mã cho người được mời; mã chỉ hiện một lần."),
+    nutTao,
+    h("h3", null, "Lời mời chưa dùng"),
+    ds.length === 0
+      ? h("p", { class: "muted", id: "tc-lm-rong" }, "Không có lời mời nào đang chờ.")
+      : h("ul", { class: "tc-lm-ds" }, ...ds.map((lm) => {
+          const nutHuy = h("button", { type: "button", class: "nut", "data-tong": "nguy-hiem", "data-huy-loi-moi": lm.id }, "Huỷ lời mời") as HTMLButtonElement;
+          nutHuy.addEventListener("click", () => void (async () => {
+            const dongY = await hoiXacNhan({ tieuDe: "Huỷ lời mời", hauQua: "Mã của lời mời này sẽ không dùng được nữa. Nếu người được mời đang chờ duyệt phiếu đăng ký, phiếu vẫn đi tiếp nhưng không vào tổ chức.", nhanNguyHiem: "Huỷ lời mời", nhanGiu: "Thôi", opener: nutHuy });
+            if (!dongY) return;
+            hienMa(null);
+            await lenh(nutHuy, async () => { await api(`/api/to-chuc/${encodeURIComponent(id)}/loi-moi/${encodeURIComponent(lm.id)}/huy`, { method: "POST", body: {} }); return "Đã huỷ lời mời."; });
+          })());
+          return h("li", { class: "dong tc-dong", "data-loi-moi": lm.id },
+            h("span", { class: "tc-dong-ten" }, `Tạo lúc ${vnDateTimeText(lm.taoLuc)}`, " ", h("span", { class: "muted" }, `${NHAN_TRANG_THAI_LOI_MOI[lm.trangThai]} · dùng được tới ${ngayCua(lm.hetHan)}`)), nutHuy);
+        })));
+}
+
+/** Chế độ thành viên (Đ8.2, Đ8.3): người quản lý có hiệu lực đặt; đổi chế độ không đổi nháp đang chờ. */
+function veCheDo(t: Api.ToChucDto): void {
+  const hienTai = t.cheDo ?? "SOAN_VA_GUI";
+  const chon = (["SOAN_VA_GUI", "CHI_SOAN"] as const).map((ma) => {
+    const o = h("input", { type: "radio", name: "tc-che-do", value: ma, checked: ma === hienTai }) as HTMLInputElement;
+    return { ma, o, nhan: h("label", { class: "check" }, o, h("span", null, NHAN_CHE_DO_THANH_VIEN[ma])) };
+  });
+  const nutLuu = h("button", { type: "button", class: "nut", "data-cap": "phu", id: "tc-che-do-luu" }, "Lưu chế độ") as HTMLButtonElement;
+  nutLuu.addEventListener("click", () => void (async () => {
+    const ma = chon.find((c) => c.o.checked)?.ma ?? hienTai;
+    if (ma === hienTai) { hienOk("Chế độ không đổi."); return; }
+    await lenh(nutLuu, async () => { await api(`/api/to-chuc/${encodeURIComponent(id)}/che-do`, { method: "PUT", body: { cheDo: ma } }); return `Đã đổi chế độ thành viên: ${NHAN_CHE_DO_THANH_VIEN[ma]}.`; });
+  })());
+  replaceChildren(byId("tc-cd"),
+    h("fieldset", { class: "tc-che-do" }, h("legend", null, `Đang dùng: ${NHAN_CHE_DO_THANH_VIEN[hienTai]}`), ...chon.map((c) => c.nhan)),
+    h("p", { class: "muted" }, "Soạn và gửi: thành viên bấm «Gửi người quản lý xác nhận», bạn nhận tin ở hộp thư rồi mở đơn để gửi lên Tour Đảo hoặc trả lại. Chỉ soạn: bạn tự mở nháp của thành viên. Đổi chế độ không đổi các nháp đang chờ."),
+    nutLuu);
+}
+
 function veCongNo(r: Api.TraSauToChucDto | undefined): void {
   const goc = byId("tc-ts");
   if (!r || (!r.coHanMuc && r.dangNo <= 0)) { replaceChildren(goc, h("p", { class: "muted" }, "Tổ chức chưa được Trả sau và không còn nợ.")); return; }
@@ -90,6 +164,8 @@ async function nap(): Promise<boolean> {
     replaceChildren(byId("tc-ql"), h("p", null, t.nguoiQuanLy ? `${t.nguoiQuanLy.ten} (từ ${ngayVN(t.nguoiQuanLy.tuNgay)})` : "Chưa có"),
       h("p", { class: "muted" }, "Muốn đổi người quản lý, chọn một thành viên rồi bấm «Chuyển quyền quản lý». Tour Đảo xem yêu cầu và quyết định."));
     veThanhVien(t);
+    veLoiMoi(t);
+    veCheDo(t);
     replaceChildren(byId("tc-cap"), h("p", null, cap === null ? "Không xem được cấp lúc này." : cap.cap?.cap ? cap.cap.cap.ten : "Chưa có cấp"),
       h("p", { class: "muted" }, "Chỉ để xem. Cấp do Tour Đảo đặt."));
     veCongNo(ts?.toChuc.find((x) => x.partyId === id));

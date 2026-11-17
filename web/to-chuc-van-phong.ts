@@ -1,18 +1,19 @@
 // Khối «Người quản lý tổ chức» ở chi tiết một HỒ SƠ TỔ CHỨC trong Danh bạ (ADR-0213 Đ2.4–Đ2.8, Đ6; mốc B1 Task 14). Chỉ ba vai văn phòng giữ ô `partner.org.manager.write`
 // (Quản lý bán hàng, Quản trị, Toàn quyền), không giữ quyền Đối tác — cùng cổng với máy chủ; máy chủ luôn kiểm lại.
 //   GET /api/parties/:id/to-chuc · POST …/to-chuc/{nguoi-quan-ly, go-thanh-vien, gui-lai-thu}
+//   B2 (Task 17): chế độ thành viên — chỉ Toàn quyền (`datCheDo` = can(admin.manage.superadmin), cùng cổng PUT /api/to-chuc/:id/che-do; Quản trị, Quản lý bán hàng chỉ xem).
 // Giao hoặc chuyển người quản lý gửi kèm `nguoiQuanLyHienTai` = người quản lý màn hình đang thấy (null = chưa có); máy chủ 409 nếu đã có người khác đổi trước. Quan hệ «Người quản lý của»
 // và «Thành viên của» chỉ quản lý ở khối này (Danh bạ không có nút «Kết thúc» cho hai loại đó). Không innerHTML; dựng bằng h().
 import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
-import { MA_LY_DO_TO_CHUC, NHAN_LY_DO_TO_CHUC } from "../src/shared/to-chuc";
+import { MA_LY_DO_TO_CHUC, NHAN_CHE_DO_THANH_VIEN, NHAN_LY_DO_TO_CHUC } from "../src/shared/to-chuc";
 import { ngayVN } from "../src/shared/giay-to-hien-thi";
 import { vnDateTimeText } from "../src/shared/vn-date";
 
 const cauLoi = (e: unknown): string => (e instanceof ApiError ? e.message : "Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
 
-export function dungKhoiToChucVanPhong(goc: HTMLElement, orgId: string): void {
+export function dungKhoiToChucVanPhong(goc: HTMLElement, orgId: string, datCheDo = false): void {
   const loi = h("div", { class: "alert", role: "alert", hidden: true });
   const ok = h("div", { class: "alert ok", role: "status", hidden: true });
   const noiDung = h("div", { id: "tc-vp-noi-dung" }, h("p", { class: "muted" }, "Đang tải…"));
@@ -100,8 +101,25 @@ export function dungKhoiToChucVanPhong(goc: HTMLElement, orgId: string): void {
       }))) return;
       await ghi(nut, "/nguoi-quan-ly", { personPartyId: chon.value, nguoiCuThanhThanhVien: ql ? giu.checked : true, lyDo: lyDo.value, nguoiQuanLyHienTai: ql?.partyId ?? null }, `Đã ${ql ? "chuyển quyền quản lý" : "giao người quản lý"} cho ${ten}.`);
     })());
+    const cheDo = t.cheDo ?? "SOAN_VA_GUI";
+    let khoiCheDo: HTMLElement = h("p", { id: "tc-vp-che-do" }, `Chế độ thành viên: ${NHAN_CHE_DO_THANH_VIEN[cheDo]}`);
+    if (datCheDo) {
+      const khac = cheDo === "CHI_SOAN" ? "SOAN_VA_GUI" : "CHI_SOAN";
+      const doi = h("button", { type: "button", class: "btn btn-link", id: "tc-vp-doi-che-do" }, "Đổi chế độ thành viên") as HTMLButtonElement;
+      doi.addEventListener("click", () => void (async () => {
+        if (!(await hoiXacNhan({ tieuDe: "Đổi chế độ thành viên", hauQua: `${t.ten} chuyển sang chế độ «${NHAN_CHE_DO_THANH_VIEN[khac]}». Nháp đang chờ người quản lý vẫn chờ.`, nhanNguyHiem: "Đổi chế độ thành viên", nhanGiu: "Thôi", opener: doi }))) return;
+        doi.disabled = true;
+        hienLoi(null); hienOk(null);
+        try {
+          await api(`/api/to-chuc/${encodeURIComponent(orgId)}/che-do`, { method: "PUT", body: { cheDo: khac } });
+          await nap();
+          hienOk(`Đã đổi chế độ thành viên: ${NHAN_CHE_DO_THANH_VIEN[khac]}.`);
+        } catch (e) { hienLoi(cauLoi(e)); doi.disabled = false; }
+      })());
+      khoiCheDo = h("p", { id: "tc-vp-che-do" }, `Chế độ thành viên: ${NHAN_CHE_DO_THANH_VIEN[cheDo]} `, doi);
+    }
     replaceChildren(noiDung,
-      dongQl, h("h4", null, "Thành viên"), ...tv, ...yc, thu,
+      dongQl, khoiCheDo, h("h4", null, "Thành viên"), ...tv, ...yc, thu,
       h("div", { class: "grid three" }, h("label", null, "Tìm người", tim), h("label", null, "Chọn", chon), h("label", null, "Lý do", lyDo)),
       ql ? h("label", { class: "check" }, giu, "Giữ người quản lý hiện tại làm thành viên") : null,
       h("div", { class: "actions" }, nut));

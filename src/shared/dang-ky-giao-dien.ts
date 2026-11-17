@@ -56,6 +56,9 @@ export const CHU_DANG_KY = {
   khoiPhucToChuc: "Thôi",
   daGoAnh: "Đã gỡ ảnh.",
   anhChoTrongPhan: "Không có ảnh nào để gỡ.",
+  // Ô «Mã vào tổ chức» (ADR-0213 Đ7.5; Task 17). Tiêu đề là chữ của brief; câu giải thích AI viết, chờ chủ chọn.
+  tieuDeMaVao: "Mã vào tổ chức",
+  giaiThichMaVao: "Nếu người quản lý của một tổ chức đã gửi bạn mã, hãy nhập mã ở đây. Có mã thì không cần chọn vai người dùng. Số điện thoại bạn khai ở trên phải trùng số đã được mời.",
 } as const;
 
 /** Chữ nút của phần tổ chức (viết thẳng ở web/dang-ky.ts để bảng tham chiếu đối chiếu được; liệt kê đây cho người đọc). «Bỏ ảnh này», «Bỏ ảnh và phần tổ chức», «Thôi». */

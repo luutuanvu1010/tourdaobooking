@@ -1019,25 +1019,43 @@ const TV_DONG = defineSql(
 export const tvDongStatement = (db: D1Database, v: { orderId: string; trangThai: "TRA_LAI" | "DA_RUT"; lyDo: string | null; at: string; by: string }): D1PreparedStatement =>
   db.prepare(TV_DONG).bind(v.orderId, v.trangThai, v.lyDo, v.at, v.by);
 /**
- * Người quản lý GỬI LÊN Tour Đảo nháp của thành viên (Đ8.5) — hai câu nối CUỐI lô Gửi đơn (chỉ số các câu trước không đổi). «Lô đã thắng» = yêu cầu xác nhận của chính lô đã mở (nhánh A, ?3 = mã
- * yêu cầu) HOẶC đơn đã ở trạng thái xác nhận (nhánh B, ?3 NULL). (1) chế độ «Chỉ soạn» chưa có dòng mở ⇒ mở một dòng (để có lịch sử và tin); (2) đóng dòng mở ⇒ DA_GUI_LEN. Câu nhật ký
- * `order_member_forwarded` đứng ngay sau (2) với `changes() > 0`. ?1 đơn, ?2 lúc, ?3 mã yêu cầu xác nhận | NULL, ?4 người gửi, ?5 id dòng mới, ?6 thành viên, ?7 tổ chức
+ * Người quản lý GỬI LÊN Tour Đảo nháp của thành viên (Đ8.5). Gác bằng dấu của CHÍNH lô (vòng sửa 1, I-3 — không gác bằng «đơn đã xác nhận», vì lô thua cuộc đua cũng thấy điều đó):
+ * - nhánh A (`tvGuiLenTheoYeuCau`): yêu cầu xác nhận của chính lô (?3 = mã yêu cầu sinh cho lô này) đã mở; nối CUỐI lô.
+ * - nhánh B (`tvGuiLenTheoChuoi`): chuỗi `changes() > 0` nối từ câu xác nhận → nhật ký `confirmed` → bản chụp → nhật ký `order_terms_captured` (đặt ngay sau câu cuối của chuỗi đó).
+ * (1) chế độ «Chỉ soạn» chưa có dòng mở ⇒ mở một dòng; (2) đóng dòng mở ⇒ DA_GUI_LEN. Nhật ký `order_member_forwarded` ngay sau với `changes() > 0`. Không đọc audit_log.
+ * ?1 đơn, ?2 lúc, ?3 mã yêu cầu (chỉ nhánh A), ?4 người gửi, ?5 id dòng mới, ?6 thành viên, ?7 tổ chức
  */
-const TV_THANG = "(EXISTS (SELECT 1 FROM ord_confirm_request y WHERE y.id = ?3 AND y.order_id = ?1) OR EXISTS (SELECT 1 FROM orders o WHERE o.id = ?1 AND o.status = 'confirmed'))";
-const TV_MO_KHI_GUI = defineSql(
+const TV_YC = "EXISTS (SELECT 1 FROM ord_confirm_request y WHERE y.id = ?3 AND y.order_id = ?1)";
+const TV_MO_KHI_GUI_YC = defineSql(
   "orders",
   "member_submit_open_on_forward",
   `INSERT INTO ord_member_submit (id, order_id, member_staff_id, org_party_id, status, opened_at, created_at, created_by, updated_at, updated_by)
    SELECT ?5, ?1, ?6, ?7, 'MO', ?2, ?2, ?4, ?2, ?4
-   WHERE ${TV_THANG} AND NOT EXISTS (SELECT 1 FROM ord_member_submit s WHERE s.order_id = ?1 AND s.status = 'MO')`,
+   WHERE ${TV_YC} AND NOT EXISTS (SELECT 1 FROM ord_member_submit s WHERE s.order_id = ?1 AND s.status = 'MO')`,
 );
-const TV_GUI_LEN = defineSql(
+const TV_GUI_LEN_YC = defineSql(
   "orders",
   "member_submit_forward",
   `UPDATE ord_member_submit SET status = 'DA_GUI_LEN', closed_at = ?2, closed_by = ?4, updated_at = ?2, updated_by = ?4
-   WHERE order_id = ?1 AND status = 'MO' AND ${TV_THANG}`,
+   WHERE order_id = ?1 AND status = 'MO' AND ${TV_YC}`,
 );
-export const tvGuiLenStatements = (db: D1Database, v: { orderId: string; at: string; yeuCauId: string | null; by: string; memberStaffId: string; orgPartyId: string }): D1PreparedStatement[] => [
-  db.prepare(TV_MO_KHI_GUI).bind(v.orderId, v.at, v.yeuCauId, v.by, crypto.randomUUID(), v.memberStaffId, v.orgPartyId),
-  db.prepare(TV_GUI_LEN).bind(v.orderId, v.at, v.yeuCauId, v.by),
+export const tvGuiLenTheoYeuCau = (db: D1Database, v: { orderId: string; at: string; yeuCauId: string; by: string; memberStaffId: string; orgPartyId: string }): D1PreparedStatement[] => [
+  db.prepare(TV_MO_KHI_GUI_YC).bind(v.orderId, v.at, v.yeuCauId, v.by, crypto.randomUUID(), v.memberStaffId, v.orgPartyId),
+  db.prepare(TV_GUI_LEN_YC).bind(v.orderId, v.at, v.yeuCauId, v.by),
+];
+const TV_MO_KHI_GUI_CHUOI = defineSql(
+  "orders",
+  "member_submit_open_on_forward_chain",
+  `INSERT INTO ord_member_submit (id, order_id, member_staff_id, org_party_id, status, opened_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?4, ?1, ?5, ?6, 'MO', ?2, ?2, ?3, ?2, ?3 WHERE changes() > 0`,
+);
+const TV_GUI_LEN_CHUOI = defineSql(
+  "orders",
+  "member_submit_forward_chain",
+  `UPDATE ord_member_submit SET status = 'DA_GUI_LEN', closed_at = ?2, closed_by = ?3, updated_at = ?2, updated_by = ?3 WHERE order_id = ?1 AND status = 'MO' AND changes() > 0`,
+);
+/** `coDongMo` = lúc đọc đơn đã có dòng chờ mở («Soạn và gửi»); không ⇒ chèn rồi đóng (dòng chèn trong lô làm câu đóng khớp một dòng — chuỗi không đứt). */
+export const tvGuiLenTheoChuoi = (db: D1Database, v: { orderId: string; at: string; by: string; memberStaffId: string; orgPartyId: string; coDongMo: boolean }): D1PreparedStatement[] => [
+  ...(v.coDongMo ? [] : [db.prepare(TV_MO_KHI_GUI_CHUOI).bind(v.orderId, v.at, v.by, crypto.randomUUID(), v.memberStaffId, v.orgPartyId)]),
+  db.prepare(TV_GUI_LEN_CHUOI).bind(v.orderId, v.at, v.by),
 ];

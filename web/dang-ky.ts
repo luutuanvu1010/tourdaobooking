@@ -306,7 +306,8 @@ function veBieuMau(p: PhieuDangKyDto): void {
   });
 
   const gui = nut(p.phienBan > 0 ? h("button", B("chinh", { id: "dk-gui-phieu", "data-co": "lon" }), "Gửi lại") as HTMLButtonElement : h("button", B("chinh", { id: "dk-gui-phieu", "data-co": "lon" }), "Gửi phiếu") as HTMLButtonElement, () => void bamNutDk(gui, async () => {
-    if (!chonVai.value && !toChucBat()) { hienLoi("Hãy chọn vai người dùng xin đăng ký."); return; }
+    // ADR-0213 Đ7.5: mã vào tổ chức thay mục «vai» — có mã thì không đòi vai ở trình duyệt (máy chủ vẫn kiểm mã).
+    if (!chonVai.value && !toChucBat() && !oCuaKhu("CA_NHAN", "maVao").some((m) => oVao.get(m.khoa)?.value.trim())) { hienLoi("Hãy chọn vai người dùng xin đăng ký, hoặc nhập mã vào tổ chức."); return; }
     if (toChucBat() && !chonVaiTc.value) { hienLoi(CHU_DANG_KY.hayChonVaiToChuc); return; }
     if (cauHinh.chinhSachRiengTu === null) { hienLoi("Chưa có chính sách riêng tư nên chưa gửi được thông tin. Hãy quay lại sau."); return; }
     if (!dongY.checked) { hienLoi("Bạn cần đọc và đồng ý chính sách riêng tư hiện hành trước khi gửi."); return; }
@@ -323,6 +324,8 @@ function veBieuMau(p: PhieuDangKyDto): void {
       p.trangThai === "CAN_BO_SUNG" ? h("p", { class: "muted" }, CHU_DANG_KY.nhapLaiSo) : null,
       o("Vai người dùng xin đăng ký", chonVai, khoaVai ? "Phiếu đã gửi một lần nên không đổi vai được." : undefined),
       ...khuO("thongTin")),
+    h("section", { class: "the dk-buoc", "data-khu": "maVao" },
+      h("h2", null, CHU_DANG_KY.tieuDeMaVao), h("p", { class: "muted" }, CHU_DANG_KY.giaiThichMaVao), ...khuO("maVao")),
     h("section", { class: "the dk-buoc" },
       h("h2", null, "Căn cước công dân"),
       ...khuO("canCuoc"),

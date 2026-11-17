@@ -1,7 +1,11 @@
 // Ô «Tư cách» ở màn Tạo đơn (ADR-0213 Đ3.1, mốc B1 Task 14): luật thuần chọn cách hiện, dùng ở giao diện (`web/order-form.ts`) và bài kiểm. Danh sách tư cách do máy chủ trả
 // (`GET /api/to-chuc/cua-toi`); giao diện không tự suy tư cách từ vai trò.
 
-export interface TuCachHienThi { partyId: string; ten: string; laToChuc: boolean }
+/** `loai` (Task 17): loại liên kết do máy chủ trả — «MEMBER» = thành viên (không «Gửi đơn», ADR-0213 Đ8.1). Vắng = máy chủ cũ. */
+export interface TuCachHienThi { partyId: string; ten: string; laToChuc: boolean; loai?: "CA_NHAN" | "MANAGER" | "MEMBER" }
+
+/** Thành viên tổ chức không bao giờ gửi thẳng lên Tour Đảo (Đ8.1): form lập đơn mới chỉ «Lưu đơn», rồi gửi người quản lý ở trang đơn. */
+export const laTuCachThanhVien = (t: TuCachHienThi | null): boolean => t?.loai === "MEMBER";
 
 /**
  * - `khong`: không có gì để chọn (chưa có tư cách nào, hoặc chỉ tư cách cá nhân) — form như hôm nay;
