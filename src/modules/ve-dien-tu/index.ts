@@ -644,7 +644,7 @@ export const veDienTuModule: AppModule = {
       let veThay: "DA_CAP" | "THIEU" | null = null;
       if (quyet.traSuat && ve.order_id) {
         await capVeThayChoDon(capVeSauXacNhan, [ve.order_id]);
-        veThay = (await demGiuCuaDon(env.DB, ve.order_id)) >= truoc ? "DA_CAP" : "THIEU";
+        try { veThay = (await demGiuCuaDon(env.DB, ve.order_id)) >= truoc ? "DA_CAP" : "THIEU"; } catch (e) { console.error("ve_cap_thay_loi", ve.order_id, e instanceof Error ? e.name : "loi"); } // vé đã huỷ xong: lỗi đọc chỉ làm mất nhãn, không làm hỏng lệnh
       }
       return json({ soSeri, trangThai: "DA_HUY", traSuat: quyet.traSuat, veThay, canGuiLai: quyet.daLo });
     }),
