@@ -26,7 +26,7 @@ import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
 import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoTatCa, type LoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho, cauBoLuotQuet, cauChenLuotQuet, coLuotQuet, demLuotDaTinh, docLuotDaTinh, docLuotQuet, docVeQuet } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
-import { DAU_LOI_HUY_VE, cauBoLoDaCap, cauChanHuyVe, cauChenSoSeri, cauHuyVe, cauHuyVeCuaLo, cauThuHoiPhanBoCuaLo, cauThuHoiPhanBoCuaVe, dieuKienLenhHuyLoThang, docVeDeHuy, docVeQuetTheoSeri, donBiTraSuatCuaLo, loTungCap, soSeriConDungDuoc, veTheoSoSeri, veTrongLo, xemTruocHuyLo, type VeTrongLoRow } from "./repository.ts";
+import { DAU_LOI_HUY_VE, cauBoLoDaCap, cauChanHuyVe, cauChenSoSeri, cauHuyVe, cauRutVeHangNgoaiSauHuy, cauRutVeHangNgoaiSauHuyLo, tongVeTrongLo, cauHuyVeCuaLo, cauThuHoiPhanBoCuaLo, cauThuHoiPhanBoCuaVe, dieuKienLenhHuyLoThang, docVeDeHuy, docVeQuetTheoSeri, donBiTraSuatCuaLo, loTungCap, soSeriConDungDuoc, veTheoSoSeri, veTrongLo, xemTruocHuyLo, type VeTrongLoRow } from "./repository.ts";
 import { daDungTheoDichVuLo, luotDaTinhTheoNgay, nguoiQuetTheoNgay, soVeTourDao, veDaMoCuaDon as docVeDaMoCuaDon, veHangNgoaiDaMoCuaDon as docVeHangNgoaiDaMoCuaDon, soVeDaDungTheoDichVu as docSoVeDaDung, cauChanVeDaDung, cauChanDuoiSoDaDung } from "./repository.ts";
 export { cauChanVeDaDung, cauChanDuoiSoDaDung };
 /** ADR-0170 Đ3: «đơn có vé đã mở không» (MỌI loại vé) cho gốc lắp ráp tiêm. Không đọc được ⇒ `null` (bên gọi CHẶN, không đoán «chưa mở»). */
@@ -90,6 +90,8 @@ const coQuyenLo = (staff: NguoiHoi, nguon: NguonVe, chiXem = false): boolean =>
   nguon === "HANG_NGOAI" ? can(staff, "ve.kho.manage") : can(staff, "ve.phat-hanh") || (chiXem && can(staff, "ve.kho.manage"));
 /** Các nguồn người gọi được thấy ở một danh sách; rỗng ⇒ route trả 403. */
 const nguonDuocXem = (staff: NguoiHoi, chiXem: boolean): NguonVe[] => NGUON_VE.filter((n) => coQuyenLo(staff, n, chiXem));
+/** ADR-0217 Đ3 (chủ chốt 18/11): huỷ KHÔNG QUAY LẠI ĐƯỢC với vé / lô hãng ngoài đã từng cấp cho đơn cần thêm ô `ve.huy-hang-ngoai` (Quản lý bán hàng, Quản trị — gồm Điều hành chung — và Toàn quyền). Vé và lô Tour Đảo giữ `ve.phat-hanh`. */
+const KHONG_QUYEN_HUY_HANG_NGOAI = () => error(403, "forbidden", "Chỉ Quản lý bán hàng, Quản trị hoặc Toàn quyền được huỷ vé hoặc lô vé hãng ngoài đã cấp cho đơn.");
 const KHONG_THAY = () => error(404, "not_found", "Không tìm thấy lô vé.");
 const BAD_JSON = () => error(400, "invalid_input", "Nội dung gửi lên không hợp lệ.");
 /** Số sê-ri mới (ADR-0217 Đ1, Hiến chương 5.26): máy chủ cấp, `crypto.getRandomValues`. Không bí mật. `dung` tránh trùng trong cùng một lần cấp. */
@@ -99,6 +101,16 @@ const taoSoSeri = (dung: ReadonlySet<string> = new Set()): string => {
     if (!dung.has(so)) return so;
   }
 };
+/** Chia trang (chủ chốt 18/11): 50 dòng mỗi trang; `?trang=` từ 1, sai ⇒ null. */
+const DONG_MOI_TRANG = 50;
+const trangHoi = (url: URL): number | null => {
+  const t = url.searchParams.get("trang");
+  if (t === null) return 1;
+  return /^[0-9]{1,6}$/.test(t) && Number(t) >= 1 ? Number(t) : null;
+};
+const TRANG_SAI = () => error(400, "invalid_input", "Số trang không đúng.");
+/** Bốn chữ cuối số sê-ri để xác nhận huỷ vé đã gửi khách: so sau khi đổi chữ hoa, bỏ khoảng trắng. */
+const khopBonCuoi = (raw: unknown, soSeri: string): boolean => typeof raw === "string" && raw.replace(/\s+/g, "").toUpperCase() === soSeri.slice(-4);
 const SO_SERI_KHONG_DUNG = () => error(400, "invalid_input", "Nhập đúng số sê-ri của vé: VE_ và 8 chữ cái.");
 const VE_SO_SERI_KHONG_THAY = () => error(404, "not_found", "Không tìm thấy vé có số sê-ri này.");
 /** Lý do huỷ 5–300 ký tự, không chứa số điện thoại hay mã vé (cùng khuôn lý do bỏ lượt quét). null = hợp lệ; còn lại là câu lỗi. */
@@ -210,11 +222,17 @@ async function capVeThayChoDon(capVe: Ctx["capVeSauXacNhan"], donIds: readonly s
   return { daXet: xet.length - loi, conNua: donIds.length > xet.length || loi > 0 };
 }
 /** Một dòng vé cho màn kho: số sê-ri, hạn, tình trạng. KHÔNG mã vé, KHÔNG khoá kho. Mã đơn chỉ khi người xem có `order.view` trên đơn đó (`maDon` do gốc lắp ráp tính theo quyền). */
-const dongVeTrongLo = (r: VeTrongLoRow, maDon: Map<string, string>) => {
+const dongVeTrongLo = (r: VeTrongLoRow, maDon: Map<string, string>, tenNguoi: Map<string, string>) => {
   const tt = tinhTrangVe({ nguon: r.nguon, trangThai: r.ve_status, coPhanBoMo: r.co_phan_bo === 1, daLo: r.da_lo === 1, daDung: r.da_dung === 1 });
   const ma = r.order_id && r.order_service_id ? maDon.get(`${r.order_id}|${r.order_service_id}`) : undefined;
-  return { soSeri: r.so_seri, tuNgay: r.valid_from, denNgay: r.valid_to, tinhTrang: tt, nhan: NHAN_TINH_TRANG_VE[tt], ...(ma ? { maDon: ma } : {}) };
+  return { soSeri: r.so_seri, tuNgay: r.valid_from, denNgay: r.valid_to, tinhTrang: tt, nhan: NHAN_TINH_TRANG_VE[tt], ...(ma ? { maDon: ma } : {}),
+    // Vé đã huỷ (ADR-0217): giờ huỷ, người huỷ, lý do, và còn nhập lại được không. KHÔNG mã vé.
+    ...(r.voided_at ? { huyLuc: r.voided_at, huyBoi: (r.voided_by ? tenNguoi.get(r.voided_by) : null) ?? null, lyDoHuy: r.void_reason, nhapLai: r.withdrawn_at === null ? "KHONG_NHAP_LAI_DUOC" : r.da_nhap_lai === 1 ? "DA_NHAP_LAI" : "NHAP_LAI_DUOC" } : {}) };
 };
+async function tenNguoiHuy(nhan: Ctx["nhanNhanVien"], ds: readonly VeTrongLoRow[]): Promise<Map<string, string>> {
+  const ids = [...new Set(ds.flatMap((r) => (r.voided_by ? [r.voided_by] : [])))];
+  return ids.length === 0 ? new Map() : ((await nhan(ids)) ?? new Map());
+}
 async function maDonChoNguoiXem(donChoQuet: Ctx["donChoQuet"], staffId: string, ds: readonly VeTrongLoRow[]): Promise<Map<string, string>> {
   const cap = new Map<string, [string, string]>();
   for (const r of ds) if (r.order_id && r.order_service_id) cap.set(`${r.order_id}|${r.order_service_id}`, [r.order_id, r.order_service_id]);
@@ -282,10 +300,15 @@ export const veDienTuModule: AppModule = {
       const nguon = nguonDuocXem(staff, true);
       if (nguon.length === 0) return KHONG_QUYEN();
       const tatCa = url.searchParams.get("tatCa") === "1";
-      const ds: (LoBoDuoc & { da_cap?: number })[] = tatCa ? await dsLoTatCa(env.DB, TOI_DA_DS_LO, nguon) : await dsLoBoDuoc(env.DB, TOI_DA_DS_LO, nguon);
+      const trang = tatCa ? trangHoi(url) : 1;
+      if (trang === null) return TRANG_SAI();
+      const lay: (LoBoDuoc & { da_cap?: number })[] = tatCa ? await dsLoTatCa(env.DB, DONG_MOI_TRANG + 1, nguon, (trang - 1) * DONG_MOI_TRANG) : await dsLoBoDuoc(env.DB, TOI_DA_DS_LO, nguon);
+      const coTrangSau = tatCa && lay.length > DONG_MOI_TRANG;
+      const ds = tatCa ? lay.slice(0, DONG_MOI_TRANG) : lay;
       const ten = await getEffectiveServices(env.DB, [...new Set(ds.map((d) => d.catalog_code))]);
       return json({
         lo: ds.map((d) => ({ loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, nguon: d.source, trangThai: d.status, soVe: d.so_ve, taoLuc: d.created_at, ...(tatCa ? { daCap: d.da_cap === 1 } : {}) })),
+        ...(tatCa ? { trang, coTrangSau } : {}),
       });
     }),
 
@@ -547,10 +570,18 @@ export const veDienTuModule: AppModule = {
       const at = new Date().toISOString();
       const lenh = crypto.randomUUID();
       if (await loTungCap(env.DB, loId)) {
+        if (lo.source === "HANG_NGOAI" && !can(staff, "ve.huy-hang-ngoai")) return KHONG_QUYEN_HUY_HANG_NGOAI();
         if (lo.status === "VOID") return error(409, "batch_in_use", "Lô này đã huỷ trước đó.");
-        const ly = kiemLyDoHuy((await readJson(request))?.lyDo);
+        const raw = await readJson(request);
+        const ly = kiemLyDoHuy(raw?.lyDo);
         if ("loi" in ly) return ly.loi;
         const [xem, donIds] = await Promise.all([xemTruocHuyLo(env.DB, loId), donBiTraSuatCuaLo(env.DB, loId, TOI_DON_THAY_MOI_LENH + 1)]);
+        // Chặn bấm nhầm (chủ chốt 18/11): có vé khách đang cầm sẽ bị huỷ thì phải gõ đúng con số máy chủ đếm. Lệch ⇒ 409 (trang tải lại bản xem trước).
+        if (xem.da_gui > 0) {
+          const so = raw?.xacNhanSoVeDaGui;
+          if (typeof so !== "number" || !Number.isInteger(so)) return error(400, "invalid_input", `Gõ lại số vé đã gửi khách sẽ bị huỷ (${xem.da_gui}) để xác nhận huỷ lô.`);
+          if (so !== xem.da_gui) return error(409, "so_ve_da_gui_doi", "Số vé đã gửi khách vừa thay đổi. Hãy tải lại bản xem trước rồi xác nhận lại.");
+        }
         const thang = dieuKienLenhHuyLoThang(loId, lenh);
         const kq = await env.DB.batch([
           cauBoLoDaCap(env.DB, loId, at, staff.id, lenh),
@@ -558,10 +589,11 @@ export const veDienTuModule: AppModule = {
           cauThuHoiPhanBoCuaLo(env.DB, loId, at, staff.id, lenh),
           ...donIds.slice(0, TOI_DON_THAY_MOI_LENH).map((orderId) => auditStatement(env.DB, { staffId: staff.id, action: "ve_tra_ve", at, orderId, targetType: "ve", targetId: orderId, detail: "Trả vé · lô vé bị huỷ · lý do THU_HOI" }, thang)),
           cauHuyVeCuaLo(env.DB, loId, at, staff.id, lenh, ly.lyDo),
+          cauRutVeHangNgoaiSauHuyLo(env.DB, loId, at, lenh),
         ]);
         if ((kq[0]?.meta?.changes ?? 0) === 0) return error(409, "batch_in_use", "Lô này đã huỷ trước đó.");
         const thay = await capVeThayChoDon(capVeSauXacNhan, donIds);
-        return json({ loId, trangThai: "VOID", veDaHuy: kq[kq.length - 1]?.meta?.changes ?? 0, veGiuNguyen: { daDung: xem.giu_da_dung, hangNgoaiDaMo: xem.giu_hang_ngoai_da_mo }, donXetCapThay: thay.daXet, conDonChuaCapThay: thay.conNua, canGuiLai: xem.da_gui });
+        return json({ loId, trangThai: "VOID", veDaHuy: kq[kq.length - 2]?.meta?.changes ?? 0, veGiuNguyen: { daDung: xem.giu_da_dung, hangNgoaiDaMo: xem.giu_hang_ngoai_da_mo }, donXetCapThay: thay.daXet, conDonChuaCapThay: thay.conNua, canGuiLai: xem.da_gui });
       }
       const kq = await env.DB.batch([
         cauBoLo(env.DB, loId, at, staff.id, lenh),
@@ -582,34 +614,38 @@ export const veDienTuModule: AppModule = {
       if (!coQuyenLo(staff, lo.source)) return KHONG_QUYEN();
       if (lo.status === "VOID") return error(409, "batch_in_use", "Lô này đã huỷ trước đó.");
       const [xem, daCap] = await Promise.all([xemTruocHuyLo(env.DB, loId), loTungCap(env.DB, loId)]);
+      if (daCap && lo.source === "HANG_NGOAI" && !can(staff, "ve.huy-hang-ngoai")) return KHONG_QUYEN_HUY_HANG_NGOAI();
       return json({ loId, daCap, tongVe: xem.tong, huyDuoc: xem.huy_duoc, giuNguyenDaDung: xem.giu_da_dung, giuNguyenHangNgoaiDaMo: xem.giu_hang_ngoai_da_mo, donCapThay: xem.don_cap_thay, daGuiPhaiGuiLai: xem.da_gui });
     }),
 
     // DANH SÁCH VÉ CỦA LÔ (ADR-0217 A6): số sê-ri, hạn, tình trạng; mã đơn chỉ khi người xem có `order.view` trên đơn. Không mã vé, không khoá kho. Quyền: người thao tác được lô (`coQuyenLo` không chiXem) — hẹp hơn GET /api/ve/lo.
-    route("GET", "/api/ve/lo/:id/ve-trong-lo", "office", async ({ env, params, staff, donChoQuet }) => {
+    route("GET", "/api/ve/lo/:id/ve-trong-lo", "office", async ({ env, params, staff, url, donChoQuet, nhanNhanVien }) => {
       if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const loId = params.id ?? "";
       if (!UUID_RE.test(loId)) return KHONG_THAY();
       const lo = await docLo(env.DB, loId);
       if (!lo) return KHONG_THAY();
       if (!coQuyenLo(staff, lo.source)) return KHONG_QUYEN(); // KHÔNG chiXem: số sê-ri cả lô đủ để gõ «Đã dùng» — chỉ người thao tác được lô (kiểm độc lập M1)
-      const ds = await veTrongLo(env.DB, loId);
-      const maDon = await maDonChoNguoiXem(donChoQuet, staff.id, ds);
+      const trang = trangHoi(url);
+      if (trang === null) return TRANG_SAI();
+      const [lay, tongVe] = await Promise.all([veTrongLo(env.DB, loId, DONG_MOI_TRANG + 1, (trang - 1) * DONG_MOI_TRANG), tongVeTrongLo(env.DB, loId)]);
+      const ds = lay.slice(0, DONG_MOI_TRANG);
+      const [maDon, tenNguoi] = await Promise.all([maDonChoNguoiXem(donChoQuet, staff.id, ds), tenNguoiHuy(nhanNhanVien, ds)]);
       const ten = await getEffectiveServices(env.DB, [lo.catalog_code]);
-      return json({ loId, tenDichVu: ten.get(lo.catalog_code)?.name ?? null, tenSanPham: lo.printed_name, nhomKhach: lo.pax_group, nguon: lo.source, trangThaiLo: lo.status, ve: ds.map((r) => dongVeTrongLo(r, maDon)) });
+      return json({ loId, tenDichVu: ten.get(lo.catalog_code)?.name ?? null, tenSanPham: lo.printed_name, nhomKhach: lo.pax_group, nguon: lo.source, trangThaiLo: lo.status, trang, coTrangSau: lay.length > DONG_MOI_TRANG, tongVe, ve: ds.map((r) => dongVeTrongLo(r, maDon, tenNguoi)) });
     }),
 
     // TÌM VÉ THEO SỐ SÊ-RI (ADR-0217 A6): số sê-ri không bí mật nên đi trên URL. Quyền như danh sách vé của lô, theo nguồn của lô chứa vé.
-    route("GET", "/api/ve/tim", "office", async ({ env, url, staff, donChoQuet }) => {
+    route("GET", "/api/ve/tim", "office", async ({ env, url, staff, donChoQuet, nhanNhanVien }) => {
       if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const soSeri = chuanHoaSoSeri(url.searchParams.get("soSeri"));
       if (soSeri === null) return SO_SERI_KHONG_DUNG();
       const r = await veTheoSoSeri(env.DB, soSeri);
       if (!r) return VE_SO_SERI_KHONG_THAY();
       if (!coQuyenLo(staff, r.nguon)) return KHONG_QUYEN(); // như danh sách vé của lô: không chiXem
-      const maDon = await maDonChoNguoiXem(donChoQuet, staff.id, [r]);
+      const [maDon, tenNguoi] = await Promise.all([maDonChoNguoiXem(donChoQuet, staff.id, [r]), tenNguoiHuy(nhanNhanVien, [r])]);
       const ten = await getEffectiveServices(env.DB, [r.catalog_code]);
-      return json({ ve: { ...dongVeTrongLo(r, maDon), loId: r.batch_id, tenDichVu: ten.get(r.catalog_code)?.name ?? null, tenSanPham: r.printed_name, nhomKhach: r.nhom_lo, nguon: r.nguon, trangThaiLo: r.lo_status } });
+      return json({ ve: { ...dongVeTrongLo(r, maDon, tenNguoi), loId: r.batch_id, tenDichVu: ten.get(r.catalog_code)?.name ?? null, tenSanPham: r.printed_name, nhomKhach: r.nhom_lo, nguon: r.nguon, trangThaiLo: r.lo_status } });
     }),
 
     // HUỶ VÉ LẺ (ADR-0217 Đ3): theo số sê-ri. Bảng kết quả ở `quyetHuyVe`. Một lô D1: chặn (vé vừa huỷ / vừa dùng / hãng ngoài vừa mở thì lô lui) → trả suất THU_HOI nếu có → huỷ vé → nhật ký.
@@ -627,15 +663,19 @@ export const veDienTuModule: AppModule = {
       const ve = await docVeDeHuy(env.DB, soSeri);
       if (!ve) return VE_SO_SERI_KHONG_THAY();
       if (!coQuyenLo(staff, ve.nguon)) return KHONG_QUYEN();
+      if (ve.nguon === "HANG_NGOAI" && !can(staff, "ve.huy-hang-ngoai")) return KHONG_QUYEN_HUY_HANG_NGOAI();
       const tuChoi = (ma: keyof typeof CAU_TU_CHOI_HUY_VE) => error(409, ma, CAU_TU_CHOI_HUY_VE[ma]);
       const quyet = quyetHuyVe({ nguon: ve.nguon, trangThai: ve.ve_status, coPhanBoMo: ve.alloc_id !== null, daLo: ve.revealed_at !== null, daDung: ve.da_dung === 1 });
       if (quyet.loai === "TU_CHOI") return tuChoi(quyet.ma);
+      // Chặn bấm nhầm (chủ chốt 18/11): vé khách đang cầm thì phải gõ lại bốn chữ cuối số sê-ri. Thiếu hoặc sai ⇒ 400, chưa ghi gì.
+      if (quyet.daLo && !khopBonCuoi(raw.xacNhanBonCuoi, soSeri)) return error(400, "invalid_input", "Gõ đúng bốn chữ cuối của số sê-ri để xác nhận huỷ vé đã gửi khách.");
       const at = new Date().toISOString();
       const truoc = ve.order_id ? await demGiuCuaDon(env.DB, ve.order_id) : 0;
       const cau: D1PreparedStatement[] = [cauChanHuyVe(env.DB, ve.ticket_id), cauThuHoiPhanBoCuaVe(env.DB, ve.ticket_id, at, staff.id)];
       if (quyet.traSuat && ve.order_id) cau.push(auditStatement(env.DB, { staffId: staff.id, action: "ve_tra_ve", at, orderId: ve.order_id, targetType: "ve", targetId: ve.order_service_id ?? ve.order_id, detail: `Trả vé · vé huỷ ${soSeri} · lý do THU_HOI` }, "changes() > 0"));
       cau.push(cauHuyVe(env.DB, ve.ticket_id, at, staff.id, ly.lyDo));
       cau.push(auditStatement(env.DB, { staffId: staff.id, action: "ve_huy_ve", at, ...(ve.order_id ? { orderId: ve.order_id } : {}), targetType: "ve", targetId: soSeri, detail: `Huỷ vé ${soSeri} · lý do: ${ly.lyDo}` }, "changes() > 0"));
+      cau.push(cauRutVeHangNgoaiSauHuy(env.DB, ve.ticket_id, at));
       try {
         await env.DB.batch(cau);
       } catch (e) {

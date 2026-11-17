@@ -105,6 +105,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "feedback.team.manage": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0119: quản lý nhóm hỗ trợ chỉ Toàn quyền
   "settings.ops": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0019: chỉ Toàn quyền (chế độ bảo trì)
   "ve.kho.manage": ["any", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0153 Đ3: nhập lô, kho, thu hồi — Bán hàng, Quản trị, Toàn quyền
+  "ve.huy-hang-ngoai": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any"], // ADR-0217 Đ3 (chủ 18/11): huỷ vé / lô hãng ngoài đã từng cấp — Quản lý bán hàng, Quản trị (gồm Điều hành chung), Toàn quyền; Bán hàng thường không
   "ve.phat-hanh": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"], // ADR-0175 Đ1.3: tạo và thao tác lô vé Tour Đảo — Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng; Bán hàng thường không
   "ve.quet.tinh": ["any", "any", "any", "any", "none", "any", "none", "none", "none", "none", "any"], // ADR-0175 Đ3, §2.9: tính vé đã dùng — Hướng dẫn viên, Bán hàng, Quản lý bán hàng, Kế toán, Quản trị, Toàn quyền
   "ve.doi-chieu.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "any"], // ADR-0175 §2.7: đối chiếu và theo dõi người quét — như ve.phat-hanh
@@ -433,7 +434,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "ve.phat-hanh": "none", // ADR-0175 Đ1.3: chỉ Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng tạo vé Tour Đảo
     "ve.doi-chieu.view": "none", // ADR-0175 §2.7: tài xế không xem đối chiếu
     "ve.quet.tinh": "none", "ve.quet.xem": "any", // ADR-0175 Đ3: Tài xế công ty chỉ xem, không tính đã dùng
-    "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3: tài xế không đụng kho vé
+    "ve.kho.manage": "none", "ve.huy-hang-ngoai": "none", "ve.cap.send": "none", // ADR-0153 Đ3: tài xế không đụng kho vé
     "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "payment.proof.view": "none", "payment.proof.purge": "none", "dai-ly.nop.ghi": "none", "dai-ly.nop.xac-nhan": "none", "dai-ly.nop.xem": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "party.deactivate": "none", // ADR-0190
@@ -498,7 +499,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "ve.phat-hanh": "none", // ADR-0175 Đ1.3: chỉ Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng tạo vé Tour Đảo
     "ve.doi-chieu.view": "none", // ADR-0175 §2.7
     "ve.quet.tinh": "none", "ve.quet.xem": "none", // ADR-0175 Đ3: không có ô quét
-    "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3
+    "ve.kho.manage": "none", "ve.huy-hang-ngoai": "none", "ve.cap.send": "none", // ADR-0153 Đ3
     "dispatch.guides.view": "none", "dispatch.refuse": "none", "payment.receive": "none", "payment.refund": "none", "payment.proof.view": "none", "payment.proof.purge": "none", "dai-ly.nop.ghi": "none", "dai-ly.nop.xac-nhan": "none", "dai-ly.nop.xem": "none", "invoice.request": "none", "invoice.issue": "none",
     "accounting.entry.mark": "none", "accounting.entry.view": "none", // ADR-0060: tài xế không xem đơn, không ghi dấu kế toán
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "party.deactivate": "none", // ADR-0190
@@ -565,7 +566,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "ve.phat-hanh": "none", // ADR-0175 Đ1.3: chỉ Kế toán, Quản trị, Toàn quyền, Quản lý bán hàng tạo vé Tour Đảo
     "ve.doi-chieu.view": "none", // ADR-0175 §2.7
     "ve.quet.tinh": "none", "ve.quet.xem": "none", // ADR-0175 Đ3: không có ô quét
-    "ve.kho.manage": "none", "ve.cap.send": "none", // ADR-0153 Đ3
+    "ve.kho.manage": "none", "ve.huy-hang-ngoai": "none", "ve.cap.send": "none", // ADR-0153 Đ3
     "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "order.cancel.classify": "none", "deposit.refund.approve": "none", "deposit.transfer.approve": "none", "deposit.outside.record": "none", "dispatch.assign": "none", "dispatch.claim": "none", "dispatch.guides.view": "none", "dispatch.refuse": "none",
     "payment.receive": "none", "payment.refund": "none", "payment.proof.view": "none", "payment.proof.purge": "none", "dai-ly.nop.ghi": "none", "dai-ly.nop.xac-nhan": "none", "dai-ly.nop.xem": "none", "order.handover": "none", "order.complete": "none", "ledger.view": "none", "ledger.write": "none",
     "ledger.period.close": "none", // khoá sổ tháng (ADR-0080 D1): Nhân sự chỉ ba ô tài khoản

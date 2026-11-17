@@ -154,6 +154,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "feedback.team.manage": { ten: "quản lý nhóm hỗ trợ", moTa: "Tạo, sửa, ngưng nhóm hỗ trợ và gán, gỡ thành viên nhóm." },
   "dispatch.policy.lead": { ten: "đặt hạn chốt", moTa: "Đổi hạn chốt trước giờ đón và cảnh báo sắp tới hạn chốt (Quản trị, Toàn quyền); các cài đặt điều phối khác chỉ Toàn quyền." },
   "ve.kho.manage": { ten: "nhập và quản lý vé điện tử", moTa: "Nhập lô vé ảnh của nhà cung cấp, xem còn bao nhiêu vé theo từng loại, thu hồi vé hỏng. Bán hàng, Quản trị và Toàn quyền." },
+  "ve.huy-hang-ngoai": { ten: "huỷ vé hãng ngoài đã cấp cho đơn", moTa: "Huỷ một vé hoặc cả lô vé hãng ngoài đã từng giữ cho đơn. Quản lý bán hàng, Quản trị (gồm Điều hành chung) và Toàn quyền; Bán hàng thường không, nhưng vẫn huỷ được lô nhập dở chưa cấp cho đơn nào." },
   "ve.phat-hanh": { ten: "tạo vé Tour Đảo", moTa: "Tạo và thao tác lô vé Tour Đảo (vé do công ty tự phát). Kế toán, Quản trị, Toàn quyền và Quản lý bán hàng; Bán hàng thường không." },
   "ve.doi-chieu.view": { ten: "đối chiếu vé và người quét", moTa: "Xem theo ngày số khách theo đơn so với số vé đã quét, số vé Tour Đảo từng loại, và số lượt quét của từng người. Kế toán, Quản trị, Toàn quyền và Quản lý bán hàng; chỉ xem, không sửa." },
   "ve.quet.tinh": { ten: "quét vé Tour Đảo (tính đã dùng)", moTa: "Quét vé Tour Đảo và tính vé đã dùng. Hướng dẫn viên, Bán hàng, Quản lý bán hàng, Kế toán, Quản trị và Toàn quyền; Tài xế chỉ xem." },

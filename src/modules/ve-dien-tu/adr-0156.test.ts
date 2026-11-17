@@ -145,9 +145,10 @@ test("Bỏ lô đã có vé từng được giữ chỗ (kể cả đã trả): 
   await them(w, loId, [ve(1), ve(2)]);
   await xacNhan(w, loId);
   const t = giuCho(w, loId);
-  assert.equal((await bo(w, loId)).status, 400, "lô đã cấp cần lý do");
+  assert.equal((await bo(w, loId)).status, 403, "ADR-0217 (chủ 18/11): lô hãng ngoài ĐÃ cấp — Bán hàng thường không huỷ được");
+  assert.equal((await bo(w, loId, ADMIN)).status, 400, "lô đã cấp cần lý do");
   w.sqlite.exec(`UPDATE vdt_allocation SET released_at = '${AT}', release_reason = 'THU_HOI' WHERE ticket_id = '${t}'`);
-  assert.equal((await bo(w, loId)).status, 400, "đã trả vẫn là từng giữ chỗ, vẫn đi đường lô đã cấp");
+  assert.equal((await bo(w, loId, ADMIN)).status, 400, "đã trả vẫn là từng giữ chỗ, vẫn đi đường lô đã cấp");
   assert.equal(w.q("SELECT status FROM vdt_batch")[0].status, "ACTIVE");
   assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE withdrawn_at IS NOT NULL")[0].n, 0, "lô đã cấp không bao giờ mang dấu rút (nhập lại được)");
 });
