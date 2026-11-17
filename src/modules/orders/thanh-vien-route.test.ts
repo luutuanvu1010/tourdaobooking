@@ -584,19 +584,20 @@ test("Q3: thành viên A mở đơn đã gửi lên (đã xác nhận) của th�
   assert.equal((await w.call("GET", `/api/orders/${id}/nhap-ke-toan`, { as: NAM })).status, 403, "người quản lý: mã cũ");
 });
 
-// ---- Vòng sửa cuối (m-b): cờ rutDuoc tắt khi người quản lý còn hiệu lực nhưng đã thôi thay mặt tổ chức (tổ chức hết vai được hưởng) — vế quyenGhiNhap của cờ phải được thấy chặn ----
-test("m-b: người quản lý đã gửi lên, tổ chức hết vai được hưởng ⇒ không còn cờ Rút lại và route Rút lại từ chối", async () => {
+// ---- Vòng sửa cuối (m-b): cờ rutDuoc tắt khi người quản lý còn hiệu lực nhưng đã thôi thay mặt tổ chức — vế quyenGhiNhap của cờ và route Rút lại được thấy chặn ----
+test("m-b: người quản lý đã gửi lên, vai của tổ chức thôi được hưởng (không còn tư cách tổ chức) ⇒ chi tiết đơn 200 với rutDuoc false; Rút lại 403 not_acting_for_org", async () => {
   const w = setup();
   w.sqlite.prepare("INSERT INTO ord_service_confirm_flag (id, scope, code, required, valid_from_at, created_at, updated_at) VALUES ('comb', 'SERVICE', 'ZA1', 1, ?, ?, ?)").run(AT, AT, AT);
   assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
   const id = await lap(w, TV);
   assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 201);
   assert.equal((await w.call("GET", `/api/orders/${id}`, { as: NAM })).json.thanhVien.rutDuoc, true);
-  w.sqlite.prepare("UPDATE pty_party_role SET valid_to_date = '2026-10-02' WHERE id = ?").run(`r-${SUNRISE}`);
+  // Người quản lý VẪN có hiệu lực (laQuanLyCoHieuLuc dựa vai của tổ chức), nhưng tư cách tổ chức (tuCachCuaToi) mất vì vai thôi là vai được hưởng (prc_beneficiary_role) ⇒ thôi thay mặt.
+  w.sqlite.prepare("UPDATE prc_beneficiary_role SET active = 0 WHERE role_type_code = 'TRAVEL_AGENCY'").run();
   const ct = await w.call("GET", `/api/orders/${id}`, { as: NAM });
-  assert.ok(ct.status === 404 || ct.json.thanhVien === null || ct.json.thanhVien.rutDuoc === false, ct.text);
+  assert.equal(ct.status, 200, ct.text);
+  assert.equal(ct.json.thanhVien.rutDuoc, false, "cờ đi qua cùng cổng quyenGhiNhap của route");
   const r = await w.call("POST", `/api/orders/${id}/rut-xac-nhan`, { as: NAM, body: {} });
-  assert.notEqual(r.status, 200, r.text);
-  // Ghi nhận (17/11): qua đường thật, tổ chức hết vai được hưởng làm người quản lý HẾT HIỆU LỰC luôn (Đ2.8) ⇒ đọc 404, rút 404 — chặn ở cổng sớm hơn, KHÔNG chạm vế
-  // not_acting_for_org của quyenGhiNhap. Vế đó của cờ rutDuoc: CHƯA quan sát chặn qua đường thật — dựa vào kỷ luật (cùng hàm với route, sổ hàng rào không ghi).
+  assert.equal(r.status, 403, r.text);
+  assert.equal(r.json.error.code, "not_acting_for_org");
 });
