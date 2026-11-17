@@ -1,4 +1,6 @@
 -- Migration 0176 — ADR-0213 Đ7 (chủ duyệt 2026-11-16): mốc B2 đợt 2 đăng ký đối tác, Task 15 «Mã vào tổ chức». Số 0176: B1 (0175) là số lớn nhất ở mọi nhánh lúc đặt.
+-- Phần nối thêm của Task 16 (ADR-0213 Đ8 — chế độ thành viên, nháp chờ người quản lý, tin đích danh): bảng pty_org_member_mode (parties), ord_member_submit + view
+-- v_ord_member_submit_open (orders), view v_aud_order_notice_direct (audit) — ở cuối tệp.
 -- CHỈ THÊM bảng, chỉ mục, trigger, một dòng chính sách gieo, một cột. Không sửa dòng dữ liệu cũ nào. Thân trigger chỉ đọc bảng cùng module (Hiến chương 5.3).
 -- Mỗi trigger một câu RAISE, câu báo có tiền tố mã. Tệp KHÔNG tự mở/đóng giao dịch. Không `CASE … END)` trong thân trigger.
 
