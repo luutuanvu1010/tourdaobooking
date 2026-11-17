@@ -288,6 +288,7 @@ try {
       await p.waitFor(`!document.querySelector('#dk-loi').hidden`, "nhắc chọn vai hoặc nhập mã", 8000);
       assert.match(await p.ev(txt("#dk-loi")), /hoặc nhập mã vào tổ chức/);
       await go(p, "#dk-ma-vao", ma);
+      assert.equal(await p.ev(`document.querySelector('#dk-loi').hidden`), true, "gõ mã xong thì câu nhắc chọn vai hoặc nhập mã tắt");
       assert.ok(await p.ev(noOverflowX), "không tràn ngang");
       await shotFull(p, "b2-dang-ky-ma-vao-390.png");
       await axe(p, "phiếu có mã vào tổ chức 390");

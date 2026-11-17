@@ -17,6 +17,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sau nghiệm thu đợt 2 đăng ký (không migration): sửa dòng báo ở trang đăng ký. SỐ TẠM 3.16: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.16",
+    date: "2026-11-17",
+    items: [
+      { kind: "sua", text: "Trang đăng ký: dòng nhắc «Hãy chọn vai… hoặc nhập mã vào tổ chức» tự tắt ngay khi bạn gõ mã vào tổ chức." },
+    ],
+  },
+  {
     // Đăng ký đối tác đợt 2 (ADR-0212, ADR-0213; migration 0174, 0175, 0176; nhánh claude/account-signup-approval-flow-ee612c): chủ chốt 17/11 «Gộp cả ba»
     // — lần A (phiếu có phần tổ chức), B1 (người quản lý tổ chức, tư cách theo đơn), B2 (lời mời, thành viên) lên CÙNG một lần phát hành, sau 3.13 và 3.14 trên main.
     // Phần tổ chức của phiếu ẨN cho tới khi chủ đăng chính sách riêng tư có ô «Thu thông tin tổ chức» (văn bản: PHAN-THEM-TO-CHUC.md, cần luật sư).
