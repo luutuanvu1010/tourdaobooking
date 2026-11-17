@@ -102,7 +102,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // và hai bảng phân loại lịch sử (chỉ dữ liệu; đo thật 114.923 byte, +33 so với trần cũ). Không mã giao diện nào vào gói Đơn hàng. Trần = đúng số đo (cách lần duyệt 16/11 trước). Mức +33 này ĐÃ được chủ dự án duyệt (theo người điều phối, 17/11/2026).
 // Nới 114.923 → 115.103 (ADR-0213 Đ5, ruling R13, mốc B1 Task 12, 16/11/2026): `can()` dùng chung nhận cờ `quanLyBenDat` — danh sách bảy ô `O_NHAN_QUAN_LY_BEN_DAT` và một vế
 // trong `allows()` (luật quyền phải ở MỘT nơi, giao diện cùng import). Đo thật 115.103 byte (+180). Không mã giao diện nào vào gói Đơn hàng. Trần = đúng số đo. Chủ dự án duyệt 17/11/2026 (chat, nguyên văn: «Duyệt nới 180 byte»).
-const TRAN_ORDERS = 115_103;
+// SIẾT 115.103 → 114.976 (kiểm toàn mốc B2, m5, 17/11/2026): đo thật sau mọi thay đổi giao diện của mốc B2 (Task 15–18) — gói Đơn hàng 114.976 byte (Task 15 vòng sửa 1 gom tiền tố
+// danh sách bí mật làm gói nhỏ lại). Trần = đúng số đo, không khoảng dư; chỉ siết, không nới — các dòng duyệt ở trên giữ làm lịch sử.
+const TRAN_ORDERS = 114_976;
 
 function dung(trang: string) {
   const r = buildSync({
