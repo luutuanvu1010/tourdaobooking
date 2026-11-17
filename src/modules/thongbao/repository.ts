@@ -1,8 +1,8 @@
 // SQL của module thongbao (bảng ntf_*; ADR-0034 + ADR-0036). Mọi câu qua defineSql, tham số ?N. Đọc xuyên module CHỈ qua view công bố:
-// v_aud_order_event + v_aud_order_change + v_aud_trip_event + v_aud_account_event + v_aud_ledger_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler + v_dsp_sales_owner + v_dsp_sales_invite_open (dispatch; ADR-0142), v_stf_staff_label (staff).
+// v_aud_order_event + v_aud_order_notice_direct (ADR-0213 Đ8.6) + v_aud_order_change + v_aud_trip_event + v_aud_account_event + v_aud_ledger_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler + v_dsp_sales_owner + v_dsp_sales_invite_open (dispatch; ADR-0142), v_stf_staff_label (staff).
 // Không DELETE, không OR REPLACE (R-N1-9).
 import { defineSql } from "../../shared/sql-registry.ts";
-import type { DongDieuChinh, DongDon, DongThuCong } from "../../shared/thong-bao.ts";
+import type { DongDichDanh, DongDieuChinh, DongDon, DongThuCong } from "../../shared/thong-bao.ts";
 import { HANH_DONG_TIN_KHACH, HANH_DONG_TIN_THUONG, type DonCuaTin, type DongChuyenTho } from "../../shared/tin-chuyen.ts";
 
 const LIST_DON = defineSql("thongbao", "list_don", `
@@ -308,4 +308,15 @@ export async function donChoTin(db: D1Database, orderIds: readonly string[]): Pr
   if (orderIds.length === 0) return [];
   const r = (await db.prepare(DON_CHO_TIN).bind(JSON.stringify([...new Set(orderIds)])).all<{ order_id: string; ma_don: string; owner_id: string; handler_staff_id: string | null }>()).results;
   return r.map((x) => ({ orderId: x.order_id, maDon: x.ma_don, ownerId: x.owner_id, handlerStaffId: x.handler_staff_id }));
+}
+
+// ADR-0213 Đ8.6, Ruling R11 (Task 16): tin ĐÍCH DANH của người nhận ?2 từ cửa sổ ?1 — hình chiếu nhật ký (chỉ khoá), mã đơn qua view nhãn của orders. Không tên, không số.
+const LIST_DICH_DANH = defineSql("thongbao", "list_dich_danh", `
+  SELECT e.id, e.order_id, o.order_code AS ma_don, e.action, e.staff_id AS actor_id, e.target_id, e.created_at AS luc
+  FROM v_aud_order_notice_direct e JOIN v_ord_order_label o ON o.id = e.order_id
+  WHERE e.created_at >= ?1 AND e.target_id = ?2
+  ORDER BY e.created_at DESC LIMIT 500`);
+export async function listTinDichDanh(db: D1Database, tu: string, staffId: string): Promise<DongDichDanh[]> {
+  const r = (await db.prepare(LIST_DICH_DANH).bind(tu, staffId).all<{ id: string; order_id: string; ma_don: string; action: DongDichDanh["action"]; actor_id: string | null; target_id: string; luc: string }>()).results;
+  return r.map((x) => ({ id: x.id, orderId: x.order_id, maDon: x.ma_don, action: x.action, actorId: x.actor_id, targetId: x.target_id, luc: x.luc }));
 }

@@ -2067,6 +2067,30 @@ export async function tcToChucCuaNguoi(db: D1Database, person: string): Promise<
   return results.map((r) => ({ orgPartyId: r.to_party_id, loai: r.relationship_type_code }));
 }
 
+// ---- Chế độ thành viên của tổ chức (ADR-0213 Đ8.2, Đ8.3; mốc B2 Task 16) — bảng chỉ thêm pty_org_member_mode. Hiện hành = dòng mới nhất có valid_from_at <= ?2; không dòng ⇒ null
+// (nơi gọi hiểu là «Soạn và gửi», mặc định Đ8.2). ?1 tổ chức, ?2 lúc xét.
+const TC_CHE_DO = defineSql(
+  "parties",
+  "tc_che_do",
+  `SELECT mode FROM pty_org_member_mode WHERE org_party_id = ?1 AND valid_from_at <= ?2 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+export async function tcCheDo(db: D1Database, org: string, luc: string): Promise<"CHI_SOAN" | "SOAN_VA_GUI" | null> {
+  return (await db.prepare(TC_CHE_DO).bind(org, luc).first<{ mode: "CHI_SOAN" | "SOAN_VA_GUI" }>())?.mode ?? null;
+}
+// Mốc mới nhất của chế độ thành viên (để dòng sau đi sau dòng trước). ?1 tổ chức.
+const TC_CHE_DO_MOC = defineSql("parties", "tc_che_do_moc", "SELECT MAX(valid_from_at) AS moc FROM pty_org_member_mode WHERE org_party_id = ?1");
+export async function tcCheDoMoc(db: D1Database, org: string): Promise<string | null> {
+  return (await db.prepare(TC_CHE_DO_MOC).bind(org).first<{ moc: string | null }>())?.moc ?? null;
+}
+// Dòng chế độ mới. ?1 id, ?2 tổ chức, ?3 chế độ, ?4 hiệu lực từ, ?5 lúc ghi, ?6 người làm. Va UNIQUE(org, valid_from_at) ⇒ người gọi trả 409 (hai lần đổi cùng lúc).
+const TC_DAT_CHE_DO = defineSql(
+  "parties",
+  "tc_dat_che_do",
+  `INSERT INTO pty_org_member_mode (id, org_party_id, mode, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?5, ?6)`,
+);
+export const tcDatCheDoStatement = (db: D1Database, v: { id: string; org: string; cheDo: "CHI_SOAN" | "SOAN_VA_GUI"; tu: string; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(TC_DAT_CHE_DO).bind(v.id, v.org, v.cheDo, v.tu, v.at, v.by);
+
 // Liên kết của tổ chức đã đóng TỪ ngày ?2 trở đi — lệnh mở lại cùng loại cho cùng người trong ngày đó sẽ vướng trigger chống chồng lấn (Đ2.9); route báo trước lô.
 const TC_DONG_TU_NGAY = defineSql(
   "parties",

@@ -992,3 +992,52 @@ export async function dongPhiTienNhieuDon(db: D1Database, orderIds: readonly str
  */
 const ORDER_FEE_CONFIRM_LOCK = defineSql("orders", "order_fee_confirm_lock", `INSERT INTO ord_xac_nhan_phi_gac (order_id) VALUES (?1)`);
 export const chotLoPhiDon = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(ORDER_FEE_CONFIRM_LOCK).bind(orderId);
+
+// ---- ADR-0213 Đ8.4 (mốc B2 Task 16): nháp của thành viên «chờ người quản lý» — bảng chỉ thêm `ord_member_submit` (không thuộc XOA_CUNG_NHAP). Mọi câu ghi đứng SAU câu đẩy mốc đơn
+// (`orderTouchDraft`) hoặc sau câu quyết của lô xác nhận, gác bằng điều kiện của chính orders (không đọc audit_log — không nới DOC_AUDIT_LOG_WONGUARD).
+const TV_CHO_MO = defineSql("orders", "member_submit_open", "SELECT id, member_staff_id, org_party_id FROM ord_member_submit WHERE order_id = ?1 AND status = 'MO'");
+export async function tvChoMo(db: D1Database, orderId: string): Promise<{ id: string; memberStaffId: string; orgPartyId: string } | null> {
+  const r = await db.prepare(TV_CHO_MO).bind(orderId).first<{ id: string; member_staff_id: string; org_party_id: string }>();
+  return r ? { id: r.id, memberStaffId: r.member_staff_id, orgPartyId: r.org_party_id } : null;
+}
+/** Thành viên «Gửi người quản lý xác nhận»: mở dòng CHỈ khi câu đẩy mốc đơn đứng ngay trước đã thắng (`changes() > 0`). Đã có dòng mở ⇒ UNIQUE chặn, cả lô rơi. ?1 id, ?2 đơn, ?3 thành viên, ?4 tổ chức, ?5 lúc */
+const TV_MO = defineSql(
+  "orders",
+  "member_submit_open_guarded",
+  `INSERT INTO ord_member_submit (id, order_id, member_staff_id, org_party_id, status, opened_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, 'MO', ?5, ?5, ?3, ?5, ?3 WHERE changes() > 0`,
+);
+export const tvMoStatement = (db: D1Database, v: { id: string; orderId: string; memberStaffId: string; orgPartyId: string; at: string }): D1PreparedStatement =>
+  db.prepare(TV_MO).bind(v.id, v.orderId, v.memberStaffId, v.orgPartyId, v.at);
+/** Đóng dòng đang mở (rút lại / trả lại) CHỈ khi câu đẩy mốc đơn đứng ngay trước đã thắng. ?1 đơn, ?2 trạng thái đích, ?3 lý do, ?4 lúc, ?5 người đóng */
+const TV_DONG = defineSql(
+  "orders",
+  "member_submit_close_guarded",
+  `UPDATE ord_member_submit SET status = ?2, reason_code = ?3, closed_at = ?4, closed_by = ?5, updated_at = ?4, updated_by = ?5
+   WHERE order_id = ?1 AND status = 'MO' AND changes() > 0`,
+);
+export const tvDongStatement = (db: D1Database, v: { orderId: string; trangThai: "TRA_LAI" | "DA_RUT"; lyDo: string | null; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(TV_DONG).bind(v.orderId, v.trangThai, v.lyDo, v.at, v.by);
+/**
+ * Người quản lý GỬI LÊN Tour Đảo nháp của thành viên (Đ8.5) — hai câu nối CUỐI lô Gửi đơn (chỉ số các câu trước không đổi). «Lô đã thắng» = yêu cầu xác nhận của chính lô đã mở (nhánh A, ?3 = mã
+ * yêu cầu) HOẶC đơn đã ở trạng thái xác nhận (nhánh B, ?3 NULL). (1) chế độ «Chỉ soạn» chưa có dòng mở ⇒ mở một dòng (để có lịch sử và tin); (2) đóng dòng mở ⇒ DA_GUI_LEN. Câu nhật ký
+ * `order_member_forwarded` đứng ngay sau (2) với `changes() > 0`. ?1 đơn, ?2 lúc, ?3 mã yêu cầu xác nhận | NULL, ?4 người gửi, ?5 id dòng mới, ?6 thành viên, ?7 tổ chức
+ */
+const TV_THANG = "(EXISTS (SELECT 1 FROM ord_confirm_request y WHERE y.id = ?3 AND y.order_id = ?1) OR EXISTS (SELECT 1 FROM orders o WHERE o.id = ?1 AND o.status = 'confirmed'))";
+const TV_MO_KHI_GUI = defineSql(
+  "orders",
+  "member_submit_open_on_forward",
+  `INSERT INTO ord_member_submit (id, order_id, member_staff_id, org_party_id, status, opened_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?5, ?1, ?6, ?7, 'MO', ?2, ?2, ?4, ?2, ?4
+   WHERE ${TV_THANG} AND NOT EXISTS (SELECT 1 FROM ord_member_submit s WHERE s.order_id = ?1 AND s.status = 'MO')`,
+);
+const TV_GUI_LEN = defineSql(
+  "orders",
+  "member_submit_forward",
+  `UPDATE ord_member_submit SET status = 'DA_GUI_LEN', closed_at = ?2, closed_by = ?4, updated_at = ?2, updated_by = ?4
+   WHERE order_id = ?1 AND status = 'MO' AND ${TV_THANG}`,
+);
+export const tvGuiLenStatements = (db: D1Database, v: { orderId: string; at: string; yeuCauId: string | null; by: string; memberStaffId: string; orgPartyId: string }): D1PreparedStatement[] => [
+  db.prepare(TV_MO_KHI_GUI).bind(v.orderId, v.at, v.yeuCauId, v.by, crypto.randomUUID(), v.memberStaffId, v.orgPartyId),
+  db.prepare(TV_GUI_LEN).bind(v.orderId, v.at, v.yeuCauId, v.by),
+];

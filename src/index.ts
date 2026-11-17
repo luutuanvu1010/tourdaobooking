@@ -31,7 +31,7 @@ import { canBangVeTheoSoKhach, cauChanDuoiSoDaDung, cauChanVeDaDung, capVeChoDon
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import {
   LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauDongYTuPhieu, cauGhiGiaTriDaXacMinh, cauGhiGiaTriToChuc, cauGoTepCho, cauLienKetNguoiToChuc, cauMoHoSoDangKy, cauMoHoSoToChucDangKy, cauQuanLyToChucDangKy,
-  cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule, tcQuanLyMo, tcToChucCuaNguoi, cauBoGiuChoLoiMoi, cauDungLoiMoiPhieu, cauThanhVienTuLoiMoi,
+  cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule, tcCheDo, tcQuanLyMo, tcToChucCuaNguoi, cauBoGiuChoLoiMoi, cauDungLoiMoiPhieu, cauThanhVienTuLoiMoi,
 } from "./modules/parties";
 import { capMacDinhChoDuyet, capSeApChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
 import { cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
@@ -113,8 +113,7 @@ async function conQuyenMoi(db: D1Database, staffId: string, org: string): Promis
 /**
  * TƯ CÁCH CỦA MỘT TÀI KHOẢN (ADR-0213 Đ3.1–Đ3.3; mốc B1 Task 11) — gốc lắp ráp ghép pricing (vai được hưởng), parties (liên kết đang mở) và `nguoiQuanLyCoHieuLuc` (Đ2.8 — MỘT định nghĩa).
  * - Cá nhân: hồ sơ của tài khoản mang vai được hưởng — ĐÚNG điều kiện ép bên đặt hôm nay (`benDatChoTaiKhoan`), nên «chỉ cá nhân» = hành vi hôm nay.
- * - Tổ chức: nơi tài khoản là người quản lý có hiệu lực VÀ tổ chức còn vai được hưởng (pricing — bên đặt phải ghi được). Ruling R4: liên kết «Thành viên» mở ở B2 (Task 16) —
- *   chỉ cần thêm nhánh `MEMBER_OF` ở dưới.
+ * - Tổ chức: nơi tài khoản là người quản lý có hiệu lực, HOẶC thành viên đang mở (B2, Task 16), VÀ tổ chức còn vai được hưởng (pricing — bên đặt phải ghi được).
  * Không giữ quyền Đối tác hoặc chưa gắn hồ sơ ⇒ `[]`, không truy vấn (đường hôm nay).
  */
 /**
@@ -138,10 +137,11 @@ async function tuCachCuaToi(db: D1Database, actor: StaffProfile): Promise<TuCach
   const minh = actor.partyId;
   const [caNhan, lienKet] = await Promise.all([nguoiHuongCuaHoSo(db, minh), tcToChucCuaNguoi(db, minh)]);
   const toChuc = await Promise.all(lienKet.map(async (k): Promise<TuCachDong | null> => {
-    if (k.loai !== "MANAGER_OF") return null; // R4
-    if (!(await laQuanLyCoHieuLuc(db, actor, k.orgPartyId))) return null;
+    // B2 (Task 16, preflight P30): liên kết «Thành viên của» đang mở cũng cho tư cách tổ chức (`loai` MEMBER ⇒ acting_link_kind = 'MEMBER', Ruling R10) — chỉ cần tổ chức còn vai được hưởng;
+    // KHÔNG đòi tổ chức có người quản lý có hiệu lực (Đ8.7: thành viên vẫn soạn được, chỉ không ai gửi lên được). Người quản lý: như B1 (phải có hiệu lực — Đ2.8).
+    if (k.loai === "MANAGER_OF" && !(await laQuanLyCoHieuLuc(db, actor, k.orgPartyId))) return null;
     const huong = await nguoiHuongCuaHoSo(db, k.orgPartyId);
-    return huong ? { partyId: huong.partyId, ten: huong.ten, laToChuc: true, loai: "MANAGER" } : null;
+    return huong ? { partyId: huong.partyId, ten: huong.ten, laToChuc: true, loai: k.loai === "MANAGER_OF" ? "MANAGER" : "MEMBER" } : null;
   }));
   const ds: TuCachDong[] = caNhan ? [{ partyId: caNhan.partyId, ten: caNhan.ten, laToChuc: false, loai: "CA_NHAN" }] : [];
   return [...ds, ...toChuc.filter((t): t is TuCachDong => t !== null).sort((a, b) => a.ten.localeCompare(b.ten, "vi"))];
@@ -454,6 +454,8 @@ const APP_OPTIONS: AppOptions = {
     tuCachCuaToi: (env, actor) => tuCachCuaToi(env.DB, actor),
     // ADR-0213 Đ5 (Task 12): cờ `quanLyBenDat` và tập tổ chức cho «Đơn của tôi» — CÙNG hàm `laQuanLyCoHieuLuc` với tư cách tổ chức ở trên.
     laQuanLyCuaBen: (env, actor, partyId) => laQuanLyCoHieuLuc(env.DB, actor, partyId),
+    // ADR-0213 Đ8.2 (Task 16): chế độ thành viên hiện hành của tổ chức (parties) cho ngoại lệ nháp có tên ở orders — không dòng ⇒ «Soạn và gửi».
+    cheDoThanhVien: async (env, org) => (await tcCheDo(env.DB, org, new Date().toISOString())) ?? "SOAN_VA_GUI",
     toChucToiQuanLy: (env, actor) => toChucToiQuanLy(env.DB, actor),
     // LỌC DANH MỤC FORM LẬP ĐƠN THEO LUẬT BÁN (ADR-0146 Đ4; T9, R-3): `catalog` không import `pricing` — gốc lắp ráp nối. Cùng điều kiện ép bên đặt như dòng trên (bên đặt máy chủ ép);
     // văn phòng / Thực tập không bị ép ⇒ không truy vấn, thấy đủ. Ngày xét = ngày Việt Nam lúc gọi.

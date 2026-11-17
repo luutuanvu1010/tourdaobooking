@@ -131,6 +131,7 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
   "POST /api/to-chuc/:id/loi-moi/:mid/huy": { ma: 403, ly_do: "ADR-0213 Đ7.2: chỉ người quản lý của tổ chức hoặc văn phòng huỷ lời mời → 403 trước mọi ghi" },
   "GET /api/to-chuc/loi-moi-cua-toi": { ma: 403, ly_do: "ADR-0213 Đ7.4, Đ2.6: chỉ tài khoản Đối tác lập đơn được (order.create + quyền Đối tác) xem lời mời của chính số mình → 403 ở cổng (Task 15 vòng sửa 1)" },
   "POST /api/to-chuc/loi-moi/nhan": { ma: 403, ly_do: "ADR-0213 Đ7.4, Đ2.6: chỉ tài khoản Đối tác lập đơn được (order.create + quyền Đối tác) mới nhận lời mời vào tổ chức → 403 trước mọi ghi" },
+  "PUT /api/to-chuc/:id/che-do": { ma: 403, ly_do: "ADR-0213 Đ8.3: chỉ người quản lý có hiệu lực của tổ chức hoặc Toàn quyền đổi chế độ thành viên; tài xế → 403 trước mọi ghi" },
   "POST /api/to-chuc/:id/roi": { ma: 404, ly_do: "ADR-0213 Đ4: chỉ thành viên của tổ chức mới rời; không phải thành viên → 404 (không dò được tổ chức có thật)" },
   "GET /api/pricing/cap-cua-to-chuc/:id": { ma: 403, ly_do: "ADR-0213 Đ5: chỉ người quản lý của tổ chức xem cấp độ đại lý của tổ chức → 403; không dữ liệu đơn" },
   "GET /api/thong-bao": { ma: 200, ly_do: "hộp thông báo gửi cho mình (D3)" },

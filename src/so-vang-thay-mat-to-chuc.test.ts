@@ -79,13 +79,13 @@ function dongTien(w: W, id: string) {
   };
 }
 
-test("GET /api/to-chuc/cua-toi: cá nhân (nếu hồ sơ mang vai riêng) + tổ chức mình là người quản lý có hiệu lực; thành viên chưa có tư cách tổ chức ở B1; văn phòng rỗng", async () => {
+test("GET /api/to-chuc/cua-toi: cá nhân (nếu hồ sơ mang vai riêng) + tổ chức mình là người quản lý có hiệu lực hoặc thành viên (B2, Task 16 — P30); văn phòng rỗng", async () => {
   const w = await setup();
   const nam = await w.call("GET", "/api/to-chuc/cua-toi", { as: NAM });
   assert.equal(nam.status, 200, nam.text);
   assert.deepEqual(nam.json, { tuCach: [{ partyId: `pty-${NAM}`, ten: "Nam Lễ Tân", laToChuc: false }, { partyId: SUNRISE, ten: "Khách sạn Sunrise", laToChuc: true }] });
   assert.deepEqual((await w.call("GET", "/api/to-chuc/cua-toi", { as: CHI })).json, { tuCach: [{ partyId: BIEN_XANH, ten: "Khách sạn Biển Xanh", laToChuc: true }] }, "Đ3.3: không vai riêng ⇒ không tư cách cá nhân");
-  assert.deepEqual((await w.call("GET", "/api/to-chuc/cua-toi", { as: TV })).json, { tuCach: [{ partyId: `pty-${TV}`, ten: "Tú Thành Viên", laToChuc: false }] }, "R4: thành viên mở ở B2");
+  assert.deepEqual((await w.call("GET", "/api/to-chuc/cua-toi", { as: TV })).json, { tuCach: [{ partyId: `pty-${TV}`, ten: "Tú Thành Viên", laToChuc: false }, { partyId: SUNRISE, ten: "Khách sạn Sunrise", laToChuc: true }] }, "B2 (Task 16): thành viên có tư cách tổ chức (R4 hết hiệu lực)");
   assert.deepEqual((await w.call("GET", "/api/to-chuc/cua-toi", { as: SALES })).json, { tuCach: [] });
   w.sqlite.prepare("UPDATE pty_party_role SET valid_to_date = '2026-10-02' WHERE id = ?").run(`r-${SUNRISE}`);
   assert.deepEqual((await w.call("GET", "/api/to-chuc/cua-toi", { as: NAM })).json.tuCach.map((t: { partyId: string }) => t.partyId), [`pty-${NAM}`], "tổ chức thôi vai được hưởng ⇒ không ai thay mặt (Đ1)");
@@ -147,16 +147,43 @@ test("Đ4.2 sổ vàng: cùng một đơn Trả sau — văn phòng lập cho Su
   };
   assert.deepEqual(await noCua(SUNRISE), [[vp.json.order.id, 850_000], [ql.json.order.id, 850_000]].sort());
   assert.deepEqual(await noCua(`pty-${NAM}`), []);
-  // B2 (Task 16) thêm đường thứ ba: thành viên thay mặt Sunrise — cùng dòng tiền.
+  // B2 (Task 16, ADR-0213 Đ4.3): đường thứ ba — thành viên thay mặt Sunrise lập, gửi người quản lý, người quản lý gửi lên ⇒ cùng dòng tiền, cùng phiếu, nợ cho Sunrise; người lập vẫn là thành viên.
+  const tv = await lap(w, TV, { tuCach: SUNRISE, paymentTerm: "CREDIT" });
+  assert.equal(tv.status, 201, tv.text);
+  const tvId = tv.json.order.id as string;
+  assert.equal((await w.call("POST", `/api/orders/${tvId}/gui-quan-ly`, { as: TV, body: {} })).status, 201);
+  const gl = await w.call("POST", `/api/orders/${tvId}/gui-don`, { as: NAM, body: {} });
+  assert.equal(gl.status, 200, gl.text);
+  assert.equal(w.q("SELECT staff_id AS s, acting_link_kind AS k FROM orders WHERE id = ?", tvId)[0].s, TV);
+  assert.deepEqual(dongTien(w, tvId), x);
+  assert.deepEqual(await phieu(tvId), px);
+  assert.deepEqual(await noCua(SUNRISE), [[vp.json.order.id, 850_000], [ql.json.order.id, 850_000], [tvId, 850_000]].sort());
+  assert.deepEqual(await noCua(`pty-${TV}`), []);
 });
 
-test("Đ3.2: tư cách tổ chức không gắn ⇒ 403, không tạo đơn; người chỉ làm cho tổ chức không chọn ⇒ 400; thành viên (B1) chọn Sunrise ⇒ 403", async () => {
+test("Review Focus 5 (Task 16): thành viên bị gỡ khi nháp đang chờ người quản lý ⇒ không dòng tiền nào sinh ra (gỡ, lưu thử, rút thử); người quản lý gửi lên ⇒ tiền như đơn thường của tổ chức", async () => {
+  const w = await setup();
+  const r = await lap(w, TV, { tuCach: SUNRISE });
+  assert.equal(r.status, 201, r.text);
+  const id = r.json.order.id as string;
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-quan-ly`, { as: TV, body: {} })).status, 201);
+  const tien = () => ({ ...w.q("SELECT (SELECT count(*) FROM bil_payment_receipt) AS thu, (SELECT count(*) FROM bil_posting) AS but, (SELECT count(*) FROM bil_debt_line) AS no, (SELECT count(*) FROM ord_service_terms WHERE order_id = ?) AS chup", id)[0] });
+  const truoc = tien();
+  assert.equal((await w.call("POST", `/api/to-chuc/${SUNRISE}/go-thanh-vien`, { as: NAM, body: { personPartyId: `pty-${TV}` } })).status, 200);
+  assert.notEqual((await luu(w, TV, id)).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${id}/rut-gui-quan-ly`, { as: TV, body: {} })).status, 403);
+  assert.deepEqual(tien(), truoc, "không dòng tiền, không bản chụp mới");
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 200);
+  assert.equal(tien().chup, 1, "gửi lên mới chụp (một dịch vụ)");
+});
+
+test("Đ3.2: tư cách tổ chức không gắn ⇒ 403, không tạo đơn; người chỉ làm cho tổ chức không chọn ⇒ 400; thành viên (B2) chọn tổ chức không gắn ⇒ 403", async () => {
   const w = await setup();
   const truoc = dem(w, "SELECT count(*) AS n FROM orders");
   const r = await lap(w, NAM, { tuCach: KHAC });
   assert.equal(r.status, 403, r.text);
   assert.deepEqual(r.json.error, { code: "not_acting_for_org", message: CAU_KHONG_CON });
-  const tv = await lap(w, TV, { tuCach: SUNRISE });
+  const tv = await lap(w, TV, { tuCach: KHAC });
   assert.equal(tv.status, 403, tv.text);
   assert.equal(tv.json.error.code, "not_acting_for_org");
   const chi = await lap(w, CHI, {});

@@ -153,6 +153,11 @@ export function duocGuiLenTourDao(v: { tuCach: "CA_NHAN" | "TO_CHUC" | null; laN
   return v.tuCach === "TO_CHUC" ? v.laQuanLyCoHieuLuc : v.laNguoiLap;
 }
 
+// ---- ADR-0213 Đ8.2 (mốc B2, Task 16): lý do người quản lý trả lại nháp của thành viên — tập đóng (CHECK của ord_member_submit.reason_code cùng tập).
+export const MA_LY_DO_TRA_LAI = ["SAI_DICH_VU", "SAI_NGAY", "SAI_SO_KHACH", "KHONG_DAT_NUA", "KHAC"] as const;
+export type MaLyDoTraLai = (typeof MA_LY_DO_TRA_LAI)[number];
+export const laMaLyDoTraLai = (v: unknown): v is MaLyDoTraLai => typeof v === "string" && (MA_LY_DO_TRA_LAI as readonly string[]).includes(v);
+
 // ---- ADR-0213 Đ7 (mốc B2, Task 15): mã vào tổ chức ---------------------------------------------------------------------------------------------------------
 /** Bảng chữ của mã máy cấp: bỏ `0 O 1 I L` (dễ nhầm khi đọc qua điện thoại) — 31 ký tự. */
 export const BANG_CHU_MA_VAO = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";

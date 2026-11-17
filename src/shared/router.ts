@@ -345,6 +345,11 @@ export interface Ctx<A extends Access = Access> {
    */
   toChucToiQuanLy: () => Promise<string[]>;
   /**
+   * CHẾ ĐỘ THÀNH VIÊN HIỆN HÀNH CỦA TỔ CHỨC (ADR-0213 Đ8.2; mốc B2 Task 16) — do gốc lắp ráp tiêm (`parties`; orders không đọc bảng của parties). Cho ngoại lệ nháp có tên (`xem-don-nhap.ts`).
+   * Không dòng cài đặt, chưa đăng nhập, môi trường không tiêm ⇒ «Soạn và gửi» (SOAN_VA_GUI — mặc định Đ8.2, cũng là chế độ ÍT lộ nháp nhất: đóng kín).
+   */
+  cheDoThanhVien: (orgPartyId: string) => Promise<"CHI_SOAN" | "SOAN_VA_GUI">;
+  /**
    * DỊCH VỤ BỊ LUẬT BÁN CHẶN CHO NGƯỜI GỌI (ADR-0146 Đ4; kế hoạch 2026-10-30 T9, R-3) — do gốc lắp ráp tiêm (`pricing.kiemLuatBan`; `catalog` KHÔNG import `pricing`). Trong `codes`,
    * các mã mà luật bán đang chặn cho BÊN ĐẶT MÁY CHỦ ÉP của người gọi (cùng điều kiện `benDatCuaToi`); người gọi không bị ép bên đặt ⇒ tập rỗng. Chỉ để LỌC danh mục form lập đơn —
    * cổng thật là 409 `sales_blocked` ở các cửa ghi đơn. Môi trường không tiêm (khung thử cũ), mảng rỗng, chưa đăng nhập ⇒ tập rỗng (không lọc).
@@ -588,6 +593,8 @@ export interface AppOptions {
     /** ADR-0213 Đ5 (Task 12). BẮT BUỘC (như `tuCachCuaToi`): bản thật ở `src/index.ts`. Khung thử dựng `injected` thiếu hàm ⇒ router trả `false` / `[]` (đóng kín). */
     laQuanLyCuaBen: (env: Env, actor: StaffProfile, partyId: string) => Promise<boolean>;
     toChucToiQuanLy: (env: Env, actor: StaffProfile) => Promise<string[]>;
+    /** ADR-0213 Đ8.2 (Task 16). Bản thật ở `src/index.ts`; thiếu (khung thử cũ) ⇒ router trả «SOAN_VA_GUI». */
+    cheDoThanhVien?: (env: Env, orgPartyId: string) => Promise<"CHI_SOAN" | "SOAN_VA_GUI">;
     /** ADR-0146 Đ4 (T9). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguoiHuongCuaHoSo` + `kiemLuatBan` của pricing); thiếu (khung thử cũ) → router trả tập rỗng. */
     dichVuBiChanChoToi: (env: Env, actor: StaffProfile, codes: readonly string[]) => Promise<ReadonlySet<string>>;
     /** GỘP HỒ SƠ (ADR-0068). BẮT BUỘC trong mã chạy thật (`src/index.ts`). */
@@ -815,6 +822,7 @@ export function createApp(opts: AppOptions) {
         who && partyId !== null && who.permissions.includes("PARTNER") && typeof opts.injected.laQuanLyCuaBen === "function" ? opts.injected.laQuanLyCuaBen(envH, who, partyId) : Promise.resolve(false),
       toChucToiQuanLy: () =>
         who && who.permissions.includes("PARTNER") && typeof opts.injected.toChucToiQuanLy === "function" ? opts.injected.toChucToiQuanLy(envH, who) : Promise.resolve([]),
+      cheDoThanhVien: (org) => (who && typeof opts.injected.cheDoThanhVien === "function" ? opts.injected.cheDoThanhVien(envH, org) : Promise.resolve("SOAN_VA_GUI" as const)),
       dichVuBiChanChoToi: (codes) =>
         who && codes.length > 0 && typeof opts.injected.dichVuBiChanChoToi === "function" ? opts.injected.dichVuBiChanChoToi(envH, who, codes) : Promise.resolve(new Set<string>()),
       // Lười (kế hoạch R9): gọi opts.injected.gopHoSo(env) trong từng phương thức — app dựng bằng injected cũ (src/shared/router.test.ts) không vỡ ở route khác.

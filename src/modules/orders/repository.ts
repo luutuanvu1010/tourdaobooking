@@ -439,6 +439,8 @@ export interface OrderMeta {
   /** ADR-0213 Đ3.4 (Task 11): tư cách lúc lập — hồ sơ và loại liên kết (`CA_NHAN` | `MANAGER` | `MEMBER`); cả hai NULL = đơn văn phòng hoặc lập trước B1. */
   actingPartyId: string | null;
   actingLinkKind: string | null;
+  /** ADR-0213 Đ8.4 (Task 16): nháp có dòng «chờ người quản lý» đang mở (`ord_member_submit`) — người lập là thành viên không ghi được tới khi Rút lại / bị trả lại. */
+  dangChoQuanLy: boolean;
 }
 
 /** Giảm giá cấp đơn đang lưu (đóng băng sau xác nhận) — để tính tổng phải thu SAU lần sửa số khách của đơn Trả sau (ADR-0168 Đ2 mục 5). Không có đơn ⇒ 0. */
@@ -461,18 +463,20 @@ export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | n
   const row = await db
     .prepare(
       `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone, o.delivered_at, o.payment_term,
-              o.acting_party_id, o.acting_link_kind
+              o.acting_party_id, o.acting_link_kind,
+              EXISTS (SELECT 1 FROM ord_member_submit s WHERE s.order_id = o.id AND s.status = 'MO') AS member_pending
        FROM orders o LEFT JOIN v_pty_party_label b ON b.id = o.booker_party_id WHERE o.id = ?`,
     )
     .bind(id)
     .first<{
       status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string; delivered_at: string | null;
-      payment_term: "PREPAID" | "CREDIT"; acting_party_id: string | null; acting_link_kind: string | null;
+      payment_term: "PREPAID" | "CREDIT"; acting_party_id: string | null; acting_link_kind: string | null; member_pending: number;
     }>();
   return row
     ? {
         status: row.status, staffId: row.staff_id, updatedAt: row.updated_at, bookerPartyId: row.booker_party_id, bookerName: row.booker_name, customerName: row.customer_name,
         customerPhone: row.customer_phone, deliveredAt: row.delivered_at, paymentTerm: row.payment_term, actingPartyId: row.acting_party_id, actingLinkKind: row.acting_link_kind,
+        dangChoQuanLy: row.member_pending === 1,
       }
     : null;
 }

@@ -21,6 +21,9 @@ export const MIEN: Record<string, Mien[]> = {
     { doan: "const ghiDuocNhap = (meta: { status: OrderStatus; staffId: string }", so: 1, lyDo: "định nghĩa hàm (không phải lời gọi của route)" },
     { doan: "!ghiDuocNhap(meta, staff)", so: 2, lyDo: "đặt gấp (short-notice): ô `order.leg.short_notice` chỉ văn phòng — Đối tác không có, văn phòng không thay mặt tổ chức" },
   ],
+  "src/modules/orders/xac-nhan-chung.ts": [
+    { doan: "if (!chiNguoiLapGhiNhap({ status: meta.status, laNguoiLap: false, ngoaiLeToChuc })) return { chan: khongThay() };", so: 1, lyDo: "CHÍNH cổng chung `quyenGhiNhap` (Task 16): ngoại lệ có tên ADR-0213 Đ8 đọc luật ở xem-don-nhap.ts — không phải route" },
+  ],
   "src/modules/billing/index.ts": [
     { doan: "if (!chiNguoiLapGhiNhap({ status: info.status, laNguoiLap: info.ownerId === staff.id })) return NOT_FOUND();", so: 1, lyDo: "ghi khoản thu: nháp ⇒ 409 DRAFT_NO_PAYMENT ngay sau — tư cách không đổi kết quả" },
     { doan: "if (!chiNguoiLapGhiNhap({ status: don.status, laNguoiLap: don.ownerId === staff.id })) return NOT_FOUND();", so: 1, lyDo: "khoản nộp đại lý: chỉ đơn có phiếu (đã xác nhận) — nháp không có phiếu" },

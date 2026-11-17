@@ -1139,6 +1139,8 @@ export interface ToChucDto {
   thu: { trangThai: "CHO" | "DA_GUI" | "KHONG_EMAIL"; ngay: string } | null;
   /** ADR-0213 Đ7 (mốc B2, Task 15): lời mời còn dùng được (mở còn hạn, hoặc đang giữ cho một phiếu đăng ký). KHÔNG số điện thoại, KHÔNG mã — mã chỉ hiện một lần lúc tạo. */
   loiMoi?: { id: string; trangThai: "MO" | "GIU_CHO_PHIEU"; hetHan: string; taoLuc: string }[];
+  /** ADR-0213 Đ8.2 (mốc B2, Task 16): chế độ thành viên hiện hành — «Chỉ soạn» hoặc «Soạn và gửi người quản lý xác nhận» (mặc định). */
+  cheDo?: "CHI_SOAN" | "SOAN_VA_GUI";
 }
 export interface ToChucResponse { toChuc: ToChucDto }
 /** ADR-0213 Đ7.1: trả lời của lệnh tạo lời mời — luôn 201, luôn cùng câu dù số được mời có tài khoản hay chưa. `ma` dạng XXXX-XXXX, chỉ trả MỘT lần. */

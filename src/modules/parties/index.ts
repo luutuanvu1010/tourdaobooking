@@ -52,12 +52,13 @@ import { loGop } from "./gop-lo";
 import { anTruongRiengTu, ghiDuocRiengTu, laLienHeRiengTu, xemDuocRiengTu, type NguoiXem } from "./rieng-tu";
 import { docTaiKhoanNhanTien } from "./tai-khoan-nhan-tien";
 import {
-  CAM_QUAN_LY, CAM_TO_CHUC, KHONG_LA_THANH_VIEN_CUA_TOI, QUAN_LY_KHONG_ROI, giaoNguoiQuanLy, goNguoiQuanLy, goThanhVienQuanLy, goThanhVienVanPhong, guiLaiThuToChuc, roiToChuc, vaiToChucCuaToi,
+  CAM_QUAN_LY, CAM_TO_CHUC, datCheDoThanhVien, KHONG_LA_THANH_VIEN_CUA_TOI, QUAN_LY_KHONG_ROI, giaoNguoiQuanLy, goNguoiQuanLy, goThanhVienQuanLy, goThanhVienVanPhong, guiLaiThuToChuc, roiToChuc, vaiToChucCuaToi,
   xemToChuc, xemToChucCuaQuanLy, yeuCauChuyen,
 } from "./to-chuc-route";
 import { quyenToChuc } from "./quyen-to-chuc";
 import { bamMaVao, huyLoiMoi, loiMoiCuaToi, nhanLoiMoi, taoLoiMoi } from "./loi-moi";
 /** Câu từ chối lệnh tạo / huỷ lời mời (Đ6, Đ7.1): không phải người quản lý có hiệu lực, không phải văn phòng. */
+const CAM_CHE_DO = () => error(403, "forbidden", "Chỉ người quản lý của tổ chức hoặc Toàn quyền đổi được chế độ thành viên.");
 const CAM_MOI = () => error(403, "forbidden", "Chỉ người quản lý của tổ chức hoặc Tour Đảo mời được thành viên.");
 import { DO_DANG_SAU_MS, LOAI_NOI_DUNG, LY_DO_XOA_TEP, TOI_DA_THAN, bamSha256, dauPhanHoiTep, khoaNgauNhien, kiemTepTaiLen } from "./tep";
 import { chepBanNgoai, ghiRoiXoaKho, xoaKhoiKho } from "./kho-tep";
@@ -81,6 +82,8 @@ export { hanGiuPhienNgay } from "./repository";
 export { dauXacMinhTheoHoSo };
 // Người quản lý có hiệu lực (ADR-0213 Đ2.8): gốc lắp ráp ghép phần của parties (liên kết mở, hồ sơ chưa gộp, tổ chức còn vai) với phần tài khoản của staff.
 export { tcQuanLyMo, tcToChucCuaNguoi } from "./repository";
+// Chế độ thành viên hiện hành của tổ chức (ADR-0213 Đ8.2; Task 16): gốc lắp ráp tiêm `ctx.cheDoThanhVien` cho orders (orders không đọc bảng của parties).
+export { tcCheDo } from "./repository";
 // Lời mời vào tổ chức (ADR-0213 Đ7.5; mốc B2 Task 15): dang-ky (đường phiếu, lô duyệt, lô kết thúc, tác nhân dọn) chỉ gọi các hàm / câu chưa chạy này, không đọc bảng pty_org_invite.
 export {
   DAU_AN_DANH_LOI_MOI, LOI_GAC_LOI_MOI, lmAnDanhStatement as cauAnDanhLoiMoi, lmBoGiuStatement as cauBoGiuChoLoiMoi, lmChinhSach as chinhSachLoiMoi, lmDungPhieuStatement as cauDungLoiMoiPhieu,
@@ -2589,6 +2592,13 @@ export const partiesModule: AppModule = {
       if (q?.laQuanLyMo) return QUAN_LY_KHONG_ROI(); // Đ2.4, Đ6: người quản lý nhờ Tour Đảo giao người khác trước
       if (!v || !q?.thanhVien) return KHONG_LA_THANH_VIEN_CUA_TOI();
       return roiToChuc(ctx, v.org);
+    }),
+    // ADR-0213 Đ8.3 (mốc B2 Task 16): chế độ thành viên — người quản lý có hiệu lực (vai trên đối tượng, quyenToChuc) HOẶC Toàn quyền (ô admin.manage.superadmin). Quản trị, Quản lý bán hàng,
+    // thành viên ⇒ 403. Chủ chốt 16/11: «thiết lập trong bảng điều khiển của chính Người quản lý đó và của Super Admin».
+    route("PUT", "/api/to-chuc/:id/che-do", "staff", async (ctx) => {
+      const v = await vaiToChucCuaToi(ctx);
+      if (!v || !(quyenToChuc(ctx.staff, v.vai).quanLy || can(ctx.staff, "admin.manage.superadmin"))) return CAM_CHE_DO();
+      return datCheDoThanhVien(ctx, v.org);
     }),
     // ADR-0213 Đ3.1–Đ3.3 (mốc B1 Task 11): tư cách của CHÍNH người gọi (cổng staff — chỉ đọc phiên, không nhận tham số). Danh sách do gốc lắp ráp dựng (`ctx.tuCachCuaToi`);
     // route chỉ chiếu ra ba trường. Người không giữ quyền Đối tác ⇒ rỗng.

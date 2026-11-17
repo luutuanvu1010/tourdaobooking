@@ -191,5 +191,7 @@ test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCua
     "tcToChucCuaNguoi",
     // ADR-0213 Đ7 (mốc B2 Task 15): lời mời vào tổ chức — dang-ky (đường phiếu, lô duyệt, lô kết thúc, tác nhân dọn) và gốc lắp ráp chỉ gọi các tên này, không đọc bảng pty_org_invite
     "DAU_AN_DANH_LOI_MOI", "LOI_GAC_LOI_MOI", "cauAnDanhLoiMoi", "cauBoGiuChoLoiMoi", "chinhSachLoiMoi", "cauDungLoiMoiPhieu", "cauGiuChoLoiMoi", "cauHetHanLoiMoi", "loiMoiTheoId",
-    "cauThanhVienTuLoiMoi", "loiMoiTheoMa"].sort());
+    "cauThanhVienTuLoiMoi", "loiMoiTheoMa",
+    // ADR-0213 Đ8.2 (mốc B2 Task 16): chế độ thành viên hiện hành — gốc lắp ráp tiêm `ctx.cheDoThanhVien` cho orders (orders không đọc bảng của parties)
+    "tcCheDo"].sort());
 });

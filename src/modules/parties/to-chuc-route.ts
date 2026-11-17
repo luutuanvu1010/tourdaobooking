@@ -17,7 +17,7 @@ import { vnToday } from "../../shared/vn-date";
 import { auditToChucStatement } from "../audit";
 import {
   LOI_GAC_TO_CHUC, lmCuaToChuc, tcDatThuDaGui, tcDongQuanLyStatement, tcDongThanhVienGacStatement, tcDongThanhVienStatement, tcDongYeuCauStatement, tcEmailCua, tcHoSo, tcLienKetDongTuNgay,
-  tcLienKetMo, tcMoLienKetStatement, tcTaoYeuCauStatement, tcThuMoiNhat, tcYeuCauMo, type TcLienKet,
+  tcCheDo, tcCheDoMoc, tcDatCheDoStatement, tcLienKetMo, tcMoLienKetStatement, tcTaoYeuCauStatement, tcThuMoiNhat, tcYeuCauMo, type TcLienKet,
 } from "./repository";
 import type { VaiToChuc } from "./quyen-to-chuc";
 import { PARTY_ID_RE } from "./rules";
@@ -75,8 +75,9 @@ function docThan(body: Record<string, unknown> | null, chiKhoa: readonly string[
 const laMaHoSo = (v: unknown): v is string => typeof v === "string" && PARTY_ID_RE.test(v);
 
 async function dtoToChuc(ctx: Ctx, org: { id: string; ten: string }): Promise<ToChucDto> {
-  const [lk, yc, thu, hl, lm] = await Promise.all([
-    tcLienKetMo(ctx.env.DB, org.id), tcYeuCauMo(ctx.env.DB, org.id), tcThuMoiNhat(ctx.env.DB, org.id), ctx.nguoiQuanLyCoHieuLuc(org.id), lmCuaToChuc(ctx.env.DB, org.id, new Date().toISOString()),
+  const luc = new Date().toISOString();
+  const [lk, yc, thu, hl, lm, che] = await Promise.all([
+    tcLienKetMo(ctx.env.DB, org.id), tcYeuCauMo(ctx.env.DB, org.id), tcThuMoiNhat(ctx.env.DB, org.id), ctx.nguoiQuanLyCoHieuLuc(org.id), lmCuaToChuc(ctx.env.DB, org.id, luc), tcCheDo(ctx.env.DB, org.id, luc),
   ]);
   const ql = lk.find((x) => x.loai === "MANAGER_OF");
   return {
@@ -87,6 +88,7 @@ async function dtoToChuc(ctx: Ctx, org: { id: string; ten: string }): Promise<To
     yeuCauChuyen: yc.map((x) => ({ id: x.id, nguoiDeXuat: { partyId: x.personPartyId, ten: x.ten }, luc: x.luc })),
     thu: thu ? { trangThai: thu.trangThai, ngay: thu.ngay } : null,
     loiMoi: lm, // ADR-0213 Đ7: lời mời còn dùng được — không số điện thoại, không mã
+    cheDo: che ?? "SOAN_VA_GUI", // ADR-0213 Đ8.2 (Task 16): không dòng cài đặt ⇒ «Soạn và gửi người quản lý xác nhận»
   };
 }
 
@@ -289,4 +291,26 @@ export async function goThanhVienQuanLy(ctx: Ctx<"staff">, org: { id: string; te
 // ---- POST /api/to-chuc/:id/roi — thành viên tự rời (Đ6). Gọi SAU khi quyenToChuc(...).thanhVien đúng; người quản lý đã nhận 409 ở chỗ khai route. ----
 export async function roiToChuc(ctx: Ctx<"staff">, org: { id: string; ten: string }): Promise<Response> {
   return (await dongThanhVien(ctx, org, ctx.staff.partyId!, "org_member_left", null)) ?? KHONG_LA_THANH_VIEN_CUA_TOI();
+}
+
+// ---- PUT /api/to-chuc/:id/che-do — chế độ thành viên (ADR-0213 Đ8.3; mốc B2 Task 16). Gọi SAU khi chỗ khai route đã kiểm: người quản lý có hiệu lực (quyenToChuc) HOẶC Toàn quyền. ----
+// Chỉ thêm một dòng (bảng chỉ thêm); đổi chế độ không đổi nháp đang có (nháp đang chờ vẫn chờ — bảng ord_member_submit của orders không bị chạm). Nhật ký đích hồ sơ tổ chức.
+export async function datCheDoThanhVien(ctx: Ctx<"staff">, org: { id: string; ten: string }): Promise<Response> {
+  const body = await readJson(ctx.request);
+  const cheDo = body?.cheDo;
+  if (cheDo !== "CHI_SOAN" && cheDo !== "SOAN_VA_GUI") return LOI_THAN("Hãy chọn một chế độ: Chỉ soạn, hoặc Soạn và gửi người quản lý xác nhận.");
+  const now = new Date();
+  const at = now.toISOString();
+  const moc = await tcCheDoMoc(ctx.env.DB, org.id);
+  const tu = (moc && Date.parse(moc) >= now.getTime() ? new Date(Date.parse(moc) + 1) : now).toISOString();
+  try {
+    await ctx.env.DB.batch([
+      tcDatCheDoStatement(ctx.env.DB, { id: crypto.randomUUID(), org: org.id, cheDo, tu, at, by: ctx.staff.id }),
+      auditToChucStatement(ctx.env.DB, { staffId: ctx.staff.id, action: "org_member_mode_set", at, targetId: org.id, detail: cheDo === "CHI_SOAN" ? "Chỉ soạn" : "Soạn và gửi người quản lý xác nhận" }, "changes() > 0"),
+    ]);
+  } catch (e) {
+    if (/UNIQUE constraint failed: pty_org_member_mode/.test(e instanceof Error ? e.message : "")) return error(409, "org_mode_changed", "Chế độ thành viên vừa được đổi. Hãy tải lại màn tổ chức rồi làm lại.");
+    throw e;
+  }
+  return json({ cheDo });
 }
