@@ -1304,15 +1304,17 @@ export function soanHuyDon(
   // ADR-0089 đ8 (H-C6): lô huỷ = [dòng lý do (cùng điều kiện khoá lạc quan)] → [đổi trạng thái] → [nhật ký changes() > 0] — câu SQL ở tệp nửa nghiêm.
   // Nhật ký ghi NHÃN lý do (không mã thô); "Khác" ghi chính ghi chú đã kiểm (khuôn HDV — ADR-0030 điều 2).
   const nhan = lyDo.ma === "OTHER" ? `${lyDo.ghiChu} (${nhanNhomHuy(lyDo.nhom)})` : `${nhanLyDoHuy(lyDo.ma)} (${nhanNhomHuy(lyDo.nhom)})`;
+  const huy = cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo });
+  const iDoiTrangThai = gac.length + huy.length - 1; // câu đổi trạng thái là phần tử cuối của `cauHuyCoLyDo` (nháp có thêm câu khép dòng chờ người quản lý đứng trước nó)
   return {
     auditId,
     cau: [
       ...gac,
-      ...cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo }),
+      ...huy,
       auditStatement(db, { id: auditId, orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail ?? nhan }, "changes() > 0"),
     ],
-    // Lô huỷ đã thắng ⇔ câu đổi trạng thái (sau câu gác và dòng lý do) đổi một dòng.
-    thang: (kq) => (kq[gac.length + 1]?.meta.changes ?? 0) > 0,
+    // Lô huỷ đã thắng ⇔ câu đổi trạng thái (sau câu gác, dòng lý do và — nháp — câu khép dòng chờ) đổi một dòng.
+    thang: (kq) => (kq[iDoiTrangThai]?.meta.changes ?? 0) > 0,
   };
 }
 

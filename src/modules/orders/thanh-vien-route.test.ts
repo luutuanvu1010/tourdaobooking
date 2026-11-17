@@ -520,3 +520,34 @@ test("toàn mốc B2 (m2): thành viên bấm rut-xac-nhan trên nháp chưa g�
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "confirm_not_open");
 });
+
+// ---- Chủ duyệt 17/11 (Q1, «Áp cả ba»): huỷ đơn khép dòng «chờ người quản lý» đang mở bằng trạng thái DON_HUY, TRONG CÙNG lô huỷ ----
+test("Q1: người quản lý huỷ nháp đang chờ ⇒ dòng chờ thành DON_HUY (giờ, người đóng); thành viên không huỷ được khi đang chờ; huỷ nháp không có dòng mở không sinh dòng; không còn MO trên đơn đã huỷ", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: TV, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 409, "thành viên phải rút lại trước");
+  const h = await w.call("POST", `/api/orders/${id}/status`, { as: NAM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+  assert.equal(h.status, 200, h.text);
+  assert.deepEqual(cho(w, id).map((x: { status: string; closed_by: string | null; reason_code: string | null }) => [x.status, x.closed_by, x.reason_code]), [["DON_HUY", NAM, null]]);
+  // Thành viên huỷ nháp của mình khi KHÔNG có dòng mở (đã rút) ⇒ không thêm dòng, dòng cũ giữ DA_RUT.
+  const id2 = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id2)).status, 201);
+  assert.equal((await rutQl(w, TV, id2)).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${id2}/status`, { as: TV, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
+  assert.deepEqual(cho(w, id2).map((x: { status: string }) => x.status), ["DA_RUT"]);
+  assert.equal(w.q("SELECT count(*) AS n FROM ord_member_submit m JOIN orders o ON o.id = m.order_id WHERE m.status = 'MO' AND o.status <> 'draft'")[0].n, 0, "không còn dòng mở trên đơn đã huỷ");
+});
+
+test("Q1: lô huỷ THUA khoá lạc quan (đơn bị sửa ngay trước lô) ⇒ dòng chờ vẫn MO, đơn vẫn nháp", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /ord_member_submit/.test(s.sql) && /DON_HUY/.test(s.sql)), async () => {
+    w.sqlite.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(new Date(Date.now() + 60_000).toISOString(), id);
+  });
+  const h = await w.call("POST", `/api/orders/${id}/status`, { as: NAM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+  assert.notEqual(h.status, 200, h.text);
+  assert.equal(w.q("SELECT status AS s FROM orders WHERE id = ?", id)[0].s, "draft");
+  assert.deepEqual(cho(w, id).map((x: { status: string }) => x.status), ["MO"]);
+});

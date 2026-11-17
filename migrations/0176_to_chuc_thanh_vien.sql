@@ -112,7 +112,8 @@ CREATE TRIGGER pty_org_member_mode_no_delete BEFORE DELETE ON pty_org_member_mod
 BEGIN SELECT RAISE(ABORT, 'pty_org_member_mode_append_only: chế độ thành viên chỉ thêm dòng mới'); END;
 
 -- orders: nháp của thành viên «chờ người quản lý» (Đ8.2, Đ8.4). Không đổi tập trạng thái của đơn (nháp vẫn `draft`). KHÔNG thuộc ngoại lệ xoá–chèn lại của nháp (XOA_CUNG_NHAP):
--- lưu nháp không xoá dòng này. Trạng thái (tập đóng): MO (đang chờ) · DA_GUI_LEN (người quản lý gửi lên Tour Đảo) · TRA_LAI (người quản lý trả lại, kèm lý do) · DA_RUT (thành viên rút lại).
+-- lưu nháp không xoá dòng này. Trạng thái (tập đóng): MO (đang chờ) · DA_GUI_LEN (người quản lý gửi lên Tour Đảo) · TRA_LAI (người quản lý trả lại, kèm lý do) · DA_RUT (thành viên rút lại)
+-- · DON_HUY (đơn bị huỷ khi dòng còn mở — đóng TRONG lô huỷ đơn; chủ duyệt 17/11/2026 «Áp cả ba», Task 18).
 -- Một chiều: chỉ MO → trạng thái cuối, đúng một lần; cột gốc không đổi; không xoá. Một dòng MO mỗi đơn (chỉ mục duy nhất có điều kiện).
 -- member_staff_id, closed_by: mã tài khoản; org_party_id: mã hồ sơ tổ chức — tham chiếu logic, KHÔNG khoá ngoại (orders không phụ thuộc staff/parties ở tầng dữ liệu).
 CREATE TABLE ord_member_submit (
@@ -120,7 +121,7 @@ CREATE TABLE ord_member_submit (
   order_id        TEXT NOT NULL REFERENCES orders(id),
   member_staff_id TEXT NOT NULL,
   org_party_id    TEXT NOT NULL,
-  status          TEXT NOT NULL CHECK (status IN ('MO', 'DA_GUI_LEN', 'TRA_LAI', 'DA_RUT')),
+  status          TEXT NOT NULL CHECK (status IN ('MO', 'DA_GUI_LEN', 'TRA_LAI', 'DA_RUT', 'DON_HUY')),
   reason_code     TEXT CHECK (reason_code IS NULL OR reason_code IN ('SAI_DICH_VU', 'SAI_NGAY', 'SAI_SO_KHACH', 'KHONG_DAT_NUA', 'KHAC')),
   opened_at       TEXT NOT NULL,
   closed_at       TEXT,

@@ -337,7 +337,7 @@
       "name": "ord_member_submit",
       "module": "orders",
       "kind": "table",
-      "note": "nháp của thành viên tổ chức «chờ người quản lý» (ADR-0213 Đ8.2, Đ8.4; migration 0176, Task 16): MO (đang chờ) → DA_GUI_LEN (người quản lý gửi lên Tour Đảo) | TRA_LAI (người quản lý trả lại, reason_code SAI_DICH_VU | SAI_NGAY | SAI_SO_KHACH | KHONG_DAT_NUA | KHAC) | DA_RUT (thành viên rút lại); một chiều, đúng một lần, không xoá (trigger); một dòng MO mỗi đơn (chỉ mục duy nhất có điều kiện). Không thuộc XOA_CUNG_NHAP: lưu nháp không xoá dòng này. member_staff_id, org_party_id, closed_by là tham chiếu logic (không khoá ngoại)"
+      "note": "nháp của thành viên tổ chức «chờ người quản lý» (ADR-0213 Đ8.2, Đ8.4; migration 0176, Task 16): MO (đang chờ) → DA_GUI_LEN (người quản lý gửi lên Tour Đảo) | TRA_LAI (người quản lý trả lại, reason_code SAI_DICH_VU | SAI_NGAY | SAI_SO_KHACH | KHONG_DAT_NUA | KHAC) | DA_RUT (thành viên rút lại) | DON_HUY (Đơn đã huỷ — đơn bị huỷ khi dòng còn mở, đóng trong cùng lô huỷ; chủ duyệt 17/11/2026); một chiều, đúng một lần, không xoá (trigger); một dòng MO mỗi đơn (chỉ mục duy nhất có điều kiện). Không thuộc XOA_CUNG_NHAP: lưu nháp không xoá dòng này. member_staff_id, org_party_id, closed_by là tham chiếu logic (không khoá ngoại)"
     },
     {
       "name": "ord_service_confirm_flag",
