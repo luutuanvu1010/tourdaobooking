@@ -288,6 +288,23 @@ test("Task 17 (giao diện B2): trang đơn biết nháp thành viên — khối
 
 // ---- Task 16 vòng sửa 1 (người kiểm độc lập) ----
 
+test("vòng sửa 1 (I-1, K1): người quản lý Gửi đơn nhánh A (dịch vụ cần xác nhận) ⇒ yêu cầu mở với người quản lý: người quản lý Rút lại được, thành viên (người lập) không rút được", async () => {
+  const w = setup();
+  w.sqlite.prepare("INSERT INTO ord_service_confirm_flag (id, scope, code, required, valid_from_at, created_at, updated_at) VALUES ('co1', 'SERVICE', 'ZA1', 1, ?, ?, ?)").run(AT, AT, AT);
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.equal(g.status, 201, g.text);
+  assert.equal(g.json.nhanh, "A");
+  assert.equal(w.q("SELECT submitted_by AS s FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id)[0].s, NAM, "yêu cầu mở với người gửi");
+  const tvRut = await w.call("POST", `/api/orders/${id}/rut-xac-nhan`, { as: TV, body: {} });
+  assert.ok(tvRut.status === 403 || tvRut.status === 404, tvRut.text);
+  assert.equal(w.q("SELECT count(*) AS n FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id)[0].n, 1, "thành viên không khép được");
+  const qlRut = await w.call("POST", `/api/orders/${id}/rut-xac-nhan`, { as: NAM, body: {} });
+  assert.equal(qlRut.status, 200, qlRut.text);
+  assert.equal(w.q("SELECT count(*) AS n FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id)[0].n, 0);
+});
+
 test("vòng sửa 1 (I-3): lô Gửi đơn nhánh B THUA (đơn đã được lô khác xác nhận ngay trước) ⇒ không dòng chờ mới, không nhật ký forwarded thừa", async () => {
   const w = setup();
   assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);

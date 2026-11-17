@@ -308,16 +308,18 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
   }),
 
   // RÚT LẠI (Đ3): người lập rút yêu cầu còn mở; yêu cầu khép `RUT_LAI`, không có kết quả vé. Đẩy mốc đơn để người xét duyệt đang cầm mốc cũ THUA (409) thay vì huỷ / xác nhận sau lưng.
-  route("POST", "/api/orders/:id/rut-xac-nhan", "orders", async ({ env, params, staff, isAssigned, baoThayDoi, traVeKhiHuy, banHang, benDangThayMat }) => {
+  route("POST", "/api/orders/:id/rut-xac-nhan", "orders", async ({ env, params, staff, isAssigned, baoThayDoi, traVeKhiHuy, banHang, benDangThayMat, laQuanLyCuaBen }) => {
     const id = params.id!;
     if (!UUID_RE.test(id)) return NOT_FOUND_DON();
-    const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
+    const [meta, assigned, yMo] = await Promise.all([getMeta(env.DB, id), isAssigned(id), yeuCauMoCuaDon(env.DB, id)]);
     if (!meta) return NOT_FOUND_DON();
-    { const chan = await chanGhiNhap(meta, staff, benDangThayMat, NOT_FOUND_DON); if (chan) return chan; } // ADR-0135 Đ2 + ADR-0213 Đ3.4 (vòng sửa 1 Task 12: người đã thôi thay mặt không Rút lại được)
-    if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN_NGUOI_LAP();
+    // ADR-0135 Đ2 + ADR-0213 Đ3.4 (vòng sửa 1 Task 12: người đã thôi thay mặt không Rút lại được). Task 16 vòng sửa 1 (I-1): nháp tư cách thành viên — chỉ người mở yêu cầu (người quản lý) rút.
+    const quyen = await quyenGhiNhap(meta, staff, { benDangThayMat, laQuanLyCuaBen }, NOT_FOUND_DON, { yeuCauMoBoi: yMo?.submitted_by ?? null });
+    if ("chan" in quyen) return quyen.chan;
+    if (!can(staff, "order.modify", { ownerId: quyen.chuNhap, assigned })) return FORBIDDEN_NGUOI_LAP();
     if (meta.deliveredAt) return DA_GIAO_DON();
-    if (meta.status !== "draft" || meta.staffId !== staff.id) return error(409, "confirm_not_open", "Đơn này không có yêu cầu xác nhận đang chờ.");
-    const y = await yeuCauMoCuaDon(env.DB, id);
+    if (meta.status !== "draft" || quyen.chuNhap !== staff.id) return error(409, "confirm_not_open", "Đơn này không có yêu cầu xác nhận đang chờ.");
+    const y = yMo;
     if (!y) return error(409, "confirm_not_open", "Đơn này không có yêu cầu xác nhận đang chờ.");
     const at = nextStamp(meta.updatedAt);
     const auditId = crypto.randomUUID();

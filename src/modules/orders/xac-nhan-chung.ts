@@ -100,6 +100,8 @@ export async function chanGhiNhap(meta: MetaGhiNhap, staff: { id: string }, benD
 /** Phần của đơn mà cổng ghi nháp cần (`getMeta`). `dangChoQuanLy` (B2) vắng ⇒ coi như không chờ — chỉ khung thử cũ dựng meta tay. */
 export type MetaGhiNhap = { status: OrderStatus; staffId: string; bookerPartyId?: string | null; actingPartyId: string | null; actingLinkKind: string | null; dangChoQuanLy?: boolean };
 /** ADR-0213 Đ8.2 (Task 16): người lập là thành viên ghi lên nháp đang chờ người quản lý ⇒ 409 (khuôn «Gửi kiểm vé … Rút lại»). */
+/** Vòng sửa 1 (I-1): thành viên bấm Rút lại yêu cầu xác nhận do người quản lý mở. */
+export const CHI_NGUOI_GUI_RUT = (): Response => error(403, "forbidden", "Chỉ người quản lý đã gửi đơn lên Tour Đảo mới rút lại được yêu cầu này.");
 export const MEMBER_SUBMIT_PENDING = (): Response => error(409, "member_submit_pending", "Đơn đang chờ người quản lý xác nhận. Bấm Rút lại nếu muốn sửa.");
 
 /**
@@ -113,10 +115,18 @@ export async function quyenGhiNhap(
   staff: { id: string },
   q: { benDangThayMat: (t: unknown) => Promise<KetQuaChonTuCach>; laQuanLyCuaBen?: (p: string | null) => Promise<boolean>; cheDoThanhVien?: (org: string) => Promise<CheDoThanhVien> },
   khongThay: () => Response,
-  opts: { choPhepDangCho?: boolean } = {},
+  opts: { choPhepDangCho?: boolean; yeuCauMoBoi?: string | null } = {},
 ): Promise<{ chan: Response } | { chuNhap: string; thayNguoiLap: boolean }> {
   if (meta.status !== "draft") return { chuNhap: meta.staffId, thayNguoiLap: false };
   const laNguoiLap = meta.staffId === staff.id;
+  // Vòng sửa 1 (I-1; ADR-0213 Đ8.1, Đ8.5 «yêu cầu xác nhận mở với người gửi»): RÚT LẠI yêu cầu xác nhận của nháp tư cách thành viên — chỉ NGƯỜI MỞ yêu cầu (người quản lý đã gửi lên), và
+  // người đó phải vẫn là người quản lý có hiệu lực, còn thay mặt tổ chức. Người lập (thành viên) không rút được yêu cầu người quản lý đã mở.
+  if (opts.yeuCauMoBoi !== undefined && meta.actingLinkKind === "MEMBER" && meta.actingPartyId !== null) {
+    if (opts.yeuCauMoBoi !== staff.id) return { chan: laNguoiLap ? CHI_NGUOI_GUI_RUT() : khongThay() };
+    if (!q.laQuanLyCuaBen || !(await q.laQuanLyCuaBen(meta.actingPartyId))) return { chan: khongThay() };
+    if (!(await conThayMatToChuc(meta, q.benDangThayMat))) return { chan: NOT_ACTING_FOR_ORG() };
+    return { chuNhap: staff.id, thayNguoiLap: !laNguoiLap };
+  }
   const dangChoQuanLy = meta.dangChoQuanLy === true;
   if (laNguoiLap) {
     if (dangChoQuanLy && !opts.choPhepDangCho) return { chan: MEMBER_SUBMIT_PENDING() };
