@@ -365,3 +365,71 @@ test("(T7) ADR-0212 Đ7 (đợt 2 Task 7): TỪ CHỐI 31 ngày có phần tổ 
   assert.equal(demViPham(w.sqlite, r8), 0, "R-DK-8 sạch sau lượt tác nhân");
   assert.equal(w.q("SELECT display_name FROM dk_submission_org WHERE registration_id = ?", giu.id)[0].display_name, "Công ty Thử");
 });
+
+// ---- ADR-0213 Đ7 (mốc B2 Task 15; Ruling R6): tác nhân dọn lời mời vào tổ chức — không thêm mã tác nhân ----
+function toChucMoi(w: any, id = "org-loi-moi"): string {
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Tổ chức thử', 1, ?, ?)").run(id, truoc(60 * NGAY), truoc(60 * NGAY));
+  return id;
+}
+let soMv = 0;
+/** Gieo lời mời ở trạng thái `tt` (đi đúng đồ thị trigger 0176). */
+function loiMoiGieo(w: any, org: string, o: { tt?: "MO" | "GIU_CHO_PHIEU" | "DA_DUNG" | "DA_HUY" | "HET_HAN"; han?: string; tao?: string; giu?: string; ketThuc?: string } = {}): string {
+  const id = `MV_DON${String.fromCharCode(65 + (soMv % 26))}AAAA`.slice(0, 11);
+  soMv++;
+  const tao = o.tao ?? truoc(NGAY);
+  w.sqlite.prepare("INSERT INTO pty_org_invite (id, org_party_id, phone_key, code_hash, status, expires_at, created_at, created_by, updated_at, updated_by) VALUES (?, ?, '0912000111', ?, 'MO', ?, ?, 'tk-moi', ?, 'tk-moi')")
+    .run(id, org, `bam-${id}`, o.han ?? sau(6 * NGAY), tao, tao);
+  const kt = o.ketThuc ?? tao;
+  if (o.tt === "GIU_CHO_PHIEU") w.sqlite.prepare("UPDATE pty_org_invite SET status = 'GIU_CHO_PHIEU', held_registration_id = ?, updated_at = ? WHERE id = ?").run(o.giu, kt, id);
+  if (o.tt === "DA_DUNG") w.sqlite.prepare("UPDATE pty_org_invite SET status = 'DA_DUNG', used_by_staff_id = 'tk-nhan', used_at = ?, updated_at = ? WHERE id = ?").run(kt, kt, id);
+  if (o.tt === "DA_HUY") w.sqlite.prepare("UPDATE pty_org_invite SET status = 'DA_HUY', cancelled_by = 'tk-moi', cancelled_at = ?, updated_at = ? WHERE id = ?").run(kt, kt, id);
+  if (o.tt === "HET_HAN") w.sqlite.prepare("UPDATE pty_org_invite SET status = 'HET_HAN', updated_at = ? WHERE id = ?").run(kt, id);
+  return id;
+}
+const lm = (w: any, id: string) => ({ ...w.q("SELECT status, held_registration_id, phone_key, erased_at FROM pty_org_invite WHERE id = ?", id)[0] });
+
+test("(R6) Lời mời: MỞ quá hạn ⇒ HẾT HẠN; đang GIỮ CHỖ quá hạn KHÔNG hết hạn (phiếu còn chờ); kết thúc quá 30 ngày ⇒ số thay bằng dấu ẩn danh + erased_at; 29 ngày: chưa; nhật ký chỉ số đếm", async () => {
+  const w = setup();
+  const org = toChucMoi(w);
+  const cho = phieu(w, "CHO_XAC_MINH", { banKhai: true });
+  const moQuaHan = loiMoiGieo(w, org, { han: truoc(PHUT) });
+  const moConHan = loiMoiGieo(w, org);
+  const giuQuaHan = loiMoiGieo(w, org, { tt: "GIU_CHO_PHIEU", han: truoc(NGAY), giu: cho.id });
+  const xong31 = loiMoiGieo(w, org, { tt: "DA_DUNG", tao: truoc(40 * NGAY), ketThuc: truoc(31 * NGAY) });
+  const huy31 = loiMoiGieo(w, org, { tt: "DA_HUY", tao: truoc(40 * NGAY), ketThuc: truoc(31 * NGAY) });
+  const xong29 = loiMoiGieo(w, org, { tt: "DA_DUNG", tao: truoc(40 * NGAY), ketThuc: truoc(29 * NGAY) });
+  await chay(w);
+  assert.equal(lm(w, moQuaHan).status, "HET_HAN");
+  assert.equal(lm(w, moConHan).status, "MO");
+  assert.deepEqual(lm(w, giuQuaHan), { status: "GIU_CHO_PHIEU", held_registration_id: cho.id, phone_key: "0912000111", erased_at: null }, "giữ chỗ không hết hạn khi phiếu còn chờ");
+  for (const id of [xong31, huy31]) {
+    assert.equal(lm(w, id).phone_key, "(đã ẩn)");
+    assert.ok(lm(w, id).erased_at);
+  }
+  assert.equal(lm(w, xong29).phone_key, "0912000111");
+  const nk = nhatKy(w);
+  assert.equal(nk.length, 1);
+  assert.match(nk[0].detail, /lời mời: bỏ giữ chỗ 0, hết hạn 1, ẩn danh 2$/);
+  assert.doesNotMatch(nk[0].detail, /0912/);
+  // Lượt sau: lời mời vừa hết hạn chưa đủ 30 ngày ⇒ không ẩn; không còn gì ⇒ không dòng nhật ký mới.
+  await chay(w);
+  assert.equal(lm(w, moQuaHan).phone_key, "0912000111");
+  assert.equal(nhatKy(w).length, 1);
+});
+
+test("(R6) Phiếu CẦN BỔ SUNG đang giữ lời mời hết hạn ⇒ bỏ giữ chỗ TRONG lô hết hạn (về MỞ nếu còn hạn); lưới: phiếu TỪ CHỐI còn sót giữ chỗ ⇒ bỏ giữ chỗ (HẾT HẠN nếu đã quá)", async () => {
+  const w = setup();
+  const org = toChucMoi(w);
+  const bs = phieu(w, "CAN_BO_SUNG", { banKhai: true, hetHanLuc: truoc(PHUT) });
+  const a = loiMoiGieo(w, org, { tt: "GIU_CHO_PHIEU", giu: bs.id });
+  w.sqlite.prepare("UPDATE dk_registration SET invite_id = ? WHERE id = ?").run(a, bs.id);
+  const tc = phieu(w, "TU_CHOI", { banKhai: true });
+  const b = loiMoiGieo(w, org, { tt: "GIU_CHO_PHIEU", giu: tc.id, han: truoc(NGAY) });
+  w.sqlite.prepare("UPDATE dk_registration SET invite_id = ? WHERE id = ?").run(b, tc.id);
+  const kq = await chay(w);
+  assert.equal(kq.hetHan, 1);
+  assert.equal(reg(w, bs.id).status, "HET_HAN");
+  assert.deepEqual([lm(w, a).status, lm(w, a).held_registration_id], ["MO", null]);
+  assert.deepEqual([lm(w, b).status, lm(w, b).held_registration_id], ["HET_HAN", null]);
+  assert.match(nhatKy(w)[0].detail, /lời mời: bỏ giữ chỗ 1, hết hạn 0, ẩn danh 0$/, "lưới đếm đúng lời mời của phiếu TỪ CHỐI (lời mời của phiếu hết hạn đã bỏ trong lô của nó)");
+});

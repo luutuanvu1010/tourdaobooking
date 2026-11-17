@@ -81,6 +81,13 @@ const XEP: Record<string, Muc[]> = {
     { doan: "if (body.personPartyId === ctx.staff.partyId) return LOI_THAN(", nhom: "CHINH_NGUOI", so: 1 }, // người quản lý không yêu cầu chuyển cho chính mình (Task 10)
     { doan: "dongThanhVien(ctx, org, ctx.staff.partyId!, \"org_member_left\"", nhom: "CHINH_NGUOI", so: 1 }, // tự rời tổ chức
   ],
+  "src/modules/parties/loi-moi.ts": [ // người được mời nhận lời mời cho CHÍNH hồ sơ của mình (ADR-0213 Đ7.4, Task 15)
+    { doan: "if (!staff.partyId || (await ctx.taiKhoanGanDuoc(staff.partyId)) !== \"DUOC\")", nhom: "CHINH_NGUOI", so: 1 },
+    { doan: "lk.some((x) => x.personPartyId === staff.partyId)", nhom: "CHINH_NGUOI", so: 1 },
+    { doan: "daDong.some((d) => d.personPartyId === staff.partyId", nhom: "CHINH_NGUOI", so: 1 },
+    { doan: "person: staff.partyId, org: org.id", nhom: "CHINH_NGUOI", so: 1 },
+    { doan: "thành viên ${staff.partyId}", nhom: "CHINH_NGUOI", so: 1 },
+  ],
   "src/modules/parties/quyen-to-chuc.ts": [ // vai của CHÍNH người gọi trên tổ chức (Đ6, Task 10)
     { doan: "if (who.partyId === null) return { quanLy: false, thanhVien: false, laQuanLyMo: false };", nhom: "CHINH_NGUOI", so: 1 },
     { doan: "v.hl.personPartyId === who.partyId", nhom: "CHINH_NGUOI", so: 1 },

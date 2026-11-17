@@ -124,6 +124,10 @@ export function loiLoDuyet(e: unknown): { status: 409; code: string; message: st
   if (m.includes("dk_decision_no_org_match")) return { status: 409, code: "registration_not_verified", message: "Phiếu chưa có kết luận Danh bạ cho tổ chức nên chưa duyệt được. Hãy bấm «Trả về xác minh» để người xác minh kết luận lại." };
   if (m.includes("organization_document_gpkd_other_org")) return { status: 409, code: "org_gpkd_other_org", message: "Số giấy chứng nhận đăng ký kinh doanh của phiếu đã thuộc một hồ sơ tổ chức khác. Hãy bấm «Trả về xác minh» để người xác minh gắn vào hồ sơ tổ chức đó, hoặc từ chối phiếu." };
   if (/NOT NULL constraint failed: pty_party_relationship\.to_party_id/.test(m)) return { status: 409, code: "org_target_changed", message: "Hồ sơ tổ chức đã chọn vừa ngưng hoạt động nên chưa mở được tài khoản. Hãy bấm «Trả về xác minh» để người xác minh chọn lại hồ sơ tổ chức." };
+  // Lời mời vào tổ chức (ADR-0213 Đ7.5; mốc B2 Task 15): lính gác của câu dùng lời mời — lời mời vừa bị huỷ hoặc không còn giữ cho phiếu.
+  if (/NOT NULL constraint failed: pty_org_invite\.status/.test(m)) {
+    return { status: 409, code: "invite_changed", message: "Lời mời vào tổ chức của phiếu vừa thay đổi (bị huỷ hoặc không còn giữ cho phiếu). Hãy mở lại phiếu." };
+  }
   // Liên kết người quản lý của phiếu «chỉ tổ chức» / tổ chức mới (Task 13 vòng sửa 1): trigger hai đầu hoặc chỉ mục một người quản lý — câu riêng, không đổ cho số điện thoại.
   if (m.includes("pty_relationship_org_link_") || /UNIQUE constraint failed: pty_party_relationship\.to_party_id/.test(m)) {
     return { status: 409, code: "org_link_failed", message: "Chưa nối được người đăng ký làm người quản lý của hồ sơ tổ chức (hồ sơ tổ chức vừa thay đổi) nên chưa mở được tài khoản. Hãy mở lại phiếu." };

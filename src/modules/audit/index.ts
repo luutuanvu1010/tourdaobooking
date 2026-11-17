@@ -24,6 +24,7 @@ export function auditStatement(db: D1Database, entry: AuditInput, onlyIf?: strin
 /** Hành động quản trị tổ chức (ADR-0213 Đ6) — CHỈ chúng được ghi `acting_party_id` qua `auditToChucStatement`. */
 const HANH_DONG_TO_CHUC: readonly AuditAction[] = [
   "org_manager_assigned", "org_manager_transferred", "org_manager_removed", "org_transfer_requested", "org_member_removed", "org_member_left", "org_notice_resent",
+  "org_invite_created", "org_invite_cancelled", "org_invite_accepted", // ADR-0213 Đ7 (mốc B2, Task 15)
 ];
 /**
  * Ngoại lệ có tên của Đ3.5 (ruling PF18, mốc B1 Task 10): nhật ký quản trị tổ chức ghi THẲNG `acting_party_id` = hồ sơ tổ chức (đích của lệnh), không qua bối cảnh yêu cầu.

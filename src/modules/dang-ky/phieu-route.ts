@@ -11,17 +11,20 @@ import { chanNguoiKhongTaiKhoan } from "../../shared/maintenance.ts";
 import type { Ctx } from "../../shared/router.ts";
 import { truongDung } from "../../shared/dang-ky-truong.ts";
 import { MOI_TRUONG_MO, phanCuaVai, vaiCaNhanRongDuoc } from "../../shared/dang-ky-vai.ts";
-import { kiemPhanToChuc, type PhanToChucMoi } from "../../shared/to-chuc.ts";
+import { CAU_MA_VAO_SAI, chuanHoaMaVao, kiemPhanToChuc, type PhanToChucMoi } from "../../shared/to-chuc.ts";
+import { isRoleCode, ROLES } from "../../shared/roles.ts";
+import { clearAttempts, reserveAttempts } from "../auth";
 import { vnToday } from "../../shared/vn-date.ts";
 import { kiemGioiTinh } from "../../shared/xung-ho.ts";
 import { getMaintenanceState, maintenanceResponse } from "../maintenance";
 import {
+  LOI_GAC_LOI_MOI, cauBoGiuChoLoiMoi, cauGiuChoLoiMoi, chinhSachLoiMoi, loiMoiTheoId, loiMoiTheoMa, type LoiMoiDong,
   cauGoTepChoNeuTruocDoi, cheSo, danhMucGiayToChoDangKy, danhMucGiayToToChucChoDangKy, kiemNgaySinh, kiemThemGiayTo, mucXacMinhBatBuocCaNhan, tenLoaiVai, trangThaiTepChoTheoO, validateContact,
   validatePersonFullName, xoaKhoTepChoDaGo, type DanhMucGiayTo, type GiayToNhap,
 } from "../parties";
-import { cookiePhienDangKy, docPhienDangKy, taoPhienDangKy } from "./phien.ts";
+import { cookiePhienDangKy, dkMoiKey, docPhienDangKy, taoPhienDangKy } from "./phien.ts";
 import {
-  banKhaiToChucTruoc, banKhaiTruoc, cauKeoDaiHanNhap, chinhSachHienHanh, chinhSachRiengTuHienHanh, doiLoaiStatement, guiChenStatement, guiChenToChucStatement, guiTienStatement, mucRiengCuaPhieu,
+  banKhaiToChucTruoc, banKhaiTruoc, cauKeoDaiHanNhap, ganLoiMoiStatement, chinhSachHienHanh, chinhSachRiengTuHienHanh, doiLoaiStatement, guiChenStatement, guiChenToChucStatement, guiTienStatement, mucRiengCuaPhieu,
   phanToChucMo, phieuDeXem, rutStatement, suKienNguoiDangKyStatement,
   type BanKhaiMoi, type ChinhSachDangKyRow, type PhieuDeXemRow,
 } from "./repository.ts";
@@ -216,6 +219,45 @@ function kiemBanKhai(body: Record<string, unknown>, dm: DanhMucGiayTo, homNay: s
   return { ok: true, b, muc: { hoTen: b.given.length > 0, ngaySinh: b.birthDate !== null, dienThoai: b.phoneKey !== null, cccdConHan } };
 }
 
+/** Kết quả xét «Mã vào tổ chức» lúc gửi (ADR-0213 Đ7.5). `hopLe` = thay được mục «vai»; `giu` = lời mời mới cần gắn vào phiếu; `dung` = lời mời lần gửi này dựa vào (câu giữ chỗ chạy lại
+ * lính gác trong lô); `boGiu` = lời mời phiếu đang giữ phải bỏ giữ chỗ. */
+interface XetLoiMoi { hopLe: boolean; giu: LoiMoiDong | null; boGiu: LoiMoiDong | null; dung: LoiMoiDong | null }
+const GIO_MS = 3_600_000;
+
+/**
+ * Mã vào tổ chức (ADR-0213 Đ7.3, Đ7.5): có mã ⇒ đặt chỗ một lượt gõ (khoá `dk:moi:<danh tính>`, trần theo chính sách lời mời, một giờ) TRƯỚC khi so — gõ sai khuôn cũng tính; mã đúng, còn hạn,
+ * lời mời còn mở (hoặc đang giữ cho chính phiếu này) và số điện thoại của bản khai trùng số được mời ⇒ hợp lệ, trả lại lượt. Mọi trường hợp sai: MỘT câu trung tính.
+ * Không có mã mà phiếu đang giữ một lời mời: số của bản khai mới còn trùng ⇒ vẫn hợp lệ; khác ⇒ bỏ giữ chỗ trong lô gửi (mục «vai» quay lại đòi).
+ */
+async function xetLoiMoiKhiGui(ctx: Ctx<"public">, v: Vao, body: Record<string, unknown>): Promise<XetLoiMoi | Response> {
+  const { env } = ctx;
+  const { registrationId, identityId } = v.phien;
+  let soKhai: string | null = null;
+  if (co(body.dienThoai)) {
+    const d = validateContact({ kind: "PHONE", value: body.dienThoai });
+    soKhai = d.ok ? d.value.valueNormalized : null;
+  }
+  const cu = v.phieu.invite_id ? await loiMoiTheoId(env.DB, v.phieu.invite_id) : null;
+  const cuDangGiu = cu !== null && cu.status === "GIU_CHO_PHIEU" && cu.held_registration_id === registrationId ? cu : null;
+  if (co(body.maVaoToChuc)) {
+    const cs = await chinhSachLoiMoi(env.DB, v.at);
+    if (!cs) return error(503, "invite_policy_missing", "Chưa có chính sách lời mời. Hãy báo Tour Đảo.");
+    const dat = await reserveAttempts(env.DB, [{ key: dkMoiKey(identityId), max: cs.wrong_per_hour }], v.nowMs, GIO_MS);
+    if (!dat.allowed) return error(429, "invite_code_locked", "Bạn đã nhập sai mã vào tổ chức quá nhiều lần. Hãy thử lại sau.");
+    const ma = chuanHoaMaVao(body.maVaoToChuc);
+    const lm = ma ? await loiMoiTheoMa(env.DB, env.SESSION_SECRET, ma) : null;
+    const ok = lm !== null && soKhai !== null && lm.phone_key === soKhai && lm.expires_at > v.at
+      && (lm.status === "MO" || (lm.status === "GIU_CHO_PHIEU" && lm.held_registration_id === registrationId));
+    if (!ok) return error(400, "invite_code_invalid", CAU_MA_VAO_SAI);
+    await clearAttempts(env.DB, null, dat.ids);
+    return { hopLe: true, giu: lm, boGiu: cuDangGiu && cuDangGiu.id !== lm.id ? cuDangGiu : null, dung: lm };
+  }
+  if (cuDangGiu) {
+    return soKhai !== null && soKhai === cuDangGiu.phone_key ? { hopLe: true, giu: null, boGiu: null, dung: cuDangGiu } : { hopLe: false, giu: null, boGiu: cuDangGiu, dung: null };
+  }
+  return { hopLe: false, giu: null, boGiu: null, dung: null };
+}
+
 export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   const v = await vao(ctx);
   if (v instanceof Response) return v;
@@ -237,12 +279,21 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   const roleCaNhan = v.phieu.role_code;
   const roleToChuc = v.phieu.org_role_code;
   if (coToChuc && !chinhSachRT.coToChuc) return error(409, "org_section_closed", CAU_PHIEU.toChucDong);
+  const loiMoi = await xetLoiMoiKhiGui(ctx, v, body);
+  if (loiMoi instanceof Response) return loiMoi;
+  // Mã vào tổ chức + phần tổ chức trên cùng phiếu: ADR-0213 chưa nói ⇒ từ chối (người được mời vào tổ chức có sẵn không khai tổ chức mới). Câu mới — chờ chủ chọn.
+  if (loiMoi.hopLe && coToChuc) return error(400, "invite_with_org", "Phiếu có mã vào tổ chức thì không khai thêm phần tổ chức. Hãy bỏ phần tổ chức, hoặc bỏ mã.");
+  // Đ2.6: tài khoản mang quyền khác Đối tác (Tài xế đối tác) không gắn vào tổ chức được.
+  if (loiMoi.hopLe && roleCaNhan !== "" && isRoleCode(roleCaNhan) && ROLES[roleCaNhan].defaults.some((q) => q !== "PARTNER")) {
+    return error(400, "invite_role_not_partner", "Vai này không gắn vào tổ chức được. Hãy bỏ mã vào tổ chức, hoặc chọn vai khác.");
+  }
   // Task 5 vòng sửa 1 (I2): phần tổ chức đòi vai của tổ chức. Vai này khoá sau lần gửi đầu (trigger dk_registration_immutable) ⇒ gửi lại kèm phần tổ chức mà vai còn rỗng cũng 400.
   if (coToChuc && roleToChuc === null) return error(400, "org_role_required", CAU_PHIEU.chonVaiToChuc);
   if (!coToChuc && [roleCaNhan, roleToChuc].some((r) => r && phanCuaVai(r, false) === "CHI_TO_CHUC")) return error(400, "org_section_required", CAU_PHIEU.canPhanToChuc);
   if (coToChuc && roleCaNhan === "DRIVER_EXTERNAL") return error(400, "driver_without_org", CAU_PHIEU.taiXeKhongKemToChuc);
   // Vai cá nhân rỗng chỉ đi kèm phần tổ chức có vai («chỉ tổ chức», Task 13; vai tổ chức đã kiểm ở trên).
-  if (roleCaNhan === "" && !vaiCaNhanRongDuoc(MOI_TRUONG_MO, coToChuc)) return error(400, "personal_role_required", CAU_PHIEU.chonVaiCaNhan);
+  // ADR-0213 Đ7.5: mã vào tổ chức hợp lệ thay mục «vai» — vai cá nhân rỗng được.
+  if (roleCaNhan === "" && !loiMoi.hopLe && !vaiCaNhanRongDuoc(MOI_TRUONG_MO, coToChuc)) return error(400, "personal_role_required", CAU_PHIEU.chonVaiCaNhan);
   // Vai của tổ chức không đứng một mình: đã khoá (phiếu đã gửi kèm phần tổ chức) thì không bỏ phần đó được; chưa gửi thì phải khai phần tổ chức.
   if (!coToChuc && roleToChuc !== null) {
     return v.phieu.current_version > 0 ? error(400, "org_section_locked", CAU_PHIEU.khongBoToChuc) : error(400, "org_section_required", CAU_PHIEU.canPhanToChuc);
@@ -272,7 +323,7 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   // Mốc A kiểm cuối (m2): vai đã lưu phải TỰ NÓ còn mở — vai cá nhân đóng sau khi chọn không được lọt nhờ vai của tổ chức còn mở (và ngược lại).
   if (roleCaNhan !== "" && !loaiHopLe) return error(400, "invalid_input", CAU_PHIEU.loaiDong);
   if (coToChuc && roleToChuc !== null && !loaiToChucHopLe) return error(400, "invalid_input", CAU_PHIEU.loaiToChucDong);
-  const thieu = mucChuaDapUng(batBuoc, { loaiHopLe, loaiToChucHopLe, ...k.muc });
+  const thieu = mucChuaDapUng(batBuoc, { loaiHopLe, loaiToChucHopLe, coLoiMoi: loiMoi.hopLe, ...k.muc });
   if (thieu.length > 0) return error(400, "items_missing", `Chưa đủ thông tin để gửi: ${thieu.map(nhanMucChoNguoiDangKy).join(", ")}.`);
 
   const submissionId = crypto.randomUUID();
@@ -281,12 +332,19 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   let kq: D1Result[] | null = null;
   try {
     kq = await env.DB.batch([
-      guiChenStatement(env.DB, { id: submissionId, registrationId, policyId: chinhSachRT.id, at: v.at, identityId, phienBanDaDoc: v.phieu.current_version, b: k.b }),
+      guiChenStatement(env.DB, { id: submissionId, registrationId, policyId: chinhSachRT.id, at: v.at, identityId, phienBanDaDoc: v.phieu.current_version, b: k.b, coLoiMoi: loiMoi.hopLe }),
       ...(toChuc ? [guiChenToChucStatement(env.DB, { id: crypto.randomUUID(), submissionId, at: v.at, identityId, t: toChuc })] : []),
       guiTienStatement(env.DB, { registrationId, submissionId, at: v.at, identityId }),
       suKienNguoiDangKyStatement(env.DB, { registrationId, identityId, command: v.phieu.current_version === 0 ? "GUI" : "GUI_LAI", at: v.at }),
+      // ADR-0213 Đ7.5 — CUỐI lô (chỉ số `iTien` giữ nguyên): bỏ giữ chỗ lời mời cũ (số đổi / mã mới), rồi gắn mã định danh lời mời mới vào phiếu (chỉ khi lần gửi này thắng) và giữ chỗ
+      // (lính gác NULL-on-invalid: lời mời vừa bị huỷ / dùng / hết hạn ⇒ CẢ lô hỏng, không bản khai nào sinh ra). Phiếu không bao giờ chứa mã.
+      ...(loiMoi.boGiu ? [cauBoGiuChoLoiMoi(env.DB, { id: loiMoi.boGiu.id, registrationId, at: v.at, by: identityId })] : []),
+      ...(loiMoi.giu ? [ganLoiMoiStatement(env.DB, { registrationId, inviteId: loiMoi.giu.id, at: v.at })] : []),
+      // Mọi lần gửi dựa vào lời mời (mã mới, hoặc lời mời phiếu đang giữ) đều chạy câu giữ chỗ: lính gác xét lại NGAY TRONG lô (còn mở / đang giữ cho phiếu này, còn hạn, cùng số).
+      ...(loiMoi.hopLe && loiMoi.dung ? [cauGiuChoLoiMoi(env.DB, { id: loiMoi.dung.id, registrationId, phoneKey: loiMoi.dung.phone_key, at: v.at })] : []),
     ]);
   } catch (e) {
+    if (LOI_GAC_LOI_MOI.test(e instanceof Error ? e.message : "")) return error(400, "invite_code_invalid", CAU_MA_VAO_SAI);
     // Hai lô đua nhau: lớp cuối là UNIQUE(registration_id, version) và trigger dk_submission_version — coi như lô này khớp 0 dòng, đọc lại.
     if (!/dk_submission_version|dk_submission_org_version|UNIQUE constraint failed: dk_submission/.test(e instanceof Error ? e.message : "")) throw e;
   }
@@ -315,6 +373,8 @@ export async function rutPhieu(ctx: Ctx<"public">): Promise<Response> {
       rutStatement(env.DB, { registrationId, identityId, at: v.at }),
       suKienNguoiDangKyStatement(env.DB, { registrationId, identityId, command: "RUT", at: v.at }),
       cauGoTepChoNeuTruocDoi(env.DB, registrationId, "DA_RUT", v.at),
+      // ADR-0213 Đ7.5: phiếu kết thúc không duyệt ⇒ bỏ giữ chỗ lời mời (CUỐI lô; câu tự canh «đang giữ cho đúng phiếu này»).
+      ...(v.phieu.invite_id ? [cauBoGiuChoLoiMoi(env.DB, { id: v.phieu.invite_id, registrationId, at: v.at, by: identityId })] : []),
     ]);
   } catch (e) {
     if (!/dk_registration_transition/.test(e instanceof Error ? e.message : "")) throw e;

@@ -110,12 +110,14 @@ export interface PhieuXetRow {
   submitted_at: string | null; activated_at: string | null; created_at: string; referrer_party_id: string | null; verified_at: string | null;
   /** Phần tổ chức (ADR-0212 Đ4): vai của tổ chức và kết luận Danh bạ của tổ chức. */
   org_role_code: string | null; org_match_kind: "NEW" | "EXISTING" | null; org_match_party_id: string | null;
+  /** Lời mời vào tổ chức mà phiếu đã gắn lúc gửi (ADR-0213 Đ7.5; migration 0176). Chỉ mã định danh — trạng thái giữ chỗ đọc ở parties. */
+  invite_id: string | null;
 }
 const PHIEU_XET = defineSql(
   "dang-ky",
   "registration_for_review",
   `SELECT id, kind, status, role_code, current_version, reason_code, match_kind, match_party_id, verified_by, verified_version, submitted_at, activated_at, created_at,
-          referrer_party_id, verified_at, org_role_code, org_match_kind, org_match_party_id
+          referrer_party_id, verified_at, org_role_code, org_match_kind, org_match_party_id, invite_id
    FROM dk_registration WHERE id = ?1`,
 );
 export const phieuXet = (db: D1Database, id: string): Promise<PhieuXetRow | null> => db.prepare(PHIEU_XET).bind(id).first<PhieuXetRow>();
@@ -411,13 +413,14 @@ export function moPhieuNhap(db: D1Database, v: { registrationId: string; identit
 // ---- Phiếu của chính người đăng ký: xem, lưu nháp, gửi, rút (ADR-0206 Đ6, Đ7; đợt 1 Task 4) ----
 export interface PhieuDeXemRow {
   id: string; status: string; role_code: string; org_role_code: string | null; current_version: number; reason_code: string | null; submitted_at: string | null; expires_at: string | null;
+  invite_id: string | null;
 }
 // Khác `phieuCuaPhien` (chỉ danh tính còn mở — cổng của tải tệp): đây là cổng ĐỌC phiếu của chính mình ở mọi trạng thái, vì phiếu ĐÃ DUYỆT (danh tính đã hạ is_open ở bước duyệt, ADR-0207 Đ7),
 // TỪ CHỐI, ĐÃ RÚT, HẾT HẠN vẫn phải xem được lý do và trạng thái bằng cookie còn sống. Quyền GHI do từng route kiểm theo trạng thái (không phải ở câu này).
 const PHIEU_DE_XEM = defineSql(
   "dang-ky",
   "registration_for_registrant",
-  `SELECT r.id, r.status, r.role_code, r.org_role_code, r.current_version, r.reason_code, r.submitted_at, r.expires_at
+  `SELECT r.id, r.status, r.role_code, r.org_role_code, r.current_version, r.reason_code, r.submitted_at, r.expires_at, r.invite_id
    FROM dk_registration r JOIN dk_identity i ON i.registration_id = r.id WHERE r.id = ?1 AND i.id = ?2`,
 );
 export const phieuDeXem = (db: D1Database, registrationId: string, identityId: string): Promise<PhieuDeXemRow | null> =>
@@ -530,13 +533,19 @@ const GUI_CHEN = defineSql(
      license_class_code, issued_date, issued_place, expiry_date, referrer_text, policy_id, consented_at, created_at, created_by, updated_at, updated_by)
    SELECT ?1, r.id, r.current_version + 1, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?3, ?4, ?4, ?5, ?4, ?5
    FROM dk_registration r
-   WHERE r.id = ?2 AND r.status IN ('DANG_DIEN', 'CAN_BO_SUNG') AND r.current_version = ?22 AND (r.role_code <> '' OR r.org_role_code IS NOT NULL)
+   WHERE r.id = ?2 AND r.status IN ('DANG_DIEN', 'CAN_BO_SUNG') AND r.current_version = ?22 AND (r.role_code <> '' OR r.org_role_code IS NOT NULL OR ?23 = 1)
      AND ?3 = (SELECT id FROM v_pty_privacy_effective)`,
 );
-export const guiChenStatement = (db: D1Database, v: { id: string; registrationId: string; policyId: string; at: string; identityId: string; phienBanDaDoc: number; b: BanKhaiMoi }): D1PreparedStatement =>
+/**
+ * `coLoiMoi` (ADR-0213 Đ7.5; mốc B2 Task 15): phiếu có lời mời vào tổ chức hợp lệ ⇒ vai rỗng cả hai vẫn chèn được. Cờ này CHỈ đúng khi CÙNG lô có câu giữ chỗ lời mời của parties
+ * (lính gác NULL-on-invalid làm CẢ lô hỏng khi lời mời không còn hợp lệ) — route gửi bảo đảm điều đó.
+ */
+export const guiChenStatement = (
+  db: D1Database, v: { id: string; registrationId: string; policyId: string; at: string; identityId: string; phienBanDaDoc: number; b: BanKhaiMoi; coLoiMoi?: boolean },
+): D1PreparedStatement =>
   db.prepare(GUI_CHEN).bind(
     v.id, v.registrationId, v.policyId, v.at, v.identityId, v.b.family, v.b.middle, v.b.given, v.b.gender, v.b.birthDate, v.b.address, v.b.phoneValue, v.b.phoneKey, v.b.documentType,
-    v.b.documentNumber, v.b.numberKey, v.b.licenseClass, v.b.issuedDate, v.b.issuedPlace, v.b.expiryDate, v.b.referrer, v.phienBanDaDoc,
+    v.b.documentNumber, v.b.numberKey, v.b.licenseClass, v.b.issuedDate, v.b.issuedPlace, v.b.expiryDate, v.b.referrer, v.phienBanDaDoc, v.coLoiMoi ? 1 : 0,
   );
 // Phần tổ chức (ADR-0212 Đ4): câu thứ HAI của lô gửi, CÙNG phiên bản với bản khai vừa chèn — chỉ chèn khi bản khai mã `?2` có thật và đúng phiên bản kế tiếp (khớp 0 dòng khi lô bấm
 // hai lần thua, thay vì để trigger dk_submission_org_version làm hỏng lô). Mọi giá trị đã kiểm ở `kiemPhanToChuc` (src/shared/to-chuc.ts).
@@ -788,10 +797,28 @@ export const cauAnDanhDanhTinh = (db: D1Database, v: { registrationId: string; a
 // LƯỚI AN TOÀN: tạo phiếu (đang điền) / lần đổi gần nhất (cần bổ sung) quá số ngày của chính sách — để không có phiếu nào giữ dữ liệu mãi mãi. ?1 = bây giờ, ?2 / ?3 = mốc lưới.
 const DIEU_KIEN_HET_HAN = `((status = 'DANG_DIEN' AND ((expires_at IS NOT NULL AND expires_at <= ?1) OR (expires_at IS NULL AND created_at <= ?2)))
       OR (status = 'CAN_BO_SUNG' AND ((expires_at IS NOT NULL AND expires_at <= ?1) OR (expires_at IS NULL AND updated_at <= ?3))))`;
-const PHIEU_HET_HAN = defineSql("dang-ky", "registration_expire_candidates", `SELECT id FROM dk_registration WHERE ${DIEU_KIEN_HET_HAN} ORDER BY id LIMIT ?4`);
-export async function phieuCanHetHan(db: D1Database, v: { at: string; mocNhap: string; mocBoSung: string; toiDa: number }): Promise<string[]> {
-  return (await db.prepare(PHIEU_HET_HAN).bind(v.at, v.mocNhap, v.mocBoSung, v.toiDa).all<{ id: string }>()).results.map((r) => r.id);
+const PHIEU_HET_HAN = defineSql("dang-ky", "registration_expire_candidates", `SELECT id, invite_id FROM dk_registration WHERE ${DIEU_KIEN_HET_HAN} ORDER BY id LIMIT ?4`);
+export async function phieuCanHetHan(db: D1Database, v: { at: string; mocNhap: string; mocBoSung: string; toiDa: number }): Promise<{ id: string; inviteId: string | null }[]> {
+  return (await db.prepare(PHIEU_HET_HAN).bind(v.at, v.mocNhap, v.mocBoSung, v.toiDa).all<{ id: string; invite_id: string | null }>()).results.map((r) => ({ id: r.id, inviteId: r.invite_id }));
 }
+// Lưới của «bỏ giữ chỗ lời mời khi phiếu kết thúc không duyệt» (ADR-0213 Đ7.5; mốc B2 Task 15): phiếu kết thúc từ mốc ?1 trở đi (tác nhân truyền 30 ngày trước), còn gắn lời mời. Câu bỏ giữ chỗ
+// của parties tự canh «đang giữ cho đúng phiếu này», nên chạy lại trên lời mời đã bỏ giữ không đổi gì.
+const PHIEU_KET_THUC_CO_LOI_MOI = defineSql(
+  "dang-ky",
+  "registration_closed_with_invite",
+  `SELECT id, invite_id FROM dk_registration WHERE invite_id IS NOT NULL AND status IN ('TU_CHOI', 'DA_RUT', 'HET_HAN') AND decided_at >= ?1 ORDER BY decided_at DESC, id LIMIT ?2`,
+);
+export async function phieuKetThucCoLoiMoi(db: D1Database, tuMoc: string, toiDa: number): Promise<{ id: string; inviteId: string }[]> {
+  return (await db.prepare(PHIEU_KET_THUC_CO_LOI_MOI).bind(tuMoc, toiDa).all<{ id: string; invite_id: string }>()).results.map((r) => ({ id: r.id, inviteId: r.invite_id }));
+}
+// Gắn mã định danh lời mời vào phiếu, CHỈ khi lần gửi của chính lô này đã thắng (phiếu CHỜ XÁC MINH với submitted_at = lúc gửi). ?1 phiếu, ?2 lời mời, ?3 lúc gửi
+const GAN_LOI_MOI = defineSql(
+  "dang-ky",
+  "registration_set_invite",
+  "UPDATE dk_registration SET invite_id = ?2 WHERE id = ?1 AND status = 'CHO_XAC_MINH' AND submitted_at = ?3",
+);
+export const ganLoiMoiStatement = (db: D1Database, v: { registrationId: string; inviteId: string; at: string }): D1PreparedStatement =>
+  db.prepare(GAN_LOI_MOI).bind(v.registrationId, v.inviteId, v.at);
 // Mốc `decided_at` = lúc phiếu kết thúc: đồng hồ ẩn danh (việc 2) chạy từ đây.
 const HET_HAN_CAP = defineSql(
   "dang-ky",

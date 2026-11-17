@@ -10,7 +10,7 @@ import type {
   PhieuChoXacMinhDto, PhieuDaXuLyDto, PhieuXacMinhChiTietDto, PhieuXemSoResponse, PhieuXoaCuaToiDto, PhieuXoaRutResponse, PhieuXoaTaoResponse, TrangThaiPhieuXoa,
   AnhCanXoaDto, AnhCanXoaResponse, AnhCanXoaXoaResponse,
   PhieuXoaChoDto, PhieuXoaChoResponse, PhieuXoaChayLaiResponse, PhieuXoaDaXuLyDto, PhieuXoaThucHienResponse, PhieuXoaTuChoiResponse, PhieuXoaXemTruocDto,
-  TuCachCuaToiResponse,
+  LoiMoiCuaToiResponse, TuCachCuaToiResponse,
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
@@ -28,7 +28,7 @@ import type { DauXacMinh } from "../../shared/dau-xac-minh";
 import type { DanhMucGiayToToChuc } from "../../shared/to-chuc";
 import { gioiTinhHopLe } from "../../shared/xung-ho";
 import {
-  activeBanks, bankAccountCloseStatement, bankAccountInsertStatement, bankAccountOpenOf, bankActive, ownerBankAccountRows,
+  lmTheoBam, activeBanks, bankAccountCloseStatement, bankAccountInsertStatement, bankAccountOpenOf, bankActive, ownerBankAccountRows,
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
   companyIdentityOf, docsForMerge, driverDocsForDispatch, driversForDispatch, expiringDocumentsOfRoles, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
@@ -56,6 +56,9 @@ import {
   xemToChuc, xemToChucCuaQuanLy, yeuCauChuyen,
 } from "./to-chuc-route";
 import { quyenToChuc } from "./quyen-to-chuc";
+import { bamMaVao, huyLoiMoi, loiMoiCuaToi, nhanLoiMoi, taoLoiMoi } from "./loi-moi";
+/** Câu từ chối lệnh tạo / huỷ lời mời (Đ6, Đ7.1): không phải người quản lý có hiệu lực, không phải văn phòng. */
+const CAM_MOI = () => error(403, "forbidden", "Chỉ người quản lý của tổ chức hoặc Tour Đảo mời được thành viên.");
 import { DO_DANG_SAU_MS, LOAI_NOI_DUNG, LY_DO_XOA_TEP, TOI_DA_THAN, bamSha256, dauPhanHoiTep, khoaNgauNhien, kiemTepTaiLen } from "./tep";
 import { chepBanNgoai, ghiRoiXoaKho, xoaKhoiKho } from "./kho-tep";
 import { CAU_KHONG_GUI, kiemChinhSach, kiemPhieuTuKhai, lyDoKhongGhi, lyDoKhongGui, type LoaiPhieu, type TinhTrangTuKhai } from "./tu-khai";
@@ -78,6 +81,15 @@ export { hanGiuPhienNgay } from "./repository";
 export { dauXacMinhTheoHoSo };
 // Người quản lý có hiệu lực (ADR-0213 Đ2.8): gốc lắp ráp ghép phần của parties (liên kết mở, hồ sơ chưa gộp, tổ chức còn vai) với phần tài khoản của staff.
 export { tcQuanLyMo, tcToChucCuaNguoi } from "./repository";
+// Lời mời vào tổ chức (ADR-0213 Đ7.5; mốc B2 Task 15): dang-ky (đường phiếu, lô duyệt, lô kết thúc, tác nhân dọn) chỉ gọi các hàm / câu chưa chạy này, không đọc bảng pty_org_invite.
+export {
+  DAU_AN_DANH_LOI_MOI, LOI_GAC_LOI_MOI, lmAnDanhStatement as cauAnDanhLoiMoi, lmBoGiuStatement as cauBoGiuChoLoiMoi, lmChinhSach as chinhSachLoiMoi, lmDungPhieuStatement as cauDungLoiMoiPhieu,
+  lmGiuChoStatement as cauGiuChoLoiMoi, lmHetHanStatement as cauHetHanLoiMoi, lmTheoId as loiMoiTheoId, lmThanhVienStatement as cauThanhVienTuLoiMoi, type LmDong as LoiMoiDong,
+} from "./repository";
+/** Lời mời theo mã ĐÃ CHUẨN HOÁ (`chuanHoaMaVao`): băm có khoá rồi tra; không thấy ⇒ null. Mã không bao giờ rời hàm này. */
+export async function loiMoiTheoMa(db: D1Database, secret: string, ma: string) {
+  return lmTheoBam(db, await bamMaVao(secret, ma));
+}
 // Tệp chờ của phiếu đăng ký (ADR-0208; đợt 1 Task 5): dang-ky chỉ gọi các hàm này, không đọc bảng pty_registration_attachment, không chạm kho HO_SO.
 export {
   LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauGoTepCho, cauGoTepChoCuaONeuTruocDoi, cauGoTepChoNeuTruocDoi, cauTepChoMoi, datKhoTepCho, donKhoTepCho, khoTepChoSanSang, moTepChoTuKho, tepChoDeXemCuaPhieu, timTepChoDeXem, timTepChoTrung,
@@ -2584,6 +2596,29 @@ export const partiesModule: AppModule = {
       if (!can(staff, "order.create")) return json({ tuCach: [] } satisfies TuCachCuaToiResponse); // tư cách chỉ dùng khi lập đơn
       const ds = await tuCachCuaToi();
       return json({ tuCach: ds.map((t) => ({ partyId: t.partyId, ten: t.ten, laToChuc: t.laToChuc })) } satisfies TuCachCuaToiResponse);
+    }),
+    // ADR-0213 Đ7 (mốc B2, Task 15) — lời mời vào tổ chức, thân ở loi-moi.ts. Tạo / huỷ: người quản lý CÓ HIỆU LỰC (vai trên đối tượng, `quyenToChuc`) HOẶC văn phòng
+    // (ô partner.org.manager.write, không giữ quyền Đối tác — cùng cổng các route văn phòng ở dưới). Thành viên, người lạ ⇒ 403.
+    route("POST", "/api/to-chuc/:id/loi-moi", "staff", async (ctx) => {
+      const v = await vaiToChucCuaToi(ctx);
+      if (!v || !(quyenToChuc(ctx.staff, v.vai).quanLy || (can(ctx.staff, "partner.org.manager.write") && !holdsPartner(ctx.staff)))) return CAM_MOI();
+      return taoLoiMoi(ctx, v.org);
+    }),
+    route("POST", "/api/to-chuc/:id/loi-moi/:mid/huy", "staff", async (ctx) => {
+      const v = await vaiToChucCuaToi(ctx);
+      if (!v || !(quyenToChuc(ctx.staff, v.vai).quanLy || (can(ctx.staff, "partner.org.manager.write") && !holdsPartner(ctx.staff)))) return CAM_MOI();
+      return huyLoiMoi(ctx, v.org);
+    }),
+    // Lời mời gửi tới số đăng nhập của CHÍNH người gọi (Đ7.4): chỉ đọc phiên, không tham số; đứng TRƯỚC `/api/to-chuc/:id`.
+    // Cổng: ô `order.create` — liên kết thành viên chỉ để lập đơn thay mặt tổ chức (cùng lý do với `GET /api/to-chuc/cua-toi`); tài khoản không lập đơn được ⇒ không có lời mời nào để xem / nhận.
+    // Lời kiểm thật của lệnh nhận ở thân (`nhanLoiMoi`): số đăng nhập trùng số được mời, tài khoản chỉ giữ quyền Đối tác (Đ2.6), lời mời còn mở và còn hạn, người mời còn quyền mời.
+    route("GET", "/api/to-chuc/loi-moi-cua-toi", "staff", async (ctx) => {
+      if (!can(ctx.staff, "order.create")) return json({ loiMoi: [] } satisfies LoiMoiCuaToiResponse);
+      return loiMoiCuaToi(ctx);
+    }),
+    route("POST", "/api/to-chuc/loi-moi/nhan", "staff", async (ctx) => {
+      if (!can(ctx.staff, "order.create")) return error(403, "forbidden", "Tài khoản này không nhận lời mời vào tổ chức được.");
+      return nhanLoiMoi(ctx, ctx.luotThu);
     }),
     // Màn tổ chức của người quản lý (Task 14): chỉ đọc, đứng SAU `/api/to-chuc/cua-toi`; chỉ người quản lý có hiệu lực của tổ chức đó (thành viên, người lạ ⇒ 403).
     route("GET", "/api/to-chuc/:id", "staff", async (ctx) => {

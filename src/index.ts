@@ -14,8 +14,8 @@
 // chuyến (nhóm `dieu-xe` + tài xế có dòng lái lúc sự kiện) và gõ cửa tin chuyến (`dayGoCua` với `{ chuyen }`); hộp thông báo đọc dữ kiện qua `ctx.chuyenChoTin`.
 
 import { accountsModule } from "./modules/accounts";
-import { auditModule, auditStatement } from "./modules/audit";
-import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, currentStaff } from "./modules/auth";
+import { auditModule, auditStatement, auditToChucStatement } from "./modules/audit";
+import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, clearAttempts, currentStaff, reserveAttempts } from "./modules/auth";
 import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
 import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan, chanKhaiCocLai, daThuCuaDon, kiemTraSau, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi, noCuaBenDat, maDonTraSauDaXacNhan, traSauCuaDon, kenhThuHienTai, coHanMucTraSauMo, cauDongHanMucKhiHetVai } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
@@ -31,11 +31,11 @@ import { canBangVeTheoSoKhach, cauChanDuoiSoDaDung, cauChanVeDaDung, capVeChoDon
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import {
   LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauDongYTuPhieu, cauGhiGiaTriDaXacMinh, cauGhiGiaTriToChuc, cauGoTepCho, cauLienKetNguoiToChuc, cauMoHoSoDangKy, cauMoHoSoToChucDangKy, cauQuanLyToChucDangKy,
-  cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule, tcQuanLyMo, tcToChucCuaNguoi,
+  cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule, tcQuanLyMo, tcToChucCuaNguoi, cauBoGiuChoLoiMoi, cauDungLoiMoiPhieu, cauThanhVienTuLoiMoi,
 } from "./modules/parties";
 import { capMacDinhChoDuyet, capSeApChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
 import { cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
-import { accountOfParty, createAccountOnPartyStatements, createPartnerAccountOnPartyStatements, getStaffAccountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
+import { accountOfParty, createAccountOnPartyStatements, createPartnerAccountOnPartyStatements, getStaffAccount, getStaffAccountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
 import { chuyenChoTinTheoId, dongBoChuyenChoDon, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
@@ -100,6 +100,17 @@ async function taiKhoanGanDuoc(db: D1Database, personPartyId: string): Promise<K
 }
 
 /**
+ * NGƯỜI MỜI CÒN QUYỀN MỜI (ADR-0213 Đ7.4, Đ7.5; mốc B2 Task 15): người tạo lời mời vẫn là người quản lý có hiệu lực của tổ chức (`laQuanLyCoHieuLuc` — MỘT định nghĩa Đ2.8), HOẶC
+ * vẫn là văn phòng giữ ô `partner.org.manager.write` (tài khoản đang bật, không giữ quyền Đối tác — cùng cổng của route văn phòng ở parties). Tài khoản không còn ⇒ false.
+ */
+async function conQuyenMoi(db: D1Database, staffId: string, org: string): Promise<boolean> {
+  const tk = await getStaffAccount(db, staffId);
+  if (!tk || !tk.active) return false;
+  if (holdsPartner(tk)) return laQuanLyCoHieuLuc(db, tk, org);
+  return can(tk, "partner.org.manager.write");
+}
+
+/**
  * TƯ CÁCH CỦA MỘT TÀI KHOẢN (ADR-0213 Đ3.1–Đ3.3; mốc B1 Task 11) — gốc lắp ráp ghép pricing (vai được hưởng), parties (liên kết đang mở) và `nguoiQuanLyCoHieuLuc` (Đ2.8 — MỘT định nghĩa).
  * - Cá nhân: hồ sơ của tài khoản mang vai được hưởng — ĐÚNG điều kiện ép bên đặt hôm nay (`benDatChoTaiKhoan`), nên «chỉ cá nhân» = hành vi hôm nay.
  * - Tổ chức: nơi tài khoản là người quản lý có hiệu lực VÀ tổ chức còn vai được hưởng (pricing — bên đặt phải ghi được). Ruling R4: liên kết «Thành viên» mở ở B2 (Task 16) —
@@ -145,7 +156,9 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
   // Vai là RoleCode (đường cũ) HOẶC loại đối tác do Kế toán thêm (ADR-0212 Đ3); mã khác ⇒ lỗi lạ (route đã kiểm theo `vaiDangKyDuoc`).
   // Vai rỗng (phiếu «chỉ tổ chức», mốc B1 Task 13): CHỈ khi lô mở «Người quản lý của» cho tổ chức MỚI — nếu không, tài khoản sẽ không vai, không liên kết (route đã chặn: Đ7.7).
   const vaiRieng = v.roleCode;
-  if (vaiRieng === null ? v.toChuc?.lienKet !== "MANAGER_OF" || v.toChuc.hoSo.kieu !== "MOI" : !v.laLoaiDoiTac && !isRoleCode(vaiRieng)) throw new Error("loDuyetDangKy: mã vai không hợp lệ");
+  // ADR-0213 Đ7.5 (mốc B2 Task 15): vai rỗng cũng được khi lô mở «Thành viên của» từ lời mời đang giữ (route đã kiểm số, người mời còn quyền).
+  const coThanhVien = v.loiMoi?.kieu === "MO_LIEN_KET";
+  if (vaiRieng === null ? !coThanhVien && (v.toChuc?.lienKet !== "MANAGER_OF" || v.toChuc.hoSo.kieu !== "MOI") : !v.laLoaiDoiTac && !isRoleCode(vaiRieng)) throw new Error("loDuyetDangKy: mã vai không hợp lệ");
   const partyId = v.hoSo.kieu === "MOI" ? crypto.randomUUID() : v.hoSo.partyId;
   const docId = v.giayTo ? crypto.randomUUID() : null;
   const tk = vaiRieng === null
@@ -202,6 +215,13 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
       ...(tc.lienKet === "MANAGER_OF" && tc.hoSo.kieu === "MOI" ? [cauQuanLyToChucDangKy(db, { ...base, personPartyId: partyId, orgPartyId: toChuc.partyId, today: v.today })]
         : tc.lienKet === "CONTACT_OF" ? [cauLienKetNguoiToChuc(db, { ...base, personPartyId: partyId, orgPartyId: toChuc.partyId, today: v.today })] : []),
     ] : []),
+    // 2d — parties: lời mời đang giữ (ADR-0213 Đ7.5). Dùng lời mời (lính gác NULL-on-invalid: đang giữ cho đúng phiếu này, số của bản khai trùng — không thì CẢ lô hỏng) rồi mở «Thành viên
+    //      của» tổ chức đã mời — TRƯỚC câu cấp quyền (LC-1c / lc1d đọc liên kết, Đ9). Số đã đổi ⇒ chỉ bỏ giữ chỗ, không liên kết.
+    ...(v.loiMoi?.kieu === "MO_LIEN_KET" ? [
+      cauDungLoiMoiPhieu(db, { id: v.loiMoi.id, registrationId: v.registrationId, phoneKey: v.loginPhone, staffId: tk.id, at: v.at, by: v.approverId }),
+      cauThanhVienTuLoiMoi(db, { id: crypto.randomUUID(), person: partyId, org: v.loiMoi.orgPartyId, ngay: v.today, at: v.at, by: v.approverId, inviteId: v.loiMoi.id }),
+      auditToChucStatement(db, { staffId: v.approverId, action: "org_invite_accepted", at: v.at, targetId: v.loiMoi.orgPartyId, detail: `lời mời ${v.loiMoi.id} · thành viên ${partyId} · qua phiếu đăng ký ${v.registrationId}` }, "changes() > 0"),
+    ] : v.loiMoi?.kieu === "BO_GIU" ? [cauBoGiuChoLoiMoi(db, { id: v.loiMoi.id, registrationId: v.registrationId, at: v.at, by: v.approverId })] : []),
     // 3 — staff: tài khoản TẮT + quyền theo vai (biến thể «trên hồ sơ có sẵn»; PIN ngẫu nhiên không trả ra).
     ...tk.statements,
     // 4 — parties: giá trị đã xác minh.
@@ -252,7 +272,7 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
     cauAnDanhBanKhaiToChuc(db, { registrationId: v.registrationId, at: v.at, by: v.approverId }),
     // 11 — audit: `staff_created` trỏ TÀI KHOẢN MỚI, người làm = người duyệt (ADR-0207 Đ6). Không SĐT, email, số giấy tờ.
     auditStatement(db, { staffId: v.approverId, action: "staff_created", at: v.at, targetType: "staff", targetId: tk.id,
-      detail: `phiếu đăng ký ${v.registrationId}; vai trò: ${v.roleLabel}; ${v.hoSo.kieu === "MOI" ? "hồ sơ mới" : "dùng hồ sơ có sẵn"}${tc ? (tc.hoSo.kieu === "MOI" ? "; kèm hồ sơ tổ chức mới" : "; gắn tổ chức có sẵn") : ""}${tc?.lienKet === "MANAGER_OF" && tc.hoSo.kieu === "MOI" ? "; là người quản lý tổ chức" : ""}; chưa kích hoạt${v.co ? "; Toàn quyền làm cả hai bước" : ""}` }),
+      detail: `phiếu đăng ký ${v.registrationId}; vai trò: ${v.roleLabel}; ${v.hoSo.kieu === "MOI" ? "hồ sơ mới" : "dùng hồ sơ có sẵn"}${tc ? (tc.hoSo.kieu === "MOI" ? "; kèm hồ sơ tổ chức mới" : "; gắn tổ chức có sẵn") : ""}${tc?.lienKet === "MANAGER_OF" && tc.hoSo.kieu === "MOI" ? "; là người quản lý tổ chức" : ""}${coThanhVien ? "; thành viên tổ chức theo lời mời" : ""}; chưa kích hoạt${v.co ? "; Toàn quyền làm cả hai bước" : ""}` }),
   ];
   // Vai rỗng: «cấp» báo cho người duyệt là cấp của hồ sơ tổ chức mới (câu 8b); không có vai tổ chức ⇒ lý do «không hưởng» (không để route rơi về «vừa đổi»).
   const cauBao = vaiRieng === null ? cauCapToChuc : cauCap;
@@ -417,6 +437,10 @@ const APP_OPTIONS: AppOptions = {
     // NGƯỜI QUẢN LÝ TỔ CHỨC (ADR-0213 Đ2.6, Đ2.8): parties không import staff — gốc lắp ráp ghép (khuôn partyAccount).
     nguoiQuanLyCoHieuLuc: (env, org) => nguoiQuanLyCoHieuLuc(env.DB, org),
     taiKhoanGanDuoc: (env, p) => taiKhoanGanDuoc(env.DB, p),
+    conQuyenMoi: (env, staffId, org) => conQuyenMoi(env.DB, staffId, org),
+    // LƯỢT GÕ SAI MÃ VÀO TỔ CHỨC (ADR-0213 Đ7.3): parties không import auth — gốc lắp ráp tiêm bộ đếm chống dò của auth (không gian khoá `moi:`, câu dọn riêng).
+    luotThuGiu: (env, key, max, ms) => reserveAttempts(env.DB, [{ key, max }], Date.now(), ms),
+    luotThuBo: (env, ids) => clearAttempts(env.DB, null, ids),
     // ẨN DANH SỔ PHIÊN (ADR-0126 đ8): parties không import auth / accounts không import parties — gốc lắp ráp tiêm câu của auth và số ngày giữ (chính sách riêng tư) của parties.
     cauAnDanhPhien: (env, staffId, at, by) => anDanhPhienCuaTaiKhoanStatement(env.DB, staffId, at, by),
     hanGiuPhienNgay: (env) => hanGiuPhienNgay(env.DB),

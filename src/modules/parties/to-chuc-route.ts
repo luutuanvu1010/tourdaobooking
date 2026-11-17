@@ -16,7 +16,7 @@ import { NHAN_LY_DO_TO_CHUC, laMaLyDoToChuc, type MaLyDoToChuc } from "../../sha
 import { vnToday } from "../../shared/vn-date";
 import { auditToChucStatement } from "../audit";
 import {
-  LOI_GAC_TO_CHUC, tcDatThuDaGui, tcDongQuanLyStatement, tcDongThanhVienGacStatement, tcDongThanhVienStatement, tcDongYeuCauStatement, tcEmailCua, tcHoSo, tcLienKetDongTuNgay,
+  LOI_GAC_TO_CHUC, lmCuaToChuc, tcDatThuDaGui, tcDongQuanLyStatement, tcDongThanhVienGacStatement, tcDongThanhVienStatement, tcDongYeuCauStatement, tcEmailCua, tcHoSo, tcLienKetDongTuNgay,
   tcLienKetMo, tcMoLienKetStatement, tcTaoYeuCauStatement, tcThuMoiNhat, tcYeuCauMo, type TcLienKet,
 } from "./repository";
 import type { VaiToChuc } from "./quyen-to-chuc";
@@ -75,7 +75,9 @@ function docThan(body: Record<string, unknown> | null, chiKhoa: readonly string[
 const laMaHoSo = (v: unknown): v is string => typeof v === "string" && PARTY_ID_RE.test(v);
 
 async function dtoToChuc(ctx: Ctx, org: { id: string; ten: string }): Promise<ToChucDto> {
-  const [lk, yc, thu, hl] = await Promise.all([tcLienKetMo(ctx.env.DB, org.id), tcYeuCauMo(ctx.env.DB, org.id), tcThuMoiNhat(ctx.env.DB, org.id), ctx.nguoiQuanLyCoHieuLuc(org.id)]);
+  const [lk, yc, thu, hl, lm] = await Promise.all([
+    tcLienKetMo(ctx.env.DB, org.id), tcYeuCauMo(ctx.env.DB, org.id), tcThuMoiNhat(ctx.env.DB, org.id), ctx.nguoiQuanLyCoHieuLuc(org.id), lmCuaToChuc(ctx.env.DB, org.id, new Date().toISOString()),
+  ]);
   const ql = lk.find((x) => x.loai === "MANAGER_OF");
   return {
     partyId: org.id,
@@ -84,6 +86,7 @@ async function dtoToChuc(ctx: Ctx, org: { id: string; ten: string }): Promise<To
     thanhVien: lk.filter((x) => x.loai === "MEMBER_OF").map((x) => ({ partyId: x.personPartyId, ten: x.ten, tuNgay: x.tuNgay })),
     yeuCauChuyen: yc.map((x) => ({ id: x.id, nguoiDeXuat: { partyId: x.personPartyId, ten: x.ten }, luc: x.luc })),
     thu: thu ? { trangThai: thu.trangThai, ngay: thu.ngay } : null,
+    loiMoi: lm, // ADR-0213 Đ7: lời mời còn dùng được — không số điện thoại, không mã
   };
 }
 

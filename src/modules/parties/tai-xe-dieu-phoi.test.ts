@@ -188,5 +188,8 @@ test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCua
     // ADR-0213 Đ2.8 (mốc B1 Task 10): người quản lý đang mở + hồ sơ chưa gộp + tổ chức còn vai — gốc lắp ráp ghép với phần tài khoản của staff thành «người quản lý có hiệu lực»
     "tcQuanLyMo",
     // ADR-0213 Đ3.1 (mốc B1 Task 11): tổ chức một người đang gắn — gốc lắp ráp lọc bằng người quản lý có hiệu lực thành danh sách «Tư cách»
-    "tcToChucCuaNguoi"].sort());
+    "tcToChucCuaNguoi",
+    // ADR-0213 Đ7 (mốc B2 Task 15): lời mời vào tổ chức — dang-ky (đường phiếu, lô duyệt, lô kết thúc, tác nhân dọn) và gốc lắp ráp chỉ gọi các tên này, không đọc bảng pty_org_invite
+    "DAU_AN_DANH_LOI_MOI", "LOI_GAC_LOI_MOI", "cauAnDanhLoiMoi", "cauBoGiuChoLoiMoi", "chinhSachLoiMoi", "cauDungLoiMoiPhieu", "cauGiuChoLoiMoi", "cauHetHanLoiMoi", "loiMoiTheoId",
+    "cauThanhVienTuLoiMoi", "loiMoiTheoMa"].sort());
 });

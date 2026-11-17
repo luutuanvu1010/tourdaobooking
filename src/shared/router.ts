@@ -297,6 +297,20 @@ export interface Ctx<A extends Access = Access> {
    */
   taiKhoanGanDuoc: (personPartyId: string) => Promise<KetLuanGanToChuc>;
   /**
+   * NGƯỜI MỜI CÒN QUYỀN MỜI (ADR-0213 Đ7.4, Đ7.5; mốc B2 Task 15) — do gốc lắp ráp tiêm (`parties`, `dang-ky` không đọc bảng `staff`). Đúng khi tài khoản `staffId` (người tạo lời mời)
+   * vẫn là người quản lý có hiệu lực của `orgPartyId` (Đ2.8), HOẶC vẫn đang bật, giữ ô `partner.org.manager.write` và không giữ quyền Đối tác (văn phòng — Đ6). `staffId` rỗng, chưa đăng
+   * nhập hoặc môi trường không tiêm ⇒ false (từ chối, không đoán).
+   */
+  conQuyenMoi: (staffId: string | null, orgPartyId: string) => Promise<boolean>;
+  /**
+   * BỘ ĐẾM LƯỢT GÕ SAI MÃ VÀO TỔ CHỨC (ADR-0213 Đ7.3; mốc B2 Task 15) — `reserveAttempts` / `clearAttempts` của auth, do gốc lắp ráp tiêm (parties không import auth: auth → parties đã có).
+   * `giu` đặt chỗ MỘT lượt cho khoá `key` trong cửa sổ `windowMs` (đủ `max` ⇒ không cho); `bo` trả lại lượt đã đặt (gõ đúng không tính). Môi trường không tiêm ⇒ `giu` luôn từ chối.
+   */
+  luotThu: {
+    giu: (key: string, max: number, windowMs: number) => Promise<{ allowed: true; ids: Record<string, string> } | { allowed: false; retryAfterSeconds: number }>;
+    bo: (ids: Record<string, string>) => Promise<void>;
+  };
+  /**
    * ADR-0126 đ8 — câu ẩn danh IP / User-Agent mọi phiên của MỘT tài khoản, do `auth` cấp, gốc lắp ráp tiêm (parties không import auth — khuôn `gopHoSo.cauDoiDon`).
    * Không tiêm (khung thử cũ) → null ⇒ route Thực hiện trả 503, KHÔNG thực hiện thiếu phần sổ phiên.
    */
@@ -558,6 +572,11 @@ export interface AppOptions {
     nguoiQuanLyCoHieuLuc?: (env: Env, orgPartyId: string) => Promise<NguoiQuanLyHieuLuc | null>;
     /** ADR-0213 Đ2.6. Mã chạy thật (`src/index.ts`: staff + dang-ky); thiếu (khung thử cố ý) → router trả `KHONG_TAI_KHOAN`. */
     taiKhoanGanDuoc?: (env: Env, personPartyId: string) => Promise<KetLuanGanToChuc>;
+    /** ADR-0213 Đ7.4, Đ7.5. Mã chạy thật (`src/index.ts`: staff + parties); thiếu (khung thử cố ý) → router trả `false`. */
+    conQuyenMoi?: (env: Env, staffId: string, orgPartyId: string) => Promise<boolean>;
+    /** ADR-0213 Đ7.3. Mã chạy thật (`src/index.ts`: auth); thiếu (khung thử cố ý) → `giu` luôn từ chối. */
+    luotThuGiu?: (env: Env, key: string, max: number, windowMs: number) => Promise<{ allowed: true; ids: Record<string, string> } | { allowed: false; retryAfterSeconds: number }>;
+    luotThuBo?: (env: Env, ids: Record<string, string>) => Promise<void>;
     /** ADR-0126 đ8. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `anDanhPhienCuaTaiKhoanStatement` của auth); thiếu (khung thử cũ) → router trả `null` (route Thực hiện 503). */
     cauAnDanhPhien: (env: Env, staffId: string, at: string, by: string) => D1PreparedStatement;
     /** ADR-0126 đ8. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `hanGiuPhienNgay` của parties); thiếu (khung thử cũ) hoặc chưa đăng nhập → `null`. */
@@ -782,6 +801,11 @@ export function createApp(opts: AppOptions) {
       taiKhoanXacMinh: () => (who && typeof opts.injected.taiKhoanXacMinh === "function" ? opts.injected.taiKhoanXacMinh(envH) : Promise.resolve([])),
       nguoiQuanLyCoHieuLuc: (org) => (who && typeof opts.injected.nguoiQuanLyCoHieuLuc === "function" ? opts.injected.nguoiQuanLyCoHieuLuc(envH, org) : Promise.resolve(null)),
       taiKhoanGanDuoc: (p) => (who && typeof opts.injected.taiKhoanGanDuoc === "function" ? opts.injected.taiKhoanGanDuoc(envH, p) : Promise.resolve("KHONG_TAI_KHOAN" as const)),
+      conQuyenMoi: (id, org) => (who && id && typeof opts.injected.conQuyenMoi === "function" ? opts.injected.conQuyenMoi(envH, id, org) : Promise.resolve(false)),
+      luotThu: {
+        giu: (k, max, ms) => (who && typeof opts.injected.luotThuGiu === "function" ? opts.injected.luotThuGiu(envH, k, max, ms) : Promise.resolve({ allowed: false as const, retryAfterSeconds: 60 })),
+        bo: (ids) => (typeof opts.injected.luotThuBo === "function" ? opts.injected.luotThuBo(envH, ids) : Promise.resolve()),
+      },
       cauAnDanhPhien: (id, at, by) => (typeof opts.injected.cauAnDanhPhien === "function" ? opts.injected.cauAnDanhPhien(envH, id, at, by) : null),
       hanGiuPhienNgay: () => (who && typeof opts.injected.hanGiuPhienNgay === "function" ? opts.injected.hanGiuPhienNgay(envH) : Promise.resolve(null)),
       benDatCuaToi: () => (who && typeof opts.injected.benDatCuaToi === "function" ? opts.injected.benDatCuaToi(envH, who) : Promise.resolve(null)),

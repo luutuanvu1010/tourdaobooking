@@ -46,7 +46,11 @@ export interface TruongDangKy {
 }
 
 /** Cột có trong phiếu nhưng CHƯA có ô — có hạn, quá hạn là bài đỏ (ADR-0212 Đ8; Ruling R7). Hạn = lúc mở Tài xế đối tác. */
-export const CHO_O: readonly { readonly cot: string; readonly hetHan: string }[] = [{ cot: "license_class_code", hetHan: "2027-03-31" }];
+export const CHO_O: readonly { readonly cot: string; readonly hetHan: string }[] = [
+  { cot: "license_class_code", hetHan: "2027-03-31" },
+  // ADR-0213 Đ7.5 (mốc B2, Task 15): máy chủ nhận «Mã vào tổ chức» từ Task 15; ô trên biểu mẫu dựng ở Task 17 (giao diện lượt B2) — quá hạn là bài đỏ.
+  { cot: "invite_id", hetHan: "2026-11-30" },
+];
 
 const THONG_TIN_GIAY_TO = { bang: "dk_submission", phan: "CA_NHAN", nhom: "giayTo", batBuoc: false } as const;
 const TO_CHUC = { bang: "dk_submission_org", phan: "TO_CHUC", nhom: "toChuc" } as const;
@@ -88,6 +92,8 @@ export const TRUONG_DANG_KY: readonly TruongDangKy[] = [
     khoa: "nguoiGioiThieu", phan: "CA_NHAN", bang: "dk_submission", cot: ["referrer_text"], noiLuu: "CHI_PHIEU", batBuoc: false,
     o: { id: "dk-gioi-thieu", nhan: "Người giới thiệu (không bắt buộc)", kieu: "text", khu: "gioiThieu", thuocTinh: { maxlength: 200 } },
   },
+  // Mã vào tổ chức (ADR-0213 Đ7.5): tuỳ chọn; phiếu KHÔNG lưu mã — máy chủ tra bản băm và chỉ lưu mã định danh lời mời vào `dk_registration.invite_id`; không chép sang hồ sơ.
+  { khoa: "maVaoToChuc", phan: "CA_NHAN", bang: "dk_registration", cot: ["invite_id"], noiLuu: "CHI_PHIEU", batBuoc: false },
   // ---- Phần tổ chức (ADR-0212 Đ4, phụ lục A.2): thân gửi `toChuc: { … }`; vắng / null = phiếu không có phần tổ chức. Vai của tổ chức (`dk_registration.org_role_code`) đi qua PUT nháp, không ở đây. ----
   { khoa: "toChuc.tenToChuc", ...TO_CHUC, cot: ["display_name"], noiLuu: ["pty_party.display_name"], batBuoc: true, o: { id: "dk-tc-ten", nhan: "Tên tổ chức (tên thường gọi)", kieu: "text", khu: "toChuc", thuocTinh: { maxlength: 200, autocomplete: "organization" } } },
   { khoa: "toChuc.tenPhapLy", ...TO_CHUC, cot: ["legal_name"], noiLuu: ["pty_organization.legal_name"], batBuoc: false, o: { id: "dk-tc-ten-phap-ly", nhan: "Tên pháp lý", kieu: "text", khu: "toChuc", thuocTinh: { maxlength: 300 } } },

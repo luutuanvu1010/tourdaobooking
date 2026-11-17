@@ -271,6 +271,10 @@ export const AUDIT_ACTIONS = {
   org_member_removed: { label: "Gỡ thành viên tổ chức", group: "party" },
   org_member_left: { label: "Thành viên tự rời tổ chức", group: "party" },
   org_notice_resent: { label: "Gửi lại thư báo người quản lý cũ", group: "party" },
+  // ADR-0213 Đ7 (mốc B2, Task 15): lời mời vào tổ chức. target = hồ sơ TỔ CHỨC; acting_party_id = tổ chức. detail: mã định danh lời mời (MV_…), mã hồ sơ người nhận — KHÔNG số điện thoại, KHÔNG mã.
+  org_invite_created: { label: "Tạo lời mời vào tổ chức", group: "party" },
+  org_invite_cancelled: { label: "Huỷ lời mời vào tổ chức", group: "party" },
+  org_invite_accepted: { label: "Nhận lời mời vào tổ chức", group: "party" },
   // ADR-0207 Đ7 (đợt 1 Task 9): người được duyệt tự đặt PIN — do CHÍNH tài khoản mới đứng tên (không dùng staff_reactivated, để không ghi «chạm tài khoản» thay một người quản trị). target = phiếu.
   registration_activated: { label: "Tự đặt mã PIN, kích hoạt tài khoản", group: "party" },
   // ADR-0208 Đ8 (đợt 1 Task 9): tác nhân DON_PHIEU_DANG_KY ghi MỘT dòng mỗi lượt có việc; detail CHỈ các số đếm (KHÔNG mã phiếu, KHÔNG khoá kho, KHÔNG email).

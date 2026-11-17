@@ -103,9 +103,11 @@ export const dsLoaiMo = (csv: string): string[] => csv.split(",").map((x) => x.t
 
 /** Những điều máy chủ biết về bản khai ĐANG GỬI, đủ để kiểm từng mã mục bắt buộc. «Đã gọi» do người xác minh kết luận; ở phía người đăng ký nó chỉ có nghĩa «có số điện thoại để gọi». */
 /** `loaiHopLe` = vai cá nhân đang mở; `loaiToChucHopLe` = phiếu có phần tổ chức và vai của tổ chức đang mở. */
-export interface DuLieuKiemMuc { loaiHopLe: boolean; loaiToChucHopLe: boolean; hoTen: boolean; ngaySinh: boolean; dienThoai: boolean; cccdConHan: boolean }
+/** `coLoiMoi` = phiếu có lời mời vào tổ chức hợp lệ cho đúng số điện thoại của bản khai (mã đúng, còn hạn, hoặc lời mời đang giữ cho chính phiếu này — ADR-0213 Đ7.5). */
+export interface DuLieuKiemMuc { loaiHopLe: boolean; loaiToChucHopLe: boolean; coLoiMoi?: boolean; hoTen: boolean; ngaySinh: boolean; dienThoai: boolean; cccdConHan: boolean }
 const KIEM_MUC: Readonly<Record<string, (d: DuLieuKiemMuc) => boolean>> = {
-  ROLE: (d) => d.loaiHopLe || d.loaiToChucHopLe, // ADR-0212 Đ4: có vai cá nhân HOẶC vai của tổ chức
+  // ADR-0212 Đ4: có vai cá nhân HOẶC vai của tổ chức; ADR-0213 Đ7.5: mã vào tổ chức hợp lệ THAY mục «vai» (người được mời không cần tự chọn vai cá nhân).
+  ROLE: (d) => d.loaiHopLe || d.loaiToChucHopLe || d.coLoiMoi === true,
   CALLED: (d) => d.dienThoai,
   HO_TEN: (d) => d.hoTen,
   NGAY_SINH: (d) => d.ngaySinh,

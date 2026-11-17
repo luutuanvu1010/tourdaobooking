@@ -42,6 +42,12 @@ export interface LoDuyetDangKyVao {
   deadlineAt: string;
   /** Phần tổ chức của bản khai (ADR-0212 Đ6; đợt 2 Task 7). Vắng = phiếu không có phần tổ chức. */
   toChuc?: LoDuyetToChucVao;
+  /**
+   * Lời mời vào tổ chức đang giữ cho phiếu (ADR-0213 Đ7.5; mốc B2 Task 15). `MO_LIEN_KET`: số của bản khai đang duyệt trùng số được mời, người mời còn quyền ⇒ lô dùng lời mời và mở
+   * «Thành viên của» `orgPartyId` TRƯỚC câu cấp quyền (LC-1c thấy liên kết — Đ9); vai riêng được rỗng. `BO_GIU`: số đã đổi ⇒ lô bỏ giữ chỗ, không mở liên kết (vai riêng bắt buộc).
+   * Vắng = phiếu không gắn lời mời đang giữ.
+   */
+  loiMoi?: { kieu: "MO_LIEN_KET"; id: string; orgPartyId: string } | { kieu: "BO_GIU"; id: string };
 }
 
 /** Một giấy tờ của tổ chức chép một–một từ bản khai (`dk_submission_org`) sang `pty_organization_document`. Số / khoá / nơi cấp là N3: không vào nhật ký. */

@@ -4,19 +4,22 @@
 //   2. ẨN DANH (ADR-0208 Đ6): phiếu TỪ CHỐI / ĐÃ RÚT / HẾT HẠN quá `anonymize_days` (bản khai + danh tính + mốc), và danh tính của phiếu ĐÃ DUYỆT chưa kích hoạt đã quá hạn đặt PIN + `activation_grace_days`;
 //   3. chạy lại việc XOÁ KHO cho tệp chờ ở «chờ xoá» và «tải dở dang» quá hạn (do parties làm — dang-ky không chạm bảng tệp hay kho);
 //   4. XOÁ dòng mã email cũ (giữ ít nhất max(hạn mã, 1 giờ) vì trần theo giờ của xin mã đếm các dòng đó) và dòng đếm lượt tải tệp ra khỏi cửa sổ một giờ.
+// Việc 5 (ADR-0213 Đ7, mốc B2): lời mời vào tổ chức — bỏ giữ chỗ còn sót, hết hạn, ẩn danh số điện thoại (câu của parties).
 // Lượt có việc ghi MỘT dòng nhật ký mang mã tác nhân, chỉ các số đếm (không mã phiếu, không khoá kho, không email). Lỗi KHÔNG ném ra ngoài (ADR-0186 Đ6): mỗi việc bắt lỗi riêng, log chỉ tên lỗi.
 // Chế độ bảo trì không chặn tác nhân (ADR-0186 Đ7). Mọi câu ghi mang điều kiện trạng thái / tuổi TRONG câu: hai lượt chạy chồng nhau không làm hỏng gì.
 import { can, type PermissionHolder } from "../../shared/permissions.ts";
 import { auditStatement, nguoiLam } from "../audit";
-import { cauGoTepChoNeuTruocDoi, donKhoTepCho, xoaKhoTepChoDaGo } from "../parties";
+import { cauAnDanhLoiMoi, cauBoGiuChoLoiMoi, cauGoTepChoNeuTruocDoi, cauHetHanLoiMoi, donKhoTepCho, xoaKhoTepChoDaGo } from "../parties";
 import {
-  cauAnDanhBanKhai, cauAnDanhBanKhaiToChuc, cauAnDanhDanhTinh, cauDanhDauAnDanh, cauHetHan, chinhSachHienHanh, phieuCanAnDanh, phieuCanHetHan, phieuQuaHanKichHoat, suKienTacNhanStatement, xoaLuotTaiCu, xoaMaEmailCu,
+  cauAnDanhBanKhai, cauAnDanhBanKhaiToChuc, cauAnDanhDanhTinh, cauDanhDauAnDanh, cauHetHan, chinhSachHienHanh, phieuCanAnDanh, phieuCanHetHan, phieuKetThucCoLoiMoi, phieuQuaHanKichHoat, suKienTacNhanStatement, xoaLuotTaiCu, xoaMaEmailCu,
 } from "./repository.ts";
 
 const NGAY_MS = 86_400_000;
 const GIO_MS = 3_600_000;
 /** Trần mỗi việc mỗi lượt (Cron 15 phút): lượt sau làm tiếp phần còn lại. */
 const TOI_DA_MOI_LUOT = 100;
+/** Lời mời vào tổ chức đã kết thúc quá số ngày này thì thay số điện thoại bằng dấu ẩn danh (Ruling R6 của kế hoạch đợt 2). */
+const LOI_MOI_AN_DANH_NGAY = 30;
 
 export interface KetQuaDonPhieu { hetHan: number; anDanh: number; xoaKho: number; xoaMa: number }
 
@@ -48,11 +51,13 @@ export async function donPhieuDangKy(env: Env, nguoiChay: PermissionHolder, homN
   if (cs && can(nguoiChay, "registration.agent.purge")) {
     try {
       const moc = { at, mocNhap: new Date(nowMs - cs.draft_expire_days * NGAY_MS).toISOString(), mocBoSung: new Date(nowMs - cs.supplement_expire_days * NGAY_MS).toISOString() };
-      for (const id of await phieuCanHetHan(env.DB, { ...moc, toiDa: TOI_DA_MOI_LUOT })) {
+      for (const { id, inviteId } of await phieuCanHetHan(env.DB, { ...moc, toiDa: TOI_DA_MOI_LUOT })) {
         const r = await env.DB.batch([
           cauHetHan(env.DB, { registrationId: id, ...moc, by }),
           suKienTacNhanStatement(env.DB, { registrationId: id, agentCode: by, command: "HET_HAN", at }),
           cauGoTepChoNeuTruocDoi(env.DB, id, "HET_HAN", at),
+          // ADR-0213 Đ7.5: phiếu kết thúc không duyệt ⇒ bỏ giữ chỗ lời mời (CUỐI lô, câu tự canh «đang giữ cho đúng phiếu này»).
+          ...(inviteId ? [cauBoGiuChoLoiMoi(env.DB, { id: inviteId, registrationId: id, at, by })] : []),
         ]);
         if ((r[0]?.meta.changes ?? 0) === 0) continue;
         kq.hetHan++;
@@ -113,11 +118,30 @@ export async function donPhieuDangKy(env: Env, nguoiChay: PermissionHolder, homN
     }
   }
 
-  if (kq.hetHan + kq.anDanh + kq.xoaKho + kq.xoaMa + xoaLuotTai > 0) {
+  // Việc 5 — lời mời vào tổ chức (ADR-0213 Đ7; Ruling R6, mốc B2 Task 15; không thêm mã tác nhân): (a) lưới bỏ giữ chỗ cho phiếu đã kết thúc không duyệt; (b) lời mời MỞ quá hạn ⇒ HẾT HẠN
+  // (lời mời đang giữ cho phiếu không hết hạn); (c) lời mời kết thúc quá 30 ngày ⇒ thay số điện thoại bằng dấu ẩn danh. Câu của parties; số đếm chỉ vào chi tiết nhật ký khi khác 0.
+  const lm = { boGiu: 0, hetHan: 0, anDanh: 0 };
+  if (can(nguoiChay, "registration.agent.purge")) {
     try {
+      const ds = await phieuKetThucCoLoiMoi(env.DB, new Date(nowMs - LOI_MOI_AN_DANH_NGAY * NGAY_MS).toISOString(), TOI_DA_MOI_LUOT);
+      if (ds.length > 0) {
+        const r = await env.DB.batch(ds.map((x) => cauBoGiuChoLoiMoi(env.DB, { id: x.inviteId, registrationId: x.id, at, by })));
+        lm.boGiu = r.reduce((t, x) => t + (x.meta.changes ?? 0), 0);
+      }
+      const [h, a] = await env.DB.batch([cauHetHanLoiMoi(env.DB, at, by), cauAnDanhLoiMoi(env.DB, new Date(nowMs - LOI_MOI_AN_DANH_NGAY * NGAY_MS).toISOString(), at, by)]);
+      lm.hetHan = h?.meta.changes ?? 0;
+      lm.anDanh = a?.meta.changes ?? 0;
+    } catch (e) {
+      logLoi("loi_moi", e);
+    }
+  }
+
+  if (kq.hetHan + kq.anDanh + kq.xoaKho + kq.xoaMa + xoaLuotTai + lm.boGiu + lm.hetHan + lm.anDanh > 0) {
+    try {
+      const phanLoiMoi = lm.boGiu + lm.hetHan + lm.anDanh > 0 ? ` · lời mời: bỏ giữ chỗ ${lm.boGiu}, hết hạn ${lm.hetHan}, ẩn danh ${lm.anDanh}` : "";
       await auditStatement(env.DB, {
         ...nguoiLam(nguoiChay), action: "registration_cleanup_run", at, targetType: "system", targetId: "dang-ky",
-        detail: `hết hạn ${kq.hetHan} · ẩn danh ${kq.anDanh} · xoá kho ${kq.xoaKho} · xoá mã ${kq.xoaMa} · xoá lượt tải ${xoaLuotTai}`,
+        detail: `hết hạn ${kq.hetHan} · ẩn danh ${kq.anDanh} · xoá kho ${kq.xoaKho} · xoá mã ${kq.xoaMa} · xoá lượt tải ${xoaLuotTai}${phanLoiMoi}`,
       }).run();
     } catch (e) {
       logLoi("nhat_ky", e);

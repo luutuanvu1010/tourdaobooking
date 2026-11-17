@@ -14,7 +14,7 @@ import { auditStatement } from "../audit";
 import {
   accountRolesOf, cauGoTepChoNeuTruocDoi, cheSo, hoSoCaNhanKhop, hoSoTheoSoGiayTo, hoSoToChucKhop, khoTepChoSanSang, moTepChoTuKho, mucXacMinhBatBuocCaNhan, mucXacMinhBatBuocToChuc, tenLoaiGiayToToChuc,
   partySummary, tepChoDeXemCuaPhieu, timTepChoDeXem, toChucDichHopLe, trungToChucKhac, xoaKhoTepChoDaGo,
-  tenLoaiVai,
+  tenLoaiVai, cauBoGiuChoLoiMoi, loiMoiTheoId, type LoiMoiDong,
 } from "../parties";
 import { getStaffAccountOfParty } from "../staff";
 import {
@@ -123,7 +123,29 @@ export async function xemPhieu({ env, staff, params }: Ctx<"accounts">): Promise
     ketLuanDanhBa: p.match_kind ? { kieu: p.match_kind, partyId: p.match_party_id } : null,
     ketLuanDanhBaToChuc: p.org_match_kind ? { kieu: p.org_match_kind, partyId: p.org_match_party_id } : null,
     lyDoCoThe: MA_LY_DO_PHIEU.map((ma) => ({ ma, nhan: nhanLyDoPhieu(ma) })),
+    loiMoiVaoToChuc: await loiMoiCuaPhieu(env.DB, p, bk.phone_key, can(staff, "party.view")), // ADR-0213 Đ7.5: dòng «lời mời đã bị huỷ» / «đang giữ»
   }); // json() mặc định cache-control: no-store
+}
+
+/**
+ * Dòng «mã vào tổ chức» cho người xác minh và người duyệt (ADR-0213 Đ7.5): phiếu có gắn lời mời ⇒ trạng thái so với phiếu này và số điện thoại của bản khai đang xem. Tên tổ chức CHỈ khi người
+ * xem được xem Danh bạ (khuôn tên hồ sơ đích, ADR-0207 Đ4). Không số điện thoại, không mã. Câu là chữ mới — chờ chủ chọn.
+ */
+export interface LoiMoiPhieuDto { trangThai: "DANG_GIU" | "DA_HUY" | "KHONG_CON_GIU"; khopSoDienThoai: boolean; tenToChuc?: string; dong: string }
+export function dongLoiMoiPhieu(lm: LoiMoiDong | null, registrationId: string, soBanKhai: string | null, xemTen: boolean): LoiMoiPhieuDto | null {
+  if (!lm) return null;
+  const ten = xemTen ? { tenToChuc: lm.org_name } : {};
+  if (lm.status === "DA_HUY") return { trangThai: "DA_HUY", khopSoDienThoai: false, ...ten, dong: "Lời mời đã bị huỷ: phiếu đi tiếp như phiếu không có mã. Người đăng ký cần chọn một vai cá nhân, hoặc từ chối phiếu." };
+  if (lm.status !== "GIU_CHO_PHIEU" || lm.held_registration_id !== registrationId) {
+    return { trangThai: "KHONG_CON_GIU", khopSoDienThoai: false, ...ten, dong: "Lời mời không còn giữ cho phiếu này: phiếu đi tiếp như phiếu không có mã." };
+  }
+  const khop = soBanKhai !== null && soBanKhai === lm.phone_key;
+  return khop
+    ? { trangThai: "DANG_GIU", khopSoDienThoai: true, ...ten, dong: "Người đăng ký có mã vào tổ chức. Khi duyệt, họ thành thành viên của tổ chức đã mời." }
+    : { trangThai: "DANG_GIU", khopSoDienThoai: false, ...ten, dong: "Số điện thoại của bản khai khác số được mời: khi duyệt, lời mời sẽ không được dùng." };
+}
+export async function loiMoiCuaPhieu(db: D1Database, p: Pick<PhieuXetRow, "id" | "invite_id">, soBanKhai: string | null, xemTen: boolean): Promise<LoiMoiPhieuDto | null> {
+  return p.invite_id ? dongLoiMoiPhieu(await loiMoiTheoId(db, p.invite_id), p.id, soBanKhai, xemTen) : null;
 }
 
 /** Nạp phiếu cho các lệnh ghi: 404 nếu không có; 409 nếu không còn chờ xác minh. */
@@ -260,8 +282,12 @@ export async function xacMinhDat({ request, env, staff, params }: Ctx<"accounts"
   if (k.value.hoSo === null && p.match_kind === null) return error(409, "registry_conclusion_missing", "Chưa có kết luận Danh bạ: hãy chọn «hồ sơ mới» hoặc gắn vào một hồ sơ có sẵn.");
   // Vai của phiếu kiểm cho CẢ hồ sơ mới lẫn hồ sơ có sẵn (một nguồn, chặn sớm): loại đã tắt không «đạt» để rồi kẹt ở bước duyệt.
   // Phiếu «chỉ tổ chức» (vai cá nhân rỗng — Task 13): kiểm vai của tổ chức thay vai cá nhân; rỗng cả hai ⇒ vai không hợp lệ.
+  // ADR-0213 Đ7.5 (mốc B2 Task 15): rỗng cả hai nhưng phiếu có lời mời vào tổ chức ĐANG GIỮ cho chính nó, cùng số của bản khai ⇒ lời mời thay mục «vai» (không kiểm vai). Lời mời đã huỷ /
+  // không còn giữ / số đổi ⇒ như phiếu không mã: 409 «vai không hợp lệ», người xác minh trả phiếu về để người đăng ký chọn vai, hoặc từ chối.
   const vaiCaNhan = p.role_code === "" ? null : p.role_code;
-  const loiVai = await kiemVaiXin(env.DB, vaiCaNhan ?? p.org_role_code ?? "", "XAC_MINH");
+  const loiMoiThayVai = vaiCaNhan === null && p.org_role_code === null && p.invite_id !== null
+    && (await loiMoiCuaPhieu(env.DB, p, (await banKhaiXet(env.DB, p.id, p.current_version))?.phone_key ?? null, false))?.khopSoDienThoai === true;
+  const loiVai = loiMoiThayVai ? null : await kiemVaiXin(env.DB, vaiCaNhan ?? p.org_role_code ?? "", "XAC_MINH");
   if (loiVai) return error(409, loiVai.code, loiVai.message);
   if (k.value.hoSo?.kieu === "CO_SAN") {
     const loi = await kiemHoSoDich(env.DB, k.value.hoSo.partyId, vaiCaNhan);
@@ -352,6 +378,8 @@ export async function tuChoiPhieu({ request, env, staff, params, exec }: Ctx<"ac
       cauGoTepChoNeuTruocDoi(env.DB, p.id, "TU_CHOI", at),
       // Thư «bị từ chối» (ADR-0206 Đ13): đứng CUỐI lô — câu gỡ tệp ngay trên đọc changes() của câu nhật ký; câu xếp thư có điều kiện riêng (phiếu vừa được chính lệnh này đổi).
       cauXepThu(env.DB, { registrationId: p.id, staffId: staff.id, lenh: maLenhThu("TU_CHOI", "CHO"), at, trangThaiPhieu: "TU_CHOI" }),
+      // ADR-0213 Đ7.5: phiếu kết thúc không duyệt ⇒ bỏ giữ chỗ lời mời (SAU câu xếp thư — chỉ số kq[4] giữ nguyên; câu tự canh «đang giữ cho đúng phiếu này»).
+      ...(p.invite_id ? [cauBoGiuChoLoiMoi(env.DB, { id: p.invite_id, registrationId: p.id, at, by: staff.id })] : []),
     ]);
   } catch (e) {
     const l = loiLoXacMinh(e);

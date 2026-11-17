@@ -2194,3 +2194,161 @@ const TC_DAT_DA_GUI = defineSql(
 export async function tcDatThuDaGui(db: D1Database, id: string, at: string): Promise<void> {
   await db.prepare(TC_DAT_DA_GUI).bind(id, at).run();
 }
+
+// ---- Lời mời vào tổ chức (ADR-0213 Đ7; mốc B2 Task 15) ----------------------------------------------------------------------------------------------------
+// Bảng pty_org_invite (migration 0176). Mã 8 ký tự không bao giờ vào đây — chỉ code_hash. phone_key không bao giờ ra DTO, nhật ký, câu báo (chỉ để so).
+// «Đang mở» của một tổ chức = MO còn hạn hoặc GIU_CHO_PHIEU (lời mời đang giữ cho phiếu không hết hạn). Ngày tính trần = ngày Việt Nam (mốc đầu ngày do route truyền vào, ISO UTC).
+const LM_CHINH_SACH = defineSql(
+  "parties",
+  "lm_chinh_sach",
+  `SELECT per_org_per_day, open_per_org, per_phone_per_day, code_days, wrong_per_hour FROM pty_org_invite_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC, id DESC LIMIT 1`,
+);
+export interface LmChinhSach { per_org_per_day: number; open_per_org: number; per_phone_per_day: number; code_days: number; wrong_per_hour: number }
+export const lmChinhSach = (db: D1Database, at: string): Promise<LmChinhSach | null> => db.prepare(LM_CHINH_SACH).bind(at).first<LmChinhSach>();
+
+const LM_DEM_TO_CHUC_NGAY = (org: string, dauNgay: string) => `(SELECT COUNT(*) FROM pty_org_invite d WHERE d.org_party_id = ${org} AND d.created_at >= ${dauNgay})`;
+const LM_DEM_TO_CHUC_MO = (org: string, at: string) => `(SELECT COUNT(*) FROM pty_org_invite d WHERE d.org_party_id = ${org} AND (d.status = 'GIU_CHO_PHIEU' OR (d.status = 'MO' AND d.expires_at > ${at})))`;
+const LM_DEM_SO_NGAY = (so: string, dauNgay: string) => `(SELECT COUNT(*) FROM pty_org_invite d WHERE d.phone_key = ${so} AND d.created_at >= ${dauNgay})`;
+// Tạo lời mời: trần NẰM TRONG câu (hai lệnh song song không vượt trần). ?1 id, ?2 tổ chức, ?3 số chuẩn hoá, ?4 băm mã, ?5 hạn, ?6 lúc, ?7 người tạo, ?8 đầu ngày VN (ISO UTC)
+const LM_TAO = defineSql(
+  "parties",
+  "lm_tao",
+  `INSERT INTO pty_org_invite (id, org_party_id, phone_key, code_hash, status, expires_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, 'MO', ?5, ?6, ?7, ?6, ?7 FROM pty_org_invite_policy c
+   WHERE c.id = (SELECT id FROM pty_org_invite_policy WHERE valid_from_at <= ?6 ORDER BY valid_from_at DESC, id DESC LIMIT 1)
+     AND ${LM_DEM_TO_CHUC_NGAY("?2", "?8")} < c.per_org_per_day AND ${LM_DEM_TO_CHUC_MO("?2", "?6")} < c.open_per_org AND ${LM_DEM_SO_NGAY("?3", "?8")} < c.per_phone_per_day`,
+);
+export const lmTaoStatement = (
+  db: D1Database, v: { id: string; org: string; phoneKey: string; codeHash: string; expiresAt: string; at: string; by: string; dauNgay: string },
+): D1PreparedStatement => db.prepare(LM_TAO).bind(v.id, v.org, v.phoneKey, v.codeHash, v.expiresAt, v.at, v.by, v.dauNgay);
+
+// Ba số đếm của trần — đọc SAU khi câu tạo khớp 0 dòng, để chọn câu trả lời (409 nói thật / 429 trung tính). CÙNG biểu thức với câu tạo. ?1 tổ chức, ?2 số, ?3 lúc, ?4 đầu ngày
+const LM_DEM = defineSql(
+  "parties",
+  "lm_dem",
+  `SELECT ${LM_DEM_TO_CHUC_NGAY("?1", "?4")} AS to_chuc_ngay, ${LM_DEM_TO_CHUC_MO("?1", "?3")} AS to_chuc_mo, ${LM_DEM_SO_NGAY("?2", "?4")} AS so_ngay`,
+);
+export async function lmDem(db: D1Database, v: { org: string; phoneKey: string; at: string; dauNgay: string }): Promise<{ toChucNgay: number; toChucMo: number; soNgay: number }> {
+  const r = await db.prepare(LM_DEM).bind(v.org, v.phoneKey, v.at, v.dauNgay).first<{ to_chuc_ngay: number; to_chuc_mo: number; so_ngay: number }>();
+  return { toChucNgay: Number(r?.to_chuc_ngay ?? 0), toChucMo: Number(r?.to_chuc_mo ?? 0), soNgay: Number(r?.so_ngay ?? 0) };
+}
+
+const LM_COT = `i.id, i.org_party_id, i.phone_key, i.status, i.expires_at, i.held_registration_id, i.created_by, i.created_at, p.display_name AS org_name`;
+export interface LmDong {
+  id: string; org_party_id: string; phone_key: string; status: "MO" | "GIU_CHO_PHIEU" | "DA_DUNG" | "DA_HUY" | "HET_HAN"; expires_at: string; held_registration_id: string | null;
+  created_by: string | null; created_at: string; org_name: string;
+}
+const LM_THEO_BAM = defineSql("parties", "lm_theo_bam", `SELECT ${LM_COT} FROM pty_org_invite i JOIN pty_party p ON p.id = i.org_party_id WHERE i.code_hash = ?1`);
+export const lmTheoBam = (db: D1Database, hash: string): Promise<LmDong | null> => db.prepare(LM_THEO_BAM).bind(hash).first<LmDong>();
+const LM_THEO_ID = defineSql("parties", "lm_theo_id", `SELECT ${LM_COT} FROM pty_org_invite i JOIN pty_party p ON p.id = i.org_party_id WHERE i.id = ?1`);
+export const lmTheoId = (db: D1Database, id: string): Promise<LmDong | null> => db.prepare(LM_THEO_ID).bind(id).first<LmDong>();
+
+// Lời mời còn dùng được của MỘT tổ chức (màn tổ chức: mã định danh, trạng thái, hạn — không số điện thoại).
+const LM_CUA_TO_CHUC = defineSql(
+  "parties",
+  "lm_cua_to_chuc",
+  `SELECT id, status, expires_at, created_at FROM pty_org_invite WHERE org_party_id = ?1 AND (status = 'GIU_CHO_PHIEU' OR (status = 'MO' AND expires_at > ?2)) ORDER BY created_at DESC, id`,
+);
+export async function lmCuaToChuc(db: D1Database, org: string, at: string): Promise<{ id: string; trangThai: "MO" | "GIU_CHO_PHIEU"; hetHan: string; taoLuc: string }[]> {
+  const { results } = await db.prepare(LM_CUA_TO_CHUC).bind(org, at).all<{ id: string; status: "MO" | "GIU_CHO_PHIEU"; expires_at: string; created_at: string }>();
+  return results.map((r) => ({ id: r.id, trangThai: r.status, hetHan: r.expires_at, taoLuc: r.created_at }));
+}
+// Lời mời MỞ còn hạn gửi tới MỘT số (người được mời xem của chính mình — Đ7.4).
+const LM_CUA_SO = defineSql(
+  "parties",
+  "lm_cua_so",
+  `SELECT i.id, i.org_party_id, i.expires_at, p.display_name AS org_name FROM pty_org_invite i JOIN pty_party p ON p.id = i.org_party_id
+   WHERE i.phone_key = ?1 AND i.status = 'MO' AND i.expires_at > ?2 ORDER BY i.created_at DESC, i.id`,
+);
+export async function lmCuaSo(db: D1Database, phoneKey: string, at: string): Promise<{ id: string; orgPartyId: string; tenToChuc: string; hetHan: string }[]> {
+  const { results } = await db.prepare(LM_CUA_SO).bind(phoneKey, at).all<{ id: string; org_party_id: string; expires_at: string; org_name: string }>();
+  return results.map((r) => ({ id: r.id, orgPartyId: r.org_party_id, tenToChuc: r.org_name, hetHan: r.expires_at }));
+}
+
+// ---- Câu ghi (chưa chạy) ----
+// Huỷ lời mời còn mở / đang giữ (người mời hoặc văn phòng). ?1 id, ?2 tổ chức, ?3 lúc, ?4 người
+const LM_HUY = defineSql(
+  "parties",
+  "lm_huy",
+  `UPDATE pty_org_invite SET status = 'DA_HUY', cancelled_by = ?4, cancelled_at = ?3, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND org_party_id = ?2 AND status IN ('MO', 'GIU_CHO_PHIEU')`,
+);
+export const lmHuyStatement = (db: D1Database, v: { id: string; org: string; at: string; by: string }): D1PreparedStatement => db.prepare(LM_HUY).bind(v.id, v.org, v.at, v.by);
+
+/** Lỗi lính gác của lô lời mời: lời mời vừa đổi giữa lúc đọc và lúc ghi (NULL-on-invalid trên cột status NOT NULL — cả lô hỏng). */
+export const LOI_GAC_LOI_MOI = /NOT NULL constraint failed: pty_org_invite\.status/;
+// Lính gác NULL-on-invalid: CHỈ cột status nhận NULL khi không hợp lệ; mọi cột khác giữ nguyên giá trị cũ trong trường hợp đó (để trigger hình dạng không bắn trước — lỗi luôn là
+// «NOT NULL constraint failed: pty_org_invite.status», route nhận ra bằng LOI_GAC_LOI_MOI).
+const LM_GIU_HOP_LE = `((status = 'MO' OR (status = 'GIU_CHO_PHIEU' AND held_registration_id = ?2)) AND expires_at > ?4 AND phone_key = ?3)`;
+const LM_DUNG_HOP_LE = `(status = 'MO' AND expires_at > ?4 AND phone_key = ?2)`;
+const LM_DUNG_PHIEU_HOP_LE = `(status = 'GIU_CHO_PHIEU' AND held_registration_id = ?2 AND phone_key = ?3)`;
+// Giữ chỗ cho phiếu lúc GỬI (Đ7.5). Lính gác NULL-on-invalid: lời mời không còn mở (hoặc không đang giữ cho chính phiếu này), quá hạn, khác số ⇒ status NULL ⇒ cả lô gửi hỏng.
+// ?1 id, ?2 phiếu, ?3 số của bản khai, ?4 lúc
+const LM_GIU_CHO = defineSql(
+  "parties",
+  "lm_giu_cho",
+  `UPDATE pty_org_invite SET
+     status = CASE WHEN ${LM_GIU_HOP_LE} THEN 'GIU_CHO_PHIEU' ELSE NULL END,
+     held_registration_id = CASE WHEN ${LM_GIU_HOP_LE} THEN ?2 ELSE held_registration_id END, updated_at = ?4, updated_by = NULL
+   WHERE id = ?1`,
+);
+export const lmGiuChoStatement = (db: D1Database, v: { id: string; registrationId: string; phoneKey: string; at: string }): D1PreparedStatement =>
+  db.prepare(LM_GIU_CHO).bind(v.id, v.registrationId, v.phoneKey, v.at);
+// Bỏ giữ chỗ (phiếu kết thúc không duyệt, bản khai đổi số): về MỞ nếu còn hạn, HẾT HẠN nếu đã quá. Chỉ lời mời ĐANG giữ cho đúng phiếu này. ?1 id, ?2 phiếu, ?3 lúc, ?4 người làm
+const LM_BO_GIU = defineSql(
+  "parties",
+  "lm_bo_giu",
+  `UPDATE pty_org_invite SET status = CASE WHEN expires_at > ?3 THEN 'MO' ELSE 'HET_HAN' END, held_registration_id = NULL, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND held_registration_id = ?2 AND status = 'GIU_CHO_PHIEU'`,
+);
+export const lmBoGiuStatement = (db: D1Database, v: { id: string; registrationId: string; at: string; by: string | null }): D1PreparedStatement =>
+  db.prepare(LM_BO_GIU).bind(v.id, v.registrationId, v.at, v.by);
+// Người đã có tài khoản nhận lời mời (Đ7.4). Lính gác NULL-on-invalid: còn MỞ, còn hạn, số trùng số đăng nhập. ?1 id, ?2 số đăng nhập, ?3 tài khoản, ?4 lúc
+const LM_DUNG = defineSql(
+  "parties",
+  "lm_dung",
+  `UPDATE pty_org_invite SET status = CASE WHEN ${LM_DUNG_HOP_LE} THEN 'DA_DUNG' ELSE NULL END,
+     used_by_staff_id = CASE WHEN ${LM_DUNG_HOP_LE} THEN ?3 ELSE used_by_staff_id END, used_at = CASE WHEN ${LM_DUNG_HOP_LE} THEN ?4 ELSE used_at END, updated_at = ?4, updated_by = ?3
+   WHERE id = ?1`,
+);
+export const lmDungStatement = (db: D1Database, v: { id: string; phoneKey: string; staffId: string; at: string }): D1PreparedStatement =>
+  db.prepare(LM_DUNG).bind(v.id, v.phoneKey, v.staffId, v.at);
+// Lô duyệt phiếu dùng lời mời đang giữ (Đ7.5). Lính gác: đang giữ cho ĐÚNG phiếu này, số của bản khai đang duyệt trùng. Không xét hạn (giữ chỗ không hết hạn).
+// ?1 id, ?2 phiếu, ?3 số đăng nhập của bản khai, ?4 tài khoản mới, ?5 lúc, ?6 người duyệt
+const LM_DUNG_PHIEU = defineSql(
+  "parties",
+  "lm_dung_phieu",
+  `UPDATE pty_org_invite SET status = CASE WHEN ${LM_DUNG_PHIEU_HOP_LE} THEN 'DA_DUNG' ELSE NULL END,
+     used_by_staff_id = CASE WHEN ${LM_DUNG_PHIEU_HOP_LE} THEN ?4 ELSE used_by_staff_id END, used_at = CASE WHEN ${LM_DUNG_PHIEU_HOP_LE} THEN ?5 ELSE used_at END, updated_at = ?5, updated_by = ?6
+   WHERE id = ?1`,
+);
+export const lmDungPhieuStatement = (db: D1Database, v: { id: string; registrationId: string; phoneKey: string; staffId: string; at: string; by: string }): D1PreparedStatement =>
+  db.prepare(LM_DUNG_PHIEU).bind(v.id, v.registrationId, v.phoneKey, v.staffId, v.at, v.by);
+// «Thành viên của» mở từ lời mời vừa dùng TRONG CÙNG lô (câu đứng ngay sau câu dùng): chỉ chèn khi lời mời đã DA_DUNG đúng lúc ?5. ?1 id, ?2 người, ?3 tổ chức, ?4 ngày, ?5 lúc, ?6 người làm, ?7 lời mời
+const LM_THANH_VIEN = defineSql(
+  "parties",
+  "lm_thanh_vien",
+  `INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, 'MEMBER_OF', ?4, NULL, ?5, ?6, ?5, ?6
+   WHERE EXISTS (SELECT 1 FROM pty_org_invite i WHERE i.id = ?7 AND i.org_party_id = ?3 AND i.status = 'DA_DUNG' AND i.used_at = ?5)`,
+);
+export const lmThanhVienStatement = (db: D1Database, v: { id: string; person: string; org: string; ngay: string; at: string; by: string; inviteId: string }): D1PreparedStatement =>
+  db.prepare(LM_THANH_VIEN).bind(v.id, v.person, v.org, v.ngay, v.at, v.by, v.inviteId);
+
+// Tác nhân dọn (Ruling R6): lời mời MỞ quá hạn ⇒ HẾT HẠN (giữ chỗ không bao giờ hết hạn ở đây). ?1 lúc, ?2 người làm (mã tác nhân)
+const LM_HET_HAN = defineSql(
+  "parties",
+  "lm_het_han",
+  `UPDATE pty_org_invite SET status = 'HET_HAN', updated_at = ?1, updated_by = ?2 WHERE status = 'MO' AND expires_at <= ?1`,
+);
+export const lmHetHanStatement = (db: D1Database, at: string, by: string): D1PreparedStatement => db.prepare(LM_HET_HAN).bind(at, by);
+/** Dấu ẩn danh thay số điện thoại của lời mời đã kết thúc quá hạn giữ. */
+export const DAU_AN_DANH_LOI_MOI = "(đã ẩn)";
+// Lời mời đã kết thúc (dùng / huỷ / hết hạn) từ trước ?1 ⇒ thay số bằng dấu ẩn danh, ghi erased_at. Dòng cuối không đổi gì ngoài hai cột này, nên updated_at = lúc kết thúc. ?1 mốc, ?2 lúc, ?3 người làm
+const LM_AN_DANH = defineSql(
+  "parties",
+  "lm_an_danh",
+  `UPDATE pty_org_invite SET phone_key = '${DAU_AN_DANH_LOI_MOI}', erased_at = ?2, updated_at = ?2, updated_by = ?3
+   WHERE status IN ('DA_DUNG', 'DA_HUY', 'HET_HAN') AND erased_at IS NULL AND updated_at <= ?1`,
+);
+export const lmAnDanhStatement = (db: D1Database, moc: string, at: string, by: string): D1PreparedStatement => db.prepare(LM_AN_DANH).bind(moc, at, by);

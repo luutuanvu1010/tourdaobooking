@@ -1137,8 +1137,14 @@ export interface ToChucDto {
   yeuCauChuyen: { id: string; nguoiDeXuat: { partyId: string; ten: string }; luc: string }[];
   /** Thư báo người quản lý cũ của lần chuyển gần nhất (CHO = chưa gửi được, gửi lại được). */
   thu: { trangThai: "CHO" | "DA_GUI" | "KHONG_EMAIL"; ngay: string } | null;
+  /** ADR-0213 Đ7 (mốc B2, Task 15): lời mời còn dùng được (mở còn hạn, hoặc đang giữ cho một phiếu đăng ký). KHÔNG số điện thoại, KHÔNG mã — mã chỉ hiện một lần lúc tạo. */
+  loiMoi?: { id: string; trangThai: "MO" | "GIU_CHO_PHIEU"; hetHan: string; taoLuc: string }[];
 }
 export interface ToChucResponse { toChuc: ToChucDto }
+/** ADR-0213 Đ7.1: trả lời của lệnh tạo lời mời — luôn 201, luôn cùng câu dù số được mời có tài khoản hay chưa. `ma` dạng XXXX-XXXX, chỉ trả MỘT lần. */
+export interface TaoLoiMoiResponse { loiMoi: { id: string; ma: string; hetHan: string }; message: string }
+/** ADR-0213 Đ7.4: lời mời gửi tới số đăng nhập của CHÍNH người gọi (`GET /api/to-chuc/loi-moi-cua-toi`). Không số điện thoại. */
+export interface LoiMoiCuaToiResponse { loiMoi: { id: string; toChuc: { partyId: string; ten: string }; hetHan: string }[] }
 /** ADR-0213 Đ3.1 (Task 11): các tư cách của người gọi cho ô «Tư cách» ở màn Tạo đơn — `GET /api/to-chuc/cua-toi`. Chỉ mã hồ sơ, tên, cờ tổ chức. */
 export interface TuCachCuaToiResponse { tuCach: { partyId: string; ten: string; laToChuc: boolean }[] }
 

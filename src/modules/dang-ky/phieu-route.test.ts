@@ -901,3 +901,105 @@ test("Task 13: câu chèn bản khai mang điều kiện «có vai cá nhân HO�
   const r2 = await loGui("sub-to-chuc");
   assert.equal(r2[0].meta.changes, 1);
 });
+
+// ---- ADR-0213 Đ7.5 (mốc B2 Task 15): «Mã vào tổ chức» trên đường phiếu — phiếu không lưu mã, chỉ lưu mã định danh lời mời; mã hợp lệ thay mục «vai» ----
+const MA_VAO = "AB23CD45";
+/** Băm viết lại độc lập theo đặc tả (không gọi hàm của mã đang thử). */
+async function bamMa(secret: string, ma: string): Promise<string> {
+  const enc = new TextEncoder();
+  const hmac = async (k: Uint8Array, d: string) => new Uint8Array(await crypto.subtle.sign("HMAC", await crypto.subtle.importKey("raw", k, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]), enc.encode(d)));
+  return Array.from(await hmac(await hmac(enc.encode(secret), "td-ma-vao-to-chuc-v1"), ma), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+/** Tổ chức + lời mời MỞ (mã MA_VAO) cho số `so`. Trả mã định danh lời mời. */
+async function loiMoiMo(w: any, o: { so?: string; ma?: string; id?: string; han?: number } = {}): Promise<string> {
+  const at = new Date().toISOString();
+  if (w.q("SELECT 1 FROM pty_party WHERE id = 'org-moi'").length === 0) {
+    w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('org-moi', 'ORGANIZATION', 'Tổ chức mời', 1, ?, ?)").run(at, at);
+  }
+  const id = o.id ?? "MV_PHIEUAAA";
+  w.sqlite.prepare("INSERT INTO pty_org_invite (id, org_party_id, phone_key, code_hash, status, expires_at, created_at, created_by, updated_at, updated_by) VALUES (?, 'org-moi', ?, ?, 'MO', ?, ?, 'tk-moi', ?, 'tk-moi')")
+    .run(id, o.so ?? DIEN_THOAI, await bamMa(w.env.SESSION_SECRET, o.ma ?? MA_VAO), new Date(Date.now() + (o.han ?? 3 * 86_400_000)).toISOString(), at, at);
+  return id;
+}
+const loiMoiDong = (w: any, id: string) => ({ ...w.q("SELECT status, held_registration_id FROM pty_org_invite WHERE id = ?", id)[0] });
+
+test("Đ7.5: mã đúng (gõ thường, có khoảng trắng), còn hạn, số phiếu trùng ⇒ gửi được dù KHÔNG chọn vai; phiếu chỉ lưu mã định danh lời mời; lời mời sang GIỮ CHỖ cùng lô; bản khai, lịch sử không chứa mã", async () => {
+  const w = setup();
+  const mv = await loiMoiMo(w);
+  assert.equal(phieu(w).role_code, "", "người được mời không chọn vai");
+  const r = await gui(w, banKhai({ maVaoToChuc: " ab23 cd45 " }));
+  assert.equal(r.status, 200, r.text);
+  assert.equal(phieu(w).status, "CHO_XAC_MINH");
+  assert.equal(phieu(w).invite_id, mv);
+  assert.deepEqual(loiMoiDong(w, mv), { status: "GIU_CHO_PHIEU", held_registration_id: PHIEU });
+  const dau = JSON.stringify([w.q("SELECT * FROM dk_submission"), w.q("SELECT * FROM dk_event"), w.q("SELECT * FROM dk_registration")]);
+  for (const x of [MA_VAO, "AB23-CD45", "ab23", "AB23 CD45"]) assert.equal(dau.includes(x), false, `phiếu không chứa mã (${x})`);
+  assert.equal(w.q("SELECT count(*) n FROM login_attempt WHERE key = ?", `dk:moi:${IDENT}`)[0].n, 0, "gõ đúng không tốn lượt");
+});
+
+test("Đ7.5: mã sai / khác số / hết hạn / đã huỷ ⇒ 400 MỘT câu trung tính, không bản khai; gõ sai (kể cả sai khuôn) tính trần 5 lần mỗi giờ theo danh tính — lần 6 bị 429 dù mã đúng", async () => {
+  const w = setup();
+  await loiMoiMo(w);
+  await loiMoiMo(w, { id: "MV_KHACSOAA", ma: "XY23ZW45", so: "0987654321" });
+  await loiMoiMo(w, { id: "MV_HETHANAA", ma: "HH23HH45", han: -60_000 });
+  const cau = "Mã vào tổ chức không đúng hoặc không còn dùng được.";
+  for (const ma of ["ZZZZ-ZZZZ", "xy23 zw45", "HH23-HH45", "abc", "OOOO0000"]) {
+    const r = await gui(w, banKhai({ maVaoToChuc: ma }));
+    assert.equal(r.status, 400, `${ma}: ${r.text}`);
+    assert.equal(r.json.error.message, cau);
+  }
+  assert.equal(soDong(w, "dk_submission"), 0);
+  const khoa = await gui(w, banKhai({ maVaoToChuc: MA_VAO }));
+  assert.equal(khoa.status, 429, khoa.text);
+  assert.equal(phieu(w).status, "DANG_DIEN");
+});
+
+test("Đ7.5: lời mời bị huỷ NGAY TRƯỚC lô gửi ⇒ lính gác trong lô làm CẢ lô hỏng: 400 trung tính, không bản khai, phiếu vẫn ĐANG ĐIỀN, không gắn lời mời", async () => {
+  const w = setup();
+  const mv = await loiMoiMo(w);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /pty_org_invite/.test(s.sql) && /GIU_CHO_PHIEU/.test(s.sql)), async () => {
+    w.sqlite.prepare("UPDATE pty_org_invite SET status = 'DA_HUY', cancelled_by = 'tk-moi', cancelled_at = ?, updated_at = ? WHERE id = ?").run(new Date().toISOString(), new Date().toISOString(), mv);
+  });
+  const r = await gui(w, banKhai({ maVaoToChuc: MA_VAO }));
+  assert.equal(r.status, 400, r.text);
+  assert.equal(soDong(w, "dk_submission"), 0);
+  assert.equal(phieu(w).status, "DANG_DIEN");
+  assert.equal(phieu(w).invite_id, null);
+  assert.equal(loiMoiDong(w, mv).status, "DA_HUY");
+});
+
+test("Đ7.5: mã vào tổ chức + phần tổ chức trên cùng phiếu ⇒ 400 (ADR chưa nói — từ chối, chờ chủ); không có mã thì vai cá nhân rỗng vẫn bị đòi như cũ", async () => {
+  const w = setup();
+  chinhSachToChuc(w);
+  await loiMoiMo(w);
+  await luuTC(w);
+  anhGpkd(w);
+  const r = await gui(w, banKhaiTC({ maVaoToChuc: MA_VAO }));
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.code, "invite_with_org");
+  const w2 = setup();
+  const r2 = await gui(w2, banKhai());
+  assert.equal(r2.json.error.code, "personal_role_required");
+});
+
+test("Đ7.5: phiếu có vai + mã ⇒ giữ chỗ; CẦN BỔ SUNG rồi gửi lại với SỐ KHÁC (không mã) ⇒ bỏ giữ chỗ trong lô gửi (lời mời về MỞ), vai vẫn đạt; gửi lại cùng số ⇒ giữ nguyên; rút ⇒ bỏ giữ chỗ", async () => {
+  const w = setup();
+  const mv = await loiMoiMo(w);
+  await luu(w, VAI);
+  assert.equal((await gui(w, banKhai({ maVaoToChuc: MA_VAO }))).status, 200);
+  assert.equal(loiMoiDong(w, mv).status, "GIU_CHO_PHIEU");
+  chuyen(w, "CAN_BO_SUNG");
+  const cungSo = await gui(w, banKhai());
+  assert.equal(cungSo.status, 200, cungSo.text);
+  assert.deepEqual(loiMoiDong(w, mv), { status: "GIU_CHO_PHIEU", held_registration_id: PHIEU }, "gửi lại cùng số, không mã: giữ nguyên");
+  chuyen(w, "CAN_BO_SUNG");
+  const khacSo = await gui(w, banKhai({ dienThoai: "0977 111 222" }));
+  assert.equal(khacSo.status, 200, khacSo.text);
+  assert.deepEqual(loiMoiDong(w, mv), { status: "MO", held_registration_id: null }, "số đổi ⇒ bỏ giữ chỗ (còn hạn ⇒ MỞ)");
+  // Rút: phiếu khác giữ lời mời khác ⇒ bỏ giữ chỗ trong lô rút.
+  const w2 = setup();
+  const mv2 = await loiMoiMo(w2);
+  assert.equal((await gui(w2, banKhai({ maVaoToChuc: MA_VAO }))).status, 200);
+  assert.equal((await rut(w2)).status, 200);
+  assert.deepEqual(loiMoiDong(w2, mv2), { status: "MO", held_registration_id: null });
+});

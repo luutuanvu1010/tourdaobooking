@@ -407,6 +407,10 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/to-chuc/:id/yeu-cau-chuyen", access: "staff" }, // ADR-0213 Đ6: CHỈ người quản lý có hiệu lực — hàm vai trên đối tượng quyenToChuc (chủ duyệt 16/11 «Duyệt cả hai»), không qua hàng quyền
   { method: "POST", path: "/api/to-chuc/:id/go-thanh-vien", access: "staff" }, // ADR-0213 Đ6: người quản lý có hiệu lực gỡ thành viên — quyenToChuc
   { method: "POST", path: "/api/to-chuc/:id/roi", access: "staff" }, // ADR-0213 Đ6 (PF14): thành viên tự rời; người quản lý 409 — quyenToChuc
+  { method: "POST", path: "/api/to-chuc/:id/loi-moi", access: "staff" }, // ADR-0213 Đ7.1 (mốc B2 Task 15): tạo lời mời — người quản lý có hiệu lực (quyenToChuc) hoặc văn phòng (partner.org.manager.write, không giữ Đối tác)
+  { method: "POST", path: "/api/to-chuc/:id/loi-moi/:mid/huy", access: "staff" }, // ADR-0213 Đ7.2: huỷ lời mời còn mở / đang giữ — cùng cổng tạo
+  { method: "GET", path: "/api/to-chuc/loi-moi-cua-toi", access: "staff" }, // ADR-0213 Đ7.4: lời mời gửi tới số đăng nhập của CHÍNH người gọi — hỏi order.create, chỉ đọc phiên
+  { method: "POST", path: "/api/to-chuc/loi-moi/nhan", access: "staff" }, // ADR-0213 Đ7.4: nhận lời mời — order.create ở cổng; số đăng nhập trùng, Đ2.6, người mời còn quyền ở thân
   { method: "GET", path: "/api/parties/:id/to-chuc", access: "office" }, // ADR-0213 Đ6: màn tổ chức — partner.org.manager.write (Quản lý bán hàng, Quản trị, Toàn quyền) + không giữ quyền Đối tác
   { method: "POST", path: "/api/parties/:id/to-chuc/nguoi-quan-ly", access: "office" }, // ADR-0213 Đ2.4, Đ6: giao / chuyển người quản lý — cùng ô
   { method: "POST", path: "/api/parties/:id/to-chuc/go-nguoi-quan-ly", access: "office" }, // ADR-0213 Đ2.5: gỡ người quản lý khi không còn thành viên — cùng ô
@@ -691,7 +695,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 551 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 555 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -872,7 +876,8 @@ test("mức truy cập của 551 route hiện có khớp ảnh chụp đã duy�
   // ADR-0213 Đ6 (mốc B1 Task 10): + 5 route màn tổ chức của văn phòng (office) = 545 (ba route của người quản lý / thành viên chưa khai — chờ điều phối).
   // ADR-0213 Đ3.1 (mốc B1 Task 11): + 1 GET /api/to-chuc/cua-toi (staff) = 546.
   // ADR-0213 Đ6 (mốc B1 Task 14): + 2 GET /api/to-chuc/:id, /api/pricing/cap-cua-to-chuc/:id (staff) = 551.
+  // ADR-0213 Đ7 (mốc B2 Task 15): + 4 POST /api/to-chuc/:id/loi-moi, …/loi-moi/:mid/huy, GET /api/to-chuc/loi-moi-cua-toi, POST /api/to-chuc/loi-moi/nhan (staff) = 555.
   // ADR-0213 Đ6 (Task 10, chủ duyệt 16/11 «Duyệt cả hai»): + 3 POST /api/to-chuc/:id/{yeu-cau-chuyen, go-thanh-vien, roi} (staff) = 549.
-  assert.equal(actual.length, 551, "số route thực tế lệch 551 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 551, "SNAPSHOT phải có đúng 551 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 555, "số route thực tế lệch 555 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 555, "SNAPSHOT phải có đúng 555 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

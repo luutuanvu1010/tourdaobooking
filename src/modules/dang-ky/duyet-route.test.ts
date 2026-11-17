@@ -1101,3 +1101,145 @@ test("(41) I-3b: phiếu «chỉ tổ chức», vai của tổ chức chưa đ�
   assert.deepEqual({ ap: r.json.cap.ap, lyDo: r.json.cap.lyDo }, { ap: false, lyDo: "CHUA_DAT" });
   // Lý do là của «sẽ áp» theo vai tổ chức (pricing). Nhánh dự phòng VAI_KHONG_HUONG chỉ chạy khi tổ chức không có vai — route đã chặn (400), không tới được bằng đường thật.
 });
+
+// ---- ADR-0213 Đ7.5 (mốc B2 Task 15): lời mời vào tổ chức đang giữ cho phiếu — lô duyệt mở «Thành viên của» TRƯỚC câu cấp quyền; số đổi ⇒ bỏ giữ chỗ; người mời hết quyền ⇒ 409 ----
+const ORG_MOI = "org-moi-duyet";
+function toChucMoi(w: any): string {
+  if (w.q("SELECT 1 FROM pty_party WHERE id = ?", ORG_MOI).length === 0) {
+    w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Khách sạn Mời', 1, ?, ?)").run(ORG_MOI, AT, AT);
+    w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', NULL, '2026-01-01', ?, ?)").run(`r-${ORG_MOI}`, ORG_MOI, AT, AT);
+  }
+  return ORG_MOI;
+}
+/** Lời mời đang GIỮ CHỖ cho phiếu `id` (như lô gửi thật để lại: phiếu mang invite_id). `so` = số được mời; `nguoiMoi` = tài khoản tạo. */
+function giuChoChoPhieu(w: any, id: string, o: { so?: string; nguoiMoi?: string; trangThai?: "GIU_CHO_PHIEU" | "DA_HUY" } = {}): string {
+  const org = toChucMoi(w);
+  const mv = `MV_D${id.slice(3, 10)}`;
+  const han = new Date(Date.now() + 3 * 86_400_000).toISOString();
+  w.sqlite.prepare("INSERT INTO pty_org_invite (id, org_party_id, phone_key, code_hash, status, expires_at, created_at, created_by, updated_at, updated_by) VALUES (?, ?, ?, ?, 'MO', ?, ?, ?, ?, ?)")
+    .run(mv, org, o.so ?? DT_KHOA, `bam-${mv}`, han, AT, o.nguoiMoi ?? ADM, AT, o.nguoiMoi ?? ADM);
+  w.sqlite.prepare("UPDATE pty_org_invite SET status = 'GIU_CHO_PHIEU', held_registration_id = ? WHERE id = ?").run(id, mv);
+  if (o.trangThai === "DA_HUY") w.sqlite.prepare("UPDATE pty_org_invite SET status = 'DA_HUY', cancelled_by = ?, cancelled_at = ? WHERE id = ?").run(ADM, AT, mv);
+  w.sqlite.prepare("UPDATE dk_registration SET invite_id = ? WHERE id = ?").run(mv, id);
+  return mv;
+}
+const loiMoiCua = (w: any, mv: string) => ({ ...w.q("SELECT status, held_registration_id, used_by_staff_id FROM pty_org_invite WHERE id = ?", mv)[0] });
+const thanhVien = (w: any) => w.q("SELECT from_party_id, to_party_id FROM pty_party_relationship WHERE relationship_type_code = 'MEMBER_OF' AND valid_to_date IS NULL").map((x: any) => ({ ...x }));
+
+test("(41) Đ7.5: phiếu KHÔNG vai riêng, không phần tổ chức, có lời mời đang giữ, số trùng ⇒ duyệt (roleCode null): «Thành viên của» tổ chức đã mời, lời mời ĐÃ DÙNG bởi tài khoản mới, quyền Đối tác qua LC-1c (liên kết đứng trước câu cấp quyền); màn duyệt nói rõ; nhật ký không số", async () => {
+  const w = setup();
+  const id = phieu(w, { vai: "" });
+  const mv = giuChoChoPhieu(w, id);
+  await xacMinh(w, id);
+  const xd = await xemDuyet(w, HR, id);
+  assert.equal(xd.status, 200, xd.text);
+  assert.equal(xd.json.loiMoiVaoToChuc.trangThai, "DANG_GIU");
+  assert.equal(xd.json.loiMoiVaoToChuc.khopSoDienThoai, true);
+  assert.equal(xd.json.loiMoiVaoToChuc.tenToChuc, undefined, "Nhân sự không xem Danh bạ ⇒ không tên tổ chức");
+  const r = await duyet(w, HR, id, { roleCode: null });
+  assert.equal(r.status, 200, r.text);
+  const tk = taiKhoanMoi(w);
+  assert.deepEqual(thanhVien(w), [{ from_party_id: tk.party_id, to_party_id: ORG_MOI }]);
+  assert.deepEqual(loiMoiCua(w, mv), { status: "DA_DUNG", held_registration_id: id, used_by_staff_id: tk.id });
+  assert.equal(dem1(w, "SELECT count(*) n FROM pty_party_role WHERE party_id = ?", tk.party_id), 0, "không vai riêng");
+  assert.deepEqual(w.q("SELECT permission_type_code FROM stf_permission WHERE staff_id = ? AND valid_to_at IS NULL", tk.id).map((x: any) => x.permission_type_code), ["PARTNER"]);
+  const nk = w.q("SELECT detail, acting_party_id FROM audit_log WHERE action = 'org_invite_accepted'").map((x: any) => ({ ...x }));
+  assert.equal(nk.length, 1);
+  assert.equal(nk[0].acting_party_id, ORG_MOI);
+  assert.ok(!nk[0].detail.includes(DT_KHOA));
+  assert.match(w.q("SELECT detail FROM audit_log WHERE action = 'staff_created'")[0].detail, /thành viên tổ chức theo lời mời/);
+  assert.deepEqual(mucToChucViPham(w), SACH);
+  await kichHoatThat(w, id);
+  assert.deepEqual(mucToChucViPham(w), SACH);
+});
+
+test("(42) Đ7.5: bản khai đang duyệt KHÁC số được mời ⇒ có vai riêng: duyệt được, KHÔNG liên kết, lời mời về MỞ; không vai riêng: 409 org_member_needs_invite TRƯỚC lô, không dòng nào đổi", async () => {
+  const w = setup();
+  const id = phieu(w);
+  const mv = giuChoChoPhieu(w, id, { so: "0987000111" });
+  await xacMinh(w, id);
+  assert.equal((await xemDuyet(w, HR, id)).json.loiMoiVaoToChuc.khopSoDienThoai, false);
+  const r = await duyet(w, HR, id);
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(thanhVien(w), []);
+  assert.deepEqual(loiMoiCua(w, mv), { status: "MO", held_registration_id: null, used_by_staff_id: null });
+  // Không vai riêng: bước xác minh đã chặn (lời mời không thay được vai khi số khác); lưới ở bước duyệt — số lời mời «đổi» sau khi xác minh (thử: gỡ trigger cột gốc).
+  const w2 = setup();
+  const id2 = phieu(w2, { vai: "" });
+  const mv2 = giuChoChoPhieu(w2, id2);
+  await xacMinh(w2, id2);
+  w2.sqlite.exec("DROP TRIGGER pty_org_invite_fixed");
+  w2.sqlite.prepare("UPDATE pty_org_invite SET phone_key = '0987000111' WHERE id = ?").run(mv2);
+  const truoc = anh(w2);
+  const r2 = await duyet(w2, HR, id2, { roleCode: null });
+  assert.equal(r2.status, 409, r2.text);
+  assert.equal(r2.json.error.code, "org_member_needs_invite");
+  assert.deepEqual(anh(w2), truoc);
+});
+
+test("(43) Đ7.5: người mời không còn quyền mời (tài khoản ngưng) ⇒ 409 org_inviter_no_right TRƯỚC lô, không dòng nào đổi; lời mời đã bị huỷ ⇒ phiếu đi như không mã (không vai riêng ⇒ 409), người xác minh thấy dòng «lời mời đã bị huỷ»", async () => {
+  const w = setup();
+  const id = phieu(w, { vai: "" });
+  const mv = giuChoChoPhieu(w, id, { nguoiMoi: ADM_HR });
+  await xacMinh(w, id);
+  w.sqlite.prepare("UPDATE staff SET active = 0 WHERE id = ?").run(ADM_HR);
+  const truoc = anh(w);
+  const r = await duyet(w, HR, id, { roleCode: null });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "org_inviter_no_right");
+  assert.deepEqual(anh(w), truoc);
+  assert.equal(loiMoiCua(w, mv).status, "GIU_CHO_PHIEU");
+  // Lời mời đã huỷ trước bước xác minh: màn xác minh có dòng nói rõ; «đạt» bị chặn (lời mời không còn thay vai) ⇒ người xác minh trả phiếu về hoặc từ chối.
+  const w2 = setup();
+  const id2 = phieu(w2, { vai: "" });
+  giuChoChoPhieu(w2, id2, { trangThai: "DA_HUY" });
+  const xm = await w2.call("GET", `/api/dang-ky/phieu/${id2}`, { as: ADM });
+  assert.equal(xm.status, 200, xm.text);
+  assert.equal(xm.json.loiMoiVaoToChuc.trangThai, "DA_HUY");
+  assert.match(xm.json.loiMoiVaoToChuc.dong, /Lời mời đã bị huỷ/);
+  assert.equal(xm.json.loiMoiVaoToChuc.tenToChuc, "Khách sạn Mời", "người xem Danh bạ thấy tên tổ chức");
+  for (const m of MUC) assert.equal((await ketLuan(w2, ADM, id2, { muc: m, dat: true })).status, 200, m);
+  const datHuy = await dat(w2, ADM, id2, { hoSo: { kieu: "MOI" } });
+  assert.equal(datHuy.status, 409, datHuy.text);
+  assert.equal(datHuy.json.error.code, "role_invalid");
+  // Lời mời bị huỷ SAU bước xác minh (người mời huỷ khi phiếu chờ duyệt) ⇒ duyệt không vai riêng: 409 TRƯỚC lô.
+  const w3 = setup();
+  const id3 = phieu(w3, { vai: "" });
+  const mv3 = giuChoChoPhieu(w3, id3);
+  await xacMinh(w3, id3);
+  w3.sqlite.prepare("UPDATE pty_org_invite SET status = 'DA_HUY', cancelled_by = ?, cancelled_at = ? WHERE id = ?").run(ADM, AT, mv3);
+  assert.equal((await xemDuyet(w3, HR, id3)).json.loiMoiVaoToChuc.trangThai, "DA_HUY");
+  const r2 = await duyet(w3, HR, id3, { roleCode: null });
+  assert.equal(r2.status, 409, r2.text);
+  assert.equal(r2.json.error.code, "org_member_needs_invite");
+});
+
+test("(44) Đ7.5: phiếu kết thúc không duyệt ⇒ bỏ giữ chỗ trong CHÍNH lô kết thúc: từ chối ở bước duyệt và từ chối ở bước xác minh ⇒ lời mời về MỞ", async () => {
+  const w = setup();
+  const id = phieu(w);
+  const mv = giuChoChoPhieu(w, id);
+  await xacMinh(w, id);
+  assert.equal((await tuChoiDuyet(w, HR, id)).status, 200);
+  assert.deepEqual(loiMoiCua(w, mv), { status: "MO", held_registration_id: null, used_by_staff_id: null });
+  const w2 = setup();
+  const id2 = phieu(w2);
+  const mv2 = giuChoChoPhieu(w2, id2);
+  const r = await w2.call("POST", `/api/dang-ky/phieu/${id2}/tu-choi`, { as: ADM, body: { phienBan: 1, lyDo: "KHONG_THUOC_DIEN" } });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(loiMoiCua(w2, mv2), { status: "MO", held_registration_id: null, used_by_staff_id: null });
+});
+
+test("(45) Đ7.5: lời mời bị huỷ NGAY TRƯỚC lô duyệt ⇒ lính gác câu dùng lời mời làm CẢ lô hỏng: 409 invite_changed, không hồ sơ, không tài khoản", async () => {
+  const w = setup();
+  const id = phieu(w, { vai: "" });
+  const mv = giuChoChoPhieu(w, id);
+  await xacMinh(w, id);
+  const truoc = anh(w);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /dk_decision/.test(s.sql)), async () => {
+    w.sqlite.prepare("UPDATE pty_org_invite SET status = 'DA_HUY', cancelled_by = ?, cancelled_at = ? WHERE id = ?").run(ADM, new Date().toISOString(), mv);
+  });
+  const r = await duyet(w, HR, id, { roleCode: null });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "invite_changed");
+  assert.deepEqual(anh(w), truoc);
+});
