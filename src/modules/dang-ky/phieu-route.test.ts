@@ -1003,3 +1003,23 @@ test("Đ7.5: phiếu có vai + mã ⇒ giữ chỗ; CẦN BỔ SUNG rồi gửi 
   assert.equal((await rut(w2)).status, 200);
   assert.deepEqual(loiMoiDong(w2, mv2), { status: "MO", held_registration_id: null });
 });
+
+// Task 15 vòng sửa 1 (m5): giữ chỗ đến từ LẦN GỬI TRƯỚC (thân không có mã) — người đăng ký không «bỏ mã» được, câu phải chỉ đường khác. Hành vi 400 giữ nguyên (ruling điều phối).
+test("Đ7.5: phiếu đang giữ lời mời từ lần gửi trước, gửi lại kèm phần tổ chức (không gõ mã) ⇒ 400 invite_with_org, câu không bảo «bỏ mã»; gõ mã cùng lúc ⇒ câu cũ", async () => {
+  const w = setup();
+  const mv = await loiMoiMo(w);
+  await luu(w, VAI);
+  const g1 = await gui(w, banKhai({ maVaoToChuc: MA_VAO }));
+  assert.equal(g1.status, 200, g1.text);
+  assert.equal(loiMoiDong(w, mv).status, "GIU_CHO_PHIEU");
+  chuyen(w, "CAN_BO_SUNG");
+  chinhSachToChuc(w);
+  const r = await gui(w, banKhaiTC());
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.code, "invite_with_org");
+  assert.doesNotMatch(r.json.error.message, /bỏ mã/);
+  assert.match(r.json.error.message, /lần gửi trước/);
+  const r2 = await gui(w, banKhaiTC({ maVaoToChuc: MA_VAO }));
+  assert.equal(r2.json.error.code, "invite_with_org");
+  assert.match(r2.json.error.message, /bỏ mã/);
+});

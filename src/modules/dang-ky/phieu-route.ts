@@ -282,7 +282,12 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   const loiMoi = await xetLoiMoiKhiGui(ctx, v, body);
   if (loiMoi instanceof Response) return loiMoi;
   // Mã vào tổ chức + phần tổ chức trên cùng phiếu: ADR-0213 chưa nói ⇒ từ chối (người được mời vào tổ chức có sẵn không khai tổ chức mới). Câu mới — chờ chủ chọn.
-  if (loiMoi.hopLe && coToChuc) return error(400, "invite_with_org", "Phiếu có mã vào tổ chức thì không khai thêm phần tổ chức. Hãy bỏ phần tổ chức, hoặc bỏ mã.");
+  // Vòng sửa 1 Task 15 (m5): mã gõ trong lần gửi này ⇒ người đăng ký bỏ được mã; giữ chỗ từ LẦN GỬI TRƯỚC (thân không có mã) ⇒ không bỏ được, chỉ đường khác.
+  if (loiMoi.hopLe && coToChuc) {
+    return error(400, "invite_with_org", co(body.maVaoToChuc)
+      ? "Phiếu có mã vào tổ chức thì không khai thêm phần tổ chức. Hãy bỏ phần tổ chức, hoặc bỏ mã."
+      : "Phiếu đã dùng mã vào tổ chức từ lần gửi trước nên không khai thêm phần tổ chức được. Hãy bỏ phần tổ chức, hoặc liên hệ Tour Đảo nếu cần đổi.");
+  }
   // Đ2.6: tài khoản mang quyền khác Đối tác (Tài xế đối tác) không gắn vào tổ chức được.
   if (loiMoi.hopLe && roleCaNhan !== "" && isRoleCode(roleCaNhan) && ROLES[roleCaNhan].defaults.some((q) => q !== "PARTNER")) {
     return error(400, "invite_role_not_partner", "Vai này không gắn vào tổ chức được. Hãy bỏ mã vào tổ chức, hoặc chọn vai khác.");
