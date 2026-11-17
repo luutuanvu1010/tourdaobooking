@@ -1,6 +1,7 @@
 // Màn «Hồ sơ tổ chức» của NGƯỜI QUẢN LÝ tổ chức (ADR-0213 Đ2, Đ5, Đ6; mốc B1 Task 14): ai là người quản lý, thành viên, gửi yêu cầu «Chuyển quyền quản lý» (chỉ gửi — văn phòng quyết, Đ6),
 // gỡ thành viên, cấp độ đại lý của tổ chức (chỉ đọc) và công nợ Trả sau của tổ chức. Mở bằng `/to-chuc?id=<mã hồ sơ tổ chức>` từ trang Tôi.
 //   GET /api/to-chuc/:id · GET /api/pricing/cap-cua-to-chuc/:id · GET /api/tra-sau/cua-toi (phần `toChuc`) · POST /api/to-chuc/:id/{yeu-cau-chuyen, go-thanh-vien}
+//   Task 18 (1a): GET /api/to-chuc/:id/nhap-thanh-vien — «Nháp chờ»: nháp của thành viên người quản lý được mở (máy chủ quyết theo chế độ, ADR-0213 Đ8)
 //   B2 (Task 17): POST /api/to-chuc/:id/loi-moi (mã hiện MỘT lần, chỉ trong trang — không lưu ở máy) · POST /api/to-chuc/:id/loi-moi/:mid/huy · PUT /api/to-chuc/:id/che-do
 // Màn chỉ ẩn / hiện; máy chủ kiểm lại vai người quản lý có hiệu lực ở mọi lời gọi. Số nợ và hạn do máy chủ tính, giờ theo giờ Việt Nam. Không innerHTML; dựng bằng h().
 import { ApiError, api, type Api } from "./api";
@@ -139,6 +140,21 @@ function veCheDo(t: Api.ToChucDto): void {
     nutLuu);
 }
 
+/** «Nháp chờ» (ADR-0213 Đ8; Task 18 phần 1a): danh sách do máy chủ lọc theo chế độ — «Chỉ soạn»: mọi nháp của thành viên; «Soạn và gửi»: nháp đang gửi tới bạn. Mỗi dòng mở trang đơn. */
+function veNhapCho(r: Api.NhapThanhVienResponse | null, cheDo: "CHI_SOAN" | "SOAN_VA_GUI"): void {
+  const goc = byId("tc-nc");
+  if (r === null) { replaceChildren(goc, h("p", { class: "muted" }, "Không tải được danh sách nháp lúc này.")); return; }
+  const goiY = cheDo === "CHI_SOAN" ? "Mọi nháp thành viên đang soạn thay mặt tổ chức." : "Nháp thành viên đã gửi bạn xác nhận.";
+  const trangThai = (d: Api.NhapThanhVienDto): string => (d.choVanPhong ? "Đã gửi lên, đang chờ kiểm vé" : d.choQuanLy ? "Đang chờ bạn xác nhận" : "Thành viên đang soạn");
+  replaceChildren(goc,
+    h("p", { class: "muted" }, goiY),
+    r.nhap.length === 0
+      ? h("p", { class: "muted", id: "tc-nc-rong" }, "Không có nháp nào.")
+      : h("ul", { class: "tc-lm-ds" }, ...r.nhap.map((d) => h("li", { class: "dong tc-dong", "data-nhap-cho": d.id },
+          h("span", { class: "tc-dong-ten" }, h("a", { href: `/order?id=${encodeURIComponent(d.id)}` }, d.maDon), ` · ${d.nguoiLap}`, " ",
+            h("span", { class: "muted" }, `${d.ngayDi ? `đi ngày ${ngayVN(d.ngayDi)} · ` : ""}${trangThai(d)}`))))));
+}
+
 function veCongNo(r: Api.TraSauToChucDto | undefined): void {
   const goc = byId("tc-ts");
   if (!r || (!r.coHanMuc && r.dangNo <= 0)) { replaceChildren(goc, h("p", { class: "muted" }, "Tổ chức chưa được Trả sau và không còn nợ.")); return; }
@@ -153,10 +169,11 @@ function veCongNo(r: Api.TraSauToChucDto | undefined): void {
 
 async function nap(): Promise<boolean> {
   try {
-    const [tc, cap, ts] = await Promise.all([
+    const [tc, cap, ts, nhapCho] = await Promise.all([
       api<Api.ToChucResponse>(`/api/to-chuc/${encodeURIComponent(id)}`),
       api<Api.CapCuaToChucResponse>(`/api/pricing/cap-cua-to-chuc/${encodeURIComponent(id)}`).catch(() => null),
       api<Api.TraSauCuaToiResponse>("/api/tra-sau/cua-toi").catch(() => null),
+      api<Api.NhapThanhVienResponse>(`/api/to-chuc/${encodeURIComponent(id)}/nhap-thanh-vien`).catch(() => null),
     ]);
     const t = tc.toChuc;
     byId("tc-ten").textContent = t.ten;
@@ -166,6 +183,7 @@ async function nap(): Promise<boolean> {
     veThanhVien(t);
     veLoiMoi(t);
     veCheDo(t);
+    veNhapCho(nhapCho, t.cheDo ?? "SOAN_VA_GUI");
     replaceChildren(byId("tc-cap"), h("p", null, cap === null ? "Không xem được cấp lúc này." : cap.cap?.cap ? cap.cap.cap.ten : "Chưa có cấp"),
       h("p", { class: "muted" }, "Chỉ để xem. Cấp do Tour Đảo đặt."));
     veCongNo(ts?.toChuc.find((x) => x.partyId === id));
