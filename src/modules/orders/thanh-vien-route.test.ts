@@ -566,6 +566,15 @@ test("Q3: thành viên A mở đơn đã gửi lên (đã xác nhận) của th�
     const r = await w.call("GET", `/api/orders/${id}${d}`, { as: TV });
     assert.equal(r.status, 404, `thành viên A ${d || "(chi tiết)"}: ${r.status} ${r.text}`);
   }
+  // Rà mọi GET theo mã đơn (route-access SNAPSHOT): đúng «ca này» = người lập 200 mà thành viên A 403 ⇒ phải không còn (404). Người lập cũng bị từ chối = từ chối theo thao tác, giữ nguyên.
+  const ra = ["/han-muc-tu-choi", "/tu-choi-truoc", "/thuong-mai", `/payments/${crypto.randomUUID()}/bien-lai`, `/khoan-nop/${crypto.randomUUID()}/bien-lai`].map((d) => `/api/orders/${id}${d}`)
+    .concat([`/api/van-chuyen/xe-cua-don/${id}`, `/api/ve/don/${id}`], duong.map((d) => `/api/orders/${id}${d}`));
+  const conLai: string[] = [];
+  for (const u of ra) {
+    const [nguoiLap, a] = [(await w.call("GET", u, { as: TV2 })).status, (await w.call("GET", u, { as: TV })).status];
+    if (nguoiLap === 200 && a === 403) conLai.push(u);
+  }
+  assert.deepEqual(conLai, [], "đường đọc còn 403 cho thành viên cùng tổ chức");
   assert.equal((await w.call("GET", `/api/orders/${id}`, { as: LA })).status, 403, "Đối tác lạ: như hôm nay");
   assert.equal((await w.call("GET", `/api/orders/${id}`, { as: NAM })).status, 200, "người quản lý thấy");
 });
