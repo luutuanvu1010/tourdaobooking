@@ -9,6 +9,8 @@
 //   5. Quản trị (văn phòng) mở đơn ⇒ «Còn vé, xác nhận đơn» ⇒ đơn đã xác nhận.   6. Màn tổ chức: «Công nợ của tổ chức» có dòng đơn vừa xác nhận.
 //   4b. Sau «Gửi đơn», thành viên mở đơn: câu «đang chờ kiểm vé», không nút nào máy chủ sẽ từ chối.
 //   7. (1280) Toàn quyền ở Danh bạ đổi chế độ thành viên ⇒ «Chỉ soạn»; thành viên mở nháp mới thấy câu chế độ «Chỉ soạn»; người quản lý tự mở nháp, «Gửi đơn» ⇒ hết nút ghi.
+//   Task 18 (chốt mốc B2): bước 4 thêm — khối Thanh toán của người quản lý không còn «Chưa tải được»; 390: thành viên thấy lý do bị trả lại; sau «Gửi đơn» người quản lý thấy «Rút lại».
+//   1280-7c2: «Chỉ soạn» — màn tổ chức có «Nháp chờ» với nháp chưa gửi, bấm mở trang đơn; 7d: người quản lý đã gửi lên có «Rút lại».
 // LỜI GỌI API (không bấm): mở nhận đăng ký, đặt cờ cần kiểm vé cho TD101, đặt hạn mức Trả sau cho Sunrise (Toàn quyền), lập đơn (thành viên). Mã email do kịch bản gieo vào D1 tạm.
 // Cần MẠNG (Turnstile khoá thử ở /dang-ky) và AXE_JS. Chạy từ GỐC repo sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> OUT=docs/evidence/2026-11-16-dang-ky-to-chuc node docs/evidence/2026-11-16-dang-ky-to-chuc/kich-ban/to-chuc-b2-smoke.mjs
@@ -176,6 +178,7 @@ try {
       assert.equal(await p.ev(`[...document.querySelectorAll('#actions button')].some((x) => x.textContent.trim() === 'Xác nhận đơn')`), false, "không «Xác nhận đơn»");
       assert.equal(await coNut(p, "gui-quan-ly"), false);
       assert.ok(await p.ev(noOverflowX), "không tràn ngang");
+      assert.ok(!(await p.ev(`document.body.innerText`)).includes("Chưa tải được"), "Task 18 (1b): khối Thanh toán không còn «Chưa tải được»");
       await shotFull(p, `b2-quan-ly-mo-nhap-${hau}.png`);
       await axe(p, `người quản lý mở nháp ${hau}`);
       if (hau === "390") {
@@ -192,6 +195,10 @@ try {
         p.close();
         const q = await env.as(tv, `/order?id=${donId}`, khung);
         await q.waitFor(`!!document.querySelector('[data-action="gui-quan-ly"]')`, "thành viên: nút gửi lại", 15000);
+        // Kiểm toàn mốc B2 (I-B): thành viên thấy lý do bị trả lại (nhãn tiếng Việt).
+        assert.match(await q.ev(txt('[data-thanh-vien="tra-lai"]')), /Người quản lý đã trả lại đơn\. Lý do: Sai số khách\./);
+        await shotFull(q, `b2-thanh-vien-bi-tra-lai-${hau}.png`);
+        await axe(q, `thành viên bị trả lại ${hau}`);
         await q.ev(click('[data-action="gui-quan-ly"]'));
         await q.waitFor(`!!document.querySelector('[data-action="rut-gui-quan-ly"]')`, "đã gửi lại", 15000);
         q.close();
@@ -203,6 +210,10 @@ try {
       assert.equal(sql(`SELECT submitted_by AS s FROM ord_confirm_request WHERE order_id = '${donId}' AND decided_at IS NULL`)[0]?.s, sql(`SELECT id FROM staff WHERE phone = '${NAM.phone}'`)[0].id, `yêu cầu mở với người quản lý (câu báo: ${await baoTrang(p)})`);
       assert.equal(sql(`SELECT staff_id AS s FROM orders WHERE id = '${donId}'`)[0].s, sql(`SELECT id FROM staff WHERE phone = '${tv.phone.replace(/\s/g, "")}'`)[0].id, "người lập vẫn là thành viên");
       await sleep(800);
+      // Task 18 (1c): «Soạn và gửi» — người quản lý đã gửi lên thấy «Rút lại» (cờ rutDuoc của máy chủ).
+      await p.send("Page.reload", {});
+      await p.waitFor(`!!document.querySelector('[data-action="rut-xac-nhan"]')`, "người quản lý: nút Rút lại", 15000);
+      assert.equal(await coNut(p, "gui-don"), false, "không Gửi đơn lại");
       await shotFull(p, `b2-quan-ly-da-gui-${hau}.png`);
     });
     p.close();
@@ -406,6 +417,22 @@ try {
       chiSoanId = r.json.order.id;
     });
     q.close();
+    q = await env.as(NAM, `/to-chuc?id=${org}`, RONG);
+    await b.step("1280-7c2", `1280: «Chỉ soạn» — màn tổ chức của người quản lý có «Nháp chờ» với nháp thành viên chưa gửi; mở được trang đơn${axeNote()}`, async () => {
+      const ma = sql(`SELECT order_code AS m FROM orders WHERE id = '${chiSoanId}'`)[0].m;
+      await q.waitFor(`!!document.querySelector('[data-nhap-cho="${chiSoanId}"]')`, "dòng Nháp chờ", 15000);
+      const dong = await q.ev(txt(`[data-nhap-cho="${chiSoanId}"]`));
+      assert.ok(dong.includes(ma) && dong.includes(BINH.name) && dong.includes("Thành viên đang soạn"), dong);
+      assert.ok(!(await q.ev(txt("#tc-nc"))).includes("0912345679"), "không số điện thoại khách");
+      assert.ok(await q.ev(noOverflowX), "không tràn ngang");
+      await q.ev(`document.querySelector('#tc-nc').scrollIntoView(), true`);
+      await shotFull(q, "b2-nhap-cho-1280.png");
+      await axe(q, "Nháp chờ 1280");
+      await q.ev(click(`[data-nhap-cho="${chiSoanId}"] a`));
+      await q.waitFor(`location.pathname === '/order' && !!document.querySelector('[data-action="gui-don"]')`, "trang đơn từ Nháp chờ", 15000);
+      assert.ok(!(await q.ev(`document.body.innerText`)).includes("Chưa tải được"), "Task 18 (1b): không «Chưa tải được»");
+    });
+    q.close();
     q = await env.as(NAM, `/order?id=${chiSoanId}`, RONG);
     await b.step("1280-7d", "1280: «Chỉ soạn» — người quản lý tự mở nháp thành viên, «Gửi đơn» ⇒ đơn chờ kiểm vé: không còn «Gửi đơn» / «Sửa» / «Huỷ đơn»", async () => {
       await q.waitFor(`!!document.querySelector('[data-action="gui-don"]')`, "nút Gửi đơn", 15000);
@@ -417,6 +444,7 @@ try {
       await sleep(800);
       assert.equal(await coNut(q, "gui-don"), false, "không Gửi đơn lại");
       assert.equal(await q.ev(`[...document.querySelectorAll('#actions a, #actions button')].some((x) => ['Sửa', 'Huỷ đơn', 'Xác nhận đơn'].includes(x.textContent.trim()))`), false, "không Sửa / Huỷ / Xác nhận");
+      assert.equal(await coNut(q, "rut-xac-nhan"), true, "Task 18 (1c): «Chỉ soạn» — người quản lý đã gửi lên có «Rút lại»");
       const r = await fetchTrang(q, "POST", `/api/orders/${chiSoanId}/gui-don`, {});
       assert.equal(r.status, 409, r.text);
       await shotFull(q, "b2-quan-ly-chi-soan-da-gui-1280.png");
