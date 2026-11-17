@@ -138,17 +138,18 @@ test("Bỏ lô đã xác nhận mà chưa vé nào được giữ chỗ: đượ
   assert.deepEqual((await w.call("GET", "/api/ve/kho", { as: SALES })).json.kho, []);
 });
 
-test("Bỏ lô đã có vé từng được giữ chỗ (kể cả đã trả): 409, lô và vé giữ nguyên", async () => {
+// ADR-0217 Đ3 mục 5 NỚI ADR-0156 Đ2 mục 3: lô đã từng cấp không còn bị chặn 409 mà đi đường «huỷ phần còn lại» — bắt buộc lý do; phần chi tiết ở so-seri-route.test.ts.
+test("Bỏ lô đã có vé từng được giữ chỗ (kể cả đã trả): không lý do ⇒ 400, lô và vé giữ nguyên; có lý do ⇒ đường huỷ lô đã cấp (ADR-0217)", async () => {
   const w = setup();
   const loId = (await taoLo(w)).json.loId;
   await them(w, loId, [ve(1), ve(2)]);
   await xacNhan(w, loId);
   const t = giuCho(w, loId);
-  assert.equal((await bo(w, loId)).status, 409);
+  assert.equal((await bo(w, loId)).status, 400, "lô đã cấp cần lý do");
   w.sqlite.exec(`UPDATE vdt_allocation SET released_at = '${AT}', release_reason = 'THU_HOI' WHERE ticket_id = '${t}'`);
-  assert.equal((await bo(w, loId)).status, 409, "đã trả vẫn là từng giữ chỗ");
+  assert.equal((await bo(w, loId)).status, 400, "đã trả vẫn là từng giữ chỗ, vẫn đi đường lô đã cấp");
   assert.equal(w.q("SELECT status FROM vdt_batch")[0].status, "ACTIVE");
-  assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE withdrawn_at IS NOT NULL")[0].n, 0);
+  assert.equal(w.q("SELECT count(*) AS n FROM vdt_ticket WHERE withdrawn_at IS NOT NULL")[0].n, 0, "lô đã cấp không bao giờ mang dấu rút (nhập lại được)");
 });
 
 test("Bỏ lô: bỏ lần hai 409; Kế toán 403; mã lạ 404", async () => {

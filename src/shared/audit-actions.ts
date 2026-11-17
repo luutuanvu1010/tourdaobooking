@@ -32,7 +32,8 @@ export const AUDIT_ACTIONS = {
   ve_xac_nhan_lo: { label: "Đưa lô vé điện tử vào kho", group: "ve" },
   ve_sua_ma_tour: { label: "Sửa dịch vụ của lô vé điện tử", group: "ve" },
   ve_mo_anh_lo_huy: { label: "Mở ảnh vé của lô đã huỷ", group: "ve" }, // chủ quyết 2/11/2026; detail không chứa mã; target_id = mã dòng vé
-  ve_bo_lo: { label: "Huỷ lô vé điện tử", group: "ve" }, // ADR-0156 Đ2 mục 3; detail: nhãn nhóm khách (KHÔNG mã vé)
+  ve_bo_lo: { label: "Huỷ lô vé điện tử", group: "ve" }, // ADR-0156 Đ2 mục 3; detail: nhãn nhóm khách (KHÔNG mã vé); lô đã cấp (ADR-0217 Đ3 mục 5): thêm số vé huỷ và lý do
+  ve_huy_ve: { label: "Huỷ vé điện tử", group: "ve" }, // ADR-0217 Đ3; detail: số sê-ri (không bí mật) + lý do; KHÔNG mã vé
   ve_doi_tran_lo: { label: "Đổi số vé tối đa mỗi lô", group: "ve" }, // ADR-0156 Đ3; detail: số cũ → số mới
   // ADR-0175 Đ1.5a: giữ vé xong mà dịch vụ còn thiếu (lúc xác nhận đơn, cấp bằng tay, cấp bù khi lô vào kho). target = ('ve', nguồn vé 'TOUR_DAO' | 'HANG_NGOAI') — hộp thư chọn người nhận
   // theo khoá này (v_aud_ledger_event); detail = «Thiếu vé · <mã dịch vụ> · <nguồn> · thiếu N» (KHÔNG mã vé, KHÔNG tên khách).

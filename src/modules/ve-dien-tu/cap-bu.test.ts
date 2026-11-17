@@ -16,9 +16,9 @@ type Nguon = "HANG_NGOAI" | "TOUR_DAO";
 
 /** Tạo lô `soVe` vé, thêm vé; trả phản hồi của lệnh xác nhận lô (đưa vào kho). */
 async function loVaoKho(w: any, as: string, nguon: Nguon, soVe: number, lech = 0) {
-  const lo = await w.call("POST", "/api/ve/lo", { as, body: { catalogCode: "ZA1", nhomKhach: "ADULT", tenSanPham: "Tour đảo", nguon } });
+  const lo = await w.call("POST", "/api/ve/lo", { as, body: { catalogCode: "ZA1", nhomKhach: "ADULT", tenSanPham: "Tour đảo", nguon, ...(nguon === "TOUR_DAO" ? { soVeDuKien: soVe } : {}) } });
   assert.equal(lo.status, 201, lo.text);
-  const ve = Array.from({ length: soVe }, (_x, i) => ({ noiDung: PNG(i + 1 + lech), maVe: nguon === "TOUR_DAO" ? "TD1." + B32[i + lech]!.repeat(26) : `HN${i + 1 + lech}`, tuNgay: "2027-01-01", denNgay: "2027-12-31" }));
+  const ve = Array.from({ length: soVe }, (_x, i) => ({ noiDung: PNG(i + 1 + lech), maVe: nguon === "TOUR_DAO" ? "TD1." + B32[i + lech]!.repeat(26) : `HN${i + 1 + lech}`, tuNgay: "2027-01-01", denNgay: "2027-12-31", ...(nguon === "TOUR_DAO" ? { soSeri: lo.json.soSeri[i] } : {}) }));
   for (let i = 0; i < ve.length; i += 10) assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/ve`, { as, body: { ve: ve.slice(i, i + 10) } })).json.themDuoc, Math.min(10, ve.length - i));
   const x = await w.call("POST", `/api/ve/lo/${lo.json.loId}/xac-nhan`, { as, body: {} });
   assert.equal(x.status, 200, x.text);

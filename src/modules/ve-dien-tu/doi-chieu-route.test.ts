@@ -14,9 +14,9 @@ const MA_TD = /TD1\.[A-Z2-7]{26}/;
 
 async function khoVe(w: any, soVe = 6) {
   w.sqlite.prepare("INSERT INTO ctl_service_ticket_source (id, code, source, valid_from_at, created_at, updated_at) VALUES (?, 'ZA1', 'TOUR_DAO', ?, ?, ?)").run(crypto.randomUUID(), AT, AT, AT);
-  const lo = await w.call("POST", "/api/ve/lo", { as: ACC, body: { catalogCode: "ZA1", nhomKhach: "ADULT", tenSanPham: "Tour đảo", nguon: "TOUR_DAO" } });
+  const lo = await w.call("POST", "/api/ve/lo", { as: ACC, body: { catalogCode: "ZA1", nhomKhach: "ADULT", tenSanPham: "Tour đảo", nguon: "TOUR_DAO", soVeDuKien: soVe } });
   assert.equal(lo.status, 201, lo.text);
-  const ve = Array.from({ length: soVe }, (_x, i) => ({ noiDung: PNG(i + 1), maVe: "TD1." + B32[i]!.repeat(26), tuNgay: "2027-01-01", denNgay: "2027-12-31" }));
+  const ve = Array.from({ length: soVe }, (_x, i) => ({ noiDung: PNG(i + 1), maVe: "TD1." + B32[i]!.repeat(26), tuNgay: "2027-01-01", denNgay: "2027-12-31", soSeri: lo.json.soSeri[i] }));
   assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/ve`, { as: ACC, body: { ve } })).json.themDuoc, soVe);
   assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/xac-nhan`, { as: ACC, body: {} })).status, 200);
 }

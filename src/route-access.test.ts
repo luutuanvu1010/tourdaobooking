@@ -631,6 +631,10 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/ve/lo-da-huy/:veId/mo", access: "office" }, // Mở ảnh vé của lô đã huỷ, khoá hẳn vé (chủ quyết 2/11/2026); thân hỏi ve.kho.manage
   { method: "GET", path: "/api/ve/lo-da-huy/:veId/anh", access: "office" }, // Xem ảnh vé đã mở; thân hỏi ve.kho.manage
   { method: "POST", path: "/api/ve/lo/:id/bo", access: "office" }, // ADR-0156 Đ2 mục 3: Bỏ lô; thân hỏi ve.kho.manage
+  { method: "POST", path: "/api/ve/huy-ve", access: "office" }, // ADR-0217 Đ3: huỷ vé lẻ theo số sê-ri; thân hỏi ve.phat-hanh (lô Tour Đảo) hoặc ve.kho.manage (lô hãng ngoài)
+  { method: "GET", path: "/api/ve/tim", access: "office" }, // ADR-0217: tìm vé theo số sê-ri; quyền xem như GET /api/ve/lo
+  { method: "GET", path: "/api/ve/lo/:id/xem-truoc-huy", access: "office" }, // ADR-0217 Đ3 mục 5: bản xem trước khi huỷ lô, máy chủ đếm
+  { method: "GET", path: "/api/ve/lo/:id/ve-trong-lo", access: "office" }, // ADR-0217: danh sách vé của lô (số sê-ri, hạn, tình trạng)
   { method: "GET", path: "/api/ve/cai-dat", access: "admin" }, // ADR-0156 Đ3: trần lô; thân hỏi settings.ops (chỉ Toàn quyền)
   { method: "PUT", path: "/api/ve/cai-dat", access: "admin" }, // ADR-0156 Đ3: như trên
   { method: "GET", path: "/api/tra-sau/han-muc", access: "office" }, // ADR-0168 Đ1: credit.limit.view (Kế toán, Quản trị, Toàn quyền — ADR-0172), không Đối tác
@@ -860,6 +864,7 @@ test("mức truy cập của 540 route hiện có khớp ảnh chụp đã duy�
   // Gộp main 16/11: ADR-0147 Đ1+Đ2 (Phí đưa đón): + 2 location-zones, + 5 pricing/phi-don (admin) = 538.
   // Rà soát cuối đợt 1 đăng ký (ADR-0207 Đ5, ADR-0206 Đ13): + 2 POST /api/dang-ky/phieu/:id/{tra-ve-xac-minh, gui-lai-thu} (accounts) = 540.
   // ADR-0214 Task 6: + 1 GET /api/orders/phi-don-ap (orders) = 541.
-  assert.equal(actual.length, 541, "số route thực tế lệch 541 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 541, "SNAPSHOT phải có đúng 541 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // ADR-0217 (số sê-ri vé): + 4 route kho vé (POST /api/ve/huy-ve, GET /api/ve/tim, GET /api/ve/lo/:id/xem-truoc-huy, GET /api/ve/lo/:id/ve-trong-lo; cổng office) = 545.
+  assert.equal(actual.length, 545, "số route thực tế lệch 545 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 545, "SNAPSHOT phải có đúng 545 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

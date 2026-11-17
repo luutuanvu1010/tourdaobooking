@@ -76,9 +76,10 @@ test("phản hồi và nhật ký KHÔNG chứa mã vé đầy đủ, khoá kho,
 
 test("lô Tour Đảo: phản hồi và nhật ký KHÔNG chứa mã TD1. đầy đủ; mã chỉ lộ 4 ký tự cuối (ADR-0175 Đ1.6)", async () => {
   const w = setup();
-  const loId = (await taoLo(w, KT, { nguon: "TOUR_DAO" })).json.loId;
+  const lo = await taoLo(w, KT, { nguon: "TOUR_DAO", soVeDuKien: 1 });
+  const loId = lo.json.loId;
   const ma = "TD1." + "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const r = await them(w, KT, loId, [ve(1, { maVe: ma })]);
+  const r = await them(w, KT, loId, [ve(1, { maVe: ma, soSeri: lo.json.soSeri[0] })]);
   assert.equal(r.json.themDuoc, 1, r.text);
   const xn = await w.call("POST", `/api/ve/lo/${loId}/xac-nhan`, { as: KT, body: {} });
   const kho = await w.call("GET", "/api/ve/kho", { as: KT });

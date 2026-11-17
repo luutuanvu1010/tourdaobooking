@@ -15,9 +15,9 @@ const NGUON = (w: any, nguon: string) =>
 
 async function loVaoKho(w: any, nguon: "TOUR_DAO" | "HANG_NGOAI", soVe: number, lech: number) {
   const as = nguon === "TOUR_DAO" ? ACC : SALES;
-  const lo = await w.call("POST", "/api/ve/lo", { as, body: { catalogCode: "ZA1", nhomKhach: "ADULT", tenSanPham: "Tour đảo", nguon } });
+  const lo = await w.call("POST", "/api/ve/lo", { as, body: { catalogCode: "ZA1", nhomKhach: "ADULT", tenSanPham: "Tour đảo", nguon, ...(nguon === "TOUR_DAO" ? { soVeDuKien: soVe } : {}) } });
   assert.equal(lo.status, 201, lo.text);
-  const ve = Array.from({ length: soVe }, (_x, i) => ({ noiDung: PNG(i + 1 + lech), maVe: nguon === "TOUR_DAO" ? "TD1." + B32[i + lech]!.repeat(26) : `HN${i + 1 + lech}`, tuNgay: "2027-01-01", denNgay: "2027-12-31" }));
+  const ve = Array.from({ length: soVe }, (_x, i) => ({ noiDung: PNG(i + 1 + lech), maVe: nguon === "TOUR_DAO" ? "TD1." + B32[i + lech]!.repeat(26) : `HN${i + 1 + lech}`, tuNgay: "2027-01-01", denNgay: "2027-12-31", ...(nguon === "TOUR_DAO" ? { soSeri: lo.json.soSeri[i] } : {}) }));
   assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/ve`, { as, body: { ve } })).json.themDuoc, soVe);
   assert.equal((await w.call("POST", `/api/ve/lo/${lo.json.loId}/xac-nhan`, { as, body: {} })).status, 200);
 }
@@ -251,7 +251,9 @@ test("nhật ký quét và mọi phản hồi không chứa mã vé đủ; nhậ
     assert.ok(nk.length >= 1);
     for (const r of nk) assert.doesNotMatch(`${r.detail} ${r.target_id}`, MA_TD);
     for (const t of texts) assert.doesNotMatch(t, MA_TD);
-    assert.match(nk.find((r: any) => r.action === "ve_quet").detail, new RegExp(`số cuối ${ma!.slice(-4)}`));
+    // ADR-0217: nhật ký ghi số sê-ri (không bí mật) thay cho «số cuối».
+    const soSeri = w.q("SELECT serial FROM vdt_ticket WHERE ticket_code = ?", ma)[0].serial;
+    assert.match(nk.find((r: any) => r.action === "ve_quet").detail, new RegExp(`số sê-ri ${soSeri}`));
     assert.equal(w.q("SELECT count(*) AS n FROM vdt_scan WHERE ticket_id IN (SELECT id FROM vdt_ticket WHERE ticket_code = ?)", ma)[0].n, 3);
   } finally { tat(); }
 });
