@@ -39,3 +39,14 @@ Ví dụ ở mục 2 của đặc tả chạy được trên bản thử; `npm t
 
 ## Nhật ký thi công
 - 2026-11-17: đặc tả duyệt; ADR-0217 soạn (đề xuất); kế hoạch này.
+- 2026-11-17 (người thi công Phần A, máy chủ): A1–A7 xong trên nhánh; typecheck, `npm test`, e2e `ve-tour-dao` + `ve-dien-tu` chạy cuối (kết quả ở báo cáo của người thi công). Quyết định nhỏ tự đặt:
+  - **Vé chèn không mang số tự được cấp số bằng trigger** (`vdt_ticket_serial_fill`, AFTER INSERT) thay vì chặn: 22 chỗ bài thử chèn thẳng `vdt_ticket` không phải sửa, và mọi vé luôn có số trong sổ. Mã ứng dụng luôn truyền số do máy chủ cấp; riêng Tour Đảo bắt buộc ở route (không ở trigger).
+  - **Cảnh báo vàng `NHAP_TAY` đứng SAU ba cảnh báo vàng cũ**, trước xanh (đặc tả nói «kể cả khi mọi kiểm khác xanh»). Gõ tay vé chưa giao ra đỏ `CHUA_GIAO` như quét thường.
+  - **Nhật ký `ve_quet` dùng «số sê-ri VE_…» thay «số cuối»** (ADR Đ1); bài quet-route đổi theo. `ve_huy_ve` mới nằm trong danh sách ẩn của lịch sử đơn (lý do tự do) cho tới khi chủ xếp loại, như mọi hành động `ve_*` khác.
+  - **Huỷ vé không đặt `purged_at`**: ảnh vé đã huỷ ở lại kho R2, chưa có việc xoá. Nợ nhỏ nếu chủ muốn dọn ảnh vé huỷ như lô huỷ.
+  - **Số sê-ri đã cấp mà vé không chèn được** (chen ngang, trùng mã) ở lại sổ (sổ chỉ thêm); vé hãng ngoài chỉ gây trường hợp này khi hai máy nhập cùng lúc.
+  - `lenhId` ở `POST /api/ve/huy-ve` chỉ kiểm dạng UUID; chống ghi trùng theo ADR-0094 do lớp router (tiêu đề lệnh) lo. Hai route mới ghi hai lần (huỷ rồi cấp thay) nên vào `GHI_NHIEU_LAN` ở `src/shared/lan-gui-no.ts`.
+  - Cấp vé thay sau huỷ lô tối đa `TOI_DA_DON_XET_CAP_BU` (30) đơn mỗi lệnh; còn nữa thì phản hồi `conDonChuaCapThay = true` (đơn còn lại thành «thiếu vé», cấp tay bằng `POST /api/ve/cap`). Nhật ký `ve_tra_ve` theo đơn cũng chỉ ghi cho 30 đơn đầu.
+  - Danh sách vé của lô, tìm vé: Bán hàng (ô `ve.kho.manage`) xem được số sê-ri lô Tour Đảo như `GET /api/ve/lo`; mã đơn chỉ khi `order.view` (qua `donChoQuet`).
+- **DỪNG, chờ điều phối (A4):** «báo người phụ trách đơn gửi lại» khi huỷ vé đã mở KHÔNG làm. Lý do: hộp thư chỉ chọn người nhận theo khoá `('ve', nguồn)` cho `ve_thieu`; muốn báo đúng người phụ trách đơn phải (a) thêm hành động mới vào view `v_aud_ledger_event` (migration), (b) thêm ca vào `locHopThongBao` (`src/shared/thong-bao.ts`) và (c) tìm người phụ trách đơn từ module vé — `ve-dien-tu` chỉ có cạnh tới `orders`, không có tới `dispatch` (`v_dsp_order_handler`). Cả ba đụng hợp đồng ngoài kho vé. Tạm thời: phản hồi huỷ trả `canGuiLai = true`, nhật ký `ve_huy_ve` ghi theo đơn, vé thay hiện ở khối vé của đơn như vé mới cấp chưa gửi.
+- **Còn nợ Phần B (giao diện):** `web/ve-tao.ts` đang mở lô Tour Đảo KHÔNG gửi `soVeDuKien` và không gửi `soSeri` từng vé ⇒ với máy chủ mới lô Tour Đảo từ giao diện bị 400 cho tới khi Phần B sửa.
