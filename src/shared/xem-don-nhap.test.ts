@@ -58,3 +58,35 @@ test("ADR-0213 Đ5: donDaGuiLen + `quanLyBenDat` chỉ mở nháp ĐANG CHỜ (v
     assert.equal(ketQuaXemDon({ coQuyenXem, status: "draft", laNguoiLap: false, dangCho, xetDuyetDuoc: false, quanLyBenDat, chiXemDonDuocGiao: false }), mong ? "ok" : "404");
   }
 });
+
+// ADR-0213 «Sửa ADR cũ» (nới ADR-0135 Đ1–Đ2) + Đ8 (mốc B2 Task 16): NGOẠI LỆ CÓ TÊN — người quản lý có hiệu lực của tổ chức bên đặt đọc / ghi nháp của người lập là THÀNH VIÊN
+// lúc lập (`acting_link_kind = 'MEMBER'`, Ruling R10) khi chế độ «Chỉ soạn», hoặc khi nháp đang chờ người quản lý («Soạn và gửi»). Không ai khác được thêm. Thành viên không ghi khi đang chờ.
+test("ADR-0213 Đ8: bảng chân trị ngoại lệ có tên — đọc và ghi nháp của thành viên", async () => {
+  const { quanLyThayNhapThanhVien } = await import("./xem-don-nhap.ts");
+  for (const laQuanLyCoHieuLuc of BOOL) for (const nguoiLapLaThanhVienLucLap of BOOL) for (const cheDo of ["CHI_SOAN", "SOAN_VA_GUI"] as const) for (const dangChoQuanLy of BOOL) {
+    const n = { laQuanLyCoHieuLuc, nguoiLapLaThanhVienLucLap, cheDo, dangChoQuanLy };
+    const mong = laQuanLyCoHieuLuc && nguoiLapLaThanhVienLucLap && (cheDo === "CHI_SOAN" || dangChoQuanLy);
+    const k = JSON.stringify(n);
+    assert.equal(quanLyThayNhapThanhVien(n), mong, k);
+    // Người quản lý (không phải người lập): đọc khi ngoại lệ đúng VÀ bảng quyền (đã tính với cờ quanLyBenDat) cho xem; ghi khi ngoại lệ đúng.
+    assert.equal(xemDuocDon({ coQuyenXem: true, status: "draft", laNguoiLap: false, dangCho: false, xetDuyetDuoc: false, quanLyBenDat: true, ngoaiLeToChuc: n }), mong, `đọc ${k}`);
+    assert.equal(xemDuocDon({ coQuyenXem: false, status: "draft", laNguoiLap: false, dangCho: false, xetDuyetDuoc: false, quanLyBenDat: true, ngoaiLeToChuc: n }), false, `bảng quyền không cho ⇒ không đọc ${k}`);
+    assert.equal(ketQuaXemDon({ coQuyenXem: true, status: "draft", laNguoiLap: false, dangCho: false, xetDuyetDuoc: false, quanLyBenDat: true, ngoaiLeToChuc: n, chiXemDonDuocGiao: false }), mong ? "ok" : "404", k);
+    assert.equal(chiNguoiLapGhiNhap({ status: "draft", laNguoiLap: false, ngoaiLeToChuc: n }), mong, `ghi ${k}`);
+    // Người lập (thành viên): ghi khi KHÔNG đang chờ người quản lý; đọc như ADR-0135 (ngoại lệ không bớt quyền đọc của người lập).
+    assert.equal(chiNguoiLapGhiNhap({ status: "draft", laNguoiLap: true, ngoaiLeToChuc: n }), !dangChoQuanLy, `người lập ghi ${k}`);
+    assert.equal(xemDuocDon({ coQuyenXem: true, status: "draft", laNguoiLap: true, dangCho: false, xetDuyetDuoc: false, ngoaiLeToChuc: n }), true);
+    // Đơn đã gửi lên: ngoại lệ không đổi gì.
+    for (const status of ["confirmed", "cancelled"] as const) {
+      assert.equal(chiNguoiLapGhiNhap({ status, laNguoiLap: false, ngoaiLeToChuc: n }), true);
+      assert.equal(xemDuocDon({ coQuyenXem: false, status, laNguoiLap: false, dangCho: false, xetDuyetDuoc: false, ngoaiLeToChuc: n }), false);
+    }
+  }
+});
+
+test("ADR-0213 Đ8: «đang chờ người quản lý» KHÔNG mở cửa của người xét duyệt (khác `dangCho` = yêu cầu xác nhận mở); vắng ngoại lệ = luật ADR-0135 nguyên vẹn", () => {
+  const n = { laQuanLyCoHieuLuc: false, nguoiLapLaThanhVienLucLap: true, cheDo: "SOAN_VA_GUI" as const, dangChoQuanLy: true };
+  assert.equal(xemDuocDon({ coQuyenXem: true, status: "draft", laNguoiLap: false, dangCho: false, xetDuyetDuoc: true, ngoaiLeToChuc: n }), false, "Toàn quyền / văn phòng có ô xét duyệt vẫn không thấy nháp chờ người quản lý");
+  assert.equal(chiNguoiLapGhiNhap({ status: "draft", laNguoiLap: false }), false);
+  assert.equal(chiNguoiLapGhiNhap({ status: "draft", laNguoiLap: true }), true);
+});

@@ -334,6 +334,12 @@
       "note": "yêu cầu xác nhận đơn (ADR-0136 Đ2, migration 0119): đơn draft có một dòng còn mở (decided_at IS NULL) = đang chờ xác nhận; chỉ mục duy nhất một yêu cầu mở mỗi đơn; khép đúng MỘT lần (trigger) rồi đóng băng, không xoá; outcome XAC_NHAN | HUY | RUT_LAI và ticket CON_VE | HET_VE | HUY (NULL khi RUT_LAI) kiểm ở mã (src/shared/xac-nhan-don.ts); deadline_at = hạn 15 phút làm việc trừ 22:00–06:00 giờ VN. Cột pickup_time_required từ 0133 (ADR-0154 Đ1.2): cờ «cần chốt giờ» 0/1, máy chủ chụp một lần lúc Gửi đơn của tài khoản Đối tác khi lượt đầu của một dịch vụ chọn Đón mà chưa có giờ; 1 = Còn vé bắt buộc có giờ; trigger cấm đổi; yêu cầu cũ = 0 transfer_fee_missing (Đợt C, migration 0169): cờ 0/1 máy chủ chụp một lần lúc Gửi đơn, 1 = có chặng chưa tính được phí đưa đón lúc gửi; mặc định 0 (mọi yêu cầu cũ); không đổi sau khi chèn (trigger ord_confirm_request_transfer_fee_missing_immutable)."
     },
     {
+      "name": "ord_member_submit",
+      "module": "orders",
+      "kind": "table",
+      "note": "nháp của thành viên tổ chức «chờ người quản lý» (ADR-0213 Đ8.2, Đ8.4; migration 0176, Task 16): MO (đang chờ) → DA_GUI_LEN (người quản lý gửi lên Tour Đảo) | TRA_LAI (người quản lý trả lại, reason_code SAI_DICH_VU | SAI_NGAY | SAI_SO_KHACH | KHONG_DAT_NUA | KHAC) | DA_RUT (thành viên rút lại); một chiều, đúng một lần, không xoá (trigger); một dòng MO mỗi đơn (chỉ mục duy nhất có điều kiện). Không thuộc XOA_CUNG_NHAP: lưu nháp không xoá dòng này. member_staff_id, org_party_id, closed_by là tham chiếu logic (không khoá ngoại)"
+    },
+    {
       "name": "ord_service_confirm_flag",
       "module": "orders",
       "kind": "table",
@@ -419,6 +425,12 @@
       "module": "parties",
       "kind": "table",
       "note": "trần của lời mời vào tổ chức (ADR-0213 Đ7.3, migration 0176): mỗi tổ chức mỗi ngày, đang mở mỗi tổ chức, mỗi số mỗi ngày trên toàn Nền tảng, số ngày dùng được của mã, số lần gõ sai mỗi giờ. Chỉ thêm dòng; dòng hiện hành = valid_from_at mới nhất"
+    },
+    {
+      "name": "pty_org_member_mode",
+      "module": "parties",
+      "kind": "table",
+      "note": "chế độ thành viên của tổ chức (ADR-0213 Đ8.2, Đ8.3; migration 0176, Task 16): CHI_SOAN («Chỉ soạn» — người quản lý thấy mọi nháp của thành viên) | SOAN_VA_GUI («Soạn và gửi người quản lý xác nhận» — chỉ nháp thành viên đã gửi tới). Chỉ thêm dòng (trigger); hiện hành = valid_from_at mới nhất ≤ lúc xét; không dòng ⇒ SOAN_VA_GUI. Chỉ hồ sơ tổ chức (trigger). Người đặt: người quản lý có hiệu lực hoặc Toàn quyền (máy chủ kiểm)"
     },
     {
       "name": "pty_party_role",
@@ -1487,6 +1499,7 @@
         "created_at"
       ]
     },
+    { "name": "v_aud_order_notice_direct", "module": "audit", "columns": ["id", "order_id", "staff_id", "action", "target_id", "created_at"] },
     {
       "name": "v_aud_trip_event",
       "module": "audit",
@@ -2024,6 +2037,7 @@
     "ord_audit_cutoff": { "code": "N1", "cutoff_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_cancel_reason": { "id": "N1", "order_id": "N1", "reason_code": "N1", "group_code": "N1", "note": "N2", "cancelled_date": "N1", "reclassifies_id": "N1", "legacy": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_manual_service_policy": { "id": "N1", "enabled": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ord_member_submit": { "id": "N1", "order_id": "N1", "member_staff_id": "N1", "org_party_id": "N1", "status": "N1", "reason_code": "N1", "opened_at": "N1", "closed_at": "N1", "closed_by": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_confirm_request": { "id": "N1", "order_id": "N1", "submitted_at": "N1", "submitted_by": "N1", "deadline_at": "N1", "decided_at": "N1", "decided_by": "N1", "outcome": "N1", "ticket": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "pickup_time_required": "N1", "transfer_fee_missing": "N1" },
     "ctl_service_detail": { "id": "N1", "code": "N1", "display_name": "N1", "description": "N1", "image_key": "N1", "sheet_name_at": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ctl_service_ticket_source": { "id": "N1", "code": "N1", "source": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -2097,6 +2111,7 @@
     "pty_verification": { "id": "N1", "party_id": "N1", "target_kind": "N1", "target_id": "N1", "attribute_code": "N1", "outcome": "N1", "reason_code": "N1", "verifier_touched_account": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_person_document_type": { "code": "N1", "name": "N1", "has_expiry": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_org_invite": { "id": "N1", "org_party_id": "N1", "phone_key": "N2", "code_hash": "N4", "status": "N1", "expires_at": "N1", "held_registration_id": "N1", "used_by_staff_id": "N1", "used_at": "N1", "cancelled_by": "N1", "cancelled_at": "N1", "erased_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "pty_org_member_mode": { "id": "N1", "org_party_id": "N1", "mode": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_org_invite_policy": { "id": "N1", "per_org_per_day": "N1", "open_per_org": "N1", "per_phone_per_day": "N1", "code_days": "N1", "wrong_per_hour": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_org_transfer_request": { "id": "N1", "org_party_id": "N1", "requested_by_staff_id": "N1", "proposed_person_party_id": "N1", "status": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "closed_at": "N1", "closed_by": "N1" },
     "pty_relationship_type": { "code": "N1", "name": "N1", "sort_order": "N1", "active": "N1" },
@@ -2124,6 +2139,7 @@
     "v_aud_order_cmd": { "id": "N1", "order_id": "N1", "action": "N1" },
     "v_aud_order_ban_hang": { "id": "N1", "order_id": "N1" },
     "v_aud_order_event": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
+    "v_aud_order_notice_direct": { "id": "N1", "order_id": "N1", "staff_id": "N1", "action": "N1", "target_id": "N1", "created_at": "N1" },
     "v_aud_trip_event": { "id": "N1", "trip_id": "N1", "staff_id": "N1", "action": "N1", "created_at": "N1" },
     "v_bil_coc_don": { "order_id": "N1", "da_tra": "N1", "dang_doi_chieu": "N1", "hoan_truoc_huy": "N1", "da_duyet": "N1", "da_chi": "N1", "da_chuyen": "N1", "hoan_ngoai": "N1", "con_giu_luc_huy": "N1", "con_giu": "N1", "cho_chi": "N1" },
     "v_bil_order_paid": { "order_id": "N1", "paid_net": "N1", "unknown_count": "N1" },

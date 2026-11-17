@@ -16,6 +16,11 @@ export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_cha
   // ADR-0142 Đ7 (migration *_hop_thu_ban_hang): lời mời, nhận, đổi, từ chối Bán hàng phụ trách + Hoàn thành. KHÔNG `order_handler_refused` (chủ để sau — BACKLOG mục 3).
   "sales_invited", "sales_owner_claimed", "sales_owner_changed", "sales_invite_refused", "order_completed"] as const;
 /**
+ * ADR-0213 Đ8.6, Ruling R11 (mốc B2 Task 16): tin ĐÍCH DANH về nháp của thành viên tổ chức — nhật ký ghi `target_type = 'staff'`, `target_id` = người nhận; view `v_aud_order_notice_direct`
+ * lọc ĐÚNG tập này (bài src/migrations-thanh-vien.test.ts). KHÔNG vào `HANH_DONG_TIN_DON` / `v_aud_order_event` (tin đơn thường theo quan hệ với đơn — lưu nháp vẫn không báo ai, ADR-0045).
+ */
+export const HANH_DONG_TIN_DICH_DANH = ["order_member_submitted", "order_member_returned", "order_member_forwarded"] as const;
+/**
  * ADR-0062 Đ1 — tập nguồn ĐÓNG của tin "đơn đổi sau xác nhận" (khai MỘT nơi; view `v_aud_order_change` lọc đúng tập này — bài migrations-tin-doi-don):
  * sửa thông tin chuyến, sửa / thêm / bỏ chặng, và MỌI hành động mang cờ `doiSoKhach` (dẫn từ AUDIT_ACTIONS — không gõ tay).
  */

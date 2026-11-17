@@ -85,3 +85,72 @@ VALUES ('mv-chinh-sach-1', 10, 20, 3, 7, 5, '2026-11-16T00:00:00.000Z', '2026-11
 
 -- ===== dang-ky: mã định danh lời mời mà phiếu đang dùng (Đ7.5) — phiếu KHÔNG lưu mã, chỉ id lời mời (tham chiếu logic, không khoá ngoại) ====================
 ALTER TABLE dk_registration ADD COLUMN invite_id TEXT;
+
+-- ===== Task 16 (mốc B2, ADR-0213 Đ8): chế độ thành viên, nháp chờ người quản lý, tin đích danh ==========================================================
+
+-- parties: chế độ thành viên của tổ chức (Đ8.2, Đ8.3). CHỈ THÊM dòng; hiện hành = dòng mới nhất có valid_from_at <= lúc xét; không dòng ⇒ «Soạn và gửi» (SOAN_VA_GUI).
+-- Tập đóng: CHI_SOAN («Chỉ soạn») · SOAN_VA_GUI («Soạn và gửi người quản lý xác nhận»). Ai đặt (người quản lý có hiệu lực / Toàn quyền) do máy chủ kiểm.
+CREATE TABLE pty_org_member_mode (
+  id            TEXT PRIMARY KEY,
+  org_party_id  TEXT NOT NULL REFERENCES pty_party(id),
+  mode          TEXT NOT NULL CHECK (mode IN ('CHI_SOAN', 'SOAN_VA_GUI')),
+  valid_from_at TEXT NOT NULL,
+  created_at    TEXT NOT NULL,
+  created_by    TEXT,
+  updated_at    TEXT NOT NULL,
+  updated_by    TEXT,
+  UNIQUE (org_party_id, valid_from_at)
+);
+CREATE TRIGGER pty_org_member_mode_org BEFORE INSERT ON pty_org_member_mode
+WHEN NOT EXISTS (SELECT 1 FROM pty_party p WHERE p.id = NEW.org_party_id AND p.party_kind = 'ORGANIZATION')
+BEGIN SELECT RAISE(ABORT, 'pty_org_member_mode_org: chế độ thành viên chỉ đặt cho hồ sơ tổ chức'); END;
+CREATE TRIGGER pty_org_member_mode_no_update BEFORE UPDATE ON pty_org_member_mode
+BEGIN SELECT RAISE(ABORT, 'pty_org_member_mode_append_only: chế độ thành viên chỉ thêm dòng mới'); END;
+CREATE TRIGGER pty_org_member_mode_no_delete BEFORE DELETE ON pty_org_member_mode
+BEGIN SELECT RAISE(ABORT, 'pty_org_member_mode_append_only: chế độ thành viên chỉ thêm dòng mới'); END;
+
+-- orders: nháp của thành viên «chờ người quản lý» (Đ8.2, Đ8.4). Không đổi tập trạng thái của đơn (nháp vẫn `draft`). KHÔNG thuộc ngoại lệ xoá–chèn lại của nháp (XOA_CUNG_NHAP):
+-- lưu nháp không xoá dòng này. Trạng thái (tập đóng): MO (đang chờ) · DA_GUI_LEN (người quản lý gửi lên Tour Đảo) · TRA_LAI (người quản lý trả lại, kèm lý do) · DA_RUT (thành viên rút lại).
+-- Một chiều: chỉ MO → trạng thái cuối, đúng một lần; cột gốc không đổi; không xoá. Một dòng MO mỗi đơn (chỉ mục duy nhất có điều kiện).
+-- member_staff_id, closed_by: mã tài khoản; org_party_id: mã hồ sơ tổ chức — tham chiếu logic, KHÔNG khoá ngoại (orders không phụ thuộc staff/parties ở tầng dữ liệu).
+CREATE TABLE ord_member_submit (
+  id              TEXT PRIMARY KEY,
+  order_id        TEXT NOT NULL REFERENCES orders(id),
+  member_staff_id TEXT NOT NULL,
+  org_party_id    TEXT NOT NULL,
+  status          TEXT NOT NULL CHECK (status IN ('MO', 'DA_GUI_LEN', 'TRA_LAI', 'DA_RUT')),
+  reason_code     TEXT CHECK (reason_code IS NULL OR reason_code IN ('SAI_DICH_VU', 'SAI_NGAY', 'SAI_SO_KHACH', 'KHONG_DAT_NUA', 'KHAC')),
+  opened_at       TEXT NOT NULL,
+  closed_at       TEXT,
+  closed_by       TEXT,
+  created_at      TEXT NOT NULL,
+  created_by      TEXT,
+  updated_at      TEXT NOT NULL,
+  updated_by      TEXT
+);
+CREATE UNIQUE INDEX ord_member_submit_open_uq ON ord_member_submit (order_id) WHERE status = 'MO';
+CREATE INDEX ord_member_submit_order ON ord_member_submit (order_id, opened_at);
+CREATE TRIGGER ord_member_submit_insert_open BEFORE INSERT ON ord_member_submit
+WHEN NEW.status <> 'MO' OR NEW.closed_at IS NOT NULL OR NEW.closed_by IS NOT NULL OR NEW.reason_code IS NOT NULL
+BEGIN SELECT RAISE(ABORT, 'ord_member_submit_insert_open: dòng chờ người quản lý sinh ra ở trạng thái mở, chưa đóng'); END;
+CREATE TRIGGER ord_member_submit_fixed BEFORE UPDATE ON ord_member_submit
+WHEN NEW.id IS NOT OLD.id OR NEW.order_id IS NOT OLD.order_id OR NEW.member_staff_id IS NOT OLD.member_staff_id OR NEW.org_party_id IS NOT OLD.org_party_id
+  OR NEW.opened_at IS NOT OLD.opened_at OR NEW.created_at IS NOT OLD.created_at OR NEW.created_by IS NOT OLD.created_by
+BEGIN SELECT RAISE(ABORT, 'ord_member_submit_fixed: cột gốc của dòng chờ người quản lý không đổi'); END;
+CREATE TRIGGER ord_member_submit_transition BEFORE UPDATE OF status ON ord_member_submit
+WHEN OLD.status <> 'MO' OR NEW.status = 'MO'
+BEGIN SELECT RAISE(ABORT, 'ord_member_submit_transition: chỉ đóng dòng đang mở, đúng một lần'); END;
+CREATE TRIGGER ord_member_submit_shape BEFORE UPDATE ON ord_member_submit
+WHEN (NEW.status = 'MO' AND (NEW.closed_at IS NOT NULL OR NEW.closed_by IS NOT NULL OR NEW.reason_code IS NOT NULL))
+  OR (NEW.status <> 'MO' AND (NEW.closed_at IS NULL OR NEW.closed_by IS NULL OR (NEW.status = 'TRA_LAI') <> (NEW.reason_code IS NOT NULL)))
+BEGIN SELECT RAISE(ABORT, 'ord_member_submit_shape: đóng phải có giờ và người đóng; lý do chỉ và luôn có khi trả lại; dòng mở chưa có dấu đóng'); END;
+CREATE TRIGGER ord_member_submit_no_delete BEFORE DELETE ON ord_member_submit
+BEGIN SELECT RAISE(ABORT, 'ord_member_submit_no_delete: dòng chờ người quản lý không xoá'); END;
+
+-- audit: tin ĐÍCH DANH về đơn (Ruling R11; ADR-0213 Đ8.6) — chỉ khoá. Ba hành động ghi `target_type = 'staff'`, `target_id` = người nhận. KHÔNG đổi `v_aud_order_event`.
+-- Người đọc: chỉ thongbao (hộp thông báo của người nhận). Tập hành động = HANH_DONG_TIN_DICH_DANH (src/shared/thong-bao.ts — bài src/migrations-thanh-vien.test.ts).
+CREATE VIEW v_aud_order_notice_direct AS                -- module audit
+  SELECT id, order_id, staff_id, action, target_id, created_at FROM audit_log
+  WHERE order_id IS NOT NULL AND target_type = 'staff'
+    AND action IN ('order_member_submitted', 'order_member_returned', 'order_member_forwarded');
+

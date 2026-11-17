@@ -275,6 +275,11 @@ export const AUDIT_ACTIONS = {
   org_invite_created: { label: "Tạo lời mời vào tổ chức", group: "party" },
   org_invite_cancelled: { label: "Huỷ lời mời vào tổ chức", group: "party" },
   org_invite_accepted: { label: "Nhận lời mời vào tổ chức", group: "party" },
+  // ADR-0213 Đ8 (mốc B2, Task 16): chế độ thành viên (đích hồ sơ tổ chức) và nháp của thành viên qua người quản lý (đích danh người nhận tin — target_type 'staff').
+  org_member_mode_set: { label: "Đổi chế độ thành viên của tổ chức", group: "party" },
+  order_member_submitted: { label: "Gửi người quản lý xác nhận", group: "order" },
+  order_member_returned: { label: "Người quản lý trả lại đơn", group: "order" },
+  order_member_forwarded: { label: "Người quản lý gửi đơn lên Tour Đảo", group: "order" },
   // ADR-0207 Đ7 (đợt 1 Task 9): người được duyệt tự đặt PIN — do CHÍNH tài khoản mới đứng tên (không dùng staff_reactivated, để không ghi «chạm tài khoản» thay một người quản trị). target = phiếu.
   registration_activated: { label: "Tự đặt mã PIN, kích hoạt tài khoản", group: "party" },
   // ADR-0208 Đ8 (đợt 1 Task 9): tác nhân DON_PHIEU_DANG_KY ghi MỘT dòng mỗi lượt có việc; detail CHỈ các số đếm (KHÔNG mã phiếu, KHÔNG khoá kho, KHÔNG email).

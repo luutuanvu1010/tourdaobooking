@@ -107,6 +107,9 @@ export const LICH_SU_DOI_TAC_AN = [
   "agent_remittance_recorded", "agent_remittance_confirmed", "agent_remittance_rejected", "agent_remittance_proof_viewed", "agent_remittance_proof_purged",
   "registration_item_concluded", "registration_verified", "registration_supplement_requested", "registration_rejected", "registration_number_viewed", "registration_file_viewed", "registration_approval_rejected", "registration_invite_resent", "registration_returned_to_verification", "registration_notice_resent", "registration_activated", "registration_cleanup_run", "registration_policy_set", // ADR-0207 Đ6, Đ7, ADR-0208 Đ8: xác minh phiếu đăng ký — không thuộc đơn nào
   "org_manager_assigned", "org_manager_transferred", "org_manager_removed", "org_transfer_requested", "org_member_removed", "org_member_left", "org_notice_resent", "org_invite_created", "org_invite_cancelled", "org_invite_accepted", // ADR-0213 Đ6, Đ7: quản trị tổ chức — không thuộc đơn nào
+  // ADR-0213 Đ8 (Task 16): chế độ thành viên (không thuộc đơn) và ba bước nháp của thành viên qua người quản lý — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại;
+  // người nhận thấy qua hộp thông báo (tin đích danh), trang Nhật ký (Toàn quyền) vẫn đọc được.
+  "org_member_mode_set", "order_member_submitted", "order_member_returned", "order_member_forwarded",
 ] as const satisfies readonly AuditAction[];
 
 /** Hành động mới trong `AUDIT_ACTIONS` chưa có ở danh sách nào ⇒ kiểu này khác `never` và dòng ngay dưới không biên dịch (`npm run typecheck` đỏ). */
