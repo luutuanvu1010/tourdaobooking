@@ -2,7 +2,7 @@
 export interface DauVanBai { readonly neo: string; readonly chu: string; readonly ban: string; readonly ngay: string }
 export const DAU_VAN: Readonly<Record<string, DauVanBai>> = {
   "kho-ve": {"neo":"2bbb8b25c50d9609","chu":"f4583156a7193e90","ban":"3.13","ngay":"2026-11-17"},
-  "quet-ve": {"neo":"5e38e968eab6120e","chu":"c1c5a3d7f1bd8d07","ban":"3.13","ngay":"2026-11-17"},
+  "quet-ve": {"neo":"5e38e968eab6120e","chu":"13ffac81898a0fb9","ban":"3.13","ngay":"2026-11-17"},
   "doi-chieu-ve": {"neo":"4c0fb8c8183b808e","chu":"80947f92445b6340","ban":"3.13","ngay":"2026-11-17"},
   "cai-dat-ve": {"neo":"1a9be7c66766df30","chu":"78895cd744fbcb8b","ban":"2.80","ngay":"2026-11-09"},
   "dich-vu-can-kiem-ve": {"neo":"bad8a5165ce33a3a","chu":"b41fe0afa23fe41f","ban":"2.97","ngay":"2026-11-13"},

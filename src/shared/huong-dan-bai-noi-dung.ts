@@ -99,11 +99,9 @@ export const BAI_VIEC: readonly BaiViec[] = [
 3. Xanh thì cho khách đi. Vàng thì đọc câu báo; vẫn cho khách đi thì bấm [[Xác nhận cho đi]]. Đỏ thì không cho đi, đọc câu báo để biết lý do.
 4. Bấm [[Quét tiếp]] để quét vé kế tiếp.
 5. Camera không mở được thì bấm **Chụp ảnh mã vé** và chụp mã trên vé.
-6. Mã trên vé hỏng hoặc in mờ thì gõ **số sê-ri** in trên vé (dạng VE_ và tám chữ cái, chữ thường hay có khoảng trắng đều được) vào ô «Số sê-ri in trên vé», bấm [[Nhập số sê-ri]]. Máy tra như khi quét nhưng luôn hiện màu vàng «nhập tay»: kiểm đúng vé trước mặt rồi bấm [[Xác nhận cho đi]].
+6. Mã trên vé hỏng hoặc in mờ thì gõ **số sê-ri** in trên vé (dạng VE_ và tám chữ cái, chữ thường hay có khoảng trắng đều được) vào ô «Số sê-ri in trên vé», bấm [[Nhập số sê-ri]]. Máy tra như khi quét nhưng luôn hiện màu vàng «nhập tay» vì số in trên vé ai nhìn cũng chép được: kiểm đúng vé trước mặt rồi bấm [[Xác nhận cho đi]]; lượt đó ghi «nhập tay» trong nhật ký. Vé hãng ngoài không tra được ở đây. Vé đỏ «Vé đã huỷ» thì không cho đi, báo văn phòng gửi lại vé thay.
 
 ### Điều dễ sai
-- Số sê-ri gõ tay chưa chứng minh khách cầm vé thật, vì số in trên vé ai nhìn thấy cũng chép được. Vì vậy máy bắt xác nhận và ghi lượt đó là «nhập tay» trong nhật ký. Vé hãng ngoài không tra được ở đây.
-- Vé đỏ «Vé đã huỷ» là vé đã bị văn phòng huỷ (có thể khách còn giữ ảnh cũ). Không cho đi; báo văn phòng để gửi lại vé thay.
 - Tài xế công ty chỉ xem vé có hợp lệ không; lượt quét của họ không tính vào số vé đã đi.
 - Quét nhầm thì bấm [[Bỏ lượt quét]] ở danh sách năm lượt gần nhất, ghi lý do. Đừng gõ số điện thoại hay mã vé vào lý do.
 - Vé đỏ «Đã dùng» hiện giờ và tên người đã quét trước đó; đừng cho khách đi lần hai.`,
