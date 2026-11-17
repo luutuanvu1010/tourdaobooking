@@ -18,6 +18,18 @@
         <input id="qv-anh" type="file" accept="image/*" capture="environment" class="qv-anh">
       </div>
     </section>
+    <section class="card" aria-labelledby="qv-so-seri-tieu-de">
+      <h2 id="qv-so-seri-tieu-de">Vé không quét được?</h2>
+      <form id="qv-form-so-seri" class="qv-so-seri" novalidate>
+        <div class="lb-truong">
+          <label class="nhan" for="qv-so-seri">Số sê-ri in trên vé</label>
+          <input id="qv-so-seri" type="text" class="o" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="text" placeholder="VE_ABCDEFGH" aria-describedby="qv-so-seri-loi">
+        </div>
+        <p id="qv-so-seri-loi" class="alert" role="alert" hidden></p>
+        <button type="submit" class="nut" data-cap="phu" data-co="lon">Nhập số sê-ri</button>
+        <p class="muted">Số gõ tay phải được xác nhận lại trước khi cho khách đi, vì chưa quét mã trên vé.</p>
+      </form>
+    </section>
     <section class="card" aria-labelledby="qv-gan-day-tieu-de">
       <h2 id="qv-gan-day-tieu-de">Năm lượt quét gần nhất</h2>
       <div id="qv-gan-day"></div>

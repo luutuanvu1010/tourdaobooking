@@ -1,22 +1,24 @@
 // Trang "Quét vé" (ADR-0175 Đ3; đặc tả §2.5, §2.12). Hai đường đọc mã: camera sau (khung ~250 ms một lần, `docQrTuKhung`) và chụp ảnh (`docQrTuTep`, dự phòng luôn có).
-//   POST /api/ve/quet           { ma, xacNhan? } → { mau, ma, ghi, cau, dichVu, nhomKhach, ngayDi, soCuoi, maDon?, lanQuetId? }
+//   POST /api/ve/quet           { ma (mã QR hoặc SỐ SÊ-RI gõ tay, ADR-0217), xacNhan? } → { mau, ma, ghi, cau, dichVu, nhomKhach, ngayDi, soCuoi, maDon?, lanQuetId? }
 //   POST /api/ve/quet/:id/bo    { lyDo }         → { ok }
 // Mã vé chỉ nằm trong bộ nhớ trang và thân yêu cầu: không vào địa chỉ, nhật ký, câu báo hay bộ nhớ trình duyệt. Ẩn/hiện hỏi bảng quyền; máy chủ kiểm lại. Không innerHTML.
 import { ApiError, api } from "./api";
 import { can } from "../src/shared/permissions";
+import { chuanHoaSoSeri } from "../src/shared/so-seri-ve";
 import { byId, h, replaceChildren } from "./dom";
 import { docQrTuKhung, docQrTuTep } from "./qr-doc-ve";
 import { batDauDong, xetDocLap, type DauDocCuoi } from "../src/shared/chong-doc-lap";
 import { initShell, showError } from "./shell";
 
 type Mau = "XANH" | "VANG" | "DO";
-interface KetQuaQuet { mau: Mau; ma: string; ghi: "DA_TINH" | "CHI_XEM" | "TU_CHOI" | null; cau: string; dichVu: string; nhomKhach: string; ngayDi: string | null; soCuoi: string; maDon?: string; lanQuetId?: string }
-interface LuotGanDay { id: string; luc: number; mau: Mau; cau: string; dichVu: string; soCuoi: string; daBo: boolean }
+interface KetQuaQuet { mau: Mau; ma: string; ghi: "DA_TINH" | "CHI_XEM" | "TU_CHOI" | null; cau: string; dichVu: string; nhomKhach: string; ngayDi: string | null; soCuoi: string; soSeri?: string; maDon?: string; lanQuetId?: string }
+interface LuotGanDay { id: string; luc: number; mau: Mau; cau: string; dichVu: string; soVe: string; daBo: boolean }
+type XacNhanGui = { lechNgay?: boolean; chuaThu?: boolean; vuotKhach?: boolean; nhapTay?: boolean };
 
 /** Chữ lớn đi cùng màu: người mù màu vẫn đọc được kết quả. */
 const CHU_LON: Record<Mau, { dau: string; chu: string }> = { XANH: { dau: "✓", chu: "Hợp lệ" }, VANG: { dau: "!", chu: "Cần xác nhận" }, DO: { dau: "✕", chu: "Không dùng được" } };
 /** Mã kết quả vàng → cờ xác nhận gửi lại (khớp `XacNhanQuet` của máy chủ). */
-const CO_XAC_NHAN: Record<string, "lechNgay" | "chuaThu" | "vuotKhach"> = { LECH_NGAY: "lechNgay", CHUA_THU_DU: "chuaThu", VUOT_KHACH: "vuotKhach" };
+const CO_XAC_NHAN: Record<string, "lechNgay" | "chuaThu" | "vuotKhach" | "nhapTay"> = { LECH_NGAY: "lechNgay", CHUA_THU_DU: "chuaThu", VUOT_KHACH: "vuotKhach", NHAP_TAY: "nhapTay" };
 const CHU_KY_DOC_MS = 250;
 const PHUT_TU_BO = 5;
 const TOI_DA_GAN_DAY = 5;
@@ -58,7 +60,7 @@ if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) {
       const trongHan = !l.daBo && Date.now() - l.luc <= PHUT_TU_BO * 60_000;
       const gio = new Date(l.luc).toLocaleTimeString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", hour: "2-digit", minute: "2-digit" });
       const dong = h("div", { class: "qv-luot", "data-mau": l.mau },
-        h("p", { class: "qv-luot-chu" }, h("strong", null, `${CHU_LON[l.mau].dau} ${CHU_LON[l.mau].chu}`), ` · ${gio} · ${l.dichVu} · số cuối ${l.soCuoi}`, l.daBo ? " · đã bỏ" : ""),
+        h("p", { class: "qv-luot-chu" }, h("strong", null, `${CHU_LON[l.mau].dau} ${CHU_LON[l.mau].chu}`), ` · ${gio} · ${l.dichVu}${l.soVe}`, l.daBo ? " · đã bỏ" : ""),
         h("p", { class: "muted" }, l.cau));
       if (trongHan) dong.append(khungBo(l));
       return dong;
@@ -88,7 +90,7 @@ if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) {
 
   function ghiNho(kq: KetQuaQuet): void {
     if (!kq.lanQuetId) return;
-    ganDay.unshift({ id: kq.lanQuetId, luc: Date.now(), mau: kq.mau, cau: kq.cau, dichVu: kq.dichVu, soCuoi: kq.soCuoi, daBo: false });
+    ganDay.unshift({ id: kq.lanQuetId, luc: Date.now(), mau: kq.mau, cau: kq.cau, dichVu: kq.dichVu, soVe: kq.soSeri ? ` · ${kq.soSeri}` : kq.soCuoi ? ` · số cuối ${kq.soCuoi}` : "", daBo: false });
     ganDay.length = Math.min(ganDay.length, TOI_DA_GAN_DAY);
     soBoDuoc = conBoDuoc();
     veGanDay();
@@ -99,10 +101,10 @@ if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) {
     cuoi = batDauDong(cuoi, Date.now()); // cửa sổ 3 giây tính từ lúc ĐÓNG: vé còn trước ống kính không bị đọc lại ngay
   }
 
-  function hienKetQua(kq: KetQuaQuet, ma: string, xn: { lechNgay?: boolean; chuaThu?: boolean; vuotKhach?: boolean }): void {
+  function hienKetQua(kq: KetQuaQuet, ma: string, xn: XacNhanGui): void {
     dangHien = true;
     const cu = CHU_LON[kq.mau];
-    const chiTiet = [kq.dichVu, kq.nhomKhach, kq.ngayDi ? `Ngày đi ${ngayVn(kq.ngayDi)}` : "", kq.soCuoi ? `Số cuối ${kq.soCuoi}` : "", kq.maDon ? `Đơn ${kq.maDon}` : ""].filter(Boolean);
+    const chiTiet = [kq.dichVu, kq.nhomKhach, kq.ngayDi ? `Ngày đi ${ngayVn(kq.ngayDi)}` : "", kq.soSeri ? `Số sê-ri ${kq.soSeri}` : kq.soCuoi ? `Số cuối ${kq.soCuoi}` : "", kq.maDon ? `Đơn ${kq.maDon}` : ""].filter(Boolean);
     const nut = h("div", { class: "qv-ket-nut" });
     const co = CO_XAC_NHAN[kq.ma];
     if (kq.mau === "VANG" && co) {
@@ -124,7 +126,7 @@ if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) {
     nutTiep.focus();
   }
 
-  async function gui(ma: string, xn: { lechNgay?: boolean; chuaThu?: boolean; vuotKhach?: boolean } = {}): Promise<void> {
+  async function gui(ma: string, xn: XacNhanGui = {}): Promise<void> {
     if (dangGui) return;
     dangGui = true;
     baoTrangThai("Đang kiểm tra vé…");
@@ -192,6 +194,20 @@ if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) {
     const ma = await docQrTuTep(tep);
     if (!ma) { baoTrangThai("Không thấy mã vé trong ảnh. Hãy chụp lại gần hơn và đủ sáng."); return; }
     nhanMa(ma);
+  });
+
+  // Gõ số sê-ri (ADR-0217 Đ2): khi vé không quét được (QR hỏng, in mờ). Cùng khung kết quả; luôn ra cảnh báo vàng «nhập tay» tới khi người quét bấm «Xác nhận cho đi».
+  const soSeriEl = byId<HTMLInputElement>("qv-so-seri");
+  const loiSoSeriEl = byId("qv-so-seri-loi");
+  soSeriEl.addEventListener("input", () => { loiSoSeriEl.hidden = true; });
+  byId<HTMLFormElement>("qv-form-so-seri").addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (dangGui || dangHien) return;
+    const so = chuanHoaSoSeri(soSeriEl.value);
+    if (so === null) { loiSoSeriEl.textContent = "Số sê-ri gồm «VE_» và tám chữ cái, ví dụ VE_ABCDEFGH. Kiểm lại số in trên vé."; loiSoSeriEl.hidden = false; return; }
+    loiSoSeriEl.hidden = true;
+    soSeriEl.value = so;
+    void gui(so);
   });
 
   // Đổi sang ứng dụng khác thì tắt camera (đèn camera không sáng ngầm); mở lại phải bấm «Bật camera».

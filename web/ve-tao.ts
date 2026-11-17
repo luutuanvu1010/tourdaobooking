@@ -1,6 +1,6 @@
 // Khối «Tạo vé» Tour Đảo của trang Vé điện tử (ADR-0175 Đ1.3, Đ1.6, Đ1.7; kế hoạch Task 9). Chỉ hiện cho người giữ ô `ve.phat-hanh`; máy chủ kiểm lại.
-// Luồng: POST /api/ve/lo {nguon:"TOUR_DAO"} → mỗi vé: sinh mã bằng crypto.getRandomValues, vẽ ảnh, TỰ ĐỌC LẠI QR phải đúng mã vừa sinh → chỉ khi MỌI vé đạt mới
-// gửi theo đoạn POST /api/ve/lo/:id/ve → POST …/xac-nhan. Một vé hỏng thì huỷ lô (POST …/bo), không gửi vé nào.
+// Luồng: POST /api/ve/lo {nguon:"TOUR_DAO", soVeDuKien} → máy chủ cấp đủ số sê-ri (ADR-0217) → mỗi vé: lấy một số sê-ri, sinh mã bằng crypto.getRandomValues, vẽ ảnh, TỰ ĐỌC LẠI QR phải đúng mã vừa sinh → chỉ khi MỌI vé đạt mới
+// gửi theo đoạn POST /api/ve/lo/:id/ve (mỗi vé mang `soSeri` của nó) → POST …/xac-nhan. Một vé hỏng thì huỷ lô (POST …/bo), không gửi vé nào.
 // Mã vé là bí mật: không hiện, không ghi console, không vào câu báo; người tạo chỉ thấy số lượng. «Tên tiếng Anh» chỉ in lên ảnh, không gửi máy chủ.
 import { ApiError, api, type Api } from "./api";
 import { taoMaVeTourDao } from "../src/shared/ma-ve-tour-dao";
@@ -15,6 +15,8 @@ interface XacNhanRes { veTrongLo: number; dichVuKhongVe: boolean; canhBaoNguon: 
 
 /** Mã giả cho vé mẫu: đúng dạng nhưng không bao giờ gửi máy chủ. */
 const MA_MAU = `TD1.${"A".repeat(22)}MAUV`;
+/** Số sê-ri giả cho vé mẫu: đúng dạng, không thuộc sổ nào. */
+const SERI_MAU = "VE_MAUMAUMA";
 const ngauNhien = (n: number): Uint8Array => crypto.getRandomValues(new Uint8Array(n));
 /** Câu của máy chủ, hoặc câu tiếng Việt do chính trang ném; lỗi khác của trình duyệt (chữ Anh, mất mạng) thành câu chung. */
 const lyDoLoi = (err: unknown): string => (err instanceof ApiError ? err.message : err instanceof Error && /[à-ỹđ]/i.test(err.message) ? err.message : "Không kết nối được máy chủ hoặc trình duyệt không vẽ được vé.");
@@ -85,9 +87,9 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
     if (so > o.tranLo()) return `Một lô tối đa ${o.tranLo()} vé.`;
     return null;
   };
-  const noiDung = async (ma: string) => {
+  const noiDung = async (ma: string, soSeri: string) => {
     const ct = await layCongTy();
-    return { tenCongTy: ct.name, hotline: ct.hotline, tenDichVu: chonDv.selectedOptions[0]?.textContent ?? "", tenDichVuEn: tenEn.value.trim() || null, nhomKhach: chonNhom.value as NhomLo, denNgay: denNgay.value, ma };
+    return { tenCongTy: ct.name, hotline: ct.hotline, tenDichVu: chonDv.selectedOptions[0]?.textContent ?? "", tenDichVuEn: tenEn.value.trim() || null, nhomKhach: chonNhom.value as NhomLo, denNgay: denNgay.value, ma, soSeri };
   };
 
   nutMau.addEventListener("click", async () => {
@@ -96,10 +98,10 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
     if (sai) { baoLoi(sai); return; }
     datBan(true);
     try {
-      const anh = await veAnhTourDao(await noiDung(MA_MAU));
+      const anh = await veAnhTourDao(await noiDung(MA_MAU, SERI_MAU));
       replaceChildren(khuMau,
         h("img", { class: "ve-anh-xem ve-mau", src: URL.createObjectURL(anh), alt: "Vé mẫu" }),
-        h("p", { class: "muted" }, "Vé mẫu dùng mã giả, không quét được và không gửi lên máy chủ. Vé thật có mã riêng cho từng vé."));
+        h("p", { class: "muted" }, "Vé mẫu dùng mã giả và số sê-ri giả, không quét được và không gửi lên máy chủ. Vé thật có mã và số sê-ri riêng cho từng vé."));
     } catch (err) {
       baoLoi(lyDoLoi(err));
     } finally {
@@ -131,12 +133,14 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
       try { await api(`/api/ve/lo/${encodeURIComponent(loId)}/bo`, { method: "POST", body: {} }); return true; } catch { return false; }
     };
     try {
-      const mau = await noiDung(MA_MAU); // tải hồ sơ công ty TRƯỚC khi mở lô: thiếu thì dừng, không để lô rỗng
+      const mau = await noiDung(MA_MAU, SERI_MAU); // tải hồ sơ công ty TRƯỚC khi mở lô: thiếu thì dừng, không để lô rỗng
       trangThai.textContent = "Đang mở lô…";
-      loId = (await api<{ loId: string }>("/api/ve/lo", { method: "POST", body: { catalogCode: chonDv.value, nhomKhach: chonNhom.value, tenSanPham: mau.tenDichVu, nguon: "TOUR_DAO", soVeDuKien: so } })).loId;
+      const mo = await api<{ loId: string; soSeri: string[] }>("/api/ve/lo", { method: "POST", body: { catalogCode: chonDv.value, nhomKhach: chonNhom.value, tenSanPham: mau.tenDichVu, nguon: "TOUR_DAO", soVeDuKien: so } });
+      loId = mo.loId;
+      if (!Array.isArray(mo.soSeri) || mo.soSeri.length !== so) throw new Error("Máy chủ không cấp đủ số sê-ri cho lô.");
 
       // Vẽ và tự đọc lại MỌI vé trước khi gửi vé nào.
-      const ve: { ma: string; anh: Blob }[] = [];
+      const ve: { ma: string; soSeri: string; anh: Blob }[] = [];
       const daSinh = new Set<string>();
       for (let i = 0; i < so; i++) {
         trangThai.textContent = `Đang vẽ và tự kiểm vé ${i + 1}/${so}…`;
@@ -144,7 +148,8 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
         let ma = taoMaVeTourDao(ngauNhien);
         while (daSinh.has(ma)) ma = taoMaVeTourDao(ngauNhien);
         daSinh.add(ma);
-        const anh = await veAnhTourDao({ ...mau, ma });
+        const soSeri = mo.soSeri[i]!;
+        const anh = await veAnhTourDao({ ...mau, ma, soSeri });
         const doc = anh.size > TOI_DA_BYTE_ANH ? null : await docQrTuTep(new File([anh], "ve.png", { type: "image/png" }));
         if (doc !== ma) {
           const daHuy = await huyLo();
@@ -154,7 +159,7 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
           trangThai.hidden = true;
           return;
         }
-        ve.push({ ma, anh });
+        ve.push({ ma, soSeri, anh });
       }
 
       let them = 0;
@@ -162,7 +167,7 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
       for (let i = 0; i < ve.length; i += TOI_DA_VE_MOI_DOT) {
         const doan = ve.slice(i, i + TOI_DA_VE_MOI_DOT);
         trangThai.textContent = `Đang gửi ${Math.min(i + doan.length, ve.length)}/${ve.length} vé…`;
-        const than = await Promise.all(doan.map(async (v) => ({ noiDung: await blobBase64(v.anh), maVe: v.ma, tuNgay: tuNgay.value, denNgay: denNgay.value })));
+        const than = await Promise.all(doan.map(async (v) => ({ noiDung: await blobBase64(v.anh), maVe: v.ma, soSeri: v.soSeri, tuNgay: tuNgay.value, denNgay: denNgay.value })));
         const r = await api<ThemVeRes>(`/api/ve/lo/${encodeURIComponent(loId)}/ve`, { method: "POST", body: { ve: than } });
         them += r.themDuoc;
         for (const l of r.loai) bi.push(`Vé thứ ${i + l.thuTu + 1}: ${l.lyDo}`);

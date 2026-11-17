@@ -39,7 +39,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
       `Ảnh của lô đã huỷ lưu ${NGAY_LUU_ANH_LO_HUY} ngày`,
       `Đường dẫn cho khách hết hạn sau ngày dùng cuối ${NGAY_HAN_DUONG_DAN_SAU_NGAY_DUNG} ngày`,
     ],
-    neo: ["web/ve-kho.ts", "public/ve-kho.html", "web/ve-don.ts", "src/shared/ve-nhap-lo.ts", "src/modules/ve-dien-tu/index.ts", "src/modules/ve-dien-tu/rules.ts", "src/modules/ve-dien-tu/repository.ts", "src/modules/ve-dien-tu/nhap-lo.ts", "src/modules/ve-dien-tu/cap-ve.ts", "src/modules/ve-dien-tu/noi-orders.ts", "src/modules/ve-dien-tu/duong-dan-khach.ts"],
+    neo: ["web/ve-kho.ts", "public/ve-kho.html", "web/ve-don.ts", "src/shared/ve-nhap-lo.ts", "src/modules/ve-dien-tu/index.ts", "src/modules/ve-dien-tu/rules.ts", "src/modules/ve-dien-tu/repository.ts", "src/modules/ve-dien-tu/nhap-lo.ts", "src/modules/ve-dien-tu/cap-ve.ts", "src/modules/ve-dien-tu/noi-orders.ts", "src/modules/ve-dien-tu/duong-dan-khach.ts", "web/ve-kho-huy.ts"],
     moDau: "Máy chống được trùng vé, nhưng không biết vé có đúng loại hay không, nên phần khai lô vẫn phụ thuộc vào người nhập.",
     noiDung: `### Các bước
 1. **Tải vé từ nhà cung cấp.** Mỗi lần chỉ tải đúng một sản phẩm, một loại khách, một khoảng ngày dùng. Giữ nguyên ảnh gốc, vì ảnh nén quá nhỏ có thể không đọc được QR.
@@ -55,6 +55,8 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Không chụp màn hình vé hay gửi mã vé vào nhóm chat chung, vì mã QR có giá trị như tiền.
 - Dời ngày đi của đơn đã có vé thì vé không còn hợp ngày mới bị thu lại: vé chưa mở về kho, vé đã mở bị vô hiệu dù khách còn giữ ảnh. Máy tự giữ vé hợp ngày mới nếu kho còn; kho thiếu thì đơn báo còn thiếu vé. Vé đã quét thì giữ nguyên.
 - Vé Tour Đảo đã quét thì dòng «Đã dùng» của dịch vụ trên đơn tăng lên. Đơn có vé đã dùng không huỷ được; phải bỏ lượt quét trước.
+- Mỗi vé Tour Đảo có **số sê-ri** dạng VE_ và tám chữ cái, in trên ảnh vé và hiện ở danh sách vé của lô. Số này không bí mật nên gọi tên vé được, nhưng một mình nó không cho khách đi: mã trong QR mới là bí mật.
+- Huỷ vé hay huỷ lô mà vé đã gửi khách thì khách còn cầm vé cũ, vé đó quét ra đỏ «Vé đã huỷ». Máy cấp vé thay từ kho nhưng không tự báo ai: bạn phải gửi lại vé thay cho khách.
 
 ### Khi gặp sự cố
 | Gặp | Làm gì |
@@ -62,7 +64,8 @@ export const BAI_VIEC: readonly BaiViec[] = [
 | Nhập xong máy báo dịch vụ đang tắt ô «Có vé» | Báo Quản trị bật ô này ở màn Dịch vụ & giá. Sau đó đơn chưa tới ngày đi sẽ báo thiếu vé và cấp được vé. |
 | Lỗi giữa chừng khi nhập | Bấm [[Huỷ lô]] rồi nhập lại từ đầu. |
 | Nhập xong mới thấy khai sai, chưa có vé nào được giữ | Bấm [[Huỷ lô]] rồi nhập lại cho đúng. |
-| Khai sai và đã có vé được giữ | Không huỷ được lô và chưa có nút gỡ từng vé. Gửi yêu cầu hỗ trợ ngay. |
+| Khai sai và đã có vé được giữ cho đơn | Bấm [[Huỷ lô]] ở lô đó, đọc con số máy hiện (bao nhiêu vé huỷ, bao nhiêu vé giữ nguyên vì đã dùng, bao nhiêu đơn được cấp vé thay), ghi lý do rồi xác nhận. Vé đã gửi khách thì khách còn cầm vé cũ nhưng vé đó hết dùng được; máy chưa tự báo ai, nên bạn mở từng đơn đó và gửi lại vé thay. |
+| Một vé sai hoặc cần thu hồi | Gõ số sê-ri của vé vào ô «Số sê-ri của vé» rồi bấm [[Tìm vé]], hoặc bấm [[Xem vé]] ở lô chứa vé. Bấm [[Huỷ vé]], ghi lý do. Vé đang giữ cho đơn thì máy cấp vé khác; vé đã gửi khách thì phải gửi lại vé thay. Vé đã dùng không huỷ được; vé hãng ngoài đã mở cũng không. |
 | Ảnh bị loại vì không đọc được QR | Tải lại ảnh gốc từ nhà cung cấp, vì chưa gõ tay được mã vé. |
 | Cần tra soát vé của lô đã huỷ | Mở ảnh ở khối **Lô đã huỷ gần đây**. Vé đã mở bị khoá hẳn, không nhập lại được, nên chỉ mở khi thật cần. |
 | Gửi đường dẫn cho nhầm người | Bấm [[Thu hồi]]. Việc này chỉ đóng đường dẫn; người đó đã lưu ảnh thì vé vẫn dùng được. |
@@ -71,7 +74,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Nhập vé từ tệp PDF hoặc gõ tay mã vé.
 - Tự đọc ngày dùng và loại vé trên ảnh để so với phần đã khai.
 - Tự cấp vé cho đơn đang thiếu khi kho vừa có thêm, và báo khi kho sắp hết.
-- Gỡ từng vé khỏi kho.
+- Tự báo người phụ trách đơn khi vé đã gửi khách bị huỷ: người huỷ phải tự mở đơn và gửi lại vé thay.
 - Tự gửi Zalo, mua vé tự động, đối soát tiền mua vé.
 
 ### Nền tảng không thể làm
@@ -96,8 +99,11 @@ export const BAI_VIEC: readonly BaiViec[] = [
 3. Xanh thì cho khách đi. Vàng thì đọc câu báo; vẫn cho khách đi thì bấm [[Xác nhận cho đi]]. Đỏ thì không cho đi, đọc câu báo để biết lý do.
 4. Bấm [[Quét tiếp]] để quét vé kế tiếp.
 5. Camera không mở được thì bấm **Chụp ảnh mã vé** và chụp mã trên vé.
+6. Mã trên vé hỏng hoặc in mờ thì gõ **số sê-ri** in trên vé (dạng VE_ và tám chữ cái, chữ thường hay có khoảng trắng đều được) vào ô «Số sê-ri in trên vé», bấm [[Nhập số sê-ri]]. Máy tra như khi quét nhưng luôn hiện màu vàng «nhập tay»: kiểm đúng vé trước mặt rồi bấm [[Xác nhận cho đi]].
 
 ### Điều dễ sai
+- Số sê-ri gõ tay chưa chứng minh khách cầm vé thật, vì số in trên vé ai nhìn thấy cũng chép được. Vì vậy máy bắt xác nhận và ghi lượt đó là «nhập tay» trong nhật ký. Vé hãng ngoài không tra được ở đây.
+- Vé đỏ «Vé đã huỷ» là vé đã bị văn phòng huỷ (có thể khách còn giữ ảnh cũ). Không cho đi; báo văn phòng để gửi lại vé thay.
 - Tài xế công ty chỉ xem vé có hợp lệ không; lượt quét của họ không tính vào số vé đã đi.
 - Quét nhầm thì bấm [[Bỏ lượt quét]] ở danh sách năm lượt gần nhất, ghi lý do. Đừng gõ số điện thoại hay mã vé vào lý do.
 - Vé đỏ «Đã dùng» hiện giờ và tên người đã quét trước đó; đừng cho khách đi lần hai.`,

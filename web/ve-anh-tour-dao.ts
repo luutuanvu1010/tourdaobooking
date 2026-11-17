@@ -1,6 +1,6 @@
 // Vẽ ảnh vé Tour Đảo (ADR-0175 Đ1.7): PNG dọc 1080 × 1920, nền trắng phẳng, QR đen trên trắng ở nửa trên, chữ hai thứ tiếng.
 // Vị trí từng phần do luật thuần `src/shared/ve-anh-tour-dao-bo-cuc` tính (có bài kiểm); tệp này chỉ nạp phông, logo, màu token rồi vẽ.
-// Mã vé là bí mật: chỉ đi vào ma trận QR, không vào chữ (chỉ 4 ký tự cuối), không ghi console.
+// Mã vé là bí mật: chỉ đi vào ma trận QR, không vào chữ, không ghi console. Số sê-ri (ADR-0217) không bí mật: in thành chữ «Số sê-ri VE_XXXXXXXX» / «Serial No.».
 import { boCucVeTourDao, type MauVe, type NhomLo } from "../src/shared/ve-anh-tour-dao-bo-cuc";
 import { h } from "./dom";
 import { soOMaQr, veMaQr } from "./qr-ve";
@@ -54,12 +54,12 @@ function napLogo(): Promise<HTMLImageElement | null> {
   return logoHua;
 }
 
-export interface VeTourDaoVao { tenCongTy: string; hotline: string; tenDichVu: string; tenDichVuEn: string | null; nhomKhach: NhomLo; denNgay: string; ma: string }
+export interface VeTourDaoVao { tenCongTy: string; hotline: string; tenDichVu: string; tenDichVuEn: string | null; nhomKhach: NhomLo; denNgay: string; ma: string; soSeri: string }
 
 export async function veAnhTourDao(m: VeTourDaoVao): Promise<Blob> {
   const { mau, phong } = docToken();
   const font = (dam: number, px: number): string => `${dam} ${px}px ${phong}`;
-  await napPhong(phong, [...new Set(`${m.tenCongTy}${m.tenDichVu}${m.tenDichVuEn ?? ""}Vé dịch vụ Người lớn Trẻ em Cao tuổi Mọi loại khách Dùng vào ngày đi đã đặt. Hạn cuối Mỗi vé dùng một lần. Xuất trình mã cho nhân viên Tour Đảo. Vé này không phải hóa đơn. Hotline Số vé …0123456789/`)].join(""));
+  await napPhong(phong, [...new Set(`${m.tenCongTy}${m.tenDichVu}${m.tenDichVuEn ?? ""}Vé dịch vụ Người lớn Trẻ em Cao tuổi Mọi loại khách Dùng vào ngày đi đã đặt. Hạn cuối Mỗi vé dùng một lần. Xuất trình mã cho nhân viên Tour Đảo. Vé này không phải hóa đơn. Hotline Số sê-ri Serial No. ABCDEFGHIJKLMNOPQRSTUVWXYZ_.0123456789/`)].join(""));
   const logo = await napLogo();
 
   const anh = h("canvas", null) as HTMLCanvasElement;

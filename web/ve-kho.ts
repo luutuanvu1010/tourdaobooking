@@ -1,6 +1,8 @@
 // Trang "Vé điện tử" (ADR-0153, ADR-0156). Gọi các route của module ve-dien-tu:
 //   GET  /api/ve/kho                    → số vé theo dịch vụ + loại khách (chỉ ĐẾM) và trần lô đang áp
-//   GET  /api/ve/lo                     → các lô còn huỷ được (chưa vé nào từng được giữ chỗ)
+//   GET  /api/ve/lo?tatCa=1             → mọi lô chưa huỷ, mỗi lô kèm `daCap` (ADR-0217); bỏ tham số thì chỉ lô chưa từng cấp
+//   GET  /api/ve/lo/:id/xem-truoc-huy   → con số trước khi huỷ lô đã cấp (huỷ được, giữ nguyên, đơn cấp thay, vé đã gửi)
+//   POST /api/ve/lo/:id/bo              → huỷ lô; lô đã cấp thì bắt buộc `lyDo` (web/ve-kho-huy.ts lo ô lý do, danh sách vé, «Huỷ vé», tìm số sê-ri)
 //   GET  /api/ve/lo-da-huy              → các lô huỷ trong hạn lưu ảnh, mỗi vé kèm trạng thái ảnh
 //   POST /api/ve/lo-da-huy/:veId/mo     → mở ảnh: vé bị khoá hẳn, không nhập lại được
 //   GET  /api/ve/lo-da-huy/:veId/anh    → ảnh của vé đã mở
@@ -22,11 +24,14 @@ import { trangThaiHeThong } from "./trang-thai-he-thong";
 import { docQrTuTep } from "./qr-doc-ve";
 import { initShell, showError } from "./shell";
 import { dungKhoiTaoVe } from "./ve-tao";
+import { hopHuyCoLyDo, khoiTimVe, veCuaLo, type VeTrongLo } from "./ve-kho-huy";
 
 type Nguon = "HANG_NGOAI" | "TOUR_DAO";
 interface KhoDong { catalogCode: string; tenDichVu: string | null; nhomKhach: "ADULT" | "CHILD" | "SENIOR" | "ALL"; nguon: Nguon; conTrong: number; sapHetHan: number; daGiu: number; daGiao: number }
 interface ThemVeRes { loId: string; themDuoc: number; chuaLuuVaoKho: number; loai: { thuTu: number; lyDo: string }[]; veTrongLo: number }
-interface LoBoDuoc { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; nguon: Nguon; trangThai: string; soVe: number; taoLuc: string }
+interface LoBoDuoc { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; nguon: Nguon; trangThai: string; soVe: number; taoLuc: string; daCap?: boolean }
+interface XemTruocHuy { daCap: boolean; tongVe: number; huyDuoc: number; giuNguyenDaDung: number; giuNguyenHangNgoaiDaMo: number; donCapThay: number; daGuiPhaiGuiLai: number }
+interface HuyLoRes { veDaHuy: number; veGiuNguyen: { daDung: number; hangNgoaiDaMo: number }; donXetCapThay: number; conDonChuaCapThay: boolean; canGuiLai: number }
 
 interface VeDaHuy { veId: string; duoiMa: string; tuNgay: string; denNgay: string; trangThaiAnh: "CHUA_MO" | "DA_MO" | "DA_NHAP_LAI" | "HET_ANH" }
 interface LoDaHuy { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: VeDaHuy[] }
@@ -45,6 +50,8 @@ const daHuyEl = byId("vk-da-huy");
 const khoiLoEl = byId("vk-khoi-lo");
 const khoiTaoEl = byId("vk-khoi-tao");
 const taoEl = byId("vk-tao");
+const guiLaiEl = byId("vk-gui-lai");
+const timEl = byId("vk-tim");
 
 const staff = await initShell();
 const lyDoLoi = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
@@ -149,29 +156,73 @@ if (!nhapLo && !taoVe) {
     }
   }
 
+  /** Câu «văn phòng phải gửi lại vé»: đứng yên tới khi người dùng thao tác tiếp (không tự mất như dòng «Đã huỷ…»). */
+  const hienGuiLai = (cau: string | null): void => { guiLaiEl.textContent = cau ?? ""; guiLaiEl.hidden = !cau; };
+  const lamMoi = async (): Promise<void> => { await Promise.all([taiKho(), taiCacLo(), taiLoDaHuy()]); };
+  const sauHuyVe = async (ok: string, guiLai: string | null): Promise<void> => { hienOk(ok); hienGuiLai(guiLai); await lamMoi(); };
+
+  /** «Huỷ lô»: lô chưa từng cấp huỷ như cũ (không cần lý do); lô đã cấp hiện con số do máy chủ đếm và bắt buộc lý do. */
+  async function huyLo(l: LoBoDuoc, nut: HTMLElement): Promise<void> {
+    hienOk(null); hienGuiLai(null);
+    if (!l.daCap) {
+      const dongY = await hoiXacNhan({ tieuDe: "Huỷ lô vé này?", hauQua: `${l.soVe} vé của lô sẽ bị gỡ khỏi kho. Ảnh được lưu thêm ${NGAY_LUU_ANH_LO_HUY} ngày rồi tự xoá. Muốn dùng lại thì nhập đúng các ảnh đó trong lô mới.`, nhanNguyHiem: "Huỷ lô", opener: nut });
+      if (!dongY) return;
+      try {
+        await api(`/api/ve/lo/${encodeURIComponent(l.loId)}/bo`, { method: "POST", body: {} });
+        hienOk("Đã huỷ lô.");
+        await lamMoi();
+      } catch (err) { showError(errorEl, lyDoLoi(err)); }
+      return;
+    }
+    let xem: XemTruocHuy;
+    let donGuiLai: string[] = [];
+    try {
+      xem = await api<XemTruocHuy>(`/api/ve/lo/${encodeURIComponent(l.loId)}/xem-truoc-huy`);
+      if (xem.daGuiPhaiGuiLai > 0) { // mã đơn của các vé đã gửi khách (chỉ khi người xem có quyền xem đơn): để câu báo sau huỷ chỉ đúng đơn cần gửi lại
+        const ds = await api<{ ve: VeTrongLo[] }>(`/api/ve/lo/${encodeURIComponent(l.loId)}/ve-trong-lo`).catch(() => ({ ve: [] as VeTrongLo[] }));
+        donGuiLai = [...new Set(ds.ve.filter((v) => v.tinhTrang === "DA_GUI" && v.maDon).map((v) => v.maDon as string))];
+      }
+    } catch (err) { showError(errorEl, lyDoLoi(err)); return; }
+    const dong = [
+      `Lô có ${xem.tongVe} vé. Huỷ lô sẽ huỷ ${xem.huyDuoc} vé; không hoàn tác được.`,
+      xem.giuNguyenDaDung > 0 ? `Giữ nguyên ${xem.giuNguyenDaDung} vé đã dùng.` : "",
+      xem.giuNguyenHangNgoaiDaMo > 0 ? `Giữ nguyên ${xem.giuNguyenHangNgoaiDaMo} vé hãng ngoài đã mở ảnh.` : "",
+      xem.donCapThay > 0 ? `${xem.donCapThay} đơn đang giữ vé của lô sẽ được trả suất; máy tự cấp vé khác từ kho, kho hết vé thì đơn báo thiếu vé.` : "",
+      xem.daGuiPhaiGuiLai > 0 ? `${xem.daGuiPhaiGuiLai} vé trong số huỷ đã gửi cho khách${donGuiLai.length > 0 ? ` (đơn ${donGuiLai.slice(0, 10).join(", ")}${donGuiLai.length > 10 ? "…" : ""})` : ""}: khách còn cầm vé cũ, vé đó không dùng được nữa. Văn phòng phải gửi lại vé thay.` : "",
+    ].filter(Boolean);
+    let r: HuyLoRes | null = null;
+    const xong = await hopHuyCoLyDo({
+      tieuDe: "Huỷ phần còn lại của lô này?", hauQua: dong, nhanNguyHiem: "Huỷ lô", opener: nut,
+      gui: async (lyDo) => { r = await api<HuyLoRes>(`/api/ve/lo/${encodeURIComponent(l.loId)}/bo`, { method: "POST", body: { lyDo } }); },
+    });
+    if (!xong || !r) return;
+    const k: HuyLoRes = r;
+    const giu = k.veGiuNguyen.daDung + k.veGiuNguyen.hangNgoaiDaMo;
+    hienOk(`Đã huỷ lô: huỷ ${k.veDaHuy} vé${giu > 0 ? `, giữ nguyên ${giu} vé` : ""}. Máy đã xét cấp vé thay cho ${k.donXetCapThay} đơn.${k.conDonChuaCapThay ? " Còn đơn chưa được xét cấp vé thay: mở từng đơn để cấp tay." : ""}`);
+    hienGuiLai(k.canGuiLai > 0 ? `${k.canGuiLai} vé đã gửi cho khách bị huỷ${donGuiLai.length > 0 ? ` (đơn ${donGuiLai.slice(0, 10).join(", ")}${donGuiLai.length > 10 ? "…" : ""})` : ""}: khách còn giữ vé cũ và vé đó không dùng được nữa. Nền tảng chưa tự báo người phụ trách đơn, nên văn phòng phải mở từng đơn đó và gửi lại vé thay cho khách.` : null);
+    await lamMoi();
+  }
+
   async function taiCacLo(): Promise<void> {
     try {
-      const r = await api<{ lo: LoBoDuoc[] }>("/api/ve/lo");
+      const r = await api<{ lo: LoBoDuoc[] }>("/api/ve/lo?tatCa=1");
       if (r.lo.length === 0) { replaceChildren(cacLoEl, h("p", { class: "muted" }, "Không có lô nào.")); return; }
       replaceChildren(cacLoEl, h("ul", { class: "pay-list", "data-khoi": "cac-lo" }, ...r.lo.map((l) => {
-        const moTa = h("p", { class: "muted" }, `${l.tenDichVu ?? "Dịch vụ không còn trong danh mục"} · ${NHAN_NHOM[l.nhomKhach] ?? l.nhomKhach} · ${NHAN_NGUON[l.nguon] ?? l.nguon} · ${l.trangThai === "PENDING" ? "đang dở" : "đã vào kho"} · ${l.soVe} vé · tạo ${ngayVn(l.taoLuc)}`);
-        if (!thaoTacLo(l.nguon)) return h("li", { "data-lo": l.loId }, h("strong", null, l.tenSanPham), moTa);
-        const nut = h("button", { type: "button", class: "btn", "data-action": "bo-lo", "data-id": l.loId }, "Huỷ lô");
-        nut.addEventListener("click", async () => {
-          const dongY = await hoiXacNhan({ tieuDe: "Huỷ lô vé này?", hauQua: `${l.soVe} vé của lô sẽ bị gỡ khỏi kho. Ảnh được lưu thêm ${NGAY_LUU_ANH_LO_HUY} ngày rồi tự xoá. Muốn dùng lại thì nhập đúng các ảnh đó trong lô mới.`, nhanNguyHiem: "Huỷ lô", opener: nut });
-          if (!dongY) return;
-          nut.disabled = true;
-          hienOk(null);
-          try {
-            await api(`/api/ve/lo/${encodeURIComponent(l.loId)}/bo`, { method: "POST", body: {} });
-            hienOk("Đã huỷ lô.");
-            await Promise.all([taiKho(), taiCacLo(), taiLoDaHuy()]);
-          } catch (err) {
-            showError(errorEl, lyDoLoi(err));
-            nut.disabled = false;
-          }
+        const moTa = h("p", { class: "muted" }, `${l.tenDichVu ?? "Dịch vụ không còn trong danh mục"} · ${NHAN_NHOM[l.nhomKhach] ?? l.nhomKhach} · ${NHAN_NGUON[l.nguon] ?? l.nguon} · ${l.trangThai === "PENDING" ? "đang dở" : "đã vào kho"}${l.daCap ? " · đã cấp cho đơn" : ""} · ${l.soVe} vé · tạo ${ngayVn(l.taoLuc)}`);
+        const khuVe = h("div", { "data-khoi": "ve-cua-lo", hidden: true });
+        const nutXem = h("button", { type: "button", class: "btn", "data-action": "xem-ve-lo", "data-id": l.loId, "aria-expanded": "false" }, "Xem vé");
+        nutXem.addEventListener("click", async () => {
+          if (!khuVe.hidden) { khuVe.hidden = true; nutXem.setAttribute("aria-expanded", "false"); return; }
+          khuVe.hidden = false; nutXem.setAttribute("aria-expanded", "true");
+          await veCuaLo(khuVe, l.loId, { huyDuoc: thaoTacLo(l.nguon), sauHuy: sauHuyVe });
         });
-        return h("li", { "data-lo": l.loId }, h("strong", null, l.tenSanPham), moTa, h("div", { class: "handler-actions" }, nut));
+        const nut: HTMLElement[] = [nutXem];
+        if (thaoTacLo(l.nguon)) {
+          const nutHuy = h("button", { type: "button", class: "btn", "data-action": "bo-lo", "data-id": l.loId }, "Huỷ lô");
+          nutHuy.addEventListener("click", async () => { nutHuy.disabled = true; try { await huyLo(l, nutHuy); } finally { nutHuy.disabled = false; } });
+          nut.push(nutHuy);
+        }
+        return h("li", { "data-lo": l.loId }, h("strong", null, l.tenSanPham), moTa, h("div", { class: "handler-actions" }, ...nut), khuVe);
       })));
     } catch (err) {
       replaceChildren(cacLoEl, h("p", { class: "alert", role: "alert" }, lyDoLoi(err)));
@@ -283,6 +334,7 @@ if (!nhapLo && !taoVe) {
 
   // Bước 1 khung chung (N10): khối «Nhập lô mới» (danh mục dài) dựng sau khi tải — giữ chỗ trước để các khối dưới không bị đẩy.
   if (nhapLo) replaceChildren(loEl, trangThaiHeThong("dang-tai", { khuon: "bieu-mau", giuCho: true }));
+  replaceChildren(timEl, khoiTimVe((nguon) => thaoTacLo(nguon as Nguon), sauHuyVe));
   await taiKho();
   await Promise.all([taiCacLo(), taiLoDaHuy(), nhapLo ? dungForm() : null,
     taoVe ? dungKhoiTaoVe(taoEl, { tranLo: () => tranLo, hienOk, sauKhiTao: async () => { await Promise.all([taiKho(), taiCacLo(), taiLoDaHuy()]); } }) : null]);
