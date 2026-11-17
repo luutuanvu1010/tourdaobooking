@@ -103,6 +103,9 @@ const ROUTE_GET: string[] = [...new Set(readdirSync(MODULES).flatMap((m) => {
  */
 const MIEN_200: Record<string, string> = {
   "/api/ve/don/:orderId": "ADR-0153 (kho vé điện tử): danh sách vé của MỘT đơn có vé giữ — bài này không nhập kho vé nên mã đơn lạ ⇒ 404; DTO chỉ SỐ LƯỢNG theo nhóm khách + cờ thu đủ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
+  "/api/ve/lo/:id/xem-truoc-huy": "ADR-0217 Đ3 mục 5: bản xem trước huỷ lô — chỉ số đếm vé (huỷ được, giữ nguyên, đơn cấp thay, vé đã gửi), không tiền, không mã; bài này không nhập kho vé nên mã lô lạ ⇒ 404 / 403; bangDien gọi bằng mã lạ nên thân vẫn được quét",
+  "/api/ve/lo/:id/ve-trong-lo": "ADR-0217 A6: danh sách vé của lô — số sê-ri, hạn, tình trạng, mã đơn khi có order.view; không tiền, không mã vé; bài này không nhập kho vé nên mã lô lạ ⇒ 404 / 403; bangDien gọi bằng mã lạ nên thân vẫn được quét",
+  "/api/ve/tim": "ADR-0217 A6: tìm vé theo số sê-ri (tham số truy vấn bắt buộc) — gọi không tham số ⇒ 400 / 403; DTO như danh sách vé của lô (không tiền, không mã vé); bài này không nhập kho vé nên không có số sê-ri thật để tìm",
   "/api/ve/lo-da-huy/:veId/anh": "Chủ quyết 2/11/2026: thân là byte ảnh vé của lô đã huỷ (không phải JSON, không chở tiền) — cần vé đã mở; bài này không nhập kho; bangDien gọi bằng mã lạ nên thân 404 / 403 vẫn được quét",
   "/api/orders/:id/payments/:receiptId/bien-lai": "ADR-0196 Đ6: thân là byte ảnh biên lai (không phải JSON, không chở tiền) — cần khoản thu có ảnh đã lưu; bài này không gửi ảnh nên mã khoản lạ ⇒ 404 / 403 (ô payment.proof.view), không bao giờ 200",
   "/api/orders/:id/khoan-nop/:nopId/bien-lai": "ADR-0182 phần B: thân là byte ảnh biên lai khoản nộp (không phải JSON, không chở tiền) — cần khoản nộp có ảnh đã lưu; bài này không ghi khoản nộp nên mã lạ ⇒ 404 / 403 (ô dai-ly.nop.xem), không bao giờ 200",
@@ -181,6 +184,9 @@ function bangDien(g: Gieo): Record<string, string[]> {
     "/api/ve/don/:orderId": [`/api/ve/don/${uuid()}`],
     "/api/ve/anh/:allocationId": [`/api/ve/anh/${"0".repeat(32)}`],
     "/api/ve/lo-da-huy/:veId/anh": [`/api/ve/lo-da-huy/${uuid()}/anh`],
+    // ADR-0217: bản xem trước huỷ lô và danh sách vé của lô — chỉ số đếm, số sê-ri, hạn, tình trạng, mã đơn khi có order.view; không tiền. Mã lô lạ ⇒ 404 — vẫn GỌI để thân được quét.
+    "/api/ve/lo/:id/xem-truoc-huy": [`/api/ve/lo/${uuid()}/xem-truoc-huy`],
+    "/api/ve/lo/:id/ve-trong-lo": [`/api/ve/lo/${uuid()}/ve-trong-lo`],
     "/ve/:token": [`/ve/${"A".repeat(43)}`],
     "/api/ve-khach/:token/anh/:slot": [`/api/ve-khach/${"A".repeat(43)}/anh/1`],
     "/api/catalog/:code/group-history": ["/api/catalog/SLX/group-history"],
