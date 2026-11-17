@@ -647,7 +647,7 @@ function tienCard(order: Order): HTMLElement {
   moGhiThu = null;
   // Phí đưa đón Đợt C (ADR-0147 Đ3, ADR-0203 ĐB3): mục «Phí đưa đón» đứng TRÊN «Tạm tính» vì tạm tính đã gồm phí. Số do máy chủ tính và lưu; đơn nháp ghi «dự kiến»;
   // chặng thiếu mức ⇒ băng báo đúng câu 409 lúc xác nhận. Cổng tiền: route đơn chỉ trả đơn cho người qua `money.view` (hoặc nhánh người xét duyệt giữ tiền có chủ đích).
-  const phi = order.phiDuaDon ? dongPhiTrenDon(order.phiDuaDon, vnd, order.bookerName) : null;
+  const phi = order.phiDuaDon ? dongPhiTrenDon(order.phiDuaDon, vnd) : null;
   const rows: HTMLElement[] = [];
   if (phi) {
     rows.push(

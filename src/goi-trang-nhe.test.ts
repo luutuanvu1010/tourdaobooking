@@ -104,7 +104,11 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // trong `allows()` (luật quyền phải ở MỘT nơi, giao diện cùng import). Đo thật 115.103 byte (+180). Không mã giao diện nào vào gói Đơn hàng. Trần = đúng số đo. Chủ dự án duyệt 17/11/2026 (chat, nguyên văn: «Duyệt nới 180 byte»).
 // SIẾT 115.103 → 114.976 (kiểm toàn mốc B2, m5, 17/11/2026): đo thật sau mọi thay đổi giao diện của mốc B2 (Task 15–18) — gói Đơn hàng 114.976 byte (Task 15 vòng sửa 1 gom tiền tố
 // danh sách bí mật làm gói nhỏ lại). Trần = đúng số đo, không khoảng dư; chỉ siết, không nới — các dòng duyệt ở trên giữ làm lịch sử.
-const TRAN_ORDERS = 114_976;
+// Nới 114.890 → 114.978 (+88, Đợt 2 sau kiểm toán, đặc tả 2026-11-16 «lấy lại được dữ liệu», 16/11/2026): thêm ô quyền `audit.money.daily` và tác nhân
+// SOAT_TIEN_HANG_NGAY vào bản đồ quyền mà gói Đơn hàng nhúng; không mã giao diện nào vào gói này. Trần = đúng số đo. CHỜ chủ dự án duyệt con số này (hỏi cùng báo cáo Đợt 2).
+// Gộp main vào nhánh đăng ký đợt 2 (17/11/2026): 114.976 của nhánh + 88 của main (ô `audit.money.daily`) = đo thật 115.064 byte, đúng tổng hai phần thêm,
+// không thêm byte nào do việc gộp. Phần +88 của main vẫn theo dòng «CHỜ chủ dự án duyệt» ở trên. Trần = đúng số đo.
+const TRAN_ORDERS = 115_064;
 
 function dung(trang: string) {
   const r = buildSync({

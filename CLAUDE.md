@@ -83,7 +83,7 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 | Lộ trình, việc tiếp theo | `docs/SYSTEM-DESIGN.md` §14; `docs/HANDOFF-N1.md` (Việc còn treo) |
 | Chế độ bảo trì; Góp ý / Báo lỗi | `docs/HANDOFF-CHE-DO-BAO-TRI.md`; `docs/HANDOFF-FEEDBACK.md` |
 | Lịch sử thi công, ruling, nợ kỹ thuật | `docs/superpowers/plans/*-thi-cong-nhat-ky.md` |
-| Bằng chứng giao diện | `docs/evidence/` |
+| Bằng chứng giao diện | `docs/evidence/` (kịch bản Chrome, báo cáo; **ảnh `.png`/`.jpg` chỉ nằm trên máy, `.gitignore` chặn, không vào kho** — ADR-0215 Đ3) |
 
 ## 7. Quy tắc bắt buộc (chi tiết theo thư mục ở `src/CLAUDE.md`, `web/CLAUDE.md`)
 - **Ngôn ngữ**: giao diện, thông báo lỗi, tài liệu, commit đều **tiếng Việt CÓ DẤU** đầy đủ; không chữ Anh lộ ra người dùng, kể cả mã trạng thái thô như `cancelled`.

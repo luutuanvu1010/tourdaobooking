@@ -2,7 +2,25 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.10 ĐÃ LÊN PRODUCTION (câu báo trần giảm giá đổi thành «Giảm giá không được vượt quá tiền dịch vụ.»; thêm dòng kịch bản Chrome cho phí đưa đón vào `web/CLAUDE.md` — chủ chốt câu chờ 2 và 3 của Đợt C) — không migration — triển khai 2026-11-16 06:53 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.13 ĐÃ LÊN PRODUCTION (phí đưa đón do văn phòng chọn trên từng lượt đón: Miễn phí, 5.000–100.000 đ, Số khác ≤ 5.000.000 đ; chưa chọn thì không xác nhận được; Đối tác không chọn, văn phòng chọn ở bảng Còn vé — ADR-0214) — migration `0173` — triển khai 2026-11-17 10:22 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy (đọc ở ô Terminal của phiên). **Phí đưa đón vẫn chưa thu đồng nào**: ô chọn phí chỉ hiện khi Quản trị đặt «ngày bắt đầu áp» trên màn Phí đưa đón. Bảng phí theo khu vực để nguyên nhưng không còn tính tiền cho đơn. Trạng thái 3.11, 3.12 do nhánh khác ghi.
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-17 10:22 (giờ Việt Nam)
+- Commit: 969606aac day-len: đọc lượt kiểm lỗi thoáng qua thì chờ một nhịp rồi hỏi lại (gồm lần gộp phí đưa đón 1b5e32c73)
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-17T00:40:48Z (có đổi quy trình kiểm)
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/43988744231
+- Đổi quy trình kiểm — lý do của chủ: hoi lai khi GitHub loi thoang qua, khong doi cach kiem (`scripts/release-lib.mjs`); lần nhập phí đưa đón trước đó đổi `scripts/audit-checks.mjs` (bất biến R-ORD-PD-1 nhận dòng phí CHON) và tệp luật ADR-0214 + mục lục ADR
+- Migration đã áp: 0173_phi_don_chon.sql
+- Điểm khôi phục Time Travel trước khi áp: 00002d1a-00000000-00005126-5f8d69c393f76c39c295e9e586d9792d
+- Worker Version ID: ae40727d-797b-4b76-8921-5018031444c6
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT, 2 cảnh báo
+- Phiên bản: 3.13 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: TỔNG 7 phút 17 giây (day-len 6 phút 23 giây; trien-khai 0 phút 54 giây)
+- Chưa thử iPhone thật. Kế tiếp: Quản trị đặt «ngày bắt đầu áp» khi muốn bắt đầu thu phí; chủ chọn tên chính thức cho «Chưa chọn» và nhóm câu báo phí đưa đón trong bảng tham chiếu.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.10 ĐÃ LÊN PRODUCTION (câu báo trần giảm giá đổi thành «Giảm giá không được vượt quá tiền dịch vụ.»; thêm dòng kịch bản Chrome cho phí đưa đón vào `web/CLAUDE.md` — chủ chốt câu chờ 2 và 3 của Đợt C) — không migration — triển khai 2026-11-16 06:53 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy (đọc ở ô Terminal của phiên). Chỉ đổi chữ, không đổi dữ liệu. **Phí đưa đón vẫn chưa thu đồng nào** tới khi Quản trị đặt «ngày bắt đầu áp» (Đợt D).
 
@@ -2036,6 +2054,7 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
 **(c) ADR-0005 mục Quyết định 2 lệch DDL đã duyệt — ghi errata.** ADR viết `stf_permission(staff_id, permission_type_code, created_at, created_by)`, khoá duy nhất `(staff_id, permission_type_code)`; DDL đã duyệt và `0012` thực tế có `id`, `valid_from_at`/`valid_to_at`, đủ bốn cột kiểm toán và chỉ mục duy nhất MỘT PHẦN `stf_permission_open_uq … WHERE valid_to_at IS NULL` (đóng/mở lại quyền giữ lịch sử, đúng "không xoá cứng" của ADR-0003 điều 8). Mã theo DDL; chỉ cần chủ dự án đồng ý ghi errata vào ADR-0005 (chi phí: chỉ tài liệu).
 
 ## Việc còn treo / nợ
+- **Phí đưa đón do văn phòng chọn (ADR-0214, migration `0173`, nhánh `claude/heuristic-turing-a00d98`) — phí vẫn chưa chạy tới khi Quản trị đặt «ngày bắt đầu áp».** Sau khi nhánh lên, mỗi lượt đón chỉ có ô «Phí đưa đón» (biểu mẫu đơn, bảng Còn vé) từ ngày áp; trước đó Nền tảng chạy như hôm nay. Đặt ngày áp là việc của chủ / Quản trị, sau khi xem ảnh `docs/evidence/2026-11-phi-don/phi-don-chon-*.png`. Chờ chủ chọn chữ: «Chưa chọn» (dòng đầu ô) và nhóm câu báo ở Bảng tham chiếu (đang «chờ chọn»). Kịch bản Chrome: `phi-don-chon-smoke.mjs` (ô chọn phí) cùng hai kịch bản cũ đã sửa theo luật mới; nợ kỹ thuật ở nhật ký thi công `docs/superpowers/plans/2026-11-16-phi-don-van-phong-chon-thi-cong-nhat-ky.md`.
 - **Xem như vai trò khác (ADR-0180) chờ gộp và phát hành:** xem mục «ĐANG CHỜ PHÁT HÀNH: Toàn quyền xem như vai trò khác» ở đầu tệp; còn chờ chủ: dấu vai ở sổ riêng của module khác, và xem hình thật (Chrome, iPhone). Danh sách việc của chủ (trùng số ADR 0180, view `v_aut_*`, hiện dấu ở trang Nhật ký, Bảng tin, sổ riêng, số migration, chữ «vai trò»/«Thoát»): ở mục chờ phát hành đó.
 - **CHƯƠNG TRÌNH KHẮC PHỤC KIỂM TOÁN 1–2/10 (lập kế hoạch 2026-10-02, CHƯA thi công) — ưu tiên cao nhất, có hạn sổ dừng dây chuyền.**
   - **Kiểm lại trên `main` @`fc268abe`:**

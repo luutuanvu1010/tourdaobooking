@@ -880,29 +880,26 @@ export const noiHanTraSauStatement = (db: D1Database, v: { orderId: string; hanM
   db.prepare(ORDER_CREDIT_EXTEND).bind(v.orderId, v.hanMoi, v.hetAnHanMoi, v.ngayMoi, v.at, v.hanCu);
 
 // ---- Phí đưa đón trên đơn (Đợt C, Task 3; ADR-0147, ADR-0203; migration 0169) ---------------------------------------------------------------------
-// Dòng phí là dòng `order_item` loại `TRANSFER_FEE`: không dịch vụ, không danh mục; trỏ chặng; mang bản chụp mức (mã mức, kiểu, vùng, cấp, số người chiều về).
+// Dòng phí là dòng `order_item` loại `TRANSFER_FEE`: không dịch vụ, không danh mục; trỏ chặng; mang bản chụp mức (kiểu, số người chiều về; từ ADR-0214 nguồn CHON + kiểu chọn, trước đó mã mức, vùng, cấp).
 // Chỉ ĐƠN NHÁP mới ghi / xoá dòng phí: điều kiện `status = 'draft'` nằm TRONG mọi câu (đơn đã xác nhận ⇒ câu không khớp dòng nào, không chạm trigger 0081).
 // Câu tính lại tạm tính / tổng của đơn nháp sau khi đổi dòng phí ở lô sửa chặng nằm ở repository.ts (`cauTienNhapSauPhi` — ba cột cọc cũ chỉ được ghi ở đó, NT-R9).
 // Không câu nào ở đây đọc `audit_log`: lính gác «lô này thắng» dùng hai cách không cần ngoại lệ DOC_AUDIT_LOG_WONGUARD —
 //   (a) câu ĐỨNG TRƯỚC câu khoá lạc quan của lô (`*_truoc`): điều kiện = đúng mốc đã đọc (lô D1 chạy tuần tự, nguyên tử: lô nào chạy trước đổi mốc, lô sau 0 dòng);
 //   (b) câu ĐỨNG SAU (`fee_item_insert`): có mặt một dòng id MỚI SINH của chính lô (dòng tiền dịch vụ vừa chèn, hoặc chặng vừa chèn) — dòng đó chỉ tồn tại khi lô thắng.
 
-/** Tên khu vực theo mã (view công bố của locations; kể cả khu vực đã ngưng — dòng phí cũ vẫn có tên). */
-const ZONE_LABEL_BY_CODES = defineSql("orders", "zone_label_by_codes", `SELECT code, name FROM v_loc_zone_label WHERE code IN (SELECT value FROM json_each(?1))`);
-
-export async function tenKhuVuc(db: D1Database, codes: readonly string[]): Promise<Map<string, string>> {
-  if (codes.length === 0) return new Map();
-  const { results } = await db.prepare(ZONE_LABEL_BY_CODES).bind(JSON.stringify([...new Set(codes)])).all<{ code: string; name: string }>();
-  return new Map(results.map((r) => [r.code, r.name] as const));
-}
-
-/** Nội dung một dòng phí (chưa có id dòng, id đơn, thứ tự) — `dongPhiThanhItem` (phi-don-don.ts) dựng từ kết quả của `pricing`. */
+/** Nội dung một dòng phí (chưa có id dòng, id đơn, thứ tự) — `dongPhiThanhItem` (phi-don-don.ts) dựng từ mức văn phòng chọn (ADR-0214, nguồn CHON). */
 export interface OrderItemRowPhiDon {
   legId: string;
-  feeRuleId: string;
+  /** Nguồn mức (0173): 'CHON' = văn phòng chọn (ADR-0214); 'BANG_PHI' / null = bảng phí của Đợt C (dòng cũ). */
+  feeSource: "BANG_PHI" | "CHON" | null;
+  /** Kiểu chọn (0173, chỉ nguồn CHON): 'DANH_SACH' (đơn giá thuộc danh sách) hoặc 'SO_KHAC' (1–5.000.000 đ). */
+  feeChoice: "DANH_SACH" | "SO_KHAC" | null;
+  /** Mã mức của bảng phí; null với nguồn CHON (trigger 0173 bắt buộc). */
+  feeRuleId: string | null;
   feeKind: "PER_PAX" | "PER_TRIP";
-  feeZoneCode: string;
-  /** null = mức không có cấp. */
+  /** Khu vực của bảng phí; null với nguồn CHON. */
+  feeZoneCode: string | null;
+  /** null = mức không có cấp (luôn null với nguồn CHON). */
   feeTierCode: string | null;
   /** Số người chiều về (`pax_override`) lúc tính; null = theo số khách của dịch vụ. */
   feeReturnPax: number | null;
@@ -912,18 +909,18 @@ export interface OrderItemRowPhiDon {
   lineTotal: number;
 }
 export type DongPhiGhi = OrderItemRowPhiDon & { id: string; orderId: string; sortOrder: number };
-const FEE_COLS = "id, order_id, line_kind, transfer_leg_id, fee_rule_id, fee_kind, fee_zone_code, fee_tier_code, fee_return_pax, description, detail, quantity, unit_price, line_total, sort_order";
-const FEE_VALUES = "?1, ?2, 'TRANSFER_FEE', ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13";
+const FEE_COLS = "id, order_id, line_kind, transfer_leg_id, fee_rule_id, fee_kind, fee_zone_code, fee_tier_code, fee_return_pax, description, detail, quantity, unit_price, line_total, sort_order, fee_source, fee_choice";
+const FEE_VALUES = "?1, ?2, 'TRANSFER_FEE', ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13, ?14, ?15";
 const feeBinds = (d: DongPhiGhi) =>
-  [d.id, d.orderId, d.legId, d.feeRuleId, d.feeKind, d.feeZoneCode, d.feeTierCode, d.feeReturnPax, d.description, d.quantity, d.unitPrice, d.lineTotal, d.sortOrder];
+  [d.id, d.orderId, d.legId, d.feeRuleId, d.feeKind, d.feeZoneCode, d.feeTierCode, d.feeReturnPax, d.description, d.quantity, d.unitPrice, d.lineTotal, d.sortOrder, d.feeSource, d.feeChoice];
 
-/** (b) Chèn dòng phí SAU chặng của lô (khoá ngoại tới chặng): đơn còn nháp VÀ dòng id mới sinh ?14 của chính lô có mặt (dòng tiền dịch vụ hoặc chặng của đơn). */
+/** (b) Chèn dòng phí SAU chặng của lô (khoá ngoại tới chặng): đơn còn nháp VÀ dòng id mới sinh ?16 của chính lô có mặt (dòng tiền dịch vụ hoặc chặng của đơn). */
 const FEE_ITEM_INSERT = defineSql(
   "orders",
   "fee_item_insert",
   `INSERT INTO order_item (${FEE_COLS}) SELECT ${FEE_VALUES}
    WHERE EXISTS (SELECT 1 FROM orders WHERE id = ?2 AND status = 'draft')
-     AND (EXISTS (SELECT 1 FROM order_item WHERE id = ?14 AND order_id = ?2) OR EXISTS (SELECT 1 FROM ord_transfer_leg WHERE id = ?14 AND order_id = ?2))`,
+     AND (EXISTS (SELECT 1 FROM order_item WHERE id = ?16 AND order_id = ?2) OR EXISTS (SELECT 1 FROM ord_transfer_leg WHERE id = ?16 AND order_id = ?2))`,
 );
 export const feeItemInsert = (db: D1Database, d: DongPhiGhi, idMoiCuaLo: string): D1PreparedStatement => db.prepare(FEE_ITEM_INSERT).bind(...feeBinds(d), idMoiCuaLo);
 
@@ -947,7 +944,7 @@ export const feeItemsDeleteTruoc = (db: D1Database, g: GacTruoc): D1PreparedStat
 const FEE_ITEM_INSERT_TRUOC = defineSql(
   "orders",
   "fee_item_insert_truoc",
-  `INSERT INTO order_item (${FEE_COLS}) SELECT ${FEE_VALUES} WHERE ${GAC_TRUOC("?2", "?14", "?15", "?16")}`,
+  `INSERT INTO order_item (${FEE_COLS}) SELECT ${FEE_VALUES} WHERE ${GAC_TRUOC("?2", "?16", "?17", "?18")}`,
 );
 export const feeItemInsertTruoc = (db: D1Database, d: DongPhiGhi, g: GacTruoc): D1PreparedStatement =>
   db.prepare(FEE_ITEM_INSERT_TRUOC).bind(...feeBinds(d), g.mocDon, g.legId, g.mocChang);
@@ -957,13 +954,15 @@ const FEE_ROWS_BY_ORDER = defineSql(
   "orders",
   "fee_rows_by_order",
   `SELECT i.id, i.transfer_leg_id, l.order_service_id, l.direction, i.fee_kind, i.fee_zone_code, z.name AS zone_name, i.fee_tier_code, i.fee_return_pax,
-     i.description, i.quantity, i.unit_price, i.line_total
+     i.description, i.quantity, i.unit_price, i.line_total, i.fee_choice
    FROM order_item i JOIN ord_transfer_leg l ON l.id = i.transfer_leg_id LEFT JOIN v_loc_zone_label z ON z.code = i.fee_zone_code
    WHERE i.order_id = ?1 AND i.line_kind = 'TRANSFER_FEE' ORDER BY i.sort_order`,
 );
 export interface FeeRow {
-  id: string; transfer_leg_id: string; order_service_id: string; direction: "OUT" | "RETURN"; fee_kind: "PER_PAX" | "PER_TRIP"; fee_zone_code: string; zone_name: string | null;
+  id: string; transfer_leg_id: string; order_service_id: string; direction: "OUT" | "RETURN"; fee_kind: "PER_PAX" | "PER_TRIP"; fee_zone_code: string | null; zone_name: string | null;
   fee_tier_code: string | null; fee_return_pax: number | null; description: string; quantity: number; unit_price: number; line_total: number;
+  /** Kiểu chọn của dòng do văn phòng chọn (ADR-0214); null = dòng bảng phí cũ (trigger 0173: chỉ nguồn CHON mang kiểu chọn). */
+  fee_choice: "DANH_SACH" | "SO_KHAC" | null;
 }
 export const feeRowsStatement = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(FEE_ROWS_BY_ORDER).bind(orderId);
 

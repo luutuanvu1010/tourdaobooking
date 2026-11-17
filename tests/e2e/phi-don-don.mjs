@@ -1,141 +1,121 @@
-// Phí đưa đón trên ĐƠN NHÁP (Đợt C, Task 3; ADR-0147 Đ1–Đ3, ADR-0203; sổ vàng SV-PD-02, SV-PD-28) trên API THẬT (wrangler dev, D1 local tạm):
-//   (1) SV-PD-28: ngày bắt đầu áp là NGÀY MAI ⇒ lập đơn nháp có đón ở khu vực thử: không dòng phí, tạm tính như hôm nay, `phiDuaDon = null`;
-//   (2) SV-PD-02 (kiểu): ngày bắt đầu áp = HÔM NAY ⇒ đơn 2 người lớn + 1 trẻ em đón ở khu vực thử (mức 100.000₫/khách): LƯU NHÁP ⇒ tạm tính tăng đúng 300.000₫,
-//       một dòng phí, `duKien = true`; đơn của (1) lưu lại sau khi áp ⇒ có dòng phí;
-//   (3) sửa số người chiều về trên nháp (PUT …/legs/:legId) ⇒ phí dự kiến của chiều về đổi theo, tạm tính đổi theo.
-// Ngày xét luôn là HÔM NAY theo giờ Việt Nam (đơn nháp tính theo hôm nay — không dùng ngày của sổ vàng). Dữ liệu dùng một lần: khu vực + địa điểm mang hậu tố
-// theo Date.now(). Ở `finally`: TẮT phí (đặt ngày bắt đầu áp = trống), kết thúc mọi mức đã thêm (bảng chỉ thêm), đưa địa điểm ra khỏi khu vực rồi ngưng khu vực —
-// như `phi-don.mjs`, để kịch bản sau trên D1 chung không thấy phí đang áp. Đơn nháp thử để lại (nháp, không ảnh hưởng sổ).
+// Phí đưa đón do VĂN PHÒNG CHỌN trên ĐƠN NHÁP (ADR-0214, Task 3; sổ vàng golden/phi-dua-don-chon.json SV-PC-01, 03, 04, 06, 07, 14) trên API THẬT (wrangler dev, D1 local tạm):
+//   (1) SV-PC-14: ngày bắt đầu áp là NGÀY MAI ⇒ lập đơn kèm mức: không dòng phí, tạm tính như hôm nay, `phiDuaDon = null` (mức vẫn được kiểm);
+//   (2) SV-PC-01 (kiểu): áp từ HÔM NAY ⇒ chiều đi chọn 30.000 cho 2 người lớn ⇒ 60.000, một dòng «trong danh sách», dự kiến; [Điểm 2] lưu nháp đổi 2 → 3 người lớn,
+//       KHÔNG gửi lại mức (khoá vắng = giữ mức đã lưu) ⇒ 30.000 × 3;
+//   (3) SV-PC-03 số khác 70.000 × 3; SV-PC-04 số khác 6.000.000 ⇒ 400 «Mức phí tối đa 5.000.000 đ.»; SV-PC-06 xe riêng 500.000 × 1;
+//   (4) SV-PC-07 đi 20.000 × 3 + về 20.000 × 1 (chiều về 1 người); sửa số người chiều về trên nháp ⇒ dòng chiều về tính lại theo mức đã lưu;
+//   (5) tài khoản Đối tác gửi kèm mức ⇒ 400 `transfer_fee_not_allowed`; không gửi mức ⇒ lập được, lượt đón «chưa chọn».
+// Bảng phí theo khu vực KHÔNG cần (ADR-0214: không còn dùng cho đơn; đặt ngày bắt đầu áp không đòi mức chung). Ngày xét luôn là HÔM NAY theo giờ Việt Nam. Ở `finally`: TẮT phí
+// (ngày bắt đầu áp = trống) để kịch bản sau trên D1 chung không thấy phí đang áp. Đơn nháp thử để lại (nháp, không ảnh hưởng sổ).
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, session, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, orderInput, session, sqlRows, vnDate } from "./lib.mjs";
 
 const SALES = await session(ACCOUNTS.salesA);
 const ADMIN = await session(ACCOUNTS.admin);
 await ensureFakeCatalog();
 
-const S = String(Date.now()).slice(-6);
-const ZONE = `E2E_PDD${S}`;
 const BEN = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha Trang (migration 0010)
 const HOM_NAY = vnDate(0);
 const NGAY_MAI = vnDate(1);
-const HOM_QUA = vnDate(-1);
-const MUC = 100_000; // phí khu vực thử, mỗi khách
+const DS = (soTien) => ({ loai: "DANH_SACH", soTien });
+const SK = (soTien) => ({ loai: "SO_KHAC", soTien });
+const DON = (extra = {}) => ({ direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: "Khách sạn thử phí", dropoffLocationId: BEN, dropoffPlace: "", ...extra });
+const VE = (extra = {}) => ({ direction: "RETURN", pickupDate: vnDate(8), pickupTime: "16:00", pickupLocationId: BEN, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "Khách sạn thử phí", ...extra });
 
-const bang = async () => (await call(ADMIN, "GET", "/api/pricing/phi-don?ngay=0001-01-01")).body;
 const datBatDau = async (ngay) => {
   const tuLuc = (await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp.tuLuc;
   const r = await call(ADMIN, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay, tuLucDaDoc: tuLuc });
   assert.equal(r.status, 200, `đặt ngày bắt đầu áp ${ngay}: ${r.status} ${JSON.stringify(r.body)}`);
 };
-const dongPhiDb = async (id) => sqlRows(`SELECT transfer_leg_id, fee_zone_code, fee_return_pax, quantity, unit_price, line_total FROM order_item WHERE order_id = '${id}' AND line_kind = 'TRANSFER_FEE' ORDER BY sort_order`);
+const dongPhiDb = async (id) => sqlRows(`SELECT i.transfer_leg_id, l.direction, i.fee_source, i.fee_choice, i.fee_rule_id, i.fee_zone_code, i.fee_kind, i.fee_return_pax, i.quantity, i.unit_price, i.line_total
+  FROM order_item i JOIN ord_transfer_leg l ON l.id = i.transfer_leg_id WHERE i.order_id = '${id}' AND i.line_kind = 'TRANSFER_FEE' ORDER BY i.sort_order`);
 const tongDongDb = async (id) => (await sqlRows(`SELECT COALESCE(SUM(line_total), 0) AS n FROM order_item WHERE order_id = '${id}'`))[0].n;
-const xem = async (id) => (await call(SALES, "GET", `/api/orders/${id}`)).body.order;
+const lap = async (pax, legs, ai = SALES) => {
+  const r = await call(ai, "POST", "/api/orders", orderInput({ services: [catalogService({ pax, legs })] }));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  return r.body.order;
+};
 
-const da = { diaDiemId: null, mucDaThem: [], vungDaTao: null };
 try {
-  // ---- dựng: khu vực thử + địa điểm trong khu vực; mức chung cho khu vực thử và cho mọi khu vực đang bật còn thiếu mức chung (điều kiện để bật phí)
-  let r = await call(ADMIN, "POST", "/api/location-zones", { code: ZONE, name: `Khu vực phí đơn ${S}`, sortOrder: 7 });
-  assert.equal(r.status, 201, JSON.stringify(r.body));
-  da.vungDaTao = ZONE;
-  r = await call(ADMIN, "POST", "/api/locations", { code: `PDD_${S}`, name: `Khách sạn phí đơn ${S}`, locationTypeCode: "HOTEL", address: null, sortOrder: 96 });
-  assert.equal(r.status, 201, JSON.stringify(r.body));
-  const ks = r.body.location;
-  da.diaDiemId = ks.id;
-  r = await call(ADMIN, "PUT", `/api/locations/${ks.id}`, { name: ks.name, locationTypeCode: ks.locationTypeCode, address: ks.address, sortOrder: ks.sortOrder, active: ks.active, zoneCode: ZONE, expectedUpdatedAt: ks.updatedAt });
-  assert.equal(r.status, 200, JSON.stringify(r.body));
-  const b0 = await bang();
-  assert.equal(b0.batDauAp.ngay, null, "đầu kịch bản: phí đang tắt (kịch bản trước đã dọn)");
-  const coMucChung = (vung) => b0.muc.some((m) => m.dieuKien.vung === vung && m.dieuKien.cap === null && m.dieuKien.dichVu === null && m.dieuKien.nhom === null
-    && m.dieuKien.chieu === null && m.dieuKien.xeRieng === false && m.tuNgay <= HOM_NAY && (m.denNgay === null || m.denNgay >= NGAY_MAI));
-  for (const v of b0.vung.map((x) => x.code)) {
-    if (v !== ZONE && coMucChung(v)) continue;
-    r = await call(ADMIN, "POST", "/api/pricing/phi-don", { kind: "PER_PAX", amount: v === ZONE ? MUC : 20_000, validFrom: HOM_QUA, validTo: null, note: "e2e phi-don-don", dieuKien: [{ khoa: "ZONE", giaTri: v }] });
-    assert.equal(r.status, 201, `mức chung ${v}: ${r.status} ${JSON.stringify(r.body)}`);
-    da.mucDaThem.push(r.body.muc.id);
-  }
-  const DON = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: ks.id, pickupPlace: "", dropoffLocationId: BEN, dropoffPlace: "" };
-  const VE = { direction: "RETURN", pickupDate: vnDate(8), pickupTime: "16:00", pickupLocationId: BEN, pickupPlace: "", dropoffLocationId: ks.id, dropoffPlace: "" };
+  assert.equal((await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp.ngay, null, "đầu kịch bản: phí đang tắt (kịch bản trước đã dọn)");
 
-  // ---- (1) SV-PD-28: trước ngày bắt đầu áp
+  // ---- (1) SV-PC-14: trước ngày bắt đầu áp
   await datBatDau(NGAY_MAI);
-  r = await call(SALES, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, legs: [DON] })] }));
-  assert.equal(r.status, 201, JSON.stringify(r.body));
-  const truocAp = r.body.order;
+  const truocAp = await lap({ adult: 2 }, [DON({ phiDon: DS(30_000) })]);
   assert.equal(truocAp.services[0].legs.length, 1, "đơn thử thật sự có chặng đưa đón");
   assert.deepEqual(await dongPhiDb(truocAp.id), [], "trước ngày áp: không dòng phí");
   assert.equal(truocAp.subtotal, 200_000);
   assert.equal(truocAp.phiDuaDon, null);
-  console.log("✓ (1) SV-PD-28: trước ngày bắt đầu áp — không dòng phí, tạm tính như hôm nay, phiDuaDon = null");
+  const r1 = await call(SALES, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, legs: [DON({ phiDon: SK(6_000_000) })] })] }));
+  assert.equal(r1.status, 400, "trước ngày áp vẫn kiểm mức");
+  console.log("✓ (1) SV-PC-14: trước ngày bắt đầu áp — không dòng phí dù có mức, tạm tính như hôm nay, phiDuaDon = null");
 
-  // ---- (2) SV-PD-02 kiểu: áp từ hôm nay, lập rồi LƯU NHÁP
+  // ---- (2) SV-PC-01 kiểu + [Điểm 2]
   await datBatDau(HOM_NAY);
-  r = await call(SALES, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2, child: 1 }, legs: [DON] })] }));
-  assert.equal(r.status, 201, JSON.stringify(r.body));
-  const o = r.body.order;
-  const dv = o.services[0];
-  const thanLuu = (don, legs) => ({
-    ...orderInput({ services: [catalogService({ id: don.services[0].id, pax: { adult: 2, child: 1 }, legs })] }), expectedUpdatedAt: don.updatedAt,
-  });
-  const giuChang = (l) => ({ id: l.id, direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: l.pickupLocationId, pickupPlace: "", dropoffLocationId: l.dropoffLocationId, dropoffPlace: "" });
-  r = await call(SALES, "PUT", `/api/orders/${o.id}`, thanLuu(o, dv.legs.map(giuChang)));
+  const o = await lap({ adult: 2 }, [DON({ phiDon: DS(30_000) })]);
+  const leg = o.services[0].legs[0];
+  assert.equal(o.subtotal, 200_000 + 60_000);
+  assert.equal(o.total, o.subtotal);
+  assert.deepEqual(await dongPhiDb(o.id), [{
+    transfer_leg_id: leg.id, direction: "OUT", fee_source: "CHON", fee_choice: "DANH_SACH", fee_rule_id: null, fee_zone_code: null, fee_kind: "PER_PAX", fee_return_pax: null,
+    quantity: 2, unit_price: 30_000, line_total: 60_000,
+  }]);
+  assert.equal(o.phiDuaDon.duKien, true, "đơn nháp: phí «dự kiến»");
+  assert.deepEqual(o.phiDuaDon.thieu, []);
+  assert.deepEqual(o.phiDuaDon.dong.map((d) => [d.loaiChon, d.quantity, d.unitPrice, d.lineTotal]), [["DANH_SACH", 2, 30_000, 60_000]]);
+  assert.equal(await tongDongDb(o.id), o.subtotal, "tạm tính = Σ mọi dòng");
+  const giuChang = (l) => ({ id: l.id, direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: l.pickupLocationId, pickupPlace: l.pickupPlace ?? "",
+    dropoffLocationId: l.dropoffLocationId, dropoffPlace: l.dropoffLocationId ? "" : (l.dropoffPlace ?? "") });
+  let r = await call(SALES, "PUT", `/api/orders/${o.id}`, { ...orderInput({ services: [catalogService({ id: o.services[0].id, pax: { adult: 3 }, legs: [giuChang(leg)] })] }), expectedUpdatedAt: o.updatedAt });
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  const luu = r.body.order;
-  assert.equal(luu.subtotal, 250_000 + 3 * MUC, "2 × 100.000 + 1 × 50.000 dịch vụ + 3 khách × 100.000 phí");
-  assert.equal(luu.total, luu.subtotal);
-  assert.deepEqual(luu.phiDuaDon.dong.map((d) => [d.legId, d.zoneCode, d.direction, d.quantity, d.unitPrice, d.lineTotal]), [[dv.legs[0].id, ZONE, "OUT", 3, MUC, 3 * MUC]]);
-  assert.equal(luu.phiDuaDon.duKien, true, "đơn nháp: phí «dự kiến»");
-  assert.deepEqual(luu.phiDuaDon.thieu, []);
-  assert.deepEqual(luu.services[0].items.map((i) => i.lineTotal), [200_000, 50_000], "dòng phí không lẫn vào dòng dịch vụ");
+  assert.equal(r.body.order.subtotal, 300_000 + 90_000, "khoá phiDon vắng ⇒ giữ 30.000, tính lại 3 khách");
   assert.equal((await dongPhiDb(o.id)).length, 1, "lưu lại không nhân đôi dòng phí");
-  assert.equal(await tongDongDb(o.id), luu.subtotal, "tạm tính = Σ mọi dòng (khớp trigger 0081 lúc xác nhận)");
-  // đơn lập TRƯỚC ngày áp, lưu lại sau khi áp ⇒ có dòng phí
-  r = await call(SALES, "PUT", `/api/orders/${truocAp.id}`, { ...orderInput({ services: [catalogService({ id: truocAp.services[0].id, pax: { adult: 2 }, legs: truocAp.services[0].legs.map(giuChang) })] }), expectedUpdatedAt: truocAp.updatedAt });
-  assert.equal(r.status, 200, JSON.stringify(r.body));
-  assert.equal(r.body.order.subtotal, 200_000 + 2 * MUC);
-  assert.equal((await dongPhiDb(truocAp.id)).length, 1);
-  console.log("✓ (2) SV-PD-02 kiểu: lưu nháp ⇒ tạm tính tăng đúng phí, một dòng phí, dự kiến; nháp lập trước ngày áp lưu lại ⇒ có phí");
+  assert.equal(await tongDongDb(o.id), r.body.order.subtotal);
+  console.log("✓ (2) SV-PC-01 kiểu: 30.000 × 2 = 60.000, dự kiến; lưu nháp 3 người lớn không gửi lại mức ⇒ 30.000 × 3");
 
-  // ---- (3) sửa số người chiều về trên nháp ⇒ phí dự kiến đổi
-  r = await call(SALES, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 3 }, legs: [DON, VE] })] }));
-  assert.equal(r.status, 201, JSON.stringify(r.body));
-  const k = r.body.order;
-  assert.equal(k.subtotal, 300_000 + 6 * MUC, "chiều đi 3 × 100.000 + chiều về 3 × 100.000");
+  // ---- (3) SV-PC-03, SV-PC-04, SV-PC-06
+  const a = await lap({ adult: 3 }, [DON({ phiDon: SK(70_000) })]);
+  assert.deepEqual((await dongPhiDb(a.id)).map((d) => [d.fee_choice, d.quantity, d.unit_price, d.line_total]), [["SO_KHAC", 3, 70_000, 210_000]]);
+  assert.equal(a.subtotal, 300_000 + 210_000);
+  r = await call(SALES, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, legs: [DON({ phiDon: SK(6_000_000) })] })] }));
+  assert.equal(r.status, 400, JSON.stringify(r.body));
+  assert.equal(r.body.error.message, "Mức phí tối đa 5.000.000 đ.");
+  const x = await lap({ adult: 4 }, [DON({ exclusiveVehicle: true, phiDon: SK(500_000) })]);
+  assert.deepEqual((await dongPhiDb(x.id)).map((d) => [d.fee_kind, d.quantity, d.line_total]), [["PER_TRIP", 1, 500_000]]);
+  assert.equal(x.subtotal, 400_000 + 500_000);
+  console.log("✓ (3) SV-PC-03 số khác 70.000 × 3; SV-PC-04 6.000.000 ⇒ 400 đúng câu; SV-PC-06 xe riêng 500.000 × 1");
+
+  // ---- (4) SV-PC-07 + sửa số người chiều về trên nháp
+  const k = await lap({ adult: 3 }, [DON({ phiDon: DS(20_000) }), VE({ paxOverride: 1, phiDon: DS(20_000) })]);
+  assert.equal(k.subtotal, 300_000 + 60_000 + 20_000);
+  assert.deepEqual((await dongPhiDb(k.id)).map((d) => [d.direction, d.quantity, d.line_total, d.fee_return_pax]).sort(), [["OUT", 3, 60_000, null], ["RETURN", 1, 20_000, 1]]);
   const ve = k.services[0].legs.find((l) => l.direction === "RETURN");
-  r = await call(SALES, "PUT", `/api/orders/${k.id}/legs/${ve.id}`, { paxOverride: 1, expectedUpdatedAt: ve.updatedAt });
+  r = await call(SALES, "PUT", `/api/orders/${k.id}/legs/${ve.id}`, { paxOverride: 2, expectedUpdatedAt: ve.updatedAt });
   assert.equal(r.status, 200, JSON.stringify(r.body));
-  const k2 = await xem(k.id);
-  assert.equal(k2.subtotal, 300_000 + 4 * MUC, "chiều về còn 1 người");
-  assert.deepEqual(k2.phiDuaDon.dong.map((d) => [d.direction, d.quantity, d.lineTotal]).sort(), [["OUT", 3, 3 * MUC], ["RETURN", 1, MUC]]);
-  assert.equal(k2.phiDuaDon.duKien, true);
-  assert.deepEqual((await dongPhiDb(k.id)).find((d) => d.transfer_leg_id === ve.id)?.fee_return_pax, 1, "bản chụp số người chiều về trên dòng phí");
+  const k2 = (await call(SALES, "GET", `/api/orders/${k.id}`)).body.order;
+  assert.equal(k2.subtotal, 300_000 + 60_000 + 40_000, "chiều về 2 người × 20.000 (mức đã lưu)");
   assert.equal(await tongDongDb(k.id), k2.subtotal);
-  console.log("✓ (3) sửa số người chiều về trên nháp ⇒ phí dự kiến chiều về đổi theo, tạm tính khớp Σ dòng");
+  console.log("✓ (4) SV-PC-07: đi 60.000 + về 20.000; sửa số người chiều về ⇒ tính lại theo mức đã lưu");
+
+  // ---- (5) tài khoản Đối tác
+  const DOI_TAC = (await gieoTaiKhoanLai(`Đối tác phí đón ${String(Date.now()).slice(-6).replace(/\d/g, (d) => "ABCDEGHKLM"[d])}`, ["PARTNER"])).cookie;
+  r = await call(DOI_TAC, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, legs: [DON({ phiDon: DS(30_000) })] })] }));
+  assert.equal(r.status, 400, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "transfer_fee_not_allowed");
+  const p = await lap({ adult: 2 }, [DON()], DOI_TAC);
+  assert.deepEqual(await dongPhiDb(p.id), []);
+  assert.deepEqual(p.phiDuaDon.thieu.map((t) => [t.direction, t.lyDo]), [["OUT", "CHUA_CHON"]]);
+  console.log("✓ (5) Đối tác gửi mức ⇒ 400 transfer_fee_not_allowed; không gửi ⇒ lập được, lượt đón «chưa chọn»");
 } finally {
-  // Dọn theo đúng thứ tự: TẮT phí → kết thúc mọi mức đã thêm → đưa địa điểm ra khỏi khu vực → ngưng khu vực thử. Mỗi bước tự bắt lỗi: dọn dở cũng không che lỗi gốc.
-  const thu = async (ten, f) => { try { await f(); } catch (e) { console.error(`dọn «${ten}» lỗi: ${e?.message ?? e}`); } };
-  await thu("tắt ngày bắt đầu áp", async () => {
+  try {
     const ap = (await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp;
     if (ap.ngay !== null) {
       const r = await call(ADMIN, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay: null, tuLucDaDoc: ap.tuLuc });
       assert.equal(r.status, 200, JSON.stringify(r.body));
     }
     assert.equal((await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp.ngay, null, "cuối kịch bản: ngày bắt đầu áp = tắt");
-  });
-  await thu("kết thúc mức", async () => {
-    // Chỉ kết thúc mức của KHU VỰC THỬ (Đợt C, Task 5): mức chung đã thêm cho khu vực đang bật còn thiếu để MỞ — phí đã tắt nên không đổi tiền đơn nào; kết thúc nó (ngày cuối = ngày đầu
-    // = hôm qua) làm kịch bản phí sau trên CÙNG D1 không thêm lại được mức từ hôm qua (409 prc_overlap — đã gặp khi chạy nối phi-don-don → phi-don-xac-nhan).
-    const mo = (await bang()).muc.filter((m) => da.mucDaThem.includes(m.id) && m.denNgay === null && m.dieuKien.vung === ZONE);
-    for (const m of mo) await call(ADMIN, "POST", `/api/pricing/phi-don/${m.id}/ket-thuc`, { validTo: m.tuNgay, expectedUpdatedAt: m.updatedAt });
-  });
-  await thu("đưa địa điểm ra khỏi khu vực", async () => {
-    if (!da.diaDiemId) return;
-    const l = (await call(ADMIN, "GET", "/api/locations")).body.locations.find((x) => x.id === da.diaDiemId);
-    await call(ADMIN, "PUT", `/api/locations/${l.id}`, { name: l.name, locationTypeCode: l.locationTypeCode, address: l.address, sortOrder: l.sortOrder, active: false, zoneCode: null, expectedUpdatedAt: l.updatedAt });
-  });
-  await thu("ngưng khu vực thử", async () => {
-    if (!da.vungDaTao) return;
-    const z = (await call(ADMIN, "GET", "/api/locations")).body.zones.find((x) => x.code === da.vungDaTao);
-    if (z && z.active) await call(ADMIN, "PUT", `/api/location-zones/${da.vungDaTao}`, { name: z.name, sortOrder: z.sortOrder, active: false, expectedUpdatedAt: z.updatedAt });
-  });
+  } catch (e) {
+    console.error(`dọn «tắt ngày bắt đầu áp» lỗi: ${e?.message ?? e}`);
+  }
 }
 console.log("E2E PHI-DON-DON OK");

@@ -778,7 +778,7 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM order_item i
        WHERE i.line_kind = 'TRANSFER_FEE'
          AND (NOT EXISTS (SELECT 1 FROM ord_transfer_leg l WHERE l.id = i.transfer_leg_id AND l.order_id = i.order_id)
-           OR NOT EXISTS (SELECT 1 FROM prc_transfer_fee_rule r WHERE r.id = i.fee_rule_id)
+           OR (i.fee_source IS NOT 'CHON' AND NOT EXISTS (SELECT 1 FROM prc_transfer_fee_rule r WHERE r.id = i.fee_rule_id))
            OR i.line_total <> i.quantity * i.unit_price
            OR (i.fee_kind = 'PER_TRIP' AND i.quantity <> 1))`,
     level: "fail",

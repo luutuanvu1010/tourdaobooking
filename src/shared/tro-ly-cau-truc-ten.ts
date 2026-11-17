@@ -159,6 +159,7 @@ export const TEN_THAO_TAC: Readonly<Record<OperationCode, TenLoiThuong>> = {
   "ve.quet.tinh": { ten: "quét vé Tour Đảo (tính đã dùng)", moTa: "Quét vé Tour Đảo và tính vé đã dùng. Hướng dẫn viên, Bán hàng, Quản lý bán hàng, Kế toán, Quản trị và Toàn quyền; Tài xế chỉ xem." },
   "ve.quet.xem": { ten: "quét vé Tour Đảo (chỉ xem)", moTa: "Quét vé Tour Đảo để xem vé có hợp lệ không, không tính đã dùng. Mọi người quét được, thêm Tài xế công ty." },
   "ve.cap.send": { ten: "giữ chỗ và gửi vé điện tử cho khách", moTa: "Bấm cấp vé khi còn thiếu, xem ảnh vé và gửi cho khách khi khách đã trả đủ. Bán hàng chỉ với khách của mình hoặc được giao; Quản trị và Toàn quyền với mọi khách." },
+  "audit.money.daily": { ten: "soát tiền hằng ngày (Nền tảng tự làm)", moTa: "Mỗi sáng 7 giờ Nền tảng tự soát số liệu tiền và vé; có chỗ lệch thì gửi một thư nêu tên luật và số chỗ lệch, không kèm tên khách hay số tiền. Không có nút cho người bấm." },
   "ve.kho.purge": { ten: "xoá ảnh vé hết hạn lưu (Nền tảng tự làm)", moTa: "Nền tảng tự xoá ảnh vé của lô đã huỷ khi quá hạn lưu, rồi ghi một dòng Xoá ảnh vé hết hạn lưu vào nhật ký. Không có nút cho người bấm." },
   "settings.ops": { ten: "cài đặt vận hành", moTa: "Bảo trì, chính sách điều phối, trợ lý Hỗ trợ và các cài đặt chung." },
   "order.pool.view": { ten: "xem hàng chờ nhận", moTa: "Xem các đơn chưa có người phụ trách để bấm nhận." },
@@ -211,6 +212,10 @@ export const O_HEP: Readonly<Partial<Record<OperationCode, { readonly chiVai: re
   "credit.due.remind": {
     chiVai: [],
     lyDo: "ADR-0186 Đ2: chỉ tác nhân NHAC_HAN_TRA_SAU (Cron) dùng; Toàn quyền có ô chỉ vì ADR-0014 điều 2, không có nút hay route nào cho người.",
+  },
+  "audit.money.daily": {
+    chiVai: [],
+    lyDo: "Đợt 2 sau kiểm toán (đặc tả 2026-11-16): chỉ tác nhân SOAT_TIEN_HANG_NGAY (Cron) dùng; Toàn quyền có ô chỉ vì ADR-0014 điều 2, không có nút hay route nào cho người.",
   },
   "ve.kho.purge": {
     chiVai: [],

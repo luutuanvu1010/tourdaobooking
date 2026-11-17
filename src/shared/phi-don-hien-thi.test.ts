@@ -170,7 +170,7 @@ test("dongPhiTrenDon: mỗi chặng một dòng — chiều, khu vực, dòng ph
     thieu: [],
     duKien: false,
   };
-  const r = dongPhiTrenDon(p, tien, null);
+  const r = dongPhiTrenDon(p, tien);
   assert.equal(r.tieuDe, "Phí đưa đón");
   assert.deepEqual(r.dong, [
     { nhan: "Chiều đi · Bãi Dài – Cam Ranh", chiTiet: "2 khách × 70.000 ₫", giaTri: "140.000 ₫" },
@@ -182,26 +182,27 @@ test("dongPhiTrenDon: mỗi chặng một dòng — chiều, khu vực, dòng ph
   assert.doesNotMatch(JSON.stringify(r), KHONG_MA_THO);
 });
 
-test("dongPhiTrenDon: đơn nháp ghi «dự kiến»; chặng thiếu mức ⇒ câu băng báo ĐÚNG câu 409 của lúc xác nhận (không trùng lặp), kể cả khi chưa có dòng nào", () => {
+test("dongPhiTrenDon: đơn nháp ghi «dự kiến»; lượt đón chưa chọn ⇒ câu băng báo ĐÚNG câu 409 của lúc xác nhận (ADR-0214 Đ3, không trùng lặp), kể cả khi chưa có dòng nào", () => {
   const p: PhiDuaDonCuaDonDto = {
     dong: [],
     thieu: [
-      { legId: "l1", zoneName: "Bắc Nha Trang", lyDo: "KHONG_CO_MUC" },
-      { legId: "l2", zoneName: "Bắc Nha Trang", lyDo: "KHONG_CO_MUC" },
-      { legId: "l3", zoneName: "Bãi Dài", lyDo: "XUNG_DOT" },
-      { legId: "l4", zoneName: "Bãi Dài", lyDo: "DAI_LY_HAI_CAP" },
+      { legId: "l1", serviceId: "s1", serviceName: "Tour lặn biển", direction: "OUT", lyDo: "CHUA_CHON" },
+      { legId: "l2", serviceId: "s1", serviceName: "Tour lặn biển", direction: "OUT", lyDo: "CHUA_CHON" },
+      { legId: "l3", serviceId: "s1", serviceName: "Tour lặn biển", direction: "RETURN", lyDo: "CHUA_CHON" },
+      { legId: "l4", serviceId: "s2", serviceName: "Tour Đảo Khỉ", direction: "OUT", lyDo: "CHUA_CHON" },
     ],
     duKien: true,
   };
-  const r = dongPhiTrenDon(p, tien, "Lữ Hành Dò Tìm");
+  const r = dongPhiTrenDon(p, tien);
   assert.equal(r.tieuDe, "Phí đưa đón (dự kiến)");
   assert.deepEqual(r.dong, []);
   assert.deepEqual(r.thieu, [
-    cauThieuPhiDon({ lyDo: "KHONG_CO_MUC", tenVung: "Bắc Nha Trang" }, "Lữ Hành Dò Tìm"),
-    cauThieuPhiDon({ lyDo: "XUNG_DOT", tenVung: "Bãi Dài" }, "Lữ Hành Dò Tìm"),
-    "Cần gán cấp riêng cho đối tác Lữ Hành Dò Tìm trước khi xác nhận.",
+    cauThieuPhiDon({ direction: "OUT", tenDichVu: "Tour lặn biển" }),
+    cauThieuPhiDon({ direction: "RETURN", tenDichVu: "Tour lặn biển" }),
+    "Chọn phí đưa đón cho lượt đón chiều đi của dịch vụ Tour Đảo Khỉ trước khi xác nhận.",
   ]);
-  assert.equal(r.thieu[0], "Quản trị cần đặt phí đưa đón cho khu vực Bắc Nha Trang trước khi xác nhận.");
+  assert.equal(r.thieu[0], "Chọn phí đưa đón cho lượt đón chiều đi của dịch vụ Tour lặn biển trước khi xác nhận.");
+  assert.doesNotMatch(r.thieu.join(" "), KHONG_MA_THO);
 });
 
 test("CHU_THIEU_MUC của Thử tra: không còn nói «khi phí được cộng vào đơn» (Đợt C đã cộng phí vào đơn)", async () => {

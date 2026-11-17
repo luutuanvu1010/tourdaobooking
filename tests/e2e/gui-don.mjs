@@ -14,6 +14,7 @@ await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,pric
 
 const SALES = await session(ACCOUNTS.salesA);
 const SUPER = await session(ACCOUNTS.superAdmin);
+const ADMIN = await session(ACCOUNTS.admin);
 const tag = Date.now().toString(36);
 const DOI_TAC = (await gieoTaiKhoanLai(`Đối tác gửi đơn ${tag}`, ["PARTNER"])).cookie;
 const LAI = (await gieoTaiKhoanLai(`Lai Bán hàng Đối tác gửi đơn ${tag}`, ["SALES", "PARTNER"])).cookie;
@@ -33,6 +34,7 @@ const datCo = (can) => call(SUPER, "POST", URL_CD, { pham: "SERVICE", ma: "ZGD1"
 
 assert.equal((await datCo(true)).status, 200);
 assert.equal((await call(SUPER, "POST", URL_CD, { pham: "SERVICE", ma: "ZGD2", canXacNhan: false })).status, 200);
+let phiDaBat = false;
 try {
   // (1) nhánh A
   const a = await lap(DOI_TAC, "ZGD1");
@@ -83,6 +85,32 @@ try {
   assert.equal(r.body.error.code, "confirm_already_open");
   assert.equal(await yeuCauMo(d.id), 1);
   console.log("✓ (6) Bán hàng thuần gọi gui-don 403; Toàn quyền gửi nháp người khác 404; gửi lần hai 409, vẫn một yêu cầu");
+
+  // (8) phí đưa đón do văn phòng chọn (ADR-0214, Task 4): Đối tác gửi kèm mức 400; đơn thường có lượt đón chưa chọn phí ⇒ nhánh A (PHI_DON); Quản trị Còn vé kèm mức ⇒ xác nhận có phí.
+  const apDau = (await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp;
+  assert.equal(apDau.ngay, null, "(8) đầu ca: phí đưa đón đang tắt");
+  assert.equal((await call(ADMIN, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay: vnDate(0), tuLucDaDoc: apDau.tuLuc })).status, 200);
+  phiDaBat = true;
+  const luot = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: `Khách sạn Gửi Đơn E2E ${tag}`, dropoffLocationId: "a941dd7d-faab-4098-9ab9-1df7fa6dd551", dropoffPlace: "" };
+  r = await call(DOI_TAC, "POST", "/api/orders", orderInput({ customerName: `Khách Gửi Đơn E2E ${tag}`, customerPhone: "0913571357", services: [{ ...dichVu("ZGD2"), pickupChoice: "DON", legs: [luot] }] }));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const p = r.body.order;
+  const legId = p.services[0].legs[0].id;
+  r = await call(DOI_TAC, "POST", `/api/orders/${p.id}/gui-don`, { phiDon: [{ legId, muc: { loai: "DANH_SACH", soTien: 30_000 } }] });
+  assert.deepEqual([r.status, r.body?.error?.code], [400, "transfer_fee_not_allowed"], JSON.stringify(r.body));
+  r = await guiDon(DOI_TAC, p.id);
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.deepEqual([r.body.nhanh, r.body.yeuCau.vi], ["A", ["PHI_DON"]]);
+  const v = (await call(ADMIN, "GET", `/api/orders/${p.id}`)).body;
+  r = await call(ADMIN, "POST", `/api/orders/${p.id}/quyet-dinh`, { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon: [{ legId, muc: { loai: "DANH_SACH", soTien: 30_000 } }] });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(await trangThai(p.id), "confirmed");
+  assert.deepEqual(await sqlRows(`SELECT fee_choice, quantity, unit_price, line_total FROM order_item WHERE order_id = '${p.id}' AND line_kind = 'TRANSFER_FEE'`), [{ fee_choice: "DANH_SACH", quantity: 2, unit_price: 30_000, line_total: 60_000 }]);
+  console.log("✓ (8) phí đưa đón: Đối tác gửi kèm mức 400; lượt đón chưa chọn ⇒ nhánh A (PHI_DON); Quản trị Còn vé kèm 30.000 ⇒ xác nhận, phí 60.000");
 } finally {
+  if (phiDaBat) {
+    const ap = (await call(ADMIN, "GET", "/api/pricing/phi-don")).body.batDauAp;
+    if (ap.ngay !== null) await call(ADMIN, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay: null, tuLucDaDoc: ap.tuLuc });
+  }
   await datCo(false);
 }

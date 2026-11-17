@@ -280,6 +280,9 @@ export const MATRIX = {
   // ADR-0186 Đ2: xoá ảnh vé đã hết hạn lưu khỏi kho — chỉ tác nhân DON_ANH_VE dùng (Cron, src/modules/ve-dien-tu/kho-tep.ts); hẹp hơn ve.kho.manage; không route
   // cho người. Toàn quyền có ô chỉ vì ADR-0014 điều 2; Trợ lý không kể ô này là việc người làm được.
   "ve.kho.purge": chiToanQuyen(),
+  // Đợt 2 sau kiểm toán (đặc tả 2026-11-16 «lấy lại được dữ liệu», chủ duyệt 16/11): soát số liệu tiền và vé mỗi sáng — chỉ tác nhân SOAT_TIEN_HANG_NGAY dùng
+  // (Cron, src/modules/audit/soat-tien-hang-ngay.ts). CHỈ ĐỌC + gửi một thư tên luật và số vi phạm; không ghi gì. Toàn quyền có ô chỉ vì ADR-0014 điều 2; không route cho người.
+  "audit.money.daily": chiToanQuyen(),
   "settings.ops": chiToanQuyen(), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
   // hàng chờ nhận — PHẦN HẸP của đơn chưa có người phụ trách (ADR-0030 S23-1, S23-2; route GET /api/orders/pool, module orders, còn chặn tài khoản có quyền
   // Đối tác). ADMIN "none": Quản trị đã thấy đủ mọi đơn qua order.view. Nơi đón/giờ đón ở phần hẹp là NGOẠI LỆ CÓ TÊN của chú thích ô contact.view (không
@@ -442,10 +445,10 @@ export interface OperationContext {
 export const O_NHAN_QUAN_LY_BEN_DAT = ["order.view", "money.view", "order.history.view", "contact.view", "order.submit", "dai-ly.nop.xem", "payment.proof.view"] as const satisfies readonly OperationCode[];
 
 /**
- * ADR-0186 Đ1 (đóng HC-5.11): TÁC NHÂN TỰ ĐỘNG — mỗi việc định giờ một mã; không phải tài khoản đăng nhập (không số điện thoại, PIN, phiên). Chỉ ba việc
+ * ADR-0186 Đ1 (đóng HC-5.11): TÁC NHÂN TỰ ĐỘNG — mỗi việc định giờ một mã; không phải tài khoản đăng nhập (không số điện thoại, PIN, phiên). Chỉ năm việc
  * định giờ (và đồng bộ lần đầu) dựng tác nhân — bài src/tac-nhan-tu-dong.test.ts canh chỗ gọi hàm dựng. Dòng nhật ký của tác nhân mang `audit_log.agent_code`.
  */
-export const MA_TAC_NHAN = ["DONG_BO_DANH_MUC", "NHAC_HAN_TRA_SAU", "DON_ANH_VE", "DON_PHIEU_DANG_KY"] as const;
+export const MA_TAC_NHAN = ["DONG_BO_DANH_MUC", "NHAC_HAN_TRA_SAU", "DON_ANH_VE", "DON_PHIEU_DANG_KY", "SOAT_TIEN_HANG_NGAY"] as const;
 export type MaTacNhan = (typeof MA_TAC_NHAN)[number];
 export const laMaTacNhan = (v: unknown): v is MaTacNhan => typeof v === "string" && (MA_TAC_NHAN as readonly string[]).includes(v);
 /** ADR-0186 Đ2: quyền riêng của mỗi tác nhân — đúng ô nó cần. Không bao giờ ô ghi tiền (`O_GHI_TIEN`), không `admin.manage` (bài canh). */
@@ -454,6 +457,7 @@ export const QUYEN_TAC_NHAN: Readonly<Record<MaTacNhan, readonly OperationCode[]
   NHAC_HAN_TRA_SAU: ["credit.due.remind"],
   DON_ANH_VE: ["ve.kho.purge"],
   DON_PHIEU_DANG_KY: ["registration.agent.purge"], // ADR-0208 Đ8 (đợt 1 Task 9): dọn phiếu đăng ký — hết hạn, ẩn danh, xoá kho tệp chờ, xoá mã email cũ
+  SOAT_TIEN_HANG_NGAY: ["audit.money.daily"], // Đợt 2 sau kiểm toán (đặc tả 2026-11-16): soát tiền và vé mỗi sáng — chỉ đọc, thư báo khi lệch
 };
 /** Người phát lệnh là tác nhân: không giữ mã quyền nào của người, nên mọi cổng router từ chối nó; `can()` chỉ tra `QUYEN_TAC_NHAN`. */
 export interface TacNhan extends PermissionHolder {

@@ -46,12 +46,16 @@ export async function nhacHanTraSau(db: D1Database, nguoiPhat: PermissionHolder,
   return so;
 }
 
-/** Bọc cho Cron: chạy dưới tác nhân NHAC_HAN_TRA_SAU; không ném, một dòng log chỉ số đếm (bị từ chối: dòng cảnh báo tên `TuChoiQuyen`). */
-export async function nhacHanTraSauAnToan(env: Pick<Env, "DB">): Promise<void> {
+/** Bọc cho Cron: chạy dưới tác nhân NHAC_HAN_TRA_SAU; không ném, một dòng log chỉ số đếm (bị từ chối: dòng cảnh báo tên `TuChoiQuyen`).
+ *  Trả tên lỗi khi hỏng (gốc lắp ráp báo thư lỗi việc định giờ — Đợt 2 sau kiểm toán), `null` khi thành. */
+export async function nhacHanTraSauAnToan(env: Pick<Env, "DB">): Promise<string | null> {
   try {
     const so = await nhacHanTraSau(env.DB, NHAC_HAN_TRA_SAU);
     if (so > 0) console.log(JSON.stringify({ level: "info", event: "tra_sau_nhac", so }));
+    return null;
   } catch (e) {
-    console.warn(JSON.stringify({ level: "warn", event: "tra_sau_nhac_loi", name: e instanceof Error ? e.name : "unknown" }));
+    const name = e instanceof Error ? e.name : "unknown";
+    console.warn(JSON.stringify({ level: "warn", event: "tra_sau_nhac_loi", name }));
+    return name;
   }
 }

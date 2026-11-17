@@ -4532,7 +4532,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Phí đưa đón",
     manHinh: "Phí đưa đón › khối đầu › nút «Đặt ngày bắt đầu áp» và khung «Đặt ngày bắt đầu áp»",
     ten: "Đặt ngày bắt đầu áp",
-    thatSuLam: "Đặt (hoặc đổi) ngày từ đó Nền tảng tính phí đưa đón theo bảng mức. Máy chủ chỉ cho đặt khi mọi khu vực đang dùng có một mức chung còn hiệu lực vào ngày đó; thiếu thì báo đúng danh sách khu vực còn thiếu. Có khoá chống ghi đè khi hai người cùng đặt.",
+    thatSuLam: "Đặt (hoặc đổi) ngày từ đó mỗi lượt đón trên đơn có ô chọn phí đưa đón và lượt chưa chọn thì đơn không xác nhận được (ADR-0214). Không cần nhập bảng mức trước. Có khoá chống ghi đè khi hai người cùng đặt.",
     hoiLai: "có khung nhập ngày",
     hoanTac: "được: đặt ngày khác, hoặc «Tắt phí đưa đón»",
     duongLenh: ["/api/pricing/phi-don/bat-dau-ap"],
@@ -4549,7 +4549,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     ten: "Tắt phí đưa đón",
     thatSuLam: "Ghi dòng «chưa áp phí đưa đón»: từ lúc này đơn có đưa đón không tính phí đón nữa. Các mức đã đặt vẫn còn.",
     hoiLai: "có (hộp xác nhận nói hậu quả)",
-    hoanTac: "được: «Đặt ngày bắt đầu áp» để bật lại (cần đủ mức chung cho mọi khu vực)",
+    hoanTac: "được: «Đặt ngày bắt đầu áp» để bật lại",
     duongLenh: ["/api/pricing/phi-don/bat-dau-ap"],
     maNhatKy: ["prc_transfer_fee_start_set"],
     noiDat: [

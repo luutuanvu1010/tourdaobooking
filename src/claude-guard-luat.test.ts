@@ -200,7 +200,29 @@ test("guard-luat (ADR-0179 Đ2.6): .github/workflows/ là TỆP LUẬT (sửa b�
     assert.equal(danhGia(cmd).deny, false, `phải CHO QUA: ${cmd}`);
   }
   const s = read(".claude/settings.json");
-  assert.ok(s.includes('"Edit(.github/workflows/**)"'), "settings.json: sửa quy trình GitHub bằng công cụ sửa tệp phải HỎI chủ");
+  assert.ok(s.includes('"Edit(**/.github/workflows/**)"'), "settings.json: sửa quy trình GitHub bằng công cụ sửa tệp phải HỎI chủ");
+});
+
+// ─── 16/11/2026: luật HỎI không được trùm thư mục bản làm việc riêng `.claude/worktrees/` ───────────────────────────────────────────
+// Trước đây có `Edit(.claude/**)`: mọi bản làm việc riêng nằm trong `.claude/worktrees/<tên>/`, nên MỌI lần sửa tệp mã (.ts…) từ phiên
+// mở ở checkout gốc đều bật hộp hỏi, chủ phải bấm đồng ý liên tục. Luật mới chỉ kể đúng các tệp luật của `.claude/`, viết dạng `**/`
+// để tệp luật NẰM TRONG bản làm việc riêng vẫn được hỏi (trước kia `playbook/**` neo ở gốc nên không trùm bản sao trong worktree).
+test("settings.json (16/11): luật HỎI kể đúng tệp luật của .claude/, không trùm .claude/worktrees/", () => {
+  const ask = JSON.parse(read(".claude/settings.json")).permissions.ask;
+  assert.ok(!ask.includes("Edit(.claude/**)"), "không được trùm cả .claude/ — làm mọi lần sửa trong bản làm việc riêng bị hỏi");
+  assert.ok(!ask.some((r) => /worktrees/.test(r)), "không luật hỏi nào nhắm .claude/worktrees/");
+  for (const r of [
+    "Edit(CLAUDE.md)",
+    "Edit(**/.claude/settings*.json)",
+    "Edit(**/.claude/hooks/**)",
+    "Edit(**/.claude/agents/**)",
+    "Edit(**/.claude/skills/**)",
+    "Edit(**/playbook/**)",
+    "Edit(**/src/shared/bang-tham-chieu*.ts)",
+    "Edit(**/src/bang-tham-chieu.test.ts)",
+  ]) {
+    assert.ok(ask.includes(r), `luật HỎI phải còn: ${r}`);
+  }
 });
 
 // ─── Trình thông dịch (node/python/perl/ruby/bun/deno/php) ghi tệp luật — vá chỗ hở 15/11/2026 ─────────────────────────────────────

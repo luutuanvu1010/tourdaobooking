@@ -7,7 +7,7 @@
 // D1 chung với kịch bản khác: mã danh mục riêng ZCN1 (cờ «cần xác nhận» tắt, trả về cuối kịch bản); chỉ đọc tài khoản dùng chung.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
-import { dungPhiDon, luotDon } from "./lib-phi-don.mjs";
+import { conVeKemPhi, dungPhiDon, luotDon } from "./lib-phi-don.mjs";
 
 await ensureFakeCatalog();
 const AT = "'2026-01-01T00:00:00.000Z'";
@@ -79,12 +79,16 @@ try {
     }));
     assert.equal(lap2.status, 201, JSON.stringify(lap2.body));
     const id2 = lap2.body.order.id;
-    assert.equal((await call(DT, "POST", `/api/orders/${id2}/gui-don`, {})).status, 200);
+    // ADR-0214: nháp Đối tác không mang mức ⇒ Gửi đơn đi «chờ xác nhận»; văn phòng chọn mức ở Còn vé.
+    const g2 = await call(DT, "POST", `/api/orders/${id2}/gui-don`, {});
+    assert.equal(g2.status, 201, JSON.stringify(g2.body));
+    const cv2 = await conVeKemPhi(ADM, id2, phi.phiDon);
+    assert.equal(cv2.status, 200, JSON.stringify(cv2.body));
     const p2 = (await phieu(ACC, id2)).body.phieu;
     assert.deepEqual([p2.tong, p2.daThu, p2.conLai], [420000, 0, 420000], JSON.stringify(p2));
     const bn2 = (await call(DT, "GET", `/api/orders/${id2}/receipt`)).body.receipt;
-    // ADR-0203 ĐB3 (sửa sau kiểm độc lập): mỗi chặng một dòng phí, tên y như dòng phí của biên nhận («Phí đưa đón — chiều đi, <khu vực>»).
-    assert.match(bn2.phiDuaDon[0]?.description ?? "", /^Phí đưa đón — chiều đi, /);
+    // ADR-0203 ĐB3 (sửa sau kiểm độc lập): mỗi chặng một dòng phí, tên y như dòng phí của biên nhận. ADR-0214: mức văn phòng chọn không còn tên khu vực («Phí đưa đón — chiều đi»).
+    assert.equal(bn2.phiDuaDon[0]?.description, "Phí đưa đón — chiều đi");
     assert.deepEqual(p2.dong.map((d) => [d.ten, d.giaDaiLy, d.mienPhi]), [["Dịch vụ công nợ thử", 270000, false], [bn2.phiDuaDon[0].description, 150000, false]], "các dòng cộng khớp tổng; hoa hồng không tính trên phí");
     assert.deepEqual([bn2.total, bn2.phiDuaDon.map((d) => d.lineTotal)], [450000, [150000]], "khách trả 300.000 + phí 150.000");
     console.log("✓ đơn đại lý có phí đưa đón: tổng công nợ 270.000 + phí 150.000 = 420.000, phiếu có dòng «Phí đưa đón»; biên nhận khách 450.000");

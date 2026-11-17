@@ -12,6 +12,7 @@ import { CAU_GIAM_GIA_VUOT_TIEN_DICH_VU, MAX_AMOUNT_VND as MAX_AMOUNT } from "..
 import { UUID_RE } from "../../shared/http.ts";
 import { ONE_DATE_MESSAGE, sameDepartDate } from "../../shared/trip-rules.ts";
 import { vnToday } from "../../shared/vn-date.ts";
+import { CAU_KHONG_HOP_LE_PHI_DON, CAU_VUOT_TRAN_PHI_DON, kiemMucChon, type MucChon } from "../../shared/phi-don-chon.ts";
 import { int, text } from "./fields.ts";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES, validateService, type ServiceContext, type ServiceFailure, type ValidItem, type ValidService } from "./service-rules.ts";
 
@@ -72,12 +73,15 @@ function withLegs(rawServices: readonly unknown[], services: ValidService[], ctx
       for (const [j, l] of raw.legs.entries()) {
         const k = kiemChang(l, { at: `${at}, lượt ${j + 1}`, departDate: sv.trip.departDate });
         if (!k.ok) return fail(k.message);
+        // ADR-0214: mức phí đưa đón văn phòng chọn — kiểm lại MỌI giá trị (câu dùng chung với giao diện, không tiền tố để giao diện so khớp được). Vắng khoá = giữ mức đã lưu.
+        const phi = docPhiDonChang(l);
+        if (!phi.ok) return fail(phi.message);
         if (k.value.id !== null) {
           if (!stored?.legs.some((x) => x.id === k.value.id)) return fail(`${at}, lượt ${j + 1}: lượt đưa đón không thuộc dịch vụ này — hãy tải lại trang rồi thử lại.`);
           if (seen.has(k.value.id)) return fail(`${at}, lượt ${j + 1}: trùng một lượt đưa đón khác.`);
           seen.add(k.value.id);
         }
-        legs.push(k.value);
+        legs.push(phi.co ? { ...k.value, phiDon: phi.muc } : k.value);
       }
       out.push({ ...sv, legs });
     } else {
@@ -87,6 +91,31 @@ function withLegs(rawServices: readonly unknown[], services: ValidService[], ctx
     }
   }
   return { ok: true, services: out, legsGiven };
+}
+
+/** Khoá `phiDon` của MỘT chặng trong thân lập / lưu nháp (ADR-0214): vắng ⇒ `co: false`; `null` ⇒ bỏ chọn; khác ⇒ `kiemMucChon` (sai ⇒ câu dùng chung của src/shared/phi-don-chon.ts). */
+function docPhiDonChang(l: unknown): { ok: true; co: false } | { ok: true; co: true; muc: MucChon | null } | Failure {
+  const v = (l as Record<string, unknown>).phiDon;
+  if (v === undefined) return { ok: true, co: false };
+  if (v === null) return { ok: true, co: true, muc: null };
+  const k = kiemMucChon(v);
+  if (!k.ok) return fail(k.loi === "VUOT_TRAN" ? CAU_VUOT_TRAN_PHI_DON : CAU_KHONG_HOP_LE_PHI_DON);
+  return { ok: true, co: true, muc: k.muc };
+}
+
+/**
+ * Thân yêu cầu CÓ KHOÁ `phiDon` ở bất kỳ đâu, dưới bất kỳ giá trị nào — kể cả `null` (ADR-0214 Đ2, ruling P4 + P4b): tài khoản Đối tác gửi kèm ⇒ route trả 400 `transfer_fee_not_allowed`
+ * — áp ở mọi đường ghi (lập, lưu nháp, sửa chặng, sửa chuyến, Gửi đơn, Còn vé), quét thân GỐC (trước khi «Ẩn thông tin khách» viết lại thân). P4b: `null` = «bỏ chọn» trên nháp, nên
+ * nhận `null` từ Đối tác là để họ XOÁ mức văn phòng đã chọn. Giao diện của Đối tác không gửi khoá này. Giới hạn độ sâu.
+ */
+export function coPhiDonTrongThan(raw: unknown, sau = 0): boolean {
+  if (sau > 6 || raw === null || typeof raw !== "object") return false;
+  if (Array.isArray(raw)) return raw.some((x) => coPhiDonTrongThan(x, sau + 1));
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (k === "phiDon") return true;
+    if (coPhiDonTrongThan(v, sau + 1)) return true;
+  }
+  return false;
 }
 
 export type Failure = { ok: false; message: string; code?: ServiceFailure["code"] | "client_outdated"; details?: unknown };

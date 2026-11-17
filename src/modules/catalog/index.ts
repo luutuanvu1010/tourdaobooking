@@ -503,6 +503,8 @@ export const catalogModule: AppModule = {
  * Cron Trigger: đồng bộ Sheet định kỳ dưới tác nhân DONG_BO_DANH_MUC (ADR-0186) — cùng hàm lệnh, cùng cổng với nút; nhật ký mang mã tác nhân, màn Nhật ký
  * vẫn hiện «Hệ thống (tự động)». Lỗi Sheet và bị từ chối chỉ ghi vào trạng thái đồng bộ, không ném ra.
  */
-export async function runScheduledSync(env: Env, baoTin?: BaoTinDongHong): Promise<void> {
-  await syncCatalog(env, DONG_BO_DANH_MUC, { baoTin });
+/** Trả mã lỗi ngắn khi lượt đồng bộ không thành (để gốc lắp ráp báo thư lỗi việc định giờ — Đợt 2 sau kiểm toán), `null` khi thành. Lỗi lạ vẫn ném. */
+export async function runScheduledSync(env: Env, baoTin?: BaoTinDongHong): Promise<string | null> {
+  const r = await syncCatalog(env, DONG_BO_DANH_MUC, { baoTin });
+  return r.ok ? null : r.code;
 }

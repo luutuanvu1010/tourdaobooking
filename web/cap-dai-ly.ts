@@ -120,8 +120,9 @@ if (!coQuyenSua(staff)) {
 } else {
   replaceChildren(baoCapEl, CHU_MAN.khongCoCap, " ", h("a", { href: "/hoa-hong" }, CHU_MAN.trangHoaHong), ".");
   const nhacPhiDonEl = byId("cdl-nhac-phi-don");
+  // ADR-0214 (Task 6): cấp độ đại lý không còn quyết định phí đưa đón (văn phòng chọn mức trên đơn) — câu nhắc của Đợt C đã sai nên không hiện nữa; giữ phần tử để bật lại nếu cần.
   nhacPhiDonEl.textContent = CHU_MAN.nhacPhiDon;
-  nhacPhiDonEl.hidden = false;
+  nhacPhiDonEl.hidden = true;
   timEl.addEventListener("input", () => {
     if (tre !== undefined) clearTimeout(tre);
     tre = setTimeout(() => {

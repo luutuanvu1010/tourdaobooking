@@ -382,6 +382,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/orders/pool", access: "orders" }, // hàng chờ nhận (phần hẹp) — ADR-0030 S23-1/S23-2: thân hỏi can(order.pool.view) + !holdsPartner trước mọi đọc
   { method: "GET", path: "/api/orders/nguoi-lap", access: "orders" }, // ADR-0067: thân hỏi ba ô "xem mọi đơn" (order.view/money.view/contact.view, không ngữ cảnh) trước mọi đọc
   { method: "GET", path: "/api/orders/moc-toi-thieu", access: "orders" }, // ruling R-P15 (ADR-0049 I31 cách a): thân hỏi can(order.create) trước mọi đọc; mốc qua ctx.mocToiThieu
+  { method: "GET", path: "/api/orders/phi-don-ap", access: "orders" }, // ADR-0214 Task 6: thân hỏi can(order.create) trước mọi đọc; chỉ trả cờ «phí đưa đón đang áp hôm nay»
   { method: "GET", path: "/api/cai-dat/nhap-tay", access: "orders" }, // ADR-0061 điều 6: công tắc nhập tay (module orders) — thân hỏi can(order.create); trả duocNhapTay của người gọi
   { method: "POST", path: "/api/cai-dat/nhap-tay", access: "admin" }, // ADR-0061 điều 6: bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/cai-dat/xac-nhan-don", access: "office" }, // ADR-0136 Đ1, Đ5 + ADR-0169 Đ5: cờ cần xác nhận + công tắc tự xác nhận — thân hỏi ô theo từng việc
@@ -885,6 +886,8 @@ test("mức truy cập của 560 route hiện có khớp ảnh chụp đã duy�
   // ADR-0213 Đ6 (Task 10, chủ duyệt 16/11 «Duyệt cả hai»): + 3 POST /api/to-chuc/:id/{yeu-cau-chuyen, go-thanh-vien, roi} (staff) = 549.
   // ADR-0213 Đ8 (mốc B2 Task 16): + 3 POST /api/orders/:id/{gui-quan-ly, rut-gui-quan-ly, tra-lai} (orders), + 1 PUT /api/to-chuc/:id/che-do (staff) = 559.
   // ADR-0213 Đ8 (mốc B2 Task 18 phần 1a): + 1 GET /api/to-chuc/:id/nhap-thanh-vien (staff, orders/index.ts) = 560.
-  assert.equal(actual.length, 560, "số route thực tế lệch 560 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 560, "SNAPSHOT phải có đúng 560 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // ADR-0214 Task 6: + 1 GET /api/orders/phi-don-ap (orders) = 541.
+  // Gộp main vào nhánh đăng ký đợt 2 (17/11/2026): 560 của nhánh + 1 route phí đón của main = 561.
+  assert.equal(actual.length, 561, "số route thực tế lệch 561 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 561, "SNAPSHOT phải có đúng 561 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -1,6 +1,6 @@
 // Sổ vàng golden/phi-dua-don.json (Hiến chương 5.17; ADR-0147, ADR-0203). CHƯA có mã phí đón, nên hôm nay chỉ có LỚP 1: mỗi ca tự cân (bắt CA MẪU viết sai) —
 // khuôn, trạng thái xác nhận, dòng mức có thật và còn hiệu lực ngày xác nhận, tiền = đơn giá × số lượng, tổng = tổng các chặng, 0 đồng ⇔ nhãn «Miễn phí».
-// LỚP 3 (Đợt C, Task 2): chạy cả ca đã xác nhận qua `tinhPhiDonThuan` (hàm của đơn) và so từng chặng, tổng, xác nhận được.
+// LỚP 3 (Đợt C, Task 2): chạy cả ca đã xác nhận qua `tinhPhiDonThuan` và so từng chặng, tổng, xác nhận được. Từ ADR-0214 (16/11/2026) hàm này KHÔNG còn nằm trên đường đơn (đơn dùng `src/shared/phi-don-chon.ts`); lớp 3 giữ có chủ đích vì «Thử tra» của màn Quản trị còn gọi đúng hàm này. Không bài nào ở đây chạy trên đường đơn nên không gỡ.
 // LỚP 2 (từ Đợt B, Task 6): chạy ca đã xác nhận qua luật thuần `src/modules/pricing/phi-don-rules.ts`; chỉ ca "da_xac_nhan" được đếm, ca còn chờ là test.todo, và danh sách MA_BAT_BUOC canh để ca không lặng lẽ rơi — không «xanh vì rỗng».
 import { test } from "node:test";
 import assert from "node:assert/strict";

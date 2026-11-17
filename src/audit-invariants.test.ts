@@ -4037,6 +4037,13 @@ test("R-ORD-PD-1: dòng phí đưa đón đúng (chặng cùng đơn, thành ti�
   db.exec("DROP TRIGGER order_item_money_update");
   db.prepare("UPDATE order_item SET line_total = 1 WHERE id = 'f-chuyen-1'").run();
   assert.equal(violations(db, c), 1, "thành tiền khác số lượng × đơn giá ⇒ 1");
+  // ADR-0214 (migration 0173): dòng do văn phòng chọn không có mã mức ⇒ đúng, không bị đòi fee_rule_id; nhưng thành tiền lệch vẫn bắt.
+  db.prepare("DELETE FROM order_item WHERE id = 'f-chuyen-1'").run();
+  db.prepare(`INSERT INTO order_item (id, order_id, description, quantity, unit_price, line_total, line_kind, transfer_leg_id, fee_kind, fee_source, fee_choice)
+    VALUES ('f-chon', 'o-pd', 'Phí đưa đón', 2, 12000, 24000, 'TRANSFER_FEE', 'l-pd', 'PER_PAX', 'CHON', 'SO_KHAC')`).run();
+  assert.equal(violations(db, c), 0, "dòng CHON không mã mức ⇒ 0");
+  db.prepare("UPDATE order_item SET line_total = 1 WHERE id = 'f-chon'").run();
+  assert.equal(violations(db, c), 1, "dòng CHON thành tiền lệch ⇒ 1");
 });
 
 test("R-ORD-T1 + R-ORD-T1w: chỉ đơn ĐÃ XÁC NHẬN; T1w bỏ đơn đã Đã giao; mốc xác nhận thiếu lấy ngày tạo (như R-ORD-15); hai bản hiện hành hoặc thiếu hẳn đều là lỗi, bản MANUAL thay AUTO vẫn đúng một", () => {

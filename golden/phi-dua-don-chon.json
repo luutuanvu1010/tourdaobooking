@@ -1,0 +1,682 @@
+{
+  "luat": "phi-dua-don-chon",
+  "_mo_ta": "Sổ vàng — phí đưa đón do nhân viên văn phòng chọn trên đơn (ADR-0214; Hiến chương 5.17). Mỗi ca là MỘT đơn, mỗi lượt đón có mức chọn (danh sách hoặc «Số khác») hoặc chưa chọn. Đáp án tới từng đồng. AI soạn 2026-11-16; chỉ ca `da_xac_nhan` mới là chuẩn (Hiến pháp N8). Thay sổ vàng golden/phi-dua-don.json khi mã ADR-0214 xong.",
+  "quy_uoc": {
+    "danh_sach": "Miễn phí (0), 5.000, 10.000, 15.000, 20.000, 30.000, 50.000, 100.000 đ hoặc «Số khác» (số nguyên 1–5.000.000)",
+    "so_luong": "đi chung: người lớn + trẻ em + cao tuổi (không em bé); chiều về có so_nguoi_rieng thì min(so_nguoi_rieng, số đó). Xe riêng: 1",
+    "chua_chon": "lượt đón còn mở chưa chọn ⇒ CHUA_CHON, không xác nhận được, không bao giờ lấy 0",
+    "ap_dung": "chỉ từ ngày bắt đầu áp, theo ngày xác nhận"
+  },
+  "danh_sach_muc": [
+    0,
+    5000,
+    10000,
+    15000,
+    20000,
+    30000,
+    50000,
+    100000
+  ],
+  "tran": 5000000,
+  "ngay_bat_dau_ap": "2026-12-01",
+  "cac_ca": [
+    {
+      "ma": "SV-PC-01",
+      "mo_ta": "Chọn mức trong danh sách, em bé không tính. Khách lẻ 2 người lớn + 1 em bé, chiều đi chọn 30.000 đ ⇒ 30.000 × 2 = 60.000 đ.",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2,
+              "em_be": 1
+            },
+            "chon": {
+              "loai": "DANH_SACH",
+              "so_tien": 30000
+            }
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 30000,
+            "so_luong": 2,
+            "tien": 60000,
+            "nhan_bien_nhan": null
+          }
+        ],
+        "tong_phi_don": 60000,
+        "xac_nhan_duoc": true
+      }
+    },
+    {
+      "ma": "SV-PC-02",
+      "mo_ta": "Chọn «Miễn phí». 2 người lớn ⇒ 0 đ; biên nhận vẫn in dòng «Phí đưa đón — Miễn phí».",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2
+            },
+            "chon": {
+              "loai": "DANH_SACH",
+              "so_tien": 0
+            }
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 0,
+            "so_luong": 2,
+            "tien": 0,
+            "nhan_bien_nhan": "Miễn phí"
+          }
+        ],
+        "tong_phi_don": 0,
+        "xac_nhan_duoc": true
+      }
+    },
+    {
+      "ma": "SV-PC-03",
+      "mo_ta": "Số khác hợp lệ. 3 người lớn, gõ 70.000 đ ⇒ 70.000 × 3 = 210.000 đ.",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 3
+            },
+            "chon": {
+              "loai": "SO_KHAC",
+              "so_tien": 70000
+            }
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 70000,
+            "so_luong": 3,
+            "tien": 210000,
+            "nhan_bien_nhan": null
+          }
+        ],
+        "tong_phi_don": 210000,
+        "xac_nhan_duoc": true
+      }
+    },
+    {
+      "ma": "SV-PC-04",
+      "mo_ta": "Số khác vượt trần. Gõ 6.000.000 đ ⇒ máy từ chối «Mức phí tối đa 5.000.000 đ.», không lưu, không xác nhận được.",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2
+            },
+            "chon": {
+              "loai": "SO_KHAC",
+              "so_tien": 6000000
+            }
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "TU_CHOI",
+            "ly_do": "VUOT_TRAN"
+          }
+        ],
+        "tong_phi_don": null,
+        "xac_nhan_duoc": false
+      }
+    },
+    {
+      "ma": "SV-PC-05",
+      "mo_ta": "Số khác bằng 0. Gõ 0 ở «Số khác» ⇒ máy từ chối; muốn miễn phí thì chọn «Miễn phí».",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2
+            },
+            "chon": {
+              "loai": "SO_KHAC",
+              "so_tien": 0
+            }
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "TU_CHOI",
+            "ly_do": "SO_KHAC_KHONG_HOP_LE"
+          }
+        ],
+        "tong_phi_don": null,
+        "xac_nhan_duoc": false
+      }
+    },
+    {
+      "ma": "SV-PC-06",
+      "mo_ta": "Xe riêng tính cả chuyến. 4 người lớn, xe riêng, gõ 500.000 đ ⇒ 500.000 đ, không nhân số khách.",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": true,
+            "khach": {
+              "nguoi_lon": 4
+            },
+            "chon": {
+              "loai": "SO_KHAC",
+              "so_tien": 500000
+            }
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 500000,
+            "so_luong": 1,
+            "tien": 500000,
+            "nhan_bien_nhan": null
+          }
+        ],
+        "tong_phi_don": 500000,
+        "xac_nhan_duoc": true
+      }
+    },
+    {
+      "ma": "SV-PC-07",
+      "mo_ta": "Đi và về, chiều về ít người hơn. 3 người lớn; chiều đi chọn 20.000 ⇒ 60.000 đ; chiều về 1 người đi xe, chọn 20.000 ⇒ 20.000 đ. Tổng 80.000 đ, hai dòng phí.",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 3
+            },
+            "chon": {
+              "loai": "DANH_SACH",
+              "so_tien": 20000
+            }
+          },
+          {
+            "chieu": "RETURN",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 3
+            },
+            "chon": {
+              "loai": "DANH_SACH",
+              "so_tien": 20000
+            },
+            "so_nguoi_rieng": 1
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 20000,
+            "so_luong": 3,
+            "tien": 60000,
+            "nhan_bien_nhan": null
+          },
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 20000,
+            "so_luong": 1,
+            "tien": 20000,
+            "nhan_bien_nhan": null
+          }
+        ],
+        "tong_phi_don": 80000,
+        "xac_nhan_duoc": true
+      }
+    },
+    {
+      "ma": "SV-PC-08",
+      "mo_ta": "Chiều về ghi số người nhiều hơn số khách tính tiền. 2 người lớn + 1 em bé, chiều về ghi 3 người, chọn 10.000 ⇒ vẫn tính 2 khách = 20.000 đ.",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "RETURN",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2,
+              "em_be": 1
+            },
+            "chon": {
+              "loai": "DANH_SACH",
+              "so_tien": 10000
+            },
+            "so_nguoi_rieng": 3
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 10000,
+            "so_luong": 2,
+            "tien": 20000,
+            "nhan_bien_nhan": null
+          }
+        ],
+        "tong_phi_don": 20000,
+        "xac_nhan_duoc": true
+      }
+    },
+    {
+      "ma": "SV-PC-09",
+      "mo_ta": "Quên chọn phí. Chiều đi đã chọn 15.000, chiều về chưa chọn ⇒ văn phòng bấm Xác nhận bị chặn «Chọn phí đưa đón cho lượt đón chiều về…». Máy không lấy 0 đ.",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2
+            },
+            "chon": {
+              "loai": "DANH_SACH",
+              "so_tien": 15000
+            }
+          },
+          {
+            "chieu": "RETURN",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2
+            },
+            "chon": null
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 15000,
+            "so_luong": 2,
+            "tien": 30000,
+            "nhan_bien_nhan": null
+          },
+          {
+            "ket_qua": "CHUA_CHON"
+          }
+        ],
+        "tong_phi_don": null,
+        "xac_nhan_duoc": false
+      }
+    },
+    {
+      "ma": "SV-PC-10",
+      "mo_ta": "Đối tác gửi đơn có lượt đón. Đối tác không chọn được phí ⇒ đơn vào «chờ xác nhận» (lý do thiếu phí đưa đón); văn phòng chọn 30.000 rồi xác nhận ⇒ 30.000 × 2 = 60.000 đ. Nếu tài khoản Đối tác tự gửi kèm mức phí ⇒ máy từ chối (400).",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "DOI_TAC",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2
+            },
+            "chon": {
+              "loai": "DANH_SACH",
+              "so_tien": 30000
+            }
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 30000,
+            "so_luong": 2,
+            "tien": 60000,
+            "nhan_bien_nhan": null
+          }
+        ],
+        "tong_phi_don": 60000,
+        "xac_nhan_duoc": true,
+        "luong": "Đối tác gửi ⇒ chờ xác nhận ⇒ văn phòng chọn ⇒ Còn vé",
+        "doi_tac_gui_kem_muc": "TU_CHOI_400"
+      }
+    },
+    {
+      "ma": "SV-PC-11",
+      "mo_ta": "Sửa số khách sau xác nhận. Đã xác nhận 2 người lớn, chọn 15.000 ⇒ 30.000 đ. Người có quyền sửa tiền sửa thành 3 người lớn ⇒ 15.000 × 3 = 45.000 đ (theo mức đã chọn).",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2
+            },
+            "chon": {
+              "loai": "DANH_SACH",
+              "so_tien": 15000
+            }
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 15000,
+            "so_luong": 2,
+            "tien": 30000,
+            "nhan_bien_nhan": null
+          }
+        ],
+        "tong_phi_don": 30000,
+        "xac_nhan_duoc": true,
+        "sau_khi_sua_so_khach": {
+          "nguoi_lon": 3,
+          "don_gia_da_chon": 15000,
+          "tong_phi_don": 45000
+        }
+      }
+    },
+    {
+      "ma": "SV-PC-12",
+      "mo_ta": "Phí đón trong số đại lý nợ. Đại lý, đơn trả sau: tour 600.000 × 2 = 1.200.000 đ, hoa hồng 120.000 đ; phí đón chọn 30.000 × 2 = 60.000 đ. Khách trả 1.260.000 đ; đại lý nợ 1.200.000 − 120.000 + 60.000 = 1.140.000 đ; hoa hồng vẫn 120.000 đ.",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "DOI_TAC",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2
+            },
+            "chon": {
+              "loai": "DANH_SACH",
+              "so_tien": 30000
+            }
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 30000,
+            "so_luong": 2,
+            "tien": 60000,
+            "nhan_bien_nhan": null
+          }
+        ],
+        "tong_phi_don": 60000,
+        "xac_nhan_duoc": true,
+        "tien_don": {
+          "thanh_tien_dich_vu": 1200000,
+          "hoa_hong": 120000,
+          "gia_dai_ly": 1080000,
+          "tong_don": 1260000,
+          "tong_cong_no_dai_ly": 1140000
+        }
+      }
+    },
+    {
+      "ma": "SV-PC-13",
+      "mo_ta": "Giảm giá không trừ vào phí. Khách lẻ, Tắm bùn Hòn Tằm (Hòn Tằm bán) 500.000 × 2 = 1.000.000 đ, phí đón chọn 50.000 × 2 = 100.000 đ, giảm giá 100.000 đ ⇒ phần Hòn Tằm 900.000 đ, phần Tour Đảo 100.000 đ, khách trả 1.000.000 đ; giảm giá tối đa 1.000.000 đ.",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2
+            },
+            "chon": {
+              "loai": "DANH_SACH",
+              "so_tien": 50000
+            }
+          }
+        ],
+        "giam_gia": 100000
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 50000,
+            "so_luong": 2,
+            "tien": 100000,
+            "nhan_bien_nhan": null
+          }
+        ],
+        "tong_phi_don": 100000,
+        "xac_nhan_duoc": true,
+        "chia_phan": {
+          "nguoi_ban_dich_vu_truoc_giam": 1000000,
+          "giam_gia": 100000,
+          "nguoi_ban_dich_vu": 900000,
+          "tour_dao": 100000,
+          "tong_don": 1000000,
+          "giam_gia_toi_da": 1000000
+        }
+      }
+    },
+    {
+      "ma": "SV-PC-14",
+      "mo_ta": "Trước ngày bật thì chưa có phí. Ngày bắt đầu áp 01/12/2026; đơn xác nhận 25/11/2026 có lượt đón ⇒ không có ô chọn, không có dòng phí, xác nhận như hôm nay.",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-11-25",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2
+            },
+            "chon": null
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": false,
+        "chang": [],
+        "tong_phi_don": 0,
+        "xac_nhan_duoc": true
+      }
+    },
+    {
+      "ma": "SV-PC-15",
+      "mo_ta": "Thêm lượt đón sau xác nhận không tự cộng tiền. Đơn SV-PC-01 (60.000 đ) đã xác nhận, khách xin thêm chiều về ⇒ máy thêm lượt đón, tổng phí vẫn 60.000 đ; muốn thu thêm thì ghi điều chỉnh công nợ có người duyệt.",
+      "nguon": "ADR-0214",
+      "xac_nhan": {
+        "trang_thai": "da_xac_nhan",
+        "nguoi": "Lưu Tuấn Vũ / Chủ dự án",
+        "ngay": "2026-11-16"
+      },
+      "dau_vao": {
+        "ngay_xac_nhan": "2026-12-10",
+        "ben_dat": "KHACH_LE",
+        "chang": [
+          {
+            "chieu": "OUT",
+            "xe_rieng": false,
+            "khach": {
+              "nguoi_lon": 2,
+              "em_be": 1
+            },
+            "chon": {
+              "loai": "DANH_SACH",
+              "so_tien": 30000
+            }
+          }
+        ]
+      },
+      "dap_an": {
+        "ap_dung": true,
+        "chang": [
+          {
+            "ket_qua": "CO_PHI",
+            "don_gia": 30000,
+            "so_luong": 2,
+            "tien": 60000,
+            "nhan_bien_nhan": null
+          }
+        ],
+        "tong_phi_don": 60000,
+        "xac_nhan_duoc": true,
+        "sau_khi_them_chieu_ve": {
+          "tong_phi_don": 60000
+        }
+      }
+    }
+  ]
+}

@@ -7,7 +7,7 @@
 // D1 chung với kịch bản khác: tài khoản Đối tác dùng một lần (tên theo Date.now()), mã danh mục riêng ZBL1 (cờ «cần xác nhận» tắt, trả về cuối kịch bản).
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
-import { dungPhiDon, luotDon } from "./lib-phi-don.mjs";
+import { conVeKemPhi, dungPhiDon, luotDon } from "./lib-phi-don.mjs";
 
 await ensureFakeCatalog();
 const AT = "'2026-01-01T00:00:00.000Z'";
@@ -94,7 +94,11 @@ try {
     }));
     assert.equal(lap2.status, 201, JSON.stringify(lap2.body));
     const id2 = lap2.body.order.id;
-    assert.equal((await call(DT, "POST", `/api/orders/${id2}/gui-don`, {})).status, 200);
+    // ADR-0214: nháp Đối tác không mang mức ⇒ Gửi đơn đi «chờ xác nhận»; văn phòng chọn mức ở Còn vé.
+    const g2 = await call(DT, "POST", `/api/orders/${id2}/gui-don`, {});
+    assert.equal(g2.status, 201, JSON.stringify(g2.body));
+    const cv2 = await conVeKemPhi(ADM, id2, phi.phiDon);
+    assert.equal(cv2.status, 200, JSON.stringify(cv2.body));
     assert.equal((await call(ACC, "GET", `/api/orders/${id2}/payments`)).body.phaiThu, 450000, "phải thu = 300.000 + phí 150.000");
     const bn = (await call(DT, "GET", `/api/orders/${id2}/receipt`)).body.receipt;
     assert.deepEqual([bn.subtotal, bn.total, bn.conLai], [450000, 450000, 450000]);
