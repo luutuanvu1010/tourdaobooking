@@ -1,7 +1,7 @@
 // Chống dò PIN. PIN 6 số chỉ có 1 triệu tổ hợp nên phải giới hạn số lần thử.
 // Mỗi lần thử là một dòng `login_attempt` (key = "phone:0xxxxxxxxx" hoặc "ip:<địa chỉ>") đếm trong cửa sổ trượt.
 // Đặt chỗ TRƯỚC khi kiểm PIN (chèn rồi đếm lại): dù bắn song song hàng trăm request, tối đa `max` lần được phép kiểm PIN.
-import { attemptCount, attemptPruneDkStatement, attemptDeleteIdStatement, attemptDeleteKeyStatement, attemptInsertStatement, attemptPruneStatement, lockedPhoneKeys } from "./repository.ts";
+import { attemptCount, attemptPruneDkStatement, attemptPruneMoiStatement, attemptDeleteIdStatement, attemptDeleteKeyStatement, attemptInsertStatement, attemptPruneStatement, lockedPhoneKeys } from "./repository.ts";
 
 export const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 export const PHONE_LIMIT = 5;
@@ -29,7 +29,14 @@ export async function reserveAttempts(db: D1Database, keys: { key: string; max: 
     ids[k.key] = crypto.randomUUID();
     return attemptInsertStatement(db, ids[k.key]!, k.key, now);
   });
-  await db.batch([attemptPruneStatement(db, cutoff(now)), ...(keys.some((k) => k.key.startsWith("dk:")) ? [attemptPruneDkStatement(db, cutoff(now, windowMs))] : []), ...inserts]);
+  // Khoá lượt gõ sai mã vào tổ chức (`moi:`, `dk:moi:` — ADR-0213 Đ7.3) dọn bằng câu riêng theo cửa sổ của lượt gọi; câu dọn `dk:` chỉ chạy khi lượt gọi có khoá `dk:` KHÁC `dk:moi:`.
+  const laMoi = (k: string) => k.startsWith("moi:") || k.startsWith("dk:moi:");
+  await db.batch([
+    attemptPruneStatement(db, cutoff(now)),
+    ...(keys.some((k) => k.key.startsWith("dk:") && !laMoi(k.key)) ? [attemptPruneDkStatement(db, cutoff(now, windowMs))] : []),
+    ...(keys.some((k) => laMoi(k.key)) ? [attemptPruneMoiStatement(db, cutoff(now, windowMs))] : []),
+    ...inserts,
+  ]);
   // Kiểm lại sau khi chèn: nếu nhiều request đến cùng lúc thì chỉ `max` request đầu còn thấy count <= max.
   for (const k of keys) {
     const { n, oldest } = await countIn(db, k.key, now, windowMs);

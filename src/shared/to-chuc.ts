@@ -152,3 +152,42 @@ export const laMaLyDoToChuc = (v: unknown): v is MaLyDoToChuc => typeof v === "s
 export function duocGuiLenTourDao(v: { tuCach: "CA_NHAN" | "TO_CHUC" | null; laNguoiLap: boolean; laQuanLyCoHieuLuc: boolean }): boolean {
   return v.tuCach === "TO_CHUC" ? v.laQuanLyCoHieuLuc : v.laNguoiLap;
 }
+
+// ---- ADR-0213 Đ7 (mốc B2, Task 15): mã vào tổ chức ---------------------------------------------------------------------------------------------------------
+/** Bảng chữ của mã máy cấp: bỏ `0 O 1 I L` (dễ nhầm khi đọc qua điện thoại) — 31 ký tự. */
+export const BANG_CHU_MA_VAO = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";
+/** Độ dài mã (chưa kể dấu `-` khi hiện). */
+export const DO_DAI_MA_VAO = 8;
+
+/** Mã máy cấp: 8 ký tự từ `BANG_CHU_MA_VAO`; `bytes` lấy từ `crypto.getRandomValues` ở nơi gọi (bỏ byte rơi vào phần dư để không lệch phân bố). Thiếu byte ⇒ ném lỗi. */
+export function sinhMaVao(bytes: Uint8Array): string {
+  const n = BANG_CHU_MA_VAO.length;
+  const tran = 256 - (256 % n); // 248: byte ≥ tran bị bỏ
+  let ma = "";
+  for (const b of bytes) {
+    if (b >= tran) continue;
+    ma += BANG_CHU_MA_VAO[b % n];
+    if (ma.length === DO_DAI_MA_VAO) return ma;
+  }
+  throw new Error("sinhMaVao: không đủ byte ngẫu nhiên");
+}
+
+/**
+ * Chuẩn hoá mã người dùng gõ: chữ HOA, bỏ `-` và mọi khoảng trắng; đúng 8 chữ cái/chữ số không dấu ⇒ mã, sai khuôn ⇒ null. `ab12cd34`, `AB12 CD34`, `ab12-cd34` ra cùng `AB12CD34`.
+ * Nhận cả ký tự máy không bao giờ cấp (`0 O 1 I L`): mã như thế chỉ đơn giản là không khớp bản băm nào — vẫn tính một lần gõ sai (Review Focus 3).
+ */
+export function chuanHoaMaVao(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.normalize("NFC").toUpperCase().replace(/[\s-]+/g, "");
+  return new RegExp(`^[A-Z0-9]{${DO_DAI_MA_VAO}}$`).test(s) ? s : null;
+}
+
+/** Cách hiện mã: `XXXX-XXXX`. */
+export const hienMaVao = (ma: string): string => `${ma.slice(0, 4)}-${ma.slice(4)}`;
+
+/** Câu trả lời DUY NHẤT của lệnh tạo lời mời (Đ7.1) — cùng câu dù số được mời có tài khoản hay chưa. `ngay` dạng dd/mm/yyyy. */
+export const cauTaoLoiMoi = (ma: string, ngay: string): string => `Đã tạo lời mời. Mã: ${hienMaVao(ma)}, dùng được tới ${ngay}. Hãy gửi mã này cho người được mời.`;
+/** Vượt trần theo số điện thoại (Đ7.3): câu trung tính, không mã. */
+export const CAU_TRAN_THEO_SO = "Chưa tạo được lời mời cho số này lúc này, hãy thử lại sau";
+/** Mã sai / hết hạn / không cùng số / đã dùng — MỘT câu trung tính cho người đăng ký và người nhận (không nói lý do nào). */
+export const CAU_MA_VAO_SAI = "Mã vào tổ chức không đúng hoặc không còn dùng được.";

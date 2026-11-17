@@ -41,6 +41,7 @@ const NGOAI_LE_TEN: Record<string, string> = {
   "ctl_service_detail.display_name": "tên hiển thị của DỊCH VỤ danh mục (ADR-0201), không phải tên người",
   "v_ctl_service_detail.display_name": "view của ctl_service_detail — tên hiển thị của DỊCH VỤ, không phải tên người",
   "vc_vehicle_document.document_number": "số giấy tờ XE — ADR-0040 D2 chỉ coi giấy tờ của người là dữ liệu cá nhân",
+  "pty_org_invite_policy.per_phone_per_day": "CON SỐ trần lời mời mỗi số điện thoại mỗi ngày (ADR-0213 Đ7.3) — dữ liệu chính sách, không chứa số điện thoại nào",
 };
 const N3_GHIM = [
   "bil_receipt_proof.content_hash", "bil_receipt_proof.storage_key", // ADR-0196: ảnh biên lai có số tài khoản, tên người chuyển — cùng hạng với fbk_attachment
@@ -57,7 +58,7 @@ const N3_GHIM = [
   "pty_registration_attachment.content_hash", "pty_registration_attachment.storage_key", // ADR-0208 Đ1: tệp chờ của phiếu đăng ký — ảnh giấy tờ, cùng hạng với pty_attachment
   "pty_self_submission.document_number", "pty_self_submission.issued_place", "pty_self_submission.number_key",
 ];
-const N4_GHIM = ["aut_mfa_email_code.code_hash", "aut_mfa_factor.secret_enc", "aut_mfa_recovery_code.code_hash", "aut_trusted_device.token_hash", "dk_email_code.code_hash", "staff.pin_hash"];
+const N4_GHIM = ["aut_mfa_email_code.code_hash", "aut_mfa_factor.secret_enc", "aut_mfa_recovery_code.code_hash", "aut_trusted_device.token_hash", "dk_email_code.code_hash", "pty_org_invite.code_hash", "staff.pin_hash"]; // + pty_org_invite.code_hash: ADR-0213 Đ7.2 — bản băm mã vào tổ chức (bí mật hạng N4)
 
 test("5.20: mọi cột của mọi bảng và view có đúng một hạng N0–N4; sổ không thừa đối tượng / cột đã mất", () => {
   assert.ok(dict.hangDuLieu, "docs/data-dictionary.json thiếu khoá hangDuLieu (Hiến chương 5.20)");

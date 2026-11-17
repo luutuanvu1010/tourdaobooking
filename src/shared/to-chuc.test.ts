@@ -100,3 +100,29 @@ test("duocGuiLenTourDao: đơn tư cách tổ chức chỉ người quản lý c
     assert.equal(duocGuiLenTourDao({ tuCach, laNguoiLap: false, laQuanLyCoHieuLuc: true }), false, `${tuCach}: người quản lý không gửi đơn cá nhân của người khác`);
   }
 });
+
+// ---- ADR-0213 Đ7 (mốc B2, Task 15): mã vào tổ chức ----
+import { BANG_CHU_MA_VAO, CAU_TRAN_THEO_SO, cauTaoLoiMoi, chuanHoaMaVao, hienMaVao, sinhMaVao } from "./to-chuc.ts";
+
+test("mã vào tổ chức: bảng chữ bỏ 0 O 1 I L; sinhMaVao ra đúng 8 ký tự trong bảng, bỏ byte rơi vào phần dư; thiếu byte thì ném", () => {
+  for (const c of "0O1IL") assert.equal(BANG_CHU_MA_VAO.includes(c), false, c);
+  assert.equal(BANG_CHU_MA_VAO.length, 31);
+  for (let i = 0; i < 200; i++) {
+    const ma = sinhMaVao(crypto.getRandomValues(new Uint8Array(32)));
+    assert.match(ma, /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/);
+  }
+  // 248..255 bị bỏ; 0 → '2', 30 → 'Z', 31 → '2'
+  assert.equal(sinhMaVao(new Uint8Array([255, 248, 0, 30, 31, 1, 2, 3, 4, 5])), "2Z234567");
+  assert.throws(() => sinhMaVao(new Uint8Array([255, 255, 255, 0, 1])));
+});
+
+test("chuanHoaMaVao: «ab12cd34», «AB12 CD34», «ab12-cd34» ra cùng AB12CD34; sai khuôn ⇒ null (Review Focus 3)", () => {
+  for (const g of ["ab12cd34", "AB12 CD34", "ab12-cd34", " AB12-CD34 ", "Ab12\tcD34"]) assert.equal(chuanHoaMaVao(g), "AB12CD34", g);
+  for (const g of ["AB12CD3", "AB12CD345", "AB12CĐ34", "AB12_CD34", "", 12345678, null, undefined]) assert.equal(chuanHoaMaVao(g), null, String(g));
+  assert.equal(hienMaVao("AB12CD34"), "AB12-CD34");
+});
+
+test("câu trả lời của lệnh tạo lời mời đúng nguyên văn Đ7.1; câu vượt trần theo số đúng nguyên văn Đ7.3, không chứa mã", () => {
+  assert.equal(cauTaoLoiMoi("AB23CD45", "23/11/2026"), "Đã tạo lời mời. Mã: AB23-CD45, dùng được tới 23/11/2026. Hãy gửi mã này cho người được mời.");
+  assert.equal(CAU_TRAN_THEO_SO, "Chưa tạo được lời mời cho số này lúc này, hãy thử lại sau");
+});
