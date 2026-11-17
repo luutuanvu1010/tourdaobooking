@@ -9,7 +9,7 @@ import { route, type AppModule } from "../../shared/router";
 import { donDaGuiLen, ketQuaXemDon } from "../../shared/xem-don-nhap";
 import { congTyNhanTienKhach, khoanNopDto, soNopCuaDon, soTienBienNhan, soTienChoQr } from "../billing";
 import { congTyChoBienNhan } from "../company";
-import { donChoBienNhan, nguoiLapDoiTacThuan, phanThuongMaiCuaDon } from "../orders";
+import { donChoBienNhan, donThanhVienCungToChuc, nguoiLapDoiTacThuan, phanThuongMaiCuaDon } from "../orders";
 import { taiKhoanNhanTienHienHanh } from "../parties";
 import { dungBienNhan, dungPhieuCongNo, dungQrThanhToan, kiemSoTienQr } from "./rules";
 
@@ -21,7 +21,7 @@ export const receiptModule: AppModule = {
   routes: [
     // Biên nhận của MỘT đơn: khuôn quyền = chi tiết đơn (ADR-0019 đ2) — `order.view` phạm vi đơn (chỉ-FIELD không phụ trách → 404), rồi `money.view` +
     // `contact.view` (biên nhận có tiền và tên/SĐT khách). Người phụ trách KHÔNG nằm ở đây (receipt không phụ thuộc dispatch): trình duyệt tự lấy như trước.
-    route("GET", "/api/orders/:id/receipt", "orders", async ({ env, params, staff, isAssigned, laQuanLyCuaBen }) => {
+    route("GET", "/api/orders/:id/receipt", "orders", async ({ env, params, staff, isAssigned, laQuanLyCuaBen, tuCachCuaToi }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([donChoBienNhan(env.DB, id), isAssigned(id)]);
@@ -31,7 +31,7 @@ export const receiptModule: AppModule = {
       const scopeXem = { ownerId: order.staffId, assigned, quanLyBenDat };
       // ADR-0135 Đ1: đơn nháp của người khác → 404 (luật thuần dùng chung); đơn đã xác nhận / huỷ giữ luật cũ.
       const xem = ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scopeXem), status: order.status, laNguoiLap: order.staffId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
-      if (xem !== "ok") return xem === "404" ? NOT_FOUND() : FORBIDDEN_VIEW();
+      if (xem !== "ok") return xem === "404" || (await donThanhVienCungToChuc(env.DB, staff, id, tuCachCuaToi)) ? NOT_FOUND() : FORBIDDEN_VIEW(); // Q3 (chủ 17/11): thành viên cùng tổ chức ⇒ 404
       if (!can(staff, "money.view", scopeXem) || !can(staff, "contact.view", scopeXem)) return FORBIDDEN_VIEW();
       // Sổ đại lý đợt 2 Task 8 (ADR-0078 điều 10): người bán từng dịch vụ (bản chụp) để chia phần — hàm công bố của orders KHÔNG tự kiểm quyền nên chỉ gọi ở đây,
       // SAU `can(` (src/orders-cong-bo.test.ts). `dungBienNhan` chỉ đọc người bán + tên người bán; mức, a%, người hưởng không bao giờ ra biên nhận.
@@ -45,7 +45,7 @@ export const receiptModule: AppModule = {
 
     // QR thanh toán của MỘT đơn (ADR-0108 đ3; đặc tả QR §7): cổng `orders` (HDV, Đối tác, Thực tập vào được — cổng office sẽ chặn họ). `order.view` TRƯỚC
     // (chỉ-HDV không phụ trách → 404, không dò được đơn có tồn tại), rồi `money.view` phạm vi đơn, rồi mới đọc tiền và tài khoản. Không ghi gì.
-    route("GET", "/api/orders/:id/qr-thanh-toan", "orders", async ({ env, url, params, staff, isAssigned, laQuanLyCuaBen }) => {
+    route("GET", "/api/orders/:id/qr-thanh-toan", "orders", async ({ env, url, params, staff, isAssigned, laQuanLyCuaBen, tuCachCuaToi }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([donChoBienNhan(env.DB, id), isAssigned(id)]);
@@ -55,7 +55,7 @@ export const receiptModule: AppModule = {
       const scopeXem = { ownerId: order.staffId, assigned, quanLyBenDat };
       // ADR-0135 Đ1: đơn nháp của người khác → 404 (luật thuần dùng chung); đơn đã xác nhận / huỷ giữ luật cũ.
       const xem = ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scopeXem), status: order.status, laNguoiLap: order.staffId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
-      if (xem !== "ok") return xem === "404" ? NOT_FOUND() : FORBIDDEN_VIEW();
+      if (xem !== "ok") return xem === "404" || (await donThanhVienCungToChuc(env.DB, staff, id, tuCachCuaToi)) ? NOT_FOUND() : FORBIDDEN_VIEW(); // Q3 (chủ 17/11): thành viên cùng tổ chức ⇒ 404
       if (!can(staff, "money.view", scopeXem)) return FORBIDDEN_VIEW();
       // ADR-0135 Đ8: QR chỉ cho đơn ĐÃ XÁC NHẬN (mọi đơn); đặt sau kiểm quyền xem để người không xem được vẫn nhận 404/403.
       if (order.status !== "confirmed") return error(409, "qr_requires_confirmed", "Đơn chưa xác nhận, chưa có mã QR thanh toán.");
@@ -77,7 +77,7 @@ export const receiptModule: AppModule = {
     // Phiếu công nợ với Tour Đảo của MỘT đơn đại lý (ADR-0182 Đ2 mục 2; accepted 12/11). Cổng `orders`; `order.view` TRƯỚC (khuôn route QR — không dò được đơn), rồi ô xem phiếu
     // (`xemDuocPhieuCongNo`: Kế toán, Quản trị, Toàn quyền; đại lý chủ đơn). Chỉ đơn ĐÃ XÁC NHẬN. Mọi số do «Công nợ đại lý» của billing tính; route KHÔNG đọc tham số nào của đường dẫn
     // hay thân ngoài mã đơn. QR có bất kể công tắc ADR-0178 Đ1 (tiền đại lý nộp, không phải tiền khách). Không ghi gì.
-    route("GET", "/api/orders/:id/cong-no-dai-ly", "orders", async ({ env, params, staff, isAssigned, laQuanLyCuaBen }) => {
+    route("GET", "/api/orders/:id/cong-no-dai-ly", "orders", async ({ env, params, staff, isAssigned, laQuanLyCuaBen, tuCachCuaToi }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([donChoBienNhan(env.DB, id), isAssigned(id)]);
@@ -86,7 +86,7 @@ export const receiptModule: AppModule = {
       const quanLyBenDat = order.staffId !== staff.id && donDaGuiLen({ status: order.status, coYeuCauMo: false }) && (await laQuanLyCuaBen(order.bookerPartyId));
       const scopeXem = { ownerId: order.staffId, assigned, quanLyBenDat };
       const xem = ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scopeXem), status: order.status, laNguoiLap: order.staffId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
-      if (xem !== "ok") return xem === "404" ? NOT_FOUND() : FORBIDDEN_VIEW();
+      if (xem !== "ok") return xem === "404" || (await donThanhVienCungToChuc(env.DB, staff, id, tuCachCuaToi)) ? NOT_FOUND() : FORBIDDEN_VIEW(); // Q3 (chủ 17/11): thành viên cùng tổ chức ⇒ 404
       // ADR-0213 Đ5 (Task 11 vòng sửa 1): phiếu của tổ chức mở cho người quản lý có hiệu lực KỂ CẢ khi chính họ lập đơn thay mặt tổ chức (hồ sơ phiên ≠ bên đặt). Hồ sơ phiên = bên đặt ⇒ không hỏi thêm.
       const qlPhieu = quanLyBenDat || (staff.partyId !== order.bookerPartyId && (await laQuanLyCuaBen(order.bookerPartyId)));
       if (!xemDuocPhieuCongNo(staff, order.bookerPartyId, qlPhieu)) return FORBIDDEN_VIEW();

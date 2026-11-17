@@ -2,7 +2,7 @@
 // Bảng chân trị đủ 2×2×2 cho `draft` (coQuyenXem × laNguoiLap × (dangCho, xetDuyetDuoc) ghép) + hai ca `confirmed` / `cancelled` đi theo `coQuyenXem`.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chiNguoiLapGhiNhap, ketQuaXemDon, xemDuocDon } from "./xem-don-nhap.ts";
+import { chiNguoiLapGhiNhap, ketQuaXemDon, thanhVienCungToChucXemDonNguoiKhac, xemDuocDon } from "./xem-don-nhap.ts";
 
 const TRANG_THAI = ["draft", "confirmed", "cancelled"] as const;
 const BOOL = [false, true] as const;
@@ -89,4 +89,13 @@ test("ADR-0213 Đ8: «đang chờ người quản lý» KHÔNG mở cửa của 
   assert.equal(xemDuocDon({ coQuyenXem: true, status: "draft", laNguoiLap: false, dangCho: false, xetDuyetDuoc: true, ngoaiLeToChuc: n }), false, "Toàn quyền / văn phòng có ô xét duyệt vẫn không thấy nháp chờ người quản lý");
   assert.equal(chiNguoiLapGhiNhap({ status: "draft", laNguoiLap: false }), false);
   assert.equal(chiNguoiLapGhiNhap({ status: "draft", laNguoiLap: true }), true);
+});
+
+test("Q3 (chủ 17/11): thanhVienCungToChucXemDonNguoiKhac — chỉ đơn tư cách thành viên của tổ chức người xem đang ở, không phải người lập", () => {
+  const co = { laNguoiLap: false, actingLinkKind: "MEMBER", actingPartyId: "org", toChucCuaToi: ["org"] };
+  assert.equal(thanhVienCungToChucXemDonNguoiKhac(co), true);
+  assert.equal(thanhVienCungToChucXemDonNguoiKhac({ ...co, laNguoiLap: true }), false);
+  assert.equal(thanhVienCungToChucXemDonNguoiKhac({ ...co, actingLinkKind: "MANAGER" }), false, "đơn của người quản lý: giữ hành vi cũ");
+  assert.equal(thanhVienCungToChucXemDonNguoiKhac({ ...co, actingLinkKind: null }), false);
+  assert.equal(thanhVienCungToChucXemDonNguoiKhac({ ...co, toChucCuaToi: ["khac"] }), false, "Đối tác lạ: giữ 403");
 });

@@ -551,3 +551,21 @@ test("Q1: lô huỷ THUA khoá lạc quan (đơn bị sửa ngay trước lô) �
   assert.equal(w.q("SELECT status AS s FROM orders WHERE id = ?", id)[0].s, "draft");
   assert.deepEqual(cho(w, id).map((x: { status: string }) => x.status), ["MO"]);
 });
+
+// ---- Chủ duyệt 17/11 (Q3, «Áp cả ba»): thành viên A mở đơn ĐÃ GỬI LÊN của thành viên B cùng tổ chức ⇒ 404 (ADR-0213 mục «Xem»), không 403 ----
+test("Q3: thành viên A mở đơn đã gửi lên (đã xác nhận) của thành viên B ⇒ 404 ở chi tiết đơn và các đường đọc của đơn; Đối tác lạ giữ 403", async () => {
+  const w = setup();
+  const LA = "66666666-6666-4666-8666-666666666609";
+  seedStaff(w.sqlite, { id: LA, phone: "0900000029", name: "Đối Tác Lạ", perms: ["PARTNER"] });
+  const id = await lap(w, TV2);
+  assert.equal((await guiQl(w, TV2, id)).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 200);
+  assert.equal(w.q("SELECT status AS s FROM orders WHERE id = ?", id)[0].s, "confirmed");
+  const duong = ["", "/payments", "/receipt", "/passengers", "/qr-thanh-toan", "/cong-no-dai-ly"];
+  for (const d of duong) {
+    const r = await w.call("GET", `/api/orders/${id}${d}`, { as: TV });
+    assert.equal(r.status, 404, `thành viên A ${d || "(chi tiết)"}: ${r.status} ${r.text}`);
+  }
+  assert.equal((await w.call("GET", `/api/orders/${id}`, { as: LA })).status, 403, "Đối tác lạ: như hôm nay");
+  assert.equal((await w.call("GET", `/api/orders/${id}`, { as: NAM })).status, 200, "người quản lý thấy");
+});

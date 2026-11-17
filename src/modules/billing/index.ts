@@ -17,7 +17,7 @@ import { vnToday } from "../../shared/vn-date";
 import { dongTien } from "../../shared/tra-sau";
 import { docGhiChuKy, khoaKyStatements, kiemKhoaKy, thangDaKhoa } from "../ky-so";
 import { auditStatement } from "../audit";
-import { donDangThuTien, phanThuongMaiCuaDon, thongTinGiaoDon } from "../orders";
+import { donDangThuTien, donThanhVienCungToChuc, phanThuongMaiCuaDon, thongTinGiaoDon } from "../orders";
 import { danhSachYeuCau, duyetYeuCau, ruYeuCau, taoYeuCau, tuChoiYeuCau } from "./dieu-chinh";
 import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
 import { chiNguoiLapGhiNhap, donDaGuiLen, ketQuaXemDon } from "../../shared/xem-don-nhap";
@@ -152,7 +152,7 @@ export const billingModule: AppModule = {
   routes: [
     // Tiền của MỘT đơn (NT-F11): đã thu / còn lại / dư chờ hoàn, khoản thu, lý do đang giữ + ai xử lý, nút nào hiện. Khuôn quyền = chi tiết đơn (ADR-0019 đ2):
     // `order.view` phạm vi đơn (chỉ-FIELD không phụ trách → 404), rồi `money.view`.
-    route("GET", "/api/orders/:id/payments", "orders", async ({ env, params, staff, isAssigned, laQuanLyCuaBen }) => {
+    route("GET", "/api/orders/:id/payments", "orders", async ({ env, params, staff, isAssigned, laQuanLyCuaBen, tuCachCuaToi }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [info, assigned] = await Promise.all([thongTinGiaoDon(env.DB, id), isAssigned(id)]);
@@ -162,7 +162,7 @@ export const billingModule: AppModule = {
       const scopeXem = { ...scope, quanLyBenDat: await quanLyBenDatCuaDon(env.DB, staff, { id, ownerId: info.ownerId, status: info.status }, laQuanLyCuaBen) };
       // ADR-0135 Đ1: đơn nháp của người khác → 404 (luật thuần dùng chung); đơn đã xác nhận / huỷ giữ luật cũ.
       const xem = ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scopeXem), status: info.status, laNguoiLap: info.ownerId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
-      if (xem !== "ok") return xem === "404" ? NOT_FOUND() : FORBIDDEN_VIEW();
+      if (xem !== "ok") return xem === "404" || (await donThanhVienCungToChuc(env.DB, staff, id, tuCachCuaToi)) ? NOT_FOUND() : FORBIDDEN_VIEW(); // Q3 (chủ 17/11): thành viên cùng tổ chức ⇒ 404
       if (!can(staff, "money.view", scopeXem)) return FORBIDDEN_VIEW();
       // ADR-0089: khối cọc của đơn huỷ — cờ nút theo ĐÚNG ô của route ghi; tên người giữ tiền chỉ cho `ledger.view` phạm vi any.
       const coc = info.status === "cancelled"
@@ -516,14 +516,14 @@ export const billingModule: AppModule = {
 
     // DẤU "ĐÃ NHẬP PHẦN MỀM KẾ TOÁN" (ADR-0060 điều 4) — đọc: `order.view` phạm vi đơn (chỉ-FIELD không phụ trách → 404, như /payments), rồi ô xem riêng
     // `accounting.entry.view` cùng phạm vi (Đối tác một mình → 403 — Q-2 "Không"; lai SALES + PARTNER qua nhờ ô SALES). Dòng trước đó chỉ cho ô ghi (A-7).
-    route("GET", "/api/orders/:id/nhap-ke-toan", "orders", async ({ env, params, staff, isAssigned }) => {
+    route("GET", "/api/orders/:id/nhap-ke-toan", "orders", async ({ env, params, staff, isAssigned, tuCachCuaToi }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [don, assigned] = await Promise.all([donChoNhapKeToan(env.DB, id), isAssigned(id)]);
       if (!don) return NOT_FOUND();
       const scope = { ownerId: don.ownerId, assigned };
       const xem = ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scope), status: don.status, laNguoiLap: don.ownerId === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: seesOnlyAssignedOrders(staff) });
-      if (xem !== "ok") return xem === "404" ? NOT_FOUND() : FORBIDDEN_VIEW(); // ADR-0135 Đ1
+      if (xem !== "ok") return xem === "404" || (await donThanhVienCungToChuc(env.DB, staff, id, tuCachCuaToi)) ? NOT_FOUND() : FORBIDDEN_VIEW(); // Q3 (chủ 17/11): thành viên cùng tổ chức ⇒ 404 // ADR-0135 Đ1
       if (!can(staff, "accounting.entry.view", scope)) return FORBIDDEN_VIEW();
       return json((await docNhapKeToan(env.DB, id, { coTheGhi: can(staff, "accounting.entry.mark"), status: don.status })) satisfies NhapKeToanResponse);
     }),

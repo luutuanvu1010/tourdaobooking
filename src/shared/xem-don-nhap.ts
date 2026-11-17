@@ -52,3 +52,11 @@ export function chiNguoiLapGhiNhap(i: { status: TrangThaiDonXem; laNguoiLap: boo
   if (i.status !== "draft") return true;
   return i.laNguoiLap ? i.ngoaiLeToChuc?.dangChoQuanLy !== true : quanLyThayNhapThanhVien(i.ngoaiLeToChuc);
 }
+
+/**
+ * ADR-0213 mục «Xem» + chủ duyệt 17/11/2026 («Áp cả ba», Q3): thành viên A không thấy đơn của thành viên B cùng tổ chức — trả 404 (như đơn không tồn tại), KHÔNG 403. Chỉ dùng để ĐỔI
+ * mã từ chối của một lần đọc ĐÃ bị từ chối (không bao giờ cho xem thêm). Đúng khi: người xem không phải người lập, đơn lập với tư cách THÀNH VIÊN (`acting_link_kind = 'MEMBER'`,
+ * R10) của tổ chức `actingPartyId`, và tổ chức đó có trong các tổ chức hiện thời của người xem (`toChucCuaToi` — tư cách của chính người gọi). Đối tác lạ: giữ 403.
+ */
+export const thanhVienCungToChucXemDonNguoiKhac = (i: { laNguoiLap: boolean; actingLinkKind: string | null; actingPartyId: string | null; toChucCuaToi: readonly string[] }): boolean =>
+  !i.laNguoiLap && i.actingLinkKind === "MEMBER" && i.actingPartyId !== null && i.toChucCuaToi.includes(i.actingPartyId);
