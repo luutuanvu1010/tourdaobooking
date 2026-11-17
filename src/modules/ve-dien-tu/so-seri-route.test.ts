@@ -499,10 +499,10 @@ test("danh sách vé của lô và tìm theo số sê-ri: số sê-ri, hạn, t�
     assert.equal((await w.call("GET", "/api/ve/tim?soSeri=abc", { as: ADM })).status, 400);
     assert.equal((await w.call("GET", "/api/ve/tim", { as: ADM })).status, 400);
     assert.equal((await w.call("GET", `/api/ve/tim?soSeri=${u2.serial}`, { as: FIELD })).status, 403);
-    // Bán hàng xem số lượng lô Tour Đảo như GET /api/ve/lo (ve.kho.manage), nhưng không có order.view trên đơn của người khác ⇒ không mã đơn là việc của cổng order; ở đây chỉ kiểm không lộ mã vé.
-    const bh = await w.call("GET", `/api/ve/tim?soSeri=${u2.serial}`, { as: SALES });
-    assert.equal(bh.status, 200, bh.text);
-    khongLoMa(bh.text);
+    // Bán hàng (ve.kho.manage, không ve.phat-hanh) chỉ xem SỐ LƯỢNG lô Tour Đảo (GET /api/ve/lo); KHÔNG xem danh sách số sê-ri, KHÔNG tìm vé Tour Đảo theo số sê-ri.
+    // Lý do (kiểm độc lập M1, 17/11): Bán hàng có ve.quet.tinh — thấy số sê-ri cả lô là gõ được «Đã dùng» cho vé chưa từng cầm (ADR-0175 Đ1.3: Bán hàng không thao tác lô Tour Đảo).
+    assert.equal((await w.call("GET", `/api/ve/tim?soSeri=${u2.serial}`, { as: SALES })).status, 403);
+    assert.equal((await w.call("GET", `/api/ve/lo/${a.loId}/ve-trong-lo`, { as: SALES })).status, 403);
     void d1;
   } finally { tat(); }
 });

@@ -73,6 +73,7 @@ Chủ 17/11 yêu cầu quản lý vé theo số sê-ri, cho vai nội bộ kiể
 | Cửa | Cổng máy chủ | Giao diện đổi nghĩa |
 |---|---|---|
 | Huỷ vé lẻ, huỷ lô đã cấp | `coQuyenLo` theo nguồn của lô; chặn vé đã dùng, vé hãng ngoài đã mở | Kho vé: danh sách vé của lô, ô tìm số sê-ri, nút «Huỷ vé»; «Huỷ lô» hiện cả với lô đã cấp |
+| Xem danh sách số sê-ri của lô, tìm vé theo số sê-ri | `coQuyenLo` theo nguồn của lô, **không** mở rộng «chỉ xem số lượng»: Bán hàng (có `ve.kho.manage` và `ve.quet.tinh`, không có `ve.phat-hanh`) thấy số lượng lô Tour Đảo nhưng không thấy số sê-ri của nó, vì có số sê-ri cả lô là gõ được «Đã dùng» cho vé chưa từng cầm (kiểm độc lập 17/11, M1) | Kho vé: nút «Xem vé» chỉ hiện ở lô người xem thao tác được |
 | Gõ số sê-ri | `ve.quet.tinh` hoặc `ve.quet.xem` (như quét) | Quét vé: ô «Nhập số sê-ri» |
 | Cấp số cho lô Tour Đảo | `coQuyenLo` (như mở lô) | Tạo vé: in số sê-ri lên ảnh |
 | Trả suất, cấp vé thay | Đường trả vé và cấp vé sẵn có, chạy trong module vé | Khối vé trên đơn: vé thay hiện như vé mới cấp, chưa gửi |

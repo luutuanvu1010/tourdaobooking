@@ -585,28 +585,28 @@ export const veDienTuModule: AppModule = {
       return json({ loId, daCap, tongVe: xem.tong, huyDuoc: xem.huy_duoc, giuNguyenDaDung: xem.giu_da_dung, giuNguyenHangNgoaiDaMo: xem.giu_hang_ngoai_da_mo, donCapThay: xem.don_cap_thay, daGuiPhaiGuiLai: xem.da_gui });
     }),
 
-    // DANH SÁCH VÉ CỦA LÔ (ADR-0217 A6): số sê-ri, hạn, tình trạng; mã đơn chỉ khi người xem có `order.view` trên đơn. Không mã vé, không khoá kho. Quyền xem như GET /api/ve/lo.
+    // DANH SÁCH VÉ CỦA LÔ (ADR-0217 A6): số sê-ri, hạn, tình trạng; mã đơn chỉ khi người xem có `order.view` trên đơn. Không mã vé, không khoá kho. Quyền: người thao tác được lô (`coQuyenLo` không chiXem) — hẹp hơn GET /api/ve/lo.
     route("GET", "/api/ve/lo/:id/ve-trong-lo", "office", async ({ env, params, staff, donChoQuet }) => {
       if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const loId = params.id ?? "";
       if (!UUID_RE.test(loId)) return KHONG_THAY();
       const lo = await docLo(env.DB, loId);
       if (!lo) return KHONG_THAY();
-      if (!coQuyenLo(staff, lo.source, true)) return KHONG_QUYEN();
+      if (!coQuyenLo(staff, lo.source)) return KHONG_QUYEN(); // KHÔNG chiXem: số sê-ri cả lô đủ để gõ «Đã dùng» — chỉ người thao tác được lô (kiểm độc lập M1)
       const ds = await veTrongLo(env.DB, loId);
       const maDon = await maDonChoNguoiXem(donChoQuet, staff.id, ds);
       const ten = await getEffectiveServices(env.DB, [lo.catalog_code]);
       return json({ loId, tenDichVu: ten.get(lo.catalog_code)?.name ?? null, tenSanPham: lo.printed_name, nhomKhach: lo.pax_group, nguon: lo.source, trangThaiLo: lo.status, ve: ds.map((r) => dongVeTrongLo(r, maDon)) });
     }),
 
-    // TÌM VÉ THEO SỐ SÊ-RI (ADR-0217 A6): số sê-ri không bí mật nên đi trên URL. Cùng bộ quyền xem như GET /api/ve/lo, theo nguồn của lô chứa vé.
+    // TÌM VÉ THEO SỐ SÊ-RI (ADR-0217 A6): số sê-ri không bí mật nên đi trên URL. Quyền như danh sách vé của lô, theo nguồn của lô chứa vé.
     route("GET", "/api/ve/tim", "office", async ({ env, url, staff, donChoQuet }) => {
       if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN();
       const soSeri = chuanHoaSoSeri(url.searchParams.get("soSeri"));
       if (soSeri === null) return SO_SERI_KHONG_DUNG();
       const r = await veTheoSoSeri(env.DB, soSeri);
       if (!r) return VE_SO_SERI_KHONG_THAY();
-      if (!coQuyenLo(staff, r.nguon, true)) return KHONG_QUYEN();
+      if (!coQuyenLo(staff, r.nguon)) return KHONG_QUYEN(); // như danh sách vé của lô: không chiXem
       const maDon = await maDonChoNguoiXem(donChoQuet, staff.id, [r]);
       const ten = await getEffectiveServices(env.DB, [r.catalog_code]);
       return json({ ve: { ...dongVeTrongLo(r, maDon), loId: r.batch_id, tenDichVu: ten.get(r.catalog_code)?.name ?? null, tenSanPham: r.printed_name, nhomKhach: r.nhom_lo, nguon: r.nguon, trangThaiLo: r.lo_status } });

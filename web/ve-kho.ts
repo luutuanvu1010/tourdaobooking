@@ -216,7 +216,8 @@ if (!nhapLo && !taoVe) {
           khuVe.hidden = false; nutXem.setAttribute("aria-expanded", "true");
           await veCuaLo(khuVe, l.loId, { huyDuoc: thaoTacLo(l.nguon), nguon: l.nguon, sauHuy: sauHuyVe });
         });
-        const nut: HTMLElement[] = [nutXem];
+        const nut: HTMLElement[] = [];
+        if (thaoTacLo(l.nguon)) nut.push(nutXem); // máy chủ chỉ trả danh sách vé cho người thao tác được lô
         if (thaoTacLo(l.nguon)) {
           const nutHuy = h("button", { type: "button", class: "btn", "data-action": "bo-lo", "data-id": l.loId }, "Huỷ lô");
           nutHuy.addEventListener("click", async () => { nutHuy.disabled = true; try { await huyLo(l, nutHuy); } finally { nutHuy.disabled = false; } });
