@@ -124,7 +124,7 @@ function veLoiMoi(t: Api.ToChucDto): void {
 function veCheDo(t: Api.ToChucDto): void {
   const hienTai = t.cheDo ?? "SOAN_VA_GUI";
   const chon = (["SOAN_VA_GUI", "CHI_SOAN"] as const).map((ma) => {
-    const o = h("input", { type: "radio", name: "tc-che-do", value: ma, checked: ma === hienTai }) as HTMLInputElement;
+    const o = h("input", { type: "radio", class: "o-tick", name: "tc-che-do", value: ma, checked: ma === hienTai }) as HTMLInputElement;
     return { ma, o, nhan: h("label", { class: "check" }, o, h("span", null, NHAN_CHE_DO_THANH_VIEN[ma])) };
   });
   const nutLuu = h("button", { type: "button", class: "nut", "data-cap": "phu", id: "tc-che-do-luu" }, "Lưu chế độ") as HTMLButtonElement;

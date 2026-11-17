@@ -1527,7 +1527,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   // Người xét duyệt (không phải người lập) mở đơn ĐANG CHỜ: khối "Người phụ trách" ẩn (HDV tự coi mình là người phụ trách — sai với đơn chưa giao cho họ) và không có "Xem ảnh gửi khách" (Đ11: ảnh chỉ sau khi xác nhận).
   const nguoiXetDuyet = cho?.dangCho === true && order.staffId !== staff!.id;
   if (nguoiXetDuyet) handler = HANDLER_HIDDEN;
-  const suaKhach = suaKhachDuoc(staff!, order.staffId, canModify, banHangSuaDuoc(order, laBanHang)) && order.deliveredAt === null; // ADR-0142
+  const suaKhach = suaKhachDuoc(staff!, order.staffId, canModify, banHangSuaDuoc(order, laBanHang)) && order.deliveredAt === null && !(tv?.dangCho && !tv.quanLyThay); // ADR-0142; Task 17: thành viên đang chờ người quản lý không sửa (máy chủ 409)
   // ADR-0063 D1: người lập đơn (Bán hàng), Kế toán, Quản trị, Toàn quyền sửa số khách đơn đã xác nhận, chưa Đã giao — cùng luật ẩn/hiện với máy chủ
   // (`duocSuaSoKhachVanPhong`, hỏi bảng quyền) VÀ máy chủ phải gửi loại khách sửa được (`suaSoKhach`); không dịch vụ nào sửa được thì không có nút.
   const nguonSoKhach = duocSuaSoKhachVanPhong(staff!, order) ? nguonBangSuaSoKhach(order.services, suaSoKhach) : null;
@@ -1683,7 +1683,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
     : h("button", { type: "button", class: "btn btn-primary", "data-action": "send-confirmation" }, "Xem ảnh gửi khách");
   send.addEventListener("click", openConfirmation);
   // Đ11: đơn cần xác nhận (đang chờ, hoặc thuộc diện phải gửi) chỉ có ảnh XÁC NHẬN ĐƠN DỊCH VỤ sau khi đã xác nhận; người xét duyệt không mở được biên nhận của đơn chờ (máy chủ trả 404).
-  replaceChildren(sendEl, anhXacNhanLuc() ? send : null);
+  // Task 17: người quản lý thay nháp thành viên không có biên nhận (route biên nhận chưa mở ngoại lệ nháp — máy chủ trả 404); biên nhận có sau khi đơn được xác nhận.
+  replaceChildren(sendEl, anhXacNhanLuc() && !tv?.quanLyThay ? send : null);
 }
 
 const focusChangeBooker = (): void => document.querySelector<HTMLElement>('[data-action="change-booker"]')?.focus();

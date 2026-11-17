@@ -19,8 +19,11 @@ type Staff = Api.StaffProfile;
 type ThuBao = { loai: string; trangThai: "CHO" | "GUI" | "LOI" };
 type DongHangCho = { id: string; trangThai: string; loai: string; tenLoai: string; phienBan: number; guiLuc: string | null; thu?: ThuBao | null };
 type Muc = { ma: string; nhan: string; ketLuan: "DAT" | "KHONG_DAT" | null; lyDo: { ma: string; nhan: string } | null };
+/** ADR-0213 Đ7.5 (Task 17): dòng «Mã vào tổ chức» máy chủ dựng sẵn (`loiMoiVaoToChuc`) — đang giữ / đã huỷ / không còn giữ; tên tổ chức chỉ khi người xem có ô party.view. */
+type LoiMoiPhieu = { trangThai: "DANG_GIU" | "DA_HUY" | "KHONG_CON_GIU"; khopSoDienThoai: boolean; tenToChuc?: string; dong: string };
+const chuMaVao = (lm: LoiMoiPhieu): string => (lm.tenToChuc ? `${lm.tenToChuc}. ${lm.dong}` : lm.dong);
 type PhieuXacMinh = {
-  id: string; loai: string; tenLoai: string; trangThai: string; phienBan: number; guiLuc?: string | null; daXuLy?: boolean;
+  id: string; loai: string; tenLoai: string; trangThai: string; phienBan: number; guiLuc?: string | null; daXuLy?: boolean; loiMoiVaoToChuc?: LoiMoiPhieu | null;
   noiDung?: { hoTen: string; ngaySinh: string | null; diaChi: string | null; soDienThoai: string | null; nguoiGioiThieuKhai: string | null;
     giayTo: { loai: string; soChe: string | null; ngayCap: string | null; noiCap: string | null; hetHan: string | null } | null };
   muc?: Muc[]; tep?: { id: string; o: string }[]; goiY?: { id: string; tenHoSo: string; vai: string[]; lyDo: string[] }[];
@@ -37,7 +40,7 @@ type PhieuXacMinh = {
 type PhieuDuyet = {
   id: string; loai: string; tenLoai: string; loaiToChuc?: string | null; tenLoaiToChuc?: string | null; vaiChon?: { ma: string; ten: string; laLoaiDoiTac: boolean }[]; vaiChonToChuc?: { ma: string; ten: string; laLoaiDoiTac: boolean }[]; trangThai: string; phienBan: number; daXuLy?: boolean; guiLuc?: string | null; hoTen?: string; soDienThoai?: string | null; muc?: Muc[];
   ketLuanDanhBa?: { kieu: string; tenHoSo?: string } | null; coNguoiGioiThieu?: boolean; nguoiXacMinhLaBan?: boolean;
-  mucToChuc?: Muc[]; ketLuanDanhBaToChuc?: { kieu: string; tenHoSo?: string; ghiChu?: string } | null;
+  mucToChuc?: Muc[]; ketLuanDanhBaToChuc?: { kieu: string; tenHoSo?: string; ghiChu?: string } | null; loiMoiVaoToChuc?: LoiMoiPhieu | null;
 };
 
 /** Tên vai ở hàng chờ; phiếu «chỉ tổ chức» (vai cá nhân rỗng) ghi «Chỉ làm cho tổ chức». */
@@ -272,7 +275,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     });
     replaceChildren(ketThuc, nutDat);
     moKhung(k.el,
-      dong("Vai trò xin", d.tenLoai), d.guiLuc ? dong("Gửi lúc", vnDateTimeText(d.guiLuc)) : null,
+      dong("Vai trò xin", d.tenLoai || CHU_HANG_CHO_DK.chiToChuc), d.loiMoiVaoToChuc ? dong("Mã vào tổ chức", chuMaVao(d.loiMoiVaoToChuc)) : null, d.guiLuc ? dong("Gửi lúc", vnDateTimeText(d.guiLuc)) : null,
       dong("Họ tên", n.hoTen), dong("Ngày sinh", n.ngaySinh ? ngayVN(n.ngaySinh) : "Không có"), dong("Địa chỉ", n.diaChi ?? "Không có"), dong("Số điện thoại", n.soDienThoai ?? "Không có"),
       n.nguoiGioiThieuKhai ? dong("Người giới thiệu (khai)", n.nguoiGioiThieuKhai) : null,
       g ? h("div", { class: "hs-dong" }, h("span", { class: "muted" }, "Số căn cước"), soEl, hienSo) : null,
@@ -288,7 +291,9 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     const k = dauKhung(`Duyệt phiếu ${d.id}`);
     if (d.daXuLy) { moKhung(k.el, dong("Trạng thái", nhanTrangThaiPhieu(d.trangThai)), h("p", { class: "muted" }, "Phiếu đã được xử lý.")); return; }
     // Phiếu «chỉ tổ chức» (Task 13/14): vai cá nhân rỗng, có phần tổ chức — duyệt được với vai cá nhân để trống; nếu tổ chức là hồ sơ CÓ SẴN, máy chủ trả câu 409 (văn phòng giao người quản lý sau).
-    const chiToChuc = d.loai === "" && !!d.loaiToChuc;
+    // ADR-0213 Đ7.5 (Task 17): phiếu có mã vào tổ chức hợp lệ (đang giữ, cùng số) thay mục «vai» — cũng duyệt được với «không vai riêng» (máy chủ mở «Thành viên của»).
+    const coMaVao = d.loai === "" && d.loiMoiVaoToChuc?.trangThai === "DANG_GIU" && d.loiMoiVaoToChuc.khopSoDienThoai;
+    const chiToChuc = d.loai === "" && (!!d.loaiToChuc || coMaVao);
     const { conDung, giaTriDau } = trangThaiChonVai(d.loai, d.vaiChon ?? []);
     // Loại của phiếu đã tắt ⇒ mục trống, khoá, chọn sẵn; người duyệt phải chọn rõ một loại khác (không nhảy sang mục đầu).
     const vai = h("select", { class: "o", id: "dk-hc-vai", "aria-label": "Vai trò đối tác" },
@@ -330,7 +335,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       void lenhDk(p, async () => { await api(`/api/dang-ky/phieu/${d.id}/tu-choi-duyet`, { method: "POST", body: { lyDo: ma, phienBan: d.phienBan } }); return "Đã từ chối phiếu."; });
     });
     moKhung(k.el,
-      dong("Họ tên", d.hoTen ?? ""), dong("Số điện thoại", d.soDienThoai ?? "Không có"), dong("Vai trò xin", d.tenLoai || CHU_HANG_CHO_DK.chiToChuc), ...muc,
+      dong("Họ tên", d.hoTen ?? ""), dong("Số điện thoại", d.soDienThoai ?? "Không có"), dong("Vai trò xin", d.tenLoai || CHU_HANG_CHO_DK.chiToChuc), d.loiMoiVaoToChuc ? dong("Mã vào tổ chức", chuMaVao(d.loiMoiVaoToChuc)) : null, ...muc,
       dong("Kết luận Danh bạ", d.ketLuanDanhBa ? (d.ketLuanDanhBa.kieu === "EXISTING" ? `Gắn hồ sơ có sẵn${d.ketLuanDanhBa.tenHoSo ? `: ${d.ketLuanDanhBa.tenHoSo}` : ""}` : CHU_HANG_CHO_DK.hoSoMoi) : "Chưa có"),
       ...(d.mucToChuc ?? []).map(dongKetLuan),
       kl ? dong(CHU_HANG_CHO_DK.ketLuanToChuc, kl.kieu === "EXISTING" ? `Gắn tổ chức có sẵn${kl.tenHoSo ? `: ${kl.tenHoSo}` : ""}` : CHU_HANG_CHO_DK.hoSoToChucMoi) : null,
