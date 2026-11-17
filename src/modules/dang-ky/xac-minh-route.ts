@@ -135,7 +135,7 @@ export interface LoiMoiPhieuDto { trangThai: "DANG_GIU" | "DA_HUY" | "KHONG_CON_
 export function dongLoiMoiPhieu(lm: LoiMoiDong | null, registrationId: string, soBanKhai: string | null, xemTen: boolean): LoiMoiPhieuDto | null {
   if (!lm) return null;
   const ten = xemTen ? { tenToChuc: lm.org_name } : {};
-  if (lm.status === "DA_HUY") return { trangThai: "DA_HUY", khopSoDienThoai: false, ...ten, dong: "Lời mời đã bị huỷ: phiếu đi tiếp như phiếu không có mã. Người đăng ký cần chọn một vai cá nhân, hoặc từ chối phiếu." };
+  if (lm.status === "DA_HUY") return { trangThai: "DA_HUY", khopSoDienThoai: false, ...ten, dong: "Lời mời đã bị huỷ: phiếu đi tiếp như phiếu không có mã. Người đăng ký cần chọn một vai người dùng cá nhân, hoặc từ chối phiếu." };
   if (lm.status !== "GIU_CHO_PHIEU" || lm.held_registration_id !== registrationId) {
     return { trangThai: "KHONG_CON_GIU", khopSoDienThoai: false, ...ten, dong: "Lời mời không còn giữ cho phiếu này: phiếu đi tiếp như phiếu không có mã." };
   }

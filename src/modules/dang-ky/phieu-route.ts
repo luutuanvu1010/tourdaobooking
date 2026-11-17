@@ -290,7 +290,7 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   }
   // Đ2.6: tài khoản mang quyền khác Đối tác (Tài xế đối tác) không gắn vào tổ chức được.
   if (loiMoi.hopLe && roleCaNhan !== "" && isRoleCode(roleCaNhan) && ROLES[roleCaNhan].defaults.some((q) => q !== "PARTNER")) {
-    return error(400, "invite_role_not_partner", "Vai này không gắn vào tổ chức được. Hãy bỏ mã vào tổ chức, hoặc chọn vai khác.");
+    return error(400, "invite_role_not_partner", "Vai người dùng này không gắn vào tổ chức được. Hãy bỏ mã vào tổ chức, hoặc chọn vai người dùng khác.");
   }
   // Task 5 vòng sửa 1 (I2): phần tổ chức đòi vai của tổ chức. Vai này khoá sau lần gửi đầu (trigger dk_registration_immutable) ⇒ gửi lại kèm phần tổ chức mà vai còn rỗng cũng 400.
   if (coToChuc && roleToChuc === null) return error(400, "org_role_required", CAU_PHIEU.chonVaiToChuc);

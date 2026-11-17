@@ -143,11 +143,11 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, c
   let loiMoi: LoDuyetDangKyVao["loiMoi"];
   if (lmGiu && lmGiu.phone_key === loginPhone) {
     if (!(await conQuyenMoi(lmGiu.created_by, lmGiu.org_party_id))) {
-      return error(409, "org_inviter_no_right", "Người mời không còn quyền mời vào tổ chức này nên lời mời không dùng được. Hãy trả phiếu về để người đăng ký chọn một vai cá nhân, hoặc từ chối phiếu.");
+      return error(409, "org_inviter_no_right", "Người mời không còn quyền mời vào tổ chức này nên lời mời không dùng được. Hãy trả phiếu về để người đăng ký chọn một vai người dùng cá nhân, hoặc từ chối phiếu.");
     }
     // Đ2.6: tài khoản sinh ra phải chỉ giữ quyền Đối tác (vai mang quyền khác — Tài xế đối tác — không gắn vào tổ chức được).
     if (roleCode !== null && !laLoaiDoiTac && isRoleCode(roleCode) && ROLES[roleCode].defaults.some((q) => q !== "PARTNER")) {
-      return error(409, "invite_role_not_partner", "Vai người dùng đã chọn không gắn vào tổ chức được. Hãy chọn vai khác, hoặc trả phiếu về.");
+      return error(409, "invite_role_not_partner", "Vai người dùng đã chọn không gắn vào tổ chức được. Hãy chọn vai người dùng khác, hoặc trả phiếu về.");
     }
     if (dich && (await tcToChucCuaNguoi(env.DB, dich)).some((x) => x.orgPartyId === lmGiu.org_party_id)) {
       return error(409, "org_already_linked", "Hồ sơ đã chọn đang gắn với tổ chức của lời mời. Hãy bấm «Trả về xác minh» để người xác minh chọn lại hồ sơ, hoặc từ chối phiếu.");
