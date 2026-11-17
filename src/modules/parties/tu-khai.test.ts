@@ -47,7 +47,7 @@ test("loại lạ / thân rỗng / khai hai loại một lần bị từ chối"
 });
 
 test("kiemChinhSach: chuẩn hoá NFC + bỏ khoảng trắng hai đầu; rỗng / quá dài bị từ chối", () => {
-  assert.deepEqual(kiemChinhSach({ mucDich: " Xác minh ", noiDung: " Toàn văn " }), { ok: true, value: { mucDich: "Xác minh", noiDung: "Toàn văn", hanXuLyXoaNgay: null, hanGiuPhienNgay: null } });
+  assert.deepEqual(kiemChinhSach({ mucDich: " Xác minh ", noiDung: " Toàn văn " }), { ok: true, value: { mucDich: "Xác minh", noiDung: "Toàn văn", hanXuLyXoaNgay: null, hanGiuPhienNgay: null, coPhanToChuc: false } });
   assert.equal(kiemChinhSach({ mucDich: "", noiDung: "x" }).ok, false);
   assert.equal(kiemChinhSach({ mucDich: "x", noiDung: "y".repeat(20001) }).ok, false);
   assert.equal(kiemChinhSach({ mucDich: "x".repeat(2001), noiDung: "y" }).ok, false);
@@ -56,8 +56,8 @@ test("kiemChinhSach: chuẩn hoá NFC + bỏ khoảng trắng hai đầu; rỗng
 
 test("kiemChinhSach (ADR-0126 đ2, đ8): hai số ngày tuỳ chọn — vắng / null ⇒ null; số nguyên ≥ 1 ⇒ giữ; 0, âm, thập phân, chuỗi, quá lớn ⇒ từ chối", () => {
   const cs = (x: Record<string, unknown>) => kiemChinhSach({ mucDich: "a", noiDung: "b", ...x });
-  assert.deepEqual(cs({ hanXuLyXoaNgay: 7, hanGiuPhienNgay: 30 }), { ok: true, value: { mucDich: "a", noiDung: "b", hanXuLyXoaNgay: 7, hanGiuPhienNgay: 30 } });
-  assert.deepEqual(cs({ hanXuLyXoaNgay: null }), { ok: true, value: { mucDich: "a", noiDung: "b", hanXuLyXoaNgay: null, hanGiuPhienNgay: null } });
+  assert.deepEqual(cs({ hanXuLyXoaNgay: 7, hanGiuPhienNgay: 30 }), { ok: true, value: { mucDich: "a", noiDung: "b", hanXuLyXoaNgay: 7, hanGiuPhienNgay: 30, coPhanToChuc: false } });
+  assert.deepEqual(cs({ hanXuLyXoaNgay: null }), { ok: true, value: { mucDich: "a", noiDung: "b", hanXuLyXoaNgay: null, hanGiuPhienNgay: null, coPhanToChuc: false } });
   for (const khoa of ["hanXuLyXoaNgay", "hanGiuPhienNgay"]) {
     for (const xau of [0, -1, 1.5, "7", true, [], NaN, 100000]) assert.equal(cs({ [khoa]: xau }).ok, false, `${khoa}=${JSON.stringify(xau)}`);
   }
@@ -73,4 +73,14 @@ test("lyDoKhongGui: đúng thứ tự hồ sơ → loại → gộp → chính s
   assert.deepEqual(lyDoKhongGui({ ...du, daDongY: false }), { code: "consent_required", message: CAU_KHONG_GUI.chuaDongY });
   assert.equal(lyDoKhongGhi({ coHoSo: true, laCaNhan: true, daGop: false }), null);
   assert.equal(CAU_KHONG_GUI.chuaChinhSach, "Chưa có chính sách riêng tư nên chưa gửi được thông tin. Hãy quay lại sau.");
+});
+
+test("kiemChinhSach (ADR-0212 Đ7): coPhanToChuc tuỳ chọn, mặc định false; chỉ nhận đúng/sai", () => {
+  const cs = (x: Record<string, unknown>) => kiemChinhSach({ mucDich: "a", noiDung: "b", ...x });
+  const v = (r: ReturnType<typeof kiemChinhSach>) => (r.ok ? r.value.coPhanToChuc : "loi");
+  assert.equal(v(cs({})), false);
+  assert.equal(v(cs({ coPhanToChuc: null })), false);
+  assert.equal(v(cs({ coPhanToChuc: false })), false);
+  assert.equal(v(cs({ coPhanToChuc: true })), true);
+  for (const sai of ["true", 1, 0, "", [], {}]) assert.equal(cs({ coPhanToChuc: sai }).ok, false, JSON.stringify(sai));
 });

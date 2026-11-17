@@ -23,6 +23,21 @@ export function auditStatement(db: D1Database, entry: AuditInput, onlyIf?: strin
   return insertStatement(db, entry, onlyIf);
 }
 
+/** Hành động quản trị tổ chức (ADR-0213 Đ6) — CHỈ chúng được ghi `acting_party_id` qua `auditToChucStatement`. */
+const HANH_DONG_TO_CHUC: readonly AuditAction[] = [
+  "org_manager_assigned", "org_manager_transferred", "org_manager_removed", "org_transfer_requested", "org_member_removed", "org_member_left", "org_notice_resent",
+  "org_invite_created", "org_invite_cancelled", "org_invite_accepted", // ADR-0213 Đ7 (mốc B2, Task 15)
+  "org_member_mode_set", // ADR-0213 Đ8.3 (mốc B2, Task 16)
+];
+/**
+ * Ngoại lệ có tên của Đ3.5 (ruling PF18, mốc B1 Task 10): nhật ký quản trị tổ chức ghi THẲNG `acting_party_id` = hồ sơ tổ chức (đích của lệnh), không qua bối cảnh yêu cầu.
+ * Hàm ghi chung `auditStatement` KHÔNG nhận trường này (Task 11 điền từ tư cách của yêu cầu); hành động ngoài danh sách trên ⇒ ném lỗi, không dựng câu.
+ */
+export function auditToChucStatement(db: D1Database, entry: AuditInput & { targetId: string }, onlyIf?: string): D1PreparedStatement {
+  if (!HANH_DONG_TO_CHUC.includes(entry.action)) throw new Error(`auditToChucStatement: hành động ${entry.action} không phải quản trị tổ chức`);
+  return insertStatement(db, { ...entry, targetType: "party" }, onlyIf, entry.targetId);
+}
+
 /** ADR-0186 Đ4: dấu người làm của dòng nhật ký theo NGƯỜI PHÁT LỆNH — người: `staffId`; tác nhân tự động: `agentCode` (không bao giờ rỗng cả hai). */
 export function nguoiLam(who: PermissionHolder): Pick<AuditInput, "staffId" | "agentCode"> {
   return laTacNhan(who) ? { staffId: null, agentCode: who.tacNhan } : { staffId: who.id, agentCode: null };

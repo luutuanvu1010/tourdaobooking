@@ -17,6 +17,48 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sau nghiệm thu đợt 2 đăng ký (không migration): sửa dòng báo ở trang đăng ký. SỐ TẠM 3.16: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.16",
+    date: "2026-11-17",
+    items: [
+      { kind: "sua", text: "Trang đăng ký: dòng nhắc «Hãy chọn vai… hoặc nhập mã vào tổ chức» tự tắt ngay khi bạn gõ mã vào tổ chức." },
+    ],
+  },
+  {
+    // Đăng ký đối tác đợt 2 (ADR-0212, ADR-0213; migration 0174, 0175, 0176; nhánh claude/account-signup-approval-flow-ee612c): chủ chốt 17/11 «Gộp cả ba»
+    // — lần A (phiếu có phần tổ chức), B1 (người quản lý tổ chức, tư cách theo đơn), B2 (lời mời, thành viên) lên CÙNG một lần phát hành, sau 3.13 và 3.14 trên main.
+    // Phần tổ chức của phiếu ẨN cho tới khi chủ đăng chính sách riêng tư có ô «Thu thông tin tổ chức» (văn bản: PHAN-THEM-TO-CHUC.md, cần luật sư).
+    // SỐ TẠM 3.15: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.15",
+    date: "2026-11-17",
+    items: [
+      { kind: "moi", text: "Phiếu đăng ký có thêm phần khai tổ chức (giấy phép, mã số thuế). Phần này chỉ hiện sau khi Toàn quyền đăng chính sách riêng tư có ô «Thu thông tin tổ chức»." },
+      { kind: "moi", text: "Phiếu đăng ký có thêm ô «Giới tính», và các loại đối tác cho chọn lấy từ danh sách loại đối tác thật; loại Kế toán vừa thêm hiện ngay, không cần sửa mã." },
+      { kind: "moi", text: "Màn xác minh chia hai nhóm mục, người và tổ chức; mã số thuế, giấy phép kinh doanh được đối chiếu với hồ sơ tổ chức trong Danh bạ để báo trùng." },
+      { kind: "moi", text: "Khi Nhân sự duyệt phiếu có phần tổ chức, máy tạo hoặc gắn hồ sơ tổ chức và nối người đăng ký là «Người liên hệ của» tổ chức đó." },
+      { kind: "doi", text: "Mọi hồ sơ tổ chức đã có nay hiện «Chưa xác minh» cho tới khi Quản trị xác minh từng mục; đây chỉ là nhãn thông tin, không khoá việc gì." },
+      { kind: "moi", text: "Khi lập đơn, người quản lý của một tổ chức có ô «Tư cách»: lập cho chính mình hoặc thay mặt tổ chức. Đơn ghi tư cách lúc lập, không đổi về sau." },
+      { kind: "moi", text: "Có màn «Tổ chức của tôi» cho người quản lý: xem tổ chức và đơn của tổ chức, gỡ thành viên, rời tổ chức hoặc xin chuyển quyền quản lý." },
+      { kind: "moi", text: "Mỗi tổ chức có đúng một người quản lý. Khi giao cho người mới, người quản lý cũ nhận thư báo; thư chưa đi được thì văn phòng bấm gửi lại." },
+      { kind: "moi", text: "Văn phòng giao, chuyển, gỡ người quản lý hoặc thành viên ngay trên hồ sơ tổ chức, và xử lý các yêu cầu chuyển quyền từ người quản lý." },
+      { kind: "moi", text: "Có loại đối tác «Công ty lữ hành» và phiếu đăng ký «chỉ tổ chức»: được duyệt thì người đăng ký làm người quản lý, không có hồ sơ cá nhân riêng." },
+      { kind: "doi", text: "Người quản lý thấy đơn của tổ chức (kể cả tiền, lịch sử) và gửi được đơn lên Tour Đảo; sửa, huỷ, gửi vé đơn người khác vẫn do người lập làm." },
+      { kind: "moi", text: "Người quản lý mời thành viên vào tổ chức bằng số điện thoại: Nền tảng tạo một mã dùng một lần, hạn 7 ngày, người quản lý tự gửi mã cho người được mời." },
+      { kind: "moi", text: "Phiếu đăng ký có ô «Mã vào tổ chức»: có mã thì được duyệt xong là thành viên của tổ chức. Người đã có tài khoản nhận lời mời ở trang Tôi." },
+      { kind: "moi", text: "Người quản lý chọn chế độ thành viên: «Chỉ soạn» (tự xem mọi nháp của thành viên) hoặc «Soạn và gửi người quản lý xác nhận»." },
+      { kind: "moi", text: "Thành viên lập đơn thay mặt tổ chức rồi gửi người quản lý; người quản lý gửi đơn lên Tour Đảo hoặc trả lại kèm lý do, thành viên thấy lý do." },
+      { kind: "moi", text: "Màn tổ chức có mục «Nháp chờ»: các nháp của thành viên mà người quản lý được mở, bấm vào là tới trang đơn." },
+    ],
+  },
+  {
+    // Sửa chữ cũ ở màn Phí đưa đón sau ADR-0214 (không migration). SỐ TẠM 3.14: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.14",
+    date: "2026-11-17",
+    items: [
+      { kind: "sua", text: "Màn Phí đưa đón: khung đặt ngày bắt đầu áp, hộp tắt phí và kết quả «Thử tra» nay nói đúng cách mới: phí do văn phòng chọn trên đơn, bảng mức chỉ để tham khảo." },
+    ],
+  },
+  {
     // Phí đưa đón do văn phòng chọn (ADR-0214; migration 0173; nhánh claude/heuristic-turing-a00d98). Phí chỉ chạy sau khi Quản trị đặt «ngày bắt đầu áp»;
     // lúc mới cập nhật chưa đặt ngày nên đơn chạy như cũ. SỐ TẠM 3.13: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.13",

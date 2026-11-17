@@ -46,7 +46,7 @@ function phieu(w: any, o: { dienThoai?: string; so?: string | null } = {}): stri
   const id = maMoi();
   const dt = o.dienThoai ?? DT;
   const so = o.so === undefined ? SO : o.so;
-  w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', 'TRAVEL_AGENCY', ?, ?)").run(id, AT, AT);
+  w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', 'GUIDE_FREELANCE', ?, ?)").run(id, AT, AT);
   w.sqlite.prepare("INSERT INTO dk_identity (id, registration_id, provider, subject, contact_email, created_at, updated_at) VALUES (?, ?, 'EMAIL', ?, ?, ?, ?)").run(`ident-${id}`, id, `chung-minh-${id.toLowerCase()}@example.com`, EMAIL, AT, AT);
   w.sqlite.prepare(`INSERT INTO dk_submission (id, registration_id, version, family_name, given_name, birth_date, address_value, phone_value, phone_key, document_type_code, document_number, number_key, issued_date, issued_place,
       expiry_date, policy_id, consented_at, created_at, updated_at) VALUES (?, ?, 1, 'Phạm', 'Thử Nghiệm', '1990-05-06', '12 Đường Thử, Nha Trang', ?, ?, ?, ?, ?, '2021-01-02', 'Cục thử', '2040-01-02', (SELECT id FROM pty_privacy_policy LIMIT 1), ?, ?, ?)`)
@@ -116,7 +116,7 @@ test("(T3) «Duyệt mở tài khoản» ⇒ thư «đã được duyệt» kèm
   const { w, thu } = setup();
   const id = phieu(w);
   await xacMinh(w, id);
-  const r = await goi(w, HR, id, "duyet", { roleCode: "TRAVEL_AGENCY", phienBan: 1 });
+  const r = await goi(w, HR, id, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 });
   assert.equal(r.status, 200, r.text);
   await w.choNen();
   assert.equal(thu.length, 1);
@@ -139,7 +139,7 @@ test("(T4) «Gửi lại lời mời» gửi lại thư «đã duyệt» (kèm h
   const { w, thu } = setup();
   const id = phieu(w);
   await xacMinh(w, id);
-  assert.equal((await goi(w, HR, id, "duyet", { roleCode: "TRAVEL_AGENCY", phienBan: 1 })).status, 200);
+  assert.equal((await goi(w, HR, id, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 })).status, 200);
   await w.choNen();
   w.sqlite.prepare("UPDATE dk_registration SET activation_deadline_at = '2026-01-01T00:00:00.000Z' WHERE id = ?").run(id);
   assert.equal((await goi(w, HR, id, "gui-lai-loi-moi")).status, 200);
@@ -197,7 +197,7 @@ test("(T5) Gửi hỏng ⇒ THU_*_LOI hiện ở hàng chờ đúng bước; «G
   const d = phieu(w, { dienThoai: "0912 000 777", so: null });
   await xacMinh(w, d);
   bo.hong = true;
-  assert.equal((await goi(w, HR, d, "duyet", { roleCode: "TRAVEL_AGENCY", phienBan: 1 })).status, 200);
+  assert.equal((await goi(w, HR, d, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 })).status, 200);
   await w.choNen();
   assert.deepEqual((await hangCho(w, HR)).phieu.find((x: any) => x.id === d)?.thu, { loai: "DA_DUYET", trangThai: "LOI" });
   assert.equal((await goi(w, HR, d, "gui-lai-thu")).json.error.code, "notice_use_invite");
@@ -250,13 +250,13 @@ test("(R1) Nhân sự «Trả về xác minh» ⇒ CHỜ XÁC MINH, xoá kết l
   assert.ok(ct.json.muc.every((m: any) => m.ketLuan === "DAT"));
   assert.equal(ct.json.ketLuanDanhBa, null);
   // Duyệt bị từ chối tới khi xác minh lại.
-  const d = await goi(w, HR, id, "duyet", { roleCode: "TRAVEL_AGENCY", phienBan: 1 });
+  const d = await goi(w, HR, id, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 });
   assert.equal(d.status, 409, d.text);
   assert.equal(w.q("SELECT count(*) n FROM staff WHERE phone = '0912345678'")[0].n, 0);
   // «Đạt» không có kết luận Danh bạ ⇒ 409: người xác minh phải kết luận lại.
   assert.equal((await goi(w, ADM, id, "dat", { phienBan: 1 })).json.error.code, "registry_conclusion_missing");
   assert.equal((await goi(w, ADM, id, "dat", { phienBan: 1, hoSo: { kieu: "MOI" } })).status, 200);
-  assert.equal((await goi(w, HR, id, "duyet", { roleCode: "TRAVEL_AGENCY", phienBan: 1 })).status, 200);
+  assert.equal((await goi(w, HR, id, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 })).status, 200);
 });
 
 test("(R2) Phiên bản cũ ⇒ 409 registration_version_changed, không đổi; phiếu không CHỜ DUYỆT ⇒ 409; thân sai ⇒ 400", async () => {
@@ -306,14 +306,14 @@ test("(R4) Người duyệt ≠ người xác minh vẫn đúng sau khi xác min
   await xacMinh(w, id, ADM_HR); // ADM_HR xác minh lần đầu
   assert.equal((await goi(w, HR, id, "tra-ve-xac-minh", { phienBan: 1 })).status, 200);
   assert.equal((await goi(w, ADM_HR, id, "dat", { phienBan: 1, hoSo: { kieu: "MOI" } })).status, 200); // ADM_HR xác minh lại
-  const tu = await goi(w, ADM_HR, id, "duyet", { roleCode: "TRAVEL_AGENCY", phienBan: 1 });
+  const tu = await goi(w, ADM_HR, id, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 });
   assert.equal(tu.status, 409, tu.text);
   assert.equal(tu.json.error.code, "registration_same_person");
   // Chiều ngược: người khác (ADM) xác minh lại ⇒ người xác minh lần đầu (ADM_HR) nay duyệt được.
   assert.equal((await goi(w, HR, id, "tra-ve-xac-minh", { phienBan: 1 })).status, 200);
   assert.equal((await goi(w, ADM, id, "dat", { phienBan: 1, hoSo: { kieu: "MOI" } })).status, 200);
   assert.equal(reg(w, id).verified_by, ADM);
-  const ok = await goi(w, ADM_HR, id, "duyet", { roleCode: "TRAVEL_AGENCY", phienBan: 1 });
+  const ok = await goi(w, ADM_HR, id, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 });
   assert.equal(ok.status, 200, ok.text);
 });
 
@@ -321,14 +321,14 @@ test("(R5) Câu 409 ở bước duyệt chỉ tới «Trả về xác minh» khi
   const { w } = setup();
   const id = phieu(w, { dienThoai: "0900000001" }); // trùng số đăng nhập của Bán hàng
   await xacMinh(w, id);
-  const r = await goi(w, HR, id, "duyet", { roleCode: "TRAVEL_AGENCY", phienBan: 1 });
+  const r = await goi(w, HR, id, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 });
   assert.equal(r.json.error.code, "phone_taken");
   assert.equal(/Trả về xác minh/.test(r.json.error.message), false);
   const khac = (await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: "Khác Hẳn Tên", contacts: [] } })).json.party.id as string;
   assert.equal((await w.call("POST", `/api/parties/${khac}/documents`, { as: ADM, body: { typeCode: "CCCD", number: SO, issuedDate: "2021-01-01", issuedPlace: "Cục", expiryDate: "2035-01-01" } })).status, 201);
   const b = phieu(w, { dienThoai: "0912 111 222" });
   await xacMinh(w, b);
-  const r2 = await goi(w, HR, b, "duyet", { roleCode: "TRAVEL_AGENCY", phienBan: 1 });
+  const r2 = await goi(w, HR, b, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 });
   assert.equal(r2.json.error.code, "document_other_person");
   assert.match(r2.json.error.message, /Trả về xác minh/);
 });
@@ -337,7 +337,7 @@ test("(R5) Câu 409 ở bước duyệt chỉ tới «Trả về xác minh» khi
 
 /** Gieo thẳng `n` phiếu ở `trangThai` (qua đúng đồ thị), gửi lúc `guiLuc`. */
 function gieoNhieu(w: any, n: number, trangThai: "DANG_DIEN" | "CAN_BO_SUNG", guiLuc: string) {
-  const chen = w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', 'TRAVEL_AGENCY', ?, ?)");
+  const chen = w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', 'GUIDE_FREELANCE', ?, ?)");
   const doi = w.sqlite.prepare("UPDATE dk_registration SET status = ?, submitted_at = ? WHERE id = ?");
   for (let i = 0; i < n; i++) {
     const id = maMoi();

@@ -10,7 +10,7 @@ import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
-  insertStaffInactiveStatement, insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinActivateStatement, setPinStatement as setPinRow, taiKhoanChoXacMinhRows, touchCredentialsStatement, updateStaffStatement, upsertThanhDuoiStatement,
+  insertStaffInactiveStatement, insertStaffStatement, labelsByIds, listAll, mfaDeadlinesRow, mfaEnrollSetRow, mfaGraceAll, mfaGraceIfNullRow, openAdjustments, parsePermissions, partiesWithAccount, partiesWithOrgLink, phonesByParty, recordLoginRow, sessionOwnersByIds, setPinActivateStatement, setPinStatement as setPinRow, taiKhoanChoXacMinhRows, touchCredentialsStatement, updateStaffStatement, upsertThanhDuoiStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import {
@@ -68,6 +68,9 @@ export async function dauXacMinhTaiKhoan(db: D1Database, partyIds: readonly (str
   const ids = partyIds.flatMap((p) => (p ? [p] : []));
   return dauXacMinhTheoHoSo(db, ids, homNay, new Set(ids));
 }
+
+/** HÀM CÔNG BỐ (ADR-0213; mốc B1 Task 14): mã hồ sơ (trong tập) đang có liên kết «Người quản lý của» / «Thành viên của» — CHỈ route Quản lý tài khoản gọi, để không báo «thiếu vai trò» cho tài khoản chỉ làm cho tổ chức. */
+export const hoSoCoLienKetToChuc = (db: D1Database, partyIds: readonly (string | null)[]): Promise<Set<string>> => partiesWithOrgLink(db, partyIds.flatMap((p) => (p ? [p] : [])));
 
 /** HÀM CÔNG BỐ (ADR-0068 Đ8) — CHỈ gốc lắp ráp gọi (ctx.gopHoSo.soDangNhap): SĐT đăng nhập theo hồ sơ, cho lý do "số đăng nhập trùng số liên hệ". */
 export const soDangNhapTheoHoSo = (db: D1Database): Promise<{ partyId: string; phone: string }[]> => phonesByParty(db);
@@ -240,6 +243,29 @@ export async function createAccountOnPartyStatements(
     statements: [
       insertStaffInactiveStatement(db, { id, phone: input.phone, pinHash: await hashPin(generatePin()), createdAt: at, partyId: input.partyId }),
       ...permissions.map((code) => insertPermissionStatement(db, id, code, actorId, at, false)),
+    ],
+  };
+}
+
+/**
+ * Tạo tài khoản TẮT cho người mang LOẠI ĐỐI TÁC do Kế toán thêm (ADR-0212 Đ3; đợt 2 Task 2). Loại đó thuộc nhóm OTHER nên KHÔNG sinh quyền theo vai: quyền Đối tác (`PARTNER`) được cấp
+ * bằng một dòng quyền + MỘT dòng chỉnh tay `ADD PARTNER` (lý do do người gọi đưa, không dữ liệu cá nhân) — để lần «Lưu vai» ở Quản lý tài khoản sau này không gỡ mất quyền
+ * (`roleChangeStatements` giữ dòng chỉnh tay còn khớp). Như `createAccountOnPartyStatements`: câu CHƯA CHẠY, PIN ngẫu nhiên không trả ra, hồ sơ và vai do `parties` mở TRƯỚC trong cùng lô
+ * (LC-1c đòi hồ sơ mang vai loại đối tác lúc mở quyền). Dùng lại được cho người chỉ làm cho tổ chức (Task 13).
+ */
+export async function createPartnerAccountOnPartyStatements(
+  db: D1Database,
+  input: { partyId: string; phone: string; reason: string },
+  actorId: string,
+  at: string,
+): Promise<{ id: string; statements: D1PreparedStatement[] }> {
+  const id = crypto.randomUUID();
+  return {
+    id,
+    statements: [
+      insertStaffInactiveStatement(db, { id, phone: input.phone, pinHash: await hashPin(generatePin()), createdAt: at, partyId: input.partyId }),
+      insertPermissionStatement(db, id, "PARTNER", actorId, at, false),
+      insertAdjustmentStatement(db, { staffId: id, code: "PARTNER", direction: "ADD", reason: input.reason, at, actorId, guarded: false }),
     ],
   };
 }

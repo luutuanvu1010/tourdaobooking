@@ -64,6 +64,10 @@ const CA: Record<string, unknown> = {
   "POST /api/orders/:id/gui-don": {}, // Task 3.4: Gửi đơn của Đối tác — Toàn quyền giữ ô order.submit (any) ⇒ qua cổng quyền rồi 409 order_delivered
   "POST /api/orders/:id/gui-xac-nhan": {},
   "POST /api/orders/:id/rut-xac-nhan": {},
+  // ADR-0213 Đ8 (mốc B2 Task 16): ba lệnh «chờ người quản lý» — đơn Đã giao không còn là nháp ⇒ 409 order_delivered sau cổng quyền (Toàn quyền giữ order.modify / order.submit any).
+  "POST /api/orders/:id/gui-quan-ly": {},
+  "POST /api/orders/:id/rut-gui-quan-ly": {},
+  "POST /api/orders/:id/tra-lai": { lyDo: "KHAC" },
   "POST /api/orders/:id/quyet-dinh": { ketQua: "CON_VE", yeuCauId: "99999999-9999-4999-8999-000000000099", updatedAt: "x" },
   // ADR-0030 điều 1 (nút Từ chối): chỉ CHÍNH người phụ trách qua được chốt đúng người (Toàn quyền không phụ trách → 403 có chủ ý) ⇒ dòng này gọi bằng người phụ
   // trách của đơn khoá (HDV, xem NGUOI_GOI) — vẫn phải 409 order_delivered.

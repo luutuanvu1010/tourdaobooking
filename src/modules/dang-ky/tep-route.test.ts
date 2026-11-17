@@ -272,3 +272,98 @@ test("Fix 5 — thiếu Content-Length ⇒ 411, không đọc thân, không dòn
   assert.equal(r.status, 411, r.text);
   assert.deepEqual([dongTep(w).length, w.r2.soLan.put, soLuotMang(w)], [0, 0, 0]);
 });
+
+test("ADR-0212 Đ4, Đ7: ô ảnh GPKD, giấy phép thêm chỉ nhận khi chính sách riêng tư đang hiệu lực có dấu thu thông tin tổ chức; đóng ⇒ 409, không chạm kho", async () => {
+  const w = setup();
+  const chinhSach = (v: number, coToChuc: 0 | 1) => {
+    const at = new Date(Date.now() - 3_600_000).toISOString();
+    w.sqlite.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, covers_org_data) VALUES (?, ?, 'mục đích', 'Toàn văn.', ?, ?, 'x', ?, 'x', ?)")
+      .run(`cs-${v}`, v, at, at, at, coToChuc);
+  };
+  for (const slot of ["GPKD", "GIAY_PHEP_THEM"]) {
+    const r = await tai(w, { slot });
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "org_section_closed");
+  }
+  chinhSach(1, 0);
+  assert.equal((await tai(w, { slot: "GPKD" })).status, 409, "bản hiệu lực chưa có dấu");
+  assert.equal(w.r2.soLan.put, 0);
+  assert.equal(dongTep(w).length, 0);
+  chinhSach(2, 1);
+  const r = await tai(w, { slot: "GPKD" });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { tep: [{ o: "GPKD", trangThai: "DA_GUI" }] });
+  assert.equal((await tai(w, { slot: "GIAY_PHEP_THEM", bytes: heic(40) })).status, 200);
+  assert.equal((await tai(w, { slot: TRUOC })).status, 200, "ô cá nhân không đổi");
+});
+
+// ---- Gỡ tệp chờ của chính người đăng ký (đợt 2 Task 8, ruling điều phối: ngõ cụt `org_photo_without_org`) ----
+const DUONG_GO = DUONG; // gỡ = nhánh `go: true` của chính route tải tệp (không thêm route: gói Đơn hàng không còn khoảng dư — src/goi-trang-nhe.test.ts)
+async function go(w: any, o: { slot?: unknown; cookie?: string | null; headers?: Record<string, string> } = {}) {
+  const ck = o.cookie === undefined ? await cookie(w) : o.cookie;
+  const body = { o: o.slot ?? TRUOC, go: true };
+  return w.call("POST", DUONG_GO, { body, headers: { ...(ck ? { cookie: ck } : {}), "content-length": String(Buffer.byteLength(JSON.stringify(body))), ...(o.headers ?? {}) } });
+}
+function moPhanToChuc(w: any): void {
+  const at = new Date(Date.now() - 3_600_000).toISOString();
+  w.sqlite.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, covers_org_data) VALUES ('cs-go', 1, 'mục đích', 'Toàn văn.', ?, ?, 'x', ?, 'x', 1)").run(at, at, at);
+}
+
+test("gỡ tệp chờ: ô có tệp ⇒ 200, tệp bị quyết gỡ, kho xoá, DTO không còn ô đó, có dòng lịch sử GO_TEP không mang tên ô; ô khác giữ nguyên", async () => {
+  const w = setup();
+  moPhanToChuc(w);
+  assert.equal((await tai(w, { slot: "GPKD" })).status, 200);
+  assert.equal((await tai(w, { slot: TRUOC })).status, 200);
+  const khoa = dongTep(w).find((d) => d.slot === "GPKD").storage_key;
+  const r = await go(w, { slot: "GPKD" });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { tep: [{ o: TRUOC, trangThai: "DA_GUI" }] });
+  const d = dongTep(w);
+  assert.equal(d.find((x) => x.slot === "GPKD").purge_reason, "NGUOI_DANG_KY_GO");
+  assert.equal(d.find((x) => x.slot === TRUOC).purged_at, null);
+  assert.equal(w.r2.co(khoa), false, "kho đã xoá");
+  const su = w.q("SELECT actor_kind, command, reason_code FROM dk_event WHERE command = 'GO_TEP'").map((x: any) => ({ ...x }));
+  assert.deepEqual(su, [{ actor_kind: "REGISTRANT", command: "GO_TEP", reason_code: null }]);
+  assert.match(r.headers.get("set-cookie") ?? "", new RegExp(`^${DK_COOKIE}=dk1\\.`));
+  // Gỡ lại ô đã trống: 200, không dòng lịch sử thêm (không có gì để gỡ).
+  assert.equal((await go(w, { slot: "GPKD" })).status, 200);
+  assert.equal(w.q("SELECT count(*) n FROM dk_event WHERE command = 'GO_TEP'")[0].n, 1);
+});
+
+test("gỡ tệp chờ: gỡ được cả khi phần tổ chức đã đóng (lối thoát khỏi org_photo_without_org); sau khi gỡ có thể tải lại ô khác", async () => {
+  const w = setup();
+  moPhanToChuc(w);
+  assert.equal((await tai(w, { slot: "GPKD" })).status, 200);
+  const at = new Date(Date.now() - 60_000).toISOString();
+  w.sqlite.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, covers_org_data) VALUES ('cs-go-2', 2, 'mục đích', 'Toàn văn.', ?, ?, 'x', ?, 'x', 0)").run(at, at, at);
+  assert.equal((await tai(w, { slot: "GPKD" })).status, 409, "phần tổ chức đã đóng");
+  assert.equal((await go(w, { slot: "GPKD" })).status, 200);
+  assert.deepEqual(w.q("SELECT count(*) n FROM pty_registration_attachment WHERE purged_at IS NULL")[0].n, 0);
+});
+
+test("gỡ tệp chờ: không cookie, ô lạ, phiếu đã gửi (CHỜ XÁC MINH) ⇒ 401, 400, 409; tệp nguyên vẹn; bảo trì ⇒ 503", async () => {
+  const w = setup();
+  assert.equal((await tai(w)).status, 200);
+  assert.equal((await go(w, { cookie: null })).status, 401);
+  assert.equal((await go(w, { slot: "O_LA" })).status, 400);
+  w.sqlite.exec("UPDATE mnt_setting SET enabled = 1, ends_at = NULL WHERE id = 'default'");
+  assert.equal((await go(w)).status, 503);
+  w.sqlite.exec("UPDATE mnt_setting SET enabled = 0 WHERE id = 'default'");
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(PHIEU);
+  const r = await go(w);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "registration_not_editable");
+  assert.equal(dongTep(w)[0].purged_at, null);
+});
+
+test("gỡ tệp chờ: dòng lịch sử đứng trước và canh trạng thái phiếu; phiếu rời ĐANG ĐIỀN giữa lúc kiểm và lúc ghi ⇒ không gỡ gì", async () => {
+  const w = setup();
+  assert.equal((await tai(w)).status, 200);
+  const { cauGoTepChoCuaONeuTruocDoi } = await import("../parties/tep-cho.ts");
+  const { suKienGoTepStatement } = await import("./repository.ts");
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(PHIEU);
+  const at = new Date().toISOString();
+  const kq = await w.env.DB.batch([suKienGoTepStatement(w.env.DB, { registrationId: PHIEU, identityId: IDENT, at }), cauGoTepChoCuaONeuTruocDoi(w.env.DB, PHIEU, TRUOC, at)]);
+  assert.deepEqual(kq.map((x: any) => x.meta.changes), [0, 0]);
+  assert.equal(dongTep(w)[0].purged_at, null);
+});

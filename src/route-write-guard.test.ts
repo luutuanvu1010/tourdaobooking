@@ -59,6 +59,9 @@ const GUARDS: { name: string; file: string; hoiBang: boolean }[] = [
   { name: "handlerChangeVerdict", file: "src/modules/dispatch/rules.ts", hoiBang: true },
   { name: "mayManage", file: "src/modules/accounts/index.ts", hoiBang: false },
   { name: "canManageAccount", file: "src/shared/roles.ts", hoiBang: false }, // ADR-0071: chuyển về src/shared (một nguồn cho máy chủ và giao diện)
+  // ADR-0213 Đ6; chủ duyệt 16/11 "Duyệt cả hai" (phương án (b), tiền lệ quyenPhieu ADR-0119): vai trên ĐỐI TƯỢNG của người gọi với tổ chức (người quản lý có hiệu lực / thành viên
+  // đang mở) cho ba route /api/to-chuc/:id/*. Đ6 nói việc này KHÔNG qua hàng quyền nào ⇒ hàm không hỏi MATRIX (hoiBang: false, như luật cấp bậc mayManage).
+  { name: "quyenToChuc", file: "src/modules/parties/quyen-to-chuc.ts", hoiBang: false },
 ];
 const GUARD_CALL_RE = new RegExp(`\\b(?:${GUARDS.map((g) => g.name).join("|")})\\s*\\(|\\bMATRIX\\[`, "g");
 
@@ -156,7 +159,7 @@ export function hasAdminDenial(rawBody: string, re: RegExp = ADMIN_DENIAL_RE): b
  * Tệp route NGOÀI `index.ts` mà bài kiểm này cũng đọc (siết, ADR-0136 Task 3.3: `orders/xac-nhan-route.ts` — nếu không đọc thì chín route của bước xác nhận đứng ngoài hàng rào 2 và
  * luật (4)). Tệp khác trong src/modules có `route("` mà không có tên ở đây ⇒ bài "mọi tệp route đều được đọc" ở dưới đỏ — không tệp route nào được trốn khỏi hàng rào.
  */
-const TEP_ROUTE_PHU: Record<string, string[]> = { orders: ["xac-nhan-route.ts"], catalog: ["dac-diem-route.ts", "co-ve-route.ts", "nguon-ve-route.ts", "chi-tiet-route.ts", "anh-route.ts"], dispatch: ["ban-hang-route.ts"], pricing: ["phi-don-route.ts"] }; // catalog: ADR-0152 T7 (route đặc điểm dịch vụ); ADR-0175 Đ1.2 (ô «Vé do ai phát»); ADR-0201 Đ1 (chi tiết dịch vụ)
+const TEP_ROUTE_PHU: Record<string, string[]> = { orders: ["xac-nhan-route.ts", "thanh-vien-route.ts"], catalog: ["dac-diem-route.ts", "co-ve-route.ts", "nguon-ve-route.ts", "chi-tiet-route.ts", "anh-route.ts"], dispatch: ["ban-hang-route.ts"], pricing: ["phi-don-route.ts"] }; // orders: thanh-vien-route.ts — ADR-0213 Đ8 (Task 16); catalog: ADR-0152 T7 (route đặc điểm dịch vụ); ADR-0175 Đ1.2 (ô «Vé do ai phát»); ADR-0201 Đ1 (chi tiết dịch vụ)
 
 function collectRoutes(): RouteInfo[] {
   const out: RouteInfo[] = [];

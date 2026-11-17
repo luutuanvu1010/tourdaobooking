@@ -4,7 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { fakeD1, khoR2Gia, openDb } from "../../../tests/audit/harness.mjs";
-import { MUC_XAC_MINH_MO } from "../../shared/dau-xac-minh.ts";
+import { MUC_XAC_MINH_MO, MUC_XAC_MINH_MO_CA_NHAN, MUC_XAC_MINH_MO_TO_CHUC } from "../../shared/dau-xac-minh.ts";
 import { cauChuyenTepCho, cauGoTepCho, cauTepChoMoi, datKhoTepCho, timTepChoTrung, xoaKhoTepChoDaGo } from "./tep-cho.ts";
 
 const AT = "2026-11-15T03:00:00.000Z";
@@ -190,7 +190,12 @@ test("mục bắt buộc: tập đóng trong mã khớp trigger; mục ngoài t�
   const { db } = dung();
   const dem = () => db.prepare("SELECT item_kind, item_code FROM v_pty_verification_requirement WHERE subject_kind = 'PERSON' ORDER BY item_kind, item_code").all().map((x: any) => `${x.item_kind}:${x.item_code}`);
   assert.deepEqual(dem(), ["ATTRIBUTE:HO_TEN", "ATTRIBUTE:NGAY_SINH", "DOCUMENT:CCCD"], "gieo mặc định cho cá nhân");
-  assert.deepEqual(db.prepare("SELECT * FROM v_pty_verification_requirement WHERE subject_kind = 'ORGANIZATION'").all(), [], "tổ chức để đợt 2 đặt");
+  // Đợt 2 Task 6 (ADR-0212 Đ5 mục 2, sửa có chủ đích): tổ chức gieo mặc định tên pháp lý, mã số thuế, GPKD.
+  assert.deepEqual(db.prepare("SELECT item_kind, item_code FROM v_pty_verification_requirement WHERE subject_kind = 'ORGANIZATION' ORDER BY item_kind, item_code").all().map((x: any) => `${x.item_kind}:${x.item_code}`),
+    ["ATTRIBUTE:MA_SO_THUE", "ATTRIBUTE:TEN_PHAP_LY", "DOCUMENT:GPKD"], "gieo mặc định cho tổ chức");
+  // Phần tổ chức của tập đóng nằm trong tập đóng; phần cá nhân + phần tổ chức = tập đóng.
+  for (const [kind, codes] of Object.entries(MUC_XAC_MINH_MO_TO_CHUC)) for (const c of codes) assert.ok((MUC_XAC_MINH_MO as Record<string, readonly string[]>)[kind]!.includes(c), c);
+  for (const kind of ["ATTRIBUTE", "DOCUMENT"] as const) assert.deepEqual([...MUC_XAC_MINH_MO_CA_NHAN[kind], ...MUC_XAC_MINH_MO_TO_CHUC[kind]].sort(), [...MUC_XAC_MINH_MO[kind]].sort(), kind);
   const them = (kind: string, code: string, at: string) => db.prepare("INSERT INTO pty_verification_requirement (id, subject_kind, item_kind, item_code, valid_from_at, created_at, updated_at) VALUES (?, 'PERSON', ?, ?, ?, ?, ?)")
     .run(`${kind}-${code}-${at}`, kind, code, at, at, at);
   const cho = () => new Promise((r) => setTimeout(r, 5));
@@ -200,6 +205,8 @@ test("mục bắt buộc: tập đóng trong mã khớp trigger; mục ngoài t�
   assert.throws(() => them("ATTRIBUTE", "DIA_CHI", NOW), /item_closed/);
   assert.throws(() => them("DOCUMENT", "GPLX", NOW), /item_closed/);
   assert.throws(() => them("DOCUMENT", "HO_TEN", NOW), /item_closed/, "mã đúng nhưng sai loại mục");
+  assert.throws(() => them("ATTRIBUTE", "GPKD", NOW), /item_closed/, "GPKD là giấy tờ, không phải thuộc tính");
+  assert.throws(() => them("DOCUMENT", "GIAY_PHEP_LU_HANH", NOW), /item_closed/, "giấy phép thêm chưa mở");
   assert.throws(() => them("ATTRIBUTE", "ho ten", NOW), /CHECK/);
   assert.throws(() => db.prepare("UPDATE pty_verification_requirement SET item_code = 'CCCD'").run(), /append_only/);
   assert.throws(() => db.prepare("DELETE FROM pty_verification_requirement").run(), /append_only/);

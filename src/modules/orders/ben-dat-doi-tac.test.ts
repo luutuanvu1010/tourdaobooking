@@ -198,15 +198,17 @@ test("ca 2b: Đối tác gửi bên đặt rỗng, không gửi gì, hoặc tạ
   assert.equal(dem(w, "SELECT count(*) AS n FROM pty_party"), soHoSo, "newBooker bị bỏ qua nên không tạo hồ sơ cá nhân mới");
 });
 
-test("ca 2c: Đối tác lưu nháp gửi bên đặt khác, hoặc thân cũ không có khoá bên đặt, hoặc bên đặt cũ trống ⇒ vẫn là hồ sơ của tài khoản", async () => {
+test("ca 2c: Đối tác lưu nháp gửi bên đặt khác ⇒ 409 bên đặt đã chốt (ADR-0213 Đ3.4); thân cũ không có khoá bên đặt, hoặc bên đặt cũ trống (nháp trước B1) ⇒ vẫn là hồ sơ của tài khoản", async () => {
   const w = setup();
   const tao = await lap(w, DT, {});
   const id = tao.json.order.id as string;
+  // ADR-0213 Đ3.4 (mốc B1 Task 11): đơn lập theo tư cách cá nhân có bên đặt CHỐT — gửi bên đặt khác ⇒ 409, không âm thầm đổi (trước B1: 200 và lặng lẽ ép về hồ sơ của tài khoản).
   const khac = await w.call("PUT", `/api/orders/${id}`, { as: DT, body: thanDon({ expectedUpdatedAt: tao.json.order.updatedAt, bookerPartyId: DLA }) });
-  assert.equal(khac.status, 200, khac.text);
+  assert.equal(khac.status, 409, khac.text);
+  assert.equal(khac.json.error.code, "booker_locked");
   assert.equal(bookerCua(w, id), `pty-${DT}`);
-  // Đơn nháp cũ có bên đặt trống (lập trước bản này): thân cũ KHÔNG có khoá bên đặt cũng được ghi lại thành hồ sơ của tài khoản.
-  w.sqlite.prepare("UPDATE orders SET booker_party_id = NULL WHERE id = ?").run(id);
+  // Đơn nháp cũ có bên đặt trống (lập trước bản này — chưa có tư cách): thân cũ KHÔNG có khoá bên đặt cũng được ghi lại thành hồ sơ của tài khoản.
+  w.sqlite.prepare("UPDATE orders SET booker_party_id = NULL, acting_party_id = NULL, acting_link_kind = NULL WHERE id = ?").run(id);
   const cu = await w.call("PUT", `/api/orders/${id}`, { as: DT, body: thanDon({ expectedUpdatedAt: mocCua(w, id) }) });
   assert.equal(cu.status, 200, cu.text);
   assert.equal(bookerCua(w, id), `pty-${DT}`);

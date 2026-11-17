@@ -157,6 +157,14 @@ test("quan hệ: câu lỗi trung tính — đúng cho cả 'Người liên hệ
   assert.equal(loi(rel({ relationshipTypeCode: "contact" }), U2), "Loại quan hệ không hợp lệ.");
 });
 
+test("ADR-0213 Đ2.7: route quan hệ chung từ chối «Người quản lý của» (MANAGER_OF), «Thành viên của» (MEMBER_OF) — câu chỉ tới màn tổ chức; mã khác không đổi", () => {
+  for (const code of ["MANAGER_OF", "MEMBER_OF"]) {
+    const r = validateRelationship({ fromPartyId: U1, toPartyId: U2, relationshipTypeCode: code }, U2, TODAY);
+    assert.deepEqual(r, { ok: false, message: "Người quản lý và thành viên của tổ chức chỉ đổi ở màn tổ chức." }, code);
+  }
+  for (const code of ["CONTACT_OF", "DRIVES_FOR", "REFERRED_BY"]) assert.ok(validateRelationship({ fromPartyId: U1, toPartyId: U2, relationshipTypeCode: code }, U2, TODAY).ok, code);
+});
+
 test("mẫu id: UUID hoặc tiền tố do backfill", () => {
   assert.ok(PARTY_ID_RE.test(U1) && PARTY_ID_RE.test(`pty-${U1}`) && !PARTY_ID_RE.test("pty-x") && !PARTY_ID_RE.test(`ptr-${U1}`));
   assert.ok(ROW_ID_RE.test(U1) && ROW_ID_RE.test(`ptr-${U1}`) && !ROW_ID_RE.test(`pty-${U1}`));

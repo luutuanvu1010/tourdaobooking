@@ -268,3 +268,90 @@ test("M-2 (rà soát cuối): dk_policy.code_max_attempts có trần CHECK ≤ 2
   assert.throws(() => them(1_000_000_000, "2099-01-03T00:00:00.000Z"), /CHECK/);
   assert.throws(() => them(0, "2099-01-04T00:00:00.000Z"), /CHECK/);
 });
+
+// ---- Đợt 2 Task 5 (ADR-0212 Đ4): phần tổ chức của bản khai, vai và kết luận Danh bạ của tổ chức (migration *_dang_ky_to_chuc.sql) ----
+function khaiToChuc(db: DatabaseSync, reg: string, version: number, x: Record<string, unknown> = {}): string {
+  const id = String(x.id ?? `org-${++n}`);
+  db.prepare(`INSERT INTO dk_submission_org (id, registration_id, version, display_name, legal_name, tax_code, tax_key, address, invoice_email, phone_value, phone_key,
+      gpkd_number, gpkd_key, gpkd_issued_date, gpkd_issued_place, extra_type_code, extra_number, extra_key, authority_confirmed_at, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, ?, 'Công ty Thử', 'CÔNG TY TNHH THỬ', '0123456789-001', '0123456789-001', '1 Đường Thử', 'hd@example.com', '0900000001', '0900000001',
+      '41A8 001234', '41A8001234', '2020-01-02', 'Sở KH-ĐT Thử', 'TRAVEL_DOMESTIC', 'GP 123', 'GP123', ?, ?, NULL, ?, NULL)`).run(id, reg, version, AT, AT, AT);
+  return id;
+}
+
+test("(l) dk_submission_org: chỉ chèn cùng bản khai kế tiếp; bất biến; không xoá; một dòng mỗi phiên bản", () => {
+  const db = base();
+  const a = phieu(db);
+  assert.throws(() => khaiToChuc(db, a, 1), loi(/dk_submission_org_version/), "chưa có bản khai cá nhân cùng phiên bản");
+  khai(db, a, 1);
+  assert.throws(() => khaiToChuc(db, a, 2), loi(/dk_submission_org_version/), "sai phiên bản");
+  const o = khaiToChuc(db, a, 1);
+  assert.throws(() => khaiToChuc(db, a, 1), /dk_submission_org_version|UNIQUE/);
+  assert.throws(() => db.prepare("UPDATE dk_submission_org SET display_name = 'Sửa' WHERE id = ?").run(o), loi(/dk_submission_org_content/));
+  assert.throws(() => db.prepare("UPDATE dk_submission_org SET tax_code = '0999999999', tax_key = '0999999999' WHERE id = ?").run(o), loi(/dk_submission_org_content/));
+  assert.throws(() => db.prepare("DELETE FROM dk_submission_org WHERE id = ?").run(o), loi(/dk_submission_org_content/));
+  db.prepare("UPDATE dk_registration SET current_version = 1, updated_at = ? WHERE id = ?").run(AT, a);
+  assert.throws(() => khaiToChuc(db, a, 1), loi(/dk_submission_org_version/), "phiên bản cũ sau khi phiếu đã tăng");
+  khai(db, a, 2);
+  assert.doesNotThrow(() => khaiToChuc(db, a, 2));
+});
+
+test("(m) ẩn danh dk_submission_org: chỉ giá trị khai đổi sang dấu / NULL; khoá, ngày, chứng cứ giữ nguyên; một lần", () => {
+  const db = base();
+  const a = phieu(db);
+  khai(db, a, 1);
+  const o = khaiToChuc(db, a, 1);
+  const dau = "XOA" + o.replace(/-/g, "").toUpperCase();
+  const du = `display_name = '(đã ẩn)', legal_name = NULL, address = NULL, invoice_email = NULL, phone_value = NULL, phone_key = NULL, gpkd_issued_place = NULL,
+    extra_issued_place = NULL, tax_code = '${dau}', tax_key = '${dau}', gpkd_number = '${dau}', gpkd_key = '${dau}', extra_number = '${dau}', extra_key = '${dau}'`;
+  const sua = (set: string) => db.prepare(`UPDATE dk_submission_org SET erased_at = ?, ${set} WHERE id = ?`).run(AT, o);
+  assert.throws(() => sua(`${du}, version = 9`), loi(/dk_submission_org_erase_shape/));
+  assert.throws(() => sua(`${du}, authority_confirmed_at = '2020-01-01T00:00:00.000Z'`), loi(/dk_submission_org_erase_shape/));
+  assert.throws(() => sua(`${du}, extra_type_code = 'TRANSPORT'`), loi(/dk_submission_org_erase_shape/));
+  assert.throws(() => sua(du.replace(`tax_code = '${dau}'`, "tax_code = '0123456789-001'")), loi(/dk_submission_org_erase_shape/), "mã số thuế còn nguyên");
+  assert.throws(() => sua(du.replace(`gpkd_key = '${dau}'`, "gpkd_key = '41A8001234'")), loi(/dk_submission_org_erase_shape/), "khoá GPKD còn nguyên");
+  assert.throws(() => sua(du.replace("legal_name = NULL", "legal_name = 'CÔNG TY TNHH THỬ'")), loi(/dk_submission_org_erase_shape/), "tên pháp lý còn nguyên");
+  assert.doesNotThrow(() => sua(du));
+  assert.throws(() => sua(du), loi(/dk_submission_org_content/));
+});
+
+test("(n) dk_registration: org_role_code khoá sau lần gửi đầu; org_match_* đúng khuôn; «trả về xác minh» phải xoá org_match_*", () => {
+  const db = base();
+  const up = (id: string, set: string, ...v: (string | number | null)[]) => db.prepare(`UPDATE dk_registration SET ${set} WHERE id = ?`).run(...v, id);
+  const a = phieu(db);
+  assert.doesNotThrow(() => up(a, "org_role_code = 'LD_THU'")); // trước lần gửi đầu còn đổi được
+  khai(db, a, 1);
+  up(a, "current_version = 1");
+  assert.throws(() => up(a, "org_role_code = 'LD_KHAC'"), loi(/dk_registration_immutable/));
+  assert.throws(() => up(a, "org_role_code = NULL"), loi(/dk_registration_immutable/));
+  // Khuôn kết luận Danh bạ của tổ chức (trigger thay CHECK).
+  assert.throws(() => up(a, "org_match_kind = 'EXISTING'"), loi(/dk_registration_org_match_shape/));
+  assert.throws(() => up(a, "org_match_kind = 'NEW', org_match_party_id = 'pty-x'"), loi(/dk_registration_org_match_shape/));
+  assert.throws(() => up(a, "org_match_party_id = 'pty-x'"), loi(/dk_registration_org_match_shape/));
+  assert.throws(() => up(a, "org_match_kind = 'KHAC'"), /CHECK|dk_registration_org_match_shape/);
+  assert.doesNotThrow(() => up(a, "org_match_kind = 'EXISTING', org_match_party_id = 'pty-x'"));
+  assert.doesNotThrow(() => up(a, "org_match_kind = 'NEW', org_match_party_id = NULL"));
+  assert.throws(() => db.prepare(`INSERT INTO dk_registration (id, kind, status, role_code, org_match_kind, created_at, updated_at) VALUES ('DK_ZZZZZZZY', 'PERSON', 'DANG_DIEN', 'X', 'EXISTING', ?, ?)`).run(AT, AT),
+    loi(/dk_registration_org_match_shape/));
+  // «Trả về xác minh»: còn org_match_* ⇒ chặn; xoá đủ ⇒ qua.
+  const t = choDuyet(db);
+  up(t, "org_match_kind = 'EXISTING', org_match_party_id = 'pty-y'");
+  const veXm = (extra: string) => up(t, `status = 'CHO_XAC_MINH', verified_by = NULL, verified_version = NULL, verified_at = NULL, match_kind = NULL, match_party_id = NULL, referrer_party_id = NULL${extra}`);
+  assert.throws(() => veXm(""), loi(/dk_registration_return_clear/));
+  assert.throws(() => veXm(", org_match_kind = NULL"), /dk_registration_return_clear|dk_registration_org_match_shape/);
+  assert.doesNotThrow(() => veXm(", org_match_kind = NULL, org_match_party_id = NULL"));
+});
+
+test("(o) quyết định DUYỆT khi bản khai đang duyệt có phần tổ chức: thiếu kết luận Danh bạ của tổ chức ⇒ chặn; có thì qua; phiếu không có phần tổ chức không bị đòi", () => {
+  const db = base();
+  const coToChuc = () => { const id = phieu(db); khai(db, id, 1); khaiToChuc(db, id, 1);
+    db.prepare("UPDATE dk_registration SET current_version = 1, updated_at = ? WHERE id = ?").run(AT, id);
+    doi(db, id, "CHO_XAC_MINH");
+    db.prepare("UPDATE dk_registration SET match_kind = 'NEW', verified_by = 's-xm', verified_version = 1, updated_at = ? WHERE id = ?").run(AT, id);
+    doi(db, id, "CHO_DUYET"); return id; };
+  assert.throws(() => quyetDinh(db, coToChuc()), loi(/dk_decision_no_org_match/));
+  const b = coToChuc();
+  db.prepare("UPDATE dk_registration SET org_match_kind = 'NEW' WHERE id = ?").run(b);
+  assert.doesNotThrow(() => quyetDinh(db, b));
+  assert.doesNotThrow(() => quyetDinh(db, choDuyet(db)), "phiếu không có phần tổ chức: không đòi org_match_kind");
+});

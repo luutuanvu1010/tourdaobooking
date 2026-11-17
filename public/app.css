@@ -4778,6 +4778,8 @@ body.login-bao-tri:not(.login-mo-form) .login-dang-ky { display: none; }
 .dk-o { display: grid; gap: var(--s1); color: var(--c-text); }
 .dk-o .o { margin-top: 0; }
 .dk-goi-y { font-size: var(--fs-label); }
+.dk-o[hidden], .dk-buoc[hidden] { display: none; }
+.xm-ly-do:has(input:disabled) { opacity: var(--hero-muted); } /* vai chưa đủ điều kiện mở: hiện mờ kèm lý do (đợt 2 Task 8) */
 .dk-hang-nut { display: flex; flex-wrap: wrap; gap: var(--s2); }
 .dk-o-tep { display: grid; gap: var(--s1); padding: var(--s3); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
 .dk-tep { display: grid; gap: var(--s3); }
@@ -4800,3 +4802,14 @@ body.login-bao-tri:not(.login-mo-form) .login-dang-ky { display: none; }
 .pd-vung { margin-bottom: var(--s4); }
 .pd-vung h3 { margin: var(--s3) 0 var(--s2); }
 .pd-form { margin-bottom: var(--s4); }
+
+/* ---------- Hồ sơ tổ chức (ADR-0213, mốc B1 Task 14) — chỉ token ---------- */
+.tc-dong { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+.tc-dong-ten { flex: 1 1 100%; }
+/* Mời thành viên, chế độ thành viên (ADR-0213 Đ7, Đ8; mốc B2 Task 17) — chỉ token */
+.tc-ma strong { font-size: var(--fs-step-6); letter-spacing: 1px; }
+.tc-lm-ds { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s2); }
+.tc-che-do { display: grid; gap: var(--s2); margin: 0 0 var(--s3); padding: 0; border: 0; }
+.tc-che-do legend { margin-bottom: var(--s2); font-weight: var(--fw-medium); }
+.tv-hang { display: grid; gap: var(--s2); justify-items: start; }
+.tv-hang .dk-o { justify-self: stretch; }

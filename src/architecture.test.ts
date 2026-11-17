@@ -1433,3 +1433,14 @@ test("ADR-0184 (đợt sửa 1, N): mọi lời gọi `can(` trong mã (không p
   assert.ok(tong >= 400, `chống bài rỗng: thấy ${tong} lời gọi can(`);
   assert.deepEqual(sai, [], "ô viết thẳng ở mọi lời gọi can( của mã module");
 });
+
+// ADR-0213 Đ8.4 (mốc B2 Task 16): bảng «chờ người quản lý» `ord_member_submit` KHÔNG thuộc ngoại lệ xoá–chèn lại của nháp (XOA_CUNG_NHAP) — lưu nháp không xoá dòng của nó;
+// không câu SQL đăng ký nào xoá bảng này (trigger `ord_member_submit_no_delete` là lưới cuối).
+test("ADR-0213 Đ8.4: ord_member_submit ngoài XOA_CUNG_NHAP — không câu đăng ký nào xoá bảng này", () => {
+  for (const key of XOA_CUNG_NHAP) {
+    const e = registeredSql().find((x) => `${x.module}.${x.name}` === key);
+    assert.ok(!e || !/ord_member_submit/.test(e.sql), `${key} chạm ord_member_submit`);
+  }
+  const xoa = registeredSql().filter((x) => /\bDELETE\s+FROM\s+ord_member_submit\b/i.test(x.sql)).map((x) => `${x.module}.${x.name}`);
+  assert.deepEqual(xoa, []);
+});

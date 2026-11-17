@@ -3,8 +3,24 @@
 // trước (một lần sửa mã), rồi sửa tập này và tạo lại trigger bằng migration mới.
 
 export const MUC_XAC_MINH_MO = {
-  ATTRIBUTE: ["HO_TEN", "NGAY_SINH"],
-  DOCUMENT: ["CCCD"],
+  ATTRIBUTE: ["HO_TEN", "NGAY_SINH", "TEN_PHAP_LY", "MA_SO_THUE", "DIA_CHI_TO_CHUC", "EMAIL_HOA_DON"],
+  DOCUMENT: ["CCCD", "GPKD"],
+} as const;
+
+/**
+ * Phần của tập đóng thuộc hồ sơ TỔ CHỨC (ADR-0212 Đ5; đợt 2 Task 6). Lô duyệt dựng dòng xác minh của hồ sơ tổ chức CHỈ từ tập này, của hồ sơ người CHỈ từ phần còn lại (điều phối PF5):
+ * trigger `pty_verification_target_ins` từ chối thuộc tính tổ chức trên hồ sơ người. Phần ở màn xác minh cũng tách hai nhóm theo tập này.
+ */
+export const MUC_XAC_MINH_MO_TO_CHUC = {
+  ATTRIBUTE: ["TEN_PHAP_LY", "MA_SO_THUE", "DIA_CHI_TO_CHUC", "EMAIL_HOA_DON"],
+  DOCUMENT: ["GPKD"],
+} as const;
+/** Mã mục thuộc tổ chức (một tập phẳng; dùng để tách mục cá nhân / tổ chức). */
+export const MA_MUC_TO_CHUC: ReadonlySet<string> = new Set<string>([...MUC_XAC_MINH_MO_TO_CHUC.ATTRIBUTE, ...MUC_XAC_MINH_MO_TO_CHUC.DOCUMENT]);
+/** Phần cá nhân của tập đóng = tập đóng trừ phần tổ chức. */
+export const MUC_XAC_MINH_MO_CA_NHAN = {
+  ATTRIBUTE: MUC_XAC_MINH_MO.ATTRIBUTE.filter((m) => !MA_MUC_TO_CHUC.has(m)),
+  DOCUMENT: MUC_XAC_MINH_MO.DOCUMENT.filter((m) => !MA_MUC_TO_CHUC.has(m)),
 } as const;
 
 export type LoaiMucXacMinh = keyof typeof MUC_XAC_MINH_MO;

@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { MA_LY_DO_PHIEU, laMaLyDoPhieu, nhanLyDoPhieu } from "../../shared/dang-ky-hien-thi.ts";
 import { LY_DO_TU_CHOI } from "../../shared/xac-minh-hien-thi.ts";
-import { kiemDat, kiemKetLuan, kiemLyDo, laMaPhieu, laMaTep, mucBatBuoc, mucChuaDat } from "./xac-minh.ts";
+import { kiemDat, kiemDuyet, kiemKetLuan, kiemLyDo, laMaPhieu, laMaTep, loiLoDuyet, mucBatBuoc, mucChuaDat } from "./xac-minh.ts";
 
 const BAT_BUOC = ["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"];
 
@@ -43,9 +43,13 @@ test("kiemLyDo, kiemDat, mã phiếu, mã tệp", () => {
   assert.equal(kiemLyDo({ lyDo: "KHONG_THUOC_DIEN", phienBan: 0 }).ok, false);
   assert.equal(kiemLyDo({ lyDo: "KHONG_THUOC_DIEN", phienBan: 1, ghiChu: "x" }).ok, false);
   assert.equal(kiemLyDo(null).ok, false);
-  assert.deepEqual(kiemDat({ phienBan: 1 }), { ok: true, value: { hoSo: null, nguoiGioiThieuPartyId: null, phienBan: 1 } });
-  assert.deepEqual(kiemDat({ hoSo: { kieu: "MOI" }, phienBan: 2 }), { ok: true, value: { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: null, phienBan: 2 } });
-  assert.deepEqual(kiemDat({ hoSo: { kieu: "CO_SAN", partyId: "pty-1" }, nguoiGioiThieuPartyId: "pty-2", phienBan: 1 }), { ok: true, value: { hoSo: { kieu: "CO_SAN", partyId: "pty-1" }, nguoiGioiThieuPartyId: "pty-2", phienBan: 1 } });
+  assert.deepEqual(kiemDat({ phienBan: 1 }), { ok: true, value: { hoSo: null, hoSoToChuc: null, nguoiGioiThieuPartyId: null, phienBan: 1 } });
+  assert.deepEqual(kiemDat({ hoSo: { kieu: "MOI" }, phienBan: 2 }), { ok: true, value: { hoSo: { kieu: "MOI" }, hoSoToChuc: null, nguoiGioiThieuPartyId: null, phienBan: 2 } });
+  assert.deepEqual(kiemDat({ hoSo: { kieu: "CO_SAN", partyId: "pty-1" }, nguoiGioiThieuPartyId: "pty-2", phienBan: 1 }), { ok: true, value: { hoSo: { kieu: "CO_SAN", partyId: "pty-1" }, hoSoToChuc: null, nguoiGioiThieuPartyId: "pty-2", phienBan: 1 } });
+  // Kết luận Danh bạ của tổ chức (ADR-0212 Đ5; đợt 2 Task 6): cùng dạng với của người, độc lập.
+  assert.deepEqual(kiemDat({ hoSoToChuc: { kieu: "CO_SAN", partyId: "org-1" }, phienBan: 1 }), { ok: true, value: { hoSo: null, hoSoToChuc: { kieu: "CO_SAN", partyId: "org-1" }, nguoiGioiThieuPartyId: null, phienBan: 1 } });
+  assert.equal(kiemDat({ hoSoToChuc: { kieu: "MOI", partyId: "x" }, phienBan: 1 }).ok, false, "hồ sơ tổ chức mới không kèm mã");
+  assert.equal(kiemDat({ hoSoToChuc: "MOI", phienBan: 1 }).ok, false);
   assert.equal(kiemDat({}).ok, false, "thiếu phienBan");
   for (const x of [{ hoSo: { kieu: "CO_SAN" } }, { hoSo: { kieu: "MOI", partyId: "p" } }, { hoSo: "MOI" }, { hoSo: { kieu: "CO_SAN", partyId: "a b" } }, { x: 1 }, { nguoiGioiThieuPartyId: 5 }].map((o) => ({ ...o, phienBan: 1 }))) {
     assert.equal(kiemDat(x as never).ok, false, JSON.stringify(x));
@@ -54,4 +58,19 @@ test("kiemLyDo, kiemDat, mã phiếu, mã tệp", () => {
   assert.equal(laMaPhieu("DK_abcdefgh"), false);
   assert.equal(laMaTep(crypto.randomUUID()), true);
   assert.equal(laMaTep("../x"), false);
+});
+
+test("Task 13 vòng sửa 1: lô hỏng ở liên kết người quản lý (trigger hai đầu, chỉ mục một người quản lý) ⇒ 409 org_link_failed, KHÔNG câu chung «số điện thoại»", () => {
+  for (const m of ["pty_relationship_org_link_org: liên kết phải trỏ tới hồ sơ tổ chức đang mang vai đối tác", "pty_relationship_org_link_person: x", "UNIQUE constraint failed: pty_party_relationship.to_party_id"]) {
+    const l = loiLoDuyet(new Error(m));
+    assert.equal(l?.code, "org_link_failed", m);
+    assert.equal(/điện thoại/.test(l!.message), false);
+  }
+  assert.equal(loiLoDuyet(new Error("UNIQUE constraint failed: staff.phone"))?.code, "registration_conflict");
+});
+
+test("Task 13: thân lệnh duyệt — roleCode null được (route kiểm tiếp); roleCodeToChuc vắng ⇒ undefined, null ⇒ null; ô lạ / mã sai ⇒ không hợp lệ", () => {
+  assert.deepEqual(kiemDuyet({ roleCode: null, phienBan: 1 }), { ok: true, value: { roleCode: null, roleCodeToChuc: undefined, phienBan: 1 } });
+  assert.deepEqual(kiemDuyet({ roleCode: "GUIDE_FREELANCE", roleCodeToChuc: null, phienBan: 1 }), { ok: true, value: { roleCode: "GUIDE_FREELANCE", roleCodeToChuc: null, phienBan: 1 } });
+  for (const b of [{ phienBan: 1 }, { roleCode: "x", phienBan: 1 }, { roleCode: null, roleCodeToChuc: 7, phienBan: 1 }, { roleCode: null, phienBan: 1, la: 1 }]) assert.equal(kiemDuyet(b as any).ok, false, JSON.stringify(b));
 });

@@ -436,6 +436,11 @@ export interface OrderMeta {
   customerPhone: string;
   /** ADR-0168: hình thức thanh toán đang lưu. */
   paymentTerm: "PREPAID" | "CREDIT";
+  /** ADR-0213 Đ3.4 (Task 11): tư cách lúc lập — hồ sơ và loại liên kết (`CA_NHAN` | `MANAGER` | `MEMBER`); cả hai NULL = đơn văn phòng hoặc lập trước B1. */
+  actingPartyId: string | null;
+  actingLinkKind: string | null;
+  /** ADR-0213 Đ8.4 (Task 16): nháp có dòng «chờ người quản lý» đang mở (`ord_member_submit`) — người lập là thành viên không ghi được tới khi Rút lại / bị trả lại. */
+  dangChoQuanLy: boolean;
 }
 
 /** Giảm giá cấp đơn đang lưu (đóng băng sau xác nhận) — để tính tổng phải thu SAU lần sửa số khách của đơn Trả sau (ADR-0168 Đ2 mục 5). Không có đơn ⇒ 0. */
@@ -457,15 +462,21 @@ export async function getOrderRef(db: D1Database, id: string): Promise<{ staffId
 export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | null> {
   const row = await db
     .prepare(
-      `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone, o.delivered_at, o.payment_term
+      `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone, o.delivered_at, o.payment_term,
+              o.acting_party_id, o.acting_link_kind,
+              EXISTS (SELECT 1 FROM ord_member_submit s WHERE s.order_id = o.id AND s.status = 'MO') AS member_pending
        FROM orders o LEFT JOIN v_pty_party_label b ON b.id = o.booker_party_id WHERE o.id = ?`,
     )
     .bind(id)
-    .first<{ status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string; delivered_at: string | null; payment_term: "PREPAID" | "CREDIT" }>();
+    .first<{
+      status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string; delivered_at: string | null;
+      payment_term: "PREPAID" | "CREDIT"; acting_party_id: string | null; acting_link_kind: string | null; member_pending: number;
+    }>();
   return row
     ? {
         status: row.status, staffId: row.staff_id, updatedAt: row.updated_at, bookerPartyId: row.booker_party_id, bookerName: row.booker_name, customerName: row.customer_name,
-        customerPhone: row.customer_phone, deliveredAt: row.delivered_at, paymentTerm: row.payment_term,
+        customerPhone: row.customer_phone, deliveredAt: row.delivered_at, paymentTerm: row.payment_term, actingPartyId: row.acting_party_id, actingLinkKind: row.acting_link_kind,
+        dangChoQuanLy: row.member_pending === 1,
       }
     : null;
 }
@@ -559,6 +570,12 @@ export interface ListOrdersOpts {
   chiTrongIds?: readonly string[] | null;
   /** Người đang xem (ADR-0135 Đ1): đơn NHÁP chỉ hiện cho chính người lập — mọi người khác, kể cả Toàn quyền, không thấy (kể cả khi tìm theo mã đơn). BẮT BUỘC. */
   nguoiXem: string;
+  /**
+   * ADR-0213 Đ5 (mốc B1 Task 12): người xem là người quản lý CÓ HIỆU LỰC của các tổ chức `toChuc` (gốc lắp ráp tiêm `ctx.toChucToiQuanLy`) ⇒ phạm vi cộng thêm «bên đặt thuộc tập này» (HỢP với
+   * `ownerId` / `orderIds`), và đơn nháp của người khác chỉ hiện khi thuộc `nhapDangCho` (nháp của các tổ chức đó đang có yêu cầu xác nhận mở — đã gửi lên Tour Đảo). null / tập rỗng = không cộng.
+   * BẮT BUỘC (không tuỳ chọn): mọi nơi gọi tự nói rõ.
+   */
+  quanLy: { toChuc: readonly string[]; nhapDangCho: readonly string[] } | null;
 }
 
 /** MỘT bộ dựng điều kiện cho cả trang danh sách và tập ứng viên của bộ lọc dấu kế toán — hai câu không bao giờ lệch phạm vi / bộ lọc. */
@@ -566,9 +583,16 @@ function dieuKienDanhSach(opts: ListOrdersOpts): { whereSql: string; binds: (str
   const where: string[] = [];
   const binds: (string | number)[] = [];
   const scope: string[] = [];
-  // ADR-0135 Đ1: đơn nháp là vùng riêng của người lập — điều kiện này AND với mọi phạm vi và bộ lọc bên dưới, không nhánh nào nới được.
-  where.push("(o.status <> 'draft' OR o.staff_id = ?)");
-  binds.push(opts.nguoiXem);
+  const ql = opts.quanLy !== null && opts.quanLy.toChuc.length > 0 ? opts.quanLy : null;
+  // ADR-0135 Đ1: đơn nháp là vùng riêng của người lập — điều kiện này AND với mọi phạm vi và bộ lọc bên dưới. Ngoại lệ có tên DUY NHẤT (ADR-0213 Đ5): nháp ĐANG CHỜ văn phòng của
+  // tổ chức người xem quản lý (`nhapDangCho` — route tính bằng câu của xac-nhan-repo, đã lọc bên đặt).
+  if (ql) {
+    where.push("(o.status <> 'draft' OR o.staff_id = ? OR o.id IN (SELECT value FROM json_each(?)))");
+    binds.push(opts.nguoiXem, JSON.stringify(ql.nhapDangCho));
+  } else {
+    where.push("(o.status <> 'draft' OR o.staff_id = ?)");
+    binds.push(opts.nguoiXem);
+  }
   if (opts.ownerId !== null) {
     scope.push("o.staff_id = ?");
     binds.push(opts.ownerId);
@@ -576,6 +600,10 @@ function dieuKienDanhSach(opts: ListOrdersOpts): { whereSql: string; binds: (str
   if (opts.orderIds !== null) {
     scope.push("o.id IN (SELECT value FROM json_each(?))");
     binds.push(JSON.stringify(opts.orderIds));
+  }
+  if (ql) {
+    scope.push("o.booker_party_id IN (SELECT value FROM json_each(?))");
+    binds.push(JSON.stringify(ql.toChuc));
   }
   if (scope.length) where.push(`(${scope.join(" OR ")})`);
   if (opts.chiTrongIds != null) {
@@ -1029,6 +1057,9 @@ export async function createOrder(
   kenhThu: 0 | 1 | null = null,
   /** Phí đưa đón (Đợt C) route đã tính TRƯỚC lô (`tinhPhiNhap`) — `order.subtotal/total` đã gồm phí; dòng phí dựng theo id chặng của từng lần thử. */
   phi: PhiTheoChang = new Map(),
+  /** Tư cách lúc lập (ADR-0213 Đ3.4): hồ sơ + loại liên kết, ghi trong CHÍNH câu chèn đơn; null = đơn văn phòng / đường «không tư cách». Dòng nhật ký `created` đứng SAU câu chèn
+   * nên đọc được tổ chức qua `v_ord_order_acting` (Ruling R3). */
+  tuCach: { partyId: string; loai: "CA_NHAN" | "MANAGER" | "MEMBER" } | null = null,
   /** ADR-0214 Đ2: mẩu nhật ký mức phí đưa đón người lập chọn (chiều, dịch vụ, mức, kiểu chọn — không tên khách); null = không có. Nối vào dòng `created`. */
   ghiChuPhi: string | null = null,
 ): Promise<string> {
@@ -1052,15 +1083,16 @@ export async function createOrder(
         db
           .prepare(
             `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, customer_email, customer_note,
-               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt, declared_deposit, payment_term, company_collects_snapshot)
+               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id, manifest_exempt, declared_deposit, payment_term, company_collects_snapshot,
+               acting_party_id, acting_link_kind)
              SELECT ?, ? || printf('%04d', COALESCE((SELECT MAX(CAST(substr(order_code, length(?) + 1) AS INTEGER)) FROM orders WHERE order_code LIKE ?), 0) + 1),
-               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?, ?, ?, ?`,
+               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}, ?, ?, ?, ?, ?, ?`,
           )
           .bind(
             id, prefix, prefix, `${prefix}%`, staffId, order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
             // Ba cột cọc cũ KHÔNG mang nghĩa nữa (ADR-0026 đ9): đơn mới ghi 0 / NULL / total — chỉ để thoả trigger 0007 (không ai đọc).
             order.subtotal, order.discount, order.total, 0, null, order.total, order.paymentNote, at, at,
-            booker.partyId, manifestExempt ? 1 : 0, order.declaredDeposit ?? 0, order.paymentTerm ?? "PREPAID", kenhThu,
+            booker.partyId, manifestExempt ? 1 : 0, order.declaredDeposit ?? 0, order.paymentTerm ?? "PREPAID", kenhThu, tuCach?.partyId ?? null, tuCach?.loai ?? null,
           ),
         ...services.stmts,
         ...legs,
@@ -1274,15 +1306,17 @@ export function soanHuyDon(
   // ADR-0089 đ8 (H-C6): lô huỷ = [dòng lý do (cùng điều kiện khoá lạc quan)] → [đổi trạng thái] → [nhật ký changes() > 0] — câu SQL ở tệp nửa nghiêm.
   // Nhật ký ghi NHÃN lý do (không mã thô); "Khác" ghi chính ghi chú đã kiểm (khuôn HDV — ADR-0030 điều 2).
   const nhan = lyDo.ma === "OTHER" ? `${lyDo.ghiChu} (${nhanNhomHuy(lyDo.nhom)})` : `${nhanLyDoHuy(lyDo.ma)} (${nhanNhomHuy(lyDo.nhom)})`;
+  const huy = cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo });
+  const iDoiTrangThai = gac.length + huy.length - 1; // câu đổi trạng thái là phần tử cuối của `cauHuyCoLyDo` (nháp có thêm câu khép dòng chờ người quản lý đứng trước nó)
   return {
     auditId,
     cau: [
       ...gac,
-      ...cauHuyCoLyDo(db, { orderId: id, staffId, from, prevUpdatedAt, at, homNay: vnToday(new Date()), lyDo }),
+      ...huy,
       auditStatement(db, { id: auditId, orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail ?? nhan }, "changes() > 0"),
     ],
-    // Lô huỷ đã thắng ⇔ câu đổi trạng thái (sau câu gác và dòng lý do) đổi một dòng.
-    thang: (kq) => (kq[gac.length + 1]?.meta.changes ?? 0) > 0,
+    // Lô huỷ đã thắng ⇔ câu đổi trạng thái (sau câu gác, dòng lý do và — nháp — câu khép dòng chờ) đổi một dòng.
+    thang: (kq) => (kq[iDoiTrangThai]?.meta.changes ?? 0) > 0,
   };
 }
 
@@ -1759,16 +1793,20 @@ export async function changeBooker(
   /** Kế hoạch 2026-11-05 Task 2: BẮT BUỘC, chỉ `congDoiBenDatTraSau` tạo được; câu gác của nó nối CUỐI lô. */
   qua: QuaCongDoiBen,
   alsoChange?: (at: string) => D1PreparedStatement[],
+  /** ADR-0213 PF10 (Task 11): bên đặt ĐỔI THẬT ⇒ xoá tư cách (cả hai cột, cùng câu — trigger `orders_acting_immutable` chỉ cho về NULL cả hai). Đơn thành đơn thường (luật hôm nay).
+   * Nhật ký `booker_changed` đứng SAU câu này nên không mang tổ chức. */
+  xoaTuCach = false,
 ): Promise<boolean> {
   const at = nextStamp(change.expectedUpdatedAt);
   const results = await db.batch([
     ...booker.before,
     db
       .prepare(
-        `UPDATE orders SET customer_name = ?, customer_phone = ?, booker_party_id = ${BOOKER_VALUE}, updated_at = ?
+        `UPDATE orders SET customer_name = ?, customer_phone = ?, booker_party_id = ${BOOKER_VALUE}, updated_at = ?,
+           acting_party_id = CASE WHEN ? = 1 THEN NULL ELSE acting_party_id END, acting_link_kind = CASE WHEN ? = 1 THEN NULL ELSE acting_link_kind END
          WHERE id = ? AND status IN ('draft', 'confirmed') AND updated_at = ? AND (? IS NULL OR ${BOOKER_VALUE} IS NOT NULL)`,
       )
-      .bind(change.customerName, change.customerPhone, booker.partyId, at, orderId, change.expectedUpdatedAt, booker.partyId, booker.partyId),
+      .bind(change.customerName, change.customerPhone, booker.partyId, at, xoaTuCach ? 1 : 0, xoaTuCach ? 1 : 0, orderId, change.expectedUpdatedAt, booker.partyId, booker.partyId),
     auditStatement(db, { orderId, staffId, action: "booker_changed", at, detail }, "changes() > 0"),
     ...(alsoChange?.(at) ?? []),
     ...qua.kem(at),

@@ -6,6 +6,8 @@ import * as P from "../../shared/permissions.ts";
 import { DK_COOKIE, taoPhienDangKy } from "./phien.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { app, world, seedStaff } from "../../../tests/audit/harness.mjs";
+// @ts-ignore tệp .mjs không có khai kiểu
+import { CHECKS, demViPham } from "../../../scripts/audit-checks.mjs";
 
 const NGAY = 86_400_000;
 const PHUT = 60_000;
@@ -22,7 +24,7 @@ function setup() {
   w.sqlite.exec(`INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('pol', 1, 'thử', 'thử', '2026-01-01T00:00:00.000Z', '2026-01-01T00:00:00.000Z', 'x', '2026-01-01T00:00:00.000Z', 'x')`);
   return w;
 }
-type Gieo = { taoLuc?: string; hetHanLuc?: string | null; quyetLuc?: string; hanKichHoat?: string; doiLuc?: string; banKhai?: boolean };
+type Gieo = { taoLuc?: string; hetHanLuc?: string | null; quyetLuc?: string; hanKichHoat?: string; doiLuc?: string; banKhai?: boolean; toChuc?: boolean };
 /** Gieo phiếu ở `trangThai` (đi đúng đồ thị), có danh tính (email riêng) và — nếu `banKhai` — một bản khai đủ dữ liệu cá nhân. Trả mã phiếu và mã danh tính. */
 function phieu(w: any, trangThai: string, o: Gieo = {}): { id: string; ident: string; email: string } {
   const id = `DK_${String.fromCharCode(65 + (so % 26))}${String.fromCharCode(65 + Math.floor(so / 26) % 26)}AAAAAA`;
@@ -36,6 +38,10 @@ function phieu(w: any, trangThai: string, o: Gieo = {}): { id: string; ident: st
     w.sqlite.prepare(`INSERT INTO dk_submission (id, registration_id, version, family_name, given_name, birth_date, address_value, phone_value, phone_key, document_type_code, document_number, number_key,
         issued_place, policy_id, consented_at, created_at, updated_at) VALUES (?, ?, 1, 'Phạm', 'Thử', '1990-05-06', '12 Đường Thử', '0912 000 111', '0912000111', 'CCCD', '079 111 000 222', '079111000222', 'Cục thử', 'pol', ?, ?, ?)`)
       .run(`sub-${id}`, id, tao, tao, tao);
+    // Phần tổ chức (ADR-0212 Đ4): cùng phiên bản, chèn TRƯỚC câu tăng current_version.
+    if (o.toChuc) w.sqlite.prepare(`INSERT INTO dk_submission_org (id, registration_id, version, display_name, legal_name, tax_code, tax_key, address, invoice_email, phone_value, phone_key, gpkd_number, gpkd_key,
+        gpkd_issued_place, authority_confirmed_at, created_at, updated_at) VALUES (?, ?, 1, 'Công ty Thử', 'CÔNG TY TNHH THỬ', '0123456789', '0123456789', '5 Tổ Chức', 'hd@example.com', '0258 381 234', '0258381234',
+        '41-0398', '410398', 'Sở thử', ?, ?, ?)`).run(`org-${id}`, id, tao, tao, tao);
     w.sqlite.prepare("UPDATE dk_registration SET current_version = 1 WHERE id = ?").run(id);
   }
   const duong: Record<string, string[]> = {
@@ -343,4 +349,87 @@ test("(15) Lô ẩn danh phiếu đã kết thúc tự canh TRONG câu: câu m�
   assert.equal(bk(w, x.id).given_name, "Thử");
   assert.equal(dt(w, x.ident).contact_email, x.email);
   assert.equal(reg(w, x.id).erased_at, null);
+});
+
+test("(T7) ADR-0212 Đ7 (đợt 2 Task 7): TỪ CHỐI 31 ngày có phần tổ chức ⇒ tác nhân ẩn danh CẢ phần tổ chức cùng lô (đúng khuôn trigger), R-DK-8 sạch; 29 ngày: phần tổ chức giữ nguyên", async () => {
+  const w = setup();
+  const a = phieu(w, "TU_CHOI", { quyetLuc: truoc(31 * NGAY), banKhai: true, toChuc: true });
+  const giu = phieu(w, "TU_CHOI", { quyetLuc: truoc(29 * NGAY), banKhai: true, toChuc: true });
+  assert.equal((await chay(w)).anDanh, 1);
+  const o = { ...w.q("SELECT * FROM dk_submission_org WHERE registration_id = ?", a.id)[0] };
+  assert.ok(o.erased_at);
+  assert.equal(o.display_name, "(đã ẩn)");
+  for (const c of ["legal_name", "address", "invoice_email", "phone_value", "phone_key", "gpkd_issued_place"]) assert.equal(o[c], null, c);
+  for (const c of ["tax_code", "tax_key", "gpkd_number", "gpkd_key"]) assert.match(String(o[c]), /^XOA/, c);
+  const r8 = CHECKS.find((c: any) => c.code === "R-DK-8");
+  assert.equal(demViPham(w.sqlite, r8), 0, "R-DK-8 sạch sau lượt tác nhân");
+  assert.equal(w.q("SELECT display_name FROM dk_submission_org WHERE registration_id = ?", giu.id)[0].display_name, "Công ty Thử");
+});
+
+// ---- ADR-0213 Đ7 (mốc B2 Task 15; Ruling R6): tác nhân dọn lời mời vào tổ chức — không thêm mã tác nhân ----
+function toChucMoi(w: any, id = "org-loi-moi"): string {
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Tổ chức thử', 1, ?, ?)").run(id, truoc(60 * NGAY), truoc(60 * NGAY));
+  return id;
+}
+let soMv = 0;
+/** Gieo lời mời ở trạng thái `tt` (đi đúng đồ thị trigger 0176). */
+function loiMoiGieo(w: any, org: string, o: { tt?: "MO" | "GIU_CHO_PHIEU" | "DA_DUNG" | "DA_HUY" | "HET_HAN"; han?: string; tao?: string; giu?: string; ketThuc?: string } = {}): string {
+  const id = `MV_DON${String.fromCharCode(65 + (soMv % 26))}AAAA`.slice(0, 11);
+  soMv++;
+  const tao = o.tao ?? truoc(NGAY);
+  w.sqlite.prepare("INSERT INTO pty_org_invite (id, org_party_id, phone_key, code_hash, status, expires_at, created_at, created_by, updated_at, updated_by) VALUES (?, ?, '0912000111', ?, 'MO', ?, ?, 'tk-moi', ?, 'tk-moi')")
+    .run(id, org, `bam-${id}`, o.han ?? sau(6 * NGAY), tao, tao);
+  const kt = o.ketThuc ?? tao;
+  if (o.tt === "GIU_CHO_PHIEU") w.sqlite.prepare("UPDATE pty_org_invite SET status = 'GIU_CHO_PHIEU', held_registration_id = ?, updated_at = ? WHERE id = ?").run(o.giu, kt, id);
+  if (o.tt === "DA_DUNG") w.sqlite.prepare("UPDATE pty_org_invite SET status = 'DA_DUNG', used_by_staff_id = 'tk-nhan', used_at = ?, updated_at = ? WHERE id = ?").run(kt, kt, id);
+  if (o.tt === "DA_HUY") w.sqlite.prepare("UPDATE pty_org_invite SET status = 'DA_HUY', cancelled_by = 'tk-moi', cancelled_at = ?, updated_at = ? WHERE id = ?").run(kt, kt, id);
+  if (o.tt === "HET_HAN") w.sqlite.prepare("UPDATE pty_org_invite SET status = 'HET_HAN', updated_at = ? WHERE id = ?").run(kt, id);
+  return id;
+}
+const lm = (w: any, id: string) => ({ ...w.q("SELECT status, held_registration_id, phone_key, erased_at FROM pty_org_invite WHERE id = ?", id)[0] });
+
+test("(R6) Lời mời: MỞ quá hạn ⇒ HẾT HẠN; đang GIỮ CHỖ quá hạn KHÔNG hết hạn (phiếu còn chờ); kết thúc quá 30 ngày ⇒ số thay bằng dấu ẩn danh + erased_at; 29 ngày: chưa; nhật ký chỉ số đếm", async () => {
+  const w = setup();
+  const org = toChucMoi(w);
+  const cho = phieu(w, "CHO_XAC_MINH", { banKhai: true });
+  const moQuaHan = loiMoiGieo(w, org, { han: truoc(PHUT) });
+  const moConHan = loiMoiGieo(w, org);
+  const giuQuaHan = loiMoiGieo(w, org, { tt: "GIU_CHO_PHIEU", han: truoc(NGAY), giu: cho.id });
+  const xong31 = loiMoiGieo(w, org, { tt: "DA_DUNG", tao: truoc(40 * NGAY), ketThuc: truoc(31 * NGAY) });
+  const huy31 = loiMoiGieo(w, org, { tt: "DA_HUY", tao: truoc(40 * NGAY), ketThuc: truoc(31 * NGAY) });
+  const xong29 = loiMoiGieo(w, org, { tt: "DA_DUNG", tao: truoc(40 * NGAY), ketThuc: truoc(29 * NGAY) });
+  await chay(w);
+  assert.equal(lm(w, moQuaHan).status, "HET_HAN");
+  assert.equal(lm(w, moConHan).status, "MO");
+  assert.deepEqual(lm(w, giuQuaHan), { status: "GIU_CHO_PHIEU", held_registration_id: cho.id, phone_key: "0912000111", erased_at: null }, "giữ chỗ không hết hạn khi phiếu còn chờ");
+  for (const id of [xong31, huy31]) {
+    assert.equal(lm(w, id).phone_key, "(đã ẩn)");
+    assert.ok(lm(w, id).erased_at);
+  }
+  assert.equal(lm(w, xong29).phone_key, "0912000111");
+  const nk = nhatKy(w);
+  assert.equal(nk.length, 1);
+  assert.match(nk[0].detail, /lời mời: bỏ giữ chỗ 0, hết hạn 1, ẩn danh 2$/);
+  assert.doesNotMatch(nk[0].detail, /0912/);
+  // Lượt sau: lời mời vừa hết hạn chưa đủ 30 ngày ⇒ không ẩn; không còn gì ⇒ không dòng nhật ký mới.
+  await chay(w);
+  assert.equal(lm(w, moQuaHan).phone_key, "0912000111");
+  assert.equal(nhatKy(w).length, 1);
+});
+
+test("(R6) Phiếu CẦN BỔ SUNG đang giữ lời mời hết hạn ⇒ bỏ giữ chỗ TRONG lô hết hạn (về MỞ nếu còn hạn); lưới: phiếu TỪ CHỐI còn sót giữ chỗ ⇒ bỏ giữ chỗ (HẾT HẠN nếu đã quá)", async () => {
+  const w = setup();
+  const org = toChucMoi(w);
+  const bs = phieu(w, "CAN_BO_SUNG", { banKhai: true, hetHanLuc: truoc(PHUT) });
+  const a = loiMoiGieo(w, org, { tt: "GIU_CHO_PHIEU", giu: bs.id });
+  w.sqlite.prepare("UPDATE dk_registration SET invite_id = ? WHERE id = ?").run(a, bs.id);
+  const tc = phieu(w, "TU_CHOI", { banKhai: true });
+  const b = loiMoiGieo(w, org, { tt: "GIU_CHO_PHIEU", giu: tc.id, han: truoc(NGAY) });
+  w.sqlite.prepare("UPDATE dk_registration SET invite_id = ? WHERE id = ?").run(b, tc.id);
+  const kq = await chay(w);
+  assert.equal(kq.hetHan, 1);
+  assert.equal(reg(w, bs.id).status, "HET_HAN");
+  assert.deepEqual([lm(w, a).status, lm(w, a).held_registration_id], ["MO", null]);
+  assert.deepEqual([lm(w, b).status, lm(w, b).held_registration_id], ["HET_HAN", null]);
+  assert.match(nhatKy(w)[0].detail, /lời mời: bỏ giữ chỗ 1, hết hạn 0, ẩn danh 0$/, "lưới đếm đúng lời mời của phiếu TỪ CHỐI (lời mời của phiếu hết hạn đã bỏ trong lô của nó)");
 });

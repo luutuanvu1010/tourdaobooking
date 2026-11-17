@@ -17,6 +17,8 @@ import { canXacNhan, duocQuyetDinh, quaHanXacNhan } from "../../shared/xac-nhan-
 import { trangThaiLoiMoi } from "../../shared/ban-hang-phu-trach";
 import type { BanHangNoi } from "../../shared/router";
 import { thieuGioChangDau } from "../../shared/chang-dua-don";
+import { tuCachCuaDon, type KetQuaChonTuCach } from "../../shared/booker";
+import { chiNguoiLapGhiNhap, type CheDoThanhVien, type NgoaiLeToChuc } from "../../shared/xem-don-nhap";
 import { canhBaoMocCua } from "./dat-gap";
 import { coHienHanh, nhomTheoMa, quyenMoCuaNguoiLap, tuXacNhanNoiBo, yeuCauMoCuaDon, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder } from "./chang-hanh-khach-repo";
@@ -82,12 +84,81 @@ export const CAU_NHAP_LUU_TRUOC_KHI_CO_VAI_TRO = "Đơn nháp này lưu khi tài
 export const CAU_NGUOI_LAP_CHUA_CO_VAI_TRO = "Người lập đơn là tài khoản Đối tác chưa gán vai trò đối tác. Quản trị, Nhân sự hoặc Toàn quyền gán vai trò ở màn Quản lý tài khoản, rồi người lập bấm Rút lại, Sửa, Lưu thay đổi và Gửi đơn lại.";
 export const DOI_TAC_CHUA_CO_VAI_TRO = (cau: string): Response => error(409, "doi_tac_chua_co_vai_tro", cau);
 
+/** ADR-0213 Đ3.2 (Task 11): người gọi không còn thay mặt tổ chức là bên đặt chốt của đơn. */
+export const NOT_ACTING_FOR_ORG = (): Response => error(403, "not_acting_for_org", "Bạn không còn thay mặt tổ chức này");
+/**
+ * ADR-0213 Đ3.4, Đ5 (Task 11): đơn lập THAY MẶT TỔ CHỨC — mỗi lệnh đưa nháp đi tiếp (lưu nháp, Gửi đơn) kiểm lại người gọi còn tư cách tổ chức đó (`benDangThayMat`, một chỗ kiểm);
+ * người đã rời tổ chức không lưu, không gửi được. Đơn cá nhân, đơn văn phòng, đơn trước B1 ⇒ luôn đạt (không truy vấn).
+ */
+/**
+ * MỘT chỗ canh đường GHI cho mọi route ghi đơn của `orders` (ADR-0135 Đ2 + ADR-0213 Đ3.4 «kiểm lại mỗi lần lưu» — Task 11/12 vòng sửa 1): nháp của người khác ⇒ `khongThay()` (404 của route);
+ * nháp lập THAY MẶT TỔ CHỨC mà người lập đã thôi thay mặt (liên kết đóng, mất hiệu lực) ⇒ 403 `not_acting_for_org`. Đơn đã xác nhận / huỷ: luật này không chặn. Route gọi thẳng
+ * `chiNguoiLapGhiNhap` / `ghiDuocNhap` phải có tên trong danh sách miễn của src/cong-ghi-nhap-chung.test.ts.
+ */
+export async function chanGhiNhap(meta: MetaGhiNhap, staff: { id: string }, benDangThayMat: (t: unknown) => Promise<KetQuaChonTuCach>, khongThay: () => Response): Promise<Response | null> {
+  const q = await quyenGhiNhap(meta, staff, { benDangThayMat }, khongThay);
+  return "chan" in q ? q.chan : null;
+}
+
+/** Phần của đơn mà cổng ghi nháp cần (`getMeta`). `dangChoQuanLy` (B2) vắng ⇒ coi như không chờ — chỉ khung thử cũ dựng meta tay. */
+export type MetaGhiNhap = { status: OrderStatus; staffId: string; bookerPartyId?: string | null; actingPartyId: string | null; actingLinkKind: string | null; dangChoQuanLy?: boolean };
+/** ADR-0213 Đ8.2 (Task 16): người lập là thành viên ghi lên nháp đang chờ người quản lý ⇒ 409 (khuôn «Gửi kiểm vé … Rút lại»). */
+/** Vòng sửa 1 (I-1): thành viên bấm Rút lại yêu cầu xác nhận do người quản lý mở. */
+export const CHI_NGUOI_GUI_RUT = (): Response => error(403, "forbidden", "Chỉ người quản lý đã gửi đơn lên Tour Đảo mới rút lại được yêu cầu này.");
+export const MEMBER_SUBMIT_PENDING = (): Response => error(409, "member_submit_pending", "Đơn đang chờ người quản lý xác nhận. Bấm Rút lại nếu muốn sửa.");
+
+/**
+ * Cổng ghi nháp ĐẦY ĐỦ (ADR-0135 Đ2 + ADR-0213 Đ3.4, Đ8 — ngoại lệ có tên; Task 16). `chanGhiNhap` là bản rút gọn không có ngoại lệ (mọi route ghi khác: người quản lý vẫn 404 — chặt hơn).
+ * Route mở ngoại lệ cho người quản lý (lưu nháp, huỷ nháp, Gửi đơn, Trả lại) truyền `laQuanLyCuaBen` + `cheDoThanhVien` và dùng `chuNhap` làm `ownerId` cho các ô của chính nháp
+ * (`order.modify`, `order.passenger.write` — R13 không đổi: ô không nhận cờ, ngoại lệ chỉ ở MỘT nơi `xem-don-nhap.ts`). `choPhepDangCho` = lệnh «Rút lại gửi người quản lý» (người lập ghi được
+ * trong lúc chờ, vẫn phải còn liên kết). Luật đọc / ghi ở `chiNguoiLapGhiNhap` — hàm này chỉ nạp dữ kiện.
+ */
+export async function quyenGhiNhap(
+  meta: MetaGhiNhap,
+  staff: { id: string },
+  q: { benDangThayMat: (t: unknown) => Promise<KetQuaChonTuCach>; laQuanLyCuaBen?: (p: string | null) => Promise<boolean>; cheDoThanhVien?: (org: string) => Promise<CheDoThanhVien> },
+  khongThay: () => Response,
+  opts: { choPhepDangCho?: boolean; yeuCauMoBoi?: string | null } = {},
+): Promise<{ chan: Response } | { chuNhap: string; thayNguoiLap: boolean }> {
+  if (meta.status !== "draft") return { chuNhap: meta.staffId, thayNguoiLap: false };
+  const laNguoiLap = meta.staffId === staff.id;
+  // Vòng sửa 1 (I-1; ADR-0213 Đ8.1, Đ8.5 «yêu cầu xác nhận mở với người gửi»): RÚT LẠI yêu cầu xác nhận của nháp tư cách thành viên — chỉ NGƯỜI MỞ yêu cầu (người quản lý đã gửi lên), và
+  // người đó phải vẫn là người quản lý có hiệu lực, còn thay mặt tổ chức. Người lập (thành viên) không rút được yêu cầu người quản lý đã mở.
+  if (opts.yeuCauMoBoi !== undefined && opts.yeuCauMoBoi !== null && meta.actingLinkKind === "MEMBER" && meta.actingPartyId !== null) { // kiểm toàn mốc B2 (m2): không có yêu cầu mở ⇒ đường thường (route trả 409 confirm_not_open)
+    if (opts.yeuCauMoBoi !== staff.id) return { chan: laNguoiLap ? CHI_NGUOI_GUI_RUT() : khongThay() };
+    if (!q.laQuanLyCuaBen || !(await q.laQuanLyCuaBen(meta.actingPartyId))) return { chan: khongThay() };
+    if (!(await conThayMatToChuc(meta, q.benDangThayMat))) return { chan: NOT_ACTING_FOR_ORG() };
+    return { chuNhap: staff.id, thayNguoiLap: !laNguoiLap };
+  }
+  const dangChoQuanLy = meta.dangChoQuanLy === true;
+  if (laNguoiLap) {
+    if (dangChoQuanLy && !opts.choPhepDangCho) return { chan: MEMBER_SUBMIT_PENDING() };
+  } else {
+    const org = meta.actingLinkKind === "MEMBER" ? meta.actingPartyId : null;
+    // Ngoại lệ chỉ cho nháp tổ chức của thành viên lúc lập (R10); bên đặt phải vẫn là chính tổ chức đó (Đổi khách đặt acting_* = NULL — PF10 P33 — nên hai giá trị không lệch).
+    if (org === null || !q.laQuanLyCuaBen || !q.cheDoThanhVien || (meta.bookerPartyId !== undefined && meta.bookerPartyId !== org)) return { chan: khongThay() };
+    const [laQuanLyCoHieuLuc, cheDo] = await Promise.all([q.laQuanLyCuaBen(org), q.cheDoThanhVien(org)]);
+    const ngoaiLeToChuc: NgoaiLeToChuc = { laQuanLyCoHieuLuc, nguoiLapLaThanhVienLucLap: true, cheDo, dangChoQuanLy };
+    if (!chiNguoiLapGhiNhap({ status: meta.status, laNguoiLap: false, ngoaiLeToChuc })) return { chan: khongThay() };
+  }
+  if (!(await conThayMatToChuc(meta, q.benDangThayMat))) return { chan: NOT_ACTING_FOR_ORG() };
+  return { chuNhap: staff.id, thayNguoiLap: !laNguoiLap };
+}
+
+export async function conThayMatToChuc(meta: { actingPartyId: string | null; actingLinkKind: string | null }, benDangThayMat: (t: unknown) => Promise<KetQuaChonTuCach>): Promise<boolean> {
+  if (tuCachCuaDon(meta.actingLinkKind) !== "TO_CHUC" || meta.actingPartyId === null) return true;
+  const t = await benDangThayMat(meta.actingPartyId);
+  return t.ok && t.chon?.partyId === meta.actingPartyId;
+}
+
 /**
  * Người LẬP đơn có giữ quyền Đối tác không, và ai đang bấm (chỉ để chọn câu). Xét theo người lập, không theo người bấm (ADR-0185 Đ1): ở Gửi đơn người bấm là người lập, xét bộ quyền
  * HIỆU LỰC của phiên (Toàn quyền đang «xem như» Đối tác cũng bị áp — ADR-0180 Đ1.4) — `nguoiLapLaNguoiBam`; ở Còn vé xét quyền THẬT của người lập (`nguoiLapGiuDoiTac`, view
  * `v_stf_quyen_mo` — kế hoạch K2) ⇒ `{ cua: "xet-duyet" }`. `null` = người lập không giữ quyền Đối tác ⇒ cổng không đọc câu nào.
  */
 export type NguoiLapDoiTac = { cua: "nguoi-lap"; partyId: string | null } | { cua: "xet-duyet" } | null;
+// ADR-0213 Đ8.5 (B2, Task 16): ở Gửi đơn «người bấm» là người lập HOẶC người quản lý có hiệu lực của bên đặt gửi nháp thành viên lên — hàm nhận NGƯỜI BẤM (`staff` của request), nên mốc
+// giờ, luật bán, bộ quyền hiệu lực xét theo người quản lý lúc bấm; `orders.staff_id` (người lập) không đổi. Tên giữ nguyên để khỏi đổi các nơi gọi.
 export const nguoiLapLaNguoiBam = (staff: Pick<StaffProfile, "permissions" | "partyId">): NguoiLapDoiTac => (holdsPartner(staff) ? { cua: "nguoi-lap", partyId: staff.partyId } : null);
 
 /** Mã danh mục của các dịch vụ — MỘT biểu thức cho cổng vai trò và cho bản chụp, để hai lần đọc bảng (nếu có) cùng tham số. */

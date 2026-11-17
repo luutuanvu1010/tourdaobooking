@@ -7,7 +7,7 @@
 // Chiều phụ thuộc (ADR-0006 điều 8): dispatch → orders, staff, audit. `orders` KHÔNG import `dispatch` và không đọc view `v_dsp_*` (ADR-0030 S20-13,
 // `src/architecture.test.ts` canh): gốc lắp ráp (src/index.ts) tiêm `isOrderHandler`, `newOrderHandler`, `ordersWithHandler` và `handledOrderIdsOf`
 // vào ctx (ADR-0007 điều 4(b)). Ghi nhật ký và đổi dữ liệu trong cùng một db.batch() (`handlerChangeStatements`, `newOrderHandlerStatements`).
-import { cancelOrderByHandler, editMoneyAsHandler, findOrderDepartDates, findOrderOwner, getMyAssignments } from "../orders";
+import { cancelOrderByHandler, donThanhVienCungToChuc, editMoneyAsHandler, findOrderDepartDates, findOrderOwner, getMyAssignments } from "../orders";
 import { auditStatement, donDuocTraLai } from "../audit";
 import { getStaffAccount, listStaffAccounts } from "../staff";
 import type {
@@ -517,14 +517,14 @@ export const dispatchModule: AppModule = {
 
     // Bảng chọn người khi văn phòng giao đơn (điều 10): lần Từ chối MỚI NHẤT của CHÍNH đơn này, mỗi người một mục. Nguồn = sổ sự kiện (không nhật ký — ADR-0131).
     // Ai gọi được = ai mở được bảng chọn người của đơn (`dispatch.assign` với người lập + đang phụ trách — đúng `handlerControls`).
-    route("GET", "/api/orders/:id/tu-choi-truoc", "orders", async ({ env, params, staff, isAssigned, isSalesOwner }) => {
+    route("GET", "/api/orders/:id/tu-choi-truoc", "orders", async ({ env, params, staff, isAssigned, isSalesOwner, tuCachCuaToi }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, dangPhuTrach, laBanHang] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId), isSalesOwner(orderId)]);
       if (!order) return NOT_FOUND();
       if (!chiNguoiLapGhiNhap({ status: order.status, laNguoiLap: order.staffId === staff.id })) return NOT_FOUND(); // ADR-0135 Đ2
       const assigned = duocGiaoTheoO("dispatch.assign", { laNguoiPhuTrach: dangPhuTrach, laBanHangPhuTrach: laBanHang }); // ADR-0142: danh sách trắng
-      if (!can(staff, "dispatch.assign", { ownerId: order.staffId, assigned })) return FORBIDDEN();
+      if (!can(staff, "dispatch.assign", { ownerId: order.staffId, assigned })) return (await donThanhVienCungToChuc(env.DB, staff, orderId, tuCachCuaToi)) ? NOT_FOUND() : FORBIDDEN(); // Q3 (chủ 17/11)
       const tuChoi: TuChoiTruocResponse["tuChoi"] = {};
       for (const r of await tuChoiCuaDon(env.DB, orderId)) tuChoi[r.party_id] ??= { luc: r.occurred_at, lyDo: r.reason_code as MaLyDoTuChoi };
       return json({ tuChoi } satisfies TuChoiTruocResponse);

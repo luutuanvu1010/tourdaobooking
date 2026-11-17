@@ -175,6 +175,7 @@ export const COT_N3_NHAT_KY = {
   "pty_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 — không bao giờ vào nhật ký
   "pty_registration_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0208 Đ1 (migration 0171): băm tệp chờ của phiếu đăng ký — nhật ký chỉ mang mã phiếu
   "pty_registration_attachment.storage_key": { kiem: "R-PD-1", chuanHoa: false },
+  "pty_organization.tax_code": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0212 Đ7 (R8)
   "pty_organization_document.document_number": { kiem: "R-PD-1", chuanHoa: false },
   "pty_organization_document.number_key": { kiem: "R-PD-1", chuanHoa: true },
   "pty_organization_document.issued_place": { kiem: "R-PD-1", chuanHoa: false },
@@ -187,6 +188,15 @@ export const COT_N3_NHAT_KY = {
   "dk_submission.document_number": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0206 Đ3 (migration 0170): số giấy tờ ở bản khai đăng ký — nhật ký chỉ mang mã phiếu
   "dk_submission.number_key": { kiem: "R-PD-1", chuanHoa: true },
   "dk_submission.issued_place": { kiem: "R-PD-1", chuanHoa: false },
+  // ADR-0212 Đ7 (migration 0174): phần tổ chức của bản khai đăng ký — nhật ký chỉ mang mã phiếu. Khoá mã số thuế giữ dấu '-' của hậu tố nên so nguyên văn (chuanHoa false).
+  "dk_submission_org.tax_code": { kiem: "R-PD-1", chuanHoa: false },
+  "dk_submission_org.tax_key": { kiem: "R-PD-1", chuanHoa: false },
+  "dk_submission_org.gpkd_number": { kiem: "R-PD-1", chuanHoa: false },
+  "dk_submission_org.gpkd_key": { kiem: "R-PD-1", chuanHoa: true },
+  "dk_submission_org.gpkd_issued_place": { kiem: "R-PD-1", chuanHoa: false },
+  "dk_submission_org.extra_number": { kiem: "R-PD-1", chuanHoa: false },
+  "dk_submission_org.extra_key": { kiem: "R-PD-1", chuanHoa: true },
+  "dk_submission_org.extra_issued_place": { kiem: "R-PD-1", chuanHoa: false },
 };
 const DETAIL_CHUAN = "upper(replace(replace(replace(replace(a.detail, ' ', ''), '.', ''), '-', ''), '/', ''))";
 const DO_COT_N3 = Object.entries(COT_N3_NHAT_KY)
@@ -284,12 +294,96 @@ export const CHECKS = [
   // Tài xế đối tác. Chỉ phát hành SAU khi chủ soát xong tài khoản kiểu cũ trên bản thật (Đ3 mục 1) — còn tài khoản đó thì kiểm này đỏ ở bước kiểm sau triển khai.
   {
     code: "R-LC-1c",
-    what: "tài khoản đang hoạt động giữ quyền Đối tác có hồ sơ mang vai trò đối tác (vai nhóm bên ngoài hoặc vai trò do Kế toán thêm)",
+    what: "tài khoản đang hoạt động giữ quyền Đối tác có hồ sơ mang vai trò đối tác (vai nhóm bên ngoài hoặc vai trò do Kế toán thêm), hoặc có liên kết đang mở tới tổ chức mang vai đó",
+    // ADR-0213 Đ9: vế thứ ba — liên kết «Người quản lý của» / «Thành viên của» đang mở (v_pty_org_link) tới tổ chức mang vai nhóm bên ngoài hoặc loại đối tác.
+    // Cùng vế với trigger lc1c tạo lại (migration *_dang_ky_quan_ly_to_chuc) và câu đọc của chủ (VE_LIEN_KET_TO_CHUC). Liên kết đóng về sau thì kiểm này bắt.
     sql: `SELECT count(DISTINCT s.id) FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.permission_type_code = 'PARTNER' AND p.valid_to_at IS NULL
      WHERE s.active = 1
        AND NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id = s.party_id AND g.role_group = 'EXTERNAL')
-       AND NOT EXISTS (SELECT 1 FROM v_pty_party_partner_label l WHERE l.party_id = s.party_id)`,
+       AND NOT EXISTS (SELECT 1 FROM v_pty_party_partner_label l WHERE l.party_id = s.party_id)
+       AND NOT EXISTS (SELECT 1 FROM v_pty_org_link k JOIN v_pty_open_role r ON r.party_id = k.org_party_id JOIN v_pty_role_type t ON t.code = r.role_type_code
+                       WHERE k.person_party_id = s.party_id AND (t.role_group = 'EXTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 1)))`,
     level: "fail",
+  },
+  // ---- Liên kết người quản lý / thành viên của tổ chức (ADR-0213 Đ2, migration *_dang_ky_quan_ly_to_chuc). Trigger chỉ canh lúc ghi; bốn kiểm dưới là lưới cho
+  // SQL gõ tay, trigger bị gỡ, và trạng thái đổi SAU khi gắn. «Đang mở» = valid_to_date IS NULL.
+  {
+    // R-TC-1 (Đ2.4, CẢNH BÁO — Task 9 vòng sửa 1, ruling điều phối 16/11): tổ chức có thành viên đang mở mà KHÔNG có người quản lý đang mở. Đ6 cho văn phòng mời thành viên
+    // «để giúp tổ chức chưa có người quản lý», nên đây là việc cần làm (giao người quản lý), không phải lỗi dữ liệu. «Từ hai người quản lý» là R-TC-1b (fail). Liệt kê mã tổ chức.
+    code: "R-TC-1",
+    what: "tổ chức có thành viên đang mở mà chưa có người quản lý (văn phòng cần giao người quản lý)",
+    sql: `SELECT DISTINCT m.to_party_id FROM pty_party_relationship m
+     WHERE m.relationship_type_code = 'MEMBER_OF' AND m.valid_to_date IS NULL
+       AND NOT EXISTS (SELECT 1 FROM pty_party_relationship g WHERE g.to_party_id = m.to_party_id AND g.relationship_type_code = 'MANAGER_OF' AND g.valid_to_date IS NULL)`,
+    mode: "rows",
+    level: "warn",
+    note: "ADR-0213 Đ2.4, Đ6: thành viên vẫn soạn được nhưng không ai gửi lên Tour Đảo — văn phòng giao người quản lý ở màn tổ chức",
+  },
+  {
+    // R-TC-1b (Đ2.2): một tổ chức có TỪ HAI người quản lý đang mở — chỉ có thể khi chỉ mục pty_relationship_one_manager_uq bị gỡ hoặc SQL gõ tay. Liệt kê mã tổ chức.
+    code: "R-TC-1b",
+    what: "tổ chức có từ hai người quản lý đang mở",
+    sql: `SELECT g.to_party_id FROM pty_party_relationship g
+     WHERE g.relationship_type_code = 'MANAGER_OF' AND g.valid_to_date IS NULL
+     GROUP BY g.to_party_id HAVING count(*) > 1`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0213 Đ2.2: mỗi tổ chức đúng một người quản lý — lệch là chỉ mục duy nhất bị gỡ hoặc SQL chạy tay; đóng dòng thừa theo nhật ký liên kết của tổ chức",
+  },
+  {
+    // R-TC-2 (Đ2.4): mọi replaced_by_id nằm trên dòng MANAGER_OF đã đóng và trỏ một dòng MANAGER_OF có thật, cùng tổ chức, mở đúng ngày dòng cũ đóng. Liệt kê dòng cũ.
+    code: "R-TC-2",
+    what: "dòng có replaced_by_id không trỏ đúng người quản lý thay thế (dòng MANAGER_OF có thật, cùng tổ chức, mở cùng ngày dòng cũ đóng)",
+    sql: `SELECT r.id FROM pty_party_relationship r
+     WHERE r.replaced_by_id IS NOT NULL
+       AND (r.relationship_type_code <> 'MANAGER_OF' OR r.valid_to_date IS NULL
+         OR NOT EXISTS (SELECT 1 FROM pty_party_relationship n WHERE n.id = r.replaced_by_id AND n.id <> r.id AND n.relationship_type_code = 'MANAGER_OF'
+                          AND n.to_party_id = r.to_party_id AND n.valid_from_date = r.valid_to_date))`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0213 Đ2.4: replaced_by_id là tham chiếu logic (không khoá ngoại) — lô «chuyển» chèn dòng mới đúng mã đã ghi; lệch là SQL chạy tay",
+  },
+  {
+    // R-TC-3 (Đ2.6): liên kết đang mở chỉ trỏ tới người có tài khoản Đối tác thuần (hoặc chưa có tài khoản). Tài khoản giữ quyền nội bộ hoặc Tài xế đối tác (LC-1b)
+    // thì vi phạm. Trigger của parties không đọc được staff (Hiến chương 5.3): máy chủ kiểm lúc gắn, trigger lc1d chặn lúc cấp quyền; kiểm này bắt phần còn lại.
+    code: "R-TC-3",
+    what: "liên kết người quản lý / thành viên đang mở trỏ tới tài khoản giữ quyền nội bộ hoặc quyền Tài xế đối tác",
+    sql: `SELECT l.id FROM pty_party_relationship l JOIN staff s ON s.party_id = l.from_party_id
+     WHERE l.relationship_type_code IN ('MANAGER_OF', 'MEMBER_OF') AND l.valid_to_date IS NULL
+       AND EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code <> 'PARTNER')`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0213 Đ2.6: văn phòng gỡ liên kết (màn tổ chức) hoặc gỡ quyền thừa của tài khoản — đối chiếu nhật ký liên kết của tổ chức",
+  },
+  {
+    // R-TC-4 (Đ2.8, CẢNH BÁO): tổ chức có liên kết đang mở mà không có người quản lý CÓ HIỆU LỰC = MANAGER_OF đang mở VÀ tài khoản đang bật VÀ còn quyền Đối tác
+    // VÀ hồ sơ chưa gộp VÀ tổ chức còn vai nhóm bên ngoài hoặc loại đối tác. Không phải lỗi dữ liệu: danh sách cho văn phòng giao người khác (Đ6). Liệt kê tổ chức.
+    code: "R-TC-4",
+    what: "tổ chức có liên kết mà không có người quản lý có hiệu lực (văn phòng cần giao người quản lý)",
+    sql: `SELECT DISTINCT l.to_party_id FROM pty_party_relationship l
+     WHERE l.relationship_type_code IN ('MANAGER_OF', 'MEMBER_OF') AND l.valid_to_date IS NULL
+       AND NOT (EXISTS (SELECT 1 FROM pty_party_relationship g JOIN pty_party pp ON pp.id = g.from_party_id JOIN staff s ON s.party_id = g.from_party_id
+                        WHERE g.to_party_id = l.to_party_id AND g.relationship_type_code = 'MANAGER_OF' AND g.valid_to_date IS NULL
+                          AND pp.merged_into_id IS NULL AND s.active = 1
+                          AND EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code = 'PARTNER'))
+            AND EXISTS (SELECT 1 FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code
+                        WHERE r.party_id = l.to_party_id AND r.valid_to_date IS NULL AND (t.role_group = 'EXTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 1))))`,
+    mode: "rows",
+    level: "warn",
+    note: "ADR-0213 Đ2.8, Đ8.7: thành viên vẫn soạn được nhưng không ai gửi lên Tour Đảo — văn phòng giao người quản lý (Đ6). Tài khoản sinh từ phiếu chưa kích hoạt (đang tắt) cũng hiện ở đây cho tới khi kích hoạt",
+  },
+  {
+    // R-ORD-TV1 (ADR-0213 Đ8, CẢNH BÁO — nghiệm thu đợt 2, 17/11/2026): dòng «chờ người quản lý» (ord_member_submit) còn MO mà đơn KHÔNG còn là nháp (đã xác nhận, đã huỷ, đã giao…).
+    // Các lệnh gửi lên / huỷ đóng dòng trong CÙNG lô với việc đổi trạng thái đơn (DA_GUI_LEN, DON_HUY), nên trạng thái này chỉ do SQL gõ tay hoặc một lô thua đua. Mức «warn», không «fail»:
+    // dòng thừa không làm sai tiền hay quyền (tin «đang chờ bạn xác nhận» khép theo trạng thái hiện tại của đơn, bài thanh-vien-route «Tin … khép theo trạng thái hiện tại»), và tiền lệ
+    // của các kiểm dọn việc (R-TC-1, R-TC-4) là cảnh báo; nâng lên «fail» nếu sau một thời gian chạy production vẫn luôn 0. Liệt kê mã đơn.
+    code: "R-ORD-TV1",
+    what: "dòng chờ người quản lý còn mở mà đơn không còn là nháp",
+    sql: `SELECT m.order_id FROM ord_member_submit m JOIN orders o ON o.id = m.order_id
+     WHERE m.status = 'MO' AND o.status <> 'draft'`,
+    mode: "rows",
+    level: "warn",
+    note: "ADR-0213 Đ8: đóng dòng bằng SQL (DA_GUI_LEN hoặc DON_HUY, kèm closed_at, closed_by) sau khi xem nhật ký của đơn; dòng thừa không đổi tiền hay quyền",
   },
   {
     code: "R-LC-3",
@@ -2515,7 +2609,8 @@ export const CHECKS = [
   {
     // R-DK-4 (ADR-0207 Đ4, Đ5; ADR-0185): tài khoản sinh từ phiếu là tài khoản ĐỐI TÁC của đúng hồ sơ phiếu. (a) staff.party_id = party_id của phiếu — luôn xét: không route nào đổi
     // staff.party_id, và gộp hồ sơ giữ hồ sơ có tài khoản làm hồ sơ chính (ADR-0068 điều 4). (b) CHỈ khi chưa kích hoạt (trạng thái đóng băng từ lúc duyệt): có ít nhất một quyền
-    // bên ngoài còn mở (PARTNER / DRIVER_PARTNER — EXTERNAL_PERMISSIONS), không quyền nội bộ nào còn mở, và hồ sơ đang mang vai đối tác (nhóm bên ngoài hoặc nhãn đối tác).
+    // bên ngoài còn mở (PARTNER / DRIVER_PARTNER — EXTERNAL_PERMISSIONS), không quyền nội bộ nào còn mở, và hồ sơ đang mang vai đối tác (nhóm bên ngoài hoặc nhãn đối tác)
+    // hoặc — ADR-0213 Đ9, cùng vế với LC-1c tạo lại — có liên kết đang mở tới tổ chức mang vai đó (người chỉ làm việc cho tổ chức).
     // Sau kích hoạt, vòng đời tài khoản (thôi làm đối tác, đổi vai) thuộc các kiểm R-LC-* — không đếm trùng ở đây.
     code: "R-DK-4",
     what: "tài khoản sinh từ phiếu đăng ký không gắn đúng hồ sơ của phiếu, hoặc (chưa kích hoạt) không phải tài khoản đối tác thuần trên hồ sơ mang vai đối tác",
@@ -2526,7 +2621,9 @@ export const CHECKS = [
              AND (NOT EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code IN ('PARTNER', 'DRIVER_PARTNER'))
                OR EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code NOT IN ('PARTNER', 'DRIVER_PARTNER'))
                OR (NOT EXISTS (SELECT 1 FROM v_pty_open_role_group g WHERE g.party_id = s.party_id AND g.role_group = 'EXTERNAL')
-                   AND NOT EXISTS (SELECT 1 FROM v_pty_party_partner_label l WHERE l.party_id = s.party_id)))))`,
+                   AND NOT EXISTS (SELECT 1 FROM v_pty_party_partner_label l WHERE l.party_id = s.party_id)
+                   AND NOT EXISTS (SELECT 1 FROM v_pty_org_link k JOIN v_pty_open_role r ON r.party_id = k.org_party_id JOIN v_pty_role_type t ON t.code = r.role_type_code
+                                   WHERE k.person_party_id = s.party_id AND (t.role_group = 'EXTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 1)))))))`,
     mode: "rows",
     level: "fail",
     note: "ADR-0207 Đ4: lô duyệt mở vai đối tác và quyền đối tác cho đúng hồ sơ trong CÙNG lô — lệch là lô hỏng hoặc SQL chạy tay; đối chiếu nhật ký staff_created của phiếu nêu mã",
@@ -2536,15 +2633,56 @@ export const CHECKS = [
     // CHỈ của phiếu kết thúc không duyệt — câu `registration_mark_erased`). Với phiếu đã duyệt, «đã ẩn danh» đọc ở dòng con: mọi bản khai có `erased_at` (lô duyệt ẩn danh trong CÙNG lô),
     // và khi đã kích hoạt thì mọi danh tính có `erased_at` (lô kích hoạt ẩn danh trong CÙNG lô). Phiếu đã duyệt chưa kích hoạt quá hạn + ân hạn do tác nhân ẩn danh theo giờ — không xét ở đây.
     code: "R-DK-5",
-    what: "phiếu «Đã duyệt» mang mốc ẩn danh của phiếu, còn bản khai chưa ẩn danh, hoặc đã kích hoạt mà danh tính chưa ẩn danh",
+    what: "phiếu «Đã duyệt» mang mốc ẩn danh của phiếu, còn bản khai (kể cả phần tổ chức — ADR-0212 Đ7) chưa ẩn danh, hoặc đã kích hoạt mà danh tính chưa ẩn danh",
     sql: `SELECT r.id FROM dk_registration r
      WHERE r.status = 'DA_DUYET'
        AND (r.erased_at IS NOT NULL
          OR EXISTS (SELECT 1 FROM dk_submission s WHERE s.registration_id = r.id AND s.erased_at IS NULL)
+         OR EXISTS (SELECT 1 FROM dk_submission_org o WHERE o.registration_id = r.id AND o.erased_at IS NULL)
          OR (r.activated_at IS NOT NULL AND EXISTS (SELECT 1 FROM dk_identity i WHERE i.registration_id = r.id AND i.erased_at IS NULL)))`,
     mode: "rows",
     level: "fail",
     note: "ADR-0208 Đ6: dữ liệu cá nhân của bản khai phải ẩn danh ngay lúc duyệt, email danh tính ngay lúc kích hoạt — đối chiếu lô duyệt / kích hoạt của phiếu nêu mã",
+  },
+  {
+    // R-DK-8 (ADR-0208 Đ6, ADR-0212 Đ7; đợt 2 Task 7): phiếu kết thúc KHÔNG duyệt đã nhận mốc «đã ẩn danh» (câu `registration_mark_erased` của tác nhân) thì mọi bản khai VÀ mọi phần tổ chức
+    // của nó đã ẩn danh — cùng lô của tác nhân (`submission_erase_on_approve`, `submission_org_erase` chuỗi trong câu vào mốc đó).
+    code: "R-DK-8",
+    what: "phiếu kết thúc không duyệt đã có mốc ẩn danh mà còn bản khai hoặc phần tổ chức chưa ẩn danh",
+    sql: `SELECT r.id FROM dk_registration r
+     WHERE r.status IN ('TU_CHOI', 'DA_RUT', 'HET_HAN') AND r.erased_at IS NOT NULL
+       AND (EXISTS (SELECT 1 FROM dk_submission s WHERE s.registration_id = r.id AND s.erased_at IS NULL)
+         OR EXISTS (SELECT 1 FROM dk_submission_org o WHERE o.registration_id = r.id AND o.erased_at IS NULL))`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0212 Đ7: phần tổ chức ẩn danh cùng lúc, cùng hạn với phần cá nhân — đối chiếu lượt tác nhân DON_PHIEU_DANG_KY của phiếu nêu mã",
+  },
+  {
+    // R-DK-6 (ADR-0212 Đ1 mục 5 b): MỘT nguồn bật / tắt của loại đối tác. Chỉ xét dòng MANG CỜ loại đối tác (`is_partner_label = 1`; vai có mã như Tài xế đối tác không có dòng được hưởng nên
+    // không xét): `pty_role_type.active` và `prc_beneficiary_role.active` cùng mã phải trùng (ADR-0117 Đ1 đặt cả hai trong một lô). Thiếu dòng được hưởng cũng là lệch.
+    code: "R-DK-6",
+    what: "loại đối tác mang cờ mà cờ bật / tắt ở pty_role_type lệch với danh sách được hưởng hoa hồng (prc_beneficiary_role)",
+    sql: `SELECT t.code FROM pty_role_type t LEFT JOIN prc_beneficiary_role b ON b.role_type_code = t.code
+     WHERE t.is_partner_label = 1 AND (b.role_type_code IS NULL OR b.active <> t.active)`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0212 Đ1: danh sách vai đăng ký đọc pty_role_type, hoa hồng đọc prc_beneficiary_role — lệch nghĩa là loại hiện ở nơi này mà tắt ở nơi kia; đối chiếu lô thêm / tắt loại ở trang Hoa hồng",
+  },
+  {
+    // R-DK-7 (ADR-0212 Đ1 mục 5 c): dòng chính sách đăng ký HIỆN HÀNH (mốc mới nhất không ở tương lai) không được mở một mã vai không còn trong `pty_role_type`. Tách `open_role_codes` (cách nhau dấu phẩy) bằng CTE đệ quy.
+    code: "R-DK-7",
+    what: "chính sách đăng ký hiện hành mở một mã vai không có trong pty_role_type",
+    sql: `WITH RECURSIVE cur(csv) AS (
+         SELECT open_role_codes || ',' FROM dk_policy
+          WHERE valid_from_at = (SELECT max(valid_from_at) FROM dk_policy WHERE valid_from_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))),
+       tach(ma, con) AS (
+         SELECT trim(substr(csv, 1, instr(csv, ',') - 1)), substr(csv, instr(csv, ',') + 1) FROM cur
+         UNION ALL
+         SELECT trim(substr(con, 1, instr(con, ',') - 1)), substr(con, instr(con, ',') + 1) FROM tach WHERE con <> '')
+       SELECT ma FROM tach WHERE ma <> '' AND ma NOT IN (SELECT code FROM pty_role_type)`,
+    mode: "rows",
+    level: "fail",
+    note: "ADR-0212 Đ1: lệnh đổi chính sách chỉ nhận mã có trong danh sách vai; mã lạ là SQL chạy tay hoặc loại bị xoá cứng khỏi pty_role_type",
   },
 ];
 

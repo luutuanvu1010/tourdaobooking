@@ -5,7 +5,7 @@ import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
 import { h, replaceChildren } from "./dom";
 
-type ChinhSach = { id: string | null; nhanDangKy: boolean; loaiMo: string[]; loaiCoThe: { ma: string; ten: string }[]; coChinhSachRiengTu: boolean; tuLuc: string | null };
+type ChinhSach = { id: string | null; nhanDangKy: boolean; loaiMo: string[]; loaiCoThe: { ma: string; ten: string; laLoaiDoiTac: boolean; lyDoChuaMo: string | null }[]; coChinhSachRiengTu: boolean; tuLuc: string | null };
 
 export function dungChinhSachDangKy(goc: HTMLElement, staff: Api.StaffProfile): void {
   if (!can(staff, "registration.policy.write")) return;
@@ -14,7 +14,7 @@ export function dungChinhSachDangKy(goc: HTMLElement, staff: Api.StaffProfile): 
   const ve = (d: ChinhSach) => {
     const bat = h("input", { type: "radio", name: "dk-cs-cong-tac", value: "1", id: "dk-cs-bat", checked: d.nhanDangKy }) as HTMLInputElement;
     const tat = h("input", { type: "radio", name: "dk-cs-cong-tac", value: "0", id: "dk-cs-tat", checked: !d.nhanDangKy }) as HTMLInputElement;
-    const o = d.loaiCoThe.map((l) => h("label", { class: "xm-ly-do" }, h("input", { type: "checkbox", value: l.ma, name: "dk-cs-loai", checked: d.loaiMo.includes(l.ma) }), h("span", null, l.ten)));
+    const o = d.loaiCoThe.map((l) => h("label", { class: "xm-ly-do" }, h("input", { type: "checkbox", value: l.ma, name: "dk-cs-loai", checked: d.loaiMo.includes(l.ma), disabled: l.lyDoChuaMo !== null }), h("span", null, l.lyDoChuaMo ? `${l.ten} — ${l.lyDoChuaMo}` : l.ten)));
     const luu = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "dk-cs-luu" }, "Lưu") as HTMLButtonElement;
     luu.addEventListener("click", async () => {
       luu.disabled = true;

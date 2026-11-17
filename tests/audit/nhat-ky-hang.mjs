@@ -25,6 +25,7 @@ export const PHU_TRACH = {
   "bil_receipt_proof.storage_key": "src/modules/billing/bien-lai-route.test.ts",
   "bil_remittance_proof.content_hash": "src/khoan-nop-dai-ly.test.ts", // ADR-0182 phần B: ghi khoản nộp kèm ảnh biên lai (cả đường xem, gỡ)
   "bil_remittance_proof.storage_key": "src/khoan-nop-dai-ly.test.ts",
+  "pty_organization.tax_code": "src/giay-to-khong-lo-so.test.ts", // ADR-0212 Đ7 (R8): nâng N2 → N3; tạo hồ sơ tổ chức có mã số thuế qua route thật
   "pty_person_document.document_number": "src/giay-to-khong-lo-so.test.ts",
   "pty_person_document.number_key": "src/giay-to-khong-lo-so.test.ts",
   "pty_person_document.issued_place": "src/giay-to-khong-lo-so.test.ts",
@@ -40,6 +41,15 @@ export const PHU_TRACH = {
   "dk_submission.document_number": "src/modules/dang-ky/phieu-route.test.ts", // ADR-0206 Đ6 (Task 4): người đăng ký gửi, gửi lại, rút phiếu qua route thật (quét nhật ký + lịch sử phiếu)
   "dk_submission.number_key": "src/modules/dang-ky/phieu-route.test.ts",
   "dk_submission.issued_place": "src/modules/dang-ky/phieu-route.test.ts",
+  "dk_submission_org.tax_code": "src/modules/dang-ky/phieu-route.test.ts", // ADR-0212 Đ4 (đợt 2 Task 5): người đăng ký gửi phiếu có phần tổ chức qua route thật
+  "dk_submission_org.tax_key": "src/modules/dang-ky/phieu-route.test.ts",
+  "dk_submission_org.gpkd_number": "src/modules/dang-ky/phieu-route.test.ts",
+  "dk_submission_org.gpkd_key": "src/modules/dang-ky/phieu-route.test.ts",
+  "dk_submission_org.gpkd_issued_place": "src/modules/dang-ky/phieu-route.test.ts",
+  "dk_submission_org.extra_number": "src/modules/dang-ky/phieu-route.test.ts",
+  "dk_submission_org.extra_key": "src/modules/dang-ky/phieu-route.test.ts",
+  "dk_submission_org.extra_issued_place": "src/modules/dang-ky/phieu-route.test.ts",
+  "pty_org_invite.code_hash": "src/modules/parties/loi-moi.test.ts", // ADR-0213 Đ7.2: bản băm mã vào tổ chức (quét nhật ký lời mời; dò thêm số điện thoại N2 của lời mời)
   "dk_email_code.code_hash": "src/modules/dang-ky/xin-ma-route.test.ts", // ADR-0206 Đ8: người đăng ký xin mã gửi email (chỉ bản băm có khoá; quét nhật ký + lịch sử phiếu)
   "pty_self_submission.document_number": "src/giay-to-khong-lo-so.test.ts",
   "pty_self_submission.number_key": "src/giay-to-khong-lo-so.test.ts",

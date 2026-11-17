@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world } from "../../../tests/audit/harness.mjs";
 import { doNhatKyHang } from "../../../tests/audit/nhat-ky-hang.mjs";
+import { CAU_PHIEU } from "../../shared/dang-ky-hien-thi.ts";
 import { DK_COOKIE, taoPhienDangKy } from "./phien.ts";
 import { guiChenStatement, guiTienStatement, suKienNguoiDangKyStatement, type BanKhaiMoi } from "./repository.ts";
 
@@ -87,6 +88,7 @@ test("GET: phiếu đang điền — mã, trạng thái và nhãn, chưa chọn 
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(r.json, {
     maPhieu: PHIEU, trangThai: "DANG_DIEN", nhanTrangThai: "Đang điền", chiXem: false, loai: null, phienBan: 0, guiLuc: null, hanLuc: null, lyDo: null, tep: [], banKhaiTruoc: null,
+    loaiToChuc: null, toChuc: null,
   });
   assert.equal(r.text.includes(EMAIL), false);
   assert.equal(r.headers.get("cache-control"), "no-store");
@@ -141,13 +143,14 @@ test("gửi khi chưa có chính sách riêng tư ⇒ 409 no_privacy_policy; ch�
   assert.equal(phieu(w).status, "DANG_DIEN");
 });
 
-test("gửi khi chưa chọn loại ⇒ 400 (phiếu loại '' không gửi được); thiếu mục bắt buộc ⇒ 400 nêu tên mục, không nhắc lại giá trị khai; không dòng pty_party, pty_attachment, staff", async () => {
+test("gửi khi chưa chọn loại ⇒ 400 «Hãy chọn một vai cá nhân» (ADR-0212 Đ4: chưa có «thay mặt tổ chức» thì vai cá nhân bắt buộc); thiếu mục bắt buộc ⇒ 400 nêu tên mục, không nhắc lại giá trị khai; không dòng pty_party, pty_attachment, staff", async () => {
   const w = setup();
   const dem = () => [soDong(w, "pty_party"), soDong(w, "pty_attachment"), soDong(w, "staff")];
   const truoc = dem();
   const chuaChon = await gui(w, banKhai());
   assert.equal(chuaChon.status, 400, chuaChon.text);
-  assert.match(chuaChon.json.error.message, /Vai người dùng xin đăng ký/);
+  assert.equal(chuaChon.json.error.code, "personal_role_required");
+  assert.equal(chuaChon.json.error.message, CAU_PHIEU.chonVaiCaNhan);
   await luu(w, VAI);
   const thieuNgaySinh = await gui(w, banKhai({ ngaySinh: undefined }));
   assert.equal(thieuNgaySinh.status, 400, thieuNgaySinh.text);
@@ -587,4 +590,451 @@ test("m4: bản chính sách riêng tư có ngày hiệu lực ở TƯƠNG LAI k
   await luu(w2, VAI);
   w2.sqlite.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('cs-2', 2, 'm', 'Toàn văn mới.', ?, ?, 'x', ?, 'x')").run(tuongLai, tuongLai, tuongLai);
   assert.equal((await gui(w2, banKhai({ chinhSachPhienBan: 2 }))).json.error.code, "policy_changed", "bản chưa hiệu lực không đồng ý được");
+});
+
+test("ADR-0212 Đ1: loại do Kế toán thêm lưu nháp được; sau khi bị tắt thì lưu nháp mã đó ⇒ 400 và không còn trong cấu hình", async () => {
+  const w = setup();
+  const at = new Date().toISOString();
+  w.sqlite.exec(`INSERT INTO pty_role_type (code, name, sort_order, active, role_group, is_partner_label, created_at, created_by, updated_at, updated_by) VALUES ('LD_TEST', 'Loại thử', 150, 1, 'OTHER', 1, '${at}', 'x', '${at}', 'x')`);
+  w.sqlite.exec("DROP TRIGGER dk_policy_no_update"); // thử: chính sách có sẵn mã LD_TEST (đường thật là lệnh đổi chính sách)
+  w.sqlite.exec("UPDATE dk_policy SET open_role_codes = open_role_codes || ',LD_TEST'");
+  assert.equal((await luu(w, "LD_TEST")).status, 200);
+  assert.equal(w.q("SELECT role_code FROM dk_registration")[0].role_code, "LD_TEST");
+  w.sqlite.exec("UPDATE dk_registration SET role_code = ''");
+  w.sqlite.exec("UPDATE pty_role_type SET active = 0 WHERE code = 'LD_TEST'");
+  const r = await luu(w, "LD_TEST");
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.message, CAU_PHIEU.loaiDong);
+  assert.equal((await w.call("GET", "/api/dang-ky/cau-hinh")).json.loaiMo.some((x: any) => x.ma === "LD_TEST"), false);
+});
+
+// ---- Đợt 2 Task 5 (ADR-0212 Đ2, Đ4, Đ7): phần tổ chức của phiếu. Phần tổ chức chỉ mở khi chính sách riêng tư ĐANG hiệu lực có dấu thu thông tin tổ chức (bản 2 ở đây). ----
+const MST = "0312345678-001";
+const GPKD = "41A8 009988";
+const GPKD_KHOA = "41A8009988";
+const SO_GP = "GP-77/2025";
+const NOI_GPKD = "NOI CAP GPKD DANH DAU";
+const NOI_GP = "NOI CAP GIAY PHEP DANH DAU";
+const DAU_TO_CHUC = [MST, "0312345678", GPKD, GPKD_KHOA, SO_GP, "GP772025", NOI_GPKD, NOI_GP];
+function chinhSachToChuc(w: any, version = 2) {
+  const at = new Date(Date.now() - 1_800_000).toISOString();
+  w.sqlite.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, covers_org_data) VALUES (?, ?, 'mục đích', 'Toàn văn.', ?, ?, 'x', ?, 'x', 1)")
+    .run(`cs-${version}`, version, at, at, at);
+}
+function anhGpkd(w: any) {
+  const at = new Date().toISOString();
+  const id = crypto.randomUUID();
+  w.sqlite.prepare(`INSERT INTO pty_registration_attachment (id, registration_id, slot, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, 'GPKD', ?, 'png', 11, ?, ?, ?, ?, ?)`).run(id, PHIEU, `pty/${crypto.randomUUID().replace(/-/g, "")}`, "e".repeat(64), at, IDENT, at, IDENT);
+  w.sqlite.prepare("UPDATE pty_registration_attachment SET stored_at = ? WHERE id = ?").run(at, id);
+}
+const toChuc = (doi: Record<string, unknown> = {}): Record<string, unknown> => ({
+  tenToChuc: "Công ty Lữ hành Thử", tenPhapLy: "CÔNG TY TNHH LỮ HÀNH THỬ", maSoThue: MST, diaChi: "5 Đường Tổ Chức, Nha Trang", emailHoaDon: "hoadon@example.com",
+  soGpkd: GPKD, ngayCapGpkd: "2020-01-02", noiCapGpkd: NOI_GPKD, loaiGiayPhep: "TRAVEL_DOMESTIC", soGiayPhep: SO_GP, ngayCapGiayPhep: "2024-01-01", noiCapGiayPhep: NOI_GP,
+  hetHanGiayPhep: "2029-01-01", duocUyQuyen: true, ...doi,
+});
+const banKhaiTC = (doi: Record<string, unknown> = {}) => banKhai({ chinhSachPhienBan: 2, toChuc: toChuc(), ...doi });
+/** Lưu nháp vai cá nhân VAI + vai của tổ chức (loại do Kế toán thêm `LD_TEST`) — Task 5 vòng sửa 1: phần tổ chức đòi vai của tổ chức chọn TRƯỚC lần gửi đầu. Cần chính sách có dấu tổ chức. */
+async function luuTC(w: any): Promise<void> {
+  loaiDoiTacMo(w);
+  const r = await goi(w, "PUT", DUONG, { body: { loai: VAI, loaiToChuc: "LD_TEST" } });
+  assert.equal(r.status, 200, r.text);
+}
+const loaiDoiTacMo = (w: any, ma = "LD_TEST") => {
+  const at = new Date().toISOString();
+  w.sqlite.exec(`INSERT INTO pty_role_type (code, name, sort_order, active, role_group, is_partner_label, created_at, created_by, updated_at, updated_by) VALUES ('${ma}', 'Loại thử', 150, 1, 'OTHER', 1, '${at}', 'x', '${at}', 'x')`);
+  w.sqlite.exec("DROP TRIGGER dk_policy_no_update"); // thử: chính sách có sẵn mã (đường thật là lệnh đổi chính sách)
+  w.sqlite.exec(`UPDATE dk_policy SET open_role_codes = open_role_codes || ',${ma}'`);
+};
+const dem5 = (w: any) => ["pty_party", "pty_organization", "pty_organization_document", "pty_attachment", "staff"].map((b) => soDong(w, b));
+
+test("Task 5 nhánh 1: có phần tổ chức mà chính sách riêng tư đang hiệu lực chưa có dấu thu thông tin tổ chức ⇒ 409 org_section_closed; không bản khai nào", async () => {
+  const w = setup();
+  await luu(w, VAI);
+  anhGpkd(w);
+  const r = await gui(w, banKhai({ toChuc: toChuc() }));
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "org_section_closed");
+  assert.equal(r.json.error.message, CAU_PHIEU.toChucDong);
+  assert.equal(soDong(w, "dk_submission") + soDong(w, "dk_submission_org"), 0);
+  // Gỡ ảnh GPKD trước (ruling 16/11: ảnh ô tổ chức mà không khai phần tổ chức ⇒ 400 org_photo_without_org).
+  w.sqlite.exec("UPDATE pty_registration_attachment SET purged_at = updated_at, purge_reason = 'THAY_TEP', content_hash = NULL");
+  assert.equal((await gui(w, banKhai({ toChuc: null }))).status, 200, "toChuc: null = không có phần tổ chức, gửi bình thường");
+});
+
+test("Task 5 nhánh 2–4: vai «chỉ tổ chức» thiếu phần tổ chức ⇒ 400; Tài xế đối tác kèm phần tổ chức ⇒ 400; vai cá nhân rỗng KHÔNG kèm phần tổ chức ⇒ 400 «Hãy chọn một vai cá nhân»", async () => {
+  const w = setup();
+  chinhSachToChuc(w);
+  anhGpkd(w);
+  const dat = (role: string, org: string | null) => w.sqlite.prepare("UPDATE dk_registration SET role_code = ?, org_role_code = ? WHERE id = ?").run(role, org, PHIEU); // hai vai này chưa mở được: gieo thẳng
+  dat(VAI, "TRAVEL_AGENCY");
+  const r2 = await gui(w, banKhai({ chinhSachPhienBan: 2 }));
+  assert.equal(r2.status, 400, r2.text);
+  assert.equal(r2.json.error.code, "org_section_required");
+  assert.equal(r2.json.error.message, CAU_PHIEU.canPhanToChuc);
+  dat("TRAVEL_AGENCY", null);
+  assert.equal((await gui(w, banKhai({ chinhSachPhienBan: 2 }))).json.error.code, "org_section_required");
+  dat("DRIVER_EXTERNAL", "TRAVEL_AGENCY");
+  const r3 = await gui(w, banKhaiTC());
+  assert.equal(r3.status, 400, r3.text);
+  assert.equal(r3.json.error.code, "driver_without_org");
+  assert.equal(r3.json.error.message, CAU_PHIEU.taiXeKhongKemToChuc);
+  // Task 13: vai cá nhân rỗng chỉ đi được KÈM phần tổ chức có vai («chỉ tổ chức»); không phần tổ chức ⇒ vẫn 400. Gỡ ảnh GPKD trước (ruling 16/11).
+  dat("", null);
+  w.sqlite.exec("UPDATE pty_registration_attachment SET purged_at = updated_at, purge_reason = 'THAY_TEP', content_hash = NULL");
+  const r4 = await gui(w, banKhai({ chinhSachPhienBan: 2 }));
+  assert.equal(r4.status, 400, r4.text);
+  assert.equal(r4.json.error.code, "personal_role_required");
+  assert.equal(r4.json.error.message, "Hãy chọn một vai người dùng cá nhân.");
+  assert.equal(soDong(w, "dk_submission") + soDong(w, "dk_submission_org"), 0);
+});
+
+test("Task 5 nhánh 6: có phần tổ chức mà chưa tải xong ảnh GPKD ⇒ 400 org_photo_missing; nội dung tổ chức sai ⇒ 400 không nhắc lại số", async () => {
+  const w = setup();
+  chinhSachToChuc(w);
+  await luuTC(w);
+  const r = await gui(w, banKhaiTC());
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.code, "org_photo_missing");
+  assert.equal(r.json.error.message, CAU_PHIEU.thieuAnhGpkd);
+  // Ảnh «chưa tải xong» (chưa lưu kho) cũng chưa đủ.
+  const at = new Date().toISOString();
+  w.sqlite.prepare(`INSERT INTO pty_registration_attachment (id, registration_id, slot, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, 'GPKD', ?, 'png', 11, ?, ?, ?, ?, ?)`).run(crypto.randomUUID(), PHIEU, "pty/" + "a".repeat(32), "f".repeat(64), at, IDENT, at, IDENT);
+  assert.equal((await gui(w, banKhaiTC())).json.error.code, "org_photo_missing");
+  anhGpkd(w);
+  for (const [doi, re] of [[{ maSoThue: "03123" }, /Mã số thuế/], [{ soGpkd: "41A8#9988" }, /đăng ký kinh doanh/], [{ duocUyQuyen: false }, /cho phép đăng ký thay/], [{ soLa: "x" }, /không hợp lệ/]] as const) {
+    const x = await gui(w, banKhaiTC({ toChuc: toChuc(doi) }));
+    assert.equal(x.status, 400, x.text);
+    assert.match(x.json.error.message, re);
+    for (const s of ["03123", "41A8#9988"]) assert.equal(x.text.includes(s), false, "câu báo nhắc lại giá trị đã khai");
+  }
+  assert.equal(soDong(w, "dk_submission_org"), 0);
+});
+
+test("Task 5: gửi phiếu có phần tổ chức ⇒ đúng một dòng dk_submission_org cùng phiên bản; không dòng pty_* / staff nào; bấm «Gửi» hai lần ⇒ một dòng mỗi bảng; lịch sử, nhật ký, phản hồi không mang mã số thuế, số GPKD", async () => {
+  const w = setup();
+  chinhSachToChuc(w);
+  await luuTC(w);
+  anhGpkd(w);
+  const truoc = dem5(w);
+  const [a, b] = await Promise.all([gui(w, banKhaiTC()), gui(w, banKhaiTC())]);
+  assert.equal(a.status, 200, a.text);
+  assert.equal(b.status, 200, b.text);
+  const c = await gui(w, banKhaiTC()); // bấm lần ba sau khi đã sang CHỜ XÁC MINH
+  assert.equal(c.status, 200, c.text);
+  assert.equal(soDong(w, "dk_submission"), 1);
+  assert.equal(soDong(w, "dk_submission_org"), 1);
+  const o = w.q("SELECT * FROM dk_submission_org")[0];
+  const s = w.q("SELECT id, version FROM dk_submission")[0];
+  assert.equal(o.version, s.version);
+  assert.equal(o.version, 1);
+  assert.equal(phieu(w).current_version, 1);
+  assert.equal(phieu(w).status, "CHO_XAC_MINH");
+  assert.deepEqual(
+    [o.display_name, o.tax_code, o.tax_key, o.gpkd_number, o.gpkd_key, o.extra_type_code, o.extra_key, o.gpkd_issued_place, o.extra_issued_place],
+    ["Công ty Lữ hành Thử", MST, MST, GPKD, GPKD_KHOA, "TRAVEL_DOMESTIC", "GP772025", NOI_GPKD, NOI_GP],
+  );
+  assert.ok(o.authority_confirmed_at, "giờ xác nhận «được tổ chức cho phép»");
+  assert.deepEqual(dem5(w), truoc, "gửi phiếu không chạm pty_party, pty_organization, pty_organization_document, pty_attachment, staff");
+  assert.deepEqual(lichSu(w), ["LUU_NHAP", "GUI"]);
+  const sk = JSON.stringify(w.q("SELECT * FROM dk_event")) + JSON.stringify(w.q("SELECT * FROM audit_log"));
+  const phanHoi = [a.text, b.text, c.text].join("\n");
+  for (const v of DAU_TO_CHUC) {
+    assert.equal(sk.includes(v), false, `lịch sử / nhật ký lộ «${v}»`);
+    assert.equal(phanHoi.includes(v), false, `phản hồi lộ «${v}»`);
+  }
+});
+
+test("Task 5: PUT vai của tổ chức (loại do Kế toán thêm) khi phần tổ chức mở; sai ⇒ 400; gửi kèm phần tổ chức; CẦN BỔ SUNG thì DTO chỉ số che; gửi lại bỏ phần tổ chức ⇒ 400 org_section_locked; đổi vai tổ chức sau gửi ⇒ 409", async () => {
+  const w = setup();
+  loaiDoiTacMo(w);
+  assert.equal((await goi(w, "PUT", DUONG, { body: { loai: VAI, loaiToChuc: "LD_TEST" } })).json.error.code, "org_section_closed", "chính sách chưa có dấu ⇒ chưa chọn được vai tổ chức");
+  chinhSachToChuc(w);
+  for (const sai of [VAI, "TRAVEL_AGENCY", "KHONG_CO", 7]) assert.equal((await goi(w, "PUT", DUONG, { body: { loai: VAI, loaiToChuc: sai } })).status, 400, String(sai));
+  const r = await goi(w, "PUT", DUONG, { body: { loai: VAI, loaiToChuc: "LD_TEST" } });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual([r.json.loai.ma, r.json.loaiToChuc.ma], [VAI, "LD_TEST"]);
+  assert.equal(phieu(w).org_role_code, "LD_TEST");
+  assert.equal((await luu(w, VAI)).json.loaiToChuc.ma, "LD_TEST", "PUT không kèm loaiToChuc giữ nguyên");
+  // Vai tổ chức không đứng một mình: chưa gửi lần nào mà bỏ phần tổ chức ⇒ 400 «cần phần tổ chức».
+  assert.equal((await gui(w, banKhai({ chinhSachPhienBan: 2 }))).json.error.code, "org_section_required");
+  anhGpkd(w);
+  assert.equal((await gui(w, banKhaiTC())).status, 200);
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = 'KHONG_DOC_DUOC' WHERE id = ?").run(PHIEU);
+  const x = await xem(w);
+  assert.equal(x.status, 200, x.text);
+  assert.deepEqual(x.json.toChuc, {
+    tenToChuc: "Công ty Lữ hành Thử", tenPhapLy: "CÔNG TY TNHH LỮ HÀNH THỬ", maSoThueChe: "••••-001", diaChi: "5 Đường Tổ Chức, Nha Trang", emailHoaDon: "hoadon@example.com",
+    daKhaiDienThoai: false, gpkd: { soChe: "••••9988", ngayCap: "2020-01-02" }, giayPhepThem: { loai: "TRAVEL_DOMESTIC", soChe: "••••2025", ngayCap: "2024-01-01", hetHan: "2029-01-01" },
+  });
+  for (const v of DAU_TO_CHUC) assert.equal(x.text.includes(v), false, `DTO lộ «${v}»`);
+  const bo = await gui(w, banKhai({ chinhSachPhienBan: 2 }));
+  assert.equal(bo.status, 400, bo.text);
+  assert.equal(bo.json.error.code, "org_section_locked");
+  assert.equal(bo.json.error.message, CAU_PHIEU.khongBoToChuc);
+  const doiVai = await goi(w, "PUT", DUONG, { body: { loai: VAI, loaiToChuc: null } });
+  assert.equal(doiVai.status, 409, doiVai.text);
+  assert.equal(doiVai.json.error.code, "role_locked");
+  assert.equal(phieu(w).org_role_code, "LD_TEST");
+  const lai = await gui(w, banKhaiTC());
+  assert.equal(lai.status, 200, lai.text);
+  assert.deepEqual(w.q("SELECT version FROM dk_submission_org ORDER BY version").map((r: any) => r.version), [1, 2]);
+});
+
+test("Mốc A kiểm cuối (m2): vai đã lưu phải còn mở — vai cá nhân đóng sau khi chọn ⇒ 400 «chưa nhận đăng ký» dù vai của tổ chức còn mở; vai tổ chức đóng hoặc tắt ⇒ 400 riêng; không bản khai nào", async () => {
+  const w = setup();
+  loaiDoiTacMo(w);
+  chinhSachToChuc(w);
+  anhGpkd(w);
+  assert.equal((await goi(w, "PUT", DUONG, { body: { loai: VAI, loaiToChuc: "LD_TEST" } })).status, 200);
+  w.sqlite.exec(`UPDATE dk_policy SET open_role_codes = replace(open_role_codes, '${VAI},', '')`); // vai cá nhân đóng sau khi chọn
+  const r = await gui(w, banKhaiTC());
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.message, CAU_PHIEU.loaiDong, "vai cá nhân đã lưu mà đóng thì không lọt nhờ vai tổ chức còn mở");
+  assert.equal(soDong(w, "dk_submission") + soDong(w, "dk_submission_org"), 0);
+  const w2 = setup();
+  loaiDoiTacMo(w2);
+  chinhSachToChuc(w2);
+  anhGpkd(w2);
+  await goi(w2, "PUT", DUONG, { body: { loai: VAI, loaiToChuc: "LD_TEST" } });
+  w2.sqlite.exec("UPDATE pty_role_type SET active = 0 WHERE code = 'LD_TEST'");
+  const r2 = await gui(w2, banKhaiTC());
+  assert.equal(r2.status, 400, r2.text);
+  assert.equal(r2.json.error.message, CAU_PHIEU.loaiToChucDong);
+  assert.equal(soDong(w2, "dk_submission") + soDong(w2, "dk_submission_org"), 0);
+});
+
+test("Task 5: lịch sử phiếu và nhật ký không mang mã số thuế, số GPKD, số giấy phép, nơi cấp (bộ dò doNhatKyHang — PHỤ TRÁCH các cột N3 của dk_submission_org)", async () => {
+  const w = setup();
+  chinhSachToChuc(w);
+  await luuTC(w);
+  anhGpkd(w);
+  assert.equal((await gui(w, banKhaiTC())).status, 200);
+  const cot = [
+    "dk_submission_org.tax_code", "dk_submission_org.tax_key", "dk_submission_org.gpkd_number", "dk_submission_org.gpkd_key", "dk_submission_org.gpkd_issued_place",
+    "dk_submission_org.extra_number", "dk_submission_org.extra_key", "dk_submission_org.extra_issued_place",
+  ];
+  const ds = doNhatKyHang(w.sqlite, cot);
+  assert.deepEqual(ds.rong, [], "bài rỗng: cột N3 phụ trách chưa có dữ liệu thật");
+  assert.deepEqual(ds.lo, [], "nhật ký chứa giá trị hạng N3");
+  const sk = JSON.stringify(w.q("SELECT * FROM dk_event"));
+  for (const v of DAU_TO_CHUC) assert.equal(sk.includes(v), false, `lịch sử phiếu lộ «${v}»`);
+});
+
+test("Task 5 vòng sửa 1 (I2): phần tổ chức mà chưa chọn vai của tổ chức ⇒ 400 org_role_required (lần gửi đầu); gửi đầu không phần tổ chức thì vai tổ chức khoá rỗng ⇒ gửi lại kèm phần tổ chức cũng 400; không bản khai", async () => {
+  const w = setup();
+  chinhSachToChuc(w);
+  await luu(w, VAI);
+  anhGpkd(w);
+  const r = await gui(w, banKhaiTC());
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.code, "org_role_required");
+  assert.equal(r.json.error.message, CAU_PHIEU.chonVaiToChuc);
+  assert.equal(soDong(w, "dk_submission") + soDong(w, "dk_submission_org"), 0);
+  // Lối thứ hai: gửi đầu KHÔNG phần tổ chức (gỡ ảnh GPKD trước — ruling «ảnh tổ chức mà không phần tổ chức»), bị trả về bổ sung, gửi lại kèm phần tổ chức.
+  w.sqlite.exec("UPDATE pty_registration_attachment SET purged_at = updated_at, purge_reason = 'THAY_TEP', content_hash = NULL");
+  assert.equal((await gui(w, banKhai({ chinhSachPhienBan: 2 }))).status, 200);
+  w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = 'KHONG_DOC_DUOC' WHERE id = ?").run(PHIEU);
+  anhGpkd(w);
+  const r2 = await gui(w, banKhaiTC());
+  assert.equal(r2.status, 400, r2.text);
+  assert.equal(r2.json.error.code, "org_role_required");
+  assert.equal(soDong(w, "dk_submission"), 1);
+  assert.equal(soDong(w, "dk_submission_org"), 0);
+});
+
+test("Ruling 16/11: gửi KHÔNG kèm phần tổ chức mà còn ảnh chờ ở ô GPKD hay GIAY_PHEP_THEM ⇒ 400 org_photo_without_org; gỡ ảnh rồi gửi được", async () => {
+  const w = setup();
+  chinhSachToChuc(w);
+  await luu(w, VAI);
+  for (const o of ["GPKD", "GIAY_PHEP_THEM"]) {
+    const at = new Date().toISOString();
+    w.sqlite.prepare(`INSERT INTO pty_registration_attachment (id, registration_id, slot, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+      VALUES (?, ?, ?, ?, 'png', 11, ?, ?, ?, ?, ?)`).run(`tep-${o}`, PHIEU, o, `pty/${crypto.randomUUID().replace(/-/g, "")}`, "d".repeat(64), at, IDENT, at, IDENT);
+    const r = await gui(w, banKhai({ chinhSachPhienBan: 2 }));
+    assert.equal(r.status, 400, r.text);
+    assert.equal(r.json.error.code, "org_photo_without_org", o);
+    assert.equal(r.json.error.message, "Hãy gỡ ảnh giấy phép hoặc khai phần tổ chức.");
+    w.sqlite.prepare("UPDATE pty_registration_attachment SET purged_at = updated_at, purge_reason = 'THAY_TEP', content_hash = NULL WHERE id = ?").run(`tep-${o}`);
+  }
+  assert.equal(soDong(w, "dk_submission"), 0);
+  assert.equal((await gui(w, banKhai({ chinhSachPhienBan: 2 }))).status, 200);
+});
+
+// ---- Task 13 (B1): phiếu «chỉ tổ chức» và Công ty lữ hành (ADR-0212 Đ2, Đ4; DA_CO_THAY_MAT_TO_CHUC bật) ----
+test("Task 13: Công ty lữ hành mở được khi chính sách có phần tổ chức (chỉ ở phần tổ chức); phiếu «chỉ tổ chức» lưu nháp vai cá nhân rỗng + vai tổ chức, gửi kèm phần tổ chức ⇒ CHỜ XÁC MINH; rỗng cả hai hay thiếu phần tổ chức ⇒ 400", async () => {
+  const w = setup();
+  chinhSachToChuc(w);
+  w.sqlite.exec("DROP TRIGGER dk_policy_no_update");
+  w.sqlite.exec("UPDATE dk_policy SET open_role_codes = open_role_codes || ',TRAVEL_AGENCY'");
+  const ch = await w.call("GET", "/api/dang-ky/cau-hinh");
+  assert.equal(ch.status, 200, ch.text);
+  assert.deepEqual(ch.json.loaiMo.filter((x: any) => x.ma === "TRAVEL_AGENCY").map((x: any) => x.phan), ["CHI_TO_CHUC"]);
+  // Công ty lữ hành không đứng ở phần cá nhân; rỗng cả hai ⇒ 400.
+  assert.equal((await goi(w, "PUT", DUONG, { body: { loai: "TRAVEL_AGENCY" } })).status, 400);
+  assert.equal((await goi(w, "PUT", DUONG, { body: { loai: "", loaiToChuc: null } })).status, 400);
+  assert.equal((await goi(w, "PUT", DUONG, { body: { loai: "" } })).status, 400, "chưa có vai tổ chức nào đã lưu");
+  const luuOk = await goi(w, "PUT", DUONG, { body: { loai: "", loaiToChuc: "TRAVEL_AGENCY" } });
+  assert.equal(luuOk.status, 200, luuOk.text);
+  assert.deepEqual([phieu(w).role_code, phieu(w).org_role_code], ["", "TRAVEL_AGENCY"]);
+  assert.equal(luuOk.json.loai, null);
+  assert.equal(luuOk.json.loaiToChuc.ma, "TRAVEL_AGENCY");
+  // Thiếu phần tổ chức ⇒ 400 (vai «chỉ tổ chức» không đứng một mình).
+  const thieu = await gui(w, banKhai({ chinhSachPhienBan: 2 }));
+  assert.equal(thieu.status, 400, thieu.text);
+  assert.equal(soDong(w, "dk_submission"), 0);
+  anhGpkd(w);
+  const ok = await gui(w, banKhaiTC());
+  assert.equal(ok.status, 200, ok.text);
+  assert.equal(phieu(w).status, "CHO_XAC_MINH");
+  assert.equal(soDong(w, "dk_submission"), 1);
+  assert.equal(soDong(w, "dk_submission_org"), 1);
+});
+
+test("Task 13: câu chèn bản khai mang điều kiện «có vai cá nhân HOẶC vai của tổ chức» NGAY TRONG câu ghi (gọi thẳng): rỗng cả hai ⇒ không ghi", async () => {
+  const w = setup();
+  const loGui = (id: string) => w.env.DB.batch([guiChenStatement(w.env.DB, { id, registrationId: PHIEU, policyId: w.q("SELECT id FROM pty_privacy_policy ORDER BY version DESC LIMIT 1")[0].id, at: new Date().toISOString(), identityId: IDENT, phienBanDaDoc: 0, b: banKhaiMoi() })]);
+  const r = await loGui("sub-rong");
+  assert.equal(r[0].meta.changes, 0);
+  w.sqlite.prepare("UPDATE dk_registration SET org_role_code = 'TRAVEL_AGENCY' WHERE id = ?").run(PHIEU);
+  const r2 = await loGui("sub-to-chuc");
+  assert.equal(r2[0].meta.changes, 1);
+});
+
+// ---- ADR-0213 Đ7.5 (mốc B2 Task 15): «Mã vào tổ chức» trên đường phiếu — phiếu không lưu mã, chỉ lưu mã định danh lời mời; mã hợp lệ thay mục «vai» ----
+const MA_VAO = "AB23CD45";
+/** Băm viết lại độc lập theo đặc tả (không gọi hàm của mã đang thử). */
+async function bamMa(secret: string, ma: string): Promise<string> {
+  const enc = new TextEncoder();
+  const hmac = async (k: Uint8Array, d: string) => new Uint8Array(await crypto.subtle.sign("HMAC", await crypto.subtle.importKey("raw", k, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]), enc.encode(d)));
+  return Array.from(await hmac(await hmac(enc.encode(secret), "td-ma-vao-to-chuc-v1"), ma), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+/** Tổ chức + lời mời MỞ (mã MA_VAO) cho số `so`. Trả mã định danh lời mời. */
+async function loiMoiMo(w: any, o: { so?: string; ma?: string; id?: string; han?: number } = {}): Promise<string> {
+  const at = new Date().toISOString();
+  if (w.q("SELECT 1 FROM pty_party WHERE id = 'org-moi'").length === 0) {
+    w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('org-moi', 'ORGANIZATION', 'Tổ chức mời', 1, ?, ?)").run(at, at);
+  }
+  const id = o.id ?? "MV_PHIEUAAA";
+  w.sqlite.prepare("INSERT INTO pty_org_invite (id, org_party_id, phone_key, code_hash, status, expires_at, created_at, created_by, updated_at, updated_by) VALUES (?, 'org-moi', ?, ?, 'MO', ?, ?, 'tk-moi', ?, 'tk-moi')")
+    .run(id, o.so ?? DIEN_THOAI, await bamMa(w.env.SESSION_SECRET, o.ma ?? MA_VAO), new Date(Date.now() + (o.han ?? 3 * 86_400_000)).toISOString(), at, at);
+  return id;
+}
+const loiMoiDong = (w: any, id: string) => ({ ...w.q("SELECT status, held_registration_id FROM pty_org_invite WHERE id = ?", id)[0] });
+
+test("Đ7.5: mã đúng (gõ thường, có khoảng trắng), còn hạn, số phiếu trùng ⇒ gửi được dù KHÔNG chọn vai; phiếu chỉ lưu mã định danh lời mời; lời mời sang GIỮ CHỖ cùng lô; bản khai, lịch sử không chứa mã", async () => {
+  const w = setup();
+  const mv = await loiMoiMo(w);
+  assert.equal(phieu(w).role_code, "", "người được mời không chọn vai");
+  const r = await gui(w, banKhai({ maVaoToChuc: " ab23 cd45 " }));
+  assert.equal(r.status, 200, r.text);
+  assert.equal(phieu(w).status, "CHO_XAC_MINH");
+  assert.equal(phieu(w).invite_id, mv);
+  assert.deepEqual(loiMoiDong(w, mv), { status: "GIU_CHO_PHIEU", held_registration_id: PHIEU });
+  const dau = JSON.stringify([w.q("SELECT * FROM dk_submission"), w.q("SELECT * FROM dk_event"), w.q("SELECT * FROM dk_registration")]);
+  for (const x of [MA_VAO, "AB23-CD45", "ab23", "AB23 CD45"]) assert.equal(dau.includes(x), false, `phiếu không chứa mã (${x})`);
+  assert.equal(w.q("SELECT count(*) n FROM login_attempt WHERE key = ?", `dk:moi:${IDENT}`)[0].n, 0, "gõ đúng không tốn lượt");
+});
+
+test("Đ7.5: mã sai / khác số / hết hạn / đã huỷ ⇒ 400 MỘT câu trung tính, không bản khai; gõ sai (kể cả sai khuôn) tính trần 5 lần mỗi giờ theo danh tính — lần 6 bị 429 dù mã đúng", async () => {
+  const w = setup();
+  await loiMoiMo(w);
+  await loiMoiMo(w, { id: "MV_KHACSOAA", ma: "XY23ZW45", so: "0987654321" });
+  await loiMoiMo(w, { id: "MV_HETHANAA", ma: "HH23HH45", han: -60_000 });
+  const cau = "Mã vào tổ chức không đúng hoặc không còn dùng được.";
+  for (const ma of ["ZZZZ-ZZZZ", "xy23 zw45", "HH23-HH45", "abc", "OOOO0000"]) {
+    const r = await gui(w, banKhai({ maVaoToChuc: ma }));
+    assert.equal(r.status, 400, `${ma}: ${r.text}`);
+    assert.equal(r.json.error.message, cau);
+  }
+  assert.equal(soDong(w, "dk_submission"), 0);
+  const khoa = await gui(w, banKhai({ maVaoToChuc: MA_VAO }));
+  assert.equal(khoa.status, 429, khoa.text);
+  assert.equal(phieu(w).status, "DANG_DIEN");
+});
+
+test("Đ7.5: lời mời bị huỷ NGAY TRƯỚC lô gửi ⇒ lính gác trong lô làm CẢ lô hỏng: 400 trung tính, không bản khai, phiếu vẫn ĐANG ĐIỀN, không gắn lời mời", async () => {
+  const w = setup();
+  const mv = await loiMoiMo(w);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /pty_org_invite/.test(s.sql) && /GIU_CHO_PHIEU/.test(s.sql)), async () => {
+    w.sqlite.prepare("UPDATE pty_org_invite SET status = 'DA_HUY', cancelled_by = 'tk-moi', cancelled_at = ?, updated_at = ? WHERE id = ?").run(new Date().toISOString(), new Date().toISOString(), mv);
+  });
+  const r = await gui(w, banKhai({ maVaoToChuc: MA_VAO }));
+  assert.equal(r.status, 400, r.text);
+  assert.equal(soDong(w, "dk_submission"), 0);
+  assert.equal(phieu(w).status, "DANG_DIEN");
+  assert.equal(phieu(w).invite_id, null);
+  assert.equal(loiMoiDong(w, mv).status, "DA_HUY");
+});
+
+test("Đ7.5: mã vào tổ chức + phần tổ chức trên cùng phiếu ⇒ 400 (ADR chưa nói — từ chối, chờ chủ); không có mã thì vai cá nhân rỗng vẫn bị đòi như cũ", async () => {
+  const w = setup();
+  chinhSachToChuc(w);
+  await loiMoiMo(w);
+  await luuTC(w);
+  anhGpkd(w);
+  const r = await gui(w, banKhaiTC({ maVaoToChuc: MA_VAO }));
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.code, "invite_with_org");
+  const w2 = setup();
+  const r2 = await gui(w2, banKhai());
+  assert.equal(r2.json.error.code, "personal_role_required");
+});
+
+test("Đ7.5: phiếu có vai + mã ⇒ giữ chỗ; CẦN BỔ SUNG rồi gửi lại với SỐ KHÁC (không mã) ⇒ bỏ giữ chỗ trong lô gửi (lời mời về MỞ), vai vẫn đạt; gửi lại cùng số ⇒ giữ nguyên; rút ⇒ bỏ giữ chỗ", async () => {
+  const w = setup();
+  const mv = await loiMoiMo(w);
+  await luu(w, VAI);
+  assert.equal((await gui(w, banKhai({ maVaoToChuc: MA_VAO }))).status, 200);
+  assert.equal(loiMoiDong(w, mv).status, "GIU_CHO_PHIEU");
+  chuyen(w, "CAN_BO_SUNG");
+  const cungSo = await gui(w, banKhai());
+  assert.equal(cungSo.status, 200, cungSo.text);
+  assert.deepEqual(loiMoiDong(w, mv), { status: "GIU_CHO_PHIEU", held_registration_id: PHIEU }, "gửi lại cùng số, không mã: giữ nguyên");
+  chuyen(w, "CAN_BO_SUNG");
+  const khacSo = await gui(w, banKhai({ dienThoai: "0977 111 222" }));
+  assert.equal(khacSo.status, 200, khacSo.text);
+  assert.deepEqual(loiMoiDong(w, mv), { status: "MO", held_registration_id: null }, "số đổi ⇒ bỏ giữ chỗ (còn hạn ⇒ MỞ)");
+  // Rút: phiếu khác giữ lời mời khác ⇒ bỏ giữ chỗ trong lô rút.
+  const w2 = setup();
+  const mv2 = await loiMoiMo(w2);
+  assert.equal((await gui(w2, banKhai({ maVaoToChuc: MA_VAO }))).status, 200);
+  assert.equal((await rut(w2)).status, 200);
+  assert.deepEqual(loiMoiDong(w2, mv2), { status: "MO", held_registration_id: null });
+});
+
+// Task 15 vòng sửa 1 (m5): giữ chỗ đến từ LẦN GỬI TRƯỚC (thân không có mã) — người đăng ký không «bỏ mã» được, câu phải chỉ đường khác. Hành vi 400 giữ nguyên (ruling điều phối).
+test("Đ7.5: phiếu đang giữ lời mời từ lần gửi trước, gửi lại kèm phần tổ chức (không gõ mã) ⇒ 400 invite_with_org, câu không bảo «bỏ mã»; gõ mã cùng lúc ⇒ câu cũ", async () => {
+  const w = setup();
+  const mv = await loiMoiMo(w);
+  await luu(w, VAI);
+  const g1 = await gui(w, banKhai({ maVaoToChuc: MA_VAO }));
+  assert.equal(g1.status, 200, g1.text);
+  assert.equal(loiMoiDong(w, mv).status, "GIU_CHO_PHIEU");
+  chuyen(w, "CAN_BO_SUNG");
+  chinhSachToChuc(w);
+  const r = await gui(w, banKhaiTC());
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.code, "invite_with_org");
+  assert.doesNotMatch(r.json.error.message, /bỏ mã/);
+  assert.match(r.json.error.message, /lần gửi trước/);
+  const r2 = await gui(w, banKhaiTC({ maVaoToChuc: MA_VAO }));
+  assert.equal(r2.json.error.code, "invite_with_org");
+  assert.match(r2.json.error.message, /bỏ mã/);
+});
+
+// Task 15 vòng sửa 1 (m4 của người kiểm, mục 4 điều phối): lô gửi THUA (câu chèn bản khai khớp 0 dòng — lần gửi khác vừa đổi phiếu) không được giữ chỗ / bỏ giữ chỗ lời mời.
+// Trước khi sửa: hai câu của parties chạy vô điều kiện ⇒ lời mời GIU_CHO_PHIEU mồ côi (phiếu không trỏ tới).
+test("Đ7.5: lô gửi thua (phiếu vừa đổi trạng thái giữa lúc đọc và lúc ghi) ⇒ lời mời KHÔNG bị giữ chỗ, phiếu không gắn lời mời, không bản khai", async () => {
+  const w = setup();
+  const mv = await loiMoiMo(w);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /pty_org_invite/.test(s.sql) && /GIU_CHO_PHIEU/.test(s.sql)), async () => {
+    w.sqlite.prepare("UPDATE dk_registration SET status = 'DA_RUT' WHERE id = ?").run(PHIEU);
+  });
+  const r = await gui(w, banKhai({ maVaoToChuc: MA_VAO }));
+  assert.notEqual(r.status, 200, r.text);
+  assert.equal(soDong(w, "dk_submission"), 0);
+  assert.equal(phieu(w).invite_id, null);
+  assert.deepEqual(loiMoiDong(w, mv), { status: "MO", held_registration_id: null }, "không giữ chỗ mồ côi");
 });

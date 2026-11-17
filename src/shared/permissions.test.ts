@@ -145,6 +145,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "partner.commission.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"],
   "partner.commission.write": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"],
   "partner.signup_tier.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any"], // ADR-0209 Đ2: Quản lý bán hàng, Quản trị, Toàn quyền (Kế toán KHÔNG)
+  "partner.org.manager.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "any"], // ADR-0213 Đ6: giao / chuyển / gỡ người quản lý tổ chức — Quản lý bán hàng, Quản trị, Toàn quyền
   "credit.limit.write": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0172 Đ1: đặt Trả sau — Quản trị (tới mức tối đa), Toàn quyền
   "credit.limit.view": ["none", "any", "any", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0172 trang ghép (2): xem hạn mức và nợ — Kế toán, Quản trị, Toàn quyền
   "billing.partner_channel.write": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0178 Đ1 mục 1: đổi công tắc «Khách của đối tác trả cho Công ty» — chỉ Toàn quyền
@@ -468,7 +469,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "attribution.decide": "none",
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ cách dùng app — trợ lý không đọc dữ liệu nghiệp vụ
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
-    "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế không xem bảng mức, người bán
+    "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "partner.org.manager.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế không xem bảng mức, người bán
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
     "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
@@ -535,7 +536,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "attribution.decide": "none",
     "assistant.ask": "any", // ngoại lệ có tên (ADR-0066 điều 1): hỏi trợ lý Hỗ trợ — mọi tài khoản đăng nhập
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
-    "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế đối tác không thấy mọi con số hoa hồng
+    "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "partner.org.manager.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1: tài xế đối tác không thấy mọi con số hoa hồng
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
     "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
@@ -596,7 +597,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "trip.transfer": "none", // ADR-0111: Nhân sự không điều xe
     "assistant.ask": "any",
     "auth.session.viewAll": "none", "auth.session.revoke": "none", "auth.session.policy": "none", // ADR-0075 điều 7: chỉ Toàn quyền
-    "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1 (ADR-0071: Nhân sự chỉ ba ô tài khoản)
+    "partner.commission.view": "none", "partner.commission.write": "none", "partner.signup_tier.write": "none", "partner.org.manager.write": "none", "supply.terms.view": "none", "supply.terms.write": "none", // sổ đại lý đợt 1 (ADR-0071: Nhân sự chỉ ba ô tài khoản)
     "sales.block.write": "none", // ADR-0146 Đ5: luật bán chỉ Bán hàng, Quản trị, Toàn quyền
     "credit.limit.write": "none", "credit.limit.view": "none", "credit.ceiling.write": "none", "credit.due.extend": "none", "credit.own.view": "none", "billing.partner_channel.write": "none", "billing.partner_channel.view": "none", // ADR-0168, ADR-0172, ADR-0173: Trả sau không phải việc của vai này
     "catalog.attribute.assign": "none", // ADR-0152 Đ3: gắn đặc điểm chỉ Bán hàng, Quản trị, Toàn quyền
@@ -907,4 +908,33 @@ test("ADR-0187 Đ2.3: me.favorites.write — chính mình với mọi tập quy�
     count++;
   }
   assert.equal(count, 2048);
+});
+
+// ADR-0213 Đ5, Đ8.1 (mốc B1 Task 12; ruling R13): cờ `quanLyBenDat` — người gọi là người quản lý CÓ HIỆU LỰC của bên đặt của đơn. Chỉ vế «của mình» của cột Đối tác, chỉ bảy ô.
+test("ADR-0213 Đ5 (R13): `quanLyBenDat` mở đúng bảy ô cho cột Đối tác, không ô nào khác, không mã quyền nào khác", async () => {
+  const { O_NHAN_QUAN_LY_BEN_DAT } = await import("./permissions.ts");
+  assert.deepEqual([...O_NHAN_QUAN_LY_BEN_DAT].sort(), ["contact.view", "dai-ly.nop.xem", "money.view", "order.history.view", "order.submit", "order.view", "payment.proof.view"]);
+  const nguoiKhac = { ownerId: "nguoi-lap-khac" };
+  const ops = Object.keys(MATRIX) as OperationCode[];
+  for (const op of ops) {
+    const doiTac = { id: "ql", permissions: ["PARTNER"] as PermissionCode[] };
+    const mo = (O_NHAN_QUAN_LY_BEN_DAT as readonly string[]).includes(op);
+    // Đối tác: ô own / ownOrAssigned trong danh sách ⇒ mở; ngoài danh sách ⇒ như không có cờ.
+    assert.equal(can(doiTac, op, { ...nguoiKhac, quanLyBenDat: true }), mo ? true : can(doiTac, op, nguoiKhac), `PARTNER ${op}`);
+    if (mo) assert.ok(["own", "ownOrAssigned"].includes(MATRIX[op].PARTNER), `${op}: ô Đối tác phải là own / ownOrAssigned`);
+    // Mọi mã khác (một mình, và Thực tập, Bán hàng có ô own) — cờ không đổi gì.
+    for (const p of PERMISSION_CODES.filter((x) => x !== "PARTNER")) {
+      const ai = { id: "x", permissions: [p] };
+      assert.equal(can(ai, op, { ...nguoiKhac, quanLyBenDat: true }), can(ai, op, nguoiKhac), `${p} ${op}`);
+    }
+  }
+  const p = { id: "ql", permissions: ["PARTNER"] as PermissionCode[] };
+  assert.equal(can(p, "order.view", nguoiKhac), false, "không cờ: đơn người khác vẫn đóng");
+  assert.equal(can(p, "order.view", { ...nguoiKhac, quanLyBenDat: false }), false);
+  assert.equal(can(p, "order.modify", { ...nguoiKhac, quanLyBenDat: true }), false, "R13: không sửa, không huỷ");
+  assert.equal(can(p, "ve.cap.send", { ...nguoiKhac, quanLyBenDat: true }), false, "ADR-0170 Đ1: vé giữ cho người lập");
+  assert.equal(can(p, "dai-ly.nop.ghi", { ...nguoiKhac, quanLyBenDat: true }), false);
+  assert.equal(can(p, "order.passenger.write", { ...nguoiKhac, quanLyBenDat: true }), false);
+  assert.equal(can(p, "contact.view", { ...nguoiKhac, quanLyBenDat: true }), true, "ownOrAssigned: vế own đổi y như own");
+  assert.equal(can(p, "order.submit", { quanLyBenDat: true }), true, "cờ đứng một mình (không ownerId) vẫn là vế «của mình»");
 });

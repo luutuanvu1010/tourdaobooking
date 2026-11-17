@@ -53,6 +53,8 @@ export const dkEmailKey = (email: string): string => `dk:email:${email}`;
 export const dkIpKey = (ip: string): string => `dk:ip:${ip}`;
 export const dkXacNhanIpKey = (ip: string): string => `dk:xn:ip:${ip}`;
 export const dkTepIpKey = (ip: string): string => `dk:tep:ip:${ip}`;
+/** Lượt gõ sai mã vào tổ chức của MỘT danh tính đăng ký (ADR-0213 Đ7.3: 5 lần mỗi giờ). Không gian `dk:moi:` có câu dọn riêng theo cửa sổ một giờ (auth/repository.ts). */
+export const dkMoiKey = (identityId: string): string => `dk:moi:${identityId}`;
 
 /** Set-Cookie của phiên đăng ký: HttpOnly, SameSite=Lax, Secure khi https; Path chỉ /api/dang-ky; Max-Age = hạn tối đa của phiên (hạn không thao tác do chính token kiểm). */
 export function cookiePhienDangKy(token: string, maxHours: number, secure: boolean): string {

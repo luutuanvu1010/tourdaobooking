@@ -192,11 +192,15 @@ function khoiDangChinhSach(d: Du, baoLoi: (m: string | null) => void): HTMLEleme
   }
   const oHanXoa = h("input", { type: "text", id: "hs-cs-han-xoa", inputmode: "numeric", maxlength: 5, autocomplete: "off", value: d.chinhSach?.hanXuLyXoaNgay != null ? String(d.chinhSach.hanXuLyXoaNgay) : "" }) as HTMLInputElement;
   const oHanPhien = h("input", { type: "text", id: "hs-cs-han-phien", inputmode: "numeric", maxlength: 5, autocomplete: "off", value: d.chinhSach?.hanGiuPhienNgay != null ? String(d.chinhSach.hanGiuPhienNgay) : "" }) as HTMLInputElement;
+  // ADR-0212 Đ7: dấu «Thu thông tin tổ chức» — phần tổ chức của biểu mẫu đăng ký chỉ mở khi bản đang hiệu lực có dấu này. Mặc định KHÔNG tích; bản cũ không kéo dấu sang.
+  const oPhanToChuc = h("input", { type: "checkbox", id: "hs-cs-co-to-chuc" }) as HTMLInputElement;
   const form = h("form", { id: "hs-dang-cs" },
     h("p", { class: "muted" }, "Đăng phiên bản mới thì mọi người phải đồng ý lại trước khi gửi thông tin. Chữ chính sách cần chủ dự án và luật sư duyệt trước khi đăng."),
     h("label", null, "Mục đích thu thập", mucDich), h("label", null, "Toàn văn chính sách", noiDung),
     h("label", null, "Số ngày xử lý yêu cầu xoá", oHanXoa), h("label", null, "Số ngày giữ IP và thông tin của máy đã đăng xuất", oHanPhien),
     h("p", { class: "muted" }, "Để trống nếu chưa có số được luật sư xác nhận. Nền tảng không tự điền số ngày."),
+    h("label", { class: "hs-check", for: "hs-cs-co-to-chuc" }, oPhanToChuc, h("span", null, "Bản này có phần thu thông tin tổ chức")),
+    h("p", { class: "muted" }, "Chỉ tích khi toàn văn đã nêu việc thu thông tin của tổ chức (tên, mã số thuế, giấy phép kinh doanh…). Chưa tích thì đối tác là tổ chức chưa đăng ký được."),
     h("button", { class: "btn btn-primary", type: "submit" }, "Đăng phiên bản mới")) as HTMLFormElement;
   /** Ô số ngày: trống = chưa có số (null); có chữ thì phải là số nguyên dương. */
   const soNgay = (o: HTMLInputElement): number | null | "loi" => {
@@ -216,7 +220,7 @@ function khoiDangChinhSach(d: Du, baoLoi: (m: string | null) => void): HTMLEleme
           baoLoi("Số ngày phải là số nguyên từ 1 trở lên, hoặc để trống.");
           return;
         }
-        await api<Api.ChinhSachDangResponse>("/api/parties/chinh-sach-rieng-tu", { method: "POST", body: { mucDich: mucDich.value, noiDung: noiDung.value, hanXuLyXoaNgay: hanXoa, hanGiuPhienNgay: hanPhien } });
+        await api<Api.ChinhSachDangResponse>("/api/parties/chinh-sach-rieng-tu", { method: "POST", body: { mucDich: mucDich.value, noiDung: noiDung.value, hanXuLyXoaNgay: hanXoa, hanGiuPhienNgay: hanPhien, coPhanToChuc: oPhanToChuc.checked } });
         tai("da-luu");
       } catch (e) {
         baoLoi(cauLoi(e));

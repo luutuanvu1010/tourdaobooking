@@ -62,7 +62,7 @@ const csMo = r.body.id;
 r = await call(null, "GET", "/api/dang-ky/cau-hinh");
 assert.equal(r.status, 200, than(r));
 assert.equal(r.body.nhanDangKy, true);
-assert.ok(r.body.loaiMo.includes(VAI));
+assert.ok(r.body.loaiMo.some((x) => x.ma === VAI));
 const phienBanRiengTu = r.body.chinhSachRiengTu;
 assert.equal(typeof phienBanRiengTu, "number");
 console.log("✓ 1. Toàn quyền mở «Nhận đăng ký mới» qua route chính sách; trang công khai thấy công tắc Bật và phiên bản chính sách riêng tư");
@@ -152,10 +152,10 @@ assert.equal(me.body.staff.id, ph.staff_id);
 assert.deepEqual(me.body.staff.permissions, ["PARTNER"], "tài khoản tự đăng ký chỉ là Đối tác");
 console.log("✓ 6. Đăng nhập bằng số điện thoại đã khai + PIN ⇒ 200, /api/auth/me đúng tài khoản");
 
-// 7. Năm kiểm R-DK-* (cùng câu SQL, cùng hàm đếm với scripts/audit-invariants.mjs) trên D1 của nhóm ⇒ 0. Không chạy cả bộ --strict ở đây: chạy lẻ thì run.mjs bỏ audit cuối,
+// 7. Tám kiểm R-DK-* (cùng câu SQL, cùng hàm đếm với scripts/audit-invariants.mjs) trên D1 của nhóm ⇒ 0. Không chạy cả bộ --strict ở đây: chạy lẻ thì run.mjs bỏ audit cuối,
 //    chạy đủ bộ thì dữ liệu kiểu cũ của kịch bản khác chỉ được ngưng ngay trước audit cuối (K12) — kiểm cả bộ giữa chừng sẽ đỏ giả.
 const DK = CHECKS.filter((c) => c.code.startsWith("R-DK-"));
-assert.equal(DK.length, 5, "đủ năm kiểm R-DK-1 … R-DK-5");
+assert.equal(DK.length, 8, "đủ tám kiểm R-DK-1 … R-DK-8 (mốc A thêm R-DK-6, 7, 8)");
 for (const c of DK) {
   const n = demViPham(c, await sqlRows(c.sql.replace(/\s+/g, " ").trim()));
   assert.equal(n, 0, `${c.code}: ${c.what}`);

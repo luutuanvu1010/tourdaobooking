@@ -264,6 +264,24 @@ export const AUDIT_ACTIONS = {
   // ADR-0207 Đ5 (rà soát cuối I-3): Nhân sự trả phiếu chờ duyệt về bước xác minh; detail CHỈ mã phiếu. ADR-0206 Đ13 (I-1): gửi lại thư báo chưa gửi được; detail CHỈ mã phiếu + mã loại thư.
   registration_returned_to_verification: { label: "Trả phiếu đăng ký về xác minh", group: "party" },
   registration_notice_resent: { label: "Gửi lại thư báo phiếu đăng ký", group: "party" },
+  // ADR-0213 Đ6 (mốc B1, Task 10): quản trị tổ chức. target = hồ sơ TỔ CHỨC; acting_party_id = tổ chức (PF18). detail: mã hồ sơ người + mã lý do (văn phòng làm) — KHÔNG số điện thoại, KHÔNG email.
+  org_manager_assigned: { label: "Giao người quản lý tổ chức", group: "party" },
+  org_manager_transferred: { label: "Chuyển quyền quản lý", group: "party" },
+  org_manager_removed: { label: "Gỡ người quản lý tổ chức", group: "party" },
+  org_transfer_requested: { label: "Gửi yêu cầu chuyển quyền quản lý", group: "party" },
+  org_member_removed: { label: "Gỡ thành viên tổ chức", group: "party" },
+  org_member_left: { label: "Thành viên tự rời tổ chức", group: "party" },
+  org_notice_resent: { label: "Gửi lại thư báo người quản lý cũ", group: "party" },
+  // ADR-0213 Đ7 (mốc B2, Task 15): lời mời vào tổ chức. target = hồ sơ TỔ CHỨC; acting_party_id = tổ chức. detail: mã định danh lời mời (MV_…), mã hồ sơ người nhận — KHÔNG số điện thoại, KHÔNG mã.
+  org_invite_created: { label: "Tạo lời mời vào tổ chức", group: "party" },
+  org_invite_cancelled: { label: "Huỷ lời mời vào tổ chức", group: "party" },
+  org_invite_accepted: { label: "Nhận lời mời vào tổ chức", group: "party" },
+  // ADR-0213 Đ8 (mốc B2, Task 16): chế độ thành viên (đích hồ sơ tổ chức) và nháp của thành viên qua người quản lý (đích danh người nhận tin — target_type 'staff').
+  org_member_mode_set: { label: "Đổi chế độ thành viên của tổ chức", group: "party" },
+  order_member_submitted: { label: "Gửi người quản lý xác nhận", group: "order" },
+  order_member_returned: { label: "Người quản lý trả lại đơn", group: "order" },
+  order_member_forwarded: { label: "Người quản lý gửi đơn lên Tour Đảo", group: "order" },
+  order_member_withdrawn: { label: "Rút lại yêu cầu gửi người quản lý", group: "order" }, // không phải tin (người quản lý thôi thấy nháp)
   // ADR-0207 Đ7 (đợt 1 Task 9): người được duyệt tự đặt PIN — do CHÍNH tài khoản mới đứng tên (không dùng staff_reactivated, để không ghi «chạm tài khoản» thay một người quản trị). target = phiếu.
   registration_activated: { label: "Tự đặt mã PIN, kích hoạt tài khoản", group: "party" },
   // ADR-0208 Đ8 (đợt 1 Task 9): tác nhân DON_PHIEU_DANG_KY ghi MỘT dòng mỗi lượt có việc; detail CHỈ các số đếm (KHÔNG mã phiếu, KHÔNG khoá kho, KHÔNG email).

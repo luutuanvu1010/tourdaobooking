@@ -4,25 +4,30 @@
 // lô vẫn an toàn khi không có chúng (chỉ mục duy nhất staff.phone, staff_party_uq, dk_decision_once_uq; trigger CCCD một người, vai, quan hệ).
 // Nhật ký và lịch sử phiếu không chứa SĐT, email, số giấy tờ, ngày sinh, địa chỉ; câu báo lỗi không nhắc lại dữ liệu khai, không nói số điện thoại thuộc tài khoản nào.
 import type { LoDuyetDangKyVao } from "../../shared/dang-ky-duyet.ts";
+import { CAU_LOAI_DA_TAT } from "../../shared/dang-ky-chon-vai.ts";
 import { ketQuaCapChoNguoiXem } from "../../shared/cap-se-ap-hien-thi.ts";
-import { MUC_XAC_MINH_MO } from "../../shared/dau-xac-minh.ts";
+import { MUC_XAC_MINH_MO_CA_NHAN, MUC_XAC_MINH_MO_TO_CHUC } from "../../shared/dau-xac-minh.ts";
 import { error, json, readJson } from "../../shared/http.ts";
 import { can } from "../../shared/permissions.ts";
 import { normalizePhone } from "../../shared/phone.ts";
-import { groupOf, isRoleCode, roleAssignmentProblem } from "../../shared/roles.ts";
+import { groupOf, isRoleCode, roleAssignmentProblem, ROLES, type RoleCode } from "../../shared/roles.ts";
 import type { Ctx } from "../../shared/router.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import { auditStatement } from "../audit";
-import { canCuocThuocHoSoKhac, cauGoTepChoNeuTruocDoi, partySummary, validateContact, xoaKhoTepChoDaGo } from "../parties";
+import {
+  canCuocThuocHoSoKhac, cauBoGiuChoLoiMoi, cauGoTepChoNeuTruocDoi, loiMoiTheoId, partySummary, tcToChucCuaNguoi, tenLoaiVai, toChucDichHopLe, trungToChucKhac, validateContact, xoaKhoTepChoDaGo,
+} from "../parties";
 import { findStaffByPhone, tenVaiTaiKhoan } from "../staff";
 import {
-  banKhaiDeDuyet, cauXepThu, chinhSachHienHanh, danhTinhConEmail, emailLienLacCuaPhieu, guiLaiLoiMoiStatement, ketLuanMoiNhat, phieuXet, suKienNhanVienStatement, tomTatDeDuyet,
+  banKhaiDeDuyet, banKhaiToChucDayDu, cauXepThu, chinhSachHienHanh, danhTinhConEmail, emailLienLacCuaPhieu, guiLaiLoiMoiStatement, ketLuanMoiNhat, phieuXet, suKienNhanVienStatement, tomTatDeDuyet,
   traVeXacMinhStatement, tuChoiDuyetStatement,
 } from "./repository.ts";
 import { maLenhThu } from "./rules.ts";
+import { kiemVaiKhiDuyet, vaiChonKhiDuyet, vaiChonToChucKhiDuyet } from "./vai.ts";
+import { lienKetLoDuyet, MOI_TRUONG_MO, phanCuaVai, vaiCaNhanRongDuoc } from "../../shared/dang-ky-vai.ts";
 import { guiThuSauLo } from "./thu-bao.ts";
 import { kiemDuyet, kiemLyDoDuyet, kiemTraVe, laMaPhieu, loiDungLoDuyet, loiLoDuyet } from "./xac-minh.ts";
-import { dsMuc, kiemHoSoDich, kiemNguoiGioiThieu, moiNhat, mucPhaiDat } from "./xac-minh-route.ts";
+import { dsMuc, kiemHoSoDich, kiemNguoiGioiThieu, loiMoiCuaPhieu, moiNhat, mucPhaiDat, tachMuc } from "./xac-minh-route.ts";
 
 export const CAM_DUYET = () => error(403, "forbidden", "Bạn không có quyền duyệt phiếu đăng ký.");
 const KHONG_THAY = () => error(404, "not_found", "Không tìm thấy phiếu.");
@@ -31,6 +36,9 @@ const DOI_PHIEN_BAN = () => error(409, "registration_version_changed", "Phiếu 
 const NGAY_MS = 24 * 3600 * 1000;
 const DANH_TINH_DA_AN = () =>
   error(409, "registration_identity_erased", "Đã quá hạn đặt mã PIN và cả thời gian chờ thêm, nên thông tin liên lạc của người đăng ký đã được xoá và không gửi lại lời mời được nữa. Tài khoản vẫn tắt; hãy báo Toàn quyền quyết định cách xử lý.");
+
+/** Dòng màn duyệt khi phiếu gắn vào hồ sơ tổ chức có sẵn (ADR-0212 Đ5 mục 3; ADR-0213 Đ6): người đăng ký không tự thành người quản lý. */
+export const GHI_CHU_TO_CHUC_CO_SAN = "Gắn vào hồ sơ tổ chức có sẵn: người đăng ký không tự thành người quản lý của tổ chức — văn phòng sẽ giao người quản lý.";
 
 const idPhieu = (params: Record<string, string>): string | null => (laMaPhieu(params.id) ? params.id! : null);
 
@@ -45,40 +53,65 @@ export async function xemDeDuyet({ env, staff, params }: Ctx<"accounts">): Promi
   const id = idPhieu(params);
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p) return KHONG_THAY();
-  const tomTatPhieu = { id: p.id, loai: p.role_code, trangThai: p.status, phienBan: p.current_version };
+  const ten = await tenLoaiVai(env.DB);
+  // Vai của tổ chức đi kèm (Task 13): màn duyệt chọn lại được; phiếu «chỉ tổ chức» có `loai` rỗng.
+  const tomTatPhieu = {
+    id: p.id, loai: p.role_code, tenLoai: ten.get(p.role_code) ?? p.role_code, loaiToChuc: p.org_role_code, tenLoaiToChuc: p.org_role_code ? (ten.get(p.org_role_code) ?? p.org_role_code) : null,
+    trangThai: p.status, phienBan: p.current_version,
+  };
   if (p.status !== "CHO_DUYET" || p.current_version < 1) return json({ ...tomTatPhieu, daXuLy: true });
   const bk = await tomTatDeDuyet(env.DB, p.id, p.current_version);
   if (!bk) return json({ ...tomTatPhieu, daXuLy: true });
-  const [batBuoc, kl] = await Promise.all([mucPhaiDat(env.DB, new Date().toISOString()), moiNhat(env.DB, p)]);
+  const [batBuoc, kl] = await Promise.all([mucPhaiDat(env.DB, new Date().toISOString(), p), moiNhat(env.DB, p)]);
+  const [vaiChon, vaiChonToChuc] = await Promise.all([vaiChonKhiDuyet(env.DB), vaiChonToChucKhiDuyet(env.DB)]);
   const dich = p.match_kind === "EXISTING" && p.match_party_id && can(staff, "party.view") ? await partySummary(env.DB, p.match_party_id) : null;
+  const dichToChuc = p.org_match_kind === "EXISTING" && p.org_match_party_id && can(staff, "party.view") ? await partySummary(env.DB, p.org_match_party_id) : null;
   return json({
     ...tomTatPhieu,
+    vaiChon, // ô chọn vai ở màn duyệt đọc từ đây (PF2): loại do Kế toán thêm có mặt, loại đã tắt thì không; vai «chỉ tổ chức» không có (Task 13 vòng sửa 1)
+    vaiChonToChuc, // ô chọn vai của tổ chức (Task 13): vai «chỉ tổ chức» + loại do Kế toán thêm
     guiLuc: p.submitted_at,
     hoTen: [bk.family_name, bk.middle_name, bk.given_name].filter((x): x is string => !!x).join(" "),
     soDienThoai: bk.phone_value,
-    muc: dsMuc(batBuoc, kl),
+    ...tachMuc(dsMuc(batBuoc, kl)),
     // Kiểu kết luận Danh bạ; tên hồ sơ đích CHỈ khi người xem được xem Danh bạ (ADR-0207 Đ4).
     ketLuanDanhBa: p.match_kind ? { kieu: p.match_kind, ...(dich ? { tenHoSo: dich.displayName } : {}) } : null,
+    // Kết luận Danh bạ của tổ chức (ADR-0212 Đ5): cùng luật tên. Gắn tổ chức có sẵn KHÔNG làm người đăng ký thành người quản lý (Đ5 mục 3) — màn duyệt nói rõ văn phòng giao sau.
+    ketLuanDanhBaToChuc: p.org_match_kind
+      ? { kieu: p.org_match_kind, ...(dichToChuc ? { tenHoSo: dichToChuc.displayName } : {}), ...(p.org_match_kind === "EXISTING" ? { ghiChu: GHI_CHU_TO_CHUC_CO_SAN } : {}) }
+      : null,
     coNguoiGioiThieu: p.referrer_party_id !== null,
     nguoiXacMinhLaBan: p.verified_by === staff.id,
+    // ADR-0213 Đ7.5: lời mời vào tổ chức của phiếu (đang giữ / đã huỷ / số đổi), so với số của bản khai đang duyệt.
+    loiMoiVaoToChuc: await loiMoiCuaPhieu(env.DB, p, normalizePhone(bk.phone_value ?? ""), can(staff, "party.view")),
   });
 }
 
 // ---- POST /api/dang-ky/phieu/:id/duyet ----
-export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, exec }: Ctx<"accounts">): Promise<Response> {
+export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, conQuyenMoi, exec }: Ctx<"accounts">): Promise<Response> {
   const id = idPhieu(params);
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p) return KHONG_THAY();
   const k = kiemDuyet(await readJson(request));
   if (!k.ok) return error(400, "invalid_input", k.message);
-  const { roleCode, phienBan } = k.value;
-  // Vai: mã có thật, thuộc nhóm bên ngoài (biến thể tạo tài khoản tắt chỉ nhận vai bên ngoài), và qua đúng luật gán vai sẵn có của người duyệt (ADR-0207 Đ4).
-  if (!isRoleCode(roleCode) || groupOf([roleCode]) !== "EXTERNAL") return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
-  const vaiLoi = roleAssignmentProblem({
-    actorIsSuper: can(staff, "admin.manage.superadmin"), actorLaQuanTri: can(staff, "admin.manage"), currentRoles: [], currentPermissions: [], currentAdjustments: { adds: [], removes: [] },
-    next: { roles: [roleCode], adds: [], removes: [], reason: null },
-  });
-  if (vaiLoi) return error(vaiLoi.forbidden ? 403 : 400, vaiLoi.forbidden ? "forbidden" : "invalid_input", vaiLoi.message);
+  const { roleCode, roleCodeToChuc, phienBan } = k.value;
+  // Vai: hợp lệ khi CÓ TRONG `vaiDangKyDuoc` lúc duyệt (ADR-0212 Đ3). Là vai bên ngoài sẵn có ⇒ qua đúng luật gán vai của người duyệt (ADR-0207 Đ4); là loại đối tác do Kế toán thêm ⇒ không qua luật đó
+  // (loại nhóm OTHER không sinh quyền; quyền Đối tác cấp bằng dòng chỉnh tay trong lô). Loại vừa bị tắt ⇒ 409, không dòng nào sinh.
+  // `roleCode = null` (phiếu «chỉ tổ chức», Task 13): kiểm ở dưới khi đã đọc phần tổ chức.
+  const vai = roleCode === null ? ({ kq: "HOP_LE", laLoaiDoiTac: false } as const) : await kiemVaiKhiDuyet(env.DB, roleCode);
+  if (vai.kq === "DA_TAT") return error(409, "role_inactive", CAU_LOAI_DA_TAT);
+  if (vai.kq !== "HOP_LE") return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
+  const laLoaiDoiTac = vai.laLoaiDoiTac;
+  // Vai «chỉ tổ chức» (Công ty lữ hành — ADR-0212 Đ2) không đứng ở phần cá nhân (Task 13 vòng sửa 1, I-2).
+  if (roleCode !== null && phanCuaVai(roleCode, laLoaiDoiTac) === "CHI_TO_CHUC") return error(400, "invalid_input", "Vai người dùng này chỉ dành cho tổ chức. Hãy chọn một vai người dùng cá nhân.");
+  if (roleCode !== null && !laLoaiDoiTac) {
+    if (!isRoleCode(roleCode) || groupOf([roleCode]) !== "EXTERNAL") return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
+    const vaiLoi = roleAssignmentProblem({
+      actorIsSuper: can(staff, "admin.manage.superadmin"), actorLaQuanTri: can(staff, "admin.manage"), currentRoles: [], currentPermissions: [], currentAdjustments: { adds: [], removes: [] },
+      next: { roles: [roleCode], adds: [], removes: [], reason: null },
+    });
+    if (vaiLoi) return error(vaiLoi.forbidden ? 403 : 400, vaiLoi.forbidden ? "forbidden" : "invalid_input", vaiLoi.message);
+  }
   if (p.status !== "CHO_DUYET" || p.current_version < 1) return KHONG_CON_CHO();
   if (phienBan !== p.current_version) return DOI_PHIEN_BAN();
   const version = p.current_version;
@@ -100,6 +133,60 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
     const loi = await kiemNguoiGioiThieu(env.DB, p.referrer_party_id, dich);
     if (loi) return error(409, loi.code, loi.message);
   }
+  // Phần tổ chức (ADR-0212 Đ5 mục 4, Đ6): kiểm TRƯỚC lô để trả câu rõ — trigger một-GPKD-một-tổ-chức, câu chốt (đòi org_match_kind) và lính gác hồ sơ tổ chức là lưới cuối.
+  const org = await banKhaiToChucDayDu(env.DB, p.id, version);
+  const dichToChuc = org && p.org_match_kind === "EXISTING" ? p.org_match_party_id : null;
+  // Lời mời vào tổ chức đang giữ cho phiếu (ADR-0213 Đ7.5; mốc B2 Task 15). So lại số của BẢN KHAI ĐANG DUYỆT (có thể là bản gửi lại) với số được mời: trùng ⇒ lô mở «Thành viên của»;
+  // khác ⇒ lô bỏ giữ chỗ, không liên kết. Lời mời đã huỷ / không còn giữ ⇒ phiếu đi như phiếu không có mã. Người mời hết quyền ⇒ 409 TRƯỚC lô (không câu ghi nào chạy).
+  const lm = p.invite_id ? await loiMoiTheoId(env.DB, p.invite_id) : null;
+  const lmGiu = lm && lm.status === "GIU_CHO_PHIEU" && lm.held_registration_id === p.id ? lm : null;
+  let loiMoi: LoDuyetDangKyVao["loiMoi"];
+  if (lmGiu && lmGiu.phone_key === loginPhone) {
+    if (!(await conQuyenMoi(lmGiu.created_by, lmGiu.org_party_id))) {
+      return error(409, "org_inviter_no_right", "Người mời không còn quyền mời vào tổ chức này nên lời mời không dùng được. Hãy trả phiếu về để người đăng ký chọn một vai người dùng cá nhân, hoặc từ chối phiếu.");
+    }
+    // Đ2.6: tài khoản sinh ra phải chỉ giữ quyền Đối tác (vai mang quyền khác — Tài xế đối tác — không gắn vào tổ chức được).
+    if (roleCode !== null && !laLoaiDoiTac && isRoleCode(roleCode) && ROLES[roleCode].defaults.some((q) => q !== "PARTNER")) {
+      return error(409, "invite_role_not_partner", "Vai người dùng đã chọn không gắn vào tổ chức được. Hãy chọn vai người dùng khác, hoặc trả phiếu về.");
+    }
+    if (dich && (await tcToChucCuaNguoi(env.DB, dich)).some((x) => x.orgPartyId === lmGiu.org_party_id)) {
+      return error(409, "org_already_linked", "Hồ sơ đã chọn đang gắn với tổ chức của lời mời. Hãy bấm «Trả về xác minh» để người xác minh chọn lại hồ sơ, hoặc từ chối phiếu.");
+    }
+    loiMoi = { kieu: "MO_LIEN_KET", id: lmGiu.id, orgPartyId: lmGiu.org_party_id };
+  } else if (lmGiu) {
+    loiMoi = { kieu: "BO_GIU", id: lmGiu.id };
+  }
+  const coThanhVien = loiMoi?.kieu === "MO_LIEN_KET";
+  // Vai cá nhân rỗng (Task 13; ADR-0212 Đ4): chỉ khi phiếu có phần tổ chức VÀ đã có thay mặt tổ chức. Đ7.7 (ADR-0213; chủ 16/11): gắn tổ chức CÓ SẴN không bao giờ sinh người quản lý ⇒
+  // người đó sẽ không vai, không liên kết ⇒ 409 TRƯỚC lô, không câu ghi nào chạy (B2 thêm nhánh «đã có lời mời giữ chỗ»).
+  const CHUA_DUOC_MOI = () =>
+    error(409, "org_member_needs_invite", "Người đăng ký chưa có vai người dùng riêng và chưa được tổ chức mời. Hãy trả phiếu về để họ chọn một vai người dùng cá nhân, hoặc chờ người quản lý tổ chức gửi mã vào tổ chức.");
+  if (roleCode === null && !coThanhVien) {
+    // Phiếu từng gắn mã (lời mời đã huỷ, không còn giữ, hoặc số đã đổi) mà không có phần tổ chức: Đ7.7 — 409 trước lô.
+    if (org === null && p.invite_id) return CHUA_DUOC_MOI();
+    if (!vaiCaNhanRongDuoc(MOI_TRUONG_MO, org !== null)) return error(400, "invalid_input", "Hãy chọn một vai trò đối tác.");
+    if (p.org_match_kind === "EXISTING") {
+      return error(409, "org_member_needs_invite", "Người đăng ký chưa có vai người dùng riêng và chưa được tổ chức mời. Hãy trả phiếu về để họ chọn một vai người dùng cá nhân, hoặc chờ người quản lý tổ chức gửi mã vào tổ chức.");
+    }
+  }
+  // Vai của tổ chức (Task 13): người duyệt chọn lại được như vai cá nhân; vắng ⇒ vai trong phiếu. Phải là vai «tổ chức» (Công ty lữ hành, loại do Kế toán thêm) — trigger liên kết đòi vai được hưởng.
+  const vaiToChuc = roleCodeToChuc === undefined ? p.org_role_code : roleCodeToChuc;
+  if (!org && roleCodeToChuc) return error(400, "invalid_input", "Phiếu này không có phần tổ chức.");
+  if (org) {
+    if (vaiToChuc === null) return error(400, "invalid_input", "Hãy chọn vai người dùng của tổ chức.");
+    const kv = await kiemVaiKhiDuyet(env.DB, vaiToChuc);
+    if (kv.kq === "DA_TAT") return error(409, "role_inactive", "Vai người dùng của tổ chức trong phiếu không còn nhận đăng ký. Hãy từ chối phiếu hoặc trả về để người đăng ký bổ sung.");
+    if (kv.kq !== "HOP_LE" || phanCuaVai(vaiToChuc, kv.laLoaiDoiTac) === "CA_NHAN") return error(400, "invalid_input", "Hãy chọn vai người dùng của tổ chức.");
+  }
+  if (org) {
+    if (p.org_match_kind === null) return error(409, "registration_not_verified", "Phiếu chưa có kết luận Danh bạ cho tổ chức nên chưa duyệt được. Hãy bấm «Trả về xác minh» để người xác minh kết luận lại.");
+    if (dichToChuc) {
+      const loi = await toChucDichHopLe(env.DB, dichToChuc);
+      if (loi) return error(409, loi.code, loi.message);
+    }
+    const trung = await trungToChucKhac(env.DB, { gpkdKey: org.gpkd_key, taxKey: org.tax_key, dich: dichToChuc });
+    if (trung) return error(409, trung.code, trung.message);
+  }
   const at = new Date().toISOString();
   const deadlineAt = await hanKichHoat(env.DB, at);
   if (!deadlineAt) return error(503, "registration_policy_missing", "Chưa có chính sách đăng ký. Hãy báo quản trị viên.");
@@ -115,21 +202,43 @@ export async function duyetPhieu({ request, env, staff, params, loDuyetDangKy, e
   });
   const datMa = new Set((await ketLuanMoiNhat(env.DB, p.id, version)).filter((r) => r.result === "DAT").map((r) => r.item_code));
   const mucDat: LoDuyetDangKyVao["mucDat"] = [
-    ...MUC_XAC_MINH_MO.ATTRIBUTE.filter((m) => datMa.has(m)).map((ma) => ({ loai: "ATTRIBUTE" as const, ma })),
-    ...MUC_XAC_MINH_MO.DOCUMENT.filter((m) => datMa.has(m)).map((ma) => ({ loai: "DOCUMENT" as const, ma })),
+    // CHỈ mục cá nhân (điều phối PF5): mục tổ chức đã đạt đi vào `toChuc.mucDat` của hồ sơ tổ chức, không bao giờ thành dòng xác minh của hồ sơ người.
+    ...MUC_XAC_MINH_MO_CA_NHAN.ATTRIBUTE.filter((m) => datMa.has(m)).map((ma) => ({ loai: "ATTRIBUTE" as const, ma })),
+    ...MUC_XAC_MINH_MO_CA_NHAN.DOCUMENT.filter((m) => datMa.has(m)).map((ma) => ({ loai: "DOCUMENT" as const, ma })),
   ];
+  let toChuc: LoDuyetDangKyVao["toChuc"];
+  if (org) {
+    const sdt = org.phone_value ? validateContact({ kind: "PHONE", value: org.phone_value }) : null;
+    toChuc = {
+      hoSo: dichToChuc ? { kieu: "CO_SAN", partyId: dichToChuc } : { kieu: "MOI" },
+      roleCode: vaiToChuc, lienKet: lienKetLoDuyet(MOI_TRUONG_MO, dichToChuc ? "CO_SAN" : "MOI"), displayName: org.display_name, legalName: org.legal_name, taxCode: org.tax_code, address: org.address, invoiceEmail: org.invoice_email,
+      phone: sdt && sdt.ok ? { value: sdt.value.value, valueNormalized: sdt.value.valueNormalized } : null,
+      gpkd: { typeCode: "GPKD", number: org.gpkd_number, numberKey: org.gpkd_key, issuedDate: org.gpkd_issued_date, issuedPlace: org.gpkd_issued_place, expiryDate: null },
+      giayPhepThem: org.extra_type_code && org.extra_number && org.extra_key
+        ? { typeCode: org.extra_type_code, number: org.extra_number, numberKey: org.extra_key, issuedDate: org.extra_issued_date, issuedPlace: org.extra_issued_place, expiryDate: org.extra_expiry_date }
+        : null,
+      // CHỈ mục tổ chức (PF5).
+      mucDat: [
+        ...MUC_XAC_MINH_MO_TO_CHUC.ATTRIBUTE.filter((m) => datMa.has(m)).map((ma) => ({ loai: "ATTRIBUTE" as const, ma })),
+        ...MUC_XAC_MINH_MO_TO_CHUC.DOCUMENT.filter((m) => datMa.has(m)).map((ma) => ({ loai: "DOCUMENT" as const, ma })),
+      ],
+    };
+  }
   // Cờ Toàn quyền (ADR-0207 Đ1, Đ5): CHỈ khi người duyệt CHÍNH là người xác minh VÀ bảng quyền nói người đó là Toàn quyền. Toàn quyền duyệt phiếu người khác xác minh ⇒ không cờ.
   const co: 0 | 1 = p.verified_by === staff.id && can(staff, "admin.manage.superadmin") ? 1 : 0;
   let lo;
   try {
     lo = await loDuyetDangKy({
-      registrationId: p.id, version, approverId: staff.id, at, today: vnToday(new Date(at)), co, roleCode, roleLabel: (await tenVaiTaiKhoan(env.DB))[roleCode] ?? roleCode,
+      registrationId: p.id, version, approverId: staff.id, at, today: vnToday(new Date(at)), co, roleCode, laLoaiDoiTac,
+      roleLabel: roleCode === null ? "không có vai trò riêng (người làm cho tổ chức)" : laLoaiDoiTac ? ((await tenLoaiVai(env.DB)).get(roleCode) ?? roleCode) : ((await tenVaiTaiKhoan(env.DB))[roleCode as RoleCode] ?? roleCode),
       hoSo: dich ? { kieu: "CO_SAN", partyId: dich } : { kieu: "MOI" },
       ten: { family: bk.family_name, middle: bk.middle_name, given: bk.given_name }, gender: bk.gender, birthDate: bk.birth_date, loginPhone, lienHe,
       giayTo: bk.document_type_code
         ? { typeCode: bk.document_type_code, number: bk.document_number, numberKey: bk.number_key, classCode: bk.license_class_code, issuedDate: bk.issued_date, issuedPlace: bk.issued_place, expiryDate: bk.expiry_date }
         : null,
       policyId: bk.policy_id, consentedAt: bk.consented_at, verifiedBy: p.verified_by ?? "", verifiedAt: p.verified_at ?? at, mucDat, referrerPartyId: p.referrer_party_id, deadlineAt,
+      ...(toChuc ? { toChuc } : {}),
+      ...(loiMoi ? { loiMoi } : {}),
     });
   } catch (e) {
     // CHỈ hai lỗi đã biết của staff (vai không mang quyền nào / mang quyền nội bộ — đã chặn ở trên, đây là lưới) thành 400; lỗi khác ném lên (500).
@@ -176,6 +285,8 @@ export async function tuChoiDuyet({ request, env, staff, params, exec }: Ctx<"ac
     cauGoTepChoNeuTruocDoi(env.DB, p.id, "TU_CHOI", at),
     // Thư «bị từ chối» (ADR-0206 Đ13): CUỐI lô, điều kiện riêng (không nằm giữa chuỗi changes() của câu gỡ tệp).
     cauXepThu(env.DB, { registrationId: p.id, staffId: staff.id, lenh: maLenhThu("TU_CHOI_DUYET", "CHO"), at, trangThaiPhieu: "TU_CHOI" }),
+    // ADR-0213 Đ7.5: phiếu kết thúc không duyệt ⇒ bỏ giữ chỗ lời mời (SAU câu xếp thư — chỉ số kq[4] giữ nguyên; câu tự canh «đang giữ cho đúng phiếu này»).
+    ...(p.invite_id ? [cauBoGiuChoLoiMoi(env.DB, { id: p.invite_id, registrationId: p.id, at, by: staff.id })] : []),
   ]);
   if ((kq[0]?.meta.changes ?? 0) === 0) return KHONG_CON_CHO();
   guiThuSauLo(env, exec, { registrationId: p.id, staffId: staff.id, loai: "TU_CHOI_DUYET", daXep: (kq[4]?.meta.changes ?? 0) > 0, lyDo });

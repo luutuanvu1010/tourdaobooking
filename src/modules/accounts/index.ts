@@ -17,7 +17,7 @@ import {
   dungMeResponse, setActingRoleStatement,
 } from "../auth";
 import {
-  KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
+  KHONG_NHAN_VAI_NOI_BO, accountRoleCodes, canManageAccount, checkAccountChange, chuPhienTheoId, hoSoCoLienKetToChuc, hoSoCoNhanDoiTac, moNoiBoChoHoSoCoNhanProblem, checkStaffName, countActiveAdmins, createAccountStatements, createAccountWithRolesStatements, findStaffByPhone, hoSoKhopKhiTaoTaiKhoan,
   dauXacMinhTaiKhoan, generatePin, getAccountRoleState, getStaffAccount, isValidPin, listStaffAccounts, mfaDeadlinesOf, normalizePhone, renameAccountStatements, roleChangeStatements,
   setPermissionStatements, setPinStatement, tenVaiTaiKhoan, touchCredentialsStatement, updateStaffStatement, validateFreshPin, validateNewPin, type StaffAccount,
   MFA_ENROLL_WINDOW_MS, mfaEnrollWindowStatement, mfaGraceIfNullStatement, mfaSauDoiQuyen, mfaGraceOnReactivate, mfaGraceTheoId, datThanhDuoiStatement,
@@ -104,6 +104,8 @@ function ruleViolation(e: unknown): Response | null {
   if (/lc1b_driver_partner_alone/.test(m)) return error(409, "account_rule", "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác.");
   // ADR-0185 Đ2 mục 3: trigger lc1c (mở quyền Đối tác khi hồ sơ chưa mang vai trò đối tác) — chỉ tới đây khi lời kiểm máy chủ (quyenNgoaiDuongCuProblem, K6) bị vượt.
   if (/lc1c_partner_needs_role/.test(m)) return error(409, "account_rule", CAU_DUONG_CU_QUYEN_NGOAI);
+  // ADR-0213 Đ9: trigger lc1d (hồ sơ chỉ có liên kết người quản lý / thành viên của tổ chức, không vai riêng) — lưới cuối; lời kiểm máy chủ thuộc Task 10.
+  if (/lc1d_link_only_partner/.test(m)) return error(409, "account_rule", "Tài khoản của người làm việc cho tổ chức chỉ giữ quyền Đối tác.");
   // ADR-0117 điều 4: hồ sơ mang loại đối tác được hưởng không nhận vai / quyền nội bộ (trigger *_partner_label_conflict ở vai hồ sơ và ở quyền). Câu KHÔNG nêu
   // tên loại: người gọi có thể là Nhân sự (không xem Danh bạ). Lưới cuối cho PUT …/permissions kiểu cũ và lô hai của PUT …/roles.
   if (/partner_label_conflict/.test(m)) return error(409, "account_rule", KHONG_NHAN_VAI_NOI_BO);
@@ -472,6 +474,7 @@ export const accountsModule: AppModule = {
       const dau = await dauXacMinhTaiKhoan(env.DB, staff.map((s) => s.partyId), vnToday(new Date())); // ADR-0210 Đ3: chỉ người giữ account.view (cổng ở trên)
       // ADR-0207 Đ7: tài khoản sinh từ phiếu đăng ký chưa đặt PIN hiện «Chưa kích hoạt» thay cho «Ngưng». MỘT truy vấn cho cả danh sách (hàm tiêm của gốc lắp ráp), không truy vấn theo dòng.
       const chuaKH = await taiKhoanChuaKichHoat();
+      const coLienKet = await hoSoCoLienKetToChuc(env.DB, staff.map((s) => s.partyId)); // ADR-0213: tài khoản chỉ làm cho tổ chức (không vai riêng) không bị báo «chưa gán vai trò»
       const seesHidden = can(admin, "admin.manage.superadmin"); // ADR-0042: Toàn quyền là vai ẩn với người khác
       // ADR-0090 đ2: cờ theo dòng tính trên quyền THẬT (trước khi che Toàn quyền thành Quản trị). Kế hoạch Task 6: nhãn hai lớp + cờ "tắt lớp hai được" cũng vậy.
       return json({
@@ -479,7 +482,7 @@ export const accountsModule: AppModule = {
           const daBat = daBatHaiLop(s.permissions, loaiYeuTo.get(s.id) ?? []); // dòng EMAIL lệch của vai lớn không tính (Phần C Task 4)
           return {
             ...dto(s, locked, mfaLocked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden), datLaiPinDuoc: datLaiPinDuocTheoDong(admin, s) && !chuaKH.has(s.id), // ADR-0207 Đ7: tài khoản chưa kích hoạt — máy chủ trả 409, cờ không mời bấm
-            canResetMfa: tatHaiLopDuoc(admin, s) && !chuaKH.has(s.id), chuaKichHoat: !s.active && chuaKH.has(s.id), dauXacMinh: s.partyId ? (dau.get(s.partyId) ?? null) : null, mfa: { enabled: daBat, graceUntil: daBat || !isInternal(s.permissions) ? null : (anHan.get(s.id) ?? null) },
+            canResetMfa: tatHaiLopDuoc(admin, s) && !chuaKH.has(s.id), chuaKichHoat: !s.active && chuaKH.has(s.id), lamChoToChuc: (roles.get(s.id) ?? []).length === 0 && s.partyId !== null && coLienKet.has(s.partyId), dauXacMinh: s.partyId ? (dau.get(s.partyId) ?? null) : null, mfa: { enabled: daBat, graceUntil: daBat || !isInternal(s.permissions) ? null : (anHan.get(s.id) ?? null) },
           };
         }),
         tenVai, // Task 3b: tên hiện hành của mọi mã vai tài khoản (đổi tên loại đối tác Có sẵn ở màn Hoa hồng → màn này hiện tên mới)

@@ -2,7 +2,24 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.13 ĐÃ LÊN PRODUCTION (phí đưa đón do văn phòng chọn trên từng lượt đón: Miễn phí, 5.000–100.000 đ, Số khác ≤ 5.000.000 đ; chưa chọn thì không xác nhận được; Đối tác không chọn, văn phòng chọn ở bảng Còn vé — ADR-0214) — migration `0173` — triển khai 2026-11-17 10:22 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.15 ĐÃ LÊN PRODUCTION (Đăng ký đợt 2, ADR-0212 và ADR-0213: phiếu đăng ký có phần tổ chức; người quản lý tổ chức, tư cách khi lập đơn, Công ty lữ hành; mời thành viên, mã vào tổ chức, chế độ thành viên, thành viên gửi người quản lý xác nhận) — migration `0174`, `0175`, `0176` — triển khai 2026-11-17 14:07 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Gộp luôn 3.14 (sửa chữ màn Phí đưa đón) vì `main` mang số đó khi gộp. Runbook của lần này ở khối «ĐÃ TRIỂN KHAI 2026-11-17: Đăng ký đợt 2» bên dưới; các điều kiện trước cho chủ (chưa tích «Thu thông tin tổ chức» khi chưa có chính sách riêng tư đã luật sư soát, soát tổ chức đang dùng để giao người quản lý) vẫn còn hiệu lực.
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-17 14:07 (giờ Việt Nam)
+- Commit: ccc0f3cfd
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-17T06:42:42Z (có đổi quy trình kiểm)
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/44032350497
+- Đổi quy trình kiểm và tệp luật — lý do của chủ: ADR-0212 va ADR-0213 chu duyet 16/11, dong tro ADR cu, bang kich ban Chrome dot 2
+- Migration đã áp: 0174_dang_ky_to_chuc, 0175_dang_ky_quan_ly_to_chuc, 0176_to_chuc_thanh_vien
+- Điểm khôi phục Time Travel trước khi áp: 00002d3b-00000004-00005126-e4ee9a1a9ca29dabb25656e7de1553f0
+- Worker Version ID: b83994f4-f2b3-4fc3-99d3-51fd7a60da01
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT, 2 cảnh báo có sẵn (R-VC-14: 7 xe thiếu giấy tờ xuất bến; R-ORD-9: 1 đơn)
+- Phiên bản: 3.15 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Chưa thử iPhone thật. Việc sau nghiệm thu: sửa dòng báo ở trang đăng ký, khoá hành vi nháp của người quản lý cũ bằng bài, thêm bất biến cho dòng chờ người quản lý.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.13 ĐÃ LÊN PRODUCTION (phí đưa đón do văn phòng chọn trên từng lượt đón: Miễn phí, 5.000–100.000 đ, Số khác ≤ 5.000.000 đ; chưa chọn thì không xác nhận được; Đối tác không chọn, văn phòng chọn ở bảng Còn vé — ADR-0214) — migration `0173` — triển khai 2026-11-17 10:22 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy (đọc ở ô Terminal của phiên). **Phí đưa đón vẫn chưa thu đồng nào**: ô chọn phí chỉ hiện khi Quản trị đặt «ngày bắt đầu áp» trên màn Phí đưa đón. Bảng phí theo khu vực để nguyên nhưng không còn tính tiền cho đơn. Trạng thái 3.11, 3.12 do nhánh khác ghi.
 
@@ -431,6 +448,41 @@ Ghi 29/10/2026 từ khối tóm tắt của `npm run trien-khai` (chủ chạy `
 - Đổi hợp đồng (thêm, không đổi): `GET /api/pricing/ho-so/:id/hoa-hong` trả thêm `ganRieng` (lịch sử gắn riêng, kể cả dòng huỷ; KHÔNG lý do sửa vì Bán hàng cũng đọc khối này). Route, quyền không đổi.
 - Nghiệm thu: phiên kế hoạch tự chạy lại 132 bài N5 + typecheck trên nhánh; người kiểm độc lập ĐẠT. Chưa bấm «Sửa» trên production (bấm là ghi thật), chưa thử iPhone thật. Còn chờ chủ: NO-N5-4 (chữ «Chưa áp dụng cho loại nào» cạnh dòng «Sắp áp dụng»), nợ NO-N5-1…3.
 - **Hoàn tác:** `wrangler rollback` về `ba3d7b56` (2.45) an toàn — 2.46 không đổi dữ liệu.
+
+## ĐÃ TRIỂN KHAI 2026-11-17 (bản 3.15): Đăng ký đợt 2 — MỘT lần phát hành gộp lần A, B1, B2 (ADR-0212, ADR-0213: phiếu có phần tổ chức; người quản lý tổ chức, tư cách khi lập đơn, Công ty lữ hành; mời thành viên, mã vào tổ chức, chế độ thành viên, thành viên gửi người quản lý); migration `0174_dang_ky_to_chuc`, `0175_dang_ky_quan_ly_to_chuc`, `0176_to_chuc_thanh_vien`; mục nhật ký 3.15 — RUNBOOK
+
+Ghi 17/11/2026, nhánh `claude/phat-hanh-dang-ky-dot-2-ff8797` (cắt từ `claude/account-signup-approval-flow-ee612c` tại `afd7eb741`, đã gộp `main` `941513585`). Chủ chốt 17/11 «Gộp cả ba»: ba runbook riêng của lần A, B1, B2 gộp thành khối này. Đã triển khai 17/11/2026 14:07 (xem mục trạng thái ở đầu tệp); đoạn dưới giữ nguyên như lúc soạn. **Lần này CẦN triển khai và CÓ BA migration**, áp đúng thứ tự `0174` → `0175` → `0176` (wrangler tự áp theo tên; số lớn nhất ở `main` lúc gộp là `0173`, không nhánh / bản làm việc riêng nào khác mang `0174`–`0176`).
+- **Bước A.0 (đã làm trên nhánh):** MỘT mục 3.15 (ngày 2026-11-17) ở `src/shared/changelog.ts`, gộp lời thường của ba mục tạm cũ (3.13 lần A, 3.14 lần B1, 3.15 lần B2). `main` lúc gộp mang 3.13 (phí đưa đón do văn phòng chọn) và 3.14 (sửa chữ màn Phí đưa đón). Nhánh khác nhập trước thì đặt lại số và ngày theo `node scripts/kiem-phien-ban.mjs`.
+- **Ba migration làm gì:**
+  - `0174` chỉ thêm cột, bảng, chỉ mục, nhưng **tạo lại (DROP + CREATE) trigger và view** của `parties` và `dang-ky` (trong đó `v_pty_verification_facts`, hai view chính sách riêng tư, trigger khớp phiếu–phần tổ chức). Thêm cột `pty_privacy_policy.covers_org_data` (mặc định 0).
+  - `0175` thêm dòng danh mục (hai loại liên kết «Người quản lý của», «Thành viên của»), cột (`pty_party_relationship.replaced_by_id`, `notice_state`; `audit_log.acting_party_id`; `orders.acting_party_id`, `acting_link_kind`), bảng yêu cầu chuyển quyền, chỉ mục, view và trigger; **tạo lại trigger** `lc1c_stf_permission_partner_needs_role` và `orders_delivered_lock`. Đơn nháp cũ có tư cách rỗng và chạy như hôm nay.
+  - `0176` chỉ THÊM: bảng lời mời `pty_org_invite` + dòng chính sách trần lời mời gieo sẵn `pty_org_invite_policy`, cột `dk_registration.invite_id`, bảng chế độ thành viên `pty_org_member_mode`, bảng «chờ người quản lý» `ord_member_submit` (trạng thái đóng gồm cả «Đơn đã huỷ» `DON_HUY`), hai view (`v_ord_member_submit_open`, `v_aud_order_notice_direct`), chỉ mục và trigger của các bảng mới.
+  - Không migration nào sửa dòng dữ liệu cũ.
+- **Điều kiện trước cho chủ (lời thường):**
+  1. **Đừng tích ô «Thu thông tin tổ chức»** khi đăng chính sách riêng tư, cho tới khi luật sư soát xong phần thêm `docs/superpowers/specs/2026-11-16-chinh-sach-rieng-tu-ban-nhap/PHAN-THEM-TO-CHUC.md` và phần đó đã vào một bản chính sách được đăng. Chưa tích thì phần tổ chức của phiếu đăng ký ẨN hẳn, máy chủ từ chối phiếu có phần tổ chức; người đăng ký không thấy gì khác. Phần thêm này cũng phải nói số điện thoại trên lời mời được ẩn danh 30 ngày sau khi lời mời kết thúc.
+  2. **Soát các tài khoản công ty lữ hành đang có:** máy KHÔNG tự chuyển ai thành người quản lý. Chủ xem từng tổ chức đang dùng Nền tảng rồi nhờ văn phòng giao người quản lý ở hồ sơ tổ chức. Tổ chức chưa có người quản lý thì chưa ai lập đơn thay mặt tổ chức, chưa mời được thành viên, thành viên chưa gửi người quản lý được (vẫn soạn nháp được); đơn đang có không bị ảnh hưởng.
+  3. Sau triển khai, **mọi hồ sơ tổ chức đang có hiện «Chưa xác minh»**. Đây chỉ là nhãn, không khoá việc gì; Quản trị xác minh dần khi cần.
+  4. Người quản lý chỉ xem và gửi đơn của tổ chức; sửa, huỷ, gửi vé đơn người khác vẫn do người lập làm. Thành viên không bao giờ gửi thẳng lên Tour Đảo, chỉ người quản lý gửi. Tiền khai cọc trên nháp thành viên vẫn đứng tên người lập khi người quản lý gửi lên (hành vi ghim, chờ chủ).
+  5. Mặc định mọi tổ chức ở chế độ «Soạn và gửi người quản lý xác nhận»; muốn «Chỉ soạn» thì người quản lý hoặc Toàn quyền đổi. Mã mời chỉ hiện một lần; quên mã thì huỷ lời mời và tạo lời mời mới.
+  6. Các điều kiện của đợt 1 (kho R2 `HO_SO`, `TURNSTILE_SECRET_KEY`, thư báo, chính sách riêng tư thật) vẫn áp nếu bật «Nhận đăng ký mới».
+- **Xây trên chỗ cho phép:** phát hành TRƯỚC diễn tập khôi phục 25/11 theo quyết định của chủ 16/11 (khoá `xay_tren_cho_phep_adr_0212_0213` ở `docs/quyen-hoan.json`). Hai migration tạo lại trigger đang chạy, nên nếu phải khôi phục D1 thì còn phải triển khai lại bản mã trước đó — bước chưa ai diễn tập (HC-5.19).
+- **Ba câu chủ đã quyết 17/11/2026 (nguyên văn «Áp cả ba»):** (1) huỷ đơn khi nháp còn chờ người quản lý ⇒ dòng chờ đóng «Đơn đã huỷ» (`DON_HUY`) trong cùng lô huỷ; (2) nháp tư cách người quản lý của người quản lý cũ sau chuyển quyền: giữ như hiện nay (chỉ huỷ được, người mới không thấy), ghi BACKLOG mục 73; (3) thành viên A mở đơn đã gửi lên của thành viên B cùng tổ chức ⇒ 404 như đơn không tồn tại.
+- **Chữ mới chờ chủ chọn (đang dùng tạm; tên nút đã khai «chờ chọn» ở bảng tham chiếu):** nút «Tạo lời mời», «Huỷ lời mời», «Lưu chế độ», «Nhận», «Gửi người quản lý xác nhận», «Rút lại» (gửi người quản lý), «Trả lại»; mục «Mời thành viên», «Lời mời chưa dùng», «Lời mời vào tổ chức», «Mã vào tổ chức (không bắt buộc)», «Nháp chờ»; năm lý do trả lại «Sai dịch vụ», «Sai ngày», «Sai số khách», «Khách không đặt nữa», «Lý do khác»; câu trang đơn «Đơn đang chờ người quản lý của tổ chức xác nhận…», «Người quản lý đã gửi đơn lên Tour Đảo. Đơn đang chờ kiểm vé.», «Người quản lý đã trả lại đơn. Lý do: …»; trạng thái Nháp chờ «Thành viên đang soạn» / «Đang chờ bạn xác nhận» / «Đã gửi lên, đang chờ kiểm vé»; tin «Đơn X đang chờ bạn xác nhận», «Người quản lý đã trả lại đơn X», «Người quản lý đã gửi đơn X lên Tour Đảo».
+- **Ghi lại lúc triển khai** (người phát hành): Worker Version ID bản đang chạy TRƯỚC lần này `<chưa ghi lại lúc triển khai; lấy từ wrangler deployments list nếu cần lùi>`, và MỘT điểm khôi phục Time Travel `00002d3b-00000004-00005126-e4ee9a1a9ca29dabb25656e7de1553f0` (ghi trước khi áp 0174) — điểm này đứng trước cả ba migration nên dùng chung cho cả lần phát hành.
+- **Hoàn tác (thứ tự bắt buộc)** — lý do: mã cũ chạy được trên CSDL đã thêm cột / bảng, còn mã mới KHÔNG chạy đúng trên CSDL cũ, nên lùi mã trước, khôi phục dữ liệu sau; chế độ bảo trì giữ hai khoảng trống đó không ai ghi. Ba migration ngược thứ tự là `0176` → `0175` → `0174`; vì cả ba lên cùng một lần, MỘT lần khôi phục về điểm ghi trước `0174` lùi cả ba cùng lúc (kể cả khi lần áp dừng giữa chừng, ví dụ `0174` đã áp mà `0175` hỏng).
+  1. Bật chế độ bảo trì (trang Tôi › Chế độ bảo trì).
+  2. Lùi mã (đứng ở thư mục dự án; kiểm cú pháp bằng `npx wrangler rollback --help`):
+     ```
+     CI=1 npx wrangler rollback <mã phiên bản trước>
+     ```
+  3. Khôi phục D1 về điểm đã ghi trước khi áp `0174`:
+     ```
+     CI=1 npx wrangler d1 time-travel restore tourdao-sales-db --bookmark=<điểm khôi phục>
+     ```
+  4. Công tắc bảo trì nằm trong D1 nên bước 3 có thể đưa nó về trạng thái cũ: bật lại bảo trì nếu cần, rồi chạy `node scripts/audit-invariants.mjs --db remote` (phải thoát 0).
+  5. Tắt chế độ bảo trì.
+  Phiếu, hồ sơ, liên kết quản lý / thành viên, yêu cầu chuyển quyền, lời mời, chế độ thành viên, đơn có tư cách và nháp đã gửi người quản lý sinh sau điểm khôi phục mất cùng nhau; người đăng ký gửi lại được, người được mời được mời lại. Bước này **chưa từng diễn tập** (HC-5.19).
+- **Kiểm đã có:** ba lần thi công đều có người kiểm độc lập báo đạt trên nhánh nguồn (sổ `docs/superpowers/plans/2026-11-16-dang-ky-dot-2-thi-cong-nhat-ky.md`; kịch bản Chrome `to-chuc-b2-smoke.mjs` 22/22 bước). Bộ kiểm sau khi gộp `main` ghi ở lần lưu của nhánh phát hành. Người phát hành vẫn chạy lại cổng của `npm run trien-khai`.
 
 ## ĐANG CHỜ NHẬP: Đăng ký đối tác tự phục vụ, đợt 1 (ADR-0206 … ADR-0210, Hiến chương 5.29); migration `0170_dang_ky`, `0171_tep_cho_dang_ky`, `0172_cap_mac_dinh_dang_ky`; mục nhật ký 3.11 (tách khỏi 3.10: production đã lên 3.10 ngày 16/11 nên cổng phiên bản dừng lần `trien-khai` đầu) — RUNBOOK
 

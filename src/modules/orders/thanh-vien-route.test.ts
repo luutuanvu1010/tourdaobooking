@@ -1,0 +1,643 @@
+// ADR-0213 Đ5, Đ8 + «Sửa ADR cũ» (nới ADR-0135 — ngoại lệ có tên), mốc B2 đợt 2 đăng ký, Task 16, qua route thật (tests/audit/harness.mjs — cả ứng dụng trên SQLite thật). Mọi giá trị là GIẢ.
+// Thành viên thay mặt tổ chức lập nháp; chế độ «Chỉ soạn» / «Soạn và gửi người quản lý xác nhận»; người quản lý gửi lên Tour Đảo hoặc trả lại; tin đích danh; thành viên bị gỡ khi nháp đang chờ
+// (Review Focus 5). Toàn quyền, văn phòng, thành viên khác không thấy nháp của thành viên (404).
+import { test } from "node:test";
+import assert from "node:assert/strict";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
+import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+
+const SALES = "11111111-1111-4111-8111-111111111111";
+const SM = "11111111-1111-4111-8111-111111111112"; // Quản lý bán hàng
+const ADM = "33333333-3333-4333-8333-333333333333";
+const SUP = "77777777-7777-4777-8777-777777777777";
+const NAM = "66666666-6666-4666-8666-666666666601"; // người quản lý của Sunrise
+const TV = "66666666-6666-4666-8666-666666666603"; // thành viên A
+const TV2 = "66666666-6666-4666-8666-666666666605"; // thành viên B
+const SUNRISE = "dda00000-0000-4000-8000-0000000000a1";
+const AT = "2026-10-01T00:00:00.000Z";
+
+type W = ReturnType<typeof world>;
+function lienKet(w: W, person: string, org: string, loai: "MANAGER_OF" | "MEMBER_OF"): void {
+  w.sqlite.prepare("INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, ?, '2026-10-01', ?, ?)")
+    .run(`lk-${person}-${org}`, person, org, loai, AT, AT);
+}
+const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
+const thanDon = (extra: Record<string, unknown> = {}) => ({
+  customerName: "Khách Thử", customerPhone: "0912345678",
+  services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(4) }],
+  ...extra,
+});
+const mocCua = (w: W, id: string): string => w.q("SELECT updated_at AS u FROM orders WHERE id = ?", id)[0].u;
+const luu = (w: W, as: string, id: string, extra: Record<string, unknown> = {}) => w.call("PUT", `/api/orders/${id}`, { as, body: thanDon({ expectedUpdatedAt: mocCua(w, id), ...extra }) });
+async function lap(w: W, as: string, extra: Record<string, unknown> = { tuCach: SUNRISE }): Promise<string> {
+  const r = await w.call("POST", "/api/orders", { as, body: thanDon(extra) });
+  assert.equal(r.status, 201, r.text);
+  return r.json.order.id as string;
+}
+const cheDo = (w: W, as: string, giaTri: string) => w.call("PUT", `/api/to-chuc/${SUNRISE}/che-do`, { as, body: { cheDo: giaTri } });
+const guiQl = (w: W, as: string, id: string) => w.call("POST", `/api/orders/${id}/gui-quan-ly`, { as, body: {} });
+const rutQl = (w: W, as: string, id: string) => w.call("POST", `/api/orders/${id}/rut-gui-quan-ly`, { as, body: {} });
+const traLai = (w: W, as: string, id: string, lyDo: unknown = "SAI_NGAY") => w.call("POST", `/api/orders/${id}/tra-lai`, { as, body: { lyDo } });
+const xem = async (w: W, as: string, id: string): Promise<number> => (await w.call("GET", `/api/orders/${id}`, { as })).status;
+const cho = (w: W, id: string) => w.q("SELECT status, reason_code, member_staff_id, org_party_id, closed_by FROM ord_member_submit WHERE order_id = ? ORDER BY opened_at, rowid", id).map((r: object) => ({ ...r }));
+const nk = (w: W, action: string) => w.q("SELECT staff_id, order_id, target_type, target_id, detail FROM audit_log WHERE action = ? ORDER BY created_at, rowid", action).map((r: object) => ({ ...r }));
+
+function setup() {
+  const w = world();
+  seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An Bán", perms: ["SALES"] });
+  seedStaff(w.sqlite, { id: SM, phone: "0900000002", name: "Minh Quản Lý Bán", perms: ["SALES", "SALES_MANAGER"] });
+  seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản Trị", perms: ["ADMIN"] });
+  seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
+  seedStaff(w.sqlite, { id: NAM, phone: "0900000021", name: "Nam Lễ Tân", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: TV, phone: "0900000023", name: "Tú Thành Viên", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: TV2, phone: "0900000025", name: "Vy Thành Viên", perms: ["PARTNER"] });
+  w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Khách sạn Sunrise', 1, ?, ?)").run(SUNRISE, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${SUNRISE}`, SUNRISE, AT, AT);
+  lienKet(w, `pty-${NAM}`, SUNRISE, "MANAGER_OF");
+  lienKet(w, `pty-${TV}`, SUNRISE, "MEMBER_OF");
+  lienKet(w, `pty-${TV2}`, SUNRISE, "MEMBER_OF");
+  return w;
+}
+
+test("PF30: thành viên thấy tổ chức trong ô Tư cách và lập nháp thay mặt tổ chức — bên đặt là tổ chức, acting_link_kind = MEMBER, người lập là thành viên", async () => {
+  const w = setup();
+  const ds = await w.call("GET", "/api/to-chuc/cua-toi", { as: TV });
+  assert.equal(ds.status, 200, ds.text);
+  assert.ok(ds.json.tuCach.some((t: { partyId: string; laToChuc: boolean }) => t.partyId === SUNRISE && t.laToChuc), ds.text);
+  const id = await lap(w, TV);
+  assert.deepEqual({ ...w.q("SELECT staff_id, booker_party_id, acting_party_id, acting_link_kind FROM orders WHERE id = ?", id)[0] },
+    { staff_id: TV, booker_party_id: SUNRISE, acting_party_id: SUNRISE, acting_link_kind: "MEMBER" });
+  // Đ8.7: tổ chức không còn người quản lý có hiệu lực ⇒ thành viên vẫn thay mặt được (lập nháp).
+  w.sqlite.prepare("UPDATE staff SET active = 0 WHERE id = ?").run(NAM);
+  await lap(w, TV);
+});
+
+test("Đặt chế độ (Đ8.3): người quản lý có hiệu lực và Toàn quyền được; Quản trị, Quản lý bán hàng, Bán hàng, thành viên ⇒ 403; giá trị lạ ⇒ 400; có nhật ký đích tổ chức", async () => {
+  const w = setup();
+  for (const ai of [ADM, SM, SALES, TV]) assert.equal((await cheDo(w, ai, "CHI_SOAN")).status, 403, ai);
+  assert.equal((await cheDo(w, NAM, "KHAC")).status, 400);
+  const a = await cheDo(w, NAM, "CHI_SOAN");
+  assert.equal(a.status, 200, a.text);
+  assert.equal(a.json.cheDo, "CHI_SOAN");
+  const b = await cheDo(w, SUP, "SOAN_VA_GUI");
+  assert.equal(b.status, 200, b.text);
+  const dong = nk(w, "org_member_mode_set");
+  assert.equal(dong.length, 2);
+  assert.deepEqual(dong.map((d: { staff_id: string; target_type: string; target_id: string }) => [d.staff_id, d.target_type, d.target_id]), [[NAM, "party", SUNRISE], [SUP, "party", SUNRISE]]);
+  const ct = await w.call("GET", `/api/to-chuc/${SUNRISE}`, { as: NAM });
+  assert.equal(ct.json.toChuc.cheDo, "SOAN_VA_GUI", "màn tổ chức hiện chế độ hiện hành");
+});
+
+test("«Soạn và gửi» (mặc định): người quản lý chỉ thấy nháp đã gửi tới; trong lúc chờ thành viên sửa ⇒ 409; «Rút lại» được; trả lại ⇒ người quản lý thôi thấy, thành viên sửa lại được", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal(await xem(w, NAM, id), 404, "chưa gửi tới");
+  const g = await guiQl(w, TV, id);
+  assert.equal(g.status, 201, g.text);
+  assert.deepEqual(cho(w, id), [{ status: "MO", reason_code: null, member_staff_id: TV, org_party_id: SUNRISE, closed_by: null }]);
+  assert.equal(await xem(w, NAM, id), 200);
+  assert.equal(await xem(w, TV, id), 200, "người lập vẫn đọc");
+  assert.equal((await guiQl(w, TV, id)).status, 409, "đã chờ rồi");
+  const sua = await luu(w, TV, id);
+  assert.equal(sua.status, 409, sua.text);
+  assert.equal(sua.json.error.code, "member_submit_pending");
+  assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: TV, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 409, "huỷ cũng phải rút lại trước");
+  const rut = await rutQl(w, TV, id);
+  assert.equal(rut.status, 200, rut.text);
+  assert.equal(cho(w, id)[0].status, "DA_RUT");
+  assert.equal(await xem(w, NAM, id), 404, "rút rồi thì thôi thấy");
+  assert.equal((await luu(w, TV, id)).status, 200, "rút rồi sửa được");
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await traLai(w, NAM, id, "LY_DO_LA")).status, 400, "lý do ngoài tập đóng");
+  assert.equal((await traLai(w, TV, id)).status, 403, "thành viên không trả lại");
+  const tl = await traLai(w, NAM, id, "SAI_SO_KHACH");
+  assert.equal(tl.status, 200, tl.text);
+  assert.deepEqual(cho(w, id).map((x: { status: string; reason_code: string | null }) => [x.status, x.reason_code]), [["DA_RUT", null], ["TRA_LAI", "SAI_SO_KHACH"]]);
+  assert.equal(await xem(w, NAM, id), 404, "trả lại ⇒ thôi thấy");
+  assert.equal((await luu(w, TV, id)).status, 200, "nháp về lại thành viên");
+  assert.equal((await traLai(w, NAM, id)).status, 404, "không còn chờ ⇒ như không có");
+});
+
+test("«Chỉ soạn»: người quản lý thấy mọi nháp của thành viên và sửa được; không xác nhận thẳng (phải Gửi đơn); thành viên không gửi người quản lý ở chế độ này", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  assert.equal(await xem(w, NAM, id), 200);
+  const ct = await w.call("GET", `/api/orders/${id}`, { as: NAM });
+  assert.equal(ct.json.canModify, true, "ngoại lệ có tên: người quản lý sửa được nháp của thành viên");
+  const sua = await luu(w, NAM, id, { customerName: "Khách Đổi Tên" });
+  assert.equal(sua.status, 200, sua.text);
+  assert.equal(w.q("SELECT staff_id AS s FROM orders WHERE id = ?", id)[0].s, TV, "người lập không đổi");
+  const xn = await w.call("POST", `/api/orders/${id}/status`, { as: NAM, body: { status: "confirmed" } });
+  assert.equal(xn.status, 409, xn.text);
+  assert.equal(xn.json.error.code, "partner_submit_required");
+  assert.equal((await guiQl(w, TV, id)).status, 409, "chế độ Chỉ soạn: không có bước gửi người quản lý");
+});
+
+test("Toàn quyền, Quản trị, Bán hàng, thành viên khác không thấy nháp thành viên (404) ở cả hai chế độ, kể cả khi đang chờ; đổi chế độ không đổi nháp đang chờ", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  for (const che of ["SOAN_VA_GUI", "CHI_SOAN"]) {
+    assert.equal((await cheDo(w, SUP, che)).status, 200);
+    for (const ai of [SUP, ADM, SALES, SM, TV2]) assert.equal(await xem(w, ai, id), 404, `${ai} ${che}`);
+    assert.equal(cho(w, id)[0].status, "MO", "đổi chế độ không đổi nháp đang chờ");
+    assert.equal(await xem(w, NAM, id), 200);
+  }
+  const id2 = await lap(w, TV2);
+  assert.equal(await xem(w, TV, id2), 404, "thành viên A không thấy nháp thành viên B");
+  for (const duong of ["passengers", "receipt"]) assert.equal((await w.call("GET", `/api/orders/${id}/${duong}`, { as: SUP })).status, 404, duong);
+});
+
+test("Người quản lý gửi lên (Đ8.5): mốc giờ, luật bán, bản chụp xét lúc người quản lý bấm; orders.staff_id vẫn là thành viên; dòng chờ đóng DA_GUI_LEN; nhật ký người gửi; thành viên gọi Gửi đơn ⇒ 403", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  const tvGui = await w.call("POST", `/api/orders/${id}/gui-don`, { as: TV, body: {} });
+  assert.equal(tvGui.status, 403, tvGui.text);
+  assert.equal(tvGui.json.error.code, "org_manager_required");
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 404, "Soạn và gửi: chưa gửi tới ⇒ người quản lý như không thấy");
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  // Luật bán (ADR-0146) xét lúc người quản lý bấm: chặn loại đối tác của bên đặt sau khi thành viên đã gửi ⇒ người quản lý bị chặn, đơn ở lại nháp, dòng chờ vẫn mở.
+  const L = String((await w.call("POST", "/api/pricing/loai-doi-tac", { as: SUP, body: { ten: "Loại thử chặn bán" } })).json.loai.code);
+  const vai = await w.call("POST", `/api/parties/${SUNRISE}/roles`, { as: SUP, body: { roleTypeCode: L } });
+  assert.equal(vai.status, 201, vai.text);
+  const lb = await w.call("POST", "/api/pricing/luat-ban", { as: SUP, body: { loai: L, phamVi: "SERVICE", catalogCode: "ZA1" } });
+  assert.equal(lb.status, 201, lb.text);
+  const chan = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.equal(chan.status, 409, chan.text);
+  assert.equal(chan.json.error.code, "sales_blocked");
+  assert.equal(cho(w, id)[0].status, "MO");
+  assert.equal((await w.call("POST", `/api/pricing/luat-ban/${lb.json.luat.id}/ket-thuc`, { as: SUP, body: {} })).status, 200);
+  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.equal(g.status, 200, g.text);
+  assert.deepEqual({ ...w.q("SELECT staff_id, status, booker_party_id FROM orders WHERE id = ?", id)[0] }, { staff_id: TV, status: "confirmed", booker_party_id: SUNRISE });
+  assert.equal(nk(w, "confirmed")[0].staff_id, NAM, "nhật ký ghi người gửi");
+  assert.deepEqual(cho(w, id).map((x: { status: string; closed_by: string }) => [x.status, x.closed_by]), [["DA_GUI_LEN", NAM]]);
+  const fw = nk(w, "order_member_forwarded");
+  assert.equal(fw.length, 1);
+  assert.deepEqual([fw[0].staff_id, fw[0].target_type, fw[0].target_id], [NAM, "staff", TV]);
+  // «Chỉ soạn»: không có dòng chờ trước — gửi lên vẫn ghi một dòng DA_GUI_LEN và nhật ký cho thành viên.
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const id2 = await lap(w, TV);
+  assert.equal((await w.call("POST", `/api/orders/${id2}/gui-don`, { as: NAM, body: {} })).status, 200);
+  assert.deepEqual(cho(w, id2).map((x: { status: string }) => x.status), ["DA_GUI_LEN"]);
+  assert.equal(nk(w, "order_member_forwarded").length, 2);
+});
+
+test("Review Focus 5: thành viên bị gỡ khi nháp đang chờ ⇒ người quản lý vẫn thấy, gửi lên / huỷ được; thành viên không lưu, không rút được (dòng tiền: so-vang-thay-mat-to-chuc.test.ts — orders không nhắc bảng của billing)", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  const id2 = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await guiQl(w, TV, id2)).status, 201);
+  const go = await w.call("POST", `/api/to-chuc/${SUNRISE}/go-thanh-vien`, { as: NAM, body: { personPartyId: `pty-${TV}` } });
+  assert.equal(go.status, 200, go.text);
+  assert.notEqual((await luu(w, TV, id)).status, 200, "thành viên đã rời không lưu");
+  const rut = await rutQl(w, TV, id);
+  assert.equal(rut.status, 403, rut.text);
+  assert.equal(cho(w, id)[0].status, "MO");
+  assert.equal(await xem(w, NAM, id), 200);
+  const huy = await w.call("POST", `/api/orders/${id2}/status`, { as: NAM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+  assert.equal(huy.status, 200, huy.text);
+  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.equal(g.status, 200, g.text);
+  assert.equal(w.q("SELECT staff_id AS s FROM orders WHERE id = ?", id)[0].s, TV);
+});
+
+test("Gửi người quản lý khi tổ chức chưa có người quản lý có hiệu lực (Đ8.7) ⇒ 409 câu rõ, không dòng chờ", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  w.sqlite.prepare("UPDATE staff SET active = 0 WHERE id = ?").run(NAM);
+  const g = await guiQl(w, TV, id);
+  assert.equal(g.status, 409, g.text);
+  assert.equal(g.json.error.code, "org_no_manager");
+  assert.equal(g.json.error.message, "Tổ chức chưa có người quản lý, hãy liên hệ Tour Đảo");
+  assert.deepEqual(cho(w, id), []);
+});
+
+test("Tin đích danh (Đ8.6, Ruling R11): gửi ⇒ người quản lý; trả lại, gửi lên ⇒ thành viên; người khác không thấy; không số điện thoại; lưu nháp không báo ai", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  const ma = w.q("SELECT order_code AS m FROM orders WHERE id = ?", id)[0].m;
+  const tinCua = async (as: string) => ((await w.call("GET", "/api/thong-bao?ngan=cua-toi", { as })).json.tin as { maDon: string; cau: string; lienKet: string; cuaToi: boolean }[]).filter((t) => t.maDon === ma);
+  assert.deepEqual(await tinCua(NAM), [], "lưu nháp không báo ai");
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  const t1 = await tinCua(NAM);
+  assert.equal(t1.length, 1, JSON.stringify(t1));
+  assert.equal(t1[0].cau, `Đơn ${ma} đang chờ bạn xác nhận`);
+  assert.equal(t1[0].lienKet, `/order?id=${id}`);
+  for (const ai of [TV, TV2, SUP, ADM]) assert.deepEqual(await tinCua(ai), [], ai);
+  assert.equal((await traLai(w, NAM, id, "SAI_DICH_VU")).status, 200);
+  const t2 = await tinCua(TV);
+  assert.equal(t2.length, 1);
+  assert.equal(t2[0].cau, `Người quản lý đã trả lại đơn ${ma}`);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 200);
+  const t3 = await tinCua(TV);
+  assert.ok(t3.some((t) => t.cau === `Người quản lý đã gửi đơn ${ma} lên Tour Đảo`), JSON.stringify(t3));
+  for (const a of ["order_member_submitted", "order_member_returned", "order_member_forwarded"]) for (const d of nk(w, a)) assert.doesNotMatch(String(d.detail ?? ""), /0\d{9}/);
+});
+
+// Chủ dự án 27/10 (khuôn tin «đang chờ xác nhận», yeuCauDaKhep): tin «đang chờ bạn xác nhận» chỉ còn khi dòng chờ CÒN MỞ và nháp còn là nháp — rút lại, trả lại, gửi lên, người quản lý huỷ
+// ⇒ tin biến mất; gửi lại ⇒ đúng MỘT tin (lần gửi mới nhất), tin cũ không quay lại.
+test("Tin «đang chờ bạn xác nhận» khép theo trạng thái hiện tại: rút lại, trả lại, gửi lên, huỷ ⇒ hết tin; gửi lại ⇒ một tin", async () => {
+  const w = setup();
+  const tinCho = async (id: string): Promise<number> => {
+    const ma = w.q("SELECT order_code AS m FROM orders WHERE id = ?", id)[0].m;
+    return ((await w.call("GET", "/api/thong-bao?ngan=tat-ca", { as: NAM })).json.tin as { maDon: string; cau: string }[]).filter((t) => t.maDon === ma && t.cau === `Đơn ${ma} đang chờ bạn xác nhận`).length;
+  };
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal(await tinCho(id), 1);
+  assert.equal((await rutQl(w, TV, id)).status, 200);
+  assert.equal(await tinCho(id), 0, "rút lại");
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal(await tinCho(id), 1, "gửi lại: đúng một tin");
+  assert.equal((await traLai(w, NAM, id)).status, 200);
+  assert.equal(await tinCho(id), 0, "trả lại");
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 200);
+  assert.equal(await tinCho(id), 0, "gửi lên");
+  const id2 = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id2)).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${id2}/status`, { as: NAM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
+  assert.equal(await tinCho(id2), 0, "người quản lý huỷ");
+});
+
+test("Task 17 (giao diện B2): trang đơn biết nháp thành viên — khối `thanhVien` chỉ đọc (chờ, chế độ, người quản lý thay); ô Tư cách trả loại liên kết", async () => {
+  const w = setup();
+  const loaiCua = async (as: string) => (await w.call("GET", "/api/to-chuc/cua-toi", { as })).json.tuCach.find((t: { partyId: string }) => t.partyId === SUNRISE)?.loai;
+  assert.equal(await loaiCua(TV), "MEMBER");
+  assert.equal(await loaiCua(NAM), "MANAGER");
+  const tv = async (as: string, id: string) => (await w.call("GET", `/api/orders/${id}`, { as })).json.thanhVien;
+  const id = await lap(w, TV);
+  assert.deepEqual(await tv(TV, id), { dangCho: false, cheDo: "SOAN_VA_GUI", quanLyThay: false, choVanPhong: false, rutDuoc: false, lyDoTraLai: null });
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.deepEqual(await tv(TV, id), { dangCho: true, cheDo: "SOAN_VA_GUI", quanLyThay: false, choVanPhong: false, rutDuoc: false, lyDoTraLai: null });
+  assert.deepEqual(await tv(NAM, id), { dangCho: true, cheDo: "SOAN_VA_GUI", quanLyThay: true, choVanPhong: false, rutDuoc: false });
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const id2 = await lap(w, TV);
+  assert.deepEqual(await tv(NAM, id2), { dangCho: false, cheDo: "CHI_SOAN", quanLyThay: true, choVanPhong: false, rutDuoc: false });
+  // Đơn của người quản lý tự lập (tư cách MANAGER) và đơn văn phòng: không có khối.
+  const id3 = await lap(w, NAM);
+  assert.equal(await tv(NAM, id3), null);
+  const id4 = await lap(w, SALES, {});
+  assert.equal(await tv(SALES, id4), null);
+});
+
+test("Task 17 (người kiểm trước bàn giao): người quản lý Gửi đơn nhánh A ⇒ `choVanPhong` — trang đơn không còn mời gửi người quản lý / Gửi đơn lại (máy chủ 409)", async () => {
+  const w = setup();
+  w.sqlite.prepare("INSERT INTO ord_service_confirm_flag (id, scope, code, required, valid_from_at, created_at, updated_at) VALUES ('co17', 'SERVICE', 'ZA1', 1, ?, ?, ?)").run(AT, AT, AT);
+  const tv = async (as: string, id: string) => (await w.call("GET", `/api/orders/${id}`, { as })).json.thanhVien;
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 201);
+  assert.deepEqual(await tv(TV, id), { dangCho: false, cheDo: "SOAN_VA_GUI", quanLyThay: false, choVanPhong: true, rutDuoc: false, lyDoTraLai: null });
+  assert.equal((await guiQl(w, TV, id)).status, 409, "máy chủ chặn gửi người quản lý lại");
+  // «Chỉ soạn»: người quản lý gửi lên ⇒ nếu còn khối thì phải mang choVanPhong.
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const id2 = await lap(w, TV);
+  assert.equal((await w.call("POST", `/api/orders/${id2}/gui-don`, { as: NAM, body: {} })).status, 201);
+  const q = await tv(NAM, id2);
+  assert.ok(q === null || q.choVanPhong === true, JSON.stringify(q));
+  assert.equal((await w.call("POST", `/api/orders/${id2}/gui-don`, { as: NAM, body: {} })).status, 409, "Gửi đơn lại bị chặn");
+});
+
+// ---- Task 16 vòng sửa 1 (người kiểm độc lập) ----
+
+test("vòng sửa 1 (I-1, K1): người quản lý Gửi đơn nhánh A (dịch vụ cần xác nhận) ⇒ yêu cầu mở với người quản lý: người quản lý Rút lại được, thành viên (người lập) không rút được", async () => {
+  const w = setup();
+  w.sqlite.prepare("INSERT INTO ord_service_confirm_flag (id, scope, code, required, valid_from_at, created_at, updated_at) VALUES ('co1', 'SERVICE', 'ZA1', 1, ?, ?, ?)").run(AT, AT, AT);
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.equal(g.status, 201, g.text);
+  assert.equal(g.json.nhanh, "A");
+  assert.equal(w.q("SELECT submitted_by AS s FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id)[0].s, NAM, "yêu cầu mở với người gửi");
+  const tvRut = await w.call("POST", `/api/orders/${id}/rut-xac-nhan`, { as: TV, body: {} });
+  assert.ok(tvRut.status === 403 || tvRut.status === 404, tvRut.text);
+  assert.equal(w.q("SELECT count(*) AS n FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id)[0].n, 1, "thành viên không khép được");
+  const qlRut = await w.call("POST", `/api/orders/${id}/rut-xac-nhan`, { as: NAM, body: {} });
+  assert.equal(qlRut.status, 200, qlRut.text);
+  assert.equal(w.q("SELECT count(*) AS n FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id)[0].n, 0);
+});
+
+test("vòng sửa 1 (I-2, K2): thành viên đã bị gỡ ⇒ người quản lý không trả lại được (409, nháp không kẹt), vẫn gửi lên được", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await w.call("POST", `/api/to-chuc/${SUNRISE}/go-thanh-vien`, { as: NAM, body: { personPartyId: `pty-${TV}` } })).status, 200);
+  const tl = await traLai(w, NAM, id);
+  assert.equal(tl.status, 409, tl.text);
+  assert.equal(tl.json.error.code, "member_left_org");
+  assert.equal(cho(w, id)[0].status, "MO");
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 200);
+});
+
+test("vòng sửa 1 (I-3): lô Gửi đơn nhánh B THUA (đơn đã được lô khác xác nhận ngay trước) ⇒ không dòng chờ mới, không nhật ký forwarded thừa", async () => {
+  const w = setup();
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const id = await lap(w, TV);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /ord_member_submit/.test(s.sql) && /DA_GUI_LEN/.test(s.sql)), async () => {
+    const t = new Date(Date.now() + 5).toISOString();
+    w.sqlite.prepare("UPDATE orders SET status = 'confirmed', updated_at = ? WHERE id = ?").run(t, id);
+  });
+  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.notEqual(g.status, 200, g.text);
+  assert.deepEqual(cho(w, id), [], "không dòng chờ giả");
+  assert.equal(nk(w, "order_member_forwarded").length, 0, "không nhật ký forwarded thừa");
+});
+
+// Người kiểm toàn mốc B2 (I-A): hai lính gác của bản sửa I-3 phải được thấy chặn — câu đóng nhánh B khi ĐÃ có dòng mở lúc đọc («Soạn và gửi»), và nhánh A (dấu yêu cầu của chính lô).
+test("toàn mốc B2 (I-A1): «Soạn và gửi», thành viên đã gửi, lô Gửi đơn nhánh B THUA (đơn bị xác nhận ngay trước) ⇒ dòng chờ vẫn MO, không DA_GUI_LEN giả, không nhật ký forwarded", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /ord_member_submit/.test(s.sql) && /DA_GUI_LEN/.test(s.sql)), async () => {
+    const t = new Date(Date.now() + 5).toISOString();
+    w.sqlite.prepare("UPDATE orders SET status = 'confirmed', updated_at = ? WHERE id = ?").run(t, id);
+  });
+  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.notEqual(g.status, 200, g.text);
+  assert.deepEqual(cho(w, id).map((x: { status: string }) => x.status), ["MO"], "không DA_GUI_LEN giả");
+  assert.equal(nk(w, "order_member_forwarded").length, 0, "không nhật ký forwarded thừa");
+});
+
+test("toàn mốc B2 (I-A2): nhánh A (dịch vụ cần xác nhận), lô Gửi đơn THUA khoá lạc quan (đơn bị sửa ngay trước) ⇒ không yêu cầu mở, dòng chờ vẫn MO, không nhật ký forwarded", async () => {
+  const w = setup();
+  w.sqlite.prepare("INSERT INTO ord_service_confirm_flag (id, scope, code, required, valid_from_at, created_at, updated_at) VALUES ('coIA', 'SERVICE', 'ZA1', 1, ?, ?, ?)").run(AT, AT, AT);
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /ord_member_submit/.test(s.sql) && /DA_GUI_LEN/.test(s.sql)), async () => {
+    const t = new Date(Date.now() + 60_000).toISOString();
+    w.sqlite.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(t, id);
+  });
+  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.notEqual(g.status, 201, g.text);
+  assert.equal(w.q("SELECT count(*) AS n FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id)[0].n, 0, "không yêu cầu mở");
+  assert.deepEqual(cho(w, id).map((x: { status: string }) => x.status), ["MO"], "không DA_GUI_LEN giả");
+  assert.equal(nk(w, "order_member_forwarded").length, 0, "không nhật ký forwarded thừa");
+});
+
+test("vòng sửa 1 (m-2): ngoại lệ nháp chỉ đổi người chủ cho ô sửa (canModify) ở chi tiết đơn — phạm vi các ô own khác giữ người lập", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
+  const i = src.indexOf('route("GET", "/api/orders/:id", "orders"');
+  const than = src.slice(i, src.indexOf('route("PUT", "/api/orders/:id", "orders"', i));
+  assert.match(than, /const scope = \{ ownerId: order\.staffId, assigned \};/, "scope của các ô own khác = người lập");
+  assert.equal((than.match(/thayNhap \? staff\.id/g) ?? []).length, 1, "đúng một chỗ đổi người chủ");
+  assert.match(than, /canModify: can\(staff, "order\.modify", \{ ownerId: thayNhap \? staff\.id : order\.staffId, assigned \}\)/);
+});
+
+// ---- Task 18 phần 1a (ADR-0213 Đ8): «Nháp chờ» trên màn tổ chức — GET /api/to-chuc/:id/nhap-thanh-vien ----
+
+const QL2 = "66666666-6666-4666-8666-666666666607"; // người quản lý của tổ chức khác
+const ORG2 = "dda00000-0000-4000-8000-0000000000a2";
+const nhapCho = (w: W, as: string, org = SUNRISE) => w.call("GET", `/api/to-chuc/${org}/nhap-thanh-vien`, { as });
+const maCua = (r: { json: { nhap: { id: string }[] } }) => r.json.nhap.map((x) => x.id).sort();
+
+test("1a: danh sách nháp chờ — chỉ người quản lý có hiệu lực của chính tổ chức; Toàn quyền, văn phòng, thành viên, người quản lý tổ chức khác ⇒ 403", async () => {
+  const w = setup();
+  seedStaff(w.sqlite, { id: QL2, phone: "0900000027", name: "Lan Quản Lý Khác", perms: ["PARTNER"] });
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Khách sạn Khác', 1, ?, ?)").run(ORG2, AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'TRAVEL_AGENCY', '2026-01-01', ?, ?)").run(`r-${ORG2}`, ORG2, AT, AT);
+  lienKet(w, `pty-${QL2}`, ORG2, "MANAGER_OF");
+  await lap(w, TV);
+  for (const ai of [SUP, ADM, SM, SALES, TV, TV2, QL2]) {
+    const r = await nhapCho(w, ai);
+    assert.equal(r.status, 403, `${ai}: ${r.text}`); // vòng sửa cuối (m-d): ghim đúng 403
+  }
+  assert.equal((await nhapCho(w, QL2, ORG2)).status, 200, "người quản lý xem tổ chức của chính mình");
+  assert.equal((await nhapCho(w, NAM, "khong-co-to-chuc-nay")).status, 403, "mã tổ chức lạ: 403 như tổ chức không quản lý (không dò được)");
+});
+
+test("1a: «Soạn và gửi» chỉ nháp đang chờ người quản lý; «Chỉ soạn» mọi nháp của thành viên (cả người đã rời); không nháp của chính người quản lý, không đơn huỷ / đã xác nhận; mọi dòng mở được; không số điện thoại", async () => {
+  const w = setup();
+  const id1 = await lap(w, TV); // chưa gửi
+  const id2 = await lap(w, TV2);
+  assert.equal((await guiQl(w, TV2, id2)).status, 201);
+  await lap(w, NAM); // nháp tư cách MANAGER của chính người quản lý
+  await lap(w, SALES, {}); // đơn văn phòng
+  const id5 = await lap(w, TV);
+  assert.equal((await w.call("POST", `/api/orders/${id5}/status`, { as: TV, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
+  const moDuoc = async (r: { json: { nhap: { id: string }[] } }) => { for (const x of r.json.nhap) assert.equal(await xem(w, NAM, x.id), 200, `dòng ${x.id} phải mở được`); };
+
+  const a = await nhapCho(w, NAM);
+  assert.equal(a.status, 200, a.text);
+  assert.deepEqual(maCua(a), [id2]);
+  assert.deepEqual(Object.keys(a.json.nhap[0]).sort(), ["choQuanLy", "choVanPhong", "id", "maDon", "ngayDi", "nguoiLap"]);
+  assert.equal(a.json.nhap[0].nguoiLap, "Vy Thành Viên");
+  assert.equal(a.json.nhap[0].choQuanLy, true);
+  assert.equal(a.json.nhap[0].ngayDi, inDays(4));
+  await moDuoc(a);
+
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const b = await nhapCho(w, NAM);
+  assert.deepEqual(maCua(b), [id1, id2].sort());
+  await moDuoc(b);
+  assert.ok(!/0912345678|09000000/.test(b.text), "không số điện thoại khách / người lập");
+
+  // R10: thành viên đã rời — nháp vẫn của «thành viên lúc lập», người quản lý vẫn thấy ở «Chỉ soạn».
+  w.sqlite.prepare("UPDATE pty_party_relationship SET valid_to_date = '2026-10-02' WHERE id = ?").run(`lk-pty-${TV}-${SUNRISE}`);
+  const c = await nhapCho(w, NAM);
+  assert.deepEqual(maCua(c), [id1, id2].sort());
+  await moDuoc(c);
+
+  // Người quản lý gửi lên (nhánh B — đã xác nhận) ⇒ không còn là nháp.
+  assert.equal((await w.call("POST", `/api/orders/${id2}/gui-don`, { as: NAM, body: {} })).status, 200);
+  assert.deepEqual(maCua(await nhapCho(w, NAM)), [id1]);
+});
+
+// ---- Task 18 phần 1c: người quản lý đã gửi lên (nhánh A) thấy «Rút lại» đúng điều kiện máy chủ (cờ `rutDuoc` của khối `thanhVien`) ----
+
+test("1c: `thanhVien.rutDuoc` — chỉ người quản lý đã mở yêu cầu xác nhận (cả hai chế độ); thành viên không; rút xong hết cờ; cờ đúng ⇔ route Rút lại nhận", async () => {
+  const w = setup();
+  w.sqlite.prepare("INSERT INTO ord_service_confirm_flag (id, scope, code, required, valid_from_at, created_at, updated_at) VALUES ('co18', 'SERVICE', 'ZA1', 1, ?, ?, ?)").run(AT, AT, AT);
+  const tv = async (as: string, id: string) => (await w.call("GET", `/api/orders/${id}`, { as })).json.thanhVien;
+  // «Soạn và gửi»: thành viên gửi, người quản lý Gửi đơn nhánh A ⇒ dòng chờ đóng DA_GUI_LEN, ngoại lệ có tên tắt — khối vẫn phải có cho người quản lý.
+  const id = await lap(w, TV);
+  assert.equal((await tv(TV, id)).rutDuoc, false);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await tv(NAM, id)).rutDuoc, false, "chưa gửi lên thì chưa có gì để rút");
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 201);
+  assert.deepEqual(await tv(NAM, id), { dangCho: false, cheDo: "SOAN_VA_GUI", quanLyThay: true, choVanPhong: true, rutDuoc: true });
+  assert.equal((await tv(TV, id)).rutDuoc, false, "người lập không rút yêu cầu người quản lý đã mở");
+  assert.equal((await w.call("POST", `/api/orders/${id}/rut-xac-nhan`, { as: NAM, body: {} })).status, 200);
+  const sau = await w.call("GET", `/api/orders/${id}`, { as: NAM });
+  assert.ok(sau.status === 404 || sau.json.thanhVien === null || sau.json.thanhVien.rutDuoc === false, sau.text); // «Soạn và gửi»: rút rồi người quản lý thôi thấy nháp
+  // «Chỉ soạn»
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const id2 = await lap(w, TV);
+  assert.equal((await w.call("POST", `/api/orders/${id2}/gui-don`, { as: NAM, body: {} })).status, 201);
+  assert.equal((await tv(NAM, id2)).rutDuoc, true);
+  // Người quản lý mất hiệu lực (văn phòng chuyển quyền quản lý cho thành viên khác): cờ tắt, route từ chối.
+  const chuyen = await w.call("POST", `/api/parties/${SUNRISE}/to-chuc/nguoi-quan-ly`, { as: SUP, body: { lyDo: "THEO_YEU_CAU_TO_CHUC", nguoiQuanLyHienTai: `pty-${NAM}`, personPartyId: `pty-${TV2}` } });
+  assert.ok(chuyen.status === 200 || chuyen.status === 201, chuyen.text);
+  const t2 = await w.call("GET", `/api/orders/${id2}`, { as: NAM });
+  assert.ok(t2.status === 404 || t2.json.thanhVien === null || t2.json.thanhVien.rutDuoc === false, t2.text);
+  assert.notEqual((await w.call("POST", `/api/orders/${id2}/rut-xac-nhan`, { as: NAM, body: {} })).status, 200);
+});
+
+// ---- Kiểm toàn mốc B2 (m1): nhật ký «Trả lại» ghi nhãn tiếng Việt, không mã thô (tiền lệ soanHuyDon, ADR-0089 đ8) ----
+test("toàn mốc B2 (m1): nhật ký order_member_returned ghi nhãn lý do tiếng Việt, không mã thô", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await traLai(w, NAM, id, "SAI_SO_KHACH")).status, 200);
+  const d = nk(w, "order_member_returned");
+  assert.equal(d.length, 1);
+  assert.equal(d[0].detail, "Trả lại: Sai số khách");
+  assert.ok(!/SAI_/.test(d[0].detail));
+});
+
+// ---- Kiểm toàn mốc B2 (I-B, ruling điều phối): thành viên thấy lý do bị trả lại (ADR-0213 Đ8.2 «trả lại kèm lý do») ----
+test("toàn mốc B2 (I-B): khối thanhVien của NGƯỜI LẬP có nhãn lý do lần trả lại gần nhất (tiếng Việt); gửi lại thì hết; người quản lý / người khác không nhận trường này", async () => {
+  const w = setup();
+  const tvCua = async (as: string, id: string) => (await w.call("GET", `/api/orders/${id}`, { as })).json.thanhVien;
+  const id = await lap(w, TV);
+  assert.equal((await tvCua(TV, id)).lyDoTraLai, null);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal("lyDoTraLai" in (await tvCua(NAM, id)), false, "người quản lý không nhận trường này");
+  assert.equal((await traLai(w, NAM, id, "SAI_NGAY")).status, 200);
+  assert.equal((await tvCua(TV, id)).lyDoTraLai, "Sai ngày");
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await tvCua(TV, id)).lyDoTraLai, null, "đã gửi lại ⇒ không còn câu trả lại");
+  assert.equal((await traLai(w, NAM, id, "KHONG_DAT_NUA")).status, 200);
+  assert.equal((await tvCua(TV, id)).lyDoTraLai, "Khách không đặt nữa", "lần trả lại GẦN NHẤT");
+  // «Chỉ soạn»: người quản lý mở nháp vẫn không nhận trường này.
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const q = await tvCua(NAM, id);
+  assert.ok(q && !("lyDoTraLai" in q), JSON.stringify(q));
+});
+
+// ---- Kiểm toàn mốc B2 (m2): nháp thành viên KHÔNG có yêu cầu xác nhận mở ⇒ «Rút lại» trả 409 confirm_not_open như đơn thường (không 403 câu «chỉ người quản lý đã gửi …») ----
+test("toàn mốc B2 (m2): thành viên bấm rut-xac-nhan trên nháp chưa gửi lên ⇒ 409 confirm_not_open", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  const r = await w.call("POST", `/api/orders/${id}/rut-xac-nhan`, { as: TV, body: {} });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "confirm_not_open");
+});
+
+// ---- Chủ duyệt 17/11 (Q1, «Áp cả ba»): huỷ đơn khép dòng «chờ người quản lý» đang mở bằng trạng thái DON_HUY, TRONG CÙNG lô huỷ ----
+test("Q1: người quản lý huỷ nháp đang chờ ⇒ dòng chờ thành DON_HUY (giờ, người đóng); thành viên không huỷ được khi đang chờ; huỷ nháp không có dòng mở không sinh dòng; không còn MO trên đơn đã huỷ", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${id}/status`, { as: TV, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 409, "thành viên phải rút lại trước");
+  const h = await w.call("POST", `/api/orders/${id}/status`, { as: NAM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+  assert.equal(h.status, 200, h.text);
+  assert.deepEqual(cho(w, id).map((x: { status: string; closed_by: string | null; reason_code: string | null }) => [x.status, x.closed_by, x.reason_code]), [["DON_HUY", NAM, null]]);
+  // Thành viên huỷ nháp của mình khi KHÔNG có dòng mở (đã rút) ⇒ không thêm dòng, dòng cũ giữ DA_RUT.
+  const id2 = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id2)).status, 201);
+  assert.equal((await rutQl(w, TV, id2)).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${id2}/status`, { as: TV, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } })).status, 200);
+  assert.deepEqual(cho(w, id2).map((x: { status: string }) => x.status), ["DA_RUT"]);
+  assert.equal(w.q("SELECT count(*) AS n FROM ord_member_submit m JOIN orders o ON o.id = m.order_id WHERE m.status = 'MO' AND o.status <> 'draft'")[0].n, 0, "không còn dòng mở trên đơn đã huỷ");
+});
+
+test("Q1: lô huỷ THUA khoá lạc quan (đơn bị sửa ngay trước lô) ⇒ dòng chờ vẫn MO, đơn vẫn nháp", async () => {
+  const w = setup();
+  const id = await lap(w, TV);
+  assert.equal((await guiQl(w, TV, id)).status, 201);
+  w.chenTruocLo((stmts: any[]) => stmts.some((s) => /ord_member_submit/.test(s.sql) && /DON_HUY/.test(s.sql)), async () => {
+    w.sqlite.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(new Date(Date.now() + 60_000).toISOString(), id);
+  });
+  const h = await w.call("POST", `/api/orders/${id}/status`, { as: NAM, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+  assert.notEqual(h.status, 200, h.text);
+  assert.equal(w.q("SELECT status AS s FROM orders WHERE id = ?", id)[0].s, "draft");
+  assert.deepEqual(cho(w, id).map((x: { status: string }) => x.status), ["MO"]);
+});
+
+// ---- Chủ duyệt 17/11 (Q3, «Áp cả ba»): thành viên A mở đơn ĐÃ GỬI LÊN của thành viên B cùng tổ chức ⇒ 404 (ADR-0213 mục «Xem»), không 403 ----
+test("Q3: thành viên A mở đơn đã gửi lên (đã xác nhận) của thành viên B ⇒ 404 ở chi tiết đơn và các đường đọc của đơn; Đối tác lạ giữ 403", async () => {
+  const w = setup();
+  const LA = "66666666-6666-4666-8666-666666666609";
+  seedStaff(w.sqlite, { id: LA, phone: "0900000029", name: "Đối Tác Lạ", perms: ["PARTNER"] });
+  const id = await lap(w, TV2);
+  assert.equal((await guiQl(w, TV2, id)).status, 201);
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 200);
+  assert.equal(w.q("SELECT status AS s FROM orders WHERE id = ?", id)[0].s, "confirmed");
+  const duong = ["", "/payments", "/receipt", "/passengers", "/qr-thanh-toan", "/cong-no-dai-ly"];
+  for (const d of duong) {
+    const r = await w.call("GET", `/api/orders/${id}${d}`, { as: TV });
+    assert.equal(r.status, 404, `thành viên A ${d || "(chi tiết)"}: ${r.status} ${r.text}`);
+  }
+  // Rà mọi GET theo mã đơn (route-access SNAPSHOT): thành viên A trên đơn thật của B phải nhận ĐÚNG mã như với một mã đơn KHÔNG tồn tại (không dò được đơn có hay không).
+  // So với mã đơn lạ (không so với người lập — mã con lạ như receiptId làm người lập cũng 404, che mất ca 403 — vòng sửa cuối I-1).
+  const lam = crypto.randomUUID();
+  const con = [crypto.randomUUID(), crypto.randomUUID()];
+  const mau = (don: string) => [...duong.map((d) => `/api/orders/${don}${d}`), `/api/orders/${don}/han-muc-tu-choi`, `/api/orders/${don}/tu-choi-truoc`, `/api/orders/${don}/thuong-mai`,
+    `/api/orders/${don}/payments/${con[0]}/bien-lai`, `/api/orders/${don}/khoan-nop/${con[1]}/bien-lai`, `/api/van-chuyen/xe-cua-don/${don}`, `/api/ve/don/${don}`];
+  const [that, la] = [mau(id), mau(lam)];
+  const lo: string[] = [];
+  for (let i = 0; i < that.length; i++) {
+    const [a, b] = [(await w.call("GET", that[i]!, { as: TV })).status, (await w.call("GET", la[i]!, { as: TV })).status];
+    if (a !== b) lo.push(`${that[i]}: đơn thật ${a}, mã lạ ${b}`);
+  }
+  assert.deepEqual(lo, [], "thành viên cùng tổ chức phân biệt được đơn có thật");
+  assert.equal((await w.call("GET", `/api/orders/${id}`, { as: LA })).status, 403, "Đối tác lạ: như hôm nay");
+  assert.equal((await w.call("GET", `/api/orders/${id}`, { as: NAM })).status, 200, "người quản lý thấy");
+  // Vòng sửa cuối (m-a): chỉ THÀNH VIÊN đổi 403 → 404; người quản lý bị từ chối theo ô (nhập kế toán: Đối tác không có ô) giữ 403 như cũ.
+  assert.equal((await w.call("GET", `/api/orders/${id}/nhap-ke-toan`, { as: NAM })).status, 403, "người quản lý: mã cũ");
+});
+
+// ---- Vòng sửa cuối (m-b): cờ rutDuoc tắt khi người quản lý còn hiệu lực nhưng đã thôi thay mặt tổ chức — vế quyenGhiNhap của cờ và route Rút lại được thấy chặn ----
+test("m-b: người quản lý đã gửi lên, vai của tổ chức thôi được hưởng (không còn tư cách tổ chức) ⇒ chi tiết đơn 200 với rutDuoc false; Rút lại 403 not_acting_for_org", async () => {
+  const w = setup();
+  w.sqlite.prepare("INSERT INTO ord_service_confirm_flag (id, scope, code, required, valid_from_at, created_at, updated_at) VALUES ('comb', 'SERVICE', 'ZA1', 1, ?, ?, ?)").run(AT, AT, AT);
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const id = await lap(w, TV);
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 201);
+  assert.equal((await w.call("GET", `/api/orders/${id}`, { as: NAM })).json.thanhVien.rutDuoc, true);
+  // Người quản lý VẪN có hiệu lực (laQuanLyCoHieuLuc dựa vai của tổ chức), nhưng tư cách tổ chức (tuCachCuaToi) mất vì vai thôi là vai được hưởng (prc_beneficiary_role) ⇒ thôi thay mặt.
+  w.sqlite.prepare("UPDATE prc_beneficiary_role SET active = 0 WHERE role_type_code = 'TRAVEL_AGENCY'").run();
+  const ct = await w.call("GET", `/api/orders/${id}`, { as: NAM });
+  assert.equal(ct.status, 200, ct.text);
+  assert.equal(ct.json.thanhVien.rutDuoc, false, "cờ đi qua cùng cổng quyenGhiNhap của route");
+  const r = await w.call("POST", `/api/orders/${id}/rut-xac-nhan`, { as: NAM, body: {} });
+  assert.equal(r.status, 403, r.text);
+  assert.equal(r.json.error.code, "not_acting_for_org");
+});
+
+// Chủ quyết 17/11/2026: nháp lập với tư cách người quản lý của NGƯỜI QUẢN LÝ CŨ, sau khi văn phòng chuyển quyền, giữ nguyên như hiện nay (BACKLOG mục 73, BL-TC-NHAP-QL-CU).
+// Hai bài dưới KHOÁ hành vi đã đo qua route thật; không phải hành vi được thiết kế. Đổi hành vi thì sửa bài cùng mục BACKLOG.
+const chuyenQuyen = (w: W, giuNguoiCu: boolean) => w.call("POST", `/api/parties/${SUNRISE}/to-chuc/nguoi-quan-ly`, { as: SUP, body: { lyDo: "THEO_YEU_CAU_TO_CHUC", nguoiQuanLyHienTai: `pty-${NAM}`, personPartyId: `pty-${TV}`, nguoiCuThanhThanhVien: giuNguoiCu } });
+const huyDon = (w: W, as: string, id: string) => w.call("POST", `/api/orders/${id}/status`, { as, body: { status: "cancelled", lyDo: "KHACH_DOI_Y" } });
+
+test("BL-TC-NHAP-QL-CU (người cũ vẫn là thành viên — mặc định): người quản lý mới 404; người cũ lưu và huỷ được, không gửi người quản lý (409), không Gửi đơn (403)", async () => {
+  const w = setup();
+  const id = await lap(w, NAM); // tư cách người quản lý của Sunrise
+  assert.equal(w.q("SELECT acting_link_kind AS k FROM orders WHERE id = ?", id)[0].k, "MANAGER");
+  assert.equal((await chuyenQuyen(w, true)).status, 200);
+  assert.equal(await xem(w, TV, id), 404, "người quản lý mới không thấy nháp");
+  assert.equal(await xem(w, NAM, id), 200, "người cũ vẫn là người lập");
+  assert.equal((await luu(w, NAM, id)).status, 200, "người cũ lưu được");
+  const gql = await guiQl(w, NAM, id);
+  assert.equal(gql.status, 409, gql.text);
+  assert.equal(gql.json.error.code, "not_member_order");
+  const gd = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.equal(gd.status, 403, gd.text);
+  assert.equal(gd.json.error.code, "org_manager_required");
+  assert.equal(w.q("SELECT status AS s FROM orders WHERE id = ?", id)[0].s, "draft", "chưa gửi được lên");
+  assert.equal((await huyDon(w, NAM, id)).status, 200, "người cũ huỷ được");
+  assert.equal(w.q("SELECT status AS s FROM orders WHERE id = ?", id)[0].s, "cancelled");
+});
+
+test("BL-TC-NHAP-QL-CU (người cũ không còn là thành viên): người quản lý mới 404; người cũ KHÔNG lưu, gửi, huỷ được (403 not_acting_for_org); văn phòng không thấy (404) ⇒ nháp kẹt ở trạng thái nháp", async () => {
+  const w = setup();
+  const id = await lap(w, NAM);
+  assert.equal((await chuyenQuyen(w, false)).status, 200);
+  assert.equal(await xem(w, TV, id), 404);
+  const gui = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  for (const [ten, r] of [["lưu", await luu(w, NAM, id)], ["gửi người quản lý", await guiQl(w, NAM, id)], ["Gửi đơn", gui], ["huỷ", await huyDon(w, NAM, id)]] as const) {
+    assert.equal(r.status, 403, `${ten}: ${r.text}`);
+    assert.equal(r.json.error.code, "not_acting_for_org", ten);
+  }
+  assert.equal(await xem(w, SUP, id), 404, "Toàn quyền không thấy nháp");
+  assert.equal(await xem(w, ADM, id), 404, "Quản trị không thấy nháp");
+  assert.equal(w.q("SELECT status AS s FROM orders WHERE id = ?", id)[0].s, "draft");
+  assert.deepEqual(cho(w, id), [], "không dòng chờ");
+});

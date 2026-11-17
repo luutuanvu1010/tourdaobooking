@@ -36,7 +36,7 @@ async function phieuDaDuyet(w: any): Promise<{ id: string; ident: string; email:
   dem++;
   const ident = `ident-${id}`;
   const email = `khach-${id.toLowerCase()}@example.com`;
-  w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', 'TRAVEL_AGENCY', ?, ?)").run(id, AT, AT);
+  w.sqlite.prepare("INSERT INTO dk_registration (id, kind, status, role_code, created_at, updated_at) VALUES (?, 'PERSON', 'DANG_DIEN', 'GUIDE_FREELANCE', ?, ?)").run(id, AT, AT);
   w.sqlite.prepare("INSERT INTO dk_identity (id, registration_id, provider, subject, contact_email, created_at, updated_at) VALUES (?, ?, 'EMAIL', ?, ?, ?, ?)").run(ident, id, email, "lien-he@example.com", AT, AT);
   w.sqlite.prepare(`INSERT INTO dk_submission (id, registration_id, version, family_name, given_name, birth_date, address_value, phone_value, phone_key, document_type_code, document_number, number_key, issued_date, issued_place,
       expiry_date, policy_id, consented_at, created_at, updated_at) VALUES (?, ?, 1, 'Phạm', 'Thử Nghiệm', '1990-05-06', '12 Đường Thử, Nha Trang', ?, ?, 'CCCD', '079 000 000 111', '079000000111', '2021-01-02', 'Cục thử', '2040-01-02', 'pol', ?, ?, ?)`)
@@ -45,7 +45,7 @@ async function phieuDaDuyet(w: any): Promise<{ id: string; ident: string; email:
   w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(id);
   for (const m of MUC) assert.equal((await w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as: ADM, body: { phienBan: 1, muc: m, dat: true } })).status, 200, m);
   assert.equal((await w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as: ADM, body: { phienBan: 1, hoSo: { kieu: "MOI" } } })).status, 200);
-  const r = await w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as: HR, body: { roleCode: "TRAVEL_AGENCY", phienBan: 1 } });
+  const r = await w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as: HR, body: { roleCode: "GUIDE_FREELANCE", phienBan: 1 } });
   assert.equal(r.status, 200, r.text);
   return { id, ident, email };
 }

@@ -174,5 +174,24 @@ test("TC-3 parties/index.ts xuất đúng hai mươi hai hàm mới (sdtChinhCua
     // ADR-0207 Đ5 (lô duyệt phiếu đăng ký, đợt 1 Task 8): câu CHƯA CHẠY cho gốc lắp ráp ghép (hồ sơ + vai, giá trị, dòng xác minh, đồng ý, quan hệ giới thiệu) + một kiểm trước lô (CCCD một người)
     "cauMoHoSoDangKy", "cauGhiGiaTriDaXacMinh", "cauXacMinhTuPhieu", "cauDongYTuPhieu", "cauQuanHeGioiThieu", "canCuocThuocHoSoKhac",
     // ADR-0210 Đ3 (dấu xác minh, đợt 1 Task 10): `staff` bọc hàm này cho màn Quản lý tài khoản; ba màn của Đ3 là chỗ DUY NHẤT đọc (bài src/dau-xac-minh-chi-de-biet.test.ts canh)
-    "dauXacMinhTheoHoSo"].sort());
+    "dauXacMinhTheoHoSo",
+    // ADR-0212 Đ1 (vai đăng ký là dữ liệu, đợt 2 Task 1): dang-ky đọc danh sách vai đăng ký được từ pty_role_type qua một hàm hẹp, không chạm bảng
+    "vaiDangKyDuoc",
+    // ADR-0212 Đ4 (phần tổ chức của phiếu, đợt 2 Task 5): danh mục loại giấy tờ tổ chức cho lần kiểm hình thức (`kiemPhanToChuc`) — dang-ky không đọc bảng pty_organization_document_type
+    "danhMucGiayToToChucChoDangKy",
+    // ADR-0212 Đ5 (xác minh phần tổ chức, đợt 2 Task 6): mục bắt buộc của tổ chức, đối chiếu Danh bạ tổ chức (không trả số), kiểm hồ sơ đích và trùng GPKD / mã số thuế trước lệnh ghi
+    "mucXacMinhBatBuocToChuc", "hoSoToChucKhop", "toChucDichHopLe", "trungToChucKhac",
+    // ADR-0212 Đ6 (lô duyệt sinh hồ sơ tổ chức, đợt 2 Task 7): câu CHƯA CHẠY cho gốc lắp ráp ghép — hồ sơ + vai tổ chức, «Người liên hệ của», giá trị + giấy tờ, dòng xác minh, chuyển ảnh tổ chức
+    "cauMoHoSoToChucDangKy", "cauLienKetNguoiToChuc", "cauQuanLyToChucDangKy", "cauGhiGiaTriToChuc", "cauXacMinhToChucTuPhieu", "cauChuyenTepChoToChuc",
+    // ADR-0212 Đ4, Đ7 (giao diện phần tổ chức, đợt 2 Task 8): loại giấy phép thêm chọn được (mã, tên, cờ hạn), tên loại giấy tờ tổ chức cho màn xác minh, và câu gỡ tệp chờ của người đăng ký (có điều kiện trạng thái)
+    "loaiGiayPhepThemChoDangKy", "tenLoaiGiayToToChuc", "cauGoTepChoCuaONeuTruocDoi",
+    // ADR-0213 Đ2.8 (mốc B1 Task 10): người quản lý đang mở + hồ sơ chưa gộp + tổ chức còn vai — gốc lắp ráp ghép với phần tài khoản của staff thành «người quản lý có hiệu lực»
+    "tcQuanLyMo",
+    // ADR-0213 Đ3.1 (mốc B1 Task 11): tổ chức một người đang gắn — gốc lắp ráp lọc bằng người quản lý có hiệu lực thành danh sách «Tư cách»
+    "tcToChucCuaNguoi",
+    // ADR-0213 Đ7 (mốc B2 Task 15): lời mời vào tổ chức — dang-ky (đường phiếu, lô duyệt, lô kết thúc, tác nhân dọn) và gốc lắp ráp chỉ gọi các tên này, không đọc bảng pty_org_invite
+    "DAU_AN_DANH_LOI_MOI", "LOI_GAC_LOI_MOI", "cauAnDanhLoiMoi", "cauBoGiuChoLoiMoi", "chinhSachLoiMoi", "cauDungLoiMoiPhieu", "cauGiuChoLoiMoi", "cauHetHanLoiMoi", "loiMoiTheoId",
+    "cauThanhVienTuLoiMoi", "loiMoiTheoMa",
+    // ADR-0213 Đ8.2 (mốc B2 Task 16): chế độ thành viên hiện hành — gốc lắp ráp tiêm `ctx.cheDoThanhVien` cho orders (orders không đọc bảng của parties)
+    "tcCheDo"].sort());
 });

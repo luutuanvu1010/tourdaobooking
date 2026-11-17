@@ -58,6 +58,8 @@ export interface StaffAccountDto extends StaffAccount {
   passkeyCount: number;
   /** Vai với Tour Đảo đang mở (ADR-0018). Rỗng = tài khoản chưa chuyển sang cách mới (đang dùng quyền cũ). */
   roles: RoleCode[];
+  /** ADR-0213 (Task 14): chỉ ở danh sách Quản lý tài khoản. Không vai riêng nhưng đang là người quản lý hoặc thành viên của một tổ chức ⇒ KHÔNG phải «chưa gán vai trò». */
+  lamChoToChuc?: boolean;
 }
 
 /** Thân yêu cầu PUT /api/staff/:id/permissions: TOÀN BỘ tập quyền mong muốn (không rỗng). */
@@ -555,6 +557,8 @@ export interface OrderInput {
   declaredDeposit?: number;
   /** ADR-0168: hình thức thanh toán; vắng = giữ hình thức đang lưu (đơn mới: Trả trước). Trả sau chỉ nhận được khi bên đặt có hạn mức còn hiệu lực. */
   paymentTerm?: HinhThucThanhToan;
+  /** ADR-0213 Đ3.1: tư cách lập đơn (mã hồ sơ cá nhân hoặc tổ chức trong `GET /api/to-chuc/cua-toi`); chỉ khi lập đơn mới, người giữ quyền Đối tác; vắng = tư cách mặc định. */
+  tuCach?: string;
   /** Gắn hồ sơ có sẵn (id `pty_party`, chỉ cá nhân đang hoạt động); null/vắng = không gắn. Không gửi kèm `newBooker`. */
   bookerPartyId?: string | null;
   /** Tạo hồ sơ cá nhân mới + vai CUSTOMER cùng lúc lưu đơn (ADR-0011 điều 1). Không gửi kèm `bookerPartyId`. */
@@ -773,6 +777,8 @@ export interface OrderDetailResponse {
    * (không phải người lập, không xét duyệt được). Vắng khoá = máy chủ cũ.
    */
   xacNhan?: XacNhanTrenDonDto | null;
+  /** Task 17: nháp thành viên tổ chức (ADR-0213 Đ8) — null / vắng = không phải. */
+  thanhVien?: ThanhVienTrenDonDto | null;
   /** ADR-0142: người xem là Bán hàng phụ trách ĐANG MỞ của đơn (không phải người phụ trách HDV). Giao diện dùng cho nút sửa chuyến / hành khách / đổi người; máy chủ vẫn kiểm lại ở từng route. */
   laBanHangPhuTrach: boolean;
   /** ADR-0142: Bán hàng người lập đã MỜI trên đơn NHÁP (chỉ người lập thấy, chỉ khi còn là Bán hàng mời được); null = chưa mời. Vắng khoá = máy chủ cũ / không phải nháp của người xem. */
@@ -789,6 +795,20 @@ export interface OrderDetailResponse {
  * `yeuCau` = yêu cầu xác nhận ĐANG MỞ của đơn (null = chưa gửi / đã rút). `canXacNhan` = đơn thuộc diện phải qua bước xác nhận (chỉ tính cho người lập; người khác false).
  * `quyetDinhDuoc` = người xem bấm Còn vé / Hết vé / Huỷ được lúc này (đã tính cả công tắc «tự xác nhận»); false khi không có yêu cầu mở.
  */
+/**
+ * Task 17 (ADR-0213 Đ8, giao diện B2): nháp tư cách tổ chức của THÀNH VIÊN — chỉ người lập và người quản lý đang thay nháp nhận khối này. `dangCho` = đang chờ người quản lý xác nhận;
+ * `cheDo` = chế độ thành viên hiện hành của tổ chức; `quanLyThay` = người xem là người quản lý có hiệu lực (không phải người lập). Chỉ để ẩn / hiện nút.
+ */
+export interface ThanhVienTrenDonDto {
+  dangCho: boolean; cheDo: "CHI_SOAN" | "SOAN_VA_GUI"; quanLyThay: boolean; /** người quản lý đã gửi lên, yêu cầu xác nhận đang chờ văn phòng */ choVanPhong: boolean;
+  /** Task 18 (1c): người xem là người quản lý đã mở yêu cầu xác nhận đang chờ và route «Rút lại» (`rut-xac-nhan`) sẽ nhận — cùng cổng `quyenGhiNhap` của route. Chỉ để hiện nút. */
+  rutDuoc: boolean;
+  /** Kiểm toàn mốc B2 (I-B): nhãn tiếng Việt lý do lần trả lại GẦN NHẤT (null = không có). CHỈ có khi người xem là người lập; người quản lý / người khác không nhận khoá này. */
+  lyDoTraLai?: string | null;
+}
+/** ADR-0213 Đ8 (Task 18 phần 1a): một dòng «Nháp chờ» trên màn tổ chức của người quản lý — `GET /api/to-chuc/:id/nhap-thanh-vien`. Không tên / số điện thoại khách. */
+export interface NhapThanhVienDto { id: string; maDon: string; /** tên người lập (thành viên lúc lập) */ nguoiLap: string; ngayDi: string | null; /** đang chờ người quản lý xác nhận */ choQuanLy: boolean; /** đã gửi lên, chờ kiểm vé */ choVanPhong: boolean }
+export interface NhapThanhVienResponse { nhap: NhapThanhVienDto[] }
 export interface XacNhanTrenDonDto { yeuCau: YeuCauXacNhanDto | null; canXacNhan: boolean; quyetDinhDuoc: boolean }
 /**
  * `POST /api/orders/:id/money-edit` (ADR-0063 D1): đơn HIỆN HÀNH sau lần sửa; `daGhi` false = số khách y nguyên, không ghi gì; `canhBaoTongAm` (tên khoá GIỮ, nghĩa
@@ -1137,6 +1157,31 @@ export interface PartyRoleDto {
   validFrom: string;
   validTo: string | null;
 }
+
+/** Màn tổ chức (ADR-0213 Đ2, Đ6; mốc B1 Task 10): người quản lý, thành viên, yêu cầu chuyển đang mở, thư báo người quản lý cũ. Chỉ mã hồ sơ và tên — không số điện thoại, không email. */
+export interface ToChucNguoiDto { partyId: string; ten: string; tuNgay: string }
+export interface ToChucDto {
+  partyId: string;
+  ten: string;
+  /** `coHieuLuc` = người quản lý có hiệu lực (Đ2.8): tài khoản đang bật, còn quyền Đối tác, hồ sơ chưa gộp, tổ chức còn vai. */
+  nguoiQuanLy: (ToChucNguoiDto & { coHieuLuc: boolean }) | null;
+  thanhVien: ToChucNguoiDto[];
+  yeuCauChuyen: { id: string; nguoiDeXuat: { partyId: string; ten: string }; luc: string }[];
+  /** Thư báo người quản lý cũ của lần chuyển gần nhất (CHO = chưa gửi được, gửi lại được). */
+  thu: { trangThai: "CHO" | "DA_GUI" | "KHONG_EMAIL"; ngay: string } | null;
+  /** ADR-0213 Đ7 (mốc B2, Task 15): lời mời còn dùng được (mở còn hạn, hoặc đang giữ cho một phiếu đăng ký). KHÔNG số điện thoại, KHÔNG mã — mã chỉ hiện một lần lúc tạo. */
+  loiMoi?: { id: string; trangThai: "MO" | "GIU_CHO_PHIEU"; hetHan: string; taoLuc: string }[];
+  /** ADR-0213 Đ8.2 (mốc B2, Task 16): chế độ thành viên hiện hành — «Chỉ soạn» hoặc «Soạn và gửi người quản lý xác nhận» (mặc định). */
+  cheDo?: "CHI_SOAN" | "SOAN_VA_GUI";
+}
+export interface ToChucResponse { toChuc: ToChucDto }
+/** ADR-0213 Đ7.1: trả lời của lệnh tạo lời mời — luôn 201, luôn cùng câu dù số được mời có tài khoản hay chưa. `ma` dạng XXXX-XXXX, chỉ trả MỘT lần. */
+export interface TaoLoiMoiResponse { loiMoi: { id: string; ma: string; hetHan: string }; message: string }
+/** ADR-0213 Đ7.4: lời mời gửi tới số đăng nhập của CHÍNH người gọi (`GET /api/to-chuc/loi-moi-cua-toi`). Không số điện thoại. */
+export interface LoiMoiCuaToiResponse { loiMoi: { id: string; toChuc: { partyId: string; ten: string }; hetHan: string }[] }
+/** ADR-0213 Đ3.1 (Task 11): các tư cách của người gọi cho ô «Tư cách» ở màn Tạo đơn — `GET /api/to-chuc/cua-toi`. Chỉ mã hồ sơ, tên, cờ tổ chức. */
+/** `loai` (Task 17): loại liên kết của tư cách — giao diện ẩn «Gửi đơn» khi tư cách là THÀNH VIÊN (ADR-0213 Đ8.1). */
+export interface TuCachCuaToiResponse { tuCach: { partyId: string; ten: string; laToChuc: boolean; loai?: "CA_NHAN" | "MANAGER" | "MEMBER" }[] }
 
 export interface PartyRelationshipDto {
   id: string;
@@ -3309,6 +3354,8 @@ export interface CapHienHanhDto {
   doiDuoc: boolean;
 }
 export interface CapHienHanhResponse { homNay: string; hoSo: CapHienHanhDto[] }
+/** `GET /api/pricing/cap-cua-to-chuc/:id` (mốc B1 Task 14): cấp của một tổ chức cho người quản lý của nó; `cap` null = tổ chức chưa mang loại được hưởng. */
+export interface CapCuaToChucResponse { homNay: string; cap: CapHienHanhDto | null }
 /**
  * «Cấp cho đối tác tự đăng ký» (ADR-0209; `GET|POST /api/pricing/cap-mac-dinh`): mỗi loại trong danh sách được hưởng một dòng. `hienHanh` = dòng chính sách đang hiệu lực (null = chưa từng đặt);
  * `hienHanh.muc` null = «Theo cấp của vai trò». `hienHanh.id` là khoá lạc quan gửi lại ở lệnh đặt (`dangHieuLuc`). `cap` = các cấp đang bật để chọn.
@@ -3530,8 +3577,20 @@ export interface ConDuocDungTraSauResponse {
   conDuocDung: number;
   coDonQuaHan: boolean;
 }
-/** «Trả sau của tôi» (ADR-0173 Đ3 mục 3): chỉ hồ sơ của phiên. */
+/** «Trả sau của tôi» (ADR-0173 Đ3 mục 3): hồ sơ của phiên; `toChuc` (ADR-0213 Đ5, Task 12) = cùng các số cho từng tổ chức người gọi là người quản lý có hiệu lực (thành viên: rỗng). */
 export interface TraSauCuaToiResponse {
+  coHanMuc: boolean;
+  hanMuc: number | null;
+  gioTra: number | null;
+  gioAnHan: number | null;
+  dangNo: number;
+  conDuocDung: number | null;
+  don: DonNoTraSauDto[];
+  toChuc: TraSauToChucDto[];
+}
+/** Trả sau của MỘT tổ chức người gọi quản lý (ADR-0213 Đ5): hạn mức, đang nợ, còn được dùng, từng đơn nợ — như phần hồ sơ của phiên. Tên tổ chức đọc ở `GET /api/to-chuc/cua-toi`. */
+export interface TraSauToChucDto {
+  partyId: string;
   coHanMuc: boolean;
   hanMuc: number | null;
   gioTra: number | null;
@@ -3603,5 +3662,21 @@ export interface PhieuDangKyDto {
     diaChi: string | null;
     daKhaiDienThoai: boolean;
     giayTo: { loai: string; soChe: string | null; hang: string | null; ngayCap: string | null; hetHan: string | null } | null;
+  } | null;
+  /** Vai của tổ chức đã chọn ở lưu nháp (ADR-0212 Đ4; `dk_registration.org_role_code`); null = chưa chọn. Khoá sau lần gửi đầu như `loai`. */
+  loaiToChuc: { ma: string; ten: string } | null;
+  /**
+   * Phần tổ chức của bản khai MỚI NHẤT (chỉ phiếu CẦN BỔ SUNG, như `banKhaiTruoc`); null = không có / đã ẩn danh. KHÔNG BAO GIỜ mang mã số thuế, số GPKD, số giấy phép, nơi cấp,
+   * số điện thoại đầy đủ (N3 / N2, ADR-0212 Đ7): chỉ số che từ khoá chuẩn hoá và cờ «đã khai điện thoại».
+   */
+  toChuc: {
+    tenToChuc: string;
+    tenPhapLy: string | null;
+    maSoThueChe: string | null;
+    diaChi: string | null;
+    emailHoaDon: string | null;
+    daKhaiDienThoai: boolean;
+    gpkd: { soChe: string | null; ngayCap: string | null };
+    giayPhepThem: { loai: string; soChe: string | null; ngayCap: string | null; hetHan: string | null } | null;
   } | null;
 }

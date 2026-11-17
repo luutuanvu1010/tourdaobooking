@@ -16,6 +16,11 @@ export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_cha
   // ADR-0142 Đ7 (migration *_hop_thu_ban_hang): lời mời, nhận, đổi, từ chối Bán hàng phụ trách + Hoàn thành. KHÔNG `order_handler_refused` (chủ để sau — BACKLOG mục 3).
   "sales_invited", "sales_owner_claimed", "sales_owner_changed", "sales_invite_refused", "order_completed"] as const;
 /**
+ * ADR-0213 Đ8.6, Ruling R11 (mốc B2 Task 16): tin ĐÍCH DANH về nháp của thành viên tổ chức — nhật ký ghi `target_type = 'staff'`, `target_id` = người nhận; view `v_aud_order_notice_direct`
+ * lọc ĐÚNG tập này (bài src/migrations-thanh-vien.test.ts). KHÔNG vào `HANH_DONG_TIN_DON` / `v_aud_order_event` (tin đơn thường theo quan hệ với đơn — lưu nháp vẫn không báo ai, ADR-0045).
+ */
+export const HANH_DONG_TIN_DICH_DANH = ["order_member_submitted", "order_member_returned", "order_member_forwarded"] as const;
+/**
  * ADR-0062 Đ1 — tập nguồn ĐÓNG của tin "đơn đổi sau xác nhận" (khai MỘT nơi; view `v_aud_order_change` lọc đúng tập này — bài migrations-tin-doi-don):
  * sửa thông tin chuyến, sửa / thêm / bỏ chặng, và MỌI hành động mang cờ `doiSoKhach` (dẫn từ AUDIT_ACTIONS — không gõ tay).
  */
@@ -52,6 +57,16 @@ export interface DongDon {
   legId?: string | null;
   chuyenCuaChang?: readonly ChuyenCuaChang[];
 }
+/**
+ * ADR-0213 Đ8.6, Ruling R11 (Task 16): một dòng tin ĐÍCH DANH về nháp của thành viên (hình chiếu `v_aud_order_notice_direct` — chỉ khoá). Người nhận = `targetId`, không ai khác.
+ */
+export interface DongDichDanh { id: string; orderId: string; maDon: string; action: (typeof HANH_DONG_TIN_DICH_DANH)[number]; actorId: string | null; targetId: string; luc: string }
+/** Câu tin đích danh — không tên người làm, không số điện thoại (chủ chưa chọn chữ: dùng chữ của ADR Đ8.6). Loại tin dùng lại loại sẵn có (giao diện Task 17 có thể tách loại riêng). */
+const TIN_DICH_DANH: Record<DongDichDanh["action"], { loai: LoaiTin; cau: (ma: string) => string }> = {
+  order_member_submitted: { loai: "cho_xac_nhan", cau: (m) => `Đơn ${m} đang chờ bạn xác nhận` },
+  order_member_returned: { loai: "giao", cau: (m) => `Người quản lý đã trả lại đơn ${m}` },
+  order_member_forwarded: { loai: "xac_nhan", cau: (m) => `Người quản lý đã gửi đơn ${m} lên Tour Đảo` },
+};
 export interface DongThuCong {
   id: string; tieuDe: string; noiDung: string; quanTrong: boolean; nhan: string[]; nguoiGuiId: string;
   tenNguoiGui: string; luc: string; thuHoi: boolean; daHieuLuc: string | null;
@@ -214,6 +229,8 @@ export function locHopThongBao(
   staff: PermissionHolder & { readonly partyId?: string | null },
   vao: {
     don: DongDon[]; thuCong: DongThuCong[]; chuyen?: DongChuyen[]; taiKhoan?: DongTaiKhoan[]; dieuChinh?: DongDieuChinh[]; docDenLuc: string; now: string; ngan: "cua-toi" | "tat-ca";
+    /** ADR-0213 Đ8.6 (Task 16): tin đích danh — luật nhận: đúng `targetId`, không phải người làm. */
+    dichDanh?: DongDichDanh[];
     /** ADR-0062 Đ1 mốc bắt đầu của dòng đổi — vắng = MOC_TIN_DOI (bài kiểm truyền mốc riêng). */
     mocTinDoi?: string;
   },
@@ -412,6 +429,16 @@ export function locHopThongBao(
     tat.push({
       id: d.id, loai: "dieu_chinh", cau: anMaDon ? "Số dư của bạn vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết" : d.action === "ledger_adjustment_affected" && !xemKhoanMinh ? `Số dư của bạn trên đơn ${d.maDon} vừa được điều chỉnh — liên hệ văn phòng để biết chi tiết` : d.tenNguoiLam !== null && xemTenNguoiLam(staff) ? cau.coTen(d.tenNguoiLam, d.maDon) : cau.khongTen(d.maDon), maDon: anMaDon ? null : d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
       lienKet: (cho || can(staff, "ledger.write")) && !holdsPartner(staff) ? "/dieu-chinh-cong-no" : isOffice(staff) ? "/order" : "/account", luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
+    });
+  }
+  // ADR-0213 Đ8.6 (Ruling R11): tin đích danh về nháp của thành viên — chỉ đúng người nhận ghi ở nhật ký (người quản lý lúc thành viên gửi; thành viên lúc bị trả lại / được gửi lên). Luôn «Của tôi».
+  for (const d of vao.dichDanh ?? []) {
+    if (d.luc < moc || d.targetId !== staff.id || d.actorId === staff.id) continue;
+    const t = TIN_DICH_DANH[d.action];
+    if (!t) continue;
+    tat.push({
+      id: d.id, loai: t.loai, cau: t.cau(d.maDon), maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
+      lienKet: `/order?id=${d.orderId}`, luc: d.luc, cuaToi: true, chuaDoc: d.luc > vao.docDenLuc, mo: false,
     });
   }
   for (const t of vao.thuCong) {

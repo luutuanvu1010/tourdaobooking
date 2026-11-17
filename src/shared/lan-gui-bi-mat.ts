@@ -15,26 +15,17 @@ export interface MauRoute {
 // Mọi route bí mật hôm nay đều là POST — liệt kê ĐƯỜNG DẪN rồi dựng mẫu như KHONG_VE dưới đây (gói trang nào cũng nhúng danh sách này; lát H-2 kho tệp thêm route
 // thứ 14 làm gói Đơn hàng vượt trần của src/goi-trang-nhe.test.ts — viết gọn thay vì nới trần). Route bí mật bằng phương thức khác thì đổi lại dạng đầy đủ.
 export const BI_MAT: readonly MauRoute[] = [
-  "/api/account/change-pin",
-  "/api/account/passkeys/options", // thân có PIN hiện tại (bật Face ID, điều 2a) — sót ở L8, vòng 2 kiểm độc lập bắt
-  "/api/account/pin-by-passkey",
-  // ADR-0074 (Task 5): thân có mã 6 số của ứng dụng xác thực / mã dự phòng (ít khả năng) — vé chỉ giữ trong bộ nhớ trang.
-  "/api/account/mfa/totp/confirm",
-  "/api/account/mfa/recovery/regenerate",
-  "/api/account/mfa/remove",
-  // ADR-0074 Phần C Task 3: thân có địa chỉ email đầy đủ + mã hiện có / mã trong thư — vé chỉ giữ trong bộ nhớ trang.
-  "/api/account/mfa/email/start",
-  "/api/account/mfa/email/confirm",
+  // Vòng sửa 1 Task 15: viết chung tiền tố (CÙNG tập đường dẫn như trước — chỉ gọn gói trang) để thêm route nhận lời mời mà gói Đơn hàng không vượt trần.
+  // /api/account/…: PIN (change-pin, passkeys/options — bật Face ID điều 2a, pin-by-passkey); ADR-0074: mã 6 số / mã dự phòng (mfa/totp/confirm, mfa/recovery/regenerate, mfa/remove);
+  // Phần C Task 3: email đầy đủ + mã (mfa/email/start, mfa/email/confirm).
+  ...["change-pin", "passkeys/options", "pin-by-passkey", "mfa/totp/confirm", "mfa/recovery/regenerate", "mfa/remove", "mfa/email/start", "mfa/email/confirm"].map((d) => `/api/account/${d}`),
   "/api/staff/:id/reset-pin",
   "/api/ve/quet", // ADR-0175 Đ3: thân có mã vé
-  "/api/parties/:id/documents",
-  "/api/parties/:id/documents/:did/renew",
-  "/api/parties/:id/documents/:did/correct",
-  "/api/parties/:id/documents/:did/reveal",
-  // ADR-0123 (lát H-2 kho tệp): thân là ảnh giấy tờ (base64) — đường giấy tờ của người, bài T16 bắt; vé chỉ giữ trong bộ nhớ trang.
-  "/api/parties/:id/documents/:did/tep",
+  // Giấy tờ của người (bài T16 bắt): thêm, gia hạn, sửa, xem đủ số; ADR-0123 (lát H-2): `/tep` = ảnh giấy tờ (base64).
+  ...["", "/:did/renew", "/:did/correct", "/:did/reveal", "/:did/tep"].map((d) => `/api/parties/:id/documents${d}`),
   "/api/parties/cua-toi/phieu", // ADR-0124 (lát H-3): phiếu tự khai có số giấy tờ / ngày sinh / địa chỉ — T16 bắt qua kiemPhieuTuKhai
   "/api/parties/xac-minh/:pid/xem-so", // ADR-0125 (lát H-4): THÂN RỖNG, số đủ nằm ở PHẢN HỒI (không phải thân gửi đi) — giữ dòng vì kế hoạch đòi; không bài nào canh dòng này (dựa vào kỷ luật, vòng sửa 1 m-1)
+  "/api/to-chuc/loi-moi/nhan", // ADR-0213 Đ7.4 (Task 15 vòng sửa 1, I2): thân có mã vào tổ chức 8 ký tự (ít khả năng, băm SHA-256 của thân dò ngược được)
 ].map((path): MauRoute => ({ method: "POST", path }));
 
 // Mọi route ghi công khai hôm nay đều là POST — liệt kê ĐƯỜNG DẪN rồi dựng mẫu (gói trang nào cũng nhúng danh sách này: viết gọn để gói Đơn hàng không vượt

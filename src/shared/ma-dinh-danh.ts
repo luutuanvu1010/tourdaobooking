@@ -4,6 +4,7 @@ export const TIEN_TO_MA: readonly { tienTo: string; loai: string }[] = [
   { tienTo: "LD", loai: "Vai người dùng" },
   { tienTo: "MT", loai: "Cấp độ đại lý" },
   { tienTo: "DK", loai: "Phiếu đăng ký" },
+  { tienTo: "MV", loai: "Lời mời vào tổ chức" }, // ADR-0213 Đ7 (mốc B2, Task 15)
   { tienTo: "VE", loai: "Số sê-ri vé điện tử" }, // ADR-0217 Đ1: không bí mật, khác mã vé
 ];
 /** Hình dạng mã: tiền tố + `_` + 8 chữ hoa (khớp CODE_RE / MA_RE của các module). */

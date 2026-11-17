@@ -24,6 +24,17 @@ const YC_COLS = "id, order_id, submitted_at, submitted_by, deadline_at, pickup_t
 /** Yêu cầu còn mở của MỘT đơn (chỉ mục duy nhất có điều kiện: tối đa một). */
 const YC_MO_CUA_DON = defineSql("orders", "confirm_request_open_of_order", `SELECT ${YC_COLS} FROM ord_confirm_request WHERE order_id = ?1 AND decided_at IS NULL`);
 export const yeuCauMoCuaDon = (db: D1Database, orderId: string): Promise<YeuCauRow | null> => db.prepare(YC_MO_CUA_DON).bind(orderId).first<YeuCauRow>();
+/** ADR-0213 Đ5 (Task 12): nháp ĐANG CHỜ văn phòng có bên đặt thuộc các tổ chức `toChuc` (tập người quản lý có hiệu lực — route lấy qua `ctx.toChucToiQuanLy`). Rỗng ⇒ không truy vấn. */
+const NHAP_DANG_CHO_CUA_BEN = defineSql(
+  "orders",
+  "draft_open_request_of_bookers",
+  `SELECT o.id FROM orders o WHERE o.status = 'draft' AND o.booker_party_id IN (SELECT value FROM json_each(?1))
+     AND EXISTS (SELECT 1 FROM ord_confirm_request r WHERE r.order_id = o.id AND r.decided_at IS NULL)`,
+);
+export async function nhapDangChoCuaBen(db: D1Database, toChuc: readonly string[]): Promise<string[]> {
+  if (toChuc.length === 0) return [];
+  return (await db.prepare(NHAP_DANG_CHO_CUA_BEN).bind(JSON.stringify(toChuc)).all<{ id: string }>()).results.map((r) => r.id);
+}
 /** Yêu cầu theo id (mọi trạng thái) — để bên THUA biết yêu cầu mình cầm đã khép (Rút lại / người khác quyết) mà không phải trả 404. */
 const YC_THEO_ID = defineSql("orders", "confirm_request_by_id", `SELECT ${YC_COLS} FROM ord_confirm_request WHERE id = ?1`);
 export const yeuCauTheoId = (db: D1Database, id: string): Promise<YeuCauRow | null> => db.prepare(YC_THEO_ID).bind(id).first<YeuCauRow>();
