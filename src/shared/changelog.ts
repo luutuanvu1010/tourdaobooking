@@ -18,10 +18,10 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đăng ký đối tác đợt 2 (ADR-0212, ADR-0213; migration 0174, 0175, 0176; nhánh claude/account-signup-approval-flow-ee612c): chủ chốt 17/11 «Gộp cả ba»
-    // — lần A (phiếu có phần tổ chức), B1 (người quản lý tổ chức, tư cách theo đơn), B2 (lời mời, thành viên) lên CÙNG một lần phát hành, sau 3.13 trên main.
+    // — lần A (phiếu có phần tổ chức), B1 (người quản lý tổ chức, tư cách theo đơn), B2 (lời mời, thành viên) lên CÙNG một lần phát hành, sau 3.13 và 3.14 trên main.
     // Phần tổ chức của phiếu ẨN cho tới khi chủ đăng chính sách riêng tư có ô «Thu thông tin tổ chức» (văn bản: PHAN-THEM-TO-CHUC.md, cần luật sư).
-    // SỐ TẠM 3.14: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.14",
+    // SỐ TẠM 3.15: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.15",
     date: "2026-11-17",
     items: [
       { kind: "moi", text: "Phiếu đăng ký có thêm phần khai tổ chức (giấy phép, mã số thuế). Phần này chỉ hiện sau khi Toàn quyền đăng chính sách riêng tư có ô «Thu thông tin tổ chức»." },
@@ -40,6 +40,14 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Người quản lý chọn chế độ thành viên: «Chỉ soạn» (tự xem mọi nháp của thành viên) hoặc «Soạn và gửi người quản lý xác nhận»." },
       { kind: "moi", text: "Thành viên lập đơn thay mặt tổ chức rồi gửi người quản lý; người quản lý gửi đơn lên Tour Đảo hoặc trả lại kèm lý do, thành viên thấy lý do." },
       { kind: "moi", text: "Màn tổ chức có mục «Nháp chờ»: các nháp của thành viên mà người quản lý được mở, bấm vào là tới trang đơn." },
+    ],
+  },
+  {
+    // Sửa chữ cũ ở màn Phí đưa đón sau ADR-0214 (không migration). SỐ TẠM 3.14: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.14",
+    date: "2026-11-17",
+    items: [
+      { kind: "sua", text: "Màn Phí đưa đón: khung đặt ngày bắt đầu áp, hộp tắt phí và kết quả «Thử tra» nay nói đúng cách mới: phí do văn phòng chọn trên đơn, bảng mức chỉ để tham khảo." },
     ],
   },
   {

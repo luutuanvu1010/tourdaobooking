@@ -4547,7 +4547,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Phí đưa đón",
     manHinh: "Phí đưa đón › khối đầu › nút «Tắt phí đưa đón» (chỉ hiện khi đang có ngày áp) › hộp xác nhận",
     ten: "Tắt phí đưa đón",
-    thatSuLam: "Ghi dòng «chưa áp phí đưa đón»: từ lúc này đơn có đưa đón không tính phí đón nữa. Các mức đã đặt vẫn còn.",
+    thatSuLam: "Ghi dòng «chưa áp phí đưa đón»: từ lúc này đơn chưa xác nhận không còn ô «Phí đưa đón» và không tính phí đón; đơn đã xác nhận giữ phí đã chọn.",
     hoiLai: "có (hộp xác nhận nói hậu quả)",
     hoanTac: "được: «Đặt ngày bắt đầu áp» để bật lại",
     duongLenh: ["/api/pricing/phi-don/bat-dau-ap"],
