@@ -257,3 +257,28 @@ test("Review Focus 3: gõ sai (kể cả sai khuôn) tính trần 5 lần mỗi 
   assert.equal((await nhan(w2, ng.staffId, { ma: r2.json.loiMoi.ma })).status, 200);
   assert.equal(w2.q("SELECT count(*) n FROM login_attempt WHERE key = ?", `moi:staff:${ng.staffId}`)[0].n, 0);
 });
+
+// Task 15 vòng sửa 1 (I1, người kiểm độc lập): lính gác `lm_dung` có bài quan sát — lời mời bị huỷ / đã dùng NGAY TRƯỚC lô nhận ⇒ CẢ lô tự huỷ.
+for (const [ten, trangThai] of [["bị huỷ", "DA_HUY"], ["đã dùng", "DA_DUNG"]] as const) {
+  test(`Đ7.4: lời mời ${ten} NGAY TRƯỚC lô nhận ⇒ lính gác làm CẢ lô hỏng: 400 trung tính, không «Thành viên của», không nhật ký nhận, dòng lời mời không bị đẩy`, async () => {
+    const w = setup();
+    const { org, ql } = toChucCoQuanLy(w);
+    const nguoi = doiTac(w, "Người Được Mời");
+    const r = await tao(w, ql.staffId, org, nguoi.so);
+    const id: string = r.json.loiMoi.id;
+    const LUC = "2026-11-02T03:04:05.000Z";
+    w.chenTruocLo((stmts: any[]) => stmts.some((s) => /pty_org_invite/.test(s.sql) && /DA_DUNG/.test(s.sql)), async () => {
+      if (trangThai === "DA_HUY") w.sqlite.prepare("UPDATE pty_org_invite SET status = 'DA_HUY', cancelled_by = ?, cancelled_at = ?, updated_at = ? WHERE id = ?").run(ql.staffId, LUC, LUC, id);
+      else w.sqlite.prepare("UPDATE pty_org_invite SET status = 'DA_DUNG', used_by_staff_id = 'tk-khac', used_at = ?, updated_at = ? WHERE id = ?").run(LUC, LUC, id);
+    });
+    const kq = await nhan(w, nguoi.staffId, { loiMoiId: id });
+    assert.equal(kq.status, 400, kq.text);
+    assert.equal(kq.json.error.message, "Mã vào tổ chức không đúng hoặc không còn dùng được.");
+    assert.deepEqual(mo(w, org), [[ql.partyId, "MANAGER"]], "không mở «Thành viên của»");
+    assert.equal(nhatKy(w).filter((x: { action: string }) => x.action === "org_invite_accepted").length, 0, "không nhật ký nhận");
+    const dong = loiMoi(w, id);
+    assert.equal(dong.status, trangThai);
+    assert.equal(dong.updated_at, LUC, "dòng đã kết thúc không bị lô thua đẩy mốc");
+    assert.notEqual(dong.used_by_staff_id, nguoi.staffId);
+  });
+}
