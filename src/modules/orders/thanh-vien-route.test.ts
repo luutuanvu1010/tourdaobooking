@@ -285,3 +285,15 @@ test("Task 17 (giao diện B2): trang đơn biết nháp thành viên — khối
   const id4 = await lap(w, SALES, {});
   assert.equal(await tv(SALES, id4), null);
 });
+
+// ---- Task 16 vòng sửa 1 (người kiểm độc lập) ----
+
+test("vòng sửa 1 (m-2): ngoại lệ nháp chỉ đổi người chủ cho ô sửa (canModify) ở chi tiết đơn — phạm vi các ô own khác giữ người lập", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("./index.ts", import.meta.url), "utf8");
+  const i = src.indexOf('route("GET", "/api/orders/:id", "orders"');
+  const than = src.slice(i, src.indexOf('route("PUT", "/api/orders/:id", "orders"', i));
+  assert.match(than, /const scope = \{ ownerId: order\.staffId, assigned \};/, "scope của các ô own khác = người lập");
+  assert.equal((than.match(/thayNhap \? staff\.id/g) ?? []).length, 1, "đúng một chỗ đổi người chủ");
+  assert.match(than, /canModify: can\(staff, "order\.modify", \{ ownerId: thayNhap \? staff\.id : order\.staffId, assigned \}\)/);
+});

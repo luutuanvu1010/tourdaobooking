@@ -1462,10 +1462,10 @@ export const ordersModule: AppModule = {
       // ADR-0007/0009: ô `order.history.view` quyết ai MỞ khối lịch sử (SALES chỉ đơn của mình hoặc đơn mình đang phụ trách; ACCOUNTING và ADMIN mọi đơn); ADR-0131: người mở được
       // KHÔNG đọc đủ nhật ký — chỉ người qua `audit.view` (Toàn quyền) thấy đủ, còn lại qua lớp rút gọn không tên (xem khối `history` dưới).
       // `assigned` tính MỘT lần cho cả nhật ký và `canModify`.
-      // ADR-0213 Đ8 (Task 16): ngoại lệ có tên — người quản lý có hiệu lực đọc / sửa nháp của thành viên (chế độ, đang chờ). Luật ở xem-don-nhap.ts; ở đây chỉ nạp dữ kiện.
+      // ADR-0213 Đ8 (Task 16): ngoại lệ có tên — người quản lý có hiệu lực đọc nháp của thành viên (cờ quanLyBenDat ở các ô xem R13) và thấy nút sửa (chỉ canModify). Luật ở xem-don-nhap.ts; ở đây chỉ nạp dữ kiện.
       const ngoaiLeToChuc = await ngoaiLeNhapThanhVien(env.DB, staff, order, laQuanLyCuaBen, cheDoThanhVien);
       const thayNhap = quanLyThayNhapThanhVien(ngoaiLeToChuc);
-      const scope = { ownerId: thayNhap ? staff.id : order.staffId, assigned };
+      const scope = { ownerId: order.staffId, assigned }; // vòng sửa 1 (m-2): ngoại lệ KHÔNG đổi phạm vi các ô own khác — chỉ ô sửa (canModify) dưới
       // ADR-0142: Bán hàng phụ trách được cộng như «người được giao» CHỈ ở ô `order.history.view` (danh sách trắng) — `scope` giữ nguyên cho mọi ô khác (nút huỷ, ô tiền không rò theo cờ mới).
       const scopeDuocGiao = { ownerId: order.staffId, assigned: assigned || laBanHang };
       // ADR-0014 điều 3 (D-01): PARTNER chỉ xem được chi tiết đơn của chính mình — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN (order.view = any) luôn qua.
@@ -1528,7 +1528,7 @@ export const ordersModule: AppModule = {
       };
       // Đơn đã "Đã giao" bị khoá (ADR-0025 đ5) ⇒ không còn nút sửa (giao diện chỉ ẩn/hiện; máy chủ từ chối ở mọi route ghi).
       return json({
-        order, history, canModify: can(staff, "order.modify", scope) && order.deliveredAt === null, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach,
+        order, history, canModify: can(staff, "order.modify", { ownerId: thayNhap ? staff.id : order.staffId, assigned }) && order.deliveredAt === null, mocToiThieuPhut: moc?.phut ?? null, suaSoKhach,
         canhBaoKhuyenMai: await nhacKhuyenMaiCuaDon(env.DB, order), // ADR-0114 D1: người xem đã qua `money.view` ở trên (giảm giá là dữ liệu tiền) — không lộ thêm gì
         // ADR-0114 D2: lịch sử số khách CHỈ cho người qua `order.history.view` với đơn này (cùng điều kiện khối `history` ở trên), còn lại null — không đổi ai được xem gì.
         lichSuSoKhach: can(staff, "order.history.view", scopeLichSu) ? await lichSuSoKhachCuaDon(env.DB, order) : null,
