@@ -19,7 +19,7 @@ export const CHU_DU_KIEN = "dự kiến";
 /** Tên màn và tên khối phí trên trang đơn, biên nhận, phiếu công nợ (chủ 14/11). */
 export const TEN_PHI_DUA_DON = "Phí đưa đón";
 export const CHU_MOI_CAP = "Mọi cấp";
-export const CHU_THIEU_MUC = "Chưa có mức cho tình huống này, nên đơn như vậy không xác nhận được.";
+export const CHU_THIEU_MUC = "Bảng chưa có mức cho tình huống này. Bảng chỉ để tham khảo: phí trên đơn do văn phòng chọn ở từng lượt đón.";
 export const CHU_CHUA_AP = "Phí đưa đón chưa áp vào ngày này.";
 export const CHU_XUNG_DOT = "Có hai mức cùng độ cụ thể nhưng khác số tiền, nên chưa chọn được mức nào. Sửa một trong hai mức rồi tra lại.";
 

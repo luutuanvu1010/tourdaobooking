@@ -17,6 +17,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa chữ cũ ở màn Phí đưa đón sau ADR-0214 (không migration). SỐ TẠM 3.14: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.14",
+    date: "2026-11-17",
+    items: [
+      { kind: "sua", text: "Màn Phí đưa đón: khung đặt ngày bắt đầu áp, hộp tắt phí và kết quả «Thử tra» nay nói đúng cách mới: phí do văn phòng chọn trên đơn, bảng mức chỉ để tham khảo." },
+    ],
+  },
+  {
     // Phí đưa đón do văn phòng chọn (ADR-0214; migration 0173; nhánh claude/heuristic-turing-a00d98). Phí chỉ chạy sau khi Quản trị đặt «ngày bắt đầu áp»;
     // lúc mới cập nhật chưa đặt ngày nên đơn chạy như cũ. SỐ TẠM 3.13: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.13",

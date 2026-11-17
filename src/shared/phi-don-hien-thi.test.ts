@@ -106,7 +106,7 @@ test("cauKetQuaThuTra: có mức theo khách, theo chuyến, miễn phí", () =>
 
 test("cauKetQuaThuTra: thiếu mức và hai mức khác tiền cùng bậc", () => {
   const thieu = cauKetQuaThuTra({ ketQua: { trangThai: "THIEU_MUC", lyDo: "KHONG_CO_MUC" }, thua: [] }, ten);
-  assert.deepEqual(thieu, ["Chưa có mức cho tình huống này, nên đơn như vậy không xác nhận được."]);
+  assert.deepEqual(thieu, ["Bảng chưa có mức cho tình huống này. Bảng chỉ để tham khảo: phí trên đơn do văn phòng chọn ở từng lượt đón."]);
   const xd = cauKetQuaThuTra({ ketQua: { trangThai: "THIEU_MUC", lyDo: "XUNG_DOT" }, thua: [] }, ten);
   assert.equal(xd.length, 1);
   assert.match(xd[0]!, /hai mức/);
@@ -205,8 +205,10 @@ test("dongPhiTrenDon: đơn nháp ghi «dự kiến»; lượt đón chưa chọ
   assert.doesNotMatch(r.thieu.join(" "), KHONG_MA_THO);
 });
 
-test("CHU_THIEU_MUC của Thử tra: không còn nói «khi phí được cộng vào đơn» (Đợt C đã cộng phí vào đơn)", async () => {
+// ĐỔI CÓ CHỦ ĐÍCH 17/11 (ADR-0214): bảng mức không còn chặn xác nhận đơn — câu thiếu mức của Thử tra không được nói «không xác nhận được».
+test("CHU_THIEU_MUC của Thử tra: nói bảng chỉ để tham khảo, không nói đơn bị chặn xác nhận (ADR-0214)", async () => {
   const { CHU_THIEU_MUC } = await import("./phi-don-hien-thi.ts");
   assert.doesNotMatch(CHU_THIEU_MUC, /Khi phí được cộng vào đơn/);
-  assert.match(CHU_THIEU_MUC, /không xác nhận được/);
+  assert.doesNotMatch(CHU_THIEU_MUC, /không xác nhận được/);
+  assert.match(CHU_THIEU_MUC, /tham khảo/);
 });
