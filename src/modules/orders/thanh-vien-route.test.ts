@@ -584,3 +584,20 @@ test("Q3: thành viên A mở đơn đã gửi lên (đã xác nhận) của th�
   // Vòng sửa cuối (m-a): chỉ THÀNH VIÊN đổi 403 → 404; người quản lý bị từ chối theo ô (nhập kế toán: Đối tác không có ô) giữ 403 như cũ.
   assert.equal((await w.call("GET", `/api/orders/${id}/nhap-ke-toan`, { as: NAM })).status, 403, "người quản lý: mã cũ");
 });
+
+// ---- Vòng sửa cuối (m-b): cờ rutDuoc tắt khi người quản lý còn hiệu lực nhưng đã thôi thay mặt tổ chức (tổ chức hết vai được hưởng) — vế quyenGhiNhap của cờ phải được thấy chặn ----
+test("m-b: người quản lý đã gửi lên, tổ chức hết vai được hưởng ⇒ không còn cờ Rút lại và route Rút lại từ chối", async () => {
+  const w = setup();
+  w.sqlite.prepare("INSERT INTO ord_service_confirm_flag (id, scope, code, required, valid_from_at, created_at, updated_at) VALUES ('comb', 'SERVICE', 'ZA1', 1, ?, ?, ?)").run(AT, AT, AT);
+  assert.equal((await cheDo(w, NAM, "CHI_SOAN")).status, 200);
+  const id = await lap(w, TV);
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} })).status, 201);
+  assert.equal((await w.call("GET", `/api/orders/${id}`, { as: NAM })).json.thanhVien.rutDuoc, true);
+  w.sqlite.prepare("UPDATE pty_party_role SET valid_to_date = '2026-10-02' WHERE id = ?").run(`r-${SUNRISE}`);
+  const ct = await w.call("GET", `/api/orders/${id}`, { as: NAM });
+  assert.ok(ct.status === 404 || ct.json.thanhVien === null || ct.json.thanhVien.rutDuoc === false, ct.text);
+  const r = await w.call("POST", `/api/orders/${id}/rut-xac-nhan`, { as: NAM, body: {} });
+  assert.notEqual(r.status, 200, r.text);
+  // Ghi nhận (17/11): qua đường thật, tổ chức hết vai được hưởng làm người quản lý HẾT HIỆU LỰC luôn (Đ2.8) ⇒ đọc 404, rút 404 — chặn ở cổng sớm hơn, KHÔNG chạm vế
+  // not_acting_for_org của quyenGhiNhap. Vế đó của cờ rutDuoc: CHƯA quan sát chặn qua đường thật — dựa vào kỷ luật (cùng hàm với route, sổ hàng rào không ghi).
+});
