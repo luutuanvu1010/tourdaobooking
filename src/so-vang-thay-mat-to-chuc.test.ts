@@ -357,3 +357,18 @@ test("vòng sửa 1 Task 12: người đã thôi thay mặt tổ chức không �
   assert.equal(rut.json.error.code, "not_acting_for_org");
   assert.equal(dem(w, "SELECT count(*) AS n FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id), 1, "yêu cầu vẫn mở");
 });
+
+// Task 16 vòng sửa 1 (m-6 của người kiểm): GHIM HÀNH VI HIỆN TẠI, CHỜ CHỦ QUYẾT — nháp thành viên kèm lời khai «Khách đặt cọc trước», thành viên bị gỡ khi đang chờ, người quản lý gửi lên ⇒
+// khoản thu của lời khai đứng tên NGƯỜI LẬP (luật sẵn có `cauDatCocKhiXacNhan`: người thu = người lập), không đứng tên người quản lý hay tổ chức.
+test("m-6 (ghim, chờ chủ): khai cọc trên nháp thành viên đã bị gỡ, người quản lý gửi lên ⇒ khoản thu đứng tên người lập", async () => {
+  const w = await setup();
+  const r = await lap(w, TV, { tuCach: SUNRISE, declaredDeposit: 200_000 });
+  assert.equal(r.status, 201, r.text);
+  const id = r.json.order.id as string;
+  assert.equal((await w.call("POST", `/api/orders/${id}/gui-quan-ly`, { as: TV, body: {} })).status, 201);
+  assert.equal((await w.call("POST", `/api/to-chuc/${SUNRISE}/go-thanh-vien`, { as: NAM, body: { personPartyId: `pty-${TV}` } })).status, 200);
+  const g = await w.call("POST", `/api/orders/${id}/gui-don`, { as: NAM, body: {} });
+  assert.equal(g.status, 200, g.text);
+  const thu = w.q("SELECT amount, collector_party_id AS c, collector_role_code AS vai FROM bil_payment_receipt WHERE order_id = ?", id).map((x: object) => ({ ...x }));
+  assert.deepEqual(thu, [{ amount: 200_000, c: `pty-${TV}`, vai: "STAFF" }]);
+});
