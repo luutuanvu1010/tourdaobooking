@@ -17,6 +17,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Số sê-ri vé, gõ số sê-ri ở Quét vé, huỷ vé lẻ, huỷ lô đã cấp (ADR-0217; migration 0177; nhánh claude/ticket-series-management-0cca10).
+    // SỐ TẠM 3.17: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.17",
+    date: "2026-11-17",
+    items: [
+      { kind: "moi", text: "Mỗi vé điện tử có một số sê-ri riêng dạng VE_ và tám chữ cái. Vé Tour Đảo tạo từ nay in đủ số này dưới mã QR.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+      { kind: "moi", text: "Màn Quét vé có ô «Nhập số sê-ri» cho vé không quét được. Gõ tay thì máy luôn hỏi xác nhận lại trước khi ghi vé đã dùng.", bai: { id: "viec/quet-ve", ten: "Quét vé Tour Đảo" } },
+      { kind: "moi", text: "Màn Vé điện tử: người phụ trách lô bấm «Xem vé» để thấy từng vé theo số sê-ri và tình trạng, hoặc tìm một vé theo số sê-ri." },
+      { kind: "moi", text: "Huỷ được từng vé lẻ, có ghi lý do. Vé đang giữ cho đơn bị huỷ thì máy tự cấp vé khác cho đơn; vé đã gửi khách thì văn phòng phải gửi lại vé thay." },
+      { kind: "doi", text: "«Huỷ lô» nay dùng được cả với lô đã cấp cho đơn: máy báo trước số vé huỷ, số vé giữ nguyên vì đã dùng, số đơn được cấp vé thay." },
+    ],
+  },
+  {
     // Sau nghiệm thu đợt 2 đăng ký (không migration): sửa dòng báo ở trang đăng ký. SỐ TẠM 3.16: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.16",
     date: "2026-11-17",
