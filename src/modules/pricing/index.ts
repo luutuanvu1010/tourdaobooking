@@ -1,7 +1,7 @@
 // Module pricing — bảng mức hoa hồng, điều khoản người bán (ADR-0077, ADR-0078 B1; đặc tả 2026-10-08 sổ đại lý đợt 1). Route: /api/pricing/*.
 // Hàm công bố cho orders: docBangChoChup (đọc mọi thứ để chụp lúc Xác nhận / đổi bên đặt), laNguoiHuong (bên đặt tổ chức có được gắn vào đơn không).
 import { auditStatement } from "../audit";
-import { getEffectiveServices, tenCacNhom, tenDacDiemTheoMa } from "../catalog";
+import { getEffectiveServices, giaGocPhiDon, tenCacNhom, tenDacDiemTheoMa } from "../catalog";
 import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, suaLoaiDoiTacStatement, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
 import { khoaTen } from "../../shared/khoa-ten.ts";
 import { kiemThanGioiHan, mucVuotGiaBan, viPhamGioiHanNhap } from "../../shared/gioi-han-nhap-muc.ts";
@@ -30,6 +30,28 @@ import { giamPhiDonRoutes } from "./giam-phi-don-route";
 import { chuongTrinhPhiDonRoutes } from "./chuong-trinh-phi-don-route";
 export { chuongTrinhPhiDonHieuLuc } from "./chuong-trinh-phi-don-repo";
 export { mucGiamPhiDonTheoNgay } from "./giam-phi-don-repo";
+import { mucGiamPhiDonTheoNgay as mucGiamTheoNgay } from "./giam-phi-don-repo";
+import { chuongTrinhPhiDonHieuLuc as chuongTrinhHieuLuc } from "./chuong-trinh-phi-don-repo";
+import { capCuaBenDatNgay } from "./phi-don-repo.ts";
+import { tinhPhiLuotDon, type DauVaoLuotDon, type KetQuaLuot } from "./phi-don-gia-goc-rules.ts";
+export { tinhPhiLuotDon, soLuongLuot, type DauVaoLuotDon, type KetQuaLuot } from "./phi-don-gia-goc-rules.ts";
+
+/**
+ * ĐƯỜNG TÍNH PHÍ ĐƯA ĐÓN DUY NHẤT (ADR-0218 Đ1; Hiến chương 5.4) cho lưu nháp, đọc nháp và xác nhận: đọc MỘT lần giá gốc (`catalog`), cấp bên đặt và mức giảm tại `ngayXacNhan`,
+ * chương trình còn hiệu lực tại `luc` (ISO UTC, mặc định bây giờ), rồi gọi hàm thuần `tinhPhiLuotDon`. Khoá kết quả = `luotKey`; lượt số lượng 0 không có khoá. KHÔNG kiểm quyền, KHÔNG ghi.
+ */
+export async function tinhPhiDonGiaGoc(db: D1Database, v: { bookerPartyId: string | null; ngayXacNhan: string; luc?: string; luot: readonly DauVaoLuotDon[] }): Promise<Map<string, KetQuaLuot>> {
+  const ra = new Map<string, KetQuaLuot>();
+  if (v.luot.length === 0) return ra;
+  const ma = [...new Set(v.luot.map((l) => l.catalogCode))];
+  const [giaGoc, cap, chuongTrinh] = await Promise.all([giaGocPhiDon(db, ma), capCuaBenDatNgay(db, { bookerPartyId: v.bookerPartyId, ngay: v.ngayXacNhan }), chuongTrinhHieuLuc(db, v.luc ?? new Date().toISOString())]);
+  const mucGiam = cap.loai === "CO_CAP" ? await mucGiamTheoNgay(db, cap.tierCode, v.ngayXacNhan) : null;
+  for (const l of v.luot) {
+    const k = tinhPhiLuotDon(l, { bookerPartyId: v.bookerPartyId, cap, mucGiam, giaGoc, chuongTrinh });
+    if (k) ra.set(l.luotKey, k);
+  }
+  return ra;
+}
 
 export { cauBiChan } from "./luat-ban-rules";
 // Phí đưa đón (ADR-0147 Đ2, ADR-0203): hàm công bố cho Đợt C — đọc bảng phí + cấp của bên đặt; luật thuần chọn mức và tính tiền một chặng. Chỉ đọc, KHÔNG tự kiểm quyền.
