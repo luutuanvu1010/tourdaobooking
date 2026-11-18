@@ -2,7 +2,23 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.15 ĐÃ LÊN PRODUCTION (Đăng ký đợt 2, ADR-0212 và ADR-0213: phiếu đăng ký có phần tổ chức; người quản lý tổ chức, tư cách khi lập đơn, Công ty lữ hành; mời thành viên, mã vào tổ chức, chế độ thành viên, thành viên gửi người quản lý xác nhận) — migration `0174`, `0175`, `0176` — triển khai 2026-11-17 14:07 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.18 ĐÃ LÊN PRODUCTION (ADR-0219: Quản lý bán hàng xác minh phiếu đăng ký đối tác; Quản trị, Nhân sự hoặc Toàn quyền duyệt mở tài khoản; hàng chờ sang trang riêng «Phiếu đăng ký đối tác»; nút Duyệt khoá khi người mở là người xác minh) — không migration — triển khai 2026-11-18 17:48 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Bản 3.16 và 3.17 (số sê-ri vé, ADR-0217) đã lên trước, ghi ở nhánh khác. Nhật ký thi công: `docs/superpowers/specs/2026-11-18-adr-0219-nguoi-xac-minh-nguoi-duyet/THI-CONG.md`.
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-18 17:48 (giờ Việt Nam)
+- Commit: 33b0c5388 ADR-0219: sửa sau lượt kiểm độc lập (đạt có điều kiện)
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-18T10:44:38Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/44287120062
+- Tệp luật đã đổi — lý do của chủ: da xong roi nhe (docs/adr/ADR-0219-doi-nguoi-xac-minh-va-nguoi-duyet-phieu-dang-ky.md; docs/adr/README.md)
+- Migration đã áp: không có
+- Worker Version ID: 241cb67a-b507-40b2-b06b-5372cede3110
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT, 3 cảnh báo
+- Phiên bản: 3.18 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Điều kiện vận hành: cần ít nhất một tài khoản Quản lý bán hàng (kèm mã Bán hàng) để phiếu không kẹt ở bước xác minh; Toàn quyền làm thay được. Chưa thử iPhone thật.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.15 ĐÃ LÊN PRODUCTION (Đăng ký đợt 2, ADR-0212 và ADR-0213: phiếu đăng ký có phần tổ chức; người quản lý tổ chức, tư cách khi lập đơn, Công ty lữ hành; mời thành viên, mã vào tổ chức, chế độ thành viên, thành viên gửi người quản lý xác nhận) — migration `0174`, `0175`, `0176` — triển khai 2026-11-17 14:07 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Gộp luôn 3.14 (sửa chữ màn Phí đưa đón) vì `main` mang số đó khi gộp. Runbook của lần này ở khối «ĐÃ TRIỂN KHAI 2026-11-17: Đăng ký đợt 2» bên dưới; các điều kiện trước cho chủ (chưa tích «Thu thông tin tổ chức» khi chưa có chính sách riêng tư đã luật sư soát, soát tổ chức đang dùng để giao người quản lý) vẫn còn hiệu lực.
 
