@@ -91,6 +91,8 @@ export function datGapTheoVai(order: OrderDetailDto, xemDu: boolean): OrderDetai
   if (xemDu) return order;
   return {
     ...order,
+    // ADR-0218 (G): lý do đổi phí là chữ văn phòng gõ — người không có ô xem đặt gấp (văn phòng) không thấy; chỗ chặn duy nhất của DTO chặng.
+    phiDuaDon: order.phiDuaDon ? { ...order.phiDuaDon, dong: order.phiDuaDon.dong.map((d) => ({ ...d, lyDoDoi: null })) } : order.phiDuaDon,
     services: order.services.map((s) => ({ ...s, legs: s.legs.map((l) => ({ ...l, datGap: l.datGap ? { daDuyet: true as const } : null })) })),
   };
 }

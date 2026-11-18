@@ -43,7 +43,7 @@ export { tinhPhiLuotDon, soLuongLuot, type DauVaoLuotDon, type KetQuaLuot } from
 export async function tinhPhiDonGiaGoc(db: D1Database, v: { bookerPartyId: string | null; ngayXacNhan: string; luc?: string; luot: readonly DauVaoLuotDon[] }): Promise<Map<string, KetQuaLuot>> {
   const ra = new Map<string, KetQuaLuot>();
   if (v.luot.length === 0) return ra;
-  const ma = [...new Set(v.luot.map((l) => l.catalogCode))];
+  const ma = [...new Set(v.luot.flatMap((l) => (l.catalogCode === null ? [] : [l.catalogCode])))];
   const [giaGoc, cap, chuongTrinh] = await Promise.all([giaGocPhiDon(db, ma), capCuaBenDatNgay(db, { bookerPartyId: v.bookerPartyId, ngay: v.ngayXacNhan }), chuongTrinhHieuLuc(db, v.luc ?? new Date().toISOString())]);
   const mucGiam = cap.loai === "CO_CAP" ? await mucGiamTheoNgay(db, cap.tierCode, v.ngayXacNhan) : null;
   for (const l of v.luot) {

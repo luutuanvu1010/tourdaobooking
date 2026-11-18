@@ -9,6 +9,9 @@ export const CAU_DON_GIA_DOI_PHI = "Đơn giá phí đưa đón phải là số 
 /** Câu 400 `client_outdated`: trình duyệt còn bản cũ gửi thân `phiDon` kiểu danh sách mức. */
 export const CAU_BAN_CU = "Nền tảng vừa cập nhật. Tải lại trang rồi thử lại.";
 
+/** Câu 400 `transfer_fee_not_allowed` (tài khoản Đối tác gửi số đổi phí) và lời nhắc trên biểu mẫu của Đối tác — MỘT nguồn (ADR-0214 Đ2 giữ, ADR-0218 Đ1.5). */
+export const CAU_VAN_PHONG_DOI_PHI_DON = "Phí đưa đón do Nền tảng tự tính, chỉ văn phòng đổi được.";
+
 export type DoiPhi = { donGia: number; lyDo: string };
 export type LoiDoiPhi = "DON_GIA" | "LY_DO_RONG" | "LY_DO_DAI";
 /** Kiểm MỌI giá trị từ trình duyệt: `donGia` là số nguyên thật 0–5.000.000 (0 được nhận); `lyDo` chuỗi không rỗng sau khi cắt khoảng trắng, ≤ 300 ký tự. */

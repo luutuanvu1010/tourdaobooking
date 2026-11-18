@@ -31,8 +31,9 @@ import { donChoTran, dongGhiTuChup, moTaChup } from "./thuong-mai";
 import { catalogStatusOf, confirmGaps, summarizeDeviations } from "./service-rules";
 import { getEffectiveServices } from "../catalog";
 import { chuanBiPhiDonXacNhan, kiemNhomChoPhepDuaDon, type PhiDonXacNhan } from "./service";
+import type { DoiTayLuu } from "./phi-don-don";
 import { cauThieuPhiDon } from "./phi-don-don";
-import { CAU_VAN_PHONG_CHON_PHI_DON, type MucChon } from "../../shared/phi-don-chon";
+import { CAU_BAN_CU, CAU_VAN_PHONG_DOI_PHI_DON } from "../../shared/phi-don-gia-goc";
 import { congLuatBan } from "./cong-ban";
 import { traSauChoXacNhan, type HamTraSau, type KemTraSau } from "./tra-sau-cong";
 import { laDoiTacTraSau } from "../../shared/tra-sau";
@@ -56,10 +57,12 @@ export const MOC_CHUA_CO = () => error(503, "moc_toi_thieu_chua_co", "Chưa có 
  */
 export function congThieuPhiDon(phiDon: Pick<PhiDonXacNhan, "thieu">): Response | null {
   const t = phiDon.thieu[0];
-  return t ? error(409, "transfer_fee_missing", cauThieuPhiDon({ direction: t.direction, tenDichVu: t.tenDichVu })) : null;
+  return t ? error(409, "transfer_fee_missing", cauThieuPhiDon({ direction: t.direction, tenDichVu: t.tenDichVu, lyDo: t.lyDo })) : null;
 }
 /** ADR-0214 Đ2 (ruling P4): tài khoản giữ quyền Đối tác gửi mức phí đưa đón ở bất kỳ đường nào (lập, lưu nháp, sửa chặng, sửa chuyến, Gửi đơn, Còn vé) ⇒ 400, không lặng lẽ bỏ. */
-export const TRANSFER_FEE_NOT_ALLOWED = () => error(400, "transfer_fee_not_allowed", CAU_VAN_PHONG_CHON_PHI_DON);
+export const TRANSFER_FEE_NOT_ALLOWED = () => error(400, "transfer_fee_not_allowed", CAU_VAN_PHONG_DOI_PHI_DON);
+/** ADR-0218 (Review Focus 2): trình duyệt còn bản cũ gửi khoá `phiDon` (danh sách mức của ADR-0214) ⇒ 400 `client_outdated`, không lặng lẽ bỏ qua. Tài khoản Đối tác gặp `transfer_fee_not_allowed` trước. */
+export const BAN_CU = () => error(400, "client_outdated", CAU_BAN_CU);
 /** Lô xác nhận có câu chốt phí mà câu đổi trạng thái thua ⇒ `db.batch` ném lỗi này (cả lô lui). Nơi gọi coi như lô thua (`daXacNhan` false): đọc lại lý do bằng `chanDoanXacNhan`. */
 export const laThuaChotPhiDon = (e: unknown): boolean => /\btransfer_fee_confirm_lost\b/.test(e instanceof Error ? e.message : String(e));
 
@@ -247,13 +250,13 @@ export async function chayLoNoiChuyen(db: D1Database, dong: DongBoTheoDon, thang
  */
 export async function kiemCongXacNhan(
   db: D1Database,
-  i: { actor: StaffProfile; order: DonXacNhan; kiemMoc: boolean; mocToiThieu: MocToiThieu | null; cuaDuaDon?: CuaDuaDon; traSau: HamTraSau; nguoiLapDoiTac: NguoiLapDoiTac; cheDoThieuPhi: "TU_CHOI" | "NHANH_A"; mucPhiThem?: ReadonlyMap<string, MucChon> },
+  i: { actor: StaffProfile; order: DonXacNhan; kiemMoc: boolean; mocToiThieu: MocToiThieu | null; cuaDuaDon?: CuaDuaDon; traSau: HamTraSau; nguoiLapDoiTac: NguoiLapDoiTac; cheDoThieuPhi: "TU_CHOI" | "NHANH_A"; doiTayThem?: ReadonlyMap<string, DoiTayLuu> },
 ): Promise<{ loi: Response } | { ok: true; chup: BanChup[]; detail: string | undefined; today: string; traSau: KemTraSau; phiDon: PhiDonXacNhan }> {
   const { actor, order } = i;
   const today = vnToday(new Date());
   // ADR-0214: phí theo mức đã chọn (dòng phí đã lưu theo id chặng + `mucPhiThem` — mức văn phòng chọn ở Còn vé), số khách hiện tại, công tắc ở NGÀY XÁC NHẬN (chỉ đọc). Tính trước mọi
   // cổng vì cổng Trả sau (và lời khai đặt cọc ở nơi gọi) đọc tổng đã gồm phí.
-  const phiDon = await chuanBiPhiDonXacNhan(db, order, today, i.mucPhiThem);
+  const phiDon = await chuanBiPhiDonXacNhan(db, order, today, i.doiTayThem);
   // ADR-0146 Đ3 + R-7 (Q-8 (a) của chủ): luật bán đứng ĐẦU mọi cổng xác nhận — đơn vừa bị chặn bán vừa vướng cổng khác luôn nhận `sales_blocked` (sửa cổng kia cũng vô ích).
   const chanBan = await congLuatBan(db, { bookerPartyId: order.bookerPartyId, dong: order.services });
   if (chanBan) return { loi: chanBan };

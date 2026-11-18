@@ -6,7 +6,9 @@ import { chuongTrinhKhop, type ChuongTrinh } from "./chuong-trinh-phi-don-rules.
 import type { CapCuaHoSo } from "./phi-don-rules.ts";
 
 export type DauVaoLuotDon = {
-  luotKey: string; catalogCode: string; direction: "OUT" | "RETURN"; xeRieng: boolean;
+  luotKey: string;
+  /** null = dịch vụ nhập tay: không có dòng giá gốc ⇒ O_TRONG (đổi số vẫn được; chương trình «tất cả» / theo đối tác vẫn khớp). */
+  catalogCode: string | null; direction: "OUT" | "RETURN"; xeRieng: boolean;
   /** Ngày đón của lượt (YYYY-MM-DD); null = nháp chưa có ngày đón ⇒ không chương trình nào khớp. */
   pickupDate: string | null; soKhachTinhTien: number; paxOverride: number | null;
   doiTay: { donGia: number; lyDo: string; nguoi: string } | null;
@@ -37,7 +39,7 @@ export function tinhPhiLuotDon(l: DauVaoLuotDon, b: BoiCanh): KetQuaLuot | null 
   if (l.doiTay) return co("DOI_TAY", l.doiTay.donGia, { lyDo: l.doiTay.lyDo, nguoi: l.doiTay.nguoi });
   const ct = chuongTrinhKhop(b.chuongTrinh, { catalogCode: l.catalogCode, bookerPartyId: b.bookerPartyId, pickupDate: l.pickupDate, xeRieng: l.xeRieng });
   if (ct) return co("CHUONG_TRINH", 0, { chuongTrinh: { id: ct.id, name: ct.name } });
-  const g = b.giaGoc.get(l.catalogCode);
+  const g = l.catalogCode === null ? undefined : b.giaGoc.get(l.catalogCode);
   const goc = l.xeRieng ? g?.xeRieng : g?.moiKhach;
   if (goc === undefined || goc === null) return { ketQua: "THIEU", lyDo: "O_TRONG" };
   if (l.xeRieng) return co("GIA_GOC", goc, { giaGoc: goc, tierCode: b.cap.loai === "CO_CAP" ? b.cap.tierCode : null, mucGiam: 0 });

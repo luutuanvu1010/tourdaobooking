@@ -4,7 +4,7 @@ export type ChuongTrinh = {
   id: string; name: string; scope: "ALL" | "SERVICES" | "PARTNERS"; tripFrom: string; tripTo: string; includePrivate: boolean; createdAt: string;
   services: readonly string[]; parties: readonly string[];
 };
-export type LuotDonXet = { catalogCode: string; bookerPartyId: string | null; pickupDate: string | null; xeRieng: boolean };
+export type LuotDonXet = { catalogCode: string | null; bookerPartyId: string | null; pickupDate: string | null; xeRieng: boolean };
 
 /**
  * Chương trình khớp lượt đón: ngày đón trong khoảng; dịch vụ thuộc phạm vi HOẶC bên đặt thuộc phạm vi (hoặc phạm vi tất cả); lượt đi chung, hoặc xe riêng với cờ «gồm xe riêng».
@@ -17,7 +17,7 @@ export function chuongTrinhKhop(ds: readonly ChuongTrinh[], luot: LuotDonXet): C
     if (ngay < c.tripFrom || ngay > c.tripTo) return false;
     if (luot.xeRieng && !c.includePrivate) return false;
     if (c.scope === "ALL") return true;
-    if (c.scope === "SERVICES") return c.services.includes(luot.catalogCode);
+    if (c.scope === "SERVICES") return luot.catalogCode !== null && c.services.includes(luot.catalogCode);
     return luot.bookerPartyId !== null && c.parties.includes(luot.bookerPartyId);
   });
   khop.sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : a.id > b.id ? 1 : 0));

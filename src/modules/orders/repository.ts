@@ -1796,10 +1796,15 @@ export async function changeBooker(
   /** ADR-0213 PF10 (Task 11): bên đặt ĐỔI THẬT ⇒ xoá tư cách (cả hai cột, cùng câu — trigger `orders_acting_immutable` chỉ cho về NULL cả hai). Đơn thành đơn thường (luật hôm nay).
    * Nhật ký `booker_changed` đứng SAU câu này nên không mang tổ chức. */
   xoaTuCach = false,
+  /** ADR-0218 Review Focus 4: đổi bên đặt trên NHÁP tính lại phí (cấp, chương trình theo đối tác). Câu xoá–chèn dòng phí và câu tiền đứng TRƯỚC câu UPDATE, gác bằng ĐÚNG mốc `expectedUpdatedAt` của câu UPDATE
+   * (cùng khuôn `GAC_TRUOC`: lô nào thắng thì cả hai cùng chạy, thua thì cả hai cùng bỏ). */
+  phiTruoc: readonly D1PreparedStatement[] = [],
 ): Promise<boolean> {
   const at = nextStamp(change.expectedUpdatedAt);
+  const dau = booker.before.length + phiTruoc.length;
   const results = await db.batch([
     ...booker.before,
+    ...phiTruoc,
     db
       .prepare(
         `UPDATE orders SET customer_name = ?, customer_phone = ?, booker_party_id = ${BOOKER_VALUE}, updated_at = ?,
@@ -1811,7 +1816,7 @@ export async function changeBooker(
     ...(alsoChange?.(at) ?? []),
     ...qua.kem(at),
   ]);
-  return (results[booker.before.length]!.meta.changes ?? 0) > 0;
+  return (results[dau]!.meta.changes ?? 0) > 0;
 }
 
 /**

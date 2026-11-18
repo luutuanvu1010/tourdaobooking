@@ -433,10 +433,10 @@ export interface OrderDto {
 }
 
 /**
- * Lý do một chặng chưa có phí đưa đón trên đơn. Từ ADR-0214 chỉ còn `CHUA_CHON` (lượt đón còn mở chưa được văn phòng chọn mức); ba lý do của bảng phí Đợt C (`KHONG_CO_MUC`, `XUNG_DOT`,
- * `DAI_LY_HAI_CAP`) không còn sinh ra trên đường đơn — «Thử tra» của pricing có kiểu riêng (`ThuTraPhiDonResponse`).
+ * Lý do một lượt đón còn mở máy chưa tính được phí (ADR-0218 Đ1.2): `O_TRONG` = ô giá gốc cần dùng trên Sheet đang trống (hoặc dịch vụ nhập tay, không có giá gốc); `HAI_CAP` = bên đặt là đối tác hai vai
+ * trò hai cấp mà chưa có cấp riêng. Không bao giờ lấy 0 đồng. «Thử tra» của pricing có kiểu riêng (`ThuTraPhiDonResponse`).
  */
-export type LyDoThieuPhiDonDto = "CHUA_CHON";
+export type LyDoThieuPhiDonDto = "O_TRONG" | "HAI_CAP";
 /** Một dòng phí đưa đón đã lưu trên đơn (một chặng tối đa một dòng). */
 export interface PhiDuaDonDto {
   id: string;
@@ -448,6 +448,12 @@ export interface PhiDuaDonDto {
   zoneName: string | null;
   /** Kiểu chọn của dòng do văn phòng chọn (ADR-0214): «trong danh sách» hoặc «số khác»; null = dòng bảng phí cũ của Đợt C. */
   loaiChon: "DANH_SACH" | "SO_KHAC" | null;
+  /** Nguồn tính của máy (ADR-0218): `DOI_TAY` văn phòng đổi số, `CHUONG_TRINH` chương trình miễn phí, `GIA_GOC` giá gốc trừ mức giảm cấp; null = dòng cũ (ADR-0147 / ADR-0214). */
+  nguon: "DOI_TAY" | "CHUONG_TRINH" | "GIA_GOC" | null;
+  /** Tên chương trình đã áp (nguồn CHUONG_TRINH). */
+  tenChuongTrinh: string | null;
+  /** Lý do đổi số (nguồn DOI_TAY) — chữ văn phòng gõ: chỉ người có ô xem đặt gấp (văn phòng) thấy, `datGapTheoVai` bỏ với người khác. KHÔNG có người đổi (chỉ nhật ký). */
+  lyDoDoi: string | null;
   // KHÔNG có mã cấp đại lý (kiểm độc lập Đợt C, Nhỏ 2): DTO này tới mọi người có quyền xem tiền (cả Đối tác, hướng dẫn viên); cấp của đại lý chỉ nằm ở cột chụp `order_item.fee_tier_code`.
   kind: "PER_PAX" | "PER_TRIP";
   /** Số người chiều về đã chụp lúc tính (`order_item.fee_return_pax`); null = theo số khách của dịch vụ. Máy chủ dùng để tính lại phí khi «Sửa số khách» (không đọc số người chiều về hiện tại). */

@@ -11,7 +11,7 @@ import { auditStatement } from "../audit";
 import { datGapTheoVai } from "./dat-gap";
 import { getEffectiveServices, maDatKhongDon, tenNhomHienHanh } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
-import { laNguoiHuong, ngayBatDauApPhiDon } from "../pricing";
+import { laNguoiHuong, ngayBatDauApPhiDon, tinhPhiDonGiaGoc } from "../pricing";
 import {
   LY_DO_DONG_CHANG, MAX_CHANG_MOI_DICH_VU, chiDoiOPhu, chieuDiDau, docSoNguoiVe, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
 } from "../../shared/chang-dua-don";
@@ -21,7 +21,7 @@ import {
   activeLocations, dichVuTatDuaDon, legById, passengerRowsByOrders, servicePaxByIds, servicePaxByOrder, type LegFields, type OPhuGhi, type PassengerRow,
 } from "./chang-hanh-khach-repo";
 import { applyAdjustmentToOrder, effectiveMoney } from "./money-adjustment";
-import { KHONG_PHI, mucDaLuuTheoChang, phiDuaDonDto, phiNhapChon, type DichVuChoPhi, type PhiNhap } from "./phi-don-don";
+import { KHONG_PHI, doiTayTuDong, luotDauVao, phiDuaDonDto, phiNhapMay, tomTatTuDongDaLuu, type DichVuChoPhi, type DoiTayLuu, type PhiNhap, type TomTatPhi } from "./phi-don-don";
 import type { MucChon } from "../../shared/phi-don-chon";
 import type { LyDoThieuPhiDonDto, PhiDuaDonDto } from "../../shared/contracts";
 import {
@@ -496,9 +496,9 @@ export async function loadOrderView(db: D1Database, id: string, xemDuDatGap: boo
   if (order.status === "draft") {
     const codes = order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : []));
     const catalog = await getEffectiveServices(db, codes);
-    // Phí đưa đón của NHÁP: dòng đã lưu (dự kiến) + chặng mở chưa chọn mức (CHUA_CHON) — tính lúc đọc theo công tắc hôm nay, mức đã lưu theo id chặng (ADR-0214).
-    const dvNhap = order.services.map((s) => ({ ref: s.id, ten: s.name, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) }));
-    const song = await tinhPhiNhap(db, dvNhap, mucTuDongPhi(order.phiDuaDon?.dong ?? []), vnToday(new Date()));
+    // Phí đưa đón của NHÁP: dòng đã lưu (dự kiến) + lượt đón mở máy chưa tính được (O_TRONG / HAI_CAP) — tính lúc đọc theo công tắc hôm nay; số đổi của văn phòng giữ theo id chặng (ADR-0218).
+    const dvNhap = order.services.map((s) => ({ ref: s.id, ten: s.name, catalogCode: s.catalogCode, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) }));
+    const song = await tinhPhiNhap(db, dvNhap, { bookerPartyId: order.bookerPartyId, doiTay: (await docPhiDaLuu(db, id)).doiTay, ngay: vnToday(new Date()) });
     return datGapTheoVai(
       {
         ...order,
@@ -550,33 +550,34 @@ export async function resolveBooker(
   return { ok: true, write: { partyId: made.partyId, before: [...made.statements, log], note: describeBookerChange(current, { id: made.partyId, name: display }) } };
 }
 
-// ---- Phí đưa đón trên đơn NHÁP (Đợt C, Task 3; từ ADR-0214: mức do văn phòng chọn) -----------------------------------------------------------------------
+// ---- Phí đưa đón trên đơn NHÁP (Đợt C; từ ADR-0218: máy tính từ giá gốc Sheet) -----------------------------------------------------------------------
+
+/** Bối cảnh của một lần tính phí: bên đặt (cấp, chương trình theo đối tác), số đổi của văn phòng theo khoá chặng của `dv`, ngày tính (giờ Việt Nam — ngày xác nhận, hoặc hôm nay với nháp). */
+export interface BoiCanhPhiNhap { bookerPartyId: string | null; doiTay: ReadonlyMap<string, DoiTayLuu>; ngay: string }
 
 /**
- * Phí đưa đón của một đơn NHÁP ở ngày `ngay` (giờ Việt Nam — đơn nháp tính theo hôm nay): công tắc «ngày bắt đầu áp» của pricing (`ngayBatDauApPhiDon`, chỉ đọc) — chưa bật hoặc
- * `ngay` trước ngày đó ⇒ `KHONG_PHI` (không dòng, không thiếu, mức trong thân bị bỏ qua sau khi đã kiểm). Đang áp ⇒ `phiNhapChon` (thuần): chặng mở có mức ⇒ dòng; không ⇒ CHUA_CHON.
- * `muc` theo khoá chặng của `dv` (vị trí «dịch vụ|chặng» khi lập / lưu nháp — `mucTheoThan`; id chặng khi sửa chặng / đọc — `mucDaLuu`). Không đọc bảng phí, không đọc khu vực
- * (ADR-0214 thay ADR-0147 Đ1–Đ2). Không ném lỗi tràn: số khách mỗi dịch vụ ≤ MAX_GUESTS_PER_SERVICE (50), một mức ≤ 5.000.000 đ ⇒ tích luôn là số nguyên an toàn.
+ * Phí đưa đón của một đơn ở ngày `v.ngay`: công tắc «ngày bắt đầu áp» của pricing (`ngayBatDauApPhiDon`, chỉ đọc) — chưa bật hoặc `ngay` trước ngày đó ⇒ `KHONG_PHI` (không dòng, không thiếu, số đổi trong thân
+ * bị bỏ qua sau khi đã kiểm). Đang áp ⇒ MỘT đường tính duy nhất `tinhPhiDonGiaGoc` của pricing (Hiến chương 5.4), `phiNhapMay` (thuần) dựng dòng và danh sách thiếu. Cấp và mức giảm tra theo `ngay`;
+ * chương trình theo NGÀY ĐÓN của từng lượt. Không ném lỗi tràn: số khách mỗi dịch vụ ≤ MAX_GUESTS_PER_SERVICE (50), đơn giá ≤ 5.000.000 đ ⇒ tích luôn là số nguyên an toàn.
  */
-export async function tinhPhiNhap(db: D1Database, dv: readonly DichVuChoPhi[], muc: ReadonlyMap<string, MucChon>, ngay: string): Promise<PhiNhap> {
+export async function tinhPhiNhap(db: D1Database, dv: readonly DichVuChoPhi[], v: BoiCanhPhiNhap): Promise<PhiNhap> {
   if (!dv.some((s) => s.legs.some((l) => !l.closed))) return KHONG_PHI;
   const batDau = await ngayBatDauApPhiDon(db);
-  if (batDau === null || ngay < batDau) return KHONG_PHI;
-  return phiNhapChon(dv, muc);
+  if (batDau === null || v.ngay < batDau) return KHONG_PHI;
+  const luot = luotDauVao(dv, v.doiTay);
+  const ketQua = await tinhPhiDonGiaGoc(db, { bookerPartyId: v.bookerPartyId, ngayXacNhan: v.ngay, luot });
+  return phiNhapMay(dv, ketQua);
 }
 
-/** Mức đã lưu theo id chặng từ DTO dòng phí đã đọc (`order.phiDuaDon.dong`) — không tốn câu đọc thêm. */
-export const mucTuDongPhi = (dong: readonly PhiDuaDonDto[]): Map<string, MucChon> => mucDaLuuTheoChang(dong);
-
-/** Mức đã lưu theo id chặng của đơn `orderId` (đọc dòng phí — `feeRowsStatement`): chỉ dòng do văn phòng chọn; dòng bảng phí cũ coi như chưa chọn (ruling P6). */
-export async function mucDaLuu(db: D1Database, orderId: string): Promise<Map<string, MucChon>> {
+/** Dòng phí đã lưu của đơn `orderId` (đọc `feeRowsStatement`): số đổi của văn phòng (kể cả người đổi gốc) + tóm tắt để viết nhật ký «cũ → mới», cùng theo id chặng. */
+export async function docPhiDaLuu(db: D1Database, orderId: string): Promise<{ doiTay: Map<string, DoiTayLuu>; tomTat: Map<string, TomTatPhi> }> {
   const { results } = await feeRowsStatement(db, orderId).all<FeeRow>();
-  return mucDaLuuTheoChang(results.map((r) => ({ legId: r.transfer_leg_id, loaiChon: r.fee_choice, unitPrice: r.unit_price })));
+  return { doiTay: doiTayTuDong(results), tomTat: new Map(results.map((r) => [r.transfer_leg_id, tomTatTuDongDaLuu(r)])) };
 }
 
 /** Dịch vụ của thân lập / lưu nháp → đầu vào tính phí, khoá chặng = vị trí `"<dịch vụ>|<chặng>"` (cùng khoá với nơi sinh id chặng ở repository `legWrites`). */
 export const dichVuNhapChoPhi = (services: readonly ValidOrder["services"][number][]): DichVuChoPhi[] =>
-  services.map((s, i) => ({ ref: String(i), ten: s.name, pax: s.pax, legs: s.legs.map((l, j) => ({ ...l, legKey: `${i}|${j}` })) }));
+  services.map((s, i) => ({ ref: String(i), ten: s.name, catalogCode: s.catalogCode, pax: s.pax, legs: s.legs.map((l, j) => ({ ...l, legKey: `${i}|${j}` })) }));
 
 /** Cộng phí vào tạm tính và tổng của đơn sẽ ghi (giảm giá đã kiểm trên dòng dịch vụ ở `validateOrder` — không đổi). */
 export const congPhiVaoDon = <T extends { subtotal: number; total: number }>(order: T, phi: PhiNhap): T => ({ ...order, subtotal: order.subtotal + phi.tong, total: order.total + phi.tong });
@@ -592,17 +593,19 @@ export function dichVuDangLuuChoPhi(
     const legs: DichVuChoPhi["legs"][number][] = [];
     for (const l of s.legs) {
       const op = sua.ops?.find((o) => (o.kind === "update" || o.kind === "close") && o.legId === l.id);
-      if (op?.kind === "close") continue; // nơi đón / trả của lệnh «update» không đổi phí (ADR-0214: không dùng khu vực) — chỉ giữ chặng
+      if (op?.kind === "close") continue;
       legs.push({
         legKey: l.id, direction: l.direction, exclusiveVehicle: l.exclusiveVehicle,
         paxOverride: sua.paxOverride?.legId === l.id ? sua.paxOverride.giaTri : l.paxOverride,
+        // ADR-0218 Đ2.2: chương trình khớp theo NGÀY ĐÓN — lệnh «update» đổi ngày đón thì tính theo ngày MỚI (nơi đón / trả không đổi phí).
+        pickupDate: op?.kind === "update" ? op.fields.pickupDate : l.pickupDate,
       });
     }
     for (const op of sua.ops ?? []) {
       if (op.kind !== "insert" || op.serviceId !== s.id || op.leg.id === null) continue;
-      legs.push({ legKey: op.leg.id, direction: op.leg.direction, exclusiveVehicle: op.leg.exclusiveVehicle, paxOverride: op.leg.paxOverride });
+      legs.push({ legKey: op.leg.id, direction: op.leg.direction, exclusiveVehicle: op.leg.exclusiveVehicle, paxOverride: op.leg.paxOverride, pickupDate: op.leg.pickupDate });
     }
-    return { ref: s.id, ten: s.name, pax: s.pax, legs };
+    return { ref: s.id, ten: s.name, catalogCode: s.catalogCode, pax: s.pax, legs };
   });
 }
 
@@ -637,33 +640,35 @@ export interface PhiDonXacNhan {
   subtotalMoi: number;
   /** Tổng phải thu theo `subtotalMoi` (giảm giá chỉ so với dòng dịch vụ — đã chặn lúc lưu nháp; `effectiveMoney` kẹp ≥ 0). Cổng Trả sau và lời khai đặt cọc đọc số này. */
   totalMoi: number;
+  /** Kết quả từng lượt có phí (khoá = id chặng) — cho nhật ký xác nhận. */
+  chiTiet: ReadonlyMap<string, import("./phi-don-don").KetQuaCoPhi>;
   cauLenh: KemPhiDon;
 }
 
 /**
- * CHỈ ĐỌC: tính lại phí đưa đón của đơn NHÁP `don` ở ngày xác nhận `ngay` (giờ Việt Nam, `cong.today`) — ADR-0214 Đ2–Đ3:
- * mức = mức đã lưu trong dòng phí theo id chặng (`mucTuDongPhi` — chỉ dòng do văn phòng chọn; dòng bảng phí cũ / không nguồn coi như chưa chọn, ruling P6 — không bao giờ tự 0 đồng),
- * cộng `mucThem` = mức văn phòng chọn ở cửa Còn vé theo id chặng (route đã kiểm: chặng mở của chính đơn, chưa có mức, `kiemMucChon`); số lượng tính lại theo số khách hiện tại;
- * chặng mở không mức ⇒ thiếu CHUA_CHON ⇒ cửa xác nhận từ chối / Gửi đơn đi nhánh A. Phí chưa áp ⇒ không thiếu (mức gửi kèm bị bỏ qua sau khi đã kiểm).
- * Câu (khi có): xoá mọi dòng phí cũ → chèn dòng phí mới → tạm tính / tổng mới (`cauTienXacNhanPhi`), đều gác bằng «đơn còn nháp ĐÚNG mốc `prevUpdatedAt`» (cùng điều kiện khoá của
- * câu xác nhận) và không đổi `updated_at`. Có câu khi phí đang áp HOẶC nháp còn dòng phí cũ (phí vừa tắt ⇒ phải bỏ dòng cũ và trả tạm tính về tổng dịch vụ).
+ * CHỈ ĐỌC: tính lại phí đưa đón của đơn NHÁP `don` ở ngày xác nhận `ngay` (giờ Việt Nam, `cong.today`) — ADR-0218 Đ1, Đ1.6:
+ * mỗi lượt đón mở tính lại bằng MỘT đường (`tinhPhiNhap` → `tinhPhiDonGiaGoc`): số đổi của văn phòng (đã lưu trong dòng phí theo id chặng, cộng `doiTayThem` = số đổi ở cửa Còn vé — route đã kiểm, ghi đè số đã lưu),
+ * rồi chương trình miễn phí, rồi giá gốc Sheet trừ mức giảm theo cấp. Cấp tra theo NGÀY XÁC NHẬN, chương trình theo NGÀY ĐÓN. Lượt thiếu giá ⇒ `thieu` ⇒ cửa xác nhận từ chối / Gửi đơn đi nhánh A.
+ * Phí chưa áp ⇒ không thiếu (số đổi gửi kèm bị bỏ qua sau khi đã kiểm). Số lượng tính lại theo số khách hiện tại.
+ * Câu (khi có): xoá mọi dòng phí cũ → chèn dòng phí mới (mang bản chụp: nguồn, giá gốc, cấp, mức giảm, chương trình, lý do, người đổi) → tạm tính / tổng mới (`cauTienXacNhanPhi`), đều gác bằng «đơn còn nháp
+ * ĐÚNG mốc `prevUpdatedAt`» (cùng điều kiện khoá của câu xác nhận) và không đổi `updated_at`. Có câu khi phí đang áp HOẶC nháp còn dòng phí cũ (phí vừa tắt ⇒ phải bỏ dòng cũ và trả tạm tính về tổng dịch vụ).
  * `remaining_amount` không tính ở đây: cột cọc cũ không được đọc ngoài câu SQL (NT-R9) — `COC_CU_THEO_TONG` trong câu tiền tự đặt theo `totalMoi`.
- * Không ném lỗi tràn: số khách mỗi dịch vụ ≤ MAX_GUESTS_PER_SERVICE (50), một mức ≤ 5.000.000 đ ⇒ mỗi dòng ≤ 2,5e8 (như `tinhPhiNhap`).
+ * Không ném lỗi tràn: số khách mỗi dịch vụ ≤ MAX_GUESTS_PER_SERVICE (50), đơn giá ≤ 5.000.000 đ ⇒ mỗi dòng ≤ 2,5e8 (như `tinhPhiNhap`).
  */
 export async function chuanBiPhiDonXacNhan(
-  db: D1Database, don: NonNullable<Awaited<ReturnType<typeof findOrder>>>, ngay: string, mucThem: ReadonlyMap<string, MucChon> = new Map(),
+  db: D1Database, don: NonNullable<Awaited<ReturnType<typeof findOrder>>>, ngay: string, doiTayThem: ReadonlyMap<string, DoiTayLuu> = new Map(),
 ): Promise<PhiDonXacNhan> {
-  const dv: DichVuChoPhi[] = don.services.map((s) => ({ ref: s.id, ten: s.name, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) }));
-  const phi = await tinhPhiNhap(db, dv, new Map([...mucTuDongPhi(don.phiDuaDon?.dong ?? []), ...mucThem]), ngay);
+  const dv: DichVuChoPhi[] = don.services.map((s) => ({ ref: s.id, ten: s.name, catalogCode: s.catalogCode, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) }));
+  const phi = await tinhPhiNhap(db, dv, { bookerPartyId: don.bookerPartyId, doiTay: new Map([...(await docPhiDaLuu(db, don.id)).doiTay, ...doiTayThem]), ngay });
   const coDongCu = (don.phiDuaDon?.dong.length ?? 0) > 0;
-  if (!phi.apDung && !coDongCu) return { apDung: false, thieu: [], subtotalMoi: don.subtotal, totalMoi: don.total, cauLenh: () => [] };
+  if (!phi.apDung && !coDongCu) return { apDung: false, thieu: [], subtotalMoi: don.subtotal, totalMoi: don.total, chiTiet: new Map(), cauLenh: () => [] };
   const tongDichVu = don.services.reduce((t, s) => t + s.items.reduce((u, i) => u + i.lineTotal, 0), 0);
   const subtotalMoi = tongDichVu + phi.tong;
   const totalMoi = effectiveMoney(tongDichVu, don.discount, phi.tong).total;
   const thieu = phi.thieu.map((t) => ({ legKey: t.legKey, direction: t.direction, tenDichVu: t.tenDichVu, lyDo: t.lyDo }));
   const soDongDichVu = don.services.reduce((t, s) => t + s.items.length, 0);
   return {
-    apDung: phi.apDung, thieu, subtotalMoi, totalMoi,
+    apDung: phi.apDung, thieu, subtotalMoi, totalMoi, chiTiet: phi.chiTiet,
     cauLenh: (moc) => [
       ...cauPhiNhap(db, don.id, phi, { orderId: don.id, mocDon: moc, legId: null, mocChang: null }, new Set(), soDongDichVu).truoc,
       cauTienXacNhanPhi(db, don.id, moc, { subtotal: subtotalMoi, total: totalMoi }),
