@@ -227,6 +227,8 @@ const dongVeTrongLo = (r: VeTrongLoRow, maDon: Map<string, string>, tenNguoi: Ma
   const ma = r.order_id && r.order_service_id ? maDon.get(`${r.order_id}|${r.order_service_id}`) : undefined;
   return { soSeri: r.so_seri, tuNgay: r.valid_from, denNgay: r.valid_to, tinhTrang: tt, nhan: NHAN_TINH_TRANG_VE[tt], ...(ma ? { maDon: ma } : {}),
     // Vé đã huỷ (ADR-0217): giờ huỷ, người huỷ, lý do, và còn nhập lại được không. KHÔNG mã vé.
+    // Vé hãng ngoài còn sống chưa từng giữ cho đơn: huỷ nhầm thì nhập lại được (giao diện nói trong hộp xác nhận).
+    ...(!r.voided_at && r.nguon === "HANG_NGOAI" ? { nhapLaiNeuHuy: r.tung_giu === 0 } : {}),
     ...(r.voided_at ? { huyLuc: r.voided_at, huyBoi: (r.voided_by ? tenNguoi.get(r.voided_by) : null) ?? null, lyDoHuy: r.void_reason, nhapLai: r.withdrawn_at === null ? "KHONG_NHAP_LAI_DUOC" : r.da_nhap_lai === 1 ? "DA_NHAP_LAI" : "NHAP_LAI_DUOC" } : {}) };
 };
 async function tenNguoiHuy(nhan: Ctx["nhanNhanVien"], ds: readonly VeTrongLoRow[]): Promise<Map<string, string>> {

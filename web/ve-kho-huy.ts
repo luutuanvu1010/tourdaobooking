@@ -11,7 +11,21 @@ import { icon } from "./icons";
 import { chuanHoaSoSeri } from "../src/shared/so-seri-ve";
 
 export type TinhTrangVe = "TRONG_KHO" | "DA_GIU" | "DA_GUI" | "DA_DUNG" | "DA_HUY";
-export interface VeTrongLo { soSeri: string; tuNgay: string; denNgay: string; tinhTrang: TinhTrangVe; nhan: string; maDon?: string }
+export type NhapLai = "NHAP_LAI_DUOC" | "DA_NHAP_LAI" | "KHONG_NHAP_LAI_DUOC";
+export interface VeTrongLo { soSeri: string; tuNgay: string; denNgay: string; tinhTrang: TinhTrangVe; nhan: string; maDon?: string; nhapLaiNeuHuy?: boolean; huyLuc?: string; huyBoi?: string | null; lyDoHuy?: string | null; nhapLai?: NhapLai }
+export interface TrangVe { ve: VeTrongLo[]; trang: number; coTrangSau: boolean; tongVe: number }
+const NHAN_NHAP_LAI: Readonly<Record<NhapLai, string>> = { NHAP_LAI_DUOC: "Nhập lại được", DA_NHAP_LAI: "Đã nhập lại", KHONG_NHAP_LAI_DUOC: "Không nhập lại được" };
+/** «HH:mm ngày dd/MM» giờ Việt Nam của một mốc ISO UTC. */
+const gioNgayVn = (iso: string): string => { const [n, g] = new Date(new Date(iso).getTime() + 7 * 3600 * 1000).toISOString().split("T") as [string, string]; return `${g.slice(0, 5)} ngày ${n.slice(8, 10)}/${n.slice(5, 7)}`; };
+/** Dòng «Trang N» và hai nút «Trang trước» / «Trang sau» (chia trang 50, chủ chốt 18/11). Không hiện khi chỉ có một trang. */
+export function thanhTrang(trang: number, coTrangSau: boolean, doi: (trangMoi: number) => void): HTMLElement | null {
+  if (trang <= 1 && !coTrangSau) return null;
+  const truoc = h("button", { type: "button", class: "btn", "data-action": "trang-truoc", disabled: trang <= 1 }, "Trang trước");
+  const sau = h("button", { type: "button", class: "btn", "data-action": "trang-sau", disabled: !coTrangSau }, "Trang sau");
+  truoc.addEventListener("click", () => doi(trang - 1));
+  sau.addEventListener("click", () => doi(trang + 1));
+  return h("div", { class: "handler-actions", "data-khoi": "thanh-trang" }, truoc, h("span", { class: "muted", "aria-live": "polite" }, `Trang ${trang}`), sau);
+}
 interface HuyVeRes { soSeri: string; trangThai: string; traSuat: boolean; veThay: "DA_CAP" | "THIEU" | null; canGuiLai: boolean }
 
 const TOI_THIEU_LY_DO = 5;
@@ -20,11 +34,14 @@ export const lyDoLoi = (err: unknown): string => (err instanceof ApiError ? err.
 const ngayDung = (tu: string, den: string): string => { const [a, b] = [tu, den].map((n) => n.split("-").reverse().join("/")); return a === b ? `dùng ngày ${a}` : `dùng từ ${a} đến ${b}`; };
 
 /** Hộp xác nhận một chiều CÓ ô lý do. `gui` chạy ngay trong hộp: lỗi máy chủ hiện trong hộp (hộp giữ nguyên để sửa lý do hoặc bỏ); thành công thì hộp đóng và trả true. */
-export function hopHuyCoLyDo(o: { tieuDe: string; hauQua: string[]; nhanNguyHiem: string; opener?: HTMLElement | null; gui: (lyDo: string) => Promise<void> }): Promise<boolean> {
+/** `xacNhan` (chủ chốt 18/11): thêm ô gõ (16px) — nút nguy hiểm chỉ bấm được khi `dung(giáTrịĐãGõ)`; `gui` nhận giá trị đã gõ. Máy chủ vẫn kiểm lại. */
+export function hopHuyCoLyDo(o: { tieuDe: string; hauQua: string[]; nhanNguyHiem: string; opener?: HTMLElement | null; xacNhan?: { nhan: string; dung: (go: string) => boolean }; gui: (lyDo: string, xacNhanGo: string) => Promise<void> }): Promise<boolean> {
   return new Promise((resolve) => {
     const giu = h("button", { type: "button", class: "btn" }, "Quay lại");
     const nguy = h("button", { type: "button", class: "btn btn-danger" }, o.nhanNguyHiem);
     const o_ = h("input", { type: "text", class: "o", id: "vk-ly-do-huy", maxLength: TOI_DA_LY_DO, autocomplete: "off", required: true });
+    const xn = o.xacNhan ? h("input", { type: "text", class: "o", id: "vk-xac-nhan", maxLength: 12, autocomplete: "off", autocapitalize: "characters", spellcheck: false, required: true }) : null;
+    if (xn) nguy.disabled = true;
     const loi = h("p", { class: "alert", role: "alert", hidden: true });
     let xong = false;
     const bang = moBangTruot({
@@ -33,6 +50,7 @@ export function hopHuyCoLyDo(o: { tieuDe: string; hauQua: string[]; nhanNguyHiem
         h("div", { class: "sheet-canh-bao" }, icon("alertCircle", 24)),
         ...o.hauQua.map((c) => h("p", null, c)),
         h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "vk-ly-do-huy" }, `Lý do huỷ (từ ${TOI_THIEU_LY_DO} đến ${TOI_DA_LY_DO} ký tự, không ghi số điện thoại)`), o_),
+        ...(xn && o.xacNhan ? [h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "vk-xac-nhan" }, o.xacNhan.nhan), xn)] : []),
         loi,
       ],
       foot: [giu, nguy],
@@ -45,18 +63,20 @@ export function hopHuyCoLyDo(o: { tieuDe: string; hauQua: string[]; nhanNguyHiem
     if (!bang) return resolve(false);
     giu.addEventListener("click", () => bang.close());
     o_.addEventListener("input", () => { loi.hidden = true; });
+    xn?.addEventListener("input", () => { nguy.disabled = !(o.xacNhan?.dung(xn.value) ?? true); });
     nguy.addEventListener("click", async () => {
       const lyDo = o_.value.trim();
+      if (xn && !(o.xacNhan?.dung(xn.value) ?? true)) { nguy.disabled = true; xn.focus(); return; }
       if (lyDo.length < TOI_THIEU_LY_DO) { loi.textContent = `Hãy ghi lý do huỷ (ít nhất ${TOI_THIEU_LY_DO} ký tự).`; loi.hidden = false; o_.focus(); return; }
       loi.hidden = true;
-      bang.setBusy(true); nguy.disabled = true; giu.disabled = true; o_.disabled = true;
+      bang.setBusy(true); nguy.disabled = true; giu.disabled = true; o_.disabled = true; if (xn) xn.disabled = true;
       try {
-        await o.gui(lyDo);
+        await o.gui(lyDo, xn?.value ?? "");
         xong = true;
         bang.setBusy(false);
         bang.close();
       } catch (err) {
-        bang.setBusy(false); nguy.disabled = false; giu.disabled = false; o_.disabled = false;
+        bang.setBusy(false); nguy.disabled = false; giu.disabled = false; o_.disabled = false; if (xn) xn.disabled = false;
         loi.textContent = lyDoLoi(err); loi.hidden = false;
       }
     });
@@ -66,7 +86,9 @@ export function hopHuyCoLyDo(o: { tieuDe: string; hauQua: string[]; nhanNguyHiem
 
 /** Câu báo trước khi huỷ một vé, theo tình trạng của vé (khớp bảng quyết định huỷ vé ở máy chủ). */
 function cauBaoTruoc(v: VeTrongLo): string[] {
-  const dau = `Huỷ vé ${v.soSeri}. Không hoàn tác được.`;
+  // Vé hãng ngoài chưa từng giữ cho đơn: huỷ nhầm thì nhập lại đúng ảnh vé đó là được. Còn lại: huỷ xong không nhập lại được.
+  const nhapLaiDuoc = v.nhapLaiNeuHuy === true;
+  const dau = nhapLaiDuoc ? `Huỷ vé ${v.soSeri}. Vé này chưa từng giữ cho đơn nào: huỷ nhầm thì nhập lại đúng ảnh vé đó là được.` : `Huỷ vé ${v.soSeri}. Huỷ xong không nhập lại được, không hoàn tác được.`;
   if (v.tinhTrang === "TRONG_KHO") return [dau, "Vé đang nằm trong kho; huỷ xong không bán được nữa."];
   if (v.tinhTrang === "DA_GIU") return [dau, `Vé đang giữ cho${v.maDon ? ` đơn ${v.maDon}` : " một đơn"}. Huỷ thì đơn được trả suất và máy tự cấp vé khác từ kho; kho hết vé thì đơn báo thiếu vé.`];
   return [dau, `Vé này ĐÃ GỬI cho khách${v.maDon ? ` (đơn ${v.maDon})` : ""}. Khách còn cầm vé cũ; huỷ xong vé đó quét ra đỏ «Vé đã huỷ». Máy cấp vé thay từ kho nhưng chưa tự báo ai: văn phòng phải gửi lại vé thay cho khách.`];
@@ -96,14 +118,21 @@ export interface ChoDongVe {
 export function dongVe(v: VeTrongLo, o: ChoDongVe): HTMLElement {
   const chiTiet = [v.nhan, ngayDung(v.tuNgay, v.denNgay), v.maDon ? `Đơn ${v.maDon}` : "", o.phu ?? ""].filter(Boolean).join(" · ");
   const li = h("li", { "data-so-seri": v.soSeri, "data-tinh-trang": v.tinhTrang }, h("strong", null, v.soSeri), h("p", { class: "muted" }, chiTiet));
+  if (v.tinhTrang === "DA_HUY" && v.huyLuc) {
+    li.append(h("p", { class: "muted", "data-khoi": "huy-ve-chi-tiet" }, `Đã huỷ lúc ${gioNgayVn(v.huyLuc)} · bởi ${v.huyBoi ?? "không rõ"}${v.lyDoHuy ? ` · lý do: ${v.lyDoHuy}` : ""}`));
+    if (v.nhapLai) li.append(h("p", { "data-khoi": "nhap-lai", "data-nhap-lai": v.nhapLai }, h("strong", null, NHAN_NHAP_LAI[v.nhapLai])));
+  }
   if (o.huyDuoc && v.tinhTrang !== "DA_HUY" && v.tinhTrang !== "DA_DUNG" && !(o.nguon === "HANG_NGOAI" && v.tinhTrang === "DA_GUI")) {
     const nut = h("button", { type: "button", class: "btn", "data-action": "huy-ve", "data-so-seri": v.soSeri }, "Huỷ vé");
     nut.addEventListener("click", async () => {
       let r: HuyVeRes | null = null;
       const lenhId = crypto.randomUUID();
+      const daGui = v.tinhTrang === "DA_GUI"; // vé khách đang cầm: gõ lại bốn chữ cuối số sê-ri mới bấm huỷ được (chủ chốt 18/11)
+      const bonCuoi = v.soSeri.slice(-4);
       const dongY = await hopHuyCoLyDo({
         tieuDe: "Huỷ vé này?", hauQua: cauBaoTruoc(v), nhanNguyHiem: "Huỷ vé", opener: nut,
-        gui: async (lyDo) => { r = await api<HuyVeRes>("/api/ve/huy-ve", { method: "POST", body: { soSeri: v.soSeri, lyDo, lenhId } }); },
+        ...(daGui ? { xacNhan: { nhan: `Gõ bốn chữ cuối của số sê-ri (…${bonCuoi}) để xác nhận`, dung: (go: string) => go.replace(/\s+/g, "").toUpperCase() === bonCuoi } } : {}),
+        gui: async (lyDo, go) => { r = await api<HuyVeRes>("/api/ve/huy-ve", { method: "POST", body: { soSeri: v.soSeri, lyDo, lenhId, ...(daGui ? { xacNhanBonCuoi: go } : {}) } }); },
       });
       if (dongY && r) { const c = cauSauHuyVe(v, r); await o.sauHuy(c.ok, c.guiLai); }
     });
@@ -112,13 +141,16 @@ export function dongVe(v: VeTrongLo, o: ChoDongVe): HTMLElement {
   return li;
 }
 
-/** Mở danh sách vé của một lô vào `khu`. */
-export async function veCuaLo(khu: HTMLElement, loId: string, o: Omit<ChoDongVe, "phu">): Promise<VeTrongLo[]> {
+/** Mở một trang (50 vé) của danh sách vé của một lô vào `khu`; có nút «Trang trước» / «Trang sau» khi lô nhiều hơn 50 vé. */
+export async function veCuaLo(khu: HTMLElement, loId: string, o: Omit<ChoDongVe, "phu">, trang = 1): Promise<VeTrongLo[]> {
   replaceChildren(khu, h("p", { class: "muted" }, "Đang tải…"));
   try {
-    const r = await api<{ ve: VeTrongLo[] }>(`/api/ve/lo/${encodeURIComponent(loId)}/ve-trong-lo`);
+    const r = await api<TrangVe>(`/api/ve/lo/${encodeURIComponent(loId)}/ve-trong-lo?trang=${trang}`);
     if (r.ve.length === 0) replaceChildren(khu, h("p", { class: "muted" }, "Lô này chưa có vé nào trong kho."));
-    else replaceChildren(khu, h("ul", { class: "pay-list", "data-khoi": "ve-trong-lo" }, ...r.ve.map((v) => dongVe(v, o))));
+    else {
+      const tt = thanhTrang(r.trang, r.coTrangSau, (t) => { void veCuaLo(khu, loId, o, t); });
+      replaceChildren(khu, h("p", { class: "muted" }, `${r.tongVe} vé trong lô`), h("ul", { class: "pay-list", "data-khoi": "ve-trong-lo" }, ...r.ve.map((v) => dongVe(v, o))), ...(tt ? [tt] : []));
+    }
     return r.ve;
   } catch (err) {
     replaceChildren(khu, h("p", { class: "alert", role: "alert" }, lyDoLoi(err)));

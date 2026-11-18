@@ -1,4 +1,4 @@
-// Kịch bản Chrome ADR-0217 (17/11): Kho vé (Xem vé hiện số sê-ri, Huỷ vé lẻ có lý do, Tìm vé), Quét vé (ô Nhập số sê-ri, kết quả), Tạo vé (vé mẫu in «Số sê-ri … Serial No.»). D1 tạm, không chạm production.
+// Kịch bản Chrome ADR-0217 (17/11): Kho vé (Xem vé hiện số sê-ri, Huỷ vé lẻ có lý do, Tìm vé), Quét vé (ô Tra số sê-ri, kết quả), Tạo vé (vé mẫu in «Số sê-ri … Serial No.»). D1 tạm, không chạm production.
 // Chạy từ gốc repo sau `npm run build:web`: AXE_JS=<…/axe.min.js> CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh, ngoài kho> node docs/evidence/2026-11-17-so-seri-ve/kich-ban/so-seri-smoke.mjs
 import assert from "node:assert/strict";
 const W = process.cwd();
@@ -60,7 +60,7 @@ try {
     await p.close?.();
 
     p = await moTrang(ACCOUNTS.admin, "/quet-ve", vp);
-    await buoc(`${kho}.4`, "Quét vé: ô Nhập số sê-ri và kết quả", async () => {
+    await buoc(`${kho}.4`, "Quét vé: ô Tra số sê-ri và kết quả", async () => {
       await p.waitFor("!!document.getElementById('qv-so-seri') && !document.getElementById('qv-noi-dung').hidden", "ô số sê-ri");
       await p.ev("document.getElementById('qv-form-so-seri').scrollIntoView(), true");
       await chup(p, `${kho}-6-quet-ve-o-nhap`);

@@ -692,6 +692,7 @@ test("Việc 3: vé hãng ngoài chưa từng giữ cho đơn, huỷ nhầm ⇒ 
     assert.ok(d1.huyLuc);
     assert.equal(d1.nhapLai, "NHAP_LAI_DUOC");
     assert.equal(dong(ds, hn.soSeri[1]!).nhapLai, undefined);
+    assert.equal(dong(ds, hn.soSeri[1]!).nhapLaiNeuHuy, true, "vé hãng ngoài chưa từng giữ: huỷ nhầm nhập lại được");
     khongLoMa(ds.text);
     // nhập lại đúng ảnh và mã vé đó (vé 1 của loVaoKho lech 0: PNG(1), «HN1»)
     const lo2 = await w.call("POST", "/api/ve/lo", { as: SALES, body: { catalogCode: "ZA1", nhomKhach: "ADULT", tenSanPham: "Tour đảo" } });

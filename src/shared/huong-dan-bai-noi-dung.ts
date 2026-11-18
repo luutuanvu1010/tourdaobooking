@@ -64,8 +64,10 @@ export const BAI_VIEC: readonly BaiViec[] = [
 | Nhập xong máy báo dịch vụ đang tắt ô «Có vé» | Báo Quản trị bật ô này ở màn Dịch vụ & giá. Sau đó đơn chưa tới ngày đi sẽ báo thiếu vé và cấp được vé. |
 | Lỗi giữa chừng khi nhập | Bấm [[Huỷ lô]] rồi nhập lại từ đầu. |
 | Nhập xong mới thấy khai sai, chưa có vé nào được giữ | Bấm [[Huỷ lô]] rồi nhập lại cho đúng. |
-| Khai sai và đã có vé được giữ cho đơn | Bấm [[Huỷ lô]] ở lô đó, đọc con số máy hiện (bao nhiêu vé huỷ, bao nhiêu vé giữ nguyên vì đã dùng, bao nhiêu đơn được cấp vé thay), ghi lý do rồi xác nhận. Vé đã gửi khách thì khách còn cầm vé cũ nhưng vé đó hết dùng được; máy chưa tự báo ai, nên bạn mở từng đơn đó và gửi lại vé thay. |
-| Một vé sai hoặc cần thu hồi | Gõ số sê-ri của vé vào ô «Số sê-ri của vé» rồi bấm [[Tìm vé]], hoặc bấm [[Xem vé]] ở lô chứa vé. Bấm [[Huỷ vé]], ghi lý do. Vé đang giữ cho đơn thì máy cấp vé khác; vé đã gửi khách thì phải gửi lại vé thay. Vé đã dùng không huỷ được; vé hãng ngoài đã mở cũng không. |
+| Khai sai và đã có vé được giữ cho đơn | Bấm [[Huỷ lô]] ở lô đó, đọc con số máy hiện (bao nhiêu vé huỷ, bao nhiêu vé giữ nguyên vì đã dùng, bao nhiêu đơn được cấp vé thay), ghi lý do rồi xác nhận. Có vé đã gửi khách thì gõ đúng số vé đó vào ô xác nhận, vì khách còn cầm vé cũ nhưng vé đó hết dùng được; máy chưa tự báo ai, nên bạn mở từng đơn đó và gửi lại vé thay. Lô hãng ngoài đã cấp chỉ Quản lý bán hàng, Quản trị và Toàn quyền huỷ được; Bán hàng vẫn huỷ được lô nhập dở chưa cấp cho đơn nào. |
+| Một vé sai hoặc cần thu hồi | Gõ số sê-ri của vé vào ô «Số sê-ri của vé» rồi bấm [[Tìm vé]], hoặc bấm [[Xem vé]] ở lô chứa vé. Bấm [[Huỷ vé]], ghi lý do. Vé đang giữ cho đơn thì máy cấp vé khác; vé đã gửi khách thì gõ lại bốn chữ cuối số sê-ri để xác nhận, rồi phải gửi lại vé thay. Vé đã dùng không huỷ được; vé hãng ngoài đã mở cũng không. Vé hãng ngoài chỉ Quản lý bán hàng, Quản trị và Toàn quyền huỷ được. |
+| Huỷ nhầm một vé hãng ngoài | Vé chưa từng giữ cho đơn thì nhập lại đúng ảnh vé đó vào một lô là được. Ở danh sách vé của lô, dòng vé đã huỷ ghi huỷ lúc nào, ai huỷ, lý do, và «Nhập lại được», «Đã nhập lại» hoặc «Không nhập lại được». Vé từng giữ cho đơn không nhập lại được. |
+| Lô hoặc vé nhiều, không thấy hết | Danh sách chia trang, mỗi trang 50 dòng: bấm «Trang sau» và «Trang trước», hoặc tìm vé theo số sê-ri. |
 | Ảnh bị loại vì không đọc được QR | Tải lại ảnh gốc từ nhà cung cấp, vì chưa gõ tay được mã vé. |
 | Cần tra soát vé của lô đã huỷ | Mở ảnh ở khối **Lô đã huỷ gần đây**. Vé đã mở bị khoá hẳn, không nhập lại được, nên chỉ mở khi thật cần. |
 | Gửi đường dẫn cho nhầm người | Bấm [[Thu hồi]]. Việc này chỉ đóng đường dẫn; người đó đã lưu ảnh thì vé vẫn dùng được. |
@@ -99,7 +101,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 3. Xanh thì cho khách đi. Vàng thì đọc câu báo; vẫn cho khách đi thì bấm [[Xác nhận cho đi]]. Đỏ thì không cho đi, đọc câu báo để biết lý do.
 4. Bấm [[Quét tiếp]] để quét vé kế tiếp.
 5. Camera không mở được thì bấm **Chụp ảnh mã vé** và chụp mã trên vé.
-6. Mã trên vé hỏng hoặc in mờ thì gõ **số sê-ri** in trên vé (dạng VE_ và tám chữ cái, chữ thường hay có khoảng trắng đều được) vào ô «Số sê-ri in trên vé», bấm [[Nhập số sê-ri]]. Máy tra như khi quét nhưng luôn hiện màu vàng «nhập tay» vì số in trên vé ai nhìn cũng chép được: kiểm đúng vé trước mặt rồi bấm [[Xác nhận cho đi]]; lượt đó ghi «nhập tay» trong nhật ký. Vé hãng ngoài không tra được ở đây. Vé đỏ «Vé đã huỷ» thì không cho đi, báo văn phòng gửi lại vé thay.
+6. Mã trên vé hỏng hoặc in mờ thì gõ **số sê-ri** in trên vé (dạng VE_ và tám chữ cái, chữ thường hay có khoảng trắng đều được) vào ô «Số sê-ri in trên vé», bấm [[Tra số sê-ri]]. Máy tra như khi quét nhưng luôn hiện màu vàng «nhập tay» vì số in trên vé ai nhìn cũng chép được: kiểm đúng vé trước mặt rồi bấm [[Xác nhận cho đi]]; lượt đó ghi «nhập tay» trong nhật ký. Vé hãng ngoài không tra được ở đây. Vé đỏ «Vé đã huỷ» thì không cho đi, báo văn phòng gửi lại vé thay.
 
 ### Điều dễ sai
 - Tài xế công ty chỉ xem vé có hợp lệ không; lượt quét của họ không tính vào số vé đã đi.

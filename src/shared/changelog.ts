@@ -23,10 +23,14 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-11-17",
     items: [
       { kind: "moi", text: "Mỗi vé điện tử có một số sê-ri riêng dạng VE_ và tám chữ cái. Vé Tour Đảo tạo từ nay in đủ số này dưới mã QR.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
-      { kind: "moi", text: "Màn Quét vé có ô «Nhập số sê-ri» cho vé không quét được. Gõ tay thì máy luôn hỏi xác nhận lại trước khi ghi vé đã dùng.", bai: { id: "viec/quet-ve", ten: "Quét vé Tour Đảo" } },
+      { kind: "moi", text: "Màn Quét vé có ô «Tra số sê-ri» cho vé không quét được. Gõ tay thì máy luôn hỏi xác nhận lại trước khi ghi vé đã dùng.", bai: { id: "viec/quet-ve", ten: "Quét vé Tour Đảo" } },
       { kind: "moi", text: "Màn Vé điện tử: người phụ trách lô bấm «Xem vé» để thấy từng vé theo số sê-ri và tình trạng, hoặc tìm một vé theo số sê-ri." },
       { kind: "moi", text: "Huỷ được từng vé lẻ, có ghi lý do. Vé đang giữ cho đơn bị huỷ thì máy tự cấp vé khác cho đơn; vé đã gửi khách thì văn phòng phải gửi lại vé thay." },
       { kind: "doi", text: "«Huỷ lô» nay dùng được cả với lô đã cấp cho đơn: máy báo trước số vé huỷ, số vé giữ nguyên vì đã dùng, số đơn được cấp vé thay." },
+      { kind: "doi", text: "Huỷ vé hoặc lô vé hãng ngoài đã cấp cho đơn: chỉ Quản lý bán hàng, Quản trị và Toàn quyền làm được. Bán hàng vẫn huỷ được lô nhập dở chưa cấp cho đơn nào." },
+      { kind: "moi", text: "Vé hãng ngoài chưa từng giữ cho đơn mà huỷ nhầm thì nhập lại đúng ảnh vé đó là được. Dòng vé đã huỷ cho biết huỷ lúc nào, ai huỷ, lý do, và vé còn nhập lại được không." },
+      { kind: "moi", text: "Huỷ vé đã gửi khách phải gõ lại bốn chữ cuối số sê-ri; huỷ lô có vé đã gửi khách phải gõ đúng số vé đó, để khỏi bấm nhầm." },
+      { kind: "doi", text: "Danh sách lô và danh sách vé của lô chia trang, mỗi trang 50 dòng, có nút «Trang trước» và «Trang sau»." },
     ],
   },
   {

@@ -728,6 +728,7 @@ export const dieuKienLenhHuyLoThang = (batchId: string, lenh: string): string =>
 const SELECT_VE_TRONG_LO = `SELECT t.id AS ve_id, t.serial AS so_seri, t.valid_from, t.valid_to, t.status AS ve_status, t.voided_at, t.voided_by, t.void_reason, t.withdrawn_at, b.id AS batch_id, b.source AS nguon, b.catalog_code, b.pax_group AS nhom_lo, b.printed_name, b.status AS lo_status,
           a.order_id, a.order_service_id, a.id IS NOT NULL AS co_phan_bo, a.revealed_at IS NOT NULL AS da_lo,
           EXISTS (SELECT 1 FROM vdt_scan s WHERE s.ticket_id = t.id AND s.ket_qua = 'DA_TINH' AND s.voided_at IS NULL) AS da_dung,
+          EXISTS (SELECT 1 FROM vdt_allocation x WHERE x.ticket_id = t.id) AS tung_giu,
           CASE WHEN t.withdrawn_at IS NULL THEN 0 ELSE (EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND s.ticket_code = t.ticket_code)
            OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND s.content_hash = t.content_hash)
            OR EXISTS (SELECT 1 FROM vdt_ticket s WHERE s.withdrawn_at IS NULL AND (length(s.ticket_code) = 36 AND length(t.ticket_code) = 36 AND s.ticket_code NOT GLOB '*[^0-9]*' AND t.ticket_code NOT GLOB '*[^0-9]*' AND substr(s.ticket_code, -12) = substr(t.ticket_code, -12)))) END AS da_nhap_lai
@@ -738,7 +739,7 @@ const VE_TRONG_LO = defineSql("ve-dien-tu", "ve_trong_lo", `${SELECT_VE_TRONG_LO
 const TONG_VE_TRONG_LO = defineSql("ve-dien-tu", "tong_ve_trong_lo", "SELECT count(*) AS n FROM vdt_ticket t WHERE t.batch_id = ?1 AND (t.withdrawn_at IS NULL OR t.voided_at IS NOT NULL) AND t.stored_at IS NOT NULL");
 const VE_THEO_SO_SERI = defineSql("ve-dien-tu", "ve_theo_so_seri", `${SELECT_VE_TRONG_LO}\n   WHERE t.serial = ?1 AND (t.withdrawn_at IS NULL OR t.voided_at IS NOT NULL) AND t.stored_at IS NOT NULL`);
 export interface VeTrongLoRow { ve_id: string; so_seri: string; valid_from: string; valid_to: string; ve_status: string; voided_at: string | null; voided_by: string | null; void_reason: string | null; withdrawn_at: string | null; batch_id: string; nguon: NguonVe; catalog_code: string; nhom_lo: string; printed_name: string; lo_status: string;
-  order_id: string | null; order_service_id: string | null; co_phan_bo: number; da_lo: number; da_dung: number; da_nhap_lai: number }
+  order_id: string | null; order_service_id: string | null; co_phan_bo: number; da_lo: number; da_dung: number; tung_giu: number; da_nhap_lai: number }
 /** Một trang vé (`gioiHan` dòng, bỏ qua `boQua`); route xin `gioiHan + 1` để biết còn trang sau. */
 export const veTrongLo = async (db: D1Database, batchId: string, gioiHan: number, boQua: number): Promise<VeTrongLoRow[]> => (await db.prepare(VE_TRONG_LO).bind(batchId, gioiHan, boQua).all<VeTrongLoRow>()).results;
 export const tongVeTrongLo = async (db: D1Database, batchId: string): Promise<number> => (await db.prepare(TONG_VE_TRONG_LO).bind(batchId).first<{ n: number }>())?.n ?? 0;

@@ -24,7 +24,7 @@ import { trangThaiHeThong } from "./trang-thai-he-thong";
 import { docQrTuTep } from "./qr-doc-ve";
 import { initShell, showError } from "./shell";
 import { dungKhoiTaoVe } from "./ve-tao";
-import { hopHuyCoLyDo, khoiTimVe, veCuaLo, type VeTrongLo } from "./ve-kho-huy";
+import { hopHuyCoLyDo, khoiTimVe, thanhTrang, veCuaLo, type VeTrongLo } from "./ve-kho-huy";
 
 type Nguon = "HANG_NGOAI" | "TOUR_DAO";
 interface KhoDong { catalogCode: string; tenDichVu: string | null; nhomKhach: "ADULT" | "CHILD" | "SENIOR" | "ALL"; nguon: Nguon; conTrong: number; sapHetHan: number; daGiu: number; daGiao: number }
@@ -74,6 +74,10 @@ const nhapLo = can(staff, "ve.kho.manage");
 const taoVe = can(staff, "ve.phat-hanh");
 /** Thao tác lô theo nguồn của lô (ADR-0175 Đ1.4): Bán hàng thường xem được lô Tour Đảo nhưng không huỷ được. */
 const thaoTacLo = (nguon: Nguon): boolean => (nguon === "TOUR_DAO" ? taoVe : nhapLo);
+/** Huỷ KHÔNG quay lại được với vé / lô hãng ngoài đã từng cấp cho đơn: thêm ô `ve.huy-hang-ngoai` (chủ chốt 18/11; ADR-0217 Đ3). Lô hãng ngoài chưa từng cấp vẫn huỷ bằng `ve.kho.manage`. */
+const huyHangNgoai = can(staff, "ve.huy-hang-ngoai");
+const huyVeDuoc = (nguon: Nguon): boolean => (nguon === "TOUR_DAO" ? taoVe : huyHangNgoai);
+const huyLoDuoc = (l: { nguon: Nguon; daCap?: boolean }): boolean => (l.nguon === "TOUR_DAO" ? taoVe : nhapLo && (!l.daCap || huyHangNgoai));
 
 if (!nhapLo && !taoVe) {
   showError(errorEl, "Trang Vé điện tử chỉ Bán hàng, Kế toán, Quản lý bán hàng, Quản trị và Toàn quyền dùng được.");
@@ -188,12 +192,14 @@ if (!nhapLo && !taoVe) {
       xem.giuNguyenDaDung > 0 ? `Giữ nguyên ${xem.giuNguyenDaDung} vé đã dùng.` : "",
       xem.giuNguyenHangNgoaiDaMo > 0 ? `Giữ nguyên ${xem.giuNguyenHangNgoaiDaMo} vé hãng ngoài đã mở ảnh.` : "",
       xem.donCapThay > 0 ? `${xem.donCapThay} đơn đang giữ vé của lô sẽ được trả suất; máy tự cấp vé khác từ kho, kho hết vé thì đơn báo thiếu vé.` : "",
+      l.nguon === "HANG_NGOAI" ? "Vé hãng ngoài chưa từng giữ cho đơn nào: huỷ nhầm thì nhập lại đúng ảnh vé đó là được. Vé đã từng giữ cho đơn: huỷ xong không nhập lại được." : "Huỷ xong không nhập lại được vé nào của lô.",
       xem.daGuiPhaiGuiLai > 0 ? `${xem.daGuiPhaiGuiLai} vé trong số huỷ đã gửi cho khách${donGuiLai.length > 0 ? ` (đơn ${donGuiLai.slice(0, 10).join(", ")}${donGuiLai.length > 10 ? "…" : ""})` : ""}: khách còn cầm vé cũ, vé đó không dùng được nữa. Văn phòng phải gửi lại vé thay.` : "",
     ].filter(Boolean);
     let r: HuyLoRes | null = null;
     const xong = await hopHuyCoLyDo({
       tieuDe: "Huỷ phần còn lại của lô này?", hauQua: dong, nhanNguyHiem: "Huỷ lô", opener: nut,
-      gui: async (lyDo) => { r = await api<HuyLoRes>(`/api/ve/lo/${encodeURIComponent(l.loId)}/bo`, { method: "POST", body: { lyDo } }); },
+      ...(xem.daGuiPhaiGuiLai > 0 ? { xacNhan: { nhan: `Gõ số vé đã gửi khách sẽ bị huỷ (${xem.daGuiPhaiGuiLai}) để xác nhận`, dung: (go: string) => go.trim() === String(xem.daGuiPhaiGuiLai) } } : {}),
+      gui: async (lyDo, go) => { r = await api<HuyLoRes>(`/api/ve/lo/${encodeURIComponent(l.loId)}/bo`, { method: "POST", body: { lyDo, ...(xem.daGuiPhaiGuiLai > 0 ? { xacNhanSoVeDaGui: Number(go.trim()) } : {}) } }); },
     });
     if (!xong || !r) return;
     const k: HuyLoRes = r;
@@ -203,10 +209,13 @@ if (!nhapLo && !taoVe) {
     await lamMoi();
   }
 
+  let trangLo = 1;
   async function taiCacLo(): Promise<void> {
     try {
-      const r = await api<{ lo: LoBoDuoc[] }>("/api/ve/lo?tatCa=1");
+      const r = await api<{ lo: LoBoDuoc[]; trang: number; coTrangSau: boolean }>(`/api/ve/lo?tatCa=1&trang=${trangLo}`);
+      if (r.lo.length === 0 && trangLo > 1) { trangLo -= 1; await taiCacLo(); return; } // trang cuối vừa hết lô (huỷ xong): lùi một trang
       if (r.lo.length === 0) { replaceChildren(cacLoEl, h("p", { class: "muted" }, "Không có lô nào.")); return; }
+      const ttLo = thanhTrang(r.trang, r.coTrangSau, (t) => { trangLo = t; void taiCacLo(); });
       replaceChildren(cacLoEl, h("ul", { class: "pay-list", "data-khoi": "cac-lo" }, ...r.lo.map((l) => {
         const moTa = h("p", { class: "muted" }, `${l.tenDichVu ?? "Dịch vụ không còn trong danh mục"} · ${NHAN_NHOM[l.nhomKhach] ?? l.nhomKhach} · ${NHAN_NGUON[l.nguon] ?? l.nguon} · ${l.trangThai === "PENDING" ? "đang dở" : "đã vào kho"}${l.daCap ? " · đã cấp cho đơn" : ""} · ${l.soVe} vé · tạo ${ngayVn(l.taoLuc)}`);
         const khuVe = h("div", { "data-khoi": "ve-cua-lo", hidden: true });
@@ -214,17 +223,17 @@ if (!nhapLo && !taoVe) {
         nutXem.addEventListener("click", async () => {
           if (!khuVe.hidden) { khuVe.hidden = true; nutXem.setAttribute("aria-expanded", "false"); return; }
           khuVe.hidden = false; nutXem.setAttribute("aria-expanded", "true");
-          await veCuaLo(khuVe, l.loId, { huyDuoc: thaoTacLo(l.nguon), nguon: l.nguon, sauHuy: sauHuyVe });
+          await veCuaLo(khuVe, l.loId, { huyDuoc: huyVeDuoc(l.nguon), nguon: l.nguon, sauHuy: sauHuyVe });
         });
         const nut: HTMLElement[] = [];
         if (thaoTacLo(l.nguon)) nut.push(nutXem); // máy chủ chỉ trả danh sách vé cho người thao tác được lô
-        if (thaoTacLo(l.nguon)) {
+        if (huyLoDuoc(l)) {
           const nutHuy = h("button", { type: "button", class: "btn", "data-action": "bo-lo", "data-id": l.loId }, "Huỷ lô");
           nutHuy.addEventListener("click", async () => { nutHuy.disabled = true; try { await huyLo(l, nutHuy); } finally { nutHuy.disabled = false; } });
           nut.push(nutHuy);
         }
         return h("li", { "data-lo": l.loId }, h("strong", null, l.tenSanPham), moTa, h("div", { class: "handler-actions" }, ...nut), khuVe);
-      })));
+      })), ...(ttLo ? [ttLo] : []));
     } catch (err) {
       replaceChildren(cacLoEl, h("p", { class: "alert", role: "alert" }, lyDoLoi(err)));
     }
@@ -335,7 +344,7 @@ if (!nhapLo && !taoVe) {
 
   // Bước 1 khung chung (N10): khối «Nhập lô mới» (danh mục dài) dựng sau khi tải — giữ chỗ trước để các khối dưới không bị đẩy.
   if (nhapLo) replaceChildren(loEl, trangThaiHeThong("dang-tai", { khuon: "bieu-mau", giuCho: true }));
-  replaceChildren(timEl, khoiTimVe((nguon) => thaoTacLo(nguon as Nguon), sauHuyVe));
+  replaceChildren(timEl, khoiTimVe((nguon) => huyVeDuoc(nguon as Nguon), sauHuyVe));
   await taiKho();
   await Promise.all([taiCacLo(), taiLoDaHuy(), nhapLo ? dungForm() : null,
     taoVe ? dungKhoiTaoVe(taoEl, { tranLo: () => tranLo, hienOk, sauKhiTao: async () => { await Promise.all([taiKho(), taiCacLo(), taiLoDaHuy()]); } }) : null]);
