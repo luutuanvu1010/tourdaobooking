@@ -17,6 +17,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0219 (chủ duyệt 18/11): Quản lý bán hàng xác minh, Quản trị / Nhân sự / Toàn quyền duyệt phiếu đăng ký; hàng chờ sang trang riêng; nút Duyệt khoá khi người mở là người xác minh.
+    // Nhánh claude/partner-signup-approval-flow-e665d1. SỐ TẠM 3.18: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.18",
+    date: "2026-11-18",
+    items: [
+      { kind: "doi", text: "Phiếu đăng ký đối tác nay có trang riêng «Phiếu đăng ký đối tác». Trang Quản lý tài khoản còn một đường dẫn sang trang này." },
+      { kind: "doi", text: "Quản lý bán hàng xác minh phiếu đăng ký. Quản trị hoặc Nhân sự duyệt mở tài khoản. Quản trị không còn xác minh phiếu đăng ký." },
+      { kind: "sua", text: "Người đã xác minh phiếu thì thấy nút «Duyệt mở tài khoản» khoá sẵn, kèm câu giải thích. Phiếu ở bước của người khác thì máy nói phiếu đang chờ ai." },
+    ],
+  },
+  {
     // Số sê-ri vé, gõ số sê-ri ở Quét vé, huỷ vé lẻ, huỷ lô đã cấp (ADR-0217; migration 0177; nhánh claude/ticket-series-management-0cca10).
     // SỐ TẠM 3.17: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.17",

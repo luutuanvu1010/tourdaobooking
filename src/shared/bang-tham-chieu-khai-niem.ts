@@ -531,7 +531,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Nhận đăng ký mới",
-    giaiNghia: "Công tắc của Toàn quyền ở Quản lý tài khoản (Bật, Tắt) cùng danh sách vai người dùng được đăng ký. Tắt: không ai mở được phiếu đăng ký mới, trang /dang-ky nói «Tour Đảo tạm ngừng nhận đăng ký mới.»; phiếu đã có vẫn đi tiếp. Lời giải thích, câu báo của khối do AI viết.",
+    giaiNghia: "Công tắc của Toàn quyền ở trang Phiếu đăng ký đối tác (Bật, Tắt) cùng danh sách vai người dùng được đăng ký. Tắt: không ai mở được phiếu đăng ký mới, trang /dang-ky nói «Tour Đảo tạm ngừng nhận đăng ký mới.»; phiếu đã có vẫn đi tiếp. Lời giải thích, câu báo của khối do AI viết.",
     khacVoi: "Khác chế độ bảo trì (chặn mọi lệnh của người đăng ký).",
     chuDaLoai: [],
     maNoiBo: ["registration_open", "open_role_codes", "/api/dang-ky/chinh-sach", "registration_policy_set"],

@@ -125,9 +125,9 @@ export const phieuXet = (db: D1Database, id: string): Promise<PhieuXetRow | null
 export interface HangChoRow { id: string; status: string; role_code: string; current_version: number; submitted_at: string | null; created_at: string; thu: string | null }
 /** Số dòng tối đa hàng chờ trả về; câu đọc lấy THÊM một dòng để biết «còn nữa» (rà soát cuối I-4). */
 export const TRAN_HANG_CHO = 200;
-// Hàng chờ dựng theo NĂNG LỰC của người xem (không theo «thiếu party.view»): xác minh được (party.verify + party.view) ⇒ phiếu ĐÃ GỬI chưa kết thúc (CHỜ XÁC MINH, CẦN BỔ SUNG, CHỜ DUYỆT —
-// KHÔNG gồm ĐANG ĐIỀN: phiếu nháp chưa gửi không phải việc của ai và không được đẩy phiếu thật ra khỏi trần, rà soát cuối I-4); duyệt được (account.create) ⇒ CHỜ DUYỆT và ĐÃ DUYỆT mà tài khoản
-// chưa kích hoạt (ADR-0207 Đ4, Đ7); có cả hai (Toàn quyền, Quản trị + Nhân sự) ⇒ hợp. Thêm: phiếu TỪ CHỐI có thư báo chưa gửi được (ADR-0206 Đ13, Hiến chương 5.16 «thấy được và gửi lại được»)
+// Hàng chờ dựng theo NĂNG LỰC của người xem (không theo «thiếu party.view»): xác minh được (registration.verify + party.view — ADR-0219) ⇒ phiếu ĐÃ GỬI chưa kết thúc (CHỜ XÁC MINH, CẦN BỔ SUNG, CHỜ DUYỆT —
+// KHÔNG gồm ĐANG ĐIỀN: phiếu nháp chưa gửi không phải việc của ai và không được đẩy phiếu thật ra khỏi trần, rà soát cuối I-4); duyệt được (registration.approve) ⇒ CHỜ DUYỆT và ĐÃ DUYỆT mà tài khoản
+// chưa kích hoạt (ADR-0207 Đ4, Đ7); có cả hai (Toàn quyền, Quản lý bán hàng kiêm Quản trị hoặc Nhân sự) ⇒ hợp. Thêm: phiếu TỪ CHỐI có thư báo chưa gửi được (ADR-0206 Đ13, Hiến chương 5.16 «thấy được và gửi lại được»)
 // cho đúng bước đã từ chối (xác minh ⇒ người xác minh; duyệt ⇒ người duyệt), chỉ khi danh tính còn email. Cột `thu` = lệnh thư báo MỚI NHẤT của phiếu (một câu, không hỏi từng dòng).
 // Phiếu TỪ CHỐI chỉ được xét khi danh tính còn email (tác nhân ẩn danh sau số ngày của chính sách ⇒ số dòng TỪ CHỐI được xét có trần tự nhiên).
 // Xếp: việc làm được ngay (CHỜ XÁC MINH, CHỜ DUYỆT) trước, rồi gửi sớm nhất trước. Chỉ mã, loại, mốc — không tên, không liên hệ.

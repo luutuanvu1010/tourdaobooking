@@ -80,6 +80,8 @@ export const TRANG = {
   dichVu: { duong: "/catalog", hien: (s) => quanTri(s) || dungManHepDichVu(s), tam: tamQuanTri }, // ADR-0169 Đ4
   // ADR-0071: ô account.view (Quản trị, Nhân sự, Toàn quyền). Bản nhớ khung không có cờ này (ADR-0035): khung tạm dùng `admin` — Nhân sự thiếu mục một nhịp.
   taiKhoan: { duong: "/staff", hien: ve("account.view"), tam: tamQuanTri },
+  // Phiếu đăng ký đối tác (ADR-0219 Đ3): CÙNG ô với route `GET /api/dang-ky/hang-cho` (cổng staff) — registration.queue.view (Quản lý bán hàng, Quản trị, Nhân sự, Toàn quyền).
+  phieuDangKy: { duong: "/phieu-dang-ky", hien: ve("registration.queue.view") },
   phien: { duong: "/sessions", hien: ve("auth.session.viewAll") }, // ADR-0075 điều 7
   // GET /api/locations mở cho mọi tài khoản (form đơn, form chuyến cần danh sách) — trang quản lý chỉ mở cho ô admin.manage (web/locations.ts).
   diaDiem: { duong: "/locations", hien: quanTri, moTrang: quanTri, tam: tamQuanTri },
@@ -257,6 +259,7 @@ export const THANH_BEN = [
   { nhom: THIET_LAP, trang: "lyDoDieuPhoi", nhan: "Lý do điều phối" },
   { nhom: THIET_LAP, trang: "chinhSachDieuPhoi", nhan: "Chính sách điều phối" },
   { nhom: THIET_LAP, trang: "taiKhoan", nhan: "Quản lý tài khoản" },
+  { nhom: THIET_LAP, trang: "phieuDangKy", nhan: "Phiếu đăng ký đối tác" },
   { nhom: THIET_LAP, trang: "phien", nhan: "Máy đang đăng nhập" },
   { nhom: THIET_LAP, trang: "nhatKy", nhan: "Nhật ký" },
   { nhom: THIET_LAP, trang: "guiThongBao", nhan: "Gửi thông báo" },
@@ -348,6 +351,7 @@ export const TRANG_TOI = [
   { phan: "sau", trang: "veDoiChieu", nhan: "Đối chiếu vé" },
   { phan: "sau", trang: "veCaiDat", nhan: "Cài đặt vé điện tử" },
   { phan: "sau", trang: "hoaHongGioiHan", nhan: "Giới hạn nhập hoa hồng" },
+  { phan: "sau", trang: "phieuDangKy", nhan: "Phiếu đăng ký đối tác" },
   { phan: "sau", trang: "nhatKy", nhan: "Nhật ký" },
   { phan: "sau", trang: "phien", nhan: "Máy đang đăng nhập" },
   { phan: "sau", trang: "guiThongBao", nhan: "Gửi thông báo" },

@@ -111,21 +111,22 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   // ADR-0207 Đ9 (đợt 1 Task 6): bước xác minh phiếu đăng ký — cổng accounts; thân hỏi registration.queue.view (hàng chờ) hoặc party.verify + party.view (+ party.verify.attachment cho số, ảnh).
   { method: "GET", path: "/api/dang-ky/chinh-sach", access: "accounts" }, // registration.policy.write (chỉ Toàn quyền) — ADR-0206 Đ9 chỗ mở, đóng đăng ký (Task 12 vòng sửa 1): công tắc, loại mở
   { method: "POST", path: "/api/dang-ky/chinh-sach", access: "accounts" }, // registration.policy.write — thêm một dòng dk_policy (chỉ đổi công tắc và loại mở), khoá lạc quan
-  { method: "GET", path: "/api/dang-ky/hang-cho", access: "accounts" },
-  { method: "GET", path: "/api/dang-ky/phieu/:id", access: "accounts" },
-  { method: "POST", path: "/api/dang-ky/phieu/:id/ket-luan", access: "accounts" },
-  { method: "POST", path: "/api/dang-ky/phieu/:id/xem-so", access: "accounts" },
-  { method: "GET", path: "/api/dang-ky/phieu/:id/tep/:tid", access: "accounts" },
-  { method: "POST", path: "/api/dang-ky/phieu/:id/dat", access: "accounts" },
-  { method: "POST", path: "/api/dang-ky/phieu/:id/bo-sung", access: "accounts" },
-  { method: "POST", path: "/api/dang-ky/phieu/:id/tu-choi", access: "accounts" },
+  { method: "GET", path: "/api/dang-ky/hang-cho", access: "staff" }, // ADR-0219 Đ3: người xác minh (cổng office) và người duyệt (cổng accounts) không chung cổng nào ⇒ staff + registration.queue.view trong thân
+  // ADR-0219 Đ3: bước xác minh (Quản lý bán hàng, Toàn quyền) — cổng office + registration.verify + party.view
+  { method: "GET", path: "/api/dang-ky/phieu/:id", access: "office" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/ket-luan", access: "office" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/xem-so", access: "office" },
+  { method: "GET", path: "/api/dang-ky/phieu/:id/tep/:tid", access: "office" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/dat", access: "office" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/bo-sung", access: "office" },
+  { method: "POST", path: "/api/dang-ky/phieu/:id/tu-choi", access: "office" },
   // ADR-0207 Đ4, Đ7, Đ9 (đợt 1 Task 8): bước DUYỆT — thân hỏi account.create (Nhân sự, Toàn quyền); màn duyệt riêng không ảnh, không số giấy tờ
   { method: "GET", path: "/api/dang-ky/phieu/:id/xem-duyet", access: "accounts" },
   { method: "POST", path: "/api/dang-ky/phieu/:id/duyet", access: "accounts" },
   { method: "POST", path: "/api/dang-ky/phieu/:id/tu-choi-duyet", access: "accounts" },
   { method: "POST", path: "/api/dang-ky/phieu/:id/gui-lai-loi-moi", access: "accounts" },
-  { method: "POST", path: "/api/dang-ky/phieu/:id/tra-ve-xac-minh", access: "accounts" }, // account.create — ADR-0207 Đ5 «Trả về xác minh» (rà soát cuối I-3)
-  { method: "POST", path: "/api/dang-ky/phieu/:id/gui-lai-thu", access: "accounts" }, // registration.queue.view ở cổng + ô theo bước trong thân — ADR-0206 Đ13 gửi lại thư báo (rà soát cuối I-1)
+  { method: "POST", path: "/api/dang-ky/phieu/:id/tra-ve-xac-minh", access: "accounts" }, // registration.approve (ADR-0219 Đ2; trước là account.create) — ADR-0207 Đ5 «Trả về xác minh» (rà soát cuối I-3)
+  { method: "POST", path: "/api/dang-ky/phieu/:id/gui-lai-thu", access: "staff" }, // ADR-0219 Đ3: cổng staff như hàng chờ; // registration.queue.view ở cổng + ô theo bước trong thân — ADR-0206 Đ13 gửi lại thư báo (rà soát cuối I-1)
   { method: "GET", path: "/api/bang-tin", access: "staff" }, // bắt tay WebSocket Bảng tin (ADR-0022) — mọi tài khoản đăng nhập; nhãn nhận tin tính ở máy chủ bằng can()
   { method: "POST", path: "/api/auth/login", access: "public" },
   { method: "POST", path: "/api/auth/logout", access: "public" },

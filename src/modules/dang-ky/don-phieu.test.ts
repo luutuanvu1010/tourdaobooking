@@ -106,9 +106,9 @@ test("(1) Hết hạn: ĐANG ĐIỀN 8 ngày (không mốc — lưới an toàn 
 test("(2) Mốc hạn được ĐẶT theo chính sách: yêu cầu bổ sung ⇒ +14 ngày (mở phiếu +7 ngày: xin-ma-route.test.ts; gửi lại xoá mốc: phieu-route.test.ts)", async () => {
   const w = setup();
   const { id } = phieu(w, "CHO_XAC_MINH", { banKhai: true });
-  seedStaff(w.sqlite, { id: "33333333-3333-4333-8333-333333333333", phone: "0900000003", name: "Quản Trị", perms: ["ADMIN"] });
+  seedStaff(w.sqlite, { id: "44444444-4444-4444-8444-444444444441", phone: "0900000005", name: "Quản Lý Bán Hàng", perms: ["SALES_MANAGER", "SALES"] }); // ADR-0219 Đ1: người xác minh
   const truocMs = Date.now();
-  const r = await w.call("POST", `/api/dang-ky/phieu/${id}/bo-sung`, { as: "33333333-3333-4333-8333-333333333333", body: { lyDo: "KHONG_DOC_DUOC", phienBan: 1 } });
+  const r = await w.call("POST", `/api/dang-ky/phieu/${id}/bo-sung`, { as: "44444444-4444-4444-8444-444444444441", body: { lyDo: "KHONG_DOC_DUOC", phienBan: 1 } });
   assert.equal(r.status, 200, r.text);
   const han = Date.parse(reg(w, id).expires_at);
   assert.ok(han >= truocMs + 14 * NGAY - 1000 && han <= Date.now() + 14 * NGAY, "hạn bổ sung = lúc yêu cầu + supplement_expire_days");

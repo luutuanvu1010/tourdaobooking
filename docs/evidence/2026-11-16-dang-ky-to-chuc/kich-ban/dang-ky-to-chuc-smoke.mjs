@@ -1,7 +1,7 @@
 // Kịch bản Chrome + axe — ĐĂNG KÝ ĐỐI TÁC đợt 2 lượt A: PHẦN TỔ CHỨC (ADR-0212; Task 8, 16/11/2026). Hai khổ 390 và 1280. CHỈ D1 local tạm (startEnv của a2-cdp.mjs): không remote.
 //   0. D1 tạm gieo: chính sách riêng tư CÓ dấu «thu thông tin tổ chức» + một loại do Kế toán thêm `LD_THU`. Toàn quyền: khối «Nhận đăng ký mới» — «Công ty lữ hành» hiện mờ kèm lý do; mở `LD_THU`, Bật, Lưu.
 //   1. Người đăng ký: email → mã → bật «Tôi đăng ký cho cả tổ chức» → điền → ảnh GPKD. (390) Lối thoát: tắt công tắc khi còn ảnh ⇒ hỏi «Bỏ ảnh và phần tổ chức · Thôi» ⇒ bỏ ảnh ⇒ bật lại, tải lại ảnh. Gửi phiếu.
-//   2. Quản trị: màn xác minh có HAI nhóm mục, khối «Thông tin tổ chức» (số che), «Đối chiếu Danh bạ cho tổ chức» ⇒ «Xác minh đạt».
+//   2. Quản lý bán hàng (ADR-0219 Đ1): màn xác minh có HAI nhóm mục, khối «Thông tin tổ chức» (số che), «Đối chiếu Danh bạ cho tổ chức» ⇒ «Xác minh đạt».
 //   3. Nhân sự: màn duyệt hiện mục tổ chức và kết luận Danh bạ của tổ chức ⇒ «Duyệt mở tài khoản» ⇒ có hồ sơ tổ chức mới.   4. Người đăng ký đặt PIN.
 // Cần MẠNG (Turnstile khoá thử) và AXE_JS. Chạy từ GỐC repo sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> OUT=docs/evidence/2026-11-16-dang-ky-to-chuc node docs/evidence/2026-11-16-dang-ky-to-chuc/kich-ban/dang-ky-to-chuc-smoke.mjs
@@ -24,12 +24,13 @@ const RONG = { width: 1280, height: 860, mobile: false };
 const ADM = { name: "Quản Trị Đăng Ký", phone: "0900000861", pin: "246861", permissions: ["ADMIN"] };
 const HR = { name: "Nhân Sự Đăng Ký", phone: "0900000862", pin: "246862", permissions: ["HR"] };
 const CHU = { name: "Toàn Quyền Đăng Ký", phone: "0900000863", pin: "246863", permissions: ["SUPER_ADMIN"] };
+const QLBH = { name: "Quản Lý Bán Hàng Đăng Ký", phone: "0900000864", pin: "246864", permissions: ["SALES_MANAGER", "SALES"] }; // ADR-0219 Đ1: người xác minh
 const PIN_MOI = "580927";
 
 const env = await startEnv({ turnstile: true, vars: { SESSION_SECRET: SECRET } });
 const b = boDem("DANG KY TO CHUC");
 try {
-  for (const a of [ADM, HR, CHU]) for (const stmt of (await insertStaffSqlThu(a)).split("\n")) if (stmt.trim()) env.sql(stmt);
+  for (const a of [ADM, HR, CHU, QLBH]) for (const stmt of (await insertStaffSqlThu(a)).split("\n")) if (stmt.trim()) env.sql(stmt);
 
   const png = (() => {
     const crc = (buf) => { let c = ~0; for (const x of buf) { c ^= x; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xedb88320 : c >>> 1; } return ~c >>> 0; };
@@ -91,7 +92,7 @@ try {
   const dem = async (p, sel) => p.ev(`document.querySelectorAll(${JSON.stringify(sel)}).length`);
 
   for (const [khung, hau] of [[MOB, "390"], [RONG, "1280"]]) {
-    const p = await env.as(CHU, "/staff", khung);
+    const p = await env.as(CHU, "/phieu-dang-ky", khung);
     await b.step(`${hau}-0`, `${hau}: Toàn quyền — khối «Nhận đăng ký mới»: vai chưa đủ điều kiện hiện mờ kèm lý do; mở «Công ty thử nghiệm», Bật, Lưu${axeNote()}`, async () => {
       await p.waitFor(`!!document.querySelector('#dk-cs-luu')`, "khối Nhận đăng ký mới", 15000);
       assert.ok(await p.ev(`[...document.querySelectorAll('input[name=dk-cs-loai]:disabled')].every((x) => x.closest('label').innerText.includes('Chưa mở được')) && document.querySelectorAll('input[name=dk-cs-loai]:disabled').length >= 1`), "vai chưa đủ điều kiện: khoá, kèm lý do");
@@ -220,8 +221,8 @@ try {
     p.close();
     const phieu = env.sql(`SELECT registration_id AS id FROM dk_identity WHERE subject = '${email}'`)[0]?.id;
 
-    p = await env.as(ADM, "/staff", khung);
-    await b.step(`${hau}-2`, `${hau}: Quản trị — hai nhóm mục, khối «Thông tin tổ chức» (số che), đối chiếu Danh bạ cho tổ chức ⇒ «Xác minh đạt»${axeNote()}`, async () => {
+    p = await env.as(QLBH, "/phieu-dang-ky", khung);
+    await b.step(`${hau}-2`, `${hau}: Quản lý bán hàng — hai nhóm mục, khối «Thông tin tổ chức» (số che), đối chiếu Danh bạ cho tổ chức ⇒ «Xác minh đạt»${axeNote()}`, async () => {
       await p.waitFor(`!!document.querySelector('[data-phieu="${phieu}"]')`, "thẻ phiếu", 15000);
       await bam(p, `[data-phieu="${phieu}"]`);
       await p.waitFor(`!!document.querySelector('#dk-hc-xac-minh-dat') && !!document.querySelector('#dk-hc-to-chuc')`, "khung xác minh có khối tổ chức", 15000);
@@ -252,7 +253,7 @@ try {
     });
     p.close();
 
-    p = await env.as(HR, "/staff", khung);
+    p = await env.as(HR, "/phieu-dang-ky", khung);
     await b.step(`${hau}-3`, `${hau}: Nhân sự — màn duyệt có mục và kết luận Danh bạ của tổ chức ⇒ «Duyệt mở tài khoản» ⇒ hồ sơ tổ chức mới${axeNote()}`, async () => {
       await p.waitFor(`!!document.querySelector('[data-phieu="${phieu}"]')`, "thẻ chờ duyệt", 15000);
       await bam(p, `[data-phieu="${phieu}"]`);

@@ -1,11 +1,11 @@
 // Kịch bản Chrome + axe — ĐĂNG KÝ ĐỐI TÁC đợt 1 (ADR-0206 … ADR-0210; Task 12, 15/11/2026). Hai khổ 390 và 1280. CHỈ D1 local tạm (startEnv của a2-cdp.mjs): không remote,
 // không `wrangler dev --remote`. Tên, email, số điện thoại, số căn cước là GIẢ.
 //   0. Công tắc «Nhận đăng ký mới» đang TẮT (bản gieo): màn Đăng nhập có lối «Đăng ký làm đối tác»; /dang-ky nói «Tour Đảo tạm ngừng nhận đăng ký mới.», không có biểu mẫu phiếu.
-//   0b. Toàn quyền BẬT «Nhận đăng ký mới» ở khối của mình (Quản lý tài khoản; route thật thêm một dòng dk_policy); chính sách riêng tư phiên bản 1 gieo bằng SQL trên D1 tạm.
+//   0b. Toàn quyền BẬT «Nhận đăng ký mới» ở khối của mình (trang Phiếu đăng ký đối tác — ADR-0219 Đ3; route thật thêm một dòng dk_policy); chính sách riêng tư phiên bản 1 gieo bằng SQL trên D1 tạm.
 //   1. Người đăng ký: email → (Turnstile khoá thử) Gửi mã → nhập mã → điền phiếu, hai ảnh căn cước, đồng ý → Gửi phiếu ⇒ «Đang chờ xác minh».
-//   2. Quản trị: Quản lý tài khoản › Phiếu đăng ký đối tác ⇒ mở phiếu, năm mục «Đạt», «Hồ sơ mới» ⇒ «Xác minh đạt».
-//   2b. (rà soát cuối 16/11) Nhân sự: mở phiếu chờ duyệt ⇒ «Trả về xác minh» ⇒ phiếu về Chờ xác minh; Quản trị chọn lại «Hồ sơ mới» ⇒ «Xác minh đạt» (kết luận từng mục giữ nguyên).
-//   3. Nhân sự: mở phiếu chờ duyệt ⇒ «Duyệt mở tài khoản»; hàng chờ ghi «Chưa kích hoạt» và «Thư chưa gửi được» (chạy cục bộ không có thư thật); danh sách tài khoản ghi «Chưa kích hoạt».
+//   2. Quản lý bán hàng (ADR-0219 Đ1): trang Phiếu đăng ký đối tác ⇒ mở phiếu, năm mục «Đạt», «Hồ sơ mới» ⇒ «Xác minh đạt».
+//   2b. (rà soát cuối 16/11) Nhân sự: mở phiếu chờ duyệt ⇒ «Trả về xác minh» ⇒ phiếu về Chờ xác minh; Quản lý bán hàng chọn lại «Hồ sơ mới» ⇒ «Xác minh đạt» (kết luận từng mục giữ nguyên).
+//   3. Quản trị (ADR-0219 Đ1 — người duyệt): mở phiếu chờ duyệt ⇒ «Duyệt mở tài khoản»; hàng chờ ghi «Chưa kích hoạt» và «Thư chưa gửi được» (chạy cục bộ không có thư thật); danh sách tài khoản ghi «Chưa kích hoạt».
 //   4. Người đăng ký: /dang-ky ⇒ phiếu «Đã duyệt» ⇒ Gửi mã (mới) → nhập mã + mã PIN hai lần ⇒ «Đã kích hoạt tài khoản».
 //   5. Đăng nhập bằng số điện thoại đã khai + mã PIN vừa đặt ở màn Đăng nhập ⇒ rời /login.
 // THƯ: chạy cục bộ không có thư thật (thiếu FEEDBACK_MAIL_FROM thì máy chủ không gửi, chỉ ghi `dk_mail_failed`). Kịch bản lấy mã như khung thử (`gieoMa` của
@@ -32,12 +32,13 @@ const RONG = { width: 1280, height: 860, mobile: false };
 const ADM = { name: "Quản Trị Đăng Ký", phone: "0900000851", pin: "246851", permissions: ["ADMIN"] };
 const HR = { name: "Nhân Sự Đăng Ký", phone: "0900000852", pin: "246852", permissions: ["HR"] };
 const CHU = { name: "Toàn Quyền Đăng Ký", phone: "0900000853", pin: "246853", permissions: ["SUPER_ADMIN"] };
+const QLBH = { name: "Quản Lý Bán Hàng Đăng Ký", phone: "0900000854", pin: "246854", permissions: ["SALES_MANAGER", "SALES"] }; // ADR-0219 Đ1: người xác minh
 const PIN_MOI = "580927";
 
 const env = await startEnv({ turnstile: true, vars: { SESSION_SECRET: SECRET } });
 const b = boDem("DANG KY DOI TAC");
 try {
-  for (const a of [ADM, HR, CHU]) for (const stmt of (await insertStaffSqlThu(a)).split("\n")) if (stmt.trim()) env.sql(stmt);
+  for (const a of [ADM, HR, CHU, QLBH]) for (const stmt of (await insertStaffSqlThu(a)).split("\n")) if (stmt.trim()) env.sql(stmt);
 
   const png = (() => {
     const crc = (buf) => { let c = ~0; for (const x of buf) { c ^= x; for (let k = 0; k < 8; k++) c = c & 1 ? (c >>> 1) ^ 0xedb88320 : c >>> 1; } return ~c >>> 0; };
@@ -119,10 +120,12 @@ try {
     env.sql(`INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('cs-smoke', 1, 'Xác minh đối tác (bản thử)', 'Bản thử của chính sách riêng tư.\nTour Đảo chỉ dùng thông tin để xác minh đối tác.', '${nay}', '${nay}', 'kich-ban', '${nay}', 'kich-ban')`);
   }
   for (const [khung, hau] of [[MOB, "390"], [RONG, "1280"]]) {
-    const p = await env.as(CHU, "/staff", khung);
-    await b.step(`${hau}-0b`, `${hau}: Toàn quyền — khối «Nhận đăng ký mới» ${hau === "390" ? "bật công tắc (bốn vai đã chọn sẵn), Lưu ⇒ dòng chính sách mới đang nhận" : "đang Bật sau lần lưu ở khổ 390"}${axeNote()}`, async () => {
+    const p = await env.as(CHU, "/phieu-dang-ky", khung);
+    await b.step(`${hau}-0b`, `${hau}: Toàn quyền — khối «Nhận đăng ký mới» ${hau === "390" ? "bật công tắc (các vai đã chọn sẵn), Lưu ⇒ dòng chính sách mới đang nhận" : "đang Bật sau lần lưu ở khổ 390"}${axeNote()}`, async () => {
       await p.waitFor(`!!document.querySelector('#dk-cs-luu')`, "khối Nhận đăng ký mới", 15000);
-      assert.equal(await p.ev(`document.querySelectorAll('input[name=dk-cs-loai]').length`), 4, "bốn vai cá nhân, không có Công ty lữ hành");
+      // Sửa 18/11 (ADR-0219): trước đây ghim 4 — đỏ sẵn từ khi danh sách vai đăng ký được thành dữ liệu (ADR-0212 Đ1, nay 6 trên bản gieo). Ghim theo chính dữ liệu gieo.
+      const soVai = env.sql(`SELECT count(*) AS n FROM pty_role_type WHERE active = 1 AND (role_group = 'EXTERNAL' OR is_partner_label = 1)`)[0].n;
+      assert.equal(await p.ev(`document.querySelectorAll('input[name=dk-cs-loai]').length`), soVai, "đúng số vai đăng ký được của bản gieo");
       if (hau === "390") {
         assert.equal(await p.ev(`document.querySelector('#dk-cs-tat').checked`), true, "bản gieo: Tắt");
         await p.ev(`document.querySelector('#dk-cs-bat').click(), true`);
@@ -190,8 +193,8 @@ try {
     p.close();
     const phieu = env.sql(`SELECT registration_id AS id FROM dk_identity WHERE subject = '${email}'`)[0]?.id;
 
-    p = await env.as(ADM, "/staff", khung);
-    await b.step(`${hau}-2`, `${hau}: Quản trị — hàng chờ phiếu đăng ký ⇒ mở phiếu, năm mục «Đạt», «Hồ sơ mới», «Xác minh đạt»${axeNote()}`, async () => {
+    p = await env.as(QLBH, "/phieu-dang-ky", khung);
+    await b.step(`${hau}-2`, `${hau}: Quản lý bán hàng — hàng chờ phiếu đăng ký ⇒ mở phiếu, năm mục «Đạt», «Hồ sơ mới», «Xác minh đạt»${axeNote()}`, async () => {
       assert.ok(phieu, "có mã phiếu");
       await p.waitFor(`!!document.querySelector('[data-phieu="${phieu}"]')`, "thẻ phiếu trong hàng chờ", 15000);
       await bam(p, `[data-phieu="${phieu}"]`);
@@ -202,7 +205,7 @@ try {
       }
       await p.ev(`document.querySelector('input[name="dk-ho-so"][value="MOI"]').click(), true`);
       await sleep(300);
-      await chup(p, `06-quan-tri-xac-minh-${hau}`, khung);
+      await chup(p, `06-quan-ly-ban-hang-xac-minh-${hau}`, khung);
       await axe(p, `khung xác minh ${hau}`);
       await bam(p, "#dk-hc-xac-minh-dat");
       await p.waitFor(`document.body.innerText.includes('Đã xác minh đạt')`, "báo xác minh đạt", 15000);
@@ -210,7 +213,7 @@ try {
     });
     p.close();
 
-    p = await env.as(HR, "/staff", khung);
+    p = await env.as(HR, "/phieu-dang-ky", khung);
     await b.step(`${hau}-2b`, `${hau}: Nhân sự — «Trả về xác minh» ⇒ phiếu về Chờ xác minh, kết luận Danh bạ bị xoá${axeNote()}`, async () => {
       await p.waitFor(`!!document.querySelector('[data-phieu="${phieu}"]')`, "thẻ phiếu chờ duyệt", 15000);
       await bam(p, `[data-phieu="${phieu}"]`);
@@ -224,8 +227,8 @@ try {
       assert.deepEqual([r.status, r.verified_by, r.match_kind], ["CHO_XAC_MINH", null, null]);
     });
     p.close();
-    p = await env.as(ADM, "/staff", khung);
-    await b.step(`${hau}-2c`, `${hau}: Quản trị — phiếu trả về: kết luận từng mục còn «Đạt», chọn lại «Hồ sơ mới» ⇒ «Xác minh đạt»${axeNote()}`, async () => {
+    p = await env.as(QLBH, "/phieu-dang-ky", khung);
+    await b.step(`${hau}-2c`, `${hau}: Quản lý bán hàng — phiếu trả về: kết luận từng mục còn «Đạt», chọn lại «Hồ sơ mới» ⇒ «Xác minh đạt»${axeNote()}`, async () => {
       await p.waitFor(`!!document.querySelector('[data-phieu="${phieu}"]')`, "thẻ phiếu trong hàng chờ", 15000);
       await bam(p, `[data-phieu="${phieu}"]`);
       await p.waitFor(`!!document.querySelector('#dk-hc-xac-minh-dat')`, "khung xác minh", 15000);
@@ -239,18 +242,18 @@ try {
     });
     p.close();
 
-    p = await env.as(HR, "/staff", khung);
-    await b.step(`${hau}-3`, `${hau}: Nhân sự — «Duyệt mở tài khoản» ⇒ hàng chờ và danh sách tài khoản ghi «Chưa kích hoạt»${axeNote()}`, async () => {
+    p = await env.as(ADM, "/phieu-dang-ky", khung);
+    await b.step(`${hau}-3`, `${hau}: Quản trị (người duyệt, ADR-0219) — «Duyệt mở tài khoản» ⇒ hàng chờ ghi «Chưa kích hoạt», danh sách tài khoản ghi «Chưa kích hoạt»${axeNote()}`, async () => {
       await p.waitFor(`!!document.querySelector('[data-phieu="${phieu}"]')`, "thẻ phiếu chờ duyệt", 15000);
       await bam(p, `[data-phieu="${phieu}"]`);
       await p.waitFor(`!!document.querySelector('#dk-hc-duyet')`, "khung duyệt", 15000);
       const t0 = await chu(p);
       const khung0 = t0.slice(t0.indexOf("Duyệt phiếu"));
-      for (const bi of ["Số căn cước", `0790900012${String(30 + so)}`, "1990-05-06", "Đường Thử", "Ảnh mặt"]) assert.ok(!khung0.includes(bi), `Nhân sự không thấy ${bi}`);
+      for (const bi of ["Số căn cước", `0790900012${String(30 + so)}`, "1990-05-06", "Đường Thử", "Ảnh mặt"]) assert.ok(!khung0.includes(bi), `người duyệt không thấy ${bi}`);
       await go(p, "#dk-hc-vai", "COLLABORATOR");
       assert.equal(await p.ev(`document.querySelector('#dk-hc-doi-vai').hidden`), false, "đổi vai ⇒ câu cấp theo vai trò mới");
       await go(p, "#dk-hc-vai", "GUIDE_FREELANCE");
-      await chup(p, `07-nhan-su-duyet-${hau}`, khung);
+      await chup(p, `07-quan-tri-duyet-${hau}`, khung);
       await axe(p, `khung duyệt ${hau}`);
       await bam(p, "#dk-hc-duyet");
       await p.waitFor(`document.body.innerText.includes('Đã duyệt.')`, "báo đã duyệt", 15000);
@@ -260,6 +263,9 @@ try {
       await p.send("Page.reload", {});
       await p.waitFor(`(document.querySelector('[data-phieu="${phieu}"]')?.innerText ?? '').includes('Thư chưa gửi được')`, "hàng chờ: Thư chưa gửi được", 15000);
       assert.deepEqual(env.sql(`SELECT command FROM dk_event WHERE registration_id = '${phieu}' AND command GLOB 'THU_*' ORDER BY at, rowid`).map((x) => x.command), ["THU_DA_DUYET_CHO", "THU_DA_DUYET_LOI"]);
+      // Danh sách tài khoản ở trang Quản lý tài khoản (hàng chờ đã sang trang riêng — ADR-0219 Đ3); trang đó còn lối sang «Phiếu đăng ký đối tác».
+      await p.send("Page.navigate", { url: new URL("/staff", await p.ev("location.href")).href });
+      await p.waitFor(`!!document.querySelector('#lien-ket-phieu-dang-ky') && !document.querySelector('#lien-ket-phieu-dang-ky').hidden`, "lối sang Phiếu đăng ký đối tác", 15000);
       await p.waitFor(`[...document.querySelectorAll('[data-chua-kich-hoat]')].length > 0`, "danh sách tài khoản: Chưa kích hoạt", 15000);
       assert.equal(env.sql(`SELECT active FROM staff WHERE phone = '${dtKhoa}'`)[0].active, 0);
       await chup(p, `08-chua-kich-hoat-${hau}`, khung);

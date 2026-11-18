@@ -1,4 +1,4 @@
-// Khối «Nhận đăng ký mới» của Toàn quyền ở trang Quản lý tài khoản, ngay trên hàng chờ phiếu đăng ký (ADR-0206 Đ9; PHU-LUC lượt A «Nhận đăng ký mới (Bật, Tắt)»; đợt 1 Task 12 vòng sửa 1).
+// Khối «Nhận đăng ký mới» của Toàn quyền ở trang «Phiếu đăng ký đối tác» (ADR-0219 Đ3), ngay trên hàng chờ phiếu đăng ký (ADR-0206 Đ9; PHU-LUC lượt A «Nhận đăng ký mới (Bật, Tắt)»; đợt 1 Task 12 vòng sửa 1).
 // Chỉ hiện khi `can(staff, "registration.policy.write")` (chỉ Toàn quyền); máy chủ kiểm lại. Công tắc Bật / Tắt và ô chọn loại mở (bốn vai cá nhân, không bao giờ Công ty lữ hành);
 // «Lưu» gửi kèm khoá lạc quan `dangHieuLuc` (dòng chính sách đang thấy); người khác vừa đổi ⇒ 409, nạp lại. Mỗi lần lưu là một dòng chính sách mới. Chỉ dựng DOM bằng h().
 import { ApiError, api, type Api } from "./api";

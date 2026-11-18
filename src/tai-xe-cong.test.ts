@@ -201,6 +201,9 @@ const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: Mu
     DRIVER: { ma: 403, ly_do: "ô unavailability.self none → 403 trước mọi truy vấn" },
     DRIVER_PARTNER: { ma: 404, ly_do: "khung lạ / không phải của mình → 404 (SQL lọc driver_party_id của người gọi)" },
   },
+  // ADR-0219 Đ3: hàng chờ phiếu đăng ký và gửi lại thư sang cổng staff — ô registration.queue.view = none ở cả hai mã tài xế ⇒ 403 ở đầu thân, trước mọi truy vấn.
+  "GET /api/dang-ky/hang-cho": { ma: 403, ly_do: "ô registration.queue.view none → 403 trước mọi truy vấn; không dữ liệu phiếu" },
+  "POST /api/dang-ky/phieu/:id/gui-lai-thu": { ma: 403, ly_do: "như trên — ô registration.queue.view none → 403 trước khi đọc phiếu" },
   // ADR-0175 Đ3 (vé Tour Đảo Đợt 2): quét vé — ô ve.quet.xem = any (Tài xế công ty quét chỉ-xem), ô ve.quet.tinh = none; Tài xế đối tác không có ô nào.
   "GET /api/ve/quet/quyen": {
     DRIVER: { ma: 200, ly_do: "chỉ báo được tính đã dùng hay không ({ tinh: false }) — không dữ liệu đơn / khách / tiền" },
