@@ -218,11 +218,30 @@ test("settings.json (16/11): luật HỎI kể đúng tệp luật của .claude
     "Edit(**/.claude/agents/**)",
     "Edit(**/.claude/skills/**)",
     "Edit(**/playbook/**)",
-    "Edit(**/src/shared/bang-tham-chieu*.ts)",
+    "Edit(**/src/shared/bang-tham-chieu.ts)",
+    "Edit(**/scripts/bang-tham-chieu-lib.mjs)",
+    "Edit(**/scripts/quet-nut-lib.mjs)",
     "Edit(**/src/bang-tham-chieu.test.ts)",
   ]) {
     assert.ok(ask.includes(r), `luật HỎI phải còn: ${r}`);
   }
+});
+
+// ─── 18/11/2026: hai tệp DỮ LIỆU của bảng tham chiếu thôi bật hộp hỏi ───────────────────────────────────────────────────────────────
+// Đo từ nhật ký ứng dụng 16–18/11 (ghép giờ hộp hỏi với lần gọi công cụ, hai người đo riêng): khoảng 65 hộp hỏi sửa tệp, phần lớn rơi vào
+// `bang-tham-chieu-viec.ts` và `bang-tham-chieu-khai-niem.ts` (37 hộp ghép chắc, thêm khoảng 11 hộp nhiều khả năng; tính năng nào có nút mới cũng
+// phải khai ở đó, mỗi lần Edit một hộp), số còn lại vào tệp luật thật; không hộp nào ghép được vào tệp mã thường. Hộp hỏi đến dồn dập vài giây
+// một cái, còn khi chủ vắng thì trợ lý con đứng chờ hàng chục phút. Chủ dự án 18/11, nguyên văn: «sửa ngay lỗi gốc». Thu hẹp ADR-0167 Đ4: chỉ còn hỏi
+// khi sửa KIỂU DỮ LIỆU của bảng và MÁY CANH (bộ quét, thư viện sinh bảng, bài kiểm). Điều vẫn canh nội dung bảng: `src/bang-tham-chieu.test.ts`
+// (tên «đã chốt» phải có ngày và nguồn chủ chọn) và hook chặn sửa bằng dòng lệnh (guard-luat) — hai lớp đó không đổi.
+test("settings.json (18/11): hai tệp dữ liệu bảng tham chiếu không bị HỎI; kiểu dữ liệu và máy canh vẫn HỎI", () => {
+  const ask: string[] = JSON.parse(read(".claude/settings.json")).permissions.ask;
+  const veBang = ask.filter((r) => /bang-tham-chieu|quet-nut/.test(r)).sort();
+  assert.deepEqual(veBang, ["Edit(**/scripts/bang-tham-chieu-lib.mjs)", "Edit(**/scripts/quet-nut-lib.mjs)", "Edit(**/src/bang-tham-chieu.test.ts)", "Edit(**/src/shared/bang-tham-chieu.ts)"]);
+  // Luật hỏi viết theo kiểu gitignore: chỉ `*` mới trùm được tên tệp khác. Bốn luật trên không có `*` ở phần tên tệp, nên không trùm hai tệp dữ liệu.
+  for (const r of veBang) assert.ok(!/bang-tham-chieu[^/)]*\*/.test(r), `luật hỏi không được trùm cả họ tệp bảng: ${r}`);
+  // Và không luật hỏi nào trùm tệp mã theo đuôi (vd `Edit(**/src/shared/*.ts)`): luật như vậy làm mọi lần sửa mã bật hộp hỏi.
+  for (const r of ask) assert.ok(!/\*\.(?:ts|mjs|js|css|html|sql)\)$/.test(r), `luật hỏi không được trùm tệp mã theo đuôi: ${r}`);
 });
 
 // ─── Trình thông dịch (node/python/perl/ruby/bun/deno/php) ghi tệp luật — vá chỗ hở 15/11/2026 ─────────────────────────────────────
