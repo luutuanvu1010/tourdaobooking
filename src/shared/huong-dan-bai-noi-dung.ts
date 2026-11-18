@@ -254,14 +254,17 @@ Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân h�
     o: ["admin.manage"],
     gioiHan: [],
     neo: ["web/phi-don.ts", "public/phi-don.html", "src/shared/phi-don-hien-thi.ts"],
-    moDau: "Từ ADR-0214 phí trên đơn do văn phòng chọn; bảng này không còn dùng cho đơn. Màn Phí đưa đón còn giữ ngày bắt đầu áp: từ ngày đó, mỗi lượt đón trên đơn có ô chọn phí, và lượt chưa chọn phí thì đơn không xác nhận được.",
+    moDau: "Từ ADR-0218 phí đưa đón do Nền tảng tự tính từ giá gốc trên Sheet dịch vụ, trừ mức giảm theo cấp độ đại lý. Màn Phí đưa đón giữ ngày bắt đầu áp, danh sách dịch vụ chưa có giá gốc và chương trình miễn phí; từ ngày bắt đầu áp, mỗi lượt đón trên đơn có một dòng phí.",
     noiDung: `### Các bước
-1. Mở **Phí đưa đón**, bấm [[Đặt ngày bắt đầu áp]] và chọn ngày. Không cần nhập bảng mức trước.
-2. Từ ngày đó, nhân viên văn phòng chọn phí cho từng lượt đón ngay trên đơn: Miễn phí, một mức có sẵn trong danh sách, hoặc Số khác (tự gõ số tiền, có mức tối đa). Đơn do Đối tác gửi thì người kiểm vé chọn phí lúc bấm [[Còn vé, xác nhận đơn]].
-3. Muốn dừng tính phí: bấm [[Tắt phí đưa đón]]. Đơn đã xác nhận giữ nguyên phí đã chụp.
+1. Mở **Phí đưa đón**, bấm [[Đặt ngày bắt đầu áp]] và chọn ngày. Không cần nhập bảng mức. Trước ngày đó đơn không có dòng phí.
+2. Xem phần nhắc «dịch vụ chưa có giá gốc phí đưa đón»: dịch vụ nào còn trống ô giá gốc trên Sheet thì đơn có lượt đón của dịch vụ đó không xác nhận được. Nhập giá gốc trên Sheet (ghi 0 nếu miễn phí), hoặc văn phòng bấm Đổi phí trên đơn để đặt số riêng kèm lý do.
+3. Muốn miễn phí đưa đón theo đợt: mở khối **Chương trình miễn phí đưa đón**, chọn khoảng ngày đi, và phạm vi (tất cả dịch vụ, một số dịch vụ hoặc một số đối tác). Đơn chưa xác nhận có ngày đón trong khoảng thì phí là 0 đồng; đơn đã xác nhận giữ phí đã chụp.
+4. Đơn do Đối tác gửi: nếu Nền tảng tính được phí thì đơn xác nhận luôn; không tính được thì người kiểm vé đặt số lúc bấm [[Còn vé, xác nhận đơn]].
+5. Muốn dừng tính phí: bấm [[Tắt phí đưa đón]]. Đơn đã xác nhận giữ nguyên phí đã chụp.
 
 ### Điều dễ sai
-- Bảng mức theo khu vực và khối **Thử tra** vẫn còn để tra cứu, nhưng không còn tính vào đơn.
-- Chưa chọn phí khác với Miễn phí: lượt chưa chọn thì đơn không xác nhận được; muốn không thu phí thì chọn Miễn phí.`,
+- Phí của đơn tính từ giá gốc trên Sheet, trừ mức giảm theo cấp (Kế toán đặt ở màn Cấp độ đại lý); đổi cấp độ cũng đổi phí của các đơn chưa xác nhận.
+- Ô giá gốc để trống khác số 0: trống là chưa có giá, đơn bị giữ; số 0 là miễn phí.
+- Bảng mức theo khu vực và khối **Thử tra** nay nằm trong khối gập «luật cũ, không dùng cho đơn»; vẫn còn để tra cứu, không tính vào đơn.`,
   },
 ];
