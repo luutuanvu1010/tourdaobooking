@@ -119,11 +119,17 @@ test("SV-PC-13 (đường thật): giảm giá tối đa 1.000.000 = tiền dị
   assert.deepEqual([o.subtotal, o.giamGiaHieuLuc, o.total], [1_100_000, 1_000_000, 100_000]);
 });
 
-test("SV-PC-02: chọn «Miễn phí», 2 người lớn ⇒ 0 đ; biên nhận vẫn in dòng «Phí đưa đón — Miễn phí»; xác nhận được", async () => {
+test("SV-PC-02: đổi phí về 0 («Miễn phí»), 2 người lớn ⇒ 0 đ; biên nhận khách lẻ gộp (không dòng phí) — bật «Hiện riêng» thì in dòng «Phí đưa đón — Miễn phí»; xác nhận được", async () => {
   const w = await setup();
   const o = await lapXacNhan(w, [svc({ adult: 2 }, [OUT(0)])]);
   assert.deepEqual(phiTrenDon(o), [{ direction: "OUT", quantity: 2, unitPrice: 0, lineTotal: 0 }]);
   assert.deepEqual(dongPhiDaLuu(w, o.id), [{ fee_calc_source: "DOI_TAY", quantity: 2, unit_price: 0, line_total: 0 }]);
+  // mặc định (khách lẻ, công tắc tắt): gộp — tiền 0 nên giá không đổi, không dòng phí riêng
+  const gop = await bienNhan(w, o.id);
+  assert.deepEqual(gop.phiDuaDon, []);
+  assert.doesNotMatch(JSON.stringify(buildConfirmation(gop, null)), /Phí đưa đón/);
+  // Toàn quyền bật «Hiện riêng phí đưa đón trên biên nhận khách lẻ» ⇒ in lại dòng phí riêng
+  await ok(w.call("POST", "/api/cai-dat/phi-don-bien-nhan", { as: SUP, body: { hienRieng: true } }), 200, "bật hiện riêng");
   const b = await bienNhan(w, o.id);
   assert.deepEqual(b.phiDuaDon, [{ description: "Phí đưa đón — chiều đi", quantity: 2, unitPrice: 0, lineTotal: 0 }]);
   const khoi = buildConfirmation(b, null).blocks.find((k: any) => k.kind === "service" && k.name === "Phí đưa đón") as any;

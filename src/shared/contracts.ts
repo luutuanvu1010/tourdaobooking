@@ -2839,6 +2839,11 @@ export interface ReceiptLineDto {
   /** Đơn giá BÁN LẺ trên đơn (máy chủ tính). */
   unitPrice: number;
   lineTotal: number;
+  /**
+   * Dòng TRỌN GÓI của biên nhận khách lẻ khi phí đưa đón gộp vào giá (ADR-0218 Đ3.3): `soKhach` = số khách tính tiền; dòng KHÔNG in đơn giá (`unitPrice` = 0 không có nghĩa), `lineTotal` = tiền dịch vụ + phí.
+   * Chỉ có ở biên nhận mẫu nội bộ khi công tắc «Hiện riêng phí đưa đón trên biên nhận khách lẻ» tắt.
+   */
+  tronGoi?: { soKhach: number };
 }
 /** Mẫu in biên nhận do MÁY CHỦ quyết (HD-02-DT): «noi_bo» hay «doi_tac» (đơn của Đối tác — bên đặt là đối tác hoặc người lập là Đối tác thuần). */
 export type MauBienNhan = "noi_bo" | "doi_tac";
@@ -2886,6 +2891,11 @@ export interface ReceiptDto {
   phiDuaDon?: ReceiptPhiDto[];
   /** Dòng phí còn là số «dự kiến» (đơn NHÁP — phí chưa chụp, tính lại lúc xác nhận; chủ 15/11 câu 3). Chữ «dự kiến» trên ảnh do Task 6 đặt; máy chủ chỉ báo cờ. Vắng = máy chủ cũ. */
   phiDuKien?: boolean;
+  /**
+   * ADR-0218 Đ3.3: biên nhận khách lẻ gộp phí vào giá thì dịch vụ do NHÀ CUNG CẤP KHÁC bán không được cộng phí đưa đón (tiền của Tour Đảo) — mỗi dịch vụ ấy một dòng «<Tên dịch vụ> — đưa đón» ở phần Tour Đảo.
+   * Chỉ có khi đang gộp và có dịch vụ như vậy; `phiDuaDon` khi đó rỗng. Danh sách trắng: mô tả + thành tiền.
+   */
+  dongDuaDonTourDao?: { description: string; lineTotal: number }[];
   subtotal: number;
   /** Giảm giá IN TRÊN BIÊN NHẬN = giảm giá hiệu lực (`OrderDto.giamGiaHieuLuc`, ADR-0109 QĐ4); bằng giảm giá đã lưu trừ khi tạm tính hiện hành nhỏ hơn. subtotal − discount = total. */
   discount: number;
