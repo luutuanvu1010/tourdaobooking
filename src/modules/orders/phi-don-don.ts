@@ -158,3 +158,6 @@ export function phiDuaDonDto(v: { nhap: boolean; dong: readonly PhiDuaDonDto[]; 
   if (v.dong.length === 0 && thieu.length === 0) return null;
   return { dong: [...v.dong], thieu, duKien: v.nhap };
 }
+
+/** Bỏ lý do đổi phí khỏi DTO phí (THUẦN; dựng đối tượng MỚI) — cho người không có ô xem đặt gấp (`datGapTheoVai`). */
+export const anLyDoDoiPhi = (p: PhiDuaDonCuaDonDto | null): PhiDuaDonCuaDonDto | null => (p ? { ...p, dong: p.dong.map((d) => ({ ...d, lyDoDoi: null })) } : p);

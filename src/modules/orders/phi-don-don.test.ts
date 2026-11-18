@@ -113,11 +113,11 @@ test("tomTatTuKetQua / tomTatTuDongDaLuu: cùng một dòng cho hai đường đ
   assert.equal(moTaPhiDonNhatKy([{ chieu: "OUT", tenDichVu: "x", cu: luu, moi: tomTatTuKetQua(k) }]), null);
 });
 
-test("lý do đổi phí (chữ văn phòng gõ) chỉ người có ô xem đặt gấp thấy: `datGapTheoVai` bỏ `lyDoDoi` với người khác (Đối tác, hướng dẫn viên, thực tập), giữ nguyên với văn phòng", async () => {
-  const { datGapTheoVai } = await import("./dat-gap.ts");
-  const dongPhi = { id: "f", legId: "l", serviceId: "s", direction: "OUT", zoneCode: null, zoneName: null, loaiChon: null, nguon: "DOI_TAY", tenChuongTrinh: null, lyDoDoi: "Khách quen", kind: "PER_PAX", returnPax: null, quantity: 2, unitPrice: 1000, lineTotal: 2000, description: "x" };
-  const order = { services: [], phiDuaDon: { dong: [dongPhi], thieu: [], duKien: false } } as any;
-  assert.equal(datGapTheoVai(order, true).phiDuaDon!.dong[0]!.lyDoDoi, "Khách quen");
-  assert.equal(datGapTheoVai(order, false).phiDuaDon!.dong[0]!.lyDoDoi, null);
-  assert.equal(order.phiDuaDon.dong[0].lyDoDoi, "Khách quen", "dựng đối tượng mới, không sửa bản gốc");
+test("lý do đổi phí (chữ văn phòng gõ) chỉ người có ô xem đặt gấp thấy: `anLyDoDoiPhi` (do `datGapTheoVai` gọi cho người khác — Đối tác, hướng dẫn viên, thực tập) bỏ `lyDoDoi`, dựng đối tượng mới", async () => {
+  const { anLyDoDoiPhi } = await import("./phi-don-don.ts");
+  const dongPhi = { id: "f", legId: "l", serviceId: "s", direction: "OUT", zoneCode: null, zoneName: null, loaiChon: null, nguon: "DOI_TAY", tenChuongTrinh: null, lyDoDoi: "Khách quen", kind: "PER_PAX", returnPax: null, quantity: 2, unitPrice: 1000, lineTotal: 2000, description: "x" } as const;
+  const p = { dong: [dongPhi], thieu: [], duKien: false } as any;
+  assert.equal(anLyDoDoiPhi(p)!.dong[0]!.lyDoDoi, null);
+  assert.equal(p.dong[0].lyDoDoi, "Khách quen", "không sửa bản gốc");
+  assert.equal(anLyDoDoiPhi(null), null);
 });
