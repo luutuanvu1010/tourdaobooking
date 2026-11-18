@@ -177,6 +177,10 @@ export const AUDIT_ACTIONS = {
   prc_transfer_fee_added: { label: "Thêm mức phí đưa đón", group: "ledger" },
   prc_transfer_fee_ended: { label: "Kết thúc mức phí đưa đón", group: "ledger" },
   prc_transfer_fee_start_set: { label: "Đặt ngày bắt đầu áp phí đưa đón", group: "ledger" },
+  // ADR-0218 Đ1.4: Kế toán / Quản trị / Toàn quyền đặt hoặc kết thúc MỨC GIẢM phí đưa đón theo cấp (route /api/pricing/giam-phi-don*) — `target_type = 'ledger'`.
+  // `detail` = «<tên cấp>: chưa đặt → 20.000đ từ 01/12/2026» / «<tên cấp> · kết thúc 30/11/2026». Chỉ tên cấp và số tiền; không tên người, SĐT, email, MST.
+  prc_transfer_fee_discount_set: { label: "Đặt mức giảm phí đưa đón", group: "ledger" },
+  prc_transfer_fee_discount_ended: { label: "Kết thúc mức giảm phí đưa đón", group: "ledger" },
   // ADR-0168 Đ1: Toàn quyền đặt / ngừng hạn mức Trả sau của một đối tác (route /api/tra-sau/han-muc*) — `target_type = 'ledger'`, `target_id` = mã hồ sơ, không gắn đơn.
   // `detail` = «hạn mức 50.000.000 ₫ · 7 ngày» / «ngừng hạn mức» (số tiền và số ngày, KHÔNG tên, SĐT, email, MST, lý do tự do).
   credit_limit_set: { label: "Đặt hạn mức trả sau", group: "ledger" },

@@ -113,6 +113,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "pricing", file: "modules/pricing/repository.ts" }, // ADR-0077 — sổ đại lý đợt 1: bảng mức, điều khoản người bán
   { module: "pricing", file: "modules/pricing/phi-don-repo.ts" }, // ADR-0147 Đ2: bảng phí đưa đón — nghiêm từ ngày đầu (defineSql)
+  { module: "pricing", file: "modules/pricing/giam-phi-don-repo.ts" }, // ADR-0218 Đ1.4: mức giảm phí đưa đón theo cấp — nghiêm từ ngày đầu (defineSql)
   { module: "pricing", file: "modules/pricing/luat-ban-repo.ts" }, // ADR-0146 Đ6 (a) — luật bán theo loại đối tác: tệp DUY NHẤT nhắc prc_sales_block
   { module: "staff", file: "modules/staff/repository.ts" },
   { module: "thongbao", file: "modules/thongbao/repository.ts" },

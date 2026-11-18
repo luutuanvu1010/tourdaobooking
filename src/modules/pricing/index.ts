@@ -26,6 +26,8 @@ import { coCacGiaTri, coGiaTri, danhSachLuatBan, demLuatBanChuaHetHan, giaTriDac
 import { ketQuaCapChoNguoiXem, type LyDoKhongApCap } from "../../shared/cap-se-ap-hien-thi";
 import { chanBan, kiemThanLuatBan, ngayKetThucLuat, type PhamViLuatBan, type TrungLuat } from "./luat-ban-rules";
 import { phiDonRoutes } from "./phi-don-route";
+import { giamPhiDonRoutes } from "./giam-phi-don-route";
+export { mucGiamPhiDonTheoNgay } from "./giam-phi-don-repo";
 
 export { cauBiChan } from "./luat-ban-rules";
 // Phí đưa đón (ADR-0147 Đ2, ADR-0203): hàm công bố cho Đợt C — đọc bảng phí + cấp của bên đặt; luật thuần chọn mức và tính tiền một chặng. Chỉ đọc, KHÔNG tự kiểm quyền.
@@ -1226,6 +1228,7 @@ export const pricingModule: AppModule = {
       // Câu SQL tự bọc '%' || ?1 || '%': đưa vào phần giữa của mauLikeChua (≤ 48 byte) để cả mẫu ≤ 50 byte (D1 từ chối quá giới hạn).
       const rows = await findBeneficiaries(env.DB, mauLikeChua(q).slice(1, -1));
       return json({ ketQua: rows.map((r) => ({ partyId: r.id, ten: r.display_name, loai: r.party_kind })) } satisfies NguoiHuongTimResponse);
-    }),    ...phiDonRoutes, // ADR-0147 Đ2: bảng phí đưa đón (phi-don-route.ts; đã khai ở TEP_ROUTE_PHU của route-write-guard.test.ts)
+    }),    ...giamPhiDonRoutes, // ADR-0218 Đ1.4: mức giảm phí đưa đón theo cấp (giam-phi-don-route.ts; đã khai ở TEP_ROUTE_PHU của route-write-guard.test.ts)
+    ...phiDonRoutes, // ADR-0147 Đ2: bảng phí đưa đón (phi-don-route.ts; đã khai ở TEP_ROUTE_PHU của route-write-guard.test.ts)
   ],
 };

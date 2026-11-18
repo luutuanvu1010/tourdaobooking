@@ -3309,6 +3309,11 @@ export interface PhiDonThemBody { kind: "PER_PAX" | "PER_TRIP"; amount: number; 
 export interface PhiDonGhiResponse { muc: MucPhiDonDto; canhBao: CanhBaoPhiDonDto[] }
 /** `POST …/bat-dau-ap`: dòng ngày bắt đầu áp mới nhất sau khi ghi (`ngay` null = đang tắt). `tuLuc` gửi lại làm `tuLucDaDoc` ở lần đổi sau. */
 export interface PhiDonBatDauApResponse { batDauAp: { ngay: string | null; tuLuc: string } }
+/** Mức giảm phí đưa đón theo cấp (ADR-0218 Đ1.4): số tiền trừ mỗi khách đi chung, áp chung mọi dịch vụ. */
+export interface GiamPhiDonDto { id: string; tierCode: string; tierName: string; amount: number; validFromDate: string; validToDate: string | null; updatedAt: string }
+export interface GiamPhiDonResponse { dong: GiamPhiDonDto[]; cap: { code: string; name: string }[]; doiDuoc: boolean }
+export interface GiamPhiDonRequest { tierCode: string; amount: number; validFromDate: string; thayCho?: { id: string; expectedUpdatedAt: string } }
+export interface GiamPhiDonGhiResponse { dong: GiamPhiDonDto }
 export interface ThuTraPhiDonResponse {
   ketQua: { trangThai: "CO_MUC"; mucId: string; kieu: "PER_PAX" | "PER_TRIP"; donGia: number; soLuong: number; tien: number } | { trangThai: "THIEU_MUC"; lyDo: "KHONG_CO_MUC" | "XUNG_DOT" };
   thua: { mucId: string; tien: number; viSao: string }[];

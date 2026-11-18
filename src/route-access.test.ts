@@ -224,6 +224,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/pricing/phi-don/bat-dau-ap", access: "admin" }, // ADR-0147 Đ2: bảng phí đưa đón (admin.manage ở dòng đầu thân)
   { method: "POST", path: "/api/pricing/phi-don/:id/ket-thuc", access: "admin" }, // ADR-0147 Đ2: bảng phí đưa đón (admin.manage ở dòng đầu thân)
   { method: "GET", path: "/api/pricing/phi-don/thu-tra", access: "admin" }, // ADR-0147 Đ2: bảng phí đưa đón (admin.manage ở dòng đầu thân)
+  { method: "GET", path: "/api/pricing/giam-phi-don", access: "office" }, // ADR-0218 Đ1.4: mức giảm phí đưa đón theo cấp (partner.commission.view, không giữ quyền Đối tác)
+  { method: "POST", path: "/api/pricing/giam-phi-don", access: "office" }, // ADR-0218 Đ1.4 (partner.commission.write, không giữ quyền Đối tác)
+  { method: "POST", path: "/api/pricing/giam-phi-don/:id/ket-thuc", access: "office" }, // ADR-0218 Đ1.4
   { method: "GET", path: "/api/maintenance", access: "admin" },
   { method: "PUT", path: "/api/maintenance", access: "admin" },
   { method: "PUT", path: "/api/maintenance/content", access: "admin" }, // ADR-0202: nội dung màn bảo trì — cổng admin + ô settings.ops trong handler (chỉ Toàn quyền)
@@ -893,6 +896,7 @@ test("mức truy cập của 560 route hiện có khớp ảnh chụp đã duy�
   // ADR-0214 Task 6: + 1 GET /api/orders/phi-don-ap (orders) = 541.
   // ADR-0217 (số sê-ri vé): + 4 route kho vé (POST /api/ve/huy-ve, GET /api/ve/tim, GET /api/ve/lo/:id/xem-truoc-huy, GET /api/ve/lo/:id/ve-trong-lo; cổng office) = 545; gộp main 17/11 (561 của main) + 4 = 565.
   // Gộp main vào nhánh đăng ký đợt 2 (17/11/2026): 560 của nhánh + 1 route phí đón của main = 561.
-  assert.equal(actual.length, 565, "số route thực tế lệch 565 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 565, "SNAPSHOT phải có đúng 565 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // ADR-0218 Đợt 1 (Task 3): + 3 route mức giảm phí đưa đón theo cấp (GET, POST, POST :id/ket-thuc; cổng office) = 568.
+  assert.equal(actual.length, 568, "số route thực tế lệch 568 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 568, "SNAPSHOT phải có đúng 568 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });
