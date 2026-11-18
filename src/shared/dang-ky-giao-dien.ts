@@ -63,7 +63,7 @@ export const CHU_DANG_KY = {
 
 /** Chữ nút của phần tổ chức (viết thẳng ở web/dang-ky.ts để bảng tham chiếu đối chiếu được; liệt kê đây cho người đọc). «Bỏ ảnh này», «Bỏ ảnh và phần tổ chức», «Thôi». */
 
-/** Hàng chờ phiếu đăng ký ở Quản lý tài khoản. */
+/** Hàng chờ phiếu đăng ký ở trang Phiếu đăng ký đối tác (ADR-0219 Đ3). */
 export const CHU_HANG_CHO_DK = {
   // Phiếu «chỉ tổ chức» (mốc B1 Task 14; nhãn, chờ chủ chọn)
   chiToChuc: "Chỉ làm cho tổ chức",

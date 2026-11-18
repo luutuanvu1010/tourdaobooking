@@ -544,6 +544,8 @@ test("(16) Thân sai: vai không phải vai bên ngoài, vai lạ, ô lạ, phi�
   await xacMinh(w, id);
   const truoc = anh(w);
   assert.equal((await duyet(w, HR, id, { roleCode: "SALES" })).status, 400);
+  // ADR-0219: Quản trị nay duyệt được — vẫn chỉ mở tài khoản ĐỐI TÁC; chọn vai nội bộ ⇒ 400 như Nhân sự (lô duyệt chặn nhóm khác EXTERNAL).
+  for (const vaiNoiBo of ["SALES", "STAFF", "DRIVER_INTERNAL"]) assert.equal((await duyet(w, ADM, id, { roleCode: vaiNoiBo })).status, 400, `Quản trị chọn ${vaiNoiBo}`);
   assert.equal((await duyet(w, HR, id, { roleCode: "KHONG_CO" })).status, 400);
   assert.equal((await duyet(w, HR, id, { roleCode: "GUIDE_FREELANCE", ghiChu: "x" })).status, 400);
   const cu = await duyet(w, HR, id, { roleCode: "GUIDE_FREELANCE", phienBan: 2 });
