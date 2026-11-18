@@ -30,8 +30,8 @@ import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } fro
 import { congHuyTraSau, VE_CHUA_SOAN_DUOC } from "./tra-sau-cong";
 import { CAU_VUOT_TONG_NGUOI_XET } from "../../shared/dat-coc-truoc";
 import { MOC_CHUA_CO, RACED, STALE, chanGhiNhap, quyenGhiNhap, type KetQuaLenhDon, canChotGioCuaNguoiLap, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, congDoiTacChuaCoVaiTro, congNhomTatDuaDon, BAN_CU, congThieuPhiDon, TRANSFER_FEE_NOT_ALLOWED, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tinhCanXacNhan, viCuaYeuCau, type NguoiLapDoiTac } from "./xac-nhan-chung";
-import { chuanBiPhiDonXacNhan, docPhiDaLuu } from "./service";
-import { moTaPhiDonNhatKy, tomTatTuKetQua, type DoiTayLuu } from "./phi-don-don";
+import { chuanBiPhiDonXacNhan } from "./service";
+import type { DoiTayLuu } from "./phi-don-don";
 import { coPhiDonKieuCu, coPhiDonTrongThan } from "./rules";
 import { CAU_DON_GIA_DOI_PHI, kiemDoiPhi } from "../../shared/phi-don-gia-goc";
 import { confirmGaps, confirmWindow } from "./service-rules";
@@ -583,14 +583,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     }
     const doi = doiNgay && doiGio ? ", đổi ngày và giờ" : doiNgay ? ", đổi ngày" : doiGio ? ", đổi giờ" : "";
     const lyDoNhatKy = [...dauMoi.values()][0]?.lyDo ?? null; // đuôi nhật ký đi theo LÝ DO (G16); mỗi lượt đã có dòng nhật ký riêng với lý do của nó
-    // ADR-0218 Đ1.7: nhật ký ghi lượt đón nào, số cũ → số mới, nguồn, tên chương trình, lý do đổi (qua `maskLongDigits`), người đổi = người ghi dòng nhật ký `confirmed`; không tên khách. Phí chưa áp ⇒ không ghi.
-    const phiCu = cong.phiDon.apDung ? (await docPhiDaLuu(env.DB, id)).tomTat : new Map();
-    const nhatKyPhi = cong.phiDon.apDung
-      ? moTaPhiDonNhatKy(order.services.flatMap((sv) => sv.legs.filter((l) => cong.phiDon.chiTiet.has(l.id)).map((l) => ({
-        chieu: l.direction, tenDichVu: sv.name, cu: phiCu.get(l.id) ?? null, moi: tomTatTuKetQua(cong.phiDon.chiTiet.get(l.id)!),
-      }))))
-      : null;
-    const detail = [`Còn vé, xác nhận đơn${doi}${lyDoNhatKy ? ghiDatGapNhatKy(LY_DO_DAT_GAP[lyDoNhatKy]) : ""}`, nhatKyPhi, cong.detail].filter(Boolean).join(" | ");
+    const detail = [`Còn vé, xác nhận đơn${doi}${lyDoNhatKy ? ghiDatGapNhatKy(LY_DO_DAT_GAP[lyDoNhatKy]) : ""}`, cong.detail].filter(Boolean).join(" | ");
     const auditId = crypto.randomUUID();
     const xn = soanXacNhan(env.DB, id, staff.id, cong.today, meta.updatedAt, nguongMocVn(nowMs, moc.phut), detail, kemChupXacNhan(env.DB, { orderId: id, staffId: staff.id, today: cong.today, chup: cong.chup }), cocXn.coc, cong.traSau, cong.phiDon.cauLenh, { auditId, yeuCauId: y.id });
     const khep = cauKhepYeuCau(env.DB, { id: y.id, at: xn.at, by: staff.id, outcome: "XAC_NHAN", ticket: "CON_VE", note: null, auditId });

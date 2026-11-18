@@ -4,25 +4,14 @@
 import { thanhTienDong } from "../../shared/order-lines.ts";
 import { chuongTrinhKhop, type ChuongTrinh } from "./chuong-trinh-phi-don-rules.ts";
 import type { CapCuaHoSo } from "./phi-don-rules.ts";
+import type { DauVaoLuotDon, KetQuaLuot } from "../../shared/phi-don-gia-goc.ts";
+export type { DauVaoLuotDon, KetQuaLuot };
 
-export type DauVaoLuotDon = {
-  luotKey: string;
-  /** null = dịch vụ nhập tay: không có dòng giá gốc ⇒ O_TRONG (đổi số vẫn được; chương trình «tất cả» / theo đối tác vẫn khớp). */
-  catalogCode: string | null; direction: "OUT" | "RETURN"; xeRieng: boolean;
-  /** Ngày đón của lượt (YYYY-MM-DD); null = nháp chưa có ngày đón ⇒ không chương trình nào khớp. */
-  pickupDate: string | null; soKhachTinhTien: number; paxOverride: number | null;
-  doiTay: { donGia: number; lyDo: string; nguoi: string } | null;
-};
 export type BoiCanh = {
   bookerPartyId: string | null; cap: CapCuaHoSo; mucGiam: number | null;
   giaGoc: ReadonlyMap<string, { moiKhach: number | null; xeRieng: number | null }>;
   chuongTrinh: readonly ChuongTrinh[];
 };
-export type KetQuaLuot =
-  | { ketQua: "CO_PHI"; nguon: "DOI_TAY" | "CHUONG_TRINH" | "GIA_GOC"; donGia: number; soLuong: number; tien: number; kind: "PER_PAX" | "PER_TRIP";
-      giaGoc: number | null; tierCode: string | null; mucGiam: number | null; chuongTrinh: { id: string; name: string } | null; lyDo: string | null; nguoi: string | null }
-  | { ketQua: "THIEU"; lyDo: "O_TRONG" | "HAI_CAP" };
-
 /** Số lượng dòng: xe riêng 1; chiều về có số người riêng ⇒ min(số đó, khách tính tiền); còn lại số khách tính tiền. */
 export function soLuongLuot(l: Pick<DauVaoLuotDon, "xeRieng" | "direction" | "paxOverride" | "soKhachTinhTien">): number {
   return l.xeRieng ? 1 : l.direction === "RETURN" && l.paxOverride !== null ? Math.min(l.paxOverride, l.soKhachTinhTien) : l.soKhachTinhTien;

@@ -31,7 +31,7 @@ import { donChoTran, dongGhiTuChup, moTaChup } from "./thuong-mai";
 import { catalogStatusOf, confirmGaps, summarizeDeviations } from "./service-rules";
 import { getEffectiveServices } from "../catalog";
 import { chuanBiPhiDonXacNhan, kiemNhomChoPhepDuaDon, type PhiDonXacNhan } from "./service";
-import type { DoiTayLuu } from "./phi-don-don";
+import { moTaPhiDonNhatKy, tomTatTuDto, tomTatTuKetQua, type DoiTayLuu } from "./phi-don-don";
 import { cauThieuPhiDon } from "./phi-don-don";
 import { CAU_BAN_CU, CAU_VAN_PHONG_DOI_PHI_DON } from "../../shared/phi-don-gia-goc";
 import { congLuatBan } from "./cong-ban";
@@ -292,7 +292,15 @@ export async function kiemCongXacNhan(
     const thieuPhi = congThieuPhiDon(phiDon);
     if (thieuPhi) return { loi: thieuPhi };
   }
-  const detail = summarizeDeviations(order.services.flatMap((s) => s.items));
+  // ADR-0218 Đ1.7: nhật ký xác nhận ghi lượt đón có phí ĐỔI so với dòng nháp đã lưu (số, nguồn, tên chương trình, lý do đổi, người đổi = người ghi dòng nhật ký); không tên khách. Phí chưa áp ⇒ không ghi.
+  const phiCu = new Map((order.phiDuaDon?.dong ?? []).map((d) => [d.legId, tomTatTuDto(d)] as const));
+  const nhatKyPhi = phiDon.apDung
+    ? moTaPhiDonNhatKy(order.services.flatMap((sv) => sv.legs.flatMap((l) => {
+      const moi = phiDon.chiTiet.get(l.id);
+      return moi ? [{ chieu: l.direction, tenDichVu: sv.name, cu: phiCu.get(l.id) ?? null, moi: tomTatTuKetQua(moi) }] : [];
+    })))
+    : null;
+  const detail = [summarizeDeviations(order.services.flatMap((s) => s.items)), nhatKyPhi].filter(Boolean).join(" | ") || undefined;
   // ADR-0049 D2 (I15, I25): mốc chưa có → 503, không đoán.
   if (i.kiemMoc && !i.mocToiThieu) return { loi: MOC_CHUA_CO() };
   // Sổ đại lý đợt 1 (ADR-0077 điều 8; đặc tả §5): đọc bảng ở ngày xác nhận rồi gửi các câu chụp trong CÙNG lô. Đơn đang nháp nên dịch vụ đọc từ `order` là số hiện hành.

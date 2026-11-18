@@ -9,7 +9,6 @@ import { buildConfirmation, MIEN_PHI } from "./shared/order-confirmation.ts";
 import { chiaPhanBienNhan } from "./modules/receipt/rules.ts";
 import type { BanChup } from "./shared/hoa-hong-dong.ts";
 import type { OrderDetailDto } from "./shared/contracts.ts";
-import { DANH_SACH_PHI_DON } from "./shared/phi-don-chon.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const ADM = "55555555-5555-4555-8555-555555555555";
@@ -31,7 +30,8 @@ const ok = async (p: Promise<Res>, ma: number, ten = ""): Promise<Res> => {
   assert.equal(r.status, ma, `${ten} ${r.status}: ${r.text}`);
   return r;
 };
-const mucChon = (soTien: number) => ({ loai: DANH_SACH_PHI_DON.includes(soTien) ? "DANH_SACH" : "SO_KHAC", soTien });
+/** ADR-0218: «mức chọn» cũ nay là số văn phòng ĐỔI (kèm lý do) — đúng đường đổi số của lượt đón. */
+const mucChon = (soTien: number) => ({ donGia: soTien, lyDo: "Văn phòng đổi thử" });
 async function setup(): Promise<W> {
   const w = world({});
   seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An Bán", perms: ["SALES"] });
@@ -46,8 +46,8 @@ async function setup(): Promise<W> {
   await ok(w.call("POST", "/api/pricing/phi-don/bat-dau-ap", { as: ADM, body: { ngay: HOM_NAY, tuLucDaDoc: tuLuc } }), 200, "bật phí");
   return w;
 }
-const OUT = (muc: number) => ({ direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: KS_CR, pickupPlace: "", dropoffLocationId: BEN, dropoffPlace: "", phiDon: mucChon(muc) });
-const RET = (muc: number) => ({ direction: "RETURN", pickupDate: D, pickupTime: "16:00", pickupLocationId: BEN, pickupPlace: "", dropoffLocationId: KS_CR, dropoffPlace: "", phiDon: mucChon(muc) });
+const OUT = (muc: number) => ({ direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: KS_CR, pickupPlace: "", dropoffLocationId: BEN, dropoffPlace: "", doiPhi: mucChon(muc) });
+const RET = (muc: number) => ({ direction: "RETURN", pickupDate: D, pickupTime: "16:00", pickupLocationId: BEN, pickupPlace: "", dropoffLocationId: KS_CR, dropoffPlace: "", doiPhi: mucChon(muc) });
 const P = (p: Pax) => ({ adult: 0, child: 0, senior: 0, infant: 0, ...p });
 const svc = (pax: Pax, legs: unknown[], ma: "TOUR_LAN" | "TOUR_600" = "TOUR_LAN") => ({
   kind: "catalog", pickupChoice: legs.length > 0 ? "DON" : "KHONG_DON", catalogCode: ma, pax: P(pax), catalogPriceSeen: { adult: ma === "TOUR_LAN" ? 500000 : 600000, child: 300000 }, departDate: D, legs,
@@ -60,7 +60,7 @@ async function lapXacNhan(w: W, services: unknown[], o: { extra?: Record<string,
 }
 const don = async (w: W, id: string, as = SALES) => (await ok(w.call("GET", `/api/orders/${id}`, { as }), 200, "đọc đơn")).json.order;
 const phiTrenDon = (o: any) => o.phiDuaDon.dong.map((d: any) => ({ direction: d.direction, quantity: d.quantity, unitPrice: d.unitPrice, lineTotal: d.lineTotal }));
-const dongPhiDaLuu = (w: W, id: string) => w.q("SELECT fee_source, fee_choice, quantity, unit_price, line_total FROM order_item WHERE order_id = ? AND line_kind = 'TRANSFER_FEE' ORDER BY sort_order", id).map((r: any) => ({ ...r }));
+const dongPhiDaLuu = (w: W, id: string) => w.q("SELECT fee_calc_source, quantity, unit_price, line_total FROM order_item WHERE order_id = ? AND line_kind = 'TRANSFER_FEE' ORDER BY sort_order", id).map((r: any) => ({ ...r }));
 const bienNhan = async (w: W, id: string, as = SALES) => (await ok(w.call("GET", `/api/orders/${id}/receipt`, { as }), 200, "biên nhận")).json.receipt;
 
 test("SV-PC-11: chọn 15.000, 2 người lớn ⇒ 30.000; sửa số khách thành 3 ⇒ 15.000 × 3 = 45.000 ở chi tiết đơn, danh sách, biên nhận; dòng đã lưu không đổi", async () => {
@@ -72,7 +72,7 @@ test("SV-PC-11: chọn 15.000, 2 người lớn ⇒ 30.000; sửa số khách th
   const sau = await don(w, o.id);
   assert.deepEqual(phiTrenDon(sau), [{ direction: "OUT", quantity: 3, unitPrice: 15_000, lineTotal: 45_000 }]);
   assert.equal(sau.total, 1_500_000 + 45_000);
-  assert.deepEqual(dongPhiDaLuu(w, o.id), [{ fee_source: "CHON", fee_choice: "DANH_SACH", quantity: 2, unit_price: 15_000, line_total: 30_000 }], "dòng đã lưu đóng băng, nguồn CHON");
+  assert.deepEqual(dongPhiDaLuu(w, o.id), [{ fee_calc_source: "DOI_TAY", quantity: 2, unit_price: 15_000, line_total: 30_000 }], "dòng đã lưu đóng băng, nguồn DOI_TAY");
   const ds = (await ok(w.call("GET", "/api/orders?status=confirmed", { as: SALES }), 200)).json;
   assert.equal((ds.orders.find((x: any) => x.id === o.id)).total, 1_545_000, "danh sách");
   assert.equal((await bienNhan(w, o.id)).total, 1_545_000, "biên nhận");
@@ -84,7 +84,7 @@ test("SV-PC-12: đại lý Trả sau, tour 600.000 × 2, hoa hồng 120.000, ph�
   assert.equal((await w.call("POST", "/api/tra-sau/han-muc", { as: SUP, body: { partyId: BEN_DT, hanMuc: 10_000_000, gioTra: 168, gioAnHan: 0, lyDo: "thử" } })).status, 201);
   const o = await lapXacNhan(w, [svc({ adult: 2 }, [OUT(30_000)], "TOUR_600")], { extra: { bookerPartyId: BEN_DT, paymentTerm: "CREDIT" } });
   assert.equal(o.total, 1_260_000, "khách trả");
-  assert.deepEqual(dongPhiDaLuu(w, o.id), [{ fee_source: "CHON", fee_choice: "DANH_SACH", quantity: 2, unit_price: 30_000, line_total: 60_000 }]);
+  assert.deepEqual(dongPhiDaLuu(w, o.id), [{ fee_calc_source: "DOI_TAY", quantity: 2, unit_price: 30_000, line_total: 60_000 }]);
   const g = (await app.giaDaiLyNhieuDon(w.env.DB, [o.id])).get(o.id);
   assert.deepEqual([g.dong.map((d: any) => [d.thanhTien, d.hoaHong, d.giaDaiLy]), g.phiDon, g.tong], [[[1_200_000, 120_000, 1_080_000]], 60_000, 1_140_000]);
   const p = (await ok(w.call("GET", `/api/orders/${o.id}/cong-no-dai-ly`, { as: ACC }), 200, "phiếu")).json.phieu;
@@ -123,7 +123,7 @@ test("SV-PC-02: chọn «Miễn phí», 2 người lớn ⇒ 0 đ; biên nhận 
   const w = await setup();
   const o = await lapXacNhan(w, [svc({ adult: 2 }, [OUT(0)])]);
   assert.deepEqual(phiTrenDon(o), [{ direction: "OUT", quantity: 2, unitPrice: 0, lineTotal: 0 }]);
-  assert.deepEqual(dongPhiDaLuu(w, o.id), [{ fee_source: "CHON", fee_choice: "DANH_SACH", quantity: 2, unit_price: 0, line_total: 0 }]);
+  assert.deepEqual(dongPhiDaLuu(w, o.id), [{ fee_calc_source: "DOI_TAY", quantity: 2, unit_price: 0, line_total: 0 }]);
   const b = await bienNhan(w, o.id);
   assert.deepEqual(b.phiDuaDon, [{ description: "Phí đưa đón — chiều đi", quantity: 2, unitPrice: 0, lineTotal: 0 }]);
   const khoi = buildConfirmation(b, null).blocks.find((k: any) => k.kind === "service" && k.name === "Phí đưa đón") as any;

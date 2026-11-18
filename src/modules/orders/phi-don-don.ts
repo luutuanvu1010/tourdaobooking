@@ -7,7 +7,7 @@ import { maskLongDigits } from "../../shared/text-guards.ts";
 import { CHU_MIEN_PHI, soTien } from "../../shared/phi-don-hien-thi.ts";
 import type { LyDoThieuPhiDonDto, PhiDuaDonCuaDonDto, PhiDuaDonDto } from "../../shared/contracts";
 import type { FeeRow, OrderItemRowPhiDon } from "./chang-hanh-khach-repo.ts";
-import type { DauVaoLuotDon, KetQuaLuot } from "../pricing/phi-don-gia-goc-rules.ts";
+import type { DauVaoLuotDon, KetQuaLuot } from "../../shared/phi-don-gia-goc.ts";
 
 export type { OrderItemRowPhiDon };
 
@@ -113,6 +113,10 @@ export const tomTatTuKetQua = (k: KetQuaCoPhi): TomTatPhi => ({ nguon: k.nguon, 
 export const tomTatTuDongDaLuu = (r: Pick<FeeRow, "fee_calc_source" | "unit_price" | "quantity" | "fee_program_name" | "fee_override_reason">): TomTatPhi => ({
   nguon: r.fee_calc_source ?? "CU", donGia: r.unit_price, soLuong: r.quantity, tenChuongTrinh: r.fee_program_name, lyDo: r.fee_override_reason,
 });
+/** Tóm tắt từ DTO dòng phí đã đọc cùng đơn (không tốn câu đọc thêm) — cùng kết quả với `tomTatTuDongDaLuu`. */
+export const tomTatTuDto = (d: Pick<PhiDuaDonDto, "nguon" | "unitPrice" | "quantity" | "tenChuongTrinh" | "lyDoDoi">): TomTatPhi => ({
+  nguon: d.nguon ?? "CU", donGia: d.unitPrice, soLuong: d.quantity, tenChuongTrinh: d.tenChuongTrinh, lyDo: d.lyDoDoi,
+});
 const chuPhi = (t: TomTatPhi | null): string => {
   if (t === null) return "chưa có";
   const tien = t.donGia === 0 ? CHU_MIEN_PHI : `${soTien(t.donGia)} ₫ × ${t.soLuong}`;
@@ -121,9 +125,9 @@ const chuPhi = (t: TomTatPhi | null): string => {
   return `${tien} (${NHAN_NGUON[t.nguon]}${them})`;
 };
 const cungPhi = (a: TomTatPhi | null, b: TomTatPhi | null): boolean =>
-  a === null || b === null ? a === b : a.nguon === b.nguon && a.donGia === b.donGia && a.soLuong === b.soLuong && a.tenChuongTrinh === b.tenChuongTrinh && a.lyDo === b.lyDo;
+  a === null || b === null ? a === b : a.nguon === b.nguon && a.donGia === b.donGia && a.tenChuongTrinh === b.tenChuongTrinh && a.lyDo === b.lyDo;
 
-/** Câu nhật ký đơn (ADR-0218 Đ1.7): mỗi lượt đón có phí ĐỔI một mẩu «phí đưa đón chiều đi · <dịch vụ>: <cũ> → <mới>» — chiều, tên dịch vụ, số, nguồn, tên chương trình, lý do đổi; không tên khách. Không đổi ⇒ null. */
+/** Câu nhật ký đơn (ADR-0218 Đ1.7): mỗi lượt đón có phí ĐỔI (số, nguồn, chương trình, lý do — đổi số khách thì số lượng đổi theo, không phải «phí đổi») một mẩu «phí đưa đón chiều đi · <dịch vụ>: <cũ> → <mới>» — chiều, tên dịch vụ, số, nguồn, tên chương trình, lý do đổi; không tên khách. Không đổi ⇒ null. */
 export function moTaPhiDonNhatKy(dong: readonly { chieu: "OUT" | "RETURN"; tenDichVu: string; cu: TomTatPhi | null; moi: TomTatPhi | null }[]): string | null {
   const manh = dong.filter((d) => !cungPhi(d.cu, d.moi)).map((d) => `phí đưa đón ${CHIEU_LABEL[d.chieu].toLowerCase()} · ${d.tenDichVu}: ${chuPhi(d.cu)} → ${chuPhi(d.moi)}`);
   return manh.length === 0 ? null : manh.join("; ");

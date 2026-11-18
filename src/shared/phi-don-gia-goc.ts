@@ -24,3 +24,18 @@ export function kiemDoiPhi(v: unknown): { ok: true; doiPhi: DoiPhi } | { ok: fal
   if (lyDo.trim().length > TOI_DA_LY_DO_DOI_PHI) return sai("LY_DO_DAI", CAU_LY_DO_DOI_PHI_DAI);
   return { ok: true, doiPhi: { donGia, lyDo: lyDo.trim() } };
 }
+
+// Kiểu đầu vào / kết quả của hàm tính phí MỘT lượt đón (pricing/phi-don-gia-goc-rules.ts) — ở `shared` để `orders` dùng được mà không import tệp của module khác.
+export type DauVaoLuotDon = {
+  luotKey: string;
+  /** null = dịch vụ nhập tay: không có dòng giá gốc ⇒ O_TRONG (đổi số vẫn được; chương trình «tất cả» / theo đối tác vẫn khớp). */
+  catalogCode: string | null; direction: "OUT" | "RETURN"; xeRieng: boolean;
+  /** Ngày đón của lượt (YYYY-MM-DD); null = nháp chưa có ngày đón ⇒ không chương trình nào khớp. */
+  pickupDate: string | null; soKhachTinhTien: number; paxOverride: number | null;
+  doiTay: { donGia: number; lyDo: string; nguoi: string } | null;
+};
+export type KetQuaLuot =
+  | { ketQua: "CO_PHI"; nguon: "DOI_TAY" | "CHUONG_TRINH" | "GIA_GOC"; donGia: number; soLuong: number; tien: number; kind: "PER_PAX" | "PER_TRIP";
+      giaGoc: number | null; tierCode: string | null; mucGiam: number | null; chuongTrinh: { id: string; name: string } | null; lyDo: string | null; nguoi: string | null }
+  | { ketQua: "THIEU"; lyDo: "O_TRONG" | "HAI_CAP" };
+
