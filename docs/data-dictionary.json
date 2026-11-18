@@ -364,6 +364,36 @@
       "note": "chi tiết dịch vụ do Nền tảng giữ (ADR-0201 Đ1, migration 0160), CHỈ-THÊM; display_name = tên hiển thị thắng tên Sheet ở danh mục (NULL = dùng tên Sheet), description = mô tả, image_key = khoá ảnh (bước sau), sheet_name_at = tên Sheet lúc ghi (báo Sheet đổi tên); dòng hiệu lực = valid_from_at lớn nhất; đồng bộ Sheet không chạm; luật ở src/shared/chi-tiet-dich-vu.ts"
     },
     {
+      "name": "ctl_service_transfer_price",
+      "module": "catalog",
+      "kind": "table",
+      "note": "giá gốc phí đưa đón đọc từ hai cột Sheet «Phí đưa đón» (per_pax_price, mỗi khách đi chung, ≤ 500.000 đ) và «Phí đưa đón xe riêng» (private_price, cả chuyến, ≤ 5.000.000 đ) (ADR-0218 Đ1.3, migration 0178), CHỈ-THÊM; NULL = ô trống = chưa có giá, không bao giờ thành 0, số 0 = miễn phí; dòng hiệu lực = valid_from_at lớn nhất; chỉ ghi khi cặp giá đổi"
+    },
+    {
+      "name": "prc_transfer_fee_tier_discount",
+      "module": "pricing",
+      "kind": "table",
+      "note": "mức giảm phí đưa đón mỗi khách theo cấp đại lý (ADR-0218 Đ1.4, migration 0178); amount 0–5.000.000 đ; mỗi cấp tối đa một dòng hiệu lực tại một ngày; đóng valid_to_date một lần, không xoá; cấp phải đang bật; áp chung mọi dịch vụ, chỉ cho đi chung"
+    },
+    {
+      "name": "prc_transfer_fee_program",
+      "module": "pricing",
+      "kind": "table",
+      "note": "chương trình miễn phí đưa đón (ADR-0218 Đ2, migration 0178): scope ALL / SERVICES / PARTNERS; trip_from–trip_to là khoảng NGÀY ĐI (giờ Việt Nam); include_private 1 = gồm xe riêng (mặc định 0); chỉ kết thúc (ended_at, ended_by) một lần, không sửa tại chỗ, không xoá"
+    },
+    {
+      "name": "prc_transfer_fee_program_scope",
+      "module": "pricing",
+      "kind": "table",
+      "note": "danh sách phạm vi của chương trình miễn phí đưa đón (migration 0178), CHỈ-THÊM: catalog_code khi scope = SERVICES, party_id (hồ sơ bên đặt, tham chiếu logic) khi scope = PARTNERS; scope ALL không có dòng"
+    },
+    {
+      "name": "ord_receipt_fee_display_policy",
+      "module": "orders",
+      "kind": "table",
+      "note": "công tắc «hiện riêng phí đưa đón trên biên nhận khách lẻ» (ADR-0218 Đ3.4, migration 0178), CHỈ-THÊM; show_separate 0 = gộp phí vào giá dịch vụ (mặc định, gieo một dòng), 1 = in dòng riêng; dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ; ghi bằng ô settings.ops"
+    },
+    {
       "name": "ord_confirm_policy",
       "module": "orders",
       "kind": "table",
@@ -1815,6 +1845,17 @@
       "note": "giá trị hiện hành của ô «Vé do ai phát» theo từng dịch vụ đã đặt (ADR-0175 Đ1.2); dịch vụ không có dòng là HANG_NGOAI"
     },
     {
+      "name": "v_ctl_service_transfer_price",
+      "module": "catalog",
+      "columns": [
+        "catalog_code",
+        "per_pax_price",
+        "private_price",
+        "valid_from_at"
+      ],
+      "note": "giá gốc phí đưa đón hiện hành của từng dịch vụ (ADR-0218 Đ1.3); NULL = chưa có giá; pricing đọc qua view này"
+    },
+    {
       "name": "v_ctl_service_group",
       "module": "catalog",
       "columns": [
@@ -2047,6 +2088,11 @@
     "ord_member_submit": { "id": "N1", "order_id": "N1", "member_staff_id": "N1", "org_party_id": "N1", "status": "N1", "reason_code": "N1", "opened_at": "N1", "closed_at": "N1", "closed_by": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_confirm_request": { "id": "N1", "order_id": "N1", "submitted_at": "N1", "submitted_by": "N1", "deadline_at": "N1", "decided_at": "N1", "decided_by": "N1", "outcome": "N1", "ticket": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "pickup_time_required": "N1", "transfer_fee_missing": "N1" },
     "ctl_service_detail": { "id": "N1", "code": "N1", "display_name": "N1", "description": "N1", "image_key": "N1", "sheet_name_at": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ctl_service_transfer_price": { "id": "N1", "catalog_code": "N1", "per_pax_price": "N1", "private_price": "N1", "valid_from_at": "N1", "created_at": "N1" },
+    "prc_transfer_fee_tier_discount": { "id": "N1", "tier_code": "N1", "amount": "N1", "valid_from_date": "N1", "valid_to_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "prc_transfer_fee_program": { "id": "N1", "name": "N1", "scope": "N1", "trip_from": "N1", "trip_to": "N1", "include_private": "N1", "created_at": "N1", "created_by": "N1", "ended_at": "N1", "ended_by": "N1" },
+    "prc_transfer_fee_program_scope": { "program_id": "N1", "catalog_code": "N1", "party_id": "N1" },
+    "ord_receipt_fee_display_policy": { "id": "N1", "show_separate": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1" },
     "ctl_service_ticket_source": { "id": "N1", "code": "N1", "source": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ctl_service_ticket_flag": { "id": "N1","scope": "N1", "code": "N1", "has_ticket": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_service_confirm_flag": { "id": "N1", "scope": "N1", "code": "N1", "required": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -2155,6 +2201,7 @@
     "v_ctl_service_group": { "catalog_code": "N1", "group_code": "N1" },
     "v_ctl_service_ticket_flag": { "scope": "N1", "code": "N1", "has_ticket": "N1" },
     "v_ctl_service_detail": { "code": "N1", "display_name": "N1", "description": "N1", "image_key": "N1", "sheet_name_at": "N1", "valid_from_at": "N1" },
+    "v_ctl_service_transfer_price": { "catalog_code": "N1", "per_pax_price": "N1", "private_price": "N1", "valid_from_at": "N1" },
     "v_ctl_service_ticket_source": { "code": "N1", "source": "N1" },
     "v_ctl_service_transfer": { "catalog_code": "N1", "transfer_enabled": "N1" },
     "v_ctl_service_attribute": { "catalog_code": "N1", "attribute_code": "N1", "value_code": "N1", "source": "N1" },
