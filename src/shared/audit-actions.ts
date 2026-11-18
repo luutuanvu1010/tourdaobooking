@@ -181,6 +181,10 @@ export const AUDIT_ACTIONS = {
   // `detail` = «<tên cấp>: chưa đặt → 20.000đ từ 01/12/2026» / «<tên cấp> · kết thúc 30/11/2026». Chỉ tên cấp và số tiền; không tên người, SĐT, email, MST.
   prc_transfer_fee_discount_set: { label: "Đặt mức giảm phí đưa đón", group: "ledger" },
   prc_transfer_fee_discount_ended: { label: "Kết thúc mức giảm phí đưa đón", group: "ledger" },
+  // ADR-0218 Đ2: Quản trị / Toàn quyền tạo và kết thúc CHƯƠNG TRÌNH MIỄN PHÍ đưa đón (route /api/pricing/chuong-trinh-phi-don*) — `target_type = 'ledger'`. `detail` = «<tên chương trình> · ngày đi từ … đến … ·
+  // <phạm vi: tất cả dịch vụ / N dịch vụ / N đối tác> · gồm hoặc không gồm xe riêng» / «<tên> · kết thúc dd/mm/yyyy». Tên chương trình do người đặt, không tên khách, SĐT, email, MST.
+  prc_transfer_fee_program_created: { label: "Tạo chương trình miễn phí đưa đón", group: "ledger" },
+  prc_transfer_fee_program_ended: { label: "Kết thúc chương trình miễn phí đưa đón", group: "ledger" },
   // ADR-0168 Đ1: Toàn quyền đặt / ngừng hạn mức Trả sau của một đối tác (route /api/tra-sau/han-muc*) — `target_type = 'ledger'`, `target_id` = mã hồ sơ, không gắn đơn.
   // `detail` = «hạn mức 50.000.000 ₫ · 7 ngày» / «ngừng hạn mức» (số tiền và số ngày, KHÔNG tên, SĐT, email, MST, lý do tự do).
   credit_limit_set: { label: "Đặt hạn mức trả sau", group: "ledger" },

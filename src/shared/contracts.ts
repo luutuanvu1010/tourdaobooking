@@ -3685,3 +3685,12 @@ export interface PhieuDangKyDto {
     giayPhepThem: { loai: string; soChe: string | null; ngayCap: string | null; hetHan: string | null } | null;
   } | null;
 }
+
+/** Chương trình miễn phí đưa đón (ADR-0218 Đ2): một dòng của danh sách ở màn phí đưa đón. */
+export interface ChuongTrinhPhiDonDto {
+  id: string; ten: string; phamVi: "ALL" | "SERVICES" | "PARTNERS"; tuNgay: string; denNgay: string; gomXeRieng: boolean;
+  dichVu: { code: string; name: string }[]; doiTac: { id: string; name: string }[]; taoLuc: string; ketThucLuc: string | null;
+}
+export interface ChuongTrinhPhiDonResponse { chuongTrinh: ChuongTrinhPhiDonDto[] }
+export interface ChuongTrinhPhiDonRequest { name: string; scope: "ALL" | "SERVICES" | "PARTNERS"; tripFrom: string; tripTo: string; includePrivate: boolean; services?: string[]; parties?: string[] }
+export interface ChuongTrinhPhiDonGhiResponse { chuongTrinh: ChuongTrinhPhiDonDto }

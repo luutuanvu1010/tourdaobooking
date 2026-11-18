@@ -8,6 +8,7 @@ import {
 import { addDays, ngayDayDu, vnToday } from "../src/shared/vn-date";
 import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
+import { khoiChuongTrinhPhiDon } from "./chuong-trinh-phi-don";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
 import { hienBaoNgan } from "./toast";
@@ -321,5 +322,6 @@ else {
   if (await nap()) {
     khungEl.hidden = false;
     ve();
+    await khoiChuongTrinhPhiDon(byId("pd-chuong-trinh"), du!.dichVu); // ADR-0218 Đ2
   }
 }

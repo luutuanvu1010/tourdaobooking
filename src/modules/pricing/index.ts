@@ -27,6 +27,8 @@ import { ketQuaCapChoNguoiXem, type LyDoKhongApCap } from "../../shared/cap-se-a
 import { chanBan, kiemThanLuatBan, ngayKetThucLuat, type PhamViLuatBan, type TrungLuat } from "./luat-ban-rules";
 import { phiDonRoutes } from "./phi-don-route";
 import { giamPhiDonRoutes } from "./giam-phi-don-route";
+import { chuongTrinhPhiDonRoutes } from "./chuong-trinh-phi-don-route";
+export { chuongTrinhPhiDonHieuLuc } from "./chuong-trinh-phi-don-repo";
 export { mucGiamPhiDonTheoNgay } from "./giam-phi-don-repo";
 
 export { cauBiChan } from "./luat-ban-rules";
@@ -1228,7 +1230,8 @@ export const pricingModule: AppModule = {
       // Câu SQL tự bọc '%' || ?1 || '%': đưa vào phần giữa của mauLikeChua (≤ 48 byte) để cả mẫu ≤ 50 byte (D1 từ chối quá giới hạn).
       const rows = await findBeneficiaries(env.DB, mauLikeChua(q).slice(1, -1));
       return json({ ketQua: rows.map((r) => ({ partyId: r.id, ten: r.display_name, loai: r.party_kind })) } satisfies NguoiHuongTimResponse);
-    }),    ...giamPhiDonRoutes, // ADR-0218 Đ1.4: mức giảm phí đưa đón theo cấp (giam-phi-don-route.ts; đã khai ở TEP_ROUTE_PHU của route-write-guard.test.ts)
+    }),    ...chuongTrinhPhiDonRoutes, // ADR-0218 Đ2: chương trình miễn phí đưa đón (chuong-trinh-phi-don-route.ts)
+    ...giamPhiDonRoutes, // ADR-0218 Đ1.4: mức giảm phí đưa đón theo cấp (giam-phi-don-route.ts; đã khai ở TEP_ROUTE_PHU của route-write-guard.test.ts)
     ...phiDonRoutes, // ADR-0147 Đ2: bảng phí đưa đón (phi-don-route.ts; đã khai ở TEP_ROUTE_PHU của route-write-guard.test.ts)
   ],
 };
