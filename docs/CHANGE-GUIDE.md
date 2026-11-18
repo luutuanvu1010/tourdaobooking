@@ -1488,7 +1488,7 @@ Hiện trạng: `docs/SYSTEM-DESIGN.md` §5 (`prc_entry_limit_policy`), §6 (o),
 
 Tra `docs/BANG-THAM-CHIEU.md` trước. Chưa có tên thì đưa 2–3 tên cho chủ chọn, không tự đặt (ADR-0130).
 
-- **Đổi tên nút:** sửa nút và `src/shared/bang-tham-chieu-viec.ts` trong cùng một lần lưu, thêm chữ cũ vào `src/shared/bang-tu-giao-dien.ts` nếu chủ đã loại, rồi `npm run tham-chieu`. Tệp bảng sửa bằng công cụ sửa tệp để chủ được hỏi.
+- **Đổi tên nút:** sửa nút và `src/shared/bang-tham-chieu-viec.ts` trong cùng một lần lưu, thêm chữ cũ vào `src/shared/bang-tu-giao-dien.ts` nếu chủ đã loại, rồi `npm run tham-chieu`. Tệp bảng chỉ sửa bằng công cụ sửa tệp (sửa bằng dòng lệnh bị hook chặn). Từ 2026-11-18 hai tệp dữ liệu `bang-tham-chieu-viec.ts`, `bang-tham-chieu-khai-niem.ts` sửa không bật hộp hỏi; tệp kiểu dữ liệu `bang-tham-chieu.ts` và ba tệp máy canh thì chủ vẫn được hỏi. Thêm hay đổi tên vẫn chỉ khi chủ đã chọn.
 - **Thêm nút ghi, nguy hiểm, nút chính:** `npm test` đỏ tới khi khai. Chủ chưa chọn tên thì khai `trangThai: "cho-chon"` với chữ đang hiện, không chặn việc. Máy coi nhầm thì thêm `BO_QUA` kèm lý do, không nới bài.
 - **Nút phụ:** tên thuộc `CHU_DUNG_CHUNG` thì không cần khai. Tên đã khai mà dùng chỗ khác là đỏ: cùng việc thì thêm `noiDat`.
 - **Một tên ở nhiều hàng việc:** phải xếp vào `CHU_DUNG_CHUNG` (thấy đối tượng ngay cạnh nút) hoặc `TEN_NHIEU_HANG` (`cung-viec`, hoặc `cho-chu` khi khác việc và không thấy đối tượng).
