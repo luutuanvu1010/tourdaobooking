@@ -1,6 +1,6 @@
 # Nhật ký thi công — Phí đưa đón từ giá gốc Sheet (ADR-0218), Đợt 1
 
-Kế hoạch: `2026-11-18-phi-don-gia-goc-sheet.md`. Nhánh `claude/redesign-pricing-subsystem-50496b`. Đợt 2 (Task 6–11) CHƯA làm: sổ vàng `golden/phi-dua-don-gia-goc.json` chưa có ca `da_xac_nhan`.
+Kế hoạch: `2026-11-18-phi-don-gia-goc-sheet.md`. Nhánh `claude/redesign-pricing-subsystem-50496b`. Đợt 2 (Task 6–11) làm ngày 18/11 sau khi chủ xác nhận 28 ca sổ vàng — xem mục «Đợt 2» ở cuối.
 
 ## Việc đã làm (Đợt 1)
 - Task 1: migration `0178_phi_don_gia_goc` (số 0178 kiểm còn trống 18/11 trên mọi nhánh); năm bảng + view, dictionary sinh lại. Bài `src/migrations-phi-don-gia-goc.test.ts`.
@@ -22,4 +22,38 @@ Kế hoạch: `2026-11-18-phi-don-gia-goc-sheet.md`. Nhánh `claude/redesign-pri
 ## Nợ / chưa làm
 - Kịch bản Chrome cho `web/cap-dai-ly.ts`, `web/phi-don.ts`, `web/account.ts`: xem báo cáo cuối về việc đã chạy hay chưa.
 - Cập nhật `docs/gia/README.md` của kho tourdaovn (13 → 15 cột): kho khác, việc sau.
-- Đợt 2 (Task 6–11).
+- Đợt 2 (Task 6–11): xem dưới.
+
+
+# Đợt 2 (Task 6–11) — sinh tiền
+
+Người thi công: trợ lý, 18/11. CHƯA có người kiểm độc lập (sẽ có). Không deploy, không push.
+
+## Việc đã làm
+- Task 6: migration `0179_phi_don_nguon_tinh` (số 0179 kiểm còn trống trên mọi nhánh; lớn nhất 0178). Bảy cột chụp vào `order_item`; ba trigger dòng phí tạo lại với nhánh nguồn mới; trigger đóng băng thêm bảy cột. Bài thêm vào `src/migrations-phi-don-chon.test.ts` (kể cả khoá trần 5.000.000 khớp `TRAN_MUC_PHI_DON`).
+- Task 7: `pricing/phi-don-gia-goc-rules.ts` (`tinhPhiLuotDon`) + `tinhPhiDonGiaGoc` ở `pricing/index.ts`; bài chạy 19 ca sổ vàng có đáp án lượt (GG-16 và GG-19 phủ ở bài route).
+- Task 8: nối vào mọi đường của `orders` (lập, lưu nháp, đổi bên đặt trên nháp, sửa chặng/chuyến nháp, đọc nháp, `/status`, Gửi xác nhận, Gửi đơn, Còn vé), `audit-checks` R-ORD-PD-1, khoá `doiPhi`, `client_outdated`.
+- Task 9: giao diện «Đổi phí» ở biểu mẫu đơn và bảng Còn vé; `src/shared/phi-don-doi-phi-o.ts`.
+- Task 10: `receipt/gop-phi-don.ts`; ảnh xác nhận in dòng trọn gói / khối «Đưa đón (phần Tour Đảo)».
+- Task 11: tài liệu (SYSTEM-DESIGN §6 d5, CHANGE-GUIDE z42), bảng tham chiếu, câu nhắc Cấp độ đại lý, màn Phí đưa đón gọn.
+
+## Lệch so với kế hoạch / phán đoán (mã thật thắng)
+1. **Đỏ trước xanh chưa đủ ở Task 6, 7**: viết bài và mã gần như cùng lúc; đã bù bằng bài phá cố ý (bỏ nhánh `PER_TRIP` của trigger ⇒ bài đỏ; bỏ `max(0, …)` ⇒ bài đỏ; hoàn nguyên).
+2. **Dịch vụ nhập tay có lượt đón ⇒ `O_TRONG`** (không có dòng giá gốc; đơn bị giữ; văn phòng «Đổi phí»). Phương án an toàn, đảo ngược được; chương trình «tất cả»/theo đối tác vẫn khớp. Hiện nhập tay đã tắt cho đơn mới nên chỉ ảnh hưởng nháp cũ.
+3. **Nhật ký không ghi thay đổi chỉ do số khách** (so nguồn, đơn giá, chương trình, lý do — không so số lượng).
+4. **Lý do đổi phí**: qua `maskLongDigits` trước khi vào nhật ký; DTO có `lyDoDoi` nhưng `datGapTheoVai` bỏ với người không có ô xem đặt gấp; DTO KHÔNG có người đổi.
+5. **Đối tác gửi `phiDon` hoặc `doiPhi` ⇒ `transfer_fee_not_allowed` thắng `client_outdated`**; `client_outdated` chỉ cho người không giữ quyền Đối tác.
+6. **Kiểu `DauVaoLuotDon`, `KetQuaLuot` đặt ở `src/shared/phi-don-gia-goc.ts`** (kiến trúc cấm `orders` import tệp của `pricing`).
+7. **Ô giá gốc của dịch vụ theo nhóm / xe riêng**: xe riêng chụp mã cấp nhưng mức giảm 0 (khớp GG-08: `cap` C3, `muc_giam` 0).
+8. **Màn Phí đưa đón không ẩn khỏi menu**: màn đó giữ ngày bắt đầu áp + chương trình + danh sách dịch vụ chưa có giá; chỉ bảng mức + Thử tra vào khối gập «luật cũ» (kế hoạch nói ẩn mục menu — làm vậy sẽ ẩn cả phần mới).
+9. **Bảng tham chiếu không có trạng thái «ngưng»**: «Số khác», «Chưa chọn» giữ trạng thái cũ, giải nghĩa ghi «ĐÃ NGƯNG DÙNG cho đơn mới». Chữ mới khai `cho-chon`: «Đổi phí», «Lý do đổi phí», «Đổi cấp cũng đổi phí đưa đón…», «Câu báo của phí đưa đón do máy tính».
+10. **Chưa xoá** `src/shared/phi-don-o-chon.ts`, `phi-don-chon.ts` và bài cũ của chúng, `phi-don-chon-smoke.mjs` (hồ sơ có ngày; không còn dùng ở đường đơn) — nợ dọn.
+11. **PUT /booker nháp**: câu phí + tiền đứng TRƯỚC câu UPDATE, gác cùng mốc `expectedUpdatedAt`; không có câu «chốt thua» riêng (nếu câu UPDATE thua vì lý do khác mốc — hồ sơ bên đặt không còn — phí đã đổi mà bên đặt chưa đổi; xác suất rất thấp vì `resolveBooker` kiểm trước).
+12. **Bài ADR-0214 chuyển nghĩa** (không xoá): `phi-don-don.test.ts` (viết lại), `phi-don-don-route.test.ts`, `phi-don-xac-nhan.test.ts`, `phi-don-chon-tien.test.ts`, `cong-no-dai-ly.test.ts`, `phi-don-hien-thi.test.ts`, `order-confirmation.test.ts` (khối phí cần công tắc bật), `cap-dai-ly-hien-thi.test.ts`, e2e `phi-don-don`, `phi-don-xac-nhan`, `gui-don`, `xac-nhan-don`, `phi-don`, `lib-phi-don`. Bài mới: `phi-don-gia-goc-rules.test.ts`, `phi-don-gia-goc-route.test.ts`, `phi-don-doi-phi-o.test.ts`, `receipt/gop-phi-don.test.ts`, e2e `phi-don-gia-goc`, Chrome `phi-don-gia-goc-smoke.mjs`.
+13. **Chạy Chrome không có `AXE_JS`**: bỏ kiểm màu (axe) — ghi trong tên bước.
+
+## Nợ / chưa làm
+- Người kiểm độc lập Đợt 2.
+- Nhật ký thay đổi phát hành (bước A.0 của HANDOFF) và cập nhật `docs/HANDOFF-N1.md`: việc của lượt phát hành, chưa làm.
+- `docs/gia/README.md` của tourdaovn (13 → 15 cột).
+- Kiểm axe (màu) cho giao diện mới.

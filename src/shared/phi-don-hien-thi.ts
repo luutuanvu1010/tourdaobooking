@@ -137,7 +137,7 @@ export const tenKhoiPhiDon = (duKien: boolean): string => (duKien ? `${TEN_PHI_D
 export function cauThieuPhiDon(t: { direction: "OUT" | "RETURN"; tenDichVu: string; lyDo?: "O_TRONG" | "HAI_CAP" }): string {
   const chieu = chieuChu(t.direction).toLowerCase();
   return t.lyDo === "HAI_CAP"
-    ? `Đối tác của đơn đang có hai cấp đại lý nên chưa tính được phí đưa đón cho lượt đón ${chieu} của dịch vụ ${t.tenDichVu}. Nhờ Kế toán đặt cấp riêng cho đối tác, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận.`
+    ? `Đối tác của đơn đang có hai cấp độ đại lý nên chưa tính được phí đưa đón cho lượt đón ${chieu} của dịch vụ ${t.tenDichVu}. Nhờ Kế toán đặt cấp riêng cho đối tác, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận.`
     : `Dịch vụ ${t.tenDichVu} chưa có giá gốc phí đưa đón cho lượt đón ${chieu}. Nhập giá gốc trên Sheet, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận.`;
 }
 

@@ -202,7 +202,7 @@ test("dongPhiTrenDon: đơn nháp ghi «dự kiến»; lượt đón máy chưa 
     cauThieuPhiDon({ direction: "OUT", tenDichVu: "Tour Đảo Khỉ", lyDo: "HAI_CAP" }),
   ]);
   assert.equal(r.thieu[0], "Dịch vụ Tour lặn biển chưa có giá gốc phí đưa đón cho lượt đón chiều đi. Nhập giá gốc trên Sheet, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận.");
-  assert.match(r.thieu[2]!, /hai cấp đại lý/);
+  assert.match(r.thieu[2]!, /hai cấp độ đại lý/);
   assert.doesNotMatch(r.thieu.join(" "), KHONG_MA_THO);
 });
 
