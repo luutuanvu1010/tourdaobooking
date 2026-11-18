@@ -6,12 +6,14 @@
 - **Cửa:** hai chiều về ai làm bước nào; **một chiều** về dữ liệu đã xem (người mới được xem giấy tờ thì không thu hồi được điều đã thấy).
 - **Quan hệ với ADR cũ:**
   - **ADR-0207 Đ1** (bảng «ai làm bước nào»): **thay** bằng bảng ở Đ1 dưới đây. Vế «người duyệt khác người xác minh, trừ Toàn quyền có cờ» giữ nguyên, kể cả trigger. Mục «Cho Quản trị duyệt mở tài khoản» ở «Phương án bị loại» của ADR-0207 thôi hiệu lực.
+  - **ADR-0207 các chỗ khác đổi nghĩa theo:** Bối cảnh («Quản trị xác minh, Nhân sự duyệt»), các bài 403 theo vai ở mục «Bài kiểm», mục «Người dùng sẽ thấy». Đọc theo Đ1 dưới đây; không sửa ADR-0207.
   - **ADR-0207 Đ4:** chữ «Nhân sự» đọc thành «người duyệt». Màn duyệt vẫn không có ảnh, số giấy tờ, ngày sinh, địa chỉ; tên hồ sơ đích chỉ hiện cho người xem được Danh bạ.
   - **ADR-0071 điều 1b** («Quản trị không tạo tài khoản»): thêm **một ngoại lệ có tên**. Quản trị mở được tài khoản **đối tác**, chỉ bằng lệnh duyệt phiếu đăng ký đã được người khác xác minh. Quản trị vẫn không có ô `account.create`.
   - **ADR-0071 điều 3b, ngoại lệ ở ADR-0207:** giữ. Nhân sự duyệt «gắn vào hồ sơ có sẵn» do **người xác minh** chọn.
-  - **ADR-0125** (hàng chờ phiếu tự khai, ô `party.verify`, `party.verify.attachment`): **không đổi**. Phiếu đăng ký thôi dùng hai ô này, chuyển sang ô riêng (Đ2).
+  - **ADR-0125** (hàng chờ phiếu tự khai, ô `party.verify`, `party.verify.attachment`): **không đổi**. Phiếu đăng ký thôi dùng hai ô này, chuyển sang ô riêng (Đ2). Lính gác đ5 («người đã tạo tài khoản thì không xác minh phiếu tự khai của tài khoản đó», đọc nhật ký `staff_created`) nay **áp cả cho Quản trị**, vì Quản trị đứng tên lô duyệt và vẫn giữ `party.verify`.
+  - **ADR-0169** (Quản lý bán hàng): vai này qua cổng `office` và có `party.view` **nhờ mã Bán hàng đi kèm** (ADR-0169 Đ4). Tài khoản bị bớt tay mã Bán hàng thì không xác minh được — đóng khi thiếu, chấp nhận.
   - **Hiến chương 5.28, 5.29:** không sửa chữ. Người xác minh xem được Danh bạ, hai bước hai người, Toàn quyền làm được cả hai và có ghi dấu — vẫn đúng.
-- **Xây trên lỗ đang hở:** không thêm đường ghi nào; HC-5.19 như ADR-0207.
+- **Xây trên lỗ đang hở: HC-5.19.** Không thêm bảng, đường ghi hay migration; lô duyệt giữ nguyên. Điều một chiều duy nhất là thêm một vai được xem giấy tờ của phiếu. Xin chủ câu cho phép riêng khi duyệt (mục `xay_tren_cho_phep_adr_0219` ở `docs/quyen-hoan.json`).
 - **Số quyết định chạm quyền/dữ liệu:** 1.
 
 ## Bối cảnh
@@ -32,12 +34,12 @@ Chủ muốn người làm kinh doanh xác minh đối tác, và một người 
 Mỗi phiếu: người duyệt **khác** người xác minh; riêng Toàn quyền làm được cả hai, có cờ (không đổi).
 
 **Đ2 — Ba ô quyền mới, hẹp.**
-- `registration.verify`, `registration.verify.attachment`: Quản lý bán hàng, Toàn quyền.
+- `registration.verify`, `registration.verify.attachment`: Quản lý bán hàng, Toàn quyền. Viết hàng riêng; **không** dùng hàm dựng hàng `quanLyBanHang()` (hàm đó gồm cả Quản trị).
 - `registration.approve`: Quản trị, Nhân sự, Toàn quyền. Ô này chỉ mở được tài khoản đối tác từ phiếu đã xác minh (lô duyệt sẵn có đã chặn vai nội bộ). **Không** cấp `account.create` cho Quản trị.
 - `registration.queue.view`: thêm Quản lý bán hàng (còn Quản trị, Nhân sự, Toàn quyền). Hàng chờ lọc theo năng lực như nay: ai xác minh được thấy phiếu chờ xác minh, cần bổ sung, chờ duyệt; ai duyệt được thấy phiếu chờ duyệt và đã duyệt chưa kích hoạt.
 - Gửi lại thư báo: thư của bước xác minh hỏi `registration.verify` + `party.view`; thư từ chối ở bước duyệt hỏi `registration.approve`.
 
-**Đ3 — Chỗ đặt hàng chờ.** Quản lý bán hàng không vào được trang Quản lý tài khoản, và không cổng nào chứa cả Quản lý bán hàng lẫn Nhân sự. Hàng chờ chuyển sang **một trang riêng**, mở cho người giữ `registration.queue.view`; trang Quản lý tài khoản giữ một lối sang. Cổng route: xác minh đi cổng `office`, duyệt giữ cổng `accounts`, hàng chờ và gửi lại thư đi cổng `staff`; mọi route vẫn hỏi ô ở Đ2 trong thân. Tên trang, vị trí trong menu là việc bề mặt, chọn lúc thi công theo bảng tham chiếu.
+**Đ3 — Chỗ đặt hàng chờ.** Quản lý bán hàng không vào được trang Quản lý tài khoản, và không cổng nào chứa cả Quản lý bán hàng lẫn Nhân sự. Hàng chờ chuyển sang **một trang riêng**, mở cho người giữ `registration.queue.view`; trang Quản lý tài khoản giữ một lối sang. Cổng route: xác minh đi cổng `office`, duyệt giữ cổng `accounts`, hàng chờ và gửi lại thư đi cổng `staff`; mọi route vẫn hỏi ô ở Đ2 trong thân. Tên trang, vị trí trong menu là việc bề mặt, chọn lúc thi công theo bảng tham chiếu (trang mới theo công thức c: khai `PAGES`, `build:web`, điều hướng).
 
 ## Phương án bị loại
 
@@ -51,8 +53,15 @@ Mỗi phiếu: người duyệt **khác** người xác minh; riêng Toàn quy�
 - Bài ghim từng ô của ba ô mới và ô `registration.queue.view`; ô `party.verify`, `party.verify.attachment`, `account.create` giữ nguyên giá trị.
 - Route: Quản lý bán hàng xác minh được, duyệt bị 403; Quản trị và Nhân sự duyệt được, xác minh bị 403; Bán hàng thường bị 403 ở cả hai.
 - Một tài khoản vừa Quản lý bán hàng vừa Quản trị: xác minh rồi duyệt chính phiếu đó bị trigger chặn; giao diện khoá nút (bản sửa 18/11).
-- Hàng chờ phiếu tự khai (ADR-0125) chạy y như trước.
-- Kịch bản Chrome đăng ký: đổi tài khoản ở bước xác minh sang Quản lý bán hàng, thêm một lượt Quản trị duyệt.
+- Hàng chờ phiếu tự khai (ADR-0125) chạy y như trước; Quản trị đã duyệt mở tài khoản X thì bị lính gác đ5 chặn khi xác minh phiếu tự khai của X.
+- Kịch bản Chrome đăng ký (`dang-ky-smoke.mjs`, `dang-ky-to-chuc-smoke.mjs`): đổi tài khoản ở bước xác minh sang Quản lý bán hàng, thêm một lượt Quản trị duyệt. `dang-ky-smoke.mjs` đang đỏ sẵn ở bước 0b (chờ 4 vai, nay 6) — sửa cùng lúc.
+
+**Hàng rào bị đổi** (Hiến pháp 9.4: chỉ đổi theo ADR này; mỗi rào đổi xong phải quan sát chặn thật một lần — P16 — và cập nhật dòng ở `docs/SO-HANG-RAO.md`):
+- `src/route-write-guard.test.ts`: tập ô của cổng `accounts` (`ACCOUNTS_OPS`), danh sách tên route đăng ký, luật (4b) «bước xác minh hỏi `party.verify` VÀ `party.view`» đổi thành `registration.verify` VÀ `party.view` ở cổng `office`. Route đọc đặt ở cổng `staff` không nằm trong vòng rào 2 của tệp này — phải thêm ca canh riêng cho hàng chờ.
+- `src/route-access.test.ts` (ảnh chụp cổng của từng route).
+- Bài ghim từng ô ở `src/shared/permissions.test.ts`; bài liệt kê ô theo vai như `src/modules/orders/xem-don-theo-quyen.test.ts`.
+- `src/goi-trang-nhe.test.ts` (trần gói của trang mới và trang Quản lý tài khoản).
+- `docs/SO-HANG-RAO.md` dòng rào (4b) đăng ký.
 
 ## Người dùng sẽ thấy
 
@@ -60,6 +69,6 @@ Quản lý bán hàng có trang «Phiếu đăng ký đối tác» để xác mi
 
 ## Hệ quả
 
-- **Được:** người hiểu đối tác (kinh doanh) xác minh; người độc lập duyệt; số vai xem được giấy tờ của phiếu không tăng (hôm nay Quản trị và Toàn quyền, sau này Quản lý bán hàng và Toàn quyền).
+- **Được:** người hiểu đối tác (kinh doanh) xác minh; người độc lập duyệt; số vai xem được giấy tờ của phiếu không tăng (hôm nay Quản trị, Toàn quyền và tài khoản Nhân sự kiêm vai có quyền xem Danh bạ; sau này chỉ Quản lý bán hàng và Toàn quyền).
 - **Mất:** thêm một trang; Quản trị thôi xác minh nên cần ít nhất một Quản lý bán hàng trực để phiếu không kẹt (Toàn quyền làm thay được).
-- **Rủi ro còn lại:** Quản lý bán hàng vừa xác minh vừa đặt cấp mặc định cho từng loại đối tác. Cấp đặt theo loại, không theo người, và người duyệt chọn vai, nên rủi ro thấp; mọi lệnh có nhật ký. Hai người thông đồng vẫn không bị máy bắt (như Hiến chương 5.29).
+- **Rủi ro còn lại:** Quản lý bán hàng vừa xác minh vừa đặt cấp mặc định cho từng loại đối tác. Cấp đặt theo loại, không theo người, và người duyệt chọn vai, nên rủi ro thấp; mọi lệnh có nhật ký. Hai người thông đồng vẫn không bị máy bắt (như Hiến chương 5.29). Quản trị gán được vai Quản lý bán hàng (ADR-0169 Đ3), tức là Quản trị chọn được người xác minh rồi tự duyệt; lớp bù là nhật ký gán vai và nhật ký duyệt.
