@@ -96,16 +96,16 @@ try {
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const p = r.body.order;
   const legId = p.services[0].legs[0].id;
-  r = await call(DOI_TAC, "POST", `/api/orders/${p.id}/gui-don`, { phiDon: [{ legId, muc: { loai: "DANH_SACH", soTien: 30_000 } }] });
+  r = await call(DOI_TAC, "POST", `/api/orders/${p.id}/gui-don`, { doiPhi: [{ legId, donGia: 30_000, lyDo: "Báo giá riêng" }] });
   assert.deepEqual([r.status, r.body?.error?.code], [400, "transfer_fee_not_allowed"], JSON.stringify(r.body));
   r = await guiDon(DOI_TAC, p.id);
   assert.equal(r.status, 201, JSON.stringify(r.body));
   assert.deepEqual([r.body.nhanh, r.body.yeuCau.vi], ["A", ["PHI_DON"]]);
   const v = (await call(ADMIN, "GET", `/api/orders/${p.id}`)).body;
-  r = await call(ADMIN, "POST", `/api/orders/${p.id}/quyet-dinh`, { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon: [{ legId, muc: { loai: "DANH_SACH", soTien: 30_000 } }] });
+  r = await call(ADMIN, "POST", `/api/orders/${p.id}/quyet-dinh`, { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, doiPhi: [{ legId, donGia: 30_000, lyDo: "Báo giá riêng" }] });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(await trangThai(p.id), "confirmed");
-  assert.deepEqual(await sqlRows(`SELECT fee_choice, quantity, unit_price, line_total FROM order_item WHERE order_id = '${p.id}' AND line_kind = 'TRANSFER_FEE'`), [{ fee_choice: "DANH_SACH", quantity: 2, unit_price: 30_000, line_total: 60_000 }]);
+  assert.deepEqual(await sqlRows(`SELECT fee_calc_source, quantity, unit_price, line_total FROM order_item WHERE order_id = '${p.id}' AND line_kind = 'TRANSFER_FEE'`), [{ fee_calc_source: "DOI_TAY", quantity: 2, unit_price: 30_000, line_total: 60_000 }]);
   console.log("✓ (8) phí đưa đón: Đối tác gửi kèm mức 400; lượt đón chưa chọn ⇒ nhánh A (PHI_DON); Quản trị Còn vé kèm 30.000 ⇒ xác nhận, phí 60.000");
 } finally {
   if (phiDaBat) {
