@@ -7,9 +7,9 @@
 // (mất khi đóng), không lưu ở đâu. Không ô chữ tự do: lý do chọn trong danh sách đóng. Chỉ dựng DOM bằng h().
 import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
-import { NHAN_O_TEP, NHAN_O_TEP_TO_CHUC, CHU_HANG_CHO_DK, NHAN_LOAI_THU } from "../src/shared/dang-ky-giao-dien";
+import { NHAN_O_TEP, NHAN_O_TEP_TO_CHUC, CHU_HANG_CHO_DK, NHAN_LOAI_THU, cauBuocKhac } from "../src/shared/dang-ky-giao-dien";
 import { LY_DO_PHIEU, nhanTrangThaiPhieu, type MaLyDoPhieu } from "../src/shared/dang-ky-hien-thi";
-import { CAU_LOAI_DA_TAT, canhBaoDoiVai, maDuyetGui, trangThaiChonVai } from "../src/shared/dang-ky-chon-vai";
+import { CAU_LOAI_DA_TAT, canhBaoDoiVai, cauNguoiXacMinh, maDuyetGui, trangThaiChonVai, tuDuyetBiChan } from "../src/shared/dang-ky-chon-vai";
 import { CAU_DOI_VAI_CAP, type KetQuaCapDto } from "../src/shared/cap-se-ap-hien-thi";
 import { vnDateTimeText } from "../src/shared/vn-date";
 import { ngayVN } from "../src/shared/giay-to-hien-thi";
@@ -144,7 +144,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
         veThu(p);
       } else {
         const k = dauKhung(`Phiếu ${p.id}`);
-        moKhung(k.el, dong("Trạng thái", nhanTrangThaiPhieu(p.trangThai)), h("p", { class: "muted" }, "Bước này không thuộc việc của bạn."));
+        moKhung(k.el, dong("Trạng thái", nhanTrangThaiPhieu(p.trangThai)), h("p", { class: "muted" }, cauBuocKhac(p.trangThai)));
       }
     } catch (e) {
       if (mine !== luot) return;
@@ -312,8 +312,10 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
     const kl = d.ketLuanDanhBaToChuc;
     const lyTuChoi = chonLyDo("ly-do-tu-choi-duyet");
     const nutDuyet = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "dk-hc-duyet" }, "Duyệt mở tài khoản") as HTMLButtonElement;
-    nutDuyet.disabled = maDuyetGui(vai.value) === null;
-    vai.addEventListener("change", () => { baoDoiVai.hidden = chiToChuc && vai.value === KHONG_VAI_RIENG ? true : !canhBaoDoiVai(vai.value, d.loai); nutDuyet.disabled = maDuyetGui(vai.value) === null; });
+    const laToanQuyen = can(staff, "admin.manage.superadmin");
+    const tuDuyet = tuDuyetBiChan(!!d.nguoiXacMinhLaBan, laToanQuyen); // người xác minh không duyệt được phiếu của mình, trừ Toàn quyền (máy chủ chặn y vậy)
+    nutDuyet.disabled = tuDuyet || maDuyetGui(vai.value) === null;
+    vai.addEventListener("change", () => { baoDoiVai.hidden = chiToChuc && vai.value === KHONG_VAI_RIENG ? true : !canhBaoDoiVai(vai.value, d.loai); nutDuyet.disabled = tuDuyet || maDuyetGui(vai.value) === null; });
     nutDuyet.addEventListener("click", () => void lenhDk(p, async () => {
       const chon = maDuyetGui(vai.value);
       if (chon === null) throw new ApiError(400, "invalid_input", CAU_LOAI_DA_TAT);
@@ -340,7 +342,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
       ...(d.mucToChuc ?? []).map(dongKetLuan),
       kl ? dong(CHU_HANG_CHO_DK.ketLuanToChuc, kl.kieu === "EXISTING" ? `Gắn tổ chức có sẵn${kl.tenHoSo ? `: ${kl.tenHoSo}` : ""}` : CHU_HANG_CHO_DK.hoSoToChucMoi) : null,
       kl?.ghiChu ? h("p", { class: "dk-hc-cap", id: "dk-hc-ghi-chu-to-chuc" }, kl.ghiChu) : null,
-      d.nguoiXacMinhLaBan ? h("p", { class: "xm-chan" }, "Bạn là người đã xác minh phiếu này; người duyệt phải là người khác (trừ Toàn quyền).") : null,
+      d.nguoiXacMinhLaBan ? h("p", { class: "xm-chan", id: "dk-hc-nguoi-xac-minh" }, cauNguoiXacMinh(laToanQuyen)) : null,
       h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Vai trò đối tác"), vai), baoLoaiTat, baoDoiVai,
       vaiTc ? h("label", { class: "dk-o" }, h("span", { class: "nhan" }, "Vai trò của tổ chức"), vaiTc) : null,
       h("div", { class: "dk-hang-nut" }, nutDuyet, nutTraVe), h("div", { class: "dk-hang-nut" }, lyTuChoi.el, nutTuChoi));
