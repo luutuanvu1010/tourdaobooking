@@ -289,6 +289,10 @@ export interface AnThongTinKhachRequest { bat: boolean }
  * bật / tắt được (ô `settings.ops`, chỉ Toàn quyền). Công tắc chỉ đổi cờ «cần chốt giờ» của yêu cầu xác nhận chụp SAU lúc đổi; đơn Đối tác chưa giờ vẫn qua văn phòng xét.
  */
 export interface BatBuocGioDonResponse { bat: boolean; doiDuoc: boolean }
+/** Công tắc «Hiện riêng phí đưa đón trên biên nhận khách lẻ» (ADR-0218 Đ3.4): false = gộp phí vào giá (mặc định). */
+export interface PhiDonBienNhanResponse { hienRieng: boolean; doiDuoc: boolean }
+export interface PhiDonBienNhanRequest { hienRieng: boolean }
+export interface DichVuChuaCoPhiResponse { dichVu: { code: string; name: string }[] }
 /** Thân `POST /api/cai-dat/bat-buoc-gio-don` (chỉ Toàn quyền). */
 export interface BatBuocGioDonRequest { bat: boolean }
 

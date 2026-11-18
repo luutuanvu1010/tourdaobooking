@@ -1269,6 +1269,43 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     trangThai: "da-chot",
     chuChon: "2026-11-15 (chủ dự án «chốt theo đề xuất», câu 3 của kế hoạch Phí đưa đón Đợt C)",
   }),
+  // ---- Phí đưa đón tính từ giá gốc trên Sheet (ADR-0218, Đợt 1) ----
+  KN({
+    ten: "Giá gốc phí đưa đón",
+    giaiNghia: "Số tiền phí đưa đón của một dịch vụ, đọc từ hai cột trên Sheet dịch vụ: «Phí đưa đón» (mỗi khách, đi chung) và «Phí đưa đón xe riêng» (cả chuyến). Ô để trống nghĩa là chưa có giá; muốn miễn phí thì ghi số 0.",
+    khacVoi: "Không phải mức giảm theo cấp và không phải số văn phòng đổi trên đơn: giá gốc là điểm xuất phát, Nền tảng trừ mức giảm của cấp rồi mới ra phí. Ở Đợt 1 Nền tảng chỉ đọc và lưu số này, chưa dùng để tính tiền.",
+    chuDaLoai: [],
+    maNoiBo: ["ctl_service_transfer_price", "giaGocPhiDon", "v_ctl_service_transfer_price"],
+    trangThai: "cho-chon",
+    chuChon: "người thi công đặt 2026-11-18 (ADR-0218 Đợt 1, tên khuyến nghị của kế hoạch), chờ chủ chọn",
+  }),
+  KN({
+    ten: "Mức giảm phí đưa đón",
+    giaiNghia: "Số tiền trừ khỏi giá gốc phí đưa đón cho mỗi khách đi chung, đặt riêng cho từng cấp độ đại lý và áp chung cho mọi dịch vụ. Giảm quá giá gốc thì phí là 0 đồng, không âm. Kế toán đặt trên màn Cấp độ đại lý.",
+    khacVoi: "Không giảm xe riêng. Khác «giảm giá» của đơn: giảm giá trừ vào tiền dịch vụ, còn mức giảm này chỉ trừ vào phí đưa đón. Ở Đợt 1 mới đặt và hiện số, chưa dùng để tính tiền.",
+    chuDaLoai: [],
+    maNoiBo: ["prc_transfer_fee_tier_discount", "mucGiamPhiDonTheoNgay"],
+    trangThai: "cho-chon",
+    chuChon: "người thi công đặt 2026-11-18 (ADR-0218 Đợt 1, tên khuyến nghị của kế hoạch), chờ chủ chọn",
+  }),
+  KN({
+    ten: "Chương trình miễn phí đưa đón",
+    giaiNghia: "Một đợt miễn phí đưa đón do Quản trị hoặc Toàn quyền mở, theo khoảng ngày đi, cho tất cả dịch vụ, một số dịch vụ hoặc một số đối tác. Đơn chưa xác nhận có ngày đón nằm trong khoảng thì phí đưa đón là 0 đồng. Xe riêng chỉ được miễn khi tích «gồm xe riêng». Kết thúc là đóng lại, không xoá.",
+    khacVoi: "Đơn đã xác nhận giữ số đã tính, không đổi theo chương trình. Khác số 0 ghi trên Sheet: chương trình có thời hạn và phạm vi, số 0 trên Sheet là giá gốc của dịch vụ. Ở Đợt 1 mới tạo và hiện danh sách, chưa dùng để tính tiền.",
+    chuDaLoai: [],
+    maNoiBo: ["prc_transfer_fee_program", "chuongTrinhKhop", "chuongTrinhPhiDonHieuLuc"],
+    trangThai: "cho-chon",
+    chuChon: "người thi công đặt 2026-11-18 (ADR-0218 Đợt 1, tên khuyến nghị của kế hoạch), chờ chủ chọn",
+  }),
+  KN({
+    ten: "Hiện riêng phí đưa đón trên biên nhận khách lẻ",
+    giaiNghia: "Công tắc của Toàn quyền. Mặc định tắt: biên nhận gửi khách lẻ cộng phí đưa đón vào giá dịch vụ và không in dòng «Phí đưa đón». Bật thì in dòng phí riêng như trước. Chỉ đổi cách in, tiền không đổi.",
+    khacVoi: "Không áp cho biên nhận mẫu đối tác, trang đơn của văn phòng, phiếu công nợ và sổ sách: ở đó phí vẫn là dòng riêng. Ở Đợt 1 mới có công tắc, biên nhận chưa đổi cách in.",
+    chuDaLoai: [],
+    maNoiBo: ["ord_receipt_fee_display_policy", "hienRiengPhiDonBienNhan"],
+    trangThai: "cho-chon",
+    chuChon: "người thi công đặt 2026-11-18 (ADR-0218 Đợt 1, tên khuyến nghị của kế hoạch), chờ chủ chọn",
+  }),
   // ---- Phí đưa đón do văn phòng chọn (ADR-0214, Task 6) ----
   KN({
     ten: "Số khác",

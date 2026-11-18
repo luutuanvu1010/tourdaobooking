@@ -2,7 +2,7 @@
 // Tệp riêng để `index.ts` (cửa vào module) không phình thêm và để KHÔNG import vòng: tệp này chỉ import `repository.ts`, `xac-nhan-chung.ts`, `xac-nhan-repo.ts` và các module khác QUA `index.ts` của chúng.
 // SQL ở `xac-nhan-repo.ts` (nửa nghiêm). KHÔNG tự kiểm quyền bằng vai hồ sơ; mọi cổng hỏi `can(…)` viết thẳng ô.
 import { auditStatement } from "../audit";
-import type { AnThongTinKhachResponse, BatBuocGioDonResponse, CaiDatXacNhanResponse, ChuaCoBanHangResponse, TheDonDto, DonChoXacNhanDto, DonChoXacNhanResponse, GuiDonResponse, GuiXacNhanResponse, LyDoCanXacNhan, PickupTimeRequiredBody, StaffProfile, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
+import type { AnThongTinKhachResponse, BatBuocGioDonResponse, CaiDatXacNhanResponse, PhiDonBienNhanResponse, ChuaCoBanHangResponse, TheDonDto, DonChoXacNhanDto, DonChoXacNhanResponse, GuiDonResponse, GuiXacNhanResponse, LyDoCanXacNhan, PickupTimeRequiredBody, StaffProfile, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
 import { can, holdsIntern, holdsPartner, passesAdminGate } from "../../shared/permissions";
@@ -24,7 +24,7 @@ import { tuCachCuaDon } from "../../shared/booker";
 import { duocGuiLenTourDao } from "../../shared/to-chuc";
 import { canhBaoMocCua, type XetDatGapSua } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
-import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, cauThemGioDon, docBatBuocGioDon, gioDonMoiNhat, nguoiLapGiuDoiTac, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
+import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, cauThemGioDon, cauThemPhiDonBienNhan, docBatBuocGioDon, gioDonMoiNhat, hienRiengPhiDonBienNhan, phiDonBienNhanMoiNhat, nguoiLapGiuDoiTac, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, tvGuiLenTheoChuoi, tvGuiLenTheoYeuCau, type DauDatGapMoi } from "./chang-hanh-khach-repo";
 import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { congHuyTraSau, VE_CHUA_SOAN_DUOC } from "./tra-sau-cong";
@@ -71,6 +71,14 @@ export function lenhGhiBatBuocGioDon(db: D1Database, v: { bat: boolean; at: stri
   return [
     cauThemGioDon(db, { id: crypto.randomUUID(), bat: v.bat, at: v.at, by: v.by }),
     auditStatement(db, { staffId: v.by, action: "pickup_time_policy_changed", at: v.at, targetType: "system", detail: v.bat ? "Bật bắt buộc giờ đón cho đơn đối tác" : "Tắt bắt buộc giờ đón cho đơn đối tác" }),
+  ];
+}
+
+/** MỘT lô đổi công tắc «Hiện riêng phí đưa đón trên biên nhận khách lẻ» (ADR-0218 Đ3.4): dòng mới chỉ-thêm rồi nhật ký `receipt_fee_display_changed` không gắn đơn; thua mốc thì câu chèn ném UNIQUE và cả lô lui. */
+export function lenhGhiPhiDonBienNhan(db: D1Database, v: { hienRieng: boolean; at: string; by: string }): D1PreparedStatement[] {
+  return [
+    cauThemPhiDonBienNhan(db, { id: crypto.randomUUID(), hienRieng: v.hienRieng, at: v.at, by: v.by }),
+    auditStatement(db, { staffId: v.by, action: "receipt_fee_display_changed", at: v.at, targetType: "system", detail: v.hienRieng ? "Bật hiện riêng phí đưa đón trên biên nhận khách lẻ" : "Tắt hiện riêng phí đưa đón trên biên nhận khách lẻ (gộp vào giá)" }),
   ];
 }
 
@@ -715,5 +723,28 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       }
     }
     return json({ bat: await docBatBuocGioDon(env.DB, new Date().toISOString()), doiDuoc: true } satisfies BatBuocGioDonResponse);
+  }),
+
+  // CÔNG TẮC «HIỆN RIÊNG PHÍ ĐƯA ĐÓN TRÊN BIÊN NHẬN KHÁCH LẺ» (ADR-0218 Đ3.4): khuôn công tắc giờ đón ngay trên. ĐỌC: cổng `orders`, hỏi `order.create`; GHI: cổng `admin`, thân hỏi `settings.ops` (chỉ Toàn quyền).
+  // Mặc định Tắt (gộp). Chỉ đổi cách in nên áp cho mọi bản in sau lúc đổi, kể cả đơn đã xác nhận. Va mốc ⇒ 409 `stale`; gửi đúng trạng thái đang có ⇒ 200, không ghi.
+  route("GET", "/api/cai-dat/phi-don-bien-nhan", "orders", async ({ env, staff }) => {
+    if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không xem được cài đặt này.");
+    return json({ hienRieng: await hienRiengPhiDonBienNhan(env.DB, new Date().toISOString()), doiDuoc: can(staff, "settings.ops") } satisfies PhiDonBienNhanResponse);
+  }),
+  route("POST", "/api/cai-dat/phi-don-bien-nhan", "admin", async ({ env, request, staff }) => {
+    if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi cài đặt in phí đưa đón trên biên nhận.");
+    const b = (await readJson(request)) as Record<string, unknown> | null;
+    if (!b || typeof b !== "object" || typeof b.hienRieng !== "boolean") return error(400, "invalid_input", "Chọn hiện riêng hoặc gộp.");
+    const now = new Date();
+    if ((await hienRiengPhiDonBienNhan(env.DB, now.toISOString())) !== b.hienRieng) {
+      const at = lanSau(await phiDonBienNhanMoiNhat(env.DB), now);
+      try {
+        await env.DB.batch(lenhGhiPhiDonBienNhan(env.DB, { hienRieng: b.hienRieng, at, by: staff.id }));
+      } catch (e) {
+        if (/UNIQUE constraint failed: ord_receipt_fee_display_policy/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Cài đặt vừa được đổi — tải lại rồi thử lại.");
+        throw e;
+      }
+    }
+    return json({ hienRieng: await hienRiengPhiDonBienNhan(env.DB, new Date().toISOString()), doiDuoc: true } satisfies PhiDonBienNhanResponse);
   }),
 ];
