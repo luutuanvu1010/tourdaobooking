@@ -27,11 +27,12 @@ const luotCua = (l: any, i: number): DauVaoLuotDon => ({
 
 test("sổ vàng: mọi ca da_xac_nhan có đáp án lượt — nguồn, đơn giá, số lượng, tiền, lý do, giá gốc, cấp, mức giảm, chương trình khớp ĐÚNG TỪNG ĐỒNG", () => {
   let soCa = 0, soLuot = 0;
+  const boQua: string[] = [];
   for (const ca of g.cac_ca) {
     assert.equal(ca.xac_nhan.trang_thai, "da_xac_nhan", `${ca.ma} chưa được xác nhận`);
     const dapAn = ca.dap_an?.luot ?? [];
     const dauVao = ca.dau_vao?.luot;
-    if (!dauVao || dapAn.length === 0 || ca.dap_an.ap_dung === false) continue; // GG-16 (Task 8), GG-19 (Task 8)
+    if (!dauVao || dapAn.length === 0 || ca.dap_an.ap_dung === false) { boQua.push(ca.ma); continue; } // GG-16, GG-19: phủ ở bài route của orders (Task 8)
     const tatCa: Record<string, CT> = { ...g.chuong_trinh, ...(ca.dau_vao.chuong_trinh_them ?? {}) };
     const ds = (ca.dau_vao.chuong_trinh_bat as string[]).map((m, i) => ct(m, tatCa[m]!, i));
     const b = boiCanh(ca.dau_vao.ben_dat, ds);
@@ -60,7 +61,9 @@ test("sổ vàng: mọi ca da_xac_nhan có đáp án lượt — nguồn, đơn 
     if (ca.dap_an.tong !== null) assert.equal(tong, ca.dap_an.tong, `${ca.ma} tổng`);
     soCa++;
   }
-  assert.ok(soCa === 19 && soLuot >= 15, `chỉ chạy ${soCa} ca, ${soLuot} lượt`);
+  assert.deepEqual(boQua, ["GG-16", "GG-19"], "bộ ca bị bỏ qua phải đúng hai ca của Task 8");
+  assert.equal(soCa, 19, `chỉ chạy ${soCa} ca`);
+  assert.equal(soLuot, 19, `số lượt có phí ${soLuot}`);
 });
 
 const KHACH_LE = boiCanh("KHACH_LE", []);

@@ -250,3 +250,11 @@ test("0179: đơn không còn nháp ⇒ không đổi được các cột chụp
   throwsRe(() => run(db, "UPDATE order_item SET fee_calc_source = 'DOI_TAY' WHERE id = 'g1'"), f);
   throwsRe(() => run(db, "UPDATE order_item SET fee_program_name = 'x' WHERE id = 'g1'"), f);
 });
+
+test("0179: trần đổi tay 5.000.000 trong trigger KHỚP TRAN_MUC_PHI_DON (src/shared/phi-don-gia-goc.ts)", async () => {
+  const { TRAN_MUC_PHI_DON } = await import("./shared/phi-don-gia-goc.ts");
+  const sql = readFileSync(new URL(FILE2!, DIR), "utf8").replace(/^--.*$/gm, "");
+  const m = [...sql.matchAll(/NEW\.unit_price > (\d+)/g)].map((x) => Number(x[1]));
+  assert.ok(m.length >= 2);
+  for (const v of m) assert.equal(v, TRAN_MUC_PHI_DON);
+});
