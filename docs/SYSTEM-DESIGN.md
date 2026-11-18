@@ -652,6 +652,10 @@ Module `ve-dien-tu` (tiền tố `vdt_`, module nghiêm). **Dữ liệu:** `vdt_
 
 ---
 
+### Phí đưa đón từ giá gốc Sheet — bảng của ADR-0218 Đợt 1 (migration `0178_phi_don_gia_goc`; mô tả hiện trạng, thua mã; CHƯA lên production)
+
+Năm bảng mới, đều chỉ-thêm (trigger cấm sửa/xoá, trừ việc đóng/kết thúc một lần), chưa có mã nào dùng chúng để tính tiền. `catalog` giữ `ctl_service_transfer_price` (giá gốc phí đưa đón mỗi khách đi chung ≤ 500.000 đ và xe riêng cả chuyến ≤ 5.000.000 đ, đọc từ hai cột Sheet «Phí đưa đón», «Phí đưa đón xe riêng»; NULL = ô trống = chưa có giá, 0 = miễn phí; dòng hiệu lực = `valid_from_at` lớn nhất, công bố qua view `v_ctl_service_transfer_price`). `pricing` giữ `prc_transfer_fee_tier_discount` (mức giảm mỗi khách theo cấp, `valid_from_date`/`valid_to_date`, không chồng ngày cùng cấp), `prc_transfer_fee_program` + `prc_transfer_fee_program_scope` (chương trình miễn phí theo khoảng ngày đi; phạm vi ALL / SERVICES / PARTNERS; cờ `include_private`; chỉ kết thúc). `orders` giữ `ord_receipt_fee_display_policy` (công tắc «Hiện riêng phí đưa đón trên biên nhận khách lẻ», gieo một dòng Tắt = gộp). Từng cột: `docs/DATA-DICTIONARY.md`.
+
 ## 6. Luồng nghiệp vụ chính
 
 > **Tên trên giao diện (chủ 2026-11-07; tên cũ ghi ở bảng tham chiếu):** bước tài liệu này và mã gọi «Đã giao» (`delivered`, `deliveredAt`) hiện cho người dùng là **«Khách đã trả đủ»**; nút ghi «Xác nhận khách đã trả đủ». Nghĩa: khách đã trả đủ (cho hướng dẫn viên, đối tác hay công ty), chưa chắc tiền đã về công ty; tiền về đủ là «Hoàn thành». Nguồn tên: `docs/BANG-THAM-CHIEU.md`.
@@ -759,6 +763,10 @@ Nhật ký thi công: `docs/superpowers/plans/2026-11-16-phi-don-van-phong-chon-
 - **Xác nhận:** `chuanBiPhiDonXacNhan` lấy mức từ dòng đã lưu (dòng bảng phí cũ không có kiểu chọn = chưa chọn — ruling P6) gộp mức người xét chọn ở Còn vé (`quyet-dinh` thân `phiDon: [{ legId, muc }]`; lượt đã có mức ⇒ 400). Thiếu ⇒ 409 `transfer_fee_missing` «Chọn phí đưa đón cho lượt đón …». Gửi đơn của Đối tác có lượt chưa chọn ⇒ nhánh chờ xác nhận.
 - **Công tắc:** «ngày bắt đầu áp» của `pricing` (`ngayBatDauApPhiDon`). Biểu mẫu chưa lưu hỏi `GET /api/orders/phi-don-ap` (`{ dangAp }`, máy chủ so ngày). Trước ngày áp: không ô chọn, không dòng phí, không cổng chặn. Bảng mức theo khu vực, «Thử tra» còn nhưng không dùng cho đơn; đặt ngày áp không còn đòi mức chung (ruling P3).
 - **Giao diện:** ô chọn mỗi lượt ở `web/khoi-dua-don.ts` (tuỳ chọn `phiDon`; chỉ form), giá trị ô giữ ở `web/order-form.ts` theo khoá lượt (lượt đã lưu chưa đụng tới = mức đã lưu, `mucDaLuuTheoLuot`). Có ô thì MỌI lượt gửi `phiDon` (null khi chưa chọn); Đối tác chỉ thấy câu «Văn phòng sẽ chọn phí đưa đón khi xác nhận.» và không gửi khoá. Bảng Còn vé (`web/xac-nhan-don-ui.ts`) hiện ô cho lượt trong `phiDuaDon.thieu`. Luật ô thuần ở `src/shared/phi-don-o-chon.ts` (đọc «Số khác» chặt: chữ số hoặc ngăn nghìn đúng nhóm ba; kiểm bằng `kiemMucChon` nên cùng câu với máy chủ).
+
+### (d5) Phí đưa đón từ giá gốc Sheet: phần Đợt 1 (ADR-0218; migration `0178`; CHƯA lên production; Đợt 2 — hàm tính phí, nối vào lưu nháp / xác nhận, biên nhận gộp — CHƯA làm, chờ sổ vàng được xác nhận)
+
+Đợt 1 không sinh tiền. (1) Đồng bộ Sheet (f): `parseCatalogSheet` đọc thêm hai cột tuỳ chọn; ô hỏng (không phải số nguyên, vượt trần) vào `phiDon.loiO`, KHÔNG bỏ dòng dịch vụ; luật ghi thuần `kePhiDonGoc` (catalog/rules.ts) — chưa có cột thì im lặng; cột từng có giá rồi mất hoặc ô hỏng thì giữ giá cũ và ghi vấn đề vào `problems_json` (không `giuLai`, không gửi tin dòng hỏng, không đặt `last_error`); chỉ ghi dòng mới khi cặp giá đổi. (2) Route `GET/POST /api/pricing/giam-phi-don`, `POST …/:id/ket-thuc` (cổng `office`, `partner.commission.write`, không giữ quyền Đối tác) + hàm công bố `mucGiamPhiDonTheoNgay`; khối «Mức giảm phí đưa đón» ở màn Cấp độ đại lý. (3) Route `GET/POST /api/pricing/chuong-trinh-phi-don`, `POST …/:id/ket-thuc` (cổng `admin`, `admin.manage`) + hàm công bố `chuongTrinhPhiDonHieuLuc` + luật thuần `chuongTrinhKhop` (khớp theo NGÀY ĐÓN của lượt); khối «Chương trình miễn phí đưa đón» ở màn Phí đưa đón. (4) `GET/POST /api/cai-dat/phi-don-bien-nhan` (`settings.ops`) + `hienRiengPhiDonBienNhan`; khối ở trang Tôi. (5) `GET /api/pricing/phi-don/dich-vu-chua-co-phi` (`admin.manage`): nhắc dịch vụ có đưa đón chưa có giá gốc, không chặn.
 
 ### (e) Sửa thông tin chuyến sau xác nhận
 
