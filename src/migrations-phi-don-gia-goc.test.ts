@@ -29,7 +29,7 @@ test("đúng MỘT tệp `*_phi_don_gia_goc.sql`, sau 0177; chỉ-thêm (không 
 });
 
 function giaGoc(d: DatabaseSync, id: string, ma: string, moiKhach: string, xeRieng: string, at: string) {
-  d.exec(`INSERT INTO ctl_service_transfer_price (id, catalog_code, per_pax_price, private_price, valid_from_at, created_at) VALUES ('${id}', '${ma}', ${moiKhach}, ${xeRieng}, '${at}', '${at}')`);
+  d.exec(`INSERT INTO ctl_service_transfer_price (id, catalog_code, per_pax_price, private_price, valid_from_at, created_at, updated_at) VALUES ('${id}', '${ma}', ${moiKhach}, ${xeRieng}, '${at}', '${at}', '${at}')`);
 }
 
 test("giá gốc: trần 500.000 đi chung, 5.000.000 xe riêng, NULL được, âm bị chặn; không sửa, không xoá", () => {
@@ -83,17 +83,17 @@ test("mức giảm theo cấp: chồng ngày cùng cấp bị chặn, cấp tắ
 });
 
 function ct(d: DatabaseSync, id: string, scope: string, tu: string, den: string) {
-  d.exec(`INSERT INTO prc_transfer_fee_program (id, name, scope, trip_from, trip_to, created_at, created_by) VALUES ('${id}', 'CT ${id}', '${scope}', '${tu}', '${den}', '${AT}', 's1')`);
+  d.exec(`INSERT INTO prc_transfer_fee_program (id, name, scope, trip_from, trip_to, created_at, created_by, updated_at) VALUES ('${id}', 'CT ${id}', '${scope}', '${tu}', '${den}', '${AT}', 's1', '${AT}')`);
 }
 
 test("chương trình miễn phí: ngày đi đến < từ bị chặn, phạm vi lạ bị chặn, tên rỗng bị chặn, kết thúc một lần, không xoá", () => {
   const d = open();
   assert.throws(() => ct(d, "p1", "ALL", "2026-12-10", "2026-12-01"), /CHECK/);
   assert.throws(() => ct(d, "p2", "NONE", "2026-12-01", "2026-12-10"), /CHECK/);
-  assert.throws(() => d.exec(`INSERT INTO prc_transfer_fee_program (id, name, scope, trip_from, trip_to, created_at) VALUES ('p3', '  ', 'ALL', '2026-12-01', '2026-12-02', '${AT}')`), /CHECK/);
+  assert.throws(() => d.exec(`INSERT INTO prc_transfer_fee_program (id, name, scope, trip_from, trip_to, created_at, updated_at) VALUES ('p3', '  ', 'ALL', '2026-12-01', '2026-12-02', '${AT}', '${AT}')`), /CHECK/);
   ct(d, "p4", "ALL", "2026-12-01", "2026-12-10");
   assert.equal(rows(d, "SELECT include_private AS i FROM prc_transfer_fee_program")[0]!.i, 0, "mặc định không gồm xe riêng");
-  d.exec(`UPDATE prc_transfer_fee_program SET ended_at = '${AT}', ended_by = 's1' WHERE id = 'p4'`);
+  d.exec(`UPDATE prc_transfer_fee_program SET ended_at = '${AT}', ended_by = 's1', updated_at = '${AT}' WHERE id = 'p4'`);
   assert.throws(() => d.exec(`UPDATE prc_transfer_fee_program SET ended_at = '2099-01-01T00:00:00.000Z', ended_by = 's2' WHERE id = 'p4'`), /prc_append_only/);
   assert.throws(() => d.exec("UPDATE prc_transfer_fee_program SET name = 'x' WHERE id = 'p4'"), /prc_append_only/);
   assert.throws(() => d.exec("DELETE FROM prc_transfer_fee_program"), /prc_append_only/);
@@ -105,7 +105,7 @@ test("phạm vi chương trình: SERVICES chỉ nhận mã dịch vụ, PARTNERS
   ct(d, "q", "PARTNERS", "2026-12-01", "2026-12-10");
   ct(d, "a", "ALL", "2026-12-01", "2026-12-10");
   const them = (p: string, ma: string | null, party: string | null) =>
-    d.exec(`INSERT INTO prc_transfer_fee_program_scope (program_id, catalog_code, party_id) VALUES ('${p}', ${ma ? `'${ma}'` : "NULL"}, ${party ? `'${party}'` : "NULL"})`);
+    d.exec(`INSERT INTO prc_transfer_fee_program_scope (program_id, catalog_code, party_id, created_at, updated_at) VALUES ('${p}', ${ma ? `'${ma}'` : "NULL"}, ${party ? `'${party}'` : "NULL"}, '${AT}', '${AT}')`);
   assert.throws(() => them("s", null, "P1"), /prc_transfer_fee_scope/);
   assert.throws(() => them("q", "T1", null), /prc_transfer_fee_scope/);
   assert.throws(() => them("a", "T1", null), /prc_transfer_fee_scope/);
@@ -123,7 +123,7 @@ test("công tắc biên nhận: đúng MỘT dòng gieo show_separate = 0 (gộp
   assert.equal(r.length, 1);
   assert.equal(r[0]!.show_separate, 0);
   assert.equal(r[0]!.created_by, null);
-  const them = (id: string, v: string, at: string) => d.exec(`INSERT INTO ord_receipt_fee_display_policy (id, show_separate, valid_from_at, created_at, created_by) VALUES ('${id}', ${v}, '${at}', '${at}', 's1')`);
+  const them = (id: string, v: string, at: string) => d.exec(`INSERT INTO ord_receipt_fee_display_policy (id, show_separate, valid_from_at, created_at, created_by, updated_at) VALUES ('${id}', ${v}, '${at}', '${at}', 's1', '${at}')`);
   assert.throws(() => them("x1", "2", "2099-01-01T00:00:00.000Z"), /CHECK/);
   them("x3", "1", "2099-01-01T00:00:00.002Z");
   assert.throws(() => them("x4", "0", "2099-01-01T00:00:00.002Z"), /UNIQUE/);

@@ -16,6 +16,9 @@ CREATE TABLE ctl_service_transfer_price (
   private_price  INTEGER CHECK (private_price IS NULL OR private_price BETWEEN 0 AND 5000000),
   valid_from_at  TEXT NOT NULL,
   created_at     TEXT NOT NULL,
+  created_by     TEXT,
+  updated_at     TEXT NOT NULL,
+  updated_by     TEXT,
   UNIQUE (catalog_code, valid_from_at)
 );
 CREATE TRIGGER ctl_service_transfer_price_no_update BEFORE UPDATE ON ctl_service_transfer_price
@@ -62,7 +65,9 @@ CREATE TABLE prc_transfer_fee_program (
   created_at      TEXT NOT NULL,
   created_by      TEXT,
   ended_at        TEXT,
-  ended_by        TEXT
+  ended_by        TEXT,
+  updated_at      TEXT NOT NULL,
+  updated_by      TEXT
 );
 CREATE TRIGGER prc_transfer_fee_program_no_delete BEFORE DELETE ON prc_transfer_fee_program
 BEGIN SELECT RAISE(ABORT, 'prc_append_only: không xoá chương trình miễn phí đưa đón — kết thúc'); END;
@@ -76,6 +81,10 @@ CREATE TABLE prc_transfer_fee_program_scope (
   program_id   TEXT NOT NULL REFERENCES prc_transfer_fee_program(id),
   catalog_code TEXT,
   party_id     TEXT,
+  created_at   TEXT NOT NULL,
+  created_by   TEXT,
+  updated_at   TEXT NOT NULL,
+  updated_by   TEXT,
   CHECK ((catalog_code IS NULL) <> (party_id IS NULL))
 );
 -- Khoá chống trùng viết bằng chỉ mục biểu thức vì khoá chính có cột NULL không chặn trùng trong SQLite.
@@ -94,10 +103,12 @@ CREATE TABLE ord_receipt_fee_display_policy (
   show_separate INTEGER NOT NULL CHECK (show_separate IN (0, 1)),
   valid_from_at TEXT NOT NULL UNIQUE,
   created_at    TEXT NOT NULL,
-  created_by    TEXT
+  created_by    TEXT,
+  updated_at    TEXT NOT NULL,
+  updated_by    TEXT
 );
-INSERT INTO ord_receipt_fee_display_policy (id, show_separate, valid_from_at, created_at, created_by)
-VALUES ('gieo-0178', 0, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO ord_receipt_fee_display_policy (id, show_separate, valid_from_at, created_at, created_by, updated_at, updated_by)
+VALUES ('gieo-0178', 0, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
 CREATE TRIGGER ord_receipt_fee_display_policy_no_update BEFORE UPDATE ON ord_receipt_fee_display_policy
 BEGIN SELECT RAISE(ABORT, 'ord_policy_append_only: công tắc hiện riêng phí đưa đón chỉ thêm dòng mới, không sửa'); END;
 CREATE TRIGGER ord_receipt_fee_display_policy_no_delete BEFORE DELETE ON ord_receipt_fee_display_policy
