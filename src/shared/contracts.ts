@@ -10,7 +10,6 @@ import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
 import type { BanChup } from "./hoa-hong-dong.ts";
-import type { MucChon } from "./phi-don-chon.ts";
 import type { DauXacMinh } from "./dau-xac-minh.ts";
 import type { MaintenanceContent } from "./maintenance.ts";
 import type { KhungGio, LuaChonDon } from "./khung-gio-don.ts";
@@ -628,14 +627,14 @@ export interface LegInput {
    */
   pickupSlotEnd?: string;
   /**
-   * Phí đưa đón do văn phòng chọn cho lượt đón này (ADR-0214): mức trong danh sách hoặc «Số khác» (`src/shared/phi-don-chon.ts`, máy chủ kiểm lại bằng `kiemMucChon`).
-   * Chỉ lập đơn / lưu nháp nhận khoá này. VẮNG khoá = GIỮ mức đã lưu của chặng cùng id (chặng mới vắng = chưa chọn); `null` = bỏ chọn. Tài khoản Đối tác gửi khoá này (kể cả `null`) ⇒ 400
-   * `transfer_fee_not_allowed`. Trước ngày bắt đầu áp: kiểm nhưng không sinh dòng phí.
+   * Số đổi phí đưa đón của văn phòng cho lượt đón này (ADR-0218 Đ1.5): `donGia` = mỗi khách (đi chung) hoặc cả chuyến (xe riêng), số nguyên 0–5.000.000 (0 được nhận); `lyDo` bắt buộc ≤ 300 ký tự
+   * (`src/shared/phi-don-gia-goc.ts`, máy chủ kiểm lại bằng `kiemDoiPhi`). Chỉ lập đơn / lưu nháp nhận khoá này. VẮNG khoá = GIỮ số đổi đã lưu của chặng cùng id; `null` = bỏ đổi (máy tính lại);
+   * có = đặt số đổi. Tài khoản Đối tác gửi khoá này (kể cả `null`) ⇒ 400 `transfer_fee_not_allowed`. Khoá cũ `phiDon` (ADR-0214) ⇒ 400 `client_outdated`. Trước ngày bắt đầu áp: kiểm nhưng không sinh dòng phí.
    */
-  phiDon?: MucChon | null;
+  doiPhi?: { donGia: number; lyDo: string } | null;
 }
 /** `PUT /api/orders/:id/legs/:legId` — sửa trường vận hành của chặng (không đổi chiều, không đổi dịch vụ; cuối khung theo luật ở `LegInput.pickupSlotEnd`; không nhận mức phí). */
-export type LegEditInput = Omit<LegInput, "id" | "direction" | "pickupSlotEnd" | "phiDon">;
+export type LegEditInput = Omit<LegInput, "id" | "direction" | "pickupSlotEnd" | "doiPhi">;
 
 /** Một chặng CÒN HIỆU LỰC trả về trong chi tiết đơn. `pickupLabel`/`dropoffLabel` = tên điểm danh mục hoặc chữ tự do (null = nơi trả chưa chốt). */
 export interface LegDto {
@@ -3498,10 +3497,10 @@ export interface QuyetDinhXacNhanInput {
   /** `datGap` (ADR-0154 Đ1.4): lý do đặt gấp CỦA TỪNG LƯỢT khi giờ nhập dưới hạn chốt — kiểm ô `order.leg.short_notice`, dựng dấu qua MỘT chỗ canh `xetDatGapSua`. */
   gioDon?: { legId: string; pickupTime: string; pickupSlotEnd?: string; datGap?: { lyDo: string; ghiChu?: string | null } }[];
   /**
-   * Phí đưa đón người xét chọn cho các lượt đón CHƯA có mức (ADR-0214 Đ2, Task 4): chỉ nhánh Còn vé đọc. Lượt đã có mức ⇒ 400 «Lượt đón này đã có phí đưa đón.»; lượt không phải lượt mở của
-   * đơn hoặc nhắc hai lần ⇒ 400; mức sai ⇒ 400 cùng câu của `kiemMucChon`. Tài khoản giữ quyền Đối tác gửi khoá này (kể cả `null`) ⇒ 400 `transfer_fee_not_allowed`.
+   * Số đổi phí đưa đón của người xét cho các lượt đón MỞ của đơn (ADR-0218 Đ1.5): chỉ nhánh Còn vé đọc; nhận cả lượt đã có số (máy luôn tính ra số). Lượt không phải lượt mở của đơn hoặc nhắc hai lần ⇒ 400;
+   * số sai hoặc thiếu lý do ⇒ 400 cùng câu của `kiemDoiPhi`. Tài khoản giữ quyền Đối tác gửi khoá này ⇒ 400 `transfer_fee_not_allowed`; khoá cũ `phiDon` ⇒ 400 `client_outdated`.
    */
-  phiDon?: { legId: string; muc: MucChon }[];
+  doiPhi?: { legId: string; donGia: number; lyDo: string }[];
   lyDo?: string;
   ghiChu?: string;
 }

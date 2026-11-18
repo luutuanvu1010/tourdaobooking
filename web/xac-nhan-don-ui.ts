@@ -14,8 +14,8 @@ import { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT, CAU_TIEN_KHOA_KHI_CHO, HOI_CON_VE,
 import { taoKhungDatGap } from "./dat-gap-ui";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
 import { TEN_PHI_DUA_DON, cauThieuPhiDon } from "../src/shared/phi-don-hien-thi";
-import { CHON_SO_KHAC, LUA_CHON_PHI_DON, NHAN_CHUA_CHON_PHI, NHAN_SO_KHAC, mucTuO } from "../src/shared/phi-don-o-chon";
-import { CAU_VAN_PHONG_CHON_PHI_DON, type MucChon } from "../src/shared/phi-don-chon";
+import { NHAN_NUT_BO_DOI_PHI, NHAN_NUT_DOI_PHI, NHAN_O_LY_DO_DOI_PHI, chuSoMay, doiPhiTuO, nhanODonGia, type DoiPhiO } from "../src/shared/phi-don-doi-phi-o";
+import { CAU_VAN_PHONG_DOI_PHI_DON, type DoiPhi } from "../src/shared/phi-don-gia-goc";
 import { formGonDoiTac } from "../src/shared/form-dat-ve";
 
 /** Những gì trang đơn cung cấp: tải lại đơn, báo thành công / lỗi. */
@@ -251,57 +251,59 @@ function taoOLuot(lx: LuotGioConVe, s: DichVuDon, capMocTatCa: () => void, mocPh
   return { luot, el };
 }
 
-/** Ô chọn phí của MỘT lượt đón chưa có mức trong bảng Còn vé (ADR-0214 Đ2, Task 6): cùng lựa chọn và cùng luật kiểm với biểu mẫu đơn (`mucTuO` → `kiemMucChon` của máy chủ). */
+/** Khối «Phí đưa đón» của MỘT lượt đón trong bảng Còn vé (ADR-0218 Đ1.5, Task 9): số máy tính (hoặc lý do chưa tính được) + nút «Đổi phí» mở hai ô; cùng luật kiểm với biểu mẫu đơn (`doiPhiTuO` → `kiemDoiPhi`). */
 interface OPhiConVe {
   legId: string;
-  /** Mức người xét chọn, hoặc câu báo (chưa chọn / gõ sai) — kèm ô để đặt tiêu điểm. */
-  doc(): { ok: true; muc: MucChon } | { ok: false; cau: string; o: HTMLElement };
+  /** Số đổi người xét đặt (`null` = giữ số máy tính / số đã đổi), hoặc câu báo (gõ sai, hoặc lượt chưa có giá mà chưa đổi) — kèm ô để đặt tiêu điểm. */
+  doc(): { ok: true; doiPhi: DoiPhi | null } | { ok: false; cau: string; o: HTMLElement };
   datLoi(cau: string | null): void;
   el: HTMLElement;
 }
 
-function taoOPhiConVe(t: NonNullable<Order["phiDuaDon"]>["thieu"][number]): OPhiConVe {
+interface LuotPhiConVe { legId: string; direction: "OUT" | "RETURN"; tenDichVu: string; xeRieng: boolean; may: string; chuaTinhDuoc: string | null }
+
+function taoOPhiConVe(t: LuotPhiConVe): OPhiConVe {
   const id = `cx-phi-${t.legId}`;
   const loi = h("p", { class: "cx-loi", id: `${id}-loi`, role: "alert", hidden: true });
-  const sel = h(
-    "select",
-    { class: "vc-input", id, "aria-describedby": loi.id, "data-o-phi": "chon" },
-    h("option", { value: "" }, NHAN_CHUA_CHON_PHI),
-    ...LUA_CHON_PHI_DON.map((x) => h("option", { value: x.giaTri }, x.nhan)),
-  ) as HTMLSelectElement;
-  const khac = h("input", { type: "text", inputMode: "numeric", maxLength: 13, autocomplete: "off", class: "vc-input", id: `${id}-khac`, placeholder: "VD: 70.000", "aria-describedby": loi.id, "data-o-phi": "so-khac" }) as HTMLInputElement;
-  // Nhãn thấy được như biểu mẫu đơn («Số khác»), ẩn cùng ô khi chưa chọn «Số khác».
-  const oKhac = h("label", { class: "cx-truong", for: khac.id, hidden: true }, h("span", { class: "cx-nhan" }, NHAN_SO_KHAC), khac);
+  const nut = h("button", { type: "button", class: "btn", id, "data-o-phi": "nut-doi" }, NHAN_NUT_DOI_PHI) as HTMLButtonElement;
+  const gia = h("input", { type: "text", inputMode: "numeric", maxLength: 13, autocomplete: "off", class: "vc-input", id: `${id}-gia`, placeholder: "VD: 70.000", "aria-describedby": loi.id, "data-o-phi": "don-gia" }) as HTMLInputElement;
+  const lyDo = h("input", { type: "text", maxLength: 300, autocomplete: "off", class: "vc-input", id: `${id}-ly-do`, "aria-describedby": loi.id, "data-o-phi": "ly-do" }) as HTMLInputElement;
+  const oGia = h("label", { class: "cx-truong", for: gia.id }, h("span", { class: "cx-nhan" }, nhanODonGia(t.xeRieng)), gia);
+  const oLyDo = h("label", { class: "cx-truong", for: lyDo.id }, h("span", { class: "cx-nhan" }, NHAN_O_LY_DO_DOI_PHI), lyDo);
+  const nhom = h("div", { class: "dd-phi-doi" }, oGia, oLyDo);
+  nhom.hidden = true;
+  let doi = false;
+  const oHienTai = (): DoiPhiO => ({ doi, donGia: gia.value, lyDo: lyDo.value });
   const datLoi = (cau: string | null): void => {
     loi.hidden = cau === null;
     loi.textContent = cau ?? "";
-    sel.setAttribute("aria-invalid", "false");
-    khac.setAttribute("aria-invalid", "false");
-    if (cau !== null) (sel.value === CHON_SO_KHAC ? khac : sel).setAttribute("aria-invalid", "true");
+    gia.setAttribute("aria-invalid", cau === null ? "false" : "true");
   };
-  sel.addEventListener("change", () => {
-    oKhac.hidden = sel.value !== CHON_SO_KHAC;
+  nut.addEventListener("click", () => {
+    doi = !doi;
+    nhom.hidden = !doi;
+    nut.textContent = doi ? NHAN_NUT_BO_DOI_PHI : NHAN_NUT_DOI_PHI;
     datLoi(null);
-    if (!oKhac.hidden) khac.focus();
+    if (doi) gia.focus();
   });
-  khac.addEventListener("input", () => {
-    const kq = mucTuO({ chon: sel.value, khac: khac.value });
-    datLoi(kq.ok ? null : kq.cau);
-  });
+  const kiem = (): void => { const kq = doiPhiTuO(oHienTai()); datLoi(kq.ok ? null : kq.cau); };
+  gia.addEventListener("input", kiem);
+  lyDo.addEventListener("input", kiem);
   return {
     legId: t.legId,
     doc: () => {
-      const kq = mucTuO({ chon: sel.value, khac: khac.value });
-      if (!kq.ok) return { ok: false, cau: kq.cau, o: sel.value === CHON_SO_KHAC ? khac : sel };
-      if (kq.muc === null) return { ok: false, cau: cauThieuPhiDon({ direction: t.direction, tenDichVu: t.serviceName }), o: sel };
-      return { ok: true, muc: kq.muc };
+      const kq = doiPhiTuO(oHienTai());
+      if (!kq.ok) return { ok: false, cau: kq.cau, o: gia };
+      if (kq.doiPhi === null && t.chuaTinhDuoc !== null) return { ok: false, cau: t.chuaTinhDuoc, o: nut };
+      return { ok: true, doiPhi: kq.doiPhi };
     },
     datLoi,
     el: h(
       "div",
       { class: "cx-luot", "data-phi-leg-id": t.legId },
-      h("label", { class: "cx-truong", for: id }, h("span", { class: "cx-nhan" }, `${TEN_PHI_DUA_DON} · ${CHIEU_LABEL[t.direction]} · ${t.serviceName}`), sel),
-      oKhac,
+      h("p", { class: "dd-phi-may" }, `${TEN_PHI_DUA_DON} · ${CHIEU_LABEL[t.direction]} · ${t.tenDichVu}: ${t.may}`),
+      nut,
+      nhom,
       loi,
     ),
   };
@@ -361,15 +363,20 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
   void layKhung().then((khung) => {
     for (const o of oLuot) o.napKhung(khung);
   });
-  // ADR-0214 Đ2 (Task 6): lượt đón còn mở chưa có phí (máy chủ báo trong `phiDuaDon.thieu` — đã xét ngày bắt đầu áp và dòng bảng phí cũ) ⇒ người xét chọn phí ngay trong bảng, gửi cùng lệnh Còn vé.
-  // Lượt đã có mức thì không hiện ô (máy chủ trả 400 nếu gửi lại).
-  // Người xét giữ quyền Đối tác (tài khoản lai) không được gửi mức (máy chủ trả 400 `transfer_fee_not_allowed`) ⇒ không ô, chỉ câu nhắc — cùng luật `formGonDoiTac` của biểu mẫu.
+  // ADR-0218 Đ1.5 (Task 9): mọi lượt đón mở có số máy tính (`phiDuaDon.dong`) hoặc chưa tính được (`phiDuaDon.thieu`) hiện ngay trong bảng; người xét «Đổi phí» được cả lượt đã có số, gửi cùng lệnh Còn vé.
+  // Lượt chưa tính được thì BẮT BUỘC đổi (máy chủ trả 409 nếu để trống). Người xét giữ quyền Đối tác (tài khoản lai) không được gửi số đổi (máy chủ trả 400 `transfer_fee_not_allowed`) ⇒ không nút,
+  // chỉ câu nhắc — cùng luật `formGonDoiTac` của biểu mẫu.
   const thieuPhi = order.phiDuaDon?.thieu ?? [];
+  const tenDv = (id: string) => order.services.find((x) => x.id === id)?.name ?? "";
+  const luotPhi: LuotPhiConVe[] = [
+    ...(order.phiDuaDon?.dong ?? []).map((d) => ({ legId: d.legId, direction: d.direction, tenDichVu: tenDv(d.serviceId), xeRieng: d.kind === "PER_TRIP", may: chuSoMay(d), chuaTinhDuoc: null })),
+    ...thieuPhi.map((t) => ({ legId: t.legId, direction: t.direction, tenDichVu: t.serviceName, xeRieng: false, may: "chưa tính được", chuaTinhDuoc: cauThieuPhiDon({ direction: t.direction, tenDichVu: t.serviceName, lyDo: t.lyDo }) })),
+  ];
   const doiTacXet = formGonDoiTac(c.staff);
-  const oPhi = doiTacXet ? [] : thieuPhi.map(taoOPhiConVe);
+  const oPhi = doiTacXet ? [] : luotPhi.map(taoOPhiConVe);
   const hangPhi = oPhi.length > 0
     ? h("div", { class: "cx-gio", "data-khoi": "phi-don-con-ve" }, ...oPhi.map((x) => x.el))
-    : doiTacXet && thieuPhi.length > 0 ? h("p", { class: "muted", "data-khoi": "phi-don-con-ve" }, CAU_VAN_PHONG_CHON_PHI_DON) : null;
+    : doiTacXet && thieuPhi.length > 0 ? h("p", { class: "muted", "data-khoi": "phi-don-con-ve" }, CAU_VAN_PHONG_DOI_PHI_DON) : null;
   const nutConVe = h("button", { type: "button", class: "btn btn-accent", "data-action": "quyet-dinh-con-ve" }, NHAN_KET_QUA.CON_VE);
   // Tài khoản lai Đối tác + Bán hàng trên đơn còn lượt thiếu phí: không chọn được phí (máy chủ 400) nên Còn vé chắc chắn 409 ⇒ khoá nút, câu nhắc ngay trên giải thích; Hết vé, Huỷ vẫn dùng được.
   const khoaConVe = doiTacXet && thieuPhi.length > 0;
@@ -386,13 +393,13 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
       o.datLoi(thieu ? CAU_THIEU_GIO_LUOT : null);
       if (thieu && dauTien === null) dauTien = o.oDauVao();
     }
-    // ADR-0214: lượt chưa chọn phí / «Số khác» gõ sai ⇒ báo tại chỗ (câu giống câu 409 / 400 của máy chủ), không gọi máy chủ.
-    const phiDon: NonNullable<Api.QuyetDinhXacNhanInput["phiDon"]> = [];
+    // ADR-0218: lượt chưa tính được mà chưa đổi / số đổi gõ sai hoặc thiếu lý do ⇒ báo tại chỗ (câu giống câu 409 / 400 của máy chủ), không gọi máy chủ.
+    const doiPhi: NonNullable<Api.QuyetDinhXacNhanInput["doiPhi"]> = [];
     for (const x of oPhi) {
       const d = x.doc();
       x.datLoi(d.ok ? null : d.cau);
-      if (d.ok) phiDon.push({ legId: x.legId, muc: d.muc });
-      else if (dauTien === null) dauTien = d.o;
+      if (d.ok && d.doiPhi !== null) doiPhi.push({ legId: x.legId, ...d.doiPhi });
+      else if (!d.ok && dauTien === null) dauTien = d.o;
     }
     if (dauTien !== null) {
       dauTien.focus();
@@ -409,7 +416,7 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
       if (g !== null) gioDon.push(g);
     }
     if (gioDon.length > 0) than.gioDon = gioDon;
-    if (phiDon.length > 0) than.phiDon = phiDon;
+    if (doiPhi.length > 0) than.doiPhi = doiPhi;
     await guiQuyet(than, "Đã xác nhận đơn: còn vé.");
     nutConVe.disabled = khoaConVe;
   });

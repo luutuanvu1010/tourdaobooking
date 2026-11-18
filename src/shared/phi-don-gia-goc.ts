@@ -6,6 +6,8 @@ export const TOI_DA_LY_DO_DOI_PHI = 300;
 export const CAU_LY_DO_DOI_PHI = "Nhập lý do đổi phí.";
 export const CAU_LY_DO_DOI_PHI_DAI = `Lý do đổi phí tối đa ${TOI_DA_LY_DO_DOI_PHI} ký tự.`;
 export const CAU_DON_GIA_DOI_PHI = "Đơn giá phí đưa đón phải là số nguyên từ 0 đến 5.000.000 đ.";
+/** Câu nhắc màn Cấp độ đại lý (ADR-0218 Đ1; tên chờ chủ chọn — `cho-chon`). Cùng chữ với `CHU_MAN.nhacPhiDon` (src/shared/cap-dai-ly-hien-thi.ts). */
+export const CAU_DOI_CAP_DOI_PHI_DON = "Đổi cấp cũng đổi phí đưa đón của các đơn chưa xác nhận.";
 /** Câu 400 `client_outdated`: trình duyệt còn bản cũ gửi thân `phiDon` kiểu danh sách mức. */
 export const CAU_BAN_CU = "Nền tảng vừa cập nhật. Tải lại trang rồi thử lại.";
 

@@ -107,7 +107,7 @@ function veTrangThai(): void {
 async function tat(nutBam: HTMLButtonElement): Promise<void> {
   const dongY = await hoiXacNhan({
     tieuDe: "Tắt phí đưa đón?",
-    hauQua: "Từ lúc tắt, đơn chưa xác nhận không còn ô «Phí đưa đón» và không tính phí đón. Đơn đã xác nhận giữ phí đã chọn. Bật lại bằng «Đặt ngày bắt đầu áp».",
+    hauQua: "Từ lúc tắt, đơn chưa xác nhận không còn dòng phí đưa đón và không tính phí đón. Đơn đã xác nhận giữ phí đã chụp. Bật lại bằng «Đặt ngày bắt đầu áp».",
     nhanNguyHiem: "Tắt phí đưa đón",
     opener: nutBam,
   });
@@ -230,7 +230,7 @@ function moForm(che: Che): void {
       });
       if (ok) hienBaoNgan("Đã đặt ngày bắt đầu áp phí đưa đón.");
     });
-    khung = khungNhap("Đặt ngày bắt đầu áp", h("p", { class: "muted" }, "Từ ngày này, mỗi lượt đón trên đơn có ô «Phí đưa đón» để văn phòng chọn; lượt chưa chọn phí thì đơn không xác nhận được. Không cần nhập bảng mức trước."), o("Ngày bắt đầu áp", ngay), nutHang);
+    khung = khungNhap("Đặt ngày bắt đầu áp", h("p", { class: "muted" }, "Từ ngày này, Nền tảng tự tính phí cho mỗi lượt đón trên đơn từ giá gốc trên Sheet; lượt chưa có giá gốc thì đơn không xác nhận được (văn phòng bấm «Đổi phí» để đặt số). Không cần nhập bảng mức."), o("Ngày bắt đầu áp", ngay), nutHang);
   } else if (che.loai === "ketThuc") {
     const m = che.m;
     // Mức chưa bắt đầu mà để «hôm nay» thì máy chủ luôn từ chối (ngày kết thúc trước ngày bắt đầu): mặc định lấy ngày lớn hơn.
