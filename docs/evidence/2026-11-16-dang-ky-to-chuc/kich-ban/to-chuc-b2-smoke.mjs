@@ -32,6 +32,7 @@ const RONG = { width: 1280, height: 860, mobile: false };
 const CHU = { name: "Toàn Quyền B2", phone: "0900000881", pin: "246881", permissions: ["SUPER_ADMIN"] };
 const ADM = { name: "Quản Trị B2", phone: "0900000882", pin: "246882", permissions: ["ADMIN"] };
 const HR = { name: "Nhân Sự B2", phone: "0900000883", pin: "246883", permissions: ["HR"] };
+const QLBH = { name: "Quản Lý Bán Hàng B2", phone: "0900000886", pin: "246886", permissions: ["SALES_MANAGER", "SALES"] }; // ADR-0219 Đ1: người xác minh phiếu đăng ký
 const NAM = { name: "Anh Nam B2", phone: "0900000884", pin: "246884", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" };
 const BINH = { name: "Chị Bình Có Tài Khoản", phone: "0900000885", pin: "246885", permissions: ["PARTNER"], vai: "TRAVEL_AGENCY" };
 const MOI = { name: "Trần Được Mời", phone: "0913345681", pin: "580931", email: "duoc.moi.b2@example.com" };
@@ -45,7 +46,7 @@ try {
   const org = randomUUID();
   sql(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${org}', 'ORGANIZATION', 'Khách sạn Sunrise', 1, '${AT}', '${AT}')`);
   sql(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('${randomUUID()}', '${org}', 'TRAVEL_AGENCY', '2026-01-01', '${AT}', '${AT}')`);
-  for (const a of [CHU, ADM, HR, NAM, BINH]) for (const stmt of (await insertStaffSqlThu(a)).split("\n")) if (stmt.trim()) sql(stmt);
+  for (const a of [CHU, ADM, HR, QLBH, NAM, BINH]) for (const stmt of (await insertStaffSqlThu(a)).split("\n")) if (stmt.trim()) sql(stmt);
   const party = (phone) => sql(`SELECT party_id AS p FROM staff WHERE phone = '${phone}'`)[0]?.p;
   sql(`INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES ('${randomUUID()}', '${party(NAM.phone)}', '${org}', 'MANAGER_OF', '2026-01-01', '${AT}', '${AT}')`);
   sql(`INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, covers_org_data) VALUES ('cs-b2', 1, 'Xác minh đối tác (bản thử)', 'Bản thử.', '${new Date(Date.now() - 3600000).toISOString()}', '${AT}', 'x', '${AT}', 'x', 0)`);
@@ -300,8 +301,8 @@ try {
     p.close();
     const phieu = sql(`SELECT registration_id AS id FROM dk_identity WHERE subject = '${MOI.email}'`)[0]?.id;
 
-    p = await env.as(ADM, "/staff", MOB);
-    await b.step("390-2b", "390: Quản trị xác minh đạt phiếu có mã vào tổ chức", async () => {
+    p = await env.as(QLBH, "/phieu-dang-ky", MOB);
+    await b.step("390-2b", "390: Quản lý bán hàng xác minh đạt phiếu có mã vào tổ chức", async () => {
       await p.waitFor(`!!document.querySelector('[data-phieu="${phieu}"]')`, "thẻ phiếu", 15000);
       await bam(p, `[data-phieu="${phieu}"]`);
       await p.waitFor(`!!document.querySelector('#dk-hc-xac-minh-dat')`, "khung xác minh", 15000);
@@ -320,7 +321,7 @@ try {
     });
     p.close();
 
-    p = await env.as(HR, "/staff", MOB);
+    p = await env.as(HR, "/phieu-dang-ky", MOB);
     await b.step("390-2c", "390: Nhân sự duyệt ⇒ tài khoản mới là «Thành viên của» Sunrise; lời mời đã dùng", async () => {
       await p.waitFor(`!!document.querySelector('[data-phieu="${phieu}"]')`, "thẻ chờ duyệt", 15000);
       await bam(p, `[data-phieu="${phieu}"]`);

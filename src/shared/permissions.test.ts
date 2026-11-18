@@ -129,7 +129,12 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "party.verify": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "none"], // ADR-0125 đ1, đ2 (lát H-4): hàng chờ xác minh phiếu tự khai — Quản trị, Toàn quyền, Nhân sự (HR vẫn party.view = none)
   "party.verify.attachment": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "none"], // ADR-0125 đ1: xem đủ số của phiếu ĐANG CHỜ — nhật ký trước, không số trong nhật ký
   // ADR-0207 Đ9 (đợt 1 Task 6): hàng chờ phiếu đăng ký — Quản trị, Toàn quyền, Nhân sự (Nhân sự chỉ thấy phiếu CHỜ DUYỆT, lọc ở route); hai ô sau chỉ Toàn quyền, chờ route (docs/quyen-hoan.json).
-  "registration.queue.view": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "none"],
+  // ADR-0219 Đ2 (accepted 2026-11-18): hàng chờ thêm Quản lý bán hàng; xác minh phiếu đăng ký = Quản lý bán hàng, Toàn quyền (ô riêng, KHÔNG Quản trị — không dùng quanLyBanHang());
+  // duyệt mở tài khoản = Quản trị, Nhân sự, Toàn quyền (ô riêng, Quản trị vẫn KHÔNG account.create).
+  "registration.queue.view": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "any"],
+  "registration.verify": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "any"],
+  "registration.verify.attachment": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "any"],
+  "registration.approve": ["none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "none"],
   "registration.policy.write": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
   "registration.agent.purge": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
   "verification.requirement.write": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"], // ADR-0210 Đ1: chỉ Toàn quyền đặt mục bắt buộc của dấu xác minh
@@ -329,6 +334,7 @@ test("mặc định từ chối: không quyền, thao tác lạ, chủ đơn thi
 // ADR-0040 D2: party.document.view — ô `own` của Quản trị (giấy tờ của chính mình); Quản trị xem giấy tờ NGƯỜI KHÁC qua party.document.write.
 // ADR-0119: feedback.team.manage — quản lý nhóm hỗ trợ chỉ Toàn quyền (Quản trị không có đường tắt vào nhóm nhạy cảm).
 const ADMIN_NONE_OPS: readonly OperationCode[] = [
+  "registration.verify", "registration.verify.attachment", // ADR-0219 Đ2: Quản trị thôi xác minh phiếu đăng ký (người hiểu đối tác xác minh, Quản trị duyệt)
   "registration.policy.write", "registration.agent.purge", "verification.requirement.write", // ADR-0206 / ADR-0207 (đợt 1 Task 6): chính sách đăng ký, tác nhân dọn phiếu — chỉ Toàn quyền
   "admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "settings.ops", "order.pool.view",
   "notice.send", "feedback.view", "feedback.triage", "feedback.team.manage", "account.create", "audit.view", "company.legal.write", "party.document.view",
@@ -451,7 +457,7 @@ test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguy
     "me.favorites.write": "own", // ADR-0187 Đ2.3: tài xế công ty tự chọn nút thanh dưới của chính mình
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): xử lý phiếu xoá dữ liệu của người khác — không
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1
-    "registration.queue.view": "none", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: hàng chờ phiếu đăng ký (Nhân sự thấy, lọc ở route); hai ô còn lại chỉ Toàn quyền
+    "registration.queue.view": "none", "registration.verify": "none", "registration.verify.attachment": "none", "registration.approve": "none", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: hàng chờ phiếu đăng ký (Nhân sự thấy, lọc ở route); hai ô còn lại chỉ Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     // ADR-0049 D3 — NỚI (ĐÃ DUYỆT 2026-09-30 (lần 17), đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
@@ -516,7 +522,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "me.favorites.write": "none", // ADR-0187 Đ2.3: chủ 8/11 — tài xế đối tác chỉ có hai trang, không tự chọn nút thanh dưới
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): xử lý phiếu xoá dữ liệu của người khác — không
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1
-    "registration.queue.view": "none", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: hàng chờ phiếu đăng ký (Nhân sự thấy, lọc ở route); hai ô còn lại chỉ Toàn quyền
+    "registration.queue.view": "none", "registration.verify": "none", "registration.verify.attachment": "none", "registration.approve": "none", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: hàng chờ phiếu đăng ký (Nhân sự thấy, lọc ở route); hai ô còn lại chỉ Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.passenger.add": "none", // ADR-0052 D5b × lời chủ 5/10 ("chỉ tài xế công ty"): tài xế đối tác KHÔNG bổ sung tên
@@ -589,7 +595,7 @@ test("ADR-0071: MỌI ô của Nhân sự (HR) — ghim nguyên dòng, chỉ ba 
     "me.favorites.write": "own", // ADR-0187 Đ2.3: tự chọn nút thanh dưới của chính mình, như mọi tài khoản nội bộ
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): Nhân sự không xử lý phiếu xoá — chỉ Quản trị, Toàn quyền
     "party.verify": "any", "party.verify.attachment": "any", // ADR-0125 đ1
-    "registration.queue.view": "any", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: hàng chờ phiếu đăng ký (Nhân sự thấy, lọc ở route); hai ô còn lại chỉ Toàn quyền
+    "registration.queue.view": "any", "registration.verify": "none", "registration.verify.attachment": "none", "registration.approve": "any", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: hàng chờ phiếu đăng ký (Nhân sự thấy, lọc ở route); hai ô còn lại chỉ Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không
     "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.override.giay_to_cung": "none", "trip.urgent_adjust": "none", "dispatch.policy.lead": "none", "trip.progress": "none", "trip.call_ack": "none", "trip.passenger.add": "none",
@@ -856,10 +862,10 @@ test("ADR-0125 đ1, đ2: party.verify / party.verify.attachment — ADMIN, HR, S
   assert.equal(MATRIX["party.document.reveal"].HR, "none");
 });
 
-test("ADR-0125 + ADR-0207: HR đúng sáu ô `any` ngoài hai ô của mọi tài khoản nội bộ", () => {
+test("ADR-0125 + ADR-0207 + ADR-0219: HR đúng bảy ô `any` ngoài hai ô của mọi tài khoản nội bộ", () => {
   const MOI_TAI_KHOAN = new Set(["feedback.submit", "assistant.ask"]);
   const hrAny = Object.entries(MATRIX).filter(([, r]) => r.HR === "any").map(([k]) => k).filter((k) => !MOI_TAI_KHOAN.has(k)).sort();
-  assert.deepEqual(hrAny, ["account.create", "account.edit", "account.view", "party.verify", "party.verify.attachment", "registration.queue.view"]);
+  assert.deepEqual(hrAny, ["account.create", "account.edit", "account.view", "party.verify", "party.verify.attachment", "registration.approve", "registration.queue.view"]);
 });
 
 test("ADR-0125 đ1 (lát H-4): party.verify / party.verify.attachment trên cả 2048 tập con quyền — được khi có ADMIN, HR hoặc SUPER_ADMIN, có hay không có ngữ cảnh", () => {
@@ -938,4 +944,28 @@ test("ADR-0213 Đ5 (R13): `quanLyBenDat` mở đúng bảy ô cho cột Đối t
   assert.equal(can(p, "order.passenger.write", { ...nguoiKhac, quanLyBenDat: true }), false);
   assert.equal(can(p, "contact.view", { ...nguoiKhac, quanLyBenDat: true }), true, "ownOrAssigned: vế own đổi y như own");
   assert.equal(can(p, "order.submit", { quanLyBenDat: true }), true, "cờ đứng một mình (không ownerId) vẫn là vế «của mình»");
+});
+
+// ADR-0219 Đ1, Đ2 (accepted 2026-11-18): hai bước của phiếu đăng ký do hai nhóm khác nhau làm. Suy trên MỌI tập con quyền (không chỉ từng ô), để một tài khoản ghép mã
+// (vd Nhân sự + Bán hàng, Quản trị + Bán hàng) không lọt sang bước xác minh khi thiếu mã Quản lý bán hàng.
+test("ADR-0219: registration.verify(.attachment) ⇔ có SALES_MANAGER hoặc SUPER_ADMIN; registration.approve ⇔ có ADMIN, HR hoặc SUPER_ADMIN; queue.view là hợp của hai", () => {
+  let count = 0;
+  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
+    const permissions = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    const who = { id: "u1", permissions };
+    const ten = permissions.join("+") || "(không quyền)";
+    const xacMinh = permissions.includes("SALES_MANAGER") || permissions.includes("SUPER_ADMIN");
+    const duyet = permissions.includes("ADMIN") || permissions.includes("HR") || permissions.includes("SUPER_ADMIN");
+    for (const op of ["registration.verify", "registration.verify.attachment"] as const) {
+      assert.equal(can(who, op), xacMinh, `${op}: ${ten}`);
+      assert.equal(can(who, op, { ownerId: "u2" }), xacMinh, `${op} (ngữ cảnh người khác): ${ten}`);
+    }
+    assert.equal(can(who, "registration.approve"), duyet, `registration.approve: ${ten}`);
+    assert.equal(can(who, "registration.queue.view"), xacMinh || duyet, `registration.queue.view: ${ten}`);
+    count++;
+  }
+  assert.equal(count, 2048);
+  // Ô cũ giữ nguyên giá trị (ADR-0219 «Bài kiểm»): phiếu tự khai (ADR-0125) và tạo tài khoản (ADR-0071 1b) không đổi người.
+  assert.equal(MATRIX["account.create"].ADMIN, "none", "Quản trị vẫn không có account.create");
+  assert.equal(MATRIX["party.verify"].SALES_MANAGER, "none", "Quản lý bán hàng không xác minh phiếu tự khai");
 });

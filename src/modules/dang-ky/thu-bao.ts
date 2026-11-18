@@ -38,14 +38,14 @@ const CAM_THU = () => error(403, "forbidden", "Bạn không có quyền gửi l�
 
 // ---- POST /api/dang-ky/phieu/:id/gui-lai-thu ----
 // Gửi lại thư báo MỚI NHẤT của phiếu khi thư đó chưa gửi được (đang chờ hoặc lỗi). Ai được gửi lại theo BƯỚC đã sinh ra thư: «cần bổ sung» và «bị từ chối» ở bước xác minh ⇒ người xác minh
-// (party.verify + party.view); «bị từ chối» ở bước duyệt ⇒ account.create. Thư «đã duyệt» gửi lại bằng «Gửi lại lời mời» (mở lại hạn đặt PIN cùng lúc). Cổng ở index.ts: registration.queue.view.
-export async function guiLaiThu({ env, staff, params, exec }: Ctx<"accounts">): Promise<Response> {
+// (registration.verify + party.view); «bị từ chối» ở bước duyệt ⇒ registration.approve (ADR-0219 Đ2). Thư «đã duyệt» gửi lại bằng «Gửi lại lời mời» (mở lại hạn đặt PIN cùng lúc). Cổng ở index.ts: registration.queue.view.
+export async function guiLaiThu({ env, staff, params, exec }: Ctx<"staff">): Promise<Response> {
   const p = laMaPhieu(params.id) ? await phieuXet(env.DB, params.id!) : null;
   if (!p) return KHONG_THAY();
   const t = docLenhThu(await lenhThuMoiNhat(env.DB, p.id));
   if (!t || t.trangThai === "GUI") return error(409, "notice_not_pending", "Phiếu này không có thư nào đang chờ gửi lại.");
   if (t.loai === "DA_DUYET") return error(409, "notice_use_invite", "Thư báo đã duyệt được gửi lại bằng nút «Gửi lại lời mời».");
-  const duoc = t.loai === "TU_CHOI_DUYET" ? can(staff, "account.create") : can(staff, "party.verify") && can(staff, "party.view");
+  const duoc = t.loai === "TU_CHOI_DUYET" ? can(staff, "registration.approve") : can(staff, "registration.verify") && can(staff, "party.view");
   if (!duoc) return CAM_THU();
   const trangThaiPhieu = TRANG_THAI_CUA_THU[t.loai];
   if (p.status !== trangThaiPhieu) return error(409, "registration_state_changed", "Phiếu đã chuyển sang bước khác nên thư này không còn đúng. Hãy mở lại phiếu.");

@@ -5555,7 +5555,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Phiếu đăng ký đối tác",
-    manHinh: "Quản lý tài khoản › Phiếu đăng ký đối tác › chi tiết phiếu › Kết luận từng mục",
+    manHinh: "Phiếu đăng ký đối tác › chi tiết phiếu › Kết luận từng mục",
     ten: "Đạt · Không đạt",
     thatSuLam: "Người xác minh kết luận một mục bắt buộc của bản khai đang xem (Đạt, hoặc Không đạt kèm một lý do trong danh sách đóng). Mỗi lần bấm thêm một dòng kết luận; dòng mới nhất là kết luận hiện hành.",
     hoiLai: "không",
@@ -5571,7 +5571,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Phiếu đăng ký đối tác",
-    manHinh: "Quản lý tài khoản › Phiếu đăng ký đối tác › chi tiết phiếu",
+    manHinh: "Phiếu đăng ký đối tác › chi tiết phiếu",
     ten: "Xác minh đạt",
     thatSuLam: "Kết thúc bước xác minh: mọi mục bắt buộc đã đạt và đã có kết luận Danh bạ (hồ sơ mới, hoặc gắn đúng một hồ sơ có sẵn). Phiếu sang Đang chờ duyệt.",
     hoiLai: "không",
@@ -5586,7 +5586,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Phiếu đăng ký đối tác",
-    manHinh: "Quản lý tài khoản › Phiếu đăng ký đối tác › chi tiết phiếu",
+    manHinh: "Phiếu đăng ký đối tác › chi tiết phiếu",
     ten: "Yêu cầu bổ sung",
     thatSuLam: "Trả phiếu về người đăng ký kèm một lý do trong danh sách đóng; họ thấy lý do ở trang trạng thái và sửa rồi gửi lại trong số ngày của chính sách.",
     hoiLai: "không (phải chọn lý do trước)",
@@ -5601,9 +5601,9 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Phiếu đăng ký đối tác",
-    manHinh: "Quản lý tài khoản › Phiếu đăng ký đối tác › chi tiết phiếu (bước xác minh và bước duyệt)",
+    manHinh: "Phiếu đăng ký đối tác › chi tiết phiếu (bước xác minh và bước duyệt)",
     ten: "Từ chối (phiếu đăng ký)",
-    thatSuLam: "Từ chối phiếu kèm một lý do trong danh sách đóng: phiếu kết thúc, ảnh bị xoá ngay. Ở bước xác minh do Quản trị bấm, ở bước duyệt do Nhân sự bấm; người đăng ký thấy lý do viết cho người ngoài.",
+    thatSuLam: "Từ chối phiếu kèm một lý do trong danh sách đóng: phiếu kết thúc, ảnh bị xoá ngay. Ở bước xác minh do Quản lý bán hàng bấm, ở bước duyệt do Quản trị hoặc Nhân sự bấm; người đăng ký thấy lý do viết cho người ngoài.",
     hoiLai: "không (phải chọn lý do trước)",
     hoanTac: "không",
     duongLenh: ["/api/dang-ky/phieu/:x/tu-choi", "/api/dang-ky/phieu/:x/tu-choi-duyet"],
@@ -5616,9 +5616,9 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Phiếu đăng ký đối tác",
-    manHinh: "Quản lý tài khoản › Phiếu đăng ký đối tác › chi tiết phiếu › bước duyệt",
+    manHinh: "Phiếu đăng ký đối tác › chi tiết phiếu › bước duyệt",
     ten: "Duyệt mở tài khoản",
-    thatSuLam: "Nhân sự (hoặc Toàn quyền) chọn vai trò đối tác rồi duyệt: một lần ghi tạo hoặc dùng hồ sơ, tài khoản ở trạng thái Chưa kích hoạt, giá trị đã xác minh, dòng đồng ý, ảnh chuyển vào hồ sơ, cấp mặc định (nếu có). Người duyệt phải khác người xác minh, trừ Toàn quyền.",
+    thatSuLam: "Quản trị, Nhân sự (hoặc Toàn quyền) chọn vai trò đối tác rồi duyệt: một lần ghi tạo hoặc dùng hồ sơ, tài khoản ở trạng thái Chưa kích hoạt, giá trị đã xác minh, dòng đồng ý, ảnh chuyển vào hồ sơ, cấp mặc định (nếu có). Người duyệt phải khác người xác minh, trừ Toàn quyền.",
     hoiLai: "không",
     hoanTac: "không: tài khoản tắt tới khi người đăng ký tự đặt mã PIN; ngưng sau bằng Quản lý tài khoản",
     duongLenh: ["/api/dang-ky/phieu/:x/duyet"],
@@ -5631,7 +5631,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Phiếu đăng ký đối tác",
-    manHinh: "Quản lý tài khoản › Phiếu đăng ký đối tác › chi tiết phiếu › phiếu đã duyệt, chưa kích hoạt",
+    manHinh: "Phiếu đăng ký đối tác › chi tiết phiếu › phiếu đã duyệt, chưa kích hoạt",
     ten: "Gửi lại lời mời",
     thatSuLam: "Mở lại hạn đặt mã PIN cho tài khoản Chưa kích hoạt và gửi lại thư «đã được duyệt» (kèm hạn mới) tới email liên lạc của người đăng ký. Thông tin liên lạc của người đăng ký đã bị xoá vì quá hạn quá lâu thì máy chủ báo không mở lại được.",
     hoiLai: "không",
@@ -5646,9 +5646,9 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Phiếu đăng ký đối tác",
-    manHinh: "Quản lý tài khoản › Phiếu đăng ký đối tác › chi tiết phiếu › bước duyệt",
+    manHinh: "Phiếu đăng ký đối tác › chi tiết phiếu › bước duyệt",
     ten: "Trả về xác minh",
-    thatSuLam: "Nhân sự (hoặc Toàn quyền) trả phiếu đang chờ duyệt về bước xác minh: kết luận Danh bạ, người giới thiệu đã chọn và người xác minh bị xoá, kết luận từng mục giữ nguyên; người xác minh phải kết luận lại rồi bấm «Xác minh đạt». Không gửi thư cho người đăng ký.",
+    thatSuLam: "Quản trị, Nhân sự (hoặc Toàn quyền) trả phiếu đang chờ duyệt về bước xác minh: kết luận Danh bạ, người giới thiệu đã chọn và người xác minh bị xoá, kết luận từng mục giữ nguyên; người xác minh phải kết luận lại rồi bấm «Xác minh đạt». Không gửi thư cho người đăng ký.",
     hoiLai: "không",
     hoanTac: "không: chờ người xác minh kết luận lại",
     duongLenh: ["/api/dang-ky/phieu/:x/tra-ve-xac-minh"],
@@ -5661,9 +5661,9 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Phiếu đăng ký đối tác",
-    manHinh: "Quản lý tài khoản › Phiếu đăng ký đối tác › phiếu có thư báo chưa gửi được (cần bổ sung, không được duyệt)",
+    manHinh: "Phiếu đăng ký đối tác › phiếu có thư báo chưa gửi được (cần bổ sung, không được duyệt)",
     ten: "Gửi lại thư",
-    thatSuLam: "Gửi lại thư báo chưa gửi được tới email liên lạc của người đăng ký: thư «cần bổ sung» hay «không được duyệt» ở bước xác minh do người xác minh gửi lại, thư «không được duyệt» ở bước duyệt do Nhân sự gửi lại. Thư «đã được duyệt» gửi lại bằng «Gửi lại lời mời». Thông tin liên lạc đã bị xoá thì máy chủ báo không gửi được.",
+    thatSuLam: "Gửi lại thư báo chưa gửi được tới email liên lạc của người đăng ký: thư «cần bổ sung» hay «không được duyệt» ở bước xác minh do người xác minh gửi lại, thư «không được duyệt» ở bước duyệt do người duyệt (Quản trị, Nhân sự) gửi lại. Thư «đã được duyệt» gửi lại bằng «Gửi lại lời mời». Thông tin liên lạc đã bị xoá thì máy chủ báo không gửi được.",
     hoiLai: "không",
     hoanTac: "không: thư đã gửi không thu lại được",
     duongLenh: ["/api/dang-ky/phieu/:x/gui-lai-thu"],
@@ -5843,7 +5843,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Phiếu đăng ký đối tác",
-    manHinh: "Quản lý tài khoản › Phiếu đăng ký đối tác › chi tiết phiếu › Số căn cước",
+    manHinh: "Phiếu đăng ký đối tác › chi tiết phiếu › Số căn cước",
     ten: "Xem đủ số (phiếu đăng ký)",
     thatSuLam: "Hỏi máy chủ số căn cước đầy đủ của bản khai đang xem; máy chủ ghi nhật ký TRƯỚC rồi mới trả số. Số chỉ nằm trong khung chi tiết, mất khi đóng khung.",
     hoiLai: "không",
@@ -5873,7 +5873,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Phiếu đăng ký đối tác",
-    manHinh: "Quản lý tài khoản › khối «Nhận đăng ký mới» (chỉ Toàn quyền)",
+    manHinh: "Phiếu đăng ký đối tác › khối «Nhận đăng ký mới» (chỉ Toàn quyền)",
     ten: "Lưu (nhận đăng ký mới)",
     thatSuLam: "Bật hoặc tắt «Nhận đăng ký mới» và chọn vai người dùng được đăng ký, lấy từ danh sách loại đối tác đang dùng (gồm cả loại do Kế toán thêm; loại tắt thì tự biến). Công ty lữ hành và Tài xế đối tác chưa mở được khi biểu mẫu còn thiếu phần khai riêng của họ, màn hình nói rõ thiếu gì. Mỗi lần lưu thêm một dòng chính sách đăng ký mới, chỉ đổi công tắc và loại mở, các con số khác giữ nguyên. Chưa có chính sách riêng tư đang hiệu lực thì không bật được. Tắt chỉ chặn mở phiếu mới; phiếu đã có vẫn đi tiếp.",
     hoiLai: "không",

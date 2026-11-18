@@ -6,6 +6,8 @@
 <main>
   <h1>Quản lý tài khoản</h1>
   <p id="lien-ket-cap-dai-ly" hidden><a href="/cap-dai-ly">Đặt cấp độ đại lý cho mọi đối tác, gồm cả hồ sơ chưa có tài khoản</a></p>
+  <!-- ADR-0219 Đ3: hàng chờ phiếu đăng ký đối tác chuyển sang trang riêng /phieu-dang-ky; ở đây giữ một lối sang (hiện theo ô registration.queue.view). -->
+  <p id="lien-ket-phieu-dang-ky" hidden><a href="/phieu-dang-ky">Phiếu đăng ký đối tác</a></p>
   <div id="error" class="alert" role="alert" hidden></div>
   <section id="secret" class="card secret" hidden></section>
   <section id="edit" class="card" hidden></section>
@@ -23,8 +25,6 @@
     <p class="muted">Hệ thống tự sinh PIN 6 số và chỉ hiện một lần.</p>
   </section>
   <section id="xac-minh" class="card" aria-labelledby="xm-heading" hidden></section>
-  <section id="dang-ky-cs" class="card" aria-labelledby="dk-cs-heading" hidden></section>
-  <section id="dang-ky-hc" class="card" aria-labelledby="dk-hc-heading" hidden></section>
   <div id="loc-vai" class="loc-nut-hang" role="group" aria-label="Lọc theo vai trò" hidden></div>
   <section class="card table-wrap">
     <table class="items">

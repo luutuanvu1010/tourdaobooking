@@ -13,7 +13,10 @@ const ADM = "33333333-3333-4333-8333-333333333333";
 const ADM2 = "33333333-3333-4333-8333-333333333334";
 const SUP = "77777777-7777-4777-8777-777777777777";
 const HR = "99999999-9999-4999-8999-999999999999";
-const ADM_HR = "88888888-8888-4888-8888-888888888888"; // một tài khoản giữ cả Quản trị lẫn Nhân sự
+// ADR-0219 Đ1: người xác minh = Quản lý bán hàng (kèm mã Bán hàng); Quản trị chỉ còn dùng để gieo hồ sơ Danh bạ.
+const XM = "44444444-4444-4444-8444-444444444441";
+const XM2 = "44444444-4444-4444-8444-444444444442";
+const XM_ADM = "44444444-4444-4444-8444-444444444443"; // Quản lý bán hàng kiêm Quản trị: xác minh được và duyệt được
 const AT = "2026-11-10T00:00:00.000Z";
 const SO = "079 000 000 111";
 const DT = "0912 345 678";
@@ -28,7 +31,8 @@ type Thu = { to: string; subject: string; text?: string; html?: string };
 function setup(o: { guiHong?: boolean } = {}) {
   const w = world();
   for (const [id, phone, name, perms] of [[SALES, "0900000001", "An", ["SALES"]], [ADM, "0900000003", "Quản Trị", ["ADMIN"]], [ADM2, "0900000004", "Quản Trị Hai", ["ADMIN"]],
-    [SUP, "0900000007", "Chủ", ["SUPER_ADMIN"]], [HR, "0900000013", "Nhân Sự", ["HR"]], [ADM_HR, "0900000015", "Quản Trị Nhân Sự", ["ADMIN", "HR"]]] as const) {
+    [SUP, "0900000007", "Chủ", ["SUPER_ADMIN"]], [HR, "0900000013", "Nhân Sự", ["HR"]], [XM, "0900000005", "Quản Lý Bán Hàng", ["SALES_MANAGER", "SALES"]],
+    [XM2, "0900000006", "Quản Lý Bán Hàng Hai", ["SALES_MANAGER", "SALES"]], [XM_ADM, "0900000015", "Quản Lý Bán Hàng Quản Trị", ["SALES_MANAGER", "SALES", "ADMIN"]]] as const) {
     seedStaff(w.sqlite, { id, phone, name, perms: [...perms] });
   }
   if (w.q("SELECT 1 FROM pty_privacy_policy LIMIT 1").length === 0) {
@@ -59,7 +63,7 @@ const reg = (w: any, id: string) => w.q("SELECT * FROM dk_registration WHERE id 
 const lenhThu = (w: any, id: string): string[] => w.q("SELECT command FROM dk_event WHERE registration_id = ? AND command GLOB 'THU_*' ORDER BY at, rowid", id).map((x: any) => x.command);
 const goi = (w: any, as: string, id: string, viec: string, body?: unknown) => w.call("POST", `/api/dang-ky/phieu/${id}/${viec}`, { as, ...(body === undefined ? {} : { body }) });
 const hangCho = async (w: any, as: string) => (await w.call("GET", "/api/dang-ky/hang-cho", { as })).json;
-async function xacMinh(w: any, id: string, as = ADM) {
+async function xacMinh(w: any, id: string, as = XM) {
   for (const m of MUC) assert.equal((await goi(w, as, id, "ket-luan", { phienBan: 1, muc: m, dat: true })).status, 200, m);
   const r = await goi(w, as, id, "dat", { phienBan: 1, hoSo: { kieu: "MOI" } });
   assert.equal(r.status, 200, r.text);
@@ -86,7 +90,7 @@ function thuSach(t: Thu, id: string) {
 test("(T1) «Yêu cầu bổ sung» ⇒ thư «cần bổ sung» tới email liên lạc của danh tính; lịch sử THU_BO_SUNG_CHO rồi THU_BO_SUNG_GUI; không dữ liệu cá nhân ở thư, lịch sử, nhật ký", async () => {
   const { w, thu } = setup();
   const id = phieu(w);
-  const r = await goi(w, ADM, id, "bo-sung", { lyDo: "KHONG_DOC_DUOC", phienBan: 1 });
+  const r = await goi(w, XM, id, "bo-sung", { lyDo: "KHONG_DOC_DUOC", phienBan: 1 });
   assert.equal(r.status, 200, r.text);
   await w.choNen();
   assert.equal(thu.length, 1);
@@ -94,14 +98,14 @@ test("(T1) «Yêu cầu bổ sung» ⇒ thư «cần bổ sung» tới email li�
   assert.equal(thu[0]!.subject, "Phiếu đăng ký Tour Đảo cần bổ sung");
   thuSach(thu[0]!, id);
   assert.deepEqual(lenhThu(w, id), ["THU_BO_SUNG_CHO", "THU_BO_SUNG_GUI"]);
-  assert.equal(w.q("SELECT count(*) n FROM dk_event WHERE registration_id = ? AND command GLOB 'THU_*' AND (actor_ref <> ? OR reason_code IS NOT NULL)", id, ADM)[0].n, 0, "dòng thư: người bấm, không lý do");
+  assert.equal(w.q("SELECT count(*) n FROM dk_event WHERE registration_id = ? AND command GLOB 'THU_*' AND (actor_ref <> ? OR reason_code IS NOT NULL)", id, XM)[0].n, 0, "dòng thư: người bấm, không lý do");
   khongLoDuLieu(w, id);
 });
 
 test("(T2) «Từ chối» ở bước xác minh ⇒ thư «không được duyệt» kèm câu lý do viết cho người đăng ký; THU_TU_CHOI_GUI", async () => {
   const { w, thu } = setup();
   const id = phieu(w);
-  assert.equal((await goi(w, ADM, id, "tu-choi", { lyDo: "TRUNG_HO_SO_KHAC", phienBan: 1 })).status, 200);
+  assert.equal((await goi(w, XM, id, "tu-choi", { lyDo: "TRUNG_HO_SO_KHAC", phienBan: 1 })).status, 200);
   await w.choNen();
   assert.equal(thu.length, 1);
   assert.equal(thu[0]!.subject, "Phiếu đăng ký Tour Đảo không được duyệt");
@@ -153,18 +157,18 @@ test("(T4) «Gửi lại lời mời» gửi lại thư «đã duyệt» (kèm h
 test("(T5) Gửi hỏng ⇒ THU_*_LOI hiện ở hàng chờ đúng bước; «Gửi lại thư» theo bước (người xác minh / Nhân sự), gửi được thì rời hàng chờ; 409 khi không còn gì chờ hay thư «đã duyệt»", async () => {
   const { w, thu, bo } = setup({ guiHong: true });
   const a = phieu(w); // từ chối ở bước xác minh
-  assert.equal((await goi(w, ADM, a, "tu-choi", { lyDo: "KHONG_PHAI_CHINH_CHU", phienBan: 1 })).status, 200);
+  assert.equal((await goi(w, XM, a, "tu-choi", { lyDo: "KHONG_PHAI_CHINH_CHU", phienBan: 1 })).status, 200);
   const b = phieu(w, { dienThoai: "0912 000 555", so: null }); // từ chối ở bước duyệt
   await xacMinh(w, b);
   assert.equal((await goi(w, HR, b, "tu-choi-duyet", { lyDo: "KHONG_THUOC_DIEN", phienBan: 1 })).status, 200);
   const c = phieu(w, { dienThoai: "0912 000 666", so: null }); // cần bổ sung
-  assert.equal((await goi(w, ADM, c, "bo-sung", { lyDo: "KHONG_DOC_DUOC", phienBan: 1 })).status, 200);
+  assert.equal((await goi(w, XM, c, "bo-sung", { lyDo: "KHONG_DOC_DUOC", phienBan: 1 })).status, 200);
   await w.choNen();
   assert.equal(thu.length, 0);
   assert.deepEqual(lenhThu(w, a), ["THU_TU_CHOI_CHO", "THU_TU_CHOI_LOI"]);
   khongLoDuLieu(w, a);
   // Hàng chờ: người xác minh thấy phiếu từ chối ở bước xác minh (thư lỗi) và phiếu cần bổ sung (thư lỗi); Nhân sự thấy phiếu từ chối ở bước duyệt.
-  const qa = await hangCho(w, ADM);
+  const qa = await hangCho(w, XM);
   const dongA = qa.phieu.find((x: any) => x.id === a);
   assert.deepEqual(dongA?.thu, { loai: "TU_CHOI", trangThai: "LOI" });
   assert.deepEqual(qa.phieu.find((x: any) => x.id === c)?.thu, { loai: "BO_SUNG", trangThai: "LOI" });
@@ -174,14 +178,14 @@ test("(T5) Gửi hỏng ⇒ THU_*_LOI hiện ở hàng chờ đúng bước; «G
   assert.equal(qh.phieu.some((x: any) => x.id === a || x.id === c), false);
   // Ai gửi lại: theo bước.
   assert.equal((await goi(w, HR, a, "gui-lai-thu")).status, 403, "Nhân sự không gửi lại thư của bước xác minh");
-  assert.equal((await goi(w, ADM, b, "gui-lai-thu")).status, 403, "Quản trị không gửi lại thư của bước duyệt");
+  assert.equal((await goi(w, XM, b, "gui-lai-thu")).status, 403, "Quản lý bán hàng (người xác minh) không gửi lại thư của bước duyệt");
   assert.equal((await goi(w, SALES, a, "gui-lai-thu")).status, 403, "không xem hàng chờ ⇒ 403 ở cổng");
   bo.hong = false;
-  const r = await goi(w, ADM, a, "gui-lai-thu");
+  const r = await goi(w, XM, a, "gui-lai-thu");
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(r.json.thu, { loai: "TU_CHOI", trangThai: "CHO" });
   assert.equal((await goi(w, HR, b, "gui-lai-thu")).status, 200);
-  assert.equal((await goi(w, ADM, c, "gui-lai-thu")).status, 200);
+  assert.equal((await goi(w, XM, c, "gui-lai-thu")).status, 200);
   await w.choNen();
   assert.equal(thu.length, 3);
   assert.ok(thu.every((t) => t.to === EMAIL));
@@ -190,9 +194,9 @@ test("(T5) Gửi hỏng ⇒ THU_*_LOI hiện ở hàng chờ đúng bước; «G
   khongLoDuLieu(w, a);
   khongLoDuLieu(w, b);
   // Đã gửi ⇒ phiếu từ chối rời hàng chờ; gửi lại nữa ⇒ 409.
-  assert.equal((await hangCho(w, ADM)).phieu.some((x: any) => x.id === a), false);
+  assert.equal((await hangCho(w, XM)).phieu.some((x: any) => x.id === a), false);
   assert.equal((await hangCho(w, HR)).phieu.some((x: any) => x.id === b), false);
-  assert.equal((await goi(w, ADM, a, "gui-lai-thu")).json.error.code, "notice_not_pending");
+  assert.equal((await goi(w, XM, a, "gui-lai-thu")).json.error.code, "notice_not_pending");
   // Thư «đã duyệt» gửi lại bằng «Gửi lại lời mời».
   const d = phieu(w, { dienThoai: "0912 000 777", so: null });
   await xacMinh(w, d);
@@ -207,23 +211,23 @@ test("(T6) Danh tính đã ẩn danh ⇒ không gửi, không ghi dòng thư nà
   const { w, thu, bo } = setup();
   const id = phieu(w);
   anDanh(w, id);
-  assert.equal((await goi(w, ADM, id, "bo-sung", { lyDo: "KHONG_DOC_DUOC", phienBan: 1 })).status, 200, "lệnh vẫn chạy");
+  assert.equal((await goi(w, XM, id, "bo-sung", { lyDo: "KHONG_DOC_DUOC", phienBan: 1 })).status, 200, "lệnh vẫn chạy");
   await w.choNen();
   assert.equal(thu.length, 0);
   assert.deepEqual(lenhThu(w, id), [], "không dòng thư nào");
   const b = phieu(w, { dienThoai: "0912 000 888", so: null });
   bo.hong = true;
-  assert.equal((await goi(w, ADM, b, "tu-choi", { lyDo: "KHONG_PHAI_CHINH_CHU", phienBan: 1 })).status, 200);
+  assert.equal((await goi(w, XM, b, "tu-choi", { lyDo: "KHONG_PHAI_CHINH_CHU", phienBan: 1 })).status, 200);
   await w.choNen();
   anDanh(w, b);
   bo.hong = false;
-  const r = await goi(w, ADM, b, "gui-lai-thu");
+  const r = await goi(w, XM, b, "gui-lai-thu");
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "registration_identity_erased");
   await w.choNen();
   assert.equal(thu.length, 0);
   assert.deepEqual(lenhThu(w, b), ["THU_TU_CHOI_CHO", "THU_TU_CHOI_LOI"]);
-  assert.equal((await hangCho(w, ADM)).phieu.some((x: any) => x.id === b), false, "đã ẩn danh: không còn gửi lại được nên không hiện");
+  assert.equal((await hangCho(w, XM)).phieu.some((x: any) => x.id === b), false, "đã ẩn danh: không còn gửi lại được nên không hiện");
 });
 
 // ---------------- I-3: «Trả về xác minh» ----------------
@@ -243,8 +247,8 @@ test("(R1) Nhân sự «Trả về xác minh» ⇒ CHỜ XÁC MINH, xoá kết l
   khongLoDuLieu(w, id);
   assert.deepEqual(lenhThu(w, id), [], "trả về xác minh không gửi thư cho người đăng ký");
   // Về hàng chờ xác minh, có nội dung lại; kết luận từng mục giữ nguyên, kết luận Danh bạ trống.
-  assert.ok((await hangCho(w, ADM)).phieu.some((x: any) => x.id === id && x.trangThai === "CHO_XAC_MINH"));
-  const ct = await w.call("GET", `/api/dang-ky/phieu/${id}`, { as: ADM });
+  assert.ok((await hangCho(w, XM)).phieu.some((x: any) => x.id === id && x.trangThai === "CHO_XAC_MINH"));
+  const ct = await w.call("GET", `/api/dang-ky/phieu/${id}`, { as: XM });
   assert.equal(ct.status, 200);
   assert.ok(ct.json.noiDung);
   assert.ok(ct.json.muc.every((m: any) => m.ketLuan === "DAT"));
@@ -254,8 +258,8 @@ test("(R1) Nhân sự «Trả về xác minh» ⇒ CHỜ XÁC MINH, xoá kết l
   assert.equal(d.status, 409, d.text);
   assert.equal(w.q("SELECT count(*) n FROM staff WHERE phone = '0912345678'")[0].n, 0);
   // «Đạt» không có kết luận Danh bạ ⇒ 409: người xác minh phải kết luận lại.
-  assert.equal((await goi(w, ADM, id, "dat", { phienBan: 1 })).json.error.code, "registry_conclusion_missing");
-  assert.equal((await goi(w, ADM, id, "dat", { phienBan: 1, hoSo: { kieu: "MOI" } })).status, 200);
+  assert.equal((await goi(w, XM, id, "dat", { phienBan: 1 })).json.error.code, "registry_conclusion_missing");
+  assert.equal((await goi(w, XM, id, "dat", { phienBan: 1, hoSo: { kieu: "MOI" } })).status, 200);
   assert.equal((await goi(w, HR, id, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 })).status, 200);
 });
 
@@ -269,7 +273,7 @@ test("(R2) Phiên bản cũ ⇒ 409 registration_version_changed, không đổi;
   assert.equal(cu.status, 409, cu.text);
   assert.equal(cu.json.error.code, "registration_version_changed");
   assert.equal(reg(w, id).status, "CHO_DUYET");
-  assert.equal(reg(w, id).verified_by, ADM);
+  assert.equal(reg(w, id).verified_by, XM);
   const b = phieu(w, { dienThoai: "0912 000 999", so: null }); // CHỜ XÁC MINH
   assert.equal((await goi(w, HR, b, "tra-ve-xac-minh", { phienBan: 1 })).json.error.code, "registration_state_changed");
   assert.equal(w.q("SELECT count(*) n FROM dk_event WHERE command = 'TRA_VE_XAC_MINH'")[0].n, 0);
@@ -291,29 +295,31 @@ test("(R2b) Phiên bản ghim TRONG câu: bản khai đổi ngay trước lô �
   assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'registration_returned_to_verification'")[0].n, 0);
 });
 
-test("(R3) Quản trị, Bán hàng ⇒ 403; Toàn quyền được", async () => {
+test("(R3) Trả về xác minh: Quản lý bán hàng (người xác minh), Bán hàng ⇒ 403; Quản trị (người duyệt, ADR-0219), Toàn quyền được", async () => {
   const { w } = setup();
   const id = phieu(w);
   await xacMinh(w, id);
-  for (const as of [ADM, SALES]) assert.equal((await goi(w, as, id, "tra-ve-xac-minh", { phienBan: 1 })).status, 403, as);
+  for (const as of [XM, SALES]) assert.equal((await goi(w, as, id, "tra-ve-xac-minh", { phienBan: 1 })).status, 403, as);
   assert.equal(reg(w, id).status, "CHO_DUYET");
   assert.equal((await goi(w, SUP, id, "tra-ve-xac-minh", { phienBan: 1 })).status, 200);
+  assert.equal((await goi(w, XM, id, "dat", { phienBan: 1, hoSo: { kieu: "MOI" } })).status, 200);
+  assert.equal((await goi(w, ADM, id, "tra-ve-xac-minh", { phienBan: 1 })).status, 200, "Quản trị là người duyệt nên trả về được");
 });
 
 test("(R4) Người duyệt ≠ người xác minh vẫn đúng sau khi xác minh lại: người xác minh LẦN SAU không tự duyệt được; người xác minh lần đầu duyệt được khi người khác xác minh lại", async () => {
   const { w } = setup();
   const id = phieu(w);
-  await xacMinh(w, id, ADM_HR); // ADM_HR xác minh lần đầu
+  await xacMinh(w, id, XM_ADM); // XM_ADM xác minh lần đầu
   assert.equal((await goi(w, HR, id, "tra-ve-xac-minh", { phienBan: 1 })).status, 200);
-  assert.equal((await goi(w, ADM_HR, id, "dat", { phienBan: 1, hoSo: { kieu: "MOI" } })).status, 200); // ADM_HR xác minh lại
-  const tu = await goi(w, ADM_HR, id, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 });
+  assert.equal((await goi(w, XM_ADM, id, "dat", { phienBan: 1, hoSo: { kieu: "MOI" } })).status, 200); // XM_ADM xác minh lại
+  const tu = await goi(w, XM_ADM, id, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 });
   assert.equal(tu.status, 409, tu.text);
   assert.equal(tu.json.error.code, "registration_same_person");
-  // Chiều ngược: người khác (ADM) xác minh lại ⇒ người xác minh lần đầu (ADM_HR) nay duyệt được.
+  // Chiều ngược: người khác (XM) xác minh lại ⇒ người xác minh lần đầu (XM_ADM) nay duyệt được.
   assert.equal((await goi(w, HR, id, "tra-ve-xac-minh", { phienBan: 1 })).status, 200);
-  assert.equal((await goi(w, ADM, id, "dat", { phienBan: 1, hoSo: { kieu: "MOI" } })).status, 200);
-  assert.equal(reg(w, id).verified_by, ADM);
-  const ok = await goi(w, ADM_HR, id, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 });
+  assert.equal((await goi(w, XM, id, "dat", { phienBan: 1, hoSo: { kieu: "MOI" } })).status, 200);
+  assert.equal(reg(w, id).verified_by, XM);
+  const ok = await goi(w, XM_ADM, id, "duyet", { roleCode: "GUIDE_FREELANCE", phienBan: 1 });
   assert.equal(ok.status, 200, ok.text);
 });
 
@@ -350,7 +356,7 @@ test("(Q1) 250 phiếu ĐANG ĐIỀN không đẩy phiếu CHỜ XÁC MINH ra kh
   const { w } = setup();
   gieoNhieu(w, 250, "DANG_DIEN", "2026-11-01T00:00:00.000Z"); // cũ hơn phiếu thật
   const id = phieu(w);
-  const q = await hangCho(w, ADM);
+  const q = await hangCho(w, XM);
   assert.deepEqual(q.phieu.map((x: any) => x.id), [id]);
   assert.equal(q.conNua, false);
 });
@@ -359,7 +365,7 @@ test("(Q2) 205 phiếu CẦN BỔ SUNG gửi sớm hơn: phiếu CHỜ XÁC MINH
   const { w } = setup();
   gieoNhieu(w, 205, "CAN_BO_SUNG", "2026-11-01T00:00:00.000Z");
   const id = phieu(w); // gửi lúc AT (muộn hơn)
-  const q = await hangCho(w, ADM);
+  const q = await hangCho(w, XM);
   assert.equal(q.phieu.length, 200);
   assert.equal(q.phieu[0].id, id, "việc làm được ngay đứng đầu");
   assert.equal(q.conNua, true);
@@ -369,9 +375,9 @@ test("(T7) Đua: phiếu bị người khác yêu cầu bổ sung NGAY TRƯỚC 
   const { w, thu } = setup();
   const id = phieu(w);
   w.chenTruocLo((stmts: any[]) => stmts.length === 4, async () => {
-    w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = 'KHONG_DOC_DUOC', updated_at = '2026-11-11T00:00:00.000Z', updated_by = ? WHERE id = ?").run(ADM2, id);
+    w.sqlite.prepare("UPDATE dk_registration SET status = 'CAN_BO_SUNG', reason_code = 'KHONG_DOC_DUOC', updated_at = '2026-11-11T00:00:00.000Z', updated_by = ? WHERE id = ?").run(XM2, id);
   });
-  const r = await goi(w, ADM, id, "bo-sung", { lyDo: "KHONG_DOC_DUOC", phienBan: 1 });
+  const r = await goi(w, XM, id, "bo-sung", { lyDo: "KHONG_DOC_DUOC", phienBan: 1 });
   assert.equal(r.status, 409, r.text);
   await w.choNen();
   assert.equal(thu.length, 0);
@@ -391,10 +397,10 @@ test("(R6) M-1: câu «từ chối duyệt» ghim phiên bản TRONG câu — kh
 test("(T8) Thư «cần bổ sung» lỗi của phiếu ĐÃ GỬI LẠI không còn hiện ở hàng chờ (thư chỉ hiện khi phiếu còn đúng trạng thái của thư)", async () => {
   const { w } = setup({ guiHong: true });
   const id = phieu(w);
-  assert.equal((await goi(w, ADM, id, "bo-sung", { lyDo: "KHONG_DOC_DUOC", phienBan: 1 })).status, 200);
+  assert.equal((await goi(w, XM, id, "bo-sung", { lyDo: "KHONG_DOC_DUOC", phienBan: 1 })).status, 200);
   await w.choNen();
-  assert.deepEqual((await hangCho(w, ADM)).phieu.find((x: any) => x.id === id)?.thu, { loai: "BO_SUNG", trangThai: "LOI" });
+  assert.deepEqual((await hangCho(w, XM)).phieu.find((x: any) => x.id === id)?.thu, { loai: "BO_SUNG", trangThai: "LOI" });
   w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(id); // người đăng ký đã gửi lại
-  assert.equal((await hangCho(w, ADM)).phieu.find((x: any) => x.id === id)?.thu, null);
-  assert.equal((await goi(w, ADM, id, "gui-lai-thu")).json.error.code, "registration_state_changed");
+  assert.equal((await hangCho(w, XM)).phieu.find((x: any) => x.id === id)?.thu, null);
+  assert.equal((await goi(w, XM, id, "gui-lai-thu")).json.error.code, "registration_state_changed");
 });

@@ -11,6 +11,8 @@ const TRANG_THANH_BEN_CU: readonly KhoaTrang[] = [
   "hoaHong", "nguoiBan", "nhatKy", "guiThongBao", "troLy", "giaoDien", "trangTaiXe", "cuoc", "ban", "toi", "gopY", "troGiup",
   // Thêm sau ảnh chụp 14/10 (trang mới, có chủ đích): sổ đại lý đợt 2 Task 12 — «Chụp bù mức» (ô order.terms.override, không Đối tác).
   "chupBu",
+  // Phiếu đăng ký đối tác (ADR-0219 Đ3, 18/11): hàng chờ rời trang Quản lý tài khoản — ô registration.queue.view (Quản lý bán hàng, Quản trị, Nhân sự, Toàn quyền).
+  "phieuDangKy",
   // Sổ công nợ theo đối tác (kế hoạch 2026-10-24 P1, 25/10): ô ledger.view không ngữ cảnh.
   "soCongNo",
   // Luật bán theo loại đối tác (ADR-0146 Đ5; kế hoạch 2026-10-30 T11, 30/10): ô sales.block.write, không Đối tác.

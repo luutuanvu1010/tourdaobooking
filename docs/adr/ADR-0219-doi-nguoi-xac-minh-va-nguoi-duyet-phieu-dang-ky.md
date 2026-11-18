@@ -1,6 +1,6 @@
 # ADR-0219 — Đổi người xác minh và người duyệt phiếu đăng ký đối tác
 
-- **Trạng thái:** **proposed** 2026-11-18 — AI soạn theo lời chủ cùng ngày, nguyên văn: «Chốt theo khuyến nghị, soạn quyết định mới đi.» (chốt bảng: xác minh = Quản lý bán hàng, Toàn quyền; duyệt mở tài khoản = Quản trị, Nhân sự, Toàn quyền). Chờ chủ duyệt; AI không tự duyệt (Hiến pháp N3). Trang ghép: `docs/superpowers/specs/2026-11-18-adr-0219-nguoi-xac-minh-nguoi-duyet/TRANG-GHEP.md`.
+- **Trạng thái:** **accepted** 2026-11-18 — chủ dự án (chat), nguyên văn: «Duyệt ADR-0219, thi công luôn đi». Trước đó (proposed cùng ngày) AI soạn theo lời chủ «Chốt theo khuyến nghị, soạn quyết định mới đi.» (chốt bảng: xác minh = Quản lý bán hàng, Toàn quyền; duyệt mở tài khoản = Quản trị, Nhân sự, Toàn quyền). Chủ không gõ lại câu cho phép HC-5.19; người chép (AI) hiểu lời duyệt gồm mục «Xây trên lỗ đang hở» dưới đây theo câu duyệt mẫu đã trình; chủ nói khác thì bỏ mục `xay_tren_cho_phep_adr_0219` và đưa ADR về chờ duyệt. Trang ghép: `docs/superpowers/specs/2026-11-18-adr-0219-nguoi-xac-minh-nguoi-duyet/TRANG-GHEP.md`.
 - **Số:** 0219 (số lớn nhất trên mọi nhánh lúc cấp là 0218, ở nhánh chưa gộp). Nhánh khác lấy trước thì đổi số.
 - **Ngày:** 2026-11-18. **Loại:** việc lớn — quyền. Không đổi bảng, không migration, không đổi lô duyệt. Người kiểm độc lập chỉ đọc sau thi công.
 - **Cửa:** hai chiều về ai làm bước nào; **một chiều** về dữ liệu đã xem (người mới được xem giấy tờ thì không thu hồi được điều đã thấy).

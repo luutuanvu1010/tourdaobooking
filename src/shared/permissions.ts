@@ -67,6 +67,8 @@ const quanLyBanHang = (): Row => row("none", "none", "any", "none", "none", "any
 const keToanQuanLy = (): Row => ({ ...quanLyBanHang(), ACCOUNTING: "any" });
 /** ADR-0175 §2.9: hàng quét vé — mọi vai nội bộ có ô quét trừ Nhân sự, Thực tập; chỉ ô DRIVER (Tài xế công ty) đổi giữa «tính đã dùng» (none) và «chỉ xem» (any). Giá trị y như viết tay từng ô (bài ghim canh). */
 const quetVe = (taiXe: Scope): Row => row("any", "any", "any", "any", "none", "any", "none", taiXe, "none", "none", "any");
+/** ADR-0219 Đ2: người xác minh phiếu đăng ký — Quản lý bán hàng + Toàn quyền (KHÔNG Quản trị, khác quanLyBanHang()). Hàm dùng chung cho gói giao diện gọn; bài ghim từng ô canh. */
+const xacMinhDangKy = (): Row => ({ ...chiToanQuyen(), SALES_MANAGER: "any" });
 const banHangQuanTri = (): Row => row("any", "none", "any", "none", "none", "any", "none", "none", "none", "none");
 
 /**
@@ -344,7 +346,14 @@ export const MATRIX = {
   // xem nội dung / kết luận / xem đủ số / mở ảnh còn đòi `party.verify` VÀ `party.view` (+ `party.verify.attachment` cho số và ảnh) — Nhân sự không có `party.view` nên không làm bước xác minh.
   // `registration.policy.write` (đổi chính sách đăng ký, công tắc) và `registration.agent.purge` (tác nhân dọn phiếu DON_PHIEU_DANG_KY — Cron, src/modules/dang-ky/don-phieu.ts, đợt 1 Task 9;
   // không route cho người) chỉ Toàn quyền; ô chính sách còn chờ route ở task sau (docs/quyen-hoan.json).
-  "registration.queue.view": quanTriNhanSu(),
+  // ADR-0219 Đ2 (accepted 2026-11-18; thay câu trên về người xác minh / người duyệt): phiếu đăng ký thôi dùng `party.verify*` và `account.create`, chuyển sang ba ô riêng.
+  // Xác minh = Quản lý bán hàng, Toàn quyền — viết hàng riêng, KHÔNG dùng quanLyBanHang() (hàm đó gồm Quản trị). Còn đòi `party.view` (Hiến chương 5.29) — Quản lý bán hàng có nhờ
+  // mã Bán hàng đi kèm (ADR-0169 Đ4). Duyệt mở tài khoản = Quản trị, Nhân sự, Toàn quyền — ô này chỉ mở tài khoản ĐỐI TÁC từ phiếu đã xác minh (lô duyệt chặn vai nội bộ);
+  // Quản trị KHÔNG có `account.create` (ADR-0071 1b, ngoại lệ có tên). Hàng chờ = hợp hai nhóm; route lọc theo năng lực (xemHangCho).
+  "registration.queue.view": row("none", "none", "any", "none", "none", "any", "none", "none", "none", "any", "any"),
+  "registration.verify": xacMinhDangKy(),
+  "registration.verify.attachment": xacMinhDangKy(),
+  "registration.approve": quanTriNhanSu(),
   "registration.policy.write": chiToanQuyen(),
   "registration.agent.purge": chiToanQuyen(),
   // ADR-0040 D1: quản lý xe, giấy tờ xe, xem danh sách giấy tờ sắp hết hạn (xe + tài xế, không số) — Quản trị + Toàn quyền (việc kinh doanh, ADR-0038

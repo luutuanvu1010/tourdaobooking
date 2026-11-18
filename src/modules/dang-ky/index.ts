@@ -83,65 +83,68 @@ export const dangKyModule: AppModule = {
       if (!can(ctx.staff, "registration.policy.write")) return CAM_CHINH_SACH();
       return doiChinhSach(ctx);
     }),
-    // Bước xác minh của người trong công ty (ADR-0207 Đ2, Đ9; đợt 1 Task 6). Cổng `accounts`; mỗi route hỏi ô quyền trong thân (xac-minh-route.ts).
-    route("GET", "/api/dang-ky/hang-cho", "accounts", async (ctx) => {
+    // Hàng chờ (ADR-0219 Đ3): cổng `staff` vì người xác minh (Quản lý bán hàng, cổng office) và người duyệt (Nhân sự, cổng accounts) không chung cổng nào; chặn bằng ô
+    // `registration.queue.view` trong thân (Đối tác, Tài xế đối tác = none), lọc theo năng lực ở xemHangCho.
+    route("GET", "/api/dang-ky/hang-cho", "staff", async (ctx) => {
       if (!can(ctx.staff, "registration.queue.view")) return CAM();
       return xemHangCho(ctx);
     }),
-    route("GET", "/api/dang-ky/phieu/:id", "accounts", async (ctx) => {
-      if (!can(ctx.staff, "party.verify") || !can(ctx.staff, "party.view")) return CAM();
+    // Bước xác minh (ADR-0207 Đ2, Đ9; ADR-0219 Đ1, Đ2): cổng `office`; mỗi route hỏi `registration.verify` VÀ `party.view` (Quản lý bán hàng, Toàn quyền — Quản trị, Nhân sự không);
+    // xem đủ số, mở ảnh thêm `registration.verify.attachment`. Hàm xử lý ở xac-minh-route.ts.
+    route("GET", "/api/dang-ky/phieu/:id", "office", async (ctx) => {
+      if (!can(ctx.staff, "registration.verify") || !can(ctx.staff, "party.view")) return CAM();
       return xemPhieu(ctx);
     }),
-    route("POST", "/api/dang-ky/phieu/:id/ket-luan", "accounts", async (ctx) => {
-      if (!can(ctx.staff, "party.verify") || !can(ctx.staff, "party.view")) return CAM();
+    route("POST", "/api/dang-ky/phieu/:id/ket-luan", "office", async (ctx) => {
+      if (!can(ctx.staff, "registration.verify") || !can(ctx.staff, "party.view")) return CAM();
       return ketLuanMuc(ctx);
     }),
-    route("POST", "/api/dang-ky/phieu/:id/xem-so", "accounts", async (ctx) => {
-      if (!can(ctx.staff, "party.verify") || !can(ctx.staff, "party.view") || !can(ctx.staff, "party.verify.attachment")) return CAM();
+    route("POST", "/api/dang-ky/phieu/:id/xem-so", "office", async (ctx) => {
+      if (!can(ctx.staff, "registration.verify") || !can(ctx.staff, "party.view") || !can(ctx.staff, "registration.verify.attachment")) return CAM();
       return xemSo(ctx);
     }),
-    route("GET", "/api/dang-ky/phieu/:id/tep/:tid", "accounts", async (ctx) => {
-      if (!can(ctx.staff, "party.verify") || !can(ctx.staff, "party.view") || !can(ctx.staff, "party.verify.attachment")) return CAM();
+    route("GET", "/api/dang-ky/phieu/:id/tep/:tid", "office", async (ctx) => {
+      if (!can(ctx.staff, "registration.verify") || !can(ctx.staff, "party.view") || !can(ctx.staff, "registration.verify.attachment")) return CAM();
       return moTep(ctx);
     }),
-    route("POST", "/api/dang-ky/phieu/:id/dat", "accounts", async (ctx) => {
-      if (!can(ctx.staff, "party.verify") || !can(ctx.staff, "party.view")) return CAM();
+    route("POST", "/api/dang-ky/phieu/:id/dat", "office", async (ctx) => {
+      if (!can(ctx.staff, "registration.verify") || !can(ctx.staff, "party.view")) return CAM();
       return xacMinhDat(ctx);
     }),
-    route("POST", "/api/dang-ky/phieu/:id/bo-sung", "accounts", async (ctx) => {
-      if (!can(ctx.staff, "party.verify") || !can(ctx.staff, "party.view")) return CAM();
+    route("POST", "/api/dang-ky/phieu/:id/bo-sung", "office", async (ctx) => {
+      if (!can(ctx.staff, "registration.verify") || !can(ctx.staff, "party.view")) return CAM();
       return yeuCauBoSung(ctx);
     }),
-    route("POST", "/api/dang-ky/phieu/:id/tu-choi", "accounts", async (ctx) => {
-      if (!can(ctx.staff, "party.verify") || !can(ctx.staff, "party.view")) return CAM();
+    route("POST", "/api/dang-ky/phieu/:id/tu-choi", "office", async (ctx) => {
+      if (!can(ctx.staff, "registration.verify") || !can(ctx.staff, "party.view")) return CAM();
       return tuChoiPhieu(ctx);
     }),
-    // Bước DUYỆT MỞ TÀI KHOẢN (ADR-0207 Đ1, Đ4–Đ7, Đ9; đợt 1 Task 8). Cổng `accounts`; mỗi route hỏi `account.create` (Nhân sự, Toàn quyền — Quản trị không có). Nhân sự không xem Danh bạ:
+    // Bước DUYỆT MỞ TÀI KHOẢN (ADR-0207 Đ1, Đ4–Đ7, Đ9; ADR-0219 Đ1, Đ2). Cổng `accounts`; mỗi route hỏi `registration.approve` (Quản trị, Nhân sự, Toàn quyền). Người duyệt có thể không xem Danh bạ:
     // màn duyệt riêng (không ảnh, không số giấy tờ, không ngày sinh, không địa chỉ). Lệnh duyệt: một lô do gốc lắp ráp ghép (`ctx.loDuyetDangKy`), câu chốt làm hỏng cả lô.
     route("GET", "/api/dang-ky/phieu/:id/xem-duyet", "accounts", async (ctx) => {
-      if (!can(ctx.staff, "account.create")) return CAM_DUYET();
+      if (!can(ctx.staff, "registration.approve")) return CAM_DUYET();
       return xemDeDuyet(ctx);
     }),
     route("POST", "/api/dang-ky/phieu/:id/duyet", "accounts", async (ctx) => {
-      if (!can(ctx.staff, "account.create")) return CAM_DUYET();
+      if (!can(ctx.staff, "registration.approve")) return CAM_DUYET();
       return duyetPhieu(ctx);
     }),
     route("POST", "/api/dang-ky/phieu/:id/tu-choi-duyet", "accounts", async (ctx) => {
-      if (!can(ctx.staff, "account.create")) return CAM_DUYET();
+      if (!can(ctx.staff, "registration.approve")) return CAM_DUYET();
       return tuChoiDuyet(ctx);
     }),
     route("POST", "/api/dang-ky/phieu/:id/gui-lai-loi-moi", "accounts", async (ctx) => {
-      if (!can(ctx.staff, "account.create")) return CAM_DUYET();
+      if (!can(ctx.staff, "registration.approve")) return CAM_DUYET();
       return guiLaiLoiMoi(ctx);
     }),
-    // «Trả về xác minh» (ADR-0207 Đ5; rà soát cuối I-3): cùng ô account.create với bước duyệt.
+    // «Trả về xác minh» (ADR-0207 Đ5; rà soát cuối I-3): cùng ô registration.approve với bước duyệt.
     route("POST", "/api/dang-ky/phieu/:id/tra-ve-xac-minh", "accounts", async (ctx) => {
-      if (!can(ctx.staff, "account.create")) return CAM_DUYET();
+      if (!can(ctx.staff, "registration.approve")) return CAM_DUYET();
       return traVeXacMinh(ctx);
     }),
-    // Gửi lại thư báo chưa gửi được (ADR-0206 Đ13; rà soát cuối I-1). Cổng: người xem được hàng chờ; ô theo BƯỚC đã sinh thư kiểm trong thân (thu-bao.ts): xác minh ⇒ party.verify + party.view,
-    // từ chối ở bước duyệt ⇒ account.create.
-    route("POST", "/api/dang-ky/phieu/:id/gui-lai-thu", "accounts", async (ctx) => {
+    // Gửi lại thư báo chưa gửi được (ADR-0206 Đ13; rà soát cuối I-1). Cổng `staff` (như hàng chờ, ADR-0219 Đ3) + ô `registration.queue.view`; ô theo BƯỚC đã sinh thư kiểm trong thân (thu-bao.ts): xác minh ⇒ registration.verify + party.view,
+    // từ chối ở bước duyệt ⇒ registration.approve.
+    route("POST", "/api/dang-ky/phieu/:id/gui-lai-thu", "staff", async (ctx) => {
       if (!can(ctx.staff, "registration.queue.view")) return CAM();
       return guiLaiThu(ctx);
     }),

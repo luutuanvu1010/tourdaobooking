@@ -18,6 +18,9 @@ const PARTNER = "55555555-5555-4555-8555-555555555555";
 const HR = "99999999-9999-4999-8999-999999999999";
 const HR2 = "99999999-9999-4999-8999-999999999998";
 const ADM_HR = "88888888-8888-4888-8888-888888888888"; // một tài khoản giữ cả Quản trị lẫn Nhân sự
+// ADR-0219 Đ1: người xác minh phiếu đăng ký = Quản lý bán hàng (kèm mã Bán hàng); Quản trị, Nhân sự, Toàn quyền duyệt.
+const XM = "44444444-4444-4444-8444-444444444441";
+const XM_ADM = "44444444-4444-4444-8444-444444444443"; // Quản lý bán hàng kiêm Quản trị: giữ cả hai ô, trigger chặn tự duyệt
 const AT = "2026-11-10T00:00:00.000Z";
 const SO = "079 000 000 111";
 const KHOA_SO = "079000000111";
@@ -42,6 +45,8 @@ function setup() {
   them(HR, "0900000013", "Nhân Sự", ["HR"]);
   them(HR2, "0900000014", "Nhân Sự Hai", ["HR"]);
   them(ADM_HR, "0900000015", "Quản Trị Nhân Sự", ["ADMIN", "HR"]);
+  them(XM, "0900000005", "Quản Lý Bán Hàng", ["SALES_MANAGER", "SALES"]);
+  them(XM_ADM, "0900000006", "Quản Lý Bán Hàng Quản Trị", ["SALES_MANAGER", "SALES", "ADMIN"]);
   if (w.q("SELECT 1 FROM pty_privacy_policy LIMIT 1").length === 0) {
     w.sqlite.exec(`INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('pol', 1, 'thử', 'thử', '${AT}', '${AT}', '${SUP}', '${AT}', '${SUP}')`);
   }
@@ -83,8 +88,8 @@ function gieoToChuc(w: any, reg: string, o: Partial<ToChucKhai> = {}): void {
 const MUC_TC = ["TEN_PHAP_LY", "MA_SO_THUE", "GPKD"];
 /** Xác minh phiếu có phần tổ chức bằng route thật: mọi mục (cá nhân + tổ chức) đạt, kết luận Danh bạ hai lần. */
 async function xacMinhTC(w: any, id: string, hoSoToChuc: any = { kieu: "MOI" }, hoSo: any = { kieu: "MOI" }) {
-  for (const m of [...MUC, ...MUC_TC]) assert.equal((await ketLuan(w, ADM, id, { muc: m, dat: true })).status, 200, m);
-  const r = await dat(w, ADM, id, { hoSo, hoSoToChuc });
+  for (const m of [...MUC, ...MUC_TC]) assert.equal((await ketLuan(w, XM, id, { muc: m, dat: true })).status, 200, m);
+  const r = await dat(w, XM, id, { hoSo, hoSoToChuc });
   assert.equal(r.status, 200, r.text);
 }
 function toChucCoSan(w: any, id: string, o: { ten?: string; mst?: string | null; tenPhapLy?: string | null; gpkdKhoa?: string } = {}): string {
@@ -120,7 +125,7 @@ const tuChoiDuyet = (w: any, as: string, id: string, body: any = { lyDo: "KHONG_
 const guiLai = (w: any, as: string, id: string) => w.call("POST", `/api/dang-ky/phieu/${id}/gui-lai-loi-moi`, { as });
 const xemDuyet = (w: any, as: string, id: string) => w.call("GET", `/api/dang-ky/phieu/${id}/xem-duyet`, { as });
 /** Bước xác minh bằng route thật: kết luận đạt mọi mục rồi «đạt». */
-async function xacMinh(w: any, id: string, as = ADM, body: any = { hoSo: { kieu: "MOI" } }) {
+async function xacMinh(w: any, id: string, as = XM, body: any = { hoSo: { kieu: "MOI" } }) {
   for (const m of MUC) assert.equal((await ketLuan(w, as, id, { muc: m, dat: true })).status, 200, m);
   const r = await dat(w, as, id, body);
   assert.equal(r.status, 200, r.text);
@@ -155,16 +160,23 @@ async function kichHoatThat(w: any, id: string, pin = "246813") {
   assert.equal(r.status, 200, r.text);
 }
 
-test("(1) Quyền: Quản trị, Bán hàng, Kế toán, Đối tác gọi duyệt / từ chối duyệt / gửi lại lời mời / xem để duyệt ⇒ 403; không đổi dòng nào", async () => {
+test("(1) Quyền (ADR-0219 Đ1): Quản lý bán hàng, Bán hàng, Kế toán, Đối tác gọi duyệt / từ chối duyệt / gửi lại lời mời / xem để duyệt ⇒ 403; không đổi dòng nào; Quản trị duyệt được", async () => {
   const w = setup();
   const id = phieu(w);
   await xacMinh(w, id);
+  seedStaff(w.sqlite, { id: "44444444-4444-4444-8444-444444444444", phone: "0900000016", name: "Quản Lý Bán Hàng Hai", perms: ["SALES_MANAGER", "SALES"] });
   const truoc = anh(w);
-  for (const as of [ADM, SALES, ACC, PARTNER]) {
+  for (const as of ["44444444-4444-4444-8444-444444444444", SALES, ACC, PARTNER]) {
     for (const r of [await duyet(w, as, id), await tuChoiDuyet(w, as, id), await guiLai(w, as, id), await xemDuyet(w, as, id)]) assert.equal(r.status, 403, `${as}: ${r.text}`);
   }
   assert.deepEqual(anh(w), truoc);
   assert.equal(reg(w, id).status, "CHO_DUYET");
+  // Quản trị nay là người duyệt (ngoại lệ có tên của ADR-0071 1b): mở được tài khoản ĐỐI TÁC từ phiếu người khác đã xác minh — vẫn không có account.create.
+  assert.equal((await xemDuyet(w, ADM, id)).status, 200);
+  const r = await duyet(w, ADM, id);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(reg(w, id).status, "DA_DUYET");
+  assert.equal((await w.call("POST", "/api/staff", { as: ADM, body: {} })).status, 403, "Quản trị vẫn không tạo tài khoản ở Quản lý tài khoản");
 });
 
 test("(2) Duyệt hồ sơ mới: một lô sinh đúng 1 hồ sơ, vai, 1 tài khoản TẮT, quyền, giá trị, dòng xác minh (người + giờ xác minh), đồng ý (người tạo = tài khoản mới), tệp chuyển, staff_created trỏ tài khoản mới", async () => {
@@ -205,9 +217,9 @@ test("(2) Duyệt hồ sơ mới: một lô sinh đúng 1 hồ sơ, vai, 1 tài 
   assert.equal(gt[0].number_key, KHOA_SO);
   const v = w.q("SELECT target_kind, target_id, attribute_code, outcome, created_by, created_at, verifier_touched_account FROM pty_verification WHERE party_id = ? ORDER BY target_kind, attribute_code", tk.party_id).map((x: any) => ({ ...x }));
   assert.deepEqual(v, [
-    { target_kind: "ATTRIBUTE", target_id: null, attribute_code: "HO_TEN", outcome: "DA_XAC_MINH", created_by: ADM, created_at: xm.verified_at, verifier_touched_account: 0 },
-    { target_kind: "ATTRIBUTE", target_id: null, attribute_code: "NGAY_SINH", outcome: "DA_XAC_MINH", created_by: ADM, created_at: xm.verified_at, verifier_touched_account: 0 },
-    { target_kind: "PERSON_DOCUMENT", target_id: gt[0].id, attribute_code: null, outcome: "DA_XAC_MINH", created_by: ADM, created_at: xm.verified_at, verifier_touched_account: 0 },
+    { target_kind: "ATTRIBUTE", target_id: null, attribute_code: "HO_TEN", outcome: "DA_XAC_MINH", created_by: XM, created_at: xm.verified_at, verifier_touched_account: 0 },
+    { target_kind: "ATTRIBUTE", target_id: null, attribute_code: "NGAY_SINH", outcome: "DA_XAC_MINH", created_by: XM, created_at: xm.verified_at, verifier_touched_account: 0 },
+    { target_kind: "PERSON_DOCUMENT", target_id: gt[0].id, attribute_code: null, outcome: "DA_XAC_MINH", created_by: XM, created_at: xm.verified_at, verifier_touched_account: 0 },
   ]);
   // đồng ý: đúng phiên bản, giờ trong bản khai, người tạo là tài khoản mới
   assert.deepEqual({ ...w.q("SELECT policy_id, decision, created_at, created_by FROM pty_consent WHERE party_id = ?", tk.party_id)[0] }, { policy_id: "pol", decision: "DONG_Y", created_at: AT, created_by: tk.id });
@@ -243,7 +255,7 @@ test("(3) Gắn hồ sơ có sẵn: Nhân sự (không xem Danh bạ) duyệt đ
   const goc = hoSoCoSan(w);
   w.sqlite.prepare("INSERT INTO pty_contact_point (id, party_id, contact_kind_code, value, value_normalized, is_primary, valid_from_date, created_at, updated_at) VALUES ('lh-goc', ?, 'PHONE', ?, ?, 1, '2026-01-01', ?, ?)").run(goc, DT, DT_KHOA, AT, AT);
   const id = phieu(w);
-  await xacMinh(w, id, ADM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
+  await xacMinh(w, id, XM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
   const xd = await xemDuyet(w, HR, id);
   assert.equal(xd.status, 200, xd.text);
   assert.equal(xd.json.ketLuanDanhBa.kieu, "EXISTING");
@@ -267,7 +279,7 @@ test("(3b) Gắn hồ sơ có sẵn CÙNG tên khai (họ + tên ghép theo lu�
   w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', 'Phạm Thử Nghiệm', 1, ?, ?)").run(goc, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_person (party_id, family_name, given_name, created_at, updated_at) VALUES (?, 'Phạm', 'Thử Nghiệm', ?, ?)").run(goc, AT, AT);
   const id = phieu(w);
-  await xacMinh(w, id, ADM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
+  await xacMinh(w, id, XM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
   assert.equal((await duyet(w, HR, id)).status, 200);
   assert.equal(dem1(w, "SELECT count(*) n FROM pty_verification WHERE party_id = ? AND attribute_code = 'HO_TEN' AND outcome = 'DA_XAC_MINH'", goc), 1);
 });
@@ -280,7 +292,7 @@ test("(3c) Gắn hồ sơ có sẵn đã có CCCD kèm ảnh ⇒ dòng mới là
     VALUES ('anh-cu', ?, ?, 'png', 3, ?, ?, ?, 's', ?, 's')`).run(goc, `pty/${"a".repeat(32)}`, "d".repeat(64), AT, AT, AT);
   w.sqlite.prepare("INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by) VALUES ('anh-cu', 'PERSON_DOCUMENT', 'gt-cu', ?, 's', ?, 's')").run(AT, AT);
   const id = phieu(w);
-  await xacMinh(w, id, ADM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
+  await xacMinh(w, id, XM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
   assert.equal((await duyet(w, HR, id)).status, 200);
   const moi = w.q("SELECT previous_id FROM pty_person_document WHERE party_id = ? AND id <> 'gt-cu'", goc);
   assert.deepEqual(moi.map((x: any) => x.previous_id), ["gt-cu"]);
@@ -343,12 +355,12 @@ test("(6) Hai người duyệt cùng lúc ⇒ đúng một lô thắng", async (
   assert.equal(w.q("SELECT decided_by FROM dk_decision")[0].decided_by, HR2);
 });
 
-test("(7) Người xác minh tự duyệt (tài khoản giữ Quản trị + Nhân sự) ⇒ 409 ở câu chốt, không ghi gì", async () => {
+test("(7) Người xác minh tự duyệt (tài khoản giữ Quản lý bán hàng + Quản trị — ADR-0219) ⇒ 409 ở câu chốt, không ghi gì", async () => {
   const w = setup();
   const id = phieu(w);
-  await xacMinh(w, id, ADM_HR);
+  await xacMinh(w, id, XM_ADM);
   const truoc = anh(w);
-  const r = await duyet(w, ADM_HR, id);
+  const r = await duyet(w, XM_ADM, id);
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "registration_same_person");
   assert.deepEqual(anh(w), truoc);
@@ -366,7 +378,7 @@ test("(8) Toàn quyền làm cả hai bước ⇒ thành công, dòng quyết đ
   const pa = reg(w, a).party_id;
   assert.deepEqual([...new Set(w.q("SELECT verifier_touched_account v FROM pty_verification WHERE party_id = ?", pa).map((x: any) => x.v))], [1]);
   const b = phieu(w, { dienThoai: "0912 000 222", so: "079 000 000 222", hoTen: ["Lê", "Hai"] });
-  await xacMinh(w, b, ADM);
+  await xacMinh(w, b, XM);
   assert.equal((await duyet(w, SUP2, b)).status, 200);
   assert.equal(w.q("SELECT super_admin_flag FROM dk_decision WHERE registration_id = ?", b)[0].super_admin_flag, 0);
   assert.deepEqual([...new Set(w.q("SELECT verifier_touched_account v FROM pty_verification WHERE party_id = ?", reg(w, b).party_id).map((x: any) => x.v))], [0]);
@@ -406,7 +418,7 @@ test("(10) Số căn cước đã thuộc hồ sơ khác ⇒ 409 trước lô, k
   // hồ sơ đích vừa có tài khoản (sau «đạt»)
   const goc = hoSoCoSan(w);
   const b = phieu(w, { so: null, dienThoai: "0912 000 333" });
-  await xacMinh(w, b, ADM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
+  await xacMinh(w, b, XM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
   w.sqlite.prepare("UPDATE staff SET party_id = ? WHERE id = ?").run(goc, SALES);
   const r2 = await duyet(w, HR, b);
   assert.equal(r2.status, 409, r2.text);
@@ -444,6 +456,26 @@ test("(12) Người đã duyệt về sau KHÔNG xác minh được phiếu tự
   assert.notEqual(r.status, 200, r.text);
   assert.equal(w.q("SELECT status FROM pty_self_submission WHERE id = ?", pid)[0].status, "CHO_XAC_MINH");
   const r2 = await w.call("POST", `/api/parties/xac-minh/${pid}/chap-nhan`, { as: HR2 });
+  assert.equal(r2.status, 200, r2.text);
+});
+
+test("(12b) ADR-0219 (quan hệ với ADR-0125): Quản trị đã duyệt mở tài khoản X thì lính gác đ5 chặn Quản trị đó xác minh phiếu tự khai của X; Quản trị khác (hay Nhân sự) thì được", async () => {
+  const w = setup();
+  const ADM2 = "33333333-3333-4333-8333-333333333332";
+  seedStaff(w.sqlite, { id: ADM2, phone: "0900000004", name: "Quản Trị Hai", perms: ["ADMIN"] });
+  const id = phieu(w);
+  await xacMinh(w, id);
+  assert.equal((await duyet(w, ADM, id)).status, 200);
+  assert.equal(w.q("SELECT staff_id FROM audit_log WHERE action = 'staff_created'")[0].staff_id, ADM, "Quản trị đứng tên lô duyệt");
+  const tk = taiKhoanMoi(w);
+  await kichHoatThat(w, id);
+  const pid = crypto.randomUUID();
+  w.sqlite.prepare(`INSERT INTO pty_self_submission (id, party_id, subject_kind, policy_id, birth_date, status, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, 'NGAY_SINH', 'pol', '1990-05-07', 'CHO_XAC_MINH', ?, ?, ?, ?)`).run(pid, tk.party_id, new Date().toISOString(), tk.id, new Date().toISOString(), tk.id);
+  const r = await w.call("POST", `/api/parties/xac-minh/${pid}/chap-nhan`, { as: ADM });
+  assert.notEqual(r.status, 200, r.text);
+  assert.equal(w.q("SELECT status FROM pty_self_submission WHERE id = ?", pid)[0].status, "CHO_XAC_MINH");
+  const r2 = await w.call("POST", `/api/parties/xac-minh/${pid}/chap-nhan`, { as: ADM2 });
   assert.equal(r2.status, 200, r2.text);
 });
 
@@ -556,12 +588,12 @@ test("(17) Màn duyệt của Nhân sự: họ tên, số điện thoại, loạ
 test("(18) Người giới thiệu: lô duyệt ghi quan hệ «Người giới thiệu của» (người giới thiệu → hồ sơ mới); hồ sơ người giới thiệu ngưng giữa chừng ⇒ 409", async () => {
   const w = setup();
   const id = phieu(w);
-  await xacMinh(w, id, ADM, { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: `pty-${SALES}` });
+  await xacMinh(w, id, XM, { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: `pty-${SALES}` });
   assert.equal((await duyet(w, HR, id)).status, 200);
   const q = w.q("SELECT from_party_id, to_party_id, relationship_type_code FROM pty_party_relationship WHERE relationship_type_code = 'REFERRED_BY'").map((x: any) => ({ ...x }));
   assert.deepEqual(q, [{ from_party_id: `pty-${SALES}`, to_party_id: reg(w, id).party_id, relationship_type_code: "REFERRED_BY" }]);
   const b = phieu(w, { dienThoai: "0912 000 666", so: null });
-  await xacMinh(w, b, ADM, { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: `pty-${ACC}` });
+  await xacMinh(w, b, XM, { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: `pty-${ACC}` });
   w.sqlite.prepare("UPDATE pty_party SET active = 0 WHERE id = ?").run(`pty-${ACC}`);
   const r = await duyet(w, HR, b);
   assert.equal(r.status, 409, r.text);
@@ -599,7 +631,7 @@ test("(20) R3a: hồ sơ đích bị gộp NGAY TRƯỚC lô ⇒ lô hỏng, 409
   const goc = hoSoCoSan(w);
   const chinh = hoSoCoSan(w, "pty-chinh", "Hồ Sơ Chính");
   const id = phieu(w);
-  await xacMinh(w, id, ADM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
+  await xacMinh(w, id, XM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
   const r = await duaTruocLo(w, id, () => w.sqlite.prepare("UPDATE pty_party SET merged_into_id = ?, merged_at = ?, active = 0 WHERE id = ?").run(chinh, AT, goc));
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "target_changed");
@@ -609,7 +641,7 @@ test("(21) R3a2: hồ sơ đích bị ngưng NGAY TRƯỚC lô ⇒ lô hỏng, 4
   const w = setup();
   const goc = hoSoCoSan(w);
   const id = phieu(w);
-  await xacMinh(w, id, ADM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
+  await xacMinh(w, id, XM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
   const r = await duaTruocLo(w, id, () => w.sqlite.prepare("UPDATE pty_party SET active = 0 WHERE id = ?").run(goc));
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "target_changed");
@@ -618,7 +650,7 @@ test("(21) R3a2: hồ sơ đích bị ngưng NGAY TRƯỚC lô ⇒ lô hỏng, 4
 test("(22) R3b: hồ sơ người giới thiệu bị ngưng NGAY TRƯỚC lô ⇒ lô hỏng, 409, không ghi gì", async () => {
   const w = setup();
   const id = phieu(w);
-  await xacMinh(w, id, ADM, { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: `pty-${SALES}` });
+  await xacMinh(w, id, XM, { hoSo: { kieu: "MOI" }, nguoiGioiThieuPartyId: `pty-${SALES}` });
   const r = await duaTruocLo(w, id, () => w.sqlite.prepare("UPDATE pty_party SET active = 0 WHERE id = ?").run(`pty-${SALES}`));
   assert.equal(r.status, 409, r.text);
   assert.equal(r.json.error.code, "referrer_changed");
@@ -710,7 +742,7 @@ test("(26) Hồ sơ có sẵn đang giữ vai nội bộ mà duyệt loại do K
   const loai = await themLoaiThat(w);
   const goc = hoSoCoSan(w);
   const id = phieu(w);
-  await xacMinh(w, id, ADM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
+  await xacMinh(w, id, XM, { hoSo: { kieu: "CO_SAN", partyId: goc } });
   // vai nội bộ mở SAU bước xác minh (xác minh «đạt» với vai xin sẵn có đã bắt lẫn nhóm; ở đây thử cổng của lúc duyệt)
   w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('r-nb', ?, 'SALES_STAFF', NULL, '2026-01-01', ?, ?)").run(goc, AT, AT);
   const truoc = anh(w);
@@ -767,9 +799,9 @@ test("(28) Duyệt phiếu có phần tổ chức MỚI: đúng một hồ sơ t
   assert.deepEqual(w.q("SELECT contact_kind_code, value_normalized FROM pty_contact_point WHERE party_id = ?", org.id).map((x: any) => [x.contact_kind_code, x.value_normalized]), [["PHONE", "0258381234"]]);
   const v = w.q("SELECT target_kind, target_id, attribute_code, created_by, created_at FROM pty_verification WHERE party_id = ? ORDER BY target_kind, attribute_code", org.id).map((x: any) => ({ ...x }));
   assert.deepEqual(v, [
-    { target_kind: "ATTRIBUTE", target_id: null, attribute_code: "MA_SO_THUE", created_by: ADM, created_at: xm.verified_at },
-    { target_kind: "ATTRIBUTE", target_id: null, attribute_code: "TEN_PHAP_LY", created_by: ADM, created_at: xm.verified_at },
-    { target_kind: "ORG_DOCUMENT", target_id: gp[0].id, attribute_code: null, created_by: ADM, created_at: xm.verified_at },
+    { target_kind: "ATTRIBUTE", target_id: null, attribute_code: "MA_SO_THUE", created_by: XM, created_at: xm.verified_at },
+    { target_kind: "ATTRIBUTE", target_id: null, attribute_code: "TEN_PHAP_LY", created_by: XM, created_at: xm.verified_at },
+    { target_kind: "ORG_DOCUMENT", target_id: gp[0].id, attribute_code: null, created_by: XM, created_at: xm.verified_at },
   ]);
   assert.deepEqual(w.q("SELECT attribute_code FROM pty_verification WHERE party_id = ? AND target_kind = 'ATTRIBUTE' ORDER BY attribute_code", tk.party_id).map((x: any) => x.attribute_code), ["HO_TEN", "NGAY_SINH"], "PF5: hồ sơ người chỉ mục cá nhân");
   const qh = w.q("SELECT from_party_id, to_party_id, relationship_type_code FROM pty_party_relationship WHERE to_party_id = ? OR from_party_id = ?", org.id, org.id).map((x: any) => ({ ...x }));
@@ -1193,13 +1225,13 @@ test("(43) Đ7.5: người mời không còn quyền mời (tài khoản ngưng)
   const w2 = setup();
   const id2 = phieu(w2, { vai: "" });
   giuChoChoPhieu(w2, id2, { trangThai: "DA_HUY" });
-  const xm = await w2.call("GET", `/api/dang-ky/phieu/${id2}`, { as: ADM });
+  const xm = await w2.call("GET", `/api/dang-ky/phieu/${id2}`, { as: XM });
   assert.equal(xm.status, 200, xm.text);
   assert.equal(xm.json.loiMoiVaoToChuc.trangThai, "DA_HUY");
   assert.match(xm.json.loiMoiVaoToChuc.dong, /Lời mời đã bị huỷ/);
   assert.equal(xm.json.loiMoiVaoToChuc.tenToChuc, "Khách sạn Mời", "người xem Danh bạ thấy tên tổ chức");
-  for (const m of MUC) assert.equal((await ketLuan(w2, ADM, id2, { muc: m, dat: true })).status, 200, m);
-  const datHuy = await dat(w2, ADM, id2, { hoSo: { kieu: "MOI" } });
+  for (const m of MUC) assert.equal((await ketLuan(w2, XM, id2, { muc: m, dat: true })).status, 200, m);
+  const datHuy = await dat(w2, XM, id2, { hoSo: { kieu: "MOI" } });
   assert.equal(datHuy.status, 409, datHuy.text);
   assert.equal(datHuy.json.error.code, "role_invalid");
   // Lời mời bị huỷ SAU bước xác minh (người mời huỷ khi phiếu chờ duyệt) ⇒ duyệt không vai riêng: 409 TRƯỚC lô.
@@ -1224,7 +1256,7 @@ test("(44) Đ7.5: phiếu kết thúc không duyệt ⇒ bỏ giữ chỗ trong 
   const w2 = setup();
   const id2 = phieu(w2);
   const mv2 = giuChoChoPhieu(w2, id2);
-  const r = await w2.call("POST", `/api/dang-ky/phieu/${id2}/tu-choi`, { as: ADM, body: { phienBan: 1, lyDo: "KHONG_THUOC_DIEN" } });
+  const r = await w2.call("POST", `/api/dang-ky/phieu/${id2}/tu-choi`, { as: XM, body: { phienBan: 1, lyDo: "KHONG_THUOC_DIEN" } });
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(loiMoiCua(w2, mv2), { status: "MO", held_registration_id: null, used_by_staff_id: null });
 });

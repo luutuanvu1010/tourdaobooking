@@ -108,7 +108,10 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // SOAT_TIEN_HANG_NGAY vào bản đồ quyền mà gói Đơn hàng nhúng; không mã giao diện nào vào gói này. Trần = đúng số đo. CHỜ chủ dự án duyệt con số này (hỏi cùng báo cáo Đợt 2).
 // Gộp main vào nhánh đăng ký đợt 2 (17/11/2026): 114.976 của nhánh + 88 của main (ô `audit.money.daily`) = đo thật 115.064 byte, đúng tổng hai phần thêm,
 // không thêm byte nào do việc gộp. Phần +88 của main vẫn theo dòng «CHỜ chủ dự án duyệt» ở trên. Trần = đúng số đo.
-const TRAN_ORDERS = 115_064;
+// Nới 115.064 → 115.538 (ADR-0219 Đ2, Đ3, chủ duyệt 18/11/2026 «Duyệt ADR-0219, thi công luôn đi»): ba ô quyền mới `registration.verify`, `registration.verify.attachment`,
+// `registration.approve` vào bản đồ quyền dùng chung (hai ô xác minh gọn qua một hàm `xacMinhDangKy`), và trang mới /phieu-dang-ky vào `TRANG`/`THANH_BEN`/`TRANG_TOI` của
+// `muc-giao-dien.ts` (chỉ dữ liệu điều hướng; ADR quyết hàng chờ sang trang riêng). Đo thật 115.438 byte (+374), trần = số đo + 100. Không mã nghiệp vụ nào vào gói Đơn hàng.
+const TRAN_ORDERS = 115_538;
 
 function dung(trang: string) {
   const r = buildSync({

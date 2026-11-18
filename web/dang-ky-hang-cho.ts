@@ -1,8 +1,8 @@
-// Hàng chờ PHIẾU ĐĂNG KÝ ĐỐI TÁC ở trang Quản lý tài khoản (ADR-0206 Đ9; ADR-0207 Đ1–Đ4, Đ7, Đ9; ADR-0209 Đ3, Đ4; đợt 1 Task 12), cạnh hàng chờ xác minh phiếu tự khai.
+// Hàng chờ PHIẾU ĐĂNG KÝ ĐỐI TÁC ở trang riêng «Phiếu đăng ký đối tác» (ADR-0206 Đ9; ADR-0207 Đ1–Đ4, Đ7, Đ9; ADR-0209 Đ3, Đ4; ADR-0219 Đ1–Đ3; đợt 1 Task 12).
 // Ẩn/hiện hỏi bảng quyền (`can`, web/CLAUDE.md); máy chủ luôn kiểm lại từng route:
-//   - xem hàng chờ: `registration.queue.view` (Quản trị, Nhân sự, Toàn quyền);
-//   - bước xác minh (kết luận từng mục, Danh bạ, ba lệnh kết thúc): `party.verify` VÀ `party.view`; hiện số, mở ảnh thêm `party.verify.attachment`;
-//   - bước duyệt, từ chối duyệt, gửi lại lời mời: `account.create` (Nhân sự, Toàn quyền); «cấp sẽ áp» kèm tên cấp: `partner.commission.view` (Nhân sự không thấy tên cấp).
+//   - xem hàng chờ: `registration.queue.view` (Quản lý bán hàng, Quản trị, Nhân sự, Toàn quyền);
+//   - bước xác minh (kết luận từng mục, Danh bạ, ba lệnh kết thúc): `registration.verify` VÀ `party.view` (Quản lý bán hàng, Toàn quyền); hiện số, mở ảnh thêm `registration.verify.attachment`;
+//   - bước duyệt, từ chối duyệt, trả về xác minh, gửi lại lời mời: `registration.approve` (Quản trị, Nhân sự, Toàn quyền); «cấp sẽ áp» kèm tên cấp: `partner.commission.view` (Nhân sự không thấy tên cấp).
 // Mọi lệnh gửi `phienBan` = bản khai người dùng đang xem; 409 `registration_version_changed` ⇒ báo câu của máy chủ và mở lại phiếu. Số giấy tờ đủ chỉ nằm trong DOM của khung chi tiết
 // (mất khi đóng), không lưu ở đâu. Không ô chữ tự do: lý do chọn trong danh sách đóng. Chỉ dựng DOM bằng h().
 import { ApiError, api, type Api } from "./api";
@@ -53,9 +53,9 @@ const LY_DO_KHOP: Record<string, string> = { PHONE: "trùng số điện thoại
 
 export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
   if (!can(staff, "registration.queue.view")) return;
-  const xacMinhDuoc = can(staff, "party.verify") && can(staff, "party.view");
-  const xemTep = xacMinhDuoc && can(staff, "party.verify.attachment");
-  const duyetDuoc = can(staff, "account.create");
+  const xacMinhDuoc = can(staff, "registration.verify") && can(staff, "party.view");
+  const xemTep = xacMinhDuoc && can(staff, "registration.verify.attachment");
+  const duyetDuoc = can(staff, "registration.approve");
   const xemCap = can(staff, "partner.commission.view");
   let luot = 0;
   const baoLoi = h("div", { class: "alert", role: "alert", hidden: true });
@@ -373,7 +373,7 @@ export function dungHangChoDangKy(goc: HTMLElement, staff: Staff): void {
 
   replaceChildren(goc,
     h("h2", { id: "dk-hc-heading" }, CHU_HANG_CHO_DK.tieuDe),
-    h("p", { class: "muted" }, "Phiếu người ngoài tự gửi để làm đối tác. Quản trị xác minh, Nhân sự duyệt mở tài khoản."),
+    h("p", { class: "muted" }, "Phiếu người ngoài tự gửi để làm đối tác. Quản lý bán hàng xác minh; Quản trị hoặc Nhân sự duyệt mở tài khoản."),
     baoLoi, baoOk, danhSach, chiTiet);
   goc.hidden = false;
   void taiDanhSach();
