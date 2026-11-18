@@ -3510,7 +3510,8 @@ export interface QuyetDinhXacNhanInput {
    * Số đổi phí đưa đón của người xét cho các lượt đón MỞ của đơn (ADR-0218 Đ1.5): chỉ nhánh Còn vé đọc; nhận cả lượt đã có số (máy luôn tính ra số). Lượt không phải lượt mở của đơn hoặc nhắc hai lần ⇒ 400;
    * số sai hoặc thiếu lý do ⇒ 400 cùng câu của `kiemDoiPhi`. Tài khoản giữ quyền Đối tác gửi khoá này ⇒ 400 `transfer_fee_not_allowed`; khoá cũ `phiDon` ⇒ 400 `client_outdated`.
    */
-  doiPhi?: { legId: string; donGia: number; lyDo: string }[];
+  /** Mỗi phần tử: đổi số `{ legId, donGia, lyDo }` HOẶC bỏ số đã đổi trước đó `{ legId, bo: true }` (máy tính lại theo giá gốc / chương trình). */
+  doiPhi?: ({ legId: string; donGia: number; lyDo: string } | { legId: string; bo: true })[];
   lyDo?: string;
   ghiChu?: string;
 }

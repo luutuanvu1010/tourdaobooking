@@ -470,12 +470,13 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     // ADR-0218 Đ1.5: số đổi phí đưa đón ở Còn vé — `doiPhi: [{ legId, donGia, lyDo }]`, cho MỌI lượt đón MỞ của chính đơn này, kể cả lượt đã có số (chặn P5/P6 của ADR-0214 bỏ: máy luôn tính ra số).
     // Kiểm bằng `kiemDoiPhi` (cùng câu với lưu nháp: đơn giá số nguyên 0–5.000.000, lý do bắt buộc ≤ 300 ký tự). Người đổi = người bấm. Phí chưa áp ở hôm nay ⇒ số vẫn kiểm nhưng không sinh dòng.
     // Ghép vào CÙNG lô xác nhận qua `cong.phiDon.cauLenh`.
-    const doiTayChon = new Map<string, DoiTayLuu>();
+    const doiTayChon = new Map<string, DoiTayLuu | null>(); // null = BỎ số đã đổi trước đó (`{ legId, bo: true }`): máy tính lại
     if (body.doiPhi !== undefined && body.doiPhi !== null) {
       if (!Array.isArray(body.doiPhi)) return error(400, "invalid_input", CAU_DON_GIA_DOI_PHI);
       for (const p of body.doiPhi as unknown[]) {
-        const o = p as { legId?: unknown; donGia?: unknown; lyDo?: unknown } | null;
+        const o = p as { legId?: unknown; donGia?: unknown; lyDo?: unknown; bo?: unknown } | null;
         if (!o || typeof o.legId !== "string" || !chang.has(o.legId) || doiTayChon.has(o.legId)) return error(400, "invalid_input", "Lượt đưa đón không có trong đơn hoặc bị nhắc hai lần.");
+        if (o.bo === true) { doiTayChon.set(o.legId, null); continue; }
         const k = kiemDoiPhi({ donGia: o.donGia, lyDo: o.lyDo });
         if (!k.ok) return error(400, "invalid_input", k.cau);
         doiTayChon.set(o.legId, { donGia: k.doiPhi.donGia, lyDo: k.doiPhi.lyDo, nguoi: staff.id });

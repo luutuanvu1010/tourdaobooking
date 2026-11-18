@@ -498,6 +498,28 @@ test("câu báo thiếu phí (O_TRONG): đúng chữ ADR-0214 Đ3, chiều viế
   assert.equal(cauThieuPhiDon({ direction: "RETURN", tenDichVu: "Tour lặn biển" }), CAU_VE);
 });
 
+test("[kiểm độc lập Đợt 2, thấp-1] Còn vé BỎ số đã đổi: `doiPhi: [{ legId, bo: true }]` ⇒ máy tính lại theo giá gốc Sheet (50.000 × 2), dòng GIA_GOC, nhật ký ghi số đã đổi → giá gốc; không gửi gì thì số đã đổi được giữ", async () => {
+  const w = await setup({ coDichVuCanKiem: true });
+  w.sqlite.prepare("INSERT INTO ctl_service_transfer_price (id, catalog_code, per_pax_price, private_price, valid_from_at, created_at, updated_at) VALUES (?, 'TOUR_LAN', 50000, NULL, ?, ?, ?)").run(crypto.randomUUID(), AT, AT, AT);
+  const mo = async () => {
+    const k = await lap(w, [OUT(DS(30_000))]);
+    await ok(w.call("POST", `/api/orders/${k.id}/gui-xac-nhan`, { as: SALES, body: {} }), 201);
+    const v = (await ok(w.call("GET", `/api/orders/${k.id}`, { as: ADM }), 200)).json;
+    return { k, conVe: (them: Record<string, unknown>) => w.call("POST", `/api/orders/${k.id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, ...them } }), legId: k.services[0].legs[0].id };
+  };
+  const giu = await mo();
+  await ok(giu.conVe({}), 200, "Còn vé không kèm gì");
+  assert.deepEqual(dongPhi(w, giu.k.id).map((d: any) => [d.fee_calc_source, d.unit_price, d.line_total]), [["DOI_TAY", 30_000, 60_000]], "không gửi gì ⇒ giữ số đã đổi");
+  const bo = await mo();
+  await ok(bo.conVe({ doiPhi: [{ legId: bo.legId, bo: true }] }), 200, "Còn vé bỏ số đổi");
+  assert.deepEqual(dongPhi(w, bo.k.id).map((d: any) => [d.fee_calc_source, d.unit_price, d.line_total]), [["GIA_GOC", 50_000, 100_000]], "bỏ đổi ⇒ giá gốc");
+  assert.match(String(nhatKyXacNhan(w, bo.k.id)[0].detail), /30\.000 ₫ × 2 \(đổi số: Văn phòng đổi\) → 50\.000 ₫ × 2 \(giá gốc\)/);
+  assert.deepEqual(tien(w, bo.k.id).total, 1_100_000);
+  const sai = await mo();
+  const r = await sai.conVe({ doiPhi: [{ legId: sai.legId, bo: true }, { legId: sai.legId, bo: true }] });
+  assert.equal(r.status, 400, "nhắc hai lần ⇒ 400");
+});
+
 // ---- Lưới văn bản (canh): cửa không đi qua kiemCongXacNhan phải tự chốt; thứ tự cổng trong kiemCongXacNhan theo trang ghép §3 ----
 const boChuThich = (s: string): string => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:"'`\\])\/\/[^\n]*/g, "$1");
 const doc = (rel: string): string => boChuThich(readFileSync(new URL(rel, import.meta.url), "utf8"));

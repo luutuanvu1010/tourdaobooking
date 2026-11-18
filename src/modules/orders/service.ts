@@ -656,10 +656,13 @@ export interface PhiDonXacNhan {
  * Không ném lỗi tràn: số khách mỗi dịch vụ ≤ MAX_GUESTS_PER_SERVICE (50), đơn giá ≤ 5.000.000 đ ⇒ mỗi dòng ≤ 2,5e8 (như `tinhPhiNhap`).
  */
 export async function chuanBiPhiDonXacNhan(
-  db: D1Database, don: NonNullable<Awaited<ReturnType<typeof findOrder>>>, ngay: string, doiTayThem: ReadonlyMap<string, DoiTayLuu> = new Map(),
+  db: D1Database, don: NonNullable<Awaited<ReturnType<typeof findOrder>>>, ngay: string, doiTayThem: ReadonlyMap<string, DoiTayLuu | null> = new Map(),
 ): Promise<PhiDonXacNhan> {
   const dv: DichVuChoPhi[] = don.services.map((s) => ({ ref: s.id, ten: s.name, catalogCode: s.catalogCode, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) }));
-  const phi = await tinhPhiNhap(db, dv, { bookerPartyId: don.bookerPartyId, doiTay: new Map([...(await docPhiDaLuu(db, don.id)).doiTay, ...doiTayThem]), ngay });
+  // `doiTayThem`: số đổi mới ghi đè số đã lưu; giá trị null = BỎ số đã đổi (Còn vé `{ legId, bo: true }`).
+  const doiTay = new Map<string, DoiTayLuu>((await docPhiDaLuu(db, don.id)).doiTay);
+  for (const [k, v] of doiTayThem) { if (v === null) doiTay.delete(k); else doiTay.set(k, v); }
+  const phi = await tinhPhiNhap(db, dv, { bookerPartyId: don.bookerPartyId, doiTay, ngay });
   const coDongCu = (don.phiDuaDon?.dong.length ?? 0) > 0;
   if (!phi.apDung && !coDongCu) return { apDung: false, thieu: [], subtotalMoi: don.subtotal, totalMoi: don.total, chiTiet: new Map(), cauLenh: () => [] };
   const tongDichVu = don.services.reduce((t, s) => t + s.items.reduce((u, i) => u + i.lineTotal, 0), 0);

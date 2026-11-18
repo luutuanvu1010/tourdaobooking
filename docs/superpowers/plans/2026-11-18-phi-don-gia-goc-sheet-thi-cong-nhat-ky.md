@@ -57,3 +57,10 @@ Người thi công: trợ lý, 18/11. CHƯA có người kiểm độc lập (s�
 - Nhật ký thay đổi phát hành (bước A.0 của HANDOFF) và cập nhật `docs/HANDOFF-N1.md`: việc của lượt phát hành, chưa làm.
 - `docs/gia/README.md` của tourdaovn (13 → 15 cột).
 - Kiểm axe (màu) cho giao diện mới.
+
+## Sửa sau kiểm độc lập Đợt 2 (18/11, KHÔNG ĐẠT ở 94ae001df)
+- CAO-1: `src/phi-don-doc-tien.test.ts` chuyển `phiDon` → `doiPhi`; `setup` bật công tắc «Hiện riêng» để các bài canh dòng phí riêng trên biên nhận vẫn đúng; không bài nào xoá hay nới (17/17 xanh).
+- CAO-2: bài hướng dẫn «Bật phí đưa đón trên đơn» được ĐỌC LẠI và viết lại theo màn mới (ngày áp, giá gốc Sheet, chương trình, Đổi phí, khối gập «luật cũ»); sau đó mới `npm run huong-dan:xem-lai -- phi-don`. Một lần bảng từ bắt «cấp đại lý» ⇒ sửa «cấp độ đại lý» (cả bài hướng dẫn, câu báo, bảng tham chiếu).
+- VỪA-1: bài đếm khách cho dịch vụ nhóm `PAX(1,2,1,1)` ở `phi-don-don.test.ts` (phí trên 4 người, chiều về min(3,4)). Phá cố ý: (a) `soKhachTinhTien: s.pax.adult` ⇒ đỏ đúng bài mới (bốn bài cũ vẫn xanh — chứng tỏ trước đó có kẽ hở); (b) đếm theo lượt nhóm (kiểu `soKhachTinhHoaHong`, 1 lượt) ⇒ đỏ 5 bài gồm bài mới; hoàn nguyên, 11/11 xanh.
+- VỪA-2: không sửa gọn được (điều kiện `BOOKER_VALUE` chỉ có ở câu UPDATE) ⇒ nợ có hạn 2027-02-28 ở mục «Việc còn treo / nợ» của `docs/HANDOFF-N1.md`.
+- THẤP-1: Còn vé bỏ được số đã đổi: phần tử `{ legId, bo: true }` trong `doiPhi` ⇒ máy chủ tính lại (`chuanBiPhiDonXacNhan` nhận `null` = bỏ); nút «Bỏ đổi phí» hiện ở lượt đang mang số đổi (`web/xac-nhan-don-ui.ts`); bài route trong `phi-don-xac-nhan.test.ts` (không gửi gì ⇒ giữ; bo ⇒ giá gốc, nhật ký ghi cũ → mới; nhắc hai lần ⇒ 400). Chưa chạy lại kịch bản Chrome cho nút mới.

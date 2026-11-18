@@ -255,12 +255,12 @@ function taoOLuot(lx: LuotGioConVe, s: DichVuDon, capMocTatCa: () => void, mocPh
 interface OPhiConVe {
   legId: string;
   /** Số đổi người xét đặt (`null` = giữ số máy tính / số đã đổi), hoặc câu báo (gõ sai, hoặc lượt chưa có giá mà chưa đổi) — kèm ô để đặt tiêu điểm. */
-  doc(): { ok: true; doiPhi: DoiPhi | null } | { ok: false; cau: string; o: HTMLElement };
+  doc(): { ok: true; doiPhi: DoiPhi | null; bo: boolean } | { ok: false; cau: string; o: HTMLElement };
   datLoi(cau: string | null): void;
   el: HTMLElement;
 }
 
-interface LuotPhiConVe { legId: string; direction: "OUT" | "RETURN"; tenDichVu: string; xeRieng: boolean; may: string; chuaTinhDuoc: string | null }
+interface LuotPhiConVe { /** Lượt đang mang số văn phòng đã đổi (nguồn DOI_TAY) ⇒ có nút «Bỏ đổi phí» để trả về số máy tính. */ daDoi: boolean; legId: string; direction: "OUT" | "RETURN"; tenDichVu: string; xeRieng: boolean; may: string; chuaTinhDuoc: string | null }
 
 function taoOPhiConVe(t: LuotPhiConVe): OPhiConVe {
   const id = `cx-phi-${t.legId}`;
@@ -273,14 +273,25 @@ function taoOPhiConVe(t: LuotPhiConVe): OPhiConVe {
   const nhom = h("div", { class: "dd-phi-doi" }, oGia, oLyDo);
   nhom.hidden = true;
   let doi = false;
+  let bo = false;
+  const nutBo = h("button", { type: "button", class: "btn", "data-o-phi": "nut-bo", "aria-pressed": "false" }, NHAN_NUT_BO_DOI_PHI) as HTMLButtonElement;
+  nutBo.hidden = !t.daDoi;
   const oHienTai = (): DoiPhiO => ({ doi, donGia: gia.value, lyDo: lyDo.value });
   const datLoi = (cau: string | null): void => {
     loi.hidden = cau === null;
     loi.textContent = cau ?? "";
     gia.setAttribute("aria-invalid", cau === null ? "false" : "true");
   };
+  nutBo.addEventListener("click", () => {
+    bo = !bo;
+    nutBo.setAttribute("aria-pressed", String(bo));
+    nutBo.textContent = bo ? "Giữ số đã đổi" : NHAN_NUT_BO_DOI_PHI;
+    if (bo) { doi = false; nhom.hidden = true; nut.textContent = NHAN_NUT_DOI_PHI; }
+    datLoi(null);
+  });
   nut.addEventListener("click", () => {
     doi = !doi;
+    if (doi) { bo = false; nutBo.setAttribute("aria-pressed", "false"); nutBo.textContent = NHAN_NUT_BO_DOI_PHI; }
     nhom.hidden = !doi;
     nut.textContent = doi ? NHAN_NUT_BO_DOI_PHI : NHAN_NUT_DOI_PHI;
     datLoi(null);
@@ -294,8 +305,9 @@ function taoOPhiConVe(t: LuotPhiConVe): OPhiConVe {
     doc: () => {
       const kq = doiPhiTuO(oHienTai());
       if (!kq.ok) return { ok: false, cau: kq.cau, o: gia };
+      if (bo) return { ok: true, doiPhi: null, bo: true };
       if (kq.doiPhi === null && t.chuaTinhDuoc !== null) return { ok: false, cau: t.chuaTinhDuoc, o: nut };
-      return { ok: true, doiPhi: kq.doiPhi };
+      return { ok: true, doiPhi: kq.doiPhi, bo: false };
     },
     datLoi,
     el: h(
@@ -303,6 +315,7 @@ function taoOPhiConVe(t: LuotPhiConVe): OPhiConVe {
       { class: "cx-luot", "data-phi-leg-id": t.legId },
       h("p", { class: "dd-phi-may" }, `${TEN_PHI_DUA_DON} · ${CHIEU_LABEL[t.direction]} · ${t.tenDichVu}: ${t.may}`),
       nut,
+      nutBo,
       nhom,
       loi,
     ),
@@ -369,8 +382,8 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
   const thieuPhi = order.phiDuaDon?.thieu ?? [];
   const tenDv = (id: string) => order.services.find((x) => x.id === id)?.name ?? "";
   const luotPhi: LuotPhiConVe[] = [
-    ...(order.phiDuaDon?.dong ?? []).map((d) => ({ legId: d.legId, direction: d.direction, tenDichVu: tenDv(d.serviceId), xeRieng: d.kind === "PER_TRIP", may: chuSoMay(d), chuaTinhDuoc: null })),
-    ...thieuPhi.map((t) => ({ legId: t.legId, direction: t.direction, tenDichVu: t.serviceName, xeRieng: false, may: "chưa tính được", chuaTinhDuoc: cauThieuPhiDon({ direction: t.direction, tenDichVu: t.serviceName, lyDo: t.lyDo }) })),
+    ...(order.phiDuaDon?.dong ?? []).map((d) => ({ legId: d.legId, direction: d.direction, tenDichVu: tenDv(d.serviceId), xeRieng: d.kind === "PER_TRIP", may: chuSoMay(d), chuaTinhDuoc: null, daDoi: d.nguon === "DOI_TAY" })),
+    ...thieuPhi.map((t) => ({ legId: t.legId, direction: t.direction, tenDichVu: t.serviceName, xeRieng: false, daDoi: false, may: "chưa tính được", chuaTinhDuoc: cauThieuPhiDon({ direction: t.direction, tenDichVu: t.serviceName, lyDo: t.lyDo }) })),
   ];
   const doiTacXet = formGonDoiTac(c.staff);
   const oPhi = doiTacXet ? [] : luotPhi.map(taoOPhiConVe);
@@ -398,7 +411,8 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
     for (const x of oPhi) {
       const d = x.doc();
       x.datLoi(d.ok ? null : d.cau);
-      if (d.ok && d.doiPhi !== null) doiPhi.push({ legId: x.legId, ...d.doiPhi });
+      if (d.ok && d.bo) doiPhi.push({ legId: x.legId, bo: true });
+      else if (d.ok && d.doiPhi !== null) doiPhi.push({ legId: x.legId, ...d.doiPhi });
       else if (!d.ok && dauTien === null) dauTien = d.o;
     }
     if (dauTien !== null) {
