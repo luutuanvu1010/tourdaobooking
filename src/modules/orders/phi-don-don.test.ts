@@ -121,3 +121,14 @@ test("lý do đổi phí (chữ văn phòng gõ) chỉ người có ô xem đặ
   assert.equal(p.dong[0].lyDoDoi, "Khách quen", "không sửa bản gốc");
   assert.equal(anLyDoDoiPhi(null), null);
 });
+
+test("đếm khách (ADR-0203 ĐB2, sổ vàng `lam_ro_khi_xac_nhan.dem_khach`): luôn đếm NGƯỜI = người lớn + trẻ em + cao tuổi, không em bé, KỂ CẢ dịch vụ tính theo NHÓM — 1 lớn + 2 trẻ + 1 cao tuổi + 1 em bé ⇒ phí tính trên 4 người", () => {
+  // `DichVuChoPhi` không mang đơn vị tính: dịch vụ nhóm (vd per4Pax) đi cùng một đường đếm; không đếm theo lượt nhóm (`soKhachTinhHoaHong`) và không chỉ người lớn.
+  const ds = [dv("nhom", PAX(1, 2, 1, 1), [leg("a", "OUT"), leg("b", "RETURN", { paxOverride: 3 })])];
+  const luot = luotDauVao(ds, new Map());
+  assert.deepEqual(luot.map((l) => l.soKhachTinhTien), [4, 4], "4 người, em bé không tính");
+  const p = tinh(ds);
+  assert.deepEqual([p.theoChang.get("a")!.quantity, p.theoChang.get("a")!.lineTotal], [4, 200_000], "chiều đi 4 × 50.000");
+  assert.deepEqual([p.theoChang.get("b")!.quantity, p.theoChang.get("b")!.lineTotal], [3, 150_000], "chiều về 3 người riêng (< 4) ⇒ 3 × 50.000");
+  assert.equal(p.tong, 350_000);
+});
