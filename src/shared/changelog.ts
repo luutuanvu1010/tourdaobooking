@@ -28,7 +28,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Huỷ được từng vé lẻ, có ghi lý do. Vé đang giữ cho đơn bị huỷ thì máy tự cấp vé khác cho đơn; vé đã gửi khách thì văn phòng phải gửi lại vé thay." },
       { kind: "doi", text: "«Huỷ lô» nay dùng được cả với lô đã cấp cho đơn: máy báo trước số vé huỷ, số vé giữ nguyên vì đã dùng, số đơn được cấp vé thay." },
       { kind: "doi", text: "Huỷ vé hoặc lô vé hãng ngoài đã cấp cho đơn: chỉ Quản lý bán hàng, Quản trị và Toàn quyền làm được. Bán hàng vẫn huỷ được lô nhập dở chưa cấp cho đơn nào." },
-      { kind: "moi", text: "Vé hãng ngoài chưa từng giữ cho đơn mà huỷ nhầm thì nhập lại đúng ảnh vé đó là được. Dòng vé đã huỷ cho biết huỷ lúc nào, ai huỷ, lý do, và vé còn nhập lại được không." },
+      { kind: "moi", text: "Vé hãng ngoài chưa từng giữ cho đơn mà huỷ nhầm thì nhập lại đúng ảnh là được. Dòng vé đã huỷ ghi giờ huỷ, người huỷ, lý do." },
       { kind: "moi", text: "Huỷ vé đã gửi khách phải gõ lại bốn chữ cuối số sê-ri; huỷ lô có vé đã gửi khách phải gõ đúng số vé đó, để khỏi bấm nhầm." },
       { kind: "doi", text: "Danh sách lô và danh sách vé của lô chia trang, mỗi trang 50 dòng, có nút «Trang trước» và «Trang sau»." },
     ],

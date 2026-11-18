@@ -183,8 +183,13 @@ if (!nhapLo && !taoVe) {
     try {
       xem = await api<XemTruocHuy>(`/api/ve/lo/${encodeURIComponent(l.loId)}/xem-truoc-huy`);
       if (xem.daGuiPhaiGuiLai > 0) { // mã đơn của các vé đã gửi khách (chỉ khi người xem có quyền xem đơn): để câu báo sau huỷ chỉ đúng đơn cần gửi lại
-        const ds = await api<{ ve: VeTrongLo[] }>(`/api/ve/lo/${encodeURIComponent(l.loId)}/ve-trong-lo`).catch(() => ({ ve: [] as VeTrongLo[] }));
-        donGuiLai = [...new Set(ds.ve.filter((v) => v.tinhTrang === "DA_GUI" && v.maDon).map((v) => v.maDon as string))];
+        const tatCaVe: VeTrongLo[] = [];
+        for (let t = 1; t <= 40; t++) { // danh sách chia trang 50: đi hết các trang để câu «đơn cần gửi lại» đủ
+          const ds = await api<{ ve: VeTrongLo[]; coTrangSau: boolean }>(`/api/ve/lo/${encodeURIComponent(l.loId)}/ve-trong-lo?trang=${t}`).catch(() => ({ ve: [] as VeTrongLo[], coTrangSau: false }));
+          tatCaVe.push(...ds.ve);
+          if (!ds.coTrangSau) break;
+        }
+        donGuiLai = [...new Set(tatCaVe.filter((v) => v.tinhTrang === "DA_GUI" && v.maDon).map((v) => v.maDon as string))];
       }
     } catch (err) { showError(errorEl, lyDoLoi(err)); return; }
     const dong = [

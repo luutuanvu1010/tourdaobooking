@@ -9,6 +9,7 @@ import { moBangTruot } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
 import { chuanHoaSoSeri } from "../src/shared/so-seri-ve";
+import { ngayNgan } from "../src/shared/vn-date";
 
 export type TinhTrangVe = "TRONG_KHO" | "DA_GIU" | "DA_GUI" | "DA_DUNG" | "DA_HUY";
 export type NhapLai = "NHAP_LAI_DUOC" | "DA_NHAP_LAI" | "KHONG_NHAP_LAI_DUOC";
@@ -16,7 +17,7 @@ export interface VeTrongLo { soSeri: string; tuNgay: string; denNgay: string; ti
 export interface TrangVe { ve: VeTrongLo[]; trang: number; coTrangSau: boolean; tongVe: number }
 const NHAN_NHAP_LAI: Readonly<Record<NhapLai, string>> = { NHAP_LAI_DUOC: "Nhập lại được", DA_NHAP_LAI: "Đã nhập lại", KHONG_NHAP_LAI_DUOC: "Không nhập lại được" };
 /** «HH:mm ngày dd/MM» giờ Việt Nam của một mốc ISO UTC. */
-const gioNgayVn = (iso: string): string => { const [n, g] = new Date(new Date(iso).getTime() + 7 * 3600 * 1000).toISOString().split("T") as [string, string]; return `${g.slice(0, 5)} ngày ${n.slice(8, 10)}/${n.slice(5, 7)}`; };
+const gioNgayVn = (iso: string): string => { const [n, g] = new Date(new Date(iso).getTime() + 7 * 3600 * 1000).toISOString().split("T") as [string, string]; return `${g.slice(0, 5)} ngày ${ngayNgan(n, n)}`; };
 /** Dòng «Trang N» và hai nút «Trang trước» / «Trang sau» (chia trang 50, chủ chốt 18/11). Không hiện khi chỉ có một trang. */
 export function thanhTrang(trang: number, coTrangSau: boolean, doi: (trangMoi: number) => void): HTMLElement | null {
   if (trang <= 1 && !coTrangSau) return null;

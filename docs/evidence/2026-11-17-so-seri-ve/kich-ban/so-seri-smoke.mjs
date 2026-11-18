@@ -41,7 +41,7 @@ try {
       await bocucSach(p, `${kho} kho vé`);
     });
     if (kho === KHO[0][0]) await buoc(`${kho}.2`, "Huỷ vé lẻ: hộp hỏi lý do, huỷ xong vé hiện Đã huỷ", async () => {
-      assert.equal(await bam(p, '[data-action="huy-ve"]'), true);
+      assert.equal(await bam(p, 'li[data-tinh-trang="TRONG_KHO"] [data-action="huy-ve"]'), true); // vé trong kho: chưa từng giữ cho đơn ⇒ huỷ nhầm nhập lại được
       await choHop(p);
       await chup(p, `${kho}-3-hop-huy-ve`, false);
       await go(p, "#vk-ly-do-huy", "Vé in nhầm ngày, huỷ để cấp lại");
@@ -49,6 +49,13 @@ try {
       await choDongHop(p);
       await sleep(800);
       await chup(p, `${kho}-4-sau-huy-ve`);
+      // Chủ chốt 18/11: vé hãng ngoài chưa từng giữ cho đơn huỷ nhầm thì nhập lại được; dòng vé đã huỷ ghi giờ huỷ, người huỷ, lý do.
+      assert.equal(await bam(p, '[data-action="xem-ve-lo"]'), true);
+      await p.waitFor("!!document.querySelector('[data-khoi=\"ve-trong-lo\"] li[data-tinh-trang=\"DA_HUY\"]')", "dòng vé đã huỷ");
+      const huyTxt = await p.ev("document.querySelector('[data-khoi=\"ve-trong-lo\"] li[data-tinh-trang=\"DA_HUY\"]').innerText");
+      assert.match(huyTxt, /Đã huỷ lúc \d\d:\d\d ngày \d\d\/\d\d · bởi .+ · lý do: Vé in nhầm ngày/);
+      assert.match(huyTxt, /Nhập lại được/);
+      await chup(p, `${kho}-4b-ve-da-huy`);
     });
     await buoc(`${kho}.3`, "Tìm vé theo số sê-ri", async () => {
       assert.ok(await go(p, "#vk-tim-so-seri", (seri[1] ?? "").toLowerCase()));

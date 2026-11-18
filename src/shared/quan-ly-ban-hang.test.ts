@@ -39,6 +39,7 @@ test("Đ1 + ADR-0186 + ADR-0209: cột mới có ba ô nghiệp vụ, ô partner
     "party.self.submit",
     "party.self.view",
     "ve.doi-chieu.view", // ADR-0175 §2.7: Quản lý bán hàng xem đối chiếu và người quét
+    "ve.huy-hang-ngoai", // ADR-0217 Đ3 (chủ chốt 18/11): huỷ vé / lô hãng ngoài đã cấp cho đơn
     "ve.phat-hanh", // ADR-0175 Đ1.3 (chủ duyệt 2026-11-08): Quản lý bán hàng tạo được vé Tour Đảo
     "ve.quet.tinh", "ve.quet.xem", // ADR-0175 Đ3, §2.9: Quản lý bán hàng quét và tính vé Tour Đảo
   ]);

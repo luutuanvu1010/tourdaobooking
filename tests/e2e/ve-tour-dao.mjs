@@ -263,13 +263,15 @@ assert.equal(Number((await sqlRows(`SELECT s.nhap_tay AS n FROM vdt_scan s JOIN 
 assert.match((await sqlRows("SELECT detail FROM audit_log WHERE action = 've_quet' AND detail LIKE '%nhập tay%' ORDER BY created_at DESC LIMIT 1"))[0].detail, new RegExp(h1.s));
 assert.equal((await quet(FIELD, "VE_ZZZZZZZZ")).body.ma, "KHONG_PHAI_VE_TD", "số lạ cùng câu đỏ với mã lạ");
 // huỷ vé lẻ: đã dùng 409; chưa dùng huỷ được (vé đã mở) kèm vé thay; quyền; mã vé không lộ
-const huyVe = (cookie, soSeri, lyDo = "In sai ngày, huỷ vé e2e") => call(cookie, "POST", "/api/ve/huy-ve", { soSeri, lyDo });
+const huyVe = (cookie, soSeri, lyDo = "In sai ngày, huỷ vé e2e", them = {}) => call(cookie, "POST", "/api/ve/huy-ve", { soSeri, lyDo, ...them });
 const x1 = await huyVe(KT, h1.s);
 assert.equal(x1.status, 409, JSON.stringify(x1.body));
 assert.equal(x1.body.error.code, "ve_da_dung");
 assert.equal((await huyVe(SALES, h2.s)).status, 403, "Bán hàng thường không huỷ vé Tour Đảo");
 assert.equal((await huyVe(FIELD, h2.s)).status, 403);
-const x2 = await huyVe(KT, h2.s);
+const thieuXn = await huyVe(KT, h2.s);
+assert.equal(thieuXn.status, 400, "vé đã gửi khách: phải gõ bốn chữ cuối số sê-ri (chủ chốt 18/11)");
+const x2 = await huyVe(KT, h2.s, "In sai ngày, huỷ vé e2e", { xacNhanBonCuoi: h2.s.slice(-4) });
 assert.equal(x2.status, 200, JSON.stringify(x2.body));
 assert.deepEqual([x2.body.trangThai, x2.body.traSuat, x2.body.canGuiLai], ["DA_HUY", true, true]);
 assert.ok(["DA_CAP", "THIEU"].includes(x2.body.veThay));
@@ -288,7 +290,8 @@ assert.equal(xem.status, 200, JSON.stringify(xem.body));
 assert.equal(xem.body.daCap, true);
 assert.ok(xem.body.giuNguyenDaDung >= 1 && xem.body.huyDuoc >= 1);
 assert.equal((await call(KT, "POST", `/api/ve/lo/${loTD1}/bo`, {})).status, 400, "lô đã cấp cần lý do");
-const boLo = await call(KT, "POST", `/api/ve/lo/${loTD1}/bo`, { lyDo: "Nhà cung cấp thu hồi lô e2e" });
+if (xem.body.daGuiPhaiGuiLai > 0) assert.equal((await call(KT, "POST", `/api/ve/lo/${loTD1}/bo`, { lyDo: "Nhà cung cấp thu hồi lô e2e" })).status, 400, "có vé đã gửi khách: phải gõ số vé đó");
+const boLo = await call(KT, "POST", `/api/ve/lo/${loTD1}/bo`, { lyDo: "Nhà cung cấp thu hồi lô e2e", ...(xem.body.daGuiPhaiGuiLai > 0 ? { xacNhanSoVeDaGui: xem.body.daGuiPhaiGuiLai } : {}) });
 assert.equal(boLo.status, 200, JSON.stringify(boLo.body));
 assert.equal(boLo.body.veDaHuy, xem.body.huyDuoc);
 assert.equal((await sqlRows(`SELECT status FROM vdt_batch WHERE id = '${loTD1}'`))[0].status, "VOID");

@@ -650,8 +650,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/ve/lo-da-huy", access: "office" }, // Lô đã huỷ gần đây (chủ quyết 2/11/2026); thân hỏi ve.kho.manage
   { method: "POST", path: "/api/ve/lo-da-huy/:veId/mo", access: "office" }, // Mở ảnh vé của lô đã huỷ, khoá hẳn vé (chủ quyết 2/11/2026); thân hỏi ve.kho.manage
   { method: "GET", path: "/api/ve/lo-da-huy/:veId/anh", access: "office" }, // Xem ảnh vé đã mở; thân hỏi ve.kho.manage
-  { method: "POST", path: "/api/ve/lo/:id/bo", access: "office" }, // ADR-0156 Đ2 mục 3: Bỏ lô; thân hỏi ve.kho.manage
-  { method: "POST", path: "/api/ve/huy-ve", access: "office" }, // ADR-0217 Đ3: huỷ vé lẻ theo số sê-ri; thân hỏi ve.phat-hanh (lô Tour Đảo) hoặc ve.kho.manage (lô hãng ngoài)
+  { method: "POST", path: "/api/ve/lo/:id/bo", access: "office" }, // ADR-0156 Đ2 mục 3: Bỏ lô; thân hỏi ve.kho.manage; lô hãng ngoài ĐÃ cấp thêm ve.huy-hang-ngoai (ADR-0217, chủ 18/11)
+  { method: "POST", path: "/api/ve/huy-ve", access: "office" }, // ADR-0217 Đ3: huỷ vé lẻ theo số sê-ri; thân hỏi ve.phat-hanh (vé Tour Đảo) hoặc ve.kho.manage + ve.huy-hang-ngoai (vé hãng ngoài; chủ chốt 18/11)
   { method: "GET", path: "/api/ve/tim", access: "office" }, // ADR-0217: tìm vé theo số sê-ri; quyền xem như GET /api/ve/lo
   { method: "GET", path: "/api/ve/lo/:id/xem-truoc-huy", access: "office" }, // ADR-0217 Đ3 mục 5: bản xem trước khi huỷ lô, máy chủ đếm
   { method: "GET", path: "/api/ve/lo/:id/ve-trong-lo", access: "office" }, // ADR-0217: danh sách vé của lô (số sê-ri, hạn, tình trạng)
