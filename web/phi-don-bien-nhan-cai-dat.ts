@@ -32,7 +32,7 @@ export async function ganCaiDatPhiDonBienNhan(el: HTMLElement): Promise<void> {
     replaceChildren(
       el,
       h("h2", { id: "phi-don-bien-nhan-heading" }, "Hiện riêng phí đưa đón trên biên nhận khách lẻ"),
-      h("p", { id: "phi-don-bien-nhan-trang-thai" }, s.hienRieng ? "Đang hiện riêng: biên nhận khách lẻ có dòng «Phí đưa đón»." : "Đang gộp: phí đưa đón được cộng vào giá dịch vụ, biên nhận khách lẻ không có dòng riêng."),
+      h("p", { id: "phi-don-bien-nhan-trang-thai" }, s.hienRieng ? "Đang hiện riêng: biên nhận khách lẻ có dòng «Phí đưa đón»." : "Đang gộp: phí đưa đón được cộng vào giá dịch vụ, biên nhận khách lẻ không in dòng «Phí đưa đón»."),
       h("p", { class: "muted" }, "Chỉ đổi cách in. Khách lẻ vẫn trả đủ phí, tổng tiền, tiền đã thu và còn lại không đổi. Áp cho mọi bản in sau khi đổi, kể cả đơn đã xác nhận."),
       loi,
       nut,
