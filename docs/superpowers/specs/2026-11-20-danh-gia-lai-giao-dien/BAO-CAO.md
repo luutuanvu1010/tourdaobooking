@@ -34,7 +34,7 @@ Trợ lý đánh giá giao diện đã chấm **87 màn** (63 trên 65 trang, đ
 | Họ màn | Chặn việc / Nặng | Nhận định | Thứ tự đề nghị |
 |---|---|---|---|
 | Đơn hàng + chi tiết (13 màn) | 0 / 16 | Yếu nhất tính theo số người dùng: tiền và việc thu tiền chưa rõ | 1 |
-| Lập đơn (4 màn) | 0 / 2 | Đã gọn hơn; đang có đợt sửa đã duyệt, chưa thi công | 1 (cùng đợt) |
+| Lập đơn (4 màn) | 0 / 2 | Đã gọn hơn: đợt sửa Tạo đơn 20/11 đã nằm trong bản được chấm (chưa lên bản chạy thật); còn bốn ý sửa của chủ ở `PHAT-HIEN.md` mục H | 1 (cùng đợt) |
 | Tài xế, chuyến (7 màn) | 0 / 4 | Màn đầu rõ việc; chuyến bị giữ không cho tài xế lối đi tiếp | 2 |
 | Điều phối xe (13 màn) | 0 / 8 | Dày; lỗi tập trung ở Chi tiết chuyến và vùng chạm | 2 |
 | Tiền (12 màn) | 0 / 8 | Đọc được; nhiều màn chấm lúc rỗng, liên kết nhỏ, hai nút «Thêm giá» | 3 |

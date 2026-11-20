@@ -88,10 +88,10 @@
 | 9 | Tài xế, chuyến | DRIVER:/cuoc | đã chụp, đã chấm | có vi phạm (2 tiêu chí không đạt) | 0 / 0 / 4 | có dữ liệu thử; màn đầu sau đăng nhập |
 | 10 | Tài xế, chuyến | DRIVER_PARTNER:/cuoc | đã chụp, đã chấm | có vi phạm (2 tiêu chí không đạt) | 0 / 1 / 5 | có dữ liệu thử; màn đầu sau đăng nhập |
 | 11 | Quản trị, Thiết lập | HR:/staff | đã chụp, đã chấm | có vi phạm (3 tiêu chí không đạt) | 0 / 2 / 7 | có dữ liệu thử; màn đầu sau đăng nhập |
-| 12 | Lập đơn | SALES:/order-form | đã chụp, đã chấm | có vi phạm (3 tiêu chí không đạt) | 0 / 0 / 5 | có dữ liệu thử; họ Lập đơn đang có đợt sửa đã duyệt, chưa thi công |
-| 13 | Lập đơn | PARTNER:/order-form | đã chụp, đã chấm | có vi phạm (2 tiêu chí không đạt) | 0 / 1 / 5 | có dữ liệu thử; họ Lập đơn đang có đợt sửa đã duyệt, chưa thi công |
-| 14 | Lập đơn | INTERN:/order-form | đã chụp, đã chấm | có vi phạm (2 tiêu chí không đạt) | 0 / 0 / 3 | có dữ liệu thử; họ Lập đơn đang có đợt sửa đã duyệt, chưa thi công |
-| 15 | Lập đơn | SALES:/order-form | đã chụp, đã chấm | có vi phạm (3 tiêu chí không đạt) | 0 / 1 / 5 | đơn mở ra là đơn đã có mã (màn «Sửa đơn»), không phải nháp chưa gửi; họ Lập đơn đang có đợt sửa đã duyệt, chưa thi công |
+| 12 | Lập đơn | SALES:/order-form | đã chụp, đã chấm | có vi phạm (3 tiêu chí không đạt) | 0 / 0 / 5 | có dữ liệu thử; đợt sửa Tạo đơn 20/11 đã nằm trong bản được chấm, chưa lên bản chạy thật |
+| 13 | Lập đơn | PARTNER:/order-form | đã chụp, đã chấm | có vi phạm (2 tiêu chí không đạt) | 0 / 1 / 5 | có dữ liệu thử; đợt sửa Tạo đơn 20/11 đã nằm trong bản được chấm, chưa lên bản chạy thật |
+| 14 | Lập đơn | INTERN:/order-form | đã chụp, đã chấm | có vi phạm (2 tiêu chí không đạt) | 0 / 0 / 3 | có dữ liệu thử; đợt sửa Tạo đơn 20/11 đã nằm trong bản được chấm, chưa lên bản chạy thật |
+| 15 | Lập đơn | SALES:/order-form | đã chụp, đã chấm | có vi phạm (3 tiêu chí không đạt) | 0 / 1 / 5 | đơn mở ra là đơn đã có mã (màn «Sửa đơn»), không phải nháp chưa gửi; đợt sửa Tạo đơn 20/11 đã nằm trong bản được chấm, chưa lên bản chạy thật |
 | 16 | Đơn hàng + chi tiết | SALES:/orders | đã chụp, đã chấm | có vi phạm (3 tiêu chí không đạt) | 0 / 0 / 8 | có dữ liệu thử |
 | 17 | Đơn hàng + chi tiết | ACCOUNTING:/orders | đã chụp, đã chấm | có vi phạm (3 tiêu chí không đạt) | 0 / 3 / 4 | có dữ liệu thử |
 | 18 | Đơn hàng + chi tiết | SALES:/order | đã chụp, đã chấm | có vi phạm (2 tiêu chí không đạt) | 0 / 2 / 5 | có dữ liệu thử; trang dài, máy dừng ở số ảnh tối đa nên CHƯA CHỤP HẾT |

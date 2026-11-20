@@ -47,7 +47,7 @@ for (const m of man) {
   const c = chup[soCua(m.so)]; const d = dem(m.so);
   const tt = !c ? "chưa chụp" : (c.oHong?.length ? "ô hỏng" : coBaoCao(m.so) ? "đã chụp, đã chấm" : "đã chụp, chưa chấm");
   const mayDo = c ? c.dongDau.replace("KẾT QUẢ MÁY ĐO: ", "") : "—";
-  const gc = [DU_LIEU[m.so] ?? "có dữ liệu thử", chuaHet(m.so) ? "trang dài, máy dừng ở số ảnh tối đa nên CHƯA CHỤP HẾT" : null, m.dau ? "màn đầu sau đăng nhập" : null, m.dangSua ? "họ Lập đơn đang có đợt sửa đã duyệt, chưa thi công" : null, m.gop ? `chấm trong lượt gộp \`${m.gop}\`` : null].filter(Boolean).join("; ");
+  const gc = [DU_LIEU[m.so] ?? "có dữ liệu thử", chuaHet(m.so) ? "trang dài, máy dừng ở số ảnh tối đa nên CHƯA CHỤP HẾT" : null, m.dau ? "màn đầu sau đăng nhập" : null, m.dangSua ? "đợt sửa Tạo đơn 20/11 đã nằm trong bản được chấm, chưa lên bản chạy thật" : null, m.gop ? `chấm trong lượt gộp \`${m.gop}\`` : null].filter(Boolean).join("; ");
   md.push(`| ${m.so} | ${m.ho} | ${m.bo}:${trangGoc(m.trang)} | ${tt} | ${mayDo} | ${d.chan} / ${d.nang} / ${d.nho} | ${gc} |`);
 }
 md.push("", "Không ô nào «đo thiếu» hay «ô hỏng» ở lượt chụp cuối. Hai trang `/404` và `/ngoai-mang` lượt đầu chụp bằng người chưa đăng nhập ra ô hỏng (bị chuyển về Đăng nhập), đã chụp lại bằng tài khoản Bán hàng.", "Màn 68 chấm hai lần: lượt gộp có một dòng sai khuôn nên giao lại riêng một lần; bảng gộp dùng báo cáo riêng.", "");

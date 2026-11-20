@@ -270,3 +270,17 @@ Kiểm thêm ngoài mẫu, đều khớp: màn 4, 87, 18, 10, 23; màn 17 khớp
 Đối chiếu bảng phủ với thư mục thật: 65 trang trong `PAGES` có đúng 65 dòng; 87 màn đều có `tom-tat.md` và ảnh hai khổ; 74 tệp báo cáo khớp; không dòng «đo thiếu» hay «ô hỏng» nào bị coi là đạt; số 1 / 70 / 405 khớp bảng gộp.
 Đã sửa theo kết quả kiểm lại: ghi đúng các lần lưu lúc chụp; thêm Chi tiết đơn vào danh sách chưa chụp hết; gắn nhãn «nghi báo nhầm» và «chữ đã duyệt» vào bảng A; bớt chỗ nói quá ở C18, G12 và ở báo cáo.
 Người kiểm không kiểm: các phép đo (chỉ đối chiếu `tom-tat.md`), C1, C5–C9, C11–C20, 405 điểm Nhỏ, mục E.
+
+## H. Ý định sửa của chủ dự án (bốn ảnh chủ đánh dấu trên bản chạy thật, đọc 20/11 sau khi chấm)
+
+Chủ đưa bốn ảnh chụp bản chạy thật (bản 3.18) có khoanh đỏ và ghi chú. Ảnh để ngoài kho. Bản chạy thật chưa có đợt sửa Tạo đơn 20/11; bản được chấm thì đã có (đề bài ghi «chưa thi công» là theo lúc soạn đề).
+
+| Ảnh | Màn | Ý của chủ (đọc từ ghi chú trên ảnh) | Khớp với kết quả đợt này | Điều phải tra hoặc quyết trước khi vẽ ảnh đề xuất |
+|---|---|---|---|---|
+| H1 | Tạo đơn của Đối tác, máy tính | Ẩn tiêu đề «Thanh toán»; chuyển khối «Hình thức thanh toán» (Thanh toán ngay, Trả sau) sang cột phải ngay trên nút «Gửi đơn»; ẩn khối «Người phụ trách»; ẩn ba câu giải thích dưới ô giảm giá và đặt cọc | Khối «Người phụ trách» với đối tác: trợ lý báo ở màn 13 (S10), nhận định C17; đặc tả Tạo đơn 20/11 để mục này «chưa tra xong» | Ba câu giải thích nói về tiền (trần giảm giá theo hoa hồng, tiền cọc không làm giảm nợ) và có bài kiểm ghim chữ: ẩn hẳn hay gập lại là quyết định về hiển thị tiền. Tài khoản thử của đợt này không được bật Trả sau nên khối «Hình thức thanh toán» chưa từng được chụp |
+| H2 | Tạo đơn của Đối tác, khối Đưa đón | Sau khi chọn «Đón», ẩn cả phần chi tiết lượt đón (dòng «Đã tạo sẵn chiều đi», Lượt 1, «Đón khác ngày», Nơi đón, Nơi trả, «Thêm chi tiết», «Thêm chiều về», «Thêm lượt»); chỉ giữ hai nút «Đón», «Không đón» và ô ghi chú | Cùng hướng với quyết định «đối tác đặt bằng vài thao tác, văn phòng lo phần còn lại» | Chạm dữ liệu và tiền: phí đưa đón tính theo nơi đón; không có nơi đón thì đơn của đối tác lưu chặng thế nào và ai điền. Không tự quyết ở mức giao diện |
+| H3 | Chi tiết đơn của Đối tác | Đưa nút «Ghi khoản thu» lên ngay dưới dòng «Còn lại» (ghi chú: thu tiền khách); đưa nút «Xem công nợ với Tour Đảo» xuống cuối khối «Hoa hồng của bạn», dưới «Tổng giá đại lý» (ghi chú: chuyển khoản cho Tour Đảo) | Trùng hướng với G3, G4 và C10: nút tiền đứng cạnh con số nó xử lý, tách tiền khách trả với tiền nộp công ty | Chữ đỏ trên ảnh là tên nút mới hay chỉ là chú thích: đổi tên nút phải qua bảng tham chiếu. Ảnh ở bề rộng khoảng 940 px còn cho thấy chữ trong khối Thanh toán chồng lên nhau («Hình thức thanh toán», «Hạn trả», câu «Đang giữ đơn»): đợt này chỉ đo 390 và 1280 nên không bắt được |
+| H4 | Vé điện tử (kho vé) | Thêm lọc phía trên «Số vé còn»: lọc theo sản phẩm và lọc theo số vé còn | Đợt này chấm màn 72 lúc kho rỗng nên không thấy danh sách dài; khớp nhận định C9 (danh sách chưa có một khuôn tìm và lọc) | Chỉ là giao diện; nên dùng luôn khuôn tìm và lọc chung khi làm họ màn có danh sách |
+
+Nhận định của phiên điều phối: bốn ảnh cùng một hướng, là bớt thứ người dùng vai đó không cần, đưa lựa chọn và nút tới cạnh chỗ ra quyết định, và danh sách dài phải lọc được. Hai lỗ của đợt đo lộ ra từ bốn ảnh này: kho thử thiếu đối tác được Trả sau và thiếu vé, và thiếu khổ đo ở khoảng 900 đến 1040 px.
+
