@@ -284,3 +284,11 @@ Chủ đưa bốn ảnh chụp bản chạy thật (bản 3.18) có khoanh đỏ
 
 Nhận định của phiên điều phối: bốn ảnh cùng một hướng, là bớt thứ người dùng vai đó không cần, đưa lựa chọn và nút tới cạnh chỗ ra quyết định, và danh sách dài phải lọc được. Hai lỗ của đợt đo lộ ra từ bốn ảnh này: kho thử thiếu đối tác được Trả sau và thiếu vé, và thiếu khổ đo ở khoảng 900 đến 1040 px.
 
+**Chủ trả lời ba điều phải quyết (20/11/2026, trong phiên, nguyên văn):**
+
+1. Về H2: «Phí đưa đón tạm thời không được xác định bởi nơi đón, vì cào bằng luôn.» Tức ẩn nơi đón với đối tác không làm đổi số phí. Còn phải kiểm khi thi công: đơn của đối tác lưu lượt đón không có nơi đón thì máy chủ có nhận không, và văn phòng điền nơi đón ở đâu (chạm dữ liệu lượt đón, không tự quyết ở giao diện).
+2. Về H1: «ok nên gập lại». Ba câu giải thích về tiền gập lại sau một nút, không bỏ hẳn.
+3. Về H3: «sửa "Ghi khoản thu" thành "Nhập khoản thu" và đặt vào vị trí khung màu đỏ. Nút "Xem công nợ với tour đảo" chuyển thành "Thanh toán đơn này cho cty Tour Đảo".» Tức hai tên nút mới do chủ đặt, nút thứ nhất nằm ngay dưới dòng «Còn lại», nút thứ hai nằm cuối khối «Hoa hồng của bạn» dưới «Tổng giá đại lý». Đổi tên nút phải cập nhật bảng tham chiếu cùng lúc (chữ nút lệch bảng thì bộ kiểm đỏ).
+
+Phiên này giữ vai điều phối và kiểm nên không thi công. Việc sửa đi theo cách đã chốt: ảnh xem trước «hiện tại / đề xuất» cho chủ duyệt, rồi mới sửa mã ở một phiên khác, có người kiểm độc lập vì chạm chỗ hiển thị tiền.
+
