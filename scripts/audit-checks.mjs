@@ -2051,10 +2051,12 @@ export const CHECKS = [
   },
   // R-ORD-12 (ADR-0047 A1, câu hỏi Q1 (a) — ĐÓNG 2026-09-29: chủ chạy truy vấn chỉ đọc, 2 dịch vụ giờ-không-nơi đều thuộc đơn đã huỷ (`docs/superpowers/plans/2026-09-29-adr-0047-thi-cong-nhat-ky.md:37`)): chặng mở của đơn chưa huỷ còn chữ tạm "(chưa ghi nơi đón)" (dịch vụ cũ có
   // giờ đón mà không có điểm đón, hoặc thân cũ gửi giờ mà trống điểm) — văn phòng bổ sung nơi đón. Cảnh báo.
+  // ADR-0221 (2026-11-21): chỉ đếm đơn ĐÃ XÁC NHẬN. Đơn nháp của tài khoản giữ quyền Đối tác mang chữ tạm là trạng thái hợp lệ (văn phòng điền nơi đón lúc Còn vé); cổng 409
+  // `pickup_place_required` chặn mọi đường xác nhận khi còn chữ tạm, nên con số khác 0 ở đây = dữ liệu cũ trước ADR-0221 hoặc cổng bị lọt. Giữ mức cảnh báo.
   {
     code: "R-ORD-12",
-    what: "chặng mở của đơn chưa huỷ còn nơi đón tạm '(chưa ghi nơi đón)' (văn phòng bổ sung)",
-    sql: `SELECT count(*) FROM ord_transfer_leg l JOIN orders o ON o.id = l.order_id WHERE o.status <> 'cancelled' AND l.closed_at IS NULL AND l.pickup_place = '(chưa ghi nơi đón)'`,
+    what: "chặng mở của đơn đã xác nhận còn nơi đón tạm '(chưa ghi nơi đón)' (văn phòng bổ sung)",
+    sql: `SELECT count(*) FROM ord_transfer_leg l JOIN orders o ON o.id = l.order_id WHERE o.status = 'confirmed' AND l.closed_at IS NULL AND l.pickup_place = '(chưa ghi nơi đón)'`,
     level: "warn",
     note: "cảnh báo (không chặn phát hành): văn phòng bổ sung nơi đón cho các chặng này",
   },
