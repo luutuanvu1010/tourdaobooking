@@ -258,6 +258,13 @@ test("trợ lý nguoi-kiem-doc-lap: chạy trên bản sao riêng, không có c�
   for (const cam of ["Edit", "Write", "MultiEdit", "NotebookEdit"]) assert.ok(!congCu.includes(cam), `người kiểm không được có công cụ ${cam}`);
 });
 
+test("trợ lý nguoi-danh-gia-giao-dien: chỉ đọc, đúng bốn công cụ Read, Glob, Grep, Bash, không có công cụ sửa tệp", () => {
+  const dau = read(".claude/agents/nguoi-danh-gia-giao-dien.md").split("---")[1] ?? "";
+  const congCu = (dau.match(/^tools: (.*)$/m)?.[1] ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+  assert.deepEqual([...congCu].sort(), ["Bash", "Glob", "Grep", "Read"], "người đánh giá giao diện phải có đúng bốn công cụ Read, Glob, Grep, Bash");
+  for (const cam of ["Edit", "Write", "MultiEdit", "NotebookEdit"]) assert.ok(!congCu.includes(cam), `người đánh giá giao diện không được có công cụ ${cam}`);
+});
+
 test("guard-remote: script móc thật trả deny cho `npm run day-len` và `node scripts/trien-khai.mjs`", () => {
   for (const command of ["npm run day-len", "node scripts/trien-khai.mjs"]) {
     const r = spawnSync("node", [".claude/hooks/guard-remote.mjs"], { cwd: ROOT, input: JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd: ROOT }), encoding: "utf8" });
