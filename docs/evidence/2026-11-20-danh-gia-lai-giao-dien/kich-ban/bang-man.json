@@ -1,0 +1,649 @@
+{
+ "ghiChu": "Bảng màn của đợt đánh giá lại giao diện 20/11/2026. Mã trong địa chỉ là mã dữ liệu GIẢ của kho thử ngoài kho.",
+ "man": [
+  {
+   "so": 1,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "SALES",
+   "trang": "/",
+   "viec": "Bán hàng mở Nền tảng đầu ngày: xem việc cần làm hôm nay rồi đi lập đơn hoặc mở đơn",
+   "dau": 1
+  },
+  {
+   "so": 2,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "SALES_MANAGER",
+   "trang": "/",
+   "viec": "Quản lý bán hàng mở Nền tảng đầu ngày: xem việc của nhóm bán hàng, đơn chờ xác nhận",
+   "dau": 1
+  },
+  {
+   "so": 3,
+   "ho": "Tiền",
+   "bo": "ACCOUNTING",
+   "trang": "/",
+   "viec": "Kế toán mở Nền tảng đầu ngày: xem việc cần soát, khoản cần thu",
+   "dau": 1
+  },
+  {
+   "so": 4,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "ADMIN",
+   "trang": "/",
+   "viec": "Quản trị mở Nền tảng đầu ngày: xem tình hình chung và việc chờ mình",
+   "dau": 1
+  },
+  {
+   "so": 5,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "SUPER_ADMIN",
+   "trang": "/",
+   "viec": "Toàn quyền mở Nền tảng đầu ngày: xem tình hình chung và việc kỹ thuật chờ mình",
+   "dau": 1
+  },
+  {
+   "so": 6,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "INTERN",
+   "trang": "/orders",
+   "viec": "Thực tập sinh mở Nền tảng: xem các đơn của mình, lập đơn mới",
+   "dau": 1
+  },
+  {
+   "so": 7,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "FIELD",
+   "trang": "/orders",
+   "viec": "Hướng dẫn viên mở Nền tảng: tìm đơn được giao phụ trách hôm nay",
+   "dau": 1
+  },
+  {
+   "so": 8,
+   "ho": "Màn của đối tác bên ngoài",
+   "bo": "PARTNER",
+   "trang": "/orders",
+   "viec": "Đối tác (cộng tác viên, công ty lữ hành) mở Nền tảng: theo dõi các đơn mình đã gửi, lập đơn mới",
+   "dau": 1
+  },
+  {
+   "so": 9,
+   "ho": "Tài xế, chuyến",
+   "bo": "DRIVER",
+   "trang": "/cuoc",
+   "viec": "Tài xế công ty mở Nền tảng: xem các cuốc được giao, nhận cuốc",
+   "dau": 1
+  },
+  {
+   "so": 10,
+   "ho": "Tài xế, chuyến",
+   "bo": "DRIVER_PARTNER",
+   "trang": "/cuoc",
+   "viec": "Tài xế đối tác mở Nền tảng: xem các cuốc được giao, nhận hoặc từ chối",
+   "dau": 1
+  },
+  {
+   "so": 11,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "HR",
+   "trang": "/staff",
+   "viec": "Nhân sự mở Nền tảng: tạo, xem, sửa tài khoản nhân viên",
+   "dau": 1
+  },
+  {
+   "so": 12,
+   "ho": "Lập đơn",
+   "bo": "SALES",
+   "trang": "/order-form",
+   "viec": "Bán hàng lập một đơn mới cho khách: chọn dịch vụ, ghi khách, đưa đón, thanh toán rồi gửi",
+   "dangSua": 1
+  },
+  {
+   "so": 13,
+   "ho": "Lập đơn",
+   "bo": "PARTNER",
+   "trang": "/order-form",
+   "viec": "Đối tác tự lập đơn cho khách của mình rồi gửi về công ty",
+   "dangSua": 1
+  },
+  {
+   "so": 14,
+   "ho": "Lập đơn",
+   "bo": "INTERN",
+   "trang": "/order-form",
+   "viec": "Thực tập sinh lập đơn mới cho khách",
+   "dangSua": 1
+  },
+  {
+   "so": 15,
+   "ho": "Lập đơn",
+   "bo": "SALES",
+   "trang": "/order-form?id=242be16e-395d-404f-a132-8985169f65d5",
+   "viec": "Bán hàng mở lại một đơn nháp đã có dữ liệu để sửa tiếp rồi gửi",
+   "dangSua": 1
+  },
+  {
+   "so": 16,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "SALES",
+   "trang": "/orders",
+   "viec": "Bán hàng tìm một đơn, lọc theo trạng thái, xem đơn nào còn phải thu"
+  },
+  {
+   "so": 17,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "ACCOUNTING",
+   "trang": "/orders",
+   "viec": "Kế toán soát các đơn: đơn nào đã thu, còn thu bao nhiêu"
+  },
+  {
+   "so": 18,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "SALES",
+   "trang": "/order",
+   "viec": "Bán hàng mở chi tiết một đơn đã xác nhận (ba dịch vụ, có đưa đón): xem lại, thu tiền, gửi biên nhận",
+   "don": "e7ee8ad3-713f-4ef4-a8c9-2d74dbac531a"
+  },
+  {
+   "so": 19,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "PARTNER",
+   "trang": "/order",
+   "viec": "Đối tác mở chi tiết đơn của mình: xem trạng thái, số phải trả",
+   "don": "ba337c53-9e0e-4fda-966d-5494776dbccb"
+  },
+  {
+   "so": 20,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "ACCOUNTING",
+   "trang": "/order",
+   "viec": "Kế toán mở chi tiết đơn: soát tiền đã thu, ghi khoản thu",
+   "don": "e7ee8ad3-713f-4ef4-a8c9-2d74dbac531a"
+  },
+  {
+   "so": 21,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "FIELD",
+   "trang": "/order",
+   "viec": "Hướng dẫn viên mở đơn được giao: xem khách, dịch vụ, giờ đón",
+   "don": "e7ee8ad3-713f-4ef4-a8c9-2d74dbac531a"
+  },
+  {
+   "so": 22,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "ADMIN",
+   "trang": "/order",
+   "viec": "Quản trị mở chi tiết đơn: xem và xử lý việc cần quyền cao (đặt gấp, huỷ)",
+   "don": "e7ee8ad3-713f-4ef4-a8c9-2d74dbac531a"
+  },
+  {
+   "so": 23,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "SALES_MANAGER",
+   "trang": "/cho-xac-nhan",
+   "viec": "Quản lý bán hàng xem các đơn đang chờ xác nhận để xác nhận hoặc từ chối"
+  },
+  {
+   "so": 24,
+   "ho": "Đơn hàng + chi tiết",
+   "bo": "SALES",
+   "trang": "/parties",
+   "viec": "Bán hàng tra Danh bạ: tìm hồ sơ khách, đại lý"
+  },
+  {
+   "so": 25,
+   "ho": "Tài xế, chuyến",
+   "bo": "DRIVER",
+   "trang": "/tai-xe",
+   "viec": "Tài xế công ty xem Trang chủ của mình: việc hôm nay"
+  },
+  {
+   "so": 26,
+   "ho": "Tài xế, chuyến",
+   "bo": "DRIVER",
+   "trang": "/cuoc-chuyen?id=a392dfae-6448-4fb4-a78d-782728ee4105",
+   "viec": "Tài xế công ty mở một cuốc được giao: xem giờ, điểm đón, khách; bấm tiến độ"
+  },
+  {
+   "so": 27,
+   "ho": "Tài xế, chuyến",
+   "bo": "DRIVER_PARTNER",
+   "trang": "/tai-xe",
+   "viec": "Tài xế đối tác xem Trang chủ của mình: việc hôm nay"
+  },
+  {
+   "so": 28,
+   "ho": "Tài xế, chuyến",
+   "bo": "DRIVER_PARTNER",
+   "trang": "/cuoc-chuyen?id=4d6060c7-83ef-454b-8395-b3ad5f7cbe76",
+   "viec": "Tài xế đối tác mở cuốc chạy hôm nay: xem giờ, điểm đón, khách; bấm tiến độ"
+  },
+  {
+   "so": 29,
+   "ho": "Tài xế, chuyến",
+   "bo": "DRIVER_PARTNER",
+   "trang": "/ban",
+   "viec": "Tài xế đối tác báo khung giờ mình bận"
+  },
+  {
+   "so": 30,
+   "ho": "Điều phối xe",
+   "bo": "ADMIN",
+   "trang": "/dieu-phoi",
+   "viec": "Điều phối xếp chuyến xe trong ngày: xem chặng chưa xếp, tạo chuyến, gán xe và tài xế"
+  },
+  {
+   "so": 31,
+   "ho": "Điều phối xe",
+   "bo": "SALES",
+   "trang": "/dieu-phoi",
+   "viec": "Bán hàng xem bảng Điều phối xe: khách của mình đã được xếp xe chưa"
+  },
+  {
+   "so": 32,
+   "ho": "Điều phối xe",
+   "bo": "ADMIN",
+   "trang": "/chuyen?id=4d6060c7-83ef-454b-8395-b3ad5f7cbe76",
+   "viec": "Điều phối mở chi tiết một chuyến hôm nay: xem khách, xe, tài xế, tiến độ; ra lệnh chuyến"
+  },
+  {
+   "so": 33,
+   "ho": "Điều phối xe",
+   "bo": "ADMIN",
+   "trang": "/chuyen-sua?id=4d6060c7-83ef-454b-8395-b3ad5f7cbe76",
+   "viec": "Điều phối sửa một chuyến: đổi giờ, xe, tài xế"
+  },
+  {
+   "so": 34,
+   "ho": "Điều phối xe",
+   "bo": "ADMIN",
+   "trang": "/xe-dang-chay",
+   "viec": "Điều phối theo dõi các xe đang chạy"
+  },
+  {
+   "so": 35,
+   "ho": "Điều phối xe",
+   "bo": "ADMIN",
+   "trang": "/de-nghi",
+   "viec": "Điều phối xử lý đề nghị chuyển khách sang chuyến khác"
+  },
+  {
+   "so": 36,
+   "ho": "Điều phối xe",
+   "bo": "ADMIN",
+   "trang": "/xe",
+   "viec": "Quản trị xem danh sách xe và giấy tờ"
+  },
+  {
+   "so": 37,
+   "ho": "Điều phối xe",
+   "bo": "ADMIN",
+   "trang": "/xe-chi-tiet?id=b297adae-d7e8-46f9-a84a-c616b73bb58a",
+   "viec": "Quản trị mở chi tiết một xe: giấy tờ, hạn kiểm định, bảo hiểm"
+  },
+  {
+   "so": 38,
+   "ho": "Điều phối xe",
+   "bo": "ADMIN",
+   "trang": "/xe-sua?id=b297adae-d7e8-46f9-a84a-c616b73bb58a",
+   "viec": "Quản trị sửa thông tin một xe"
+  },
+  {
+   "so": 39,
+   "ho": "Điều phối xe",
+   "bo": "ADMIN",
+   "trang": "/lich-xe-ban",
+   "viec": "Quản trị xem và đặt lịch xe bận"
+  },
+  {
+   "so": 40,
+   "ho": "Điều phối xe",
+   "bo": "ADMIN",
+   "trang": "/giay-to-sap-het-han",
+   "viec": "Quản trị xem giấy tờ xe, người sắp hết hạn"
+  },
+  {
+   "so": 41,
+   "ho": "Điều phối xe",
+   "bo": "ACCOUNTING",
+   "trang": "/bang-gia-xe",
+   "viec": "Kế toán xem và đặt bảng giá thuê xe"
+  },
+  {
+   "so": 42,
+   "ho": "Điều phối xe",
+   "bo": "ACCOUNTING",
+   "trang": "/bang-ke-xe",
+   "viec": "Kế toán lập bảng kê chuyến xe để đối chiếu chi phí"
+  },
+  {
+   "so": 43,
+   "ho": "Tiền",
+   "bo": "ACCOUNTING",
+   "trang": "/so-cong-no",
+   "viec": "Kế toán xem sổ công nợ của đại lý, đối tác"
+  },
+  {
+   "so": 44,
+   "ho": "Tiền",
+   "bo": "ACCOUNTING",
+   "trang": "/khoa-thang",
+   "viec": "Kế toán khoá sổ một tháng"
+  },
+  {
+   "so": 45,
+   "ho": "Tiền",
+   "bo": "ACCOUNTING",
+   "trang": "/dieu-chinh-cong-no",
+   "viec": "Kế toán ghi một điều chỉnh công nợ"
+  },
+  {
+   "so": 46,
+   "ho": "Tiền",
+   "bo": "ACCOUNTING",
+   "trang": "/phan-dinh",
+   "viec": "Kế toán phân định khoản thu vào đúng đơn"
+  },
+  {
+   "so": 47,
+   "ho": "Tiền",
+   "bo": "ACCOUNTING",
+   "trang": "/hoa-hong",
+   "viec": "Kế toán đặt mức hoa hồng cho đối tác"
+  },
+  {
+   "so": 48,
+   "ho": "Tiền",
+   "bo": "ACCOUNTING",
+   "trang": "/cap-dai-ly",
+   "viec": "Kế toán xem và đặt cấp độ đại lý",
+   "gop": "ti-thiet-lap"
+  },
+  {
+   "so": 49,
+   "ho": "Tiền",
+   "bo": "ACCOUNTING",
+   "trang": "/han-muc-tra-sau",
+   "viec": "Kế toán đặt hạn mức trả sau cho đại lý",
+   "gop": "ti-thiet-lap"
+  },
+  {
+   "so": 50,
+   "ho": "Tiền",
+   "bo": "ACCOUNTING",
+   "trang": "/nguoi-ban",
+   "viec": "Kế toán khai người bán của từng dịch vụ",
+   "gop": "ti-thiet-lap"
+  },
+  {
+   "so": 51,
+   "ho": "Tiền",
+   "bo": "ACCOUNTING",
+   "trang": "/chup-bu",
+   "viec": "Kế toán chụp bù mức hoa hồng cho đơn cũ",
+   "gop": "ti-thiet-lap-2"
+  },
+  {
+   "so": 52,
+   "ho": "Tiền",
+   "bo": "SUPER_ADMIN",
+   "trang": "/hoa-hong-gioi-han",
+   "viec": "Toàn quyền đặt giới hạn nhập hoa hồng",
+   "gop": "ti-thiet-lap-2"
+  },
+  {
+   "so": 53,
+   "ho": "Tiền",
+   "bo": "ADMIN",
+   "trang": "/phi-don",
+   "viec": "Quản trị đặt phí đưa đón theo khu vực",
+   "gop": "ti-thiet-lap-2"
+  },
+  {
+   "so": 54,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "ADMIN",
+   "trang": "/staff",
+   "viec": "Quản trị quản lý tài khoản: tạo, sửa, khoá, đặt lại PIN"
+  },
+  {
+   "so": 55,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "ADMIN",
+   "trang": "/phieu-dang-ky",
+   "viec": "Quản trị duyệt phiếu đăng ký tài khoản của đối tác"
+  },
+  {
+   "so": 56,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "SALES_MANAGER",
+   "trang": "/catalog",
+   "viec": "Quản lý bán hàng xem Dịch vụ và giá, tạm ngưng bán"
+  },
+  {
+   "so": 57,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "ADMIN",
+   "trang": "/thiet-lap",
+   "viec": "Quản trị mở trang Thiết lập để đi tới một mục cài đặt"
+  },
+  {
+   "so": 58,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "ADMIN",
+   "trang": "/locations",
+   "viec": "Quản trị sửa danh mục Địa điểm",
+   "gop": "dm-1"
+  },
+  {
+   "so": 59,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "ADMIN",
+   "trang": "/loai-giay-to-nguoi",
+   "viec": "Quản trị sửa danh mục Loại giấy tờ cá nhân",
+   "gop": "dm-1"
+  },
+  {
+   "so": 60,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "ADMIN",
+   "trang": "/loai-giay-to-xe",
+   "viec": "Quản trị sửa danh mục Loại giấy tờ xe",
+   "gop": "dm-1"
+  },
+  {
+   "so": 61,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "ADMIN",
+   "trang": "/ly-do-dieu-phoi",
+   "viec": "Quản trị sửa danh mục Lý do điều phối",
+   "gop": "dm-2"
+  },
+  {
+   "so": 62,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "ADMIN",
+   "trang": "/chinh-sach-dieu-phoi",
+   "viec": "Quản trị đặt Chính sách điều phối",
+   "gop": "dm-2"
+  },
+  {
+   "so": 63,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "ADMIN",
+   "trang": "/dieu-kien-xuat-ben",
+   "viec": "Quản trị đặt Điều kiện xuất bến",
+   "gop": "dm-2"
+  },
+  {
+   "so": 64,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "ADMIN",
+   "trang": "/luat-ban",
+   "viec": "Quản trị đặt Luật bán (chặn bán theo điều kiện)",
+   "gop": "dm-3"
+  },
+  {
+   "so": 65,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "ADMIN",
+   "trang": "/dac-diem-dich-vu",
+   "viec": "Quản trị khai Đặc điểm dịch vụ",
+   "gop": "dm-3"
+  },
+  {
+   "so": 66,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "SUPER_ADMIN",
+   "trang": "/giao-dien",
+   "viec": "Toàn quyền đổi bộ màu, cỡ chữ của Nền tảng",
+   "gop": "dm-3"
+  },
+  {
+   "so": 67,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "SUPER_ADMIN",
+   "trang": "/sessions",
+   "viec": "Toàn quyền xem Máy đang đăng nhập, đăng xuất máy lạ",
+   "gop": "kt-1"
+  },
+  {
+   "so": 68,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "SUPER_ADMIN",
+   "trang": "/audit",
+   "viec": "Toàn quyền tra Nhật ký",
+   "gop": "kt-1"
+  },
+  {
+   "so": 69,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "SUPER_ADMIN",
+   "trang": "/gui-thong-bao",
+   "viec": "Toàn quyền soạn và gửi một thông báo cho nhân viên",
+   "gop": "kt-1"
+  },
+  {
+   "so": 70,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "SUPER_ADMIN",
+   "trang": "/tro-ly-cai-dat",
+   "viec": "Toàn quyền cài đặt Trợ lý Hỗ trợ"
+  },
+  {
+   "so": 71,
+   "ho": "Vé điện tử (họ mới)",
+   "bo": "FIELD",
+   "trang": "/quet-ve",
+   "viec": "Hướng dẫn viên quét vé của khách ở cổng"
+  },
+  {
+   "so": 72,
+   "ho": "Vé điện tử (họ mới)",
+   "bo": "ADMIN",
+   "trang": "/ve-kho",
+   "viec": "Quản trị xem kho vé điện tử",
+   "gop": "ve-1"
+  },
+  {
+   "so": 73,
+   "ho": "Vé điện tử (họ mới)",
+   "bo": "ADMIN",
+   "trang": "/ve-doi-chieu",
+   "viec": "Quản trị đối chiếu vé đã dùng",
+   "gop": "ve-1"
+  },
+  {
+   "so": 74,
+   "ho": "Vé điện tử (họ mới)",
+   "bo": "SUPER_ADMIN",
+   "trang": "/ve-cai-dat",
+   "viec": "Toàn quyền cài đặt vé điện tử",
+   "gop": "ve-1"
+  },
+  {
+   "so": 75,
+   "ho": "Màn của đối tác bên ngoài",
+   "bo": "PARTNER",
+   "trang": "/account",
+   "viec": "Đối tác mở trang Tôi: xem hồ sơ, công nợ, bảo mật"
+  },
+  {
+   "so": 76,
+   "ho": "Màn của đối tác bên ngoài",
+   "bo": "PARTNER",
+   "trang": "/to-chuc?id=ad64b510-e362-4af0-b31c-4dca2bc7574f",
+   "viec": "Người quản lý tổ chức đối tác mở Hồ sơ tổ chức: thành viên, cấp độ, công nợ",
+   "rong": "kho thử không có người quản lý tổ chức"
+  },
+  {
+   "so": 77,
+   "ho": "Màn của đối tác bên ngoài",
+   "bo": "PARTNER",
+   "trang": "/huong-dan",
+   "viec": "Đối tác đọc hướng dẫn sử dụng"
+  },
+  {
+   "so": 78,
+   "ho": "Màn của đối tác bên ngoài",
+   "bo": "KHACH",
+   "trang": "/dang-ky",
+   "viec": "Người chưa có tài khoản đăng ký làm đối tác"
+  },
+  {
+   "so": 79,
+   "ho": "Trợ giúp, Của tôi (họ mới)",
+   "bo": "SALES",
+   "trang": "/account",
+   "viec": "Bán hàng mở trang Tôi: hồ sơ, bảo mật, cài đặt riêng"
+  },
+  {
+   "so": 80,
+   "ho": "Trợ giúp, Của tôi (họ mới)",
+   "bo": "SALES",
+   "trang": "/huong-dan",
+   "viec": "Bán hàng đọc hướng dẫn sử dụng"
+  },
+  {
+   "so": 81,
+   "ho": "Trợ giúp, Của tôi (họ mới)",
+   "bo": "SALES",
+   "trang": "/feedback",
+   "viec": "Bán hàng gửi và theo dõi vé Hỗ trợ, Góp ý"
+  },
+  {
+   "so": 82,
+   "ho": "Trợ giúp, Của tôi (họ mới)",
+   "bo": "SALES",
+   "trang": "/help",
+   "viec": "Bán hàng xem Nhật ký thay đổi của Nền tảng"
+  },
+  {
+   "so": 83,
+   "ho": "Đăng nhập, trạng thái",
+   "bo": "KHACH",
+   "trang": "/login",
+   "viec": "Người dùng đăng nhập vào Nền tảng"
+  },
+  {
+   "so": 84,
+   "ho": "Đăng nhập, trạng thái",
+   "bo": "KHACH",
+   "trang": "/404",
+   "viec": "Người dùng gõ nhầm địa chỉ, gặp trang không tìm thấy"
+  },
+  {
+   "so": 85,
+   "ho": "Đăng nhập, trạng thái",
+   "bo": "KHACH",
+   "trang": "/ngoai-mang",
+   "viec": "Người dùng mất mạng, gặp trang ngoài mạng"
+  },
+  {
+   "so": 86,
+   "ho": "Đăng nhập, trạng thái",
+   "bo": "INTERN",
+   "trang": "/staff",
+   "viec": "Thực tập sinh mở một trang mình không có quyền (Quản lý tài khoản): gặp màn không có quyền"
+  }
+ ]
+}
