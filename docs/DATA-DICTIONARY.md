@@ -82,6 +82,7 @@
 | `ctl_attribute_value` | bảng tra cứu | Giá trị của một đặc điểm (ADR-0152 Đ1, 0128): mã máy sinh tiền tố v, duy nhất toàn bảng; không đổi mã / đặc điểm; không xoá — tắt bằng active = 0 chỉ khi không còn dòng gắn mở (trigger ctl_attribute_value_off_in_use); tên chỉ cấm trùng giữa giá trị đang dùng của cùng đặc điểm. Module khác đọc qua view v_ctl_attribute_value (chỉ khoá) |
 | `ctl_attribute_assignment` | bảng | Gắn giá trị đặc điểm cho MỘT dịch vụ hoặc MỘT nhóm (ADR-0152 Đ1, 0128; khuôn 0127): dòng mở = valid_to_at NULL, tối đa một dòng mở mỗi (dịch vụ, đặc điểm) và (nhóm, đặc điểm); «theo nhóm» = dịch vụ không có dòng mở. Chỉ thêm: cấm xoá, chỉ cho đóng dòng mở một lần; trigger chặn giá trị không thuộc đặc điểm và chèn khi đặc điểm / giá trị / nhóm đang tắt. Module khác đọc giá trị hiệu lực qua view v_ctl_service_attribute; đồng bộ Sheet không ghi bảng này |
 | `ctl_service_ticket_flag` | bảng | ô «Có vé» theo dịch vụ (scope SERVICE, code = mã dịch vụ) hoặc nhóm (scope GROUP, code = mã nhóm) (ADR-0174, migration 0142), CHỈ-THÊM; has_ticket 1 = Có vé, 0 = Không vé (ghi tường minh để dòng dịch vụ thắng nhóm); chưa khai là Không vé; luật xét ở src/shared/co-ve.ts |
+| `ctl_sales_pause` | bảng | khoảng «Ngừng bán theo ngày» (ADR-0220 Đ1, migration 0180), CHỈ-THÊM: dịch vụ (scope SERVICE, catalog_code) hoặc mọi dịch vụ đang thuộc nhóm (scope GROUP, group_code) không bán cho ngày khởi hành trong [from_date, to_date] (ngày dân sự Việt Nam, gồm hai đầu); còn chặn khi ended_at IS NULL; chỉ được đặt ended_at một lần, kèm updated_at / updated_by = lúc và người kết thúc (trigger); luật xét ở src/modules/catalog/ngung-ban-ngay-rules.ts |
 | `ctl_service_ticket_source` | bảng | ô «Vé do ai phát» chỉ trên từng dịch vụ (code = mã dịch vụ, không theo nhóm) (ADR-0175 Đ1.2, migration 0151), CHỈ-THÊM; source HANG_NGOAI = vé hãng ngoài, TOUR_DAO = vé Tour Đảo; dòng hiệu lực = valid_from_at lớn nhất; chưa có dòng là HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts |
 | `ctl_service_detail` | bảng | chi tiết dịch vụ do Nền tảng giữ (ADR-0201 Đ1, migration 0160), CHỈ-THÊM; display_name = tên hiển thị thắng tên Sheet ở danh mục (NULL = dùng tên Sheet), description = mô tả, image_key = khoá ảnh (bước sau), sheet_name_at = tên Sheet lúc ghi (báo Sheet đổi tên); dòng hiệu lực = valid_from_at lớn nhất; đồng bộ Sheet không chạm; luật ở src/shared/chi-tiet-dich-vu.ts |
 | `v_ctl_service_ticket_flag` | view công bố | cột: scope, code, has_ticket |
@@ -425,6 +426,7 @@
 | `ntf_push_sub` |  | `endpoint`, `thiet_bi` |  |  |
 | `ord_cancel_reason` |  | `note` |  |  |
 | `ord_confirm_request` |  | `note` |  |  |
+| `ctl_sales_pause` |  | `note` |  |  |
 | `ord_passenger` |  | `full_name`, `birth_year`, `person_key` |  |  |
 | `ord_service_terms` |  | `reason` |  |  |
 | `ord_transfer_leg` |  | `pickup_place`, `dropoff_place`, `short_notice_note` |  |  |

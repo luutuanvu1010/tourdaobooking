@@ -32,7 +32,7 @@ export async function khoangTheoId(db: D1Database, id: string): Promise<(KhoangR
 const PAUSE_INSERT = defineSql(
   "catalog",
   "sales_pause_insert",
-  `INSERT INTO ctl_sales_pause (id, scope, catalog_code, group_code, from_date, to_date, note, created_at, created_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)`,
+  `INSERT INTO ctl_sales_pause (id, scope, catalog_code, group_code, from_date, to_date, note, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9)`,
 );
 export const cauThemKhoang = (
   db: D1Database,
@@ -41,5 +41,5 @@ export const cauThemKhoang = (
 
 // CỐ Ý không kèm `AND ended_at IS NULL`: khoảng đã kết thúc thì trigger `ctl_sales_pause_close_only` ném ABORT, cả lô (kèm câu nhật ký) lùi lại — hai người
 // cùng bấm Kết thúc thì đúng một lần ghi và một dòng nhật ký; nơi gọi bắt lỗi `ctl_append_only` và trả 409.
-const PAUSE_END = defineSql("catalog", "sales_pause_end", `UPDATE ctl_sales_pause SET ended_at = ?2, ended_by = ?3 WHERE id = ?1`);
+const PAUSE_END = defineSql("catalog", "sales_pause_end", `UPDATE ctl_sales_pause SET ended_at = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1`);
 export const cauKetThucKhoang = (db: D1Database, v: { id: string; at: string; by: string }): D1PreparedStatement => db.prepare(PAUSE_END).bind(v.id, v.at, v.by);

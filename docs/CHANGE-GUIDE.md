@@ -1417,6 +1417,8 @@ Hiện trạng và luồng: `docs/SYSTEM-DESIGN.md` §6 (m), (o). Mỗi mảnh m
 
 103. **Bài quét nút ghi của giao diện tra tên hàm xử lý XUYÊN tệp (Task 12):** bộ quét nút `scripts/quet-nut-lib.mjs` (bài «điều 3: nút ghi, nguy hiểm, nút chính phải có dòng» của `src/bang-tham-chieu.test.ts`) dò dấu hiệu ghi theo TÊN hàm xử lý trên cả `web/**`, không theo tệp. Đặt hàm trợ giúp tên chung (`bam`, `goi`, `lenh`…) ở một trang làm nút của trang KHÁC có hàm cùng tên trông như nút ghi (Task 12: `bam` của trang đăng ký làm `chip()` của `web/ho-tro-luong.ts` bị coi là lệnh ghi). Đặt tên riêng theo trang (`bamNutDk`, `goiDk`, `lenhDk`…).
 
+104. **Ngừng bán theo ngày (ADR-0220, 20/11/2026) khác Luật bán ở TRỤC NGÀY:** luật bán (`congLuatBan`) xét theo ngày THAO TÁC và bên đặt; ngừng bán theo ngày (`congNgungBanNgay`, cùng tệp `orders/cong-ban.ts`) xét theo NGÀY KHỞI HÀNH của từng dịch vụ và không đọc bên đặt, không đọc người thao tác (không ai bán vượt — bài lưới đọc cả chữ ký hàm). Cửa mới ghi dịch vụ hoặc đổi ngày khởi hành phải gọi CẢ hai cổng và tự thêm vào `CUA_NGUNG_BAN_NGAY` (`src/ngung-ban-ngay-moi-cua.test.ts`). Bảng `ctl_sales_pause` chỉ thêm: SQL chỉ ở `catalog/ngung-ban-ngay-repo.ts`; câu kết thúc CỐ Ý không kèm `ended_at IS NULL` để trigger lùi cả lô (kèm nhật ký) khi hai người cùng bấm. `catalog` không đọc bảng đơn: số đơn đã xác nhận trong khoảng đi qua `ctx.demDonTrongKhoangNgay` do gốc lắp ráp tiêm. Đổi nhóm của dịch vụ đổi kết quả của khoảng theo nhóm (theo nhóm hiện hành).
+
 ## 5. Danh sách kiểm
 
 **Trước khi commit (mọi thay đổi):**

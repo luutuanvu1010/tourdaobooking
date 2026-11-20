@@ -14,7 +14,6 @@ import { danhSachNhom, nhomHienHanhTheoMa } from "./nhom-repo";
 import { loadAll } from "./repository";
 
 const CAM = () => error(403, "forbidden", "Tài khoản này không đặt được Ngừng bán theo ngày.");
-const duoc = (staff: Parameters<typeof can>[0]): boolean => can(staff, "catalog.hidden.write") && !holdsPartner(staff);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const khoangChu = (tu: string, den: string): string => (tu === den ? ngayDayDu(tu) : `${ngayDayDu(tu)} – ${ngayDayDu(den)}`);
 
@@ -44,13 +43,13 @@ export async function trungDauTien(db: D1Database, dong: readonly { catalogCode:
 export const ngungBanNgayRoutes: Route[] = [
   // Khoảng còn chặn và chưa qua ngày cuối (khoảng đã qua, đã kết thúc: xem ở Nhật ký).
   route("GET", "/api/catalog/ngung-ban-ngay", "office", async ({ env, staff }) => {
-    if (!duoc(staff)) return CAM();
+    if (!can(staff, "catalog.hidden.write") || holdsPartner(staff)) return CAM();
     const [rows, ten] = await Promise.all([khoangConChan(env.DB, vnToday(new Date())), tenTheoMa(env.DB)]);
     return json({ khoang: rows.map((r) => thanhDto(r, ten)) } satisfies CatalogNgungBanNgayListResponse);
   }),
 
   route("POST", "/api/catalog/ngung-ban-ngay", "office", async ({ env, request, staff, demDonTrongKhoangNgay }) => {
-    if (!duoc(staff)) return CAM();
+    if (!can(staff, "catalog.hidden.write") || holdsPartner(staff)) return CAM();
     const doc = docKhoangMoi(await readJson(request), vnToday(new Date()));
     if (!doc.ok) return error(400, "invalid_input", doc.message);
     const k = doc.value;
@@ -73,7 +72,7 @@ export const ngungBanNgayRoutes: Route[] = [
   }),
 
   route("POST", "/api/catalog/ngung-ban-ngay/:id/ket-thuc", "office", async ({ env, params, staff }) => {
-    if (!duoc(staff)) return CAM();
+    if (!can(staff, "catalog.hidden.write") || holdsPartner(staff)) return CAM();
     const id = params.id!;
     const r = UUID_RE.test(id) ? await khoangTheoId(env.DB, id) : null;
     if (!r) return error(404, "not_found", "Không tìm thấy khoảng ngừng bán.");

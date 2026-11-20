@@ -883,6 +883,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuChon: "2026-11-04 (ADR-0166 câu 12)",
   }),
   KN({
+    ten: "Ngừng bán theo ngày",
+    giaiNghia: "Một dịch vụ, hoặc mọi dịch vụ đang thuộc một nhóm, không lập được đơn có ngày khởi hành trong một khoảng ngày đã đặt. Các ngày khác vẫn bán. Đơn đã xác nhận giữ nguyên. «Kết thúc» gỡ khoảng đó.",
+    khacVoi: "«Ngừng bán» là ngừng cho mọi ngày, có hiệu lực ngay. «Luật bán» chặn theo loại đối tác của bên đặt, không theo ngày khởi hành.",
+    chuDaLoai: [],
+    maNoiBo: ["ctl_sales_pause", "catalog_pause_added", "catalog_pause_ended", "sales_paused_date"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-20 (ADR-0220 Đ5, chủ chọn tên theo khuyến nghị)",
+  }),
+  KN({
     ten: "Lượt đưa đón",
     giaiNghia: "Một chiều đưa đón của một dịch vụ trong đơn (ví dụ chiều đi), có giờ đón và nơi đón riêng. Gọi tắt «lượt» khi đã rõ.",
     khacVoi: "",

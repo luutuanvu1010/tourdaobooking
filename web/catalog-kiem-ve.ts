@@ -6,6 +6,7 @@
 // Ẩn/hiện hỏi `can()`; máy chủ kiểm lại. Luật ở src/shared/dich-vu-kiem-ve.ts. Không innerHTML.
 import { TEN_CHUA_PHAN_LOAI, cauHoiNgungBan, demKiemVe, locNhomKiemVe, moSanNhomKiemVe, nhanNguonKiemVe, xepNhomKiemVe, type DongDichVuKiemVe, type NhomKiemVe } from "../src/shared/dich-vu-kiem-ve";
 import { ApiError, api, type Api } from "./api";
+import { taoNgungBanNgay } from "./ngung-ban-ngay";
 import { hoiXacNhan } from "./bang-truot";
 import { h, replaceChildren } from "./dom";
 import { showError } from "./shell";
@@ -146,6 +147,7 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
     replaceChildren(dsEl, ...ds.map((n) => theNhom(n, moSanNhomKiemVe(ds, n, tuKhoa.trim() !== ""))));
   };
   const kv = taoKiemVe(errorEl, veDs);
+  const ngungNgay = taoNgungBanNgay(true, veDs); // màn hẹp chỉ mở cho người giữ ô ngừng bán (`dungManHepDichVu`)
 
   const doiBan = async (d: DongDichVuKiemVe, nut: HTMLButtonElement): Promise<void> => {
     if (d.dangBan && !(await hoiXacNhan({ ...cauHoiNgungBan(d.ten), opener: nut }))) return;
@@ -169,8 +171,9 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
     return h(
       "div",
       { class: d.dangBan ? "kv-dong kv-dong-ve" : "kv-dong kv-dong-ve row-off", "data-ma": d.ma },
-      h("div", { class: "kv-chu" }, h("span", { class: "kv-ten" }, d.ten), !d.dangBan && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán")),
+      h("div", { class: "kv-chu" }, h("span", { class: "kv-ten" }, d.ten), !d.dangBan && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), ...ngungNgay.nhanDichVu(d.ma, dm?.dichVu.find((x) => x.code === d.ma)?.groupCode ?? null)),
       nutBan,
+      ngungNgay.nut("SERVICE", d.ma, d.ten, "pill-btn"),
       kv.oKiemVe(d.ma, d.ten, d.can, nhanNguonKiemVe(d)),
     );
   };
@@ -186,8 +189,9 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
         : h(
             "div",
             { class: "kv-dong kv-ca-nhom" },
-            h("div", { class: "kv-chu" }, h("span", { class: "kv-ten" }, "Cả nhóm cần kiểm vé"), h("span", { class: "hint" }, "Vé đã đặt riêng không đổi theo nhóm.")),
+            h("div", { class: "kv-chu" }, h("span", { class: "kv-ten" }, "Cả nhóm cần kiểm vé"), h("span", { class: "hint" }, "Vé đã đặt riêng không đổi theo nhóm."), ...ngungNgay.nhanNhom(n.ma)),
             kv.congTacNhom(n.ma, n.ten, n.caNhomCan),
+            ngungNgay.nut("GROUP", n.ma, n.ten, "pill-btn"),
           ),
       ...n.dichVu.map(dongVe),
     ) as HTMLDetailsElement;
@@ -211,7 +215,7 @@ export async function veManHep(noiDungEl: HTMLElement, errorEl: HTMLElement, tho
   };
 
   try {
-    const [, ds] = await Promise.all([kv.tai(), api<Api.CatalogQuanLyBanResponse>("/api/catalog/quan-ly-ban")]);
+    const [, ds] = await Promise.all([kv.tai(), api<Api.CatalogQuanLyBanResponse>("/api/catalog/quan-ly-ban"), ngungNgay.tai()]);
     dm = ds;
     const oTim = h("input", { type: "search", class: "o", id: "kv-tim", placeholder: "Ví dụ: buffet" }) as HTMLInputElement;
     oTim.addEventListener("input", () => {

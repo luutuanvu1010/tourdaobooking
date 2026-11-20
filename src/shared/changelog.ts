@@ -17,6 +17,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0220 (chủ duyệt 20/11): ngừng bán một dịch vụ hoặc cả nhóm theo khoảng ngày khởi hành. Nhánh claude/pause-service-sales-23eea5. Có migration 0180.
+    // SỐ TẠM 3.19: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.19",
+    date: "2026-11-20",
+    items: [
+      { kind: "moi", text: "Dịch vụ & giá có nút «Ngừng bán theo ngày» cho từng dịch vụ và từng nhóm: đơn có ngày khởi hành trong khoảng đã chọn không lập được. Ngày khác vẫn bán." },
+      { kind: "moi", text: "Sau khi đặt, máy báo đang có bao nhiêu đơn đã xác nhận nằm trong khoảng ngày để văn phòng gọi khách. Đơn đã xác nhận không bị huỷ." },
+      { kind: "doi", text: "Trong khoảng ngày đã ngừng bán, mọi tài khoản đều bị chặn, kể cả Quản trị. Muốn bán lại thì bấm «Kết thúc» ở khoảng đó." },
+    ],
+  },
+  {
     // ADR-0219 (chủ duyệt 18/11): Quản lý bán hàng xác minh, Quản trị / Nhân sự / Toàn quyền duyệt phiếu đăng ký; hàng chờ sang trang riêng; nút Duyệt khoá khi người mở là người xác minh.
     // Nhánh claude/partner-signup-approval-flow-e665d1. SỐ TẠM 3.18: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.18",

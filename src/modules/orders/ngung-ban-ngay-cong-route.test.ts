@@ -156,11 +156,11 @@ test("tiêu chí 7: bảng chỉ thêm — DELETE và UPDATE thẳng bị trigge
   assert.throws(() => chay("UPDATE ctl_sales_pause SET to_date = '2099-01-01' WHERE id = ?"), /ctl_append_only/);
   assert.throws(() => chay("UPDATE ctl_sales_pause SET catalog_code = 'ZB1' WHERE id = ?"), /ctl_append_only/);
   assert.throws(() => chay("UPDATE ctl_sales_pause SET note = 'x', ended_at = '2026-11-20T00:00:00.000Z' WHERE id = ?"), /ctl_append_only/);
-  chay("UPDATE ctl_sales_pause SET ended_at = '2026-11-20T00:00:00.000Z', ended_by = 'x' WHERE id = ?");
+  chay("UPDATE ctl_sales_pause SET ended_at = '2026-11-20T00:00:00.000Z', updated_at = '2026-11-20T00:00:00.000Z', updated_by = 'x' WHERE id = ?");
   assert.throws(() => chay("UPDATE ctl_sales_pause SET ended_at = '2026-11-21T00:00:00.000Z' WHERE id = ?"), /ctl_append_only/);
   assert.throws(() => chay("UPDATE ctl_sales_pause SET ended_at = NULL WHERE id = ?"), /ctl_append_only/);
-  assert.throws(() => w.sqlite.exec("INSERT INTO ctl_sales_pause (id, scope, from_date, to_date, created_at) VALUES ('x', 'ALL', '2026-01-01', '2026-01-02', 'x')"), /CHECK/);
-  assert.throws(() => w.sqlite.exec("INSERT INTO ctl_sales_pause (id, scope, catalog_code, from_date, to_date, created_at) VALUES ('y', 'SERVICE', 'ZA1', '2026-01-03', '2026-01-02', 'x')"), /CHECK/);
+  assert.throws(() => w.sqlite.exec("INSERT INTO ctl_sales_pause (id, scope, from_date, to_date, created_at, updated_at) VALUES ('x', 'ALL', '2026-01-01', '2026-01-02', 'x', 'x')"), /CHECK/);
+  assert.throws(() => w.sqlite.exec("INSERT INTO ctl_sales_pause (id, scope, catalog_code, from_date, to_date, created_at, updated_at) VALUES ('y', 'SERVICE', 'ZA1', '2026-01-03', '2026-01-02', 'x', 'x')"), /CHECK/);
 });
 
 test("tiêu chí 8: nhật ký đặt và kết thúc chỉ có mã dịch vụ / tên nhóm và khoảng ngày", async () => {

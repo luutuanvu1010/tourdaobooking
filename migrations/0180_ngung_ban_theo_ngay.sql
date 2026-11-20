@@ -1,7 +1,7 @@
 -- Migration 0180 — NGỪNG BÁN THEO NGÀY KHỞI HÀNH (ADR-0220 Đ1, chủ duyệt 2026-11-20).
 -- Chỉ THÊM một bảng của `catalog` (tiền tố `ctl_`, ADR-0058) + trigger + chỉ mục. Mỗi dòng = «dịch vụ D (hoặc mọi dịch vụ đang thuộc nhóm G) KHÔNG bán cho ngày khởi hành
 -- trong [from_date, to_date]», ngày dân sự Việt Nam, gồm cả hai đầu. Không có phạm vi «mọi dịch vụ», không có cột mang nghĩa «cho phép».
--- Bảng chỉ thêm: cấm xoá; chỉ một kiểu sửa là đặt mốc kết thúc (`ended_at`, `ended_by`) MỘT lần. Khoảng còn chặn khi `ended_at IS NULL`.
+-- Bảng chỉ thêm: cấm xoá; chỉ một kiểu sửa là đặt mốc kết thúc (`ended_at`, kèm `updated_at` / `updated_by` = lúc và người kết thúc) MỘT lần. Khoảng còn chặn khi `ended_at IS NULL`.
 -- «Ngày cuối không ở quá khứ lúc tạo» kiểm ở máy chủ (CSDL không biết hôm nay theo giờ Việt Nam).
 -- Số 0180: 0178, 0179 đang do nhánh phí đón từ giá gốc (ADR-0218) giữ, chưa nhập main (kiểm 20/11).
 -- HOÀN TÁC: D1 không có bước "down". Bảng rỗng không ảnh hưởng mã cũ; muốn gỡ thì một migration SAU bỏ trigger / bảng (khi chưa có khoảng nào).
@@ -16,8 +16,9 @@ CREATE TABLE ctl_sales_pause (
   note         TEXT CHECK (note IS NULL OR length(note) <= 200),
   created_at   TEXT NOT NULL,
   created_by   TEXT,
+  updated_at   TEXT NOT NULL,
+  updated_by   TEXT,
   ended_at     TEXT,
-  ended_by     TEXT,
   CHECK (to_date >= from_date),
   -- SERVICE: chỉ mã dịch vụ (không khoá ngoại, như prc_sales_block — route kiểm có trong danh mục). GROUP: chỉ mã nhóm.
   CHECK ((scope = 'SERVICE' AND catalog_code IS NOT NULL AND group_code IS NULL)
