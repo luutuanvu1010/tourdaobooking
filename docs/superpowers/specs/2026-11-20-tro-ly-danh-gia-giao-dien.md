@@ -13,8 +13,10 @@ Chủ dự án nhiều lần phải tự phát hiện giao diện thiếu mạch
 2. Thiếu công cụ kiểm tương phản (axe) ⇒ lệnh dừng ngay với mã 2 và một câu nói rõ thiếu gì. Không có đường nào để kết quả đo thiếu được ghi là «đạt».
 3. Quan sát chặn thật: cấy lỗi «chữ xám nhạt trên nền trắng» vào màn ⇒ dòng T8 chuyển «không đạt»; gỡ ra ⇒ về như cũ. Cùng cách với T4 (nút cao 28 px ở khổ 390).
 4. Giao trợ lý một màn Tạo đơn bị cấy lỗi «tên khách hỏi hai lần» ⇒ báo cáo có một phát hiện mang mã S1, mức Nặng, kèm tên ảnh và chỗ trên màn.
-5. Giao trợ lý năm màn không cấy lỗi ⇒ mỗi phát hiện mức Nặng trở lên đều chỉ được vào một chỗ nhìn thấy trên ảnh; phiên điều phối đối chiếu từng phát hiện với ảnh và ghi số đúng, số báo nhầm.
-6. Bộ ví dụ thử đợt đầu: 20 ví dụ (15 cấy lỗi phỏng theo lỗi thật đã ghi ngày 27/10, 13/11, 20/11; 5 màn không cấy). Ngưỡng để đưa trợ lý vào quy trình: bắt được ít nhất 12/15 lỗi cấy, và trên năm màn không cấy không quá 2 phát hiện Nặng trở lên bị xếp là báo nhầm. Không đạt ngưỡng thì báo «chưa đạt», không thêm dòng vào `web/CLAUDE.md`.
+5. Giao trợ lý các màn không cấy lỗi ⇒ mỗi phát hiện mức Nặng trở lên đều chỉ được vào một chỗ nhìn thấy trên ảnh; phiên điều phối đối chiếu từng phát hiện với ảnh và ghi số đúng, số báo nhầm.
+6. Bộ ví dụ thử đợt đầu: 20 ví dụ. Ngưỡng để đưa trợ lý vào quy trình: bắt được ít nhất 80 % số ví dụ có đáp án biết trước, và trên các màn không cấy không quá 2 phát hiện Nặng trở lên bị xếp là báo nhầm. Không đạt ngưỡng thì báo «chưa đạt», không thêm dòng vào `web/CLAUDE.md`.
+   - Dự kiến lúc viết: 15 cấy lỗi + 5 không cấy ⇒ ngưỡng 12/15.
+   - **Sửa 20/11, TRƯỚC khi chạy lượt chấm nào trên bộ này:** khi dựng bộ ví dụ mới thấy hai màn gốc đã có sẵn lỗi thật cùng loại (Chi tiết đơn tô đỏ hai số tiền; Đơn hàng viết tiền hai kiểu ở hai khổ), nên hai ví dụ đó không cấy mà dùng lỗi thật. Thành phần thật: 14 cấy lỗi + 2 lỗi thật có sẵn + 4 không cấy ⇒ ngưỡng **13/16**, và không quá 2 báo nhầm trên bốn màn không cấy.
 7. Trợ lý không có công cụ sửa tệp (`tools: Read, Glob, Grep, Bash`); báo cáo luôn có mục «không kiểm được».
 
 ## 3. Không làm lần này
@@ -43,4 +45,6 @@ Không có.
 - **Cách chia việc:** phiên này điều phối và viết tài liệu, tệp trợ lý; một trợ lý khác viết mã trong `scripts/` và bài kiểm; `nguoi-kiem-doc-lap` kiểm ở cuối.
 
 ## 7. Tiến độ
-- 20/11: đặc tả lưu. (Các dòng sau ghi khi từng phần xong.)
+- 20/11: đặc tả lưu.
+- 20/11: lệnh đo `scripts/giao-dien/do-man.mjs` xong (ba lần lưu của trợ lý thi công, 27 ca bài kiểm). Phiên điều phối chạy lại trên `SALES:/order-form,SALES:/order`: khoảng 40 giây, ảnh đúng trang thật đã đăng nhập, không để lại tiến trình thử. Trợ lý thi công đã thấy T8 và T4 chuyển «không đạt» khi cấy lỗi và về lại khi gỡ.
+- 20/11: chạy thử sớm người chấm trên hai màn không cấy (2 phút 26 giây, khoảng 136 nghìn token cho hai màn). Bắt đúng lỗi thật ở Chi tiết đơn («Tổng cộng» và «Còn lại» cùng tô đỏ, mức Nặng). Báo nhầm: hai phát hiện Nặng về nút «Tạo đơn» của khung chung, một phát hiện Nhỏ về khối cột phải, một phát hiện Nhỏ coi nhãn nổi là hai khuôn. Sửa theo đó: tài liệu tiêu chí thêm đoạn «Cách đọc ảnh» và «Khung chung đã duyệt», phạm vi của S2, cách so của S5, dòng «đừng báo khi» của S1 và S6; ảnh từng màn đổi sang gối nhau 40 % vì thanh dính che mất nội dung giữa hai ảnh.

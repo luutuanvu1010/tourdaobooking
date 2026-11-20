@@ -31,28 +31,36 @@ Lệnh này chưa đo: khoảng trống theo lưới chung (T7, đang chờ lư�
 
 Máy đo cũng báo nhầm (13/11: «310 ô chồng chữ» là giả, do đếm cả phần tử đã cuộn khuất). Người chấm được ghi nhận xét «có vẻ báo nhầm, vì …» cạnh một dòng máy đo, nhưng không được bỏ dòng đó khỏi báo cáo.
 
+T5 và T6 đếm mọi nút đang thấy trên trang, kể cả nút của khung chung (thanh bên, thanh trên). Người chấm không cần phân xử con số đó: chép dòng máy đo, rồi chấm S2 và S6 bằng mắt. T5 đạt không có nghĩa S2 đạt.
+
 ## 2. Phần suy xét
 
 Mười tiêu chí. Mỗi tiêu chí chấm trên **ảnh màn hình thật**, cả hai khổ. Một phát hiện chỉ được ghi khi chỉ được vào một chỗ nhìn thấy trên một tệp ảnh cụ thể. Không chỉ được thì không ghi.
+
+**Cách đọc ảnh.** Mỗi ô có một dãy ảnh, mỗi ảnh là một khung nhìn; các ảnh liên tiếp gối nhau khoảng 40 %, tên ảnh mang mốc cuộn. Vì vậy cùng một nội dung hiện ở hai ảnh liền nhau là do gối, không phải lặp. Thanh dính (thanh trên, thanh bước, thanh đáy) có mặt ở mọi ảnh và che một phần nội dung của ảnh đó; phần bị che xem ở ảnh kế. Khoảng trống hay danh sách ngắn có thể do dữ liệu thử ít: vẫn ghi, kèm chữ «có thể do dữ liệu thử».
+
+**Khung chung đã duyệt, không báo.** Thanh bên; thanh trên có ô tìm, chuông và nút đỏ «Tạo đơn»; thanh tab đáy ở điện thoại có nút tròn «Tạo đơn» ở giữa; dải thông báo đầu trang (ví dụ nhắc bật bảo mật hai lớp). Ngoại lệ duy nhất: nút «Tạo đơn» của khung hiện trên chính trang Tạo đơn thì báo theo S2.
 
 ### S1 — Một thông tin, một lần
 - **Đạt khi:** người dùng chỉ phải nhập mỗi thông tin một lần; cùng một giá trị (tên, số tiền, ngày, tên dịch vụ) không hiện lặp trên một màn, trừ khi lần lặp phục vụ một việc khác hẳn.
 - **Không đạt khi:** hai ô cùng hỏi một thứ; nhiều ô cùng mang một tên; một số tiền lặp từ ba lần liền nhau khi chỉ có một dòng tính; dòng «0 ₫» không mang thông tin.
 - **Ví dụ thật:** Tạo đơn 20/11 — gõ «Tên khách đi tour» rồi khối Hành khách đòi gõ lại tên; cùng một số tiền hiện ba đến năm lần.
-- **Đừng báo khi:** số tổng có ở thanh dính đáy màn điện thoại và ở khối tóm tắt; tiêu đề trang trùng tên mục điều hướng.
-- **Mức mặc định:** Nặng nếu bắt gõ lại; Nhỏ nếu chỉ hiện lặp.
+- **Đừng báo khi:** số tổng có ở thanh dính đáy màn điện thoại và ở khối tóm tắt; số chính được nhắc lại một lần ở khối tóm tắt đầu trang; tiêu đề trang trùng tên mục điều hướng.
+- **Mức mặc định:** Nặng nếu bắt gõ lại; Nhỏ nếu chỉ hiện lặp, hoặc là dòng «0 ₫», dòng «—» không mang thông tin.
 
 ### S2 — Một nút chính
-- **Đạt khi:** mỗi màn (và mỗi hộp thoại) có đúng một nút nổi nhất, là việc chính của màn; nút khác kém nổi rõ ràng; nút nguy hiểm (xoá, huỷ) không mang dáng nút chính.
-- **Không đạt khi:** hai nút nền đặc cùng màu cùng cỡ đứng cạnh nhau; nút điều hướng chung nổi ngang nút chính của màn; không nút nào nổi nên không biết bấm gì để xong việc.
+- **Phạm vi:** màn có MỘT việc phải hoàn thành (biểu mẫu, hộp thoại, bước xác nhận). Màn xem chi tiết hay danh sách có nhiều việc ngang hàng thì không bắt buộc có nút chính; ở đó chỉ báo khi hai nút nền đặc cùng dáng tranh nhau.
+- **Đạt khi:** màn loại trên có đúng một nút nổi nhất, là việc chính của màn; nút khác kém nổi rõ ràng; nút nguy hiểm (xoá, huỷ) không mang dáng nút chính.
+- **Không đạt khi:** hai nút nền đặc cùng màu cùng cỡ đứng cạnh nhau; trên biểu mẫu không nút nào nổi nên không biết bấm gì để xong việc; nút «Tạo đơn» của khung hiện trên chính trang Tạo đơn.
 - **Ví dụ thật:** Tạo đơn máy tính 20/11 — nút đỏ «Tạo đơn» ở thanh trên cạnh tranh với «Gửi đơn».
+- **Đừng báo khi:** nút «Tạo đơn» của khung chung nổi trên các trang khác (khung đã duyệt).
 - **Liên hệ máy đo:** T5 chỉ đếm nút nền đặc ở màn đầu; S2 xét cả màn và độ nổi tương đối.
 - **Mức mặc định:** Nặng.
 
 ### S3 — Một con số chính
 - **Đạt khi:** màn có tiền thì chỉ một số được nhấn mạnh nhất, và đó là số người dùng cần để hành động (số khách phải trả, số còn phải thu); số khác nhỏ hơn hoặc nhạt hơn.
-- **Không đạt khi:** hai số cùng tô đỏ hoặc cùng đậm ngang nhau; số phụ nổi hơn số chính; nhìn không biết số nào là số phải trả.
-- **Ví dụ thật:** Tạo đơn 20/11 — hai dòng tiền tô đỏ cùng lúc.
+- **Không đạt khi:** hai số cùng tô đỏ hoặc cùng đậm ngang nhau trong một khối; số phụ nổi hơn số chính; nhìn không biết số nào là số phải trả. Hai số đang bằng nhau vẫn báo: khi có đặt cọc chúng sẽ khác nhau.
+- **Ví dụ thật:** Tạo đơn 20/11 — hai dòng tiền tô đỏ cùng lúc. Chi tiết đơn 20/11 — «Tổng cộng» và «Còn lại» cùng tô đỏ.
 - **Mức mặc định:** Nặng; Chặn việc nếu có thể hiểu sai số phải trả.
 
 ### S4 — Bước khớp khối, thứ tự theo việc
@@ -63,16 +71,18 @@ Mười tiêu chí. Mỗi tiêu chí chấm trên **ảnh màn hình thật**, c
 - **Mức mặc định:** Nặng.
 
 ### S5 — Hai khổ một trình tự, một tên
-- **Đạt khi:** khổ 390 và khổ 1280 của cùng một màn giữ cùng thứ tự khối (đọc từ trên xuống) và cùng tên khối, tên nút, cách viết số; chỉ khác cách xếp cột.
-- **Không đạt khi:** thứ tự khối khác nhau giữa hai khổ; một khối hay nút có ở khổ này mà mất ở khổ kia không lý do; cùng một số viết hai kiểu.
+- **Cách so:** ở 1280 trang thường có cột chính và cột phải. So thứ tự các khối TRONG cột chính với thứ tự của chính các khối đó ở 390; so riêng thứ tự các khối TRONG cột phải. Rồi so tên khối, tên nút, cách viết số.
+- **Đạt khi:** hai khổ giữ cùng thứ tự trong từng cột và cùng tên khối, tên nút, cách viết số; chỉ khác cách xếp cột.
+- **Không đạt khi:** hai khối của cùng một cột đổi chỗ cho nhau giữa hai khổ; một khối hay nút có ở khổ này mà mất ở khổ kia không lý do; cùng một số viết hai kiểu.
 - **Ví dụ thật:** Tạo đơn 20/11 — điện thoại là Hành khách rồi Thanh toán, máy tính ngược lại. Đơn hàng 13/11 — «1,43tr đ» ở điện thoại, «1.430.000 đ» ở máy tính.
-- **Đừng báo khi:** thanh tab đáy (điện thoại) thay cho thanh bên (máy tính); khối tóm tắt chỉ đọc nằm cột phải ở máy tính và nằm cuối ở điện thoại.
+- **Đừng báo khi:** thanh tab đáy (điện thoại) thay cho thanh bên (máy tính); các khối của cột phải ở máy tính (tóm tắt, thanh toán, người phụ trách, kể cả khi có nút) nằm sau các khối của cột chính ở điện thoại.
 - **Mức mặc định:** Nặng nếu đổi thứ tự bước làm việc; Nhỏ nếu chỉ khác cách viết.
 
 ### S6 — Cùng nghĩa cùng tên, cùng hình
 - **Đạt khi:** cùng một thứ mang một tên (theo `docs/BANG-THAM-CHIEU.md`), một hình (nút cùng cấp cùng dáng, huy hiệu cùng nghĩa cùng màu), một cách viết (tiền, ngày, số điện thoại); ô nhập trên một màn theo một khuôn (nhãn, ô, câu giải thích ngay dưới).
 - **Không đạt khi:** chỗ này «Họ tên», chỗ kia «Họ tên khách»; ba kiểu ô nhập trên một form; hai huy hiệu cùng nghĩa khác màu.
-- **Ví dụ thật:** Tạo đơn 20/11 — nhãn nổi trong ô, chỉ có chữ gợi ý không nhãn, nhãn trên ô cùng nằm trên một form.
+- **Ví dụ thật:** Tạo đơn 20/11 — nhãn nổi trong ô, chỉ có chữ gợi ý không nhãn, nhãn trên ô cùng nằm trên một form. Chi tiết đơn 13/11 — bốn nút cùng cấp mang ba dáng.
+- **Đừng báo khi:** nhãn nổi là MỘT khuôn dù trông khác nhau theo trạng thái: ô rỗng thì nhãn nằm trong ô như chữ gợi ý, ô có giá trị (hoặc ô ngày, luôn có khuôn ngày) thì nhãn thu nhỏ lên trên.
 - **Liên hệ máy đo:** T6 đếm số hình nút và số cỡ chữ; S6 xét nghĩa.
 - **Mức mặc định:** Nhỏ; Nặng nếu hai tên làm người dùng tưởng là hai thứ khác nhau.
 
