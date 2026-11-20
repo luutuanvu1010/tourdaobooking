@@ -247,7 +247,7 @@ export async function chayLoNoiChuyen(db: D1Database, dong: DongBoTheoDon, thang
  */
 export async function kiemCongXacNhan(
   db: D1Database,
-  i: { actor: StaffProfile; order: DonXacNhan; kiemMoc: boolean; mocToiThieu: MocToiThieu | null; cuaDuaDon?: CuaDuaDon; traSau: HamTraSau; nguoiLapDoiTac: NguoiLapDoiTac; cheDoThieuPhi: "TU_CHOI" | "NHANH_A"; mucPhiThem?: ReadonlyMap<string, MucChon> },
+  i: { actor: StaffProfile; order: DonXacNhan; kiemMoc: boolean; mocToiThieu: MocToiThieu | null; cuaDuaDon?: CuaDuaDon; traSau: HamTraSau; nguoiLapDoiTac: NguoiLapDoiTac; cheDoThieuPhi: "TU_CHOI" | "NHANH_A"; /** ADR-0220: Còn vé kèm ngày đi mới — cổng ngừng bán theo ngày xét ngày SẼ GHI thay ngày đang lưu. */ ngayKhoiHanhMoi?: string; mucPhiThem?: ReadonlyMap<string, MucChon> },
 ): Promise<{ loi: Response } | { ok: true; chup: BanChup[]; detail: string | undefined; today: string; traSau: KemTraSau; phiDon: PhiDonXacNhan }> {
   const { actor, order } = i;
   const today = vnToday(new Date());
@@ -257,7 +257,7 @@ export async function kiemCongXacNhan(
   // ADR-0146 Đ3 + R-7 (Q-8 (a) của chủ): luật bán đứng ĐẦU mọi cổng xác nhận — đơn vừa bị chặn bán vừa vướng cổng khác luôn nhận `sales_blocked` (sửa cổng kia cũng vô ích).
   const chanBan = await congLuatBan(db, { bookerPartyId: order.bookerPartyId, dong: order.services });
   if (chanBan) return { loi: chanBan };
-  { const ngung = await congNgungBanNgay(db, order.services); if (ngung) return { loi: ngung }; } // ADR-0220 Đ3: ngay sau luật bán — `/status`, Gửi đơn, Còn vé
+  { const ngung = await congNgungBanNgay(db, order.services.map((s) => ({ catalogCode: s.catalogCode, name: s.name, departDate: i.ngayKhoiHanhMoi ?? s.departDate }))); if (ngung) return { loi: ngung }; } // ADR-0220 Đ3: ngay sau luật bán — `/status`, Gửi đơn, Còn vé
   // ADR-0185 Đ1 (a): đứng NGAY SAU luật bán, TRƯỚC mọi cổng khác — các cổng sau (hạn mức Trả sau, trần giảm giá) đọc bên đặt, mà ở đơn bị chặn bên đặt đang sai. Ở Gửi đơn, `/status`
   // đây là chỗ chặn; ở Còn vé route đã gọi sớm (kế hoạch K3), lần này là lưới. `vaiTro.bang` (khác null khi người lập giữ quyền Đối tác) dùng lại cho bản chụp bên dưới.
   const vaiTro = await congDoiTacChuaCoVaiTro(db, { nguoiLap: i.nguoiLapDoiTac, order, today });

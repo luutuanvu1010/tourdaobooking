@@ -481,6 +481,12 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     // `kiemCongXacNhan` bên dưới gọi lại — chỉ đọc.)
     const chanBanXd = await congLuatBan(env.DB, { bookerPartyId: order.bookerPartyId, dong: order.services });
     if (chanBanXd) return chanBanXd;
+    // ADR-0220 Đ3: Còn vé kèm `ngayDi` ghi ngày khởi hành MỚI cho mọi dịch vụ của đơn — xét cổng ngừng bán theo ngày trên ngày SẼ GHI (ngày cũ do `kiemCongXacNhan` xét).
+    // Chỉ nhánh Còn vé: Hết vé / Huỷ không bán gì. (Phát hiện C1 của người kiểm độc lập 20/11.)
+    if (ketQua === "CON_VE") {
+      const ngungXd = await congNgungBanNgay(env.DB, order.services.map((s) => ({ catalogCode: s.catalogCode, name: s.name, departDate: ngayDi ?? s.departDate })));
+      if (ngungXd) return ngungXd;
+    }
     // ADR-0185 Đ1 (kế hoạch K2, K3): người LẬP (không phải người bấm) giữ quyền Đối tác theo quyền THẬT (`v_stf_quyen_mo`; vai «xem như» không nằm trong bảng đó) mà đơn ra «không
     // người hưởng» ⇒ 409 NGAY SAU luật bán — không đẩy người xét đi bỏ lượt, ghi giờ hay đặt gấp cho một đơn không xác nhận được (cùng lý do R-7). `kiemCongXacNhan` gọi lại (lưới).
     const nguoiLapDoiTac: NguoiLapDoiTac = (await nguoiLapGiuDoiTac(env.DB, meta.staffId)) ? { cua: "xet-duyet" } : null;
@@ -529,7 +535,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     // Các cổng còn lại (R2 giá, người lớn, nhóm tắt đưa đón, chọn đón, R3 trần) xét theo NGƯỜI BẤM Còn vé — như hôm nay; mốc đã kiểm ở trên.
     // Đợt C, Task 4: thiếu phí ⇒ 409 (đơn Gửi đơn mang cờ «thiếu phí» chốt phí THẬT ở đây). Cổng thiếu phí đứng ngay sau cổng chọn Đón TRONG kiemCongXacNhan — ở cửa này cả hai
     // đứng sau phần kiểm mốc / đặt gấp của route (thứ tự sẵn có của Còn vé).
-    const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc, cuaDuaDon: "xet-duyet", nguoiLapDoiTac, traSau: { kiemTraSau, cauGacPhienBanTraSau }, cheDoThieuPhi: "TU_CHOI", mucPhiThem: mucPhiChon });
+    const cong = await kiemCongXacNhan(env.DB, { actor: staff, order, kiemMoc: true, mocToiThieu: moc, cuaDuaDon: "xet-duyet", nguoiLapDoiTac, traSau: { kiemTraSau, cauGacPhienBanTraSau }, cheDoThieuPhi: "TU_CHOI", mucPhiThem: mucPhiChon, ...(ngayDi !== undefined ? { ngayKhoiHanhMoi: ngayDi } : {}) });
     if ("loi" in cong) return cong.loi;
     // ADR-0159 Đ1 mục 3, 4: người LẬP là người thu dù người xét bấm; người xét không sửa được số khai nên câu vượt tổng nói phải trả đơn. `cong.chup` là bản chụp của CHÍNH lô này.
     // Đợt C: so với tổng ĐÃ GỒM phí tính lại ở ngày xác nhận.

@@ -84,7 +84,7 @@ export const ngungBanNgayRoutes: Route[] = [
         cauKetThucKhoang(env.DB, { id, at, by: staff.id }),
         auditStatement(env.DB, {
           staffId: staff.id, action: "catalog_pause_ended", at, targetType: "catalog", ...(r.scope === "SERVICE" && r.catalog_code ? { targetId: r.catalog_code } : {}),
-          detail: `${r.scope === "SERVICE" ? `Dịch vụ ${r.catalog_code}` : `Nhóm ${r.group_code}`}: ${khoangChu(r.from_date, r.to_date)}`,
+          detail: `${r.scope === "SERVICE" ? `Dịch vụ ${r.catalog_code}` : `Nhóm ${(await tenTheoMa(env.DB)).nhom.get(r.group_code ?? "") ?? r.group_code}`}: ${khoangChu(r.from_date, r.to_date)}`,
         }),
       ]);
     } catch (e) {

@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { A, ACC, ADM, INTERN, PARTNER, SUP, inDays, setup, svc } from "../../../tests/audit/xac-nhan-khung.mjs";
+import { A, ACC, ADM, B, INTERN, PARTNER, SUP, datCo, inDays, setup, svc } from "../../../tests/audit/xac-nhan-khung.mjs";
 import { seedStaff } from "../../../tests/audit/harness.mjs";
 
 type W = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -170,4 +170,40 @@ test("tiêu chí 8: nhật ký đặt và kết thúc chỉ có mã dịch vụ 
   const mong = `Dịch vụ ZA1: ${dmy(TU)} – ${dmy(DEN)}`;
   assert.deepEqual(nk(w, "catalog_pause_added"), [{ target_id: "ZA1", detail: mong }]);
   assert.deepEqual(nk(w, "catalog_pause_ended"), [{ target_id: "ZA1", detail: mong }], "ghi chú tự do không vào nhật ký");
+});
+
+test("Còn vé kèm ngày đi MỚI rơi vào khoảng ⇒ 409, đơn vẫn nháp, ngày không đổi; ngày mới ngoài khoảng ⇒ xác nhận được; đơn chờ có ngày CŨ trong khoảng ⇒ Còn vé 409, dời ra ngoài khoảng thì được", async () => {
+  const w = the();
+  datCo(w, "SERVICE", "ZA1", true);
+  const cho = async (ngay: string) => {
+    const id = await lapOk(w, [svc("ZA1", ngay)]);
+    assert.equal((await w.call("POST", `/api/orders/${id}/gui-xac-nhan`, { as: A, body: {} })).status, 201);
+    return id;
+  };
+  const qd = (id: string, extra: Record<string, unknown>) => {
+    const yc = w.q("SELECT id FROM ord_confirm_request WHERE order_id = ? AND decided_at IS NULL", id)[0];
+    return w.call("POST", `/api/orders/${id}/quyet-dinh`, { as: B, body: { yeuCauId: yc.id, updatedAt: moc(w, id), ...extra } });
+  };
+  const ngoai = await cho(TRUOC);
+  const trong = await cho(TRONG);
+  await datOk(w, { phamVi: "SERVICE", ma: "ZA1", tuNgay: TU, denNgay: DEN });
+  biChan(await qd(ngoai, { ketQua: "CON_VE", ngayDi: TRONG }));
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", ngoai)[0].status, "draft");
+  assert.equal(w.q("SELECT depart_date d FROM order_service WHERE order_id = ?", ngoai)[0].d, TRUOC, "409 không đổi ngày");
+  biChan(await qd(trong, { ketQua: "CON_VE" }));
+  const dung = await qd(ngoai, { ketQua: "CON_VE", ngayDi: NGOAI });
+  assert.equal(dung.status, 200, dung.text);
+  assert.equal(w.q("SELECT status FROM orders WHERE id = ?", ngoai)[0].status, "confirmed");
+  const doiRa = await qd(trong, { ketQua: "CON_VE", ngayDi: NGOAI });
+  assert.equal(doiRa.status, 200, doiRa.text); // dời đơn đang chờ ra ngoài khoảng: được
+});
+
+test("nhật ký của khoảng theo nhóm ghi TÊN nhóm ở cả lúc đặt lẫn lúc kết thúc", async () => {
+  const w = the();
+  const g = (await w.call("POST", "/api/catalog/groups", { as: ADM, body: { name: "Tour đảo xa" } })).json.group.code as string;
+  const { khoang } = await datOk(w, { phamVi: "GROUP", ma: g, tuNgay: TU, denNgay: DEN });
+  assert.equal((await ketThuc(w, khoang.id)).status, 200);
+  const mong = [{ target_id: null, detail: `Nhóm Tour đảo xa: ${dmy(TU)} – ${dmy(DEN)}` }];
+  assert.deepEqual(nk(w, "catalog_pause_added"), mong);
+  assert.deepEqual(nk(w, "catalog_pause_ended"), mong);
 });

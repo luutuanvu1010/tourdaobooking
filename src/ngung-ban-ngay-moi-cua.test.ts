@@ -22,7 +22,7 @@ export const CUA_NGUNG_BAN_NGAY: readonly { tep: string; route: string; quaCongC
   { tep: "src/modules/orders/index.ts", route: "POST /api/orders/:id/status" },
   { tep: "src/modules/orders/xac-nhan-route.ts", route: "POST /api/orders/:id/gui-xac-nhan" },
   { tep: "src/modules/orders/xac-nhan-route.ts", route: "POST /api/orders/:id/gui-don", quaCongChung: true },
-  { tep: "src/modules/orders/xac-nhan-route.ts", route: "POST /api/orders/:id/quyet-dinh", quaCongChung: true },
+  { tep: "src/modules/orders/xac-nhan-route.ts", route: "POST /api/orders/:id/quyet-dinh" }, // gọi TRỰC TIẾP: Còn vé kèm `ngayDi` ghi ngày mới mà `kiemCongXacNhan` chỉ xét ngày cũ
 ];
 
 test("mọi cửa ghi đơn gọi cổng ngừng bán theo ngày", () => {
