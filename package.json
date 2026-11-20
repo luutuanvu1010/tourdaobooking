@@ -22,6 +22,7 @@
     "trien-khai": "node scripts/trien-khai.mjs"
   },
   "devDependencies": {
+    "axe-core": "4.14.0",
     "esbuild": "^0.28.2",
     "typescript": "^7.0.2",
     "wrangler": "^4.135.0"
