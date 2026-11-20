@@ -148,3 +148,28 @@ test("tongKet: ô có loi ⇒ 2; chua-do thắng khong-dat; không-áp-dụng kh
   // khổ máy tính: T4 không áp dụng, khổ điện thoại: T6 không áp dụng — vẫn ra 0
   assert.equal(tongKet([{ cham: chamMay(oDat()) }]).maThoat, 0);
 });
+
+test("số đo thiếu không bao giờ ra đạt: do undefined ⇒ T1, T4, T5, T9, M1, M3 chưa đo; tongKet 2", () => {
+  const o = oDat({ kho: 390, mobile: true, do: undefined });
+  for (const ma of ["T1", "T4", "T5", "T9", "M1", "M3"]) {
+    const k = ket(o, ma);
+    assert.equal(k.ketQua, "chua-do", ma);
+    assert.match(k.viDu.join(" "), /do-co-ban/, ma);
+  }
+  assert.equal(tongKet([{ cham: chamMay(o) }]).maThoat, 2);
+});
+
+test("số đo thiếu: them null ⇒ T3, M2, T6 (1280) chưa đo; do và loiHt vẫn chấm", () => {
+  const o = oDat({ them: null });
+  for (const ma of ["T3", "M2", "T6"]) assert.equal(ket(o, ma).ketQua, "chua-do", ma);
+  assert.equal(ket(o, "T1").ketQua, "dat");
+  assert.equal(tongKet([{ cham: chamMay(o) }]).maThoat, 2);
+});
+
+test("số đo thiếu: T6 thiếu do hoặc them đều chưa đo; loiHt undefined ⇒ T2 chưa đo; kiểu khác đối tượng cũng thiếu", () => {
+  assert.equal(ket(oDat({ do: null }), "T6").ketQua, "chua-do");
+  assert.equal(ket(oDat({ loiHt: undefined }), "T2").ketQua, "chua-do");
+  assert.equal(ket(oDat({ loiHt: "x" }), "T2").ketQua, "chua-do");
+  assert.equal(ket(oDat({ do: [] }), "T9").ketQua, "chua-do");
+  assert.equal(ket(oDat({ kho: 390, mobile: true, them: undefined }), "T6").ketQua, "khong-ap-dung");
+});

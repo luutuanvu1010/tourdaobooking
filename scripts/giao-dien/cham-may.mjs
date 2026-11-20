@@ -31,35 +31,41 @@ const dat = (ma, so = 0) => ({ ma, ketQua: "dat", so, viDu: [] });
 const khongDat = (ma, so, viDu) => ({ ma, ketQua: "khong-dat", so, viDu: bo5(viDu) });
 const chuaDo = (ma) => ({ ma, ketQua: "chua-do", so: 0, viDu: [] });
 const khongApDung = (ma) => ({ ma, ketQua: "khong-ap-dung", so: 0, viDu: [] });
+const laDoiTuong = (x) => x !== null && typeof x === "object" && !Array.isArray(x);
+const TEN_PHEP = { do: "do-co-ban", them: "do-them", loiHt: "do-loi-hien-thi" };
+const thieuDo = (ma, ...phep) => ({ ma, ketQua: "chua-do", so: 0, viDu: phep.map((p) => `thiếu số đo ${TEN_PHEP[p]}`) });
 const theoSo = (ma, so, viDu) => (so === 0 ? dat(ma) : khongDat(ma, so, viDu));
 
 /** Chấm MỘT ô: trả mảng { ma, ketQua: "dat" | "khong-dat" | "chua-do" | "khong-ap-dung", so, viDu[≤5] } đúng thứ tự TIEU_CHI_MAY. */
 export function chamMay(o) {
-  const d = o.do ?? {};
-  const them = o.them ?? {};
+  // Số đo không phải đối tượng (null, undefined, kiểu khác) = phép đo thiếu: các tiêu chí phụ thuộc ra «chưa đo», không bao giờ «đạt».
+  const coDo = laDoiTuong(o.do), coThem = laDoiTuong(o.them), coLoi = laDoiTuong(o.loiHt);
+  const d = coDo ? o.do : {};
+  const them = coThem ? o.them : {};
   const kho = Number(o.kho);
   const dienThoai = !!o.mobile;
   const ra = [];
 
   // T1
-  ra.push(d.tranNgang === false ? dat("T1") : khongDat("T1", Math.max(1, (d.thoRa ?? []).length), d.thoRa?.length ? d.thoRa : ["trang rộng hơn màn hình"]));
+  ra.push(!coDo ? thieuDo("T1", "do") : d.tranNgang === false ? dat("T1") : khongDat("T1", Math.max(1, (d.thoRa ?? []).length), d.thoRa?.length ? d.thoRa : ["trang rộng hơn màn hình"]));
 
   // T2 — chỉ chỗ cắt có số tiền hoặc toàn chữ số làm «không đạt»; chỗ cắt chữ khác đếm vào soCatChuPhu.
-  const cat = (o.loiHt?.cat ?? []).filter((c) => (c.rong ?? 0) > 2);
+  const cat = (coLoi ? o.loiHt.cat ?? [] : []).filter((c) => (c.rong ?? 0) > 2);
   const chinh = cat.filter(catChinh);
-  const t2 = theoSo("T2", chinh.length, chinh.map((c) => `${c.el} «${c.chu}» ${c.rong}/${c.can}px`));
-  t2.soCatChuPhu = cat.length - chinh.length;
+  const t2 = !coLoi ? thieuDo("T2", "loiHt") : theoSo("T2", chinh.length, chinh.map((c) => `${c.el} «${c.chu}» ${c.rong}/${c.can}px`));
+  if (coLoi) t2.soCatChuPhu = cat.length - chinh.length;
   ra.push(t2);
 
   // T3
   const t3 = them.t3 ?? [];
-  ra.push(theoSo("T3", t3.length, t3.map((c) => `${c.loai ?? ""} ${c.el} «${c.chu}» bị ${c.biDeBoi} đè`.trim())));
+  ra.push(!coThem ? thieuDo("T3", "them") : theoSo("T3", t3.length, t3.map((c) => `${c.loai ?? ""} ${c.el} «${c.chu}» bị ${c.biDeBoi} đè`.trim())));
 
   // T4 — chỉ điện thoại
-  ra.push(!dienThoai ? khongApDung("T4") : theoSo("T4", d.soNhoHon44 ?? 0, (d.nhoHon44 ?? []).map((c) => `${c.the ?? ""} «${c.ten}» ${c.w}×${c.h}`.trim())));
+  ra.push(!dienThoai ? khongApDung("T4") : !coDo ? thieuDo("T4", "do") : theoSo("T4", d.soNhoHon44 ?? 0, (d.nhoHon44 ?? []).map((c) => `${c.the ?? ""} «${c.ten}» ${c.w}×${c.h}`.trim())));
 
   // T5 — trang trạng thái toàn trang (không quyền, không tìm thấy, thiếu mã…) không xét: không có tiêu đề lớn là chủ ý (N12, 13/11)
-  if (d.laTrangThaiToanTrang) ra.push(khongApDung("T5"));
+  if (!coDo) ra.push(thieuDo("T5", "do"));
+  else if (d.laTrangThaiToanTrang) ra.push(khongApDung("T5"));
   else {
     const h1 = (d.h1 ?? []).length, nut = (d.nutChinhTrongManDau ?? []).length;
     const loi = [];
@@ -70,6 +76,7 @@ export function chamMay(o) {
 
   // T6 — chỉ khổ rộng từ 1024
   if (kho < 1024) ra.push(khongApDung("T6"));
+  else if (!coDo || !coThem) ra.push(thieuDo("T6", ...[...(coDo ? [] : ["do"]), ...(coThem ? [] : ["them"])]));
   else {
     const nut = hinhNut(d.nutKieu).size, co = them.coChu?.so ?? 0;
     const loi = [];
@@ -88,17 +95,17 @@ export function chamMay(o) {
   }
 
   // T9
-  ra.push(theoSo("T9", (d.tuAnh ?? []).length, d.tuAnh ?? []));
+  ra.push(!coDo ? thieuDo("T9", "do") : theoSo("T9", (d.tuAnh ?? []).length, d.tuAnh ?? []));
 
   // T15
   if (o.t15 === null || o.t15 === undefined) ra.push(chuaDo("T15"));
   else ra.push(theoSo("T15", o.t15.soKhongTen ?? 0, o.t15.mota ?? []));
 
   // M1, M2, M3
-  ra.push(theoSo("M1", (d.oGoNho ?? []).length, (d.oGoNho ?? []).map((c) => `«${c.ten}» ${c.co}`)));
+  ra.push(!coDo ? thieuDo("M1", "do") : theoSo("M1", (d.oGoNho ?? []).length, (d.oGoNho ?? []).map((c) => `«${c.ten}» ${c.co}`)));
   const chong = them.chong ?? [];
-  ra.push(theoSo("M2", chong.length, chong.map((c) => `«${c.chuA}» × «${c.chuB}»`)));
-  ra.push(theoSo("M3", (d.oKhongNhan ?? []).length, d.oKhongNhan ?? []));
+  ra.push(!coThem ? thieuDo("M2", "them") : theoSo("M2", chong.length, chong.map((c) => `«${c.chuA}» × «${c.chuB}»`)));
+  ra.push(!coDo ? thieuDo("M3", "do") : theoSo("M3", (d.oKhongNhan ?? []).length, d.oKhongNhan ?? []));
 
   return ra;
 }
