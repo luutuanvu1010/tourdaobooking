@@ -627,16 +627,18 @@
   {
    "so": 84,
    "ho": "Đăng nhập, trạng thái",
-   "bo": "KHACH",
+   "bo": "SALES",
    "trang": "/404",
-   "viec": "Người dùng gõ nhầm địa chỉ, gặp trang không tìm thấy"
+   "viec": "Bán hàng (đã đăng nhập) gõ nhầm địa chỉ, gặp trang không tìm thấy",
+   "ghiChu": "Người chưa đăng nhập mở trang này bị chuyển về Đăng nhập (đã thử 20/11), nên chấm với tài khoản đã đăng nhập."
   },
   {
    "so": 85,
    "ho": "Đăng nhập, trạng thái",
-   "bo": "KHACH",
+   "bo": "SALES",
    "trang": "/ngoai-mang",
-   "viec": "Người dùng mất mạng, gặp trang ngoài mạng"
+   "viec": "Bán hàng (đã đăng nhập) mất mạng, gặp trang ngoài mạng",
+   "ghiChu": "Người chưa đăng nhập mở trang này bị chuyển về Đăng nhập (đã thử 20/11), nên chấm với tài khoản đã đăng nhập."
   },
   {
    "so": 86,
