@@ -37,7 +37,10 @@
 - Widget Turnstile ở `web/login.ts`: id khung **không được** là `turnstile`; không gọi `turnstile.ready()`; `theme: "light"` (app chỉ có giao diện sáng); phải **hỏi lại** cấu hình sau 403/503 vì `siteKey` từng kẹt `null` — đừng bỏ. Chi tiết: `docs/CHANGE-GUIDE.md` công thức l ("Bẫy widget").
 
 ## Sửa tệp nào thì chạy lại kịch bản Chrome nào
-Chạy `npm run build:web` trước. Cần Chrome + axe-core **ngoài repo**; cách chạy `tests/e2e/README.md`. Các trang dùng **chung kho cookie**: trang của tài khoản nào phải mở **sau cùng**.
+Chạy `npm run build:web` trước. Cần Chrome; axe-core có sẵn sau `npm ci` (đặt `AXE_JS=$PWD/node_modules/axe-core/axe.min.js`); cách chạy `tests/e2e/README.md`. Các trang dùng **chung kho cookie**: trang của tài khoản nào phải mở **sau cùng**.
+
+**Người chấm giao diện (từ 2026-11-20):** sửa giao diện và chạy kịch bản xong thì giao trợ lý `nguoi-danh-gia-giao-dien` chấm các màn đã đổi TRƯỚC khi đưa ảnh cho chủ. Nó tự chạy `node scripts/giao-dien/do-man.mjs` và chấm theo `docs/TIEU-CHI-GIAO-DIEN.md`. Phát hiện mức Nặng trở lên: sửa, hoặc nêu rõ trong báo cáo cho chủ. Người thi công không tự chấm màn của mình (N8). Trợ lý này không thay người kiểm độc lập (`nguoi-kiem-doc-lap`) của việc lớn.
+
 | Sửa | Chạy |
 |---|---|
 | `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` | ba `a2-smoke-*.mjs` ở `docs/evidence/2026-09-20-a2/kich-ban/` |

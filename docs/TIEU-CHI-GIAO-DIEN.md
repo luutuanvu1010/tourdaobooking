@@ -20,7 +20,7 @@ Mã và ngưỡng dưới đây phải khớp `scripts/giao-dien/cham-may.mjs` (
 | `T4` | Vùng chạm ở điện thoại | mọi nút, liên kết, ô từ 44 × 44 | 390 | Nặng |
 | `T5` | Một tiêu đề chính, tối đa một nút chính ở màn đầu | đúng 1 tiêu đề, không quá 1 nút nền đặc | 390, 1280 (bỏ khối trạng thái toàn trang) | Nhỏ |
 | `T6` | Ít kiểu dáng | không quá 3 hình nút, không quá 5 cỡ chữ | 1280 | Nhỏ |
-| `T8` | Trợ năng tự động (axe, gồm tương phản mức AA) | 0 lỗi mức nặng, nghiêm trọng | 390, 1280 | Nhỏ; Nặng nếu chữ gần như không đọc được |
+| `T8` | Trợ năng tự động (axe, gồm tương phản mức AA) | 0 lỗi mức nặng, nghiêm trọng | 390, 1280 | Nhỏ; Nặng nếu chữ gần như không đọc được (ví dụ chữ xám nhạt trên nền trắng) |
 | `T9` | Không lộ chữ Anh hay mã thô | 0 từ | 390, 1280 | Nhỏ; Nặng nếu là trạng thái hay tên nút |
 | `T15` | Nút, ô, liên kết đều có tên cho bộ đọc màn hình | 0 phần tử không tên | 390, 1280 | Nhỏ; Nặng nếu là nút chính |
 | `M1` | Ô gõ cỡ chữ từ 16 px | 0 ô nhỏ hơn | 390, 1280 | Nhỏ |
