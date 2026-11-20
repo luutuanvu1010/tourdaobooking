@@ -125,9 +125,13 @@ const khachThem = byId("khach-them");
 const gapKhach = taoKhoiGap({ ma: "khach", nhan: "Email, ghi chú", than: khachThem });
 khachThem.before(gapKhach.nut);
 // Đặc tả 2026-11-20: «Ghi chú thanh toán» ít dùng ⇒ gập sau nút như «Email, ghi chú»; có giá trị / bắt buộc / lỗi thì tự mở (luật an toàn của khối gập).
+// Khối gập là một lớp BỌC ngoài nhãn: chính sách ẩn ô (ADR-0194) vẫn ẩn thẳng NHÃN như trước, nên «mở mọi khối gập» sau lỗi 400 không làm ô bị ẩn hiện ra (người kiểm độc lập 20/11).
 const oGhiChuTT = field("paymentNote").closest("label") as HTMLElement;
-const gapGhiChuTT = taoKhoiGap({ ma: "thanh-toan-ghi-chu", nhan: "Ghi chú thanh toán", than: oGhiChuTT });
-oGhiChuTT.before(gapGhiChuTT.nut);
+const bocGhiChuTT = h("div", null);
+oGhiChuTT.before(bocGhiChuTT);
+bocGhiChuTT.append(oGhiChuTT);
+const gapGhiChuTT = taoKhoiGap({ ma: "thanh-toan-ghi-chu", nhan: "Ghi chú thanh toán", than: bocGhiChuTT });
+bocGhiChuTT.before(gapGhiChuTT.nut);
 const thanhBuoc = taoThanhBuoc({ phanTu: (ma) => document.querySelector<HTMLElement>(`[data-buoc-khoi="${ma}"]`) });
 thanhBuoc.an("phu-trach", true); // bật lại khi biết người lập chọn được người phụ trách (`canPickHandler`)
 byId("buoc-slot").replaceWith(thanhBuoc.root); // KHÔNG bọc thêm thẻ: thanh dính chỉ dính trong khung cha của nó (.form-main: dưới 960px là `display: contents` nên khung dính là cả biểu mẫu)
@@ -221,6 +225,9 @@ const dateMovedEl = byId("orderDate-moved");
 /** Khối hành khách; null = không dựng (không có ô order.passenger.write, hoặc sửa nháp mà không tải được danh sách — khi đó KHÔNG gửi khoá `passengers`). */
 let hk: KhoiHanhKhach | null = null;
 const wideQuery = window.matchMedia("(min-width: 960px)");
+/** Khối Hành khách nay nằm trong CỘT CHÍNH (đặc tả 2026-11-20): bảng năm cột chỉ đủ chỗ khi cột chính rộng — dưới mốc này dùng dạng thẻ như điện thoại (người kiểm độc lập 20/11: ở 960–1040 cột Họ tên còn 40–120 px). */
+const bangKhachQuery = window.matchMedia("(min-width: 1440px)");
+bangKhachQuery.addEventListener("change", () => hk?.refresh(true));
 
 const drafts = () => entries.map((e) => e.draft);
 const nameOf = (d: ServiceDraft, i: number) => d.name.trim() || `Dịch vụ ${i + 1}`;
@@ -501,7 +508,7 @@ function capNhatBuoc(): void {
       duTenKhach: hk !== null && soKhachForm() > 0 && hk.rows().filter((r) => dongDu(r, today)).length >= soKhachForm(),
     }),
   );
-  thanhBuoc.an("hanh-khach", hk === null);
+  thanhBuoc.an("hanh-khach", hk === null || hkCard.hidden === true); // khối bị ẩn giữa phiên (công tắc «Ẩn thông tin khách») thì bước cũng ẩn
 }
 for (const id of ["customerName", "customerPhone"]) {
   field(id).addEventListener("input", () => {
@@ -1137,10 +1144,10 @@ async function loadOrder(): Promise<void> {
 /** Số khách của cả đoàn (mẫu số "N/M khách đã có tên") = số khách dịch vụ đông nhất (R9, cùng luật máy chủ `soKhachDoan`). */
 const soKhachForm = (): number => soKhachDoan(drafts().map((d) => (d.kind === "catalog" ? d.pax : { adult: soKhachNhap(d), child: 0, senior: 0, infant: 0 })));
 
-/** Dựng khối "Hành khách" (M2) ở `#hk-card`; máy tính (≥ 960px) dạng bảng trải hết bề ngang dưới hàng "thẻ dịch vụ | Tóm tắt". */
+/** Dựng khối "Hành khách" (M2) ở `#hk-card`: từ 20/11/2026 nằm trong cột chính ngay sau Dịch vụ ở mọi khổ; dạng bảng chỉ từ 1440px (`bangKhachQuery`), dưới đó dạng thẻ. */
 function dungKhoiKhach(rows: DongKhach[]): void {
   if (anTruong("passengers")) return; // ADR-0194: chính sách ẩn khối hành khách (không dựng; không gửi khoá `passengers` ⇒ máy chủ giữ danh sách đang lưu)
-  hk = taoKhoiHanhKhach({ rows, che: "form", soKhach: soKhachForm, today, bang: () => wideQuery.matches, newKey, ma: "hk", onChange: () => recompute(), tenGoiY: () => (anKhach ? "" : field("customerName").value) });
+  hk = taoKhoiHanhKhach({ rows, che: "form", soKhach: soKhachForm, today, bang: () => bangKhachQuery.matches, newKey, ma: "hk", onChange: () => recompute(), tenGoiY: () => (anKhach ? "" : field("customerName").value) });
   replaceChildren(hkCard, h("h2", null, "Hành khách"), hk.root);
   hkCard.hidden = false;
   datViTriKhoiKhach();
@@ -1182,7 +1189,7 @@ function apChinhSach(): void {
   anPhanTu(anTruong("customerEmail"), o("customerEmail"));
   anPhanTu(anTruong("customerNote"), o("customerNote"));
   anPhanTu(anTruong("customerEmail") && anTruong("customerNote"), gapKhach.nut);
-  anPhanTu(anTruong("paymentNote"), gapGhiChuTT.nut);
+  anPhanTu(anTruong("paymentNote"), o("paymentNote"), gapGhiChuTT.nut);
   if (anTruong("paymentNote")) gapGhiChuTT.dong(); // ô bị chính sách ẩn: gập lại (giá trị vẫn gửi như cũ)
   else if (batBuocTruong("paymentNote")) gapGhiChuTT.mo();
   if (anTruong("passengers")) {

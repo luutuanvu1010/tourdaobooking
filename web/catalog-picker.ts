@@ -98,7 +98,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   // tabindex -1: nhận tiêu điểm khi khung thành inert lúc tiêu điểm đang ở trong khung (thêm dịch vụ thứ 20 bằng bàn phím — nợ T2(4), Việc 9).
   const reason = h("p", { class: "muted catalog-khoa", hidden: true, tabindex: "-1" }, icon("lock", 16), reasonText);
   // Ô tìm giữ type="search": order-form.ts chặn Enter theo đúng kiểu ô này (ô nằm trong <form>).
-  const q = h("input", { id: "catalog-q", type: "search", placeholder: "Tìm theo tên hoặc mã dịch vụ", "aria-expanded": "true", "aria-label": "Tìm theo tên hoặc mã dịch vụ", autocomplete: "off", "aria-controls": "catalog-list" });
+  const q = h("input", { id: "catalog-q", type: "search", placeholder: "Tìm theo tên hoặc mã dịch vụ", "aria-label": "Tìm theo tên hoặc mã dịch vụ", autocomplete: "off", "aria-controls": "catalog-list" });
   const xoa = h("button", { type: "button", class: "catalog-tim-xoa", "aria-label": "Xoá chữ tìm", hidden: true }, icon("close", 20));
   const tim = h("div", { class: "catalog-tim" }, h("span", { class: "catalog-tim-kinh" }, icon("search", 20)), q, xoa);
   // Hàng nhóm: hàng cuộn là radiogroup (NẰM NGOÀI #catalog-list); "›" và hai nút ‹ › phủ lên mép hàng (aria-hidden / tabindex -1: phím mũi tên đã đủ).
@@ -121,7 +121,6 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   function datThu(v: boolean): void {
     if (chonMot) return;
     root.classList.toggle("is-thu", v);
-    q.setAttribute("aria-expanded", String(!v));
   }
 
   let items: readonly CatalogServiceDto[] = [];

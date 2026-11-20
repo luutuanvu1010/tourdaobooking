@@ -309,7 +309,7 @@ function summaryBlock(order: ReceiptDto): SummaryBlock {
   // Đặc tả 2026-11-20 (không trùng lặp trường; cùng luật mẫu HD-02-DT): không giảm giá thì «Tạm tính» = «Tổng cộng» ⇒ chỉ in «Tổng cộng»; dòng bằng 0 thì bỏ;
   // mỗi mẫu chỉ MỘT số nổi bật — số khách còn phải trả («Còn lại»), hoặc «Tổng cộng» khi không có dòng nào sau nó.
   const coGiam = order.discount !== 0;
-  const coSau = order.daTra !== 0 || Boolean(order.giamTru);
+  const coSau = order.daTra !== 0 || Boolean(order.giamTru) || order.conLai !== order.total; // số khách còn phải trả khác tổng thì LUÔN in «Còn lại» (số của billing, không suy ra từ tổng)
   const dau = [
     ...(coGiam ? [{ label: "Tạm tính", value: money(order.subtotal), emphasis: false }, { label: "Giảm giá", value: money(order.discount > 0 ? -order.discount : order.discount), emphasis: false }] : []),
     { label: "Tổng cộng", value: money(order.total), emphasis: !coSau && !order.huy },
