@@ -2,7 +2,24 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.18 ĐÃ LÊN PRODUCTION (ADR-0219: Quản lý bán hàng xác minh phiếu đăng ký đối tác; Quản trị, Nhân sự hoặc Toàn quyền duyệt mở tài khoản; hàng chờ sang trang riêng «Phiếu đăng ký đối tác»; nút Duyệt khoá khi người mở là người xác minh) — không migration — triển khai 2026-11-18 17:48 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.19 ĐÃ LÊN PRODUCTION (ADR-0220: ngừng bán dịch vụ hoặc nhóm theo khoảng ngày khởi hành; tối ưu giao diện Tạo đơn và ảnh xác nhận đơn; sửa giao diện theo bốn ý của chủ: Tạo đơn và Chi tiết đơn của Đối tác, đổi tên «Nhập khoản thu» và «Thanh toán đơn này cho công ty Tour Đảo», lọc Kho vé) — migration `0180` — triển khai 2026-11-20 21:32 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Đặc tả của đợt sửa giao diện: `docs/superpowers/specs/2026-11-20-sua-giao-dien-bon-y-cua-chu.md` (có kết quả kiểm độc lập ở mục 6b). Migration `0180` thuộc việc ngừng bán theo ngày (nhánh khác, đã ở bản chính từ trước).
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-20 21:32 (giờ Việt Nam)
+- Commit: 917c05b75 H2: không giấu nơi trả đối tác tự gõ; ghi kết quả kiểm độc lập vào đặc tả
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-20T13:50:52Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/44747016379
+- Migration đã áp: 0180_ngung_ban_theo_ngay.sql
+- Điểm khôi phục Time Travel trước khi áp: 00002f87-00000004-00005129-8d89e6cabe1af8acef320e0e4c32425c
+- Worker Version ID: d54f860a-d408-4f53-ba43-50b1c04c9bf3
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT
+- Phiên bản: 3.19 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: day-len 6 phút 35 giây; trien-khai 0 phút 47 giây
+- Sau triển khai: GET công khai thấy mã mới ở `/js/order.js`, `/js/order-form.js`, `/js/ve-kho.js`, `/app.css`. Chưa thử trên iPhone thật; chủ chưa bấm thử trên bản chạy thật.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.18 ĐÃ LÊN PRODUCTION (ADR-0219: Quản lý bán hàng xác minh phiếu đăng ký đối tác; Quản trị, Nhân sự hoặc Toàn quyền duyệt mở tài khoản; hàng chờ sang trang riêng «Phiếu đăng ký đối tác»; nút Duyệt khoá khi người mở là người xác minh) — không migration — triển khai 2026-11-18 17:48 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Bản 3.16 và 3.17 (số sê-ri vé, ADR-0217) đã lên trước, ghi ở nhánh khác. Nhật ký thi công: `docs/superpowers/specs/2026-11-18-adr-0219-nguoi-xac-minh-nguoi-duyet/THI-CONG.md`.
 
