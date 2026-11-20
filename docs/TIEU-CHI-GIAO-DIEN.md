@@ -12,20 +12,22 @@ Chạy bằng `node scripts/giao-dien/do-man.mjs --o <BỘ:/trang>`. Mỗi tiêu
 
 Mã và ngưỡng dưới đây phải khớp `scripts/giao-dien/cham-may.mjs` (bài kiểm `src/giao-dien-tieu-chi-khop.test.ts` so hai bên).
 
-| Mã | Tiêu chí | Ngưỡng đạt | Khổ áp dụng |
-|---|---|---|---|
-| `T1` | Không cuộn ngang | trang không tràn ngang | 390, 1280 |
-| `T2` | Không cắt chữ thông tin chính | 0 chỗ cắt mất số tiền hay con số (chỗ cắt chữ phụ chỉ đếm, không tính vi phạm) | 390, 1280 |
-| `T3` | Không phần tử nổi hay dính đè nút, số tiền | 0 chỗ | 390, 1280 |
-| `T4` | Vùng chạm ở điện thoại | mọi nút, liên kết, ô từ 44 × 44 | 390 |
-| `T5` | Một tiêu đề chính, tối đa một nút chính ở màn đầu | đúng 1 tiêu đề, không quá 1 nút nền đặc | 390, 1280 (bỏ khối trạng thái toàn trang) |
-| `T6` | Ít kiểu dáng | không quá 3 hình nút, không quá 5 cỡ chữ | 1280 |
-| `T8` | Trợ năng tự động (axe, gồm tương phản mức AA) | 0 lỗi mức nặng, nghiêm trọng | 390, 1280 |
-| `T9` | Không lộ chữ Anh hay mã thô | 0 từ | 390, 1280 |
-| `T15` | Nút, ô, liên kết đều có tên cho bộ đọc màn hình | 0 phần tử không tên | 390, 1280 |
-| `M1` | Ô gõ cỡ chữ từ 16 px | 0 ô nhỏ hơn | 390, 1280 |
-| `M2` | Chữ không chồng chữ | 0 cặp chồng | 390, 1280 |
-| `M3` | Ô gõ có nhãn | 0 ô không nhãn | 390, 1280 |
+| Mã | Tiêu chí | Ngưỡng đạt | Khổ áp dụng | Mức khi không đạt |
+|---|---|---|---|---|
+| `T1` | Không cuộn ngang | trang không tràn ngang | 390, 1280 | Nặng |
+| `T2` | Không cắt chữ thông tin chính | 0 chỗ cắt mất số tiền hay con số (chỗ cắt chữ phụ chỉ đếm, không tính vi phạm) | 390, 1280 | Nặng |
+| `T3` | Không phần tử nổi hay dính đè nút, số tiền | 0 chỗ | 390, 1280 | Nặng |
+| `T4` | Vùng chạm ở điện thoại | mọi nút, liên kết, ô từ 44 × 44 | 390 | Nặng |
+| `T5` | Một tiêu đề chính, tối đa một nút chính ở màn đầu | đúng 1 tiêu đề, không quá 1 nút nền đặc | 390, 1280 (bỏ khối trạng thái toàn trang) | Nhỏ |
+| `T6` | Ít kiểu dáng | không quá 3 hình nút, không quá 5 cỡ chữ | 1280 | Nhỏ |
+| `T8` | Trợ năng tự động (axe, gồm tương phản mức AA) | 0 lỗi mức nặng, nghiêm trọng | 390, 1280 | Nhỏ; Nặng nếu chữ gần như không đọc được |
+| `T9` | Không lộ chữ Anh hay mã thô | 0 từ | 390, 1280 | Nhỏ; Nặng nếu là trạng thái hay tên nút |
+| `T15` | Nút, ô, liên kết đều có tên cho bộ đọc màn hình | 0 phần tử không tên | 390, 1280 | Nhỏ; Nặng nếu là nút chính |
+| `M1` | Ô gõ cỡ chữ từ 16 px | 0 ô nhỏ hơn | 390, 1280 | Nhỏ |
+| `M2` | Chữ không chồng chữ | 0 cặp chồng | 390, 1280 | Nặng |
+| `M3` | Ô gõ có nhãn | 0 ô không nhãn | 390, 1280 | Nhỏ |
+
+Mỗi tiêu chí máy đo «không đạt» thành MỘT phát hiện trong báo cáo của người chấm (một dòng cho mỗi mã, không phải mỗi phần tử), mức theo cột cuối. Mức này theo cách đợt kiểm 13/11 đã xếp (vùng chạm nhỏ: Nặng; tương phản nhãn, mã thô: Nhỏ). Người chấm được nâng hay hạ một bậc khi nói rõ lý do.
 
 Lệnh này chưa đo: khoảng trống theo lưới chung (T7, đang chờ lưới), tốc độ và nhảy bố cục (T10, T11), hộp hỏi của hệ điều hành (T12, đã có bài kiểm riêng), iPhone thật (T13), hành trình từng vai (T14), cỡ chữ lớn của máy (T16), chữ khớp bảng tham chiếu (T17, đã có bài kiểm cho chữ nút), điều kiện lên kho ứng dụng (T19). Điểm Nielsen theo họ màn (T18) được thay bằng mười tiêu chí suy xét ở mục 2.
 
@@ -90,6 +92,7 @@ Mười tiêu chí. Mỗi tiêu chí chấm trên **ảnh màn hình thật**, c
 - **Đạt khi:** nhãn, chữ gợi ý trong ô và nội dung khớp nhau; tên nút nói việc sẽ xảy ra khi bấm; nút hay ô bị mờ có một câu ngắn nói vì sao hoặc phải làm gì trước; hai lựa chọn ngược nhau không dùng chung một chữ.
 - **Không đạt khi:** nhãn «Ghi chú» mà chữ gợi ý là «Thời gian đón»; nút mờ mà không nói vì sao; một chữ mang hai nghĩa ngược nhau trên cùng màn.
 - **Ví dụ thật:** Tạo đơn 20/11 (nhãn và gợi ý lệch nhau); Tài xế đối tác 13/11 («Lưu khung bận» mờ, không giải thích); Hoa hồng 29/10 («Tắt» hai nghĩa).
+- **Đừng báo khi:** ô rỗng đang hiện chữ gợi ý màu nhạt không phải là ô bị mờ. Chỉ coi một nút hay ô là mờ khi cả nền, viền và chữ của nó cùng nhạt đi so với các nút, ô cùng loại. Ô trông khác khuôn với ô bên cạnh thì báo theo S6.
 - **Mức mặc định:** Nặng.
 
 ### S8 — Bố cục ngay ngắn
