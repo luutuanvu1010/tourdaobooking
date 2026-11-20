@@ -36,6 +36,13 @@ Không đổi quyền, dữ liệu, số tiền, hợp đồng API. Không đổ
 - H3: sửa chỗ chật bằng cách xếp một cột khi màn 900–1179. Không tái hiện được chữ đè hẳn lên nhau như ảnh thứ ba của chủ trên mã hiện tại (đã thử 940–1180); chỉ thấy chữ và số bị vỡ dòng.
 - H4: ngưỡng «1 đến 5» và «trên 5»; dùng ô tìm thay cho danh sách chọn sản phẩm (kho thật có hàng chục dòng).
 
+## 6b. Sau kiểm độc lập (20/11)
+- Người kiểm độc lập kết luận «đạt có điều kiện», một lỗi Nặng: luật thu gọn H2 giấu cả nơi trả đối tác tự gõ trong nháp cũ. **Đã sửa:** chỉ thu gọn khi nơi trả trống hoặc còn là gợi ý của dịch vụ; thêm ca kiểm.
+- Hai hệ quả của H1 mà mục 6 chưa nói, chủ cần biết: (1) nháp cũ của đối tác đã có lời mời Bán hàng thì lời mời được giữ, nhưng đối tác không còn thấy hay gỡ được trên form; (2) tài khoản lai Bán hàng + Đối tác cũng dùng form gọn nên cũng không còn khối «Người phụ trách» ở Tạo đơn.
+- Đặt cọc vượt tổng bị máy chủ từ chối bằng mã 409 nên nút gập không tự mở (trình duyệt đã chặn ca này từ trước, câu lỗi vẫn hiện). Giảm giá vượt trần (400) thì nút gập tự mở.
+- Bằng chứng trình duyệt của H1–H4 là ảnh chụp thật trên máy thử và lượt chấm của trợ lý đánh giá giao diện (ảnh ngoài kho); chưa có kịch bản Chrome tự động mới cho H2, H3, H4. Kịch bản `ban-hang-phu-trach-smoke.mjs` và `kenh-thu-smoke.mjs` hỏng ở bước dựng môi trường (lỗi có từ trước, ADR-0185) nên không chạy được.
+- Trợ lý đánh giá giao diện: không có phát hiện Chặn việc hay Nặng do đợt này. Điểm nhỏ mới: lọc Kho vé ra rỗng chưa có lối «bỏ lọc» (để sau). Điểm có từ trước còn nguyên: «Tổng cộng» và «Còn lại» cùng tô đỏ (G3); hai nút chọn tròn của «Hình thức thanh toán» nhỏ hơn 44 px trên điện thoại.
+
 ## 7. Điều đã tra
 - H1: `public/order-form.html` (khối `pay-card`, `tra-sau-khoi`, `ban-hang-card`), `web/order-form.ts` (`napTraSau`, `renderBanHang`, câu `discount-hint`), khối gập dùng chung `web/khoi-gap.ts`. Kịch bản Chrome chạm phần này: `tra-sau-smoke`, `dat-coc-smoke`, `ban-hang-phu-trach-smoke`.
 - H2: `src/shared/chang-dua-don.ts` (`kiemChang`), `src/shared/chang-form.ts` (`loiChang`), `migrations/0034_chang_dua_don.sql` (ràng buộc nơi đón), `src/modules/orders/xac-nhan-route.ts`, `src/shared/permissions.ts` (`order.trip.edit`: Đối tác không có), ADR-0047, ADR-0134, ADR-0154, ADR-0214.

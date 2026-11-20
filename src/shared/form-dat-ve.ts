@@ -29,14 +29,16 @@ export const ghiChuMotDong = (note: string): string => note.replace(/^\s*[\r\n]\
  * H2 phương án nhẹ (đặc tả docs/superpowers/specs/2026-11-20-sua-giao-dien-bon-y-cua-chu.md; chủ duyệt 20/11/2026, đổi một phần ADR-0154 Đ1.1 ở mức giao diện): khối Đưa đón của form Đối tác
  * chỉ còn «Đón / Không đón», MỘT ô «Nơi đón» và ghi chú — ẩn Nơi trả, «Đón khác ngày», «Thêm chi tiết», «Thêm chiều về», «Thêm lượt», «Bỏ lượt» (bỏ đón thì bấm «Không đón»).
  * Máy chủ không đổi: lượt vẫn bắt buộc có nơi đón, nơi trả vẫn gửi theo gợi ý của dịch vụ (hoặc trống).
- * LUẬT AN TOÀN: chỉ thu gọn khi không giấu dữ liệu nào đang có — đúng MỘT lượt, chiều đi, ngày đón trống hoặc trùng ngày đi, không cam kết xe, không số hiệu chuyến bay. Nháp cũ có chiều về,
+ * LUẬT AN TOÀN: chỉ thu gọn khi không giấu dữ liệu nào đang có — đúng MỘT lượt, chiều đi, ngày đón trống hoặc trùng ngày đi, không cam kết xe, không số hiệu chuyến bay, nơi trả trống hoặc còn là gợi ý của dịch vụ. Nháp cũ có chiều về,
  * nhiều lượt, đón khác ngày… thì hiện đủ như trước (ADR-0154), để đối tác thấy và sửa được thứ sẽ gửi đi.
  */
 export function duaDonChiNoiDon(
-  legs: readonly { direction: "OUT" | "RETURN"; pickupDate: string; xeRieng: boolean; choToiThieu: string; flightCode: string }[],
+  legs: readonly { direction: "OUT" | "RETURN"; pickupDate: string; xeRieng: boolean; choToiThieu: string; flightCode: string; tra: string; traTuDo: string; goiYTra: boolean }[],
   ngayDi: string,
 ): boolean {
   if (legs.length !== 1) return false;
   const l = legs[0]!;
-  return l.direction === "OUT" && (l.pickupDate === "" || l.pickupDate === ngayDi) && !l.xeRieng && l.choToiThieu === "" && l.flightCode === "";
+  // Nơi trả (người kiểm độc lập 20/11): chỉ ẩn khi trống hoặc vẫn là GỢI Ý của dịch vụ (điểm trong danh mục, `goiYTra`); nơi trả đối tác tự gõ thì phải hiện để thấy và sửa được.
+  const traAnDuoc = l.traTuDo.trim() === "" && (l.tra === "" || l.goiYTra);
+  return l.direction === "OUT" && (l.pickupDate === "" || l.pickupDate === ngayDi) && !l.xeRieng && l.choToiThieu === "" && l.flightCode === "" && traAnDuoc;
 }

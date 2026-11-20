@@ -33,7 +33,7 @@ test("ghiChuMotDong: chuỗi không có xuống dòng giữ NGUYÊN (kể cả k
 
 // H2 phương án nhẹ (đặc tả 2026-11-20-sua-giao-dien-bon-y-cua-chu.md, chủ duyệt 20/11): khối Đưa đón của Đối tác chỉ còn một ô «Nơi đón» — nhưng KHÔNG BAO GIỜ giấu dữ liệu đang có.
 test("duaDonChiNoiDon: chỉ thu gọn khi đúng một lượt chiều đi, cùng ngày đi, không chi tiết, không số hiệu chuyến bay", () => {
-  const l = { direction: "OUT" as const, pickupDate: "", xeRieng: false, choToiThieu: "", flightCode: "", soVe: "" };
+  const l = { direction: "OUT" as const, pickupDate: "", xeRieng: false, choToiThieu: "", flightCode: "", soVe: "", tra: "", traTuDo: "", goiYTra: false };
   assert.equal(duaDonChiNoiDon([l], "2026-12-01"), true);
   assert.equal(duaDonChiNoiDon([{ ...l, pickupDate: "2026-12-01" }], "2026-12-01"), true, "ngày đón trùng ngày đi");
   assert.equal(duaDonChiNoiDon([], "2026-12-01"), false, "không lượt: không có gì để thu gọn");
@@ -43,4 +43,8 @@ test("duaDonChiNoiDon: chỉ thu gọn khi đúng một lượt chiều đi, cù
   assert.equal(duaDonChiNoiDon([{ ...l, xeRieng: true }], "2026-12-01"), false, "có xe riêng: hiện đủ");
   assert.equal(duaDonChiNoiDon([{ ...l, choToiThieu: "7" }], "2026-12-01"), false);
   assert.equal(duaDonChiNoiDon([{ ...l, flightCode: "VN123" }], "2026-12-01"), false, "có số hiệu chuyến bay: hiện đủ");
+  // Nơi trả: gợi ý của dịch vụ thì ẩn được; đối tác tự gõ / tự chọn thì KHÔNG được giấu (người kiểm độc lập 20/11).
+  assert.equal(duaDonChiNoiDon([{ ...l, tra: "loc-1", goiYTra: true }], "2026-12-01"), true, "nơi trả là gợi ý của dịch vụ: vẫn thu gọn");
+  assert.equal(duaDonChiNoiDon([{ ...l, tra: "tudo", traTuDo: "Khách sạn Z, 12 Trần Phú" }], "2026-12-01"), false, "nơi trả tự gõ: hiện đủ");
+  assert.equal(duaDonChiNoiDon([{ ...l, tra: "loc-2", goiYTra: false }], "2026-12-01"), false, "nơi trả tự chọn (không còn là gợi ý): hiện đủ");
 });
