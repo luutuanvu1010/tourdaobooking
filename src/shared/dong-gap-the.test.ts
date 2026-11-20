@@ -205,3 +205,21 @@ test("G-02: nhanDuaDonTrangDon — nháp chưa chọn → «Chưa chọn đón»
   assert.equal(nhanDuaDonTrangDon({ status: "draft", pickupChoice: "KHONG_DON", soChang: 0 }), KHONG_DUA_DON);
   assert.equal(nhanDuaDonTrangDon({ status: "confirmed", pickupChoice: null, soChang: 0 }), KHONG_DUA_DON);
 });
+
+// ---- ADR-0221: chế độ «không cần nơi đón» của form đối tác (mặc định tắt = hành vi hôm nay) ----
+test("dongGapThe: mặc định có chip «Chưa có nơi đón»; khongCanNoiDon thì không chip đó", () => {
+  const d = td2({ adult: 2 }, [chang()]);
+  assert.ok(dongGapThe(d, { today: HOM_NAY, nhanTheoId, anGio: true }).chips.includes("Chưa có nơi đón"));
+  assert.ok(!dongGapThe(d, { today: HOM_NAY, nhanTheoId, anGio: true, khongCanNoiDon: true }).chips.includes("Chưa có nơi đón"));
+  assert.ok(dongGapThe(td2({ adult: 2 }, [chang({ direction: "RETURN" })]), { today: HOM_NAY, nhanTheoId, anGio: true, khongCanNoiDon: true }).chips.includes("Chưa có nơi đón"), "chỉ lượt chiều đi được miễn");
+});
+
+test("coLoiChanLuuDangHien, theMoKhiNap: khongCanNoiDon thì lượt chiều đi chưa có nơi đón KHÔNG ép mở thẻ; mặc định vẫn ép", () => {
+  const d = td2({ adult: 2 }, [chang()]);
+  assert.equal(coLoiChanLuuDangHien(d, true), true, "mặc định: sau khi bấm Lưu, thiếu nơi đón là lỗi chặn");
+  assert.equal(coLoiChanLuuDangHien(d, true, true), false);
+  assert.equal(theMoKhiNap(d, NGAY, laSanBay), true, "mặc định: nháp nạp lại thiếu nơi đón thì mở sẵn");
+  assert.equal(theMoKhiNap(d, NGAY, laSanBay, true), false);
+  assert.equal(theMoKhiNap(td2({ adult: 2 }, [chang({ xeRieng: true })]), NGAY, laSanBay, true), true, "có giá trị bị giấu thì vẫn mở");
+  assert.equal(coLoiChanLuuDangHien(td2({ adult: 0 }, [chang()]), true, true), true, "lỗi khác (chưa nhập số khách) vẫn ép mở");
+});

@@ -351,3 +351,37 @@ test("tomTatChang với anGio: dòng tóm tắt không ghi giờ mà ghi «Văn 
   assert.equal(tomTatChang({ ...khongGio, pickupTime: "16:00" }, nhan, true), "Chiều đi · Văn phòng sẽ báo giờ đón · 12 Trần Phú");
   assert.equal(tomTatChang(khongGio, nhan), "Chiều đi · Chưa chốt giờ · 12 Trần Phú", "không anGio: như cũ");
 });
+
+// ---- ADR-0221: cờ «không cần nơi đón» (mặc định tắt = hành vi hôm nay) ----
+test("loiChang / loiDanhSachChang: mặc định vẫn báo «chưa có nơi đón»; cờ khongCanNoiDon bỏ lỗi đó CHỈ cho lượt chiều đi, các lỗi khác giữ nguyên", () => {
+  const di = { ...themChangDi(null, "2026-10-20", k()) };
+  const ve = { ...di, key: k(), direction: "RETURN" as const, soVe: "9" };
+  assert.equal(loiChang(di, 1, 2, true).don, "Lượt 1: chưa có nơi đón.");
+  assert.equal(loiChang(di, 1, 2, true, false).don, "Lượt 1: chưa có nơi đón.");
+  assert.equal(loiChang(di, 1, 2, true, true).don, null);
+  assert.equal(loiChang(ve, 2, 2, true, true).don, "Lượt 2: chưa có nơi đón.", "chiều về vẫn phải có nơi đón (máy chủ chỉ điền chữ tạm cho chiều đi)");
+  assert.equal(loiChang(ve, 2, 2, true, true).soVe, "Số người chiều về không được quá 2.");
+  assert.equal(loiChang({ ...di, don: TU_DO, donTuDo: "" }, 1, 2, true, true).donTuDo, "Lượt 1: chưa ghi địa chỉ đón.", "đã chọn «Gõ tự do» mà để trống: vẫn báo");
+  assert.equal(loiChang({ ...di, choToiThieu: "0" }, 1, 2, true, true).choToiThieu, "Số chỗ từ 1 đến 100");
+  assert.deepEqual(loiDanhSachChang([di], 2), ["Lượt 1: chưa có nơi đón."]);
+  assert.deepEqual(loiDanhSachChang([di], 2, true), []);
+  assert.deepEqual(loiDanhSachChang([di, ve], 2, true), ["Lượt 2: chưa có nơi đón.", "Số người chiều về không được quá 2."]);
+});
+
+test("changNenGon: cờ khongCanNoiDon cho lượt chiều đi chưa có nơi đón được coi là gọn (không ép mở); mặc định thì không", () => {
+  const di = { ...themChangDi(null, "2026-10-20", k()) };
+  assert.equal(changNenGon(di, 1, 2, "2026-10-20"), false);
+  assert.equal(changNenGon(di, 1, 2, "2026-10-20", false, true), true);
+  assert.equal(changNenGon({ ...di, xeRieng: true }, 1, 2, "2026-10-20", false, true), false, "có giá trị bị giấu thì vẫn không gọn");
+  assert.equal(changNenGon({ ...di, direction: "RETURN" as const }, 1, 2, "2026-10-20", false, true), false);
+});
+
+test("legInput: lượt chưa chọn nơi đón gửi pickupLocationId null và pickupPlace rỗng (máy chủ điền chữ tạm khi được phép — ADR-0221); lượt nạp từ chữ tạm cũng gửi rỗng", () => {
+  const di = { ...themChangDi(null, "2026-10-20", k()) };
+  const g = legInput(di, false);
+  assert.deepEqual([g.pickupLocationId, g.pickupPlace], [null, ""]);
+  const tam = changTuDto(dto({ pickupLocationId: null, pickupPlace: NOI_DON_CHUA_GHI, pickupLabel: NOI_DON_CHUA_GHI }), k());
+  assert.deepEqual([tam.don, tam.donTuDo], ["", ""]);
+  const g2 = legInput(tam, false);
+  assert.deepEqual([g2.pickupLocationId, g2.pickupPlace], [null, ""], "không bao giờ gửi nguyên văn chữ tạm");
+});

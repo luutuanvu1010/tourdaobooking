@@ -80,8 +80,8 @@ export function canhBaoChuyenThe(d: ServiceDraft, today: string): TripWarning[] 
  * và lỗi chặng báo ngay (số người chiều về quá số khách, số chỗ sai). "Chưa có nơi đón" / "Nhập số khách." chỉ hiện sau khi bấm Lưu (`daBamLuu`) — nên thẻ mới thêm còn trống vẫn gập được
  * khi thêm dịch vụ khác. Sau khi bấm Lưu: mọi lỗi chặn Lưu (`draftIssues`).
  */
-export function coLoiChanLuuDangHien(d: ServiceDraft, daBamLuu: boolean): boolean {
-  const loi = draftIssues(d);
+export function coLoiChanLuuDangHien(d: ServiceDraft, daBamLuu: boolean, khongCanNoiDon = false): boolean {
+  const loi = draftIssues(d, { khongCanNoiDon }); // ADR-0221: chế độ «không cần nơi đón» (mặc định tắt) — lượt chiều đi chưa có nơi đón không ép mở thẻ
   if (daBamLuu) return loi.length > 0;
   if (loi.some((i) => i.code === "too_many_guests" || i.code === "repick")) return true;
   const soKhach = soKhachNhap(d);
@@ -96,10 +96,10 @@ export function coLoiChanLuuDangHien(d: ServiceDraft, daBamLuu: boolean): boolea
  * bên trong: Thông tin chuyến có giá trị (`coGiaTriChuyen`), chặng không gọn được một dòng (`changNenGon`: thiếu nơi đón, đón khác ngày, ô số hiệu chuyến bay, số người chiều về…),
  * chặng có xe riêng / xe tối thiểu (`chiTietChangCoGiaTri`). Còn lại gập (dòng gập đã nêu số khách, giờ + nơi đón, chip).
  */
-export function theMoKhiNap(d: ServiceDraft, ngayDi: string, laSanBay: (id: string) => boolean): boolean {
-  if (draftIssues(d).length > 0 || coGiaTriChuyen(d.trip)) return true;
+export function theMoKhiNap(d: ServiceDraft, ngayDi: string, laSanBay: (id: string) => boolean, khongCanNoiDon = false): boolean {
+  if (draftIssues(d, { khongCanNoiDon }).length > 0 || coGiaTriChuyen(d.trip)) return true;
   const soKhach = soKhachNhap(d);
-  return d.legs.some((l, i) => chiTietChangCoGiaTri(l) || !changNenGon(l, i + 1, soKhach, ngayDi, coOSoHieu(l, laSanBay)));
+  return d.legs.some((l, i) => chiTietChangCoGiaTri(l) || !changNenGon(l, i + 1, soKhach, ngayDi, coOSoHieu(l, laSanBay), khongCanNoiDon));
 }
 
 /** Chặng nêu trên dòng gập: chiều đi đầu tiên; không có chiều đi thì chặng đầu. */
@@ -121,7 +121,7 @@ export interface DongGap {
  * Nội dung dòng gập của một thẻ. `nhanTheoId` tra nhãn ngắn của điểm danh mục (như dòng tóm tắt chặng); `chipNgoai` = chip do trang tính (đặt gấp — mốc đọc ở trang).
  * Mọi cảnh báo mà thẻ MỞ đang hiện đều có chip ở đây — gập thẻ không được giấu cảnh báo. `anGio` (form đối tác, ADR-0154 Đ1.1: không có ô giờ): không chip «Chưa chốt giờ đón», dòng đón không ghi giờ.
  */
-export function dongGapThe(d: ServiceDraft, o: { today: string; nhanTheoId: (id: string) => string | null; chipNgoai?: readonly string[]; anGio?: boolean }): DongGap {
+export function dongGapThe(d: ServiceDraft, o: { today: string; nhanTheoId: (id: string) => string | null; chipNgoai?: readonly string[]; anGio?: boolean; /** ADR-0221 Đ2 (mặc định tắt): lượt chiều đi chưa có nơi đón không sinh chip «Chưa có nơi đón». */ khongCanNoiDon?: boolean }): DongGap {
   let khach: string;
   if (d.kind === "catalog") {
     const g = groupInfo(d);
@@ -130,8 +130,8 @@ export function dongGapThe(d: ServiceDraft, o: { today: string; nhanTheoId: (id:
   const l = changHien(d.legs);
   const noi = l ? nhanNoiChang(l.don, l.donTuDo, l.goc?.pickupLabel, o.nhanTheoId) : "";
   // "Chưa nhập số khách": đúng khi Lưu sẽ báo "Nhập số khách." (dịch vụ danh mục 0 khách); nhập tay không bắt buộc số khách. Chỉ hiện trên dòng gập — thẻ mở đã có ô số khách và câu lỗi.
-  const coKhach = !draftIssues(d).some((i) => i.code === "no_guests");
-  const chips: string[] = chipThieu({ coKhach, coGioDon: o.anGio === true || !l || l.pickupTime !== "", coNoiDon: !l || noi !== "" });
+  const coKhach = !draftIssues(d, { khongCanNoiDon: o.khongCanNoiDon === true }).some((i) => i.code === "no_guests");
+  const chips: string[] = chipThieu({ coKhach, coGioDon: o.anGio === true || !l || l.pickupTime !== "", coNoiDon: !l || noi !== "" || (o.khongCanNoiDon === true && l.direction === "OUT") });
   // ADR-0134: không chặng mà chưa chọn "Không đón" → chưa chọn (ô chọn của thẻ mở đang trống) — không được ghi «Không đưa đón».
   const chuaChonDon = !l && d.pickupChoice !== "KHONG_DON";
   if (chuaChonDon) chips.push(CHIP_CHUA_CHON_DON);

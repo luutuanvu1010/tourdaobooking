@@ -42,3 +42,18 @@ export function duaDonChiNoiDon(
   const traAnDuoc = l.traTuDo.trim() === "" && (l.tra === "" || l.goiYTra);
   return l.direction === "OUT" && (l.pickupDate === "" || l.pickupDate === ngayDi) && !l.xeRieng && l.choToiThieu === "" && l.flightCode === "" && traAnDuoc;
 }
+
+/**
+ * ADR-0221 Đ2 (chủ duyệt 21/11/2026): công tắc «Đối tác không nhập nơi đón» đang áp cho người dùng (`apChoToi` của `GET /api/cai-dat/noi-don-doi-tac`) ⇒ khối Đưa đón chỉ còn hai nút
+ * «Đón», «Không đón» và ô ghi chú; KHÔNG ô nào của lượt hiện ra. Hàm này chỉ trả lời vế AN TOÀN (nơi gọi tự ghép với `apChoToi`): `duaDonChiNoiDon` đúng VÀ lượt CHƯA có nơi đón
+ * (chưa chọn điểm, chưa chọn «Gõ tự do», chữ rỗng). Nháp cũ đã có nơi đón, chiều về, nhiều lượt… ⇒ sai: giao diện rơi về chế độ đang có (`duaDonChiNoiDon` hoặc đủ) để người dùng thấy
+ * và sửa được thứ sẽ gửi đi. Lượt gửi lên với nơi đón rỗng (`legInput`); máy chủ ghi chữ tạm khi người gọi giữ quyền Đối tác và công tắc bật.
+ */
+export function duaDonAnHetLuot(
+  legs: readonly { direction: "OUT" | "RETURN"; pickupDate: string; xeRieng: boolean; choToiThieu: string; flightCode: string; tra: string; traTuDo: string; goiYTra: boolean; don: string; donTuDo: string }[],
+  ngayDi: string,
+): boolean {
+  if (!duaDonChiNoiDon(legs, ngayDi)) return false;
+  const l = legs[0]!;
+  return l.don === "" && l.donTuDo.trim() === "";
+}

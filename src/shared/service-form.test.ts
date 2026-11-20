@@ -596,3 +596,13 @@ test("đối tác chỉ sửa ghi chú: giờ khởi hành và giờ có mặt c
   assert.equal(gui.checkinTime, "07:30");
   assert.equal(gui.checkinPlace, "Cảng Vinpearl");
 });
+
+// ADR-0221: cờ «không cần nơi đón» của form đối tác (mặc định tắt = hành vi hôm nay).
+test("draftIssues: mặc định lượt chiều đi chưa có nơi đón là lỗi chặn Lưu; khongCanNoiDon thì không; lỗi tiền / số khách không đổi", async () => {
+  const { themChangDi } = await import("./chang-form.ts");
+  const d: CatalogDraft = { ...tourDraft(2), legs: [themChangDi(null, "2026-12-01", "c1")] };
+  assert.deepEqual(draftIssues(d).map((i) => [i.code, i.message]), [["leg", "Lượt 1: chưa có nơi đón."]]);
+  assert.deepEqual(draftIssues(d, { khongCanNoiDon: false }).map((i) => i.code), ["leg"]);
+  assert.deepEqual(draftIssues(d, { khongCanNoiDon: true }), []);
+  assert.deepEqual(draftIssues({ ...tourDraft(0), legs: d.legs }, { khongCanNoiDon: true }).map((i) => i.message), ["Nhập số khách."]);
+});
