@@ -23,6 +23,11 @@ export interface PhanDoiTacVao {
   giamGiaHieuLuc: number;
   /** Sổ đại lý đợt 2 (Task 12): sau «Chụp bù» thành công, trang đơn tải lại cả đơn (lý do giữ «Đã giao» đổi theo). */
   daChupBu?: () => void;
+  /**
+   * H3 (đặc tả 2026-11-20-sua-giao-dien-bon-y-cua-chu.md): nút «Thanh toán đơn này cho công ty Tour Đảo» của tài khoản Đối tác. Khối «Hoa hồng của bạn» dựng xong thì dời nút
+   * xuống cuối khối (dưới «Tổng giá đại lý»); khối ẩn hoặc lỗi thì trả nút về chỗ gốc `veCho` ở thẻ Thanh toán — nút không bao giờ mất.
+   */
+  nutCuoi?: { el: HTMLElement; veCho: HTMLElement } | null;
 }
 
 type Ket = { kieu: "co"; res: Api.ThuongMaiResponse } | { kieu: "an" } | { kieu: "loi"; message: string };
@@ -48,12 +53,19 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
   function veLoi(message: string): void {
     const thu = h("button", { type: "button", class: "btn", "data-action": "tai-lai-phan-doi-tac" }, "Tải lại");
     thu.addEventListener("click", () => void napLai());
+    traNutCuoi();
     replaceChildren(host, h("h2", null, TIEU_DE_LOI), h("p", { class: "alert", role: "alert" }, message), thu);
     host.hidden = false;
   }
 
+  /** Trả nút cuối khối về thẻ Thanh toán TRƯỚC khi khối này bị dựng lại thành lỗi / ẩn (replaceChildren sẽ gỡ nút khỏi trang). */
+  function traNutCuoi(): void {
+    if (v.nutCuoi) v.nutCuoi.veCho.append(v.nutCuoi.el);
+  }
+
   function ve(res: Api.ThuongMaiResponse): void {
-    replaceChildren(host, ...("vanPhong" in res ? veVanPhong(res.vanPhong) : veDoiTac(res.doiTac)));
+    if ("vanPhong" in res) traNutCuoi();
+    replaceChildren(host, ...("vanPhong" in res ? veVanPhong(res.vanPhong) : [...veDoiTac(res.doiTac), v.nutCuoi ? h("div", { class: "handler-actions pdt-nut-cuoi" }, v.nutCuoi.el) : null]));
     host.hidden = false;
   }
 
@@ -61,6 +73,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
     const r = await doc(v.orderId);
     if (r.kieu === "co") ve(r.res);
     else if (r.kieu === "an") {
+      traNutCuoi();
       replaceChildren(host);
       host.hidden = true;
     } else veLoi(r.message);

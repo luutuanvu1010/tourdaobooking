@@ -2,6 +2,10 @@
 
 > Ngày 20/11/2026. Trạng thái: **chờ chủ duyệt ảnh đề xuất**; chưa sửa mã sản phẩm. Nguồn: mục H của `2026-11-20-danh-gia-lai-giao-dien/PHAT-HIEN.md` (bốn ảnh chủ khoanh đỏ, ba câu chủ trả lời). Ảnh «hiện tại / đề xuất» để ngoài kho (`~/tourdao-sua-giao-dien-2026-11-20/gui-chu/`), chụp trên máy thử, dữ liệu giả.
 
+> **Chủ duyệt 20/11/2026, nguyên văn «duyệt»** sau khi xem chín ảnh và ba câu hỏi ở mục 5, tức chọn cả ba khuyến nghị: (1) H2 làm **phương án nhẹ** (đối tác còn «Đón / Không đón», một ô «Nơi đón», ghi chú); (2) «Nhập khoản thu» áp cho **mọi vai**; (3) nút thứ hai viết đủ «Thanh toán đơn này cho công ty Tour Đảo», nút gập tên «Cách tính giảm giá và đặt cọc». H2 phương án nhẹ ẩn ô «Nơi trả» và «Thêm chiều về» khỏi form đối tác: **chủ đổi một phần ADR-0154 Đ1.1 ở mức giao diện**; luật máy chủ, dữ liệu không đổi. Luật an toàn của phương án nhẹ: chỉ thu gọn khi dịch vụ có đúng một lượt chiều đi, cùng ngày đi, không có chi tiết xe riêng; nháp cũ có nhiều lượt hay chiều về thì hiện đủ như trước để không giấu dữ liệu đang có.
+
+> **Lệch so với lời duyệt, ghi lúc thi công 20/11:** nút gập ở H1 mang tên thứ hai đã nêu ở câu 3, «Giải thích giảm giá, đặt cọc», không phải «Cách tính giảm giá và đặt cọc»: chữ «Cách tính» đã bị chủ loại khỏi giao diện từ trước (bảng từ `src/shared/bang-tu-giao-dien.ts`, ADR-0130), bài canh từ ngữ báo đỏ. Nhãn nhật ký của việc ghi thu cũng đổi thành «Nhập khoản thu» cho một việc một tên. Một ngoại lệ của việc gập: đối tác không được hưởng hoa hồng thì ô giảm giá bị khoá, và câu «Chỉ giảm được trên đơn bạn hưởng hoa hồng.» là lý do khoá nên vẫn hiện ngay dưới ô, không gập.
+
 ## 1. Việc gì, cho ai, vì sao
 Đối tác lập đơn và xem đơn còn thấy nhiều thứ họ không cần, và nút tiền nằm xa con số nó xử lý. Văn phòng xem kho vé thì danh sách dài không lọc được. Chủ đã chỉ bốn chỗ sửa trên ảnh bản chạy thật.
 

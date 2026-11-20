@@ -272,6 +272,8 @@ let retailOnly = false;
 // Đặt vé của đối tác, lượt 1 (đặc tả §4.1, §4.2): form GỌN cho tài khoản có quyền Đối tác (kể cả lai) — `formGonDoiTac`, luật thuần ở src/shared/form-dat-ve.ts. Gán sau `initShell()`, TRƯỚC khi dựng thẻ
 // dịch vụ (khuôn `retailOnly`): thẻ ẩn "Thông tin chuyến" và dựng dòng Ghi chú; ô giảm giá bỏ nhãn nổi, chữ gợi ý «Giảm giá cho khách». Chỉ ẩn / hiện + đổi chữ — luật khoá ô và trần giảm giá không đổi.
 let formGon = false;
+/** H1 (đặc tả 2026-11-20-sua-giao-dien-bon-y-cua-chu.md): khối gập chứa ba câu giải thích về giảm giá và đặt cọc của form Đối tác; null = form văn phòng (câu hiện thẳng như trước). */
+let gapGiaiThich: ReturnType<typeof taoKhoiGap> | null = null;
 /**
  * ADR-0214 (Task 6): phí đưa đón có đang áp hôm nay (máy chủ trả — `GET /api/orders/phi-don-ap`). Chưa áp ⇒ không ô chọn, không gửi khoá `phiDon` (máy chủ giữ mức đang lưu).
  * `phiChon`: giá trị ô của lượt người lập ĐÃ đụng tới (theo khoá lượt); `phiDaLuu`: mức đã lưu của nháp theo id lượt (chỉ dòng do văn phòng chọn). Lượt chưa đụng tới ⇒ mức đã lưu.
@@ -1287,6 +1289,17 @@ if (formGon) {
   oGiam.parentElement?.classList.add("o-khong-nhan");
   oGiam.placeholder = GOI_Y_GIAM_GIA_DOI_TAC;
   oGiam.setAttribute("aria-label", GOI_Y_GIAM_GIA_DOI_TAC);
+  // H1 (chủ duyệt 20/11/2026) — chỉ form của tài khoản Đối tác:
+  // (1) chữ tiêu đề «Thanh toán» ẩn với mắt, vẫn là tên khối cho trình đọc màn hình (`aria-labelledby`);
+  byId("pay-title").classList.add("visually-hidden");
+  // (2) «Hình thức thanh toán» sang cột phải ngay trên nút gửi (điện thoại: cuối trang, ngay trước thanh nút); chỗ chứa hiện / ẩn cùng khối trong `napTraSau`;
+  byId("hinh-thuc-cho").append(byId("tra-sau-khoi"), byId("tra-sau-bao"));
+  // (3) ba câu giải thích về tiền GẬP sau một nút, không bỏ (chủ: «ok nên gập lại»). Câu vẫn nằm trong cây DOM, ô vẫn trỏ `aria-describedby` tới nó; lưu bị từ chối (400) thì `moMoiKhoiGap` mở ra.
+  const bocGiaiThich = h("div", { class: "pay-giai-thich" });
+  document.querySelector<HTMLElement>("#pay-card .grid.two")!.after(bocGiaiThich);
+  bocGiaiThich.append(byId("dat-coc-goi-y"), byId("dat-coc-tra-sau"));
+  gapGiaiThich = taoKhoiGap({ ma: "thanh-toan-giai-thich", nhan: "Giải thích giảm giá, đặt cọc", than: bocGiaiThich });
+  bocGiaiThich.before(gapGiaiThich.nut);
 }
 duocDatGap = can(staff, "order.leg.short_notice");
 // ---- bên đặt (sổ đại lý đợt 1, Task 11; đặc tả §7) ----
@@ -1381,6 +1394,7 @@ async function napTraSau(): Promise<void> {
   const q = quyetHinhThuc({ dangChon: hinhThucMuon, c, benDatChuaNap: id === null && !donDaNap, chonSan: duocChonSanTraSau({ laDoiTac, donMoi: !editId, daChon: daChonHinhThuc }) });
   traSauHien = c.hien;
   khoiTraSau.hidden = !c.hien;
+  byId("hinh-thuc-cho").hidden = !formGon || !c.hien; // H1: thẻ chứa ở cột phải chỉ hiện khi form Đối tác có lựa chọn Trả sau
   byId("tra-sau-cau").textContent = c.khoa ?? c.cau;
   oHinhThuc("CREDIT").disabled = c.khoa !== null;
   oHinhThuc(q.chon).checked = true;
@@ -1439,7 +1453,9 @@ const layMoc = can(staff, "order.create")
 // Khối "Người phụ trách": chỉ lập đơn mới, chỉ ai máy chủ cho chọn (Thực tập, Đối tác thuần: khối KHÔNG hiện — không phải hiện rồi báo lỗi).
 canPickHandler = !editId && mayPickHandlerOnCreate(staff);
 // Khối «Người phụ trách» (mời Bán hàng): mọi người giữ ô mời (kể cả Đối tác, Thực tập); sửa nháp thì khối hiện lại khi tải được đơn (`loadOrder`).
-const banHangAn = !canNv(staff, "dispatch.sales.invitees");
+// H1 (chủ đổi một phần ADR-0142 mục (b) ngày 20/11/2026, mức giao diện): form của tài khoản Đối tác không còn khối này — đơn vào thẳng «Chờ Bán hàng nhận». Quyền ở máy chủ giữ nguyên;
+// sửa nháp cũ đã có lời mời thì lời mời được giữ (không gửi khoá `banHangMoiStaffId`).
+const banHangAn = !canNv(staff, "dispatch.sales.invitees") || formGon;
 if (!banHangAn && !editId) {
   banHangEl.hidden = false;
   renderBanHang();
@@ -1556,7 +1572,10 @@ mocPhut = await layMoc;
   const datHint = (cau: string): HTMLElement => {
     const hint = h("p", { class: "muted", id: "discount-hint" }, cau);
     discountEl.setAttribute("aria-describedby", hint.id);
-    (discountEl.closest("label") ?? discountEl).after(hint); // đặc tả 2026-11-20: câu giải thích nằm NGAY DƯỚI ô của nó (hàng nay hai cột, đủ rộng — trước là ba cột nên phải đặt dưới cả hàng)
+    // H1: form Đối tác — câu giải thích nằm đầu khối gập «Giải thích giảm giá, đặt cọc». NGOẠI LỆ: ô đang bị KHOÁ thì câu là LÝ DO khoá («Chỉ giảm được trên đơn bạn hưởng hoa hồng.»),
+    // phải hiện ngay dưới ô — không giấu lý do của một ô không gõ được.
+    if (gapGiaiThich && !discountEl.readOnly) gapGiaiThich.than.prepend(hint);
+    else (discountEl.closest("label") ?? discountEl).after(hint); // đặc tả 2026-11-20: câu giải thích nằm NGAY DƯỚI ô của nó (hàng nay hai cột, đủ rộng — trước là ba cột nên phải đặt dưới cả hàng)
     return hint;
   };
   let hint: HTMLElement | null = null;

@@ -2,6 +2,7 @@
 // bảng "Sửa đưa đón" của đơn đã xác nhận (M4 — `che: "bang"`: "Bỏ chặng" của chặng đã lưu hỏi lý do). Mọi luật ở src/shared/chang-form.ts; ở đây chỉ dựng DOM.
 // KHÔNG dựng lại ô người dùng đang gõ: gõ chữ / ngày / giờ chỉ cập nhật chữ gợi ý và lỗi tại chỗ; đổi ô chọn, thêm / bỏ chặng mới dựng lại (rồi trả focus).
 // Nơi đón / nơi trả: form dùng MỘT ô có gợi ý mỗi nơi (web/o-noi-goi-y.ts — Tạo đơn thiết kế lại 18/10/2026, việc 7); bảng "Sửa đưa đón" giữ ô tìm + ô chọn + ô địa chỉ (`oChonNoi`).
+import { duaDonChiNoiDon } from "../src/shared/form-dat-ve";
 import { CHIEU_LABEL, LY_DO_DONG_CHANG, khoangNgayDon, type LyDoDongChang } from "../src/shared/chang-dua-don";
 import {
   TU_DO, canHienNgayDon, changNenGon, chiTietChangCoGiaTri, chonKhung, coOSoHieu, goiYChang, khungDangChon, loiChang, nhanNoiChang, suaChang, themChangDi, themChieuVe, tomTatChang,
@@ -70,6 +71,12 @@ export interface KhoiDuaDonOptions {
    * nơi gửi xoá giờ lượt đầu bằng `legsGuiFormGon`.
    */
   anGio?: boolean;
+  /**
+   * CHỈ form của tài khoản Đối tác — H2 phương án nhẹ (đặc tả 2026-11-20-sua-giao-dien-bon-y-cua-chu.md, chủ duyệt 20/11/2026; đổi một phần ADR-0154 Đ1.1 ở mức giao diện): khi `duaDonChiNoiDon`
+   * đúng (một lượt chiều đi, không có gì bị giấu), khối chỉ còn Đón / Không đón và MỘT ô «Nơi đón» (kèm «Chọn nhanh», ô số hiệu chuyến bay nếu là sân bay). Phần còn lại vẫn nằm trong cây DOM,
+   * chỉ ẩn bằng lớp `dd-chi-noi-don` của gốc khối; dữ liệu gửi đi không đổi.
+   */
+  chiNoiDon?: boolean;
   /**
    * CHỈ form Tạo/sửa đơn (ADR-0195): chính sách của ô phụ CỦA DỊCH VỤ NÀY (đã tính theo điều kiện «không đón / có đón» của chính dịch vụ), đọc lại mỗi lần dựng khối. `an` = không dựng ô (giá trị vẫn nằm trong
    * bản nháp, máy chủ bỏ khi lưu); `batBuoc` = thêm «*» vào nhãn. Vắng (bảng «Sửa đưa đón») = hiện đủ như cũ.
@@ -659,6 +666,8 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       them.addEventListener("click", () => commit([themChangDi(o.mau(), o.ngayDi(), o.newKey())], true));
       items.push(h("div", { class: "dd-trong" }, h("span", null, KHONG_DUA_DON), them)); // cùng chữ với dòng gập của thẻ (dong-gap-the.ts)
     }
+    const chiNoiDon = o.che === "form" && o.chiNoiDon === true && duaDonChiNoiDon(legs, o.ngayDi());
+    if (chiNoiDon) legs.forEach((l) => moChang.add(l.key)); // ô «Nơi đón» luôn mở sẵn: dòng tóm tắt một dòng bị ẩn ở chế độ này
     legs.forEach((l, i) => items.push(changEl(l, i)));
     if (legs.length > 0) {
       const ve = h("button", { type: "button", class: "pill-btn", "data-action": "them-chieu-ve" }, "+ Thêm chiều về");
@@ -668,6 +677,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       items.push(h("div", { class: "dd-nut" }, ve, them));
     }
     replaceChildren(root, ...items);
+    root.classList.toggle("dd-chi-noi-don", chiNoiDon);
     refresh();
     const moi = khoaFocus ? root.querySelector<HTMLElement>(khoaFocus) : null;
     moi?.focus();

@@ -13,11 +13,11 @@ export interface LuaChon {
 
 const TIEN_TO_NCC = "ncc:";
 
-/** Câu thay form «Ghi khoản thu» khi văn phòng mở đơn mang dấu Tắt mà không có lựa chọn người thu nào (ADR-0178 Đ1 mục 2). */
+/** Câu thay form «Nhập khoản thu» khi văn phòng mở đơn mang dấu Tắt mà không có lựa chọn người thu nào (ADR-0178 Đ1 mục 2). */
 export const CAU_DOI_TAC_TU_GHI = "Đối tác lập đơn tự ghi khoản thu của đơn này.";
 
 /**
- * Ô «Người thu tiền» của form «Ghi khoản thu»: luôn có Công ty và «Tôi thu»; thêm «Khách trả cho đại lý <tên>» khi đơn có đại lý được hưởng, và mỗi quầy nhà cung cấp
+ * Ô «Người thu tiền» của form «Nhập khoản thu»: luôn có Công ty và «Tôi thu»; thêm «Khách trả cho đại lý <tên>» khi đơn có đại lý được hưởng, và mỗi quầy nhà cung cấp
  * của đơn một dòng «Khách trả tại quầy <tên>». `benKia` null (khách lẻ, nháp, chưa chụp, Đối tác) ⇒ chỉ hai dòng đầu.
  * Đơn mang dấu «Khách của đối tác trả cho Công ty» = Tắt (`kenhThu.congTyThu === false`, ADR-0178 Đ1 mục 2): người thu chỉ là hồ sơ của tài khoản Đối tác đã lập đơn —
  * Đối tác ⇒ chỉ «Tôi thu»; văn phòng ⇒ «Khách trả cho đại lý <tên người lập>» khi hồ sơ người lập là bên đặt được hưởng, không thì rỗng (nơi gọi hiện `CAU_DOI_TAC_TU_GHI`).

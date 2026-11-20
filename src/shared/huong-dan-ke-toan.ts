@@ -201,7 +201,7 @@ Bạn không sửa được. Ghi lại mã đơn rồi báo người lập hoặ
 
 ### Khách đã trả thêm tiền, muốn ghi vào đơn
 
-Trong khối **Thanh toán**, bấm [[Ghi khoản thu]]: số tiền, hình thức, người thu tiền; riêng Kế toán chọn được **Ngày phát sinh**. Bấm [[Ghi]]. Sau bước **Khách đã trả đủ** thì không ghi thêm khoản thu được.
+Trong khối **Thanh toán**, bấm [[Nhập khoản thu]]: số tiền, hình thức, người thu tiền; riêng Kế toán chọn được **Ngày phát sinh**. Bấm [[Ghi]]. Sau bước **Khách đã trả đủ** thì không ghi thêm khoản thu được.
 
 ### Đối chiếu tiền trên trang đơn
 

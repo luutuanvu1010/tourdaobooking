@@ -546,7 +546,7 @@ async function kenhThuChoTrang(db: D1Database, orderId: string, phan: PhanThuong
 }
 
 /**
- * Sổ đại lý đợt 2, Task 12: hai lựa chọn người thu tiền mới của form «Ghi khoản thu» — CÙNG `benDatHuong` / `nhaCungCapCuaDon` mà `docLanThu` dùng khi ghi (giao diện không tự
+ * Sổ đại lý đợt 2, Task 12: hai lựa chọn người thu tiền mới của form «Nhập khoản thu» — CÙNG `benDatHuong` / `nhaCungCapCuaDon` mà `docLanThu` dùng khi ghi (giao diện không tự
  * suy). Chỉ tên hồ sơ (và id nhà cung cấp, để gửi lại `{ nhaCungCapPartyId }` / «thu cho»), không số nào của `phan`. Nơi gọi đã loại người xem giữ quyền Đối tác (R-91, R-P12).
  */
 async function luaChonBenKia(db: D1Database, phan: PhanThuongMai | null): Promise<OrderPaymentsResponse["benKia"]> {
@@ -583,7 +583,7 @@ export async function tienNhieuDon(db: D1Database, orderIds: readonly string[]):
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
-// Ghi khoản thu trước "Đã giao" (ADR-0026 đ2, đ4; NT-S3)
+// Nhập khoản thu trước "Đã giao" (ADR-0026 đ2, đ4; NT-S3)
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
 const DA_GIAO = () => loi(409, "order_delivered", "Đơn đã ở bước Khách đã trả đủ: không ghi thêm khoản thu. Sai sót thì Kế toán dùng “Sửa khoản thu đã ghi”.");
 export const CHUA_CO_CONG_TY = () => loi(503, "owner_company_missing", "Chưa có hồ sơ công ty chủ — báo người phụ trách hệ thống.");

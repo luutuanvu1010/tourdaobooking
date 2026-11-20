@@ -59,8 +59,8 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
    - Dịch vụ có nhãn "chưa có giá" hoặc "chưa hỗ trợ" thì không chọn được.
    - Dịch vụ vừa chạm hiện "✓ đã thêm" và thẻ dịch vụ hiện bên dưới. Mỗi lúc chỉ một thẻ mở; chạm dòng gập của thẻ để mở lại.
 4. Trong thẻ dịch vụ, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện, ví dụ "2 người lớn × giá = thành tiền". Cả đơn cần ít nhất một người lớn đi cùng; trẻ em và em bé không đi một mình.
-5. Phần **Đưa đón** trên thẻ: chọn **Đón** hoặc **Không đón** (bắt buộc trước khi gửi đơn). Chọn **Đón** thì chọn **Nơi đón**, **Nơi trả** (chọn điểm có sẵn hoặc gõ tự do). Bạn không nhập giờ đón: giờ khách muốn được đón thì gõ vào dòng **Ghi chú** ngay dưới (chữ mờ gợi ý «Thời gian đón»). Có đón thì văn phòng chốt giờ rồi báo lại, nên đơn luôn chờ văn phòng xác nhận.
-6. Phần **Thanh toán**: ô có chữ mờ «Giảm giá cho khách» (nếu có), **Khách đặt cọc cho đối tác** và **Ghi chú thanh toán**. Khách đưa cọc cho bạn thì ghi số tiền vào ô đó, kể cả đơn trả sau. Đơn xác nhận thì số này thành khoản thu; bạn giữ tiền, nộp công ty sau, vé mở khi đã nộp; cọc không giảm nợ trả sau. Đừng ghi thêm khoản thu cho cùng số tiền. Đơn huỷ để lập lại thì đừng khai lại: nhờ Kế toán chuyển tiền sang đơn mới.
+5. Phần **Đưa đón** trên thẻ: chọn **Đón** hoặc **Không đón** (bắt buộc trước khi gửi đơn). Chọn **Đón** thì điền **Nơi đón**; phần còn lại văn phòng lo. Bạn không nhập giờ đón: giờ khách muốn được đón thì gõ vào dòng **Ghi chú** ngay dưới. Có đón thì văn phòng chốt giờ rồi báo lại, nên đơn luôn chờ văn phòng xác nhận.
+6. Hai ô tiền ở cuối: «Giảm giá cho khách» (nếu có) và **Khách đặt cọc cho đối tác**; luật của hai ô ở nút [[Giải thích giảm giá, đặt cọc]]. Được trả sau thì chọn **Hình thức thanh toán** ngay trên nút [[Gửi đơn]]. Khách đưa cọc cho bạn thì ghi số tiền vào ô đó, kể cả đơn trả sau. Đơn xác nhận thì số này thành khoản thu; bạn giữ tiền, nộp công ty sau, vé mở khi đã nộp; cọc không giảm nợ trả sau. Đừng ghi thêm khoản thu cho cùng số tiền. Đơn huỷ để lập lại thì đừng khai lại: nhờ Kế toán chuyển tiền sang đơn mới.
 7. Xem tổng tiền ở thanh dưới cùng (chạm để xem chi tiết); trên máy tính là khối **Tóm tắt** bên phải.
 8. Bấm [[Gửi đơn]]. Thiếu gì thì khung đỏ hiện ngay trên nút. Đơn được lưu rồi gửi đi. Nếu chưa gửi được (ví dụ giá danh mục vừa đổi), đơn vẫn được lưu nháp, Nền tảng mở trang đơn nháp kèm lý do để bạn sửa rồi bấm [[Gửi đơn]] lại.
 
@@ -75,7 +75,7 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
 
 ### Người phụ trách
 
-Ở trang Tạo đơn, bạn có thể mời một nhân viên Bán hàng làm người phụ trách ở khối [[Người phụ trách]] (chỉ thấy tên). Không mời ai thì đơn chờ Bán hàng nhận. Bạn không chọn được Hướng dẫn viên: đơn chờ nhân viên Tour Đảo lo.`,
+Đơn bạn gửi tự chờ Bán hàng nhận; có người nhận thì trang đơn hiện tên ở khối **Người phụ trách**. Bạn không chọn Hướng dẫn viên.`,
     },
     {
       tieuDe: "Sửa đơn nháp",

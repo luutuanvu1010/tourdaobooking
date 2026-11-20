@@ -84,7 +84,11 @@ const buoc = async (khung, hau) => {
     await sleep(500);
     assert.equal(await p.ev(`document.querySelector('input[name="paymentTerm"][value="CREDIT"]').checked`), true, "nháp đang chọn Trả sau");
     assert.equal(await hien(p, "#declaredDeposit"), true, "ô cọc hiện ở đơn Trả sau");
+    // Đặc tả 2026-11-20 (H1, chủ duyệt): ba câu giải thích của form Đối tác GẬP sau nút «Giải thích giảm giá, đặt cọc» — lúc đầu ẩn, bấm nút thì hiện.
+    assert.equal(await hien(p, "#dat-coc-tra-sau"), false, "câu nhắc nằm trong khối gập đang đóng");
+    assert.equal(await p.ev(`(() => { const n = document.querySelector('[data-gap="thanh-toan-giai-thich"]'); if (!n || n.textContent !== "Giải thích giảm giá, đặt cọc" || n.getAttribute("aria-expanded") !== "false") return false; n.click(); return n.getAttribute("aria-expanded") === "true"; })()`), true, "nút gập có đúng tên và mở được");
     assert.equal(await hien(p, "#dat-coc-tra-sau"), true);
+    assert.equal(await hien(p, "#dat-coc-goi-y"), true, "câu về số tiền đã nhận cũng nằm trong khối gập");
     assert.equal(await docTxt(p, "#dat-coc-tra-sau"), "Tiền cọc ở tay bạn, không làm giảm số nợ với Công ty.");
     assert.equal(await p.ev(noOverflowX), true);
     await chup(p, `02b-doi-tac-tra-sau-${hau}`, khung);

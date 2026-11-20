@@ -1,7 +1,7 @@
 // SINH bởi scripts/huong-dan-xem-lai.mjs, không sửa tay. Mỗi bài: dấu vân lúc xem lại gần nhất, kèm bản và ngày.
 export interface DauVanBai { readonly neo: string; readonly chu: string; readonly ban: string; readonly ngay: string }
 export const DAU_VAN: Readonly<Record<string, DauVanBai>> = {
-  "kho-ve": {"neo":"80687c0babb0bb0a","chu":"7f9ee42b10a26fb3","ban":"3.17","ngay":"2026-11-18"},
+  "kho-ve": {"neo":"d5f10c5b96d32afd","chu":"c41727f43c655636","ban":"3.19","ngay":"2026-11-20"},
   "quet-ve": {"neo":"76d5aef64e4591a4","chu":"cf6957d677b93d19","ban":"3.17","ngay":"2026-11-18"},
   "doi-chieu-ve": {"neo":"beb10e2c3265ae83","chu":"80947f92445b6340","ban":"3.17","ngay":"2026-11-18"},
   "cai-dat-ve": {"neo":"1a9be7c66766df30","chu":"78895cd744fbcb8b","ban":"2.80","ngay":"2026-11-09"},

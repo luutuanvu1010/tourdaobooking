@@ -1,4 +1,4 @@
-// Sổ đại lý đợt 2, Task 12 — `OrderPaymentsResponse.benKia`: hai lựa chọn người thu tiền mới của form «Ghi khoản thu» (khách trả cho đại lý / tại quầy nhà cung cấp).
+// Sổ đại lý đợt 2, Task 12 — `OrderPaymentsResponse.benKia`: hai lựa chọn người thu tiền mới của form «Nhập khoản thu» (khách trả cho đại lý / tại quầy nhà cung cấp).
 // Máy chủ tính bằng CÙNG `benDatHuong` / `nhaCungCapCuaDon` của lệnh ghi (giao diện không tự suy); null với tài khoản giữ quyền Đối tác (kể cả lai — không tên nhà cung cấp,
 // ADR-0081 điều 4, Ruling R-91, R-P12), đơn nháp, đơn khách lẻ không có quầy nhà cung cấp. Bài nối: giá trị DTO gửi lại nguyên văn thì lệnh ghi nhận (201).
 // Chạy CẢ ứng dụng trên khung thử thật (tests/audit/harness.mjs). Tên người / hồ sơ ở đây là GIẢ.

@@ -29,6 +29,13 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Tạo đơn: chọn dịch vụ xong thì danh sách tự thu lại. Muốn thêm dịch vụ khác, bấm hoặc gõ vào ô tìm." },
       { kind: "doi", text: "Tạo đơn: khối Hành khách nằm ngay sau Dịch vụ, có nút «Điền tên khách đi tour» để khỏi gõ lại tên. «Ghi chú thanh toán» mở bằng một nút." },
       { kind: "doi", text: "Tạo đơn và ảnh xác nhận đơn chỉ còn một số tiền tô đậm. Dòng bằng 0 và dòng lặp lại tổng không còn in." },
+      // Đặc tả 2026-11-20 «sửa giao diện theo bốn ý của chủ» (chủ duyệt ảnh đề xuất 20/11). Nhánh claude/exciting-tu-2efdb7. Không migration.
+      { kind: "doi", text: "Đổi tên hai nút, việc không đổi: «Ghi khoản thu» thành «Nhập khoản thu»; «Xem công nợ với Tour Đảo» thành «Thanh toán đơn này cho công ty Tour Đảo»." },
+      { kind: "doi", text: "Đối tác xem đơn: nút «Nhập khoản thu» nằm ngay dưới dòng Còn lại; nút «Thanh toán đơn này cho công ty Tour Đảo» nằm cuối khối Hoa hồng của bạn." },
+      { kind: "doi", text: "Đối tác tạo đơn: chọn Đón thì chỉ cần điền Nơi đón. Không còn khối Người phụ trách: đơn tự chờ Bán hàng nhận." },
+      { kind: "doi", text: "Đối tác tạo đơn: Hình thức thanh toán nằm ngay trên nút Gửi đơn. Câu giải thích về giảm giá và đặt cọc mở bằng một nút." },
+      { kind: "moi", text: "Kho vé điện tử: khối Số vé còn có ô tìm theo tên sản phẩm và các nút lọc Hết vé, Còn 1 đến 5, Còn trên 5." },
+      { kind: "sua", text: "Trang đơn trên màn hình cỡ vừa: số tiền và số điện thoại không còn bị ngắt giữa chừng." },
     ],
   },
   {

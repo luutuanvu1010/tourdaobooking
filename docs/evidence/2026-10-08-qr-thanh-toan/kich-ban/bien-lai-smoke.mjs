@@ -1,6 +1,6 @@
 // Kịch bản Chrome + axe — CA BIÊN LAI của QR thanh toán (ADR-0196, Đợt 6A, 2026-11-11). Tách khỏi qr-smoke.mjs vì cần tài khoản Đối tác (khung dp-lib dựng thêm tài khoản)
 // và vì bước B/C của qr-smoke.mjs đang đỏ sẵn (ghi đầu tệp đó) — ca biên lai phải chạy tới được. Hai khổ 390 và 1280. D1 local tạm, tên / SĐT GIẢ.
-//   1. Đối tác mở đơn đã xác nhận, «Ghi khoản thu»: chọn «Công ty» + «Chuyển khoản» ⇒ hiện ô «Ảnh biên lai chuyển khoản»; chọn tiền mặt ⇒ ẩn.
+//   1. Đối tác mở đơn đã xác nhận, «Nhập khoản thu»: chọn «Công ty» + «Chuyển khoản» ⇒ hiện ô «Ảnh biên lai chuyển khoản»; chọn tiền mặt ⇒ ẩn.
 //   2. Lưu khi CHƯA chọn ảnh ⇒ câu «Chọn ảnh biên lai…», chưa gửi gì (không khoản thu mới).
 //   3. Chọn ảnh PNG ⇒ lưu được, báo «chờ Kế toán xác nhận»; dòng khoản thu có «Xem biên lai» (Đối tác chính chủ); không tràn ngang; axe.
 //   4. Kế toán mở đơn: dòng khoản thu có «Xem biên lai» cạnh «Xác nhận đã nhận»; liên kết mở ảnh 200 image/png; không lộ khoá kho; axe.
@@ -67,7 +67,7 @@ for (const [kho, khung] of KHUNG) {
   const don = donTheoKho.get(kho);
   // ---- Đối tác ----
   let p = await env.as(DT, `/order?id=${don.id}`, khung);
-  await p.waitFor(`!!document.querySelector('[data-action="ghi-lan-thu"]')`, "nút Ghi khoản thu");
+  await p.waitFor(`!!document.querySelector('[data-action="ghi-lan-thu"]')`, "nút Nhập khoản thu");
   await p.ev(`document.querySelector('[data-action="ghi-lan-thu"]').click(), true`);
   await p.waitFor(`!!document.querySelector('[data-khoi="form-lan-thu"]')`, "form khoản thu");
   await b.step(`${kho}-1`, `${kho}: Đối tác chọn «Công ty» + «Chuyển khoản» ⇒ hiện ô «Ảnh biên lai chuyển khoản»; tiền mặt ⇒ ẩn`, async () => {

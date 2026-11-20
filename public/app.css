@@ -4819,3 +4819,31 @@ body.login-bao-tri:not(.login-mo-form) .login-dang-ky { display: none; }
 .tc-che-do legend { margin-bottom: var(--s2); font-weight: var(--fw-medium); }
 .tv-hang { display: grid; gap: var(--s2); justify-items: start; }
 .tv-hang .dk-o { justify-self: stretch; }
+
+/* ---------- Sửa giao diện theo bốn ý của chủ (đặc tả docs/superpowers/specs/2026-11-20-sua-giao-dien-bon-y-cua-chu.md) ---------- */
+/* H4: bộ lọc trên danh sách «Số vé còn» của Kho vé (dùng lại .loc-nhom / .loc-nut). */
+.vk-loc { margin-bottom: var(--s4); }
+.vk-loc .loc-nhom { margin-bottom: var(--s3); }
+.vk-loc-nhan { display: block; margin-bottom: var(--s2); }
+.vk-loc input { text-transform: none; letter-spacing: 0; }
+/* H3: tài khoản Đối tác — «Nhập khoản thu» ngay dưới dòng «Còn lại»; nút phiếu công nợ cuối khối «Hoa hồng của bạn». */
+.pay-inline.pay-inline-sau-con-lai { display: block; margin: var(--s2) 0 var(--s3); }
+.pay-inline.pay-inline-sau-con-lai > .btn { min-height: var(--tap-min); }
+.pdt-nut-cuoi { margin-top: var(--s4); }
+/* H3: màn 900–1179 có thanh bên nên hai cột của trang đơn quá chật (số tiền, số điện thoại vỡ giữa chừng) — xếp một cột, thẻ Thanh toán thôi dính. */
+@media (max-width: 1179px) { /* dưới 900 trang đơn vốn đã một cột (lưới chỉ bật từ 900) nên luật này chỉ có tác dụng ở 900–1179 */
+  .order-layout { grid-template-columns: minmax(0, 1fr); }
+  .order-layout .side { position: static; }
+}
+/* H1: form Đối tác — thẻ «Hình thức thanh toán» ở cột phải, ngay trên nút gửi; khối gập «Giải thích giảm giá, đặt cọc». */
+.hinh-thuc-cho .tra-sau-khoi { margin: 0; }
+.pay-giai-thich > p { margin: var(--s2) 0 0; }
+/* H2 phương án nhẹ: form Đối tác chỉ còn một ô «Nơi đón» (luật thuần `duaDonChiNoiDon`; phần ẩn vẫn nằm trong cây DOM). */
+.dd-chi-noi-don > .dd-ghi-tao,
+.dd-chi-noi-don > .dd-nut,
+.dd-chi-noi-don .dd-tom-tat,
+.dd-chi-noi-don .dd-chang-dau,
+.dd-chi-noi-don .dd-luoi2,
+.dd-chi-noi-don .dd-luoi-noi > .dd-cot:nth-child(2),
+.dd-chi-noi-don .dd-chang > .gap-nut { display: none; }
+.dd-chi-noi-don .dd-luoi-noi { grid-template-columns: minmax(0, 1fr); }

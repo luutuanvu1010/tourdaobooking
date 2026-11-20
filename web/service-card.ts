@@ -188,7 +188,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
 
   const duaDon = taoKhoiDuaDon({
     chinhSachO: o.chinhSachDichVu ? (t) => csDichVu(t) : undefined,
-    legs: draft.legs, taoSan: draft.taoSan, che: "form", ma: draft.key, ...o.duaDon, soKhach: () => soKhachNhap(draft), anGio: o.formGonDoiTac === true, // ADR-0154 Đ1.1: form đối tác không nhập giờ đón
+    legs: draft.legs, taoSan: draft.taoSan, che: "form", ma: draft.key, ...o.duaDon, soKhach: () => soKhachNhap(draft), anGio: o.formGonDoiTac === true, chiNoiDon: o.formGonDoiTac === true, // ADR-0154 Đ1.1: form đối tác không nhập giờ đón; H2 (20/11): chỉ còn một ô «Nơi đón»
     // ADR-0134: còn lượt → "Đón"; bỏ lượt cuối khi đang "Đón" → về chưa chọn (`chonDonSauDoiChang`).
     onChange: (legs, taoSan) => commit({ ...draft, legs, taoSan, pickupChoice: chonDonSauDoiChang(draft.pickupChoice, legs.length) }),
     chonDon: {

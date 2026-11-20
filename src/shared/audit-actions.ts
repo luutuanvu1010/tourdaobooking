@@ -78,7 +78,7 @@ export const AUDIT_ACTIONS = {
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
   order_delivered: { label: "Khách đã trả đủ", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order", ghiTien: true },
-  payment_recorded: { label: "Ghi khoản thu", group: "order" },
+  payment_recorded: { label: "Nhập khoản thu", group: "order" },
   // ADR-0196 — ảnh biên lai chuyển khoản (nhật ký chỉ mã ảnh, không khoá kho, không nội dung).
   payment_proof_added: { label: "Gửi ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_viewed: { label: "Mở ảnh biên lai chuyển khoản", group: "order" },

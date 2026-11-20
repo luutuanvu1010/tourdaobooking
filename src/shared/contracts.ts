@@ -2502,7 +2502,7 @@ export interface OrderPaymentsResponse {
   coTheHoanThanh: boolean;
   /** Người xem được chọn người thu khác mình / Công ty, và chọn ngày phát sinh khác hôm nay (Kế toán, Toàn quyền). */
   laKeToan: boolean;
-  /** ADR-0196 Đ1: người xem giữ quyền Đối tác và không giữ quyền Kế toán ⇒ form «Ghi khoản thu» chọn «Công ty» + «Chuyển khoản» phải kèm ảnh biên lai (máy chủ kiểm lại). */
+  /** ADR-0196 Đ1: người xem giữ quyền Đối tác và không giữ quyền Kế toán ⇒ form «Nhập khoản thu» chọn «Công ty» + «Chuyển khoản» phải kèm ảnh biên lai (máy chủ kiểm lại). */
   bienLaiKhiCongTyCk: boolean;
   /**
    * Thao tác Kế toán đặt TẠM trên trang đơn (điều phối 30/9 — hai màn sổ riêng chờ chủ vẽ lại): CHỈ có khi `laKeToan`, còn lại `null`.
@@ -2513,7 +2513,7 @@ export interface OrderPaymentsResponse {
   /** ADR-0089: tiền cọc của ĐƠN HUỶ (null với đơn không huỷ). */
   coc: CocDonDto | null;
   /**
-   * Sổ đại lý đợt 2, Task 12 (ADR-0132; đặc tả P4): hai lựa chọn người thu tiền mới của form «Ghi khoản thu» — đại lý được hưởng của đơn và quầy nhà cung cấp của các
+   * Sổ đại lý đợt 2, Task 12 (ADR-0132; đặc tả P4): hai lựa chọn người thu tiền mới của form «Nhập khoản thu» — đại lý được hưởng của đơn và quầy nhà cung cấp của các
    * dòng làm đại lý, tính bằng CÙNG `benDatHuong` / `nhaCungCapCuaDon` của lệnh ghi. null khi: người xem giữ quyền Đối tác (kể cả tài khoản lai — không tên nhà cung cấp),
    * người xem không ghi khoản thu được, đơn không còn ghi khoản thu được (nháp, chưa chụp, đã giao, huỷ), hoặc đơn không có bên nào.
    */

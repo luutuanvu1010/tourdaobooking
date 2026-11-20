@@ -16,6 +16,7 @@
 // web/ve-tao.ts) chỉ `ve.phat-hanh`; nút «Huỷ lô» theo nguồn của lô. Máy chủ vẫn kiểm lại. Không `innerHTML` (dựng bằng `h()`).
 import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
+import { NHOM_SO_VE, demTheoNhom, locKhoVe, type NhomSoVe } from "../src/shared/loc-kho-ve";
 import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, cauVuotTran, locAnhDaDoc } from "../src/shared/ve-nhap-lo";
 import { hoiXacNhan } from "./bang-truot";
 import { createCatalogPicker } from "./catalog-picker";
@@ -87,16 +88,43 @@ if (!nhapLo && !taoVe) {
   khoiTaoEl.hidden = !taoVe;
   let tranLo = TRAN_LO_MAC_DINH;
 
+  // Bộ lọc «Số vé còn» (đặc tả 2026-11-20, H4): ô tìm tên sản phẩm + bốn nút theo số vé còn trống. Lọc ngay trên dữ liệu đã tải; lựa chọn giữ qua các lần tải lại kho.
+  const locKho: { tim: string; nhom: NhomSoVe } = { tim: "", nhom: "tat-ca" };
+  function veKho(kho: KhoDong[]): void {
+    const oTim = h("input", { type: "search", class: "o", id: "vk-loc-tim", placeholder: "Tìm theo tên sản phẩm", autocomplete: "off", value: locKho.tim }) as HTMLInputElement;
+    const hangNut = h("div", { class: "loc-nut-hang" });
+    const dsEl = h("div", { "data-khoi": "ton-kho-ds" });
+    const ve = (): void => {
+      const dem = demTheoNhom(kho, locKho.tim);
+      replaceChildren(hangNut, ...NHOM_SO_VE.map((n) => {
+        const b = h("button", { type: "button", class: "loc-nut", "aria-pressed": String(locKho.nhom === n.ma), "data-loc-nhom": n.ma }, `${n.nhan} (${dem[n.ma]})`);
+        b.addEventListener("click", () => { locKho.nhom = n.ma; ve(); hangNut.querySelector<HTMLElement>(`[data-loc-nhom="${n.ma}"]`)?.focus(); });
+        return b;
+      }));
+      const khop = locKhoVe(kho, locKho);
+      replaceChildren(dsEl, khop.length === 0
+        ? h("p", { class: "muted", role: "status" }, "Không có dòng nào khớp bộ lọc.")
+        : h("ul", { class: "pay-list", "data-khoi": "ton-kho" }, ...khop.map((d) =>
+          h("li", { "data-ma": d.catalogCode },
+            h("strong", null, `${d.tenDichVu ?? d.catalogCode} · ${NHAN_NHOM[d.nhomKhach] ?? d.nhomKhach} · ${NHAN_NGUON[d.nguon] ?? d.nguon}`),
+            h("p", { class: "muted" }, `Còn trống ${d.conTrong} · sắp hết hạn (7 ngày) ${d.sapHetHan} · đã giữ cho đơn ${d.daGiu} · đã giao ${d.daGiao}`)))));
+    };
+    oTim.addEventListener("input", () => { locKho.tim = oTim.value; ve(); });
+    replaceChildren(khoEl,
+      h("div", { class: "vk-loc", "data-khoi": "loc-kho" },
+        h("label", { class: "loc-nhom", for: "vk-loc-tim" }, h("span", { class: "vk-loc-nhan" }, "Sản phẩm"), oTim),
+        h("fieldset", { class: "loc-nhom" }, h("legend", null, "Số vé còn"), hangNut)),
+      dsEl);
+    ve();
+  }
+
   async function taiKho(): Promise<void> {
     replaceChildren(khoEl, h("p", { class: "muted" }, "Đang tải…"));
     try {
       const r = await api<{ tranLo: number; kho: KhoDong[] }>("/api/ve/kho");
       tranLo = r.tranLo;
       if (r.kho.length === 0) { replaceChildren(khoEl, h("p", { class: "muted" }, nhapLo || taoVe ? "Kho chưa có vé nào. Nhập lô đầu tiên ở khối bên dưới." : "Kho chưa có vé nào.")); return; }
-      replaceChildren(khoEl, h("ul", { class: "pay-list", "data-khoi": "ton-kho" }, ...r.kho.map((d) =>
-        h("li", { "data-ma": d.catalogCode },
-          h("strong", null, `${d.tenDichVu ?? d.catalogCode} · ${NHAN_NHOM[d.nhomKhach] ?? d.nhomKhach} · ${NHAN_NGUON[d.nguon] ?? d.nguon}`),
-          h("p", { class: "muted" }, `Còn trống ${d.conTrong} · sắp hết hạn (7 ngày) ${d.sapHetHan} · đã giữ cho đơn ${d.daGiu} · đã giao ${d.daGiao}`)))));
+      veKho(r.kho);
     } catch (err) {
       replaceChildren(khoEl, h("p", { class: "alert", role: "alert" }, lyDoLoi(err)));
     }

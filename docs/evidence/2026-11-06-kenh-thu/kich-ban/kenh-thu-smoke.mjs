@@ -112,7 +112,7 @@ const buoc = async (khung, hau) => {
   }
   // ---- 3. Văn phòng (Kế toán) mở đơn của Đối tác không hưởng ----
   p = await moDon(KT, donLe, khung);
-  await b.step(`${hau}-3`, `${hau}: văn phòng mở đơn dấu Tắt (người lập không phải bên đặt được hưởng) ⇒ không nút «Ghi khoản thu», câu «Đối tác lập đơn tự ghi khoản thu của đơn này.», không QR${axeNote()}`, async () => {
+  await b.step(`${hau}-3`, `${hau}: văn phòng mở đơn dấu Tắt (người lập không phải bên đặt được hưởng) ⇒ không nút «Nhập khoản thu», câu «Đối tác lập đơn tự ghi khoản thu của đơn này.», không QR${axeNote()}`, async () => {
     assert.equal(await docTxt(p, '[data-khoi="doi-tac-tu-ghi"]'), "Đối tác lập đơn tự ghi khoản thu của đơn này.");
     assert.equal(await hien(p, '[data-action="ghi-lan-thu"]'), false);
     assert.equal(await hien(p, '[data-action="qr-thanh-toan"]'), false, "không QR");
