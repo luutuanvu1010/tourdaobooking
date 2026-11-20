@@ -63,3 +63,22 @@ Chủ 20/11 yêu cầu tối ưu giao diện theo khuôn, làm một lần cho c
 - Gắn việc này vào bước 3 của kế hoạch 13/11, không lập lộ trình riêng.
 - Sửa form dùng chung cho mọi vai, không tách bản riêng cho đối tác (một form, ẩn hiện theo quyền như hiện nay).
 - Các mục «cần tra quyết định cũ» (B3, C3) sẽ tra xong trước khi vẽ ảnh đề xuất; thấy là chủ ý đã duyệt thì giữ, chỉ báo lại.
+
+## 9. Thi công 20/11: chỗ khác ảnh chủ duyệt và quyết định cũ bị đổi (ghi để chủ biết, chủ bác được)
+Chủ duyệt ảnh đề xuất trong chat 20/11 bằng nút trả lời «Duyệt, sửa mã» (nút chỉ gửi đúng chữ đó).
+
+**Khác ảnh đã duyệt:**
+- **Tên khách không tự thành hành khách** (câu 2 mục 7). Lý do tìm ra lúc thi công: dòng hành khách có tên mà thiếu năm sinh thì luật có sẵn chặn lưu đơn («Dòng 1: năm sinh là bắt buộc»), nên tự điền sẽ biến một đơn đang lưu được thành không lưu được. Làm thay: nút một chạm «Điền tên khách đi tour» trong khối Hành khách, bấm thì có sẵn dòng mang tên đó, con trỏ ở ô năm sinh. Mục 5 ghi «máy chủ không đổi» vẫn đúng; câu «không đổi dữ liệu lưu» ở câu 2 là sai, vì hành khách là dữ liệu lưu.
+- **Ô «Giảm giá cho khách» của đối tác giữ khuôn cũ** (chữ gợi ý trong ô, không nhãn nổi): khuôn này do đặc tả đặt vé đối tác §4.1 chốt và có bài kiểm ghim. Câu giải thích vẫn dời xuống ngay dưới ô.
+- **Hai câu giải thích ở Thanh toán giữ nguyên chữ** (ảnh rút gọn chữ): câu giảm giá do luật tính ra theo từng vai, đổi chữ là việc của bảng từ ngữ.
+- **Mẫu đối tác HD-02-DT:** dòng «Số lượng» chỉ bỏ khi bảng đã ghi đủ từng loại khách; dịch vụ theo nhóm, nhập tay, hoặc dòng tiền lệch số khách vẫn in. Mẫu nội bộ cũng vậy với «Số khách».
+- **Hotline in hai nơi** trên mẫu xác nhận: giữ nguyên (đầu trang là danh tính công ty, chân trang là lời mời gọi).
+
+**Quyết định cũ bị đổi theo ảnh chủ duyệt hôm nay:**
+- Ô chọn dịch vụ: bản 14/10 chốt «khung danh sách luôn mở, đứng yên sau khi chọn» để thêm nhiều dịch vụ liền tay. Nay khung thu lại sau mỗi lần chọn; thêm dịch vụ nữa phải bấm hoặc gõ ô tìm (thêm một chạm mỗi dịch vụ).
+- Thanh bước: ảnh phác 14/10 có bốn bước; nay thêm «Hành khách» (ẩn khi khối Hành khách không dựng).
+- Khối Hành khách ở máy tính: bản vẽ M2 đặt khối trải ngang dưới cả hai cột; nay nằm trong cột chính, sau Dịch vụ. Khi có hành khách, bảng năm cột chạy trong cột hẹp hơn — chưa chụp trường hợp nhiều hành khách.
+- Nhãn ô ghi chú gọn của đối tác: «Ghi chú» kèm gợi ý «Thời gian đón» (đặc tả đặt vé đối tác) thành «Ghi chú đưa đón» kèm gợi ý «Ví dụ: đón lúc 7 giờ 30 tại sảnh».
+- Mẫu xác nhận nội bộ: bài kiểm cũ ghim «giảm giá 0 in '0 ₫'» và hai số nổi bật; nay theo luật mẫu HD-02-DT (dòng bằng 0 thì bỏ, một số nổi bật).
+
+**Chưa làm của đặc tả:** C2 (giảm số hình nút), nhóm D (bảng Dịch vụ & giá), B3 (khối «Người phụ trách» với đối tác: chưa tra xong, để nguyên).

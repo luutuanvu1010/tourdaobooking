@@ -25,6 +25,10 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Dịch vụ & giá có nút «Ngừng bán theo ngày» cho từng dịch vụ và từng nhóm: đơn có ngày khởi hành trong khoảng đã chọn không lập được. Ngày khác vẫn bán." },
       { kind: "moi", text: "Sau khi đặt, máy báo đang có bao nhiêu đơn đã xác nhận nằm trong khoảng ngày để văn phòng gọi khách. Đơn đã xác nhận không bị huỷ." },
       { kind: "doi", text: "Trong khoảng ngày đã ngừng bán, mọi tài khoản đều bị chặn, kể cả Quản trị. Muốn bán lại thì bấm «Kết thúc» ở khoảng đó." },
+      // Đặc tả 2026-11-20 «tối ưu giao diện Tạo đơn và mẫu Xác nhận đơn» (chủ duyệt ảnh đề xuất 20/11), cùng nhánh.
+      { kind: "doi", text: "Tạo đơn: chọn dịch vụ xong thì danh sách tự thu lại. Muốn thêm dịch vụ khác, bấm hoặc gõ vào ô tìm." },
+      { kind: "doi", text: "Tạo đơn: khối Hành khách nằm ngay sau Dịch vụ, có nút «Điền tên khách đi tour» để khỏi gõ lại tên. «Ghi chú thanh toán» mở bằng một nút." },
+      { kind: "doi", text: "Tạo đơn và ảnh xác nhận đơn chỉ còn một số tiền tô đậm. Dòng bằng 0 và dòng lặp lại tổng không còn in." },
     ],
   },
   {
