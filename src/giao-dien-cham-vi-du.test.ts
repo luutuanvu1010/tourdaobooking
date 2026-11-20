@@ -68,10 +68,24 @@ test("chamCa: mã thay thế thì bắt nhưng batBangMaChinh là sai", () => {
   assert.equal(r.batBangMaChinh, false);
 });
 
-test("chamCa: dòng gộp có mã chính trong mảng thì tính bằng mã chính", () => {
-  const r = chamCa(caCay, docPhatHien(dong("S8, S1", "Nhỏ (gộp)")).phatHien);
-  assert.equal(r.bat, true);
-  assert.equal(r.batBangMaChinh, true);
+test("docPhatHien: dòng từ hai mã trở lên đánh dấu gop, đếm soDongGop; dòng một mã thì không", () => {
+  const r = docPhatHien([dong("S4, S8", "Nhỏ (gộp)"), dong("S1", "Nặng")].join("\n"));
+  assert.equal(r.dongSaiKhuon, 0);
+  assert.equal(r.soDongGop, 1);
+  assert.equal(r.phatHien[0].gop, true);
+  assert.equal(r.phatHien[1].gop, false);
+});
+
+test("chamCa: ca chỉ có dòng gộp chứa mã đúng và từ khoá đúng ⇒ KHÔNG bắt; thêm dòng một mã ⇒ bắt", () => {
+  const gop = docPhatHien(dong("S8, S1", "Nhỏ (gộp)")).phatHien;
+  const chiGop = chamCa(caCay, gop);
+  assert.equal(chiGop.bat, false);
+  assert.equal(chiGop.batBangMaChinh, false);
+  assert.deepEqual(chiGop.maNeu, ["S8", "S1"]);
+  const them = chamCa(caCay, [...gop, ...docPhatHien(dong("S1", "Nặng")).phatHien]);
+  assert.equal(them.bat, true);
+  assert.equal(them.batBangMaChinh, true);
+  assert.equal(them.khop.length, 1);
 });
 
 test("chamCa: từ khoá so không phân biệt hoa thường", () => {
