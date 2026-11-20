@@ -136,6 +136,29 @@ const DICH_VU_GHI_KEP_GIO_DECIDE = defineSql(
 export const cauGhiKepGio = (db: D1Database, v: { legId: string; orderId: string; gio: string; yeuCauId: string; prevUpdatedAt: string }): D1PreparedStatement =>
   db.prepare(DICH_VU_GHI_KEP_GIO_DECIDE).bind(v.gio, v.legId, v.orderId, v.yeuCauId, v.prevUpdatedAt);
 
+/**
+ * ADR-0221 Đ3: ghi NƠI ĐÓN THẬT (điểm danh mục ?1 HOẶC chữ ?2 — đúng một, route đã kiểm) cho MỘT lượt mở đang mang chữ tạm (?9 = `NOI_DON_CHUA_GHI`, truyền làm tham số để câu vẫn tĩnh).
+ * Vế «đang mang chữ tạm» nằm NGAY trong câu: người xét không ghi đè được nơi đón thật của lượt khác, kể cả khi lượt vừa đổi giữa lúc đọc và lúc ghi. Cùng hai điều kiện `CON_MO`.
+ */
+const CHANG_GHI_NOI_DON_DECIDE = defineSql(
+  "orders",
+  "leg_set_pickup_place_decide_guarded",
+  `UPDATE ord_transfer_leg SET pickup_location_id = ?1, pickup_place = ?2, updated_at = ?3, updated_by = ?4
+   WHERE id = ?5 AND order_id = ?6 AND closed_at IS NULL AND pickup_location_id IS NULL AND pickup_place = ?9 AND ${CON_MO("?6", "?7", "?8")}`,
+);
+export const cauGhiNoiDonChang = (
+  db: D1Database, v: { legId: string; orderId: string; locationId: string | null; place: string | null; chuTam: string; at: string; by: string; yeuCauId: string; prevUpdatedAt: string },
+): D1PreparedStatement => db.prepare(CHANG_GHI_NOI_DON_DECIDE).bind(v.locationId, v.place, v.at, v.by, v.legId, v.orderId, v.yeuCauId, v.prevUpdatedAt, v.chuTam);
+/** Ghi kép cột cũ `order_service.pickup_place` (phát hành 1, Ruling R3) theo NHÃN nơi đón của lượt chiều đi đầu vừa được ghi nơi đón — khuôn `cauGhiKepGio`. */
+const DICH_VU_GHI_KEP_NOI_DECIDE = defineSql(
+  "orders",
+  "service_mirror_place_decide_guarded",
+  `UPDATE order_service SET pickup_place = ?1
+   WHERE id = (SELECT l.order_service_id FROM ord_transfer_leg l WHERE l.id = ?2 AND l.order_id = ?3 AND l.direction = 'OUT') AND order_id = ?3 AND ${CON_MO("?3", "?4", "?5")}`,
+);
+export const cauGhiKepNoi = (db: D1Database, v: { legId: string; orderId: string; nhan: string; yeuCauId: string; prevUpdatedAt: string }): D1PreparedStatement =>
+  db.prepare(DICH_VU_GHI_KEP_NOI_DECIDE).bind(v.nhan, v.legId, v.orderId, v.yeuCauId, v.prevUpdatedAt);
+
 // ---- Cờ «cần xác nhận» và công tắc tự xác nhận (Đ1, Đ5) --------------------------------------------------------------------------------------------
 export interface CoHienHanhRow {
   scope: string;

@@ -79,6 +79,7 @@ import { congLuatBan, congNgungBanNgay } from "./cong-ban";
 import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu, dichLoiLoHuy, dichLoiTraSau, VE_CHUA_SOAN_DUOC, type HamNoTraSau, type HamTraSau, type NguoiGuiTraSau } from "./tra-sau-cong";
 import { thanLapDonKhiAn, thanNhapKhiAn } from "./an-thong-tin-khach";
 import { apTruongDichVu, thanKhiAnTruong, thieuBatBuoc, traDichVu, truongTaoDon } from "./an-truong-giao-dien";
+import { thanKhiKhongNhapNoiDon } from "./noi-don-doi-tac";
 import { anKhachBat, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon, nhapDangChoCuaBen } from "./xac-nhan-repo";
 import { cauKhepLoiMoi, docKhungGio, soanGhiNhan } from "./ban-hang-ghi-nhan";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
@@ -1451,7 +1452,8 @@ export const ordersModule: AppModule = {
       // ADR-0194 đợt 1: chính sách hiện / ẩn / bắt buộc của Toàn quyền (đọc ĐÚNG MỘT lần; bảng rỗng ⇒ [] ⇒ không đổi gì). Công tắc ADR-0154 đang áp ⇒ nó quyết các trường khách, chính sách không chen vào.
       const dsCs = an ? [] : await chinhSachGiaoDien(); // ADR-0195: danh sách ĐẦY ĐỦ (kể cả mục theo điều kiện) — đọc ĐÚNG MỘT lần, dùng cho cả cấp đơn lẫn cấp dịch vụ
       const cs = truongTaoDon(dsCs);
-      const body = an ? thanLapDonKhiAn(thanGui, { fullName: staff.fullName, phone: staff.phone }) : thanKhiAnTruong(thanGui, cs.an, null);
+      // ADR-0221 Đ2: người gọi giữ quyền Đối tác VÀ công tắc «Đối tác không nhập nơi đón» bật ⇒ lượt chiều đi không nơi đón được điền chữ tạm TRƯỚC `validateOrder`; còn lại giữ nguyên thân (400 như trước).
+      const body = await thanKhiKhongNhapNoiDon(env.DB, staff, an ? thanLapDonKhiAn(thanGui, { fullName: staff.fullName, phone: staff.phone }) : thanKhiAnTruong(thanGui, cs.an, null), new Date().toISOString());
       if (laThanDonCu(body)) await demThanCu(env.DB, staff.id, "lap_don"); // ADR-0047 §6 — đếm máy cũ (cổng Đợt 8); sau 403, trước 400
       const pick = parseHandlerPick(body);
       if (!pick.ok) return error(400, "invalid_input", pick.message);
@@ -1631,7 +1633,8 @@ export const ordersModule: AppModule = {
       const dsCs = an ? [] : await chinhSachGiaoDien(); // ADR-0195: một lần đọc cho cả cấp đơn lẫn cấp dịch vụ
       const cs = truongTaoDon(dsCs);
       const luuTuyChon = !an && ["customerEmail", "customerNote", "paymentNote"].some((k) => cs.an.has(k)) ? await tuyChonDangLuu(env.DB, id) : null;
-      const body = dangLuu ? thanNhapKhiAn(thanGui, dangLuu) : thanKhiAnTruong(thanGui, cs.an, luuTuyChon);
+      // ADR-0221 Đ2: như ở lập đơn — xét theo NGƯỜI GỌI (người quản lý tổ chức sửa nháp thành viên cũng là tài khoản giữ quyền Đối tác).
+      const body = await thanKhiKhongNhapNoiDon(env.DB, staff, dangLuu ? thanNhapKhiAn(thanGui, dangLuu) : thanKhiAnTruong(thanGui, cs.an, luuTuyChon), new Date().toISOString());
       // ADR-0047 A2: thân có khoá `passengers` → hỏi thêm ô nhập tên khách với phạm vi CỦA ĐƠN NÀY (trước validateOrder).
       const giao = duocGiaoTheoO("order.passenger.write", { laNguoiPhuTrach: assigned, laBanHangPhuTrach: laBanHang }); // ADR-0142: danh sách trắng (tính ra biến trước — bài bang-su-kien-van-chuyen quét thân `can(` tới dấu `}` đầu)
       if (hasPassengersKey(body) && !can(staff, "order.passenger.write", { ownerId: chuNhap, assigned: giao })) return CANNOT_WRITE_PASSENGERS();

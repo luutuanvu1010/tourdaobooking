@@ -3,7 +3,7 @@
 // `index.ts` và tệp route sau này không import vòng nhau. KHÔNG tự kiểm quyền người gọi (route đã làm); KHÔNG đổi hành vi so với thân nhánh `confirmed` cũ.
 import { auditStatement } from "../audit";
 import { chupDon, docBangChoChup, laNguoiHuong, soKhachTinhHoaHong, type BanChup, type DuLieuChup } from "../pricing";
-import type { ChuaGioSatNgayBody, DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDto, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile, XacNhanTrenDonDto } from "../../shared/contracts";
+import type { ChuaGioSatNgayBody, PickupPlaceRequiredBody, DongBoChuyenDto, IncompleteTripBody, LyDoCanXacNhan, OrderDetailDto, OrderStatus, PaxCounts, ShortNoticeRequiredBody, StaffProfile, XacNhanTrenDonDto } from "../../shared/contracts";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner, passesAdminGate } from "../../shared/permissions";
 import { error, json } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
@@ -16,7 +16,7 @@ import { cauChuaGioSatNgay, changChuaGioVaoHanChot, type MocToiThieu } from "../
 import { canXacNhan, duocQuyetDinh, quaHanXacNhan } from "../../shared/xac-nhan-don";
 import { trangThaiLoiMoi } from "../../shared/ban-hang-phu-trach";
 import type { BanHangNoi } from "../../shared/router";
-import { thieuGioChangDau } from "../../shared/chang-dua-don";
+import { luotThieuNoiDon, thieuGioChangDau } from "../../shared/chang-dua-don";
 import { tuCachCuaDon, type KetQuaChonTuCach } from "../../shared/booker";
 import { chiNguoiLapGhiNhap, type CheDoThanhVien, type NgoaiLeToChuc } from "../../shared/xem-don-nhap";
 import { canhBaoMocCua } from "./dat-gap";
@@ -57,6 +57,17 @@ export const MOC_CHUA_CO = () => error(503, "moc_toi_thieu_chua_co", "Chưa có 
 export function congThieuPhiDon(phiDon: Pick<PhiDonXacNhan, "thieu">): Response | null {
   const t = phiDon.thieu[0];
   return t ? error(409, "transfer_fee_missing", cauThieuPhiDon({ direction: t.direction, tenDichVu: t.tenDichVu })) : null;
+}
+/** Câu 409 `pickup_place_required` (ADR-0221 Đ3) — MỘT hằng cho mọi cửa xác nhận; chữ theo kế hoạch 2026-11-21. */
+export const CAU_THIEU_NOI_DON = "Còn lượt đưa đón chưa có nơi đón. Ghi nơi đón rồi bấm Còn vé, xác nhận đơn.";
+/**
+ * ADR-0221 Đ3 — cổng THEO DỮ LIỆU, MỘT chốt cho mọi cửa xác nhận (`kiemCongXacNhan`: `/status`, Còn vé; Còn vé gọi thêm một lần sớm): còn lượt MỞ mang chữ tạm ở nơi đón
+ * (`luotThieuNoiDon`) mà lệnh này KHÔNG ghi nơi đón cho nó (`seGhi` = id lượt có trong `noiDon` của Còn vé) ⇒ 409 kèm `legs`. KHÔNG đọc công tắc: lượt đối tác gửi lúc công tắc bật vẫn
+ * bị chặn sau khi công tắc tắt. Trả `null` khi qua. `legs` = lượt còn hiệu lực của đơn đã nạp (`findOrder`).
+ */
+export function congThieuNoiDon(legs: readonly { id: string; pickupLocationId: string | null; pickupPlace: string | null }[], seGhi: ReadonlySet<string> = new Set()): Response | null {
+  const thieu = luotThieuNoiDon(legs).filter((l) => !seGhi.has(l.id));
+  return thieu.length === 0 ? null : json({ error: { code: "pickup_place_required", message: CAU_THIEU_NOI_DON, legs: thieu.map((l) => ({ legId: l.id })) } } satisfies PickupPlaceRequiredBody, 409);
 }
 /** ADR-0214 Đ2 (ruling P4): tài khoản giữ quyền Đối tác gửi mức phí đưa đón ở bất kỳ đường nào (lập, lưu nháp, sửa chặng, sửa chuyến, Gửi đơn, Còn vé) ⇒ 400, không lặng lẽ bỏ. */
 export const TRANSFER_FEE_NOT_ALLOWED = () => error(400, "transfer_fee_not_allowed", CAU_VAN_PHONG_CHON_PHI_DON);
@@ -247,8 +258,8 @@ export async function chayLoNoiChuyen(db: D1Database, dong: DongBoTheoDon, thang
  */
 export async function kiemCongXacNhan(
   db: D1Database,
-  i: { actor: StaffProfile; order: DonXacNhan; kiemMoc: boolean; mocToiThieu: MocToiThieu | null; cuaDuaDon?: CuaDuaDon; traSau: HamTraSau; nguoiLapDoiTac: NguoiLapDoiTac; cheDoThieuPhi: "TU_CHOI" | "NHANH_A"; /** ADR-0220: Còn vé kèm ngày đi mới — cổng ngừng bán theo ngày xét ngày SẼ GHI thay ngày đang lưu. */ ngayKhoiHanhMoi?: string; mucPhiThem?: ReadonlyMap<string, MucChon> },
-): Promise<{ loi: Response } | { ok: true; chup: BanChup[]; detail: string | undefined; today: string; traSau: KemTraSau; phiDon: PhiDonXacNhan }> {
+  i: { actor: StaffProfile; order: DonXacNhan; kiemMoc: boolean; mocToiThieu: MocToiThieu | null; cuaDuaDon?: CuaDuaDon; traSau: HamTraSau; nguoiLapDoiTac: NguoiLapDoiTac; cheDoThieuPhi: "TU_CHOI" | "NHANH_A"; /** ADR-0221 Đ3: Còn vé kèm `noiDon` — id các lượt mà CHÍNH lô này sẽ ghi nơi đón thật (cổng xét trạng thái SAU lệnh). */ noiDonSeGhi?: ReadonlySet<string>; /** ADR-0220: Còn vé kèm ngày đi mới — cổng ngừng bán theo ngày xét ngày SẼ GHI thay ngày đang lưu. */ ngayKhoiHanhMoi?: string; mucPhiThem?: ReadonlyMap<string, MucChon> },
+): Promise<{ loi: Response } | { ok: true; chup: BanChup[]; detail: string | undefined; today: string; traSau: KemTraSau; phiDon: PhiDonXacNhan; /** ADR-0221: id lượt mở còn mang chữ tạm ở nơi đón (chỉ khác rỗng ở chế độ «NHANH_A»). */ thieuNoiDon: string[] }> {
   const { actor, order } = i;
   const today = vnToday(new Date());
   // ADR-0214: phí theo mức đã chọn (dòng phí đã lưu theo id chặng + `mucPhiThem` — mức văn phòng chọn ở Còn vé), số khách hiện tại, công tắc ở NGÀY XÁC NHẬN (chỉ đọc). Tính trước mọi
@@ -285,6 +296,13 @@ export async function kiemCongXacNhan(
   // ADR-0134 Đ2: mỗi dịch vụ phải chọn Đón (có chặng mở) hoặc Không đón (không chặng mở). Đọc từ `order` đã nạp (dịch vụ + chặng CÒN HIỆU LỰC).
   const thieuDon = thieuChonDon(order.services.map((s) => ({ pickupChoice: s.pickupChoice, soChangMo: s.legs.length })));
   if (thieuDon.length > 0) return { loi: error(409, "pickup_choice_required", cauThieuChonDon(thieuDon[0]!)) };
+  // ADR-0221 Đ3: còn lượt mở mang chữ tạm ở nơi đón (sau lệnh) ⇒ 409 `pickup_place_required`. Cùng chế độ với cổng thiếu phí: `/status`, Còn vé («TU_CHOI») từ chối; Gửi đơn
+  // («NHANH_A») không lỗi — route đọc `thieuNoiDon` để LUÔN đi nhánh A (văn phòng điền nơi đón lúc Còn vé), không bao giờ tới nhánh B tự xác nhận.
+  const thieuNoiDon = luotThieuNoiDon(order.services.flatMap((s) => s.legs)).filter((l) => !(i.noiDonSeGhi?.has(l.id) ?? false)).map((l) => l.id);
+  if (i.cheDoThieuPhi === "TU_CHOI") {
+    const chanNoiDon = congThieuNoiDon(order.services.flatMap((s) => s.legs), i.noiDonSeGhi);
+    if (chanNoiDon) return { loi: chanNoiDon };
+  }
   // Đợt C, Task 4 (trang ghép §3 cổng 6): còn chặng chưa tính được phí — sau cổng chọn Đón (biết chặng nào còn mở), trước cổng mốc. Gửi đơn («NHANH_A») không lỗi: đi nhánh A.
   if (i.cheDoThieuPhi === "TU_CHOI") {
     const thieuPhi = congThieuPhiDon(phiDon);
@@ -304,7 +322,7 @@ export async function kiemCongXacNhan(
   const tien = order.services.map((s) => ({ id: s.id, ...tienChoHoaHong(s) }));
   const tranLoi = viPhamTranGiamGia(actor, order.discount, donChoTran(chup, tien)); // I-1: Đối tác trên đơn đại lý KHÁC ⇒ luật cũ, không nêu số
   if (tranLoi) return { loi: TRAN_GIAM_GIA(tranLoi) };
-  return { ok: true, chup, detail, today, traSau: traSau.traSau, phiDon };
+  return { ok: true, chup, detail, today, traSau: traSau.traSau, phiDon, thieuNoiDon };
 }
 
 /** Câu kèm của lô xác nhận: bản chụp mức hoa hồng + nhật ký `order_terms_captured`, cùng mốc `at` của lô (`soanXacNhan`/`confirmOrder` truyền `at`). */
@@ -481,7 +499,8 @@ export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; o
   if (don) {
     const kq = await tinhCanXacNhan(db, don, i.moc, i.nowMs);
     vi = y ? viCuaYeuCau(y, kq.vi) : kq.vi;
-    canXN = laNguoiLap && (kq.can || canChotGioCuaNguoiLap(i.staff, don.services)); // ADR-0154 Đ1.2: cùng luật với route Gửi đơn
+    // ADR-0154 Đ1.2 + ADR-0221 Đ3: cùng luật với route Gửi đơn — người lập giữ quyền Đối tác mà còn lượt thiếu giờ lượt đầu hoặc mang chữ tạm ở nơi đón thì đơn phải chờ văn phòng.
+    canXN = laNguoiLap && (kq.can || canChotGioCuaNguoiLap(i.staff, don.services) || (holdsPartner(i.staff) && luotThieuNoiDon(don.services.flatMap((s) => s.legs)).length > 0));
   }
   // ADR-0142: cùng phép tính «lời mời còn ưu tiên của người KHÁC» với route `quyet-dinh` (một lần đọc, chỉ khi có yêu cầu mở).
   const loiMoi = y !== null ? await i.banHang.loiMoiMoCua(i.order.id) : null;

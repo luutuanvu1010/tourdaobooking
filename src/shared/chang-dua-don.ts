@@ -54,6 +54,46 @@ export const GHI_CHU_DAT_GAP_TOI_DA = 120;
  */
 export const NOI_DON_CHUA_GHI = "(chưa ghi nơi đón)";
 
+/**
+ * ADR-0221 Đ2, Đ3 — chữ tạm nay còn sinh ra từ MỘT ĐƯỜNG SỐNG: tài khoản giữ quyền Đối tác lập / lưu nháp lượt chiều đi không có nơi đón lúc công tắc «Đối tác không nhập nơi đón» BẬT
+ * (`dienNoiDonTam`, chỉ route lập / lưu nháp gọi, sau khi đã kiểm người gọi và công tắc). Văn phòng điền nơi đón thật lúc «Còn vé»; cổng 409 `pickup_place_required` chặn mọi đường xác
+ * nhận khi còn lượt MỞ mang chữ tạm (`luotThieuNoiDon`) — xét theo dữ liệu, không theo công tắc.
+ */
+export const laNoiDonTam = (l: { pickupLocationId: string | null; pickupPlace: string | null }): boolean => l.pickupLocationId === null && l.pickupPlace === NOI_DON_CHUA_GHI;
+/** Các lượt (đang mở — nơi gọi đưa vào lượt còn hiệu lực) còn mang chữ tạm ở nơi đón. */
+export const luotThieuNoiDon = <T extends { pickupLocationId: string | null; pickupPlace: string | null }>(legs: readonly T[]): T[] => legs.filter(laNoiDonTam);
+/** Chữ hiện cho người dùng thay nguyên văn chữ tạm (ADR-0221 Đ3) — cùng chữ với chip dòng gập «Chưa có nơi đón». */
+export const CHUA_CO_NOI_DON = "Chưa có nơi đón";
+/** Nhãn nơi đón để HIỆN: nhãn là chữ tạm ⇒ «Chưa có nơi đón»; nhãn khác giữ nguyên. Không dùng để so sánh hay ghi. */
+export const nhanNoiDon = (nhan: string): string => (nhan === NOI_DON_CHUA_GHI ? CHUA_CO_NOI_DON : nhan);
+
+/**
+ * Thân lập / lưu nháp (CHƯA kiểm) → thân MỚI trong đó mỗi lượt `direction: "OUT"` không có `pickupLocationId` và `pickupPlace` rỗng (vắng, null, chuỗi toàn khoảng trắng) được điền
+ * `pickupPlace = NOI_DON_CHUA_GHI`. Mọi thứ khác giữ nguyên (chiều về, lượt có nơi, giá trị sai kiểu, thân không có `legs`) để `kiemChang` xét như trước. Không sửa đầu vào.
+ * KHÔNG tự kiểm người gọi hay công tắc: route chỉ gọi khi `holdsPartner(người gọi)` VÀ công tắc bật.
+ */
+export function dienNoiDonTam(than: unknown): unknown {
+  if (!than || typeof than !== "object" || Array.isArray(than)) return than;
+  const t = than as Record<string, unknown>;
+  if (!Array.isArray(t.services)) return than;
+  const rong = (v: unknown): boolean => v === undefined || v === null || (typeof v === "string" && v.trim() === "");
+  return {
+    ...t,
+    services: t.services.map((s: unknown) => {
+      if (!s || typeof s !== "object" || Array.isArray(s) || !Array.isArray((s as Record<string, unknown>).legs)) return s;
+      const sv = s as Record<string, unknown>;
+      return {
+        ...sv,
+        legs: (sv.legs as unknown[]).map((l) => {
+          if (!l || typeof l !== "object" || Array.isArray(l)) return l;
+          const r = l as Record<string, unknown>;
+          return r.direction === "OUT" && rong(r.pickupLocationId) && rong(r.pickupPlace) ? { ...r, pickupPlace: NOI_DON_CHUA_GHI } : l;
+        }),
+      };
+    }),
+  };
+}
+
 /** Trần số chặng mỗi dịch vụ (giả định G5 của kế hoạch). */
 export const MAX_CHANG_MOI_DICH_VU = 10;
 /** Khoảng ngày đón so với ngày đi của dịch vụ — chủ trả lời Q2 (2026-09-29): "Sớm 1 ngày, muộn 7 ngày". Đổi về sau chỉ sửa hai con số. */
@@ -210,6 +250,20 @@ function noi(idRaw: unknown, placeRaw: unknown, label: string, at: string): { ok
   if (place.error) return { ok: false, message: place.error };
   if (id !== null && place.value !== null) return { ok: false, message: `${at}: ${label}: chọn điểm có sẵn HOẶC gõ chữ, không cả hai.` };
   return { ok: true, id, place: place.value };
+}
+
+/**
+ * ADR-0221 Đ3: nơi đón văn phòng ghi lúc «Còn vé» cho lượt đang mang chữ tạm — ĐÚNG MỘT trong hai (điểm danh mục hoặc chữ 1–200 ký tự), cùng luật `noi` của `kiemChang`; chữ tạm
+ * không phải nơi đón thật nên bị từ chối. Điểm danh mục có đang dùng không là việc của route (đọc `v_loc_location_label`).
+ */
+export function kiemNoiDonGhi(raw: unknown): { ok: true; id: string | null; place: string | null } | { ok: false; message: string } {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Nơi đón không hợp lệ." };
+  const r = raw as Record<string, unknown>;
+  const don = noi(r.pickupLocationId, r.pickupPlace, "nơi đón", "Lượt đưa đón");
+  if (!don.ok) return don;
+  if (don.id === null && don.place === null) return { ok: false, message: "Lượt đưa đón: cần nơi đón (chọn điểm có sẵn hoặc gõ nơi đón)." };
+  if (don.place === NOI_DON_CHUA_GHI) return { ok: false, message: "Lượt đưa đón: cần nơi đón (chọn điểm có sẵn hoặc gõ nơi đón)." };
+  return don;
 }
 
 /**
