@@ -977,6 +977,11 @@ export interface CatalogCoVeInput { pham: "SERVICE" | "GROUP"; ma: string; coVe:
 export interface CatalogNguonVeResponse { dichVu: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }[] }
 export interface CatalogNguonVeInput { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }
 export interface CatalogNgungBanResponse { code: string; ngungBan: boolean }
+/** ADR-0220: một khoảng «Ngừng bán theo ngày» còn chặn. `ma` = mã dịch vụ hoặc mã nhóm theo `phamVi`; `ten` = tên dịch vụ / tên nhóm để hiện. Ngày "YYYY-MM-DD", gồm cả hai đầu. */
+export interface CatalogNgungBanNgayDto { id: string; phamVi: "SERVICE" | "GROUP"; ma: string; ten: string; tuNgay: string; denNgay: string; ghiChu: string | null; taoLuc: string }
+export interface CatalogNgungBanNgayListResponse { khoang: CatalogNgungBanNgayDto[] }
+/** `soDonDaXacNhan`: số đơn đã xác nhận có ngày khởi hành trong khoảng (chỉ con số); `null` = không đếm được. */
+export interface CatalogNgungBanNgayResponse { khoang: CatalogNgungBanNgayDto; soDonDaXacNhan: number | null }
 export interface CatalogSyncResponse {
   ok: true;
   added: number;

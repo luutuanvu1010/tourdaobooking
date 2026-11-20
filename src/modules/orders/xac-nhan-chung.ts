@@ -33,7 +33,7 @@ import { getEffectiveServices } from "../catalog";
 import { chuanBiPhiDonXacNhan, kiemNhomChoPhepDuaDon, type PhiDonXacNhan } from "./service";
 import { cauThieuPhiDon } from "./phi-don-don";
 import { CAU_VAN_PHONG_CHON_PHI_DON, type MucChon } from "../../shared/phi-don-chon";
-import { congLuatBan } from "./cong-ban";
+import { congLuatBan, congNgungBanNgay } from "./cong-ban";
 import { traSauChoXacNhan, type HamTraSau, type KemTraSau } from "./tra-sau-cong";
 import { laDoiTacTraSau } from "../../shared/tra-sau";
 import { dichVuCanHoiDuaDon, type CuaDuaDon } from "./rules";
@@ -257,6 +257,7 @@ export async function kiemCongXacNhan(
   // ADR-0146 Đ3 + R-7 (Q-8 (a) của chủ): luật bán đứng ĐẦU mọi cổng xác nhận — đơn vừa bị chặn bán vừa vướng cổng khác luôn nhận `sales_blocked` (sửa cổng kia cũng vô ích).
   const chanBan = await congLuatBan(db, { bookerPartyId: order.bookerPartyId, dong: order.services });
   if (chanBan) return { loi: chanBan };
+  { const ngung = await congNgungBanNgay(db, order.services); if (ngung) return { loi: ngung }; } // ADR-0220 Đ3: ngay sau luật bán — `/status`, Gửi đơn, Còn vé
   // ADR-0185 Đ1 (a): đứng NGAY SAU luật bán, TRƯỚC mọi cổng khác — các cổng sau (hạn mức Trả sau, trần giảm giá) đọc bên đặt, mà ở đơn bị chặn bên đặt đang sai. Ở Gửi đơn, `/status`
   // đây là chỗ chặn; ở Còn vé route đã gọi sớm (kế hoạch K3), lần này là lưới. `vaiTro.bang` (khác null khi người lập giữ quyền Đối tác) dùng lại cho bản chụp bên dưới.
   const vaiTro = await congDoiTacChuaCoVaiTro(db, { nguoiLap: i.nguoiLapDoiTac, order, today });

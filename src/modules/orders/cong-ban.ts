@@ -2,6 +2,7 @@
 // `kiemCongXacNhan`: `/status`, Gửi đơn, Còn vé), Gửi xác nhận. Không tự đọc bảng nào: chỉ gọi hàm công bố `kiemLuatBan` của `pricing` (nhóm, đặc điểm đọc ở đó qua view của
 // catalog). Bài `src/luat-ban-moi-cua.test.ts` canh: mỗi cửa gọi `congLuatBan(`, và không tệp nào khác của `orders` gọi `kiemLuatBan(`.
 import { cauBiChan, kiemLuatBan } from "../pricing";
+import { kiemNgungBanTheoNgay } from "../catalog";
 import { error } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 
@@ -21,4 +22,14 @@ export async function congLuatBan(
   const dau = v.dong.find((d) => d.catalogCode !== null && biChan.has(d.catalogCode))!;
   const t = trung.find((x) => x.catalogCode === dau.catalogCode)!;
   return error(409, "sales_blocked", cauBiChan({ tenDichVu: dau.name, tenDacDiem: t.tenDacDiem, tenGiaTri: t.tenGiaTri }));
+}
+
+/**
+ * Cổng «NGỪNG BÁN THEO NGÀY» của `orders` (ADR-0220 Đ3): MỘT hàm cho mọi cửa ghi đơn — lập đơn, lưu nháp, Gửi xác nhận, xác nhận (qua `kiemCongXacNhan`: `/status`, Gửi đơn,
+ * Còn vé) và sửa ngày khởi hành (`PUT …/trip`). Chỉ gọi hàm công bố `kiemNgungBanTheoNgay` của `catalog`. Xét theo NGÀY KHỞI HÀNH của từng dịch vụ có mã; không đọc bên đặt, không đọc
+ * người thao tác (không ai bán vượt). Trúng ⇒ 409 `sales_paused_date` nêu tên dịch vụ và khoảng ngày; không ⇒ null. Bài `src/ngung-ban-ngay-moi-cua.test.ts` canh mỗi cửa gọi hàm này.
+ */
+export async function congNgungBanNgay(db: D1Database, dong: readonly { catalogCode: string | null; name: string; departDate: string | null }[]): Promise<Response | null> {
+  const cau = await kiemNgungBanTheoNgay(db, dong.map((d) => ({ catalogCode: d.catalogCode, name: d.name, ngay: d.departDate })));
+  return cau ? error(409, "sales_paused_date", cau) : null;
 }

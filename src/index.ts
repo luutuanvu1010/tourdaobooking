@@ -37,7 +37,7 @@ import {
   cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule, tcCheDo, tcQuanLyMo, tcToChucCuaNguoi, cauBoGiuChoLoiMoi, cauDungLoiMoiPhieu, cauThanhVienTuLoiMoi,
 } from "./modules/parties";
 import { capMacDinhChoDuyet, capSeApChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
-import { cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
+import { demDonXacNhanTheoMaVaNgay, cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
 import { accountOfParty, createAccountOnPartyStatements, createPartnerAccountOnPartyStatements, getStaffAccount, getStaffAccountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
@@ -566,6 +566,8 @@ const APP_OPTIONS: AppOptions = {
     },
     // «ĐÃ CHỤP CHƯA» (ADR-0148 Đ1): pricing không đọc bảng ord_, không phụ thuộc orders — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của orders (bài siết architecture.test.ts).
     hoiDaChup: (env, q) => ngayChupGanNhat(env.DB, q),
+    // ADR-0220 Đ5: catalog không đọc bảng đơn — gốc lắp ráp tiêm con số đơn đã xác nhận trong khoảng ngày.
+    demDonTrongKhoangNgay: (env, q) => demDonXacNhanTheoMaVaNgay(env.DB, q.codes, q.tuNgay, q.denNgay),
     // LỚP CHỐNG GHI TRÙNG (ADR-0094 đ2): router không import module — gốc lắp ráp tiêm phần của `lan-gui` (vân tay HMAC, tra / chèn / cập nhật vé).
     lanGui: lanGuiNoi,
   },

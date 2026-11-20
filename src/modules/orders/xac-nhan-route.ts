@@ -35,7 +35,7 @@ import { coPhiDonTrongThan } from "./rules";
 import { moTaPhiDonNhatKy } from "./phi-don-don";
 import { CAU_KHONG_HOP_LE_PHI_DON, CAU_VUOT_TRAN_PHI_DON, kiemMucChon, type MucChon } from "../../shared/phi-don-chon";
 import { confirmGaps, confirmWindow } from "./service-rules";
-import { congLuatBan } from "./cong-ban";
+import { congLuatBan, congNgungBanNgay } from "./cong-ban";
 import { coChotGio } from "./gio-don-cai-dat";
 /** ADR-0213 Đ8.1 (Task 12): đơn tư cách tổ chức — chỉ người quản lý có hiệu lực của tổ chức bấm «Gửi đơn». */
 const ORG_MANAGER_REQUIRED = (): Response => error(403, "org_manager_required", "Chỉ người quản lý tổ chức gửi được đơn này lên Tour Đảo.");
@@ -194,6 +194,7 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     // ADR-0146 Đ3 + Q-1 (a) của chủ: luật bán đứng TRƯỚC chốt «cần xác nhận» — đơn bị chặn bán nhận `sales_blocked`, không mở yêu cầu (dù cần hay không cần xác nhận).
     const chanBan = await congLuatBan(env.DB, { bookerPartyId: order.bookerPartyId, dong: order.services });
     if (chanBan) return chanBan;
+    { const ngung = await congNgungBanNgay(env.DB, order.services); if (ngung) return ngung; } // ADR-0220 Đ3 (Gửi xác nhận — chốt riêng, cửa này không qua kiemCongXacNhan)
     const canXN = await tinhCanXacNhan(env.DB, order, moc, nowMs);
     if (!canXN.can) return error(409, "confirm_not_required", "Đơn này không cần xác nhận, hãy bấm Xác nhận đơn.");
     const tatDuaDon = await congNhomTatDuaDon(env.DB, order, "xac-nhan"); // ADR-0118 Đ3 (b): cửa này không qua kiemCongXacNhan — chốt riêng, TRƯỚC cổng chọn đón

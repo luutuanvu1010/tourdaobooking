@@ -440,6 +440,8 @@ export interface Ctx<A extends Access = Access> {
    * KHÔNG BAO GIỜ đoán «chưa chụp». MỘT truy vấn mỗi lần gọi.
    */
   hoiDaChup: (q: HoiDaChup) => Promise<{ ngay: string | null } | null>;
+  /** ADR-0220 Đ5: số ĐƠN ĐÃ XÁC NHẬN có dịch vụ thuộc `codes` với ngày khởi hành trong khoảng — do gốc lắp ráp tiêm (`orders`); `catalog` không đọc bảng đơn. `null` = không tiêm / lỗi. */
+  demDonTrongKhoangNgay: (q: { codes: readonly string[]; tuNgay: string; denNgay: string }) => Promise<number | null>;
   /**
    * TIN CHUYẾN (ADR-0052 D6.3) — dữ kiện chuyến theo id (mã, ngày, khoảng lái, đơn của suất vắng) do gốc lắp ráp tiêm (`van-chuyen.chuyenChoTinTheoId`;
    * thongbao không import van-chuyen). Một lần gọi = ba truy vấn mảng JSON (mảng chuyến rỗng: không truy vấn). `null` = môi trường không tiêm (khung thử cố ý)
@@ -646,6 +648,8 @@ export interface AppOptions {
     tienDonVe: (env: Env, orderId: string) => Promise<{ daThu: number; phaiThu: number; choNop?: number; choXacNhan?: number; traSau?: { hanTra: string | null; hetAnHan: string | null; no: number } | null } | null>;
     /** ADR-0148 Đ1. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `ngayChupGanNhat` của orders); thiếu (khung thử cố ý) → router trả `null` (route Sửa / Đổi / Ngừng của pricing 503). */
     hoiDaChup: (env: Env, q: HoiDaChup) => Promise<string | null>;
+    /** ADR-0220 Đ5. Thiếu (khung thử cố ý) → router trả `null`. */
+    demDonTrongKhoangNgay: (env: Env, q: { codes: readonly string[]; tuNgay: string; denNgay: string }) => Promise<number>;
     /** TIN CHUYẾN (ADR-0052 D6.3). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `chuyenChoTinTheoId` của van-chuyen); thiếu (khung thử cố ý) → router trả `null`. */
     chuyenChoTin: (env: Env, q: HoiChuyenChoTin) => Promise<ChuyenChoTin>;
     /**
@@ -888,6 +892,10 @@ export function createApp(opts: AppOptions) {
       dichVuChoDoiChieu: async (ngay) => {
         if (typeof opts.injected.dichVuChoDoiChieu !== "function") return null;
         try { return await opts.injected.dichVuChoDoiChieu(envH, ngay); } catch { return null; }
+      },
+      demDonTrongKhoangNgay: async (q) => {
+        if (typeof opts.injected.demDonTrongKhoangNgay !== "function") return null;
+        try { return await opts.injected.demDonTrongKhoangNgay(envH, q); } catch { return null; }
       },
       hoiDaChup: (q) => (typeof opts.injected.hoiDaChup !== "function" ? Promise.resolve(null) : opts.injected.hoiDaChup(envH, q).then((ngay) => ({ ngay }))),
       chuyenChoTin: (q) =>

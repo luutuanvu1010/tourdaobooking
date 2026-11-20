@@ -1089,3 +1089,15 @@ export async function tvLyDoTraLaiGanNhat(db: D1Database, orderId: string): Prom
   const r = await db.prepare(TV_LY_DO_TRA_LAI_GAN_NHAT).bind(orderId).first<{ status: string; reason_code: string | null }>();
   return r && r.status === "TRA_LAI" ? r.reason_code : null;
 }
+
+// ---- ADR-0220 Đ5: đếm ĐƠN ĐÃ XÁC NHẬN có dịch vụ thuộc các mã ?1 với ngày khởi hành trong [?2, ?3] — chỉ con số, cho màn «Ngừng bán theo ngày» (qua gốc lắp ráp tiêm). ----
+const CONFIRMED_COUNT_BY_CODE_DATE = defineSql(
+  "orders",
+  "confirmed_count_by_code_date",
+  `SELECT COUNT(DISTINCT s.order_id) AS n FROM order_service s JOIN orders o ON o.id = s.order_id
+   WHERE o.status = 'confirmed' AND s.catalog_code IN (SELECT value FROM json_each(?1)) AND s.depart_date >= ?2 AND s.depart_date <= ?3`,
+);
+export async function demDonXacNhanTheoMaVaNgay(db: D1Database, codes: readonly string[], tuNgay: string, denNgay: string): Promise<number> {
+  if (codes.length === 0) return 0;
+  return (await db.prepare(CONFIRMED_COUNT_BY_CODE_DATE).bind(JSON.stringify(codes), tuNgay, denNgay).first<{ n: number }>())?.n ?? 0;
+}

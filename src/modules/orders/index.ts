@@ -75,7 +75,7 @@ import type { ChanKhaiLai } from "../../shared/dat-coc-kieu";
 import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, NOT_ACTING_FOR_ORG, RACED, chanGhiNhap, conThayMatToChuc, quyenGhiNhap, STALE, TRANSFER_DISABLED, TRANSFER_FEE_NOT_ALLOWED, TRAN_GIAM_GIA, catChoXetDuyet, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
 import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { thanhVienRoutes } from "./thanh-vien-route";
-import { congLuatBan } from "./cong-ban";
+import { congLuatBan, congNgungBanNgay } from "./cong-ban";
 import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu, dichLoiLoHuy, dichLoiTraSau, VE_CHUA_SOAN_DUOC, type HamNoTraSau, type HamTraSau, type NguoiGuiTraSau } from "./tra-sau-cong";
 import { thanLapDonKhiAn, thanNhapKhiAn } from "./an-thong-tin-khach";
 import { apTruongDichVu, thanKhiAnTruong, thieuBatBuoc, traDichVu, truongTaoDon } from "./an-truong-giao-dien";
@@ -1483,6 +1483,7 @@ export const ordersModule: AppModule = {
       // ADR-0146 Đ3 (cửa 1 — lập đơn): luật bán theo loại đối tác của bên đặt đã chốt; 409 không ghi dòng nào.
       const chanBanLap = await congLuatBan(env.DB, { bookerPartyId: booker.write.partyId, dong: placed.value.services });
       if (chanBanLap) return chanBanLap;
+      { const ngung = await congNgungBanNgay(env.DB, placed.value.services.map((s) => ({ catalogCode: s.catalogCode, name: s.name, departDate: s.trip.departDate }))); if (ngung) return ngung; } // ADR-0220 Đ3 (lập đơn)
       const tranLoi = await tranGiamGiaNhap(env.DB, staff, placed.value, booker.write.partyId); // Task 7: trần giảm giá theo người hưởng của đơn
       if (tranLoi) return tranLoi;
       // Phí đưa đón (Đợt C; ADR-0214: mức văn phòng chọn trong thân): tính TRƯỚC lô theo công tắc HÔM NAY, cộng vào tạm tính / tổng TRƯỚC các cổng đọc tổng (lời khai đặt cọc,
@@ -1680,6 +1681,7 @@ export const ordersModule: AppModule = {
       // ADR-0146 Đ3 (cửa 2 — lưu nháp): xét lại cả nháp lập trước luật («nháp cũ bị chặn khi lưu»).
       const chanBanLuu = await congLuatBan(env.DB, { bookerPartyId: booker.write.partyId, dong: placed.value.services });
       if (chanBanLuu) return chanBanLuu;
+      { const ngung = await congNgungBanNgay(env.DB, placed.value.services.map((s) => ({ catalogCode: s.catalogCode, name: s.name, departDate: s.trip.departDate }))); if (ngung) return ngung; } // ADR-0220 Đ3 (lưu nháp — nháp cũ trúng khoảng bị chặn)
       const tranLoi = await tranGiamGiaNhap(env.DB, staff, placed.value, booker.write.partyId); // Task 7: trần giảm giá theo người hưởng của đơn
       if (tranLoi) return tranLoi;
       // Phí đưa đón (Đợt C; ADR-0214): như lúc lập — mức theo thân (khoá `phiDon` vắng ⇒ giữ mức đã lưu của chặng cùng id; null ⇒ bỏ chọn), tính lại theo số khách mới, cộng vào
@@ -1753,6 +1755,15 @@ export const ordersModule: AppModule = {
         const sv = op.kind === "insert" ? stored.find((x) => x.id === op.serviceId) : stored.find((x) => x.legs.some((l) => l.id === op.legId));
         return sv ? [sv] : [];
       });
+      // ADR-0220 Đ3: dịch vụ ĐỔI NGÀY khởi hành (nháp lẫn đã xác nhận) vào một khoảng ngừng bán ⇒ 409, không ghi. Dịch vụ không đổi ngày không bị xét lại.
+      {
+        const doiNgay = planned.updates.flatMap((u) => {
+          const sv = stored.find((x) => x.id === u.id);
+          return sv && sv.trip.departDate !== u.trip.departDate ? [{ catalogCode: sv.catalogCode, name: sv.name, departDate: u.trip.departDate }] : [];
+        });
+        const ngung = await congNgungBanNgay(env.DB, doiNgay);
+        if (ngung) return ngung;
+      }
       const camSuaChuyen = await kiemNhomChoPhepDuaDon(env.DB, dichVuDoiChang, "sua");
       if (!camSuaChuyen.ok) return TRANSFER_DISABLED(camSuaChuyen.message);
       const moTa = describeTripUpdates(stored, planned.updates) ?? (planned.ops.length ? "cập nhật chặng đưa đón" : null);
@@ -2245,6 +2256,7 @@ export const ordersModule: AppModule = {
         // (`kiemCongXacNhan` gọi lại ở dòng đầu — cửa Gửi đơn / Còn vé dùng chung; lần gọi thứ hai chỉ là đọc.)
         const chanBanXn = await congLuatBan(env.DB, { bookerPartyId: order.bookerPartyId, dong: order.services });
         if (chanBanXn) return chanBanXn;
+        { const ngung = await congNgungBanNgay(env.DB, order.services); if (ngung) return ngung; } // ADR-0220 Đ3 (`/status` — trước «cần xác nhận», như luật bán)
         if ((await tinhCanXacNhan(env.DB, order, moc, nowMs)).can) return CAN_YEU_CAU();
         // ADR-0185 Đ1: người bấm là người lập (nháp chỉ người lập ghi được); người lập giữ quyền Đối tác đã bị Đ13.5 chặn ở trên — cổng vai trò ở đây là lưới.
         // Đợt C, Task 4: thiếu phí đưa đón ⇒ 409 `transfer_fee_missing`, đơn ở lại nháp (trang ghép §3).
@@ -2406,3 +2418,5 @@ export { cauDoiNguoiDat, donChuaXacNhanCua, donCuaNguoiDat } from "./nguoi-dat-g
 export { donDangChoXacNhan, ghiNhanCuaDon } from "./xac-nhan-repo";
 // ADR-0148 Đ1: «dòng mức / gắn này đã được chụp chưa» — CHỈ gốc lắp ráp gọi, tiêm vào `ctx.hoiDaChup` cho route của pricing (pricing không phụ thuộc orders).
 export { ngayChupGanNhat } from "./thuong-mai-repo";
+/** ADR-0220 Đ5: chỉ con số, chỉ gốc lắp ráp gọi (tiêm cho `catalog`). */
+export { demDonXacNhanTheoMaVaNgay } from "./chang-hanh-khach-repo";
