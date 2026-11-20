@@ -292,6 +292,15 @@ export interface BatBuocGioDonResponse { bat: boolean; doiDuoc: boolean }
 /** Thân `POST /api/cai-dat/bat-buoc-gio-don` (chỉ Toàn quyền). */
 export interface BatBuocGioDonRequest { bat: boolean }
 
+/**
+ * `GET`/`POST /api/cai-dat/noi-don-doi-tac` (ADR-0221 Đ1): `bat` = công tắc «Đối tác không nhập nơi đón» đang BẬT (mặc định TẮT); `apChoToi` = công tắc đang áp cho CHÍNH người gọi
+ * = `bat` VÀ người gọi giữ quyền Đối tác (`holdsPartner`, kể cả tài khoản lai — chủ chọn câu 2) — form Tạo đơn ẩn các ô của lượt đúng khi `apChoToi`, không tự suy từ mã quyền;
+ * `doiDuoc` = người gọi bật / tắt được (ô `settings.ops`, chỉ Toàn quyền).
+ */
+export interface NoiDonDoiTacResponse { bat: boolean; apChoToi: boolean; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/noi-don-doi-tac` (chỉ Toàn quyền). */
+export interface NoiDonDoiTacRequest { bat: boolean }
+
 // ---- Khung giờ đón (ADR-0134 Đ5, Đ6; module `orders`) ----
 /** `GET`/`POST /api/cai-dat/khung-gio-don`: bộ khung đang hiệu lực + câu lưu ý; `doiDuoc` = người gọi đổi được (ô `settings.ops` — chỉ Toàn quyền). */
 export interface KhungGioDonResponse { khung: KhungGio[]; luuY: string; doiDuoc: boolean }

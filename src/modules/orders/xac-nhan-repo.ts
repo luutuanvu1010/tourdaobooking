@@ -223,6 +223,29 @@ const GIO_DON_THEM = defineSql(
 );
 export const cauThemGioDon = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(GIO_DON_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
 
+// ---- Công tắc «Đối tác không nhập nơi đón» (ADR-0221 Đ1, migration 0181) — khuôn `ord_pickup_time_policy`; mặc định TẮT ------------------------------------------------
+const NOI_DON_HIEN_HANH = defineSql(
+  "orders",
+  "partner_pickup_place_policy_current",
+  `SELECT khong_nhap FROM ord_partner_pickup_place_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+/**
+ * Công tắc đang hiệu lực lúc `luc`: dòng mới nhất có `valid_from_at <= luc`. KHÔNG có dòng nào ⇒ TẮT — đường an toàn là hành vi trước ADR-0221 (lượt thiếu nơi đón bị từ chối).
+ * Đọc MỘT lần mỗi request ở lập / lưu nháp, và CHỈ khi người gọi giữ quyền Đối tác. Cổng xác nhận `pickup_place_required` KHÔNG đọc công tắc (xét theo dữ liệu lượt).
+ */
+export async function docKhongNhapNoiDon(db: D1Database, luc: string): Promise<boolean> {
+  const r = await db.prepare(NOI_DON_HIEN_HANH).bind(luc).first<{ khong_nhap: number }>();
+  return r?.khong_nhap === 1;
+}
+const NOI_DON_MOI_NHAT = defineSql("orders", "partner_pickup_place_policy_latest", `SELECT max(valid_from_at) AS moi_nhat FROM ord_partner_pickup_place_policy`);
+export const noiDonMoiNhat = async (db: D1Database): Promise<string | null> => (await db.prepare(NOI_DON_MOI_NHAT).first<{ moi_nhat: string | null }>())?.moi_nhat ?? null;
+const NOI_DON_THEM = defineSql(
+  "orders",
+  "partner_pickup_place_policy_insert",
+  `INSERT INTO ord_partner_pickup_place_policy (id, khong_nhap, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export const cauThemNoiDon = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(NOI_DON_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
+
 /**
  * Bốn trường khách đang lưu của đơn (tên, SĐT, email, ghi chú khách) — để `PUT` nháp lúc công tắc BẬT giữ nguyên chúng (ADR-0154 Đ2.3). Dữ liệu cá nhân: chỉ trả cho
  * nơi gọi đã qua cổng quyền của đơn, không bao giờ vào nhật ký. Không có đơn → `null`.

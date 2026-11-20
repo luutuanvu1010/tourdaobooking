@@ -2,7 +2,7 @@
 // Tệp riêng để `index.ts` (cửa vào module) không phình thêm và để KHÔNG import vòng: tệp này chỉ import `repository.ts`, `xac-nhan-chung.ts`, `xac-nhan-repo.ts` và các module khác QUA `index.ts` của chúng.
 // SQL ở `xac-nhan-repo.ts` (nửa nghiêm). KHÔNG tự kiểm quyền bằng vai hồ sơ; mọi cổng hỏi `can(…)` viết thẳng ô.
 import { auditStatement } from "../audit";
-import type { AnThongTinKhachResponse, BatBuocGioDonResponse, CaiDatXacNhanResponse, ChuaCoBanHangResponse, TheDonDto, DonChoXacNhanDto, DonChoXacNhanResponse, GuiDonResponse, GuiXacNhanResponse, LyDoCanXacNhan, PickupTimeRequiredBody, StaffProfile, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
+import type { AnThongTinKhachResponse, BatBuocGioDonResponse, NoiDonDoiTacResponse, CaiDatXacNhanResponse, ChuaCoBanHangResponse, TheDonDto, DonChoXacNhanDto, DonChoXacNhanResponse, GuiDonResponse, GuiXacNhanResponse, LyDoCanXacNhan, PickupTimeRequiredBody, StaffProfile, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
 import { can, holdsIntern, holdsPartner, passesAdminGate } from "../../shared/permissions";
@@ -24,7 +24,7 @@ import { tuCachCuaDon } from "../../shared/booker";
 import { duocGuiLenTourDao } from "../../shared/to-chuc";
 import { canhBaoMocCua, type XetDatGapSua } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
-import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, cauThemGioDon, docBatBuocGioDon, gioDonMoiNhat, nguoiLapGiuDoiTac, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
+import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, cauThemGioDon, cauThemNoiDon, docBatBuocGioDon, docKhongNhapNoiDon, gioDonMoiNhat, noiDonMoiNhat, nguoiLapGiuDoiTac, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
 import { legDatGapByOrder, legShortNoticeConVe, slotPolicy, tvGuiLenTheoChuoi, tvGuiLenTheoYeuCau, type DauDatGapMoi } from "./chang-hanh-khach-repo";
 import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { congHuyTraSau, VE_CHUA_SOAN_DUOC } from "./tra-sau-cong";
@@ -72,6 +72,22 @@ export function lenhGhiBatBuocGioDon(db: D1Database, v: { bat: boolean; at: stri
     cauThemGioDon(db, { id: crypto.randomUUID(), bat: v.bat, at: v.at, by: v.by }),
     auditStatement(db, { staffId: v.by, action: "pickup_time_policy_changed", at: v.at, targetType: "system", detail: v.bat ? "Bật bắt buộc giờ đón cho đơn đối tác" : "Tắt bắt buộc giờ đón cho đơn đối tác" }),
   ];
+}
+
+/**
+ * MỘT lô đổi công tắc «Đối tác không nhập nơi đón» (ADR-0221 Đ1): dòng chính sách mới (chỉ-thêm, `valid_from_at = at`) rồi nhật ký `pickup_place_policy_changed` không gắn đơn.
+ * Khuôn `lenhGhiBatBuocGioDon`: thua mốc (UNIQUE) thì cả lô lui, không để lại nhật ký.
+ */
+export function lenhGhiKhongNhapNoiDon(db: D1Database, v: { bat: boolean; at: string; by: string }): D1PreparedStatement[] {
+  return [
+    cauThemNoiDon(db, { id: crypto.randomUUID(), bat: v.bat, at: v.at, by: v.by }),
+    auditStatement(db, { staffId: v.by, action: "pickup_place_policy_changed", at: v.at, targetType: "system", detail: v.bat ? "Bật đối tác không nhập nơi đón" : "Tắt đối tác không nhập nơi đón" }),
+  ];
+}
+/** Trạng thái công tắc theo NGƯỜI GỌI: `apChoToi` = bật VÀ giữ quyền Đối tác (kể cả tài khoản lai — ADR-0221 Đ1, chủ chọn câu 2). */
+async function docNoiDonDoiTac(db: D1Database, staff: StaffProfile, luc: string): Promise<NoiDonDoiTacResponse> {
+  const bat = await docKhongNhapNoiDon(db, luc);
+  return { bat, apChoToi: bat && holdsPartner(staff), doiDuoc: can(staff, "settings.ops") };
 }
 
 /**
@@ -722,5 +738,29 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       }
     }
     return json({ bat: await docBatBuocGioDon(env.DB, new Date().toISOString()), doiDuoc: true } satisfies BatBuocGioDonResponse);
+  }),
+
+  // CÔNG TẮC «ĐỐI TÁC KHÔNG NHẬP NƠI ĐÓN» (ADR-0221 Đ1): khuôn đúng công tắc giờ đón ngay trên. ĐỌC: cổng `orders`, hỏi `order.create` — form Tạo đơn hỏi công tắc có áp cho người gọi
+  // không (`apChoToi`); GHI: cổng `admin`, thân hỏi `settings.ops` (chỉ Toàn quyền). MỘT lô (`lenhGhiKhongNhapNoiDon`): dòng mới chỉ-thêm + nhật ký; va UNIQUE ⇒ 409 `stale`, cả lô lui;
+  // gửi đúng trạng thái đang có ⇒ 200, không ghi. Đổi công tắc không chạm lượt nào đang lưu: lượt mang chữ tạm vẫn bị cổng `pickup_place_required` chặn lúc xác nhận dù công tắc đã Tắt.
+  route("GET", "/api/cai-dat/noi-don-doi-tac", "orders", async ({ env, staff }) => {
+    if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không xem được cài đặt này.");
+    return json((await docNoiDonDoiTac(env.DB, staff, new Date().toISOString())) satisfies NoiDonDoiTacResponse);
+  }),
+  route("POST", "/api/cai-dat/noi-don-doi-tac", "admin", async ({ env, request, staff }) => {
+    if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi cài đặt đối tác không nhập nơi đón.");
+    const b = (await readJson(request)) as Record<string, unknown> | null;
+    if (!b || typeof b !== "object" || typeof b.bat !== "boolean") return error(400, "invalid_input", "Chọn bật hoặc tắt.");
+    const now = new Date();
+    if ((await docKhongNhapNoiDon(env.DB, now.toISOString())) !== b.bat) {
+      const at = lanSau(await noiDonMoiNhat(env.DB), now);
+      try {
+        await env.DB.batch(lenhGhiKhongNhapNoiDon(env.DB, { bat: b.bat, at, by: staff.id }));
+      } catch (e) {
+        if (/UNIQUE constraint failed: ord_partner_pickup_place_policy/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Cài đặt vừa được đổi — tải lại rồi thử lại.");
+        throw e;
+      }
+    }
+    return json((await docNoiDonDoiTac(env.DB, staff, new Date().toISOString())) satisfies NoiDonDoiTacResponse);
   }),
 ];
