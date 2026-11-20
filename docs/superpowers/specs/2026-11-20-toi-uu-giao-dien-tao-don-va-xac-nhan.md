@@ -1,6 +1,6 @@
 # Đặc tả ngắn: tối ưu giao diện Tạo đơn (đối tác) và mẫu Xác nhận đơn, theo hướng không trùng lặp trường
 
-> Ngày 2026-11-20. Trạng thái: **chờ chủ duyệt**. Soạn theo `MAU-DAC-TA-NGAN.md`. Chưa sửa mã sản phẩm cho việc này.
+> Ngày 2026-11-20. Trạng thái: **chủ duyệt 2026-11-20** trong chat, nguyên văn «đồng ý cả ba, dựng ảnh đề xuất cho tôi xem»: ba câu mục 7 theo khuyến nghị. Bước kế: ảnh «hiện tại / đề xuất» để chủ duyệt trước khi sửa mã. Soạn theo `MAU-DAC-TA-NGAN.md`. Chưa sửa mã sản phẩm cho việc này.
 > **Đây không phải lộ trình mới.** Nó là đợt «Lập đơn» của bước 3 trong kế hoạch đã chốt `docs/superpowers/plans/2026-11-13-kiem-giao-dien-toan-dien-ke-hoach.md` (theo họ màn, ảnh thật trước, chủ duyệt, rồi thi công). Tiêu chí đo dùng lại T1–T18 của kế hoạch đó.
 > Bằng chứng: ảnh thật chụp 20/11 trên bản thử (D1 tạm) ở 390 và 1280, tài khoản Đối tác «Đại Lý Biển Xanh» và Bán hàng; mẫu xác nhận dựng bằng `mau-hd-02-dt.mjs`. Ảnh chỉ nằm trên máy.
 
