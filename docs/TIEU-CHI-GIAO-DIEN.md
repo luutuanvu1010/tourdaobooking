@@ -121,6 +121,8 @@ Mười tiêu chí. Mỗi tiêu chí chấm trên **ảnh màn hình thật**, c
 - **Nặng:** thấy ngay; làm người dùng chậm lại, nhầm, phải gõ lại, hoặc mất tin vào Nền tảng.
 - **Nhỏ:** thẩm mỹ, không cản việc. Gộp lại, không cần sửa ngay.
 
+Mức mặc định ghi ở từng tiêu chí (cả phần máy đo lẫn phần suy xét). Người chấm được nâng hay hạ một bậc so với mặc định khi nói rõ lý do trong báo cáo.
+
 ## 4. Điều tài liệu này không chấm
 
 - Gu màu, phong cách, «dấu ấn riêng».
