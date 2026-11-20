@@ -1,0 +1,32 @@
+# Máy đo và bộ ví dụ thử giao diện
+
+Tiêu chí chấm nằm ở `docs/TIEU-CHI-GIAO-DIEN.md` (một nơi). Mọi lệnh chạy từ GỐC kho. Ảnh và số đo luôn ghi ra thư mục tạm ngoài kho (kho công khai).
+
+## Đo một màn
+```
+node scripts/giao-dien/do-man.mjs --o SALES:/order-form,PARTNER:/order-form [--kho 390,1280] [--ra <thư mục ngoài kho>]
+```
+Lệnh dựng bản thử tạm (D1 tạm, `wrangler dev`, Chrome ẩn), gieo vài đơn, chụp từng màn cuộn (gối nhau 40 %), chấm 12 tiêu chí máy đo.
+Kết quả: `anh/`, `so-do.json`, `tom-tat.md` (dòng đầu là kết luận).
+
+## Ba mã thoát
+- 0: mọi tiêu chí đạt.
+- 1: có tiêu chí không đạt.
+- 2: không chạy được hoặc ĐO THIẾU (thiếu axe, ô hỏng, `--khong-axe`). Không bao giờ coi là đạt.
+
+Thiếu axe: chạy `npm ci`, hoặc đặt `AXE_JS=<đường dẫn axe.min.js>`.
+
+## Bộ ví dụ thử (20 ca, `vi-du/ca.json`)
+1. Chụp: `node scripts/giao-dien/chay-vi-du.mjs --ra <thư mục ngoài kho>` ⇒ `bang-chung/man-NN/` (giao người chấm) và `khoa/khoa.json` (giữ lại, KHÔNG giao).
+2. Giao `bang-chung/man-NN/` cho trợ lý đánh giá, báo cáo lưu thành `<thư mục báo cáo>/man-NN.md`.
+3. Chấm: `node scripts/giao-dien/cham-vi-du.mjs --khoa <khoa.json> --bao-cao <thư mục báo cáo>` ⇒ `ket-qua.md`.
+`--tiem <tệp.js>` cấy lỗi lúc đo; `--an-tiem` giấu việc cấy khỏi kết quả (chỉ cho bộ ví dụ thử).
+
+## Bộ quyền dùng được
+Cả 11 bộ tạo được tài khoản thử và đăng nhập được (kiểm 20/11): SALES, INTERN, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN, DRIVER, DRIVER_PARTNER, HR, SALES_MANAGER (cộng KHACH, chưa đăng nhập).
+Mới đo trang thật với SALES, PARTNER, ACCOUNTING; bộ khác mở trang nào thì xem kết quả ô đó (có thể ra 403, đó là kết quả đo).
+
+## Giới hạn
+- Chỉ chụp màn ngay sau khi tải (chưa bấm gì); hai khổ 390 và 1280.
+- Dữ liệu thử chỉ có họ màn Lập đơn, Đơn hàng, Chi tiết đơn (đơn của Bán hàng và một đơn của Đối tác).
+- Chưa đo tốc độ, cỡ chữ lớn, iPad, iPhone thật.
