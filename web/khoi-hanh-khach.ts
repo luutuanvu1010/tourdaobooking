@@ -17,6 +17,8 @@ export interface KhoiHanhKhachOptions {
   newKey: () => string;
   onChange: (rows: DongKhach[]) => void;
   ma: string;
+  /** Đặc tả 2026-11-20 (không gõ trùng): tên khách đi tour của form — có tên mà chưa dòng nào mang tên đó thì hiện nút thêm sẵn một dòng với tên ấy (người lập chỉ còn điền năm sinh). */
+  tenGoiY?: () => string;
 }
 
 export interface KhoiHanhKhach {
@@ -114,6 +116,14 @@ export function taoKhoiHanhKhach(o: KhoiHanhKhachOptions): KhoiHanhKhach {
       doi([...rows, r], true);
       root.querySelector<HTMLElement>(`[data-o="${CSS.escape(`${r.key}:ten`)}"]`)?.focus();
     });
+    const goiY = (o.tenGoiY?.() ?? "").trim();
+    const chuaCo = goiY !== "" && !rows.some((r) => r.ten.trim().toLowerCase() === goiY.toLowerCase());
+    const themGoiY = chuaCo ? (h("button", { type: "button", class: "pill-btn", "data-action": "them-khach-di-tour", "aria-label": `Điền tên khách đi tour: ${goiY}` }, "Điền tên khách đi tour") as HTMLButtonElement) : null;
+    themGoiY?.addEventListener("click", () => {
+      const r = { ...dongTrong(o.newKey()), ten: goiY };
+      doi([...rows, r], true);
+      root.querySelector<HTMLElement>(`[data-o="${CSS.escape(`${r.key}:nam`)}"]`)?.focus();
+    });
     const ds = rows.map((r, i) => dongEl(r, i, dangBang));
     replaceChildren(
       root,
@@ -127,7 +137,7 @@ export function taoKhoiHanhKhach(o: KhoiHanhKhachOptions): KhoiHanhKhach {
         : rows.length > 0
           ? h("div", { class: "hk-ds" }, ...ds)
           : null,
-      h("div", { class: "dd-nut" }, them),
+      h("div", { class: "dd-nut" }, themGoiY, them),
     );
     capNhat();
     if (focused) root.querySelector<HTMLElement>(`[data-o="${CSS.escape(focused)}"]`)?.focus();

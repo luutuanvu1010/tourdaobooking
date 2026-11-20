@@ -12,8 +12,8 @@ test("formGonDoiTac: mọi tài khoản có quyền Đối tác (kể cả lai B
 
 test("chữ của form gọn đúng từng ký tự theo bản thiết kế; trần ghi chú bằng trần của máy chủ (validateTrip: 1000)", () => {
   assert.equal(GOI_Y_GIAM_GIA_DOI_TAC, "Giảm giá cho khách");
-  assert.equal(NHAN_GHI_CHU_DOI_TAC, "Ghi chú");
-  assert.equal(GOI_Y_GHI_CHU_DOI_TAC, "Thời gian đón");
+  assert.equal(NHAN_GHI_CHU_DOI_TAC, "Ghi chú đưa đón");
+  assert.equal(GOI_Y_GHI_CHU_DOI_TAC, "Ví dụ: đón lúc 7 giờ 30 tại sảnh");
   assert.equal(MAX_GHI_CHU_DICH_VU, 1000);
 });
 

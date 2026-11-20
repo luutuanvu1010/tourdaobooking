@@ -5,8 +5,14 @@ import { BUOC_TAO_DON, buocDangXem, buocXong, type DauVaoBuoc } from "./buoc-tao
 
 const DU: DauVaoBuoc = { coNgayDi: true, ten: "Lan", sdt: "0912345678", soDichVu: 1, coLoiDichVu: false, coLoiTien: false, daChonNguoi: false };
 
-test("bốn bước: thứ tự và chữ ngắn đúng ảnh phác", () => {
-  assert.deepEqual(BUOC_TAO_DON.map((b) => [b.ma, b.nhan]), [["khach", "Khách"], ["dich-vu", "Dịch vụ"], ["thanh-toan", "Thanh toán"], ["phu-trach", "Phụ trách"]]);
+test("các bước: thứ tự và chữ ngắn đúng ảnh chủ duyệt (bốn bước 14/10; thêm «Hành khách» theo ảnh đề xuất chủ duyệt 20/11)", () => {
+  assert.deepEqual(BUOC_TAO_DON.map((b) => [b.ma, b.nhan]), [["khach", "Khách"], ["dich-vu", "Dịch vụ"], ["hanh-khach", "Hành khách"], ["thanh-toan", "Thanh toán"], ["phu-trach", "Phụ trách"]]);
+});
+
+test("buocXong: Hành khách chỉ ✓ khi có dịch vụ và đủ tên cả đoàn; vắng dữ kiện thì chưa đủ", () => {
+  assert.equal(buocXong(DU)["hanh-khach"], false);
+  assert.equal(buocXong({ ...DU, duTenKhach: true })["hanh-khach"], true);
+  assert.equal(buocXong({ ...DU, duTenKhach: true, soDichVu: 0 })["hanh-khach"], false);
 });
 
 test("buocXong: Khách cần ngày khởi hành + tên + SĐT (khoảng trắng không tính)", () => {

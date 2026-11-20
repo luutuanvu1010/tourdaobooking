@@ -12,7 +12,7 @@ import { boChangKhiTatDuaDon, cauBoChangNhomTat, chonDonTheoNhom, diemChonNhanh,
 import { cauDoiNgay, changTaoSan, coOSoHieu, doiNgayDi, giuDatGapNhap, legsGuiFormGon, type ChangNhap } from "../src/shared/chang-form";
 import { canHienLaiKhoiKhach } from "../src/shared/an-thong-tin-khach";
 import type { MauChang } from "../src/shared/chang-mac-dinh";
-import { dongTuDto, loiDanhSachKhach, passengersNhap, type DongKhach } from "../src/shared/hanh-khach-form";
+import { dongDu, dongTuDto, loiDanhSachKhach, passengersNhap, type DongKhach } from "../src/shared/hanh-khach-form";
 import { soKhachDoan } from "../src/shared/hanh-khach";
 import { banHangSuaDuoc, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { can as canNv } from "../src/shared/permissions";
@@ -124,6 +124,10 @@ byId("canh-bao-slot").append(canhBao.root);
 const khachThem = byId("khach-them");
 const gapKhach = taoKhoiGap({ ma: "khach", nhan: "Email, ghi chú", than: khachThem });
 khachThem.before(gapKhach.nut);
+// Đặc tả 2026-11-20: «Ghi chú thanh toán» ít dùng ⇒ gập sau nút như «Email, ghi chú»; có giá trị / bắt buộc / lỗi thì tự mở (luật an toàn của khối gập).
+const oGhiChuTT = field("paymentNote").closest("label") as HTMLElement;
+const gapGhiChuTT = taoKhoiGap({ ma: "thanh-toan-ghi-chu", nhan: "Ghi chú thanh toán", than: oGhiChuTT });
+oGhiChuTT.before(gapGhiChuTT.nut);
 const thanhBuoc = taoThanhBuoc({ phanTu: (ma) => document.querySelector<HTMLElement>(`[data-buoc-khoi="${ma}"]`) });
 thanhBuoc.an("phu-trach", true); // bật lại khi biết người lập chọn được người phụ trách (`canPickHandler`)
 byId("buoc-slot").replaceWith(thanhBuoc.root); // KHÔNG bọc thêm thẻ: thanh dính chỉ dính trong khung cha của nó (.form-main: dưới 960px là `display: contents` nên khung dính là cả biểu mẫu)
@@ -489,10 +493,15 @@ function capNhatBuoc(): void {
   thanhBuoc.datXong(
     buocXong({
       coNgayDi: orderDate !== "", ten: field("customerName").value, sdt: field("customerPhone").value,
-      soDichVu: ds.length, coLoiDichVu: ds.some((d) => draftIssues(d).length > 0),
+      // Nút chính là «Gửi đơn» (Đối tác lập mới) thì thiếu Đón / Không đón cũng chặn — dấu «đủ» của bước Dịch vụ phải nói đúng điều nút sẽ làm (đặc tả 2026-11-20).
+      soDichVu: ds.length,
+      coLoiDichVu: ds.some((d) => draftIssues(d).length > 0)
+        || (!editId && guiDonKhiLuu && dichVuThieuChonDon(entries.map((e) => ({ choPhep: coDuaDon(e.draft), pickupChoice: e.draft.pickupChoice, soChang: e.draft.legs.length }))).length > 0),
       coLoiTien: loiTienForm().cau.length > 0, daChonNguoi: handlerPick !== null, anKhach,
+      duTenKhach: hk !== null && soKhachForm() > 0 && hk.rows().filter((r) => dongDu(r, today)).length >= soKhachForm(),
     }),
   );
+  thanhBuoc.an("hanh-khach", hk === null);
 }
 for (const id of ["customerName", "customerPhone"]) {
   field(id).addEventListener("input", () => {
@@ -500,6 +509,8 @@ for (const id of ["customerName", "customerPhone"]) {
     capNhatBuoc();
   });
 }
+// Rời ô tên khách: khối Hành khách vẽ lại để nút «Thêm <tên khách đi tour>» theo đúng tên vừa gõ (không vẽ lại lúc đang gõ).
+field("customerName").addEventListener("change", () => hk?.refresh(true));
 
 // ---- thanh dính cuối trang: dòng tổng mở / đóng bảng chi tiết tiền (Việc 8, thiết kế lại 18/10; dưới 960px thay khối Tóm tắt) ----
 const nutChiTiet = byId<HTMLButtonElement>("sum-mo"); // type="button": nằm trong <form>, không được gửi đơn
@@ -538,6 +549,8 @@ function recompute(): void {
   byId("ct-tam-tinh").textContent = tamTinh;
   byId("ct-giam-gia").textContent = giamGia;
   byId("ct-tong").textContent = tong;
+  // Đặc tả 2026-11-20 (không trùng lặp): không giảm giá thì «Tạm tính» = «Tổng cộng» và «Giảm giá» = 0 ⇒ ẩn hai dòng đó ở cả Tóm tắt lẫn bảng chi tiết.
+  for (const id of ["sum-subtotal", "sum-discount", "ct-tam-tinh", "ct-giam-gia"]) byId(id).parentElement!.hidden = s.discount === 0;
   // Phí đưa đón Đợt C: trình duyệt KHÔNG tính phí (Hiến chương 5.4) — có lượt đưa đón thì chỉ nói «Phí đưa đón: Tính khi lưu»; lưu xong trang đơn hiện số máy chủ tính (đơn nháp ghi «dự kiến»).
   const coLuot = ds.some((d) => d.legs.length > 0);
   for (const dong of document.querySelectorAll<HTMLElement>("[data-phi-don]")) dong.hidden = !coLuot;
@@ -549,6 +562,9 @@ function recompute(): void {
     byId("ct-dat-coc").textContent = vnd(coc);
     byId("sum-con-tra").textContent = conTra;
     byId("ct-con-tra").textContent = conTra;
+    // Chưa khai đặt cọc thì «Khách còn phải trả» = «Tổng cộng» ⇒ ẩn hai dòng đặt cọc; có đặt cọc thì số nổi bật DUY NHẤT là «Khách còn phải trả».
+    for (const dong of document.querySelectorAll<HTMLElement>("[data-dat-coc]")) dong.hidden = coc === 0;
+    for (const id of ["sum-total", "ct-tong"]) byId(id).parentElement!.classList.toggle("strong", coc === 0);
   }
   // Bản 1.39: đếm dịch vụ ở tiêu đề khối, Tóm tắt và thanh dính đáy (một dòng "N dịch vụ · Tổng …"; ADR-0135: form không còn nhận tiền trả trước —
   // không tự trừ "còn lại" ở trình duyệt, ADR-0026 đ9).
@@ -974,6 +990,7 @@ function napO(o: GiaTriO, giua: () => void): void {
   giua();
   field("customerEmail").value = o.customerEmail ?? "";
   field("customerNote").value = o.customerNote ?? "";
+  if (field("paymentNote").value.trim() !== "") gapGhiChuTT.mo();
   if (field("customerEmail").value !== "" || field("customerNote").value.trim() !== "") gapKhach.mo(); // nháp đã có email / ghi chú: khối gập tự mở — không giấu giá trị đang có (ô bị chính sách ẩn tự ẩn; khối trống vô hại) // nháp đã có email / ghi chú: khối gập tự mở — không giấu giá trị đang có
   (field("discount") as HTMLInputElement).value = o.discount ? grouped(o.discount) : "";
   field("paymentNote").value = o.paymentNote ?? "";
@@ -1123,7 +1140,7 @@ const soKhachForm = (): number => soKhachDoan(drafts().map((d) => (d.kind === "c
 /** Dựng khối "Hành khách" (M2) ở `#hk-card`; máy tính (≥ 960px) dạng bảng trải hết bề ngang dưới hàng "thẻ dịch vụ | Tóm tắt". */
 function dungKhoiKhach(rows: DongKhach[]): void {
   if (anTruong("passengers")) return; // ADR-0194: chính sách ẩn khối hành khách (không dựng; không gửi khoá `passengers` ⇒ máy chủ giữ danh sách đang lưu)
-  hk = taoKhoiHanhKhach({ rows, che: "form", soKhach: soKhachForm, today, bang: () => wideQuery.matches, newKey, ma: "hk", onChange: () => recompute() });
+  hk = taoKhoiHanhKhach({ rows, che: "form", soKhach: soKhachForm, today, bang: () => wideQuery.matches, newKey, ma: "hk", onChange: () => recompute(), tenGoiY: () => (anKhach ? "" : field("customerName").value) });
   replaceChildren(hkCard, h("h2", null, "Hành khách"), hk.root);
   hkCard.hidden = false;
   datViTriKhoiKhach();
@@ -1137,8 +1154,8 @@ wideQuery.addEventListener("change", () => {
 
 /** ≥ 960px: khối trải ngang SAU lưới 2 cột (cột Tóm tắt dính không đè lên); dưới 960px: ngay sau thẻ "Dịch vụ" (bản vẽ điện thoại M2). Chỉ DỜI nút, không dựng lại. */
 function datViTriKhoiKhach(): void {
-  if (wideQuery.matches) formEl.querySelector(".form-cols")?.after(hkCard);
-  else servicesEl.closest("section")?.after(hkCard);
+  // Đặc tả 2026-11-20: MỘT thứ tự khối ở mọi khổ — Hành khách ngay sau Dịch vụ, trước Thanh toán (trước đây ở máy tính khối nằm dưới cả hai cột, sau Thanh toán).
+  servicesEl.closest("section")?.after(hkCard);
 }
 
 // ---- ẩn thông tin khách khi đối tác đặt vé (ADR-0154 Đ2.2, Đ2.3) ----
@@ -1165,7 +1182,9 @@ function apChinhSach(): void {
   anPhanTu(anTruong("customerEmail"), o("customerEmail"));
   anPhanTu(anTruong("customerNote"), o("customerNote"));
   anPhanTu(anTruong("customerEmail") && anTruong("customerNote"), gapKhach.nut);
-  anPhanTu(anTruong("paymentNote"), o("paymentNote"));
+  anPhanTu(anTruong("paymentNote"), gapGhiChuTT.nut);
+  if (anTruong("paymentNote")) gapGhiChuTT.dong(); // ô bị chính sách ẩn: gập lại (giá trị vẫn gửi như cũ)
+  else if (batBuocTruong("paymentNote")) gapGhiChuTT.mo();
   if (anTruong("passengers")) {
     hk = null;
     hkCard.hidden = true;
@@ -1249,7 +1268,7 @@ guiDonKhiLuu = holdsPartner(staff);
 coODatCoc = holdsPartner(staff);
 byId("dat-coc-o").hidden = !coODatCoc;
 byId("dat-coc-goi-y").hidden = !coODatCoc;
-for (const dong of document.querySelectorAll<HTMLElement>("[data-dat-coc]")) dong.hidden = !coODatCoc;
+// Hai dòng đặt cọc của Tóm tắt do `recompute()` hiện khi có số khai (đặc tả 2026-11-20); ở đây giữ ẩn.
 ganViTriThongBao();
 picker.setTaiKhoan(staff.id); // ADR-0058 Đ8: nhóm đã chọn nhớ THEO TÀI KHOẢN trên máy — bộ chọn dựng trước khi biết tài khoản, trước dòng này không đọc / ghi bộ nhớ
 retailOnly = chiGiaDanhMuc(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
@@ -1530,7 +1549,7 @@ mocPhut = await layMoc;
   const datHint = (cau: string): HTMLElement => {
     const hint = h("p", { class: "muted", id: "discount-hint" }, cau);
     discountEl.setAttribute("aria-describedby", hint.id);
-    (discountEl.closest(".grid") ?? discountEl).after(hint);
+    (discountEl.closest("label") ?? discountEl).after(hint); // đặc tả 2026-11-20: câu giải thích nằm NGAY DƯỚI ô của nó (hàng nay hai cột, đủ rộng — trước là ba cột nên phải đặt dưới cả hàng)
     return hint;
   };
   let hint: HTMLElement | null = null;

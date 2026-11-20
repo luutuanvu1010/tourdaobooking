@@ -53,11 +53,11 @@
           <p id="tra-sau-cau" class="muted" role="status"></p>
         </fieldset>
         <p id="tra-sau-bao" class="alert" role="status" hidden></p>
-        <div class="grid three">
-          <label class="o-noi"><span class="o-noi-khung"><input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="o-noi-chu">Giảm giá (₫)</span></span></label>
-          <label id="dat-coc-o" class="o-noi" hidden><span class="o-noi-khung"><input id="declaredDeposit" type="text" inputmode="numeric" autocomplete="off" placeholder="0" aria-describedby="dat-coc-goi-y"><span class="o-noi-chu">Khách đặt cọc cho đối tác (₫)</span></span></label>
+        <div class="grid two">
+          <div class="o-kem-goi-y"><label class="o-noi"><span class="o-noi-khung"><input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"><span class="o-noi-chu">Giảm giá (₫)</span></span></label></div>
+          <div class="o-kem-goi-y"><label id="dat-coc-o" class="o-noi" hidden><span class="o-noi-khung"><input id="declaredDeposit" type="text" inputmode="numeric" autocomplete="off" placeholder="0" aria-describedby="dat-coc-goi-y"><span class="o-noi-chu">Khách đặt cọc cho đối tác (₫)</span></span></label>
+          <p id="dat-coc-goi-y" class="muted" hidden>Số tiền bạn đã nhận của khách. Nền tảng chỉ ghi thành khoản thu khi đơn được xác nhận; bạn nộp số này về công ty sau.</p></div>
         </div>
-        <p id="dat-coc-goi-y" class="muted" hidden>Số tiền bạn đã nhận của khách. Nền tảng chỉ ghi thành khoản thu khi đơn được xác nhận; bạn nộp số này về công ty sau.</p>
         <p id="dat-coc-tra-sau" class="muted" hidden></p>
         <label class="pay-note o-noi"><span class="o-noi-khung"><textarea id="paymentNote" maxlength="1000" placeholder="vd: nội dung chuyển khoản"></textarea><span class="o-noi-chu">Ghi chú thanh toán</span></span></label>
       </section>
@@ -98,7 +98,7 @@
       </div>
     </div>
     </div>
-    <section class="card hk-card" id="hk-card" aria-label="Hành khách" hidden></section>
+    <section class="card hk-card buoc" id="hk-card" data-buoc-khoi="hanh-khach" tabindex="-1" aria-label="Hành khách" hidden></section>
   </form>
 </main>
 <script type="module" src="/js/order-form.js"></script>

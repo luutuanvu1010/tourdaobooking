@@ -1,12 +1,13 @@
 // Bốn bước của màn Tạo đơn (bản "bốn bước", 14/10/2026; đặc tả docs/superpowers/specs/2026-10-14-tao-don-bon-buoc/README.md): luật THUẦN của thanh tiến độ dính — bước nào đã đủ thông tin (dấu ✓)
 // và bước nào đang được xem theo vị trí cuộn. Không DOM, không I/O; `web/thanh-buoc.ts` chỉ vẽ và nối.
 
-export type MaBuoc = "khach" | "dich-vu" | "thanh-toan" | "phu-trach";
+export type MaBuoc = "khach" | "dich-vu" | "hanh-khach" | "thanh-toan" | "phu-trach";
 
 /** Thứ tự và chữ ngắn của bốn bước (đúng như ảnh phác chủ duyệt). */
 export const BUOC_TAO_DON: readonly { ma: MaBuoc; nhan: string }[] = [
   { ma: "khach", nhan: "Khách" },
   { ma: "dich-vu", nhan: "Dịch vụ" },
+  { ma: "hanh-khach", nhan: "Hành khách" }, // đặc tả 2026-11-20: thanh bước khớp các khối của trang; bước ẩn khi khối Hành khách không dựng
   { ma: "thanh-toan", nhan: "Thanh toán" },
   { ma: "phu-trach", nhan: "Phụ trách" },
 ];
@@ -24,6 +25,8 @@ export interface DauVaoBuoc {
   coLoiTien: boolean;
   /** Đã chọn người phụ trách. */
   daChonNguoi: boolean;
+  /** Khối Hành khách: mọi khách của đoàn đã có tên và năm sinh hợp lệ (dòng đếm «N/N»). Vắng = chưa đủ. */
+  duTenKhach?: boolean;
   /** Khối khách đang ẨN (đối tác, công tắc «Ẩn thông tin khách» BẬT — ADR-0154 Đ2.2): bước Khách chỉ cần ngày khởi hành. Vắng = như cũ. */
   anKhach?: boolean;
 }
@@ -31,7 +34,8 @@ export interface DauVaoBuoc {
 /**
  * Bước nào "đủ thông tin" (dấu ✓).
  * - Khách: có ngày khởi hành, tên và số điện thoại (hai ô bắt buộc của form; email, ghi chú không bắt buộc); khối khách ẩn (`anKhach`) thì chỉ cần ngày khởi hành.
- * - Dịch vụ: có ít nhất một dịch vụ và không dịch vụ nào còn lỗi chặn Lưu.
+ * - Dịch vụ: có ít nhất một dịch vụ và không dịch vụ nào còn lỗi chặn Lưu (nơi gọi tính cả «chưa chọn Đón hay Không đón» khi nút chính là Gửi đơn).
+ * - Hành khách: đủ tên cho cả đoàn (không bắt buộc để lưu; chỉ là dấu «đủ»).
  * - Thanh toán: bước này không có ô bắt buộc nên ✓ khi đã có dịch vụ và số tiền không lệch luật.
  * - Phụ trách: đã chọn người (không chọn vẫn lưu được — đơn "Chờ nhận").
  */
@@ -40,6 +44,7 @@ export function buocXong(v: DauVaoBuoc): Record<MaBuoc, boolean> {
   return {
     "khach": v.coNgayDi && (v.anKhach === true || (v.ten.trim() !== "" && v.sdt.trim() !== "")),
     "dich-vu": dichVuOk,
+    "hanh-khach": v.soDichVu > 0 && v.duTenKhach === true,
     "thanh-toan": v.soDichVu > 0 && !v.coLoiTien,
     "phu-trach": v.daChonNguoi,
   };

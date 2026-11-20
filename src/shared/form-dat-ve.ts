@@ -6,9 +6,9 @@ import { holdsPartner, type PermissionHolder } from "./permissions.ts";
 /** Chữ mờ trong ô giảm giá của form gọn (thay nhãn nổi «Giảm giá (₫)»). */
 export const GOI_Y_GIAM_GIA_DOI_TAC = "Giảm giá cho khách";
 /** Nhãn của dòng ghi chú gọn (nhãn nổi, luôn ở vị trí thu nhỏ). */
-export const NHAN_GHI_CHU_DOI_TAC = "Ghi chú";
+export const NHAN_GHI_CHU_DOI_TAC = "Ghi chú đưa đón"; // đặc tả 2026-11-20: nhãn nói đúng nội dung ô (trước là «Ghi chú» kèm gợi ý «Thời gian đón»)
 /** Chữ mờ trong dòng ghi chú gọn: nhắc đối tác gõ giờ đón vào đây (đặc tả QĐ-B1: đối tác không nhập giờ đón riêng, dòng này ghi vào ghi chú dịch vụ `trip.note`). */
-export const GOI_Y_GHI_CHU_DOI_TAC = "Thời gian đón";
+export const GOI_Y_GHI_CHU_DOI_TAC = "Ví dụ: đón lúc 7 giờ 30 tại sảnh";
 /** Trần độ dài ghi chú dịch vụ — CÙNG trần với `validateTrip` của máy chủ (src/modules/orders/service-rules.ts: `cleanText(s.note, …, 1000, true)`). */
 export const MAX_GHI_CHU_DICH_VU = 1000;
 
