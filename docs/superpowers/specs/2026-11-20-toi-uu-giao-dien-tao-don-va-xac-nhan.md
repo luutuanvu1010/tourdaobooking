@@ -82,3 +82,5 @@ Chủ duyệt ảnh đề xuất trong chat 20/11 bằng nút trả lời «Duy�
 - Mẫu xác nhận nội bộ: bài kiểm cũ ghim «giảm giá 0 in '0 ₫'» và hai số nổi bật; nay theo luật mẫu HD-02-DT (dòng bằng 0 thì bỏ, một số nổi bật).
 
 **Chưa làm của đặc tả:** C2 (giảm số hình nút), nhóm D (bảng Dịch vụ & giá), B3 (khối «Người phụ trách» với đối tác: chưa tra xong, để nguyên).
+
+**Kịch bản Chrome sau khi sửa (chạy 20/11, KHÔNG có `AXE_JS` nên chưa kiểm tương phản):** `a2-smoke-form.mjs` xanh; `dat-coc-smoke.mjs` xanh; `doi-tac-lap-don-smoke.mjs` 13 bước xanh, 2 bước đỏ (bước 6, 7: trang ĐƠN đã xác nhận còn khối «Người phụ trách» với Đối tác / Thực tập — trang đơn không nằm trong đợt sửa này; chưa đối chiếu với bản chính để biết đỏ từ bao giờ); `dua-don-smoke.mjs` không khởi động được (gieo tài khoản Đối tác thiếu `vai`, lỗi có từ ADR-0185) nên bước 3 của nó (khối Hành khách dạng bảng trải ngang ở 1040) CHƯA được sửa theo bố cục mới. Chưa chạy: `diem-dung-bi-che.mjs`, `khong-cuon-truoc-smoke.mjs`, `thanh-dinh-smoke.mjs`, `v1-xac-nhan-png.mjs`, `chip-nhom-smoke.mjs`, `danh-muc-lap-don-smoke.mjs`.
