@@ -4020,6 +4020,8 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 /* Quản lý tài khoản (máy tính): thêm nút "Tắt bảo mật hai lớp" làm hàng nút dài hơn bảng — cho xuống dòng giữa các nút (mỗi nút vẫn một dòng), như .phien-bang. */
 #list .row-actions { white-space: normal; }
 #list .row-actions .btn-link { white-space: nowrap; }
+/* ADR-0220: nút dài nhất của cột thao tác được xuống dòng để cột tên dịch vụ không bị bóp (bảng Dịch vụ & giá đã chật: 10 cột + 5 nút mỗi dòng — việc xếp lại bảng thuộc đợt giao diện họ màn Danh mục). */
+#list .row-actions .btn-link[data-action="ngung-ban-ngay"] { white-space: normal; text-align: right; }
 .login-mfa-card { width: 100%; margin: var(--s5) 0 0; }
 .login-mfa h2 { margin: 0 0 var(--s2); }
 .login-mfa label.check { margin: var(--s2) 0 var(--s3); }

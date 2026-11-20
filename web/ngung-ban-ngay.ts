@@ -5,6 +5,7 @@
 // Giao diện chỉ ẩn / hiện theo ô `catalog.hidden.write`; máy chủ kiểm lại. Khoảng đã đặt không sửa được: kết thúc rồi đặt khoảng mới.
 import { ApiError, api, type Api } from "./api";
 import { h } from "./dom";
+import { icon } from "./icons";
 import { moBangTruot } from "./bang-truot";
 import { hienBaoNgan } from "./toast";
 import { ngayDayDu, ngayNgan, vnToday } from "../src/shared/vn-date";
@@ -21,14 +22,14 @@ export interface NgungBanNgay {
 }
 
 const lyDo = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ. Hãy thử lại.");
-const khoangChu = (k: { tuNgay: string; denNgay: string }, homNay: string): string => (k.tuNgay === k.denNgay ? ngayNgan(k.tuNgay, homNay) : `${ngayNgan(k.tuNgay, homNay)} – ${ngayNgan(k.denNgay, homNay)}`);
+const khoangChu = (k: { tuNgay: string; denNgay: string }, homNay: string): string => (k.tuNgay === k.denNgay ? ngayNgan(k.tuNgay, homNay) : `${ngayNgan(k.tuNgay, homNay)}\u00a0–\u00a0${ngayNgan(k.denNgay, homNay)}`); // khoảng ngày không gãy giữa chừng khi cột hẹp
 
 export function taoNgungBanNgay(duoc: boolean, sauKhiDoi: () => void): NgungBanNgay {
   let ds: Khoang[] = [];
   const homNay = (): string => vnToday(new Date());
   const cua = (phamVi: Khoang["phamVi"], ma: string): Khoang[] => ds.filter((k) => k.phamVi === phamVi && k.ma === ma);
   const nhan = (k: Khoang, theoNhom: boolean): HTMLElement =>
-    h("span", { class: "badge badge-cancelled", "data-ngung-ngay": k.id, title: k.ghiChu ?? "" }, `Ngừng bán ${khoangChu(k, homNay())}${theoNhom ? " (theo nhóm)" : ""}`);
+    h("span", { class: "huy-hieu", "data-tong": "xam", "data-ngung-ngay": k.id, title: k.ghiChu ?? "" }, icon("ban", 14), `Ngừng bán ${khoangChu(k, homNay())}${theoNhom ? " (theo nhóm)" : ""}`);
 
   function mo(phamVi: Khoang["phamVi"], ma: string, ten: string, opener: HTMLButtonElement): void {
     const hn = homNay();
@@ -75,9 +76,9 @@ export function taoNgungBanNgay(duoc: boolean, sauKhiDoi: () => void): NgungBanN
         h("p", { class: "muted" }, phamVi === "GROUP"
           ? "Mọi dịch vụ đang thuộc nhóm này không lập được đơn có ngày khởi hành trong khoảng. Các ngày khác vẫn bán. Đơn đã xác nhận giữ nguyên."
           : "Dịch vụ này không lập được đơn có ngày khởi hành trong khoảng. Các ngày khác vẫn bán. Đơn đã xác nhận giữ nguyên."),
-        h("label", { for: "nbn-tu" }, "Từ ngày", tuNgay),
-        h("label", { for: "nbn-den" }, "Đến hết ngày", denNgay),
-        h("label", { for: "nbn-ghi-chu" }, "Ghi chú (không bắt buộc)", ghiChu),
+        h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "nbn-tu" }, "Từ ngày"), tuNgay),
+        h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "nbn-den" }, "Đến hết ngày"), denNgay),
+        h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "nbn-ghi-chu" }, "Ghi chú (không bắt buộc)"), ghiChu),
         loi,
         h("h3", null, "Khoảng đang ngừng bán"),
         dangCo,
