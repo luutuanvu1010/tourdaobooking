@@ -4,7 +4,7 @@ import { isAbsolute, join, relative, resolve } from "node:path";
 export const BO_HOP_LE = ["SALES", "INTERN", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "DRIVER", "DRIVER_PARTNER", "HR", "SALES_MANAGER", "KHACH"];
 export const KHO_HOP_LE = [390, 1280];
 const CO_CO_GIA_TRI = new Set(["--o", "--kho", "--tiem", "--ra", "--han-phut"]);
-const CO_KHONG_GIA_TRI = new Set(["--khong-axe"]);
+const CO_KHONG_GIA_TRI = new Set(["--khong-axe", "--an-tiem"]);
 
 /** `goc` = gốc kho (mặc định thư mục chạy). Ném Error tiếng Việt khi tham số sai. */
 export function phanTichThamSo(argv, { goc = process.cwd() } = {}) {
@@ -36,7 +36,7 @@ export function phanTichThamSo(argv, { goc = process.cwd() } = {}) {
     const rel = relative(resolve(goc), ra);
     if (rel === "" || (!rel.startsWith("..") && !isAbsolute(rel))) throw new Error(`--ra (${ra}) nằm trong kho: ảnh và số đo không được ghi vào kho (kho công khai). Chọn thư mục ngoài kho.`);
   }
-  return { o, kho, tiem: v["--tiem"] ?? null, ra, khongAxe: !!v["--khong-axe"], hanPhut };
+  return { o, kho, tiem: v["--tiem"] ?? null, ra, khongAxe: !!v["--khong-axe"], anTiem: !!v["--an-tiem"], hanPhut };
 }
 
 /**

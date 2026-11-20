@@ -72,3 +72,8 @@ test("timAxe: không AXE_JS thì dùng node_modules/axe-core/axe.min.js; không 
   assert.equal(timAxe({ env: {}, tonTai: () => false, goc: GOC }), null);
   assert.equal(timAxe({ env: { AXE_JS: "" }, tonTai: () => false, goc: GOC }), null);
 });
+
+test("phanTichThamSo: --an-tiem mặc định tắt, bật được", () => {
+  assert.equal(goi(["--o", "SALES:/orders"]).anTiem, false);
+  assert.equal(goi(["--o", "SALES:/orders", "--tiem", "/tmp/x.js", "--an-tiem"]).anTiem, true);
+});

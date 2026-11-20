@@ -16,7 +16,7 @@ const CHROME = process.env.CHROME_BIN ?? join(dirname(fileURLToPath(import.meta.
 const freePort = () => new Promise((res, rej) => { const s = createServer(); s.unref(); s.on("error", rej); s.listen(0, "127.0.0.1", () => { const { port } = s.address(); s.close(() => res(port)); }); });
 
 export async function moChrome({ tuXuLyTinHieu = true } = {}) {
-  const profile = mkdtempSync(join(tmpdir(), "ux-chrome-"));
+  const profile = mkdtempSync(join(tmpdir(), "tourdao-do-man-chrome-"));
   const port = await freePort();
   const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, "--no-first-run", "--disable-gpu", "--hide-scrollbars", "--lang=vi-VN", "about:blank"], { stdio: "ignore" });
   let ver;
@@ -100,25 +100,33 @@ export async function moChrome({ tuXuLyTinHieu = true } = {}) {
       writeFileSync(path, Buffer.from(r.result.data, "base64"));
     };
     /**
-     * Chụp TỪNG MÀN CUỘN: mỗi ảnh đúng bằng khung nhìn (JPEG ~70), cuộn xuống từng chiều cao khung tới hết trang hoặc đủ `toiDa` ảnh.
-     * Trả danh sách tệp `<thuMuc>/<tienTo>-man-1.jpg`, `-man-2.jpg`… Xong thì cuộn về đầu. (Ảnh cả trang rất dài bị thu nhỏ khi đọc, mất chi tiết.)
+     * Chụp TỪNG MÀN CUỘN: mỗi ảnh đúng bằng khung nhìn (JPEG ~70). Bước cuộn = 60 % chiều cao khung (các ảnh gối nhau 40 %, để phần nằm sau thanh dính
+     * ở đầu/đáy vẫn lọt vào một ảnh nào đó); ảnh cuối chụp ở đáy trang; tối đa `toiDa` ảnh (mặc định 10). Xong thì cuộn về đầu.
+     * Tên tệp: `<thuMuc>/<tienTo>-man-<n>-y<vị trí cuộn>.jpg`.
+     * Trả { tep: [đường dẫn…], anh: [{ tep, y, caoKhung }], caoTrang, caoKhung, conLaiPx } — conLaiPx > 0 khi dừng ở `toiDa` mà trang còn phần chưa chụp.
      */
-    const chupTungMan = async (thuMuc, tienTo, toiDa = 6) => {
+    const chupTungMan = async (thuMuc, tienTo, toiDa = 10) => {
       const [cao, vh] = await Promise.all([ev("document.documentElement.scrollHeight"), ev("innerHeight")]);
-      const so = Math.max(1, Math.min(toiDa, Math.ceil(cao / vh)));
-      const tep = [];
+      const buoc = Math.max(1, Math.round(vh * 0.6));
+      const cuoiCung = Math.max(0, cao - vh);
+      const anh = [];
+      let y = 0, conLaiPx = 0;
       try {
-        for (let i = 0; i < so; i++) {
-          await ev(`scrollTo(0, ${i * vh}); 0`);
+        for (let i = 0; i < toiDa; i++) {
+          await ev(`scrollTo(0, ${y}); 0`);
           await sleep(200);
+          const that = Math.round(await ev("scrollY"));
           const r = await s("Page.captureScreenshot", { format: "jpeg", quality: 70, captureBeyondViewport: false });
           if (!r.result?.data) throw new Error(`chụp màn ${i + 1} lỗi: ${JSON.stringify(r.error ?? r).slice(0, 200)}`);
-          const duong = join(thuMuc, `${tienTo}-man-${i + 1}.jpg`);
-          writeFileSync(duong, Buffer.from(r.result.data, "base64"));
-          tep.push(duong);
+          const tep = join(thuMuc, `${tienTo}-man-${i + 1}-y${that}.jpg`);
+          writeFileSync(tep, Buffer.from(r.result.data, "base64"));
+          anh.push({ tep, y: that, caoKhung: vh });
+          if (y >= cuoiCung) break;
+          y = Math.min(y + buoc, cuoiCung);
+          if (i === toiDa - 1) conLaiPx = Math.max(0, cao - (that + vh));
         }
       } finally { await ev("scrollTo(0, 0); 0").catch(() => {}); }
-      return tep;
+      return { tep: anh.map((a) => a.tep), anh, caoTrang: cao, caoKhung: vh, conLaiPx };
     };
     const cookie = (c, url) => s("Network.setCookie", { ...c, url, httpOnly: true });
     const phim = async (key, code, keyCode, shift = false) => {

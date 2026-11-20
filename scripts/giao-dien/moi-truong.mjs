@@ -2,8 +2,7 @@
 // tài khoản thử theo bộ quyền, và vài đơn gieo qua API thật. Không chạm bản chạy thật: mọi thứ ở 127.0.0.1 và thư mục tạm.
 // Mục tiêu dọn dẹp: KHÔNG BAO GIỜ để lại `wrangler dev` hay Chrome mồ côi — dung() idempotent, có SIGINT/SIGTERM, đồng hồ tự dừng, và cuối cùng giết mọi tiến trình con cháu còn sót.
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync, realpathSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, realpathSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -44,18 +43,6 @@ async function gietConChau() {
   }
 }
 
-const TIEN_TO_TAM = ["tourdao-a2-", "ux-chrome-"];
-const lietKeTam = () => { try { return new Set(readdirSync(tmpdir()).filter((t) => TIEN_TO_TAM.some((p) => t.startsWith(p)))); } catch { return new Set(); } };
-/** Xoá thư mục tạm MỚI sinh ra từ lúc `truoc` mà không còn tiến trình nào nhắc tới (an toàn khi có phiên khác chạy song song). */
-function donThuMucTam(truoc) {
-  let lenh = "";
-  try { lenh = execFileSync("ps", ["-axo", "command="], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 }); } catch { return; }
-  for (const t of lietKeTam()) {
-    if (truoc.has(t) || lenh.includes(t)) continue;
-    try { rmSync(join(tmpdir(), t), { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch { /* bỏ */ }
-  }
-}
-
 /**
  * `bo`: danh sách bộ quyền cần tài khoản (KHACH không cần). Chạy từ GỐC kho (startEnv của a2-cdp dùng process.cwd()).
  * Trả { base, persist, taiKhoan: { [bo]: { phone, pin } }, id: { order, orderTheoBo, donDaXacNhan, donNhap }, loiGieo, boChayDuoc, chrome, dung }.
@@ -68,7 +55,6 @@ export async function dungMoiTruong({ bo, hanPhut = 20 }) {
   const cacBo = [...new Set(bo)].filter((b) => b !== "KHACH");
   for (const b of cacBo) if (!BO_QUYEN[b]) throw new Error(`chưa hỗ trợ bộ quyền ${b}: không có trong BO_QUYEN`);
 
-  const tamTruoc = lietKeTam();
   let env = null, chrome = null, dangDung = null, dongHo = null;
   // Gọi nhiều lần (tín hiệu bắt, đồng hồ, finally) đều chờ CÙNG một lần dọn: tín hiệu tới giữa lúc đang dọn không được thoát sớm bỏ lại wrangler dev.
   const dung = () => (dangDung ??= dungThat());
@@ -77,7 +63,7 @@ export async function dungMoiTruong({ bo, hanPhut = 20 }) {
     try { await chrome?.tat(); } catch { /* bỏ */ }
     try { await env?.stop(); } catch { /* bỏ */ }
     await gietConChau(); // lưới cuối: wrangler dev / workerd / Chrome còn sót (cả khi startEnv hỏng giữa chừng)
-    donThuMucTam(tamTruoc); // D1 tạm và hồ sơ Chrome mà startEnv/moChrome chưa kịp xoá
+    // Không quét thư mục tạm theo tiền tố: máy có phiên khác chạy kịch bản Chrome cùng lúc. env.stop() xoá D1 tạm và hồ sơ Chrome của startEnv; chrome.tat() xoá hồ sơ của cdp.mjs. startEnv hỏng giữa chừng thì để sót, hệ điều hành dọn.
   };
   const khiBiGiet = (sig) => { console.error(`Nhận ${sig}: dọn môi trường thử rồi thoát.`); dung().finally(() => process.exit(sig === "SIGINT" ? 130 : 143)); };
   process.on("SIGINT", khiBiGiet); process.on("SIGTERM", khiBiGiet);
