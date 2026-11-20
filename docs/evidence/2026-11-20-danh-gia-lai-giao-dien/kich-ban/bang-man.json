@@ -471,7 +471,7 @@
    "ho": "Quản trị, Thiết lập",
    "bo": "ADMIN",
    "trang": "/dieu-kien-xuat-ben",
-   "viec": "Quản trị đặt Điều kiện xuất bến",
+   "viec": "Quản trị mở trang Điều kiện xuất bến (thực tế chỉ Toàn quyền xem được)",
    "gop": "dm-2"
   },
   {
@@ -646,6 +646,14 @@
    "bo": "INTERN",
    "trang": "/staff",
    "viec": "Thực tập sinh mở một trang mình không có quyền (Quản lý tài khoản): gặp màn không có quyền"
+  },
+  {
+   "so": 87,
+   "ho": "Quản trị, Thiết lập",
+   "bo": "SUPER_ADMIN",
+   "trang": "/dieu-kien-xuat-ben",
+   "viec": "Toàn quyền xem và đặt Điều kiện cho xe chạy",
+   "ghiChu": "Thêm sau khi màn 063 (Quản trị) chỉ ra câu «Chỉ Toàn quyền…»: trang hiện khác theo quyền."
   }
  ]
 }
