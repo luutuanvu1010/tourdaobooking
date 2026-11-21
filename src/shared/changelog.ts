@@ -22,7 +22,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "3.33",
     date: "2026-11-22",
     items: [
-      { kind: "moi", text: "Vé Tour Đảo in số điện thoại riêng của từng dịch vụ ở chân vé. Quản trị đặt ở ô «Hotline trên vé» màn Dịch vụ & giá; dịch vụ chưa đặt thì vé in hotline công ty như cũ. Khi tạo vé, ô số tự điền và sửa được cho riêng lô đó. Vé đã tạo không đổi.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+      { kind: "moi", text: "Vé Tour Đảo in số riêng của dịch vụ: đặt ở ô «Hotline trên vé» màn Dịch vụ & giá; chưa đặt thì in hotline công ty. Lúc tạo vé sửa được cho riêng lô.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
     ],
   },
   {
