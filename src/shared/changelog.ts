@@ -22,7 +22,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "3.28",
     date: "2026-11-21",
     items: [
-      { kind: "doi", text: "Đơn hàng và Trang chủ của Kế toán: đơn đối tác hiện số đối tác nợ Tour Đảo (hoặc số Tour Đảo cần trả lại đối tác) và số Tour Đảo đã thu hộ tiền mặt, không còn hiện giá đối tác bán cho khách. Đơn khách lẻ và trang chi tiết đơn giữ như cũ." },
+      { kind: "doi", text: "Đơn hàng và Trang chủ của Kế toán: đơn đối tác hiện số đối tác nợ Tour Đảo và số Tour Đảo đã thu hộ tiền mặt, không còn hiện giá đối tác bán cho khách." },
+      { kind: "doi", text: "Đơn khách lẻ và trang chi tiết từng đơn của Kế toán giữ như cũ." },
     ],
   },
   {
