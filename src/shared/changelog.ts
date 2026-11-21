@@ -17,6 +17,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa lỗi treo ở màn Quét vé (kế hoạch 16 việc 21/11, Việc 9). Nhánh claude/beautiful-burnell-3c3798. Không migration.
+    // SỐ TẠM 3.24 (bản chạy thật đang 3.23): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.24",
+    date: "2026-11-21",
+    items: [
+      { kind: "sua", text: "Quét vé: bấm «Quét tiếp» mà vé vừa quét còn trước camera thì màn không đứng im nữa. Nền tảng nhắc, 3 giây sau tự kiểm lại; vé đã dùng báo đỏ «Đã dùng».", bai: { id: "viec/quet-ve", ten: "Quét vé Tour Đảo" } },
+      { kind: "sua", text: "Quét vé khi mạng yếu: Nền tảng tự gửi lại vài lần, rồi trong khoảng 15 giây báo «Không gửi được» kèm nút «Thử lại», không còn chờ mãi." },
+      { kind: "sua", text: "Quét vé trên iPhone: bấm «Chụp ảnh mã vé» thì camera trong trang tắt trước; ảnh chụp được thu nhỏ trước khi đọc nên không đứng hình; camera bị dừng thì có báo." },
+    ],
+  },
+  {
     // Chữ nhẹ hơn, phương án 1 «Nhẹ vừa» (đặc tả docs/superpowers/specs/2026-11-21-chu-nhe-hon.md). Nhánh claude/sweet-grothendieck-122c41. Không migration.
     // SỐ TẠM 3.23 (bản chạy thật đang 3.22): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.23",

@@ -92,21 +92,22 @@ export const BAI_VIEC: readonly BaiViec[] = [
     nhomViec: "Quét vé",
     trang: "quetVe",
     o: ["ve.quet.xem"],
-    gioiHan: ["Người quét tự bỏ lượt quét trong 5 phút; sau đó nhờ Quản trị", "Cùng một mã quét lại trong 3 giây chỉ tính một lần"],
-    neo: ["web/quet-ve.ts", "public/quet-ve.html", "src/shared/ket-qua-quet.ts"],
+    gioiHan: ["Người quét tự bỏ lượt quét trong 5 phút; sau đó nhờ Quản trị", "Cùng một mã trong 3 giây chỉ gửi một lần; vé còn trước camera thì 3 giây sau được kiểm lại"],
+    neo: ["web/quet-ve.ts", "web/quet-ve-may.ts", "public/quet-ve.html", "src/shared/ket-qua-quet.ts"],
     moDau: "Màn hình hiện ba màu kèm chữ lớn: xanh là vé hợp lệ, vàng là cần bạn xác nhận, đỏ là không dùng được. Chỉ quét được vé Tour Đảo.",
     noiDung: `### Các bước
 1. Mở **Quét vé** rồi bấm [[Bật camera]]. Lần đầu máy hỏi quyền camera, hãy cho phép.
 2. Hướng camera vào mã trên vé của khách. Máy tự đọc và hiện kết quả cả màn hình.
 3. Xanh thì cho khách đi. Vàng thì đọc câu báo; vẫn cho khách đi thì bấm [[Xác nhận cho đi]]. Đỏ thì không cho đi, đọc câu báo để biết lý do.
-4. Bấm [[Quét tiếp]] để quét vé kế tiếp.
-5. Camera không mở được thì bấm **Chụp ảnh mã vé** và chụp mã trên vé.
+4. Bấm [[Quét tiếp]] để quét vé kế tiếp. Vé vừa quét còn nằm trước camera thì máy hiện dòng nhắc: muốn kiểm lại ngay thì bấm [[Quét lại vé này]], không thì 3 giây sau máy tự kiểm lại (vé đã tính rồi sẽ hiện đỏ «Đã dùng»).
+5. Camera không mở được thì bấm **Chụp ảnh mã vé** và chụp mã trên vé. Camera trong trang đang bật sẽ tắt khi bấm nút này; chụp xong bấm [[Bật camera]] để quét tiếp bằng camera.
 6. Mã trên vé hỏng hoặc in mờ thì gõ **số sê-ri** in trên vé (dạng VE_ và tám chữ cái, chữ thường hay có khoảng trắng đều được) vào ô «Số sê-ri in trên vé», bấm [[Tra số sê-ri]]. Máy tra như khi quét nhưng luôn hiện màu vàng «nhập tay» vì số in trên vé ai nhìn cũng chép được: kiểm đúng vé trước mặt rồi bấm [[Xác nhận cho đi]]; lượt đó ghi «nhập tay» trong nhật ký. Vé hãng ngoài không tra được ở đây. Vé đỏ «Vé đã huỷ» thì không cho đi, báo văn phòng gửi lại vé thay.
 
 ### Điều dễ sai
 - Tài xế công ty chỉ xem vé có hợp lệ không; lượt quét của họ không tính vào số vé đã đi.
 - Quét nhầm thì bấm [[Bỏ lượt quét]] ở danh sách năm lượt gần nhất, ghi lý do. Đừng gõ số điện thoại hay mã vé vào lý do.
-- Vé đỏ «Đã dùng» hiện giờ và tên người đã quét trước đó; đừng cho khách đi lần hai.`,
+- Vé đỏ «Đã dùng» hiện giờ và tên người đã quét trước đó; đừng cho khách đi lần hai.
+- Mạng yếu: máy tự gửi lại hai lần; vẫn không được thì hiện «Không gửi được». Kiểm tra Wi-Fi hoặc 4G rồi bấm **Thử lại**. Chưa thấy kết quả xanh thì chưa cho khách đi.`,
   },
   {
     id: "doi-chieu-ve",
