@@ -12,11 +12,13 @@ import { KHOA_CAO_DAI, KHOA_KHOI } from "../src/shared/dai-chu.ts";
 import { docKhungNho, KHOA_KHUNG } from "./khung-nho.ts";
 
 const html = document.documentElement;
+// sessionStorage bị chặn có hai kiểu: LẤY thuộc tính ném (Chrome chặn cookie) hoặc lấy được mà từng lệnh đọc / ghi / xoá ném (Safari riêng tư đời cũ: setItem ném
+// QuotaExceeded). Kiểu nào cũng chỉ «không giữ chỗ / không nhớ, như trước» — tệp chạy đồng bộ trên mọi trang nên KHÔNG được ném (src/giu-cho-dai.test.ts).
 const ss = (() => {
   try {
     return sessionStorage;
   } catch {
-    return null; // sessionStorage bị chặn: không giữ chỗ, như trước
+    return null;
   }
 })();
 const tha = (): void => void delete html.dataset.giuDai;
@@ -42,23 +44,29 @@ if (coKhung) {
 if (ss) {
   const nho = (): void => {
     const d = document.querySelector<HTMLElement>("#strips > .dai");
-    if (d) {
-      ss.setItem(KHOA_CAO_DAI, `${d.offsetHeight}|${d.dataset.loai ?? ""}`);
-      tha();
+    try {
+      if (d) ss.setItem(KHOA_CAO_DAI, `${d.offsetHeight}|${d.dataset.loai ?? ""}`);
+      else if (!(html.dataset.giuDai === "bao-mat" && document.body.dataset.khuon === "bieu-mau")) ss.removeItem(KHOA_CAO_DAI);
+    } catch {
+      // ghi / xoá bị chặn: không nhớ — nhưng dải đã về thì vẫn thôi giữ chỗ (dưới)
     }
-    else if (!(html.dataset.giuDai === "bao-mat" && document.body.dataset.khuon === "bieu-mau")) ss.removeItem(KHOA_CAO_DAI);
+    if (d) tha();
   };
-  const [cao, loai] = (ss.getItem(KHOA_CAO_DAI) ?? "").split("|");
-  if (+cao! > 0) {
-    html.style.setProperty("--dai-giu", `${+cao!}px`);
-    html.dataset.giuDai = loai || "co";
-    setTimeout(() => {
-      if (!document.querySelector("#strips > .dai")) nho();
-      tha();
-    }, CHO_DAI);
+  try {
+    const [cao, loai] = (ss.getItem(KHOA_CAO_DAI) ?? "").split("|");
+    if (+cao! > 0) {
+      html.style.setProperty("--dai-giu", `${+cao!}px`);
+      html.dataset.giuDai = loai || "co";
+      setTimeout(() => {
+        if (!document.querySelector("#strips > .dai")) nho();
+        tha();
+      }, CHO_DAI);
+    }
+    const khoi = ss.getItem(KHOA_KHOI + location.pathname);
+    if (khoi) html.dataset.giuKhoi = khoi;
+  } catch {
+    // đọc bị chặn: không giữ chỗ, như trước
   }
-  const khoi = ss.getItem(KHOA_KHOI + location.pathname);
-  if (khoi) html.dataset.giuKhoi = khoi;
 
   let strips: Element | null = null;
   const theo = new MutationObserver(() => {
