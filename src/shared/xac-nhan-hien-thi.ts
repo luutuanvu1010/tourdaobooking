@@ -1,5 +1,6 @@
 // Chữ hiển thị của bước xác nhận đơn (ADR-0136, Task 3.5) — thuần, dùng ở giao diện. Hạn do MÁY CHỦ gửi (`hanXacNhan`, tính giờ hành chính); ở đây chỉ đổi ra chữ, KHÔNG tính lại hạn.
-import { CHIEU_LABEL, changDauCuaDichVu, laNoiDonTam } from "./chang-dua-don.ts";
+import { CHIEU_LABEL, changDauCuaDichVu } from "./chang-dua-don.ts";
+import { laNoiDonTam } from "./noi-don-tam.ts";
 import type { LegDto, LyDoCanXacNhan, OrderServiceDto } from "./contracts.ts";
 import { vnDateTimeText } from "./vn-date.ts";
 

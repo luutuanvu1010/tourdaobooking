@@ -16,7 +16,8 @@ import { cauChuaGioSatNgay, changChuaGioVaoHanChot, type MocToiThieu } from "../
 import { canXacNhan, duocQuyetDinh, quaHanXacNhan } from "../../shared/xac-nhan-don";
 import { trangThaiLoiMoi } from "../../shared/ban-hang-phu-trach";
 import type { BanHangNoi } from "../../shared/router";
-import { luotThieuNoiDon, thieuGioChangDau } from "../../shared/chang-dua-don";
+import { thieuGioChangDau } from "../../shared/chang-dua-don";
+import { luotThieuNoiDon } from "../../shared/noi-don-tam";
 import { tuCachCuaDon, type KetQuaChonTuCach } from "../../shared/booker";
 import { chiNguoiLapGhiNhap, type CheDoThanhVien, type NgoaiLeToChuc } from "../../shared/xem-don-nhap";
 import { canhBaoMocCua } from "./dat-gap";

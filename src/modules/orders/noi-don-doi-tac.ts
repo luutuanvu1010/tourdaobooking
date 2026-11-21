@@ -1,7 +1,7 @@
-// ADR-0221 Đ2 — «Đối tác không nhập nơi đón»: MỘT chỗ nối công tắc với thân lập / lưu nháp. Luật thuần (điền chữ tạm) ở src/shared/chang-dua-don.ts (`dienNoiDonTam`); SQL công tắc ở
+// ADR-0221 Đ2 — «Đối tác không nhập nơi đón»: MỘT chỗ nối công tắc với thân lập / lưu nháp. Luật thuần (điền chữ tạm) ở src/shared/noi-don-tam.ts (`dienNoiDonTam`); SQL công tắc ở
 // `xac-nhan-repo.ts` (tệp nửa nghiêm). Chỉ `POST /api/orders` và `PUT /api/orders/:id` gọi, TRƯỚC `validateOrder`. Mã quyền Đối tác ở đây là điều kiện DỮ LIỆU của một ngoại lệ có công tắc
 // (ai được lưu lượt chưa có nơi đón), không mở thêm thao tác nào: lượt mang chữ tạm bị cổng `pickup_place_required` chặn ở mọi đường xác nhận.
-import { dienNoiDonTam } from "../../shared/chang-dua-don";
+import { dienNoiDonTam } from "../../shared/noi-don-tam";
 import { holdsPartner, type PermissionHolder } from "../../shared/permissions";
 import { docKhongNhapNoiDon } from "./xac-nhan-repo";
 
