@@ -17,13 +17,32 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Công tắc chặn đơn chưa có giờ đón khi sát ngày đón + nhóm «Cài đặt lập đơn» (kế hoạch 16 việc 21/11, Việc 7; ADR-0227 đề xuất). Nhánh claude/keen-austin-0abaf2. Migration 0182.
-    // SỐ TẠM 3.26 (3.25 là Việc 16): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Chưa phát hành được khi ADR-0227 chưa duyệt (kèm lời cho phép xây trên HC-5.19).
-    version: "3.26",
-    date: "2026-11-21",
+    // Công tắc chặn đơn chưa có giờ đón khi sát ngày đón + nhóm «Cài đặt lập đơn» (kế hoạch 16 việc 21/11, Việc 7; ADR-0227 chủ duyệt 22/11). Nhánh claude/keen-austin-0abaf2. Migration 0182.
+    // SỐ TẠM 3.28 (3.26 Việc 4, 3.27 tệp đầu trang — đã nhập main 22/11): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0227.
+    version: "3.28",
+    date: "2026-11-22",
     items: [
       { kind: "moi", text: "Trang Tôi của Toàn quyền: các công tắc lập đơn gom vào một nhóm «Cài đặt lập đơn»." },
       { kind: "moi", text: "Công tắc mới «Chặn đơn chưa có giờ đón khi sát ngày đón» (đang bật). Tắt thì đơn đón hôm nay chưa có giờ vẫn xác nhận được, nhưng chưa xếp xe tới khi có giờ." },
+    ],
+  },
+  {
+    // Tệp đầu trang web/giu-cho-dai.ts không ném khi lệnh đọc / ghi sessionStorage bị chặn (kịch bản chip-nhom-smoke bước 12). Nhánh claude/recursing-mahavira-be4522.
+    // Không migration. SỐ TẠM 3.27 (3.26 là Việc 4 Kho vé, đã nhập main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.27",
+    date: "2026-11-22",
+    items: [
+      { kind: "sua", text: "Trình duyệt đang chặn lưu dữ liệu (chế độ riêng tư trên máy cũ): Nền tảng không còn báo lỗi ngầm khi mở trang, vẫn chạy như thường." },
+    ],
+  },
+  {
+    // Bộ lọc dùng chung của Kho vé (kế hoạch 16 việc 21/11, Việc 4). Nhánh claude/nostalgic-newton-418d14. Không migration.
+    // SỐ TẠM 3.26 (3.25 là Việc 16, đã nhập main 21/11; bản chạy thật 3.24): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.26",
+    date: "2026-11-21",
+    items: [
+      { kind: "moi", text: "Kho vé: thanh «Lọc theo dịch vụ» đầu trang. Chọn nhóm hoặc gõ tên (không dấu cũng được) là cả ba danh sách vé cùng thu hẹp, kể cả lô ở trang sau.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+      { kind: "doi", text: "Tạo vé Tour Đảo: chọn dịch vụ bằng ô tìm và hàng nhóm giống bước nhập lô vé, thay cho danh sách thả xuống." },
     ],
   },
   {
