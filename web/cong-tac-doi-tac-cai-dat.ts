@@ -17,7 +17,7 @@ const DS: Record<"hanhKhach" | "gioDon", CongTac> = {
     url: "/api/cai-dat/khong-can-gio-don",
     ten: "Đơn đối tác không cần giờ đón",
     khoa: "khong-can-gio",
-    giaiThich: "Khi bật, đơn có đón của đối tác mà chưa có giờ không phải chờ văn phòng xét chỉ vì thiếu giờ; văn phòng chốt giờ sau bằng «Sửa đưa đón». Lượt đón đã sát hạn chốt vẫn chờ văn phòng. Xe chưa xếp được tới khi có giờ.",
+    giaiThich: "Khi bật, đơn có đón của đối tác mà chưa có giờ không phải chờ văn phòng xét chỉ vì thiếu giờ; văn phòng chốt giờ sau bằng «Sửa đưa đón». Lượt đón đã sát hạn chốt vẫn chờ văn phòng. Xe chưa xếp được tới khi có giờ. Công tắc «Bắt buộc giờ đón» bên trên chỉ còn áp cho đơn vẫn phải chờ văn phòng.",
   },
 };
 
