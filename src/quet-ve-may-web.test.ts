@@ -18,7 +18,9 @@ const xa = async (): Promise<void> => { for (let i = 0; i < 20; i++) await Promi
 const nut = (goc: NutGia, chu: string): NutGia | undefined => goc.querySelectorAll("button").find((b) => b.textContent === chu);
 
 type LoiGia = { status?: number; message?: string };
-function dung(tl: Array<KetQua | LoiGia | "treo">) {
+/** Kịch bản máy chủ cho từng lần gửi: kết quả, lỗi, `"treo"` (ném khi hết `henGioMs`, như api()), `"treo-mai"` (không bao giờ trả lời — như vòng chờ 409 «đang xử lý» kéo dài), `{ muon, kq }` (trả kết quả sau `muon` ms, bỏ qua hẹn giờ). */
+type Lan = KetQua | LoiGia | "treo" | "treo-mai" | { muon: number; kq: KetQua };
+function dung(tl: Lan[], tuy: { ghiNhoNem?: boolean } = {}) {
   const ketQuaEl = doc.createElement("div");
   ketQuaEl.hidden = true;
   const trangThaiEl = doc.createElement("p");
@@ -34,11 +36,13 @@ function dung(tl: Array<KetQua | LoiGia | "treo">) {
       goiLuc.push({ ma, xn: xn as Record<string, boolean>, hen, luc: Date.now() });
       const t = tl.shift() ?? "treo";
       if (t === "treo") return new Promise((_res, rej) => setTimeout(() => rej(new Error("The operation was aborted.")), hen)); // như api(): hết giờ thì ném lỗi không phải ApiError
+      if (t === "treo-mai") return new Promise(() => undefined);
+      if ("muon" in t) return new Promise((res) => setTimeout(() => res(t.kq), t.muon));
       if ("mau" in t) return Promise.resolve(t);
       return Promise.reject(t.status === undefined ? new TypeError("Failed to fetch") : Object.assign(new Error(t.message ?? "x"), t));
     },
     lyDoLoi: (e) => ((e as LoiGia).status !== undefined ? (e as LoiGia).message ?? "" : "Không kết nối được máy chủ."),
-    khiCoKetQua: (kq) => void ghiNho.push(kq),
+    khiCoKetQua: (kq) => { ghiNho.push(kq); if (tuy.ghiNhoNem) throw new Error("danh sách lượt gần đây hỏng"); },
     dangDocCamera: () => true,
   });
   return { may, ketQuaEl, trangThaiEl, nhacEl, goiLuc, ghiNho };
@@ -202,6 +206,62 @@ describe("web/quet-ve-may.ts", () => {
     await xa();
     assert.deepEqual(goiLuc[1], { ...goiLuc[1]!, ma: "TD1.A", xn: { lechNgay: true } });
     assert.equal(ghiNho.length, 2);
+  });
+
+  it("máy chủ không bao giờ trả lời (vd vòng chờ «đang xử lý» của api() kéo dài): hạn chót cứng vẫn hiện «Không gửi được» trong 15 giây", async () => {
+    const { may, ketQuaEl } = dung(["treo-mai", "treo-mai", "treo-mai"]);
+    const batDau = Date.now();
+    may.nhanMa("TD1.A");
+    await xa();
+    let hienLuc = -1;
+    for (let t = 0; t < 30_000 && hienLuc < 0; t += 250) {
+      mock.timers.tick(250);
+      await xa();
+      if (!ketQuaEl.hidden) hienLuc = Date.now() - batDau;
+    }
+    assert.ok(hienLuc > 0 && hienLuc <= 15_000, `hiện «Không gửi được» lúc ${hienLuc} ms`);
+    assert.ok(ketQuaEl.textContent.includes("Không gửi được"));
+    assert.equal(may.dangBan(), true, "đang hiện màn lỗi");
+    nut(ketQuaEl, "Quét tiếp")!.click();
+    assert.equal(may.dangBan(), false, "hết hạn chót thì không còn kẹt «đang gửi»");
+  });
+
+  it("kết quả tới muộn sau khi đã hiện «Không gửi được»: thay bằng kết quả thật và ghi vào lượt gần đây", async () => {
+    const { may, ketQuaEl, ghiNho } = dung([{ muon: 20_000, kq: XANH }]);
+    may.nhanMa("TD1.A");
+    await xa();
+    for (let t = 0; t < 16_000; t += 250) { mock.timers.tick(250); await xa(); }
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "LOI");
+    for (let t = 0; t < 5000; t += 250) { mock.timers.tick(250); await xa(); }
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "XANH");
+    assert.equal(ghiNho.length, 1);
+  });
+
+  it("lỗi ở danh sách lượt gần đây (sau khi máy chủ đã trả lời) không bị coi là lỗi mạng: vẫn hiện kết quả, không gửi lại", async () => {
+    const { may, ketQuaEl, goiLuc } = dung([XANH, XANH], { ghiNhoNem: true });
+    may.nhanMa("TD1.A");
+    await xa();
+    mock.timers.tick(5000);
+    await xa();
+    assert.equal(goiLuc.length, 1);
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "XANH");
+  });
+
+  it("guiNgay trả false khi đang bận (trang báo cho người quét, không bỏ ảnh im lặng)", async () => {
+    const { may } = dung(["treo-mai"]);
+    assert.equal(may.guiNgay("TD1.A"), true);
+    await xa();
+    assert.equal(may.guiNgay("TD1.B"), false);
+  });
+
+  it("«Xác nhận cho đi» đang gửi thì «Quét tiếp» bị khoá", async () => {
+    const vang = ve("VANG", "CHUA_THU_DU", "Đơn chưa thu đủ.");
+    const { may, ketQuaEl } = dung([vang, "treo-mai"]);
+    may.nhanMa("TD1.A");
+    await xa();
+    const tiep = nut(ketQuaEl, "Quét tiếp")!;
+    nut(ketQuaEl, "Xác nhận cho đi")!.click();
+    assert.equal((tiep as unknown as { disabled?: boolean }).disabled, true);
   });
 
   it("theo dõi camera: luồng bị dừng (ended) hoặc tạm dừng (mute/unmute) thì báo", () => {

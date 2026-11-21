@@ -2,7 +2,7 @@
 // bằng DOM giả và đồng hồ giả (src/quet-ve-may-web.test.ts). Trang chỉ nối camera, ảnh, ô số sê-ri và danh sách lượt gần đây vào đây.
 //   rảnh ──(mã mới, hoặc hết mốc 3 giây)──▶ đang gửi ──▶ đang hiện kết quả xanh / vàng / đỏ ──«Quét tiếp»──▶ rảnh (mốc 3 giây CỐ ĐỊNH cho mã vừa gửi)
 //                 │ cùng mã trong mốc: dòng nhắc + «Quét lại vé này»      │ lỗi mạng / 5xx: tự gửi lại có giãn cách, tối đa 3 lần trong ~14 giây
-//                 ▼                                                      ▼ hết lượt, hoặc máy chủ từ chối rõ (4xx): «Không gửi được» + «Thử lại» / «Quét tiếp»
+//                 ▼                                                      ▼ hết lượt / quá hạn chót 15 giây, hoặc máy chủ từ chối rõ (4xx): «Không gửi được» + «Thử lại» / «Quét tiếp»
 // Mã vé chỉ nằm trong bộ nhớ trang và thân yêu cầu (không vào địa chỉ, nhật ký, câu báo). Không innerHTML.
 import { CHONG_LAP_MS, batDauDong, xetDocLap, type DauDocCuoi } from "../src/shared/chong-doc-lap.ts";
 import { h, replaceChildren } from "./dom.ts";
@@ -22,12 +22,24 @@ export const HEN_GIO_QUET_MS = 6000;
 export const CHO_GUI_LAI_MS: readonly number[] = [1000, 2000];
 /** Trần từ lần gửi đầu tới lúc hiện «Không gửi được» (kế hoạch 21/11 Việc 9: ≤ 15 giây). Không tự gửi lại khi lần kế tiếp có thể vượt trần. */
 export const TRAN_GUI_MS = 14_000;
+/** Hạn chót CỨNG của cả lượt gửi: `henGioMs` chỉ canh từng lần `fetch`, còn vòng chờ 409 «đang xử lý» bên trong `api()` có thể kéo dài hơn (kiểm độc lập 21/11, T1).
+ *  Quá hạn thì hiện «Không gửi được»; kết quả tới muộn vẫn được ghi vào lượt gần đây và thay màn lỗi nếu người quét chưa rời màn đó. */
+export const HAN_CHOT_MS = 15_000;
 
 /** Sau lần lỗi thứ `soLanLoi` (đếm từ 1), đã trôi `msDaTroi` kể từ lần gửi đầu: chờ bao lâu rồi tự gửi lại, hoặc null = thôi, hiện «Thử lại». */
 export function choTruocLanGuiLai(soLanLoi: number, msDaTroi: number): number | null {
   const cho = CHO_GUI_LAI_MS[soLanLoi - 1];
   if (cho === undefined) return null;
   return msDaTroi + cho + HEN_GIO_QUET_MS <= TRAN_GUI_MS ? cho : null;
+}
+
+/** Chờ `p` tối đa `ms`: quá hạn thì ném (lỗi không có mã HTTP ⇒ coi như mất mạng). `p` xong muộn mà thành công thì gọi `khiMuon`; muộn mà hỏng thì bỏ. */
+function trongHan<T>(p: Promise<T>, ms: number, khiMuon: (v: T) => void): Promise<T> {
+  return new Promise<T>((xong, hong) => {
+    let qua = false;
+    const hen = setTimeout(() => { qua = true; hong(new Error("het_han_chot")); }, Math.max(0, ms));
+    p.then((v) => { if (qua) khiMuon(v); else { clearTimeout(hen); xong(v); } }, (e: unknown) => { if (!qua) { clearTimeout(hen); hong(e); } });
+  });
 }
 
 /** Lỗi đáng tự gửi lại: không có mã HTTP (mất mạng, hết giờ) hoặc máy chủ lỗi 5xx. Máy chủ từ chối rõ (4xx, có `status`) thì không. */
@@ -39,8 +51,8 @@ function thuLaiDuoc(err: unknown): boolean {
 export interface MayQuet {
   /** Mã đọc từ camera: cùng mã vừa gửi trong 3 giây kể từ lúc gửi / lúc «Quét tiếp» thì không gửi (hiện dòng nhắc); hết mốc thì gửi lại. */
   nhanMa(ma: string): void;
-  /** Mã do người quét chủ động đưa (ảnh chụp, số sê-ri gõ tay, «Quét lại vé này»): gửi ngay, không xét mốc 3 giây. */
-  guiNgay(ma: string): void;
+  /** Mã do người quét chủ động đưa (ảnh chụp, số sê-ri gõ tay, «Quét lại vé này»): gửi ngay, không xét mốc 3 giây. false = đang bận, chưa gửi (trang báo cho người quét). */
+  guiNgay(ma: string): boolean;
   /** Đang gửi hoặc đang hiện kết quả: trang không cần đọc khung camera. */
   dangBan(): boolean;
 }
@@ -62,6 +74,9 @@ export function taoMayQuet(o: {
   let dangHien = false;
   let cuoi: DauDocCuoi = null;
   let henNhac: ReturnType<typeof setTimeout> | null = null;
+  /** Số thứ tự lượt gửi, và lượt nào đang có màn «Không gửi được» — để kết quả tới muộn chỉ thay đúng màn lỗi của nó. */
+  let soLuot = 0;
+  let manLoiCua: number | null = null;
 
   const baoTrangThai = (chu: string): void => { o.trangThaiEl.textContent = chu; };
   const ngVe = (kq: KetQuaQuet): string => (kq.ngayDi ? `Ngày đi ${kq.ngayDi.split("-").reverse().join("/")}` : "");
@@ -84,6 +99,7 @@ export function taoMayQuet(o: {
 
   function dongKhung(): void {
     dangHien = false;
+    manLoiCua = null;
     o.ketQuaEl.hidden = true;
     replaceChildren(o.ketQuaEl);
   }
@@ -95,6 +111,7 @@ export function taoMayQuet(o: {
   }
 
   function khung(mau: Mau | "LOI", tieuDe: string, dong: Array<string | null>, nut: HTMLElement[]): void {
+    manLoiCua = null;
     replaceChildren(o.ketQuaEl,
       h("div", { class: "qv-ket-than", "data-mau": mau },
         h("p", { class: "qv-ket-dau", "aria-hidden": "true" }, CHU_LON[mau].dau),
@@ -108,27 +125,48 @@ export function taoMayQuet(o: {
   function hienKetQua(kq: KetQuaQuet, ma: string, xn: XacNhanGui): void {
     const nut: HTMLElement[] = [];
     const co = CO_XAC_NHAN[kq.ma];
-    if (kq.mau === "VANG" && co) {
-      const nutXn = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-co": "lon" }, "Xác nhận cho đi");
-      nutXn.addEventListener("click", () => { nutXn.disabled = true; void gui(ma, { ...xn, [co]: true }); });
-      nut.push(nutXn);
-    }
     const nutTiep = h("button", { type: "button", class: "nut", "data-cap": co && kq.mau === "VANG" ? "phu" : "chinh", "data-co": "lon" }, "Quét tiếp");
     nutTiep.addEventListener("click", quetTiep);
+    if (kq.mau === "VANG" && co) {
+      const nutXn = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-co": "lon" }, "Xác nhận cho đi");
+      // Đang gửi lời xác nhận thì khoá cả «Quét tiếp»: khung không bị đóng rồi bật lại khi kết quả về.
+      nutXn.addEventListener("click", () => { nutXn.disabled = true; nutTiep.disabled = true; void gui(ma, { ...xn, [co]: true }); });
+      nut.push(nutXn);
+    }
     nut.push(nutTiep);
     khung(kq.mau, CHU_LON[kq.mau].chu, [kq.cau, kq.dichVu, kq.nhomKhach, ngVe(kq), kq.soSeri ? `Số sê-ri ${kq.soSeri}` : kq.soCuoi ? `Số cuối ${kq.soCuoi}` : "", kq.maDon ? `Đơn ${kq.maDon}` : ""], nut);
     nutTiep.focus();
   }
 
   /** Chưa kiểm được vé. Không nói «vé chưa được ghi»: lần gửi hết giờ có thể đã tới máy chủ (máy chủ vẫn chỉ tính một vé một lần). */
-  function hienLoi(err: unknown, ma: string, xn: XacNhanGui): void {
+  function hienLoi(err: unknown, ma: string, xn: XacNhanGui, luot: number): void {
     const mang = thuLaiDuoc(err);
     const nutThu = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-co": "lon" }, "Thử lại");
     nutThu.addEventListener("click", () => { dongKhung(); void gui(ma, xn); });
     const nutTiep = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-co": "lon" }, "Quét tiếp");
     nutTiep.addEventListener("click", quetTiep);
     khung("LOI", mang ? CHU_LON.LOI.chu : "Không kiểm được vé", [o.lyDoLoi(err), mang ? "Kiểm tra mạng (Wi-Fi hoặc 4G) rồi bấm «Thử lại»." : null], [nutThu, nutTiep]);
+    manLoiCua = luot;
     nutThu.focus();
+  }
+
+  /** Máy chủ đã trả lời rõ: ghi vào lượt gần đây (lỗi ở đó không được che kết quả, cũng không phải lỗi mạng), rồi hiện kết quả. */
+  function nhanKetQua(kq: KetQuaQuet, ma: string, xn: XacNhanGui): void {
+    try {
+      o.khiCoKetQua(kq);
+    } catch {
+      // danh sách lượt gần đây hỏng: vẫn phải hiện kết quả cho người quét
+    }
+    hienKetQua(kq, ma, xn);
+    baoTrangThai(o.dangDocCamera() ? "Camera đang đọc." : "");
+  }
+
+  /** Kết quả về sau hạn chót của lượt `luot`: lượt quét đã được máy chủ ghi, nên luôn ghi vào lượt gần đây; chỉ thay màn nếu người quét vẫn đứng ở màn lỗi của đúng lượt đó. */
+  function ketQuaMuon(luot: number, kq: KetQuaQuet, ma: string, xn: XacNhanGui): void {
+    if (manLoiCua === luot && !dangGui) nhanKetQua(kq, ma, xn);
+    else {
+      try { o.khiCoKetQua(kq); } catch { /* như trên */ }
+    }
   }
 
   async function gui(ma: string, xn: XacNhanGui = {}): Promise<void> {
@@ -137,23 +175,21 @@ export function taoMayQuet(o: {
     anNhac();
     cuoi = { ma, luc: bay() };
     const batDau = bay();
+    const luot = ++soLuot;
     baoTrangThai("Đang kiểm tra vé…");
+    // Chỉ lời gọi máy chủ nằm trong khối bắt lỗi: lỗi khi hiện kết quả không bao giờ bị coi là lỗi mạng rồi gửi lại.
+    let kq: KetQuaQuet | null = null;
+    let loi: unknown = null;
     try {
       for (let soLanLoi = 0; ;) {
+        const conLai = HAN_CHOT_MS - (bay() - batDau);
         try {
-          const kq = await o.goi(ma, xn, HEN_GIO_QUET_MS);
-          o.khiCoKetQua(kq);
-          hienKetQua(kq, ma, xn);
-          baoTrangThai(o.dangDocCamera() ? "Camera đang đọc." : "");
-          return;
+          kq = await trongHan(o.goi(ma, xn, Math.min(HEN_GIO_QUET_MS, Math.max(0, conLai))), conLai, (muon) => ketQuaMuon(luot, muon, ma, xn));
+          break;
         } catch (err) {
           soLanLoi++;
           const cho = thuLaiDuoc(err) ? choTruocLanGuiLai(soLanLoi, bay() - batDau) : null;
-          if (cho === null) {
-            hienLoi(err, ma, xn);
-            baoTrangThai(o.lyDoLoi(err));
-            return;
-          }
+          if (cho === null) { loi = err; break; }
           baoTrangThai(`Chưa gửi được, đang thử gửi lại (lần ${soLanLoi + 1}/${CHO_GUI_LAI_MS.length + 1})…`);
           await new Promise((xong) => setTimeout(xong, cho));
         }
@@ -161,11 +197,17 @@ export function taoMayQuet(o: {
     } finally {
       dangGui = false;
     }
+    if (kq !== null) nhanKetQua(kq, ma, xn);
+    else {
+      hienLoi(loi, ma, xn, luot);
+      baoTrangThai(o.lyDoLoi(loi));
+    }
   }
 
-  function guiNgay(ma: string): void {
-    if (dangGui || dangHien) return;
+  function guiNgay(ma: string): boolean {
+    if (dangGui || dangHien) return false;
     void gui(ma);
+    return true;
   }
 
   return {
