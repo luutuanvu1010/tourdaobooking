@@ -131,7 +131,8 @@ const px = (ten: string, sau = 0): number => {
 test("bảng Đơn hàng: ở mốc 800 và 1040, các cột cố định, khe, đệm dòng và nút xổ còn chừa đủ cột tên khách tối thiểu", async () => {
   const { BANG_DON } = await import("./shared/bang-don.ts");
   const gian = px("--kg-cot-gian");
-  // Phần quanh hàng trong phần khung: đệm trái của dòng = đệm khối ở vùng nội dung từ 560 (--s5); đệm phải --s2; nút xổ cao rộng bằng --kg-cao-nut; khoảng cách tới nút xổ 0.
+  // Phần quanh hàng trong phần khung: đệm trái của dòng = đệm khối ở vùng nội dung từ 560 (--s5); đệm phải --s2; nút xổ cao rộng bằng --kg-cao-nut.
+  // Khoảng cách --s2 giữa hàng và nút xổ KHÔNG trừ: đúng ở mốc, cột cuối (trạng thái) được lấn vào khoảng đó — huy hiệu hẹp hơn cột nên không chạm nút xổ.
   const quanhHang = px("--s5") + px("--s2") + px("--kg-cao-nut");
   for (const [moc, khuon] of [[800, BANG_DON.vua], [1040, BANG_DON.rong]] as const) {
     const coDinh = khuon.cot.filter((c: string) => c !== "gian").reduce((t: number, c: string) => t + px(`--kg-cot-${c}`), 0);
@@ -141,8 +142,8 @@ test("bảng Đơn hàng: ở mốc 800 và 1040, các cột cố định, khe, 
   }
   // Phần khung phải khớp các giả định trên: đệm dòng, khoảng cách tới nút xổ, khuôn cột của hàng tiêu đề.
   assert.match(css, /body\[data-khung-goc\] \.bang-luoi > \.the-dong \{ padding: 0 var\(--s2\) 0 var\(--kg-dem\);/);
-  assert.match(css, /body\[data-khung-goc\] \.bang-luoi \.the-dong-dau \{ gap: 0; \}/);
-  assert.match(css, /body\[data-khung-goc\] \.bang-dau \{ display: grid; grid-template: var\(--kg-bang-vua\);[^}]*padding: 0 calc\(var\(--s2\) \+ var\(--kg-cao-nut\)\) 0 var\(--kg-dem\);/);
+  assert.match(css, /body\[data-khung-goc\] \.bang-dau \{ display: grid; grid-template: var\(--kg-bang-vua\);[^}]*padding: 0 calc\(var\(--s2\) \+ var\(--kg-cao-nut\) \+ var\(--s2\)\) 0 var\(--kg-dem\);/);
+  assert.match(css, /body\[data-khung-goc\] :is\(\.bang-dau, \.bang-luoi\) \[data-o\] \{ grid-area: var\(--kg-o\); justify-self: start; \}/);
 });
 
 test("bảng Đơn hàng: mỗi hàng vùng đủ số cột; vùng của mọi ô thẻ đơn đều có trong cả hai khuôn", async () => {

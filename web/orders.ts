@@ -9,10 +9,24 @@ import { ApiError, api, type OrderSummary, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { soDongCanTai, taoBoLamMoi } from "./lam-moi-logic";
 import { dienTien, orderCard } from "./order-card";
+import { datKhuonBang, o as vungO } from "./khung";
+import { BANG_DON, VUNG_O_DON } from "../src/shared/bang-don";
 import { goiSom } from "./goi-som";
 import { initShell, showError } from "./shell";
 
 const PAGE = 30;
+// Khối bảng của khuôn Danh sách (khung gốc, ADR-0222): khuôn cột khai ở src/shared/bang-don.ts; hàng tiêu đề cột đứng đúng các vùng của ô thẻ đơn (web/order-card.ts).
+// Cột «Điện thoại» chỉ có khi vùng nội dung từ 1040 (hẹp hơn thì số điện thoại nằm dưới tên khách).
+datKhuonBang(byId("don-khoi"), BANG_DON.vua, BANG_DON.rong);
+replaceChildren(
+  byId("don-dau"),
+  h("span", vungO(VUNG_O_DON.ngay), "Ngày đi"),
+  h("span", vungO(VUNG_O_DON.ten), "Khách"),
+  h("span", { ...vungO(VUNG_O_DON.sdt), "data-tu-rong": "" }, "Điện thoại"),
+  h("span", vungO(VUNG_O_DON.khach), "Số khách"),
+  h("span", { ...vungO(VUNG_O_DON.tien), "data-so": "" }, "Còn thu"),
+  h("span", vungO(VUNG_O_DON.trangThai), "Trạng thái"),
+);
 const qInput = byId<HTMLInputElement>("q");
 const locMo = byId<HTMLButtonElement>("loc-mo");
 const locDem = byId("loc-dem");
@@ -314,7 +328,7 @@ function veChip(): void {
     ...chip.map((c) =>
       h("span", { class: "loc-chip-muc", "data-khoa": c.khoa }, c.nhan,
         h("button", { type: "button", class: "loc-chip-bo", "aria-label": `Bỏ lọc ${c.nhan}`, onclick: () => apDungLoc(boDieuKien(loc, c.khoa)) }, "×"))),
-    chip.length ? h("button", { type: "button", class: "btn btn-link loc-xoa", onclick: () => apDungLoc(LOC_TRONG) }, "Xoá lọc") : null,
+    chip.length ? h("button", { type: "button", class: "nut", "data-cap": "loi", onclick: () => apDungLoc(LOC_TRONG) }, "Xoá lọc") : null,
   );
 }
 
@@ -331,7 +345,7 @@ function moBoLoc(): void {
   if (!who) return;
   let nhap: LocDonMan = { ...loc, dichVu: [...loc.dichVu], trangThai: [...loc.trangThai] };
   const homNay = vnToday(new Date());
-  const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
+  const loi = h("div", { class: "truong-loi", role: "alert", hidden: true });
 
   // Ngày đi: bốn nút chọn nhanh + hai ô ngày.
   const tu = h("input", { type: "date", id: "loc-tu", value: nhap.tu ?? "" }) as HTMLInputElement;
@@ -427,9 +441,9 @@ function moBoLoc(): void {
     nguoiNhom = h("fieldset", { class: "loc-nhom", "data-nhom": "nguoiLap" }, h("legend", null, "Người lập"), ngDau, ngTim, ngDs);
   }
 
-  const huy = h("button", { type: "button", class: "btn" }, "Huỷ");
-  const apDung = h("button", { type: "button", class: "btn btn-primary", "data-action": "ap-dung-loc" }, "Áp dụng");
-  const xoa = h("button", { type: "button", class: "btn btn-link", "data-action": "xoa-loc" }, "Xoá lọc");
+  const huy = h("button", { type: "button", class: "nut" }, "Huỷ");
+  const apDung = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-action": "ap-dung-loc" }, "Áp dụng");
+  const xoa = h("button", { type: "button", class: "nut", "data-cap": "loi", "data-action": "xoa-loc" }, "Xoá lọc");
   const bang = moBangTruot({
     title: "Lọc đơn",
     body: [

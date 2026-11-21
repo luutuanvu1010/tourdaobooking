@@ -1,52 +1,62 @@
 # Khung gốc giao diện — sổ việc thi công (mở 21/11/2026)
 
 > Tài liệu sống của việc này: trạng thái ghi ở đây, không ở trí nhớ phiên (P19). Phiên làm vai **thi công**; kiểm do trợ lý khác (N8).
-> Bản đề xuất luật: `docs/superpowers/specs/2026-11-21-khung-goc-giao-dien/DE-XUAT-ADR-khung-goc-giao-dien.md` (**chưa duyệt** lúc mở sổ). Hồ sơ phân tích cùng thư mục.
+> Luật: **ADR-0222** (`docs/adr/ADR-0222-khung-goc-giao-dien.md`), chủ dự án duyệt 21/11/2026, nguyên văn «oko duyệt» (cùng lời đó duyệt hình bốn màn mẫu và thang đo; bề rộng trang giữ ba mức 15/11). Hồ sơ phân tích: `docs/superpowers/specs/2026-11-21-khung-goc-giao-dien/`.
 > Lời chủ dự án 21/11, nguyên văn: «bố cục lại từ gốc… áp khung, luật để tự động các màn buộc phải tuân thủ theo (là gốc), rồi mỗi màn cần có tùy biến gì cho phù hợp thì cũng phải dựa trên cái gốc».
-> Nhánh `claude/jovial-leakey-a25fd6`, cắt từ `claude/platform-ui-reassessment-d0c333` (`f38b2c261`). Không nhập bản chính, không triển khai.
+> Nhánh `claude/jovial-leakey-a25fd6`, đã nhập bản chính `c23447ce9` (có bản sửa hai lỗi bố cục). Không nhập bản chính, không triển khai.
 > Ngoài phạm vi: chuyển màn ngoài bốn màn mẫu; đổi chữ trên nút, nhãn; dữ liệu, quyền, tiền, máy chủ.
 
 ## Bảng việc
 
 | Bước | Việc | Xong khi | Trạng thái |
 |---|---|---|---|
-| 0 | Chủ duyệt bản đề xuất luật; chép thành ADR (số kế tiếp, lúc mở sổ là 0222); soạn diff một điều mới của Hiến chương để chủ duyệt riêng | có lời duyệt chủ gõ trong ô chat; ADR và dòng mục lục đã ghi | **chờ chủ** |
-| 1 | Xem trước bằng ảnh thật trên bốn màn mẫu, chưa sửa mã | chủ duyệt hình | ảnh đã gửi 21/11, **chờ chủ** |
-| 2 | Khung và máy canh: khối «khung gốc» trong `public/app.css`; hàm dựng dùng chung ở `web/`; sổ ngoại lệ ở `src/shared/`; bài kiểm Đ7(a); lệnh đo Đ7(b) | mỗi hàng rào đã thấy đỏ thật một lần và có dòng ở `docs/SO-HANG-RAO.md` | chưa làm (sau bước 0 và 1) |
-| 3 | Chuyển bốn màn mẫu sang khung, gỡ hẳn lớp kiểu cũ của bốn màn | đúng hình đã duyệt; sáu tiêu chí nghiệm thu của bản đề xuất | chưa làm |
-| 4 | Trợ lý đánh giá giao diện chấm bốn màn; người kiểm độc lập soát (lưu thành lần lưu trước khi giao); `npm test`, `npm run typecheck` một lần ở cuối | cả hai báo cáo; hai lệnh xanh | chưa làm |
+| 0 | Chép luật thành ADR, dòng mục lục; soạn chữ đề xuất một điều mới của Hiến chương | ADR và mục lục đã ghi; bản đề xuất Hiến chương có trên nhánh | ADR-0222 và mục lục **xong** (`a81600291`); bản đề xuất Hiến chương: xem mục «Còn lại» |
+| 1 | Xem trước bằng ảnh thật trên bốn màn mẫu | chủ duyệt hình | **xong**, chủ duyệt 21/11 |
+| 2 | Khung và máy canh | mỗi hàng rào đã thấy đỏ thật một lần và có dòng ở `docs/SO-HANG-RAO.md` | phần khung, hàm dựng, sổ ngoại lệ, bài kiểm **xong** (`65e1d541c`); lệnh đo trên trang thật và dòng sổ hàng rào: xem «Còn lại» |
+| 3 | Chuyển bốn màn mẫu sang khung, gỡ lớp kiểu cũ | đúng hình đã duyệt; sáu tiêu chí nghiệm thu của ADR | Sửa xe, Địa điểm, Đơn hàng **xong**, ảnh trang thật trùng từng điểm ảnh với ảnh đã duyệt ở 390, 1.130, 1.440; Chi tiết đơn: xem «Còn lại» |
+| 4 | Trợ lý đánh giá giao diện chấm bốn màn; người kiểm độc lập soát; `npm test`, `npm run typecheck` một lần ở cuối | cả hai báo cáo; hai lệnh xanh | chưa làm |
 
-## Bước 1 — đã làm gì (21/11)
+## Đã dựng gì (bước 2)
 
-Bằng chứng, kịch bản và lớp xem trước: `docs/evidence/2026-11-21-khung-goc-xem-truoc/` (README ở đó). Ảnh gửi chủ: `~/tourdao-khung-goc-2026-11-21/gui-chu/` (sáu tờ: bốn màn mẫu, trang số của thang đo, so sánh bề rộng trang).
-Lượt quét lớp xem trước, 4 màn × 79 bề rộng (360 tới 1.920): 0 tràn ngang, 0 chữ bị bóp, 0 khối lệch mép, một kiểu vỏ khối, khoảng cách giữa các khối 16.
+- **Thuộc tính khai khuôn:** `data-khung-goc` ở `<body>`, bảy giá trị. Không dùng `data-khuon` (dải nhắc bảo mật) hay `data-khung`, `data-khung-tam` (đã có việc khác).
+- **Tệp kiểu** `public/app.css`: thang đo `--kg-*` ở `:root` (trước dấu mốc PWA vì có số px); phần khung nằm giữa hai dấu mốc «Khung gốc giao diện (ADR-0222)» và «Hết khung gốc giao diện (ADR-0222)» ở cuối tệp. Mọi bộ chọn trong đó mở đầu bằng `body[data-khung-goc]`, nên trang chưa chuyển không bị đụng.
+- **Hàm dựng** `web/khung.ts`: `khoi`, `luoi`, `truong`, `cap`, `thanhNut`, `thanhViec`, `thanhLoc`, `dauTrang`, `thanhDay`, `haiCot`, `dsDong`, `vungPhu`, `khuonCot`, `datKhuonBang`, `o`. Nút vẫn viết thẳng `h("button", { class: "nut", "data-cap": … })`.
+- **Sổ** `src/shared/khung-goc.ts`: bảy khuôn và mức bề rộng được khai, sổ ngoại lệ (sáu mục ADR nêu tên), danh sách trang chưa chuyển, hai máy soát thuần (`soatTrang`, `soatNgoaiLe`).
+- **Bài kiểm** `src/khung-goc.test.ts` (máy canh Đ7a), `src/khung-web.test.ts` (cấu trúc hàm dựng, khuôn cột bảng Đơn hàng); phép đếm dùng chung `scripts/giao-dien/dem-khung-goc.mjs`.
+- **Công cụ so ảnh** `docs/evidence/2026-11-21-khung-goc-thi-cong/kich-ban/so-anh.py`: so ảnh trang thật với ảnh chủ đã duyệt, in tỉ lệ điểm ảnh khác.
 
-## Điều phiên tự đề xuất trong ảnh (bề mặt, đảo ngược được; chủ duyệt bằng ảnh — Đ8 của bản đề xuất)
+## Quyết định của người thi công (bề mặt, đảo ngược được; ghi để người kiểm cân)
 
-1. **Mốc bên trong trang** theo bề rộng vùng nội dung: 560, 800, 1.040. Cửa sổ 1.130 có thanh bên là vùng 834, rơi vào mức 800 tới 1.039.
-2. **Chiều cao:** nút 44, ô nhập 48, nút chính ở thanh dính đáy 52. **Khối:** đệm 16 (vùng nội dung hẹp hơn 560) hoặc 24, bo góc 12, viền bằng bóng và bóng mềm (dáng thẻ của thị giác 1.70, chủ duyệt 2/10).
-3. **Bảng:** cột ngắn 96, vừa 128, dài 200, cột co giãn không hẹp hơn 180; dòng cao ít nhất 52; dưới 800 thành thẻ dòng hoặc danh sách dòng.
-4. **Chỗ đặt nút chính:** Danh sách — đầu trang bên phải; Chi tiết — đầu trang bên trái, việc nguy hiểm tách phải, điện thoại dính đáy; Biểu mẫu — thanh nút cuối, «Lưu» bên phải, điện thoại dính đáy; Thiết lập — đầu khối bên phải, «Sửa» cuối dòng.
-5. **Chi tiết đơn ở điện thoại:** thanh tab nhường chỗ cho nút chính dính đáy (luật thanh dính của đợt 0, K4); khối tiền lên ngay sau dải tóm tắt; «Huỷ đơn» xuống cuối trang.
-6. **Địa điểm:** biểu mẫu thêm và sửa chuyển vào bảng trượt; nút mở dùng lại đúng chữ đang có trên trang («Thêm địa điểm» là tiêu đề cũ của khối thêm, «Thêm khu vực đón» là chữ nút cũ); tên khối «Địa điểm» lấy từ tên trang; mã nằm dưới tên. Lúc thi công phải khai dòng ở bảng tham chiếu nếu máy so nút đòi (ADR-0167).
-7. **Đơn hàng dạng bảng:** bỏ chữ «Còn thu» lặp trong ô vì đầu cột đã ghi; số điện thoại nằm dưới tên khi vùng nội dung hẹp hơn 1.040.
-8. **Sửa xe:** bỏ lối «‹ Xe» trong thân trang (thanh trên đã có đường dẫn về).
+1. **«Phần khung» chỉ là đoạn giữa hai dấu mốc.** Khối «Thành phần chung v2» và khung ngoài tính là ngoài khung (vẫn bị đếm). Bổ sung cho bộ thành phần viết ở tầng 5 của phần khung. Sai thì: con số «luật bố cục riêng» cao hơn thực chất, không hại.
+2. **Trần dùng phép `≤` rồi hạ tay**, đúng khuôn bài khoá `confirm` mà ADR chỉ tới. Giữa hai lần hạ trần có thể có khoảng hở bằng số luật vừa gỡ. Thêm một danh sách trang đóng băng lúc lập luật để trang mới không thể «xin» chưa chuyển.
+3. **Không có hàm dựng nút.** Máy so chữ nút (ADR-0167) đọc `h("button", …, "Chữ")` trong mã; bọc nút trong hàm sẽ làm nó mù.
+4. **Bảng lưới của khuôn Danh sách:** màn khai cột bằng tên cột của thang (`src/shared/bang-don.ts`), hàm của khung ghép thành khuôn cột và đặt lên khối bảng; ô khai vùng bằng tên. Không có luật riêng của màn trong tệp kiểu.
+5. **Bảng Đơn hàng giữ khoảng cách 8 trước nút xổ như ảnh đã duyệt.** Đúng ở mốc 800 tới 807, cột trạng thái lấn vào khoảng cách đó tối đa 8 điểm (huy hiệu hẹp hơn cột nên không chạm nút). Cột tên khách không bao giờ hẹp hơn 180 (bài `src/khung-web.test.ts` cộng lại từ token).
+6. **Tên trang (h1):** phần khung không đặt luật; khung ngoài quyết như trước (trang không khai `data-title`, như Đơn hàng, vẫn hiện h1 ở điện thoại).
+7. **Địa điểm:** biểu mẫu thêm và sửa mở trong bảng trượt; lỗi của thao tác hiện ngay trong bảng. Bảng tham chiếu chữ nút đã cập nhật nơi đặt nút (không đổi tên nút nào).
+8. **Đơn hàng, bảng «Lọc đơn»:** chỉ đổi nút sang nút của bộ thành phần chung; bố cục bên trong bảng lọc (các lớp `loc-*`) chưa dựng lại bằng khung, vì không có trong ảnh đã duyệt. Việc còn lại cho đợt họ màn Đơn hàng.
+9. **Bài `src/don-hang-bang-theo-vung.test.ts` đã gỡ**, vì đối tượng nó canh (khối `.don-bang`) không còn; điều nó canh (bảng bật theo vùng chứa, cột tên khách không bị bóp) nay nằm ở `src/khung-goc.test.ts` và `src/khung-web.test.ts`. Dòng sổ hàng rào tương ứng phải sửa.
+10. **Máy sinh sơ đồ trang của trợ lý** (`scripts/sinh-so-do-trang.mjs`) nhận thêm thanh nút của khung; **bản gương bộ thành phần** thêm nhóm token «khung-goc».
 
-## Điều chờ chủ
+## Còn lại (cập nhật khi xong từng việc)
 
-- Duyệt bản đề xuất luật (bước 0).
-- Duyệt hình bốn màn mẫu và thang đo (tờ 1 tới 5).
-- Bề rộng trang: mặc định giữ ba mức đã duyệt 15/11; tờ 6 chỉ để so.
+- Chuyển màn **Chi tiết đơn** (khuôn Chi tiết) cho trùng ảnh đã duyệt.
+- **Lệnh đo trên trang thật** (Đ7b), dựng từ `docs/evidence/2026-11-21-khung-goc-xem-truoc/kich-ban/quet.mjs`.
+- **Quan sát đỏ thật** từng hàng rào rồi ghi dòng ở `docs/SO-HANG-RAO.md`; sửa dòng của bài đã gỡ.
+- **Hạ trần** năm con số về đúng số đo sau khi chuyển xong bốn màn.
+- **Chữ đề xuất** một điều mới của Hiến chương (`docs/superpowers/specs/2026-11-21-khung-goc-giao-dien/DE-XUAT-HIEN-CHUONG.md`), và đề xuất sửa `web/CLAUDE.md`, công thức thêm trang ở `docs/CHANGE-GUIDE.md`, `docs/TIEU-CHI-GIAO-DIEN.md` (tệp luật: chỉ đề xuất, chủ duyệt).
+- Kịch bản Chrome gắn với bốn màn (bảng ở `web/CLAUDE.md`): sửa bộ chọn đã đổi, chạy lại phần chạy được.
+- Chép lại kho dữ liệu giả của máy thử trước lượt ảnh cuối (lượt bấm thử Địa điểm đã thêm một địa điểm và một khu vực thử).
+- Bước 4.
 
-## Ghi chú kỹ thuật cho bước 2 và 3
+## Ghi chú kỹ thuật
 
-- Thuộc tính khai khuôn ở `<body>` phải là **tên mới** (bản xem trước dùng tạm `data-kg`). `data-khuon="bieu-mau"` giữ nghĩa «trang biểu mẫu không nhận dải nhắc bảo mật» (`web/dai.ts`, `src/giu-cho-dai.test.ts`).
-- Đo vùng chứa: `main` làm vùng chứa `trang`, mỗi khối làm vùng chứa `khoi`. Phần tử là vùng chứa thì thành khối chứa của con `position: fixed`: trước khi gắn cho một trang phải soát trang đó không có con `fixed` trong `main` (bốn màn mẫu: thanh đáy là `sticky`, bảng trượt và toast gắn vào `body`). Trình duyệt chưa hỗ trợ thì đứng ở bố cục hẹp nhất; phải thử iPhone đời cũ (Đ6).
-- Mã khuôn vào gói mọi trang: đo trần gói trang Đơn hàng (`src/goi-trang-nhe.test.ts`); phải nới thì ghi lý do ở lần lưu.
-- Lưới 15/11 giữ nguyên: `data-rong`, ba mức, trần 1.120, bám trái, `src/luoi-bo-cuc.test.ts`.
-- Phiên «Sửa hai lỗi bố cục làm hỏng việc» (nhánh `claude/jolly-jemison-3b33e1`) sửa màn Đơn hàng và Chính sách điều phối: nếu nó xong trước bước 3 thì dựng màn mẫu Đơn hàng trên bản đã sửa.
-- Phiên ADR-0221 (nhánh `claude/exciting-tu-2efdb7`) sửa `web/order.ts`, `web/order-form.ts`: xếp thứ tự nhập trước khi chuyển màn Chi tiết đơn; số ADR kế tiếp tính sau 0221.
+- Đo vùng chứa: `main` là vùng «trang», mỗi khối là vùng «khoi». Phần tử là vùng chứa thành khối chứa của con `position: fixed`: trang đã chuyển không đặt phần tử fixed trong `main`. Trình duyệt chưa hỗ trợ thì đứng ở bố cục hẹp nhất; **chưa thử iPhone đời cũ** (Đ6).
+- Ảnh đã duyệt chụp bằng `chup.mjs` với thứ tự bốn màn trong một lượt và, ở điện thoại, `--cao-dt 1196` cho ba màn dài; so ảnh phải chụp cùng cách.
+- Mã khuôn vào gói mọi trang dùng nó: đo trần gói trang Đơn hàng (`src/goi-trang-nhe.test.ts`) ở lượt `npm test` cuối; phải nới thì ghi lý do ở lần lưu.
+- Phiên ADR-0221 (nhánh `claude/exciting-tu-2efdb7`) sửa `web/order.ts`, `web/order-form.ts`: nhánh nào nhập sau phải nhận nhánh kia và ghép tay `web/order.ts`.
 
 ## Nhật ký
 
-- 21/11: mở phiên từ phiên phân tích. Nhánh lúc mở cắt từ bản chính, chưa có hồ sơ: tiến thẳng lên `f38b2c261`. Máy thử cổng 8843, kho `~/tourdao-khung-goc-2026-11-21/d1`. Chụp hiện tại, soạn lớp xem trước, chụp đề xuất, quét 316 ô, làm trang số và tờ so sánh bề rộng, gửi chủ sáu tờ. Dừng ở cổng duyệt của bước 0 và bước 1.
+- 21/11 sáng: mở phiên, làm bước 1, gửi chủ sáu tờ ảnh, dừng ở cổng duyệt.
+- 21/11: chủ gõ «oko duyệt». Nhập bản chính `c23447ce9`. Chép ADR-0222 (`a81600291`). Dựng khung, hàm dựng, sổ, bài kiểm; chuyển Sửa xe và Địa điểm (`65e1d541c`); chuyển Đơn hàng.
