@@ -17,6 +17,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0221 (chủ duyệt 21/11): «Đối tác không nhập nơi đón». ADR-0221, nhánh claude/exciting-tu-2efdb7, migration 0181, SỐ TẠM.
+    // SỐ TẠM 3.20: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.20",
+    date: "2026-11-21",
+    items: [
+      { kind: "moi", text: "Toàn quyền có công tắc «Đối tác không nhập nơi đón» ở trang Tôi. Khi bật, đối tác chọn Đón là xong, không phải điền nơi đón. Mặc định tắt." },
+      { kind: "moi", text: "Khi công tắc bật, văn phòng điền nơi đón ngay trong bảng Xác nhận đơn lúc bấm «Còn vé, xác nhận đơn». Chưa có nơi đón thì đơn chưa xác nhận được." },
+      { kind: "doi", text: "Chi tiết đơn ghi «Chưa có nơi đón» ở lượt đối tác gửi mà văn phòng chưa điền nơi đón." },
+    ],
+  },
+  {
     // ADR-0220 (chủ duyệt 20/11): ngừng bán một dịch vụ hoặc cả nhóm theo khoảng ngày khởi hành. Nhánh claude/pause-service-sales-23eea5. Có migration 0180.
     // SỐ TẠM 3.19: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.19",

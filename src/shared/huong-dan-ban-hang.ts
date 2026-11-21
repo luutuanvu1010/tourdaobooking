@@ -136,7 +136,7 @@ Mục "Giờ hẹn đổi — gọi báo khách" ở [[Cần xử lý]]: gọi k
     },
     {
       tieuDe: "Đơn của đối tác chờ xác nhận: kiểm vé",
-      noiDung: `Đơn đối tác gửi lên ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé, xác nhận đơn]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có dòng **Ghi chú** của đối tác và ô **Giờ đón** từng lượt. Đối tác không nhập giờ: lượt đầu ghi **(bắt buộc)**, chọn giờ rồi mới bấm [[Còn vé, xác nhận đơn]]. Giờ đã qua hạn chốt thì bấm [[Đặt gấp]] ngay trong bảng. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
+      noiDung: `Đơn đối tác gửi ở trạng thái [[Chờ xác nhận]]; khối **Xác nhận đơn** có [[Còn vé, xác nhận đơn]], [[Hết vé]] và Huỷ. Mỗi dịch vụ có **Ghi chú** của đối tác và ô **Giờ đón** từng lượt; lượt chưa có nơi đón có thêm ô **Nơi đón**. Ô ghi **(bắt buộc)** phải điền rồi bấm [[Còn vé, xác nhận đơn]]. Giờ qua hạn chốt thì bấm [[Đặt gấp]] ngay trong bảng. Xác nhận xong, gọi số liên hệ trên đơn để báo giờ; số này là của đối tác khi công tắc ẩn thông tin khách đang bật.`,
     },
     {
       tieuDe: "Tình huống hay gặp",
