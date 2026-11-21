@@ -1,6 +1,6 @@
 # Sổ vàng giá mùa vụ — bản đọc cho Kế toán
 
-> **Loại tệp:** hồ sơ có ngày. **Trạng thái:** **chờ Kế toán xác nhận** (Hiến chương 5.17: luật sinh tiền phải có ca mẫu đúng từng đồng, chủ hoặc Kế toán xác nhận).
+> **Loại tệp:** hồ sơ có ngày (ADR-0229 chủ đã duyệt 22/11/2026). **Trạng thái:** **chờ Kế toán xác nhận** (Hiến chương 5.17: luật sinh tiền phải có ca mẫu đúng từng đồng, chủ hoặc Kế toán xác nhận).
 > Bản máy đọc (nguồn duy nhất của con số): `src/shared/gia-mua-vu.so-vang.json`; bài kiểm `src/shared/gia-mua-vu.test.ts`. Sửa số thì sửa ở tệp JSON, rồi sửa bảng này cho khớp.
 > Đi kèm: đề xuất ADR-0229 `docs/superpowers/specs/2026-11-21-DE-XUAT-ADR-0229-gia-mua-vu.md`.
 
@@ -69,6 +69,23 @@ Hoa hồng theo % tính trên **cơ sở** = đơn giá trừ phần tăng mùa 
 | H11 | Xác nhận 2 người lớn, sau điều chỉnh còn 1 | 515.000 | 450.000 | 10 % | 45.000 | 470.000 |
 
 **Trần giảm giá của đại lý** bằng tổng hoa hồng của đơn (ADR-0079 điều 8), nên cũng thấp xuống theo: đơn H2 có trần **90.000 đ** (hôm nay sẽ là 103.000 đ); đơn H10 trần 120.000 đ.
+
+## Dời ngày đơn đã xác nhận: cùng mùa hay không (ADR-0229 Đ6)
+
+Đơn đã xác nhận giữ nguyên tiền. Dời ngày chỉ được khi ngày mới **cùng mùa** với lúc chụp; không thì máy chặn, văn phòng huỷ và lập đơn mới.
+
+| Ca | Tình huống | Được dời? |
+|---|---|---|
+| M1 | Chụp R1, dời 05/02 → 08/02 | được |
+| M2 | Chụp R1, dời sang 20/02 (ngoài mùa) | chặn |
+| M3 | Chụp R1, dời sang 11/02 (ngày quy tắc riêng R2 thắng) | chặn |
+| M4 | Chụp R4, nay R4 đã kết thúc, dời trong khoảng 01/03–05/03 | được |
+| M5 | Chụp «không quy tắc», dời sang ngày cũng không quy tắc | được |
+| M6 | Chụp «không quy tắc», dời vào mùa R1 | chặn |
+| M7 | Chụp «không quy tắc», dời vào khoảng của quy tắc đã kết thúc | được |
+| M8 | Chụp R2, dời trong khoảng R2 | được |
+| M9 | Chụp R2, dời sang 13/02 (chỉ còn R1) | chặn |
+| M10 | Tour 4 đảo chụp «không quy tắc», dời vào 05/02 (R5 chờ duyệt không tính, R1 đang áp) | chặn |
 
 ## Kế toán cần xác nhận
 

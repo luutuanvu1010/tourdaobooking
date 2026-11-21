@@ -1,10 +1,10 @@
 // SỔ VÀNG GIÁ MÙA VỤ (Hiến chương 5.17; đề xuất ADR-0229 — chưa duyệt). Đọc thẳng `gia-mua-vu.so-vang.json` (Kế toán xác nhận), không chép số vào đây.
-// CỐ Ý ĐỎ («đỏ trước»): hàm thuần `./gia-mua-vu.ts` CHƯA viết — chờ (1) chủ duyệt ADR-0229 (ba câu đã trả lời 21/11), (2) nhánh ADR-0218
+// CỐ Ý ĐỎ («đỏ trước»): hàm thuần `./gia-mua-vu.ts` CHƯA viết — ADR-0229 chủ đã duyệt 22/11; chờ (1) Kế toán xác nhận sổ vàng, (2) nhánh ADR-0218
 // vào bản chính. Nhánh này KHÔNG được đưa vào `npm run day-len` khi tệp này còn đỏ.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { coSoHoaHong, kiemChongNgay, kiemQuyTacMoi, tinhGiaMuaVu, type QuyTacMuaVu } from "./gia-mua-vu.ts";
+import { coSoHoaHong, cungMua, kiemChongNgay, kiemQuyTacMoi, tinhGiaMuaVu, type QuyTacMuaVu } from "./gia-mua-vu.ts";
 import { hoaHongDong } from "./hoa-hong-dong.ts";
 
 type CaGia = { ca: string; moTa: string; giaGoc: number | null; maDichVu: string; maNhom: string | null; ngayDi: string | null; gia: number | null; quyTacId: string | null; soTang: number };
@@ -20,6 +20,7 @@ const SO = JSON.parse(readFileSync(new URL("./gia-mua-vu.so-vang.json", import.m
   kiemQuyTacMoi: { tranPhanTram: number; homNay: string; ca: CaQuyTac[] };
   kiemChongNgay: CaChong[];
   hoaHong: { ca: CaHoaHong[] };
+  cungMua: { ca: { ca: string; moTa: string; quyTacDaChup: string | null; maDichVu: string; maNhom: string | null; ngayMoi: string; cungMua: boolean }[] };
 };
 
 for (const c of SO.tinhGia) {
@@ -53,6 +54,13 @@ for (const c of SO.hoaHong.ca) {
     assert.equal(thanhTien - hoaHong, c.giaDaiLy);
     // Đơn một dịch vụ: trần giảm giá của đại lý = tổng hoa hồng (ADR-0079 điều 8) — trần thấp xuống trong mùa.
     if (c.tranGiamGia !== undefined) assert.equal(hoaHong, c.tranGiamGia);
+  });
+}
+
+// ADR-0229 Đ6: «cùng mùa» theo bản chụp khi đổi ngày đơn đã chụp.
+for (const c of SO.cungMua.ca) {
+  test(`cùng mùa ${c.ca}: ${c.moTa}`, () => {
+    assert.equal(cungMua({ quyTacDaChup: c.quyTacDaChup, maDichVu: c.maDichVu, maNhom: c.maNhom, ngayMoi: c.ngayMoi, quyTac: SO.quyTac }), c.cungMua);
   });
 }
 

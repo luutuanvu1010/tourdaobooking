@@ -674,5 +674,100 @@
         "giaDaiLy": 470000
       }
     ]
+  },
+  "cungMua": {
+    "_ghiChu": "ADR-0229 Đ6: đổi ngày đơn đã chụp — «cùng mùa» theo bản chụp. (a) chụp quy tắc Q: ngày mới trong khoảng của CHÍNH Q (dù Q đã kết thúc) và không quy tắc đang áp nào khác thắng Q ở ngày mới; (b) chụp «không quy tắc»: ngày mới không có quy tắc đang áp nào. Không cùng mùa ⇒ 409 seasonal_date_changed. Dùng cùng bộ quy tắc R1–R5 ở trên.",
+    "ca": [
+      {
+        "ca": "M1",
+        "moTa": "Chụp R1, dời trong mùa R1",
+        "quyTacDaChup": "R1",
+        "maDichVu": "T3D",
+        "maNhom": "TOUR_DAO",
+        "ngayMoi": "2027-02-08",
+        "cungMua": true
+      },
+      {
+        "ca": "M2",
+        "moTa": "Chụp R1, dời ra ngoài mùa",
+        "quyTacDaChup": "R1",
+        "maDichVu": "T3D",
+        "maNhom": "TOUR_DAO",
+        "ngayMoi": "2027-02-20",
+        "cungMua": false
+      },
+      {
+        "ca": "M3",
+        "moTa": "Chụp R1, dời vào ngày quy tắc dịch vụ R2 thắng",
+        "quyTacDaChup": "R1",
+        "maDichVu": "T3D",
+        "maNhom": "TOUR_DAO",
+        "ngayMoi": "2027-02-11",
+        "cungMua": false
+      },
+      {
+        "ca": "M4",
+        "moTa": "Chụp R4 (nay đã kết thúc), dời trong khoảng R4",
+        "quyTacDaChup": "R4",
+        "maDichVu": "T3D",
+        "maNhom": "TOUR_DAO",
+        "ngayMoi": "2027-03-02",
+        "cungMua": true
+      },
+      {
+        "ca": "M5",
+        "moTa": "Chụp không quy tắc, dời sang ngày cũng không quy tắc",
+        "quyTacDaChup": null,
+        "maDichVu": "T3D",
+        "maNhom": "TOUR_DAO",
+        "ngayMoi": "2027-02-20",
+        "cungMua": true
+      },
+      {
+        "ca": "M6",
+        "moTa": "Chụp không quy tắc, dời vào mùa R1",
+        "quyTacDaChup": null,
+        "maDichVu": "T3D",
+        "maNhom": "TOUR_DAO",
+        "ngayMoi": "2027-02-05",
+        "cungMua": false
+      },
+      {
+        "ca": "M7",
+        "moTa": "Chụp không quy tắc, dời vào khoảng của quy tắc đã kết thúc (R4)",
+        "quyTacDaChup": null,
+        "maDichVu": "T3D",
+        "maNhom": "TOUR_DAO",
+        "ngayMoi": "2027-03-03",
+        "cungMua": true
+      },
+      {
+        "ca": "M8",
+        "moTa": "Chụp R2, dời trong khoảng R2",
+        "quyTacDaChup": "R2",
+        "maDichVu": "T3D",
+        "maNhom": "TOUR_DAO",
+        "ngayMoi": "2027-02-10",
+        "cungMua": true
+      },
+      {
+        "ca": "M9",
+        "moTa": "Chụp R2, dời ra ngày chỉ còn quy tắc nhóm R1",
+        "quyTacDaChup": "R2",
+        "maDichVu": "T3D",
+        "maNhom": "TOUR_DAO",
+        "ngayMoi": "2027-02-13",
+        "cungMua": false
+      },
+      {
+        "ca": "M10",
+        "moTa": "Tour 4 đảo chụp không quy tắc, dời vào 05/02: R5 chờ duyệt không tính nhưng R1 đang áp",
+        "quyTacDaChup": null,
+        "maDichVu": "T4D",
+        "maNhom": "TOUR_DAO",
+        "ngayMoi": "2027-02-05",
+        "cungMua": false
+      }
+    ]
   }
 }
