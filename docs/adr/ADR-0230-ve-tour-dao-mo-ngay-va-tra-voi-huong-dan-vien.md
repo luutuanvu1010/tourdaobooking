@@ -1,6 +1,6 @@
 # ADR-0230 — Đơn đối tác toàn vé Tour Đảo hiện vé ngay; hình thức trả với hướng dẫn viên; «Vé do ai phát» theo nhóm
 
-- **Trạng thái:** **proposed** 2026-11-21 — bản nháp của phiên thi công Việc 11 (kế hoạch `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md` ở nhánh `claude/partner-features-detailed-plan-f32f89`). Chờ chủ trả lời ba câu ở cuối tệp rồi mới viết lại thành bản duyệt. Chưa có mã. Chưa có người kiểm độc lập đọc.
+- **Trạng thái:** **proposed** 2026-11-21 — bản nháp của phiên thi công Việc 11 (kế hoạch `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md` ở nhánh `claude/partner-features-detailed-plan-f32f89`). Chủ đã trả lời câu 1 của kế hoạch qua phiên điều phối 21/11, nguyên văn: *«còn lại áp dụng như khuyến nghị»* — tức đồng ý hết, công tắc «Khách của đối tác trả cho Công ty» để Bật nhưng chỉ tiền mặt; với việc 11 áp khuyến nghị của kế hoạch (ghi vào Đ1 mục 5, Đ2 mục 3–4). Còn chờ chủ: chọn phương án A/B và danh sách đầu tiên (câu 3), chọn tên hình thức, rồi duyệt toàn văn. Chưa có mã. Chưa có người kiểm độc lập đọc.
 - **Loại:** việc lớn (tiền, dữ liệu). **Cửa:** hai chiều về hành vi (gỡ dòng danh sách, gỡ dòng nhóm); vé đã mở không lấy lại được (ADR-0153 Đ1 mục 6) — đây là phần một chiều.
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt: 3** (Đ1, Đ2, Đ3), đúng trần `CLAUDE.md` §9. Trang ghép ở mục cuối tệp.
 - **Số giữ trước:** ADR-0230; migration `0186` (Đ1 + Đ3), `0187` (Đ2). Không dùng số khác.
@@ -27,8 +27,8 @@ Hôm nay vé Tour Đảo hiện ngay khi đơn văn phòng xác nhận. Đơn th
 
 1. Lưu bằng **bảng riêng chỉ thêm của `orders`** (mỗi đơn tối đa một dòng hiệu lực, chụp lúc lập hoặc lúc chọn khi còn nháp, khoá sau nháp bằng trigger như `payment_term`). Đơn mang dòng này vẫn có `payment_term = 'PREPAID'`. **Không** thêm giá trị vào CHECK của `orders.payment_term`, vì việc đó buộc dựng lại cả bảng đơn hàng.
 2. Ý nghĩa: khách trả tiền mặt cho hướng dẫn viên phụ trách khi đi tour. Màn «Việc của tôi» của hướng dẫn viên hiện số cần thu; ghi thu theo đường tiền mặt sẵn có (người thu = hướng dẫn viên). Không mở QR, không chuyển khoản.
-3. Đơn văn phòng lập: vé đã mở lúc xác nhận như hôm nay, nên hình thức này chỉ đổi nhãn và việc của hướng dẫn viên. Đơn đối tác (nếu câu 2 là «có»): chỉ cho đối tác **không** có Trả sau, chỉ khi công tắc «Khách của đối tác trả cho Công ty» đang Bật (ADR-0178 Đ1 — khi Tắt thì hướng dẫn viên không ghi thu được đơn đối tác, migration `0144`), và vé mở trước tiền theo Đ1.
-4. Khách không trả: nợ ghi cho bên chịu theo câu 1. «Khách đã trả đủ» vẫn đòi thu đủ như hôm nay.
+3. **Ai được chọn (chủ đã chốt):** đơn văn phòng lập và đơn của đối tác **không** có Trả sau. Đối tác đang Trả sau chỉ thấy «Trả sau» (Việc 2). Đơn văn phòng: vé đã mở lúc xác nhận như hôm nay, nên hình thức này chỉ đổi nhãn và việc của hướng dẫn viên. Đơn đối tác: cần công tắc «Khách của đối tác trả cho Công ty» Bật (chủ đã chốt để Bật, chỉ tiền mặt); nếu sau này Toàn quyền Tắt thì đơn đối tác lập lúc Tắt không có hình thức này (ADR-0178 Đ1, migration `0144` cấm hướng dẫn viên ghi thu). Vé mở trước tiền chỉ khi đơn đủ điều kiện Đ1.
+4. **Khách không trả (chủ đã chốt):** đơn văn phòng — khách nợ Tour Đảo; đơn đối tác — đối tác nợ Tour Đảo (vào công nợ đại lý như mọi khoản chưa thu). «Khách đã trả đủ» vẫn đòi thu đủ như hôm nay.
 
 ## Đ3 — «Vé do ai phát» theo nhóm
 
@@ -65,7 +65,7 @@ Hôm nay vé Tour Đảo hiện ngay khi đơn văn phòng xác nhận. Đơn th
 
 ## Câu hỏi cho chủ (gửi qua phiên điều phối)
 
-1. Khách không trả hướng dẫn viên thì ai chịu nợ? Khuyến nghị: đơn văn phòng — khách nợ Tour Đảo; đơn đối tác — đối tác nợ Tour Đảo.
-2. Hình thức trả với hướng dẫn viên có áp cho đơn đối tác không? Khuyến nghị: có, chỉ cho đối tác không có Trả sau và chỉ khi công tắc «Khách của đối tác trả cho Công ty» Bật.
-3. Danh sách sản phẩm/nhóm được mở vé ngay: dùng lại dấu «Trả sau theo dịch vụ» đã duyệt (B, khuyến nghị) hay danh sách riêng chỉ để mở vé (A)? Kèm các nhóm/dịch vụ đầu tiên.
+1. ~~Ai chịu nợ~~ — đã chốt 21/11 theo khuyến nghị (Đ2 mục 4).
+2. ~~Có áp cho đơn đối tác không~~ — đã chốt 21/11 theo khuyến nghị (Đ2 mục 3).
+3. **Còn chờ.** Danh sách sản phẩm/nhóm được mở vé ngay: dùng lại dấu «Trả sau theo dịch vụ» đã duyệt (B, khuyến nghị) hay danh sách riêng chỉ để mở vé (A)? Kèm các nhóm/dịch vụ đầu tiên.
 - Kèm chọn tên: «Trả với hướng dẫn viên» / «Trả tiền mặt khi đi tour» / «Thanh toán với hướng dẫn viên».
