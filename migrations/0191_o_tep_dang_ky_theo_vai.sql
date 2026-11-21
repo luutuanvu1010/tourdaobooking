@@ -56,14 +56,15 @@ LIMIT 1;
 
 -- ===== dang-ky — 12 tệp mỗi phiếu (ADR-0233 Đ4) =====
 -- Chép dòng ĐANG hiệu lực (không chép số gieo của 0170: production có thể đã có dòng mới hơn — công tắc nhận đăng ký, loại mở), chỉ đổi photo_max_count; không hạ nếu đã ≥ 12.
--- Mốc mới = sau «bây giờ» và sau mốc lớn nhất đang có ít nhất 1 ms (cột UNIQUE; bảng chỉ thêm).
+-- Mốc mới = «bây giờ», hoặc 1 ms sau mốc của dòng đang hiệu lực nếu mốc đó trùng/sau (cột UNIQUE; bảng chỉ thêm). KHÔNG nhảy qua dòng hẹn giờ tương lai: dòng hẹn (vd hẹn đóng
+-- đăng ký) vẫn có hiệu lực đúng giờ của nó, không bị dòng này đè (soát độc lập 21/11). Dòng hẹn đó giữ con số tệp của chính nó.
 INSERT INTO dk_policy (id, registration_open, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour,
   session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, photo_max_count, anonymize_days, files_per_network_hour,
   phieu_required_items, valid_from_at, created_at, created_by, updated_at, updated_by)
 SELECT 'mig-0191', p.registration_open, p.open_role_codes, p.code_digits, p.code_ttl_minutes, p.code_max_attempts, p.ask_per_mailbox, p.ask_per_network, p.ask_window_minutes, p.ask_global_per_hour,
   p.session_idle_minutes, p.session_max_hours, p.draft_expire_days, p.supplement_expire_days, p.activation_days, p.activation_grace_days, p.photo_max_mb, 12, p.anonymize_days, p.files_per_network_hour,
   p.phieu_required_items,
-  strftime('%Y-%m-%dT%H:%M:%fZ', max(julianday('now'), julianday((SELECT max(valid_from_at) FROM dk_policy)) + 0.001 / 86400.0)),
+  strftime('%Y-%m-%dT%H:%M:%fZ', max(julianday('now'), julianday(p.valid_from_at) + 0.001 / 86400.0)),
   strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL
 FROM dk_policy p
 WHERE p.valid_from_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now') AND p.photo_max_count < 12

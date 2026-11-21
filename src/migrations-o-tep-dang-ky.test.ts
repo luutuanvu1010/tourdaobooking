@@ -67,3 +67,14 @@ test("dk_policy 12 tệp: chép dòng ĐANG hiệu lực (kể cả dòng đã m
   db.exec(phanCuoi);
   assert.equal(rows(db, "SELECT count(*) n FROM dk_policy WHERE id = 'mig-0191-lai'")[0]!.n, 0);
 });
+
+test("dk_policy 12 tệp: có dòng hẹn giờ TƯƠNG LAI (vd hẹn đóng đăng ký) ⇒ dòng mới đứng TRƯỚC nó, dòng hẹn vẫn thắng khi tới giờ (soát độc lập 21/11)", () => {
+  const db = den(true);
+  db.exec(`INSERT INTO dk_policy (id, ${COT}, photo_max_count, valid_from_at, created_at, created_by, updated_at, updated_by)
+    SELECT 'hen-dong', 0, open_role_codes, code_digits, code_ttl_minutes, code_max_attempts, ask_per_mailbox, ask_per_network, ask_window_minutes, ask_global_per_hour, session_idle_minutes, session_max_hours, draft_expire_days, supplement_expire_days, activation_days, activation_grace_days, photo_max_mb, anonymize_days, files_per_network_hour, phieu_required_items, photo_max_count, '2999-01-01T00:00:00.000Z', 'x', 's', 'x', 's' FROM dk_policy WHERE id = 'gieo-0170'`);
+  db.exec(sqlOf(FILE));
+  const moi = rows(db, "SELECT valid_from_at FROM dk_policy WHERE id = 'mig-0191'")[0]!;
+  assert.ok(String(moi.valid_from_at) < "2999-01-01T00:00:00.000Z", "không nhảy qua dòng hẹn");
+  assert.equal(rows(db, "SELECT id FROM dk_policy ORDER BY valid_from_at DESC LIMIT 1")[0]!.id, "hen-dong", "tới giờ thì dòng hẹn là dòng hiệu lực");
+  assert.equal(rows(db, "SELECT id FROM dk_policy WHERE valid_from_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now') ORDER BY valid_from_at DESC LIMIT 1")[0]!.id, "mig-0191");
+});
