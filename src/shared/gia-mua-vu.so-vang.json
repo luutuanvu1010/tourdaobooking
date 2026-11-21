@@ -1,0 +1,58 @@
+{
+  "_ghiChu": "Sổ vàng giá mùa vụ (Hiến chương 5.17; đề xuất ADR-0229). TRẠNG THÁI: CHỜ KẾ TOÁN XÁC NHẬN — chưa có hiệu lực. Bản đọc cho người: docs/superpowers/specs/2026-11-21-so-vang-gia-mua-vu.md. Công thức (câu 2 chờ chủ): ceil((gốc × (100 + %) + tiền × 100) / 100000) × 1000; không quy tắc ⇒ giữ nguyên giá gốc. Giá gốc = giá sau ghi đè Quản trị. Mọi ngày là ngày đi, giờ Việt Nam.",
+  "trangThai": "CHO_KE_TOAN_XAC_NHAN",
+  "quyTac": [
+    { "id": "R1", "phamVi": "GROUP", "ma": "TOUR_DAO", "tu": "2027-02-01", "den": "2027-02-15", "phanTram": 10, "soTien": 20000, "daDuyet": true, "daKetThuc": false },
+    { "id": "R2", "phamVi": "SERVICE", "ma": "T3D", "tu": "2027-02-10", "den": "2027-02-12", "phanTram": 5, "soTien": 0, "daDuyet": true, "daKetThuc": false },
+    { "id": "R3", "phamVi": "SERVICE", "ma": "VE_CANO", "tu": "2027-02-01", "den": "2027-02-28", "phanTram": 0, "soTien": 50000, "daDuyet": true, "daKetThuc": false },
+    { "id": "R4", "phamVi": "GROUP", "ma": "TOUR_DAO", "tu": "2027-03-01", "den": "2027-03-05", "phanTram": 20, "soTien": 0, "daDuyet": true, "daKetThuc": true },
+    { "id": "R5", "phamVi": "SERVICE", "ma": "T4D", "tu": "2027-02-01", "den": "2027-02-15", "phanTram": 50, "soTien": 0, "daDuyet": false, "daKetThuc": false }
+  ],
+  "tinhGia": [
+    { "ca": "C1", "moTa": "Ví dụ kế hoạch: Tour 3 đảo 450.000, quy tắc nhóm +10% +20.000", "giaGoc": 450000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-05", "gia": 515000, "quyTacId": "R1", "soTang": 65000 },
+    { "ca": "C2", "moTa": "Ngoài mùa", "giaGoc": 450000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-20", "gia": 450000, "quyTacId": null, "soTang": 0 },
+    { "ca": "C3", "moTa": "Biên đầu khoảng (gồm)", "giaGoc": 450000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-01", "gia": 515000, "quyTacId": "R1", "soTang": 65000 },
+    { "ca": "C4", "moTa": "Biên cuối khoảng (gồm)", "giaGoc": 450000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-15", "gia": 515000, "quyTacId": "R1", "soTang": 65000 },
+    { "ca": "C5", "moTa": "Trước khoảng một ngày", "giaGoc": 450000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-01-31", "gia": 450000, "quyTacId": null, "soTang": 0 },
+    { "ca": "C6", "moTa": "Sau khoảng một ngày", "giaGoc": 450000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-16", "gia": 450000, "quyTacId": null, "soTang": 0 },
+    { "ca": "C7", "moTa": "Dịch vụ thắng nhóm; làm tròn lên 472.500 → 473.000", "giaGoc": 450000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-11", "gia": 473000, "quyTacId": "R2", "soTang": 23000 },
+    { "ca": "C8", "moTa": "Biên cuối quy tắc dịch vụ", "giaGoc": 450000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-12", "gia": 473000, "quyTacId": "R2", "soTang": 23000 },
+    { "ca": "C9", "moTa": "Hết quy tắc dịch vụ, còn quy tắc nhóm", "giaGoc": 450000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-13", "gia": 515000, "quyTacId": "R1", "soTang": 65000 },
+    { "ca": "C10", "moTa": "Quy tắc dịch vụ CHỜ DUYỆT không áp; rơi về quy tắc nhóm", "giaGoc": 600000, "maDichVu": "T4D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-05", "gia": 680000, "quyTacId": "R1", "soTang": 80000 },
+    { "ca": "C11", "moTa": "Làm tròn lên: 455.000 × 1,1 + 20.000 = 520.500 → 521.000", "giaGoc": 455000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-05", "gia": 521000, "quyTacId": "R1", "soTang": 66000 },
+    { "ca": "C12", "moTa": "Chỉ tăng số tiền", "giaGoc": 200000, "maDichVu": "VE_CANO", "maNhom": "CANO", "ngayDi": "2027-02-14", "gia": 250000, "quyTacId": "R3", "soTang": 50000 },
+    { "ca": "C13", "moTa": "Quy tắc đã kết thúc không áp", "giaGoc": 450000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-03-03", "gia": 450000, "quyTacId": null, "soTang": 0 },
+    { "ca": "C14", "moTa": "Dịch vụ chưa có ngày đi", "giaGoc": 450000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": null, "gia": 450000, "quyTacId": null, "soTang": 0 },
+    { "ca": "C15", "moTa": "Nhóm khác, không quy tắc", "giaGoc": 450000, "maDichVu": "KS1", "maNhom": "KHACH_SAN", "ngayDi": "2027-02-05", "gia": 450000, "quyTacId": null, "soTang": 0 },
+    { "ca": "C16", "moTa": "Dịch vụ tính theo nhóm khách: áp lên giá mỗi nhóm", "giaGoc": 1200000, "maDichVu": "CANO_RIENG", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-05", "gia": 1340000, "quyTacId": "R1", "soTang": 140000 },
+    { "ca": "C17", "moTa": "Có ghi đè Quản trị: Sheet 450.000, ghi đè 480.000 ⇒ giá gốc 480.000", "giaGoc": 480000, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-05", "gia": 548000, "quyTacId": "R1", "soTang": 68000 },
+    { "ca": "C18", "moTa": "Dịch vụ chưa có giá giữ chưa có giá", "giaGoc": null, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-05", "gia": null, "quyTacId": null, "soTang": 0 },
+    { "ca": "C19", "moTa": "Giá 0 đ (miễn phí) giữ 0 đ — KẾ TOÁN XÁC NHẬN RIÊNG (khuyến nghị: không cộng số tiền vào khách miễn phí)", "giaGoc": 0, "maDichVu": "T3D", "maNhom": "TOUR_DAO", "ngayDi": "2027-02-05", "gia": 0, "quyTacId": null, "soTang": 0 }
+  ],
+  "kiemQuyTacMoi": {
+    "_ngu": "tranPhanTram = 30, homNay = 2027-01-20",
+    "tranPhanTram": 30,
+    "homNay": "2027-01-20",
+    "ca": [
+      { "ca": "V1", "vao": { "phanTram": 10, "soTien": 20000, "tu": "2027-02-01", "den": "2027-02-15" }, "loi": null },
+      { "ca": "V2", "vao": { "phanTram": 0, "soTien": 0, "tu": "2027-02-01", "den": "2027-02-15" }, "loi": "khong_tang" },
+      { "ca": "V3", "vao": { "phanTram": -5, "soTien": 0, "tu": "2027-02-01", "den": "2027-02-15" }, "loi": "phan_tram" },
+      { "ca": "V4", "vao": { "phanTram": 0, "soTien": -1000, "tu": "2027-02-01", "den": "2027-02-15" }, "loi": "so_tien" },
+      { "ca": "V5", "vao": { "phanTram": 31, "soTien": 0, "tu": "2027-02-01", "den": "2027-02-15" }, "loi": "vuot_tran" },
+      { "ca": "V6", "vao": { "phanTram": 30, "soTien": 0, "tu": "2027-02-01", "den": "2027-02-15" }, "loi": null },
+      { "ca": "V7", "vao": { "phanTram": 10, "soTien": 0, "tu": "2027-02-15", "den": "2027-02-01" }, "loi": "khoang_ngay" },
+      { "ca": "V8", "vao": { "phanTram": 10, "soTien": 0, "tu": "2027-01-10", "den": "2027-01-19" }, "loi": "qua_khu" },
+      { "ca": "V9", "vao": { "phanTram": 10, "soTien": 0, "tu": "2027-01-10", "den": "2027-01-20" }, "loi": null },
+      { "ca": "V10", "vao": { "phanTram": 2.5, "soTien": 0, "tu": "2027-02-01", "den": "2027-02-15" }, "loi": "phan_tram" },
+      { "ca": "V11", "vao": { "phanTram": 0, "soTien": 1500.5, "tu": "2027-02-01", "den": "2027-02-15" }, "loi": "so_tien" }
+    ]
+  },
+  "kiemChongNgay": [
+    { "ca": "O1", "moTa": "Cùng nhóm, chồng R1", "moi": { "phamVi": "GROUP", "ma": "TOUR_DAO", "tu": "2027-02-10", "den": "2027-02-20" }, "trung": "R1" },
+    { "ca": "O2", "moTa": "Cùng nhóm, liền kề không chồng", "moi": { "phamVi": "GROUP", "ma": "TOUR_DAO", "tu": "2027-02-16", "den": "2027-02-28" }, "trung": null },
+    { "ca": "O3", "moTa": "Dịch vụ chồng quy tắc nhóm: được", "moi": { "phamVi": "SERVICE", "ma": "T3D", "tu": "2027-02-01", "den": "2027-02-05" }, "trung": null },
+    { "ca": "O4", "moTa": "Cùng dịch vụ, chạm biên R2", "moi": { "phamVi": "SERVICE", "ma": "T3D", "tu": "2027-02-12", "den": "2027-02-14" }, "trung": "R2" },
+    { "ca": "O5", "moTa": "Quy tắc đã kết thúc không tính", "moi": { "phamVi": "GROUP", "ma": "TOUR_DAO", "tu": "2027-03-01", "den": "2027-03-05" }, "trung": null },
+    { "ca": "O6", "moTa": "Quy tắc chờ duyệt vẫn tính", "moi": { "phamVi": "SERVICE", "ma": "T4D", "tu": "2027-02-10", "den": "2027-02-11" }, "trung": "R5" }
+  ]
+}
