@@ -4404,8 +4404,7 @@ body[data-title="Tạo đơn"] .topbar-new { display: none; }
 .tab-phu[data-kieu="vien"] > [role="tab"] { flex: none; min-height: var(--h-control); padding: 0 var(--pad-chip); font: inherit; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-input-border); border-radius: var(--radius-pill); cursor: pointer; }
 .tab-phu[data-kieu="vien"] > [aria-selected="true"] { color: var(--c-primary-strong); background: var(--c-primary-soft); border-color: var(--c-primary); }
 .tab-phu [role="tab"]:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: var(--vanh-cach); }
-.tab-phu > [role="tab"][data-hinh] { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); } /* Việc 16: thẻ con có hình (web/hinh-the-phu.ts) */
-.tab-phu > [role="tab"][data-hinh] > svg { flex: none; }
+.tab-phu > [role="tab"][data-hinh] > svg { vertical-align: middle; margin-inline-end: var(--s2); } /* Việc 16: hình của thẻ con (web/hinh-the-phu.ts) đứng như chữ đầu dòng — chữ dài vẫn xuống dòng dùng hết bề ngang thẻ */
 
 .dai { display: flex; align-items: center; gap: var(--s3); min-height: var(--h-dai-tren); padding: var(--s2) var(--le-trang); font-size: var(--fs-label); color: var(--c-text-muted); background: var(--c-surface-alt); }
 .dai[data-tong="bien"] { color: var(--c-primary-strong); background: var(--c-primary-soft); }
