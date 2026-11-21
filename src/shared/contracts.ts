@@ -292,6 +292,15 @@ export interface BatBuocGioDonResponse { bat: boolean; doiDuoc: boolean }
 /** Thân `POST /api/cai-dat/bat-buoc-gio-don` (chỉ Toàn quyền). */
 export interface BatBuocGioDonRequest { bat: boolean }
 
+/**
+ * `GET`/`POST /api/cai-dat/noi-don-doi-tac` (ADR-0221 Đ1): `bat` = công tắc «Đối tác không nhập nơi đón» đang BẬT (mặc định TẮT); `apChoToi` = công tắc đang áp cho CHÍNH người gọi
+ * = `bat` VÀ người gọi giữ quyền Đối tác (`holdsPartner`, kể cả tài khoản lai — chủ chọn câu 2) — form Tạo đơn ẩn các ô của lượt đúng khi `apChoToi`, không tự suy từ mã quyền;
+ * `doiDuoc` = người gọi bật / tắt được (ô `settings.ops`, chỉ Toàn quyền).
+ */
+export interface NoiDonDoiTacResponse { bat: boolean; apChoToi: boolean; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/noi-don-doi-tac` (chỉ Toàn quyền). */
+export interface NoiDonDoiTacRequest { bat: boolean }
+
 // ---- Khung giờ đón (ADR-0134 Đ5, Đ6; module `orders`) ----
 /** `GET`/`POST /api/cai-dat/khung-gio-don`: bộ khung đang hiệu lực + câu lưu ý; `doiDuoc` = người gọi đổi được (ô `settings.ops` — chỉ Toàn quyền). */
 export interface KhungGioDonResponse { khung: KhungGio[]; luuY: string; doiDuoc: boolean }
@@ -825,6 +834,8 @@ export interface PhiDonApResponse { dangAp: boolean }
 export interface ShortNoticeRequiredBody { error: { code: "short_notice_required"; message: string; legs: { legId: string; phutConLai: number }[] } }
 /** 409 Còn vé khi yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.2, Đ1.3) mà lượt đầu của một dịch vụ còn thiếu giờ đón: `legs` = các lượt đầu còn thiếu. Không ghi gì. */
 export interface PickupTimeRequiredBody { error: { code: "pickup_time_required"; message: string; legs: { legId: string }[] } }
+/** 409 `pickup_place_required` (ADR-0221 Đ3): sau lệnh còn lượt đón MỞ chưa có nơi đón thật (mang chữ tạm) — ghi nơi đón ở bảng Còn vé rồi xác nhận lại. `legs` = các lượt còn thiếu. */
+export interface PickupPlaceRequiredBody { error: { code: "pickup_place_required"; message: string; legs: { legId: string }[] } }
 /** 409 `chua_gio_sat_ngay` (ADR-0193 câu (ii)): còn lượt đón CHƯA giờ mà ngày đón đã vào hạn chốt — điền giờ rồi xác nhận lại. `legs` = các lượt chạm luật. */
 export interface ChuaGioSatNgayBody { error: { code: "chua_gio_sat_ngay"; message: string; legs: { legId: string }[] } }
 
@@ -3493,6 +3504,12 @@ export interface QuyetDinhXacNhanInput {
    * đơn hoặc nhắc hai lần ⇒ 400; mức sai ⇒ 400 cùng câu của `kiemMucChon`. Tài khoản giữ quyền Đối tác gửi khoá này (kể cả `null`) ⇒ 400 `transfer_fee_not_allowed`.
    */
   phiDon?: { legId: string; muc: MucChon }[];
+  /**
+   * Nơi đón người xét ghi cho các lượt đón MỞ đang CHƯA có nơi đón thật (mang chữ tạm — ADR-0221 Đ3): chỉ nhánh Còn vé đọc. Mỗi phần tử ĐÚNG MỘT trong hai: `pickupLocationId` (điểm danh
+   * mục đang dùng) hoặc `pickupPlace` (chữ 1–200 ký tự; chữ tạm bị từ chối). Lượt đã có nơi đón thật, lượt không phải lượt mở của đơn, nhắc hai lần ⇒ 400. Sau lệnh còn lượt thiếu ⇒ 409
+   * `pickup_place_required` (`PickupPlaceRequiredBody`).
+   */
+  noiDon?: { legId: string; pickupLocationId?: string; pickupPlace?: string }[];
   lyDo?: string;
   ghiChu?: string;
 }

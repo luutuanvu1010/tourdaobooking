@@ -1875,7 +1875,7 @@ test("R-ORD-11 (Đợt 5 A-1b — ADR-0052 D5b, chủ duyệt 5/10, đề xuất
   assert.equal(violations(db, c), 3, "sự kiện trên suất cùng khoá nhưng chặng của đơn khác — vẫn vi phạm");
 });
 
-test("R-ORD-12: chặng mở của đơn chưa huỷ còn nơi đón tạm '(chưa ghi nơi đón)' → đếm (cảnh báo); đơn huỷ / chặng đóng → không", () => {
+test("R-ORD-12 (ADR-0221): chặng mở của đơn ĐÃ XÁC NHẬN còn nơi đón tạm '(chưa ghi nơi đón)' → đếm (cảnh báo); đơn nháp (kể cả đang chờ văn phòng) / đơn huỷ / chặng đóng → không", () => {
   const c = one("R-ORD-12");
   assert.equal(c.level, "warn");
   const db = build();
@@ -1883,6 +1883,12 @@ test("R-ORD-12: chặng mở của đơn chưa huỷ còn nơi đón tạm '(ch�
   dvDon(db, { id: "s1", orderId: "o-1" });
   chang(db, { id: "l1", orderId: "o-1", svc: "s1", place: "(chưa ghi nơi đón)" });
   chang(db, { id: "l2", orderId: "o-1", svc: "s1", place: "(chưa ghi nơi đón)", closed: true });
+  // ADR-0221 Đ2: đơn NHÁP của tài khoản giữ quyền Đối tác mang chữ tạm là trạng thái hợp lệ (chờ văn phòng điền lúc Còn vé) — không đếm.
+  assert.equal(violations(db, c), 0, "đơn nháp mang chữ tạm: hợp lệ, không đếm");
+  xacNhan(db, "o-1");
+  addOrder(db, "o-3");
+  dvDon(db, { id: "s3", orderId: "o-3" });
+  chang(db, { id: "l4", orderId: "o-3", svc: "s3", place: "(chưa ghi nơi đón)" });
   addOrder(db, "o-2");
   dvDon(db, { id: "s2", orderId: "o-2" });
   chang(db, { id: "l3", orderId: "o-2", svc: "s2", place: "(chưa ghi nơi đón)" });

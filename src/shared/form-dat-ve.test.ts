@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { GOI_Y_GHI_CHU_DOI_TAC, GOI_Y_GIAM_GIA_DOI_TAC, MAX_GHI_CHU_DICH_VU, NHAN_GHI_CHU_DOI_TAC, duaDonChiNoiDon, formGonDoiTac, ghiChuMotDong } from "./form-dat-ve.ts";
+import { GOI_Y_GHI_CHU_DOI_TAC, GOI_Y_GIAM_GIA_DOI_TAC, MAX_GHI_CHU_DICH_VU, NHAN_GHI_CHU_DOI_TAC, duaDonAnHetLuot, duaDonChiNoiDon, formGonDoiTac, ghiChuMotDong } from "./form-dat-ve.ts";
 
 test("formGonDoiTac: mọi tài khoản có quyền Đối tác (kể cả lai Bán hàng + Đối tác) dùng form gọn; tài khoản không có quyền Đối tác thì không", () => {
   assert.equal(formGonDoiTac({ permissions: ["PARTNER"] }), true);
@@ -47,4 +47,20 @@ test("duaDonChiNoiDon: chỉ thu gọn khi đúng một lượt chiều đi, cù
   assert.equal(duaDonChiNoiDon([{ ...l, tra: "loc-1", goiYTra: true }], "2026-12-01"), true, "nơi trả là gợi ý của dịch vụ: vẫn thu gọn");
   assert.equal(duaDonChiNoiDon([{ ...l, tra: "tudo", traTuDo: "Khách sạn Z, 12 Trần Phú" }], "2026-12-01"), false, "nơi trả tự gõ: hiện đủ");
   assert.equal(duaDonChiNoiDon([{ ...l, tra: "loc-2", goiYTra: false }], "2026-12-01"), false, "nơi trả tự chọn (không còn là gợi ý): hiện đủ");
+});
+
+// ADR-0221 Đ2: công tắc «Đối tác không nhập nơi đón» bật ⇒ khối Đưa đón chỉ còn hai nút và ô ghi chú — CHỈ khi không giấu dữ liệu nào (luật an toàn của H2 CỘNG lượt chưa có nơi đón).
+test("duaDonAnHetLuot: đúng khi duaDonChiNoiDon đúng VÀ lượt chưa có nơi đón; nháp cũ đã có nơi đón, chiều về, nhiều lượt… thì sai (rơi về chế độ đang có)", () => {
+  const l = { direction: "OUT" as const, pickupDate: "", xeRieng: false, choToiThieu: "", flightCode: "", tra: "", traTuDo: "", goiYTra: false, don: "", donTuDo: "" };
+  assert.equal(duaDonAnHetLuot([l], "2026-12-01"), true);
+  assert.equal(duaDonAnHetLuot([{ ...l, tra: "loc-1", goiYTra: true }], "2026-12-01"), true, "nơi trả là gợi ý của dịch vụ: vẫn ẩn hết");
+  assert.equal(duaDonAnHetLuot([{ ...l, donTuDo: "   " }], "2026-12-01"), true, "chữ nơi đón toàn khoảng trắng coi như rỗng");
+  assert.equal(duaDonAnHetLuot([{ ...l, don: "loc-9" }], "2026-12-01"), false, "nháp cũ đã chọn điểm đón: phải hiện để thấy và sửa");
+  assert.equal(duaDonAnHetLuot([{ ...l, don: "tudo", donTuDo: "Khách sạn A" }], "2026-12-01"), false, "nháp cũ đã gõ nơi đón");
+  assert.equal(duaDonAnHetLuot([{ ...l, don: "tudo", donTuDo: "" }], "2026-12-01"), false, "đang chọn «Gõ tự do»: hiện ô");
+  assert.equal(duaDonAnHetLuot([], "2026-12-01"), false);
+  assert.equal(duaDonAnHetLuot([l, l], "2026-12-01"), false, "nhiều lượt");
+  assert.equal(duaDonAnHetLuot([{ ...l, direction: "RETURN" as const }], "2026-12-01"), false, "chiều về");
+  assert.equal(duaDonAnHetLuot([{ ...l, pickupDate: "2026-11-30" }], "2026-12-01"), false, "đón khác ngày");
+  assert.equal(duaDonAnHetLuot([{ ...l, tra: "tudo", traTuDo: "Bến X" }], "2026-12-01"), false, "nơi trả tự gõ");
 });

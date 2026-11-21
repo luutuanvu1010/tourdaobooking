@@ -33,9 +33,21 @@ test("H2 phương án nhẹ: form Đối tác bật chế độ một ô «Nơi 
   assert.match(doc("web/service-card.ts"), /chiNoiDon: o\.formGonDoiTac === true/);
   const khoi = doc("web/khoi-dua-don.ts");
   assert.match(khoi, /const chiNoiDon = o\.che === "form" && o\.chiNoiDon === true && duaDonChiNoiDon\(legs, o\.ngayDi\(\)\);/);
-  assert.match(khoi, /root\.classList\.toggle\("dd-chi-noi-don", chiNoiDon\);/);
+  // ADR-0221 (21/11): chế độ một ô «Nơi đón» nhường chỗ khi chế độ ẩn hết lượt đang áp (công tắc «Đối tác không nhập nơi đón» bật VÀ luật an toàn đúng).
+  assert.match(khoi, /root\.classList\.toggle\("dd-chi-noi-don", chiNoiDon && !anHetLuot\);/);
   assert.match(css, /\.dd-chi-noi-don \.dd-luoi-noi > \.dd-cot:nth-child\(2\)/, "cột Nơi trả ẩn bằng CSS");
-  assert.doesNotMatch(css, /\.dd-chi-noi-don[^{]*\.dd-luoi-noi > \.dd-cot:nth-child\(1\)[^{]*\{[^}]*display: none/, "ô Nơi đón không bao giờ bị ẩn");
+  assert.doesNotMatch(css, /\.dd-chi-noi-don[^{]*\.dd-luoi-noi > \.dd-cot:nth-child\(1\)[^{]*\{[^}]*display: none/, "công tắc tắt / chế độ chiNoiDon: ô Nơi đón không bao giờ bị ẩn");
+});
+
+test("ADR-0221: ô «Nơi đón» chỉ bị ẩn bởi lớp dd-an-het-luot — lớp đó chỉ bật khi công tắc đang áp (hàm của trang) VÀ luật thuần duaDonAnHetLuot đúng", () => {
+  const khoi = doc("web/khoi-dua-don.ts");
+  assert.match(khoi, /const anHet = \(\): boolean => o\.che === "form" && o\.anHetLuot\?\.\(\) === true && duaDonAnHetLuot\(legs, o\.ngayDi\(\)\);/);
+  assert.match(khoi, /const anHetLuot = anHet\(\);/);
+  assert.match(khoi, /root\.classList\.toggle\("dd-an-het-luot", anHetLuot\);/);
+  assert.match(doc("web/service-card.ts"), /anHetLuot: \(\) => o\.khongNhapNoiDon\?\.\(\) === true,/, "thẻ không bật cờ bằng hằng — vắng công tắc thì form không đổi");
+  assert.match(css, /\.dd-an-het-luot > \.dd-chang-khung \{ display: none; \}/, "khung lượt ẩn bằng CSS, vẫn nằm trong cây DOM");
+  const khac = (css.match(/[^}]*\.dd-luoi-noi > \.dd-cot:nth-child\(1\)[^{]*\{[^}]*display: none/g) ?? []).length;
+  assert.equal(khac, 0, "không luật CSS nào khác ẩn riêng cột Nơi đón");
 });
 
 test("H3: tài khoản Đối tác — «Nhập khoản thu» chèn ngay sau dòng «Còn lại»; nút phiếu công nợ giao cho khối «Hoa hồng của bạn» và có đường trả về", () => {

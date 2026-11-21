@@ -78,7 +78,8 @@ console.log("✓ R1: POST dịch vụ nhập tay mới → 400 (một mình hay 
 // 2) Đơn CŨ (nháp) có dịch vụ nhập tay — dựng bằng SQL: dịch vụ danh mục ZE1 + dịch vụ thứ hai đổi thành nhập tay "Xe đưa đón cũ" 2 × 400.000.
 const legacyDraft = async (who = SALES, customerName = `Đơn cũ ${tag}`) => {
   const x = await call(who, "POST", "/api/orders", orderInput({
-    customerName, services: [catalogService({ pickupTime: "07:00" }), catalogService({ catalogCode: "ZE2", pax: { adult: 1 }, catalogPriceSeen: { ...FAKE_CATALOG.ZE2.prices } })],
+    // ADR-0221 Đ3: lượt chỉ có giờ đón (khoá cũ) nhận chữ tạm ở nơi đón và đơn không xác nhận được — đơn dựng ở đây phải có nơi đón thật.
+    customerName, services: [catalogService({ pickupTime: "07:00", pickupPlace: "KS Gốc" }), catalogService({ catalogCode: "ZE2", pax: { adult: 1 }, catalogPriceSeen: { ...FAKE_CATALOG.ZE2.prices } })],
   }));
   assert.equal(x.status, 201, JSON.stringify(x.body));
   await makeLegacyManual(x.body.order.id, x.body.order.services[1].id, { name: "Xe đưa đón cũ", description: "Xe 7 chỗ", detail: "2 chiều", quantity: 2, unitPrice: 400000 });

@@ -395,6 +395,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/cai-dat/an-thong-tin-khach", access: "admin" }, // như trên; bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/cai-dat/bat-buoc-gio-don", access: "orders" }, // ADR-0193 mục 1: công tắc «Bắt buộc giờ đón cho đơn đối tác» — thân hỏi can(order.create)
   { method: "POST", path: "/api/cai-dat/bat-buoc-gio-don", access: "admin" }, // như trên; bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
+  { method: "GET", path: "/api/cai-dat/noi-don-doi-tac", access: "orders" }, // ADR-0221 Đ1: công tắc «Đối tác không nhập nơi đón» — thân hỏi can(order.create); trả apChoToi theo người gọi
+  { method: "POST", path: "/api/cai-dat/noi-don-doi-tac", access: "admin" }, // như trên; bật / tắt — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "GET", path: "/api/cai-dat/giao-dien", access: "orders" }, // ADR-0194 đợt 1: chính sách hiện/ẩn/bắt buộc ÁP CHO CHÍNH NGƯỜI GỌI (no-store); thân hỏi order.create / admin.manage / account.view / party.view
   { method: "GET", path: "/api/cai-dat/giao-dien/tat-ca", access: "admin" }, // ADR-0194: danh mục + mọi dòng — thân hỏi can(settings.ops) (chỉ Toàn quyền)
   { method: "POST", path: "/api/cai-dat/giao-dien", access: "admin" }, // ADR-0194: đổi một lô dòng của một màn — thân hỏi can(settings.ops)
@@ -898,6 +900,7 @@ test("mức truy cập của 560 route hiện có khớp ảnh chụp đã duy�
   // ADR-0217 (số sê-ri vé): + 4 route kho vé (POST /api/ve/huy-ve, GET /api/ve/tim, GET /api/ve/lo/:id/xem-truoc-huy, GET /api/ve/lo/:id/ve-trong-lo; cổng office) = 545; gộp main 17/11 (561 của main) + 4 = 565.
   // Gộp main vào nhánh đăng ký đợt 2 (17/11/2026): 560 của nhánh + 1 route phí đón của main = 561.
   // 2026-11-20 (ADR-0220 Đ4): + GET, POST /api/catalog/ngung-ban-ngay, POST /api/catalog/ngung-ban-ngay/:id/ket-thuc (office; thân hỏi catalog.hidden.write, chặn Đối tác) = 568.
-  assert.equal(actual.length, 568, "số route thực tế lệch 568 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 568, "SNAPSHOT phải có đúng 568 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-21 (ADR-0221 Đ1): + GET (orders), POST (admin) /api/cai-dat/noi-don-doi-tac = 570.
+  assert.equal(actual.length, 570, "số route thực tế lệch 570 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 570, "SNAPSHOT phải có đúng 570 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

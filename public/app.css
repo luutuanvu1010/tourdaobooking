@@ -2634,6 +2634,7 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 .vc-input { min-height: var(--h-field); margin: 0; padding: 0 var(--s3); font-size: var(--fs-field); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
 .vc-input::placeholder { color: var(--c-placeholder); }
 .vc-input[aria-invalid="true"] { border: var(--bw-vc) solid var(--c-danger); }
+.vc-input[aria-invalid="true"]:focus { border-color: var(--c-danger); } /* ADR-0221: ô đang có tiêu điểm vẫn giữ viền đỏ báo lỗi (vòng tiêu điểm vẽ bên ngoài) */
 .vc-field-error { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-danger-text); }
 .vc-hint { font-size: var(--fs-label); color: var(--c-text-muted); }
 .vc-seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--c-border); border-radius: var(--radius-sm); overflow: hidden; }
@@ -4796,6 +4797,10 @@ body.login-bao-tri:not(.login-mo-form) .login-dang-ky { display: none; }
 .dd-chi-noi-don .dd-luoi-noi > .dd-cot:nth-child(2),
 .dd-chi-noi-don .dd-chang > .gap-nut { display: none; }
 .dd-chi-noi-don .dd-luoi-noi { grid-template-columns: minmax(0, 1fr); }
+/* ADR-0221 Đ2: công tắc «Đối tác không nhập nơi đón» đang áp — ẩn TOÀN BỘ khung lượt (luật thuần `duaDonAnHetLuot`; phần ẩn vẫn nằm trong cây DOM), chỉ còn hai nút «Đón», «Không đón». */
+.dd-an-het-luot > .dd-ghi-tao,
+.dd-an-het-luot > .dd-nut,
+.dd-an-het-luot > .dd-chang-khung { display: none; }
 
 /* ---------- Khung gốc giao diện (ADR-0222) — PHẦN KHUNG của tệp kiểu; chỉ token. Chủ dự án duyệt luật và hình bốn màn mẫu 21/11/2026.
    Năm tầng: thang đo (token --kg-* ở :root) → khung ngoài (lưới 15/11, giữ nguyên) → khuôn trang → khối → thành phần (bộ chung v2, bổ sung ở cuối phần này).

@@ -42,6 +42,7 @@ import { CAU_CAN_NOI_TRA, canhBaoXacNhan, cauThieuTen, thieuNoiTra } from "../sr
 import { dongThongTinQr } from "../src/shared/qr-thong-tin";
 import { PAX_LABEL } from "../src/shared/order-lines";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
+import { CAU_VAN_PHONG_DIEN_NOI_DON, laNoiDonTam, nhanNoiDon } from "../src/shared/noi-don-tam";
 import { CHU_MIEN_PHI, dongPhiTrenDon } from "../src/shared/phi-don-hien-thi";
 import { nhanCamKet } from "../src/shared/cam-ket-xe";
 import { can, holdsPartner } from "../src/shared/permissions";
@@ -275,7 +276,7 @@ const nhacEl = (cau: string): HTMLElement => h("span", { class: "dd-nhac" }, cau
 const canhEl = (cau: string): HTMLElement => h("span", { class: "dd-canh" }, icon("alert", 16), cau);
 
 /** Một chặng: chiều · ngày · giờ (hoặc "Chưa chốt giờ") · số hiệu · số người về; "nơi đón → nơi trả" (hoặc "Chưa chốt nơi trả"); văn phòng thấy câu nhắc. */
-function dongChang(l: Api.LegDto, vanPhong: boolean): HTMLElement {
+function dongChang(l: Api.LegDto, vanPhong: boolean, doiTac: boolean): HTMLElement {
   const ngay = l.pickupDate ? ngayNganHomNay(l.pickupDate) : "—";
   return h(
     "div",
@@ -291,20 +292,22 @@ function dongChang(l: Api.LegDto, vanPhong: boolean): HTMLElement {
       l.flightCode ? h("span", { class: "chip chip-code" }, `✈︎ ${l.flightCode}`) : null,
       l.paxOverride !== null ? h("span", { class: "chip chip-muted" }, `${l.paxOverride} người về`) : null,
     ),
-    h("div", { class: "dd-dong-noi" }, h("span", null, l.pickupLabel), h("span", { class: "muted", "aria-hidden": "true" }, "→"), l.dropoffLabel ? h("span", null, l.dropoffLabel) : canhEl("Chưa chốt nơi trả")),
+    // ADR-0221 Đ3: lượt mang chữ tạm hiện «Chưa có nơi đón» (không hiện nguyên văn chữ tạm) — `nhanNoiDon`, một luật với bảng Còn vé.
+    h("div", { class: "dd-dong-noi" }, laNoiDonTam(l) ? canhEl(nhanNoiDon(l.pickupLabel)) : h("span", null, nhanNoiDon(l.pickupLabel)), h("span", { class: "muted", "aria-hidden": "true" }, "→"), l.dropoffLabel ? h("span", null, l.dropoffLabel) : canhEl("Chưa chốt nơi trả")),
+    doiTac && laNoiDonTam(l) ? nhacEl(CAU_VAN_PHONG_DIEN_NOI_DON) : null, // tài khoản giữ quyền Đối tác biết mình không phải làm gì thêm; văn phòng thấy ô «Nơi đón» ở bảng Xác nhận đơn
     vanPhong && !l.pickupTime ? nhacEl("Cần giờ đón trước khi xếp xe") : null,
     vanPhong && thieuNoiTra(l) ? nhacEl(CAU_CAN_NOI_TRA) : null,
   );
 }
 
-function khoiDuaDonDon(order: Order, vanPhong: boolean, viec: HTMLElement[], them: HTMLElement | null): HTMLElement {
+function khoiDuaDonDon(order: Order, vanPhong: boolean, viec: HTMLElement[], them: HTMLElement | null, doiTac: boolean): HTMLElement {
   const coChang = order.services.filter((s) => s.legs.length > 0);
   // G-02: đơn nháp có dịch vụ chưa chọn Đón / Không đón thì nói «Chưa chọn đón», không «Không đưa đón».
   const nhan = order.services.some((s) => nhanDuaDonTrangDon({ status: order.status, pickupChoice: s.pickupChoice, soChang: s.legs.length }) === CHIP_CHUA_CHON_DON) ? CHIP_CHUA_CHON_DON : KHONG_DUA_DON;
   return khoiKhung(
     { tieuDe: "Đưa đón", viec, thuoc: { class: "dd-card", "data-khoi": "dua-don" } },
     coChang.length === 0 ? h("p", { class: "muted" }, nhan) : null,
-    ...coChang.map((s) => h("div", { class: "dd-dv" }, h("span", { class: "dd-dv-ten" }, s.name), ...s.legs.map((l) => dongChang(l, vanPhong)))),
+    ...coChang.map((s) => h("div", { class: "dd-dv" }, h("span", { class: "dd-dv-ten" }, s.name), ...s.legs.map((l) => dongChang(l, vanPhong, doiTac)))),
     them,
   );
 }
@@ -1609,7 +1612,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
           kv(nhanBenDat(order.bookerLaDoiTac), order.bookerName ?? NO_BOOKER_VALUE), // "Bên đặt (đối tác)" khi bên đặt là hồ sơ được hưởng hoa hồng (cờ máy chủ), còn lại "Hồ sơ khách"
         ),
 
-        khoiDuaDonDon(order, suaChuyen, viecDuaDon, themDuaDon),
+        khoiDuaDonDon(order, suaChuyen, viecDuaDon, themDuaDon, laTaiKhoanDoiTac(staff!)),
         khachDon ? khoiHanhKhachDon(khachDon, viecDs, order.manifestExempt) : null,
 
         renderServices(order, a.locked, (sid) => {
