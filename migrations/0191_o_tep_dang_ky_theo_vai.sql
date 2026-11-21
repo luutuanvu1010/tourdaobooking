@@ -27,14 +27,19 @@ CREATE TRIGGER dk_role_slot_no_delete BEFORE DELETE ON dk_role_slot
 BEGIN SELECT RAISE(ABORT, 'dk_role_slot_append_only: ô tệp theo vai không xoá'); END;
 -- Gieo giữ đúng hành vi trước ADR-0233 (ảnh căn cước tuỳ chọn; GPKD bắt buộc khi có phần tổ chức; giấy phép thêm tuỳ chọn) + hai ô «Tệp khác» tuỳ chọn (Đ2) — chúng chỉ hiện khi chính sách
 -- riêng tư hiện hành có dấu `covers_other_files` (Đ3, phần dưới).
+-- Sáu câu chèn riêng, KHÔNG ghép UNION ALL: D1 từ chối «too many terms in compound SELECT» (kịch bản Chrome 22/11 bắt được; SQLite của bài kiểm không có giới hạn này).
 INSERT INTO dk_role_slot (id, part, role_code, slot, mode, sort_order, valid_from_at, created_at, created_by, updated_at, updated_by)
-SELECT 'gieo-0191-' || lower(s.slot), s.part, '', s.slot, s.mode, s.sort_order, '2026-11-21T00:00:00.000Z', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL
-FROM (SELECT 'CA_NHAN' AS part, 'CCCD_MAT_TRUOC' AS slot, 'TUY_CHON' AS mode, 10 AS sort_order
-      UNION ALL SELECT 'CA_NHAN', 'CCCD_MAT_SAU', 'TUY_CHON', 20
-      UNION ALL SELECT 'CA_NHAN', 'TEP_KHAC', 'TUY_CHON', 90
-      UNION ALL SELECT 'TO_CHUC', 'GPKD', 'BAT_BUOC', 10
-      UNION ALL SELECT 'TO_CHUC', 'GIAY_PHEP_THEM', 'TUY_CHON', 20
-      UNION ALL SELECT 'TO_CHUC', 'TEP_KHAC_TO_CHUC', 'TUY_CHON', 90) s;
+VALUES ('gieo-0191-cccd_mat_truoc', 'CA_NHAN', '', 'CCCD_MAT_TRUOC', 'TUY_CHON', 10, '2026-11-21T00:00:00.000Z', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO dk_role_slot (id, part, role_code, slot, mode, sort_order, valid_from_at, created_at, created_by, updated_at, updated_by)
+VALUES ('gieo-0191-cccd_mat_sau', 'CA_NHAN', '', 'CCCD_MAT_SAU', 'TUY_CHON', 20, '2026-11-21T00:00:00.000Z', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO dk_role_slot (id, part, role_code, slot, mode, sort_order, valid_from_at, created_at, created_by, updated_at, updated_by)
+VALUES ('gieo-0191-tep_khac', 'CA_NHAN', '', 'TEP_KHAC', 'TUY_CHON', 90, '2026-11-21T00:00:00.000Z', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO dk_role_slot (id, part, role_code, slot, mode, sort_order, valid_from_at, created_at, created_by, updated_at, updated_by)
+VALUES ('gieo-0191-gpkd', 'TO_CHUC', '', 'GPKD', 'BAT_BUOC', 10, '2026-11-21T00:00:00.000Z', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO dk_role_slot (id, part, role_code, slot, mode, sort_order, valid_from_at, created_at, created_by, updated_at, updated_by)
+VALUES ('gieo-0191-giay_phep_them', 'TO_CHUC', '', 'GIAY_PHEP_THEM', 'TUY_CHON', 20, '2026-11-21T00:00:00.000Z', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+INSERT INTO dk_role_slot (id, part, role_code, slot, mode, sort_order, valid_from_at, created_at, created_by, updated_at, updated_by)
+VALUES ('gieo-0191-tep_khac_to_chuc', 'TO_CHUC', '', 'TEP_KHAC_TO_CHUC', 'TUY_CHON', 90, '2026-11-21T00:00:00.000Z', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
 
 -- ===== parties — dấu «Thu tệp khác» của chính sách riêng tư (ADR-0233 Đ3; Hiến chương 5.21) =====
 -- Cùng khuôn `covers_org_data` (0174): bản chính sách tự nói mình đã nêu việc thu tệp tuỳ ý người đăng ký gửi. Bảng chỉ-thêm ⇒ dấu chỉ đặt lúc đăng bản mới; bản cũ giữ 0 = chưa nêu.
