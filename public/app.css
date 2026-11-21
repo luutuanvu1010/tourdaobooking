@@ -4576,7 +4576,8 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
    Mốc 960 = phần cố định 862 (năm cột 704 + năm khoảng cách 80 + viền 2 + đệm dòng 24 + nút xổ 44 + khoảng cách tới nút 8) + cột tên khách ít nhất 98.
    Bài `src/don-hang-bang-theo-vung.test.ts` tính lại phép cộng này từ token: nới một cột thì phải nâng mốc. Vùng hẹp hơn mốc thì là thẻ (khối [2]).
    Khung chứa là một ngữ cảnh định dạng riêng: lề của con không còn gộp với lề của phần tử đứng trên nó, nên hàng tiêu đề cột KHÔNG đặt lề trên (trước là --s3,
-   vốn bị lề dưới --s4 của thanh lọc, hàng chip lọc, dải báo lỗi nuốt mất); khoảng cách phía trên bảng vẫn là --s4 như cũ. */
+   vốn bị lề dưới --s4 của thanh lọc, hàng chip lọc, dải báo lỗi nuốt mất); khoảng cách phía trên bảng vẫn là --s4 như cũ. Khác duy nhất: lúc khung đang tải
+   (`#loading`, lề dưới --s2) tạm hiện phía trên bảng cũ, khoảng cách là --s2 thay vì --s3. */
 .don-bang { container: don-bang / inline-size; }
 .don-bang-dau { display: none; }
 @container don-bang (min-width: 960px) {

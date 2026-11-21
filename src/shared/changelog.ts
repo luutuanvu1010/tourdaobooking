@@ -26,6 +26,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Đơn hàng trên máy tính: cửa sổ cỡ vừa không còn làm tên khách gãy mỗi dòng một chữ. Chỗ hẹp thì danh sách hiện dạng thẻ, đủ rộng mới thành bảng." },
       { kind: "sua", text: "Chính sách điều phối trên điện thoại: Quản trị đã có nút «Lưu hạn chốt» để lưu hai con số hạn chốt." },
       { kind: "sua", text: "Chính sách điều phối trên điện thoại: thẻ Hạn mức Từ chối của hướng dẫn viên đã có nút «Lưu cài đặt»." },
+      { kind: "doi", text: "Chính sách điều phối trên điện thoại: thanh «Lưu thành bản mới» chỉ bám đáy màn hình khi đang ở phần chính sách, không còn che thẻ Hạn mức." },
       { kind: "sua", text: "Hai nút lưu trên: bấm xong, màn hình tự đưa câu báo đã lưu vào tầm nhìn, không phải kéo lên đầu trang để xem." },
     ],
   },

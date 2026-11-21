@@ -58,6 +58,18 @@ test("trang Chính sách điều phối: thanh đáy là con trực tiếp của
   assert.match(main, /<form id="cs-form" class="vc-card dp-cs-form"/);
 });
 
+// Thanh đáy là nút lưu của RIÊNG biểu mẫu chính sách. `position: sticky; bottom` chỉ giữ thanh ở đáy màn hình khi chỗ của nó trong trang còn nằm dưới màn hình;
+// đặt nó ngay sau biểu mẫu, TRƯỚC thẻ Hạn mức, thì cuộn xuống thẻ Hạn mức thanh nằm lại sau biểu mẫu thay vì dính đè lên nút «Lưu cài đặt» của thẻ đó
+// (trợ lý chấm giao diện 21/11: hai nút nền đặc cùng một màn, mức Nặng, khi thanh còn đứng cuối trang).
+test("thanh đáy đứng ngay sau biểu mẫu chính sách, trước thẻ Hạn mức", () => {
+  const main = /<main>([\s\S]*)<\/main>/.exec(html)?.[1] ?? "";
+  const bieuMau = main.indexOf('<div id="cs-layout"');
+  const thanhDay = main.indexOf('<div id="cs-bottom"');
+  const hanMuc = main.indexOf('<section id="hm-the"');
+  assert.ok(bieuMau >= 0 && thanhDay >= 0 && hanMuc >= 0, "trang thiếu một trong ba khối: biểu mẫu chính sách, thanh đáy, thẻ Hạn mức");
+  assert.ok(bieuMau < thanhDay && thanhDay < hanMuc, "thứ tự trong trang phải là: biểu mẫu chính sách, thanh đáy, rồi thẻ Hạn mức");
+});
+
 // Nút lưu trong thẻ nằm ở CUỐI thẻ, câu báo «Đã lưu…» nằm ở ĐẦU trang (hoặc đầu thẻ Hạn mức). Ở điện thoại hai chỗ này thường không cùng một màn:
 // bấm lưu xong phải đưa câu báo vào tầm nhìn, và câu báo không được chui dưới thanh trên dính (cùng khuôn với dải báo lỗi `#error`).
 test("bấm lưu xong, câu báo được đưa vào tầm nhìn: nhánh hai số của Quản trị và thẻ Hạn mức Từ chối", () => {

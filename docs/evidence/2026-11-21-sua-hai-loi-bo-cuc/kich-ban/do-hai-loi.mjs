@@ -5,6 +5,7 @@
 //   node docs/evidence/2026-11-21-sua-hai-loi-bo-cuc/kich-ban/do-hai-loi.mjs --nhan truoc                (bản chưa sửa: lưu số đo và ảnh làm mốc; KHÔNG ghi gì)
 //   node docs/evidence/2026-11-21-sua-hai-loi-bo-cuc/kich-ban/do-hai-loi.mjs --nhan sau --so truoc --luu (bản đã sửa: đo lại, so với mốc, bấm lưu thật, tự chấm; có ✗ thì thoát 1)
 // Tuỳ chọn: --base http://127.0.0.1:8841   --ra ~/tourdao-sua-hai-loi-2026-11-21   --tk ~/tourdao-danh-gia-2026-11-20/tai-khoan.json   --khong-anh
+//           --cham-lai (không mở trình duyệt: đọc lại số đo đã lưu của --nhan rồi chấm và so lại)
 // Phần đo chỉ đăng nhập và đọc. Chỉ khi có --luu kịch bản mới bấm lưu, SAU khi đo xong mọi thứ: mỗi nút lưu một lần đổi số rồi một lần lưu trả số cũ.
 // Lần lưu GHI vào kho dữ liệu của máy chủ thử (thêm bản chính sách vào lịch sử): chỉ chạy trên bản chép riêng của kho thử. Hai lượt «truoc» / «sau» phải đo trên
 // cùng một trạng thái dữ liệu thì phép so mới có nghĩa (lịch sử bản dài thêm làm cột lịch sử ở máy tính cao lên).
@@ -28,7 +29,7 @@ const KHOA_TK = { SALES: "sales", INTERN: "intern", ACCOUNTING: "ketoan", ADMIN:
 const dsTk = Object.fromEntries(JSON.parse(readFileSync(nha(lay("--tk", "~/tourdao-danh-gia-2026-11-20/tai-khoan.json")), "utf8")).taiKhoan.map((t) => [t.khoa, t]));
 
 // Cột tên khách của bảng phải còn ít nhất chừng này điểm (cùng con số với bài kiểm src/don-hang-bang-theo-vung.test.ts).
-const TEN_TOI_THIEU = 96;
+const TEN_TOI_THIEU = 98;
 const BO_DON = ["SALES", "ACCOUNTING", "INTERN", "FIELD", "PARTNER"];
 const RONG_DAY_DU = [390, 768, 1040, 1090, 1100, 1130, 1199, 1200, 1250, 1255, 1256, 1280, 1366, 1440, 1920]; // 1.255 / 1.256: hai bên mốc bật bảng (vùng nội dung 959 / 960)
 const RONG_GON = [390, 1130, 1280, 1440];
@@ -126,9 +127,12 @@ const NUT_HAN_MUC = `[...document.querySelectorAll("#hm-the .hm-form button")].f
 const BAO_CHINH_SACH = `document.querySelector("#cs-ok")`;
 const BAO_HAN_MUC = `document.querySelector("#hm-the .alert.ok")`;
 
-const kq = { nhan, luc: new Date().toISOString(), base, don: [], chinhSach: [], luu: [] };
-const chrome = await moChrome();
-try {
+let kq = { nhan, luc: new Date().toISOString(), base, don: [], chinhSach: [], luu: [] };
+const tepSo = resolve(thuMucSo, `do-hai-loi-${nhan}.json`);
+const chamLai = co("--cham-lai");
+const chrome = chamLai ? null : await moChrome();
+if (chamLai) kq = JSON.parse(readFileSync(tepSo, "utf8"));
+else try {
   // ---- (1) Đơn hàng: năm bộ quyền, nhiều bề rộng (chỉ đọc) ----
   for (const bo of BO_DON) {
     const ngan = await moNganCua(chrome, bo);
@@ -159,7 +163,12 @@ try {
       const o = { bo, rong: w, ...(await ngan.ev(DO_CS)) };
       await chupPng(ngan, resolve(thuMucAnh, `chinh-sach-${bo}-${w}.png`));
       if (w === 390) {
-        if (o.coFormHanMuc) { await ngan.ev(`document.querySelector("#hm-the .hm-o-so")?.scrollIntoView({ block: "start" }); 0`); await sleep(400); await chupPng(ngan, resolve(thuMucAnh, `chinh-sach-${bo}-${w}-han-muc.png`)); }
+        if (o.coFormHanMuc) {
+          await ngan.ev(`document.querySelector("#hm-the .hm-o-so")?.scrollIntoView({ block: "start" }); 0`); await sleep(400); await chupPng(ngan, resolve(thuMucAnh, `chinh-sach-${bo}-${w}-han-muc.png`));
+          // Đứng ở biểu mẫu cài đặt hạn mức (cuộn cuối biểu mẫu vào giữa màn): những nút lưu nào đang nằm trong khung nhìn?
+          await ngan.ev(`(document.querySelector("#hm-the .hm-form .dp-cs-actions") ?? document.querySelector("#hm-the .hm-o-so"))?.scrollIntoView({ block: "center" }); 0`); await sleep(400);
+          o.taiHanMuc = (await ngan.ev(DO_CS)).nut.filter((n) => n.trongKhung);
+        }
         await ngan.ev(`scrollTo(0, document.documentElement.scrollHeight); 0`); await sleep(400); o.cuoiTrang = await ngan.ev(DO_CS); await ngan.ev(`scrollTo(0, 0); 0`); await sleep(300);
       }
       kq.chinhSach.push(o);
@@ -190,9 +199,8 @@ try {
   }
 } finally { await chrome.tat(); }
 
-const tepSo = resolve(thuMucSo, `do-hai-loi-${nhan}.json`);
-writeFileSync(tepSo, JSON.stringify(kq, null, 1));
-console.log(`\nSố đo: ${tepSo}\nẢnh:   ${thuMucAnh}`);
+if (!chamLai) writeFileSync(tepSo, JSON.stringify(kq, null, 1));
+console.log(`\nSố đo: ${tepSo}${chamLai ? " (chấm lại, không đo)" : ""}\nẢnh:   ${thuMucAnh}`);
 
 // ---- tự chấm ----
 const loi = []; const dat = [];
@@ -209,8 +217,10 @@ xet(motNut(cs("ADMIN", 390)) && cs("ADMIN", 390).nut.find((n) => n.hien && n.noi
 xet(motNut(cs("SUPER_ADMIN", 390)), `Chính sách điều phối, Toàn quyền ở 390: biểu mẫu chính sách có đúng một nút lưu, không thành hai (đầu trang ${cs("SUPER_ADMIN", 390)?.nutChinhSach}, cuối trang ${cs("SUPER_ADMIN", 390)?.cuoiTrang?.nutChinhSach})`);
 xet(cs("ADMIN", 1280)?.nutChinhSach === 1 && cs("SUPER_ADMIN", 1280)?.nutChinhSach === 1, "Chính sách điều phối ở máy tính 1.280: biểu mẫu chính sách của mỗi vai có đúng một nút lưu");
 xet(kq.chinhSach.filter((c) => c.coFormHanMuc).every((c) => c.nutHanMuc === 1), `Thẻ Hạn mức Từ chối (Toàn quyền): biểu mẫu cài đặt có đúng một nút lưu nhìn thấy ở mọi khổ (${kq.chinhSach.filter((c) => c.coFormHanMuc).map((c) => `${c.rong}: ${c.nutHanMuc}`).join(", ")})`);
+const tq390 = cs("SUPER_ADMIN", 390);
+if (tq390?.taiHanMuc) xet(tq390.taiHanMuc.length === 1 && tq390.taiHanMuc[0].noi === "the-han-muc" && tq390.taiHanMuc[0].bamDuoc, `Toàn quyền ở 390, đứng ở biểu mẫu cài đặt hạn mức: trong khung nhìn chỉ có một nút lưu là «Lưu cài đặt», không bị thanh dính che (đang thấy: ${tq390.taiHanMuc.map((n) => `«${n.chu}» ${n.noi}${n.bamDuoc ? "" : " BỊ CHE"}`).join("; ") || "không nút nào"})`);
 xet(kq.chinhSach.every((c) => !c.tranNgang), "Chính sách điều phối: không tràn ngang");
-if (co("--luu")) for (const l of kq.luu) {
+for (const l of kq.luu) {
   xet(l.dat === true, `Bấm lưu thật — ${l.ten}: đổi số, chạm nút đang nhìn thấy, có câu báo đã lưu, lưu trả số cũ${l.dat ? ` («${l.lan1.bao}»)` : ""}`);
   xet(l.thayBao === true, `Bấm lưu thật — ${l.ten}: sau khi chạm, câu báo nằm trọn trong khung nhìn, không bị thanh dính che`);
 }
@@ -234,12 +244,12 @@ if (tenMoc) {
   xet(khac.length === 0, `Đơn hàng: ${giu} ô không đổi chế độ giữ nguyên vị trí và kích thước mọi phần tử đã đo${khac.length ? " — lệch:\n      " + khac.slice(0, 20).join("\n      ") : ""}`);
   xet(doi.every((x) => /bang → the$/.test(x)), `Đơn hàng: ${doi.length} ô đổi chế độ đều là từ bảng sang thẻ`);
   // Chính sách điều phối: máy tính phải y nguyên; điện thoại chỉ được khác đúng chỗ nút lưu trong thẻ hiện ra.
-  const soCs = (bo, rong, boQua = []) => { const c = cs(bo, rong), m = moc.chinhSach.find((x) => x.bo === bo && x.rong === rong); const r = []; if (c && m) lech({ hop: c.hop, caoTrang: c.caoTrang, tab: c.thanhTab, nut: c.nut.map((n) => [n.chu, n.noi, n.hien, n.hop]) }, { hop: m.hop, caoTrang: m.caoTrang, tab: m.thanhTab, nut: m.nut.map((n) => [n.chu, n.noi, n.hien, n.hop]) }, `${bo}@${rong}`, r); return r.filter((x) => !boQua.some((re) => re.test(x))); };
+  const soCs = (bo, rong, boQua = []) => { const c = cs(bo, rong), m = moc.chinhSach.find((x) => x.bo === bo && x.rong === rong); const r = []; if (c && m) { const theoCho = (ds) => Object.fromEntries(ds.map((n) => [`${n.noi}«${n.chu}»`, { hien: n.hien, hop: n.hop }])); lech({ hop: c.hop, caoTrang: c.caoTrang, tab: c.thanhTab, nut: theoCho(c.nut) }, { hop: m.hop, caoTrang: m.caoTrang, tab: m.thanhTab, nut: theoCho(m.nut) }, `${bo}@${rong}`, r); } return r.filter((x) => !boQua.some((re) => re.test(x))); };
   const mayTinh = [...soCs("ADMIN", 1280), ...soCs("SUPER_ADMIN", 1280)];
   xet(mayTinh.length === 0, `Chính sách điều phối ở máy tính 1.280 (Quản trị, Toàn quyền): vị trí các thẻ, mọi nút lưu, chiều cao trang giữ nguyên so với mốc${mayTinh.length ? " — lệch:\n      " + mayTinh.slice(0, 12).join("\n      ") : ""}`);
-  const tq390 = soCs("SUPER_ADMIN", 390, [/\.hop\.hanMuc\.3:/, /\.hop\.formHanMuc\.3:/, /\.caoTrang:/, /\.nut\.\d+\.(2|3)(\.\d)?: (false|null) → /]);
-  xet(tq390.length === 0, `Chính sách điều phối, Toàn quyền ở 390: biểu mẫu chính sách và thanh nút đáy giữ nguyên; chỗ khác duy nhất là nút «Lưu cài đặt» của thẻ Hạn mức hiện ra${tq390.length ? " — lệch ngoài dự kiến:\n      " + tq390.slice(0, 12).join("\n      ") : ""}`);
-  const qt390 = soCs("ADMIN", 390, [/\.hop\.(khung|the|lichSu)\.3:/, /\.hop\.hanMuc\.1:/, /\.caoTrang:/, /\.nut\.\d+\.(2|3)(\.\d)?: (false|null) → /]);
+  const lechTq390 = soCs("SUPER_ADMIN", 390, [/\.hop\.hanMuc\.(1|3):/, /\.hop\.formHanMuc\.(1|3):/, /\.caoTrang:/, /\.nut\.the-han-muc«Lưu cài đặt»\./]);
+  xet(lechTq390.length === 0, `Chính sách điều phối, Toàn quyền ở 390 (đầu trang): biểu mẫu chính sách và thanh nút đáy giữ nguyên; chỗ khác chỉ ở thẻ Hạn mức phía dưới (dời xuống, có thêm nút «Lưu cài đặt»)${lechTq390.length ? " — lệch ngoài dự kiến:\n      " + lechTq390.slice(0, 12).join("\n      ") : ""}`);
+  const qt390 = soCs("ADMIN", 390, [/\.hop\.(khung|the|lichSu)\.3:/, /\.hop\.hanMuc\.1:/, /\.caoTrang:/, /\.nut\.the-chinh-sach«Lưu hạn chốt»\./]);
   xet(qt390.length === 0, `Chính sách điều phối, Quản trị ở 390: chỗ khác duy nhất là nút «Lưu hạn chốt» hiện ra ở cuối thẻ (thẻ cao thêm, phần dưới dời xuống)${qt390.length ? " — lệch ngoài dự kiến:\n      " + qt390.slice(0, 12).join("\n      ") : ""}`);
 }
 console.log(`\nTự chấm (${nhan}): ${dat.length} đạt, ${loi.length} không đạt`);

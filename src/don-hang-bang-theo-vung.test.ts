@@ -13,8 +13,8 @@ const html = readFileSync(new URL("../public/orders.html", import.meta.url), "ut
 // Che chú thích bằng khoảng trắng (giữ nguyên vị trí ký tự) để dấu ngoặc trong chú thích không làm lệch phép dò khối.
 const css = cssGoc.replace(/\/\*[\s\S]*?\*\//g, (m) => " ".repeat(m.length));
 
-/** Cột tên khách của bảng phải còn ít nhất chừng này điểm ở đúng mốc bật bảng (ở cửa sổ 1.280 trước khi sửa là 122). */
-const TEN_TOI_THIEU = 96;
+/** Cột tên khách của bảng phải còn ít nhất chừng này điểm ở đúng mốc bật bảng: mốc 960 trừ phần cố định 862 (ở cửa sổ 1.280 trước khi sửa là 122). */
+const TEN_TOI_THIEU = 98;
 
 /** Giá trị điểm ảnh của một token ở `:root` (lần theo `var()` nếu token trỏ sang token khác). */
 function px(ten: string, sau = 0): number {
