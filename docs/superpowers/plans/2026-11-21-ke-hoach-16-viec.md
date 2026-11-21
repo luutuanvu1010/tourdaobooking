@@ -4,6 +4,7 @@
 > **Trạng thái:** đề xuất, chờ chủ duyệt. **Người lập:** phiên lập kế hoạch (vai lập kế hoạch — Hiến pháp P15), không thi công.
 > **Cơ sở:** bốn lượt đọc mã chỉ-đọc trên bản chính `b0e992cb8` (21/11/2026). Chi tiết kỹ thuật dồn ở phụ lục cuối tệp.
 > Mỗi việc, khi tới lượt thi công, sẽ có đặc tả ngắn một trang riêng (lần duyệt thứ hai theo ADR-0211); tệp này chỉ chốt thứ tự, hướng làm và câu hỏi.
+> **Đã soát:** (1) người kiểm độc lập soát câu hiện trạng — sửa ba chỗ; (2) người duyệt độc lập duyệt toàn bản — «đạt có điều kiện», đã sửa theo 12 phát hiện (tách câu 1(b), thêm câu hỏi chờ đợt, thứ tự cứng đợt 1–2, điều kiện trước của đợt 5).
 
 ## Tóm tắt
 
@@ -22,7 +23,7 @@ Trong 16 việc, có bốn việc đã có một phần sẵn trong Nền tảng
 
 | # | Việc | Phát hiện chính | Loại | Đợt | Xong khi (rút gọn) | Trạng thái |
 |---|---|---|---|---|---|---|
-| 9 | Quét vé bị treo | Hai lỗi chắc chắn: «Quét tiếp» không bao giờ gửi lại vé còn trong khung; lỗi mạng làm trang kẹt rồi tự tải lại | Vừa | **0** | Quét lại vé đã dùng ⇒ ≤ 3 giây hiện đỏ «Đã dùng», không treo, kể cả trên iPhone thật | chờ mở phiên sửa |
+| 9 | Quét vé bị treo | Hai lỗi chắc chắn: «Quét tiếp» không bao giờ gửi lại vé còn trong khung; lỗi mạng làm trang kẹt rồi tự tải lại | Vừa | **0** | Quét lại vé đã dùng ⇒ ≤ 3 giây hiện đỏ «Đã dùng», không treo, kể cả trên iPhone thật | đang sửa ở phiên riêng (phần tự tải lại chờ câu 2) |
 | 3 | Tìm SĐT đối tác ở Tạo đơn | Đối tác tạo từ Quản lý tài khoản không có số liên hệ; ô tìm chỉ tìm theo tên | Vừa | **0** | Gõ SĐT đối tác ⇒ ra đúng đối tác; thiếu số ⇒ câu rõ + lối thêm số | chờ duyệt |
 | 4 | Bộ lọc kho vé | «Lô trong kho» không có lọc và chia trang 50; bước nhập đã có bộ lọc nhóm + tìm | Nhỏ | **0** | Chọn nhóm ⇒ cả ba khối của Kho vé chỉ còn nhóm đó, kể cả lô ở trang sau | chờ duyệt |
 | 16 | Biểu tượng menu Thiết lập | 25 mục chưa có hình; thiếu ~15 hình; trần gói trang dư 0 byte | Nhỏ | **0** | Mỗi mục Thiết lập có hình riêng, khổ 390 và 1280 | chờ duyệt + số trần |
@@ -30,7 +31,7 @@ Trong 16 việc, có bốn việc đã có một phần sẵn trong Nền tảng
 | 2 | Đối tác Trả sau chỉ thấy Trả sau | Hôm nay đối tác vẫn đổi được sang «Thanh toán ngay» (ADR-0198 Đ2.4) | Lớn | **1** | Đối tác có Trả sau chỉ thấy một lựa chọn; máy chủ từ chối lựa chọn khác | chờ câu hỏi 1 |
 | 5 | Bỏ thu hộ chuyển khoản ở đơn đối tác | Chuyển khoản + mã QR còn mở ở đơn văn phòng lập «Qua đối tác»; nhánh ADR-0199 chưa nhập còn thêm lựa chọn chuyển khoản | Lớn | **1** | Đơn đối tác mới chỉ ghi thu tiền mặt, không QR | chờ câu hỏi 1 |
 | 6 | Kế toán chỉ thấy nợ đối tác | Kế toán đang thấy giá bán lẻ; nợ đối tác chỉ có ở phiếu từng đơn | Lớn | **1** | Đơn đối tác hiện «Đối tác nợ Tour Đảo», không hiện số bán cho khách | chờ câu hỏi 1 |
-| 7 | Công tắc chặn thiếu giờ đón | Đã có một công tắc; chặn «sát ngày đón» chưa có | Lớn | **2** | Toàn quyền tắt được chặn sát ngày; mặc định giữ như hôm nay | chờ duyệt ADR |
+| 7 | Công tắc chặn thiếu giờ đón | Đã có một công tắc; chặn «sát ngày đón» chưa có | Lớn | **2** | Toàn quyền tắt được chặn sát ngày; vị trí mặc định do bạn chọn | chờ duyệt ADR |
 | 8 | Màn sau tạo đơn của đối tác | Trang đơn lặp Khách/Đón/Số khách; công tắc ẩn khách đang gộp hai thứ | Lớn | **2** | Không mục nào hiện hai lần; tắt riêng được danh sách khách và giờ đón | chờ duyệt ADR |
 | 12 | SĐT hỗ trợ trên vé Tour Đảo | Số in là hotline công ty, đóng cứng vào ảnh vé | Vừa | **3** | Mỗi dịch vụ có số hỗ trợ, điền sẵn khi tạo vé, in lên vé | chờ duyệt ADR |
 | 11 | Đơn toàn vé Tour Đảo hiện vé ngay; trả với hướng dẫn viên | Phần lớn đã có cho đơn văn phòng; thiếu đơn đối tác + hình thức mới | Lớn | **3** | Đơn đối tác toàn vé Tour Đảo hiện vé ngay; có hình thức trả với hướng dẫn viên theo sản phẩm/nhóm | chờ đợt 1 |
@@ -46,21 +47,29 @@ Trong 16 việc, có bốn việc đã có một phần sẵn trong Nền tảng
 1. **Sổ hạn HC-4.2 hết hạn 30/11/2026** (9 ngày nữa): sau ngày đó `npm test` đỏ với mọi đợt. Cần vá hoặc bạn gia hạn có ghi lý do trước 30/11.
 2. **HC-5.19 — chưa diễn tập khôi phục dữ liệu (hạn 31/12):** mỗi migration mới phải có dòng cho phép riêng. Gần như mọi đợt 1–6 đều có migration, nên **khuyến nghị bạn chạy diễn tập khôi phục sớm** để gỡ chặn một lần.
 3. **Nhánh ADR-0199 (văn phòng nhập cọc, chưa nhập):** có lựa chọn «Khách chuyển khoản vào tài khoản Công ty» cho cả đơn «Qua đối tác» — ngược với việc 5. **Không nhập nhánh này nguyên trạng**; sửa theo câu trả lời câu hỏi 1 trước.
-4. **Nhánh ADR-0218 (phí đón theo giá gốc, chưa nhập)** phải vào bản chính trước việc 10, vì cùng sửa khối tính giá và đang giữ số migration 0178–0179. Migration mới của kế hoạch này dự kiến bắt đầu từ **0182** (người thi công kiểm lại mọi nhánh trước khi đặt số).
+4. **Nhánh ADR-0218 (phí đón theo giá gốc, chưa nhập)** phải vào bản chính trước việc 10, vì cùng sửa khối tính giá và đang giữ số migration 0178–0179. Nên nhập nó trước cả đợt 1: công thức nợ của việc 6 cộng phí đưa đón, mà nhánh này đổi cách tính phí đó, và hai bên cùng sửa phần tiền của đơn. Migration mới của kế hoạch này dự kiến bắt đầu từ **0182** (người thi công kiểm lại mọi nhánh trước khi đặt số).
 5. **Trần dung lượng gói trang Đơn hàng đang dư 0 byte:** việc 2, 5, 8, 13, 16 đều thêm giao diện. Nới trần là nới hàng rào, nên mỗi đợt người thi công đo thật và trình bạn **một con số** để duyệt (không nới ngầm).
-6. **Trang Quét vé và Kho vé chưa chuyển sang khung gốc (ADR-0222):** sửa lỗi không chờ chuyển khung. Khi chuyển khung, phải dời lớp kết quả quét ra ngoài vùng nội dung, nếu không lớp này bị bó trong khung.
+6. **Thứ tự cứng 2 → 5 → 8:** ba việc cùng sửa form tạo đơn của đối tác và cùng ăn vào trần gói trang, nên làm lần lượt; chỉ chạy song song khi bạn đã duyệt số trần cho cả ba.
+7. **Trang Quét vé và Kho vé chưa chuyển sang khung gốc (ADR-0222):** sửa lỗi không chờ chuyển khung. Khi chuyển khung, phải dời lớp kết quả quét ra ngoài vùng nội dung, nếu không lớp này bị bó trong khung.
 
 ## 4. Câu hỏi cần bạn trả lời bây giờ (2 câu)
 
-**Câu 1 — Chính sách tiền của đơn đối tác** (cho việc 2, 5, 6 và một phần việc 11). Tôi đọc các yêu cầu của bạn thành một chính sách: *«Đơn của đối tác: đối tác nợ Tour Đảo theo giá đại lý. Tour Đảo chỉ chạm tiền khách lẻ của đối tác bằng tiền mặt thu hộ. Kế toán chỉ cần biết đối tác nợ Tour Đảo bao nhiêu.»* Nếu đúng, bốn hệ quả sau áp theo khuyến nghị — bạn chỉ cần nói «Đồng ý cả bốn» hoặc sửa điểm nào:
+**Câu 1 — Chính sách tiền của đơn đối tác** (cho việc 2, 5, 6 và một phần việc 11). Tôi đọc các yêu cầu của bạn thành một chính sách: *«Đơn của đối tác: đối tác nợ Tour Đảo theo giá đại lý. Tour Đảo chỉ chạm tiền khách lẻ của đối tác bằng tiền mặt thu hộ. Kế toán chỉ cần biết đối tác nợ Tour Đảo bao nhiêu.»* Nếu đúng, các hệ quả sau áp theo khuyến nghị — bạn chỉ cần nói «Đồng ý hết» hoặc sửa điểm nào:
 - (a) Đối tác có Trả sau chỉ thấy «Trả sau». Khi Trả sau tạm khoá (có đơn quá hạn hoặc vượt hạn mức), hiện lại «Thanh toán ngay» kèm câu lý do, để đối tác không bị kẹt không lập được đơn. *(Vì nếu chặn hẳn thì đối tác quá hạn một đơn sẽ không bán được gì.)*
-- (b) Với **mọi đơn đối tác mới** (cả đơn văn phòng lập «Qua đối tác»): bỏ ghi thu «Chuyển khoản» vào tài khoản công ty và bỏ mã QR; ẩn ô «Khách đặt cọc cho đối tác» trên form tạo đơn của đối tác. Đơn cũ giữ nguyên. *(Vì Tour Đảo không còn thu hộ qua tài khoản.)*
+- (b1) **Đúng điều bạn nói:** trên form tạo đơn của đối tác, ẩn ô «Khách đặt cọc cho đối tác» và câu gợi ý «nội dung chuyển khoản». Việc nhỏ, đảo ngược được.
+- (b2) **Rộng hơn điều bạn nói, nên hỏi riêng:** với **mọi đơn đối tác mới** (cả đơn văn phòng lập «Qua đối tác»), máy chủ không nhận ghi thu «Chuyển khoản» vào tài khoản công ty và không hiện mã QR; đơn cũ giữ nguyên. Khuyến nghị **có**, vì nếu chỉ ẩn trên form thì còn sáu đường ghi thu chuyển khoản khác ở trang đơn. Cái giá: thêm một dấu trên đơn (migration) và phải sửa nhánh ADR-0199 trước khi nhập.
 - (c) Người thu hộ tiền mặt là hướng dẫn viên hoặc nhân viên Tour Đảo tại nơi đón; số đã thu hộ trừ vào nợ của đối tác. Tức là công tắc «Khách của đối tác trả cho Công ty» (màn Cấp độ đại lý) để **Bật** nhưng chỉ cho **tiền mặt**. *(Công tắc này mặc định Bật và theo ghi chép ngày 7/11 đang Bật; hôm nay tôi chưa kiểm trên bản chạy thật — bạn nhìn thẻ đó ở màn Cấp độ đại lý là biết. Nếu đang Tắt thì hướng dẫn viên không thu được đơn đối tác.)*
 - (d) Màn Đơn hàng của Kế toán: đơn đối tác hiện «Đối tác nợ Tour Đảo» và «Tour Đảo đã thu hộ tiền mặt»; **không** hiện giá đối tác bán cho khách hay giảm giá đối tác cho khách. Đơn khách lẻ hiện như cũ. *(Kế toán vẫn đối chiếu được vì chỉ còn tiền mặt thu hộ.)*
 
 **Câu 2 — Màn Quét vé không tự tải lại trang** (cho việc 9). Lớp chống ghi trùng (ADR-0094) hôm nay xử lý «lần trước đã ghi» bằng cách báo rồi **tự tải lại trang** — trên iPhone, tải lại nghĩa là tắt camera, đúng chỗ gây cảm giác treo. Khuyến nghị: riêng màn Quét vé, gặp trường hợp này thì báo «Lần quét trước đã được ghi», cho quét tiếp ngay, không tải lại; chờ tối đa khoảng 15 giây rồi hiện nút «Thử lại». Máy chủ vẫn chặn một vé bị tính hai lần như hôm nay. Việc này cần một dòng bổ sung ADR-0175 (Đ3 mục 3). *(Vì nếu giữ cách cũ, lỗi treo khi mạng chập chờn vẫn còn sau khi sửa.)*
 
-Các câu khác để tới đợt của nó (mục 5, mỗi đợt tối đa ba câu). Tên gọi mới gom ở mục 7.
+**Câu hỏi chờ tới đợt** (để bạn thấy sớm, chưa cần trả lời; chi tiết ở mục 5, mỗi đợt tối đa ba câu):
+- Đợt 2 (việc 7): công tắc «chặn đơn chưa có giờ đón khi sát ngày đón» mặc định Tắt (đúng chữ «bỏ chặn» của bạn) hay Bật (an toàn như hôm nay)?
+- Đợt 4 (việc 10): người đặt giá mùa vụ có được đồng thời là người duyệt, người thu tiền không (tách nhiệm vụ)?
+- Đợt 5 (việc 13, 14): nhận tệp Word khi đăng ký không (khuyến nghị không); giữ ảnh 5 năm khi khách đòi xoá dữ liệu (cần luật sư).
+- Đợt 6 (việc 1): khoá/mở tài khoản dùng thử từ bản chính hay ngay trên bản dùng thử; tên miền phụ; chấp nhận chi phí Cloudflare của bản thứ ba.
+
+Tên gọi mới gom ở mục 7.
 
 ## 5. Từng việc
 
@@ -78,7 +87,7 @@ Các câu khác để tới đợt của nó (mục 5, mỗi đợt tối đa ba
 ### Việc 3 — Tìm SĐT đối tác ở màn Tạo đơn (Đợt 0)
 - **Hiện trạng:** Nền tảng **không có tự điền ở đâu cả**; số chỉ được điền khi bấm «Điền thông tin đối tác». Giả thuyết mạnh nhất: hồ sơ đối tác tạo từ Quản lý tài khoản không có số liên hệ, vì số đăng nhập cố ý không chép sang (ADR-0001 mục 5; có bất biến canh). Đối tác tự đăng ký thì có số ⇒ «lúc được lúc không». Ô «Tìm đối tác theo tên» chỉ so tên, gõ SĐT sẽ ra «Không có đối tác nào…».
 - **Bước 1 (xác minh, bạn chạy):** một lệnh chỉ đọc đếm hồ sơ đối tác thiếu số liên hệ (phụ lục, việc 3).
-- **Bước 2 (sửa):** ô tìm nhận cả SĐT (so với số liên hệ); khi đối tác chưa có số liên hệ, nút điền hiện câu rõ kèm đường dẫn mở hồ sơ để thêm số. Không để máy tự chép số đăng nhập (trái ADR-0001).
+- **Bước 2 (sửa, không cần chờ bước 1):** ô tìm nhận cả SĐT (so với số liên hệ); khi đối tác chưa có số liên hệ, nút điền hiện câu rõ kèm đường dẫn mở hồ sơ để thêm số. Không để máy tự chép số đăng nhập (trái ADR-0001).
 - **Xong khi:** nhân viên gõ số của một đối tác đã có số liên hệ → ra đúng đối tác → chọn → bấm «Điền thông tin đối tác» → ô SĐT khách có đúng số. Đối tác chưa có số → câu «Đối tác này chưa có số liên hệ» kèm lối thêm số.
 - **Để sau (cần quyết riêng):** nút «Dùng số đăng nhập làm số liên hệ» do người bấm, có nhật ký — chạm ADR-0001 nên không làm trong đợt này.
 - **Loại:** vừa (chỉ đọc thêm, giữ nguyên ô quyền xem hồ sơ).
@@ -103,9 +112,9 @@ Các câu khác để tới đợt của nó (mục 5, mỗi đợt tối đa ba
 
 ### Việc 5 — Bỏ thu hộ chuyển khoản ở đơn đối tác (Đợt 1)
 - **Hiện trạng:** màn Tạo đơn của đối tác có ô «Khách đặt cọc cho đối tác» (tiền đối tác đang giữ) và câu gợi ý «nội dung chuyển khoản». Ghi thu thật nằm ở trang đơn, nút «Nhập khoản thu» có «Chuyển khoản» và lựa chọn «Công ty (vào tài khoản công ty)», cùng mã QR. Công tắc «Khách của đối tác trả cho Công ty» (màn Cấp độ đại lý) mặc định Bật — ghi chép 7/11 là Bật, hôm nay chưa kiểm bản chạy thật. Khi Bật, Công ty thu được tiền khách của đơn đối tác, kể cả chuyển khoản; khi Tắt, đơn đối tác tự lập chỉ còn «Tôi thu». Dù công tắc ở vị trí nào, **đơn văn phòng lập «Qua đối tác» không mang dấu công tắc**, nên luôn thu chuyển khoản và QR được.
-- **Cách làm:** theo câu 1(b), (c): một luật «đơn đối tác chỉ thu hộ tiền mặt» gắn dấu vào đơn lúc lập (như công tắc ADR-0178), áp cho cả đơn văn phòng lập; ẩn ô cọc trên form đối tác; sửa nhánh ADR-0199 trước khi nhập. Giữ nguyên «Khoản nộp» (đối tác trả nợ Tour Đảo) — đó không phải thu hộ.
-- **Xong khi:** đối tác mở đơn mới của mình → khối tiền chỉ có «Tiền mặt», không có QR, không có «Công ty (vào tài khoản công ty)»; form tạo đơn đối tác không còn ô cọc và câu chuyển khoản; văn phòng lập «Qua đối tác» → cũng chỉ tiền mặt; đơn cũ trước ngày áp không đổi.
-- **Loại:** lớn (tiền). Có migration (dấu trên đơn). Chặn ở máy chủ, không chỉ ẩn giao diện (còn sáu đường ghi thu khác).
+- **Cách làm:** (b1) ẩn ô cọc và câu chuyển khoản trên form đối tác — làm được ngay khi bạn trả lời câu 1. (b2) nếu bạn đồng ý: một luật «đơn đối tác chỉ thu hộ tiền mặt» gắn dấu vào đơn lúc lập (như công tắc ADR-0178), áp cho cả đơn văn phòng lập, chặn ở máy chủ; sửa nhánh ADR-0199 trước khi nhập. (c) người thu hộ tiền mặt theo câu 1(c). Giữ nguyên «Khoản nộp» (đối tác trả nợ Tour Đảo) — đó không phải thu hộ.
+- **Xong khi:** (b1) form tạo đơn đối tác không còn ô cọc và câu chuyển khoản. (b2) đối tác mở đơn mới của mình → khối tiền chỉ có «Tiền mặt», không có QR, không có «Công ty (vào tài khoản công ty)»; văn phòng lập «Qua đối tác» → cũng chỉ tiền mặt; gửi thẳng lệnh ghi thu chuyển khoản lên máy chủ → bị từ chối; đơn cũ trước ngày áp không đổi.
+- **Loại:** (b1) nhỏ; (b2) lớn (tiền, migration dấu trên đơn).
 
 ### Việc 6 — Kế toán chỉ thấy nợ đối tác với Tour Đảo (Đợt 1)
 - **Hiện trạng:** danh sách và trang đơn của Kế toán hiện số theo giá bán lẻ (Tổng, Đã trả, Còn thu, giảm giá); số đối tác nợ Tour Đảo chỉ ở «Phiếu công nợ với Tour Đảo» của từng đơn đã xác nhận; danh sách nợ gộp theo đối tác chỉ có cho đơn Trả sau.
@@ -115,7 +124,7 @@ Các câu khác để tới đợt của nó (mục 5, mỗi đợt tối đa ba
 
 ### Việc 7 — Công tắc chặn đơn thiếu giờ đón (Đợt 2)
 - **Hiện trạng:** có bốn chỗ chặn. (1) Đơn đối tác có đón mà chưa giờ luôn qua văn phòng — không công tắc; (2) Bảng Còn vé đòi giờ — **đã có công tắc**; (3) mọi đơn chưa giờ mà đã sát ngày đón ⇒ chặn — không công tắc; (4) điều phối không xếp xe cho chặng chưa giờ — hợp lý, giữ.
-- **Cách làm:** gom các công tắc lập đơn của Toàn quyền về một khối «Cài đặt lập đơn» (hôm nay rải trên trang Tôi); thêm công tắc cho chặn (3), mặc định **Bật** = như hôm nay. Chặn (1) thuộc công tắc giờ đón của việc 8.
+- **Cách làm:** gom các công tắc lập đơn của Toàn quyền về một khối «Cài đặt lập đơn» (hôm nay rải trên trang Tôi); thêm công tắc cho chặn (3). Vị trí mặc định là **câu hỏi của đợt**: Tắt đúng chữ «bỏ chặn» của bạn; Bật giữ an toàn như hôm nay (khuyến nghị Bật, vì lý do ngay dưới). Chặn (1) thuộc công tắc giờ đón của việc 8.
 - **Nói một lần:** tắt chặn (3) là mở lại lỗ ADR-0193 đã vá — đơn đón trong ngày chưa có giờ được xác nhận thẳng, vé mở khi chưa có giờ, điều phối chưa xếp được xe cho tới khi văn phòng chốt giờ.
 - **Xong khi:** Toàn quyền tắt công tắc → nhân viên xác nhận đơn đón ngày mai chưa có giờ → được; bật lại → bị chặn với câu cũ. Tài khoản khác không thấy công tắc; gọi thẳng máy chủ → bị từ chối.
 - **Loại:** lớn (luật đơn; bảng công tắc chỉ-thêm ⇒ migration). ADR mới sửa ADR-0193 câu (ii).
@@ -139,14 +148,15 @@ Các câu khác để tới đợt của nó (mục 5, mỗi đợt tối đa ba
 - **Xung đột phải chốt:** việc 2 nói đối tác Trả sau chỉ có một hình thức. Khuyến nghị: đối tác đang Trả sau vẫn chỉ «Trả sau»; hình thức trả với hướng dẫn viên dành cho đơn văn phòng và đối tác không có Trả sau. Áp cho đơn đối tác thì phải sửa ADR-0178 Đ1 (hôm nay hướng dẫn viên không thu được đơn đối tác khi công tắc Tắt) — câu 1(c) đã chạm điểm này.
 - **Câu hỏi của đợt (≤ 3):** khách không trả hướng dẫn viên thì ai chịu nợ (khuyến nghị: đơn văn phòng — khách; đơn đối tác — đối tác); có áp cho đơn đối tác không; danh sách sản phẩm/nhóm đầu tiên.
 - **Rủi ro:** vé mở trước khi thu tiền ở đơn đối tác ⇒ có thể mất tiền thật nếu khách không đi, không trả. «Khách đã trả đủ» vẫn đòi thu đủ như hôm nay.
-- **Xong khi:** đối tác Thanh toán ngay lập đơn 4 vé Tour 3 đảo (vé Tour Đảo, nằm trong danh sách) → gửi đơn → đơn xác nhận ngay, vé điện tử hiện ngay dù chưa trả; đơn có thêm một vé hãng ngoài → vé hãng ngoài vẫn chờ tiền như hôm nay; hướng dẫn viên mở đơn hình thức trả với hướng dẫn viên → ghi thu tiền mặt được.
+- **Xong khi:** đối tác Thanh toán ngay lập đơn 4 vé Tour 3 đảo (vé Tour Đảo, nằm trong danh sách) → gửi đơn → đơn xác nhận ngay, vé điện tử hiện ngay dù chưa trả; đơn có thêm một vé hãng ngoài → vé hãng ngoài vẫn chờ tiền như hôm nay; hướng dẫn viên mở đơn hình thức trả với hướng dẫn viên → ghi thu tiền mặt được. «Khởi tạo thành công» hiểu là đơn đã gửi và tự xác nhận; nếu một dịch vụ trong đơn bật cờ «cần xác nhận» thì vé hiện sau khi văn phòng xác nhận (giữ luật ADR-0136).
 - **Loại:** lớn (tiền, dữ liệu). ADR mới; sau đợt 1.
 
 ### Việc 10 — Giá mùa vụ (Đợt 4)
 - **Hiện trạng:** giá lấy từ Google Sheet (cũng là nguồn của website), không có ngày hiệu lực; Quản trị ghi đè được; giá chụp vào dòng đơn lúc lưu; đơn đã xác nhận không đổi giá. Hôm nay giá **không theo ngày đi**. Đã có khuôn tốt để chép: «Ngừng bán theo ngày khởi hành» (dịch vụ hoặc nhóm × khoảng ngày) và chương trình phí đón theo ngày đi (nhánh ADR-0218). Màn Chi tiết dịch vụ đã chừa chỗ «Giá theo mùa». ADR-0201 đã ghi hướng của bạn: giá theo mùa tính theo ngày đi.
 - **Cách làm:** bảng «giá mùa vụ» chỉ-thêm: phạm vi (dịch vụ hoặc nhóm) × khoảng ngày đi × tăng % và/hoặc tăng số tiền; **một hàm tính duy nhất** ở máy chủ, chèn sau ghi đè của Quản trị và trước đơn giá thoả thuận; chụp vào dòng đơn giá gốc + quy tắc đã áp + số tăng (Hiến chương 5.6); dịch vụ thắng nhóm, cùng mức chồng ngày bị chặn lúc nhập, không cộng dồn; chỉ tăng (≥ 0), trần % do Toàn quyền đặt; người đặt: Quản lý bán hàng, Quản trị, Kế toán qua một ô quyền mới. Ô này **không** thuộc nhóm «quyền tiền» của ADR-0090 (nếu xếp vào, luật PIN và gán vai của Quản trị, Quản lý bán hàng đổi hàng loạt) — ADR ghi rõ đây là «quyền tiền mềm» và Quản trị gán được vai Quản lý bán hàng. Sổ vàng ca mẫu do Kế toán xác nhận (5.17).
 - **Lỗ phải vá cùng:** nháp đổi ngày đi vẫn giữ giá cũ ⇒ tính lại khi đổi ngày; đơn đã xác nhận dời sang mùa khác ⇒ chặn (tính lại tiền vướng HC-4.2).
-- **Câu hỏi của đợt (≤ 3):** đại lý có hưởng hoa hồng trên phần tăng mùa vụ không (khuyến nghị: có, với hoa hồng tính theo %); một quy tắc có cả % và số tiền thì tính % trước rồi cộng, làm tròn lên 1.000 đ (khuyến nghị); đơn đã xác nhận đổi ngày sang mùa khác thì chặn (khuyến nghị). Kèm một điều cần biết: website đọc cùng Sheet nên sẽ không thấy giá mùa vụ.
+- **Tách nhiệm vụ (Hiến chương 5.28):** ba vai được đặt giá đều có thể là người thu tiền hoặc người xác nhận sổ vàng (Kế toán), và Quản trị tự gán được vai Quản lý bán hàng. ADR của đợt phải kèm trang ghép nói rõ ai đặt, ai duyệt, nhật ký đối chiếu ra sao.
+- **Câu hỏi của đợt (≤ 3):** đại lý có hưởng hoa hồng trên phần tăng mùa vụ không (khuyến nghị: có, với hoa hồng tính theo %); một quy tắc có cả % và số tiền thì tính % trước rồi cộng, làm tròn lên 1.000 đ (khuyến nghị); quy tắc giá mùa vụ có cần người thứ hai duyệt mới có hiệu lực không (khuyến nghị: có — người đặt khác người duyệt, Toàn quyền hoặc một trong ba vai còn lại). Kèm một điều cần biết: website đọc cùng Sheet nên sẽ không thấy giá mùa vụ.
 - **Xong khi (ví dụ tiền):** Tour 3 đảo người lớn 450.000 đ; Quản lý bán hàng đặt +10% và +20.000 đ cho nhóm «Tour đảo» từ 01/02 đến 15/02/2027. Đơn 2 người lớn đi 05/02 → đơn giá 450.000 × 1,1 + 20.000 = 515.000 đ → 1.030.000 đ. Đơn đi 20/02 → 900.000 đ. Kế toán đặt được; Bán hàng không thấy nút. Đơn xác nhận 25/01 cho ngày 05/02 giữ 1.030.000 đ dù sau đó quy tắc bị kết thúc.
 - **Loại:** lớn (tiền, quyền, dữ liệu). ADR mới + sổ vàng + người kiểm độc lập. Sau khi nhánh ADR-0218 nhập.
 
@@ -154,8 +164,9 @@ Các câu khác để tới đợt của nó (mục 5, mỗi đợt tối đa ba
 - **Hiện trạng:** chưa có. Có sẵn khuôn biên lai chuyển khoản (kho riêng, tên tệp ngẫu nhiên, nhật ký trước khi xem, gỡ có lý do) và hàm thu nhỏ ảnh ở trình duyệt (đã bỏ vị trí GPS). Tên «ảnh bằng chứng» đang trùng nghĩa với ảnh bằng chứng giao diện của kho mã (ADR-0216) ⇒ cần tên khác (mục 7).
 - **Cách làm:** kho R2 thứ sáu riêng (bạn tạo một lần); bảng ảnh gắn đơn (tuỳ chọn gắn dịch vụ hoặc lượt đón) + loại việc (giao khách, giao tài xế taxi, khác) + ghi chú ngắn; trình duyệt nén JPEG hai cỡ (ảnh nhỏ ~400 px cho danh sách, ảnh xem ~1600 px), ước 150–400 KB mỗi ảnh (chưa đo); máy chủ kiểm loại tệp theo nội dung; xem qua máy chủ sau kiểm quyền và ghi nhật ký; cơ sở dữ liệu chặn gỡ trước 5 năm — Toàn quyền chỉ **ẩn** có lý do, tệp vẫn giữ; thêm thời hạn giữ vào chính sách riêng tư phiên bản mới (Hiến chương 5.21, 5.25).
 - **Ai làm được (đề xuất):** tải — văn phòng, hướng dẫn viên đang phụ trách đơn, tài xế công ty của chuyến (ô quyền mới theo chuyến); xem — văn phòng, Kế toán, Quản trị; đối tác không xem.
-- **Câu hỏi của đợt (≤ 3):** tên tính năng; giữ 5 năm khi khách yêu cầu xoá dữ liệu (khuyến nghị: hỏi luật sư, Toàn quyền chỉ ẩn); có cần vị trí GPS không (khuyến nghị: không).
-- **Cần biết:** ước 50 ảnh/ngày × 300 KB ≈ 27 GB sau 5 năm (giá R2 chưa kiểm); sao lưu hiện giữ ~1 năm, muốn chắc 5 năm phải quyết thêm cách sao lưu kho này; khoá giữ của R2 chưa kiểm.
+- **Điều kiện trước của đợt (chưa xong thì chưa thi công):** (1) hỏi luật sư về căn cứ giữ ảnh 5 năm — ảnh có mặt khách, tài xế là dữ liệu cá nhân; Hiến chương 5.25 chỉ cho giữ khi còn lý do và khách có quyền yêu cầu xoá, nên **«tối thiểu 5 năm» có thể không đạt nếu luật sư bác**; (2) chính sách riêng tư phiên bản mới ghi mục đích và thời hạn (5.21); (3) cách sao lưu riêng cho kho này — sao lưu hiện chỉ giữ ~1 năm; (4) kiểm khoá giữ (bucket lock) của R2.
+- **Câu hỏi của đợt (≤ 3):** tên tính năng; giữ 5 năm khi khách yêu cầu xoá dữ liệu (khuyến nghị: theo ý luật sư, Toàn quyền chỉ ẩn); có cần vị trí GPS không (khuyến nghị: không).
+- **Cần biết:** ước 50 ảnh/ngày × 300 KB ≈ 27 GB sau 5 năm (giá R2 chưa kiểm).
 - **Xong khi:** hướng dẫn viên mở đơn đang phụ trách, chụp 2 ảnh khi giao vé → đơn hiện 2 ảnh nhỏ, bấm xem ảnh lớn; mỗi ảnh ≤ 500 KB; Kế toán thấy, đối tác không thấy; thử gỡ ảnh một năm tuổi → bị chặn, chỉ Toàn quyền ẩn được có lý do và tệp vẫn còn trong kho.
 - **Loại:** lớn (dữ liệu cá nhân, quyền, triển khai kho mới).
 
@@ -168,10 +179,11 @@ Các câu khác để tới đợt của nó (mục 5, mỗi đợt tối đa ba
 
 ### Việc 1 — Tài khoản dùng thử (Đợt 6, chạy song song được)
 - **Hiện trạng:** cơ sở dữ liệu thật có 144 bảng cấm xoá, sổ tiền chỉ-thêm, và «không xoá cứng» là luật nền (N5) ⇒ **không thể** để dữ liệu dùng thử trong bản chính rồi xoá mỗi 2 giờ; dữ liệu đó cũng sẽ lẫn vào sổ công nợ và lượt soát tiền 7 giờ sáng. «Xem như vai trò khác» chỉ cho Toàn quyền và ghi thật vào bản chính. Bản Development (ADR-0162) đã thiết kế nhưng chưa dựng.
-- **Cách làm:** dựng **bản dùng thử riêng**: Worker + cơ sở dữ liệu + kho ảnh riêng, chạy đúng mã đang phát hành của bản chính, địa chỉ riêng (ví dụ một tên miền phụ của booking.tourdao.vn — bạn chọn). Dữ liệu mẫu: danh mục đọc từ Sheet thật (giá bán đã công khai sẵn trên website), đối tác và hoa hồng là số giả. Mỗi 2 giờ: đưa cơ sở dữ liệu dùng thử về trạng thái sạch. Đăng nhập: một tài khoản dùng thử; sau mã PIN hiện «Bạn muốn dùng thử với vai nào?», chọn được mọi vai **trừ Toàn quyền**. Riêng bản dùng thử: cho nhiều máy cùng lúc, không bảo mật hai lớp, không gửi thư/thông báo/Zalo ra ngoài, dải «BẢN DÙNG THỬ — dữ liệu tự xoá lúc …». Khoá / mở: tài khoản Toàn quyền của bạn trên bản dùng thử có công tắc «Mở / Khoá tài khoản dùng thử»; trạng thái khoá nằm ngoài phần bị xoá mỗi 2 giờ.
+- **Cách làm:** dựng **bản dùng thử riêng**: Worker + cơ sở dữ liệu + kho ảnh riêng, chạy đúng mã đang phát hành của bản chính, địa chỉ riêng (ví dụ một tên miền phụ của booking.tourdao.vn — bạn chọn). Dữ liệu mẫu: danh mục đọc từ Sheet thật (giá bán đã công khai sẵn trên website), đối tác và hoa hồng là số giả. Mỗi 2 giờ: đưa cơ sở dữ liệu dùng thử về trạng thái sạch. Đăng nhập: một tài khoản dùng thử; sau mã PIN hiện «Bạn muốn dùng thử với vai nào?», chọn được mọi vai **trừ Toàn quyền**. Riêng bản dùng thử: cho nhiều máy cùng lúc, không bảo mật hai lớp, không gửi thư/thông báo/Zalo ra ngoài, dải «BẢN DÙNG THỬ — dữ liệu tự xoá lúc …». Khoá / mở: hai cách, bạn chọn ở đầu đợt — (i) ngay trên bản dùng thử, bằng tài khoản Toàn quyền của bạn ở đó (đơn giản, hai hệ thống vẫn độc lập; khuyến nghị); (ii) từ bản chính (tiện hơn cho bạn nhưng phải nối hai hệ thống, cần ADR riêng). Dù cách nào, trạng thái khoá nằm ngoài phần bị xoá mỗi 2 giờ.
 - **Bước 0 (thử kỹ thuật, chưa kiểm):** cách đưa cơ sở dữ liệu về trạng thái sạch mỗi 2 giờ (quay về mốc bằng Time Travel qua API, hay xoá–tạo lại–nạp mẫu) và chi phí Cloudflare cho bản thứ ba. Kết quả bước này quyết cách làm, trước khi viết ADR.
 - **Xong khi:** (a) mở địa chỉ dùng thử, đăng nhập tài khoản dùng thử, chọn «Đối tác», lập đơn → đơn chỉ có ở bản dùng thử, bản chính không có; (b) qua mốc 2 giờ, đơn đó biến mất, danh mục và tài khoản mẫu còn nguyên; (c) Toàn quyền bấm Khoá → đăng nhập dùng thử báo «đang tạm khoá»; Mở → vào lại được; (d) không thư, thông báo nào gửi ra ngoài từ bản dùng thử.
-- **Không làm:** không chép dữ liệu thật (khách, đơn) sang; không khoá/mở từ bản chính (muốn vậy phải nối hai hệ thống — ADR riêng).
+- **Câu hỏi của đợt (≤ 3):** khoá/mở theo cách (i) hay (ii); tên miền phụ cho bản dùng thử; chấp nhận chi phí Cloudflare của bản thứ ba (con số có sau bước 0).
+- **Không làm:** không chép dữ liệu thật (khách, đơn) sang. Việc này là việc đầu tiên bạn nêu nhưng xếp đợt cuối vì lớn nhất và không chặn việc nào khác; bước 0 chạy song song được ngay khi bạn muốn.
 - **Loại:** lớn (triển khai, quyền). ADR mới: «chọn vai khi đăng nhập» là ngoại lệ của ADR-0187 Đ1, chỉ trên bản dùng thử. Bạn phải tự tạo tài nguyên Cloudflare và đặt bí mật (lệnh cấm AI chạy, CLAUDE.md §8).
 
 ## 6. Báo cáo việc 15 — «Người bán dịch vụ» trong Thiết lập
@@ -203,14 +215,15 @@ Theo Hiến chương 5.27, tên mới do bạn chọn từ 2–3 phương án:
 
 - Việc 2: đối tác thấy chữ **«Trả sau»**, không phải «Hạn mức trả sau» — vì ADR-0198 Đ1 bạn đã duyệt giấu chữ «hạn mức» với đối tác. Chặn ở cả máy chủ, chỉ áp cho tài khoản Đối tác.
 - Việc 4: «bước nhập vé vào kho» hiểu là bộ chọn của form nhập vé hãng ngoài (tìm + nhóm); tìm không phân biệt dấu; lọc theo nguồn vé hay trạng thái lô để sau.
-- Việc 7: công tắc mới mặc định **Bật** (giữ hành vi hôm nay); gom công tắc về một khối «Cài đặt lập đơn».
+- Việc 7: gom các công tắc lập đơn về một khối «Cài đặt lập đơn» (vị trí mặc định của công tắc mới thì hỏi bạn ở đợt 2).
 - Việc 8: «tắt danh sách khách» hiểu là tách khỏi «tên, SĐT khách»; vẫn đòi đủ tên lúc xuất bến.
 - Việc 9: sửa lỗi «cửa sổ trượt» mà không hỏi, vì mã lệch đặc tả đã duyệt («vài giây»).
-- Việc 10: chỉ tăng giá (≥ 0), xét theo ngày đi, dịch vụ thắng nhóm, không cộng dồn; phí đưa đón không chịu giá mùa vụ (đã có luật riêng ADR-0218).
+- Việc 10: chỉ tăng giá (≥ 0), xét theo ngày đi, dịch vụ thắng nhóm, không cộng dồn; phí đưa đón không chịu giá mùa vụ (đã có luật riêng ADR-0218); đơn đã xác nhận đổi ngày sang mùa khác thì chặn, không tự tính lại tiền.
+- Việc 11: đơn có dịch vụ bật cờ «cần xác nhận» vẫn chờ văn phòng xác nhận rồi mới hiện vé.
 - Việc 12: số dịch vụ **thay** hotline công ty (một số trên vé dễ hiểu, vừa bố cục); không tạo lại vé cũ.
 - Việc 13: chỉ ảnh JPEG hai cỡ, không nhận PDF hay video; không giữ GPS trong ảnh, giờ lấy giờ máy chủ.
-- Việc 16: «menu phụ» hiểu là 25 mục Thiết lập trước, thẻ con trong từng màn sau.
-- Việc 1: khoá/mở ngay trên bản dùng thử; chọn được mọi vai trừ Toàn quyền.
+- Việc 16: «menu phụ» có hai cách hiểu (25 mục của Thiết lập, hoặc thẻ con trong từng màn) — làm **cả hai**: 25 mục trước, thẻ con sau.
+- Việc 1: chọn được mọi vai trừ Toàn quyền.
 - Thứ tự đợt như bảng mục 2; việc 1 chạy song song được vì không đụng mã các đợt khác.
 
 ---
