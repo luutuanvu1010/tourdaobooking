@@ -30,3 +30,11 @@ Mới đo trang thật với SALES, PARTNER, ACCOUNTING; bộ khác mở trang n
 - Chỉ chụp màn ngay sau khi tải (chưa bấm gì); hai khổ 390 và 1280.
 - Dữ liệu thử chỉ có họ màn Lập đơn, Đơn hàng, Chi tiết đơn (đơn của Bán hàng và một đơn của Đối tác).
 - Chưa đo tốc độ, cỡ chữ lớn, iPad, iPhone thật.
+
+## Đo khung gốc (`npm run do-khung`, từ 2026-11-21)
+Lớp canh thứ hai của luật khung gốc giao diện: với mỗi màn đã khai `data-khung-goc`, quét mọi bề rộng cửa sổ 360 tới 1.920 (bước 20) trên máy thử cục bộ và kiểm tám điều: không tràn ngang, không chữ bị bóp, khối thẳng mép vùng nội dung, không phần tử thò ra ngoài khối, một kiểu vỏ khối, khoảng cách thuộc thang, nút chính đúng chỗ của khuôn, không phần tử fixed trong vùng nội dung.
+- `npm run do-khung -- --dem`: chỉ in năm con số «chưa theo khung» đọc từ mã (không cần trình duyệt). Dùng để hạ trần ở `src/khung-goc.test.ts`.
+- `npm run do-khung -- --tk <tệp tài khoản thử> [--base http://127.0.0.1:8843] [--bang <bảng màn.json>] [--man khoá,…] [--tu 360 --den 1920 --buoc 20] [--ra <thư mục ngoài kho>]`: cần máy thử đang chạy (xem đầu tệp `do-khung-goc.mjs`) và bảng màn `[{ khoa, tk, trang }]` mang mã bản ghi của kho dữ liệu giả đang dùng.
+- Mã thoát như máy đo màn: 0 đạt hết, 1 có ô không đạt, 2 không chạy được hoặc ĐO THIẾU (trang đã chuyển khuôn mà bảng màn không có, hoặc chỉ đo vài màn bằng `--man`).
+- Tệp: `do-khung-goc.mjs` (lệnh), `cham-khung-goc.mjs` (đoạn đo trong trang và máy chấm, bài `src/khung-do.test.ts`), `dem-khung-goc.mjs` (phép đếm, dùng chung với `src/khung-goc.test.ts`).
+- Giới hạn: chỉ đo màn ngay sau khi tải (chưa mở bảng trượt, chưa bấm gì); một tài khoản mỗi màn; Chrome giả lập, chưa phải máy thật; không nằm trong `npm test`.

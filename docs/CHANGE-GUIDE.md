@@ -212,6 +212,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
    - Thân: `<header id="topbar"></header>`, `<div id="error" class="alert" role="alert" hidden>`, `<script type="module" src="/js/<tên>.js">`.
    - `<body data-title data-back data-tabbar="off">` tuỳ trang. KHÔNG script inline (CSP `script-src 'self'`).
    - `<body data-rong="…">` BẮT BUỘC (lưới bố cục, bước 2): `hep` (biểu mẫu một cột, trang đọc), `vua` (chi tiết, biểu mẫu hai cột, thiết lập) hoặc `rong` (danh sách, bảng điều khiển). Không đặt bề rộng `main` bằng `style` hay luật riêng; thiếu là `src/luoi-bo-cuc.test.ts` đỏ.
+   - `<body data-khung-goc="…">` BẮT BUỘC cho trang mới (khung gốc, ADR-0222): một trong bảy khuôn; mức `data-rong` phải khớp khuôn. Trang mới không được xin «chưa chuyển»; thiếu là `src/khung-goc.test.ts` đỏ. Cách dựng: công thức z41.
 2. `web/<tên>.ts`: `const staff = await initShell();` (`web/shell.ts`) làm việc đầu; kiểm quyền bằng `hasPermission`/`can` (`src/shared/permissions`, import KHÔNG đuôi `.ts`); lỗi hiện bằng `showError`.
 3. `package.json` → script `build:web`: thêm `web/<tên>.ts` vào lệnh esbuild đầu (danh sách liệt kê từng tệp).
 4. `src/shared/sw-policy.ts`: thêm `"/<tên>"` (không `.html`) vào `PAGES` **và** thêm `"/<tên>"` + `"/js/<tên>.js"` vào `PRECACHE` (từ 2026-09-27 nạp sẵn MỌI trang; `src/shared/sw-policy.test.ts` đọc script `build:web` và đỏ nếu thiếu).
@@ -1560,6 +1561,26 @@ Toàn quyền chọn Hiện / Ẩn / Bắt buộc theo màn × trường × nhó
   - **Thêm một chỗ có ô chọn phí:** dùng `LUA_CHON_PHI_DON`, `mucTuO`, `oTuMuc`, `mucDaLuuTheoLuot` (không tự đọc số tiền, không tự tính tiền); câu báo lấy từ `mucTuO` (cùng `kiemMucChon` của máy chủ). Ẩn / hiện theo `GET /api/orders/phi-don-ap` (biểu mẫu) hoặc `phiDuaDon.thieu` (đơn đã lưu).
   - **Kiểm:** `node --test src/shared/phi-don-chon.test.ts src/shared/phi-don-o-chon.test.ts src/so-vang-phi-don-chon.test.ts src/migrations-phi-don-chon.test.ts src/modules/orders/phi-don-*.test.ts src/bang-tham-chieu.test.ts`; `npm run test:e2e -- phi-don-don phi-don-xac-nhan`; giao diện: `npm run build:web` rồi `docs/evidence/2026-11-phi-don/kich-ban/phi-don-chon-smoke.mjs` (1280 + 375, cần `AXE_JS`). Hai kịch bản cũ `phi-don-don-smoke.mjs` (đơn lập kèm `phiDon`) và `phi-don-smoke.mjs` (câu ADR-0214, đặt ngày áp khi bảng trống) đã sửa theo luật mới ở vòng sửa 1 Task 6.
 - **Kiểm:** `node --test src/modules/locations/vung-*.test.ts src/modules/pricing/phi-don-*.test.ts src/so-vang-phi-don.test.ts src/migrations-vung-don.test.ts src/migrations-phi-don.test.ts src/migrations-phi-don-tren-don.test.ts src/modules/orders/phi-don-*.test.ts src/phi-don-doc-tien.test.ts src/doc-dong-tien-phi-don.test.ts src/shared/phi-don-hien-thi.test.ts src/shared/order-confirmation.test.ts src/audit-invariants.test.ts`; `npm run test:e2e -- locations phi-don phi-don-don phi-don-xac-nhan`.
+
+### z41. Khung gốc giao diện: dựng một màn mới hoặc chuyển một màn cũ (ADR-0222)
+
+**Nguồn:** luật `docs/adr/ADR-0222-khung-goc-giao-dien.md`; khai báo `src/shared/khung-goc.ts`; hàm dựng `web/khung.ts`; kiểu ở phần «Khung gốc giao diện» cuối `public/app.css` (thang đo `--kg-*` ở `:root`). Bốn màn mẫu để chép: Đơn hàng (Danh sách), Chi tiết đơn (Chi tiết), Sửa xe (Biểu mẫu), Địa điểm (Thiết lập).
+
+**Sửa theo thứ tự:**
+1. `public/<trang>.html`: `<body data-khung-goc="danh-sach | chi-tiet | bieu-mau | thiet-lap | tong-quan | trang-doc | trang-thai">`, `data-rong` khớp khuôn (danh sách, tổng quan: `rong`; chi tiết, thiết lập: `vua`; biểu mẫu: `hep` hoặc `vua`; trang đọc: `hep`). Trang đang lệch bảng đó: trình chủ dự án bằng ảnh, rồi đổi mức hoặc ghi một mục `muc-rong` vào sổ ngoại lệ.
+2. `web/<trang>.ts`: dựng bằng `khoi`, `luoi` + `truong` (số cột 3, 4, 6, 8), `cap`, `thanhNut`, `thanhViec`, `thanhLoc`, `dauTrang`, `thanhDay`, `haiCot`, `dsDong`; bảng danh sách khai cột bằng tên của thang (`khuonCot`, `datKhuonBang`, `o`). Nút viết thẳng `h("button", { type: "button", class: "nut", "data-cap": "chinh" | "phu" | "loi" | "nguy-hiem" }, "Chữ")` để máy so chữ nút đọc được. Không tự đặt bề rộng, số cột, khoảng cách.
+3. Chuyển màn cũ: gỡ tên tệp khỏi `TRANG_CHUA_CHUYEN` (`src/shared/khung-goc.ts`); luật kiểu cũ không còn tệp nào dùng thì gỡ khỏi `public/app.css`; đo lại `npm run do-khung -- --dem` rồi **hạ trần** ở `src/khung-goc.test.ts` về đúng số đo.
+4. Phần không dựng được bằng bộ có sẵn: bọc trong `.vung-tu-do` và ghi một mục vào `SO_NGOAI_LE` (màn, phần, lý do, ngày chủ duyệt, tệp). Không có mục thì bài kiểm đỏ.
+5. Màn đã chuyển: thêm một dòng vào bảng màn của lệnh đo (`--bang`, mẫu `docs/evidence/2026-11-21-khung-goc-thi-cong/bang-man.json`).
+
+**Kiểm:** `node --test src/khung-goc.test.ts src/khung-web.test.ts src/khung-do.test.ts` → `npm run build:web` → bật máy thử → `npm run do-khung -- --tk <tệp tài khoản thử>` (mọi bề rộng 360 tới 1.920; mã thoát 0 mới là đạt, 2 là đo thiếu) → ảnh trước và sau cho chủ duyệt → trợ lý `nguoi-danh-gia-giao-dien`.
+
+**Bẫy:**
+- Luật trong phần khung phải mở đầu bằng `body[data-khung-goc]`, không có id của một màn, cửa sổ chỉ hai mốc 641 và 900, vùng chứa chỉ ba mốc 560, 800, 1040 viết từ hẹp lên rộng. Số px chỉ khai ở `:root` (phần sau dấu mốc PWA chỉ dùng token).
+- `main` của trang đã chuyển là vùng chứa, nên là khối chứa của con `position: fixed`: không đặt phần tử fixed trong `main` (bảng trượt, toast gắn vào `body`); thanh đáy dùng `thanhDay` (sticky).
+- Thứ có hai chỗ đứng theo khổ (nút chính ở đầu trang máy tính và dính đáy điện thoại): dựng hai bản, bản máy tính mang `data-chi="rong"`, vùng chỉ của điện thoại mang `data-chi="hep"`.
+- Thêm token `--kg-*`, hoặc đổi phần khung: chạy `node scripts/sinh-bundle-bo-v2.mjs` và sửa `tokens.json` của bản gương tới khi `node scripts/so-bo-v2-voi-ma.mjs` báo 0 lệch.
+- So ảnh trang thật với ảnh chủ đã duyệt: `docs/evidence/2026-11-21-khung-goc-thi-cong/kich-ban/so-anh.py` (chụp cùng thứ tự màn và cùng chiều cao ảnh với lượt đã duyệt, nếu không dải nhắc giữ chỗ làm lệch).
 
 ### z40. Đăng ký đối tác tự phục vụ (ADR-0206 … ADR-0210, Hiến chương 5.29 — migration `0170_dang_ky`, `0171_tep_cho_dang_ky`, `0172_cap_mac_dinh_dang_ky`; CHƯA lên production)
 Luồng và nơi đặt mã: `docs/SYSTEM-DESIGN.md` §6 (t). Rào và ngày thấy chặn: `docs/SO-HANG-RAO.md` (các dòng «Đăng ký đối tác —»).
