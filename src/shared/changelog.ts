@@ -18,12 +18,21 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đối tác Trả sau chỉ thấy «Trả sau» (kế hoạch 16 việc 21/11, Việc 2; ADR-0224). Nhánh claude/great-montalcini-69b67b. Không migration.
-    // SỐ TẠM 3.27 (3.26 là Việc 4, 3.25 là Việc 16): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.27",
-    date: "2026-11-21",
+    // SỐ TẠM 3.28 (3.27 là sửa giu-cho-dai, 3.26 là Việc 4): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.28",
+    date: "2026-11-22",
     items: [
       { kind: "doi", text: "Đối tác được trả sau: màn Tạo đơn chỉ còn «Trả sau»." },
       { kind: "doi", text: "Khi Trả sau tạm khoá (có đơn quá hạn) hoặc đơn vượt mức được trả sau, «Thanh toán ngay» hiện lại kèm câu lý do." },
+    ],
+  },
+  {
+    // Tệp đầu trang web/giu-cho-dai.ts không ném khi lệnh đọc / ghi sessionStorage bị chặn (kịch bản chip-nhom-smoke bước 12). Nhánh claude/recursing-mahavira-be4522.
+    // Không migration. SỐ TẠM 3.27 (3.26 là Việc 4 Kho vé, đã nhập main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.27",
+    date: "2026-11-22",
+    items: [
+      { kind: "sua", text: "Trình duyệt đang chặn lưu dữ liệu (chế độ riêng tư trên máy cũ): Nền tảng không còn báo lỗi ngầm khi mở trang, vẫn chạy như thường." },
     ],
   },
   {
