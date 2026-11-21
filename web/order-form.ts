@@ -20,7 +20,7 @@ import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
 import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieuVaiTro, gopBenDat, hienNutDienDoiTac, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon, type KhoiBenDatForm } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
-import { GOI_Y_GIAM_GIA_DOI_TAC, duaDonAnHetLuot, formGonDoiTac } from "../src/shared/form-dat-ve";
+import { GOI_Y_GIAM_GIA_DOI_TAC, duaDonAnHetLuot, formGonDoiTac, HIEN_O_DAT_COC_DOI_TAC, nhanGapGiaiThichTien } from "../src/shared/form-dat-ve";
 import { O_PHI_TRONG, mucDaLuuTheoLuot, mucTuO, oTuMuc, type OPhiDon } from "../src/shared/phi-don-o-chon";
 import type { MucChon } from "../src/shared/phi-don-chon";
 import { cauTranGiamGiaForm, oGiamGiaChiGiaDanhMuc } from "../src/shared/ben-kia-hien-thi";
@@ -1301,7 +1301,7 @@ if (banChup?.loai !== "form") {
   banChup = null; // đã quyết và xoá: bước quyết muộn không xét lại
 }
 guiDonKhiLuu = holdsPartner(staff);
-coODatCoc = holdsPartner(staff);
+coODatCoc = HIEN_O_DAT_COC_DOI_TAC && holdsPartner(staff); // ADR-0225 Đ1 (đề xuất): form Đối tác không còn ô đặt cọc
 byId("dat-coc-o").hidden = !coODatCoc;
 byId("dat-coc-goi-y").hidden = !coODatCoc;
 // Hai dòng đặt cọc của Tóm tắt do `recompute()` hiện khi có số khai (đặc tả 2026-11-20); ở đây giữ ẩn.
@@ -1319,13 +1319,15 @@ if (formGon) {
   // H1 (chủ duyệt 20/11/2026) — chỉ form của tài khoản Đối tác:
   // (1) chữ tiêu đề «Thanh toán» ẩn với mắt, vẫn là tên khối cho trình đọc màn hình (`aria-labelledby`);
   byId("pay-title").classList.add("visually-hidden");
+  // Việc 5 (b1), ADR-0225 Đ1 (đề xuất): chủ yêu cầu bỏ chữ gợi ý «vd: nội dung chuyển khoản» của ô Ghi chú thanh toán (form văn phòng giữ).
+  (field("paymentNote") as HTMLTextAreaElement).placeholder = "";
   // (2) «Hình thức thanh toán» sang cột phải ngay trên nút gửi (điện thoại: cuối trang, ngay trước thanh nút); chỗ chứa hiện / ẩn cùng khối trong `napTraSau`;
   byId("hinh-thuc-cho").append(byId("tra-sau-khoi"), byId("tra-sau-bao"));
   // (3) ba câu giải thích về tiền GẬP sau một nút, không bỏ (chủ: «ok nên gập lại»). Câu vẫn nằm trong cây DOM, ô vẫn trỏ `aria-describedby` tới nó; lưu bị từ chối (400) thì `moMoiKhoiGap` mở ra.
   const bocGiaiThich = h("div", { class: "pay-giai-thich" });
   document.querySelector<HTMLElement>("#pay-card .grid.two")!.after(bocGiaiThich);
   bocGiaiThich.append(byId("dat-coc-goi-y"), byId("dat-coc-tra-sau"));
-  gapGiaiThich = taoKhoiGap({ ma: "thanh-toan-giai-thich", nhan: "Giải thích giảm giá, đặt cọc", than: bocGiaiThich });
+  gapGiaiThich = taoKhoiGap({ ma: "thanh-toan-giai-thich", nhan: nhanGapGiaiThichTien(coODatCoc), than: bocGiaiThich });
   bocGiaiThich.before(gapGiaiThich.nut);
 }
 duocDatGap = can(staff, "order.leg.short_notice");
@@ -1616,6 +1618,8 @@ mocPhut = await layMoc;
     discountEl.readOnly = o.khoa && num("discount") === 0;
     hint = datHint(o.cau);
   }
+  // Việc 5 (b1): form Đối tác không còn ô đặt cọc ⇒ khối gập chỉ còn câu giảm giá; câu đó nằm dưới ô (ô khoá) thì khối gập trống — ẩn luôn nút, không để nút mở ra khoảng trống.
+  if (gapGiaiThich) gapGiaiThich.nut.hidden = !coODatCoc && !gapGiaiThich.than.querySelector("#discount-hint");
   // Sửa đơn đã lưu có người hưởng: câu trần «Giảm tối đa X ₫ (bằng hoa hồng của đơn).» theo tổng hoa hồng máy chủ tính (GET …/thuong-mai — cùng ô order.terms.view của khối
   // Phần đối tác). Tổng null (còn dịch vụ thiếu mức) ⇒ không đoán số; đơn mới chưa lưu ⇒ không câu — máy chủ báo đúng câu đó khi lưu vượt trần (400).
   if (editId && !(retailOnly && discountEl.readOnly) && coXemPhanDoiTac(staff, { staffId: staff.id })) {
