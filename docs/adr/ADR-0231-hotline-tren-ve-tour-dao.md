@@ -1,10 +1,10 @@
 # ADR-0231 — Hotline trên vé Tour Đảo theo dịch vụ, sửa được cho từng lô
 
-- **Trạng thái:** proposed 2026-11-21 — chờ chủ dự án duyệt (gửi qua phiên điều phối kế hoạch 16 việc).
+- **Trạng thái:** **accepted** 2026-11-22 — chủ dự án duyệt trong phiên điều phối kế hoạch 16 việc, câu 2 của lượt trả lời, nguyên văn: «Duyệt đề xuất» (người điều phối ghi: duyệt các ADR 0223–0233 theo bốn lượt đã trình, gồm ADR này). Hồ sơ: `docs/superpowers/plans/2026-11-22-quyet-dinh-chu-ke-hoach-16-viec.md` (nhánh `claude/partner-features-detailed-plan-f32f89`). Tên chốt 2026-11-21 (mục «Điều chủ duyệt khi đọc», câu 2). Đề xuất soạn 2026-11-21.
 - **Ngày:** 2026-11-21.
 - **Nguồn:** Việc 12 của kế hoạch `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md` (nhánh `claude/partner-features-detailed-plan-f32f89`), mục 5 và phụ lục; mục 8 «Điều AI tự quyết» (số dịch vụ THAY hotline công ty; không tạo lại vé cũ).
 - **Loại:** vừa (một bảng chỉ thêm nhỏ, một cột cho phép NULL ở lô vé ⇒ migration `0185`). **Cửa:** hai chiều với hành vi (để trống số là về như cũ); một chiều mềm với dữ liệu (bảng chỉ thêm và cột bản chụp ở lại).
-- **Quan hệ với ADR cũ:** **sửa** ADR-0175 Đ1 mục 7 (nội dung vé): số in ở chân vé nay là «Hotline trên vé» của lô thay vì luôn là Hotline công ty chủ. **Giữ** ADR-0175 Đ1 mục 2 (ô theo từng dịch vụ, dùng chung ô quyền `catalog.ticket_flag.write` của ADR-0174 Đ4), Đ1 mục 3 (ô `ve.phat-hanh` tạo lô), ADR-0217 (số sê-ri), ADR-0024 6.4 (hotline công ty vẫn đọc qua `ownerCompany`, dùng khi dịch vụ chưa có số).
+- **Quan hệ với ADR cũ:** **sửa** ADR-0175 Đ1 mục 7 (nội dung vé): số in ở chân vé nay là «Hotline trên vé» của lô thay vì luôn là Hotline công ty chủ — chủ dự án duyệt điều sửa này cùng ADR ngày 2026-11-22 («Duyệt đề xuất»). Văn bản ADR-0175 không sửa (ADR đã duyệt); đọc ADR này cho mục 7. **Giữ** ADR-0175 Đ1 mục 2 (ô theo từng dịch vụ, dùng chung ô quyền `catalog.ticket_flag.write` của ADR-0174 Đ4), Đ1 mục 3 (ô `ve.phat-hanh` tạo lô), ADR-0217 (số sê-ri), ADR-0024 6.4 (hotline công ty vẫn đọc qua `ownerCompany`, dùng khi dịch vụ chưa có số).
 - **Xây trên lỗ đang hở:** HC-5.19 (có migration mới; tiền lệ ADR-0193, ADR-0221).
 
 ## Bối cảnh
@@ -30,4 +30,4 @@ Vé Tour Đảo là ảnh vẽ ở trình duyệt lúc tạo lô; chân vé in �
 
 ## Điều chủ duyệt khi đọc
 1. Duyệt Đ1–Đ5 như trên.
-2. **Tên** (Hiến chương 5.27): chữ trước số trên vé và tên ô. Khuyến nghị A: vé giữ «Hotline <số>», ô tên «Hotline trên vé». Phương án B: «Hotline dịch vụ» cho cả hai. Không dùng «Hỗ trợ» vì trùng tên màn Hỗ trợ. **Đã chốt 2026-11-21:** chủ chọn A qua phiên điều phối kế hoạch 16 việc (lời chủ: «còn lại áp dụng như khuyến nghị»). Đ1–Đ5 vẫn chờ chủ duyệt.
+2. **Tên** (Hiến chương 5.27): chữ trước số trên vé và tên ô. Khuyến nghị A: vé giữ «Hotline <số>», ô tên «Hotline trên vé». Phương án B: «Hotline dịch vụ» cho cả hai. Không dùng «Hỗ trợ» vì trùng tên màn Hỗ trợ. **Đã chốt 2026-11-21:** chủ chọn A qua phiên điều phối kế hoạch 16 việc (lời chủ: «còn lại áp dụng như khuyến nghị»). Đ1–Đ5: chủ duyệt 2026-11-22 («Duyệt đề xuất»).
