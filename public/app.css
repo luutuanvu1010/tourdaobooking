@@ -2865,6 +2865,9 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
    giấu `.dp-cs-actions` vô điều kiện, nên nhánh hai số của Quản trị (thanh đáy ẩn) và thẻ Hạn mức Từ chối (cùng lớp, không có thanh đáy) mất nút lưu ở điện thoại.
    Bài `src/nut-luu-khong-mat-o-dien-thoai.test.ts` khoá: không luật nào được giấu lớp này mà không đòi thanh đáy đang hiện. */
 @media (max-width: 640px) { main:has(> #cs-bottom:not([hidden])) #cs-form .dp-cs-actions { display: none; } }
+/* Thanh đáy của trang này đứng ngay sau biểu mẫu chính sách (public/chinh-sach-dieu-phoi.html), nên khi cuộn xuống thẻ Hạn mức nó thôi dính và trôi lên, ngang qua
+   thanh trên dính của khung. Hai thanh vốn cùng lớp `--z-dinh` (thanh đứng sau trong trang vẽ đè lên): xếp thanh đáy dưới thanh trên một bậc. */
+#cs-bottom { z-index: calc(var(--z-dinh) - 1); }
 /* lịch sử bản: cột phải (≥ 641px); điện thoại mở bảng trượt bằng dòng "Lịch sử bản (N) ›" (khung 8b) */
 .dp-hist { display: flex; flex-direction: column; }
 .dp-hist-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }

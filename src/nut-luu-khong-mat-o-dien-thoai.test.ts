@@ -70,6 +70,15 @@ test("thanh đáy đứng ngay sau biểu mẫu chính sách, trước thẻ H�
   assert.ok(bieuMau < thanhDay && thanhDay < hanMuc, "thứ tự trong trang phải là: biểu mẫu chính sách, thanh đáy, rồi thẻ Hạn mức");
 });
 
+// Thanh đáy nay có lúc nằm trong trang (đã thôi dính) và trôi ngang qua thanh trên dính của khung. Hai thanh vốn cùng một lớp xếp chồng (`--z-dinh`), phần tử
+// đứng sau trong trang vẽ đè lên: đo 21/11 trước khi sửa, điểm giữa thanh trên là nút của thanh đáy. Thanh đáy của trang này phải xếp dưới thanh trên một bậc.
+test("thanh đáy xếp dưới thanh trên dính của khung: lúc trôi qua không đè lên tiêu đề trang", () => {
+  const l = luatLa.find((x) => x.boChon === "#cs-bottom");
+  assert.ok(l, "thiếu luật riêng cho `#cs-bottom`");
+  assert.match(l.than, /(?:^|;)\s*z-index:\s*calc\(var\(--z-dinh\) - 1\);/);
+  assert.match(css, /#topbar \{ position: sticky; top: 0; z-index: var\(--z-dinh\);/, "thanh trên của khung không còn ở lớp `--z-dinh`: xem lại bậc của thanh đáy");
+});
+
 // Nút lưu trong thẻ nằm ở CUỐI thẻ, câu báo «Đã lưu…» nằm ở ĐẦU trang (hoặc đầu thẻ Hạn mức). Ở điện thoại hai chỗ này thường không cùng một màn:
 // bấm lưu xong phải đưa câu báo vào tầm nhìn, và câu báo không được chui dưới thanh trên dính (cùng khuôn với dải báo lỗi `#error`).
 test("bấm lưu xong, câu báo được đưa vào tầm nhìn: nhánh hai số của Quản trị và thẻ Hạn mức Từ chối", () => {

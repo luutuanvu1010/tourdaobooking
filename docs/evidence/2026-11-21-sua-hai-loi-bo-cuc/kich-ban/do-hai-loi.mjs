@@ -168,6 +168,12 @@ else try {
           // Đứng ở biểu mẫu cài đặt hạn mức (cuộn cuối biểu mẫu vào giữa màn): những nút lưu nào đang nằm trong khung nhìn?
           await ngan.ev(`(document.querySelector("#hm-the .hm-form .dp-cs-actions") ?? document.querySelector("#hm-the .hm-o-so"))?.scrollIntoView({ block: "center" }); 0`); await sleep(400);
           o.taiHanMuc = (await ngan.ev(DO_CS)).nut.filter((n) => n.trongKhung);
+          // Cuộn cho thanh đáy (lúc này nằm trong trang, không dính) trôi ngang qua thanh trên của khung: điểm giữa thanh trên phải vẫn là thanh trên, không bị thanh đáy đè.
+          o.quaThanhTren = await ngan.ev(`(async () => { const tb = document.querySelector("#topbar"), b = document.querySelector("#cs-bottom"); if (!tb || !b || b.getClientRects().length === 0) return null;
+            const r = tb.getBoundingClientRect(); const y = r.top + r.height / 2; scrollBy(0, document.querySelector("#hm-the").getBoundingClientRect().top - (r.bottom + 20)); await new Promise((x) => setTimeout(x, 350));
+            const rb = b.getBoundingClientRect(); const t = document.elementFromPoint(innerWidth / 2, y);
+            return { chong: rb.top < r.bottom && rb.bottom > r.top, thanhTrenOTren: !!t && tb.contains(t), trung: t ? (t.id || t.className || t.tagName).toString().slice(0, 40) : null }; })()`);
+          await chupPng(ngan, resolve(thuMucAnh, `chinh-sach-${bo}-${w}-thanh-day-qua-thanh-tren.png`));
         }
         await ngan.ev(`scrollTo(0, document.documentElement.scrollHeight); 0`); await sleep(400); o.cuoiTrang = await ngan.ev(DO_CS); await ngan.ev(`scrollTo(0, 0); 0`); await sleep(300);
       }
@@ -219,6 +225,7 @@ xet(cs("ADMIN", 1280)?.nutChinhSach === 1 && cs("SUPER_ADMIN", 1280)?.nutChinhSa
 xet(kq.chinhSach.filter((c) => c.coFormHanMuc).every((c) => c.nutHanMuc === 1), `Thẻ Hạn mức Từ chối (Toàn quyền): biểu mẫu cài đặt có đúng một nút lưu nhìn thấy ở mọi khổ (${kq.chinhSach.filter((c) => c.coFormHanMuc).map((c) => `${c.rong}: ${c.nutHanMuc}`).join(", ")})`);
 const tq390 = cs("SUPER_ADMIN", 390);
 if (tq390?.taiHanMuc) xet(tq390.taiHanMuc.length === 1 && tq390.taiHanMuc[0].noi === "the-han-muc" && tq390.taiHanMuc[0].bamDuoc, `Toàn quyền ở 390, đứng ở biểu mẫu cài đặt hạn mức: trong khung nhìn chỉ có một nút lưu là «Lưu cài đặt», không bị thanh dính che (đang thấy: ${tq390.taiHanMuc.map((n) => `«${n.chu}» ${n.noi}${n.bamDuoc ? "" : " BỊ CHE"}`).join("; ") || "không nút nào"})`);
+if (tq390?.quaThanhTren) xet(tq390.quaThanhTren.chong && tq390.quaThanhTren.thanhTrenOTren, `Toàn quyền ở 390, lúc thanh «Lưu thành bản mới» trôi ngang qua thanh trên của khung: thanh trên vẫn nằm trên, không bị đè (hai thanh ${tq390.quaThanhTren.chong ? "đang chồng vùng" : "KHÔNG chồng vùng, phép thử hỏng"}; phần tử ở giữa thanh trên: ${tq390.quaThanhTren.trung})`);
 xet(kq.chinhSach.every((c) => !c.tranNgang), "Chính sách điều phối: không tràn ngang");
 for (const l of kq.luu) {
   xet(l.dat === true, `Bấm lưu thật — ${l.ten}: đổi số, chạm nút đang nhìn thấy, có câu báo đã lưu, rồi lưu trả số cũ ngay trên cùng trang${l.dat ? ` («${l.lan1.bao}»)` : ""}`);
