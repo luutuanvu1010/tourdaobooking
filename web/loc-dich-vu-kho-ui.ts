@@ -2,9 +2,9 @@
 // (web/catalog-picker.ts: lớp .catalog-tim / .catalog-hang / .catalog-nut-nhom, radiogroup, roving tabindex, mép phải mờ + «›», nút ‹ › khi rê chuột ở máy tính).
 // Khác bộ chọn: tìm KHÔNG phân biệt dấu (luật src/shared/loc-dich-vu-kho.ts) và không có danh sách — trang tự lọc ba khối «Số vé còn», «Lô trong kho», «Lô đã huỷ gần đây».
 // Gõ chữ: báo trang sau một nhịp ngắn (không gọi máy chủ ở mỗi phím); chạm nhóm: báo ngay. Không `innerHTML`.
-import { BO_LOC_TRONG, cacNutNhom, dangLoc, type BoLocDv } from "../src/shared/loc-dich-vu-kho";
-import { h, replaceChildren } from "./dom";
-import { icon } from "./icons";
+import { BO_LOC_TRONG, cacNutNhom, dangLoc, type BoLocDv } from "../src/shared/loc-dich-vu-kho.ts";
+import { h, replaceChildren } from "./dom.ts";
+import { icon } from "./icons.ts";
 
 export interface ThanhLocDv {
   root: HTMLElement;
@@ -19,7 +19,7 @@ const NHIP_GO_MS = 300;
 
 export function taoThanhLocDv(o: { onDoi: (loc: BoLocDv) => void }): ThanhLocDv {
   let loc: BoLocDv = BO_LOC_TRONG;
-  let henGo = 0;
+  let henGo: ReturnType<typeof setTimeout> | undefined;
   let nut: HTMLButtonElement[] = [];
   let khoaHang = ""; // các nút đang vẽ: trang gọi datNhom sau mỗi lần tải lại kho, không đổi thì không dựng lại (giữ chỗ cuộn, tiêu điểm)
   const goiY = "Tìm theo tên dịch vụ, mã hoặc tên in trên vé";
@@ -44,7 +44,7 @@ export function taoThanhLocDv(o: { onDoi: (loc: BoLocDv) => void }): ThanhLocDv 
   }
   /** Cuộn hàng nhóm (KHÔNG cuộn trang) để nút đang chọn nằm trọn trong tầm nhìn. */
   function duaVaoTam(b: HTMLElement | undefined): void {
-    if (!b || hang.hidden || cuon.clientWidth === 0) return;
+    if (!b || hang.hidden || !(cuon.clientWidth > 0)) return; // hàng chưa hiện / chưa đo được (khối đang ẩn): không cuộn
     const c = cuon.getBoundingClientRect();
     const r = b.getBoundingClientRect();
     if (r.left < c.left) cuon.scrollLeft -= c.left - r.left;
@@ -86,14 +86,14 @@ export function taoThanhLocDv(o: { onDoi: (loc: BoLocDv) => void }): ThanhLocDv 
 
   const doiChu = (ngay: boolean): void => {
     xoa.hidden = q.value === "";
-    window.clearTimeout(henGo);
+    clearTimeout(henGo);
     const lam = (): void => {
       if (q.value === loc.tim) return;
       loc = { ...loc, tim: q.value };
       bao();
     };
     if (ngay) lam();
-    else henGo = window.setTimeout(lam, NHIP_GO_MS);
+    else henGo = setTimeout(lam, NHIP_GO_MS);
   };
   q.addEventListener("input", () => doiChu(false));
   q.addEventListener("keydown", (e) => {
@@ -127,7 +127,7 @@ export function taoThanhLocDv(o: { onDoi: (loc: BoLocDv) => void }): ThanhLocDv 
     nutXoaLoc() {
       const b = h("button", { type: "button", class: "btn", "data-action": "xoa-loc" }, "Xoá lọc");
       b.addEventListener("click", () => {
-        window.clearTimeout(henGo);
+        clearTimeout(henGo);
         const coLoc = dangLoc(loc) || q.value !== "";
         q.value = "";
         xoa.hidden = true;
