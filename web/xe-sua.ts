@@ -2,7 +2,8 @@
 // Trạng thái trong form chỉ Đang dùng / Bảo dưỡng; "Ngừng dùng xe" là nút viền đỏ riêng + hộp xác nhận "không bị xoá" (gửi NGAY giá trị đã lưu + trạng thái
 // Ngừng — chỗ đang sửa dở trong form không lẫn vào); xe đã Ngừng có "Dùng lại xe" (đổi trạng thái trong form, bấm Lưu mới gửi — máy chủ kiểm biển số, R15).
 // Số người được chở dùng bộ đếm −/+ (không kể tài xế). Biển số / số khung trùng → câu của máy chủ ngay dưới ô. Lưu xong → chi tiết xe (location.replace).
-// ADR-0048 D1 (Task B3, khuôn ô chọn .vc-input sẵn có): ô "Chủ xe" dưới "Tên / đời xe" — công ty chủ hoặc nhà xe đang hợp tác (GET /api/van-chuyen/nha-xe); chỉ
+// Bố cục: khuôn Biểu mẫu của khung gốc giao diện (ADR-0222) — khối biểu mẫu trên lưới 12 cột bằng hàm của web/khung.ts; nút là `.nut` của bộ thành phần chung.
+// ADR-0048 D1 (Task B3): ô "Chủ xe" dưới "Tên / đời xe" — công ty chủ hoặc nhà xe đang hợp tác (GET /api/van-chuyen/nha-xe); chỉ
 // hiện khi đã có nhà xe (hoặc xe đang thuộc chủ khác công ty chủ). Sửa chủ xe khi nhập nhầm được (chủ chọn Q1 = (a)); máy chủ kiểm chủ và ghi nhật ký.
 import { luaChonChuXe, thanDungLaiHoacSuaXe, thanNgungXe, thanXeMoi, type XeForm } from "../src/shared/giay-to-hien-thi";
 import { can } from "../src/shared/permissions";
@@ -11,10 +12,12 @@ import { moBangTruot } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
 import { chipTrangThaiXe, datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
+import { luoi, truong } from "./khung";
 import { initShell, setBarTitle, showError } from "./shell";
 
 const errorEl = byId("error");
 const form = byId<HTMLFormElement>("xe-form");
+const nutEl = byId("xe-nut");
 const stopEl = byId("xe-stop");
 const bottomEl = byId("xe-bottom");
 const id = new URLSearchParams(location.search).get("id");
@@ -51,7 +54,7 @@ function dung(xeBanDau: Api.VehicleDto | null, chuXe: Api.CarrierListResponse | 
   let dangGui = false;
 
   const oGo = (key: "plateNumber" | "chassisNumber" | "name", idO: string, placeholder: string, maxLength: number, err?: HTMLElement): HTMLInputElement => {
-    const el = h("input", { id: idO, class: "vc-input", type: "text", value: st[key], placeholder, maxLength, autocomplete: "off", ...(err ? { "aria-describedby": err.id } : {}) });
+    const el = h("input", { id: idO, class: "o", type: "text", value: st[key], placeholder, maxLength, autocomplete: "off", ...(err ? { "aria-describedby": err.id } : {}) });
     el.addEventListener("input", () => {
       st[key] = el.value;
       if (err) baoLoiO(el, err, null);
@@ -64,28 +67,27 @@ function dung(xeBanDau: Api.VehicleDto | null, chuXe: Api.CarrierListResponse | 
     if (msg) input.setAttribute("aria-invalid", "true");
     else input.removeAttribute("aria-invalid");
   };
-  const plateErr = h("div", { id: "xe-plate-error", class: "vc-field-error", role: "alert", hidden: true });
-  const chassisErr = h("div", { id: "xe-chassis-error", class: "vc-field-error", role: "alert", hidden: true });
+  const plateErr = h("div", { id: "xe-plate-error", class: "truong-loi", role: "alert", hidden: true });
+  const chassisErr = h("div", { id: "xe-chassis-error", class: "truong-loi", role: "alert", hidden: true });
   const plate = oGo("plateNumber", "xe-plate", "Ví dụ: 79B-123.45", 20, plateErr);
   plate.setAttribute("autocapitalize", "characters");
   const chassis = oGo("chassisNumber", "xe-chassis", "In trên giấy đăng ký xe", 30, chassisErr);
   chassis.setAttribute("autocapitalize", "characters");
   const ten = oGo("name", "xe-name", "Ví dụ: Ford Transit 2019", 100);
-  const truong = (label: string, input: HTMLElement, ...sau: (HTMLElement | null)[]): HTMLElement => h("div", { class: "vc-field" }, h("label", { for: input.id }, label), input, ...sau);
 
   // Ô "Chủ xe": công ty chủ + nhà xe đang hợp tác; xe đang thuộc chủ KHÔNG còn trong danh sách (nhà xe đã thôi, công ty chủ cũ) thì thêm đúng chủ đó để Lưu không
   // tự đổi chủ. Chưa có nhà xe nào (và xe thuộc công ty chủ) → không hiện ô (giữ bản vẽ 02 của lượt 1a).
   const luaChon = chuXe ? luaChonChuXe(chuXe) : [];
   if (xe && !luaChon.some((o) => o.value === xe!.ownerPartyId)) luaChon.push({ value: xe.ownerPartyId, label: xe.ownerName });
   const coOChu = luaChon.length > 1;
-  const chu = h("select", { id: "xe-owner", class: "vc-input" }, ...luaChon.map((o) => h("option", { value: o.value }, o.label)));
+  const chu = h("select", { id: "xe-owner", class: "o" }, ...luaChon.map((o) => h("option", { value: o.value }, o.label)));
   chu.value = st.ownerPartyId ?? "";
   chu.addEventListener("change", () => { st.ownerPartyId = chu.value; });
 
   // Bộ đếm −/+ (bản vẽ: hai nút riêng + số ở giữa; xe công ty chủ yếu 6 hoặc 15). Tối thiểu 1; mức trần do máy chủ kiểm (câu báo của máy chủ).
-  const giam = h("button", { id: "xe-seats-dec", type: "button", class: "vc-step-btn", "aria-label": "Bớt một người" }, "−");
-  const tang = h("button", { id: "xe-seats-inc", type: "button", class: "vc-step-btn", "aria-label": "Thêm một người" }, "+");
-  const so = h("output", { id: "xe-seats", class: "vc-step-val", "aria-live": "polite" }, String(st.passengerCapacity));
+  const giam = h("button", { id: "xe-seats-dec", type: "button", "aria-label": "Bớt một người" }, "−");
+  const tang = h("button", { id: "xe-seats-inc", type: "button", "aria-label": "Thêm một người" }, "+");
+  const so = h("output", { id: "xe-seats", "aria-live": "polite" }, String(st.passengerCapacity));
   const veSo = (): void => {
     so.textContent = String(st.passengerCapacity);
     giam.disabled = st.passengerCapacity <= 1;
@@ -100,18 +102,18 @@ function dung(xeBanDau: Api.VehicleDto | null, chuXe: Api.CarrierListResponse | 
   });
   veSo();
 
-  const trangThai = h("div", { class: "vc-field" });
+  const trangThai = h("div", { class: "truong", "data-cot": 6 });
   const veTrangThai = (): void => {
-    const nhan = h("div", { id: "xe-status-label", class: "vc-label" }, "Trạng thái");
+    const nhan = h("div", { id: "xe-status-label", class: "nhan" }, "Trạng thái");
     if (st.status === "retired") {
-      const dungLai = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Dùng lại xe");
+      const dungLai = h("button", { type: "button", class: "nut", "data-cap": "phu" }, "Dùng lại xe");
       dungLai.addEventListener("click", () => {
         st.status = "active";
         veTrangThai();
         veNutNgung();
         trangThai.querySelector<HTMLElement>("[role=radio]")?.focus();
       });
-      replaceChildren(trangThai, nhan, h("div", { class: "vc-stopped" }, chipTrangThaiXe("retired"), dungLai));
+      replaceChildren(trangThai, nhan, h("div", { class: "hang" }, chipTrangThaiXe("retired"), dungLai));
       return;
     }
     const lua = (["active", "maintenance"] as const).map((v) => {
@@ -132,52 +134,52 @@ function dung(xeBanDau: Api.VehicleDto | null, chuXe: Api.CarrierListResponse | 
       });
       return b;
     });
-    replaceChildren(trangThai, nhan, h("div", { class: "vc-seg", role: "radiogroup", "aria-labelledby": "xe-status-label" }, ...lua));
+    replaceChildren(trangThai, nhan, h("div", { class: "chon-doan", role: "radiogroup", "aria-labelledby": "xe-status-label" }, ...lua));
   };
   veTrangThai();
 
   const nhanLuu = xe ? "Lưu" : "Lưu xe";
-  const ngungDesk = h("button", { type: "button", class: "vc-btn vc-btn-stop" }, "Ngừng dùng xe");
-  const ngungMob = h("button", { type: "button", class: "vc-btn vc-btn-stop" }, "Ngừng dùng xe");
+  const ngungDesk = h("button", { type: "button", class: "nut", "data-cap": "nguy-hiem" }, "Ngừng dùng xe");
+  const ngungMob = h("button", { type: "button", class: "nut", "data-cap": "nguy-hiem" }, "Ngừng dùng xe");
   const veNutNgung = (): void => {
     const coNgung = xe !== null && xe.status !== "retired" && st.status !== "retired";
     ngungDesk.hidden = !coNgung;
     stopEl.hidden = !coNgung;
   };
 
+  // Biểu mẫu: lưới 12 cột — biển số và số khung mỗi ô nửa hàng, tên và chủ xe kín hàng, số người được chở và trạng thái mỗi ô nửa hàng.
   replaceChildren(
     form,
-    h("div", { class: "vc-grid-2" }, truong("Biển số", plate, plateErr), truong("Số khung", chassis, chassisErr)),
-    truong("Tên / đời xe", ten),
-    coOChu ? truong("Chủ xe", chu) : null,
-    h(
-      "div",
-      { class: "vc-grid-2" },
-      h("div", { class: "vc-field" }, h("div", { id: "xe-seats-label", class: "vc-label" }, "Số người được chở (không kể tài xế)"), h("div", { class: "vc-stepper", role: "group", "aria-labelledby": "xe-seats-label" }, giam, so, tang), h("div", { class: "vc-hint" }, "Xe 16 chỗ nhập 15.")),
+    luoi(
+      null,
+      truong("Biển số", plate, { cot: 6, loi: plateErr }),
+      truong("Số khung", chassis, { cot: 6, loi: chassisErr }),
+      truong("Tên / đời xe", ten),
+      coOChu ? truong("Chủ xe", chu) : null,
+      truong("Số người được chở (không kể tài xế)", h("div", { class: "bo-dem", role: "group", "aria-labelledby": "xe-seats-label" }, giam, so, tang), { cot: 6, idNhan: "xe-seats-label", goiY: "Xe 16 chỗ nhập 15." }),
       trangThai,
     ),
-    h(
-      "div",
-      { class: "vc-form-actions" },
-      h("button", { type: "submit", class: "vc-btn btn btn-primary" }, nhanLuu),
-      h("a", { class: "vc-btn vc-btn-ghost-primary", href: xe ? `/xe-chi-tiet?id=${encodeURIComponent(xe.id)}` : "/xe" }, "Huỷ"),
-      ngungDesk,
-    ),
   );
-  replaceChildren(stopEl, ngungMob, h("div", { class: "vc-stop-note" }, "Xe không bị xoá — giấy tờ và lịch sử vẫn giữ."));
-  const luuDay = h("button", { type: "submit", class: "vc-btn btn btn-primary" }, nhanLuu);
-  luuDay.setAttribute("form", "xe-form"); // thuộc tính `form` của nút chỉ đọc (không gán qua h()) — nút ở thanh đáy, ngoài <form>
+  // Nút của trang đứng NGOÀI <form> (thanh nút cuối trang ở máy tính, thanh dính đáy ở điện thoại) nên nút gửi trỏ về biểu mẫu bằng thuộc tính `form`
+  // (thuộc tính chỉ đọc, không gán qua h()).
+  const luu = h("button", { type: "submit", class: "nut", "data-cap": "chinh" }, nhanLuu);
+  luu.setAttribute("form", "xe-form");
+  const luuDay = h("button", { type: "submit", class: "nut", "data-cap": "chinh" }, nhanLuu);
+  luuDay.setAttribute("form", "xe-form");
+  replaceChildren(nutEl, ngungDesk, h("a", { class: "nut day-phai", href: xe ? `/xe-chi-tiet?id=${encodeURIComponent(xe.id)}` : "/xe" }, "Huỷ"), luu);
+  replaceChildren(stopEl, h("p", { class: "khoi-mo-ta" }, "Xe không bị xoá — giấy tờ và lịch sử vẫn giữ."), ngungMob);
   replaceChildren(bottomEl, luuDay);
   form.hidden = false;
+  nutEl.hidden = false;
   bottomEl.hidden = false;
   veNutNgung();
 
   const moNgung = (opener: HTMLElement): void => {
     if (!xe) return;
     const daLuu = xe;
-    const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
-    const giu = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary" }, "Giữ nguyên");
-    const ngung = h("button", { type: "button", class: "vc-btn vc-btn-danger" }, "Ngừng dùng");
+    const loi = h("div", { class: "truong-loi", role: "alert", hidden: true });
+    const giu = h("button", { type: "button", class: "nut", "data-co": "lon" }, "Giữ nguyên");
+    const ngung = h("button", { type: "button", class: "nut", "data-co": "lon", "data-tong": "nguy-hiem" }, "Ngừng dùng");
     const bang = moBangTruot({
       title: `Ngừng dùng xe ${daLuu.plateNumber}?`,
       body: [

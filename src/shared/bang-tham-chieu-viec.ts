@@ -4559,7 +4559,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Địa điểm",
-    manHinh: "Địa điểm › khung «Thêm địa điểm»",
+    manHinh: "Địa điểm › khối «Địa điểm» › nút «Thêm địa điểm» › bảng «Thêm địa điểm»",
     ten: "Thêm",
     thatSuLam: "Thêm một địa điểm mới (mã, tên, loại, địa chỉ, thứ tự) vào danh mục dùng cho nơi đón, nơi trả, nơi làm. Mã không đổi được sau khi tạo.",
     hoiLai: "không",
@@ -4567,14 +4567,15 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     duongLenh: ["/api/locations"],
     maNhatKy: ["location_created"],
     noiDat: [
-      { tep: "public/locations.html", chu: "Thêm" },
+      { tep: "public/locations.html", chu: "Thêm địa điểm" },
+      { tep: "web/locations.ts", chu: "Thêm" },
     ],
     trangThai: "ten-hien-tai",
     nguonTen: "rà soát 2026-11-04: tên đúng",
   },
   {
     nhom: "Địa điểm",
-    manHinh: "Địa điểm › mỗi dòng (bảng và thẻ) › khung «Sửa: <mã>»",
+    manHinh: "Địa điểm › khối «Địa điểm» › mỗi dòng › nút «Sửa» › bảng «Sửa: <mã>»",
     ten: "Sửa",
     thatSuLam: "Sửa tên, loại, địa chỉ, thứ tự, số «Chọn nhanh» (hiện thành nút bấm ở form Tạo đơn) và công tắc «Đang dùng» (bỏ tick = ngưng dùng). Có khoá chống ghi đè khi hai người cùng sửa.",
     hoiLai: "không",
@@ -4590,7 +4591,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Địa điểm",
-    manHinh: "Địa điểm › thẻ «Khu vực đón» › khung thêm",
+    manHinh: "Địa điểm › khối «Khu vực đón» › nút «Thêm khu vực đón» › bảng «Thêm khu vực đón»",
     ten: "Thêm khu vực đón",
     thatSuLam: "Thêm một khu vực đón mới (mã, tên, thứ tự). Khu vực gom các địa điểm dùng chung một mức phí đưa đón. Mã không đổi được sau khi tạo.",
     hoiLai: "không",
@@ -4599,13 +4600,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     maNhatKy: ["location_zone_created"],
     noiDat: [
       { tep: "public/locations.html", chu: "Thêm khu vực đón" },
+      { tep: "web/locations.ts", chu: "Thêm khu vực đón" },
     ],
     trangThai: "da-chot",
     nguonTen: "chủ chọn 2026-11-14",
   },
   {
     nhom: "Địa điểm",
-    manHinh: "Địa điểm › thẻ «Khu vực đón» › mỗi khu vực › khung «Sửa: <mã>»",
+    manHinh: "Địa điểm › khối «Khu vực đón» › mỗi khu vực › nút «Sửa khu vực đón» › bảng «Sửa: <mã>»",
     ten: "Sửa khu vực đón",
     thatSuLam: "Sửa tên, thứ tự và công tắc «Đang dùng» của một khu vực đón (bỏ tick = ngưng). Khu vực còn địa điểm, và khu vực «Ngoài khu vực», không ngưng được. Có khoá chống ghi đè khi hai người cùng sửa.",
     hoiLai: "không",
