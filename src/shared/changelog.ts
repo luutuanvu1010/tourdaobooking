@@ -18,12 +18,22 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Tìm đối tác theo số điện thoại ở màn Tạo đơn (kế hoạch 16 việc 21/11, Việc 3). Nhánh claude/nostalgic-jepsen-bb3f99. Không migration.
-    // SỐ TẠM 3.25 (bản chạy thật đang 3.24 — kiểm GET /api/auth/config 21/11 21:45): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.25",
+    // SỐ TẠM 3.27 (3.25 = Việc 16 đã ở main, 3.26 do Việc 4 giữ — phiên kế hoạch báo 21/11 22:23): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.27",
     date: "2026-11-21",
     items: [
       { kind: "sua", text: "Tạo đơn: ô «Tìm đối tác» nhận cả số điện thoại. Gõ đủ số liên hệ của đối tác là ra đúng người, gõ tên vẫn tìm như cũ." },
       { kind: "sua", text: "Tạo đơn: bấm «Điền thông tin đối tác» mà đối tác chưa có số điện thoại thì Nền tảng nói rõ ai thêm được số và mở sẵn hồ sơ ở Danh bạ." },
+    ],
+  },
+  {
+    // Biểu tượng cho menu Thiết lập (kế hoạch 16 việc 21/11, Việc 16). Nhánh claude/relaxed-noether-c3cb22. Không migration.
+    // SỐ TẠM 3.25 (3.24 là Việc 9, có thể chưa lên bản chạy thật): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.25",
+    date: "2026-11-21",
+    items: [
+      { kind: "moi", text: "Thiết lập: mỗi mục có một biểu tượng riêng bên trái tên, ở cả thanh bên máy tính lẫn trang Thiết lập trên điện thoại, để tìm nhanh hơn." },
+      { kind: "moi", text: "Các thẻ trong màn Hoa hồng đối tác, Luật bán và Đặc điểm dịch vụ cũng có biểu tượng." },
     ],
   },
   {
