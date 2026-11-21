@@ -71,6 +71,8 @@ for (const [hau, khung] of [["390", MOB], ["1280", DESK]]) {
     await moTim(p);
     const v = await p.ev(`(() => { const i = ${O_TIM}; return { nhan: i.closest('label').firstChild.textContent, goiY: i.placeholder, co: getComputedStyle(i).fontSize }; })()`);
     assert.deepEqual(v, { nhan: "Tìm đối tác theo tên hoặc số điện thoại", goiY: "Gõ tên hoặc số điện thoại", co: "16px" });
+    await p.waitFor("document.querySelectorAll('#dat-qua-doi-tac .dqdt-dong').length >= 1", "danh sách đối tác");
+    await chup(p, `${hau}-1-o-tim`, khung);
   });
 
   await b.step(`${hau}-2`, `${hau}: gõ «+84 900 000 741» ⇒ ra đúng một cộng tác viên ⇒ chọn ⇒ «Điền thông tin đối tác» ⇒ ô tên + SĐT khách đúng; không tràn ngang${axeNote()}`, async () => {
@@ -91,6 +93,7 @@ for (const [hau, khung] of [["390", MOB], ["1280", DESK]]) {
     await go(p, "0900 00");
     await p.waitFor(`/Gõ đủ 10 số/.test(document.querySelector('#dat-qua-doi-tac .dqdt-ket-qua').innerText)`, "câu nhắc gõ đủ số", 6000);
     assert.equal(await chuDs(p), "Gõ đủ 10 số để tìm theo số điện thoại.");
+    await chup(p, `${hau}-3-go-chua-du-so`, khung);
   });
 
   await b.step(`${hau}-4`, `${hau}: đối tác tạo từ Quản lý tài khoản (chưa có số liên hệ) ⇒ câu nhờ Quản trị hoặc Toàn quyền + «Mở hồ sơ ở Danh bạ» (tab mới); ô SĐT không nhận số đăng nhập${axeNote()}`, async () => {
@@ -100,9 +103,10 @@ for (const [hau, khung] of [["390", MOB], ["1280", DESK]]) {
     await dien(p);
     const v = await bao(p);
     assert.equal(v.hien, true);
-    assert.equal(v.chu, "Đối tác này chưa có số điện thoại. Nhờ Quản trị hoặc Toàn quyền thêm số ở Danh bạ. Mở hồ sơ ở Danh bạ");
+    assert.equal(v.chu, "Đối tác này chưa có số điện thoại. Nhờ Quản trị hoặc Toàn quyền thêm số. Mở hồ sơ ở Danh bạ");
     assert.deepEqual(v.lienKet, { chu: "Mở hồ sơ ở Danh bạ", href: `/parties?id=${DAI_LY.partyId}`, target: "_blank", rel: "noopener" });
     assert.equal(await o(p, "customerPhone"), truoc, "không điền rỗng, không xoá ô đang có");
+    assert.equal(await p.ev("document.querySelector('#use-partner-bao a').getClientRects().length"), 1, "liên kết nằm trọn một dòng (không gãy giữa chữ)");
     assert.notEqual(await o(p, "customerPhone"), DAI_LY.phone, "không tự chép số đăng nhập");
     await axe(p, `câu báo chưa có số ${hau}`);
     await chup(p, `${hau}-4-chua-co-so-gan-tai-khoan`, khung);
@@ -140,6 +144,7 @@ await b.step("390-7", "tài khoản chỉ Thực tập (không xem được hồ
   await p.waitFor(`/Không có đối tác nào/.test(document.querySelector('#dat-qua-doi-tac .dqdt-ket-qua').innerText)`, "câu rỗng của Thực tập", 6000);
   assert.equal(await chuDs(p), "Không có đối tác nào tên như vậy.");
   assert.deepEqual(await dsId(p), []);
+  await chup(p, "390-7-thuc-tap", MOB);
   p.close();
 });
 

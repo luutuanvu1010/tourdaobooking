@@ -329,6 +329,6 @@ test("baoDoiTacChuaCoSdt: người xem sửa được hồ sơ → câu + lối 
   const sua = baoDoiTacChuaCoSdt({ id: "pty-1", editable: true });
   assert.deepEqual(sua, { cau: CAU_DOI_TAC_CHUA_CO_SDT, nhanLienKet: "Thêm số ở Danh bạ", href: "/parties?id=pty-1" });
   const khong = baoDoiTacChuaCoSdt({ id: "pty-1", editable: false });
-  assert.deepEqual(khong, { cau: `${CAU_DOI_TAC_CHUA_CO_SDT} Nhờ Quản trị hoặc Toàn quyền thêm số ở Danh bạ.`, nhanLienKet: "Mở hồ sơ ở Danh bạ", href: "/parties?id=pty-1" });
+  assert.deepEqual(khong, { cau: `${CAU_DOI_TAC_CHUA_CO_SDT} Nhờ Quản trị hoặc Toàn quyền thêm số.`, nhanLienKet: "Mở hồ sơ ở Danh bạ", href: "/parties?id=pty-1" });
   assert.equal(baoDoiTacChuaCoSdt({ id: "a b&c", editable: true }).href, "/parties?id=a%20b%26c", "mã hồ sơ được mã hoá vào đường dẫn");
 });

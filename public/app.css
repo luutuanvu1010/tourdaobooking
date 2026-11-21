@@ -3879,6 +3879,7 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .khach-dau { flex-wrap: wrap; }
 .khach-dau-nut { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); justify-content: flex-end; } /* N5: hai nút điền sẵn («của tôi», «đối tác») xuống dòng được ở khổ hẹp */
 .khach-dau .btn-link { color: var(--c-primary); }
+#use-partner-bao a { white-space: nowrap; } /* Việc 3: lối «Mở hồ sơ ở Danh bạ» / «Thêm số ở Danh bạ» không gãy giữa chữ */
 .buoc[data-an-khach] > :not(.khach-ngay) { display: none; } /* ADR-0154 Đ2.2: công tắc «Ẩn thông tin khách» áp cho đối tác — chỉ còn dòng «Ngày khởi hành» của khối Khách */
 .buoc[data-an-khach] .khach-ngay { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
 .booker-chua { font-size: var(--fs-label); } /* "Hồ sơ khách: chưa liên kết (không bắt buộc)" — chữ xám, không còn nhãn vàng */

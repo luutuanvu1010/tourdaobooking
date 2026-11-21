@@ -47,7 +47,7 @@ export function baoDoiTacChuaCoSdt(p: { id: string; editable: boolean }): { cau:
   const href = `/parties?id=${encodeURIComponent(p.id)}`;
   return p.editable
     ? { cau: CAU_DOI_TAC_CHUA_CO_SDT, nhanLienKet: "Thêm số ở Danh bạ", href }
-    : { cau: `${CAU_DOI_TAC_CHUA_CO_SDT} Nhờ Quản trị hoặc Toàn quyền thêm số ở Danh bạ.`, nhanLienKet: "Mở hồ sơ ở Danh bạ", href };
+    : { cau: `${CAU_DOI_TAC_CHUA_CO_SDT} Nhờ Quản trị hoặc Toàn quyền thêm số.`, nhanLienKet: "Mở hồ sơ ở Danh bạ", href };
 }
 /**
  * Việc 3: ô «Tìm đối tác» tìm được theo SỐ ĐIỆN THOẠI cho ai — ĐÚNG cổng tra hồ sơ theo số (`GET /api/parties/lookup`: văn phòng + party.view), để ô này không mở thêm lối
