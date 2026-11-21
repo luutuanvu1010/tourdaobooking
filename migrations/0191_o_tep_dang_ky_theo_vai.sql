@@ -1,6 +1,6 @@
--- Migration 0191 — ADR-0233 (ĐỀ XUẤT 2026-11-21, chờ chủ duyệt) Đ1, Đ3, Đ4: ô tệp của phiếu đăng ký theo vai; «Tệp khác»; 12 tệp mỗi phiếu. Tệp này nhận ba phần; mỗi phần ghi đầu mục.
+-- Migration 0191 — ADR-0233 (accepted 2026-11-22) Đ1, Đ3, Đ4: ô tệp của phiếu đăng ký theo vai; «Tệp khác»; 12 tệp mỗi phiếu. Tệp này nhận ba phần; mỗi phần ghi đầu mục.
 -- Số: phiên điều phối kế hoạch 16 việc giữ trước 0191 cho Việc 14 (21/11); đã liệt kê migrations/ của mọi nhánh cục bộ: không nhánh nào có 019x.
--- Xây trên lỗ đang hở HC-5.19 (khoá `xay_tren_cho_phep_adr_0233` CHỈ ghi ở docs/quyen-hoan.json sau khi chủ duyệt): một bảng mới chỉ thêm, một cột mặc định 0, dựng lại hai view công bố,
+-- Xây trên lỗ đang hở HC-5.19 (khoá `xay_tren_cho_phep_adr_0233` ở docs/quyen-hoan.json): một bảng mới chỉ thêm, một cột mặc định 0, dựng lại hai view công bố,
 -- một dòng dk_policy mới; không đổi dòng dữ liệu nào đang có, không chạm sổ tiền.
 
 -- ===== dang-ky — bảng «vai ↔ ô tệp ↔ bắt buộc / tuỳ chọn / ẩn» (ADR-0233 Đ1) =====

@@ -1,12 +1,12 @@
 # ADR-0233 — Ô tệp của phiếu đăng ký theo vai; «Tệp khác»; 12 tệp mỗi phiếu
 
-- **Trạng thái:** **đề xuất** 2026-11-21 — AI (phiên thi công Việc 14 của kế hoạch `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md`, nhánh `claude/partner-features-detailed-plan-f32f89`). Chờ chủ duyệt; AI không tự duyệt (Hiến pháp N3).
+- **Trạng thái:** **accepted** 2026-11-22 — chủ dự án duyệt (chat, qua phiên điều phối kế hoạch 16 việc; hồ sơ `docs/superpowers/plans/2026-11-22-quyet-dinh-chu-ke-hoach-16-viec.md` trên nhánh `claude/partner-features-detailed-plan-f32f89`), câu 2 nguyên văn: «2- Duyệt đề xuất» — gồm ADR-0233 trong lượt các ADR 0223–0233. Câu 1 nguyên văn về diễn tập khôi phục: «1- Đồng ý khuyến nghị, và bỏ qua việc diễn tập khôi phục dữ liệu - ghi quyết định.» Lịch sử: **đề xuất** 2026-11-21 — AI (phiên thi công Việc 14 của kế hoạch `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md`).
 - **Số:** 0233, migration 0191 — do phiên điều phối giữ trước cho Việc 14 (21/11).
 - **Nguồn:** chủ dự án 21/11 giao Việc 14 «thêm ảnh, tệp khi đăng ký tài khoản»; kế hoạch mục 5 «Việc 14».
 - **Loại:** việc lớn — dữ liệu cá nhân (loại tệp được thu), migration, luật thu thập (Hiến chương 5.21). Người kiểm độc lập chỉ đọc sau thi công.
 - **Cửa:** hai chiều. Bảng mới chỉ thêm dòng; tắt một ô = thêm dòng «ẩn» có ngày hiệu lực. Tệp đã thu giữ theo luật cũ (ADR-0208).
 - **Quan hệ ADR cũ:** **thay** hằng ô tệp ghi cứng của ADR-0208 Đ2 và ADR-0212 Đ4 bằng bảng Đ1 (bốn ô cũ giữ nguyên tên, nghĩa, nơi lưu lúc duyệt). ADR-0208 Đ2 (trần cỡ, chữ ký tệp, bốn loại JPG/PNG/HEIC/PDF), Đ3 (không route đọc tệp bằng cookie đăng ký), Đ5 (chuyển tệp lúc duyệt): giữ. ADR-0212 Đ7 (phần tổ chức chỉ mở khi chính sách riêng tư có dấu): giữ, và Đ3 dưới đây chép khuôn đó.
-- **Xây trên lỗ đang hở: HC-5.19** (chưa diễn tập khôi phục). Migration chỉ thêm một bảng `dk_`, một cột có mặc định 0 ở `pty_privacy_policy`, dựng lại hai view công bố của chính sách riêng tư, và một dòng `dk_policy` mới; không đổi dòng dữ liệu nào đang có, không chạm sổ tiền. Khoá cho phép đề xuất: `xay_tren_cho_phep_adr_0233` (chỉ ghi sau khi chủ duyệt).
+- **Xây trên lỗ đang hở: HC-5.19** (chưa diễn tập khôi phục). Migration chỉ thêm một bảng `dk_`, một cột có mặc định 0 ở `pty_privacy_policy`, dựng lại hai view công bố của chính sách riêng tư, và một dòng `dk_policy` mới; không đổi dòng dữ liệu nào đang có, không chạm sổ tiền. Khoá cho phép: `xay_tren_cho_phep_adr_0233` ở `docs/quyen-hoan.json` (ghi 2026-11-22 sau lời duyệt; chủ bỏ qua diễn tập khôi phục).
 - **Số quyết định chạm dữ liệu:** 3 (Đ1, Đ3, Đ4) — đúng trần một lượt duyệt.
 
 ## Bối cảnh (đọc mã 21/11)
