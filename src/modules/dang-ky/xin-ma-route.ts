@@ -14,7 +14,7 @@ import { chinhSachRiengTuCongKhai, loaiGiayPhepThemChoDangKy, mucXacMinhBatBuocC
 import { guiThuMa } from "./mail.ts";
 import { loaiMoHienTai } from "./vai.ts";
 import { cookiePhienDangKy, dkEmailKey, dkIpKey, dkXacNhanIpKey, khoaBam, taoPhienDangKy } from "./phien.ts";
-import { chenMaEmail, chinhSachHienHanh, danhTinhTheoEmail, demLanNhapSai, maGanNhat, moPhieuNhap, mucRiengCuaPhieu, phanToChucMo, tieuMa, type ChinhSachDangKyRow, type MaGanNhat } from "./repository.ts";
+import { chenMaEmail, chinhSachHienHanh, danhTinhTheoEmail, demLanNhapSai, maGanNhat, moPhieuNhap, chinhSachRiengTuHienHanh, dongOTepHieuLuc, mucRiengCuaPhieu, tieuMa, type ChinhSachDangKyRow, type MaGanNhat } from "./repository.ts";
 import { chuanHoaEmail, sinhMaEmail } from "./rules.ts";
 import { sinhMa } from "../../shared/ma-dinh-danh.ts";
 import { mucBatBuoc } from "./xac-minh.ts";
@@ -31,7 +31,8 @@ const TAM_NGUNG = (): Response => error(503, "registration_unavailable", CAU_TAM
 export async function cauHinhDangKy({ env }: Ctx<"public">): Promise<Response> {
   const at = new Date().toISOString();
   const chinhSach = await chinhSachHienHanh(env.DB, at);
-  const [rieng, hoSo, riengTu, loaiMo] = await Promise.all([mucRiengCuaPhieu(env.DB, at), mucXacMinhBatBuocCaNhan(env.DB), chinhSachRiengTuCongKhai(env.DB, at), loaiMoHienTai(env.DB, chinhSach?.open_role_codes)]);
+  const [rieng, hoSo, riengTu, loaiMo, oTep, rtHienHanh] = await Promise.all([mucRiengCuaPhieu(env.DB, at), mucXacMinhBatBuocCaNhan(env.DB), chinhSachRiengTuCongKhai(env.DB, at), loaiMoHienTai(env.DB, chinhSach?.open_role_codes),
+    dongOTepHieuLuc(env.DB, at), chinhSachRiengTuHienHanh(env.DB)]);
   return json(
     {
       nhanDangKy: chinhSach?.registration_open === 1,
@@ -39,7 +40,10 @@ export async function cauHinhDangKy({ env }: Ctx<"public">): Promise<Response> {
       mucBatBuoc: mucBatBuoc(rieng, hoSo.map((m) => m.ma)).map((ma) => ({ ma, nhan: nhanMucChoNguoiDangKy(ma) })),
       chinhSachRiengTu: riengTu?.phienBan ?? null,
       giayPhepThem: await loaiGiayPhepThemChoDangKy(env.DB), // loại giấy phép thêm chọn được ở phần tổ chức: mã, tên, có hạn (ADR-0212 Đ4; đợt 2 Task 8)
-      phanToChucMo: await phanToChucMo(env.DB), // bản chính sách riêng tư đang hiệu lực có dấu thu thông tin tổ chức (ADR-0212 Đ7); biểu mẫu chỉ mở phần tổ chức khi đủ cả điều kiện kia
+      phanToChucMo: rtHienHanh?.coToChuc === true, // bản chính sách riêng tư đang hiệu lực có dấu thu thông tin tổ chức (ADR-0212 Đ7); biểu mẫu chỉ mở phần tổ chức khi đủ cả điều kiện kia
+      // Ô tệp theo vai (ADR-0233): dòng hiệu lực CÙNG lúc xét với máy chủ; trình duyệt chọn ô bằng cùng hàm thuần (src/shared/dang-ky-o-tep.ts) theo vai đang chọn. Không dữ liệu cá nhân.
+      oTep,
+      tepKhacMo: rtHienHanh?.coTepKhac === true, // «Tệp khác» chỉ khi chính sách riêng tư hiện hành đã nêu (Đ3)
     },
     200,
     { "cache-control": "no-store" },
