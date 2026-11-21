@@ -2,7 +2,42 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.20 ĐÃ LÊN PRODUCTION (sửa hai lỗi bố cục làm hỏng việc: cột tên khách ở Đơn hàng bị bóp khi cửa sổ cỡ vừa; nút lưu bị giấu ở Chính sách điều phối trên điện thoại; kèm lỗi Toàn quyền lưu chính sách lần hai trên cùng trang không được lưu) — không migration — triển khai 2026-11-21 11:36 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.22 ĐÃ LÊN PRODUCTION (ADR-0222 khung gốc giao diện: bốn màn mẫu Đơn hàng, Chi tiết đơn, Sửa xe, Địa điểm dựng lại theo một khung chung; bảng và khối đổi bố cục theo chỗ trống thật của vùng nội dung) — không migration — triển khai 2026-11-21 13:42 giờ Việt Nam
+
+Ghi BÙ lúc khoảng 14:35 cùng ngày bởi phiên điều phối, KHÔNG phải từ đầu ra `npm run trien-khai`: phiên thi công khung gốc được lưu trữ ngay sau khi chủ triển khai, trước khi kịp ghi sổ. Các dòng dưới lấy từ nguồn đọc lại được (bản ghi lượt kiểm ở `.git/tourdao-kiem/`, `wrangler deployments list`, `git reflog main`, GET công khai); dòng nào không dựng lại được thì ghi rõ.
+
+Khối dựng lại:
+- Ngày giờ: 2026-11-21 13:42 (giờ Việt Nam) — theo `wrangler deployments list` (Created 2026-11-21T06:42:36Z)
+- Commit: a806786d5 Nhật ký thay đổi: mục số tạm 3.22 cho khung gốc giao diện — `main` đứng ở mã này từ 13:32 tới 14:06 (`git reflog main`)
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-21T06:39:27Z (có đổi quy trình kiểm: `scripts/release-lib.mjs`, `scripts/sinh-so-do-trang.mjs`; có đổi luật: ADR-0222 và mục lục ADR — lý do ghi trong bản ghi lượt kiểm: «doi quy trinh kiem tra»)
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/44876031961
+- Migration đã áp: không có
+- Worker Version ID: 12fa9115-629b-4b12-a2d9-700c36171d25
+- Kiểm dữ liệu (audit-invariants --db remote): KHÔNG GHI LẠI ĐƯỢC — đầu ra lệnh triển khai của chủ không được chép lại. Bản này không có migration.
+- Phiên bản: 3.22 (cổng sau deploy: đọc lại lúc 14:22, production trả 3.22, bằng mục đầu nhật ký thay đổi; kết quả cổng trước deploy không ghi lại được)
+- Thời gian: day-len 7 phút 20 giây; trien-khai không ghi lại được
+- Sau triển khai (đọc lại khoảng 14:20–14:30): GET công khai `/api/auth/config` trả phiên bản 3.22; `/app.css` trùng sha256 với `public/app.css` của `main` (đầu `87819ca5b3e96d50`) và có bộ chọn `data-khung-goc`; trang `/orders` có `<body data-khung-goc="danh-sach">`. Lúc 14:06 `main` nhận thêm lệnh đo khung gốc trong lượt kiểm GitHub (`b2b18f094`): chỉ tệp kiểm, kịch bản và tài liệu, không tệp nào thuộc phần chạy thật, nên không cần triển khai lại. Lần chạy `trien-khai` thứ hai của chủ lúc khoảng 14:20 đứng ở cổng phiên bản (3.22 không mới hơn 3.22); phiên điều phối khuyên gõ `k`. Chưa thử trên iPhone, iPad thật; theo sổ việc của phiên thi công, trình duyệt chưa hỗ trợ bố cục theo vùng chứa thì đứng ở bố cục hẹp nhất và chưa thử iPhone đời cũ.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.21 ĐÃ LÊN PRODUCTION (ADR-0221: công tắc «Đối tác không nhập nơi đón» ở trang Tôi của Toàn quyền; khi bật, đối tác chọn Đón là xong, văn phòng điền nơi đón ở bảng «Còn vé»; đơn còn thiếu nơi đón không xác nhận được) — migration `0181` — triển khai 2026-11-21 13:09 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Phát hành trước diễn tập khôi phục theo lời chủ (khoá `xay_tren_cho_phep_adr_0221` ở `docs/quyen-hoan.json`). Công tắc gieo **Tắt**: hành vi như 3.20 tới khi Toàn quyền bật ở trang Tôi.
+
+Đường tới bản chính không thẳng, ghi lại để người sau hiểu: lần nhập của nhánh sửa hai lỗi bố cục (`933f39ad6`) đẩy `main` theo tên trong lúc lần nhập của nhánh này đang chờ GitHub kiểm, nên `4bf8ca389` lên GitHub khi lượt kiểm của nó ĐỎ (run 44870246119, e2e `nhap-tay-va-gia-doi-tac`: kịch bản dựng lượt đón chỉ có giờ, cổng ADR-0221 chặn đúng luật). Sửa kịch bản ở `39f26d9b6`; lần nhập sau phải chọn `x` vì `origin/main` không có lượt kiểm xanh để so số bài. Kẽ hở của `day-len` do phiên sửa hai lỗi bố cục đề xuất vá riêng.
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-21 13:09 (giờ Việt Nam)
+- Commit: 39f26d9b6 e2e nhap-tay-va-gia-doi-tac: đơn nháp cũ dựng với nơi đón thật (ADR-0221 Đ3)
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-21T05:55:37Z (có đổi quy trình kiểm — lý do của chủ: «ban chinh hien tai bi day nham chua co luot kiem xanh de so»)
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/44872568577
+- Migration đã áp: 0181_cong_tac_noi_don_doi_tac.sql
+- Điểm khôi phục Time Travel trước khi áp: 0000302c-00000000-0000512a-fd7a934fec3a6da31d46cb681e8d9748
+- Worker Version ID: 38b21175-c238-431a-a33d-1f53f47bbd5f
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT, 3 cảnh báo có sẵn từ 3.20 (R-VC-14, R-ORD-9, R-PRC-PD-3); R-ORD-12 (nơi đón tạm ở đơn đã xác nhận) đạt.
+- Phiên bản: 3.21 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: day-len 0 phút 09 giây (dùng lại lượt kiểm đã xanh); trien-khai 1 phút 01 giây; tổng 1 phút 10 giây
+- Sau triển khai: GET công khai `/api/auth/config` trả phiên bản 3.21; `/js/account.js` có mã công tắc; route `/api/cai-dat/noi-don-doi-tac` trả 401 khi chưa đăng nhập (route có thật). Chủ chạy `trien-khai` lần hai, dừng ở cổng phiên bản (3.21 không mới hơn 3.21) — không deploy thêm. Chưa bật công tắc, chưa thử trên iPhone thật.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.20 ĐÃ LÊN PRODUCTION (sửa hai lỗi bố cục làm hỏng việc: cột tên khách ở Đơn hàng bị bóp khi cửa sổ cỡ vừa; nút lưu bị giấu ở Chính sách điều phối trên điện thoại; kèm lỗi Toàn quyền lưu chính sách lần hai trên cùng trang không được lưu) — không migration — triển khai 2026-11-21 11:36 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Bằng chứng đo và các điểm ghi nhận thêm: `docs/evidence/2026-11-21-sua-hai-loi-bo-cuc/README.md`. Lần nhập này mang theo hồ sơ phân tích bố cục 21/11 (`docs/superpowers/specs/2026-11-21-khung-goc-giao-dien/`): chỉ là tài liệu, không đổi mã chạy thật.
 
