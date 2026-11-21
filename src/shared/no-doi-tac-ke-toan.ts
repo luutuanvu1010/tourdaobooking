@@ -3,10 +3,13 @@
 // không cho thêm quyền: người không thuộc luật vẫn đi đúng đường cũ.
 import type { PermissionHolder } from "./permissions.ts";
 
-/** Quyền làm người xem thôi là «Kế toán thuần»: giữ một trong các quyền này thì vẫn xem số bán lẻ như cũ (họ lập / sửa / duyệt đơn nên cần giá bán cho khách). */
-const GIU_GIA_BAN = new Set(["SALES", "SALES_MANAGER", "ADMIN", "SUPER_ADMIN"]);
+/**
+ * Quyền làm người xem thôi là «Kế toán thuần»: giữ một trong các quyền này thì đi đường cũ. Bốn quyền văn phòng lập / sửa / duyệt đơn nên cần giá bán cho khách; quyền Đối tác (kể cả
+ * tài khoản lai dữ liệu cũ) đi đường cũ vì số nợ đối tác là tiền thương mại của đại lý KHÁC — bài `so-la-thuong-mai-toan-nen-tang.test.ts` bắt lộ ở `POST /api/ledger/balances`.
+ */
+const GIU_GIA_BAN = new Set(["SALES", "SALES_MANAGER", "ADMIN", "SUPER_ADMIN", "PARTNER", "DRIVER_PARTNER"]);
 
-/** Kế toán thuần: có quyền Kế toán, KHÔNG có Bán hàng / Quản lý bán hàng / Quản trị / Toàn quyền (chủ chọn khuyến nghị 6A). */
+/** Kế toán thuần: có quyền Kế toán, KHÔNG có Bán hàng / Quản lý bán hàng / Quản trị / Toàn quyền (chủ chọn khuyến nghị 6A), cũng không có quyền Đối tác. */
 export function keToanThuan(who: Pick<PermissionHolder, "permissions">): boolean {
   return who.permissions.includes("ACCOUNTING") && !who.permissions.some((p) => GIU_GIA_BAN.has(p));
 }

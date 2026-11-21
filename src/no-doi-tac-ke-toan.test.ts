@@ -14,11 +14,11 @@ const DT = "88888888-8888-4888-8888-888888888802";
 const BEN = `pty-${DT}`;
 type W = ReturnType<typeof setup>;
 
-test("luật thuần: Kế toán thuần = có Kế toán, không có Bán hàng / Quản lý bán hàng / Quản trị / Toàn quyền", () => {
+test("luật thuần: Kế toán thuần = có Kế toán, không có Bán hàng / Quản lý bán hàng / Quản trị / Toàn quyền / Đối tác (tài khoản lai Kế toán + Đối tác của dữ liệu cũ đi đường cũ)", () => {
   const la = (p: string[]) => keToanThuan({ permissions: p as never });
   assert.equal(la(["ACCOUNTING"]), true);
   assert.equal(la(["ACCOUNTING", "HR"]), true);
-  for (const kem of ["SALES", "SALES_MANAGER", "ADMIN", "SUPER_ADMIN"]) assert.equal(la(["ACCOUNTING", kem]), false, kem);
+  for (const kem of ["SALES", "SALES_MANAGER", "ADMIN", "SUPER_ADMIN", "PARTNER"]) assert.equal(la(["ACCOUNTING", kem]), false, kem);
   assert.equal(la(["ADMIN"]), false);
   assert.equal(la(["SUPER_ADMIN"]), false);
   assert.equal(la([]), false);
