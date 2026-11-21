@@ -42,7 +42,7 @@ test("công tắc cũ đang BẬT lúc áp ⇒ «không nhập danh sách hành 
   const d = open((db) => db.exec("INSERT INTO ord_partner_customer_policy (id, hide_customer_info, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('bat', 1, '2026-11-01T00:00:00.000Z', '2026-11-01T00:00:00.000Z', 's1', '2026-11-01T00:00:00.000Z', 's1')"));
   // Dòng gieo 0133 mang mốc «bây giờ» (lớn hơn 1/11) ⇒ dòng hiệu lực là dòng gieo 0; thêm dòng bật MỚI hơn để kiểm đúng «dòng mới nhất».
   assert.equal(rows(d, "SELECT khong_nhap FROM ord_partner_passenger_policy")[0]!.khong_nhap, 0);
-  const d2 = open((db) => db.exec("INSERT INTO ord_partner_customer_policy (id, hide_customer_info, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('bat', 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 second', '+1 second'), '2026-11-01T00:00:00.000Z', 's1', '2026-11-01T00:00:00.000Z', 's1')"));
+  const d2 = open((db) => db.exec("INSERT INTO ord_partner_customer_policy (id, hide_customer_info, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('bat', 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), '2026-11-01T00:00:00.000Z', 's1', '2026-11-01T00:00:00.000Z', 's1')"));
   assert.equal(rows(d2, "SELECT khong_nhap FROM ord_partner_passenger_policy")[0]!.khong_nhap, 1);
 });
 

@@ -2102,6 +2102,8 @@ export const CHECKS = [
   // ADR-0193 mục 6: chỉ đếm đơn xác nhận khi công tắc «Bắt buộc giờ đón cho đơn đối tác» BẬT — dòng `ord_pickup_time_policy` hiệu lực tại `o.confirmed_at`; không có dòng (xác nhận trước ngày gieo
   // của 0157) ⇒ coi là Bật, như `docBatBuocGioDon`. Biết trước: yêu cầu gửi lúc Tắt (cờ = 0) mà Còn vé bấm sau khi Bật lại vẫn bị đếm (đọc theo giờ xác nhận, đúng chữ ADR) — cảnh báo thừa, chấp nhận.
   // Bảng 0157: D1 chưa áp 0157 thì «no such table» ⇒ script thoát mã 2; `npm run trien-khai` chạy kiểm SAU khi áp migration.
+  // ADR-0228 Đ3 (việc 8): KHÔNG đếm đơn xác nhận lúc công tắc «Đơn đối tác không cần giờ đón» BẬT (dòng `ord_partner_pickup_time_optional_policy` hiệu lực tại `o.confirmed_at`; không có dòng ⇒ Tắt) —
+  // đơn đó cố ý xác nhận khi chưa giờ (văn phòng chốt giờ sau). Bảng 0183: cùng lưu ý «no such table» như 0157.
   {
     code: "R-ORD-17w",
     what: "đơn đã xác nhận (tạo từ mốc phát hành ADR-0154) của người lập từng giữ quyền Đối tác mà lượt đưa đón đầu của một dịch vụ chưa có giờ đón (ADR-0154 Đ1.7)",
@@ -2109,6 +2111,7 @@ export const CHECKS = [
       WHERE o.status = 'confirmed'
         AND o.created_at >= (SELECT MIN(created_at) FROM ord_partner_customer_policy)
         AND COALESCE((SELECT pt.required FROM ord_pickup_time_policy pt WHERE pt.valid_from_at <= o.confirmed_at ORDER BY pt.valid_from_at DESC LIMIT 1), 1) = 1
+        AND COALESCE((SELECT kc.khong_can FROM ord_partner_pickup_time_optional_policy kc WHERE kc.valid_from_at <= o.confirmed_at ORDER BY kc.valid_from_at DESC LIMIT 1), 0) = 0
         AND EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = o.staff_id AND p.permission_type_code = 'PARTNER')
         AND EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id
           AND EXISTS (SELECT 1 FROM ord_transfer_leg l1 WHERE l1.order_service_id = s.id AND l1.closed_at IS NULL)

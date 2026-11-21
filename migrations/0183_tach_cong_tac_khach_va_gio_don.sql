@@ -6,6 +6,7 @@
 -- 1) «Đối tác không nhập danh sách hành khách» (ADR-0228 Đ1). 1 = Bật: tài khoản Đối tác thuần không có khối Hành khách; máy chủ bỏ khoá `passengers` khi lập / lưu nháp.
 --    Gieo bằng ĐÚNG giá trị hiệu lực của công tắc cũ `ord_partner_customer_policy.hide_customer_info` lúc áp migration (hôm nay một công tắc ẩn cả hai khối) ⇒ phát hành không đổi gì.
 --    Bảng cũ không có dòng nào (không xảy ra: 0133 gieo một dòng) ⇒ gieo 0. Không có dòng nào lúc đọc ⇒ máy chủ coi là TẮT (`docKhongNhapHanhKhach`).
+--    Chỉ chép dòng ĐANG hiệu lực; dòng hẹn tương lai của bảng cũ (chỉ có khi chèn SQL tay — route chỉ ghi mốc «bây giờ») không được chép.
 CREATE TABLE ord_partner_passenger_policy (
   id              TEXT PRIMARY KEY,
   khong_nhap      INTEGER NOT NULL CHECK (khong_nhap IN (0, 1)),
