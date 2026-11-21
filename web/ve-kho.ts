@@ -14,9 +14,15 @@
 // Phản hồi của máy chủ chỉ có 4 số cuối mã — trang không bao giờ hiện mã đầy đủ.
 // Ẩn/hiện hỏi bảng quyền (ADR-0175 Đ1.4): trang mở cho `ve.kho.manage` hoặc `ve.phat-hanh`; khối nhập lô (vé hãng ngoài) chỉ `ve.kho.manage`; khối «Tạo vé» (vé Tour Đảo,
 // web/ve-tao.ts) chỉ `ve.phat-hanh`; nút «Huỷ lô» theo nguồn của lô. Máy chủ vẫn kiểm lại. Không `innerHTML` (dựng bằng `h()`).
+// Bộ lọc dùng chung (kế hoạch 16 việc 21/11, Việc 4): MỘT thanh lọc đầu trang (web/loc-dich-vu-kho-ui.ts: nhóm dịch vụ + chữ tìm không dấu, luật src/shared/loc-dich-vu-kho.ts) áp cho
+// «Số vé còn» và «Lô đã huỷ gần đây» ngay trên dữ liệu đã tải, còn «Lô trong kho» (chia trang 50) gửi điều kiện lên GET /api/ve/lo?tatCa=1. Danh mục /api/catalog tải MỘT lần cho
+// cả trang: bảng mã → nhóm của thanh lọc, bộ chọn dịch vụ của bước nhập lô và của Tạo vé.
 import { ApiError, api, type Api } from "./api";
 import { can } from "../src/shared/permissions";
 import { NHOM_SO_VE, demTheoNhom, locKhoVe, type NhomSoVe } from "../src/shared/loc-kho-ve";
+import { bangNhomTheoMa, coChuaPhanLoai, dangLoc, dieuKienLo, khopBoLoc, thamSoLo, type BangNhom } from "../src/shared/loc-dich-vu-kho";
+import { CHUA_PHAN_LOAI } from "../src/shared/loc-danh-muc";
+import { taoThanhLocDv } from "./loc-dich-vu-kho-ui";
 import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, cauVuotTran, locAnhDaDoc } from "../src/shared/ve-nhap-lo";
 import { hoiXacNhan } from "./bang-truot";
 import { createCatalogPicker } from "./catalog-picker";
@@ -30,12 +36,12 @@ import { hopHuyCoLyDo, khoiTimVe, thanhTrang, veCuaLo, type VeTrongLo } from "./
 type Nguon = "HANG_NGOAI" | "TOUR_DAO";
 interface KhoDong { catalogCode: string; tenDichVu: string | null; nhomKhach: "ADULT" | "CHILD" | "SENIOR" | "ALL"; nguon: Nguon; conTrong: number; sapHetHan: number; daGiu: number; daGiao: number }
 interface ThemVeRes { loId: string; themDuoc: number; chuaLuuVaoKho: number; loai: { thuTu: number; lyDo: string }[]; veTrongLo: number }
-interface LoBoDuoc { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; nguon: Nguon; trangThai: string; soVe: number; taoLuc: string; daCap?: boolean }
+interface LoBoDuoc { loId: string; catalogCode: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; nguon: Nguon; trangThai: string; soVe: number; taoLuc: string; daCap?: boolean }
 interface XemTruocHuy { daCap: boolean; tongVe: number; huyDuoc: number; giuNguyenDaDung: number; giuNguyenHangNgoaiDaMo: number; donCapThay: number; daGuiPhaiGuiLai: number }
 interface HuyLoRes { veDaHuy: number; veGiuNguyen: { daDung: number; hangNgoaiDaMo: number }; donXetCapThay: number; conDonChuaCapThay: boolean; canGuiLai: number }
 
 interface VeDaHuy { veId: string; duoiMa: string; tuNgay: string; denNgay: string; trangThaiAnh: "CHUA_MO" | "DA_MO" | "DA_NHAP_LAI" | "HET_ANH" }
-interface LoDaHuy { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: VeDaHuy[] }
+interface LoDaHuy { loId: string; catalogCode: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: VeDaHuy[] }
 
 const NHAN_NHOM: Record<string, string> = { ADULT: "Người lớn", CHILD: "Trẻ em", SENIOR: "Cao tuổi", ALL: "Mọi loại khách" };
 /** Nhãn ô «Vé do ai phát» của từng dòng: hai dòng cùng dịch vụ khác nguồn không trông giống nhau. */
@@ -44,6 +50,7 @@ const NHAN_NGUON: Record<Nguon, string> = { HANG_NGOAI: "Vé hãng ngoài", TOUR
 const errorEl = byId("error");
 const okEl = byId("ok");
 const noiDungEl = byId("vk-noi-dung");
+const locEl = byId("vk-loc");
 const khoEl = byId("vk-kho");
 const loEl = byId("vk-lo");
 const cacLoEl = byId("vk-cac-lo");
@@ -88,10 +95,41 @@ if (!nhapLo && !taoVe) {
   khoiTaoEl.hidden = !taoVe;
   let tranLo = TRAN_LO_MAC_DINH;
 
-  // Bộ lọc «Số vé còn» (đặc tả 2026-11-20, H4): ô tìm tên sản phẩm + bốn nút theo số vé còn trống. Lọc ngay trên dữ liệu đã tải; lựa chọn giữ qua các lần tải lại kho.
+  // Danh mục dịch vụ: tải MỘT lần, song song với kho. Thanh lọc chỉ cần bảng mã → nhóm khi người dùng chọn một nhóm (hàng nhóm hiện sau khi danh mục về).
+  const danhMucHua = api<Api.CatalogPublicResponse>("/api/catalog").then((r) => ({ r, loi: null as string | null }), (err: unknown) => ({ r: null, loi: lyDoLoi(err) }));
+  let danhMuc: Api.CatalogPublicResponse | null = null;
+  let bang: BangNhom = new Map();
+  let khoDaTai: KhoDong[] | null = null;
+  let daHuyDaTai: { hanLuuNgay: number; lo: LoDaHuy[] } | null = null;
+  const thanhLoc = taoThanhLocDv({ onDoi: () => { if (khoDaTai) veKho(khoDaTai); veLoDaHuy(); trangLo = 1; void taiCacLo(); } });
+  const loiDanhMucEl = h("p", { class: "muted", hidden: true });
+  replaceChildren(locEl, thanhLoc.root, loiDanhMucEl);
+  /** Nút nhóm: nhóm của danh mục; «Chưa phân loại» khi danh mục có dịch vụ không nhóm hoặc kho / lô đã huỷ có mã đã rời danh mục. */
+  const capNhatHangNhom = (): void => {
+    if (!danhMuc) return;
+    thanhLoc.datNhom(danhMuc.groups, coChuaPhanLoai(bang, [...(khoDaTai ?? []).map((d) => d.catalogCode), ...(daHuyDaTai?.lo ?? []).map((l) => l.catalogCode)]));
+  };
+  const tenNhomLoc = (ma: string): string => (ma === CHUA_PHAN_LOAI ? "Chưa phân loại" : (danhMuc?.groups.find((g) => g.code === ma)?.name ?? ma));
+  /** Dòng nhắc đang lọc ở đầu mỗi khối (khối nằm xa thanh lọc). */
+  const dongDangLoc = (): HTMLElement | null => {
+    const l = thanhLoc.giaTri();
+    if (!dangLoc(l)) return null;
+    const phan = [l.nhom ? `nhóm «${tenNhomLoc(l.nhom)}»` : "", l.tim.trim() ? `chữ «${l.tim.trim()}»` : ""].filter(Boolean);
+    return h("p", { class: "muted vk-dang-loc", "data-khoi": "dang-loc" }, `Đang lọc theo ${phan.join(" và ")} (thanh lọc ở đầu trang).`);
+  };
+  /** Khối lọc ra rỗng: câu báo + «Xoá lọc» (khác câu «chưa có gì» khi không lọc). */
+  const rongDoLoc = (cau: string, thongBao?: () => void): HTMLElement => {
+    const nut = thanhLoc.nutXoaLoc();
+    if (thongBao) nut.addEventListener("click", thongBao);
+    return h("div", { class: "vk-rong-loc", "data-khoi": "rong-do-loc" }, h("p", { class: "muted", role: "status" }, cau), h("div", { class: "handler-actions" }, nut));
+  };
+
+  // Bộ lọc «Số vé còn» (đặc tả 2026-11-20, H4): bốn nút theo số vé còn trống, lọc ngay trên dữ liệu đã tải; lựa chọn giữ qua các lần tải lại kho. Ô tìm riêng của H4 đã gộp vào
+  // thanh lọc chung đầu trang (Việc 4): dòng phải khớp thanh lọc trước, bốn nút đếm trên phần còn lại.
   const locKho: { tim: string; nhom: NhomSoVe } = { tim: "", nhom: "tat-ca" };
-  function veKho(kho: KhoDong[]): void {
-    const oTim = h("input", { type: "search", class: "o", id: "vk-loc-tim", placeholder: "Tìm theo tên sản phẩm", autocomplete: "off", value: locKho.tim }) as HTMLInputElement;
+  function veKho(khoTho: KhoDong[]): void {
+    const loc = thanhLoc.giaTri();
+    const kho = khoTho.filter((d) => khopBoLoc({ ma: d.catalogCode, chu: [d.tenDichVu] }, loc, bang));
     const hangNut = h("div", { class: "loc-nut-hang" });
     const dsEl = h("div", { "data-khoi": "ton-kho-ds" });
     const ve = (): void => {
@@ -103,16 +141,15 @@ if (!nhapLo && !taoVe) {
       }));
       const khop = locKhoVe(kho, locKho);
       replaceChildren(dsEl, khop.length === 0
-        ? h("p", { class: "muted", role: "status" }, "Không có dòng nào khớp bộ lọc.")
+        ? (dangLoc(loc) || locKho.nhom !== "tat-ca" ? rongDoLoc("Không có dòng nào khớp bộ lọc.", () => { locKho.nhom = "tat-ca"; veKho(khoDaTai ?? khoTho); }) : h("p", { class: "muted", role: "status" }, "Không có dòng nào khớp bộ lọc."))
         : h("ul", { class: "pay-list", "data-khoi": "ton-kho" }, ...khop.map((d) =>
           h("li", { "data-ma": d.catalogCode },
             h("strong", null, `${d.tenDichVu ?? d.catalogCode} · ${NHAN_NHOM[d.nhomKhach] ?? d.nhomKhach} · ${NHAN_NGUON[d.nguon] ?? d.nguon}`),
             h("p", { class: "muted" }, `Còn trống ${d.conTrong} · sắp hết hạn (7 ngày) ${d.sapHetHan} · đã giữ cho đơn ${d.daGiu} · đã giao ${d.daGiao}`)))));
     };
-    oTim.addEventListener("input", () => { locKho.tim = oTim.value; ve(); });
     replaceChildren(khoEl,
+      dongDangLoc(),
       h("div", { class: "vk-loc", "data-khoi": "loc-kho" },
-        h("label", { class: "loc-nhom", for: "vk-loc-tim" }, h("span", { class: "vk-loc-nhan" }, "Sản phẩm"), oTim),
         h("fieldset", { class: "loc-nhom" }, h("legend", null, "Số vé còn"), hangNut)),
       dsEl);
     ve();
@@ -123,6 +160,8 @@ if (!nhapLo && !taoVe) {
     try {
       const r = await api<{ tranLo: number; kho: KhoDong[] }>("/api/ve/kho");
       tranLo = r.tranLo;
+      khoDaTai = r.kho;
+      capNhatHangNhom();
       if (r.kho.length === 0) { replaceChildren(khoEl, h("p", { class: "muted" }, nhapLo || taoVe ? "Kho chưa có vé nào. Nhập lô đầu tiên ở khối bên dưới." : "Kho chưa có vé nào.")); return; }
       veKho(r.kho);
     } catch (err) {
@@ -157,6 +196,7 @@ if (!nhapLo && !taoVe) {
         nut.disabled = true;
         try {
           await api(`/api/ve/lo-da-huy/${encodeURIComponent(v.veId)}/mo`, { method: "POST", body: {} });
+          v.trangThaiAnh = "DA_MO"; // dữ liệu đã tải cũng đổi: đổi bộ lọc vẽ lại khối thì vé vẫn hiện «Xem ảnh», không hỏi mở lần nữa
           chu.textContent = moTa("DA_MO");
           replaceChildren(khu, nutXem());
           await hienAnh();
@@ -170,19 +210,31 @@ if (!nhapLo && !taoVe) {
     return h("div", { "data-ve": v.trangThaiAnh }, chu, khu, khuAnh);
   }
 
-  async function taiLoDaHuy(): Promise<void> {
-    try {
-      const r = await api<{ hanLuuNgay: number; lo: LoDaHuy[] }>("/api/ve/lo-da-huy");
-      if (r.lo.length === 0) { replaceChildren(daHuyEl, h("p", { class: "muted" }, `Không có lô nào được huỷ trong ${r.hanLuuNgay} ngày qua.`)); return; }
-      replaceChildren(daHuyEl,
-        h("p", { class: "muted" }, `Các lô huỷ trong ${r.hanLuuNgay} ngày qua, để tra cứu. Mở ảnh một vé thì vé đó bị khoá, không nhập lại vào kho được nữa.`),
-        h("ul", { class: "pay-list", "data-khoi": "lo-da-huy" }, ...r.lo.map((l) =>
-          h("li", { "data-lo": l.loId },
+  /** Vẽ «Lô đã huỷ gần đây» từ dữ liệu đã tải, theo thanh lọc (tên dịch vụ, mã, tên in trên vé). */
+  function veLoDaHuy(): void {
+    const r = daHuyDaTai;
+    if (!r) return;
+    if (r.lo.length === 0) { replaceChildren(daHuyEl, h("p", { class: "muted" }, `Không có lô nào được huỷ trong ${r.hanLuuNgay} ngày qua.`)); return; }
+    const loc = thanhLoc.giaTri();
+    const khop = r.lo.filter((l) => khopBoLoc({ ma: l.catalogCode, chu: [l.tenDichVu, l.tenSanPham] }, loc, bang));
+    replaceChildren(daHuyEl,
+      h("p", { class: "muted" }, `Các lô huỷ trong ${r.hanLuuNgay} ngày qua, để tra cứu. Mở ảnh một vé thì vé đó bị khoá, không nhập lại vào kho được nữa.`),
+      dongDangLoc(),
+      khop.length === 0 ? rongDoLoc("Không có lô đã huỷ nào khớp bộ lọc.") :
+        h("ul", { class: "pay-list", "data-khoi": "lo-da-huy" }, ...khop.map((l) =>
+          h("li", { "data-lo": l.loId, "data-ma": l.catalogCode },
             h("strong", null, l.tenSanPham),
             h("p", { class: "muted" }, `${l.tenDichVu ?? "Dịch vụ không còn trong danh mục"} · ${NHAN_NHOM[l.nhomKhach] ?? l.nhomKhach} · ${l.ve.length} vé`),
             h("p", { class: "muted" }, `Huỷ lúc ${gioVn(l.huyLuc)} ngày ${ngayVn(l.huyLuc)} · người huỷ: ${l.huyBoi ?? "không rõ"}`),
             h("details", { class: "px-hop" }, h("summary", null, `Xem ${l.ve.length} vé`),
               ...l.ve.map(dongVeDaHuy))))));
+  }
+
+  async function taiLoDaHuy(): Promise<void> {
+    try {
+      daHuyDaTai = await api<{ hanLuuNgay: number; lo: LoDaHuy[] }>("/api/ve/lo-da-huy");
+      capNhatHangNhom();
+      veLoDaHuy();
     } catch (err) {
       replaceChildren(daHuyEl, h("p", { class: "alert", role: "alert" }, lyDoLoi(err)));
     }
@@ -243,13 +295,18 @@ if (!nhapLo && !taoVe) {
   }
 
   let trangLo = 1;
+  let luotLo = 0; // phản hồi của lần tải cũ (đổi bộ lọc nhanh, mạng chậm) không đè danh sách của lần mới
   async function taiCacLo(): Promise<void> {
+    const luot = ++luotLo;
+    const loc = thanhLoc.giaTri();
+    const hoi = new URLSearchParams([["tatCa", "1"], ["trang", String(trangLo)], ...thamSoLo(dieuKienLo(bang, loc))]);
     try {
-      const r = await api<{ lo: LoBoDuoc[]; trang: number; coTrangSau: boolean }>(`/api/ve/lo?tatCa=1&trang=${trangLo}`);
+      const r = await api<{ lo: LoBoDuoc[]; trang: number; coTrangSau: boolean }>(`/api/ve/lo?${hoi.toString()}`);
+      if (luot !== luotLo) return;
       if (r.lo.length === 0 && trangLo > 1) { trangLo -= 1; await taiCacLo(); return; } // trang cuối vừa hết lô (huỷ xong): lùi một trang
-      if (r.lo.length === 0) { replaceChildren(cacLoEl, h("p", { class: "muted" }, "Không có lô nào.")); return; }
+      if (r.lo.length === 0) { replaceChildren(cacLoEl, dangLoc(loc) ? rongDoLoc("Không có lô nào khớp bộ lọc.") : h("p", { class: "muted" }, "Không có lô nào.")); return; }
       const ttLo = thanhTrang(r.trang, r.coTrangSau, (t) => { trangLo = t; void taiCacLo(); });
-      replaceChildren(cacLoEl, h("ul", { class: "pay-list", "data-khoi": "cac-lo" }, ...r.lo.map((l) => {
+      replaceChildren(cacLoEl, dongDangLoc(), h("ul", { class: "pay-list", "data-khoi": "cac-lo" }, ...r.lo.map((l) => {
         const moTa = h("p", { class: "muted" }, `${l.tenDichVu ?? "Dịch vụ không còn trong danh mục"} · ${NHAN_NHOM[l.nhomKhach] ?? l.nhomKhach} · ${NHAN_NGUON[l.nguon] ?? l.nguon} · ${l.trangThai === "PENDING" ? "đang dở" : "đã vào kho"}${l.daCap ? " · đã cấp cho đơn" : ""} · ${l.soVe} vé · tạo ${ngayVn(l.taoLuc)}`);
         const khuVe = h("div", { "data-khoi": "ve-cua-lo", hidden: true });
         const nutXem = h("button", { type: "button", class: "btn", "data-action": "xem-ve-lo", "data-id": l.loId, "aria-expanded": "false" }, "Xem vé");
@@ -265,23 +322,22 @@ if (!nhapLo && !taoVe) {
           nutHuy.addEventListener("click", async () => { nutHuy.disabled = true; try { await huyLo(l, nutHuy); } finally { nutHuy.disabled = false; } });
           nut.push(nutHuy);
         }
-        return h("li", { "data-lo": l.loId }, h("strong", null, l.tenSanPham), moTa, h("div", { class: "handler-actions" }, ...nut), khuVe);
+        return h("li", { "data-lo": l.loId, "data-ma": l.catalogCode }, h("strong", null, l.tenSanPham), moTa, h("div", { class: "handler-actions" }, ...nut), khuVe);
       })), ...(ttLo ? [ttLo] : []));
     } catch (err) {
+      if (luot !== luotLo) return;
       replaceChildren(cacLoEl, h("p", { class: "alert", role: "alert" }, lyDoLoi(err)));
     }
   }
 
-  async function dungForm(): Promise<void> {
-    let loiDanhMuc: string | null = null;
+  function dungForm(dm: Api.CatalogPublicResponse | null, loiDanhMuc: string | null): void {
     // N4: chọn dịch vụ bằng CHÍNH khung của Tạo đơn (ô tìm + hàng nút nhóm + ★ Hay dùng), chế độ «chọn một»; vé không cần giá nên dòng chưa có giá vẫn chọn được; nhớ nhóm bằng khoá riêng của trang này.
     let maDichVu = "";
     const khungDv = createCatalogPicker({ cheDo: "chon-mot", khongYeuCauGia: true, khoaNho: "ve-kho", onPick: (c) => { maDichVu = c.code; }, onDoi: () => { maDichVu = ""; } });
-    try {
-      const r = await api<Api.CatalogPublicResponse>("/api/catalog");
-      khungDv.setGroups(r.groups);
-      khungDv.setItems(r.items);
-    } catch (err) { loiDanhMuc = lyDoLoi(err); }
+    if (dm) {
+      khungDv.setGroups(dm.groups);
+      khungDv.setItems(dm.items);
+    }
     khungDv.setTaiKhoan(staff.id);
     const chonDv = h("div", { id: "vk-dich-vu", class: "vk-dich-vu", role: "group", "aria-labelledby": "vk-dich-vu-nhan" }, khungDv.root);
     const chonNhom = h("select", { class: "o", id: "vk-nhom" }, ...Object.entries(NHAN_NHOM).map(([ma, ten]) => h("option", { value: ma }, ten)));
@@ -378,7 +434,17 @@ if (!nhapLo && !taoVe) {
   // Bước 1 khung chung (N10): khối «Nhập lô mới» (danh mục dài) dựng sau khi tải — giữ chỗ trước để các khối dưới không bị đẩy.
   if (nhapLo) replaceChildren(loEl, trangThaiHeThong("dang-tai", { khuon: "bieu-mau", giuCho: true }));
   replaceChildren(timEl, khoiTimVe((nguon) => huyVeDuoc(nguon as Nguon), sauHuyVe));
+  const sauDanhMuc = danhMucHua.then(({ r, loi }) => {
+    danhMuc = r;
+    bang = bangNhomTheoMa(r?.items ?? []);
+    if (loi) { loiDanhMucEl.textContent = `Chưa tải được nhóm dịch vụ nên chỉ lọc bằng ô tìm. ${loi}`; loiDanhMucEl.hidden = false; }
+    capNhatHangNhom();
+    return { r, loi };
+  });
   await taiKho();
-  await Promise.all([taiCacLo(), taiLoDaHuy(), nhapLo ? dungForm() : null,
-    taoVe ? dungKhoiTaoVe(taoEl, { tranLo: () => tranLo, hienOk, sauKhiTao: async () => { await Promise.all([taiKho(), taiCacLo(), taiLoDaHuy()]); } }) : null]);
+  await Promise.all([taiCacLo(), taiLoDaHuy(),
+    sauDanhMuc.then(async ({ r, loi }) => {
+      if (nhapLo) dungForm(r, loi);
+      if (taoVe) await dungKhoiTaoVe(taoEl, { danhMuc: r, loiDanhMuc: loi, staffId: staff.id, tranLo: () => tranLo, hienOk, sauKhiTao: async () => { await Promise.all([taiKho(), taiCacLo(), taiLoDaHuy()]); } });
+    })]);
 }

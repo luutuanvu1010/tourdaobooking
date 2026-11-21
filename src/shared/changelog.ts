@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bộ lọc dùng chung của Kho vé (kế hoạch 16 việc 21/11, Việc 4). Nhánh claude/nostalgic-newton-418d14. Không migration.
+    // SỐ TẠM 3.25 (sau 3.24 Quét vé): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.25",
+    date: "2026-11-21",
+    items: [
+      { kind: "moi", text: "Kho vé: thanh «Lọc theo dịch vụ» đầu trang. Chọn nhóm hoặc gõ tên (không dấu cũng được) là cả ba danh sách vé cùng thu hẹp, kể cả lô ở trang sau.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+      { kind: "doi", text: "Tạo vé Tour Đảo: chọn dịch vụ bằng ô tìm và hàng nhóm giống bước nhập lô vé, thay cho danh sách thả xuống." },
+    ],
+  },
+  {
     // Sửa lỗi treo ở màn Quét vé (kế hoạch 16 việc 21/11, Việc 9). Nhánh claude/beautiful-burnell-3c3798. Không migration.
     // SỐ TẠM 3.24 (bản chạy thật đang 3.23): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.24",
