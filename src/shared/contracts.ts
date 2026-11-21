@@ -2536,6 +2536,8 @@ export interface OrderPaymentsResponse {
    * `nguoiLapPartyId` = id hồ sơ đó (null khi chưa gắn) — giá trị duy nhất của ô người thu «Sửa khoản thu đã ghi» / «Ghi bù khoản thu» của Kế toán ở đơn này.
    */
   kenhThu: { congTyThu: boolean; nguoiLapTen: string | null; nguoiLapLaBenDatHuong: boolean; nguoiLapPartyId: string | null } | null;
+  /** ADR-0225 Đ2 (đề xuất; migration 0184): đơn mang dấu «đơn đối tác chỉ thu hộ tiền mặt» — không QR công ty, không «Công ty (vào tài khoản công ty)», phía Tour Đảo chỉ ghi tiền mặt. */
+  chiTienMat: boolean;
 }
 
 /** Bên đặt (đại lý được hưởng — chỉ tên; máy chủ tự lấy hồ sơ khi nhận `"ben_dat"`) và các quầy nhà cung cấp (id + tên, cho `{ nhaCungCapPartyId }` và «thu cho»). */

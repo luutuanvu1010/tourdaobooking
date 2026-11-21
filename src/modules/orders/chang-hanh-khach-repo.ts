@@ -479,10 +479,13 @@ export async function legDatGapByOrder(db: D1Database, orderId: string): Promise
  * trống ngày đã mang ngày đi. MỘT luật với `changChuaGioVaoHanChot` (src/shared/moc-toi-thieu.ts; bài khoá hai phía ở chua-gio-sat-ngay.test.ts). Lớp chặn CUỐI: các cửa xác nhận đã kiểm
  * bằng hàm thuần trước khi dựng lô (ruling R6).
  */
+// ADR-0225 Đ2 (đề xuất; migration 0184): câu xác nhận chụp dấu «đơn đối tác chỉ thu hộ tiền mặt» — 1 khi đơn do tài khoản giữ quyền Đối tác lập (dấu kênh thu khác NULL) HOẶC
+// bên đặt đang mang vai được hưởng hoa hồng (CÙNG vế EXISTS với BOOKER_LA_DOI_TAC của repository.ts — bài don-doi-tac-chi-tien-mat.test.ts so chữ). Trigger 0184 chỉ cho NULL → giá trị trong câu này.
 const ORDER_CONFIRM = defineSql(
   "orders",
   "order_confirm",
-  `UPDATE orders SET status = 'confirmed', updated_at = ?1, confirmed_at = ?1
+  `UPDATE orders SET status = 'confirmed', updated_at = ?1, confirmed_at = ?1,
+     partner_cash_only = (company_collects_snapshot IS NOT NULL OR EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code WHERE r.party_id = orders.booker_party_id))
    WHERE id = ?2 AND status = 'draft' AND updated_at = ?6
      AND EXISTS (SELECT 1 FROM order_service WHERE order_id = orders.id)
      AND NOT EXISTS (

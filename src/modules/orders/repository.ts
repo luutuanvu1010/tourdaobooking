@@ -1798,15 +1798,18 @@ export async function changeBooker(
   xoaTuCach = false,
 ): Promise<boolean> {
   const at = nextStamp(change.expectedUpdatedAt);
+  // ADR-0225 Đ2 (đề xuất): đơn đã xác nhận mang dấu «chỉ thu hộ tiền mặt» ⇒ chụp lại theo bên đặt MỚI (cùng vế với câu xác nhận). Dấu NULL (nháp / đơn trước ngày áp) giữ NULL.
   const results = await db.batch([
     ...booker.before,
     db
       .prepare(
         `UPDATE orders SET customer_name = ?, customer_phone = ?, booker_party_id = ${BOOKER_VALUE}, updated_at = ?,
-           acting_party_id = CASE WHEN ? = 1 THEN NULL ELSE acting_party_id END, acting_link_kind = CASE WHEN ? = 1 THEN NULL ELSE acting_link_kind END
+           acting_party_id = CASE WHEN ? = 1 THEN NULL ELSE acting_party_id END, acting_link_kind = CASE WHEN ? = 1 THEN NULL ELSE acting_link_kind END,
+           partner_cash_only = CASE WHEN partner_cash_only IS NULL THEN NULL
+             ELSE (company_collects_snapshot IS NOT NULL OR EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code WHERE r.party_id = ?)) END
          WHERE id = ? AND status IN ('draft', 'confirmed') AND updated_at = ? AND (? IS NULL OR ${BOOKER_VALUE} IS NOT NULL)`,
       )
-      .bind(change.customerName, change.customerPhone, booker.partyId, at, xoaTuCach ? 1 : 0, xoaTuCach ? 1 : 0, orderId, change.expectedUpdatedAt, booker.partyId, booker.partyId),
+      .bind(change.customerName, change.customerPhone, booker.partyId, at, xoaTuCach ? 1 : 0, xoaTuCach ? 1 : 0, booker.partyId, orderId, change.expectedUpdatedAt, booker.partyId, booker.partyId),
     auditStatement(db, { orderId, staffId, action: "booker_changed", at, detail }, "changes() > 0"),
     ...(alsoChange?.(at) ?? []),
     ...qua.kem(at),

@@ -320,7 +320,8 @@ export async function ghiChuyen(db: D1Database, input: { orderId: string; raw: u
   const giu = await docBen(db, b.nguoiGiu, d.congTyId, "Chọn ai đang cầm khoản tiền này (Công ty, hoặc nhân viên chưa nộp về công ty).");
   if (!giu.ok) return giu;
   // ADR-0178 Đ1 mục 2: nửa «thu» ở đơn nhận là khoản khách trả mới — đơn nhận mang dấu Tắt chỉ qua khi người đang giữ là hồ sơ người lập đơn nhận (có chủ ý).
-  const kenh = await kiemNguoiThuKenh(db, goc.targetOrderId, giu.value);
+  // ADR-0225 Đ2 (đề xuất): lệnh chuyển cọc là tiền cũ đổi chỗ, không phải thu mới ⇒ bỏ qua luật «chỉ thu hộ tiền mặt» (trigger 0184 miễn theo transfer_of_id).
+  const kenh = await kiemNguoiThuKenh(db, goc.targetOrderId, { collectorPartyId: giu.value, collectorRole: giu.value === d.congTyId ? "COMPANY" : "STAFF", hinhThuc: "OTHER", boQuaChiTienMat: true });
   if (kenh) return { ok: false, res: kenh };
   // ADR-0171 Đ3 mục 2: «Công ty giữ» chỉ hợp lệ khi KHÔNG còn ai chưa nộp trên đơn cũ — giao diện tự chọn đúng người, máy chủ vẫn chặn khi gọi API trực tiếp.
   if (giu.value === d.congTyId && [...d.soDu].some(([id, v]) => id !== d.congTyId && v > 0)) return loi(409, "coc_con_nguoi_giu", CAU_CON_NGUOI_GIU);
