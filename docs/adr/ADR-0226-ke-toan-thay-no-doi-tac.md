@@ -1,6 +1,6 @@
 # ADR-0226 — Kế toán thuần xem đơn đối tác theo số nợ với Tour Đảo, không theo giá bán cho khách
 
-- **Trạng thái:** **proposed** 2026-11-21 — chính sách đã được chủ dự án chốt qua phiên điều phối (kế hoạch 16 việc, câu 1 «Đồng ý hết»; bốn câu 6A–6D, nguyên văn «còn lại áp dụng như khuyến nghị»); văn bản ADR này chờ chủ duyệt.
+- **Trạng thái:** **accepted** — chủ dự án duyệt 22/11/2026 qua phiên điều phối, nguyên văn câu 2: «Duyệt đề xuất» (duyệt ADR 0223–0233 kèm nới trần gói trang Đơn hàng 147 byte cho việc 6; hồ sơ `docs/superpowers/plans/2026-11-22-quyet-dinh-chu-ke-hoach-16-viec.md` ở nhánh `claude/partner-features-detailed-plan-f32f89`). Chính sách chốt trước đó ngày 21/11/2026 (câu 1 «Đồng ý hết»; bốn câu 6A–6D, nguyên văn «còn lại áp dụng như khuyến nghị»).
 - **Ngày:** 2026-11-21.
 - **Nguồn:** kế hoạch `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md` (nhánh `claude/partner-features-detailed-plan-f32f89`), mục 4 câu 1(d), mục 5 «Việc 6».
 - **Loại:** việc lớn (tiền, quyền xem). **Cửa:** hai chiều — không migration, không đổi dữ liệu; gỡ luật là về hành vi cũ.
