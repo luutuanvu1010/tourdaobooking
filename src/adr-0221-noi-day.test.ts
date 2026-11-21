@@ -80,6 +80,7 @@ test("Chi tiết đơn: nhãn nơi đón của lượt đi qua nhanNoiDon; khôn
   const don = doc("web/order.ts");
   assert.match(don, /laNoiDonTam\(l\) \? canhEl\(nhanNoiDon\(l\.pickupLabel\)\) : h\("span", null, nhanNoiDon\(l\.pickupLabel\)\)/);
   assert.match(don, /doiTac && laNoiDonTam\(l\) \? nhacEl\(CAU_VAN_PHONG_DIEN_NOI_DON\) : null/);
-  assert.match(don, /khoiDuaDonDon\(order, suaChuyen, nutDuaDon, laTaiKhoanDoiTac\(staff!\)\)/, "câu nhắc chỉ cho tài khoản giữ quyền Đối tác");
+  // Khung gốc (ADR-0222): khối Đưa đón nhận nút đầu khối và nút thêm riêng, tham số cuối vẫn là cờ tài khoản Đối tác.
+  assert.match(don, /khoiDuaDonDon\(order, suaChuyen, viecDuaDon, themDuaDon, laTaiKhoanDoiTac\(staff!\)\)/, "câu nhắc chỉ cho tài khoản giữ quyền Đối tác");
   assert.equal((don.match(/\.pickupLabel/g) ?? []).length, 2, "web/order.ts chỉ đọc pickupLabel ở đúng dòng đã bọc nhanNoiDon — thêm chỗ mới thì bọc rồi sửa số này");
 });
