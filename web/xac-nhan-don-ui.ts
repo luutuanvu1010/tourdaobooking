@@ -10,13 +10,14 @@ import { canhBaoChangForm } from "../src/shared/dat-gap-hien-thi";
 import { KHUNG_MAC_DINH, type KhungGio } from "../src/shared/khung-gio-don";
 import { GHI_CHU_HUY_TOI_DA, luaChonLyDo, nhanNhomHuy } from "../src/shared/ly-do-huy";
 import { can } from "../src/shared/permissions";
-import { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT, CAU_TIEN_KHOA_KHI_CHO, HOI_CON_VE, NHAN_KET_QUA, NHAN_NUT_XAC_NHAN, dongChoXacNhan, dongGioConVe, nhanGhiChuDichVu, nhanGioLuot, nhanLyDoCanXacNhan, type DongGioConVe, type LuotGioConVe } from "../src/shared/xac-nhan-hien-thi";
+import { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT, CAU_THIEU_NOI_DON_LUOT, CAU_TIEN_KHOA_KHI_CHO, HOI_CON_VE, NHAN_KET_QUA, NHAN_NUT_XAC_NHAN, dongChoXacNhan, dongGioConVe, nhanGhiChuDichVu, nhanGioLuot, nhanLyDoCanXacNhan, nhanNoiDonLuot, thieuNoiDonConVe, type DongGioConVe, type LuotGioConVe } from "../src/shared/xac-nhan-hien-thi";
 import { taoKhungDatGap } from "./dat-gap-ui";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
 import { TEN_PHI_DUA_DON, cauThieuPhiDon } from "../src/shared/phi-don-hien-thi";
 import { CHON_SO_KHAC, LUA_CHON_PHI_DON, NHAN_CHUA_CHON_PHI, NHAN_SO_KHAC, mucTuO } from "../src/shared/phi-don-o-chon";
 import { CAU_VAN_PHONG_CHON_PHI_DON, type MucChon } from "../src/shared/phi-don-chon";
 import { formGonDoiTac } from "../src/shared/form-dat-ve";
+import { taoONoiGoiY } from "./o-noi-goi-y";
 
 /** Những gì trang đơn cung cấp: tải lại đơn, báo thành công / lỗi. */
 export interface BoiCanhXacNhan {
@@ -115,7 +116,24 @@ async function layKhung(): Promise<readonly KhungGio[]> {
   return khungCache;
 }
 
+let diemCache: readonly { id: string; nhan: string }[] | null = null;
+/**
+ * ADR-0221 Đ3: điểm danh mục đang dùng cho ô «Nơi đón» của bảng Còn vé (route mọi nhân viên đọc được; nhãn «tên · loại» như form lập đơn). Lỗi mạng → danh sách rỗng: người xét vẫn gõ tự do được,
+ * máy chủ kiểm lại điểm còn dùng khi ghi.
+ */
+async function layDiem(): Promise<readonly { id: string; nhan: string }[]> {
+  if (diemCache) return diemCache;
+  try {
+    const r = await api<Api.LocationListResponse>("/api/locations");
+    diemCache = r.locations.filter((l) => l.active).map((l) => ({ id: l.id, nhan: `${l.name} · ${l.locationTypeName.toLowerCase()}` }));
+  } catch {
+    return [];
+  }
+  return diemCache;
+}
+
 const KHAC = "khac";
+const CHI_DIA_CHI = "Chỉ ghi địa chỉ — không ghi tên, số điện thoại khách";
 
 type DichVuDon = Order["services"][number];
 
@@ -134,6 +152,13 @@ interface OLuot {
   capMoc(ngayDon: string): void;
   /** Phần tử `gioDon` của lượt này, hoặc null nếu không cần gửi (giờ không đổi và không giấy đặt gấp). */
   phanTuGioDon(): NonNullable<Api.QuyetDinhXacNhanInput["gioDon"]>[number] | null;
+  /** ADR-0221 Đ3 — lượt đang mang chữ tạm ở nơi đón (`canNoiDon`): ô «Nơi đón» bắt buộc. null = lượt không cần ô. */
+  noiDon: {
+    /** Nơi người xét đã ghi: điểm danh mục HOẶC chữ gõ tự do (đúng một trong hai, như máy chủ đòi); null = chưa ghi. */
+    giaTri(): { pickupLocationId: string } | { pickupPlace: string } | null;
+    o: HTMLElement;
+    datLoi(cau: string | null): void;
+  } | null;
 }
 
 const nhanKhungGio = (k: KhungGio): string => `${k.tu}–${k.den}`;
@@ -218,8 +243,38 @@ function taoOLuot(lx: LuotGioConVe, s: DichVuDon, capMocTatCa: () => void, mocPh
     loi.hidden = true;
     capMocTatCa();
   });
+  // ADR-0221 Đ3: lượt đối tác gửi không có nơi đón ⇒ ô «Nơi đón» bắt buộc, cùng thành phần chọn nơi với form lập đơn (điểm danh mục hoặc gõ tự do); đứng TRƯỚC ô giờ (máy chủ cũng xét nơi đón trước giờ).
+  let noiDon: OLuot["noiDon"] = null;
+  let noiEl: HTMLElement[] = [];
+  if (lx.canNoiDon) {
+    const oid = `cx-noi-${leg.id}`;
+    let chon: { pickupLocationId: string } | { pickupPlace: string } | null = null;
+    const loiNoi = h("p", { class: "cx-loi", id: `${oid}-loi`, role: "alert", hidden: true });
+    const datLoiNoi = (cau: string | null): void => {
+      loiNoi.hidden = cau === null;
+      loiNoi.textContent = cau ?? "";
+      w.o.setAttribute("aria-invalid", cau === null ? "false" : "true");
+    };
+    const w = taoONoiGoiY({
+      id: oid, dataO: `${leg.id}:noi-don`, ten: "Nơi đón", hienThi: "", laTuDo: false, diem: () => diemCache ?? [], coChuaChot: false, moTa: [loiNoi.id], chuPhuTuDo: CHI_DIA_CHI,
+      chon: (d) => {
+        if (d.loai === "diem") {
+          chon = { pickupLocationId: d.id };
+          w.dat(d.nhan, false);
+        } else if (d.loai === "tu-do") {
+          chon = { pickupPlace: d.chu };
+          w.dat(d.chu, true);
+        }
+        datLoiNoi(null);
+      },
+    });
+    w.o.classList.add("vc-input"); // ô gõ 16px
+    void layDiem(); // nạp sẵn danh sách điểm; chưa về thì người xét vẫn gõ tự do được
+    noiDon = { giaTri: () => chon, o: w.o, datLoi: datLoiNoi };
+    noiEl = [h("label", { class: "cx-truong", for: oid }, h("span", { class: "cx-nhan" }, nhanNoiDonLuot(lx.nhanChieu, s.name)), w.o), w.ds, w.bao, loiNoi];
+  }
   const luot: OLuot = {
-    leg, dichVu: s, batBuoc, giaTri,
+    leg, dichVu: s, batBuoc, giaTri, noiDon,
     oDauVao: () => (sel.value === KHAC && gioKhac !== null ? gioKhac : sel),
     datLoi: (cau) => {
       loi.hidden = cau === null;
@@ -243,6 +298,7 @@ function taoOLuot(lx: LuotGioConVe, s: DichVuDon, capMocTatCa: () => void, mocPh
   const el = h(
     "div",
     { class: "cx-luot", "data-leg-id": leg.id },
+    ...noiEl,
     h("label", { class: "cx-truong", for: id }, h("span", { class: "cx-nhan" }, nhanGioLuot(lx.nhanChieu, s.name, batBuoc)), sel),
     gioKhac,
     loi,
@@ -329,7 +385,18 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
       baoLoiTaiCho(err);
       // Các câu 409 này nói người xét còn thiếu giờ / thiếu đặt gấp (ADR-0154 Đ1.3, Đ1.4; ADR-0193 câu (ii) `chua_gio_sat_ngay`) / thiếu phí đưa đón (ADR-0214 Đ3 `transfer_fee_missing`), KHÔNG phải đơn vừa đổi: giữ bảng để không mất giờ, phí vừa chọn.
       // 409 / 404 khác: đơn đã đổi → tải lại.
-      const thieuNhapLieu = err instanceof ApiError && (err.code === "pickup_time_required" || err.code === "short_notice_required" || err.code === "chua_gio_sat_ngay" || (err.code === "transfer_fee_missing" && oPhi.length > 0));
+      const thieuNhapLieu = err instanceof ApiError && (err.code === "pickup_place_required" || err.code === "pickup_time_required" || err.code === "short_notice_required" || err.code === "chua_gio_sat_ngay" || (err.code === "transfer_fee_missing" && oPhi.length > 0));
+      // ADR-0221 Đ3: máy chủ nói còn lượt thiếu nơi đón ⇒ đánh dấu đúng các lượt đó (bảng giữ nguyên); lượt máy chủ nêu mà bảng chưa có ô (dữ liệu vừa đổi) thì câu của máy chủ ở cuối bảng đã nói.
+      if (err instanceof ApiError && err.code === "pickup_place_required") {
+        const thieu = new Set(((err.details as Api.PickupPlaceRequiredBody["error"] | undefined)?.legs ?? []).map((x) => x.legId));
+        let dau: HTMLElement | null = null;
+        for (const o of oLuot) {
+          if (o.noiDon === null || !thieu.has(o.leg.id)) continue;
+          o.noiDon.datLoi(CAU_THIEU_NOI_DON_LUOT);
+          dau ??= o.noiDon.o;
+        }
+        dau?.focus();
+      }
       // Thiếu phí mà bảng chưa có ô (ngày áp vừa tới sau lúc mở trang): tải lại để ô hiện, và giữ lý do bằng băng (câu tại chỗ mất khi bảng dựng lại).
       if (err instanceof ApiError && err.code === "transfer_fee_missing" && !thieuNhapLieu) await c.lamMoi({ tone: "info", text: err.message });
       else if (err instanceof ApiError && (err.status === 409 || err.status === 404) && !thieuNhapLieu) await c.lamMoi();
@@ -352,7 +419,8 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
     for (const o of oLuot) o.capMoc(ngayDonCuaLuot(o));
   };
   const hangGio = h("div", { class: "cx-gio" });
-  for (const dv of dongGioConVe(order.services, y.vi.includes("CHOT_GIO"))) {
+  const dongConVe = dongGioConVe(order.services, y.vi.includes("CHOT_GIO"));
+  for (const dv of dongConVe) {
     const s = order.services.find((x) => x.id === dv.serviceId)!;
     hangGio.append(khoiDichVu(dv, s, oLuot, capNhatMocMoi, c.mocPhut, duocDatGap));
   }
@@ -380,8 +448,15 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
   }
   nutConVe.addEventListener("click", async () => {
     // Lượt BẮT BUỘC chưa có giờ: báo tại chỗ, không gọi máy chủ (máy chủ vẫn từ chối 409 `pickup_time_required` nếu ai gửi thẳng).
+    // ADR-0221 Đ3: lượt cần nơi đón mà chưa ghi cũng báo tại chỗ (`thieuNoiDonConVe`, luật thuần), không gọi máy chủ (409 `pickup_place_required` nếu ai gửi thẳng). Nơi đón đứng trước giờ trong từng lượt.
     let dauTien: HTMLElement | null = null;
+    const thieuNoi = new Set(thieuNoiDonConVe(dongConVe, new Set(oLuot.filter((o) => o.noiDon !== null && o.noiDon.giaTri() !== null).map((o) => o.leg.id))));
     for (const o of oLuot) {
+      if (o.noiDon !== null) {
+        const thieuNoiLuot = thieuNoi.has(o.leg.id);
+        o.noiDon.datLoi(thieuNoiLuot ? CAU_THIEU_NOI_DON_LUOT : null);
+        if (thieuNoiLuot && dauTien === null) dauTien = o.noiDon.o;
+      }
       const thieu = o.batBuoc && o.giaTri() === null;
       o.datLoi(thieu ? CAU_THIEU_GIO_LUOT : null);
       if (thieu && dauTien === null) dauTien = o.oDauVao();
@@ -409,6 +484,12 @@ export function bangXacNhanDon(c: BoiCanhXacNhan, order: Order, y: Api.YeuCauXac
       if (g !== null) gioDon.push(g);
     }
     if (gioDon.length > 0) than.gioDon = gioDon;
+    const noiDon: NonNullable<Api.QuyetDinhXacNhanInput["noiDon"]> = [];
+    for (const o of oLuot) {
+      const n = o.noiDon?.giaTri() ?? null;
+      if (n !== null) noiDon.push({ legId: o.leg.id, ...n });
+    }
+    if (noiDon.length > 0) than.noiDon = noiDon;
     if (phiDon.length > 0) than.phiDon = phiDon;
     await guiQuyet(than, "Đã xác nhận đơn: còn vé.");
     nutConVe.disabled = khoaConVe;

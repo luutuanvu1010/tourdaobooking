@@ -13,6 +13,8 @@ export const laNoiDonTam = (l: { pickupLocationId: string | null; pickupPlace: s
 export const luotThieuNoiDon = <T extends { pickupLocationId: string | null; pickupPlace: string | null }>(legs: readonly T[]): T[] => legs.filter(laNoiDonTam);
 /** Chữ hiện cho người dùng thay nguyên văn chữ tạm (ADR-0221 Đ3) — cùng chữ với chip dòng gập «Chưa có nơi đón». */
 export const CHUA_CO_NOI_DON = "Chưa có nơi đón";
+/** Câu nhắc cạnh lượt mang chữ tạm ở Chi tiết đơn, cho người KHÔNG phải văn phòng (đối tác lập đơn): nơi đón do văn phòng điền lúc «Còn vé». Chữ AI đặt 21/11 — `cho-chon` ở bảng tham chiếu. */
+export const CAU_VAN_PHONG_DIEN_NOI_DON = "Văn phòng sẽ điền nơi đón.";
 /** Nhãn nơi đón để HIỆN: nhãn là chữ tạm ⇒ «Chưa có nơi đón»; nhãn khác giữ nguyên. Không dùng để so sánh hay ghi. */
 export const nhanNoiDon = (nhan: string): string => (nhan === NOI_DON_CHUA_GHI ? CHUA_CO_NOI_DON : nhan);
 

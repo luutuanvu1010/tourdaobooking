@@ -20,7 +20,7 @@ import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
 import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieuVaiTro, gopBenDat, hienNutDienDoiTac, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon, type KhoiBenDatForm } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
-import { GOI_Y_GIAM_GIA_DOI_TAC, formGonDoiTac } from "../src/shared/form-dat-ve";
+import { GOI_Y_GIAM_GIA_DOI_TAC, duaDonAnHetLuot, formGonDoiTac } from "../src/shared/form-dat-ve";
 import { O_PHI_TRONG, mucDaLuuTheoLuot, mucTuO, oTuMuc, type OPhiDon } from "../src/shared/phi-don-o-chon";
 import type { MucChon } from "../src/shared/phi-don-chon";
 import { cauTranGiamGiaForm, oGiamGiaChiGiaDanhMuc } from "../src/shared/ben-kia-hien-thi";
@@ -290,6 +290,13 @@ const coOChonPhi = (): boolean => phiDangAp && !formGon;
  */
 let anKhach = false;
 /**
+ * ADR-0221 Đ2: công tắc «Đối tác không nhập nơi đón» đang áp cho CHÍNH người lập (`apChoToi` của GET /api/cai-dat/noi-don-doi-tac — máy chủ chỉ trả true cho tài khoản giữ quyền Đối tác lúc công tắc bật).
+ * Đọc một lần lúc mở form; máy chủ từ chối 400 thì đọc lại (`hienLaiNoiDonNeuCan`). false = form không đổi một ký tự.
+ */
+let khongNhapNoiDon = false;
+/** Dịch vụ `d` đang ở chế độ «không cần nơi đón»: công tắc đang áp VÀ luật an toàn `duaDonAnHetLuot` đúng (một lượt chiều đi chưa có nơi đón, không có gì bị giấu) — cùng phép ghép với thẻ dịch vụ. */
+const khongCanNoiDon = (d: ServiceDraft): boolean => khongNhapNoiDon && duaDonAnHetLuot(d.legs, orderDate);
+/**
  * ADR-0194 đợt 1: chính sách hiện / ẩn / bắt buộc của Toàn quyền cho màn Tạo đơn (Email, Ghi chú khách, Hành khách, Ghi chú thanh toán). Tải TRƯỚC khi dựng khối; lỗi tải = mặc định đầy đủ.
  * Chỉ ẩn / hiện / đánh dấu — MÁY CHỦ quyết lại (bỏ khoá trường ẩn, giữ giá trị đang lưu, 400 khi thiếu trường bắt buộc). Công tắc ADR-0154 đang áp thì nó quyết các trường khách (không chen vào).
  */
@@ -320,6 +327,7 @@ function mount(d: ServiceDraft, moThe: boolean, open?: boolean): Entry {
     canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
     retailOnly,
     formGonDoiTac: formGon,
+    khongNhapNoiDon: () => khongNhapNoiDon, // ADR-0221 Đ2: thẻ tự ghép với luật an toàn của chính dịch vụ
     chinhSachDichVu: chinhSachDichVu, // ADR-0195: ô cấp dịch vụ theo chính sách + điều kiện «không đón / có đón» của chính dịch vụ
     duocNhapTay,
     duaDon: { ngayDi: () => orderDate, mau: () => mauCua(entry.draft), diem: () => diem, diemNhanh: () => diemNhanh, suaSoVe, newKey, khungGio: () => khungGio, coDuaDon: () => coDuaDon(entry.draft),
@@ -504,7 +512,7 @@ function capNhatBuoc(): void {
       coNgayDi: orderDate !== "", ten: field("customerName").value, sdt: field("customerPhone").value,
       // Nút chính là «Gửi đơn» (Đối tác lập mới) thì thiếu Đón / Không đón cũng chặn — dấu «đủ» của bước Dịch vụ phải nói đúng điều nút sẽ làm (đặc tả 2026-11-20).
       soDichVu: ds.length,
-      coLoiDichVu: ds.some((d) => draftIssues(d).length > 0)
+      coLoiDichVu: ds.some((d) => draftIssues(d, { khongCanNoiDon: khongCanNoiDon(d) }).length > 0)
         || (!editId && guiDonKhiLuu && dichVuThieuChonDon(entries.map((e) => ({ choPhep: coDuaDon(e.draft), pickupChoice: e.draft.pickupChoice, soChang: e.draft.legs.length }))).length > 0),
       coLoiTien: loiTienForm().cau.length > 0, daChonNguoi: handlerPick !== null, anKhach,
       duTenKhach: hk !== null && soKhachForm() > 0 && hk.rows().filter((r) => dongDu(r, today)).length >= soKhachForm(),
@@ -595,7 +603,7 @@ function recompute(): void {
   for (const e of entries) capNhatMoc(e);
   hk?.refresh(); // mẫu số "N/M khách đã có tên" theo số khách dịch vụ
   capNhatBuoc();
-  const tooMany = ds.some((d) => draftIssues(d).some((i) => i.code === "too_many_guests")); // vượt 50 khách khoá nút Lưu (đặc tả 5.1)
+  const tooMany = ds.some((d) => draftIssues(d, { khongCanNoiDon: khongCanNoiDon(d) }).some((i) => i.code === "too_many_guests")); // vượt 50 khách khoá nút Lưu (đặc tả 5.1)
   saveBtn.disabled = formLocked || saving || tooMany;
   saveBtn.textContent = saving ? (guiDonKhiLuu && !editId ? "Đang gửi…" : "Đang lưu…") : editId ? "Lưu thay đổi" : guiDonKhiLuu ? NHAN_NUT_XAC_NHAN.submit : "Lưu đơn (chưa xác nhận)";
 }
@@ -650,7 +658,7 @@ function validate(guiDon: boolean): { banner: Banner; focus: HTMLElement; cacO: 
   if (batBuocTruong("paymentNote")) need("paymentNote", "Nhập ghi chú thanh toán.");
   if (entries.length === 0) lines.push("Thêm ít nhất một dịch vụ.");
   entries.forEach((e, i) => {
-    for (const issue of draftIssues(e.draft)) {
+    for (const issue of draftIssues(e.draft, { khongCanNoiDon: khongCanNoiDon(e.draft) })) {
       lines.push(`${nameOf(e.draft, i)}: ${issue.message}`);
       focusables.push(e.card.root);
     }
@@ -805,6 +813,7 @@ async function onSaveError(err: unknown): Promise<void> {
       : NETWORK_BANNER;
   if (failure.refreshCatalog) await refreshCatalogAfterConflict();
   await hienLaiKhoiKhachNeuCan(err); // ADR-0154 Đ2.3: công tắc vừa tắt khi khối khách đang ẩn → hiện lại khối (câu lỗi của máy chủ giữ nguyên bên dưới)
+  await hienLaiNoiDonNeuCan(err); // ADR-0221: công tắc «Đối tác không nhập nơi đón» vừa tắt giữa lúc soạn → ô «Nơi đón» hiện lại
   const daBoChang = err instanceof ApiError && err.code === "transfer_disabled" ? await boChangNhomVuaTat() : "";
   if (failure.action === "lock_form") lockForm(failure);
   renderBanner(saveErrorEl, daBoChang ? banner("warning", `${daBoChang} Bấm Lưu lại.`) : failure, { reloadOrder: () => void loadOrder(), reloadPage: () => location.reload() });
@@ -1022,7 +1031,7 @@ function napThe(taoThe: readonly (() => ServiceDraft)[], ngay: string): string[]
     if (nap.soBo > 0) bao.push(cauBoChangNhomTat(nap.draft.name, nap.soBo));
     const d = nap.draft;
     const laFocus = d.id !== null && d.id === focusId;
-    const entry = mount(d, laFocus || theMoKhiNap(d, orderDate, laSanBay), laFocus ? true : undefined);
+    const entry = mount(d, laFocus || theMoKhiNap(d, orderDate, laSanBay, khongCanNoiDon(d)), laFocus ? true : undefined);
     if (laFocus) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở thẻ + khối chuyến và cuộn tới thẻ
   }
   // Đơn cũ (trước ADR-0021) có thể mỗi dịch vụ một ngày: khi đó ô để trống và Lưu báo "chọn một ngày cho cả đơn" (không đoán hộ).
@@ -1229,6 +1238,24 @@ async function hienLaiKhoiKhachNeuCan(err: unknown): Promise<void> {
   datAnKhach(false);
   await dungLaiKhoiKhach();
   field("customerName").focus();
+}
+
+/** ADR-0221: đọc công tắc «Đối tác không nhập nơi đón» — `apChoToi` (đang áp cho CHÍNH người gọi); lỗi mạng → null (không đoán). */
+const docCongTacNoiDon = (): Promise<boolean | null> => api<Api.NoiDonDoiTacResponse>("/api/cai-dat/noi-don-doi-tac").then((r) => r.apChoToi, () => null);
+/**
+ * Máy chủ vừa từ chối 400 khi form đang ở chế độ «không nhập nơi đón»: đọc lại công tắc; nay KHÔNG còn áp (Toàn quyền vừa tắt giữa lúc đang soạn) ⇒ bỏ chế độ, dựng lại khối Đưa đón của mọi thẻ để ô «Nơi đón»
+ * hiện lại và lỗi «chưa có nơi đón» được báo như trước. Câu lỗi của máy chủ giữ nguyên. Lỗi khác không đọc lại.
+ */
+async function hienLaiNoiDonNeuCan(err: unknown): Promise<void> {
+  if (!khongNhapNoiDon || !(err instanceof ApiError) || err.status !== 400) return;
+  if ((await docCongTacNoiDon()) !== false) return;
+  khongNhapNoiDon = false;
+  for (const e of entries) {
+    e.draft = { ...e.draft, legs: [...e.draft.legs] }; // mảng lượt MỚI để thẻ dựng lại khối Đưa đón (thẻ chỉ dựng lại khi `legs` đổi)
+    e.card.update(e.draft);
+    e.card.showIssues(true);
+  }
+  recompute();
 }
 
 // ---- khởi động ----
@@ -1525,10 +1552,13 @@ const layKhung = can(staff, "order.create") && !formGon // form gọn của Đ�
   : Promise.resolve(khungGio);
 // ADR-0154 Đ2.2: chỉ tài khoản giữ quyền Đối tác mới có thể bị áp công tắc (`apCongTacAnKhach` ⊂ `holdsPartner`) nên người khác không hỏi. Lỗi mạng → không ẩn (máy chủ vẫn quyết lại ở lần lưu).
 const layAnKhach = formGon ? docCongTacAnKhach() : Promise.resolve(null);
+// ADR-0221 Đ2: cùng lý do — `apChoToi` chỉ đúng cho tài khoản giữ quyền Đối tác nên người khác không hỏi. Lỗi mạng → không ẩn (form như cũ; máy chủ vẫn quyết lại ở lần lưu).
+const layNoiDon = formGon ? docCongTacNoiDon() : Promise.resolve(null);
 const layChinhSach = taiChinhSach(); // ADR-0194: gửi song song
 // ADR-0214 (Task 6): công tắc phí đưa đón — chỉ người lập đơn (máy chủ hỏi order.create). Lỗi → coi như chưa áp (không ô chọn, không gửi khoá; máy chủ vẫn chặn lúc xác nhận).
 const layPhiAp = can(staff, "order.create") ? api<Api.PhiDonApResponse>("/api/orders/phi-don-ap").then((r) => r.dangAp, () => false) : Promise.resolve(false);
-const [viTri, mauVe, khungVe, anKhachMay, phiApMay] = await Promise.all([layDiem, layMau, layKhung, layAnKhach, layPhiAp]);
+const [viTri, mauVe, khungVe, anKhachMay, phiApMay, noiDonMay] = await Promise.all([layDiem, layMau, layKhung, layAnKhach, layPhiAp, layNoiDon]);
+khongNhapNoiDon = noiDonMay === true; // TRƯỚC khi dựng thẻ: khối Đưa đón hỏi cờ này lúc dựng
 phiDangAp = phiApMay;
 chinhSach = await layChinhSach; // ADR-0194: trước khi dựng khối / nạp đơn; lỗi tải đã thành mặc định đầy đủ
 datAnKhach(anKhachMay === true);

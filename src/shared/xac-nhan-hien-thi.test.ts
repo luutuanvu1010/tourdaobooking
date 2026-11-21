@@ -119,6 +119,12 @@ test("nối dây bảng Còn vé: web/xac-nhan-don-ui.ts đi qua dongGioConVe, k
   assert.match(ui, /can\(c\.staff,\s*"order\.leg\.short_notice"\)/, "hiện khung đặt gấp theo bảng quyền, không theo mã quyền");
   assert.match(ui, /CAU_NHO_DAT_GAP/, "người không có ô được nhắc nhờ Bán hàng hoặc Quản trị");
   assert.match(ui, /CAU_THIEU_GIO_LUOT/, "thiếu lượt bắt buộc thì báo tại chỗ");
+  // ADR-0221 Đ3: ô «Nơi đón» của lượt cần nơi đón — chữ lấy từ luật thuần ở tệp này, không viết tay trong giao diện.
+  assert.match(ui, /lx\.canNoiDon/, "ô nơi đón dựng theo cờ canNoiDon của dongGioConVe");
+  assert.match(ui, /nhanNoiDonLuot\(/, "nhãn ô nơi đón lấy từ nhanNoiDonLuot");
+  assert.match(ui, /thieuNoiDonConVe\(/, "thiếu nơi đón xét bằng thieuNoiDonConVe");
+  assert.match(ui, /CAU_THIEU_NOI_DON_LUOT/, "thiếu nơi đón thì báo tại lượt");
+  assert.doesNotMatch(ui, /"Ghi nơi đón cho lượt này\."|chưa ghi nơi đón/, "không chép tay câu báo, không so chữ tạm trong giao diện");
   assert.equal(ui.match(/\bconfirm\(/g)?.length ?? 0, 0, "không còn confirm( (bước 1 khung chung 13/11: Rút lại, Hết vé đã sang hộp hỏi chung) — không thêm lại");
 });
 

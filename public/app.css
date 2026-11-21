@@ -4847,3 +4847,7 @@ body.login-bao-tri:not(.login-mo-form) .login-dang-ky { display: none; }
 .dd-chi-noi-don .dd-luoi-noi > .dd-cot:nth-child(2),
 .dd-chi-noi-don .dd-chang > .gap-nut { display: none; }
 .dd-chi-noi-don .dd-luoi-noi { grid-template-columns: minmax(0, 1fr); }
+/* ADR-0221 Đ2: công tắc «Đối tác không nhập nơi đón» đang áp — ẩn TOÀN BỘ khung lượt (luật thuần `duaDonAnHetLuot`; phần ẩn vẫn nằm trong cây DOM), chỉ còn hai nút «Đón», «Không đón». */
+.dd-an-het-luot > .dd-ghi-tao,
+.dd-an-het-luot > .dd-nut,
+.dd-an-het-luot > .dd-chang-khung { display: none; }

@@ -15,9 +15,9 @@ import {
   removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel, chonDonSauDoiChang, datChonDon,
   type CatalogDraft, type ManualDraft, type ServiceDraft,
 } from "../src/shared/service-form";
-import type { KhungGio } from "../src/shared/khung-gio-don";
+import { NHAN_LUA_CHON_DON, type KhungGio } from "../src/shared/khung-gio-don";
 import { canhBaoChuyenThe, coLoiChanLuuDangHien, dongGapThe } from "../src/shared/dong-gap-the";
-import { GOI_Y_GHI_CHU_DOI_TAC, MAX_GHI_CHU_DICH_VU, NHAN_GHI_CHU_DOI_TAC, ghiChuMotDong } from "../src/shared/form-dat-ve";
+import { GOI_Y_GHI_CHU_DOI_TAC, MAX_GHI_CHU_DICH_VU, NHAN_GHI_CHU_DOI_TAC, duaDonAnHetLuot, ghiChuMotDong } from "../src/shared/form-dat-ve";
 import { tripSummaryLine } from "../src/shared/trip-form";
 import { MAX_LINES_PER_ORDER } from "../src/shared/trip-rules";
 import { dieuKienCuaDichVu } from "../src/shared/ui-dieu-kien";
@@ -53,6 +53,9 @@ export interface CardOptions {
   /** Đặt vé của đối tác, lượt 1 (đặc tả §4.2) — `formGonDoiTac` của src/shared/form-dat-ve.ts: tài khoản có quyền Đối tác (kể cả lai). Khối "Thông tin chuyến" ẨN hẳn, thay bằng MỘT dòng "Ghi chú" ghi vào
    *  `trip.note`; các ô còn lại của chuyến vẫn dựng (ẩn) nên `draft.trip` — giờ khởi hành, giờ và nơi có mặt của nháp cũ — gửi lên đúng như đã nạp. Vắng/false = như cũ, không đổi một ký tự. */
   formGonDoiTac?: boolean;
+  /** ADR-0221 Đ2: công tắc «Đối tác không nhập nơi đón» đang áp cho người lập (`apChoToi` của máy chủ — trang đọc một lần). Thẻ tự ghép với luật an toàn `duaDonAnHetLuot` của CHÍNH dịch vụ này:
+   *  đúng thì khối Đưa đón ẩn hết lượt và lượt chiều đi chưa có nơi đón không còn là lỗi. Vắng / false = như cũ, không đổi một ký tự. */
+  khongNhapNoiDon?: () => boolean;
   /** ADR-0061: người dùng ĐƯỢC nhập tay (`duocDung` của máy chủ) — thẻ nhập tay đã lưu sửa được tên/giá; vắng/false = chỉ xem (máy chủ vẫn kiểm lại). */
   duocNhapTay?: boolean;
   /** Khối "Đưa đón" (ADR-0047 Phần B, bản vẽ M1/M6): ngày đi của cả đơn, mẫu chặng của dịch vụ, điểm danh mục, ô số người chiều về (văn phòng). */
@@ -186,7 +189,10 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   /** Khoá «ô nào đang ẩn / bắt buộc» của dịch vụ này: đổi khoá ⇒ dựng lại khối đưa đón (ô số hiệu chuyến bay / số người chiều về) và tính lại ô ghi chú. */
   const dkKhoa = (): string => (["flightCode", "paxOverride", "note"] as const).map((t) => { const c = csDichVu(t); return `${c.an ? 1 : 0}${c.batBuoc ? 1 : 0}`; }).join(",");
 
+  /** ADR-0221: dịch vụ này đang ở chế độ «không cần nơi đón» (công tắc đang áp VÀ luật an toàn đúng) — đọc lại mỗi lần hỏi vì lượt và ngày đi đổi theo thao tác. */
+  const khongCanNoiDon = (): boolean => o.khongNhapNoiDon?.() === true && duaDonAnHetLuot(draft.legs, o.duaDon.ngayDi());
   const duaDon = taoKhoiDuaDon({
+    anHetLuot: () => o.khongNhapNoiDon?.() === true,
     chinhSachO: o.chinhSachDichVu ? (t) => csDichVu(t) : undefined,
     legs: draft.legs, taoSan: draft.taoSan, che: "form", ma: draft.key, ...o.duaDon, soKhach: () => soKhachNhap(draft), anGio: o.formGonDoiTac === true, chiNoiDon: o.formGonDoiTac === true, // ADR-0154 Đ1.1: form đối tác không nhập giờ đón; H2 (20/11): chỉ còn một ô «Nơi đón»
     // ADR-0134: còn lượt → "Đón"; bỏ lượt cuối khi đang "Đón" → về chưa chọn (`chonDonSauDoiChang`).
@@ -244,7 +250,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   );
   const root = h("article", { class: "svc svc-the" }, h("header", { class: "svc-head" }, h("h3", { class: "svc-tieu-de" }, nutMo), remove), than);
   /** Lỗi chặn Lưu đang hiện trên thẻ → thẻ luôn mở (`refresh` chốt mở; bấm gập bị trả lại). Trước lần bấm Lưu đầu chỉ tính lỗi hiện ngay (luật ở dong-gap-the.ts). */
-  const mustStayOpen = (): boolean => coLoiChanLuuDangHien(draft, issuesVisible);
+  const mustStayOpen = (): boolean => coLoiChanLuuDangHien(draft, issuesVisible, khongCanNoiDon());
   const veMo = (mo: boolean): void => {
     root.classList.toggle("svc-dang-gap", !mo);
     chipsEl.hidden = !mo;
@@ -475,8 +481,10 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     const ten = d.kind === "catalog" ? d.name : d.name.trim() || "Dịch vụ nhập tay";
     nameEl.textContent = ten;
     remove.setAttribute("aria-label", `Xoá dịch vụ ${ten}`);
-    const dg = dongGapThe(d, { today: o.today, nhanTheoId, chipNgoai, anGio: o.formGonDoiTac === true });
-    tomTatEl.textContent = [dg.khach, dg.don].filter((x) => x).join(" · ");
+    const khongCan = khongCanNoiDon();
+    const dg = dongGapThe(d, { today: o.today, nhanTheoId, chipNgoai, anGio: o.formGonDoiTac === true, khongCanNoiDon: khongCan });
+    // ADR-0221: ở chế độ ẩn hết lượt dòng gập không còn giờ, nơi đón hay chip nào về đưa đón ⇒ ghi «Đón» (nhãn nút đã chọn) để đối tác vẫn thấy mình đã chọn đón.
+    tomTatEl.textContent = [dg.khach, dg.don ?? (khongCan ? NHAN_LUA_CHON_DON.DON : null)].filter((x) => x).join(" · ");
     replaceChildren(chipGonEl, ...dg.chips.map((c) => h("span", { class: "svc-chip-gon" }, c))); // lớp riêng (không `.chip`): chip của dòng gập không lẫn với chip của đầu thẻ mở khi kịch bản đếm `.chip`
     tienGonEl.textContent = vnd(draftSubtotal(d));
     root.classList.toggle("svc-co-loi", mustStayOpen());
@@ -543,7 +551,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     const chuTongDoc = sumRow.hidden && p.ok && p.lines.length === 1 ? `Thành tiền dịch vụ ${vnd(draftSubtotal(d))}` : "";
     if (tongDoc.textContent !== chuTongDoc) tongDoc.textContent = chuTongDoc;
 
-    const issues = draftIssues(d);
+    const issues = draftIssues(d, { khongCanNoiDon: khongCanNoiDon() });
     const tooMany = issues.some((i) => i.code === "too_many_guests");
     counters.forEach((c) => c.setInvalid(tooMany));
     guestCounter?.setInvalid(tooMany);
@@ -588,7 +596,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
    * người lập phải thấy ô đỏ vừa hiện, không phải banner cuối form). Không có ô nhận tiêu điểm hợp lệ → null (trang dùng cả thẻ).
    */
   function oLoiThe(): HTMLElement | null {
-    const loi = draftIssues(draft).find((i) => i.code !== "leg");
+    const loi = draftIssues(draft, { khongCanNoiDon: khongCanNoiDon() }).find((i) => i.code !== "leg");
     if (!loi) return null;
     let o: HTMLElement | null | undefined;
     if (loi.code === "no_guests" || loi.code === "no_paying_guests" || loi.code === "too_many_guests") o = draft.kind === "catalog" ? [...counters.values()][0]?.input : guestCounter?.input;
@@ -636,7 +644,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       if (o.formGonDoiTac !== true) tripDetails.open = true; // form gọn: khối chuyến đang ẩn, không có gì để mở
       root.scrollIntoView({ block: "center" });
     },
-    hasIssues: () => draftIssues(draft).length > 0,
+    hasIssues: () => draftIssues(draft, { khongCanNoiDon: khongCanNoiDon() }).length > 0,
     setOpen(open) {
       if (open) gap.mo();
       else if (!mustStayOpen()) gap.dong();

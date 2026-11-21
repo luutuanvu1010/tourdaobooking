@@ -41,6 +41,7 @@ import { CAU_CAN_NOI_TRA, canhBaoXacNhan, cauThieuTen, thieuNoiTra } from "../sr
 import { dongThongTinQr } from "../src/shared/qr-thong-tin";
 import { PAX_LABEL } from "../src/shared/order-lines";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
+import { CAU_VAN_PHONG_DIEN_NOI_DON, laNoiDonTam, nhanNoiDon } from "../src/shared/noi-don-tam";
 import { CHU_MIEN_PHI, dongPhiTrenDon } from "../src/shared/phi-don-hien-thi";
 import { nhanCamKet } from "../src/shared/cam-ket-xe";
 import { can, holdsPartner } from "../src/shared/permissions";
@@ -286,7 +287,9 @@ function dongChang(l: Api.LegDto, vanPhong: boolean): HTMLElement {
       l.flightCode ? h("span", { class: "chip chip-code" }, `✈︎ ${l.flightCode}`) : null,
       l.paxOverride !== null ? h("span", { class: "chip chip-muted" }, `${l.paxOverride} người về`) : null,
     ),
-    h("div", { class: "dd-dong-noi" }, h("span", null, l.pickupLabel), h("span", { class: "muted", "aria-hidden": "true" }, "→"), l.dropoffLabel ? h("span", null, l.dropoffLabel) : canhEl("Chưa chốt nơi trả")),
+    // ADR-0221 Đ3: lượt mang chữ tạm hiện «Chưa có nơi đón» (không hiện nguyên văn chữ tạm) — `nhanNoiDon`, một luật với bảng Còn vé.
+    h("div", { class: "dd-dong-noi" }, laNoiDonTam(l) ? canhEl(nhanNoiDon(l.pickupLabel)) : h("span", null, nhanNoiDon(l.pickupLabel)), h("span", { class: "muted", "aria-hidden": "true" }, "→"), l.dropoffLabel ? h("span", null, l.dropoffLabel) : canhEl("Chưa chốt nơi trả")),
+    !vanPhong && laNoiDonTam(l) ? nhacEl(CAU_VAN_PHONG_DIEN_NOI_DON) : null, // người lập (đối tác) biết mình không phải làm gì thêm
     vanPhong && !l.pickupTime ? nhacEl("Cần giờ đón trước khi xếp xe") : null,
     vanPhong && thieuNoiTra(l) ? nhacEl(CAU_CAN_NOI_TRA) : null,
   );
