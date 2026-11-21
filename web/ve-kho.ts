@@ -304,7 +304,7 @@ if (!nhapLo && !taoVe) {
       const r = await api<{ lo: LoBoDuoc[]; trang: number; coTrangSau: boolean }>(`/api/ve/lo?${hoi.toString()}`);
       if (luot !== luotLo) return;
       if (r.lo.length === 0 && trangLo > 1) { trangLo -= 1; await taiCacLo(); return; } // trang cuối vừa hết lô (huỷ xong): lùi một trang
-      if (r.lo.length === 0) { replaceChildren(cacLoEl, dangLoc(loc) ? rongDoLoc("Không có lô nào khớp bộ lọc.") : h("p", { class: "muted" }, "Không có lô nào.")); return; }
+      if (r.lo.length === 0) { if (dangLoc(loc)) replaceChildren(cacLoEl, dongDangLoc(), rongDoLoc("Không có lô nào khớp bộ lọc.")); else replaceChildren(cacLoEl, h("p", { class: "muted" }, "Không có lô nào.")); return; }
       const ttLo = thanhTrang(r.trang, r.coTrangSau, (t) => { trangLo = t; void taiCacLo(); });
       replaceChildren(cacLoEl, dongDangLoc(), h("ul", { class: "pay-list", "data-khoi": "cac-lo" }, ...r.lo.map((l) => {
         const moTa = h("p", { class: "muted" }, `${l.tenDichVu ?? "Dịch vụ không còn trong danh mục"} · ${NHAN_NHOM[l.nhomKhach] ?? l.nhomKhach} · ${NHAN_NGUON[l.nguon] ?? l.nguon} · ${l.trangThai === "PENDING" ? "đang dở" : "đã vào kho"}${l.daCap ? " · đã cấp cho đơn" : ""} · ${l.soVe} vé · tạo ${ngayVn(l.taoLuc)}`);

@@ -5025,5 +5025,6 @@ body[data-khung-goc] .chon-doan > button[aria-checked="true"] { color: var(--c-p
 /* ---------- Hết khung gốc giao diện (ADR-0222) ---------- */
 /* Việc 4 (kế hoạch 16 việc 21/11): thanh lọc dùng chung của Kho vé (dùng lại .catalog-tim / .catalog-hang của bộ chọn dịch vụ — web/loc-dich-vu-kho-ui.ts) và câu «đang lọc» / «lọc ra rỗng» của ba khối. */
 .vk-thanh-loc { margin-bottom: 0; }
-.vk-dang-loc { margin: 0 0 var(--s3); }
+.vk-dang-loc { margin: var(--s3) 0; }
+.vk-rong-loc { margin-top: var(--s3); }
 .vk-rong-loc .muted { margin: 0 0 var(--s2); }
