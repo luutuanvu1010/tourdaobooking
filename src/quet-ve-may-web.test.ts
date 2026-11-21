@@ -1,0 +1,216 @@
+// Máy trạng thái của trang Quét vé (web/quet-ve-may.ts) — lỗi «quét vé đã dùng thì Nền tảng treo» (Việc 9, 21/11/2026).
+// Chạy trên DOM giả (src/dom-gia.ts) và đồng hồ giả của node:test; máy chủ là hàm `goi` giả. Không cần camera hay mạng thật.
+import assert from "node:assert/strict";
+import { afterEach, beforeEach, describe, it, mock } from "node:test";
+import { dungDomGia, type NutGia } from "./dom-gia.ts";
+
+dungDomGia();
+const M = await import("../web/quet-ve-may.ts");
+const { CHONG_LAP_MS } = await import("./shared/chong-doc-lap.ts");
+type KetQua = import("../web/quet-ve-may.ts").KetQuaQuet;
+
+const doc = (globalThis as unknown as { document: { createElement(t: string): NutGia } }).document;
+const ve = (mau: KetQua["mau"], ma: string, cau: string): KetQua => ({ mau, ma, ghi: mau === "XANH" ? "DA_TINH" : "TU_CHOI", cau, dichVu: "Tour 4 đảo", nhomKhach: "Người lớn", ngayDi: "2026-11-21", soCuoi: "ABCD", lanQuetId: `l-${Math.random()}` });
+const XANH = ve("XANH", "HOP_LE", "Vé hợp lệ. Đã tính đã dùng.");
+const DO_DA_DUNG = ve("DO", "DA_DUNG", "Vé đã dùng lúc 08:15 bởi Lan.");
+/** Cho mọi lời hứa đang chờ chạy hết (không đụng đồng hồ). */
+const xa = async (): Promise<void> => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
+const nut = (goc: NutGia, chu: string): NutGia | undefined => goc.querySelectorAll("button").find((b) => b.textContent === chu);
+
+type LoiGia = { status?: number; message?: string };
+function dung(tl: Array<KetQua | LoiGia | "treo">) {
+  const ketQuaEl = doc.createElement("div");
+  ketQuaEl.hidden = true;
+  const trangThaiEl = doc.createElement("p");
+  const nhacEl = doc.createElement("div");
+  nhacEl.hidden = true;
+  const goiLuc: Array<{ ma: string; xn: Record<string, boolean>; hen: number; luc: number }> = [];
+  const ghiNho: KetQua[] = [];
+  const may = M.taoMayQuet({
+    ketQuaEl: ketQuaEl as unknown as HTMLElement,
+    trangThaiEl: trangThaiEl as unknown as HTMLElement,
+    nhacEl: nhacEl as unknown as HTMLElement,
+    goi: (ma, xn, hen) => {
+      goiLuc.push({ ma, xn: xn as Record<string, boolean>, hen, luc: Date.now() });
+      const t = tl.shift() ?? "treo";
+      if (t === "treo") return new Promise((_res, rej) => setTimeout(() => rej(new Error("The operation was aborted.")), hen)); // như api(): hết giờ thì ném lỗi không phải ApiError
+      if ("mau" in t) return Promise.resolve(t);
+      return Promise.reject(t.status === undefined ? new TypeError("Failed to fetch") : Object.assign(new Error(t.message ?? "x"), t));
+    },
+    lyDoLoi: (e) => ((e as LoiGia).status !== undefined ? (e as LoiGia).message ?? "" : "Không kết nối được máy chủ."),
+    khiCoKetQua: (kq) => void ghiNho.push(kq),
+    dangDocCamera: () => true,
+  });
+  return { may, ketQuaEl, trangThaiEl, nhacEl, goiLuc, ghiNho };
+}
+
+/** Camera đọc cùng mã mỗi 250 ms trong `ms` mili giây (như vòng `docKhung`): chỉ đưa mã vào khi máy không bận. */
+async function cameraThay(may: { nhanMa(m: string): void; dangBan(): boolean }, ma: string, ms: number): Promise<void> {
+  for (let t = 0; t < ms; t += 250) {
+    mock.timers.tick(250);
+    await xa();
+    if (!may.dangBan()) may.nhanMa(ma);
+    await xa();
+  }
+}
+
+describe("web/quet-ve-may.ts", () => {
+  beforeEach(() => mock.timers.enable({ apis: ["setTimeout", "Date"], now: 1_000_000 }));
+  afterEach(() => mock.timers.reset());
+
+  it("quét A ra xanh → «Quét tiếp» → A vẫn trước camera: trong 3 giây chỉ hiện dòng nhắc, hết 3 giây thì gửi lại và hiện đỏ «đã dùng» (không treo)", async () => {
+    const { may, ketQuaEl, nhacEl, goiLuc } = dung([XANH, DO_DA_DUNG]);
+    may.nhanMa("TD1.A");
+    await xa();
+    assert.equal(ketQuaEl.hidden, false);
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "XANH");
+    const dongLuc = Date.now();
+    nut(ketQuaEl, "Quét tiếp")!.click();
+    assert.equal(ketQuaEl.hidden, true);
+
+    await cameraThay(may, "TD1.A", CHONG_LAP_MS - 250); // 2,75 giây đầu: vẫn trong mốc
+    assert.equal(goiLuc.length, 1, "trong 3 giây không gửi lại");
+    assert.equal(nhacEl.hidden, false, "có dòng nhắc, không im lặng");
+    assert.ok(nut(nhacEl, "Quét lại vé này"), "dòng nhắc có nút «Quét lại vé này»");
+
+    await cameraThay(may, "TD1.A", 500);
+    assert.equal(goiLuc.length, 2, "hết mốc 3 giây: vé còn trong khung được gửi lại");
+    assert.ok(goiLuc[1]!.luc - dongLuc <= CHONG_LAP_MS + 250, `gửi lại sau ${goiLuc[1]!.luc - dongLuc} ms`);
+    assert.equal(ketQuaEl.hidden, false);
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "DO");
+    assert.ok(ketQuaEl.textContent.includes("Vé đã dùng lúc 08:15 bởi Lan."));
+    assert.equal(nhacEl.hidden, true, "đang hiện kết quả thì ẩn dòng nhắc");
+  });
+
+  it("«Quét lại vé này» gửi ngay, không chờ hết mốc", async () => {
+    const { may, ketQuaEl, nhacEl, goiLuc } = dung([XANH, DO_DA_DUNG]);
+    may.nhanMa("TD1.A");
+    await xa();
+    nut(ketQuaEl, "Quét tiếp")!.click();
+    await cameraThay(may, "TD1.A", 500);
+    assert.equal(goiLuc.length, 1);
+    nut(nhacEl, "Quét lại vé này")!.click();
+    await xa();
+    assert.equal(goiLuc.length, 2);
+    assert.equal(goiLuc[1]!.ma, "TD1.A");
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "DO");
+  });
+
+  it("mã khác trong mốc 3 giây: gửi ngay", async () => {
+    const { may, ketQuaEl, goiLuc } = dung([XANH, XANH]);
+    may.nhanMa("TD1.A");
+    await xa();
+    nut(ketQuaEl, "Quét tiếp")!.click();
+    mock.timers.tick(250);
+    may.nhanMa("TD1.B");
+    await xa();
+    assert.deepEqual(goiLuc.map((g) => g.ma), ["TD1.A", "TD1.B"]);
+  });
+
+  it("ảnh chụp / số sê-ri (guiNgay) không bị mốc 3 giây chặn", async () => {
+    const { may, ketQuaEl, goiLuc } = dung([XANH, DO_DA_DUNG]);
+    may.nhanMa("TD1.A");
+    await xa();
+    nut(ketQuaEl, "Quét tiếp")!.click();
+    mock.timers.tick(100);
+    may.guiNgay("TD1.A");
+    await xa();
+    assert.equal(goiLuc.length, 2);
+  });
+
+  it("mất mạng: tự gửi lại có giãn cách (1 giây, rồi 2 giây), tối đa 3 lần; camera không gửi thêm trong lúc đó; rồi hiện «Không gửi được» + «Thử lại»", async () => {
+    const { may, ketQuaEl, goiLuc, trangThaiEl } = dung([{}, {}, {}, XANH]);
+    const batDau = Date.now();
+    may.nhanMa("TD1.A");
+    await xa();
+    assert.equal(goiLuc.length, 1);
+    assert.ok(may.dangBan(), "đang chờ gửi lại thì bận: camera không đưa mã vào");
+    assert.match(trangThaiEl.textContent, /thử gửi lại/);
+    await cameraThay(may, "TD1.A", 750);
+    assert.equal(goiLuc.length, 1, "chưa tới 1 giây: chưa gửi lại");
+    await cameraThay(may, "TD1.A", 250);
+    assert.equal(goiLuc.length, 2);
+    await cameraThay(may, "TD1.A", 2000);
+    assert.equal(goiLuc.length, 3);
+    await cameraThay(may, "TD1.A", 5000);
+    assert.equal(goiLuc.length, 3, "tối đa 3 lần tự gửi");
+    assert.deepEqual(goiLuc.map((g) => g.luc - batDau), [0, 1000, 3000]);
+    assert.equal(ketQuaEl.hidden, false);
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "LOI");
+    assert.ok(ketQuaEl.textContent.includes("Không gửi được"));
+    assert.ok(ketQuaEl.textContent.includes("Không kết nối được máy chủ."));
+    // Có mạng lại: bấm «Thử lại» ⇒ ra kết quả.
+    nut(ketQuaEl, "Thử lại")!.click();
+    await xa();
+    assert.equal(goiLuc.length, 4);
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "XANH");
+  });
+
+  it("máy chủ im lặng: mỗi lần gửi hẹn giờ ngắn, và «Không gửi được» hiện trong 15 giây", async () => {
+    const { may, ketQuaEl, goiLuc } = dung(["treo", "treo", "treo"]);
+    const batDau = Date.now();
+    may.nhanMa("TD1.A");
+    await xa();
+    assert.ok(goiLuc[0]!.hen <= 8000, `hẹn giờ mỗi lần gửi ${goiLuc[0]!.hen} ms`);
+    let hienLuc = -1;
+    for (let t = 0; t < 20_000 && hienLuc < 0; t += 250) {
+      mock.timers.tick(250);
+      await xa();
+      if (!ketQuaEl.hidden) hienLuc = Date.now() - batDau;
+    }
+    assert.ok(hienLuc > 0 && hienLuc <= 15_000, `hiện «Không gửi được» lúc ${hienLuc} ms`);
+    assert.ok(ketQuaEl.textContent.includes("Không gửi được"));
+    assert.ok(nut(ketQuaEl, "Thử lại"));
+  });
+
+  it("máy chủ từ chối rõ (4xx): không tự gửi lại, hiện ngay lý do + «Thử lại»", async () => {
+    const { may, ketQuaEl, goiLuc } = dung([{ status: 429, message: "Quét quá nhanh, chờ một chút." }]);
+    may.nhanMa("TD1.A");
+    await xa();
+    mock.timers.tick(10_000);
+    await xa();
+    assert.equal(goiLuc.length, 1);
+    assert.equal(ketQuaEl.hidden, false);
+    assert.ok(ketQuaEl.textContent.includes("Quét quá nhanh, chờ một chút."));
+    assert.ok(nut(ketQuaEl, "Thử lại"));
+  });
+
+  it("lỗi máy chủ 5xx cũng được tự gửi lại có giãn cách", async () => {
+    const { may, goiLuc } = dung([{ status: 503, message: "Máy chủ bận." }, XANH]);
+    may.nhanMa("TD1.A");
+    await xa();
+    mock.timers.tick(1000);
+    await xa();
+    assert.equal(goiLuc.length, 2);
+  });
+
+  it("«Quét tiếp» sau lỗi: không gửi lại ngay cùng mã (mốc 3 giây), không gửi mỗi ¼ giây", async () => {
+    const { may, ketQuaEl, goiLuc } = dung([{ status: 400, message: "Mã không đọc được." }, XANH]);
+    may.nhanMa("TD1.A");
+    await xa();
+    nut(ketQuaEl, "Quét tiếp")!.click();
+    await cameraThay(may, "TD1.A", 2000);
+    assert.equal(goiLuc.length, 1);
+  });
+
+  it("kết quả vàng: «Xác nhận cho đi» gửi lại cùng mã kèm cờ xác nhận", async () => {
+    const vang = ve("VANG", "LECH_NGAY", "Vé ngày 22/11, hôm nay 21/11.");
+    const { may, ketQuaEl, goiLuc, ghiNho } = dung([vang, XANH]);
+    may.nhanMa("TD1.A");
+    await xa();
+    nut(ketQuaEl, "Xác nhận cho đi")!.click();
+    await xa();
+    assert.deepEqual(goiLuc[1], { ...goiLuc[1]!, ma: "TD1.A", xn: { lechNgay: true } });
+    assert.equal(ghiNho.length, 2);
+  });
+
+  it("theo dõi camera: luồng bị dừng (ended) hoặc tạm dừng (mute/unmute) thì báo", () => {
+    const track = doc.createElement("track");
+    const bao: string[] = [];
+    M.theoDoiCamera({ getVideoTracks: () => [track as unknown as MediaStreamTrack] }, { khiDung: () => bao.push("dung"), khiTamDung: () => bao.push("tam"), khiChayLai: () => bao.push("lai") });
+    track.dispatchEvent({ type: "mute" });
+    track.dispatchEvent({ type: "unmute" });
+    track.dispatchEvent({ type: "ended" });
+    assert.deepEqual(bao, ["tam", "lai", "dung"]);
+  });
+});
