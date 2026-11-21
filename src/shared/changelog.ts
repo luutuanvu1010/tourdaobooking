@@ -17,6 +17,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Khung gốc giao diện (ADR-0222, chủ duyệt 21/11): bốn màn mẫu dựng theo khung. Nhánh claude/jovial-leakey-a25fd6. Không migration.
+    // SỐ TẠM 3.22 (3.21 là số tạm của ADR-0221): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.22",
+    date: "2026-11-21",
+    items: [
+      { kind: "doi", text: "Đơn hàng, Chi tiết đơn, Sửa xe và Địa điểm được xếp lại theo một khung chung: cùng khoảng cách, cùng kiểu khối, nút chính ở chỗ cố định." },
+      { kind: "doi", text: "Chi tiết đơn trên điện thoại: nút «Xem ảnh gửi khách» nằm ở đáy màn hình, «Huỷ đơn» ở cuối trang." },
+      { kind: "doi", text: "Địa điểm: bấm «Thêm địa điểm» hoặc «Sửa» thì biểu mẫu mở ra trong một bảng, không còn nằm sẵn trên trang." },
+      { kind: "sua", text: "Màn cửa sổ cỡ vừa có thanh bên: các bảng và khối tự đổi theo chỗ trống thật, không còn chữ bị bóp." },
+    ],
+  },
+  {
     // ADR-0221 (chủ duyệt 21/11): «Đối tác không nhập nơi đón». ADR-0221, nhánh claude/exciting-tu-2efdb7, migration 0181.
     // SỐ TẠM 3.21 (bản 3.20 đã lên production 21/11): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.21",

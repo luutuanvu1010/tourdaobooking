@@ -1,26 +1,27 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Đơn hàng — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="rong">
+<body data-rong="rong" data-khung-goc="danh-sach">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
+  <!-- Khuôn Danh sách của khung gốc (ADR-0222): thanh tìm và lọc, rồi MỘT khối bảng. Vùng nội dung từ 800 thì danh sách thành bảng thẳng cột (hàng tiêu đề cột
+       #don-dau hiện ra), từ 1040 số điện thoại có cột riêng; hẹp hơn thì mỗi đơn là một thẻ. Khuôn cột khai ở src/shared/bang-don.ts, web/orders.ts đặt lên khối; hàng tiêu đề cột viết sẵn ở đây (mỗi ô khai vùng của mình, cùng tên vùng với ô của thẻ đơn).
+       Nút «+ Tạo đơn» trùng với nút của khung (thanh tab ở điện thoại, thanh trên ở máy tính): chỉ hiện khi khung không có nút đó (tài khoản Đối tác ở máy tính). -->
   <h1>Đơn hàng</h1>
-  <div class="toolbar">
-    <input id="q" type="search" placeholder="Tìm mã đơn, tên, SĐT…" autocomplete="off">
-    <button id="loc-mo" class="btn loc-mo" type="button" aria-haspopup="dialog">Lọc <span id="loc-dem" class="badge loc-dem" hidden></span></button>
-    <a id="new-order" class="btn btn-primary" href="/order-form" hidden>+ Tạo đơn</a>
+  <div class="thanh-loc">
+    <input id="q" class="o" type="search" placeholder="Tìm mã đơn, tên, SĐT…" autocomplete="off">
+    <button id="loc-mo" class="nut" type="button" aria-haspopup="dialog">Lọc <span id="loc-dem" class="huy-hieu" data-tong="cat" hidden></span></button>
+    <a id="new-order" class="nut day-phai" data-cap="chinh" data-trung-khung href="/order-form" hidden>+ Tạo đơn</a>
   </div>
   <div id="loc-chip" class="loc-chip" hidden></div>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="loading" class="skeleton-list" aria-hidden="true"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
-  <!-- Luật khung 30/10 [14], sửa 21/11: `.don-bang` là khung chứa để app.css đo bề rộng THẬT của vùng này (không đo cửa sổ) — đủ rộng thì danh sách thành bảng
-       thẳng cột và hàng tiêu đề cột hiện ra, hẹp hơn thì là thẻ; hàng tiêu đề ẩn khi danh sách rỗng; mỗi thẻ đã đủ chữ cho trình đọc màn hình. -->
-  <div class="don-bang">
-    <div class="don-bang-dau" aria-hidden="true"><span>Ngày đi</span><span>Khách</span><span>Điện thoại</span><span>Số khách</span><span class="so">Còn thu</span><span>Trạng thái</span></div>
-    <div id="list"></div>
-  </div>
-  <p id="empty" class="empty" hidden>Chưa có đơn nào ở đây.</p>
-  <button id="more" class="btn" type="button" hidden>Tải thêm</button>
+  <section id="don-khoi" class="khoi" data-kieu="bang" data-the-dong aria-label="Danh sách đơn">
+    <div id="don-dau" class="bang-dau" aria-hidden="true"><span data-o="ngay" style="--kg-o:ngay">Ngày đi</span><span data-o="ten" style="--kg-o:ten">Khách</span><span data-o="sdt" style="--kg-o:sdt" data-tu-rong>Điện thoại</span><span data-o="khach" style="--kg-o:khach">Số khách</span><span data-o="tien" style="--kg-o:tien" data-so>Còn thu</span><span data-o="tt" style="--kg-o:tt">Trạng thái</span></div>
+    <div id="list" class="bang-luoi"></div>
+    <p id="empty" class="rong" hidden>Chưa có đơn nào ở đây.</p>
+    <button id="more" class="nut bang-them" data-cap="loi" type="button" hidden>Tải thêm</button>
+  </section>
 </main>
 <script type="module" src="/js/orders.js"></script>
 </body></html>

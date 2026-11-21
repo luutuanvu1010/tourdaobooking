@@ -1,5 +1,5 @@
 // Logic thuần của hai lệnh CHỦ DỰ ÁN tự gõ (đặc tả docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md):
-//   `npm run day-len [-- <nhánh>]`  → scripts/day-len.mjs    (gộp tiến thẳng vào main, đẩy nhánh chờ kiểm, chờ GitHub kiểm đủ bộ, hỏi, rồi git push origin main)
+//   `npm run day-len [-- <nhánh>]`  → scripts/day-len.mjs    (gộp tiến thẳng vào main, đẩy nhánh chờ kiểm, chờ GitHub kiểm đủ bộ, hỏi, rồi đẩy ĐÚNG mã đã kiểm lên main: git push origin <mã>:refs/heads/main)
 //   `npm run trien-khai`            → scripts/trien-khai.mjs (cổng chỉ-đọc gồm khoá bí mật và kho tệp hồ sơ, cổng số phiên bản, build, ĐỌC kết quả kiểm trên GitHub, Time Travel, áp migration, deploy, kiểm dữ liệu, cổng số phiên bản sau deploy)
 // Từ ADR-0179 (2026-11-06): npm test / typecheck / e2e chạy MỘT lần trên máy GitHub (.github/workflows/kiem.yml), không chạy lại ở máy khi phát hành.
 // AI KHÔNG được chạy hai lệnh này (CLAUDE.md §8; hook .claude/hooks/guard-remote-lib.mjs + permissions.deny chặn). Lớp thứ hai: tự từ chối khi không có TTY.
@@ -442,9 +442,48 @@ async function hoiLyDo(ask, cau) {
 // ─────────────────────────────── day-len ───────────────────────────────
 
 /**
+ * Hai dòng in cho chủ khi `main` trên máy ĐÃ gộp mà CHƯA đẩy: lời giải thích + MỘT dòng lệnh quay về TỰ KIỂM (day-len không bao giờ tự chạy nó).
+ * Sự cố 2026-11-21: dòng cũ là `git reset --hard <mã cũ>` trần; chạy nó khi một lệnh `day-len` khác đã nối thêm vào `main` thì xoá luôn phần của lệnh đó khỏi
+ * `main` trên máy. Dòng mới chỉ quay khi thư mục đang ở nhánh `main` VÀ `main` còn ở ĐÚNG mã lệnh này để lại (`sha`). Phép kiểm chạy lúc chủ CHẠY dòng đó, không
+ * phải lúc in (chủ có thể chạy muộn, sau khi lệnh khác đã gộp). Một dòng trơn chép-dán được trong zsh: không `!`, không `#`, không dấu huyền (như
+ * inLenhDeployDungMa). Bài src/release-lib-quay-ve.test.ts chạy đúng dòng này trong vỏ lệnh thật với kho git tạm.
+ */
+export function lenhQuayVe(oldMain, sha) {
+  return [
+    "`main` đã được gộp tiến thẳng nhưng CHƯA đẩy. Muốn quay `main` về chỗ cũ thì tự chạy dòng dưới (lệnh này KHÔNG tự chạy). Dòng đó tự kiểm trước: chỉ quay khi `main` trên máy còn ở đúng chỗ lệnh này để lại; đã có lệnh nhập khác nhập thêm vào thì nó in DỪNG và không đổi gì:",
+    `  test "$(git rev-parse --abbrev-ref HEAD) $(git rev-parse HEAD)" = "main ${sha}" && git reset --hard ${oldMain} || echo "DỪNG: chưa quay về. main trên máy không còn ở chỗ lệnh này để lại, có thể đã có phần của lệnh nhập khác. Hỏi người phụ trách kỹ thuật"`,
+  ];
+}
+
+/**
+ * `main` trên máy đang ở đâu so với mã ĐÃ KIỂM của lệnh này — đọc lại NGAY TRƯỚC khi đẩy (sự cố 2026-11-21: trong lúc lệnh chờ chủ trả lời / chờ GitHub kiểm,
+ * một lệnh `day-len` khác chạy ở cùng thư mục nối thẳng `main` trên máy lên mã của nó). Lệnh đọc lỗi ⇒ `loi` (không đoán). `git merge-base --is-ancestor`
+ * thoát 0 = là tổ tiên, 1 = không, mã khác = lệnh lỗi. Trả `kieu`:
+ *  - "dung-cho": vẫn đúng mã đã kiểm;
+ *  - "di-truoc": đã có thêm lần lưu sau mã đã kiểm, GitHub chưa có mã đã kiểm ⇒ đẩy ĐÚNG mã đã kiểm, phần thêm chờ lệnh nhập của nó;
+ *  - "da-co-tren-github": `origin/main` đã chứa mã đã kiểm (lệnh nhập chạy sau đã đẩy trước, kèm phần của nó) ⇒ không còn gì để đẩy (đẩy lùi sẽ bị từ chối);
+ *  - "khong-con": `main` trên máy không còn chứa mã đã kiểm (có người quay `main` về chỗ khác) ⇒ dừng, không đẩy.
+ */
+async function viTriMain(run, sha) {
+  const r = await run("git", ["rev-parse", "main"]);
+  const mainNay = trimOut(r);
+  if (r.code !== 0 || !isSha(mainNay)) return { kieu: "loi", ly: "không đọc lại được mã của `main` trên máy (`git rev-parse main` lỗi)" };
+  if (mainNay === sha) return { kieu: "dung-cho", mainNay };
+  // So bằng MÃ vừa đọc, không bằng tên `main`: tên có thể đổi tiếp giữa hai lệnh.
+  const conChua = await run("git", ["merge-base", "--is-ancestor", sha, mainNay]);
+  if (conChua.code === 1) return { kieu: "khong-con", mainNay };
+  if (conChua.code !== 0) return { kieu: "loi", ly: "không so được `main` trên máy với mã đã kiểm (`git merge-base --is-ancestor` lỗi)" };
+  const daCo = await run("git", ["merge-base", "--is-ancestor", sha, "origin/main"]);
+  if (daCo.code === 0) return { kieu: "da-co-tren-github", mainNay };
+  if (daCo.code !== 1) return { kieu: "loi", ly: "không so được mã đã kiểm với `origin/main` (`git merge-base --is-ancestor` lỗi)" };
+  return { kieu: "di-truoc", mainNay };
+}
+
+/**
  * ADR-0179 Đ2.1 + ADR-0215 Đ2: gộp tiến thẳng → HỎI HẾT câu biết được trước khi kiểm (lý do đổi tệp điều khiển kiểm, lý do đổi tệp luật), in tóm tắt, hỏi
  * một câu c/x/k → đẩy ĐÚNG commit lên `cho-kiem/<sha>` (không --force, không đẩy main) → chờ lượt kiểm của đúng sha → so số liệu với origin/main (Đ2.3) →
- * ghi bản ghi kết luận → đẩy main.
+ * đọc lại `main` trên máy (viTriMain) → ghi bản ghi kết luận → đẩy ĐÚNG mã đã kiểm lên `main` (`git push origin <sha>:refs/heads/main`, KHÔNG theo tên
+ * `main` — sự cố 2026-11-21: tên đó có thể đã bị lệnh nhập khác nối lên mã chưa kiểm; «kiểm xong mới đẩy `main`», ADR-0179 Đ2.1).
  *  - `c` (tự động): chủ rời máy được; đỏ ⇒ tự chạy lại phần đỏ ĐÚNG MỘT lần, vẫn đỏ ⇒ dừng; số liệu lạ / lượt cũ hơn 24 giờ ⇒ dừng; mọi lần dừng và lần
  *    đẩy xong đều có thông báo macOS. Không bao giờ tự «cho qua».
  *  - `x` (ngồi chờ): đúng luồng ADR-0179 — đỏ thì hỏi r/d/q (cho qua gõ lý do, Đ3.1), số liệu lạ thì đòi lý do (Đ3.2), cuối cùng hỏi c/k.
@@ -488,7 +527,14 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
     if (merge.code !== 0) return stop(`gộp tiến thẳng \`${target}\` vào \`main\` lỗi.`, String(merge.stderr ?? "").trim());
     log(`Đã gộp tiến thẳng \`${target}\` vào \`main\`.`);
   }
-  const undo = () => (oldMain ? [`\`main\` đã được gộp tiến thẳng nhưng CHƯA đẩy. Muốn quay \`main\` về chỗ cũ thì tự chạy (lệnh này KHÔNG tự chạy):`, `  git reset --hard ${oldMain}`] : []);
+  // Mã `main` NGAY SAU bước gộp: mã đem đi kiểm, và là mã DUY NHẤT lệnh này được đẩy lên `main` trên GitHub. Từ đây KHÔNG tin tên `main` còn trỏ tới nó: một
+  // lệnh `day-len` khác chạy ở cùng thư mục có thể nối thẳng `main` lên mã của nó trong lúc lệnh này chờ (sự cố 2026-11-21).
+  const sha = trimOut(await run("git", ["rev-parse", "main"]));
+  if (!isSha(sha)) {
+    // Không có mã thì không dựng được dòng quay về tự kiểm ⇒ không in dòng `git reset` nào (không bao giờ in dòng trần).
+    return stop("không đọc được mã commit của `main` (`git rev-parse main` lỗi) — không đẩy.", ...(oldMain ? ["`main` đã được gộp tiến thẳng nhưng CHƯA đẩy. Vì không đọc được mã hiện tại nên lệnh không in dòng quay về; hỏi người phụ trách kỹ thuật trước khi làm gì tiếp."] : []));
+  }
+  const undo = () => (oldMain ? lenhQuayVe(oldMain, sha) : []);
 
   // Mọi lệnh đọc dưới đây mà lỗi thì DỪNG — không bao giờ đoán "không có gì để đẩy" hay "không có migration mới".
   const countRun = await run("git", ["rev-list", "--count", "origin/main..main"]);
@@ -511,10 +557,8 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
     .map((s) => s.trim())
     .filter((s) => s.endsWith(".sql"));
 
-  const shaRun = await run("git", ["rev-parse", "main"]);
-  const sha = trimOut(shaRun);
   const goc = trimOut(await run("git", ["rev-parse", "origin/main"]));
-  if (!isSha(sha) || !isSha(goc)) return stop("không đọc được mã commit của `main` / `origin/main` (`git rev-parse` lỗi) — không đẩy.", ...undo());
+  if (!isSha(goc)) return stop("không đọc được mã commit của `origin/main` (`git rev-parse origin/main` lỗi) — không đẩy.", ...undo());
 
   // Đ2.3 — so TRƯỚC khi đẩy gì: chỉ day-len có mốc so đúng (origin/main trước khi đẩy).
   const doiQuyTrinh = await tepDieuKhienDoi(run);
@@ -664,6 +708,24 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
 
   if (!tuDong && !yes(await ask("Đẩy lên GitHub? (c/k) "))) return stop("Không đẩy (chỉ trả lời đúng `c` mới đẩy).", ...undo());
 
+  // Sự cố 2026-11-21 — đọc lại `main` trên máy NGAY TRƯỚC khi đẩy (sau câu hỏi cuối: không còn lần chờ nào giữa lần đọc này và lần đẩy). Việc đọc lại chỉ để
+  // quyết lời báo và để dừng khi `main` đã bị quay về; thứ được đẩy thì LUÔN là đúng mã đã kiểm (xem lệnh đẩy bên dưới), không phụ thuộc lần đọc này.
+  const viTri = await viTriMain(run, sha);
+  if (viTri.kieu === "loi") return dung(`${viTri.ly} — không đẩy \`main\`.`, ...undo());
+  if (viTri.kieu === "khong-con") {
+    // `main` đã bị đổi rồi nên không in dòng quay về (dòng đó chỉ đúng khi `main` còn ở chỗ lệnh này để lại).
+    return dung(
+      `\`main\` trên máy không còn chứa bản đã kiểm ${sha.slice(0, 8)} (đang ở ${viTri.mainNay.slice(0, 8)}): có người đã quay \`main\` về chỗ khác trong lúc lệnh này chờ — không đẩy \`main\`.`,
+      `Bản đã kiểm vẫn còn nguyên ở nhánh chờ kiểm \`${nhanh}\` trên GitHub. ${target !== undefined ? `Muốn đưa lên thì chạy lại \`npm run day-len -- ${target}\` (lượt kiểm đã có nên lần sau qua nhanh).` : "Hỏi người phụ trách kỹ thuật cách đưa lại lên."}`,
+    );
+  }
+  if (viTri.kieu === "da-co-tren-github") {
+    // Không ghi bản ghi kết luận: `trien-khai` đọc bản ghi của ĐỈNH `main`, bản ghi đó do lệnh đã đẩy ghi.
+    log(`\nBản đã kiểm ${sha.slice(0, 8)} đã nằm trong \`main\` trên GitHub rồi (thường do một lệnh \`npm run day-len\` khác chạy sau đã đẩy lên trước, kèm cả phần của nó). Lệnh này không cần đẩy gì thêm.`);
+    if (tuDong) thongBao("Tour Đảo — ĐÃ có trên bản chính", `Bản đã kiểm ${sha.slice(0, 8)} đã được một lệnh nhập khác đẩy lên.`);
+    return 0;
+  }
+
   // Bản ghi kết luận ghi TRƯỚC khi đẩy main: trien-khai đòi bản ghi của đúng commit (Đ2.2). Ghi lỗi ⇒ không đẩy (trien-khai sẽ dừng vì thiếu bản ghi).
   const banGhi = {
     sha,
@@ -685,10 +747,18 @@ export async function dayLen({ run, ask: askGoc, isTTY, log, target, now = () =>
     return dung(`không ghi được bản ghi kết luận kiểm (${e instanceof Error ? e.message : String(e)}) — không đẩy \`main\`.`, ...undo());
   }
 
-  const push = await run("git", ["push", "origin", "main"], { stream: true });
-  if (push.code !== 0) return dung("`git push origin main` lỗi — GitHub CHƯA nhận. Đọc lỗi ở trên.");
+  // Đẩy theo MÃ, không theo tên `main`: GitHub nhận đúng commit có lượt kiểm ở trên, dù `main` trên máy đang ở đâu (đẩy theo tên sẽ đưa cả phần chưa kiểm của
+  // lệnh nhập khác lên — sự cố 2026-11-21). Không `--force`, không dấu `+` ⇒ vẫn chỉ nối thẳng: GitHub từ chối nếu `main` của nó không nằm trong lịch sử mã này.
+  const push = await run("git", ["push", "origin", `${sha}:refs/heads/main`], { stream: true });
+  if (push.code !== 0) {
+    return dung("đẩy bản đã kiểm lên `main` trên GitHub lỗi — GitHub CHƯA nhận. Đọc lỗi ở trên.", "Thường chỉ cần chạy lại `npm run day-len` (lượt kiểm đã có nên lần sau qua nhanh); nếu GitHub đang có thứ mới hơn máy thì lần chạy lại sẽ nói rõ.");
+  }
   const last = trimOut(await run("git", ["log", "-1", "--oneline", "--no-decorate", "origin/main"]));
   log(`Đã đẩy. GitHub (origin/main) giờ là: ${last}`);
+  if (viTri.kieu === "di-truoc") {
+    log(`${BOLD}LƯU Ý:${RESET} \`main\` trên máy đang đi trước bản vừa đẩy (ở ${viTri.mainNay.slice(0, 8)}): trong lúc lệnh này chờ, \`main\` trên máy đã có thêm lần lưu (thường do một lệnh \`npm run day-len\` khác đã nhập thêm phần của nó vào). Lệnh này CHỈ đẩy đúng bản đã kiểm ${sha.slice(0, 8)}; phần nhập thêm kia CHƯA lên GitHub và chờ lệnh nhập của chính nó kiểm xong.`);
+    log("Trong lúc đó `npm run trien-khai` sẽ từ chối (vì `main` trên máy khác GitHub): chờ lệnh nhập kia xong rồi mới triển khai.");
+  }
   if (tuDong) thongBao("Tour Đảo — ĐÃ đẩy lên bản chính", last);
   log(`Thời gian day-len (không tính lúc chờ trả lời): ${phut(dh.tong())} — ${dh.chang.map((c) => `${c.ten} ${phut(c.giay)}`).join("; ")}.`);
   return 0;

@@ -33,6 +33,9 @@ export interface VeDonVao { orderId: string; coQuyenGui: boolean }
 const ngayVn = (iso: string): string => new Date(new Date(iso).getTime() + 7 * 3600 * 1000).toISOString().slice(0, 10).split("-").reverse().join("/");
 const lyDoLoi = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 
+/** Đầu khối của khung gốc (ADR-0222): `el` là một khối của trang đơn, tên khối nằm trong đầu khối. */
+const dauKhoi = (): HTMLElement => h("header", { class: "khoi-dau" }, h("h2", null, "Vé điện tử"));
+
 export async function initVeDon(el: HTMLElement, vao: VeDonVao): Promise<void> {
   let res: VeDonRes;
   try {
@@ -40,7 +43,7 @@ export async function initVeDon(el: HTMLElement, vao: VeDonVao): Promise<void> {
   } catch (err) {
     if (err instanceof ApiError && (err.status === 404 || err.status === 403)) return; // không có phần ở đơn này: ẩn lặng lẽ
     el.hidden = false;
-    replaceChildren(el, h("h2", null, "Vé điện tử"), h("p", { class: "alert", role: "alert" }, lyDoLoi(err)));
+    replaceChildren(el, dauKhoi(), h("p", { class: "alert", role: "alert" }, lyDoLoi(err)));
     return;
   }
   const dong = res.dichVu.filter((d) => d.nhom.length > 0);
@@ -66,7 +69,7 @@ function veKhoi(el: HTMLElement, vao: VeDonVao, res: VeDonRes, dong: VeDonRes["d
     nutCap.disabled = true; hien(null);
     try { await api("/api/ve/cap", { method: "POST", body: { orderId: vao.orderId } }); await initVeDon(el, vao); } catch (err) { hien(lyDoLoi(err), true); nutCap.disabled = false; }
   });
-  const khoi: (Node | null)[] = [h("h2", null, "Vé điện tử"), tongThieu > 0 ? h("p", { class: "muted" }, res.nguoiXemLaDoiTac ? `Còn thiếu ${tongThieu} vé. Bấm Cấp vé; nếu vẫn thiếu, báo văn phòng.` : `Còn thiếu ${tongThieu} vé. Nhập thêm vé vào kho rồi bấm Cấp vé.`) : null, danhSach, nutCap ? h("div", { class: "handler-actions" }, nutCap) : null];
+  const khoi: (Node | null)[] = [dauKhoi(), tongThieu > 0 ? h("p", { class: "muted" }, res.nguoiXemLaDoiTac ? `Còn thiếu ${tongThieu} vé. Bấm Cấp vé; nếu vẫn thiếu, báo văn phòng.` : `Còn thiếu ${tongThieu} vé. Nhập thêm vé vào kho rồi bấm Cấp vé.`) : null, danhSach, nutCap ? h("div", { class: "handler-actions" }, nutCap) : null];
 
   if (!res.thuDu && res.veXem.length === 0 && !res.veTourDaoMoSom) {
     khoi.push(h("p", { class: "muted" }, cauKhoaVe({ traSauQuaHan: !!res.traSauQuaHan, nguoiXemLaDoiTac: !!res.nguoiXemLaDoiTac, choDoiTacNop: !!res.choDoiTacNop, nguoiLapCamTien: !!res.nguoiLapCamTien })));

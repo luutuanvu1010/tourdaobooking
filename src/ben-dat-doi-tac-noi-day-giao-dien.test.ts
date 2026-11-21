@@ -55,10 +55,13 @@ test("khối \"Phần đối tác\": nhánh lỗi dùng tiêu đề trung tính;
   const khoi = doc("web/phan-doi-tac.ts");
   const veLoi = /function veLoi\(message: string\): void \{([\s\S]*?)\n  \}\n/.exec(khoi)?.[1] ?? "";
   assert.ok(veLoi.length > 0, "tìm thấy hàm veLoi");
-  assert.match(veLoi, /h\("h2", null, TIEU_DE_LOI\)/, "veLoi dùng TIEU_DE_LOI");
+  // Khung gốc (ADR-0222, 21/11/2026): tên khối nằm trong đầu khối — `dauKhoi(ten)` dựng `<header class="khoi-dau"><h2>ten</h2></header>`. Điều bài này canh không đổi:
+  // nhánh nào dùng tiêu đề nào.
+  assert.match(khoi, /const dauKhoi = \(ten: string\): HTMLElement => h\("header", \{ class: "khoi-dau" \}, h\("h2", null, ten\)\);/, "tiêu đề khối vẫn là h2");
+  assert.match(veLoi, /dauKhoi\(TIEU_DE_LOI\)/, "veLoi dùng TIEU_DE_LOI");
   assert.doesNotMatch(veLoi, /TIEU_DE_VAN_PHONG|TIEU_DE_DOI_TAC/, "veLoi không gán dạng nào cho người xem");
-  assert.match(khoi, /h\("h2", null, TIEU_DE_VAN_PHONG\)/, "dạng văn phòng giữ tiêu đề cũ");
-  assert.match(khoi, /h\("h2", null, TIEU_DE_DOI_TAC\)/, "dạng Đối tác giữ tiêu đề cũ");
+  assert.match(khoi, /dauKhoi\(TIEU_DE_VAN_PHONG\)/, "dạng văn phòng giữ tiêu đề cũ");
+  assert.match(khoi, /dauKhoi\(TIEU_DE_DOI_TAC\)/, "dạng Đối tác giữ tiêu đề cũ");
 });
 
 // Task 14, nợ (d) (T11 M3): câu cạnh hồ sơ TỔ CHỨC trong ô tra SĐT chỉ trỏ tới ô «Đặt qua đối tác» khi form / bảng CÓ ô đó. Luật chữ ở `matchNote` (bài ở src/shared/booker.test.ts); bài này canh dây: cờ tới được khối tra.

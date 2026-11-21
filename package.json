@@ -18,6 +18,7 @@
     "len-chinh-thuc": "node scripts/len-chinh-thuc.mjs",
     "lam-moi-dev": "node scripts/lam-moi-dev.mjs",
     "tham-chieu": "node scripts/gen-bang-tham-chieu.mjs",
+    "do-khung": "node scripts/giao-dien/do-khung-goc.mjs",
     "day-len": "node scripts/day-len.mjs",
     "trien-khai": "node scripts/trien-khai.mjs"
   },

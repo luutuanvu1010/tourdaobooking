@@ -1559,7 +1559,7 @@ Bản lời thường cho chủ dự án (từng bước, lệnh nào khi nào, 
 | 5 | `npm test`, `npm run typecheck` | đỏ — nếu đã gộp ở bước 4 thì in `git reset --hard <mã cũ>` để chủ TỰ chạy nếu muốn (lệnh không tự chạy) |
 | 6 | in số commit + danh sách `origin/main..main` + **migration mới** so với `origin/main` | một trong ba lệnh git đọc (`rev-list --count`, `log`, `diff … migrations/`) lỗi hoặc trả kết quả lạ — không bao giờ đoán "không có gì để đẩy"/"không có migration mới" (có migration mới thì in cảnh báo: lần triển khai tới PHẢI áp chúng trước, dùng `npm run trien-khai`) |
 | 7 | hỏi "Đẩy lên GitHub? (c/k)" | trả lời khác đúng `c` |
-| 8 | `git push origin main`, rồi in `git log -1 origin/main` | push lỗi |
+| 8 | (từ 2026-11-21) đọc lại `main`, rồi `git push origin <mã đã kiểm>:refs/heads/main` — đẩy theo MÃ, không theo tên `main`; in `git log -1 origin/main` | push lỗi; `main` trên máy không còn chứa mã đã kiểm; lệnh git đọc lại lỗi. `origin/main` đã chứa mã đã kiểm ⇒ không đẩy, thoát 0 |
 
 **Triển khai — `npm run trien-khai`** (thay các bước tay "cổng chỉ-đọc → Time Travel → test/typecheck → áp migration → deploy NGAY → audit → ghi trạng thái" của các runbook bên dưới). Bước nào hỏng thì dừng, thoát khác 0; không đụng `wrangler secret`, không rollback tự động:
 

@@ -111,7 +111,12 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 115.064 → 115.438 (ADR-0219 Đ2, Đ3, chủ duyệt 18/11/2026 «Duyệt ADR-0219, thi công luôn đi»): ba ô quyền mới `registration.verify`, `registration.verify.attachment`,
 // `registration.approve` vào bản đồ quyền dùng chung (hai ô xác minh gọn qua một hàm `xacMinhDangKy`), và trang mới /phieu-dang-ky vào `TRANG`/`THANH_BEN`/`TRANG_TOI` của
 // `muc-giao-dien.ts` (chỉ dữ liệu điều hướng; ADR quyết hàng chờ sang trang riêng). Đo thật 115.438 byte (+374), trần = đúng số đo (người kiểm độc lập 18/11: không để dư). Không mã nghiệp vụ nào vào gói Đơn hàng.
-const TRAN_ORDERS = 115_438;
+// Nới 115.438 → 116.518 (khung gốc giao diện, ADR-0222, 21/11/2026): trang Đơn hàng chuyển sang khuôn Danh sách — thẻ đơn (web/order-card.ts) mang thêm lớp và vùng ô
+// của bảng lưới, gói nhúng khuôn cột của bảng (src/shared/bang-don.ts, 365 byte) và ba hàm nhỏ của web/khung.ts (309 byte: `khuonCot`, `datKhuonBang`, `o`).
+// Đã rút trước khi nới: phần tự soát khuôn bảng chỉ còn trong bài kiểm (`soatKhuonBang` không vào gói), hàng tiêu đề cột viết sẵn trong public/orders.html.
+// Đo thật 116.418 byte; trần = đúng số đo (người kiểm độc lập 21/11 nhắc: không để dư). Không nhật ký thay đổi, không mã nghiệp vụ mới. ADR-0222 mục «Hệ quả»
+// đã báo trước lần nới này; CHƯA có lời duyệt riêng của chủ dự án cho con số.
+const TRAN_ORDERS = 116_418;
 
 function dung(trang: string) {
   const r = buildSync({

@@ -65,7 +65,7 @@ test("N-20: màn Danh mục có công tắc «Có đưa đón» gửi transferEn
   assert.match(loc, /docChonNhanh\(nhanh\.value\)/);
   assert.match(loc, /quickPickOrder: q\.value/);
   assert.match(loc, /"Chọn nhanh \(1–99\)"/);
-  assert.match(doc("public/locations.html"), /<th>Chọn nhanh<\/th>/);
+  assert.match(doc("public/locations.html"), /<th[^>]*>Chọn nhanh<\/th>/); // khung gốc (ADR-0222): cột số mang thuộc tính data-so
 });
 
 test("giao diện ADR-0118: CSS mới chỉ dùng token (không màu thập lục / px trần trong khối .dd-nhanh, .nhom-dua-don); chữ mới có dấu tiếng Việt", () => {

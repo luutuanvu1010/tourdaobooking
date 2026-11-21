@@ -91,7 +91,12 @@ Thay `<tên-nhánh>` bằng tên AI báo ở bước 2. Nếu nhánh chính đã
     - đã chọn `c`: lệnh **tự chạy lại phần đỏ đúng một lần** (kiểm thử đầu-cuối từng đỏ giả rồi chạy lại xanh). Vẫn đỏ thì **dừng, không đẩy**, báo bằng thông báo và in tên bài đỏ. Lệnh **không bao giờ tự cho qua**.
     - đã chọn `x`: lệnh nêu tên bài đỏ và hỏi chạy lại (`r`), dừng (`d`), hay cho qua (`q`). Cho qua thì phải **gõ lý do**, ví dụ "giá Sheet thật vừa đổi".
 11. So số bài với lần kiểm của nhánh chính trên GitHub. Nếu **số bài kiểm ít đi, số bài bị bỏ qua nhiều lên, không đọc được số liệu, hay chưa có lần kiểm cũ để so**: đã chọn `c` thì **dừng, không đẩy**, báo bằng thông báo; bạn chạy lại lệnh, chọn `x` rồi gõ lý do. Lượt kiểm nhận được **cũ hơn 24 giờ** cũng vậy.
-12. Ghi một bản ghi kết luận trên máy bạn (trong thư mục ẩn `.git`), bước 6 sẽ đọc lại bản ghi này, rồi đẩy nhánh chính. Đã chọn `c` thì có thông báo «ĐÃ đẩy lên bản chính».
+12. Ghi một bản ghi kết luận trên máy bạn (trong thư mục ẩn `.git`), bước 6 sẽ đọc lại bản ghi này, rồi đẩy nhánh chính. Lệnh **chỉ đẩy đúng bản vừa được GitHub kiểm**, không đẩy thứ gì khác. Đã chọn `c` thì có thông báo «ĐÃ đẩy lên bản chính».
+    - Nếu trong lúc chờ có **một lệnh `day-len` khác** nhập thêm phần của nó vào nhánh chính trên máy, lệnh này vẫn chỉ đẩy phần của mình và in «LƯU Ý: … phần nhập thêm kia CHƯA lên GitHub». Phần kia chờ lệnh của chính nó kiểm xong. Trong lúc đó `npm run trien-khai` sẽ từ chối; chờ lệnh kia xong rồi mới triển khai.
+    - Nếu lệnh kia đã đẩy trước (kèm luôn phần của lệnh này), lệnh báo «đã nằm trong `main` trên GitHub» và kết thúc, không đẩy lại.
+    - Ngày 21/11 từng xảy ra chuyện ngược lại: lệnh xong trước đẩy luôn phần chưa kiểm của lệnh kia. Dù đã vá, **tốt nhất vẫn chạy từng lệnh một**.
+
+**Nếu lệnh dừng sau khi đã gộp**, nó in một dòng lệnh để quay nhánh chính về chỗ cũ (lệnh không tự chạy dòng này). Dòng đó **tự kiểm trước**: chỉ quay về khi nhánh chính trên máy còn đúng như lệnh để lại; nếu một lệnh nhập khác đã nhập thêm vào thì nó in «DỪNG: chưa quay về» và không đổi gì. Thường bạn không cần chạy dòng này: chạy lại đúng lệnh `day-len` là đủ.
 
 Lệnh **không còn chạy kiểm ở máy bạn** nữa: kiểm chạy một lần trên GitHub, kết quả nằm trên GitHub nên không ai trên máy (kể cả AI) làm giả được.
 

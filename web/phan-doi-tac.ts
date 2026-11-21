@@ -44,6 +44,9 @@ async function doc(orderId: string): Promise<Ket> {
 /** Một ô "nhãn — giá trị" của lưới dòng dịch vụ. */
 const o = (nhan: string, ...noiDung: Child[]): HTMLElement => h("div", { class: "pdt-o" }, h("dt", { class: "muted" }, nhan), h("dd", null, ...noiDung));
 
+/** Đầu khối của khung gốc (ADR-0222): `host` là một khối của trang đơn, tên khối nằm trong đầu khối. */
+const dauKhoi = (ten: string): HTMLElement => h("header", { class: "khoi-dau" }, h("h2", null, ten));
+
 export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promise<void> {
   /** Danh sách nhà cung cấp + hồ sơ Tour Đảo cho khối "Người bán": chỉ gọi khi có `supply.terms.view`; lỗi ⇒ null (bảng chỉ còn phần hoa hồng). Gọi nền một lần, dùng lại ở mọi lần mở bảng. */
   let nguoiBan: Promise<Api.SupplyTermListResponse | null> | null = null;
@@ -51,10 +54,10 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
   if (v.coGhiTay && v.xemNguoiBan) void layNguoiBan();
 
   function veLoi(message: string): void {
-    const thu = h("button", { type: "button", class: "btn", "data-action": "tai-lai-phan-doi-tac" }, "Tải lại");
+    const thu = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "tai-lai-phan-doi-tac" }, "Tải lại");
     thu.addEventListener("click", () => void napLai());
     traNutCuoi();
-    replaceChildren(host, h("h2", null, TIEU_DE_LOI), h("p", { class: "alert", role: "alert" }, message), thu);
+    replaceChildren(host, dauKhoi(TIEU_DE_LOI), h("div", { class: "khoi-viec" }, thu), h("p", { class: "alert", role: "alert" }, message));
     host.hidden = false;
   }
 
@@ -65,7 +68,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
 
   function ve(res: Api.ThuongMaiResponse): void {
     if ("vanPhong" in res) traNutCuoi();
-    replaceChildren(host, ...("vanPhong" in res ? veVanPhong(res.vanPhong) : [...veDoiTac(res.doiTac), v.nutCuoi ? h("div", { class: "handler-actions pdt-nut-cuoi" }, v.nutCuoi.el) : null]));
+    replaceChildren(host, ...("vanPhong" in res ? veVanPhong(res.vanPhong) : [...veDoiTac(res.doiTac), v.nutCuoi ? h("div", { class: "thanh-nut pdt-nut-cuoi" }, v.nutCuoi.el) : null]));
     host.hidden = false;
   }
 
@@ -86,7 +89,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
     nut?.addEventListener("click", () => void moGhiTay(d, nut));
     return h(
       "article",
-      { class: canh ? "pdt-dong is-thieu" : "pdt-dong", "data-service-id": d.serviceId },
+      { class: canh ? "pdt-dong muc-con is-thieu" : "pdt-dong muc-con", "data-service-id": d.serviceId },
       h("div", { class: "pdt-dong-dau" }, h("h3", { class: "pdt-ten" }, d.ten), d.ghiTay ? h("span", { class: "chip chip-muted" }, "ghi tay") : null),
       h(
         "dl",
@@ -112,7 +115,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
     const coNut = hienNutGhiTay(v.coGhiTay, d);
     const daChup = !d.duKien && !d.chuaChup;
     return [
-      h("h2", null, TIEU_DE_VAN_PHONG),
+      dauKhoi(TIEU_DE_VAN_PHONG),
       h("p", { class: "pdt-nguoi-huong" }, nhanNguoiHuong(d)),
       trangThai ? h("p", { class: "pdt-trang-thai" }, h("span", { class: "chip chip-muted" }, trangThai)) : null,
       hienNutChupBu(v.coGhiTay, d) ? khoiChupBu() : null,
@@ -156,7 +159,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
   // ---- dạng Đối tác: chỉ số tiền của mình ----
   function veDoiTac(d: Api.ThuongMaiDoiTacDto): Child[] {
     return [
-      h("h2", null, TIEU_DE_DOI_TAC),
+      dauKhoi(TIEU_DE_DOI_TAC),
       d.duKien ? h("p", { class: "pdt-trang-thai" }, h("span", { class: "chip chip-muted" }, "Dự kiến — tính theo bảng mức hôm nay, chưa lưu")) : null,
       d.choCongTyCaiMuc ? h("p", { class: "pdt-cho-muc" }, CAU_CHO_CAI_MUC) : null,
       h(
@@ -165,7 +168,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
         ...d.dong.map((x) =>
           h(
             "article",
-            { class: "pdt-dong", "data-service-id": x.serviceId },
+            { class: "pdt-dong muc-con", "data-service-id": x.serviceId },
             h("div", { class: "pdt-dong-dau" }, h("h3", { class: "pdt-ten" }, x.ten)),
             h("dl", { class: "pdt-luoi pdt-luoi-doi-tac" }, o("Thành tiền", vnd(x.thanhTien)), o("Hoa hồng", chuHoaHongDoiTac(x.hoaHong, vnd)), o("Giá đại lý", chuGiaDaiLy(x, vnd))),
           ),
