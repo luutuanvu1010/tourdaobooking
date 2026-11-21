@@ -15,7 +15,7 @@ export async function ganCaiDatAnKhach(el: HTMLElement): Promise<void> {
   if (!s.doiDuoc) return;
   const ve = (s: Api.AnThongTinKhachResponse): void => {
     const loi = h("p", { class: "alert", role: "alert", hidden: true });
-    const nut = h("button", { class: s.bat ? "btn" : "btn btn-primary", type: "button", id: "an-khach-doi" }, s.bat ? "Tắt ẩn thông tin khách" : "Bật ẩn thông tin khách");
+    const nut = h("button", { class: "nut", "data-cap": s.bat ? undefined : "chinh", type: "button", id: "an-khach-doi" }, s.bat ? "Tắt ẩn thông tin khách" : "Bật ẩn thông tin khách");
     nut.addEventListener("click", async () => {
       loi.hidden = true;
       nut.disabled = true;
