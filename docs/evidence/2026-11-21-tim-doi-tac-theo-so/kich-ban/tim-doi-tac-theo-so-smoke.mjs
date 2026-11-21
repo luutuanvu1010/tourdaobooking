@@ -7,11 +7,12 @@
 //   3 số gõ chưa đủ ⇒ nhắc gõ đủ 10 số; 4 đối tác tạo từ Quản lý tài khoản (chưa có số liên hệ, Bán hàng không sửa được) ⇒ câu «nhờ Quản trị hoặc Toàn quyền» + «Mở hồ sơ ở Danh bạ»,
 //   ô SĐT không bị điền số đăng nhập; 5 hồ sơ không gắn tài khoản chưa có số ⇒ «Thêm số ở Danh bạ»; 6 gõ tên vẫn tìm như cũ. Bước 7 (390): tài khoản chỉ Thực tập giữ chữ cũ,
 //   gõ số không ra ai. Bước 8 (390): đi theo lối câu báo — Danh bạ mở đúng hồ sơ; hồ sơ gắn tài khoản không có «Thêm liên hệ»; hồ sơ sửa được thêm số
-//   chính rồi về Tạo đơn tìm theo số đó + điền ra đúng số. Cuối cùng in «TIM DOI TAC THEO SO OK» hoặc danh sách bước đỏ (thoát 1). Ảnh (chỉ trên máy, .gitignore chặn) ở <OUT>/anh/.
+//   chính rồi về Tạo đơn tìm theo số đó + điền ra đúng số. Bước 9 (390): bảng «Đổi khách» của đơn đã xác nhận có cùng nhãn và tìm theo số. Cuối cùng in «TIM DOI TAC THEO SO OK» hoặc danh sách bước đỏ (thoát 1). Ảnh (chỉ trên máy, .gitignore chặn) ở <OUT>/anh/.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { ACCOUNTS, MOB, OUT, assert, axe, axeNote, boDem, dungMoiTruong, noOverflowX, sleep } from "../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs";
+import { ACCOUNTS, MOB, OUT, assert, axe, axeNote, boDem, dungMoiTruong, noOverflowX, sleep, vnDate } from "../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs";
 import { setInput } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { HOP_HOI_TU_DONG } from "../../2026-11-13-buoc-1-khung-chung/kich-ban/hop-hoi-tu-dong.mjs"; // trả lời hộp hỏi trong trang khi bấm «Xác nhận đơn»
 
 const DESK = { width: 1280, height: 860, mobile: false };
 const THUC_TAP = { name: "Thực Tập Tìm Số", phone: "0900000751", pin: "246751", permissions: ["INTERN"] };
@@ -32,6 +33,9 @@ for (const ctv of [CTV_SO, CTV_KHONG]) {
   ctv.partyId = tao.party.id;
   phai(await call(ACCOUNTS.admin, "POST", `/api/parties/${ctv.partyId}/roles`, { roleTypeCode: "COLLABORATOR" }), 201, `gán vai Cộng tác viên cho ${ctv.name}`);
 }
+// Bước 9: một đơn nháp của Bán hàng (xác nhận trên trang rồi mở bảng «Đổi khách»). Dịch vụ không đón, ngày xa — không vướng mốc giờ.
+const DON_ID = phai(await call(ACCOUNTS.salesA, "POST", "/api/orders", { customerName: "Khách Bảng Đổi", customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, paymentNote: "",
+  services: [{ kind: "catalog", pickupChoice: "KHONG_DON", catalogCode: "TD101", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 1350000 }, departDate: vnDate(10), legs: [] }], passengers: [] }), 201, "Bán hàng lập đơn để đổi khách").order.id;
 
 const chup = async (p, ten, khung) => {
   await sleep(400);
@@ -172,6 +176,27 @@ await b.step("390-8", "lối câu báo chỉ tới: Bán hàng mở /parties?id=
   await dien(p);
   assert.deepEqual([await o(p, "customerName"), await o(p, "customerPhone")], [CTV_KHONG.name, SO_MOI]);
   assert.equal((await bao(p)).hien, false);
+  p.close();
+});
+
+await b.step("390-9", "bảng «Đổi khách» ở trang đơn đã xác nhận (cùng ô tìm đối tác): nhãn «…hoặc số điện thoại»; gõ số của cộng tác viên ⇒ ra đúng một người", async () => {
+  const p = await env.as(ACCOUNTS.salesA, `/order?id=${DON_ID}`, MOB);
+  await p.waitFor("document.querySelectorAll('#order .svc-view').length === 1", "đơn nạp xong", 10000);
+  await p.ev(HOP_HOI_TU_DONG);
+  // Hộp hỏi gốc của trình duyệt (nếu còn) chặn đứng Runtime.evaluate: giả trả lời trước, và bấm qua setTimeout để lệnh điều khiển không chờ hộp (lượt 21/11 treo 28 phút ở đây).
+  await p.ev("window.confirm = () => true; window.alert = () => {}; true");
+  await p.ev("setTimeout(() => [...document.querySelectorAll('#actions button')].find((x) => x.textContent.trim() === 'Xác nhận đơn').click(), 0); true");
+  await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã xác nhận'", "đã xác nhận", 10000);
+  await p.ev("document.querySelector('[data-action=\"change-booker\"]').click(); true");
+  await p.waitFor("!!document.querySelector('.sheet[role=dialog] [data-action=\"dat-qua-mo\"]')", "bảng Đổi khách mở, có công tắc");
+  await p.ev("document.querySelector('.sheet[role=dialog] [data-action=\"dat-qua-mo\"]').click(); true");
+  await p.waitFor("!!document.querySelector('.sheet[role=dialog] #dat-qua-doi-tac input[type=search]')", "ô tìm trong bảng");
+  const oi = "document.querySelector('.sheet[role=dialog] #dat-qua-doi-tac input[type=search]')";
+  assert.deepEqual(await p.ev(`({ nhan: ${oi}.closest('label').firstChild.textContent, goiY: ${oi}.placeholder })`), { nhan: "Tìm đối tác theo tên hoặc số điện thoại", goiY: "Gõ tên hoặc số điện thoại" });
+  await p.ev(setInput(oi, CTV_SO.phone));
+  await p.waitFor("document.querySelectorAll('.sheet[role=dialog] #dat-qua-doi-tac .dqdt-dong').length === 1", "một kết quả theo số trong bảng", 6000);
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('.sheet[role=dialog] #dat-qua-doi-tac .dqdt-dong')].map((x) => x.dataset.partyId)"), [CTV_SO.partyId]);
+  await chup(p, "390-9-bang-doi-khach", MOB);
   p.close();
 });
 
