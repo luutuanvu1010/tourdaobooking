@@ -1,6 +1,6 @@
 # ADR-0224 — Đối tác dùng được Trả sau chỉ thấy «Trả sau»; máy chủ từ chối «Thanh toán ngay» từ tài khoản đó
 
-- **Trạng thái:** **proposed** 2026-11-21 — chờ chủ dự án duyệt. Người soạn: phiên thi công Việc 2 của `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md` (nhánh `claude/partner-features-detailed-plan-f32f89`, mục 4 câu 1(a), mục 5 «Việc 2»). Hướng soạn theo khuyến nghị câu 1(a) của bản kế hoạch; **chưa có câu trả lời của chủ cho câu 1** lúc soạn — chủ trả lời khác thì sửa văn bản này trước khi duyệt. Người soạn không tự duyệt (Hiến pháp N3).
+- **Trạng thái:** **proposed** 2026-11-21 — chờ chủ dự án duyệt văn bản. Người soạn: phiên thi công Việc 2 của `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md` (nhánh `claude/partner-features-detailed-plan-f32f89`, mục 4 câu 1(a), mục 5 «Việc 2»). Chủ đã đồng ý **hướng** câu 1(a)–(d) của bản kế hoạch (21/11, chuyển qua phiên điều phối, lời chủ: «còn lại áp dụng như khuyến nghị»); đó là đồng ý hướng, chưa phải duyệt văn bản này. Ba điểm người soạn thêm (Đ2.2, Đ2.3, Đ3 vượt mức) áp theo khuyến nghị vì cùng lời chủ đó. Người soạn không tự duyệt (Hiến pháp N3).
 - **Loại:** việc lớn (tiền: hình thức thanh toán của đơn; điều kiện chặn ở máy chủ). **Cửa:** hai chiều — không migration, không đổi bảng, không đổi ô quyền; gỡ bằng một ADR khác là trở lại như ADR-0198 Đ2.4.
 - **Số quyết định chạm quyền/dữ liệu trong lượt duyệt: 1** (Đ2). Lượt duyệt câu 1 của bản kế hoạch có thể gom thêm ADR của Việc 5, 6 ⇒ người trình gom một trang ghép chung (CLAUDE.md §9); trang ghép riêng của văn bản này ở cuối tệp.
 - **Xây trên lỗ đang hở:** không.
@@ -33,7 +33,7 @@ Hôm nay đối tác có Trả sau thấy hai lựa chọn, «Trả sau» đư�
 |---|---|---|
 | Dùng được | chỉ «Trả sau», đã chọn | câu ADR-0198 Đ1.2 |
 | Có đơn quá hạn | «Thanh toán ngay» (chọn được), «Trả sau» mờ | `CAU_KHOA_QUA_HAN` (đã có) |
-| Máy chủ vừa trả 409 vượt mức | cả hai, chuyển sang «Thanh toán ngay» | câu ADR-0198 Đ1.4 (đã có) |
+| Máy chủ vừa trả 409 vượt mức | cả hai chọn được, đối tác tự chọn (không tự đổi để khỏi lưu nhầm) | câu ADR-0198 Đ1.4 (đã có) |
 | Không có hạn mức | khối ẩn, đơn là Thanh toán ngay | — |
 
 - **Vượt mức** do máy chủ quyết (tổng gồm phí, giảm giá chỉ máy chủ tính đúng): khi lưu gặp 409 `vuot_han_muc`, màn hiện lại «Thanh toán ngay» kèm câu Đ1.4, không so số ở trình duyệt.
