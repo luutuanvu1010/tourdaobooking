@@ -194,3 +194,12 @@ test("máy tìm lớp cũ: bắt lớp trong chuỗi lớp, trong bộ chọn v�
   assert.deepEqual(lopCuTrongTs('// class: "btn"\n/* "card" */ h("div", { class: "order-card nut" }, "Thêm card visa cho khách")'), []);
   assert.deepEqual(lopCuTrongHtml('<!-- <p class="btn"> --><div class="card table-wrap"><a class="vc-btn">x</a></div>'), ["card"]);
 });
+
+// Người kiểm độc lập 21/11 (N1): chân bảng `loc-foot` dùng chung với hộp Hoa hồng (web/hoa-hong-hop.ts, chưa chuyển khuôn, nút lớp cũ). Đổi luật chân bảng theo nút
+// mới mà gỡ luật lớp cũ thì nút của hộp Hoa hồng mất vùng bấm 44. Khi một lớp chung còn được màn chưa chuyển dùng, luật cho lớp cũ phải ở lại cùng luật mới.
+test("chân bảng loc-foot: còn tệp dựng nút lớp cũ trong đó thì luật lớp cũ (vùng bấm 44, nút chính giãn) vẫn còn", () => {
+  const dungCu = tepWeb.filter((t) => { const m = doc(`web/${t}`); return /footClass:\s*"loc-foot"/.test(m) && /class:\s*"btn\b/.test(m); });
+  if (dungCu.length === 0) return;
+  assert.match(css, /\.sheet-foot\.loc-foot \.btn \{ min-height: var\(--tap-min\); \}/, `${dungCu.join(", ")} còn nút .btn trong chân bảng loc-foot`);
+  assert.match(css, /\.sheet-foot\.loc-foot \.btn-primary \{ flex: 1; \}/);
+});

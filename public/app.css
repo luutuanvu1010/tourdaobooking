@@ -740,6 +740,9 @@ textarea { min-height: 72px; resize: vertical; }
 .sheet-foot.loc-foot { display: flex; align-items: center; gap: var(--s2); }
 .sheet-foot.loc-foot .nut[data-cap="chinh"] { flex: 1; }
 .sheet-foot.loc-foot .nut[data-cap="loi"] { margin-right: auto; }
+/* Hộp Hoa hồng (web/hoa-hong-hop.ts, chưa chuyển khuôn) dùng chung chân bảng này với nút lớp cũ: giữ luật lớp cũ tới khi họ màn đó chuyển. */
+.sheet-foot.loc-foot .btn { min-height: var(--tap-min); }
+.sheet-foot.loc-foot .btn-primary { flex: 1; }
 /* Đợt D Task 4 vòng sửa 2 (mục 2): ô chọn `width: auto` tự rộng theo TUỲ CHỌN DÀI NHẤT (394px ở trang Nhật ký),
    nhưng từ khi thanh bên hạ ngưỡng xuống 641px thì hộp nội dung của `main` ở 641px chỉ còn 373px → tràn ngang 5px
    (đo thật: /audit 641px scrollWidth 646; 645px → 646; 650/768px → không tràn). `max-width: 100%` chỉ chặn tràn,
