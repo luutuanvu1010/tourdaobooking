@@ -92,16 +92,19 @@ try {
       await p.ev(`(() => { const c = document.querySelector('#dk-cong-tac-to-chuc'); c.click(); return true; })()`);
       await p.waitFor(hien("#dk-tep-GPKD"), "ô GPKD hiện");
       await p.waitFor(hien("#dk-tep-TEP_KHAC_TO_CHUC"), "ô Tệp khác của tổ chức hiện");
+      assert.equal(await p.ev(`(() => { const k = [...document.querySelectorAll('#dk-phan-to-chuc [data-khu]')].map((x) => x.dataset.khu); return k.indexOf('tepKhacToChuc') < k.indexOf('uyQuyen'); })()`), true, "«Tệp khác của tổ chức» đứng trước «Xác nhận»");
+      assert.equal(await p.ev(`[...document.querySelectorAll('[data-khu="tepKhac"] .nhan')].every((x) => x.classList.contains('visually-hidden'))`), true, "không lặp chữ «Tệp khác» ngay dưới tiêu đề khu");
       await chup(p, `02-phan-to-chuc-${hau}`, khung);
       await axe(p, `phần tổ chức ${hau}`);
       await p.ev(`(() => { const c = document.querySelector('#dk-cong-tac-to-chuc'); c.click(); return true; })()`);
     });
     await b.step(`${hau}-2`, `${hau}: tệp Word ⇒ «Tệp Word: hãy lưu thành PDF rồi gửi.»; ảnh PNG ⇒ «Đã gửi»`, async () => {
       await chon(p, "#dk-tep-TEP_KHAC", TEP_WORD);
-      await p.waitFor(`document.querySelector('#dk-loi')?.innerText.includes('Tệp Word: hãy lưu thành PDF rồi gửi.')`, "câu tệp Word");
+      await p.waitFor(`document.querySelector('#dk-loi-tep-TEP_KHAC')?.innerText === 'Tệp Word: hãy lưu thành PDF rồi gửi.' && document.querySelector('#dk-loi').hidden`, "câu tệp Word");
       await chup(p, `03-tep-word-${hau}`, khung);
       await chon(p, "#dk-tep-TEP_KHAC", TEP_PNG);
       await p.waitFor(`document.querySelector('[data-trang-thai-tep="TEP_KHAC"]')?.innerText === 'Đã gửi'`, "Đã gửi", 20000);
+      assert.equal(await p.ev(`document.querySelector('#dk-loi-tep-TEP_KHAC').hidden`), true, "gửi được thì câu lỗi của ô tắt");
       assert.equal(await p.ev(hien("#dk-go-tep-TEP_KHAC")), true, "ô Tệp khác có «Bỏ ảnh này»");
       assert.equal(env.sql(`SELECT count(*) AS n FROM pty_registration_attachment WHERE registration_id = '${ma}' AND slot = 'TEP_KHAC' AND purged_at IS NULL`)[0].n, 1);
     });
