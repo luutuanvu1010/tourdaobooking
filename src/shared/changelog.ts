@@ -28,6 +28,8 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "sua", text: "Chính sách điều phối trên điện thoại: thẻ Hạn mức Từ chối của hướng dẫn viên đã có nút «Lưu cài đặt»." },
       { kind: "doi", text: "Chính sách điều phối trên điện thoại: thanh «Lưu thành bản mới» chỉ bám đáy màn hình khi đang ở phần chính sách, không còn che thẻ Hạn mức." },
       { kind: "sua", text: "Hai nút lưu trên: bấm xong, màn hình tự đưa câu báo đã lưu vào tầm nhìn, không phải kéo lên đầu trang để xem." },
+      // Lỗi có sẵn tìm thấy khi đo, sửa thêm theo khuyến nghị của phiên điều phối (lần lưu riêng, bỏ ra được): cờ «đang gửi» không được hạ sau khi lưu xong.
+      { kind: "sua", text: "Chính sách điều phối: Toàn quyền lưu bản mới xong, sửa tiếp rồi bấm lưu lần nữa trên cùng trang thì lần sau nay được lưu thật. Trước đây lần sau bị bỏ qua." },
     ],
   },
   {

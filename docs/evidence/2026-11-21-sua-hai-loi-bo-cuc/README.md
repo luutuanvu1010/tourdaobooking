@@ -45,13 +45,18 @@ Lệnh nghiệm thu của đề bài (kịch bản của đợt phân tích): `n
   - `docs/evidence/2026-09-29-adr-0049/kich-ban/chinh-sach-dieu-phoi-smoke.mjs`: 8 bước đạt, 6 bước đỏ (1, 5, 8, 10, 11, 12: thanh bên, từ ngữ, chế độ hai số của Quản trị theo ADR-0128).
   - `docs/evidence/2026-10-30-danh-gia-khung-giao-dien/kich-ban/v1-nguoi-phu-trach.mjs`: 3 bước đạt, 14 bước đỏ (các câu kiểm về người phụ trách lệch luồng hiện hành, ví dụ đòi «HDV: …» trong khi trang hiện «Chờ Bán hàng nhận»).
 
+## Sửa thêm ngoài hai lỗi (một lần lưu riêng, bỏ ra được)
+
+**Toàn quyền lưu chính sách lần thứ hai trên cùng trang thì không gửi gì đi.** Tìm thấy khi đo: sau một lần «Lưu thành bản mới» thành công, lần bấm kế tiếp (không tải lại trang) bị bỏ qua lặng lẽ, câu báo «Đã lưu bản mới» của lần trước vẫn nằm đó nên người dùng tưởng lần sửa thứ hai đã được lưu. Đo trước khi sửa: 4 lần bấm, máy chủ thử chỉ nhận 2 lệnh. Gốc: hàm `luu()` của `web/chinh-sach-dieu-phoi.ts` nâng cờ «đang gửi» nhưng chỉ nhánh lỗi hạ cờ.
+
+Phiên điều phối khuyến nghị sửa luôn trong nhánh này, thành một lần lưu riêng để chủ dự án bỏ ra được. Sửa: hạ cờ trong khối `finally`, tức ở mọi lối ra của lần gửi. Bài kiểm `src/chinh-sach-luu-lan-hai.test.ts`. Kịch bản đo nay cho mỗi nút lưu hai lần liền nhau trên cùng trang, không tải lại. Đo sau khi sửa: 4 lần bấm của Toàn quyền, máy chủ thử nhận đủ 4 lệnh; cả lượt vẫn 26 tiêu chí đạt. Chế độ hai số của Quản trị và biểu mẫu cài đặt hạn mức không dính lỗi này (lưu hai lần liền được cả trước khi sửa).
+
 ## Điều ghi nhận thêm, ngoài phạm vi (chưa sửa)
 
-1. **Toàn quyền lưu chính sách lần thứ hai trên cùng trang thì không gửi gì đi.** Sau một lần «Lưu thành bản mới» thành công, lần bấm kế tiếp (không tải lại trang) bị bỏ qua lặng lẽ, câu báo «Đã lưu bản mới» của lần trước vẫn nằm đó. Đo được: 4 lần bấm, máy chủ thử chỉ nhận 2 lệnh. Gốc: cờ «đang gửi» của `web/chinh-sach-dieu-phoi.ts` chỉ được hạ ở nhánh lỗi. Kịch bản đo tải lại trang giữa hai lần lưu của Toàn quyền để tránh lỗi này.
-2. Câu báo «đã lưu» ở các trang khác (Lý do điều phối, Điều kiện cho xe chạy, Khoá tháng, Người bán) vẫn có thể chui dưới thanh trên dính ở điện thoại sau khi trang cuộn tới: luật chừa chỗ chỉ nêu `#error` và, từ đợt này, `#cs-ok` cùng dải báo của thẻ Hạn mức.
-3. Hai kịch bản Chrome cũ nêu trên cần cập nhật các bước đỏ sẵn; kịch bản Chính sách điều phối cần thêm bước cho chế độ hai số của Quản trị.
-4. Điểm Nhỏ của trợ lý chấm giao diện, chưa sửa: ở cửa sổ 1.100 tới 1.255 thẻ đơn trải rộng nên thưa (cùng dạng thẻ vẫn dùng dưới 1.100); cột «Còn thu» viết rút gọn ở điện thoại và viết đủ số ở khổ rộng (có sẵn); trong thẻ Hạn mức, nút «Lưu cài đặt» và «Đặt lại tất cả» nằm hai hàng lệch mép (máy tính cũng vậy); ba công tắc gạt của biểu mẫu chính sách cao 26 điểm ở điện thoại (có sẵn, máy đo xếp Nặng theo tiêu chí vùng chạm).
-5. Từ cửa sổ 1.256 tới khoảng 1.300, cột tên khách của bảng rộng 98 tới 142 điểm nên tên dài xuống ba dòng, như ở 1.280 trước đợt sửa. Muốn thoáng hơn thì nâng mốc 960; đó là quyết định về hình, chưa đổi.
+1. Câu báo «đã lưu» ở các trang khác (Lý do điều phối, Điều kiện cho xe chạy, Khoá tháng, Người bán) vẫn có thể chui dưới thanh trên dính ở điện thoại sau khi trang cuộn tới: luật chừa chỗ chỉ nêu `#error` và, từ đợt này, `#cs-ok` cùng dải báo của thẻ Hạn mức.
+2. Hai kịch bản Chrome cũ nêu trên cần cập nhật các bước đỏ sẵn; kịch bản Chính sách điều phối cần thêm bước cho chế độ hai số của Quản trị.
+3. Điểm Nhỏ của trợ lý chấm giao diện, chưa sửa: ở cửa sổ 1.100 tới 1.255 thẻ đơn trải rộng nên thưa (cùng dạng thẻ vẫn dùng dưới 1.100); cột «Còn thu» viết rút gọn ở điện thoại và viết đủ số ở khổ rộng (có sẵn); trong thẻ Hạn mức, nút «Lưu cài đặt» và «Đặt lại tất cả» nằm hai hàng lệch mép (máy tính cũng vậy); ba công tắc gạt của biểu mẫu chính sách cao 26 điểm ở điện thoại (có sẵn, máy đo xếp Nặng theo tiêu chí vùng chạm).
+4. Từ cửa sổ 1.256 tới khoảng 1.300, cột tên khách của bảng rộng 98 tới 142 điểm nên tên dài xuống ba dòng, như ở 1.280 trước đợt sửa. Muốn thoáng hơn thì nâng mốc 960; đó là quyết định về hình, chưa đổi.
 
 ## Giới hạn
 

@@ -236,12 +236,15 @@ async function luu(): Promise<void> {
     showError(okEl, "Đã lưu bản mới — có hiệu lực từ bây giờ.");
     okEl.scrollIntoView({ block: "nearest" });
   } catch (err) {
-    datDangGui(false);
     if (err instanceof ApiError && err.code === "stale") {
       await nap().then(dung).catch(() => undefined);
       showError(errorEl, `${err.message} Đã nạp bản mới nhất.`);
     } else showError(errorEl, loiCua(err));
     errorEl.scrollIntoView({ block: "nearest" });
+  } finally {
+    // Hạ cờ «đang gửi» ở MỌI lối ra. Trước 21/11/2026 chỉ nhánh lỗi hạ cờ: lưu thành công một lần thì `dung()` dựng nút mới (trông bấm được) nhưng cờ vẫn nâng,
+    // nên mọi lần bấm lưu sau đó thoát ngay ở đầu hàm — không gửi, không báo, câu «Đã lưu bản mới» của lần trước vẫn nằm đó.
+    datDangGui(false);
   }
 }
 

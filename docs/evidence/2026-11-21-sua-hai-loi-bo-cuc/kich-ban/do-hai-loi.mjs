@@ -91,10 +91,10 @@ const cham = async (ngan, x, y, diDong) => {
 /**
  * Đổi số ở ô `o` (cộng 1), chạm đúng nút lưu ĐANG NHÌN THẤY mà `nutJs` tìm ra, chờ câu báo `baoJs` hiện; rồi lưu trả số cũ theo cùng cách.
  * Chạm bằng toạ độ thật (cảm ứng ở điện thoại, chuột ở máy tính), không gọi .click(): nút bị che hay bị giấu thì không lưu được.
- * `taiLai`: tải lại trang trước lần lưu trả số cũ. Cần cho biểu mẫu chính sách đầy đủ của Toàn quyền: ghi nhận 21/11/2026 (lỗi có sẵn, NGOÀI phạm vi đợt sửa này)
- * là sau một lần lưu thành công, lần bấm «Lưu thành bản mới» kế tiếp trên cùng trang không gửi gì đi (cờ «đang gửi» của web/chinh-sach-dieu-phoi.ts không được hạ).
+ * Hai lần lưu diễn ra LIỀN NHAU trên cùng một trang, không tải lại: đây cũng là phép thử cho lỗi «lưu lần hai không gửi gì» của biểu mẫu chính sách đầy đủ
+ * (Toàn quyền), tìm thấy và sửa ngày 21/11/2026 — trước khi sửa, lần lưu trả số cũ của Toàn quyền hết giờ chờ vì không có lệnh nào được gửi đi.
  */
-async function luuThu(ngan, { o, nutJs, baoJs, diDong, tepAnh, taiLai }) {
+async function luuThu(ngan, { o, nutJs, baoJs, diDong, tepAnh }) {
   const cu = await ngan.ev(`document.querySelector(${JSON.stringify(o)})?.value ?? null`);
   if (cu === null || !/^\d+$/.test(cu)) return { thu: false, lyDo: `không đọc được ô ${o}` };
   const docBao = `(() => { const e = ${baoJs}; return e && !e.hidden && e.getClientRects().length > 0 ? e.textContent.trim() : ""; })()`;
@@ -117,7 +117,7 @@ async function luuThu(ngan, { o, nutJs, baoJs, diDong, tepAnh, taiLai }) {
   };
   const kq1 = { thu: true, soCu: cu, soMoi: String(Number(cu) + 1) };
   kq1.lan1 = await bam(kq1.soMoi);
-  if (kq1.lan1.daLuu) { if (tepAnh) await chupPng(ngan, tepAnh); if (taiLai) await taiLai(); kq1.traLai = await bam(cu); }
+  if (kq1.lan1.daLuu) { if (tepAnh) await chupPng(ngan, tepAnh); kq1.traLai = await bam(cu); }
   kq1.dat = kq1.lan1.daLuu === true && kq1.lan1.soSauLuu === kq1.soMoi && kq1.traLai?.daLuu === true && kq1.traLai.soSauLuu === cu;
   kq1.thayBao = kq1.lan1.baoThay === true && kq1.traLai?.baoThay === true;
   return kq1;
@@ -184,14 +184,14 @@ else try {
       { bo: "ADMIN", rong: 390, ten: "Quản trị ở 390 lưu hạn chốt", o: "#cs-moc-phut", nutJs: NUT_CHINH_SACH, baoJs: BAO_CHINH_SACH },
       { bo: "ADMIN", rong: 1280, ten: "Quản trị ở 1.280 lưu hạn chốt", o: "#cs-moc-phut", nutJs: NUT_CHINH_SACH, baoJs: BAO_CHINH_SACH },
       { bo: "SUPER_ADMIN", rong: 390, ten: "Toàn quyền ở 390 lưu cài đặt hạn mức", o: "#hm-moi-tuan", nutJs: NUT_HAN_MUC, baoJs: BAO_HAN_MUC },
-      { bo: "SUPER_ADMIN", rong: 390, ten: "Toàn quyền ở 390 lưu chính sách bằng thanh đáy", o: "#cs-nghiPhut", nutJs: NUT_CHINH_SACH, baoJs: BAO_CHINH_SACH, taiLaiGiua: true },
-      { bo: "SUPER_ADMIN", rong: 1280, ten: "Toàn quyền ở 1.280 lưu chính sách", o: "#cs-nghiPhut", nutJs: NUT_CHINH_SACH, baoJs: BAO_CHINH_SACH, taiLaiGiua: true },
+      { bo: "SUPER_ADMIN", rong: 390, ten: "Toàn quyền ở 390 lưu chính sách bằng thanh đáy", o: "#cs-nghiPhut", nutJs: NUT_CHINH_SACH, baoJs: BAO_CHINH_SACH },
+      { bo: "SUPER_ADMIN", rong: 1280, ten: "Toàn quyền ở 1.280 lưu chính sách", o: "#cs-nghiPhut", nutJs: NUT_CHINH_SACH, baoJs: BAO_CHINH_SACH },
     ];
     let ngan = null, boDangMo = null;
     for (const [i, v] of VIEC.entries()) {
       if (boDangMo !== v.bo) { if (ngan) await ngan.dong(); ngan = await moNganCua(chrome, v.bo); boDangMo = v.bo; }
       await khung(ngan, v.rong); await moCs(ngan);
-      const r = await luuThu(ngan, { ...v, diDong: v.rong < 641, tepAnh: resolve(thuMucAnh, `da-luu-${i + 1}-${v.bo}-${v.rong}.png`), taiLai: v.taiLaiGiua ? () => moCs(ngan) : null });
+      const r = await luuThu(ngan, { ...v, diDong: v.rong < 641, tepAnh: resolve(thuMucAnh, `da-luu-${i + 1}-${v.bo}-${v.rong}.png`) });
       kq.luu.push({ ...v, nutJs: undefined, baoJs: undefined, ...r });
       console.log(`Bấm lưu — ${v.ten}: ${r.dat ? `ĐƯỢC («${r.lan1.nut.chu}» → «${r.lan1.bao}»; đã lưu trả số cũ; câu báo ${r.thayBao ? "nằm trong khung nhìn, không bị che" : "KHÔNG nằm trọn trong khung nhìn hoặc bị che"})` : r.thu === false ? `KHÔNG THỬ ĐƯỢC (${r.lyDo})` : r.lan1?.coNut === false ? "KHÔNG CÓ NÚT ĐANG NHÌN THẤY" : r.lan1?.bamDuoc === false ? "NÚT BỊ CHE HOẶC BỊ KHOÁ" : `KHÔNG ĐƯỢC (${JSON.stringify(r.lan1)})`}`);
     }
@@ -221,7 +221,7 @@ const tq390 = cs("SUPER_ADMIN", 390);
 if (tq390?.taiHanMuc) xet(tq390.taiHanMuc.length === 1 && tq390.taiHanMuc[0].noi === "the-han-muc" && tq390.taiHanMuc[0].bamDuoc, `Toàn quyền ở 390, đứng ở biểu mẫu cài đặt hạn mức: trong khung nhìn chỉ có một nút lưu là «Lưu cài đặt», không bị thanh dính che (đang thấy: ${tq390.taiHanMuc.map((n) => `«${n.chu}» ${n.noi}${n.bamDuoc ? "" : " BỊ CHE"}`).join("; ") || "không nút nào"})`);
 xet(kq.chinhSach.every((c) => !c.tranNgang), "Chính sách điều phối: không tràn ngang");
 for (const l of kq.luu) {
-  xet(l.dat === true, `Bấm lưu thật — ${l.ten}: đổi số, chạm nút đang nhìn thấy, có câu báo đã lưu, lưu trả số cũ${l.dat ? ` («${l.lan1.bao}»)` : ""}`);
+  xet(l.dat === true, `Bấm lưu thật — ${l.ten}: đổi số, chạm nút đang nhìn thấy, có câu báo đã lưu, rồi lưu trả số cũ ngay trên cùng trang${l.dat ? ` («${l.lan1.bao}»)` : ""}`);
   xet(l.thayBao === true, `Bấm lưu thật — ${l.ten}: sau khi chạm, câu báo nằm trọn trong khung nhìn, không bị thanh dính che`);
 }
 
