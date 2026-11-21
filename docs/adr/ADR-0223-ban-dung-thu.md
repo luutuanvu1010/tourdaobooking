@@ -1,6 +1,6 @@
 # ADR-0223 — Bản dùng thử riêng, tự làm sạch mỗi 2 giờ; chọn vai sau PIN chỉ trên bản dùng thử
 
-- **Trạng thái:** **proposed** 2026-11-21 — AI soạn, chưa duyệt (Hiến pháp N3). Số 0223 do phiên điều phối kế hoạch 16 việc giữ trước cho Việc 1.
+- **Trạng thái:** **accepted** 2026-11-22 — chủ dự án duyệt qua phiên điều phối kế hoạch 16 việc, trả lời ba câu của Việc 1 cùng lượt duyệt ADR 0223–0233. Lời chủ, nguyên văn mục 6: *«Ok đề xuất dùng địa chỉ demo.tourdao.vn»*; mục 2: *«Duyệt đề xuất»*. Cách đọc của người điều phối: khoá/mở ngay trên bản dùng thử; địa chỉ `demo.tourdao.vn` (thay `thu.tourdao.vn` mà bản đề xuất khuyến nghị); chấp nhận chi phí. Hồ sơ: `docs/superpowers/plans/2026-11-22-quyet-dinh-chu-ke-hoach-16-viec.md` (nhánh `claude/partner-features-detailed-plan-f32f89`). AI soạn và chép, không tự duyệt (Hiến pháp N3). Số 0223 do phiên điều phối giữ trước cho Việc 1. Ghi lúc chép: tên miền ở Đ1 nay là `demo.tourdao.vn`; Đ5 theo cách (i).
 - **Lời giao việc của chủ dự án** (21/11/2026, qua kế hoạch 16 việc, mục 5 «Việc 1»): tài khoản dùng thử cho người ngoài, dữ liệu tự xoá mỗi 2 giờ, bản chính không bị chạm.
 - **Nguồn:** `docs/superpowers/specs/2026-11-21-ban-dung-thu/DAC-TA.md` (kết quả bước 0, đo ở máy 21/11).
 - **Loại:** việc lớn (triển khai, quyền). **Cửa:** hai chiều — tắt bản dùng thử (xoá Worker và tài nguyên của nó) không ảnh hưởng bản chính.
@@ -10,7 +10,7 @@
 
 ## Đ1 — Bản riêng, độc lập hoàn toàn
 
-Bản dùng thử là một Worker riêng ở một tên miền phụ của `tourdao.vn` (chủ chọn tên), với hai D1 (dữ liệu dùng thử; trạng thái khoá ở Đ5), các kho R2, trạm Bảng tin, bí mật, khoá Turnstile và khoá Face ID riêng, giống ADR-0162 Đ1. Không chép dữ liệu thật sang. Danh mục dịch vụ đọc cùng Google Sheet (chỉ đọc). Bài kiểm máy so **ba** cấu hình (chính thức, Development, dùng thử): đỏ khi hai bản dùng chung bất kỳ tên hay mã tài nguyên nào ngoài Sheet.
+Bản dùng thử là một Worker riêng ở `demo.tourdao.vn` (chủ chọn 22/11), với hai D1 (dữ liệu dùng thử; trạng thái khoá ở Đ5), các kho R2, trạm Bảng tin, bí mật, khoá Turnstile và khoá Face ID riêng, giống ADR-0162 Đ1. Không chép dữ liệu thật sang. Danh mục dịch vụ đọc cùng Google Sheet (chỉ đọc). Bài kiểm máy so **ba** cấu hình (chính thức, Development, dùng thử): đỏ khi hai bản dùng chung bất kỳ tên hay mã tài nguyên nào ngoài Sheet.
 
 Mã chạy trên bản dùng thử là **mã đang phát hành** của bản chính; mỗi lần phát hành bản chính thì đưa lên bản dùng thử cùng mã. Ai được gõ lệnh đưa lên (chủ, hay AI như `len-dev` ở ADR-0162 Đ5) quyết khi thi công; mặc định là chủ gõ.
 
@@ -37,7 +37,7 @@ Không thư (`MOI_TRUONG` có giá trị + danh sách địa chỉ cho phép tr�
 
 ## Đ5 — Khoá / mở
 
-Toàn quyền khoá hoặc mở đăng nhập dùng thử ở nơi chủ chọn (khuyến nghị: ngay trên bản dùng thử). Trạng thái khoá nằm ở một D1 nhỏ thứ hai của bản dùng thử, **ngoài** phần bị làm sạch, có hiệu lực ngay.
+Toàn quyền khoá hoặc mở đăng nhập dùng thử ngay trên bản dùng thử, bằng tài khoản Toàn quyền của chủ ở đó (chủ chọn 22/11). Trạng thái khoá nằm ở một D1 nhỏ thứ hai của bản dùng thử, **ngoài** phần bị làm sạch, có hiệu lực ngay.
 
 ## Hệ quả chủ cần biết
 

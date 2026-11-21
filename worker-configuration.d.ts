@@ -40,6 +40,12 @@ interface __BaseEnv_Env {
 	// OPENAI_BASE_URL tuỳ chọn (mặc định https://api.openai.com) — chỉ e2e / thử máy mình trỏ vào máy OpenAI giả. `npm run types` không sinh lại nếu .dev.vars thiếu.
 	OPENAI_API_KEY?: string;
 	OPENAI_BASE_URL?: string;
+	// BẢN DÙNG THỬ (ADR-0223) — khai TAY như trên; chỉ wrangler.demo.jsonc đặt. BAN_DUNG_THU = "bat" là biến bật (vars); KHOA_DUNG_THU là D1 thứ hai giữ
+	// trạng thái khoá; hai PIN là bí mật (`wrangler secret put … --config wrangler.demo.jsonc`). Bản chính thức / Development không có — mọi chỗ đọc phải chịu vắng.
+	BAN_DUNG_THU?: string;
+	KHOA_DUNG_THU?: D1Database;
+	DUNG_THU_PIN?: string;
+	DUNG_THU_PIN_TOAN_QUYEN?: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {

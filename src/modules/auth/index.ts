@@ -34,6 +34,7 @@ import {
 import { isQuyenDatDuoc, type QuyenDatDuoc } from "../../shared/chinh-sach-dang-nhap";
 import type { PermissionCode } from "../../shared/permissions";
 import { HAN_XEM_NHU_VAI_PHUT, daHetHan, laVaiChonDuoc, quyenHieuLuc } from "../../shared/xem-nhu-vai";
+import { SDT_DUNG_THU, laBanDungThu, laTaiKhoanDungThu } from "../../shared/ban-dung-thu";
 import type { RoleCode } from "../../shared/roles";
 import { SESSION_COOKIE, SESSION_TTL_SECONDS, clearedSessionCookie, createSessionToken, isSecure, sessionCookie, verifySessionToken } from "./session";
 import { SESSION_TOUCH_MS, isSingleDevice, sessionDeviceLabel, trimIp, trimUserAgent, END_REASON_LABEL, type EndReason, type TapNhieuMay } from "./session-ledger";
@@ -101,8 +102,10 @@ export async function currentStaff(request: Request, env: Env, exec?: ExecutionC
   // ADR-0180 Đ1: NƠI DUY NHẤT tính bộ quyền hiệu lực. Chỉ nhận vai khi tài khoản THẬT giữ SUPER_ADMIN, mã nằm trong danh sách chọn được và chưa quá 60 phút
   // không thao tác (tính theo last_seen_at TRƯỚC lần chạm dưới đây). Dòng phiên của người không giữ Toàn quyền mà có cột vai (dữ liệu hỏng) ⇒ bỏ qua cột.
   const coVai = row.acting_role !== null && row.acting_role !== undefined;
-  const hetHan = coVai && daHetHan(row.last_seen_at, now);
-  const vai = coVai && !hetHan && staff.permissions.includes("SUPER_ADMIN") && laVaiChonDuoc(row.acting_role) ? row.acting_role as PermissionCode : null;
+  // ADR-0223 Đ3.1: trên BẢN DÙNG THỬ, tài khoản dùng thử cũng mang vai đã chọn ở phiên — không hạn 60 phút (phiên sống tới mốc làm mới). Bản khác: luôn false.
+  const dungThu = laTaiKhoanDungThu(env, staff.id);
+  const hetHan = coVai && !dungThu && daHetHan(row.last_seen_at, now);
+  const vai = coVai && !hetHan && (staff.permissions.includes("SUPER_ADMIN") || dungThu) && laVaiChonDuoc(row.acting_role) ? row.acting_role as PermissionCode : null;
   // ADR-0187 Đ2.3: đang đóng vai thì bỏ nút thanh dưới đã chọn của Toàn quyền — khung vẽ mặc định của vai đang xem (xem đúng giao diện người thật).
   const { thanhDuoi: _boGhim, ...khongGhim } = staff;
   const hieuLuc: StaffProfile = vai === null ? staff : { ...khongGhim, permissions: quyenHieuLuc(staff.permissions, vai), actingRole: vai, realPermissions: [...staff.permissions] };
@@ -453,7 +456,9 @@ export type PinAttemptResult =
 export async function verifyPinThrottled(request: Request, env: Env, rawPhone: string, pin: string): Promise<PinAttemptResult> {
   const phone = normalizePhone(rawPhone);
   const ip = request.headers.get("cf-connecting-ip") ?? "unknown";
-  const keys = [{ key: ipKey(ip), max: IP_LIMIT }, ...(phone ? [{ key: phoneKey(phone), max: PHONE_LIMIT }] : [])];
+  // ADR-0223 Đ3.2: SĐT dùng thử là tài khoản DÙNG CHUNG — khoá theo SĐT sẽ để một người gõ sai khoá mọi người; trên bản dùng thử chỉ đếm theo địa chỉ mạng.
+  const demTheoSdt = phone !== null && !(laBanDungThu(env) && phone === SDT_DUNG_THU);
+  const keys = [{ key: ipKey(ip), max: IP_LIMIT }, ...(demTheoSdt ? [{ key: phoneKey(phone), max: PHONE_LIMIT }] : [])];
   // NGOÀI VÉ (ADR-0094, T17 — mục có tên trong src/shared/lan-gui-no.ts): sổ đếm lần thử ghi TRƯỚC lô chính của lệnh gọi (đổi PIN, bật Face ID) và phải
   // ghi cả khi lệnh bị từ chối — không được mang vé chống ghi trùng của lệnh đó. Đăng nhập (route công khai) không có vé: `dbNgoaiVe` trả nguyên D1.
   const db = dbNgoaiVe(env.DB);

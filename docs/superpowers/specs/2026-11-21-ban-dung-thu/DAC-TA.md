@@ -59,7 +59,9 @@ Việc lớn (triển khai, quyền) ⇒ có người kiểm độc lập. Cần
 ## 6. Câu hỏi cho chủ (gửi qua phiên điều phối)
 
 1. **Khoá / mở bản dùng thử ở đâu?** Khuyến nghị: ngay trên bản dùng thử, bằng tài khoản Toàn quyền của chủ ở đó. Lý do: hai hệ thống vẫn độc lập hoàn toàn, không phải mở đường nối nào từ bản chính; cách kia cần ADR riêng và một khoá bí mật dùng chung giữa hai bản.
-2. **Địa chỉ của bản dùng thử?** Khuyến nghị: `thu.tourdao.vn`. Lý do: ngắn, đọc là hiểu, cùng họ với `dev.tourdao.vn` đã duyệt; không dùng tên con của `booking.tourdao.vn` để khỏi nhầm với bản chính và để Face ID tách bạch.
+*Chủ trả lời 22/11: (1) theo khuyến nghị; (2) dùng `demo.tourdao.vn`; (3) chấp nhận.*
+
+2. **Địa chỉ của bản dùng thử?** Khuyến nghị (bản đề xuất): `thu.tourdao.vn`. Lý do: ngắn, đọc là hiểu, cùng họ với `dev.tourdao.vn` đã duyệt; không dùng tên con của `booking.tourdao.vn` để khỏi nhầm với bản chính và để Face ID tách bạch.
 3. **Chấp nhận chi phí?** Khuyến nghị: chấp nhận. Lý do: ước 0 đồng/tháng vì nằm trong phần gói trả phí đã trả; trường hợp xấu nhất vài chục nghìn đồng/tháng.
 
 ## 7. Điều AI tự quyết (chủ bác được)

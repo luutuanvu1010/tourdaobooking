@@ -14,6 +14,8 @@
 // chuyến (nhóm `dieu-xe` + tài xế có dòng lái lúc sự kiện) và gõ cửa tin chuyến (`dayGoCua` với `{ chuyen }`); hộp thông báo đọc dữ kiện qua `ctx.chuyenChoTin`.
 
 import { baoLoiDinhGio } from "./bao-loi-dinh-gio.ts";
+import { fetchBanDungThu, lamMoiNeuDenMoc } from "./ban-dung-thu.ts";
+import { laBanDungThu } from "./shared/ban-dung-thu.ts";
 // Soát tiền hằng ngày (Đợt 2 sau kiểm toán): gốc lắp ráp tiêm CHÍNH danh sách kiểm của script soát vào module audit (module không nhập scripts/).
 import { CHECKS, demViPham } from "../scripts/audit-checks.mjs";
 import { accountsModule } from "./modules/accounts";
@@ -584,9 +586,12 @@ export function taoAppChoKhungThu(ghiDe: Partial<AppOptions["injected"]>): Retur
 }
 
 export default {
-  fetch: app.fetch,
+  // BẢN DÙNG THỬ (ADR-0223): chỉ khi BAN_DUNG_THU = "bat" mới qua cửa vào riêng; bản chính thức và Development đi thẳng router như cũ.
+  fetch: (request: Request, env: Env, ctx: ExecutionContext) => (laBanDungThu(env) ? fetchBanDungThu(request, env, ctx, app.fetch) : app.fetch(request, env, ctx)),
   // Cron Trigger (wrangler.jsonc "triggers.crons"): tự đồng bộ danh mục dịch vụ từ Google Sheet; dọn ảnh vé còn ở hàng chờ xoá (ADR-0156); nhắc hạn trả sau (ADR-0173 Đ3 mục 2); dọn phiếu đăng ký (ADR-0208 Đ8).
   async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    // BẢN DÙNG THỬ (ADR-0223 Đ2): đúng mốc giờ chẵn giờ VN thì làm sạch TRƯỚC, các việc dưới (đồng bộ danh mục…) chạy trên dữ liệu mới. Bản khác: hàm trả về ngay.
+    if (laBanDungThu(env)) await lamMoiNeuDenMoc(env, event.scheduledTime).catch((e: unknown) => console.error(JSON.stringify({ level: "error", event: "ban_dung_thu_lam_moi", message: e instanceof Error ? e.message : String(e) })));
     // Đợt 2 sau kiểm toán: gom kết quả năm việc — việc hỏng vẫn log; lượt 7 giờ sáng giờ VN gửi MỘT thư liệt kê việc đang hỏng (src/bao-loi-dinh-gio.ts).
     const viec = {
       "dong-bo-danh-muc": runScheduledSync(env),

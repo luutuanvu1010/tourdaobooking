@@ -37,6 +37,7 @@ import { PERMISSION_CODES, PERMISSION_LABEL, can, isPermissionCode, type Permiss
 import { kiemGhim, luaChonGhim } from "../../shared/muc-giao-dien";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import { laToanQuyenThat, laVaiChonDuoc, quyenHieuLuc, quyenThat } from "../../shared/xem-nhu-vai";
+import { laBanDungThu, laTaiKhoanDungThu } from "../../shared/ban-dung-thu";
 import {
   TIEN_CHI_TOAN_QUYEN_MESSAGE, chamTaiKhoanTienDuoc, chanTatHaiLop, datLaiPinDuoc as datLaiPinDuocTheoDong, highPermissionProblem, tatHaiLopDuoc, parseRoleAssignment, permissionsLabel, roleAssignmentProblem,
   rolesLabelTheo, taiKhoanLaiProblem, laiNoiBoBenNgoaiProblem, quyenNgoaiDuongCuProblem, CAU_DUONG_CU_QUYEN_NGOAI, CAU_GO_QUAN_TRI_SANG_DOI_TAC, type RoleCode, type RoleProblem,
@@ -933,6 +934,26 @@ export const accountsModule: AppModule = {
       ]);
       const { realPermissions: _a, actingRole: _b, ...goc } = ctx.staff;
       return dungMeResponse(ctx, { ...goc, permissions: [...quyenThat(ctx.staff)] });
+    }),
+
+    // ---- BẢN DÙNG THỬ (ADR-0223 Đ3.1): tài khoản dùng thử chọn vai sau PIN. Chỉ khi BẬT và chỉ đúng tài khoản dùng thử; bản khác trả 404 như route không có.
+    // Ghi vai vào PHIÊN (cùng cột, cùng câu với «Xem như vai trò khác»), không đổi quyền thật. Đổi vai: gọi lại (hoặc đăng xuất rồi chọn lại).
+    route("POST", "/api/dung-thu/vai", "staff", async (ctx) => {
+      if (!laBanDungThu(ctx.env)) return error(404, "not_found", "Không tìm thấy.");
+      if (!laTaiKhoanDungThu(ctx.env, ctx.staff.id)) return error(403, "forbidden", "Chỉ tài khoản dùng thử chọn vai được.");
+      const vai: unknown = (await readJson(ctx.request))?.role;
+      if (!laVaiChonDuoc(vai)) return error(400, "invalid_role", "Vai trò này không chọn được.");
+      const phien = ctx.sessionId;
+      if (!phien) return error(401, "unauthorized", "Máy đang đăng nhập này không còn hiệu lực. Đăng nhập lại.");
+      const db = ctx.env.DB;
+      const at = new Date().toISOString();
+      await db.batch([
+        auditStatement(db, { staffId: ctx.staff.id, action: "acting_role_set", at, targetType: "staff", targetId: ctx.staff.id, detail: PERMISSION_LABEL[vai] }),
+        setActingRoleStatement(db, phien, vai, at),
+      ]);
+      const that = quyenThat(ctx.staff);
+      const { realPermissions: _a, actingRole: _b, ...goc } = ctx.staff;
+      return dungMeResponse(ctx, { ...goc, permissions: quyenHieuLuc(that, vai), actingRole: vai, realPermissions: [...that] });
     }),
 
     // ---- Nút thanh dưới điện thoại của CHÍNH MÌNH (ADR-0187 Đ2.3; đặc tả docs/superpowers/specs/2026-11-09-ghim-nut-thanh-duoi-design.md). Ở accounts vì lô ghi kèm nhật ký
