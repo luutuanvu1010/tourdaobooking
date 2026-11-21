@@ -1424,8 +1424,9 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .banner-lines { margin: var(--s2) 0 0; padding-left: var(--s4); }
 .banner-edit { display: inline-flex; align-items: center; justify-content: center; min-width: var(--tap-min); min-height: var(--tap-min); margin-left: var(--s2); font-weight: var(--fw-bold); color: inherit; }
 .banner-actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
-/* Banner lỗi của trang (#error): `scrollIntoView` tới đây (lỗi của thao tác ở thẻ Thanh toán, đặt gấp…) không được để banner chui dưới thanh đầu trang dính ở điện thoại — cùng khuôn `.hdv-sec`. */
-#error { scroll-margin-top: calc(var(--bar-h) + env(safe-area-inset-top) + var(--s3)); }
+/* Banner lỗi của trang (#error): `scrollIntoView` tới đây (lỗi của thao tác ở thẻ Thanh toán, đặt gấp…) không được để banner chui dưới thanh đầu trang dính ở điện thoại — cùng khuôn `.hdv-sec`.
+   Sửa 21/11/2026: thêm câu báo «đã lưu» của trang Chính sách điều phối (`#cs-ok`) và hai dải báo của thẻ Hạn mức Từ chối — nút lưu của chúng ở cuối thẻ, lưu xong trang cuộn tới câu báo. */
+#error, #cs-ok, #hm-the .alert { scroll-margin-top: calc(var(--bar-h) + env(safe-area-inset-top) + var(--s3)); }
 
 /* chip, nhãn giá */
 .chip { display: inline-block; white-space: nowrap; padding: 0 var(--s2); font-size: var(--fs-badge); font-weight: var(--fw-semibold); line-height: 1.5; border-radius: var(--radius-pill); }
@@ -2860,7 +2861,10 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 .dp-link { align-self: flex-start; display: inline-flex; align-items: center; min-height: var(--tap-min); font-size: var(--fs-label); font-weight: var(--fw-bold); }
 .dp-cs-note { margin: 0; }
 .dp-cs-actions { display: flex; gap: var(--s2); }
-@media (max-width: 640px) { .dp-cs-actions { display: none; } }
+/* Điện thoại: nút lưu trong thẻ CHỈ nhường chỗ khi thanh nút dính đáy `#cs-bottom` thật sự đang hiện (nhánh Toàn quyền, bản vẽ 8b). Sửa 21/11/2026: luật cũ
+   giấu `.dp-cs-actions` vô điều kiện, nên nhánh hai số của Quản trị (thanh đáy ẩn) và thẻ Hạn mức Từ chối (cùng lớp, không có thanh đáy) mất nút lưu ở điện thoại.
+   Bài `src/nut-luu-khong-mat-o-dien-thoai.test.ts` khoá: không luật nào được giấu lớp này mà không đòi thanh đáy đang hiện. */
+@media (max-width: 640px) { main:has(> #cs-bottom:not([hidden])) #cs-form .dp-cs-actions { display: none; } }
 /* lịch sử bản: cột phải (≥ 641px); điện thoại mở bảng trượt bằng dòng "Lịch sử bản (N) ›" (khung 8b) */
 .dp-hist { display: flex; flex-direction: column; }
 .dp-hist-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }

@@ -3,7 +3,7 @@
 // "Ngày hiệu lực của bản mới" nhưng máy chủ từ chối thân có ngày hiệu lực → thay bằng một dòng chữ, xem nhật ký giao diện). Hai ô theo GIỜ (mốc, sát mốc),
 // hai ô theo PHÚT (nghỉ, khai lùi); đổi đơn vị và câu báo lỗi ở src/shared/chinh-sach-hien-thi.ts (ruling H19). "Phải có hợp đồng" khoá tắt (ĐP7), không gửi.
 // Ô ngày hiệu lực và dòng "Đang soạn" của bản vẽ: CHỜ CHỦ (câu Q3 — docs/design/van-chuyen-dieu-phoi/DOI-CHIEU-2026-09-29.md mục 2.14) → không dựng.
-// Điện thoại: lịch sử bản mở trong bảng trượt ("Lịch sử bản (N) ›"), nút "Lưu thành bản mới" dính đáy.
+// Điện thoại: lịch sử bản mở trong bảng trượt ("Lịch sử bản (N) ›"), nút "Lưu thành bản mới" dính đáy (chỉ nhánh Toàn quyền; nhánh hai số của Quản trị giữ nút trong thẻ).
 import {
   GOI_Y_HAN_CHOT, docFormChinhSach, dongLichSuChinhSach, formTuChinhSach, nhanDieuKien, nhanThoiLuong, thayDoiChinhSach, type DongLichSu, type FormChinhSach, type TruongChinhSach,
 } from "../src/shared/chinh-sach-hien-thi";
@@ -288,9 +288,11 @@ async function veMocRieng(): Promise<void> {
       bao(loiMoc, moc === null ? "Nhập số phút nguyên từ 1 đến 2880." : null);
       bao(loiSat, sat === null ? "Nhập số phút nguyên từ 0 đến 1440." : null);
       if (moc === null || sat === null) return;
+      // Nút lưu ở cuối thẻ, câu báo ở đầu trang: ở điện thoại hai chỗ thường không cùng một màn ⇒ mỗi kết quả của lần bấm đều đưa câu báo vào tầm nhìn (như nhánh Toàn quyền).
       if (moc === hienHanh.minLeadMinutes && sat === hienHanh.warnLeadMinutes) {
         showError(errorEl, "Chưa đổi gì so với bản đang dùng — không cần lưu.");
         errorEl.className = "alert warn";
+        errorEl.scrollIntoView({ block: "nearest" });
         return;
       }
       nut.disabled = true;
@@ -299,15 +301,18 @@ async function veMocRieng(): Promise<void> {
         oMoc.value = String(hienHanh.minLeadMinutes);
         oSat.value = String(hienHanh.warnLeadMinutes);
         showError(okEl, "Đã lưu hạn chốt mới — có hiệu lực từ bây giờ.");
+        okEl.scrollIntoView({ block: "nearest" });
       } catch (err) {
         errorEl.className = "alert";
         showError(errorEl, loiCua(err));
+        errorEl.scrollIntoView({ block: "nearest" });
       } finally {
         nut.disabled = false;
       }
     })();
   }, { capture: true });
   layoutEl.hidden = false;
+  // Nhánh này không có thanh nút dính đáy: app.css chỉ giấu `.dp-cs-actions` ở điện thoại khi `#cs-bottom` đang hiện, nên nút «Lưu hạn chốt» trong thẻ hiện ở mọi khổ.
   bottomEl.hidden = true;
 }
 
