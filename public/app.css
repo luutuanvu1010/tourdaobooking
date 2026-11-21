@@ -4404,6 +4404,7 @@ body[data-title="Tạo đơn"] .topbar-new { display: none; }
 .tab-phu[data-kieu="vien"] > [role="tab"] { flex: none; min-height: var(--h-control); padding: 0 var(--pad-chip); font: inherit; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-input-border); border-radius: var(--radius-pill); cursor: pointer; }
 .tab-phu[data-kieu="vien"] > [aria-selected="true"] { color: var(--c-primary-strong); background: var(--c-primary-soft); border-color: var(--c-primary); }
 .tab-phu [role="tab"]:focus-visible { outline: var(--focus-ring) solid var(--c-focus); outline-offset: var(--vanh-cach); }
+.tab-phu > [role="tab"][data-hinh] > svg { vertical-align: middle; margin-inline-end: var(--s2); } /* Việc 16: hình của thẻ con (web/hinh-the-phu.ts) đứng như chữ đầu dòng — chữ dài vẫn xuống dòng dùng hết bề ngang thẻ */
 
 .dai { display: flex; align-items: center; gap: var(--s3); min-height: var(--h-dai-tren); padding: var(--s2) var(--le-trang); font-size: var(--fs-label); color: var(--c-text-muted); background: var(--c-surface-alt); }
 .dai[data-tong="bien"] { color: var(--c-primary-strong); background: var(--c-primary-soft); }
@@ -4451,7 +4452,9 @@ a.toast[data-tong], .toast-bam-duoc { pointer-events: auto; }
 .trang-thai-phu { color: var(--c-text-muted); }
 .trang-thai-xuong { display: flex; flex-direction: column; gap: var(--s2); }
 .tl-muc { display: flex; flex-direction: column; max-width: var(--w-thiet-lap-max); }
-.tl-muc > .dong { justify-content: space-between; color: inherit; text-decoration: none; }
+.tl-muc > .dong { color: inherit; text-decoration: none; }
+.tl-muc-hinh { flex: none; display: flex; color: var(--c-text-muted); } /* Việc 16: hình bên trái mỗi dòng; chữ giãn hết chỗ còn lại để huy hiệu số nằm sát phải */
+.tl-muc-chu { flex: 1; min-width: 0; }
 
 .trang-thai { display: flex; flex-direction: column; align-items: center; gap: var(--s3); max-width: var(--w-thiet-lap-max); margin: 0 auto; padding: var(--le-trang-rong) var(--le-trang); text-align: center; }
 .trang-thai[data-loai] > .vong { display: flex; align-items: center; justify-content: center; width: var(--vong-trang-thai); height: var(--vong-trang-thai); border-radius: 50%; color: var(--c-primary); background: var(--c-primary-soft); }

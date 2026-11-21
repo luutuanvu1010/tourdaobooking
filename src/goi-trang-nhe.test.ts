@@ -116,7 +116,11 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Đã rút trước khi nới: phần tự soát khuôn bảng chỉ còn trong bài kiểm (`soatKhuonBang` không vào gói), hàng tiêu đề cột viết sẵn trong public/orders.html.
 // Đo thật 116.418 byte; trần = đúng số đo (người kiểm độc lập 21/11 nhắc: không để dư). Không nhật ký thay đổi, không mã nghiệp vụ mới. ADR-0222 mục «Hệ quả»
 // đã báo trước lần nới này; CHƯA có lời duyệt riêng của chủ dự án cho con số.
-const TRAN_ORDERS = 116_418;
+// Nới 116.418 → 118.543 (+2.125, Việc 16 kế hoạch 16 việc 21/11/2026): 25 mục THIẾT LẬP của thanh bên có biểu tượng — 19 hình mới trong web/icons.ts (mỗi hình
+// một path, viền chung của họ «vé» và họ «loại giấy tờ» viết một lần) và trường `bieuTuong` của 25 dòng trong muc-giao-dien.ts (viết qua `tl()` cho gọn).
+// Đã rút trước khi nới: hình chỉ dùng ở thẻ con của ba màn nằm riêng ở web/hinh-the-phu.ts (không vào gói này); khai dòng bằng `tl()` bớt ~630 byte.
+// Đo thật 118.543 byte; trần = đúng số đo. Chủ dự án duyệt 21/11/2026 (chat, nguyên văn: «Duyệt 2.125 byte»).
+const TRAN_ORDERS = 118_543;
 
 function dung(trang: string) {
   const r = buildSync({

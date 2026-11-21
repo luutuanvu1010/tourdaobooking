@@ -15,6 +15,7 @@ import type { TrangThaiLuatBan } from "../src/shared/contracts";
 import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
+import { datChuThe, ganHinhThe, type HinhThe } from "./hinh-the-phu";
 import { initShell, showError } from "./shell";
 import { hienBaoNgan } from "./toast";
 import { trangThaiToanTrang } from "./trang-thai-he-thong";
@@ -24,6 +25,9 @@ const noiDungEl = byId("lb-noi-dung");
 const nutThemEl = byId<HTMLButtonElement>("lb-them");
 const tabEl = Object.fromEntries(THU_TU_THE.map((t) => [t, byId(`lb-tab-${t}`)])) as Record<TrangThaiLuatBan, HTMLElement>;
 const theEl = Object.fromEntries(THU_TU_THE.map((t) => [t, byId(`lb-the-${t}`)])) as Record<TrangThaiLuatBan, HTMLElement>;
+// Việc 16: hình trạng thái trước chữ mỗi thẻ (web/hinh-the-phu.ts).
+const HINH_THE: Readonly<Record<TrangThaiLuatBan, HinhThe>> = { DANG_AP_DUNG: "checkCircle", SAP_AP_DUNG: "calendar", DA_KET_THUC: "ban" };
+for (const t of THU_TU_THE) ganHinhThe(tabEl[t], HINH_THE[t]);
 byId("lb-gioi-thieu").textContent = CAU_GIOI_THIEU;
 
 const staff = await initShell();
@@ -83,7 +87,7 @@ function viecCua(l: Api.LuatBanDto): HTMLElement | null {
 
 function veThe(t: TrangThaiLuatBan): void {
   const dong = locTheThe(ds.luat, t);
-  tabEl[t].textContent = `${NHAN_THE_LUAT[t]} (${dong.length})`;
+  datChuThe(tabEl[t], `${NHAN_THE_LUAT[t]} (${dong.length})`);
   if (dong.length === 0) {
     replaceChildren(theEl[t], h("p", { class: "rong" }, CAU_RONG_THE[t]));
     return;
