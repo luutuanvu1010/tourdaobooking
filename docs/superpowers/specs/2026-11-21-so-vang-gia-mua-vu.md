@@ -4,7 +4,7 @@
 > Bản máy đọc (nguồn duy nhất của con số): `src/shared/gia-mua-vu.so-vang.json`; bài kiểm `src/shared/gia-mua-vu.test.ts`. Sửa số thì sửa ở tệp JSON, rồi sửa bảng này cho khớp.
 > Đi kèm: đề xuất ADR-0229 `docs/superpowers/specs/2026-11-21-DE-XUAT-ADR-0229-gia-mua-vu.md`.
 
-## Cách tính (chờ chủ chốt câu 2)
+## Cách tính (chủ chốt 21/11)
 
 Giá gốc là giá của dịch vụ **sau** khi Quản trị ghi đè (nếu có). Với quy tắc «+a % và +b đồng»: lấy giá gốc nhân (100 + a) %, cộng b đồng, rồi **làm tròn lên** tới 1.000 đồng. Không có quy tắc thì giữ nguyên giá gốc. Mỗi dòng dịch vụ chỉ áp **một** quy tắc: quy tắc riêng của dịch vụ thắng quy tắc của nhóm. Quy tắc chờ duyệt hoặc đã kết thúc không áp. Ngày xét là **ngày đi** của dịch vụ.
 
@@ -50,10 +50,28 @@ Bị từ chối: không tăng gì (0 % và 0 đ); % âm hoặc lẻ (2,5 %); s�
 
 Chồng ngày: quy tắc mới cho nhóm «Tour đảo» 10/02–20/02 bị chặn vì chồng R1; 16/02–28/02 thì được (liền kề). Quy tắc riêng Tour 3 đảo 01/02–05/02 được dù chồng quy tắc nhóm. Quy tắc riêng Tour 3 đảo 12/02–14/02 bị chặn vì chạm ngày cuối của R2. Quy tắc đã kết thúc không tính; quy tắc chờ duyệt vẫn tính.
 
+## Hoa hồng và giá đại lý (chủ 21/11: «Đại lý không hưởng hoa hồng trên phần tăng giá mùa vụ»)
+
+Hoa hồng theo % tính trên **cơ sở** = đơn giá trừ phần tăng mùa vụ, nhân số lượng hiện hành (không âm); làm tròn nửa lên tới đồng như hôm nay. Hoa hồng theo số tiền mỗi khách không đổi. Giá đại lý = thành tiền − hoa hồng. Giá vốn nhà cung cấp không đổi.
+
+| Ca | Tình huống | Thành tiền | Cơ sở hoa hồng | Mức | Hoa hồng | Giá đại lý |
+|---|---|---|---|---|---|---|
+| H1 | 1 người lớn, 515.000 (gốc 450.000) | 515.000 | 450.000 | 10 % | 45.000 | 470.000 |
+| H2 | 2 người lớn đi 05/02 (ví dụ kế hoạch) | 1.030.000 | 900.000 | 10 % | 90.000 | 940.000 |
+| H3 | 1 người lớn | 515.000 | 450.000 | 12,5 % | 56.250 | 458.750 |
+| H4 | Ngoài mùa, như hôm nay | 450.000 | 450.000 | 10 % | 45.000 | 405.000 |
+| H5 | 521.000 (gốc 455.000), làm tròn 15.151,5 → 15.152 | 521.000 | 455.000 | 3,33 % | 15.152 | 505.848 |
+| H6 | Hoa hồng 50.000 đ mỗi khách, 2 người lớn | 1.030.000 | (không dùng) | 50.000/khách | 100.000 | 930.000 |
+| H7 | Văn phòng thoả thuận 500.000: vẫn trừ đủ phần tăng 65.000 | 500.000 | 435.000 | 10 % | 43.500 | 456.500 |
+| H8 | Đơn giá thoả thuận 50.000 thấp hơn phần tăng | 50.000 | 0 | 10 % | 0 | 50.000 |
+| H9 | Dòng cũ trước giá mùa vụ | 450.000 | 450.000 | 10 % | 45.000 | 405.000 |
+| H10 | 2 người lớn 515.000 + 1 trẻ em 350.000 (gốc 300.000) | 1.380.000 | 1.200.000 | 10 % | 120.000 | 1.260.000 |
+| H11 | Xác nhận 2 người lớn, sau điều chỉnh còn 1 | 515.000 | 450.000 | 10 % | 45.000 | 470.000 |
+
 ## Kế toán cần xác nhận
 
 1. Mọi con số ở bảng «Ca tính giá» đúng như Kế toán tự tính tay.
 2. **Ca C19**: khách có giá 0 đ (miễn phí) **không** bị cộng số tiền mùa vụ. Khuyến nghị giữ 0 đ, vì nếu cộng thì em bé miễn phí bỗng phải trả 20.000 đ trong mùa Tết. Kế toán chọn khác thì sửa ca này trước khi viết mã.
-3. Cách làm tròn (làm tròn lên 1.000 đ) — chờ chủ chốt câu 2; chủ chọn khác thì C7, C11 đổi số.
+3. Mọi con số ở bảng «Hoa hồng và giá đại lý».
 
 Xác nhận: ghi «Kế toán xác nhận sổ vàng giá mùa vụ ngày …, người …» vào dòng Trạng thái ở đầu tệp này và ở trường `trangThai` của tệp JSON.
