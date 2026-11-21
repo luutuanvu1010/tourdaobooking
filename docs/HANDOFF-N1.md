@@ -2,7 +2,23 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.19 ĐÃ LÊN PRODUCTION (ADR-0220: ngừng bán dịch vụ hoặc nhóm theo khoảng ngày khởi hành; tối ưu giao diện Tạo đơn và ảnh xác nhận đơn; sửa giao diện theo bốn ý của chủ: Tạo đơn và Chi tiết đơn của Đối tác, đổi tên «Nhập khoản thu» và «Thanh toán đơn này cho công ty Tour Đảo», lọc Kho vé) — migration `0180` — triển khai 2026-11-20 21:32 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.20 ĐÃ LÊN PRODUCTION (sửa hai lỗi bố cục làm hỏng việc: cột tên khách ở Đơn hàng bị bóp khi cửa sổ cỡ vừa; nút lưu bị giấu ở Chính sách điều phối trên điện thoại; kèm lỗi Toàn quyền lưu chính sách lần hai trên cùng trang không được lưu) — không migration — triển khai 2026-11-21 11:36 giờ Việt Nam
+
+Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Bằng chứng đo và các điểm ghi nhận thêm: `docs/evidence/2026-11-21-sua-hai-loi-bo-cuc/README.md`. Lần nhập này mang theo hồ sơ phân tích bố cục 21/11 (`docs/superpowers/specs/2026-11-21-khung-goc-giao-dien/`): chỉ là tài liệu, không đổi mã chạy thật.
+
+Khối máy in ra:
+- Ngày giờ: 2026-11-21 11:36 (giờ Việt Nam)
+- Commit: c23447ce9 Khoảng chừa thanh trên: giữ nguyên luật #error, viết phần thêm thành luật riêng
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-21T04:28:57Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/44865823939
+- Migration đã áp: không có
+- Worker Version ID: fccf29ef-107c-4baa-87ca-1b54a45288ea
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT, 3 cảnh báo. Hai cảnh báo có sẵn: R-VC-14 (7 xe thiếu giấy tờ là điều kiện xuất bến), R-ORD-9 (1 đơn có danh sách tên nhiều hơn số khách). Cảnh báo thứ ba là R-PRC-PD-3: 1 khu vực đón đang bật chưa có mức chung đi chung còn hiệu lực hôm nay trong khi phí đưa đón đã bật; đơn có đón ở khu vực đó không xác nhận được tới khi Quản trị thêm mức chung ở màn Phí đưa đón (màn đó tự nêu khu vực thiếu). Bản 3.20 không đổi dữ liệu và không chạm phí đưa đón, nên cảnh báo này không do bản 3.20. Lúc ghi chưa rõ khu vực nào và có từ khi nào: mục 3.15 là mục gần nhất nêu tên cảnh báo, khi đó mới có hai.
+- Phiên bản: 3.20 (cổng trước deploy ĐẠT, cổng sau deploy ĐẠT)
+- Thời gian: day-len 6 phút 31 giây; trien-khai 0 phút 41 giây; tổng 7 phút 12 giây
+- Sau triển khai: GET công khai `/api/auth/config` trả phiên bản 3.20; thấy mã mới ở `/app.css` (luật `@container don-bang`, luật `#cs-bottom { z-index … }`), ở trang `/orders` (khối `don-bang`) và ở trang `/chinh-sach-dieu-phoi` (thanh `#cs-bottom` đứng trước thẻ `#hm-the`). Chưa thử trên iPhone thật; chủ chưa bấm thử trên bản chạy thật.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.19 ĐÃ LÊN PRODUCTION (ADR-0220: ngừng bán dịch vụ hoặc nhóm theo khoảng ngày khởi hành; tối ưu giao diện Tạo đơn và ảnh xác nhận đơn; sửa giao diện theo bốn ý của chủ: Tạo đơn và Chi tiết đơn của Đối tác, đổi tên «Nhập khoản thu» và «Thanh toán đơn này cho công ty Tour Đảo», lọc Kho vé) — migration `0180` — triển khai 2026-11-20 21:32 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Đặc tả của đợt sửa giao diện: `docs/superpowers/specs/2026-11-20-sua-giao-dien-bon-y-cua-chu.md` (có kết quả kiểm độc lập ở mục 6b). Migration `0180` thuộc việc ngừng bán theo ngày (nhánh khác, đã ở bản chính từ trước).
 
