@@ -45,8 +45,11 @@ test("luật thuần: thu hộ tiền mặt = khoản thu khách TIỀN MẶT c�
     ],
     bookerPartyId: BEN,
     choXacNhan: new Set(["f"]),
+    daThu: 5_000_000,
   });
   assert.equal(so, 1_200_000);
+  // Kẹp trên bằng «Đã thu» của phiếu: khoản khai / cọc còn ở tay người thu đã bị trừ khỏi Đã thu thì thu hộ cũng không vượt.
+  assert.equal(thuHoTienMat({ receipts: [r("a", { amount: 1_000_000 })], bookerPartyId: BEN, choXacNhan: new Set(), daThu: 600_000 }), 600_000);
 });
 
 function dung(): W {

@@ -78,7 +78,7 @@ export async function congNoNhieuDon(db: D1Database, dons: readonly DonCongNo[])
       const so = tinhConLai({ tong, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, conGiu: v.nguoiLapGiu });
       const cho = khoanChoXacNhan(rs, ls, dc);
       const congTyCho = hieuLuc(rs).filter((r) => r.kind === "CUSTOMER_PAYMENT" && r.collectorRole === "COMPANY" && cho.has(r.id)).reduce((s2, r) => s2 + r.amount, 0);
-      const thuHo = thuHoTienMat({ receipts: (rcTheoDon.get(d.id) ?? []).map((r) => ({ ...toReceiptRow(r), method: r.method_code })), bookerPartyId: d.booker_party_id, choXacNhan: cho });
+      const thuHo = thuHoTienMat({ receipts: (rcTheoDon.get(d.id) ?? []).map((r) => ({ ...toReceiptRow(r), method: r.method_code })), bookerPartyId: d.booker_party_id, choXacNhan: cho, daThu: so.daThu });
       out.set(d.id, { no: daHuy ? 0 : Math.max(0, so.conLai), cocConGiu, phieu: { dong: g.dong, phiDong: g.phiDong, tong, ...so, congTyCho }, thuHoTienMat: thuHo });
       continue;
     }
