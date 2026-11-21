@@ -1,11 +1,11 @@
 # ADR-0225 — Đơn đối tác: bỏ ô đặt cọc trên form Đối tác; chỉ thu hộ tiền mặt
 
-- **Trạng thái:** **proposed** 2026-11-21 — chờ chủ dự án duyệt văn bản này qua phiên điều phối. Chủ đã đồng ý nguyên tắc câu 1 (b1)(b2)(c) của kế hoạch ngày 21/11 (lời chủ do phiên điều phối chuyển, nguyên văn: «còn lại áp dụng như khuyến nghị»). Đ1 và Đ2 đã thi công trên nhánh; **Đ2 mục 2 (lúc gắn dấu) chờ chủ xác nhận** vì khác chữ «lúc lập» của kế hoạch.
+- **Trạng thái:** **accepted** — chủ dự án duyệt 22/11/2026 trong phiên điều phối, nguyên văn mục 2: «Duyệt đề xuất» (danh sách ADR 0223–0233 theo bốn lượt đã trình, gồm ADR-0225; hồ sơ `docs/superpowers/plans/2026-11-22-quyet-dinh-chu-ke-hoach-16-viec.md` ở nhánh `claude/partner-features-detailed-plan-f32f89`). Lời duyệt gồm Đ2 mục 2 (gắn dấu lúc xác nhận, chụp lại ở «Đổi khách») và hệ quả thu hẹp ADR-0196. Trước đó chủ đồng ý nguyên tắc câu 1 (b1)(b2)(c) ngày 21/11, nguyên văn: «còn lại áp dụng như khuyến nghị».
 - **Ngày:** 2026-11-21. **Số:** 0225 (giữ trước trong brief của phiên điều phối).
 - **Nguồn:** kế hoạch 16 việc 21/11/2026 (nhánh `claude/partner-features-detailed-plan-f32f89`, `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md`), mục 4 câu 1 (b1)(b2)(c), mục 5 «Việc 5», Phụ lục «Việc 5». Lời chủ gốc (việc 5): ẩn ô «Khách đặt cọc cho đối tác» và câu «nội dung chuyển khoản» trên form tạo đơn của đối tác.
 - **Loại:** Đ1 nhỏ (giao diện, không đổi máy chủ, không đổi dữ liệu). Đ2 lớn (tiền, migration 0184), người kiểm độc lập chỉ đọc sau thi công.
 - **Cửa:** Đ1 hai chiều (đổi `HIEN_O_DAT_COC_DOI_TAC` về `true` là ô hiện lại). Đ2 một chiều mềm (dấu chụp trên đơn; đơn đã xác nhận trước ngày áp giữ nguyên; gỡ luật = sửa mã, dấu còn lại vô hại).
-- **Xây trên lỗ đang hở:** HC-5.19 (chưa diễn tập khôi phục; Đ2 có migration mới). Cần chủ cho phép như ADR-0178, ADR-0221; dòng `xay_tren_cho_phep_adr_0225` ở `docs/quyen-hoan.json` chỉ thêm sau khi chủ nói.
+- **Xây trên lỗ đang hở:** HC-5.19 (chưa diễn tập khôi phục; Đ2 có migration mới). Chủ 22/11/2026, nguyên văn mục 1: «Đồng ý khuyến nghị, và bỏ qua việc diễn tập khôi phục dữ liệu - ghi quyết định» — dòng `xay_tren_cho_phep_adr_0225` ở `docs/quyen-hoan.json`.
 - **Quan hệ với ADR cũ:**
   - **Sửa ADR-0197 Đ1** (chủ duyệt 11/11, lời chủ 8/11: «Luôn có chức năng Đặt cọc trên hóa đơn được tạo bởi đối tác…») và **ADR-0159 Đ1 mục 1** ở mức giao diện: form Tạo đơn của tài khoản Đối tác không còn ô đặt cọc. Đây là **đảo ngược** một yêu cầu chủ đã duyệt mười ngày trước.
   - **Giữ** mọi luật máy chủ của ADR-0159/ADR-0197 (lời khai cũ trong nháp, thành khoản thu tiền mặt khi xác nhận, chặn vượt tổng, Đ2 chặn khai lại). Máy chủ vẫn nhận `declaredDeposit` từ tài khoản Đối tác (gửi thẳng lệnh vẫn qua); bỏ hẳn ở máy chủ là việc của một ADR sau.
