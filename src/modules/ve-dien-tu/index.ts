@@ -17,13 +17,14 @@ import { veMoDuocTheoVe } from "../../shared/mo-ve-theo-ve.ts";
 import { CAU_HOP_LE, CAU_QUET, canXacNhanQuet, ketQuaQuet, type VeQuet } from "../../shared/ket-qua-quet.ts";
 import { canVe, choDoiTacNop, thuDu, NHAN_TINH_TRANG_VE, quyetHuyVe, tinhTrangVe } from "./rules.ts";
 import { chuanHoaSoSeri } from "../../shared/so-seri-ve.ts";
+import { docThamSoLo, khopDieuKien } from "../../shared/loc-dich-vu-kho.ts";
 import { sinhMa } from "../../shared/ma-dinh-danh.ts";
 import { DANG_TOKEN, bamToken, hanDuongDan, soSanhHangThoiGian, taoToken, trangVeKhach } from "./duong-dan-khach.ts";
 import { NHAN_NHOM, NHAN_NHOM_LO, soanCapVe, soanTraVe, veDangGiu, type GhiNhatKy, type NhatKyVe } from "./cap-ve.ts";
 import { NGAY_LUU_ANH_LO_HUY, TOI_DA_BYTE_ANH, TOI_DA_DON_XET_CAP_BU, TOI_DA_VE_MOI_DOT, TRAN_LO_MAC_DINH, TRAN_LO_LON_NHAT, tranLoHopLe } from "../../shared/ve-nhap-lo";
 import { datVeVaoKho, donHangChoXoa, type VeChuanBi } from "./kho-tep.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
-import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsLoBoDuoc, dsLoTatCa, type LoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho, cauBoLuotQuet, cauChenLuotQuet, coLuotQuet, demLuotDaTinh, docLuotDaTinh, docLuotQuet, docVeQuet } from "./repository.ts";
+import { bamDaCo, cauBoLo, cauChenLink, cauDemMoLink, cauDoiTranLo, cauRutVeCuaLo, cauThuHoiLink, docCaiDatVe, docHanCuoiCuaDon, docLinkCuaDon, docLinkTheoBam, docLinkTheoId, docVeCuaLink, dsKhoaLoTatCa, dsLoBoDuoc, dsLoTatCa, dsLoTheoId, type LoBoDuoc, dsLoDaHuy, bamDaMo, cauMoAnhVe, docVeLoHuy, maVeDaMo, type LinkKhach, cauChenGiao, cauChenLo, cauChenVe, cauDanhDauLo, conTrongCuaLo, demGiuCuaDon, docChuDon, docTrangThaiDon, docPhanBoDeXem, docPhanBoMoCuaDon, docPhanBoMoKemLo, phanBoConGiu, cauKichHoatLo, cauSuaMaTour, demVeCuaLo, docLo, maVeDaCo, thongKeKho, cauBoLuotQuet, cauChenLuotQuet, coLuotQuet, demLuotDaTinh, docLuotDaTinh, docLuotQuet, docVeQuet } from "./repository.ts";
 
 export { demVeTheoTrangThai } from "./repository.ts";
 import { DAU_LOI_HUY_VE, cauBoLoDaCap, cauChanHuyVe, cauChenSoSeri, cauHuyVe, cauRutVeHangNgoaiSauHuy, cauRutVeHangNgoaiSauHuyLo, tongVeTrongLo, cauHuyVeCuaLo, cauThuHoiPhanBoCuaLo, cauThuHoiPhanBoCuaVe, dieuKienLenhHuyLoThang, docVeDeHuy, docVeQuetTheoSeri, donBiTraSuatCuaLo, loTungCap, soSeriConDungDuoc, veTheoSoSeri, veTrongLo, xemTruocHuyLo, type VeTrongLoRow } from "./repository.ts";
@@ -297,6 +298,8 @@ export const veDienTuModule: AppModule = {
 
     // Các lô còn huỷ được (ADR-0156 Đ2 mục 3): đang dở hoặc đã vào kho nhưng chưa vé nào từng được giữ chỗ. Chỉ nhãn và số đếm, không mã vé, không khoá kho.
     // `?tatCa=1` (ADR-0217 Phần B): thêm cả lô ĐÃ cấp, mỗi lô kèm `daCap`; mặc định giữ nguyên.
+    // Bộ lọc của màn Kho vé (kế hoạch 16 việc 21/11, Việc 4), chỉ đi cùng `tatCa=1`: `ma=` (chỉ các mã) hoặc `boMa=` (trừ các mã — nhóm «Chưa phân loại») và `tim=` (không phân biệt dấu:
+    // tên dịch vụ, mã, tên in trên vé). Lọc TRƯỚC khi chia trang bằng luật chung `khopDieuKien`; nguồn vé được xem giữ nguyên `nguonDuocXem` — bộ lọc chỉ thu hẹp.
     route("GET", "/api/ve/lo", "office", async ({ env, staff, url }) => {
       if (!can(staff, "ve.kho.manage") && !can(staff, "ve.phat-hanh")) return KHONG_QUYEN(); // cửa thô; từng nguồn lọc tiếp bằng nguonDuocXem
       const nguon = nguonDuocXem(staff, true);
@@ -304,12 +307,24 @@ export const veDienTuModule: AppModule = {
       const tatCa = url.searchParams.get("tatCa") === "1";
       const trang = tatCa ? trangHoi(url) : 1;
       if (trang === null) return TRANG_SAI();
-      const lay: (LoBoDuoc & { da_cap?: number })[] = tatCa ? await dsLoTatCa(env.DB, DONG_MOI_TRANG + 1, nguon, (trang - 1) * DONG_MOI_TRANG) : await dsLoBoDuoc(env.DB, TOI_DA_DS_LO, nguon);
+      const loc = tatCa ? docThamSoLo(url.searchParams) : null;
+      if (loc === "sai") return error(400, "invalid_input", "Bộ lọc không đúng: mã dịch vụ sai dạng hoặc chữ tìm quá dài. Tải lại trang rồi lọc lại.");
+      let lay: (LoBoDuoc & { da_cap?: number })[];
+      let tenLoc: Map<string, { name: string }> | null = null;
+      if (loc) {
+        const khoa = await dsKhoaLoTatCa(env.DB, nguon);
+        tenLoc = await getEffectiveServices(env.DB, [...new Set(khoa.map((k) => k.catalog_code))]);
+        const ten = tenLoc;
+        const khop = khoa.filter((k) => khopDieuKien({ ma: k.catalog_code, chu: [ten.get(k.catalog_code)?.name, k.printed_name] }, loc));
+        lay = await dsLoTheoId(env.DB, khop.slice((trang - 1) * DONG_MOI_TRANG, trang * DONG_MOI_TRANG + 1).map((k) => k.id), nguon);
+      } else {
+        lay = tatCa ? await dsLoTatCa(env.DB, DONG_MOI_TRANG + 1, nguon, (trang - 1) * DONG_MOI_TRANG) : await dsLoBoDuoc(env.DB, TOI_DA_DS_LO, nguon);
+      }
       const coTrangSau = tatCa && lay.length > DONG_MOI_TRANG;
       const ds = tatCa ? lay.slice(0, DONG_MOI_TRANG) : lay;
-      const ten = await getEffectiveServices(env.DB, [...new Set(ds.map((d) => d.catalog_code))]);
+      const ten = tenLoc ?? (await getEffectiveServices(env.DB, [...new Set(ds.map((d) => d.catalog_code))]));
       return json({
-        lo: ds.map((d) => ({ loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, nguon: d.source, trangThai: d.status, soVe: d.so_ve, taoLuc: d.created_at, ...(tatCa ? { daCap: d.da_cap === 1 } : {}) })),
+        lo: ds.map((d) => ({ loId: d.id, catalogCode: d.catalog_code, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, nguon: d.source, trangThai: d.status, soVe: d.so_ve, taoLuc: d.created_at, ...(tatCa ? { daCap: d.da_cap === 1 } : {}) })),
         ...(tatCa ? { trang, coTrangSau } : {}),
       });
     }),
@@ -322,10 +337,10 @@ export const veDienTuModule: AppModule = {
       const dong = await dsLoDaHuy(env.DB, mocLoHuy(), TOI_DA_DS_LO, nguon);
       const ten = await getEffectiveServices(env.DB, [...new Set(dong.map((d) => d.catalog_code))]);
       const nguoi = await nhanNhanVien([...new Set(dong.flatMap((d) => (d.huy_boi ? [d.huy_boi] : [])))]);
-      const lo = new Map<string, { loId: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: { veId: string; duoiMa: string; tuNgay: string; denNgay: string; trangThaiAnh: "CHUA_MO" | "DA_MO" | "DA_NHAP_LAI" | "HET_ANH" }[] }>();
+      const lo = new Map<string, { loId: string; catalogCode: string; tenDichVu: string | null; nhomKhach: string; tenSanPham: string; huyLuc: string; huyBoi: string | null; ve: { veId: string; duoiMa: string; tuNgay: string; denNgay: string; trangThaiAnh: "CHUA_MO" | "DA_MO" | "DA_NHAP_LAI" | "HET_ANH" }[] }>();
       for (const d of dong) {
         let l = lo.get(d.id);
-        if (!l) lo.set(d.id, (l = { loId: d.id, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, huyLuc: d.huy_luc, huyBoi: (d.huy_boi && nguoi?.get(d.huy_boi)) || null, ve: [] }));
+        if (!l) lo.set(d.id, (l = { loId: d.id, catalogCode: d.catalog_code, tenDichVu: ten.get(d.catalog_code)?.name ?? null, nhomKhach: d.pax_group, tenSanPham: d.printed_name, huyLuc: d.huy_luc, huyBoi: (d.huy_boi && nguoi?.get(d.huy_boi)) || null, ve: [] }));
         l.ve.push({ veId: d.ve_id, duoiMa: d.duoi_ma, tuNgay: d.valid_from, denNgay: d.valid_to, trangThaiAnh: d.r2_deleted_at ? "HET_ANH" : d.opened_at ? "DA_MO" : d.da_nhap_lai ? "DA_NHAP_LAI" : "CHUA_MO" });
       }
       return json({ hanLuuNgay: NGAY_LUU_ANH_LO_HUY, lo: [...lo.values()] });
