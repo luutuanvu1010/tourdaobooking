@@ -17,6 +17,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Ô tệp phiếu đăng ký theo vai, «Tệp khác», 12 tệp mỗi phiếu (ADR-0233, kế hoạch 16 việc Việc 14). Nhánh claude/objective-euclid-6c8a85. CÓ migration 0191.
+    // SỐ TẠM 3.28 (3.27 là sửa tệp giữ chỗ dải, đã ở main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.28",
+    date: "2026-11-22",
+    items: [
+      { kind: "doi", text: "Đăng ký làm đối tác: các ô gửi ảnh giấy tờ hiện theo vai người đăng ký chọn. Mỗi phiếu nay gửi được tối đa 12 tệp (trước là 8)." },
+      { kind: "moi", text: "Đăng ký làm đối tác: thêm ô «Tệp khác» để gửi kèm giấy tờ ngoài danh sách." },
+      { kind: "moi", text: "Ô «Tệp khác» chỉ hiện khi Toàn quyền đăng chính sách riêng tư mới có tích «Bản này nêu việc thu tệp khác»." },
+      { kind: "doi", text: "Đăng ký làm đối tác: chọn tệp Word thì Nền tảng báo ngay dưới ô «Tệp Word: hãy lưu thành PDF rồi gửi.»" },
+    ],
+  },
+  {
     // Tệp đầu trang web/giu-cho-dai.ts không ném khi lệnh đọc / ghi sessionStorage bị chặn (kịch bản chip-nhom-smoke bước 12). Nhánh claude/recursing-mahavira-be4522.
     // Không migration. SỐ TẠM 3.27 (3.26 là Việc 4 Kho vé, đã nhập main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.27",
