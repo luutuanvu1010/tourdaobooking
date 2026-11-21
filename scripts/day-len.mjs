@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // `npm run day-len [-- <nhánh>]` — CHỦ DỰ ÁN tự gõ trong terminal (AI không được chạy: CLAUDE.md §8, hook guard-remote chặn).
 // Gộp tiến thẳng <nhánh> vào main (nếu có), HỎI HẾT ngay đầu (lý do đổi luật / quy trình kiểm, tóm tắt, câu c/x/k — ADR-0215), đẩy đúng commit lên nhánh
-// chờ kiểm `cho-kiem/<mã>`, chờ GitHub kiểm đủ bộ (ADR-0179), ghi bản ghi kết luận vào .git/tourdao-kiem/, rồi `git push origin main`.
+// chờ kiểm `cho-kiem/<mã>`, chờ GitHub kiểm đủ bộ (ADR-0179), ghi bản ghi kết luận vào .git/tourdao-kiem/, rồi đẩy ĐÚNG mã đã kiểm lên main
+// (`git push origin <mã>:refs/heads/main`, không theo tên `main` — sự cố 2026-11-21: hai lệnh nhập chồng nhau).
 // Chọn `c`: lệnh tự chạy tới khi xong, giữ máy thức (caffeinate) và báo bằng thông báo macOS. Đặc tả: docs/superpowers/specs/2026-11-16-kiem-nhanh-a-b.md.
 // Logic: scripts/release-lib.mjs.
 import { spawn } from "node:child_process";

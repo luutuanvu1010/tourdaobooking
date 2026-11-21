@@ -8,6 +8,9 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 
 type RunResult = { code: number; stdout: string; stderr: string };
+/** Một dòng kịch bản: kết quả cố định, chuỗi kết quả cho các lần gọi liên tiếp, hoặc HÀM tính kết quả lúc gọi (kho giả có trạng thái — ca `main` trên máy đổi giữa chừng). */
+type Buoc = RunResult | RunResult[] | (() => RunResult);
+type KichBan = Record<string, Buoc>;
 type RunOpts = { env?: Record<string, string>; stream?: boolean; tee?: boolean };
 type Kho = { docBanGhi: (sha: string) => Promise<any>; ghiBanGhi: (sha: string, b: any) => Promise<void>; taiKetQua: (id: number) => Promise<any> };
 type Deps = {
@@ -22,6 +25,7 @@ type Lib = {
   parseBookmark: (out: string) => string | null;
   parseVersionId: (out: string) => string | null;
   dayLen: (deps: Deps & { target?: string; now?: () => Date; sleep?: (ms: number) => Promise<void>; thongBao?: (tieuDe: string, noiDung: string) => void; giuThuc?: () => void }) => Promise<number>;
+  lenhQuayVe: (oldMain: string, sha: string) => string[];
   CAU_CHON_DAY_LEN: string;
   SO_LAN_DOC_LOI_TOI_DA: number;
   trienKhai: (deps: Deps & { now?: () => Date; sleep?: (ms: number) => Promise<void>; version?: string; docMocTinDoi?: () => Promise<string>; docCacKho?: () => Promise<{ binding: string; ten: string }[] | null> }) => Promise<number>;
@@ -77,7 +81,7 @@ function khoGia(banGhi: Record<string, any> = { [HEAD]: BAN_GHI_XANH }, ketQua: 
 }
 
 /** Bộ chạy lệnh giả: kịch bản = bảng "chuỗi lệnh → kết quả"; lệnh lạ → ném lỗi (không cho lọt lệnh chưa lường). */
-function harness(script: Record<string, RunResult | RunResult[]>, answers: string[] = [], isTTY = true, kho: Kho = khoGia().kho) {
+function harness(script: KichBan, answers: string[] = [], isTTY = true, kho: Kho = khoGia().kho) {
   const calls: string[] = [];
   const lines: string[] = [];
   const questions: string[] = [];
@@ -94,8 +98,8 @@ function harness(script: Record<string, RunResult | RunResult[]>, answers: strin
       const k = key(cmd, args, opts);
       calls.push(k);
       const v = script[k];
-      // Mảng = chuỗi kết quả cho các lần gọi liên tiếp (ca thử lại); phần tử cuối dùng cho mọi lần sau.
-      const r = Array.isArray(v) ? (v.length > 1 ? v.shift() : v[0]) : v;
+      // Mảng = chuỗi kết quả cho các lần gọi liên tiếp (ca thử lại); phần tử cuối dùng cho mọi lần sau. Hàm = tính kết quả lúc gọi (kho giả có trạng thái).
+      const r = typeof v === "function" ? v() : Array.isArray(v) ? (v.length > 1 ? v.shift() : v[0]) : v;
       if (!r) throw new Error(`lệnh ngoài kịch bản: ${k}`);
       return r;
     },
@@ -104,9 +108,16 @@ function harness(script: Record<string, RunResult | RunResult[]>, answers: strin
 }
 
 // Đẩy nhánh chờ kiểm `cho-kiem/<sha>` (ADR-0179 Đ2.1) là bước BÌNH THƯỜNG trước câu c/k — không tính là nguy hiểm; đẩy main / deploy / áp migration thì có.
-const DANGEROUS = /(?:^|\s)(?:git push origin main|wrangler deploy|migrations apply)(?:\s|$)|--force|(?:^|\s)-f(?:\s|$)/;
+/**
+ * Lời gọi này có đẩy lên `main` của GitHub không: MỌI `git push` trừ lần đẩy phụ lên nhánh chờ kiểm. Nhận cả kiểu theo TÊN (`git push origin main`) lẫn kiểu theo
+ * MÃ (`git push origin <mã>:refs/heads/main` — cách duy nhất day-len dùng từ 2026-11-21). Mọi câu «KHÔNG đẩy main» của tệp này đi qua đây, để chúng không thành
+ * câu luôn đúng khi cách viết lệnh đẩy đổi (bài «bộ kiểm: phép nhận đẩy main» khoá chính phép này).
+ */
+const laDayMain = (c: string) => /^git push(?:\s|$)/.test(c) && !/:refs\/heads\/cho-kiem\//.test(c);
+const daDayMain = (calls: string[]) => calls.some(laDayMain);
+const DANGEROUS = /(?:^|\s)(?:wrangler deploy|migrations apply)(?:\s|$)|--force|(?:^|\s)-f(?:\s|$)/;
 function assertNothingDangerous(calls: string[]) {
-  const bad = calls.filter((c) => DANGEROUS.test(c) || /git reset|git merge(?![-\w])(?! --ff-only)/.test(c));
+  const bad = calls.filter((c) => laDayMain(c) || DANGEROUS.test(c) || /git reset|git merge(?![-\w])(?! --ff-only)/.test(c));
   assert.deepEqual(bad, [], `không được gọi lệnh nguy hiểm trên đường từ chối: ${bad.join(" | ")}`);
 }
 
@@ -157,12 +168,20 @@ const { TEP_DIEU_KHIEN } = (await import(new URL("../scripts/kiem-phan.mjs", imp
 const OLD = "a".repeat(40);
 const NEW = "b".repeat(40);
 const GOC = "e".repeat(40);
+/** Mã `main` trên máy SAU KHI một lệnh nhập khác nối thẳng thêm vào (chứa NEW, cộng phần chưa kiểm của lệnh kia) — sự cố 2026-11-21. */
+const CUA_LENH_KHAC = "f".repeat(40);
 const R = "luutuanvu1010/tourdaobooking";
 const RUN_FIELDS = "databaseId,headSha,status,conclusion,url,attempt,event,createdAt,updatedAt";
 const RUNLIST = (sha: string) => `gh run list -R ${R} --workflow kiem.yml --commit ${sha} --limit 20 --json ${RUN_FIELDS}`;
 const RUNVIEW = (id: number) => `gh run view ${id} -R ${R} --json ${RUN_FIELDS},jobs`;
 const RERUN = (id: number) => `gh run rerun ${id} -R ${R} --failed`;
 const PUSH_CHO = `git push origin ${NEW}:refs/heads/cho-kiem/${NEW}`;
+/** Lần đẩy `main`: ĐÚNG mã đã kiểm, viết theo MÃ — không bao giờ theo tên `main` (tên `main` trên máy có thể đã bị lệnh nhập khác nối lên mã chưa kiểm). */
+const PUSH_MAIN = `git push origin ${NEW}:refs/heads/main`;
+/** Đọc lại `main` ngay trước khi đẩy (chỉ đọc): `main` trên máy còn ở chỗ lệnh này để lại không. */
+const DOC_LAI_MAIN = "git rev-parse main";
+/** Lệnh git lỗi thật (khác mã 1 của `merge-base --is-ancestor` = «không phải tổ tiên»). */
+const LOI_GIT: RunResult = { code: 128, stdout: "", stderr: "fatal: lỗi giả" };
 const CTRL_DIFF = `git diff --name-only --no-renames origin/main main -- ${TEP_DIEU_KHIEN.filter((t) => t !== "package.json").join(" ")}`;
 /** 2.1 (kế hoạch 2026-11-15): tệp LUẬT (CLAUDE.md, .claude/, playbook/, docs/adr/) đổi giữa origin/main và main — khối riêng, khác "đổi quy trình kiểm". */
 const LUAT_DIFF = `git diff --name-only --no-renames origin/main main -- ${(lib.TEP_LUAT ?? ["(chưa có TEP_LUAT)"]).join(" ")}`;
@@ -174,8 +193,11 @@ const LUOT_GOC = { databaseId: 4100, headSha: GOC, status: "completed", conclusi
 const DUNG_HONG = { "gh run list": 0 };
 void DUNG_HONG;
 
-/** Kịch bản day-len mà mọi bước đều đạt; từng ca sửa đúng một dòng. `coNhanh` = có tên nhánh (git rev-parse main gọi hai lần: mã cũ, rồi mã mới). */
-function dayLenScript(over: Record<string, RunResult | RunResult[]> = {}, coNhanh = true): Record<string, RunResult | RunResult[]> {
+/**
+ * Kịch bản day-len mà mọi bước đều đạt; từng ca sửa đúng một dòng. `coNhanh` = có tên nhánh (git rev-parse main: mã cũ trước khi gộp, rồi mã mới ngay sau khi
+ * gộp; lần đọc lại trước khi đẩy vẫn trả mã mới = `main` trên máy không đổi). KHÔNG có dòng `git push origin main`: đẩy theo tên là lệnh ngoài kịch bản ⇒ ném lỗi.
+ */
+function dayLenScript(over: KichBan = {}, coNhanh = true): KichBan {
   return {
     "git rev-parse --abbrev-ref HEAD": out("main\n"),
     "git status --porcelain": out(""),
@@ -197,7 +219,7 @@ function dayLenScript(over: Record<string, RunResult | RunResult[]> = {}, coNhan
     [RUNLIST(NEW)]: out(JSON.stringify([luot()])),
     [RUNVIEW(4242)]: viewOf(),
     [RUNLIST(GOC)]: out(JSON.stringify([LUOT_GOC])),
-    "git push origin main": OK,
+    [PUSH_MAIN]: OK,
     "git log -1 --oneline --no-decorate origin/main": out("b1 Thêm Face ID\n"),
     ...over,
   };
@@ -210,10 +232,11 @@ const DAYLEN_HAPPY = [
   "git merge-base --is-ancestor main worktree-x",
   "git rev-parse main",
   "git merge --ff-only worktree-x",
+  // Mã `main` NGAY SAU khi gộp = mã đem đi kiểm, và là mã DUY NHẤT lệnh này được đẩy lên `main` trên GitHub.
+  "git rev-parse main",
   "git rev-list --count origin/main..main",
   "git log --oneline --no-decorate origin/main..main",
   "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/",
-  "git rev-parse main",
   "git rev-parse origin/main",
   CTRL_DIFF,
   "git show origin/main:package.json",
@@ -224,7 +247,8 @@ const DAYLEN_HAPPY = [
   RUNLIST(NEW),
   RUNVIEW(4242),
   RUNLIST(GOC),
-  "git push origin main",
+  DOC_LAI_MAIN,
+  PUSH_MAIN,
   "git log -1 --oneline --no-decorate origin/main",
 ];
 /** Đồng hồ giả: sleep(ms) làm đồng hồ tiến đúng ms (để thử hết giờ chờ mà không chờ thật). */
@@ -233,7 +257,7 @@ function dongHoGia(batDau = Date.parse("2026-09-23T02:00:00Z")) {
   const waits: number[] = [];
   return { now: () => new Date(t), sleep: async (ms: number) => void (waits.push(ms), (t += ms)), waits, tien: (ms: number) => void (t += ms) };
 }
-function dl(script: Record<string, RunResult | RunResult[]>, answers: string[] = [], { tty = true, ketQua = { 4242: TONG(), 4100: TONG() } as Record<number, any> } = {}) {
+function dl(script: KichBan, answers: string[] = [], { tty = true, ketQua = { 4242: TONG(), 4100: TONG() } as Record<number, any> } = {}) {
   const k = khoGia({}, ketQua);
   const h = harness(script, answers, tty, k.kho);
   const d = dongHoGia();
@@ -246,7 +270,9 @@ test("day-len (ADR-0179 Đ2.1): mọi thứ đạt + c → đẩy cho-kiem/<sha>
   assert.deepEqual(h.calls, DAYLEN_HAPPY);
   assert.ok(!h.calls.some((c) => /--force|(?:^|\s)-f(?:\s|$)/.test(c)));
   assert.ok(!h.calls.some((c) => /^npm (test|run typecheck)$/.test(c)), "không còn chạy npm test / typecheck ở máy (Đ1.5)");
-  assert.ok(h.calls.indexOf(PUSH_CHO) < h.calls.indexOf("git push origin main"));
+  assert.ok(h.calls.includes(PUSH_MAIN) && h.calls.indexOf(PUSH_CHO) < h.calls.indexOf(PUSH_MAIN));
+  assert.deepEqual(h.calls.filter(laDayMain), [PUSH_MAIN], "đẩy `main` đúng MỘT lần, theo đúng mã đã kiểm — không theo tên `main`");
+  assert.ok(!h.calls.some((c) => /^git push\b.*\s\+/.test(c)), "không dấu `+` (ép ghi đè) trong lệnh đẩy");
   assert.match(h.text(), /0023_auth_passkey\.sql/);
   assert.match(h.text(), /PHẢI áp các migration này trước; dùng `npm run trien-khai`/);
   assert.match(h.text(), /2 commit/);
@@ -282,7 +308,7 @@ test("day-len: không có commit nào để đẩy → dừng êm, không hỏi,
   assert.deepEqual(h.questions, []);
 });
 
-const DAYLEN_REFUSALS: { name: string; over?: Record<string, RunResult | RunResult[]>; answers?: string[]; tty?: boolean; reason: RegExp; lastCall?: string; khongDayPhu?: boolean }[] = [
+const DAYLEN_REFUSALS: { name: string; over?: KichBan; answers?: string[]; tty?: boolean; reason: RegExp; lastCall?: string; khongDayPhu?: boolean }[] = [
   { name: "không có TTY", tty: false, reason: /terminal thật/ },
   { name: "không ở main", over: { "git rev-parse --abbrev-ref HEAD": out("worktree-x\n") }, reason: /nhánh `main`/, lastCall: "git rev-parse --abbrev-ref HEAD" },
   { name: "cây bẩn", over: { "git status --porcelain": out(" M src/index.ts\n") }, reason: /chưa commit/, lastCall: "git status --porcelain" },
@@ -321,7 +347,21 @@ const DAYLEN_REFUSALS: { name: string; over?: Record<string, RunResult | RunResu
   { name: "chọn c + đỏ, tự chạy lại một lần vẫn đỏ", over: { [RUNVIEW(4242)]: [viewOf({ conclusion: "failure" }), viewOf({ conclusion: "failure", attempt: 2 })], [RERUN(4242)]: OK }, answers: ["c"], reason: /vẫn ĐỎ sau một lần tự chạy lại/ },
   { name: "chọn c + đỏ, tự chạy lại lỗi", over: { [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }), [RERUN(4242)]: FAIL }, answers: ["c"], reason: /gh run rerun/, lastCall: RERUN(4242) },
   { name: "đổi quy trình kiểm mà không gõ lý do", over: { [CTRL_DIFF]: out(".github/workflows/kiem.yml\n"), "git diff --stat origin/main main -- .github/workflows/kiem.yml": out(" kiem.yml | 2 +-\n") }, answers: [""], reason: /không có lý do đổi quy trình kiểm/ },
+  // Sự cố 2026-11-21 — mọi lệnh đọc quanh bước đẩy mà lỗi thì DỪNG, không đoán `main` trên máy còn ở chỗ cũ.
+  { name: "không đọc được mã `main` ngay sau khi gộp", over: { "git rev-parse main": [out(`${OLD}\n`), FAIL] }, reason: /không đọc được mã commit của `main`/, lastCall: "git rev-parse main", khongDayPhu: true },
+  { name: "đọc lại `main` ngay trước khi đẩy lỗi", over: { "git rev-parse main": [out(`${OLD}\n`), out(`${NEW}\n`), FAIL] }, answers: ["c"], reason: /không đọc lại được mã của `main` trên máy/, lastCall: DOC_LAI_MAIN },
+  { name: "`main` trên máy đã khác mà không so được với mã đã kiểm (git lỗi)", over: { "git rev-parse main": [out(`${OLD}\n`), out(`${NEW}\n`), out(`${CUA_LENH_KHAC}\n`)], [`git merge-base --is-ancestor ${NEW} ${CUA_LENH_KHAC}`]: LOI_GIT }, answers: ["c"], reason: /không so được `main` trên máy với mã đã kiểm/, lastCall: `git merge-base --is-ancestor ${NEW} ${CUA_LENH_KHAC}` },
+  {
+    name: "`main` trên máy đi trước mà không so được mã đã kiểm với `origin/main` (git lỗi)",
+    over: { "git rev-parse main": [out(`${OLD}\n`), out(`${NEW}\n`), out(`${CUA_LENH_KHAC}\n`)], [`git merge-base --is-ancestor ${NEW} ${CUA_LENH_KHAC}`]: OK, [`git merge-base --is-ancestor ${NEW} origin/main`]: LOI_GIT },
+    answers: ["c"],
+    reason: /không so được mã đã kiểm với `origin\/main`/,
+    lastCall: `git merge-base --is-ancestor ${NEW} origin/main`,
+  },
 ];
+
+/** Dòng lệnh quay về mà day-len in cho ca thử chuẩn (mã cũ OLD, mã lệnh này để lại NEW) — lấy từ CHÍNH hàm của lib; bài «lệnh quay về là MỘT dòng tự kiểm» khoá hình dạng dòng đó. */
+const DONG_QUAY_VE = lib.lenhQuayVe?.(OLD, NEW)?.[1] ?? "(lib chưa có lenhQuayVe)";
 
 for (const c of DAYLEN_REFUSALS) {
   test(`day-len (tiêu chí 1): từ chối và KHÔNG đẩy main khi ${c.name}`, async () => {
@@ -329,20 +369,35 @@ for (const c of DAYLEN_REFUSALS) {
     const code = await lib.dayLen({ ...h.deps, target: "worktree-x" });
     assert.notEqual(code, 0);
     assertNothingDangerous(h.calls);
-    assert.ok(!h.calls.includes("git push origin main"));
+    assert.ok(!daDayMain(h.calls));
     assert.equal(h.daGhi.length, 0, "không ghi bản ghi kết luận khi không đẩy");
     assert.match(h.text(), c.reason);
     if (c.tty === false) assert.deepEqual(h.calls, [], "ngoài TTY: không được gọi lệnh nào");
     if (c.lastCall) assert.equal(h.calls.at(-1), c.lastCall, "phải dừng NGAY ở bước hỏng");
     if (c.khongDayPhu) assert.ok(!h.calls.includes(PUSH_CHO), "hỏng trước bước đẩy phụ ⇒ không đẩy gì lên GitHub");
+    // Sự cố 2026-11-21: mọi lối dừng, hễ in lệnh quay `main` về chỗ cũ thì phải là dòng TỰ KIỂM — không còn `git reset --hard` trần.
+    for (const l of h.lines.filter((x) => x.includes("git reset"))) assert.equal(l, DONG_QUAY_VE, "lệnh quay về phải tự kiểm `main` còn ở đúng mã lệnh này để lại");
   });
 }
 
-test("day-len: đã gộp rồi mà lượt kiểm đỏ / trả lời k → in lệnh quay main về chỗ cũ, KHÔNG tự chạy", async () => {
+test("day-len (sự cố 21/11): lệnh quay về là MỘT dòng tự kiểm — đang ở `main` VÀ `main` còn đúng mã lệnh này để lại thì mới `git reset --hard`, không thì in DỪNG", () => {
+  const dong = lib.lenhQuayVe(OLD, NEW);
+  assert.equal(dong.length, 2, "một dòng lời + một dòng lệnh");
+  assert.match(dong[0]!, /CHƯA đẩy/);
+  assert.match(dong[0]!, /KHÔNG tự chạy/);
+  assert.equal(dong[1], `  test "$(git rev-parse --abbrev-ref HEAD) $(git rev-parse HEAD)" = "main ${NEW}" && git reset --hard ${OLD} || echo "DỪNG: chưa quay về. main trên máy không còn ở chỗ lệnh này để lại, có thể đã có phần của lệnh nhập khác. Hỏi người phụ trách kỹ thuật"`);
+  // Một dòng trơn chép-dán được trong zsh: không `!` (mở rộng lịch sử), không `#` (zsh tương tác không coi là chú thích), không dấu huyền, không xuống dòng.
+  assert.doesNotMatch(dong[1]!, /[!#`\n]/);
+  // Phép kiểm đứng TRƯỚC lệnh quay, nối bằng `&&`: phép kiểm sai thì `git reset` không chạy.
+  assert.ok(dong[1]!.indexOf(`= "main ${NEW}" && git reset --hard`) > 0);
+});
+
+test("day-len: đã gộp rồi mà lượt kiểm đỏ / trả lời k → in lệnh quay main về chỗ cũ (dòng tự kiểm), KHÔNG tự chạy", async () => {
   for (const [over, answers] of [[{ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }, ["x", "d"]], [{}, ["k"]], [{ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }), [RERUN(4242)]: OK }, ["c"]]] as const) {
     const h = dl(dayLenScript(over), [...answers]);
     assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
     assert.ok(h.text().includes(`git reset --hard ${OLD}`), "phải in lệnh quay lại");
+    assert.deepEqual(h.lines.filter((l) => l.includes("git reset")), [DONG_QUAY_VE], "đúng MỘT dòng quay về, và là dòng tự kiểm");
     assert.ok(!h.calls.some((c) => c.startsWith("git reset")), "không được tự chạy git reset");
   }
 });
@@ -355,10 +410,15 @@ test("day-len: tên nhánh dạng tuỳ chọn (bắt đầu bằng '-') hoặc 
   }
 });
 
-test("day-len: push main lỗi → thoát khác 0, báo rõ", async () => {
-  const h = dl(dayLenScript({ "git push origin main": FAIL }), ["c"]);
+test("day-len: push main lỗi → thoát khác 0, báo rõ GitHub CHƯA nhận, chỉ cách chạy lại; không thử đẩy lần hai, không đẩy theo tên", async () => {
+  const h = dlTuDong(dayLenScript({ [PUSH_MAIN]: FAIL }), ["c"]);
   assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
-  assert.match(h.text(), /git push origin main/);
+  assert.match(h.text(), /đẩy bản đã kiểm lên `main` trên GitHub lỗi — GitHub CHƯA nhận/);
+  assert.match(h.text(), /chạy lại `npm run day-len`/);
+  assert.deepEqual(h.calls.filter(laDayMain), [PUSH_MAIN], "đúng một lần đẩy, không thử lại bằng cách khác");
+  assert.equal(h.calls.at(-1), PUSH_MAIN);
+  assert.equal(h.thongBao.length, 1);
+  assert.match(h.thongBao[0]![0], /CHƯA đẩy/);
 });
 
 test("day-len: lượt kiểm chưa hiện / đang chạy → chờ (sleep), in tiến độ từng phần, nhận khi xong; chỉ nhận lượt có head_sha đúng", async () => {
@@ -381,7 +441,7 @@ test("day-len: `gh run view` / `gh run list` lỗi thoáng qua (dưới trần l
   assert.equal(h.calls.filter((c) => c === RUNLIST(NEW)).length, 2);
   assert.equal(h.calls.filter((c) => c === RUNVIEW(4242)).length, 4);
   assert.equal(h.waits.length, 4, "mỗi lần đọc lỗi chờ đúng một nhịp trước khi hỏi lại");
-  assert.ok(h.calls.includes("git push origin main"));
+  assert.ok(h.calls.includes(PUSH_MAIN));
   assert.match(h.text(), /hỏi lại/);
 });
 
@@ -390,12 +450,12 @@ test("day-len: `gh run view` lỗi liền nhau quá trần → DỪNG, không đ
   assert.notEqual(await lib.dayLen({ ...h1.deps, target: "worktree-x" }), 0);
   assert.match(h1.text(), /không đọc được lượt kiểm 4242/);
   assert.equal(h1.calls.filter((c) => c === RUNVIEW(4242)).length, lib.SO_LAN_DOC_LOI_TOI_DA + 1);
-  assert.ok(!h1.calls.includes("git push origin main"));
+  assert.ok(!daDayMain(h1.calls));
   const h2 = dl(dayLenScript({ [RUNLIST(NEW)]: FAIL }), ["c"]);
   assert.notEqual(await lib.dayLen({ ...h2.deps, target: "worktree-x" }), 0);
   assert.match(h2.text(), /gh run list/);
   assert.equal(h2.calls.filter((c) => c === RUNLIST(NEW)).length, lib.SO_LAN_DOC_LOI_TOI_DA + 1);
-  assert.ok(!h2.calls.includes("git push origin main"));
+  assert.ok(!daDayMain(h2.calls));
   const dangChay = viewOf({ status: "in_progress", conclusion: "" });
   const h3 = dl(dayLenScript({ [RUNVIEW(4242)]: [FAIL, FAIL, FAIL, dangChay, FAIL, FAIL, FAIL, viewOf()] }), ["c"]);
   assert.equal(await lib.dayLen({ ...h3.deps, target: "worktree-x" }), 0, "đếm lỗi LIỀN NHAU, không cộng dồn cả lượt");
@@ -405,11 +465,11 @@ test("day-len: GitHub không có lượt kiểm sau 5 phút / lượt chạy qu�
   const h1 = dl(dayLenScript({ [RUNLIST(NEW)]: out("[]") }), ["c"]);
   assert.notEqual(await lib.dayLen({ ...h1.deps, target: "worktree-x" }), 0);
   assert.match(h1.text(), /chưa có lượt kiểm/);
-  assert.ok(!h1.calls.includes("git push origin main"));
+  assert.ok(!daDayMain(h1.calls));
   const h2 = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ status: "in_progress", conclusion: "" }) }), ["x"]);
   assert.notEqual(await lib.dayLen({ ...h2.deps, target: "worktree-x" }), 0);
   assert.match(h2.text(), /chưa xong/);
-  assert.ok(!h2.calls.includes("git push origin main"));
+  assert.ok(!daDayMain(h2.calls));
 });
 
 test("day-len (Đ3.1): lượt kiểm đỏ → nêu TÊN bài đỏ (từ tệp gom), hỏi r/d/q", async () => {
@@ -429,7 +489,7 @@ test("day-len (Đ3.1): đỏ mà không đọc được tệp gom → nêu tên 
 test("day-len (Đ3.1): đỏ + cho qua có lý do → bản ghi ghi lý do, tên bài đỏ; vẫn hỏi c/k rồi mới đẩy main", async () => {
   const h = dl(dayLenScript({ [RUNVIEW(4242)]: viewOf({ conclusion: "failure" }) }), ["x", "q", "giá Sheet thật vừa đổi", "c"], { ketQua: { 4242: { ...TONG(), ok: false, baiDo: ["e2e catalog"] }, 4100: TONG() } });
   assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
-  assert.ok(h.calls.includes("git push origin main"));
+  assert.ok(h.calls.includes(PUSH_MAIN));
   const b = h.daGhi[0]!.banGhi;
   assert.equal(b.ketQua, "do");
   assert.equal(b.choQua.lyDo, "giá Sheet thật vừa đổi");
@@ -449,7 +509,7 @@ test("day-len (Đ3.1): đỏ + chạy lại phần đỏ (r) → gh run rerun --
 });
 
 // ─── ADR-0215 Đ2: chọn `c` ⇒ chủ rời máy được; lệnh tự chạy tới khi xong ───
-function dlTuDong(script: Record<string, RunResult | RunResult[]>, answers: string[] = ["c"], opts: { ketQua?: Record<number, any> } = {}) {
+function dlTuDong(script: KichBan, answers: string[] = ["c"], opts: { ketQua?: Record<number, any> } = {}) {
   const h = dl(script, answers, opts);
   const thongBao: [string, string][] = [];
   let giuThuc = 0;
@@ -459,7 +519,7 @@ function dlTuDong(script: Record<string, RunResult | RunResult[]>, answers: stri
 test("day-len (ADR-0215 Đ2): chọn c + xanh → giữ máy thức, tự đẩy main, thông báo «ĐÃ đẩy»; không hỏi câu nào sau câu chọn", async () => {
   const h = dlTuDong(dayLenScript());
   assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
-  assert.ok(h.calls.includes("git push origin main"));
+  assert.ok(h.calls.includes(PUSH_MAIN));
   assert.deepEqual(h.questions, [lib.CAU_CHON_DAY_LEN]);
   assert.equal(h.demGiuThuc(), 1, "giữ máy thức đúng một lần, ngay sau câu chọn");
   assert.equal(h.thongBao.length, 1);
@@ -493,7 +553,7 @@ test("day-len (ADR-0215 Đ2.3): chọn c + vẫn đỏ sau một lần chạy l�
   const h = dlTuDong(dayLenScript({ [RUNVIEW(4242)]: [viewOf({ conclusion: "failure" }), viewOf({ conclusion: "failure", attempt: 2 })], [RERUN(4242)]: OK }));
   assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
   assert.equal(h.calls.filter((c) => c === RERUN(4242)).length, 1);
-  assert.ok(!h.calls.includes("git push origin main"));
+  assert.ok(!daDayMain(h.calls));
   assert.equal(h.thongBao.length, 1);
   assert.match(h.thongBao[0]![0], /CHƯA đẩy/);
   assert.match(h.thongBao[0]![1], /vẫn ĐỎ/);
@@ -503,7 +563,7 @@ test("day-len (ADR-0215 Đ2.4): chọn c + lượt kiểm nhận được cũ h�
   const cu = { [RUNVIEW(4242)]: viewOf({ updatedAt: "2026-09-21T02:00:00Z" }) };
   const h = dlTuDong(dayLenScript(cu));
   assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
-  assert.ok(!h.calls.includes("git push origin main"));
+  assert.ok(!daDayMain(h.calls));
   assert.match(h.text(), /cũ hơn 24 giờ — không tự đẩy/);
   assert.equal(h.thongBao.length, 1);
   const h2 = dlTuDong(dayLenScript(cu), ["x", "c"]);
@@ -533,7 +593,7 @@ test("day-len (ADR-0215 Đ2.4): chọn c mà tải tệp gom LỖI (ném lỗi) 
   const d = dongHoGia();
   const tb: string[] = [];
   assert.notEqual(await lib.dayLen({ ...h.deps, now: d.now, sleep: d.sleep, thongBao: (a: string) => void tb.push(a), target: "worktree-x" }), 0);
-  assert.ok(!h.calls.includes("git push origin main"));
+  assert.ok(!daDayMain(h.calls));
   assert.match(h.text(), /không đọc được số tệp/);
   assert.equal(tb.length, 1);
 });
@@ -626,7 +686,7 @@ test("day-len (Đ2.3): số tệp / bài / kịch bản giảm, số bài bỏ q
     const h = dl(dayLenScript(over), ["x", ""], { ketQua });
     assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0, `${ten}: không lý do ⇒ dừng`);
     assert.match(h.text(), re, ten);
-    assert.ok(!h.calls.includes("git push origin main"), ten);
+    assert.ok(!daDayMain(h.calls), ten);
     const h2 = dl(dayLenScript(over), ["x", "chủ đã biết và đồng ý", "c"], { ketQua });
     assert.equal(await lib.dayLen({ ...h2.deps, target: "worktree-x" }), 0, `${ten}: có lý do ⇒ đi tiếp`);
     assert.equal(h2.daGhi[0]!.banGhi.quyTrinh.lyDo, "chủ đã biết và đồng ý");
@@ -634,7 +694,7 @@ test("day-len (Đ2.3): số tệp / bài / kịch bản giảm, số bài bỏ q
     const h3 = dlTuDong(dayLenScript(over), ["c"], { ketQua });
     assert.notEqual(await lib.dayLen({ ...h3.deps, target: "worktree-x" }), 0, `${ten}: chọn c ⇒ dừng`);
     assert.match(h3.text(), re, ten);
-    assert.ok(!h3.calls.includes("git push origin main"), ten);
+    assert.ok(!daDayMain(h3.calls), ten);
     assert.deepEqual(h3.questions, [lib.CAU_CHON_DAY_LEN], `${ten}: chọn c thì không hỏi lý do`);
     assert.equal(h3.thongBao.length, 1, ten);
   }
@@ -654,7 +714,7 @@ test("day-len: ghi bản ghi kết luận lỗi → KHÔNG đẩy main (trien-kh
   const h = harness(dayLenScript(), ["c"], true, k.kho);
   const d = dongHoGia();
   assert.notEqual(await lib.dayLen({ ...h.deps, now: d.now, sleep: d.sleep, target: "worktree-x" }), 0);
-  assert.ok(!h.calls.includes("git push origin main"));
+  assert.ok(!daDayMain(h.calls));
   assert.match(h.text(), /không ghi được bản ghi kết luận kiểm \(đĩa đầy\)/);
 });
 
@@ -670,6 +730,94 @@ test("day-len: thời gian từng chặng KHÔNG tính lúc chờ chủ trả l�
   const b = k.daGhi[0]!.banGhi;
   assert.equal(b.giayDayLen, 15, "chỉ 15 giây chờ GitHub (một nhịp hỏi); 30 phút suy nghĩ không tính");
   assert.ok(b.chang.some((c: any) => c.ten === "chờ GitHub kiểm" && c.giay === 15));
+});
+
+// ─── Sự cố 2026-11-21, 12:17–12:23: hai lệnh nhập chạy chồng nhau ───
+// Chủ chạy lệnh A (một lần lưu tài liệu, mã X); 35 giây sau chạy lệnh B cho nhánh đã gộp sẵn `main` trên máy (đỉnh Y, chứa X). B nối thẳng `main` trên máy lên Y khi A
+// còn chờ GitHub kiểm X. A xanh trước và chạy `git push origin main` — đẩy theo TÊN — nên GitHub nhận Y: 16 lần lưu của B lên bản chính khi lượt kiểm của chính chúng
+// chưa xong (rồi kết thúc ĐỎ). Luật đã duyệt (ADR-0179 Đ2.1) là «kiểm xong mới đẩy `main`»: lệnh chỉ được đẩy ĐÚNG mã nó đã kiểm.
+
+/**
+ * Kho git GIẢ có trạng thái cho các ca «`main` trên máy đổi trong lúc chờ kiểm». Lịch sử là MỘT đường thẳng GOC → OLD → NEW → CUA_LENH_KHAC (mã sau chứa mã trước).
+ * `mainMay` = `main` trên máy; `githubMain` = `main` trên GitHub (cũng là `origin/main` ở máy: lần đẩy nào thành công cũng cập nhật nó). Đẩy theo TÊN thì GitHub
+ * nhận thứ `main` trên máy đang trỏ tới; đẩy theo MÃ thì nhận đúng mã đó; đẩy LÙI (GitHub đang ở mã sau) bị từ chối như git thật khi không `--force`.
+ */
+function khoHaiLenh() {
+  const DUONG = [GOC, OLD, NEW, CUA_LENH_KHAC];
+  /** `con` có chứa `cha` không (cha là tổ tiên của con, hoặc chính nó). */
+  const chua = (con: string, cha: string) => DUONG.indexOf(cha) >= 0 && DUONG.indexOf(cha) <= DUONG.indexOf(con);
+  const s = { mainMay: OLD, githubMain: GOC };
+  const day = (ma: string): RunResult => (chua(ma, s.githubMain) ? ((s.githubMain = ma), OK) : { code: 1, stdout: "", stderr: " ! [rejected] (non-fast-forward)" });
+  const laToTien = (cha: string, con: string) => () => (chua(con === "main" ? s.mainMay : con === "origin/main" ? s.githubMain : con, cha) ? OK : FAIL);
+  const script: KichBan = {
+    "git rev-parse main": () => out(`${s.mainMay}\n`),
+    "git merge --ff-only worktree-x": () => ((s.mainMay = NEW), OK),
+    "git push origin main": () => day(s.mainMay),
+    [PUSH_MAIN]: () => day(NEW),
+    [`git merge-base --is-ancestor ${NEW} main`]: laToTien(NEW, "main"),
+    [`git merge-base --is-ancestor ${NEW} ${OLD}`]: laToTien(NEW, OLD),
+    [`git merge-base --is-ancestor ${NEW} ${CUA_LENH_KHAC}`]: laToTien(NEW, CUA_LENH_KHAC),
+    [`git merge-base --is-ancestor ${NEW} origin/main`]: laToTien(NEW, "origin/main"),
+  };
+  return { s, script };
+}
+
+test("day-len (sự cố 21/11): lệnh nhập KHÁC nối `main` trên máy lên mã khác trong lúc chờ kiểm → GitHub chỉ nhận ĐÚNG mã đã kiểm, không nhận phần của lệnh kia", async () => {
+  for (const chon of [["c"], ["x", "c"]]) {
+    const k = khoHaiLenh();
+    // Lệnh nhập thứ hai gộp tiến thẳng vào `main` trên máy đúng lúc lệnh này đang chờ GitHub kiểm.
+    const h = dlTuDong(dayLenScript({ ...k.script, [RUNVIEW(4242)]: () => ((k.s.mainMay = CUA_LENH_KHAC), viewOf()) }), [...chon]);
+    assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0, chon.join());
+    assert.equal(k.s.githubMain, NEW, "`main` trên GitHub chỉ được nhận đúng mã đã có lượt kiểm, không nhận phần chưa kiểm của lệnh nhập khác");
+    assert.equal(k.s.mainMay, CUA_LENH_KHAC, "lệnh không đụng `main` trên máy: phần của lệnh kia còn nguyên, chờ lệnh của nó");
+    assert.deepEqual(h.calls.filter(laDayMain), [PUSH_MAIN], "đẩy `main` đúng một lần, theo mã — không theo tên");
+    assert.deepEqual(h.daGhi.map((x) => x.sha), [NEW], "bản ghi kết luận ghi cho đúng mã đã kiểm");
+    assert.match(h.text(), /Đã đẩy\. GitHub \(origin\/main\) giờ là: /, "dòng báo xong giữ nguyên");
+    // Lời thường cho chủ: `main` trên máy còn phần của lệnh nhập khác, phần đó chờ lệnh của nó; chưa triển khai được.
+    assert.match(h.text(), /một lệnh `npm run day-len` khác đã nhập thêm/);
+    assert.match(h.text(), /CHỈ đẩy đúng bản đã kiểm bbbbbbbb/);
+    assert.match(h.text(), /CHƯA lên GitHub/);
+    assert.match(h.text(), /`npm run trien-khai` sẽ từ chối/);
+    assert.ok(!h.text().includes("git reset"), "đường thành công không in lệnh quay về");
+    if (chon[0] === "c") assert.match(h.thongBao.at(-1)![0], /ĐÃ đẩy lên bản chính/);
+  }
+});
+
+test("day-len (sự cố 21/11): `main` trên máy bị quay về chỗ khác trong lúc chờ (không còn chứa mã đã kiểm) → DỪNG, không đẩy gì lên `main`, không ghi bản ghi", async () => {
+  const k = khoHaiLenh();
+  // Ai đó chạy `git reset --hard <mã cũ>` (vd dòng quay về của một lệnh nhập khác) đúng lúc lệnh này đang chờ GitHub kiểm.
+  const h = dlTuDong(dayLenScript({ ...k.script, [RUNVIEW(4242)]: () => ((k.s.mainMay = OLD), viewOf()) }));
+  assert.notEqual(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.equal(k.s.githubMain, GOC, "`main` trên GitHub không đổi");
+  assert.ok(!daDayMain(h.calls));
+  assert.equal(h.daGhi.length, 0, "không ghi bản ghi kết luận khi không đẩy");
+  assert.match(h.text(), /`main` trên máy không còn chứa bản đã kiểm bbbbbbbb \(đang ở aaaaaaaa\)/);
+  assert.match(h.text(), /chạy lại `npm run day-len -- worktree-x`/);
+  assert.equal(h.thongBao.length, 1);
+  assert.match(h.thongBao[0]![0], /CHƯA đẩy/);
+  assert.ok(!h.text().includes("git reset"), "`main` đã bị đổi rồi: không in lệnh quay về nữa");
+});
+
+test("day-len (sự cố 21/11): lệnh nhập chạy SAU đã đẩy trước, GitHub đã có mã đã kiểm (kèm phần của lệnh kia) → không đẩy lại, thoát 0, nói rõ", async () => {
+  const k = khoHaiLenh();
+  // Lệnh nhập thứ hai gộp thêm vào `main` trên máy, lượt kiểm của NÓ xanh trước và nó đẩy mã của nó (chứa cả mã của lệnh này) lên GitHub.
+  const h = dlTuDong(dayLenScript({ ...k.script, [RUNVIEW(4242)]: () => ((k.s.mainMay = CUA_LENH_KHAC), (k.s.githubMain = CUA_LENH_KHAC), viewOf()) }));
+  assert.equal(await lib.dayLen({ ...h.deps, target: "worktree-x" }), 0);
+  assert.equal(k.s.githubMain, CUA_LENH_KHAC, "`main` trên GitHub giữ nguyên (đã chứa mã đã kiểm của lệnh này)");
+  assert.ok(!daDayMain(h.calls), "không đẩy lại: đẩy mã cũ hơn lên GitHub bị từ chối, lệnh sẽ báo lỗi oan");
+  assert.equal(h.daGhi.length, 0, "không đẩy thì không ghi bản ghi (bản ghi của đỉnh `main` do lệnh kia ghi)");
+  assert.match(h.text(), /Bản đã kiểm bbbbbbbb đã nằm trong `main` trên GitHub/);
+  assert.doesNotMatch(h.text(), /DỪNG/);
+  assert.equal(h.thongBao.length, 1);
+  assert.match(h.thongBao[0]![0], /ĐÃ có trên bản chính/);
+});
+
+test("bộ kiểm: phép nhận «đẩy main» bắt mọi kiểu viết lệnh đẩy (theo tên, theo mã, có ép), không bắt lần đẩy phụ lên nhánh chờ kiểm", () => {
+  for (const c of ["git push origin main", PUSH_MAIN, "git push origin HEAD:main", "git push", `git push origin +${NEW}:refs/heads/main`, "git push --force origin main"]) assert.ok(laDayMain(c), c);
+  for (const c of [PUSH_CHO, "git log -1 --oneline --no-decorate origin/main", "git fetch origin", "gh auth status"]) assert.ok(!laDayMain(c), c);
+  assert.throws(() => assertNothingDangerous([PUSH_MAIN]), /lệnh nguy hiểm/);
+  assert.throws(() => assertNothingDangerous(["git push origin main"]), /lệnh nguy hiểm/);
+  assert.doesNotThrow(() => assertNothingDangerous([PUSH_CHO, DOC_LAI_MAIN]));
 });
 
 // ─────────────────────────── trien-khai ───────────────────────────
