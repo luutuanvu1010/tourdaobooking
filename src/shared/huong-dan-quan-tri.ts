@@ -187,11 +187,8 @@ Mở [[Trợ lý Hỗ trợ]] ở nhóm THIẾT LẬP (điện thoại: trang **
 ### Dịch vụ nhập tay (chỉ Toàn quyền bật / tắt)
 Trang **Tôi**, khối **Dịch vụ nhập tay**: [[Bật dịch vụ nhập tay]] hoặc [[Tắt dịch vụ nhập tay]] (mặc định tắt). Khi bật, văn phòng thêm được dịch vụ gõ tay ở form lập đơn ([[+ Dịch vụ nhập tay]]); Đối tác thì không. Khi tắt, dịch vụ nhập tay đã có vẫn giữ, chỉ xem.
 
-### Thông tin khách khi đối tác đặt vé (chỉ Toàn quyền bật / tắt)
-Trang **Tôi** có hai công tắc riêng. [[Bật đối tác không nhập tên, SĐT khách]]: form của đối tác không còn ô tên, số điện thoại khách, đơn ghi tên và số của chính đối tác. [[Bật đối tác không nhập danh sách hành khách]]: form không có khối **Hành khách**; chuyến xe vẫn cần đủ tên khách trước khi xuất bến, nên văn phòng (hoặc đối tác, sau khi đơn xác nhận) bổ sung tên bằng [[Sửa danh sách hành khách]]. Đơn cũ lập trước ngày tách công tắc vẫn giữ ghi chú **Không cần danh sách khách**.
-
-### Đơn đối tác không cần giờ đón (chỉ Toàn quyền bật / tắt)
-Trang **Tôi**: [[Bật đơn đối tác không cần giờ đón]] hoặc [[Tắt đơn đối tác không cần giờ đón]] (mặc định tắt). Bật thì đơn có đón của đối tác mà chưa có giờ không phải chờ văn phòng xét chỉ vì thiếu giờ; văn phòng chốt giờ sau bằng [[Sửa đưa đón]]. Lượt đón đã sát hạn chốt vẫn chờ văn phòng. Xe chưa xếp được tới khi có giờ.
+### Công tắc đơn đối tác (chỉ Toàn quyền bật / tắt)
+Trang **Tôi**: [[Bật đối tác không nhập tên, SĐT khách]] (đơn ghi tên, số của đối tác); [[Bật đối tác không nhập danh sách hành khách]] (xe vẫn cần đủ tên trước khi chạy: bổ sung bằng [[Sửa danh sách hành khách]]); [[Bật đơn đối tác không cần giờ đón]] (văn phòng chốt giờ sau bằng [[Sửa đưa đón]]).
 
 ### Lý do điều phối
 Mở [[Lý do điều phối]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ lý do, [[Thêm]]. Sửa tên: [[Sửa]]. Không dùng nữa: [[Ngưng]]; dùng lại: [[Dùng lại]]. Lý do hệ thống tự dùng không ngưng được.`,
