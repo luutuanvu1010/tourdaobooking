@@ -1425,7 +1425,11 @@ async function napTraSau(): Promise<void> {
       const r = await api<Api.ConDuocDungTraSauResponse>(`/api/tra-sau/con-duoc-dung?benDat=${encodeURIComponent(id)}`);
       c = cauChonTraSau({ ...r, laDoiTac });
       trangThai = !r.coHanMuc ? "khong_co" : r.coDonQuaHan ? "qua_han" : vuotTuMayChu === id ? "vuot" : "dung_duoc";
-    } catch { return; /* không đọc được: giữ nguyên lựa chọn đang có, máy chủ vẫn kiểm lại lúc lưu */ }
+    } catch {
+      // Không đọc được: giữ nguyên lựa chọn đang có, máy chủ vẫn kiểm lại lúc lưu. ADR-0224 Đ2.2: máy chủ nhận «Thanh toán ngay» khi không đọc được hạn mức ⇒ hiện lại nút đó.
+      if (luot === traSauLuot) oHinhThuc("PREPAID").closest("label")!.hidden = false;
+      return;
+    }
   }
   if (luot !== traSauLuot) return; // có lần hỏi mới hơn (đổi bên đặt liên tục): bỏ kết quả cũ
   // ADR-0224 Đ2.4: cùng luật với cổng lưu đơn của máy chủ; văn phòng không truyền `chonDuoc` (giữ y như trước).
