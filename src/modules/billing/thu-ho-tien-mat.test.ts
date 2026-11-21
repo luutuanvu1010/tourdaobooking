@@ -58,6 +58,7 @@ function chan(r: { status: number; text: string; json: any }) {
 test("chụp dấu lúc xác nhận: đơn Đối tác lập ⇒ 1; văn phòng lập «Qua đối tác» (bên đặt được hưởng) ⇒ 1; văn phòng khách lẻ ⇒ 0; nháp ⇒ NULL", async () => {
   const w = setup();
   assert.equal(dau(w, await don(w)), 1, "Đối tác tự lập");
+  assert.equal(dau(w, await don(w, { booker: null })), 1, "Đối tác tự lập, bên đặt không phải đối tác được hưởng — vẫn là đơn đối tác (vế dấu kênh thu)");
   assert.equal(dau(w, await don(w, { owner: SALES, dau: null })), 1, "văn phòng lập Qua đối tác");
   assert.equal(dau(w, await don(w, { owner: SALES, dau: null, booker: null })), 0, "văn phòng lập khách lẻ");
   assert.equal(dau(w, await don(w, { xacNhan: false })), null, "nháp chưa chụp");

@@ -1044,7 +1044,9 @@ function nutKeToanLanThu(order: Order, t: Api.OrderPaymentsResponse, l: Api.LanT
     so.addEventListener("input", () => regroupMoney(so));
     // Kiểm độc lập vòng 3: mặc định ĐÚNG hình thức và người thu của khoản thu cũ — chỉ sửa số tiền thì không vô tình đổi người thu (đổi sang "Công ty" xoá khoản
     // nhân viên đang giữ).
-    const hinhThuc = h("select", null, ...(t.chiTienMat ? (["CASH"] as const) : (["CASH", "BANK_TRANSFER", "OTHER"] as const)).map((m) => h("option", { value: m, selected: METHOD_LABEL[m] === l.hinhThuc }, METHOD_LABEL[m]))) as HTMLSelectElement; // ADR-0225 Đ2
+    // ADR-0225 Đ2: KHÔNG lọc hình thức ở đây (kiểm độc lập 21/11, I1): ô người thu chỉ mang id hồ sơ nên giao diện không biết là đại lý hay nhân viên; lọc sẽ đổi âm thầm hình thức
+    // của khoản đại lý chuyển khoản. Máy chủ chặn đúng ca (409 don_doi_tac_chi_tien_mat, câu lời thường).
+    const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m, selected: METHOD_LABEL[m] === l.hinhThuc }, METHOD_LABEL[m]))) as HTMLSelectElement;
     const macDinh = laCongTy ? "cong_ty" : (l.nguoiThuPartyId ?? "");
     const nguoiThu = h("select", { "data-khoi": "sua-nguoi-thu" }, ...chonSua.map((c) => h("option", { value: c.value, selected: c.value === macDinh }, c.nhan))) as HTMLSelectElement;
     const lyDoThay = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao sửa (ít nhất 10 ký tự)" }) as HTMLInputElement;
@@ -1163,7 +1165,7 @@ function khoiKeToan(order: Order, t: Api.OrderPaymentsResponse): HTMLElement | n
     const so = h("input", { type: "text", inputmode: "numeric", autocomplete: "off", value: String(t.conLai) }) as HTMLInputElement;
     regroupMoney(so);
     so.addEventListener("input", () => regroupMoney(so));
-    const hinhThuc = h("select", null, ...(t.chiTienMat ? (["CASH"] as const) : (["CASH", "BANK_TRANSFER", "OTHER"] as const)).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement; // ADR-0225 Đ2
+    const hinhThuc = h("select", null, ...(["CASH", "BANK_TRANSFER", "OTHER"] as const).map((m) => h("option", { value: m }, METHOD_LABEL[m]))) as HTMLSelectElement; // ADR-0225 Đ2: không lọc, như «Sửa khoản thu đã ghi»
     const nguoiThu = h("select", { "data-khoi": "bu-nguoi-thu" }, ...chonBu.map((c) => h("option", { value: c.value }, c.nhan))) as HTMLSelectElement;
     const lyDo = h("input", { type: "text", autocomplete: "off", maxlength: "500", placeholder: "Vì sao thiếu (ít nhất 10 ký tự)" }) as HTMLInputElement;
     // ADR-0092 Đ6: khoản thu bù CK – Công ty thu cũng cần mã (cùng đường Thay, không có khoản thu cũ để điền sẵn).

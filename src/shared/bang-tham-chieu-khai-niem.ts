@@ -793,7 +793,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Khách đặt cọc cho đối tác",
-    giaiNghia: "Ô trong phần Thanh toán của đơn do tài khoản Đối tác lập: số tiền khách đã đưa cọc cho Đối tác. Có cả khi đơn chọn «Thanh toán ngay» lẫn «Trả sau». Khi đơn được xác nhận, số này thành khoản thu tiền mặt do chính Đối tác thu; Đối tác giữ tiền và nộp về Công ty sau. Chọn «Trả sau» thì dưới ô có câu «Tiền cọc ở tay bạn, không làm giảm số nợ với Công ty.»",
+    giaiNghia: "Số tiền khách đã đưa cọc cho Đối tác, khai trên đơn do tài khoản Đối tác lập. Từ ADR-0225 Đ1 (đề xuất 21/11/2026) màn Tạo đơn của Đối tác KHÔNG còn ô này; chỉ nháp cũ đã khai còn số, hiện ở trang đơn nháp dòng «Khách đặt cọc cho đối tác (chờ xác nhận)». Khi đơn được xác nhận, số này thành khoản thu tiền mặt do chính Đối tác thu; Đối tác giữ tiền và nộp về Công ty sau. Trước ADR-0225, ô có cả khi đơn chọn «Thanh toán ngay» lẫn «Trả sau», kèm câu «Tiền cọc ở tay bạn, không làm giảm số nợ với Công ty.» khi chọn «Trả sau».",
     khacVoi: "Tên cũ trên giao diện là «Khách đặt cọc trước» (ADR-0159); chữ cũ vẫn là dấu nhận ra khoản cọc lưu trong dữ liệu, người dùng không thấy nữa. Không phải dòng «Khách đã trả trước» của biên nhận. Đơn trả sau đã xác nhận còn tiền cọc ở tay Đối tác thì Đối tác không tự huỷ được, câu báo: «Đơn trả sau còn tiền cọc của khách ở tay bạn nên bạn chưa tự huỷ được. Hãy nhờ Quản trị huỷ.»; Quản trị, Toàn quyền hoặc Hướng dẫn viên đang phụ trách đơn huỷ được.",
     chuDaLoai: [],
     maNoiBo: ["NHAN_DAT_COC", "NHAN_DAT_COC_CHO", "CAU_COC_TRA_SAU", "CAU_HUY_CON_COC", "tra_sau_con_coc_o_doi_tac", "orders.declared_deposit", "GHI_CHU_KHOAN_LOI_KHAI"],
