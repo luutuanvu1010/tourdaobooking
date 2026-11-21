@@ -1,3 +1,5 @@
+// Sửa 2026-11-21 theo ADR-0134 Đ1/Đ7 + G-02 (nút «Đón» / «Không đón» bắt buộc, «Gửi đơn» của Đối tác bị chặn khi chưa chọn): bước 2b/3b bấm «Không đón» trước khi lưu
+//   (bản cũ không bấm nên bước 2b đỏ «Dịch vụ thứ 1 chưa chọn Đón hay Không đón»).
 // Kịch bản Chrome (bằng chứng giao diện) cho ADR-0033 (chủ dự án 2026-09-27): form lập đơn đọc danh mục qua GET /api/catalog/for-order
 // (route cho người lập đơn, cổng orders + can(order.create)); GET /api/catalog về cổng office. Mang sang từ ca A0 của
 // docs/evidence/2026-09-25-gd2/kich-ban/gd2-smoke.mjs (nhánh chưa gộp a0-danh-muc-cho-lap-don), viết lại cho form hiện tại (bản 1.11+: một ngày cho
@@ -114,6 +116,14 @@ try {
     assert.deepEqual(p.consoleErrors, [], `${label}: lỗi console ở form: ${p.consoleErrors}`);
     await shot(p, `${prefix}-390-chon-dich-vu.png`);
 
+    // ADR-0134 Đ1/Đ7 + G-02: «Đón» / «Không đón» là lựa chọn bắt buộc, không mặc định; nút «Gửi đơn» của Đối tác bị chặn khi chưa chọn («Dịch vụ thứ 1 chưa chọn Đón hay Không đón»).
+    // Chọn «Không đón» (không phải «Đón») để bước này không vướng các ô nơi đón (ADR-0221). Tài khoản nào thẻ có nhóm nút thì bấm; Đối tác bắt buộc phải có.
+    const coNutDon = await p.ev(`!!(${CARD}).querySelector('[data-action="chon-khong-don"]')`);
+    if (label === "Đối tác") assert.equal(coNutDon, true, `${label}: thẻ dịch vụ có nhóm nút Đón / Không đón (ADR-0134)`);
+    if (coNutDon) {
+      await p.ev(`(${CARD}).querySelector('[data-action="chon-khong-don"]').click(); true`);
+      await p.waitFor(`(${CARD}).querySelector('[data-action="chon-khong-don"]')?.getAttribute('aria-pressed') === 'true'`, `nút «Không đón» đã chọn (${label})`);
+    }
     await p.ev(setInput("document.getElementById('customerName')", `Khách ${label}`));
     await p.ev(setInput("document.getElementById('customerPhone')", "0901 222 333"));
     await p.ev(setInput("document.getElementById('orderDate')", vnDate(3)));
