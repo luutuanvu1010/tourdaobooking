@@ -139,7 +139,7 @@ Các câu khác để tới đợt của nó (mục 5, mỗi đợt tối đa ba
 - **Xung đột phải chốt:** việc 2 nói đối tác Trả sau chỉ có một hình thức. Khuyến nghị: đối tác đang Trả sau vẫn chỉ «Trả sau»; hình thức trả với hướng dẫn viên dành cho đơn văn phòng và đối tác không có Trả sau. Áp cho đơn đối tác thì phải sửa ADR-0178 Đ1 (hôm nay hướng dẫn viên không thu được đơn đối tác khi công tắc Tắt) — câu 1(c) đã chạm điểm này.
 - **Câu hỏi của đợt (≤ 3):** khách không trả hướng dẫn viên thì ai chịu nợ (khuyến nghị: đơn văn phòng — khách; đơn đối tác — đối tác); có áp cho đơn đối tác không; danh sách sản phẩm/nhóm đầu tiên.
 - **Rủi ro:** vé mở trước khi thu tiền ở đơn đối tác ⇒ có thể mất tiền thật nếu khách không đi, không trả. «Khách đã trả đủ» vẫn đòi thu đủ như hôm nay.
-- **Xong khi:** đối tác lập đơn 4 vé Tour 3 đảo (vé Tour Đảo, nằm trong danh sách) → gửi đơn → đơn xác nhận ngay, vé điện tử hiện ngay dù chưa trả; đơn có thêm một vé hãng ngoài → vé hãng ngoài vẫn chờ tiền như hôm nay; hướng dẫn viên mở đơn hình thức trả với hướng dẫn viên → ghi thu tiền mặt được.
+- **Xong khi:** đối tác Thanh toán ngay lập đơn 4 vé Tour 3 đảo (vé Tour Đảo, nằm trong danh sách) → gửi đơn → đơn xác nhận ngay, vé điện tử hiện ngay dù chưa trả; đơn có thêm một vé hãng ngoài → vé hãng ngoài vẫn chờ tiền như hôm nay; hướng dẫn viên mở đơn hình thức trả với hướng dẫn viên → ghi thu tiền mặt được.
 - **Loại:** lớn (tiền, dữ liệu). ADR mới; sau đợt 1.
 
 ### Việc 10 — Giá mùa vụ (Đợt 4)
