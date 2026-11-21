@@ -140,6 +140,7 @@ test("gomKetQua (ADR-0179 tiêu chí 2): thiếu báo cáo / phần chạy thi�
     ["đo khung gốc có ô không đạt", (bc) => ((bc[0].doKhung = { ok: false, maThoat: 1, khongDat: 3, loi: "3 ô không đạt" }), bc), /khung gốc/],
     ["đo khung gốc đo thiếu (mã 2)", (bc) => ((bc[0].doKhung = { ok: false, maThoat: 2, doThieu: ["/order-new"], loi: "đo thiếu: /order-new" }), bc), /khung gốc.*đo thiếu/],
     ["đo khung gốc ok mà mã ≠ 0", (bc) => ((bc[0].doKhung = { ok: true, maThoat: 2 }), bc), /khung gốc/],
+    ["đo khung gốc ok, đủ số màn/ô mà mã 2", (bc) => ((bc[0].doKhung = { ok: true, maThoat: 2, soMan: 4, soO: 316, khongDat: 0, doThieu: [] }), bc), /khung gốc/],
     ["đo khung gốc không đo màn nào", (bc) => ((bc[0].doKhung = { ok: true, maThoat: 0, soMan: 0, soO: 0 }), bc), /khung gốc/],
     ["báo cáo không đọc được", (bc) => [...bc, "rác"], /không đọc được/],
   ];
