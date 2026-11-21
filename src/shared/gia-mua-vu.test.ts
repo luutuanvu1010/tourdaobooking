@@ -11,7 +11,7 @@ type CaGia = { ca: string; moTa: string; giaGoc: number | null; maDichVu: string
 type CaQuyTac = { ca: string; vao: { phanTram: number; soTien: number; tu: string; den: string }; loi: string | null };
 type CaHoaHong = {
   ca: string; moTa: string; dong: { donGia: number; soTang: number | null; soLuong: number }[]; kieu: "RATE" | "PER_PAX"; rateBp: number | null; perPax: number | null;
-  soKhachTinh: number; thanhTien: number; coSoHoaHong: number; hoaHong: number; giaDaiLy: number;
+  soKhachTinh: number; thanhTien: number; coSoHoaHong: number; hoaHong: number; giaDaiLy: number; tranGiamGia?: number;
 };
 type CaChong = { ca: string; moTa: string; moi: { phamVi: "SERVICE" | "GROUP"; ma: string; tu: string; den: string }; trung: string | null };
 const SO = JSON.parse(readFileSync(new URL("./gia-mua-vu.so-vang.json", import.meta.url), "utf8")) as {
@@ -51,6 +51,8 @@ for (const c of SO.hoaHong.ca) {
     const hoaHong = hoaHongDong({ kind: c.kieu, rateBp: c.rateBp, perPaxAmount: c.perPax, thanhTien: coSo, soKhachTinh: c.soKhachTinh });
     assert.equal(hoaHong, c.hoaHong);
     assert.equal(thanhTien - hoaHong, c.giaDaiLy);
+    // Đơn một dịch vụ: trần giảm giá của đại lý = tổng hoa hồng (ADR-0079 điều 8) — trần thấp xuống trong mùa.
+    if (c.tranGiamGia !== undefined) assert.equal(hoaHong, c.tranGiamGia);
   });
 }
 

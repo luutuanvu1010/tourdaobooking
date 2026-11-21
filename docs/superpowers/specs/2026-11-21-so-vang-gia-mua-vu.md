@@ -37,7 +37,7 @@ Giá gốc là giá của dịch vụ **sau** khi Quản trị ghi đè (nếu c
 | C13 | Quy tắc đã kết thúc không áp | 450.000 | 03/03 | 450.000 | — | 0 |
 | C14 | Chưa có ngày đi | 450.000 | — | 450.000 | — | 0 |
 | C15 | Dịch vụ nhóm khác (khách sạn) | 450.000 | 05/02 | 450.000 | — | 0 |
-| C16 | Dịch vụ tính theo nhóm khách (cano riêng, giá mỗi chiếc) | 1.200.000 | 05/02 | 1.340.000 | R1 | 140.000 |
+| C16 | Dịch vụ tính theo nhóm khách (cano riêng, giá mỗi chiếc; giả định thuộc nhóm «Tour đảo» cho ca thử) | 1.200.000 | 05/02 | 1.340.000 | R1 | 140.000 |
 | C17 | Quản trị ghi đè 450.000 → 480.000, rồi mới cộng mùa vụ | 480.000 | 05/02 | 548.000 | R1 | 68.000 |
 | C18 | Dịch vụ chưa có giá | — | 05/02 | — | — | 0 |
 | C19 | **Giá 0 đ (khách miễn phí, vd em bé) giữ 0 đ** | 0 | 05/02 | 0 | — | 0 |
@@ -67,6 +67,8 @@ Hoa hồng theo % tính trên **cơ sở** = đơn giá trừ phần tăng mùa 
 | H9 | Dòng cũ trước giá mùa vụ | 450.000 | 450.000 | 10 % | 45.000 | 405.000 |
 | H10 | 2 người lớn 515.000 + 1 trẻ em 350.000 (gốc 300.000) | 1.380.000 | 1.200.000 | 10 % | 120.000 | 1.260.000 |
 | H11 | Xác nhận 2 người lớn, sau điều chỉnh còn 1 | 515.000 | 450.000 | 10 % | 45.000 | 470.000 |
+
+**Trần giảm giá của đại lý** bằng tổng hoa hồng của đơn (ADR-0079 điều 8), nên cũng thấp xuống theo: đơn H2 có trần **90.000 đ** (hôm nay sẽ là 103.000 đ); đơn H10 trần 120.000 đ.
 
 ## Kế toán cần xác nhận
 
