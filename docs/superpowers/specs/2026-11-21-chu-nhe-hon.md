@@ -16,6 +16,8 @@ Chủ dự án thấy chữ trên Nền tảng nặng, khó đọc. Đo sáng 21
 ## 3. Không làm lần này
 Không đổi phông mặc định Be Vietnam Pro, không tách tệp phông. Không đổi cỡ chữ mặc định. Không ghi gì lên bản chạy thật: màu chữ, cỡ chữ, phông là núm của chủ, chủ tự bấm (báo cáo kèm từng bước). Không chạm phần khung gốc trong tệp kiểu. Không xuất bản lại bộ thiết kế v2 trên Claude (việc sau).
 
+**Hệ quả cho khung gốc (ADR-0222).** Đổi độ đậm và độ mịn nét làm lệch ảnh mốc của khung gốc: ảnh chủ đã duyệt của bốn màn mẫu và phép so ảnh bằng công cụ `docs/evidence/2026-11-21-khung-goc-thi-cong/kich-ban/so-anh.py`. Việc này không chụp lại ảnh mốc; ai làm tiếp khung gốc phải chụp lại rồi mới so. Lệnh đo khung gốc trong lượt kiểm (`scripts/giao-dien/do-khung-ci.mjs`) đo bố cục chứ không đo độ đậm; nếu nó đỏ vì chữ đổi thì báo chủ, không nới ngưỡng.
+
 ## 4. Loại việc
 - [x] Việc nhỏ: giá trị kiểu chữ và cách nối núm; không chạm dữ liệu, quyền, tiền. Trợ lý đánh giá giao diện chấm ảnh trước khi gửi chủ.
 - Không cần ADR: đổi lại được bằng một lần sửa.

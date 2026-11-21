@@ -28,7 +28,7 @@ Việc nhỏ nên không có người kiểm độc lập soát mã.
 - Kiểm thử đầu-cuối chưa chạy ở máy; lệnh nhập chạy đủ bộ trên GitHub trước khi đẩy.
 - Nếu trước khi triển khai chủ đổi hai ô độ đậm cho KHÁC nhau thì hình sau triển khai sẽ đổi: nút, tên đi theo ô «chữ nhấn», không theo ô «tiêu đề» như bây giờ.
 - Bộ thiết kế v2 trên Claude chưa xuất bản lại; bản chụp trong kho đã sửa theo mã.
-- Nhóm khung gốc (ADR-0222) phải chụp lại ảnh mốc: độ đậm và độ mịn nét đổi làm phép so ảnh lệch.
+- Ảnh mốc của khung gốc (ADR-0222) chưa chụp lại. Độ đậm và độ mịn nét đổi làm lệch phép so ảnh với ảnh chủ đã duyệt (công cụ `docs/evidence/2026-11-21-khung-goc-thi-cong/kich-ban/so-anh.py`); ai làm tiếp khung gốc phải chụp lại ảnh mốc rồi mới so. Các phiên khung gốc đã được lưu trữ ngày 21/11 nên chưa ai nhận việc này.
 
 ## 5. Phát hành
 - Cần triển khai lên bản chạy thật (đổi tệp kiểu và mã). Không có migration. Nhật ký thay đổi: mục số tạm 3.23.
