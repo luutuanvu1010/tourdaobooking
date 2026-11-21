@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Tìm đối tác theo số điện thoại ở màn Tạo đơn (kế hoạch 16 việc 21/11, Việc 3). Nhánh claude/nostalgic-jepsen-bb3f99. Không migration.
+    // SỐ TẠM 3.25 (bản chạy thật đang 3.23; 3.24 là Việc 9 đã ở main trên máy): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.25",
+    date: "2026-11-21",
+    items: [
+      { kind: "sua", text: "Tạo đơn: ô «Tìm đối tác» nhận cả số điện thoại. Gõ đủ số liên hệ của đối tác là ra đúng người, gõ tên vẫn tìm như cũ." },
+      { kind: "sua", text: "Tạo đơn: bấm «Điền thông tin đối tác» mà đối tác chưa có số điện thoại thì Nền tảng nói rõ ai thêm được số và mở sẵn hồ sơ ở Danh bạ." },
+    ],
+  },
+  {
     // Sửa lỗi treo ở màn Quét vé (kế hoạch 16 việc 21/11, Việc 9). Nhánh claude/beautiful-burnell-3c3798. Không migration.
     // SỐ TẠM 3.24 (bản chạy thật đang 3.23): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.24",

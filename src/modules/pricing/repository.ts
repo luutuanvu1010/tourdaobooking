@@ -117,6 +117,13 @@ const TIM_HUONG = defineSql("pricing", "find_beneficiaries",
   `SELECT l.id, l.display_name, l.party_kind FROM v_pty_party_label l
    WHERE l.active = 1 AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = l.id)
      AND (?1 = '' OR l.display_name LIKE '%' || ?1 || '%' ESCAPE '\\') ORDER BY l.display_name LIMIT 20`);
+// Việc 3 (kế hoạch 16 việc, 21/11/2026): tìm người hưởng theo SỐ ĐIỆN THOẠI. ?1 = mảng JSON id hồ sơ do parties trả theo số liên hệ đang mở (`findPartiesByPhone` —
+// pricing không đọc bảng liên hệ); giữ ĐÚNG hai điều kiện của TIM_HUONG (hồ sơ còn dùng + mang vai được hưởng đang bật). Không trả liên hệ.
+const TIM_HUONG_TRONG = defineSql("pricing", "find_beneficiaries_among",
+  `SELECT l.id, l.display_name, l.party_kind FROM v_pty_party_label l
+   WHERE l.id IN (SELECT value FROM json_each(?1)) AND l.active = 1
+     AND EXISTS (SELECT 1 FROM v_pty_open_role r JOIN prc_beneficiary_role b ON b.role_type_code = r.role_type_code AND b.active = 1 WHERE r.party_id = l.id)
+   ORDER BY l.display_name LIMIT 20`);
 // ===== Mức TA dùng chung (ADR-0117 lần 2, migration 0096): prc_rate_tier (mức), prc_role_tier (gắn loại↔mức theo ngày). Khoá tên `name_key` do máy chủ ghi, không đọc ra. =====
 const MUC_TA_TAT_CA = defineSql("pricing", "rate_tiers_all", "SELECT code, name, active, note, created_at, created_by, updated_at, updated_by FROM prc_rate_tier ORDER BY name_key, code");
 const MUC_TA_MA = defineSql("pricing", "rate_tier_by_code", "SELECT code, name, active, note, created_at, created_by, updated_at, updated_by FROM prc_rate_tier WHERE code = ?1");
@@ -298,6 +305,8 @@ export const huongCuaHoSo = async (db: D1Database, partyId: string): Promise<{ p
 export const groupsOf = async (db: D1Database, codes: readonly string[]): Promise<Map<string, string | null>> =>
   new Map((await db.prepare(NHOM_CUA).bind(JSON.stringify(codes)).all<{ catalog_code: string; group_code: string | null }>()).results.map((r) => [r.catalog_code, r.group_code]));
 export const findBeneficiaries = async (db: D1Database, q: string) => (await db.prepare(TIM_HUONG).bind(q).all<{ id: string; display_name: string; party_kind: "PERSON" | "ORGANIZATION" }>()).results;
+export const findBeneficiariesAmong = async (db: D1Database, partyIds: readonly string[]) =>
+  partyIds.length ? (await db.prepare(TIM_HUONG_TRONG).bind(JSON.stringify(partyIds)).all<{ id: string; display_name: string; party_kind: "PERSON" | "ORGANIZATION" }>()).results : [];
 export const suppliers = async (db: D1Database) => (await db.prepare(NHA_CUNG_CAP).all<{ id: string; display_name: string }>()).results;
 export const rateTiers = async (db: D1Database) => (await db.prepare(MUC_TA_TAT_CA).all<TierRow>()).results;
 export const rateTierByCode = (db: D1Database, code: string) => db.prepare(MUC_TA_MA).bind(code).first<TierRow>();

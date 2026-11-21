@@ -12,6 +12,7 @@ import { can, holdsPartner, isOffice, type PermissionHolder } from "./permission
 import { CAU_DON_BI_GIU, CAU_THIEU_MUC, CAU_THIEU_MUC_DA_CHUP, NHAN_LY_DO_THIEU } from "./so-dai-ly-nhan.ts";
 import { MOI_KHACH_TOI_DA, docTienMoiKhach, docTyLePhanTram } from "./so-dai-ly-nhap.ts";
 import { PHONE_IN_TEXT_MESSAGE, hasLongDigitRun } from "./text-guards.ts";
+import { normalizePhone } from "./phone.ts";
 
 /** Bên đặt là một hồ sơ (id + tên) — dùng cho ô "Đặt qua đối tác" và dòng chỉ đọc của Đối tác. */
 export interface BenDatChon {
@@ -37,6 +38,34 @@ export const coODatQuaDoiTac = (staff: PermissionHolder): boolean => can(staff, 
 export const hienNutDienDoiTac = (who: PermissionHolder, daChonBenDat: { partyId: string } | null): boolean => daChonBenDat !== null && isOffice(who) && can(who, "party.view");
 /** Câu báo nhẹ khi đối tác đã chọn chưa có số điện thoại: không điền rỗng, không xoá ô đang có. Một hằng; đổi chữ chỉ sửa ở đây. */
 export const CAU_DOI_TAC_CHUA_CO_SDT = "Đối tác này chưa có số điện thoại.";
+/**
+ * Việc 3 (kế hoạch 16 việc, 21/11/2026): câu + lối đi khi «Điền thông tin đối tác» gặp hồ sơ chưa có số liên hệ chính. KHÔNG tự chép số đăng nhập (ADR-0001 mục 5).
+ * `editable` là trường máy chủ tính của `GET /api/parties/:id` (người đang xem sửa được tên / liên hệ): hồ sơ gắn tài khoản (đối tác tạo từ Quản lý tài khoản) chỉ Quản trị /
+ * Toàn quyền sửa được (ô party.staff.write) ⇒ Bán hàng được chỉ đúng người thêm số, kèm lối mở hồ sơ để xem. Chỉ dựng chữ; máy chủ vẫn chặn khi ghi.
+ */
+export function baoDoiTacChuaCoSdt(p: { id: string; editable: boolean }): { cau: string; nhanLienKet: string; href: string } {
+  const href = `/parties?id=${encodeURIComponent(p.id)}`;
+  return p.editable
+    ? { cau: CAU_DOI_TAC_CHUA_CO_SDT, nhanLienKet: "Thêm số ở Danh bạ", href }
+    : { cau: `${CAU_DOI_TAC_CHUA_CO_SDT} Nhờ Quản trị hoặc Toàn quyền thêm số ở Danh bạ.`, nhanLienKet: "Mở hồ sơ ở Danh bạ", href };
+}
+/**
+ * Việc 3: ô «Tìm đối tác» tìm được theo SỐ ĐIỆN THOẠI cho ai — ĐÚNG cổng tra hồ sơ theo số (`GET /api/parties/lookup`: văn phòng + party.view), để ô này không mở thêm lối
+ * «số này của ai» (Thực tập qua cổng tìm người hưởng nhưng không có party.view). Route `nguoi-huong` dùng CHÍNH hàm này (qua `soTimDoiTac`); nhãn ô của giao diện cũng vậy.
+ */
+export const traDoiTacTheoSo = (who: PermissionHolder): boolean => isOffice(who) && can(who, "party.view");
+/** Việc 3: chữ tìm là một số Việt Nam đầy đủ (chuẩn hoá bằng `normalizePhone`) VÀ người tìm được tra theo số ⇒ số đã chuẩn hoá; ngược lại null (tìm theo tên như cũ). */
+export const soTimDoiTac = (who: PermissionHolder, q: string): string | null => (traDoiTacTheoSo(who) ? normalizePhone(q.trim()) : null);
+/** Việc 3: nhãn + chữ gợi ý của ô tìm đối tác (`theoSo` = `traDoiTacTheoSo(người xem)`). */
+export const chuOTimDoiTac = (theoSo: boolean): { nhan: string; goiY: string } =>
+  theoSo ? { nhan: "Tìm đối tác theo tên hoặc số điện thoại", goiY: "Gõ tên hoặc số điện thoại" } : { nhan: "Tìm đối tác theo tên", goiY: "Gõ tên đại lý / cộng tác viên" };
+/** Việc 3: câu khi ô tìm không ra ai. Người tìm được theo số mà gõ một dãy số chưa đủ (vd «0905 12») được nhắc gõ đủ, không bị báo «không có ai» như tìm theo tên. */
+export function cauTimDoiTacRong(q: string, theoSo: boolean): string {
+  const t = q.trim();
+  if (!t) return "Chưa có đối tác nào được hưởng hoa hồng.";
+  if (!theoSo) return "Không có đối tác nào tên như vậy.";
+  return /^[+\d\s.\-()]*\d[+\d\s.\-()]*$/.test(t) && normalizePhone(t) === null ? "Gõ đủ 10 số để tìm theo số điện thoại." : "Không có đối tác nào có tên hoặc số điện thoại này.";
+}
 
 export type KhoiBenDatForm =
   /** Tài khoản Đối tác mà máy chủ SẼ ép bên đặt (trường `benDatCuaToi` của `/api/auth/me` — giao diện không suy): dòng chỉ đọc "Bên đặt: <tên>", không ô nào để chọn. */
