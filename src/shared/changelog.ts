@@ -17,6 +17,19 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Sửa hai lỗi bố cục làm hỏng việc (đợt đánh giá giao diện 20/11, đợt phân tích bố cục 21/11): cột tên khách ở Đơn hàng, nút lưu ở Chính sách điều phối trên điện thoại.
+    // Nhánh claude/jolly-jemison-3b33e1. Không migration. SỐ TẠM 3.20: nhánh claude/exciting-tu-2efdb7 (ADR-0221) cũng đặt số tạm 3.20 — bước A.0 đặt lại số và ngày
+    // cho nhánh nhập sau.
+    version: "3.20",
+    date: "2026-11-21",
+    items: [
+      { kind: "sua", text: "Đơn hàng trên máy tính: cửa sổ cỡ vừa không còn làm tên khách gãy mỗi dòng một chữ. Chỗ hẹp thì danh sách hiện dạng thẻ, đủ rộng mới thành bảng." },
+      { kind: "sua", text: "Chính sách điều phối trên điện thoại: Quản trị đã có nút «Lưu hạn chốt» để lưu hai con số hạn chốt." },
+      { kind: "sua", text: "Chính sách điều phối trên điện thoại: thẻ Hạn mức Từ chối của hướng dẫn viên đã có nút «Lưu cài đặt»." },
+      { kind: "sua", text: "Hai nút lưu trên: bấm xong, màn hình tự đưa câu báo đã lưu vào tầm nhìn, không phải kéo lên đầu trang để xem." },
+    ],
+  },
+  {
     // ADR-0220 (chủ duyệt 20/11): ngừng bán một dịch vụ hoặc cả nhóm theo khoảng ngày khởi hành. Nhánh claude/pause-service-sales-23eea5. Có migration 0180.
     // SỐ TẠM 3.19: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.19",
