@@ -17,6 +17,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bỏ thu hộ chuyển khoản ở đơn đối tác (kế hoạch 16 việc 21/11, Việc 5; ADR-0225). Nhánh claude/suspicious-almeida-d32ea2. CÓ migration 0184.
+    // SỐ TẠM 3.26: bước A.0 đặt lại số và ngày theo nhánh nhập trước (Việc 2 nhập trước việc này).
+    version: "3.26",
+    date: "2026-11-21",
+    items: [
+      { kind: "doi", text: "Màn Tạo đơn của đối tác không còn ô «Khách đặt cọc cho đối tác» và không còn chữ gợi ý «nội dung chuyển khoản»." },
+      { kind: "doi", text: "Đơn của đối tác xác nhận từ bản này (kể cả văn phòng lập «Qua đối tác»): Tour Đảo chỉ thu hộ tiền mặt, trang đơn không còn mã QR." },
+      { kind: "doi", text: "Ở các đơn đó, hướng dẫn viên và nhân viên chỉ ghi được khoản thu tiền mặt. Đơn xác nhận trước bản này giữ như cũ." },
+    ],
+  },
+  {
     // Biểu tượng cho menu Thiết lập (kế hoạch 16 việc 21/11, Việc 16). Nhánh claude/relaxed-noether-c3cb22. Không migration.
     // SỐ TẠM 3.25 (3.24 là Việc 9, có thể chưa lên bản chạy thật): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.25",
