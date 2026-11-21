@@ -14,13 +14,16 @@ Tôi thử ở máy bằng đúng lớp D1 mà Worker dùng (`getPlatformProxy` 
 
 | Đo được ở máy (21/11) | Kết quả |
 |---|---|
-| Lược đồ sau 162 migration | 209 bảng, 757 trigger (155 trigger cấm xoá), 508 chỉ mục, 72 view; khoảng 519 KB chữ |
-| Bản mẫu chỉ có danh mục gieo sẵn (489 dòng) | 1.765 câu, 576 KB; một lần làm mới **2,2–3,3 giây** |
-| Bản mẫu thêm 8.000 dòng giả (cặp bảng cha–con có khoá ngoại và trigger cấm xoá), nạp từng dòng một câu | 9.769 câu; **16–22 giây** (sát trần 30 giây) |
-| Cùng bản mẫu đó, gộp nhiều dòng vào một câu (mỗi câu ≤ 60 KB) | 1.353 câu, 951 KB; **1,6–2,8 giây** |
-| Bảng có dữ liệu và trigger cấm xoá | `DELETE` bị chặn (đúng); `DROP TABLE` vẫn xoá được, kể cả bảng cha khi để kiểm khoá ngoại tới cuối giao dịch |
-| Sau làm mới | Dòng người thử thêm và bảng lạ đều mất; đủ 1.546 đối tượng, đủ 162 dòng `d1_migrations` |
+| Lược đồ sau 162 migration | 207 bảng, 757 trigger (155 trigger có `DELETE` + `RAISE`), 240 chỉ mục khai tường minh (cộng 268 chỉ mục SQLite tự sinh), 72 view: **1.276 đối tượng** được nạp lại |
+| Bản mẫu chỉ có danh mục gieo sẵn (489 dòng), nạp từng dòng một câu (`--tung-dong`) | 1.765 câu, 594 KB; một lần làm mới **2,2–5,2 giây** |
+| Cùng bản mẫu, gộp nhiều dòng vào một câu (mặc định) | 1.340 câu, 552 KB; **2,2–4,9 giây** |
+| Thêm 8.000 dòng giả (cặp bảng cha–con có khoá ngoại và trigger cấm xoá), nạp từng dòng (`--gia --tung-dong`) | 9.769 câu; **16–22 giây** (sát trần 30 giây) |
+| Cùng dữ liệu đó, gộp nhiều dòng (`--gia`), mỗi câu ≤ 60 KB | 1.353 câu, khoảng 1 MB; **1,6–5,6 giây** |
+| Bảng có 5.000 dòng và trigger cấm xoá | `DELETE` bị chặn (đúng); `DROP TABLE` vẫn xoá được, kể cả bảng cha khi để kiểm khoá ngoại tới cuối giao dịch |
+| Sau làm mới | Dòng người thử thêm và bảng lạ đều mất; đủ đối tượng, đủ 162 dòng `d1_migrations` |
 | Lô hỏng giữa chừng | Không mất gì (cả lô quay về trạng thái trước) |
+
+Khoảng thời gian rộng vì lần đo sau chạy lúc máy rất bận (tải trên 100, nhiều phiên song song); số nhỏ là lúc máy rảnh. Chạy lại: hướng dẫn ở đầu `thu-lam-moi.mjs`. Người kiểm độc lập đã tự đếm lại lược đồ và chạy lại kịch bản (21/11).
 
 **Chưa kiểm trên D1 thật** (chỉ kiểm được khi chủ đã tạo bản dùng thử): một lô thật có nhận khoảng 1.400 câu và gần 1 MB không; giới hạn 30 giây áp cho cả lô hay từng câu. Đây là bước nghiệm thu đầu tiên. Đường lui nếu lô thật bị từ chối: chia thành vài lô, kèm một cờ «đang làm mới» ở nơi giữ trạng thái khoá (đăng nhập dùng thử báo «đang làm mới, thử lại sau một phút»); khi đó **không còn nguyên tử**, hỏng giữa chừng thì lần chạy sau làm lại từ đầu.
 
@@ -35,7 +38,7 @@ Cách «xoá – nạp lại» trong Worker không cần khoá API nào: Worker 
 
 ### 2.3 Chi phí
 
-Chủ đã xác nhận ngày 21/9/2026 tài khoản Cloudflare đang ở **gói trả phí** (5 USD/tháng, đã trả cho bản chính). Bảng giá đọc 21/11: gói trả phí gồm sẵn 50 triệu dòng ghi D1/tháng, 25 tỉ dòng đọc, 5 GB lưu trữ, 10 triệu lượt gọi Worker; R2 miễn phí 10 GB. Ước lượng thận trọng cho bản dùng thử: mỗi lần làm mới ghi khoảng 15–25 nghìn dòng (tính cả ghi chỉ mục), 12 lần/ngày, cộng đồng bộ danh mục 15 phút một lần ⇒ dưới 10 triệu dòng ghi/tháng, khoảng 1/5 phần gồm sẵn. **Chi phí thêm ước 0 đồng/tháng**; nếu vượt, giá là 1 USD mỗi triệu dòng ghi thêm. Tên miền phụ của `tourdao.vn` không tốn thêm. Nếu một ngày tài khoản về gói miễn phí, bản dùng thử **không chạy được** (trần 100 nghìn dòng ghi/ngày và 10 ms CPU mỗi lần chạy lịch).
+Chủ đã xác nhận ngày 21/9/2026 tài khoản Cloudflare đang ở **gói trả phí** (`docs/HANDOFF-N1.md`); gói tính theo tài khoản nên bản thứ ba không làm phát sinh phí gói mới. Bảng giá đọc 21/11 (giá gói lúc đó 5 USD/tháng): gói trả phí gồm sẵn 50 triệu dòng ghi D1/tháng, 25 tỉ dòng đọc, 5 GB lưu trữ, 10 triệu lượt gọi Worker; R2 miễn phí 10 GB. Ước lượng thận trọng cho bản dùng thử: mỗi lần làm mới ghi khoảng 15–25 nghìn dòng (tính cả ghi chỉ mục), 12 lần/ngày, cộng đồng bộ danh mục 15 phút một lần ⇒ dưới 10 triệu dòng ghi/tháng, khoảng 1/5 phần gồm sẵn. **Chi phí thêm ước 0 đồng/tháng**; nếu vượt, giá là 1 USD mỗi triệu dòng ghi thêm. Tên miền phụ của `tourdao.vn` không tốn thêm. Nếu một ngày tài khoản về gói miễn phí, bản dùng thử **không chạy được** (trần 100 nghìn dòng ghi/ngày và 10 ms CPU mỗi lần chạy lịch).
 
 ## 3. Xong khi
 
@@ -62,7 +65,10 @@ Việc lớn (triển khai, quyền) ⇒ có người kiểm độc lập. Cần
 ## 7. Điều AI tự quyết (chủ bác được)
 
 - Trạng thái khoá giữ ở một cơ sở dữ liệu D1 nhỏ thứ hai của bản dùng thử (không phải KV, vì KV có độ trễ tới khoảng một phút sau khi bấm Khoá).
-- Giờ làm mới: 0, 2, 4, …, 22 giờ **giờ Việt Nam**; dải trên cùng tính giờ từ cùng một hằng.
+- Giờ làm mới: 0, 2, 4, …, 22 giờ **giờ Việt Nam**, tức giờ lẻ theo UTC (lịch `0 1-23/2 * * *`); dải trên cùng tính giờ từ cùng một hằng.
+- Tài khoản dùng thử mang quyền thật tối thiểu; vai chọn sau PIN đi qua lớp «vai đang xem» riêng của bản dùng thử, không mượn đường «Xem như vai trò khác» của Toàn quyền (đòi quyền thật Toàn quyền, hạn 60 phút).
+- Vai Quản trị và Nhân sự chọn được nhưng **không** sửa được chính tài khoản dùng thử (đổi PIN, quyền, khoá) — máy chủ chặn trên bản dùng thử.
+- Đăng ký đối tác công khai **tắt** trên bản dùng thử (không gửi thư nên không xác minh được email; tránh người lạ tải tệp lên). Tải ảnh trong lúc dùng thử giữ hạn mức như bản chính và bị dọn ở mỗi mốc. Turnstile dùng khoá riêng của bản dùng thử.
 - Mọi người đang dùng thử bị đăng xuất ở mỗi mốc làm mới; dải báo trước.
 - Bản mẫu không chứa mã PIN hay băm PIN: PIN tài khoản dùng thử và tài khoản Toàn quyền của chủ đặt từ bí mật sau mỗi lần nạp.
 - Kho ảnh của bản dùng thử cũng được dọn ở mỗi mốc.
