@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
+import { MARK, quetGiaTriCung } from "../scripts/quet-gia-tri-cung.mjs";
 
 const css = readFileSync(new URL("../public/app.css", import.meta.url), "utf8");
 const dauMoc = css.indexOf("/* ---------- app iPhone (PWA)");
@@ -27,8 +28,10 @@ test("mỗi bộ chọn gốc mở đầu ít nhất một luật", () => {
 });
 
 test("khối v2 không viết cứng màu / px / rem (cùng regex tests/e2e/pwa.mjs)", () => {
-  const nhanh = khoiSach.replace(/@media\s*\([^)]*\)/g, "");
-  const cung = nhanh.match(/#[0-9a-fA-F]{3,8}\b|\b(?:rgb|hsl)a?\(|(?<![\w.-])(?!1px\b)\d+(?:\.\d+)?px\b|(?<![\w.-])\d+(?:\.\d+)?r?em\b/g) ?? [];
+  // Một nguồn: phép quét chuẩn `scripts/quet-gia-tri-cung.mjs` (tests/e2e/pwa.mjs cũng gọi nó). Tới 21/11/2026 bài này giữ một bản CHÉP regex có từ 28/10,
+  // trước quyết định 31/10 của chủ dự án miễn điều kiện `@container (...)` như `@media (...)` (docs/SO-HANG-RAO.md) — nên bắt nhầm mốc khung chứa của bảng Đơn hàng.
+  // Thân luật bên trong @media / @container vẫn bị quét như cũ.
+  const cung = quetGiaTriCung(`${MARK} — khối v2 */\n${khoi}`);
   assert.deepEqual(cung, []);
   assert.ok(khoiSach.length > 0 && !/z-index:\s*\d/.test(khoiSach), "z-index phải là token");
 });

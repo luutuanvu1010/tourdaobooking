@@ -1426,6 +1426,9 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .banner-actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
 /* Banner lỗi của trang (#error): `scrollIntoView` tới đây (lỗi của thao tác ở thẻ Thanh toán, đặt gấp…) không được để banner chui dưới thanh đầu trang dính ở điện thoại — cùng khuôn `.hdv-sec`. */
 #error { scroll-margin-top: calc(var(--bar-h) + env(safe-area-inset-top) + var(--s3)); }
+/* Cùng khoảng chừa cho câu báo «đã lưu» của trang Chính sách điều phối (`#cs-ok`) và hai dải báo của thẻ Hạn mức Từ chối (sửa 21/11/2026): nút lưu của chúng ở cuối
+   thẻ, lưu xong trang cuộn tới câu báo. Viết thành luật riêng, giữ nguyên luật `#error` ở trên (bài `src/cot-cap-dai-ly-noi-day.test.ts` so nguyên văn luật đó). */
+#cs-ok, #hm-the .alert { scroll-margin-top: calc(var(--bar-h) + env(safe-area-inset-top) + var(--s3)); }
 
 /* chip, nhãn giá */
 .chip { display: inline-block; white-space: nowrap; padding: 0 var(--s2); font-size: var(--fs-badge); font-weight: var(--fw-semibold); line-height: 1.5; border-radius: var(--radius-pill); }
@@ -2860,7 +2863,13 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 .dp-link { align-self: flex-start; display: inline-flex; align-items: center; min-height: var(--tap-min); font-size: var(--fs-label); font-weight: var(--fw-bold); }
 .dp-cs-note { margin: 0; }
 .dp-cs-actions { display: flex; gap: var(--s2); }
-@media (max-width: 640px) { .dp-cs-actions { display: none; } }
+/* Điện thoại: nút lưu trong thẻ CHỈ nhường chỗ khi thanh nút dính đáy `#cs-bottom` thật sự đang hiện (nhánh Toàn quyền, bản vẽ 8b). Sửa 21/11/2026: luật cũ
+   giấu `.dp-cs-actions` vô điều kiện, nên nhánh hai số của Quản trị (thanh đáy ẩn) và thẻ Hạn mức Từ chối (cùng lớp, không có thanh đáy) mất nút lưu ở điện thoại.
+   Bài `src/nut-luu-khong-mat-o-dien-thoai.test.ts` khoá: không luật nào được giấu lớp này mà không đòi thanh đáy đang hiện. */
+@media (max-width: 640px) { main:has(> #cs-bottom:not([hidden])) #cs-form .dp-cs-actions { display: none; } }
+/* Thanh đáy của trang này đứng ngay sau biểu mẫu chính sách (public/chinh-sach-dieu-phoi.html), nên khi cuộn xuống thẻ Hạn mức nó thôi dính và trôi lên, ngang qua
+   thanh trên dính của khung. Hai thanh vốn cùng lớp `--z-dinh` (thanh đứng sau trong trang vẽ đè lên): xếp thanh đáy dưới thanh trên một bậc. */
+#cs-bottom { z-index: calc(var(--z-dinh) - 1); }
 /* lịch sử bản: cột phải (≥ 641px); điện thoại mở bảng trượt bằng dòng "Lịch sử bản (N) ›" (khung 8b) */
 .dp-hist { display: flex; flex-direction: column; }
 .dp-hist-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
@@ -4552,7 +4561,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .order-layout > :first-child .kv > span:last-child { text-align: left; }
 }
 
-/* [2] Thẻ đơn (mọi nơi dùng `web/order-card.ts`: danh sách Đơn hàng dưới 1100px, «Việc của tôi», ô xem trước của màn Giao diện): ba hàng — (số thứ tự) ngày ·
+/* [2] Thẻ đơn (mọi nơi dùng `web/order-card.ts`: danh sách Đơn hàng khi vùng chứa hẹp hơn mốc bảng của khối [14], «Việc của tôi», ô xem trước của màn Giao diện): ba hàng — (số thứ tự) ngày ·
    giờ đón + trạng thái / tên khách đầy đủ / điện thoại · số khách · còn thu (được xuống hàng). Luật 6: không cắt tên, số khách, số tiền — thay quyết định «đúng 2
    dòng» của Đợt E (chủ duyệt 30/10). Địa chỉ đón vẫn được rút «…». */
 .order-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; column-gap: var(--s2); row-gap: var(--s1); }
@@ -4565,10 +4574,18 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 .order-row-pax { flex: none; overflow: visible; }
 .order-card-line3 { grid-column: 1 / -1; }
 
-/* [14] Danh sách trang Đơn hàng (`#list` của public/orders.html) từ 1100px: bảng thẳng cột (luật 3) — ngày · khách · điện thoại · số khách · còn thu · trạng thái;
-   hàng tiêu đề cột `.don-bang-dau` tĩnh trong public/orders.html. Chỉ `#list > .order-card`: thẻ đơn ở chỗ khác (Việc của tôi, xem trước Giao diện) giữ dạng thẻ. */
+/* [14] Danh sách trang Đơn hàng (`#list` của public/orders.html): bảng thẳng cột (luật 3) — ngày · khách · điện thoại · số khách · còn thu · trạng thái;
+   hàng tiêu đề cột `.don-bang-dau` tĩnh trong public/orders.html. Chỉ `#list > .order-card`: thẻ đơn ở chỗ khác (Việc của tôi, xem trước Giao diện) giữ dạng thẻ.
+   Sửa 21/11/2026: bảng bật theo bề rộng của CHÍNH VÙNG CHỨA nó (`.don-bang` bọc hàng tiêu đề cột và danh sách), không theo cửa sổ. Mốc cũ
+   `@media (min-width: 1100px)` quên thanh bên: cửa sổ 1.100–1.199 thì vùng nội dung chỉ còn 804–903, cột tên khách co về 0, tên gãy mỗi dòng một chữ.
+   Mốc 960 = phần cố định 862 (năm cột 704 + năm khoảng cách 80 + viền 2 + đệm dòng 24 + nút xổ 44 + khoảng cách tới nút 8) + cột tên khách ít nhất 98.
+   Bài `src/don-hang-bang-theo-vung.test.ts` tính lại phép cộng này từ token: nới một cột thì phải nâng mốc. Vùng hẹp hơn mốc thì là thẻ (khối [2]).
+   Khung chứa là một ngữ cảnh định dạng riêng: lề của con không còn gộp với lề của phần tử đứng trên nó, nên hàng tiêu đề cột KHÔNG đặt lề trên (trước là --s3,
+   vốn bị lề dưới --s4 của thanh lọc, hàng chip lọc, dải báo lỗi nuốt mất); khoảng cách phía trên bảng vẫn là --s4 như cũ. Khác duy nhất: lúc khung đang tải
+   (`#loading`, lề dưới --s2) tạm hiện phía trên bảng cũ, khoảng cách là --s2 thay vì --s3. */
+.don-bang { container: don-bang / inline-size; }
 .don-bang-dau { display: none; }
-@media (min-width: 1100px) {
+@container don-bang (min-width: 960px) {
   #list:has(> .order-card) { overflow: hidden; background: var(--c-surface); border: 1px solid var(--c-border); border-top: 0; border-radius: 0 0 var(--radius-md) var(--radius-md); box-shadow: var(--shadow-card); }
   #list > .order-card { margin: 0; padding: var(--s2) var(--s2) var(--s2) var(--s4); border: 0; border-bottom: 1px solid var(--c-border); border-radius: 0; box-shadow: none; }
   #list > .order-card:last-child { border-bottom: 0; }
@@ -4584,7 +4601,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   #list > .order-card .order-row-top .badge { grid-column: 6; grid-row: 1; justify-self: start; }
   #list > .order-card .order-card-line3 { grid-column: 2 / 6; }
   .don-bang-dau { display: grid; grid-template-columns: var(--w-don-ngay) minmax(0, 1fr) var(--w-don-sdt) var(--w-don-khach) var(--w-don-tien) var(--w-don-tt); column-gap: var(--s4);
-    margin-top: var(--s3); padding: var(--s2) calc(var(--s2) + var(--tap-min) + var(--s2)) var(--s2) var(--s4); font-size: var(--fs-badge); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow);
+    padding: var(--s2) calc(var(--s2) + var(--tap-min) + var(--s2)) var(--s2) var(--s4); font-size: var(--fs-badge); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow);
     text-transform: uppercase; color: var(--c-text-muted); background: var(--c-surface-alt); border: 1px solid var(--c-border); border-radius: var(--radius-md) var(--radius-md) 0 0; }
   .don-bang-dau > .so { text-align: right; }
   .don-bang-dau:has(+ #list:empty), .don-bang-dau[hidden] { display: none; }

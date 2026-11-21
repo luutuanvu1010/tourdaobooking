@@ -12,9 +12,12 @@
     <form id="cs-form" class="vc-card dp-cs-form" autocomplete="off" novalidate></form>
     <section id="cs-lich-su" class="vc-card dp-hist" aria-labelledby="cs-lich-su-title"></section>
   </div>
+  <!-- Thanh nút dính đáy của RIÊNG biểu mẫu chính sách (điện thoại, nhánh Toàn quyền). Đứng ngay sau biểu mẫu, TRƯỚC thẻ Hạn mức: thanh chỉ bám đáy màn hình khi chỗ của
+       nó trong trang còn ở dưới màn hình, tức lúc đang ở phần chính sách; cuộn xuống thẻ Hạn mức thì thanh nằm lại sau biểu mẫu, không đè lên nút «Lưu cài đặt» của thẻ đó
+       (sửa 21/11/2026; trước đó thanh đứng cuối trang nên bám đáy suốt cả trang). -->
+  <div id="cs-bottom" class="vc-bottom-bar thanh-hanh-dong-cuoi" hidden></div>
   <!-- Hạn mức Từ chối của hướng dẫn viên (ADR-0032 điều 8): bảng số lần cho Quản trị + Toàn quyền (admin.manage); cài đặt, đặt lại chỉ Toàn quyền (settings.ops). -->
   <section id="hm-the" class="vc-card hm-card" aria-label="Hạn mức Từ chối của hướng dẫn viên" hidden></section>
-  <div id="cs-bottom" class="vc-bottom-bar thanh-hanh-dong-cuoi" hidden></div>
 </main>
 <script type="module" src="/js/chinh-sach-dieu-phoi.js"></script>
 </body></html>
