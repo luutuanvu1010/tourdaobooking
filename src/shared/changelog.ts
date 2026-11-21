@@ -18,12 +18,31 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Kế toán thấy nợ đối tác (kế hoạch 16 việc 21/11, Việc 6; ADR-0226). Nhánh claude/frosty-heyrovsky-f7ea0a. Không migration.
-    // SỐ TẠM 3.28 (3.25 Việc 16, 3.26 Việc 4, 3.27 Việc 3): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    // SỐ TẠM 3.28 (3.27 trên main là sửa giữ chỗ dải): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.28",
-    date: "2026-11-21",
+    date: "2026-11-22",
     items: [
       { kind: "doi", text: "Đơn hàng và Trang chủ của Kế toán: đơn đối tác hiện số đối tác nợ Tour Đảo và số Tour Đảo đã thu hộ tiền mặt, không còn hiện giá đối tác bán cho khách." },
       { kind: "doi", text: "Đơn khách lẻ và trang chi tiết từng đơn của Kế toán giữ như cũ." },
+    ],
+  },
+  {
+    // Tệp đầu trang web/giu-cho-dai.ts không ném khi lệnh đọc / ghi sessionStorage bị chặn (kịch bản chip-nhom-smoke bước 12). Nhánh claude/recursing-mahavira-be4522.
+    // Không migration. SỐ TẠM 3.27 (3.26 là Việc 4 Kho vé, đã nhập main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.27",
+    date: "2026-11-22",
+    items: [
+      { kind: "sua", text: "Trình duyệt đang chặn lưu dữ liệu (chế độ riêng tư trên máy cũ): Nền tảng không còn báo lỗi ngầm khi mở trang, vẫn chạy như thường." },
+    ],
+  },
+  {
+    // Bộ lọc dùng chung của Kho vé (kế hoạch 16 việc 21/11, Việc 4). Nhánh claude/nostalgic-newton-418d14. Không migration.
+    // SỐ TẠM 3.26 (3.25 là Việc 16, đã nhập main 21/11; bản chạy thật 3.24): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.26",
+    date: "2026-11-21",
+    items: [
+      { kind: "moi", text: "Kho vé: thanh «Lọc theo dịch vụ» đầu trang. Chọn nhóm hoặc gõ tên (không dấu cũng được) là cả ba danh sách vé cùng thu hẹp, kể cả lô ở trang sau.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+      { kind: "doi", text: "Tạo vé Tour Đảo: chọn dịch vụ bằng ô tìm và hàng nhóm giống bước nhập lô vé, thay cho danh sách thả xuống." },
     ],
   },
   {
