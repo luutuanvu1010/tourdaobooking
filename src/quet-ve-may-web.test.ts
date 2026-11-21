@@ -237,6 +237,21 @@ describe("web/quet-ve-may.ts", () => {
     assert.equal(ghiNho.length, 1);
   });
 
+  it("kết quả muộn của vé A tới khi người quét đã sang vé B: màn của B giữ nguyên, A vẫn được ghi vào lượt gần đây", async () => {
+    const { may, ketQuaEl, ghiNho } = dung([{ muon: 20_000, kq: XANH }, DO_DA_DUNG]);
+    may.nhanMa("TD1.A");
+    await xa();
+    for (let t = 0; t < 16_000; t += 250) { mock.timers.tick(250); await xa(); }
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "LOI");
+    nut(ketQuaEl, "Quét tiếp")!.click();
+    may.nhanMa("TD1.B");
+    await xa();
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "DO");
+    for (let t = 0; t < 5000; t += 250) { mock.timers.tick(250); await xa(); }
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "DO", "kết quả muộn của A không được đè màn của B");
+    assert.deepEqual(ghiNho.map((k) => k.mau), ["DO", "XANH"]);
+  });
+
   it("lỗi ở danh sách lượt gần đây (sau khi máy chủ đã trả lời) không bị coi là lỗi mạng: vẫn hiện kết quả, không gửi lại", async () => {
     const { may, ketQuaEl, goiLuc } = dung([XANH, XANH], { ghiNhoNem: true });
     may.nhanMa("TD1.A");

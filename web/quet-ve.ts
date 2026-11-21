@@ -156,7 +156,7 @@ if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) {
     const ma = await docQrTuTep(tep, { canhToiDa: CANH_ANH_QUET }); // ảnh 12 MP thu nhỏ trước khi đọc
     if (!ma) { baoTrangThai("Không thấy mã vé trong ảnh. Hãy chụp lại gần hơn và đủ sáng."); return; }
     // Người quét chủ động chụp: không xét mốc 3 giây. Đang kiểm vé khác thì nói rõ, không bỏ ảnh im lặng.
-    if (!may.guiNgay(ma)) baoTrangThai("Đang kiểm tra một vé khác. Chờ có kết quả rồi chụp lại.");
+    if (!may.guiNgay(ma)) baoTrangThai("Ảnh chưa được gửi vì vé trước chưa xong. Khi có kết quả, bấm «Quét tiếp» rồi chụp lại.");
   });
 
   // Gõ số sê-ri (ADR-0217 Đ2): khi vé không quét được (QR hỏng, in mờ). Cùng khung kết quả; luôn ra cảnh báo vàng «nhập tay» tới khi người quét bấm «Xác nhận cho đi».
