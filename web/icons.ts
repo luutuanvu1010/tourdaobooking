@@ -148,7 +148,7 @@ const SHAPES = {
   // Việc 16 (21/11/2026): mười chín hình cho các mục nhóm THIẾT LẬP (src/shared/muc-giao-dien.ts), mỗi nghĩa một hình (tiêu chí S6), không mượn hình đang mang nghĩa khác
   // trên thanh bên. Cùng luật cả bộ: lưới 24, nét 1.8, không tô. Mỗi hình MỘT `path` (vòng tròn vẽ bằng cung) cho gọn gói trang (trần gói Đơn hàng, src/goi-trang-nhe.test.ts).
   percent: [["path", { d: "M18 6 6 18M10 7.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0M19 16.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" }]], // Hoa hồng đối tác
-  bounds: [["path", { d: "M5 3h14M5 21h14M16 7 8 17M10.5 8.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0M17.5 15.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0" }]], // Giới hạn nhập hoa hồng: dấu % giữa hai vạch trần, sàn
+  bounds: [["path", { d: "M5 3h14M5 21h14M12 7v10M9 9.5 12 7l3 2.5M9 14.5l3 2.5 3-2.5" }]], // Giới hạn nhập hoa hồng: mũi tên chạm vạch trần, vạch sàn (không dùng dấu % — người chấm 21/11: ở 18 px lẫn với `percent`)
   layers: [["path", { d: "M12 3 3 7.5l9 4.5 9-4.5zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" }]], // Cấp độ đại lý
   route: [["path", { d: "M6 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM18 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16" }]], // Phí đưa đón
   gauge: [["path", { d: "M3.5 17.5a8.5 8.5 0 1 1 17 0M12 17.5l4-5.5" }]], // Hạn mức trả sau
