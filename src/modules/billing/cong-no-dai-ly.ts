@@ -6,7 +6,7 @@
 // Đơn KHÔNG phải đơn đại lý giữ cách tính cũ (phải thu − đã về, ADR-0168 Đ2 mục 2). Số tiền chỉ tính ở máy chủ. KHÔNG tự kiểm quyền — route hỏi `can(` trước.
 import { noMotDon } from "../../shared/tra-sau";
 import { giaDaiLyNhieuDon, type DongGiaDaiLy, type DongPhiGiaDaiLy } from "../orders";
-import { LOAI_DONG_THUONG_MAI, hieuLuc, khoanChoXacNhan, soChuaVeCongTy, soDuCap, soKhaiChuaNop, type DoiChieuRow, type LineRow } from "./rules";
+import { LOAI_DONG_THUONG_MAI, hieuLuc, khoanChoXacNhan, soChuaVeCongTy, soDuCap, soKhaiChuaNop, thuHoTienMat, type DoiChieuRow, type LineRow } from "./rules";
 import { phanKhaiCuaDon } from "./khoan-khai";
 import { ownerCompanyId, receiptsOfOrders } from "./repository";
 import { tienNhieuDon, toReceiptRow } from "./service";
@@ -22,7 +22,8 @@ export interface DonCongNo { id: string; booker_party_id: string | null; status:
 export interface PhieuCongNo { dong: DongGiaDaiLy[]; /** Dòng phí đưa đón hiện hành, mỗi chặng một dòng — đã nằm trong `tong` (Đợt C, SV-PD-25; ADR-0203 ĐB3). */ phiDong: DongPhiGiaDaiLy[]; tong: number; daThu: number; conLai: number; congTyCho: number }
 
 /** Số của một đơn sau lượt tính. `no` = số nợ dùng cho hạn mức / cổng huỷ / nhắc hạn: ≥ 0, đơn huỷ 0 (ADR-0168 Đ3 — một đơn âm không bù đơn khác). */
-export interface KetQuaCongNo { no: number; cocConGiu: number; phieu: PhieuCongNo | null }
+export interface KetQuaCongNo { no: number; cocConGiu: number; phieu: PhieuCongNo | null; /** ADR-0226: «Tour Đảo đã thu hộ tiền mặt» (`thuHoTienMat`) — chỉ đơn đại lý, đơn khác 0. */ thuHoTienMat: number }
+
 
 /** Luật thuần: Đã thu và Công nợ còn lại từ các số đã đọc. Đã thu không âm; Còn lại giữ dấu. */
 export function tinhConLai(i: { tong: number; daThuRong: number; dangDoiChieu: number; conGiu: number }): { daThu: number; conLai: number } {
@@ -77,11 +78,12 @@ export async function congNoNhieuDon(db: D1Database, dons: readonly DonCongNo[])
       const so = tinhConLai({ tong, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, conGiu: v.nguoiLapGiu });
       const cho = khoanChoXacNhan(rs, ls, dc);
       const congTyCho = hieuLuc(rs).filter((r) => r.kind === "CUSTOMER_PAYMENT" && r.collectorRole === "COMPANY" && cho.has(r.id)).reduce((s2, r) => s2 + r.amount, 0);
-      out.set(d.id, { no: daHuy ? 0 : Math.max(0, so.conLai), cocConGiu, phieu: { dong: g.dong, phiDong: g.phiDong, tong, ...so, congTyCho } });
+      const thuHo = thuHoTienMat({ receipts: (rcTheoDon.get(d.id) ?? []).map((r) => ({ ...toReceiptRow(r), method: r.method_code })), bookerPartyId: d.booker_party_id, choXacNhan: cho });
+      out.set(d.id, { no: daHuy ? 0 : Math.max(0, so.conLai), cocConGiu, phieu: { dong: g.dong, phiDong: g.phiDong, tong, ...so, congTyCho }, thuHoTienMat: thuHo });
       continue;
     }
     const v = ve(ls);
-    out.set(d.id, { no: noMotDon({ daHuy, phaiThu: t.phaiThu, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, benDatDangGiu: v.nguoiLapGiu }), cocConGiu, phieu: null });
+    out.set(d.id, { no: noMotDon({ daHuy, phaiThu: t.phaiThu, daThuRong: t.daThu, dangDoiChieu: v.choXacNhan, benDatDangGiu: v.nguoiLapGiu }), cocConGiu, phieu: null, thuHoTienMat: 0 });
   }
   return out;
 }

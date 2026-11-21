@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Kế toán thấy nợ đối tác (kế hoạch 16 việc 21/11, Việc 6; ADR-0226). Nhánh claude/frosty-heyrovsky-f7ea0a. Không migration.
+    // SỐ TẠM 3.28 (3.25 Việc 16, 3.26 Việc 4, 3.27 Việc 3): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.28",
+    date: "2026-11-21",
+    items: [
+      { kind: "doi", text: "Đơn hàng và Trang chủ của Kế toán: đơn đối tác hiện số đối tác nợ Tour Đảo (hoặc số Tour Đảo cần trả lại đối tác) và số Tour Đảo đã thu hộ tiền mặt, không còn hiện giá đối tác bán cho khách. Đơn khách lẻ và trang chi tiết đơn giữ như cũ." },
+    ],
+  },
+  {
     // Biểu tượng cho menu Thiết lập (kế hoạch 16 việc 21/11, Việc 16). Nhánh claude/relaxed-noether-c3cb22. Không migration.
     // SỐ TẠM 3.25 (3.24 là Việc 9, có thể chưa lên bản chạy thật): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.25",

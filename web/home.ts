@@ -129,7 +129,8 @@ function renderSoMayTinh(staff: Staff, data: Api.DashboardResponse): void {
  * (chỉ hiện ở ≤639px, cùng cơ chế `.lbl-short`) trong cụm tiền bên phải — tái dùng ĐÚNG kỹ thuật gọi đã có (span + onclick +
  * `tel:`, giống `.order-row-phone` ở `web/orders.ts`), không đổi bố cục ba cụm khi/tên/tiền hiện có.
  */
-function todayRow(o: OrderSummary, tien: { conLai: number } | undefined, loai: LoaiChuyen | null = null, conLaiPhut: number | null = null): HTMLElement {
+function todayRow(o: OrderSummary, tien: { conLai: number } | undefined, loai: LoaiChuyen | null = null, conLaiPhut: number | null = null, noDt?: { no: number; nhan: string }): HTMLElement {
+  const nd = noDt ? { nhan: noDt.nhan, soTien: Math.abs(noDt.no) } : null; // ADR-0226: đơn đối tác của Kế toán thuần — số nợ (nhãn do máy chủ chọn) thay cho số bán lẻ
   const time = o.trip.pickupTime ?? "—";
   const pax = paxCountsShort(o.pax);
   const serviceLine = o.serviceNames.length === 0 ? "—" : o.serviceNames.length === 1 ? o.serviceNames[0] : `${o.serviceNames[0]} +${o.serviceNames.length - 1} dịch vụ`;
@@ -173,7 +174,9 @@ function todayRow(o: OrderSummary, tien: { conLai: number } | undefined, loai: L
       { class: "dash-today-money" },
       // Sổ tiền lượt 1: "còn lại" là số của billing (`POST /api/ledger/balances`); chưa tải được → "—", không đoán.
       // Còn tiền → số + "còn lại" nhỏ bên dưới; đủ tiền → viên thuốc xanh "Đủ tiền" thay cho "0 ₫" (cả hai bản vẽ: điện thoại 1a, máy tính v2 — máy tính có dấu ✓).
-      tien === undefined && h("b", null, "—"),
+      tien === undefined && !nd && h("b", null, "—"),
+      nd && h("b", { class: noDt!.no > 0 ? "money-due" : undefined }, h("span", { class: "lbl-full" }, vnd(nd.soTien)), h("span", { class: "lbl-short" }, `${vndShort(nd.soTien)} ₫`)),
+      nd && h("span", { class: "muted dash-con-lai-mt" }, nd.nhan),
       tien && tien.conLai > 0 && h("b", { class: "money-due" }, h("span", { class: "lbl-full" }, vnd(tien.conLai)), h("span", { class: "lbl-short" }, `${vndShort(tien.conLai)} ₫`)),
       tien && tien.conLai > 0 && h("span", { class: "muted lbl-full dash-con-lai-mt" }, "còn lại"),
       tien && tien.conLai > 0 && h("span", { class: "muted lbl-short dash-con-lai" }, "còn lại"),
@@ -198,10 +201,10 @@ const NGAY_DON = [
 /** Ngày đang chọn — giữ qua các lần làm mới lặng lẽ (không nhớ qua lần mở trang: mở lại luôn là Hôm nay). */
 let ngayDonChon = 0;
 /** Dữ liệu lần vẽ gần nhất — đồng hồ phút (dongHoPhut) vẽ lại khối Chuyến đón hôm nay với giờ mới, không gọi lại máy chủ. */
-let veGanNhat: { data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "dayAfter">; tien: Api.LedgerBalancesResponse["balances"] } | null = null;
+let veGanNhat: { data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "dayAfter">; tien: Api.LedgerBalancesResponse["balances"]; noDt: NonNullable<Api.LedgerBalancesResponse["noDoiTac"]> } | null = null;
 
-function renderToday(data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "dayAfter">, tien: Api.LedgerBalancesResponse["balances"]): void {
-  veGanNhat = { data, tien };
+function renderToday(data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "dayAfter">, tien: Api.LedgerBalancesResponse["balances"], noDt: NonNullable<Api.LedgerBalancesResponse["noDoiTac"]> = {}): void {
+  veGanNhat = { data, tien, noDt };
   const ds: readonly OrderSummary[] = data[NGAY_DON[ngayDonChon]!.khoa];
   // Chỉ HÔM NAY mới có "bây giờ" (giờ Việt Nam): Ngày mai / Ngày kia không có chuyến đã qua hay sắp tới. Phương án A bỏ dòng thời gian trang trí; `dongThoiGian` còn dùng để biết chuyến nào đã qua / sắp tới.
   const tl = dongThoiGian(ds.map((o) => o.trip.pickupTime), ngayDonChon === 0 ? phutVN(new Date()) : null);
@@ -214,12 +217,12 @@ function renderToday(data: Pick<Api.DashboardResponse, "today" | "tomorrow" | "d
     ...NGAY_DON.map((n, i) =>
       h("button", {
         type: "button", class: "dash-day", "aria-pressed": String(i === ngayDonChon), "data-ngay": n.khoa,
-        onclick: () => { ngayDonChon = i; renderToday(data, tien); },
+        onclick: () => { ngayDonChon = i; renderToday(data, tien, noDt); },
       }, h("span", { class: "dash-day-nhan" }, `${n.nhan} (${data[n.khoa].length})`)), // span: viên thuốc 36px trong vùng chạm 44px (bản vẽ điện thoại)
     ),
   );
   nut.hidden = false;
-  replaceChildren(byId("dash-today-list"), ...ds.map((o, i) => todayRow(o, tien[o.id], tl?.loai[i] ?? null, tl?.conLaiPhut ?? null)));
+  replaceChildren(byId("dash-today-list"), ...ds.map((o, i) => todayRow(o, tien[o.id], tl?.loai[i] ?? null, tl?.conLaiPhut ?? null, noDt[o.id])));
   const trong = byId("dash-today-empty");
   trong.textContent = NGAY_DON[ngayDonChon]!.trong;
   trong.hidden = ds.length > 0;
@@ -743,7 +746,7 @@ function batDongHoPhut(): void {
     if (dt) dt.textContent = `${buoi},`;
     if (nguoiXem && dsDonChoGanNhat !== undefined && !byId("dash-gap").contains(document.activeElement)) datDaiGap(nguoiXem, dsDonChoGanNhat); // đơn chạm mốc 2 giờ thì dải hiện / đổi số mà không gọi máy chủ
     if (ngayDonChon !== 0 || !veGanNhat || byId("dash-today-days").contains(document.activeElement) || byId("dash-today-list").contains(document.activeElement)) return;
-    renderToday(veGanNhat.data, veGanNhat.tien);
+    renderToday(veGanNhat.data, veGanNhat.tien, veGanNhat.noDt);
   }, 60_000);
 }
 
@@ -943,9 +946,10 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
     datDaiDonChoDienThoai(donCho);
     // Số "còn lại" cho cả ba ngày của khối "Chuyến đón" (Hôm nay / Ngày mai / Ngày kia — góp ý YC-0007); billing nhận tối đa 100 mã một lần.
     const maDon = [...new Set([...data.today, ...data.tomorrow, ...data.dayAfter].map((o) => o.id))].slice(0, 100);
-    const tien = maDon.length
-      ? await api<Api.LedgerBalancesResponse>("/api/ledger/balances", { method: "POST", body: { orderIds: maDon } }).then((r) => r.balances, () => ({}))
-      : {};
+    const so: Pick<Api.LedgerBalancesResponse, "balances" | "noDoiTac"> = maDon.length
+      ? await api<Api.LedgerBalancesResponse>("/api/ledger/balances", { method: "POST", body: { orderIds: maDon } }).catch(() => ({ balances: {} }))
+      : { balances: {} };
+    const tien = so.balances;
     loadingEl.hidden = true;
     // Lần trước lỗi mà lần này được → gỡ dải. Chỉ thiếu số "Còn thiếu" → dải "Thử lại" (bản vẽ điện thoại 1f, máy tính v2), ô đó hiện "—".
     if (review !== undefined) {
@@ -971,7 +975,7 @@ async function taiDashboard(staff: Staff, lamMoi = false, taiMoi = false): Promi
     // Cột phụ (Đang chờ bạn + Doanh thu) ẩn hẳn khi cả hai thẻ không có gì — cột chính chiếm hết hàng (Phương án A).
     byId("dash-cot-phu").hidden = byId("dash-dang-cho").hidden && byId("dash-so-mt").hidden;
     renderSoDienThoai(staff, data, unpaid);
-    renderToday(data, tien);
+    renderToday(data, tien, so.noDoiTac);
     // Chỉ hiện khối nội dung SAU KHI dựng xong dữ liệu thật — lúc đang tải/lỗi giữ ẩn (tránh khối rỗng đọng lại cạnh skeleton/banner lỗi).
     byId("dash-grid").hidden = false;
   } catch (err) {

@@ -17,7 +17,8 @@ import { vnToday } from "../../shared/vn-date";
 import { dongTien } from "../../shared/tra-sau";
 import { docGhiChuKy, khoaKyStatements, kiemKhoaKy, thangDaKhoa } from "../ky-so";
 import { auditStatement } from "../audit";
-import { donDangThuTien, donThanhVienCungToChuc, phanThuongMaiCuaDon, thongTinGiaoDon } from "../orders";
+import { donDaiLyTrongTap, donDangThuTien, donThanhVienCungToChuc, phanThuongMaiCuaDon, thongTinGiaoDon } from "../orders";
+import { congNoNhieuDon } from "./cong-no-dai-ly";
 import { danhSachYeuCau, duyetYeuCau, ruYeuCau, taoYeuCau, tuChoiYeuCau } from "./dieu-chinh";
 import { donChoNhapKeToan, docNhapKeToan, ghiNhapKeToan } from "./nhap-ke-toan";
 import { chiNguoiLapGhiNhap, donDaGuiLen, ketQuaXemDon } from "../../shared/xem-don-nhap";
@@ -42,6 +43,7 @@ import { BANG_NOP, xoaBienLaiKhoiKho } from "./kho-bien-lai";
 import { ghiKhoanNop, tuChoiKhoanNop, xacNhanKhoanNop, type DonNop } from "./khoan-nop";
 import { anhCuaKhoanNop, anhNopChoXoa, benDatCuaDon, benDatNhieuDon, nopChoTatCa, quyetXoaAnhNopStatement } from "./khoan-nop-repo";
 import { coPhieuNopTien, laTaiKhoanDoiTac } from "../../shared/cong-no-dai-ly";
+import { NHAN_THU_HO_TIEN_MAT, keToanThuan, nhanNoDoiTac } from "../../shared/no-doi-tac-ke-toan";
 import { CAU_BIEN_LAI_QUA_CO, LY_DO_GO_BIEN_LAI, TOI_DA_THAN_KHOAN_THU_CO_ANH } from "../../shared/bien-lai";
 import { CHUA_TAI_DUOC_SAU_MS, dauPhanHoiTepChung } from "../../shared/tep-dinh-kem";
 
@@ -570,10 +572,19 @@ export const billingModule: AppModule = {
         // ADR-0135 Đ1: đơn nháp của người khác bị bỏ khỏi kết quả (cùng luật thuần với các đường đọc khác).
         return owners.has(id) && status !== undefined && ketQuaXemDon({ coQuyenXem: can(staff, "order.view", scope), status, laNguoiLap: owners.get(id) === staff.id, dangCho: false, xetDuyetDuoc: false, chiXemDonDuocGiao: false }) === "ok" && can(staff, "money.view", scope);
       });
-      const tien = await tienNhieuDon(env.DB, xemDuoc);
+      // ADR-0226 (Việc 6): Kế toán thuần — đơn đối tác bỏ hẳn khỏi `balances` (không gửi số bán lẻ); đơn đã xác nhận nhận số nợ của phiếu công nợ (cùng `congNoNhieuDon`, một lượt).
+      const ktThuan = keToanThuan(staff);
+      const daiLy = ktThuan && xemDuoc.length > 0 ? await donDaiLyTrongTap(env.DB, xemDuoc) : new Set<string>();
+      const tien = await tienNhieuDon(env.DB, xemDuoc.filter((id) => !daiLy.has(id)));
       const balances: LedgerBalancesResponse["balances"] = {};
       for (const [id, t] of tien) balances[id] = { phaiThu: t.phaiThu, daThu: t.daThu, conLai: t.conLai, du: t.du, chuaRo: t.chuaRo, daGiao: t.daGiao, hoanThanh: t.hoanThanh };
-      return json({ balances } satisfies LedgerBalancesResponse);
+      if (!ktThuan) return json({ balances } satisfies LedgerBalancesResponse);
+      const daXacNhan = [...daiLy].filter((id) => trangThai.get(id) === "confirmed");
+      const benDat = daXacNhan.length > 0 ? await benDatNhieuDon(env.DB, daXacNhan) : new Map<string, string | null>();
+      const kq = await congNoNhieuDon(env.DB, daXacNhan.map((id) => ({ id, booker_party_id: benDat.get(id) ?? null, status: "confirmed" })));
+      const noDoiTac: NonNullable<LedgerBalancesResponse["noDoiTac"]> = {};
+      for (const [id, x] of kq) if (x.phieu) noDoiTac[id] = { tinh: "co", no: x.phieu.conLai, thuHoTienMat: x.thuHoTienMat, nhan: nhanNoDoiTac(x.phieu.conLai).nhan, nhanThuHo: NHAN_THU_HO_TIEN_MAT };
+      return json({ balances, noDoiTac } satisfies LedgerBalancesResponse);
     }),
 
     // Ô "Còn thiếu tiền" của Trang chủ (rời getDashboard của orders — ADR-0026 đ9): số đơn đã xác nhận chưa Đã giao còn phải thu + tổng. Khuôn quyền của Trang
