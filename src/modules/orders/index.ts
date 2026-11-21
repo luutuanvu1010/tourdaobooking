@@ -80,7 +80,7 @@ import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu
 import { thanLapDonKhiAn, thanNhapKhiAn } from "./an-thong-tin-khach";
 import { apTruongDichVu, thanKhiAnTruong, thieuBatBuoc, traDichVu, truongTaoDon } from "./an-truong-giao-dien";
 import { thanKhiKhongNhapNoiDon } from "./noi-don-doi-tac";
-import { anKhachBat, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon, nhapDangChoCuaBen } from "./xac-nhan-repo";
+import { anKhachBat, cauGhiNguoiMoi, docChanChuaGioSatNgay, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon, nhapDangChoCuaBen } from "./xac-nhan-repo";
 import { cauKhepLoiMoi, docKhungGio, soanGhiNhan } from "./ban-hang-ghi-nhan";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
@@ -2271,13 +2271,15 @@ export const ordersModule: AppModule = {
         const gio = await docKhungGio(banHang); // ADR-0142: khung giờ hành chính MỘT lần; thiếu ⇒ 503 trước khi ghi
         if ("loi" in gio) return gio.loi;
         // ADR-0193 câu (ii): lượt chưa giờ mà ngày đón đã vào hạn chốt ⇒ 409 TRƯỚC khi dựng lô (`kiemCongXacNhan` đã bảo đảm có mốc). Cửa này không đổi ngày / giờ: xét lượt đang lưu.
-        const chuaGio = chanChuaGioSatNgay(changDangLuu(order.services), nowMs, moc!.phut);
+        // ADR-0227: công tắc đọc MỘT lần; cùng giá trị vào hàm thuần, vế ?8 của câu xác nhận và chẩn đoán lô thua.
+        const chanGio = await docChanChuaGioSatNgay(env.DB, new Date(nowMs).toISOString());
+        const chuaGio = chanChuaGioSatNgay(changDangLuu(order.services), nowMs, moc!.phut, chanGio);
         if (chuaGio) return chuaGio;
         let thang = false;
         try {
           // ADR-0049 D2 (I15, I25): điều kiện mốc nằm TRONG câu xác nhận — ngưỡng chuỗi giờ VN tính bằng `nguongMocVn` (MỘT luật với `kiemMocDat`).
           // ADR-0142: điểm ghi nhận «đơn không cần kiểm» — Bán hàng được mời mở lời mời, hoặc người lập tự mời mình thì thành Bán hàng phụ trách ngay; nối CUỐI lô, gác bằng id nhật ký `confirmed`.
-          const xn = soanXacNhan(env.DB, id, staff.id, cong.today, meta.updatedAt, nguongMocVn(nowMs, moc!.phut), cong.detail, kemChupXacNhan(env.DB, { orderId: id, staffId: staff.id, today: cong.today, chup: cong.chup }), cocXn.coc, cong.traSau, cong.phiDon.cauLenh);
+          const xn = soanXacNhan(env.DB, id, staff.id, cong.today, meta.updatedAt, nguongMocVn(nowMs, moc!.phut), cong.detail, kemChupXacNhan(env.DB, { orderId: id, staffId: staff.id, today: cong.today, chup: cong.chup }), cocXn.coc, cong.traSau, cong.phiDon.cauLenh, { chanChuaGio: chanGio });
           const gn = await soanGhiNhan({ db: env.DB, banHang, orderId: id, nguoiLap: { id: staff.id, partyId: staff.partyId }, at: xn.at, auditId: xn.auditId, canKiem: false, khung: gio.khung });
           thang = daXacNhan(await env.DB.batch([...xn.cau, ...gn.cau]), xn.chiSoXacNhan);
         } catch (e) {
@@ -2289,7 +2291,7 @@ export const ordersModule: AppModule = {
             throw e;
           }
         }
-        if (!thang) return chanDoanXacNhan(env.DB, { id, today: cong.today, mocToiThieu: moc!, nowMs });
+        if (!thang) return chanDoanXacNhan(env.DB, { id, today: cong.today, mocToiThieu: moc!, nowMs, chanChuaGio: chanGio });
         await capVeSauXacNhan(id); // ADR-0153: lô cấp vé RIÊNG sau lô xác nhận; lỗi nuốt, xác nhận đã thắng
       }
       baoThayDoi({ orderId: id, thayDoi: to === "cancelled" ? "huy" : "xac_nhan" });

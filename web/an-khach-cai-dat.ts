@@ -30,7 +30,7 @@ export async function ganCaiDatAnKhach(el: HTMLElement): Promise<void> {
     });
     replaceChildren(
       el,
-      h("h2", { id: "an-khach-heading" }, "Ẩn thông tin khách khi đối tác đặt vé"),
+      h("h3", { id: "an-khach-heading" }, "Ẩn thông tin khách khi đối tác đặt vé"),
       h("p", { id: "an-khach-trang-thai" }, s.bat ? "Đang bật." : "Đang tắt."),
       h("p", { class: "muted" }, "Khi bật, đối tác không nhập tên, số điện thoại và danh sách khách khi lập đơn. Đơn lập lúc bật không cần danh sách khách để xe chạy; tắt công tắc không đổi các đơn đó."),
       loi,

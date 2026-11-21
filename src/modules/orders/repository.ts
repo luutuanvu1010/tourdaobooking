@@ -1256,7 +1256,7 @@ export type KemPhiDon = (prevUpdatedAt: string) => D1PreparedStatement[];
  */
 export function soanXacNhan(
   db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail: string | undefined,
-  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, traSau: KemTraSau, phiDon: KemPhiDon, opts?: { auditId?: string; yeuCauId?: string },
+  alsoConfirm: ((at: string) => D1PreparedStatement[]) | undefined, coc: KemCoc, traSau: KemTraSau, phiDon: KemPhiDon, opts?: { auditId?: string; yeuCauId?: string; chanChuaGio?: boolean },
 ): { at: string; cau: D1PreparedStatement[]; auditId: string; chiSoXacNhan: number } {
   const at = nextStamp(prevUpdatedAt);
   const { from, to } = confirmWindow(today);
@@ -1271,7 +1271,7 @@ export function soanXacNhan(
     cau: [
       ...cauPhi,
       legFillDateOnConfirm(db, id, at),
-      orderConfirm(db, id, at, from, to, nguongMoc, prevUpdatedAt, opts?.yeuCauId ?? null),
+      orderConfirm(db, id, at, from, to, nguongMoc, prevUpdatedAt, opts?.yeuCauId ?? null, opts?.chanChuaGio ?? true), // ADR-0227: mặc định Bật (nơi gọi quên truyền vẫn an toàn)
       auditStatement(db, { id: auditId, orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
       // Câu kèm (bản chụp thương mại — ADR-0077) đứng SAU nhật ký confirmed: chuỗi changes() > 0 nối từ UPDATE orders → nhật ký → từng câu chụp.
       ...(alsoConfirm?.(at) ?? []),

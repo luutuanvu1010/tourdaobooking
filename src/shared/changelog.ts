@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Công tắc chặn đơn chưa có giờ đón khi sát ngày đón + nhóm «Cài đặt lập đơn» (kế hoạch 16 việc 21/11, Việc 7; ADR-0227 đề xuất). Nhánh claude/keen-austin-0abaf2. Migration 0182.
+    // SỐ TẠM 3.26 (3.25 là Việc 16): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Chưa phát hành được khi ADR-0227 chưa duyệt (kèm lời cho phép xây trên HC-5.19).
+    version: "3.26",
+    date: "2026-11-21",
+    items: [
+      { kind: "moi", text: "Trang Tôi của Toàn quyền: các công tắc lập đơn gom vào một nhóm «Cài đặt lập đơn»." },
+      { kind: "moi", text: "Công tắc mới «Chặn đơn chưa có giờ đón khi sát ngày đón» (đang bật). Tắt thì đơn đón hôm nay chưa có giờ vẫn xác nhận được, nhưng chưa xếp xe tới khi có giờ." },
+    ],
+  },
+  {
     // Biểu tượng cho menu Thiết lập (kế hoạch 16 việc 21/11, Việc 16). Nhánh claude/relaxed-noether-c3cb22. Không migration.
     // SỐ TẠM 3.25 (3.24 là Việc 9, có thể chưa lên bản chạy thật): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.25",

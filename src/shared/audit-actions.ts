@@ -394,6 +394,8 @@ export const AUDIT_ACTIONS = {
   pickup_time_policy_changed: { label: "Đổi công tắc bắt buộc giờ đón", group: "system" },
   // ADR-0221 Đ1: Toàn quyền bật / tắt «Đối tác không nhập nơi đón» (POST /api/cai-dat/noi-don-doi-tac) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
   pickup_place_policy_changed: { label: "Đổi công tắc đối tác không nhập nơi đón", group: "system" },
+  // ADR-0227 Đ1: Toàn quyền bật / tắt «Chặn đơn chưa có giờ đón khi sát ngày đón» (POST /api/cai-dat/chan-chua-gio-sat-ngay) — không gắn đơn; detail «Bật …» / «Tắt …».
+  pickup_deadline_policy_changed: { label: "Đổi công tắc chặn đơn chưa có giờ đón", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.
   tro_ly_settings_changed: { label: "Đổi cài đặt trợ lý Hỗ trợ", group: "system" },
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).

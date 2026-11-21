@@ -903,6 +903,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Cài đặt vận hành",
+    manHinh: "Tôi (trang cá nhân) › nhóm «Cài đặt lập đơn» › khối «Chặn đơn chưa có giờ đón khi sát ngày đón»",
+    ten: "Tắt chặn chưa có giờ đón · Bật chặn chưa có giờ đón",
+    thatSuLam: "Đổi công tắc chung. Khi bật (mặc định), đơn có lượt đón chưa có giờ mà ngày đón đã sát hạn chốt (ví dụ đón hôm nay) thì không xác nhận được cho tới khi điền giờ đón. Khi tắt, đơn đó xác nhận được ngay; vé mở dù chưa có giờ và xe chưa xếp được cho tới khi văn phòng điền giờ đón. Áp mọi đơn, mọi người lập, ở cả ba nút xác nhận.",
+    hoiLai: "không",
+    hoanTac: "được: bấm Bật chặn chưa có giờ đón (đơn đã xác nhận lúc tắt giữ nguyên)",
+    duongLenh: ["/api/cai-dat/chan-chua-gio-sat-ngay"],
+    maNhatKy: ["pickup_deadline_policy_changed"],
+    noiDat: [
+      { tep: "web/chan-chua-gio-cai-dat.ts", chu: "Tắt chặn chưa có giờ đón / Bật chặn chưa có giờ đón" },
+    ],
+    trangThai: "cho-chon",
+    nguonTen: "ADR-0227 (đề xuất 21/11/2026, việc 7): AI đề xuất phương án (1), chờ chủ chọn qua phiên điều phối",
+  },
+  {
+    nhom: "Cài đặt vận hành",
     manHinh: "Tôi (trang cá nhân) › khối «Đối tác không nhập nơi đón»",
     ten: "Bật đối tác không nhập nơi đón · Tắt đối tác không nhập nơi đón",
     thatSuLam: "Đổi công tắc chung. Khi bật, form Tạo đơn của mọi tài khoản giữ quyền Đối tác chỉ còn hai nút «Đón», «Không đón» và ô ghi chú đưa đón: đối tác không điền nơi đón. Văn phòng điền nơi đón ở bảng «Xác nhận đơn» lúc bấm «Còn vé, xác nhận đơn»; đơn còn lượt chưa có nơi đón thì không xác nhận được. Đơn của Bán hàng không đổi. Mặc định đang tắt.",

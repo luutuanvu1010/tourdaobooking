@@ -30,7 +30,7 @@ export async function ganCaiDatNhapTay(el: HTMLElement): Promise<void> {
     });
     replaceChildren(
       el,
-      h("h2", { id: "nhap-tay-heading" }, "Dịch vụ nhập tay"),
+      h("h3", { id: "nhap-tay-heading" }, "Dịch vụ nhập tay"),
       h("p", { id: "nhap-tay-trang-thai" }, s.batNhapTay ? "Đang bật." : "Đang tắt."),
       h(
         "p",

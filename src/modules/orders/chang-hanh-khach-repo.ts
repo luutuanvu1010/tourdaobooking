@@ -478,6 +478,7 @@ export async function legDatGapByOrder(db: D1Database, orderId: string): Promise
  * ADR-0193 câu (ii) — vế thứ hai về chặng: không còn chặng MỞ nào CHƯA giờ mà `ngày đón || ' 00:00'` < ?5 (cùng ngưỡng, không thêm tham số). Câu điền ngày đón đứng trước trong lô nên chặng
  * trống ngày đã mang ngày đi. MỘT luật với `changChuaGioVaoHanChot` (src/shared/moc-toi-thieu.ts; bài khoá hai phía ở chua-gio-sat-ngay.test.ts). Lớp chặn CUỐI: các cửa xác nhận đã kiểm
  * bằng hàm thuần trước khi dựng lô (ruling R6).
+ * ADR-0227: vế thứ hai chỉ áp khi ?8 = 1 (công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón» Bật) — ?8 là giá trị route đọc MỘT lần, cùng giá trị đã đưa vào hàm thuần.
  */
 const ORDER_CONFIRM = defineSql(
   "orders",
@@ -492,7 +493,7 @@ const ORDER_CONFIRM = defineSql(
        SELECT 1 FROM ord_transfer_leg l WHERE l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NOT NULL
          AND l.short_notice_reason IS NULL AND l.pickup_date || ' ' || l.pickup_time < ?5)
      AND NOT EXISTS (
-       SELECT 1 FROM ord_transfer_leg l WHERE l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NULL
+       SELECT 1 FROM ord_transfer_leg l WHERE ?8 = 1 AND l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NULL
          AND l.pickup_date IS NOT NULL AND l.pickup_date || ' 00:00' < ?5)
      AND (?7 IS NULL OR EXISTS (SELECT 1 FROM ord_confirm_request q WHERE q.id = ?7 AND q.order_id = orders.id AND q.decided_at IS NULL))`,
 );
@@ -500,8 +501,8 @@ const ORDER_CONFIRM = defineSql(
  * `yeuCauId` (Task 3.3, ADR-0136 Đ7): khi người xét duyệt bấm Còn vé, câu xác nhận còn mang vế «yêu cầu đã đọc VẪN CÒN MỞ» — người lập vừa Rút lại / người khác vừa quyết
  * thì câu không đổi dòng nào. NULL = xác nhận thường (`/status`, không qua yêu cầu).
  */
-export const orderConfirm = (db: D1Database, orderId: string, at: string, from: string, to: string, nguongMoc: string, prevUpdatedAt: string, yeuCauId: string | null = null): D1PreparedStatement =>
-  db.prepare(ORDER_CONFIRM).bind(at, orderId, from, to, nguongMoc, prevUpdatedAt, yeuCauId);
+export const orderConfirm = (db: D1Database, orderId: string, at: string, from: string, to: string, nguongMoc: string, prevUpdatedAt: string, yeuCauId: string | null = null, chanChuaGio = true): D1PreparedStatement =>
+  db.prepare(ORDER_CONFIRM).bind(at, orderId, from, to, nguongMoc, prevUpdatedAt, yeuCauId, chanChuaGio ? 1 : 0);
 
 // ---- Ghi kép hai cột cũ (Ruling R3, phát hành 1) ---------------------------------------------------------------------------------------------
 
