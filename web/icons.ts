@@ -1,6 +1,10 @@
 // Biểu tượng nét vẽ (SVG) dựng bằng createElementNS — repo cấm innerHTML. Màu theo `currentColor`.
 const NS = "http://www.w3.org/2000/svg";
-type Shape = readonly [tag: string, attrs: Record<string, string | number>];
+export type Shape = readonly [tag: string, attrs: Record<string, string | number>];
+
+// Viền dùng chung của họ «vé» và họ «loại giấy tờ» (Việc 16) — viết một lần cho gọn gói trang.
+const VE = "M3 7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3a2 2 0 0 0 0 4v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a2 2 0 0 0 0-4z";
+const THE = "M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z";
 
 const SHAPES = {
   home: [["path", { d: "M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" }]],
@@ -141,20 +145,48 @@ const SHAPES = {
     ["circle", { cx: 12, cy: 12, r: 3 }],
     ["path", { d: "M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4" }],
   ],
+  // Việc 16 (21/11/2026): mười chín hình cho các mục nhóm THIẾT LẬP (src/shared/muc-giao-dien.ts), mỗi nghĩa một hình (tiêu chí S6), không mượn hình đang mang nghĩa khác
+  // trên thanh bên. Cùng luật cả bộ: lưới 24, nét 1.8, không tô. Mỗi hình MỘT `path` (vòng tròn vẽ bằng cung) cho gọn gói trang (trần gói Đơn hàng, src/goi-trang-nhe.test.ts).
+  percent: [["path", { d: "M18 6 6 18M10 7.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0M19 16.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" }]], // Hoa hồng đối tác
+  bounds: [["path", { d: "M5 3h14M5 21h14M16 7 8 17M10.5 8.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0M17.5 15.5a2 2 0 1 1-4 0 2 2 0 0 1 4 0" }]], // Giới hạn nhập hoa hồng: dấu % giữa hai vạch trần, sàn
+  layers: [["path", { d: "M12 3 3 7.5l9 4.5 9-4.5zM3 12l9 4.5 9-4.5M3 16.5 12 21l9-4.5" }]], // Cấp độ đại lý
+  route: [["path", { d: "M6 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM18 3a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM8 19h8.5a3.5 3.5 0 0 0 0-7h-9a3.5 3.5 0 0 1 0-7H16" }]], // Phí đưa đón
+  gauge: [["path", { d: "M3.5 17.5a8.5 8.5 0 1 1 17 0M12 17.5l4-5.5" }]], // Hạn mức trả sau
+  scale: [["path", { d: "M12 4v16M8 20h8M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z" }]], // Luật bán
+  store: [["path", { d: "M3 9l1.5-5h15L21 9M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0M5 11.5V20h14v-8.5M10 20v-5h4v5" }]], // Người bán dịch vụ
+  camera: [["path", { d: "M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zM15.5 13.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0" }]], // Chụp bù mức
+  // Ba hình họ «vé»: vé (Vé điện tử), vé có dấu ✓ (Đối chiếu vé), vé có bánh răng (Cài đặt vé điện tử).
+  ticket: [["path", { d: `${VE}M15 6v2M15 11v2M15 16v2` }]],
+  ticketCheck: [["path", { d: `${VE}M8.5 12l2.5 2.5 4.5-5` }]],
+  ticketGear: [["path", { d: "M13 18H4a1 1 0 0 1-1-1v-3a2 2 0 0 0 0-4V7a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v4M17.5 13v1.3M17.5 19.7V21M13.5 17h1.3M20.2 17h1.3M19.5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0" }]],
+  toggle: [["path", { d: "M7 7h10a5 5 0 0 1 0 10H7A5 5 0 0 1 7 7zM18.5 12a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0" }]], // Đặc điểm dịch vụ (đặc điểm là ô Có / Không)
+  map: [["path", { d: "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2zM9 4v14M15 6v14" }]], // Địa điểm (`pin` đã mang nghĩa «Xe đang chạy»)
+  // Hai hình họ «loại giấy tờ»: thẻ dọc có người / có xe (`contact-card` là Danh bạ, `doc-check` là Quét vé và Xe & giấy tờ).
+  idCard: [["path", { d: `${THE}M14.5 9.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0M8 17c.7-1.8 2.2-2.7 4-2.7s3.3.9 4 2.7` }]],
+  carDoc: [["path", { d: `${THE}M7.5 16v-4l1.8-3.5h5.4l1.8 3.5v4zM7.5 12h9M9.5 16v1.8M14.5 16v1.8` }]],
+  list: [["path", { d: "M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" }]], // Lý do điều phối
+  book: [["path", { d: "M3 5h6a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H3zM21 5h-6a3 3 0 0 0-3 3v12a2 2 0 0 1 2-2h7z" }]], // Chính sách điều phối
+  devices: [["path", { d: "M17 8V6a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h9M6 19h6M9 15v4M16.5 10h3a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-3a1.5 1.5 0 0 1-1.5-1.5v-8a1.5 1.5 0 0 1 1.5-1.5zM18 18.5h.01" }]], // Máy đang đăng nhập
+  userCheck: [["path", { d: "M13 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0M2 21a7 7 0 0 1 14 0M16 11l2 2 4-4" }]], // Phiếu đăng ký đối tác (`userPlus` đã mang nghĩa «chờ nhận» ở bảng thông báo)
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof SHAPES;
 
-/** `net`: độ dày nét riêng khi bản vẽ vẽ khác mặc định (vd tam giác cảnh báo 2, biểu tượng trạng thái trống 1.5 — bản vẽ Vận chuyển). Bỏ trống = như cũ. */
-export function icon(name: IconName, size = 24, net?: number): SVGSVGElement {
+/** Vẽ một bộ hình bất kỳ theo đúng luật cả bộ (lưới 24, nét `net`, không tô). Hình chỉ dùng ở MỘT trang khai ở trang đó (vd `web/hinh-the-phu.ts`) để khỏi nặng gói mọi trang. */
+export function veHinh(shapes: readonly Shape[], size = 24, net = 1.8): SVGSVGElement {
   const svg = document.createElementNS(NS, "svg");
-  const bold = name === "plus" || name === "back" || name === "check";
-  const attrs = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": net ?? (bold ? 2.2 : 1.8), "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" };
+  const attrs = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": net, "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" };
   for (const [k, v] of Object.entries(attrs)) svg.setAttribute(k, String(v));
-  for (const [tag, shape] of SHAPES[name]) {
+  for (const [tag, shape] of shapes) {
     const el = document.createElementNS(NS, tag);
     for (const [k, v] of Object.entries(shape)) el.setAttribute(k, String(v));
     svg.append(el);
   }
   return svg;
+}
+
+/** `net`: độ dày nét riêng khi bản vẽ vẽ khác mặc định (vd tam giác cảnh báo 2, biểu tượng trạng thái trống 1.5 — bản vẽ Vận chuyển). Bỏ trống = như cũ. */
+export function icon(name: IconName, size = 24, net?: number): SVGSVGElement {
+  const bold = name === "plus" || name === "back" || name === "check";
+  return veHinh(SHAPES[name], size, net ?? (bold ? 2.2 : 1.8));
 }
