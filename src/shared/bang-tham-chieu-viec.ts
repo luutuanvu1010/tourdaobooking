@@ -913,8 +913,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/chan-chua-gio-cai-dat.ts", chu: "Tắt chặn chưa có giờ đón / Bật chặn chưa có giờ đón" },
     ],
-    trangThai: "cho-chon",
-    nguonTen: "ADR-0227 (đề xuất 21/11/2026, việc 7): AI đề xuất phương án (1), chờ chủ chọn qua phiên điều phối",
+    trangThai: "da-chot",
+    nguonTen: "ADR-0227 câu 7b: chủ chọn phương án (1) ngày 2026-11-21 qua phiên điều phối («còn lại áp dụng như khuyến nghị»)",
   },
   {
     nhom: "Cài đặt vận hành",

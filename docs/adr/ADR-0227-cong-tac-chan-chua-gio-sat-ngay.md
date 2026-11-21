@@ -1,6 +1,6 @@
 # ADR-0227 — Công tắc của Toàn quyền cho chặn «đơn chưa có giờ đón mà sát ngày đón»; gom công tắc lập đơn vào nhóm «Cài đặt lập đơn»
 
-- **Trạng thái:** **proposed** 2026-11-21 — AI soạn theo việc 7 của kế hoạch `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md` (nhánh `claude/partner-features-detailed-plan-f32f89`). Mã đã thi công trên nhánh theo **giả định** vị trí mặc định Bật và tên nút phương án (1) (hai câu đã gửi chủ qua phiên điều phối, chưa có trả lời lúc soạn). Chủ chọn khác thì chỉ đổi giá trị gieo trong migration 0182 (chưa áp lên bản thật) và chữ nút.
+- **Trạng thái:** **proposed** 2026-11-21 — AI soạn theo việc 7 của kế hoạch `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md` (nhánh `claude/partner-features-detailed-plan-f32f89`). Hai câu con chủ đã trả lời 2026-11-21 qua phiên điều phối (lời chủ chuyển lại nguyên văn: «còn lại áp dụng như khuyến nghị»): **mặc định Bật**; **tên phương án (1)** — khối «Chặn đơn chưa có giờ đón khi sát ngày đón», nút «Tắt chặn chưa có giờ đón» / «Bật chặn chưa có giờ đón». Mã trên nhánh đã đúng hai điều này. ADR vẫn chờ chủ duyệt cả văn bản kèm lời cho phép xây trên HC-5.19.
 - **Ngày:** 2026-11-21.
 - **Loại:** việc lớn (luật xác nhận đơn, một bảng cài đặt mới). **Cửa:** hai chiều — bật lại là về đúng hành vi hôm nay; bảng công tắc chỉ thêm ở lại.
 - **Sửa:** ADR-0193 câu (ii) — thêm «khi công tắc Bật». Không sửa nguyên văn ADR-0193.
@@ -31,6 +31,6 @@ Tắt là mở lại lỗ ADR-0193 đã vá: đơn đón hôm nay hoặc ngày m
 - Bài kiểm: `src/modules/orders/cong-tac-chan-chua-gio.test.ts`, `src/migrations-cong-tac-chan-chua-gio.test.ts`.
 
 ## Điều chủ cần quyết
-1. Vị trí mặc định: Bật (khuyến nghị, giữ an toàn như hôm nay) hay Tắt (đúng chữ «bỏ chặn»).
-2. Tên nút: (1) «Tắt chặn chưa có giờ đón / Bật chặn chưa có giờ đón» (khuyến nghị) hay (2) «Tắt bắt buộc giờ đón sát ngày / Bật bắt buộc giờ đón sát ngày».
-3. Cho phép xây trên HC-5.19.
+1. ~~Vị trí mặc định~~ — đã chọn Bật (21/11).
+2. ~~Tên nút~~ — đã chọn phương án (1) (21/11).
+3. Duyệt ADR này và cho phép xây trên HC-5.19.

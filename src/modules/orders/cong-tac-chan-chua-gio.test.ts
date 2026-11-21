@@ -139,6 +139,46 @@ test("ĐUA công tắc: route đọc Tắt, Toàn quyền Bật ngay trước l�
   assert.equal(trangThai(w, o.id), "confirmed");
 });
 
+// Lớp thứ ba (chẩn đoán lô thua) nhận CÙNG giá trị công tắc: công tắc Tắt, lô thua vì đơn vừa bị sửa (khoá `updated_at`) trong khi lượt vẫn chưa giờ đón hôm nay ⇒ báo `stale`
+// («tải lại rồi bấm lại»), KHÔNG được báo `chua_gio_sat_ngay` (công tắc đang Tắt, người bấm điền giờ cũng vô ích). Ba cửa: /status, Gửi đơn nhánh B, Còn vé.
+const suaChenNgang = (w: any, id: string) => w.chenTruocLo(
+  (stmts: { sql: string }[]) => stmts.some((s) => /UPDATE orders SET status = 'confirmed'/.test(s.sql)),
+  () => { w.sqlite.prepare("UPDATE orders SET updated_at = ? WHERE id = ?").run(new Date(Date.now() + 60_000).toISOString(), id); },
+);
+const laStale = (r: any) => {
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale", "công tắc Tắt: chẩn đoán không được đổ cho chặn chưa giờ");
+};
+
+test("chẩn đoán lô thua theo công tắc Tắt — /status ⇒ stale, đơn nháp", async () => {
+  const w = setup();
+  assert.equal((await dat(w, SUP, false)).status, 200);
+  const o = await lap(w, A, [svc("ZB1", HOM_NAY(), [leg(HOM_NAY(), null)])]);
+  suaChenNgang(w, o.id);
+  laStale(await status(w, o.id, A));
+  assert.equal(trangThai(w, o.id), "draft");
+});
+
+test("chẩn đoán lô thua theo công tắc Tắt — Gửi đơn nhánh B ⇒ stale, đơn nháp", async () => {
+  const w = setup();
+  assert.equal((await dat(w, SUP, false)).status, 200);
+  const o = await lap(w, SUP, [svc("ZB1", HOM_NAY(), [leg(HOM_NAY(), null)])]);
+  suaChenNgang(w, o.id);
+  laStale(await guiDon(w, o.id, SUP));
+  assert.equal(trangThai(w, o.id), "draft");
+});
+
+test("chẩn đoán lô thua theo công tắc Tắt — Còn vé ⇒ stale, đơn nháp, yêu cầu còn mở", async () => {
+  const w = setup();
+  assert.equal((await w.call("POST", "/api/cai-dat/bat-buoc-gio-don", { as: SUP, body: { bat: false } })).status, 200);
+  assert.equal((await dat(w, SUP, false)).status, 200);
+  const o = await lap(w, PARTNER, [svc("ZB1", HOM_NAY(), [leg(HOM_NAY(), null)])]);
+  assert.equal((await guiDon(w, o.id, PARTNER)).status, 201);
+  suaChenNgang(w, o.id);
+  laStale(await qd(w, o.id, B));
+  assert.equal(trangThai(w, o.id), "draft");
+});
+
 // ---- Hàm thuần + vế SQL: Tắt thì cả hai cùng bỏ chặn -------------------------------------------------------------------------------------------------------------------------
 const DIR = new URL("../../../migrations/", import.meta.url);
 const MIG = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
