@@ -27,6 +27,7 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
   let duLieu: Api.CatalogCoVeResponse = { dichVu: [], nhom: [] };
   let nguonVe: Api.CatalogNguonVeResponse = { dichVu: [] };
   let soHoTro: Api.CatalogSoHoTroResponse = { dichVu: [] };
+  let demO = 0; // mỗi lần dựng ô một id riêng: cùng dịch vụ được dựng hai lần (bảng và danh sách thẻ), id trùng làm nhãn gắn nhầm ô ẩn (người chấm giao diện M3, 22/11/2026)
 
   const luuCoVe = async (nut: HTMLButtonElement, than: Api.CatalogCoVeInput, cauBao: string): Promise<void> => {
     errorEl.hidden = true;
@@ -57,7 +58,7 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
   /** Ô «Hotline trên vé» của một dịch vụ vé Tour Đảo: gõ số rồi bấm «Lưu hotline»; để trống rồi lưu = dùng hotline công ty. Lô vé đã tạo không đổi. */
   const oHotline = (ma: string, ten: string): HTMLElement => {
     const dang = soHoTro.dichVu.find((x) => x.ma === ma)?.so ?? null;
-    const id = `kv-hotline-${ma}`;
+    const id = `kv-hotline-${++demO}`;
     const o = h("input", { type: "tel", class: "o", id, inputMode: "tel", autocomplete: "off", maxLength: 20, value: dang ? inSoHoTro(dang) : "", placeholder: "Trống = hotline công ty" }) as HTMLInputElement;
     const nut = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "luu-hotline-ve" }, "Lưu hotline") as HTMLButtonElement;
     nut.addEventListener("click", async () => {
