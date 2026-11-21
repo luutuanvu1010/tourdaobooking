@@ -6,6 +6,7 @@
 // Phí bật từ hôm nay rồi tắt ở `finally` (tests/e2e/lib-phi-don.mjs).
 // D1 chung với kịch bản khác: tài khoản Đối tác dùng một lần (tên theo Date.now()), mã danh mục riêng ZBL1 (cờ «cần xác nhận» tắt, trả về cuối kịch bản).
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, gieoTaiKhoanLai, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
 import { conVeKemPhi, dungPhiDon, luotDon } from "./lib-phi-don.mjs";
 
@@ -27,6 +28,20 @@ const anh = (b) => ({ noiDung: Buffer.from(b).toString("base64") });
 const ck = (soTien, them = {}) => ({ soTien, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", ...them });
 const URL_CD = "/api/cai-dat/xac-nhan-don";
 
+// ADR-0225 Đ2: gỡ dấu «chỉ thu hộ tiền mặt» của MỘT đơn (giả lập đơn xác nhận trước ngày áp) trên D1 LOCAL tạm của e2e. Trigger canh dấu cấm về NULL nên tạm gỡ rồi dựng lại
+// đúng thân trong migration 0184 (đọc từ tệp, không chép tay).
+const THAN_CANH_DAU = readFileSync(new URL("../../migrations/0184_don_doi_tac_chi_tien_mat.sql", import.meta.url), "utf8")
+  .match(/CREATE TRIGGER orders_partner_cash_only_guard[\s\S]*?END;/)[0];
+async function donTruocNgayAp(orderId) {
+  await sql("DROP TRIGGER IF EXISTS orders_partner_cash_only_guard");
+  try {
+    await sql(`UPDATE orders SET partner_cash_only = NULL WHERE id = '${orderId}'`);
+  } finally {
+    await sql(THAN_CANH_DAU.replace(/\s+/g, " "));
+  }
+  assert.equal((await sqlRows(`SELECT count(*) AS n FROM sqlite_master WHERE type = 'trigger' AND name = 'orders_partner_cash_only_guard'`))[0].n, 1, "trigger canh dấu đã dựng lại");
+}
+
 assert.equal((await call(SUPER, "POST", URL_CD, { pham: "SERVICE", ma: "ZBL1", canXacNhan: false })).status, 200);
 try {
   const lap = await call(DT, "POST", "/api/orders", orderInput({
@@ -38,8 +53,16 @@ try {
   const g = await call(DT, "POST", `/api/orders/${id}/gui-don`, {});
   assert.equal(g.status, 200, JSON.stringify(g.body));
   const soKhoan = async () => (await sqlRows(`SELECT count(*) AS n FROM bil_payment_receipt WHERE order_id = '${id}'`))[0].n;
+  // ADR-0225 Đ2 (Việc 5, migration 0184): đơn đối tác xác nhận từ ngày áp chỉ thu hộ tiền mặt ⇒ «Công ty, chuyển khoản» (kể cả kèm ảnh) bị chặn 409, không khoản thu.
+  assert.equal((await sqlRows(`SELECT partner_cash_only AS d FROM orders WHERE id = '${id}'`))[0].d, 1, "đơn Đối tác mang dấu chỉ tiền mặt");
+  let r = await call(DT, "POST", `/api/orders/${id}/payments`, ck(100000, { bienLai: anh(PNG) }));
+  assert.deepEqual([r.status, r.body.error?.code], [409, "don_doi_tac_chi_tien_mat"], JSON.stringify(r.body));
+  assert.equal(await soKhoan(), 0);
+  console.log("✓ ADR-0225: đơn đối tác mới — «Công ty, chuyển khoản» 409 don_doi_tac_chi_tien_mat, không khoản thu nào");
+  // Ảnh biên lai (ADR-0196) nay chỉ còn ở đơn xác nhận TRƯỚC ngày áp: đưa đơn về tình huống đó rồi kiểm tiếp như cũ.
+  await donTruocNgayAp(id);
 
-  let r = await call(DT, "POST", `/api/orders/${id}/payments`, ck(100000));
+  r = await call(DT, "POST", `/api/orders/${id}/payments`, ck(100000));
   assert.equal(r.status, 400, JSON.stringify(r.body));
   assert.equal(r.body.error.code, "bien_lai_required");
   r = await call(DT, "POST", `/api/orders/${id}/payments`, ck(100000, { bienLai: anh(Buffer.from("<html>x</html>")) }));
@@ -103,6 +126,7 @@ try {
     const bn = (await call(DT, "GET", `/api/orders/${id2}/receipt`)).body.receipt;
     assert.deepEqual([bn.subtotal, bn.total, bn.conLai], [450000, 450000, 450000]);
     assert.deepEqual(bn.phiDuaDon.map((d) => [d.quantity, d.unitPrice, d.lineTotal]), [[3, 50000, 150000]], "biên nhận khách có dòng phí đưa đón");
+    await donTruocNgayAp(id2); // ADR-0225 Đ2: như trên
     const ck2 = await call(DT, "POST", `/api/orders/${id2}/payments`, ck(450000, { bienLai: anh(PNG) }));
     assert.equal(ck2.status, 201, JSON.stringify(ck2.body));
     assert.equal((await call(ACC, "GET", `/api/orders/${id2}/payments`)).body.lanThu.find((l) => l.soTien === 450000)?.bienLai, "CO", "khoản chuyển khoản đủ số gồm phí, có ảnh");
