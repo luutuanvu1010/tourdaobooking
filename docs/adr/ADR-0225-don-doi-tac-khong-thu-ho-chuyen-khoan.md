@@ -34,6 +34,7 @@
 ## Hệ quả
 
 - Đối tác không còn đường khai cọc trên form; tiền khách đưa đối tác không còn hiện trên Nền tảng trước khi xác nhận. Sau xác nhận đối tác vẫn ghi được «Tôi thu» ở trang đơn như hôm nay.
+- **Thu hẹp ADR-0196** (ảnh biên lai chuyển khoản bắt buộc khi Đối tác ghi «Công ty, chuyển khoản»): ở đơn đối tác mới khoản đó bị chặn 409 trước khi xét ảnh, nên ảnh biên lai chỉ còn dùng ở đơn xác nhận trước ngày áp. Mã ADR-0196 giữ nguyên (e2e `tests/e2e/bien-lai.mjs` kiểm cả hai ca).
 - Kế toán không còn ghi được «Công ty thu, chuyển khoản» ở đơn đối tác mới; khách lỡ chuyển khoản vào tài khoản công ty thì hôm nay chưa có đường riêng để ghi — cần chủ quyết cách xử lý nếu xảy ra.
 - Kịch bản Chrome `docs/evidence/2026-11-02-dat-coc/kich-ban/dat-coc-smoke.mjs` đã sửa theo Đ1. Bảy bài kiểm cũ dùng «Công ty thu, chuyển khoản» ở đơn đối tác nay đưa đơn về tình huống trước ngày áp (`tests/audit/chi-tien-mat.mjs`).
 - Hàng rào: `src/an-o-coc-doi-tac.test.ts` (Đ1); `src/modules/billing/thu-ho-tien-mat.test.ts`, `src/shared/kenh-thu-doi-tac.test.ts`, `src/shared/ben-kia-hien-thi.test.ts` (Đ2) — hai dòng ở `docs/SO-HANG-RAO.md`.
