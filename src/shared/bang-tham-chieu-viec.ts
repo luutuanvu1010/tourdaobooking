@@ -913,8 +913,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/noi-don-cai-dat.ts", chu: "Tắt đối tác không nhập nơi đón / Bật đối tác không nhập nơi đón" },
     ],
-    trangThai: "da-chot",
-    nguonTen: "chủ 2026-11-21, ADR-0221 (tên công tắc «Đối tác không nhập nơi đón» do chủ chọn, câu 1; chữ nút = Bật / Tắt + tên đó, theo khuôn công tắc giờ đón)",
+    trangThai: "cho-chon",
+    nguonTen: "tên công tắc «Đối tác không nhập nơi đón» do chủ chọn 2026-11-21 (ADR-0221, câu 1); chữ nút = Bật / Tắt + tên đó do AI ghép theo khuôn công tắc giờ đón, chủ chưa chọn riêng (người kiểm độc lập 21/11)",
   },
   {
     nhom: "Cài đặt vận hành",

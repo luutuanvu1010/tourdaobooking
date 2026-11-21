@@ -2624,6 +2624,7 @@ body:has(.buoc-thanh) .toast-vung { bottom: auto; top: calc(var(--toast-tren, va
 .vc-input { min-height: var(--h-field); margin: 0; padding: 0 var(--s3); font-size: var(--fs-field); color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
 .vc-input::placeholder { color: var(--c-placeholder); }
 .vc-input[aria-invalid="true"] { border: var(--bw-vc) solid var(--c-danger); }
+.vc-input[aria-invalid="true"]:focus { border-color: var(--c-danger); } /* ADR-0221: ô đang có tiêu điểm vẫn giữ viền đỏ báo lỗi (vòng tiêu điểm vẽ bên ngoài) */
 .vc-field-error { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-label); font-weight: var(--fw-bold); color: var(--c-danger-text); }
 .vc-hint { font-size: var(--fs-label); color: var(--c-text-muted); }
 .vc-stepper { display: flex; align-items: center; gap: var(--s2); }

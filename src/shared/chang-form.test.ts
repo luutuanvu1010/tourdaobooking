@@ -385,3 +385,14 @@ test("legInput: lượt chưa chọn nơi đón gửi pickupLocationId null và 
   const g2 = legInput(tam, false);
   assert.deepEqual([g2.pickupLocationId, g2.pickupPlace], [null, ""], "không bao giờ gửi nguyên văn chữ tạm");
 });
+
+// ADR-0221 (người kiểm độc lập 21/11): nháp của đối tác đã lưu rồi mở lại — lượt chiều đi mang chữ tạm ở nơi đón chỉ có thể sinh từ form «không nhập nơi đón», nơi đối tác KHÔNG thấy ô nơi trả,
+// nên nơi trả là điểm danh mục của nó vẫn là gợi ý của dịch vụ: form mở lại vẫn thu gọn được (không đòi nơi đón).
+test("changTuDto: lượt chiều đi mang chữ tạm, nơi trả là điểm danh mục ⇒ nơi trả vẫn là gợi ý; lượt có nơi đón thật thì không", () => {
+  const tam = changTuDto(dto({ pickupLocationId: null, pickupPlace: "(chưa ghi nơi đón)", dropoffLocationId: "loc-tra", dropoffPlace: null }), k());
+  assert.equal(tam.don, "");
+  assert.equal(tam.goiYTra, true);
+  assert.equal(changTuDto(dto({ pickupLocationId: null, pickupPlace: "(chưa ghi nơi đón)", dropoffLocationId: null, dropoffPlace: "Bến tự gõ" }), k()).goiYTra, false, "nơi trả tự gõ: không phải gợi ý");
+  assert.equal(changTuDto(dto({ pickupLocationId: "loc-don", pickupPlace: null, dropoffLocationId: "loc-tra", dropoffPlace: null }), k()).goiYTra, false, "lượt có nơi đón thật: giữ như trước");
+  assert.equal(changTuDto(dto({ direction: "RETURN", pickupLocationId: null, pickupPlace: "(chưa ghi nơi đón)", dropoffLocationId: "loc-tra", dropoffPlace: null }), k()).goiYTra, false, "chiều về: không");
+});

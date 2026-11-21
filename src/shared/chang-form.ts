@@ -57,7 +57,9 @@ export function changTuDto(l: LegDto, key: string): ChangNhap {
     tra: l.dropoffLocationId ?? (l.dropoffPlace ? TU_DO : ""), traTuDo: l.dropoffPlace ?? "",
     flightCode: l.flightCode ?? "", soVe: l.paxOverride === null ? "" : String(l.paxOverride),
     xeRieng: l.exclusiveVehicle, choToiThieu: l.minVehicleSeats === null ? "" : String(l.minVehicleSeats),
-    goiYGio: false, goiYTra: false, theoDon: false, theoTra: false, goc: l,
+    // ADR-0221: lượt chiều đi mang chữ tạm chỉ sinh từ form «không nhập nơi đón» (đối tác không thấy ô nơi trả) ⇒ nơi trả là điểm danh mục vẫn là GỢI Ý của dịch vụ,
+    // để nháp mở lại vẫn thu gọn được. Nơi trả tự gõ, chiều về, lượt có nơi đón thật: như trước (không phải gợi ý).
+    goiYGio: false, goiYTra: tamDon && l.direction === "OUT" && l.dropoffLocationId !== null, theoDon: false, theoTra: false, goc: l,
   };
 }
 

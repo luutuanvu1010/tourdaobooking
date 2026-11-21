@@ -237,6 +237,7 @@ function taoOLuot(lx: LuotGioConVe, s: DichVuDon, capMocTatCa: () => void, mocPh
       if (!gioKhac.hidden) gioKhac.focus();
     }
     loi.hidden = true;
+    sel.setAttribute("aria-invalid", "false"); // chọn giờ xong thì viền đỏ tắt cùng câu lỗi (trợ lý đánh giá giao diện 21/11)
     capMocTatCa();
   });
   gioKhac?.addEventListener("input", () => {
