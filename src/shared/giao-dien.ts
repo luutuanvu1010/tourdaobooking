@@ -42,8 +42,14 @@ export const NUM: readonly Num[] = [
   { khoa: "dam-noi-dung", nhan: "Độ đậm chữ nội dung", nhom: "chu", loai: "dam", token: "--fw-regular", min: 400, max: 500 },
   { khoa: "dam-nhan", nhan: "Độ đậm chữ nhấn (nút, tên, số tiền)", nhom: "chu", loai: "dam", token: "--fw-semibold", min: 400, max: 700 },
 ];
-/** Núm "dam-tieu-de" (--fw-heading) kéo thêm --fw-bold, --fw-heavy (đợt 0, cổng 1 câu 2, đặc tả mục 4); "dam-nhan" chỉ còn --fw-semibold. */
-export const KEO_THEO: Readonly<Record<string, readonly string[]>> = { "dam-tieu-de": ["--fw-bold", "--fw-heavy"], "nen-nut-chinh": ["--c-btn-primary-border", "--c-btn-primary-hover-bg"] };
+/**
+ * Token đi kèm một núm. Hai núm độ đậm ĐỘC LẬP (đặc tả 2026-11-21-chu-nhe-hon): "dam-tieu-de" chỉ đổi --fw-heading (h1–h6, tên trang trên thanh trên);
+ * "dam-nhan" («Độ đậm chữ nhấn (nút, tên, số tiền)») đổi --fw-semibold và kéo thêm --fw-bold (nút, tên, tiêu đề cột), --fw-heavy (số lớn, số tiền nổi) —
+ * như đặc tả gốc của màn (2026-10-02). Đợt 0 (28/10) từng cho núm tiêu đề kéo --fw-bold, --fw-heavy nên đổi tiêu đề là đổi luôn nút; nay gỡ.
+ * Lưu ý: mặc định của --fw-heavy (600) khác mặc định của núm (500); núm chưa chỉnh thì app.css quyết, núm đã chỉnh thì cả ba mức theo núm.
+ * Mỗi token chỉ thuộc một núm (bài src/shared/giao-dien.test.ts canh).
+ */
+export const KEO_THEO: Readonly<Record<string, readonly string[]>> = { "dam-nhan": ["--fw-bold", "--fw-heavy"], "nen-nut-chinh": ["--c-btn-primary-border", "--c-btn-primary-hover-bg"] };
 
 /**
  * Núm con -> núm cha: token của núm con trong app.css :root là `var(token của núm cha)`, nên đổi cha thì con đi theo (CSS tự thừa kế).

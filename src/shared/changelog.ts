@@ -17,6 +17,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Chữ nhẹ hơn, phương án 1 «Nhẹ vừa» (đặc tả docs/superpowers/specs/2026-11-21-chu-nhe-hon.md). Nhánh claude/sweet-grothendieck-122c41. Không migration.
+    // SỐ TẠM 3.23 (bản chạy thật đang 3.22): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.23",
+    date: "2026-11-21",
+    items: [
+      { kind: "doi", text: "Chữ mặc định nhẹ hơn: nút, tên khách và tiêu đề cột bớt đậm một bậc, tiêu đề giữ nguyên nên dễ phân biệt hơn." },
+      { kind: "doi", text: "Giao diện công ty: ô «Độ đậm tiêu đề» chỉ đổi tiêu đề, ô «Độ đậm chữ nhấn» đổi nút, tên và số tiền; hai ô chỉnh riêng được." },
+      { kind: "doi", text: "Số lớn ở Trang chủ nay đậm một mức cố định, không còn đổi theo ô «Độ đậm tiêu đề»." },
+    ],
+  },
+  {
     // Khung gốc giao diện (ADR-0222, chủ duyệt 21/11): bốn màn mẫu dựng theo khung. Nhánh claude/jovial-leakey-a25fd6. Không migration.
     // SỐ TẠM 3.22 (3.21 là số tạm của ADR-0221): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.22",

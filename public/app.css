@@ -436,9 +436,9 @@
   --fw-regular: 400;   /* chữ nội dung */
   --fw-medium: 500;
   --fw-semibold: 500;  /* nhãn, chữ phụ cần nhấn nhẹ */
-  --fw-bold: 600;    /* tiêu đề, tên, nút; cũng là độ đậm mặc định của h1–h6, b, strong, th (luật nền bên dưới) */
+  --fw-bold: 500;    /* tên, nút, tiêu đề cột; cũng là độ đậm mặc định của b, strong, th (luật nền bên dưới). 600 → 500 ngày 2026-11-21 («Nhẹ vừa»): chữ nhấn nhẹ hơn tiêu đề một bậc để trang có thứ bậc */
   --fw-heavy: 600;   /* số lớn, tiêu đề nổi nhất */
-  --fw-heading: 600; /* độ đậm tiêu đề h1–h6 (núm "Tiêu đề" của màn Giao diện, ADR-0087) — luật nền bên dưới trỏ vào đây */
+  --fw-heading: 600; /* độ đậm tiêu đề h1–h6 (núm "Độ đậm tiêu đề" của màn Giao diện, ADR-0087) — luật nền bên dưới trỏ vào đây; núm này KHÔNG kéo mức nào khác (2026-11-21) */
   /* — Riêng: Trang chủ điện thoại (≤640px) — bản vẽ "Trang chu dien thoai.dc.html" (Claude Design 2026-09-30, thư mục "Phone home screen redesign"; tiền lệ
      duyệt như nhóm Đăng nhập: chủ dự án giao làm đúng bản vẽ — coi là duyệt các giá trị dưới đây). Tên token màu mượn tên của bộ ba tông đang chờ ADR (tones.css
      cùng thư mục, giá trị tông "Biển đêm" = màu hiện tại của app) để khi làm tông chỉ đổi giá trị, không đổi tên. — */
@@ -503,7 +503,7 @@
   --tile-icon-sm: 22px;        /* … biểu tượng trong ô đó */
   --w-home-all: 800px;         /* hộp "Tất cả chức năng" máy tính (bản vẽ 1.73) */
   --w-home-all-col: 160px;     /* … một cột nhóm rộng tối thiểu (hẹp hơn thì xuống hàng) */
-  --fw-home-stat: min(calc(var(--fw-heavy) + 100), 800);  /* số lớn của thẻ số liệu: bản vẽ 600 = một bậc trên mức "số lớn" — vẫn đi theo token độ đậm (ADR-0087) */
+  --fw-home-stat: 600;         /* số lớn của thẻ số liệu Trang chủ: bản vẽ 600. Ghi thẳng từ 2026-11-21 (trước tính «số lớn + 100» nên thành 700 và đổi theo núm tiêu đề) */
   --lh-16: 16px;               /* nhãn giờ của dòng thời gian, nhãn ngày của biểu đồ */
   --lh-28: 28px;               /* tiêu đề 20px */
   --lh-40: 40px;               /* dòng chào 32px (bản vẽ 1.73: 1.2) */
@@ -660,7 +660,7 @@ h1, h2, h3, h4, h5, h6 { font-weight: var(--fw-heading); }
 b, strong, th { font-weight: var(--fw-bold); } /* trình duyệt mặc định tô đậm các thẻ này — kéo về token để đổi một chỗ */
 button, input, select, textarea { font-family: inherit; } /* nút/ô của trình duyệt KHÔNG kế thừa phông: Windows vẽ bằng Arial/Segoe UI giữa chữ Be Vietnam Pro (rà soát 2026-09-30) */
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
-body { margin: 0; font: var(--fs-step-5)/1.5 var(--font); font-weight: var(--fw-regular); color: var(--c-text); background: var(--c-alt); }
+body { margin: 0; font: var(--fs-step-5)/1.5 var(--font); font-weight: var(--fw-regular); color: var(--c-text); background: var(--c-alt); -webkit-font-smoothing: antialiased; } /* làm mịn nét: chữ mảnh hơn trên máy Mac (2026-11-21); iPhone, Windows không đổi */
 h1, h2 { font-family: var(--font-display); color: var(--c-heading); margin: 0 0 var(--s3); }
 h1 { font-size: var(--fs-h1); letter-spacing: var(--ls-tight); } h2 { font-size: var(--fs-h2); }
 a { color: var(--c-primary); }

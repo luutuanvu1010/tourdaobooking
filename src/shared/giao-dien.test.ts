@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MAC_DINH, NUM, PHONG, bienCss, docTokensDaLuu, dungCss, giaTriHieuLuc, giaTriKhiBoGhiDe, kiemGiaoDien, tuongPhan } from "./giao-dien.ts";
+import { KEO_THEO, MAC_DINH, NUM, PHONG, bienCss, docTokensDaLuu, dungCss, giaTriHieuLuc, giaTriKhiBoGhiDe, kiemGiaoDien, tuongPhan } from "./giao-dien.ts";
 
 test("tuongPhan: trắng/đen 21:1, cùng màu 1:1, đối xứng", () => {
   assert.equal(tuongPhan("#ffffff", "#000000").toFixed(2), "21.00");
@@ -89,6 +89,33 @@ test("bienCss / dungCss: chỉ khoá hợp lệ, đúng token, cỡ thêm px, ph
   assert.match(css, /--font:"Nunito",/);
   assert.doesNotMatch(css, /khong-co|#000000/);
   assert.deepEqual(bienCss({}), []);
+});
+
+// Chữ nhẹ hơn (đặc tả 2026-11-21-chu-nhe-hon): hai núm độ đậm độc lập. Từ đợt 0 (28/10) núm «Độ đậm tiêu đề» kéo cả --fw-bold, --fw-heavy,
+// nên đổi tiêu đề là đổi luôn nút, tên, số lớn. Nay ba mức của chữ nhấn về lại núm «Độ đậm chữ nhấn (nút, tên, số tiền)» như đặc tả gốc của màn (2/10).
+test("núm «Độ đậm tiêu đề» chỉ đổi tiêu đề: không kéo mức của nút, tên, số lớn", () => {
+  assert.deepEqual(bienCss({ "dam-tieu-de": "400" }), [["--fw-heading", "400"]]);
+  assert.equal(dungCss({ "dam-tieu-de": "700" }), ":root{--fw-heading:700;}");
+});
+
+test("núm «Độ đậm chữ nhấn (nút, tên, số tiền)» đổi cả ba mức của chữ nhấn, không đổi tiêu đề", () => {
+  assert.deepEqual(bienCss({ "dam-nhan": "600" }), [["--fw-semibold", "600"], ["--fw-bold", "600"], ["--fw-heavy", "600"]]);
+});
+
+// Bộ chủ dự án đang lưu trên bản chạy thật lúc tách núm (đọc /giao-dien.css công khai, 21/11/2026): hai núm độ đậm đều 400.
+// Triển khai bản tách núm không được làm nút, tên, số lớn của bộ này đậm trở lại.
+test("bộ đang lưu lúc tách núm (hai núm độ đậm đều 400): bốn mức đậm vẫn ra 400, mỗi mức đúng một lần", () => {
+  const dangLuu = { "chu-chinh": "#000000", "co-tieu-de-trang": "20", "phong-tieu-de": "lexend", "phong-noi-dung": "nunito", "co-tieu-de-muc": "16", "dam-tieu-de": "400", "dam-nhan": "400" };
+  assert.deepEqual(kiemGiaoDien(dangLuu), []);
+  const dam = bienCss(dangLuu).filter(([t]) => t.startsWith("--fw-"));
+  assert.deepEqual(dam.sort(), [["--fw-bold", "400"], ["--fw-heading", "400"], ["--fw-heavy", "400"], ["--fw-semibold", "400"]]);
+});
+
+test("mỗi token CSS chỉ do MỘT núm đặt (kể cả token kéo theo): thứ tự lưu không quyết định giá trị", () => {
+  const chu = new Map<string, string[]>();
+  for (const n of NUM) for (const t of [n.token, ...(KEO_THEO[n.khoa] ?? [])]) chu.set(t, [...(chu.get(t) ?? []), n.khoa]);
+  for (const [t, ds] of chu) assert.equal(ds.length, 1, `${t} bị nhiều núm cùng đặt: ${ds.join(", ")}`);
+  for (const khoa of Object.keys(KEO_THEO)) assert.ok(NUM.some((n) => n.khoa === khoa), `KEO_THEO có khoá không phải núm: ${khoa}`);
 });
 
 test("docTokensDaLuu: JSON hỏng → {}, khoá lạ/sai dạng bị bỏ, khoá đúng giữ (Review Focus 2)", () => {
