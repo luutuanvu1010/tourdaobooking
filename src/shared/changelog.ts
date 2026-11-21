@@ -18,12 +18,22 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Đối tác Trả sau chỉ thấy «Trả sau» (kế hoạch 16 việc 21/11, Việc 2; ADR-0224). Nhánh claude/great-montalcini-69b67b. Không migration.
-    // SỐ TẠM 3.26 (3.25 là Việc 16): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.26",
+    // SỐ TẠM 3.27 (3.26 là Việc 4, 3.25 là Việc 16): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.27",
     date: "2026-11-21",
     items: [
       { kind: "doi", text: "Đối tác được trả sau: màn Tạo đơn chỉ còn «Trả sau»." },
       { kind: "doi", text: "Khi Trả sau tạm khoá (có đơn quá hạn) hoặc đơn vượt mức được trả sau, «Thanh toán ngay» hiện lại kèm câu lý do." },
+    ],
+  },
+  {
+    // Bộ lọc dùng chung của Kho vé (kế hoạch 16 việc 21/11, Việc 4). Nhánh claude/nostalgic-newton-418d14. Không migration.
+    // SỐ TẠM 3.26 (3.25 là Việc 16, đã nhập main 21/11; bản chạy thật 3.24): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.26",
+    date: "2026-11-21",
+    items: [
+      { kind: "moi", text: "Kho vé: thanh «Lọc theo dịch vụ» đầu trang. Chọn nhóm hoặc gõ tên (không dấu cũng được) là cả ba danh sách vé cùng thu hẹp, kể cả lô ở trang sau.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+      { kind: "doi", text: "Tạo vé Tour Đảo: chọn dịch vụ bằng ô tìm và hàng nhóm giống bước nhập lô vé, thay cho danh sách thả xuống." },
     ],
   },
   {
