@@ -18,7 +18,7 @@ test("luật thuần: Kế toán thuần = có Kế toán, không có Bán hàng
   const la = (p: string[]) => keToanThuan({ permissions: p as never });
   assert.equal(la(["ACCOUNTING"]), true);
   assert.equal(la(["ACCOUNTING", "HR"]), true);
-  for (const kem of ["SALES", "SALES_MANAGER", "ADMIN", "SUPER_ADMIN", "PARTNER"]) assert.equal(la(["ACCOUNTING", kem]), false, kem);
+  for (const kem of ["SALES", "SALES_MANAGER", "ADMIN", "SUPER_ADMIN", "PARTNER", "DRIVER_PARTNER"]) assert.equal(la(["ACCOUNTING", kem]), false, kem);
   assert.equal(la(["ADMIN"]), false);
   assert.equal(la(["SUPER_ADMIN"]), false);
   assert.equal(la([]), false);
