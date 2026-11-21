@@ -6,7 +6,8 @@
 // Bước (mỗi khổ): 1 nhãn + chữ gợi ý nói cả số điện thoại; 2 gõ số (dạng +84, có dấu cách) ⇒ ra đúng một cộng tác viên ⇒ chọn ⇒ «Điền thông tin đối tác» ⇒ ô SĐT khách đúng số;
 //   3 số gõ chưa đủ ⇒ nhắc gõ đủ 10 số; 4 đối tác tạo từ Quản lý tài khoản (chưa có số liên hệ, Bán hàng không sửa được) ⇒ câu «nhờ Quản trị hoặc Toàn quyền» + «Mở hồ sơ ở Danh bạ»,
 //   ô SĐT không bị điền số đăng nhập; 5 hồ sơ không gắn tài khoản chưa có số ⇒ «Thêm số ở Danh bạ»; 6 gõ tên vẫn tìm như cũ. Bước 7 (390): tài khoản chỉ Thực tập giữ chữ cũ,
-//   gõ số không ra ai. Cuối cùng in «TIM DOI TAC THEO SO OK» hoặc danh sách bước đỏ (thoát 1). Ảnh (chỉ trên máy, .gitignore chặn) ở <OUT>/anh/.
+//   gõ số không ra ai. Bước 8 (390): đi theo lối câu báo — Danh bạ mở đúng hồ sơ; hồ sơ gắn tài khoản không có «Thêm liên hệ»; hồ sơ sửa được thêm số
+//   chính rồi về Tạo đơn tìm theo số đó + điền ra đúng số. Cuối cùng in «TIM DOI TAC THEO SO OK» hoặc danh sách bước đỏ (thoát 1). Ảnh (chỉ trên máy, .gitignore chặn) ở <OUT>/anh/.
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, MOB, OUT, assert, axe, axeNote, boDem, dungMoiTruong, noOverflowX, sleep } from "../../2026-09-29-adr-0049/kich-ban/dp-lib.mjs";
@@ -145,6 +146,32 @@ await b.step("390-7", "tài khoản chỉ Thực tập (không xem được hồ
   assert.equal(await chuDs(p), "Không có đối tác nào tên như vậy.");
   assert.deepEqual(await dsId(p), []);
   await chup(p, "390-7-thuc-tap", MOB);
+  p.close();
+});
+
+await b.step("390-8", "lối câu báo chỉ tới: Bán hàng mở /parties?id=<hồ sơ gắn tài khoản> ⇒ đúng hồ sơ, KHÔNG có «Thêm liên hệ»; mở hồ sơ sửa được ⇒ có «Thêm liên hệ», thêm số chính ⇒ về Tạo đơn bấm «Điền thông tin đối tác» ⇒ ô SĐT khách có đúng số", async () => {
+  const SO_MOI = "0900000761";
+  const nutThem = "[...document.querySelectorAll('#detail button')].some((b) => b.textContent.trim() === 'Thêm liên hệ')";
+  let p = await env.as(ACCOUNTS.salesA, `/parties?id=${encodeURIComponent(DAI_LY.partyId)}`, MOB);
+  await p.waitFor(`document.getElementById('detail').innerText.includes(${JSON.stringify(DAI_LY.name)})`, "Danh bạ mở đúng hồ sơ gắn tài khoản", 8000);
+  assert.equal(await p.ev(nutThem), false, "Bán hàng không sửa được hồ sơ gắn tài khoản ⇒ không có «Thêm liên hệ» (khớp câu «Nhờ Quản trị hoặc Toàn quyền»)");
+  p.close();
+  p = await env.as(ACCOUNTS.salesA, `/parties?id=${encodeURIComponent(CTV_KHONG.partyId)}`, MOB);
+  await p.waitFor(`document.getElementById('detail').innerText.includes(${JSON.stringify(CTV_KHONG.name)}) && ${nutThem}`, "Danh bạ mở đúng hồ sơ sửa được, có «Thêm liên hệ»", 8000);
+  await p.ev(setInput("[...document.querySelectorAll('#detail label')].find((l) => l.firstChild?.textContent === 'Giá trị').querySelector('input')", SO_MOI));
+  await p.ev("(() => { const c = [...document.querySelectorAll('#detail label.check')].find((l) => l.textContent.includes('Liên hệ chính')).querySelector('input'); c.checked = true; c.dispatchEvent(new Event('change', { bubbles: true })); return true; })()");
+  await p.ev("[...document.querySelectorAll('#detail button')].find((b) => b.textContent.trim() === 'Thêm liên hệ').click(); true");
+  await p.waitFor(`document.getElementById('detail').innerText.includes(${JSON.stringify(SO_MOI)})`, "số mới hiện trong danh sách liên hệ", 8000);
+  p.close();
+  p = await env.as(ACCOUNTS.salesA, "/order-form", MOB);
+  await p.waitFor("!!document.querySelector('[data-action=\"dat-qua-mo\"]')", "công tắc «Đơn của»");
+  await moTim(p);
+  await go(p, SO_MOI);
+  await p.waitFor("document.querySelectorAll('#dat-qua-doi-tac .dqdt-dong').length === 1", "số vừa thêm tìm ra đối tác", 6000);
+  await chon(p, CTV_KHONG.partyId);
+  await dien(p);
+  assert.deepEqual([await o(p, "customerName"), await o(p, "customerPhone")], [CTV_KHONG.name, SO_MOI]);
+  assert.equal((await bao(p)).hien, false);
   p.close();
 });
 

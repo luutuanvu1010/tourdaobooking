@@ -18,7 +18,7 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Tìm đối tác theo số điện thoại ở màn Tạo đơn (kế hoạch 16 việc 21/11, Việc 3). Nhánh claude/nostalgic-jepsen-bb3f99. Không migration.
-    // SỐ TẠM 3.25 (bản chạy thật đang 3.23; 3.24 là Việc 9 đã ở main trên máy): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    // SỐ TẠM 3.25 (bản chạy thật đang 3.24 — kiểm GET /api/auth/config 21/11 21:45): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.25",
     date: "2026-11-21",
     items: [
