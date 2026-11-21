@@ -14,7 +14,7 @@
 | Khai báo bề rộng | 194 chỗ, 123 giá trị khác nhau; 33 luật tự đặt trần bề rộng (23 giá trị) |
 | Token bề rộng (`--w-*`) | 128 token, 97 token dùng không quá một lần |
 | Cách chia cột (`grid-template-columns`) | 149 chỗ, 67 cách khác nhau |
-| Mốc đổi bố cục theo bề rộng cửa sổ | 10 mốc («tới N» và «từ N+1» tính là một): 640 (1 chỗ) · 641 (58 chỗ) · 721 (1 chỗ) · 900 (72 chỗ) · 960 (6 chỗ) · 1024 (1 chỗ) · 1100 (3 chỗ) · 1180 (1 chỗ) · 1200 (3 chỗ) · 1400 (1 chỗ) |
+| Mốc đổi bố cục theo bề rộng cửa sổ | 10 giá trị («tới N» và «từ N+1» tính là một): 640 (1 chỗ) · 641 (58 chỗ) · 721 (1 chỗ) · 900 (72 chỗ) · 960 (6 chỗ) · 1024 (1 chỗ) · 1100 (3 chỗ) · 1180 (1 chỗ) · 1200 (3 chỗ) · 1400 (1 chỗ). Coi 640 và 641 là một mốc viết lệch một điểm thì còn 9 mốc: hai mốc chính (641, 900) và các mốc lẻ |
 | Khoảng cách (đệm, lề, khe) | 2255 khai báo, 186 giá trị khác nhau |
 | Cỡ chữ | 663 khai báo, 53 giá trị khác nhau; 55 token cỡ chữ |
 | Bo góc; bóng | bo góc 25 giá trị; bóng 23 giá trị |
@@ -122,6 +122,20 @@ Loại do phiên phân tích xếp theo việc người dùng làm ở trang đ�
 | Trang đọc | 2 | vừa × 1, hẹp × 1 | 2 kiểu: khối khác × 1 · đoạn chữ dẫn × 1 | 0 kiểu vị trí: không có nút chính × 2 | 0; 0 |
 | Công cụ | 1 | hẹp × 1 | 1 kiểu: đoạn chữ dẫn × 1 | 2 kiểu vị trí: đầu trang, bên trái × 1 · giữa trang × 1 | 1; 0 |
 | Trạng thái | 3 | rộng × 2, (không, khai) × 1 | 2 kiểu: thẻ × 2 · khối khác × 1 | 1 kiểu vị trí: giữa trang × 3 | 0; 0 |
+
+### Trang khai mức bề rộng lệch bảng loại trang của lưới 15/11 (9 trang, theo cách xếp loại của phiên phân tích)
+
+- Quản lý tài khoản (`/staff`): loại Danh sách, đang khai vừa
+- Khoá sổ tháng (`/khoa-thang`): loại Biểu mẫu, đang khai rộng
+- Phân định trách nhiệm (`/phan-dinh`): loại Danh sách, đang khai hẹp
+- Hoa hồng đối tác (`/hoa-hong`): loại Thiết lập, đang khai rộng
+- Phiếu đăng ký đối tác (`/phieu-dang-ky`): loại Danh sách, đang khai vừa
+- Dịch vụ (`/catalog`): loại Danh sách, đang khai vừa
+- Máy đang đăng nhập (`/sessions`): loại Danh sách, đang khai hẹp
+- Trợ lý Hỗ trợ (`/tro-ly-cai-dat`): loại Thiết lập, đang khai hẹp
+- Hỗ trợ (`/huong-dan`): loại Trang đọc, đang khai vừa
+
+Biểu mẫu được tính là khớp khi khai hẹp hoặc vừa (bảng 15/11: một cột thì hẹp, hai cột thì vừa).
 
 ## 5. Bố cục vỡ ở bề rộng trung gian
 

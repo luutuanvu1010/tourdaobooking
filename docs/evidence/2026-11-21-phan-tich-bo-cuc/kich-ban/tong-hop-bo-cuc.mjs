@@ -33,7 +33,7 @@ const CU = /^(btn|card|badge|field|chip|toolbar|tabs?|table|empty|banner|alert|l
 const kq = { luc: new Date().toISOString(), nhan: NHAN, soO: ketQua.length, hong: ketQua.filter((x) => x.loi).map((x) => `${tenMan(x)} @${x.kho}: ${x.loi}`), theoKho: {} };
 kq.loaiMan = dem(ketQua.filter((x) => x.kho === KHO[0]).map(loaiCua));
 kq.chuaXep = [...new Set(ketQua.filter((x) => loaiCua(x) === "CHƯA XẾP").map((x) => x.trang))];
-kq.loaiManChiTiet = ketQua.filter((x) => x.kho === KHO[KHO.length - 1]).map((x) => ({ so: x.so, bo: x.bo, trang: x.trang, loai: loaiCua(x), tieuDe: (x.do?.tieuDe || x.trang).trim() }));
+kq.loaiManChiTiet = ketQua.filter((x) => x.kho === KHO[KHO.length - 1]).map((x) => ({ so: x.so, bo: x.bo, trang: x.trang, loai: loaiCua(x), tieuDe: (x.do?.tieuDe || x.trang).trim(), muc: x.do?.rong || "" }));
 
 for (const k of KHO) {
   const ds = ketQua.filter((x) => x.kho === k && x.do && !x.do.loi);

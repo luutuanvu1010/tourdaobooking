@@ -31,7 +31,7 @@ them("## 1. Kiểm kê mã (không cần mở trang)", "", "| Điều đếm | C
   `| Khai báo bề rộng | ${kk.beRong.khaiBao} chỗ, ${kk.beRong.giaTriKhacNhau} giá trị khác nhau; ${kk.beRong.maxWidthRieng} luật tự đặt trần bề rộng (${kk.beRong.maxWidthGiaTri} giá trị) |`,
   `| Token bề rộng (\`--w-*\`) | ${kk.token.beRong} token, ${kk.token.beRongDungToiDaMotLan} token dùng không quá một lần |`,
   `| Cách chia cột (\`grid-template-columns\`) | ${kk.chiaCot.khaiBao} chỗ, ${kk.chiaCot.cachKhacNhau} cách khác nhau |`,
-  `| Mốc đổi bố cục theo bề rộng cửa sổ | ${kk.mocKho.mocChuan.length} mốc («tới N» và «từ N+1» tính là một): ${kk.mocKho.mocChuan.map(([v, n]) => `${v} (${n} chỗ)`).join(" · ")} |`,
+  `| Mốc đổi bố cục theo bề rộng cửa sổ | ${kk.mocKho.mocChuan.length} giá trị («tới N» và «từ N+1» tính là một): ${kk.mocKho.mocChuan.map(([v, n]) => `${v} (${n} chỗ)`).join(" · ")}. Coi 640 và 641 là một mốc viết lệch một điểm thì còn ${kk.mocKho.mocChuan.length - (kk.mocKho.mocChuan.some(([v]) => v === 640) && kk.mocKho.mocChuan.some(([v]) => v === 641) ? 1 : 0)} mốc: hai mốc chính (641, 900) và các mốc lẻ |`,
   `| Khoảng cách (đệm, lề, khe) | ${kk.khoangCach.khaiBao} khai báo, ${kk.khoangCach.giaTriKhacNhau} giá trị khác nhau |`,
   `| Cỡ chữ | ${kk.coChu.khaiBao} khai báo, ${kk.coChu.khacNhau} giá trị khác nhau; ${kk.token.theoNhom.find(([n]) => n === "fs")?.[1] ?? "?"} token cỡ chữ |`,
   `| Bo góc; bóng | bo góc ${kk.boGoc.khacNhau} giá trị; bóng ${kk.bong.khacNhau} giá trị |`,
@@ -79,6 +79,13 @@ for (const k of ["1440x900", "390x844"]) {
   for (const [l, v] of Object.entries(th.theoKho[k].M_theoLoaiTrang)) them(`| ${l} | ${v.soTrang} | ${v.muc.split(" ").map((x) => x.replace("×", " × ")).join(", ").replace("hep", "hẹp").replace("vua", "vừa").replace("rong", "rộng")} | ${v.soKieuKhoiDau} kiểu: ${v.khoiDau.replace(/×/g, " × ")} | ${v.soViTriNut} kiểu vị trí: ${v.nutChinh.replace(/×/g, " × ")} | ${v.nutChinhBenTrai}; ${v.nutChinhBenPhai} |`);
   them("");
 }
+
+// Trang khai mức bề rộng lệch bảng loại trang của quyết định lưới 15/11 (hẹp: biểu mẫu một cột, trang đọc; vừa: chi tiết, biểu mẫu hai cột, thiết lập; rộng: danh sách, tổng quan).
+const MUC_THEO_LOAI = { "Danh sách": ["rong"], "Tổng quan": ["rong", ""], "Chi tiết": ["vua"], "Thiết lập": ["vua"], "Biểu mẫu": ["hep", "vua"], "Trang đọc": ["hep"] };
+const TEN_MUC = { hep: "hẹp", vua: "vừa", rong: "rộng", "": "không khai" };
+const daXet = new Set(); const lech = [];
+for (const x of th.loaiManChiTiet) { if (daXet.has(x.trang) || !MUC_THEO_LOAI[x.loai]) continue; daXet.add(x.trang); if (!MUC_THEO_LOAI[x.loai].includes(x.muc)) lech.push(`${x.tieuDe} (\`${x.trang}\`): loại ${x.loai}, đang khai ${TEN_MUC[x.muc] ?? x.muc}`); }
+them(`### Trang khai mức bề rộng lệch bảng loại trang của lưới 15/11 (${lech.length} trang, theo cách xếp loại của phiên phân tích)`, "", ...lech.map((l) => `- ${l}`), "", "Biểu mẫu được tính là khớp khi khai hẹp hoặc vừa (bảng 15/11: một cột thì hẹp, hai cột thì vừa).", "");
 
 them("## 5. Bố cục vỡ ở bề rộng trung gian", "");
 if (quet) {
