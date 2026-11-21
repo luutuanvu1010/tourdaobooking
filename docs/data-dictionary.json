@@ -364,6 +364,18 @@
       "note": "ô «Vé do ai phát» chỉ trên từng dịch vụ (code = mã dịch vụ, không theo nhóm) (ADR-0175 Đ1.2, migration 0151), CHỈ-THÊM; source HANG_NGOAI = vé hãng ngoài, TOUR_DAO = vé Tour Đảo; dòng hiệu lực = valid_from_at lớn nhất; chưa có dòng là HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts"
     },
     {
+      "name": "ctl_group_ticket_source",
+      "module": "catalog",
+      "kind": "table",
+      "note": "ô «Vé do ai phát» theo NHÓM (ADR-0230 Đ3, migration 0186), CHỈ-THÊM; source HANG_NGOAI / TOUR_DAO; dòng hiệu lực = valid_from_at lớn nhất; giá trị của một dịch vụ = dòng riêng ở ctl_service_ticket_source, không thì dòng nhóm hiện tại, không thì HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts"
+    },
+    {
+      "name": "bil_service_credit_rule",
+      "module": "billing",
+      "kind": "table",
+      "note": "dấu «Trả sau theo dịch vụ» (ADR-0178 Đ2 mục 1, ADR-0230 Đ1, migration 0186): target_kind GROUP | SERVICE, target_code, due_hours 1..8760, grace_hours 0..8760; dòng mở = valid_to IS NULL, mỗi đích tối đa một dòng mở; đổi số giờ = đóng + chèn; gỡ = đóng (chỉ một lần, trigger); cấm xoá"
+    },
+    {
       "name": "ctl_service_detail",
       "module": "catalog",
       "kind": "table",
@@ -1827,6 +1839,27 @@
       "note": "giá trị hiện hành của ô «Vé do ai phát» theo từng dịch vụ đã đặt (ADR-0175 Đ1.2); dịch vụ không có dòng là HANG_NGOAI"
     },
     {
+      "name": "v_ctl_group_ticket_source",
+      "module": "catalog",
+      "columns": [
+        "group_code",
+        "source"
+      ],
+      "note": "giá trị hiện hành của ô «Vé do ai phát» theo nhóm (ADR-0230 Đ3)"
+    },
+    {
+      "name": "v_bil_service_credit_rule",
+      "module": "billing",
+      "columns": [
+        "target_kind",
+        "target_code",
+        "due_hours",
+        "grace_hours",
+        "valid_from"
+      ],
+      "note": "dấu Trả sau theo dịch vụ đang mở (ADR-0230 Đ1); orders đọc qua view này, không đọc bil_* thẳng"
+    },
+    {
       "name": "v_ctl_service_group",
       "module": "catalog",
       "columns": [
@@ -2061,6 +2094,8 @@
     "ctl_service_detail": { "id": "N1", "code": "N1", "display_name": "N1", "description": "N1", "image_key": "N1", "sheet_name_at": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ctl_sales_pause": { "id": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "from_date": "N1", "to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "ended_at": "N1" },
     "ctl_service_ticket_source": { "id": "N1", "code": "N1", "source": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ctl_group_ticket_source": { "id": "N1", "group_code": "N1", "source": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "bil_service_credit_rule": { "id": "N1", "target_kind": "N1", "target_code": "N1", "due_hours": "N1", "grace_hours": "N1", "valid_from": "N1", "valid_to": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ctl_service_ticket_flag": { "id": "N1","scope": "N1", "code": "N1", "has_ticket": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_service_confirm_flag": { "id": "N1", "scope": "N1", "code": "N1", "required": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_confirm_policy": { "id": "N1", "self_confirm_internal": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -2170,6 +2205,8 @@
     "v_ctl_service_ticket_flag": { "scope": "N1", "code": "N1", "has_ticket": "N1" },
     "v_ctl_service_detail": { "code": "N1", "display_name": "N1", "description": "N1", "image_key": "N1", "sheet_name_at": "N1", "valid_from_at": "N1" },
     "v_ctl_service_ticket_source": { "code": "N1", "source": "N1" },
+    "v_ctl_group_ticket_source": { "group_code": "N1", "source": "N1" },
+    "v_bil_service_credit_rule": { "target_kind": "N1", "target_code": "N1", "due_hours": "N1", "grace_hours": "N1", "valid_from": "N1" },
     "v_ctl_service_transfer": { "catalog_code": "N1", "transfer_enabled": "N1" },
     "v_ctl_service_attribute": { "catalog_code": "N1", "attribute_code": "N1", "value_code": "N1", "source": "N1" },
     "v_ctl_attribute_value": { "attribute_code": "N1", "code": "N1", "active": "N1", "attribute_active": "N1" },

@@ -35,6 +35,7 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
+| `bil_service_credit_rule` | bảng | dấu «Trả sau theo dịch vụ» (ADR-0178 Đ2 mục 1, ADR-0230 Đ1, migration 0186): target_kind GROUP | SERVICE, target_code, due_hours 1..8760, grace_hours 0..8760; dòng mở = valid_to IS NULL, mỗi đích tối đa một dòng mở; đổi số giờ = đóng + chèn; gỡ = đóng (chỉ một lần, trigger); cấm xoá |
 | `bil_payment_method` | bảng tra cứu |  |
 | `bil_collector_role` | bảng tra cứu | vai người thu của lần thu (0045): COMPANY, STAFF, BOOKER (bên đặt — người hưởng), SUPPLIER (nhà cung cấp; bật từ 0112 — sổ đại lý đợt 2, ADR-0078 điều 7, 9), UNKNOWN (chỉ cọc cũ chuyển sang) |
 | `bil_receipt_kind` | bảng tra cứu |  |
@@ -67,6 +68,7 @@
 | `v_bil_order_paid` | view công bố | cột: order_id, paid_net, unknown_count |
 | `v_bil_coc_don` | view công bố | cột: order_id, da_tra, dang_doi_chieu, hoan_truoc_huy, da_duyet, da_chi, da_chuyen, hoan_ngoai, con_giu_luc_huy, con_giu, cho_chi |
 | `v_bil_party_balance` | view công bố | cột: party_id, counterparty_id, order_id, balance |
+| `v_bil_service_credit_rule` | view công bố | cột: target_kind, target_code, due_hours, grace_hours, valid_from |
 
 ## catalog
 
@@ -84,10 +86,12 @@
 | `ctl_service_ticket_flag` | bảng | ô «Có vé» theo dịch vụ (scope SERVICE, code = mã dịch vụ) hoặc nhóm (scope GROUP, code = mã nhóm) (ADR-0174, migration 0142), CHỈ-THÊM; has_ticket 1 = Có vé, 0 = Không vé (ghi tường minh để dòng dịch vụ thắng nhóm); chưa khai là Không vé; luật xét ở src/shared/co-ve.ts |
 | `ctl_sales_pause` | bảng | khoảng «Ngừng bán theo ngày» (ADR-0220 Đ1, migration 0180), CHỈ-THÊM: dịch vụ (scope SERVICE, catalog_code) hoặc mọi dịch vụ đang thuộc nhóm (scope GROUP, group_code) không bán cho ngày khởi hành trong [from_date, to_date] (ngày dân sự Việt Nam, gồm hai đầu); còn chặn khi ended_at IS NULL; chỉ được đặt ended_at một lần, kèm updated_at / updated_by = lúc và người kết thúc (trigger); luật xét ở src/modules/catalog/ngung-ban-ngay-rules.ts |
 | `ctl_service_ticket_source` | bảng | ô «Vé do ai phát» chỉ trên từng dịch vụ (code = mã dịch vụ, không theo nhóm) (ADR-0175 Đ1.2, migration 0151), CHỈ-THÊM; source HANG_NGOAI = vé hãng ngoài, TOUR_DAO = vé Tour Đảo; dòng hiệu lực = valid_from_at lớn nhất; chưa có dòng là HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts |
+| `ctl_group_ticket_source` | bảng | ô «Vé do ai phát» theo NHÓM (ADR-0230 Đ3, migration 0186), CHỈ-THÊM; source HANG_NGOAI / TOUR_DAO; dòng hiệu lực = valid_from_at lớn nhất; giá trị của một dịch vụ = dòng riêng ở ctl_service_ticket_source, không thì dòng nhóm hiện tại, không thì HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts |
 | `ctl_service_detail` | bảng | chi tiết dịch vụ do Nền tảng giữ (ADR-0201 Đ1, migration 0160), CHỈ-THÊM; display_name = tên hiển thị thắng tên Sheet ở danh mục (NULL = dùng tên Sheet), description = mô tả, image_key = khoá ảnh (bước sau), sheet_name_at = tên Sheet lúc ghi (báo Sheet đổi tên); dòng hiệu lực = valid_from_at lớn nhất; đồng bộ Sheet không chạm; luật ở src/shared/chi-tiet-dich-vu.ts |
 | `v_ctl_service_ticket_flag` | view công bố | cột: scope, code, has_ticket |
 | `v_ctl_service_detail` | view công bố | cột: code, display_name, description, image_key, sheet_name_at, valid_from_at |
 | `v_ctl_service_ticket_source` | view công bố | cột: code, source |
+| `v_ctl_group_ticket_source` | view công bố | cột: group_code, source |
 | `v_ctl_service_group` | view công bố | cột: catalog_code, group_code |
 | `v_ctl_service_transfer` | view công bố | cột: catalog_code, transfer_enabled |
 | `v_ctl_service_attribute` | view công bố | cột: catalog_code, attribute_code, value_code, source |
