@@ -113,8 +113,14 @@ export function boCucHtml(html) {
 export function boCucTs(src) {
   const s = boChuThich(src);
   const out = { muc: [], nut: [] };
-  const re = /h\(\s*"(button|a|h2|h3)"\s*,\s*(?:\{[^{}]*\}|null)\s*,\s*(?:"([^"\n]+)"|'([^'\n]+)')/g;
+  // Khung gốc (ADR-0222): tên khối dựng bằng `khoi({ tieuDe: "Tên", … })` của web/khung.ts (trang có thể nhập hàm đó dưới tên `khoiKhung`) cũng là tiêu đề mục —
+  // nhánh thứ hai của biểu thức. Chỉ nhận `tieuDe` đứng ĐẦU tham số của đúng hàm đó: `tieuDe` của hộp hỏi xác nhận (`hoiXacNhan`) không phải tiêu đề mục.
+  const re = /h\(\s*"(button|a|h2|h3)"\s*,\s*(?:\{[^{}]*\}|null)\s*,\s*(?:"([^"\n]+)"|'([^'\n]+)')|\bkhoi(?:Khung)?\(\s*\{\s*tieuDe:\s*"([^"\n]+)"/g;
   for (const m of s.matchAll(re)) {
+    if (m[4] !== undefined) {
+      themNhan(out.muc, m[4], "tiêu đề mục (web)");
+      continue;
+    }
     const chu = m[2] ?? m[3];
     if (m[1] === "h2" || m[1] === "h3") themNhan(out.muc, chu, "tiêu đề mục (web)");
     else themNhan(out.nut, chu, "nút (web)");

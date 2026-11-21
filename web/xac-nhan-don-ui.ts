@@ -32,8 +32,9 @@ export interface BoiCanhXacNhan {
   mocPhut: number | null;
 }
 
-function nutHanhDong(nhan: string, cls: string, action: string, chay: (nut: HTMLButtonElement) => Promise<void>): HTMLButtonElement {
-  const nut = h("button", { type: "button", class: cls, "data-action": action }, nhan);
+/** `kieu`: «nut san-ho» = nút chốt của thanh việc (màu san hô); «nut phu» = việc phụ. Viết thành chuỗi lớp ở chỗ gọi để máy so chữ nút (ADR-0167) đọc được mức của nút. */
+function nutHanhDong(nhan: string, kieu: "nut san-ho" | "nut phu", action: string, chay: (nut: HTMLButtonElement) => Promise<void>): HTMLButtonElement {
+  const nut = h("button", { type: "button", class: "nut", "data-tong": kieu === "nut san-ho" ? "san-ho" : undefined, "data-cap": kieu === "nut phu" ? "phu" : undefined, "data-action": action }, nhan);
   nut.addEventListener("click", async () => {
     nut.disabled = true;
     try {
@@ -47,7 +48,7 @@ function nutHanhDong(nhan: string, cls: string, action: string, chay: (nut: HTML
 
 /** «Gửi xác nhận» (người lập KHÔNG giữ quyền Đối tác; đơn thuộc diện cần xác nhận). */
 export function nutGuiXacNhan(c: BoiCanhXacNhan, chan: string | null): HTMLButtonElement {
-  const nut = nutHanhDong(NHAN_NUT_XAC_NHAN.send, "btn btn-accent", "gui-xac-nhan", async () => {
+  const nut = nutHanhDong(NHAN_NUT_XAC_NHAN.send, "nut san-ho", "gui-xac-nhan", async () => {
     c.xoaBao();
     try {
       await api<Api.GuiXacNhanResponse>(`/api/orders/${encodeURIComponent(c.orderId)}/gui-xac-nhan`, { method: "POST", body: {} });
@@ -62,7 +63,7 @@ export function nutGuiXacNhan(c: BoiCanhXacNhan, chan: string | null): HTMLButto
 
 /** «Rút lại» (người lập, đơn đang chờ). */
 export function nutRutLai(c: BoiCanhXacNhan): HTMLButtonElement {
-  return nutHanhDong(NHAN_NUT_XAC_NHAN.withdraw, "btn", "rut-xac-nhan", async () => {
+  return nutHanhDong(NHAN_NUT_XAC_NHAN.withdraw, "nut phu", "rut-xac-nhan", async () => {
     if (!(await hoiXacNhan({ tieuDe: "Rút lại", hauQua: "Rút lại yêu cầu xác nhận? Đơn trở về nháp để bạn sửa tiếp.", nhanNguyHiem: "Rút lại" }))) return;
     c.xoaBao();
     try {
@@ -76,7 +77,7 @@ export function nutRutLai(c: BoiCanhXacNhan): HTMLButtonElement {
 
 /** «Gửi đơn» (người lập giữ quyền Đối tác, đơn nháp đã lưu). Câu báo lấy từ máy chủ (`CAU_BAO_GUI_DON`). */
 export function nutGuiDon(c: BoiCanhXacNhan, chan: string | null): HTMLButtonElement {
-  const nut = nutHanhDong(NHAN_NUT_XAC_NHAN.submit, "btn btn-accent", "gui-don", async () => {
+  const nut = nutHanhDong(NHAN_NUT_XAC_NHAN.submit, "nut san-ho", "gui-don", async () => {
     c.xoaBao();
     try {
       const r = await api<Api.GuiDonResponse>(`/api/orders/${encodeURIComponent(c.orderId)}/gui-don`, { method: "POST", body: {} });

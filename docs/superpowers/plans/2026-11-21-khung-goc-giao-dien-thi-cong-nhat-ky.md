@@ -12,8 +12,8 @@
 |---|---|---|---|
 | 0 | Chép luật thành ADR, dòng mục lục; soạn chữ đề xuất một điều mới của Hiến chương | ADR và mục lục đã ghi; bản đề xuất Hiến chương có trên nhánh | ADR-0222 và mục lục **xong** (`a81600291`); bản đề xuất Hiến chương: xem mục «Còn lại» |
 | 1 | Xem trước bằng ảnh thật trên bốn màn mẫu | chủ duyệt hình | **xong**, chủ duyệt 21/11 |
-| 2 | Khung và máy canh | mỗi hàng rào đã thấy đỏ thật một lần và có dòng ở `docs/SO-HANG-RAO.md` | phần khung, hàm dựng, sổ ngoại lệ, bài kiểm **xong** (`65e1d541c`); lệnh đo trên trang thật và dòng sổ hàng rào: xem «Còn lại» |
-| 3 | Chuyển bốn màn mẫu sang khung, gỡ lớp kiểu cũ | đúng hình đã duyệt; sáu tiêu chí nghiệm thu của ADR | Sửa xe, Địa điểm, Đơn hàng **xong**, ảnh trang thật trùng từng điểm ảnh với ảnh đã duyệt ở 390, 1.130, 1.440; Chi tiết đơn: xem «Còn lại» |
+| 2 | Khung và máy canh | mỗi hàng rào đã thấy đỏ thật một lần và có dòng ở `docs/SO-HANG-RAO.md` | **xong**: phần khung, hàm dựng, sổ ngoại lệ, bài kiểm (`65e1d541c`); lệnh đo `npm run do-khung` (`b294d5764`); 23 phép phá thử bài kiểm và 2 phép phá thử lệnh đo đều đỏ rồi hoàn nguyên; ba dòng ở sổ hàng rào |
+| 3 | Chuyển bốn màn mẫu sang khung, gỡ lớp kiểu cũ | đúng hình đã duyệt; sáu tiêu chí nghiệm thu của ADR | **xong cả bốn màn**: mười hai ảnh trang thật (bốn màn × 390, 1.130, 1.440) khác ảnh đã duyệt 0,00 %; lệnh đo quét 79 bề rộng mỗi màn. Phần ruột chưa có trong ảnh đã duyệt vẫn dùng lớp cũ (mục 8 và 11) |
 | 4 | Trợ lý đánh giá giao diện chấm bốn màn; người kiểm độc lập soát; `npm test`, `npm run typecheck` một lần ở cuối | cả hai báo cáo; hai lệnh xanh | chưa làm |
 
 ## Đã dựng gì (bước 2)
@@ -37,13 +37,16 @@
 8. **Đơn hàng, bảng «Lọc đơn»:** chỉ đổi nút sang nút của bộ thành phần chung; bố cục bên trong bảng lọc (các lớp `loc-*`) chưa dựng lại bằng khung, vì không có trong ảnh đã duyệt. Việc còn lại cho đợt họ màn Đơn hàng.
 9. **Bài `src/don-hang-bang-theo-vung.test.ts` đã gỡ**, vì đối tượng nó canh (khối `.don-bang`) không còn; điều nó canh (bảng bật theo vùng chứa, cột tên khách không bị bóp) nay nằm ở `src/khung-goc.test.ts` và `src/khung-web.test.ts`. Dòng sổ hàng rào tương ứng phải sửa.
 10. **Máy sinh sơ đồ trang của trợ lý** (`scripts/sinh-so-do-trang.mjs`) nhận thêm thanh nút của khung; **bản gương bộ thành phần** thêm nhóm token «khung-goc».
+11. **Chi tiết đơn:** dựng lại khung trang ngay trong mã (thanh việc, hai cột, mọi khối, cặp nhãn và giá trị, mục con của Dịch vụ). Thứ tự trong mã là thứ tự của điện thoại; vùng nội dung từ 560 thì tệp kiểu đưa thanh việc lên đầu. Nút «Xem ảnh gửi khách» và «Huỷ đơn» có hai bản (đầu trang ở máy tính; dính đáy và cuối trang ở điện thoại). Phần ruột không có trong ảnh đã duyệt giữ lớp cũ.
+12. **Hình duyệt 21/11 thay mốc 1180 của quyết định 20/11 (H3).** H3 cho trang đơn một cột khi cửa sổ dưới 1.180; ảnh chủ duyệt 21/11 ở cửa sổ 1.130 là hai cột 7/5 theo vùng nội dung. Bài `src/sua-giao-dien-bon-y-noi-day.test.ts` ca H3 viết lại theo khung. Đã nói với chủ trong báo cáo.
+13. **Nút chốt của đơn nháp** giữ màu san hô; «Xác nhận khách đã trả đủ», «Hoàn thành» thành nút phụ. Trạng thái này không có trong ảnh đã duyệt.
+14. **Trần gói trang Đơn hàng nới 115.438 → 116.518** (lý do ở `src/goi-trang-nhe.test.ts`); đã rút gọn trước khi nới.
 
 ## Còn lại (cập nhật khi xong từng việc)
 
-- Chuyển màn **Chi tiết đơn** (khuôn Chi tiết) cho trùng ảnh đã duyệt.
-- **Lệnh đo trên trang thật** (Đ7b), dựng từ `docs/evidence/2026-11-21-khung-goc-xem-truoc/kich-ban/quet.mjs`.
-- **Quan sát đỏ thật** từng hàng rào rồi ghi dòng ở `docs/SO-HANG-RAO.md`; sửa dòng của bài đã gỡ.
-- **Hạ trần** năm con số về đúng số đo sau khi chuyển xong bốn màn.
+- **Năm con số sau đợt này:** 2.558 · 122 · 15 · 148 · 61 (trước: 2.597 · 128 · 16 · 154 · 65); trần đã hạ về đúng số đo.
+- **Chưa làm:** tiêu chí «đúng khuôn» cho trợ lý đánh giá giao diện, đo bề rộng trung gian ở máy đo màn (ADR-0222 Đ7c).
+- **Chưa thử:** iPhone, iPad thật; trạng thái ngoài ảnh của Chi tiết đơn (đơn chờ xác nhận, Trả sau, thành viên tổ chức).
 - **Chữ đề xuất** một điều mới của Hiến chương (`docs/superpowers/specs/2026-11-21-khung-goc-giao-dien/DE-XUAT-HIEN-CHUONG.md`), và đề xuất sửa `web/CLAUDE.md`, công thức thêm trang ở `docs/CHANGE-GUIDE.md`, `docs/TIEU-CHI-GIAO-DIEN.md` (tệp luật: chỉ đề xuất, chủ duyệt).
 - Kịch bản Chrome gắn với bốn màn (bảng ở `web/CLAUDE.md`): sửa bộ chọn đã đổi, chạy lại phần chạy được.
 - Chép lại kho dữ liệu giả của máy thử trước lượt ảnh cuối (lượt bấm thử Địa điểm đã thêm một địa điểm và một khu vực thử).

@@ -39,7 +39,7 @@ test("H2 phương án nhẹ: form Đối tác bật chế độ một ô «Nơi 
 });
 
 test("H3: tài khoản Đối tác — «Nhập khoản thu» chèn ngay sau dòng «Còn lại»; nút phiếu công nợ giao cho khối «Hoa hồng của bạn» và có đường trả về", () => {
-  assert.match(don, /kv\("Còn lại", vnd\(t\.conLai\), "strong"\)\);\n\s*sauConLai = rows\.length;/);
+  assert.match(don, /kvSo\("Còn lại", vnd\(t\.conLai\), "strong"\)\);\n\s*sauConLai = rows\.length;/); // khung gốc (ADR-0222): dòng tiền của cột phụ dựng bằng kvSo (giá trị canh phải)
   assert.match(don, /if \(laDoiTac && sauConLai >= 0\) \{ ghiThu\.classList\.add\("pay-inline-sau-con-lai"\); rows\.splice\(sauConLai, 0, ghiThu\); \}/);
   assert.match(don, /initPhanDoiTac\(phanDoiTac, \{ nutCuoi: nutCongNoDoiTac,/);
   const pdt = doc("web/phan-doi-tac.ts");
@@ -48,8 +48,15 @@ test("H3: tài khoản Đối tác — «Nhập khoản thu» chèn ngay sau dò
   assert.match(don, /"data-action": "cong-no-dai-ly" \}, "Thanh toán đơn này cho công ty Tour Đảo"\)/);
 });
 
-test("H3: trang đơn một cột khi màn dưới 1180 (trên 900 mới có lưới hai cột)", () => {
-  assert.match(css, /@media \(max-width: 1179px\) \{[^\n]*\n\s*\.order-layout \{ grid-template-columns: minmax\(0, 1fr\); \}/);
+// H3 (20/11) đặt mốc cửa sổ 1180 cho hai cột của trang đơn vì cột tiền cố định làm «số tiền, số điện thoại vỡ giữa chừng» ở 900–1179. Từ khung gốc (ADR-0222, chủ dự án duyệt
+// hình 21/11/2026 ở cả cửa sổ 1.130) hai cột không theo cửa sổ nữa mà theo bề rộng VÙNG NỘI DUNG: từ 800 chia 7/5 trên lưới 12 (cột tiền co giãn theo trang), hẹp hơn thì một cột.
+// Điều H3 canh («không chật tới mức vỡ số») nay do lệnh đo của khung kiểm trên trang thật (0 đoạn chữ bị bóp ở mọi bề rộng); bài này khoá phần đọc được trong mã.
+test("H3: trang đơn hai cột theo bề rộng vùng nội dung (từ 800), hẹp hơn thì một cột — không theo mốc cửa sổ", () => {
+  assert.match(don, /\n    haiCot\(\n/, "trang đơn dựng hai cột bằng hàm của khung");
+  assert.doesNotMatch(don, /order-layout/, "không còn lưới riêng của trang đơn");
+  assert.doesNotMatch(css, /\.order-layout/, "luật kiểu của lưới cũ đã gỡ");
+  assert.match(css, /body\[data-khung-goc\] \.hai-cot \{ display: grid; grid-template-columns: minmax\(0, 1fr\);/, "mặc định (vùng nội dung hẹp) một cột");
+  assert.match(css, /@container trang \(min-width: 800px\) \{\n  body\[data-khung-goc\] \.hai-cot \{ grid-template-columns: repeat\(12, minmax\(0, 1fr\)\); \}/, "hai cột chỉ bật khi vùng nội dung từ 800");
 });
 
 test("H4: Kho vé lọc bằng luật thuần, không gọi máy chủ khi lọc", () => {

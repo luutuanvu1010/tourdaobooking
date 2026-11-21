@@ -119,7 +119,7 @@ export const TRANG_CHUA_CHUYEN: readonly string[] = [
   "danh-muc-giay-to.html", "de-nghi.html", "dieu-chinh-cong-no.html", "dieu-kien-xuat-ben.html", "dieu-phoi.html", "feedback.html", "giao-dien.html",
   "giay-to-sap-het-han.html", "gui-thong-bao.html", "han-muc-tra-sau.html", "help.html", "hoa-hong-gioi-han.html", "hoa-hong.html", "home.html",
   "huong-dan.html", "index.html", "khoa-thang.html", "lich-xe-ban.html", "loai-giay-to-nguoi.html", "loai-giay-to-xe.html", "login.html",
-  "luat-ban.html", "ly-do-dieu-phoi.html", "ngoai-mang.html", "nguoi-ban.html", "order-form.html", "order.html", "parties.html",
+  "luat-ban.html", "ly-do-dieu-phoi.html", "ngoai-mang.html", "nguoi-ban.html", "order-form.html", "parties.html",
   "phan-dinh.html", "phi-don.html", "phieu-dang-ky.html", "quet-ve.html", "sessions.html", "so-cong-no.html", "staff.html", "tai-xe.html", "thiet-lap.html",
   "to-chuc.html", "tro-ly-cai-dat.html", "ve-cai-dat.html", "ve-doi-chieu.html", "ve-kho.html", "xe-chi-tiet.html", "xe-dang-chay.html", "xe.html",
 ];

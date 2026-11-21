@@ -5,7 +5,7 @@
 <div id="strips"></div>
 <main>
   <!-- Khuôn Danh sách của khung gốc (ADR-0222): thanh tìm và lọc, rồi MỘT khối bảng. Vùng nội dung từ 800 thì danh sách thành bảng thẳng cột (hàng tiêu đề cột
-       #don-dau hiện ra), từ 1040 số điện thoại có cột riêng; hẹp hơn thì mỗi đơn là một thẻ. Khuôn cột khai ở src/shared/bang-don.ts, web/orders.ts đặt lên khối.
+       #don-dau hiện ra), từ 1040 số điện thoại có cột riêng; hẹp hơn thì mỗi đơn là một thẻ. Khuôn cột khai ở src/shared/bang-don.ts, web/orders.ts đặt lên khối; hàng tiêu đề cột viết sẵn ở đây (mỗi ô khai vùng của mình, cùng tên vùng với ô của thẻ đơn).
        Nút «+ Tạo đơn» trùng với nút của khung (thanh tab ở điện thoại, thanh trên ở máy tính): chỉ hiện khi khung không có nút đó (tài khoản Đối tác ở máy tính). -->
   <h1>Đơn hàng</h1>
   <div class="thanh-loc">
@@ -17,7 +17,7 @@
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="loading" class="skeleton-list" aria-hidden="true"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
   <section id="don-khoi" class="khoi" data-kieu="bang" data-the-dong aria-label="Danh sách đơn">
-    <div id="don-dau" class="bang-dau" aria-hidden="true"></div>
+    <div id="don-dau" class="bang-dau" aria-hidden="true"><span data-o="ngay" style="--kg-o:ngay">Ngày đi</span><span data-o="ten" style="--kg-o:ten">Khách</span><span data-o="sdt" style="--kg-o:sdt" data-tu-rong>Điện thoại</span><span data-o="khach" style="--kg-o:khach">Số khách</span><span data-o="tien" style="--kg-o:tien" data-so>Còn thu</span><span data-o="tt" style="--kg-o:tt">Trạng thái</span></div>
     <div id="list" class="bang-luoi"></div>
     <p id="empty" class="rong" hidden>Chưa có đơn nào ở đây.</p>
     <button id="more" class="nut bang-them" data-cap="loi" type="button" hidden>Tải thêm</button>

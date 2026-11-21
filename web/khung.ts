@@ -97,19 +97,23 @@ export interface KhuonBang {
   readonly vung: readonly string[];
 }
 
-/** Ghép giá trị `grid-template` của một dòng bảng từ tên cột của thang. Ném lỗi khi khai sai (lúc viết mã, bài kiểm bắt). */
+/** Ghép giá trị `grid-template` của một dòng bảng từ tên cột của thang. Không tự soát (để gói trang nhẹ): khuôn khai sai do `soatKhuonBang` bắt trong bài kiểm. */
 export function khuonCot(k: KhuonBang): string {
-  const cot = k.cot.map((c) => {
-    if (c === "gian") return "minmax(var(--kg-cot-gian), 1fr)";
-    if (c !== "ngan" && c !== "vua" && c !== "dai") throw new Error(`«${String(c)}» không phải tên cột của thang (ngan, vua, dai, gian)`);
-    return `var(--kg-cot-${c})`;
-  });
-  if (k.cot.filter((c) => c === "gian").length !== 1) throw new Error("khuôn bảng cần đúng một cột co giãn (gian)");
+  return `${k.vung.map((v) => `"${v.trim()}" auto`).join(" ")} / ${k.cot.map((c) => (c === "gian" ? "minmax(var(--kg-cot-gian), 1fr)" : `var(--kg-cot-${c})`)).join(" ")}`;
+}
+
+/** Soát một khuôn bảng lúc viết mã: tên cột thuộc thang, đúng một cột co giãn, mỗi hàng vùng đủ số cột, tên vùng viết được trong CSS. Trả các câu lỗi.
+ *  Chỉ bài kiểm gọi (src/khung-web.test.ts); trang không gọi nên hàm này không vào gói trang. */
+export function soatKhuonBang(k: KhuonBang): string[] {
+  const loi: string[] = [];
+  for (const c of k.cot) if (!["ngan", "vua", "dai", "gian"].includes(c)) loi.push(`«${String(c)}» không phải tên cột của thang (ngan, vua, dai, gian)`);
+  if (k.cot.filter((c) => c === "gian").length !== 1) loi.push("khuôn bảng cần đúng một cột co giãn (gian)");
   for (const hang of k.vung) {
-    const n = hang.trim().split(/\s+/).length;
-    if (n !== cot.length) throw new Error(`hàng «${hang}» có ${n} vùng, bảng có ${cot.length} cột`);
+    const ten = hang.trim().split(/\s+/);
+    if (ten.length !== k.cot.length) loi.push(`hàng «${hang}» có ${ten.length} vùng, bảng có ${k.cot.length} cột`);
+    for (const t of ten) if (t !== "." && !/^[a-z][a-z0-9-]*$/.test(t)) loi.push(`«${t}» không dùng làm tên vùng được (chữ thường không dấu, số, gạch)`);
   }
-  return `${k.vung.map((v) => `"${v.trim()}" auto`).join(" ")} / ${cot.join(" ")}`;
+  return loi;
 }
 
 /** Đặt khuôn cột lên khối bảng: `vua` dùng khi vùng nội dung từ 800, `rong` khi từ 1040 (không khai thì dùng lại `vua`). */
@@ -117,8 +121,5 @@ export function datKhuonBang(el: HTMLElement, vua: KhuonBang, rong: KhuonBang = 
   el.setAttribute("style", `--kg-bang-vua: ${khuonCot(vua)}; --kg-bang-rong: ${khuonCot(rong)};`);
 }
 
-/** Thuộc tính của một ô trong bảng lưới: tên vùng nó đứng. Trải vào thuộc tính của `h()`. */
-export function o(ten: string): { "data-o": string; style: string } {
-  if (!/^[a-z][a-z0-9-]*$/.test(ten)) throw new Error(`«${ten}» không dùng làm tên vùng được (chữ thường không dấu, số, gạch)`);
-  return { "data-o": ten, style: `--kg-o:${ten}` };
-}
+/** Thuộc tính của một ô trong bảng lưới: tên vùng nó đứng (tên phải có trong khuôn bảng). Trải vào thuộc tính của `h()`. */
+export const o = (ten: string): { "data-o": string; style: string } => ({ "data-o": ten, style: `--kg-o:${ten}` });

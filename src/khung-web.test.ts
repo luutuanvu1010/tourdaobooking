@@ -89,14 +89,19 @@ test("các vùng của khuôn: mỗi hàm một lớp, giữ thuộc tính truy�
   }
 });
 
-test("khuonCot: ghép khuôn cột của bảng lưới từ TÊN cột của thang, không nhận số", () => {
+test("khuonCot: ghép khuôn cột của bảng lưới từ TÊN cột của thang", () => {
   assert.equal(
     K.khuonCot({ cot: ["vua", "gian", "ngan"], vung: ["ngay ten khach", ". sdt ."] }),
     '"ngay ten khach" auto ". sdt ." auto / var(--kg-cot-vua) minmax(var(--kg-cot-gian), 1fr) var(--kg-cot-ngan)',
   );
-  assert.throws(() => K.khuonCot({ cot: ["vua", "gian"], vung: ["ngay ten khach"] }), /3 vùng.*2 cột/);
-  assert.throws(() => K.khuonCot({ cot: ["vua", "120px" as never], vung: ["a b"] }), /tên cột/);
-  assert.throws(() => K.khuonCot({ cot: ["vua", "vua"], vung: ["a b"] }), /đúng một cột co giãn/);
+});
+
+test("soatKhuonBang: bắt hàng vùng lệch số cột, tên cột ngoài thang, thiếu hoặc thừa cột co giãn, tên vùng không viết được trong CSS", () => {
+  assert.deepEqual(K.soatKhuonBang({ cot: ["vua", "gian", "ngan"], vung: ["ngay ten khach", ". sdt ."] }), []);
+  assert.match(K.soatKhuonBang({ cot: ["vua", "gian"], vung: ["ngay ten khach"] }).join(" | "), /3 vùng.*2 cột/);
+  assert.match(K.soatKhuonBang({ cot: ["vua", "120px" as never, "gian"], vung: ["a b c"] }).join(" | "), /tên cột/);
+  assert.match(K.soatKhuonBang({ cot: ["vua", "vua"], vung: ["a b"] }).join(" | "), /đúng một cột co giãn/);
+  assert.match(K.soatKhuonBang({ cot: ["vua", "gian"], vung: ["a tên"] }).join(" | "), /tên vùng/);
 });
 
 test("datKhuonBang và o: đặt khuôn cột lên khối bảng, ô khai vùng bằng tên", () => {
@@ -109,7 +114,6 @@ test("datKhuonBang và o: đặt khuôn cột lên khối bảng, ô khai vùng 
   K.datKhuonBang(mot, { cot: ["vua", "gian"], vung: ["a b"] });
   assert.match(g(mot).getAttribute("style") ?? "", /--kg-bang-rong:\s*"a b" auto \/ var\(--kg-cot-vua\)/, "không khai khuôn rộng thì dùng lại khuôn vừa");
   assert.deepEqual(K.o("ten"), { "data-o": "ten", style: "--kg-o:ten" });
-  assert.throws(() => K.o("tên có dấu"), /tên vùng/);
 });
 
 // ---------- Bảng Đơn hàng: khuôn cột khai ở src/shared/bang-don.ts phải vừa vùng nội dung tại đúng mốc bật bảng ----------
@@ -149,10 +153,19 @@ test("bảng Đơn hàng: ở mốc 800 và 1040, các cột cố định, khe, 
 test("bảng Đơn hàng: mỗi hàng vùng đủ số cột; vùng của mọi ô thẻ đơn đều có trong cả hai khuôn", async () => {
   const { BANG_DON, VUNG_O_DON } = await import("./shared/bang-don.ts");
   for (const k of [BANG_DON.vua, BANG_DON.rong]) {
+    assert.deepEqual(K.soatKhuonBang(k), []);
     for (const hang of k.vung) assert.equal(hang.trim().split(/\s+/).length, k.cot.length, `hàng «${hang}»`);
     const co = new Set(k.vung.flatMap((hang: string) => hang.trim().split(/\s+/)));
     for (const v of Object.values(VUNG_O_DON) as string[]) assert.ok(co.has(v), `khuôn ${k.cot.length} cột thiếu vùng «${v}»`);
   }
   assert.equal(BANG_DON.vua.cot.length, 5);
   assert.equal(BANG_DON.rong.cot.length, 6);
+  // Hàng tiêu đề cột viết sẵn trong public/orders.html: mỗi ô khai một vùng có trong khuôn, tên trong data-o khớp tên trong style; cột «Điện thoại» chỉ hiện ở khuôn rộng.
+  const html = readFileSync(new URL("../public/orders.html", import.meta.url), "utf8");
+  const dau = /<div id="don-dau" class="bang-dau"[^>]*>(.*?)<\/div>/.exec(html)?.[1] ?? "";
+  const o = [...dau.matchAll(/<span data-o="([a-z-]+)" style="--kg-o:([a-z-]+)"( data-tu-rong)?( data-so)?>([^<]+)<\/span>/g)];
+  assert.deepEqual(o.map((m) => m[1]), ["ngay", "ten", "sdt", "khach", "tien", "tt"]);
+  for (const m of o) assert.equal(m[1], m[2], `ô tiêu đề «${m[5]}»: data-o và --kg-o phải cùng tên`);
+  assert.deepEqual(o.filter((m) => m[3]).map((m) => m[1]), ["sdt"], "chỉ cột Điện thoại chờ khuôn rộng");
+  assert.deepEqual(o.filter((m) => m[4]).map((m) => m[1]), ["tien"], "chỉ cột Còn thu canh phải");
 });

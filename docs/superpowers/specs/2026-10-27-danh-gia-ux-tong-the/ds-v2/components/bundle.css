@@ -234,26 +234,6 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .order-summary-band .grid4 { flex: 1 1 100%; grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
-/* [5] Chi tiết đơn — một thanh công cụ: việc gửi / biên nhận trước, việc sửa sau, «Huỷ đơn» tách sang phải. Điện thoại: lưới hai cột, nút cùng hàng cao bằng nhau. */
-.thanh-cong-cu-don { display: flex; flex-wrap: wrap; align-items: flex-start; column-gap: var(--s3); }
-.thanh-cong-cu-don > #send { order: -1; }
-.thanh-cong-cu-don > #actions { flex: 1 1 auto; }
-.thanh-cong-cu-don > .actions:empty { display: none; }
-.thanh-cong-cu-don .huy-don { margin-left: auto; }
-@media (max-width: 640px) {
-  .thanh-cong-cu-don, .thanh-cong-cu-don > .actions { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; }
-  .thanh-cong-cu-don > #actions { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
-  .thanh-cong-cu-don > #actions > .cx-bang, .thanh-cong-cu-don > #actions > p { grid-column: 1 / -1; } /* lưới hai cột dành cho NÚT: khối «Xác nhận đơn» và câu cảnh báo phải trải hết bề ngang, không chữ tràn viền */
-  .thanh-cong-cu-don .actions > .btn, .thanh-cong-cu-don .huy-don > .btn { width: 100%; height: 100%; margin: 0; }
-  .thanh-cong-cu-don .huy-don { margin-left: 0; }
-}
-
-/* [18] Cặp nhãn – giá trị trong khối rộng: giá trị đứng ngay sau nhãn (luật 4), không trôi sang mép phải. Cột phụ hẹp (Thanh toán, đã dính khi cuộn) giữ kiểu số tiền canh phải. */
-@media (min-width: 900px) {
-  .order-layout > :first-child .kv { display: grid; grid-template-columns: var(--w-kv-nhan) minmax(0, 1fr); justify-content: start; }
-  .order-layout > :first-child .kv > span:last-child { text-align: left; }
-}
-
 /* [2] Thẻ đơn (mọi nơi dùng `web/order-card.ts`: danh sách Đơn hàng khi vùng chứa hẹp hơn mốc bảng của khối [14], «Việc của tôi», ô xem trước của màn Giao diện): ba hàng — (số thứ tự) ngày ·
    giờ đón + trạng thái / tên khách đầy đủ / điện thoại · số khách · còn thu (được xuống hàng). Luật 6: không cắt tên, số khách, số tiền — thay quyết định «đúng 2
    dòng» của Đợt E (chủ duyệt 30/10). Địa chỉ đón vẫn được rút «…». */
@@ -504,13 +484,7 @@ body.login-bao-tri:not(.login-mo-form) .login-dang-ky { display: none; }
 .vk-loc input { text-transform: none; letter-spacing: 0; }
 /* H3: tài khoản Đối tác — «Nhập khoản thu» ngay dưới dòng «Còn lại»; nút phiếu công nợ cuối khối «Hoa hồng của bạn». */
 .pay-inline.pay-inline-sau-con-lai { display: block; margin: var(--s2) 0 var(--s3); }
-.pay-inline.pay-inline-sau-con-lai > .btn { min-height: var(--tap-min); }
 .pdt-nut-cuoi { margin-top: var(--s4); }
-/* H3: màn 900–1179 có thanh bên nên hai cột của trang đơn quá chật (số tiền, số điện thoại vỡ giữa chừng) — xếp một cột, thẻ Thanh toán thôi dính. */
-@media (max-width: 1179px) { /* dưới 900 trang đơn vốn đã một cột (lưới chỉ bật từ 900) nên luật này chỉ có tác dụng ở 900–1179 */
-  .order-layout { grid-template-columns: minmax(0, 1fr); }
-  .order-layout .side { position: static; }
-}
 /* H1: form Đối tác — thẻ «Hình thức thanh toán» ở cột phải, ngay trên nút gửi; khối gập «Giải thích giảm giá, đặt cọc». */
 .hinh-thuc-cho .tra-sau-khoi { margin: 0; }
 .pay-giai-thich > p { margin: var(--s2) 0 0; }
@@ -540,6 +514,8 @@ body[data-khung-goc] main > * { margin: 0; }
 /* Vùng vẽ: phần tử gốc mà mã trang vẽ lại nhiều lần; con của nó xếp như con trực tiếp của main. */
 body[data-khung-goc] main > .vung-ve { display: contents; }
 body[data-khung-goc] main > .vung-ve > * { margin: 0; }
+/* Phần tử bọc không tham gia bố cục (gop): con của nó xếp như con của phần tử bao ngoài — dùng cho lớp bọc mà mã cần giữ (chỗ thay nút bằng một biểu mẫu nhỏ, h1 ẩn khỏi mắt). */
+body[data-khung-goc] .gop { display: contents; }
 /* Tên trang (h1): việc ẩn hiện do khung ngoài quyết như trước — máy tính có thanh bên thì tên nằm ở thanh trên, h1 ẩn khỏi mắt; điện thoại chỉ ẩn khi trang khai
    data-title (trang không khai, như Đơn hàng, vẫn hiện h1 ở đầu vùng nội dung). Phần khung không đặt luật riêng cho h1. */
 @container trang (min-width: 560px) { body[data-khung-goc] :is(.khoi, .thanh-nut[data-kieu="trang"]) { --kg-dem: var(--s5); } }
@@ -568,9 +544,11 @@ body[data-khung-goc] .thanh-loc > .day-phai { margin-left: auto; }
 /* Thanh việc (khuôn Chi tiết). Trong mã đứng sau phần tóm tắt: ở điện thoại các việc phụ xếp dọc dưới tóm tắt, việc chính dính đáy (.thanh-day), việc nguy hiểm
    ở cuối trang. Vùng nội dung từ 560: thanh lên đầu trang, việc chính bên trái, việc nguy hiểm (.day-phai) tách sang phải. */
 body[data-khung-goc] .thanh-viec { display: flex; flex-direction: column; align-items: stretch; gap: var(--s3); }
+body[data-khung-goc] .thanh-viec[data-chi="rong"] { display: none; } /* thanh chỉ còn nút chính và việc nguy hiểm: ở điện thoại hai nút đó có chỗ riêng, thanh không hiện */
 @container trang (min-width: 560px) {
-  body[data-khung-goc] .thanh-viec { flex-direction: row; flex-wrap: wrap; align-items: center; }
-  body[data-khung-goc] .thanh-viec > .day-phai { margin-left: auto; }
+  body[data-khung-goc] .thanh-viec, body[data-khung-goc] .thanh-viec[data-chi="rong"] { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; }
+  body[data-khung-goc] .thanh-viec > :is(p, section, form) { flex: 1 1 100%; } /* câu giải thích và bảng con trong thanh việc đứng riêng một hàng */
+  body[data-khung-goc] .thanh-viec > .day-phai, body[data-khung-goc] .thanh-viec > .gop > .day-phai { margin-left: auto; }
   body[data-khung-goc] main > .thanh-viec[data-len-dau], body[data-khung-goc] main > .vung-ve > .thanh-viec[data-len-dau] { order: -1; }
 }
 
@@ -592,18 +570,18 @@ body[data-khung-goc] .cot-phu { order: -1; }
    biểu mẫu dài hơn màn; «Lưu» bên phải, «Huỷ» cạnh trái nó (.day-phai gắn vào nút đầu tiên của cụm phải), việc nguy hiểm bên trái. Hẹp hơn thì dùng .thanh-day. */
 body[data-khung-goc] .thanh-nut { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3); }
 body[data-khung-goc] .thanh-nut > .day-phai { margin-left: auto; }
-body[data-khung-goc] .khoi .thanh-nut > .nut { flex: 1 1 auto; }
-@container khoi (min-width: 560px) { body[data-khung-goc] .khoi .thanh-nut > .nut { flex: 0 1 auto; } }
+body[data-khung-goc] .khoi .thanh-nut > .nut, body[data-khung-goc] .khoi .thanh-nut > .gop > .nut { flex: 1 1 auto; white-space: normal; } /* chữ nút dài hơn khối thì xuống dòng trong nút, không đẩy tràn trang */
+@container khoi (min-width: 560px) { body[data-khung-goc] .khoi .thanh-nut > .nut, body[data-khung-goc] .khoi .thanh-nut > .gop > .nut { flex: 0 1 auto; } }
 body[data-khung-goc] main > .thanh-nut[data-kieu="trang"] { display: none; }
 @container trang (min-width: 560px) {
   body[data-khung-goc] main > .thanh-nut[data-kieu="trang"] { display: flex; position: sticky; bottom: var(--s4); z-index: var(--z-dinh); padding: var(--s3) var(--kg-dem); background: var(--c-surface); border-radius: var(--kg-bo); box-shadow: var(--ring-card), var(--shadow-card); }
 }
-/* Thanh dính đáy ở điện thoại (vùng nội dung hẹp hơn 560): kín bề ngang, nút chính cao 52. Mang lớp .thanh-hanh-dong-cuoi nên thanh tab tự nhường chỗ (web/shell.ts). */
-body[data-khung-goc] main > .thanh-day { position: sticky; bottom: 0; z-index: var(--z-dinh); display: flex; gap: var(--s3); margin: 0 calc(-1 * var(--luoi-le)) calc(-1 * var(--s4)); padding: var(--s3) var(--luoi-le) calc(var(--s3) + env(safe-area-inset-bottom)); background: var(--c-surface); border-top: 1px solid var(--c-border); }
+/* Thanh dính đáy ở điện thoại (vùng nội dung hẹp hơn 560): kín bề ngang, nút chính cao 52. Là con của main, hoặc của vùng vẽ (.vung-ve) trong main. Mang lớp .thanh-hanh-dong-cuoi nên thanh tab tự nhường chỗ (web/shell.ts). */
+body[data-khung-goc] :is(main, main > .vung-ve) > .thanh-day { position: sticky; bottom: 0; z-index: var(--z-dinh); display: flex; gap: var(--s3); margin: 0 calc(-1 * var(--luoi-le)) calc(-1 * var(--s4)); padding: var(--s3) var(--luoi-le) calc(var(--s3) + env(safe-area-inset-bottom)); background: var(--c-surface); border-top: 1px solid var(--c-border); }
 /* Trang có thanh tab: lúc thanh tab nhường chỗ, đệm đáy của main có thêm vùng an toàn — thanh dính nuốt luôn phần đó để nằm sát đáy trang. */
-body[data-khung-goc].has-tabbar.tabbar-dinh main > .thanh-day { margin-bottom: calc(-1 * var(--s4) - env(safe-area-inset-bottom)); }
-body[data-khung-goc] main > .thanh-day > .nut { flex: 1 1 0; min-height: var(--kg-cao-nut-lon); font-size: var(--fs-step-6); }
-@container trang (min-width: 560px) { body[data-khung-goc] main > .thanh-day { display: none; } }
+body[data-khung-goc].has-tabbar.tabbar-dinh :is(main, main > .vung-ve) > .thanh-day { margin-bottom: calc(-1 * var(--s4) - env(safe-area-inset-bottom)); }
+body[data-khung-goc] :is(main, main > .vung-ve) > .thanh-day > .nut { flex: 1 1 0; min-height: var(--kg-cao-nut-lon); font-size: var(--fs-step-6); }
+@container trang (min-width: 560px) { body[data-khung-goc] :is(main, main > .vung-ve) > .thanh-day { display: none; } }
 
 /* -- Tầng 4: khối — MỘT kiểu vỏ (đầu khối, thân, chân) -- */
 body[data-khung-goc] .khoi { container: khoi / inline-size; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--s3); align-content: start; min-width: 0; margin: 0; padding: var(--kg-dem); background: var(--c-surface); border: 0; border-radius: var(--kg-bo); box-shadow: var(--ring-card), var(--shadow-card); }

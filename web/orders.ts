@@ -9,24 +9,15 @@ import { ApiError, api, type OrderSummary, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { soDongCanTai, taoBoLamMoi } from "./lam-moi-logic";
 import { dienTien, orderCard } from "./order-card";
-import { datKhuonBang, o as vungO } from "./khung";
-import { BANG_DON, VUNG_O_DON } from "../src/shared/bang-don";
+import { datKhuonBang } from "./khung";
+import { BANG_DON } from "../src/shared/bang-don";
 import { goiSom } from "./goi-som";
 import { initShell, showError } from "./shell";
 
 const PAGE = 30;
-// Khối bảng của khuôn Danh sách (khung gốc, ADR-0222): khuôn cột khai ở src/shared/bang-don.ts; hàng tiêu đề cột đứng đúng các vùng của ô thẻ đơn (web/order-card.ts).
-// Cột «Điện thoại» chỉ có khi vùng nội dung từ 1040 (hẹp hơn thì số điện thoại nằm dưới tên khách).
+// Khối bảng của khuôn Danh sách (khung gốc, ADR-0222): khuôn cột khai ở src/shared/bang-don.ts. Hàng tiêu đề cột viết sẵn trong public/orders.html
+// (cùng tên vùng với ô của thẻ đơn ở web/order-card.ts; bài src/khung-web.test.ts so hai bên).
 datKhuonBang(byId("don-khoi"), BANG_DON.vua, BANG_DON.rong);
-replaceChildren(
-  byId("don-dau"),
-  h("span", vungO(VUNG_O_DON.ngay), "Ngày đi"),
-  h("span", vungO(VUNG_O_DON.ten), "Khách"),
-  h("span", { ...vungO(VUNG_O_DON.sdt), "data-tu-rong": "" }, "Điện thoại"),
-  h("span", vungO(VUNG_O_DON.khach), "Số khách"),
-  h("span", { ...vungO(VUNG_O_DON.tien), "data-so": "" }, "Còn thu"),
-  h("span", vungO(VUNG_O_DON.trangThai), "Trạng thái"),
-);
 const qInput = byId<HTMLInputElement>("q");
 const locMo = byId<HTMLButtonElement>("loc-mo");
 const locDem = byId("loc-dem");
