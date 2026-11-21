@@ -960,8 +960,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/catalog-co-ve.ts", chu: "Lưu hotline" },
     ],
-    trangThai: "cho-chon",
-    nguonTen: "Việc 12 kế hoạch 16 việc (21/11/2026): tên ô «Hotline trên vé» và chữ nút do AI đề xuất (phương án A), đã gửi phiên điều phối hỏi chủ",
+    trangThai: "da-chot",
+    nguonTen: "Việc 12 kế hoạch 16 việc: chủ chọn phương án A 2026-11-21 qua phiên điều phối («còn lại áp dụng như khuyến nghị») — ô «Hotline trên vé», vé giữ chữ «Hotline <số>»",
   },
   {
     nhom: "Cài đặt vận hành",

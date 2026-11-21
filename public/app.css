@@ -4669,11 +4669,6 @@ main select { max-width: 100%; }
 .kv-o { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--s2); }
 /* ADR-0175 Đ1.2: ô «Vé do ai phát» xuống dòng riêng dưới công tắc «Có vé». */
 .kv-nguon-ve { flex-basis: 100%; display: grid; gap: var(--s1); padding-bottom: var(--s2); }
-/* ADR-0231: ô «Hotline trên vé» dưới «Vé do ai phát» (chỉ dịch vụ vé Tour Đảo): ô số giãn, nút «Lưu hotline» bên phải. */
-.kv-hotline-ve { flex-basis: 100%; display: grid; gap: var(--s1); padding-bottom: var(--s2); }
-.kv-hotline-hang { display: flex; gap: var(--s2); align-items: center; }
-.kv-hotline-hang > .o { flex: 1 1 auto; min-width: 0; }
-.kv-hotline-hang > .btn { flex: none; }
 .kv-the { border-top: 1px solid var(--c-border); }
 .kv-viec { display: flex; flex: none; align-items: center; gap: var(--s2); }
 

@@ -7,8 +7,8 @@ export type KqSoHoTro = { ok: true; so: string } | { ok: false; cau: string };
 /** Câu lỗi chung (không nhắc lại số người dùng gõ). */
 export const CAU_SO_HO_TRO_SAI = "Hotline trên vé phải là số di động hoặc số bàn bắt đầu bằng 0, hoặc tổng đài 1900, 1800.";
 
-/** Số dạng chuẩn để lưu: chỉ chữ số. Di động `0` + 9 số; số bàn `02` + 9 số; tổng đài `1900`/`1800` + 4 hoặc 6 số. */
-export const DANG_SO_HO_TRO = /^(?:0[1-9]\d{8}|02\d{9}|1[89]00(?:\d{4}|\d{6}))$/;
+/** Số dạng chuẩn để lưu: chỉ chữ số. Di động `03`/`05`/`07`/`08`/`09` + 8 số; số bàn `02` + 9 số; tổng đài `1900`/`1800` + 4 hoặc 6 số. */
+export const DANG_SO_HO_TRO = /^(?:0[35789]\d{8}|02\d{9}|1[89]00(?:\d{4}|\d{6}))$/;
 
 /** Bỏ khoảng trắng, chấm, gạch, ngoặc; `+84`/`84` đầu số thành `0`. Sai dạng → câu lỗi tiếng Việt. */
 export function chuanHoaSoHoTro(vao: string): KqSoHoTro {

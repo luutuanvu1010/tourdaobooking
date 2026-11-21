@@ -430,6 +430,7 @@
 | `ord_cancel_reason` |  | `note` |  |  |
 | `ord_confirm_request` |  | `note` |  |  |
 | `ctl_sales_pause` |  | `note` |  |  |
+| `ctl_service_support_phone` |  | `phone` |  |  |
 | `ord_passenger` |  | `full_name`, `birth_year`, `person_key` |  |  |
 | `ord_service_terms` |  | `reason` |  |  |
 | `ord_transfer_leg` |  | `pickup_place`, `dropoff_place`, `short_notice_note` |  |  |
@@ -456,6 +457,7 @@
 | `stf_permission_adjustment` |  | `reason` |  |  |
 | `tl_hoi_dap` |  | `cau_hoi`, `tra_loi` |  |  |
 | `v_aud_order_change` |  | `detail` |  |  |
+| `v_ctl_service_support_phone` |  | `phone` |  |  |
 | `v_dsp_order_handler` |  | `label` |  |  |
 | `v_dsp_sales_owner` |  | `name` |  |  |
 | `v_dsp_sales_invite_open` |  | `name` |  |  |
@@ -471,6 +473,7 @@
 | `vc_trip_cost_line` |  | `note` |  |  |
 | `vc_trip_departure_waiver` |  | `note` |  |  |
 | `vc_trip_stop` |  | `place_text` |  |  |
+| `vdt_batch` |  | `support_phone` |  |  |
 | `vdt_guest_link` |  | `token_hash` |  |  |
 | `vdt_ticket` |  | `ticket_code`, `storage_key`, `content_hash` |  |  |
 | `dk_identity` |  | `subject`, `contact_email` |  |  |

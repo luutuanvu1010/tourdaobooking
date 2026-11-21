@@ -30,4 +30,4 @@ Vé Tour Đảo là ảnh vẽ ở trình duyệt lúc tạo lô; chân vé in �
 
 ## Điều chủ duyệt khi đọc
 1. Duyệt Đ1–Đ5 như trên.
-2. **Tên** (Hiến chương 5.27): chữ trước số trên vé và tên ô. Khuyến nghị A: vé giữ «Hotline <số>», ô tên «Hotline trên vé». Phương án B: «Hotline dịch vụ» cho cả hai. Không dùng «Hỗ trợ» vì trùng tên màn Hỗ trợ.
+2. **Tên** (Hiến chương 5.27): chữ trước số trên vé và tên ô. Khuyến nghị A: vé giữ «Hotline <số>», ô tên «Hotline trên vé». Phương án B: «Hotline dịch vụ» cho cả hai. Không dùng «Hỗ trợ» vì trùng tên màn Hỗ trợ. **Đã chốt 2026-11-21:** chủ chọn A qua phiên điều phối kế hoạch 16 việc (lời chủ: «còn lại áp dụng như khuyến nghị»). Đ1–Đ5 vẫn chờ chủ duyệt.

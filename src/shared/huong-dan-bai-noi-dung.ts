@@ -70,6 +70,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 | Lô hoặc vé nhiều, không thấy hết | Danh sách chia trang, mỗi trang 50 dòng: bấm «Trang sau» và «Trang trước», hoặc tìm vé theo số sê-ri. |
 | Ảnh bị loại vì không đọc được QR | Tải lại ảnh gốc từ nhà cung cấp, vì chưa gõ tay được mã vé. |
 | Cần tra soát vé của lô đã huỷ | Mở ảnh ở khối **Lô đã huỷ gần đây**. Vé đã mở bị khoá hẳn, không nhập lại được, nên chỉ mở khi thật cần. |
+| Vé Tour Đảo cần in số điện thoại riêng của dịch vụ | Báo Quản trị đặt ô «Hotline trên vé» ở màn Dịch vụ & giá; chưa đặt thì vé in hotline công ty. Khi tạo vé vẫn sửa được số cho riêng lô đó. Vé đã tạo giữ số cũ. |
 | Gửi đường dẫn cho nhầm người | Bấm [[Thu hồi]]. Việc này chỉ đóng đường dẫn; người đó đã lưu ảnh thì vé vẫn dùng được. |
 
 ### Nền tảng chưa làm được

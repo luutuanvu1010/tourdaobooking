@@ -12,7 +12,7 @@ test("nhận di động, số bàn, tổng đài 1900/1800 và bỏ dấu ngăn 
 });
 
 test("từ chối số sai dạng bằng câu tiếng Việt, không nhắc lại số", () => {
-  for (const sai of ["", "123", "090512345", "09051234567", "1900123", "19001234567", "1700 1234", "abc", "0012345678", "+1 905 123 456"]) {
+  for (const sai of ["", "123", "090512345", "09051234567", "1900123", "19001234567", "1700 1234", "abc", "0012345678", "+1 905 123 456", "0100000000", "0212345678"]) {
     const kq = chuanHoaSoHoTro(sai);
     assert.equal(kq.ok, false, sai);
     if (!kq.ok) assert.equal(kq.cau, CAU_SO_HO_TRO_SAI);

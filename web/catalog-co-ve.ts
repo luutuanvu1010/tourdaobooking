@@ -59,7 +59,7 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
     const dang = soHoTro.dichVu.find((x) => x.ma === ma)?.so ?? null;
     const id = `kv-hotline-${ma}`;
     const o = h("input", { type: "tel", class: "o", id, inputMode: "tel", autocomplete: "off", maxLength: 20, value: dang ? inSoHoTro(dang) : "", placeholder: "Trống = hotline công ty" }) as HTMLInputElement;
-    const nut = h("button", { type: "button", class: "btn", "data-action": "luu-hotline-ve" }, "Lưu hotline") as HTMLButtonElement;
+    const nut = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "luu-hotline-ve" }, "Lưu hotline") as HTMLButtonElement;
     nut.addEventListener("click", async () => {
       errorEl.hidden = true;
       const go = o.value.trim();
@@ -78,7 +78,8 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
         nut.disabled = false;
       }
     });
-    return h("div", { class: "kv-hotline-ve" }, h("label", { class: "hint", for: id }, "Hotline trên vé"), h("div", { class: "kv-hotline-hang" }, o, nut));
+    // Dùng lại khối dọc của «Vé do ai phát» (nhãn, ô, nút xếp chồng): không thêm luật bố cục riêng (ADR-0222 Đ7a).
+    return h("div", { class: "kv-nguon-ve" }, h("label", { class: "hint", for: id }, "Hotline trên vé"), o, nut);
   };
   /** Hai lựa chọn «Vé hãng ngoài» / «Vé Tour Đảo» của một dịch vụ (radiogroup, phím ← → đổi lựa chọn). Chưa đặt là vé hãng ngoài. */
   const oNguonVe = (ma: string, ten: string): HTMLElement => {
