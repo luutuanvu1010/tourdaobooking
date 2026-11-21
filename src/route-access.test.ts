@@ -156,6 +156,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/catalog/co-ve", access: "office" },
   { method: "GET", path: "/api/catalog/nguon-ve", access: "office" }, // ADR-0175 Đ1.2; thân hỏi catalog.ticket_flag.write, chặn Đối tác
   { method: "POST", path: "/api/catalog/nguon-ve", access: "office" },
+  { method: "GET", path: "/api/catalog/so-ho-tro", access: "office" }, // ADR-0231; thân hỏi catalog.ticket_flag.write hoặc ve.phat-hanh, chặn Đối tác
+  { method: "POST", path: "/api/catalog/so-ho-tro", access: "office" }, // ADR-0231; thân hỏi catalog.ticket_flag.write, chặn Đối tác
   { method: "GET", path: "/api/catalog/ngung-ban-ngay", access: "office" }, // ADR-0220 Đ4; thân hỏi catalog.hidden.write, chặn tài khoản giữ Đối tác
   { method: "POST", path: "/api/catalog/ngung-ban-ngay", access: "office" },
   { method: "POST", path: "/api/catalog/ngung-ban-ngay/:id/ket-thuc", access: "office" },
@@ -901,6 +903,7 @@ test("mức truy cập của 560 route hiện có khớp ảnh chụp đã duy�
   // Gộp main vào nhánh đăng ký đợt 2 (17/11/2026): 560 của nhánh + 1 route phí đón của main = 561.
   // 2026-11-20 (ADR-0220 Đ4): + GET, POST /api/catalog/ngung-ban-ngay, POST /api/catalog/ngung-ban-ngay/:id/ket-thuc (office; thân hỏi catalog.hidden.write, chặn Đối tác) = 568.
   // 2026-11-21 (ADR-0221 Đ1): + GET (orders), POST (admin) /api/cai-dat/noi-don-doi-tac = 570.
-  assert.equal(actual.length, 570, "số route thực tế lệch 570 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 570, "SNAPSHOT phải có đúng 570 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-21 (ADR-0231, Việc 12): + GET, POST /api/catalog/so-ho-tro (office; thân hỏi catalog.ticket_flag.write / ve.phat-hanh, chặn Đối tác) = 572.
+  assert.equal(actual.length, 572, "số route thực tế lệch 572 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 572, "SNAPSHOT phải có đúng 572 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

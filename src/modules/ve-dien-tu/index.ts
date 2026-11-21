@@ -413,7 +413,7 @@ export const veDienTuModule: AppModule = {
       const soSeri: string[] = [];
       if (v.value.nguon === "TOUR_DAO") { const da = new Set<string>(); for (let i = 0; i < (raw.soVeDuKien as number); i++) { const so = taoSoSeri(da); da.add(so); soSeri.push(so); } }
       await env.DB.batch([
-        cauChenLo(env.DB, { id, catalogCode: v.value.catalogCode, nhom: v.value.nhomKhach, tenSanPham: v.value.tenSanPham, at, by: staff.id, nguon: v.value.nguon }),
+        cauChenLo(env.DB, { id, catalogCode: v.value.catalogCode, nhom: v.value.nhomKhach, tenSanPham: v.value.tenSanPham, at, by: staff.id, nguon: v.value.nguon, soHoTro: v.value.soHoTro }),
         ...soSeri.map((so) => cauChenSoSeri(env.DB, { soSeri: so, batchId: id, at, by: staff.id })),
         auditStatement(env.DB, { staffId: staff.id, action: "ve_nhap_lo", at, targetType: "ve", targetId: v.value.catalogCode, detail: `Mở lô vé · ${NHAN_NHOM_LO[v.value.nhomKhach]}` }),
       ]);

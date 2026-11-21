@@ -26,6 +26,7 @@ import { coVeRoutes } from "./co-ve-route";
 import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve";
 import { nguonVeHienHanh } from "./nguon-ve-repo";
 import { nguonVeRoutes } from "./nguon-ve-route";
+import { soHoTroRoutes } from "./so-ho-tro-route";
 import { ngungBanNgayRoutes, trungDauTien } from "./ngung-ban-ngay-route";
 import { cauNgungBanNgay } from "./ngung-ban-ngay-rules";
 import { chiTietRoutes } from "./chi-tiet-route";
@@ -238,6 +239,7 @@ export const catalogModule: AppModule = {
     // ---- Đặc điểm dịch vụ (ADR-0152; kế hoạch 2026-10-30 T7) — khai TRƯỚC mọi route `/api/catalog/:code…` ----------------------------
     ...coVeRoutes,
     ...nguonVeRoutes, // ADR-0175 Đ1.2: ô «Vé do ai phát»
+    ...soHoTroRoutes, // ADR-0231: ô «Hotline trên vé»
     ...ngungBanNgayRoutes, // ADR-0220: «Ngừng bán theo ngày»
     ...chiTietRoutes, // ADR-0201 Đ1: tên hiển thị + mô tả
     ...anhRoutes, // ADR-0201 Đ3: ảnh đại diện
