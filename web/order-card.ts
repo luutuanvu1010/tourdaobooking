@@ -211,8 +211,8 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
 export function dienTien(slots: { tienSlot: HTMLElement; daTraSlot: HTMLElement }, t: { daThu: number; conLai: number } | undefined, n?: { no: number; thuHoTienMat: number; nhan: string; nhanThuHo: string }): void {
   const x = n ? ([n.nhan, n.no > 0, Math.abs(n.no), n.nhanThuHo, n.thuHoTienMat] as const) : t && (["Còn thu", t.conLai !== 0, t.conLai, "Đã trả", t.daThu] as const);
   if (!x || !slots.tienSlot.isConnected) return;
-  // Chữ nhãn dòng 2 ẩn khi thẻ nằm trong bảng thẳng cột (đầu cột đã ghi) — data-an-bang của khung gốc.
-  replaceChildren(slots.tienSlot, h("span", { "data-an-bang": "" }, `${x[0]} `), moneySpan(x[1] ? "money-due" : "money-ok", x[2]));
+  // Chữ «Còn thu» ẩn khi thẻ nằm trong bảng thẳng cột (đầu cột đã ghi) — data-an-bang của khung gốc. Nhãn nợ đối tác KHÔNG ẩn: đầu cột ghi «Còn thu», thiếu nhãn thì đọc sai chiều tiền.
+  replaceChildren(slots.tienSlot, h("span", n ? null : { "data-an-bang": "" }, `${x[0]} `), moneySpan(x[1] ? "money-due" : "money-ok", x[2]));
   slots.tienSlot.hidden = false;
   replaceChildren(slots.daTraSlot, `${x[3]} `, vnd(x[4]));
   slots.daTraSlot.hidden = false;

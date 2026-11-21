@@ -137,3 +137,16 @@ test("Kế toán thuần: đơn đối tác CHƯA xác nhận (đang chờ văn 
   assert.equal(kt.json.balances[le.id].phaiThu, 600_000, "đơn khách lẻ như cũ");
   assert.equal(kt.json.noDoiTac?.[le.id], undefined);
 });
+
+test("Kế toán thuần: ô «Còn thiếu tiền» của Trang chủ không cộng số bán lẻ của đơn đối tác; Toàn quyền vẫn cộng như cũ", async () => {
+  const w = dung();
+  await chuanBi(w);
+  await donDoiTac(w); // phải thu bán lẻ 4.700.000
+  const le = await lap(w, A, [svc("ZB1", inDays(2))]);
+  assert.equal((await w.call("POST", `/api/orders/${le.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+  const kt = await w.call("GET", "/api/ledger/unpaid-summary", { as: ACC });
+  assert.equal(kt.status, 200, kt.text);
+  assert.deepEqual({ count: kt.json.count, total: kt.json.total }, { count: 1, total: 600_000 }, "chỉ đơn khách lẻ");
+  const chu = (await w.call("GET", "/api/ledger/unpaid-summary", { as: SUP })).json;
+  assert.deepEqual({ count: chu.count, total: chu.total }, { count: 2, total: 5_300_000 });
+});

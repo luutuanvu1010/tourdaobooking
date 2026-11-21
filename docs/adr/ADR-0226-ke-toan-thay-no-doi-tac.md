@@ -13,7 +13,7 @@
 ## Quyết định
 1. **Đ1 — Ai.** «Kế toán thuần» = tài khoản có quyền Kế toán và **không** có Bán hàng, Quản lý bán hàng, Quản trị, Toàn quyền (chủ chọn 6A). Một luật thuần `keToanThuan` ở `src/shared/no-doi-tac-ke-toan.ts`, dùng chung máy chủ. Người khác xem như cũ.
 2. **Đ2 — Đơn nào.** «Đơn đối tác» = đúng luật `laDonDaiLy` của phiếu công nợ (bên đặt mang vai được hưởng, hoặc người lập là Đối tác thuần), xét ở mọi trạng thái (`donDaiLyTrongTap` của `orders`). Đơn khách lẻ như cũ.
-3. **Đ3 — Máy chủ không gửi số bán lẻ (không chỉ ẩn giao diện).** Với Kế toán thuần và đơn đối tác: `GET /api/orders` và ba ngày «Chuyến đón» của `GET /api/orders/dashboard` bỏ trường `total`; `POST /api/ledger/balances` bỏ đơn đó khỏi `balances` (phải thu, đã thu, còn thu bán lẻ).
+3. **Đ3 — Máy chủ không gửi số bán lẻ (không chỉ ẩn giao diện).** Với Kế toán thuần và đơn đối tác: `GET /api/orders` và ba ngày «Chuyến đón» của `GET /api/orders/dashboard` bỏ trường `total`; `POST /api/ledger/balances` bỏ đơn đó khỏi `balances` (phải thu, đã thu, còn thu bán lẻ); ô «Còn thiếu tiền» của Trang chủ (`GET /api/ledger/unpaid-summary`) chỉ cộng đơn khách lẻ (người chấm giao diện 21/11: số tổng trộn giá bán lẻ của đơn đối tác không khớp các thẻ bên dưới).
 4. **Đ4 — Số nợ.** Đơn đối tác đã xác nhận: `noDoiTac[id] = { no, thuHoTienMat, nhan, nhanThuHo }`. `no` = Công nợ còn lại của phiếu công nợ (`congNoNhieuDon`, cùng lượt cho cả trang), **giữ dấu**; âm hiện «Tour Đảo cần trả lại đối tác», dương hoặc 0 hiện «Đối tác nợ Tour Đảo» (nhãn do máy chủ chọn bằng `nhanNoDoiTac`). Số nợ dùng cho hạn mức vẫn không âm (ADR-0168 Đ3) — hai số khác mục đích, không trộn.
 5. **Đ5 — «Tour Đảo đã thu hộ tiền mặt»** (chủ chọn 6D) = Σ khoản thu của khách bằng tiền mặt, còn hiệu lực, người thu là Công ty hoặc nhân viên Tour Đảo (không phải bên đặt, không phải quầy nhà cung cấp), không đang chờ Kế toán đối chiếu (`thuHoTienMat`, luật thuần ở `billing/rules.ts`), kẹp trên bằng «Đã thu» của phiếu (khoản khai / cọc còn ở tay người thu đã bị trừ khỏi Đã thu). Chỉ để hiện, không vào số nợ. Lưu ý: khoản do thành viên của tổ chức đối tác ghi với vai nhân viên được tính là thu hộ (cùng cách ADR-0170 Đ2 tin nhân viên cầm hộ); phiên Việc 5 định nghĩa lại thu hộ thì hàm này theo.
 6. **Đ6 — Đơn chưa xác nhận / đã huỷ.** Chưa có giá đại lý chụp nên máy chủ không tính nợ, không gửi số nào (chủ chọn 6C). Thử thật cho thấy Kế toán vốn không thấy đơn đối tác chưa xác nhận trong danh sách (ADR-0135 Đ1), nên chữ «Chưa tính nợ — đơn chưa xác nhận» không có chỗ hiện; nếu sau này đơn chờ hiện cho Kế toán thì máy chủ vẫn không gửi Tổng.
@@ -30,15 +30,16 @@
 | Kế toán kiêm Bán hàng / Quản lý bán hàng / Quản trị / Toàn quyền | như cũ (giá bán lẻ) | như cũ | như cũ |
 | Bán hàng, Quản trị, Toàn quyền, Đối tác, Hướng dẫn viên, Thực tập | như cũ | như cũ | như cũ |
 
-- **Cổng canh cửa nào:** (1) `GET /api/orders`, `GET /api/orders/dashboard` — `boTongDonDaiLy` bỏ `total` sau khi lọc quyền; (2) `POST /api/ledger/balances` — tách đơn đối tác trước `tienNhieuDon`, chỉ tính số nợ cho đơn đã xác nhận; (3) giao diện: `web/order-card.ts` (`dienTien` nhận thêm `noDoiTac`, «Tổng» chỉ hiện khi có số), `web/home.ts` (ô tiền của «Chuyến đón»). Chỗ ẩn/hiện ở giao diện đi theo DỮ LIỆU máy chủ gửi, không tự xét quyền.
-- **Đường còn lộ số bán lẻ cho Kế toán thuần (có chủ ý, Đ7):** trang chi tiết đơn, biên nhận, `GET /api/orders/:id/thuong-mai`, ô «Còn thiếu tiền» của Trang chủ (`/api/ledger/unpaid-summary` — tổng gộp mọi đơn, không theo từng đơn).
+- **Cổng canh cửa nào:** (1) `GET /api/orders`, `GET /api/orders/dashboard` — `boTongDonDaiLy` bỏ `total` sau khi lọc quyền; (2) `POST /api/ledger/balances` — tách đơn đối tác trước `tienNhieuDon`, chỉ tính số nợ cho đơn đã xác nhận; `GET /api/ledger/unpaid-summary` — bỏ đơn đối tác trước khi cộng; (3) giao diện: `web/order-card.ts` (`dienTien` nhận thêm `noDoiTac`, «Tổng» chỉ hiện khi có số; nhãn nợ vẫn hiện trong bảng thẳng cột vì đầu cột ghi «Còn thu»), `web/home.ts` (ô tiền của «Chuyến đón»). Chỗ ẩn/hiện ở giao diện đi theo DỮ LIỆU máy chủ gửi, không tự xét quyền.
+- **Đường còn lộ số bán lẻ cho Kế toán thuần (có chủ ý, Đ7):** trang chi tiết đơn, biên nhận, `GET /api/orders/:id/thuong-mai`.
 
 ## Hệ quả
 - Kế toán đối chiếu đơn đối tác bằng số nợ; số bán lẻ còn ở trang chi tiết.
 - Mỗi trang danh sách thêm một lượt `congNoNhieuDon` cho các đơn đối tác đã xác nhận (chỉ khi người xem là Kế toán thuần); hàm có một câu đọc khoản khai cho từng đơn.
-- Gói trang Đơn hàng lớn thêm khoảng 140 byte (nhãn do máy chủ gửi để giữ gói nhỏ) — cần chủ duyệt nới trần.
+- Gói trang Đơn hàng lớn thêm 147 byte (đo 21/11: 118.690) (nhãn do máy chủ gửi để giữ gói nhỏ) — cần chủ duyệt nới trần.
 
 ## Tiêu chí nghiệm thu (bài `src/no-doi-tac-ke-toan.test.ts`)
 - Đơn đối tác thành tiền 5.000.000 đ, hoa hồng 800.000 đ, không phí đón, Tour Đảo đã nhận thật 1.000.000 đ tiền mặt ⇒ Kế toán thuần thấy «Đối tác nợ Tour Đảo» 3.200.000 đ, «Tour Đảo đã thu hộ tiền mặt» 1.000.000 đ; phản hồi không chứa 5.000.000, 4.700.000 hay `phaiThu`.
 - Tour Đảo nhận 4.500.000 đ ⇒ số nợ −300.000, nhãn «Tour Đảo cần trả lại đối tác».
 - Toàn quyền, Quản trị vẫn thấy Tổng 4.700.000 đ và phải thu như cũ; đơn khách lẻ của Kế toán như cũ.
+- Ô «Còn thiếu tiền»: Kế toán thuần chỉ thấy đơn khách lẻ (1 đơn, 600.000 đ); Toàn quyền thấy cả hai (2 đơn, 5.300.000 đ).

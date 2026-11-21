@@ -175,7 +175,7 @@ function todayRow(o: OrderSummary, tien: { conLai: number } | undefined, loai: L
       // Sổ tiền lượt 1: "còn lại" là số của billing (`POST /api/ledger/balances`); chưa tải được → "—", không đoán.
       // Còn tiền → số + "còn lại" nhỏ bên dưới; đủ tiền → viên thuốc xanh "Đủ tiền" thay cho "0 ₫" (cả hai bản vẽ: điện thoại 1a, máy tính v2 — máy tính có dấu ✓).
       tien === undefined && !nd && h("b", null, "—"),
-      nd && h("b", { class: noDt!.no > 0 ? "money-due" : undefined }, h("span", { class: "lbl-full" }, vnd(nd.soTien)), h("span", { class: "lbl-short" }, `${vndShort(nd.soTien)} ₫`)),
+      nd && h("b", { class: noDt!.no > 0 ? "money-due" : "money-ok" }, h("span", { class: "lbl-full" }, vnd(nd.soTien)), h("span", { class: "lbl-short" }, `${vndShort(nd.soTien)} ₫`)),
       nd && h("span", { class: "muted dash-con-lai-mt" }, nd.nhan),
       tien && tien.conLai > 0 && h("b", { class: "money-due" }, h("span", { class: "lbl-full" }, vnd(tien.conLai)), h("span", { class: "lbl-short" }, `${vndShort(tien.conLai)} ₫`)),
       tien && tien.conLai > 0 && h("span", { class: "muted lbl-full dash-con-lai-mt" }, "còn lại"),

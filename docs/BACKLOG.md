@@ -825,5 +825,5 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 ## 75. Kế toán xem đơn đối tác theo số nợ — phần để sau (ADR-0226, Việc 6, 2026-11-21)
 
 - **Ngày:** 2026-11-21 · **Chủ chọn** (qua phiên điều phối, câu 6B «như khuyến nghị»): đợt này chỉ danh sách Đơn hàng và Trang chủ · **Trạng thái:** `tạm gác`.
-- **Còn lại:** trang chi tiết một đơn đối tác vẫn hiện số bán lẻ (khối tiền, biên nhận, `GET /api/orders/:id/thuong-mai`) cho Kế toán thuần — giữ có chủ ý vì Kế toán đối chiếu khoản thu, biên nhận ở đó. Ô «Còn thiếu tiền» của Trang chủ (`/api/ledger/unpaid-summary`) vẫn cộng số bán lẻ của mọi đơn, kể cả đơn đối tác.
+- **Còn lại:** trang chi tiết một đơn đối tác vẫn hiện số bán lẻ (khối tiền, biên nhận, `GET /api/orders/:id/thuong-mai`) cho Kế toán thuần — giữ có chủ ý vì Kế toán đối chiếu khoản thu, biên nhận ở đó.
 - **Muốn làm:** ADR mới bổ sung ADR-0226 Đ7; cùng luật `keToanThuan` và `donDaiLyTrongTap`.

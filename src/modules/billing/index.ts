@@ -592,7 +592,9 @@ export const billingModule: AppModule = {
     route("GET", "/api/ledger/unpaid-summary", "orders", async ({ env, staff }) => {
       if (!can(staff, "order.view") || !can(staff, "money.view")) return FORBIDDEN_VIEW();
       const don = await donDangThuTien(env.DB);
-      const tien = await tienNhieuDon(env.DB, [...don.keys()]);
+      // ADR-0226 Đ3: Kế toán thuần — ô này không cộng số bán lẻ của đơn đối tác (cùng luật với danh sách và «Chuyến đón»).
+      const daiLy = keToanThuan(staff) && don.size > 0 ? await donDaiLyTrongTap(env.DB, [...don.keys()]) : new Set<string>();
+      const tien = await tienNhieuDon(env.DB, [...don.keys()].filter((id) => !daiLy.has(id)));
       let count = 0;
       let total = 0;
       let earliestDate: string | null = null;
