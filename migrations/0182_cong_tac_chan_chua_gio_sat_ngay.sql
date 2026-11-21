@@ -1,6 +1,6 @@
--- Migration 0182 — ADR-0227 (đề xuất 2026-11-21, việc 7 kế hoạch 16 việc) Đ1: công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón», module orders. CHỈ THÊM: một bảng mới, hai trigger mới; không đổi bảng, dòng nào đang có.
+-- Migration 0182 — ADR-0227 (chủ duyệt 2026-11-22, việc 7 kế hoạch 16 việc) Đ1: công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón», module orders. CHỈ THÊM: một bảng mới, hai trigger mới; không đổi bảng, dòng nào đang có.
 -- Số: ngày 21/11, main tới 0181; không nhánh / worktree nào có 0182 trở lên (kiểm bằng git ls-tree trên mọi nhánh cục bộ) ⇒ 0182 (số do phiên điều phối giữ trước cho việc 7).
--- Xây trên lỗ đang hở HC-5.19: bảng chỉ thêm, gieo MỘT dòng Bật = hành vi hôm nay (ADR-0193 câu (ii)), không chạm sổ tiền, không đổi `ord_transfer_leg`. Khoá cho phép chờ chủ duyệt ADR-0227.
+-- Xây trên lỗ đang hở HC-5.19: bảng chỉ thêm, gieo MỘT dòng Bật = hành vi hôm nay (ADR-0193 câu (ii)), không chạm sổ tiền, không đổi `ord_transfer_leg`. Khoá cho phép `xay_tren_cho_phep_adr_0227` (chủ duyệt 22/11).
 -- Khuôn `ord_pickup_time_policy` (0157): đổi = chèn dòng mới; dòng hiệu lực = `valid_from_at` lớn nhất ≤ lúc xét; không có dòng nào thì máy chủ coi là BẬT (`docChanChuaGioSatNgay`).
 -- 1 = Bật: lượt đón CHƯA giờ mà ngày đón đã vào hạn chốt ⇒ không xác nhận được (409 `chua_gio_sat_ngay`, vế SQL trong `ORDER_CONFIRM`) — đúng ADR-0193 câu (ii).
 -- 0 = Tắt: bỏ chặn đó; cổng hạn chốt / Đặt gấp cho lượt ĐÃ có giờ và điều phối (không xếp xe cho lượt chưa giờ) giữ nguyên.

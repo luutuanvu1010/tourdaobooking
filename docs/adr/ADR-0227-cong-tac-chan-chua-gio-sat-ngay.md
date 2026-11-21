@@ -1,10 +1,10 @@
 # ADR-0227 — Công tắc của Toàn quyền cho chặn «đơn chưa có giờ đón mà sát ngày đón»; gom công tắc lập đơn vào nhóm «Cài đặt lập đơn»
 
-- **Trạng thái:** **proposed** 2026-11-21 — AI soạn theo việc 7 của kế hoạch `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md` (nhánh `claude/partner-features-detailed-plan-f32f89`). Hai câu con chủ đã trả lời 2026-11-21 qua phiên điều phối (lời chủ chuyển lại nguyên văn: «còn lại áp dụng như khuyến nghị»): **mặc định Bật**; **tên phương án (1)** — khối «Chặn đơn chưa có giờ đón khi sát ngày đón», nút «Tắt chặn chưa có giờ đón» / «Bật chặn chưa có giờ đón». Mã trên nhánh đã đúng hai điều này. ADR vẫn chờ chủ duyệt cả văn bản kèm lời cho phép xây trên HC-5.19.
+- **Trạng thái:** **accepted** — chủ duyệt 22/11/2026 trong phiên điều phối, nguyên văn mục 2: «Duyệt đề xuất» (duyệt cùng lượt các ADR 0223–0233), và mục 1: «Đồng ý khuyến nghị, và bỏ qua việc diễn tập khôi phục dữ liệu - ghi quyết định» (chủ chấp nhận rủi ro HC-5.19; khoá `xay_tren_cho_phep_adr_0227` ở `docs/quyen-hoan.json`). Hồ sơ: `docs/superpowers/plans/2026-11-22-quyet-dinh-chu-ke-hoach-16-viec.md` (nhánh `claude/partner-features-detailed-plan-f32f89`). Lịch sử: **proposed** 2026-11-21 — AI soạn theo việc 7 của kế hoạch `docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md` (nhánh `claude/partner-features-detailed-plan-f32f89`). Hai câu con chủ đã trả lời 2026-11-21 qua phiên điều phối (lời chủ chuyển lại nguyên văn: «còn lại áp dụng như khuyến nghị»): **mặc định Bật**; **tên phương án (1)** — khối «Chặn đơn chưa có giờ đón khi sát ngày đón», nút «Tắt chặn chưa có giờ đón» / «Bật chặn chưa có giờ đón». Mã trên nhánh đã đúng hai điều này. ADR vẫn chờ chủ duyệt cả văn bản kèm lời cho phép xây trên HC-5.19.
 - **Ngày:** 2026-11-21.
 - **Loại:** việc lớn (luật xác nhận đơn, một bảng cài đặt mới). **Cửa:** hai chiều — bật lại là về đúng hành vi hôm nay; bảng công tắc chỉ thêm ở lại.
 - **Sửa:** ADR-0193 câu (ii) — thêm «khi công tắc Bật». Không sửa nguyên văn ADR-0193.
-- **Xây trên lỗ đang hở:** HC-5.19 (có migration mới). Cần chủ ghi lời «Cho phép xây trên HC-5.19, có lý do» khi duyệt; khoá cho phép chưa ghi vào `docs/quyen-hoan.json`.
+- **Xây trên lỗ đang hở:** HC-5.19 (có migration mới). Chủ cho phép 22/11 (chấp nhận rủi ro không diễn tập); khoá `xay_tren_cho_phep_adr_0227` ở `docs/quyen-hoan.json`.
 - **Số quyết định chạm quyền/dữ liệu:** 1.
 
 ## Bối cảnh
@@ -33,4 +33,4 @@ Tắt là mở lại lỗ ADR-0193 đã vá: đơn đón hôm nay hoặc ngày m
 ## Điều chủ cần quyết
 1. ~~Vị trí mặc định~~ — đã chọn Bật (21/11).
 2. ~~Tên nút~~ — đã chọn phương án (1) (21/11).
-3. Duyệt ADR này và cho phép xây trên HC-5.19.
+3. ~~Duyệt ADR này và cho phép xây trên HC-5.19~~ — đã duyệt 22/11.
