@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Sơ đồ khung gốc giao diện (đề xuất 21/11/2026)</title>
+<style>
+  :root { --muc: #0c4a6e; --nhat: #e8eef5; --vien: #c4cedb; --chu: #17212f; --phu: #5b6878; --nhan: #c0392b; --nen: #f5f7fa; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 36px 40px 44px; font: 15px/1.45 -apple-system, "Helvetica Neue", Arial, sans-serif; color: var(--chu); background: #fff; width: 1600px; }
+  h1 { font-size: 30px; margin: 0 0 6px; }
+  .dan { color: var(--phu); font-size: 16px; margin: 0 0 26px; }
+  h2 { font-size: 19px; margin: 30px 0 12px; display: flex; align-items: center; gap: 10px; }
+  h2 span { background: var(--muc); color: #fff; border-radius: 999px; width: 28px; height: 28px; display: inline-grid; place-items: center; font-size: 15px; }
+  .tang { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+  .o { border: 1.5px solid var(--vien); border-radius: 10px; padding: 14px 16px; background: var(--nen); }
+  .o b { display: block; font-size: 16px; margin-bottom: 4px; color: var(--muc); }
+  .o small { color: var(--phu); font-size: 13.5px; display: block; }
+  .o.co { background: #eaf6ee; border-color: #9ecfae; }
+  .khuon { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px 16px; }
+  .k { border: 1.5px solid var(--vien); border-radius: 10px; padding: 12px 14px 14px; }
+  .k h3 { margin: 0 0 2px; font-size: 16.5px; }
+  .k p { margin: 0 0 10px; color: var(--phu); font-size: 13px; min-height: 36px; }
+  .ve { display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 10px; align-items: start; }
+  .may, .dt { background: var(--nhat); border-radius: 6px; padding: 6px; display: grid; gap: 5px; }
+  .may { min-height: 196px; align-content: start; }
+  .dt { min-height: 196px; align-content: start; border-radius: 10px; overflow: hidden; grid-template-columns: minmax(0, 1fr); }
+  .v { background: #fff; border: 1px solid var(--vien); border-radius: 4px; font-size: 11px; color: var(--phu); padding: 3px 6px; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 22px; }
+  .v.cao { min-height: 74px; align-items: flex-start; }
+  .v.vua { min-height: 44px; align-items: flex-start; }
+  .v.xam { background: #dfe6ee; }
+  .nut { background: var(--muc); color: #fff; border-radius: 3px; padding: 1px 7px; font-size: 10.5px; white-space: nowrap; }
+  .nut.phu { background: #fff; color: var(--muc); border: 1px solid var(--muc); }
+  .hai { display: grid; grid-template-columns: 1fr 38%; gap: 5px; }
+  .ba { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .hep { width: 62%; }
+  .giua { width: 56%; margin: 26px auto 0; text-align: center; justify-content: center; }
+  .dt .v { font-size: 9px; padding: 2px 4px; min-height: 16px; min-width: 0; gap: 3px; }
+  .dt .nut { padding: 1px 4px; font-size: 9px; }
+  .dt .v.cao { min-height: 56px; }
+  .dt .day { margin-top: auto; }
+  .bon { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .ba-o { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .chan { margin-top: 26px; color: var(--phu); font-size: 13.5px; border-top: 1px solid var(--vien); padding-top: 12px; }
+</style>
+</head>
+<body>
+<h1>Khung gốc đề xuất: mọi màn dựng từ cùng một bộ khuôn</h1>
+<p class="dan">Sơ đồ ý tưởng, chưa phải bản vẽ hình thức. Hình thật của từng khuôn sẽ trình bằng ảnh chụp trên bốn màn mẫu trước khi áp cho các màn khác.</p>
+
+<h2><span>1</span>Năm tầng, tầng trên chỉ được dùng thứ của tầng dưới</h2>
+<div class="tang">
+  <div class="o"><b>Thang đo</b><small>Một bộ số dùng chung: khoảng cách 4 · 8 · 12 · 16 · 24 · 32 · 48; lưới 12 cột; hai mốc đổi bố cục; ba cỡ ô nhập. Không màn nào tự thêm số riêng.</small></div>
+  <div class="o co"><b>Khung ngoài (đã có)</b><small>Thanh trên, thanh bên, thanh dưới, lề trang, mức bề rộng. Làm ở bước 1 và bước 2, giữ nguyên.</small></div>
+  <div class="o"><b>Khuôn trang</b><small>Mỗi màn thuộc đúng một trong bảy khuôn. Khuôn định sẵn các vùng, thứ tự vùng, chỗ đặt nút chính và mức bề rộng.</small></div>
+  <div class="o"><b>Khối</b><small>Một kiểu vỏ khối duy nhất. Bên trong chỉ có: lưới cột, hàng nhãn và giá trị, bảng, danh sách dòng, thanh nút.</small></div>
+  <div class="o"><b>Thành phần</b><small>Nút, ô nhập, huy hiệu, tab, dải thông báo: một thế hệ duy nhất, bỏ dần bộ cũ.</small></div>
+</div>
+
+<h2><span>2</span>Bảy khuôn trang (trái: máy tính, phải: điện thoại)</h2>
+<div class="khuon">
+  <div class="k"><h3>Danh sách</h3><p>Đơn hàng, Danh bạ, Xe, Sổ công nợ, Quản lý tài khoản…</p>
+    <div class="ve"><div class="may"><div class="v">Mô tả ngắn <span class="nut">+ Thêm</span></div><div class="v xam">Tìm và lọc, một hàng</div><div class="v cao">Bảng thẳng cột</div><div class="v">Xem thêm</div></div>
+    <div class="dt"><div class="v">Mô tả <span class="nut">+</span></div><div class="v xam">Tìm, lọc</div><div class="v">Thẻ dòng</div><div class="v">Thẻ dòng</div><div class="v">Thẻ dòng</div></div></div></div>
+  <div class="k"><h3>Chi tiết</h3><p>Chi tiết đơn, chuyến, xe, hồ sơ tổ chức, trang Tôi</p>
+    <div class="ve"><div class="may"><div class="v">Việc chính <span class="nut phu">Việc nguy hiểm</span></div><div class="v xam">Dải tóm tắt</div><div class="hai"><div class="v cao">Cột chính: các khối theo thứ tự việc</div><div class="v cao">Cột phụ: tiền, trạng thái</div></div></div>
+    <div class="dt"><div class="v xam">Tóm tắt</div><div class="v">Tiền</div><div class="v cao">Các khối</div><div class="v day"><span class="nut">Việc chính</span></div></div></div></div>
+  <div class="k"><h3>Biểu mẫu</h3><p>Tạo đơn, sửa chuyến, sửa xe, điều chỉnh công nợ, đăng ký</p>
+    <div class="ve"><div class="may"><div class="hai"><div class="v cao">Các khối trường, nhãn trên ô</div><div class="v cao">Tóm tắt (nếu có)</div></div><div class="v cao" style="min-height:44px">Khối trường</div><div class="v"><span class="nut phu">Huỷ</span><span class="nut">Lưu</span></div></div>
+    <div class="dt"><div class="v cao">Khối trường</div><div class="v vua">Khối trường</div><div class="v day"><span class="nut phu">Huỷ</span><span class="nut">Lưu</span></div></div></div></div>
+  <div class="k"><h3>Thiết lập</h3><p>Danh mục, chính sách, mức phí, hoa hồng, cài đặt</p>
+    <div class="ve"><div class="may"><div class="v">Đoạn dẫn một câu</div><div class="v">Tên khối <span class="nut">+ Thêm</span></div><div class="v cao">Bảng các dòng, mỗi dòng có Sửa</div><div class="v">Sửa và thêm mở trong bảng trượt</div></div>
+    <div class="dt"><div class="v">Dẫn</div><div class="v">Khối <span class="nut">+</span></div><div class="v">Dòng</div><div class="v">Dòng</div><div class="v">Dòng</div></div></div></div>
+  <div class="k"><h3>Tổng quan</h3><p>Trang chủ từng vai, Điều phối xe, Xe đang chạy</p>
+    <div class="ve"><div class="may"><div class="ba"><div class="v vua">Số liệu</div><div class="v vua">Số liệu</div><div class="v vua">Số liệu</div></div><div class="hai"><div class="v cao">Việc cần làm</div><div class="v cao">Khối phụ</div></div></div>
+    <div class="dt"><div class="v">Số liệu</div><div class="v">Số liệu</div><div class="v cao">Việc cần làm</div></div></div></div>
+  <div class="k"><h3>Trang đọc</h3><p>Hướng dẫn, nhật ký thay đổi</p>
+    <div class="ve"><div class="may"><div class="v cao hep" style="min-height:150px">Một cột chữ, dòng không dài quá</div></div>
+    <div class="dt"><div class="v cao" style="min-height:120px">Một cột chữ</div></div></div></div>
+  <div class="k"><h3>Trạng thái</h3><p>Không có quyền, không tìm thấy, mất mạng, chưa có gì</p>
+    <div class="ve"><div class="may"><div class="v vua giua" style="display:grid;gap:6px">Chuyện gì xảy ra<span class="nut">Một lối đi tiếp</span></div></div>
+    <div class="dt"><div class="v vua" style="margin-top:30px;display:grid;gap:4px;text-align:center">Chuyện gì<span class="nut">Đi tiếp</span></div></div></div></div>
+  <div class="k" style="border-style:dashed"><h3>Ngoại lệ có tên</h3><p>Phần không khuôn nào chứa nổi: dòng thời gian Điều phối xe, ảnh vé, quét mã</p>
+    <div class="ve"><div class="may"><div class="v">Vẫn theo khung ngoài và vỏ khối</div><div class="v cao xam">Vùng tự do bên trong một khối</div><div class="v">Ghi sổ: màn nào, vì sao, ngày duyệt</div></div>
+    <div class="dt"><div class="v cao xam">Vùng tự do</div></div></div></div>
+</div>
+
+<h2><span>3</span>Một màn chỉ được tuỳ biến qua bốn cửa</h2>
+<div class="bon">
+  <div class="o"><b>Chọn khuôn</b><small>Một trong bảy khuôn. Mức bề rộng đi theo khuôn, không chọn tay từng trang.</small></div>
+  <div class="o"><b>Bật, tắt vùng</b><small>Ví dụ danh sách ngắn không cần hàng lọc; chi tiết không có tiền thì không có cột phụ.</small></div>
+  <div class="o"><b>Chọn số trong thang</b><small>Khối chia 1, 2, 3 hay 4 cột; ô nhập cỡ ngắn, vừa hay dài. Chỉ chọn trong bộ số có sẵn.</small></div>
+  <div class="o"><b>Xin ngoại lệ có tên</b><small>Ghi vào một sổ duy nhất kèm lý do. Chủ dự án duyệt thì mới có hiệu lực.</small></div>
+</div>
+
+<h2><span>4</span>Máy canh thay cho trí nhớ</h2>
+<div class="ba-o">
+  <div class="o"><b>Bài kiểm trong bộ kiểm chung</b><small>Màn không khai khuôn là đỏ. Thêm bề rộng, cách chia cột, khoảng cách riêng ngoài khung là đỏ. Số chỗ còn lệch chỉ được giảm.</small></div>
+  <div class="o"><b>Lệnh đo trên trang thật</b><small>Đo từng màn ở mọi bề rộng từ điện thoại tới màn lớn: khối thẳng mép, đúng nhịp, nút chính đúng chỗ, không chữ nào bị bóp hay tràn.</small></div>
+  <div class="o"><b>Trợ lý đánh giá giao diện</b><small>Thêm tiêu chí «đúng khuôn» vào lần chấm sau mỗi việc đổi giao diện.</small></div>
+</div>
+<p class="chan">Hồ sơ: docs/superpowers/specs/2026-11-21-khung-goc-giao-dien/ · Luật mới ở mức đề xuất, chưa duyệt · Sơ đồ do phiên phân tích 21/11/2026 vẽ.</p>
+</body>
+</html>
