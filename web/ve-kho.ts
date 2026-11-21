@@ -110,19 +110,15 @@ if (!nhapLo && !taoVe) {
     thanhLoc.datNhom(danhMuc.groups, coChuaPhanLoai(bang, [...(khoDaTai ?? []).map((d) => d.catalogCode), ...(daHuyDaTai?.lo ?? []).map((l) => l.catalogCode)]));
   };
   const tenNhomLoc = (ma: string): string => (ma === CHUA_PHAN_LOAI ? "Chưa phân loại" : (danhMuc?.groups.find((g) => g.code === ma)?.name ?? ma));
-  /** Dòng nhắc đang lọc ở đầu mỗi khối (khối nằm xa thanh lọc). */
+  /** Dòng nhắc đang lọc ở đầu mỗi khối, kèm «Xoá lọc» — khối nằm xa thanh lọc nên không bắt người dùng cuộn lên (người chấm giao diện 21/11). */
   const dongDangLoc = (): HTMLElement | null => {
     const l = thanhLoc.giaTri();
     if (!dangLoc(l)) return null;
     const phan = [l.nhom ? `nhóm «${tenNhomLoc(l.nhom)}»` : "", l.tim.trim() ? `chữ «${l.tim.trim()}»` : ""].filter(Boolean);
-    return h("p", { class: "muted vk-dang-loc", "data-khoi": "dang-loc" }, `Đang lọc theo ${phan.join(" và ")} (thanh lọc ở đầu trang).`);
+    return h("div", { "data-khoi": "dang-loc" }, h("p", { class: "muted" }, `Đang lọc theo ${phan.join(" và ")} (thanh lọc ở đầu trang).`), h("div", { class: "handler-actions" }, thanhLoc.nutXoaLoc()));
   };
-  /** Khối lọc ra rỗng: câu báo + «Xoá lọc» (khác câu «chưa có gì» khi không lọc). */
-  const rongDoLoc = (cau: string, thongBao?: () => void): HTMLElement => {
-    const nut = thanhLoc.nutXoaLoc();
-    if (thongBao) nut.addEventListener("click", thongBao);
-    return h("div", { class: "vk-rong-loc", "data-khoi": "rong-do-loc" }, h("p", { class: "muted", role: "status" }, cau), h("div", { class: "handler-actions" }, nut));
-  };
+  /** Khối lọc ra rỗng: câu báo (khác câu «chưa có gì» khi không lọc); nút «Xoá lọc» ở dòng «Đang lọc…» ngay trên. */
+  const rongDoLoc = (cau: string): HTMLElement => h("div", { "data-khoi": "rong-do-loc" }, h("p", { class: "muted", role: "status" }, cau));
 
   // Bộ lọc «Số vé còn» (đặc tả 2026-11-20, H4): bốn nút theo số vé còn trống, lọc ngay trên dữ liệu đã tải; lựa chọn giữ qua các lần tải lại kho. Ô tìm riêng của H4 đã gộp vào
   // thanh lọc chung đầu trang (Việc 4): dòng phải khớp thanh lọc trước, bốn nút đếm trên phần còn lại.
@@ -141,7 +137,7 @@ if (!nhapLo && !taoVe) {
       }));
       const khop = locKhoVe(kho, locKho);
       replaceChildren(dsEl, khop.length === 0
-        ? (dangLoc(loc) || locKho.nhom !== "tat-ca" ? rongDoLoc("Không có dòng nào khớp bộ lọc.", () => { locKho.nhom = "tat-ca"; veKho(khoDaTai ?? khoTho); }) : h("p", { class: "muted", role: "status" }, "Không có dòng nào khớp bộ lọc."))
+        ? (dangLoc(loc) ? rongDoLoc("Không có dòng nào khớp bộ lọc.") : h("p", { class: "muted", role: "status" }, "Không có dòng nào khớp bộ lọc."))
         : h("ul", { class: "pay-list", "data-khoi": "ton-kho" }, ...khop.map((d) =>
           h("li", { "data-ma": d.catalogCode },
             h("strong", null, `${d.tenDichVu ?? d.catalogCode} · ${NHAN_NHOM[d.nhomKhach] ?? d.nhomKhach} · ${NHAN_NGUON[d.nguon] ?? d.nguon}`),

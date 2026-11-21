@@ -11,7 +11,7 @@ export interface ThanhLocDv {
   /** Nhóm của danh mục (thứ tự máy chủ) và có cần nút «Chưa phân loại» không. Nhóm đang chọn không còn thì về «Tất cả» và báo trang. */
   datNhom(groups: readonly { code: string; name: string }[], coChuaPhanLoai: boolean): void;
   giaTri(): BoLocDv;
-  /** Nút «Xoá lọc» cho khối lọc ra rỗng: đưa thanh về «Tất cả», xoá chữ tìm, báo trang. */
+  /** Nút «Xoá lọc» ở dòng «Đang lọc…» của từng khối: đưa thanh về «Tất cả», xoá chữ tìm, báo trang. */
   nutXoaLoc(): HTMLElement;
 }
 
@@ -22,8 +22,8 @@ export function taoThanhLocDv(o: { onDoi: (loc: BoLocDv) => void }): ThanhLocDv 
   let henGo: ReturnType<typeof setTimeout> | undefined;
   let nut: HTMLButtonElement[] = [];
   let khoaHang = ""; // các nút đang vẽ: trang gọi datNhom sau mỗi lần tải lại kho, không đổi thì không dựng lại (giữ chỗ cuộn, tiêu điểm)
-  const goiY = "Tìm theo tên dịch vụ, mã hoặc tên in trên vé";
-  const q = h("input", { id: "vk-loc-tim", class: "catalog-q", type: "search", placeholder: goiY, "aria-label": goiY, autocomplete: "off" }) as HTMLInputElement;
+  // Gợi ý ngắn, CÙNG câu với ô tìm của bộ chọn dịch vụ (câu dài bị cắt ở khổ 390); nhãn đọc màn hình nói đủ là tìm cả tên in trên vé.
+  const q = h("input", { id: "vk-loc-tim", class: "catalog-q", type: "search", placeholder: "Tìm theo tên hoặc mã dịch vụ", "aria-label": "Tìm theo tên dịch vụ, mã hoặc tên in trên vé", autocomplete: "off" }) as HTMLInputElement;
   const xoa = h("button", { type: "button", class: "catalog-tim-xoa", "aria-label": "Xoá chữ tìm", hidden: true }, icon("close", 20));
   const tim = h("div", { class: "catalog-tim" }, h("span", { class: "catalog-tim-kinh" }, icon("search", 20)), q, xoa);
   const cuon = h("div", { class: "catalog-hang-cuon", role: "radiogroup", "aria-label": "Nhóm dịch vụ" });
@@ -31,7 +31,7 @@ export function taoThanhLocDv(o: { onDoi: (loc: BoLocDv) => void }): ThanhLocDv 
   const muiTruoc = h("button", { type: "button", class: "catalog-hang-mui", "data-huong": "truoc", "aria-label": "Xem nhóm phía trước", tabindex: "-1", hidden: true }, "‹");
   const muiSau = h("button", { type: "button", class: "catalog-hang-mui", "data-huong": "sau", "aria-label": "Xem nhóm phía sau", tabindex: "-1", hidden: true }, "›");
   const hang = h("div", { class: "catalog-hang", "data-cho": "nhom", hidden: true }, cuon, con, muiTruoc, muiSau);
-  const root = h("div", { class: "catalog vk-thanh-loc", "data-khoi": "thanh-loc-dv" }, tim, hang);
+  const root = h("div", { class: "catalog", "data-khoi": "thanh-loc-dv" }, tim, hang);
 
   const bao = (): void => o.onDoi(loc);
   function capNhatMep(): void {
@@ -125,7 +125,7 @@ export function taoThanhLocDv(o: { onDoi: (loc: BoLocDv) => void }): ThanhLocDv 
     },
     giaTri: () => loc,
     nutXoaLoc() {
-      const b = h("button", { type: "button", class: "btn", "data-action": "xoa-loc" }, "Xoá lọc");
+      const b = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "xoa-loc" }, "Xoá lọc");
       b.addEventListener("click", () => {
         clearTimeout(henGo);
         const coLoc = dangLoc(loc) || q.value !== "";

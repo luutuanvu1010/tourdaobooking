@@ -87,6 +87,7 @@ try {
       assert.deepEqual([...new Set(await p.ev(MA_KHO))], ["TTB03"], "Số vé còn chỉ TTB03");
       assert.deepEqual(await p.ev(MA_HUY), ["TTB03"], "Lô đã huỷ chỉ TTB03");
       assert.match(await p.ev("document.getElementById('vk-cac-lo').innerText"), /Đang lọc theo nhóm «/, "dòng nhắc đang lọc");
+      assert.equal(await p.ev("document.querySelectorAll('[data-khoi=\"dang-loc\"] [data-action=\"xoa-loc\"]').length"), 3, "ba khối đều có «Xoá lọc» cạnh dòng đang lọc, cả khi có kết quả");
       await chup(p, `${kho}-2-nhom-ttb`);
       assert.equal(await bam(p, '#vk-cac-lo [data-action="trang-sau"]'), true, "có trang sau");
       await choLo(p, "ma.length > 0 && ma.length < 50", "trang 2");
@@ -113,7 +114,8 @@ try {
     await buoc(`${kho}.4`, "Lọc ra rỗng: mỗi khối có câu báo + «Xoá lọc»; bấm thì ba khối trở lại đủ", async () => {
       assert.equal(await chonNhom(p, "TDA"), true); // chữ «vịn» vẫn giữ: Tour 4 đảo không khớp
       await choLo(p, "rong", "«Lô trong kho» báo rỗng do lọc");
-      assert.equal(await p.ev("document.querySelectorAll('[data-khoi=\"rong-do-loc\"] [data-action=\"xoa-loc\"]').length"), 3, "ba khối đều có «Xoá lọc»");
+      assert.equal(await p.ev("document.querySelectorAll('[data-khoi=\"rong-do-loc\"]').length"), 3, "ba khối đều báo rỗng do lọc");
+      assert.equal(await p.ev("document.querySelectorAll('[data-khoi=\"dang-loc\"] [data-action=\"xoa-loc\"]').length"), 3, "ba khối đều có «Xoá lọc»");
       assert.match(await p.ev("document.getElementById('vk-cac-lo').innerText"), /Không có lô nào khớp bộ lọc/);
       await p.ev("document.getElementById('vk-cac-lo').scrollIntoView(), true");
       await chup(p, `${kho}-5-rong-do-loc`, false);
