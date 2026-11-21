@@ -33,7 +33,7 @@ export async function ganCaiDatNoiDon(el: HTMLElement): Promise<void> {
       el,
       h("h2", { id: "noi-don-heading" }, "Đối tác không nhập nơi đón"),
       h("p", { id: "noi-don-trang-thai" }, s.bat ? "Đang bật." : "Đang tắt."),
-      h("p", { class: "muted" }, "Khi bật, đối tác chọn «Đón» không phải điền nơi đón; văn phòng điền nơi đón lúc bấm «Còn vé». Đơn chưa có nơi đón thì không xác nhận được."),
+      h("p", { class: "muted" }, "Khi bật, đối tác chọn «Đón» không phải điền nơi đón; văn phòng điền nơi đón lúc bấm «Còn vé, xác nhận đơn». Đơn chưa có nơi đón thì không xác nhận được."),
       loi,
       nut,
     );

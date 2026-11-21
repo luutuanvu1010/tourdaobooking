@@ -79,6 +79,7 @@ test("bảng Còn vé: ô «Nơi đón» cho lượt canNoiDon dùng thành ph�
 test("Chi tiết đơn: nhãn nơi đón của lượt đi qua nhanNoiDon; không tệp giao diện nào hiện thẳng pickupLabel của lượt", () => {
   const don = doc("web/order.ts");
   assert.match(don, /laNoiDonTam\(l\) \? canhEl\(nhanNoiDon\(l\.pickupLabel\)\) : h\("span", null, nhanNoiDon\(l\.pickupLabel\)\)/);
-  assert.match(don, /!vanPhong && laNoiDonTam\(l\) \? nhacEl\(CAU_VAN_PHONG_DIEN_NOI_DON\) : null/);
+  assert.match(don, /doiTac && laNoiDonTam\(l\) \? nhacEl\(CAU_VAN_PHONG_DIEN_NOI_DON\) : null/);
+  assert.match(don, /khoiDuaDonDon\(order, suaChuyen, nutDuaDon, laTaiKhoanDoiTac\(staff!\)\)/, "câu nhắc chỉ cho tài khoản giữ quyền Đối tác");
   assert.equal((don.match(/\.pickupLabel/g) ?? []).length, 2, "web/order.ts chỉ đọc pickupLabel ở đúng dòng đã bọc nhanNoiDon — thêm chỗ mới thì bọc rồi sửa số này");
 });
