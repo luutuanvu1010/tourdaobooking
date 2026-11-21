@@ -311,16 +311,18 @@ export const veDienTuModule: AppModule = {
       if (loc === "sai") return error(400, "invalid_input", "Bộ lọc không đúng: mã dịch vụ sai dạng hoặc chữ tìm quá dài. Tải lại trang rồi lọc lại.");
       let lay: (LoBoDuoc & { da_cap?: number })[];
       let tenLoc: Map<string, { name: string }> | null = null;
+      let conSauLoc: boolean | null = null; // nhánh lọc: «còn trang sau» tính trên danh sách đã lọc, không phụ thuộc lô vừa huỷ giữa hai câu
       if (loc) {
         const khoa = await dsKhoaLoTatCa(env.DB, nguon);
         tenLoc = await getEffectiveServices(env.DB, [...new Set(khoa.map((k) => k.catalog_code))]);
         const ten = tenLoc;
         const khop = khoa.filter((k) => khopDieuKien({ ma: k.catalog_code, chu: [ten.get(k.catalog_code)?.name, k.printed_name] }, loc));
-        lay = await dsLoTheoId(env.DB, khop.slice((trang - 1) * DONG_MOI_TRANG, trang * DONG_MOI_TRANG + 1).map((k) => k.id), nguon);
+        conSauLoc = khop.length > trang * DONG_MOI_TRANG;
+        lay = await dsLoTheoId(env.DB, khop.slice((trang - 1) * DONG_MOI_TRANG, trang * DONG_MOI_TRANG).map((k) => k.id), nguon);
       } else {
         lay = tatCa ? await dsLoTatCa(env.DB, DONG_MOI_TRANG + 1, nguon, (trang - 1) * DONG_MOI_TRANG) : await dsLoBoDuoc(env.DB, TOI_DA_DS_LO, nguon);
       }
-      const coTrangSau = tatCa && lay.length > DONG_MOI_TRANG;
+      const coTrangSau = tatCa && (conSauLoc ?? lay.length > DONG_MOI_TRANG);
       const ds = tatCa ? lay.slice(0, DONG_MOI_TRANG) : lay;
       const ten = tenLoc ?? (await getEffectiveServices(env.DB, [...new Set(ds.map((d) => d.catalog_code))]));
       return json({

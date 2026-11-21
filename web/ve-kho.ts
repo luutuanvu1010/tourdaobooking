@@ -101,7 +101,7 @@ if (!nhapLo && !taoVe) {
   let bang: BangNhom = new Map();
   let khoDaTai: KhoDong[] | null = null;
   let daHuyDaTai: { hanLuuNgay: number; lo: LoDaHuy[] } | null = null;
-  const thanhLoc = taoThanhLocDv({ onDoi: () => { if (khoDaTai) veKho(khoDaTai); veLoDaHuy(); trangLo = 1; void taiCacLo(); } });
+  const thanhLoc = taoThanhLocDv({ onDoi: () => { if (khoDaTai?.length) veKho(khoDaTai); veLoDaHuy(); trangLo = 1; void taiCacLo(); } }); // kho rỗng: giữ câu «Kho chưa có vé nào…», không thành «không khớp bộ lọc»
   const loiDanhMucEl = h("p", { class: "muted", hidden: true });
   replaceChildren(locEl, thanhLoc.root, loiDanhMucEl);
   /** Nút nhóm: nhóm của danh mục; «Chưa phân loại» khi danh mục có dịch vụ không nhóm hoặc kho / lô đã huỷ có mã đã rời danh mục. */
