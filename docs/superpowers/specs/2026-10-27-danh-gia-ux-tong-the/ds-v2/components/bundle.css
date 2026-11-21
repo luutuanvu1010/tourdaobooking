@@ -409,6 +409,7 @@ body.trang-chu #topbar button.bar-avatar { padding: 0; margin-right: 0; }
 .qv-ket-than[data-mau="XANH"] { background: var(--c-green-soft); color: var(--c-green-text); }
 .qv-ket-than[data-mau="VANG"] { background: var(--c-sand-soft); color: var(--c-sand-text); }
 .qv-ket-than[data-mau="DO"] { background: var(--c-danger-soft); color: var(--c-danger-text); }
+.qv-ket-than[data-mau="LOI"] { background: var(--c-surface-alt); color: var(--c-text); } /* chưa kiểm được vé (mất mạng, máy chủ lỗi): không phải phán quyết về vé, nên không mang màu xanh / vàng / đỏ */
 .qv-ket-dau { margin: 0; font-size: var(--fs-step-14); font-weight: var(--fw-bold); line-height: 1; }
 .qv-ket-chu { margin: 0; font-size: var(--fs-step-14); line-height: var(--lh-heading); }
 .qv-ket-cau { margin: 0; font-size: var(--fs-step-9); font-weight: var(--fw-bold); }
