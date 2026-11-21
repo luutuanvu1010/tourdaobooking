@@ -2,7 +2,23 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.21 ĐÃ LÊN PRODUCTION (ADR-0221: công tắc «Đối tác không nhập nơi đón» ở trang Tôi của Toàn quyền; khi bật, đối tác chọn Đón là xong, văn phòng điền nơi đón ở bảng «Còn vé»; đơn còn thiếu nơi đón không xác nhận được) — migration `0181` — triển khai 2026-11-21 13:09 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.22 ĐÃ LÊN PRODUCTION (ADR-0222 khung gốc giao diện: bốn màn mẫu Đơn hàng, Chi tiết đơn, Sửa xe, Địa điểm dựng lại theo một khung chung; bảng và khối đổi bố cục theo chỗ trống thật của vùng nội dung) — không migration — triển khai 2026-11-21 13:42 giờ Việt Nam
+
+Ghi BÙ lúc khoảng 14:35 cùng ngày bởi phiên điều phối, KHÔNG phải từ đầu ra `npm run trien-khai`: phiên thi công khung gốc được lưu trữ ngay sau khi chủ triển khai, trước khi kịp ghi sổ. Các dòng dưới lấy từ nguồn đọc lại được (bản ghi lượt kiểm ở `.git/tourdao-kiem/`, `wrangler deployments list`, `git reflog main`, GET công khai); dòng nào không dựng lại được thì ghi rõ.
+
+Khối dựng lại:
+- Ngày giờ: 2026-11-21 13:42 (giờ Việt Nam) — theo `wrangler deployments list` (Created 2026-11-21T06:42:36Z)
+- Commit: a806786d5 Nhật ký thay đổi: mục số tạm 3.22 cho khung gốc giao diện — `main` đứng ở mã này từ 13:32 tới 14:06 (`git reflog main`)
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-21T06:39:27Z (có đổi quy trình kiểm: `scripts/release-lib.mjs`, `scripts/sinh-so-do-trang.mjs`; có đổi luật: ADR-0222 và mục lục ADR — lý do ghi trong bản ghi lượt kiểm: «doi quy trinh kiem tra»)
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/44876031961
+- Migration đã áp: không có
+- Worker Version ID: 12fa9115-629b-4b12-a2d9-700c36171d25
+- Kiểm dữ liệu (audit-invariants --db remote): KHÔNG GHI LẠI ĐƯỢC — đầu ra lệnh triển khai của chủ không được chép lại. Bản này không có migration.
+- Phiên bản: 3.22 (cổng sau deploy: đọc lại lúc 14:22, production trả 3.22, bằng mục đầu nhật ký thay đổi; kết quả cổng trước deploy không ghi lại được)
+- Thời gian: day-len 7 phút 20 giây; trien-khai không ghi lại được
+- Sau triển khai (đọc lại khoảng 14:20–14:30): GET công khai `/api/auth/config` trả phiên bản 3.22; `/app.css` trùng sha256 với `public/app.css` của `main` (đầu `87819ca5b3e96d50`) và có bộ chọn `data-khung-goc`; trang `/orders` có `<body data-khung-goc="danh-sach">`. Lúc 14:06 `main` nhận thêm lệnh đo khung gốc trong lượt kiểm GitHub (`b2b18f094`): chỉ tệp kiểm, kịch bản và tài liệu, không tệp nào thuộc phần chạy thật, nên không cần triển khai lại. Lần chạy `trien-khai` thứ hai của chủ lúc khoảng 14:20 đứng ở cổng phiên bản (3.22 không mới hơn 3.22); phiên điều phối khuyên gõ `k`. Chưa thử trên iPhone, iPad thật; theo sổ việc của phiên thi công, trình duyệt chưa hỗ trợ bố cục theo vùng chứa thì đứng ở bố cục hẹp nhất và chưa thử iPhone đời cũ.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.21 ĐÃ LÊN PRODUCTION (ADR-0221: công tắc «Đối tác không nhập nơi đón» ở trang Tôi của Toàn quyền; khi bật, đối tác chọn Đón là xong, văn phòng điền nơi đón ở bảng «Còn vé»; đơn còn thiếu nơi đón không xác nhận được) — migration `0181` — triển khai 2026-11-21 13:09 giờ Việt Nam
 
 Ghi từ đầu ra `npm run trien-khai` do chủ chạy. Phát hành trước diễn tập khôi phục theo lời chủ (khoá `xay_tren_cho_phep_adr_0221` ở `docs/quyen-hoan.json`). Công tắc gieo **Tắt**: hành vi như 3.20 tới khi Toàn quyền bật ở trang Tôi.
 
