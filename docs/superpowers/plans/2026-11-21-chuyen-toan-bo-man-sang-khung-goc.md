@@ -1,6 +1,6 @@
 # Kế hoạch chuyển toàn bộ màn hình sang khung gốc (21/11/2026)
 
-> **Đề xuất, chờ chủ dự án duyệt.** Luật: ADR-0222 Đ8 (chuyển từng họ màn, mỗi họ một lượt duyệt ảnh, một lượt kiểm độc lập, rồi hạ trần). Thứ tự theo bước 3 của kế hoạch 13/11 (`2026-11-13-kiem-giao-dien-toan-dien-ke-hoach.md` mục 5): màn nhiều người dùng trước.
+> **Chủ dự án duyệt 21/11/2026**, nguyên văn «ok thực hiện kế hoạch theo khuyến nghị» — tức ba khuyến nghị ở mục 6: thứ tự A → B → C → D3 → D1 → D2 → E → F; đưa lệnh đo trên trang thật vào lượt kiểm GitHub; mỗi lúc một đợt. Luật: ADR-0222 Đ8 (chuyển từng họ màn, mỗi họ một lượt duyệt ảnh, một lượt kiểm độc lập, rồi hạ trần). Thứ tự theo bước 3 của kế hoạch 13/11 (`2026-11-13-kiem-giao-dien-toan-dien-ke-hoach.md` mục 5): màn nhiều người dùng trước.
 > Lời chủ 21/11: «rà soát lại xem tất cả có bao nhiêu màn hình, và ép tất cả màn hình đều phải về chung 1 khuôn».
 
 ## 1. Có bao nhiêu màn
