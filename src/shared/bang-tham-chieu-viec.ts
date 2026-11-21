@@ -890,7 +890,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Cài đặt vận hành",
     manHinh: "Tôi (trang cá nhân) › khối «Đối tác không nhập danh sách hành khách»",
     ten: "Bật đối tác không nhập danh sách hành khách · Tắt đối tác không nhập danh sách hành khách",
-    thatSuLam: "Đổi công tắc chung. Khi bật, form Tạo đơn của tài khoản Đối tác thuần không có khối Hành khách; máy chủ bỏ danh sách gửi lên. Chuyến xe vẫn cần đủ tên khách trước khi xuất bến: văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận. Lúc phát hành công tắc mang đúng vị trí của công tắc tên, SĐT.",
+    thatSuLam: "Đổi công tắc chung. Khi bật, form Tạo đơn của tài khoản Đối tác thuần không có khối Hành khách; máy chủ bỏ danh sách gửi lên. Xe vẫn cần đủ tên khách trước khi chạy: văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận. Lúc phát hành công tắc mang đúng vị trí của công tắc tên, SĐT.",
     hoiLai: "không",
     hoanTac: "được: bấm Tắt đối tác không nhập danh sách hành khách",
     duongLenh: ["/api/cai-dat/hanh-khach-doi-tac"],

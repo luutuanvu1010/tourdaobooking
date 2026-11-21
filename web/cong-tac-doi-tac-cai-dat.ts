@@ -11,7 +11,7 @@ const DS: Record<"hanhKhach" | "gioDon", CongTac> = {
     url: "/api/cai-dat/hanh-khach-doi-tac",
     ten: "Đối tác không nhập danh sách hành khách",
     khoa: "hanh-khach-dt",
-    giaiThich: "Khi bật, đối tác lập đơn không thấy khối Hành khách. Chuyến xe vẫn cần đủ tên khách trước khi xuất bến: văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận.",
+    giaiThich: "Khi bật, đối tác lập đơn không thấy khối Hành khách. Xe vẫn cần đủ tên khách trước khi chạy: văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận.",
   },
   gioDon: {
     url: "/api/cai-dat/khong-can-gio-don",

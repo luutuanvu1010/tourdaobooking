@@ -1326,7 +1326,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Đối tác không nhập danh sách hành khách",
-    giaiNghia: "Công tắc của Toàn quyền ở trang Tôi. Khi bật, tài khoản Đối tác thuần lập đơn không thấy khối Hành khách. Chuyến xe vẫn cần đủ tên khách trước khi xuất bến; văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận.",
+    giaiNghia: "Công tắc của Toàn quyền ở trang Tôi. Khi bật, tài khoản Đối tác thuần lập đơn không thấy khối Hành khách. Xe vẫn cần đủ tên khách trước khi chạy; văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận.",
     khacVoi: "Khác «Đối tác không nhập tên, SĐT khách» (người liên hệ của đơn).",
     chuDaLoai: [],
     maNoiBo: ["ord_partner_passenger_policy", "khong_nhap", "anDs", "partner_passenger_policy_changed"],

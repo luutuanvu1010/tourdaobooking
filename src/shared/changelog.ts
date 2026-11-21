@@ -23,7 +23,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     date: "2026-11-21",
     items: [
       { kind: "doi", text: "Công tắc «Ẩn thông tin khách» tách làm hai: «Đối tác không nhập tên, SĐT khách» và «Đối tác không nhập danh sách hành khách». Cả hai giữ vị trí cũ." },
-      { kind: "doi", text: "Đơn đối tác lập từ nay luôn cần đủ tên khách trước khi xe xuất bến. Văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận." },
+      { kind: "doi", text: "Đơn đối tác lập từ nay luôn cần đủ tên khách trước khi cho xe chạy. Văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận." },
       { kind: "moi", text: "Công tắc mới «Đơn đối tác không cần giờ đón»: bật thì đơn có đón chưa có giờ không phải chờ văn phòng xét chỉ vì thiếu giờ. Mặc định tắt." },
       { kind: "sua", text: "Trang đơn: dải tóm tắt đầu trang không còn lặp tên khách và nơi đón đã có ngay bên dưới; dòng «Tên» không hiện khi trùng tên bên đặt." },
     ],
