@@ -254,7 +254,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   .order-layout > :first-child .kv > span:last-child { text-align: left; }
 }
 
-/* [2] Thẻ đơn (mọi nơi dùng `web/order-card.ts`: danh sách Đơn hàng dưới 1100px, «Việc của tôi», ô xem trước của màn Giao diện): ba hàng — (số thứ tự) ngày ·
+/* [2] Thẻ đơn (mọi nơi dùng `web/order-card.ts`: danh sách Đơn hàng khi vùng chứa hẹp hơn mốc bảng của khối [14], «Việc của tôi», ô xem trước của màn Giao diện): ba hàng — (số thứ tự) ngày ·
    giờ đón + trạng thái / tên khách đầy đủ / điện thoại · số khách · còn thu (được xuống hàng). Luật 6: không cắt tên, số khách, số tiền — thay quyết định «đúng 2
    dòng» của Đợt E (chủ duyệt 30/10). Địa chỉ đón vẫn được rút «…». */
 .order-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: baseline; column-gap: var(--s2); row-gap: var(--s1); }
@@ -267,10 +267,17 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
 .order-row-pax { flex: none; overflow: visible; }
 .order-card-line3 { grid-column: 1 / -1; }
 
-/* [14] Danh sách trang Đơn hàng (`#list` của public/orders.html) từ 1100px: bảng thẳng cột (luật 3) — ngày · khách · điện thoại · số khách · còn thu · trạng thái;
-   hàng tiêu đề cột `.don-bang-dau` tĩnh trong public/orders.html. Chỉ `#list > .order-card`: thẻ đơn ở chỗ khác (Việc của tôi, xem trước Giao diện) giữ dạng thẻ. */
+/* [14] Danh sách trang Đơn hàng (`#list` của public/orders.html): bảng thẳng cột (luật 3) — ngày · khách · điện thoại · số khách · còn thu · trạng thái;
+   hàng tiêu đề cột `.don-bang-dau` tĩnh trong public/orders.html. Chỉ `#list > .order-card`: thẻ đơn ở chỗ khác (Việc của tôi, xem trước Giao diện) giữ dạng thẻ.
+   Sửa 21/11/2026: bảng bật theo bề rộng của CHÍNH VÙNG CHỨA nó (`.don-bang` bọc hàng tiêu đề cột và danh sách), không theo cửa sổ. Mốc cũ
+   `@media (min-width: 1100px)` quên thanh bên: cửa sổ 1.100–1.199 thì vùng nội dung chỉ còn 804–903, cột tên khách co về 0, tên gãy mỗi dòng một chữ.
+   Mốc 960 = phần cố định 862 (năm cột 704 + năm khoảng cách 80 + viền 2 + đệm dòng 24 + nút xổ 44 + khoảng cách tới nút 8) + cột tên khách ít nhất 98.
+   Bài `src/don-hang-bang-theo-vung.test.ts` tính lại phép cộng này từ token: nới một cột thì phải nâng mốc. Vùng hẹp hơn mốc thì là thẻ (khối [2]).
+   Khung chứa là một ngữ cảnh định dạng riêng: lề của con không còn gộp với lề của phần tử đứng trên nó, nên hàng tiêu đề cột KHÔNG đặt lề trên (trước là --s3,
+   vốn bị lề dưới --s4 của thanh lọc, hàng chip lọc, dải báo lỗi nuốt mất); khoảng cách phía trên bảng vẫn là --s4 như cũ. */
+.don-bang { container: don-bang / inline-size; }
 .don-bang-dau { display: none; }
-@media (min-width: 1100px) {
+@container don-bang (min-width: 960px) {
   #list:has(> .order-card) { overflow: hidden; background: var(--c-surface); border: 1px solid var(--c-border); border-top: 0; border-radius: 0 0 var(--radius-md) var(--radius-md); box-shadow: var(--shadow-card); }
   #list > .order-card { margin: 0; padding: var(--s2) var(--s2) var(--s2) var(--s4); border: 0; border-bottom: 1px solid var(--c-border); border-radius: 0; box-shadow: none; }
   #list > .order-card:last-child { border-bottom: 0; }
@@ -286,7 +293,7 @@ body.tabbar-an .vc-bottom-bar, body.tabbar-dinh .vc-bottom-bar { bottom: 0; }
   #list > .order-card .order-row-top .badge { grid-column: 6; grid-row: 1; justify-self: start; }
   #list > .order-card .order-card-line3 { grid-column: 2 / 6; }
   .don-bang-dau { display: grid; grid-template-columns: var(--w-don-ngay) minmax(0, 1fr) var(--w-don-sdt) var(--w-don-khach) var(--w-don-tien) var(--w-don-tt); column-gap: var(--s4);
-    margin-top: var(--s3); padding: var(--s2) calc(var(--s2) + var(--tap-min) + var(--s2)) var(--s2) var(--s4); font-size: var(--fs-badge); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow);
+    padding: var(--s2) calc(var(--s2) + var(--tap-min) + var(--s2)) var(--s2) var(--s4); font-size: var(--fs-badge); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow);
     text-transform: uppercase; color: var(--c-text-muted); background: var(--c-surface-alt); border: 1px solid var(--c-border); border-radius: var(--radius-md) var(--radius-md) 0 0; }
   .don-bang-dau > .so { text-align: right; }
   .don-bang-dau:has(+ #list:empty), .don-bang-dau[hidden] { display: none; }
