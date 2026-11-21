@@ -98,11 +98,16 @@ test("bấm lưu xong, câu báo được đưa vào tầm nhìn: nhánh hai s�
 });
 
 test("câu báo của trang không chui dưới thanh trên dính khi được cuộn tới", () => {
-  const l = luatLa.find((x) => x.boChon.split(",").some((b) => b.trim() === "#cs-ok"));
+  const khoangChua = (than: string): string | undefined => /(?:^|;)\s*scroll-margin-top:\s*([^;]+);/.exec(than)?.[1]?.trim();
+  // Luật gốc của dải báo lỗi `#error` giữ nguyên văn (bài src/cot-cap-dai-ly-noi-day.test.ts so chữ luật đó); câu báo của trang này có luật riêng, cùng giá trị.
+  const cuaLoi = luatLa.find((x) => x.boChon === "#error" && khoangChua(x.than) !== undefined);
+  assert.ok(cuaLoi, "không thấy luật chừa chỗ của `#error`");
+  const l = luatLa.find((x) => x.boChon.split(",").some((b) => b.trim() === "#cs-ok") && khoangChua(x.than) !== undefined);
   assert.ok(l, "không luật nào chừa chỗ cho thanh trên khi cuộn tới `#cs-ok`");
-  assert.match(l.than, /scroll-margin-top:\s*calc\(var\(--bar-h\) \+ env\(safe-area-inset-top\) \+ var\(--s3\)\);/);
+  assert.equal(khoangChua(l.than), "calc(var(--bar-h) + env(safe-area-inset-top) + var(--s3))");
+  assert.equal(khoangChua(l.than), khoangChua(cuaLoi.than), "câu báo đã lưu phải chừa đúng bằng dải báo lỗi `#error`");
   const ds = l.boChon.split(",").map((b) => b.trim());
-  for (const bc of ["#error", "#cs-ok", "#hm-the .alert"]) assert.ok(ds.includes(bc), `luật chừa chỗ cho thanh trên thiếu «${bc}»`);
+  for (const bc of ["#cs-ok", "#hm-the .alert"]) assert.ok(ds.includes(bc), `luật chừa chỗ cho thanh trên thiếu «${bc}»`);
 });
 
 test("mã trang: bật thanh đáy ở đâu thì đặt nút lưu vào thanh ở đó", () => {
