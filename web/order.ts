@@ -627,8 +627,8 @@ function summaryBand(order: Order): HTMLElement {
     h(
       "div",
       { class: "grid4" },
-      stat("ĐÓN", when, firstSvc?.pickupPlace ?? undefined),
-      stat("KHÁCH", order.customerName, order.customerPhone),
+      // Việc 8 (ADR-0228, phần bề mặt): dải chỉ giữ điều không lặp ngay bên dưới — bỏ ô «Khách» (khối Khách hàng là khối đầu cột chính) và nơi đón (khối Đưa đón).
+      stat("ĐÓN", when),
       stat("SỐ KHÁCH", pax || "—", serviceLine),
       tien?.coc
         ? stat(tien.coc.nhan.toUpperCase(), vnd(tien.coc.daTra), tien.coc.nhanPhu ?? `Tổng ${vnd(order.total)}`)
@@ -1605,7 +1605,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
 
         khoiKhung(
           { tieuDe: "Khách hàng", viec: a.editTrip ? [bookerButton(order)] : [] },
-          kv("Tên", order.customerName),
+          // Việc 8: tên khách trùng tên bên đặt (đơn đối tác lập lúc công tắc tên, SĐT bật — tên là của chính đối tác) ⇒ bỏ dòng «Tên», dòng «Bên đặt» bên dưới đã nói.
+          order.bookerName && order.customerName.trim() === order.bookerName.trim() ? null : kv("Tên", order.customerName),
           kv("Số điện thoại", order.customerPhone),
           anChiTiet("customerEmail") ? null : kv("Email", order.customerEmail),
           anChiTiet("customerNote") ? null : kv("Ghi chú", order.customerNote),

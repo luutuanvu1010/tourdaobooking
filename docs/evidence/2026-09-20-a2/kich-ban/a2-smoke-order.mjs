@@ -160,7 +160,7 @@ try {
   const confirmedBtns = await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)");
   assert.ok(confirmedBtns.includes("Huỷ đơn") && !confirmedBtns.includes("Sửa") && !confirmedBtns.includes("Xác nhận đơn"), `đơn đã xác nhận: có 'Huỷ đơn', không còn 'Sửa'/'Xác nhận đơn' (từ Task 9 có thêm 'Sửa thông tin chuyến'): ${confirmedBtns}`);
   // bản 1.39: dải đầu trang ghi số khách đủ chữ (không "NL/TE"), không tràn ngang ở 390px
-  const band = await p.ev("({ pax: [...document.querySelectorAll('.order-summary-band .grid4 > div')][2].querySelector('.value').textContent, over: document.documentElement.scrollWidth - innerWidth })");
+  const band = await p.ev("({ pax: [...document.querySelectorAll('.order-summary-band .grid4 > div')].find((d) => d.querySelector('.label')?.textContent === 'SỐ KHÁCH').querySelector('.value').textContent, over: document.documentElement.scrollWidth - innerWidth })");
   assert.match(band.pax, /^\d+ người lớn, \d+ trẻ em$/, `dải đầu: ${band.pax}`);
   assert.ok(band.over <= 0, `tràn ngang ${band.over}px`);
   // 2026-10-01 (ADR-0047 Phần B, cảnh báo sớm): chặng đón chưa có nơi trả → sau khi xác nhận hiện dải vàng "Đã xác nhận đơn." (không chặn), không phải dải lỗi.

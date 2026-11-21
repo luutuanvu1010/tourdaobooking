@@ -17,6 +17,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Việc 8 kế hoạch 16 việc 21/11 (ADR-0228 đề xuất, migration 0183). Nhánh claude/eloquent-snyder-7de04b.
+    // SỐ TẠM 3.26 (3.25 là Việc 16, các việc 2, 3, 4, 5 có thể nhập trước): bước A.0 đặt lại số và ngày.
+    version: "3.26",
+    date: "2026-11-21",
+    items: [
+      { kind: "doi", text: "Công tắc «Ẩn thông tin khách» tách làm hai: «Đối tác không nhập tên, SĐT khách» và «Đối tác không nhập danh sách hành khách». Cả hai giữ vị trí cũ." },
+      { kind: "doi", text: "Đơn đối tác lập từ nay luôn cần đủ tên khách trước khi xe xuất bến. Văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận." },
+      { kind: "moi", text: "Công tắc mới «Đơn đối tác không cần giờ đón»: bật thì đơn có đón chưa có giờ không phải chờ văn phòng xét chỉ vì thiếu giờ. Mặc định tắt." },
+      { kind: "sua", text: "Trang đơn: dải tóm tắt đầu trang không còn lặp tên khách và nơi đón đã có ngay bên dưới; dòng «Tên» không hiện khi trùng tên bên đặt." },
+    ],
+  },
+  {
     // Biểu tượng cho menu Thiết lập (kế hoạch 16 việc 21/11, Việc 16). Nhánh claude/relaxed-noether-c3cb22. Không migration.
     // SỐ TẠM 3.25 (3.24 là Việc 9, có thể chưa lên bản chạy thật): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.25",
