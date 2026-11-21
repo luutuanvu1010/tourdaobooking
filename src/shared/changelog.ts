@@ -17,14 +17,30 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // ADR-0221 (chủ duyệt 21/11): «Đối tác không nhập nơi đón». ADR-0221, nhánh claude/exciting-tu-2efdb7, migration 0181, SỐ TẠM.
-    // SỐ TẠM 3.20: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.20",
+    // ADR-0221 (chủ duyệt 21/11): «Đối tác không nhập nơi đón». ADR-0221, nhánh claude/exciting-tu-2efdb7, migration 0181.
+    // SỐ TẠM 3.21 (bản 3.20 đã lên production 21/11): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.21",
     date: "2026-11-21",
     items: [
       { kind: "moi", text: "Toàn quyền có công tắc «Đối tác không nhập nơi đón» ở trang Tôi. Khi bật, đối tác chọn Đón là xong, không phải điền nơi đón. Mặc định tắt." },
       { kind: "moi", text: "Khi công tắc bật, văn phòng điền nơi đón ngay trong bảng Xác nhận đơn lúc bấm «Còn vé, xác nhận đơn». Chưa có nơi đón thì đơn chưa xác nhận được." },
       { kind: "doi", text: "Chi tiết đơn ghi «Chưa có nơi đón» ở lượt đối tác gửi mà văn phòng chưa điền nơi đón." },
+    ],
+  },
+  {
+    // Sửa hai lỗi bố cục làm hỏng việc (đợt đánh giá giao diện 20/11, đợt phân tích bố cục 21/11): cột tên khách ở Đơn hàng, nút lưu ở Chính sách điều phối trên điện thoại.
+    // Nhánh claude/jolly-jemison-3b33e1. Không migration. SỐ TẠM 3.20: nhánh claude/exciting-tu-2efdb7 (ADR-0221) cũng đặt số tạm 3.20 — bước A.0 đặt lại số và ngày
+    // cho nhánh nhập sau.
+    version: "3.20",
+    date: "2026-11-21",
+    items: [
+      { kind: "sua", text: "Đơn hàng trên máy tính: cửa sổ cỡ vừa không còn làm tên khách gãy mỗi dòng một chữ. Chỗ hẹp thì danh sách hiện dạng thẻ, đủ rộng mới thành bảng." },
+      { kind: "sua", text: "Chính sách điều phối trên điện thoại: Quản trị đã có nút «Lưu hạn chốt» để lưu hai con số hạn chốt." },
+      { kind: "sua", text: "Chính sách điều phối trên điện thoại: thẻ Hạn mức Từ chối của hướng dẫn viên đã có nút «Lưu cài đặt»." },
+      { kind: "doi", text: "Chính sách điều phối trên điện thoại: thanh «Lưu thành bản mới» chỉ bám đáy màn hình khi đang ở phần chính sách, không còn che thẻ Hạn mức." },
+      { kind: "sua", text: "Hai nút lưu trên: bấm xong, màn hình tự đưa câu báo đã lưu vào tầm nhìn, không phải kéo lên đầu trang để xem." },
+      // Lỗi có sẵn tìm thấy khi đo, sửa thêm theo khuyến nghị của phiên điều phối (lần lưu riêng, bỏ ra được): cờ «đang gửi» không được hạ sau khi lưu xong.
+      { kind: "sua", text: "Chính sách điều phối: Toàn quyền lưu bản mới xong, sửa tiếp rồi bấm lưu lần nữa trên cùng trang thì lần sau nay được lưu thật. Trước đây lần sau bị bỏ qua." },
     ],
   },
   {
