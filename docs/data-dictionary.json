@@ -394,6 +394,18 @@
       "note": "công tắc «Đối tác không nhập nơi đón» (ADR-0221 Đ1, migration 0181), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = TẮT; gieo khong_nhap = 0 (TẮT = hành vi trước ADR-0221) nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: tài khoản giữ quyền Đối tác lập / lưu nháp lượt chiều đi không nơi đón thì máy chủ ghi chữ tạm «(chưa ghi nơi đón)», văn phòng điền lúc Còn vé; cổng xác nhận pickup_place_required xét theo dữ liệu lượt, không đọc bảng này"
     },
     {
+      "name": "ord_partner_passenger_policy",
+      "module": "orders",
+      "kind": "table",
+      "note": "công tắc «Đối tác không nhập danh sách hành khách» (ADR-0228 Đ1, migration 0183 — tách khỏi ord_partner_customer_policy), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = TẮT; gieo khong_nhap = giá trị hiệu lực của hide_customer_info lúc áp migration nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: tài khoản Đối tác thuần lập / lưu nháp thì máy chủ bỏ khoá passengers (danh sách đang lưu giữ nguyên); không đổi luật THIEU_TEN lúc xuất bến"
+    },
+    {
+      "name": "ord_partner_pickup_time_optional_policy",
+      "module": "orders",
+      "kind": "table",
+      "note": "công tắc «Đơn đối tác không cần giờ đón» (ADR-0228 Đ3, migration 0183), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = TẮT; gieo khong_can = 0 (TẮT = hành vi ADR-0154 Đ1.2 + ADR-0193) nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: route Gửi đơn không còn đưa đơn Đối tác sang văn phòng chỉ vì lượt đầu Đón chưa giờ, trừ lượt đã vào hạn chốt"
+    },
+    {
       "name": "pty_contact_kind",
       "module": "parties",
       "kind": "lookup"
@@ -2067,6 +2079,8 @@
     "ord_partner_customer_policy": { "id": "N1", "hide_customer_info": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_pickup_time_policy": { "id": "N1", "required": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_partner_pickup_place_policy": { "id": "N1", "khong_nhap": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ord_partner_passenger_policy": { "id": "N1", "khong_nhap": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ord_partner_pickup_time_optional_policy": { "id": "N1", "khong_can": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_pickup_slot_policy": { "id": "N1", "slots_json": "N1", "note": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_passenger": { "id": "N1", "order_id": "N1", "full_name": "N2", "birth_year": "N2", "pax_code": "N1", "previous_id": "N1", "person_key": "N2", "voided_at": "N1", "source": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_service_terms": { "id": "N1", "order_id": "N1", "order_service_id": "N1", "beneficiary_party_id": "N1", "commission_status": "N1", "missing_reason": "N1", "commission_kind": "N1", "commission_rate_bp": "N1", "commission_per_pax": "N1", "commission_rule_id": "N1", "supply_status": "N1", "seller_party_id": "N1", "supplier_party_id": "N1", "cost_rate_bp": "N1", "supply_term_id": "N1", "source": "N1", "reason": "N2", "supersedes_id": "N1", "captured_date": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

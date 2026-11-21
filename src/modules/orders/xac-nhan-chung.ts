@@ -21,7 +21,8 @@ import { luotThieuNoiDon } from "../../shared/noi-don-tam";
 import { tuCachCuaDon, type KetQuaChonTuCach } from "../../shared/booker";
 import { chiNguoiLapGhiNhap, type CheDoThanhVien, type NgoaiLeToChuc } from "../../shared/xem-don-nhap";
 import { canhBaoMocCua } from "./dat-gap";
-import { coHienHanh, nhomTheoMa, quyenMoCuaNguoiLap, tuXacNhanNoiBo, yeuCauMoCuaDon, type YeuCauRow } from "./xac-nhan-repo";
+import { coHienHanh, docKhongCanGioDon, nhomTheoMa, quyenMoCuaNguoiLap, tuXacNhanNoiBo, yeuCauMoCuaDon, type YeuCauRow } from "./xac-nhan-repo";
+import { diNhanhAViThieuGio } from "./gio-don-cai-dat";
 import { legDatGapByOrder } from "./chang-hanh-khach-repo";
 import { KHONG_COC, findOrder, getMeta, getStoredServices, type KemCoc } from "./repository";
 import { CAU_VUOT_TONG, vuotTong } from "../../shared/dat-coc-truoc";
@@ -501,7 +502,10 @@ export async function xacNhanTrenDon(db: D1Database, i: { staff: StaffProfile; o
     const kq = await tinhCanXacNhan(db, don, i.moc, i.nowMs);
     vi = y ? viCuaYeuCau(y, kq.vi) : kq.vi;
     // ADR-0154 Đ1.2 + ADR-0221 Đ3: cùng luật với route Gửi đơn — người lập giữ quyền Đối tác mà còn lượt thiếu giờ lượt đầu hoặc mang chữ tạm ở nơi đón thì đơn phải chờ văn phòng.
-    canXN = laNguoiLap && (kq.can || canChotGioCuaNguoiLap(i.staff, don.services) || (holdsPartner(i.staff) && luotThieuNoiDon(don.services.flatMap((s) => s.legs)).length > 0));
+    // ADR-0228 Đ3: cùng luật nhánh của route Gửi đơn (`diNhanhAViThieuGio`); chưa có hạn chốt (`moc` null) ⇒ coi như đã vào hạn — giữ đường an toàn «chờ văn phòng».
+    const thieuGio = laNguoiLap && canChotGioCuaNguoiLap(i.staff, don.services);
+    const viThieuGio = thieuGio && diNhanhAViThieuGio(true, await docKhongCanGioDon(db, new Date(i.nowMs).toISOString()), i.moc === null || chanChuaGioSatNgay(changDangLuu(don.services), i.nowMs, i.moc.phut) !== null);
+    canXN = laNguoiLap && (kq.can || viThieuGio || (holdsPartner(i.staff) && luotThieuNoiDon(don.services.flatMap((s) => s.legs)).length > 0));
   }
   // ADR-0142: cùng phép tính «lời mời còn ưu tiên của người KHÁC» với route `quyet-dinh` (một lần đọc, chỉ khi có yêu cầu mở).
   const loiMoi = y !== null ? await i.banHang.loiMoiMoCua(i.order.id) : null;

@@ -77,10 +77,10 @@ import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { thanhVienRoutes } from "./thanh-vien-route";
 import { congLuatBan, congNgungBanNgay } from "./cong-ban";
 import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu, dichLoiLoHuy, dichLoiTraSau, VE_CHUA_SOAN_DUOC, type HamNoTraSau, type HamTraSau, type NguoiGuiTraSau } from "./tra-sau-cong";
-import { thanLapDonKhiAn, thanNhapKhiAn } from "./an-thong-tin-khach";
-import { apTruongDichVu, thanKhiAnTruong, thieuBatBuoc, traDichVu, truongTaoDon } from "./an-truong-giao-dien";
+import { thanLapDonKhiAn, thanNhapKhiAn, type AnKhach } from "./an-thong-tin-khach";
+import { apTruongDichVu, boHanhKhachKhiAn, thanKhiAnTruong, thieuBatBuoc, traDichVu, truongTaoDon } from "./an-truong-giao-dien";
 import { thanKhiKhongNhapNoiDon } from "./noi-don-doi-tac";
-import { anKhachBat, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon, nhapDangChoCuaBen } from "./xac-nhan-repo";
+import { anKhachBat, docKhongNhapHanhKhach, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon, nhapDangChoCuaBen } from "./xac-nhan-repo";
 import { cauKhepLoiMoi, docKhungGio, soanGhiNhan } from "./ban-hang-ghi-nhan";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
@@ -1442,18 +1442,19 @@ export const ordersModule: AppModule = {
       if (hasPassengersKey(thanGui) && !can(staff, "order.passenger.write", { ownerId: staff.id })) return CANNOT_WRITE_PASSENGERS();
       if (hasHandlerPick(thanGui) && !can(staff, "dispatch.assign", { ownerId: staff.id })) return CANNOT_PICK_HANDLER();
       if (holdsPartner(staff) && coPhiDonTrongThan(thanGui)) return TRANSFER_FEE_NOT_ALLOWED(); // ADR-0214 Đ2: quét thân GỐC (trước khi «Ẩn thông tin khách» viết lại), trước mọi đọc CSDL
-      // ADR-0154 Đ2.3, Đ3.1: công tắc «Ẩn thông tin khách» đọc ĐÚNG MỘT lần (chỉ tài khoản Đối tác thuần — C2; người khác không tốn câu đọc), SAU hai cổng 403 ở trên (đã nêu: «đứng TRƯỚC mọi đọc CSDL»).
-      // `an` quyết cả thân được viết lại LẪN dấu `manifest_exempt` ghi cùng lô tạo đơn — một giá trị, không đọc lần hai (đổi công tắc giữa chừng không làm tên và dấu lệch nhau).
-      const an = apCongTacAnKhach(staff) && (await anKhachBat(env.DB, new Date().toISOString()));
-      if (an && staff.partyId === null) return PARTNER_NO_PARTY();
+      // ADR-0154 Đ2.3 + ADR-0228 Đ1: HAI công tắc khách (tên, SĐT; danh sách hành khách) đọc ĐÚNG MỘT lần mỗi cái (chỉ tài khoản Đối tác thuần — C2; người khác không tốn câu đọc), SAU hai cổng 403 ở trên.
+      // ADR-0228 Đ2: đơn mới KHÔNG còn mang dấu `manifest_exempt` (chuyến vẫn đòi đủ tên khách trước khi xuất bến) — lời gọi `createOrder` dưới đây truyền `false`.
+      const lucAn = new Date().toISOString();
+      const an: AnKhach = apCongTacAnKhach(staff) ? { ten: await anKhachBat(env.DB, lucAn), ds: await docKhongNhapHanhKhach(env.DB, lucAn) } : { ten: false, ds: false };
+      if (an.ten && staff.partyId === null) return PARTNER_NO_PARTY();
       // ADR-0178 Đ1 mục 2: tài khoản Đối tác (kể cả lai) lập đơn thì công tắc «Khách của đối tác trả cho Công ty» đọc ĐÚNG MỘT lần, chụp lên đơn; không đọc được ⇒ 503, không đoán.
       const kenhThu = holdsPartner(staff) ? await kenhThuHienTai() : null;
       if (holdsPartner(staff) && kenhThu === null) return KENH_THU_CHUA_DOC();
       // ADR-0194 đợt 1: chính sách hiện / ẩn / bắt buộc của Toàn quyền (đọc ĐÚNG MỘT lần; bảng rỗng ⇒ [] ⇒ không đổi gì). Công tắc ADR-0154 đang áp ⇒ nó quyết các trường khách, chính sách không chen vào.
-      const dsCs = an ? [] : await chinhSachGiaoDien(); // ADR-0195: danh sách ĐẦY ĐỦ (kể cả mục theo điều kiện) — đọc ĐÚNG MỘT lần, dùng cho cả cấp đơn lẫn cấp dịch vụ
-      const cs = truongTaoDon(dsCs);
+      const dsCs = an.ten ? [] : await chinhSachGiaoDien(); // ADR-0195: danh sách ĐẦY ĐỦ (kể cả mục theo điều kiện) — đọc ĐÚNG MỘT lần, dùng cho cả cấp đơn lẫn cấp dịch vụ
+      const cs = boHanhKhachKhiAn(truongTaoDon(dsCs), an.ds); // ADR-0228 Đ1: công tắc danh sách đang áp ⇒ chính sách không đòi «Danh sách khách»
       // ADR-0221 Đ2: người gọi giữ quyền Đối tác VÀ công tắc «Đối tác không nhập nơi đón» bật ⇒ lượt chiều đi không nơi đón được điền chữ tạm TRƯỚC `validateOrder`; còn lại giữ nguyên thân (400 như trước).
-      const body = await thanKhiKhongNhapNoiDon(env.DB, staff, an ? thanLapDonKhiAn(thanGui, { fullName: staff.fullName, phone: staff.phone }) : thanKhiAnTruong(thanGui, cs.an, null), new Date().toISOString());
+      const body = await thanKhiKhongNhapNoiDon(env.DB, staff, thanKhiAnTruong(thanLapDonKhiAn(thanGui, { fullName: staff.fullName, phone: staff.phone }, an), cs.an, null), new Date().toISOString());
       if (laThanDonCu(body)) await demThanCu(env.DB, staff.id, "lap_don"); // ADR-0047 §6 — đếm máy cũ (cổng Đợt 8); sau 403, trước 400
       const pick = parseHandlerPick(body);
       if (!pick.ok) return error(400, "invalid_input", pick.message);
@@ -1513,7 +1514,7 @@ export const ordersModule: AppModule = {
         ? (orderId: string, at: string) => [...(handler?.statements(orderId, at) ?? []), ...(xMoi?.ok ? [cauGhiNguoiMoi(env.DB, { orderId, partyId: xMoi.partyId })] : [])]
         : undefined;
       const tuCachDon = thayMat.chon ? { partyId: thayMat.chon.partyId, loai: thayMat.chon.loai } : null; // Đ3.4: loại liên kết LÚC LẬP, ghi trong chính câu chèn đơn
-      const id = await createOrder(env.DB, staff.id, { ...donGhi, declaredDeposit: khai.giaTri }, taoThem, booker.write, an, kenhThu, phi.theoChang, tuCachDon, nhatKyPhiDon(phi, placed.value.services, mucLap, new Map()));
+      const id = await createOrder(env.DB, staff.id, { ...donGhi, declaredDeposit: khai.giaTri }, taoThem, booker.write, false, kenhThu, phi.theoChang, tuCachDon, nhatKyPhiDon(phi, placed.value.services, mucLap, new Map()));
       // Bảng tin (ADR-0022 điều 4/7): "tao" — KHÔNG truyền `handlerTruoc` (ADR-0030 Review Focus 5); gốc lắp ráp (src/index.ts) tự đổi thành
       // "tao_cho_nhan" khi đơn không có người phụ trách (chỉ làm mới màn hình, KHÔNG thông báo nổi/gõ cửa — ADR-0045). Không bao giờ phát "giao" cho đơn vừa lập.
       baoThayDoi({ orderId: id, thayDoi: "tao" });
@@ -1626,15 +1627,16 @@ export const ordersModule: AppModule = {
       // ADR-0154 Đ2.3 + câu đã áp số 7: công tắc «Ẩn thông tin khách» BẬT, tài khoản Đối tác thuần (C2) ⇒ GIỮ bốn trường khách đang lưu (tên, SĐT, email, ghi chú), bỏ `passengers`, `newBooker`, `bookerPartyId`
       // (danh sách hành khách và bên đặt đang lưu giữ nguyên — luật «giữ bên đặt cũ» ở `noBookerKeys` chạy như hôm nay). Đọc công tắc MỘT lần, sau mọi cổng 404 / 403 / 409 của đơn; dấu `manifest_exempt` của nháp
       // KHÔNG đổi theo công tắc hiện hành (chụp lúc lập; trigger 0133 cấm). Không có luật «chưa gắn hồ sơ» ở đây: bốn trường đã nằm trên đơn.
-      const an = apCongTacAnKhach(staff) && (await anKhachBat(env.DB, new Date().toISOString()));
-      const dangLuu = an ? await thongTinKhachDangLuu(env.DB, id) : null;
-      if (an && !dangLuu) return NOT_FOUND();
+      const lucAn = new Date().toISOString();
+      const an: AnKhach = apCongTacAnKhach(staff) ? { ten: await anKhachBat(env.DB, lucAn), ds: await docKhongNhapHanhKhach(env.DB, lucAn) } : { ten: false, ds: false }; // ADR-0228 Đ1: hai công tắc
+      const dangLuu = an.ten ? await thongTinKhachDangLuu(env.DB, id) : null;
+      if (an.ten && !dangLuu) return NOT_FOUND();
       // ADR-0194 đợt 1: như ở lập đơn; ẨN lúc SỬA ⇒ giữ giá trị đang lưu (email, ghi chú) / danh sách khách đang lưu. Chỉ đọc đơn thêm khi có trường ẩn thuộc diện cần giá trị lưu.
-      const dsCs = an ? [] : await chinhSachGiaoDien(); // ADR-0195: một lần đọc cho cả cấp đơn lẫn cấp dịch vụ
-      const cs = truongTaoDon(dsCs);
-      const luuTuyChon = !an && ["customerEmail", "customerNote", "paymentNote"].some((k) => cs.an.has(k)) ? await tuyChonDangLuu(env.DB, id) : null;
+      const dsCs = an.ten ? [] : await chinhSachGiaoDien(); // ADR-0195: một lần đọc cho cả cấp đơn lẫn cấp dịch vụ
+      const cs = boHanhKhachKhiAn(truongTaoDon(dsCs), an.ds); // ADR-0228 Đ1
+      const luuTuyChon = !an.ten && ["customerEmail", "customerNote", "paymentNote"].some((k) => cs.an.has(k)) ? await tuyChonDangLuu(env.DB, id) : null;
       // ADR-0221 Đ2: như ở lập đơn — xét theo NGƯỜI GỌI (người quản lý tổ chức sửa nháp thành viên cũng là tài khoản giữ quyền Đối tác).
-      const body = await thanKhiKhongNhapNoiDon(env.DB, staff, dangLuu ? thanNhapKhiAn(thanGui, dangLuu) : thanKhiAnTruong(thanGui, cs.an, luuTuyChon), new Date().toISOString());
+      const body = await thanKhiKhongNhapNoiDon(env.DB, staff, thanKhiAnTruong(thanNhapKhiAn(thanGui, dangLuu, an), cs.an, luuTuyChon), new Date().toISOString());
       // ADR-0047 A2: thân có khoá `passengers` → hỏi thêm ô nhập tên khách với phạm vi CỦA ĐƠN NÀY (trước validateOrder).
       const giao = duocGiaoTheoO("order.passenger.write", { laNguoiPhuTrach: assigned, laBanHangPhuTrach: laBanHang }); // ADR-0142: danh sách trắng (tính ra biến trước — bài bang-su-kien-van-chuyen quét thân `can(` tới dấu `}` đầu)
       if (hasPassengersKey(body) && !can(staff, "order.passenger.write", { ownerId: chuNhap, assigned: giao })) return CANNOT_WRITE_PASSENGERS();
