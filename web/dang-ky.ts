@@ -8,7 +8,7 @@ import { nhanLoaiTep } from "../src/shared/tep-dinh-kem";
 import { maBase64 } from "../src/shared/tep-hien-thi";
 import { KHU_TO_CHUC, NHOM_TO_CHUC, dungThanGui, giaTriTruoc, giaTriTruocToChuc, goiYTruoc, goiYTruocToChuc, oCuaKhu, type KhuO, type ODung } from "../src/shared/dang-ky-truong";
 import { CAU_DONG_DANG_KY, CHU_DANG_KY, O_TEP_CUA_KHU, TIEU_DE_KHU_TO_CHUC, anhToChucConLai } from "../src/shared/dang-ky-giao-dien";
-import { O_TEP, nhanOTep, oTheoVai, phanCuaO, type DongOTep } from "../src/shared/dang-ky-o-tep";
+import { CAU_TEP_WORD, O_TEP, giongTepWord, nhanOTep, oTheoVai, phanCuaO, type DongOTep } from "../src/shared/dang-ky-o-tep";
 import { ApiError, api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { ACCEPT_ANH_PDF, thuNhoAnh } from "./thu-nho-anh";
@@ -408,7 +408,7 @@ function oTep(ma: string, nhan: string, p: PhieuDangKyDto, goDuoc = false): OTep
     try {
       const dau = new Uint8Array(await f.slice(0, 16).arrayBuffer());
       const loai = nhanLoaiTep(dau);
-      if (!loai) throw new Loi(415, "loai", "Chỉ nhận ảnh JPG, PNG, HEIC hoặc tệp PDF.");
+      if (!loai) throw new Loi(415, "loai", giongTepWord(dau) || /\.docx?$/i.test(f.name) ? CAU_TEP_WORD : "Chỉ nhận ảnh JPG, PNG, HEIC hoặc tệp PDF.");
       const nho = loai === "pdf" ? null : await thuNhoAnh(f);
       const bytes = nho ?? new Uint8Array(await f.arrayBuffer());
       const r = await goiDk<{ tep: { o: string; trangThai: "DA_GUI" | "CHUA_TAI_XONG" }[] }>("/api/dang-ky/phieu/tep", "POST", { o: ma, noiDung: maBase64(bytes) }, 120_000); // ảnh gửi nguyên (HEIC, PDF) tới 5 MB ⇒ thân ~6,7 MB: hạn chờ dài như tệp kèm hỗ trợ (ADR-0144 đ7)

@@ -27,7 +27,7 @@ Phiếu có bốn ô tệp ghi cứng (`O_TEP_PHIEU`, `src/modules/dang-ky/rules
 
 **Đ4 — 12 tệp mỗi phiếu.** Migration chèn MỘT dòng `dk_policy` chép từ dòng đang hiệu lực, chỉ đổi `photo_max_count` 8 → 12 (không chép lại số gieo của 0170, để không mở lại / đóng lại đăng ký hay đổi loại mở). Toàn quyền đổi lại được theo cách chèn dòng như hôm nay.
 
-**Ngoài ADR này:** tệp Word (.doc/.docx) — khuyến nghị không nhận, câu hỏi riêng đã gửi chủ; nếu chủ chọn nhận thì cần ADR khác (bảng tệp mới, kiểm macro).
+**Ngoài ADR này — tệp Word (.doc/.docx): KHÔNG nhận.** Chủ dự án 21/11 (qua phiên điều phối kế hoạch 16 việc), nguyên văn: «còn lại áp dụng như khuyến nghị». Máy chủ và trang đăng ký nhận ra đầu tệp Word (khuôn OLE hoặc ZIP) để báo «Tệp Word: hãy lưu thành PDF rồi gửi.»; tệp vẫn bị từ chối như mọi loại ngoài bốn loại (ADR-0208 Đ2 giữ nguyên). Muốn nhận về sau thì cần ADR khác (bảng tệp mới, kiểm macro).
 
 ## Hệ quả
 

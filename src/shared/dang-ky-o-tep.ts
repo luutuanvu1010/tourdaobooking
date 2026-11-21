@@ -56,6 +56,15 @@ export function oCuaPhieu(dong: readonly DongOTep[], v: { vaiCaNhan: string; vai
 export const oBatBuocThieu = (o: readonly OCuaPhieu[], tep: readonly { slot: string; daLuu: boolean }[]): OCuaPhieu[] =>
   o.filter((x) => x.batBuoc && !tep.some((t) => t.slot === x.o && t.daLuu));
 
+// ---- Tệp Word (chủ dự án 21/11, Việc 14: «còn lại áp dụng như khuyến nghị» — KHÔNG nhận) ----
+/** Câu khi người đăng ký chọn tệp Word: phiếu chỉ nhận bốn loại (ADR-0208 Đ2); Word có thể chứa macro nên không nhận. */
+export const CAU_TEP_WORD = "Tệp Word: hãy lưu thành PDF rồi gửi.";
+/** Đầu tệp giống Word: .doc (khuôn OLE `D0 CF 11 E0 A1 B1 1A E1`) hoặc .docx (khuôn ZIP `PK 03 04`). Chỉ để chọn CÂU báo — tệp vẫn bị từ chối như mọi loại ngoài bốn loại. */
+export function giongTepWord(dau: Uint8Array): boolean {
+  const bat = (sig: readonly number[]) => dau.length >= sig.length && sig.every((x, i) => dau[i] === x);
+  return bat([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]) || bat([0x50, 0x4b, 0x03, 0x04]);
+}
+
 /** Ô đang có tệp mà không thuộc danh sách ô của phiếu (đổi vai, ô bị tắt, «Tệp khác» bị đóng) — người đăng ký phải gỡ trước khi gửi. */
 export const oNgoaiPhieu = (o: readonly OCuaPhieu[], tep: readonly { slot: string }[]): string[] =>
   [...new Set(tep.map((t) => t.slot))].filter((s) => !o.some((x) => x.o === s));

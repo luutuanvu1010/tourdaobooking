@@ -63,3 +63,12 @@ test("ô của phần tổ chức (lô duyệt dùng) và tên hiện", () => {
   assert.equal(nhanOTep("TEP_KHAC"), "Tệp khác");
   assert.equal(nhanOTep("LA"), "LA");
 });
+
+test("tệp Word (chủ 21/11: không nhận): nhận ra .doc (OLE) và .docx (ZIP) để báo «hãy lưu thành PDF»; PDF, ảnh không bị nhầm", async () => {
+  const { giongTepWord } = await import("./dang-ky-o-tep.ts");
+  assert.equal(giongTepWord(new Uint8Array([0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1, 0])), true);
+  assert.equal(giongTepWord(new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x14, 0])), true);
+  assert.equal(giongTepWord(new TextEncoder().encode("%PDF-1.7")), false);
+  assert.equal(giongTepWord(new Uint8Array([0xff, 0xd8, 0xff, 0xe0])), false);
+  assert.equal(giongTepWord(new Uint8Array([0x50, 0x4b])), false, "quá ngắn");
+});

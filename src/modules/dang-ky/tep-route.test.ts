@@ -416,3 +416,18 @@ test("mã ô máy không biết ⇒ 400 invalid_input (kể cả khi bảng có 
   assert.equal(r.status, 400, r.text);
   assert.equal(r.json.error.code, "invalid_input");
 });
+
+test("tệp Word (.docx / .doc) ⇒ 415 «Tệp Word: hãy lưu thành PDF rồi gửi.», không thêm dòng, không đặt kho; loại lạ khác giữ câu cũ", async () => {
+  const w = setup();
+  for (const dau of [[0x50, 0x4b, 0x03, 0x04], [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1]]) {
+    const u = new Uint8Array(64); u.set(dau);
+    const r = await tai(w, { bytes: u });
+    assert.equal(r.status, 415, r.text);
+    assert.equal(r.json.error.message, "Tệp Word: hãy lưu thành PDF rồi gửi.");
+  }
+  const r = await tai(w, { bytes: new TextEncoder().encode("<html></html>") });
+  assert.equal(r.status, 415);
+  assert.equal(r.json.error.message, "Chỉ nhận ảnh JPG, PNG, HEIC hoặc tệp PDF.");
+  assert.equal(dongTep(w).length, 0);
+  assert.equal(w.r2.soLan.put, 0);
+});

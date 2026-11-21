@@ -1,6 +1,7 @@
 // dang-ky/rules.ts — luật thuần của phiếu đăng ký đối tác (ADR-0206 Đ4). Không I/O.
 // Đồ thị phải khớp trigger `dk_registration_transition` (migration 0170); bài rules.test.ts đối chiếu hai bên.
 import { CAU_SAI_LOAI, doDaiBase64, giaiBase64, nhanLoaiTep, type LoaiTep } from "../../shared/tep-dinh-kem.ts";
+import { CAU_TEP_WORD, giongTepWord } from "../../shared/dang-ky-o-tep.ts";
 
 export const TRANG_THAI = ["DANG_DIEN", "CHO_XAC_MINH", "CAN_BO_SUNG", "CHO_DUYET", "DA_DUYET", "TU_CHOI", "DA_RUT", "HET_HAN"] as const;
 export type TrangThai = (typeof TRANG_THAI)[number];
@@ -62,7 +63,7 @@ export function kiemTepPhieu(noiDung: unknown, maxMb: number): KiemTepPhieu {
   if (!bytes || bytes.length === 0) return { ok: false, status: 400, code: "invalid_input", message: "Chưa có nội dung tệp, hoặc nội dung không đọc được." };
   if (bytes.length > maxMb * 1024 * 1024) return qua();
   const loai = nhanLoaiTep(bytes.subarray(0, 16));
-  if (!loai) return { ok: false, status: 415, code: "unsupported_file_type", message: CAU_SAI_LOAI };
+  if (!loai) return { ok: false, status: 415, code: "unsupported_file_type", message: giongTepWord(bytes.subarray(0, 16)) ? CAU_TEP_WORD : CAU_SAI_LOAI };
   return { ok: true, bytes, loai };
 }
 
