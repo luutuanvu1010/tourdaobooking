@@ -6,7 +6,7 @@ Lưu ý: bản nháp gốc viết cho người đăng ký làm đối tác. Ản
 
 ## Khi đăng: nhớ tích ô
 
-ADR-0232 Đ10 thêm ô **«Bản này có mục ảnh gắn đơn»** vào form đăng chính sách (chưa có trên Nền tảng, làm khi thi công). Chưa tích thì không ai tải được ảnh. Chỉ tích khi toàn văn đã ghép đủ các đoạn dưới đây.
+ADR-0232 Đ10 thêm ô số **«Số năm giữ ảnh gắn đơn»** vào form đăng chính sách (chưa có trên Nền tảng, làm khi thi công). Ô trống thì không ai tải được ảnh. Chỉ điền khi toàn văn đã ghép đủ các đoạn dưới đây, và điền **đúng con số ghi ở mục 6**. Các lần đăng bản sau, form chép sẵn số của bản trước; xoá trống là tắt tính năng ngay.
 
 ## 1. Nối vào cuối ô «Mục đích thu thập»
 
@@ -37,7 +37,7 @@ Chèn vào cuối mục 4 («Ai trong công ty được xem»):
 Chèn vào cuối mục 6 («Chúng tôi giữ bao lâu»):
 
 ```
-Ảnh chụp lúc giao dịch vụ được giữ [ĐIỀN: luật sư xác nhận, đề xuất 5 năm] kể từ ngày chụp, vì [ĐIỀN: luật sư xác nhận căn cứ]. Hết hạn, ảnh được đưa vào danh sách xoá. Bản sao lưu của chúng tôi còn giữ ảnh đã xoá thêm tối đa khoảng 12 tháng; nếu phải khôi phục dữ liệu từ bản sao lưu, chúng tôi xoá lại những ảnh đã xoá trước đó.
+Ảnh chụp lúc giao dịch vụ được giữ [ĐIỀN: luật sư xác nhận, đề xuất 5 năm] kể từ ngày chụp, vì [ĐIỀN: luật sư xác nhận căn cứ]. Hết hạn, ảnh được đưa vào danh sách xoá. Ảnh vô tình chụp phải giấy tờ tuỳ thân (căn cước, hộ chiếu, bằng lái) được xoá ngay khi phát hiện. Bản sao lưu của chúng tôi (đã mã hoá) còn giữ ảnh đã xoá thêm tối đa khoảng [ĐIỀN: 12 tháng hoặc 1 tháng, theo cách sao lưu chủ chọn]; nếu phải khôi phục dữ liệu từ bản sao lưu, chúng tôi xoá lại những ảnh đã xoá trước đó.
 ```
 
 Chèn vào cuối mục 9 («Quyền của bạn») — **chọn một trong hai câu theo trả lời của luật sư cho câu hỏi 4**:
@@ -49,7 +49,7 @@ Nếu bạn yêu cầu xoá ảnh có hình mình trước khi hết hạn giữ
 
 Phương án B (xoá theo yêu cầu):
 ```
-Bạn có thể yêu cầu xoá ảnh có hình mình theo cách nêu ở trên. Chúng tôi xoá ảnh, trừ khi ảnh đang được dùng để giải quyết một khiếu nại hoặc tranh chấp chưa xong; khi đó chúng tôi nói rõ trong phiếu trả lời và xoá ngay khi việc đó kết thúc.
+Bạn có thể yêu cầu xoá ảnh có hình mình theo cách nêu ở trên; nếu bạn không có tài khoản trên Nền tảng (ví dụ bạn đặt tour qua đại lý), hãy liên hệ theo mục 1 và cho biết ngày đi tour để chúng tôi tìm ảnh. Chúng tôi xoá ảnh, trừ khi ảnh đang được dùng để giải quyết một khiếu nại hoặc tranh chấp chưa xong; khi đó chúng tôi nói rõ trong phiếu trả lời và xoá ngay khi việc đó kết thúc.
 ```
 
 ## 3. Điểm cần luật sư xác nhận
@@ -57,5 +57,5 @@ Bạn có thể yêu cầu xoá ảnh có hình mình theo cách nêu ở trên.
 1. Căn cứ xử lý và có cần đồng ý của khách không (câu hỏi 1). Nếu cần, phần «8. Cơ sở để chúng tôi xử lý thông tin» của bản nháp gốc phải thêm câu riêng cho ảnh.
 2. Con số và căn cứ giữ (câu hỏi 3); chọn phương án A hay B ở mục 9 (câu hỏi 4).
 3. Câu về trẻ em (câu hỏi 2) — bản nháp chưa có câu nào.
-4. Con số «khoảng 12 tháng» của bản sao lưu: lấy từ cách xoay vòng của bản sao lưu hiện nay (8 bản tuần gần nhất + 12 bản tháng, `scripts/sao-luu-lib.mjs`). Thêm kho ảnh vào sao lưu là việc của lần thi công, chưa làm. Bản sao lưu được mã hoá và cất trên Google Drive của công ty: mục 5 («Thông tin được lưu ở đâu») của bản nháp gốc chưa nhắc Google — luật sư xem có phải thêm.
+4. Con số của bản sao lưu: «khoảng 12 tháng» lấy từ cách xoay vòng hiện nay (8 bản tuần gần nhất + 12 bản tháng, `scripts/sao-luu-lib.mjs`, mỗi bản chép toàn bộ kho); «khoảng 1 tháng» nếu chủ chọn giữ ít bản cho riêng kho ảnh (ADR-0232, Hệ quả). Thêm kho ảnh vào sao lưu là việc của lần thi công, chưa làm. Bản sao lưu được mã hoá và cất trên Google Drive của công ty: mục 5 («Thông tin được lưu ở đâu») của bản nháp gốc chưa nhắc Google — luật sư xem có phải thêm.
 5. Câu «không đăng lên mạng, không nhận diện khuôn mặt»: đúng với thiết kế ADR-0232; chủ xác nhận công ty không có ý định dùng ảnh này cho quảng cáo.

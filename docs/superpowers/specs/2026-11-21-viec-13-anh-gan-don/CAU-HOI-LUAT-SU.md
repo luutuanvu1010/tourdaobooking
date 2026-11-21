@@ -18,16 +18,18 @@ Công ty TNHH Tour Đảo (Nha Trang) bán tour biển đảo, có hướng dẫ
    - (B) Xoá ảnh khi có yêu cầu hợp lệ (trừ khi đang có tranh chấp đang giải quyết).
 
    Cách nào đúng luật? Nếu (A) thì căn cứ cụ thể là gì để ghi vào câu trả lời? Có ngoại lệ «đang tranh chấp thì được giữ» không và thời hạn của ngoại lệ đó?
-5. **Ảnh chụp nhầm giấy tờ tuỳ thân** (căn cước, hộ chiếu lọt vào khung): có phải xoá ngay không, hay được giữ cùng thời hạn với ảnh khác?
+
+   Lưu ý: phần lớn người trong ảnh là **khách mua qua đại lý, không có tài khoản** trên hệ thống, nên không dùng được nút «Yêu cầu xoá dữ liệu» trong tài khoản. Nếu câu trả lời là (B), công ty định nhận yêu cầu của khách qua email/điện thoại ghi trong chính sách, và quản trị tự tìm, xoá ảnh. Cách nhận yêu cầu như vậy có đủ không (cần xác minh người yêu cầu đúng là người trong ảnh thế nào)?
+5. **Ảnh chụp nhầm giấy tờ tuỳ thân** (căn cước, hộ chiếu lọt vào khung): công ty định xoá ngay khi phát hiện. Như vậy có đúng không, hay có lý do phải giữ?
 6. **Nhân viên và tài xế trong ảnh.** Nhân viên, tài xế của công ty xuất hiện trong ảnh: cần ghi điều gì trong hợp đồng lao động hoặc nội quy? Tài xế đối tác (không phải nhân viên) thì sao?
 7. **Lưu trên máy chủ ở nước ngoài.** Kho ảnh của Cloudflare có thể đặt ngoài Việt Nam. Việc này có cần thủ tục chuyển dữ liệu ra nước ngoài (hồ sơ đánh giá tác động) không? Nếu đã cần cho phần dữ liệu khác của hệ thống thì phần ảnh có cần bổ sung gì không?
-8. **Bản sao lưu.** Công ty sao lưu kho ảnh hằng tuần (đã mã hoá, cất trên Google Drive của công ty), bản cũ nhất giữ khoảng 12 tháng. Ảnh đã xoá theo yêu cầu vẫn nằm trong bản sao lưu tới khi bản đó hết hạn. Chỉ cần nói rõ điều này trong chính sách riêng tư là đủ, hay phải xoá cả trong bản sao lưu?
+8. **Bản sao lưu.** Công ty sẽ sao lưu kho ảnh hằng tuần (đã mã hoá, cất trên Google Drive của công ty), bản cũ nhất giữ khoảng 12 tháng (có thể rút xuống khoảng 1 tháng cho riêng kho ảnh). Ảnh đã xoá theo yêu cầu vẫn nằm trong bản sao lưu tới khi bản đó hết hạn. Chỉ cần nói rõ điều này trong chính sách riêng tư là đủ, hay phải xoá cả trong bản sao lưu?
 9. **Chữ trong chính sách riêng tư.** Nhờ anh/chị soát đoạn thêm ở `PHAN-THEM-CHINH-SACH.md` (gửi kèm): mục đích, ai xem, giữ bao lâu, quyền của người trong ảnh.
 
 ## Câu trả lời đổi cách làm thế nào (để chủ đọc)
 
 - Câu 4 trả lời (A) và có căn cứ cụ thể ⇒ ADR-0232 dùng biến thể 7A: không ai gỡ được ảnh trước 5 năm.
-- Câu 4 trả lời (B), hoặc không chắc ⇒ biến thể 7B (khuyến nghị): lệnh xoá theo yêu cầu (đã có trên Nền tảng) xoá được ảnh trước hạn; mọi đường khác vẫn bị chặn.
-- Câu 3 cho số khác 5 năm ⇒ đổi con số trong ADR và chính sách trước khi thi công.
-- Câu 5 trả lời «phải xoá ngay» ⇒ thêm lý do gỡ «ảnh giấy tờ chụp nhầm».
+- Câu 4 trả lời (B), hoặc không chắc ⇒ biến thể 7B (khuyến nghị): xoá được ảnh trước hạn khi có yêu cầu, cả của người có tài khoản lẫn khách gửi qua email/điện thoại; mọi đường khác vẫn bị chặn.
+- Câu 3 cho số khác 5 năm ⇒ chỉ cần ghi số đó khi đăng chính sách (con số không nằm trong mã).
+- Câu 5 trả lời «được giữ» ⇒ bỏ lệnh xoá ngay ảnh giấy tờ chụp nhầm (mặc định đang có).
 - Câu 1 đòi đồng ý của khách ⇒ cần thêm bước ghi nhận đồng ý (việc riêng, chưa có trong ADR-0232).
