@@ -126,7 +126,7 @@ try {
     });
     await buoc(`${kho}.5`, "«Chưa phân loại»: lô của mã đã rời danh mục (CU99) hiện, lô có nhóm thì không", async () => {
       assert.equal(await chonNhom(p, "chua-phan-loai"), true);
-      await choLo(p, "ma.length > 0", "lô chưa phân loại");
+      await choLo(p, "ma.length > 0 && ma.every((m) => m === 'CU99')", "lô chưa phân loại"); // chờ ĐÚNG danh sách mới: danh sách cũ (Tất cả) cũng «có lô»
       assert.deepEqual(await p.ev(MA_LO), ["CU99"]);
       assert.match(await p.ev("document.getElementById('vk-cac-lo').innerText"), /Dịch vụ không còn trong danh mục/);
       await p.ev("document.getElementById('vk-cac-lo').scrollIntoView(), true");
