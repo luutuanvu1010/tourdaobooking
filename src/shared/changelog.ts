@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Tệp đầu trang web/giu-cho-dai.ts không ném khi lệnh đọc / ghi sessionStorage bị chặn (kịch bản chip-nhom-smoke bước 12). Nhánh claude/recursing-mahavira-be4522.
+    // Không migration. SỐ TẠM 3.27 (3.26 là Việc 4 Kho vé, đã nhập main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.27",
+    date: "2026-11-22",
+    items: [
+      { kind: "sua", text: "Trình duyệt đang chặn lưu dữ liệu (chế độ riêng tư trên máy cũ): Nền tảng không còn báo lỗi ngầm khi mở trang, vẫn chạy như thường." },
+    ],
+  },
+  {
     // Bộ lọc dùng chung của Kho vé (kế hoạch 16 việc 21/11, Việc 4). Nhánh claude/nostalgic-newton-418d14. Không migration.
     // SỐ TẠM 3.26 (3.25 là Việc 16, đã nhập main 21/11; bản chạy thật 3.24): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.26",
