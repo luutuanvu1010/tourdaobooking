@@ -12,7 +12,7 @@
 - **Nguồn:** kế hoạch 16 việc (21/11), Việc 10; ADR-0201 (hướng của chủ: giá theo mùa tính theo ngày đi; màn Chi tiết dịch vụ đã chừa chỗ «Giá theo mùa»).
 - **Loại:** việc lớn (tiền, quyền, dữ liệu). **Cửa:** một chiều mềm — bảng chỉ-thêm ở lại; tắt hành vi bằng cách kết thúc mọi quy tắc.
 - **Quan hệ với ADR cũ:** **giữ** ADR-0201 (Sheet là nguồn giá gốc; ghi đè của Quản trị), ADR-0090 (nhóm «quyền tiền» `O_GHI_TIEN` không đổi), ADR-0161 (công thức hoa hồng không đổi), ADR-0218 (phí đưa đón có luật riêng, **không** chịu giá mùa vụ), ADR-0220 (khuôn bảng khoảng ngày và danh sách cửa đổi ngày). **Bổ sung** Q11 (điều kiện giữ bản chụp của nháp) và BK5 (giá danh mục đã xem). Không thay ADR nào.
-- **Xây trên lỗ đang hở:** **có — HC-4.2** (sổ `docs/quyen-hoan.json`, hạn 30/11/2026): tính lại tiền của đơn đã xác nhận đang hở, nên ADR này **không** tính lại tiền đơn đã xác nhận mà **chặn** (Đ6).
+- **Xây trên lỗ đang hở:** **không.** Đã đối chiếu HC-4.2 (sổ `docs/quyen-hoan.json`, hạn 30/11/2026: bút toán điều chỉnh sổ tiền chưa có người duyệt khác người tạo): ADR này không tạo bút toán, không ghi sổ, không tính lại tiền đơn đã xác nhận — đổi ngày sang mùa khác bị **chặn** (Đ6), nên không đi qua đường điều chỉnh đang hở.
 
 ## Bối cảnh
 
@@ -27,7 +27,7 @@ Giá dịch vụ lấy từ Google Sheet (cũng là nguồn của website), khô
 5. **Đ5 — Chụp vào dòng đơn (Hiến chương 5.6), mốc = mỗi lần máy chủ dựng dòng từ danh mục** (lập đơn, lưu nháp mà không giữ bản chụp). Migration **0189** thêm cột vào `order_item`: `base_price` (giá sau ghi đè, trước mùa vụ), `seasonal_rule_id`, `seasonal_increase` (= `catalog_price − base_price`). **`catalog_price` = giá ĐÃ cộng mùa vụ**, nên luật R2 của đối tác và thực tập (đơn giá = giá danh mục) và BK5 tự đúng, đối tác không thể trả giá gốc. Migration 0189 thêm trigger khoá ba cột mới khi đơn không còn nháp (trigger 0081 liệt kê cột cũ theo tên, không tự phủ cột mới). Dòng cũ: ba cột NULL = «trước giá mùa vụ».
 6. **Đ6 — Vá Q11 và chặn đổi ngày sang mùa khác.**
    - **Nháp:** điều kiện giữ bản chụp `kept` trong `catalogService` (`src/modules/orders/service-rules.ts`) hôm nay chỉ so mã và số khách; thêm **«ngày đi không đổi»**. Đổi ngày đi ⇒ dựng lại dòng từ danh mục như chọn mới (giá gốc hiện hành + quy tắc của ngày mới). Hệ quả chấp nhận: nháp có dịch vụ đã ngừng bán thì không đổi ngày được (báo `catalog_unavailable` như chọn mới).
-   - **Đơn đã xác nhận (và đơn chờ xác nhận đã chụp):** ở **đúng các cửa đổi ngày đi** mà ADR-0220 Đ3 đã đếm (bài `src/ngung-ban-ngay-moi-cua.test.ts`, danh sách `CUA_NGUNG_BAN_NGAY`: `PUT /api/orders/:id`, `PUT /api/orders/:id/trip`, `POST /api/orders/:id/status`, Gửi xác nhận, Gửi đơn, Còn vé), máy chủ so **quy tắc áp cho ngày mới** với `seasonal_rule_id` đã chụp của từng dòng. Khác nhau (kể cả «có» ↔ «không») ⇒ 409 `seasonal_date_changed`, câu tiếng Việt nêu tên dịch vụ, không ghi gì. Cùng quy tắc (hoặc cùng không có) ⇒ cho đổi, **tiền giữ nguyên**. Không tự tính lại tiền (HC-4.2). Có bài canh «mỗi cửa gọi cổng» theo khuôn bài của ADR-0220.
+   - **Đơn đã xác nhận (và đơn chờ xác nhận đã chụp):** ở **đúng các cửa đổi ngày đi** mà ADR-0220 Đ3 đã đếm (bài `src/ngung-ban-ngay-moi-cua.test.ts`, danh sách `CUA_NGUNG_BAN_NGAY`: `PUT /api/orders/:id`, `PUT /api/orders/:id/trip`, `POST /api/orders/:id/status`, Gửi xác nhận, Gửi đơn, Còn vé), máy chủ xét **«cùng mùa» theo bản chụp** của từng dòng: (a) dòng đã chụp quy tắc Q ⇒ cùng mùa khi ngày mới nằm trong khoảng của **chính Q** (dù Q đã kết thúc sau đó) **và** không có quy tắc đang áp nào khác thắng Q ở ngày mới (Đ2); (b) dòng chụp «không quy tắc» (hoặc dòng cũ trước ADR này) ⇒ cùng mùa khi ngày mới không có quy tắc đang áp nào. Không cùng mùa ⇒ 409 `seasonal_date_changed`, câu tiếng Việt nêu tên dịch vụ, không ghi gì. Cùng mùa ⇒ cho đổi, **tiền giữ nguyên**. Không tự tính lại tiền (HC-4.2). Có bài canh «mỗi cửa gọi cổng» theo khuôn bài của ADR-0220.
 7. **Đ7 — BK5 theo ngày.** Đường đọc danh mục cho form lập đơn nhận **ngày đi** và trả giá đã cộng mùa vụ; form gửi `catalogPriceSeen` = giá đó; đổi ngày trên form thì đọc lại. Máy chủ so với giá tính lại lúc lưu — quy tắc vừa được duyệt hay kết thúc giữa chừng thì báo `catalog_changed` như hôm nay (đúng ý BK5: không báo khách một giá rồi lưu giá khác).
 8. **Đ8 — Quyền: ô mới, «quyền tiền mềm».**
    - `catalog.seasonal.write` (đặt, kết thúc quy tắc) = hàm `keToanQuanLy()` sẵn có: **Quản lý bán hàng, Quản trị, Toàn quyền, Kế toán**. Tài khoản giữ quyền Đối tác bị từ chối.
@@ -50,7 +50,7 @@ Giá dịch vụ lấy từ Google Sheet (cũng là nguồn của website), khô
 
 1. Sổ vàng (`src/shared/gia-mua-vu.so-vang.json`, Kế toán xác nhận) qua **100 %** trong `npm test`.
 2. Ví dụ của kế hoạch: Tour 3 đảo người lớn 450.000 đ; quy tắc nhóm «Tour đảo» +10 % +20.000 đ, 01/02–15/02/2027 (đã duyệt bởi người thứ hai). Đơn 2 người lớn đi 05/02 ⇒ 1.030.000 đ; đi 20/02 ⇒ 900.000 đ.
-3. Đơn xác nhận 25/01 cho ngày 05/02 giữ 1.030.000 đ sau khi quy tắc bị kết thúc; đổi ngày đơn đó sang 20/02 ⇒ 409 `seasonal_date_changed`; đổi sang 10/02 (cùng quy tắc) ⇒ được, tiền giữ nguyên.
+3. Đơn xác nhận 25/01 cho ngày 05/02 giữ 1.030.000 đ sau khi quy tắc bị kết thúc. Sau khi kết thúc: đổi ngày đơn đó sang 08/02 (vẫn trong khoảng của chính quy tắc đã chụp, không quy tắc khác thắng) ⇒ được, tiền giữ nguyên; sang 20/02 ⇒ 409 `seasonal_date_changed`. Đơn xác nhận đi 20/02 (không quy tắc) đổi sang 05/02 khi quy tắc nhóm đang áp ⇒ 409.
 4. Nháp lưu ngày 20/02 (900.000 đ), đổi ngày sang 05/02 rồi lưu ⇒ 1.030.000 đ (Q11 đã vá).
 5. Bán hàng, Thực tập, Đối tác, Nhân sự, Tài xế gọi route đặt/duyệt/kết thúc ⇒ 403; Quản lý bán hàng, Quản trị, Kế toán, Toàn quyền ⇒ đặt được. Người đặt tự duyệt ⇒ 409; người khác duyệt ⇒ được. Chỉ Toàn quyền đặt được trần.
 6. Hai quy tắc cùng nhóm chồng một ngày ⇒ 409 `seasonal_overlap`; quy tắc dịch vụ chồng quy tắc nhóm ⇒ được, dịch vụ thắng.
@@ -63,6 +63,7 @@ Giá dịch vụ lấy từ Google Sheet (cũng là nguồn của website), khô
 - Đơn đã xác nhận **không bao giờ tự đổi giá**; khách muốn dời sang mùa khác thì văn phòng huỷ và lập đơn mới.
 - Quy tắc mới chưa áp cho tới khi người thứ hai duyệt [CHỜ CHỦ — câu 3].
 - Phí đưa đón không tăng theo mùa.
+- **Giá chụp lúc lưu nháp, bước xác nhận không kiểm lại giá** (như hôm nay). Nên một nháp lưu **trước** khi quy tắc được duyệt, rồi xác nhận sau đó, vẫn giữ giá cũ (ví dụ 900.000 đ thay vì 1.030.000 đ). Muốn chặn thì phải thêm kiểm giá ở bước xác nhận — chưa đề xuất trong ADR này.
 
 ---
 
