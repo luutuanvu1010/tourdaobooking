@@ -46,11 +46,7 @@ export function docLenhThu(lenh: string | null): { loai: LoaiThu; trangThai: Tra
 
 // ---- Tệp của phiếu (ADR-0208 Đ2): luật thuần kiểm MỘT tệp tải lên ----
 
-/** Ô tệp của phiếu: căn cước mặt trước, mặt sau (đợt 1); ảnh GPKD và ảnh giấy phép thêm của phần tổ chức (ADR-0212 Đ4). Ô mới = thêm vào đây cùng ô khai ở phiếu. */
-export const O_TEP_PHIEU = ["CCCD_MAT_TRUOC", "CCCD_MAT_SAU", "GPKD", "GIAY_PHEP_THEM"] as const;
-/** Ô tệp của phần tổ chức: chỉ nhận khi phần tổ chức mở (chính sách riêng tư đang hiệu lực có dấu thu thông tin tổ chức — ADR-0212 Đ7). */
-export const O_TEP_TO_CHUC: readonly string[] = ["GPKD", "GIAY_PHEP_THEM"];
-export const laOTepPhieu = (s: unknown): s is (typeof O_TEP_PHIEU)[number] => typeof s === "string" && (O_TEP_PHIEU as readonly string[]).includes(s);
+// Ô tệp của phiếu: nghĩa từng ô ở src/shared/dang-ky-o-tep.ts, vai nào thấy ô nào ở bảng dk_role_slot (ADR-0233 — thay hằng O_TEP_PHIEU của ADR-0208 Đ2 / ADR-0212 Đ4).
 /** Phiếu chỉ nhận tệp khi còn ở hai trạng thái này (ADR-0208 Đ2). */
 export const TRANG_THAI_CHO_TAI_TEP: readonly TrangThai[] = ["DANG_DIEN", "CAN_BO_SUNG"];
 

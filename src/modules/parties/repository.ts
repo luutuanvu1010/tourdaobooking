@@ -1,6 +1,7 @@
 // SQL của các bảng module parties sở hữu (pty_*). Mọi câu đi qua defineSql (ADR-0002 điều 8(b)) và import bằng đuôi .ts để bài kiểm
 // kiến trúc nạp được tệp này. Câu SQL TĨNH: tham số tuỳ chọn viết `?N IS NULL OR …`; tham số đánh số ?N để dùng lại một giá trị.
 // Đọc địa điểm CHỈ qua view công bố v_loc_location_label (ADR-0008); không đụng bảng loc_* trực tiếp.
+import { O_TEP_TO_CHUC } from "../../shared/dang-ky-o-tep.ts";
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { ContactInput, OrgFields, PersonName, RelationshipInput, RoleInput } from "./rules.ts";
 import type { GioiTinh } from "../../shared/xung-ho.ts";
@@ -1671,6 +1672,12 @@ const MARK_TEP_CHO_R2_DELETED = defineSql(
   "mark_registration_attachment_r2_deleted",
   "UPDATE pty_registration_attachment SET r2_deleted_at = ?2, updated_at = ?2 WHERE id = ?1 AND purged_at IS NOT NULL AND r2_deleted_at IS NULL AND transferred_at IS NULL",
 );
+// Ô của phần tổ chức lấy từ MỘT nguồn (src/shared/dang-ky-o-tep.ts, ADR-0233): GPKD, giấy phép thêm, «Tệp khác của tổ chức». Mã ô đã qua khuôn [A-Z0-9_] (CHECK 0171) nên ghép vào câu tĩnh an toàn.
+// Nối lúc duyệt: giấy phép thêm → dòng giấy phép thêm ?6 (chỉ khi có); mọi ô tổ chức khác (GPKD, «Tệp khác của tổ chức») → dòng GPKD ?5 (ADR-0233 Đ2).
+const SQL_O_TO_CHUC = O_TEP_TO_CHUC.map((o) => {
+  if (!/^[A-Z0-9_]+$/.test(o)) throw new Error("mã ô tệp sai khuôn");
+  return `'${o}'`;
+}).join(", ");
 // Lúc duyệt (ADR-0208 Đ5): chèn dòng pty_attachment DÙNG LẠI mã và khoá kho của dòng chờ; nối vào dòng giấy tờ vừa tạo; đánh dấu đã chuyển + băm về rỗng; phần còn lại (chưa lưu) nhận quyết gỡ.
 // Ô của PHẦN TỔ CHỨC (GPKD, GIAY_PHEP_THEM — ADR-0212 Đ4) KHÔNG BAO GIỜ đi về hồ sơ người: ba câu của hồ sơ người lọc chúng ra (nợ Task 5 → Task 7); ba câu `…_org` dưới đây chuyển chúng
 // sang hồ sơ TỔ CHỨC, nối dòng giấy tờ tổ chức đúng loại.
@@ -1679,25 +1686,25 @@ const CHUYEN_TEP_CHO_CHEN = defineSql(
   "transfer_registration_attachment_insert",
   `INSERT INTO pty_attachment (id, party_id, storage_key, content_kind, byte_size, content_hash, stored_at, created_at, created_by, updated_at, updated_by)
    SELECT id, ?2, storage_key, content_kind, byte_size, content_hash, stored_at, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
-   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL AND slot NOT IN ('GPKD', 'GIAY_PHEP_THEM')`,
+   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL AND slot NOT IN (${SQL_O_TO_CHUC})`,
 );
 const CHUYEN_TEP_CHO_NOI = defineSql(
   "parties",
   "transfer_registration_attachment_link",
   `INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by)
    SELECT id, 'PERSON_DOCUMENT', ?2, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
-   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL AND slot NOT IN ('GPKD', 'GIAY_PHEP_THEM')`,
+   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL AND slot NOT IN (${SQL_O_TO_CHUC})`,
 );
 const CHUYEN_TEP_CHO_DANH_DAU = defineSql(
   "parties",
   "transfer_registration_attachment_mark",
   `UPDATE pty_registration_attachment SET transferred_at = ?2, content_hash = NULL, updated_at = ?2, updated_by = ?3
-   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL AND slot NOT IN ('GPKD', 'GIAY_PHEP_THEM')`,
+   WHERE registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL AND slot NOT IN (${SQL_O_TO_CHUC})`,
 );
 // Tệp của phần tổ chức → hồ sơ tổ chức ?2. Ô GPKD nối dòng GPKD ?5; ô GIAY_PHEP_THEM nối dòng giấy phép thêm ?6 — CHỈ khi có dòng đó (không khai giấy phép thêm ⇒ ảnh ở lại, câu gỡ phần còn
 // lại của lô quyết gỡ). Cùng điều kiện ở cả ba câu ⇒ cùng tập dòng.
 const DIEU_KIEN_TEP_TO_CHUC = `registration_id = ?1 AND stored_at IS NOT NULL AND purged_at IS NULL AND transferred_at IS NULL
-     AND (slot = 'GPKD' OR (slot = 'GIAY_PHEP_THEM' AND ?6 IS NOT NULL))`;
+     AND slot IN (${SQL_O_TO_CHUC}) AND (slot <> 'GIAY_PHEP_THEM' OR ?6 IS NOT NULL)`;
 const CHUYEN_TEP_CHO_CHEN_TO_CHUC = defineSql(
   "parties",
   "transfer_registration_attachment_insert_org",
@@ -1709,7 +1716,7 @@ const CHUYEN_TEP_CHO_NOI_TO_CHUC = defineSql(
   "parties",
   "transfer_registration_attachment_link_org",
   `INSERT INTO pty_attachment_link (attachment_id, target_kind, target_id, created_at, created_by, updated_at, updated_by)
-   SELECT id, 'ORG_DOCUMENT', CASE slot WHEN 'GPKD' THEN ?5 ELSE ?6 END, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
+   SELECT id, 'ORG_DOCUMENT', CASE slot WHEN 'GIAY_PHEP_THEM' THEN ?6 ELSE ?5 END, ?3, ?4, ?3, ?4 FROM pty_registration_attachment
    WHERE ${DIEU_KIEN_TEP_TO_CHUC} AND ?2 IS NOT NULL`,
 );
 const CHUYEN_TEP_CHO_DANH_DAU_TO_CHUC = defineSql(

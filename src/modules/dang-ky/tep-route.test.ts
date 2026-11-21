@@ -107,16 +107,17 @@ test("Review Focus 2: ảnh HEIC 4,9 MB nhận được (trần theo byte của 
   assert.equal(dongTep(w)[0].stored_at !== null, true);
 });
 
-test("tệp thứ 9 của phiếu (kể cả tệp đã thay) ⇒ 409; không thêm dòng", async () => {
+test("tệp thứ 13 của phiếu (kể cả tệp đã thay) ⇒ 409; không thêm dòng (trần 12 — dòng chính sách của migration 0191, ADR-0233 Đ4)", async () => {
   const w = setup();
-  for (let i = 0; i < 8; i++) {
+  assert.equal(Number(w.q("SELECT photo_max_count AS n FROM dk_policy ORDER BY valid_from_at DESC LIMIT 1")[0].n), 12);
+  for (let i = 0; i < 12; i++) {
     const u = new Uint8Array(PNG.length + 1); u.set(PNG); u[PNG.length] = i; // nội dung khác nhau ⇒ băm khác ⇒ mỗi lần là một tệp mới (thay tệp cùng ô)
     assert.equal((await tai(w, { bytes: u })).status, 200, `lần ${i + 1}`);
   }
   const u9 = new Uint8Array(PNG.length + 1); u9.set(PNG); u9[PNG.length] = 99;
   const r = await tai(w, { bytes: u9 });
   assert.equal(r.status, 409, r.text);
-  assert.equal(dongTep(w).length, 8);
+  assert.equal(dongTep(w).length, 12);
 });
 
 test("phiếu không ở ĐANG ĐIỀN / CẦN BỔ SUNG ⇒ 409; CẦN BỔ SUNG tải được", async () => {
@@ -366,4 +367,52 @@ test("gỡ tệp chờ: dòng lịch sử đứng trước và canh trạng thá
   const kq = await w.env.DB.batch([suKienGoTepStatement(w.env.DB, { registrationId: PHIEU, identityId: IDENT, at }), cauGoTepChoCuaONeuTruocDoi(w.env.DB, PHIEU, TRUOC, at)]);
   assert.deepEqual(kq.map((x: any) => x.meta.changes), [0, 0]);
   assert.equal(dongTep(w)[0].purged_at, null);
+});
+
+// ---- Ô tệp theo vai (ADR-0233 Đ1, Đ3) ----
+const chinhSachTepKhac = (w: any, id: string, version: number, tepKhac: 0 | 1, toChuc: 0 | 1 = 0) => {
+  const at = new Date(Date.now() - 1000).toISOString();
+  w.sqlite.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, covers_org_data, covers_other_files) VALUES (?, ?, 'mục đích', 'Toàn văn.', ?, ?, 'x', ?, 'x', ?, ?)")
+    .run(id, version, at, at, at, toChuc, tepKhac);
+};
+const dongVai = (w: any, v: { part: string; role: string; slot: string; mode: string }) => {
+  const at = new Date(Date.now() - 1000).toISOString();
+  w.sqlite.prepare("INSERT INTO dk_role_slot (id, part, role_code, slot, mode, sort_order, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)")
+    .run(crypto.randomUUID(), v.part, v.role, v.slot, v.mode, at, at, at);
+};
+
+test("«Tệp khác»: chính sách riêng tư chưa nêu ⇒ 400 slot_not_allowed, không thêm dòng; bản mới có dấu ⇒ 200", async () => {
+  const w = setup();
+  chinhSachTepKhac(w, "cs-tk-1", 1, 0);
+  const r = await tai(w, { slot: "TEP_KHAC" });
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.code, "slot_not_allowed");
+  assert.equal(dongTep(w).length, 0);
+  assert.equal(w.r2.soLan.put, 0);
+  chinhSachTepKhac(w, "cs-tk-2", 2, 1);
+  const r2 = await tai(w, { slot: "TEP_KHAC" });
+  assert.equal(r2.status, 200, r2.text);
+  assert.deepEqual(r2.json.tep, [{ o: "TEP_KHAC", trangThai: "DA_GUI" }]);
+});
+
+test("ô theo vai: dòng AN của đúng vai phiếu ⇒ ô đó 400; vai khác vẫn tải được; gỡ tệp đã có ở ô bị ẩn vẫn được (lối thoát)", async () => {
+  const w = setup();
+  assert.equal((await tai(w, { slot: SAU })).status, 200, "trước khi ẩn");
+  dongVai(w, { part: "CA_NHAN", role: "GUIDE", slot: SAU, mode: "AN" });
+  const u = new Uint8Array(PNG.length + 1); u.set(PNG); u[PNG.length] = 5;
+  const r = await tai(w, { slot: SAU, bytes: u });
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.code, "slot_not_allowed");
+  assert.equal((await tai(w, { slot: TRUOC })).status, 200, "ô khác của cùng vai");
+  const go = await tai(w, { body: { o: SAU, go: true } });
+  assert.equal(go.status, 200, go.text);
+  assert.deepEqual(go.json.tep, [{ o: TRUOC, trangThai: "DA_GUI" }]);
+});
+
+test("mã ô máy không biết ⇒ 400 invalid_input (kể cả khi bảng có dòng cho mã đó)", async () => {
+  const w = setup();
+  dongVai(w, { part: "CA_NHAN", role: "", slot: "O_LA", mode: "TUY_CHON" });
+  const r = await tai(w, { slot: "O_LA" });
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.code, "invalid_input");
 });

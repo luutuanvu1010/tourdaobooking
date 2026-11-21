@@ -1038,3 +1038,61 @@ test("Đ7.5: lô gửi thua (phiếu vừa đổi trạng thái giữa lúc đ�
   assert.equal(phieu(w).invite_id, null);
   assert.deepEqual(loiMoiDong(w, mv), { status: "MO", held_registration_id: null }, "không giữ chỗ mồ côi");
 });
+
+// ---- Ô tệp theo vai lúc gửi (ADR-0233 Đ1, Đ3) ----
+function tepCho(w: any, slot: string, daLuu = true): string {
+  const at = new Date().toISOString();
+  const id = crypto.randomUUID();
+  w.sqlite.prepare(`INSERT INTO pty_registration_attachment (id, registration_id, slot, storage_key, content_kind, byte_size, content_hash, created_at, created_by, updated_at, updated_by)
+    VALUES (?, ?, ?, ?, 'png', 11, ?, ?, ?, ?, ?)`).run(id, PHIEU, slot, `pty/${crypto.randomUUID().replace(/-/g, "")}`, "c".repeat(64), at, IDENT, at, IDENT);
+  if (daLuu) w.sqlite.prepare("UPDATE pty_registration_attachment SET stored_at = ? WHERE id = ?").run(at, id);
+  return id;
+}
+const goTepThu = (w: any, id: string) => w.sqlite.prepare("UPDATE pty_registration_attachment SET purged_at = updated_at, purge_reason = 'THAY_TEP', content_hash = NULL WHERE id = ?").run(id);
+function dongVaiPhieu(w: any, v: { part: string; role: string; slot: string; mode: string }) {
+  const at = new Date(Date.now() - 1000).toISOString();
+  w.sqlite.prepare("INSERT INTO dk_role_slot (id, part, role_code, slot, mode, sort_order, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 0, ?, ?, ?)")
+    .run(crypto.randomUUID(), v.part, v.role, v.slot, v.mode, at, at, at);
+}
+
+test("ADR-0233: ô bắt buộc theo vai (ảnh căn cước cho đúng vai) chưa có tệp đã lưu ⇒ 400 required_file_missing nêu tên ô; vai khác không bị đòi; có tệp đã lưu ⇒ gửi được", async () => {
+  const w = setup();
+  dongVaiPhieu(w, { part: "CA_NHAN", role: VAI, slot: "CCCD_MAT_TRUOC", mode: "BAT_BUOC" });
+  assert.equal((await luu(w, VAI)).status, 200);
+  const r = await gui(w, banKhai());
+  assert.equal(r.status, 400, r.text);
+  assert.equal(r.json.error.code, "required_file_missing");
+  assert.equal(r.json.error.message, "Cần tải xong «Ảnh mặt trước căn cước» trước khi gửi.");
+  const id = tepCho(w, "CCCD_MAT_TRUOC", false);
+  assert.equal((await gui(w, banKhai())).json.error.code, "required_file_missing", "tệp chưa lưu xong không tính");
+  goTepThu(w, id);
+  tepCho(w, "CCCD_MAT_TRUOC");
+  assert.equal(soDong(w, "dk_submission"), 0);
+  const r2 = await gui(w, banKhai());
+  assert.equal(r2.status, 200, r2.text);
+});
+
+test("ADR-0233: còn tệp ở ô không thuộc vai (ô bị ẩn cho vai này, hoặc «Tệp khác» khi chính sách chưa nêu) ⇒ 400 file_slot_not_allowed; gỡ rồi gửi được", async () => {
+  for (const ca of ["an", "tep-khac"] as const) {
+    const w = setup();
+    if (ca === "an") dongVaiPhieu(w, { part: "CA_NHAN", role: VAI, slot: "CCCD_MAT_SAU", mode: "AN" });
+    assert.equal((await luu(w, VAI)).status, 200);
+    const id = tepCho(w, ca === "an" ? "CCCD_MAT_SAU" : "TEP_KHAC");
+    const r = await gui(w, banKhai());
+    assert.equal(r.status, 400, `${ca}: ${r.text}`);
+    assert.equal(r.json.error.code, "file_slot_not_allowed", ca);
+    assert.equal(soDong(w, "dk_submission"), 0);
+    goTepThu(w, id);
+    assert.equal((await gui(w, banKhai())).status, 200, ca);
+  }
+});
+
+test("ADR-0233 Đ3: chính sách riêng tư hiện hành có dấu «Thu tệp khác» ⇒ tệp ở ô «Tệp khác» gửi được", async () => {
+  const w = setup();
+  const at = new Date(Date.now() - 1_800_000).toISOString();
+  w.sqlite.prepare("INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by, covers_other_files) VALUES ('cs-2', 2, 'mục đích', 'Toàn văn.', ?, ?, 'x', ?, 'x', 1)").run(at, at, at);
+  assert.equal((await luu(w, VAI)).status, 200);
+  tepCho(w, "TEP_KHAC");
+  const r = await gui(w, banKhai({ chinhSachPhienBan: 2 }));
+  assert.equal(r.status, 200, r.text);
+});
