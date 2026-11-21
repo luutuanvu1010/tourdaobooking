@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Hotline trên vé Tour Đảo theo dịch vụ (kế hoạch 16 việc 21/11, Việc 12; ADR-0231 chủ duyệt 22/11). Nhánh claude/jovial-tharp-11a62e. CÓ migration 0185.
+    // SỐ TẠM 3.33 (3.27 đã ở main; hàng nhập 2 → 5 → 6 → 7 → 8 → 12 dự kiến giữ 3.28–3.32): bước A.0 đặt lại số và ngày theo thứ tự nhập thật.
+    version: "3.33",
+    date: "2026-11-22",
+    items: [
+      { kind: "moi", text: "Vé Tour Đảo in số điện thoại riêng của từng dịch vụ ở chân vé. Quản trị đặt ở ô «Hotline trên vé» màn Dịch vụ & giá; dịch vụ chưa đặt thì vé in hotline công ty như cũ. Khi tạo vé, ô số tự điền và sửa được cho riêng lô đó. Vé đã tạo không đổi.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+    ],
+  },
+  {
     // Tệp đầu trang web/giu-cho-dai.ts không ném khi lệnh đọc / ghi sessionStorage bị chặn (kịch bản chip-nhom-smoke bước 12). Nhánh claude/recursing-mahavira-be4522.
     // Không migration. SỐ TẠM 3.27 (3.26 là Việc 4 Kho vé, đã nhập main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.27",
