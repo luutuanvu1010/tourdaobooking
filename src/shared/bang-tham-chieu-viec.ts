@@ -845,7 +845,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     nhom: "Lập đơn: điền sẵn khách",
     manHinh: "Tạo đơn / Sửa đơn nháp (form lập đơn) › khung Khách hàng (nhân viên văn phòng, sau khi chọn «Qua đối tác»)",
     ten: "Điền thông tin đối tác",
-    thatSuLam: "Đọc hồ sơ của đối tác đã chọn rồi chép tên và số điện thoại chính của đối tác vào hai ô tên khách và số điện thoại khách. Chưa lưu gì. Đối tác chưa có số điện thoại thì chỉ báo «Đối tác này chưa có số điện thoại.», không điền rỗng và không xoá ô đang có. Chỉ hiện với nhân viên văn phòng được xem hồ sơ; tài khoản Thực tập không thấy.",
+    thatSuLam: "Đọc hồ sơ của đối tác đã chọn rồi chép tên và số điện thoại chính của đối tác vào hai ô tên khách và số điện thoại khách. Chưa lưu gì. Đối tác chưa có số điện thoại thì báo «Đối tác này chưa có số điện thoại.» kèm lối mở hồ sơ ở Danh bạ trong tab mới: người sửa được hồ sơ thấy «Thêm số ở Danh bạ»; hồ sơ gắn tài khoản (chỉ Quản trị hoặc Toàn quyền sửa được) thì câu nói nhờ Quản trị hoặc Toàn quyền thêm số, kèm «Mở hồ sơ ở Danh bạ». Không điền rỗng, không xoá ô đang có, không tự chép số đăng nhập (Việc 3, 21/11/2026). Chỉ hiện với nhân viên văn phòng được xem hồ sơ; tài khoản Thực tập không thấy.",
     hoiLai: "không",
     hoanTac: "được: sửa lại hai ô",
     duongLenh: [],
