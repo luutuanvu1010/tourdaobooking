@@ -17,6 +17,129 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Tệp đầu trang web/giu-cho-dai.ts không ném khi lệnh đọc / ghi sessionStorage bị chặn (kịch bản chip-nhom-smoke bước 12). Nhánh claude/recursing-mahavira-be4522.
+    // Không migration. SỐ TẠM 3.27 (3.26 là Việc 4 Kho vé, đã nhập main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.27",
+    date: "2026-11-22",
+    items: [
+      { kind: "sua", text: "Trình duyệt đang chặn lưu dữ liệu (chế độ riêng tư trên máy cũ): Nền tảng không còn báo lỗi ngầm khi mở trang, vẫn chạy như thường." },
+    ],
+  },
+  {
+    // Bộ lọc dùng chung của Kho vé (kế hoạch 16 việc 21/11, Việc 4). Nhánh claude/nostalgic-newton-418d14. Không migration.
+    // SỐ TẠM 3.26 (3.25 là Việc 16, đã nhập main 21/11; bản chạy thật 3.24): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.26",
+    date: "2026-11-21",
+    items: [
+      { kind: "moi", text: "Kho vé: thanh «Lọc theo dịch vụ» đầu trang. Chọn nhóm hoặc gõ tên (không dấu cũng được) là cả ba danh sách vé cùng thu hẹp, kể cả lô ở trang sau.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+      { kind: "doi", text: "Tạo vé Tour Đảo: chọn dịch vụ bằng ô tìm và hàng nhóm giống bước nhập lô vé, thay cho danh sách thả xuống." },
+    ],
+  },
+  {
+    // Biểu tượng cho menu Thiết lập (kế hoạch 16 việc 21/11, Việc 16). Nhánh claude/relaxed-noether-c3cb22. Không migration.
+    // SỐ TẠM 3.25 (3.24 là Việc 9, có thể chưa lên bản chạy thật): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.25",
+    date: "2026-11-21",
+    items: [
+      { kind: "moi", text: "Thiết lập: mỗi mục có một biểu tượng riêng bên trái tên, ở cả thanh bên máy tính lẫn trang Thiết lập trên điện thoại, để tìm nhanh hơn." },
+      { kind: "moi", text: "Các thẻ trong màn Hoa hồng đối tác, Luật bán và Đặc điểm dịch vụ cũng có biểu tượng." },
+    ],
+  },
+  {
+    // Sửa lỗi treo ở màn Quét vé (kế hoạch 16 việc 21/11, Việc 9). Nhánh claude/beautiful-burnell-3c3798. Không migration.
+    // SỐ TẠM 3.24 (bản chạy thật đang 3.23): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.24",
+    date: "2026-11-21",
+    items: [
+      { kind: "sua", text: "Quét vé: bấm «Quét tiếp» mà vé vừa quét còn trước camera thì màn không đứng im nữa. Nền tảng nhắc, 3 giây sau tự kiểm lại; vé đã dùng báo đỏ «Đã dùng».", bai: { id: "viec/quet-ve", ten: "Quét vé Tour Đảo" } },
+      { kind: "sua", text: "Quét vé khi mạng yếu: Nền tảng tự gửi lại vài lần, rồi trong khoảng 15 giây báo «Không gửi được» kèm nút «Thử lại», không còn chờ mãi." },
+      { kind: "sua", text: "Quét vé trên iPhone: bấm «Chụp ảnh mã vé» thì camera trong trang tắt trước; ảnh chụp được thu nhỏ trước khi đọc nên không đứng hình; camera bị dừng thì có báo." },
+    ],
+  },
+  {
+    // Chữ nhẹ hơn, phương án 1 «Nhẹ vừa» (đặc tả docs/superpowers/specs/2026-11-21-chu-nhe-hon.md). Nhánh claude/sweet-grothendieck-122c41. Không migration.
+    // SỐ TẠM 3.23 (bản chạy thật đang 3.22): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.23",
+    date: "2026-11-21",
+    items: [
+      { kind: "doi", text: "Chữ mặc định nhẹ hơn: nút, tên khách và tiêu đề cột bớt đậm một bậc, tiêu đề giữ nguyên nên dễ phân biệt hơn." },
+      { kind: "doi", text: "Giao diện công ty: ô «Độ đậm tiêu đề» chỉ đổi tiêu đề, ô «Độ đậm chữ nhấn» đổi nút, tên và số tiền; hai ô chỉnh riêng được." },
+      { kind: "doi", text: "Số lớn ở Trang chủ nay đậm một mức cố định, không còn đổi theo ô «Độ đậm tiêu đề»." },
+    ],
+  },
+  {
+    // Khung gốc giao diện (ADR-0222, chủ duyệt 21/11): bốn màn mẫu dựng theo khung. Nhánh claude/jovial-leakey-a25fd6. Không migration.
+    // SỐ TẠM 3.22 (3.21 là số tạm của ADR-0221): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.22",
+    date: "2026-11-21",
+    items: [
+      { kind: "doi", text: "Đơn hàng, Chi tiết đơn, Sửa xe và Địa điểm được xếp lại theo một khung chung: cùng khoảng cách, cùng kiểu khối, nút chính ở chỗ cố định." },
+      { kind: "doi", text: "Chi tiết đơn trên điện thoại: nút «Xem ảnh gửi khách» nằm ở đáy màn hình, «Huỷ đơn» ở cuối trang." },
+      { kind: "doi", text: "Địa điểm: bấm «Thêm địa điểm» hoặc «Sửa» thì biểu mẫu mở ra trong một bảng, không còn nằm sẵn trên trang." },
+      { kind: "sua", text: "Màn cửa sổ cỡ vừa có thanh bên: các bảng và khối tự đổi theo chỗ trống thật, không còn chữ bị bóp." },
+    ],
+  },
+  {
+    // ADR-0221 (chủ duyệt 21/11): «Đối tác không nhập nơi đón». ADR-0221, nhánh claude/exciting-tu-2efdb7, migration 0181.
+    // SỐ TẠM 3.21 (bản 3.20 đã lên production 21/11): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.21",
+    date: "2026-11-21",
+    items: [
+      { kind: "moi", text: "Toàn quyền có công tắc «Đối tác không nhập nơi đón» ở trang Tôi. Khi bật, đối tác chọn Đón là xong, không phải điền nơi đón. Mặc định tắt." },
+      { kind: "moi", text: "Khi công tắc bật, văn phòng điền nơi đón ngay trong bảng Xác nhận đơn lúc bấm «Còn vé, xác nhận đơn». Chưa có nơi đón thì đơn chưa xác nhận được." },
+      { kind: "doi", text: "Chi tiết đơn ghi «Chưa có nơi đón» ở lượt đối tác gửi mà văn phòng chưa điền nơi đón." },
+    ],
+  },
+  {
+    // Sửa hai lỗi bố cục làm hỏng việc (đợt đánh giá giao diện 20/11, đợt phân tích bố cục 21/11): cột tên khách ở Đơn hàng, nút lưu ở Chính sách điều phối trên điện thoại.
+    // Nhánh claude/jolly-jemison-3b33e1. Không migration. SỐ TẠM 3.20: nhánh claude/exciting-tu-2efdb7 (ADR-0221) cũng đặt số tạm 3.20 — bước A.0 đặt lại số và ngày
+    // cho nhánh nhập sau.
+    version: "3.20",
+    date: "2026-11-21",
+    items: [
+      { kind: "sua", text: "Đơn hàng trên máy tính: cửa sổ cỡ vừa không còn làm tên khách gãy mỗi dòng một chữ. Chỗ hẹp thì danh sách hiện dạng thẻ, đủ rộng mới thành bảng." },
+      { kind: "sua", text: "Chính sách điều phối trên điện thoại: Quản trị đã có nút «Lưu hạn chốt» để lưu hai con số hạn chốt." },
+      { kind: "sua", text: "Chính sách điều phối trên điện thoại: thẻ Hạn mức Từ chối của hướng dẫn viên đã có nút «Lưu cài đặt»." },
+      { kind: "doi", text: "Chính sách điều phối trên điện thoại: thanh «Lưu thành bản mới» chỉ bám đáy màn hình khi đang ở phần chính sách, không còn che thẻ Hạn mức." },
+      { kind: "sua", text: "Hai nút lưu trên: bấm xong, màn hình tự đưa câu báo đã lưu vào tầm nhìn, không phải kéo lên đầu trang để xem." },
+      // Lỗi có sẵn tìm thấy khi đo, sửa thêm theo khuyến nghị của phiên điều phối (lần lưu riêng, bỏ ra được): cờ «đang gửi» không được hạ sau khi lưu xong.
+      { kind: "sua", text: "Chính sách điều phối: Toàn quyền lưu bản mới xong, sửa tiếp rồi bấm lưu lần nữa trên cùng trang thì lần sau nay được lưu thật. Trước đây lần sau bị bỏ qua." },
+    ],
+  },
+  {
+    // ADR-0220 (chủ duyệt 20/11): ngừng bán một dịch vụ hoặc cả nhóm theo khoảng ngày khởi hành. Nhánh claude/pause-service-sales-23eea5. Có migration 0180.
+    // SỐ TẠM 3.19: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.19",
+    date: "2026-11-20",
+    items: [
+      { kind: "moi", text: "Dịch vụ & giá có nút «Ngừng bán theo ngày» cho từng dịch vụ và từng nhóm: đơn có ngày khởi hành trong khoảng đã chọn không lập được. Ngày khác vẫn bán." },
+      { kind: "moi", text: "Sau khi đặt, máy báo đang có bao nhiêu đơn đã xác nhận nằm trong khoảng ngày để văn phòng gọi khách. Đơn đã xác nhận không bị huỷ." },
+      { kind: "doi", text: "Trong khoảng ngày đã ngừng bán, mọi tài khoản đều bị chặn, kể cả Quản trị. Muốn bán lại thì bấm «Kết thúc» ở khoảng đó." },
+      // Đặc tả 2026-11-20 «tối ưu giao diện Tạo đơn và mẫu Xác nhận đơn» (chủ duyệt ảnh đề xuất 20/11), cùng nhánh.
+      { kind: "doi", text: "Tạo đơn: chọn dịch vụ xong thì danh sách tự thu lại. Muốn thêm dịch vụ khác, bấm hoặc gõ vào ô tìm." },
+      { kind: "doi", text: "Tạo đơn: khối Hành khách nằm ngay sau Dịch vụ, có nút «Điền tên khách đi tour» để khỏi gõ lại tên. «Ghi chú thanh toán» mở bằng một nút." },
+      { kind: "doi", text: "Tạo đơn và ảnh xác nhận đơn chỉ còn một số tiền tô đậm. Dòng bằng 0 và dòng lặp lại tổng không còn in." },
+      // Đặc tả 2026-11-20 «sửa giao diện theo bốn ý của chủ» (chủ duyệt ảnh đề xuất 20/11). Nhánh claude/exciting-tu-2efdb7. Không migration.
+      { kind: "doi", text: "Đổi tên hai nút, việc không đổi: «Ghi khoản thu» thành «Nhập khoản thu»; «Xem công nợ với Tour Đảo» thành «Thanh toán đơn này cho công ty Tour Đảo»." },
+      { kind: "doi", text: "Đối tác xem đơn: nút «Nhập khoản thu» nằm ngay dưới dòng Còn lại; nút «Thanh toán đơn này cho công ty Tour Đảo» nằm cuối khối Hoa hồng của bạn." },
+      { kind: "doi", text: "Đối tác tạo đơn: chọn Đón thì chỉ cần điền Nơi đón. Không còn khối Người phụ trách: đơn tự chờ Bán hàng nhận." },
+      { kind: "doi", text: "Đối tác tạo đơn: Hình thức thanh toán nằm ngay trên nút Gửi đơn. Câu giải thích về giảm giá và đặt cọc mở bằng một nút." },
+      { kind: "moi", text: "Kho vé điện tử: khối Số vé còn có ô tìm theo tên sản phẩm và các nút lọc Hết vé, Còn 1 đến 5, Còn trên 5." },
+      { kind: "sua", text: "Trang đơn trên màn hình cỡ vừa: số tiền và số điện thoại không còn bị ngắt giữa chừng." },
+    ],
+  },
+  {
+    // ADR-0219 (chủ duyệt 18/11): Quản lý bán hàng xác minh, Quản trị / Nhân sự / Toàn quyền duyệt phiếu đăng ký; hàng chờ sang trang riêng; nút Duyệt khoá khi người mở là người xác minh.
+    // Nhánh claude/partner-signup-approval-flow-e665d1. SỐ TẠM 3.18: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.18",
+    date: "2026-11-18",
+    items: [
+      { kind: "doi", text: "Phiếu đăng ký đối tác nay có trang riêng «Phiếu đăng ký đối tác». Trang Quản lý tài khoản còn một đường dẫn sang trang này." },
+      { kind: "doi", text: "Quản lý bán hàng xác minh phiếu đăng ký. Quản trị hoặc Nhân sự duyệt mở tài khoản. Quản trị không còn xác minh phiếu đăng ký." },
+      { kind: "sua", text: "Người đã xác minh phiếu thì thấy nút «Duyệt mở tài khoản» khoá sẵn, kèm câu giải thích. Phiếu ở bước của người khác thì máy nói phiếu đang chờ ai." },
+    ],
+  },
+  {
     // Số sê-ri vé, gõ số sê-ri ở Quét vé, huỷ vé lẻ, huỷ lô đã cấp (ADR-0217; migration 0177; nhánh claude/ticket-series-management-0cca10).
     // SỐ TẠM 3.17: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.17",

@@ -212,6 +212,25 @@ const DS_LO_TAT_CA = defineSql(
    WHERE b.status <> 'VOID' AND b.source IN (SELECT value FROM json_each(?2))
    ORDER BY (b.status = 'PENDING') DESC, b.created_at DESC, b.id LIMIT ?1 OFFSET ?3`,
 );
+// Bộ lọc «Lô trong kho» (kế hoạch 16 việc 21/11, Việc 4): khoá + chữ của MỌI lô chưa huỷ thuộc các nguồn được xem, CÙNG thứ tự `DS_LO_TAT_CA`. Route lọc bằng luật chung
+// src/shared/loc-dich-vu-kho.ts (tìm không phân biệt dấu — SQLite `LIKE` chỉ gộp hoa thường chữ ASCII) rồi mới cắt trang, sau đó đọc đủ cột của ≤ 50 lô bằng `LO_THEO_ID`.
+const KHOA_LO_TAT_CA = defineSql(
+  "ve-dien-tu",
+  "khoa_lo_tat_ca",
+  `SELECT b.id, b.catalog_code, b.printed_name FROM vdt_batch b
+   WHERE b.status <> 'VOID' AND b.source IN (SELECT value FROM json_each(?1))
+   ORDER BY (b.status = 'PENDING') DESC, b.created_at DESC, b.id`,
+);
+// Đủ cột như `DS_LO_TAT_CA` cho một danh sách id (một trang đã lọc); gác nguồn và trạng thái lần nữa (lô vừa huỷ giữa hai câu thì rơi khỏi trang). Route tự xếp lại theo thứ tự id.
+const LO_THEO_ID = defineSql(
+  "ve-dien-tu",
+  "lo_theo_id",
+  `SELECT b.id, b.catalog_code, b.pax_group, b.printed_name, b.status, b.source, b.created_at,
+          (SELECT count(*) FROM vdt_ticket t WHERE t.batch_id = b.id AND t.stored_at IS NOT NULL AND t.purged_at IS NULL) AS so_ve,
+          EXISTS (SELECT 1 FROM vdt_allocation a JOIN vdt_ticket t ON t.id = a.ticket_id WHERE t.batch_id = b.id) AS da_cap
+   FROM vdt_batch b
+   WHERE b.id IN (SELECT value FROM json_each(?1)) AND b.status <> 'VOID' AND b.source IN (SELECT value FROM json_each(?2))`,
+);
 // Lô đã huỷ gần đây (chủ quyết 2/11/2026): để tra cứu. Mã đầy đủ KHÔNG ra khỏi câu đọc; không khoá kho, không dấu vân. Vé chưa từng vào kho (`stored_at` rỗng) không tính; lô không có vé nào vào kho (trang tự huỷ lô nhập hỏng hết) không hiện vì không có gì để tra.
 // Lúc huỷ và mã người huỷ lấy từ `updated_*` của lô (tên do route đổi qua `nhanNhanVien` được tiêm, không thêm cạnh sang staff): lô VOID không còn câu nào ghi (`SUA_MA_TOUR`, `KICH_HOAT_LO`, `BO_LO` đều gác trạng thái, trigger `vdt_batch_one_way` chặn đổi lại).
 const DS_LO_DA_HUY = defineSql(
@@ -304,6 +323,15 @@ export interface LoBoDuoc { id: string; catalog_code: string; pax_group: string;
 export interface LoTatCa extends LoBoDuoc { da_cap: number }
 /** `boQua` = số dòng bỏ qua (chia trang, ADR-0217 chủ chốt 18/11); trang sau nhận `gioiHan + 1` dòng để biết còn trang sau. */
 export const dsLoTatCa = async (db: D1Database, gioiHan: number, nguon: readonly NguonVe[], boQua = 0): Promise<LoTatCa[]> => (await db.prepare(DS_LO_TAT_CA).bind(gioiHan, JSON.stringify(nguon), boQua).all<LoTatCa>()).results;
+/** Việc 4: khoá + chữ của mọi lô chưa huỷ (để lọc trước khi chia trang). */
+export const dsKhoaLoTatCa = async (db: D1Database, nguon: readonly NguonVe[]): Promise<{ id: string; catalog_code: string; printed_name: string }[]> =>
+  (await db.prepare(KHOA_LO_TAT_CA).bind(JSON.stringify(nguon)).all<{ id: string; catalog_code: string; printed_name: string }>()).results;
+/** Việc 4: đủ cột của các lô theo id, GIỮ thứ tự `ids` (id không còn hợp lệ thì bỏ). */
+export const dsLoTheoId = async (db: D1Database, ids: readonly string[], nguon: readonly NguonVe[]): Promise<LoTatCa[]> => {
+  if (ids.length === 0) return [];
+  const theoId = new Map((await db.prepare(LO_THEO_ID).bind(JSON.stringify(ids), JSON.stringify(nguon)).all<LoTatCa>()).results.map((r) => [r.id, r]));
+  return ids.flatMap((id) => theoId.get(id) ?? []);
+};
 export const dsLoBoDuoc = async (db: D1Database, gioiHan: number, nguon: readonly NguonVe[]): Promise<LoBoDuoc[]> => (await db.prepare(DS_LO_BO_DUOC).bind(gioiHan, JSON.stringify(nguon)).all<LoBoDuoc>()).results;
 /** Mỗi dòng một vé. */
 export interface DongLoDaHuy { id: string; catalog_code: string; pax_group: string; printed_name: string; source: NguonVe; huy_luc: string; huy_boi: string | null; ve_id: string; duoi_ma: string; valid_from: string; valid_to: string; opened_at: string | null; r2_deleted_at: string | null; da_nhap_lai: number }

@@ -27,6 +27,8 @@ import { nguonVeCua, type NguonVe } from "../../shared/nguon-ve";
 import { nguonVeHienHanh } from "./nguon-ve-repo";
 import { giaGocPhiDonTheoMa } from "./phi-don-goc-repo";
 import { nguonVeRoutes } from "./nguon-ve-route";
+import { ngungBanNgayRoutes, trungDauTien } from "./ngung-ban-ngay-route";
+import { cauNgungBanNgay } from "./ngung-ban-ngay-rules";
 import { chiTietRoutes } from "./chi-tiet-route";
 import { chiTietHienHanh, type ChiTietDong } from "./chi-tiet-repo";
 import { tenHieuLuc } from "../../shared/chi-tiet-dich-vu";
@@ -72,6 +74,15 @@ export async function nguonVeTheoMa(db: D1Database, codes: readonly string[]): P
   if (codes.length === 0) return new Map();
   const hienHanh = await nguonVeHienHanh(db);
   return new Map(codes.map((ma) => [ma, nguonVeCua(ma, hienHanh)]));
+}
+
+/**
+ * ADR-0220 Đ2, Đ3: cổng «Ngừng bán theo ngày» cho mọi cửa ghi đơn của `orders` (gọi qua `congNgungBanNgay` ở orders/cong-ban.ts). Trả câu báo của dòng dịch vụ trúng đầu tiên,
+ * hoặc `null`. Áp cho mọi bên đặt, mọi người thao tác — không có tham số nào để vượt. KHÔNG tự kiểm quyền.
+ */
+export async function kiemNgungBanTheoNgay(db: D1Database, dong: readonly { catalogCode: string | null; ngay: string | null; name: string }[]): Promise<string | null> {
+  const t = await trungDauTien(db, dong);
+  return t ? cauNgungBanNgay(t) : null;
 }
 
 export async function tenNhomHienHanh(db: D1Database, codes: readonly string[]): Promise<Map<string, string>> {
@@ -234,6 +245,7 @@ export const catalogModule: AppModule = {
     // ---- Đặc điểm dịch vụ (ADR-0152; kế hoạch 2026-10-30 T7) — khai TRƯỚC mọi route `/api/catalog/:code…` ----------------------------
     ...coVeRoutes,
     ...nguonVeRoutes, // ADR-0175 Đ1.2: ô «Vé do ai phát»
+    ...ngungBanNgayRoutes, // ADR-0220: «Ngừng bán theo ngày»
     ...chiTietRoutes, // ADR-0201 Đ1: tên hiển thị + mô tả
     ...anhRoutes, // ADR-0201 Đ3: ảnh đại diện
     ...dacDiemRoutes,

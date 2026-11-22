@@ -28,6 +28,7 @@ const TUYEN_THAT = [...(await routesOf("./modules/parties/index.ts", "partiesMod
   .sort();
 
 const ADM = "33333333-3333-4333-8333-333333333333";
+const XM = "44444444-4444-4444-8444-444444444441"; // ADR-0219 Đ1: người xác minh phiếu đăng ký = Quản lý bán hàng (kèm mã Bán hàng)
 const SUP = "77777777-7777-4777-8777-777777777777";
 const SO_CCCD = "079888777666";
 const SO_CCCD_MOI = "079888777665";
@@ -68,6 +69,7 @@ const ngay = (n: number) => new Date(Date.parse(`${HOM_NAY}T00:00:00Z`) + n * 86
 test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số': đủ tuyến, nhật ký sạch, thân trả về sạch, 'xem đủ số' có số", async () => {
   const w = world();
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
+  seedStaff(w.sqlite, { id: XM, phone: "0900000005", name: "Quản Lý Bán Hàng", perms: ["SALES_MANAGER", "SALES"] });
   seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
   const tk = await w.call("POST", "/api/staff", { as: SUP, body: { fullName: "Tài Xế Dò Số", phone: "0900000097", roles: ["DRIVER_INTERNAL"] } });
   assert.equal(tk.status, 201, tk.text);
@@ -259,22 +261,22 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
     // ADR-0207 Đ9 (Task 6): ba route của phiếu đăng ký mang số giấy tờ. Chi tiết chỉ số CHE; mở ảnh trả byte ảnh (không số); xem-so là route trả số đầy đủ DUY NHẤT của nhóm (vào `lanXemSoDk`).
     "GET /api/dang-ky/phieu/:id": async () => {
       await gieoPhieuDk();
-      const r = await goi("chi tiết phiếu đăng ký", "GET", `/api/dang-ky/phieu/${phieuDk}`, ADM, undefined, 200);
+      const r = await goi("chi tiết phiếu đăng ký", "GET", `/api/dang-ky/phieu/${phieuDk}`, XM, undefined, 200);
       assert.equal(r.json.noiDung.giayTo.soChe, "••••2111", "chống bài rỗng: chi tiết phiếu đăng ký mang số che");
     },
     "GET /api/dang-ky/phieu/:id/tep/:tid": async () => {
       const tid = w.q("SELECT id FROM pty_registration_attachment WHERE registration_id = ?", phieuDk)[0].id as string;
-      await goi("mở ảnh phiếu đăng ký", "GET", `/api/dang-ky/phieu/${phieuDk}/tep/${tid}`, ADM, undefined, 200);
+      await goi("mở ảnh phiếu đăng ký", "GET", `/api/dang-ky/phieu/${phieuDk}/tep/${tid}`, XM, undefined, 200);
     },
     "POST /api/dang-ky/phieu/:id/xem-so": async () => {
-      const x = await w.call("POST", `/api/dang-ky/phieu/${phieuDk}/xem-so`, { as: ADM });
+      const x = await w.call("POST", `/api/dang-ky/phieu/${phieuDk}/xem-so`, { as: XM });
       assert.equal(x.status, 200, x.text);
       lanXemSoDk += x.text; // KHÔNG đưa vào `than`
     },
     // ADR-0207 Đ4, Đ5 (đợt 1 Task 8, vòng sửa 1 I4): màn duyệt KHÔNG mang số (kể cả số che); lệnh duyệt ĐỌC số đầy đủ (chép sang hồ sơ) nhưng phản hồi, nhật ký, lịch sử không có số.
     "GET /api/dang-ky/phieu/:id/xem-duyet": async () => {
-      for (const muc of ["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"]) await goi(`kết luận ${muc}`, "POST", `/api/dang-ky/phieu/${phieuDk}/ket-luan`, ADM, { muc, dat: true, phienBan: 1 }, 200);
-      await goi("xác minh đạt phiếu đăng ký", "POST", `/api/dang-ky/phieu/${phieuDk}/dat`, ADM, { hoSo: { kieu: "MOI" }, phienBan: 1 }, 200);
+      for (const muc of ["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"]) await goi(`kết luận ${muc}`, "POST", `/api/dang-ky/phieu/${phieuDk}/ket-luan`, XM, { muc, dat: true, phienBan: 1 }, 200);
+      await goi("xác minh đạt phiếu đăng ký", "POST", `/api/dang-ky/phieu/${phieuDk}/dat`, XM, { hoSo: { kieu: "MOI" }, phienBan: 1 }, 200);
       const r = await goi("màn duyệt phiếu đăng ký", "GET", `/api/dang-ky/phieu/${phieuDk}/xem-duyet`, SUP, undefined, 200);
       assert.equal(r.json.hoTen, "Dò Số", "chống bài rỗng: màn duyệt có nội dung");
       assert.equal(r.text.includes("••••"), false, "màn duyệt không mang cả số che");
@@ -622,6 +624,7 @@ test("ADR-0212 Đ7 (đợt 2 vòng sửa 1 I-2): phiếu đăng ký CÓ PHẦN T
   const w = world();
   const HR_DK = "99999999-9999-4999-8999-999999999999";
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản Trị", perms: ["ADMIN"] });
+  seedStaff(w.sqlite, { id: XM, phone: "0900000005", name: "Quản Lý Bán Hàng", perms: ["SALES_MANAGER", "SALES"] });
   seedStaff(w.sqlite, { id: HR_DK, phone: "0900000013", name: "Nhân Sự", perms: ["HR"] });
   const at = new Date().toISOString();
   if (w.q("SELECT 1 FROM pty_privacy_policy LIMIT 1").length === 0) {
@@ -649,11 +652,11 @@ test("ADR-0212 Đ7 (đợt 2 vòng sửa 1 I-2): phiếu đăng ký CÓ PHẦN T
     than.push({ khoa, text: r.text });
     return r;
   };
-  const ct = await goi("chi tiết phiếu có phần tổ chức", "GET", `/api/dang-ky/phieu/${id}`, ADM);
+  const ct = await goi("chi tiết phiếu có phần tổ chức", "GET", `/api/dang-ky/phieu/${id}`, XM);
   assert.equal(ct.json.toChuc.tenToChuc, "Công ty Dò Số Tổ Chức", "chống bài rỗng: phần tổ chức có mặt");
-  for (const muc of ["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD", "TEN_PHAP_LY", "MA_SO_THUE", "GPKD"]) await goi(`kết luận ${muc}`, "POST", `/api/dang-ky/phieu/${id}/ket-luan`, ADM, { muc, dat: true, phienBan: 1 });
-  await goi("mở ảnh GPKD", "GET", `/api/dang-ky/phieu/${id}/tep/${tid}`, ADM);
-  await goi("xác minh đạt kèm hồ sơ tổ chức mới", "POST", `/api/dang-ky/phieu/${id}/dat`, ADM, { hoSo: { kieu: "MOI" }, hoSoToChuc: { kieu: "MOI" }, phienBan: 1 });
+  for (const muc of ["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD", "TEN_PHAP_LY", "MA_SO_THUE", "GPKD"]) await goi(`kết luận ${muc}`, "POST", `/api/dang-ky/phieu/${id}/ket-luan`, XM, { muc, dat: true, phienBan: 1 });
+  await goi("mở ảnh GPKD", "GET", `/api/dang-ky/phieu/${id}/tep/${tid}`, XM);
+  await goi("xác minh đạt kèm hồ sơ tổ chức mới", "POST", `/api/dang-ky/phieu/${id}/dat`, XM, { hoSo: { kieu: "MOI" }, hoSoToChuc: { kieu: "MOI" }, phienBan: 1 });
   await goi("màn duyệt", "GET", `/api/dang-ky/phieu/${id}/xem-duyet`, HR_DK);
   await goi("duyệt", "POST", `/api/dang-ky/phieu/${id}/duyet`, HR_DK, { roleCode: "GUIDE_FREELANCE", phienBan: 1 });
   assert.equal(w.q("SELECT count(*) n FROM pty_organization_document WHERE number_key = '41B7665544'")[0].n, 1, "chống bài rỗng: GPKD đã sang hồ sơ tổ chức");

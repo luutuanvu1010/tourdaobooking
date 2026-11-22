@@ -1,4 +1,4 @@
-// Luật THUẦN của ảnh biên lai chuyển khoản (ADR-0196 Đ1, Đ2, Đ9, Đ10): MỘT nguồn cho máy chủ (billing) và giao diện (form «Ghi khoản thu» ở web/order.ts).
+// Luật THUẦN của ảnh biên lai chuyển khoản (ADR-0196 Đ1, Đ2, Đ9, Đ10): MỘT nguồn cho máy chủ (billing) và giao diện (form «Nhập khoản thu» ở web/order.ts).
 // Không I/O ngoài Web Crypto (qua tep-dinh-kem.ts). Máy chủ luôn kiểm lại; giao diện chỉ ẩn/hiện ô chọn ảnh.
 import { TOI_DA_BYTE, doDaiBase64, giaiBase64, nhanLoaiTep, type LoaiTep, CAU_SAI_LOAI } from "./tep-dinh-kem.ts";
 

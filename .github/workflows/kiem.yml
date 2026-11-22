@@ -26,9 +26,13 @@ env:
 
 jobs:
   rieng:
-    name: Phần riêng (Bước 0, typecheck, bài đo giờ)
+    # Đo khung gốc trên trang thật (ADR-0222 Đ7b) chạy CUỐI phần này, sau bài đo giờ — không thêm việc (trần 20 việc cùng lúc, ADR-0215). Tự dựng D1 tạm +
+    # wrangler dev + Chrome ẩn (scripts/giao-dien/do-khung-ci.mjs); máy GitHub là Linux nên Chrome đi qua scripts/chrome-ci.sh. Đo 21/11/2026 trên máy Mac: ~5 phút.
+    name: Phần riêng (Bước 0, typecheck, bài đo giờ, đo khung gốc)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 35
+    env:
+      CHROME_BIN: ${{ github.workspace }}/scripts/chrome-ci.sh
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

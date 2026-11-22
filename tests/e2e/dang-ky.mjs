@@ -1,7 +1,7 @@
 // ĐĂNG KÝ ĐỐI TÁC (ADR-0206 … ADR-0210; đợt 1 Task 13) — chuỗi đầy đủ trên API thật + D1 local TẠM của run.mjs (không bao giờ remote):
 //   1. Toàn quyền mở «Nhận đăng ký mới» bằng route chính sách (dùng lại chính sách riêng tư đang hiệu lực; chưa có thì đăng bản THỬ).
 //   2. Người đăng ký: xin mã (Turnstile khoá thử) → nhập mã → chọn vai → tải hai ảnh căn cước → gửi phiếu.
-//   3. Quản trị: kết luận năm mục «Đạt», «Hồ sơ mới» ⇒ «Xác minh đạt». 4. Nhân sự: «Duyệt mở tài khoản» ⇒ tài khoản TẮT.
+//   3. Quản lý bán hàng (ADR-0219 Đ1): kết luận năm mục «Đạt», «Hồ sơ mới» ⇒ «Xác minh đạt». 4. Quản trị: «Duyệt mở tài khoản» ⇒ tài khoản TẮT (Nhân sự cũng duyệt được — 3b).
 //   5. Người đăng ký: mã MỚI + mã PIN ⇒ kích hoạt. 6. Đăng nhập bằng SĐT đã khai + PIN qua `login()` của lib.mjs.
 //   7. Năm kiểm R-DK-* của scripts/audit-checks.mjs (cùng câu SQL, cùng hàm đếm) trên D1 của nhóm ⇒ 0 vi phạm; chạy đủ bộ thì run.mjs còn chạy audit-invariants --strict.
 //   Cuối kịch bản Toàn quyền ĐÓNG lại công tắc (các kịch bản sau thấy D1 như cũ).
@@ -13,12 +13,17 @@ import { randomUUID } from "node:crypto";
 import { ACCOUNTS, TURNSTILE_TEST, call, freshIp, login, randomPhone, session, sql, sqlRows } from "./lib.mjs";
 import { DK_COOKIE, khoaBam } from "../../src/modules/dang-ky/phien.ts";
 import { CHECKS, demViPham } from "../../scripts/audit-checks.mjs";
+import { insertStaffSql } from "../../scripts/staff-lib.mjs";
 
 const SECRET = process.env.E2E_SESSION_SECRET;
 assert.ok(SECRET, "thiếu E2E_SESSION_SECRET — chạy qua `npm run test:e2e -- dang-ky` (run.mjs truyền khoá phiên của máy chủ tạm)");
 const TOAN_QUYEN = await session(ACCOUNTS.superAdmin);
 const QUAN_TRI = await session(ACCOUNTS.admin);
 const NHAN_SU = await session(ACCOUNTS.hr);
+// ADR-0219 Đ1: người xác minh = Quản lý bán hàng (kèm mã Bán hàng). Tài khoản DÙNG MỘT LẦN (SĐT ngẫu nhiên), không thêm vào ACCOUNTS dùng chung của mọi kịch bản.
+const QLBH_TK = { name: "Quản Lý Bán Hàng Thử", phone: randomPhone(), pin: String(200000 + Math.floor(Math.random() * 700000)) };
+await sql((await insertStaffSql({ ...QLBH_TK, permissions: ["SALES_MANAGER", "SALES"] })).replace(/\n/g, " "));
+const QLBH = await session(QLBH_TK);
 const tag = String(Date.now()).slice(-8);
 const EMAIL = `dang.ky.${tag}@example.com`;
 const SDT = randomPhone();
@@ -93,21 +98,26 @@ assert.match(PHIEU, /^DK_[A-Z]{8}$/);
 assert.equal((await sqlRows(`SELECT status FROM dk_registration WHERE id = '${PHIEU}'`))[0].status, "CHO_XAC_MINH");
 console.log("✓ 2. Người đăng ký: mã email (một lần), chọn vai, hai ảnh căn cước, gửi phiếu ⇒ Chờ xác minh");
 
-// 3. Quản trị xác minh: năm mục «Đạt», «Hồ sơ mới». Nhân sự không xác minh được (403).
-r = await call(NHAN_SU, "POST", `/api/dang-ky/phieu/${PHIEU}/ket-luan`, { phienBan: 1, muc: "ROLE", dat: true });
-assert.equal(r.status, 403, than(r));
+// 3. Quản lý bán hàng xác minh: năm mục «Đạt», «Hồ sơ mới». Quản trị và Nhân sự không xác minh được (403) — ADR-0219 Đ1.
+for (const nguoi of [NHAN_SU, QUAN_TRI]) {
+  r = await call(nguoi, "POST", `/api/dang-ky/phieu/${PHIEU}/ket-luan`, { phienBan: 1, muc: "ROLE", dat: true });
+  assert.equal(r.status, 403, than(r));
+}
+r = await call(QLBH, "GET", "/api/dang-ky/hang-cho");
+assert.equal(r.status, 200, than(r));
+assert.ok(r.body.phieu.some((x) => x.id === PHIEU), "Quản lý bán hàng thấy phiếu ở hàng chờ (cổng staff)");
 for (const muc of MUC) {
-  r = await call(QUAN_TRI, "POST", `/api/dang-ky/phieu/${PHIEU}/ket-luan`, { phienBan: 1, muc, dat: true });
+  r = await call(QLBH, "POST", `/api/dang-ky/phieu/${PHIEU}/ket-luan`, { phienBan: 1, muc, dat: true });
   assert.equal(r.status, 200, `${muc}: ${than(r)}`);
 }
-r = await call(QUAN_TRI, "POST", `/api/dang-ky/phieu/${PHIEU}/dat`, { phienBan: 1, hoSo: { kieu: "MOI" } });
+r = await call(QLBH, "POST", `/api/dang-ky/phieu/${PHIEU}/dat`, { phienBan: 1, hoSo: { kieu: "MOI" } });
 assert.equal(r.status, 200, than(r));
 assert.equal((await sqlRows(`SELECT status FROM dk_registration WHERE id = '${PHIEU}'`))[0].status, "CHO_DUYET");
-console.log("✓ 3. Quản trị xác minh năm mục, hồ sơ mới ⇒ Chờ duyệt; Nhân sự bị 403 ở bước xác minh");
+console.log("✓ 3. Quản lý bán hàng xác minh năm mục, hồ sơ mới ⇒ Chờ duyệt; Quản trị, Nhân sự bị 403 ở bước xác minh");
 
-// 3b. «Trả về xác minh» (ADR-0207 Đ5; rà soát cuối I-3): Quản trị không có ô account.create ⇒ 403; Nhân sự trả về ⇒ Chờ xác minh, kết luận Danh bạ và người xác minh bị xoá;
-// duyệt lúc này ⇒ 409; Quản trị kết luận Danh bạ lại ⇒ Chờ duyệt.
-r = await call(QUAN_TRI, "POST", `/api/dang-ky/phieu/${PHIEU}/tra-ve-xac-minh`, { phienBan: 1 });
+// 3b. «Trả về xác minh» (ADR-0207 Đ5; rà soát cuối I-3): người xác minh (Quản lý bán hàng) không có ô duyệt ⇒ 403; Nhân sự trả về ⇒ Chờ xác minh, kết luận Danh bạ và người xác minh
+// bị xoá; duyệt lúc này ⇒ 409; Quản lý bán hàng kết luận Danh bạ lại ⇒ Chờ duyệt.
+r = await call(QLBH, "POST", `/api/dang-ky/phieu/${PHIEU}/tra-ve-xac-minh`, { phienBan: 1 });
 assert.equal(r.status, 403, than(r));
 r = await call(NHAN_SU, "POST", `/api/dang-ky/phieu/${PHIEU}/tra-ve-xac-minh`, { phienBan: 1 });
 assert.equal(r.status, 200, than(r));
@@ -115,15 +125,15 @@ const [tv] = await sqlRows(`SELECT status, verified_by, match_kind FROM dk_regis
 assert.deepEqual([tv.status, tv.verified_by, tv.match_kind], ["CHO_XAC_MINH", null, null]);
 r = await call(NHAN_SU, "POST", `/api/dang-ky/phieu/${PHIEU}/duyet`, { roleCode: VAI, phienBan: 1 });
 assert.equal(r.status, 409, than(r));
-r = await call(QUAN_TRI, "POST", `/api/dang-ky/phieu/${PHIEU}/dat`, { phienBan: 1, hoSo: { kieu: "MOI" } });
+r = await call(QLBH, "POST", `/api/dang-ky/phieu/${PHIEU}/dat`, { phienBan: 1, hoSo: { kieu: "MOI" } });
 assert.equal(r.status, 200, than(r));
 assert.equal((await sqlRows(`SELECT status FROM dk_registration WHERE id = '${PHIEU}'`))[0].status, "CHO_DUYET");
-console.log("✓ 3b. Nhân sự «Trả về xác minh» ⇒ Chờ xác minh (Quản trị 403; duyệt lúc này 409); Quản trị kết luận lại ⇒ Chờ duyệt");
+console.log("✓ 3b. Nhân sự «Trả về xác minh» ⇒ Chờ xác minh (người xác minh 403; duyệt lúc này 409); Quản lý bán hàng kết luận lại ⇒ Chờ duyệt");
 
-// 4. Nhân sự duyệt mở tài khoản ⇒ tài khoản TẮT, PIN ngẫu nhiên không trả ra; Quản trị (không giữ ô account.create) không duyệt được.
-r = await call(QUAN_TRI, "POST", `/api/dang-ky/phieu/${PHIEU}/duyet`, { roleCode: VAI, phienBan: 1 });
+// 4. Quản trị duyệt mở tài khoản (ADR-0219 Đ1, ngoại lệ có tên của ADR-0071 1b) ⇒ tài khoản TẮT, PIN ngẫu nhiên không trả ra; người xác minh không duyệt được.
+r = await call(QLBH, "POST", `/api/dang-ky/phieu/${PHIEU}/duyet`, { roleCode: VAI, phienBan: 1 });
 assert.equal(r.status, 403, than(r));
-r = await call(NHAN_SU, "POST", `/api/dang-ky/phieu/${PHIEU}/duyet`, { roleCode: VAI, phienBan: 1 });
+r = await call(QUAN_TRI, "POST", `/api/dang-ky/phieu/${PHIEU}/duyet`, { roleCode: VAI, phienBan: 1 });
 assert.equal(r.status, 200, than(r));
 const [ph] = await sqlRows(`SELECT status, staff_id, party_id, activated_at FROM dk_registration WHERE id = '${PHIEU}'`);
 assert.equal(ph.status, "DA_DUYET");
@@ -131,7 +141,7 @@ assert.ok(ph.staff_id && ph.party_id);
 assert.equal(ph.activated_at, null);
 assert.equal((await sqlRows(`SELECT active FROM staff WHERE id = '${ph.staff_id}'`))[0].active, 0, "tài khoản chưa kích hoạt thì TẮT");
 assert.equal((await login(SDT, PIN)).status, 401, "chưa đặt PIN thì không đăng nhập được");
-console.log("✓ 4. Nhân sự duyệt ⇒ Đã duyệt, tài khoản TẮT; Quản trị không duyệt được (403); chưa đặt PIN ⇒ đăng nhập 401");
+console.log("✓ 4. Quản trị duyệt ⇒ Đã duyệt, tài khoản TẮT; người xác minh không duyệt được (403); chưa đặt PIN ⇒ đăng nhập 401");
 
 // 5. Kích hoạt: mã MỚI + PIN.
 r = await nguoiDangKy("POST", "/api/dang-ky/phieu/dat-pin", { ma: "482915", pin: PIN });

@@ -39,7 +39,7 @@ export async function thuNhoAnh(f: Blob, canhDai?: number): Promise<Uint8Array |
 }
 
 /**
- * Ảnh biên lai đã chọn (ADR-0196 Đ2, Đ9 — form «Ghi khoản thu»; ADR-0182 phần B — form «Đã chuyển tiền»): đọc, nhận loại theo chữ ký, thu nhỏ ảnh mở được (bỏ thông tin ẩn),
+ * Ảnh biên lai đã chọn (ADR-0196 Đ2, Đ9 — form «Nhập khoản thu»; ADR-0182 phần B — form «Đã chuyển tiền»): đọc, nhận loại theo chữ ký, thu nhỏ ảnh mở được (bỏ thông tin ẩn),
  * mã base64 MỘT lần lúc gửi. HEIC trình duyệt không mở được và PDF: gửi nguyên (không xoá được thông tin ẩn — ADR-0196 Đ9).
  */
 export async function chuanBiBienLai(f: File): Promise<{ noiDung: string } | { loi: string }> {

@@ -15,6 +15,7 @@ globalThis.fetch = (async (url: any, init: any) => {
 after(() => { globalThis.fetch = goc; });
 
 const ADM = "33333333-3333-4333-8333-333333333333";
+const XM = "44444444-4444-4444-8444-444444444441";
 const HR = "99999999-9999-4999-8999-999999999999";
 const AT = "2026-11-10T00:00:00.000Z";
 const DT = "0912 345 678";
@@ -26,6 +27,7 @@ let dem = 0;
 function setup() {
   const w = world();
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản Trị", perms: ["ADMIN"] });
+  seedStaff(w.sqlite, { id: XM, phone: "0900000005", name: "Quản Lý Bán Hàng", perms: ["SALES_MANAGER", "SALES"] }); // ADR-0219 Đ1: người xác minh
   seedStaff(w.sqlite, { id: HR, phone: "0900000013", name: "Nhân Sự", perms: ["HR"] });
   w.sqlite.exec(`INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('pol', 1, 'thử', 'thử', '${AT}', '${AT}', 'x', '${AT}', 'x')`);
   return w;
@@ -43,8 +45,8 @@ async function phieuDaDuyet(w: any): Promise<{ id: string; ident: string; email:
     .run(`sub-${id}`, id, DT, DT_KHOA, AT, AT, AT);
   w.sqlite.prepare("UPDATE dk_registration SET current_version = 1, submitted_at = ? WHERE id = ?").run(AT, id);
   w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(id);
-  for (const m of MUC) assert.equal((await w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as: ADM, body: { phienBan: 1, muc: m, dat: true } })).status, 200, m);
-  assert.equal((await w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as: ADM, body: { phienBan: 1, hoSo: { kieu: "MOI" } } })).status, 200);
+  for (const m of MUC) assert.equal((await w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as: XM, body: { phienBan: 1, muc: m, dat: true } })).status, 200, m);
+  assert.equal((await w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as: XM, body: { phienBan: 1, hoSo: { kieu: "MOI" } } })).status, 200);
   const r = await w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as: HR, body: { roleCode: "GUIDE_FREELANCE", phienBan: 1 } });
   assert.equal(r.status, 200, r.text);
   return { id, ident, email };

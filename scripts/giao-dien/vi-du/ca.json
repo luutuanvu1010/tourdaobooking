@@ -1,0 +1,316 @@
+[
+ {
+  "ma": "ca-01",
+  "o": "SALES:/order-form",
+  "tiem": "ten-khach-hai-lan.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "S1"
+   ],
+   "tuKhoa": [
+    "tên khách"
+   ]
+  },
+  "phongTheo": "A2 20/11",
+  "moTa": "Dưới ô «Tên khách đi tour» có thêm ô nhập thứ hai cùng nhãn."
+ },
+ {
+  "ma": "ca-02",
+  "o": "SALES:/order-form",
+  "tiem": "tong-lap-lai.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "S1",
+    "S3"
+   ],
+   "tuKhoa": [
+    "tổng"
+   ]
+  },
+  "phongTheo": "A3 20/11",
+  "moTa": "Dòng «Tổng cộng» lặp ba lần ở khối Tóm tắt (1280); hai dòng «Tổng cộng 0 ₫» thêm ở thanh đáy (390)."
+ },
+ {
+  "ma": "ca-03",
+  "o": "SALES:/order-form",
+  "tiem": "hai-nut-chinh.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "S2",
+    "T5"
+   ],
+   "tuKhoa": [
+    "lưu và tạo đơn mới"
+   ]
+  },
+  "phongTheo": "B4 20/11",
+  "moTa": "Nút nền đặc thứ hai «Lưu và tạo đơn mới» ngay sau nút Lưu."
+ },
+ {
+  "ma": "ca-04",
+  "o": "SALES:/order",
+  "tiem": null,
+  "nhom": "that",
+  "mongDoi": {
+   "ma": [
+    "S3",
+    "S1"
+   ],
+   "tuKhoa": [
+    "còn lại",
+    "tổng cộng"
+   ]
+  },
+  "phongTheo": "lỗi thật có sẵn",
+  "moTa": "Không cấy: khối Thanh toán tô đỏ đậm cả «Tổng cộng» lẫn «Còn lại»."
+ },
+ {
+  "ma": "ca-05",
+  "o": "SALES:/order-form",
+  "tiem": "thanh-buoc-lech.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "S4"
+   ],
+   "tuKhoa": [
+    "bước"
+   ]
+  },
+  "phongTheo": "B1 20/11",
+  "moTa": "Bước 2 đổi tên «Vận chuyển», bỏ bước «Thanh toán»; các khối trang giữ nguyên."
+ },
+ {
+  "ma": "ca-06",
+  "o": "SALES:/order-form",
+  "tiem": "thu-tu-khoi-khac-khoi.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "S5",
+    "S4"
+   ],
+   "tuKhoa": [
+    "thanh toán"
+   ]
+  },
+  "phongTheo": "B2 20/11",
+  "moTa": "Chỉ ở 390: khối «Thanh toán» đứng trước khối «Khách hàng»; 1280 giữ nguyên."
+ },
+ {
+  "ma": "ca-07",
+  "o": "SALES:/orders",
+  "tiem": null,
+  "nhom": "that",
+  "mongDoi": {
+   "ma": [
+    "S5",
+    "S6"
+   ],
+   "tuKhoa": [
+    "450k",
+    "250k",
+    "100k",
+    "rút gọn",
+    "k ₫"
+   ]
+  },
+  "phongTheo": "Đơn hàng 13/11",
+  "moTa": "Không cấy: bản gốc đã viết tiền hai kiểu («450k ₫» ở 390, «450.000 ₫» ở 1280)."
+ },
+ {
+  "ma": "ca-08",
+  "o": "SALES:/order-form",
+  "tiem": "ghi-chu-sai-goi-y.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "S7",
+    "S6"
+   ],
+   "tuKhoa": [
+    "thời gian đón"
+   ]
+  },
+  "phongTheo": "A1 20/11",
+  "moTa": "Ô ghi chú thanh toán mang nhãn «Ghi chú», chữ gợi ý «Thời gian đón»."
+ },
+ {
+  "ma": "ca-09",
+  "o": "SALES:/order-form",
+  "tiem": "nut-luu-mo-khong-ly-do.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "S7"
+   ],
+   "tuKhoa": [
+    "mờ",
+    "không bấm được",
+    "lưu đơn"
+   ]
+  },
+  "phongTheo": "Tài xế đối tác 13/11",
+  "moTa": "Nút Lưu đơn mờ, không câu nào nói vì sao."
+ },
+ {
+  "ma": "ca-10",
+  "o": "SALES:/order-form",
+  "tiem": "ho-trong-giua-khoi.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "S8"
+   ],
+   "tuKhoa": [
+    "trống"
+   ]
+  },
+  "phongTheo": "A4 20/11",
+  "moTa": "Khối trống khoảng 360 px giữa khối Khách hàng và khối Dịch vụ."
+ },
+ {
+  "ma": "ca-11",
+  "o": "SALES:/orders",
+  "tiem": "danh-sach-co-hep.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "S8"
+   ],
+   "tuKhoa": [
+    "trống",
+    "bên trái",
+    "nửa"
+   ]
+  },
+  "phongTheo": "Thiết lập 13/11",
+  "moTa": "Ở 1280 bảng đơn co về khoảng nửa bề rộng bên trái, nửa phải trống."
+ },
+ {
+  "ma": "ca-12",
+  "o": "SALES:/order-form",
+  "tiem": "tieu-de-het-noi-bat.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "S9"
+   ],
+   "tuKhoa": [
+    "tiêu đề"
+   ]
+  },
+  "phongTheo": "(tay nghề)",
+  "moTa": "Tiêu đề trang và tiêu đề khối về cùng cỡ, cùng độ đậm với chữ thường."
+ },
+ {
+  "ma": "ca-13",
+  "o": "SALES:/orders",
+  "tiem": "huy-hieu-chu-tho.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "S10",
+    "T9"
+   ],
+   "tuKhoa": [
+    "confirmed",
+    "draft"
+   ]
+  },
+  "phongTheo": "Địa điểm 13/11",
+  "moTa": "Huy hiệu trạng thái hiện chữ thô confirmed, draft."
+ },
+ {
+  "ma": "ca-14",
+  "o": "SALES:/order-form",
+  "tiem": "nhan-xam-nhat.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "T8"
+   ],
+   "tuKhoa": [
+    "tương phản",
+    "contrast",
+    "đơn của"
+   ]
+  },
+  "phongTheo": "Gửi thông báo 13/11",
+  "moTa": "Nhãn «Đơn của» màu xám nhạt #c8c8c8 trên nền trắng."
+ },
+ {
+  "ma": "ca-15",
+  "o": "PARTNER:/order-form",
+  "tiem": "nut-cao-28.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "T4"
+   ],
+   "tuKhoa": [
+    "44",
+    "thêm hành khách",
+    "vùng chạm"
+   ]
+  },
+  "phongTheo": "T4",
+  "moTa": "Ở 390 nút «+ Thêm hành khách» cao 28 px."
+ },
+ {
+  "ma": "ca-16",
+  "o": "SALES:/orders",
+  "tiem": "huy-hieu-khac-hinh.js",
+  "nhom": "cay",
+  "mongDoi": {
+   "ma": [
+    "S6"
+   ],
+   "tuKhoa": [
+    "đã xác nhận",
+    "huy hiệu"
+   ]
+  },
+  "phongTheo": "cùng nghĩa cùng hình",
+  "moTa": "Hai đơn «Đã xác nhận» mang hai huy hiệu khác màu, khác hình."
+ },
+ {
+  "ma": "ca-17",
+  "o": "SALES:/order-form",
+  "tiem": null,
+  "nhom": "khong-cay",
+  "mongDoi": null,
+  "phongTheo": "",
+  "moTa": "Không cấy."
+ },
+ {
+  "ma": "ca-18",
+  "o": "SALES:/orders",
+  "tiem": null,
+  "nhom": "khong-cay",
+  "mongDoi": null,
+  "phongTheo": "",
+  "moTa": "Không cấy."
+ },
+ {
+  "ma": "ca-19",
+  "o": "PARTNER:/order-form",
+  "tiem": null,
+  "nhom": "khong-cay",
+  "mongDoi": null,
+  "phongTheo": "",
+  "moTa": "Không cấy."
+ },
+ {
+  "ma": "ca-20",
+  "o": "ACCOUNTING:/orders",
+  "tiem": null,
+  "nhom": "khong-cay",
+  "mongDoi": null,
+  "phongTheo": "",
+  "moTa": "Không cấy."
+ }
+]

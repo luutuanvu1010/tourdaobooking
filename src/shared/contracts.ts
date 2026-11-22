@@ -295,6 +295,15 @@ export interface DichVuChuaCoPhiResponse { dichVu: { code: string; name: string 
 /** Thân `POST /api/cai-dat/bat-buoc-gio-don` (chỉ Toàn quyền). */
 export interface BatBuocGioDonRequest { bat: boolean }
 
+/**
+ * `GET`/`POST /api/cai-dat/noi-don-doi-tac` (ADR-0221 Đ1): `bat` = công tắc «Đối tác không nhập nơi đón» đang BẬT (mặc định TẮT); `apChoToi` = công tắc đang áp cho CHÍNH người gọi
+ * = `bat` VÀ người gọi giữ quyền Đối tác (`holdsPartner`, kể cả tài khoản lai — chủ chọn câu 2) — form Tạo đơn ẩn các ô của lượt đúng khi `apChoToi`, không tự suy từ mã quyền;
+ * `doiDuoc` = người gọi bật / tắt được (ô `settings.ops`, chỉ Toàn quyền).
+ */
+export interface NoiDonDoiTacResponse { bat: boolean; apChoToi: boolean; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/noi-don-doi-tac` (chỉ Toàn quyền). */
+export interface NoiDonDoiTacRequest { bat: boolean }
+
 // ---- Khung giờ đón (ADR-0134 Đ5, Đ6; module `orders`) ----
 /** `GET`/`POST /api/cai-dat/khung-gio-don`: bộ khung đang hiệu lực + câu lưu ý; `doiDuoc` = người gọi đổi được (ô `settings.ops` — chỉ Toàn quyền). */
 export interface KhungGioDonResponse { khung: KhungGio[]; luuY: string; doiDuoc: boolean }
@@ -834,6 +843,8 @@ export interface PhiDonApResponse { dangAp: boolean }
 export interface ShortNoticeRequiredBody { error: { code: "short_notice_required"; message: string; legs: { legId: string; phutConLai: number }[] } }
 /** 409 Còn vé khi yêu cầu mang cờ «cần chốt giờ» (ADR-0154 Đ1.2, Đ1.3) mà lượt đầu của một dịch vụ còn thiếu giờ đón: `legs` = các lượt đầu còn thiếu. Không ghi gì. */
 export interface PickupTimeRequiredBody { error: { code: "pickup_time_required"; message: string; legs: { legId: string }[] } }
+/** 409 `pickup_place_required` (ADR-0221 Đ3): sau lệnh còn lượt đón MỞ chưa có nơi đón thật (mang chữ tạm) — ghi nơi đón ở bảng Còn vé rồi xác nhận lại. `legs` = các lượt còn thiếu. */
+export interface PickupPlaceRequiredBody { error: { code: "pickup_place_required"; message: string; legs: { legId: string }[] } }
 /** 409 `chua_gio_sat_ngay` (ADR-0193 câu (ii)): còn lượt đón CHƯA giờ mà ngày đón đã vào hạn chốt — điền giờ rồi xác nhận lại. `legs` = các lượt chạm luật. */
 export interface ChuaGioSatNgayBody { error: { code: "chua_gio_sat_ngay"; message: string; legs: { legId: string }[] } }
 
@@ -986,6 +997,12 @@ export interface CatalogCoVeInput { pham: "SERVICE" | "GROUP"; ma: string; coVe:
 export interface CatalogNguonVeResponse { dichVu: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }[] }
 export interface CatalogNguonVeInput { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }
 export interface CatalogNgungBanResponse { code: string; ngungBan: boolean }
+/** ADR-0220: một khoảng «Ngừng bán theo ngày» còn chặn. `ma` = mã dịch vụ hoặc mã nhóm theo `phamVi`; `ten` = tên dịch vụ / tên nhóm để hiện. Ngày "YYYY-MM-DD", gồm cả hai đầu. */
+export interface CatalogNgungBanNgayDto { id: string; phamVi: "SERVICE" | "GROUP"; ma: string; ten: string; tuNgay: string; denNgay: string; ghiChu: string | null; taoLuc: string }
+export interface CatalogNgungBanNgayInput { phamVi: "SERVICE" | "GROUP"; ma: string; tuNgay: string; denNgay: string; ghiChu?: string | null }
+export interface CatalogNgungBanNgayListResponse { khoang: CatalogNgungBanNgayDto[] }
+/** `soDonDaXacNhan`: số đơn đã xác nhận có ngày khởi hành trong khoảng (chỉ con số); `null` = không đếm được. */
+export interface CatalogNgungBanNgayResponse { khoang: CatalogNgungBanNgayDto; soDonDaXacNhan: number | null }
 export interface CatalogSyncResponse {
   ok: true;
   added: number;
@@ -2505,7 +2522,7 @@ export interface OrderPaymentsResponse {
   coTheHoanThanh: boolean;
   /** Người xem được chọn người thu khác mình / Công ty, và chọn ngày phát sinh khác hôm nay (Kế toán, Toàn quyền). */
   laKeToan: boolean;
-  /** ADR-0196 Đ1: người xem giữ quyền Đối tác và không giữ quyền Kế toán ⇒ form «Ghi khoản thu» chọn «Công ty» + «Chuyển khoản» phải kèm ảnh biên lai (máy chủ kiểm lại). */
+  /** ADR-0196 Đ1: người xem giữ quyền Đối tác và không giữ quyền Kế toán ⇒ form «Nhập khoản thu» chọn «Công ty» + «Chuyển khoản» phải kèm ảnh biên lai (máy chủ kiểm lại). */
   bienLaiKhiCongTyCk: boolean;
   /**
    * Thao tác Kế toán đặt TẠM trên trang đơn (điều phối 30/9 — hai màn sổ riêng chờ chủ vẽ lại): CHỈ có khi `laKeToan`, còn lại `null`.
@@ -2516,7 +2533,7 @@ export interface OrderPaymentsResponse {
   /** ADR-0089: tiền cọc của ĐƠN HUỶ (null với đơn không huỷ). */
   coc: CocDonDto | null;
   /**
-   * Sổ đại lý đợt 2, Task 12 (ADR-0132; đặc tả P4): hai lựa chọn người thu tiền mới của form «Ghi khoản thu» — đại lý được hưởng của đơn và quầy nhà cung cấp của các
+   * Sổ đại lý đợt 2, Task 12 (ADR-0132; đặc tả P4): hai lựa chọn người thu tiền mới của form «Nhập khoản thu» — đại lý được hưởng của đơn và quầy nhà cung cấp của các
    * dòng làm đại lý, tính bằng CÙNG `benDatHuong` / `nhaCungCapCuaDon` của lệnh ghi. null khi: người xem giữ quyền Đối tác (kể cả tài khoản lai — không tên nhà cung cấp),
    * người xem không ghi khoản thu được, đơn không còn ghi khoản thu được (nháp, chưa chụp, đã giao, huỷ), hoặc đơn không có bên nào.
    */
@@ -3512,6 +3529,12 @@ export interface QuyetDinhXacNhanInput {
    */
   /** Mỗi phần tử: đổi số `{ legId, donGia, lyDo }` HOẶC bỏ số đã đổi trước đó `{ legId, bo: true }` (máy tính lại theo giá gốc / chương trình). */
   doiPhi?: ({ legId: string; donGia: number; lyDo: string } | { legId: string; bo: true })[];
+  /**
+   * Nơi đón người xét ghi cho các lượt đón MỞ đang CHƯA có nơi đón thật (mang chữ tạm — ADR-0221 Đ3): chỉ nhánh Còn vé đọc. Mỗi phần tử ĐÚNG MỘT trong hai: `pickupLocationId` (điểm danh
+   * mục đang dùng) hoặc `pickupPlace` (chữ 1–200 ký tự; chữ tạm bị từ chối). Lượt đã có nơi đón thật, lượt không phải lượt mở của đơn, nhắc hai lần ⇒ 400. Sau lệnh còn lượt thiếu ⇒ 409
+   * `pickup_place_required` (`PickupPlaceRequiredBody`).
+   */
+  noiDon?: { legId: string; pickupLocationId?: string; pickupPlace?: string }[];
   lyDo?: string;
   ghiChu?: string;
 }

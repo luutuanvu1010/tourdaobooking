@@ -32,11 +32,15 @@ export async function veTheHanMuc(el: HTMLElement, staff: StaffProfile): Promise
     el.hidden = false;
     return;
   }
-  const taiLai = async (cau: string | null, laLoi = false): Promise<void> => {
+  // `cuon`: chỉ biểu mẫu cài đặt dùng — nút «Lưu cài đặt» ở cuối biểu mẫu còn câu báo ở đầu thẻ, ở điện thoại hai chỗ không cùng một màn nên phải đưa câu báo
+  // vào tầm nhìn. «Đặt lại» từng dòng thì không cuộn: người dùng đang đứng ở dòng đó.
+  const taiLai = async (cau: string | null, laLoi = false, cuon = false): Promise<void> => {
     await veTheHanMuc(el, staff);
     if (!cau) return;
     const box = el.querySelector<HTMLElement>(laLoi ? ".alert:not(.ok)" : ".alert.ok");
-    if (box) showError(box, cau);
+    if (!box) return;
+    showError(box, cau);
+    if (cuon) box.scrollIntoView({ block: "nearest" });
   };
   const doiDuoc = du.doiDuoc && can(staff, "settings.ops");
 
@@ -128,10 +132,10 @@ export async function veTheHanMuc(el: HTMLElement, staff: StaffProfile): Promise
       luu.disabled = true;
       try {
         await api<Api.HanMucCaiDatResponse>(`${BASE}/chinh-sach`, { method: "POST", body: r.cs });
-        await taiLai("Đã lưu cài đặt hạn mức — có hiệu lực từ bây giờ.");
+        await taiLai("Đã lưu cài đặt hạn mức — có hiệu lực từ bây giờ.", false, true);
       } catch (err) {
         luu.disabled = false;
-        if (err instanceof ApiError && err.code === "stale") await taiLai(`${err.message}`, true);
+        if (err instanceof ApiError && err.code === "stale") await taiLai(`${err.message}`, true, true);
         else showError(loiO, loiCua(err));
       }
     });

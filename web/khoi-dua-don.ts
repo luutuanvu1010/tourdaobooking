@@ -2,6 +2,7 @@
 // bảng "Sửa đưa đón" của đơn đã xác nhận (M4 — `che: "bang"`: "Bỏ chặng" của chặng đã lưu hỏi lý do). Mọi luật ở src/shared/chang-form.ts; ở đây chỉ dựng DOM.
 // KHÔNG dựng lại ô người dùng đang gõ: gõ chữ / ngày / giờ chỉ cập nhật chữ gợi ý và lỗi tại chỗ; đổi ô chọn, thêm / bỏ chặng mới dựng lại (rồi trả focus).
 // Nơi đón / nơi trả: form dùng MỘT ô có gợi ý mỗi nơi (web/o-noi-goi-y.ts — Tạo đơn thiết kế lại 18/10/2026, việc 7); bảng "Sửa đưa đón" giữ ô tìm + ô chọn + ô địa chỉ (`oChonNoi`).
+import { duaDonAnHetLuot, duaDonChiNoiDon } from "../src/shared/form-dat-ve";
 import { CHIEU_LABEL, LY_DO_DONG_CHANG, khoangNgayDon, type LyDoDongChang } from "../src/shared/chang-dua-don";
 import {
   TU_DO, canHienNgayDon, changNenGon, chiTietChangCoGiaTri, chonKhung, coOSoHieu, goiYChang, khungDangChon, loiChang, nhanNoiChang, suaChang, themChangDi, themChieuVe, tomTatChang,
@@ -71,6 +72,18 @@ export interface KhoiDuaDonOptions {
    */
   anGio?: boolean;
   /**
+   * CHỈ form của tài khoản Đối tác — H2 phương án nhẹ (đặc tả 2026-11-20-sua-giao-dien-bon-y-cua-chu.md, chủ duyệt 20/11/2026; đổi một phần ADR-0154 Đ1.1 ở mức giao diện): khi `duaDonChiNoiDon`
+   * đúng (một lượt chiều đi, không có gì bị giấu), khối chỉ còn Đón / Không đón và MỘT ô «Nơi đón» (kèm «Chọn nhanh», ô số hiệu chuyến bay nếu là sân bay). Phần còn lại vẫn nằm trong cây DOM,
+   * chỉ ẩn bằng lớp `dd-chi-noi-don` của gốc khối; dữ liệu gửi đi không đổi.
+   */
+  chiNoiDon?: boolean;
+  /**
+   * CHỈ form của tài khoản Đối tác — ADR-0221 Đ2 (chủ duyệt 21/11/2026): công tắc «Đối tác không nhập nơi đón» đang áp cho người lập (`apChoToi` của máy chủ; trang đọc một lần, hỏi lại mỗi lần dựng khối).
+   * Khi hàm trả true VÀ `duaDonAnHetLuot` đúng (một lượt chiều đi chưa có nơi đón, không có gì bị giấu), gốc khối mang lớp `dd-an-het-luot`: CSS ẩn TOÀN BỘ khung lượt (vẫn nằm trong cây DOM), chỉ còn hai nút
+   * «Đón», «Không đón»; lượt gửi lên với nơi đón rỗng, máy chủ ghi chữ tạm. Không thoả luật an toàn (nháp cũ đã có nơi đón, chiều về, nhiều lượt…) ⇒ rơi về `chiNoiDon` hoặc đủ ô, kiểm lỗi như trước.
+   */
+  anHetLuot?: () => boolean;
+  /**
    * CHỈ form Tạo/sửa đơn (ADR-0195): chính sách của ô phụ CỦA DỊCH VỤ NÀY (đã tính theo điều kiện «không đón / có đón» của chính dịch vụ), đọc lại mỗi lần dựng khối. `an` = không dựng ô (giá trị vẫn nằm trong
    * bản nháp, máy chủ bỏ khi lưu); `batBuoc` = thêm «*» vào nhãn. Vắng (bảng «Sửa đưa đón») = hiện đủ như cũ.
    */
@@ -127,6 +140,8 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
   /** ADR-0134: chặng người lập vừa bấm "Giờ khác" (hiện ô giờ dù chưa gõ). Chặng có giờ không khớp khung nào cũng hiện ô giờ (`khungDangChon` = "khac"). */
   const moGioKhac = new Set<string>();
   const moChang = new Set<string>();
+  /** ADR-0221: khối đang ở chế độ ẩn hết lượt (tính lại mỗi lần dựng và mỗi lần hỏi lỗi) — lượt chiều đi chưa có nơi đón không phải lỗi. */
+  const anHet = (): boolean => o.che === "form" && o.anHetLuot?.() === true && duaDonAnHetLuot(legs, o.ngayDi());
   const moChiTiet = new Set<string>();
   const root = h("div", { class: "dd", "data-dua-don": o.ma });
   /** Phần tử cập nhật tại chỗ theo từng chặng. */
@@ -626,7 +641,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       legs.forEach((l, i) => {
         if (daThay.has(l.key)) return;
         daThay.add(l.key);
-        if (!changNenGon(l, i + 1, o.soKhach(), o.ngayDi(), coOSoHieu(l, laSanBay))) moChang.add(l.key);
+        if (!changNenGon(l, i + 1, o.soKhach(), o.ngayDi(), coOSoHieu(l, laSanBay), anHet())) moChang.add(l.key);
         if (chiTietChangCoGiaTri(l)) moChiTiet.add(l.key);
       });
     }
@@ -658,6 +673,9 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       them.addEventListener("click", () => commit([themChangDi(o.mau(), o.ngayDi(), o.newKey())], true));
       items.push(h("div", { class: "dd-trong" }, h("span", null, KHONG_DUA_DON), them)); // cùng chữ với dòng gập của thẻ (dong-gap-the.ts)
     }
+    const anHetLuot = anHet();
+    const chiNoiDon = o.che === "form" && o.chiNoiDon === true && duaDonChiNoiDon(legs, o.ngayDi());
+    if (chiNoiDon) legs.forEach((l) => moChang.add(l.key)); // ô «Nơi đón» luôn mở sẵn: dòng tóm tắt một dòng bị ẩn ở chế độ này
     legs.forEach((l, i) => items.push(changEl(l, i)));
     if (legs.length > 0) {
       const ve = h("button", { type: "button", class: "pill-btn", "data-action": "them-chieu-ve" }, "+ Thêm chiều về");
@@ -667,6 +685,8 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       items.push(h("div", { class: "dd-nut" }, ve, them));
     }
     replaceChildren(root, ...items);
+    root.classList.toggle("dd-chi-noi-don", chiNoiDon && !anHetLuot);
+    root.classList.toggle("dd-an-het-luot", anHetLuot);
     refresh();
     const moi = khoaFocus ? root.querySelector<HTMLElement>(khoaFocus) : null;
     moi?.focus();
@@ -698,7 +718,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       capNhatNgay(r.ngayEl, r.nutKhacNgay, l);
       r.hintGio.textContent = g.gio;
       r.gioMo.hidden = l.pickupTime !== "";
-      const e = loiChang(l, i + 1, o.soKhach(), daLuu);
+      const e = loiChang(l, i + 1, o.soKhach(), daLuu, anHet());
       datLoi(r.loiDon, r.don, o.che === "form" ? (e.don ?? e.donTuDo) : e.don); // form: một ô nơi đón mang cả lỗi "chưa ghi địa chỉ đón" (không còn ô địa chỉ riêng)
       datLoi(r.loiDonTuDo, r.donTuDo, e.donTuDo);
       datLoi(r.loiSoVe, r.soVe, e.soVe);
@@ -731,7 +751,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       if (!show) return null;
       let dau: { o: HTMLElement; daAn: boolean } | null = null;
       legs.forEach((l, i) => {
-        const e = loiChang(l, i + 1, o.soKhach(), true);
+        const e = loiChang(l, i + 1, o.soKhach(), true, anHet());
         const r = refs[i];
         const pdc = o.phiDon?.();
         const v = pdc?.kieu === "doi-phi" ? pdc.lay(l) : null;

@@ -44,7 +44,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
     noiDung: `### Các bước
 1. **Tải vé từ nhà cung cấp.** Mỗi lần chỉ tải đúng một sản phẩm, một loại khách, một khoảng ngày dùng. Giữ nguyên ảnh gốc, vì ảnh nén quá nhỏ có thể không đọc được QR.
 2. **Nhập vào kho.** Chọn dịch vụ và loại khách, gõ tên sản phẩm, chọn ngày dùng, chọn các ảnh vé rồi bấm [[Nhập lô vé]]. Giữ nguyên trang này cho tới khi gửi xong. Ảnh hỏng hoặc trùng bị loại kèm tên tệp, các ảnh còn lại vẫn vào kho.
-3. **Máy giữ vé cho đơn.** Máy tự giữ vé theo số khách khi đơn được xác nhận; em bé không có vé. Máy lấy lô đúng loại khách trước, rồi đến lô «Mọi loại khách»; trong mỗi nhóm, vé sắp hết hạn ra trước. Kho thiếu thì đơn báo còn thiếu vé: nhập thêm lô, mở đơn rồi bấm [[Cấp vé]].
+3. **Máy giữ vé cho đơn.** Máy tự giữ vé theo số khách khi đơn được xác nhận; em bé không có vé. Máy lấy lô đúng loại khách trước, rồi đến lô «Mọi loại khách»; trong mỗi nhóm, vé sắp hết hạn ra trước. Kho thiếu thì đơn báo còn thiếu vé: nhập thêm lô, mở đơn rồi bấm [[Cấp vé]]. Muốn biết sản phẩm nào sắp hết, xem khối **Số vé còn** và bấm **Hết vé**, **Còn 1 đến 5**, **Còn trên 5**. Thanh **Lọc theo dịch vụ** ở đầu trang (chọn một nhóm dịch vụ, hoặc gõ tên, mã, tên in trên vé, không dấu cũng được) thu hẹp cùng lúc Số vé còn, Lô trong kho và Lô đã huỷ gần đây; lọc ra trống thì bấm [[Xoá lọc]].
 4. **Giao vé.** Vé chỉ mở khi đơn đã thu đủ; đơn trả sau thì vé mở trước, trừ khi đơn đã quá hạn còn nợ; với đơn do đối tác lập, chỉ tính tiền đã về công ty (đối tác tự ghi «Tôi thu» chưa đủ để mở). Bấm nút **Mở … vé để gửi khách** (có số vé của đơn; màn hình nhắc vé sẽ không về kho nữa), rồi bấm [[Gửi Zalo]] và tự chọn người nhận. Máy không có nút này thì bấm các nút **Tải vé** để lưu ảnh rồi tự gửi. Hoặc bấm [[Tạo đường dẫn cho khách]] để khách tự mở và lưu vé; đường dẫn chỉ hiện một lần, nên chép gửi ngay. Khi đơn tăng số khách, vé thêm chỉ hiện cho khách sau khi đơn thu đủ; vé khách đã mở rồi thì vẫn xem được.
 
 ### Điều dễ sai
@@ -92,16 +92,17 @@ export const BAI_VIEC: readonly BaiViec[] = [
     nhomViec: "Quét vé",
     trang: "quetVe",
     o: ["ve.quet.xem"],
-    gioiHan: ["Người quét tự bỏ lượt quét trong 5 phút; sau đó nhờ Quản trị", "Cùng một mã quét lại trong 3 giây chỉ tính một lần"],
-    neo: ["web/quet-ve.ts", "public/quet-ve.html", "src/shared/ket-qua-quet.ts"],
+    gioiHan: ["Người quét tự bỏ lượt quét trong 5 phút; sau đó nhờ Quản trị", "Cùng một mã trong 3 giây chỉ gửi một lần; vé còn trước camera thì 3 giây sau được kiểm lại"],
+    neo: ["web/quet-ve.ts", "web/quet-ve-may.ts", "public/quet-ve.html", "src/shared/ket-qua-quet.ts"],
     moDau: "Màn hình hiện ba màu kèm chữ lớn: xanh là vé hợp lệ, vàng là cần bạn xác nhận, đỏ là không dùng được. Chỉ quét được vé Tour Đảo.",
     noiDung: `### Các bước
 1. Mở **Quét vé** rồi bấm [[Bật camera]]. Lần đầu máy hỏi quyền camera, hãy cho phép.
 2. Hướng camera vào mã trên vé của khách. Máy tự đọc và hiện kết quả cả màn hình.
 3. Xanh thì cho khách đi. Vàng thì đọc câu báo; vẫn cho khách đi thì bấm [[Xác nhận cho đi]]. Đỏ thì không cho đi, đọc câu báo để biết lý do.
-4. Bấm [[Quét tiếp]] để quét vé kế tiếp.
-5. Camera không mở được thì bấm **Chụp ảnh mã vé** và chụp mã trên vé.
+4. Bấm [[Quét tiếp]] để quét vé kế tiếp. Vé vừa quét còn nằm trước camera thì máy hiện dòng nhắc: muốn kiểm lại ngay thì bấm [[Quét lại vé này]], không thì 3 giây sau máy tự kiểm lại (vé đã tính rồi sẽ hiện đỏ «Đã dùng»).
+5. Camera không mở được thì bấm **Chụp ảnh mã vé** và chụp mã trên vé. Camera trong trang đang bật sẽ tắt khi bấm nút này; chụp xong bấm [[Bật camera]] để quét tiếp bằng camera.
 6. Mã trên vé hỏng hoặc in mờ thì gõ **số sê-ri** in trên vé (dạng VE_ và tám chữ cái, chữ thường hay có khoảng trắng đều được) vào ô «Số sê-ri in trên vé», bấm [[Tra số sê-ri]]. Máy tra như khi quét nhưng luôn hiện màu vàng «nhập tay» vì số in trên vé ai nhìn cũng chép được: kiểm đúng vé trước mặt rồi bấm [[Xác nhận cho đi]]; lượt đó ghi «nhập tay» trong nhật ký. Vé hãng ngoài không tra được ở đây. Vé đỏ «Vé đã huỷ» thì không cho đi, báo văn phòng gửi lại vé thay.
+7. Mạng yếu thì máy tự gửi lại hai lần; vẫn không được thì hiện «Không gửi được». Kiểm tra Wi-Fi hoặc 4G rồi bấm **Thử lại**. Chưa thấy kết quả xanh thì chưa cho khách đi.
 
 ### Điều dễ sai
 - Tài xế công ty chỉ xem vé có hợp lệ không; lượt quét của họ không tính vào số vé đã đi.

@@ -85,8 +85,8 @@ function phieu(w: W, role = "GUIDE_FREELANCE"): string {
   return id;
 }
 async function xacMinh(w: W, id: string, hoSo: any = { kieu: "MOI" }) {
-  for (const m of MUC) await ok(w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as: ADM, body: { phienBan: 1, muc: m, dat: true } }), 200, m);
-  await ok(w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as: ADM, body: { phienBan: 1, hoSo } }), 200, "đạt");
+  for (const m of MUC) await ok(w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as: SM, body: { phienBan: 1, muc: m, dat: true } }), 200, m);
+  await ok(w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as: SM, body: { phienBan: 1, hoSo } }), 200, "đạt");
 }
 const duyet = (w: W, id: string, roleCode = "GUIDE_FREELANCE", as = HR) => w.call("POST", `/api/dang-ky/phieu/${id}/duyet`, { as, body: { roleCode, phienBan: 1 } });
 /** Phiếu mới → xác minh → duyệt (200) ⇒ mã hồ sơ của tài khoản vừa mở. */

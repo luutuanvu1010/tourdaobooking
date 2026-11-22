@@ -1,6 +1,6 @@
-// Route của người trong công ty ở bước XÁC MINH phiếu đăng ký (ADR-0207 Đ1, Đ2, Đ3, Đ9; ADR-0208 Đ3; ADR-0210 Đ1). Cổng `accounts`; MỖI route hỏi ô quyền trong thân.
-// Ai làm được: xem hàng chờ = `registration.queue.view` (Nhân sự chỉ thấy phiếu CHỜ DUYỆT, không có tên nào); xem nội dung, kết luận, ba lệnh kết thúc = `party.verify` VÀ `party.view`
-// (Nhân sự không có `party.view` nên 403); xem đủ số và mở ảnh còn đòi `party.verify.attachment`. Nội dung CHỈ trả khi phiếu còn CHỜ XÁC MINH (ADR-0125 đ6 — xử lý xong không xem lại).
+// Route của người trong công ty ở bước XÁC MINH phiếu đăng ký (ADR-0207 Đ1, Đ2, Đ3, Đ9; ADR-0208 Đ3; ADR-0210 Đ1; ADR-0219 Đ1–Đ3). Cổng `office` (hàng chờ: `staff`); MỖI route hỏi ô quyền trong thân.
+// Ai làm được: xem hàng chờ = `registration.queue.view` (người chỉ duyệt được thấy phiếu CHỜ DUYỆT, không có tên nào); xem nội dung, kết luận, ba lệnh kết thúc = `registration.verify` VÀ `party.view`
+// (Quản lý bán hàng, Toàn quyền); xem đủ số và mở ảnh còn đòi `registration.verify.attachment`. Nội dung CHỈ trả khi phiếu còn CHỜ XÁC MINH (ADR-0125 đ6 — xử lý xong không xem lại).
 // Số đầy đủ và ảnh: nhật ký ghi TRƯỚC (`await batch`); nhật ký lỗi thì ném lên (500), KHÔNG trả dữ liệu. Nhật ký và lịch sử phiếu không chứa SĐT, email, số giấy tờ, ngày sinh, địa chỉ, khoá kho.
 // Mỗi lệnh ghi là MỘT `db.batch`: [câu đổi có điều kiện trạng thái, dòng lịch sử (WHERE changes() > 0), nhật ký (onlyIf changes() > 0), …]; câu đầu đổi 0 dòng ⇒ phiếu đã bị người khác xử lý ⇒ 409.
 import { MA_LY_DO_PHIEU, cauLyDoChoNguoiDangKy, nhanLyDoPhieu, nhanMucXacMinh } from "../../shared/dang-ky-hien-thi.ts";
@@ -26,7 +26,7 @@ import { TRANG_THAI_CUA_THU, docLenhThu, maLenhThu } from "./rules.ts";
 import { guiThuSauLo } from "./thu-bao.ts";
 import { kiemVaiKhiDuyet } from "./vai.ts";
 
-type Staff = Ctx<"accounts">["staff"];
+type Staff = Ctx<"office">["staff"];
 
 export const CAM = () => error(403, "forbidden", "Bạn không có quyền xác minh phiếu đăng ký.");
 const KHONG_THAY = () => error(404, "not_found", "Không tìm thấy phiếu.");
@@ -34,8 +34,8 @@ const DA_XU_LY = () => error(403, "registration_processed", "Phiếu đã đư�
 const DOI_PHIEN_BAN = () => error(409, "registration_version_changed", "Phiếu đã thay đổi từ lúc bạn mở. Hãy mở lại phiếu để xem bản mới.");
 const KHONG_CON_CHO = () => error(409, "registration_state_changed", "Phiếu vừa được người khác xử lý hoặc không còn chờ xác minh. Hãy mở lại phiếu.");
 
-// Cổng quyền của từng route nằm ở THÂN route trong index.ts (hàng rào route-write-guard đọc chữ `if (!can(…)) return …` ở đó): bước xác minh = `party.verify` VÀ `party.view` (ADR-0207 Đ1;
-// Nhân sự giữ `party.verify` nhưng không `party.view` ⇒ 403); xem đủ số, mở ảnh thêm `party.verify.attachment`; hàng chờ = `registration.queue.view`. Các hàm dưới đây CHỈ chạy sau cổng đó.
+// Cổng quyền của từng route nằm ở THÂN route trong index.ts (hàng rào route-write-guard đọc chữ `if (!can(…)) return …` ở đó): bước xác minh = `registration.verify` VÀ `party.view` (ADR-0219 Đ1;
+// Quản trị, Nhân sự không có `registration.verify` ⇒ 403); xem đủ số, mở ảnh thêm `registration.verify.attachment`; hàng chờ = `registration.queue.view`. Các hàm dưới đây CHỈ chạy sau cổng đó.
 
 const idPhieu = (params: Record<string, string>): string | null => (laMaPhieu(params.id) ? params.id! : null);
 
@@ -66,16 +66,16 @@ function thuCuaDong(r: { status: string; thu: string | null }): ReturnType<typeo
 }
 
 // ---- GET /api/dang-ky/hang-cho ----
-export async function xemHangCho({ env, staff }: Ctx<"accounts">): Promise<Response> {
-  // Lọc theo năng lực (không phải cổng): xác minh được ⇒ phiếu chưa kết thúc; account.create ⇒ CHỜ DUYỆT + ĐÃ DUYỆT chưa kích hoạt; cả hai ⇒ hợp. Chỉ mã, loại, mốc — không tên, không liên hệ.
+export async function xemHangCho({ env, staff }: Ctx<"staff">): Promise<Response> {
+  // Lọc theo năng lực (không phải cổng): xác minh được ⇒ phiếu chưa kết thúc; registration.approve ⇒ CHỜ DUYỆT + ĐÃ DUYỆT chưa kích hoạt; cả hai ⇒ hợp. Chỉ mã, loại, mốc — không tên, không liên hệ.
   // `thu` = thư báo mới nhất của phiếu (loại + chờ / đã gửi / lỗi — ADR-0206 Đ13); `conNua` = còn phiếu ngoài trần (rà soát cuối I-4).
-  const { ds, conNua } = await hangCho(env.DB, { xacMinh: can(staff, "party.verify") && can(staff, "party.view"), duyet: can(staff, "account.create") });
+  const { ds, conNua } = await hangCho(env.DB, { xacMinh: can(staff, "registration.verify") && can(staff, "party.view"), duyet: can(staff, "registration.approve") });
   const ten = await tenLoaiVai(env.DB);
   return json({ phieu: ds.map((r) => ({ id: r.id, trangThai: r.status, loai: r.role_code, tenLoai: ten.get(r.role_code) ?? r.role_code, phienBan: r.current_version, guiLuc: r.submitted_at, thu: thuCuaDong(r) })), conNua });
 }
 
 // ---- GET /api/dang-ky/phieu/:id ----
-export async function xemPhieu({ env, staff, params }: Ctx<"accounts">): Promise<Response> {
+export async function xemPhieu({ env, staff, params }: Ctx<"office">): Promise<Response> {
   const id = idPhieu(params);
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p) return KHONG_THAY();
@@ -149,7 +149,7 @@ export async function loiMoiCuaPhieu(db: D1Database, p: Pick<PhieuXetRow, "id" |
 }
 
 /** Nạp phiếu cho các lệnh ghi: 404 nếu không có; 409 nếu không còn chờ xác minh. */
-async function phieuChoXacMinh(env: Ctx<"accounts">["env"], params: Record<string, string>): Promise<{ p: PhieuXetRow } | Response> {
+async function phieuChoXacMinh(env: Ctx<"office">["env"], params: Record<string, string>): Promise<{ p: PhieuXetRow } | Response> {
   const id = idPhieu(params);
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p) return KHONG_THAY();
@@ -158,13 +158,13 @@ async function phieuChoXacMinh(env: Ctx<"accounts">["env"], params: Record<strin
 }
 
 /** Câu ghi trúng 0 dòng: bản khai đã đổi (phiếu vẫn chờ xác minh) hay phiếu đã chuyển bước. */
-async function loiKhongGhi(env: Ctx<"accounts">["env"], id: string, phienBan: number): Promise<Response> {
+async function loiKhongGhi(env: Ctx<"office">["env"], id: string, phienBan: number): Promise<Response> {
   const p = await phieuXet(env.DB, id);
   return p && p.status === "CHO_XAC_MINH" && p.current_version !== phienBan ? DOI_PHIEN_BAN() : KHONG_CON_CHO();
 }
 
 // ---- POST /api/dang-ky/phieu/:id/ket-luan ----
-export async function ketLuanMuc({ request, env, staff, params }: Ctx<"accounts">): Promise<Response> {
+export async function ketLuanMuc({ request, env, staff, params }: Ctx<"office">): Promise<Response> {
   const r = await phieuChoXacMinh(env, params);
   if (r instanceof Response) return r;
   const { p } = r;
@@ -184,7 +184,7 @@ export async function ketLuanMuc({ request, env, staff, params }: Ctx<"accounts"
 }
 
 // ---- POST /api/dang-ky/phieu/:id/xem-so ----
-export async function xemSo({ env, staff, params }: Ctx<"accounts">): Promise<Response> {
+export async function xemSo({ env, staff, params }: Ctx<"office">): Promise<Response> {
   const id = idPhieu(params);
   const p = id ? await phieuXet(env.DB, id) : null;
   if (!p) return KHONG_THAY();
@@ -197,7 +197,7 @@ export async function xemSo({ env, staff, params }: Ctx<"accounts">): Promise<Re
 }
 
 // ---- GET /api/dang-ky/phieu/:id/tep/:tid ----
-export async function moTep({ request, env, staff, params }: Ctx<"accounts">): Promise<Response> {
+export async function moTep({ request, env, staff, params }: Ctx<"office">): Promise<Response> {
   // GET không qua lớp chặn gọi chéo trang của router: chỉ nhận same-origin, none (mở thẳng) hoặc vắng header — cùng danh sách cho phép với ảnh giấy tờ của hồ sơ.
   const sfs = request.headers.get("sec-fetch-site");
   if (sfs !== null && sfs !== "same-origin" && sfs !== "none") return CAM();
@@ -262,7 +262,7 @@ export async function kiemNguoiGioiThieu(db: D1Database, partyId: string, hoSoDi
   return null;
 }
 
-export async function xacMinhDat({ request, env, staff, params }: Ctx<"accounts">): Promise<Response> {
+export async function xacMinhDat({ request, env, staff, params }: Ctx<"office">): Promise<Response> {
   const r = await phieuChoXacMinh(env, params);
   if (r instanceof Response) return r;
   const { p } = r;
@@ -327,7 +327,7 @@ export async function xacMinhDat({ request, env, staff, params }: Ctx<"accounts"
 }
 
 // ---- POST /api/dang-ky/phieu/:id/bo-sung ----
-export async function yeuCauBoSung({ request, env, staff, params, exec }: Ctx<"accounts">): Promise<Response> {
+export async function yeuCauBoSung({ request, env, staff, params, exec }: Ctx<"office">): Promise<Response> {
   const r = await phieuChoXacMinh(env, params);
   if (r instanceof Response) return r;
   const k = kiemLyDo(await readJson(request));
@@ -359,7 +359,7 @@ export async function yeuCauBoSung({ request, env, staff, params, exec }: Ctx<"a
 }
 
 // ---- POST /api/dang-ky/phieu/:id/tu-choi ----
-export async function tuChoiPhieu({ request, env, staff, params, exec }: Ctx<"accounts">): Promise<Response> {
+export async function tuChoiPhieu({ request, env, staff, params, exec }: Ctx<"office">): Promise<Response> {
   const r = await phieuChoXacMinh(env, params);
   if (r instanceof Response) return r;
   const k = kiemLyDo(await readJson(request));

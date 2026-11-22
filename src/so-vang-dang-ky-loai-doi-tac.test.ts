@@ -10,6 +10,7 @@ const SALES = "11111111-1111-4111-8111-111111111111";
 const KT = "44444444-4444-4444-8444-444444444444";
 const SUPER = "33333333-3333-4333-8333-333333333333";
 const ADM = "55555555-5555-4555-8555-555555555555";
+const XM = "44444444-4444-4444-8444-444444444441";
 const HR = "77777777-7777-4777-8777-777777777777";
 const AT = "2026-11-10T00:00:00.000Z";
 const SO_DT = "0912345678";
@@ -22,6 +23,7 @@ function setup(): W {
   seedStaff(w.sqlite, { id: KT, phone: "0900000005", name: "Lan Kế Toán", perms: ["ACCOUNTING"] });
   seedStaff(w.sqlite, { id: SUPER, phone: "0900000003", name: "Chủ", perms: ["SUPER_ADMIN"] });
   seedStaff(w.sqlite, { id: ADM, phone: "0900000006", name: "Quản trị", perms: ["ADMIN"] });
+  seedStaff(w.sqlite, { id: XM, phone: "0900000016", name: "Quản lý bán hàng", perms: ["SALES_MANAGER", "SALES"] }); // ADR-0219 Đ1: người xác minh
   seedStaff(w.sqlite, { id: HR, phone: "0900000007", name: "Nhân sự", perms: ["HR"] });
   if (w.q("SELECT 1 FROM pty_privacy_policy LIMIT 1").length === 0) {
     w.sqlite.exec(`INSERT INTO pty_privacy_policy (id, version, purposes, body, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('pol', 1, 'thử', 'thử', '${AT}', '${AT}', '${SUPER}', '${AT}', '${SUPER}')`);
@@ -40,10 +42,10 @@ async function phieuDaXacMinh(w: W): Promise<string> {
   w.sqlite.prepare("UPDATE dk_registration SET current_version = 1, submitted_at = ? WHERE id = ?").run(AT, id);
   w.sqlite.prepare("UPDATE dk_registration SET status = 'CHO_XAC_MINH' WHERE id = ?").run(id);
   for (const m of ["ROLE", "CALLED", "HO_TEN", "NGAY_SINH", "CCCD"]) {
-    const r = await w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as: ADM, body: { phienBan: 1, muc: m, dat: true } });
+    const r = await w.call("POST", `/api/dang-ky/phieu/${id}/ket-luan`, { as: XM, body: { phienBan: 1, muc: m, dat: true } });
     assert.equal(r.status, 200, `${m}: ${r.text}`);
   }
-  const d = await w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as: ADM, body: { phienBan: 1, hoSo: { kieu: "MOI" } } });
+  const d = await w.call("POST", `/api/dang-ky/phieu/${id}/dat`, { as: XM, body: { phienBan: 1, hoSo: { kieu: "MOI" } } });
   assert.equal(d.status, 200, d.text);
   return id;
 }

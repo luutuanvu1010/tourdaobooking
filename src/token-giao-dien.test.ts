@@ -17,6 +17,20 @@ test("độ đậm chữ: năm mức --fw-* khai ở :root, tăng dần", () => 
   assert.deepEqual(gt, [...gt].sort((a, b) => a - b), "các mức phải không giảm từ regular tới heavy");
 });
 
+// Chữ nhẹ hơn (đặc tả 2026-11-21-chu-nhe-hon, phương án 1 «Nhẹ vừa»): nút, tên, tiêu đề cột 600 → 500 để tiêu đề (600) nổi hơn chữ nhấn.
+test("độ đậm mặc định «Nhẹ vừa»: nội dung 400, chữ nhấn và nút 500, tiêu đề và số lớn 600", () => {
+  const gt = (t: string) => new RegExp(`\\n\\s*${t}:\\s*([^;]+);`).exec(root)?.[1]?.trim();
+  assert.deepEqual(["--fw-regular", "--fw-medium", "--fw-semibold", "--fw-bold", "--fw-heavy", "--fw-heading"].map(gt), ["400", "500", "500", "500", "600", "600"]);
+  // Số lớn của thẻ số liệu Trang chủ ghi thẳng 600 (đúng bản vẽ): trước tính «số lớn + 100» = 700 và đổi theo núm, nay không tính từ mức khác.
+  assert.equal(gt("--fw-home-stat"), "600");
+});
+
+test("toàn trang bật làm mịn nét chữ (nét mảnh hơn trên máy Mac; iPhone, Windows không đổi)", () => {
+  const body = /\nbody \{([^{}]*)\}/.exec(luat);
+  assert.ok(body, "không thấy luật `body {`");
+  assert.match(body[1]!, /-webkit-font-smoothing:\s*antialiased;/);
+});
+
 test("độ đậm chữ: luật CSS không viết số, chỉ trỏ token (ngoài @font-face)", () => {
   const cung = [...luat.matchAll(/font-weight:\s*(?:\d{3}|bold|bolder|lighter)\b|font:\s*\d{3}\s/g)].map((m) => m[0]);
   assert.deepEqual(cung, [], "độ đậm viết cứng trong luật app.css");

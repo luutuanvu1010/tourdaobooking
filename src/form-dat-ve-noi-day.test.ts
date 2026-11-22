@@ -103,7 +103,7 @@ test("form đối tác gửi lượt đầu trống giờ: collect đi qua legsG
 test("công tắc ẩn khách: form chỉ hỏi công tắc khi formGon, đặt anKhach = apChoToi (lỗi mạng → không ẩn), ẩn bằng thuộc tính data-an-khach mà CSS giữ lại đúng dòng Ngày khởi hành", () => {
   const form = doc("web/order-form.ts");
   assert.match(form, /const layAnKhach\s*=\s*formGon\s*\?\s*docCongTacAnKhach\(\)\s*:\s*Promise\.resolve\(null\)/, "chỉ tài khoản giữ quyền Đối tác hỏi công tắc");
-  assert.match(form, /Promise\.all\(\[layDiem,\s*layMau,\s*layKhung,\s*layAnKhach,\s*layPhiAp\]\)/, "đọc công tắc song song với các lần nạp khác, một lần lúc mở (ADR-0214 Task 6: công tắc phí đưa đón cùng lô)");
+  assert.match(form, /Promise\.all\(\[layDiem,\s*layMau,\s*layKhung,\s*layAnKhach,\s*layPhiAp,\s*layNoiDon\]\)/, "đọc công tắc song song với các lần nạp khác, một lần lúc mở (ADR-0214 Task 6: công tắc phí đưa đón cùng lô; ADR-0221: công tắc nơi đón cùng lô)");
   assert.equal(form.match(/\blayAnKhach\b/g)?.length, 2, "công tắc ẩn khách lúc mở: một lần khai, một lần chờ trong lô (không đọc thêm lần nào)");
   assert.match(form, /datAnKhach\(anKhachMay\s*===\s*true\)/, "chỉ ẩn khi máy chủ nói áp (null do lỗi mạng ⇒ không ẩn)");
   assert.match(form, /docCongTacAnKhach\s*=\s*\(\):\s*Promise<boolean \| null>\s*=>\s*api<Api\.AnThongTinKhachResponse>\("\/api\/cai-dat\/an-thong-tin-khach"\)\.then\(\(r\)\s*=>\s*r\.apChoToi,\s*\(\)\s*=>\s*null\)/, "đọc đúng trường apChoToi");

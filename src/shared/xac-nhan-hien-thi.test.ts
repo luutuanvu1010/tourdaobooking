@@ -1,7 +1,7 @@
 // ADR-0136 Task 3.5: chữ hiển thị của bước xác nhận — thuần, đồng hồ TIÊM (`nowMs`), không tính lại hạn (hạn do máy chủ gửi, `hanXacNhan`).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT, CAU_TIEN_KHOA_KHI_CHO, NHAN_CAN_DAT_GAP, NHAN_QUA_HAN, dongChoXacNhan, dongGioConVe, nhanGhiChuDichVu, nhanGioLuot, nhanLyDoCanXacNhan, NHAN_NUT_XAC_NHAN, NHAN_KET_QUA, cauLoiGuiDon } from "./xac-nhan-hien-thi.ts";
+import { CAU_NHO_DAT_GAP, CAU_THIEU_GIO_LUOT, CAU_THIEU_NOI_DON_LUOT, nhanNoiDonLuot, thieuNoiDonConVe, CAU_TIEN_KHOA_KHI_CHO, NHAN_CAN_DAT_GAP, NHAN_QUA_HAN, dongChoXacNhan, dongGioConVe, nhanGhiChuDichVu, nhanGioLuot, nhanLyDoCanXacNhan, NHAN_NUT_XAC_NHAN, NHAN_KET_QUA, cauLoiGuiDon } from "./xac-nhan-hien-thi.ts";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import type { LegDto } from "./contracts.ts";
@@ -119,6 +119,34 @@ test("nối dây bảng Còn vé: web/xac-nhan-don-ui.ts đi qua dongGioConVe, k
   assert.match(ui, /can\(c\.staff,\s*"order\.leg\.short_notice"\)/, "hiện khung đặt gấp theo bảng quyền, không theo mã quyền");
   assert.match(ui, /CAU_NHO_DAT_GAP/, "người không có ô được nhắc nhờ Bán hàng hoặc Quản trị");
   assert.match(ui, /CAU_THIEU_GIO_LUOT/, "thiếu lượt bắt buộc thì báo tại chỗ");
+  // ADR-0221 Đ3: ô «Nơi đón» của lượt cần nơi đón — chữ lấy từ luật thuần ở tệp này, không viết tay trong giao diện.
+  assert.match(ui, /lx\.canNoiDon/, "ô nơi đón dựng theo cờ canNoiDon của dongGioConVe");
+  assert.match(ui, /nhanNoiDonLuot\(/, "nhãn ô nơi đón lấy từ nhanNoiDonLuot");
+  assert.match(ui, /thieuNoiDonConVe\(/, "thiếu nơi đón xét bằng thieuNoiDonConVe");
+  assert.match(ui, /CAU_THIEU_NOI_DON_LUOT/, "thiếu nơi đón thì báo tại lượt");
+  assert.doesNotMatch(ui, /"Ghi nơi đón cho lượt này\."|chưa ghi nơi đón/, "không chép tay câu báo, không so chữ tạm trong giao diện");
   assert.equal(ui.match(/\bconfirm\(/g)?.length ?? 0, 0, "không còn confirm( (bước 1 khung chung 13/11: Rút lại, Hết vé đã sang hộp hỏi chung) — không thêm lại");
 });
 
+
+// ---- ADR-0221 Đ3: bảng Còn vé đánh dấu lượt cần nơi đón ----
+test("dongGioConVe: lượt mang chữ tạm ở nơi đón được đánh dấu canNoiDon (theo dữ liệu lượt, không theo cờ yêu cầu); lượt có nơi thật thì không", () => {
+  const tam: LegDto = { ...leg("OUT", NGAY, null), pickupPlace: "(chưa ghi nơi đón)", pickupLabel: "(chưa ghi nơi đón)" };
+  const thuong = leg("RETURN", NGAY, "16:00");
+  const diem: LegDto = { ...leg("OUT", NGAY, "08:00"), pickupLocationId: "loc-1", pickupPlace: null, pickupLabel: "Cảng" };
+  for (const co of [true, false]) {
+    const r = dongGioConVe([dv("s1", "Tour", [tam, thuong]), dv("s2", "Tour 2", [diem])], co);
+    assert.deepEqual(r.flatMap((d) => d.luot.map((x) => [x.leg.id, x.canNoiDon])), [[tam.id, true], [thuong.id, false], [diem.id, false]]);
+  }
+});
+
+test("thieuNoiDonConVe: các lượt cần nơi đón mà người xét chưa ghi (báo tại chỗ, không gọi máy chủ); câu báo và nhãn ô đúng chữ", () => {
+  const tam1: LegDto = { ...leg("OUT", NGAY, null), pickupPlace: "(chưa ghi nơi đón)", pickupLabel: "(chưa ghi nơi đón)" };
+  const tam2: LegDto = { ...leg("OUT", NGAY, null), pickupPlace: "(chưa ghi nơi đón)", pickupLabel: "(chưa ghi nơi đón)" };
+  const dong = dongGioConVe([dv("s1", "Tour", [tam1]), dv("s2", "Tour 2", [tam2, leg("RETURN", NGAY, "16:00")])], true);
+  assert.deepEqual(thieuNoiDonConVe(dong, new Set()), [tam1.id, tam2.id]);
+  assert.deepEqual(thieuNoiDonConVe(dong, new Set([tam1.id])), [tam2.id]);
+  assert.deepEqual(thieuNoiDonConVe(dong, new Set([tam1.id, tam2.id])), []);
+  assert.equal(CAU_THIEU_NOI_DON_LUOT, "Ghi nơi đón cho lượt này.");
+  assert.equal(nhanNoiDonLuot("Chiều đi", "Tour 4 đảo"), "Nơi đón · Chiều đi · Tour 4 đảo (bắt buộc)");
+});

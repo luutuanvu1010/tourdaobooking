@@ -1,4 +1,4 @@
-// Ô «Số tiền» của form «Ghi khoản thu» ở Chi tiết đơn (chủ 2026-11-13): bước này chỉ để XÁC NHẬN số đã thu — mặc định đúng bằng «Còn lại» của thẻ Thanh toán
+// Ô «Số tiền» của form «Nhập khoản thu» ở Chi tiết đơn (chủ 2026-11-13): bước này chỉ để XÁC NHẬN số đã thu — mặc định đúng bằng «Còn lại» của thẻ Thanh toán
 // ngay phía trên, nhân viên chỉ sửa khi khách thực trả khác. Trước đây ô mở ra trống, buộc gõ lại con số vừa đọc ở dòng «Còn lại».
 // Luật thuần, chỉ quyết GỢI Ý hiển thị; máy chủ vẫn nhận và kiểm số tiền gửi lên như cũ (không tin số từ trình duyệt để tính dẫn xuất).
 

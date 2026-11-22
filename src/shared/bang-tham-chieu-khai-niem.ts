@@ -531,7 +531,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Nhận đăng ký mới",
-    giaiNghia: "Công tắc của Toàn quyền ở Quản lý tài khoản (Bật, Tắt) cùng danh sách vai người dùng được đăng ký. Tắt: không ai mở được phiếu đăng ký mới, trang /dang-ky nói «Tour Đảo tạm ngừng nhận đăng ký mới.»; phiếu đã có vẫn đi tiếp. Lời giải thích, câu báo của khối do AI viết.",
+    giaiNghia: "Công tắc của Toàn quyền ở trang Phiếu đăng ký đối tác (Bật, Tắt) cùng danh sách vai người dùng được đăng ký. Tắt: không ai mở được phiếu đăng ký mới, trang /dang-ky nói «Tour Đảo tạm ngừng nhận đăng ký mới.»; phiếu đã có vẫn đi tiếp. Lời giải thích, câu báo của khối do AI viết.",
     khacVoi: "Khác chế độ bảo trì (chặn mọi lệnh của người đăng ký).",
     chuDaLoai: [],
     maNoiBo: ["registration_open", "open_role_codes", "/api/dang-ky/chinh-sach", "registration_policy_set"],
@@ -883,6 +883,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuChon: "2026-11-04 (ADR-0166 câu 12)",
   }),
   KN({
+    ten: "Ngừng bán theo ngày",
+    giaiNghia: "Một dịch vụ, hoặc mọi dịch vụ đang thuộc một nhóm, không lập được đơn có ngày khởi hành trong một khoảng ngày đã đặt. Các ngày khác vẫn bán. Đơn đã xác nhận giữ nguyên. «Kết thúc» gỡ khoảng đó.",
+    khacVoi: "«Ngừng bán» là ngừng cho mọi ngày, có hiệu lực ngay. «Luật bán» chặn theo loại đối tác của bên đặt, không theo ngày khởi hành.",
+    chuDaLoai: [],
+    maNoiBo: ["ctl_sales_pause", "catalog_pause_added", "catalog_pause_ended", "sales_paused_date"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-20 (ADR-0220 Đ5, chủ chọn tên theo khuyến nghị)",
+  }),
+  KN({
     ten: "Lượt đưa đón",
     giaiNghia: "Một chiều đưa đón của một dịch vụ trong đơn (ví dụ chiều đi), có giờ đón và nơi đón riêng. Gọi tắt «lượt» khi đã rõ.",
     khacVoi: "",
@@ -965,7 +974,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Ghi khoản thu này",
-    giaiNghia: "Nút ở bảng mã QR thanh toán: đóng bảng QR rồi mở form «Ghi khoản thu» với số tiền điền sẵn. Bấm nút này chưa ghi gì vào sổ.",
+    giaiNghia: "Nút ở bảng mã QR thanh toán: đóng bảng QR rồi mở form «Nhập khoản thu» với số tiền điền sẵn. Bấm nút này chưa ghi gì vào sổ.",
     khacVoi: "Chỉ khi bấm «Ghi» trong form thì khoản thu mới vào sổ.",
     chuDaLoai: ["Khách đã chuyển khoản"],
     maNoiBo: [],
@@ -1113,7 +1122,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   KN({ ten: "Giá đại lý", giaiNghia: "Số tiền đại lý phải trả công ty cho một đơn, bằng thành tiền của đơn trừ hoa hồng.", khacVoi: "Khác giá bán lẻ (giá trong Dịch vụ & giá).", chuDaLoai: [], maNoiBo: ["hoaHongDong", "tinhDongDoiTac"], trangThai: "cho-chon", chuChon: "" }),
   // ---- Công nợ đại lý, hai phiếu của đơn đại lý (ADR-0182 phần A, chủ duyệt 12/11 «Duyệt, chọn cách 1», chữ theo khuyến nghị) ----
   KN({ ten: "Công nợ đại lý", giaiNghia: "Số đại lý còn phải trả Tour Đảo cho một đơn: tổng giá đại lý các dịch vụ trừ số tiền Tour Đảo đã thật sự nhận. Số âm nghĩa là Tour Đảo đang nợ đại lý. Hạn mức Trả sau dùng số này.", khacVoi: "Khác «Phải thu» của khách (tính theo giá bán lẻ).", chuDaLoai: [], maNoiBo: ["congNoNhieuDon", "giaDaiLyNhieuDon"], trangThai: "da-chot", chuChon: "2026-11-12 (ADR-0182 Đ1, chủ duyệt «Duyệt, chọn cách 1»)" }),
-  KN({ ten: "Phiếu công nợ với Tour Đảo", giaiNghia: "Phiếu của một đơn đại lý đã xác nhận: từng dịch vụ theo giá đại lý, Tổng công nợ, Đã thu, Công nợ còn lại, hạn trả, và mã QR chuyển đúng số còn lại vào tài khoản công ty (nội dung có tiền tố DL). Mở bằng nút «Xem công nợ với Tour Đảo». Không in trên biên nhận cho khách.", khacVoi: "Khác biên nhận cho khách (mẫu HD-02-DT, giá bán lẻ, không QR).", chuDaLoai: [], maNoiBo: ["/api/orders/:x/cong-no-dai-ly", "TEN_PHIEU_CONG_NO"], trangThai: "da-chot", chuChon: "2026-11-12 (ADR-0182 bảng «Chữ chờ chủ chọn», chủ duyệt theo khuyến nghị)" }),
+  KN({ ten: "Phiếu công nợ với Tour Đảo", giaiNghia: "Phiếu của một đơn đại lý đã xác nhận: từng dịch vụ theo giá đại lý, Tổng công nợ, Đã thu, Công nợ còn lại, hạn trả, và mã QR chuyển đúng số còn lại vào tài khoản công ty (nội dung có tiền tố DL). Mở bằng nút «Thanh toán đơn này cho công ty Tour Đảo». Không in trên biên nhận cho khách.", khacVoi: "Khác biên nhận cho khách (mẫu HD-02-DT, giá bán lẻ, không QR).", chuDaLoai: [], maNoiBo: ["/api/orders/:x/cong-no-dai-ly", "TEN_PHIEU_CONG_NO"], trangThai: "da-chot", chuChon: "2026-11-12 (ADR-0182 bảng «Chữ chờ chủ chọn», chủ duyệt theo khuyến nghị)" }),
   // ---- Khoản nộp của đại lý (ADR-0182 phần B, chủ duyệt 13/11 «Duyệt, phát hành ngay», chữ theo khuyến nghị) ----
   KN({ ten: "Khoản nộp", giaiNghia: "Số tiền đại lý đã chuyển cho Tour Đảo cho MỘT đơn, ghi bằng nút «Đã chuyển tiền» trên Phiếu công nợ với Tour Đảo, kèm ảnh biên lai bắt buộc. Khoản ở trạng thái «Chờ Kế toán xác nhận» và chưa trừ vào công nợ; Kế toán đối chiếu sao kê rồi xác nhận (khoản trừ vào công nợ) hoặc từ chối có lý do. Mỗi đơn chỉ một khoản chờ cùng lúc.", khacVoi: "Khác khoản thu của khách (tiền khách trả, tính theo giá bán lẻ) và khác quyết toán «nộp về công ty» Kế toán tự ghi (đơn đang có khoản nộp chờ thì quyết toán «nộp» bị chặn).", chuDaLoai: [], maNoiBo: ["bil_agent_remittance", "bil_remittance_proof", "dai-ly.nop.ghi", "dai-ly.nop.xac-nhan", "dai-ly.nop.xem", "TEN_KHOAN_NOP"], trangThai: "da-chot", chuChon: "2026-11-13 (ADR-0182 bảng «Chữ chờ chủ chọn», chủ duyệt theo khuyến nghị)" }),
   KN({ ten: "Khách đã trả bạn X ₫", giaiNghia: "Dòng trong biểu mẫu «Đã chuyển tiền»: phần khách chưa trả trên sổ của đơn (phải thu trừ mọi khoản thu đang có). Gửi khoản nộp thì máy ghi luôn số này là khách đã trả cho đại lý (đại lý giữ hộ Tour Đảo), để không trả hoa hồng hai lần. X bằng 0 thì không ghi thêm.", khacVoi: "Không phải số đại lý tự gõ: máy chủ tính, đổi giữa chừng thì phải tải lại phiếu.", chuDaLoai: [], maNoiBo: ["dongKhachDaTra", "khachDaTra"], trangThai: "da-chot", chuChon: "2026-11-13 (ADR-0182 bảng «Chữ chờ chủ chọn», chủ duyệt theo khuyến nghị)" }),
@@ -1360,6 +1369,33 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     maNoiBo: ["CAU_DOI_CAP_DOI_PHI_DON"],
     trangThai: "cho-chon",
     chuChon: "người thi công đặt 2026-11-18 (ADR-0218 Đợt 2, câu khuyến nghị của bảng «Tên chờ chủ chọn»), chờ chủ chọn",
+  }),
+  KN({
+    ten: "Đối tác không nhập nơi đón",
+    giaiNghia: "Công tắc của Toàn quyền ở trang Tôi. Khi bật, tài khoản giữ quyền Đối tác chọn «Đón» là xong, không điền nơi đón; văn phòng điền nơi đón lúc «Còn vé». Mặc định tắt.",
+    khacVoi: "Khác «Bắt buộc giờ đón cho đơn đối tác»: công tắc đó nói về giờ đón, công tắc này nói về nơi đón.",
+    chuDaLoai: [],
+    maNoiBo: ["ord_partner_pickup_place_policy", "khong_nhap", "apChoToi", "pickup_place_policy_changed", "duaDonAnHetLuot", "dd-an-het-luot"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-21 (chủ chọn tên ở câu 1 của bản đề xuất, ADR-0221 «Điều chủ cần biết»)",
+  }),
+  KN({
+    ten: "Chưa có nơi đón",
+    giaiNghia: "Chữ hiện ở Chi tiết đơn và dòng gập của thẻ dịch vụ khi lượt đưa đón chưa có nơi đón thật (đối tác gửi lúc công tắc «Đối tác không nhập nơi đón» bật, hoặc dữ liệu cũ). Đơn còn lượt như vậy thì chưa xác nhận được.",
+    khacVoi: "Khác «Chưa chốt nơi trả»: nơi trả được để trống, nơi đón thì phải có trước khi xác nhận đơn.",
+    chuDaLoai: [],
+    maNoiBo: ["CHUA_CO_NOI_DON", "nhanNoiDon", "NOI_DON_CHUA_GHI", "laNoiDonTam"],
+    trangThai: "cho-chon",
+    chuChon: "Chữ đã có sẵn ở chip dòng gập trước ADR-0221; ADR-0221 Đ3 dùng lại cho Chi tiết đơn. Chủ chưa chọn riêng, chờ chủ chọn",
+  }),
+  KN({
+    ten: "Câu báo của nơi đón do văn phòng điền",
+    giaiNghia: "Các câu của ADR-0221. Xác nhận đơn khi còn lượt chưa có nơi đón: «Còn lượt đưa đón chưa có nơi đón. Ghi nơi đón rồi bấm Còn vé, xác nhận đơn.» Báo tại lượt trong bảng «Xác nhận đơn»: «Ghi nơi đón cho lượt này.» Nhãn ô: «Nơi đón · Chiều đi · <tên dịch vụ> (bắt buộc)». Ghi nơi đón cho lượt đã có nơi đón: «Lượt đưa đón này đã có nơi đón.» Thân gửi sai dạng: «Nơi đón không hợp lệ.» Chi tiết đơn, cho người lập: «Văn phòng sẽ điền nơi đón.» Tài khoản không phải Toàn quyền đổi công tắc: «Chỉ Toàn quyền đổi cài đặt đối tác không nhập nơi đón.» Nhãn nhật ký: «Đổi công tắc đối tác không nhập nơi đón».",
+    khacVoi: "",
+    chuDaLoai: [],
+    maNoiBo: ["pickup_place_required", "CAU_THIEU_NOI_DON", "CAU_THIEU_NOI_DON_LUOT", "nhanNoiDonLuot", "CAU_VAN_PHONG_DIEN_NOI_DON", "kiemNoiDonGhi"],
+    trangThai: "cho-chon",
+    chuChon: "AI viết 2026-11-21 (ADR-0221 lượt 1 và lượt 2, theo khuôn các câu của giờ đón ở Còn vé), chờ chủ chọn",
   }),
   KN({
     ten: "dự kiến",

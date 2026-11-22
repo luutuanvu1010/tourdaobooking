@@ -1,6 +1,6 @@
 // Ô chọn dịch vụ của form lập đơn — thiết kế lại 18/10/2026 (đặc tả docs/superpowers/specs/2026-10-18-tao-don-thiet-ke-lai/DAC-TA.md mục 3A, đề bài
 // PROMPT-CLAUDE-DESIGN.md "A. Chọn dịch vụ"; chủ duyệt hàng nhóm CHỌN MỘT ngày 17/10 — bản đề xuất DE-XUAT-ADR-0130.md (số tạm; ADR-0130 trên main là bảng từ giao diện), thay bảng tick nhiều nhóm của đợt 1 ngày 13/10).
-// Thứ tự: ô tìm "Tìm theo tên hoặc mã dịch vụ" (nút ✕ xoá chữ) → MỘT hàng nút nhóm cuộn ngang → khung danh sách LUÔN MỞ, cao cố định (token --h-danh-sach),
+// Thứ tự: ô tìm "Tìm theo tên hoặc mã dịch vụ" (nút ✕ xoá chữ) → MỘT hàng nút nhóm cuộn ngang → khung danh sách cao cố định (token --h-danh-sach; từ 20/11/2026 THU LẠI sau khi chọn một dịch vụ ở chế độ «thêm», mở lại khi gõ / bấm ô tìm),
 // cuộn bên trong; thẻ dịch vụ đã chọn nằm bên dưới (ngoài tệp này). Nút "+ Dịch vụ nhập tay" vẫn ở ngay dưới, trong public/order-form.html.
 // Hàng nhóm: "Tất cả" đầu, rồi nhóm theo thứ tự Quản trị, "Chưa phân loại" cuối (nếu còn dịch vụ chưa gán). Chọn MỘT nhóm, chạm là lọc liền, nút không số đếm.
 // Mép phải mờ + "›" khi còn nhóm phía sau; nhóm đang chọn luôn được cuộn vào tầm nhìn (đặt scrollLeft, không scrollIntoView để trang không cuộn theo).
@@ -86,8 +86,11 @@ function beRongMep(el: Element): number {
  * `cheDo` «them» (mặc định, form Tạo đơn): chạm dòng là THÊM dịch vụ, dòng hiện «✓ đã thêm», khung đứng yên. «chon-mot» (N4, trang Nhập lô vé): chạm dòng là CHỌN — khung thu lại thành một dòng
  * tên dịch vụ kèm nút «Đổi» (`onDoi` báo form xoá lựa chọn), không «✓ đã thêm». `khongYeuCauGia`: dòng không có giá người lớn vẫn chọn được và không hiện cột giá (luật ở `chonDuocDichVu`).
  * `khoaNho`: hậu tố khoá bộ nhớ (sao «Hay dùng», nhóm đã chọn) — vắng = khoá cũ của Tạo đơn; trang khác truyền khoá riêng để không nhớ nhóm chéo giữa hai trang.
+ * `idTien` (Việc 4 kế hoạch 21/11): tiền tố id của ô tìm và khung danh sách khi một trang có HAI bộ chọn (Kho vé: nhập lô + Tạo vé) — vắng = `catalog-q` / `catalog-list` như cũ.
  */
-export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => void; onDoi?: () => void; cheDo?: "them" | "chon-mot"; khongYeuCauGia?: boolean; khoaNho?: string }): CatalogPicker {
+export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => void; onDoi?: () => void; cheDo?: "them" | "chon-mot"; khongYeuCauGia?: boolean; khoaNho?: string; idTien?: string }): CatalogPicker {
+  const idQ = `${o.idTien ?? "catalog"}-q`;
+  const idList = `${o.idTien ?? "catalog"}-list`;
   const chonMot = o.cheDo === "chon-mot";
   const khongGia = o.khongYeuCauGia === true;
   const khoaGhim = o.khoaNho ? `${KHOA_NHO}:${o.khoaNho}` : KHOA_NHO;
@@ -98,7 +101,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   // tabindex -1: nhận tiêu điểm khi khung thành inert lúc tiêu điểm đang ở trong khung (thêm dịch vụ thứ 20 bằng bàn phím — nợ T2(4), Việc 9).
   const reason = h("p", { class: "muted catalog-khoa", hidden: true, tabindex: "-1" }, icon("lock", 16), reasonText);
   // Ô tìm giữ type="search": order-form.ts chặn Enter theo đúng kiểu ô này (ô nằm trong <form>).
-  const q = h("input", { id: "catalog-q", type: "search", placeholder: "Tìm theo tên hoặc mã dịch vụ", "aria-label": "Tìm theo tên hoặc mã dịch vụ", autocomplete: "off", "aria-controls": "catalog-list" });
+  const q = h("input", { id: idQ, class: "catalog-q", type: "search", placeholder: "Tìm theo tên hoặc mã dịch vụ", "aria-label": "Tìm theo tên hoặc mã dịch vụ", autocomplete: "off", "aria-controls": idList });
   const xoa = h("button", { type: "button", class: "catalog-tim-xoa", "aria-label": "Xoá chữ tìm", hidden: true }, icon("close", 20));
   const tim = h("div", { class: "catalog-tim" }, h("span", { class: "catalog-tim-kinh" }, icon("search", 20)), q, xoa);
   // Hàng nhóm: hàng cuộn là radiogroup (NẰM NGOÀI #catalog-list); "›" và hai nút ‹ › phủ lên mép hàng (aria-hidden / tabindex -1: phím mũi tên đã đủ).
@@ -108,11 +111,20 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   const muiSau = h("button", { type: "button", class: "catalog-hang-mui", "data-huong": "sau", "aria-label": "Xem nhóm phía sau", tabindex: "-1", hidden: true }, "›");
   const hang = h("div", { class: "catalog-hang", "data-cho": "nhom", hidden: true }, cuon, con, muiTruoc, muiSau);
   const dau = h("div", { class: "catalog-dau" });
-  const list = h("div", { id: "catalog-list", class: "catalog-list" });
+  const list = h("div", { id: idList, class: "catalog-list" });
   const khung = h("div", { class: "catalog-khung" }, dau, list);
   // Báo cho trình đọc màn hình (thay thông báo nổi): chữ đổi sau một nhịp để đọc lại được cả khi thêm cùng dịch vụ hai lần.
   const bao = h("div", { class: "visually-hidden catalog-bao", "aria-live": "polite" });
   const root = h("div", { class: "catalog" }, notice, reason, tim, hang, khung, bao);
+
+  // Đặc tả 2026-11-20 (chủ duyệt ảnh đề xuất): ở chế độ «thêm», chọn xong một dịch vụ thì hàng nhóm và khung danh sách THU LẠI, chỉ còn ô tìm — thẻ dịch vụ nằm ngay
+  // dưới, không còn khung trống cao cố định. Mở lại khi gõ / bấm vào ô tìm, bấm ✕, hoặc phím ↓. Đơn hết dịch vụ thì mở lại. (Đổi ý «khung luôn mở, đứng yên» của bản 14/10.)
+  const GOI_Y = "Tìm theo tên hoặc mã dịch vụ";
+  const GOI_Y_THEM = "Thêm dịch vụ khác: tìm theo tên hoặc mã";
+  function datThu(v: boolean): void {
+    if (chonMot) return;
+    root.classList.toggle("is-thu", v);
+  }
 
   let items: readonly CatalogServiceDto[] = [];
   let groups: readonly CatalogGroupDto[] = [];
@@ -255,11 +267,19 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
       h("span", { class: "catalog-name" }, h("span", { class: "catalog-ten" }, ten.dau ? h("span", { class: "catalog-ten-dau" }, ten.dau) : null, ten.sau), phu),
       gia,
     );
-    pick.addEventListener("click", () => {
+    pick.addEventListener("click", (e) => {
       if (!chonDuoc || khoa !== null) return; // dòng mờ / đơn đã khoá: không tác dụng
       if (chonMot) return chonDichVu(c);
-      o.onPick(c); // form dựng thẻ rồi gọi setSelected → nhãn "✓ đã thêm" gắn tại chỗ; khung không dựng lại, chữ tìm giữ nguyên
+      o.onPick(c); // form dựng thẻ rồi gọi setSelected
       baoDaThem(c.name);
+      // Thu khung, xoá chữ tìm để lần tìm sau bắt đầu sạch. Bấm bằng bàn phím (detail 0) thì đưa tiêu điểm về ô tìm (dòng vừa bấm đã ẩn); chạm tay thì không, để bàn phím ảo khỏi bật.
+      const bangPhim = e.detail === 0;
+      if (q.value !== "") {
+        q.value = "";
+        doiChu();
+      }
+      datThu(true);
+      if (bangPhim) q.focus();
     });
     const ghim = h("button", { type: "button", class: "catalog-ghim", "data-ghim": c.code });
     // Bấm sao CHỈ đổi biểu tượng + nhớ ngay tại dòng đó — KHÔNG dựng lại khung, nên dòng không nhảy và vị trí cuộn giữ nguyên (người kiểm 13/10).
@@ -346,8 +366,13 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
     ve(true);
     duaVaoTam(nhomHieuLuc());
   }
-  q.addEventListener("input", doiChu);
+  q.addEventListener("input", () => {
+    datThu(false);
+    doiChu();
+  });
+  q.addEventListener("click", () => datThu(false));
   q.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowDown") datThu(false);
     if (e.key === "Escape" && q.value !== "") {
       e.preventDefault();
       q.value = "";
@@ -356,6 +381,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   });
   xoa.addEventListener("click", () => {
     q.value = "";
+    datThu(false);
     doiChu();
     q.focus();
   });
@@ -423,6 +449,10 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
     setSelected(codes) {
       const moi = new Set(codes);
       if (moi.size === selected.size && [...moi].every((c) => selected.has(c))) return;
+      // Đơn vừa có dịch vụ đầu tiên (mở nháp để sửa) ⇒ thu khung; đơn hết dịch vụ ⇒ mở lại. Ô gợi ý đổi chữ theo.
+      if (selected.size === 0 && moi.size > 0) datThu(true);
+      if (moi.size === 0) datThu(false);
+      q.placeholder = moi.size > 0 ? GOI_Y_THEM : GOI_Y;
       selected = moi;
       for (const [ma, phus] of dongPhu) for (const phu of phus) nhanDaThem(phu, selected.has(ma));
     },

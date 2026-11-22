@@ -294,7 +294,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "me.favorites.write": "own", // ADR-0187 Đ2.3: Đối tác tự chọn nút thanh dưới của CHÍNH MÌNH (ô tự phục vụ, không chạm đơn / tiền)
     "party.erasure.process": "none", // ADR-0126 đ2 (lát H-5): Đối tác không xử lý phiếu xoá dữ liệu của người khác
     "party.verify": "none", "party.verify.attachment": "none", // ADR-0125 đ1: Đối tác không xác minh hồ sơ
-    "registration.queue.view": "none", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: Đối tác không xử lý phiếu đăng ký; ADR-0210 Đ1: chỉ Toàn quyền đặt mục bắt buộc
+    "registration.queue.view": "none", "registration.verify": "none", "registration.verify.attachment": "none", "registration.approve": "none", "registration.policy.write": "none", "registration.agent.purge": "none", "verification.requirement.write": "none", // ADR-0207 Đ9: Đối tác không xử lý phiếu đăng ký; ADR-0210 Đ1: chỉ Toàn quyền đặt mục bắt buộc
     "vehicle.manage": "none", // ADR-0040 D1: quản lý xe chỉ Quản trị + Toàn quyền
     "transport.rate.view": "none", "transport.rate.manage": "none", // ADR-0057 B3 — tiền xe thuê: không
     "transport.cost.view": "none", "transport.cost.adjust": "none", // ADR-0057 C7 — chi phí xe thuê: không

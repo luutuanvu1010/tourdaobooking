@@ -4,7 +4,7 @@ import { cauConLaiGhiThu, cauLechConLai, soTienDienSan } from "./so-tien-ghi-thu
 
 const vnd = (n: number) => `${n.toLocaleString("vi-VN")} ₫`;
 
-test("form Ghi khoản thu mở từ nút thường: điền sẵn số Còn lại (không bắt gõ lại)", () => {
+test("form Nhập khoản thu mở từ nút thường: điền sẵn số Còn lại (không bắt gõ lại)", () => {
   assert.equal(soTienDienSan(1_500_000, null), 1_500_000);
 });
 

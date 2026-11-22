@@ -23,7 +23,8 @@ const MOI: Record<string, string> = {
 };
 const DOI: Record<string, string> = {
   "--focus-ring": "3px", "--fs-field": "max(16px, var(--fs-step-5))", "--fs-h1": "var(--fs-step-11)", "--fs-h2": "var(--fs-step-7)",
-  "--fw-heading": "600", "--fw-bold": "600", "--fw-heavy": "600", "--fw-semibold": "500", "--w-main": "var(--w-noi-dung-max)",
+  // --fw-bold: đợt 0 đặt 600; đặc tả 2026-11-21-chu-nhe-hon («Nhẹ vừa») đổi về 500 (sửa có chủ đích — bài src/token-giao-dien.test.ts khoá bộ mức mới).
+  "--fw-heading": "600", "--fw-bold": "500", "--fw-heavy": "600", "--fw-semibold": "500", "--w-main": "var(--w-noi-dung-max)",
   "--tap-min": "var(--h-control)", "--counter-btn": "var(--h-control)",
   "--h-field": "var(--h-control-lon)", "--h-field-wide": "var(--h-control-lon)", "--search-h": "var(--h-control-lon)", "--h-hdv-btn": "var(--h-control-lon)",
   "--skel-md": "var(--skel-dong)", "--skel-num": "var(--skel-so)", "--skel-pill": "var(--skel-vien)",

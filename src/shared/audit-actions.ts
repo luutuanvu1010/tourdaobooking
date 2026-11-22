@@ -78,7 +78,7 @@ export const AUDIT_ACTIONS = {
   // Sổ tiền lượt 1 (ADR-0025, ADR-0026) — `detail` không SĐT, không số tiền chi tiết (kế hoạch §3.4).
   order_delivered: { label: "Khách đã trả đủ", group: "order" },
   order_completed: { label: "Hoàn thành", group: "order", ghiTien: true },
-  payment_recorded: { label: "Ghi khoản thu", group: "order" },
+  payment_recorded: { label: "Nhập khoản thu", group: "order" },
   // ADR-0196 — ảnh biên lai chuyển khoản (nhật ký chỉ mã ảnh, không khoá kho, không nội dung).
   payment_proof_added: { label: "Gửi ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_viewed: { label: "Mở ảnh biên lai chuyển khoản", group: "order" },
@@ -402,6 +402,8 @@ export const AUDIT_ACTIONS = {
   pickup_time_policy_changed: { label: "Đổi công tắc bắt buộc giờ đón", group: "system" },
   // ADR-0218 Đ3.4: Toàn quyền đổi «Hiện riêng phí đưa đón trên biên nhận khách lẻ» (POST /api/cai-dat/phi-don-bien-nhan) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
   receipt_fee_display_changed: { label: "Đổi công tắc hiện riêng phí đưa đón trên biên nhận", group: "system" },
+  // ADR-0221 Đ1: Toàn quyền bật / tắt «Đối tác không nhập nơi đón» (POST /api/cai-dat/noi-don-doi-tac) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
+  pickup_place_policy_changed: { label: "Đổi công tắc đối tác không nhập nơi đón", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.
   tro_ly_settings_changed: { label: "Đổi cài đặt trợ lý Hỗ trợ", group: "system" },
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).
@@ -421,6 +423,8 @@ export const AUDIT_ACTIONS = {
   catalog_group_updated: { label: "Sửa nhóm dịch vụ", group: "catalog" },
   catalog_group_assigned: { label: "Đổi nhóm của dịch vụ", group: "catalog" },
   ticket_flag_changed: { label: "Đổi ô Có vé", group: "catalog" }, // ADR-0174
+  catalog_pause_added: { label: "Đặt Ngừng bán theo ngày", group: "catalog" }, // ADR-0220: detail = mã dịch vụ / tên nhóm + khoảng ngày
+  catalog_pause_ended: { label: "Kết thúc Ngừng bán theo ngày", group: "catalog" },
   ticket_source_changed: { label: "Đổi ô Vé do ai phát", group: "catalog" }, // ADR-0175 Đ1.2: targetId = mã dịch vụ, detail «Dịch vụ <mã>: Vé hãng ngoài | Vé Tour Đảo»
   service_detail_changed: { label: "Sửa chi tiết dịch vụ", group: "catalog" }, // ADR-0201 Đ1: targetId = mã dịch vụ, detail chỉ nói trường nào đổi (không chép tên, mô tả)
   catalog_groups_seeded: { label: "Gieo nhóm dịch vụ", group: "catalog" }, // do migration 0055 ghi một lần (detail "gieo 14 nhóm, N dịch vụ")

@@ -29,6 +29,8 @@
     <section id="gio-don-cai-dat" class="card" aria-labelledby="gio-don-heading" hidden></section>
     <!-- Hiện riêng phí đưa đón trên biên nhận khách lẻ (ADR-0218 Đ3.4): web/phi-don-bien-nhan-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/phi-don-bien-nhan trả doiDuoc — ô settings.ops). -->
     <section id="phi-don-bien-nhan-cai-dat" class="card" aria-labelledby="phi-don-bien-nhan-heading" hidden></section>
+    <!-- Đối tác không nhập nơi đón (ADR-0221 Đ1): web/noi-don-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/noi-don-doi-tac trả doiDuoc — ô settings.ops). -->
+    <section id="noi-don-cai-dat" class="card" aria-labelledby="noi-don-heading" hidden></section>
     <!-- Bảo mật đăng nhập (bảo mật hai lớp — ADR-0074 điều 5): web/account.ts hiện sau khi GET /api/account/mfa về; mọi tài khoản có phiên. -->
     <section id="mfa" class="card" aria-labelledby="mfa-heading" hidden></section>
     <!-- Đăng nhập bằng Face ID (ADR-0016): web/account.ts chỉ hiện khi máy chủ bật (GET /api/auth/config → passkey). -->

@@ -136,6 +136,29 @@ const DICH_VU_GHI_KEP_GIO_DECIDE = defineSql(
 export const cauGhiKepGio = (db: D1Database, v: { legId: string; orderId: string; gio: string; yeuCauId: string; prevUpdatedAt: string }): D1PreparedStatement =>
   db.prepare(DICH_VU_GHI_KEP_GIO_DECIDE).bind(v.gio, v.legId, v.orderId, v.yeuCauId, v.prevUpdatedAt);
 
+/**
+ * ADR-0221 Đ3: ghi NƠI ĐÓN THẬT (điểm danh mục ?1 HOẶC chữ ?2 — đúng một, route đã kiểm) cho MỘT lượt mở đang mang chữ tạm (?9 = `NOI_DON_CHUA_GHI`, truyền làm tham số để câu vẫn tĩnh).
+ * Vế «đang mang chữ tạm» nằm NGAY trong câu: người xét không ghi đè được nơi đón thật của lượt khác, kể cả khi lượt vừa đổi giữa lúc đọc và lúc ghi. Cùng hai điều kiện `CON_MO`.
+ */
+const CHANG_GHI_NOI_DON_DECIDE = defineSql(
+  "orders",
+  "leg_set_pickup_place_decide_guarded",
+  `UPDATE ord_transfer_leg SET pickup_location_id = ?1, pickup_place = ?2, updated_at = ?3, updated_by = ?4
+   WHERE id = ?5 AND order_id = ?6 AND closed_at IS NULL AND pickup_location_id IS NULL AND pickup_place = ?9 AND ${CON_MO("?6", "?7", "?8")}`,
+);
+export const cauGhiNoiDonChang = (
+  db: D1Database, v: { legId: string; orderId: string; locationId: string | null; place: string | null; chuTam: string; at: string; by: string; yeuCauId: string; prevUpdatedAt: string },
+): D1PreparedStatement => db.prepare(CHANG_GHI_NOI_DON_DECIDE).bind(v.locationId, v.place, v.at, v.by, v.legId, v.orderId, v.yeuCauId, v.prevUpdatedAt, v.chuTam);
+/** Ghi kép cột cũ `order_service.pickup_place` (phát hành 1, Ruling R3) theo NHÃN nơi đón của lượt chiều đi đầu vừa được ghi nơi đón — khuôn `cauGhiKepGio`. */
+const DICH_VU_GHI_KEP_NOI_DECIDE = defineSql(
+  "orders",
+  "service_mirror_place_decide_guarded",
+  `UPDATE order_service SET pickup_place = ?1
+   WHERE id = (SELECT l.order_service_id FROM ord_transfer_leg l WHERE l.id = ?2 AND l.order_id = ?3 AND l.direction = 'OUT') AND order_id = ?3 AND ${CON_MO("?3", "?4", "?5")}`,
+);
+export const cauGhiKepNoi = (db: D1Database, v: { legId: string; orderId: string; nhan: string; yeuCauId: string; prevUpdatedAt: string }): D1PreparedStatement =>
+  db.prepare(DICH_VU_GHI_KEP_NOI_DECIDE).bind(v.nhan, v.legId, v.orderId, v.yeuCauId, v.prevUpdatedAt);
+
 // ---- Cờ «cần xác nhận» và công tắc tự xác nhận (Đ1, Đ5) --------------------------------------------------------------------------------------------
 export interface CoHienHanhRow {
   scope: string;
@@ -245,6 +268,28 @@ const PHI_DON_BIEN_NHAN_THEM = defineSql(
   `INSERT INTO ord_receipt_fee_display_policy (id, show_separate, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
 );
 export const cauThemPhiDonBienNhan = (db: D1Database, v: { id: string; hienRieng: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(PHI_DON_BIEN_NHAN_THEM).bind(v.id, v.hienRieng ? 1 : 0, v.at, v.by);
+// ---- Công tắc «Đối tác không nhập nơi đón» (ADR-0221 Đ1, migration 0181) — khuôn `ord_pickup_time_policy`; mặc định TẮT ------------------------------------------------
+const NOI_DON_HIEN_HANH = defineSql(
+  "orders",
+  "partner_pickup_place_policy_current",
+  `SELECT khong_nhap FROM ord_partner_pickup_place_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+/**
+ * Công tắc đang hiệu lực lúc `luc`: dòng mới nhất có `valid_from_at <= luc`. KHÔNG có dòng nào ⇒ TẮT — đường an toàn là hành vi trước ADR-0221 (lượt thiếu nơi đón bị từ chối).
+ * Đọc MỘT lần mỗi request ở lập / lưu nháp, và CHỈ khi người gọi giữ quyền Đối tác. Cổng xác nhận `pickup_place_required` KHÔNG đọc công tắc (xét theo dữ liệu lượt).
+ */
+export async function docKhongNhapNoiDon(db: D1Database, luc: string): Promise<boolean> {
+  const r = await db.prepare(NOI_DON_HIEN_HANH).bind(luc).first<{ khong_nhap: number }>();
+  return r?.khong_nhap === 1;
+}
+const NOI_DON_MOI_NHAT = defineSql("orders", "partner_pickup_place_policy_latest", `SELECT max(valid_from_at) AS moi_nhat FROM ord_partner_pickup_place_policy`);
+export const noiDonMoiNhat = async (db: D1Database): Promise<string | null> => (await db.prepare(NOI_DON_MOI_NHAT).first<{ moi_nhat: string | null }>())?.moi_nhat ?? null;
+const NOI_DON_THEM = defineSql(
+  "orders",
+  "partner_pickup_place_policy_insert",
+  `INSERT INTO ord_partner_pickup_place_policy (id, khong_nhap, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export const cauThemNoiDon = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(NOI_DON_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
 
 /**
  * Bốn trường khách đang lưu của đơn (tên, SĐT, email, ghi chú khách) — để `PUT` nháp lúc công tắc BẬT giữ nguyên chúng (ADR-0154 Đ2.3). Dữ liệu cá nhân: chỉ trả cho

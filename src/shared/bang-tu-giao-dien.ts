@@ -13,7 +13,7 @@ export interface TuDaLoai {
 }
 
 export const TU_DA_LOAI: readonly TuDaLoai[] = [
-  { cam: /[Ll]ần thu|LẦN THU/u, thay: "khoản thu (Ghi khoản thu · Sửa khoản thu đã ghi · Ghi bù khoản thu)", nguon: "chủ 2026-10-08 (BACKLOG §25), áp 2026-10-18" },
+  { cam: /[Ll]ần thu|LẦN THU/u, thay: "khoản thu (Nhập khoản thu · Sửa khoản thu đã ghi · Ghi bù khoản thu)", nguon: "chủ 2026-10-08 (BACKLOG §25), áp 2026-10-18" },
   { cam: /[Ll]ần hoàn/u, thay: "khoản hoàn tiền", nguon: "theo «khoản thu», 2026-10-18" },
   { cam: /[Ll]ệnh Thay|[Tt]hay lần/u, thay: "Sửa khoản thu đã ghi", nguon: "chủ 2026-10-08" },
   // «Đảo» theo nghĩa ghi dòng ngược để huỷ một khoản (bút toán đảo). Chữ «đảo» theo nghĩa hòn đảo (Tour Đảo, tour 4 đảo…) không bị chặn — xem NGHIA_HON_DAO.
@@ -87,6 +87,9 @@ export const TU_DA_LOAI: readonly TuDaLoai[] = [
   { cam: /[Gg]ửi xác nhận/u, thay: "Gửi kiểm vé", nguon: "chủ 2026-11-04 (ADR-0166 câu 8)" },
   { cam: /Khách đã chuyển khoản/u, thay: "Ghi khoản thu này", nguon: "chủ 2026-11-04 (ADR-0166 câu 10)" },
   { cam: /Hẹn ngày kết thúc|Hẹn kết thúc|Đã hẹn kết thúc/u, thay: "Đặt ngày kết thúc", nguon: "chủ 2026-11-04 (ADR-0166 câu 11)" },
+  // Ba tên họ hàng «Ghi khoản thu này», «Ghi khoản thu đòi được», «Ghi khoản thu và huỷ phần này» chưa đổi (ngoài phạm vi đặc tả 2026-11-20).
+  { cam: /Ghi khoản thu(?! này| đòi được| và huỷ)/u, thay: "Nhập khoản thu", nguon: "chủ 2026-11-20 (đặc tả 2026-11-20-sua-giao-dien-bon-y-cua-chu.md, H3; áp cho mọi vai)" },
+  { cam: /Xem công nợ với Tour Đảo/u, thay: "Thanh toán đơn này cho công ty Tour Đảo", nguon: "chủ 2026-11-20 (đặc tả 2026-11-20-sua-giao-dien-bon-y-cua-chu.md, H3)" },
 ];
 
 /** Chữ «đảo» là hòn đảo (tên công ty, tên tour) — gỡ khỏi chuỗi trước khi so với dòng «Đảo» ở trên. */

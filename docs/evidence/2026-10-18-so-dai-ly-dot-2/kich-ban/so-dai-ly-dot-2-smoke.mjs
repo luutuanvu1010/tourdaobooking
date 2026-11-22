@@ -1,5 +1,5 @@
 // Kịch bản Chrome — sổ đại lý đợt 2, Task 12 «Giao diện» (ADR-0132, ADR-0078 điều 7, 9, 10; ADR-0079 điều 7–8; đặc tả P4–P7).
-// Trang: trang đơn đại lý trước / sau «Đã giao»; form «Ghi khoản thu» với hai lựa chọn mới («Khách trả cho đại lý <tên>», «Khách trả tại quầy <nhà cung cấp>») và ô
+// Trang: trang đơn đại lý trước / sau «Đã giao»; form «Nhập khoản thu» với hai lựa chọn mới («Khách trả cho đại lý <tên>», «Khách trả tại quầy <nhà cung cấp>») và ô
 // «Phần tiền này cho»; Trang chủ Kế toán khối «Chờ đối chiếu» + nút «Bên kia đã nhận»; trang «Chụp bù mức»; biên nhận hai phần (Tour Đảo + nhà cung cấp).
 // Môi trường: D1 tạm + wrangler dev + Chrome headless qua CDP (docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs) — Turnstile TẮT, không --remote, không gọi production.
 // Quy tắc ADR-0074/0075: một lần đăng nhập mới của CÙNG tài khoản thay phiên của trang đang mở ⇒ dựng dữ liệu bằng API trước khi mở trang của tài khoản đó; mỗi lúc một trang.
@@ -121,16 +121,16 @@ try {
   const tA = phai(await call(ACCOUNTS.salesA, "GET", `/api/orders/${donA["390"].id}/payments`), 200, "tiền đơn A");
   ghi(`dữ liệu: đơn A tổng ${tA.tong ?? "?"}; benKia = ${JSON.stringify(tA.benKia)}`);
 
-  // ================================================================ 1. Bán hàng: trang đơn đại lý TRƯỚC Đã giao, form Ghi khoản thu với hai lựa chọn mới
+  // ================================================================ 1. Bán hàng: trang đơn đại lý TRƯỚC Đã giao, form Nhập khoản thu với hai lựa chọn mới
   for (const [kho, vp] of KHO) {
     let p;
     try {
       p = await moTrang(ACCOUNTS.salesA, `/order?id=${donA[kho].id}`, vp);
-      await cho(p, "!!document.querySelector('[data-action=\"ghi-lan-thu\"]')", "nút Ghi khoản thu");
+      await cho(p, "!!document.querySelector('[data-action=\"ghi-lan-thu\"]')", "nút Nhập khoản thu");
       await buoc(`1-${kho}a`, `Bán hàng (${kho}): trang đơn đại lý trước Đã giao`, async () => {
         await chup(p, `1-don-dai-ly-truoc-da-giao-${kho}`, { ca: true });
       });
-      await buoc(`1-${kho}b`, `form Ghi khoản thu: bốn lựa chọn người thu tiền, ô «Phần tiền này cho», câu chờ Kế toán khi chọn đại lý`, async () => {
+      await buoc(`1-${kho}b`, `form Nhập khoản thu: bốn lựa chọn người thu tiền, ô «Phần tiền này cho», câu chờ Kế toán khi chọn đại lý`, async () => {
         await p.ev("document.querySelector('[data-action=\"ghi-lan-thu\"]').click(), true");
         await cho(p, "!!document.getElementById('lan-thu-nguoi-thu')", "form mở");
         const nhan = await p.ev("[...document.querySelectorAll('#lan-thu-nguoi-thu option')].map((o) => o.textContent)");
@@ -166,7 +166,7 @@ try {
     let p;
     try {
       p = await moTrang(ACCOUNTS.salesA, `/order?id=${donC.id}`, DESK);
-      await cho(p, "!!document.querySelector('[data-action=\"ghi-lan-thu\"]')", "nút Ghi khoản thu");
+      await cho(p, "!!document.querySelector('[data-action=\"ghi-lan-thu\"]')", "nút Nhập khoản thu");
       await buoc("1-le", "đơn khách lẻ không quầy nhà cung cấp: chỉ «Công ty» và «Tôi thu», không ô Phần tiền này cho", async () => {
         await p.ev("document.querySelector('[data-action=\"ghi-lan-thu\"]').click(), true");
         await cho(p, "!!document.getElementById('lan-thu-nguoi-thu')", "form mở");

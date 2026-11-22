@@ -143,3 +143,10 @@ test("400 invalid_input với câu thiếu người lớn (lập đơn / lưu nh
   const b = e(400, "invalid_input", CAU_THIEU_NGUOI_LON);
   assert.deepEqual([b.tone, b.title], ["danger", CAU_THIEU_NGUOI_LON]);
 });
+
+test("409 pickup_place_required (ADR-0221 Đ3): màn hình không cũ — mã nằm trong LOI_409_KHONG_CU, tiêu đề là đúng câu máy chủ gửi", () => {
+  assert.equal(LOI_409_KHONG_CU.has("pickup_place_required"), true, "tải lại không ghi được nơi đón; câu máy chủ đã nói việc cần làm");
+  const b = classifyOrderError({ status: 409, code: "pickup_place_required", message: "Còn lượt đưa đón chưa có nơi đón. Ghi nơi đón rồi bấm Còn vé, xác nhận đơn.", details: { legs: [{ legId: "x" }] } });
+  assert.equal(b.title, "Còn lượt đưa đón chưa có nơi đón. Ghi nơi đón rồi bấm Còn vé, xác nhận đơn.");
+  assert.equal(b.action, "none");
+});

@@ -7,8 +7,9 @@ import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { MA_LY_DO_TRA_LAI, NHAN_CHE_DO_THANH_VIEN, NHAN_LY_DO_TRA_LAI } from "../src/shared/to-chuc";
 import type { BoiCanhXacNhan } from "./xac-nhan-don-ui";
 
-function nut(nhan: string, cls: string, action: string, chay: () => Promise<void>): HTMLButtonElement {
-  const n = h("button", { type: "button", class: cls, "data-action": action }, nhan) as HTMLButtonElement;
+/** `kieu`: «nut san-ho» = nút chốt của thanh việc; «nut phu» = việc phụ (chuỗi lớp ở chỗ gọi để máy so chữ nút đọc được mức của nút — cùng khuôn web/xac-nhan-don-ui.ts). */
+function nut(nhan: string, kieu: "nut san-ho" | "nut phu", action: string, chay: () => Promise<void>): HTMLButtonElement {
+  const n = h("button", { type: "button", class: "nut", "data-tong": kieu === "nut san-ho" ? "san-ho" : undefined, "data-cap": kieu === "nut phu" ? "phu" : undefined, "data-action": action }, nhan) as HTMLButtonElement;
   n.addEventListener("click", async () => {
     n.disabled = true;
     try { await chay(); } finally { n.disabled = false; }
@@ -32,7 +33,7 @@ export function nutThanhVien(c: BoiCanhXacNhan, tv: Api.ThanhVienTrenDonDto, cha
   if (tv.dangCho) {
     return [
       h("p", { class: "muted", "data-thanh-vien": "dang-cho" }, "Đơn đang chờ người quản lý của tổ chức xác nhận. Muốn sửa, bấm «Rút lại»."),
-      nut("Rút lại", "btn", "rut-gui-quan-ly", async () => {
+      nut("Rút lại", "nut phu", "rut-gui-quan-ly", async () => {
         if (!(await hoiXacNhan({ tieuDe: "Rút lại", hauQua: "Rút lại yêu cầu gửi người quản lý? Đơn trở về nháp để bạn sửa tiếp.", nhanNguyHiem: "Rút lại" }))) return;
         await goi(c, "rut-gui-quan-ly", {}, "Đã rút lại. Đơn trở về nháp.");
       }),
@@ -42,14 +43,14 @@ export function nutThanhVien(c: BoiCanhXacNhan, tv: Api.ThanhVienTrenDonDto, cha
   const traLai: HTMLElement | null = tv.lyDoTraLai ? h("p", { class: "dd-canh-xn", "data-thanh-vien": "tra-lai" }, `Người quản lý đã trả lại đơn. Lý do: ${tv.lyDoTraLai}.`) : null;
   const chiSoan: HTMLElement = h("p", { class: "muted", "data-thanh-vien": "chi-soan" }, `Tổ chức đang ở chế độ «${NHAN_CHE_DO_THANH_VIEN.CHI_SOAN}»: người quản lý tự xem nháp này và gửi lên Tour Đảo.`);
   if (tv.cheDo === "CHI_SOAN") return traLai ? [traLai, chiSoan] : [chiSoan];
-  const g = nut("Gửi người quản lý xác nhận", "btn btn-accent", "gui-quan-ly", () => goi(c, "gui-quan-ly", {}, "Đã gửi người quản lý. Đơn đang chờ người quản lý xác nhận."));
+  const g = nut("Gửi người quản lý xác nhận", "nut san-ho", "gui-quan-ly", () => goi(c, "gui-quan-ly", {}, "Đã gửi người quản lý. Đơn đang chờ người quản lý xác nhận."));
   if (chan) g.disabled = true;
   return traLai ? [traLai, g] : [g];
 }
 
 /** «Trả lại» (người quản lý, nháp đang chờ): bảng trượt chọn một lý do trong danh sách đóng. */
 export function nutTraLai(c: BoiCanhXacNhan): HTMLButtonElement {
-  const n = h("button", { type: "button", class: "btn", "data-action": "tra-lai" }, "Trả lại") as HTMLButtonElement;
+  const n = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-action": "tra-lai" }, "Trả lại") as HTMLButtonElement;
   n.addEventListener("click", () => {
     const o = h("select", { class: "o", id: "tra-lai-ly-do", "aria-label": "Lý do trả lại" },
       h("option", { value: "" }, "Chọn lý do"), ...MA_LY_DO_TRA_LAI.map((m) => h("option", { value: m }, NHAN_LY_DO_TRA_LAI[m]))) as HTMLSelectElement;

@@ -63,7 +63,7 @@ export const CHU_DANG_KY = {
 
 /** Chữ nút của phần tổ chức (viết thẳng ở web/dang-ky.ts để bảng tham chiếu đối chiếu được; liệt kê đây cho người đọc). «Bỏ ảnh này», «Bỏ ảnh và phần tổ chức», «Thôi». */
 
-/** Hàng chờ phiếu đăng ký ở Quản lý tài khoản. */
+/** Hàng chờ phiếu đăng ký ở trang Phiếu đăng ký đối tác (ADR-0219 Đ3). */
 export const CHU_HANG_CHO_DK = {
   // Phiếu «chỉ tổ chức» (mốc B1 Task 14; nhãn, chờ chủ chọn)
   chiToChuc: "Chỉ làm cho tổ chức",
@@ -97,6 +97,15 @@ export const CHU_HANG_CHO_DK = {
   thuLoi: "Thư chưa gửi được",
   conNua: "Còn phiếu khác chưa hiện. Hãy xử lý bớt các phiếu trên rồi tải lại.",
 } as const;
+
+/** Câu ở khung chi tiết khi phiếu đang ở bước của người khác: nói phiếu đang chờ ai (rà 18/11/2026 — thay câu chung «không thuộc việc của bạn»). */
+const CAU_BUOC_KHAC: Readonly<Record<string, string>> = {
+  CHO_XAC_MINH: "Phiếu đang chờ người xác minh.",
+  CAN_BO_SUNG: "Phiếu đang chờ người đăng ký bổ sung thông tin.",
+  CHO_DUYET: "Phiếu đã xác minh xong, đang chờ người duyệt mở tài khoản.",
+  DA_DUYET: "Phiếu đã được duyệt, đang chờ người đăng ký tự đặt mã PIN.",
+};
+export const cauBuocKhac = (trangThai: string): string => (Object.hasOwn(CAU_BUOC_KHAC, trangThai) ? CAU_BUOC_KHAC[trangThai]! : "Bước này không thuộc việc của bạn.");
 
 /** Tên loại thư báo người đăng ký, để người trong công ty biết thư nào đang chờ (ADR-0206 Đ13; cho-chon). */
 export const NHAN_LOAI_THU: Readonly<Record<string, string>> = {

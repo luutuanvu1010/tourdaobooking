@@ -10,6 +10,7 @@ import { can, type PermissionHolder } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
+import { ganHinhThe } from "./hinh-the-phu";
 import { moChiTietCap, veTheCap } from "./hoa-hong-cap";
 import { veDai } from "./hoa-hong-dai";
 import { datLaiLocDoiTac, moDoiTac, nhanHoSoMoi, veTheDoiTac } from "./hoa-hong-doi-tac";
@@ -50,6 +51,9 @@ const daiEl = byId("hh-dai");
 const traNhanhEl = byId("hh-tra-nhanh");
 const panelEl: Record<The, HTMLElement> = { cap: byId("hh-the-cap"), loai: byId("hh-the-loai") };
 const tabEl: Record<The, HTMLElement> = { cap: byId("hh-tab-cap"), loai: byId("hh-tab-loai") };
+// Việc 16: «Cấp độ đại lý» dùng đúng hình mục cùng tên của thanh bên (web/hinh-the-phu.ts).
+ganHinhThe(tabEl.cap, "layers");
+ganHinhThe(tabEl.loai, "userTag");
 /** Hai vùng của thẻ «loai»: danh sách các loại, và khối «Riêng từng đối tác». */
 const loaiDsEl = byId("hh-loai-ds");
 const loaiRiengEl = byId("hh-loai-rieng");

@@ -1,5 +1,5 @@
-// Route của người trong công ty ở bước DUYỆT MỞ TÀI KHOẢN từ phiếu đăng ký (ADR-0207 Đ1, Đ4–Đ7, Đ9; ADR-0208 Đ5, Đ6; đợt 1 Task 8). Cổng `accounts`; MỖI route hỏi `account.create` trong thân
-// (index.ts). Nhân sự KHÔNG xem Danh bạ: màn duyệt chỉ có họ tên, số điện thoại, loại xin, kết luận từng mục và kiểu kết luận Danh bạ (không tên hồ sơ nếu người xem không có `party.view`).
+// Route của người trong công ty ở bước DUYỆT MỞ TÀI KHOẢN từ phiếu đăng ký (ADR-0207 Đ1, Đ4–Đ7, Đ9; ADR-0208 Đ5, Đ6; đợt 1 Task 8). Cổng `accounts`; MỖI route hỏi `registration.approve` trong thân
+// (index.ts; ADR-0219 Đ2 — Quản trị, Nhân sự, Toàn quyền). Nhân sự KHÔNG xem Danh bạ: màn duyệt chỉ có họ tên, số điện thoại, loại xin, kết luận từng mục và kiểu kết luận Danh bạ (không tên hồ sơ nếu người xem không có `party.view`).
 // Lệnh duyệt = MỘT `db.batch` do gốc lắp ráp ghép (`ctx.loDuyetDangKy`, ADR-0206 Đ2): câu 1 là câu chốt (trigger dk_decision_guard làm hỏng CẢ lô). Các kiểm trước lô chỉ để trả câu báo rõ;
 // lô vẫn an toàn khi không có chúng (chỉ mục duy nhất staff.phone, staff_party_uq, dk_decision_once_uq; trigger CCCD một người, vai, quan hệ).
 // Nhật ký và lịch sử phiếu không chứa SĐT, email, số giấy tờ, ngày sinh, địa chỉ; câu báo lỗi không nhắc lại dữ liệu khai, không nói số điện thoại thuộc tài khoản nào.

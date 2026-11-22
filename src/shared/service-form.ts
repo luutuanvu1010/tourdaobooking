@@ -345,8 +345,8 @@ export interface DraftIssue {
 /** Số khách của dịch vụ đang nhập (mẫu số "Số người chiều về không được quá N", mẫu số hành khách). */
 export const soKhachNhap = (d: ServiceDraft): number => (d.kind === "catalog" ? tongKhach(d.pax) : d.guests);
 
-export function draftIssues(d: ServiceDraft): DraftIssue[] {
-  return [...draftIssuesTien(d), ...loiDanhSachChang(d.legs, soKhachNhap(d)).map((message) => ({ code: "leg" as const, message }))];
+export function draftIssues(d: ServiceDraft, o: { /** ADR-0221 Đ2: form đối tác lúc công tắc «Đối tác không nhập nơi đón» đang áp — lượt chiều đi chưa có nơi đón không chặn Lưu. Mặc định tắt. */ khongCanNoiDon?: boolean } = {}): DraftIssue[] {
+  return [...draftIssuesTien(d), ...loiDanhSachChang(d.legs, soKhachNhap(d), o.khongCanNoiDon === true).map((message) => ({ code: "leg" as const, message }))];
 }
 
 function draftIssuesTien(d: ServiceDraft): DraftIssue[] {
