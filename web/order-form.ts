@@ -17,7 +17,7 @@ import { soKhachDoan } from "../src/shared/hanh-khach";
 import { banHangSuaDuoc, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { can as canNv } from "../src/shared/permissions";
 import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
-import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieuVaiTro, gopBenDat, hienNutDienDoiTac, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon, type KhoiBenDatForm } from "../src/shared/phan-doi-tac-hien-thi";
+import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, baoDoiTacChuaCoSdt, doiTacThieuVaiTro, gopBenDat, hienNutDienDoiTac, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, traDoiTacTheoSo, type BenDatChon, type KhoiBenDatForm } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
 import { GOI_Y_GIAM_GIA_DOI_TAC, duaDonAnHetLuot, formGonDoiTac } from "../src/shared/form-dat-ve";
@@ -1487,7 +1487,7 @@ if (khoiBenDat.kieu === "chi-doc") {
   };
   datNhanKhach(true); // bên đặt là đối tác (máy chủ ép): hai ô khách là của người đi tour
 } else if (khoiBenDat.kieu === "tra-sdt-va-dat-qua") {
-  datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat }); // công tắc "Đơn của: Khách lẻ | Qua đối tác" ở hàng đầu khối Khách hàng
+  datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat, theoSo: traDoiTacTheoSo(staff) }); // công tắc "Đơn của: Khách lẻ | Qua đối tác" ở hàng đầu khối Khách hàng
   byId("don-cua-slot").append(datQua); // hàng đầu của khối "Khách hàng"
 }
 // R-P15: mốc cho biểu mẫu chưa lưu — chỉ người được lập đơn (máy chủ hỏi order.create). Lỗi / chưa có chính sách (503) → không cảnh báo; máy chủ vẫn chặn lúc xác nhận.
@@ -1519,7 +1519,7 @@ byId("use-mine").addEventListener("click", () => {
   }
 });
 // N5: «Điền thông tin đối tác» — lấy tên + số điện thoại chính từ hồ sơ đối tác đã chọn (GET /api/parties/:id, cổng văn phòng + party.view) rồi điền như «Điền thông tin của tôi».
-// Đối tác chưa có số → báo nhẹ, không điền rỗng, không xoá ô đang có.
+// Đối tác chưa có số → báo nhẹ kèm lối mở hồ sơ ở Danh bạ (tab mới — form đang gõ không mất; Việc 3), không điền rỗng, không xoá ô đang có, không tự chép số đăng nhập.
 byId("use-partner").addEventListener("click", async () => {
   const chon = daChonBenDat;
   if (!hienNutDienDoiTac(staff, chon)) return;
@@ -1528,7 +1528,8 @@ byId("use-partner").addEventListener("click", async () => {
     const { party } = await api<Api.PartyResponse>(`/api/parties/${encodeURIComponent(chon!.partyId)}`);
     if (daChonBenDat?.partyId !== chon!.partyId) return; // người lập đã đổi đối tác trong lúc chờ
     if (!party.primaryPhone) {
-      bao.textContent = CAU_DOI_TAC_CHUA_CO_SDT;
+      const b = baoDoiTacChuaCoSdt(party);
+      replaceChildren(bao, `${b.cau} `, h("a", { href: b.href, target: "_blank", rel: "noopener", "data-action": "them-so-doi-tac" }, b.nhanLienKet));
       bao.hidden = false;
       return;
     }
