@@ -266,7 +266,7 @@ export async function kiemCongXacNhan(
 ): Promise<{ loi: Response } | { ok: true; chup: BanChup[]; detail: string | undefined; today: string; traSau: KemTraSau; phiDon: PhiDonXacNhan; /** ADR-0221: id lượt mở còn mang chữ tạm ở nơi đón (chỉ khác rỗng ở chế độ «NHANH_A»). */ thieuNoiDon: string[] }> {
   const { actor, order } = i;
   const today = vnToday(new Date());
-  // ADR-0214: phí theo mức đã chọn (dòng phí đã lưu theo id chặng + `mucPhiThem` — mức văn phòng chọn ở Còn vé), số khách hiện tại, công tắc ở NGÀY XÁC NHẬN (chỉ đọc). Tính trước mọi
+  // ADR-0218: phí tính từ giá gốc Sheet (dòng phí đã lưu theo id chặng + `doiTayThem` — phí văn phòng đổi tay ở Còn vé), số khách hiện tại, công tắc ở NGÀY XÁC NHẬN (chỉ đọc). Tính trước mọi
   // cổng vì cổng Trả sau (và lời khai đặt cọc ở nơi gọi) đọc tổng đã gồm phí.
   const phiDon = await chuanBiPhiDonXacNhan(db, order, today, i.doiTayThem);
   // ADR-0146 Đ3 + R-7 (Q-8 (a) của chủ): luật bán đứng ĐẦU mọi cổng xác nhận — đơn vừa bị chặn bán vừa vướng cổng khác luôn nhận `sales_blocked` (sửa cổng kia cũng vô ích).
