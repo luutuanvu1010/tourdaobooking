@@ -196,3 +196,17 @@ test("gỡ khi tab kia vừa đổi (dòng đã đọc bị đóng) → 409 stal
   assert.deepEqual(dongMo(w, "SERVICE", "T3D").map((x: any) => x.due_hours), [36]);
   assert.equal(nhatKy(w, "service_credit_rule_removed").length, 0);
 });
+
+test("đua gỡ–đổi: tab A gỡ chen trước lô đổi của tab B → B nhận 409 stale, không còn dòng mở nào, không thêm nhật ký đặt", async () => {
+  const w = setup();
+  assert.equal((await dat(w, SUPER, { targetKind: "SERVICE", targetCode: "T3D", gioTra: 24, gioAnHan: 0 })).status, 200);
+  w.chenTruocLo(laLoDau, () => {
+    const at = new Date().toISOString();
+    w.sqlite.prepare("UPDATE bil_service_credit_rule SET valid_to = ?, updated_at = ?, updated_by = ? WHERE target_kind = 'SERVICE' AND target_code = 'T3D' AND valid_to IS NULL").run(at, at, SUPER);
+  });
+  const r = await dat(w, SUPER, { targetKind: "SERVICE", targetCode: "T3D", gioTra: 48, gioAnHan: 0 });
+  assert.deepEqual([r.status, ma(r)], [409, "stale"], r.text);
+  assert.equal(dongMo(w, "SERVICE", "T3D").length, 0);
+  assert.equal(tatCa(w, "SERVICE", "T3D").length, 1);
+  assert.equal(nhatKy(w, "service_credit_rule_set").length, 1);
+});

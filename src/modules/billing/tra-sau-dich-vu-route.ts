@@ -1,7 +1,8 @@
 // Dấu «Trả sau theo dịch vụ» (ADR-0178 Đ2 mục 1, Đ3; ADR-0230 Đ1 mục 1): route xem / đặt / gỡ và hàm đọc dấu đang mở cho cổng Trả sau (bước sau).
 // Đặt / gỡ: `credit.service_rule.write` (chỉ Toàn quyền). Xem: `credit.service_rule.view` (Kế toán, Quản trị, Toàn quyền). Tài khoản giữ quyền Đối tác không vào (khuôn Trả sau).
 // Danh mục (tên, nhóm, «Có vé», «Vé do ai phát» đã gộp) tới qua `ctx.danhMucTraSauDichVu` do gốc lắp ráp tiêm — billing KHÔNG import catalog (ALLOWED_EDGES).
-// Đổi số giờ = đóng dòng mở + chèn dòng mới + nhật ký trong MỘT db.batch; gỡ = đóng + nhật ký. Hai tab đua nhau: tab thua va chỉ mục duy nhất / đóng 0 dòng ⇒ 409 `stale`.
+// Đổi số giờ = đóng dòng mở + chèn dòng mới (chỉ khi câu đóng đổi 1 dòng) + nhật ký trong MỘT db.batch; gỡ = đóng + nhật ký. Hai tab đua nhau: tab thua va chỉ mục duy nhất / đóng 0 dòng ⇒ 409 `stale`
+// (kể cả khi tab kia vừa GỠ: lô đổi không mở lại dấu đã gỡ).
 // Gỡ khi không có dấu mở ⇒ 404 `not_found` (không ghi) — chọn 404 để giao diện biết dấu đã bị gỡ ở nơi khác.
 import type { DanhMucTraSauDichVu, DauTraSauDichVuDto, DauTraSauDichVuResponse } from "../../shared/contracts";
 import { error, json, readJson } from "../../shared/http";
@@ -10,7 +11,7 @@ import { route } from "../../shared/router";
 import { kiemSoGio } from "../../shared/tra-sau";
 import type { DauDichVu } from "../../shared/tra-sau-dich-vu";
 import { auditStatement } from "../audit";
-import { dauDangMo, dauMoCua, dongDauStatement, themDauStatement, type DauMoRow } from "./tra-sau-dich-vu-repo";
+import { dauDangMo, dauMoCua, dongDauStatement, themDauSauDongStatement, themDauStatement, type DauMoRow } from "./tra-sau-dich-vu-repo";
 
 type Loai = "GROUP" | "SERVICE";
 const isLoai = (v: unknown): v is Loai => v === "GROUP" || v === "SERVICE";
@@ -86,14 +87,13 @@ export const traSauDichVuRoutes = [
     const cu = await dauMoCua(env.DB, loai, ma);
     if (!cu || cu.due_hours !== gioTra || cu.grace_hours !== gioAnHan) {
       const at = new Date().toISOString();
-      const lo: D1PreparedStatement[] = [];
-      if (cu) lo.push(dongDauStatement(env.DB, cu.id, at, staff.id));
-      lo.push(
-        themDauStatement(env.DB, { id: crypto.randomUUID(), kind: loai, code: ma, gioTra, gioAnHan, at, by: staff.id }),
-        auditStatement(env.DB, { staffId: staff.id, action: "service_credit_rule_set", at, targetType: "ledger", targetId: `${loai}:${ma}`, detail: `${loai} ${ma}: trả ${gioTra} giờ, ân hạn ${gioAnHan} giờ` }),
-      );
+      const v = { id: crypto.randomUUID(), kind: loai, code: ma, gioTra, gioAnHan, at, by: staff.id };
+      const nk = auditStatement(env.DB, { staffId: staff.id, action: "service_credit_rule_set", at, targetType: "ledger", targetId: `${loai}:${ma}`, detail: `${loai} ${ma}: trả ${gioTra} giờ, ân hạn ${gioAnHan} giờ` }, "changes() > 0");
+      // Đổi: đóng theo id → chèn chỉ khi câu đóng đổi 1 dòng → nhật ký chỉ khi đã chèn. Đặt lần đầu: chèn thẳng (hai tab cùng đặt lần đầu va chỉ mục một dòng mở).
+      const lo = cu ? [dongDauStatement(env.DB, cu.id, at, staff.id), themDauSauDongStatement(env.DB, v), nk] : [themDauStatement(env.DB, v), nk];
       try {
-        await env.DB.batch(lo);
+        const kq = await env.DB.batch(lo);
+        if (cu && (kq[0]?.meta?.changes ?? 0) === 0) return STALE();
       } catch (e) {
         if (laVaDongMo(e)) return STALE();
         throw e;

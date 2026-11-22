@@ -49,3 +49,16 @@ export const themDauStatement = (
   db: D1Database,
   v: { id: string; kind: "GROUP" | "SERVICE"; code: string; gioTra: number; gioAnHan: number; at: string; by: string },
 ) => db.prepare(DAU_THEM).bind(v.id, v.kind, v.code, v.gioTra, v.gioAnHan, v.at, v.by);
+
+// «Đổi» (đã đọc được dòng mở): chỉ chèn khi câu đóng NGAY TRƯỚC trong cùng lô đổi đúng 1 dòng (`changes()` của câu liền trước). Tab khác vừa gỡ / đổi ⇒ câu đóng
+// nhắm 0 dòng ⇒ không chèn (không mở lại dấu đã bị gỡ); nơi gọi đọc `meta.changes` của câu đóng và trả 409.
+const DAU_THEM_SAU_DONG = defineSql(
+  "billing",
+  "service_credit_rule_insert_after_close",
+  `INSERT INTO bil_service_credit_rule (id, target_kind, target_code, due_hours, grace_hours, valid_from, valid_to, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, NULL, ?6, ?7, ?6, ?7 WHERE changes() > 0`,
+);
+export const themDauSauDongStatement = (
+  db: D1Database,
+  v: { id: string; kind: "GROUP" | "SERVICE"; code: string; gioTra: number; gioAnHan: number; at: string; by: string },
+) => db.prepare(DAU_THEM_SAU_DONG).bind(v.id, v.kind, v.code, v.gioTra, v.gioAnHan, v.at, v.by);
