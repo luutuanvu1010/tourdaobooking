@@ -284,4 +284,32 @@ console.log("✓ ADR-0013: SUPER_ADMIN sửa ADMIN được; ADMIN sửa SUPER_A
   console.log("✓ bốn ô tìm (hồ sơ, nhật ký, người hưởng, lịch sử trợ lý): chữ tìm dài → 200, không 500");
 }
 
+// Việc 3 (kế hoạch 16 việc, 21/11/2026): ô «Tìm đối tác» ở Tạo đơn nhận cả số điện thoại — gõ đủ số liên hệ của một đối tác (cộng tác viên, được hưởng) ⇒ ra đúng hồ sơ,
+// ở mọi cách viết số; phản hồi chỉ id, tên, loại (không kèm số); gõ tên vẫn ra như cũ. Hồ sơ chưa có số liên hệ: GET hồ sơ trả primaryPhone null + `editable` cho câu báo.
+{
+  const soCtv = randomPhone();
+  const tenCtv = `Cộng Tác Viên Tìm Số ${tag}`;
+  const ctv = (await call(SALES, "POST", "/api/parties", { kind: "PERSON", fullName: tenCtv, contacts: [{ kind: "PHONE", value: soCtv }] })).body.party;
+  assert.ok(ctv?.id, "tạo hồ sơ cộng tác viên có số liên hệ");
+  const gan = await call(ADMIN, "POST", P(`${ctv.id}/roles`), { roleTypeCode: "COLLABORATOR" });
+  assert.equal(gan.status, 201, `gán vai Cộng tác viên (được hưởng): ${JSON.stringify(gan.body)}`);
+  const cachViet = [soCtv, `+84${soCtv.slice(1)}`, soCtv.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3"), soCtv.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1.$2.$3")];
+  for (const q of cachViet) {
+    const kq = await call(SALES, "GET", `/api/pricing/nguoi-huong?q=${encodeURIComponent(q)}`);
+    assert.equal(kq.status, 200, JSON.stringify(kq.body));
+    assert.deepEqual(kq.body.ketQua, [{ partyId: ctv.id, ten: tenCtv, loai: "PERSON" }], `gõ «${q}» phải ra đúng cộng tác viên`);
+    assert.ok(!JSON.stringify(kq.body).includes(soCtv.slice(1)), "phản hồi tìm người hưởng không kèm số điện thoại");
+  }
+  const theoTen = await call(SALES, "GET", `/api/pricing/nguoi-huong?q=${encodeURIComponent(`Tìm Số ${tag}`)}`);
+  assert.ok(theoTen.body.ketQua.some((x) => x.partyId === ctv.id), "gõ tên vẫn tìm như cũ");
+  assert.equal((await call(SALES, "GET", P(ctv.id))).body.party.primaryPhone, soCtv, "nút «Điền thông tin đối tác» đọc đúng số này");
+  // Đối tác chưa có số liên hệ: không tìm ra theo số nào, GET hồ sơ trả primaryPhone null và `editable` (Bán hàng sửa được hồ sơ không gắn tài khoản ⇒ «Thêm số ở Danh bạ»).
+  const khongSo = (await call(SALES, "POST", "/api/parties", { kind: "PERSON", fullName: `Cộng Tác Viên Chưa Số ${tag}` })).body.party;
+  assert.equal((await call(ADMIN, "POST", P(`${khongSo.id}/roles`), { roleTypeCode: "COLLABORATOR" })).status, 201);
+  const xem = (await call(SALES, "GET", P(khongSo.id))).body.party;
+  assert.equal(xem.primaryPhone, null);
+  assert.equal(xem.editable, true);
+  console.log("✓ Việc 3: tìm đối tác theo số liên hệ (0…, +84…, có dấu cách / chấm) ra đúng hồ sơ, không lộ số; tên vẫn tìm được; hồ sơ chưa có số trả primaryPhone null");
+}
+
 console.log("E2E PARTIES OK");

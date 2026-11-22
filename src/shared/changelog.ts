@@ -18,14 +18,24 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Ô tệp phiếu đăng ký theo vai, «Tệp khác», 12 tệp mỗi phiếu (ADR-0233, kế hoạch 16 việc Việc 14). Nhánh claude/objective-euclid-6c8a85. CÓ migration 0191.
-    // SỐ TẠM 3.28 (3.27 là sửa tệp giữ chỗ dải, đã ở main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.28",
+    // SỐ TẠM 3.29 (3.28 là Việc 3 tìm đối tác theo số, đã ở main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.29",
     date: "2026-11-22",
     items: [
       { kind: "doi", text: "Đăng ký làm đối tác: các ô gửi ảnh giấy tờ hiện theo vai người đăng ký chọn. Mỗi phiếu nay gửi được tối đa 12 tệp (trước là 8)." },
       { kind: "moi", text: "Đăng ký làm đối tác: thêm ô «Tệp khác» để gửi kèm giấy tờ ngoài danh sách." },
       { kind: "moi", text: "Ô «Tệp khác» chỉ hiện khi Toàn quyền đăng chính sách riêng tư mới có tích «Bản này nêu việc thu tệp khác»." },
       { kind: "doi", text: "Đăng ký làm đối tác: chọn tệp Word thì Nền tảng báo ngay dưới ô «Tệp Word: hãy lưu thành PDF rồi gửi.»" },
+    ],
+  },
+  {
+    // Tìm đối tác theo số điện thoại ở màn Tạo đơn (kế hoạch 16 việc 21/11, Việc 3). Nhánh claude/nostalgic-jepsen-bb3f99. Không migration.
+    // SỐ TẠM 3.28 (3.27 = bản sửa «giữ chỗ dải» ee0bc120d đã ở main 22/11 06:17; bản chạy thật 3.26): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.28",
+    date: "2026-11-22",
+    items: [
+      { kind: "sua", text: "Tạo đơn: ô «Tìm đối tác» nhận cả số điện thoại. Gõ đủ số liên hệ của đối tác là ra đúng người, gõ tên vẫn tìm như cũ." },
+      { kind: "sua", text: "Tạo đơn: bấm «Điền thông tin đối tác» mà đối tác chưa có số điện thoại thì Nền tảng nói rõ ai thêm được số và mở sẵn hồ sơ ở Danh bạ." },
     ],
   },
   {
