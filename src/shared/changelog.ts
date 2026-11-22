@@ -17,6 +17,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Đối tác Trả sau chỉ thấy «Trả sau» (kế hoạch 16 việc 21/11, Việc 2; ADR-0224). Nhánh claude/great-montalcini-69b67b. Không migration.
+    // SỐ TẠM 3.29 (3.28 là Việc 3, 3.27 là sửa giu-cho-dai): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.29",
+    date: "2026-11-22",
+    items: [
+      { kind: "doi", text: "Đối tác được trả sau: màn Tạo đơn chỉ còn «Trả sau»." },
+      { kind: "doi", text: "Khi Trả sau tạm khoá (có đơn quá hạn) hoặc đơn vượt mức được trả sau, «Thanh toán ngay» hiện lại kèm câu lý do." },
+    ],
+  },
+  {
     // Tìm đối tác theo số điện thoại ở màn Tạo đơn (kế hoạch 16 việc 21/11, Việc 3). Nhánh claude/nostalgic-jepsen-bb3f99. Không migration.
     // SỐ TẠM 3.28 (3.27 = bản sửa «giữ chỗ dải» ee0bc120d đã ở main 22/11 06:17; bản chạy thật 3.26): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.28",
