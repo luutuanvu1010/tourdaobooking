@@ -207,11 +207,12 @@ test("xoá: chỉ Toàn quyền; HET_HAN trước hạn ⇒ 409 (trigger hạn g
   assert.equal((await xoa(SA, a1, { lyDo: "GIAY_TO_CHUP_NHAM", ghiChu: "Lọt căn cước của khách" })).status, 200);
   assert.ok(!w.r2AnhBanGiao.co(keys1.thumb_key) && !w.r2AnhBanGiao.co(keys1.view_key));
   assert.ok(w.q("SELECT r2_deleted_at FROM abg_photo WHERE id = ?", a1)[0].r2_deleted_at);
+  assert.equal(w.q("SELECT purge_note FROM abg_photo WHERE id = ?", a1)[0].purge_note, "Lọt căn cước của khách", "lý do chữ ở cột N3 của dòng ảnh");
   assert.equal((await xoa(SA, a2, { lyDo: "XOA_THEO_YEU_CAU", ghiChu: "Khách gọi hotline 22/11, đã đối chiếu mã đơn" })).status, 400, "thiếu nguồn");
   assert.equal((await xoa(SA, a2, { lyDo: "XOA_THEO_YEU_CAU", nguon: "KHACH", ghiChu: "Khách gọi hotline 22/11, đã đối chiếu mã đơn" })).status, 200);
   assert.equal(n(w, "SELECT count(*) AS n FROM abg_erasure_request WHERE source = 'KHACH' AND executed_at IS NOT NULL"), 1);
   const nk = w.q("SELECT detail FROM audit_log WHERE action = 'handover_photo_purged'").map((x: any) => x.detail).join("|");
-  assert.ok(!nk.includes("hotline"), "ghi chú kênh của khách không vào nhật ký");
+  assert.ok(!nk.includes("hotline") && !nk.includes("căn cước"), "chữ tự do (kênh của khách, lý do xoá) không vào nhật ký — chỉ mã");
   assert.equal((await ds(w, KT, id)).json.anh.length, 0);
 });
 
@@ -279,4 +280,15 @@ test("kho hỏng khi đặt ảnh: dòng ở «tải dở dang», R-ABG-1 thấy
   assert.equal(w.q("SELECT purge_reason FROM abg_photo WHERE id = ?", r.json.id)[0].purge_reason, "TAI_LEN_LOI");
   assert.equal(dem(w, "R-ABG-1"), 0);
   assert.equal(dem(w, "R-ABG-2"), 0);
+});
+
+test("người không bao giờ gửi / xem được (Đối tác, Thực tập sinh) nhận 403 TRƯỚC mọi câu về đơn — mã đơn không có thật cũng 403, không 404", async () => {
+  const w = setup();
+  const lạ = "95959595-9595-4595-8595-999999999998";
+  for (const as of [DT, TTS]) {
+    assert.equal((await tai(w, as, lạ)).status, 403);
+    assert.equal((await ds(w, as, lạ)).status, 403);
+    assert.equal((await w.call("GET", `/api/anh-ban-giao/don/${lạ}/tom-tat`, { as })).status, 403);
+  }
+  assert.equal((await tai(w, SALES, lạ)).status, 404, "người có quyền thì vẫn biết đơn không có");
 });

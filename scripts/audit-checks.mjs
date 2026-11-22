@@ -169,6 +169,7 @@ export const COT_N3_NHAT_KY = {
   "abg_photo.thumb_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 Ảnh bàn giao — không bao giờ vào nhật ký
   "abg_photo.view_key": { kiem: "R-PD-1", chuanHoa: false },
   "abg_photo.hidden_reason": { kiem: "R-PD-1", chuanHoa: false }, // lý do ẩn nằm ở dòng ảnh — nhật ký chỉ mang mã ảnh
+  "abg_photo.purge_note": { kiem: "R-PD-1", chuanHoa: false }, // lý do xoá (chữ) nằm ở dòng ảnh — nhật ký chỉ mang mã lý do
   "fbk_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0144: băm tệp kèm vé hỗ trợ — nhật ký chỉ mang mã tệp
   "bil_receipt_proof.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0196: băm ảnh biên lai — nhật ký chỉ mang mã ảnh
   "bil_receipt_proof.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 biên lai — không bao giờ vào nhật ký

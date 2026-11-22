@@ -44,7 +44,7 @@ const NGOAI_LE_TEN: Record<string, string> = {
   "pty_org_invite_policy.per_phone_per_day": "CON SỐ trần lời mời mỗi số điện thoại mỗi ngày (ADR-0213 Đ7.3) — dữ liệu chính sách, không chứa số điện thoại nào",
 };
 const N3_GHIM = [
-  "abg_photo.content_hash", "abg_photo.hidden_reason", "abg_photo.thumb_key", "abg_photo.view_key", // ADR-0232: Ảnh bàn giao (mặt người, có thể lọt giấy tờ) — cùng hạng với bil_receipt_proof; lý do ẩn có thể nhắc giấy tờ
+  "abg_photo.content_hash", "abg_photo.hidden_reason", "abg_photo.purge_note", "abg_photo.thumb_key", "abg_photo.view_key", // ADR-0232: Ảnh bàn giao (mặt người, có thể lọt giấy tờ) — cùng hạng với bil_receipt_proof; lý do ẩn có thể nhắc giấy tờ
   "bil_receipt_proof.content_hash", "bil_receipt_proof.storage_key", // ADR-0196: ảnh biên lai có số tài khoản, tên người chuyển — cùng hạng với fbk_attachment
   "bil_remittance_proof.content_hash", "bil_remittance_proof.storage_key", // ADR-0182 phần B: ảnh biên lai khoản nộp — cùng hạng
   "dk_submission.document_number", "dk_submission.issued_place", "dk_submission.number_key", // ADR-0206 Đ3: bản khai đăng ký chép giấy tờ một–một sang pty_person_document — cùng hạng

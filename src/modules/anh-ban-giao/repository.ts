@@ -44,7 +44,7 @@ const AN_ANH = defineSql(
 const QUYET_GO = defineSql(
   "anh-ban-giao",
   "photo_purge",
-  `UPDATE abg_photo SET purged_at = ?2, purge_reason = ?3, content_hash = NULL, note = NULL, erasure_request_id = COALESCE(erasure_request_id, ?6), updated_at = ?2, updated_by = ?4
+  `UPDATE abg_photo SET purged_at = ?2, purge_reason = ?3, purge_note = ?7, content_hash = NULL, note = NULL, erasure_request_id = COALESCE(erasure_request_id, ?6), updated_at = ?2, updated_by = ?4
    WHERE id = ?1 AND purged_at IS NULL AND (?5 IS NULL OR (stored_at IS NULL AND created_at < ?5))`,
 );
 const CHEN_YEU_CAU = defineSql(
@@ -129,8 +129,8 @@ export async function anhCuaDon(db: D1Database, orderId: string): Promise<AnhDon
 export const anhTheoId = (db: D1Database, id: string): Promise<AnhTheoIdRow | null> => db.prepare(ANH_THEO_ID).bind(id).first<AnhTheoIdRow>();
 export const anAnhStatement = (db: D1Database, v: { id: string; at: string; by: string; lyDo: string }): D1PreparedStatement =>
   db.prepare(AN_ANH).bind(v.id, v.at, v.by, v.lyDo);
-export const quyetGoStatement = (db: D1Database, v: { id: string; at: string; lyDo: string; by: string; doDangTruoc?: string; yeuCauId?: string | null }): D1PreparedStatement =>
-  db.prepare(QUYET_GO).bind(v.id, v.at, v.lyDo, v.by, v.doDangTruoc ?? null, v.yeuCauId ?? null);
+export const quyetGoStatement = (db: D1Database, v: { id: string; at: string; lyDo: string; by: string; doDangTruoc?: string; yeuCauId?: string | null; ghiChu?: string | null }): D1PreparedStatement =>
+  db.prepare(QUYET_GO).bind(v.id, v.at, v.lyDo, v.by, v.doDangTruoc ?? null, v.yeuCauId ?? null, v.ghiChu ?? null);
 export const chenYeuCauStatement = (
   db: D1Database, v: { id: string; nguon: "PHIEU" | "KHACH"; phieuId: string | null; ghiChu: string | null; xongLuc: string | null; at: string; by: string },
 ): D1PreparedStatement => db.prepare(CHEN_YEU_CAU).bind(v.id, v.nguon, v.phieuId, v.ghiChu, v.xongLuc, v.at, v.by);

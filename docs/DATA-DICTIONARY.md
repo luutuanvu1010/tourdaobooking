@@ -424,7 +424,7 @@
 | `bil_payment_receipt` |  | `note` |  |  |
 | `bil_posting` |  | `reason` |  |  |
 | `bil_remittance_proof` |  |  | `storage_key`, `content_hash` |  |
-| `abg_photo` |  | `note` | `thumb_key`, `view_key`, `content_hash`, `hidden_reason` |  |
+| `abg_photo` |  | `note` | `thumb_key`, `view_key`, `content_hash`, `purge_note`, `hidden_reason` |  |
 | `abg_erasure_request` |  | `channel_note` |  |  |
 | `bil_receipt_proof` |  |  | `storage_key`, `content_hash` |  |
 | `dsp_assignment` |  | `place_text` |  |  |

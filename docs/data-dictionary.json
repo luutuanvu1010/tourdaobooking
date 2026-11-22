@@ -2042,7 +2042,7 @@
     "bil_remittance_bank_txn": { "id": "N1", "remittance_id": "N1", "txn_code": "N1", "transferred_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "abg_photo": {
       "id": "N1", "order_id": "N1", "order_service_id": "N1", "transfer_leg_id": "N1", "task_kind": "N1", "note": "N2", "thumb_key": "N3", "view_key": "N3", "thumb_size": "N1",
-      "view_size": "N1", "content_hash": "N3", "retain_until": "N1", "stored_at": "N1", "purged_at": "N1", "purge_reason": "N1", "erasure_request_id": "N1", "r2_deleted_at": "N1",
+      "view_size": "N1", "content_hash": "N3", "retain_until": "N1", "stored_at": "N1", "purged_at": "N1", "purge_reason": "N1", "purge_note": "N3", "erasure_request_id": "N1", "r2_deleted_at": "N1",
       "hidden_at": "N1", "hidden_by": "N1", "hidden_reason": "N3", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
     },
     "abg_erasure_request": { "id": "N1", "source": "N1", "phieu_id": "N1", "channel_note": "N2", "executed_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

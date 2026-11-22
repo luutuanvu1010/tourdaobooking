@@ -57,6 +57,7 @@ CREATE TABLE abg_photo (
   stored_at           TEXT,
   purged_at           TEXT,
   purge_reason        TEXT CHECK (purge_reason IS NULL OR (purge_reason = upper(purge_reason) AND length(purge_reason) BETWEEN 2 AND 40 AND purge_reason NOT GLOB '*[^A-Z0-9_]*')),
+  purge_note          TEXT CHECK (purge_note IS NULL OR length(trim(purge_note)) BETWEEN 3 AND 300),  -- lý do chữ của Toàn quyền khi xoá (N3 — có thể nhắc giấy tờ); KHÔNG vào nhật ký
   erasure_request_id  TEXT REFERENCES abg_erasure_request(id),
   r2_deleted_at       TEXT,
   hidden_at           TEXT,
@@ -72,6 +73,7 @@ CREATE TABLE abg_photo (
   CHECK ((purged_at IS NULL) = (purge_reason IS NULL)),
   CHECK ((purged_at IS NULL) = (content_hash IS NOT NULL)),
   CHECK (r2_deleted_at IS NULL OR purged_at IS NOT NULL),
+  CHECK (purge_note IS NULL OR purged_at IS NOT NULL),
   CHECK ((hidden_at IS NULL) = (hidden_by IS NULL) AND (hidden_at IS NULL) = (hidden_reason IS NULL))
 );
 CREATE INDEX abg_photo_order_ix ON abg_photo(order_id, created_at);
@@ -93,7 +95,7 @@ CREATE TRIGGER abg_photo_hash_one_way BEFORE UPDATE OF content_hash ON abg_photo
 WHEN NEW.content_hash IS NOT NULL AND NEW.content_hash IS NOT OLD.content_hash
 BEGIN SELECT RAISE(ABORT, 'photo_hash_one_way: băm của ảnh chỉ được xoá về rỗng (khi quyết gỡ)'); END;
 CREATE TRIGGER abg_photo_purge_one_way BEFORE UPDATE ON abg_photo
-WHEN (OLD.purged_at IS NOT NULL AND (NEW.purged_at IS NOT OLD.purged_at OR NEW.purge_reason IS NOT OLD.purge_reason))
+WHEN (OLD.purged_at IS NOT NULL AND (NEW.purged_at IS NOT OLD.purged_at OR NEW.purge_reason IS NOT OLD.purge_reason OR NEW.purge_note IS NOT OLD.purge_note))
   OR (OLD.r2_deleted_at IS NOT NULL AND NEW.r2_deleted_at IS NOT OLD.r2_deleted_at)
   OR (OLD.r2_deleted_at IS NULL AND NEW.r2_deleted_at IS NOT NULL AND OLD.purged_at IS NULL)
 BEGIN SELECT RAISE(ABORT, 'photo_purge_one_way: quyết gỡ và đã-xoá-khỏi-kho chỉ đi một chiều; đã-xoá-khỏi-kho chỉ sau khi quyết gỡ'); END;
@@ -122,7 +124,7 @@ WHEN EXISTS (SELECT 1 FROM abg_photo p WHERE p.id = NEW.id OR p.thumb_key = NEW.
 BEGIN SELECT RAISE(ABORT, 'photo_no_replace: UNIQUE — mã hoặc khoá kho đã có, không ghi đè dòng ảnh'); END;
 -- Ảnh mới chỉ cho dòng sạch: chưa lưu, chưa gỡ, chưa ẩn, chưa đánh dấu xoá.
 CREATE TRIGGER abg_photo_clean_ins BEFORE INSERT ON abg_photo
-WHEN NEW.stored_at IS NOT NULL OR NEW.purged_at IS NOT NULL OR NEW.r2_deleted_at IS NOT NULL OR NEW.hidden_at IS NOT NULL OR NEW.erasure_request_id IS NOT NULL
+WHEN NEW.stored_at IS NOT NULL OR NEW.purged_at IS NOT NULL OR NEW.purge_note IS NOT NULL OR NEW.r2_deleted_at IS NOT NULL OR NEW.hidden_at IS NOT NULL OR NEW.erasure_request_id IS NOT NULL
 BEGIN SELECT RAISE(ABORT, 'photo_clean_ins: ảnh mới không mang sẵn mốc lưu, gỡ, ẩn hay yêu cầu xoá'); END;
 -- Đơn phải đã xác nhận (không nháp, không huỷ — ADR-0232 Đ5).
 CREATE TRIGGER abg_photo_order_ins BEFORE INSERT ON abg_photo
@@ -136,6 +138,9 @@ BEGIN SELECT RAISE(ABORT, 'photo_target_mismatch: dịch vụ hoặc lượt đ�
 CREATE TRIGGER abg_photo_rate_ins BEFORE INSERT ON abg_photo
 WHEN (SELECT count(*) FROM abg_photo p WHERE p.created_by = NEW.created_by AND p.created_at > strftime('%Y-%m-%dT%H:%M:%fZ', NEW.created_at, '-1 hour')) >= 20
 BEGIN SELECT RAISE(ABORT, 'photo_rate_limited: mỗi tài khoản tối đa 20 ảnh bàn giao mỗi giờ'); END;
+CREATE TRIGGER abg_photo_purge_note_once BEFORE UPDATE OF purge_note ON abg_photo
+WHEN NEW.purge_note IS NOT OLD.purge_note AND NOT (OLD.purged_at IS NULL AND NEW.purged_at IS NOT NULL)
+BEGIN SELECT RAISE(ABORT, 'photo_purge_note_once: lý do xoá chỉ ghi trong CÙNG câu quyết gỡ'); END;
 CREATE TRIGGER abg_photo_order_full_ins BEFORE INSERT ON abg_photo
 WHEN (SELECT count(*) FROM abg_photo p WHERE p.order_id = NEW.order_id AND p.purged_at IS NULL AND p.hidden_at IS NULL) >= 30
 BEGIN SELECT RAISE(ABORT, 'photo_order_full: mỗi đơn tối đa 30 ảnh bàn giao'); END;

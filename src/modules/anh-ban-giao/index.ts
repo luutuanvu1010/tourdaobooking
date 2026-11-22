@@ -36,7 +36,7 @@ const ma8 = (id: string) => id.slice(0, 8);
 function loiTrigger(e: unknown): Response | null {
   const m = e instanceof Error ? e.message : String(e);
   if (/\bphoto_rate_limited:/.test(m)) return QUA_TRAN_GIO();
-  if (/\bphoto_order_full:/.test(m)) return error(409, "order_full", "Đơn này đã có đủ 30 ảnh bàn giao.");
+  if (/\bphoto_order_full:/.test(m)) return error(429, "order_full", "Đơn này đã có đủ 30 ảnh bàn giao."); // ADR-0232 Đ5: trần mỗi đơn ⇒ 429
   if (/\bphoto_order_not_confirmed:/.test(m)) return DON_CHUA_XAC_NHAN();
   if (/\bphoto_target_mismatch:/.test(m)) return error(400, "invalid_input", "Dịch vụ hoặc lượt đón không thuộc đơn này.");
   if (/\bphoto_retention_hold:/.test(m)) return error(409, "retention_hold", "Ảnh này chưa tới hạn giữ nên chưa xoá được.");
@@ -65,6 +65,8 @@ export const anhBanGiaoModule: AppModule = {
     // nhật ký chỉ mã → đặt hai đối tượng R2 SAU lô (lỗi không ném — dòng ở «tải dở dang»).
     route("POST", "/api/anh-ban-giao/don/:orderId", "staff", async ({ env, request, params, staff, isAssigned, taiXeLaiChang, soNamGiuAnh }) => {
       if (Number(request.headers.get("content-length") ?? "0") > TOI_DA_THAN_ANH_BAN_GIAO) return error(413, "payload_too_large", CAU_QUA_CO_ANH);
+      // Người không bao giờ gửi được (Đối tác, Thực tập sinh, Kế toán…) ⇒ 403 TRƯỚC mọi câu nói về đơn (không dò được trạng thái đơn).
+      if (!can(staff, "order.photo.upload", { assigned: true })) return KHONG_TAI();
       const orderId = params.orderId!;
       if (!UUID_RE.test(orderId)) return KHONG_CO_DON();
       const st = await trangThaiDon(env.DB, orderId);
@@ -101,6 +103,7 @@ export const anhBanGiaoModule: AppModule = {
 
     // TÓM TẮT cho nút ở trang đơn: số ảnh người gọi xem được + có được gửi không. KHÔNG nội dung ảnh ⇒ không nhật ký. Không xem, không gửi được ⇒ 403.
     route("GET", "/api/anh-ban-giao/don/:orderId/tom-tat", "staff", async ({ env, params, staff, isAssigned, soNamGiuAnh }) => {
+      if (!can(staff, "order.photo.view", { ownerId: staff.id }) && !can(staff, "order.photo.upload", { assigned: true })) return KHONG_XEM(); // 403 trước câu nói về đơn
       const orderId = params.orderId!;
       if (!UUID_RE.test(orderId)) return KHONG_CO_DON();
       const [st, phuTrach] = await Promise.all([trangThaiDon(env.DB, orderId), isAssigned(orderId)]);
@@ -120,10 +123,10 @@ export const anhBanGiaoModule: AppModule = {
     route("GET", "/api/anh-ban-giao/don/:orderId", "staff", async ({ env, request, params, staff, nhanNhanVien }) => {
       const sfs = request.headers.get("sec-fetch-site");
       if (sfs !== null && sfs !== "same-origin" && sfs !== "none") return TRANG_KHAC();
+      if (!can(staff, "order.photo.view", { ownerId: staff.id })) return KHONG_XEM(); // 403 trước câu nói về đơn
       const orderId = params.orderId!;
       if (!UUID_RE.test(orderId)) return KHONG_CO_DON();
       if ((await trangThaiDon(env.DB, orderId)) === null) return KHONG_CO_DON();
-      if (!can(staff, "order.photo.view", { ownerId: staff.id })) return KHONG_XEM();
       const kho = env.ANH_BAN_GIAO;
       if (!kho) return KHO_TAT();
       const thayAn = can(staff, "order.photo.hide");
@@ -226,10 +229,10 @@ export const anhBanGiaoModule: AppModule = {
       const yc = lyDo === "XOA_THEO_YEU_CAU" ? crypto.randomUUID() : null;
       const lo: D1PreparedStatement[] = [];
       if (yc) lo.push(chenYeuCauStatement(env.DB, { id: yc, nguon: "KHACH", phieuId: null, ghiChu, xongLuc: at, at, by: staff.id }));
-      lo.push(quyetGoStatement(env.DB, { id: a.id, at, lyDo: LY_DO_GO_ANH[lyDo], by: staff.id, yeuCauId: yc }));
+      lo.push(quyetGoStatement(env.DB, { id: a.id, at, lyDo: LY_DO_GO_ANH[lyDo], by: staff.id, yeuCauId: yc, ghiChu: yc ? null : ghiChu })); // lý do chữ ở cột N3 của dòng ảnh, KHÔNG vào nhật ký
       lo.push(auditStatement(env.DB, {
         orderId: a.order_id, staffId: staff.id, action: "handover_photo_purged", at,
-        detail: `ảnh ${ma8(a.id)} · ${lyDo === "XOA_THEO_YEU_CAU" ? "theo yêu cầu của khách" : lyDo === "HET_HAN" ? `hết hạn giữ · ${ghiChu.slice(0, 200)}` : `ảnh lọt giấy tờ · ${ghiChu.slice(0, 200)}`}`,
+        detail: `ảnh ${ma8(a.id)} · ${lyDo === "XOA_THEO_YEU_CAU" ? "theo yêu cầu của khách" : lyDo === "HET_HAN" ? "hết hạn giữ" : "ảnh lọt giấy tờ"}`, // chỉ mã — không chữ tự do (Hiến chương 5.20, 5.22)
       }, "changes() > 0"));
       let res: D1Result[];
       try {

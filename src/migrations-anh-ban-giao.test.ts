@@ -176,3 +176,11 @@ test("cột photo_retention_years của chính sách riêng tư: trống hoặc 
   assert.throws(() => ins(0, 3), /CHECK/);
   assert.throws(() => ins(21, 3), /CHECK/);
 });
+
+test("lý do xoá bằng chữ (purge_note, N3): chỉ ghi trong CÙNG câu quyết gỡ; không ghi trước, không đổi sau", () => {
+  const db = moi();
+  chen(db, { id: "p1" });
+  assert.throws(() => db.exec("UPDATE abg_photo SET purge_note = 'Lọt căn cước' WHERE id = 'p1'"), /photo_purge_note_once|CHECK/);
+  db.prepare(`UPDATE abg_photo SET purged_at = ?, purge_reason = 'GIAY_TO_CHUP_NHAM', purge_note = 'Lọt căn cước', content_hash = NULL, note = NULL WHERE id = 'p1'`).run(new Date().toISOString());
+  assert.throws(() => db.exec("UPDATE abg_photo SET purge_note = 'khác đi' WHERE id = 'p1'"), /photo_purge_note_once|photo_purge_one_way/);
+});
