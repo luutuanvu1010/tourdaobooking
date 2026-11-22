@@ -5028,5 +5028,7 @@ body[data-khung-goc] .chon-doan > button[aria-checked="true"] { color: var(--c-p
 /* ---------- Hết khung gốc giao diện (ADR-0222) ---------- */
 
 /* BẢN DÙNG THỬ (ADR-0223 Đ3.1): khung «Bạn muốn dùng thử với vai nào?» ở trang đăng nhập — chỉ hiện trên demo.tourdao.vn. Chỉ token. */
-.dung-thu-vai { display: grid; gap: var(--s4); }
+.dung-thu-vai { display: grid; gap: var(--s2); text-align: center; }
+.dung-thu-vai h2, .dung-thu-vai p { margin: 0; }
+.dung-thu-vai-ds { margin-top: var(--s2); }
 .dung-thu-vai-ds { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--kg-khe); }

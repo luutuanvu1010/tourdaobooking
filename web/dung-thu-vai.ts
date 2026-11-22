@@ -55,7 +55,9 @@ export async function ganKhoaDungThu(sau: HTMLElement): Promise<void> {
   const nut = h("button", { type: "button", className: "nut", "data-cap": "phu" });
   const ve = (): void => {
     const gio = new Date(tt.lamMoiLuc).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh" });
-    trangThai.textContent = `${khoa ? "Đăng nhập dùng thử đang tạm khoá." : "Đăng nhập dùng thử đang mở."} Dữ liệu tự xoá lúc ${gio}.`;
+    trangThai.textContent = khoa
+      ? `Đăng nhập dùng thử đang tạm khoá: người thử không vào được, máy đang dùng thử bị chặn ở lần bấm kế tiếp. Dữ liệu tự xoá lúc ${gio}.`
+      : `Đăng nhập dùng thử đang mở. Bấm Khoá thì người thử không vào được nữa (bạn vẫn vào được); trạng thái giữ nguyên khi dữ liệu tự xoá lúc ${gio}.`;
     nut.textContent = khoa ? "Mở bản dùng thử" : "Khoá bản dùng thử";
   };
   nut.addEventListener("click", async () => {

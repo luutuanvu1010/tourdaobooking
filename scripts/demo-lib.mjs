@@ -68,6 +68,7 @@ html::before {
   min-height: calc(20px + env(safe-area-inset-top));
   line-height: 20px;
   text-align: center;
+  font-family: var(--font);
   font-size: 12px;
   font-weight: 700;
   color: #fff;
