@@ -14,6 +14,8 @@ import { KHOA_GAN_PHIEN_THONG_BAO } from "./push-ui";
 import { datCoTuMo } from "./tro-ly-co";
 import { enableFlow, getAssertion, passkeyErrorMessage, passkeySupported, platformAuthenticatorAvailable } from "./passkey";
 import { datKieuO, khoiBatTotp, khoiMaDuPhong, loiGuiThu, loiHaiLop, oMaSau } from "./hai-lop-ui";
+import { docDungThu, khungChonVai } from "./dung-thu-vai";
+import { SDT_DUNG_THU } from "../src/shared/ban-dung-thu";
 
 registerServiceWorker();
 // ADR-0035: màn đăng nhập = có thể là người KHÁC sắp dùng máy này → bỏ bản nhớ khung của phiên trước (không để thoáng hiện chữ cái tên/menu của họ).
@@ -509,6 +511,16 @@ form.addEventListener("submit", async (e) => {
     // ADR-0074 điều 2–3: PIN đúng nhưng máy chủ CHƯA cấp phiên — bước hai (nhập mã) hoặc bật lại trong cửa sổ 24 giờ. Token Turnstile đã bị đốt ở bước PIN.
     if ("next" in r) return void buocHaiLop(r);
     const me = r;
+    // BẢN DÙNG THỬ (ADR-0223 Đ3.1): tài khoản dùng thử chọn vai trước khi vào. Không mời bật Face ID (tài khoản dùng chung).
+    if (me.staff.phone === SDT_DUNG_THU) {
+      const tt = await docDungThu();
+      if (tt) {
+        anFormPin();
+        khungHaiLop = khungChonVai(tt, () => location.replace(next), (cau) => showError(errorEl, cau));
+        form.after(khungHaiLop);
+        return;
+      }
+    }
     datCoTuMo(); // ADR-0066 điều 9: khung Hỗ trợ tự mở MỘT lần ở trang đầu tiên sau đăng nhập
     if (await shouldInvite(me.staff.id)) return showInvite(me.staff.id);
     location.replace(next);

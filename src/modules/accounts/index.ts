@@ -938,7 +938,7 @@ export const accountsModule: AppModule = {
 
     // ---- BẢN DÙNG THỬ (ADR-0223 Đ3.1): tài khoản dùng thử chọn vai sau PIN. Chỉ khi BẬT và chỉ đúng tài khoản dùng thử; bản khác trả 404 như route không có.
     // Ghi vai vào PHIÊN (cùng cột, cùng câu với «Xem như vai trò khác»), không đổi quyền thật. Đổi vai: gọi lại (hoặc đăng xuất rồi chọn lại).
-    route("POST", "/api/dung-thu/vai", "staff", async (ctx) => {
+    route("POST", "/api/account/dung-thu-vai", "staff", async (ctx) => {
       if (!laBanDungThu(ctx.env)) return error(404, "not_found", "Không tìm thấy.");
       if (!laTaiKhoanDungThu(ctx.env, ctx.staff.id)) return error(403, "forbidden", "Chỉ tài khoản dùng thử chọn vai được.");
       const vai: unknown = (await readJson(ctx.request))?.role;

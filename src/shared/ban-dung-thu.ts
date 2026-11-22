@@ -43,13 +43,22 @@ export function mocLamMoiKeTiep(ms: number): string {
 /** Bảng dấu (khoá an toàn thứ hai): chỉ bản mẫu tạo, không migration nào tạo ⇒ D1 chính thức không bao giờ có. */
 export const BANG_DAU = "dt_dau_dung_thu";
 export const GIA_TRI_DAU = "demo";
+/**
+ * Dấu «chờ nạp»: lệnh `npm run len-demo` (chủ gõ) đặt lên D1 dùng thử sau lần tạo D1 đầu tiên và sau MỖI lần đưa mã mới. Lượt lịch chạy kế tiếp (≤ 15 phút)
+ * làm sạch NGAY, không chờ mốc giờ chẵn — để lược đồ theo kịp mã mới và PIN được đặt từ bí mật (lệnh ở máy không đọc được bí mật).
+ */
+export const GIA_TRI_CHO_NAP = "demo-cho-nap";
+/** Câu lệnh `len-demo` đặt dấu chờ nạp (chạy bằng `wrangler d1 execute <tên D1 dùng thử> --remote --command`). Bảng dấu không có trigger. */
+export const CAU_DAT_CHO_NAP = `CREATE TABLE IF NOT EXISTS ${BANG_DAU} (gia_tri TEXT NOT NULL); DELETE FROM ${BANG_DAU}; INSERT INTO ${BANG_DAU} (gia_tri) VALUES ('${GIA_TRI_CHO_NAP}');`;
+/** Lượt lịch chạy này có làm sạch không: đúng mốc giờ chẵn, hoặc D1 đang mang dấu chờ nạp. */
+export const canLamMoi = (scheduledMs: number, dau: string | null): boolean => dau === GIA_TRI_CHO_NAP || laMocLamMoi(scheduledMs);
 /** Câu đọc dấu. Bảng không tồn tại thì D1 báo lỗi — nơi gọi coi là «không có dấu». */
 export const CAU_DOC_DAU = `SELECT gia_tri FROM ${BANG_DAU} LIMIT 1`;
 
 /** Hai khoá + nơi giữ trạng thái khoá phải có, thiếu một là từ chối (ADR-0223 Đ2.3, Đ5). */
 export function choPhepLamMoi(v: { bat: boolean; dau: string | null; coBangKhoa: boolean }): { ok: true } | { ok: false; lyDo: string } {
   if (!v.bat) return { ok: false, lyDo: "không phải bản dùng thử (thiếu BAN_DUNG_THU)" };
-  if (v.dau !== GIA_TRI_DAU) return { ok: false, lyDo: "cơ sở dữ liệu không mang bảng dấu của bản dùng thử" };
+  if (v.dau !== GIA_TRI_DAU && v.dau !== GIA_TRI_CHO_NAP) return { ok: false, lyDo: "cơ sở dữ liệu không mang bảng dấu của bản dùng thử" };
   if (!v.coBangKhoa) return { ok: false, lyDo: "thiếu cơ sở dữ liệu giữ trạng thái khoá (KHOA_DUNG_THU)" };
   return { ok: true };
 }

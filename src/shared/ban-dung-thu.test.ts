@@ -67,3 +67,13 @@ test("chốt cứng: bản dùng thử không dựng bộ gửi thư (kể cả 
   assert.notEqual(cauHinhThu({ EMAIL: thu, FEEDBACK_MAIL_FROM: "a@b.vn" }).mailer, undefined, "bản chính thức vẫn có bộ gửi");
   assert.equal(khoaVapid({ VAPID_PUBLIC_KEY: "k", VAPID_PRIVATE_KEY: "k", BAN_DUNG_THU: "bat" } as Parameters<typeof khoaVapid>[0]), null);
 });
+
+test("dấu chờ nạp: làm sạch ngay ở lượt bất kỳ; dấu thường chỉ ở mốc giờ chẵn; câu đặt dấu chỉ chạm bảng dấu", async () => {
+  const { canLamMoi, GIA_TRI_CHO_NAP, CAU_DAT_CHO_NAP } = await import("./ban-dung-thu.ts");
+  const ngoaiMoc = Date.parse("2026-11-22T00:30:00Z");
+  assert.equal(canLamMoi(ngoaiMoc, GIA_TRI_CHO_NAP), true);
+  assert.equal(canLamMoi(ngoaiMoc, GIA_TRI_DAU), false);
+  assert.equal(canLamMoi(Date.parse("2026-11-22T01:00:00Z"), GIA_TRI_DAU), true);
+  assert.equal(choPhepLamMoi({ bat: true, dau: GIA_TRI_CHO_NAP, coBangKhoa: true }).ok, true);
+  for (const cau of CAU_DAT_CHO_NAP.split(";").map((c) => c.trim()).filter(Boolean)) assert.match(cau, new RegExp(BANG_DAU), cau);
+});

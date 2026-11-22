@@ -5,7 +5,7 @@ import { currentStaff } from "./modules/auth";
 import { mfaGraceIfNullStatement, setPinStatement } from "./modules/staff";
 import { mfaGraceOnCreate } from "./modules/staff/rules";
 import {
-  CAU_DOC_DAU, DUONG_BAN_MAU, ID_DUNG_THU, ID_TOAN_QUYEN_DEMO, SDT_DUNG_THU, VAI_DUNG_THU, choPhepLamMoi, docBanMau, laBanDungThu, laMocLamMoi, loXoaHet, mocLamMoiKeTiep,
+  CAU_DOC_DAU, DUONG_BAN_MAU, ID_DUNG_THU, ID_TOAN_QUYEN_DEMO, SDT_DUNG_THU, VAI_DUNG_THU, canLamMoi, choPhepLamMoi, docBanMau, laBanDungThu, loXoaHet, mocLamMoiKeTiep,
 } from "./shared/ban-dung-thu";
 import { error, json, readJson } from "./shared/http";
 import { PERMISSION_LABEL } from "./shared/permissions";
@@ -42,6 +42,8 @@ async function ghiKhoa(env: EnvDungThu, khoa: boolean, boi: string): Promise<voi
 const KHOA_DANG_NHAP = (): Response => error(403, "ban_dung_thu_khoa", "Bản dùng thử đang tạm khoá. Liên hệ Tour Đảo để được mở lại.");
 const DANG_KY_TAT = (): Response => error(403, "ban_dung_thu_dang_ky", "Bản dùng thử không mở đăng ký tài khoản.");
 const TAI_KHOAN_CHUNG = (): Response => error(403, "ban_dung_thu_tai_khoan_chung", "Tài khoản dùng thử là tài khoản dùng chung, không đổi được.");
+/** Route chọn vai (module accounts, nhóm tự phục vụ /api/account/*). */
+export const DUONG_CHON_VAI = "/api/account/dung-thu-vai";
 const LA_GHI = (m: string): boolean => m !== "GET" && m !== "HEAD" && m !== "OPTIONS";
 const cungNguon = (request: Request, url: URL): boolean => {
   const o = request.headers.get("origin");
@@ -91,7 +93,8 @@ export async function fetchBanDungThu(request: Request, env: EnvDungThu, ctx: Ex
       const cur = await currentStaff(request, env, ctx);
       if (cur?.staff.id === ID_DUNG_THU) return KHOA_DANG_NHAP();
     }
-    if (p.startsWith("/api/account/")) {
+    // Tài khoản dùng thử không đổi gì của tài khoản dùng chung (PIN, Face ID, hai lớp…). Ngoại lệ duy nhất: chọn vai cho PHIÊN của chính mình.
+    if (p.startsWith("/api/account/") && p !== DUONG_CHON_VAI) {
       const cur = await currentStaff(request, env, ctx);
       if (cur?.staff.id === ID_DUNG_THU) return TAI_KHOAN_CHUNG();
     }
@@ -125,14 +128,19 @@ async function docTinh(env: EnvDungThu, duong: string): Promise<unknown> {
  * Xoá hết bảng, view rồi nạp bản mẫu + đặt PIN hai tài khoản từ bí mật trong MỘT lô (một giao dịch: hỏng thì về trạng thái trước — ADR-0223 Đ2.2).
  * Hai khoá an toàn (biến bật + bảng dấu) và D1 khoá phải có, thiếu một là từ chối, KHÔNG ghi gì (Đ2.3).
  */
+/** Giá trị bảng dấu của D1 đang nối, hoặc null (bảng không có ⇒ không phải D1 dùng thử). Không ném. */
+async function docDau(env: EnvDungThu): Promise<string | null> {
+  try {
+    const g = ((await env.DB.prepare(CAU_DOC_DAU).first()) as { gia_tri?: unknown } | null)?.gia_tri;
+    return typeof g === "string" ? g : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function lamMoiBanDungThu(env: EnvDungThu, nowMs: number): Promise<KetQuaLamMoi> {
   const t0 = Date.now();
-  let dau: string | null = null;
-  try {
-    dau = ((await env.DB.prepare(CAU_DOC_DAU).first()) as { gia_tri?: unknown } | null)?.gia_tri as string ?? null;
-  } catch {
-    dau = null; // bảng dấu không có ⇒ không phải D1 dùng thử
-  }
+  const dau = await docDau(env);
   const cho = choPhepLamMoi({ bat: laBanDungThu(env), dau, coBangKhoa: !!env.KHOA_DUNG_THU });
   if (!cho.ok) return cho;
   const pin = env.DUNG_THU_PIN;
@@ -174,9 +182,12 @@ async function donKhoTep(env: EnvDungThu): Promise<void> {
   }
 }
 
-/** Lượt lịch chạy: đúng mốc thì làm mới + dọn kho. Gọi TRƯỚC các việc thường của lượt đó (đồng bộ danh mục chạy sau, trên dữ liệu mới). */
+/**
+ * Lượt lịch chạy: đúng mốc giờ chẵn, hoặc D1 mang dấu chờ nạp (sau `len-demo`), thì làm mới + dọn kho. Gọi TRƯỚC các việc thường của lượt đó (đồng bộ danh
+ * mục chạy sau, trên dữ liệu mới).
+ */
 export async function lamMoiNeuDenMoc(env: EnvDungThu, scheduledTime: number): Promise<void> {
-  if (!laBanDungThu(env) || !laMocLamMoi(scheduledTime)) return;
+  if (!laBanDungThu(env) || !canLamMoi(scheduledTime, await docDau(env))) return;
   const kq = await lamMoiBanDungThu(env, scheduledTime);
   console.log(JSON.stringify({ level: kq.ok ? "info" : "error", event: "ban_dung_thu_lam_moi", ...kq }));
   if (kq.ok) await donKhoTep(env).catch((e: unknown) => console.error(JSON.stringify({ level: "error", event: "ban_dung_thu_don_kho", message: e instanceof Error ? e.message : String(e) })));

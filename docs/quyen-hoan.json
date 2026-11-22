@@ -44,6 +44,7 @@
     { "method": "POST", "path": "/api/account/passkeys/options", "loai": "ngoại lệ", "ly_do": "Tự phục vụ Face ID của chính mình (ADR-0016)." },
     { "method": "POST", "path": "/api/account/passkeys", "loai": "ngoại lệ", "ly_do": "Tự phục vụ Face ID của chính mình (ADR-0016)." },
     { "method": "DELETE", "path": "/api/account/passkeys/:id", "loai": "ngoại lệ", "ly_do": "Tự phục vụ Face ID của chính mình (ADR-0016)." },
+    { "method": "POST", "path": "/api/account/dung-thu-vai", "loai": "ngoại lệ", "ly_do": "Bản dùng thử (ADR-0223 Đ3.1, chủ duyệt 22/11): tài khoản dùng thử chọn vai cho PHIÊN của chính mình. Bản chính thức trả 404 (laBanDungThu); bản dùng thử chỉ nhận đúng tài khoản dùng thử (laTaiKhoanDungThu). Quyền theo vai đã chọn vẫn do bảng quyền quyết ở mọi route khác." },
     { "method": "POST", "path": "/api/account/passkeys/remove-all", "loai": "ngoại lệ", "ly_do": "Tự phục vụ Face ID của chính mình (ADR-0016)." },
     { "method": "POST", "path": "/api/account/pin-by-passkey/options", "loai": "ngoại lệ", "ly_do": "Đặt PIN bằng Face ID của chính mình (ADR-0016 điều 2b)." },
     { "method": "POST", "path": "/api/account/pin-by-passkey", "loai": "ngoại lệ", "ly_do": "Đặt PIN bằng Face ID của chính mình (ADR-0016 điều 2b)." },

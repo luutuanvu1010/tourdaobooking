@@ -1,0 +1,48 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  // BẢN DÙNG THỬ (ADR-0223): Worker riêng ở demo.tourdao.vn, chạy ĐÚNG mã đang phát hành, độc lập với bản chính thức (`wrangler.jsonc`) và bản Development.
+  // Bài src/ban-dung-thu-cau-hinh.test.ts so ba tệp: đỏ khi trùng tên / mã tài nguyên, lệch bộ tài nguyên, hay thiếu biến bật. Ngoại lệ được trùng: SERVICES_SHEET_ID.
+  // Chỉ chú thích CẢ DÒNG (luật của tệp cấu hình). Mã D1 «000…» là chỗ trống: chủ tạo D1 rồi thay (khối lệnh ở docs/superpowers/plans/2026-11-22-ban-dung-thu-thi-cong.md).
+  "name": "tourdao-sales-demo",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "observability": { "enabled": true },
+  "placement": { "mode": "smart" },
+  "routes": [{ "pattern": "demo.tourdao.vn", "custom_domain": true }],
+  "triggers": { "crons": ["*/15 * * * *"] },
+  "vars": {
+    "SERVICES_SHEET_ID": "1XPx1g0JVTdevdX35MeCpt6Cc6Dgxdmfer6okEWleD3s",
+    "PASSKEY_RP_ID": "demo.tourdao.vn",
+    "PASSKEY_ORIGIN": "https://demo.tourdao.vn",
+    "VAPID_SUB": "https://demo.tourdao.vn",
+    // Bản dùng thử không gửi thông báo đẩy (ADR-0223 Đ4; mã chặn cứng khi BAN_DUNG_THU = "bat"); giá trị này chỉ để giữ đủ bộ biến như bản chính thức.
+    "VAPID_PUBLIC_KEY": "KHONG_DUNG_O_BAN_DUNG_THU",
+    "MOI_TRUONG": "demo",
+    "BAN_DUNG_THU": "bat"
+  },
+  // Thư mục tĩnh riêng (dựng bằng scripts/dung-tai-san-demo.mjs: dải «BẢN DÙNG THỬ», tên cài, robots, bản mẫu). Bản mẫu do Worker trả lời trước ⇒ 404 cho người ngoài.
+  "assets": { "directory": "./dist-demo", "binding": "ASSETS", "run_worker_first": ["/api/*", "/giao-dien.css", "/ve/*", "/__scheduled", "/__ban-mau.json"], "not_found_handling": "404-page" },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tourdao-sales-demo-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    },
+    {
+      "binding": "KHOA_DUNG_THU",
+      "database_name": "tourdao-sales-demo-khoa",
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "HO_SO", "bucket_name": "tourdao-sales-demo-ho-so" },
+    { "binding": "HO_TRO", "bucket_name": "tourdao-sales-demo-ho-tro" },
+    { "binding": "VE_DIEN_TU", "bucket_name": "tourdao-sales-demo-ve-dien-tu" },
+    { "binding": "BIEN_LAI", "bucket_name": "tourdao-sales-demo-bien-lai" },
+    { "binding": "ANH_DICH_VU", "bucket_name": "tourdao-sales-demo-anh-dich-vu" }
+  ],
+  "send_email": [{ "name": "EMAIL" }],
+  "durable_objects": { "bindings": [{ "name": "BANG_TIN", "class_name": "BangTin" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BangTin"] }]
+}

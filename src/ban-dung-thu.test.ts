@@ -60,7 +60,7 @@ const dangNhap = (w: W, phone: string, pin: string, ip = `10.9.${Math.floor(Math
 test("bản chính thức (không BAN_DUNG_THU): không có đường riêng, không chặn gì, lệnh làm mới từ chối và không ghi", async () => {
   const w = await demo({ bat: false });
   assert.equal((await w.call("GET", "/api/dung-thu")).status, 404);
-  assert.equal((await w.call("POST", "/api/dung-thu/vai", { as: ID_DUNG_THU, body: { role: "SALES" } })).status, 404);
+  assert.equal((await w.call("POST", "/api/account/dung-thu-vai", { as: ID_DUNG_THU, body: { role: "SALES" } })).status, 404);
   assert.notEqual((await w.call("POST", "/api/dang-ky/ma", { body: {} })).status, 403, "đăng ký công khai vẫn đi tới route thật");
   w.sqlite.exec("CREATE TABLE thu_dau (x)");
   const kq = await lamMoi(w);
@@ -90,21 +90,21 @@ test("chọn vai sau PIN: chỉ tài khoản dùng thử, mọi vai trừ Toàn 
   assert.equal(tt.json.sdtDungThu, SDT_DUNG_THU);
   assert.ok(!tt.json.vai.some((v: { code: string }) => v.code === "SUPER_ADMIN"));
 
-  assert.equal((await w.call("POST", "/api/dung-thu/vai", { as: ID_DUNG_THU, body: { role: "SUPER_ADMIN" } })).status, 400);
-  const r = await w.call("POST", "/api/dung-thu/vai", { as: ID_DUNG_THU, body: { role: "ACCOUNTING" } });
+  assert.equal((await w.call("POST", "/api/account/dung-thu-vai", { as: ID_DUNG_THU, body: { role: "SUPER_ADMIN" } })).status, 400);
+  const r = await w.call("POST", "/api/account/dung-thu-vai", { as: ID_DUNG_THU, body: { role: "ACCOUNTING" } });
   assert.equal(r.status, 200, r.text);
   assert.deepEqual(r.json.staff.permissions, ["ACCOUNTING"]);
   w.sqlite.prepare("UPDATE aut_session SET last_seen_at = ? WHERE staff_id = ?").run(new Date(Date.now() - 3 * 3600_000).toISOString(), ID_DUNG_THU);
   const me = await w.call("GET", "/api/auth/me", { as: ID_DUNG_THU });
   assert.equal(me.json.actingRole, "ACCOUNTING", "không hết hạn sau 3 giờ");
 
-  assert.equal((await w.call("POST", "/api/dung-thu/vai", { as: ID_TOAN_QUYEN_DEMO, body: { role: "SALES" } })).status, 403, "Toàn quyền không dùng đường này");
+  assert.equal((await w.call("POST", "/api/account/dung-thu-vai", { as: ID_TOAN_QUYEN_DEMO, body: { role: "SALES" } })).status, 403, "Toàn quyền không dùng đường này");
 });
 
 test("vai Đối tác: tài khoản dùng thử lập đơn nháp được (hồ sơ mang vai Công ty lữ hành)", async () => {
   const w = await demo();
   assert.equal((await lamMoi(w)).ok, true);
-  assert.equal((await w.call("POST", "/api/dung-thu/vai", { as: ID_DUNG_THU, body: { role: "PARTNER" } })).status, 200);
+  assert.equal((await w.call("POST", "/api/account/dung-thu-vai", { as: ID_DUNG_THU, body: { role: "PARTNER" } })).status, 200);
   const me = await w.call("GET", "/api/auth/me", { as: ID_DUNG_THU });
   assert.deepEqual(me.json.staff.permissions, ["PARTNER"]);
   assert.ok(me.json.benDatCuaToi, "có bên đặt của tôi (hồ sơ đối tác)");
@@ -113,7 +113,7 @@ test("vai Đối tác: tài khoản dùng thử lập đơn nháp được (hồ
 test("khoá / mở: chỉ Toàn quyền thật; khoá thì đăng nhập dùng thử 403 và phiên đang mở bị chặn; giữ nguyên sau làm mới", async () => {
   const w = await demo();
   assert.equal((await lamMoi(w)).ok, true);
-  await w.call("POST", "/api/dung-thu/vai", { as: ID_DUNG_THU, body: { role: "ADMIN" } });
+  await w.call("POST", "/api/account/dung-thu-vai", { as: ID_DUNG_THU, body: { role: "ADMIN" } });
   assert.equal((await w.call("POST", "/api/dung-thu/khoa", { as: ID_DUNG_THU, body: { khoa: true } })).status, 403, "vai Quản trị đang chọn không khoá được");
   const k = await w.call("POST", "/api/dung-thu/khoa", { as: ID_TOAN_QUYEN_DEMO, body: { khoa: true } });
   assert.equal(k.status, 200, k.text);
@@ -137,7 +137,7 @@ test("chặn cửa: đăng ký công khai, tài khoản dùng thử đổi PIN /
   assert.equal((await w.call("PUT", "/api/dang-ky/phieu", { body: {} })).status, 403);
   assert.equal((await w.call("POST", "/api/account/change-pin", { as: ID_DUNG_THU, body: { currentPin: PIN, newPin: "193847" } })).status, 403);
   assert.equal((await w.call("POST", "/api/account/passkeys/options", { as: ID_DUNG_THU, body: {} })).status, 403);
-  await w.call("POST", "/api/dung-thu/vai", { as: ID_DUNG_THU, body: { role: "ADMIN" } });
+  await w.call("POST", "/api/account/dung-thu-vai", { as: ID_DUNG_THU, body: { role: "ADMIN" } });
   assert.equal((await w.call("POST", `/api/staff/${ID_TOAN_QUYEN_DEMO}/reset-pin`, { as: ID_DUNG_THU, body: {} })).status, 403);
   assert.equal((await w.call("PATCH", `/api/staff/${ID_DUNG_THU}`, { as: ID_DUNG_THU, body: { active: false } })).status, 403);
   assert.equal((await w.call("GET", "/__ban-mau.json")).status, 404);
@@ -176,4 +176,18 @@ test("hai khoá an toàn: thiếu biến bật HOẶC thiếu bảng dấu HOẶ
   const thieuPin = await demo();
   delete (thieuPin.env as Record<string, unknown>).DUNG_THU_PIN;
   assert.match(String((await lamMoi(thieuPin)).lyDo), /PIN/);
+});
+
+test("lượt lịch chạy: dấu chờ nạp (sau len-demo) ⇒ làm sạch ngay dù ngoài mốc; dấu thường ⇒ chỉ ở mốc giờ chẵn", async () => {
+  const chay = (w: W, t: number) => (app.lamMoiNeuDenMoc as (e: unknown, n: number) => Promise<void>)(w.env, t);
+  const ngoaiMoc = Date.parse("2026-11-22T00:30:00Z"); // 07:30 VN
+  const w = await demo();
+  w.sqlite.exec("CREATE TABLE thu_dau (x)");
+  await chay(w, ngoaiMoc);
+  assert.equal(w.q("SELECT count(*) n FROM sqlite_master WHERE name = 'thu_dau'")[0].n, 1, "dấu thường, ngoài mốc ⇒ không làm");
+  w.sqlite.exec(`UPDATE ${BANG_DAU} SET gia_tri = 'demo-cho-nap'`);
+  await chay(w, ngoaiMoc);
+  assert.equal(w.q("SELECT count(*) n FROM sqlite_master WHERE name = 'thu_dau'")[0].n, 0, "chờ nạp ⇒ làm ngay");
+  assert.equal(w.q(`SELECT gia_tri g FROM ${BANG_DAU}`)[0].g, "demo", "sau khi nạp, dấu về thường");
+  assert.equal((await dangNhap(w, SDT_DUNG_THU, PIN)).status, 200);
 });

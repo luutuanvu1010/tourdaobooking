@@ -48,13 +48,13 @@ const RULES = [
     id: "release-owner-only",
     re: new RegExp(
       [
-        "(?<![\\w-])(?:npm|pnpm|yarn|bun)(?:\\s+\\S+){0,3}?\\s+run(?:-script)?(?:\\s+-\\S+)*\\s+(?:day-len|trien-khai|len-chinh-thuc|lam-moi-dev)(?![\\w-])",
-        "(?<![\\w-])(?:pnpm|yarn|bun)(?:\\s+-\\S+)*\\s+(?:day-len|trien-khai|len-chinh-thuc|lam-moi-dev)(?![\\w-])",
-        "(?<![\\w-])(?:node|nodejs|bun|deno)(?:\\s+\\S+){0,4}?\\s+\\S*scripts\\/(?:day-len|trien-khai|len-chinh-thuc|lam-moi-dev)\\.mjs(?![\\w-])",
-        "(?:^|[;&|(\\n])\\s*(?:\\w+=\\S*\\s+)*(?:exec\\s+)?\\S*scripts\\/(?:day-len|trien-khai|len-chinh-thuc|lam-moi-dev)\\.mjs(?![\\w-])",
+        "(?<![\\w-])(?:npm|pnpm|yarn|bun)(?:\\s+\\S+){0,3}?\\s+run(?:-script)?(?:\\s+-\\S+)*\\s+(?:day-len|trien-khai|len-chinh-thuc|lam-moi-dev|len-demo)(?![\\w-])",
+        "(?<![\\w-])(?:pnpm|yarn|bun)(?:\\s+-\\S+)*\\s+(?:day-len|trien-khai|len-chinh-thuc|lam-moi-dev|len-demo)(?![\\w-])",
+        "(?<![\\w-])(?:node|nodejs|bun|deno)(?:\\s+\\S+){0,4}?\\s+\\S*scripts\\/(?:day-len|trien-khai|len-chinh-thuc|lam-moi-dev|len-demo)\\.mjs(?![\\w-])",
+        "(?:^|[;&|(\\n])\\s*(?:\\w+=\\S*\\s+)*(?:exec\\s+)?\\S*scripts\\/(?:day-len|trien-khai|len-chinh-thuc|lam-moi-dev|len-demo)\\.mjs(?![\\w-])",
       ].join("|"),
     ),
-    reason: "npm run day-len / trien-khai / len-chinh-thuc / lam-moi-dev (lệnh chủ dự án tự gõ: git push, áp migration remote, wrangler deploy, lên bản chính thức, xoá sạch bản Development)",
+    reason: "npm run day-len / trien-khai / len-chinh-thuc / lam-moi-dev / len-demo (lệnh chủ dự án tự gõ: git push, áp migration remote, wrangler deploy, lên bản chính thức, xoá sạch bản Development, đưa mã lên bản dùng thử — ADR-0223)",
     // Đuôi riêng: hai lệnh này tự từ chối khi không có terminal thật (TTY), nên KHÔNG gợi ý `! <lệnh>` như DENY_TAIL chung.
     tail: " Theo CLAUDE.md (mục Git, triển khai, an toàn) AI không được chạy lệnh này. Chủ dự án tự gõ nó trong ứng dụng Terminal của macOS (terminal thật, có TTY), đứng ở thư mục gốc repo trên nhánh main — không chạy qua AI, kể cả dạng gõ `!` trong phiên Claude Code.",
   },
