@@ -59,7 +59,10 @@ export interface DungThuTrangThai { khoa: boolean; lamMoiLuc: string; sdtDungThu
  */
 export async function fetchBanDungThu(request: Request, env: EnvDungThu, ctx: ExecutionContext, goc: (r: Request, e: Env, c: ExecutionContext) => Promise<Response>): Promise<Response> {
   const url = new URL(request.url);
-  const p = url.pathname;
+  // Chuẩn hoá ĐÚNG như bộ định tuyến (`match` ở src/shared/router.ts): tách «/», bỏ đoạn rỗng — «//api/…», «/api//…» tới cùng route với «/api/…».
+  // Đoạn chữ so nguyên (router không giải mã đoạn chữ); đoạn tham số (:id) router giải mã nên ở dưới cũng giải mã trước khi so (phát hiện C1, C2 của người kiểm 22/11).
+  const doan = url.pathname.split("/").filter(Boolean);
+  const p = "/" + doan.join("/");
   if (p.startsWith("/__ban-mau")) return error(404, "not_found", "Không tìm thấy.");
 
   if (p === "/api/dung-thu" && request.method === "GET") {
@@ -98,8 +101,11 @@ export async function fetchBanDungThu(request: Request, env: EnvDungThu, ctx: Ex
       const cur = await currentStaff(request, env, ctx);
       if (cur?.staff.id === ID_DUNG_THU) return TAI_KHOAN_CHUNG();
     }
-    const m = /^\/api\/staff\/([^/]+)/.exec(p);
-    if (m && (m[1] === ID_DUNG_THU || m[1] === ID_TOAN_QUYEN_DEMO)) return TAI_KHOAN_CHUNG();
+    if (doan[0] === "api" && doan[1] === "staff" && doan[2] !== undefined) {
+      let id = doan[2];
+      try { id = decodeURIComponent(id); } catch { /* router cũng không khớp đoạn hỏng ⇒ 404 ở router */ }
+      if (id === ID_DUNG_THU || id === ID_TOAN_QUYEN_DEMO) return TAI_KHOAN_CHUNG();
+    }
   }
   // Phiên của tài khoản dùng thử khi đang khoá: kết thúc ngay ở lần gọi kế tiếp (không chờ hết hạn phiên).
   if (p.startsWith("/api/") && p !== "/api/auth/logout" && p !== "/api/auth/me") {

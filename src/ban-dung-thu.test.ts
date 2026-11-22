@@ -191,3 +191,28 @@ test("lượt lịch chạy: dấu chờ nạp (sau len-demo) ⇒ làm sạch ng
   assert.equal(w.q(`SELECT gia_tri g FROM ${BANG_DAU}`)[0].g, "demo", "sau khi nạp, dấu về thường");
   assert.equal((await dangNhap(w, SDT_DUNG_THU, PIN)).status, 200);
 });
+
+test("cửa vào chuẩn hoá đường dẫn như bộ định tuyến: «//», «/api//…», id mã hoá phần trăm không lách được chặn", async () => {
+  const w = await demo();
+  assert.equal((await lamMoi(w)).ok, true);
+  const ADMIN_KHAC = "e0000000-0000-4000-8000-000000000001";
+  seedStaff(w.sqlite, { id: ADMIN_KHAC, phone: "0900000150", name: "Quản Trị Khác", perms: ["ADMIN"] });
+  for (const p of ["/api//account/change-pin", "//api/account/change-pin", "/api/account//change-pin"]) {
+    const r = await w.call("POST", p, { as: ID_DUNG_THU, body: { currentPin: PIN, newPin: "193847" } });
+    assert.equal(r.status, 403, `${p}: ${r.text}`);
+  }
+  for (const p of ["/api//dang-ky/ma", "//api/dang-ky/ma"]) assert.equal((await w.call("POST", p, { body: {} })).status, 403, p);
+  const idMa = "%64" + ID_DUNG_THU.slice(1);
+  for (const p of [`/api/staff/${idMa}/reset-pin`, `/api/staff//${ID_DUNG_THU}/unlock`, `/api/staff/${idMa}`]) {
+    const r = await w.call(p.endsWith("reset-pin") || p.endsWith("unlock") ? "POST" : "PATCH", p, { as: ADMIN_KHAC, body: p.endsWith(idMa) ? { active: false } : {} });
+    assert.equal(r.status, 403, `${p}: ${r.text}`);
+  }
+  assert.equal(w.q("SELECT active a FROM staff WHERE id = ?", ID_DUNG_THU)[0].a, 1);
+  assert.equal((await w.call("POST", "/api/dung-thu/khoa", { as: ID_TOAN_QUYEN_DEMO, body: { khoa: true } })).status, 200);
+  for (const p of ["/api//auth/login", "//api/auth/login"]) {
+    const r = await w.call("POST", p, { body: { phone: SDT_DUNG_THU, pin: PIN }, headers: { "cf-connecting-ip": "10.7.7.7" } });
+    assert.equal(r.status, 403, `${p}: ${r.text}`);
+  }
+  assert.equal((await w.call("GET", "//api/orders", { as: ID_DUNG_THU })).status, 403);
+  assert.equal((await w.call("GET", "//__ban-mau.json")).status, 404);
+});
