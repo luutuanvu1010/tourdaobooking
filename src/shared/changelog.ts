@@ -18,11 +18,21 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Bản dùng thử demo.tourdao.vn (kế hoạch 16 việc 21/11, Việc 1; ADR-0223). Nhánh claude/beautiful-engelbart-74cf25. Không migration. Bản chính thức không đổi hành vi.
-    // SỐ TẠM 3.28 (3.27 là sửa tệp đầu trang, đã nhập main 22/11; việc 1 là lượt nhập số 10): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.28",
+    // SỐ TẠM 3.29 (3.28 là Việc 3, đã ở main 22/11; việc 1 là lượt nhập số 10): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.29",
     date: "2026-11-22",
     items: [
       { kind: "moi", text: "Có bản dùng thử riêng ở demo.tourdao.vn để người mới tự bấm thử Nền tảng với vai trò mình chọn. Dữ liệu mẫu tự xoá mỗi 2 giờ, không chạm dữ liệu thật." },
+    ],
+  },
+  {
+    // Tìm đối tác theo số điện thoại ở màn Tạo đơn (kế hoạch 16 việc 21/11, Việc 3). Nhánh claude/nostalgic-jepsen-bb3f99. Không migration.
+    // SỐ TẠM 3.28 (3.27 = bản sửa «giữ chỗ dải» ee0bc120d đã ở main 22/11 06:17; bản chạy thật 3.26): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.28",
+    date: "2026-11-22",
+    items: [
+      { kind: "sua", text: "Tạo đơn: ô «Tìm đối tác» nhận cả số điện thoại. Gõ đủ số liên hệ của đối tác là ra đúng người, gõ tên vẫn tìm như cũ." },
+      { kind: "sua", text: "Tạo đơn: bấm «Điền thông tin đối tác» mà đối tác chưa có số điện thoại thì Nền tảng nói rõ ai thêm được số và mở sẵn hồ sơ ở Danh bạ." },
     ],
   },
   {
