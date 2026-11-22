@@ -52,7 +52,7 @@ export async function khoiChuongTrinhPhiDon(el: HTMLElement, dichVu: readonly { 
           await ve();
         }
       });
-      return h("div", { class: "card card-col", "data-chuong-trinh": c.id },
+      return h("div", { class: "khoi dd-cot", "data-chuong-trinh": c.id },
         h("div", null, h("strong", null, c.ten), daKetThuc ? h("span", { class: "muted" }, " · đã kết thúc") : null),
         h("div", { class: "muted" }, `Ngày đi từ ${ngayDayDu(c.tuNgay)} đến ${ngayDayDu(c.denNgay)}${c.tuNgay > homNay ? " (chưa bắt đầu)" : ""} · ${c.gomXeRieng ? "gồm xe riêng" : "không gồm xe riêng"}`),
         h("div", { class: "muted" }, nhanPhamVi(c)),
@@ -63,7 +63,7 @@ export async function khoiChuongTrinhPhiDon(el: HTMLElement, dichVu: readonly { 
       h("h2", { id: "ctpd-heading" }, "Chương trình miễn phí đưa đón"),
       h("p", { class: "muted" }, "Đơn chưa xác nhận có ngày đón nằm trong khoảng ngày đi của chương trình thì phí đưa đón là 0 đồng. Đơn đã xác nhận giữ số đã tính. Xe riêng chỉ được miễn khi tích «gồm xe riêng»."),
       loi,
-      dong.length === 0 ? h("p", { class: "muted" }, "Chưa có chương trình nào.") : h("div", { class: "card-list" }, ...dong),
+      dong.length === 0 ? h("p", { class: "muted" }, "Chưa có chương trình nào.") : h("div", { class: "dd-cot" }, ...dong),
       formTao(dichVu, baoLoi, ve),
     );
   };
@@ -81,7 +81,7 @@ function formTao(dichVu: readonly { code: string; name: string }[], baoLoi: (cau
 
   const chonDv = new Set<string>();
   const boLocDv = h("input", { class: "o", type: "search", id: "ctpd-loc-dv", placeholder: "Tìm dịch vụ", autocomplete: "off", "aria-label": "Tìm dịch vụ" });
-  const dsDv = h("div", { class: "card-col" });
+  const dsDv = h("div", { class: "dd-cot" });
   const veDv = (): void => {
     const t = boLocDv.value.trim().toLowerCase();
     replaceChildren(dsDv, ...dichVu.filter((d) => !t || d.name.toLowerCase().includes(t) || d.code.toLowerCase().includes(t)).slice(0, 60).map((d) => {
@@ -96,8 +96,8 @@ function formTao(dichVu: readonly { code: string; name: string }[], baoLoi: (cau
 
   const chonDt = new Map<string, string>();
   const oTimDt = h("input", { class: "o", type: "search", id: "ctpd-tim-dt", placeholder: "Gõ tên đối tác rồi chọn", autocomplete: "off", "aria-label": "Tìm đối tác" });
-  const goiYDt = h("div", { class: "card-col" });
-  const daChonDt = h("div", { class: "card-col", id: "ctpd-da-chon-dt" });
+  const goiYDt = h("div", { class: "dd-cot" });
+  const daChonDt = h("div", { class: "dd-cot", id: "ctpd-da-chon-dt" });
   const veDaChon = (): void => {
     replaceChildren(daChonDt, ...[...chonDt].map(([id, name]) => {
       const bo = h("button", { type: "button", class: "pill-btn" }, `${name} ✕`);
@@ -130,7 +130,7 @@ function formTao(dichVu: readonly { code: string; name: string }[], baoLoi: (cau
     khoiDt.hidden = phamVi.value !== "PARTNERS";
   });
 
-  const luu = h("button", { type: "button", class: "btn btn-primary", id: "ctpd-luu" }, "Tạo chương trình");
+  const luu = h("button", { type: "button", class: "nut", "data-cap": "chinh", id: "ctpd-luu" }, "Tạo chương trình");
   luu.addEventListener("click", async () => {
     if (luu.disabled) return;
     if (!ten.value.trim()) return baoLoi("Nhập tên chương trình.");
@@ -151,7 +151,7 @@ function formTao(dichVu: readonly { code: string; name: string }[], baoLoi: (cau
     }
   });
 
-  return h("div", { class: "card card-col", id: "ctpd-form" },
+  return h("div", { class: "khoi dd-cot", id: "ctpd-form" },
     h("strong", null, "Tạo chương trình mới"),
     h("label", { class: "pd-o" }, h("span", { class: "muted" }, "Tên chương trình"), ten),
     h("label", { class: "pd-o" }, h("span", { class: "muted" }, "Áp cho"), phamVi),

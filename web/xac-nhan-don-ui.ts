@@ -328,7 +328,7 @@ function taoOPhiConVe(t: LuotPhiConVe): OPhiConVe {
   const lyDo = h("input", { type: "text", maxLength: 300, autocomplete: "off", class: "vc-input", id: `${id}-ly-do`, "aria-describedby": loi.id, "data-o-phi": "ly-do" }) as HTMLInputElement;
   const oGia = h("label", { class: "cx-truong", for: gia.id }, h("span", { class: "cx-nhan" }, nhanODonGia(t.xeRieng)), gia);
   const oLyDo = h("label", { class: "cx-truong", for: lyDo.id }, h("span", { class: "cx-nhan" }, NHAN_O_LY_DO_DOI_PHI), lyDo);
-  const nhom = h("div", { class: "dd-phi-doi" }, oGia, oLyDo);
+  const nhom = h("div", { class: "dd-cot" }, oGia, oLyDo);
   nhom.hidden = true;
   let doi = false;
   let bo = false;
@@ -371,7 +371,7 @@ function taoOPhiConVe(t: LuotPhiConVe): OPhiConVe {
     el: h(
       "div",
       { class: "cx-luot", "data-phi-leg-id": t.legId },
-      h("p", { class: "dd-phi-may" }, `${TEN_PHI_DUA_DON} · ${CHIEU_LABEL[t.direction]} · ${t.tenDichVu}: ${t.may}`),
+      h("p", { class: "dd-phi-nhac" }, `${TEN_PHI_DUA_DON} · ${CHIEU_LABEL[t.direction]} · ${t.tenDichVu}: ${t.may}`),
       nut,
       nutBo,
       nhom,

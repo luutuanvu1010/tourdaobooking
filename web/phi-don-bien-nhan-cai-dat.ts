@@ -16,7 +16,7 @@ export async function ganCaiDatPhiDonBienNhan(el: HTMLElement): Promise<void> {
   if (!s.doiDuoc) return;
   const ve = (s: Api.PhiDonBienNhanResponse): void => {
     const loi = h("p", { class: "alert", role: "alert", hidden: true });
-    const nut = h("button", { class: s.hienRieng ? "btn" : "btn btn-primary", type: "button", id: "phi-don-bien-nhan-doi" }, s.hienRieng ? "Gộp phí đưa đón vào giá" : "Hiện riêng phí đưa đón");
+    const nut = h("button", { class: "nut", "data-cap": s.hienRieng ? "phu" : "chinh", type: "button", id: "phi-don-bien-nhan-doi" }, s.hienRieng ? "Gộp phí đưa đón vào giá" : "Hiện riêng phí đưa đón");
     nut.addEventListener("click", async () => {
       loi.hidden = true;
       nut.disabled = true;

@@ -536,12 +536,12 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
     const pd = nn ? (o.phiDon?.() ?? null) : null;
     if (pd?.kieu === "doi-tac") {
       phu.push(h("div", { class: "dd-phi", "data-o-phi": "doi-tac" },
-        h("p", { class: "dd-phi-may" }, `${TEN_PHI_DUA_DON}: ${pd.may(l) ?? CHU_CHUA_CO_SO_MAY}`),
+        h("p", { class: "dd-phi-nhac" }, `${TEN_PHI_DUA_DON}: ${pd.may(l) ?? CHU_CHUA_CO_SO_MAY}`),
         h("p", { class: "hint dd-phi-nhac" }, CAU_VAN_PHONG_DOI_PHI_DON),
       ));
     } else if (pd?.kieu === "doi-phi") {
       const v0 = pd.lay(l);
-      const may = h("p", { class: "dd-phi-may", "data-o-phi": "may" }, `${TEN_PHI_DUA_DON}: ${pd.may(l) ?? CHU_CHUA_CO_SO_MAY}`);
+      const may = h("p", { class: "dd-phi-nhac", "data-o-phi": "may" }, `${TEN_PHI_DUA_DON}: ${pd.may(l) ?? CHU_CHUA_CO_SO_MAY}`);
       const nut = h("button", { type: "button", class: "loc-nut dd-phi-nut", "data-o-phi": "nut-doi", "data-o": `${l.key}:phi` }, v0.doi ? NHAN_NUT_BO_DOI_PHI : NHAN_NUT_DOI_PHI) as HTMLButtonElement;
       const gia = h("input", { id: id("phi-gia"), type: "text", inputMode: "numeric", maxLength: 13, autocomplete: "off", placeholder: "VD: 70.000", value: v0.donGia, "data-o": `${l.key}:phi-gia`, "data-o-phi": "don-gia" }) as HTMLInputElement;
       const lyDo = h("input", { id: id("phi-ly-do"), type: "text", maxLength: 300, autocomplete: "off", value: v0.lyDo, "data-o": `${l.key}:phi-ly-do`, "data-o-phi": "ly-do" }) as HTMLInputElement;
@@ -551,7 +551,7 @@ export function taoKhoiDuaDon(o: KhoiDuaDonOptions): KhoiDuaDon {
       lyDo.setAttribute("aria-describedby", loi.id);
       const oGia = h("label", { for: gia.id, class: "o-noi" }, khungNhanNoi(nhanODonGia(l.xeRieng), gia, { khungClass: "o-hien-goi-y" }));
       const oLyDo = h("label", { for: lyDo.id, class: "o-noi" }, khungNhanNoi(NHAN_O_LY_DO_DOI_PHI, lyDo));
-      const nhom = h("div", { class: "dd-phi-doi" }, oGia, oLyDo, loi);
+      const nhom = h("div", { class: "dd-cot" }, oGia, oLyDo, loi);
       nhom.hidden = !v0.doi;
       const ghi = (hienLoi: boolean, doi: boolean) => {
         const moi: DoiPhiO = { doi, donGia: gia.value, lyDo: lyDo.value };

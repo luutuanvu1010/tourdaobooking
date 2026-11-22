@@ -792,7 +792,7 @@ export const CHECKS = [
        WHERE i.line_kind = 'TRANSFER_FEE'
          AND (NOT EXISTS (SELECT 1 FROM ord_transfer_leg l WHERE l.id = i.transfer_leg_id AND l.order_id = i.order_id)
            OR (i.fee_calc_source IS NULL AND i.fee_source IS NOT 'CHON' AND NOT EXISTS (SELECT 1 FROM prc_transfer_fee_rule r WHERE r.id = i.fee_rule_id))
-           OR (i.fee_calc_source = 'GIA_GOC' AND (i.fee_base_price IS NULL OR i.unit_price <> CASE WHEN i.fee_kind = 'PER_TRIP' THEN i.fee_base_price ELSE max(0, i.fee_base_price - COALESCE(i.fee_tier_discount, 0)) END))
+           OR (i.fee_calc_source = 'GIA_GOC' AND (i.fee_base_price IS NULL OR (i.fee_kind IS 'PER_TRIP' AND i.unit_price <> i.fee_base_price) OR (i.fee_kind IS NOT 'PER_TRIP' AND i.unit_price <> max(0, i.fee_base_price - COALESCE(i.fee_tier_discount, 0)))))
            OR (i.fee_calc_source = 'CHUONG_TRINH' AND (i.fee_program_id IS NULL OR i.unit_price <> 0))
            OR (i.fee_calc_source = 'DOI_TAY' AND (i.fee_override_reason IS NULL OR trim(i.fee_override_reason) = '' OR i.fee_override_by IS NULL OR i.unit_price < 0 OR i.unit_price > 5000000))
            OR i.line_total <> i.quantity * i.unit_price

@@ -25,14 +25,14 @@ export async function khoiGiamPhiDon(el: HTMLElement): Promise<void> {
       loi.hidden = false;
     };
     const hienHanh = (code: string): Api.GiamPhiDonDto | undefined => r.dong.filter((d) => d.tierCode === code && d.validToDate === null).sort((a, b) => a.validFromDate.localeCompare(b.validFromDate)).pop();
-    const bang = h("div", { class: "card-list" });
+    const bang = h("div", { class: "dd-cot" });
     for (const c of r.cap) {
       const d = hienHanh(c.code);
-      const vung = h("div", { class: "card card-col" });
+      const vung = h("div", { class: "khoi dd-cot" });
       const dongTieuDe = h("div", null, h("strong", null, c.name), " · ", d ? `${tien(d.amount)} mỗi khách, từ ${ngay(d.validFromDate)}` : "Chưa đặt");
       const o = h("input", { class: "o", type: "text", inputmode: "numeric", id: `gpd-tien-${c.code}`, "aria-label": `Mức giảm mỗi khách của ${c.name}, đồng`, autocomplete: "off", value: d ? String(d.amount) : "" });
       const tu = h("input", { class: "o", type: "date", id: `gpd-ngay-${c.code}`, "aria-label": `Ngày bắt đầu mức giảm của ${c.name}`, min: homNay(), value: homNay() });
-      const luu = h("button", { class: "btn btn-primary", type: "button" }, "Lưu mức giảm");
+      const luu = h("button", { class: "nut", "data-cap": "chinh", type: "button" }, "Lưu mức giảm");
       luu.addEventListener("click", async () => {
         loi.hidden = true;
         const so = Number(o.value.replace(/[.\s]/g, ""));
@@ -51,7 +51,7 @@ export async function khoiGiamPhiDon(el: HTMLElement): Promise<void> {
       if (r.doiDuoc) {
         vung.append(h("div", { class: "toolbar" }, o, tu, luu));
         if (d && d.validFromDate <= homNay()) {
-          const ketThuc = h("button", { class: "btn", type: "button" }, "Kết thúc mức giảm");
+          const ketThuc = h("button", { class: "nut", "data-cap": "phu", type: "button" }, "Kết thúc mức giảm");
           ketThuc.addEventListener("click", async () => {
             loi.hidden = true;
             ketThuc.disabled = true;

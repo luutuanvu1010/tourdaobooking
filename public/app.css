@@ -3437,9 +3437,7 @@ label.check > input.o-tick { display: inline; width: auto; margin: 0 var(--s2) 0
 .dd-luoi-phu { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w-dd-phu), 1fr)); gap: var(--s3); }
 .dd-phi { display: grid; gap: var(--s2); align-content: start; } /* ADR-0218: số máy tính + nút «Đổi phí» + hai ô (số tiền, lý do) + câu lỗi của một lượt */
 .dd-phi-nhac { margin: 0; }
-.dd-phi-may { margin: 0; }
 .dd-phi-nut { justify-self: start; }
-.dd-phi-doi { display: grid; gap: var(--s2); }
 .dd-cot { display: flex; flex-direction: column; gap: var(--s2); min-width: 0; }
 .dd-chang label, .hk label { min-width: 0; }
 .dd-gio { position: relative; display: block; }
