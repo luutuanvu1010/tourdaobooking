@@ -52,7 +52,7 @@ export function formGuiAnh(v: { orderId: string; changId?: string | null; dichVu
   const dv = v.dichVu && v.dichVu.length > 1
     ? (h("select", { "aria-label": "Dịch vụ" }, h("option", { value: "" }, "Cả đơn"), ...v.dichVu.map((d) => h("option", { value: d.id }, d.ten))) as HTMLSelectElement)
     : null;
-  const ghi = h("input", { type: "text", maxlength: GHI_CHU_TOI_DA, placeholder: "Ghi chú (không bắt buộc)", "aria-label": "Ghi chú" }) as HTMLInputElement;
+  const ghi = h("input", { type: "text", maxlength: GHI_CHU_TOI_DA, placeholder: "Không bắt buộc" }) as HTMLInputElement;
   const bao = h("p", { class: "muted", role: "status" });
   const nut = h("button", { type: "button", class: "nut", "data-cap": "chinh" }, "Gửi ảnh") as HTMLButtonElement;
   nut.addEventListener("click", async () => {
@@ -79,7 +79,7 @@ export function formGuiAnh(v: { orderId: string; changId?: string | null; dichVu
   for (const [o, ten] of [[tep, "anh"], [loai, "loai"], [dv, "dv"], [ghi, "ghi"]] as const) o?.setAttribute("id", `${id}-${ten}`);
   // Bố cục bằng lớp của khung gốc (ADR-0222): lưới 12 cột, trường nhập, thanh nút — không luật CSS riêng.
   return h("div", { class: "abg-form" }, luoi(null, truong("Ảnh", tep, { cot: 6 }), truong("Loại việc", loai, { cot: 6 }), dv ? truong("Gắn với", dv, { cot: 6 }) : null,
-    truong("Ghi chú", ghi, dv ? { cot: 6 } : {})), thanhNut(null, nut), bao);
+    truong("Ghi chú", ghi, dv ? { cot: 6 } : {}), thanhNut(null, nut)), bao);
 }
 
 /**
@@ -88,8 +88,6 @@ export function formGuiAnh(v: { orderId: string; changId?: string | null; dichVu
  */
 function moAnh(a: AnhBanGiaoDong, quyen: { an: boolean; xoa: boolean }, lamMoi: () => void, opener: HTMLElement): void {
   const bao = h("p", { class: "muted", role: "status" });
-  const ghi = h("input", { type: "text", maxlength: 300, placeholder: "Lý do (từ 3 ký tự)", "aria-label": "Lý do ẩn hoặc xoá ảnh" }) as HTMLInputElement;
-  const foot: HTMLElement[] = [];
   let dong = () => {};
   const gui = async (duong: string, body: Record<string, unknown>) => {
     try {
@@ -100,28 +98,35 @@ function moAnh(a: AnhBanGiaoDong, quyen: { an: boolean; xoa: boolean }, lamMoi: 
       bao.textContent = lyDoLoi(e);
     }
   };
-  if (quyen.an || quyen.xoa) foot.push(ghi);
-  if (quyen.an && !a.daAn) foot.push(h("button", { type: "button", class: "nut", "data-cap": "phu", onclick: () => void gui("an", { lyDo: ghi.value }) }, "Ẩn ảnh"));
+  const id = `abg-xem-${++soForm}`;
+  // Hai nhóm tách hẳn (người chấm giao diện 22/11): mỗi nhóm có ô lý do riêng có nhãn, nút của nhóm ngay dưới; cảnh báo xoá hẳn nằm ngay trên nút xoá.
+  const nhom: HTMLElement[] = [];
+  if (quyen.an && !a.daAn) {
+    const lyDoAn = h("input", { type: "text", id: `${id}-an`, maxlength: 300, placeholder: "Từ 3 ký tự" }) as HTMLInputElement;
+    nhom.push(h("div", { class: "abg-nhom" }, luoi(null, truong("Lý do ẩn", lyDoAn), thanhNut(null,
+      h("button", { type: "button", class: "nut", "data-cap": "phu", onclick: () => void gui("an", { lyDo: lyDoAn.value }) }, "Ẩn ảnh")))));
+  }
   if (quyen.xoa) {
-    const lyDo = h("select", { "aria-label": "Lý do xoá" }, h("option", { value: "GIAY_TO_CHUP_NHAM" }, "Ảnh lọt giấy tờ tuỳ thân"),
+    const lyDo = h("select", { id: `${id}-ly-do` }, h("option", { value: "GIAY_TO_CHUP_NHAM" }, "Ảnh lọt giấy tờ tuỳ thân"),
       h("option", { value: "XOA_THEO_YEU_CAU" }, "Khách yêu cầu xoá (báo qua kênh liên hệ)"), h("option", { value: "HET_HAN" }, "Đã quá hạn giữ")) as HTMLSelectElement;
+    const ghi = h("input", { type: "text", id: `${id}-ghi`, maxlength: 300, placeholder: "Từ 3 ký tự" }) as HTMLInputElement;
+    const canhBao = h("p", { class: "muted" }, "Ảnh sẽ bị xoá hẳn khỏi kho, không lấy lại được.");
     let daHoi = false;
     const nut = h("button", { type: "button", class: "nut", "data-cap": "phu", "data-tong": "nguy-hiem" }, "Xoá hẳn ảnh") as HTMLButtonElement;
     nut.addEventListener("click", () => {
       if (!daHoi) {
         daHoi = true;
         nut.textContent = "Bấm lần nữa để xoá hẳn";
-        bao.textContent = "Ảnh sẽ bị xoá hẳn khỏi kho, không lấy lại được.";
         return;
       }
       void gui("xoa", { lyDo: lyDo.value, ghiChu: ghi.value, ...(lyDo.value === "XOA_THEO_YEU_CAU" ? { nguon: "KHACH" } : {}) });
     });
-    foot.push(lyDo, nut);
+    nhom.push(h("div", { class: "abg-nhom" }, luoi(null, truong("Lý do xoá", lyDo), truong("Ghi rõ lý do hoặc kênh khách báo", ghi), canhBao, thanhNut(null, nut))));
   }
   const bang = moBangTruot({
     title: `${NHAN_LOAI_VIEC[a.loaiViec]} · ${gioVn(a.luc)}`,
-    body: [h("img", { class: "abg-lon", src: duongAnhBanGiao(a.id), alt: `Ảnh bàn giao: ${NHAN_LOAI_VIEC[a.loaiViec]}` }), a.ghiChu ? h("p", null, a.ghiChu) : null, bao],
-    foot,
+    body: [luoi(null, h("img", { class: "abg-lon", src: duongAnhBanGiao(a.id), alt: `Ảnh bàn giao: ${NHAN_LOAI_VIEC[a.loaiViec]}` }), a.ghiChu ? h("p", null, a.ghiChu) : null, ...nhom, bao)],
+    foot: [],
     opener,
   });
   dong = () => bang?.close();
@@ -140,15 +145,15 @@ export async function initAnhBanGiao(el: HTMLElement, vao: { orderId: string; di
     el.hidden = true;
     return;
   }
-  const luoiAnh = luoi({ class: "abg-luoi" });
+  const luoiAnh = thanhNut({ class: "abg-luoi" }); // ảnh nhỏ cỡ cố định (thuộc tính width/height của thẻ ảnh), xuống dòng theo bề ngang — không luật bố cục riêng
   const lamMoi = () => void initAnhBanGiao(el, vao);
   const xem = async (nut: HTMLButtonElement) => {
     nut.disabled = true;
     try {
       const r = await api<AnhBanGiaoDanhSachResponse>(`/api/anh-ban-giao/don/${encodeURIComponent(vao.orderId)}`);
       replaceChildren(luoiAnh, ...r.anh.map((a) => {
-        const the = h("button", { type: "button", class: "abg-the", "data-cot": "3", "aria-label": `Mở ảnh: ${NHAN_LOAI_VIEC[a.loaiViec]}, ${gioVn(a.luc)}` },
-          a.anhNho ? h("img", { src: `data:image/jpeg;base64,${a.anhNho}`, alt: "" }) : h("span", { class: "muted" }, "Ảnh chưa xem được"),
+        const the = h("button", { type: "button", class: "abg-the", "aria-label": `Mở ảnh: ${NHAN_LOAI_VIEC[a.loaiViec]}, ${gioVn(a.luc)}` },
+          a.anhNho ? h("img", { src: `data:image/jpeg;base64,${a.anhNho}`, alt: "", width: 128, height: 128 }) : h("span", { class: "muted" }, "Ảnh chưa xem được"),
           h("span", { class: "abg-chu" }, `${NHAN_LOAI_VIEC[a.loaiViec]}${a.daAn ? " · đã ẩn" : ""}`),
           h("span", { class: "abg-chu muted" }, `${a.nguoiTai ?? ""} · ${gioVn(a.luc)}`)) as HTMLButtonElement;
         the.addEventListener("click", () => moAnh(a, { an: r.coTheAn, xoa: r.coTheXoa }, lamMoi, the));
