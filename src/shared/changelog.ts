@@ -18,11 +18,21 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Bản dùng thử demo.tourdao.vn (kế hoạch 16 việc 21/11, Việc 1; ADR-0223). Nhánh claude/beautiful-engelbart-74cf25. Không migration. Bản chính thức không đổi hành vi.
-    // SỐ TẠM 3.29 (3.28 là Việc 3, đã ở main 22/11; việc 1 là lượt nhập số 10): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    // SỐ TẠM 3.30 (3.29 là Việc 2, 3.28 là Việc 3 — đã ở main; việc 1 là lượt nhập số 10): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.30",
+    date: "2026-11-23",
+    items: [
+      { kind: "moi", text: "Có bản dùng thử riêng ở demo.tourdao.vn để người mới tự bấm thử Nền tảng với vai trò mình chọn. Dữ liệu mẫu tự xoá mỗi 2 giờ, không chạm dữ liệu thật." },
+    ],
+  },
+  {
+    // Đối tác Trả sau chỉ thấy «Trả sau» (kế hoạch 16 việc 21/11, Việc 2; ADR-0224). Nhánh claude/great-montalcini-69b67b. Không migration.
+    // SỐ TẠM 3.29 (3.28 là Việc 3, 3.27 là sửa giu-cho-dai): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.29",
     date: "2026-11-22",
     items: [
-      { kind: "moi", text: "Có bản dùng thử riêng ở demo.tourdao.vn để người mới tự bấm thử Nền tảng với vai trò mình chọn. Dữ liệu mẫu tự xoá mỗi 2 giờ, không chạm dữ liệu thật." },
+      { kind: "doi", text: "Đối tác được trả sau: màn Tạo đơn chỉ còn «Trả sau»." },
+      { kind: "doi", text: "Khi Trả sau tạm khoá (có đơn quá hạn) hoặc đơn vượt mức được trả sau, «Thanh toán ngay» hiện lại kèm câu lý do." },
     ],
   },
   {

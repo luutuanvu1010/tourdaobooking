@@ -2,6 +2,7 @@
 // (khuôn `cocChoXacNhan`, ADR-0159). Hai cửa: `congTraSauKhiLuu` (lưu đơn — báo sớm) và `traSauChoXacNhan` (lô xác nhận — chốt thật, kèm câu gác phiên bản và hạn trả).
 // KHÔNG tự kiểm quyền người gọi (route đã làm). Không nhắc bảng `bil_`, không import `billing` (bài src/architecture.test.ts, src/dat-coc-noi-goi.test.ts).
 import { chanVeDaDungTrongLo, chanVeDaMoTrongLo, laLoiVeDaDungTrongLo, laLoiVeDaMoTrongLo } from "../../shared/chan-doi-tac-huy";
+import { CAU_TRA_SAU_BAT_BUOC_DOI_TAC, hinhThucDuocNhan, trangThaiTuKetQua } from "../../shared/han-muc-tra-sau-hien-thi";
 import { error } from "../../shared/http";
 import { cauKhongTraSauChoNguoiGui, dongTien, hanTraTu, hetAnHanTu, laLoiPhienBanTraSau, ngayCuaMoc, type HinhThucThanhToan, type KetQuaKiemTraSau, type MaKhongTraSau } from "../../shared/tra-sau";
 
@@ -43,9 +44,18 @@ async function kiemDon(h: Pick<HamTraSau, "kiemTraSau"> & NguoiGuiTraSau, d: Don
   return { benDat: d.bookerPartyId, kq };
 }
 
-/** Lưu đơn (lập mới, lưu nháp): chỉ kiểm để BÁO SỚM — chốt thật ở lô xác nhận. Đơn Trả trước không tốn một câu đọc. `null` = qua. */
+/**
+ * Lưu đơn (lập mới, lưu nháp): chỉ kiểm để BÁO SỚM — chốt thật ở lô xác nhận. `null` = qua.
+ * Đơn Trả trước: văn phòng không tốn một câu đọc. ADR-0224 Đ2.1: người GỬI là đối tác (`nguoiGuiLaDoiTac` = `laDoiTacTraSau`) và có bên đặt ⇒ hỏi hạn mức một lần;
+ * luật thuần `hinhThucDuocNhan` không nhận «Thanh toán ngay» (Trả sau dùng được cho đúng bên đặt và tổng này) ⇒ 409, câu không số. Không đọc được hạn mức ⇒ qua (Đ2.2).
+ * KHÔNG áp ở lô xác nhận (Đ2.3): nháp lưu Trả trước hợp lệ lúc Trả sau khoá vẫn xác nhận được.
+ */
 export async function congTraSauKhiLuu(h: Pick<HamTraSau, "kiemTraSau"> & NguoiGuiTraSau, d: DonTraSau): Promise<Response | null> {
-  if (d.paymentTerm !== "CREDIT") return null;
+  if (d.paymentTerm !== "CREDIT") {
+    if (!h.nguoiGuiLaDoiTac || d.bookerPartyId === null) return null;
+    const kq = await h.kiemTraSau({ benDat: d.bookerPartyId, soTienDon: d.total, ...(d.id ? { boQuaDon: d.id } : {}) });
+    return hinhThucDuocNhan({ laDoiTac: true, traSau: trangThaiTuKetQua(kq) }).chonDuoc.includes(d.paymentTerm) ? null : error(409, "tra_sau_bat_buoc_doi_tac", CAU_TRA_SAU_BAT_BUOC_DOI_TAC);
+  }
   const r = await kiemDon(h, d);
   return "loi" in r ? r.loi : null;
 }
