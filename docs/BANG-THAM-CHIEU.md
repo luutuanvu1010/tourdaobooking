@@ -275,7 +275,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (116)
+## Việc chờ chọn (119)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -317,6 +317,9 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Thử lại (gửi lượt quét) | `web/quet-ve-may.ts`: Thử lại | Vé điện tử: quét | người thi công đặt 2026-11-21 (kế hoạch 16 việc, Việc 9); chữ nút «Thử lại» là chữ dùng chung đã có |
 | Ngừng | `web/hoa-hong-hop.ts`: ⟪o.nhan⟫<br>`web/hoa-hong-cap.ts`: ⟪nhanViec(v, loai)⟫ | Hoa hồng: ngừng một dòng mức | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Sửa | `web/hoa-hong-cap.ts`: Sửa<br>`web/hoa-hong-loai.ts`: Sửa<br>`web/hoa-hong-hop.ts`: Mở lại<br>`web/hoa-hong-hop.ts`: Lưu | Hoa hồng: sửa tên và ghi chú của một cấp hoặc một vai trò | rà soát 2026-11-04: chưa rõ, chờ chủ |
+| Trả sau theo dịch vụ | `web/catalog-tra-sau-dich-vu.ts`: Trả sau theo dịch vụ | Trả sau theo dịch vụ | AI đặt 2026-11-22 (Việc 11, ADR-0230 Đ1), chờ chủ chọn: (1) «Trả sau theo dịch vụ» — tên khái niệm đã chốt; (2) «Đặt Trả sau»; (3) «Trả sau…» |
+| Lưu Trả sau theo dịch vụ · Đặt Trả sau theo dịch vụ | `web/catalog-tra-sau-dich-vu.ts`: Lưu Trả sau theo dịch vụ<br>`web/catalog-tra-sau-dich-vu.ts`: Đặt Trả sau theo dịch vụ | Trả sau theo dịch vụ | AI đặt 2026-11-22 (Việc 11), theo nhãn nhật ký «Đặt Trả sau theo dịch vụ» đã có; chờ chủ chọn: (1) «Lưu Trả sau theo dịch vụ» / «Đặt Trả sau theo dịch vụ»; (2) «Lưu» / «Đặt dấu»; (3) «Lưu số giờ» / «Bật Trả sau theo dịch vụ» |
+| Gỡ Trả sau theo dịch vụ | `web/catalog-tra-sau-dich-vu.ts`: Gỡ Trả sau theo dịch vụ | Trả sau theo dịch vụ | AI đặt 2026-11-22 (Việc 11), theo nhãn nhật ký «Gỡ Trả sau theo dịch vụ» đã có; chờ chủ chọn: (1) «Gỡ Trả sau theo dịch vụ»; (2) «Gỡ dấu»; (3) «Tắt Trả sau theo dịch vụ» |
 | Chữ trong ô cột «Cấp độ đại lý» (ví dụ «Đại lý cấp 2 (theo vai trò)»), bấm để mở hộp | `web/cot-cap-dai-ly.ts`: ⟪o⟫<br>`web/cot-cap-dai-ly.ts`: ⟪oCapCuaHoSo(v)⟫<br>`web/cot-cap-dai-ly.ts`: Lưu | Tài khoản: đặt cấp riêng cho MỘT tài khoản đối tác ngay ở bảng tài khoản | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | ＋ Thêm luật | `public/luat-ban.html`: Thêm luật<br>`web/luat-ban.ts`: Thêm luật | Luật bán: thêm luật chặn | rà soát 2026-11-04: chưa rõ, chờ chủ |
 | Khoá tháng MM/YYYY → Xác nhận khoá tháng MM/YYYY | `web/khoa-thang.ts`: ⟪nhanNutKhoa(period)⟫<br>`web/khoa-thang.ts`: ⟪nhanNutXacNhanKhoa(period)⟫ | Khoá sổ tháng | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -398,7 +401,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu (cấp cho đối tác tự đăng ký) | `web/cap-dang-ky.ts`: Lưu | Phiếu đăng ký đối tác | tên khối theo trang trình lượt B (ADR-0209 Đ5); nút dùng chữ chung «Lưu», AI chọn 2026-11-15, chờ chủ |
 | Lưu (nhận đăng ký mới) | `web/dang-ky-chinh-sach.ts`: Lưu | Phiếu đăng ký đối tác | tên công tắc «Nhận đăng ký mới» (Bật, Tắt) theo PHU-LUC lượt A; nút dùng chữ chung «Lưu», AI chọn 2026-11-16 (Task 12 vòng sửa 1), chờ chủ |
 
-## Việc quan trọng (382)
+## Việc quan trọng (385)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -862,6 +865,14 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 |---|---|---|---|---|---|---|---|
 | **Cấp hạn mức / Điều chỉnh hạn mức** | Cấp độ đại lý › cột «Trả sau» › bảng của một đối tác | Quản trị hoặc Toàn quyền cấp hay điều chỉnh hạn mức trả sau cho một đối tác: hạn mức tiền, thời hạn trả (giờ, tính từ lúc đơn xác nhận) và ân hạn (giờ). Nút ghi «Cấp hạn mức» khi đối tác chưa có hạn mức hiệu lực, «Điều chỉnh hạn mức» khi đã có; hai chữ cùng một việc. Dòng cũ (nếu có) đóng lại, dòng mới có hiệu lực ngay. Quản trị chỉ cấp tới «Mức tối đa Quản trị được cấp»; không ai tự cấp cho hồ sơ của chính mình. Đơn trả sau đã xác nhận giữ hạn trả cũ. | không | được: điều chỉnh lại số cũ hoặc bấm «Đóng hạn mức» | `/api/tra-sau/han-muc`<br>nhật ký `credit_limit_set` | `web/o-tra-sau.ts`: Điều chỉnh hạn mức / Cấp hạn mức | đã chốt (chủ 2026-11-06 (hộp hỏi: tên theo chữ ngân hàng) — thay «Đặt hạn mức»; chuyển sang màn Cấp độ đại lý theo ADR-0172 Đ1) |
 | **Đóng hạn mức** | Cấp độ đại lý › cột «Trả sau» › bảng của một đối tác đang bật | Quản trị hoặc Toàn quyền đóng hạn mức trả sau của một đối tác: từ lúc này đối tác không đặt thêm đơn trả sau được. Đơn trả sau đã xác nhận vẫn giữ nguyên và nợ vẫn phải thu. | có: hộp «Đóng hạn mức của …?» với nút «Đóng hạn mức» và «Giữ hạn mức» | được: cấp lại hạn mức mới | `/api/tra-sau/han-muc/:x/ngung`<br>nhật ký `credit_limit_stopped` | `web/o-tra-sau.ts`: Đóng hạn mức | đã chốt (chủ 2026-11-06 (hộp hỏi: tên theo chữ ngân hàng) — thay «Ngừng hạn mức»; nút huỷ của hộp hỏi «Giữ hạn mức») |
+
+### Trả sau theo dịch vụ
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Trả sau theo dịch vụ** | Dịch vụ & giá › dòng dịch vụ và Nhóm dịch vụ › nút «Trả sau theo dịch vụ» (chỉ Toàn quyền) | Chỉ mở hộp nhỏ để đặt, đổi số giờ hoặc gỡ dấu «Trả sau theo dịch vụ» của dịch vụ / nhóm đó. Bấm nút này chưa ghi gì. | không | không áp dụng (chỉ mở hộp) | (chưa nối) | `web/catalog-tra-sau-dich-vu.ts`: Trả sau theo dịch vụ | chờ chọn (AI đặt 2026-11-22 (Việc 11, ADR-0230 Đ1), chờ chủ chọn: (1) «Trả sau theo dịch vụ» — tên khái niệm đã chốt; (2) «Đặt Trả sau»; (3) «Trả sau…») |
+| **Lưu Trả sau theo dịch vụ · Đặt Trả sau theo dịch vụ** | Dịch vụ & giá › hộp «Trả sau theo dịch vụ: ‹tên›» (nút Lưu) và hộp hỏi lại khi đặt lần đầu (nút Đặt) | Toàn quyền đặt dấu «Trả sau theo dịch vụ» cho một nhóm hoặc một dịch vụ, kèm thời hạn trả (giờ, từ lúc xác nhận) và ân hạn (giờ); hoặc đổi số giờ của dấu đã có (đóng dòng cũ, mở dòng mới). Từ lúc đó, đơn của đối tác được hưởng mà mọi vé đều là vé Tour Đảo có dấu được trả sau không cần hạn mức, vé hiện ngay; không có trần số tiền. Dấu của nhóm áp cả dịch vụ thêm vào nhóm sau này; dấu riêng của dịch vụ thắng dấu nhóm. Đơn đã xác nhận giữ hạn trả cũ. | có khi đặt lần đầu (kể cả đặt riêng cho dịch vụ đang theo nhóm): hộp nói hậu quả, nút «Đặt Trả sau theo dịch vụ»; đổi số giờ của dấu đã có thì không hỏi | được: đổi lại số giờ hoặc bấm «Gỡ Trả sau theo dịch vụ» (đơn đã xác nhận trong lúc có dấu vẫn giữ hạn trả đã chụp) | `/api/tra-sau/dich-vu`<br>nhật ký `service_credit_rule_set` | `web/catalog-tra-sau-dich-vu.ts`: Lưu Trả sau theo dịch vụ<br>`web/catalog-tra-sau-dich-vu.ts`: Đặt Trả sau theo dịch vụ | chờ chọn (AI đặt 2026-11-22 (Việc 11), theo nhãn nhật ký «Đặt Trả sau theo dịch vụ» đã có; chờ chủ chọn: (1) «Lưu Trả sau theo dịch vụ» / «Đặt Trả sau theo dịch vụ»; (2) «Lưu» / «Đặt dấu»; (3) «Lưu số giờ» / «Bật Trả sau theo dịch vụ») |
+| **Gỡ Trả sau theo dịch vụ** | Dịch vụ & giá › hộp «Trả sau theo dịch vụ: ‹tên›» (chỉ khi mục có dấu riêng) › hộp hỏi «Gỡ Trả sau theo dịch vụ của …?» | Toàn quyền gỡ dấu «Trả sau theo dịch vụ» của một nhóm hoặc một dịch vụ (đóng dòng đang mở). Đơn mới không còn được trả sau không cần hạn mức nhờ dấu này (dịch vụ có thể vẫn theo dấu của nhóm). Đơn đã xác nhận giữ hạn trả cũ. Dấu đã bị gỡ hoặc đổi ở nơi khác thì máy chủ báo và màn tải lại. | có: hộp nói hậu quả, nút «Gỡ Trả sau theo dịch vụ» và «Giữ nguyên» | được: đặt lại dấu (hỏi lại như đặt lần đầu) | `/api/tra-sau/dich-vu/go`<br>nhật ký `service_credit_rule_removed` | `web/catalog-tra-sau-dich-vu.ts`: Gỡ Trả sau theo dịch vụ | chờ chọn (AI đặt 2026-11-22 (Việc 11), theo nhãn nhật ký «Gỡ Trả sau theo dịch vụ» đã có; chờ chủ chọn: (1) «Gỡ Trả sau theo dịch vụ»; (2) «Gỡ dấu»; (3) «Tắt Trả sau theo dịch vụ») |
 
 ### Trả sau: cài đặt chung
 
