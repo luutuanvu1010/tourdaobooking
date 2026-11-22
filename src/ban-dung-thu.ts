@@ -184,12 +184,17 @@ const laKhoR2 = (v: unknown): v is R2Bucket => {
 };
 
 async function donKhoTep(env: EnvDungThu): Promise<void> {
+  // Mỗi kho dọn riêng: một kho lỗi (hay một binding lạ cùng hình dạng, vd KV sau này) không làm dừng các kho khác; lỗi chỉ ghi log.
   for (const kho of Object.values(env as unknown as Record<string, unknown>).filter(laKhoR2)) {
-    for (let vong = 0; vong < 20; vong++) {
-      const ds = await kho.list({ limit: 1000 });
-      if (!ds.objects.length) break;
-      await kho.delete(ds.objects.map((o) => o.key));
-      if (!ds.truncated) break;
+    try {
+      for (let vong = 0; vong < 20; vong++) {
+        const ds = await kho.list({ limit: 1000 });
+        if (!Array.isArray(ds?.objects) || !ds.objects.length) break;
+        await kho.delete(ds.objects.map((o) => o.key));
+        if (!ds.truncated) break;
+      }
+    } catch (e) {
+      console.error(JSON.stringify({ level: "error", event: "ban_dung_thu_don_kho", message: e instanceof Error ? e.message : String(e) }));
     }
   }
 }
