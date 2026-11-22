@@ -92,6 +92,7 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { danhMuc: Api.Catalo
     if (so) { hotline.value = inSoHoTro(so); return; }
     try { hotline.value = soDienSan(null, (await layCongTy()).hotline); } catch { hotline.value = ""; }
   };
+  void dienHotline(); // mở form: chưa chọn dịch vụ thì điền sẵn hotline công ty
   const loi = h("p", { class: "alert", role: "alert", hidden: true });
   const trangThai = h("p", { class: "muted", role: "status", hidden: true });
   const khuMau = h("div", { "data-khoi": "ve-mau" });
