@@ -84,6 +84,14 @@ export const AUDIT_ACTIONS = {
   payment_proof_viewed: { label: "Mở ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_purged: { label: "Gỡ hoặc quyết xoá ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_purge_retried: { label: "Chạy lại xoá ảnh biên lai khỏi kho", group: "system" },
+  // ADR-0232 — Ảnh bàn giao. Chi tiết chỉ mang mã ảnh (8 ký tự đầu), không ghi chú, không lý do ẩn, không khoá kho.
+  handover_photo_added: { label: "Gửi ảnh bàn giao", group: "order" },
+  handover_photo_list_viewed: { label: "Xem các ảnh bàn giao của đơn", group: "order" },
+  handover_photo_viewed: { label: "Mở ảnh bàn giao", group: "order" },
+  handover_photo_hidden: { label: "Ẩn ảnh bàn giao", group: "order" },
+  handover_photo_erasure_marked: { label: "Đánh dấu ảnh bàn giao vào yêu cầu xoá", group: "order" },
+  handover_photo_purged: { label: "Xoá ảnh bàn giao", group: "order" },
+  handover_photo_purge_retried: { label: "Chạy lại xoá ảnh bàn giao khỏi kho", group: "system" },
   // ADR-0182 phần B: khoản nộp của đại lý theo từng đơn.
   agent_remittance_recorded: { label: "Đại lý gửi khoản nộp kèm biên lai", group: "order" },
   agent_remittance_confirmed: { label: "Kế toán xác nhận khoản nộp của đại lý", group: "order" },

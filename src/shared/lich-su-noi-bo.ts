@@ -117,6 +117,8 @@ export const LICH_SU_NOI_BO_AN = [
   "ledger_self_write_reviewed",
   // ADR-0196: ảnh biên lai chuyển khoản (gửi, mở, gỡ, chạy lại dọn kho) — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; trang Nhật ký (Toàn quyền) vẫn đọc được.
   "payment_proof_added", "payment_proof_viewed", "payment_proof_purged", "payment_proof_purge_retried",
+  // ADR-0232 Đ4: Ảnh bàn giao — Đối tác không thấy ảnh, không thấy cả số lượng; ẩn khỏi lịch sử đơn (trang Nhật ký của Toàn quyền vẫn đọc được).
+  "handover_photo_added", "handover_photo_list_viewed", "handover_photo_viewed", "handover_photo_hidden", "handover_photo_erasure_marked", "handover_photo_purged", "handover_photo_purge_retried",
   // ADR-0182 phần B: khoản nộp của đại lý (ghi, xác nhận, từ chối) và ảnh biên lai của nó — loại dòng MỚI, mặc định ẩn khỏi lịch sử đơn cho tới khi chủ xếp loại; phiếu công nợ
   // hiện trạng thái và lý do từ chối; trang Nhật ký (Toàn quyền) vẫn đọc được.
   "agent_remittance_recorded", "agent_remittance_confirmed", "agent_remittance_rejected", "agent_remittance_proof_viewed", "agent_remittance_proof_purged",

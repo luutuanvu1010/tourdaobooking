@@ -318,6 +318,21 @@ export interface Ctx<A extends Access = Access> {
   /** ADR-0126 đ8 — số ngày giữ IP / User-Agent của phiên đã kết thúc, đọc từ chính sách riêng tư hiện hành (parties). null = chưa có số. Gốc lắp ráp tiêm (accounts không import parties). */
   hanGiuPhienNgay: () => Promise<number | null>;
   /**
+   * ẢNH BÀN GIAO (ADR-0232 Đ4) — người đang đăng nhập (theo `partyId`) có đang có dòng lái MỞ trên một chuyến (chưa huỷ) chở lượt đón `legId` không. Tính trong
+   * `van-chuyen` (khuôn ô `trip.*` của tài xế — không dùng `ctx.isAssigned`); gốc lắp ráp tiêm (không module nào import van-chuyen). Chưa đăng nhập / không hồ sơ /
+   * không tiêm (khung thử cũ) ⇒ false (từ chối, không đoán).
+   */
+  taiXeLaiChang: (legId: string) => Promise<boolean>;
+  /** ADR-0232 Đ2, Đ10 — số năm giữ Ảnh bàn giao của chính sách riêng tư đang hiệu lực (parties). null = bản hiện hành chưa có mục ảnh ⇒ không nhận ảnh mới. Không tiêm ⇒ null. */
+  soNamGiuAnh: () => Promise<number | null>;
+  /**
+   * ADR-0232 Đ7 (biến thể 7B) — câu CHƯA CHẠY của anh-ban-giao: quyết gỡ mọi ảnh đã đánh dấu vào phiếu xoá `phieuId` (mã XOA_THEO_YEU_CAU), để route Thực hiện phiếu
+   * của `parties` gộp vào CÙNG lô ẩn danh hoá. Không tiêm (khung thử cũ) ⇒ [] (phiếu vẫn chạy như trước; ảnh đã đánh dấu ở lại chờ). `xoaKhoAnhTheoPhieu` chạy SAU lô
+   * (xoá đối tượng R2 — không bao giờ ném).
+   */
+  cauXoaAnhTheoPhieu: (phieuId: string, at: string, by: string) => D1PreparedStatement[];
+  xoaKhoAnhTheoPhieu: (phieuId: string) => Promise<void>;
+  /**
    * BÊN ĐẶT MÁY CHỦ ÉP CHO NGƯỜI GỌI (sổ đại lý đợt 1, Task 11; Ruling 21) — do gốc lắp ráp tiêm (`pricing.nguoiHuongCuaHoSo`; `auth` KHÔNG import `pricing`, không nới ALLOWED_EDGES — khuôn
    * `mocToiThieu`, `nhanNhanVien`). Khác null khi và chỉ khi người gọi giữ quyền Đối tác, có hồ sơ, và hồ sơ đó đang mang vai được hưởng hoa hồng — ĐÚNG điều kiện `benDatChoTaiKhoan` ép bên đặt. Chỉ id + tên hồ sơ.
    * Người gọi không giữ quyền Đối tác thì KHÔNG truy vấn (mọi lời gọi `/api/auth/me` đi qua đây). Môi trường không tiêm (khung thử cũ) ⇒ null.
@@ -593,6 +608,13 @@ export interface AppOptions {
     cauAnDanhPhien: (env: Env, staffId: string, at: string, by: string) => D1PreparedStatement;
     /** ADR-0126 đ8. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `hanGiuPhienNgay` của parties); thiếu (khung thử cũ) hoặc chưa đăng nhập → `null`. */
     hanGiuPhienNgay: (env: Env) => Promise<number | null>;
+    /** ADR-0232 Đ4. Mã chạy thật (`src/index.ts`: van-chuyen); thiếu → false. `driverPartyId` = hồ sơ của người đang đăng nhập. */
+    taiXeLaiChang?: (env: Env, driverPartyId: string, legId: string) => Promise<boolean>;
+    /** ADR-0232 Đ10. Mã chạy thật (`src/index.ts`: parties); thiếu → null (không nhận ảnh). */
+    soNamGiuAnh?: (env: Env) => Promise<number | null>;
+    /** ADR-0232 Đ7 (7B). Mã chạy thật (`src/index.ts`: anh-ban-giao); thiếu → [] / không làm gì. */
+    cauXoaAnhTheoPhieu?: (env: Env, phieuId: string, at: string, by: string) => D1PreparedStatement[];
+    xoaKhoAnhTheoPhieu?: (env: Env, phieuId: string) => Promise<void>;
     /** Task 11 (Ruling 21). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguoiHuongCuaHoSo` của pricing, chỉ cho tài khoản giữ quyền Đối tác); thiếu (khung thử cũ) → router trả `null`. */
     benDatCuaToi: (env: Env, actor: StaffProfile) => Promise<{ partyId: string; ten: string } | null>;
     /** ADR-0213 Đ3 (Task 11). BẮT BUỘC (như `mocToiThieu`): bản thật ở `src/index.ts`; thiếu thì typecheck đỏ. Khung thử dựng `injected` thiếu hàm ⇒ router trả `[]` (đường hôm nay). */
@@ -826,6 +848,11 @@ export function createApp(opts: AppOptions) {
       },
       cauAnDanhPhien: (id, at, by) => (typeof opts.injected.cauAnDanhPhien === "function" ? opts.injected.cauAnDanhPhien(envH, id, at, by) : null),
       hanGiuPhienNgay: () => (who && typeof opts.injected.hanGiuPhienNgay === "function" ? opts.injected.hanGiuPhienNgay(envH) : Promise.resolve(null)),
+      taiXeLaiChang: (legId) =>
+        who && who.partyId && typeof opts.injected.taiXeLaiChang === "function" ? opts.injected.taiXeLaiChang(envH, who.partyId, legId) : Promise.resolve(false),
+      soNamGiuAnh: () => (who && typeof opts.injected.soNamGiuAnh === "function" ? opts.injected.soNamGiuAnh(envH) : Promise.resolve(null)),
+      cauXoaAnhTheoPhieu: (pid, at, by) => (typeof opts.injected.cauXoaAnhTheoPhieu === "function" ? opts.injected.cauXoaAnhTheoPhieu(envH, pid, at, by) : []),
+      xoaKhoAnhTheoPhieu: (pid) => (typeof opts.injected.xoaKhoAnhTheoPhieu === "function" ? opts.injected.xoaKhoAnhTheoPhieu(envH, pid) : Promise.resolve()),
       benDatCuaToi: () => (who && typeof opts.injected.benDatCuaToi === "function" ? opts.injected.benDatCuaToi(envH, who) : Promise.resolve(null)),
       tuCachCuaToi: () => (who && typeof opts.injected.tuCachCuaToi === "function" ? opts.injected.tuCachCuaToi(envH, who) : Promise.resolve([])),
       benDangThayMat: async (tuCach) => chonTuCach(who && typeof opts.injected.tuCachCuaToi === "function" ? await opts.injected.tuCachCuaToi(envH, who) : [], tuCach),

@@ -2,6 +2,7 @@
   "version": 1,
   "modules": [
     "accounts",
+    "anh-ban-giao",
     "audit",
     "auth",
     "billing",
@@ -925,6 +926,26 @@
       "note": "ảnh biên lai chuyển khoản (ảnh / PDF) ở kho R2 riêng BIEN_LAI (ADR-0196; migration 0158), CHỈ-THÊM: khoản «Công ty thu, chuyển khoản» do tài khoản Đối tác (không Kế toán) khai phải kèm đúng một ảnh, ghi CÙNG lô với khoản thu. Mỗi khoản thu tối đa một dòng (UNIQUE receipt_id, kể cả sau khi gỡ); người tải = người ghi khoản thu, khoản là CUSTOMER_PAYMENT; trần 20 ảnh / giờ / tài khoản bằng trigger (chạm trần thì cả lô huỷ). Khoá kho ngẫu nhiên bln/<32 hex>, loại theo chữ ký, cỡ, băm SHA-256; KHÔNG tên tệp gốc; không xoá dòng — ba mốc một chiều stored_at / purged_at (+ lý do TAI_LEN_DO_DANG / GO_TEP, băm về rỗng) / r2_deleted_at. Ảnh không làm khoản được tính là tiền đã về (dấu DECLARED ở bil_receipt_recon giữ nguyên)"
     },
     {
+      "name": "abg_photo",
+      "module": "anh-ban-giao",
+      "kind": "table",
+      "note": "Ảnh bàn giao — ảnh chụp lúc làm việc gắn vào đơn (ADR-0232; migration 0190), ở kho R2 riêng ANH_BAN_GIAO, CHỈ-THÊM. Hai bản JPEG (ảnh nhỏ ≤ 100 KB, ảnh xem ≤ 600 KB) đã nén ở trình duyệt; khoá kho ngẫu nhiên abg/<32 hex>; KHÔNG tên tệp gốc, toạ độ, giờ chụp của máy. Gắn bắt buộc một đơn đã xác nhận, tuỳ chọn một dịch vụ HOẶC một lượt đón của đúng đơn (trigger đọc v_ord_order_state, v_ord_service_key, v_ord_leg_key). Loại việc GIAO_KHACH / GIAO_TAI_XE / KHAC; ghi chú ≤ 200 ký tự. retain_until = giờ tải + số năm của chính sách riêng tư đang hiệu lực (máy chủ tính). Không xoá dòng — mốc một chiều stored_at / purged_at (+ lý do, băm và ghi chú về rỗng) / r2_deleted_at; erasure_request_id (đánh dấu yêu cầu xoá) và bộ cột ẩn (hidden_at/by/reason) cũng một chiều. Trigger hạn giữ abg_photo_retention_hold so GIỜ HỆ THỐNG với retain_until: trước hạn chỉ qua TAI_LEN_LOI (chưa lưu xong), GIAY_TO_CHUP_NHAM, XOA_THEO_YEU_CAU kèm yêu cầu có thật; HET_HAN chỉ sau hạn. Trần 20 ảnh / giờ / tài khoản và 30 ảnh còn hiện mỗi đơn.",
+      "logicalRefs": [
+        { "column": "order_id", "toTable": "orders", "viaView": "v_ord_order_state", "note": "trigger abg_photo_order_ins — đơn phải đã xác nhận" },
+        { "column": "order_service_id", "toTable": "order_service", "viaView": "v_ord_service_key", "note": "trigger abg_photo_target_ins — dịch vụ thuộc đúng đơn" },
+        { "column": "transfer_leg_id", "toTable": "ord_transfer_leg", "viaView": "v_ord_leg_key", "note": "trigger abg_photo_target_ins — lượt đón thuộc đúng đơn" }
+      ]
+    },
+    {
+      "name": "abg_erasure_request",
+      "module": "anh-ban-giao",
+      "kind": "table",
+      "note": "yêu cầu xoá Ảnh bàn giao (ADR-0232 Đ7, biến thể 7B; migration 0190), CHỈ-THÊM. Nguồn PHIEU = phiếu xoá của người có tài khoản (phieu_id, ADR-0126; ảnh được gỡ trong lô Thực hiện phiếu của parties, lính gác đọc v_pty_erasure_decision); nguồn KHACH = khách không tài khoản báo qua kênh liên hệ (channel_note — kênh và cách xác minh, hạng N2; ảnh được gỡ ngay). executed_at đặt một lần.",
+      "logicalRefs": [
+        { "column": "phieu_id", "toTable": "pty_erasure_request", "viaView": "v_pty_erasure_decision", "note": "đánh dấu chỉ cho phiếu còn chờ; câu gỡ theo phiếu gác bằng người + lúc quyết của phiếu" }
+      ]
+    },
+    {
       "name": "bil_receipt_recon",
       "module": "billing",
       "kind": "table",
@@ -1696,6 +1717,24 @@
       ]
     },
     {
+      "name": "v_ord_service_key",
+      "module": "orders",
+      "columns": [
+        "id",
+        "order_id"
+      ]
+    },
+    {
+      "name": "v_pty_erasure_decision",
+      "module": "parties",
+      "columns": [
+        "id",
+        "status",
+        "decided_by",
+        "decided_at"
+      ]
+    },
+    {
       "name": "v_ord_leg_commit",
       "module": "orders",
       "columns": [
@@ -2001,6 +2040,14 @@
       "purged_at": "N1", "purge_reason": "N1", "r2_deleted_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
     },
     "bil_remittance_bank_txn": { "id": "N1", "remittance_id": "N1", "txn_code": "N1", "transferred_amount": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "abg_photo": {
+      "id": "N1", "order_id": "N1", "order_service_id": "N1", "transfer_leg_id": "N1", "task_kind": "N1", "note": "N2", "thumb_key": "N3", "view_key": "N3", "thumb_size": "N1",
+      "view_size": "N1", "content_hash": "N3", "retain_until": "N1", "stored_at": "N1", "purged_at": "N1", "purge_reason": "N1", "erasure_request_id": "N1", "r2_deleted_at": "N1",
+      "hidden_at": "N1", "hidden_by": "N1", "hidden_reason": "N3", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
+    },
+    "abg_erasure_request": { "id": "N1", "source": "N1", "phieu_id": "N1", "channel_note": "N2", "executed_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "v_ord_service_key": { "id": "N1", "order_id": "N1" },
+    "v_pty_erasure_decision": { "id": "N1", "status": "N1", "decided_by": "N1", "decided_at": "N1" },
     "bil_receipt_proof": {
       "id": "N1", "receipt_id": "N1", "storage_key": "N3", "content_kind": "N1", "byte_size": "N1", "content_hash": "N3", "stored_at": "N1",
       "purged_at": "N1", "purge_reason": "N1", "r2_deleted_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1"
@@ -2126,7 +2173,7 @@
     "pty_consent": { "id": "N1", "party_id": "N1", "policy_id": "N1", "decision": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_organization_document": { "id": "N1", "party_id": "N1", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "previous_id": "N1", "voided_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_organization_document_type": { "code": "N1", "name": "N1", "has_expiry": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "pty_privacy_policy": { "id": "N1", "version": "N1", "purposes": "N1", "body": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "erasure_days": "N1", "session_retention_days": "N1", "covers_org_data": "N1" },
+    "pty_privacy_policy": { "id": "N1", "version": "N1", "purposes": "N1", "body": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "erasure_days": "N1", "session_retention_days": "N1", "covers_org_data": "N1", "photo_retention_years": "N1" },
     "pty_verification_attribute": { "code": "N1", "name": "N1", "applies_to": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "pty_self_submission": { "id": "N1", "party_id": "N1", "subject_kind": "N1", "policy_id": "N1", "birth_date": "N2", "address_value": "N2", "document_type_code": "N1", "document_number": "N3", "number_key": "N3", "license_class_code": "N1", "issued_date": "N1", "issued_place": "N3", "expiry_date": "N1", "status": "N1", "decided_at": "N1", "decided_by": "N1", "reason_code": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "erased_at": "N1" },
     "pty_verification": { "id": "N1", "party_id": "N1", "target_kind": "N1", "target_id": "N1", "attribute_code": "N1", "outcome": "N1", "reason_code": "N1", "verifier_touched_account": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

@@ -2,6 +2,13 @@
 
 > **Sinh tự động** từ `docs/data-dictionary.json` bằng `npm run dict` — không sửa tay. Bài kiểm `src/architecture.test.ts` báo lỗi nếu tệp này lệch.
 
+## anh-ban-giao
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `abg_photo` | bảng | Ảnh bàn giao — ảnh chụp lúc làm việc gắn vào đơn (ADR-0232; migration 0190), ở kho R2 riêng ANH_BAN_GIAO, CHỈ-THÊM. Hai bản JPEG (ảnh nhỏ ≤ 100 KB, ảnh xem ≤ 600 KB) đã nén ở trình duyệt; khoá kho ngẫu nhiên abg/<32 hex>; KHÔNG tên tệp gốc, toạ độ, giờ chụp của máy. Gắn bắt buộc một đơn đã xác nhận, tuỳ chọn một dịch vụ HOẶC một lượt đón của đúng đơn (trigger đọc v_ord_order_state, v_ord_service_key, v_ord_leg_key). Loại việc GIAO_KHACH / GIAO_TAI_XE / KHAC; ghi chú ≤ 200 ký tự. retain_until = giờ tải + số năm của chính sách riêng tư đang hiệu lực (máy chủ tính). Không xoá dòng — mốc một chiều stored_at / purged_at (+ lý do, băm và ghi chú về rỗng) / r2_deleted_at; erasure_request_id (đánh dấu yêu cầu xoá) và bộ cột ẩn (hidden_at/by/reason) cũng một chiều. Trigger hạn giữ abg_photo_retention_hold so GIỜ HỆ THỐNG với retain_until: trước hạn chỉ qua TAI_LEN_LOI (chưa lưu xong), GIAY_TO_CHUP_NHAM, XOA_THEO_YEU_CAU kèm yêu cầu có thật; HET_HAN chỉ sau hạn. Trần 20 ảnh / giờ / tài khoản và 30 ảnh còn hiện mỗi đơn.; tham chiếu logic `order_id` → `orders` qua view `v_ord_order_state`, không khoá ngoại (trigger abg_photo_order_ins — đơn phải đã xác nhận); tham chiếu logic `order_service_id` → `order_service` qua view `v_ord_service_key`, không khoá ngoại (trigger abg_photo_target_ins — dịch vụ thuộc đúng đơn); tham chiếu logic `transfer_leg_id` → `ord_transfer_leg` qua view `v_ord_leg_key`, không khoá ngoại (trigger abg_photo_target_ins — lượt đón thuộc đúng đơn) |
+| `abg_erasure_request` | bảng | yêu cầu xoá Ảnh bàn giao (ADR-0232 Đ7, biến thể 7B; migration 0190), CHỈ-THÊM. Nguồn PHIEU = phiếu xoá của người có tài khoản (phieu_id, ADR-0126; ảnh được gỡ trong lô Thực hiện phiếu của parties, lính gác đọc v_pty_erasure_decision); nguồn KHACH = khách không tài khoản báo qua kênh liên hệ (channel_note — kênh và cách xác minh, hạng N2; ảnh được gỡ ngay). executed_at đặt một lần.; tham chiếu logic `phieu_id` → `pty_erasure_request` qua view `v_pty_erasure_decision`, không khoá ngoại (đánh dấu chỉ cho phiếu còn chờ; câu gỡ theo phiếu gác bằng người + lúc quyết của phiếu) |
+
 ## audit
 
 | Đối tượng | Loại | Ghi chú |
@@ -192,6 +199,7 @@
 | `v_ord_order_state` | view công bố | cột: id, status, delivered_at, completed_at |
 | `v_ord_cancel_state` | view công bố | cột: order_id, group_code, reason_code, cancelled_date, legacy, depart_last_date, refund_deadline |
 | `v_ord_leg_key` | view công bố | cột: id, order_id, order_service_id, is_open |
+| `v_ord_service_key` | view công bố | cột: id, order_id |
 | `v_ord_leg_commit` | view công bố | cột: id, order_id, exclusive_vehicle, min_vehicle_seats |
 | `v_ord_passenger_key` | view công bố | cột: person_key, order_id, has_current_row |
 | `v_ord_passenger_row` | view công bố | cột: id, person_key, order_id, is_current |
@@ -245,6 +253,7 @@
 | `v_pty_carrier_driver` | view công bố | cột: carrier_party_id, driver_party_id |
 | `v_pty_org_link` | view công bố | cột: relationship_id, person_party_id, org_party_id, kind, valid_from_date |
 | `v_pty_person_xung_ho` | view công bố | cột: party_id, given_name, gender |
+| `v_pty_erasure_decision` | view công bố | cột: id, status, decided_by, decided_at |
 | `v_pty_open_role` | view công bố | cột: party_id, role_type_code, role_group |
 | `v_pty_role_type` | view công bố | cột: code, role_group, is_partner_label, active |
 | `v_pty_party_partner_label` | view công bố | cột: party_id |
@@ -415,6 +424,8 @@
 | `bil_payment_receipt` |  | `note` |  |  |
 | `bil_posting` |  | `reason` |  |  |
 | `bil_remittance_proof` |  |  | `storage_key`, `content_hash` |  |
+| `abg_photo` |  | `note` | `thumb_key`, `view_key`, `content_hash`, `hidden_reason` |  |
+| `abg_erasure_request` |  | `channel_note` |  |  |
 | `bil_receipt_proof` |  |  | `storage_key`, `content_hash` |  |
 | `dsp_assignment` |  | `place_text` |  |  |
 | `fbk_attachment` |  |  | `storage_key`, `content_hash` |  |

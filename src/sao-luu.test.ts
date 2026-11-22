@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
 // @ts-ignore — tệp .mjs không có kiểu
-import { tenBan, docTen, chonXoa, soNgayTuBanMoiNhat, KHUON_TEN, THAM_SO_OPENSSL, BIEN_MAT_KHAU, KHO_R2 } from "../scripts/sao-luu-lib.mjs";
+import { tenBan, docTen, chonXoa, soNgayTuBanMoiNhat, KHUON_TEN, THAM_SO_OPENSSL, BIEN_MAT_KHAU, KHO_R2, KHO_ANH_RIENG, KHUON_TEN_ANH, tenBanAnh, GIU_ANH } from "../scripts/sao-luu-lib.mjs";
 
 const t = (s: string) => `tourdao-${s}.tar.gz.enc`;
 
@@ -46,7 +46,7 @@ test("chạy bù: tuổi bản mới nhất tính theo tên tệp", () => {
   assert.equal(Math.round(soNgayTuBanMoiNhat([t("20261109-1000"), t("20261102-1000")], now)), 7);
 });
 
-test("năm kho R2 khớp wrangler.jsonc", () => {
+test("sáu kho R2 khớp wrangler.jsonc", () => {
   const cauHinh = readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
   const kho = [...cauHinh.matchAll(/"bucket_name"\s*:\s*"([^"]+)"/g)].map((m) => m[1]);
   assert.deepEqual([...new Set(kho)].sort(), [...KHO_R2].sort());
@@ -113,4 +113,18 @@ test("schema đầy đủ từ mọi migration: tách xong nạp lại được 
   moi.exec(r.cauTruc);
   moi.exec(r.trigger);
   assert.equal((moi.prepare("SELECT count(*) AS n FROM sqlite_master WHERE type = 'trigger'").get() as { n: number }).n, soTrigger);
+});
+
+test("ADR-0232: kho Ảnh bàn giao sao lưu RIÊNG (gói riêng), giữ ít bản (4 bản gần nhất, không giữ theo tháng); hai khuôn tên không đụng nhau", () => {
+  assert.ok(KHO_R2.includes(KHO_ANH_RIENG), "kho ảnh vẫn nằm trong danh sách kho khớp wrangler.jsonc");
+  assert.equal(KHO_ANH_RIENG, "tourdao-sales-anh-ban-giao");
+  const now = new Date("2026-11-22T03:00:00Z");
+  const ten = `${tenBanAnh(now)}.tar.gz.enc`;
+  assert.equal(ten, "tourdao-anh-ban-giao-20261122-1000.tar.gz.enc");
+  assert.ok(KHUON_TEN_ANH.test(ten) && !KHUON_TEN.test(ten), "gói ảnh không khớp khuôn gói chính (luật giữ của gói chính không xoá nó)");
+  assert.ok(!KHUON_TEN_ANH.test(`${tenBan(now)}.tar.gz.enc`), "gói chính không khớp khuôn gói ảnh");
+  const goi = ["20261101", "20261108", "20261115", "20261122", "20261025", "20261018"].map((d) => `tourdao-anh-ban-giao-${d}-1000.tar.gz.enc`);
+  const xoa = chonXoa([...goi, `${tenBan(now)}.tar.gz.enc`, "khac.txt"], { ...GIU_ANH, khuon: KHUON_TEN_ANH });
+  assert.deepEqual(xoa.sort(), ["tourdao-anh-ban-giao-20261018-1000.tar.gz.enc", "tourdao-anh-ban-giao-20261025-1000.tar.gz.enc"]);
+  assert.deepEqual(GIU_ANH, { giuTuan: 4, giuThang: 0 });
 });

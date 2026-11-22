@@ -45,6 +45,7 @@ async function loadModule(entry: string): Promise<Record<string, AppModule>> {
 /** 17 module có route, đúng tên tệp + tên export như `src/index.ts` (gốc lắp ráp) dùng. */
 const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/accounts/index.ts", exportName: "accountsModule" },
+  { entry: "./modules/anh-ban-giao/index.ts", exportName: "anhBanGiaoModule" },
   { entry: "./modules/audit/index.ts", exportName: "auditModule" },
   { entry: "./modules/auth/index.ts", exportName: "authModule" },
   { entry: "./modules/bangtin/index.ts", exportName: "bangtinModule" },
@@ -163,6 +164,16 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "PUT", path: "/api/catalog/:code/chi-tiet", access: "admin" },
   { method: "PUT", path: "/api/catalog/:code/anh", access: "admin" }, // ADR-0201 Đ3; thân hỏi admin.manage
   { method: "GET", path: "/api/catalog/:code/anh", access: "office" }, // ADR-0201 Đ3; thân hỏi money.view (như GET /api/catalog)
+  // ADR-0232 (Ảnh bàn giao): NGOÀI cổng đơn — cổng staff vì Hướng dẫn viên, tài xế công ty cũng tải / xem; thân hỏi order.photo.upload / order.photo.view (phạm vi
+  // assigned / own). Ẩn, xoá, hàng chờ: cổng office, thân hỏi order.photo.hide / order.photo.purge (chỉ Toàn quyền).
+  { method: "POST", path: "/api/anh-ban-giao/don/:orderId", access: "staff" },
+  { method: "GET", path: "/api/anh-ban-giao/don/:orderId/tom-tat", access: "staff" },
+  { method: "GET", path: "/api/anh-ban-giao/don/:orderId", access: "staff" },
+  { method: "GET", path: "/api/anh-ban-giao/anh/:anhId", access: "staff" },
+  { method: "POST", path: "/api/anh-ban-giao/anh/:anhId/an", access: "office" },
+  { method: "POST", path: "/api/anh-ban-giao/anh/:anhId/xoa", access: "office" },
+  { method: "GET", path: "/api/anh-ban-giao/cho-xoa", access: "office" },
+  { method: "POST", path: "/api/anh-ban-giao/cho-xoa/chay-lai", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem", access: "office" },
   { method: "GET", path: "/api/catalog/dac-diem/dem-chua-khai", access: "office" },
   { method: "POST", path: "/api/catalog/dac-diem", access: "admin" },
@@ -901,6 +912,7 @@ test("mức truy cập của 560 route hiện có khớp ảnh chụp đã duy�
   // Gộp main vào nhánh đăng ký đợt 2 (17/11/2026): 560 của nhánh + 1 route phí đón của main = 561.
   // 2026-11-20 (ADR-0220 Đ4): + GET, POST /api/catalog/ngung-ban-ngay, POST /api/catalog/ngung-ban-ngay/:id/ket-thuc (office; thân hỏi catalog.hidden.write, chặn Đối tác) = 568.
   // 2026-11-21 (ADR-0221 Đ1): + GET (orders), POST (admin) /api/cai-dat/noi-don-doi-tac = 570.
-  assert.equal(actual.length, 570, "số route thực tế lệch 570 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 570, "SNAPSHOT phải có đúng 570 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-22 (ADR-0232 Ảnh bàn giao): + 8 route /api/anh-ban-giao/* (4 staff, 4 office) = 578.
+  assert.equal(actual.length, 578, "số route thực tế lệch 578 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 578, "SNAPSHOT phải có đúng 578 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

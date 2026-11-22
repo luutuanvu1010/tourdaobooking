@@ -19,6 +19,10 @@ const WEB = join(ROOT, "web");
 /** Chiều phụ thuộc cho phép (ADR-0002 + ADR-0008). Module mới PHẢI khai ở đây. Không được có vòng. */
 const ALLOWED_EDGES: Record<string, readonly string[]> = {
   accounts: ["staff", "auth", "audit"], // ADR-0071: bỏ cạnh → maintenance (luật phoneChangeProblem đã gỡ — bảo trì miễn trừ theo quyền, không theo SĐT)
+  // ADR-0232 (Ảnh bàn giao, accepted 2026-11-22): module mới — ghi nhật ký qua audit; đọc đơn / dịch vụ / lượt đón qua view công bố v_ord_order_state, v_ord_service_key,
+  // v_ord_leg_key (cạnh → orders, chỉ tầng SQL và trigger); đọc trạng thái phiếu xoá qua view công bố v_pty_erasure_decision (cạnh → parties, chỉ tầng SQL). Không import
+  // dispatch / van-chuyen / parties: «người phụ trách», «tài xế của chuyến», số năm giữ, câu xoá theo phiếu đều do gốc lắp ráp tiêm. Không module nào import anh-ban-giao.
+  "anh-ban-giao": ["audit", "orders", "parties"],
   audit: [],
   // ADR-0024 điều 2 (sổ tiền lượt 1, accepted 2026-09-29): billing giữ lần thu, phiếu sổ, dòng nợ; lấy câu `UPDATE orders` CHƯA chạy từ orders/index.ts và câu
   // bảo vệ "còn là người phụ trách" từ dispatch/index.ts (cạnh billing → dispatch CHỈ cho câu đó — ADR-0024 đ2); nhãn người qua staff/parties; nhật ký qua audit.
@@ -88,6 +92,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
 const STRICT: readonly { module: string; file: string }[] = [
   { module: "auth", file: "modules/auth/repository.ts" },
   { module: "auth", file: "modules/auth/mfa-repo.ts" }, // ADR-0074 (migration 0101): SQL yếu tố hai lớp, mã dự phòng, máy tin — nghiêm từ ngày đầu (defineSql + EXPLAIN)
+  { module: "anh-ban-giao", file: "modules/anh-ban-giao/repository.ts" }, // ADR-0232 (Ảnh bàn giao, migration 0190) — nghiêm từ ngày đầu
   { module: "billing", file: "modules/billing/repository.ts" }, // ADR-0024 điều 1: nghiêm từ ngày đầu (sổ tiền lượt 1 — NT-R2)
   { module: "billing", file: "modules/billing/coc-repo.ts" }, // ADR-0089 (cọc đơn huỷ, migration 0079) — SIẾT theo K-A-1 (kiểm toán 2026-10-12): SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới
   { module: "billing", file: "modules/billing/thay-lan-thu-repo.ts" }, // ADR-0088 đ2, đ6 (thay lần thu, migration 0083) — SIẾT theo K-A-1: SQL tiền này từng đứng ngoài bài EXPLAIN / ranh giới
@@ -249,7 +254,7 @@ const DOC_AUDIT_LOG_WONGUARD = {
 // ctl_/catalog: ADR-0058 điều 1 (nhóm dịch vụ; bảng cũ catalog_* giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4), chủ duyệt ADR-0058 ngày 2026-09-30 (lượt 1a).
 // ky_/ky-so (ADR-0080 D1, sổ đại lý đợt 1): khoá tháng. NỚI hàng rào đã duyệt (Điều 9.4) — chủ duyệt C12 2026-10-01, xem docs/superpowers/specs/2026-10-01-de-xuat-adr-so-tien-luot-2/de-xuat-luat.md.
 // VIEW_PREFIX thêm `ctl` (view công bố v_ctl_service_group của catalog) và `ky` (v_ky_closed_period của ky-so) — cùng khoản nới đã duyệt.
-const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien", lg_: "lan-gui", ky_: "ky-so", vdt_: "ve-dien-tu", dk_: "dang-ky" };
+const TABLE_PREFIX: Record<string, string> = { ctl_: "catalog", prc_: "pricing", pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders", tl_: "tro-ly", gd_: "giao-dien", lg_: "lan-gui", ky_: "ky-so", vdt_: "ve-dien-tu", dk_: "dang-ky", abg_: "anh-ban-giao" };
 const VIEW_PREFIX: Record<string, string> = { prc: "pricing", pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen", ctl: "catalog", ky: "ky-so" };
 
 // ---------------------------------------------------------------------------------------------------------------------

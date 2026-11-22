@@ -1300,3 +1300,17 @@ export async function chuyenChoTinTheoId(db: D1Database, q: HoiChuyenChoTin): Pr
     ...(suat ? { suatChang: suat.map((x) => ({ legId: x.leg_id, tripId: x.trip_id, tu: x.tu, den: x.den })) } : {}),
   };
 }
+
+// ẢNH BÀN GIAO (ADR-0232 Đ4): tài xế ?1 (hồ sơ) đang có dòng lái MỞ trên một chuyến chưa huỷ chở suất khách MỞ của lượt đón ?2. Chỉ đọc bảng vc_ của mình.
+// Gốc lắp ráp tiêm vào ctx.taiXeLaiChang cho module anh-ban-giao (không module nào import van-chuyen). Chuyến đã kết thúc vẫn tính (ảnh chụp ngay sau khi trả khách).
+const TAI_XE_LAI_CHANG = defineSql(
+  "van-chuyen",
+  "driver_drives_leg",
+  `SELECT 1 AS co FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id
+   WHERE a.leg_id = ?2 AND a.kind = 'PASSENGER' AND a.valid_to_at IS NULL AND t.status <> 'CANCELLED'
+     AND EXISTS (SELECT 1 FROM vc_trip_driver d WHERE d.trip_id = t.id AND d.valid_to_at IS NULL AND d.driver_party_id = ?1)
+   LIMIT 1`,
+);
+export async function taiXeLaiChang(db: D1Database, driverPartyId: string, legId: string): Promise<boolean> {
+  return (await db.prepare(TAI_XE_LAI_CHANG).bind(driverPartyId, legId).first<{ co: number }>()) !== null;
+}

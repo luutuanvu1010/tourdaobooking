@@ -48,6 +48,8 @@ import type { KhungTaiXe } from "./tai-xe-dto";
 import { lyDoGiu, type LyDoGiu } from "../../shared/ly-do-giu";
 import { isISODate, msToVnLocal } from "../../shared/vn-date";
 import { eventByRequest, eventsByTrips, tripCountByDate, tripsByDate, tripsCuaTaiXe, tripsTouching } from "./chuyen-repo";
+/** ADR-0232 Đ4 — hàm công bố cho gốc lắp ráp (ctx.taiXeLaiChang của anh-ban-giao). */
+export { taiXeLaiChang } from "./chuyen-repo";
 import { loTaoChuyen } from "./dieu-phoi";
 import { cuuHoTu } from "./cuu-ho";
 import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao, type NenChuyen } from "./dieu-phoi-doc";

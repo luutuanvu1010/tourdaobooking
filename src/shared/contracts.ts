@@ -1358,7 +1358,7 @@ export interface GiayToCuaToiDto { loai: string; soChe: string | null; hetHan: s
 /** `daXoa` (ADR-0126, Review Focus 1): hồ sơ đã ẩn danh hoá theo yêu cầu xoá — ngày sinh null, liên hệ / giấy tờ rỗng; giao diện hiện "Đã xoá", không bao giờ hiện dấu ẩn danh như dữ liệu. */
 export interface HoSoCuaToiDto { loai: "PERSON" | "ORGANIZATION"; hoTen: string; ngaySinh: string | null; diaChi: string[]; dienThoai: string[]; email: string[]; giayTo: GiayToCuaToiDto[]; daXoa: boolean; dauXacMinh: DauXacMinh | null }
 /** `hanXuLyXoaNgay` / `hanGiuPhienNgay`: số ngày do chính sách quy định (ADR-0126 đ2, đ8); null = chưa có số (không hạn). */
-export interface ChinhSachRiengTuDto { id: string; phienBan: number; mucDich: string; noiDung: string; hieuLucTu: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null }
+export interface ChinhSachRiengTuDto { id: string; phienBan: number; mucDich: string; noiDung: string; hieuLucTu: string; hanXuLyXoaNgay: number | null; hanGiuPhienNgay: number | null; /** ADR-0232 Đ10: số năm giữ Ảnh bàn giao; null = bản này chưa có mục ảnh. */ soNamGiuAnh: number | null }
 export interface PhieuTuKhaiGiayToDto { loai: string; soChe: string | null; ngayCap: string | null; noiCap: string | null; hetHan: string | null }
 /** Giá trị ĐỀ XUẤT của chính người xem (5.23) — chưa dùng ở đâu cho tới khi được xác minh. */
 export interface PhieuTuKhaiDto { id: string; loai: LoaiPhieuTuKhai; trangThai: TrangThaiPhieuTuKhai; guiLuc: string; xuLyLuc: string | null; ngaySinh: string | null; diaChi: string | null; giayTo: PhieuTuKhaiGiayToDto | null; daXoa: boolean }

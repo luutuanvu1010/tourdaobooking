@@ -16,6 +16,9 @@
 CREATE VIEW v_ord_service_key AS                            -- module orders: khoá dịch vụ trên đơn (để module khác kiểm «dịch vụ thuộc đơn»)
   SELECT id, order_id FROM order_service;
 
+CREATE VIEW v_pty_erasure_decision AS                      -- module parties: trạng thái quyết của phiếu xoá (ADR-0126) — chỉ mã, trạng thái, người và lúc quyết
+  SELECT id, status, decided_by, decided_at FROM pty_erasure_request;
+
 CREATE TABLE abg_erasure_request (
   id            TEXT PRIMARY KEY,
   source        TEXT NOT NULL CHECK (source IN ('PHIEU', 'KHACH')),       -- PHIEU = phiếu xoá của người có tài khoản (ADR-0126); KHACH = khách không tài khoản báo qua kênh liên hệ

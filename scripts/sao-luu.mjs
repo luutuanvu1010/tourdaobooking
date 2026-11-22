@@ -15,7 +15,7 @@ import { mkdtempSync, mkdirSync, readdirSync, rmSync, statSync, copyFileSync, re
 import { tmpdir } from "node:os";
 import { join, dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { tenBan, chonXoa, soNgayTuBanMoiNhat, KHUON_TEN, THAM_SO_OPENSSL, BIEN_MAT_KHAU, TEP_D1, KHO_R2, KEYCHAIN } from "./sao-luu-lib.mjs";
+import { tenBan, tenBanAnh, chonXoa, soNgayTuBanMoiNhat, KHUON_TEN, KHUON_TEN_ANH, GIU_ANH, KHO_ANH_RIENG, THAM_SO_OPENSSL, BIEN_MAT_KHAU, TEP_D1, KHO_R2, KEYCHAIN } from "./sao-luu-lib.mjs";
 
 const GOC = join(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -122,7 +122,7 @@ function matKhau() {
     // 2. R2
     if (khongR2) log("bỏ qua kho tệp R2 (--khong-r2)");
     else {
-      for (const kho of KHO_R2) {
+      for (const kho of KHO_R2.filter((k) => k !== KHO_ANH_RIENG)) { // kho Ảnh bàn giao đi gói riêng (bước 6)
         chay("aws", ["s3", "sync", `s3://${kho}`, join(noiDung, "r2", kho), "--profile", AWS_PROFILE, "--only-show-errors"]);
         const n = existsSync(join(noiDung, "r2", kho)) ? readdirSync(join(noiDung, "r2", kho), { recursive: true }).length : 0;
         log(`R2 ${kho}: ${n} mục`);
@@ -150,6 +150,32 @@ function matKhau() {
       if (!KHUON_TEN.test(cu)) continue; // hai lớp: chonXoa đã lọc, nhưng xoá là việc một chiều
       rmSync(join(dich, cu));
       log(`xoá bản cũ ${cu}`);
+    }
+
+    // 6. Gói RIÊNG của kho Ảnh bàn giao (ADR-0232; chủ chọn giữ ít bản riêng 22/11/2026): cùng mã hoá, tên tourdao-anh-ban-giao-…, luật giữ GIU_ANH (4 gói gần nhất).
+    //    Gói chính và gói ảnh khác khuôn tên nên luật giữ của gói này không xoá gói kia. Kho chưa có (chưa tạo) thì aws báo lỗi ⇒ hong như các kho khác.
+    if (!khongR2) {
+      const tenAnh = tenBanAnh(new Date());
+      const noiAnh = join(tam, tenAnh);
+      mkdirSync(join(noiAnh, "r2"), { recursive: true });
+      chay("aws", ["s3", "sync", `s3://${KHO_ANH_RIENG}`, join(noiAnh, "r2", KHO_ANH_RIENG), "--profile", AWS_PROFILE, "--only-show-errors"]);
+      const nAnh = existsSync(join(noiAnh, "r2", KHO_ANH_RIENG)) ? readdirSync(join(noiAnh, "r2", KHO_ANH_RIENG), { recursive: true }).length : 0;
+      log(`R2 ${KHO_ANH_RIENG} (gói riêng): ${nAnh} mục`);
+      const tarAnh = join(tam, `${tenAnh}.tar.gz`);
+      chay("tar", ["-C", tam, "-czf", tarAnh, tenAnh]);
+      chay("openssl", [...THAM_SO_OPENSSL, "-salt", "-in", tarAnh, "-out", `${tarAnh}.enc`], { env: { ...process.env, [BIEN_MAT_KHAU]: mk } });
+      rmSync(tarAnh);
+      const thuAnh = execFileSync("sh", ["-c", `openssl ${THAM_SO_OPENSSL.join(" ")} -d -in "$1" | tar -tzf -`, "sh", `${tarAnh}.enc`], { encoding: "utf8", env: { ...process.env, [BIEN_MAT_KHAU]: mk }, maxBuffer: 1 << 26 });
+      if (!thuAnh.split("\n").includes(`${tenAnh}/r2/`)) hong("gói ảnh bàn giao mã hoá không mở lại được — không cất");
+      const denAnh = join(dich, `${tenAnh}.tar.gz.enc`);
+      copyFileSync(`${tarAnh}.enc`, `${denAnh}.dang-chep`);
+      renameSync(`${denAnh}.dang-chep`, denAnh);
+      log(`đã cất ${denAnh} (${(statSync(denAnh).size / 1e6).toFixed(1)} MB)`);
+      for (const cu of chonXoa(readdirSync(dich), { ...GIU_ANH, khuon: KHUON_TEN_ANH })) {
+        if (!KHUON_TEN_ANH.test(cu)) continue; // hai lớp: xoá là việc một chiều
+        rmSync(join(dich, cu));
+        log(`xoá gói ảnh cũ ${cu}`);
+      }
     }
   } finally {
     rmSync(tam, { recursive: true, force: true }); // bản chưa mã hoá không ở lại sau lượt chạy (bị tắt ngang: tín hiệu ở trên, hoặc lượt sau dọn)
