@@ -17,6 +17,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Ảnh bàn giao (kế hoạch 16 việc 21/11, Việc 13; ADR-0232). Nhánh claude/upbeat-payne-c7e621. CÓ migration 0190 (số tạm) và kho R2 mới tourdao-sales-anh-ban-giao (chủ tạo trước).
+    // SỐ TẠM 3.28 (3.27 đang ở main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Chỉ bật khi Toàn quyền đăng chính sách riêng tư có «Số năm giữ ảnh bàn giao».
+    version: "3.28",
+    date: "2026-11-22",
+    items: [
+      { kind: "moi", text: "Ảnh bàn giao: ở trang đơn đã xác nhận, văn phòng và hướng dẫn viên phụ trách chụp ảnh lúc giao vé, giao khách rồi bấm «Gửi ảnh»." },
+      { kind: "moi", text: "Tài xế công ty gửi ảnh bàn giao ngay trên điểm đón trong màn chuyến." },
+      { kind: "moi", text: "Văn phòng, Kế toán, Quản trị xem được ảnh; đối tác và khách không thấy. Ảnh gửi nhầm chỉ Toàn quyền ẩn được, có ghi lý do." },
+      { kind: "moi", text: "Chính sách riêng tư có thêm ô «Số năm giữ ảnh bàn giao»; còn trống thì chưa ai gửi được ảnh." },
+    ],
+  },
+  {
     // Tệp đầu trang web/giu-cho-dai.ts không ném khi lệnh đọc / ghi sessionStorage bị chặn (kịch bản chip-nhom-smoke bước 12). Nhánh claude/recursing-mahavira-be4522.
     // Không migration. SỐ TẠM 3.27 (3.26 là Việc 4 Kho vé, đã nhập main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.27",
