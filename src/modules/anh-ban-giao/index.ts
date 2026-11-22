@@ -4,7 +4,7 @@
 // lắp ráp tiêm. Nội dung ảnh, ghi chú, lý do ẩn, khoá kho KHÔNG vào nhật ký (chi tiết nhật ký chỉ mã ảnh 8 ký tự). Thứ tự xem: ô → nhật ký → đọc kho (Hiến chương 5.22).
 import { auditStatement } from "../audit";
 import { can } from "../../shared/permissions";
-import { UUID_RE, error, json, readJson } from "../../shared/http";
+import { UUID_RE, error, json, kemLocation, readJson, trangDon } from "../../shared/http";
 import { route, type AppModule } from "../../shared/router";
 import { TEP_MOI_GIO, bamSha256, dauPhanHoiTepChung, taoKhoaNgauNhien, CHUA_TAI_DUOC_SAU_MS } from "../../shared/tep-dinh-kem";
 import {
@@ -96,7 +96,7 @@ export const anhBanGiaoModule: AppModule = {
         throw e;
       }
       const daLuu = await datAnh(env.DB, kho, { anhId: id, nho: k.value.nho, xem: k.value.xem, luc: () => new Date().toISOString() });
-      return json({ ok: true, id, daLuu }, 201);
+      return kemLocation(json({ ok: true, id, daLuu }, 201), trangDon(orderId)); // H7: 201 kèm Location (trang đơn)
     }),
 
     // TÓM TẮT cho nút ở trang đơn: số ảnh người gọi xem được + có được gửi không. KHÔNG nội dung ảnh ⇒ không nhật ký. Không xem, không gửi được ⇒ 403.
@@ -138,7 +138,7 @@ export const anhBanGiaoModule: AppModule = {
       const ten = (await nhanNhanVien([...new Set(ds.map((r) => r.created_by))])) ?? new Map<string, string>();
       const anh = await Promise.all(ds.map(async (r) => {
         const obj = await docAnh(kho, r.thumb_key);
-        const anhNho = obj ? maBase64(new Uint8Array(await obj.arrayBuffer())) : null;
+        const anhNho = obj ? maBase64(new Uint8Array(await new Response(obj.body).arrayBuffer())) : null;
         if (!obj) console.error(JSON.stringify({ level: "error", event: "anh_ban_giao_thieu_doi_tuong", anhId: r.id }));
         return {
           id: r.id, loaiViec: r.task_kind as LoaiViec, ghiChu: r.note, dichVuId: r.order_service_id, changId: r.transfer_leg_id, nguoiTai: ten.get(r.created_by) ?? null,

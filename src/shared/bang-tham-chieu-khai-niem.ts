@@ -612,6 +612,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
     chuChon: "chữ nguyên văn ADR-0196 (chủ duyệt ADR 2026-11-11); chủ chưa chọn riêng tên, đổi được",
   }),
   KN({
+    ten: "Ảnh bàn giao",
+    giaiNghia: "Ảnh chụp ngay lúc làm việc (giao vé cho khách, giao khách cho tài xế…) gắn vào đơn đã xác nhận, để đối chiếu khi có khiếu nại. Hướng dẫn viên phụ trách đơn, tài xế công ty của chuyến và văn phòng gửi được; văn phòng, Kế toán, Quản trị xem được. Ảnh giữ theo số năm ghi trong chính sách riêng tư; chỉ Toàn quyền ẩn (có lý do) hoặc xoá hẳn khi ảnh lọt giấy tờ, khi khách yêu cầu xoá, hoặc khi quá hạn giữ.",
+    khacVoi: "Khác «Ảnh biên lai chuyển khoản» (chứng từ tiền, kho khác, người xem khác) và khác ảnh chụp màn hình kiểm giao diện của kho mã (ADR-0216). Đối tác và khách không thấy ảnh bàn giao.",
+    chuDaLoai: [], // hai phương án chủ không chọn («Ảnh giao việc», «Ảnh xác nhận giao») chưa từng lên giao diện — không cần dòng cấm
+    maNoiBo: ["abg_photo", "anh-ban-giao", "order.photo.upload", "order.photo.view", "ANH_BAN_GIAO", "TEN_ANH_BAN_GIAO"],
+    trangThai: "da-chot",
+    chuChon: "chủ dự án 2026-11-22 (phiên điều phối, câu 5: «Theo đề xuất của bạn…» — chọn tên khuyến nghị «Ảnh bàn giao» trong ba phương án)",
+  }),
+  KN({
     ten: "Khoản hoàn tiền",
     giaiNghia: "Tiền công ty trả lại cho khách (ví dụ khi đơn huỷ), được ghi vào sổ như một khoản riêng.",
     khacVoi: "Ngược với «khoản thu».",

@@ -23,6 +23,7 @@ import { banHangDaLuu, banHangFailure, banHangTrang } from "../src/shared/ban-ha
 import { icon } from "./icons";
 import { suKienVeDon, taoBoLamMoi } from "./lam-moi-logic";
 import { renderServices } from "./order-services";
+import { initAnhBanGiao } from "./anh-ban-giao";
 import { goiSom } from "./goi-som";
 import { layKhungNho } from "./khung-nho";
 import { luuHoacChiaSe } from "./luu-anh";
@@ -1624,6 +1625,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
         coXemPhanDoiTac(staff!, order) ? h("section", { class: "khoi pdt", id: "phan-doi-tac", hidden: true }) : null,
         // Vé điện tử (ADR-0153, Task 9b): ẩn cho tới khi máy chủ trả dữ liệu (404 / 403 / không có vé nào cần giữ ⇒ ẩn luôn); nội dung do web/ve-don.ts dựng.
         order.status === "confirmed" && can(staff!, "order.view", { ownerId: order.staffId }) ? h("section", { class: "khoi", id: "ve-don", hidden: true }) : null,
+        // Ảnh bàn giao (ADR-0232): ẩn cho tới khi máy chủ trả tóm tắt (403 / 404 / chưa có ảnh và không được gửi ⇒ ẩn luôn); nội dung do web/anh-ban-giao.ts dựng.
+        can(staff!, "order.photo.view", { ownerId: staff!.id }) || can(staff!, "order.photo.upload", { assigned: true }) ? h("section", { class: "khoi", id: "anh-ban-giao", hidden: true }) : null,
 
         // D6: SALES không thấy nhật ký đơn của người khác → history rỗng: ẩn cả khối. ADR-0131: chỉ Toàn quyền nhận tên người làm; mọi vai khác nhận `staffName` rỗng
         // (lớp rút gọn) → bỏ cả đoạn " · tên" thay vì in dấu chấm trơ.
@@ -1660,6 +1663,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
 
   const veDon = document.getElementById("ve-don");
   if (veDon) void initVeDon(veDon, { orderId: order.id, coQuyenGui: true /* máy chủ chỉ trả mã xem ảnh cho người có ô ve.cap.send (kể cả phụ trách) — nút chỉ hiện khi có */ });
+  const anhBg = document.getElementById("anh-ban-giao");
+  if (anhBg) void initAnhBanGiao(anhBg, { orderId: order.id, dichVu: order.services.map((x) => ({ id: x.id, ten: x.name })) });
   const phanDoiTac = document.getElementById("phan-doi-tac");
   if (phanDoiTac) void initPhanDoiTac(phanDoiTac, { nutCuoi: nutCongNoDoiTac, orderId: order.id, coGhiTay: duocGhiTay(staff!, order), xemNguoiBan: coXemNguoiBan(staff!), giamGiaHieuLuc: order.giamGiaHieuLuc, daChupBu: () => void load().then(() => show(banner("info", "Đã chụp bù mức của ngày xác nhận."))) });
 

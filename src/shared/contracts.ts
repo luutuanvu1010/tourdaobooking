@@ -2391,6 +2391,8 @@ export interface CuocChiTietResponse {
     sdtNguoiDiKem?: string;
     /** ADR-0139: tên dịch vụ của chặng của suất KHÁCH — cùng điều kiện với `sdtNguoiDiKem`; không giá, không dịch vụ khác của đơn. */
     tenDichVu?: string;
+    /** ADR-0232 Đ4: mã đơn + mã lượt đón để gửi Ảnh bàn giao — cùng điều kiện với `tenDichVu` (tài xế công ty, trong ngày chạy, GET chi tiết). */
+    anhBanGiao?: { donId: string; changId: string };
   }[];
   lienHe?: { maDon: string; tenLienHe: string; sdtLienHe: string }[];
   dieuKienConThieu: DieuKienConThieuDto[];

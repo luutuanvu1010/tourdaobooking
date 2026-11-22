@@ -499,7 +499,7 @@ export async function cuocChiTiet(
   if (trongNgay) for (const ch of hk) for (const n of ch.nguoi) ten.set(n.personKey, { fullName: n.fullName, birthYear: n.birthYear });
   const chiDuong = trongNgay && kemChiDuong ? new Map(nen.stops.map((s) => [s.id, chuoiDichCuaDiem(s)])) : null;
   // ADR-0139: tài xế CÔNG TY (không vế hạn Từ chối) + trong ngày chạy + GET chi tiết (`kemChiDuong` chữ `true` CHỈ ở đó) — SĐT người đi kèm, tên dịch vụ.
-  let themCongTy: { sdtDiKem: Map<string, string>; tenDichVu: Map<string, string> } | null = null;
+  let themCongTy: { sdtDiKem: Map<string, string>; tenDichVu: Map<string, string>; anhBanGiao: Map<string, { donId: string; changId: string }> } | null = null;
   if (trongNgay && khung.han === undefined && kemChiDuong) {
     const mo = nen.allocs.filter((a) => a.valid_to_at === null);
     const crew = mo.filter((a) => a.kind === "CREW" && a.crew_party_id !== null);
@@ -509,6 +509,11 @@ export async function cuocChiTiet(
       tenDichVu: new Map(mo.flatMap((a) => {
         const ch = a.kind === "PASSENGER" && a.leg_id ? nc.changLich.get(a.leg_id) : undefined;
         return ch ? [[a.id, ch.serviceName] as [string, string]] : [];
+      })),
+      // ADR-0232 Đ4: mã đơn + mã lượt đón của suất KHÁCH để tài xế công ty gửi Ảnh bàn giao ngay trên lượt đón (mã mờ, không tên, không SĐT).
+      anhBanGiao: new Map(mo.flatMap((a) => {
+        const ch = a.kind === "PASSENGER" && a.leg_id ? nc.changLich.get(a.leg_id) : undefined;
+        return ch ? [[a.id, { donId: ch.orderId, changId: ch.legId }] as [string, { donId: string; changId: string }]] : [];
       })),
     };
   }

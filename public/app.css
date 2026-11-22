@@ -140,6 +140,8 @@
   --mep-mo: 56px;           /* Tạo đơn thiết kế lại (bản vẽ gọi "--fade-edge"): bề rộng mép phải mờ dần của hàng nút nhóm dịch vụ, báo còn nhóm phía sau; web/catalog-picker.ts đọc token này để cuộn nhóm đang chọn ra khỏi vùng mờ */
   --w-gd-o: 160px;         /* ADR-0087: bề rộng ô chọn phông / độ đậm / cỡ chữ ở màn Giao diện */
   --w-gd-xem: 360px;        /* ADR-0087: bề rộng cột xem trước ở màn Giao diện (máy tính) */
+  --w-abg-nho: 112px;       /* ADR-0232: bề rộng tối thiểu một ô ảnh nhỏ trong lưới Ảnh bàn giao */
+  --h-abg-lon: 70vh;        /* ADR-0232: chiều cao tối đa ảnh lớn trong bảng xem Ảnh bàn giao */
   --h-hs-chinh-sach: 16rem; /* Hồ sơ của tôi (ADR-0124, lát H-3): chiều cao tối đa khung toàn văn chính sách riêng tư ở trang Tôi (cuộn bên trong) */
   --w-hs-nhan: 8em;         /* Hồ sơ của tôi: bề rộng tối thiểu cột nhãn ("Họ tên", "Ngày sinh"…) */
   --w-qr: 18rem;            /* QR thanh toán (ADR-0108): bề rộng tối đa ảnh mã trong bảng QR ở trang đơn */
@@ -5026,3 +5028,15 @@ body[data-khung-goc] .chon-doan { display: grid; grid-auto-flow: column; grid-au
 body[data-khung-goc] .chon-doan > button { font: inherit; font-size: var(--fs-step-4); font-weight: var(--fw-bold); color: var(--c-text-muted); background: var(--c-surface); border: 0; cursor: pointer; }
 body[data-khung-goc] .chon-doan > button[aria-checked="true"] { color: var(--c-primary); background: var(--c-primary-soft); }
 /* ---------- Hết khung gốc giao diện (ADR-0222) ---------- */
+
+/* ---------- Ảnh bàn giao (ADR-0232) — chỉ token ---------- */
+.abg-luoi { display: grid; grid-template-columns: repeat(auto-fill, minmax(var(--w-abg-nho), 1fr)); gap: var(--s2); margin: var(--s2) 0; }
+.abg-the { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s1); font: inherit; text-align: left; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); cursor: pointer; }
+.abg-the img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius-md); }
+.abg-chu { font-size: var(--fs-badge); line-height: 1.4; }
+.abg-form { display: grid; gap: var(--s2); margin-top: var(--s3); }
+.abg-form input[type="text"], .abg-form select { font-size: var(--fs-ui); }
+.abg-lon { display: block; max-width: 100%; max-height: var(--h-abg-lon); margin: 0 auto; object-fit: contain; }
+.abg-chan { display: flex; flex-wrap: wrap; gap: var(--s2); align-items: center; }
+.abg-tai-xe { margin-top: var(--s2); }
+.abg-tai-xe > summary { min-height: var(--tap-min); display: flex; align-items: center; font-weight: var(--fw-bold); color: var(--c-primary); cursor: pointer; }

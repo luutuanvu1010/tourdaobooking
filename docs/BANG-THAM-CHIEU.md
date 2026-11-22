@@ -78,6 +78,7 @@ Mỗi khái niệm một tên, mỗi tên một nghĩa, tra từ một nguồn. 
 | **Máy đang đăng nhập** | Mỗi máy (điện thoại hay máy tính) đang giữ đăng nhập tài khoản của bạn. Nút «Đăng xuất máy này» chỉ thoát máy đó, máy khác của cùng tài khoản vẫn đăng nhập. |  | Phiên đăng nhập | `aut_session` `phiên` | đã chốt | 2026-10-18 (rà soát ngôn ngữ lượt 2) |
 | **Khoản thu** | Một lần có tiền của khách, hoặc của bên khác, trả cho một đơn và được ghi vào sổ: số tiền, hình thức trả, người thu tiền và ngày. | Khác «khoản hoàn tiền» (tiền công ty trả lại khách). Chữ «lần thu» đã bỏ khỏi giao diện nhưng còn trong mã và các quyết định cũ. | Lần thu | `bil_payment_receipt` `LanThuDto` `lần thu` | đã chốt | 2026-10-08 (BACKLOG §25), áp 2026-10-18 |
 | **Ảnh biên lai chuyển khoản** | Ảnh chụp (hoặc tệp PDF) biên lai chuyển khoản mà tài khoản Đối tác bắt buộc gửi kèm khi ghi khoản thu «Công ty thu, chuyển khoản». Kế toán mở bằng nút «Xem biên lai» ở dòng khoản thu để đối chiếu nhanh. Dòng khoản thu ghi «ảnh chưa tải xong» khi ảnh chưa lên kho xong, «Biên lai đã được gỡ» khi Toàn quyền gỡ ảnh gửi nhầm, «Chưa có biên lai» khi ảnh tải hỏng đã được dọn. | Ảnh không làm khoản thu thành tiền đã về: khoản vẫn chờ Kế toán bấm «Xác nhận đã nhận» sau khi đối chiếu sao kê. Khác «tệp đính kèm» của yêu cầu hỗ trợ (kho khác, người xem khác). |  | `bil_receipt_proof` `bien_lai_required` `payment.proof.view` `NHAN_O_BIEN_LAI` `NHAN_XEM_BIEN_LAI` `cauTrangThaiBienLai` | chờ chọn | chữ nguyên văn ADR-0196 (chủ duyệt ADR 2026-11-11); chủ chưa chọn riêng tên, đổi được |
+| **Ảnh bàn giao** | Ảnh chụp ngay lúc làm việc (giao vé cho khách, giao khách cho tài xế…) gắn vào đơn đã xác nhận, để đối chiếu khi có khiếu nại. Hướng dẫn viên phụ trách đơn, tài xế công ty của chuyến và văn phòng gửi được; văn phòng, Kế toán, Quản trị xem được. Ảnh giữ theo số năm ghi trong chính sách riêng tư; chỉ Toàn quyền ẩn (có lý do) hoặc xoá hẳn khi ảnh lọt giấy tờ, khi khách yêu cầu xoá, hoặc khi quá hạn giữ. | Khác «Ảnh biên lai chuyển khoản» (chứng từ tiền, kho khác, người xem khác) và khác ảnh chụp màn hình kiểm giao diện của kho mã (ADR-0216). Đối tác và khách không thấy ảnh bàn giao. |  | `abg_photo` `anh-ban-giao` `order.photo.upload` `order.photo.view` `ANH_BAN_GIAO` `TEN_ANH_BAN_GIAO` | đã chốt | chủ dự án 2026-11-22 (phiên điều phối, câu 5: «Theo đề xuất của bạn…» — chọn tên khuyến nghị «Ảnh bàn giao» trong ba phương án) |
 | **Khoản hoàn tiền** | Tiền công ty trả lại cho khách (ví dụ khi đơn huỷ), được ghi vào sổ như một khoản riêng. | Ngược với «khoản thu». | Lần hoàn | `payment.refund` `lần hoàn` | chờ chọn | AI đặt theo «khoản thu» 2026-10-18; chủ chưa chọn riêng |
 | **Sửa khoản thu đã ghi** | Đổi số tiền, hình thức hoặc người thu tiền của một khoản thu đã ghi. Khoản cũ được ghi «đã huỷ» và khoản đúng được ghi thay trong cùng một lần; bắt buộc có lý do. Sau bước «Khách đã trả đủ» đây là đường sửa duy nhất. | Khác «Huỷ khoản thu» (bỏ hẳn một khoản ghi nhầm) và «Ghi bù khoản thu» (thêm khoản cho đủ, không huỷ khoản nào). | Lệnh Thay | `receipt-replacements` | đã chốt | 2026-10-08 (lượt «Lệnh Thay» → «Sửa khoản thu đã ghi»), áp 2026-10-18 |
 | **Ghi bù khoản thu** | Với đơn đã tới bước «Khách đã trả đủ» mà sổ thu còn thiếu so với số phải thu (dữ liệu cũ), thêm một khoản thu bù cho đủ. | Khác «Sửa khoản thu đã ghi»: ghi bù không huỷ khoản nào. |  |  | đã chốt | 2026-10-08 (tên «Ghi bù khoản thu»), áp 2026-10-18 |
@@ -273,7 +274,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (116)
+## Việc chờ chọn (119)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -356,6 +357,9 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Sửa chi tiết | `web/catalog.ts`: Sửa chi tiết | Chi tiết dịch vụ | ADR-0201 (2026-11-13): tên tạm, chờ chủ |
 | Lưu chi tiết | `web/catalog.ts`: Lưu chi tiết | Chi tiết dịch vụ | ADR-0201 (2026-11-13): tên tạm, chờ chủ |
 | Gỡ ảnh | `web/catalog.ts`: Gỡ ảnh | Chi tiết dịch vụ | ADR-0201 (2026-11-13): tên tạm, chờ chủ |
+| Gửi ảnh | `web/anh-ban-giao.ts`: Gửi ảnh | Ảnh bàn giao | ADR-0232 (2026-11-22): tên tính năng «Ảnh bàn giao» chủ đã chọn; chữ nút tạm, chờ chủ |
+| Ẩn ảnh | `web/anh-ban-giao.ts`: Ẩn ảnh | Ảnh bàn giao | ADR-0232 (2026-11-22): tên tạm, chờ chủ |
+| Xoá hẳn ảnh | `web/anh-ban-giao.ts`: Xoá hẳn ảnh | Ảnh bàn giao | ADR-0232 (2026-11-22): tên tạm, chờ chủ |
 | Lưu cho màn này | `web/bang-dieu-khien-truong.ts`: Lưu cho màn này | Giao diện công ty | ADR-0194 đợt 1: tên tạm do AI đặt, chờ chủ chọn (phương án khác: «Lưu màn này», «Lưu cài đặt màn») |
 | Khôi phục mặc định | `web/bang-dieu-khien-truong.ts`: Khôi phục mặc định | Giao diện công ty | ADR-0194 đợt 1: chữ «Khôi phục mặc định» do ADR nêu; chủ chưa chọn riêng tên nút (phương án khác: «Về mặc định», «Đặt lại màn này») |
 | Gửi thông báo | `web/gui-thong-bao.ts`: [biểu tượng megaphone] / Gửi thông báo | Gửi thông báo | rà soát 2026-11-04: chưa rõ, chờ chủ |
@@ -396,7 +400,7 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Lưu (cấp cho đối tác tự đăng ký) | `web/cap-dang-ky.ts`: Lưu | Phiếu đăng ký đối tác | tên khối theo trang trình lượt B (ADR-0209 Đ5); nút dùng chữ chung «Lưu», AI chọn 2026-11-15, chờ chủ |
 | Lưu (nhận đăng ký mới) | `web/dang-ky-chinh-sach.ts`: Lưu | Phiếu đăng ký đối tác | tên công tắc «Nhận đăng ký mới» (Bật, Tắt) theo PHU-LUC lượt A; nút dùng chữ chung «Lưu», AI chọn 2026-11-16 (Task 12 vòng sửa 1), chờ chủ |
 
-## Việc quan trọng (382)
+## Việc quan trọng (385)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -1610,6 +1614,14 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | **Sửa chi tiết** | Dịch vụ & giá › mỗi dòng dịch vụ (bảng và thẻ điện thoại) › bảng «Chi tiết dịch vụ: <mã>» | Mở bảng «Chi tiết dịch vụ»: sửa tên hiển thị và mô tả; xem tóm tắt giá và tình trạng bán. Bấm nút này chưa ghi gì. | không | không áp dụng | (chưa nối) | `web/catalog.ts`: Sửa chi tiết | chờ chọn (ADR-0201 (2026-11-13): tên tạm, chờ chủ) |
 | **Lưu chi tiết** | Dịch vụ & giá › bảng «Chi tiết dịch vụ: <mã>» | Lưu tên hiển thị và mô tả của dịch vụ vào Nền tảng (không ghi ngược Google Sheet). Tên hiển thị thay tên Sheet ở danh mục lập đơn cho đơn lập từ nay; đơn đã lập giữ tên cũ. Để trống tên hiển thị = dùng lại tên Sheet. | không | được: sửa lại hoặc xoá trống rồi lưu (lịch sử giữ mọi lần lưu) | `/api/catalog/:x/chi-tiet`<br>nhật ký `service_detail_changed` | `web/catalog.ts`: Lưu chi tiết | chờ chọn (ADR-0201 (2026-11-13): tên tạm, chờ chủ) |
 | **Gỡ ảnh** | Dịch vụ & giá › bảng «Chi tiết dịch vụ: <mã>» › khối Ảnh đại diện | Bỏ ảnh đại diện đang dùng của dịch vụ (ảnh cũ vẫn giữ trong kho làm lịch sử). Ô «Chọn ảnh mới» cạnh nút: chọn tệp là máy thu nhỏ rồi tải lên ngay, thay ảnh đang dùng. | không | được: chọn lại ảnh | `/api/catalog/:x/anh`<br>nhật ký `service_detail_changed` | `web/catalog.ts`: Gỡ ảnh | chờ chọn (ADR-0201 (2026-11-13): tên tạm, chờ chủ) |
+
+### Ảnh bàn giao
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Gửi ảnh** | Chi tiết đơn › khối «Ảnh bàn giao»; Cuốc của tôi › điểm đón › «Gửi ảnh bàn giao» | Gửi một ảnh chụp lúc giao vé, giao khách cho tài xế vào đơn đã xác nhận (máy thu nhỏ ảnh, bỏ toạ độ chụp). Ảnh giữ theo số năm ghi trong chính sách riêng tư; người gửi không tự xoá được. | không | không: chỉ Toàn quyền ẩn được (có lý do) | `/api/anh-ban-giao/don/:x`<br>nhật ký `handover_photo_added` | `web/anh-ban-giao.ts`: Gửi ảnh | chờ chọn (ADR-0232 (2026-11-22): tên tính năng «Ảnh bàn giao» chủ đã chọn; chữ nút tạm, chờ chủ) |
+| **Ẩn ảnh** | Chi tiết đơn › khối «Ảnh bàn giao» › bảng xem ảnh (chỉ Toàn quyền) | Ẩn một ảnh gửi nhầm khỏi danh sách của mọi vai, bắt buộc ghi lý do. Ảnh vẫn giữ trong kho; Toàn quyền vẫn mở được. | không | không: ẩn là một chiều | `/api/anh-ban-giao/anh/:x/an`<br>nhật ký `handover_photo_hidden` | `web/anh-ban-giao.ts`: Ẩn ảnh | chờ chọn (ADR-0232 (2026-11-22): tên tạm, chờ chủ) |
+| **Xoá hẳn ảnh** | Chi tiết đơn › khối «Ảnh bàn giao» › bảng xem ảnh (chỉ Toàn quyền) | Xoá hẳn ảnh khỏi kho khi ảnh lọt giấy tờ tuỳ thân, khi khách yêu cầu xoá (báo qua kênh liên hệ), hoặc khi đã quá hạn giữ. Bấm hai lần; máy chủ chặn xoá trước hạn với lý do khác. | có: bấm lần nữa để xoá hẳn | không: ảnh mất hẳn | `/api/anh-ban-giao/anh/:x/xoa`<br>nhật ký `handover_photo_purged` | `web/anh-ban-giao.ts`: Xoá hẳn ảnh | chờ chọn (ADR-0232 (2026-11-22): tên tạm, chờ chủ) |
 
 ### Ghi đè giá dịch vụ
 
