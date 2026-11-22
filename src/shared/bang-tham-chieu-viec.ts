@@ -5963,6 +5963,36 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     trangThai: "cho-chon",
     nguonTen: "tên công tắc «Nhận đăng ký mới» (Bật, Tắt) theo PHU-LUC lượt A; nút dùng chữ chung «Lưu», AI chọn 2026-11-16 (Task 12 vòng sửa 1), chờ chủ",
   },
+  {
+    nhom: "Bản dùng thử",
+    manHinh: "Đăng nhập (chỉ demo.tourdao.vn) › sau mã PIN của tài khoản dùng thử › «Bạn muốn dùng thử với vai trò nào?»",
+    ten: "Tên vai trò (Bán hàng, Kế toán, Đối tác…)",
+    thatSuLam: "Ghi vai trò đã chọn vào phiên đăng nhập của máy này rồi vào Nền tảng như người giữ vai trò đó. Không đổi quyền thật của tài khoản dùng thử; không chọn được Toàn quyền. Chỉ có trên bản dùng thử, bản chính thức không có màn này.",
+    hoiLai: "không",
+    hoanTac: "được: đăng xuất rồi chọn vai trò khác",
+    duongLenh: ["/api/account/dung-thu-vai"],
+    maNhatKy: ["acting_role_set"],
+    noiDat: [
+      { tep: "web/dung-thu-vai.ts", chu: "⟪v.nhan⟫" },
+    ],
+    trangThai: "cho-chon",
+    nguonTen: "ADR-0223 Đ3.1 (chủ duyệt 22/11): câu hỏi «Bạn muốn dùng thử với vai trò nào?» theo kế hoạch 16 việc; mỗi nút mang đúng tên quyền trong bảng; AI đặt 2026-11-22, chờ chủ",
+  },
+  {
+    nhom: "Bản dùng thử",
+    manHinh: "Tôi › khối «Bản dùng thử» (chỉ demo.tourdao.vn, chỉ Toàn quyền)",
+    ten: "Khoá bản dùng thử / Mở bản dùng thử",
+    thatSuLam: "Khoá: tài khoản dùng thử không đăng nhập được nữa, máy đang dùng thử bị chặn ở lần thao tác kế tiếp. Mở: đăng nhập lại được. Trạng thái giữ nguyên qua các lần dữ liệu tự xoá. Toàn quyền vẫn đăng nhập được khi khoá.",
+    hoiLai: "không",
+    hoanTac: "được: bấm lại để mở / khoá",
+    duongLenh: [],
+    maNhatKy: [],
+    noiDat: [
+      { tep: "web/dung-thu-vai.ts", chu: "không-chữ" },
+    ],
+    trangThai: "cho-chon",
+    nguonTen: "ADR-0223 Đ5 (chủ duyệt 22/11: khoá / mở ngay trên bản dùng thử); chữ nút AI đặt 2026-11-22, chờ chủ",
+  },
 ];
 
 /** Nút máy dò là ghi dữ liệu hay nút chính nhưng không phải việc quan trọng (chỉ tải lại, chỉ ẩn khung…); mỗi mục có lý do. */

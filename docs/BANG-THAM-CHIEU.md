@@ -273,7 +273,7 @@ Cùng một việc có nhiều lối vào, hoặc khác việc và đang chờ c
 | Dùng bản này | cùng một việc | Cùng một việc ở hai khối của trang cài đặt Trợ lý. |
 | Gửi yêu cầu | chờ chủ | Một nơi mở hộp gửi yêu cầu hỗ trợ, một nơi là nút chốt của hộp xin xoá dữ liệu cá nhân. Hộp xoá có câu hỏi riêng nói rõ, nhưng hai việc khác nhau xa; chờ chủ xem có đổi không. |
 
-## Việc chờ chọn (116)
+## Việc chờ chọn (118)
 
 Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ chọn tên mới thì sửa bảng và nút trong cùng một lần lưu.
 
@@ -395,8 +395,10 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | Xem đủ số (phiếu đăng ký) | `web/dang-ky-hang-cho.ts`: Xem đủ số | Phiếu đăng ký đối tác | AI dùng lại tên «Xem đủ số» của Danh bạ 2026-11-15 (đợt 1 Task 12), chờ chủ chọn |
 | Lưu (cấp cho đối tác tự đăng ký) | `web/cap-dang-ky.ts`: Lưu | Phiếu đăng ký đối tác | tên khối theo trang trình lượt B (ADR-0209 Đ5); nút dùng chữ chung «Lưu», AI chọn 2026-11-15, chờ chủ |
 | Lưu (nhận đăng ký mới) | `web/dang-ky-chinh-sach.ts`: Lưu | Phiếu đăng ký đối tác | tên công tắc «Nhận đăng ký mới» (Bật, Tắt) theo PHU-LUC lượt A; nút dùng chữ chung «Lưu», AI chọn 2026-11-16 (Task 12 vòng sửa 1), chờ chủ |
+| Tên vai trò (Bán hàng, Kế toán, Đối tác…) | `web/dung-thu-vai.ts`: ⟪v.nhan⟫ | Bản dùng thử | ADR-0223 Đ3.1 (chủ duyệt 22/11): câu hỏi «Bạn muốn dùng thử với vai trò nào?» theo kế hoạch 16 việc; mỗi nút mang đúng tên quyền trong bảng; AI đặt 2026-11-22, chờ chủ |
+| Khoá bản dùng thử / Mở bản dùng thử | `web/dung-thu-vai.ts`: không-chữ | Bản dùng thử | ADR-0223 Đ5 (chủ duyệt 22/11: khoá / mở ngay trên bản dùng thử); chữ nút AI đặt 2026-11-22, chờ chủ |
 
-## Việc quan trọng (382)
+## Việc quan trọng (384)
 
 ### Tách nhiệm vụ (tiền)
 
@@ -1874,6 +1876,13 @@ Chữ ĐANG HIỆN là tên hiện hành; máy vẫn canh chữ đó. Khi chủ 
 | **Huỷ lời mời** | Trang Tôi › Hồ sơ tổ chức › màn của người quản lý › Lời mời chưa dùng | Huỷ một lời mời chưa dùng (kể cả lời mời đang chờ phiếu đăng ký được duyệt): mã không dùng được nữa; phiếu đăng ký đang chờ vẫn đi tiếp nhưng không vào tổ chức. | có: hộp hỏi lại nói hậu quả | không: muốn mời lại thì tạo lời mời mới | `/api/to-chuc/:x/loi-moi/:x/huy`<br>nhật ký `org_invite_cancelled` | `web/to-chuc.ts`: Huỷ lời mời | chờ chọn (AI viết 2026-11-17 (ADR-0213 Đ7.2, mốc B2 Task 17), chờ chủ chọn tên) |
 | **Đặt chế độ thành viên** | Trang Tôi › Hồ sơ tổ chức › màn của người quản lý › Chế độ thành viên; Danh bạ › hồ sơ tổ chức › Người quản lý tổ chức (chỉ Toàn quyền) | Chọn «Chỉ soạn» (người quản lý tự xem mọi nháp của thành viên) hoặc «Soạn và gửi người quản lý xác nhận» (người quản lý chỉ thấy nháp thành viên gửi tới). Người quản lý của tổ chức và Toàn quyền đặt được. Đổi chế độ không đổi nháp đang chờ. | màn người quản lý: không; Danh bạ: có, hộp hỏi lại | có: đặt lại chế độ cũ bằng chính nút này | `/api/to-chuc/:x/che-do`<br>nhật ký `org_member_mode_set` | `web/to-chuc.ts`: Lưu chế độ<br>`web/to-chuc-van-phong.ts`: Đổi chế độ thành viên | chờ chọn (AI viết 2026-11-17 (ADR-0213 Đ8.3, mốc B2 Task 17), chờ chủ chọn tên) |
 | **Nhận** | Trang Tôi › Hồ sơ tổ chức › Lời mời vào tổ chức / Mã vào tổ chức | Người có tài khoản Đối tác nhận một lời mời gửi tới đúng số đăng nhập của mình (bấm «Nhận» ở dòng lời mời) hoặc gõ mã vào tổ chức rồi bấm «Nhận». Máy kiểm số, tài khoản, hạn và người mời còn quyền mời; đúng thì người đó thành thành viên của tổ chức từ hôm nay. | không | không bằng nút: thành viên tự rời hoặc người quản lý gỡ | `/api/to-chuc/loi-moi/nhan`<br>nhật ký `org_invite_accepted` | `web/to-chuc-cua-toi.ts`: Nhận | chờ chọn (AI viết 2026-11-17 (ADR-0213 Đ7.4, mốc B2 Task 17; chữ «Nhận» có trong ADR), chờ chủ chọn tên) |
+
+### Bản dùng thử
+
+| Tên | Màn hình | Thật sự làm gì | Hỏi lại | Hoàn tác | Đường lệnh, nhật ký | Nơi đặt nút | Trạng thái |
+|---|---|---|---|---|---|---|---|
+| **Tên vai trò (Bán hàng, Kế toán, Đối tác…)** | Đăng nhập (chỉ demo.tourdao.vn) › sau mã PIN của tài khoản dùng thử › «Bạn muốn dùng thử với vai trò nào?» | Ghi vai trò đã chọn vào phiên đăng nhập của máy này rồi vào Nền tảng như người giữ vai trò đó. Không đổi quyền thật của tài khoản dùng thử; không chọn được Toàn quyền. Chỉ có trên bản dùng thử, bản chính thức không có màn này. | không | được: đăng xuất rồi chọn vai trò khác | `/api/account/dung-thu-vai`<br>nhật ký `acting_role_set` | `web/dung-thu-vai.ts`: ⟪v.nhan⟫ | chờ chọn (ADR-0223 Đ3.1 (chủ duyệt 22/11): câu hỏi «Bạn muốn dùng thử với vai trò nào?» theo kế hoạch 16 việc; mỗi nút mang đúng tên quyền trong bảng; AI đặt 2026-11-22, chờ chủ) |
+| **Khoá bản dùng thử / Mở bản dùng thử** | Tôi › khối «Bản dùng thử» (chỉ demo.tourdao.vn, chỉ Toàn quyền) | Khoá: tài khoản dùng thử không đăng nhập được nữa, máy đang dùng thử bị chặn ở lần thao tác kế tiếp. Mở: đăng nhập lại được. Trạng thái giữ nguyên qua các lần dữ liệu tự xoá. Toàn quyền vẫn đăng nhập được khi khoá. | không | được: bấm lại để mở / khoá | (chưa nối) | `web/dung-thu-vai.ts`: không-chữ | chờ chọn (ADR-0223 Đ5 (chủ duyệt 22/11: khoá / mở ngay trên bản dùng thử); chữ nút AI đặt 2026-11-22, chờ chủ) |
 
 ## Mục bỏ qua (70)
 

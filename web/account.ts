@@ -27,6 +27,7 @@ import { chipEl } from "./giay-to-ui";
 import { demSapHetHan } from "./vc-dem";
 import { initViecCuaToi } from "./viec-cua-toi";
 import { initHoSoCuaToi } from "./ho-so-cua-toi";
+import { ganKhoaDungThu } from "./dung-thu-vai";
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -859,6 +860,8 @@ async function initMaintenance(): Promise<void> {
   }
 }
 void initMaintenance();
+// ---- Bản dùng thử (ADR-0223 Đ5): khoá / mở đăng nhập dùng thử — chỉ hiện trên demo.tourdao.vn, ô settings.ops (máy chủ đòi quyền thật Toàn quyền) ----
+if (can(staff, "settings.ops")) void ganKhoaDungThu(maintenanceEl);
 
 // ---- Dịch vụ nhập tay (ADR-0061 điều 6): công tắc bật / tắt — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại) ----
 if (can(staff, "settings.ops")) void ganCaiDatNhapTay(byId("nhap-tay-cai-dat"));

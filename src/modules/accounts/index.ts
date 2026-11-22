@@ -940,7 +940,7 @@ export const accountsModule: AppModule = {
     // Ghi vai vào PHIÊN (cùng cột, cùng câu với «Xem như vai trò khác»), không đổi quyền thật. Đổi vai: gọi lại (hoặc đăng xuất rồi chọn lại).
     route("POST", "/api/account/dung-thu-vai", "staff", async (ctx) => {
       if (!laBanDungThu(ctx.env)) return error(404, "not_found", "Không tìm thấy.");
-      if (!laTaiKhoanDungThu(ctx.env, ctx.staff.id)) return error(403, "forbidden", "Chỉ tài khoản dùng thử chọn vai được.");
+      if (!laTaiKhoanDungThu(ctx.env, ctx.staff.id)) return error(403, "forbidden", "Chỉ tài khoản dùng thử chọn vai trò được.");
       const vai: unknown = (await readJson(ctx.request))?.role;
       if (!laVaiChonDuoc(vai)) return error(400, "invalid_role", "Vai trò này không chọn được.");
       const phien = ctx.sessionId;
