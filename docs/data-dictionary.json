@@ -361,7 +361,7 @@
       "name": "ctl_service_ticket_source",
       "module": "catalog",
       "kind": "table",
-      "note": "ô «Vé do ai phát» chỉ trên từng dịch vụ (code = mã dịch vụ, không theo nhóm) (ADR-0175 Đ1.2, migration 0151), CHỈ-THÊM; source HANG_NGOAI = vé hãng ngoài, TOUR_DAO = vé Tour Đảo; dòng hiệu lực = valid_from_at lớn nhất; chưa có dòng là HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts"
+      "note": "ô «Vé do ai phát» theo từng dịch vụ (code = mã dịch vụ) (ADR-0175 Đ1.2, migration 0151), CHỈ-THÊM; source HANG_NGOAI = vé hãng ngoài, TOUR_DAO = vé Tour Đảo; dòng hiệu lực = valid_from_at lớn nhất; dòng riêng của dịch vụ thắng dòng của nhóm ở ctl_group_ticket_source (ADR-0230 Đ3); không có cả hai là HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts"
     },
     {
       "name": "ctl_group_ticket_source",

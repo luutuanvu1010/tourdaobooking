@@ -934,13 +934,13 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Cài đặt vận hành",
-    manHinh: "Dịch vụ & giá › dòng dịch vụ đang «Có vé» › ô «Vé do ai phát»",
+    manHinh: "Dịch vụ & giá › dòng dịch vụ đang «Có vé» › ô «Vé do ai phát»; Nhóm dịch vụ › ô «Vé do ai phát» của cả nhóm (ADR-0230 Đ3)",
     ten: "Vé hãng ngoài · Vé Tour Đảo",
-    thatSuLam: "Chọn vé của dịch vụ này do hãng ngoài phát (công ty nhập ảnh vé vào kho) hay do Tour Đảo tự phát. Chỉ đổi lô mà máy dùng để giữ vé từ lúc đổi; vé đơn đã giữ không đổi. Chỉ hiện khi dịch vụ đang «Có vé»; chưa chọn là vé hãng ngoài. Chỉ Quản trị, Toàn quyền.",
+    thatSuLam: "Chọn vé của dịch vụ này (hoặc của cả nhóm) do hãng ngoài phát (công ty nhập ảnh vé vào kho) hay do Tour Đảo tự phát. Dịch vụ chưa đặt riêng đi theo nhóm hiện tại; dịch vụ đã đặt riêng giữ giá trị riêng. Chỉ đổi lô mà máy dùng để giữ vé từ lúc đổi; vé đơn đã giữ không đổi. Ở dòng dịch vụ chỉ hiện khi dịch vụ đang «Có vé»; chưa chọn là vé hãng ngoài. Chỉ Quản trị, Toàn quyền.",
     hoiLai: "có khi chọn «Vé Tour Đảo»: hộp nói rõ hậu quả; chọn «Vé hãng ngoài» thì không hỏi",
     hoanTac: "được: bấm lựa chọn kia",
     duongLenh: ["/api/catalog/nguon-ve"],
-    maNhatKy: ["ticket_source_changed"],
+    maNhatKy: ["ticket_source_changed", "ticket_source_group_changed"],
     noiDat: [
       { tep: "web/catalog-co-ve.ts", chu: "⟪NHAN_NGUON_VE[v]⟫" }, // hai chữ «Vé hãng ngoài», «Vé Tour Đảo» ở hằng NHAN_NGUON_VE cùng tệp
       { tep: "web/catalog-co-ve.ts", chu: "Chuyển sang Vé Tour Đảo" }, // nút xác nhận của hộp hỏi (9/11/2026, tạm: nhắc lại tên đã chốt «Vé Tour Đảo»)

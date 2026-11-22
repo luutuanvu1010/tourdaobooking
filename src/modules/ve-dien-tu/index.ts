@@ -8,7 +8,7 @@ import { coVeTheoMa, getEffectiveServices, nguonVeTheoMa } from "../catalog";
 import { UUID_RE, error, json, kemLocation, readJson } from "../../shared/http";
 import { MATRIX, can, holdsPartner, isOffice, passesAdminGate, tacNhan } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
-import { NGUON_VE, nguonVeCua, type NguonVe } from "../../shared/nguon-ve.ts";
+import { NGUON_VE, type NguonVe } from "../../shared/nguon-ve.ts";
 import { LOAI_NOI_DUNG, bamSha256, dauPhanHoiTepChung, giaiBase64, nhanLoaiTep, taoKhoaNgauNhien, type LoaiTep } from "../../shared/tep-dinh-kem";
 import { ngayNgan, vnToday } from "../../shared/vn-date";
 import { moVeDuoc } from "../../shared/tra-sau";
@@ -553,7 +553,7 @@ export const veDienTuModule: AppModule = {
         // cấp cho ai tới khi Quản trị đổi ô — và KHÔNG cấp bù (vé của lô này không giữ được cho dịch vụ đó).
         const [coVe, nguon] = await Promise.all([coVeTheoMa(env.DB, [lo.catalog_code]), nguonVeTheoMa(env.DB, [lo.catalog_code])]);
         dichVuKhongVe = coVe.get(lo.catalog_code) !== true;
-        canhBaoNguon = dichVuKhongVe || nguonVeCua(lo.catalog_code, nguon) !== lo.source;
+        canhBaoNguon = dichVuKhongVe || (nguon.get(lo.catalog_code) ?? "HANG_NGOAI") !== lo.source;
         // Cấp bù NGAY trong lệnh (không qua Cron): tối đa TOI_DA_DON_XET_CAP_BU đơn đã xác nhận, ngày đi gần trước; đơn không còn thiếu ở mã này được bỏ qua ngay trong
         // `capVeSauXacNhan(id, mã)` (lọc dần), đơn thiếu đi đúng đường cấp sau xác nhận. Dừng khi lô hết vé. Còn ứng viên chưa xét mà lô còn vé ⇒ `conDonChuaXet`.
         if (!canhBaoNguon) {
@@ -917,7 +917,7 @@ export const veDienTuModule: AppModule = {
       const gom = new Map<string, { dichVu: string; soKhachTheoDon: number; daDung: number }>();
       for (const d of dv) {
         const dung = daDung.get(d.serviceId) ?? 0;
-        if (nguonVeCua(d.catalogCode, nguon) !== "TOUR_DAO" && dung === 0) continue;
+        if (nguon.get(d.catalogCode) !== "TOUR_DAO" && dung === 0) continue;
         const g = gom.get(d.catalogCode) ?? { dichVu: ten.get(d.catalogCode)?.name ?? d.tenDichVu, soKhachTheoDon: 0, daDung: 0 };
         g.soKhachTheoDon += d.soKhach; g.daDung += dung; gom.set(d.catalogCode, g);
       }

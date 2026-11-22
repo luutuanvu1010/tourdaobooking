@@ -405,6 +405,7 @@ function dongNhom(g: Nhom, i: number): HTMLElement {
     congTacDuaDon(g),
     h("div", { class: "nhom-dua-don" }, h("span", { class: "nhom-so" }, "Cần kiểm vé"), kiemVe.congTacNhom(g.code, g.name, caNhomCanKiem(g.code, kiemVe.dongCo())), h("span", { class: "nhom-so", "aria-hidden": "true" }, caNhomCanKiem(g.code, kiemVe.dongCo()) ? "Bật" : "Tắt")),
     coVe.oNhom(g.code, g.name),
+    coVe.oNguonVeNhom(g.code, g.name),
     h(
       "div",
       { class: "nhom-nut" },

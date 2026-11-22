@@ -985,8 +985,10 @@ export interface CatalogNgungBanInput { ngungBan: boolean }
 export interface CatalogCoVeResponse { dichVu: { code: string; coVe: boolean; nguon: "SERVICE" | "GROUP" | "CHUA_KHAI" }[]; nhom: { code: string; coVe: boolean }[] }
 export interface CatalogCoVeInput { pham: "SERVICE" | "GROUP"; ma: string; coVe: boolean }
 /** ADR-0175 Đ1.2: ô «Vé do ai phát», chỉ trên từng dịch vụ. GET trả mọi dịch vụ của danh mục kèm giá trị hiện hành (chưa đặt là `HANG_NGOAI`). */
-export interface CatalogNguonVeResponse { dichVu: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }[] }
-export interface CatalogNguonVeInput { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }
+/** ADR-0175 Đ1.2, ADR-0230 Đ3: `dichVu[].nguon` = giá trị đã gộp (dòng riêng, không thì nhóm hiện tại, không thì vé hãng ngoài); `theo` = lấy từ đâu; `nhom` = các nhóm đã đặt. */
+export interface CatalogNguonVeResponse { dichVu: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO"; theo: "SERVICE" | "GROUP" | "CHUA_KHAI" }[]; nhom: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }[] }
+/** Gửi `ma` (một dịch vụ) HOẶC `nhom` (một nhóm đang hoạt động), không cả hai. */
+export type CatalogNguonVeInput = { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" } | { nhom: string; nguon: "HANG_NGOAI" | "TOUR_DAO" };
 export interface CatalogNgungBanResponse { code: string; ngungBan: boolean }
 /** ADR-0220: một khoảng «Ngừng bán theo ngày» còn chặn. `ma` = mã dịch vụ hoặc mã nhóm theo `phamVi`; `ten` = tên dịch vụ / tên nhóm để hiện. Ngày "YYYY-MM-DD", gồm cả hai đầu. */
 export interface CatalogNgungBanNgayDto { id: string; phamVi: "SERVICE" | "GROUP"; ma: string; ten: string; tuNgay: string; denNgay: string; ghiChu: string | null; taoLuc: string }

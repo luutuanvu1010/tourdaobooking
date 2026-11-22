@@ -62,11 +62,14 @@ export async function coVeTheoMa(db: D1Database, codes: readonly string[]): Prom
   return new Map(codes.map((ma) => [ma, coVeCua(ma, nhomCua.get(ma) ?? null, co).coVe]));
 }
 
-/** ADR-0175 Đ1.2: ô «Vé do ai phát» của các mã trong `codes` (không có dòng là `HANG_NGOAI`). Một nguồn cho `ve-dien-tu` qua hàm tiêm. KHÔNG tự kiểm quyền. */
+/**
+ * ADR-0175 Đ1.2, ADR-0230 Đ3: ô «Vé do ai phát» ĐÃ GỘP của các mã trong `codes` — dòng riêng của dịch vụ, không thì dòng của nhóm hiện tại (kể cả nhóm đang tắt, như `coVeTheoMa`),
+ * không thì `HANG_NGOAI`. Mỗi mã được hỏi đều có khoá. Một nguồn cho `orders` và `ve-dien-tu`; nơi dùng KHÔNG tự xét lại luật. KHÔNG tự kiểm quyền.
+ */
 export async function nguonVeTheoMa(db: D1Database, codes: readonly string[]): Promise<Map<string, NguonVe>> {
   if (codes.length === 0) return new Map();
-  const hienHanh = await nguonVeHienHanh(db);
-  return new Map(codes.map((ma) => [ma, nguonVeCua(ma, hienHanh)]));
+  const [hien, nhomCua] = await Promise.all([nguonVeHienHanh(db), nhomHienHanhTheoMa(db)]);
+  return new Map(codes.map((ma) => [ma, nguonVeCua(ma, nhomCua.get(ma) ?? null, hien).nguonVe]));
 }
 
 /**

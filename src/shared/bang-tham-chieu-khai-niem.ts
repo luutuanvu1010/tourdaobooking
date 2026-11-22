@@ -175,10 +175,10 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Vé do ai phát",
-    giaiNghia: "Ô trên từng dịch vụ: vé của dịch vụ này do hãng ngoài phát hay do Tour Đảo tự phát.",
+    giaiNghia: "Ô trên dịch vụ hoặc trên nhóm dịch vụ: vé do hãng ngoài phát hay do Tour Đảo tự phát. Dịch vụ đã đặt riêng theo giá trị riêng; chưa đặt riêng thì theo nhóm hiện tại; chưa đặt ở đâu là vé hãng ngoài.",
     khacVoi: "«Có vé» nói dịch vụ có vé hay không; «Người bán dịch vụ» nói ai cung cấp dịch vụ.",
     chuDaLoai: [],
-    maNoiBo: ["ctl_service_ticket_source", "vdt_batch.source", "nguonVe"],
+    maNoiBo: ["ctl_service_ticket_source", "ctl_group_ticket_source", "vdt_batch.source", "nguonVe"],
     trangThai: "da-chot",
     chuChon: "2026-11-08 (ADR-0175)",
   }),
