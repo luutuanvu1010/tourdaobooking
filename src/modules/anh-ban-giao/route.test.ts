@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { gieoBanChup } from "../../../tests/audit/gieo-ban-chup.mjs";
+import { doNhatKyHang } from "../../../tests/audit/nhat-ky-hang.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const KT = "44444444-4444-4444-8444-444444444444";
@@ -291,4 +292,19 @@ test("người không bao giờ gửi / xem được (Đối tác, Thực tập 
     assert.equal((await w.call("GET", `/api/anh-ban-giao/don/${lạ}/tom-tat`, { as })).status, 403);
   }
   assert.equal((await tai(w, SALES, lạ)).status, 404, "người có quyền thì vẫn biết đơn không có");
+});
+
+test("nhật ký không chứa giá trị cột hạng N3 nào của Ảnh bàn giao (khoá kho, băm, lý do ẩn, lý do xoá) — sau tải, xem, ẩn, xoá", async () => {
+  const w = setup();
+  const { id } = don(w);
+  const a1 = (await tai(w, HDV, id)).json.id;
+  const a2 = (await tai(w, HDV, id)).json.id;
+  await tai(w, HDV, id);
+  await ds(w, KT, id);
+  await xem(w, KT, a1);
+  assert.equal((await w.call("POST", `/api/anh-ban-giao/anh/${a1}/an`, { as: SA, body: { lyDo: "Chụp nhầm đơn khác của khách" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/anh-ban-giao/anh/${a2}/xoa`, { as: SA, body: { lyDo: "GIAY_TO_CHUP_NHAM", ghiChu: "Ảnh lọt căn cước số 012345678901" } })).status, 200);
+  const k = doNhatKyHang(w.sqlite, ["abg_photo.content_hash", "abg_photo.thumb_key", "abg_photo.view_key", "abg_photo.hidden_reason", "abg_photo.purge_note"]);
+  assert.deepEqual(k.rong, [], "bài rỗng: cột N3 phụ trách chưa có dữ liệu thật");
+  assert.deepEqual(k.lo, [], "nhật ký chứa giá trị hạng N3");
 });

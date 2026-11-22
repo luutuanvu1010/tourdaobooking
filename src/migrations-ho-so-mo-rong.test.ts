@@ -222,7 +222,7 @@ test("(i) chính sách riêng tư: KHÔNG gieo dòng nào; đúng bộ cột (kh
   const db = all();
   assert.deepEqual(rows(db, "SELECT count(*) AS n FROM pty_privacy_policy"), [{ n: 0 }]);
   assert.deepEqual(cotCua(db, "pty_privacy_policy"), ["id", "version", "purposes", "body", "valid_from_at", "created_at", "created_by", "updated_at", "updated_by",
-    "erasure_days", "session_retention_days", "covers_org_data"]); // hai cột số ngày thêm ở 0108 (lát H-5): rỗng được, không DEFAULT — bài migrations-xoa-an-danh.test.ts canh. Cập nhật CÓ CHỦ ĐÍCH: covers_org_data thêm ở 0174 (ADR-0212 Đ7, dấu «Thu thông tin tổ chức», NOT NULL DEFAULT 0)
+    "erasure_days", "session_retention_days", "covers_org_data", "photo_retention_years"]); // + photo_retention_years (0190, ADR-0232 Đ10 — số năm giữ Ảnh bàn giao, rỗng được); // hai cột số ngày thêm ở 0108 (lát H-5): rỗng được, không DEFAULT — bài migrations-xoa-an-danh.test.ts canh. Cập nhật CÓ CHỦ ĐÍCH: covers_org_data thêm ở 0174 (ADR-0212 Đ7, dấu «Thu thông tin tổ chức», NOT NULL DEFAULT 0)
   assert.throws(() => chinhSach(db, "cs-0", 2), /privacy_policy_version_gap/, "bắt đầu từ 2");
   chinhSach(db, "cs-1", 1);
   assert.throws(() => chinhSach(db, "cs-3", 3), /privacy_policy_version_gap/, "nhảy 1 → 3");

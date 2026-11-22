@@ -77,7 +77,8 @@ import {
 import type { PersonName } from "./rules";
 export { kiemTenLoaiDoiTac, maLoaiDoiTac } from "./rules";
 /** ADR-0126 đ8 — số ngày giữ IP / User-Agent của phiên đã kết thúc, theo chính sách riêng tư phiên bản lớn nhất; null = chưa có số. Gốc lắp ráp tiêm cho nơi cần (auth/accounts không import parties). */
-export { hanGiuPhienNgay, soNamGiuAnh } from "./repository";
+export { hanGiuPhienNgay } from "./repository";
+export { soNamGiuAnh } from "./repository"; // ADR-0232 Đ10: số năm giữ Ảnh bàn giao — gốc lắp ráp tiêm vào ctx.soNamGiuAnh
 // Dấu xác minh của hồ sơ (ADR-0210): `staff` (Quản lý tài khoản) gọi hàm này; ba màn của Đ3 là chỗ DUY NHẤT đọc.
 export { dauXacMinhTheoHoSo };
 // Người quản lý có hiệu lực (ADR-0213 Đ2.8): gốc lắp ráp ghép phần của parties (liên kết mở, hồ sơ chưa gộp, tổ chức còn vai) với phần tài khoản của staff.

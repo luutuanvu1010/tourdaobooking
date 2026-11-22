@@ -726,6 +726,13 @@ body[data-khung-goc] .chon-doan { display: grid; grid-auto-flow: column; grid-au
 body[data-khung-goc] .chon-doan > button { font: inherit; font-size: var(--fs-step-4); font-weight: var(--fw-bold); color: var(--c-text-muted); background: var(--c-surface); border: 0; cursor: pointer; }
 body[data-khung-goc] .chon-doan > button[aria-checked="true"] { color: var(--c-primary); background: var(--c-primary-soft); }
 /* ---------- Hết khung gốc giao diện (ADR-0222) ---------- */
+
+/* ---------- Ảnh bàn giao (ADR-0232) — bố cục dùng lớp của khung gốc (.luoi, .truong, .thanh-nut); ở đây chỉ hình thẻ ảnh và ảnh lớn ---------- */
+.abg-the { display: flex; flex-direction: column; overflow: hidden; font: inherit; text-align: left; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); cursor: pointer; }
+.abg-the img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+.abg-chu { padding: 0 var(--s2); font-size: var(--fs-badge); line-height: 1.6; }
+.abg-lon { display: block; max-width: 100%; max-height: var(--h-quet-video); margin: 0 auto; object-fit: contain; }
+.abg-tai-xe > summary { min-height: var(--tap-min); display: flex; align-items: center; font-weight: var(--fw-bold); color: var(--c-primary); cursor: pointer; }
 /* ===== CHÉP TỪ MÃ — hết ===== */
 
 /* ===== RIÊNG CỦA BỘ (1) — lớp xem trước ===== */

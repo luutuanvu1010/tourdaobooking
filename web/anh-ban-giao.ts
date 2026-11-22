@@ -7,17 +7,22 @@
 import { ApiError, api } from "./api";
 import { h, replaceChildren } from "./dom";
 import { moBangTruot } from "./bang-truot";
+import { luoi, thanhNut, truong } from "./khung";
+
+let soForm = 0;
 import { thuNhoAnh } from "./thu-nho-anh";
 import { maBase64 } from "../src/shared/tep-hien-thi";
+import { ngayDayDu } from "../src/shared/vn-date";
 import {
   CANH_ANH_NHO, CANH_ANH_XEM, GHI_CHU_TOI_DA, LOAI_VIEC, NHAN_LOAI_VIEC, TEN_ANH_BAN_GIAO, TOI_DA_ANH_NHO, TOI_DA_ANH_XEM, duongAnhBanGiao,
   type AnhBanGiaoDanhSachResponse, type AnhBanGiaoDong, type AnhBanGiaoTomTatResponse, type LoaiViec,
 } from "../src/shared/anh-ban-giao";
 
 const lyDoLoi = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+/** «HH:MM dd/mm/yyyy» giờ Việt Nam — ngày qua MỘT hàm `ngayDayDu` (bài src/ngay-mot-ham.test.ts). */
 const gioVn = (iso: string): string => {
   const d = new Date(new Date(iso).getTime() + 7 * 3600 * 1000).toISOString();
-  return `${d.slice(11, 16)} ${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`;
+  return `${d.slice(11, 16)} ${ngayDayDu(d.slice(0, 10))}`;
 };
 
 /** Nén một ảnh xuống dưới trần (thử giảm chất lượng). null = trình duyệt không mở được ảnh (vd HEIC trên máy tính). */
@@ -70,8 +75,11 @@ export function formGuiAnh(v: { orderId: string; changId?: string | null; dichVu
       nut.disabled = false;
     }
   });
-  return h("div", { class: "abg-form" }, h("label", { class: "nhan" }, "Ảnh", tep), h("label", { class: "nhan" }, "Loại việc", loai), dv ? h("label", { class: "nhan" }, "Gắn với", dv) : null,
-    h("label", { class: "nhan" }, "Ghi chú", ghi), nut, bao);
+  const id = `abg-${++soForm}`;
+  for (const [o, ten] of [[tep, "anh"], [loai, "loai"], [dv, "dv"], [ghi, "ghi"]] as const) o?.setAttribute("id", `${id}-${ten}`);
+  // Bố cục bằng lớp của khung gốc (ADR-0222): lưới 12 cột, trường nhập, thanh nút — không luật CSS riêng.
+  return h("div", { class: "abg-form" }, luoi(null, truong("Ảnh", tep, { cot: 6 }), truong("Loại việc", loai, { cot: 6 }), dv ? truong("Gắn với", dv, { cot: 6 }) : null,
+    truong("Ghi chú", ghi, dv ? { cot: 6 } : {})), thanhNut(null, nut), bao);
 }
 
 /**
@@ -114,7 +122,6 @@ function moAnh(a: AnhBanGiaoDong, quyen: { an: boolean; xoa: boolean }, lamMoi: 
     title: `${NHAN_LOAI_VIEC[a.loaiViec]} · ${gioVn(a.luc)}`,
     body: [h("img", { class: "abg-lon", src: duongAnhBanGiao(a.id), alt: `Ảnh bàn giao: ${NHAN_LOAI_VIEC[a.loaiViec]}` }), a.ghiChu ? h("p", null, a.ghiChu) : null, bao],
     foot,
-    footClass: "abg-chan",
     opener,
   });
   dong = () => bang?.close();
@@ -133,14 +140,14 @@ export async function initAnhBanGiao(el: HTMLElement, vao: { orderId: string; di
     el.hidden = true;
     return;
   }
-  const luoi = h("div", { class: "abg-luoi" });
+  const luoiAnh = luoi({ class: "abg-luoi" });
   const lamMoi = () => void initAnhBanGiao(el, vao);
   const xem = async (nut: HTMLButtonElement) => {
     nut.disabled = true;
     try {
       const r = await api<AnhBanGiaoDanhSachResponse>(`/api/anh-ban-giao/don/${encodeURIComponent(vao.orderId)}`);
-      replaceChildren(luoi, ...r.anh.map((a) => {
-        const the = h("button", { type: "button", class: "abg-the", "aria-label": `Mở ảnh: ${NHAN_LOAI_VIEC[a.loaiViec]}, ${gioVn(a.luc)}` },
+      replaceChildren(luoiAnh, ...r.anh.map((a) => {
+        const the = h("button", { type: "button", class: "abg-the", "data-cot": "3", "aria-label": `Mở ảnh: ${NHAN_LOAI_VIEC[a.loaiViec]}, ${gioVn(a.luc)}` },
           a.anhNho ? h("img", { src: `data:image/jpeg;base64,${a.anhNho}`, alt: "" }) : h("span", { class: "muted" }, "Ảnh chưa xem được"),
           h("span", { class: "abg-chu" }, `${NHAN_LOAI_VIEC[a.loaiViec]}${a.daAn ? " · đã ẩn" : ""}`),
           h("span", { class: "abg-chu muted" }, `${a.nguoiTai ?? ""} · ${gioVn(a.luc)}`)) as HTMLButtonElement;
@@ -149,7 +156,7 @@ export async function initAnhBanGiao(el: HTMLElement, vao: { orderId: string; di
       }));
       nut.hidden = true;
     } catch (e) {
-      replaceChildren(luoi, h("p", { class: "muted" }, lyDoLoi(e)));
+      replaceChildren(luoiAnh, h("p", { class: "muted" }, lyDoLoi(e)));
       nut.disabled = false;
     }
   };
@@ -158,7 +165,7 @@ export async function initAnhBanGiao(el: HTMLElement, vao: { orderId: string; di
   replaceChildren(el,
     h("header", { class: "khoi-dau" }, h("h2", null, TEN_ANH_BAN_GIAO)),
     tt.soAnh === 0 ? h("p", { class: "muted" }, "Chưa có ảnh bàn giao.") : null,
-    nutXem, luoi,
+    nutXem, luoiAnh,
     tt.coTheTai ? formGuiAnh({ orderId: vao.orderId, dichVu: vao.dichVu, xong: lamMoi }) : null,
     h("p", { class: "muted" }, "Ảnh chỉ văn phòng, Kế toán, Quản trị xem được; đối tác và khách không thấy. Mỗi lần mở ảnh đều được ghi lại."));
   el.hidden = false;

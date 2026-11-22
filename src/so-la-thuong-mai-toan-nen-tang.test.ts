@@ -103,6 +103,9 @@ const ROUTE_GET: string[] = [...new Set(readdirSync(MODULES).flatMap((m) => {
  * Không bao giờ dùng danh sách này để che một chỗ lộ số: chỗ lộ đi danh sách (b).
  */
 const MIEN_200: Record<string, string> = {
+  "/api/anh-ban-giao/don/:orderId/tom-tat": "ADR-0232: tóm tắt Ảnh bàn giao — chỉ số ảnh và cờ «được gửi», không tiền; Đối tác 403 (không thấy cả số lượng); bài không gieo ảnh nên không cần 200.",
+  "/api/anh-ban-giao/don/:orderId": "ADR-0232: danh sách Ảnh bàn giao — ảnh nhỏ base64, loại việc, ghi chú, người tải, giờ; không tiền; Đối tác 403; bài không gieo ảnh / kho nên không cần 200.",
+  "/api/anh-ban-giao/anh/:anhId": "ADR-0232 Đ6: thân là byte ảnh JPEG (không phải JSON, không chở tiền); mã ảnh lạ ⇒ 404 / 403; bài không gieo ảnh.",
   "/api/ve/don/:orderId": "ADR-0153 (kho vé điện tử): danh sách vé của MỘT đơn có vé giữ — bài này không nhập kho vé nên mã đơn lạ ⇒ 404; DTO chỉ SỐ LƯỢNG theo nhóm khách + cờ thu đủ, không chở tiền; bangDien gọi bằng mã lạ nên thân 404 vẫn được quét",
   "/api/ve/lo/:id/xem-truoc-huy": "ADR-0217 Đ3 mục 5: bản xem trước huỷ lô — chỉ số đếm vé (huỷ được, giữ nguyên, đơn cấp thay, vé đã gửi), không tiền, không mã; bài này không nhập kho vé nên mã lô lạ ⇒ 404 / 403; bangDien gọi bằng mã lạ nên thân vẫn được quét",
   "/api/ve/lo/:id/ve-trong-lo": "ADR-0217 A6: danh sách vé của lô — số sê-ri, hạn, tình trạng, mã đơn khi có order.view; không tiền, không mã vé; bài này không nhập kho vé nên mã lô lạ ⇒ 404 / 403; bangDien gọi bằng mã lạ nên thân vẫn được quét",

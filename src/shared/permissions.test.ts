@@ -67,8 +67,8 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   // ADR-0196 Đ7, Đ2: gỡ ảnh gửi nhầm + hàng chờ dọn kho ảnh — chỉ Toàn quyền (ô riêng, giả định thi công 6A).
   "payment.proof.purge": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
   // ADR-0232 Đ4 (Ảnh bàn giao): tải — văn phòng, HDV phụ trách, tài xế công ty theo chuyến; xem — văn phòng, Kế toán, Quản trị (người tải xem ảnh mình); ẩn, xoá — chỉ Toàn quyền.
-  "order.photo.upload": ["any", "none", "any", "assigned", "none", "any", "none", "assigned", "none", "none", "any"],
-  "order.photo.view": ["any", "any", "any", "own", "none", "any", "none", "own", "none", "none", "any"],
+  "order.photo.upload": ["any", "none", "any", "assigned", "none", "any", "none", "assigned", "none", "none", "none"],
+  "order.photo.view": ["any", "any", "any", "own", "none", "any", "none", "own", "none", "none", "none"],
   "order.photo.hide": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
   "order.photo.purge": ["none", "none", "none", "none", "none", "any", "none", "none", "none", "none", "none"],
   // ADR-0182 Đ3 (phần B, accepted 2026-11-13): khoản nộp của đại lý — ghi: Đối tác own; xác nhận / từ chối: Kế toán, Toàn quyền (Quản trị KHÔNG); xem: Kế toán, Quản trị, Toàn quyền, Đối tác own.

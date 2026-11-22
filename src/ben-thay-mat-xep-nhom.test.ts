@@ -17,6 +17,8 @@ type Nhom = "THAY_MAT" | "CHINH_NGUOI";
 type Muc = { doan: string; nhom: Nhom; so: number };
 
 const XEP: Record<string, Muc[]> = {
+  // ADR-0232 Đ4: «tài xế đang lái chuyến chở lượt đón» là hồ sơ của CHÍNH tài xế đăng nhập (ô DRIVER assigned) — không thay mặt ai.
+  "src/shared/router.ts": [{ doan: "who && who.partyId && typeof opts.injected.taiXeLaiChang === \"function\" ? opts.injected.taiXeLaiChang(envH, who.partyId, legId)", nhom: "CHINH_NGUOI", so: 1 }],
   "src/index.ts": [
     { doan: "if (!holdsPartner(actor) || actor.partyId === null) return [];", nhom: "THAY_MAT", so: 1 }, // tuCachCuaToi — nguồn của benDangThayMat
     { doan: "const minh = actor.partyId;", nhom: "THAY_MAT", so: 1 },
