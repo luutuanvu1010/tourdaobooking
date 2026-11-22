@@ -22,7 +22,7 @@ import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, clearAtte
 import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
 import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan, chanKhaiCocLai, daThuCuaDon, kiemTraSau, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi, noCuaBenDat, maDonTraSauDaXacNhan, traSauCuaDon, kenhThuHienTai, coHanMucTraSauMo, cauDongHanMucKhiHetVai } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
-import { catalogModule, runScheduledSync } from "./modules/catalog";
+import { catalogModule, danhMucChoTraSauDichVu, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
 import { cauAnDanhBanKhai, cauAnDanhBanKhaiToChuc, cauChotDuyet, cauDuyetPhieu, chuaKichHoat, dangKyModule, donPhieuDangKyDinhGio, suKienDuyetStatement, taiKhoanChuaKichHoat } from "./modules/dang-ky";
 import { banHangNoi, dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
@@ -472,6 +472,8 @@ const APP_OPTIONS: AppOptions = {
       if (!ben) return new Set<string>();
       return new Set((await kiemLuatBan(env.DB, { bookerPartyId: ben.partyId, catalogCodes: codes, ngay: vnToday(new Date()) })).map((t) => t.catalogCode));
     },
+    // DANH MỤC CHO DẤU «TRẢ SAU THEO DỊCH VỤ» (ADR-0178 Đ2, ADR-0230 Đ1): billing không import catalog — gốc lắp ráp nối. Route billing kiểm quyền trước khi gọi.
+    danhMucTraSauDichVu: (env) => danhMucChoTraSauDichVu(env.DB),
     // NGƯỜI ĐI KÈM (lời chủ 2026-10-01 — "Chỉ hướng dẫn viên"): van-chuyen không import staff — gốc lắp ráp đọc tài khoản FIELD đang hoạt động, chỉ tên.
     huongDanVien: async (env) => {
       const ds = (await listStaffAccounts(env.DB)).filter((a) => a.active && a.partyId !== null && a.permissions.includes("FIELD"));

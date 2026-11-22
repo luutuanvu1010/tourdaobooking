@@ -669,6 +669,9 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/tra-sau/muc-toi-da", access: "office" }, // ADR-0172: credit.ceiling.write (chỉ Toàn quyền)
   { method: "GET", path: "/api/kenh-thu-doi-tac", access: "office" }, // ADR-0178 Đ1 mục 1: billing.partner_channel.view (Kế toán, Quản trị, Toàn quyền), không Đối tác
   { method: "POST", path: "/api/kenh-thu-doi-tac", access: "office" }, // ADR-0178 Đ1 mục 1: billing.partner_channel.write (chỉ Toàn quyền)
+  { method: "GET", path: "/api/tra-sau/dich-vu", access: "office" }, // ADR-0178 Đ3, ADR-0230 Đ1: credit.service_rule.view (Kế toán, Quản trị, Toàn quyền), không Đối tác
+  { method: "POST", path: "/api/tra-sau/dich-vu", access: "office" }, // ADR-0178 Đ3, ADR-0230 Đ1: credit.service_rule.write (chỉ Toàn quyền)
+  { method: "POST", path: "/api/tra-sau/dich-vu/go", access: "office" }, // như trên
   { method: "GET", path: "/api/tra-sau/goi-y", access: "office" }, // ADR-0172 Đ2: credit.limit.view
   { method: "PUT", path: "/api/tra-sau/goi-y/:cap", access: "office" }, // ADR-0172 Đ2: credit.limit.write (Quản trị, Toàn quyền)
   { method: "GET", path: "/api/tra-sau/cua-toi", access: "orders" }, // ADR-0173 Đ3 mục 3: credit.own.view (Đối tác, own)
@@ -901,6 +904,7 @@ test("mức truy cập của 560 route hiện có khớp ảnh chụp đã duy�
   // Gộp main vào nhánh đăng ký đợt 2 (17/11/2026): 560 của nhánh + 1 route phí đón của main = 561.
   // 2026-11-20 (ADR-0220 Đ4): + GET, POST /api/catalog/ngung-ban-ngay, POST /api/catalog/ngung-ban-ngay/:id/ket-thuc (office; thân hỏi catalog.hidden.write, chặn Đối tác) = 568.
   // 2026-11-21 (ADR-0221 Đ1): + GET (orders), POST (admin) /api/cai-dat/noi-don-doi-tac = 570.
-  assert.equal(actual.length, 570, "số route thực tế lệch 570 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 570, "SNAPSHOT phải có đúng 570 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-22 (ADR-0230 Đ1, thi công ADR-0178 Đ2): + GET, POST /api/tra-sau/dich-vu, POST /api/tra-sau/dich-vu/go (office; billing, tệp tra-sau-dich-vu-route.ts; credit.service_rule.view / .write) = 573.
+  assert.equal(actual.length, 573, "số route thực tế lệch 573 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 573, "SNAPSHOT phải có đúng 573 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -183,6 +183,10 @@ export const AUDIT_ACTIONS = {
   credit_limit_stopped: { label: "Ngừng hạn mức trả sau", group: "ledger" },
   // ADR-0178 Đ1 mục 1: Toàn quyền đổi công tắc «Khách của đối tác trả cho Công ty» (POST /api/kenh-thu-doi-tac) — `target_type = 'ledger'`, `target_id` = 'kenh-thu-doi-tac'; `detail` = «Bật» / «Tắt».
   partner_channel_set: { label: "Đổi «Khách của đối tác trả cho Công ty»", group: "ledger" },
+  // ADR-0178 Đ2 mục 1, ADR-0230 Đ1 mục 1: Toàn quyền đặt / đổi / gỡ dấu «Trả sau theo dịch vụ» (POST /api/tra-sau/dich-vu, …/go) — `target_type = 'ledger'`,
+  // `target_id` = «<GROUP|SERVICE>:<mã>»; `detail` chỉ loại đích, mã, số giờ: «SERVICE T3D: trả 24 giờ, ân hạn 6 giờ» / «GROUP NTD». Không tên, SĐT, email, MST.
+  service_credit_rule_set: { label: "Đặt Trả sau theo dịch vụ", group: "ledger" },
+  service_credit_rule_removed: { label: "Gỡ Trả sau theo dịch vụ", group: "ledger" },
   credit_ceiling_set: { label: "Đặt mức tối đa Quản trị được cấp", group: "ledger" },
   credit_tier_default_set: { label: "Đặt số gợi ý trả sau theo cấp", group: "ledger" },
   credit_due_extended: { label: "Ân hạn đơn trả sau", group: "order" },

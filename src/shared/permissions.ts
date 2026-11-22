@@ -209,7 +209,10 @@ export const MATRIX = {
   "credit.ceiling.write": chiToanQuyen(),
   // ADR-0178 Đ1 mục 1: công tắc «Khách của đối tác trả cho Công ty» — đổi chỉ Toàn quyền; xem: Kế toán, Quản trị, Toàn quyền (khuôn credit.limit.view). Route: /api/kenh-thu-doi-tac (module billing).
   "billing.partner_channel.write": chiToanQuyen(),
-  "billing.partner_channel.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "billing.partner_channel.view": KE_TOAN_QUAN_TRI, // giá trị y như viết tay row("none", "any", "any", "none", "none", "any", …) — dùng hằng chung để gói Đơn hàng không lớn thêm (src/goi-trang-nhe.test.ts)
+  // ADR-0178 Đ3, ADR-0230 Đ1 mục 1: dấu «Trả sau theo dịch vụ» — đặt / gỡ chỉ Toàn quyền (KHÔNG Quản lý bán hàng); xem: Kế toán, Quản trị, Toàn quyền. Route: /api/tra-sau/dich-vu* (module billing).
+  "credit.service_rule.write": chiToanQuyen(),
+  "credit.service_rule.view": KE_TOAN_QUAN_TRI,
   // ADR-0173 Đ1 mục 3: lùi hạn trả của MỘT đơn Trả sau đã xác nhận (bắt buộc lý do) — Quản trị, Toàn quyền.
   "credit.due.extend": quanTri(),
   // ADR-0173 Đ3 mục 3: đại lý xem Trả sau của CHÍNH hồ sơ mình (hạn mức, đang nợ, còn được dùng, từng đơn nợ) — Đối tác phạm vi `own`; hồ sơ lấy từ phiên, không nhận từ trình duyệt.

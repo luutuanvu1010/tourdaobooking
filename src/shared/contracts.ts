@@ -3664,6 +3664,18 @@ export interface BanHangChinhSachResponse { phutUuTien: number; tuPhut: number; 
 export interface KenhThuDoiTacDto { congTyThu: boolean; tuLuc: string | null; lichSu: { congTyThu: boolean; tuLuc: string; nguoiDoi: string }[] }
 
 /**
+ * `GET /api/tra-sau/dich-vu` (ADR-0178 Đ2 mục 1, ADR-0230 Đ1 mục 1): các dấu «Trả sau theo dịch vụ» đang mở. `ten` = tên nhóm / dịch vụ (rỗng nếu đích đã rời danh mục);
+ * `tuLuc` = lúc dòng mở có hiệu lực; `canhBao` = câu báo khi đơn có đích này sẽ không đủ điều kiện (vé hãng ngoài, không «Có vé», nhóm có vé hãng ngoài), null = không.
+ */
+export interface DauTraSauDichVuDto { targetKind: "GROUP" | "SERVICE"; targetCode: string; ten: string; gioTra: number; gioAnHan: number; tuLuc: string; canhBao: string | null }
+export interface DauTraSauDichVuResponse { dau: DauTraSauDichVuDto[] }
+/** Danh mục cho dấu «Trả sau theo dịch vụ» — gốc lắp ráp tiêm từ `catalog` (billing không import catalog). «Có vé», «Vé do ai phát» là giá trị ĐÃ GỘP. */
+export interface DanhMucTraSauDichVu {
+  dichVu: ReadonlyMap<string, { ten: string; nhom: string | null; coVe: boolean; nguonVe: "HANG_NGOAI" | "TOUR_DAO" }>;
+  nhom: ReadonlyMap<string, { ten: string; dangBat: boolean }>;
+}
+
+/**
  * Phiếu đăng ký của CHÍNH người đăng ký (`GET`, `PUT /api/dang-ky/phieu`, `POST …/gui`, `…/rut`; ADR-0206 Đ6). KHÔNG mang số giấy tờ đủ, nơi cấp, số điện thoại, email, khoá kho:
  * bản khai trước chỉ có số che; điện thoại chỉ «đã khai hay chưa»; tệp chỉ «đã gửi / chưa tải xong» theo ô.
  */

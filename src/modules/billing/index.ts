@@ -28,6 +28,7 @@ import { benCoLienQuanTraSau, cauTangPhienBan, hanMucHieuLuc, hanMucMoiBen, homQ
 import { dangGanToChuc, dongHanMucKhiHetVaiStatement, dongHanMucStatement, ghiGoiYStatement, goiYTheoCap, hanMucDangMo, mucToiDaQuanTri, themHanMucStatement, themMucToiDaStatement } from "./tra-sau-repo";
 import { dongKenhThuStatement, themKenhThuStatement } from "./kenh-thu-repo";
 import { kenhThuDto, kenhThuHienTai as kenhThuDangBat } from "./kenh-thu";
+import { traSauDichVuRoutes } from "./tra-sau-dich-vu-route";
 import { cocChoBienNhan, cocCuaDon, danhSachCoc, demCoc, doiChieuCoc, ghiChiHoan, ghiChuyen, ghiDuyet, ghiHoanNgoai, ghiHuyDuyet, xacNhanHoanNgoai } from "./coc";
 import {
   MAX_SO_TIEN, PARTY_ID_RE, docLyDo, loiTrigger,
@@ -1103,6 +1104,8 @@ export const billingModule: AppModule = {
       }
       return kemLocation(json((await kySoResponse(env.DB, { homNay, coQuyenKhoa: true })) satisfies KySoResponse, 201), "/khoa-thang");
     }),
+    // ---- Dấu «Trả sau theo dịch vụ» (ADR-0178 Đ2 mục 1, Đ3; ADR-0230 Đ1): xem `credit.service_rule.view`, đặt / gỡ `credit.service_rule.write` (chỉ Toàn quyền). Tệp tra-sau-dich-vu-route.ts.
+    ...traSauDichVuRoutes,
   ],
 };
 
@@ -1137,6 +1140,8 @@ export { cauDatCocKhiXacNhan, chanKhaiCocLai, tienDonVe } from "./dat-coc";
 // Trả sau theo hạn mức (ADR-0168): hàm công bố cho gốc lắp ráp tiêm vào `ctx` của orders / ve-dien-tu (orders không import billing).
 export { cauGacPhienBan, cauTangPhienBan, hanMucHieuLuc, kiemTraSau, maDonTraSauDaXacNhan, noCuaBenDat, traSauCuaDon } from "./tra-sau";
 export { nhacHanTraSau, nhacHanTraSauAnToan } from "./tra-sau-nhac";
+/** ADR-0178 Đ2, ADR-0230 Đ1: dấu «Trả sau theo dịch vụ» đang mở (dạng luật thuần `DauDichVu`) — cho cổng Trả sau ở bước sau. KHÔNG tự kiểm quyền. */
+export { dauTraSauDichVu } from "./tra-sau-dich-vu-route";
 // ADR-0182 Đ2 mục 2: số của phiếu công nợ MỘT đơn (phần nghiệp vụ «Công nợ đại lý»). KHÔNG tự kiểm quyền — route của receipt hỏi `xemDuocPhieuCongNo` trước.
 export { phieuCongNoCuaDon } from "./cong-no-dai-ly";
 // ADR-0182 phần B: số của phiếu kèm phần khoản nộp + DTO khoản nộp — route phiếu của receipt gọi SAU `xemDuocPhieuCongNo`. KHÔNG tự kiểm quyền.

@@ -7,7 +7,7 @@ import { route, type AppModule } from "../../shared/router";
 import type {
   CatalogNgungBanResponse,
   CatalogAdminGroupDto, CatalogAdminItemDto, CatalogAdminResponse, CatalogConflictCountResponse, CatalogGroupAssignResponse, CatalogGroupHistoryResponse, CatalogGroupResponse,
-  CatalogGroupsResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse,
+  CatalogGroupsResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse, DanhMucTraSauDichVu,
 } from "../../shared/contracts";
 import { CATALOG_CODE_RE as CODE_RE, MAX_AMOUNT_VND as MAX_PRICE, PAX_LABEL, PAX_ORDER, parseUnit, type EffectiveService, type PaxCode } from "../../shared/order-lines";
 import { getSyncState, loadAll, loadOne, saveOverride, type StoredItem } from "./repository";
@@ -70,6 +70,21 @@ export async function nguonVeTheoMa(db: D1Database, codes: readonly string[]): P
   if (codes.length === 0) return new Map();
   const [hien, nhomCua] = await Promise.all([nguonVeHienHanh(db), nhomHienHanhTheoMa(db)]);
   return new Map(codes.map((ma) => [ma, nguonVeCua(ma, nhomCua.get(ma) ?? null, hien).nguonVe]));
+}
+
+/**
+ * ADR-0178 Đ2, ADR-0230 Đ1: danh mục cho dấu «Trả sau theo dịch vụ» của `billing` (gốc lắp ráp tiêm — billing không import catalog). Mọi dịch vụ trong danh mục (kể cả đang ẩn):
+ * tên hiển thị, nhóm hiện tại (kể cả nhóm tắt), «Có vé» và «Vé do ai phát» ĐÃ GỘP bằng cùng luật thuần với `coVeTheoMa` / `nguonVeTheoMa`; mọi nhóm: tên + cờ bật. KHÔNG tự kiểm quyền.
+ */
+export async function danhMucChoTraSauDichVu(db: D1Database): Promise<DanhMucTraSauDichVu> {
+  const [dv, co, nguon, nhomCua, nhoms] = await Promise.all([getEffectiveServices(db), coVeHienHanh(db), nguonVeHienHanh(db), nhomHienHanhTheoMa(db), danhSachNhom(db)]);
+  return {
+    dichVu: new Map([...dv.values()].map((s) => {
+      const nhom = nhomCua.get(s.code) ?? null;
+      return [s.code, { ten: s.name, nhom, coVe: coVeCua(s.code, nhom, co).coVe, nguonVe: nguonVeCua(s.code, nhom, nguon).nguonVe }];
+    })),
+    nhom: new Map(nhoms.map((g) => [g.code, { ten: g.name, dangBat: g.active === 1 }])),
+  };
 }
 
 /**

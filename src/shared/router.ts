@@ -1,7 +1,7 @@
 // Router tối giản cho Worker (không thư viện). Module khai route: phương thức + đường dẫn + mức truy cập; router lo phần chung:
 // khớp đường dẫn, 401/403/404/405 thống nhất, chặn ghi cross-site (CSRF), bắt lỗi toàn cục → 500 JSON có requestId.
 // Router KHÔNG import module nào: cách xác định "ai đang đăng nhập" do gốc lắp ráp (src/index.ts) truyền vào.
-import type { StaffProfile } from "./contracts";
+import type { DanhMucTraSauDichVu, StaffProfile } from "./contracts";
 import type { ThayDoiDon, TrangThaiPhuTrach } from "./bang-tin.ts";
 import { NGUONG_MAC_DINH } from "./giay-to-hien-thi.ts";
 import { error, json } from "./http.ts";
@@ -360,6 +360,11 @@ export interface Ctx<A extends Access = Access> {
    * cổng thật là 409 `sales_blocked` ở các cửa ghi đơn. Môi trường không tiêm (khung thử cũ), mảng rỗng, chưa đăng nhập ⇒ tập rỗng (không lọc).
    */
   dichVuBiChanChoToi: (codes: readonly string[]) => Promise<ReadonlySet<string>>;
+  /**
+   * DANH MỤC CHO DẤU «TRẢ SAU THEO DỊCH VỤ» (ADR-0178 Đ2, ADR-0230 Đ1) — do gốc lắp ráp tiêm (`catalog`; `billing` KHÔNG import `catalog`): tên, nhóm hiện tại, «Có vé» và
+   * «Vé do ai phát» đã gộp của mọi dịch vụ, tên + cờ bật của mọi nhóm. KHÔNG tự kiểm quyền. Môi trường không tiêm, chưa đăng nhập ⇒ `null` (route đặt dấu 503, không đoán «hợp lệ»).
+   */
+  danhMucTraSauDichVu: () => Promise<DanhMucTraSauDichVu | null>;
   /** GỘP HỒ SƠ (ADR-0068) — do gốc lắp ráp tiêm; xem `GopHoSoNoi`. Lười: chỉ gọi hàm tiêm khi route dùng (khung thử cũ không có hàm này vẫn chạy route khác). */
   gopHoSo: GopHoSoNoi;
   /** ADR-0155 C3 — xem `ViecDoKhiThoiVai`. `null` = môi trường không tiêm (khung thử cố ý) ⇒ route từ chối gỡ (503), không đoán «không có việc dở». */
@@ -606,6 +611,8 @@ export interface AppOptions {
     nguoiLapConThayMat?: (env: Env, staffId: string, orgPartyId: string) => Promise<boolean>;
     /** ADR-0146 Đ4 (T9). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `nguoiHuongCuaHoSo` + `kiemLuatBan` của pricing); thiếu (khung thử cũ) → router trả tập rỗng. */
     dichVuBiChanChoToi: (env: Env, actor: StaffProfile, codes: readonly string[]) => Promise<ReadonlySet<string>>;
+    /** ADR-0178 Đ2, ADR-0230 Đ1. Mã chạy thật (`src/index.ts`: `danhMucChoTraSauDichVu` của catalog); thiếu (khung thử cũ) → router trả `null`. */
+    danhMucTraSauDichVu?: (env: Env) => Promise<DanhMucTraSauDichVu>;
     /** GỘP HỒ SƠ (ADR-0068). BẮT BUỘC trong mã chạy thật (`src/index.ts`). */
     gopHoSo: (env: Env) => GopHoSoNoi;
     /** ADR-0155 C3. BẮT BUỘC trong mã chạy thật (`src/index.ts`: `donChuaXacNhanCua` của orders + `viecDoKhiThoiVai` của pricing); thiếu (khung thử cố ý) → router trả `null`. */
@@ -837,6 +844,7 @@ export function createApp(opts: AppOptions) {
       cheDoThanhVien: (org) => (who && typeof opts.injected.cheDoThanhVien === "function" ? opts.injected.cheDoThanhVien(envH, org) : Promise.resolve("SOAN_VA_GUI" as const)),
       dichVuBiChanChoToi: (codes) =>
         who && codes.length > 0 && typeof opts.injected.dichVuBiChanChoToi === "function" ? opts.injected.dichVuBiChanChoToi(envH, who, codes) : Promise.resolve(new Set<string>()),
+      danhMucTraSauDichVu: () => (who && typeof opts.injected.danhMucTraSauDichVu === "function" ? opts.injected.danhMucTraSauDichVu(envH) : Promise.resolve(null)),
       // Lười (kế hoạch R9): gọi opts.injected.gopHoSo(env) trong từng phương thức — app dựng bằng injected cũ (src/shared/router.test.ts) không vỡ ở route khác.
       gopHoSo: {
         viecCua: (id) => opts.injected.gopHoSo(envH).viecCua(id),
