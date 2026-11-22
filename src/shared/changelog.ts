@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Bản dùng thử demo.tourdao.vn (kế hoạch 16 việc 21/11, Việc 1; ADR-0223). Nhánh claude/beautiful-engelbart-74cf25. Không migration. Bản chính thức không đổi hành vi.
+    // SỐ TẠM 3.28 (3.27 là sửa tệp đầu trang, đã nhập main 22/11; việc 1 là lượt nhập số 10): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.28",
+    date: "2026-11-22",
+    items: [
+      { kind: "moi", text: "Có bản dùng thử riêng ở demo.tourdao.vn để người mới tự bấm thử Nền tảng với vai trò mình chọn. Dữ liệu mẫu tự xoá mỗi 2 giờ, không chạm dữ liệu thật." },
+    ],
+  },
+  {
     // Tệp đầu trang web/giu-cho-dai.ts không ném khi lệnh đọc / ghi sessionStorage bị chặn (kịch bản chip-nhom-smoke bước 12). Nhánh claude/recursing-mahavira-be4522.
     // Không migration. SỐ TẠM 3.27 (3.26 là Việc 4 Kho vé, đã nhập main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
     version: "3.27",
