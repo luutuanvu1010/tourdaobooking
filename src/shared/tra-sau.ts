@@ -120,7 +120,8 @@ export function lyDoKhongTraSau(i: { hanMuc: HanMucHieuLuc | null; noHienTai: nu
 
 /**
  * ADR-0198 Đ1 mục 1: «đối tác» = tài khoản giữ quyền Đối tác và KHÔNG giữ quyền Kế toán (cùng cách nhận diện của ADR-0196 mục 1). Chỉ đổi điều người đó NHÌN THẤY
- * (câu báo, chữ trên màn hình, lựa chọn sẵn) — không bao giờ là điều kiện cho phép.
+ * (câu báo, chữ trên màn hình, lựa chọn sẵn). Ngoại lệ DUY NHẤT (ADR-0224 Đ2.1, sửa ADR-0198 Đ1.1): cổng lưu đơn `congTraSauKhiLuu` dùng nó để TỪ CHỐI «Thanh toán ngay»
+ * khi Trả sau dùng được — chỉ siết, không bao giờ cho thêm quyền.
  */
 export const laDoiTacTraSau = (who: { readonly permissions: readonly string[] }): boolean => who.permissions.includes("PARTNER") && !who.permissions.includes("ACCOUNTING");
 
