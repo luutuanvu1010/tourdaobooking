@@ -56,7 +56,7 @@ import { cauNhacKhoan, quaHanDoiChieu, soNgayCho } from "../src/shared/doi-chieu
 import { CAU_DOI_TAC_TU_GHI, NHAN_O_THU_CHO, hinhThucChoPhep, luaChonNguoiThuSoKeToan, cauBenKiaDaNhan, cauCanhBaoGiamGia, cauChoKeToan, laBenKia, luaChonNguoiThu, luaChonThuCho, lyDoCanTaiLai, nguoiThuTuGiaTri, oThuCho } from "../src/shared/ben-kia-hien-thi";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_VALUE } from "../src/shared/booker";
-import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay, nhanBenDat } from "../src/shared/phan-doi-tac-hien-thi";
+import { coODatQuaDoiTac, coXemNguoiBan, coXemPhanDoiTac, duocGhiTay, nhanBenDat, traDoiTacTheoSo } from "../src/shared/phan-doi-tac-hien-thi";
 import { initPhanDoiTac } from "./phan-doi-tac";
 import { initVeDon } from "./ve-don";
 import { handlerControls, handlerFailure, handlerSaved, hoiDuocNguoiPhuTrach, nguoiPhuTrachTuPhien, nhanChoNhan } from "../src/shared/handler-view";
@@ -1744,6 +1744,7 @@ function bookerButton(order: Order): HTMLButtonElement {
       {
         order,
         coDatQuaDoiTac: coODatQuaDoiTac(staff!),
+        theoSo: traDoiTacTheoSo(staff!),
         onSaved: () =>
           void load().then(() => {
             if (bannerEl.hidden) show(banner("info", "Đã đổi khách."));

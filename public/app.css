@@ -1550,8 +1550,8 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .catalog-khoa { display: flex; align-items: center; gap: var(--s2); margin: 0; padding: var(--s2) var(--s3); font-weight: var(--fw-semibold); color: var(--c-text); background: var(--c-surface-alt); border-radius: var(--radius-sm); }
 .catalog-khoa svg { flex: none; }
 .catalog-tim { position: relative; }
-.catalog-tim #catalog-q { margin-top: 0; padding-right: var(--tap-min); padding-left: var(--tap-min); }
-#catalog-q::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; } /* đã có nút ✕ riêng (vùng chạm 44px) */
+.catalog-tim #catalog-q, .catalog-tim .catalog-q { margin-top: 0; padding-right: var(--tap-min); padding-left: var(--tap-min); } /* lớp .catalog-q: bộ chọn có idTien và thanh lọc Kho vé (Việc 4) */
+#catalog-q::-webkit-search-cancel-button, .catalog-q::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; } /* đã có nút ✕ riêng (vùng chạm 44px) */
 .catalog-tim-kinh { position: absolute; top: 50%; left: var(--s3); display: flex; color: var(--c-text-muted); transform: translateY(-50%); pointer-events: none; }
 .catalog-tim-xoa { position: absolute; top: 50%; right: 0; display: flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); padding: 0; color: var(--c-text-muted); background: none; border: 0; border-radius: var(--radius-sm); transform: translateY(-50%); cursor: pointer; }
 .catalog-tim-xoa:focus-visible { outline: var(--focus-ring) solid var(--c-primary); outline-offset: calc(-1 * var(--focus-ring)); }
@@ -1575,7 +1575,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .catalog.is-khoa .catalog-khung, .catalog.is-khoa .catalog-hang { opacity: .5; } /* đơn đủ 20 dịch vụ / đơn khoá: hàng nhóm và khung inert, hiện mờ */
 .catalog-dau { padding: var(--s2) var(--s3); font-size: var(--fs-label); font-weight: var(--fw-semibold); color: var(--c-text-muted); background: var(--c-surface-alt); border-bottom: 1px solid var(--c-border); }
 .catalog-dau:empty::before { content: "\00a0"; } /* chưa có danh mục: giữ nguyên chiều cao đầu khung (khung không nhảy khi dữ liệu về) */
-#catalog-list.catalog-list { position: relative; isolation: isolate; height: var(--h-danh-sach); overflow-y: auto; overscroll-behavior: contain; } /* isolation: z-index của tiêu đề mục dính chỉ có nghĩa trong khung — không vẽ đè thanh Lưu dính đáy (không z-index) khi khung chạy dưới thanh */
+#catalog-list.catalog-list, .catalog-khung > .catalog-list { position: relative; isolation: isolate; height: var(--h-danh-sach); overflow-y: auto; overscroll-behavior: contain; } /* isolation: z-index của tiêu đề mục dính chỉ có nghĩa trong khung — không vẽ đè thanh Lưu dính đáy (không z-index) khi khung chạy dưới thanh */
 .catalog-muc { position: sticky; top: 0; z-index: 1; padding: var(--s2) var(--s3) var(--s1); font-size: var(--fs-badge); font-weight: var(--fw-bold); letter-spacing: var(--ls-eyebrow); text-transform: uppercase; color: var(--c-text-muted); background: var(--c-surface); border-bottom: 1px solid var(--c-border); }
 .catalog-row { display: flex; align-items: stretch; border-bottom: 1px solid var(--c-border); }
 .catalog-list button { min-height: var(--tap-min); font: inherit; color: var(--c-text); background: none; border: 0; cursor: pointer; }
@@ -3879,6 +3879,7 @@ a.bk-hang:hover, a.bk-the:hover { background: var(--c-soft-hover); }
 .khach-dau { flex-wrap: wrap; }
 .khach-dau-nut { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s3); justify-content: flex-end; } /* N5: hai nút điền sẵn («của tôi», «đối tác») xuống dòng được ở khổ hẹp */
 .khach-dau .btn-link { color: var(--c-primary); }
+#use-partner-bao a { white-space: nowrap; } /* Việc 3: lối «Mở hồ sơ ở Danh bạ» / «Thêm số ở Danh bạ» không gãy giữa chữ */
 .buoc[data-an-khach] > :not(.khach-ngay) { display: none; } /* ADR-0154 Đ2.2: công tắc «Ẩn thông tin khách» áp cho đối tác — chỉ còn dòng «Ngày khởi hành» của khối Khách */
 .buoc[data-an-khach] .khach-ngay { padding-bottom: 0; margin-bottom: 0; border-bottom: 0; }
 .booker-chua { font-size: var(--fs-label); } /* "Hồ sơ khách: chưa liên kết (không bắt buộc)" — chữ xám, không còn nhãn vàng */

@@ -2,7 +2,7 @@
 // Hàm công bố cho orders: docBangChoChup (đọc mọi thứ để chụp lúc Xác nhận / đổi bên đặt), laNguoiHuong (bên đặt tổ chức có được gắn vào đơn không).
 import { auditStatement } from "../audit";
 import { getEffectiveServices, tenCacNhom, tenDacDiemTheoMa } from "../catalog";
-import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, suaLoaiDoiTacStatement, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
+import { datHoatDongLoaiDoiTacStatement, findPartiesByPhone, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, suaLoaiDoiTacStatement, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
 import { khoaTen } from "../../shared/khoa-ten.ts";
 import { kiemThanGioiHan, mucVuotGiaBan, viPhamGioiHanNhap } from "../../shared/gioi-han-nhap-muc.ts";
 import { nhanDong, nhanTyLeBp } from "../../shared/so-dai-ly-nhan.ts";
@@ -12,11 +12,12 @@ import type { CapCuaToChucResponse, CapDaiLyResponse, CapHienHanhResponse, CapMa
   LuatBanDto, LuatBanListResponse, LuatBanResponse, NguoiHuongTimResponse, SuaGanLoaiResponse, SuaMucResponse, SuaXemTruocResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
 import { coTheTimDoiTac } from "../../shared/hoa-hong-hien-thi";
+import { soTimDoiTac } from "../../shared/phan-doi-tac-hien-thi";
 import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule, type HoiDaChup } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { ngayDayDu, vnToday } from "../../shared/vn-date";
-import { cauApCsDangKy, cauThemCsDangKy, coCapRiengTuNgay, csDangKyCuaLoai, csDangKyHieuLuc, cauThemGioiHanNhap, gioiHanNhapMoiNhat, type GioiHanNhapRow, cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
+import { cauApCsDangKy, cauThemCsDangKy, coCapRiengTuNgay, csDangKyCuaLoai, csDangKyHieuLuc, cauThemGioiHanNhap, gioiHanNhapMoiNhat, type GioiHanNhapRow, cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, findBeneficiariesAmong, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
   insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, hoSoCapDaiLy, openBeneficiaryRolesAll, openRolesOf, partyTiersHistory, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
   roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, soHoSoTheoVai, suaMucTaStatement, suppliers, tenNhanVienTheoId, termById, termsOn, type PartyTierRow, type RoleTierRow, type RuleRow, type TermRow, type TierRow, type XuLyDongCu , viecDoKhiThoiVai as viecDoKhiThoiVaiRepo } from "./repository";
 import { MA_RE, MUC_TA_RE, PARTY_RE, capHienHanhCuaHoSo, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemNgung, kiemSua, xemTruocSua, kiemThanDoiChinhSach, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
@@ -1219,12 +1220,16 @@ export const pricingModule: AppModule = {
       return json({ dong: dtoDk((await termById(env.DB, id))!, cty?.partyId ?? null, vnToday(new Date())) });
     }),
     // Tìm người hưởng theo tên cho form lập đơn (bên đặt là công ty lữ hành…) và trang Hoa hồng: người LẬP ĐƠN hoặc người ĐẶT MỨC (Kế toán), không phải tài khoản Đối tác (ADR-0141, cổng = `coTheTimDoiTac`). Chỉ id, tên, loại hồ sơ — không liên hệ.
+    // Việc 3 (21/11/2026): gõ đủ một số điện thoại ⇒ tìm theo số liên hệ đang mở — chỉ với người vốn tra được hồ sơ theo số (`soTimDoiTac` = cổng GET /api/parties/lookup); không thì theo tên.
     route("GET", "/api/pricing/nguoi-huong", "orders", async ({ env, url, staff }) => {
       // Hai vế cố ý trùng: `can(` trực tiếp để hàng rào route-write-guard (không thêm tên vào GUARDS) nhận ra cổng; `coTheTimDoiTac` để máy chủ và trang dùng chung một hàm (ADR-0141 Đ1).
       if (!(can(staff, "order.create") || can(staff, "partner.commission.write")) || !coTheTimDoiTac(staff)) return FORBIDDEN();
       const q = (url.searchParams.get("q") ?? "").trim().slice(0, 60);
+      const so = soTimDoiTac(staff, q);
       // Câu SQL tự bọc '%' || ?1 || '%': đưa vào phần giữa của mauLikeChua (≤ 48 byte) để cả mẫu ≤ 50 byte (D1 từ chối quá giới hạn).
-      const rows = await findBeneficiaries(env.DB, mauLikeChua(q).slice(1, -1));
+      const rows = so
+        ? await findBeneficiariesAmong(env.DB, (await findPartiesByPhone(env.DB, so, vnToday(new Date()))).map((p) => p.id))
+        : await findBeneficiaries(env.DB, mauLikeChua(q).slice(1, -1));
       return json({ ketQua: rows.map((r) => ({ partyId: r.id, ten: r.display_name, loai: r.party_kind })) } satisfies NguoiHuongTimResponse);
     }),    ...phiDonRoutes, // ADR-0147 Đ2: bảng phí đưa đón (phi-don-route.ts; đã khai ở TEP_ROUTE_PHU của route-write-guard.test.ts)
   ],

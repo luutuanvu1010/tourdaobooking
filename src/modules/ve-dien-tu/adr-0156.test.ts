@@ -383,7 +383,8 @@ test("lô đã huỷ: Bán hàng, Quản trị, Toàn quyền xem được, Kế
   assert.equal(r.json.hanLuuNgay, 3);
   assert.equal(r.json.lo.length, 1);
   const l = r.json.lo[0];
-  assert.deepEqual(Object.keys(l).sort(), ["huyBoi", "huyLuc", "loId", "nhomKhach", "tenDichVu", "tenSanPham", "ve"], "không thêm ô nào ngoài danh sách đã duyệt");
+  // `catalogCode` (kế hoạch 16 việc 21/11, Việc 4): mã dịch vụ của lô để trang lọc theo nhóm dịch vụ — không nhạy cảm, GET /api/ve/kho đã trả mã này cho cùng người xem; không hiện trên trang.
+  assert.deepEqual(Object.keys(l).sort(), ["catalogCode", "huyBoi", "huyLuc", "loId", "nhomKhach", "tenDichVu", "tenSanPham", "ve"], "không thêm ô nào ngoài danh sách đã duyệt");
   assert.deepEqual([l.loId, l.tenSanPham, l.tenDichVu, l.nhomKhach, l.huyBoi], [loId, "Vé huỷ thử", "Vinwonders 2 ngày", "ADULT", "NV 01"]);
   assert.match(l.huyLuc, /^\d{4}-\d{2}-\d{2}T/);
   assert.equal(l.ve.length, 2);

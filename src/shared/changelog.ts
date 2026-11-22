@@ -18,13 +18,52 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Bỏ thu hộ chuyển khoản ở đơn đối tác (kế hoạch 16 việc 21/11, Việc 5; ADR-0225). Nhánh claude/suspicious-almeida-d32ea2. CÓ migration 0184.
-    // SỐ TẠM 3.26: bước A.0 đặt lại số và ngày theo nhánh nhập trước (Việc 2 nhập trước việc này).
-    version: "3.26",
-    date: "2026-11-21",
+    // SỐ TẠM 3.30 (3.29 = Việc 2, 3.28 = Việc 3 đã ở main 22/11): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. CÓ migration 0184.
+    version: "3.30",
+    date: "2026-11-23",
     items: [
       { kind: "doi", text: "Màn Tạo đơn của đối tác không còn ô «Khách đặt cọc cho đối tác» và không còn chữ gợi ý «nội dung chuyển khoản»." },
       { kind: "doi", text: "Đơn của đối tác xác nhận từ bản này (kể cả văn phòng lập «Qua đối tác»): Tour Đảo chỉ thu hộ tiền mặt, trang đơn không còn mã QR." },
       { kind: "doi", text: "Ở các đơn đó, hướng dẫn viên và nhân viên chỉ ghi được khoản thu tiền mặt. Đơn xác nhận trước bản này giữ như cũ." },
+    ],
+  },
+  {
+    // Đối tác Trả sau chỉ thấy «Trả sau» (kế hoạch 16 việc 21/11, Việc 2; ADR-0224). Nhánh claude/great-montalcini-69b67b. Không migration.
+    // SỐ TẠM 3.29 (3.28 là Việc 3, 3.27 là sửa giu-cho-dai): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.29",
+    date: "2026-11-22",
+    items: [
+      { kind: "doi", text: "Đối tác được trả sau: màn Tạo đơn chỉ còn «Trả sau»." },
+      { kind: "doi", text: "Khi Trả sau tạm khoá (có đơn quá hạn) hoặc đơn vượt mức được trả sau, «Thanh toán ngay» hiện lại kèm câu lý do." },
+    ],
+  },
+  {
+    // Tìm đối tác theo số điện thoại ở màn Tạo đơn (kế hoạch 16 việc 21/11, Việc 3). Nhánh claude/nostalgic-jepsen-bb3f99. Không migration.
+    // SỐ TẠM 3.28 (3.27 = bản sửa «giữ chỗ dải» ee0bc120d đã ở main 22/11 06:17; bản chạy thật 3.26): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.28",
+    date: "2026-11-22",
+    items: [
+      { kind: "sua", text: "Tạo đơn: ô «Tìm đối tác» nhận cả số điện thoại. Gõ đủ số liên hệ của đối tác là ra đúng người, gõ tên vẫn tìm như cũ." },
+      { kind: "sua", text: "Tạo đơn: bấm «Điền thông tin đối tác» mà đối tác chưa có số điện thoại thì Nền tảng nói rõ ai thêm được số và mở sẵn hồ sơ ở Danh bạ." },
+    ],
+  },
+  {
+    // Tệp đầu trang web/giu-cho-dai.ts không ném khi lệnh đọc / ghi sessionStorage bị chặn (kịch bản chip-nhom-smoke bước 12). Nhánh claude/recursing-mahavira-be4522.
+    // Không migration. SỐ TẠM 3.27 (3.26 là Việc 4 Kho vé, đã nhập main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.27",
+    date: "2026-11-22",
+    items: [
+      { kind: "sua", text: "Trình duyệt đang chặn lưu dữ liệu (chế độ riêng tư trên máy cũ): Nền tảng không còn báo lỗi ngầm khi mở trang, vẫn chạy như thường." },
+    ],
+  },
+  {
+    // Bộ lọc dùng chung của Kho vé (kế hoạch 16 việc 21/11, Việc 4). Nhánh claude/nostalgic-newton-418d14. Không migration.
+    // SỐ TẠM 3.26 (3.25 là Việc 16, đã nhập main 21/11; bản chạy thật 3.24): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.26",
+    date: "2026-11-21",
+    items: [
+      { kind: "moi", text: "Kho vé: thanh «Lọc theo dịch vụ» đầu trang. Chọn nhóm hoặc gõ tên (không dấu cũng được) là cả ba danh sách vé cùng thu hẹp, kể cả lô ở trang sau.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+      { kind: "doi", text: "Tạo vé Tour Đảo: chọn dịch vụ bằng ô tìm và hàng nhóm giống bước nhập lô vé, thay cho danh sách thả xuống." },
     ],
   },
   {

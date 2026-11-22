@@ -17,7 +17,7 @@ import { soKhachDoan } from "../src/shared/hanh-khach";
 import { banHangSuaDuoc, suaChuyenDuoc, suaKhachDuoc } from "../src/shared/order-view";
 import { can as canNv } from "../src/shared/permissions";
 import { NHAN_NUT_XAC_NHAN } from "../src/shared/xac-nhan-hien-thi";
-import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, CAU_DOI_TAC_CHUA_CO_SDT, doiTacThieuVaiTro, gopBenDat, hienNutDienDoiTac, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, type BenDatChon, type KhoiBenDatForm } from "../src/shared/phan-doi-tac-hien-thi";
+import { CAU_DAI_BAO_DOI_TAC_THIEU_VAI_TRO, baoDoiTacChuaCoSdt, doiTacThieuVaiTro, gopBenDat, hienNutDienDoiTac, khoiBenDatForm, nhanSdtKhach, nhanTenKhach, noiNapBenDat, traDoiTacTheoSo, type BenDatChon, type KhoiBenDatForm } from "../src/shared/phan-doi-tac-hien-thi";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, chiGiaDanhMuc, holdsIntern, holdsPartner } from "../src/shared/permissions";
 import { GOI_Y_GIAM_GIA_DOI_TAC, duaDonAnHetLuot, formGonDoiTac, HIEN_O_DAT_COC_DOI_TAC, nhanGapGiaiThichTien } from "../src/shared/form-dat-ve";
@@ -50,7 +50,7 @@ import { cheDoTuCach, laTuCachThanhVien, nhanMucTuCach, tuCachBanDau, type TuCac
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
 import { CAU_COC_TRA_SAU, CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
-import { cauChonTraSau, duocChonSanTraSau, quyetHinhThuc } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { cauChonTraSau, duocChonSanTraSau, hinhThucDuocNhan, quyetHinhThuc, type TrangThaiTraSau } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { NHAN_HINH_THUC, laDoiTacTraSau } from "../src/shared/tra-sau";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
@@ -815,6 +815,9 @@ async function onSaveError(err: unknown): Promise<void> {
   await hienLaiKhoiKhachNeuCan(err); // ADR-0154 Đ2.3: công tắc vừa tắt khi khối khách đang ẩn → hiện lại khối (câu lỗi của máy chủ giữ nguyên bên dưới)
   await hienLaiNoiDonNeuCan(err); // ADR-0221: công tắc «Đối tác không nhập nơi đón» vừa tắt giữa lúc soạn → ô «Nơi đón» hiện lại
   const daBoChang = err instanceof ApiError && err.code === "transfer_disabled" ? await boChangNhomVuaTat() : "";
+  // ADR-0224 Đ3: đối tác vượt mức ⇒ hiện lại «Thanh toán ngay» (câu máy chủ bảo chọn nó); máy chủ vừa đòi Trả sau ⇒ hỏi lại hạn mức để chọn lại.
+  if (err instanceof ApiError && err.code === "vuot_han_muc" && laDoiTacTraSau(staff)) { vuotTuMayChu = benDatId(); void napTraSau(); }
+  if (err instanceof ApiError && err.code === "tra_sau_bat_buoc_doi_tac") { vuotTuMayChu = null; void napTraSau(); }
   if (failure.action === "lock_form") lockForm(failure);
   renderBanner(saveErrorEl, daBoChang ? banner("warning", `${daBoChang} Bấm Lưu lại.`) : failure, { reloadOrder: () => void loadOrder(), reloadPage: () => location.reload() });
   gapChiTietKhiLoi();
@@ -1411,21 +1414,35 @@ function benDatId(): string | null {
   return (bookerPicker.payload() as { bookerPartyId?: string | null }).bookerPartyId ?? null;
 }
 let traSauLuot = 0;
+/** ADR-0224 Đ3: bên đặt mà máy chủ vừa báo vượt mức cho đơn của đối tác (lỗi lưu `vuot_han_muc`) — chỉ máy chủ tính đúng tổng nên không so số ở đây. */
+let vuotTuMayChu: string | null = null;
 async function napTraSau(): Promise<void> {
   const luot = ++traSauLuot;
   const id = benDatId();
   const laDoiTac = laDoiTacTraSau(staff); // ADR-0198 Đ1: đối tác không thấy số hạn mức
   let c = cauChonTraSau({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false, laDoiTac });
+  let trangThai: TrangThaiTraSau = "khong_co";
   if (id) {
-    try { c = cauChonTraSau({ ...(await api<Api.ConDuocDungTraSauResponse>(`/api/tra-sau/con-duoc-dung?benDat=${encodeURIComponent(id)}`)), laDoiTac }); } catch { return; /* không đọc được: giữ nguyên lựa chọn đang có, máy chủ vẫn kiểm lại lúc lưu */ }
+    try {
+      const r = await api<Api.ConDuocDungTraSauResponse>(`/api/tra-sau/con-duoc-dung?benDat=${encodeURIComponent(id)}`);
+      c = cauChonTraSau({ ...r, laDoiTac });
+      trangThai = !r.coHanMuc ? "khong_co" : r.coDonQuaHan ? "qua_han" : vuotTuMayChu === id ? "vuot" : "dung_duoc";
+    } catch {
+      // Không đọc được: giữ nguyên lựa chọn đang có, máy chủ vẫn kiểm lại lúc lưu. ADR-0224 Đ2.2: máy chủ nhận «Thanh toán ngay» khi không đọc được hạn mức ⇒ hiện lại nút đó.
+      if (luot === traSauLuot) oHinhThuc("PREPAID").closest("label")!.hidden = false;
+      return;
+    }
   }
   if (luot !== traSauLuot) return; // có lần hỏi mới hơn (đổi bên đặt liên tục): bỏ kết quả cũ
-  const q = quyetHinhThuc({ dangChon: hinhThucMuon, c, benDatChuaNap: id === null && !donDaNap, chonSan: duocChonSanTraSau({ laDoiTac, donMoi: !editId, daChon: daChonHinhThuc }) });
+  // ADR-0224 Đ2.4: cùng luật với cổng lưu đơn của máy chủ; văn phòng không truyền `chonDuoc` (giữ y như trước).
+  const luat = laDoiTac ? hinhThucDuocNhan({ laDoiTac, traSau: trangThai }) : null;
+  const q = quyetHinhThuc({ dangChon: hinhThucMuon, c, benDatChuaNap: id === null && !donDaNap, chonSan: duocChonSanTraSau({ laDoiTac, donMoi: !editId, daChon: daChonHinhThuc }), ...(luat ? { chonDuoc: luat.chonDuoc } : {}) });
   traSauHien = c.hien;
   khoiTraSau.hidden = !c.hien;
   byId("hinh-thuc-cho").hidden = !formGon || !c.hien; // H1: thẻ chứa ở cột phải chỉ hiện khi form Đối tác có lựa chọn Trả sau
-  byId("tra-sau-cau").textContent = c.khoa ?? c.cau;
-  oHinhThuc("CREDIT").disabled = c.khoa !== null;
+  byId("tra-sau-cau").textContent = luat?.lyDo ?? c.khoa ?? c.cau;
+  oHinhThuc("PREPAID").closest("label")!.hidden = luat !== null && !luat.chonDuoc.includes("PREPAID"); // ADR-0224 Đ3: đối tác dùng được Trả sau chỉ thấy «Trả sau»
+  oHinhThuc("CREDIT").disabled = c.khoa !== null || (luat !== null && !luat.chonDuoc.includes("CREDIT"));
   oHinhThuc(q.chon).checked = true;
   const bao = byId("tra-sau-bao");
   bao.textContent = q.bao ?? "";
@@ -1472,7 +1489,7 @@ if (khoiBenDat.kieu === "chi-doc") {
   };
   datNhanKhach(true); // bên đặt là đối tác (máy chủ ép): hai ô khách là của người đi tour
 } else if (khoiBenDat.kieu === "tra-sdt-va-dat-qua") {
-  datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat }); // công tắc "Đơn của: Khách lẻ | Qua đối tác" ở hàng đầu khối Khách hàng
+  datQua = oDatQuaDoiTac({ daChon: null, onDoi: datBenDat, theoSo: traDoiTacTheoSo(staff) }); // công tắc "Đơn của: Khách lẻ | Qua đối tác" ở hàng đầu khối Khách hàng
   byId("don-cua-slot").append(datQua); // hàng đầu của khối "Khách hàng"
 }
 // R-P15: mốc cho biểu mẫu chưa lưu — chỉ người được lập đơn (máy chủ hỏi order.create). Lỗi / chưa có chính sách (503) → không cảnh báo; máy chủ vẫn chặn lúc xác nhận.
@@ -1504,7 +1521,7 @@ byId("use-mine").addEventListener("click", () => {
   }
 });
 // N5: «Điền thông tin đối tác» — lấy tên + số điện thoại chính từ hồ sơ đối tác đã chọn (GET /api/parties/:id, cổng văn phòng + party.view) rồi điền như «Điền thông tin của tôi».
-// Đối tác chưa có số → báo nhẹ, không điền rỗng, không xoá ô đang có.
+// Đối tác chưa có số → báo nhẹ kèm lối mở hồ sơ ở Danh bạ (tab mới — form đang gõ không mất; Việc 3), không điền rỗng, không xoá ô đang có, không tự chép số đăng nhập.
 byId("use-partner").addEventListener("click", async () => {
   const chon = daChonBenDat;
   if (!hienNutDienDoiTac(staff, chon)) return;
@@ -1513,7 +1530,8 @@ byId("use-partner").addEventListener("click", async () => {
     const { party } = await api<Api.PartyResponse>(`/api/parties/${encodeURIComponent(chon!.partyId)}`);
     if (daChonBenDat?.partyId !== chon!.partyId) return; // người lập đã đổi đối tác trong lúc chờ
     if (!party.primaryPhone) {
-      bao.textContent = CAU_DOI_TAC_CHUA_CO_SDT;
+      const b = baoDoiTacChuaCoSdt(party);
+      replaceChildren(bao, `${b.cau} `, h("a", { href: b.href, target: "_blank", rel: "noopener", "data-action": "them-so-doi-tac" }, b.nhanLienKet));
       bao.hidden = false;
       return;
     }

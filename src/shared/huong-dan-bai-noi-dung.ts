@@ -44,7 +44,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
     noiDung: `### Các bước
 1. **Tải vé từ nhà cung cấp.** Mỗi lần chỉ tải đúng một sản phẩm, một loại khách, một khoảng ngày dùng. Giữ nguyên ảnh gốc, vì ảnh nén quá nhỏ có thể không đọc được QR.
 2. **Nhập vào kho.** Chọn dịch vụ và loại khách, gõ tên sản phẩm, chọn ngày dùng, chọn các ảnh vé rồi bấm [[Nhập lô vé]]. Giữ nguyên trang này cho tới khi gửi xong. Ảnh hỏng hoặc trùng bị loại kèm tên tệp, các ảnh còn lại vẫn vào kho.
-3. **Máy giữ vé cho đơn.** Máy tự giữ vé theo số khách khi đơn được xác nhận; em bé không có vé. Máy lấy lô đúng loại khách trước, rồi đến lô «Mọi loại khách»; trong mỗi nhóm, vé sắp hết hạn ra trước. Kho thiếu thì đơn báo còn thiếu vé: nhập thêm lô, mở đơn rồi bấm [[Cấp vé]]. Muốn biết sản phẩm nào sắp hết, xem khối **Số vé còn**: gõ tên vào ô «Tìm theo tên sản phẩm» hoặc bấm **Hết vé**, **Còn 1 đến 5**, **Còn trên 5**.
+3. **Máy giữ vé cho đơn.** Máy tự giữ vé theo số khách khi đơn được xác nhận; em bé không có vé. Máy lấy lô đúng loại khách trước, rồi đến lô «Mọi loại khách»; trong mỗi nhóm, vé sắp hết hạn ra trước. Kho thiếu thì đơn báo còn thiếu vé: nhập thêm lô, mở đơn rồi bấm [[Cấp vé]]. Muốn biết sản phẩm nào sắp hết, xem khối **Số vé còn** và bấm **Hết vé**, **Còn 1 đến 5**, **Còn trên 5**. Thanh **Lọc theo dịch vụ** ở đầu trang (chọn một nhóm dịch vụ, hoặc gõ tên, mã, tên in trên vé, không dấu cũng được) thu hẹp cùng lúc Số vé còn, Lô trong kho và Lô đã huỷ gần đây; lọc ra trống thì bấm [[Xoá lọc]].
 4. **Giao vé.** Vé chỉ mở khi đơn đã thu đủ; đơn trả sau thì vé mở trước, trừ khi đơn đã quá hạn còn nợ; với đơn do đối tác lập, chỉ tính tiền đã về công ty (đối tác tự ghi «Tôi thu» chưa đủ để mở). Bấm nút **Mở … vé để gửi khách** (có số vé của đơn; màn hình nhắc vé sẽ không về kho nữa), rồi bấm [[Gửi Zalo]] và tự chọn người nhận. Máy không có nút này thì bấm các nút **Tải vé** để lưu ảnh rồi tự gửi. Hoặc bấm [[Tạo đường dẫn cho khách]] để khách tự mở và lưu vé; đường dẫn chỉ hiện một lần, nên chép gửi ngay. Khi đơn tăng số khách, vé thêm chỉ hiện cho khách sau khi đơn thu đủ; vé khách đã mở rồi thì vẫn xem được.
 
 ### Điều dễ sai
@@ -204,7 +204,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Đổi số mới chỉ áp cho đơn xác nhận sau đó; đơn đã xác nhận giữ hạn trả cũ.
 - Quản trị chỉ đặt được hạn mức tới **Mức tối đa Quản trị được cấp** do Toàn quyền đặt ở khối **Hạn mức trả sau** cuối màn. Chưa có mức này thì Quản trị chưa cấp được cho ai.
 - Không ai tự cấp hạn mức trả sau cho hồ sơ của chính mình.
-- Đối tác không thấy con số hạn mức, chỉ thấy mình được trả sau và số giờ phải trả. Đơn mới đối tác lập được chọn sẵn «Trả sau»; đơn vượt hạn mức thì đối tác được báo chọn Thanh toán ngay hoặc liên hệ Tour Đảo.
+- Đối tác không thấy con số hạn mức, chỉ thấy mình được trả sau và số giờ phải trả. Đối tác đang được trả sau chỉ thấy lựa chọn «Trả sau», không tự chọn Thanh toán ngay được; muốn một đơn trả ngay thì văn phòng lập hộ. «Thanh toán ngay» chỉ hiện lại cho đối tác khi còn đơn quá hạn, hoặc khi đơn vượt hạn mức (đối tác được báo chọn Thanh toán ngay hoặc liên hệ Tour Đảo).
 - Bấm [[Đóng hạn mức]] (rồi xác nhận ở hộp hỏi) thì đối tác không đặt thêm đơn trả sau được, nhưng nợ cũ vẫn phải thu. Muốn giữ thì bấm «Giữ hạn mức». Đối tác còn nợ thì chưa ngừng tài khoản hay gỡ vai trò đối tác được.
 - Ngay dưới khối **Hạn mức trả sau** có thẻ **Khách của đối tác trả cho Công ty**: chỉ Toàn quyền bật, tắt. Tắt thì đơn đối tác lập từ lúc đó chỉ do chính đối tác ghi khoản thu và không có QR thanh toán; đơn đã lập giữ nguyên.
 
