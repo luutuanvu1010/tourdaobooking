@@ -1,6 +1,6 @@
 # Phần thêm cho bản nháp chính sách riêng tư: ảnh chụp lúc làm việc gắn vào đơn (để luật sư xem)
 
-Hồ sơ có ngày 21/11/2026. Đây là PHẦN THÊM cho `docs/superpowers/specs/2026-11-16-chinh-sach-rieng-tu-ban-nhap/BAN-NHAP.md`, không thay và không sửa bản đó. BẢN NHÁP, chưa được luật sư duyệt. Không đăng khi chưa điền hết chỗ trong ngoặc vuông và chưa có luật sư xác nhận. Nguồn: ADR-0232 (đề xuất). «[TÊN TÍNH NĂNG]» thay bằng tên chủ chọn.
+Hồ sơ có ngày 21/11/2026 (cập nhật 22/11: chủ chọn tên «Ảnh bàn giao», sao lưu kho ảnh giữ 4 gói ≈ 1 tháng, không chờ luật sư — ADR-0232 accepted). Đây là PHẦN THÊM cho `docs/superpowers/specs/2026-11-16-chinh-sach-rieng-tu-ban-nhap/BAN-NHAP.md`, không thay và không sửa bản đó. BẢN NHÁP, chưa được luật sư duyệt. Không đăng khi chưa điền hết chỗ trong ngoặc vuông và chưa có luật sư xác nhận. Nguồn: ADR-0232 (đề xuất). «[TÊN TÍNH NĂNG]» thay bằng tên chủ chọn.
 
 Lưu ý: bản nháp gốc viết cho người đăng ký làm đối tác. Ảnh gắn đơn chạm cả **khách đi tour** (không có tài khoản) và **nhân viên, tài xế**. Luật sư quyết chính sách có cần một phần riêng «Khách đi tour» hay không (câu hỏi 1 ở `CAU-HOI-LUAT-SU.md`).
 
@@ -37,7 +37,7 @@ Chèn vào cuối mục 4 («Ai trong công ty được xem»):
 Chèn vào cuối mục 6 («Chúng tôi giữ bao lâu»):
 
 ```
-Ảnh chụp lúc giao dịch vụ được giữ [ĐIỀN: luật sư xác nhận, đề xuất 5 năm] kể từ ngày chụp, vì [ĐIỀN: luật sư xác nhận căn cứ]. Hết hạn, ảnh được đưa vào danh sách xoá. Ảnh vô tình chụp phải giấy tờ tuỳ thân (căn cước, hộ chiếu, bằng lái) được xoá ngay khi phát hiện. Bản sao lưu của chúng tôi (đã mã hoá) còn giữ ảnh đã xoá thêm tối đa khoảng [ĐIỀN: 12 tháng hoặc 1 tháng, theo cách sao lưu chủ chọn]; nếu phải khôi phục dữ liệu từ bản sao lưu, chúng tôi xoá lại những ảnh đã xoá trước đó.
+Ảnh chụp lúc giao dịch vụ được giữ [ĐIỀN: luật sư xác nhận, đề xuất 5 năm] kể từ ngày chụp, vì [ĐIỀN: luật sư xác nhận căn cứ]. Hết hạn, ảnh được đưa vào danh sách xoá. Ảnh vô tình chụp phải giấy tờ tuỳ thân (căn cước, hộ chiếu, bằng lái) được xoá ngay khi phát hiện. Bản sao lưu của chúng tôi (đã mã hoá) còn giữ ảnh đã xoá thêm tối đa khoảng 1 tháng; nếu phải khôi phục dữ liệu từ bản sao lưu, chúng tôi xoá lại những ảnh đã xoá trước đó.
 ```
 
 Chèn vào cuối mục 9 («Quyền của bạn») — **chọn một trong hai câu theo trả lời của luật sư cho câu hỏi 4**:
