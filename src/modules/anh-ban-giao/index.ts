@@ -156,6 +156,7 @@ export const anhBanGiaoModule: AppModule = {
     route("GET", "/api/anh-ban-giao/anh/:anhId", "staff", async ({ env, request, params, staff }) => {
       const sfs = request.headers.get("sec-fetch-site");
       if (sfs !== null && sfs !== "same-origin" && sfs !== "none") return TRANG_KHAC();
+      if (!can(staff, "order.photo.view", { ownerId: staff.id })) return KHONG_XEM(); // không bao giờ xem được (Đối tác, Tài xế đối tác…) ⇒ 403 trước mọi tra cứu
       const kho = env.ANH_BAN_GIAO;
       if (!kho) return KHO_TAT();
       const anhId = params.anhId!;
