@@ -1,7 +1,8 @@
-// BẢN DÙNG THỬ (ADR-0223 Đ3.1): sau PIN của tài khoản dùng thử, hỏi «Bạn muốn dùng thử với vai nào?» rồi ghi vai vào phiên.
+// BẢN DÙNG THỬ (ADR-0223 Đ3.1): sau PIN của tài khoản dùng thử, hỏi «Bạn muốn dùng thử với vai trò nào?» rồi ghi vai trò vào phiên.
 // Danh sách vai lấy từ máy chủ (`GET /api/dung-thu` — chỉ bản dùng thử có); máy chủ kiểm lại vai ở `POST /api/account/dung-thu-vai`.
 import { ApiError, api, type Api } from "./api";
 import { h } from "./dom";
+import { khoi, thanhNut } from "./khung";
 
 interface TrangThai { khoa: boolean; lamMoiLuc: string; sdtDungThu: string; vai: { code: string; nhan: string }[] }
 
@@ -35,11 +36,8 @@ export function khungChonVai(tt: TrangThai, xong: () => void, baoLoi: (cau: stri
       },
     }, v.nhan),
   );
-  return h("section", { className: "dung-thu-vai", ariaLabel: "Chọn vai trò dùng thử" },
-    h("h2", {}, "Bạn muốn dùng thử với vai trò nào?"),
-    h("p", {}, "Muốn đổi vai trò thì đăng xuất rồi chọn lại."),
-    h("div", { className: "dung-thu-vai-ds" }, ...nut),
-  );
+  // Bộ khung chung (ADR-0222): một khối, các nút xếp trong thanh nút — không thêm luật bố cục riêng.
+  return khoi({ tieuDe: "Bạn muốn dùng thử với vai trò nào?", idTieuDe: "dung-thu-vai-tieu-de", moTa: "Muốn đổi vai trò thì đăng xuất rồi chọn lại." }, thanhNut(null, ...nut));
 }
 
 /**
@@ -74,5 +72,5 @@ export async function ganKhoaDungThu(sau: HTMLElement): Promise<void> {
     }
   });
   ve();
-  sau.after(h("section", { className: "card", ariaLabel: "Bản dùng thử" }, h("h2", {}, "Bản dùng thử"), trangThai, loi, nut));
+  sau.after(khoi({ tieuDe: "Bản dùng thử", idTieuDe: "dung-thu-khoa-tieu-de", viec: [nut] }, trangThai, loi));
 }

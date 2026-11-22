@@ -246,6 +246,12 @@ export function khoR2Gia() {
       if (!x) return null;
       return { key, size: x.b.length, httpMetadata: { contentType: x.contentType }, body: new Response(x.b).body };
     },
+    // Bản dùng thử (ADR-0223 Đ2.2): lệnh làm sạch liệt kê rồi xoá mọi tệp trong kho.
+    async list(opts) {
+      const keys = [...kho.keys()].sort();
+      const lim = opts?.limit ?? 1000;
+      return { objects: keys.slice(0, lim).map((key) => ({ key, size: kho.get(key).b.length })), truncated: keys.length > lim };
+    },
     async head(key) {
       if (r2.hong.get) throw new Error("r2_head_gia_hong");
       const x = kho.get(key);

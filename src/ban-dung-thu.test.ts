@@ -186,7 +186,11 @@ test("lượt lịch chạy: dấu chờ nạp (sau len-demo) ⇒ làm sạch ng
   await chay(w, ngoaiMoc);
   assert.equal(w.q("SELECT count(*) n FROM sqlite_master WHERE name = 'thu_dau'")[0].n, 1, "dấu thường, ngoài mốc ⇒ không làm");
   w.sqlite.exec(`UPDATE ${BANG_DAU} SET gia_tri = 'demo-cho-nap'`);
+  await w.r2.put("anh-nguoi-thu.jpg", new Uint8Array([1, 2, 3]));
+  await w.r2VeDienTu.put("ve-nguoi-thu.png", new Uint8Array([4]));
   await chay(w, ngoaiMoc);
+  assert.equal(await w.r2.head("anh-nguoi-thu.jpg"), null, "kho hồ sơ được dọn");
+  assert.equal(await w.r2VeDienTu.head("ve-nguoi-thu.png"), null, "kho vé được dọn");
   assert.equal(w.q("SELECT count(*) n FROM sqlite_master WHERE name = 'thu_dau'")[0].n, 0, "chờ nạp ⇒ làm ngay");
   assert.equal(w.q(`SELECT gia_tri g FROM ${BANG_DAU}`)[0].g, "demo", "sau khi nạp, dấu về thường");
   assert.equal((await dangNhap(w, SDT_DUNG_THU, PIN)).status, 200);

@@ -134,6 +134,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/auth/me", access: "staff" },
   { method: "POST", path: "/api/auth/xem-nhu-vai", access: "staff" }, // ADR-0180: Toàn quyền bật xem như vai trò khác — cổng xét quyền THẬT trong handler (module accounts)
   { method: "DELETE", path: "/api/auth/xem-nhu-vai", access: "staff" }, // ADR-0180: thoát chế độ đó
+  { method: "POST", path: "/api/account/dung-thu-vai", access: "staff" }, // ADR-0223 Đ3.1: tài khoản dùng thử chọn vai trò cho phiên — chỉ bản dùng thử (bản chính 404), chỉ đúng tài khoản dùng thử
   { method: "POST", path: "/api/auth/passkey/login", access: "public" }, // đăng nhập bằng Face ID (ADR-0016) — tự gọi maintenanceBlock, không qua cổng bảo trì của router
   { method: "POST", path: "/api/auth/passkey/options", access: "public" }, // xin thách thức WebAuthn để đăng nhập
   { method: "POST", path: "/api/auth/mfa/verify", access: "public" }, // bước hai của đăng nhập PIN (ADR-0074) — cổng là cookie chờ td_mfa_pending (khoá ký riêng, 5 phút); tự gọi maintenanceBlock
@@ -901,6 +902,7 @@ test("mức truy cập của 560 route hiện có khớp ảnh chụp đã duy�
   // Gộp main vào nhánh đăng ký đợt 2 (17/11/2026): 560 của nhánh + 1 route phí đón của main = 561.
   // 2026-11-20 (ADR-0220 Đ4): + GET, POST /api/catalog/ngung-ban-ngay, POST /api/catalog/ngung-ban-ngay/:id/ket-thuc (office; thân hỏi catalog.hidden.write, chặn Đối tác) = 568.
   // 2026-11-21 (ADR-0221 Đ1): + GET (orders), POST (admin) /api/cai-dat/noi-don-doi-tac = 570.
-  assert.equal(actual.length, 570, "số route thực tế lệch 570 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 570, "SNAPSHOT phải có đúng 570 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // 2026-11-22 (ADR-0223 Đ3.1): + POST /api/account/dung-thu-vai (staff; chỉ bản dùng thử, bản chính 404) = 571.
+  assert.equal(actual.length, 571, "số route thực tế lệch 571 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 571, "SNAPSHOT phải có đúng 571 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

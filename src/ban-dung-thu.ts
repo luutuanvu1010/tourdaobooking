@@ -119,7 +119,6 @@ export async function fetchBanDungThu(request: Request, env: EnvDungThu, ctx: Ex
 }
 
 // ───────────────────────────── làm sạch mỗi 2 giờ ─────────────────────────────
-const KHO_R2 = ["HO_SO", "HO_TRO", "VE_DIEN_TU", "BIEN_LAI", "ANH_DICH_VU"] as const;
 const PIN_HOP_LE = /^\d{6}$/;
 
 export type KetQuaLamMoi = { ok: true; soCau: number; ms: number } | { ok: false; lyDo: string };
@@ -175,10 +174,17 @@ export async function lamMoiBanDungThu(env: EnvDungThu, nowMs: number): Promise<
 }
 
 /** Dọn mọi tệp trong các kho R2 của bản dùng thử (sau lô; hỏng thì lần sau dọn tiếp — dữ liệu vẫn dùng được). */
+/**
+ * Kho R2 trong env, nhận theo HÌNH DẠNG (có list / delete / put, không có prepare của D1) chứ không gọi tên binding: mỗi kho thuộc một module chủ và bài canh
+ * kho tệp (src/kho-tep-*.test.ts) cấm nhắc tên kho ngoài module đó. Việc ở đây là dọn CẢ MÔI TRƯỜNG dùng thử (sau hai khoá an toàn), không phải nghiệp vụ của kho nào.
+ */
+const laKhoR2 = (v: unknown): v is R2Bucket => {
+  const x = v as Record<string, unknown> | null;
+  return typeof x === "object" && x !== null && typeof x.list === "function" && typeof x.delete === "function" && typeof x.put === "function" && typeof x.prepare !== "function";
+};
+
 async function donKhoTep(env: EnvDungThu): Promise<void> {
-  for (const ten of KHO_R2) {
-    const kho = (env as unknown as Record<string, R2Bucket | undefined>)[ten];
-    if (!kho) continue;
+  for (const kho of Object.values(env as unknown as Record<string, unknown>).filter(laKhoR2)) {
     for (let vong = 0; vong < 20; vong++) {
       const ds = await kho.list({ limit: 1000 });
       if (!ds.objects.length) break;
