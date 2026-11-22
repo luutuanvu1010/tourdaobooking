@@ -309,6 +309,26 @@ const KHONG_CAN_GIO_THEM = defineSql(
 );
 export const cauThemKhongCanGio = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(KHONG_CAN_GIO_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
 
+// ---- Công tắc «Đơn đối tác không cần đủ tên khách» (ADR-0228 Đ2, migration 0183) — cùng khuôn; gieo BẬT -------------------------------------------------------------------------
+const MIEN_DU_TEN_HIEN_HANH = defineSql(
+  "orders",
+  "partner_manifest_exempt_current",
+  `SELECT mien FROM ord_partner_manifest_exempt_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+/** Công tắc đang hiệu lực lúc `luc`. KHÔNG có dòng nào ⇒ TẮT (đường an toàn: đơn mới không mang dấu, xe chạy cần đủ tên). Đọc MỘT lần ở lập đơn, chỉ khi người gọi là Đối tác thuần. */
+export async function docMienDuTen(db: D1Database, luc: string): Promise<boolean> {
+  const r = await db.prepare(MIEN_DU_TEN_HIEN_HANH).bind(luc).first<{ mien: number }>();
+  return r?.mien === 1;
+}
+const MIEN_DU_TEN_MOI_NHAT = defineSql("orders", "partner_manifest_exempt_latest", `SELECT max(valid_from_at) AS moi_nhat FROM ord_partner_manifest_exempt_policy`);
+export const mienDuTenMoiNhat = async (db: D1Database): Promise<string | null> => (await db.prepare(MIEN_DU_TEN_MOI_NHAT).first<{ moi_nhat: string | null }>())?.moi_nhat ?? null;
+const MIEN_DU_TEN_THEM = defineSql(
+  "orders",
+  "partner_manifest_exempt_insert",
+  `INSERT INTO ord_partner_manifest_exempt_policy (id, mien, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export const cauThemMienDuTen = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(MIEN_DU_TEN_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
+
 /**
  * Bốn trường khách đang lưu của đơn (tên, SĐT, email, ghi chú khách) — để `PUT` nháp lúc công tắc BẬT giữ nguyên chúng (ADR-0154 Đ2.3). Dữ liệu cá nhân: chỉ trả cho
  * nơi gọi đã qua cổng quyền của đơn, không bao giờ vào nhật ký. Không có đơn → `null`.

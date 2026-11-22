@@ -75,10 +75,13 @@ const dongKhach = (p) => p.ev(`[...document.querySelectorAll('main .khoi')].find
 const buoc = async (khung, hau) => {
   let p = await env.as(CHU, "/account", khung);
   await p.waitFor(`!!document.querySelector('#hanh-khach-dt-cai-dat:not([hidden]) #hanh-khach-dt-doi') && !!document.querySelector('#khong-can-gio-cai-dat:not([hidden]) #khong-can-gio-doi')`, "hai khối công tắc mới", 12000);
-  await b.step(`${hau}-1`, `${hau}: Toàn quyền thấy «Đối tác không nhập tên, SĐT khách», «Đối tác không nhập danh sách hành khách», «Đơn đối tác không cần giờ đón» (đều Tắt); bật «danh sách hành khách»${axeNote()}`, async () => {
+  await b.step(`${hau}-1`, `${hau}: Toàn quyền thấy bốn khối công tắc đơn đối tác (ba khối Tắt, «Đơn đối tác không cần đủ tên khách» Bật); bật «danh sách hành khách»${axeNote()}`, async () => {
     assert.equal(await docTxt(p, "#an-khach-heading"), "Đối tác không nhập tên, SĐT khách");
     assert.equal(await docTxt(p, "#hanh-khach-dt-heading"), "Đối tác không nhập danh sách hành khách");
     assert.equal(await docTxt(p, "#khong-can-gio-heading"), "Đơn đối tác không cần giờ đón");
+    assert.equal(await docTxt(p, "#mien-du-ten-heading"), "Đơn đối tác không cần đủ tên khách");
+    assert.equal(await docTxt(p, "#mien-du-ten-trang-thai"), "Đang bật.", "ADR-0228 Đ2: gieo Bật");
+    assert.equal(await docTxt(p, "#mien-du-ten-doi"), "Tắt đơn đối tác không cần đủ tên khách");
     for (const k of ["an-khach", "hanh-khach-dt", "khong-can-gio"]) assert.equal(await docTxt(p, `#${k}-trang-thai`), "Đang tắt.", k);
     assert.equal(await docTxt(p, "#khong-can-gio-doi"), "Bật đơn đối tác không cần giờ đón");
     await datCongTac(p, "hanh-khach-dt", true);
@@ -86,7 +89,7 @@ const buoc = async (khung, hau) => {
     assert.equal(await p.ev(noOverflowX), true);
     await p.ev(`document.querySelector('#hanh-khach-dt-cai-dat').scrollIntoView({ block: 'center' })`);
     await chup(p, `01-cong-tac-${hau}`, khung);
-    for (const sel of ["#an-khach-cai-dat", "#hanh-khach-dt-cai-dat", "#khong-can-gio-cai-dat"]) await axeVung(p, sel, `${sel} ${hau}`);
+    for (const sel of ["#an-khach-cai-dat", "#hanh-khach-dt-cai-dat", "#mien-du-ten-cai-dat", "#khong-can-gio-cai-dat"]) await axeVung(p, sel, `${sel} ${hau}`);
     loiConsole(p, "trang Tôi");
   });
   p.close();

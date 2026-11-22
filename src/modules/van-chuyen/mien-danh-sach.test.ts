@@ -7,7 +7,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import {
-  ACC, ADM, DRIVER, DRIVER2, LOC, NGAY, PARTNER, SALES, SUP, batDongHo, chiTiet, chuyenSan, datCongTacAnKhach, ghiDauDonCu, denGio, don, donDoiTac, donDoiTacCoDau, setup, taoChuyen, tienDo, xe, xepHet,
+  ACC, ADM, DRIVER, DRIVER2, LOC, NGAY, PARTNER, SALES, SUP, batDongHo, chiTiet, chuyenSan, datCongTacAnKhach, denGio, don, donDoiTac, donDoiTacCoDau, setup, taoChuyen, tienDo, xe, xepHet,
 } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const { CHECKS } = (await import(new URL("../../../scripts/audit-checks.mjs", import.meta.url).href)) as { CHECKS: { code: string; sql: string; level: string; mode?: string }[] };
@@ -265,7 +265,6 @@ test("(o6) đơn mang dấu có HAI lượt thiếu tên cùng chuyến: nhacDie
     const w = setup();
     await datCongTacAnKhach(w, true);
     const o1 = await donDoiTacHaiLuot(w, { gioDi: "13:00", gioVe: "14:00" });
-    ghiDauDonCu(w, o1.id); // ADR-0228 Đ2: đơn mới không mang dấu — dựng đơn cũ
     const xeId = xe(w);
     const c = await taoChuyen(w, { xe: xeId, taiXe: `pty-${DRIVER}`, bd: "12:30", kt: "15:30" });
     await xepHet(w, { chuyen: { id: c.chuyen.id } }, { legId: o1.legDi }, 2);

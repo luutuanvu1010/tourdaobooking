@@ -1,5 +1,5 @@
--- Migration 0183 — ADR-0228 Đ1, Đ3: tách công tắc «Ẩn thông tin khách» (0133) làm hai; công tắc «Đơn đối tác không cần giờ đón». Module orders.
--- CHỈ THÊM: hai bảng mới, bốn trigger mới; không đổi bảng, dòng nào đang có. Số 0183 do phiên điều phối giữ trước (kế hoạch 16 việc 21/11).
+-- Migration 0183 — ADR-0228 (chủ duyệt 22/11/2026) Đ1, Đ2, Đ3: tách công tắc «Ẩn thông tin khách» (0133) làm hai; công tắc «Đơn đối tác không cần đủ tên khách»;
+-- công tắc «Đơn đối tác không cần giờ đón». Module orders. CHỈ THÊM: ba bảng mới, sáu trigger mới; không đổi bảng, dòng nào đang có. Số 0183 do phiên điều phối giữ trước (kế hoạch 16 việc 21/11).
 -- Xây trên lỗ đang hở HC-5.19 (khoá `xay_tren_cho_phep_adr_0228` ở docs/quyen-hoan.json): bảng chỉ thêm, gieo giữ đúng hành vi hôm nay, không chạm sổ tiền.
 -- Khuôn `ord_partner_pickup_place_policy` (0181): đổi = chèn dòng mới; dòng hiệu lực = `valid_from_at` lớn nhất ≤ lúc xét. Không dữ liệu cá nhân (chỉ cờ 0/1, mốc giờ, id nhân viên).
 
@@ -44,3 +44,22 @@ CREATE TRIGGER ord_partner_pickup_time_optional_policy_no_update BEFORE UPDATE O
 BEGIN SELECT RAISE(ABORT, 'ord_policy_append_only: chính sách đơn đối tác không cần giờ đón chỉ thêm dòng mới, không sửa'); END;
 CREATE TRIGGER ord_partner_pickup_time_optional_policy_no_delete BEFORE DELETE ON ord_partner_pickup_time_optional_policy
 BEGIN SELECT RAISE(ABORT, 'ord_policy_append_only: chính sách đơn đối tác không cần giờ đón không xoá'); END;
+
+-- 3) «Đơn đối tác không cần đủ tên khách» (ADR-0228 Đ2, chủ duyệt 22/11/2026). 1 = Bật: đơn do tài khoản Đối tác thuần lập lúc Bật mang dấu `orders.manifest_exempt = 1` (chụp lúc lập,
+--    ADR-0154 Đ3) ⇒ chặng không bị giữ «thiếu tên» lúc cho xe chạy. 0 = Tắt: đơn mới không mang dấu. GIEO BẬT theo lời chủ «miễn» (giả định của phiên điều phối: mặc định miễn, ghi ở ADR).
+--    Không có dòng nào lúc đọc ⇒ TẮT (`docMienDuTen` — đường an toàn: đòi đủ tên).
+CREATE TABLE ord_partner_manifest_exempt_policy (
+  id              TEXT PRIMARY KEY,
+  mien            INTEGER NOT NULL CHECK (mien IN (0, 1)),
+  valid_from_at   TEXT NOT NULL UNIQUE,
+  created_at      TEXT NOT NULL,
+  created_by      TEXT,
+  updated_at      TEXT NOT NULL,
+  updated_by      TEXT
+);
+INSERT INTO ord_partner_manifest_exempt_policy (id, mien, valid_from_at, created_at, created_by, updated_at, updated_by)
+VALUES ('gieo-0183', 1, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), NULL);
+CREATE TRIGGER ord_partner_manifest_exempt_policy_no_update BEFORE UPDATE ON ord_partner_manifest_exempt_policy
+BEGIN SELECT RAISE(ABORT, 'ord_policy_append_only: chính sách đơn đối tác không cần đủ tên khách chỉ thêm dòng mới, không sửa'); END;
+CREATE TRIGGER ord_partner_manifest_exempt_policy_no_delete BEFORE DELETE ON ord_partner_manifest_exempt_policy
+BEGIN SELECT RAISE(ABORT, 'ord_policy_append_only: chính sách đơn đối tác không cần đủ tên khách không xoá'); END;

@@ -2,7 +2,7 @@
 // Tệp riêng để `index.ts` (cửa vào module) không phình thêm và để KHÔNG import vòng: tệp này chỉ import `repository.ts`, `xac-nhan-chung.ts`, `xac-nhan-repo.ts` và các module khác QUA `index.ts` của chúng.
 // SQL ở `xac-nhan-repo.ts` (nửa nghiêm). KHÔNG tự kiểm quyền bằng vai hồ sơ; mọi cổng hỏi `can(…)` viết thẳng ô.
 import { auditStatement } from "../audit";
-import type { AnThongTinKhachResponse, BatBuocGioDonResponse, HanhKhachDoiTacResponse, KhongCanGioDonResponse, NoiDonDoiTacResponse, CaiDatXacNhanResponse, ChuaCoBanHangResponse, TheDonDto, DonChoXacNhanDto, DonChoXacNhanResponse, GuiDonResponse, GuiXacNhanResponse, LyDoCanXacNhan, PickupTimeRequiredBody, StaffProfile, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
+import type { AnThongTinKhachResponse, BatBuocGioDonResponse, HanhKhachDoiTacResponse, KhongCanGioDonResponse, MienDuTenDoiTacResponse, NoiDonDoiTacResponse, CaiDatXacNhanResponse, ChuaCoBanHangResponse, TheDonDto, DonChoXacNhanDto, DonChoXacNhanResponse, GuiDonResponse, GuiXacNhanResponse, LyDoCanXacNhan, PickupTimeRequiredBody, StaffProfile, QuyetDinhXacNhanResponse, ShortNoticeRequiredBody, YeuCauXacNhanDto } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson, trangDon } from "../../shared/http";
 import { maskLongDigits } from "../../shared/text-guards";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
@@ -26,7 +26,7 @@ import { tuCachCuaDon } from "../../shared/booker";
 import { duocGuiLenTourDao } from "../../shared/to-chuc";
 import { canhBaoMocCua, type XetDatGapSua } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
-import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauGhiKepNoi, cauGhiNoiDonChang, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, cauThemGioDon, cauThemNoiDon, docBatBuocGioDon, docKhongCanGioDon, docKhongNhapHanhKhach, docKhongNhapNoiDon, hanhKhachMoiNhat, khongCanGioMoiNhat, cauThemHanhKhach, cauThemKhongCanGio, gioDonMoiNhat, noiDonMoiNhat, nguoiLapGiuDoiTac, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
+import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauGhiKepNoi, cauGhiNoiDonChang, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, cauThemGioDon, cauThemNoiDon, docBatBuocGioDon, docKhongCanGioDon, docKhongNhapHanhKhach, docKhongNhapNoiDon, hanhKhachMoiNhat, khongCanGioMoiNhat, cauThemHanhKhach, cauThemKhongCanGio, docMienDuTen, mienDuTenMoiNhat, cauThemMienDuTen, gioDonMoiNhat, noiDonMoiNhat, nguoiLapGiuDoiTac, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow } from "./xac-nhan-repo";
 import { activeLocations, legDatGapByOrder, legShortNoticeConVe, slotPolicy, tvGuiLenTheoChuoi, tvGuiLenTheoYeuCau, type DauDatGapMoi } from "./chang-hanh-khach-repo";
 import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { congHuyTraSau, VE_CHUA_SOAN_DUOC } from "./tra-sau-cong";
@@ -862,5 +862,30 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
       }
     }
     return json({ bat: await docKhongCanGioDon(env.DB, new Date().toISOString()), doiDuoc: true } satisfies KhongCanGioDonResponse);
+  }),
+
+  // CÔNG TẮC «ĐƠN ĐỐI TÁC KHÔNG CẦN ĐỦ TÊN KHÁCH» (ADR-0228 Đ2, chủ duyệt 22/11/2026): khuôn công tắc giờ đón. Đổi công tắc không chạm đơn nào (dấu chụp lúc lập đơn).
+  route("GET", "/api/cai-dat/mien-du-ten-doi-tac", "orders", async ({ env, staff }) => {
+    if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không xem được cài đặt này.");
+    return json({ bat: await docMienDuTen(env.DB, new Date().toISOString()), doiDuoc: can(staff, "settings.ops") } satisfies MienDuTenDoiTacResponse);
+  }),
+  route("POST", "/api/cai-dat/mien-du-ten-doi-tac", "admin", async ({ env, request, staff }) => {
+    if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ Toàn quyền đổi cài đặt đơn đối tác không cần đủ tên khách.");
+    const b = (await readJson(request)) as Record<string, unknown> | null;
+    if (!b || typeof b !== "object" || typeof b.bat !== "boolean") return error(400, "invalid_input", "Chọn bật hoặc tắt.");
+    const now = new Date();
+    if ((await docMienDuTen(env.DB, now.toISOString())) !== b.bat) {
+      const at = lanSau(await mienDuTenMoiNhat(env.DB), now);
+      try {
+        await env.DB.batch([
+          cauThemMienDuTen(env.DB, { id: crypto.randomUUID(), bat: b.bat, at, by: staff.id }),
+          auditStatement(env.DB, { staffId: staff.id, action: "partner_manifest_exempt_policy_changed", at, targetType: "system", detail: b.bat ? "Bật đơn đối tác không cần đủ tên khách" : "Tắt đơn đối tác không cần đủ tên khách" }),
+        ]);
+      } catch (e) {
+        if (/UNIQUE constraint failed: ord_partner_manifest_exempt_policy/i.test(String((e as Error)?.message ?? e))) return error(409, "stale", "Cài đặt vừa được đổi — tải lại rồi thử lại.");
+        throw e;
+      }
+    }
+    return json({ bat: await docMienDuTen(env.DB, new Date().toISOString()), doiDuoc: true } satisfies MienDuTenDoiTacResponse);
   }),
 ];

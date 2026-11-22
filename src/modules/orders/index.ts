@@ -80,7 +80,7 @@ import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu
 import { thanLapDonKhiAn, thanNhapKhiAn, type AnKhach } from "./an-thong-tin-khach";
 import { apTruongDichVu, boHanhKhachKhiAn, thanKhiAnTruong, thieuBatBuoc, traDichVu, truongTaoDon } from "./an-truong-giao-dien";
 import { thanKhiKhongNhapNoiDon } from "./noi-don-doi-tac";
-import { anKhachBat, docKhongNhapHanhKhach, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon, nhapDangChoCuaBen } from "./xac-nhan-repo";
+import { anKhachBat, docKhongNhapHanhKhach, docMienDuTen, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon, nhapDangChoCuaBen } from "./xac-nhan-repo";
 import { cauKhepLoiMoi, docKhungGio, soanGhiNhan } from "./ban-hang-ghi-nhan";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
@@ -1443,10 +1443,11 @@ export const ordersModule: AppModule = {
       if (hasHandlerPick(thanGui) && !can(staff, "dispatch.assign", { ownerId: staff.id })) return CANNOT_PICK_HANDLER();
       if (holdsPartner(staff) && coPhiDonTrongThan(thanGui)) return TRANSFER_FEE_NOT_ALLOWED(); // ADR-0214 Đ2: quét thân GỐC (trước khi «Ẩn thông tin khách» viết lại), trước mọi đọc CSDL
       // ADR-0154 Đ2.3 + ADR-0228 Đ1: HAI công tắc khách (tên, SĐT; danh sách hành khách) đọc ĐÚNG MỘT lần mỗi cái (chỉ tài khoản Đối tác thuần — C2; người khác không tốn câu đọc), SAU hai cổng 403 ở trên.
-      // ADR-0228 Đ2: đơn mới KHÔNG còn mang dấu `manifest_exempt` (chuyến vẫn đòi đủ tên khách trước khi xuất bến) — lời gọi `createOrder` dưới đây truyền `false`.
+      // ADR-0228 Đ2 (chủ 22/11): dấu `manifest_exempt` theo công tắc RIÊNG «Đơn đối tác không cần đủ tên khách» (gieo Bật), đọc MỘT lần, chỉ Đối tác thuần; chụp lúc lập (`mien` → `createOrder`).
       const lucAn = new Date().toISOString();
       const an: AnKhach = apCongTacAnKhach(staff) ? { ten: await anKhachBat(env.DB, lucAn), ds: await docKhongNhapHanhKhach(env.DB, lucAn) } : { ten: false, ds: false };
       if (an.ten && staff.partyId === null) return PARTNER_NO_PARTY();
+      const mien = apCongTacAnKhach(staff) && (await docMienDuTen(env.DB, lucAn));
       // ADR-0178 Đ1 mục 2: tài khoản Đối tác (kể cả lai) lập đơn thì công tắc «Khách của đối tác trả cho Công ty» đọc ĐÚNG MỘT lần, chụp lên đơn; không đọc được ⇒ 503, không đoán.
       const kenhThu = holdsPartner(staff) ? await kenhThuHienTai() : null;
       if (holdsPartner(staff) && kenhThu === null) return KENH_THU_CHUA_DOC();
@@ -1514,7 +1515,7 @@ export const ordersModule: AppModule = {
         ? (orderId: string, at: string) => [...(handler?.statements(orderId, at) ?? []), ...(xMoi?.ok ? [cauGhiNguoiMoi(env.DB, { orderId, partyId: xMoi.partyId })] : [])]
         : undefined;
       const tuCachDon = thayMat.chon ? { partyId: thayMat.chon.partyId, loai: thayMat.chon.loai } : null; // Đ3.4: loại liên kết LÚC LẬP, ghi trong chính câu chèn đơn
-      const id = await createOrder(env.DB, staff.id, { ...donGhi, declaredDeposit: khai.giaTri }, taoThem, booker.write, false, kenhThu, phi.theoChang, tuCachDon, nhatKyPhiDon(phi, placed.value.services, mucLap, new Map()));
+      const id = await createOrder(env.DB, staff.id, { ...donGhi, declaredDeposit: khai.giaTri }, taoThem, booker.write, mien, kenhThu, phi.theoChang, tuCachDon, nhatKyPhiDon(phi, placed.value.services, mucLap, new Map()));
       // Bảng tin (ADR-0022 điều 4/7): "tao" — KHÔNG truyền `handlerTruoc` (ADR-0030 Review Focus 5); gốc lắp ráp (src/index.ts) tự đổi thành
       // "tao_cho_nhan" khi đơn không có người phụ trách (chỉ làm mới màn hình, KHÔNG thông báo nổi/gõ cửa — ADR-0045). Không bao giờ phát "giao" cho đơn vừa lập.
       baoThayDoi({ orderId: id, thayDoi: "tao" });

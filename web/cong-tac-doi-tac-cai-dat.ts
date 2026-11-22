@@ -1,17 +1,23 @@
-// Hai khối công tắc của Toàn quyền ở trang Tôi (ADR-0228 Đ1, Đ3 — việc 8; khuôn `web/noi-don-cai-dat.ts`): «Đối tác không nhập danh sách hành khách» và «Đơn đối tác không cần giờ đón».
-// Chỉ hiện khi máy chủ trả `doiDuoc` (ô settings.ops); máy chủ kiểm lại khi ghi (Quản trị nhận 403). Tên công tắc: khuyến nghị của bản đề xuất ADR-0228, chờ chủ chọn. Không innerHTML.
+// Ba khối công tắc của Toàn quyền ở trang Tôi (ADR-0228 Đ1–Đ3, chủ duyệt 22/11/2026 — việc 8; khuôn `web/noi-don-cai-dat.ts`): «Đối tác không nhập danh sách hành khách», «Đơn đối tác không cần
+// đủ tên khách», «Đơn đối tác không cần giờ đón». Chỉ hiện khi máy chủ trả `doiDuoc` (ô settings.ops); máy chủ kiểm lại khi ghi (Quản trị nhận 403). Không innerHTML.
 import { ApiError, api } from "./api";
 import { h, replaceChildren } from "./dom";
 
 const LOI_MANG = "Không kết nối được. Kiểm tra mạng rồi thử lại.";
 
 interface CongTac { url: string; ten: string; khoa: string; giaiThich: string }
-const DS: Record<"hanhKhach" | "gioDon", CongTac> = {
+const DS: Record<"hanhKhach" | "mienDuTen" | "gioDon", CongTac> = {
   hanhKhach: {
     url: "/api/cai-dat/hanh-khach-doi-tac",
     ten: "Đối tác không nhập danh sách hành khách",
     khoa: "hanh-khach-dt",
-    giaiThich: "Khi bật, đối tác lập đơn không thấy khối Hành khách. Xe vẫn cần đủ tên khách trước khi chạy: văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận.",
+    giaiThich: "Khi bật, đối tác lập đơn không thấy khối Hành khách; văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận. Xe có cần đủ tên mới chạy hay không do công tắc ngay dưới quyết.",
+  },
+  mienDuTen: {
+    url: "/api/cai-dat/mien-du-ten-doi-tac",
+    ten: "Đơn đối tác không cần đủ tên khách",
+    khoa: "mien-du-ten",
+    giaiThich: "Khi bật, đơn đối tác lập lúc đó cho xe chạy được dù danh sách hành khách chưa đủ tên; chi tiết chuyến ghi «Không cần danh sách khách». Tắt thì đơn mới phải đủ tên khách trước khi xe chạy. Đổi công tắc không đổi đơn đã lập.",
   },
   gioDon: {
     url: "/api/cai-dat/khong-can-gio-don",
@@ -36,7 +42,9 @@ export async function ganCongTacDoiTac(el: HTMLElement, loai: keyof typeof DS): 
     // Chữ nút viết thẳng (bài bảng tham chiếu đọc chữ nút ngay trong lời gọi `h("button", …)`).
     const nut = loai === "hanhKhach"
       ? h("button", thuoc, s.bat ? "Tắt đối tác không nhập danh sách hành khách" : "Bật đối tác không nhập danh sách hành khách")
-      : h("button", thuoc, s.bat ? "Tắt đơn đối tác không cần giờ đón" : "Bật đơn đối tác không cần giờ đón");
+      : loai === "mienDuTen"
+        ? h("button", thuoc, s.bat ? "Tắt đơn đối tác không cần đủ tên khách" : "Bật đơn đối tác không cần đủ tên khách")
+        : h("button", thuoc, s.bat ? "Tắt đơn đối tác không cần giờ đón" : "Bật đơn đối tác không cần giờ đón");
     nut.addEventListener("click", async () => {
       loi.hidden = true;
       nut.disabled = true;

@@ -1,4 +1,5 @@
-// Kiểm migration ADR-0228 (việc 8): hai bảng chỉ-thêm `ord_partner_passenger_policy` (gieo = công tắc ẩn khách cũ lúc áp) và `ord_partner_pickup_time_optional_policy` (gieo Tắt).
+// Kiểm migration ADR-0228 (việc 8): ba bảng chỉ-thêm `ord_partner_passenger_policy` (gieo = công tắc ẩn khách cũ lúc áp), `ord_partner_pickup_time_optional_policy` (gieo Tắt),
+// `ord_partner_manifest_exempt_policy` (gieo Bật — chủ 22/11).
 // SQLite thật (node:sqlite). Tệp tìm theo ĐUÔI tên — đổi số lúc gộp chỉ đổi tên tệp.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -46,13 +47,19 @@ test("công tắc cũ đang BẬT lúc áp ⇒ «không nhập danh sách hành 
   assert.equal(rows(d2, "SELECT khong_nhap FROM ord_partner_passenger_policy")[0]!.khong_nhap, 1);
 });
 
+test("«đơn đối tác không cần đủ tên khách» gieo đúng MỘT dòng BẬT (chủ 22/11: miễn)", () => {
+  const r = rows(open(), "SELECT mien FROM ord_partner_manifest_exempt_policy");
+  assert.equal(r.length, 1);
+  assert.equal(r[0]!.mien, 1);
+});
+
 test("«đơn đối tác không cần giờ đón» gieo đúng MỘT dòng Tắt", () => {
   const r = rows(open(), "SELECT khong_can FROM ord_partner_pickup_time_optional_policy");
   assert.equal(r.length, 1);
   assert.equal(r[0]!.khong_can, 0);
 });
 
-for (const [bang, cot] of [["ord_partner_passenger_policy", "khong_nhap"], ["ord_partner_pickup_time_optional_policy", "khong_can"]] as const) {
+for (const [bang, cot] of [["ord_partner_passenger_policy", "khong_nhap"], ["ord_partner_pickup_time_optional_policy", "khong_can"], ["ord_partner_manifest_exempt_policy", "mien"]] as const) {
   test(`${bang}: cột chỉ 0 / 1, không NULL; valid_from_at UNIQUE; trigger chặn UPDATE, DELETE`, () => {
     const d = open();
     const them = (id: string, v: string, at: string) => d.exec(`INSERT INTO ${bang} (id, ${cot}, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES ('${id}', ${v}, '${at}', '${at}', 's1', '${at}', 's1')`);

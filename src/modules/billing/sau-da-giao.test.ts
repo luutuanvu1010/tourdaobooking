@@ -31,6 +31,7 @@ const MIEN: { route: string; lyDo: string }[] = [
   { route: "POST /api/cai-dat/bat-buoc-gio-don", lyDo: "đổi công tắc «Bắt buộc giờ đón cho đơn đối tác» toàn hệ thống (ADR-0193 mục 1), không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/noi-don-doi-tac", lyDo: "đổi công tắc «Đối tác không nhập nơi đón» toàn hệ thống (ADR-0221 Đ1), không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/hanh-khach-doi-tac", lyDo: "đổi công tắc «Đối tác không nhập danh sách hành khách» toàn hệ thống (ADR-0228 Đ1), không ghi đơn nào, không có đơn để khoá" },
+  { route: "POST /api/cai-dat/mien-du-ten-doi-tac", lyDo: "đổi công tắc «Đơn đối tác không cần đủ tên khách» toàn hệ thống (ADR-0228 Đ2), không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/khong-can-gio-don", lyDo: "đổi công tắc «Đơn đối tác không cần giờ đón» toàn hệ thống (ADR-0228 Đ3), không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/ban-hang-phu-trach", lyDo: "đổi giờ hành chính của lời mời người phụ trách toàn hệ thống (ADR-0142 Đ5), không ghi đơn nào, không có đơn để khoá" },
   { route: "POST /api/cai-dat/khung-gio-don", lyDo: "đổi khung giờ đón toàn hệ thống (ADR-0134 Đ6), không ghi đơn nào, không có đơn để khoá" },

@@ -398,6 +398,8 @@ export const AUDIT_ACTIONS = {
   // — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
   partner_passenger_policy_changed: { label: "Đổi công tắc đối tác không nhập danh sách hành khách", group: "system" },
   pickup_time_optional_policy_changed: { label: "Đổi công tắc đơn đối tác không cần giờ đón", group: "system" },
+  // ADR-0228 Đ2: Toàn quyền bật / tắt «Đơn đối tác không cần đủ tên khách» (POST /api/cai-dat/mien-du-ten-doi-tac) — không gắn đơn, không dữ liệu khách.
+  partner_manifest_exempt_policy_changed: { label: "Đổi công tắc đơn đối tác không cần đủ tên khách", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.
   tro_ly_settings_changed: { label: "Đổi cài đặt trợ lý Hỗ trợ", group: "system" },
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).

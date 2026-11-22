@@ -311,6 +311,11 @@ export interface HanhKhachDoiTacResponse { bat: boolean; apChoToi: boolean; doiD
  * lượt đầu có Đón chưa giờ không còn đưa đơn sang văn phòng xét (trừ lượt đã vào hạn chốt).
  */
 export interface KhongCanGioDonResponse { bat: boolean; doiDuoc: boolean }
+/**
+ * `GET`/`POST /api/cai-dat/mien-du-ten-doi-tac` (ADR-0228 Đ2): `bat` = công tắc «Đơn đối tác không cần đủ tên khách» đang BẬT (gieo BẬT — chủ 22/11); `doiDuoc` = ô `settings.ops`.
+ * Bật thì đơn do tài khoản Đối tác thuần lập lúc đó mang dấu miễn danh sách (`manifestExempt`, chụp lúc lập).
+ */
+export interface MienDuTenDoiTacResponse { bat: boolean; doiDuoc: boolean }
 
 // ---- Khung giờ đón (ADR-0134 Đ5, Đ6; module `orders`) ----
 /** `GET`/`POST /api/cai-dat/khung-gio-don`: bộ khung đang hiệu lực + câu lưu ý; `doiDuoc` = người gọi đổi được (ô `settings.ops` — chỉ Toàn quyền). */

@@ -161,9 +161,9 @@ export async function don(w, v) {
  * Đặt công tắc «Ẩn thông tin khách khi đối tác đặt vé» bằng ROUTE THẬT (Toàn quyền — ADR-0154 Đ2) rồi tiến đồng hồ giả 5 ms: công tắc đọc theo đồng hồ, dòng mới có `valid_from_at` =
  * max(bây giờ, dòng mới nhất + 1 ms) nên với đồng hồ ĐÓNG BĂNG dòng vừa ghi nằm ở tương lai cho tới khi đồng hồ tiến. Chỉ dùng khi `batDongHo()` đã bật.
  */
-/** Bật / tắt CẢ HAI công tắc khách (tên, SĐT + danh sách hành khách — ADR-0228 Đ1 tách từ công tắc «Ẩn thông tin khách» cũ) = đúng nghĩa công tắc cũ. */
+/** Bật / tắt CẢ BA công tắc (tên, SĐT; danh sách hành khách; đơn đối tác không cần đủ tên khách — ADR-0228 tách từ công tắc «Ẩn thông tin khách» cũ) = đúng nghĩa công tắc cũ. */
 export async function datCongTacAnKhach(w, bat) {
-  for (const url of ["/api/cai-dat/an-thong-tin-khach", "/api/cai-dat/hanh-khach-doi-tac"]) {
+  for (const url of ["/api/cai-dat/an-thong-tin-khach", "/api/cai-dat/hanh-khach-doi-tac", "/api/cai-dat/mien-du-ten-doi-tac"]) {
     const r = await w.call("POST", url, { as: SUP, body: { bat } });
     assert.equal(r.status, 200, r.text);
     assert.equal(r.json.bat, bat);
@@ -208,27 +208,17 @@ export async function donDoiTac(w, v = {}) {
 }
 /**
  * Đơn ĐÃ XÁC NHẬN mang dấu miễn danh sách (ADR-0154 Đ3), lập bằng ĐƯỜNG THẬT: BẬT công tắc (Toàn quyền) nếu chưa bật → `donDoiTac` với danh sách khách giả của trình duyệt cũ (máy chủ bỏ).
- * Công tắc ĐƯỢC BẬT và để nguyên BẬT khi trả về (bài cần TẮT thì gọi `datCongTacAnKhach(w, false)`). Từ ADR-0228 đường thật không còn ghi dấu: dấu của «đơn cũ» được dựng bằng SQL (xem thân hàm). Trả như `don()`.
+ * Công tắc ĐƯỢC BẬT và để nguyên BẬT khi trả về (bài cần TẮT thì gọi `datCongTacAnKhach(w, false)`). Trigger cấm `UPDATE` dấu nên KHÔNG gieo tắt. Trả như `don()`.
  */
 export async function donDoiTacCoDau(w, v = {}) {
   const hienTai = await w.call("GET", "/api/cai-dat/an-thong-tin-khach", { as: SUP });
   assert.equal(hienTai.status, 200, hienTai.text);
-  if (!hienTai.json.bat) await datCongTacAnKhach(w, true);
+  const mien = await w.call("GET", "/api/cai-dat/mien-du-ten-doi-tac", { as: SUP });
+  if (!hienTai.json.bat || !mien.json.bat) await datCongTacAnKhach(w, true);
   const d = await donDoiTac(w, { ...v, guiKhachGia: true });
-  // ADR-0228 Đ2: đơn MỚI không còn mang dấu (máy chủ luôn ghi 0). Dấu chỉ còn ở ĐƠN CŨ lập trước ADR-0228 — dựng lại đơn cũ đó bằng SQL: gỡ tạm trigger cấm đổi dấu (0133), ghi dấu, dựng lại
-  // trigger NGUYÊN VĂN. Chỉ trong CSDL thử; luật đọc dấu (`kiemXuatBen`, chi tiết chuyến, lịch chung) vẫn chạy trên đơn cũ ở bản thật.
-  ghiDauDonCu(w, d.id);
+  // ADR-0228 Đ2: dấu do công tắc «Đơn đối tác không cần đủ tên khách» quyết (gieo Bật; `datCongTacAnKhach(w, true)` bật cả ba công tắc).
+  assert.equal(w.q("SELECT manifest_exempt m FROM orders WHERE id = ?", d.id)[0].m, 1, "chống bài rỗng: đơn mang dấu");
   return d;
-}
-/** ADR-0228 Đ2: dựng «đơn cũ lập trước ADR-0228» mang dấu miễn danh sách — gỡ tạm trigger cấm đổi dấu (0133), ghi dấu, dựng lại trigger NGUYÊN VĂN. Chỉ trong CSDL thử. */
-export function ghiDauDonCu(w, orderId) {
-  assert.equal(w.q("SELECT manifest_exempt m FROM orders WHERE id = ?", orderId)[0].m, 0, "ADR-0228 Đ2: đường thật không còn ghi dấu");
-  w.sqlite.exec("DROP TRIGGER orders_manifest_exempt_immutable");
-  w.sqlite.prepare("UPDATE orders SET manifest_exempt = 1 WHERE id = ?").run(orderId);
-  w.sqlite.exec(`CREATE TRIGGER orders_manifest_exempt_immutable BEFORE UPDATE OF manifest_exempt ON orders
-WHEN NEW.manifest_exempt IS NOT OLD.manifest_exempt
-BEGIN SELECT RAISE(ABORT, 'orders_manifest_exempt_immutable: không sửa dấu miễn danh sách khách của đơn'); END;`);
-  assert.equal(w.q("SELECT manifest_exempt m FROM orders WHERE id = ?", orderId)[0].m, 1, "chống bài rỗng: đơn mang dấu");
 }
 
 /** Tạo chuyến (Bán hàng) cho xe + tài xế `taiXePartyId`, bắt đầu `bd`, kết thúc `kt` (giờ VN) ngày `ngay`. */

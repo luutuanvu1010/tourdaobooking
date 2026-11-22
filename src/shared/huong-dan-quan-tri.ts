@@ -187,8 +187,8 @@ Mở [[Trợ lý Hỗ trợ]] ở nhóm THIẾT LẬP (điện thoại: trang **
 ### Dịch vụ nhập tay (chỉ Toàn quyền bật / tắt)
 Trang **Tôi**, khối **Dịch vụ nhập tay**: [[Bật dịch vụ nhập tay]] hoặc [[Tắt dịch vụ nhập tay]] (mặc định tắt). Khi bật, văn phòng thêm được dịch vụ gõ tay ở form lập đơn ([[+ Dịch vụ nhập tay]]); Đối tác thì không. Khi tắt, dịch vụ nhập tay đã có vẫn giữ, chỉ xem.
 
-### Công tắc đơn đối tác (chỉ Toàn quyền bật / tắt)
-Trang **Tôi**: [[Bật đối tác không nhập tên, SĐT khách]] (đơn ghi tên, số của đối tác); [[Bật đối tác không nhập danh sách hành khách]] (xe vẫn cần đủ tên trước khi chạy: bổ sung bằng [[Sửa danh sách hành khách]]); [[Bật đơn đối tác không cần giờ đón]] (văn phòng chốt giờ sau bằng [[Sửa đưa đón]]).
+### Công tắc đơn đối tác (chỉ Toàn quyền)
+Trang **Tôi**: [[Bật đối tác không nhập tên, SĐT khách]]; [[Bật đối tác không nhập danh sách hành khách]]; [[Tắt đơn đối tác không cần đủ tên khách]] (đang bật); [[Bật đơn đối tác không cần giờ đón]].
 
 ### Lý do điều phối
 Mở [[Lý do điều phối]]. Thêm: [[+ Thêm lý do]] ở nhóm cần, gõ lý do, [[Thêm]]. Sửa tên: [[Sửa]]. Không dùng nữa: [[Ngưng]]; dùng lại: [[Dùng lại]]. Lý do hệ thống tự dùng không ngưng được.`,

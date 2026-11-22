@@ -868,6 +868,8 @@ if (can(staff, "settings.ops")) void ganCaiDatNhapTay(byId("nhap-tay-cai-dat"));
 if (can(staff, "settings.ops")) void ganCaiDatAnKhach(byId("an-khach-cai-dat"));
 // ADR-0228 Đ1: «Đối tác không nhập danh sách hành khách» — tách khỏi công tắc trên; ngay dưới nó.
 if (can(staff, "settings.ops")) void ganCongTacDoiTac(byId("hanh-khach-dt-cai-dat"), "hanhKhach");
+// ADR-0228 Đ2: «Đơn đối tác không cần đủ tên khách» — ngay dưới công tắc danh sách hành khách.
+if (can(staff, "settings.ops")) void ganCongTacDoiTac(byId("mien-du-ten-cai-dat"), "mienDuTen");
 // ADR-0193 mục 1: «Bắt buộc giờ đón cho đơn đối tác» — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại), ngay dưới «Ẩn thông tin khách».
 if (can(staff, "settings.ops")) void ganCaiDatGioDon(byId("gio-don-cai-dat"));
 // ADR-0228 Đ3: «Đơn đối tác không cần giờ đón» — ngay dưới «Bắt buộc giờ đón».

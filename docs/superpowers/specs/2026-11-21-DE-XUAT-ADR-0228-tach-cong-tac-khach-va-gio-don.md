@@ -1,6 +1,6 @@
 # ĐỀ XUẤT ADR-0228 — Tách công tắc «Ẩn thông tin khách» làm hai; thêm công tắc «Đơn đối tác không cần giờ đón»
 
-> Ngày 21/11/2026. Trạng thái: **đề xuất, chờ chủ duyệt**. Nguồn: việc 8 của kế hoạch 16 việc (`docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md` trên nhánh kế hoạch, mục 5 «Việc 8» và mục 8). Chủ duyệt thì bản này thành `docs/adr/ADR-0228-…md`. Migration giữ trước: `0183`.
+> Ngày 21/11/2026. Trạng thái: **đã được chủ duyệt 22/11/2026, có điều chỉnh câu 2** — bản ADR chính thức: `docs/adr/ADR-0228-cong-tac-don-doi-tac-khach-va-gio-don.md`. Bản này giữ nguyên làm hồ sơ trình. Nguồn: việc 8 của kế hoạch 16 việc (`docs/superpowers/plans/2026-11-21-ke-hoach-16-viec.md` trên nhánh kế hoạch, mục 5 «Việc 8» và mục 8). Chủ duyệt thì bản này thành `docs/adr/ADR-0228-…md`. Migration giữ trước: `0183`.
 
 - **Loại:** việc lớn (luật lập đơn và gửi đơn của đối tác, hai bảng cài đặt mới). **Cửa:** một chiều mềm: bảng công tắc chỉ thêm ở lại; tắt công tắc là về hành vi cũ.
 - **Quan hệ với ADR cũ:** **sửa** ADR-0154 Đ2 (một công tắc thành hai) và Đ3 (xem câu 2); **thêm** phương án «khác» của ADR-0193 câu (i) thành một công tắc riêng, không bỏ công tắc «Bắt buộc giờ đón cho đơn đối tác». **Giữ** ADR-0221 (nơi đón), ADR-0193 câu (ii) (lượt chưa giờ sát hạn chốt không xác nhận được), ADR-0047 (danh sách hành khách), luật THIEU_TEN của điều phối.

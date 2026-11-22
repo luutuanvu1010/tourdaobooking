@@ -883,14 +883,14 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/an-khach-cai-dat.ts", chu: "Tắt đối tác không nhập tên, SĐT khách / Bật đối tác không nhập tên, SĐT khách" },
     ],
-    trangThai: "cho-chon",
-    nguonTen: "đề xuất ADR-0228 câu 1(a), khuyến nghị theo khuôn «Đối tác không nhập nơi đón»; chờ chủ chọn",
+    trangThai: "da-chot",
+    nguonTen: "ADR-0228 (chủ duyệt 22/11/2026): chủ giao người thi công đặt tên «theo đúng bản chất, ngắn gọn và dễ hiểu»; khuôn «Đối tác không nhập nơi đón»",
   },
   {
     nhom: "Cài đặt vận hành",
     manHinh: "Tôi (trang cá nhân) › khối «Đối tác không nhập danh sách hành khách»",
     ten: "Bật đối tác không nhập danh sách hành khách · Tắt đối tác không nhập danh sách hành khách",
-    thatSuLam: "Đổi công tắc chung. Khi bật, form Tạo đơn của tài khoản Đối tác thuần không có khối Hành khách; máy chủ bỏ danh sách gửi lên. Xe vẫn cần đủ tên khách trước khi chạy: văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận. Lúc phát hành công tắc mang đúng vị trí của công tắc tên, SĐT.",
+    thatSuLam: "Đổi công tắc chung. Khi bật, form Tạo đơn của tài khoản Đối tác thuần không có khối Hành khách; máy chủ bỏ danh sách gửi lên. Văn phòng hoặc đối tác bổ sung tên sau khi đơn được xác nhận. Xe có cần đủ tên mới chạy hay không do công tắc «Đơn đối tác không cần đủ tên khách» quyết. Lúc phát hành công tắc mang đúng vị trí của công tắc tên, SĐT.",
     hoiLai: "không",
     hoanTac: "được: bấm Tắt đối tác không nhập danh sách hành khách",
     duongLenh: ["/api/cai-dat/hanh-khach-doi-tac"],
@@ -898,8 +898,23 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/cong-tac-doi-tac-cai-dat.ts", chu: "Tắt đối tác không nhập danh sách hành khách / Bật đối tác không nhập danh sách hành khách" },
     ],
-    trangThai: "cho-chon",
-    nguonTen: "đề xuất ADR-0228 câu 1(b), khuyến nghị; chờ chủ chọn",
+    trangThai: "da-chot",
+    nguonTen: "ADR-0228 (chủ duyệt 22/11/2026): chủ giao người thi công đặt tên theo bản chất",
+  },
+  {
+    nhom: "Cài đặt vận hành",
+    manHinh: "Tôi (trang cá nhân) › khối «Đơn đối tác không cần đủ tên khách»",
+    ten: "Bật đơn đối tác không cần đủ tên khách · Tắt đơn đối tác không cần đủ tên khách",
+    thatSuLam: "Đổi công tắc chung. Khi bật, đơn do tài khoản Đối tác thuần lập lúc đó cho xe chạy được dù danh sách hành khách chưa đủ tên; chi tiết chuyến ghi «Không cần danh sách khách». Tắt thì đơn mới phải đủ tên khách trước khi xe chạy. Đổi công tắc không đổi đơn đã lập. Mặc định đang bật.",
+    hoiLai: "không",
+    hoanTac: "được: bấm lại nút (đơn đã lập giữ nguyên như lúc lập)",
+    duongLenh: ["/api/cai-dat/mien-du-ten-doi-tac"],
+    maNhatKy: ["partner_manifest_exempt_policy_changed"],
+    noiDat: [
+      { tep: "web/cong-tac-doi-tac-cai-dat.ts", chu: "Tắt đơn đối tác không cần đủ tên khách / Bật đơn đối tác không cần đủ tên khách" },
+    ],
+    trangThai: "da-chot",
+    nguonTen: "ADR-0228 Đ2 (chủ duyệt 22/11/2026, «miễn … có thể bật/tắt trong bảng điều khiển của Super Admin»): người thi công đặt tên theo bản chất, cùng khuôn «Đơn đối tác không cần giờ đón»",
   },
   {
     nhom: "Cài đặt vận hành",
@@ -928,8 +943,8 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
     noiDat: [
       { tep: "web/cong-tac-doi-tac-cai-dat.ts", chu: "Tắt đơn đối tác không cần giờ đón / Bật đơn đối tác không cần giờ đón" },
     ],
-    trangThai: "cho-chon",
-    nguonTen: "đề xuất ADR-0228 câu 1(c), khuyến nghị; chờ chủ chọn",
+    trangThai: "da-chot",
+    nguonTen: "ADR-0228 (chủ duyệt 22/11/2026): chủ giao người thi công đặt tên theo bản chất",
   },
   {
     nhom: "Cài đặt vận hành",

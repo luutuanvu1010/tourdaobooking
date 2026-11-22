@@ -400,6 +400,12 @@
       "note": "công tắc «Đối tác không nhập danh sách hành khách» (ADR-0228 Đ1, migration 0183 — tách khỏi ord_partner_customer_policy), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = TẮT; gieo khong_nhap = giá trị hiệu lực của hide_customer_info lúc áp migration nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: tài khoản Đối tác thuần lập / lưu nháp thì máy chủ bỏ khoá passengers (danh sách đang lưu giữ nguyên); không đổi luật THIEU_TEN lúc xuất bến"
     },
     {
+      "name": "ord_partner_manifest_exempt_policy",
+      "module": "orders",
+      "kind": "table",
+      "note": "công tắc «Đơn đối tác không cần đủ tên khách» (ADR-0228 Đ2, chủ duyệt 22/11/2026, migration 0183), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = TẮT; gieo mien = 1 (BẬT — lời chủ «miễn»); chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: đơn do tài khoản Đối tác thuần lập lúc đó mang orders.manifest_exempt = 1 (chụp lúc lập) ⇒ chặng không bị giữ THIEU_TEN lúc cho xe chạy"
+    },
+    {
       "name": "ord_partner_pickup_time_optional_policy",
       "module": "orders",
       "kind": "table",
@@ -2080,6 +2086,7 @@
     "ord_pickup_time_policy": { "id": "N1", "required": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_partner_pickup_place_policy": { "id": "N1", "khong_nhap": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_partner_passenger_policy": { "id": "N1", "khong_nhap": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ord_partner_manifest_exempt_policy": { "id": "N1", "mien": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_partner_pickup_time_optional_policy": { "id": "N1", "khong_can": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_pickup_slot_policy": { "id": "N1", "slots_json": "N1", "note": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_passenger": { "id": "N1", "order_id": "N1", "full_name": "N2", "birth_year": "N2", "pax_code": "N1", "previous_id": "N1", "person_key": "N2", "voided_at": "N1", "source": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
