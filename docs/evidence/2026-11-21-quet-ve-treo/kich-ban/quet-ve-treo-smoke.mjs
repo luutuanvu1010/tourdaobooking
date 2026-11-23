@@ -232,15 +232,36 @@ try {
       await chup(p, "7-camera-dung");
     });
 
-    // Chưa sửa (chờ chủ trả lời câu 2 của kế hoạch — ADR-0094 «phát lại thì tải lại trang»): chỉ ghi nhận, không đỏ.
-    await buoc("8", "GHI NHẬN (chưa sửa, chờ câu 2): mất phản hồi sau khi máy chủ đã ghi ⇒ gửi lại cùng vé ⇒ «Lần bấm trước đã được ghi» rồi trang tự tải lại", async () => {
+    // Việc 9 phần (d) — chủ 23/11 «Đồng ý khuyến nghị việc 9», ADR-0175 dòng lịch sử 2026-11-23. Mã trước phần (d): bước này ghi nhận trang TỰ TẢI LẠI
+    // (lớp chống ghi trùng ADR-0094 «phát lại thì tải lại trang») — đó là lần quan sát đỏ của bài này (P16).
+    await buoc("8", "Mất phản hồi sau khi máy chủ đã ghi ⇒ tự gửi lại cùng vé ⇒ ≤ 3 giây hiện «Lần quét trước đã được ghi»; trang KHÔNG tải lại, camera vẫn chạy", async () => {
       await sleep(1500);
       await p.ev("window.__cheDoMang = 'mat-phan-hoi'; true");
+      const truoc = await soLanGui();
       assert.equal(await bam(p, "#qv-bat"), true);
+      await p.waitFor(`window.__soLanGui > ${truoc}`, "bắt đầu gửi", 8000);
       const bd = Date.now();
-      let taiLai = false;
-      for (let i = 0; i < 100 && !taiLai; i++) { await sleep(200); taiLai = (await p.ev("window.__dau").catch(() => null)) !== "chua-tai-lai"; }
-      console.log(`    ${taiLai ? `trang TỰ TẢI LẠI sau ${Date.now() - bd} ms (đúng hành vi cũ của lớp chống ghi trùng — việc (d) chờ chủ)` : "trang không tải lại trong 20 giây"}`);
+      await choKetQua("DA_GHI", 5000);
+      const ms = Date.now() - bd;
+      console.log(`    «Lần quét trước đã được ghi» sau ${ms} ms kể từ lần gửi đầu; gửi ${(await soLanGui()) - truoc} lần`);
+      assert.ok(ms <= 3000, `hiện sau ${ms} ms`);
+      assert.match((await ketQua()).chu, /Lần quét trước đã được ghi/);
+      await sleep(2500); // cách cũ tải lại sau 1,2 giây: chờ quá mốc đó rồi mới kết luận
+      assert.equal(await p.ev("window.__dau"), "chua-tai-lai", "trang đã tự tải lại");
+      assert.equal(await p.ev("!!document.getElementById('qv-video').srcObject && document.getElementById('qv-bat').textContent === 'Tắt camera'"), true, "camera không còn chạy");
+      await chup(p, "8-da-ghi-truoc-do", false);
+      await axeKiem(p, "màn Lần quét trước đã được ghi");
+    });
+
+    await buoc("8b", "«Quét tiếp», vé A vẫn trước camera: ≤ 4 giây ra kết quả thật (đỏ «đã dùng»), vẫn không tải lại", async () => {
+      assert.equal(await bamChu("Quét tiếp"), true);
+      const bd = Date.now();
+      await choKetQua("DO", 8000);
+      const ms = Date.now() - bd;
+      console.log(`    đỏ «đã dùng» sau ${ms} ms kể từ «Quét tiếp»`);
+      assert.ok(ms <= 4000, `hiện đỏ sau ${ms} ms`);
+      assert.match((await ketQua()).chu, /dùng/i);
+      assert.equal(await p.ev("window.__dau"), "chua-tai-lai", "trang đã tự tải lại");
     });
   }
   await p.close?.();

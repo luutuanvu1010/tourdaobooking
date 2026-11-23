@@ -1616,7 +1616,7 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Vé điện tử: quét",
-    manHinh: "Quét vé › màn kết quả (và màn «Không gửi được»)",
+    manHinh: "Quét vé › màn kết quả (và màn «Không gửi được», màn «Lần quét trước đã được ghi»)",
     ten: "Quét tiếp",
     thatSuLam: "Đóng màn kết quả để quét vé kế tiếp. Không ghi gì thêm: lượt quét đã được ghi từ lúc kết quả hiện ra. Vé vừa quét còn nằm trước camera thì 3 giây sau được kiểm lại (vé đã tính rồi thì báo đỏ «đã dùng»); trong 3 giây đó hiện dòng nhắc kèm «Quét lại vé này».",
     hoiLai: "không",
