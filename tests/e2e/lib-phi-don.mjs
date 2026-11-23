@@ -11,17 +11,17 @@ const BEN = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // Bến tàu du lịch Nha 
  * Lượt đón chiều đi từ khách sạn `ksId` tới bến. ĐỔI CÓ CHỦ ĐÍCH 16/11 (ADR-0214, Task 3): phí trên đơn do văn phòng CHỌN — truyền `phiDon` (= `dungPhiDon(...).phiDon`, đúng
  * số tiền của ca) khi đơn do văn phòng lập. Đơn do Đối tác lập KHÔNG được gửi mức (400) — vắng `phiDon` thì lượt đón «chưa chọn» (đơn đi «chờ xác nhận», văn phòng chọn ở Còn vé — Task 4).
  */
-export const luotDon = (ksId, phiDon) => ({ direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: ksId, pickupPlace: "", dropoffLocationId: BEN, dropoffPlace: "", ...(phiDon ? { phiDon } : {}) });
+export const luotDon = (ksId, phiDon) => ({ direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: ksId, pickupPlace: "", dropoffLocationId: BEN, dropoffPlace: "", ...(phiDon ? { doiPhi: phiDon } : {}) });
 
 /**
  * ADR-0214 (Task 4): đơn Đối tác có lượt đón Gửi đơn ⇒ «chờ xác nhận» (nhánh A, 201); người xét (`nguoiXet`, phiên Quản trị) bấm Còn vé kèm mức `phiDon` cho MỌI lượt đón còn mở ⇒
- * xác nhận, dòng phí trong cùng lô. Thân: `phiDon: [{ legId, muc: { loai, soTien } }]`. Trả phản hồi của Còn vé.
+ * xác nhận, dòng phí trong cùng lô. Thân: `doiPhi: [{ legId, donGia, lyDo }]` (ADR-0218). Trả phản hồi của Còn vé.
  */
 export async function conVeKemPhi(nguoiXet, orderId, phiDon) {
   const v = (await call(nguoiXet, "GET", `/api/orders/${orderId}`)).body;
   assert.ok(v.xacNhan?.yeuCau?.id, `đơn ${orderId} phải đang chờ xác nhận`);
-  const ds = v.order.services.flatMap((s) => s.legs.map((l) => ({ legId: l.id, muc: phiDon })));
-  return call(nguoiXet, "POST", `/api/orders/${orderId}/quyet-dinh`, { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon: ds });
+  const ds = v.order.services.flatMap((s) => s.legs.map((l) => ({ legId: l.id, ...phiDon })));
+  return call(nguoiXet, "POST", `/api/orders/${orderId}/quyet-dinh`, { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, doiPhi: ds });
 }
 
 /**
@@ -90,7 +90,7 @@ export async function dungPhiDon(admin, { nhan, muc }) {
     const tuLuc = (await call(admin, "GET", "/api/pricing/phi-don")).body.batDauAp.tuLuc;
     phai(await call(admin, "POST", "/api/pricing/phi-don/bat-dau-ap", { ngay: HOM_NAY, tuLucDaDoc: tuLuc }), 200, "bật phí từ hôm nay");
     // Danh sách mức CHÉP từ src/shared/phi-don-chon.ts (DANH_SACH_PHI_DON — nguồn duy nhất; kịch bản .mjs chạy ngoài esbuild nên không import tệp .ts). Đổi danh sách ở đó thì sửa cả dòng này.
-    return { ks: ks0, donDep, phiDon: { loai: [0, 5000, 10000, 15000, 20000, 30000, 50000, 100000].includes(muc) ? "DANH_SACH" : "SO_KHAC", soTien: muc } };
+    return { ks: ks0, donDep, phiDon: { donGia: muc, lyDo: "Kịch bản e2e đổi số" } };
   } catch (e) {
     await donDep();
     throw e;

@@ -3,7 +3,8 @@
 import { can, type PermissionHolder } from "../../shared/permissions";
 import { SheetError, fetchSheetCsv } from "../../shared/sheets";
 import { applySync, claimFirstSync, getSyncState, ghiVanDe, loadAll, markAttempt, recordFailure } from "./repository";
-import { chiaVanDe, planSync, syncGuard, type CatalogRecord, type SyncPlan, type VanDeDongBo } from "./rules";
+import { cauGhiGiaGocPhiDon, giaGocPhiDonHienTai } from "./phi-don-goc-repo";
+import { chiaVanDe, kePhiDonGoc, planSync, syncGuard, type CatalogRecord, type SyncPlan, type VanDeDongBo } from "./rules";
 import { parseCatalogSheet } from "./sheet";
 
 export type SyncResult =
@@ -77,7 +78,17 @@ export async function syncCatalog(env: Env, nguoiPhat: PermissionHolder, opts: {
     return { ...p, ...(g ? { giuLai: true, ...(daBao.has(chiaVanDe(p)) ? { daBao: true } : {}) } : {}) };
   });
   const giuLaiMoi = vanDe.some((p) => p.giuLai && !daThay.has(chiaVanDe(p)));
-  await applySync(db, plan, { at, nguoiPhat, itemCount: parsed.items.length, problems: vanDe, giuLaiMoi });
+  // Giá gốc phí đưa đón (ADR-0218 Đ1.3): vấn đề của nó nối vào cùng kênh bền nhưng KHÔNG mang `giuLai` — không gửi tin «dòng hỏng», không làm hỏng lần đồng bộ.
+  const gocPhi = kePhiDonGoc(await giaGocPhiDonHienTai(db), parsed.phiDon);
+  vanDe.push(...gocPhi.vanDe);
+  await applySync(db, plan, {
+    at,
+    nguoiPhat,
+    itemCount: parsed.items.length,
+    problems: vanDe,
+    giuLaiMoi,
+    cauThem: gocPhi.ghi.map((g) => cauGhiGiaGocPhiDon(db, { ...g, at })),
+  });
   const canBao = vanDe.filter((p) => p.giuLai && !p.daBao);
   if (canBao.length && opts.baoTin) {
     try {

@@ -1,6 +1,6 @@
 // Luật thuần của danh mục: kế hoạch đồng bộ, ghi đè có chủ đích, chốt chặn Sheet hỏng. Không I/O.
 import { PAX_LABEL, PAX_ORDER, type EffectiveService, type PaxCode, type Prices } from "../../shared/order-lines.ts";
-import type { CatalogInput } from "./sheet.ts";
+import type { CatalogInput, PhiDonSheet } from "./sheet.ts";
 
 /** Bản ghi đang lưu trong D1 (phần lấy từ Sheet). */
 export interface CatalogRecord {
@@ -146,4 +146,29 @@ export function acknowledge(sheet: Prices, ov: Override): Override {
 export function toEffective(s: CatalogRecord & { override: Override | null }): EffectiveService {
   const eff = applyOverride(s.prices, s.override);
   return { code: s.code, name: s.name, unit: s.unit, prices: eff.prices, notes: s.notes, visible: s.inSheet && !eff.hidden };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Giá gốc phí đưa đón từ Sheet (ADR-0218 Đ1.3). Thuần: nhận giá hiện hành đã lưu + phần đã đọc từ Sheet, trả các dòng cần ghi và vấn đề cần báo.
+// ---------------------------------------------------------------------------------------------------------------------
+export type GiaGocPhiDon = { moiKhach: number | null; xeRieng: number | null };
+
+export function kePhiDonGoc(
+  cu: ReadonlyMap<string, GiaGocPhiDon>,
+  sheet: PhiDonSheet,
+): { ghi: { catalogCode: string; moiKhach: number | null; xeRieng: number | null }[]; vanDe: VanDeDongBo[] } {
+  const vanDe: VanDeDongBo[] = [];
+  const daTungCo = (cot: keyof GiaGocPhiDon) => [...cu.values()].some((v) => v[cot] !== null);
+  if (!sheet.coCotMoiKhach && daTungCo("moiKhach")) vanDe.push({ row: 0, message: "Cột «Phí đưa đón» không còn trên Sheet; giữ giá gốc cũ" });
+  if (!sheet.coCotXeRieng && daTungCo("xeRieng")) vanDe.push({ row: 0, message: "Cột «Phí đưa đón xe riêng» không còn trên Sheet; giữ giá gốc cũ" });
+  for (const l of sheet.loiO) vanDe.push({ row: l.row, code: l.code, message: l.message });
+  const hong = new Set(sheet.loiO.map((l) => `${l.code}|${l.cot}`));
+  const ghi: { catalogCode: string; moiKhach: number | null; xeRieng: number | null }[] = [];
+  for (const [ma, o] of sheet.theoMa) {
+    const truoc = cu.get(ma) ?? { moiKhach: null, xeRieng: null };
+    const moiKhach = sheet.coCotMoiKhach && !hong.has(`${ma}|moi_khach`) ? o.moiKhach : truoc.moiKhach;
+    const xeRieng = sheet.coCotXeRieng && !hong.has(`${ma}|xe_rieng`) ? o.xeRieng : truoc.xeRieng;
+    if (moiKhach !== truoc.moiKhach || xeRieng !== truoc.xeRieng) ghi.push({ catalogCode: ma, moiKhach, xeRieng });
+  }
+  return { ghi, vanDe };
 }
