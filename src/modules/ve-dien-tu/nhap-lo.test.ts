@@ -5,7 +5,7 @@ import { TOI_DA_VE_MOI_DOT } from "../../shared/ve-nhap-lo.ts";
 import { che4SoCuoi, kiemLo, kiemVeMoi } from "./nhap-lo.ts";
 
 test("kiemLo: nhóm khách, tên sản phẩm, mã tour", () => {
-  assert.deepEqual(kiemLo({ catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "VVC Multiday 2 lần" }), { ok: true, value: { catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "VVC Multiday 2 lần", nguon: "HANG_NGOAI" } });
+  assert.deepEqual(kiemLo({ catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "VVC Multiday 2 lần" }), { ok: true, value: { catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "VVC Multiday 2 lần", nguon: "HANG_NGOAI", soHoTro: null } });
   assert.equal(kiemLo({ catalogCode: "V2D", nhomKhach: "INFANT", tenSanPham: "x" }).ok, false, "em bé không có vé");
   assert.equal(kiemLo({ catalogCode: "", nhomKhach: "ADULT", tenSanPham: "x" }).ok, false);
   assert.equal(kiemLo({ catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "  " }).ok, false);
@@ -32,6 +32,21 @@ test("kiemLo: nguồn của lô — thiếu là hãng ngoài, TOUR_DAO nhận, n
   assert.equal(td.ok && td.value.nguon, "TOUR_DAO");
   assert.equal(kiemLo({ ...goc, nguon: "KHAC" }).ok, false);
   assert.equal(kiemLo({ ...goc, nguon: null }).ok, false);
+});
+
+test("kiemLo: hotline trên vé (ADR-0231) — chỉ lô Tour Đảo, chuẩn hoá, số sai từ chối không nhắc lại số, thiếu là null", () => {
+  const td = { catalogCode: "V2D", nhomKhach: "ADULT", tenSanPham: "x", nguon: "TOUR_DAO" };
+  const a = kiemLo({ ...td, soHoTro: "1900 1234" });
+  assert.equal(a.ok && a.value.soHoTro, "19001234");
+  const b = kiemLo({ ...td, soHoTro: "(0258) 3812 345" });
+  assert.equal(b.ok && b.value.soHoTro, "02583812345");
+  const thieu = kiemLo(td);
+  assert.equal(thieu.ok && thieu.value.soHoTro, null, "trình duyệt cũ không gửi: lô vẫn tạo được");
+  const sai = kiemLo({ ...td, soHoTro: "12345" });
+  assert.equal(sai.ok, false);
+  assert.doesNotMatch(!sai.ok ? sai.message : "", /12345/);
+  assert.equal(kiemLo({ ...td, soHoTro: 19001234 }).ok, false, "số kiểu number bị từ chối");
+  assert.equal(kiemLo({ ...td, nguon: "HANG_NGOAI", soHoTro: "19001234" }).ok, false, "lô hãng ngoài không có hotline trên vé");
 });
 
 test("kiemVeMoi: lô Tour Đảo chỉ nhận TD1. + 26 base32; lô hãng ngoài từ chối tiền tố TD1. (ADR-0175 Đ1.6)", () => {

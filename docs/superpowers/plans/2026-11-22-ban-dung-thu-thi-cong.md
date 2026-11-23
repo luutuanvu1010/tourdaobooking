@@ -30,25 +30,31 @@ Bài mới xanh; `npm test`, `npm run typecheck` xanh; quan sát hai khoá chặ
 
 ## Khối lệnh cho chủ tạo tài nguyên (AI không chạy — CLAUDE.md §8)
 
-Chạy SAU khi nhánh này đã nhập bản chính, trong ứng dụng Terminal, đứng ở thư mục gốc `tourdao-sales`, nhánh `main`. Nếu wrangler hỏi có sửa tệp cấu hình không, trả lời `n`.
+**Tách khỏi lệnh nhập.** Lệnh nhập (`npm run day-len`) chỉ đưa mã vào bản chính, không tạo gì trên Cloudflare. Các lệnh dưới đây chạy SAU khi việc 1 đã nhập bản chính, trong ứng dụng Terminal, đứng ở thư mục gốc `tourdao-sales`, nhánh `main` đã cập nhật. Nếu wrangler hỏi có sửa tệp cấu hình không, trả lời `n`.
 
-1. Tạo hai cơ sở dữ liệu (chép lại hai mã `database_id` wrangler in ra, gửi cho AI điền vào `wrangler.demo.jsonc` rồi nhập lại bản chính):
+**Lệnh nào đụng production (booking.tourdao.vn)?** KHÔNG lệnh nào dưới đây ghi vào Worker `tourdao-sales` hay D1 `tourdao-sales-db` của bản chạy thật: mọi tài nguyên mang tên `tourdao-sales-demo-*`, mọi lệnh `secret`/`r2` mang `--config wrangler.demo.jsonc`. Chung với production chỉ có: cùng tài khoản Cloudflare, cùng miền `tourdao.vn` (bước 4 thêm tên miền con `demo.tourdao.vn`, không đổi `booking.tourdao.vn`). **Chỗ duy nhất có thể đụng nhầm production:** gõ thiếu `--config wrangler.demo.jsonc` ở lệnh `secret put` — khi đó bí mật ghi đè lên Worker CHẠY THẬT. Chép nguyên từng dòng, đừng gõ tay.
+
+1. Tạo hai cơ sở dữ liệu (không đụng production). Chép hai mã `database_id` wrangler in ra, gửi cho AI điền vào `wrangler.demo.jsonc` rồi nhập thêm một lần nhỏ trước bước 4:
    - `npx wrangler d1 create tourdao-sales-demo-db`
    - `npx wrangler d1 create tourdao-sales-demo-khoa`
-2. Tạo năm kho tệp:
+2. Tạo sáu kho tệp (không đụng production; kho thứ sáu `anh-ban-giao` có từ việc 13, ADR-0232):
    - `npx wrangler r2 bucket create tourdao-sales-demo-ho-so --config wrangler.demo.jsonc`
-   - (tương tự với `tourdao-sales-demo-ho-tro`, `tourdao-sales-demo-ve-dien-tu`, `tourdao-sales-demo-bien-lai`, `tourdao-sales-demo-anh-dich-vu`)
-3. Đặt năm bí mật (hai PIN do chủ tự chọn, 6 số, không dễ đoán; PIN dùng thử là PIN chủ đưa cho người thử):
+   - `npx wrangler r2 bucket create tourdao-sales-demo-ho-tro --config wrangler.demo.jsonc`
+   - `npx wrangler r2 bucket create tourdao-sales-demo-ve-dien-tu --config wrangler.demo.jsonc`
+   - `npx wrangler r2 bucket create tourdao-sales-demo-bien-lai --config wrangler.demo.jsonc`
+   - `npx wrangler r2 bucket create tourdao-sales-demo-anh-dich-vu --config wrangler.demo.jsonc`
+   - `npx wrangler r2 bucket create tourdao-sales-demo-anh-ban-giao --config wrangler.demo.jsonc`
+3. Đặt năm bí mật cho Worker bản dùng thử (không đụng production NẾU giữ nguyên `--config wrangler.demo.jsonc`). Hai PIN do chủ tự chọn, 6 số, không dễ đoán; PIN dùng thử là PIN chủ đưa cho người thử. Lệnh `secret put` đầu tiên có thể tạo Worker `tourdao-sales-demo` rỗng — bình thường:
    - `openssl rand -base64 48 | tr -d '\n' | npx wrangler secret put SESSION_SECRET --config wrangler.demo.jsonc`
    - `openssl rand -base64 48 | tr -d '\n' | npx wrangler secret put LAN_GUI_SECRET --config wrangler.demo.jsonc`
    - `openssl rand -base64 32 | npx wrangler secret put MFA_ENCRYPTION_KEY --config wrangler.demo.jsonc`
    - `npx wrangler secret put DUNG_THU_PIN --config wrangler.demo.jsonc`
    - `npx wrangler secret put DUNG_THU_PIN_TOAN_QUYEN --config wrangler.demo.jsonc`
-4. Đưa lên: `npm run len-demo`. Tên miền `demo.tourdao.vn` tự tạo khi deploy (miền `tourdao.vn` đã ở Cloudflare). Trong vòng 15 phút, bản dùng thử tự nạp dữ liệu mẫu.
+4. Đưa lên: `npm run len-demo` (không đụng production: lệnh tự kiểm cấu hình, chỉ deploy Worker `tourdao-sales-demo` và chỉ ghi một dấu «chờ nạp» lên D1 tên kết thúc `-demo-db`; thiếu kho hay bí mật thì dừng trước khi đổi gì). Tên miền `demo.tourdao.vn` tự tạo khi deploy. Trong vòng 15 phút, bản dùng thử tự nạp dữ liệu mẫu.
 5. Nghiệm thu đầu (điều chưa kiểm được ở máy): mở «Workers › tourdao-sales-demo › Logs», tìm dòng `ban_dung_thu_lam_moi` có `"ok":true` — nghĩa là D1 thật nhận được lô làm sạch. Nếu `"ok":false` hoặc lỗi kích thước lô: báo AI, dùng đường lui đã ghi ở ADR-0223 Đ2.5.
 
 Đăng nhập: tài khoản dùng thử SĐT `0900000100` + PIN dùng thử; Toàn quyền của chủ trên bản dùng thử SĐT `0900000101` + PIN Toàn quyền (khoá / mở ở trang Tôi › khối «Bản dùng thử»).
-Mỗi lần phát hành bản chính, chạy lại `npm run len-demo` để bản dùng thử chạy cùng mã.
+Mỗi lần phát hành bản chính, chạy lại `npm run len-demo` để bản dùng thử chạy cùng mã. Bản chính thêm kho tệp mới thì bài `src/ban-dung-thu-cau-hinh.test.ts` đỏ tới khi `wrangler.demo.jsonc` có kho tương ứng; chủ tạo thêm kho đó trước `len-demo` (lệnh tự dừng nếu thiếu).
 
 ## Nhật ký thi công
 

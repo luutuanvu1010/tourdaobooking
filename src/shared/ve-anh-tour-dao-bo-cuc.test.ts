@@ -117,3 +117,13 @@ test("tên rất dài vẫn nằm gọn trong vé: cắt dòng theo bề ngang, 
 test("ngày hạn cuối sai dạng thì báo lỗi, không vẽ ngày lạ", () => {
   assert.throws(() => boCucVeTourDao({ ...ND, denNgay: "31/12/2026" }, 29, doGia));
 });
+
+test("ADR-0231: chân vé in đúng số của lô (thay hotline công ty), một dòng, không cắt; số dài nhất vẫn vừa", () => {
+  for (const so of ["1900 1234", "1800 123 456", "0258 3812 345", "0905 123 456"]) {
+    const b = boCucVeTourDao({ ...ND, hotline: so }, 33, doGia);
+    const chan = b.dong.filter((d) => d.nhom === "hotline");
+    assert.equal(chan.length, 1, so);
+    assert.equal(chan[0]!.chu, `Hotline ${so}`, "không «…»: số in đủ");
+    assert.ok(b.dayNoiDung <= KHO_VE.cao, `${so}: tràn đáy ${b.dayNoiDung}`);
+  }
+});

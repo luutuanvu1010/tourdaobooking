@@ -84,6 +84,14 @@ export const AUDIT_ACTIONS = {
   payment_proof_viewed: { label: "Mở ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_purged: { label: "Gỡ hoặc quyết xoá ảnh biên lai chuyển khoản", group: "order" },
   payment_proof_purge_retried: { label: "Chạy lại xoá ảnh biên lai khỏi kho", group: "system" },
+  // ADR-0232 — Ảnh bàn giao. Chi tiết chỉ mang mã ảnh (8 ký tự đầu), không ghi chú, không lý do ẩn, không khoá kho.
+  handover_photo_added: { label: "Gửi ảnh bàn giao", group: "order" },
+  handover_photo_list_viewed: { label: "Xem các ảnh bàn giao của đơn", group: "order" },
+  handover_photo_viewed: { label: "Mở ảnh bàn giao", group: "order" },
+  handover_photo_hidden: { label: "Ẩn ảnh bàn giao", group: "order" },
+  handover_photo_erasure_marked: { label: "Đánh dấu ảnh bàn giao vào yêu cầu xoá", group: "order" },
+  handover_photo_purged: { label: "Xoá ảnh bàn giao", group: "order" },
+  handover_photo_purge_retried: { label: "Chạy lại xoá ảnh bàn giao khỏi kho", group: "system" },
   // ADR-0182 phần B: khoản nộp của đại lý theo từng đơn.
   agent_remittance_recorded: { label: "Đại lý gửi khoản nộp kèm biên lai", group: "order" },
   agent_remittance_confirmed: { label: "Kế toán xác nhận khoản nộp của đại lý", group: "order" },
@@ -406,6 +414,12 @@ export const AUDIT_ACTIONS = {
   pickup_place_policy_changed: { label: "Đổi công tắc đối tác không nhập nơi đón", group: "system" },
   // ADR-0227 Đ1: Toàn quyền bật / tắt «Chặn đơn chưa có giờ đón khi sát ngày đón» (POST /api/cai-dat/chan-chua-gio-sat-ngay) — không gắn đơn; detail «Bật …» / «Tắt …».
   pickup_deadline_policy_changed: { label: "Đổi công tắc chặn đơn chưa có giờ đón", group: "system" },
+  // ADR-0228 Đ1, Đ3: Toàn quyền bật / tắt «Đối tác không nhập danh sách hành khách» (POST /api/cai-dat/hanh-khach-doi-tac) và «Đơn đối tác không cần giờ đón» (POST /api/cai-dat/khong-can-gio-don)
+  // — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
+  partner_passenger_policy_changed: { label: "Đổi công tắc đối tác không nhập danh sách hành khách", group: "system" },
+  pickup_time_optional_policy_changed: { label: "Đổi công tắc đơn đối tác không cần giờ đón", group: "system" },
+  // ADR-0228 Đ2: Toàn quyền bật / tắt «Đơn đối tác không cần đủ tên khách» (POST /api/cai-dat/mien-du-ten-doi-tac) — không gắn đơn, không dữ liệu khách.
+  partner_manifest_exempt_policy_changed: { label: "Đổi công tắc đơn đối tác không cần đủ tên khách", group: "system" },
   // ADR-0069 điều 5 + Hiến chương 5.12: ai đổi cài đặt trợ lý Hỗ trợ lúc nào — detail chỉ nêu PHẦN đã đổi, KHÔNG nội dung lời dặn / ngữ cảnh.
   tro_ly_settings_changed: { label: "Đổi cài đặt trợ lý Hỗ trợ", group: "system" },
   // ADR-0087 điều 6: Toàn quyền đổi giao diện công ty — detail = các ô đổi (nhãn: cũ → mới), không dữ liệu cá nhân. KHÔNG im lặng (ADR-0038).
@@ -427,6 +441,7 @@ export const AUDIT_ACTIONS = {
   ticket_flag_changed: { label: "Đổi ô Có vé", group: "catalog" }, // ADR-0174
   catalog_pause_added: { label: "Đặt Ngừng bán theo ngày", group: "catalog" }, // ADR-0220: detail = mã dịch vụ / tên nhóm + khoảng ngày
   catalog_pause_ended: { label: "Kết thúc Ngừng bán theo ngày", group: "catalog" },
+  ticket_support_phone_changed: { label: "Đổi ô Hotline trên vé", group: "catalog" }, // ADR-0231: targetId = mã dịch vụ, detail «Dịch vụ <mã>: đặt hotline riêng | dùng hotline công ty» — KHÔNG chứa số
   ticket_source_changed: { label: "Đổi ô Vé do ai phát", group: "catalog" }, // ADR-0175 Đ1.2: targetId = mã dịch vụ, detail «Dịch vụ <mã>: Vé hãng ngoài | Vé Tour Đảo»
   service_detail_changed: { label: "Sửa chi tiết dịch vụ", group: "catalog" }, // ADR-0201 Đ1: targetId = mã dịch vụ, detail chỉ nói trường nào đổi (không chép tên, mô tả)
   catalog_groups_seeded: { label: "Gieo nhóm dịch vụ", group: "catalog" }, // do migration 0055 ghi một lần (detail "gieo 14 nhóm, N dịch vụ")

@@ -51,7 +51,7 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
       tieuDe: "Lập đơn cho khách",
       noiDung: `1. Bấm [[Tạo đơn]].
 2. Đầu trang: chọn **Ngày khởi hành** (dùng cho mọi dịch vụ trong đơn).
-   - Khi Công ty đang bật «Ẩn thông tin khách khi đối tác đặt vé», đầu trang chỉ có **Ngày khởi hành**: không có khối **Khách hàng** và **Hành khách**, bạn chuyển thẳng sang chọn dịch vụ.
+   - Không thấy khối **Khách hàng** hay **Hành khách** là Công ty đã tắt khối đó: bạn bỏ qua.
    - Khi công tắc tắt, ở phần **Khách hàng** gõ **Tên khách đi tour**, **Số điện thoại**. Muốn ghi Email hoặc **Ghi chú / yêu cầu đặc biệt** thì bấm [[Email, ghi chú]].
    - Khách liên hệ qua bạn: bấm [[Điền thông tin của tôi]] để tự điền tên và số của bạn.
    - Dòng **Bên đặt** (nếu có) ghi tên của bạn: Nền tảng tự điền, bạn không cần chọn.
@@ -90,7 +90,7 @@ Nháp lập từ trước đã có giờ đón: lưu lại thì giờ của lư�
     {
       tieuDe: "Xác nhận đơn",
       noiDung: `1. Mở đơn nháp, kiểm lại ngày, số khách, nơi đón.
-2. Bấm [[Gửi đơn]]. Nền tảng báo một trong hai câu: **Đơn của bạn đã được gửi và chờ xác nhận** (nhân viên kiểm vé, bạn có thể [[Rút lại]]), hoặc **Đơn của bạn đã được chuyển đến chuyên viên phụ trách & chờ hướng dẫn viên** (đơn đã xác nhận, có ảnh biên nhận). Đơn có **Đón** luôn nhận câu thứ nhất: văn phòng chọn giờ đón khi xác nhận rồi báo giờ cho khách. Câu thứ hai chỉ gặp ở đơn không có đón.
+2. Bấm [[Gửi đơn]]. Nền tảng báo một trong hai câu: **Đơn của bạn đã được gửi và chờ xác nhận** (nhân viên kiểm vé, bạn có thể [[Rút lại]]), hoặc **Đơn của bạn đã được chuyển đến chuyên viên phụ trách & chờ hướng dẫn viên** (đơn đã xác nhận, có ảnh biên nhận). Đơn có **Đón** thường nhận câu thứ nhất: văn phòng chọn giờ đón rồi báo giờ cho khách.
 
 Sau khi xác nhận, dịch vụ, số khách và tiền **bị khoá**.
 

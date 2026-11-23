@@ -25,10 +25,11 @@ import {
 import { cookiePhienDangKy, dkMoiKey, docPhienDangKy, taoPhienDangKy } from "./phien.ts";
 import {
   banKhaiToChucTruoc, banKhaiTruoc, cauKeoDaiHanNhap, ganLoiMoiStatement, guiChotThangStatement, LOI_CHOT_GUI_THUA, chinhSachHienHanh, chinhSachRiengTuHienHanh, doiLoaiStatement, guiChenStatement, guiChenToChucStatement, guiTienStatement, mucRiengCuaPhieu,
-  phanToChucMo, phieuDeXem, rutStatement, suKienNguoiDangKyStatement,
+  dongOTepHieuLuc, phanToChucMo, phieuDeXem, rutStatement, suKienNguoiDangKyStatement,
   type BanKhaiMoi, type ChinhSachDangKyRow, type PhieuDeXemRow,
 } from "./repository.ts";
-import { O_TEP_TO_CHUC, mucChuaDapUng, type DuLieuKiemMuc } from "./rules.ts";
+import { mucChuaDapUng, type DuLieuKiemMuc } from "./rules.ts";
+import { O_TEP_TO_CHUC, oBatBuocThieu, oCuaPhieu, oNgoaiPhieu } from "../../shared/dang-ky-o-tep.ts";
 import { loaiMoHienTai } from "./vai.ts";
 import { mucBatBuoc } from "./xac-minh.ts";
 
@@ -306,7 +307,11 @@ export async function guiPhieu(ctx: Ctx<"public">): Promise<Response> {
   const tepTheoO = await trangThaiTepChoTheoO(env.DB, registrationId);
   // Ruling điều phối 16/11 (chặn phát hành mốc A): không khai phần tổ chức thì không để ảnh của ô tổ chức nằm chờ — lô duyệt sẽ không có hồ sơ tổ chức nào để nhận chúng.
   if (!coToChuc && tepTheoO.some((t) => O_TEP_TO_CHUC.includes(t.slot))) return error(400, "org_photo_without_org", CAU_PHIEU.anhToChucKhongPhan);
-  if (coToChuc && !tepTheoO.some((t) => t.slot === "GPKD" && t.daLuu)) return error(400, "org_photo_missing", CAU_PHIEU.thieuAnhGpkd);
+  // Ô tệp theo vai (ADR-0233 Đ1, Đ3): mọi tệp phải ở ô thuộc phiếu; ô bắt buộc phải có tệp đã lưu. GPKD giữ mã lỗi cũ `org_photo_missing`.
+  const oPhieu = oCuaPhieu(await dongOTepHieuLuc(env.DB, v.at), { vaiCaNhan: roleCaNhan, vaiToChuc: roleToChuc, coToChuc, tepKhacMo: chinhSachRT.coTepKhac });
+  if (oNgoaiPhieu(oPhieu, tepTheoO).length > 0) return error(400, "file_slot_not_allowed", CAU_PHIEU.tepNgoaiPhieu);
+  const tepThieu = oBatBuocThieu(oPhieu, tepTheoO)[0];
+  if (tepThieu) return tepThieu.o === "GPKD" ? error(400, "org_photo_missing", CAU_PHIEU.thieuAnhGpkd) : error(400, "required_file_missing", CAU_PHIEU.thieuTepBatBuoc(tepThieu.nhan));
 
   const homNay = vnToday(new Date(v.nowMs));
   const k = kiemBanKhai(body, await danhMucGiayToChoDangKy(env.DB, homNay), homNay);

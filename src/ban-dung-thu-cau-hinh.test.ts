@@ -66,7 +66,7 @@ function boChayGia(o: { secrets?: string[] } = {}) {
     if (cmd === "git" && args[0] === "rev-parse") return { code: 0, stdout: "d".repeat(40) + "\n" };
     if (s.includes("whoami")) return { code: 0, stdout: "You are logged in" };
     if (s.includes("secret list")) return { code: 0, stdout: JSON.stringify((o.secrets ?? ["SESSION_SECRET", "LAN_GUI_SECRET", "MFA_ENCRYPTION_KEY", "DUNG_THU_PIN", "DUNG_THU_PIN_TOAN_QUYEN"]).map((name) => ({ name, type: "secret_text" }))) };
-    if (s.includes("r2 bucket list")) return { code: 0, stdout: ["ho-so", "ho-tro", "ve-dien-tu", "bien-lai", "anh-dich-vu"].map((k) => `name:           tourdao-sales-demo-${k}\ncreation_date:  x`).join("\n\n") };
+    if (s.includes("r2 bucket list")) return { code: 0, stdout: ["ho-so", "ho-tro", "ve-dien-tu", "bien-lai", "anh-dich-vu", "anh-ban-giao"].map((k) => `name:           tourdao-sales-demo-${k}\ncreation_date:  x`).join("\n\n") };
     return { code: 0, stdout: "" };
   };
   return { goi, run };
