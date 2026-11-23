@@ -246,6 +246,28 @@ const GIO_DON_THEM = defineSql(
 );
 export const cauThemGioDon = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(GIO_DON_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
 
+// ---- Công tắc «Hiện riêng phí đưa đón trên biên nhận khách lẻ» (ADR-0218 Đ3.4, migration 0178) — khuôn công tắc giờ đón; mặc định TẮT (gộp phí vào giá) --------------------------
+const PHI_DON_BIEN_NHAN_HIEN_HANH = defineSql(
+  "orders",
+  "receipt_fee_display_current",
+  `SELECT show_separate FROM ord_receipt_fee_display_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+/**
+ * Công tắc đang hiệu lực lúc `luc`: dòng mới nhất có `valid_from_at <= luc`. KHÔNG có dòng nào (trước ngày gieo của 0178) ⇒ Tắt = GỘP phí vào giá. Chỉ đổi cách in nên áp cho mọi bản in
+ * sau lúc đổi, kể cả đơn đã xác nhận (ADR-0218 Đ3.4).
+ */
+export async function hienRiengPhiDonBienNhan(db: D1Database, luc: string): Promise<boolean> {
+  const r = await db.prepare(PHI_DON_BIEN_NHAN_HIEN_HANH).bind(luc).first<{ show_separate: number }>();
+  return r ? r.show_separate === 1 : false;
+}
+const PHI_DON_BIEN_NHAN_MOI_NHAT = defineSql("orders", "receipt_fee_display_latest", `SELECT max(valid_from_at) AS moi_nhat FROM ord_receipt_fee_display_policy`);
+export const phiDonBienNhanMoiNhat = async (db: D1Database): Promise<string | null> => (await db.prepare(PHI_DON_BIEN_NHAN_MOI_NHAT).first<{ moi_nhat: string | null }>())?.moi_nhat ?? null;
+const PHI_DON_BIEN_NHAN_THEM = defineSql(
+  "orders",
+  "receipt_fee_display_insert",
+  `INSERT INTO ord_receipt_fee_display_policy (id, show_separate, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export const cauThemPhiDonBienNhan = (db: D1Database, v: { id: string; hienRieng: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(PHI_DON_BIEN_NHAN_THEM).bind(v.id, v.hienRieng ? 1 : 0, v.at, v.by);
 // ---- Công tắc «Đối tác không nhập nơi đón» (ADR-0221 Đ1, migration 0181) — khuôn `ord_pickup_time_policy`; mặc định TẮT ------------------------------------------------
 const NOI_DON_HIEN_HANH = defineSql(
   "orders",

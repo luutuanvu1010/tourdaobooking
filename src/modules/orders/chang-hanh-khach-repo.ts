@@ -480,10 +480,13 @@ export async function legDatGapByOrder(db: D1Database, orderId: string): Promise
  * bằng hàm thuần trước khi dựng lô (ruling R6).
  * ADR-0227: vế thứ hai chỉ áp khi ?8 = 1 (công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón» Bật) — ?8 là giá trị route đọc MỘT lần, cùng giá trị đã đưa vào hàm thuần.
  */
+// ADR-0225 Đ2 (đề xuất; migration 0184): câu xác nhận chụp dấu «đơn đối tác chỉ thu hộ tiền mặt» — 1 khi đơn do tài khoản giữ quyền Đối tác lập (dấu kênh thu khác NULL) HOẶC
+// bên đặt đang mang vai được hưởng hoa hồng (CÙNG vế EXISTS với BOOKER_LA_DOI_TAC của repository.ts — bài don-doi-tac-chi-tien-mat.test.ts so chữ). Trigger 0184 chỉ cho NULL → giá trị trong câu này.
 const ORDER_CONFIRM = defineSql(
   "orders",
   "order_confirm",
-  `UPDATE orders SET status = 'confirmed', updated_at = ?1, confirmed_at = ?1
+  `UPDATE orders SET status = 'confirmed', updated_at = ?1, confirmed_at = ?1,
+     partner_cash_only = (company_collects_snapshot IS NOT NULL OR EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code WHERE r.party_id = orders.booker_party_id))
    WHERE id = ?2 AND status = 'draft' AND updated_at = ?6
      AND EXISTS (SELECT 1 FROM order_service WHERE order_id = orders.id)
      AND NOT EXISTS (
@@ -908,12 +911,24 @@ export interface OrderItemRowPhiDon {
   quantity: number;
   unitPrice: number;
   lineTotal: number;
+  /** Nguồn tính của máy (0179, ADR-0218): null = dòng cũ (BANG_PHI / CHON). Dòng nguồn mới để feeSource / feeChoice / feeRuleId / feeZoneCode trống. */
+  feeCalcSource: "DOI_TAY" | "CHUONG_TRINH" | "GIA_GOC" | null;
+  /** Giá gốc Sheet đã dùng (GIA_GOC). */
+  feeBasePrice: number | null;
+  /** Mức giảm theo cấp đã dùng (GIA_GOC đi chung; xe riêng 0). */
+  feeTierDiscount: number | null;
+  feeProgramId: string | null;
+  feeProgramName: string | null;
+  /** Lý do và người đổi số (DOI_TAY). Lý do là chữ văn phòng gõ — qua `maskLongDigits` trước khi vào nhật ký, không vào DTO của Đối tác. */
+  feeOverrideReason: string | null;
+  feeOverrideBy: string | null;
 }
 export type DongPhiGhi = OrderItemRowPhiDon & { id: string; orderId: string; sortOrder: number };
-const FEE_COLS = "id, order_id, line_kind, transfer_leg_id, fee_rule_id, fee_kind, fee_zone_code, fee_tier_code, fee_return_pax, description, detail, quantity, unit_price, line_total, sort_order, fee_source, fee_choice";
-const FEE_VALUES = "?1, ?2, 'TRANSFER_FEE', ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13, ?14, ?15";
+const FEE_COLS = "id, order_id, line_kind, transfer_leg_id, fee_rule_id, fee_kind, fee_zone_code, fee_tier_code, fee_return_pax, description, detail, quantity, unit_price, line_total, sort_order, fee_source, fee_choice, fee_calc_source, fee_base_price, fee_tier_discount, fee_program_id, fee_program_name, fee_override_reason, fee_override_by";
+const FEE_VALUES = "?1, ?2, 'TRANSFER_FEE', ?3, ?4, ?5, ?6, ?7, ?8, ?9, NULL, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22";
 const feeBinds = (d: DongPhiGhi) =>
-  [d.id, d.orderId, d.legId, d.feeRuleId, d.feeKind, d.feeZoneCode, d.feeTierCode, d.feeReturnPax, d.description, d.quantity, d.unitPrice, d.lineTotal, d.sortOrder, d.feeSource, d.feeChoice];
+  [d.id, d.orderId, d.legId, d.feeRuleId, d.feeKind, d.feeZoneCode, d.feeTierCode, d.feeReturnPax, d.description, d.quantity, d.unitPrice, d.lineTotal, d.sortOrder, d.feeSource, d.feeChoice,
+    d.feeCalcSource, d.feeBasePrice, d.feeTierDiscount, d.feeProgramId, d.feeProgramName, d.feeOverrideReason, d.feeOverrideBy];
 
 /** (b) Chèn dòng phí SAU chặng của lô (khoá ngoại tới chặng): đơn còn nháp VÀ dòng id mới sinh ?16 của chính lô có mặt (dòng tiền dịch vụ hoặc chặng của đơn). */
 const FEE_ITEM_INSERT = defineSql(
@@ -921,7 +936,7 @@ const FEE_ITEM_INSERT = defineSql(
   "fee_item_insert",
   `INSERT INTO order_item (${FEE_COLS}) SELECT ${FEE_VALUES}
    WHERE EXISTS (SELECT 1 FROM orders WHERE id = ?2 AND status = 'draft')
-     AND (EXISTS (SELECT 1 FROM order_item WHERE id = ?16 AND order_id = ?2) OR EXISTS (SELECT 1 FROM ord_transfer_leg WHERE id = ?16 AND order_id = ?2))`,
+     AND (EXISTS (SELECT 1 FROM order_item WHERE id = ?23 AND order_id = ?2) OR EXISTS (SELECT 1 FROM ord_transfer_leg WHERE id = ?23 AND order_id = ?2))`,
 );
 export const feeItemInsert = (db: D1Database, d: DongPhiGhi, idMoiCuaLo: string): D1PreparedStatement => db.prepare(FEE_ITEM_INSERT).bind(...feeBinds(d), idMoiCuaLo);
 
@@ -945,7 +960,7 @@ export const feeItemsDeleteTruoc = (db: D1Database, g: GacTruoc): D1PreparedStat
 const FEE_ITEM_INSERT_TRUOC = defineSql(
   "orders",
   "fee_item_insert_truoc",
-  `INSERT INTO order_item (${FEE_COLS}) SELECT ${FEE_VALUES} WHERE ${GAC_TRUOC("?2", "?16", "?17", "?18")}`,
+  `INSERT INTO order_item (${FEE_COLS}) SELECT ${FEE_VALUES} WHERE ${GAC_TRUOC("?2", "?23", "?24", "?25")}`,
 );
 export const feeItemInsertTruoc = (db: D1Database, d: DongPhiGhi, g: GacTruoc): D1PreparedStatement =>
   db.prepare(FEE_ITEM_INSERT_TRUOC).bind(...feeBinds(d), g.mocDon, g.legId, g.mocChang);
@@ -955,7 +970,8 @@ const FEE_ROWS_BY_ORDER = defineSql(
   "orders",
   "fee_rows_by_order",
   `SELECT i.id, i.transfer_leg_id, l.order_service_id, l.direction, i.fee_kind, i.fee_zone_code, z.name AS zone_name, i.fee_tier_code, i.fee_return_pax,
-     i.description, i.quantity, i.unit_price, i.line_total, i.fee_choice
+     i.description, i.quantity, i.unit_price, i.line_total, i.fee_choice,
+     i.fee_calc_source, i.fee_base_price, i.fee_tier_discount, i.fee_program_id, i.fee_program_name, i.fee_override_reason, i.fee_override_by
    FROM order_item i JOIN ord_transfer_leg l ON l.id = i.transfer_leg_id LEFT JOIN v_loc_zone_label z ON z.code = i.fee_zone_code
    WHERE i.order_id = ?1 AND i.line_kind = 'TRANSFER_FEE' ORDER BY i.sort_order`,
 );
@@ -964,6 +980,10 @@ export interface FeeRow {
   fee_tier_code: string | null; fee_return_pax: number | null; description: string; quantity: number; unit_price: number; line_total: number;
   /** Kiểu chọn của dòng do văn phòng chọn (ADR-0214); null = dòng bảng phí cũ (trigger 0173: chỉ nguồn CHON mang kiểu chọn). */
   fee_choice: "DANH_SACH" | "SO_KHAC" | null;
+  /** Nguồn tính của máy (0179); null = dòng cũ. */
+  fee_calc_source: "DOI_TAY" | "CHUONG_TRINH" | "GIA_GOC" | null;
+  fee_base_price: number | null; fee_tier_discount: number | null; fee_program_id: string | null; fee_program_name: string | null;
+  fee_override_reason: string | null; fee_override_by: string | null;
 }
 export const feeRowsStatement = (db: D1Database, orderId: string): D1PreparedStatement => db.prepare(FEE_ROWS_BY_ORDER).bind(orderId);
 

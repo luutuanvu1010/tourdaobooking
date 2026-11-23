@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { acknowledge, applyOverride, patchOverride, planSync, summarizePlan, syncGuard, toEffective, type CatalogRecord } from "./rules.ts";
-import type { CatalogInput } from "./sheet.ts";
+import { acknowledge, applyOverride, kePhiDonGoc, patchOverride, planSync, summarizePlan, syncGuard, toEffective, type CatalogRecord } from "./rules.ts";
+import type { CatalogInput, CatalogParse } from "./sheet.ts";
 
 const P = (adult: number, child: number | null = null) => ({ adult, child, senior: null, infant: null });
 const N = { child: null, senior: null, infant: null };
@@ -130,4 +130,47 @@ test("TT1: chốt chặn không đếm dòng giữ lại là mất, nhưng vẫn
   assert.equal(syncGuard(5, that, 2), null); // D, E thật sự vắng: 2/5 → chưa chặn
   const nua = planSync(all, [input("A", 1)], [{ code: "B" }]);
   assert.match(syncGuard(5, nua, 1)!, /ẩn 3\/5/);
+});
+
+// ADR-0218 Đ1.3: luật ghi giá gốc phí đưa đón.
+type PhiDon = Extract<CatalogParse, { ok: true }>["phiDon"];
+const phi = (p: Partial<PhiDon> & { theo?: [string, number | null, number | null][] }): PhiDon => ({
+  coCotMoiKhach: p.coCotMoiKhach ?? true,
+  coCotXeRieng: p.coCotXeRieng ?? true,
+  theoMa: new Map((p.theo ?? []).map(([m, a, b]) => [m, { moiKhach: a, xeRieng: b }])),
+  loiO: p.loiO ?? [],
+});
+const cu = (...r: [string, number | null, number | null][]) => new Map(r.map(([m, a, b]) => [m, { moiKhach: a, xeRieng: b }]));
+
+test("kePhiDonGoc: Sheet chưa có cột và bảng chưa có giá → im lặng, không ghi, không vấn đề", () => {
+  const k = kePhiDonGoc(cu(), phi({ coCotMoiKhach: false, coCotXeRieng: false, theo: [["T1", null, null]] }));
+  assert.deepEqual(k, { ghi: [], vanDe: [] });
+});
+
+test("kePhiDonGoc: có cột → lấy giá từ ô; chỉ ghi khi cặp đổi; ô trống đổi giá cũ thành null", () => {
+  const k = kePhiDonGoc(cu(["T1", 50000, null], ["T2", 70000, null]), phi({ theo: [["T1", 50000, null], ["T2", null, null], ["T3", 10000, 300000]] }));
+  assert.deepEqual(k.ghi, [
+    { catalogCode: "T2", moiKhach: null, xeRieng: null },
+    { catalogCode: "T3", moiKhach: 10000, xeRieng: 300000 },
+  ]);
+  assert.deepEqual(k.vanDe, []);
+});
+
+test("kePhiDonGoc: ô hỏng → giữ giá cũ của riêng cột đó, cột kia vẫn cập nhật, có vấn đề", () => {
+  const loiO = [{ row: 3, code: "T1", cot: "moi_khach" as const, message: "Ô phí đưa đón dòng 3 của T1 không hợp lệ, giữ giá cũ" }];
+  const k = kePhiDonGoc(cu(["T1", 50000, 100]), phi({ theo: [["T1", null, 200]], loiO }));
+  assert.deepEqual(k.ghi, [{ catalogCode: "T1", moiKhach: 50000, xeRieng: 200 }]);
+  assert.deepEqual(k.vanDe, [{ row: 3, code: "T1", message: loiO[0]!.message }]);
+});
+
+test("kePhiDonGoc: cột vắng mà đã từng có giá → giữ nguyên mọi giá cũ của cột đó, MỘT vấn đề", () => {
+  const k = kePhiDonGoc(cu(["T1", 50000, null], ["T2", 60000, null]), phi({ coCotMoiKhach: false, theo: [["T1", null, 900], ["T2", null, null]] }));
+  assert.deepEqual(k.ghi, [{ catalogCode: "T1", moiKhach: 50000, xeRieng: 900 }]);
+  assert.equal(k.vanDe.length, 1);
+  assert.match(k.vanDe[0]!.message, /Cột «Phí đưa đón» không còn trên Sheet; giữ giá gốc cũ/);
+});
+
+test("kePhiDonGoc: cột xe riêng vắng, chưa từng có giá xe riêng → im lặng", () => {
+  const k = kePhiDonGoc(cu(["T1", 50000, null]), phi({ coCotXeRieng: false, theo: [["T1", 50000, null]] }));
+  assert.deepEqual(k, { ghi: [], vanDe: [] });
 });
