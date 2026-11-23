@@ -16,7 +16,7 @@ export async function initTraSauCuaToi(staff: Staff, el: HTMLElement): Promise<v
   } catch {
     return;
   }
-  if (!r.coHanMuc && r.dangNo <= 0) return;
+  if (!r.coHanMuc && r.dangNo + r.dangNoDichVu <= 0) return;
   const dong = dongTraSauCuaToi(r, laDoiTacTraSau(staff));
   replaceChildren(
     el,

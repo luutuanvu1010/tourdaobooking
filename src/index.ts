@@ -47,6 +47,7 @@ import { dangChayLucSuKien, dongCoTheSinhTin, taiXeNhanSuKien, thayDoiCuaHanhDon
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { can, holdsPartner } from "./shared/permissions";
 import { vnToday } from "./shared/vn-date";
+import { dichVuXetTuDanhMuc } from "./shared/tra-sau-dich-vu";
 import { createApp, type AppOptions, type KetLuanGanToChuc, type NguoiQuanLyHieuLuc } from "./shared/router";
 import { chonTuCach, type TuCachDong } from "./shared/booker";
 import type { StaffProfile } from "./shared/contracts";
@@ -512,7 +513,15 @@ const APP_OPTIONS: AppOptions = {
     // KHÁCH ĐẶT CỌC TRƯỚC (ADR-0159 Đ1 mục 3; ADR-0024 đ4): `orders` không đọc, không ghi bảng bil_ — billing dựng câu, lô xác nhận của `orders` chạy chung.
     cauCocKhiXacNhan: (env, i) => cauDatCocKhiXacNhan(env.DB, i),
     // TRẢ SAU THEO HẠN MỨC (ADR-0168): `orders` không import `billing` — gốc lắp ráp tiêm cổng hạn mức, câu gác phiên bản và hạn trả / nợ của một đơn.
-    kiemTraSau: (env, i) => kiemTraSau(env.DB, i),
+    // ADR-0230 Đ1: đơn kèm mã dịch vụ ⇒ gốc lắp ráp dựng dòng xét «Trả sau theo dịch vụ» từ danh mục ĐÃ GỘP của catalog (billing không import catalog). Danh mục không đọc được ⇒
+    // coi như không đủ điều kiện (phía an toàn về tiền); riêng đơn đã chụp loại SERVICE thì trả null (cổng chặn 503, không đoán «hết đủ điều kiện»).
+    kiemTraSau: async (env, i) => {
+      const { maDichVu, ...hoi } = i;
+      if (!maDichVu) return kiemTraSau(env.DB, hoi);
+      const dm = await danhMucChoTraSauDichVu(env.DB).catch(() => null);
+      if (dm === null && hoi.coSo === "SERVICE") return null;
+      return kiemTraSau(env.DB, { ...hoi, dichVu: dichVuXetTuDanhMuc(maDichVu, dm) });
+    },
     cauGacPhienBanTraSau: (env, partyId, version, at) => cauGacPhienBan(env.DB, partyId, version, at),
     traSauCuaDon: (env, id) => traSauCuaDon(env.DB, id),
     veDaMoCuaDon: (env, id) => veDaMoCuaDon(env.DB, id),

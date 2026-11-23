@@ -25,7 +25,8 @@ import { chiNguoiLapGhiNhap, donDaGuiLen, ketQuaXemDon } from "../../shared/xem-
 import { accountingEnteredAmong, earliestLedgerMonth, orderOwners, orderStatuses, partyLabels, receiptsOfOrder, soDongNoCuaNguoiRow } from "./repository";
 import { daTraTheoThuCho } from "./rules";
 import { GIO_TOI_DA, kiemSoGio } from "../../shared/tra-sau";
-import { benCoLienQuanTraSau, cauTangPhienBan, hanMucHieuLuc, hanMucMoiBen, homQua, noCacBenDat, noCuaBenDat, traSauCuaDon } from "./tra-sau";
+import { benCoLienQuanTraSau, cauTangPhienBan, dieuKienDichVuCuaBen, hanMucHieuLuc, hanMucMoiBen, homQua, noCacBenDat, noCuaBenDat, traSauCuaDon } from "./tra-sau";
+import { dichVuXetTuDanhMuc } from "../../shared/tra-sau-dich-vu";
 import { dangGanToChuc, dongHanMucKhiHetVaiStatement, dongHanMucStatement, ghiGoiYStatement, goiYTheoCap, hanMucDangMo, mucToiDaQuanTri, themHanMucStatement, themMucToiDaStatement } from "./tra-sau-repo";
 import { dongKenhThuStatement, themKenhThuStatement } from "./kenh-thu-repo";
 import { kenhThuDto, kenhThuHienTai as kenhThuDangBat } from "./kenh-thu";
@@ -914,7 +915,7 @@ export const billingModule: AppModule = {
         const n = no.get(partyId)!;
         return {
           partyId, ten: ten.get(partyId)?.label ?? "Hồ sơ chưa có tên", coHanMuc: h !== null, hanMuc: h?.hanMuc ?? null, gioTra: h?.gioTra ?? null, gioAnHan: h?.gioAnHan ?? null,
-          tuNgay: h?.tuNgay ?? null, dangNo: n.tong, conDuocDung: h ? Math.max(0, h.hanMuc - n.tong) : null, soDonNo: n.don.length,
+          tuNgay: h?.tuNgay ?? null, dangNo: n.tongHanMuc, dangNoDichVu: n.tongDichVu, conDuocDung: h ? Math.max(0, h.hanMuc - n.tongHanMuc) : null, soDonNo: n.don.length,
           soDonAnHan: n.don.filter((d) => d.trangThai === "an_han").length, soDonQuaHan: n.don.filter((d) => d.trangThai === "qua_han").length,
         };
       }).sort((a, b) => a.ten.localeCompare(b.ten, "vi"));
@@ -937,7 +938,7 @@ export const billingModule: AppModule = {
       if (!PARTY_ID_RE.test(partyId) || !(await partyLabels(env.DB, [partyId])).has(partyId)) return error(404, "not_found", "Không tìm thấy hồ sơ.");
       const [h, no] = await Promise.all([hanMucHieuLuc(env.DB, partyId), noCuaBenDat(env.DB, partyId)]);
       const res: TraSauHoSoResponse = {
-        partyId, hanMuc: h?.hanMuc ?? null, gioTra: h?.gioTra ?? null, gioAnHan: h?.gioAnHan ?? null, dangNo: no.tong, conDuocDung: h ? Math.max(0, h.hanMuc - no.tong) : null,
+        partyId, hanMuc: h?.hanMuc ?? null, gioTra: h?.gioTra ?? null, gioAnHan: h?.gioAnHan ?? null, dangNo: no.tongHanMuc, dangNoDichVu: no.tongDichVu, conDuocDung: h ? Math.max(0, h.hanMuc - no.tongHanMuc) : null,
         coQuyenSua: can(staff, "credit.limit.write") && !(await tuDatTraSau(env.DB, staff, partyId)),
       };
       return json(res);
@@ -1059,20 +1060,22 @@ export const billingModule: AppModule = {
       const soCua = async (party: string) => {
         const [h, no] = await Promise.all([hanMucHieuLuc(env.DB, party), noCuaBenDat(env.DB, party)]);
         return {
-          coHanMuc: h !== null, hanMuc: h?.hanMuc ?? null, gioTra: h?.gioTra ?? null, gioAnHan: h?.gioAnHan ?? null, dangNo: no.tong, conDuocDung: h ? Math.max(0, h.hanMuc - no.tong) : null,
+          coHanMuc: h !== null, hanMuc: h?.hanMuc ?? null, gioTra: h?.gioTra ?? null, gioAnHan: h?.gioAnHan ?? null, dangNo: no.tongHanMuc, dangNoDichVu: no.tongDichVu, conDuocDung: h ? Math.max(0, h.hanMuc - no.tongHanMuc) : null,
           don: [...no.don].sort((a, b) => (a.hanTra ?? "").localeCompare(b.hanTra ?? "") || a.maDon.localeCompare(b.maDon)),
         };
       };
       const toChuc = await Promise.all((await toChucToiQuanLy()).map(async (party) => ({ partyId: party, ...(await soCua(party)) })));
       const partyId = staff.partyId;
-      if (partyId === null) return json({ coHanMuc: false, hanMuc: null, gioTra: null, gioAnHan: null, dangNo: 0, conDuocDung: null, don: [], toChuc } satisfies TraSauCuaToiResponse);
+      if (partyId === null) return json({ coHanMuc: false, hanMuc: null, gioTra: null, gioAnHan: null, dangNo: 0, dangNoDichVu: 0, conDuocDung: null, don: [], toChuc } satisfies TraSauCuaToiResponse);
       const res: TraSauCuaToiResponse = { ...(await soCua(partyId)), toChuc };
       return json(res);
     }),
     // Đường đọc HẸP cho người lập đơn (ADR-0168 Đ1 mục 3): chỉ «còn được dùng» của đúng bên đặt, không danh sách đơn. Tài khoản Đối tác bị ÉP về hồ sơ của phiên (bỏ qua `benDat`).
     // ADR-0213 Đ4.4 (Task 11, nhóm THAY_MAT): Đối tác xem theo BÊN ĐANG THAY MẶT — `benDat` là một tư cách của mình thì dùng nó; vắng thì tư cách mặc định (ngoài danh sách ⇒ 403, vòng sửa 1)
     // (cá nhân) như hôm nay; không có tư cách nào ⇒ hồ sơ của phiên (hôm nay). Chỉ là đường đọc gợi ý — cổng thật là lô lưu / xác nhận theo bên đặt đã ghi.
-    route("GET", "/api/tra-sau/con-duoc-dung", "orders", async ({ env, request, staff, benDangThayMat }) => {
+    // ADR-0230 Đ1 mục 5: form gửi kèm mã các dòng dịch vụ đang soạn (`dv` lặp lại, `nhapTay=1` khi có dòng nhập tay) ⇒ thêm `traSauDichVu` (chỉ số giờ trả, không danh sách dấu) —
+    // cùng luật thuần máy chủ dùng ở cổng lưu / xác nhận (`dieuKienTraSauDichVu` qua `dieuKienDichVuCuaBen`). Danh mục tới qua `ctx.danhMucTraSauDichVu` (billing không import catalog).
+    route("GET", "/api/tra-sau/con-duoc-dung", "orders", async ({ env, request, staff, benDangThayMat, danhMucTraSauDichVu }) => {
       if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không xem được hạn mức trả sau.");
       const q = new URL(request.url).searchParams.get("benDat");
       const thayMat = holdsPartner(staff) ? await benDangThayMat(q) : null;
@@ -1081,9 +1084,15 @@ export const billingModule: AppModule = {
       const macDinh = thayMat && !thayMat.ok ? await benDangThayMat(undefined) : thayMat;
       const benDat = macDinh ? (macDinh.ok && macDinh.chon ? macDinh.chon.partyId : staff.partyId) : q;
       if (benDat !== null && !PARTY_ID_RE.test(benDat)) return error(400, "invalid_input", "Mã bên đặt không hợp lệ.");
-      if (benDat === null) return json({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false } satisfies ConDuocDungTraSauResponse);
-      const [h, no] = await Promise.all([hanMucHieuLuc(env.DB, benDat), noCuaBenDat(env.DB, benDat)]);
-      const res: ConDuocDungTraSauResponse = { coHanMuc: h !== null, conDuocDung: h ? Math.max(0, h.hanMuc - no.tong) : 0, coDonQuaHan: no.coDonQuaHan };
+      if (benDat === null) return json({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false, traSauDichVu: null } satisfies ConDuocDungTraSauResponse);
+      const params = new URL(request.url).searchParams;
+      const maDv = params.getAll("dv").filter((m) => /^[^\s]{1,100}$/.test(m)).slice(0, 50);
+      const coDichVu = maDv.length > 0;
+      const [h, no, dm] = await Promise.all([hanMucHieuLuc(env.DB, benDat), noCuaBenDat(env.DB, benDat), coDichVu ? danhMucTraSauDichVu().catch(() => null) : Promise.resolve(null)]);
+      const dk = coDichVu ? await dieuKienDichVuCuaBen(env.DB, benDat, dichVuXetTuDanhMuc([...maDv, ...(params.get("nhapTay") === "1" ? [null] : [])], dm)) : null;
+      const res: ConDuocDungTraSauResponse = {
+        coHanMuc: h !== null, conDuocDung: h ? Math.max(0, h.hanMuc - no.tongHanMuc) : 0, coDonQuaHan: no.coDonQuaHan, traSauDichVu: dk ? { gioTra: dk.gioTra } : null,
+      };
       return json(res);
     }),
 

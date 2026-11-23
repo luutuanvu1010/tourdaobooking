@@ -32,6 +32,16 @@ const HAN_MUC_MOI_BEN = defineSql(
 );
 export const hanMucRowMoiBen = async (db: D1Database, ngay: string): Promise<HanMucRow[]> => (await db.prepare(HAN_MUC_MOI_BEN).bind(ngay).all<HanMucRow>()).results;
 
+// ADR-0230 Đ1 mục 2: bên đặt mang loại đối tác được hưởng hoa hồng — CÙNG định nghĩa với HAN_MUC_TAI (trigger `bil_credit_limit_party_ok`, migration 0141). Điều kiện của
+// nhánh «Trả sau theo dịch vụ» (chỉ siết: hồ sơ không mang loại này thì không bao giờ được Trả sau theo dịch vụ).
+const BEN_DUOC_HUONG = defineSql(
+  "billing",
+  "credit_party_partner_eligible",
+  `SELECT 1 AS x FROM v_pty_open_role r JOIN v_pty_role_type t ON t.code = r.role_type_code
+   WHERE r.party_id = ?1 AND (t.role_group = 'EXTERNAL' OR (t.role_group = 'OTHER' AND t.is_partner_label = 1)) LIMIT 1`,
+);
+export const benDuocHuong = async (db: D1Database, partyId: string): Promise<boolean> => (await db.prepare(BEN_DUOC_HUONG).bind(partyId).first()) !== null;
+
 const HAN_MUC_DANG_MO = defineSql("billing", "credit_limit_open", `SELECT id FROM bil_credit_limit WHERE party_id = ?1 AND valid_to_date IS NULL LIMIT 1`);
 export const hanMucDangMo = async (db: D1Database, partyId: string): Promise<boolean> => (await db.prepare(HAN_MUC_DANG_MO).bind(partyId).first()) !== null;
 // ADR-0213 Đ4.5 (Task 11): hồ sơ ?1 đang gắn tổ chức ?2 (người quản lý hoặc thành viên, liên kết đang mở — view công bố `v_pty_org_link` của parties). Chỉ để SIẾT `TU_DAT_TRA_SAU`.
@@ -87,18 +97,20 @@ export const guardTangStatement = (db: D1Database, partyId: string, at: string) 
 // ---- Đơn Trả sau (view công bố của orders) ----
 export interface DonTraSauRow {
   id: string; order_code: string; booker_party_id: string | null; status: "draft" | "confirmed" | "cancelled"; delivered_at: string | null; credit_due_at: string | null; credit_grace_until: string | null;
+  /** Loại Trả sau (migration 0187): NULL coi như LIMIT (dữ liệu dựng tay, đơn trước khi chụp). */
+  credit_basis: "LIMIT" | "SERVICE" | null;
 }
 const DON_CUA_BEN = defineSql(
   "billing",
   "credit_orders_of_parties",
-  `SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_at, credit_grace_until FROM v_ord_don_tra_sau
+  `SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_at, credit_grace_until, credit_basis FROM v_ord_don_tra_sau
    WHERE status = 'confirmed' AND booker_party_id IN (SELECT value FROM json_each(?1)) ORDER BY order_code`,
 );
 export async function donTraSauCuaCacBen(db: D1Database, partyIds: readonly string[]): Promise<DonTraSauRow[]> {
   if (partyIds.length === 0) return [];
   return (await db.prepare(DON_CUA_BEN).bind(JSON.stringify(partyIds)).all<DonTraSauRow>()).results;
 }
-const DON_THEO_ID = defineSql("billing", "credit_order_by_id", `SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_at, credit_grace_until FROM v_ord_don_tra_sau WHERE id = ?1`);
+const DON_THEO_ID = defineSql("billing", "credit_order_by_id", `SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_at, credit_grace_until, credit_basis FROM v_ord_don_tra_sau WHERE id = ?1`);
 export const donTraSauTheoId = (db: D1Database, orderId: string): Promise<DonTraSauRow | null> => db.prepare(DON_THEO_ID).bind(orderId).first<DonTraSauRow>();
 const BEN_CO_DON = defineSql("billing", "credit_parties_with_orders", `SELECT DISTINCT booker_party_id AS party_id FROM v_ord_don_tra_sau WHERE status = 'confirmed' AND booker_party_id IS NOT NULL`);
 export const benCoDonTraSau = async (db: D1Database): Promise<string[]> => (await db.prepare(BEN_CO_DON).all<{ party_id: string }>()).results.map((r) => r.party_id);
@@ -174,7 +186,7 @@ export const ghiNhacStatement = (db: D1Database, v: { orderId: string; loai: str
 const DON_CO_HAN = defineSql(
   "billing",
   "credit_orders_with_due",
-  `SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_at, credit_grace_until FROM v_ord_don_tra_sau
+  `SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_at, credit_grace_until, credit_basis FROM v_ord_don_tra_sau
    WHERE status = 'confirmed' AND credit_due_at IS NOT NULL AND booker_party_id IS NOT NULL ORDER BY credit_due_at`,
 );
 export const donCoHanTra = async (db: D1Database): Promise<DonTraSauRow[]> => (await db.prepare(DON_CO_HAN).all<DonTraSauRow>()).results;

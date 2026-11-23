@@ -8,7 +8,7 @@ import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
-import { cauDonNo, cauGio } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { cauDangNo, cauDonNo, cauGio } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { holdsPartner } from "../src/shared/permissions";
 import { dongTien } from "../src/shared/tra-sau";
 import { ngayVN } from "../src/shared/giay-to-hien-thi";
@@ -157,11 +157,11 @@ function veNhapCho(r: Api.NhapThanhVienResponse | null, cheDo: "CHI_SOAN" | "SOA
 
 function veCongNo(r: Api.TraSauToChucDto | undefined): void {
   const goc = byId("tc-ts");
-  if (!r || (!r.coHanMuc && r.dangNo <= 0)) { replaceChildren(goc, h("p", { class: "muted" }, "Tổ chức chưa được Trả sau và không còn nợ.")); return; }
+  if (!r || (!r.coHanMuc && r.dangNo + r.dangNoDichVu <= 0)) { replaceChildren(goc, h("p", { class: "muted" }, "Tổ chức chưa được Trả sau và không còn nợ.")); return; }
   const dong1 = r.gioTra === null ? "Tổ chức được Trả sau." : `Tổ chức được Trả sau, trả trong ${cauGio(r.gioTra)} kể từ khi đơn được xác nhận${r.gioAnHan ? `, sau đó còn ${cauGio(r.gioAnHan)} ân hạn` : ""}.`;
   replaceChildren(goc,
     h("p", null, dong1),
-    h("p", null, `Đang nợ ${dongTien(r.dangNo)}`),
+    h("p", null, cauDangNo(r, true)),
     r.don.length === 0
       ? h("p", { class: "muted" }, "Không có đơn nào còn nợ.")
       : h("ul", null, ...r.don.map((d) => h("li", { "data-trang-thai": d.trangThai }, h("a", { href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon), ` · ${cauDonNo(d)}`))));

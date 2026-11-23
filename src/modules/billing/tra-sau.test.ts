@@ -173,7 +173,8 @@ test("đường đọc hẹp con-duoc-dung: Đối tác luôn bị ép về hồ
   r = await cua(PT);
   assert.equal(r.status, 200, r.text);
   assert.deepEqual([r.json.coHanMuc, r.json.conDuocDung, r.json.coDonQuaHan], [true, 6_000_000, false], "vắng benDat: đọc số của chính mình");
-  assert.equal(Object.keys(r.json).sort().join(), "coDonQuaHan,coHanMuc,conDuocDung", "không lộ thêm trường nào");
+  assert.equal(Object.keys(r.json).sort().join(), "coDonQuaHan,coHanMuc,conDuocDung,traSauDichVu", "không lộ thêm trường nào (ADR-0230 Đ1 mục 5 thêm traSauDichVu: chỉ số giờ)");
+  assert.equal(r.json.traSauDichVu, null, "không gửi dịch vụ ⇒ null");
   assert.deepEqual([(await cua(PT, `?benDat=pty-${PT}`)).json.conDuocDung], [6_000_000], "gửi đúng tư cách của mình");
   r = await cua(PT2, `?benDat=pty-${PT}`);
   assert.equal(r.status, 403, "đối tác B không đọc được số của A");

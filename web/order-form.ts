@@ -50,7 +50,7 @@ import { cheDoTuCach, laTuCachThanhVien, nhanMucTuCach, tuCachBanDau, type TuCac
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
 import { CAU_COC_TRA_SAU, CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
-import { cauChonTraSau, duocChonSanTraSau, hinhThucDuocNhan, quyetHinhThuc, type TrangThaiTraSau } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { cauChonTraSau, duocChonSanTraSau, duongConDuocDung, hinhThucDuocNhan, quyetHinhThuc, trangThaiTuConDuocDung, type TrangThaiTraSau } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { NHAN_HINH_THUC, laDoiTacTraSau } from "../src/shared/tra-sau";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
@@ -230,6 +230,10 @@ const bangKhachQuery = window.matchMedia("(min-width: 1440px)");
 bangKhachQuery.addEventListener("change", () => hk?.refresh(true));
 
 const drafts = () => entries.map((e) => e.draft);
+/** ADR-0230 Đ1 mục 5: mã các dòng dịch vụ đang soạn (null = dòng nhập tay) — gửi kèm khi hỏi Trả sau; đổi tập mã thì hỏi lại (máy chủ quyết, form không chép luật). */
+const maDichVuForm = (): (string | null)[] => drafts().map((d) => (d.kind === "catalog" ? d.code : null));
+let traSauSanSang = false; // bật sau lần hỏi Trả sau đầu tiên (khối Trả sau dựng ở cuối tệp)
+let maDichVuDaHoi = "";
 const nameOf = (d: ServiceDraft, i: number) => d.name.trim() || `Dịch vụ ${i + 1}`;
 
 // ---- một ngày cho cả đơn (ADR-0021) ----
@@ -600,6 +604,10 @@ function recompute(): void {
   byId("sum-count").textContent = `${n} dịch vụ`;
   byId("mobile-count").textContent = `${n} dịch vụ`;
   picker.setSelected(ds.flatMap((d) => (d.kind === "catalog" ? [d.code] : [])));
+  if (traSauSanSang) {
+    const khoa = JSON.stringify(maDichVuForm().map((m) => m ?? "").sort());
+    if (khoa !== maDichVuDaHoi) void napTraSau(); // thêm / bớt / đổi dịch vụ ⇒ xét lại «Trả sau theo dịch vụ»
+  }
   const warn = byId("sum-warning");
   warn.textContent = s.warning ?? "";
   warn.hidden = !s.warning;
@@ -1435,11 +1443,15 @@ async function napTraSau(): Promise<void> {
   const laDoiTac = laDoiTacTraSau(staff); // ADR-0198 Đ1: đối tác không thấy số hạn mức
   let c = cauChonTraSau({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false, laDoiTac });
   let trangThai: TrangThaiTraSau = "khong_co";
+  const ma = maDichVuForm();
+  maDichVuDaHoi = JSON.stringify(ma.map((m) => m ?? "").sort());
+  traSauSanSang = true;
   if (id) {
     try {
-      const r = await api<Api.ConDuocDungTraSauResponse>(`/api/tra-sau/con-duoc-dung?benDat=${encodeURIComponent(id)}`);
+      // ADR-0230 Đ1 mục 5: gửi kèm mã dịch vụ đang soạn — máy chủ trả thêm «Trả sau theo dịch vụ» (chỉ số giờ) bằng cùng luật cổng lưu dùng.
+      const r = await api<Api.ConDuocDungTraSauResponse>(duongConDuocDung(id, ma));
       c = cauChonTraSau({ ...r, laDoiTac });
-      trangThai = !r.coHanMuc ? "khong_co" : r.coDonQuaHan ? "qua_han" : vuotTuMayChu === id ? "vuot" : "dung_duoc";
+      trangThai = trangThaiTuConDuocDung(r, vuotTuMayChu === id);
     } catch {
       // Không đọc được: giữ nguyên lựa chọn đang có, máy chủ vẫn kiểm lại lúc lưu. ADR-0224 Đ2.2: máy chủ nhận «Thanh toán ngay» khi không đọc được hạn mức ⇒ hiện lại nút đó.
       if (luot === traSauLuot) oHinhThuc("PREPAID").closest("label")!.hidden = false;

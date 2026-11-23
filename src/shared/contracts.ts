@@ -3588,7 +3588,10 @@ export interface HanMucTraSauDto {
   gioTra: number | null;
   gioAnHan: number | null;
   tuNgay: string | null;
+  /** Nợ của các đơn Trả sau THEO HẠN MỨC — số duy nhất trừ vào hạn mức (ADR-0230 Đ1 mục 4). */
   dangNo: number;
+  /** Nợ của các đơn Trả sau theo dịch vụ — không trừ vào hạn mức. */
+  dangNoDichVu: number;
   conDuocDung: number | null;
   soDonNo: number;
   /** Đơn đang trong ân hạn (chỉ báo). */
@@ -3614,6 +3617,8 @@ export interface DonNoTraSauDto {
   hetAnHan: string | null;
   no: number;
   trangThai: TrangThaiHanTraSau;
+  /** Loại Trả sau của đơn (ADR-0230 Đ1 mục 3). */
+  coSo: "LIMIT" | "SERVICE";
 }
 export interface DonNoTraSauResponse {
   partyId: string;
@@ -3637,7 +3642,10 @@ export interface TraSauHoSoResponse {
   hanMuc: number | null;
   gioTra: number | null;
   gioAnHan: number | null;
+  /** Nợ của các đơn Trả sau THEO HẠN MỨC — số duy nhất trừ vào hạn mức (ADR-0230 Đ1 mục 4). */
   dangNo: number;
+  /** Nợ của các đơn Trả sau theo dịch vụ — không trừ vào hạn mức. */
+  dangNoDichVu: number;
   conDuocDung: number | null;
   coQuyenSua: boolean;
 }
@@ -3646,6 +3654,11 @@ export interface ConDuocDungTraSauResponse {
   coHanMuc: boolean;
   conDuocDung: number;
   coDonQuaHan: boolean;
+  /**
+   * ADR-0230 Đ1 mục 5: đơn đang soạn (mã dịch vụ gửi kèm) đủ điều kiện «Trả sau theo dịch vụ» cho bên đặt này ⇒ số giờ trả; không đủ / không gửi dịch vụ ⇒ null.
+   * Chỉ số giờ — không bao giờ kèm danh sách dấu.
+   */
+  traSauDichVu: { gioTra: number } | null;
 }
 /** «Trả sau của tôi» (ADR-0173 Đ3 mục 3): hồ sơ của phiên; `toChuc` (ADR-0213 Đ5, Task 12) = cùng các số cho từng tổ chức người gọi là người quản lý có hiệu lực (thành viên: rỗng). */
 export interface TraSauCuaToiResponse {
@@ -3653,7 +3666,10 @@ export interface TraSauCuaToiResponse {
   hanMuc: number | null;
   gioTra: number | null;
   gioAnHan: number | null;
+  /** Nợ của các đơn Trả sau THEO HẠN MỨC — số duy nhất trừ vào hạn mức (ADR-0230 Đ1 mục 4). */
   dangNo: number;
+  /** Nợ của các đơn Trả sau theo dịch vụ — không trừ vào hạn mức. */
+  dangNoDichVu: number;
   conDuocDung: number | null;
   don: DonNoTraSauDto[];
   toChuc: TraSauToChucDto[];
@@ -3665,7 +3681,10 @@ export interface TraSauToChucDto {
   hanMuc: number | null;
   gioTra: number | null;
   gioAnHan: number | null;
+  /** Nợ của các đơn Trả sau THEO HẠN MỨC — số duy nhất trừ vào hạn mức (ADR-0230 Đ1 mục 4). */
   dangNo: number;
+  /** Nợ của các đơn Trả sau theo dịch vụ — không trừ vào hạn mức. */
+  dangNoDichVu: number;
   conDuocDung: number | null;
   don: DonNoTraSauDto[];
 }

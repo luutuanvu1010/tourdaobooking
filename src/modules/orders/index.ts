@@ -899,7 +899,7 @@ async function soanSuaSoKhach(
   if (!meta) return { ok: false, code: "invalid_input", message: "Không tìm thấy đơn." };
   const giam = meta.paymentTerm === "CREDIT" ? await getGiamGia(db, orderId) : 0;
   const cong = await congSuaTangTraSau(
-    traSau, { id: orderId, paymentTerm: meta.paymentTerm, status: meta.status, bookerPartyId: meta.bookerPartyId, total: effectiveMoney(plan.tienTruoc.dichVu, giam, plan.tienTruoc.phi).total },
+    traSau, { id: orderId, paymentTerm: meta.paymentTerm, status: meta.status, bookerPartyId: meta.bookerPartyId, total: effectiveMoney(plan.tienTruoc.dichVu, giam, plan.tienTruoc.phi).total, creditBasis: meta.creditBasis, maDichVu: services.map((s) => s.catalogCode ?? null) },
     effectiveMoney(plan.tienSau.dichVu, giam, plan.tienSau.phi).total, // Đợt C: phần phí theo khách tăng cũng tính vào «sửa tăng»
   );
   if ("loi" in cong) return { ok: false, code: "tra_sau", res: cong.loi };
@@ -1511,7 +1511,7 @@ export const ordersModule: AppModule = {
       const khai = await congLoiKhaiKhiLuu(staff, donGhi.declaredDeposit, 0, donGhi.total, chanKhaiCocLai); // ADR-0159 Đ1 mục 4
       if ("loi" in khai) return khai.loi;
       // ADR-0168 Đ2 mục 1, 3: Trả sau chỉ nhận khi bên đặt có hạn mức còn hiệu lực và đơn không kèm lời khai đặt cọc — báo sớm lúc lưu, chốt thật ở lô xác nhận.
-      const chanTraSauLap = await congTraSauKhiLuu({ kiemTraSau, nguoiGuiLaDoiTac: laDoiTacTraSau(staff) }, { id: null, paymentTerm: donGhi.paymentTerm ?? "PREPAID", bookerPartyId: booker.write.partyId, total: donGhi.total });
+      const chanTraSauLap = await congTraSauKhiLuu({ kiemTraSau, nguoiGuiLaDoiTac: laDoiTacTraSau(staff) }, { id: null, paymentTerm: donGhi.paymentTerm ?? "PREPAID", bookerPartyId: booker.write.partyId, total: donGhi.total, maDichVu: placed.value.services.map((s) => s.catalogCode ?? null) });
       if (chanTraSauLap) return chanTraSauLap;
       // ADR-0142: người được mời kiểm NGAY (đang hoạt động, có hồ sơ, giữ Bán hàng, không giữ Đối tác); sai ⇒ 400, không tạo đơn. Ghi hồ sơ của họ trên đơn nháp CÙNG lô tạo đơn (chưa có lời mời — chỉ có từ lúc ghi nhận).
       const xMoi = moi.staffId === null ? null : await banHang.kiemBanHangMoi(moi.staffId);
@@ -1717,7 +1717,7 @@ export const ordersModule: AppModule = {
       const khai = await congLoiKhaiKhiLuu(staff, donGhi.declaredDeposit, dangKhai, donGhi.total, chanKhaiCocLai);
       if ("loi" in khai) return khai.loi;
       // ADR-0168 Đ2 mục 1, 3: như lúc lập — hình thức SẼ lưu = hình thức gửi lên, vắng thì giữ hình thức đang lưu; đơn đã rời nháp không tới được đây (NOT_EDITABLE ở trên).
-      const chanTraSauLuu = await congTraSauKhiLuu({ kiemTraSau, nguoiGuiLaDoiTac: laDoiTacTraSau(staff) }, { id, paymentTerm: donGhi.paymentTerm ?? meta.paymentTerm, bookerPartyId: booker.write.partyId, total: donGhi.total });
+      const chanTraSauLuu = await congTraSauKhiLuu({ kiemTraSau, nguoiGuiLaDoiTac: laDoiTacTraSau(staff) }, { id, paymentTerm: donGhi.paymentTerm ?? meta.paymentTerm, bookerPartyId: booker.write.partyId, total: donGhi.total, maDichVu: placed.value.services.map((s) => s.catalogCode ?? null) });
       if (chanTraSauLuu) return chanTraSauLuu;
       const ghiChuKhai = khai.giaTri !== null && khai.giaTri !== dangKhai ? `đổi khai khách đặt cọc cho đối tác ${dangKhai.toLocaleString("vi-VN")} ₫ → ${khai.giaTri.toLocaleString("vi-VN")} ₫` : null;
       let luuDuoc: boolean;

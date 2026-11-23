@@ -1,7 +1,7 @@
 // Chữ hiện của Trả sau (ADR-0168, ADR-0172, ADR-0173): màn «Hạn mức trả sau», ô «Trả sau» ở Cấp độ đại lý, khối Thanh toán và nút «Ân hạn» trên đơn, mục «Trả sau của tôi».
 // Thuần, không DOM. Mốc giờ là ISO UTC của máy chủ; MỌI chỗ hiện cho người dùng đi qua `vnDateTimeText` (giờ Việt Nam, ADR-0172 Đ3 mục 4) — không cắt chuỗi ngày.
 // Lý do khoá lấy từ `CAU_KHOA_QUA_HAN` — cùng ý với câu máy chủ (`lyDoKhongTraSau`).
-import { CAU_VUOT_HAN_MUC_DOI_TAC, GIO_TOI_DA, NHAN_HINH_THUC, dongTien, type HinhThucThanhToan, type KetQuaKiemTraSau, type TrangThaiHan } from "./tra-sau.ts";
+import { CAU_VUOT_HAN_MUC_DOI_TAC, GIO_TOI_DA, NHAN_CO_SO_TRA_SAU, NHAN_HINH_THUC, dongTien, type HinhThucThanhToan, type KetQuaKiemTraSau, type TrangThaiHan } from "./tra-sau.ts";
 import { msToVnLocal, vnDateTimeText, vnLocalToIso } from "./vn-date.ts";
 import { boDau } from "./so-cong-no-hien-thi.ts";
 
@@ -79,7 +79,17 @@ export const CAU_TRA_SAU_DOI_TAC = "Bạn được trả sau. Nhận vé trướ
  * Khối chọn hình thức ở màn đặt đơn: ẩn khi bên đặt không có hạn mức; khoá (kèm lý do) khi còn đơn quá hạn.
  * `laDoiTac` (ADR-0198 Đ1: `laDoiTacTraSau` của người đang lập): đối tác thấy câu gọn không số; văn phòng giữ «Hạn mức khả dụng …».
  */
-export function cauChonTraSau(r: { coHanMuc: boolean; conDuocDung: number; coDonQuaHan: boolean; laDoiTac?: boolean }): { hien: boolean; khoa: string | null; cau: string } {
+/** ADR-0230 Đ1 mục 5: câu cho đối tác khi đơn đang soạn đủ «Trả sau theo dịch vụ» — lời thường, không chữ «hạn mức». */
+export const cauTraSauDichVuDoiTac = (gioTra: number): string => `Đơn này được trả sau: vé hiện ngay, trả Tour Đảo trong ${cauGio(gioTra)}.`;
+
+/**
+ * ADR-0230 Đ1 mục 5: `traSauDichVu` (từ `con-duoc-dung` kèm mã dịch vụ đang soạn) khác null ⇒ hiện Trả sau dù không có hạn mức; khoá khi còn đơn quá hạn. Câu: đối tác lời thường
+ * kèm số giờ; văn phòng «Trả sau theo dịch vụ · trả trong N giờ».
+ */
+export function cauChonTraSau(r: { coHanMuc: boolean; conDuocDung: number; coDonQuaHan: boolean; laDoiTac?: boolean; traSauDichVu?: { gioTra: number } | null }): { hien: boolean; khoa: string | null; cau: string } {
+  if (r.traSauDichVu) {
+    return { hien: true, khoa: r.coDonQuaHan ? CAU_KHOA_QUA_HAN : null, cau: r.laDoiTac ? cauTraSauDichVuDoiTac(r.traSauDichVu.gioTra) : `${NHAN_CO_SO_TRA_SAU.SERVICE} · trả trong ${cauGio(r.traSauDichVu.gioTra)}` };
+  }
   if (!r.coHanMuc) return { hien: false, khoa: null, cau: "" };
   return { hien: true, khoa: r.coDonQuaHan ? CAU_KHOA_QUA_HAN : null, cau: r.laDoiTac ? CAU_TRA_SAU_DOI_TAC : `Hạn mức khả dụng ${dongTien(r.conDuocDung)}` };
 }
@@ -89,15 +99,31 @@ export function cauChonTraSau(r: { coHanMuc: boolean; conDuocDung: number; coDon
  * Không phải đối tác: giữ như cũ (tóm tắt hạn mức; đang nợ kèm hạn mức khả dụng).
  */
 export function dongTraSauCuaToi(
-  r: { hanMuc: number | null; gioTra: number | null; gioAnHan: number | null; dangNo: number; conDuocDung: number | null },
+  r: { hanMuc: number | null; gioTra: number | null; gioAnHan: number | null; dangNo: number; dangNoDichVu?: number; conDuocDung: number | null },
   laDoiTac: boolean,
 ): { dong1: string; dong2: string } {
-  if (!laDoiTac) return { dong1: cauHanMuc(r), dong2: `Đang nợ ${dongTien(r.dangNo)}${r.conDuocDung === null ? "" : ` · Hạn mức khả dụng ${dongTien(r.conDuocDung)}`}` };
+  if (!laDoiTac) {
+    const dv = r.dangNoDichVu ?? 0;
+    const kd = r.conDuocDung === null ? "" : ` · Hạn mức khả dụng ${dongTien(r.conDuocDung)}`;
+    return { dong1: cauHanMuc(r), dong2: dv > 0 ? `Đang nợ theo hạn mức ${dongTien(r.dangNo)}${kd} · Đang nợ ${NHAN_CO_SO_TRA_SAU.SERVICE} ${dongTien(dv)}` : `Đang nợ ${dongTien(r.dangNo)}${kd}` };
+  }
   const dong1 =
     r.hanMuc === null || r.gioTra === null
       ? "Chưa cấp"
       : `Bạn được trả sau, trả trong ${cauGio(r.gioTra)} kể từ khi đơn được xác nhận${r.gioAnHan ? `, sau đó còn ${cauGio(r.gioAnHan)} ân hạn` : ""}.`;
-  return { dong1, dong2: `Đang nợ ${dongTien(r.dangNo)}` };
+  return { dong1, dong2: cauDangNo(r, true) };
+}
+
+/**
+ * Số đang nợ Trả sau (ADR-0230 Đ1 mục 4): `dangNo` = nợ theo hạn mức, `dangNoDichVu` = nợ Trả sau theo dịch vụ (không trừ vào hạn mức). Văn phòng: hai số tách, có tên;
+ * đối tác (ADR-0198 Đ1): tổng kèm phần theo dịch vụ, không chữ «hạn mức». Không có nợ theo dịch vụ ⇒ câu cũ «Đang nợ …».
+ */
+export function cauDangNo(r: { dangNo: number; dangNoDichVu?: number }, laDoiTac: boolean): string {
+  const dv = r.dangNoDichVu ?? 0;
+  if (dv <= 0) return `Đang nợ ${dongTien(r.dangNo)}`;
+  return laDoiTac
+    ? `Đang nợ ${dongTien(r.dangNo + dv)}, trong đó đơn ${NHAN_CO_SO_TRA_SAU.SERVICE} ${dongTien(dv)}`
+    : `Đang nợ theo hạn mức ${dongTien(r.dangNo)} · Đang nợ ${NHAN_CO_SO_TRA_SAU.SERVICE} ${dongTien(dv)}`;
 }
 
 /**
@@ -128,6 +154,20 @@ export function trangThaiTuKetQua(kq: KetQuaKiemTraSau | null): TrangThaiTraSau 
   if (kq === null) return "chua_biet";
   if (kq.ok) return "dung_duoc";
   return kq.ma === "co_don_qua_han" ? "qua_han" : kq.ma === "vuot_han_muc" ? "vuot" : "khong_co";
+}
+
+/**
+ * Kết quả đường hẹp `con-duoc-dung` → trạng thái của luật `hinhThucDuocNhan` ở màn Tạo đơn (ADR-0224 Đ3; ADR-0230 Đ1 mục 5). `vuot` = máy chủ vừa báo vượt mức cho đúng bên đặt này.
+ * Đủ «Trả sau theo dịch vụ» ⇒ dùng được (hoặc quá hạn) bất kể hạn mức — cùng thứ tự với cổng máy chủ (`quyetTraSau`).
+ */
+export function trangThaiTuConDuocDung(r: { coHanMuc: boolean; coDonQuaHan: boolean; traSauDichVu?: { gioTra: number } | null }, vuot: boolean): TrangThaiTraSau {
+  if (r.traSauDichVu) return r.coDonQuaHan ? "qua_han" : "dung_duoc";
+  return !r.coHanMuc ? "khong_co" : r.coDonQuaHan ? "qua_han" : vuot ? "vuot" : "dung_duoc";
+}
+/** Đường hỏi `con-duoc-dung` của màn Tạo đơn: bên đặt + mã các dòng dịch vụ đang soạn (`null` = dòng nhập tay ⇒ `nhapTay=1`). */
+export function duongConDuocDung(benDat: string, maDichVu: readonly (string | null)[]): string {
+  const ma = maDichVu.filter((m): m is string => m !== null && m !== "").map((m) => `&dv=${encodeURIComponent(m)}`).join("");
+  return `/api/tra-sau/con-duoc-dung?benDat=${encodeURIComponent(benDat)}${ma}${maDichVu.some((m) => m === null) ? "&nhapTay=1" : ""}`;
 }
 
 /**

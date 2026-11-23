@@ -4,7 +4,7 @@
 import { chanVeDaDungTrongLo, chanVeDaMoTrongLo, laLoiVeDaDungTrongLo, laLoiVeDaMoTrongLo } from "../../shared/chan-doi-tac-huy";
 import { CAU_TRA_SAU_BAT_BUOC_DOI_TAC, hinhThucDuocNhan, trangThaiTuKetQua } from "../../shared/han-muc-tra-sau-hien-thi";
 import { error } from "../../shared/http";
-import { cauKhongTraSauChoNguoiGui, dongTien, hanTraTu, hetAnHanTu, laLoiPhienBanTraSau, ngayCuaMoc, type HinhThucThanhToan, type KetQuaKiemTraSau, type MaKhongTraSau } from "../../shared/tra-sau";
+import { CAU_TRA_SAU_DICH_VU_KHONG_DAU, cauKhongTraSauChoNguoiGui, dongTien, hanTraTu, hetAnHanTu, laLoiPhienBanTraSau, ngayCuaMoc, type CoSoTraSau, type HinhThucThanhToan, type HoiTraSau, type KetQuaKiemTraSau, type MaKhongTraSau } from "../../shared/tra-sau";
 
 /** Phần «câu gác phiên bản và hạn trả» của lô xác nhận. Nơi gọi chỉ lấy từ `traSauChoXacNhan` (bài src/tra-sau-duong-ghi.test.ts). */
 export type KemTraSau = (i: { at: string; auditId: string }) => D1PreparedStatement[];
@@ -13,7 +13,7 @@ export const KHONG_TRA_SAU: KemTraSau = () => [];
 
 /** Hai hàm do gốc lắp ráp tiêm (xem `ctx.kiemTraSau`, `ctx.cauGacPhienBanTraSau` ở src/shared/router.ts). */
 export interface HamTraSau {
-  kiemTraSau: (i: { benDat: string; soTienDon: number; boQuaDon?: string; loai?: "sua_tang" | "doi_ben" }) => Promise<KetQuaKiemTraSau | null>;
+  kiemTraSau: (i: HoiTraSau) => Promise<KetQuaKiemTraSau | null>;
   cauGacPhienBanTraSau: (partyId: string, version: number, at: string) => D1PreparedStatement[];
 }
 /**
@@ -34,11 +34,12 @@ const CHUA_DUNG_DUOC = () => error(503, "tra_sau_chua_dung_duoc", "Chưa kiểm 
  * Đơn đủ thông tin cho cổng. ADR-0197 Đ2, Đ3: đơn Trả sau NHẬN lời khai đặt cọc (bỏ 409 chặn cọc của ADR-0168); cọc ở tay Đối tác nên hạn mức kiểm trên TOÀN BỘ `total`,
  * không trừ cọc — cổng không cần biết số khai.
  */
-export interface DonTraSau { id: string | null; paymentTerm: HinhThucThanhToan; bookerPartyId: string | null; total: number }
+/** `maDichVu` (ADR-0230 Đ1): mã danh mục các dòng dịch vụ của đơn (null = dòng nhập tay) — BẮT BUỘC để cổng xét được «Trả sau theo dịch vụ» (quên truyền ⇒ typecheck đỏ). */
+export interface DonTraSau { id: string | null; paymentTerm: HinhThucThanhToan; bookerPartyId: string | null; total: number; maDichVu: readonly (string | null)[] }
 
 async function kiemDon(h: Pick<HamTraSau, "kiemTraSau"> & NguoiGuiTraSau, d: DonTraSau): Promise<{ loi: Response } | { benDat: string; kq: Extract<KetQuaKiemTraSau, { ok: true }> }> {
   if (d.bookerPartyId === null) return { loi: error(409, "tra_sau_thieu_ben_dat", CAU_TRA_SAU_THIEU_BEN_DAT) };
-  const kq = await h.kiemTraSau({ benDat: d.bookerPartyId, soTienDon: d.total, ...(d.id ? { boQuaDon: d.id } : {}) });
+  const kq = await h.kiemTraSau({ benDat: d.bookerPartyId, soTienDon: d.total, maDichVu: d.maDichVu, ...(d.id ? { boQuaDon: d.id } : {}) });
   if (!kq) return { loi: CHUA_DUNG_DUOC() };
   if (!kq.ok) return { loi: error(409, kq.ma, cauKhongTraSauChoNguoiGui(kq, h.nguoiGuiLaDoiTac)) };
   return { benDat: d.bookerPartyId, kq };
@@ -53,7 +54,7 @@ async function kiemDon(h: Pick<HamTraSau, "kiemTraSau"> & NguoiGuiTraSau, d: Don
 export async function congTraSauKhiLuu(h: Pick<HamTraSau, "kiemTraSau"> & NguoiGuiTraSau, d: DonTraSau): Promise<Response | null> {
   if (d.paymentTerm !== "CREDIT") {
     if (!h.nguoiGuiLaDoiTac || d.bookerPartyId === null) return null;
-    const kq = await h.kiemTraSau({ benDat: d.bookerPartyId, soTienDon: d.total, ...(d.id ? { boQuaDon: d.id } : {}) });
+    const kq = await h.kiemTraSau({ benDat: d.bookerPartyId, soTienDon: d.total, maDichVu: d.maDichVu, ...(d.id ? { boQuaDon: d.id } : {}) });
     return hinhThucDuocNhan({ laDoiTac: true, traSau: trangThaiTuKetQua(kq) }).chonDuoc.includes(d.paymentTerm) ? null : error(409, "tra_sau_bat_buoc_doi_tac", CAU_TRA_SAU_BAT_BUOC_DOI_TAC);
   }
   const r = await kiemDon(h, d);
@@ -70,15 +71,17 @@ export async function traSauChoXacNhan(h: HamTraSau & NguoiGuiTraSau, db: D1Data
   if (i.order.paymentTerm !== "CREDIT") return { traSau: KHONG_TRA_SAU };
   const r = await kiemDon(h, i.order);
   if ("loi" in r) return r;
-  const { gioTra, gioAnHan } = r.kq.hanMuc;
+  // ADR-0230 Đ1 mục 3: số giờ và LOẠI của nhánh billing đã chọn (SERVICE: giờ nhỏ nhất của các dấu; LIMIT: của hạn mức). Loại ghi CÙNG câu chụp hạn trả — trigger
+  // `orders_credit_basis_guard` (migration 0187) chỉ cho gắn loại trong đúng câu chụp hạn trả lần đầu.
+  const { gioTra, gioAnHan, coSo } = r.kq;
   return {
     traSau: ({ at, auditId }) => {
       const han = hanTraTu(at, gioTra);
       return [
         ...h.cauGacPhienBanTraSau(r.benDat, r.kq.version, at),
         db.prepare(
-          "UPDATE orders SET credit_due_at = ?1, credit_grace_until = ?2, credit_due_date = ?3 WHERE id = ?4 AND payment_term = 'CREDIT' AND EXISTS (SELECT 1 FROM audit_log WHERE id = ?5)",
-        ).bind(han, hetAnHanTu(han, gioAnHan), ngayCuaMoc(han), i.order.id, auditId),
+          "UPDATE orders SET credit_due_at = ?1, credit_grace_until = ?2, credit_due_date = ?3, credit_basis = ?6 WHERE id = ?4 AND payment_term = 'CREDIT' AND EXISTS (SELECT 1 FROM audit_log WHERE id = ?5)",
+        ).bind(han, hetAnHanTu(han, gioAnHan), ngayCuaMoc(han), i.order.id, auditId, coSo),
       ];
     },
   };
@@ -115,18 +118,26 @@ export interface HamNoTraSau {
  * Nợ mới của đơn = nợ hiện tại CỦA ĐƠN + phần tăng (Task 3, nợ 3: không coi cả tổng mới là nợ, phần đã về công ty vẫn được tính). Cổng so PHẦN TĂNG với phần hạn mức còn được dùng
  * của bên đặt (gồm cả nợ của chính đơn này), câu báo nói đúng hai số đó. Gác phiên bản bằng số `traSauCuaDon` đọc TRƯỚC khi tính nợ: có ai làm nợ đổi sau lúc đọc thì lô thua.
  */
+/**
+ * ADR-0230 Đ1 mục 4: đơn đã chụp loại SERVICE thì lần sửa tăng xét lại «Trả sau theo dịch vụ» theo dấu HIỆN HÀNH với chính các dòng của đơn (`maDichVu`) — hết đủ điều kiện
+ * ⇒ 409 `tra_sau_dich_vu_khong_dau`, KHÔNG lùi về hạn mức; còn đủ ⇒ không kiểm hạn mức, vẫn chặn khi có đơn quá hạn. Đơn LIMIT (hoặc NULL — đơn cũ) ⇒ như cũ, chỉ hạn mức.
+ */
 export async function congSuaTangTraSau(
   h: HamTraSau & Pick<HamNoTraSau, "traSauCuaDon"> & NguoiGuiTraSau,
-  order: { id: string; paymentTerm: HinhThucThanhToan; status: string; bookerPartyId: string | null; total: number },
+  order: { id: string; paymentTerm: HinhThucThanhToan; status: string; bookerPartyId: string | null; total: number; creditBasis: CoSoTraSau | null; maDichVu: readonly (string | null)[] },
   tongMoi: number,
 ): Promise<{ loi: Response } | { qua: QuaCongSuaTang }> {
   if (order.paymentTerm !== "CREDIT" || order.status !== "confirmed" || tongMoi <= order.total) return quaSuaTang([]);
   if (order.bookerPartyId === null) return { loi: error(409, "tra_sau_thieu_ben_dat", CAU_TRA_SAU_THIEU_BEN_DAT) };
   const t = await h.traSauCuaDon(order.id);
   if (!t || t.version === undefined || t.benDat !== order.bookerPartyId) return { loi: CHUA_DUNG_DUOC() };
-  const kq = await h.kiemTraSau({ benDat: order.bookerPartyId, soTienDon: tongMoi - order.total, loai: "sua_tang" });
+  const theoDichVu = order.creditBasis === "SERVICE";
+  const kq = await h.kiemTraSau({
+    benDat: order.bookerPartyId, soTienDon: tongMoi - order.total, loai: "sua_tang",
+    ...(theoDichVu ? { coSo: "SERVICE" as const, maDichVu: order.maDichVu } : { coSo: "LIMIT" as const }),
+  });
   if (!kq) return { loi: CHUA_DUNG_DUOC() };
-  if (!kq.ok) return { loi: error(409, kq.ma, cauKhongTraSauChoNguoiGui(kq, h.nguoiGuiLaDoiTac)) };
+  if (!kq.ok) return { loi: error(409, kq.ma, kq.ma === "tra_sau_dich_vu_khong_dau" ? CAU_TRA_SAU_DICH_VU_KHONG_DAU : cauKhongTraSauChoNguoiGui(kq, h.nguoiGuiLaDoiTac)) };
   return quaSuaTang(h.cauGacPhienBanTraSau(order.bookerPartyId, t.version, new Date().toISOString()));
 }
 
@@ -178,7 +189,10 @@ export const CAU_DOI_BEN_KHONG_HAN_MUC = "Đơn trả sau đã xác nhận chỉ
 export const CAU_DOI_BEN_QUA_HAN = "Bên đặt mới còn đơn trả sau quá hạn chưa thanh toán nên chưa nhận thêm đơn trả sau.";
 export const CAU_DOI_BEN_KHACH_LE = "Đơn trả sau đã xác nhận phải có bên đặt là đối tác có hạn mức trả sau — không đổi sang khách lẻ được.";
 /** Mã không đạt của `kiemTraSau` → câu của đường đổi bên. `vuot_han_muc` không xảy ra với `soTienDon: 0` (ADR-0188 mục 1.2); nếu có, bên mới cũng không nhận thêm được ⇒ câu a. */
-const CAU_DOI_BEN: Record<MaKhongTraSau, string> = { khong_co_han_muc: CAU_DOI_BEN_KHONG_HAN_MUC, co_don_qua_han: CAU_DOI_BEN_QUA_HAN, vuot_han_muc: CAU_DOI_BEN_KHONG_HAN_MUC };
+// `tra_sau_dich_vu_khong_dau` không xảy ra ở đường đổi bên (cổng hỏi không kèm dịch vụ ⇒ chỉ xét hạn mức); nếu có ⇒ câu a.
+const CAU_DOI_BEN: Record<MaKhongTraSau, string> = {
+  khong_co_han_muc: CAU_DOI_BEN_KHONG_HAN_MUC, co_don_qua_han: CAU_DOI_BEN_QUA_HAN, vuot_han_muc: CAU_DOI_BEN_KHONG_HAN_MUC, tra_sau_dich_vu_khong_dau: CAU_DOI_BEN_KHONG_HAN_MUC,
+};
 
 /**
  * Đổi bên đặt (mọi nơi gọi `changeBooker`): chỉ xét khi bên đặt ĐỔI THẬT, đơn Trả sau ĐÃ xác nhận. Thứ tự (ADR-0168 Đ2 mục 6, ADR-0188 mục 1): còn nợ ⇒ 409; bên mới rỗng

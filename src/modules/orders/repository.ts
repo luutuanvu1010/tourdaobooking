@@ -436,6 +436,8 @@ export interface OrderMeta {
   customerPhone: string;
   /** ADR-0168: hình thức thanh toán đang lưu. */
   paymentTerm: "PREPAID" | "CREDIT";
+  /** ADR-0230 Đ1 mục 3 (migration 0187): loại Trả sau đã chụp lúc xác nhận; NULL ở Thanh toán ngay / nháp. */
+  creditBasis: "LIMIT" | "SERVICE" | null;
   /** ADR-0213 Đ3.4 (Task 11): tư cách lúc lập — hồ sơ và loại liên kết (`CA_NHAN` | `MANAGER` | `MEMBER`); cả hai NULL = đơn văn phòng hoặc lập trước B1. */
   actingPartyId: string | null;
   actingLinkKind: string | null;
@@ -463,19 +465,19 @@ export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | n
   const row = await db
     .prepare(
       `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone, o.delivered_at, o.payment_term,
-              o.acting_party_id, o.acting_link_kind,
+              o.acting_party_id, o.acting_link_kind, o.credit_basis,
               EXISTS (SELECT 1 FROM ord_member_submit s WHERE s.order_id = o.id AND s.status = 'MO') AS member_pending
        FROM orders o LEFT JOIN v_pty_party_label b ON b.id = o.booker_party_id WHERE o.id = ?`,
     )
     .bind(id)
     .first<{
       status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string; delivered_at: string | null;
-      payment_term: "PREPAID" | "CREDIT"; acting_party_id: string | null; acting_link_kind: string | null; member_pending: number;
+      payment_term: "PREPAID" | "CREDIT"; acting_party_id: string | null; acting_link_kind: string | null; member_pending: number; credit_basis: "LIMIT" | "SERVICE" | null;
     }>();
   return row
     ? {
         status: row.status, staffId: row.staff_id, updatedAt: row.updated_at, bookerPartyId: row.booker_party_id, bookerName: row.booker_name, customerName: row.customer_name,
-        customerPhone: row.customer_phone, deliveredAt: row.delivered_at, paymentTerm: row.payment_term, actingPartyId: row.acting_party_id, actingLinkKind: row.acting_link_kind,
+        customerPhone: row.customer_phone, deliveredAt: row.delivered_at, paymentTerm: row.payment_term, actingPartyId: row.acting_party_id, actingLinkKind: row.acting_link_kind, creditBasis: row.credit_basis,
         dangChoQuanLy: row.member_pending === 1,
       }
     : null;

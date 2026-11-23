@@ -48,3 +48,17 @@ export function dieuKienTraSauDichVu(dichVu: readonly DichVuXetTraSau[], dau: re
   }
   return coDichVuVe ? { gioTra, gioAnHan } : null;
 }
+
+/**
+ * Mã danh mục các dòng của đơn → dòng xét điều kiện, theo danh mục ĐÃ GỘP (`catalog.danhMucChoTraSauDichVu`: nhóm hiện tại, «Có vé», «Vé do ai phát»).
+ * Mã null (nhập tay), mã không còn trong danh mục, hoặc danh mục không đọc được (`dm` null) ⇒ dòng nhập tay (cả đơn không đủ điều kiện — phía an toàn về tiền).
+ */
+export function dichVuXetTuDanhMuc(
+  ma: readonly (string | null)[],
+  dm: { dichVu: ReadonlyMap<string, { nhom: string | null; coVe: boolean; nguonVe: NguonVe }> } | null,
+): DichVuXetTraSau[] {
+  return ma.map((m) => {
+    const d = m === null || dm === null ? undefined : dm.dichVu.get(m);
+    return d ? { ma: m, nhom: d.nhom, coVe: d.coVe, nguonVe: d.nguonVe } : { ma: null, nhom: null, coVe: false, nguonVe: "HANG_NGOAI" };
+  });
+}

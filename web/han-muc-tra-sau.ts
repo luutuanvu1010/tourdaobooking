@@ -5,7 +5,7 @@
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
-import { canhBaoVuotHanMuc, cauDonNo, cauHanMuc, nhanAnHan, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { canhBaoVuotHanMuc, cauDangNo, cauDonNo, cauHanMuc, nhanAnHan, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { dongTien } from "../src/shared/tra-sau";
 import { moTrang } from "../src/shared/muc-giao-dien";
 
@@ -62,7 +62,7 @@ const hang = (d: Api.HanMucTraSauDto): HTMLElement =>
   h("tr", null,
     h("td", null, d.ten, canhBao(d)),
     h("td", null, cauHanMuc(d)),
-    h("td", null, dongTien(d.dangNo)),
+    h("td", null, cauDangNo(d, false).replace(/^Đang nợ /, "")),
     h("td", null, conDuoc(d)),
     h("td", null, cauHan(d)),
     h("td", null, h("div", { class: "handler-actions" }, nutXem(d))),
@@ -72,7 +72,7 @@ const the = (d: Api.HanMucTraSauDto): HTMLElement =>
   h("div", { class: "card card-col" },
     h("div", null, h("strong", null, d.ten)),
     h("div", { class: "muted" }, cauHanMuc(d)),
-    h("div", null, `Đang nợ ${dongTien(d.dangNo)} · Hạn mức khả dụng ${conDuoc(d)}`),
+    h("div", null, `${cauDangNo(d, false)} · Hạn mức khả dụng ${conDuoc(d)}`),
     cauHan(d) !== "—" ? h("div", { class: "muted" }, cauHan(d)) : null,
     canhBao(d),
     h("div", { class: "handler-actions" }, nutXem(d)),

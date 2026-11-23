@@ -12,7 +12,7 @@ import { h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
 import { hienBaoNgan } from "./toast";
 import { can } from "../src/shared/permissions";
-import { cauGoiYDienSan, cauHanMuc, cauMucToiDa, docGio, docHanMuc, goiYCuaCap, nhanAnHan, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { cauDangNo, cauGoiYDienSan, cauHanMuc, cauMucToiDa, docGio, docHanMuc, goiYCuaCap, nhanAnHan, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { dongTien } from "../src/shared/tra-sau";
 
 /** Mọi dữ liệu Trả sau của màn, nạp một lần. `theoBen` chỉ có hồ sơ đang bật hoặc đang nợ; hồ sơ vắng mặt = chưa bật, không nợ. */
@@ -58,7 +58,7 @@ export function oTraSau(ho: { partyId: string; ten: string; capCode: string | nu
     nut.addEventListener("click", () => void moBangTraSau(ho, bc, nut, loi, lamMoi));
     chinh = nut;
   } else chinh = h("span", v?.coHanMuc ? null : { class: "muted" }, chu);
-  const phu = [v && v.dangNo > 0 ? `Đang nợ ${dongTien(v.dangNo)}` : null, v ? nhanAnHan(v.soDonAnHan) : null, v ? nhanQuaHan(v.soDonQuaHan) : null].filter((x): x is string => x !== null);
+  const phu = [v && v.dangNo + v.dangNoDichVu > 0 ? cauDangNo(v, false) : null, v ? nhanAnHan(v.soDonAnHan) : null, v ? nhanQuaHan(v.soDonQuaHan) : null].filter((x): x is string => x !== null);
   return h(
     "div",
     { class: "cot-tra-sau", tabindex: -1, "data-party": ho.partyId, "data-tra-sau": v?.coHanMuc ? "bat" : "chua-bat" },
@@ -102,7 +102,7 @@ async function moBangTraSau(
       h(
         "div",
         { class: "vc-gt" },
-        h("div", { class: "vc-hint" }, dangBat ? `Đang bật: ${cauHanMuc(r)} · đang nợ ${dongTien(r.dangNo)}` : r.dangNo > 0 ? `Chưa cấp · còn nợ ${dongTien(r.dangNo)}` : "Chưa cấp hạn mức trả sau."),
+        h("div", { class: "vc-hint" }, dangBat ? `Đang bật: ${cauHanMuc(r)} · ${cauDangNo(r, false).toLowerCase()}` : r.dangNo + r.dangNoDichVu > 0 ? `Chưa cấp · ${cauDangNo(r, false).toLowerCase()}` : "Chưa cấp hạn mức trả sau."),
         goiYCau && h("div", { class: "vc-hint" }, goiYCau),
         mucCau && h("div", { class: "vc-hint" }, mucCau),
         h("div", { class: "vc-field" }, h("label", { for: "ts-han-muc" }, "Hạn mức (đồng)"), oHan),
