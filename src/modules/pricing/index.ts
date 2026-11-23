@@ -165,7 +165,7 @@ function loiBang(e: unknown): Response | null {
   if (/\bprc_target_not_beneficiary:/.test(m)) return error(400, "invalid_input", "Hồ sơ này không mang vai trò được hưởng hoa hồng.");
   if (/\bprc_role_not_beneficiary:/.test(m)) return error(400, "invalid_input", "Vai trò này không nằm trong danh sách được hưởng hoa hồng.");
   if (/\bprc_beneficiary_kind:/.test(m)) return error(400, "invalid_input", "Vai trò này không được hưởng hoa hồng.");
-  if (/\bprc_seller_not_supplier:/.test(m)) return error(400, "invalid_input", "Người bán phải là Tour Đảo hoặc hồ sơ mang vai trò Nhà cung cấp.");
+  if (/\bprc_seller_not_supplier:/.test(m)) return error(400, "invalid_input", "Chỉ chọn được Tour Đảo hoặc hồ sơ mang vai trò Nhà cung cấp.");
   if (/\bprc_supplier_mismatch:/.test(m)) return error(400, "invalid_input", CAU_TY_LE_MUA_LAI);
   if (/\bprc_all_owner_only:/.test(m)) return error(400, "invalid_input", "Dòng \"mọi dịch vụ\" chỉ dành cho Tour Đảo.");
   if (/\bprc_transfer_no_supplier:/.test(m)) return error(409, "prc_transfer_no_supplier", CAU_X3_THUE_XE);
@@ -1221,7 +1221,7 @@ export const pricingModule: AppModule = {
       const phamVi = v.scope === "ALL" ? "mọi dịch vụ" : v.scope === "GROUP" ? `nhóm ${v.groupCode}` : `dịch vụ ${v.catalogCode}`;
       const res = await chayLo(env.DB, [
         insertTermStatement(env.DB, id, { ...v, supplierPartyId }, at, staff.id),
-        auditStatement(env.DB, { staffId: staff.id, action: "prc_supply_term_added", at, detail: `${phamVi} · người bán ${supplierPartyId === null ? "Tour Đảo" : `nhà cung cấp ${supplierPartyId}`}` }),
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_supply_term_added", at, detail: `${phamVi} · nhà cung cấp ${supplierPartyId === null ? "Tour Đảo" : supplierPartyId}` }),
       ]);
       if (res instanceof Response) return res;
       return kemLocation(json({ dong: dtoDk((await termById(env.DB, id))!, cty.partyId, vnToday(new Date())) }, 201), "/nguoi-ban");

@@ -176,7 +176,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   KN({
     ten: "Vé do ai phát",
     giaiNghia: "Ô trên dịch vụ hoặc trên nhóm dịch vụ: vé do hãng ngoài phát hay do Tour Đảo tự phát. Dịch vụ đã đặt riêng theo giá trị riêng; chưa đặt riêng thì theo nhóm hiện tại; chưa đặt ở đâu là vé hãng ngoài.",
-    khacVoi: "«Có vé» nói dịch vụ có vé hay không; «Người bán dịch vụ» nói ai cung cấp dịch vụ.",
+    khacVoi: "«Có vé» nói dịch vụ có vé hay không. «Nhà cung cấp» (trang Nhà cung cấp) nói ai cung cấp dịch vụ và Tour Đảo mua lại bao nhiêu; vé hãng ngoài phát không có nghĩa là dịch vụ có nhà cung cấp khác Tour Đảo.",
     chuDaLoai: [],
     maNoiBo: ["ctl_service_ticket_source", "ctl_group_ticket_source", "vdt_batch.source", "nguonVe"],
     trangThai: "da-chot",
@@ -1164,7 +1164,15 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   KN({ ten: "Khách đã trả bạn X ₫", giaiNghia: "Dòng trong biểu mẫu «Đã chuyển tiền»: phần khách chưa trả trên sổ của đơn (phải thu trừ mọi khoản thu đang có). Gửi khoản nộp thì máy ghi luôn số này là khách đã trả cho đại lý (đại lý giữ hộ Tour Đảo), để không trả hoa hồng hai lần. X bằng 0 thì không ghi thêm.", khacVoi: "Không phải số đại lý tự gõ: máy chủ tính, đổi giữa chừng thì phải tải lại phiếu.", chuDaLoai: [], maNoiBo: ["dongKhachDaTra", "khachDaTra"], trangThai: "da-chot", chuChon: "2026-11-13 (ADR-0182 bảng «Chữ chờ chủ chọn», chủ duyệt theo khuyến nghị)" }),
   KN({ ten: "Giá công bố", giaiNghia: "Giá danh mục, tức giá bán lẻ, in trên biên nhận mẫu HD-02-DT của đơn đối tác.", khacVoi: "Khác «Giá đại lý».", chuDaLoai: [], maNoiBo: [], trangThai: "da-chot", chuChon: "2026-11-06 (đặc tả biên nhận đơn đối tác)" }),
   KN({ ten: "Phải thu (biên nhận HD-02-DT)", giaiNghia: "Dòng «Phải thu» trên biên nhận mẫu HD-02-DT: số tiền khách còn phải trả sau giảm giá và phần đã trả.", khacVoi: "Ở sổ của Kế toán, «phải thu» là tổng đơn phải thu.", chuDaLoai: [], maNoiBo: [], trangThai: "da-chot", chuChon: "2026-11-06 (đặc tả biên nhận đơn đối tác)" }),
-  KN({ ten: "Người bán dịch vụ", giaiNghia: "Bên cung ứng dịch vụ cho công ty, kèm điều khoản công ty mua lại dịch vụ đó.", khacVoi: "Khác «Đối tác» (bên đưa khách đến và hưởng hoa hồng).", chuDaLoai: [], maNoiBo: ["prc_supply_term"], trangThai: "cho-chon", chuChon: "" }),
+  KN({
+    ten: "Nhà cung cấp",
+    giaiNghia: "Bên cung ứng một dịch vụ, ghi ở trang «Nhà cung cấp» theo từng dịch vụ, từng nhóm hoặc mọi dịch vụ, kèm khoảng ngày. Có thể là chính Tour Đảo, hoặc một hồ sơ mang vai trò «Nhà cung cấp» mà Tour Đảo mua lại dịch vụ theo một tỷ lệ; phần mua lại đó là giá vốn ghi vào sổ khi khách đã trả đủ.",
+    khacVoi: "Khác «Đối tác» (bên đưa khách đến và hưởng hoa hồng). Khác «Vé do ai phát»: ô đó chỉ nói vé do Tour Đảo hay hãng ngoài phát, không nói ai cung cấp dịch vụ và không đổi tiền.",
+    chuDaLoai: ["Người bán dịch vụ", "Người bán"],
+    maNoiBo: ["prc_supply_term", "seller_party_id", "supplier_party_id", "/api/pricing/cung-ung", "/nguoi-ban"],
+    trangThai: "da-chot",
+    chuChon: "2026-11-23 (chủ dự án, phiên điều phối kế hoạch 16 việc, nguyên văn «chọn tên Nhà cung cấp»; việc 15)",
+  }),
   // ---- Cho xe chạy dù thiếu giấy tờ (ADR-0184) ----
   KN({
     ten: "Xe thiếu <tên loại giấy> — đã cho chạy",

@@ -106,7 +106,7 @@ async function main(): Promise<void> {
           "div",
           { class: k.tt === "DA_DONG" ? "card card-col row-off" : "card card-col", "data-id": d.id },
           h("div", null, h("strong", null, k.phamVi), " ", huyHieu(k.tt)),
-          h("div", null, "Người bán: ", h("strong", null, k.nguoiBan)),
+          h("div", null, "Nhà cung cấp: ", h("strong", null, k.nguoiBan)),
           h("div", { class: "muted" }, "Tỷ lệ mua lại: ", k.tyLe),
           h("div", { class: "muted" }, "Từ ", k.tu, " · đến ", k.den),
           nutDong(d, k),
@@ -177,7 +177,7 @@ async function main(): Promise<void> {
   replaceChildren(
     form,
     phamVi.root,
-    h("div", { class: "grid two" }, h("div", null, h("label", null, "Người bán", nguoiBan), loi.dong("nguoiBan"), congTyId === null && h("span", { class: "hint" }, "Chưa có hồ sơ công ty chủ.")), khuTyLe),
+    h("div", { class: "grid two" }, h("div", null, h("label", null, "Nhà cung cấp", nguoiBan), loi.dong("nguoiBan"), congTyId === null && h("span", { class: "hint" }, "Chưa có hồ sơ công ty chủ.")), khuTyLe),
     h("div", { class: "grid two" }, h("div", null, h("label", null, "Từ ngày", tuNgay), loi.dong("tuNgay")), h("div", null, h("label", null, "Đến ngày (không bắt buộc)", denNgay), loi.dong("denNgay"))),
     h("div", null, h("label", null, "Ghi chú (không bắt buộc)", ghiChu), loi.dong("ghiChu")),
     h("div", { class: "actions" }, them),

@@ -143,8 +143,8 @@ export const AUDIT_ACTIONS = {
   // ("<đối tượng> · <phạm vi> · <mức>"), KHÔNG SĐT, không tiền khách.
   prc_commission_rule_added: { label: "Thêm mức hoa hồng", group: "ledger" },
   prc_commission_rule_closed: { label: "Ngừng mức hoa hồng", group: "ledger" },
-  prc_supply_term_added: { label: "Thêm điều khoản người bán", group: "ledger" },
-  prc_supply_term_closed: { label: "Ngừng điều khoản người bán", group: "ledger" },
+  prc_supply_term_added: { label: "Thêm điều khoản nhà cung cấp", group: "ledger" },
+  prc_supply_term_closed: { label: "Ngừng điều khoản nhà cung cấp", group: "ledger" },
   // ADR-0117 lần 1: Kế toán / Quản trị / Toàn quyền thêm, tắt, bật LOẠI ĐỐI TÁC — `detail` = tên loại (đã cấm số điện thoại / email trong tên), không mã thô.
   prc_partner_type_added: { label: "Thêm vai người dùng", group: "ledger" },
   prc_partner_type_off: { label: "Tắt vai người dùng", group: "ledger" },

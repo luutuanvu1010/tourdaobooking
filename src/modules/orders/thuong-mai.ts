@@ -213,9 +213,9 @@ function docHoaHongTay(raw: unknown): Ket<NonNullable<ThanGhiTay["hoaHong"]>> {
   return { ok: false, message: "Chọn kiểu mức: tỷ lệ phần trăm hoặc số tiền mỗi khách." };
 }
 function docNguoiBanTay(raw: unknown): Ket<NonNullable<ThanGhiTay["nguoiBan"]>> {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Người bán không hợp lệ." };
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Nhà cung cấp không hợp lệ." };
   const b = raw as Record<string, unknown>;
-  if (typeof b.partyId !== "string" || !MA_HO_SO_RE.test(b.partyId)) return { ok: false, message: "Chọn người bán." };
+  if (typeof b.partyId !== "string" || !MA_HO_SO_RE.test(b.partyId)) return { ok: false, message: "Chọn nhà cung cấp." };
   if (!coGiaTri(b.tyLeMuaBp)) return { ok: true, value: { partyId: b.partyId } };
   if (!laPhanVan(b.tyLeMuaBp)) return { ok: false, message: "Tỷ lệ mua lại phải từ 0% tới 100%." };
   return { ok: true, value: { partyId: b.partyId, tyLeMuaBp: b.tyLeMuaBp } };
@@ -239,7 +239,7 @@ export function kiemThanGhiTay(raw: unknown): Ket<ThanGhiTay> {
     if (!n.ok) return n;
     than.nguoiBan = n.value;
   }
-  if (!than.hoaHong && !than.nguoiBan) return { ok: false, message: "Gửi ít nhất một phần: mức hoa hồng hoặc người bán." };
+  if (!than.hoaHong && !than.nguoiBan) return { ok: false, message: "Gửi ít nhất một phần: mức hoa hồng hoặc nhà cung cấp." };
   return { ok: true, value: than };
 }
 
@@ -296,7 +296,7 @@ export function moTaGhiTay(truoc: BanChup, sau: BanChup, tenDichVu: string, ten:
   if (cu.status === "SET" && moi.status === "SET" && cu.sellerPartyId === moi.sellerPartyId) {
     if (cu.costRateBp !== moi.costRateBp) phan.push(`đổi tỷ lệ mua lại của ${tenBen(moi.sellerPartyId)}`);
   } else if (!(cu.status === "MISSING" && moi.status === "MISSING")) {
-    phan.push(`người bán ${cu.status === "SET" ? tenBen(cu.sellerPartyId) : "chưa có"} → ${moi.status === "SET" ? tenBen(moi.sellerPartyId) : "chưa có"}`);
+    phan.push(`nhà cung cấp ${cu.status === "SET" ? tenBen(cu.sellerPartyId) : "chưa có"} → ${moi.status === "SET" ? tenBen(moi.sellerPartyId) : "chưa có"}`);
   }
   const noiDung = phan.length > 0 ? phan.join("; ") : `${sau.hoaHong.status === "SET" ? b : "giữ nguyên"} (đánh dấu ghi tay)`;
   return `${maskLongDigits(tenDichVu)}: ${noiDung}`;

@@ -14,6 +14,9 @@ export interface TuDaLoai {
 
 export const TU_DA_LOAI: readonly TuDaLoai[] = [
   { cam: /[Tt]rả với hướng dẫn viên|[Tt]hanh toán với hướng dẫn viên/u, thay: "Trả lúc check-in", nguon: "chủ 2026-11-22 (quyết định kế hoạch 16 việc mục 4: đổi tên nút «Trả với hướng dẫn viên» thành «Trả lúc check-in»; ADR-0230)" },
+  // Việc 15 kế hoạch 16 việc: bên cung ứng dịch vụ cho công ty (bảng `prc_supply_term`) có ba tên «Người bán dịch vụ» / «Nhà cung cấp» / «cung ứng»; chủ chọn MỘT tên.
+  // «người bán hàng» (nhân viên Bán hàng) là nghĩa khác, giữ nguyên.
+  { cam: /[Nn]gười bán(?! hàng)|NGƯỜI BÁN(?! HÀNG)/u, thay: "Nhà cung cấp", nguon: "chủ 2026-11-23 (phiên điều phối kế hoạch 16 việc, nguyên văn «chọn tên Nhà cung cấp»)" },
   { cam: /[Ll]ần thu|LẦN THU/u, thay: "khoản thu (Nhập khoản thu · Sửa khoản thu đã ghi · Ghi bù khoản thu)", nguon: "chủ 2026-10-08 (BACKLOG §25), áp 2026-10-18" },
   { cam: /[Ll]ần hoàn/u, thay: "khoản hoàn tiền", nguon: "theo «khoản thu», 2026-10-18" },
   { cam: /[Ll]ệnh Thay|[Tt]hay lần/u, thay: "Sửa khoản thu đã ghi", nguon: "chủ 2026-10-08" },

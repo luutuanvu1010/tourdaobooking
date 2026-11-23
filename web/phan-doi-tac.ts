@@ -99,7 +99,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
         o("Mức", d.muc ?? "—"),
         o("Hoa hồng", d.hoaHong === null ? "—" : vnd(d.hoaHong)),
         o("Giá đại lý", chuGiaDaiLy(d, vnd)),
-        o("Người bán", d.nguoiBan ? d.nguoiBan.ten : "—"),
+        o("Nhà cung cấp", d.nguoiBan ? d.nguoiBan.ten : "—"),
       ),
       canh ? h("p", { class: "pdt-canh" }, canh) : null,
       d.nhaCungCap ? h("p", { class: "pdt-ncc muted" }, chuNhaCungCap(d.nhaCungCap, vnd)) : null,
@@ -243,7 +243,7 @@ export async function initPhanDoiTac(host: HTMLElement, v: PhanDoiTacVao): Promi
       ? h(
           "fieldset",
           { class: "pick-list", id: "ghi-tay-nguoi-ban" },
-          h("legend", { class: "pick-legend" }, "Người bán"),
+          h("legend", { class: "pick-legend" }, "Nhà cung cấp"),
           radio("ghi-tay-ban", "KHONG_DOI", "Không đổi", true, () => ((loaiNguoiBan = "KHONG_DOI"), capNhatHienThi())),
           congTyChuId !== null ? radio("ghi-tay-ban", "TOUR_DAO", "Tour Đảo", false, () => ((loaiNguoiBan = "TOUR_DAO"), capNhatHienThi())) : null,
           dsNhaCungCap.length > 0 ? radio("ghi-tay-ban", "NHA_CUNG_CAP", "Nhà cung cấp", false, () => ((loaiNguoiBan = "NHA_CUNG_CAP"), capNhatHienThi())) : null,

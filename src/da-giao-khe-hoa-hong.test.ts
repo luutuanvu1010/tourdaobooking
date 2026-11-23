@@ -124,7 +124,7 @@ test("3 — đối tác CHƯA có mức hoa hồng (bản chụp «thiếu mức
   await thuDu(w, id);
   const g = await daGiao(w, id);
   assert.equal(g.status, 409);
-  assert.equal(g.json.error.message, "Thiếu mức hoa hồng / người bán cho DV 0 — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.", "Task 4: câu lời thường của lý do terms_missing");
+  assert.equal(g.json.error.message, "Thiếu mức hoa hồng / nhà cung cấp cho DV 0 — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này.", "Task 4: câu lời thường của lý do terms_missing");
   assert.equal(w.q("SELECT count(*) AS n FROM bil_posting WHERE order_id = ? AND kind_code = 'DELIVERED'", id)[0].n, 0);
 });
 

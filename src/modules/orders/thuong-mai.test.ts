@@ -239,10 +239,10 @@ test("moTaGhiTay: một dòng, mức trước → sau, người bán chỉ TÊN 
   assert.equal(moTaGhiTay(muoi, muoiLamHai, "Vé Hòn Tằm", ten2), "Vé Hòn Tằm: 12% → 15%");
   const doiBan = apGhiTay(muoi, { lyDo: "nhà cung cấp mới cho vé này", nguoiBan: { partyId: "ncc", tyLeMuaBp: 7500 } }, "ct");
   const cau = moTaGhiTay(muoi, doiBan, "Vé Hòn Tằm", ten2);
-  assert.equal(cau, "Vé Hòn Tằm: người bán Tour Đảo → i-resort");
+  assert.equal(cau, "Vé Hòn Tằm: nhà cung cấp Tour Đảo → i-resort");
   assert.doesNotMatch(cau, /75|%/, "tỷ lệ mua lại (a%) chỉ người có supply.terms.view xem — không vào nhật ký");
   const caHai = apGhiTay(thieuMuc, { lyDo: "nhà cung cấp mới cho vé này", hoaHong: { kieu: "PER_PAX", moiKhach: 50_000 }, nguoiBan: { partyId: "ncc", tyLeMuaBp: 7500 } }, "ct");
-  assert.equal(moTaGhiTay(thieuMuc, caHai, "Vé Hòn Tằm", ten2), "Vé Hòn Tằm: thiếu mức → 50.000đ/khách; người bán Tour Đảo → i-resort");
+  assert.equal(moTaGhiTay(thieuMuc, caHai, "Vé Hòn Tằm", ten2), "Vé Hòn Tằm: thiếu mức → 50.000đ/khách; nhà cung cấp Tour Đảo → i-resort");
   const doiTyLe = apGhiTay(chupHai[1]!, { lyDo: "nhà cung cấp đổi tỷ lệ mua lại", nguoiBan: { partyId: "ncc", tyLeMuaBp: 7000 } }, "ct");
   const cauTyLe = moTaGhiTay(chupHai[1]!, doiTyLe, "Tắm bùn", ten2);
   assert.equal(cauTyLe, "Tắm bùn: đổi tỷ lệ mua lại của i-resort");

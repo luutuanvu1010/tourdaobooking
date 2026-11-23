@@ -1308,7 +1308,7 @@ export const ordersModule: AppModule = {
       if (thieuMuc.length > 0 || thieuNguoiBan.length > 0) {
         const cau = [
           ...(thieuMuc.length > 0 ? [`Còn thiếu mức cho ${thieuMuc.map((s) => s.name).join(", ")} — cài mức rồi bấm lại`] : []),
-          ...(thieuNguoiBan.length > 0 ? [`Còn thiếu người bán cho ${thieuNguoiBan.map((s) => s.name).join(", ")} — cài người bán (điều khoản người bán) rồi bấm lại`] : []),
+          ...(thieuNguoiBan.length > 0 ? [`Còn thiếu nhà cung cấp cho ${thieuNguoiBan.map((s) => s.name).join(", ")} — thêm điều khoản ở trang Nhà cung cấp rồi bấm lại`] : []),
         ].join("; ");
         return error(409, "chup_bu_thieu_muc", cau);
       }
@@ -2426,7 +2426,7 @@ export const ordersModule: AppModule = {
       const ktra = kiemGhiTayVoiBanChup(truoc, than.value, cty?.partyId ?? null);
       if (!ktra.ok) return error(ktra.status, ktra.status === 409 ? "khong_nguoi_huong" : "invalid_input", ktra.message);
       const nb = than.value.nguoiBan;
-      if (nb && nb.partyId !== cty?.partyId && !(await laNhaCungCap(env.DB, nb.partyId))) return error(400, "invalid_input", "Người bán phải là Tour Đảo hoặc hồ sơ mang vai trò Nhà cung cấp.");
+      if (nb && nb.partyId !== cty?.partyId && !(await laNhaCungCap(env.DB, nb.partyId))) return error(400, "invalid_input", "Chỉ chọn được Tour Đảo hoặc hồ sơ mang vai trò Nhà cung cấp.");
       const sau = apGhiTay(truoc, than.value, cty?.partyId ?? null);
       const [view, ten] = await Promise.all([loadOrderView(env.DB, id, false), tenHoSo(env.DB, [truoc, sau].flatMap((c) => (c.cungUng.status === "SET" ? [c.cungUng.sellerPartyId] : [])))]);
       const dichVu = view?.services.find((s) => s.id === params.serviceId);

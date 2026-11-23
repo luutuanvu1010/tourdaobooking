@@ -247,7 +247,7 @@ test("(A7) Ruling R-P13: dòng DANH MỤC thiếu mức vẫn chặn cả đơn 
   const khachLe = donCu(w, { booker: null, xacNhanLuc: "2024-12-20T03:00:00.000Z" });
   const k = await chupBu(w, khachLe.id);
   assert.equal(k.status, 409, k.text);
-  assert.deepEqual([k.json.error.code, k.json.error.message], ["chup_bu_thieu_muc", "Còn thiếu người bán cho Tour đảo — cài người bán (điều khoản người bán) rồi bấm lại"], "thiếu NGƯỜI BÁN nói «cài người bán» (người kiểm m-6)");
+  assert.deepEqual([k.json.error.code, k.json.error.message], ["chup_bu_thieu_muc", "Còn thiếu nhà cung cấp cho Tour đảo — thêm điều khoản ở trang Nhà cung cấp rồi bấm lại"], "thiếu NGƯỜI BÁN nói «cài người bán» (người kiểm m-6)");
   assert.equal(banChup(w, daiLy.id).length + banChup(w, khachLe.id).length, 0, "không ghi bản chụp nào");
   assert.equal(dem(w, "SELECT count(*) AS n FROM audit_log WHERE action = 'ord_terms_backfilled'"), 0);
 });
@@ -268,7 +268,7 @@ test("(A8) Ruling R-P13: đơn ĐẠI LÝ có dòng nhập tay — Chụp bù 20
   assert.equal((await danhSach(w)).json.don.some((d: { orderId: string }) => d.orderId === id), false, "đã có bản chụp ⇒ ra khỏi danh sách");
   await thuDu(w, id, 2_900_000);
   const giu = await lyDoGiu(w, id);
-  assert.deepEqual([giu?.ma, giu?.cau], ["terms_missing", "Thiếu mức hoa hồng / người bán cho Ca nô riêng — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này."], "câu giữ cố định của Task 3 (canChupBu = false)");
+  assert.deepEqual([giu?.ma, giu?.cau], ["terms_missing", "Thiếu mức hoa hồng / nhà cung cấp cho Ca nô riêng — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này."], "câu giữ cố định của Task 3 (canChupBu = false)");
   assert.equal((await daGiao(w, id)).status, 409, "còn giữ trước khi ghi tay");
   chuaGiao(w, id);
   const t = await w.call("POST", `/api/orders/${id}/thuong-mai/${svc[1]}`, { as: KT, body: { lyDo: "ca nô riêng thoả thuận với đại lý C", hoaHong: { kieu: "RATE", tyLeBp: 500 }, nguoiBan: { partyId: congTy(w) } } });
@@ -287,7 +287,7 @@ test("(A8b) Ruling R-P13: đơn KHÁCH LẺ có dòng nhập tay (không lọt 0
   assert.deepEqual([tay!.commission_status, tay!.beneficiary_party_id, tay!.supply_status], ["NONE", null, "MISSING"]);
   await thuDu(w, id, 900_000);
   const giu = await lyDoGiu(w, id);
-  assert.deepEqual([giu?.ma, giu?.cau], ["terms_missing", "Thiếu mức hoa hồng / người bán cho Ca nô riêng — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này."]);
+  assert.deepEqual([giu?.ma, giu?.cau], ["terms_missing", "Thiếu mức hoa hồng / nhà cung cấp cho Ca nô riêng — cài mức mới không gỡ được đơn đã xác nhận; Kế toán ghi mức tay cho dòng này."]);
   const t = await w.call("POST", `/api/orders/${id}/thuong-mai/${svc[0]}`, { as: KT, body: { lyDo: "dòng nhập tay do Tour Đảo bán", nguoiBan: { partyId: congTy(w) } } });
   assert.equal(t.status, 200, t.text);
   const g = await daGiao(w, id);

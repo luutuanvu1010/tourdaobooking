@@ -416,7 +416,7 @@ export function kiemThanDieuKhoan(raw: unknown): Ket<ThanDieuKhoan> {
   const b = raw as Record<string, unknown>;
   const pv = docPhamVi(b);
   if (!pv.ok) return pv;
-  if (typeof b.nguoiBanPartyId !== "string" || !PARTY_RE.test(b.nguoiBanPartyId)) return { ok: false, message: "Chọn người bán." };
+  if (typeof b.nguoiBanPartyId !== "string" || !PARTY_RE.test(b.nguoiBanPartyId)) return { ok: false, message: "Chọn nhà cung cấp." };
   let costRateBp: number | null = null;
   if (b.tyLeMuaBp !== undefined && b.tyLeMuaBp !== null) {
     if (!laPhanVan(b.tyLeMuaBp)) return { ok: false, message: "Tỷ lệ mua lại phải từ 0% tới 100%." };

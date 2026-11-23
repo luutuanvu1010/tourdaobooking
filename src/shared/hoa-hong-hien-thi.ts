@@ -15,7 +15,7 @@ export const CAU_KHONG_CO_QUYEN_XEM = "Bạn không có quyền xem trang này."
 /** Thay ô tìm đối tác ở người không qua cổng của route tìm người hưởng (xem `coTheTimDoiTac`). */
 export const CAU_CHUA_TIM_DUOC_DOI_TAC = "Tài khoản của bạn chưa tìm được đối tác theo tên. Cần đặt mức riêng cho một đối tác thì nhờ Quản trị hoặc Toàn quyền.";
 /** Hộp xác nhận khi đóng dòng «Mọi dịch vụ» của công ty chủ (đặc tả sổ đại lý đợt 1: dòng mặc định gieo sẵn; đóng mà không mở dòng mới thì dịch vụ thiếu người bán). */
-export const CAU_DONG_DONG_MAC_DINH = "Ngừng điều khoản mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu người bán cho tới khi mở điều khoản mới. Vẫn ngừng?";
+export const CAU_DONG_DONG_MAC_DINH = "Ngừng điều khoản mặc định thì dịch vụ chưa có điều khoản riêng sẽ thiếu nhà cung cấp cho tới khi mở điều khoản mới. Vẫn ngừng?";
 export const CAU_KHONG_CO_MUC = "Chưa có mức nào.";
 export const CAU_KHONG_CO_DIEU_KHOAN = "Chưa có điều khoản nào.";
 export const CAU_KHONG_KHOP_LOC = "Không có mục nào khớp bộ lọc.";

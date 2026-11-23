@@ -254,7 +254,7 @@ export function docThanGhiTay(f: FormGhiTay, congTyChuId: string | null): { ok: 
     if (!r.ok) loi.push({ truong: "tyLeMua", message: nb.tyLeMua.trim() === "" ? "Nhập tỷ lệ mua lại của nhà cung cấp." : r.message });
     if (nb.partyId.trim() !== "" && r.ok) body.nguoiBan = { partyId: nb.partyId.trim(), tyLeMuaBp: r.bp };
   }
-  if (f.kieu === "KHONG_DOI" && nb.loai === "KHONG_DOI") loi.push({ truong: "chung", message: "Chọn đổi mức hoa hồng hoặc đổi người bán." });
+  if (f.kieu === "KHONG_DOI" && nb.loai === "KHONG_DOI") loi.push({ truong: "chung", message: "Chọn đổi mức hoa hồng hoặc đổi nhà cung cấp." });
   const ly = f.lyDo.trim();
   if (ly.length < LY_DO_TOI_THIEU) loi.push({ truong: "lyDo", message: `Ghi lý do (ít nhất ${LY_DO_TOI_THIEU} ký tự).` });
   else if (ly.length > LY_DO_TOI_DA) loi.push({ truong: "lyDo", message: `Lý do tối đa ${LY_DO_TOI_DA} ký tự.` });

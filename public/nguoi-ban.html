@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Người bán dịch vụ — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
-<body data-rong="vua" data-title="Người bán dịch vụ" data-back="/account">
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no"><meta name="robots" content="noindex"><meta name="theme-color" content="#ffffff"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><link rel="stylesheet" href="/giao-dien.css"><title>Nhà cung cấp — Island Booking System</title><script src="/js/giu-cho-dai.js"></script></head>
+<body data-rong="vua" data-title="Nhà cung cấp" data-back="/account">
 <header id="topbar"></header>
 <div id="strips"></div>
 <main>
   <!-- Người bán dịch vụ (sổ đại lý đợt 1, Task 10; ADR-0078 B1). Xem: ô supply.terms.view (Bán hàng không xem tỷ lệ mua lại); thêm / đóng: supply.terms.write. Tài khoản giữ quyền Đối tác
        không vào được (máy chủ 403). web/nguoi-ban.ts dựng nội dung; id cố định cho kịch bản Chrome: #dk-list, #dk-add-form. -->
-  <h1>Người bán dịch vụ</h1>
+  <h1>Nhà cung cấp</h1>
   <p class="muted">Dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán và Tour Đảo mua lại bao nhiêu phần trăm.</p>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="ok" class="alert ok" role="status" hidden></div>
@@ -19,7 +19,7 @@
       </div>
       <div class="table-wrap">
         <table class="items">
-          <thead><tr><th>Phạm vi</th><th>Người bán</th><th>Tỷ lệ mua lại</th><th>Từ ngày</th><th>Đến ngày</th><th>Trạng thái</th><th></th></tr></thead>
+          <thead><tr><th>Phạm vi</th><th>Nhà cung cấp</th><th>Tỷ lệ mua lại</th><th>Từ ngày</th><th>Đến ngày</th><th>Trạng thái</th><th></th></tr></thead>
           <tbody id="dk-list"></tbody>
         </table>
       </div>

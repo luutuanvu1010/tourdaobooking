@@ -22,7 +22,7 @@ Thanh menu dọc bên trái có:
 - Đầu menu: [[Trang chủ]], [[Đơn hàng]], [[Danh bạ]], [[Quét vé]].
 - Nhóm VẬN CHUYỂN: [[Điều phối xe]], [[Xe đang chạy]], [[Giá & chi phí]].
 - Nhóm TIỀN: [[Điều chỉnh công nợ]], [[Sổ công nợ & khoá sổ]].
-- Nhóm THIẾT LẬP (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Người bán dịch vụ]], [[Chụp bù mức]].
+- Nhóm THIẾT LẬP (bấm để mở, thu gọn): [[Hoa hồng đối tác]], [[Nhà cung cấp]], [[Chụp bù mức]].
 - Chân menu: [[Của tôi]], [[Hỗ trợ]], [[Nhật ký thay đổi]].
 
 Ô tìm kiếm trên đầu trang: gõ mã đơn, tên khách hoặc số điện thoại rồi bấm Enter.
@@ -122,7 +122,7 @@ Kế toán có nút [[+ Hồ sơ mới]] và được thêm, sửa hồ sơ khá
 
 Mức riêng cho một đối tác: bấm [[＋ Thêm mức riêng cho đối tác]]; muốn xem mức của họ, gõ tên ở **Kiểm tra hoa hồng**. Vai trò chỉ theo cấp.
 
-Người bán dịch vụ làm tương tự ở trang [[Người bán dịch vụ]]: khối [[Thêm điều khoản]] ghi dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán (kèm tỷ lệ Tour Đảo mua lại). Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại.
+Điều khoản nhà cung cấp làm tương tự ở trang [[Nhà cung cấp]]: khối [[Thêm điều khoản]] ghi dịch vụ nào do Tour Đảo bán, dịch vụ nào do nhà cung cấp bán (kèm tỷ lệ Tour Đảo mua lại). Dịch vụ nhóm Thuê xe không ghi nhà cung cấp mua lại.
 
 > Lưu ý: Đổi bảng mức không làm đổi hoa hồng của đơn đã xác nhận.`,
     },
@@ -158,7 +158,7 @@ Cấp riêng: khối **Người có cấp riêng**, bấm [[Chọn cấp riêng 
 1. Bấm [[Chụp bù mức]] (điện thoại: trang [[Tôi]]) để xem các đơn chờ, hoặc mở đơn rồi bấm [[Chụp bù]] ở khối **Phần đối tác**.
 2. Nền tảng lấy mức đang áp ở ngày xác nhận. Còn thiếu mức thì Nền tảng không chụp và nêu dịch vụ: cài mức rồi bấm lại.
 
-**Đơn đã có bản chụp mà một dòng thiếu mức** (kể cả dịch vụ nhập tay): cài mức mới không gỡ được. Ở dòng đó bấm [[Ghi mức tay]], chọn mức và người bán, ghi lý do (ít nhất 10 ký tự), bấm [[Ghi mức]].
+**Đơn đã có bản chụp mà một dòng thiếu mức** (kể cả dịch vụ nhập tay): cài mức mới không gỡ được. Ở dòng đó bấm [[Ghi mức tay]], chọn mức và nhà cung cấp, ghi lý do (ít nhất 10 ký tự), bấm [[Ghi mức]].
 
 > Đơn đã tới bước **Khách đã trả đủ** thì không chụp bù, không ghi tay được.`,
     },

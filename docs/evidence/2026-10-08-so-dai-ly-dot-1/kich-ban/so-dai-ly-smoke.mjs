@@ -281,7 +281,7 @@ try {
         if (kho === "1040") {
           const m = await nhanMenu(p);
           ghiQuanSat(`1-1040) thanh bên Kế toán: ${m.length} mục — ${m.join(", ")}`);
-          assert.ok(["Khoá sổ tháng", "Hoa hồng đối tác", "Người bán dịch vụ"].every((x) => m.includes(x)), JSON.stringify(m));
+          assert.ok(["Khoá sổ tháng", "Hoa hồng đối tác", "Nhà cung cấp"].every((x) => m.includes(x)), JSON.stringify(m));
         }
       });
       await buoc(`1-${kho}b`, `ô tỷ lệ gõ «12,555» ⇒ lỗi dưới ô, không gửi`, async () => {
@@ -404,7 +404,7 @@ try {
     }
   }
 
-  // ================================================================ 3.1 Bán hàng: /hoa-hong chỉ xem; không có mục «Người bán dịch vụ»; /nguoi-ban bị từ chối
+  // ================================================================ 3.1 Bán hàng: /hoa-hong chỉ xem; không có mục «Nhà cung cấp»; /nguoi-ban bị từ chối
   for (const [kho, vp] of KHO) {
     let p;
     try {
@@ -418,13 +418,13 @@ try {
         assert.equal(await p.ev("[...document.querySelectorAll('#hh-noi-dung button')].filter((b) => /^(＋|Thêm|Đổi|Ngừng|Tắt|Bật|Áp dụng)/.test(b.textContent.trim())).length"), 0, "không nút ghi nào");
         await chup(p, `31-hoa-hong-ban-hang-${kho}`, { ca: true });
       });
-      await buoc(`31-${kho}b`, `Bán hàng (${kho}): không có liên kết «Người bán dịch vụ» / «Khoá sổ tháng»${kho === "1040" ? "; thanh bên có «Hoa hồng đối tác»" : ""}`, async () => {
+      await buoc(`31-${kho}b`, `Bán hàng (${kho}): không có liên kết «Nhà cung cấp» / «Khoá sổ tháng»${kho === "1040" ? "; thanh bên có «Hoa hồng đối tác»" : ""}`, async () => {
         assert.equal(await coLienKet(p, "/nguoi-ban"), false);
         assert.equal(await coLienKet(p, "/khoa-thang"), false);
         if (kho === "1040") {
           const m = await nhanMenu(p);
           ghiQuanSat(`31-1040) thanh bên Bán hàng: ${m.length} mục — ${m.join(", ")}`);
-          assert.ok(m.includes("Hoa hồng đối tác") && !m.includes("Người bán dịch vụ"), JSON.stringify(m));
+          assert.ok(m.includes("Hoa hồng đối tác") && !m.includes("Nhà cung cấp"), JSON.stringify(m));
         }
       });
       await buoc(`31-${kho}-axe`, `axe /hoa-hong Bán hàng (${kho})`, () => axeKiem(p, `/hoa-hong Bán hàng ${kho}`));
