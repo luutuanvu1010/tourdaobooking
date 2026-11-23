@@ -28,6 +28,9 @@ import { nguonVeHienHanh } from "./nguon-ve-repo";
 import { giaGocPhiDonTheoMa } from "./phi-don-goc-repo";
 import { nguonVeRoutes } from "./nguon-ve-route";
 import { ngungBanNgayRoutes, trungDauTien } from "./ngung-ban-ngay-route";
+import { giaMuaVuRoutes } from "./gia-mua-vu-route";
+import { quyTacChuaKetThuc, quyTacTheoIds, thanhQuyTac } from "./gia-mua-vu-repo";
+import type { QuyTacMuaVu } from "../../shared/gia-mua-vu";
 import { cauNgungBanNgay } from "./ngung-ban-ngay-rules";
 import { chiTietRoutes } from "./chi-tiet-route";
 import { chiTietHienHanh, type ChiTietDong } from "./chi-tiet-repo";
@@ -74,6 +77,19 @@ export async function nguonVeTheoMa(db: D1Database, codes: readonly string[]): P
   if (codes.length === 0) return new Map();
   const hienHanh = await nguonVeHienHanh(db);
   return new Map(codes.map((ma) => [ma, nguonVeCua(ma, hienHanh)]));
+}
+
+/**
+ * ADR-0229 Đ2, Đ6: dữ liệu để `orders` tính giá mùa vụ bằng hàm thuần `src/shared/gia-mua-vu.ts` — quy tắc CHƯA KẾT THÚC có ngày cuối từ `tuNgay` (gồm chờ duyệt; hàm tính
+ * tự bỏ) cộng các quy tắc theo mã `ids` (bản chụp của đơn, kể cả đã kết thúc — Đ6), và nhóm HIỆN HÀNH của từng mã dịch vụ. KHÔNG tự kiểm quyền. `tuNgay` null ⇒ không
+ * đọc quy tắc mở (không dòng nào có ngày đi).
+ */
+export async function giaMuaVuChoDon(db: D1Database, v: { tuNgay: string | null; ids?: readonly string[] }): Promise<{ quyTac: QuyTacMuaVu[]; nhomCua: Map<string, string | null> }> {
+  const [mo, theoId] = await Promise.all([v.tuNgay ? quyTacChuaKetThuc(db, v.tuNgay) : Promise.resolve([]), quyTacTheoIds(db, v.ids ?? [])]);
+  const gop = new Map([...mo, ...theoId].map((r) => [r.id, thanhQuyTac(r)] as const));
+  const quyTac = [...gop.values()];
+  const nhomCua = quyTac.some((q) => q.phamVi === "GROUP") ? await nhomHienHanhTheoMa(db) : new Map<string, string | null>();
+  return { quyTac, nhomCua };
 }
 
 /**
@@ -246,6 +262,7 @@ export const catalogModule: AppModule = {
     ...coVeRoutes,
     ...nguonVeRoutes, // ADR-0175 Đ1.2: ô «Vé do ai phát»
     ...ngungBanNgayRoutes, // ADR-0220: «Ngừng bán theo ngày»
+    ...giaMuaVuRoutes, // ADR-0229: «Giá mùa vụ»
     ...chiTietRoutes, // ADR-0201 Đ1: tên hiển thị + mô tả
     ...anhRoutes, // ADR-0201 Đ3: ảnh đại diện
     ...dacDiemRoutes,

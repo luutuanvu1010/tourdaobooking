@@ -159,6 +159,11 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/catalog/ngung-ban-ngay", access: "office" }, // ADR-0220 Đ4; thân hỏi catalog.hidden.write, chặn tài khoản giữ Đối tác
   { method: "POST", path: "/api/catalog/ngung-ban-ngay", access: "office" },
   { method: "POST", path: "/api/catalog/ngung-ban-ngay/:id/ket-thuc", access: "office" },
+  { method: "GET", path: "/api/catalog/gia-mua-vu", access: "office" }, // ADR-0229 Đ8; thân hỏi catalog.seasonal.write, chặn tài khoản giữ Đối tác
+  { method: "POST", path: "/api/catalog/gia-mua-vu", access: "office" },
+  { method: "POST", path: "/api/catalog/gia-mua-vu/:id/duyet", access: "office" }, // thân hỏi catalog.seasonal.approve; người duyệt ≠ người đặt
+  { method: "POST", path: "/api/catalog/gia-mua-vu/:id/ket-thuc", access: "office" },
+  { method: "POST", path: "/api/catalog/gia-mua-vu/tran", access: "office" }, // thân hỏi catalog.seasonal.cap (chỉ Toàn quyền)
   { method: "GET", path: "/api/catalog/:code/chi-tiet", access: "admin" }, // ADR-0201 Đ1; thân hỏi admin.manage
   { method: "PUT", path: "/api/catalog/:code/chi-tiet", access: "admin" },
   { method: "PUT", path: "/api/catalog/:code/anh", access: "admin" }, // ADR-0201 Đ3; thân hỏi admin.manage
@@ -915,6 +920,7 @@ test("mức truy cập của 560 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-21 (ADR-0221 Đ1): + GET (orders), POST (admin) /api/cai-dat/noi-don-doi-tac = 570.
   // Gộp main vào nhánh ADR-0218 (22/11/2026): 574 của nhánh + 5 route của main (ngừng bán theo ngày 3, nơi đón đối tác 2) = 579.
   // Gộp main vào nhánh việc 7 (23/11/2026, ADR-0227): + GET (orders), POST (admin) /api/cai-dat/chan-chua-gio-sat-ngay = 581.
-  assert.equal(actual.length, 581, "số route thực tế lệch 581 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 581, "SNAPSHOT phải có đúng 581 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // ADR-0229 (giá mùa vụ, 23/11/2026): + GET, POST /api/catalog/gia-mua-vu, POST …/:id/duyet, POST …/:id/ket-thuc, POST …/tran (office) = 586.
+  assert.equal(actual.length, 586, "số route thực tế lệch 586 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 586, "SNAPSHOT phải có đúng 586 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

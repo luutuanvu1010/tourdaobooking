@@ -1013,6 +1013,16 @@ export interface CatalogNgungBanNgayInput { phamVi: "SERVICE" | "GROUP"; ma: str
 export interface CatalogNgungBanNgayListResponse { khoang: CatalogNgungBanNgayDto[] }
 /** `soDonDaXacNhan`: số đơn đã xác nhận có ngày khởi hành trong khoảng (chỉ con số); `null` = không đếm được. */
 export interface CatalogNgungBanNgayResponse { khoang: CatalogNgungBanNgayDto; soDonDaXacNhan: number | null }
+/** ADR-0229: một quy tắc «Giá mùa vụ». `cuaToi` = người đang xem đặt quy tắc này (không được tự duyệt — giao diện ẩn nút Duyệt, máy chủ chặn). Ngày "YYYY-MM-DD", gồm hai đầu. */
+export interface CatalogGiaMuaVuDto {
+  id: string; phamVi: "SERVICE" | "GROUP"; ma: string; ten: string; tuNgay: string; denNgay: string; phanTram: number; soTien: number; ghiChu: string | null;
+  taoLuc: string; daDuyet: boolean; duyetLuc: string | null; cuaToi: boolean;
+}
+export interface CatalogGiaMuaVuInput { phamVi: "SERVICE" | "GROUP"; ma: string; tuNgay: string; denNgay: string; phanTram: number; soTien: number; ghiChu?: string | null }
+/** Quy tắc chưa kết thúc và chưa qua ngày cuối (chờ duyệt và đang áp) + trần % hiện hành. */
+export interface CatalogGiaMuaVuListResponse { quyTac: CatalogGiaMuaVuDto[]; tranPhanTram: number }
+export interface CatalogGiaMuaVuResponse { quyTac: CatalogGiaMuaVuDto }
+export interface CatalogGiaMuaVuTranResponse { tranPhanTram: number }
 export interface CatalogSyncResponse {
   ok: true;
   added: number;

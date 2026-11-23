@@ -188,6 +188,8 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "catalog", file: "modules/catalog/nguon-ve-repo.ts" },
   // ADR-0220 Đ1: khoảng «Ngừng bán theo ngày», mọi câu qua defineSql + EXPLAIN.
   { module: "catalog", file: "modules/catalog/ngung-ban-ngay-repo.ts" },
+  // ADR-0229 Đ1, Đ8: quy tắc «Giá mùa vụ» và trần %, mọi câu qua defineSql + EXPLAIN.
+  { module: "catalog", file: "modules/catalog/gia-mua-vu-repo.ts" },
   // ADR-0201 Đ1: chi tiết dịch vụ (tên hiển thị, mô tả), mọi câu qua defineSql + EXPLAIN.
   { module: "catalog", file: "modules/catalog/chi-tiet-repo.ts" },
   // ADR-0218 Đ1.3: giá gốc phí đưa đón đọc từ Sheet (`ctl_service_transfer_price`, migration 0178), mọi câu qua defineSql + EXPLAIN.
