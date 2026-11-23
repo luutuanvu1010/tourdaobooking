@@ -66,13 +66,13 @@ test("nháp đã lưu (bản chụp): đổi ngày ⇒ giá danh mục của ng�
 });
 
 test("dòng «Giá mùa vụ»: văn phòng thấy khi ngày trong mùa; ngoài mùa hoặc Đối tác (máy chủ không gửi mucTang) thì không", () => {
-  assert.equal(chuGiaMuaVu(apGiaTheoNgay(item, "2027-02-05"), nhom), "Giá mùa vụ: +10 % +20.000 đ");
+  assert.equal(chuGiaMuaVu(apGiaTheoNgay(item, "2027-02-05"), nhom), "Giá mùa vụ: +10 % +20.000 ₫");
   assert.equal(chuGiaMuaVu(apGiaTheoNgay(item, "2027-02-20"), nhom), null);
   const doiTac: CatalogTheoNgay = { ...item, giaTheoNgay: item.giaTheoNgay!.map(({ mucTang: _m, ...x }) => x) };
   const dt = apGiaTheoNgay(doiTac, "2027-02-05");
   assert.equal(dt.prices.adult, 515000);
   assert.equal(chuGiaMuaVu(dt, nhom), null);
-  assert.equal(chuGiaMuaVu({ ...item, mucTang: { phanTram: 0, soTien: 5000 } }, nhom), "Giá mùa vụ: +5.000 đ");
+  assert.equal(chuGiaMuaVu({ ...item, mucTang: { phanTram: 0, soTien: 5000 } }, nhom), "Giá mùa vụ: +5.000 ₫");
 });
 
 test("nạp nháp: draftFromDto lấy giá danh mục của chính ngày đi đã lưu từ map for-order (giaTheoNgay)", () => {

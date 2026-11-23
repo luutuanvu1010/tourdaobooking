@@ -100,7 +100,7 @@ export function taoGiaMuaVu(quyen: QuyenGiaMuaVu, sauKhiDoi: () => void): GiaMua
       return h("li", { "data-quy-tac": q.id },
         h("span", null, `${ngayDayDu(q.tuNgay)} – ${ngayDayDu(q.denNgay)} · ${mucChu(q)}${q.ghiChu ? ` · ${q.ghiChu}` : ""}`),
         !q.daDuyet && q.cuaToi && h("span", { class: "hint" }, " Bạn đặt — cần người khác duyệt."),
-        " ", nutDuyet, nutKt);
+        h("div", { class: "actions" }, nutDuyet, nutKt)); // hai nút một hàng riêng — người đánh giá giao diện 23/11 (S8: «Kết thúc» rớt dòng ở 390)
     };
     const nhomDs = (tieuDe: string, cac: QuyTac[], rong: string): HTMLElement[] => [
       h("h3", null, tieuDe),
@@ -149,13 +149,13 @@ export function taoGiaMuaVu(quyen: QuyenGiaMuaVu, sauKhiDoi: () => void): GiaMua
           : "Tăng giá theo ngày đi cho dịch vụ này (thắng giá mùa vụ của nhóm)."),
         h("p", { class: "muted" }, "Giá mới = giá hiện tại cộng phần trăm, rồi cộng số tiền, làm tròn lên 1.000 đ. Đơn đã xác nhận giữ nguyên giá. Phí đưa đón không tăng."),
         h("p", { class: "alert warn", "data-khoi": "gmv-can-duyet" }, "Giá chỉ áp sau khi người khác duyệt."),
+        dangCo, // quy tắc chờ duyệt / đang áp dụng đứng TRÊN form đặt mới — người vào để duyệt thấy ngay (người đánh giá giao diện 23/11, S9)
         h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "gmv-tu" }, "Từ ngày đi"), tuNgay),
         h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "gmv-den" }, "Đến hết ngày đi"), denNgay),
         h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "gmv-phan-tram" }, `Tăng phần trăm (tối đa ${tranPhanTram} %)`), phanTram),
         h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "gmv-so-tien" }, "Tăng thêm số tiền (đồng)"), soTien),
         h("div", { class: "lb-truong" }, h("label", { class: "nhan", for: "gmv-ghi-chu" }, "Ghi chú (không bắt buộc)"), ghiChu),
         loi,
-        dangCo,
         khoiTran(),
       ],
       foot: [luu],

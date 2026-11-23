@@ -269,9 +269,9 @@ export function apGiaTheoNgay<T extends CatalogTheoNgay>(item: T, ngay: string |
   return { ...item, giaGoc: goc, prices: doan ? doan.prices : goc, mucTang: doan?.mucTang ?? null };
 }
 
-/** «+10 % +20.000 đ» — mức tăng giá mùa vụ (ADR-0229 Đ9); `formatMoney` là cách nhóm số của trang (vd `grouped`). */
+/** «+10 % +20.000 ₫» — mức tăng (ký hiệu ₫ như tổng tiền cùng màn — người đánh giá giao diện 23/11, S6) giá mùa vụ (ADR-0229 Đ9); `formatMoney` là cách nhóm số của trang (vd `grouped`). */
 export const chuMucTang = (m: { phanTram: number; soTien: number }, formatMoney: (n: number) => string): string =>
-  [m.phanTram > 0 ? `+${m.phanTram} %` : "", m.soTien > 0 ? `+${formatMoney(m.soTien)} đ` : ""].filter(Boolean).join(" ");
+  [m.phanTram > 0 ? `+${m.phanTram} %` : "", m.soTien > 0 ? `+${formatMoney(m.soTien)} ₫` : ""].filter(Boolean).join(" ");
 
 /**
  * ADR-0229 Đ9: dòng nhỏ «Giá mùa vụ: +10 % +20.000 đ» dưới dịch vụ — chỉ khi ngày đi trong mùa VÀ máy chủ gửi mức tăng (chỉ người dùng văn phòng nhận; Đối tác chỉ thấy giá cuối).
