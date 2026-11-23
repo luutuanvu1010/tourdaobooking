@@ -8,6 +8,7 @@ import { seedStaff } from "../tests/audit/harness.mjs";
 import { doNhatKyHang } from "../tests/audit/nhat-ky-hang.mjs";
 import { CHECKS, demViPham } from "../scripts/audit-checks.mjs";
 import { A, ACC, ADM, LAI, PARTNER, SUP, inDays, setup, svc } from "../tests/audit/xac-nhan-khung.mjs";
+import { donTruocNgayAp } from "../tests/audit/chi-tien-mat.mjs";
 import { CAU_CO_KHOAN_CHO, CAU_QUYET_TOAN_TRUNG } from "./shared/cong-no-dai-ly.ts";
 
 const BEN = `pty-${PARTNER}`;
@@ -134,6 +135,7 @@ test("Khách trả thẳng Công ty: X trừ phần đó; Công nợ còn lại 
 test("Khoản «Công ty thu, chuyển khoản» đối tác khai còn chờ: trần trừ khoản đó; Kế toán xác nhận khoản nộp khi còn khoản chờ ⇒ 409", async () => {
   const w = await dung();
   const id = await donDaiLy(w);
+  donTruocNgayAp(w, id); // ADR-0225 Đ2: khoản «Công ty thu, chuyển khoản» ở đơn đối tác chỉ còn ở đơn xác nhận trước ngày áp
   assert.equal((await w.call("POST", `/api/orders/${id}/payments`, { as: PARTNER, body: { soTien: 200_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", bienLai: anh() } })).status, 201);
   const p = await phieu(w, id);
   assert.deepEqual([p.conLai, p.nop.congTyCho, p.nop.tran, p.qr?.soTien], [800_000, 200_000, 600_000, 600_000]);
@@ -417,6 +419,7 @@ test("T1(b) khoản nộp + một khoản «Công ty thu, chuyển khoản» cù
   const w = await dung();
   const a = await donCoNop(w);
   const kt = await donDaiLy(w);
+  donTruocNgayAp(w, kt); // ADR-0225 Đ2: như trên
   const boQuaTrung = [{ ma: "ma_giao_dich_khac_don", lyDo: LY_DO_TRUNG }];
   const ma = MA("0020");
   // Chiều 1: khoản «Công ty thu» 300.000 gắn mã trước (số thực chuyển 1.000.000); khoản nộp 800.000 cùng mã ⇒ 1.100.000 > 1.000.000
@@ -434,6 +437,7 @@ test("T1(b) khoản nộp + một khoản «Công ty thu, chuyển khoản» cù
   const ma2 = MA("0021");
   assert.equal((await w.call("POST", `/api/orders/${a.id}/khoan-nop/${a.nid}/xac-nhan`, { as: ACC, body: { maGiaoDich: ma2, soThucChuyen: 1_000_000 } })).status, 200);
   const kt2 = await donDaiLy(w);
+  donTruocNgayAp(w, kt2);
   const vuot2 = await w.call("POST", `/api/orders/${kt2}/payments`, { as: ACC, body: { soTien: 300_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty", maGiaoDich: ma2, soThucChuyen: 1_000_000, boQuaTrung } });
   assert.equal(vuot2.status, 409, vuot2.text);
   assert.equal(vuot2.json.error.code, "bank_txn_over");

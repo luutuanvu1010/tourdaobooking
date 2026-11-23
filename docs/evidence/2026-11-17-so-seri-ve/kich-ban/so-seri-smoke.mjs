@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 const W = process.cwd();
 const L = await import(`${W}/docs/evidence/2026-10-30-luat-ban-dac-diem/kich-ban/lb-chung.mjs`);
-const { ACCOUNTS, KHO, axeKiem, bam, bocucSach, buoc, chonO, chup, choHop, choDongHop, goiApi, ketThuc, sleep, startEnv, taoMoTrang, vnDate, setInput } = L;
+const { ACCOUNTS, KHO, axeKiem, bam, bocucSach, buoc, chup, choHop, choDongHop, goiApi, ketThuc, sleep, startEnv, taoMoTrang, vnDate, setInput } = L;
 
 const PNG = (n) => { const u = new Uint8Array(40); u.set([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0x0d, 0x49, 0x48, 0x44, 0x52, 0, 0, n, n]); u.set(new TextEncoder().encode("chup" + Date.now()), 20); return Buffer.from(u).toString("base64"); };
 const go = async (p, sel, v) => p.ev(`(() => { const s = document.querySelector(${JSON.stringify(sel)}); if (!s) return false; s.focus(); s.value = ${JSON.stringify(v)}; s.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
@@ -83,7 +83,10 @@ try {
   const p = await moTrang(ACCOUNTS.chu, "/ve-kho", { width: 1040, height: 900, mobile: false });
   await buoc("tao.1", "Tạo vé: vé mẫu in số sê-ri", async () => {
     await p.waitFor("!!document.querySelector('[data-action=\"xem-ve-mau\"]')", "nút Xem vé mẫu");
-    await chonO(p, "#vt-dich-vu", "TD101");
+    // Việc 4 (21/11): «Tạo vé Tour Đảo» chọn dịch vụ bằng bộ chọn của bước nhập lô (ô tìm + hàng nhóm + dòng), không còn hộp thả xuống.
+    await p.waitFor("!!document.querySelector('#vt-dich-vu .catalog-row[data-ma=\"TD101\"]')", "dòng TD101 trong bộ chọn Tạo vé");
+    assert.equal(await bam(p, '#vt-dich-vu .catalog-row[data-ma="TD101"] .catalog-pick'), true, "chạm dòng TD101");
+    await p.waitFor("!!document.querySelector('#vt-dich-vu .catalog-da-chon[data-ma=\"TD101\"]')", "bộ chọn thu lại thành dòng đã chọn");
     await go(p, "#vt-tu-ngay", vnDate(0)); await go(p, "#vt-den-ngay", vnDate(30)); await go(p, "#vt-so-luong", "2");
     await go(p, "#vt-ten-en", "Nha Trang 4-Island Tour");
     assert.equal(await bam(p, '[data-action="xem-ve-mau"]'), true);

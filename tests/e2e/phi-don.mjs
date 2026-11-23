@@ -245,7 +245,7 @@ try {
   const DON = { direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: diem.id, pickupPlace: "", dropoffLocationId: LOC, dropoffPlace: "" };
   const dichVuDon = (extra = {}) => catalogService({ pax: { adult: 2 }, departDate: vnDate(7), ...extra });
   // ĐỔI CÓ CHỦ ĐÍCH 16/11 (ADR-0214): phí trên đơn do văn phòng CHỌN (30.000 trong danh sách), KHÔNG theo bảng khu vực (35.000) — bảng không còn dùng cho đơn.
-  r = await call(SALES, "POST", "/api/orders", orderInput({ services: [dichVuDon({ legs: [{ ...DON, phiDon: { loai: "DANH_SACH", soTien: 30_000 } }] })] }));
+  r = await call(SALES, "POST", "/api/orders", orderInput({ services: [dichVuDon({ legs: [{ ...DON, doiPhi: { donGia: 30_000, lyDo: "Báo giá riêng" } }] })] }));
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const coChang = r.body.order;
   r = await call(SALES, "POST", "/api/orders", orderInput({ services: [dichVuDon({ legs: [] })] }));
@@ -259,7 +259,7 @@ try {
   assert.equal(b.total, 200_000, "2 người lớn × 100.000₫");
   assert.equal(a.total, b.total + 60_000, "đơn có chặng = dịch vụ + phí đưa đón văn phòng chọn 2 × 30.000₫ (không theo bảng 35.000₫)");
   assert.equal(a.subtotal, b.subtotal + 60_000);
-  assert.deepEqual(a.phiDuaDon?.dong.map((d) => [d.zoneCode, d.loaiChon, d.direction, d.quantity, d.unitPrice, d.lineTotal]), [[null, "DANH_SACH", "OUT", 2, 30_000, 60_000]], "một dòng phí của chặng chiều đi");
+  assert.deepEqual(a.phiDuaDon?.dong.map((d) => [d.zoneCode, d.nguon, d.direction, d.quantity, d.unitPrice, d.lineTotal]), [[null, "DOI_TAY", "OUT", 2, 30_000, 60_000]], "một dòng phí của chặng chiều đi");
   assert.equal(a.phiDuaDon.duKien, false, "đơn đã xác nhận: phí không còn «dự kiến»");
   assert.equal(b.phiDuaDon, null, "đơn không chặng: không phí");
   assert.equal(a.services[0].items.length, b.services[0].items.length, "dòng phí không lẫn vào dòng dịch vụ");

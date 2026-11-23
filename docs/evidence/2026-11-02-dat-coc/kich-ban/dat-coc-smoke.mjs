@@ -48,55 +48,30 @@ assert.equal(donTS.paymentTerm, "CREDIT");
 const DESK_RONG = { width: 1280, height: 820, mobile: false };
 
 const buoc = async (khung, hau) => {
-  // ---- Đối tác: form có ô, tóm tắt có hai dòng ----
+  // ---- Việc 5 (b1), ADR-0225 Đ1 (21/11): form Đối tác KHÔNG còn ô đặt cọc, kể cả nháp cũ đã khai số và đơn Trả sau; ô Ghi chú thanh toán không còn chữ gợi ý «nội dung chuyển khoản» ----
   let p = await env.as(DOITAC, `/order-form?id=${donNhap.id}`, khung);
-  await p.waitFor(`document.querySelector('#declaredDeposit') && document.querySelector('#declaredDeposit').value === '500.000'`, "form nạp số đã khai");
-  await b.step(`${hau}-1`, `${hau}: Đối tác thấy ô «Khách đặt cọc cho đối tác» cỡ 16px, tóm tắt đủ hai dòng, số đúng; gõ tự nhóm hàng nghìn; không tràn ngang${axeNote()}`, async () => {
-    assert.equal(await hien(p, "#declaredDeposit"), true);
-    assert.equal(await p.ev(`getComputedStyle(document.querySelector('#declaredDeposit')).fontSize`), "16px");
-    if (khung.mobile) {
-      await p.ev(`document.querySelector('#sum-mo').click()`);
-      await sleep(200);
-      assert.match(await docTxt(p, "#sum-chi-tiet"), /Khách đặt cọc cho đối tác 500\.000.*Khách còn phải trả 2\.200\.000/);
-    } else {
-      assert.match(await docTxt(p, ".summary-card"), /Khách đặt cọc cho đối tác 500\.000.*Khách còn phải trả 2\.200\.000/);
-    }
-    await p.ev(typeInto("#declaredDeposit", "900000"));
-    await sleep(200);
-    assert.equal(await p.ev(`document.querySelector('#declaredDeposit').value`), "900.000", "ô tự nhóm hàng nghìn");
+  await p.waitFor(`!!document.querySelector('#pay-card') && document.querySelector('#customerName') && document.querySelector('#customerName').value !== ''`, "form nạp nháp đã khai cọc");
+  await b.step(`${hau}-1`, `${hau}: nháp cũ có lời khai 500.000 ⇒ form Đối tác không hiện ô cọc, Tóm tắt không có hai dòng cọc; Ghi chú thanh toán không có chữ gợi ý chuyển khoản; không tràn ngang${axeNote()}`, async () => {
+    await sleep(500);
+    assert.equal(await hien(p, "#declaredDeposit"), false, "ô cọc ẩn");
+    assert.equal(await p.ev(`[...document.querySelectorAll('[data-dat-coc]')].some((e) => e.getClientRects().length > 0)`), false, "không có dòng cọc ở Tóm tắt");
+    assert.equal(await p.ev(`document.querySelector('#paymentNote').placeholder`), "", "không còn chữ gợi ý «nội dung chuyển khoản»");
+    const nut = await p.ev(`(() => { const n = document.querySelector('[data-gap="thanh-toan-giai-thich"]'); return n ? { chu: n.textContent, an: n.hidden } : null; })()`);
+    assert.ok(nut === null || nut.an || nut.chu === "Giải thích giảm giá", `nút gập không còn nhắc đặt cọc: ${JSON.stringify(nut)}`);
     assert.equal(await p.ev(noOverflowX), true);
     await chup(p, `01-doi-tac-form-${hau}`, khung);
     await axe(p, `form đối tác ${hau}`);
   });
-  await b.step(`${hau}-2`, `${hau}: khai vượt tổng ⇒ form báo lời thường, chưa gửi đi`, async () => {
-    await p.ev(typeInto("#declaredDeposit", "99000000"));
-    await sleep(200);
-    await p.ev(`document.querySelector('#save').click()`);
-    await sleep(600);
-    assert.equal(await p.ev(`document.body.innerText.replace(/\\s+/g, ' ').includes('không được lớn hơn tổng tiền')`), true);
-    await chup(p, `02-doi-tac-vuot-tong-${hau}`, khung);
-  });
   p.close();
-  // ---- ADR-0197: đơn Trả sau vẫn có ô, kèm câu nhắc; đổi sang Thanh toán ngay thì câu nhắc ẩn, ô vẫn còn ----
   p = await env.as(DOITAC, `/order-form?id=${donTS.id}`, khung);
-  await p.waitFor(`document.querySelector('#declaredDeposit') && document.querySelector('#declaredDeposit').value === '300.000' && !document.querySelector('#tra-sau-khoi').hidden`, "form nháp Trả sau nạp số đã khai");
-  await b.step(`${hau}-2b`, `${hau}: đơn chọn Trả sau vẫn có ô «${"Khách đặt cọc cho đối tác"}» kèm câu «Tiền cọc ở tay bạn, không làm giảm số nợ với Công ty.»; chọn Thanh toán ngay thì câu nhắc ẩn, ô còn${axeNote()}`, async () => {
+  await p.waitFor(`!!document.querySelector('#tra-sau-khoi') && !document.querySelector('#tra-sau-khoi').hidden`, "form nháp Trả sau");
+  await b.step(`${hau}-2b`, `${hau}: đơn Trả sau của Đối tác cũng không có ô cọc, không có câu nhắc cọc`, async () => {
     await sleep(500);
     assert.equal(await p.ev(`document.querySelector('input[name="paymentTerm"][value="CREDIT"]').checked`), true, "nháp đang chọn Trả sau");
-    assert.equal(await hien(p, "#declaredDeposit"), true, "ô cọc hiện ở đơn Trả sau");
-    // Đặc tả 2026-11-20 (H1, chủ duyệt): ba câu giải thích của form Đối tác GẬP sau nút «Giải thích giảm giá, đặt cọc» — lúc đầu ẩn, bấm nút thì hiện.
-    assert.equal(await hien(p, "#dat-coc-tra-sau"), false, "câu nhắc nằm trong khối gập đang đóng");
-    assert.equal(await p.ev(`(() => { const n = document.querySelector('[data-gap="thanh-toan-giai-thich"]'); if (!n || n.textContent !== "Giải thích giảm giá, đặt cọc" || n.getAttribute("aria-expanded") !== "false") return false; n.click(); return n.getAttribute("aria-expanded") === "true"; })()`), true, "nút gập có đúng tên và mở được");
-    assert.equal(await hien(p, "#dat-coc-tra-sau"), true);
-    assert.equal(await hien(p, "#dat-coc-goi-y"), true, "câu về số tiền đã nhận cũng nằm trong khối gập");
-    assert.equal(await docTxt(p, "#dat-coc-tra-sau"), "Tiền cọc ở tay bạn, không làm giảm số nợ với Công ty.");
+    assert.equal(await hien(p, "#declaredDeposit"), false);
+    assert.equal(await hien(p, "#dat-coc-tra-sau"), false);
     assert.equal(await p.ev(noOverflowX), true);
     await chup(p, `02b-doi-tac-tra-sau-${hau}`, khung);
-    await axe(p, `form Trả sau ${hau}`);
-    await p.ev(`document.querySelector('input[name="paymentTerm"][value="PREPAID"]').click()`);
-    await sleep(200);
-    assert.equal(await hien(p, "#dat-coc-tra-sau"), false, "Thanh toán ngay: không có câu nhắc nợ");
-    assert.equal(await hien(p, "#declaredDeposit"), true);
   });
   p.close();
   // ---- Đối tác xem đơn nháp ----

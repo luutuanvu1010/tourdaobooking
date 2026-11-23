@@ -12,7 +12,6 @@ import { nhaCungCapCuaDon } from "./modules/billing/rules.ts";
 import { CAU_GIAM_GIA_VUOT_CO_PHI } from "./shared/so-khach-van-phong.ts";
 import type { BanChup } from "./shared/hoa-hong-dong.ts";
 import type { OrderDetailDto } from "./shared/contracts.ts";
-import { DANH_SACH_PHI_DON } from "./shared/phi-don-chon.ts";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const SALES_B = "22222222-2222-4222-8222-222222222222";
@@ -38,12 +37,13 @@ const ok = async (p: Promise<Res>, ma: number, ten = ""): Promise<Res> => {
 };
 
 /**
- * ĐỔI CÓ CHỦ ĐÍCH 16/11 (ADR-0214, Task 3): phí trên đơn nay do văn phòng CHỌN, không tra bảng. Để giữ nguyên các phép đọc tiền SAU xác nhận (hàm đọc không đổi), lượt đón
- * của bài mang `phiDon` = đúng số tiền bảng cũ cho ra: đầu khách sạn ở Cam Ranh ⇒ `cr` (mặc định 100.000), chỗ khác ⇒ 20.000 («Ngoài khu vực»). Bảng phí vẫn gieo (bài «đổi mức»
+ * ĐỔI CÓ CHỦ ĐÍCH 18/11 (ADR-0218 Đợt 2; trước đó ADR-0214): phí trên đơn do máy tính, bài cần số cụ thể thì dùng số đổi `doiPhi`. Để giữ nguyên các phép đọc tiền SAU xác nhận (hàm đọc không đổi), lượt đón
+ * của bài mang `doiPhi` = đúng số tiền bảng cũ cho ra: đầu khách sạn ở Cam Ranh ⇒ `cr` (mặc định 100.000), chỗ khác ⇒ 20.000 («Ngoài khu vực»). Bảng phí vẫn gieo (bài «đổi mức»
  * khẳng định đơn đã xác nhận không đổi theo bảng).
  */
 let mucCR = 100_000;
-const mucChon = (soTien: number) => ({ loai: DANH_SACH_PHI_DON.includes(soTien) ? "DANH_SACH" : "SO_KHAC", soTien });
+/** ADR-0218: «mức» nay là số văn phòng ĐỔI (`doiPhi`, kèm lý do) — đúng đường đổi số; các bất biến đọc tiền bên dưới không đổi. */
+const mucChon = (soTien: number) => ({ donGia: soTien, lyDo: "Văn phòng đổi thử" });
 /** Bảng phí: CR `cr` đ/khách, NGOAI_VUNG 20.000 đ/khách; bật từ hôm nay. */
 async function setup(o: { cr?: number } = {}): Promise<W> {
   mucCR = o.cr ?? 100_000;
@@ -63,6 +63,8 @@ async function setup(o: { cr?: number } = {}): Promise<W> {
   }
   const tuLuc = (await ok(w.call("GET", "/api/pricing/phi-don", { as: ADM }), 200)).json.batDauAp.tuLuc;
   await ok(w.call("POST", "/api/pricing/phi-don/bat-dau-ap", { as: ADM, body: { ngay: HOM_NAY, tuLucDaDoc: tuLuc } }), 200, "bật phí");
+  // ADR-0218 Đ3: biên nhận khách lẻ mặc định GỘP phí vào giá; các bài dưới canh dòng phí RIÊNG trên biên nhận ⇒ Toàn quyền bật «Hiện riêng phí đưa đón trên biên nhận khách lẻ» (bài gộp ở receipt/gop-phi-don.test.ts).
+  await ok(w.call("POST", "/api/cai-dat/phi-don-bien-nhan", { as: SUP, body: { hienRieng: true } }), 200, "hiện riêng phí trên biên nhận");
   return w;
 }
 /** «Đổi mức phí» chung của một khu vực từ HÔM NAY (mức cũ kết thúc hôm qua). */
@@ -72,10 +74,10 @@ async function doiMuc(w: W, vung: string, tien: number) {
 }
 
 const mucCua = (loc: string | null, muc?: number) => mucChon(muc ?? (loc === KS_CR ? mucCR : 20_000));
-const OUT = (pickupLocationId: string | null, muc?: number) => ({ direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId, pickupPlace: "", dropoffLocationId: BEN, dropoffPlace: "", phiDon: mucCua(pickupLocationId, muc) });
+const OUT = (pickupLocationId: string | null, muc?: number) => ({ direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId, pickupPlace: "", dropoffLocationId: BEN, dropoffPlace: "", doiPhi: mucCua(pickupLocationId, muc) });
 const RET = (dropoffLocationId: string | null, paxOverride?: number, muc?: number) => ({
   direction: "RETURN", pickupDate: D, pickupTime: "16:00", pickupLocationId: BEN, pickupPlace: "", dropoffLocationId, dropoffPlace: "", ...(paxOverride === undefined ? {} : { paxOverride }),
-  phiDon: mucCua(dropoffLocationId, muc),
+  doiPhi: mucCua(dropoffLocationId, muc),
 });
 const P = (p: Pax) => ({ adult: 0, child: 0, senior: 0, infant: 0, ...p });
 const svc = (pax: Pax, legs: unknown[], ma: "TOUR_LAN" | "TOUR_600" = "TOUR_LAN") => ({

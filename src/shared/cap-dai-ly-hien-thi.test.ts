@@ -47,5 +47,5 @@ test("suaDuocDong: còn cấp đang bật ⇒ mở; hết cấp ⇒ chỉ hồ s
 });
 
 test("chữ: màn nhắc cấp độ đại lý cũng quyết định mức phí đưa đón, đơn đã xác nhận giữ mức cũ (nợ ADR-0203; Phí đưa đón Đợt C, Task 6)", () => {
-  assert.equal(CHU_MAN.nhacPhiDon, "Cấp độ đại lý cũng quyết định mức phí đưa đón; đơn đã xác nhận giữ mức cũ.");
+  assert.equal(CHU_MAN.nhacPhiDon, "Đổi cấp cũng đổi phí đưa đón của các đơn chưa xác nhận.");
 });

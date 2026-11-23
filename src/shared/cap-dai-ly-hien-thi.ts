@@ -1,4 +1,5 @@
 // Chữ và luật lọc THUẦN của màn «Cấp độ đại lý» (đặc tả docs/superpowers/specs/2026-11-04-man-cap-dai-ly.md) — web/cap-dai-ly.ts. Cấp và nguồn cấp do máy chủ trả; ở đây chỉ lọc và dịch ra chữ.
+import { CAU_DOI_CAP_DOI_PHI_DON } from "./phi-don-gia-goc.ts";
 import type { CapDaiLyDongDto } from "./contracts.ts";
 import { khoaTen } from "./khoa-ten.ts";
 
@@ -13,7 +14,7 @@ export const CHU_MAN = {
   xemThem: "Xem thêm",
   nhanVaiTro: "Vai trò",
   /** Phí đưa đón Đợt C (nợ ADR-0203 ĐB2): mức phí đưa đón chọn theo cấp của bên đặt; đơn đã xác nhận đã chụp mức nên đổi cấp không đổi phí của đơn cũ. */
-  nhacPhiDon: "Cấp độ đại lý cũng quyết định mức phí đưa đón; đơn đã xác nhận giữ mức cũ.",
+  nhacPhiDon: CAU_DOI_CAP_DOI_PHI_DON, // ADR-0218 Đ1 (câu khuyến nghị, tên chờ chủ chọn): đơn đã xác nhận giữ phí đã chụp
 } as const;
 
 /** Số dòng vẽ mỗi lần: hàng nghìn đối tác vẫn lọc trong bộ nhớ, nhưng chỉ dựng DOM cho phần đang xem («Xem thêm» vẽ tiếp). */

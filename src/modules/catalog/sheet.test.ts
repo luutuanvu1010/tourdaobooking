@@ -90,3 +90,38 @@ test("TT1: dòng hỏng vẫn trả kèm MÃ dịch vụ khi ô mã đọc đư�
   assert.ok(r.ok);
   assert.deepEqual(r.problems.map((p) => [p.row, p.code ?? null]), [[3, "TD2"], [4, "TD3"], [5, null], [6, null], [7, null]]);
 });
+
+// ADR-0218 Đ1.3: hai cột tuỳ chọn «Phí đưa đón» và «Phí đưa đón xe riêng».
+const HEADER_PHI = `${HEADER},Phí đưa đón,Phí đưa đón xe riêng`;
+const csvPhi = (...rows: string[]) => [HEADER_PHI, ...rows].join("\n");
+const dongPhi = (ma: string, moi: string, xe: string) => `${ma},Tour ${ma},k,d,perPax,100000,,,,,,,,${moi},${xe}`;
+
+test("ADR-0218: Sheet chưa có hai cột phí đưa đón → không cột, không lỗi ô, vấn đề không đổi", () => {
+  const r = parseCatalogSheet(csv("T1,Tour T1,k,d,perPax,100000,,,,,,,"));
+  assert.ok(r.ok);
+  assert.equal(r.phiDon.coCotMoiKhach, false);
+  assert.equal(r.phiDon.coCotXeRieng, false);
+  assert.equal(r.phiDon.theoMa.size, 0);
+  assert.deepEqual(r.phiDon.loiO, []);
+  assert.equal(r.problems.length, 0);
+});
+
+test("ADR-0218: ô số → số; ô trống → null (không phải 0); ô 0 → 0", () => {
+  const r = parseCatalogSheet(csvPhi(dongPhi("T1", "50000", "900000"), dongPhi("T2", "", ""), dongPhi("T3", "0", "0")));
+  assert.ok(r.ok);
+  assert.equal(r.phiDon.coCotMoiKhach, true);
+  assert.equal(r.phiDon.coCotXeRieng, true);
+  assert.deepEqual(r.phiDon.theoMa.get("T1"), { moiKhach: 50000, xeRieng: 900000 });
+  assert.deepEqual(r.phiDon.theoMa.get("T2"), { moiKhach: null, xeRieng: null });
+  assert.deepEqual(r.phiDon.theoMa.get("T3"), { moiKhach: 0, xeRieng: 0 });
+});
+
+test("ADR-0218: ô «abc» hoặc vượt trần → vào loiO, dòng dịch vụ VẪN còn với giá vé mới, không vào problems", () => {
+  const r = parseCatalogSheet(csvPhi(dongPhi("T1", "abc", ""), dongPhi("T2", "600000", "5000001"), dongPhi("T3", "500000", "5000000")));
+  assert.ok(r.ok);
+  assert.deepEqual(r.items.map((i) => i.code), ["T1", "T2", "T3"]);
+  assert.equal(r.items[0]!.prices.adult, 100000);
+  assert.equal(r.problems.length, 0);
+  assert.deepEqual(r.phiDon.loiO.map((l) => `${l.code}:${l.cot}`), ["T1:moi_khach", "T2:moi_khach", "T2:xe_rieng"]);
+  assert.deepEqual(r.phiDon.theoMa.get("T3"), { moiKhach: 500000, xeRieng: 5000000 });
+});

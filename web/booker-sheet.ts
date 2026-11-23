@@ -19,6 +19,8 @@ export interface BookerSheetOptions {
   order: Order;
   /** Có ô "Đặt qua đối tác" không (sổ đại lý đợt 1, Task 11): `coODatQuaDoiTac(staff)` — người lập đơn không giữ quyền Đối tác; tài khoản lai KHÔNG có. Máy chủ vẫn kiểm lại. */
   coDatQuaDoiTac: boolean;
+  /** Việc 3: ô tìm đối tác nhận cả số điện thoại (`traDoiTacTheoSo(staff)` — văn phòng + party.view). */
+  theoSo: boolean;
   /** Lưu thành công: bảng đã đóng; nơi gọi tải lại đơn. */
   onSaved: () => void;
   /** Nút "Tải lại đơn" trong banner: bảng đã đóng; nơi gọi tải lại đơn. */
@@ -67,6 +69,7 @@ export function openBookerSheet(o: BookerSheetOptions, opener: HTMLElement): voi
   const datQua = o.coDatQuaDoiTac
     ? oDatQuaDoiTac({
         daChon: null,
+        theoSo: o.theoSo,
         onDoi: (c) => {
           if (c === null && daChon !== null) picker.kiemLai(); // vừa bỏ đối tác: hỏi lại số khách đang có (nợ T4(2), Việc 9) — daChon đã null trước khi kết quả về
           daChon = c;

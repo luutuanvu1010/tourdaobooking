@@ -200,3 +200,16 @@ test("«Ghi sổ theo phân định», phần sửa khoản thu: Bật / không 
   assert.deepEqual(B.nguoiThuSuaPhanDinh(k), { partyId: "pty-dl-b" });
   assert.equal(B.nguoiThuSuaPhanDinh({ ...k, nguoiLapPartyId: null }), null);
 });
+
+test("ADR-0225 Đ2: đơn chỉ thu hộ tiền mặt — bỏ «Công ty (vào tài khoản công ty)»; ô Hình thức phía Tour Đảo chỉ «Tiền mặt», Đối tác và khách trả bên kia giữ đủ", async () => {
+  const { luaChonNguoiThu: chon, hinhThucChoPhep } = await import("./ben-kia-hien-thi.ts");
+  const benKia = { benDat: { ten: "Đại Lý A" }, nhaCungCap: [{ partyId: "pty-ncc", ten: "i-resort" }] };
+  assert.ok(!chon(benKia, null, false, true).some((c) => c.value === "cong_ty"));
+  assert.ok(chon(benKia, null, false, false).some((c) => c.value === "cong_ty"), "đơn không dấu giữ như cũ");
+  assert.deepEqual(chon(benKia, null, false, true).map((c) => c.value), chon(benKia, null).map((c) => c.value).filter((v) => v !== "cong_ty"), "chỉ bớt đúng một lựa chọn");
+  assert.deepEqual(hinhThucChoPhep({ chiTienMat: true, laDoiTac: false, nguoiThu: "toi" }), ["CASH"]);
+  assert.deepEqual(hinhThucChoPhep({ chiTienMat: true, laDoiTac: false, nguoiThu: "cong_ty" }), ["CASH"]);
+  assert.deepEqual(hinhThucChoPhep({ chiTienMat: true, laDoiTac: false, nguoiThu: "ben_dat" }), ["BANK_TRANSFER", "CASH", "OTHER"]);
+  assert.deepEqual(hinhThucChoPhep({ chiTienMat: true, laDoiTac: true, nguoiThu: "toi" }), ["BANK_TRANSFER", "CASH", "OTHER"]);
+  assert.deepEqual(hinhThucChoPhep({ chiTienMat: false, laDoiTac: false, nguoiThu: "toi" }), ["BANK_TRANSFER", "CASH", "OTHER"]);
+});
