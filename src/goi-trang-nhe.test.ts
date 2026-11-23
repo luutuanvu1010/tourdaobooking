@@ -125,7 +125,10 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Nới 118.690 → 118.922 (+232, Việc 13 — ADR-0232 Ảnh bàn giao): bốn ô quyền mới `order.photo.upload` / `view` / `hide` / `purge` vào bản đồ quyền dùng chung và
 // bảy nhãn nhật ký `handover_photo_*` vào bảng nhãn dùng chung (gói Đơn hàng nhúng cả hai); không mã giao diện ảnh nào vào gói này (web/anh-ban-giao.ts chỉ ở trang chi tiết đơn).
 // Đo thật sau gộp main 23/11 (có Việc 14): 118.922 byte; trần = đúng số đo. Chủ dự án duyệt 23/11/2026 (chat ở phiên Việc 13, nguyên văn: «duyệt nới trần gói trang Đơn hàng 232 byte, tiếp»).
-const TRAN_ORDERS = 118_922;
+// Nới 118.922 → 119.044 (+122, Việc 10 — ADR-0229 Giá mùa vụ), đo thật sau gộp main 23/11 (có Việc 13): +89 là ba ô quyền `catalog.seasonal.write/approve/cap` trong bảng quyền dùng chung
+// (chủ dự án duyệt 23/11/2026, chat, nguyên văn «duyệt cả ba theo khuyến nghị»), +33 là điều kiện mở màn hẹp Dịch vụ & giá cho người giữ ô giá mùa vụ trong `dungManHepDichVu`
+// (chủ dự án duyệt 23/11/2026, chat, nguyên văn «Duyệt 118.812» — số đo trên nền 118.690 trước khi gộp Việc 13). Trần = đúng số đo.
+const TRAN_ORDERS = 119_044;
 
 function dung(trang: string) {
   const r = buildSync({
