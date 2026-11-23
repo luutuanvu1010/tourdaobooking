@@ -65,7 +65,7 @@ r = await call(ADM, "POST", "/api/tra-sau/han-muc", { partyId: BEN, ...SO, lyDo:
 assert.equal(r.status, 201, `Quản trị đặt trong mức tối đa: ${JSON.stringify(r.body)}`);
 r = await call(A, "GET", `/api/tra-sau/con-duoc-dung?benDat=${BEN}`);
 assert.equal(r.status, 200, JSON.stringify(r.body));
-assert.deepEqual(r.body, { coHanMuc: true, conDuocDung: HAN_MUC, coDonQuaHan: false, traSauDichVu: null }); // ADR-0230 Đ1 mục 5: không gửi dịch vụ ⇒ null
+assert.deepEqual(r.body, { coHanMuc: true, conDuocDung: HAN_MUC, coDonQuaHan: false, traSauDichVu: null, congTyThu: null }); // ADR-0230 Đ1 mục 5: không gửi dịch vụ ⇒ null; Đ2: congTyThu chỉ cho tài khoản Đối tác
 r = await call(ACC, "GET", "/api/tra-sau/han-muc");
 const dong = r.body.danhSach.find((x) => x.partyId === BEN);
 assert.ok(dong, "hồ sơ vừa cấp có trên màn hạn mức");

@@ -225,7 +225,8 @@ Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân h�
 2. Bấm **Xem đơn nợ** để xem từng đơn còn nợ, hạn trả (giờ Việt Nam) và trạng thái; bấm mã đơn để mở đơn.
 
 ### Điều dễ sai
-- «Quá hạn, đang trong ân hạn» chỉ là lời báo, chưa chặn gì. «Quá hạn» nghĩa là đã hết ân hạn: đối tác không đặt thêm đơn trả sau được cho tới khi thu đủ.`,
+- «Quá hạn, đang trong ân hạn» chỉ là lời báo, chưa chặn gì. «Quá hạn» nghĩa là đã hết ân hạn: đối tác không đặt thêm đơn trả sau được cho tới khi thu đủ.
+- Cột «Đang nợ» có thể có hai dòng: «Theo hạn mức» và «Trả sau theo dịch vụ». Chỉ dòng thứ nhất trừ vào hạn mức khả dụng; nợ Trả sau theo dịch vụ không có trần, chỉ có hạn trả.`,
   },
   {
     id: "giao-dien",
