@@ -13,6 +13,8 @@ import type { NhapThanhVienResponse } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson, trangDon } from "../../shared/http";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
+import { keToanThuan } from "../../shared/no-doi-tac-ke-toan";
+import { donDaiLyTrongTap } from "./gia-dai-ly";
 import { CAU_CHUA_KIEM_DUOC_VE_DA_DUNG, CAU_DUOI_SO_VE_DA_DUNG, chanDoiTacHuy, chanDoiTacSuaSoKhach, dichLoiDuoiSoVeDaDung } from "../../shared/chan-doi-tac-huy";
 import { duocGiaoTheoO, laVaChamOBanHang } from "../../shared/ban-hang-phu-trach";
 import { route, type AppModule, type BanHangNoi } from "../../shared/router";
@@ -79,7 +81,7 @@ import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu
 import { thanLapDonKhiAn, thanNhapKhiAn } from "./an-thong-tin-khach";
 import { apTruongDichVu, thanKhiAnTruong, thieuBatBuoc, traDichVu, truongTaoDon } from "./an-truong-giao-dien";
 import { thanKhiKhongNhapNoiDon } from "./noi-don-doi-tac";
-import { anKhachBat, cauGhiNguoiMoi, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon, nhapDangChoCuaBen } from "./xac-nhan-repo";
+import { anKhachBat, cauGhiNguoiMoi, docChanChuaGioSatNgay, loiKhaiDangLuu, nguoiDuocMoiCuaDon, nguoiLapGiuDoiTac, quyenMoCuaNguoiLap, thongTinKhachDangLuu, tuyChonDangLuu, yeuCauMoCuaDon, nhapDangChoCuaBen } from "./xac-nhan-repo";
 import { cauKhepLoiMoi, docKhungGio, soanGhiNhan } from "./ban-hang-ghi-nhan";
 import { describeTripUpdates, giaiOPhuNhap, validateTripUpdate } from "./service-rules";
 
@@ -1193,7 +1195,9 @@ export const ordersModule: AppModule = {
       const today = vnToday(new Date());
       const { from, to } = vnWeekRange(today);
       const data = await getDashboard(env.DB, staff.id, today, from, to, ordersWithHandler);
-      return json({ ...data, revenueWeek: { ...data.revenueWeek, from, to } } satisfies DashboardResponse);
+      // ADR-0226: ba ngày «Chuyến đón» cũng bỏ Tổng bán lẻ của đơn đối tác cho Kế toán thuần (cùng hàm với danh sách).
+      const [homNay, ngayMai, ngayKia] = await Promise.all([data.today, data.tomorrow, data.dayAfter].map((ds) => boTongDonDaiLy(env.DB, staff, ds)));
+      return json({ ...data, today: homNay!, tomorrow: ngayMai!, dayAfter: ngayKia!, revenueWeek: { ...data.revenueWeek, from, to } } satisfies DashboardResponse);
     }),
 
     // Huy hiệu "Đơn hàng" ở thanh bên: CHỈ số đơn chưa xác nhận, một câu D1 (trước: nguyên Bảng điều khiển ~15 câu ở mọi trang). CÙNG ba ô quyền với dashboard
@@ -1427,7 +1431,9 @@ export const ordersModule: AppModule = {
         .filter((id) => xemNhapMoi || (xemNhapCuaMinh && result.owners.get(id) === staff.id) || (xemNhapPhuTrach && phuTrachSet.has(id)));
       if (daNhap === null && duocXem.length) daNhap = await nhapKeToanCuaDon(duocXem);
       const choXem = new Set(duocXem);
-      const orders = result.orders.map((o) => (daNhap?.has(o.id) && choXem.has(o.id) ? { ...o, nhapKeToan: true as const } : o));
+      const coDau = result.orders.map((o) => (daNhap?.has(o.id) && choXem.has(o.id) ? { ...o, nhapKeToan: true as const } : o));
+      // ADR-0226: Kế toán thuần không nhận Tổng bán lẻ của đơn đối tác (số nợ lấy ở `POST /api/ledger/balances`).
+      const orders = await boTongDonDaiLy(env.DB, staff, coDau);
       return json({ orders, hasMore: result.hasMore } satisfies OrderListResponse);
     }),
 
@@ -2295,13 +2301,15 @@ export const ordersModule: AppModule = {
         const gio = await docKhungGio(banHang); // ADR-0142: khung giờ hành chính MỘT lần; thiếu ⇒ 503 trước khi ghi
         if ("loi" in gio) return gio.loi;
         // ADR-0193 câu (ii): lượt chưa giờ mà ngày đón đã vào hạn chốt ⇒ 409 TRƯỚC khi dựng lô (`kiemCongXacNhan` đã bảo đảm có mốc). Cửa này không đổi ngày / giờ: xét lượt đang lưu.
-        const chuaGio = chanChuaGioSatNgay(changDangLuu(order.services), nowMs, moc!.phut);
+        // ADR-0227: công tắc đọc MỘT lần; cùng giá trị vào hàm thuần, vế ?8 của câu xác nhận và chẩn đoán lô thua.
+        const chanGio = await docChanChuaGioSatNgay(env.DB, new Date(nowMs).toISOString());
+        const chuaGio = chanChuaGioSatNgay(changDangLuu(order.services), nowMs, moc!.phut, chanGio);
         if (chuaGio) return chuaGio;
         let thang = false;
         try {
           // ADR-0049 D2 (I15, I25): điều kiện mốc nằm TRONG câu xác nhận — ngưỡng chuỗi giờ VN tính bằng `nguongMocVn` (MỘT luật với `kiemMocDat`).
           // ADR-0142: điểm ghi nhận «đơn không cần kiểm» — Bán hàng được mời mở lời mời, hoặc người lập tự mời mình thì thành Bán hàng phụ trách ngay; nối CUỐI lô, gác bằng id nhật ký `confirmed`.
-          const xn = soanXacNhan(env.DB, id, staff.id, cong.today, meta.updatedAt, nguongMocVn(nowMs, moc!.phut), cong.detail, kemChupXacNhan(env.DB, { orderId: id, staffId: staff.id, today: cong.today, chup: cong.chup }), cocXn.coc, cong.traSau, cong.phiDon.cauLenh);
+          const xn = soanXacNhan(env.DB, id, staff.id, cong.today, meta.updatedAt, nguongMocVn(nowMs, moc!.phut), cong.detail, kemChupXacNhan(env.DB, { orderId: id, staffId: staff.id, today: cong.today, chup: cong.chup }), cocXn.coc, cong.traSau, cong.phiDon.cauLenh, { chanChuaGio: chanGio });
           const gn = await soanGhiNhan({ db: env.DB, banHang, orderId: id, nguoiLap: { id: staff.id, partyId: staff.partyId }, at: xn.at, auditId: xn.auditId, canKiem: false, khung: gio.khung });
           thang = daXacNhan(await env.DB.batch([...xn.cau, ...gn.cau]), xn.chiSoXacNhan);
         } catch (e) {
@@ -2313,7 +2321,7 @@ export const ordersModule: AppModule = {
             throw e;
           }
         }
-        if (!thang) return chanDoanXacNhan(env.DB, { id, today: cong.today, mocToiThieu: moc!, nowMs });
+        if (!thang) return chanDoanXacNhan(env.DB, { id, today: cong.today, mocToiThieu: moc!, nowMs, chanChuaGio: chanGio });
         await capVeSauXacNhan(id); // ADR-0153: lô cấp vé RIÊNG sau lô xác nhận; lỗi nuốt, xác nhận đã thắng
       }
       baoThayDoi({ orderId: id, thayDoi: to === "cancelled" ? "huy" : "xac_nhan" });
@@ -2438,7 +2446,20 @@ export type { PhanThuongMai } from "./thuong-mai";
  */
 export { nguoiLapDoiTacThuan } from "./gia-dai-ly";
 // ADR-0182 Đ1: giá đại lý của nhiều đơn đã xác nhận (phần «Tổng công nợ» của «Công nợ đại lý» ở billing). Không tự kiểm quyền; chỉ trả số tiền.
-export { giaDaiLyNhieuDon, type DongGiaDaiLy, type DongPhiGiaDaiLy, type GiaDaiLyDon } from "./gia-dai-ly";
+/**
+ * ADR-0226 (Việc 6): bỏ `total` (Tổng bán lẻ) của đơn ĐẠI LÝ khỏi danh sách tóm tắt khi người xem là Kế toán thuần (`keToanThuan`). Người khác: trả nguyên, không truy vấn thêm.
+ * Chỉ gọi trong thân route SAU `can(` (danh sách, Trang chủ).
+ */
+async function boTongDonDaiLy<T extends { id: string; total?: number }>(db: D1Database, staff: PermissionHolder, ds: readonly T[]): Promise<(Omit<T, "total"> & { total?: number })[]> {
+  if (!keToanThuan(staff) || ds.length === 0) return [...ds];
+  const daiLy = await donDaiLyTrongTap(db, ds.map((o) => o.id));
+  return ds.map((o) => {
+    if (!daiLy.has(o.id)) return o;
+    const { total: _bo, ...con } = o;
+    return con;
+  });
+}
+export { donDaiLyTrongTap, giaDaiLyNhieuDon, type DongGiaDaiLy, type DongPhiGiaDaiLy, type GiaDaiLyDon } from "./gia-dai-ly";
 // ADR-0068 Đ1 bước 5: CHỈ gốc lắp ráp gọi (ctx.gopHoSo của route gộp hồ sơ) — bài siết ở src/architecture.test.ts.
 export { cauDoiNguoiDat, donChuaXacNhanCua, donCuaNguoiDat } from "./nguoi-dat-gop-repo";
 // ADR-0142: `dispatch` hỏi đơn có yêu cầu xác nhận đang mở không, và lúc ghi nhận của đơn (đơn cũ). Chỉ trả kết luận / mốc, không dữ liệu khách.

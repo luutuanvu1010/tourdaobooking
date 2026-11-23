@@ -296,6 +296,14 @@ export interface DichVuChuaCoPhiResponse { dichVu: { code: string; name: string 
 export interface BatBuocGioDonRequest { bat: boolean }
 
 /**
+ * `GET`/`POST /api/cai-dat/chan-chua-gio-sat-ngay` (ADR-0227 Đ1): `bat` = công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón» đang BẬT (mặc định — hành vi ADR-0193 câu (ii));
+ * `doiDuoc` = người gọi bật / tắt được (ô `settings.ops`, chỉ Toàn quyền). Tắt thì lượt chưa giờ đã vào hạn chốt không còn chặn xác nhận (409 `chua_gio_sat_ngay`).
+ */
+export interface ChanChuaGioSatNgayResponse { bat: boolean; doiDuoc: boolean }
+/** Thân `POST /api/cai-dat/chan-chua-gio-sat-ngay` (chỉ Toàn quyền). */
+export interface ChanChuaGioSatNgayRequest { bat: boolean }
+
+/**
  * `GET`/`POST /api/cai-dat/noi-don-doi-tac` (ADR-0221 Đ1): `bat` = công tắc «Đối tác không nhập nơi đón» đang BẬT (mặc định TẮT); `apChoToi` = công tắc đang áp cho CHÍNH người gọi
  * = `bat` VÀ người gọi giữ quyền Đối tác (`holdsPartner`, kể cả tài khoản lai — chủ chọn câu 2) — form Tạo đơn ẩn các ô của lượt đúng khi `apChoToi`, không tự suy từ mã quyền;
  * `doiDuoc` = người gọi bật / tắt được (ô `settings.ops`, chỉ Toàn quyền).
@@ -498,8 +506,10 @@ export interface OrderSummaryTripDto {
 
 export type OrderSummaryDto = Pick<
   OrderDto,
-  "id" | "orderCode" | "status" | "customerName" | "customerPhone" | "customerNote" | "total" | "staffName" | "createdAt" | "deliveredAt" | "completedAt"
+  "id" | "orderCode" | "status" | "customerName" | "customerPhone" | "customerNote" | "staffName" | "createdAt" | "deliveredAt" | "completedAt"
 > & {
+  /** Tổng (giá bán cho khách, số hiện hành) — cùng `OrderDto.total`. VẮNG khi người xem là Kế toán thuần và đơn là đơn đối tác (ADR-0226): số nợ đối tác lấy ở `POST /api/ledger/balances`. */
+  total?: number;
   /** Tên các dịch vụ theo đúng thứ tự trong đơn (sort_order) — client tự quyết hiện đầu + "+N dịch vụ" hay liệt kê hết (§7 mục 3). */
   serviceNames: string[];
   /** Tổng số khách theo loại, CỘNG DỒN mọi dịch vụ của đơn. */
@@ -2671,8 +2681,16 @@ export interface LanThuInput {
 
 /** `POST /api/ledger/balances` — tiền từng đơn (chỉ đơn người gọi được xem tiền; đơn khác bị bỏ khỏi kết quả). */
 export interface LedgerBalancesResponse {
+  /** Đơn đối tác KHÔNG có ở đây khi người gọi là Kế toán thuần (ADR-0226) — xem `noDoiTac`. */
   balances: Record<string, { phaiThu: number; daThu: number; conLai: number; du: number; chuaRo: number; daGiao: boolean; hoanThanh: boolean }>;
+  /**
+   * ADR-0226 (Việc 6): CHỈ khi người gọi là Kế toán thuần — đơn đối tác ĐÃ XÁC NHẬN: `no` = công nợ còn lại của phiếu công nợ (giữ dấu; âm = Tour Đảo cần trả lại đối tác),
+   * `thuHoTienMat` = «Tour Đảo đã thu hộ tiền mặt». Đơn đối tác chưa xác nhận / đã huỷ: không có khoá (chưa có giá đại lý chụp). Không có số bán lẻ nào.
+   */
+  noDoiTac?: Record<string, NoDoiTacDto>;
 }
+/** `nhan` / `nhanThuHo`: nhãn do máy chủ chọn (`nhanNoDoiTac`, theo dấu của `no`) — giao diện in nguyên, số hiện là |`no`|. */
+export interface NoDoiTacDto { tinh: "co"; no: number; thuHoTienMat: number; nhan: string; nhanThuHo: string }
 
 /** `GET /api/ledger/unpaid-summary` — ô "Còn thiếu tiền" của Trang chủ (đơn đã xác nhận chưa Đã giao còn phải thu). */
 export interface UnpaidSummaryResponse {

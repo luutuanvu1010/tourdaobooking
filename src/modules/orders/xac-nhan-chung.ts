@@ -395,9 +395,10 @@ export const changDangLuu = (services: readonly { departDate: string | null; leg
 /**
  * ADR-0193 câu (ii), câu hỏi chủ số 2 phương án (a): MỌI lượt còn mở (kể cả chiều về) CHƯA giờ mà ngày đón đã vào hạn chốt ⇒ 409 `chua_gio_sat_ngay` (kèm các lượt chạm luật); không có ⇒ `null`.
  * Gọi ở MỌI cửa xác nhận TRƯỚC khi dựng lô (ruling R6: lô không lui khi `ORDER_CONFIRM` đổi 0 dòng), trên trạng thái SAU lệnh. Vế SQL cùng luật trong `ORDER_CONFIRM` là lớp chặn cuối.
- * Câu báo nêu ngày đón sớm nhất trong các lượt chạm luật.
+ * Câu báo nêu ngày đón sớm nhất trong các lượt chạm luật. `bat` = công tắc ADR-0227 (Tắt ⇒ luôn `null`).
  */
-export function chanChuaGioSatNgay(chang: readonly ChangXetChuaGio[], nowMs: number, phut: number): Response | null {
+export function chanChuaGioSatNgay(chang: readonly ChangXetChuaGio[], nowMs: number, phut: number, bat: boolean): Response | null {
+  if (!bat) return null; // ADR-0227: công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón» Tắt — `bat` là giá trị đọc MỘT lần của request, cùng giá trị truyền vào ?8 của `ORDER_CONFIRM`
   const cham = chang.filter((l) => changChuaGioVaoHanChot(l, nowMs, phut));
   if (cham.length === 0) return null;
   const ngay = cham.map((l) => (l.pickupDate ?? l.departDate)!).sort()[0]!;
@@ -408,7 +409,7 @@ export function chanChuaGioSatNgay(chang: readonly ChangXetChuaGio[], nowMs: num
  * Lô xác nhận THUA (`daXacNhan` false) → đọc lại để trả đúng lý do (không ghi nhật ký): đơn đã đổi trạng thái → RACED; chưa đủ chuyến → 409 `incomplete_trip`;
  * còn chặng dưới mốc chưa đặt gấp → 409 `short_notice_required`; còn lại (vừa có người sửa, khoá `updated_at`) → STALE.
  */
-export async function chanDoanXacNhan(db: D1Database, i: { id: string; today: string; mocToiThieu: MocToiThieu; nowMs: number }): Promise<Response> {
+export async function chanDoanXacNhan(db: D1Database, i: { id: string; today: string; mocToiThieu: MocToiThieu; nowMs: number; chanChuaGio: boolean }): Promise<Response> {
   const now = await getMeta(db, i.id);
   if (!now || now.status !== "draft") return RACED();
   const stored = await getStoredServices(db, i.id);
@@ -417,7 +418,7 @@ export async function chanDoanXacNhan(db: D1Database, i: { id: string; today: st
     return json({ error: { code: "incomplete_trip", message: "Chưa đủ thông tin chuyến để xác nhận đơn.", missing } } satisfies IncompleteTripBody, 409);
   }
   // ADR-0193 câu (ii): lô thua vì vế «lượt chưa giờ đã vào hạn chốt» (bị đua: lượt vừa đổi giữa lúc kiểm và lúc ghi) — báo đúng câu bằng cùng hàm thuần.
-  const chuaGio = chanChuaGioSatNgay(changDangLuu(stored.map((s) => ({ departDate: s.trip.departDate, legs: s.legs }))), i.nowMs, i.mocToiThieu.phut);
+  const chuaGio = chanChuaGioSatNgay(changDangLuu(stored.map((s) => ({ departDate: s.trip.departDate, legs: s.legs }))), i.nowMs, i.mocToiThieu.phut, i.chanChuaGio);
   if (chuaGio) return chuaGio;
   const daDatGap = new Set((await legDatGapByOrder(db, i.id)).map((r) => r.id));
   const duoi = canhBaoMocCua(stored.flatMap((s) => s.legs), daDatGap, i.nowMs, i.mocToiThieu.phut);
