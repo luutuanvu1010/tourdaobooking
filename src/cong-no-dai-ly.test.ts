@@ -43,12 +43,12 @@ async function donDaiLy(w: W, giam = 0, legs: unknown[] = []): Promise<string> {
   // ADR-0214: nháp Đối tác không mang mức ⇒ nhánh A; văn phòng chọn mức ở Còn vé, xác nhận trong cùng lô.
   assert.equal(g.status, 201, g.text);
   const v = (await w.call("GET", `/api/orders/${id}`, { as: ADM })).json;
-  const phiDon = v.order.services.flatMap((s: { legs: { id: string }[] }) => s.legs.map((l) => ({ legId: l.id, muc: MUC_20K })));
-  const c = await w.call("POST", `/api/orders/${id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, phiDon } });
+  const doiPhi = v.order.services.flatMap((s: { legs: { id: string }[] }) => s.legs.map((l) => ({ legId: l.id, ...MUC_20K })));
+  const c = await w.call("POST", `/api/orders/${id}/quyet-dinh`, { as: ADM, body: { ketQua: "CON_VE", yeuCauId: v.xacNhan.yeuCau.id, updatedAt: v.order.updatedAt, doiPhi } });
   assert.equal(c.status, 200, c.text);
   return id;
 }
-const MUC_20K = { loai: "DANH_SACH", soTien: 20_000 };
+const MUC_20K = { donGia: 20_000, lyDo: "Văn phòng đổi thử" };
 const toiThu = (w: W, id: string, soTien: number) => w.call("POST", `/api/orders/${id}/payments`, { as: DT, body: { soTien, hinhThuc: "CASH", nguoiThu: "toi" } });
 const congTyThu = (w: W, id: string, soTien: number) => w.call("POST", `/api/orders/${id}/payments`, { as: ACC, body: { soTien, hinhThuc: "CASH", nguoiThu: "cong_ty" } });
 const nop = (w: W, id: string, soTien: number) => w.call("POST", "/api/ledger/settlements", { as: ACC, body: { chieu: "nop", partyId: BEN, phanBo: [{ orderId: id, soTien }] } });
@@ -112,7 +112,7 @@ test("Đ1 mục 9: giá đại lý đọc NHIỀU đơn một lượt trùng t�
   await batPhiDon(w);
   const a = await donDaiLy(w, GIAM);
   const b = await donDaiLy(w, 0, [leg(inDays(3), "06:30")]);
-  const r = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Ba", customerPhone: "0912345670", bookerPartyId: BEN, paymentTerm: "CREDIT", services: [svc("ZB1", inDays(3), [{ ...leg(inDays(3), "06:30"), phiDon: MUC_20K }]), svc("ZA1", inDays(3))] } });
+  const r = await w.call("POST", "/api/orders", { as: A, body: { customerName: "Khách Ba", customerPhone: "0912345670", bookerPartyId: BEN, paymentTerm: "CREDIT", services: [svc("ZB1", inDays(3), [{ ...leg(inDays(3), "06:30"), doiPhi: MUC_20K }]), svc("ZA1", inDays(3))] } });
   assert.equal(r.status, 201, r.text);
   const c = r.json.order.id as string;
   assert.equal((await w.call("POST", `/api/orders/${c}/status`, { as: A, body: { status: "confirmed" } })).status, 200);

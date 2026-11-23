@@ -74,6 +74,11 @@ export async function docGiaDaiLyNhieu(db: D1Database, orderIds: readonly string
   ]);
   return { chup: chup.results, dichVu: dichVu.results, dong: dong.results, don: don.results, phi };
 }
+/** ADR-0226: cờ «đơn đại lý» (bên đặt mang vai được hưởng) + người lập + trạng thái của NHIỀU đơn, mọi trạng thái — một câu (cùng câu `DON_DAI_LY_NHIEU`). */
+export async function coDaiLyNhieuDon(db: D1Database, orderIds: readonly string[]): Promise<DonDaiLyRow[]> {
+  if (orderIds.length === 0) return [];
+  return (await db.prepare(DON_DAI_LY_NHIEU).bind(JSON.stringify([...new Set(orderIds)])).all<DonDaiLyRow>()).results;
+}
 const DEM = defineSql("orders", "terms_count", "SELECT count(*) AS n FROM ord_service_terms WHERE order_id = ?1");
 // Tên hồ sơ (người hưởng, người bán) cho DTO văn phòng: view công bố của parties, chỉ khoá + nhãn. Hồ sơ không còn trong view ⇒ DTO ghi "Hồ sơ không còn".
 const NHAN_HO_SO = defineSql("orders", "party_labels", "SELECT id, display_name FROM v_pty_party_label WHERE id IN (SELECT value FROM json_each(?1))");

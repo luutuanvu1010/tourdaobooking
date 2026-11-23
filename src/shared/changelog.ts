@@ -18,14 +18,45 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Ô tệp phiếu đăng ký theo vai, «Tệp khác», 12 tệp mỗi phiếu (ADR-0233, kế hoạch 16 việc Việc 14). Nhánh claude/objective-euclid-6c8a85. CÓ migration 0191.
-    // SỐ TẠM 3.30 (3.29 là Việc 2 Trả sau, 3.28 Việc 3, đã ở main): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
-    version: "3.30",
-    date: "2026-11-22",
+    // SỐ TẠM 3.33 (3.32 Việc 7, 3.31 Việc 6, 3.30 Việc 5 đã ở main 23/11): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.33",
+    date: "2026-11-23",
     items: [
       { kind: "doi", text: "Đăng ký làm đối tác: các ô gửi ảnh giấy tờ hiện theo vai người đăng ký chọn. Mỗi phiếu nay gửi được tối đa 12 tệp (trước là 8)." },
       { kind: "moi", text: "Đăng ký làm đối tác: thêm ô «Tệp khác» để gửi kèm giấy tờ ngoài danh sách." },
       { kind: "moi", text: "Ô «Tệp khác» chỉ hiện khi Toàn quyền đăng chính sách riêng tư mới có tích «Bản này nêu việc thu tệp khác»." },
       { kind: "doi", text: "Đăng ký làm đối tác: chọn tệp Word thì Nền tảng báo ngay dưới ô «Tệp Word: hãy lưu thành PDF rồi gửi.»" },
+    ],
+  },
+  {
+    // Công tắc chặn đơn chưa có giờ đón khi sát ngày đón + nhóm «Cài đặt lập đơn» (kế hoạch 16 việc 21/11, Việc 7; ADR-0227 chủ duyệt 22/11). Nhánh claude/keen-austin-0abaf2. Migration 0182.
+    // Số 3.32 = số trống kế tiếp sau 3.31 (Việc 6) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0227.
+    version: "3.32",
+    date: "2026-11-23",
+    items: [
+      { kind: "moi", text: "Trang Tôi của Toàn quyền: các công tắc lập đơn gom vào một nhóm «Cài đặt lập đơn»." },
+      { kind: "moi", text: "Công tắc mới «Chặn đơn chưa có giờ đón khi sát ngày đón» (đang bật). Tắt thì đơn đón hôm nay chưa có giờ vẫn xác nhận được, nhưng chưa xếp xe tới khi có giờ." },
+    ],
+  },
+  {
+    // Kế toán thấy nợ đối tác (kế hoạch 16 việc 21/11, Việc 6; ADR-0226). Nhánh claude/frosty-heyrovsky-f7ea0a. Không migration.
+    // Số 3.31 = số trống kế tiếp sau 3.30 (Việc 5) trên main lúc gộp 23/11; bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.31",
+    date: "2026-11-23",
+    items: [
+      { kind: "doi", text: "Đơn hàng và Trang chủ của Kế toán: đơn đối tác hiện số đối tác nợ Tour Đảo và số Tour Đảo đã thu hộ tiền mặt, không còn hiện giá đối tác bán cho khách." },
+      { kind: "doi", text: "Đơn khách lẻ và trang chi tiết từng đơn của Kế toán giữ như cũ." },
+    ],
+  },
+  {
+    // Bỏ thu hộ chuyển khoản ở đơn đối tác (kế hoạch 16 việc 21/11, Việc 5; ADR-0225). Nhánh claude/suspicious-almeida-d32ea2. CÓ migration 0184.
+    // SỐ TẠM 3.30 (3.29 = Việc 2, 3.28 = Việc 3 đã ở main 22/11): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. CÓ migration 0184.
+    version: "3.30",
+    date: "2026-11-23",
+    items: [
+      { kind: "doi", text: "Màn Tạo đơn của đối tác không còn ô «Khách đặt cọc cho đối tác» và không còn chữ gợi ý «nội dung chuyển khoản»." },
+      { kind: "doi", text: "Đơn của đối tác xác nhận từ bản này (kể cả văn phòng lập «Qua đối tác»): Tour Đảo chỉ thu hộ tiền mặt, trang đơn không còn mã QR." },
+      { kind: "doi", text: "Ở các đơn đó, hướng dẫn viên và nhân viên chỉ ghi được khoản thu tiền mặt. Đơn xác nhận trước bản này giữ như cũ." },
     ],
   },
   {

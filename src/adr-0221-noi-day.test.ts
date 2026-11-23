@@ -17,7 +17,7 @@ test("công tắc ở trang Tôi: khối riêng, chỉ dựng khi giữ ô setti
   assert.match(ct, /const URL = "\/api\/cai-dat\/noi-don-doi-tac";/);
   assert.match(ct, /if \(!s\.doiDuoc\) return;/);
   assert.match(ct, /const body: Api\.NoiDonDoiTacRequest = \{ bat: !s\.bat \};/);
-  assert.match(ct, /h\("h2", \{ id: "noi-don-heading" \}, "Đối tác không nhập nơi đón"\)/, "tên công tắc do chủ chọn 21/11");
+  assert.match(ct, /h\("h3", \{ id: "noi-don-heading" \}, "Đối tác không nhập nơi đón"\)/, "tên công tắc do chủ chọn 21/11");
   assert.doesNotMatch(ct, /innerHTML/);
 });
 

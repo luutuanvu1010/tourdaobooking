@@ -115,7 +115,7 @@ const CHUNK = 40;
 export async function applySync(
   db: D1Database,
   plan: SyncPlan,
-  meta: { at: string; nguoiPhat: PermissionHolder; itemCount: number; problems: VanDeDongBo[]; giuLaiMoi?: boolean },
+  meta: { at: string; nguoiPhat: PermissionHolder; itemCount: number; problems: VanDeDongBo[]; giuLaiMoi?: boolean; cauThem?: D1PreparedStatement[] },
 ): Promise<void> {
   const stmts: D1PreparedStatement[] = [];
   const upsert = (i: CatalogInput) =>
@@ -137,6 +137,7 @@ export async function applySync(
   // Dòng giữ lại chỉ ghi nhật ký khi là vấn đề MỚI (service tính `giuLaiMoi`) — Cron 15 phút không được lặp một dòng nhật ký mỗi lần.
   const changed = plan.added.length + plan.changed.length + plan.missing.length + (meta.giuLaiMoi ? plan.giuLai.length : 0);
   await db.batch([
+    ...(meta.cauThem ?? []), // giá gốc phí đưa đón (ADR-0218): cùng lô với dấu «đồng bộ thành công» — lỗi giữa chừng thì lần sau tính lại từ trạng thái thật
     db
       .prepare(
         "UPDATE catalog_sync SET last_attempt_at = ?, last_success_at = ?, last_error_code = NULL, last_error = NULL, item_count = ?, problems_json = ? WHERE id = 'default'",

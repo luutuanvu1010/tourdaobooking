@@ -15,7 +15,7 @@ export async function ganCaiDatAnKhach(el: HTMLElement): Promise<void> {
   if (!s.doiDuoc) return;
   const ve = (s: Api.AnThongTinKhachResponse): void => {
     const loi = h("p", { class: "alert", role: "alert", hidden: true });
-    const nut = h("button", { class: s.bat ? "btn" : "btn btn-primary", type: "button", id: "an-khach-doi" }, s.bat ? "Tắt ẩn thông tin khách" : "Bật ẩn thông tin khách");
+    const nut = h("button", { class: "nut", "data-cap": s.bat ? undefined : "chinh", type: "button", id: "an-khach-doi" }, s.bat ? "Tắt ẩn thông tin khách" : "Bật ẩn thông tin khách");
     nut.addEventListener("click", async () => {
       loi.hidden = true;
       nut.disabled = true;
@@ -30,7 +30,7 @@ export async function ganCaiDatAnKhach(el: HTMLElement): Promise<void> {
     });
     replaceChildren(
       el,
-      h("h2", { id: "an-khach-heading" }, "Ẩn thông tin khách khi đối tác đặt vé"),
+      h("h3", { id: "an-khach-heading" }, "Ẩn thông tin khách khi đối tác đặt vé"),
       h("p", { id: "an-khach-trang-thai" }, s.bat ? "Đang bật." : "Đang tắt."),
       h("p", { class: "muted" }, "Khi bật, đối tác không nhập tên, số điện thoại và danh sách khách khi lập đơn. Đơn lập lúc bật không cần danh sách khách để xe chạy; tắt công tắc không đổi các đơn đó."),
       loi,

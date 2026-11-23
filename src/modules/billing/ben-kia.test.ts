@@ -8,6 +8,7 @@ import { readdirSync, readFileSync } from "node:fs";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 // Đọc qua không gian tên: thiếu tên công bố (trước khi cài) thì từng bài đỏ riêng, không đỏ cả tệp lúc nạp.
+import { donTruocNgayAp } from "../../../tests/audit/chi-tien-mat.mjs";
 import * as R from "./rules.ts";
 const { soDuTheoBen } = R;
 
@@ -425,6 +426,7 @@ test("ADR-0132 tiêu chí 4: BOOKER chuyển khoản — Kế toán «Bên kia �
   assert.equal(x.status, 200, x.text);
   // SQL chạy tay (lớp CSDL): cặp đối chứng trên khoản còn DECLARED.
   const don2 = await donXacNhan(w);
+  donTruocNgayAp(w, don2.id); // ADR-0225 Đ2: «Công ty thu, chuyển khoản» ở đơn qua đại lý chỉ còn ở đơn xác nhận trước ngày áp
   assert.equal((await thu(w, HDV, don2.id, { soTien: 100_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "ben_dat" })).status, 201);
   const rb = cuoi(w, don2.id);
   assert.equal((await thu(w, HDV, don2.id, { soTien: 100_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201);
