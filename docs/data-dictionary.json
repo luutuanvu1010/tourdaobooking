@@ -328,6 +328,12 @@
       "note": "bộ khung giờ đón dùng chung + câu lưu ý (ADR-0134 Đ5, Đ6, migration 0115), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ; gieo năm khung 07:30–10:00 và câu lưu ý mặc định; slots_json = mảng {tu, den} 1–12 khung kiểm ở mã (src/shared/khung-gio-don.ts); đọc qua order.create, chỉ Toàn quyền thêm dòng mới (settings.ops). Cùng migration: order_service.pickup_choice (DON / KHONG_DON kiểm ở mã, NULL = chưa chọn / đơn cũ) và ord_transfer_leg.pickup_slot_end (giờ cuối khung, giá trị chụp; NULL = Giờ khác)"
     },
     {
+      "name": "ord_checkin_payment",
+      "module": "orders",
+      "kind": "table",
+      "note": "hình thức «Trả lúc check-in» của đơn (ADR-0230 Đ2, migration 0187 phần B): bảng CHỈ THÊM (trigger cấm sửa, cấm xoá — không thuộc ngoại lệ XOA_CUNG_NHAP); chỉ chèn khi đơn còn nháp; enabled 0/1, dòng hiệu lực = valid_from_at lớn nhất (UNIQUE order_id + valid_from_at); không có dòng = không chọn. Dòng hiệu lực bật chỉ cho đơn payment_term PREPAID (máy chủ kiểm lúc lưu; trigger orders_checkin_payment_prepaid chặn ở câu xác nhận; bất biến R-CRD-7). Đơn mang hình thức này vẫn PREPAID; khoản khách trả phía Tour Đảo chỉ tiền mặt (trigger bil_receipt_checkin_cash_only)."
+    },
+    {
       "name": "ord_confirm_request",
       "module": "orders",
       "kind": "table",
@@ -1688,6 +1694,13 @@
       ]
     },
     {
+      "name": "v_ord_tra_luc_checkin",
+      "module": "orders",
+      "columns": [
+        "order_id"
+      ]
+    },
+    {
       "name": "v_ord_don_tra_sau",
       "module": "orders",
       "columns": [
@@ -2143,6 +2156,7 @@
     "ntf_push_sub": { "id": "N1", "staff_id": "N1", "endpoint": "N2", "thiet_bi": "N2", "revoked_at": "N1", "revoke_reason": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "session_id": "N1" },
     "ntf_read_mark": { "staff_id": "N1", "doc_den_luc": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_audit_cutoff": { "code": "N1", "cutoff_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "ord_checkin_payment": { "id": "N1", "order_id": "N1", "enabled": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_cancel_reason": { "id": "N1", "order_id": "N1", "reason_code": "N1", "group_code": "N1", "note": "N2", "cancelled_date": "N1", "reclassifies_id": "N1", "legacy": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_manual_service_policy": { "id": "N1", "enabled": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_member_submit": { "id": "N1", "order_id": "N1", "member_staff_id": "N1", "org_party_id": "N1", "status": "N1", "reason_code": "N1", "opened_at": "N1", "closed_at": "N1", "closed_by": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -2294,6 +2308,7 @@
     "v_ord_passenger_key": { "person_key": "N2", "order_id": "N1", "has_current_row": "N1" },
     "v_ord_kenh_thu": { "id": "N1", "staff_id": "N1", "company_collects_snapshot": "N1" },
     "v_ord_thu_ho_tien_mat": { "id": "N1", "partner_cash_only": "N1" },
+    "v_ord_tra_luc_checkin": { "order_id": "N1" },
     "v_ord_order_booker": { "id": "N1", "staff_id": "N1", "booker_party_id": "N1" },
     "v_ord_don_tra_sau": { "id": "N1", "order_code": "N1", "booker_party_id": "N1", "status": "N1", "delivered_at": "N1", "credit_due_date": "N1", "credit_due_at": "N1", "credit_grace_until": "N1", "credit_basis": "N1" },
     "v_ord_passenger_row": { "id": "N1", "person_key": "N2", "order_id": "N1", "is_current": "N1" },

@@ -1084,14 +1084,16 @@ export const billingModule: AppModule = {
       const macDinh = thayMat && !thayMat.ok ? await benDangThayMat(undefined) : thayMat;
       const benDat = macDinh ? (macDinh.ok && macDinh.chon ? macDinh.chon.partyId : staff.partyId) : q;
       if (benDat !== null && !PARTY_ID_RE.test(benDat)) return error(400, "invalid_input", "Mã bên đặt không hợp lệ.");
-      if (benDat === null) return json({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false, traSauDichVu: null } satisfies ConDuocDungTraSauResponse);
+      // ADR-0230 Đ2 mục 3: công tắc hiện hành cho form của Đối tác (lựa chọn «Trả lúc check-in»); văn phòng không cần (null). Không đọc được ⇒ null (form không hiện lựa chọn).
+      const congTyThu = holdsPartner(staff) ? await kenhThuDangBat(env.DB).then((v) => v === 1, () => null) : null;
+      if (benDat === null) return json({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false, traSauDichVu: null, congTyThu } satisfies ConDuocDungTraSauResponse);
       const params = new URL(request.url).searchParams;
       const maDv = params.getAll("dv").filter((m) => /^[^\s]{1,100}$/.test(m)).slice(0, 50);
       const coDichVu = maDv.length > 0;
       const [h, no, dm] = await Promise.all([hanMucHieuLuc(env.DB, benDat), noCuaBenDat(env.DB, benDat), coDichVu ? danhMucTraSauDichVu().catch(() => null) : Promise.resolve(null)]);
       const dk = coDichVu ? await dieuKienDichVuCuaBen(env.DB, benDat, dichVuXetTuDanhMuc([...maDv, ...(params.get("nhapTay") === "1" ? [null] : [])], dm)) : null;
       const res: ConDuocDungTraSauResponse = {
-        coHanMuc: h !== null, conDuocDung: h ? Math.max(0, h.hanMuc - no.tongHanMuc) : 0, coDonQuaHan: no.coDonQuaHan, traSauDichVu: dk ? { gioTra: dk.gioTra } : null,
+        coHanMuc: h !== null, conDuocDung: h ? Math.max(0, h.hanMuc - no.tongHanMuc) : 0, coDonQuaHan: no.coDonQuaHan, traSauDichVu: dk ? { gioTra: dk.gioTra } : null, congTyThu,
       };
       return json(res);
     }),

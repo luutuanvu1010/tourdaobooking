@@ -59,7 +59,7 @@ const xem = (man: ManUi, giaoDien: string, truong: string): MucTruong => ({ man,
  * kèm ngày đi, tiền, người phụ trách, bên đặt). Ba màn còn lại: chỉ cột phụ rõ ràng an toàn; tiền, mã, tên, trạng thái không khai.
  */
 export const DANH_MUC_UI: readonly MucTruong[] = [
-  nhap("customerName", false), nhap("customerPhone", false), nhap("services", false), nhap("discount", false), nhap("declaredDeposit", false), nhap("paymentTerm", false),
+  nhap("customerName", false), nhap("customerPhone", false), nhap("services", false), nhap("discount", false), nhap("declaredDeposit", false), nhap("paymentTerm", false), nhap("traLucCheckin", false),
   nhap("handlerStaffId", false), nhap("bookerPartyId", false), nhap("newBooker", false),
   nhap("customerEmail", true), nhap("customerNote", true), nhap("passengers", true), nhap("paymentNote", true),
   xem("danh-sach-dich-vu", "CatalogAdminItemDto", "groupCode"), xem("danh-sach-dich-vu", "CatalogAdminItemDto", "unit"),

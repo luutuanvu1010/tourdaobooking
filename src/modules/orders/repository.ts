@@ -12,6 +12,7 @@ import {
   openLegsStatement, chotLoPhiDon, orderConfirm, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded,
   serviceMirrorUpdateGuarded, type DauChepNhap, type DauDatGapMoi, type DauGhi, type LegFields, type LegRow, type LegWrite, type OPhuGhi, type PassengerWrite, type ServicePaxRow,
   dongPhiTienNhieuDon, feeItemInsert, feeRowsStatement, type DongPhiGhi, type FeeRow,
+  checkinInsert, checkinInsertIfDraft, checkinOfOrderStatement, laCheckinTuKetQua,
 } from "./chang-hanh-khach-repo";
 import { phiDongDto, phiDuaDonDto, type PhiTheoChang } from "./phi-don-don";
 import type { LocDon } from "../../shared/loc-don";
@@ -330,13 +331,14 @@ const toItemDto = (i: ItemRow): OrderItemDto => ({
 
 /** Đơn + dịch vụ + dòng tiền. `catalogStatus` luôn null ở đây — do lớp điều phối (service.ts) điền cho đơn nháp. */
 export async function findOrder(db: D1Database, id: string): Promise<OrderDetailDto | null> {
-  const [orderRes, servicesRes, itemsRes, legsRes, laDoiTacRes, feeRes] = await db.batch([
+  const [orderRes, servicesRes, itemsRes, legsRes, laDoiTacRes, feeRes, checkinRes] = await db.batch([
     db.prepare(`${ORDER_SELECT} WHERE o.id = ?`).bind(id),
     db.prepare(SERVICE_SELECT).bind(id),
     db.prepare(ITEM_SELECT).bind(id),
     openLegsStatement(db, [id]),
     db.prepare(BOOKER_LA_DOI_TAC).bind(id),
     feeRowsStatement(db, id),
+    checkinOfOrderStatement(db, id), // ADR-0230 Đ2: dòng hiệu lực «Trả lúc check-in»
   ]);
   const row = (orderRes!.results as OrderRow[])[0];
   if (!row) return null;
@@ -363,7 +365,7 @@ export async function findOrder(db: D1Database, id: string): Promise<OrderDetail
   // Đợt C, Task 5: giảm giá hiệu lực = min(giảm giá, Σ dòng dịch vụ) — phí không bao giờ bị giảm (chủ 15/11, SV-PD-29).
   const dichVu = services.reduce((t, s) => t + s.items.reduce((u, i) => u + i.lineTotal, 0), 0);
   const giamGiaHieuLuc = effectiveMoney(dichVu, row.discount, (phiDuaDon?.dong ?? []).reduce((t, d) => t + d.lineTotal, 0)).giamGiaHieuLuc;
-  return { ...toDto(row), giamGiaHieuLuc, phiDuaDon, services, bookerLaDoiTac: Number((laDoiTacRes!.results as { la: number }[])[0]?.la ?? 0) === 1, manifestExempt: row.manifest_exempt === 1 };
+  return { ...toDto(row), giamGiaHieuLuc, phiDuaDon, services, bookerLaDoiTac: Number((laDoiTacRes!.results as { la: number }[])[0]?.la ?? 0) === 1, manifestExempt: row.manifest_exempt === 1, traLucCheckin: laCheckinTuKetQua(checkinRes?.results ?? []) };
 }
 
 /**
@@ -1065,6 +1067,8 @@ export async function createOrder(
   /** ADR-0214 Đ2: mẩu nhật ký mức phí đưa đón người lập chọn (chiều, dịch vụ, mức, kiểu chọn — không tên khách); null = không có. Nối vào dòng `created`. */
   ghiChuPhi: string | null = null,
 ): Promise<string> {
+  // ADR-0230 Đ2: «Trả lúc check-in» — route đã qua cổng (`traLucCheckinHopLe`); chọn ⇒ MỘT dòng bật trong cùng lô, không chọn ⇒ không dòng nào.
+  const chonCheckin = order.traLucCheckin === true;
   const MAX_ATTEMPTS = 3;
   for (let attempt = 1; ; attempt++) {
     const now = new Date();
@@ -1096,6 +1100,7 @@ export async function createOrder(
             order.subtotal, order.discount, order.total, 0, null, order.total, order.paymentNote, at, at,
             booker.partyId, manifestExempt ? 1 : 0, order.declaredDeposit ?? 0, order.paymentTerm ?? "PREPAID", kenhThu, tuCach?.partyId ?? null, tuCach?.loai ?? null,
           ),
+        ...(chonCheckin ? [checkinInsert(db, id, at, staffId)] : []),
         ...services.stmts,
         ...legs,
         ...dongPhi,
@@ -1179,8 +1184,11 @@ export async function updateDraftOrder(
   // Lính gác của dòng phí = dòng tiền dịch vụ id MỚI vừa chèn trong lô (chỉ có khi lô thắng — câu chèn dịch vụ mang wonGuard), không đọc audit_log ở câu mới.
   const dongPhi = services.itemIds.length === 0 ? [] : ghiChang.phi.map((d) => feeItemInsert(db, d, services.itemIds[0]!));
   const paxNote = order.passengers === null ? null : moTaDanhSachNhap(order.passengers.length);
+  // ADR-0230 Đ2: «Trả lúc check-in» — CHỈ THÊM (không thuộc XOA_CUNG_NHAP): khoá vắng (`null`, thân cũ) ⇒ giữ; có ⇒ chèn dòng mới khi khác dòng hiệu lực. Câu đứng NGAY TRƯỚC câu
+  // UPDATE đơn, cùng điều kiện khoá lạc quan (`checkinInsertIfDraft`) — chỉ số câu UPDATE trong kết quả lô dời theo.
+  const truocUpdate = [...booker.before, ...(order.traLucCheckin === null ? [] : [checkinInsertIfDraft(db, id, order.traLucCheckin, at, staffId, order.expectedUpdatedAt)])];
   const results = await db.batch([
-    ...booker.before,
+    ...truocUpdate,
     db
       .prepare(
         // Ba cột cọc cũ (ADR-0026 đ9): GIỮ cột cọc của nháp cũ, chỉ tính lại phần dư để thoả trigger 0007; Q2 (chủ 30/9 "Đưa cọc cũ về 0, ghi nhật ký"):
@@ -1209,7 +1217,7 @@ export async function updateDraftOrder(
       ? []
       : [passengerDeleteDraft(db, id, auditId), ...passengerWrites(order.passengers, id, staffId, at).map((p) => passengerInsertGuarded(db, p, auditId))]),
   ]);
-  return (results[booker.before.length]!.meta.changes ?? 0) > 0;
+  return (results[truocUpdate.length]!.meta.changes ?? 0) > 0;
 }
 
 /** ADR-0159: phần «câu khoản thu đặt cọc» của lô xác nhận — gốc lắp ráp tiêm hàm dựng (`orders` không đọc, không ghi `bil_*`). Nơi gọi chỉ lấy từ `cocChoXacNhan` (bài src/dat-coc-noi-goi.test.ts). */

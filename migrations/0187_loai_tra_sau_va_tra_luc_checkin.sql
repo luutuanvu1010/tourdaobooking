@@ -62,3 +62,54 @@ CREATE VIEW v_ord_don_tra_sau AS
   SELECT id, order_code, booker_party_id, status, delivered_at, credit_due_date, credit_due_at, credit_grace_until, credit_basis FROM orders WHERE payment_term = 'CREDIT';
 
 -- ===== PHẦN B — «Trả lúc check-in» (ADR-0230 Đ2): người thi công phần B thêm từ đây. =====
+-- CHỈ MỞ RỘNG: một bảng chỉ thêm của `orders`, một view công bố, năm trigger. KHÔNG đụng CHECK của `orders.payment_term` (ADR-0230 Đ2 mục 1); đơn mang hình thức này vẫn
+-- `payment_term = 'PREPAID'`. Hoàn tác: mã cũ không đọc bảng mới — lùi bản mã thì đơn đã chọn hiện như «Thanh toán ngay» và trigger mục 9 vẫn giữ luật chỉ tiền mặt.
+
+-- 6. Bảng chỉ thêm. Một đơn có thể có nhiều dòng (đổi ý khi còn nháp = chèn dòng mới, KHÔNG xoá — bảng này không thuộc ngoại lệ XOA_CUNG_NHAP của ADR-0047);
+-- dòng hiệu lực = `valid_from_at` lớn nhất (UNIQUE cấm hai dòng cùng mốc). Không có dòng nào = đơn không chọn «Trả lúc check-in».
+CREATE TABLE ord_checkin_payment (
+  id             TEXT PRIMARY KEY,
+  order_id       TEXT NOT NULL REFERENCES orders(id),
+  enabled        INTEGER NOT NULL CHECK (enabled IN (0, 1)),
+  valid_from_at  TEXT NOT NULL,                         -- mốc của lần lưu (ISO UTC, bằng `updated_at` mới của đơn)
+  created_at     TEXT NOT NULL,
+  created_by     TEXT,                                  -- cột WHO không khoá ngoại (ADR-0003)
+  updated_at     TEXT NOT NULL,
+  updated_by     TEXT,
+  UNIQUE (order_id, valid_from_at)
+);
+
+-- 7. Khoá: chỉ chèn khi đơn còn NHÁP (khoá sau nháp như `payment_term` — 0141); không sửa, không xoá. KHÔNG xét hình thức lúc chèn: lô lưu nháp chèn dòng mới NGAY TRƯỚC câu
+-- UPDATE đơn (cùng điều kiện khoá lạc quan, không đọc audit_log) nên lúc chèn đơn còn mang hình thức CŨ — đổi «Trả sau» → «Trả lúc check-in» trong một lần lưu là hợp lệ.
+CREATE TRIGGER ord_checkin_payment_draft_only BEFORE INSERT ON ord_checkin_payment
+WHEN (SELECT status FROM orders WHERE id = NEW.order_id) IS NOT 'draft'
+BEGIN SELECT RAISE(ABORT, 'checkin_payment_draft_only: hình thức «Trả lúc check-in» chỉ chọn được khi đơn còn nháp'); END;
+CREATE TRIGGER ord_checkin_payment_no_update BEFORE UPDATE ON ord_checkin_payment
+BEGIN SELECT RAISE(ABORT, 'checkin_payment_append_only: lựa chọn «Trả lúc check-in» chỉ thêm, không sửa'); END;
+CREATE TRIGGER ord_checkin_payment_no_delete BEFORE DELETE ON ord_checkin_payment
+BEGIN SELECT RAISE(ABORT, 'checkin_payment_append_only: lựa chọn «Trả lúc check-in» chỉ thêm, không xoá'); END;
+
+-- 8. Câu xác nhận (draft → confirmed): đơn mang dòng hiệu lực bật phải là Thanh toán ngay. Không đặt trigger trên lúc chèn hay `UPDATE OF payment_term` (khi còn nháp hình thức
+-- và lựa chọn đổi trong cùng một lô theo thứ tự bất kỳ); sau nháp hình thức (0141) và bảng mục 6 đều khoá, nên chặn ở cửa xác nhận là đủ để mọi đơn đã qua nháp nhất quán.
+-- Nháp do máy chủ kiểm (luật thuần `traLucCheckinHopLe`), bất biến R-CRD-7 (`audit-checks`) canh lại.
+CREATE TRIGGER orders_checkin_payment_prepaid BEFORE UPDATE OF status ON orders
+WHEN OLD.status = 'draft' AND NEW.status = 'confirmed' AND NEW.payment_term IS NOT 'PREPAID'
+  AND (SELECT c.enabled FROM ord_checkin_payment c WHERE c.order_id = NEW.id ORDER BY c.valid_from_at DESC LIMIT 1) = 1
+BEGIN SELECT RAISE(ABORT, 'checkin_payment_prepaid_only: «Trả lúc check-in» chỉ dành cho đơn Thanh toán ngay'); END;
+
+-- 9. View công bố cho billing (khuôn v_ord_thu_ho_tien_mat của 0184): chỉ khoá — các đơn có dòng hiệu lực bật.
+CREATE VIEW v_ord_tra_luc_checkin AS
+  SELECT c.order_id FROM ord_checkin_payment c
+  WHERE c.enabled = 1 AND c.valid_from_at = (SELECT MAX(x.valid_from_at) FROM ord_checkin_payment x WHERE x.order_id = c.order_id);
+
+-- 10. Lớp CSDL của cổng (máy chủ kiểm trước lô trong kiemNguoiThuKenh, billing/kenh-thu.ts) — khuôn bil_receipt_partner_cash_only (0184), MỘT nghĩa riêng: ở đơn
+-- «Trả lúc check-in», khoản KHÁCH TRẢ MỚI (CUSTOMER_PAYMENT, không đảo, không phải nửa thu của lệnh chuyển cọc) mà người thu là phía Tour Đảo (COMPANY, STAFF) phải là
+-- tiền mặt. Miễn GIỐNG 0184 (cùng nghĩa «phía Tour Đảo»): người thu vai STAFF là chính hồ sơ của TÀI KHOẢN ĐỐI TÁC đã lập đơn (tiền vào tay đối tác). Khách trả thẳng đối tác
+-- (BOOKER), tại quầy nhà cung cấp (SUPPLIER), tiền ra, dòng đảo, lệnh chuyển cọc: miễn. Đơn vừa là đơn đối tác (0184) vừa «Trả lúc check-in» thì hai trigger cùng canh.
+CREATE TRIGGER bil_receipt_checkin_cash_only BEFORE INSERT ON bil_payment_receipt
+WHEN NEW.kind_code = 'CUSTOMER_PAYMENT' AND NEW.reverses_id IS NULL AND NEW.transfer_of_id IS NULL
+  AND NEW.collector_role_code IN ('COMPANY', 'STAFF') AND NEW.method_code IS NOT 'CASH'
+  AND EXISTS (SELECT 1 FROM v_ord_tra_luc_checkin k WHERE k.order_id = NEW.order_id)
+  AND NOT (NEW.collector_role_code = 'STAFF' AND EXISTS (SELECT 1 FROM v_ord_kenh_thu c WHERE c.id = NEW.order_id AND c.company_collects_snapshot IS NOT NULL
+    AND NEW.collector_party_id IS (SELECT s.party_id FROM v_stf_staff_label s WHERE s.id = c.staff_id)))
+BEGIN SELECT RAISE(ABORT, 'checkin_cash_only: đơn «Trả lúc check-in» chỉ nhận tiền mặt'); END;

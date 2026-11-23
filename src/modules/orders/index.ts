@@ -35,8 +35,9 @@ import {
 } from "./chang-hanh-khach-repo";
 import { coVeTheoMa, nguonVeTheoMa } from "../catalog";
 import type { NguonVe } from "../../shared/nguon-ve.ts";
-import { mocTraSauCuaDon, nhapThanhVienCuaToChuc, tvLyDoTraLaiGanNhat, noiHanTraSauStatement, soHanhKhachDangLuu } from "./chang-hanh-khach-repo";
+import { checkinDangLuu, mocTraSauCuaDon, nhapThanhVienCuaToChuc, tvLyDoTraLaiGanNhat, noiHanTraSauStatement, soHanhKhachDangLuu } from "./chang-hanh-khach-repo";
 import { kiemNoiHan, laDoiTacTraSau, ngayCuaMoc, trangThaiHan } from "../../shared/tra-sau";
+import { traLucCheckinHopLe } from "../../shared/tra-luc-checkin";
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP, type LyDoDatGap } from "../../shared/chang-dua-don";
 import { duoiMocKhiSua, nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
@@ -1003,6 +1004,7 @@ export async function getMyAssignments(db: D1Database, orderIds: readonly string
         customerPhone: o.customerPhone,
         status: o.status,
         total: o.total,
+        traLucCheckin: o.traLucCheckin, // ADR-0230 Đ2: nhắc HDV thu tiền mặt lúc check-in
         services: o.services.map((s) => ({
           id: s.id,
           name: s.name,
@@ -1510,6 +1512,9 @@ export const ordersModule: AppModule = {
       if (handler && !handler.ok) return error(400, "invalid_assignee", handler.message);
       const khai = await congLoiKhaiKhiLuu(staff, donGhi.declaredDeposit, 0, donGhi.total, chanKhaiCocLai); // ADR-0159 Đ1 mục 4
       if ("loi" in khai) return khai.loi;
+      // ADR-0230 Đ2 mục 3: «Trả lúc check-in» chỉ đi với Thanh toán ngay; đơn Đối tác lập lúc công tắc «Khách của đối tác trả cho Công ty» Tắt thì không có. Đối tác có Trả sau
+      // dùng được bị cổng Trả sau ngay dưới từ chối như mọi đơn Thanh toán ngay (ADR-0224).
+      { const ck = traLucCheckinHopLe({ chon: donGhi.traLucCheckin === true, hinhThuc: donGhi.paymentTerm ?? "PREPAID", congTyThuLucLap: kenhThu }); if (!ck.ok) return error(409, ck.ma, ck.cau); }
       // ADR-0168 Đ2 mục 1, 3: Trả sau chỉ nhận khi bên đặt có hạn mức còn hiệu lực và đơn không kèm lời khai đặt cọc — báo sớm lúc lưu, chốt thật ở lô xác nhận.
       const chanTraSauLap = await congTraSauKhiLuu({ kiemTraSau, nguoiGuiLaDoiTac: laDoiTacTraSau(staff) }, { id: null, paymentTerm: donGhi.paymentTerm ?? "PREPAID", bookerPartyId: booker.write.partyId, total: donGhi.total, maDichVu: placed.value.services.map((s) => s.catalogCode ?? null) });
       if (chanTraSauLap) return chanTraSauLap;
@@ -1717,6 +1722,12 @@ export const ordersModule: AppModule = {
       const khai = await congLoiKhaiKhiLuu(staff, donGhi.declaredDeposit, dangKhai, donGhi.total, chanKhaiCocLai);
       if ("loi" in khai) return khai.loi;
       // ADR-0168 Đ2 mục 1, 3: như lúc lập — hình thức SẼ lưu = hình thức gửi lên, vắng thì giữ hình thức đang lưu; đơn đã rời nháp không tới được đây (NOT_EDITABLE ở trên).
+      // ADR-0230 Đ2 mục 3: lựa chọn SẼ lưu = khoá gửi lên, vắng thì giữ lựa chọn đang lưu; dấu công tắc là dấu CHỤP LÚC LẬP của đơn (không phải công tắc hôm nay).
+      {
+        const ckLuu = await checkinDangLuu(env.DB, id);
+        const ck = traLucCheckinHopLe({ chon: donGhi.traLucCheckin ?? ckLuu.daChon, hinhThuc: donGhi.paymentTerm ?? meta.paymentTerm, congTyThuLucLap: ckLuu.congTyThuLucLap });
+        if (!ck.ok) return error(409, ck.ma, ck.cau);
+      }
       const chanTraSauLuu = await congTraSauKhiLuu({ kiemTraSau, nguoiGuiLaDoiTac: laDoiTacTraSau(staff) }, { id, paymentTerm: donGhi.paymentTerm ?? meta.paymentTerm, bookerPartyId: booker.write.partyId, total: donGhi.total, maDichVu: placed.value.services.map((s) => s.catalogCode ?? null) });
       if (chanTraSauLuu) return chanTraSauLuu;
       const ghiChuKhai = khai.giaTri !== null && khai.giaTri !== dangKhai ? `đổi khai khách đặt cọc cho đối tác ${dangKhai.toLocaleString("vi-VN")} ₫ → ${khai.giaTri.toLocaleString("vi-VN")} ₫` : null;

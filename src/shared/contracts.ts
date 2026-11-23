@@ -495,6 +495,11 @@ export interface OrderDetailDto extends OrderDto {
    * «thiếu tên» lúc cho xe chạy; trang đơn đổi câu «cần đủ tên» (Task 3.4). Chỉ cờ, không dữ liệu khách.
    */
   manifestExempt: boolean;
+  /**
+   * ADR-0230 Đ2: đơn mang hình thức «Trả lúc check-in» (dòng hiệu lực bật của `ord_checkin_payment`; `paymentTerm` vẫn là `PREPAID`). Nhãn: `NHAN_TRA_LUC_CHECKIN`
+   * (src/shared/tra-luc-checkin.ts). Khối ghi thu chỉ còn tiền mặt, không QR (máy chủ chặn ở cổng người thu + trigger 0187).
+   */
+  traLucCheckin: boolean;
 }
 
 /** Thông tin chuyến rút gọn cho thẻ trong danh sách đơn — lấy từ dịch vụ ĐẦU TIÊN theo sort_order của đơn (không gộp nhiều dịch vụ). */
@@ -585,6 +590,8 @@ export interface OrderInput {
   declaredDeposit?: number;
   /** ADR-0168: hình thức thanh toán; vắng = giữ hình thức đang lưu (đơn mới: Trả trước). Trả sau chỉ nhận được khi bên đặt có hạn mức còn hiệu lực. */
   paymentTerm?: HinhThucThanhToan;
+  /** ADR-0230 Đ2: hình thức «Trả lúc check-in» (chỉ đi với `paymentTerm` PREPAID); vắng = giữ lựa chọn đang lưu (đơn mới: không chọn). Form luôn gửi. */
+  traLucCheckin?: boolean;
   /** ADR-0213 Đ3.1: tư cách lập đơn (mã hồ sơ cá nhân hoặc tổ chức trong `GET /api/to-chuc/cua-toi`); chỉ khi lập đơn mới, người giữ quyền Đối tác; vắng = tư cách mặc định. */
   tuCach?: string;
   /** Gắn hồ sơ có sẵn (id `pty_party`, chỉ cá nhân đang hoạt động); null/vắng = không gắn. Không gửi kèm `newBooker`. */
@@ -1135,6 +1142,8 @@ export interface MyAssignmentDto {
   /** Tổng tiền của đơn (VNĐ), số hiện hành sau điều chỉnh số khách — cùng số với `OrderDto.total` của chi tiết đơn. "Đã thu / còn thu" lấy qua
    *  `POST /api/ledger/balances` (billing — ADR-0026 đ9), không nằm ở đây. */
   total: number;
+  /** ADR-0230 Đ2: đơn «Trả lúc check-in» — HDV nhắc thu tiền mặt (số «còn thu» lấy từ sổ tiền, như các thẻ khác). Chỉ cờ, không thêm tiền. */
+  traLucCheckin: boolean;
   services: MyAssignmentServiceDto[];
 }
 export interface MyAssignmentsResponse { assignments: MyAssignmentDto[] }
@@ -2557,7 +2566,10 @@ export interface OrderPaymentsResponse {
    * `nguoiLapPartyId` = id hồ sơ đó (null khi chưa gắn) — giá trị duy nhất của ô người thu «Sửa khoản thu đã ghi» / «Ghi bù khoản thu» của Kế toán ở đơn này.
    */
   kenhThu: { congTyThu: boolean; nguoiLapTen: string | null; nguoiLapLaBenDatHuong: boolean; nguoiLapPartyId: string | null } | null;
-  /** ADR-0225 Đ2 (đề xuất; migration 0184): đơn mang dấu «đơn đối tác chỉ thu hộ tiền mặt» — không QR công ty, không «Công ty (vào tài khoản công ty)», phía Tour Đảo chỉ ghi tiền mặt. */
+  /**
+   * ADR-0225 Đ2 (đề xuất; migration 0184): đơn mang dấu «đơn đối tác chỉ thu hộ tiền mặt» — không QR công ty, không «Công ty (vào tài khoản công ty)», phía Tour Đảo chỉ ghi tiền mặt.
+   * ADR-0230 Đ2: cũng true với đơn «Trả lúc check-in» (cùng hành vi giao diện; máy chủ xét hai luật riêng).
+   */
   chiTienMat: boolean;
 }
 
@@ -3654,6 +3666,10 @@ export interface ConDuocDungTraSauResponse {
   coHanMuc: boolean;
   conDuocDung: number;
   coDonQuaHan: boolean;
+  /**
+   * ADR-0230 Đ2 mục 3: công tắc «Khách của đối tác trả cho Công ty» HIỆN HÀNH — chỉ trả cho người giữ quyền Đối tác (form xét lựa chọn «Trả lúc check-in»); văn phòng: null.
+   */
+  congTyThu: boolean | null;
   /**
    * ADR-0230 Đ1 mục 5: đơn đang soạn (mã dịch vụ gửi kèm) đủ điều kiện «Trả sau theo dịch vụ» cho bên đặt này ⇒ số giờ trả; không đủ / không gửi dịch vụ ⇒ null.
    * Chỉ số giờ — không bao giờ kèm danh sách dấu.
