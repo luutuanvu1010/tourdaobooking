@@ -2,7 +2,27 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.35 ĐÃ LÊN PRODUCTION (ADR-0231 việc 12: hotline trên vé Tour Đảo theo dịch vụ, sửa được cho từng lô) — migration `0185` — triển khai 2026-11-23 13:55 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.40 ĐÃ LÊN PRODUCTION (gồm 3.39 ADR-0223 việc 1: mã bản dùng thử demo.tourdao.vn, lệnh `len-demo` vào danh sách AI không tự chạy; và 3.40 ADR-0229 việc 10: giá mùa vụ theo % hoặc số tiền, theo nhóm/dịch vụ và khoảng ngày đi, áp sau khi người thứ hai duyệt, đại lý không hưởng hoa hồng trên phần tăng) — migration `0188`, `0189` — triển khai 2026-11-23 20:16 giờ Việt Nam
+
+Ghi bởi phiên điều phối kế hoạch 16 việc, chép từ đầu ra `npm run trien-khai` trong ô Terminal của chủ. Bản trước: 3.38 (việc 11, bản sửa «Vé do ai phát», triển khai 17:53 23/11 do phiên việc 11 làm); 3.36–3.37 (việc 13 ảnh bàn giao, kèm việc 11 và 12) do phiên việc 13 triển khai chiều 23/11 (một lượt, giờ chính xác không ghi lại ở đây) — khối đầu ra của 3.36, 3.37, 3.38 không được chép vào sổ này, chỉ nằm ở tờ ghi chú chung của nhóm phiên.
+
+- Ngày giờ: 2026-11-23 20:16 (giờ Việt Nam)
+- Commit: 68c40f38f Gộp main lần ba vào Việc 10 (Giá mùa vụ): giữ cả hai bên
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-23T13:11:49Z (có đổi quy trình kiểm — xem lý do bên dưới)
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/45180338043
+- Đổi quy trình kiểm — lý do của chủ: Thêm quyết định ADR-0229 giá mùa vụ chủ đã duyệt 22/11 và dòng mục lục của nó (tệp điều khiển việc kiểm đổi: scripts/audit-checks.mjs; tệp điều khiển việc kiểm đổi: scripts/audit-thuong-mai.mjs) — chủ dán nhầm dòng lý do của câu hỏi sau vào câu này; thực chất hai tệp soát học thêm cột `seasonal_increase` và gọi chung hàm `coSoHoaHong` với máy chủ (ADR-0229 Đ10), không nới kiểm.
+- Tệp luật đã đổi — lý do của chủ: Thêm quyết định ADR-0229 giá mùa vụ chủ đã duyệt 22/11 và dòng mục lục của nó (docs/adr/ADR-0229-gia-mua-vu.md; docs/adr/README.md)
+- Lần nhập trước (3.39, việc 1) — tệp luật đã đổi, lý do của chủ: Thêm lệnh len-demo vào danh sách AI không được tự chạy, theo ADR-0223 bản dùng thử chủ đã duyệt 22/11 (.claude/hooks/guard-remote-lib.mjs; .claude/settings.json; docs/adr/ADR-0223-ban-dung-thu.md) — chỉ siết.
+- Migration đã áp: 0188_gia_mua_vu.sql, 0189_chup_gia_mua_vu.sql
+- Điểm khôi phục Time Travel trước khi áp: 00003213-00000002-0000512c-f71cbb8a364571f2df1d70bca5e866f5
+- Worker Version ID: 7def0638-d16e-4f4d-a703-4b46b1794cf5
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (3 cảnh báo)
+- Phiên bản: 3.40; cổng phiên bản trước và sau deploy: ĐẠT
+- Thời gian: day-len 7 phút 28 giây; trien-khai 0 phút 47 giây; TỔNG 8 phút 15 giây
+- Kiểm sau triển khai (GET công khai `/api/auth/config`, 23/11 ~20:20): `version` = 3.40; chế độ bảo trì đang BẬT tới 10:00 25/11 (chủ bật).
+- Chưa làm: chưa ai đặt mùa vụ nào; bản dùng thử demo.tourdao.vn CHƯA có tài nguyên Cloudflare (địa chỉ chưa phân giải, chủ tạo theo khối lệnh của việc 1 rồi chạy `npm run len-demo`); ảnh bàn giao (việc 13) còn tắt tới khi chính sách riêng tư có «Số năm giữ ảnh bàn giao» và khoá sao lưu phủ kho `tourdao-sales-anh-ban-giao`; «Trả lúc check-in» (việc 11) chưa đặt dấu cho dịch vụ nào.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.35 ĐÃ LÊN PRODUCTION (ADR-0231 việc 12: hotline trên vé Tour Đảo theo dịch vụ, sửa được cho từng lô) — migration `0185` — triển khai 2026-11-23 13:55 giờ Việt Nam
 
 Bản trước trên production là 3.34 (việc 8 do phiên khác triển khai; dòng của các bản 3.31–3.34 nằm ở nhánh của các việc đó). Đầu ra `npm run trien-khai` (chép nguyên):
 
