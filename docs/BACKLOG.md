@@ -839,3 +839,12 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-ABG-HANG-CHO** — màn hàng chờ cho Toàn quyền (ảnh tải dở dang, chờ xoá kho, quá hạn giữ) và nút «Chạy lại»: đường `GET /api/anh-ban-giao/cho-xoa`, `POST …/chay-lai` đã có; hôm nay chỉ thấy qua cảnh báo `R-ABG-1`, `R-ABG-2` của `audit-invariants`. Quá hạn giữ sớm nhất sau 5 năm, nên chưa gấp.
 - **BL-ABG-CUA-SO-TAI-XE** — tài xế còn dòng lái mở gửi được ảnh cho lượt đón của chuyến đã kết thúc bất kỳ lúc nào (ADR không nêu hạn). Cân nhắc cửa sổ vài ngày sau ngày chạy.
 - **BL-ABG-IPHONE** — chưa đo cỡ ảnh thật sau nén trên iPhone (trần 600 KB) và Safari có mở được HEIC để thu nhỏ không; nợ mang theo từ khuôn biên lai: `BL-TEP-THAN-HAI-LAN`, `BL-BL-THU-THAT`.
+
+## 78. Kịch bản Chrome đỏ sẵn trên bản chính — cần sửa kịch bản hoặc mã (mã `BL-CR-…`, ghi từ Việc 11, 2026-11-23)
+
+Đối chiếu ngày 23/11: chạy năm kịch bản trên bản chính cũ `54c39c20e` (chưa có Việc 11) và trên nhánh Việc 11 — đỏ y hệt, cùng bước, cùng lỗi. Không chặn việc nhập (điều phối dặn ghi vào đây).
+- **BL-CR-TRA-SAU** — `docs/evidence/2026-11-05-tra-sau/kich-ban/tra-sau-smoke.mjs` bước C1, H1, D1: kịch bản chờ số nợ theo giá bán lẻ (1.350.000 ₫), bản chính tính công nợ theo giá đại lý ADR-0182 (1.215.000 ₫). Sửa kỳ vọng của kịch bản.
+- **BL-CR-HDV** — `docs/evidence/2026-09-27-tu-choi-huy-hdv/kich-ban/hdv-viec-cua-toi-smoke.mjs`: bước gieo ghi thu cho đơn còn nháp nay bị 409 `order_draft_no_payment` (ADR-0135 Đ7). Xác nhận đơn trước khi ghi thu.
+- **BL-CR-QL-BAN-HANG** — `docs/evidence/2026-11-05-quan-ly-ban-hang/kich-ban/ql-ban-hang-smoke.mjs` bước 5[1040]: sau «Bật cả nhóm» ở màn kiểm vé, dòng vé TTB06 vẫn ghi «Đặt riêng cho vé này», kịch bản chờ «Theo nhóm». Cần xem dữ liệu gieo hay nhãn của màn kiểm vé.
+- **BL-CR-A2-ORDER** — `docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-order.mjs`: so sánh giá trị đầu kịch bản lệch (deepStrictEqual), đỏ từ trước.
+- **BL-CR-TO-CHUC-B1** — `docs/evidence/2026-11-16-dang-ky-to-chuc/kich-ban/to-chuc-b1-smoke.mjs` bước 390-3: axe báo `label-content-name-mismatch` (serious) ở `.bar-avatar` của khung chung (cùng lỗi T8 người chấm giao diện thấy ở mọi màn 390).
