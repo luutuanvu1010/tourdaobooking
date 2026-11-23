@@ -832,3 +832,10 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **Ngày:** 2026-11-21 · **Chủ chọn** (qua phiên điều phối, câu 6B «như khuyến nghị»): đợt này chỉ danh sách Đơn hàng và Trang chủ · **Trạng thái:** `tạm gác`.
 - **Còn lại:** trang chi tiết một đơn đối tác vẫn hiện số bán lẻ (khối tiền, biên nhận, `GET /api/orders/:id/thuong-mai`) cho Kế toán thuần — giữ có chủ ý vì Kế toán đối chiếu khoản thu, biên nhận ở đó.
 - **Muốn làm:** ADR mới bổ sung ADR-0226 Đ7; cùng luật `keToanThuan` và `donDaiLyTrongTap`.
+
+## 77. Ảnh bàn giao — việc để sau (mã `BL-ABG-…`, ADR-0232, Việc 13, 2026-11-22)
+
+- **BL-ABG-PHIEU** — giao diện cho Toàn quyền đánh dấu ảnh vào phiếu xoá dữ liệu của người có tài khoản (biến thể 7B, lối 1). Đường máy chủ đã có và có bài kiểm (`POST /api/anh-ban-giao/anh/:id/xoa` với `nguon: "PHIEU"`, lô Thực hiện phiếu gỡ ảnh đã đánh dấu); bảng xem ảnh hôm nay chỉ có lối «Khách yêu cầu xoá». Nên đặt ở màn xử lý phiếu xoá (chọn ảnh của các đơn có người đó).
+- **BL-ABG-HANG-CHO** — màn hàng chờ cho Toàn quyền (ảnh tải dở dang, chờ xoá kho, quá hạn giữ) và nút «Chạy lại»: đường `GET /api/anh-ban-giao/cho-xoa`, `POST …/chay-lai` đã có; hôm nay chỉ thấy qua cảnh báo `R-ABG-1`, `R-ABG-2` của `audit-invariants`. Quá hạn giữ sớm nhất sau 5 năm, nên chưa gấp.
+- **BL-ABG-CUA-SO-TAI-XE** — tài xế còn dòng lái mở gửi được ảnh cho lượt đón của chuyến đã kết thúc bất kỳ lúc nào (ADR không nêu hạn). Cân nhắc cửa sổ vài ngày sau ngày chạy.
+- **BL-ABG-IPHONE** — chưa đo cỡ ảnh thật sau nén trên iPhone (trần 600 KB) và Safari có mở được HEIC để thu nhỏ không; nợ mang theo từ khuôn biên lai: `BL-TEP-THAN-HAI-LAN`, `BL-BL-THU-THAT`.

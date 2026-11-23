@@ -18,14 +18,59 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Giá mùa vụ (kế hoạch 16 việc 21/11, Việc 10; ADR-0229 chủ duyệt 22/11). Nhánh claude/modest-goldstine-a52295. CÓ migration 0188, 0189.
-    // Số 3.33 là SỐ TẠM (main lúc gộp 23/11 có 3.32); nhánh này nhập CUỐI trong 16 việc — bước A.0 đặt lại số và ngày. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0229.
-    version: "3.33",
+    // Số 3.37 là SỐ TẠM (main lúc gộp lần hai 23/11 có tới 3.36); nhánh này nhập CUỐI trong 16 việc — bước A.0 đặt lại số và ngày. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0229.
+    version: "3.37",
     date: "2026-11-23",
     items: [
       { kind: "moi", text: "Dịch vụ & giá: nút «Giá mùa vụ» cho một dịch vụ hoặc cả nhóm — tăng theo phần trăm hoặc số tiền trong một khoảng ngày đi. Giá chỉ áp sau khi người khác duyệt." },
       { kind: "moi", text: "Lập đơn: dịch vụ có ngày đi trong mùa tự lấy giá mùa vụ. Văn phòng thấy thêm dòng nhỏ ghi mức tăng." },
       { kind: "doi", text: "Đơn đã xác nhận giữ nguyên giá; muốn dời sang ngày thuộc mùa giá khác thì huỷ và lập đơn mới. Đơn nháp đổi ngày đi thì giá được tính lại theo ngày mới." },
       { kind: "doi", text: "Hoa hồng theo phần trăm của đại lý không tính trên phần tăng giá mùa vụ." },
+    ],
+  },
+  {
+    // Ảnh bàn giao (kế hoạch 16 việc 21/11, Việc 13; ADR-0232). Nhánh claude/upbeat-payne-c7e621. CÓ migration 0192 và kho R2 mới tourdao-sales-anh-ban-giao (chủ tạo trước).
+    // Số 3.36 = số trống kế tiếp sau 3.35 (Việc 12) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Chỉ bật khi Toàn quyền đăng chính sách riêng tư có «Số năm giữ ảnh bàn giao».
+    version: "3.36",
+    date: "2026-11-23",
+    items: [
+      { kind: "moi", text: "Ảnh bàn giao: ở trang đơn đã xác nhận, văn phòng và hướng dẫn viên phụ trách chụp ảnh lúc giao vé, giao khách rồi bấm «Gửi ảnh»." },
+      { kind: "moi", text: "Tài xế công ty gửi ảnh bàn giao ngay trên điểm đón trong màn chuyến." },
+      { kind: "moi", text: "Văn phòng, Kế toán, Quản trị xem được ảnh; đối tác và khách không thấy. Ảnh gửi nhầm chỉ Toàn quyền ẩn được, có ghi lý do." },
+      { kind: "moi", text: "Chính sách riêng tư có thêm ô «Số năm giữ ảnh bàn giao»; còn trống thì chưa ai gửi được ảnh." },
+    ],
+  },
+  {
+    // Hotline trên vé Tour Đảo theo dịch vụ (kế hoạch 16 việc 21/11, Việc 12; ADR-0231 chủ duyệt 22/11). Nhánh claude/jovial-tharp-11a62e. CÓ migration 0185.
+    // Số 3.35 = số trống kế tiếp sau 3.34 (Việc 8) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0231.
+    version: "3.35",
+    date: "2026-11-23",
+    items: [
+      { kind: "moi", text: "Vé Tour Đảo in số riêng của dịch vụ: đặt ở ô «Hotline trên vé» màn Dịch vụ & giá; chưa đặt thì in hotline công ty. Lúc tạo vé sửa được cho riêng lô.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+    ],
+  },
+  {
+    // Việc 8 kế hoạch 16 việc 21/11 (ADR-0228 chủ duyệt 22/11, migration 0183). Nhánh claude/eloquent-snyder-7de04b.
+    // Số 3.34 = số trống kế tiếp sau 3.33 (Việc 14) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.34",
+    date: "2026-11-23",
+    items: [
+      { kind: "doi", text: "Công tắc «Ẩn thông tin khách» tách làm hai: «Đối tác không nhập tên, SĐT khách» và «Đối tác không nhập danh sách hành khách». Cả hai giữ vị trí cũ." },
+      { kind: "moi", text: "Công tắc mới «Đơn đối tác không cần đủ tên khách» (mặc định bật): đơn đối tác cho xe chạy được dù chưa đủ tên khách. Tắt thì phải đủ tên." },
+      { kind: "moi", text: "Công tắc mới «Đơn đối tác không cần giờ đón»: bật thì đơn có đón chưa có giờ không phải chờ văn phòng xét chỉ vì thiếu giờ. Mặc định tắt." },
+      { kind: "sua", text: "Trang đơn: dải tóm tắt đầu trang không còn lặp tên khách và nơi đón đã có ngay bên dưới; dòng «Tên» không hiện khi trùng tên bên đặt." },
+    ],
+  },
+  {
+    // Ô tệp phiếu đăng ký theo vai, «Tệp khác», 12 tệp mỗi phiếu (ADR-0233, kế hoạch 16 việc Việc 14). Nhánh claude/objective-euclid-6c8a85. CÓ migration 0191.
+    // SỐ TẠM 3.33 (3.32 Việc 7, 3.31 Việc 6, 3.30 Việc 5 đã ở main 23/11): bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước.
+    version: "3.33",
+    date: "2026-11-23",
+    items: [
+      { kind: "doi", text: "Đăng ký làm đối tác: các ô gửi ảnh giấy tờ hiện theo vai người đăng ký chọn. Mỗi phiếu nay gửi được tối đa 12 tệp (trước là 8)." },
+      { kind: "moi", text: "Đăng ký làm đối tác: thêm ô «Tệp khác» để gửi kèm giấy tờ ngoài danh sách." },
+      { kind: "moi", text: "Ô «Tệp khác» chỉ hiện khi Toàn quyền đăng chính sách riêng tư mới có tích «Bản này nêu việc thu tệp khác»." },
+      { kind: "doi", text: "Đăng ký làm đối tác: chọn tệp Word thì Nền tảng báo ngay dưới ô «Tệp Word: hãy lưu thành PDF rồi gửi.»" },
     ],
   },
   {

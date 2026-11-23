@@ -34,14 +34,15 @@ import { canBangVeTheoSoKhach, cauChanDuoiSoDaDung, cauChanVeDaDung, capVeChoDon
 import { maintenanceBlock, maintenanceModule, type MaintenanceState } from "./modules/maintenance";
 import {
   LY_DO_GO_TEP_CHO, cauChuyenTepCho, cauChuyenTepChoToChuc, cauDongYTuPhieu, cauGhiGiaTriDaXacMinh, cauGhiGiaTriToChuc, cauGoTepCho, cauLienKetNguoiToChuc, cauMoHoSoDangKy, cauMoHoSoToChucDangKy, cauQuanLyToChucDangKy,
-  cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, partiesModule, tcCheDo, tcQuanLyMo, tcToChucCuaNguoi, cauBoGiuChoLoiMoi, cauDungLoiMoiPhieu, cauThanhVienTuLoiMoi,
+  cauQuanHeGioiThieu, cauXacMinhToChucTuPhieu, cauXacMinhTuPhieu, hanGiuPhienNgay, soNamGiuAnh, partiesModule, tcCheDo, tcQuanLyMo, tcToChucCuaNguoi, cauBoGiuChoLoiMoi, cauDungLoiMoiPhieu, cauThanhVienTuLoiMoi,
 } from "./modules/parties";
 import { capMacDinhChoDuyet, capSeApChoDuyet, cauCapMacDinhChoHoSo, kiemLuatBan, nguoiHuongCuaHoSo, pricingModule, viecDoKhiThoiVai } from "./modules/pricing";
 import { demDonXacNhanTheoMaVaNgay, cauDoiNguoiDat, dichVuChoDoiChieu, dichVuChoVe, dienDoiTacCuaDon, donChoQuet, donChuaXacNhanCua, donXacNhanTheoMa, donCuaNguoiDat, findOrderRef, ngayChupGanNhat, ordersModule } from "./modules/orders";
 import { accountOfParty, createAccountOnPartyStatements, createPartnerAccountOnPartyStatements, getStaffAccount, getStaffAccountOfParty, listStaffAccounts, nhanNhanVienTheoId, soDangNhapTheoHoSo, taiKhoanChoXacMinh } from "./modules/staff";
 import { dayGoCua, dayGoCuaDoi, dongChuyenTheoId, tatMayCuaCacPhienStatement, tatMayCuaPhienStatement, tatMayStatement, tatMayTruPhienStatement, thongbaoModule } from "./modules/thongbao";
 import { troLyModule } from "./modules/tro-ly";
-import { chuyenChoTinTheoId, dongBoChuyenChoDon, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
+import { chuyenChoTinTheoId, dongBoChuyenChoDon, mocToiThieuHienHanh, nguongHetHanHienHanh, suKienTheoYeuCau, taiXeLaiChang, vanChuyenModule, viecXeCuaNguoi } from "./modules/van-chuyen";
+import { anhBanGiaoModule, cauXoaAnhTheoPhieu, xoaKhoAnhTheoPhieu } from "./modules/anh-ban-giao";
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien, nhanSuKienChuyen, type ThayDoiDon } from "./shared/bang-tin";
 import { dangChayLucSuKien, dongCoTheSinhTin, taiXeNhanSuKien, thayDoiCuaHanhDongChuyen } from "./shared/tin-chuyen";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
@@ -246,7 +247,7 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
     ...(toChuc ? cauXacMinhToChucTuPhieu(db, { partyId: toChuc.partyId, muc: toChuc.muc, co: v.co, verifiedBy: v.verifiedBy, verifiedAt: v.verifiedAt }) : []),
     // 6 — parties: dòng đồng ý, người tạo = tài khoản mới; câu LUÔN chạy này mang lính gác hồ sơ đích còn dùng, chưa gộp (I1).
     cauDongYTuPhieu(db, { id: crypto.randomUUID(), partyId, policyId: v.policyId, consentedAt: v.consentedAt, staffId: tk.id }),
-    // 7a — parties: tệp ô GPKD / GIAY_PHEP_THEM thành tệp của hồ sơ TỔ CHỨC (nối dòng giấy tờ tổ chức). Đứng TRƯỚC câu 7 vì câu 7 gỡ mọi tệp chờ còn lại.
+    // 7a — parties: tệp ô của phần tổ chức (GPKD / GIAY_PHEP_THEM / TEP_KHAC_TO_CHUC — ADR-0233) thành tệp của hồ sơ TỔ CHỨC (nối dòng giấy tờ tổ chức). Đứng TRƯỚC câu 7 vì câu 7 gỡ mọi tệp chờ còn lại.
     ...(toChuc ? cauChuyenTepChoToChuc(db, { registrationId: v.registrationId, orgPartyId: toChuc.partyId, gpkdDocId: toChuc.gpkdId, extraDocId: toChuc.extraId, approverId: v.approverId, at: v.at }) : []),
     // 7 — parties: tệp của phiếu (trừ ô tổ chức) thành tệp của hồ sơ người (nối dòng giấy tờ); không có dòng giấy tờ thì tệp chờ còn lại nhận quyết gỡ.
     ...(docId
@@ -286,7 +287,7 @@ async function loDuyetDangKy(db: D1Database, v: LoDuyetDangKyVao): Promise<LoDuy
 }
 
 const APP_OPTIONS: AppOptions = {
-  modules: [authModule, accountsModule, ordersModule, dispatchModule, billingModule, pricingModule, receiptModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, giaoDienModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule, troLyModule, veDienTuModule, dangKyModule],
+  modules: [authModule, accountsModule, ordersModule, dispatchModule, billingModule, pricingModule, receiptModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, giaoDienModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule, troLyModule, veDienTuModule, dangKyModule, anhBanGiaoModule],
   currentStaff,
   // Cấu hình bắt buộc: khoá phiên (auth) VÀ khoá HMAC của lớp vé (lan-gui, ADR-0094 đ4) — mỗi module kiểm khoá của mình; thiếu một ⇒ mọi API 500.
   checkConfig: (env) => checkAuthConfig(env) ?? checkLanGuiConfig(env),
@@ -447,6 +448,12 @@ const APP_OPTIONS: AppOptions = {
     // ẨN DANH SỔ PHIÊN (ADR-0126 đ8): parties không import auth / accounts không import parties — gốc lắp ráp tiêm câu của auth và số ngày giữ (chính sách riêng tư) của parties.
     cauAnDanhPhien: (env, staffId, at, by) => anDanhPhienCuaTaiKhoanStatement(env.DB, staffId, at, by),
     hanGiuPhienNgay: (env) => hanGiuPhienNgay(env.DB),
+    // ẢNH BÀN GIAO (ADR-0232): anh-ban-giao không import van-chuyen / parties — gốc lắp ráp tiêm (khuôn isAssigned). Lô Thực hiện phiếu xoá của parties gộp câu
+    // xoá ảnh đã đánh dấu (biến thể 7B, lính gác cùng lô), rồi xoá kho SAU lô.
+    taiXeLaiChang: (env, driverPartyId, legId) => taiXeLaiChang(env.DB, driverPartyId, legId),
+    soNamGiuAnh: (env) => soNamGiuAnh(env.DB),
+    cauXoaAnhTheoPhieu: (env, phieuId, at, by) => cauXoaAnhTheoPhieu(env.DB, phieuId, at, by),
+    xoaKhoAnhTheoPhieu: (env, phieuId) => xoaKhoAnhTheoPhieu(env.DB, env.ANH_BAN_GIAO, phieuId),
     // BÊN ĐẶT MÁY CHỦ ÉP (sổ đại lý đợt 1, Task 11 — Ruling 21): `auth` không import `pricing` (không nới ALLOWED_EDGES) — gốc lắp ráp là NƠI DUY NHẤT nối. Chỉ tài khoản giữ quyền Đối tác
     // CÓ hồ sơ mới tốn một truy vấn; mọi người khác trả null ngay (`/api/auth/me` đi qua đây ở MỌI trang). Điều kiện y hệt `benDatChoTaiKhoan` (holdsPartner + hồ sơ mang vai được hưởng).
     // ADR-0213 Đ4.4 (Task 11): đọc qua tư cách mặc định — người có tư cách cá nhân thấy đúng như cũ; người chỉ làm cho tổ chức ⇒ null (chọn tư cách ở form — Task 14).

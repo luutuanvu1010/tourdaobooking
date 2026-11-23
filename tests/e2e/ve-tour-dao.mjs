@@ -44,8 +44,13 @@ for (const ma of ["ZTD1", "ZTD2"]) assert.equal((await call(ADM, "POST", "/api/c
 const datNguon = (ma, nguon) => call(SA, "POST", "/api/catalog/nguon-ve", { ma, nguon });
 assert.equal((await datNguon("ZTD1", "TOUR_DAO")).status, 200);
 assert.equal((await datNguon("ZTD2", "HANG_NGOAI")).status, 200);
+// ADR-0231: «Hotline trên vé» của ZTD1; Kế toán (ve.phat-hanh) đọc được để điền sẵn; lô chụp số gửi kèm; số không vào nhật ký.
+const hl = await call(SA, "POST", "/api/catalog/so-ho-tro", { ma: "ZTD1", so: "1900 1234" });
+assert.equal(hl.status, 200, JSON.stringify(hl.body));
+assert.deepEqual((await call(KT, "GET", "/api/catalog/so-ho-tro")).body.dichVu.find((d) => d.ma === "ZTD1"), { ma: "ZTD1", so: "19001234" });
+assert.equal((await call(SALES, "POST", "/api/catalog/so-ho-tro", { ma: "ZTD1", so: "0905123456" })).status, 403);
 async function nhapLo(cookie, ma, nguon, n) {
-  const lo = await call(cookie, "POST", "/api/ve/lo", { catalogCode: ma, nhomKhach: "ADULT", tenSanPham: "Vé thử Tour Đảo e2e", nguon, ...(nguon === "TOUR_DAO" ? { soVeDuKien: n } : {}) });
+  const lo = await call(cookie, "POST", "/api/ve/lo", { catalogCode: ma, nhomKhach: "ADULT", tenSanPham: "Vé thử Tour Đảo e2e", nguon, ...(nguon === "TOUR_DAO" ? { soVeDuKien: n, soHoTro: "1900 1234" } : {}) });
   assert.equal(lo.status, 201, JSON.stringify(lo.body));
   // ADR-0217: lô Tour Đảo được cấp sẵn số sê-ri lúc mở lô; mỗi vé mang một số.
   const ve = Array.from({ length: n }, (_x, i) => { dem++; return { noiDung: PNG(dem), maVe: nguon === "TOUR_DAO" ? maTD() : `E2E.${tag}.hn.${dem}`, tuNgay: vnDate(-1), denNgay: vnDate(60), ...(nguon === "TOUR_DAO" ? { soSeri: lo.body.soSeri[i] } : {}) }; });
@@ -57,6 +62,8 @@ async function nhapLo(cookie, ma, nguon, n) {
   return lo.body.loId;
 }
 const loTD1 = await nhapLo(KT, "ZTD1", "TOUR_DAO", 18);
+assert.equal((await sqlRows(`SELECT support_phone AS so FROM vdt_batch WHERE id = '${loTD1}'`))[0].so, "19001234", "ADR-0231: lô chụp hotline trên vé");
+assert.equal(Number((await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE detail LIKE '%19001234%' OR detail LIKE '%1900 1234%'`))[0].n), 0, "ADR-0231: số không vào nhật ký");
 await nhapLo(SALES, "ZTD1", "HANG_NGOAI", 2); // dịch vụ Tour Đảo: lô hãng ngoài KHÔNG được giữ
 await nhapLo(SALES, "ZTD2", "HANG_NGOAI", 3);
 const loTD2 = await nhapLo(KT, "ZTD2", "TOUR_DAO", 3); // dịch vụ hãng ngoài: lô Tour Đảo KHÔNG được giữ (vé luôn nằm trong kho)

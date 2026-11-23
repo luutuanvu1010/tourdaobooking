@@ -67,7 +67,8 @@ test("(a) đúng MỘT tệp đuôi _dang_ky.sql, đứng sau 0166; chỉ THÊM:
 
 test("(b) chính sách: gieo đúng một dòng, registration_open = 0, con số PHU-LUC; không sửa, không xoá", () => {
   const db = all();
-  const r = rows(db, "SELECT * FROM dk_policy");
+  // Dòng gieo của 0170 (0191 chèn thêm MỘT dòng 12 tệp chép từ dòng này — ADR-0233 Đ4, kiểm ở src/migrations-o-tep-dang-ky.test.ts).
+  const r = rows(db, "SELECT * FROM dk_policy WHERE id = 'gieo-0170'");
   assert.equal(r.length, 1);
   const p = r[0]!;
   assert.equal(p.registration_open, 0);

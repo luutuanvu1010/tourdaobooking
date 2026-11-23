@@ -2,6 +2,13 @@
 
 > **Sinh tự động** từ `docs/data-dictionary.json` bằng `npm run dict` — không sửa tay. Bài kiểm `src/architecture.test.ts` báo lỗi nếu tệp này lệch.
 
+## anh-ban-giao
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `abg_photo` | bảng | Ảnh bàn giao — ảnh chụp lúc làm việc gắn vào đơn (ADR-0232; migration 0192), ở kho R2 riêng ANH_BAN_GIAO, CHỈ-THÊM. Hai bản JPEG (ảnh nhỏ ≤ 100 KB, ảnh xem ≤ 600 KB) đã nén ở trình duyệt; khoá kho ngẫu nhiên abg/<32 hex>; KHÔNG tên tệp gốc, toạ độ, giờ chụp của máy. Gắn bắt buộc một đơn đã xác nhận, tuỳ chọn một dịch vụ HOẶC một lượt đón của đúng đơn (trigger đọc v_ord_order_state, v_ord_service_key, v_ord_leg_key). Loại việc GIAO_KHACH / GIAO_TAI_XE / KHAC; ghi chú ≤ 200 ký tự. retain_until = giờ tải + số năm của chính sách riêng tư đang hiệu lực (máy chủ tính). Không xoá dòng — mốc một chiều stored_at / purged_at (+ lý do, băm và ghi chú về rỗng) / r2_deleted_at; erasure_request_id (đánh dấu yêu cầu xoá) và bộ cột ẩn (hidden_at/by/reason) cũng một chiều. Trigger hạn giữ abg_photo_retention_hold so GIỜ HỆ THỐNG với retain_until: trước hạn chỉ qua TAI_LEN_LOI (chưa lưu xong), GIAY_TO_CHUP_NHAM, XOA_THEO_YEU_CAU kèm yêu cầu có thật; HET_HAN chỉ sau hạn. Trần 20 ảnh / giờ / tài khoản và 30 ảnh còn hiện mỗi đơn.; tham chiếu logic `order_id` → `orders` qua view `v_ord_order_state`, không khoá ngoại (trigger abg_photo_order_ins — đơn phải đã xác nhận); tham chiếu logic `order_service_id` → `order_service` qua view `v_ord_service_key`, không khoá ngoại (trigger abg_photo_target_ins — dịch vụ thuộc đúng đơn); tham chiếu logic `transfer_leg_id` → `ord_transfer_leg` qua view `v_ord_leg_key`, không khoá ngoại (trigger abg_photo_target_ins — lượt đón thuộc đúng đơn) |
+| `abg_erasure_request` | bảng | yêu cầu xoá Ảnh bàn giao (ADR-0232 Đ7, biến thể 7B; migration 0192), CHỈ-THÊM. Nguồn PHIEU = phiếu xoá của người có tài khoản (phieu_id, ADR-0126; ảnh được gỡ trong lô Thực hiện phiếu của parties, lính gác đọc v_pty_erasure_decision); nguồn KHACH = khách không tài khoản báo qua kênh liên hệ (channel_note — kênh và cách xác minh, hạng N2; ảnh được gỡ ngay). executed_at đặt một lần.; tham chiếu logic `phieu_id` → `pty_erasure_request` qua view `v_pty_erasure_decision`, không khoá ngoại (đánh dấu chỉ cho phiếu còn chờ; câu gỡ theo phiếu gác bằng người + lúc quyết của phiếu) |
+
 ## audit
 
 | Đối tượng | Loại | Ghi chú |
@@ -86,11 +93,13 @@
 | `ctl_seasonal_price_cap` | bảng | trần % của «Giá mùa vụ» (ADR-0229 Đ8, migration 0188), CHỈ-THÊM: dòng mới nhất (created_at, id) là trần hiện hành; chỉ Toàn quyền đặt (ô catalog.seasonal.cap); gieo 30 |
 | `ctl_sales_pause` | bảng | khoảng «Ngừng bán theo ngày» (ADR-0220 Đ1, migration 0180), CHỈ-THÊM: dịch vụ (scope SERVICE, catalog_code) hoặc mọi dịch vụ đang thuộc nhóm (scope GROUP, group_code) không bán cho ngày khởi hành trong [from_date, to_date] (ngày dân sự Việt Nam, gồm hai đầu); còn chặn khi ended_at IS NULL; chỉ được đặt ended_at một lần, kèm updated_at / updated_by = lúc và người kết thúc (trigger); luật xét ở src/modules/catalog/ngung-ban-ngay-rules.ts |
 | `ctl_service_ticket_source` | bảng | ô «Vé do ai phát» chỉ trên từng dịch vụ (code = mã dịch vụ, không theo nhóm) (ADR-0175 Đ1.2, migration 0151), CHỈ-THÊM; source HANG_NGOAI = vé hãng ngoài, TOUR_DAO = vé Tour Đảo; dòng hiệu lực = valid_from_at lớn nhất; chưa có dòng là HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts |
+| `ctl_service_support_phone` | bảng | ô «Hotline trên vé» chỉ trên từng dịch vụ (code = mã dịch vụ, không theo nhóm) (ADR-0231, migration 0185), CHỈ-THÊM; phone = số dạng chuẩn chỉ chữ số (di động, số bàn 02…, tổng đài 1900/1800), NULL = đã xoá số, vé in hotline công ty chủ; dòng hiệu lực = valid_from_at lớn nhất; chưa có dòng như NULL; số không vào nhật ký; luật kiểm ở src/shared/so-ho-tro.ts |
 | `ctl_service_detail` | bảng | chi tiết dịch vụ do Nền tảng giữ (ADR-0201 Đ1, migration 0160), CHỈ-THÊM; display_name = tên hiển thị thắng tên Sheet ở danh mục (NULL = dùng tên Sheet), description = mô tả, image_key = khoá ảnh (bước sau), sheet_name_at = tên Sheet lúc ghi (báo Sheet đổi tên); dòng hiệu lực = valid_from_at lớn nhất; đồng bộ Sheet không chạm; luật ở src/shared/chi-tiet-dich-vu.ts |
 | `ctl_service_transfer_price` | bảng | giá gốc phí đưa đón đọc từ hai cột Sheet «Phí đưa đón» (per_pax_price, mỗi khách đi chung, ≤ 500.000 đ) và «Phí đưa đón xe riêng» (private_price, cả chuyến, ≤ 5.000.000 đ) (ADR-0218 Đ1.3, migration 0178), CHỈ-THÊM; NULL = ô trống = chưa có giá, không bao giờ thành 0, số 0 = miễn phí; dòng hiệu lực = valid_from_at lớn nhất; chỉ ghi khi cặp giá đổi |
 | `v_ctl_service_ticket_flag` | view công bố | cột: scope, code, has_ticket |
 | `v_ctl_service_detail` | view công bố | cột: code, display_name, description, image_key, sheet_name_at, valid_from_at |
 | `v_ctl_service_ticket_source` | view công bố | cột: code, source |
+| `v_ctl_service_support_phone` | view công bố | cột: code, phone |
 | `v_ctl_service_transfer_price` | view công bố | cột: catalog_code, per_pax_price, private_price, valid_from_at |
 | `v_ctl_service_group` | view công bố | cột: catalog_code, group_code |
 | `v_ctl_service_transfer` | view công bố | cột: catalog_code, transfer_enabled |
@@ -183,6 +192,9 @@
 | `ord_partner_customer_policy` | bảng | công tắc «Ẩn thông tin khách khi đối tác đặt vé» (ADR-0154 Đ2, migration 0133), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ bây giờ, không có dòng = TẮT; gieo hide_customer_info = 0 (TẮT) nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); đổi công tắc không đổi đơn cũ (dấu orders.manifest_exempt chụp lúc lập đơn) |
 | `ord_pickup_time_policy` | bảng | công tắc «Bắt buộc giờ đón cho đơn đối tác» (ADR-0193 mục 1, migration 0157), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = BẬT; gieo required = 1 (BẬT = hành vi ADR-0154 Đ1.2, Đ1.3) nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); route Gửi đơn đọc lúc gửi và chụp vào ord_confirm_request.pickup_time_required — đổi công tắc không đổi yêu cầu đang chờ |
 | `ord_partner_pickup_place_policy` | bảng | công tắc «Đối tác không nhập nơi đón» (ADR-0221 Đ1, migration 0181), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = TẮT; gieo khong_nhap = 0 (TẮT = hành vi trước ADR-0221) nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: tài khoản giữ quyền Đối tác lập / lưu nháp lượt chiều đi không nơi đón thì máy chủ ghi chữ tạm «(chưa ghi nơi đón)», văn phòng điền lúc Còn vé; cổng xác nhận pickup_place_required xét theo dữ liệu lượt, không đọc bảng này |
+| `ord_partner_passenger_policy` | bảng | công tắc «Đối tác không nhập danh sách hành khách» (ADR-0228 Đ1, migration 0183 — tách khỏi ord_partner_customer_policy), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = TẮT; gieo khong_nhap = giá trị hiệu lực của hide_customer_info lúc áp migration nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: tài khoản Đối tác thuần lập / lưu nháp thì máy chủ bỏ khoá passengers (danh sách đang lưu giữ nguyên); không đổi luật THIEU_TEN lúc xuất bến |
+| `ord_partner_manifest_exempt_policy` | bảng | công tắc «Đơn đối tác không cần đủ tên khách» (ADR-0228 Đ2, chủ duyệt 22/11/2026, migration 0183), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = TẮT; gieo mien = 1 (BẬT — lời chủ «miễn»); chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: đơn do tài khoản Đối tác thuần lập lúc đó mang orders.manifest_exempt = 1 (chụp lúc lập) ⇒ chặng không bị giữ THIEU_TEN lúc cho xe chạy |
+| `ord_partner_pickup_time_optional_policy` | bảng | công tắc «Đơn đối tác không cần giờ đón» (ADR-0228 Đ3, migration 0183), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = TẮT; gieo khong_can = 0 (TẮT = hành vi ADR-0154 Đ1.2 + ADR-0193) nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: route Gửi đơn không còn đưa đơn Đối tác sang văn phòng chỉ vì lượt đầu Đón chưa giờ, trừ lượt đã vào hạn chốt |
 | `ord_pickup_deadline_policy` | bảng | công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón» (ADR-0227 Đ1, migration 0182), CHỈ-THÊM (trigger cấm sửa/xoá); dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét, không có dòng = BẬT; gieo chan = 1 (BẬT = hành vi ADR-0193 câu (ii)) nên phát hành không đổi gì; chỉ Toàn quyền thêm dòng mới (settings.ops); BẬT: lượt đón chưa giờ mà ngày đón đã vào hạn chốt không xác nhận được (409 chua_gio_sat_ngay, vế ?8 của ORDER_CONFIRM); TẮT: bỏ chặn đó, cổng hạn chốt cho lượt có giờ và điều phối giữ nguyên; mỗi cửa xác nhận đọc MỘT lần lúc bấm |
 | `ord_service_terms` | bảng | bản chụp thương mại của từng dòng dịch vụ trong đơn đã xác nhận (ADR-0077 điều 8, ADR-0078 điều 5; migration 0090), CHỈ-THÊM: người hưởng, hoa hồng (trạng thái NONE / SET / MISSING kèm lý do thiếu), mức đã chụp và dòng mức nguồn, người bán / nhà cung cấp / a%. Bản mới trỏ supersedes_id (UNIQUE) tới bản hiện hành. Bản AUTO phải khớp dòng mức và điều khoản còn hiệu lực ở captured_date (trigger terms_rule_stale / terms_term_stale — bảng mức đổi giữa lúc đọc và lúc ghi thì cả lô rơi); bản AUTO ở trạng thái SET bắt buộc mang mã dòng nguồn (CHECK — nếu không hai trigger trên không chạy), chỉ MANUAL được SET không mã; cung ứng MISSING không mang mã điều khoản; MANUAL cần lý do ≥ 10 ký tự. Không chụp cho đơn nháp hay đơn đã Đã giao. Tỷ lệ, a%, nguồn chụp KHÔNG vào DTO của Đối tác |
 | `ord_service_terms_pax` | bảng | bản chụp ba số tiền «mỗi khách» theo loại cùng bản chụp điều khoản (ADR-0133; migration 0116), CHỈ-THÊM: chỉ gắn vào bản chụp hoa hồng SET kiểu PER_PAX còn là bản hiện hành của đơn chưa Đã giao; số người lớn bằng commission_per_pax; bản AUTO phải khớp dòng phụ của mức nguồn (trigger terms_pax_rule_stale). Không sửa, không xoá. Số tiền KHÔNG vào DTO của Đối tác |
@@ -199,6 +211,7 @@
 | `v_ord_order_state` | view công bố | cột: id, status, delivered_at, completed_at |
 | `v_ord_cancel_state` | view công bố | cột: order_id, group_code, reason_code, cancelled_date, legacy, depart_last_date, refund_deadline |
 | `v_ord_leg_key` | view công bố | cột: id, order_id, order_service_id, is_open |
+| `v_ord_service_key` | view công bố | cột: id, order_id |
 | `v_ord_leg_commit` | view công bố | cột: id, order_id, exclusive_vehicle, min_vehicle_seats |
 | `v_ord_passenger_key` | view công bố | cột: person_key, order_id, has_current_row |
 | `v_ord_passenger_row` | view công bố | cột: id, person_key, order_id, is_current |
@@ -231,7 +244,7 @@
 | `pty_verification` | bảng | kết quả xác minh theo từng dòng (ADR-0122 đ3; migration 0103), CHỈ-THÊM; dòng mới nhất là trạng thái hiện tại; người xác minh ở created_by |
 | `pty_self_submission` | bảng | phiếu tự khai hồ sơ (ADR-0124; migration 0105): giá trị khai là ĐỀ XUẤT, không ghi đè hiện hành; nội dung bất biến, trạng thái một chiều CHO_XAC_MINH → DA_CHAP_NHAN / TU_CHOI / RUT; ghi kèm phiên bản chính sách đã đồng ý; chỉ hồ sơ cá nhân; không view công bố (5.23). erased_at (migration 0108, ADR-0126 đ3): ẩn danh hoá phiếu đã xử lý / đã rút — giá trị khai thành dấu, dòng đóng băng |
 | `pty_erasure_request` | bảng | phiếu yêu cầu xoá dữ liệu (ADR-0126 đ2; migration 0108): chỉ hồ sơ cá nhân, một phiếu chờ mỗi hồ sơ; trạng thái một chiều CHO_XU_LY → DA_THUC_HIEN / TU_CHOI / RUT; người xử lý khác người gửi, chỉ người gửi được rút; không xoá dòng; due_at chụp từ erasure_days của chính sách lúc gửi (rỗng = chính sách chưa có số); retained_codes chỉ là MÃ loại dữ liệu giữ lại theo luật, offsite_at là mốc chép bản ngoài D1 (chỉ mã) |
-| `pty_privacy_policy` | bảng | chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào. erasure_days (hạn xử lý phiếu xoá) và session_retention_days (thời hạn giữ IP / User-Agent của phiên) thêm ở migration 0108: rỗng được, không DEFAULT — con số chờ luật sư, đi cùng bản đăng mới (ADR-0126 đ2, đ8). covers_org_data thêm ở migration 0174: dấu «bản này đã nêu việc thu thông tin tổ chức» (0/1, mặc định 0), đặt lúc đăng bản mới; phần tổ chức của biểu mẫu đăng ký chỉ mở khi bản đang hiệu lực có dấu này (ADR-0212 Đ7); không lộ ở GET /api/chinh-sach-rieng-tu (GET /api/dang-ky/cau-hinh chỉ trả cờ «phần tổ chức mở» suy ra từ nó) |
+| `pty_privacy_policy` | bảng | chính sách riêng tư có phiên bản (ADR-0126 đ1; migration 0103), CHỈ-THÊM, phiên bản liên tiếp; không gieo dòng nào. erasure_days (hạn xử lý phiếu xoá) và session_retention_days (thời hạn giữ IP / User-Agent của phiên) thêm ở migration 0108: rỗng được, không DEFAULT — con số chờ luật sư, đi cùng bản đăng mới (ADR-0126 đ2, đ8). covers_org_data thêm ở migration 0174: dấu «bản này đã nêu việc thu thông tin tổ chức» (0/1, mặc định 0), đặt lúc đăng bản mới; phần tổ chức của biểu mẫu đăng ký chỉ mở khi bản đang hiệu lực có dấu này (ADR-0212 Đ7); không lộ ở GET /api/chinh-sach-rieng-tu (GET /api/dang-ky/cau-hinh chỉ trả cờ «phần tổ chức mở» suy ra từ nó). covers_other_files thêm ở migration 0191 (ADR-0233 Đ3): dấu «bản này nêu việc thu tệp khác» (0/1, mặc định 0); hai ô «Tệp khác» của phiếu đăng ký chỉ mở khi bản đang hiệu lực có dấu này (Hiến chương 5.21); cùng luật không lộ như covers_org_data |
 | `pty_attachment` | bảng | tệp hồ sơ (ảnh / PDF giấy tờ) ở kho R2 riêng HO_SO (ADR-0123; migration 0104): khoá kho ngẫu nhiên, loại theo chữ ký, cỡ, băm SHA-256; KHÔNG tên tệp gốc; không xoá dòng — ba mốc một chiều stored_at / purged_at (+ lý do, băm về rỗng) / r2_deleted_at; 'chờ xoá' = purged_at có, r2_deleted_at rỗng |
 | `pty_registration_attachment` | bảng | tệp chờ của phiếu đăng ký đối tác (ADR-0208 Đ1; migration 0171), kho R2 HO_SO, khoá kho pty/ + 32 hex như pty_attachment để lúc duyệt dùng lại đúng khoá; mã phiếu (registration_id) là chuỗi, không khoá ngoại; slot = ô của tệp trong phiếu. CHỈ-THÊM: không xoá dòng, các mốc stored_at / purged_at / r2_deleted_at / transferred_at đi một chiều; chuyển xong thì băm về rỗng và dòng không bao giờ bị gỡ |
 | `pty_verification_requirement` | bảng | mục bắt buộc để hồ sơ được «Đã xác minh» (ADR-0210 Đ1; migration 0171), CHỈ-THÊM; một bản danh sách = mọi dòng cùng (loại hồ sơ, valid_from_at), bản hiệu lực là bản mới nhất ≤ lúc xét; mã chỉ trong tập đóng (src/shared/dau-xac-minh.ts, trigger item_closed). Gieo cho cá nhân: HO_TEN, NGAY_SINH, CCCD |
@@ -246,12 +259,13 @@
 | `v_pty_owner_company` | view công bố | cột: party_id |
 | `v_pty_verification_requirement` | view công bố | cột: subject_kind, item_kind, item_code, valid_from_at |
 | `v_pty_verification_facts` | view công bố | cột: party_id, subject_kind, item_kind, item_code, is_partner, anonymized, doc_id, expiry_date, last_outcome, ever_passed |
-| `v_pty_privacy_current` | view công bố | cột: id, version, purposes, body, valid_from_at, covers_org_data |
-| `v_pty_privacy_effective` | view công bố | cột: id, version, valid_from_at, covers_org_data |
+| `v_pty_privacy_current` | view công bố | cột: id, version, purposes, body, valid_from_at, covers_org_data, covers_other_files |
+| `v_pty_privacy_effective` | view công bố | cột: id, version, valid_from_at, covers_org_data, covers_other_files |
 | `v_pty_carrier` | view công bố | cột: party_id |
 | `v_pty_carrier_driver` | view công bố | cột: carrier_party_id, driver_party_id |
 | `v_pty_org_link` | view công bố | cột: relationship_id, person_party_id, org_party_id, kind, valid_from_date |
 | `v_pty_person_xung_ho` | view công bố | cột: party_id, given_name, gender |
+| `v_pty_erasure_decision` | view công bố | cột: id, status, decided_by, decided_at |
 | `v_pty_open_role` | view công bố | cột: party_id, role_type_code, role_group |
 | `v_pty_role_type` | view công bố | cột: code, role_group, is_partner_label, active |
 | `v_pty_party_partner_label` | view công bố | cột: party_id |
@@ -371,7 +385,7 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
-| `vdt_batch` | bảng | `source` = nguồn vé của lô: `HANG_NGOAI` (vé hãng ngoài, mặc định, mọi lô cũ) hoặc `TOUR_DAO` (vé Tour Đảo), chọn lúc tạo, không đổi (trigger vdt_batch_source_locked; ADR-0175 Đ1.1, `0151`). `pax_group` nhận thêm `ALL` = lô «Mọi loại khách» cho vé không phân biệt loại khách (ADR-0157, `0134`); `vdt_allocation.pax_group` không nhận `ALL`. `last_cmd_id` = dấu lệnh của lần Huỷ lô thắng (ADR-0156). Lô VOID: `updated_at`, `updated_by` là lúc huỷ và người huỷ, vì không còn câu nào ghi lô đó. Lô nhập vé điện tử (ADR-0153 Đ1, 0131 — đề xuất): MỘT dịch vụ (mã tour `catalog_code`, tham chiếu logic, không khoá ngoại) + MỘT nhóm khách chọn một lần cho cả lô. Không xoá (trigger vdt_batch_no_delete); không đổi nhóm khách. `printed_name` = tên sản phẩm in trên vé, để nhân viên đối chiếu |
+| `vdt_batch` | bảng | `support_phone` (ADR-0231, `0185`) = bản chụp hotline in trên vé của lô Tour Đảo, dạng chuẩn chỉ chữ số, chụp lúc mở lô, không đổi (trigger vdt_batch_support_phone_locked); NULL = lô cũ hoặc lô hãng ngoài; không vào nhật ký. `source` = nguồn vé của lô: `HANG_NGOAI` (vé hãng ngoài, mặc định, mọi lô cũ) hoặc `TOUR_DAO` (vé Tour Đảo), chọn lúc tạo, không đổi (trigger vdt_batch_source_locked; ADR-0175 Đ1.1, `0151`). `pax_group` nhận thêm `ALL` = lô «Mọi loại khách» cho vé không phân biệt loại khách (ADR-0157, `0134`); `vdt_allocation.pax_group` không nhận `ALL`. `last_cmd_id` = dấu lệnh của lần Huỷ lô thắng (ADR-0156). Lô VOID: `updated_at`, `updated_by` là lúc huỷ và người huỷ, vì không còn câu nào ghi lô đó. Lô nhập vé điện tử (ADR-0153 Đ1, 0131 — đề xuất): MỘT dịch vụ (mã tour `catalog_code`, tham chiếu logic, không khoá ngoại) + MỘT nhóm khách chọn một lần cho cả lô. Không xoá (trigger vdt_batch_no_delete); không đổi nhóm khách. `printed_name` = tên sản phẩm in trên vé, để nhân viên đối chiếu |
 | `vdt_ticket` | bảng | Vé điện tử (ADR-0153 Đ1, 0131): một dòng một ảnh vé; KHÔNG chứa tên khách. `ticket_code` (mã vé nhà cung cấp, duy nhất) và `storage_key` (khoá kho R2 ngẫu nhiên) là bí mật vận hành — không bao giờ vào nhật ký, DTO ghi, câu lỗi. Không xoá; status AVAILABLE→ALLOCATED→VOID một chiều (trigger vdt_ticket_one_way); vé từng được đọc/giao (revealed_at) không về kho `withdrawn_at` (ADR-0156 Đ2, 0132): dấu rút khỏi kho khi chưa từng phát ra (lưu kho hỏng hoặc Huỷ lô), ghi một lần; ảnh của lô đã huỷ lưu thêm 3 ngày tính từ `purged_at` rồi việc định kỳ xoá và ghi `r2_deleted_at`; `opened_at`, `opened_by` (chủ quyết 2/11/2026): lúc và người mở ảnh vé của lô đã huỷ, ghi một lần; vé mang dấu này khoá hẳn, mã, băm và số S/N (12 số cuối của chuỗi đúng 36 chữ số) không nhập lại được dù ảnh đã xoá; hai chỉ mục duy nhất theo mã vé và băm chỉ áp cho vé không mang dấu nên vé đó nhập lại được. `ticket_code` từ 0156 là chuỗi QR do máy đọc. `serial` (ADR-0217, 0177): số sê-ri `VE_` + 8 chữ hoa, duy nhất, không bí mật, không đổi (trigger vdt_ticket_serial_keep), luôn có trong sổ `vdt_serial` (vé chèn không mang số thì trigger cấp). `voided_at`, `voided_by`, `void_reason`: dấu huỷ vé (huỷ vé lẻ hoặc huỷ phần còn lại của lô đã cấp), ghi MỘT lần cùng lúc `status` sang VOID, lý do 5–300 ký tự (trigger vdt_ticket_void_stamp); vé huỷ không về kho, không bật lại. |
 | `vdt_allocation` | bảng | Phân bổ vé (ADR-0153 Đ1, 0131): vé nào giữ cho dòng dịch vụ (`order_service_id`) nào của đơn nào; `order_id`/`order_service_id` là tham chiếu logic. Chỉ thêm; chỉ `revealed_at` (lần đầu ảnh được đọc/giao) và `released_at`+`release_reason` (trả vé) ghi một lần. Chỉ mục duy nhất một phần chặn một vé hai chỗ và một vị trí hai vé |
 | `vdt_delivery` | bảng | Lần giao vé (ADR-0153 Đ1, 0131): ai giao, kênh ZALO hay LINK, lúc nào — thay dấu «like». Chỉ thêm, không sửa, không xoá |
@@ -385,6 +399,7 @@
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
 | `dk_policy` | bảng | chính sách đăng ký (ADR-0206 Đ3; migration 0170), CHỈ-THÊM, dòng hiệu lực = valid_from_at lớn nhất ≤ lúc xét; gieo một dòng ĐÓNG (registration_open = 0). Con số lấy từ PHU-LUC đợt 1; anonymize_days là thời gian giữ dữ liệu cá nhân của người lạ; activation_grace_days (gieo 30, phán quyết điều phối đợt 1 Task 9 — chủ xác nhận sau) là ân hạn SAU hạn đặt PIN: trong khoảng này Nhân sự còn gửi lại lời mời, qua rồi tác nhân dọn phiếu ẩn danh danh tính |
+| `dk_role_slot` | bảng | ô tệp của phiếu đăng ký theo vai (ADR-0233 Đ1; migration 0191), CHỈ-THÊM (trigger chặn sửa, xoá). Dòng hiệu lực của khoá (part, role_code, slot) = valid_from_at lớn nhất ≤ lúc xét; role_code rỗng = mọi vai của phần đó, dòng có mã vai thắng dòng rỗng cùng ô; mode BAT_BUOC / TUY_CHON / AN (tắt một ô = chèn dòng AN). NGHĨA của ô (tên hiện, phần, nơi nối lúc duyệt) là mã ở src/shared/dang-ky-o-tep.ts; mã ô lạ bị bỏ qua. Gieo giữ hành vi cũ (căn cước tuỳ chọn, GPKD bắt buộc, giấy phép thêm tuỳ chọn) + TEP_KHAC, TEP_KHAC_TO_CHUC tuỳ chọn. Migration 0191 cũng chèn MỘT dòng dk_policy chép dòng hiệu lực với photo_max_count = 12 (Đ4). Không dữ liệu cá nhân |
 | `dk_registration` | bảng | phiếu đăng ký đối tác (ADR-0206 Đ3, Đ4; 0170): id DK_XXXXXXXX; loại mở PERSON; trạng thái đi theo đồ thị trigger dk_registration_transition (bốn trạng thái kết thúc không đổi). match_*, verified_* là kết luận Danh bạ và người xác minh để trigger dk_decision_guard chỉ đọc dk_*. party_id, staff_id, match_party_id, referrer_party_id (hồ sơ người giới thiệu chọn lúc «đạt», lô duyệt ghi quan hệ REFERRED_BY) là tham chiếu logic, không khoá ngoại. org_role_code (vai của tổ chức, khoá sau lần gửi đầu như role_code), org_match_kind / org_match_party_id (kết luận Danh bạ của tổ chức, khuôn match_* bằng trigger dk_registration_org_match_shape; xoá khi «trả về xác minh»; dk_decision_guard đòi khi bản khai đang duyệt có phần tổ chức) thêm ở migration 0174 (ADR-0212 Đ4). invite_id (migration 0176, ADR-0213 Đ7.5): mã định danh lời mời vào tổ chức mà phiếu gắn lúc gửi — phiếu không lưu mã |
 | `dk_identity` | bảng | danh tính đã chứng minh của phiếu (0170): đợt 1 chỉ EMAIL; chỉ mục duy nhất dk_identity_open_uq: một phiếu đang mở mỗi (provider, subject); is_open do trigger hạ về 0 khi phiếu kết thúc |
 | `dk_submission` | bảng | bản khai bất biến (0170): mỗi lần gửi một dòng, version kế tiếp current_version; chỉ cho đặt erased_at một lần (ẩn danh, ADR-0208). Cột soi theo pty_person / pty_contact_point / pty_person_document. Hạng N2/N3 không bao giờ vào nhật ký |
@@ -425,6 +440,8 @@
 | `bil_payment_receipt` |  | `note` |  |  |
 | `bil_posting` |  | `reason` |  |  |
 | `bil_remittance_proof` |  |  | `storage_key`, `content_hash` |  |
+| `abg_photo` |  | `note` | `thumb_key`, `view_key`, `content_hash`, `purge_note`, `hidden_reason` |  |
+| `abg_erasure_request` |  | `channel_note` |  |  |
 | `bil_receipt_proof` |  |  | `storage_key`, `content_hash` |  |
 | `dsp_assignment` |  | `place_text` |  |  |
 | `fbk_attachment` |  |  | `storage_key`, `content_hash` |  |
@@ -439,6 +456,7 @@
 | `ord_confirm_request` |  | `note` |  |  |
 | `ctl_seasonal_price` |  | `note` |  |  |
 | `ctl_sales_pause` |  | `note` |  |  |
+| `ctl_service_support_phone` |  | `phone` |  |  |
 | `ord_passenger` |  | `full_name`, `birth_year`, `person_key` |  |  |
 | `ord_service_terms` |  | `reason` |  |  |
 | `ord_transfer_leg` |  | `pickup_place`, `dropoff_place`, `short_notice_note` |  |  |
@@ -465,6 +483,7 @@
 | `stf_permission_adjustment` |  | `reason` |  |  |
 | `tl_hoi_dap` |  | `cau_hoi`, `tra_loi` |  |  |
 | `v_aud_order_change` |  | `detail` |  |  |
+| `v_ctl_service_support_phone` |  | `phone` |  |  |
 | `v_dsp_order_handler` |  | `label` |  |  |
 | `v_dsp_sales_owner` |  | `name` |  |  |
 | `v_dsp_sales_invite_open` |  | `name` |  |  |
@@ -480,6 +499,7 @@
 | `vc_trip_cost_line` |  | `note` |  |  |
 | `vc_trip_departure_waiver` |  | `note` |  |  |
 | `vc_trip_stop` |  | `place_text` |  |  |
+| `vdt_batch` |  | `support_phone` |  |  |
 | `vdt_guest_link` |  | `token_hash` |  |  |
 | `vdt_ticket` |  | `ticket_code`, `storage_key`, `content_hash` |  |  |
 | `dk_identity` |  | `subject`, `contact_email` |  |  |

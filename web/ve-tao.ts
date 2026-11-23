@@ -4,6 +4,8 @@
 // Mã vé là bí mật: không hiện, không ghi console, không vào câu báo; người tạo chỉ thấy số lượng. «Tên tiếng Anh» chỉ in lên ảnh, không gửi máy chủ.
 // Chọn dịch vụ (kế hoạch 16 việc 21/11, Việc 4): CÙNG bộ chọn với bước nhập lô (web/catalog-picker.ts, chế độ «chọn một», ô tìm + hàng nhóm + ★ Hay dùng), chỉ các dịch vụ
 // vé Tour Đảo; danh mục do trang tải MỘT lần (web/ve-kho.ts) truyền vào. Bộ chọn mang `idTien` riêng vì cùng trang với bộ chọn của bước nhập lô.
+// «Hotline trên vé» (ADR-0231): điền sẵn số của dịch vụ (GET /api/catalog/so-ho-tro), dịch vụ chưa đặt số thì hotline công ty; sửa được cho lô này; số in THAY hotline công ty
+// ở chân vé và gửi kèm lệnh mở lô (`soHoTro`) để máy chủ chụp vào lô. Luật kiểm số ở src/shared/so-ho-tro.ts, dùng chung với máy chủ.
 import { ApiError, api, type Api } from "./api";
 import type { CatalogServiceDto } from "../src/shared/contracts";
 import { createCatalogPicker } from "./catalog-picker";
@@ -13,6 +15,7 @@ import { TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT } from "../src/shared/ve-nhap-lo";
 import { h, replaceChildren } from "./dom";
 import { docQrTuTep } from "./qr-doc-ve";
 import { veAnhTourDao } from "./ve-anh-tour-dao";
+import { chuanHoaSoHoTro, inSoHoTro, soDienSan } from "../src/shared/so-ho-tro";
 
 interface ThemVeRes { themDuoc: number; chuaLuuVaoKho: number; loai: { thuTu: number; lyDo: string }[] }
 interface XacNhanRes { veTrongLo: number; dichVuKhongVe: boolean; canhBaoNguon: boolean; capBu: number; conDonChuaXet?: boolean }
@@ -66,8 +69,12 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { danhMuc: Api.Catalo
     return congTy;
   };
 
+  // Số của từng dịch vụ (đọc được khi giữ ô tạo vé Tour Đảo hoặc ô Vé do ai phát); đọc lỗi thì coi như chưa dịch vụ nào đặt số.
+  let soDichVu = new Map<string, string>();
+  try { soDichVu = new Map((await api<Api.CatalogSoHoTroResponse>("/api/catalog/so-ho-tro")).dichVu.map((d) => [d.ma, d.so])); } catch { /* điền hotline công ty */ }
+
   let dichVu: CatalogServiceDto | null = null;
-  const khungDv = createCatalogPicker({ cheDo: "chon-mot", khongYeuCauGia: true, khoaNho: "ve-tao", idTien: "vt-catalog", onPick: (c) => { dichVu = c; }, onDoi: () => { dichVu = null; } });
+  const khungDv = createCatalogPicker({ cheDo: "chon-mot", khongYeuCauGia: true, khoaNho: "ve-tao", idTien: "vt-catalog", onPick: (c) => { dichVu = c; void dienHotline(); }, onDoi: () => { dichVu = null; } });
   khungDv.setGroups(danhMuc.groups.filter((g) => dv.ds.some((d) => d.groupCode === g.code))); // nhóm không còn dịch vụ vé Tour Đảo nào thì không hiện nút
   khungDv.setItems(dv.ds);
   khungDv.setTaiKhoan(o.staffId);
@@ -77,6 +84,15 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { danhMuc: Api.Catalo
   const denNgay = h("input", { type: "date", class: "o", id: "vt-den-ngay", required: true });
   const soLuong = h("input", { type: "number", class: "o", id: "vt-so-luong", min: "1", max: String(o.tranLo()), step: "1", inputMode: "numeric", required: true });
   const tenEn = h("input", { type: "text", class: "o", id: "vt-ten-en", maxLength: 120, placeholder: "Ví dụ: Nha Trang 4-Island Tour" });
+  const hotline = h("input", { type: "tel", class: "o", id: "vt-hotline", inputMode: "tel", autocomplete: "off", maxLength: 20, required: true }) as HTMLInputElement;
+  /** Chọn dịch vụ thì điền lại số: số của dịch vụ, không có thì hotline công ty. */
+  const dienHotline = async (): Promise<void> => {
+    const ma = dichVu?.code ?? null;
+    const so = ma ? soDichVu.get(ma) ?? null : null;
+    if (so) { hotline.value = inSoHoTro(so); return; }
+    try { hotline.value = soDienSan(null, (await layCongTy()).hotline); } catch { hotline.value = ""; }
+  };
+  void dienHotline(); // mở form: chưa chọn dịch vụ thì điền sẵn hotline công ty
   const loi = h("p", { class: "alert", role: "alert", hidden: true });
   const trangThai = h("p", { class: "muted", role: "status", hidden: true });
   const khuMau = h("div", { "data-khoi": "ve-mau" });
@@ -91,6 +107,8 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { danhMuc: Api.Catalo
     if (!dichVu) return "Chọn dịch vụ cho cả lô.";
     if (!tuNgay.value || !denNgay.value) return "Chọn ngày dùng từ và đến cho cả lô.";
     if (denNgay.value < tuNgay.value) return "Ngày dùng đến phải sau hoặc bằng ngày dùng từ.";
+    const sh = chuanHoaSoHoTro(hotline.value);
+    if (!sh.ok) return sh.cau;
     if (!canSoLuong) return null;
     const so = Number(soLuong.value);
     if (!Number.isInteger(so) || so < 1) return "Nhập số vé cần tạo, ít nhất 1.";
@@ -99,7 +117,9 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { danhMuc: Api.Catalo
   };
   const noiDung = async (ma: string, soSeri: string) => {
     const ct = await layCongTy();
-    return { tenCongTy: ct.name, hotline: ct.hotline, tenDichVu: dichVu?.name ?? "", tenDichVuEn: tenEn.value.trim() || null, nhomKhach: chonNhom.value as NhomLo, denNgay: denNgay.value, ma, soSeri };
+    const so = chuanHoaSoHoTro(hotline.value);
+    if (!so.ok) throw new Error(so.cau);
+    return { tenCongTy: ct.name, hotline: inSoHoTro(so.so), tenDichVu: dichVu?.name ?? "", tenDichVuEn: tenEn.value.trim() || null, nhomKhach: chonNhom.value as NhomLo, denNgay: denNgay.value, ma, soSeri };
   };
 
   nutMau.addEventListener("click", async () => {
@@ -125,6 +145,7 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { danhMuc: Api.Catalo
     truong("Dùng từ ngày (chung cho cả lô)", "vt-tu-ngay", tuNgay), truong("Dùng đến ngày, in trên vé là hạn cuối", "vt-den-ngay", denNgay),
     truong(`Số vé (mỗi lô tối đa ${o.tranLo()} vé)`, "vt-so-luong", soLuong),
     truong("Tên tiếng Anh của dịch vụ (không bắt buộc, chỉ in lên vé, không lưu)", "vt-ten-en", tenEn),
+    truong("Hotline trên vé (điền sẵn theo dịch vụ, sửa được cho lô này)", "vt-hotline", hotline),
     h("p", { class: "muted" }, "Máy tự vẽ từng vé với mã riêng, tự đọc lại mã trên ảnh rồi mới đưa vào kho. Bạn không thấy mã vé; khách nhận vé qua đơn như vé thường."),
     loi, trangThai, khuMau, h("div", { class: "handler-actions" }, nutMau, nutTao));
 
@@ -145,7 +166,7 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { danhMuc: Api.Catalo
     try {
       const mau = await noiDung(MA_MAU, SERI_MAU); // tải hồ sơ công ty TRƯỚC khi mở lô: thiếu thì dừng, không để lô rỗng
       trangThai.textContent = "Đang mở lô…";
-      const mo = await api<{ loId: string; soSeri: string[] }>("/api/ve/lo", { method: "POST", body: { catalogCode: dichVu?.code ?? "", nhomKhach: chonNhom.value, tenSanPham: mau.tenDichVu, nguon: "TOUR_DAO", soVeDuKien: so } });
+      const mo = await api<{ loId: string; soSeri: string[] }>("/api/ve/lo", { method: "POST", body: { catalogCode: dichVu?.code ?? "", nhomKhach: chonNhom.value, tenSanPham: mau.tenDichVu, nguon: "TOUR_DAO", soVeDuKien: so, soHoTro: hotline.value } });
       loId = mo.loId;
       if (!Array.isArray(mo.soSeri) || mo.soSeri.length !== so) throw new Error("Máy chủ không cấp đủ số sê-ri cho lô.");
 
