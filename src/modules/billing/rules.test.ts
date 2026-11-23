@@ -478,7 +478,9 @@ test("benDatHuong / nhaCungCapCuaDon (đặc tả P4): đọc từ bản chụp;
   assert.deepEqual([...nhaCungCapCuaDon(phan(ba, { giamGiaHieuLuc: 150_000 }))], [["ncc", 400_000]], "giảm nằm gọn trong phần Tour Đảo");
   assert.deepEqual([...nhaCungCapCuaDon(phan(ba, { giamGiaHieuLuc: 250_000 }))], [["ncc", 350_000]], "phần dư 50.000 trừ vào quầy");
   assert.deepEqual([...nhaCungCapCuaDon(phan(ba, { giamGiaHieuLuc: 900_000 }))], [["ncc", 0]]);
-  assert.deepEqual([...nhaCungCapCuaDon({ ...phan(ba), congTyChuId: null })], [], "không đọc được công ty chủ ⇒ như biên nhận: mọi dòng vào phần Tour Đảo");
+  // Việc 15 (2026-11-23): phần quầy đọc nhà cung cấp mua lại TRONG bản chụp (`nguoiBanCuaDong`), không so với công ty chủ hôm nay ⇒ không cần đọc công ty chủ; vẫn khớp biên nhận
+  // (cùng hàm). Trước đây «không đọc được công ty chủ ⇒ mọi dòng vào phần Tour Đảo».
+  assert.deepEqual([...nhaCungCapCuaDon({ ...phan(ba), congTyChuId: null })], [["ncc", 400_000]], "không đọc được công ty chủ: phần quầy vẫn theo bản chụp, như biên nhận");
 });
 
 test("phanChuaThuNhaCungCap (đặc tả P4): trừ lần thu còn hiệu lực «thu cho» nhà cung cấp, kể cả lời khai đang chờ; bỏ lần thu đang bị thay", () => {
