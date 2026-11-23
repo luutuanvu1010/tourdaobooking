@@ -41,6 +41,7 @@ Giá gốc là giá của dịch vụ **sau** khi Quản trị ghi đè (nếu c
 | C17 | Quản trị ghi đè 450.000 → 480.000, rồi mới cộng mùa vụ | 480.000 | 05/02 | 548.000 | R1 | 68.000 |
 | C18 | Dịch vụ chưa có giá | — | 05/02 | — | — | 0 |
 | C19 | **Giá 0 đ (khách miễn phí, vd em bé) giữ 0 đ** | 0 | 05/02 | 0 | — | 0 |
+| C20 | 451.000 × 1,1 + 20.000 = 516.100: làm tròn **lên** thành 517.000 (làm tròn thường sẽ ra 516.000) | 451.000 | 05/02 | **517.000** | R1 | 66.000 |
 
 **Ví dụ cả đơn (kế hoạch):** 2 người lớn Tour 3 đảo đi 05/02 ⇒ 2 × 515.000 = **1.030.000 đ**; đi 20/02 ⇒ **900.000 đ**. Đơn đã xác nhận giữ nguyên số tiền dù sau đó quy tắc bị kết thúc.
 

@@ -267,6 +267,17 @@
       "gia": 0,
       "quyTacId": null,
       "soTang": 0
+    },
+    {
+      "ca": "C20",
+      "moTa": "Làm tròn LÊN khi phần lẻ dưới nửa nghìn: 451.000 × 1,1 + 20.000 = 516.100 → 517.000 (làm tròn thường sẽ ra 516.000)",
+      "giaGoc": 451000,
+      "maDichVu": "T3D",
+      "maNhom": "TOUR_DAO",
+      "ngayDi": "2027-02-05",
+      "gia": 517000,
+      "quyTacId": "R1",
+      "soTang": 66000
     }
   ],
   "kiemQuyTacMoi": {
