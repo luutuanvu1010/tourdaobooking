@@ -1022,6 +1022,9 @@ export interface CatalogCoVeInput { pham: "SERVICE" | "GROUP"; ma: string; coVe:
 /** ADR-0175 Đ1.2: ô «Vé do ai phát», chỉ trên từng dịch vụ. GET trả mọi dịch vụ của danh mục kèm giá trị hiện hành (chưa đặt là `HANG_NGOAI`). */
 export interface CatalogNguonVeResponse { dichVu: { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }[] }
 export interface CatalogNguonVeInput { ma: string; nguon: "HANG_NGOAI" | "TOUR_DAO" }
+/** ADR-0231: ô «Hotline trên vé». Chỉ dịch vụ đã đặt số; `so` dạng chuẩn chỉ chữ số. Gửi `so` null hoặc chuỗi rỗng = dùng hotline công ty. */
+export interface CatalogSoHoTroResponse { dichVu: { ma: string; so: string }[] }
+export interface CatalogSoHoTroInput { ma: string; so: string | null }
 export interface CatalogNgungBanResponse { code: string; ngungBan: boolean }
 /** ADR-0220: một khoảng «Ngừng bán theo ngày» còn chặn. `ma` = mã dịch vụ hoặc mã nhóm theo `phamVi`; `ten` = tên dịch vụ / tên nhóm để hiện. Ngày "YYYY-MM-DD", gồm cả hai đầu. */
 export interface CatalogNgungBanNgayDto { id: string; phamVi: "SERVICE" | "GROUP"; ma: string; ten: string; tuNgay: string; denNgay: string; ghiChu: string | null; taoLuc: string }

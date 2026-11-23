@@ -191,6 +191,8 @@ const NUA_NGHIEM: readonly { module: string; file: string }[] = [
   { module: "catalog", file: "modules/catalog/co-ve-repo.ts" },
   // ADR-0175 Đ1.2: ô «Vé do ai phát», mọi câu qua defineSql + EXPLAIN.
   { module: "catalog", file: "modules/catalog/nguon-ve-repo.ts" },
+  // ADR-0231: ô «Hotline trên vé», mọi câu qua defineSql + EXPLAIN.
+  { module: "catalog", file: "modules/catalog/so-ho-tro-repo.ts" },
   // ADR-0220 Đ1: khoảng «Ngừng bán theo ngày», mọi câu qua defineSql + EXPLAIN.
   { module: "catalog", file: "modules/catalog/ngung-ban-ngay-repo.ts" },
   // ADR-0201 Đ1: chi tiết dịch vụ (tên hiển thị, mô tả), mọi câu qua defineSql + EXPLAIN.

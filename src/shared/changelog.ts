@@ -18,14 +18,23 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Ảnh bàn giao (kế hoạch 16 việc 21/11, Việc 13; ADR-0232). Nhánh claude/upbeat-payne-c7e621. CÓ migration 0192 và kho R2 mới tourdao-sales-anh-ban-giao (chủ tạo trước).
-    // Số 3.35 = số trống kế tiếp sau 3.34 (Việc 8) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Chỉ bật khi Toàn quyền đăng chính sách riêng tư có «Số năm giữ ảnh bàn giao».
-    version: "3.35",
+    // Số 3.36 = số trống kế tiếp sau 3.35 (Việc 12) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Chỉ bật khi Toàn quyền đăng chính sách riêng tư có «Số năm giữ ảnh bàn giao».
+    version: "3.36",
     date: "2026-11-23",
     items: [
       { kind: "moi", text: "Ảnh bàn giao: ở trang đơn đã xác nhận, văn phòng và hướng dẫn viên phụ trách chụp ảnh lúc giao vé, giao khách rồi bấm «Gửi ảnh»." },
       { kind: "moi", text: "Tài xế công ty gửi ảnh bàn giao ngay trên điểm đón trong màn chuyến." },
       { kind: "moi", text: "Văn phòng, Kế toán, Quản trị xem được ảnh; đối tác và khách không thấy. Ảnh gửi nhầm chỉ Toàn quyền ẩn được, có ghi lý do." },
       { kind: "moi", text: "Chính sách riêng tư có thêm ô «Số năm giữ ảnh bàn giao»; còn trống thì chưa ai gửi được ảnh." },
+    ],
+  },
+  {
+    // Hotline trên vé Tour Đảo theo dịch vụ (kế hoạch 16 việc 21/11, Việc 12; ADR-0231 chủ duyệt 22/11). Nhánh claude/jovial-tharp-11a62e. CÓ migration 0185.
+    // Số 3.35 = số trống kế tiếp sau 3.34 (Việc 8) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0231.
+    version: "3.35",
+    date: "2026-11-23",
+    items: [
+      { kind: "moi", text: "Vé Tour Đảo in số riêng của dịch vụ: đặt ở ô «Hotline trên vé» màn Dịch vụ & giá; chưa đặt thì in hotline công ty. Lúc tạo vé sửa được cho riêng lô.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
     ],
   },
   {

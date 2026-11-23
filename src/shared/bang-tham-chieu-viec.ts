@@ -1010,6 +1010,21 @@ export const VIEC_QUAN_TRONG: readonly ViecQuanTrong[] = [
   },
   {
     nhom: "Cài đặt vận hành",
+    manHinh: "Dịch vụ & giá › dòng dịch vụ «Vé Tour Đảo» › ô «Hotline trên vé»",
+    ten: "Lưu hotline",
+    thatSuLam: "Lưu số điện thoại in ở chân vé Tour Đảo của dịch vụ này (số di động, số bàn hoặc tổng đài 1900, 1800). Để trống rồi lưu thì vé in hotline công ty như cũ. Form Tạo vé điền sẵn số này; vé đã tạo không đổi. Số không ghi vào nhật ký. Chỉ Quản trị, Toàn quyền.",
+    hoiLai: "không",
+    hoanTac: "được: gõ lại số cũ hoặc để trống rồi lưu",
+    duongLenh: ["/api/catalog/so-ho-tro"],
+    maNhatKy: ["ticket_support_phone_changed"],
+    noiDat: [
+      { tep: "web/catalog-co-ve.ts", chu: "Lưu hotline" },
+    ],
+    trangThai: "da-chot",
+    nguonTen: "Việc 12 kế hoạch 16 việc: chủ chọn phương án A 2026-11-21 qua phiên điều phối («còn lại áp dụng như khuyến nghị») — ô «Hotline trên vé», vé giữ chữ «Hotline <số>»",
+  },
+  {
+    nhom: "Cài đặt vận hành",
     manHinh: "Tôi (trang cá nhân) › khối «Dịch vụ nhập tay»",
     ten: "Bật dịch vụ nhập tay · Tắt dịch vụ nhập tay",
     thatSuLam: "Đổi công tắc chung. Bật thì Bán hàng, Quản trị, Toàn quyền thêm được dịch vụ gõ tên và giá tay khi lập, sửa đơn nháp; Đối tác thì không bao giờ dùng được. Tắt thì dịch vụ nhập tay đã có trên đơn vẫn giữ, chỉ xem.",

@@ -365,6 +365,12 @@
       "note": "ô «Vé do ai phát» chỉ trên từng dịch vụ (code = mã dịch vụ, không theo nhóm) (ADR-0175 Đ1.2, migration 0151), CHỈ-THÊM; source HANG_NGOAI = vé hãng ngoài, TOUR_DAO = vé Tour Đảo; dòng hiệu lực = valid_from_at lớn nhất; chưa có dòng là HANG_NGOAI; luật xét ở src/shared/nguon-ve.ts"
     },
     {
+      "name": "ctl_service_support_phone",
+      "module": "catalog",
+      "kind": "table",
+      "note": "ô «Hotline trên vé» chỉ trên từng dịch vụ (code = mã dịch vụ, không theo nhóm) (ADR-0231, migration 0185), CHỈ-THÊM; phone = số dạng chuẩn chỉ chữ số (di động, số bàn 02…, tổng đài 1900/1800), NULL = đã xoá số, vé in hotline công ty chủ; dòng hiệu lực = valid_from_at lớn nhất; chưa có dòng như NULL; số không vào nhật ký; luật kiểm ở src/shared/so-ho-tro.ts"
+    },
+    {
       "name": "ctl_service_detail",
       "module": "catalog",
       "kind": "table",
@@ -1213,7 +1219,7 @@
       "name": "vdt_batch",
       "module": "ve-dien-tu",
       "kind": "table",
-      "note": "`source` = nguồn vé của lô: `HANG_NGOAI` (vé hãng ngoài, mặc định, mọi lô cũ) hoặc `TOUR_DAO` (vé Tour Đảo), chọn lúc tạo, không đổi (trigger vdt_batch_source_locked; ADR-0175 Đ1.1, `0151`). `pax_group` nhận thêm `ALL` = lô «Mọi loại khách» cho vé không phân biệt loại khách (ADR-0157, `0134`); `vdt_allocation.pax_group` không nhận `ALL`. `last_cmd_id` = dấu lệnh của lần Huỷ lô thắng (ADR-0156). Lô VOID: `updated_at`, `updated_by` là lúc huỷ và người huỷ, vì không còn câu nào ghi lô đó. Lô nhập vé điện tử (ADR-0153 Đ1, 0131 — đề xuất): MỘT dịch vụ (mã tour `catalog_code`, tham chiếu logic, không khoá ngoại) + MỘT nhóm khách chọn một lần cho cả lô. Không xoá (trigger vdt_batch_no_delete); không đổi nhóm khách. `printed_name` = tên sản phẩm in trên vé, để nhân viên đối chiếu"
+      "note": "`support_phone` (ADR-0231, `0185`) = bản chụp hotline in trên vé của lô Tour Đảo, dạng chuẩn chỉ chữ số, chụp lúc mở lô, không đổi (trigger vdt_batch_support_phone_locked); NULL = lô cũ hoặc lô hãng ngoài; không vào nhật ký. `source` = nguồn vé của lô: `HANG_NGOAI` (vé hãng ngoài, mặc định, mọi lô cũ) hoặc `TOUR_DAO` (vé Tour Đảo), chọn lúc tạo, không đổi (trigger vdt_batch_source_locked; ADR-0175 Đ1.1, `0151`). `pax_group` nhận thêm `ALL` = lô «Mọi loại khách» cho vé không phân biệt loại khách (ADR-0157, `0134`); `vdt_allocation.pax_group` không nhận `ALL`. `last_cmd_id` = dấu lệnh của lần Huỷ lô thắng (ADR-0156). Lô VOID: `updated_at`, `updated_by` là lúc huỷ và người huỷ, vì không còn câu nào ghi lô đó. Lô nhập vé điện tử (ADR-0153 Đ1, 0131 — đề xuất): MỘT dịch vụ (mã tour `catalog_code`, tham chiếu logic, không khoá ngoại) + MỘT nhóm khách chọn một lần cho cả lô. Không xoá (trigger vdt_batch_no_delete); không đổi nhóm khách. `printed_name` = tên sản phẩm in trên vé, để nhân viên đối chiếu"
     },
     {
       "name": "vdt_ticket",
@@ -1936,6 +1942,15 @@
       "note": "giá trị hiện hành của ô «Vé do ai phát» theo từng dịch vụ đã đặt (ADR-0175 Đ1.2); dịch vụ không có dòng là HANG_NGOAI"
     },
     {
+      "name": "v_ctl_service_support_phone",
+      "module": "catalog",
+      "columns": [
+        "code",
+        "phone"
+      ],
+      "note": "số hiện hành của ô «Hotline trên vé» theo từng dịch vụ đã đặt số (ADR-0231); dịch vụ chưa đặt hoặc đã xoá số không có dòng; ve-dien-tu đọc qua hàm công bố của catalog"
+    },
+    {
       "name": "v_ctl_service_transfer_price",
       "module": "catalog",
       "columns": [
@@ -2193,6 +2208,7 @@
     "prc_transfer_fee_program_scope": { "program_id": "N1", "catalog_code": "N1", "party_id": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_receipt_fee_display_policy": { "id": "N1", "show_separate": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ctl_sales_pause": { "id": "N1", "scope": "N1", "catalog_code": "N1", "group_code": "N1", "from_date": "N1", "to_date": "N1", "note": "N2", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1", "ended_at": "N1" },
+    "ctl_service_support_phone": { "id": "N1", "code": "N1", "phone": "N2", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ctl_service_ticket_source": { "id": "N1", "code": "N1", "source": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ctl_service_ticket_flag": { "id": "N1","scope": "N1", "code": "N1", "has_ticket": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "ord_service_confirm_flag": { "id": "N1", "scope": "N1", "code": "N1", "required": "N1", "valid_from_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
@@ -2306,6 +2322,7 @@
     "v_ctl_service_group": { "catalog_code": "N1", "group_code": "N1" },
     "v_ctl_service_ticket_flag": { "scope": "N1", "code": "N1", "has_ticket": "N1" },
     "v_ctl_service_detail": { "code": "N1", "display_name": "N1", "description": "N1", "image_key": "N1", "sheet_name_at": "N1", "valid_from_at": "N1" },
+    "v_ctl_service_support_phone": { "code": "N1", "phone": "N2" },
     "v_ctl_service_transfer_price": { "catalog_code": "N1", "per_pax_price": "N1", "private_price": "N1", "valid_from_at": "N1" },
     "v_ctl_service_ticket_source": { "code": "N1", "source": "N1" },
     "v_ctl_service_transfer": { "catalog_code": "N1", "transfer_enabled": "N1" },
@@ -2385,7 +2402,7 @@
     "vc_vehicle_document_type": { "code": "N1", "name": "N1", "has_expiry": "N1", "sort_order": "N1", "active": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vc_vehicle_size": { "code": "N1", "label": "N1", "min_passengers": "N1", "max_passengers": "N1", "active": "N1", "sort_order": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_allocation": { "id": "N1", "ticket_id": "N1", "order_id": "N1", "order_service_id": "N1", "pax_group": "N1", "slot_no": "N1", "allocated_at": "N1", "allocated_by": "N1", "revealed_at": "N1", "released_at": "N1", "release_reason": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
-    "vdt_batch": { "source": "N1", "last_cmd_id": "N1", "id": "N1", "catalog_code": "N1", "pax_group": "N1", "printed_name": "N1", "status": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
+    "vdt_batch": { "source": "N1", "support_phone": "N2", "last_cmd_id": "N1", "id": "N1", "catalog_code": "N1", "pax_group": "N1", "printed_name": "N1", "status": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_delivery": { "id": "N1", "allocation_id": "N1", "channel": "N1", "delivered_by": "N1", "delivered_at": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_guest_link": { "id": "N1", "order_id": "N1", "token_hash": "N2", "expires_at": "N1", "revoked_at": "N1", "opened_count": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },
     "vdt_scan": { "id": "N1", "ticket_id": "N1", "allocation_id": "N1", "order_id": "N1", "order_service_id": "N1", "ket_qua": "N1", "ly_do": "N1", "so_khach": "N1", "xac_nhan_lech_ngay": "N1", "xac_nhan_chua_thu": "N1", "xac_nhan_vuot_khach": "N1", "scanned_at": "N1", "scanned_by": "N1", "voided_at": "N1", "voided_by": "N1", "void_reason": "N1", "ve_doan": "N1", "nhap_tay": "N1", "created_at": "N1", "created_by": "N1", "updated_at": "N1", "updated_by": "N1" },

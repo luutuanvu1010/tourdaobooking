@@ -157,6 +157,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/catalog/co-ve", access: "office" },
   { method: "GET", path: "/api/catalog/nguon-ve", access: "office" }, // ADR-0175 Đ1.2; thân hỏi catalog.ticket_flag.write, chặn Đối tác
   { method: "POST", path: "/api/catalog/nguon-ve", access: "office" },
+  { method: "GET", path: "/api/catalog/so-ho-tro", access: "office" }, // ADR-0231; thân hỏi catalog.ticket_flag.write hoặc ve.phat-hanh, chặn Đối tác
+  { method: "POST", path: "/api/catalog/so-ho-tro", access: "office" }, // ADR-0231; thân hỏi catalog.ticket_flag.write, chặn Đối tác
   { method: "GET", path: "/api/catalog/ngung-ban-ngay", access: "office" }, // ADR-0220 Đ4; thân hỏi catalog.hidden.write, chặn tài khoản giữ Đối tác
   { method: "POST", path: "/api/catalog/ngung-ban-ngay", access: "office" },
   { method: "POST", path: "/api/catalog/ngung-ban-ngay/:id/ket-thuc", access: "office" },
@@ -932,7 +934,7 @@ test("mức truy cập của 560 route hiện có khớp ảnh chụp đã duy�
   // 2026-11-21 (ADR-0221 Đ1): + GET (orders), POST (admin) /api/cai-dat/noi-don-doi-tac = 570.
   // Gộp main vào nhánh ADR-0218 (22/11/2026): 574 của nhánh + 5 route của main (ngừng bán theo ngày 3, nơi đón đối tác 2) = 579.
   // Gộp main vào nhánh việc 7 (23/11/2026, ADR-0227): + GET (orders), POST (admin) /api/cai-dat/chan-chua-gio-sat-ngay = 581.
-  // Gộp main vào nhánh Việc 13 (23/11/2026, ADR-0232 Ảnh bàn giao): 587 (main sau việc 8, ADR-0228) + 8 route /api/anh-ban-giao/* (4 staff, 4 office) = 595.
-  assert.equal(actual.length, 595, "số route thực tế lệch 595 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 595, "SNAPSHOT phải có đúng 595 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  // Gộp main vào nhánh Việc 13 (23/11/2026, ADR-0232 Ảnh bàn giao): 589 (main sau việc 12, ADR-0231) + 8 route /api/anh-ban-giao/* (4 staff, 4 office) = 597.
+  assert.equal(actual.length, 597, "số route thực tế lệch 597 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 597, "SNAPSHOT phải có đúng 597 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });
