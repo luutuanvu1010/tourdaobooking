@@ -2,7 +2,24 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.22 ĐÃ LÊN PRODUCTION (ADR-0222 khung gốc giao diện: bốn màn mẫu Đơn hàng, Chi tiết đơn, Sửa xe, Địa điểm dựng lại theo một khung chung; bảng và khối đổi bố cục theo chỗ trống thật của vùng nội dung) — không migration — triển khai 2026-11-21 13:42 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.30 ĐÃ LÊN PRODUCTION (ADR-0225 việc 5: form Đối tác bỏ ô đặt cọc; đơn đối tác xác nhận từ bản này chỉ thu hộ tiền mặt, không QR) — migration `0178`, `0179`, `0184` — triển khai 2026-11-23 08:57 giờ Việt Nam
+
+Bản trước trên production là 3.26, nên lần này mang lên cùng lúc mọi thứ đã vào main sau 3.26: các mục nhật ký 3.27–3.29 (gồm việc 3 tìm đối tác theo số, việc 2 Trả sau ADR-0224) và phí đưa đón từ giá gốc Sheet (ADR-0218, migration 0178–0179). Đầu ra `npm run trien-khai` (chép nguyên):
+
+- Ngày giờ: 2026-11-23 08:57 (giờ Việt Nam)
+- Commit: 8257cad88 Gộp main (phí đón từ giá gốc Sheet, ADR-0218) vào nhánh việc 5
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-23T00:18:47Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/45086820016
+- Tệp luật đã đổi — lý do chủ gõ: «ly do doi tep la gi» (docs/adr/ADR-0225-don-doi-tac-khong-thu-ho-chuyen-khoan.md; docs/adr/README.md) — chữ chủ gõ vào ô lý do, ghi nguyên văn; ADR-0225 chủ duyệt 22/11/2026
+- Migration đã áp: 0178_phi_don_gia_goc.sql, 0179_phi_don_nguon_tinh.sql, 0184_don_doi_tac_chi_tien_mat.sql
+- Điểm khôi phục Time Travel trước khi áp: 000031ae-00000000-0000512c-9a8b328ee2fcb876938851a5d4612a7e
+- Worker Version ID: ac26f7df-e97e-46b2-b92c-f7810b54db1f
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (3 cảnh báo)
+- Phiên bản: 3.30; cổng phiên bản trước và sau deploy: ĐẠT
+- Thời gian: day-len 12 phút 34 giây; trien-khai 0 phút 46 giây; TỔNG 13 phút 20 giây (vượt mục tiêu khoảng 10 phút của ADR-0179 Đ1.1, không chặn)
+- Chưa làm: chưa ai thử trên iPhone thật; công tắc «Khách của đối tác trả cho Công ty» để Bật, chưa kiểm trên bản chạy thật.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.22 ĐÃ LÊN PRODUCTION (ADR-0222 khung gốc giao diện: bốn màn mẫu Đơn hàng, Chi tiết đơn, Sửa xe, Địa điểm dựng lại theo một khung chung; bảng và khối đổi bố cục theo chỗ trống thật của vùng nội dung) — không migration — triển khai 2026-11-21 13:42 giờ Việt Nam
 
 Ghi BÙ lúc khoảng 14:35 cùng ngày bởi phiên điều phối, KHÔNG phải từ đầu ra `npm run trien-khai`: phiên thi công khung gốc được lưu trữ ngay sau khi chủ triển khai, trước khi kịp ghi sổ. Các dòng dưới lấy từ nguồn đọc lại được (bản ghi lượt kiểm ở `.git/tourdao-kiem/`, `wrangler deployments list`, `git reflog main`, GET công khai); dòng nào không dựng lại được thì ghi rõ.
 
