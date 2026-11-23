@@ -18,11 +18,23 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // Hotline trên vé Tour Đảo theo dịch vụ (kế hoạch 16 việc 21/11, Việc 12; ADR-0231 chủ duyệt 22/11). Nhánh claude/jovial-tharp-11a62e. CÓ migration 0185.
-    // Số 3.34 = số trống kế tiếp sau 3.33 (Việc 14) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0231.
-    version: "3.34",
+    // Số 3.35 = số trống kế tiếp sau 3.34 (Việc 8) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu nhánh khác nhập trước. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0231.
+    version: "3.35",
     date: "2026-11-23",
     items: [
       { kind: "moi", text: "Vé Tour Đảo in số riêng của dịch vụ: đặt ở ô «Hotline trên vé» màn Dịch vụ & giá; chưa đặt thì in hotline công ty. Lúc tạo vé sửa được cho riêng lô.", bai: { id: "viec/kho-ve", ten: "Kho vé điện tử" } },
+    ],
+  },
+  {
+    // Việc 8 kế hoạch 16 việc 21/11 (ADR-0228 chủ duyệt 22/11, migration 0183). Nhánh claude/eloquent-snyder-7de04b.
+    // Số 3.34 = số trống kế tiếp sau 3.33 (Việc 14) trên main lúc gộp 23/11: bước A.0 đặt lại số và ngày nếu việc khác nhập trước.
+    version: "3.34",
+    date: "2026-11-23",
+    items: [
+      { kind: "doi", text: "Công tắc «Ẩn thông tin khách» tách làm hai: «Đối tác không nhập tên, SĐT khách» và «Đối tác không nhập danh sách hành khách». Cả hai giữ vị trí cũ." },
+      { kind: "moi", text: "Công tắc mới «Đơn đối tác không cần đủ tên khách» (mặc định bật): đơn đối tác cho xe chạy được dù chưa đủ tên khách. Tắt thì phải đủ tên." },
+      { kind: "moi", text: "Công tắc mới «Đơn đối tác không cần giờ đón»: bật thì đơn có đón chưa có giờ không phải chờ văn phòng xét chỉ vì thiếu giờ. Mặc định tắt." },
+      { kind: "sua", text: "Trang đơn: dải tóm tắt đầu trang không còn lặp tên khách và nơi đón đã có ngay bên dưới; dòng «Tên» không hiện khi trùng tên bên đặt." },
     ],
   },
   {

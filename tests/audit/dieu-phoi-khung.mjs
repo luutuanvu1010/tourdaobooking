@@ -161,11 +161,14 @@ export async function don(w, v) {
  * Đặt công tắc «Ẩn thông tin khách khi đối tác đặt vé» bằng ROUTE THẬT (Toàn quyền — ADR-0154 Đ2) rồi tiến đồng hồ giả 5 ms: công tắc đọc theo đồng hồ, dòng mới có `valid_from_at` =
  * max(bây giờ, dòng mới nhất + 1 ms) nên với đồng hồ ĐÓNG BĂNG dòng vừa ghi nằm ở tương lai cho tới khi đồng hồ tiến. Chỉ dùng khi `batDongHo()` đã bật.
  */
+/** Bật / tắt CẢ BA công tắc (tên, SĐT; danh sách hành khách; đơn đối tác không cần đủ tên khách — ADR-0228 tách từ công tắc «Ẩn thông tin khách» cũ) = đúng nghĩa công tắc cũ. */
 export async function datCongTacAnKhach(w, bat) {
-  const r = await w.call("POST", "/api/cai-dat/an-thong-tin-khach", { as: SUP, body: { bat } });
-  assert.equal(r.status, 200, r.text);
-  assert.equal(r.json.bat, bat);
-  mock.timers.tick(5);
+  for (const url of ["/api/cai-dat/an-thong-tin-khach", "/api/cai-dat/hanh-khach-doi-tac", "/api/cai-dat/mien-du-ten-doi-tac"]) {
+    const r = await w.call("POST", url, { as: SUP, body: { bat } });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.bat, bat);
+    mock.timers.tick(5);
+  }
 }
 /**
  * Đơn ĐÃ XÁC NHẬN do tài khoản ĐỐI TÁC lập bằng ĐƯỜNG THẬT, công tắc «Ẩn thông tin khách» ĐANG ở trạng thái nào thì lập theo trạng thái đó (không đổi công tắc): đối tác
@@ -210,8 +213,10 @@ export async function donDoiTac(w, v = {}) {
 export async function donDoiTacCoDau(w, v = {}) {
   const hienTai = await w.call("GET", "/api/cai-dat/an-thong-tin-khach", { as: SUP });
   assert.equal(hienTai.status, 200, hienTai.text);
-  if (!hienTai.json.bat) await datCongTacAnKhach(w, true);
+  const mien = await w.call("GET", "/api/cai-dat/mien-du-ten-doi-tac", { as: SUP });
+  if (!hienTai.json.bat || !mien.json.bat) await datCongTacAnKhach(w, true);
   const d = await donDoiTac(w, { ...v, guiKhachGia: true });
+  // ADR-0228 Đ2: dấu do công tắc «Đơn đối tác không cần đủ tên khách» quyết (gieo Bật; `datCongTacAnKhach(w, true)` bật cả ba công tắc).
   assert.equal(w.q("SELECT manifest_exempt m FROM orders WHERE id = ?", d.id)[0].m, 1, "chống bài rỗng: đơn mang dấu");
   return d;
 }

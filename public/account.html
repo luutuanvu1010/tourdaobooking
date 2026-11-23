@@ -28,8 +28,14 @@
     <section id="nhap-tay-cai-dat" class="card" aria-labelledby="nhap-tay-heading" hidden></section>
     <!-- Ẩn thông tin khách khi đối tác đặt vé (ADR-0154 Đ2.1): web/an-khach-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/an-thong-tin-khach trả doiDuoc — ô settings.ops). -->
     <section id="an-khach-cai-dat" class="card" aria-labelledby="an-khach-heading" hidden></section>
+    <!-- Đối tác không nhập danh sách hành khách (ADR-0228 Đ1): web/cong-tac-doi-tac-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/hanh-khach-doi-tac trả doiDuoc — ô settings.ops). -->
+    <section id="hanh-khach-dt-cai-dat" class="card" aria-labelledby="hanh-khach-dt-heading" hidden></section>
+    <!-- Đơn đối tác không cần đủ tên khách (ADR-0228 Đ2): web/cong-tac-doi-tac-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/mien-du-ten-doi-tac trả doiDuoc — ô settings.ops). -->
+    <section id="mien-du-ten-cai-dat" class="card" aria-labelledby="mien-du-ten-heading" hidden></section>
     <!-- Bắt buộc giờ đón cho đơn đối tác (ADR-0193 mục 1): web/gio-don-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/bat-buoc-gio-don trả doiDuoc — ô settings.ops). -->
     <section id="gio-don-cai-dat" class="card" aria-labelledby="gio-don-heading" hidden></section>
+    <!-- Đơn đối tác không cần giờ đón (ADR-0228 Đ3): web/cong-tac-doi-tac-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/khong-can-gio-don trả doiDuoc — ô settings.ops). -->
+    <section id="khong-can-gio-cai-dat" class="card" aria-labelledby="khong-can-gio-heading" hidden></section>
     <!-- Hiện riêng phí đưa đón trên biên nhận khách lẻ (ADR-0218 Đ3.4): web/phi-don-bien-nhan-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/phi-don-bien-nhan trả doiDuoc — ô settings.ops). -->
     <section id="phi-don-bien-nhan-cai-dat" class="card" aria-labelledby="phi-don-bien-nhan-heading" hidden></section>
     <!-- Đối tác không nhập nơi đón (ADR-0221 Đ1): web/noi-don-cai-dat.ts chỉ hiện cho Toàn quyền (GET /api/cai-dat/noi-don-doi-tac trả doiDuoc — ô settings.ops). -->
