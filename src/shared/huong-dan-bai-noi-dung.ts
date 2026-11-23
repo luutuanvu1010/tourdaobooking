@@ -104,6 +104,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 5. Camera không mở được thì bấm **Chụp ảnh mã vé** và chụp mã trên vé. Camera trong trang đang bật sẽ tắt khi bấm nút này; chụp xong bấm [[Bật camera]] để quét tiếp bằng camera.
 6. Mã trên vé hỏng hoặc in mờ thì gõ **số sê-ri** in trên vé (dạng VE_ và tám chữ cái, chữ thường hay có khoảng trắng đều được) vào ô «Số sê-ri in trên vé», bấm [[Tra số sê-ri]]. Máy tra như khi quét nhưng luôn hiện màu vàng «nhập tay» vì số in trên vé ai nhìn cũng chép được: kiểm đúng vé trước mặt rồi bấm [[Xác nhận cho đi]]; lượt đó ghi «nhập tay» trong nhật ký. Vé hãng ngoài không tra được ở đây. Vé đỏ «Vé đã huỷ» thì không cho đi, báo văn phòng gửi lại vé thay.
 7. Mạng yếu thì máy tự gửi lại hai lần; vẫn không được thì hiện «Không gửi được». Kiểm tra Wi-Fi hoặc 4G rồi bấm **Thử lại**. Chưa thấy kết quả xanh thì chưa cho khách đi.
+8. Nếu hiện «Lần quét trước đã được ghi» (mạng làm mất kết quả của lần quét vừa rồi), bấm [[Quét tiếp]] để kiểm lại vé. Báo đỏ «Đã dùng» với giờ vừa rồi và tên của bạn nghĩa là lần trước đã tính vé hợp lệ: cho khách đi.
 
 ### Điều dễ sai
 - Tài xế công ty chỉ xem vé có hợp lệ không; lượt quét của họ không tính vào số vé đã đi.

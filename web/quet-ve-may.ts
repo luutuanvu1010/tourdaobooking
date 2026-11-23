@@ -19,7 +19,7 @@ export const DA_GHI_TRUOC_DO: DaGhiTruocDo = { daGhiTruocDo: true };
 const laDaGhi = (x: KetQuaQuet | DaGhiTruocDo): x is DaGhiTruocDo => "daGhiTruocDo" in x;
 
 /** Chữ lớn đi cùng màu: người mù màu vẫn đọc được kết quả. `LOI` = chưa kiểm được vé; `DA_GHI` = lần trước đã được ghi, không rõ kết quả (cả hai không phải phán quyết về vé). */
-const CHU_LON: Record<Mau | "LOI" | "DA_GHI", { dau: string; chu: string }> = { XANH: { dau: "✓", chu: "Hợp lệ" }, VANG: { dau: "!", chu: "Cần xác nhận" }, DO: { dau: "✕", chu: "Không dùng được" }, LOI: { dau: "↻", chu: "Không gửi được" }, DA_GHI: { dau: "✎", chu: "Lần quét trước đã được ghi" } };
+const CHU_LON: Record<Mau | "LOI" | "DA_GHI", { dau: string; chu: string }> = { XANH: { dau: "✓", chu: "Hợp lệ" }, VANG: { dau: "!", chu: "Cần xác nhận" }, DO: { dau: "✕", chu: "Không dùng được" }, LOI: { dau: "↻", chu: "Không gửi được" }, DA_GHI: { dau: "✎︎", chu: "Lần quét trước đã được ghi" } }; // ︎: ép kiểu chữ nét mảnh, không thành hình emoji
 /** Mã kết quả vàng → cờ xác nhận gửi lại (khớp `XacNhanQuet` của máy chủ). */
 const CO_XAC_NHAN: Record<string, "lechNgay" | "chuaThu" | "vuotKhach" | "nhapTay"> = { LECH_NGAY: "lechNgay", CHUA_THU_DU: "chuaThu", VUOT_KHACH: "vuotKhach", NHAP_TAY: "nhapTay" };
 
@@ -165,7 +165,7 @@ export function taoMayQuet(o: {
     // Người soát vé đang đứng trước khách: nói trước rằng kiểm lại sẽ ra đỏ «đã dùng» nếu lần trước đã tính, và cách nhận ra đó là lượt của chính mình
     // (câu máy chủ «… lúc <giờ> bởi <người quét>»), để không từ chối nhầm khách hợp lệ (người chấm giao diện 23/11, S10).
     const kiemLai = o.dangDocCamera() ? "Bấm «Quét tiếp» để kiểm lại vé còn trước camera." : "Chụp ảnh hoặc gõ số sê-ri lần nữa để kiểm lại vé.";
-    khung("DA_GHI", CHU_LON.DA_GHI.chu, ["Kết quả của lần quét đó không về tới máy này vì mạng chập chờn. Máy chủ chỉ tính mỗi vé một lần.", kiemLai, "Nếu báo đã dùng lúc vừa rồi bởi chính bạn, lần quét trước đã tính vé hợp lệ: cho khách đi."], [nutTiep]);
+    khung("DA_GHI", CHU_LON.DA_GHI.chu, ["Kết quả của lần quét đó không về tới máy này vì mạng chập chờn. Máy chủ chỉ tính mỗi vé một lần.", kiemLai, "Nếu báo đã dùng với giờ vừa rồi và tên của bạn, lần quét trước đã tính vé hợp lệ: cho khách đi."], [nutTiep]);
     nutTiep.focus();
   }
 

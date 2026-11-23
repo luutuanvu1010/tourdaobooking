@@ -291,7 +291,7 @@ describe("web/quet-ve-may.ts", () => {
     assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "DA_GHI");
     assert.ok(ketQuaEl.textContent.includes("Lần quét trước đã được ghi"));
     assert.doesNotMatch(ketQuaEl.textContent, /Hợp lệ|Không dùng được|Cần xác nhận|Không gửi được/, "không phán quyết về vé");
-    assert.ok(ketQuaEl.textContent.includes("Nếu báo đã dùng lúc vừa rồi bởi chính bạn, lần quét trước đã tính vé hợp lệ: cho khách đi."), "dặn trước cách đọc kết quả kiểm lại (không từ chối nhầm khách)");
+    assert.ok(ketQuaEl.textContent.includes("Nếu báo đã dùng với giờ vừa rồi và tên của bạn, lần quét trước đã tính vé hợp lệ: cho khách đi."), "dặn trước cách đọc kết quả kiểm lại (không từ chối nhầm khách)");
     assert.ok(ketQuaEl.textContent.includes("Bấm «Quét tiếp» để kiểm lại vé còn trước camera."));
     assert.equal(ketQuaEl.querySelectorAll("button").length, 1);
     assert.ok(nut(ketQuaEl, "Quét tiếp"));
