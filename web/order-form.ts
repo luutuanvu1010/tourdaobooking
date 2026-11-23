@@ -27,7 +27,7 @@ import { cauTranGiamGiaForm, oGiamGiaChiGiaDanhMuc } from "../src/shared/ben-kia
 import { dongVuotThanhTien, tongTinhTran } from "../src/shared/hoa-hong-dong";
 import { coXemPhanDoiTac } from "../src/shared/phan-doi-tac-hien-thi";
 import {
-  canAddService, chonDonGoiY, draftFromDto, draftIssues, soKhachNhap, newCatalogDraft, newManualDraft, orderIssues, orderSummary, refreshFromCatalog, toServiceInput, totalLines,
+  apGiaTheoNgay, canAddService, chonDonGoiY, doiNgayThe, draftFromDto, draftIssues, soKhachNhap, newCatalogDraft, newManualDraft, orderIssues, orderSummary, refreshFromCatalog, toServiceInput, totalLines,
   type ServiceDraft,
 } from "../src/shared/service-form";
 import { CAU_LUU_Y_MAC_DINH, KHUNG_MAC_DINH, type KhungGio } from "../src/shared/khung-gio-don";
@@ -176,6 +176,19 @@ interface Entry {
 const entries: Entry[] = [];
 let seq = 0;
 let live = new Map<string, CatalogServiceDto>(); // dịch vụ danh mục ĐANG HIỆN và được hỗ trợ, theo mã
+/** Danh mục như máy chủ trả (giá gốc + `giaTheoNgay`); ô chọn dịch vụ vẽ lại theo ngày đi mỗi khi ngày đổi (ADR-0229 Đ7). */
+let danhMucGoc: CatalogServiceDto[] = [];
+/** ADR-0229 Đ7: dịch vụ của danh mục hiện tại với giá của NGÀY ĐI `ngay` (đã cộng mùa vụ nếu ngày trong mùa); null = danh mục không còn. */
+const liveNgay = (code: string, ngay: string): CatalogServiceDto | null => {
+  const it = live.get(code);
+  return it ? apGiaTheoNgay(it, ngay || null) : null;
+};
+/** Ô chọn dịch vụ hiện giá theo ngày đi đang chọn (ADR-0229 Đ7). */
+let daCoDanhMuc = false;
+const veLaiOChon = (): void => {
+  if (daCoDanhMuc) picker.setItems(danhMucGoc.map((c) => apGiaTheoNgay(c, orderDate || null))); // chưa tải được danh mục: giữ câu báo của ô chọn
+};
+const liveTheoNgay = (ngay: string): Map<string, CatalogServiceDto> => new Map([...live.keys()].map((k) => [k, liveNgay(k, ngay)!]));
 let orderUpdatedAt: string | null = null;
 let formLocked = false;
 /** ADR-0159 Đ1 mục 1: ô «Khách đặt cọc cho đối tác» (tên ADR-0197 Đ1) chỉ tài khoản giữ quyền Đối tác (hỏi DANH TÍNH, máy chủ kiểm lại). */
@@ -244,11 +257,13 @@ orderDateEl.addEventListener("input", () => {
   for (const en of entries) {
     const r = doiNgayDi(en.draft.legs, cu, orderDate); // dời ngày đón mọi chặng cùng số ngày (Ruling R4e)
     soDoi += r.soDoi;
-    en.draft = { ...withOrderDate(en.draft), legs: r.legs };
+    const d = { ...withOrderDate(en.draft), legs: r.legs };
+    en.draft = d.kind === "catalog" ? doiNgayThe(d, orderDate, liveNgay(d.code, orderDate)) : d; // ADR-0229 Đ6, Đ7: giá theo ngày đi mới (giữ đơn giá đã thương lượng)
     en.card.update(en.draft);
   }
   dateMovedEl.textContent = soDoi > 0 ? cauDoiNgay(soDoi) : "";
   dateMovedEl.hidden = soDoi === 0;
+  if (danhMucGoc.some((c) => c.giaTheoNgay)) veLaiOChon(); // không dịch vụ nào có mùa vụ: ô chọn không đổi, khỏi vẽ lại
   recompute();
 });
 
@@ -260,7 +275,7 @@ const picker = createCatalogPicker({
     const tao = tatDuaDon ? { legs: [] as ChangNhap[], taoSan: null } : changTaoSan(mauChang.get(item.code) ?? null, orderDate, newKey);
     // Thiết kế lại 18/10 (mục 3C): thẻ vừa thêm MỞ (người lập phải điền), thẻ đang mở khác tự gập — trừ thẻ có lỗi chặn Lưu (`mustStayOpen`). Thẻ nằm dưới khung danh sách nên gập không xê dịch khung.
     // ADR-0134 Đ7: mẫu một chiều / khứ hồi (đã tạo sẵn chặng) → gợi ý "Đón" (đổi được); không mẫu → CHƯA chọn (không mặc định "Không đón").
-    chiMoMot(mount({ ...withOrderDate(newCatalogDraft(item, newKey())), legs: tao.legs, taoSan: tao.taoSan, pickupChoice: chonDonTheoNhom(!tatDuaDon, chonDonGoiY(tao.legs.length)) }, true)); // Ruling R-M: nhóm tắt → «Không đón»
+    chiMoMot(mount({ ...withOrderDate(newCatalogDraft(apGiaTheoNgay(item, orderDate || null), newKey())), legs: tao.legs, taoSan: tao.taoSan, pickupChoice: chonDonTheoNhom(!tatDuaDon, chonDonGoiY(tao.legs.length)) }, true)); // Ruling R-M: nhóm tắt → «Không đón»
     // Thiết kế lại 18/10 (đặc tả mục 3A): KHÔNG cuộn trang tới thẻ mới và KHÔNG thông báo nổi — khung danh sách đứng yên để thêm nhiều dịch vụ liền tay;
     // dòng vừa chạm hiện "✓ đã thêm" và vùng aria-live của ô chọn đọc "Đã thêm <tên>" (web/catalog-picker.ts). Thẻ mới nằm ngay dưới khung.
   },
@@ -786,7 +801,7 @@ async function refreshCatalogAfterConflict(): Promise<void> {
     for (const en of entries) {
       const d = en.draft;
       if (d.kind !== "catalog") continue;
-      const item = live.get(d.code);
+      const item = liveNgay(d.code, d.trip.departDate);
       if (!item) continue;
       const next = refreshFromCatalog(d, item); // giá mới cho thẻ đang theo danh mục hiện tại; GIỮ đơn giá đã thương lượng
       if (next !== d) {
@@ -977,7 +992,9 @@ function setCatalog(res: Api.CatalogPublicResponse): void {
   choDuaDon.clear();
   for (const c of res.items) choDuaDon.set(c.code, c.transferEnabled);
   live = new Map(res.items.filter((c) => c.supported).map((c) => [c.code, c]));
-  picker.setItems(res.items);
+  danhMucGoc = res.items;
+  daCoDanhMuc = true;
+  veLaiOChon();
   picker.setGroups(res.groups); // ADR-0058 Đ8 (thiết kế lại 18/10): hàng nút nhóm cuộn ngang, chọn MỘT nhóm
 }
 
@@ -1052,6 +1069,7 @@ function napThe(taoThe: readonly (() => ServiceDraft)[], ngay: string): string[]
   const dates = new Set(entries.map((e) => e.draft.trip.departDate));
   orderDate = dates.size === 1 ? [...dates][0]! : "";
   orderDateEl.value = orderDate;
+  veLaiOChon();
   return bao;
 }
 
@@ -1063,7 +1081,7 @@ function fill(o: Api.OrderDetailDto): string[] {
   phiThieu = new Map((o.phiDuaDon?.thieu ?? []).map((t) => [t.legId, t] as const));
   phiDoi.clear();
   const ngayDv = new Set(o.services.map((s) => s.departDate ?? ""));
-  return napThe(o.services.map((s) => () => draftFromDto(s, live, newKey())), ngayDv.size === 1 ? [...ngayDv][0]! : "");
+  return napThe(o.services.map((s) => () => draftFromDto(s, liveTheoNgay(s.departDate ?? ""), newKey())), ngayDv.size === 1 ? [...ngayDv][0]! : "");
 }
 
 /**
@@ -1090,7 +1108,7 @@ function theTuBanChup(d: ServiceDraft): ServiceDraft {
   const key = newKey();
   const legs = d.legs.map((l, i) => ({ ...l, key: `${key}-l${i}` }));
   if (d.kind !== "catalog") return { ...d, key, legs };
-  const moi = live.get(d.code) ?? null;
+  const moi = liveNgay(d.code, d.trip.departDate);
   const the = { ...d, key, legs, live: moi };
   return moi && the.source === "live" ? refreshFromCatalog(the, moi) : the;
 }
