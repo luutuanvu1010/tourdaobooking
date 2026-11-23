@@ -98,3 +98,32 @@ export function cungMua(v: { quyTacDaChup: string | null; maDichVu: string; maNh
   if (!q || !v.ngayMoi || !trongKhoang(q, v.ngayMoi)) return false;
   return apMoi === null || apMoi.id === q.id;
 }
+
+const ngayKe = (ngay: string, buoc: number): string => {
+  const d = new Date(`${ngay}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + buoc);
+  return d.toISOString().slice(0, 10);
+};
+
+/** Một đoạn ngày đi liền nhau áp cùng một quy tắc (ADR-0229 Đ7): form chọn giá theo ngày đi mà không cần hỏi lại máy chủ. */
+export interface DoanMuaVu { tu: string; den: string; quyTac: QuyTacMuaVu }
+
+/**
+ * ADR-0229 Đ7 — chia trục ngày đi (từ `tuNgay`) thành các đoạn liền nhau mà `chonQuyTac` cho cùng một quy tắc; chỉ trả đoạn CÓ quy tắc. Dựa đúng `chonQuyTac` nên
+ * khớp từng ngày với máy chủ (bài cạnh tệp so từng ngày).
+ */
+export function doanMuaVu(v: { maDichVu: string; maNhom: string | null; quyTac: readonly QuyTacMuaVu[]; tuNgay: string }): DoanMuaVu[] {
+  const lienQuan = v.quyTac.filter((q) => dangAp(q) && q.den >= v.tuNgay && ((q.phamVi === "SERVICE" && q.ma === v.maDichVu) || (q.phamVi === "GROUP" && q.ma === v.maNhom)));
+  if (lienQuan.length === 0) return [];
+  const moc = [...new Set(lienQuan.flatMap((q) => [q.tu < v.tuNgay ? v.tuNgay : q.tu, ngayKe(q.den, 1)]))].sort();
+  const out: DoanMuaVu[] = [];
+  for (let i = 0; i < moc.length - 1; i++) {
+    const tu = moc[i]!, den = ngayKe(moc[i + 1]!, -1);
+    const q = chonQuyTac({ maDichVu: v.maDichVu, maNhom: v.maNhom, ngayDi: tu, quyTac: lienQuan });
+    if (!q) continue;
+    const truoc = out[out.length - 1];
+    if (truoc && truoc.quyTac.id === q.id && ngayKe(truoc.den, 1) === tu) truoc.den = den;
+    else out.push({ tu, den, quyTac: q });
+  }
+  return out;
+}

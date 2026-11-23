@@ -227,6 +227,26 @@ export function setUnitPrice(d: CatalogDraft, code: PaxCode, n: number): Catalog
   return { ...d, unitPrices: { ...d.unitPrices, [code]: wholeMoney(n) } };
 }
 
+/** ADR-0229 Đ7: một dịch vụ danh mục như form nhận từ `GET /api/catalog/for-order` — kèm giá mùa vụ theo đoạn ngày đi. */
+export type CatalogTheoNgay = CatalogService & {
+  giaTheoNgay?: { tu: string; den: string; prices: Prices; mucTang?: { phanTram: number; soTien: number } }[];
+  /** Giá gốc (sau ghi đè, trước mùa vụ) — giữ lại khi `apGiaTheoNgay` thay `prices`, để đổi ngày lần nữa vẫn tính từ gốc. */
+  giaGoc?: Prices;
+  /** Mức tăng đang áp cho ngày đã chọn (chỉ văn phòng nhận); null = không mùa vụ. */
+  mucTang?: { phanTram: number; soTien: number } | null;
+};
+
+/**
+ * ADR-0229 Đ7: giá của dịch vụ cho NGÀY ĐI `ngay` — đoạn mùa vụ chứa ngày đó, không có thì giá gốc. Không có `giaTheoNgay` ⇒ trả nguyên `item` (bản chụp, `/api/catalog`).
+ * Máy chủ vẫn tính lại và so `catalogPriceSeen` (BK5); hàm này chỉ để form hiện và gửi đúng giá. Dùng kèm `refreshFromCatalog` khi đổi ngày (giữ đơn giá đã thương lượng).
+ */
+export function apGiaTheoNgay<T extends CatalogTheoNgay>(item: T, ngay: string | null): T {
+  if (!item.giaTheoNgay && !item.giaGoc) return item;
+  const goc = item.giaGoc ?? item.prices;
+  const doan = ngay ? item.giaTheoNgay?.find((x) => x.tu <= ngay && ngay <= x.den) : undefined;
+  return { ...item, giaGoc: goc, prices: doan ? doan.prices : goc, mucTang: doan?.mucTang ?? null };
+}
+
 /**
  * Sau 409 `catalog_changed`: dùng bảng giá danh mục MỚI cho thẻ đang theo danh mục hiện tại ("live"). Đơn giá ĐÃ THƯƠNG LƯỢNG (khác giá danh mục cũ) được giữ;
  * đơn giá chưa thương lượng (bằng giá danh mục cũ) chuyển sang giá mới. Thẻ bản chụp không đổi (máy chủ không kiểm giá của bản chụp).

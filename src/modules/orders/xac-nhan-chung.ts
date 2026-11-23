@@ -29,8 +29,8 @@ import type { CauCocXacNhan, VaoCauCoc } from "../../shared/dat-coc-kieu";
 import { viPhamGiaDanhMuc, viPhamTranGiamGia } from "./price-guards";
 import { cauChupChuoi } from "./thuong-mai-repo";
 import { donChoTran, dongGhiTuChup, moTaChup } from "./thuong-mai";
-import { catalogStatusOf, confirmGaps, summarizeDeviations } from "./service-rules";
-import { getEffectiveServices } from "../catalog";
+import { catalogStatusOf, confirmGaps, giaDanhMucHienHanh, summarizeDeviations } from "./service-rules";
+import { getEffectiveServices, giaMuaVuChoDon } from "../catalog";
 import { chuanBiPhiDonXacNhan, kiemNhomChoPhepDuaDon, type PhiDonXacNhan } from "./service";
 import { moTaPhiDonNhatKy, tomTatTuDto, tomTatTuKetQua, type DoiTayLuu } from "./phi-don-don";
 import { cauThieuPhiDon } from "./phi-don-don";
@@ -212,12 +212,14 @@ const HUONG_DAN_GIA_DOI = {
 export async function congGiaDanhMucDoi(db: D1Database, order: DonXacNhan, cua: keyof typeof HUONG_DAN_GIA_DOI): Promise<Response | null> {
   const ma = [...new Set(order.services.map((s) => s.catalogCode).filter((c): c is string => c !== null))];
   if (ma.length === 0) return null;
-  const danhMuc = await getEffectiveServices(db, ma);
+  // ADR-0229 Đ7b: so với giá hiện hành THEO NGÀY ĐI (đã cộng mùa vụ) — `catalog_price` đã lưu gồm mùa vụ, so với giá không theo ngày thì mọi nháp trong mùa đều «đã đổi».
+  const [danhMuc, muaVu] = await Promise.all([getEffectiveServices(db, ma), giaMuaVuChoDon(db, { tuNgay: "0000-01-01" })]);
   for (const s of order.services) {
     const eff = s.catalogCode === null ? undefined : danhMuc.get(s.catalogCode);
-    if (!eff || catalogStatusOf(s, eff) !== "price_changed") continue;
-    const dong = s.items.find((it) => it.paxCode !== null && it.catalogPrice !== null && eff.prices[it.paxCode] !== it.catalogPrice);
-    const chiTiet = dong && dong.paxCode !== null && dong.catalogPrice !== null ? ` (${PAX_LABEL[dong.paxCode].toLowerCase()}: ${dongVn(dong.catalogPrice)} → ${eff.prices[dong.paxCode] === undefined ? "không còn giá" : dongVn(eff.prices[dong.paxCode]!)})` : "";
+    if (!eff || catalogStatusOf(s, eff, muaVu) !== "price_changed") continue;
+    const hienHanh = giaDanhMucHienHanh(eff, s.departDate ?? null, muaVu);
+    const dong = s.items.find((it) => it.paxCode !== null && it.catalogPrice !== null && hienHanh[it.paxCode] !== it.catalogPrice);
+    const chiTiet = dong && dong.paxCode !== null && dong.catalogPrice !== null ? ` (${PAX_LABEL[dong.paxCode].toLowerCase()}: ${dongVn(dong.catalogPrice)} → ${hienHanh[dong.paxCode] === null || hienHanh[dong.paxCode] === undefined ? "không còn giá" : dongVn(hienHanh[dong.paxCode]!)})` : "";
     return error(409, "gia_danh_muc_da_doi", `Giá danh mục của «${s.name}» đã đổi sau khi lưu đơn nháp${chiTiet}. ${HUONG_DAN_GIA_DOI[cua]}`);
   }
   return null;

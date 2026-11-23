@@ -9,7 +9,7 @@ import { describeBookerChange, type BookerInput } from "../../shared/booker";
 import { vnToday } from "../../shared/vn-date";
 import { auditStatement } from "../audit";
 import { datGapTheoVai } from "./dat-gap";
-import { getEffectiveServices, maDatKhongDon, tenNhomHienHanh } from "../catalog";
+import { getEffectiveServices, giaMuaVuChoDon, maDatKhongDon, tenNhomHienHanh } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
 import { laNguoiHuong, ngayBatDauApPhiDon, tinhPhiDonGiaGoc } from "../pricing";
 import {
@@ -33,6 +33,12 @@ import {
 import { cauNhomTatDuaDon, dichVuCanHoiDuaDon, type CuaDuaDon, type ValidOrder } from "./rules";
 import { catalogStatusOf, type ServiceContext, type ValidTrip } from "./service-rules";
 
+/** Đọc MỌI quy tắc chưa kết thúc (kể cả khoảng đã qua — đơn nháp ngày cũ vẫn phải tính đúng như lúc lập). Bảng nhỏ (vài chục dòng). */
+const TU_NGAY_MOI_QUY_TAC = "0000-01-01";
+/** Mã quy tắc giá mùa vụ đã chụp trên các dòng của đơn (ADR-0229 Đ6). */
+export const maQuyTacDaChup = (stored: readonly { items: readonly { seasonalRuleId?: string | null }[] }[]): string[] =>
+  [...new Set(stored.flatMap((s) => s.items.flatMap((i) => (i.seasonalRuleId ? [i.seasonalRuleId] : []))))];
+
 /** `ServiceContext` kèm dịch vụ đã lưu ĐẦY ĐỦ (có `lines`) — route dùng lại cho kiểm "dịch vụ nhập tay đóng băng" (DK-T3-01) sau `validateOrder`. */
 export interface OrderValidationContext extends ServiceContext {
   stored: readonly StoredServiceRow[];
@@ -48,9 +54,12 @@ export async function validationContext(db: D1Database, orderId: string | null):
     orderId ? getStoredServices(db, orderId) : Promise.resolve([]),
     orderId ? passengerRowsByOrders(db, [orderId]) : Promise.resolve([]),
   ]);
+  // ADR-0229 Đ2, Đ6: mọi quy tắc giá mùa vụ chưa kết thúc (số ít) + quy tắc các dòng của đơn đã chụp (kể cả đã kết thúc), nhóm hiện hành của từng mã.
+  const muaVu = await giaMuaVuChoDon(db, { tuNgay: TU_NGAY_MOI_QUY_TAC, ids: maQuyTacDaChup(stored) });
   return {
     catalog,
     stored,
+    muaVu,
     // ADR-0047: chặng còn hiệu lực + ngày đi đang lưu (trộn thân cũ, dời ngày, kiểm id chặng); id hành khách đang lưu (đơn nháp: giữ id khi lưu lại).
     storedTrips: new Map(stored.map((s) => [s.id, { departDate: s.trip.departDate, legs: s.legs }] as const)),
     storedPassengerIds: new Set(paxRows.filter((p) => !p.voided).map((p) => p.id)),
@@ -495,7 +504,7 @@ export async function loadOrderView(db: D1Database, id: string, xemDuDatGap: boo
   if (!order) return null;
   if (order.status === "draft") {
     const codes = order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : []));
-    const catalog = await getEffectiveServices(db, codes);
+    const [catalog, muaVu] = await Promise.all([getEffectiveServices(db, codes), giaMuaVuChoDon(db, { tuNgay: TU_NGAY_MOI_QUY_TAC })]); // ADR-0229 Đ7b
     // Phí đưa đón của NHÁP: dòng đã lưu (dự kiến) + lượt đón mở máy chưa tính được (O_TRONG / HAI_CAP) — tính lúc đọc theo công tắc hôm nay; số đổi của văn phòng giữ theo id chặng (ADR-0218).
     const dvNhap = order.services.map((s) => ({ ref: s.id, ten: s.name, catalogCode: s.catalogCode, pax: s.pax, legs: s.legs.map((l) => ({ ...l, legKey: l.id })) }));
     const song = await tinhPhiNhap(db, dvNhap, { bookerPartyId: order.bookerPartyId, doiTay: (await docPhiDaLuu(db, id)).doiTay, ngay: vnToday(new Date()) });
@@ -503,7 +512,7 @@ export async function loadOrderView(db: D1Database, id: string, xemDuDatGap: boo
       {
         ...order,
         phiDuaDon: phiDuaDonDto({ nhap: true, dong: order.phiDuaDon?.dong ?? [], songNhap: song }),
-        services: order.services.map((s) => ({ ...s, catalogStatus: catalogStatusOf(s, s.catalogCode ? catalog.get(s.catalogCode) : undefined) })),
+        services: order.services.map((s) => ({ ...s, catalogStatus: catalogStatusOf(s, s.catalogCode ? catalog.get(s.catalogCode) : undefined, muaVu) })),
       },
       xemDuDatGap,
     );

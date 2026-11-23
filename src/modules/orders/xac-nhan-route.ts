@@ -28,7 +28,7 @@ import { canhBaoMocCua, type XetDatGapSua } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
 import { anKhachBat, anKhachMoiNhat, cauDoiGioChang, cauDoiNgayChang, cauDoiNgayDichVu, cauGhiKepGio, cauGhiKepNoi, cauGhiNoiDonChang, cauKhepYeuCau, cauMoYeuCau, cauThemAnKhach, cauThemChinhSach, cauThemCo, chinhSachMoiNhat, coHienHanh, coMoiNhat, cauThemGioDon, cauThemPhiDonBienNhan, cauThemNoiDon, docBatBuocGioDon, docKhongNhapNoiDon, hienRiengPhiDonBienNhan, phiDonBienNhanMoiNhat, gioDonMoiNhat, noiDonMoiNhat, nguoiLapGiuDoiTac, nhomDangDung, nhomTheoMa, orderTouchDraft, tuXacNhanNoiBo, ungVienTheBanHang, yeuCauMoCuaDon, yeuCauMoTatCa, yeuCauTheoId, type YeuCauRow, docChanChuaGioSatNgay, chanChuaGioMoiNhat, cauThemChanChuaGio } from "./xac-nhan-repo";
 import { activeLocations, legDatGapByOrder, legShortNoticeConVe, slotPolicy, tvGuiLenTheoChuoi, tvGuiLenTheoYeuCau, type DauDatGapMoi } from "./chang-hanh-khach-repo";
-import { daXacNhan, findOrder, getMeta, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
+import { daXacNhan, findOrder, getMeta, getStoredServices, nextStamp, soanHuyDon, soanXacNhan } from "./repository";
 import { congHuyTraSau, VE_CHUA_SOAN_DUOC } from "./tra-sau-cong";
 import { CAU_VUOT_TONG_NGUOI_XET } from "../../shared/dat-coc-truoc";
 import { MOC_CHUA_CO, RACED, STALE, chanGhiNhap, quyenGhiNhap, type KetQuaLenhDon, canChotGioCuaNguoiLap, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, congDoiTacChuaCoVaiTro, congNhomTatDuaDon, congThieuNoiDon, congThieuPhiDon, BAN_CU, TRANSFER_FEE_NOT_ALLOWED, dichLoiXacNhan, kemChupXacNhan, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tinhCanXacNhan, viCuaYeuCau, type NguoiLapDoiTac } from "./xac-nhan-chung";
@@ -37,7 +37,7 @@ import type { DoiTayLuu } from "./phi-don-don";
 import { coPhiDonKieuCu, coPhiDonTrongThan } from "./rules";
 import { CAU_DON_GIA_DOI_PHI, kiemDoiPhi } from "../../shared/phi-don-gia-goc";
 import { confirmGaps, confirmWindow } from "./service-rules";
-import { congLuatBan, congNgungBanNgay } from "./cong-ban";
+import { congCungMua, congLuatBan, congNgungBanNgay } from "./cong-ban";
 import { coChotGio } from "./gio-don-cai-dat";
 /** ADR-0213 Đ8.1 (Task 12): đơn tư cách tổ chức — chỉ người quản lý có hiệu lực của tổ chức bấm «Gửi đơn». */
 const ORG_MANAGER_REQUIRED = (): Response => error(403, "org_manager_required", "Chỉ người quản lý tổ chức gửi được đơn này lên Tour Đảo.");
@@ -551,6 +551,12 @@ export const xacNhanRoutes = (xetDatGap: XetDatGapSua) => [
     if (ketQua === "CON_VE") {
       const ngungXd = await congNgungBanNgay(env.DB, order.services.map((s) => ({ catalogCode: s.catalogCode, name: s.name, departDate: ngayDi ?? s.departDate })));
       if (ngungXd) return ngungXd;
+      // ADR-0229 Đ6: Còn vé kèm `ngayDi` dời ngày mọi dịch vụ — sang mùa giá khác ⇒ 409 (bản chụp giá đọc từ dòng đã lưu, không lấy từ DTO đơn).
+      if (ngayDi) {
+        const daLuu = await getStoredServices(env.DB, order.id);
+        const muaKhac = await congCungMua(env.DB, daLuu.map((s) => ({ catalogCode: s.catalogCode, name: s.name, ngayCu: s.trip.departDate, ngayMoi: ngayDi, quyTacDaChup: s.items.map((i) => i.seasonalRuleId) })), order.status === "draft");
+        if (muaKhac) return muaKhac;
+      }
     }
     // ADR-0185 Đ1 (kế hoạch K2, K3): người LẬP (không phải người bấm) giữ quyền Đối tác theo quyền THẬT (`v_stf_quyen_mo`; vai «xem như» không nằm trong bảng đó) mà đơn ra «không
     // người hưởng» ⇒ 409 NGAY SAU luật bán — không đẩy người xét đi bỏ lượt, ghi giờ hay đặt gấp cho một đơn không xác nhận được (cùng lý do R-7). `kiemCongXacNhan` gọi lại (lưới).

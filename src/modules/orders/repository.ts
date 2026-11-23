@@ -92,6 +92,10 @@ interface ItemRow {
   unit_price: number;
   catalog_price: number | null;
   line_total: number;
+  /** ADR-0229 Đ5: bản chụp giá mùa vụ (NULL ở dòng cũ / nhập tay). */
+  base_price: number | null;
+  seasonal_rule_id: string | null;
+  seasonal_increase: number | null;
 }
 
 const ORDER_SELECT = `SELECT o.*, s.label AS staff_name, b.display_name AS booker_name FROM orders o
@@ -104,7 +108,7 @@ const SERVICE_SELECT = `SELECT id, catalog_code, name, unit, pax_adult, pax_chil
 // không đơn / không bên đặt ⇒ 0.
 const BOOKER_LA_DOI_TAC = `SELECT EXISTS (SELECT 1 FROM v_pty_open_role r JOIN v_prc_beneficiary_role b ON b.role_type_code = r.role_type_code
   WHERE r.party_id = o.booker_party_id) AS la FROM orders o WHERE o.id = ?`;
-const ITEM_SELECT = `SELECT id, line_kind, service_id, catalog_code, pax_code, description, detail, quantity, unit_price, catalog_price, line_total FROM order_item WHERE order_id = ? ORDER BY sort_order`;
+const ITEM_SELECT = `SELECT id, line_kind, service_id, catalog_code, pax_code, description, detail, quantity, unit_price, catalog_price, line_total, base_price, seasonal_rule_id, seasonal_increase FROM order_item WHERE order_id = ? ORDER BY sort_order`;
 
 export interface ServiceSummaryRow {
   id: string;
@@ -384,7 +388,10 @@ export async function getStoredServices(db: D1Database, orderId: string): Promis
     unit: s.unit,
     pax: paxOf(s),
     trip: tripOf(s, legs.get(s.id) ?? []),
-    items: (items.get(s.id) ?? []).map((i) => ({ paxCode: i.pax_code, detail: i.detail, catalogPrice: i.catalog_price, unitPrice: i.unit_price })),
+    items: (items.get(s.id) ?? []).map((i) => ({
+      paxCode: i.pax_code, detail: i.detail, catalogPrice: i.catalog_price, unitPrice: i.unit_price, quantity: i.quantity,
+      basePrice: i.base_price, seasonalRuleId: i.seasonal_rule_id, seasonalIncrease: i.seasonal_increase,
+    })),
     lines: (items.get(s.id) ?? []).map((i) => ({ description: i.description, detail: i.detail, quantity: i.quantity, unitPrice: i.unit_price })),
     legs: legs.get(s.id) ?? [],
     pickupChoice: luaChonDonDaLuu(s.pickup_choice),
@@ -932,7 +939,7 @@ const SERVICE_COLS = [
   "id", "order_id", "sort_order", "catalog_code", "name", "unit", "pax_adult", "pax_child", "pax_senior", "pax_infant",
   "depart_date", "depart_time", "pickup_time", "pickup_place", "checkin_date", "checkin_time", "checkin_place", "note", "pickup_choice",
 ];
-const ITEM_COLS = ["id", "order_id", "service_id", "catalog_code", "pax_code", "description", "detail", "quantity", "unit_price", "catalog_price", "line_total", "sort_order"];
+const ITEM_COLS = ["id", "order_id", "service_id", "catalog_code", "pax_code", "description", "detail", "quantity", "unit_price", "catalog_price", "line_total", "sort_order", "base_price", "seasonal_rule_id", "seasonal_increase"];
 
 /**
  * INSERT các dịch vụ rồi các dòng tiền của chúng (dịch vụ trước vì dòng tiền trỏ khoá ngoại vào dịch vụ). Trả CẢ mảng id dịch vụ theo thứ tự (ADR-0047:
@@ -962,7 +969,7 @@ function serviceInserts(db: D1Database, orderId: string, services: ValidService[
       stmts.push(
         insertRow(
           db, "order_item", ITEM_COLS,
-          [itemId, orderId, ids[i]!, it.catalogCode, it.paxCode, it.description, it.detail, it.quantity, it.unitPrice, it.catalogPrice, it.lineTotal, sort++],
+          [itemId, orderId, ids[i]!, it.catalogCode, it.paxCode, it.description, it.detail, it.quantity, it.unitPrice, it.catalogPrice, it.lineTotal, sort++, it.basePrice, it.seasonalRuleId, it.seasonalIncrease],
           guard,
         ),
       );

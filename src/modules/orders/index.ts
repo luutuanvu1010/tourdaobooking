@@ -76,7 +76,7 @@ import type { ChanKhaiLai } from "../../shared/dat-coc-kieu";
 import { CAN_YEU_CAU, GIA_DANH_MUC, MOC_CHUA_CO, NOT_ACTING_FOR_ORG, RACED, chanGhiNhap, conThayMatToChuc, quyenGhiNhap, STALE, BAN_CU, TRANSFER_DISABLED, TRANSFER_FEE_NOT_ALLOWED, TRAN_GIAM_GIA, catChoXetDuyet, chanChuaGioSatNgay, chanDoanXacNhan, changDangLuu, chayLoNoiChuyen, cocChoXacNhan, dichLoiXacNhan, kemChupXacNhan, khoaKhiCho, kiemCongXacNhan, laThuaChotPhiDon, nguoiLapLaNguoiBam, tienChoHoaHong, tinhCanXacNhan, xacNhanTrenDon, type KetQuaLenhDon } from "./xac-nhan-chung";
 import { PHAI_GUI_DON, phaiGuiDon, xacNhanRoutes } from "./xac-nhan-route";
 import { thanhVienRoutes } from "./thanh-vien-route";
-import { congLuatBan, congNgungBanNgay } from "./cong-ban";
+import { congCungMua, congLuatBan, congNgungBanNgay } from "./cong-ban";
 import { congDoiBenDatTraSau, congHuyTraSau, congSuaTangTraSau, congTraSauKhiLuu, dichLoiLoHuy, dichLoiTraSau, VE_CHUA_SOAN_DUOC, type HamNoTraSau, type HamTraSau, type NguoiGuiTraSau } from "./tra-sau-cong";
 import { thanLapDonKhiAn, thanNhapKhiAn } from "./an-thong-tin-khach";
 import { apTruongDichVu, thanKhiAnTruong, thieuBatBuoc, traDichVu, truongTaoDon } from "./an-truong-giao-dien";
@@ -1774,6 +1774,12 @@ export const ordersModule: AppModule = {
         });
         const ngung = await congNgungBanNgay(env.DB, doiNgay);
         if (ngung) return ngung;
+        // ADR-0229 Đ6: dời ngày sang mùa giá khác ⇒ 409, không ghi (tiền đơn giữ nguyên, không tính lại).
+        const muaKhac = await congCungMua(env.DB, planned.updates.flatMap((u) => {
+          const sv = stored.find((x) => x.id === u.id);
+          return sv ? [{ catalogCode: sv.catalogCode, name: sv.name, ngayCu: sv.trip.departDate, ngayMoi: u.trip.departDate, quyTacDaChup: sv.items.map((i) => i.seasonalRuleId) }] : [];
+        }), meta.status === "draft");
+        if (muaKhac) return muaKhac;
       }
       const camSuaChuyen = await kiemNhomChoPhepDuaDon(env.DB, dichVuDoiChang, "sua");
       if (!camSuaChuyen.ok) return TRANSFER_DISABLED(camSuaChuyen.message);

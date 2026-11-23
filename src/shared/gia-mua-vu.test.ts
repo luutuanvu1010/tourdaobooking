@@ -4,7 +4,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { coSoHoaHong, cungMua, kiemChongNgay, kiemQuyTacMoi, tinhGiaMuaVu, type QuyTacMuaVu } from "./gia-mua-vu.ts";
+import { chonQuyTac, coSoHoaHong, cungMua, doanMuaVu, kiemChongNgay, kiemQuyTacMoi, tinhGiaMuaVu, type QuyTacMuaVu } from "./gia-mua-vu.ts";
 import { hoaHongDong } from "./hoa-hong-dong.ts";
 
 type CaGia = { ca: string; moTa: string; giaGoc: number | null; maDichVu: string; maNhom: string | null; ngayDi: string | null; gia: number | null; quyTacId: string | null; soTang: number };
@@ -70,4 +70,19 @@ test("sổ vàng: giá ra luôn ≥ giá gốc và soTang = gia − giaGoc (ch�
     assert.ok(c.gia !== null && c.gia >= c.giaGoc, c.ca);
     assert.equal(c.soTang, c.gia - c.giaGoc, c.ca);
   }
+});
+
+// ADR-0229 Đ7: đoạn ngày cho form khớp TỪNG NGÀY với chonQuyTac của máy chủ (cùng bộ quy tắc R1–R5).
+test("doanMuaVu khớp chonQuyTac từng ngày (Tour 3 đảo, Tour 4 đảo, Vé cano, nhóm khác)", () => {
+  const ke = (n: string, b: number) => { const d = new Date(`${n}T00:00:00.000Z`); d.setUTCDate(d.getUTCDate() + b); return d.toISOString().slice(0, 10); };
+  for (const [ma, nhom] of [["T3D", "TOUR_DAO"], ["T4D", "TOUR_DAO"], ["VE_CANO", "CANO"], ["KS1", "KHACH_SAN"]] as const) {
+    const doan = doanMuaVu({ maDichVu: ma, maNhom: nhom, quyTac: SO.quyTac, tuNgay: "2027-01-20" });
+    for (let ngay = "2027-01-20"; ngay <= "2027-03-10"; ngay = ke(ngay, 1)) {
+      const d = doan.find((x) => x.tu <= ngay && ngay <= x.den);
+      assert.equal(d?.quyTac.id ?? null, chonQuyTac({ maDichVu: ma, maNhom: nhom, ngayDi: ngay, quyTac: SO.quyTac })?.id ?? null, `${ma} ${ngay}`);
+    }
+  }
+  assert.deepEqual(doanMuaVu({ maDichVu: "T3D", maNhom: "TOUR_DAO", quyTac: SO.quyTac, tuNgay: "2027-01-20" }).map((d) => [d.tu, d.den, d.quyTac.id]), [
+    ["2027-02-01", "2027-02-09", "R1"], ["2027-02-10", "2027-02-12", "R2"], ["2027-02-13", "2027-02-15", "R1"],
+  ]);
 });

@@ -30,7 +30,8 @@ import { nguonVeRoutes } from "./nguon-ve-route";
 import { ngungBanNgayRoutes, trungDauTien } from "./ngung-ban-ngay-route";
 import { giaMuaVuRoutes } from "./gia-mua-vu-route";
 import { quyTacChuaKetThuc, quyTacTheoIds, thanhQuyTac } from "./gia-mua-vu-repo";
-import type { QuyTacMuaVu } from "../../shared/gia-mua-vu";
+import { doanMuaVu, tinhGiaMuaVu, type QuyTacMuaVu } from "../../shared/gia-mua-vu";
+import { vnToday } from "../../shared/vn-date";
 import { cauNgungBanNgay } from "./ngung-ban-ngay-rules";
 import { chiTietRoutes } from "./chi-tiet-route";
 import { chiTietHienHanh, type ChiTietDong } from "./chi-tiet-repo";
@@ -209,7 +210,12 @@ const FORBIDDEN_PRICES = () => error(403, "forbidden", "Tài khoản này không
  */
 async function catalogForOrderForm(
   env: Env,
-  { showSyncError, biChan }: { showSyncError: boolean; biChan?: (codes: readonly string[]) => Promise<ReadonlySet<string>> },
+  { showSyncError, biChan, muaVu }: {
+    showSyncError: boolean;
+    biChan?: (codes: readonly string[]) => Promise<ReadonlySet<string>>;
+    /** ADR-0229 Đ7: kèm giá mùa vụ theo đoạn ngày (form lập đơn); `xemMucTang` = gửi % và số tiền tăng (chỉ văn phòng — Đ9). Vắng = giá gốc (`GET /api/catalog`). */
+    muaVu?: { xemMucTang: boolean };
+  },
 ): Promise<CatalogPublicResponse> {
   try {
     await bootstrapIfNeverSynced(env, DONG_BO_DANH_MUC);
@@ -230,6 +236,22 @@ async function catalogForOrderForm(
   // ADR-0149 Đ1: ô riêng của dịch vụ (Luôn đón / Không đón) thắng cờ nhóm — cùng hàm `choPhepDuaDon`, bài so khớp src/migrations-dua-don-dich-vu.test.ts.
   const nhomDuaDon = nhoms.map((g) => ({ code: g.code, active: g.active === 1, transferEnabled: g.transfer_enabled === 1 }));
   const choForm: CatalogServiceDto[] = form.items.map((i) => ({ ...i, transferEnabled: choPhepDuaDon(i.groupCode, nhomDuaDon, quyTac.get(i.code) ?? "GROUP") }));
+  if (muaVu) {
+    // ADR-0229 Đ7: cùng hàm chọn quy tắc với máy chủ (`chonQuyTac` qua `doanMuaVu`), nhóm HIỆN HÀNH thô (`nhomTheoDichVu`, như `giaMuaVuChoDon`), cùng công thức `tinhGiaMuaVu`.
+    const homNay = vnToday(new Date());
+    const quyTacMv = (await quyTacChuaKetThuc(env.DB, homNay)).map(thanhQuyTac);
+    if (quyTacMv.length > 0) {
+      for (const it of choForm) {
+        const doan = doanMuaVu({ maDichVu: it.code, maNhom: nhomTheoDichVu.get(it.code) ?? null, quyTac: quyTacMv, tuNgay: homNay });
+        if (doan.length === 0) continue;
+        it.giaTheoNgay = doan.map((d) => {
+          const prices = { ...it.prices };
+          for (const c of PAX_ORDER) prices[c] = tinhGiaMuaVu({ giaGoc: it.prices[c], maDichVu: it.code, maNhom: d.quyTac.phamVi === "GROUP" ? d.quyTac.ma : null, ngayDi: d.tu, quyTac: [d.quyTac] }).gia;
+          return { tu: d.tu, den: d.den, prices, ...(muaVu.xemMucTang ? { mucTang: { phanTram: d.quyTac.phanTram, soTien: d.quyTac.soTien } } : {}) };
+        });
+      }
+    }
+  }
   return { items: choForm, sync: { lastSuccessAt: state.lastSuccessAt, error: showSyncError ? state.lastError : null }, groups: form.groups };
 }
 
@@ -255,7 +277,7 @@ export const catalogModule: AppModule = {
       if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không xem được danh mục dịch vụ.");
       if (!can(staff, "money.view", { ownerId: staff.id })) return FORBIDDEN_PRICES();
       // ADR-0146 Đ4: Đối tác (kể cả lai) bị ép bên đặt không thấy dịch vụ luật bán chặn cho loại của mình.
-      return json((await catalogForOrderForm(env, { showSyncError: isOffice(staff), biChan: dichVuBiChanChoToi })) satisfies CatalogPublicResponse);
+      return json((await catalogForOrderForm(env, { showSyncError: isOffice(staff), biChan: dichVuBiChanChoToi, muaVu: { xemMucTang: isOffice(staff) && !holdsPartner(staff) } })) satisfies CatalogPublicResponse);
     }),
 
     // ---- Đặc điểm dịch vụ (ADR-0152; kế hoạch 2026-10-30 T7) — khai TRƯỚC mọi route `/api/catalog/:code…` ----------------------------

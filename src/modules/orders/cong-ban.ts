@@ -2,7 +2,8 @@
 // `kiemCongXacNhan`: `/status`, Gửi đơn, Còn vé), Gửi xác nhận. Không tự đọc bảng nào: chỉ gọi hàm công bố `kiemLuatBan` của `pricing` (nhóm, đặc điểm đọc ở đó qua view của
 // catalog). Bài `src/luat-ban-moi-cua.test.ts` canh: mỗi cửa gọi `congLuatBan(`, và không tệp nào khác của `orders` gọi `kiemLuatBan(`.
 import { cauBiChan, kiemLuatBan } from "../pricing";
-import { kiemNgungBanTheoNgay } from "../catalog";
+import { giaMuaVuChoDon, kiemNgungBanTheoNgay } from "../catalog";
+import { cungMua } from "../../shared/gia-mua-vu";
 import { error } from "../../shared/http";
 import { vnToday } from "../../shared/vn-date";
 
@@ -32,4 +33,29 @@ export async function congLuatBan(
 export async function congNgungBanNgay(db: D1Database, dong: readonly { catalogCode: string | null; name: string; departDate: string | null }[]): Promise<Response | null> {
   const cau = await kiemNgungBanTheoNgay(db, dong.map((d) => ({ catalogCode: d.catalogCode, name: d.name, ngay: d.departDate })));
   return cau ? error(409, "sales_paused_date", cau) : null;
+}
+
+/**
+ * Cổng «CÙNG MÙA» của `orders` (ADR-0229 Đ6): dịch vụ có mã đổi NGÀY ĐI (ngày mới khác ngày đang lưu) mà ngày mới không cùng mùa với bản chụp ⇒ 409 `seasonal_date_changed`,
+ * không ghi. «Cùng mùa» theo bản chụp (hàm thuần `cungMua`): dòng chụp quy tắc Q ⇒ ngày mới trong khoảng của chính Q (dù Q đã kết thúc) và không quy tắc khác thắng Q;
+ * dòng chụp «không quy tắc» (kể cả dòng cũ trước ADR) ⇒ ngày mới không có quy tắc đang áp. Không tự tính lại tiền (HC-4.2). Nháp đổi ngày qua sửa đơn thì được tính lại giá
+ * (Q11 đã vá) — câu báo chỉ đường đó. Dịch vụ không đổi ngày không bị xét. Không nhận người thao tác hay bên đặt: không ai vượt.
+ * Bài src/gia-mua-vu-moi-cua.test.ts canh mỗi cửa đổi ngày của đơn đã lưu gọi hàm này.
+ */
+export async function congCungMua(
+  db: D1Database,
+  dong: readonly { catalogCode: string | null; name: string; ngayCu: string | null; ngayMoi: string | null; quyTacDaChup: readonly (string | null | undefined)[] }[],
+  laNhap: boolean,
+): Promise<Response | null> {
+  const xet = dong.filter((d) => d.catalogCode && d.ngayMoi && d.ngayMoi !== d.ngayCu);
+  if (xet.length === 0) return null;
+  const chup = (d: (typeof xet)[number]): string | null => d.quyTacDaChup.find((x): x is string => typeof x === "string" && x !== "") ?? null;
+  const { quyTac, nhomCua } = await giaMuaVuChoDon(db, { tuNgay: "0000-01-01", ids: xet.flatMap((d) => (chup(d) ? [chup(d)!] : [])) });
+  for (const d of xet) {
+    if (cungMua({ quyTacDaChup: chup(d), maDichVu: d.catalogCode!, maNhom: nhomCua.get(d.catalogCode!) ?? null, ngayMoi: d.ngayMoi, quyTac })) continue;
+    return error(409, "seasonal_date_changed", laNhap
+      ? `Ngày đi mới của «${d.name}» thuộc mùa giá khác. Hãy sửa đơn nháp (đổi ngày ở form sửa đơn) để tính lại giá.`
+      : `Ngày đi mới của «${d.name}» thuộc mùa giá khác; đơn đã xác nhận không đổi giá. Hãy huỷ đơn này và lập đơn mới cho ngày mới.`);
+  }
+  return null;
 }

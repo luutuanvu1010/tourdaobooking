@@ -934,6 +934,11 @@ export interface CatalogServiceDto extends CatalogService {
    * đang tắt dùng → `true`. Cùng giá trị cho mọi vai (cờ là dữ liệu, không theo vai).
    */
   transferEnabled: boolean;
+  /**
+   * ADR-0229 Đ7: giá ĐÃ CỘNG MÙA VỤ theo đoạn ngày đi (chỉ ở `GET /api/catalog/for-order`; vắng / rỗng = mọi ngày dùng `prices`). Form chọn đoạn chứa ngày đi của dịch vụ
+   * để hiện giá và gửi `catalogPriceSeen`. `mucTang` chỉ gửi cho người dùng văn phòng (Đ9: Đối tác chỉ thấy giá cuối).
+   */
+  giaTheoNgay?: { tu: string; den: string; prices: Prices; mucTang?: { phanTram: number; soTien: number } }[];
 }
 
 /** ADR-0058 Đ5: nhóm cho form đơn — chỉ nhóm đang dùng có ≥ 1 dịch vụ đang hiện, xếp theo thứ tự. */
