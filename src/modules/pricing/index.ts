@@ -1246,13 +1246,15 @@ export const pricingModule: AppModule = {
       const phamVi = row.scope === "ALL" ? "mọi dịch vụ" : row.scope === "GROUP" ? `nhóm ${row.group_code}` : `dịch vụ ${row.catalog_code}`;
       // Dòng của công ty chủ CŨ: cùng lô mở dòng thay cho công ty chủ hiện tại từ ngày hôm sau (không khe). Thua tranh chấp (người khác vừa ngừng cùng dòng): dòng cũ chỉ
       // ngừng được qua chính nhánh này nên đã có một dòng «Mọi dịch vụ» thay còn mở ⇒ câu chèn chạm trigger `prc_supply_term_overlap`, CẢ LÔ rơi (D1 batch là một giao dịch),
-      // trả 409 `prc_overlap`, không ghi gì. (Câu chèn dạng `INSERT … SELECT … WHERE changes() > 0` bị bài ranh giới module bắt vì kế hoạch truy vấn đọc ord_service_terms.)
+      // trả 409 `prc_overlap`, không ghi gì — lớp chặn thật của ca tranh chấp là trigger đó, không phải lính gác nhật ký. (Câu chèn dạng `INSERT … SELECT … WHERE changes() > 0` bị bài ranh giới module bắt vì kế hoạch truy vấn đọc ord_service_terms.)
       const thay = cach === "NGUNG_VA_THAY" && cty ? { id: crypto.randomUUID(), tuNgay: ngaySau(den.value) } : null;
       const res = await chayLo(env.DB, [
         closeTermStatement(env.DB, id, den.value, at, staff.id),
+        // Nhật ký «đã ngừng» đứng NGAY sau câu đóng: `changes() > 0` đo đúng câu đóng (người kiểm độc lập việc 15).
+        auditStatement(env.DB, { staffId: staff.id, action: "prc_supply_term_closed", at, detail: `${phamVi} · đến ${den.value}` }, "changes() > 0"),
         ...(thay && cty ? [insertTermStatement(env.DB, thay.id, { scope: "ALL", catalogCode: null, groupCode: null, sellerPartyId: cty.partyId, supplierPartyId: null, costRateBp: null,
           validFrom: thay.tuNgay, validTo: null, note: "Thay dòng «Mọi dịch vụ» của công ty chủ cũ (việc 15)" }, at, staff.id)] : []),
-        auditStatement(env.DB, { staffId: staff.id, action: "prc_supply_term_closed", at, detail: `${phamVi} · đến ${den.value}` }, "changes() > 0"),
+        // Nhật ký «đã thêm» đứng ngay sau câu chèn dòng thay (`changes() > 0` đo câu chèn).
         ...(thay ? [auditStatement(env.DB, { staffId: staff.id, action: "prc_supply_term_added", at, detail: `mọi dịch vụ · nhà cung cấp Tour Đảo · từ ${thay.tuNgay} (thay dòng của công ty chủ cũ)` }, "changes() > 0")] : []),
       ]);
       if (res instanceof Response) return res;

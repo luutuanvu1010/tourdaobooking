@@ -22,6 +22,7 @@ const noiDungEl = byId("nb-noi-dung");
 const bangEl = byId("dk-list");
 const theEl = byId("dk-list-cards");
 const rongEl = byId("dk-rong");
+const luonGiuEl = byId("dk-luon-giu");
 const dongKhuEl = byId("dk-dong-khu");
 const locTrangThaiEl = byId<HTMLSelectElement>("dk-loc-trang-thai");
 
@@ -73,10 +74,8 @@ async function main(): Promise<void> {
   const huyHieu = (tt: ReturnType<typeof trangThaiDong>): HTMLElement =>
     h("span", { class: tt === "DANG_AP" ? "badge badge-confirmed" : tt === "SAP_AP" ? "badge badge-draft" : "badge badge-cancelled" }, NHAN_TRANG_THAI[tt]);
   const nutDong = (d: Api.SupplyTermDto, k: ReturnType<typeof khungDong>): HTMLElement | false => {
-    if (!duocGhi) return false;
-    // Việc 15: dòng «Mọi dịch vụ» của công ty chủ hiện tại không ngừng được (máy chủ 409) — hiện câu giải thích thay cho nút.
-    if (laDongMoiDichVuLuonGiu(d)) return h("span", { class: "hint" }, CAU_MOI_DICH_VU_LUON_GIU);
-    if (!ngungDieuKhoanDuoc(d)) return false;
+    // Việc 15: dòng «Mọi dịch vụ» của công ty chủ hiện tại không ngừng được (máy chủ 409) — không nút; câu giải thích hiện MỘT lần dưới danh sách (`luonGiuEl`).
+    if (!duocGhi || !ngungDieuKhoanDuoc(d)) return false;
     const nut = h("button", { type: "button", class: "btn", "data-dong": d.id, "aria-label": `Ngừng điều khoản: ${k.phamVi} · ${k.nguoiBan}` }, "Ngừng điều khoản");
     nut.addEventListener("click", () => moDong(d, k));
     return nut;
@@ -116,6 +115,8 @@ async function main(): Promise<void> {
         );
       }),
     );
+    luonGiuEl.textContent = CAU_MOI_DICH_VU_LUON_GIU;
+    luonGiuEl.hidden = !(duocGhi && dong.some(laDongMoiDichVuLuonGiu));
     rongEl.hidden = dong.length > 0;
     rongEl.textContent = ds.dong.length === 0 ? CAU_KHONG_CO_DIEU_KHOAN : CAU_KHONG_KHOP_LOC;
   }
