@@ -645,7 +645,7 @@ test("Task 3 (ghim nợ 6): đường hẹp con-duoc-dung — đúng ba khoá; �
   assert.equal((await cua(DT, BEN2)).status, 403, "Task 11 vòng sửa 1: bên đặt ngoài tư cách ⇒ 403, không lặng lẽ đổi");
   const r = await cuaToi(DT);
   assert.equal(r.status, 200, r.text);
-  assert.deepEqual(Object.keys(r.json).sort(), ["coDonQuaHan", "coHanMuc", "conDuocDung"]);
+  assert.deepEqual(Object.keys(r.json).sort(), ["coDonQuaHan", "coHanMuc", "conDuocDung", "congTyThu", "traSauDichVu"]); // ADR-0230 Đ1 mục 5: thêm số giờ Trả sau theo dịch vụ; Đ2: công tắc kênh thu (form «Trả lúc check-in»)
   assert.equal(r.json.conDuocDung, 1_000_000, "số của chính Đối tác (hồ sơ phiên), không phải 3.000.000 của người khác");
   assert.equal((await cua(A, BEN2)).json.conDuocDung, 3_000_000, "văn phòng hỏi bên đặt đã chọn");
   assert.equal((await cua(H, BEN)).status, 403);

@@ -195,7 +195,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
     neo: ["web/o-tra-sau.ts", "web/an-han-tra-sau.ts", "src/shared/han-muc-tra-sau-hien-thi.ts"],
     moDau: "Đối tác được cấp hạn mức trả sau thì đặt được đơn trả sau: vé mở trước, tiền thu sau trong thời hạn trả tính bằng giờ (ADR-0172). Quản trị và Toàn quyền cấp, điều chỉnh, đóng hạn mức; Kế toán chỉ xem.",
     noiDung: `### Các bước
-1. Mở **Cấp độ đại lý**, tìm đối tác, bấm chữ ở cột **Trả sau** của dòng đó (đối tác chưa có hạn mức thì ô ghi «Chưa cấp»).
+1. Mở **Cấp độ đại lý**, tìm đối tác, bấm chữ ở cột **Trả sau** của dòng đó (đối tác chưa có hạn mức thì ô ghi «Chưa cấp», hoặc «Chưa cấp hạn mức» nếu đối tác đang nợ đơn Trả sau theo dịch vụ).
 2. Bảng mở ra đã điền sẵn số gợi ý của cấp (nếu có). Sửa **Hạn mức (đồng)**, **Thời hạn trả (giờ)** và **Ân hạn (giờ)** nếu cần.
 3. Bấm [[Cấp hạn mức]]. Đối tác đã có hạn mức thì nút ghi [[Điều chỉnh hạn mức]]: bấm để lưu số mới.
 
@@ -226,7 +226,8 @@ Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân h�
 2. Bấm **Xem đơn nợ** để xem từng đơn còn nợ, hạn trả (giờ Việt Nam) và trạng thái; bấm mã đơn để mở đơn.
 
 ### Điều dễ sai
-- «Quá hạn, đang trong ân hạn» chỉ là lời báo, chưa chặn gì. «Quá hạn» nghĩa là đã hết ân hạn: đối tác không đặt thêm đơn trả sau được cho tới khi thu đủ.`,
+- «Quá hạn, đang trong ân hạn» chỉ là lời báo, chưa chặn gì. «Quá hạn» nghĩa là đã hết ân hạn: đối tác không đặt thêm đơn trả sau được cho tới khi thu đủ.
+- Cột «Đang nợ» có thể có hai dòng: «Theo hạn mức» và «Trả sau theo dịch vụ». Chỉ dòng thứ nhất trừ vào hạn mức khả dụng; nợ Trả sau theo dịch vụ không có trần, chỉ có hạn trả.`,
   },
   {
     id: "giao-dien",

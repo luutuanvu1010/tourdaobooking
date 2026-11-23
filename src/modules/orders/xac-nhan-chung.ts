@@ -280,7 +280,7 @@ export async function kiemCongXacNhan(
   if ("loi" in vaiTro) return { loi: vaiTro.loi };
   // ADR-0168 Đ2 mục 3, 4: cổng hạn mức Trả sau — MỘT chỗ cho cả ba đường xác nhận (`/status`, `quyet-dinh` Còn vé, `gui-don` nhánh B). Đơn Trả trước: không tốn một câu đọc.
   // Thứ tự (kế hoạch ADR-0185 K4): ADR-0168 ghi cổng này «ngay sau luật bán»; từ ADR-0185 cổng vai trò đối tác xen giữa, vì cổng này đọc bên đặt.
-  const traSau = await traSauChoXacNhan({ ...i.traSau, nguoiGuiLaDoiTac: laDoiTacTraSau(actor) }, db, { order: { id: order.id, paymentTerm: order.paymentTerm, bookerPartyId: order.bookerPartyId, total: phiDon.totalMoi } });
+  const traSau = await traSauChoXacNhan({ ...i.traSau, nguoiGuiLaDoiTac: laDoiTacTraSau(actor) }, db, { order: { id: order.id, paymentTerm: order.paymentTerm, bookerPartyId: order.bookerPartyId, total: phiDon.totalMoi, maDichVu: order.services.map((s) => s.catalogCode ?? null) } });
   if ("loi" in traSau) return { loi: traSau.loi };
   // DK-T3-01 R2: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản có quyền Đối tác HOẶC Thực tập (ADR-0100) chỉ xác nhận được đơn
   // mà MỌI dòng đúng giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục). R3 (trần giảm giá ĐÃ LƯU) kiểm SAU khi tính bản chụp (Task 7).

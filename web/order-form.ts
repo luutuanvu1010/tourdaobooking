@@ -50,7 +50,8 @@ import { cheDoTuCach, laTuCachThanhVien, nhanMucTuCach, tuCachBanDau, type TuCac
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
 import { CAU_COC_TRA_SAU, CAU_VUOT_TONG, conPhaiTra, vuotTong } from "../src/shared/dat-coc-truoc";
-import { cauChonTraSau, duocChonSanTraSau, hinhThucDuocNhan, quyetHinhThuc, type TrangThaiTraSau } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { CAU_CHECKIN_VE_TRA_TRUOC, CAU_TRA_LUC_CHECKIN_FORM, NHAN_TRA_LUC_CHECKIN, traLucCheckinDuocChon } from "../src/shared/tra-luc-checkin";
+import { cauChonTraSau, duocChonSanTraSau, duongConDuocDung, hinhThucDuocNhan, quyetHinhThuc, trangThaiTuConDuocDung, type TrangThaiTraSau } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { NHAN_HINH_THUC, laDoiTacTraSau } from "../src/shared/tra-sau";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
@@ -230,6 +231,10 @@ const bangKhachQuery = window.matchMedia("(min-width: 1440px)");
 bangKhachQuery.addEventListener("change", () => hk?.refresh(true));
 
 const drafts = () => entries.map((e) => e.draft);
+/** ADR-0230 Đ1 mục 5: mã các dòng dịch vụ đang soạn (null = dòng nhập tay) — gửi kèm khi hỏi Trả sau; đổi tập mã thì hỏi lại (máy chủ quyết, form không chép luật). */
+const maDichVuForm = (): (string | null)[] => drafts().map((d) => (d.kind === "catalog" ? d.code : null));
+let traSauSanSang = false; // bật sau lần hỏi Trả sau đầu tiên (khối Trả sau dựng ở cuối tệp)
+let maDichVuDaHoi = "";
 const nameOf = (d: ServiceDraft, i: number) => d.name.trim() || `Dịch vụ ${i + 1}`;
 
 // ---- một ngày cho cả đơn (ADR-0021) ----
@@ -603,6 +608,10 @@ function recompute(): void {
   byId("sum-count").textContent = `${n} dịch vụ`;
   byId("mobile-count").textContent = `${n} dịch vụ`;
   picker.setSelected(ds.flatMap((d) => (d.kind === "catalog" ? [d.code] : [])));
+  if (traSauSanSang) {
+    const khoa = JSON.stringify(maDichVuForm().map((m) => m ?? "").sort());
+    if (khoa !== maDichVuDaHoi) void napTraSau(); // thêm / bớt / đổi dịch vụ ⇒ xét lại «Trả sau theo dịch vụ»
+  }
   const warn = byId("sum-warning");
   warn.textContent = s.warning ?? "";
   warn.hidden = !s.warning;
@@ -745,7 +754,9 @@ function collect(): OrderInput | OrderInputAn {
     paymentNote: field("paymentNote").value, // trường ẩn vẫn gửi giá trị đang nạp: máy chủ quyết (ẩn ⇒ giữ giá trị lưu), chính sách đổi giữa chừng không xoá mất giá trị
     // Trả sau (ADR-0168): khối chỉ hiện khi bên đặt có hạn mức; Trả sau không kèm tiền đặt cọc (gửi 0 để máy chủ không giữ số cũ).
     paymentTerm: hinhThucChon(), // luôn gửi: khối ẩn thì là Trả trước, để PUT không giữ Trả sau cũ mà không còn chỗ chọn lại
-    ...(coODatCoc ? { declaredDeposit: num("declaredDeposit") } : {}), // ADR-0197 Đ2: đơn Trả sau cũng gửi lời khai, không ép 0
+    // ADR-0230 Đ2: gửi khi lựa chọn đã rõ; chưa hỏi được máy chủ mà nháp đang chọn ⇒ không gửi khoá (máy chủ giữ lựa chọn đang lưu, không tắt nhầm). Đi với paymentTerm PREPAID.
+    ...(checkinDuoc || !checkinMuon ? { traLucCheckin: checkinChon() } : {}),
+    ...(coODatCoc ? { declaredDeposit: checkinChon() ? 0 : num("declaredDeposit") } : {}), // ADR-0197 Đ2: đơn Trả sau cũng gửi lời khai, không ép 0; «Trả lúc check-in» ẩn ô cọc ⇒ 0
     ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
     // Tư cách (ADR-0213 Đ3.1): chỉ khi LẬP đơn mà có tư cách để chọn; sửa đơn không gửi (đơn đã lập theo một tư cách thì không đổi bên đặt — máy chủ 409).
     ...(tuCachChon && !editId ? { tuCach: tuCachChon.partyId } : {}),
@@ -1018,7 +1029,7 @@ function napBenDat(o: Api.OrderDetailDto): void {
 }
 
 /** Các ô thường của form mà đường nạp đơn điền (từ đơn đã lưu, hoặc từ bản chụp lúc hết phiên — ADR-0192). */
-type GiaTriO = Pick<Api.OrderDetailDto, "customerName" | "customerPhone" | "customerEmail" | "customerNote" | "discount" | "paymentNote" | "declaredDeposit" | "paymentTerm">;
+type GiaTriO = Pick<Api.OrderDetailDto, "customerName" | "customerPhone" | "customerEmail" | "customerNote" | "discount" | "paymentNote" | "declaredDeposit" | "paymentTerm"> & { traLucCheckin?: boolean };
 /** Điền các ô thường; `giua` chạy đúng chỗ cũ của việc nạp bên đặt (sau tên + SĐT, trước email — ô tra hồ sơ khách tra theo SĐT vừa điền). */
 function napO(o: GiaTriO, giua: () => void): void {
   field("customerName").value = o.customerName;
@@ -1031,7 +1042,7 @@ function napO(o: GiaTriO, giua: () => void): void {
   (field("discount") as HTMLInputElement).value = o.discount ? grouped(o.discount) : "";
   field("paymentNote").value = o.paymentNote ?? "";
   (field("declaredDeposit") as HTMLInputElement).value = o.declaredDeposit ? grouped(o.declaredDeposit) : "";
-  datHinhThuc(o.paymentTerm);
+  datHinhThuc(o.paymentTerm, o.traLucCheckin === true);
 }
 
 /** Dựng lại các thẻ dịch vụ (bỏ thẻ cũ) theo ngày của cả đơn `ngay`. Trả các câu báo (dịch vụ thuộc nhóm tắt đưa đón mà còn chặng → form bỏ chặng đó; ADR-0118 Đ5). */
@@ -1110,6 +1121,7 @@ function apBanChup(g: GiaTriForm): void {
     paymentNote: t.paymentNote ?? "",
     declaredDeposit: t.declaredDeposit ?? 0,
     paymentTerm: t.paymentTerm ?? "PREPAID",
+    traLucCheckin: t.traLucCheckin === true,
   };
   napO(o, () => {
     if (khoiBenDat.kieu === "chi-doc") return;
@@ -1411,7 +1423,23 @@ let traSauHien = false;
 const oHinhThuc = (v: string): HTMLInputElement => khoiTraSau.querySelector<HTMLInputElement>(`input[name="paymentTerm"][value="${v}"]`)!;
 // Chữ hai nút chọn hình thức đến từ MỘT hằng (NHAN_HINH_THUC), không gõ cứng ở HTML (đổi «Trả trước» → «Thanh toán ngay», 9/11/2026).
 for (const v of ["PREPAID", "CREDIT"] as const) khoiTraSau.querySelector(`[data-nhan-hinh-thuc="${v}"]`)!.textContent = NHAN_HINH_THUC[v];
+khoiTraSau.querySelector(`[data-nhan-hinh-thuc="TRA_LUC_CHECKIN"]`)!.textContent = NHAN_TRA_LUC_CHECKIN;
+// «Trả lúc check-in» (ADR-0230 Đ2) là đơn Thanh toán ngay kèm một lựa chọn: ô thứ ba gửi paymentTerm PREPAID + traLucCheckin true.
 const hinhThucChon = (): "PREPAID" | "CREDIT" => (oHinhThuc("CREDIT").checked ? "CREDIT" : "PREPAID");
+/** Lựa chọn «Trả lúc check-in» có hiện không — cùng luật thuần máy chủ dùng (`traLucCheckinDuocChon`), tính lại ở mỗi lần `napTraSau`. Văn phòng: luôn. */
+let checkinDuoc = !laDoiTacTraSau(staff);
+/** Đơn (nháp đã nạp, hoặc người dùng) muốn «Trả lúc check-in» — tách khỏi ô đang hiện như `hinhThucMuon`. */
+let checkinMuon = false;
+const checkinChon = (): boolean => checkinDuoc && oHinhThuc("TRA_LUC_CHECKIN").checked;
+/** Chọn «Trả lúc check-in»: một câu ngắn thay ô cọc (ẩn ô cọc của Đối tác nếu có). */
+function anHienCheckin(): void {
+  const chon = checkinChon();
+  const cau = byId("tra-luc-checkin-cau");
+  cau.textContent = CAU_TRA_LUC_CHECKIN_FORM;
+  cau.hidden = !chon;
+  byId("dat-coc-o").hidden = !coODatCoc || chon;
+  byId("dat-coc-goi-y").hidden = !coODatCoc || chon;
+}
 /** ADR-0197 Đ2, Đ3: ô cọc luôn có với tài khoản Đối tác, kể cả khi chọn Trả sau; chọn Trả sau thì thêm câu nhắc cọc không làm giảm nợ với Công ty. */
 function anHienDatCoc(): void {
   const traSau = traSauHien && hinhThucChon() === "CREDIT";
@@ -1429,11 +1457,13 @@ let hinhThucMuon: "PREPAID" | "CREDIT" = "PREPAID";
  * Khi còn đang «chọn sẵn», `hinhThucMuon` giữ «Thanh toán ngay»: bên đặt mất Trả sau thì ô về «Thanh toán ngay» âm thầm, không câu báo (người dùng chưa chọn gì).
  */
 let daChonHinhThuc = false;
-function datHinhThuc(v: "PREPAID" | "CREDIT"): void {
+function datHinhThuc(v: "PREPAID" | "CREDIT", checkin = false): void {
   daChonHinhThuc = true;
   hinhThucMuon = v;
-  oHinhThuc(v).checked = true;
+  checkinMuon = checkin && v === "PREPAID";
+  oHinhThuc(checkinMuon && checkinDuoc ? "TRA_LUC_CHECKIN" : v).checked = true;
   anHienDatCoc();
+  anHienCheckin();
 }
 function benDatId(): string | null {
   if (khoiBenDat.kieu === "chi-doc") return khoiBenDat.benDat.partyId;
@@ -1449,11 +1479,17 @@ async function napTraSau(): Promise<void> {
   const laDoiTac = laDoiTacTraSau(staff); // ADR-0198 Đ1: đối tác không thấy số hạn mức
   let c = cauChonTraSau({ coHanMuc: false, conDuocDung: 0, coDonQuaHan: false, laDoiTac });
   let trangThai: TrangThaiTraSau = "khong_co";
+  let congTyThu: boolean | null = null; // ADR-0230 Đ2: công tắc hiện hành (máy chủ chỉ trả cho Đối tác)
+  const ma = maDichVuForm();
+  maDichVuDaHoi = JSON.stringify(ma.map((m) => m ?? "").sort());
+  traSauSanSang = true;
   if (id) {
     try {
-      const r = await api<Api.ConDuocDungTraSauResponse>(`/api/tra-sau/con-duoc-dung?benDat=${encodeURIComponent(id)}`);
+      // ADR-0230 Đ1 mục 5: gửi kèm mã dịch vụ đang soạn — máy chủ trả thêm «Trả sau theo dịch vụ» (chỉ số giờ) bằng cùng luật cổng lưu dùng.
+      const r = await api<Api.ConDuocDungTraSauResponse>(duongConDuocDung(id, ma));
       c = cauChonTraSau({ ...r, laDoiTac });
-      trangThai = !r.coHanMuc ? "khong_co" : r.coDonQuaHan ? "qua_han" : vuotTuMayChu === id ? "vuot" : "dung_duoc";
+      trangThai = trangThaiTuConDuocDung(r, vuotTuMayChu === id);
+      congTyThu = r.congTyThu ?? null;
     } catch {
       // Không đọc được: giữ nguyên lựa chọn đang có, máy chủ vẫn kiểm lại lúc lưu. ADR-0224 Đ2.2: máy chủ nhận «Thanh toán ngay» khi không đọc được hạn mức ⇒ hiện lại nút đó.
       if (luot === traSauLuot) oHinhThuc("PREPAID").closest("label")!.hidden = false;
@@ -1465,18 +1501,29 @@ async function napTraSau(): Promise<void> {
   const luat = laDoiTac ? hinhThucDuocNhan({ laDoiTac, traSau: trangThai }) : null;
   const q = quyetHinhThuc({ dangChon: hinhThucMuon, c, benDatChuaNap: id === null && !donDaNap, chonSan: duocChonSanTraSau({ laDoiTac, donMoi: !editId, daChon: daChonHinhThuc }), ...(luat ? { chonDuoc: luat.chonDuoc } : {}) });
   traSauHien = c.hien;
-  khoiTraSau.hidden = !c.hien;
-  byId("hinh-thuc-cho").hidden = !formGon || !c.hien; // H1: thẻ chứa ở cột phải chỉ hiện khi form Đối tác có lựa chọn Trả sau
+  // ADR-0230 Đ2 mục 3: «Trả lúc check-in» theo cùng luật máy chủ — văn phòng luôn; Đối tác khi công tắc Bật và luật ADR-0224 còn nhận «Thanh toán ngay».
+  checkinDuoc = traLucCheckinDuocChon({ laDoiTac, congTyThu, chonDuoc: luat?.chonDuoc ?? ["PREPAID", "CREDIT"] });
+  const coKhoi = c.hien || checkinDuoc;
+  khoiTraSau.hidden = !coKhoi;
+  byId("hinh-thuc-cho").hidden = !formGon || !coKhoi; // H1: thẻ chứa ở cột phải chỉ hiện khi form Đối tác có lựa chọn hình thức
   byId("tra-sau-cau").textContent = luat?.lyDo ?? c.khoa ?? c.cau;
   oHinhThuc("PREPAID").closest("label")!.hidden = luat !== null && !luat.chonDuoc.includes("PREPAID"); // ADR-0224 Đ3: đối tác dùng được Trả sau chỉ thấy «Trả sau»
+  oHinhThuc("CREDIT").closest("label")!.hidden = !c.hien; // khối hiện chỉ vì «Trả lúc check-in» ⇒ không có ô Trả sau
   oHinhThuc("CREDIT").disabled = c.khoa !== null || (luat !== null && !luat.chonDuoc.includes("CREDIT"));
-  oHinhThuc(q.chon).checked = true;
+  byId("tra-luc-checkin-nhan").hidden = !checkinDuoc;
+  const veTraTruoc = checkinMuon && !checkinDuoc && q.chon === "PREPAID";
+  if (veTraTruoc) checkinMuon = false;
+  oHinhThuc(checkinMuon && q.chon === "PREPAID" ? "TRA_LUC_CHECKIN" : q.chon).checked = true;
+  const baoChu = q.bao ?? (veTraTruoc ? CAU_CHECKIN_VE_TRA_TRUOC : null);
   const bao = byId("tra-sau-bao");
-  bao.textContent = q.bao ?? "";
-  bao.hidden = q.bao === null;
+  bao.textContent = baoChu ?? "";
+  bao.hidden = baoChu === null;
   anHienDatCoc();
+  anHienCheckin();
 }
-for (const v of ["PREPAID", "CREDIT"]) oHinhThuc(v).addEventListener("change", () => { daChonHinhThuc = true; hinhThucMuon = hinhThucChon(); byId("tra-sau-bao").hidden = true; anHienDatCoc(); });
+for (const v of ["PREPAID", "CREDIT", "TRA_LUC_CHECKIN"]) {
+  oHinhThuc(v).addEventListener("change", () => { daChonHinhThuc = true; hinhThucMuon = hinhThucChon(); checkinMuon = oHinhThuc("TRA_LUC_CHECKIN").checked; byId("tra-sau-bao").hidden = true; anHienDatCoc(); anHienCheckin(); });
+}
 void napTraSau();
 if (khoiBenDat.kieu === "chi-doc") {
   bookerPicker.tat();

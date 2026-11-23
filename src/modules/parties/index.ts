@@ -642,7 +642,10 @@ interface HoSoDoc { hs: HoSoGop; giayToDu: GopDocRow[]; acc: PartyAccountVerdict
 /** `gacTraSau`: phiên bản hạn mức của hồ sơ chính đã đọc ở cổng ADR-0188 4(a) — lô gộp gác đúng số này (null = hồ sơ phụ không có đơn Trả sau đã xác nhận, không gác). */
 interface TinhGop { A: HoSoDoc; B: HoSoDoc; ke: KeHoachGop; don: DonCuaNguoiDatTom; soNo: number; homNay: string; gacTraSau: number | null }
 /** Mã không đạt của `kiemTraSau` → lý do chặn gộp. `vuot_han_muc` không xảy ra với `soTienDon: 0`; nếu có, hồ sơ chính cũng không nhận thêm được ⇒ như không có hạn mức. */
-const MA_CHAN_TRA_SAU: Record<MaKhongTraSau, "merge_credit_no_limit" | "merge_credit_overdue"> = { khong_co_han_muc: "merge_credit_no_limit", co_don_qua_han: "merge_credit_overdue", vuot_han_muc: "merge_credit_no_limit" };
+// `tra_sau_dich_vu_khong_dau` không xảy ra ở đây (cổng hỏi không kèm dịch vụ ⇒ chỉ xét hạn mức); nếu có ⇒ như không có hạn mức.
+const MA_CHAN_TRA_SAU: Record<MaKhongTraSau, "merge_credit_no_limit" | "merge_credit_overdue"> = {
+  khong_co_han_muc: "merge_credit_no_limit", co_don_qua_han: "merge_credit_overdue", vuot_han_muc: "merge_credit_no_limit", tra_sau_dich_vu_khong_dau: "merge_credit_no_limit",
+};
 const TRA_SAU_CHUA_KIEM = () => error(503, "tra_sau_chua_dung_duoc", "Chưa kiểm được hạn mức trả sau của hồ sơ chính nên chưa gộp được — báo người phụ trách hệ thống.");
 
 async function docHoSoGop(ctx: Ctx<"admin">, id: string, nhom: ReadonlyMap<string, NhomVai>, nhan: ReadonlySet<string>, homNay: string): Promise<HoSoDoc | null> {

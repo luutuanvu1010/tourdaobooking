@@ -199,6 +199,10 @@ export const AUDIT_ACTIONS = {
   credit_limit_stopped: { label: "Ngừng hạn mức trả sau", group: "ledger" },
   // ADR-0178 Đ1 mục 1: Toàn quyền đổi công tắc «Khách của đối tác trả cho Công ty» (POST /api/kenh-thu-doi-tac) — `target_type = 'ledger'`, `target_id` = 'kenh-thu-doi-tac'; `detail` = «Bật» / «Tắt».
   partner_channel_set: { label: "Đổi «Khách của đối tác trả cho Công ty»", group: "ledger" },
+  // ADR-0178 Đ2 mục 1, ADR-0230 Đ1 mục 1: Toàn quyền đặt / đổi / gỡ dấu «Trả sau theo dịch vụ» (POST /api/tra-sau/dich-vu, …/go) — `target_type = 'ledger'`,
+  // `target_id` = «<GROUP|SERVICE>:<mã>»; `detail` chỉ loại đích, mã, số giờ: «SERVICE T3D: trả 24 giờ, ân hạn 6 giờ» / «GROUP NTD». Không tên, SĐT, email, MST.
+  service_credit_rule_set: { label: "Đặt Trả sau theo dịch vụ", group: "ledger" },
+  service_credit_rule_removed: { label: "Gỡ Trả sau theo dịch vụ", group: "ledger" },
   credit_ceiling_set: { label: "Đặt mức tối đa Quản trị được cấp", group: "ledger" },
   credit_tier_default_set: { label: "Đặt số gợi ý trả sau theo cấp", group: "ledger" },
   credit_due_extended: { label: "Ân hạn đơn trả sau", group: "order" },
@@ -443,6 +447,7 @@ export const AUDIT_ACTIONS = {
   catalog_pause_ended: { label: "Kết thúc Ngừng bán theo ngày", group: "catalog" },
   ticket_support_phone_changed: { label: "Đổi ô Hotline trên vé", group: "catalog" }, // ADR-0231: targetId = mã dịch vụ, detail «Dịch vụ <mã>: đặt hotline riêng | dùng hotline công ty» — KHÔNG chứa số
   ticket_source_changed: { label: "Đổi ô Vé do ai phát", group: "catalog" }, // ADR-0175 Đ1.2: targetId = mã dịch vụ, detail «Dịch vụ <mã>: Vé hãng ngoài | Vé Tour Đảo»
+  ticket_source_group_changed: { label: "Đổi Vé do ai phát của nhóm", group: "catalog" }, // ADR-0230 Đ3: targetId = mã nhóm, detail «Nhóm <mã>: Vé hãng ngoài | Vé Tour Đảo»
   service_detail_changed: { label: "Sửa chi tiết dịch vụ", group: "catalog" }, // ADR-0201 Đ1: targetId = mã dịch vụ, detail chỉ nói trường nào đổi (không chép tên, mô tả)
   catalog_groups_seeded: { label: "Gieo nhóm dịch vụ", group: "catalog" }, // do migration 0055 ghi một lần (detail "gieo 14 nhóm, N dịch vụ")
   // ADR-0149 Đ1: ô «Được đón không» của một dịch vụ — targetId = mã dịch vụ, detail "Theo nhóm → Không đón" (nhãn; không dữ liệu cá nhân).

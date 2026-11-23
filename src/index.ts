@@ -24,7 +24,7 @@ import { anDanhPhienCuaTaiKhoanStatement, authModule, checkAuthConfig, clearAtte
 import { bangtinModule, dongCua, phatChuyen, phatDon, xepHangDay } from "./modules/bangtin";
 import { billingModule, nhacHanTraSauAnToan, cauDatCocKhiXacNhan, cauGacPhienBan, chanKhaiCocLai, daThuCuaDon, kiemTraSau, tienDonVe, nhapKeToanCuaDon, soDongNoCuaNguoi, noCuaBenDat, maDonTraSauDaXacNhan, traSauCuaDon, kenhThuHienTai, coHanMucTraSauMo, cauDongHanMucKhiHetVai } from "./modules/billing";
 import { receiptModule } from "./modules/receipt";
-import { catalogModule, runScheduledSync } from "./modules/catalog";
+import { catalogModule, danhMucChoTraSauDichVu, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
 import { cauAnDanhBanKhai, cauAnDanhBanKhaiToChuc, cauChotDuyet, cauDuyetPhieu, chuaKichHoat, dangKyModule, donPhieuDangKyDinhGio, suKienDuyetStatement, taiKhoanChuaKichHoat } from "./modules/dang-ky";
 import { banHangNoi, dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler, soDonDangPhuTrachCua } from "./modules/dispatch";
@@ -50,6 +50,7 @@ import { dangChayLucSuKien, dongCoTheSinhTin, taiXeNhanSuKien, thayDoiCuaHanhDon
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { can, holdsPartner } from "./shared/permissions";
 import { vnToday } from "./shared/vn-date";
+import { dichVuXetTuDanhMuc } from "./shared/tra-sau-dich-vu";
 import { createApp, type AppOptions, type KetLuanGanToChuc, type NguoiQuanLyHieuLuc } from "./shared/router";
 import { chonTuCach, type TuCachDong } from "./shared/booker";
 import type { StaffProfile } from "./shared/contracts";
@@ -481,6 +482,8 @@ const APP_OPTIONS: AppOptions = {
       if (!ben) return new Set<string>();
       return new Set((await kiemLuatBan(env.DB, { bookerPartyId: ben.partyId, catalogCodes: codes, ngay: vnToday(new Date()) })).map((t) => t.catalogCode));
     },
+    // DANH MỤC CHO DẤU «TRẢ SAU THEO DỊCH VỤ» (ADR-0178 Đ2, ADR-0230 Đ1): billing không import catalog — gốc lắp ráp nối. Route billing kiểm quyền trước khi gọi.
+    danhMucTraSauDichVu: (env) => danhMucChoTraSauDichVu(env.DB),
     // NGƯỜI ĐI KÈM (lời chủ 2026-10-01 — "Chỉ hướng dẫn viên"): van-chuyen không import staff — gốc lắp ráp đọc tài khoản FIELD đang hoạt động, chỉ tên.
     huongDanVien: async (env) => {
       const ds = (await listStaffAccounts(env.DB)).filter((a) => a.active && a.partyId !== null && a.permissions.includes("FIELD"));
@@ -519,7 +522,15 @@ const APP_OPTIONS: AppOptions = {
     // KHÁCH ĐẶT CỌC TRƯỚC (ADR-0159 Đ1 mục 3; ADR-0024 đ4): `orders` không đọc, không ghi bảng bil_ — billing dựng câu, lô xác nhận của `orders` chạy chung.
     cauCocKhiXacNhan: (env, i) => cauDatCocKhiXacNhan(env.DB, i),
     // TRẢ SAU THEO HẠN MỨC (ADR-0168): `orders` không import `billing` — gốc lắp ráp tiêm cổng hạn mức, câu gác phiên bản và hạn trả / nợ của một đơn.
-    kiemTraSau: (env, i) => kiemTraSau(env.DB, i),
+    // ADR-0230 Đ1: đơn kèm mã dịch vụ ⇒ gốc lắp ráp dựng dòng xét «Trả sau theo dịch vụ» từ danh mục ĐÃ GỘP của catalog (billing không import catalog). Danh mục không đọc được ⇒
+    // coi như không đủ điều kiện (phía an toàn về tiền); riêng đơn đã chụp loại SERVICE thì trả null (cổng chặn 503, không đoán «hết đủ điều kiện»).
+    kiemTraSau: async (env, i) => {
+      const { maDichVu, ...hoi } = i;
+      if (!maDichVu) return kiemTraSau(env.DB, hoi);
+      const dm = await danhMucChoTraSauDichVu(env.DB).catch(() => null);
+      if (dm === null && hoi.coSo === "SERVICE") return null;
+      return kiemTraSau(env.DB, { ...hoi, dichVu: dichVuXetTuDanhMuc(maDichVu, dm) });
+    },
     cauGacPhienBanTraSau: (env, partyId, version, at) => cauGacPhienBan(env.DB, partyId, version, at),
     traSauCuaDon: (env, id) => traSauCuaDon(env.DB, id),
     veDaMoCuaDon: (env, id) => veDaMoCuaDon(env.DB, id),

@@ -3,6 +3,7 @@ import { CHINH_SACH_DAY_DU, taiChinhSach, type ChinhSachUi } from "./chinh-sach-
 import { ApiError, api, vuaLamBoiTabNay, type Api, type AuditEntry, type Order, type Staff } from "./api";
 import { NHAN_DAT_COC_CHO } from "../src/shared/dat-coc-truoc";
 import { nhanHinhThucDon } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { NHAN_TRA_LUC_CHECKIN } from "../src/shared/tra-luc-checkin";
 import { dongTraSauDon } from "./an-han-tra-sau";
 import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
@@ -684,6 +685,7 @@ function tienCard(order: Order): HTMLElement {
     sauConLai = rows.length;
   } else if (!anTienNhapNguoiKhac({ status: order.status, laNguoiLap: order.staffId === staff!.id, giuDoiTac: holdsPartner(staff!) })) rows.push(kvSo("Đã thu / còn lại", "Chưa tải được")); // Task 18 (1b)
   if (order.paymentTerm === "CREDIT") rows.push(kvSo("Hình thức thanh toán", nhanHinhThucDon(order.paymentTerm, order.hanTra)), ...dongTraSauDon(order, traSauDon ?? null, () => load(true)));
+  else if (order.traLucCheckin) rows.push(kvSo("Hình thức thanh toán", NHAN_TRA_LUC_CHECKIN)); // ADR-0230 Đ2: khối ghi thu chỉ tiền mặt, không QR (cờ `chiTienMat` của sổ tiền)
   if (!anChiTiet("paymentNote")) rows.push(kvSo("Ghi chú thanh toán", order.paymentNote));
   // ADR-0063 D1 + ADR-0109 QĐ3: bớt khách tới mức giảm giá lớn hơn tạm tính KHÔNG bị chặn — câu cảnh báo hiện thường trực trên khối tiền (phải thu đã kẹp 0).
   // ADR-0114 D1: thêm câu nhắc khuyến mại MÀU ĐỎ (máy chủ gửi `canhBaoKhuyenMai`) cạnh câu vàng cũ — hai câu có thể cùng hiện. Hiện đúng chỗ trang đã hiện giảm giá (khối này), không thêm cổng quyền.

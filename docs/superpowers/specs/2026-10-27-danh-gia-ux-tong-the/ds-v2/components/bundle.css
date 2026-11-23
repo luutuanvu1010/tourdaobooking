@@ -371,6 +371,14 @@ main select { max-width: 100%; }
 .kv-nguon-ve { flex-basis: 100%; display: grid; gap: var(--s1); padding-bottom: var(--s2); }
 .kv-the { border-top: 1px solid var(--c-border); }
 .kv-viec { display: flex; flex: none; align-items: center; gap: var(--s2); }
+/* Việc 11 (người chấm giao diện): bảng Dịch vụ & giá ở máy tính — huy hiệu «Trả sau theo dịch vụ» và ba ô vé nằm ở dòng phụ trải ngang dưới hàng dịch vụ.
+   Bố cục ngang `.kv-ngang` dùng chung danh sách luật của `.ht-nhom-chan` (flex, xuống dòng, khoảng s3) — không thêm luật khoảng cách mới (trần ADR-0222 Đ7a). */
+#list > tr.co-dong-phu > td { border-bottom: 0; }
+.kv-ngang > .kv-o { flex: none; flex-wrap: nowrap; }
+.kv-ngang .kv-nguon-ve { display: contents; } /* «Vé do ai phát» đứng ngang cạnh công tắc «Có vé» thay vì xuống dòng riêng */
+.kv-ngang .vc-seg button { white-space: nowrap; } /* không bẻ «Vé / hãng / ngoài» */
+/* Mã đơn trong danh sách đơn còn nợ (Trả sau của tôi, Hạn mức trả sau, Tổ chức): vùng chạm cao ≥ 44px. */
+.ts-ma-don { display: inline-flex; align-items: center; min-height: var(--tap-min); }
 
 /* ---------- ADR-0180: thanh «Đang xem như vai trò …» dính khi cuộn (chỉ token; dải chung `.dai` ở web/dai.ts) ---------- */
 #strips:has(> .dai[data-loai="xem-nhu-vai"]) { position: sticky; top: 0; z-index: var(--z-dinh); }
