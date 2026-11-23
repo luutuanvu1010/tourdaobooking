@@ -140,7 +140,32 @@ function priceCell(it: CatalogAdminItem, code: PaxCode): HTMLElement {
   return h("td", { class: "price-cell" }, eff === null ? "—" : vnd(eff), over && h("span", { class: "mark", title: "Giá ghi đè bởi Admin" }, " ✎"), over && sheet !== eff && h("span", { class: "sheet" }, sheet === null ? "Sheet: —" : `Sheet: ${vnd(sheet)}`));
 }
 
-function row(it: CatalogAdminItem): HTMLElement {
+/**
+ * Dòng phụ dưới hàng dịch vụ ở bảng máy tính (người chấm giao diện, Việc 11): huy hiệu «Trả sau theo dịch vụ» và ba ô vé («Cần kiểm vé», «Có vé»,
+ * «Vé do ai phát») xếp NGANG trải từ cột Mã tới hết bảng, thay vì chồng trong cột «Dịch vụ» hẹp. Không có gì để hiện thì không có dòng.
+ */
+function dongPhu(it: CatalogAdminItem): HTMLElement | null {
+  const nhan = traSauDv.nhanDichVu(it.code, it.groupCode);
+  const ve = [oKiemVe(it), coVe.oDichVu(it.code, tenCua(it))].filter((x): x is HTMLElement => x !== null);
+  if (nhan.length === 0 && ve.length === 0) return null;
+  const soCot = 9 - (anCot("groupCode") ? 1 : 0) - (anCot("unit") ? 1 : 0);
+  return h(
+    "tr",
+    { class: it.hidden || !it.inSheet ? "dv-phu row-off" : "dv-phu", "data-code-phu": it.code },
+    h("td", { class: "chon-td" }),
+    h("td", { colspan: soCot }, h("div", { class: "kv-ngang" }, ...nhan, ...ve)),
+  );
+}
+
+function row(it: CatalogAdminItem): HTMLElement[] {
+  const phu = dongPhu(it);
+  const chinh = rowChinh(it);
+  if (!phu) return [chinh];
+  chinh.classList.add("co-dong-phu");
+  return [chinh, phu];
+}
+
+function rowChinh(it: CatalogAdminItem): HTMLElement {
   const btn = (label: string, onclick: (b: HTMLButtonElement) => void, cls = "btn btn-link") => {
     const b = h("button", { type: "button", class: cls }, label) as HTMLButtonElement;
     b.addEventListener("click", () => onclick(b));
@@ -159,7 +184,7 @@ function row(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "row-off" : "", "data-code": it.code },
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
-    h("td", null, tenCua(it), dongTenSheet(it), chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), ...ngungNgay.nhanDichVu(it.code, it.groupCode), ...traSauDv.nhanDichVu(it.code, it.groupCode), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it), coVe.oDichVu(it.code, tenCua(it))),
+    h("td", null, tenCua(it), dongTenSheet(it), chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), ...ngungNgay.nhanDichVu(it.code, it.groupCode), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`)),
     h("td", { class: "nhom-o", hidden: anCot("groupCode") }, tenNhomCua(it)),
     h("td", { class: "muted", hidden: anCot("unit") }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
@@ -237,7 +262,7 @@ function render(): void {
     return true;
   });
   dangHien = shown;
-  replaceChildren(listEl, ...shown.map(row), shown.length === 0 && h("tr", null, h("td", { colspan: 10, class: "empty" }, "Không có dịch vụ nào khớp.")));
+  replaceChildren(listEl, ...shown.flatMap(row), shown.length === 0 && h("tr", null, h("td", { colspan: 10, class: "empty" }, "Không có dịch vụ nào khớp.")));
   replaceChildren(listCardsEl, ...shown.map(card), shown.length === 0 && h("p", { class: "empty" }, "Không có dịch vụ nào khớp."));
   renderChon();
 }

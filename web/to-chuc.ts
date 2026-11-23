@@ -164,7 +164,7 @@ function veCongNo(r: Api.TraSauToChucDto | undefined): void {
     h("p", null, cauDangNo(r, true)),
     r.don.length === 0
       ? h("p", { class: "muted" }, "Không có đơn nào còn nợ.")
-      : h("ul", null, ...r.don.map((d) => h("li", { "data-trang-thai": d.trangThai }, h("a", { href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon), ` · ${cauDonNo(d)}`))));
+      : h("ul", null, ...r.don.map((d) => h("li", { "data-trang-thai": d.trangThai }, h("a", { class: "ts-ma-don", href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon), ` · ${cauDonNo(d)}`))));
 }
 
 async function nap(): Promise<boolean> {

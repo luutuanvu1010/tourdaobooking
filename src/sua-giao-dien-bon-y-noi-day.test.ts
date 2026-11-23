@@ -13,10 +13,12 @@ test("H1: khối «Người phụ trách» của form lập đơn ẩn với for
   assert.match(form, /const banHangAn = !canNv\(staff, "dispatch\.sales\.invitees"\) \|\| formGon;/);
 });
 
-test("H1: «Hình thức thanh toán» dời sang chỗ chứa ở cột phải, đứng NGAY TRƯỚC thanh nút gửi; chỗ chứa hiện / ẩn cùng lựa chọn Trả sau", () => {
+// ADR-0230 Đ2 (23/11/2026): khối hình thức hiện khi có lựa chọn Trả sau HOẶC «Trả lúc check-in» (biến `coKhoi`), không còn chỉ theo `c.hien`.
+test("H1: «Hình thức thanh toán» dời sang chỗ chứa ở cột phải, đứng NGAY TRƯỚC thanh nút gửi; chỗ chứa hiện / ẩn cùng khối lựa chọn hình thức", () => {
   assert.match(doc("public/order-form.html"), /<section id="hinh-thuc-cho"[^>]*hidden><\/section>\s*<div class="form-actions/);
   assert.match(form, /byId\("hinh-thuc-cho"\)\.append\(byId\("tra-sau-khoi"\), byId\("tra-sau-bao"\)\);/);
-  assert.match(form, /byId\("hinh-thuc-cho"\)\.hidden = !formGon \|\| !c\.hien;/);
+  assert.match(form, /const coKhoi = c\.hien \|\| checkinDuoc;/);
+  assert.match(form, /byId\("hinh-thuc-cho"\)\.hidden = !formGon \|\| !coKhoi;/);
 });
 
 test("H1: ba câu giải thích về tiền GẬP (không xoá) sau nút «Giải thích giảm giá, đặt cọc»; tiêu đề «Thanh toán» chỉ ẩn với mắt", () => {

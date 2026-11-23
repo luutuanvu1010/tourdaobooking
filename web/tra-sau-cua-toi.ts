@@ -21,11 +21,11 @@ export async function initTraSauCuaToi(staff: Staff, el: HTMLElement): Promise<v
   replaceChildren(
     el,
     h("h2", { id: "ts-cua-toi-heading" }, "Trả sau của tôi"),
-    h("p", null, dong.dong1),
+    dong.dong1 !== null && h("p", null, dong.dong1),
     h("p", null, dong.dong2),
     r.don.length === 0
       ? h("p", { class: "muted" }, "Không có đơn nào còn nợ.")
-      : h("ul", null, ...r.don.map((d) => h("li", { "data-trang-thai": d.trangThai }, h("a", { href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon), ` · ${cauDonNo(d)}`))),
+      : h("ul", null, ...r.don.map((d) => h("li", { "data-trang-thai": d.trangThai }, h("a", { class: "ts-ma-don", href: `/order?id=${encodeURIComponent(d.orderId)}` }, d.maDon), ` · ${cauDonNo(d)}`))),
   );
   el.hidden = false;
 }

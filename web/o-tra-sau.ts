@@ -12,7 +12,7 @@ import { h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
 import { hienBaoNgan } from "./toast";
 import { can } from "../src/shared/permissions";
-import { cauDangNo, cauGoiYDienSan, cauHanMuc, cauMucToiDa, docGio, docHanMuc, goiYCuaCap, nhanAnHan, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
+import { cauDangNo, cauGoiYDienSan, cauHanMuc, cauHanMucVanPhong, cauMucToiDa, dongDangNo, docGio, docHanMuc, goiYCuaCap, nhanAnHan, nhanQuaHan } from "../src/shared/han-muc-tra-sau-hien-thi";
 import { dongTien } from "../src/shared/tra-sau";
 
 /** Mọi dữ liệu Trả sau của màn, nạp một lần. `theoBen` chỉ có hồ sơ đang bật hoặc đang nợ; hồ sơ vắng mặt = chưa bật, không nợ. */
@@ -50,7 +50,7 @@ export function datTieuDiemOTraSau(partyId: string): void {
 export function oTraSau(ho: { partyId: string; ten: string; capCode: string | null; tenCap: string | null }, bc: BoiCanhTraSau | null, lamMoi: (partyId: string) => Promise<void>): HTMLElement {
   if (bc === null) return h("div", { class: "cot-tra-sau muted", "data-party": ho.partyId }, "—");
   const v = bc.theoBen.get(ho.partyId);
-  const chu = cauHanMuc(v ?? { hanMuc: null, gioTra: null, gioAnHan: null });
+  const chu = cauHanMucVanPhong(v ?? { hanMuc: null, gioTra: null, gioAnHan: null, dangNo: 0 });
   const loi = h("div", { class: "vc-field-error", role: "alert", hidden: true });
   let chinh: HTMLElement;
   if (bc.coQuyenSua) {
@@ -58,11 +58,15 @@ export function oTraSau(ho: { partyId: string; ten: string; capCode: string | nu
     nut.addEventListener("click", () => void moBangTraSau(ho, bc, nut, loi, lamMoi));
     chinh = nut;
   } else chinh = h("span", v?.coHanMuc ? null : { class: "muted" }, chu);
-  const phu = [v && v.dangNo + v.dangNoDichVu > 0 ? cauDangNo(v, false) : null, v ? nhanAnHan(v.soDonAnHan) : null, v ? nhanQuaHan(v.soDonQuaHan) : null].filter((x): x is string => x !== null);
+  // Số nợ: cùng chữ với màn Hạn mức trả sau (`dongDangNo`: «Theo hạn mức: …» / «Trả sau theo dịch vụ: …» khi có nợ theo dịch vụ).
+  const no = v && v.dangNo + v.dangNoDichVu > 0 ? dongDangNo(v) : [];
+  const phu = [v ? nhanAnHan(v.soDonAnHan) : null, v ? nhanQuaHan(v.soDonQuaHan) : null].filter((x): x is string => x !== null);
   return h(
     "div",
     { class: "cot-tra-sau", tabindex: -1, "data-party": ho.partyId, "data-tra-sau": v?.coHanMuc ? "bat" : "chua-bat" },
     h("div", null, chinh),
+    no.length === 1 && h("div", { class: "muted" }, `Đang nợ ${no[0]}`),
+    no.length > 1 && h("div", { class: "muted" }, "Đang nợ", ...no.map((x) => h("div", null, x))),
     phu.length > 0 && h("div", { class: "muted" }, phu.join(" · ")),
     loi,
   );
@@ -102,7 +106,7 @@ async function moBangTraSau(
       h(
         "div",
         { class: "vc-gt" },
-        h("div", { class: "vc-hint" }, dangBat ? `Đang bật: ${cauHanMuc(r)} · ${cauDangNo(r, false).toLowerCase()}` : r.dangNo + r.dangNoDichVu > 0 ? `Chưa cấp · ${cauDangNo(r, false).toLowerCase()}` : "Chưa cấp hạn mức trả sau."),
+        h("div", { class: "vc-hint" }, dangBat ? `Đang bật: ${cauHanMuc(r)}. ${cauDangNo(r, false)}.` : r.dangNo + r.dangNoDichVu > 0 ? `Chưa cấp hạn mức. ${cauDangNo(r, false)}.` : "Chưa cấp hạn mức trả sau."),
         goiYCau && h("div", { class: "vc-hint" }, goiYCau),
         mucCau && h("div", { class: "vc-hint" }, mucCau),
         h("div", { class: "vc-field" }, h("label", { for: "ts-han-muc" }, "Hạn mức (đồng)"), oHan),

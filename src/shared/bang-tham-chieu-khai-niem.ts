@@ -766,7 +766,7 @@ export const KHAI_NIEM: readonly KhaiNiem[] = [
   }),
   KN({
     ten: "Chưa cấp",
-    giaiNghia: "Đối tác chưa có hạn mức trả sau đang hiệu lực, nên chỉ đặt được đơn thanh toán ngay. Hiện ở ô «Trả sau» của màn Cấp độ đại lý.",
+    giaiNghia: "Đối tác chưa có hạn mức trả sau đang hiệu lực: đơn thường chỉ thanh toán ngay (hoặc «Trả lúc check-in»), trừ đơn đủ điều kiện «Trả sau theo dịch vụ». Hiện ở ô «Trả sau» của màn Cấp độ đại lý và màn Hạn mức trả sau (với văn phòng); đối tác còn nợ mà chưa có hạn mức thì văn phòng thấy «Chưa cấp hạn mức». Đối tác không thấy chữ này ở «Trả sau của tôi» (ADR-0230).",
     khacVoi: "Chỉ dùng cho hạn mức trả sau. «Chưa bật» vẫn là chữ của Face ID và xác thực hai lớp.",
     chuDaLoai: [],
     maNoiBo: ["cauHanMuc", "data-tra-sau=chua-bat"],

@@ -46,3 +46,28 @@ test("màn nợ (ADR-0230 Đ1 mục 4): tách «Đang nợ theo hạn mức» v�
   assert.equal(dongTraSauCuaToi(r, true).dong2, dt);
   assert.equal(dongTraSauCuaToi(r, false).dong2, "Đang nợ theo hạn mức 10.000.000 ₫ · Hạn mức khả dụng 0 ₫ · Đang nợ Trả sau theo dịch vụ 3.000.000 ₫");
 });
+
+test("Việc 11 (người chấm giao diện): đối tác không hạn mức nhưng có nợ / Trả sau theo dịch vụ ⇒ không hiện «Chưa cấp» (không có dòng một), không chữ «hạn mức»", async () => {
+  const { dongTraSauCuaToi } = await import("./han-muc-tra-sau-hien-thi.ts");
+  const r = { coHanMuc: false, hanMuc: null, gioTra: null, gioAnHan: null, dangNo: 0, dangNoDichVu: 200_000, conDuocDung: null };
+  const dt = dongTraSauCuaToi(r, true);
+  assert.equal(dt.dong1, null, "không có dòng một: dòng hai đã nói số nợ, kể cả phần Trả sau theo dịch vụ");
+  assert.doesNotMatch(dt.dong2, /hạn mức|chưa cấp/i);
+  // văn phòng: nói rõ là chưa cấp HẠN MỨC (vẫn còn Trả sau theo dịch vụ)
+  assert.equal(dongTraSauCuaToi(r, false).dong1, "Chưa cấp hạn mức");
+});
+
+test("Việc 11: cauHanMucVanPhong — chưa có hạn mức mà còn nợ ⇒ «Chưa cấp hạn mức»; không nợ ⇒ giữ «Chưa cấp»; có hạn mức ⇒ như cauHanMuc", async () => {
+  const { cauHanMucVanPhong, cauHanMuc } = await import("./han-muc-tra-sau-hien-thi.ts");
+  const chua = { hanMuc: null, gioTra: null, gioAnHan: null };
+  assert.equal(cauHanMucVanPhong({ ...chua, dangNo: 0, dangNoDichVu: 200_000 }), "Chưa cấp hạn mức");
+  assert.equal(cauHanMucVanPhong({ ...chua, dangNo: 0, dangNoDichVu: 0 }), "Chưa cấp");
+  const co = { hanMuc: 5_000_000, gioTra: 24, gioAnHan: 0, dangNo: 0, dangNoDichVu: 0 };
+  assert.equal(cauHanMucVanPhong(co), cauHanMuc(co));
+});
+
+test("Việc 11: dongDangNo — văn phòng có nợ theo dịch vụ ⇒ hai dòng có tên đầy đủ (không cắt «Đang nợ», không chữ thường hoá tên khái niệm)", async () => {
+  const { dongDangNo } = await import("./han-muc-tra-sau-hien-thi.ts");
+  assert.deepEqual(dongDangNo({ dangNo: 0, dangNoDichVu: 200_000 }), ["Theo hạn mức: 0 ₫", "Trả sau theo dịch vụ: 200.000 ₫"]);
+  assert.deepEqual(dongDangNo({ dangNo: 500_000, dangNoDichVu: 0 }), ["500.000 ₫"]);
+});

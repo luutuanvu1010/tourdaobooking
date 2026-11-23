@@ -22,6 +22,13 @@ export const cauHanMuc = (d: { hanMuc: number | null; gioTra: number | null; gio
     ? "Chưa cấp"
     : `${dongTien(d.hanMuc)} · trả trong ${cauGio(d.gioTra)} · ${d.gioAnHan ? `ân hạn ${cauGio(d.gioAnHan)}` : "không ân hạn"}`;
 
+/**
+ * Ô «Trả sau» của văn phòng (Cấp độ đại lý, Hạn mức trả sau): chưa có hạn mức mà còn nợ (thường là nợ Trả sau theo dịch vụ) ⇒ «Chưa cấp hạn mức»,
+ * để người xem không hiểu nhầm là đối tác không có Trả sau nào; còn lại như `cauHanMuc`.
+ */
+export const cauHanMucVanPhong = (d: { hanMuc: number | null; gioTra: number | null; gioAnHan: number | null; dangNo: number; dangNoDichVu?: number }): string =>
+  (d.hanMuc === null || d.gioTra === null) && d.dangNo + (d.dangNoDichVu ?? 0) > 0 ? "Chưa cấp hạn mức" : cauHanMuc(d);
+
 export const nhanQuaHan = (soDon: number): string | null => (soDon > 0 ? `${soDon} đơn quá hạn` : null);
 export const nhanAnHan = (soDon: number): string | null => (soDon > 0 ? `${soDon} đơn đang trong ân hạn` : null);
 
@@ -95,21 +102,22 @@ export function cauChonTraSau(r: { coHanMuc: boolean; conDuocDung: number; coDon
 }
 
 /**
- * Hai dòng đầu của mục «Trả sau của tôi» (ADR-0173 Đ3 mục 3, sửa bởi ADR-0198 Đ1.5). Đối tác: dòng một chỉ nói số giờ trả và giờ ân hạn (không số tiền), dòng hai chỉ còn số đang nợ.
+ * Hai dòng đầu của mục «Trả sau của tôi» (ADR-0173 Đ3 mục 3, sửa bởi ADR-0198 Đ1.5). Đối tác: dòng một chỉ nói số giờ trả và giờ ân hạn (không số tiền), dòng hai chỉ còn số đang nợ;
+ * đối tác chưa có hạn mức thì KHÔNG có dòng một (`null`).
  * Không phải đối tác: giữ như cũ (tóm tắt hạn mức; đang nợ kèm hạn mức khả dụng).
  */
 export function dongTraSauCuaToi(
   r: { hanMuc: number | null; gioTra: number | null; gioAnHan: number | null; dangNo: number; dangNoDichVu?: number; conDuocDung: number | null },
   laDoiTac: boolean,
-): { dong1: string; dong2: string } {
+): { dong1: string | null; dong2: string } {
   if (!laDoiTac) {
     const dv = r.dangNoDichVu ?? 0;
     const kd = r.conDuocDung === null ? "" : ` · Hạn mức khả dụng ${dongTien(r.conDuocDung)}`;
-    return { dong1: cauHanMuc(r), dong2: dv > 0 ? `Đang nợ theo hạn mức ${dongTien(r.dangNo)}${kd} · Đang nợ ${NHAN_CO_SO_TRA_SAU.SERVICE} ${dongTien(dv)}` : `Đang nợ ${dongTien(r.dangNo)}${kd}` };
+    return { dong1: cauHanMucVanPhong(r), dong2: dv > 0 ? `Đang nợ theo hạn mức ${dongTien(r.dangNo)}${kd} · Đang nợ ${NHAN_CO_SO_TRA_SAU.SERVICE} ${dongTien(dv)}` : `Đang nợ ${dongTien(r.dangNo)}${kd}` };
   }
   const dong1 =
     r.hanMuc === null || r.gioTra === null
-      ? "Chưa cấp"
+      ? null // Việc 11: không hiện «Chưa cấp» cạnh số nợ (đối tác tưởng không có Trả sau); dòng hai đã nói đủ, kể cả phần Trả sau theo dịch vụ
       : `Bạn được trả sau, trả trong ${cauGio(r.gioTra)} kể từ khi đơn được xác nhận${r.gioAnHan ? `, sau đó còn ${cauGio(r.gioAnHan)} ân hạn` : ""}.`;
   return { dong1, dong2: cauDangNo(r, true) };
 }
@@ -124,6 +132,15 @@ export function cauDangNo(r: { dangNo: number; dangNoDichVu?: number }, laDoiTac
   return laDoiTac
     ? `Đang nợ ${dongTien(r.dangNo + dv)}, trong đó đơn ${NHAN_CO_SO_TRA_SAU.SERVICE} ${dongTien(dv)}`
     : `Đang nợ theo hạn mức ${dongTien(r.dangNo)} · Đang nợ ${NHAN_CO_SO_TRA_SAU.SERVICE} ${dongTien(dv)}`;
+}
+
+/**
+ * Ô «Đang nợ» của văn phòng (Hạn mức trả sau, Cấp độ đại lý — tiêu đề cột đã là «Đang nợ»): có nợ Trả sau theo dịch vụ ⇒ hai dòng đủ tên
+ * «Theo hạn mức: …» / «Trả sau theo dịch vụ: …»; không có ⇒ một dòng số tiền. Cùng chữ ở khổ 390 và 1280.
+ */
+export function dongDangNo(r: { dangNo: number; dangNoDichVu?: number }): string[] {
+  const dv = r.dangNoDichVu ?? 0;
+  return dv > 0 ? [`Theo hạn mức: ${dongTien(r.dangNo)}`, `${NHAN_CO_SO_TRA_SAU.SERVICE}: ${dongTien(dv)}`] : [dongTien(r.dangNo)];
 }
 
 /**

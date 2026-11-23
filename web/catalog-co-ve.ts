@@ -86,7 +86,8 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
     return h(
       "div",
       { class: "kv-nguon-ve" },
-      h("span", { class: "hint", "aria-hidden": "true" }, `Vé do ai phát · ${NHAN_NGUON[d?.theo ?? "CHUA_KHAI"]}`),
+      // ba nhãn «Cần kiểm vé», «Có vé», «Vé do ai phát» cùng một cỡ (.kv-ten), nguồn đặt ở chữ phụ bên dưới
+      h("div", { class: "kv-chu", "aria-hidden": "true" }, h("span", { class: "kv-ten" }, "Vé do ai phát"), h("span", { class: "hint" }, NHAN_NGUON[d?.theo ?? "CHUA_KHAI"])),
       h("div", { class: "vc-seg", role: "radiogroup", "aria-label": `Vé do ai phát: ${ten}` }, ...lua),
     );
   };
@@ -107,7 +108,7 @@ export function taoCoVe(errorEl: HTMLElement, coQuyen: boolean, sauKhiDoi: () =>
       return h(
         "div",
         { class: "kv-o" },
-        h("span", { class: "hint" }, `Có vé · ${NHAN_NGUON[d?.nguon ?? "CHUA_KHAI"]}`),
+        h("div", { class: "kv-chu" }, h("span", { class: "kv-ten" }, "Có vé"), h("span", { class: "hint" }, NHAN_NGUON[d?.nguon ?? "CHUA_KHAI"])),
         congTac(`Có vé: ${ten}`, bat, "co-ve", (nut) => void luuCoVe(nut, { pham: "SERVICE", ma, coVe: !bat }, bat ? `${ten}: không vé.` : `${ten}: có vé.`)),
         bat && oNguonVe(ma, ten), // ADR-0175 Đ1.2: dịch vụ «Không vé» thì ô này vô nghĩa nên ẩn
       );

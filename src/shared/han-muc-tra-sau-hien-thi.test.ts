@@ -157,7 +157,7 @@ test("ADR-0198 Đ1.5: «Trả sau của tôi» của đối tác: dòng một kh
   assert.equal(dt.dong1, "Bạn được trả sau, trả trong 36 giờ kể từ khi đơn được xác nhận, sau đó còn 12 giờ ân hạn.");
   assert.equal(dt.dong2, `Đang nợ ${dongTien(DANG_NO_CANH)}`);
   assert.equal(dongTraSauCuaToi({ ...r, gioTra: 48, gioAnHan: 0 }, true).dong1, "Bạn được trả sau, trả trong 48 giờ (2 ngày) kể từ khi đơn được xác nhận.");
-  assert.equal(dongTraSauCuaToi({ ...r, coHanMuc: false, hanMuc: null, gioTra: null, gioAnHan: null, conDuocDung: null }, true).dong1, "Chưa cấp");
+  assert.equal(dongTraSauCuaToi({ ...r, coHanMuc: false, hanMuc: null, gioTra: null, gioAnHan: null, conDuocDung: null }, true).dong1, null); // Việc 11: không còn «Chưa cấp» cạnh số nợ
   // văn phòng (không phải đối tác): giữ nguyên như trước
   const vp = dongTraSauCuaToi(r, false);
   assert.equal(vp.dong1, cauHanMuc(r));
