@@ -86,8 +86,11 @@ function beRongMep(el: Element): number {
  * `cheDo` «them» (mặc định, form Tạo đơn): chạm dòng là THÊM dịch vụ, dòng hiện «✓ đã thêm», khung đứng yên. «chon-mot» (N4, trang Nhập lô vé): chạm dòng là CHỌN — khung thu lại thành một dòng
  * tên dịch vụ kèm nút «Đổi» (`onDoi` báo form xoá lựa chọn), không «✓ đã thêm». `khongYeuCauGia`: dòng không có giá người lớn vẫn chọn được và không hiện cột giá (luật ở `chonDuocDichVu`).
  * `khoaNho`: hậu tố khoá bộ nhớ (sao «Hay dùng», nhóm đã chọn) — vắng = khoá cũ của Tạo đơn; trang khác truyền khoá riêng để không nhớ nhóm chéo giữa hai trang.
+ * `idTien` (Việc 4 kế hoạch 21/11): tiền tố id của ô tìm và khung danh sách khi một trang có HAI bộ chọn (Kho vé: nhập lô + Tạo vé) — vắng = `catalog-q` / `catalog-list` như cũ.
  */
-export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => void; onDoi?: () => void; cheDo?: "them" | "chon-mot"; khongYeuCauGia?: boolean; khoaNho?: string }): CatalogPicker {
+export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => void; onDoi?: () => void; cheDo?: "them" | "chon-mot"; khongYeuCauGia?: boolean; khoaNho?: string; idTien?: string }): CatalogPicker {
+  const idQ = `${o.idTien ?? "catalog"}-q`;
+  const idList = `${o.idTien ?? "catalog"}-list`;
   const chonMot = o.cheDo === "chon-mot";
   const khongGia = o.khongYeuCauGia === true;
   const khoaGhim = o.khoaNho ? `${KHOA_NHO}:${o.khoaNho}` : KHOA_NHO;
@@ -98,7 +101,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   // tabindex -1: nhận tiêu điểm khi khung thành inert lúc tiêu điểm đang ở trong khung (thêm dịch vụ thứ 20 bằng bàn phím — nợ T2(4), Việc 9).
   const reason = h("p", { class: "muted catalog-khoa", hidden: true, tabindex: "-1" }, icon("lock", 16), reasonText);
   // Ô tìm giữ type="search": order-form.ts chặn Enter theo đúng kiểu ô này (ô nằm trong <form>).
-  const q = h("input", { id: "catalog-q", type: "search", placeholder: "Tìm theo tên hoặc mã dịch vụ", "aria-label": "Tìm theo tên hoặc mã dịch vụ", autocomplete: "off", "aria-controls": "catalog-list" });
+  const q = h("input", { id: idQ, class: "catalog-q", type: "search", placeholder: "Tìm theo tên hoặc mã dịch vụ", "aria-label": "Tìm theo tên hoặc mã dịch vụ", autocomplete: "off", "aria-controls": idList });
   const xoa = h("button", { type: "button", class: "catalog-tim-xoa", "aria-label": "Xoá chữ tìm", hidden: true }, icon("close", 20));
   const tim = h("div", { class: "catalog-tim" }, h("span", { class: "catalog-tim-kinh" }, icon("search", 20)), q, xoa);
   // Hàng nhóm: hàng cuộn là radiogroup (NẰM NGOÀI #catalog-list); "›" và hai nút ‹ › phủ lên mép hàng (aria-hidden / tabindex -1: phím mũi tên đã đủ).
@@ -108,7 +111,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   const muiSau = h("button", { type: "button", class: "catalog-hang-mui", "data-huong": "sau", "aria-label": "Xem nhóm phía sau", tabindex: "-1", hidden: true }, "›");
   const hang = h("div", { class: "catalog-hang", "data-cho": "nhom", hidden: true }, cuon, con, muiTruoc, muiSau);
   const dau = h("div", { class: "catalog-dau" });
-  const list = h("div", { id: "catalog-list", class: "catalog-list" });
+  const list = h("div", { id: idList, class: "catalog-list" });
   const khung = h("div", { class: "catalog-khung" }, dau, list);
   // Báo cho trình đọc màn hình (thay thông báo nổi): chữ đổi sau một nhịp để đọc lại được cả khi thêm cùng dịch vụ hai lần.
   const bao = h("div", { class: "visually-hidden catalog-bao", "aria-live": "polite" });

@@ -2,7 +2,11 @@
 // Luồng: POST /api/ve/lo {nguon:"TOUR_DAO", soVeDuKien} → máy chủ cấp đủ số sê-ri (ADR-0217) → mỗi vé: lấy một số sê-ri, sinh mã bằng crypto.getRandomValues, vẽ ảnh, TỰ ĐỌC LẠI QR phải đúng mã vừa sinh → chỉ khi MỌI vé đạt mới
 // gửi theo đoạn POST /api/ve/lo/:id/ve (mỗi vé mang `soSeri` của nó) → POST …/xac-nhan. Một vé hỏng thì huỷ lô (POST …/bo), không gửi vé nào.
 // Mã vé là bí mật: không hiện, không ghi console, không vào câu báo; người tạo chỉ thấy số lượng. «Tên tiếng Anh» chỉ in lên ảnh, không gửi máy chủ.
+// Chọn dịch vụ (kế hoạch 16 việc 21/11, Việc 4): CÙNG bộ chọn với bước nhập lô (web/catalog-picker.ts, chế độ «chọn một», ô tìm + hàng nhóm + ★ Hay dùng), chỉ các dịch vụ
+// vé Tour Đảo; danh mục do trang tải MỘT lần (web/ve-kho.ts) truyền vào. Bộ chọn mang `idTien` riêng vì cùng trang với bộ chọn của bước nhập lô.
 import { ApiError, api, type Api } from "./api";
+import type { CatalogServiceDto } from "../src/shared/contracts";
+import { createCatalogPicker } from "./catalog-picker";
 import { taoMaVeTourDao } from "../src/shared/ma-ve-tour-dao";
 import { NHOM_KHACH_VE, type NhomLo } from "../src/shared/ve-anh-tour-dao-bo-cuc";
 import { TOI_DA_BYTE_ANH, TOI_DA_VE_MOI_DOT } from "../src/shared/ve-nhap-lo";
@@ -32,9 +36,8 @@ function blobBase64(b: Blob): Promise<string> {
 }
 
 /** Dịch vụ chọn được: «Có vé» và «Vé do ai phát» = Vé Tour Đảo. Tài khoản không đọc được hai ô đó (chỉ Quản trị, Toàn quyền) thì trả cả danh mục, `daLoc = false`. */
-async function taiDichVu(): Promise<{ ds: { code: string; name: string }[]; daLoc: boolean }> {
-  const r = await api<Api.CatalogPublicResponse>("/api/catalog");
-  const tatCa = r.items.map((i) => ({ code: i.code, name: i.name })).sort((a, b) => a.name.localeCompare(b.name, "vi"));
+async function taiDichVu(r: Api.CatalogPublicResponse): Promise<{ ds: CatalogServiceDto[]; daLoc: boolean }> {
+  const tatCa = r.items;
   try {
     const [co, ng] = await Promise.all([api<Api.CatalogCoVeResponse>("/api/catalog/co-ve"), api<Api.CatalogNguonVeResponse>("/api/catalog/nguon-ve")]);
     const coVe = new Set(co.dichVu.filter((d) => d.coVe).map((d) => d.code));
@@ -45,9 +48,11 @@ async function taiDichVu(): Promise<{ ds: { code: string; name: string }[]; daLo
   }
 }
 
-export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => number; hienOk: (cau: string | null) => void; sauKhiTao: () => Promise<void> }): Promise<void> {
-  let dv: { ds: { code: string; name: string }[]; daLoc: boolean };
-  try { dv = await taiDichVu(); } catch (err) { replaceChildren(khung, h("p", { class: "alert", role: "alert" }, lyDoLoi(err))); return; }
+export async function dungKhoiTaoVe(khung: HTMLElement, o: { danhMuc: Api.CatalogPublicResponse | null; loiDanhMuc: string | null; staffId: string; tranLo: () => number; hienOk: (cau: string | null) => void; sauKhiTao: () => Promise<void> }): Promise<void> {
+  if (!o.danhMuc) { replaceChildren(khung, h("p", { class: "alert", role: "alert" }, o.loiDanhMuc ?? "Không tải được danh mục dịch vụ.")); return; }
+  const danhMuc = o.danhMuc;
+  let dv: { ds: CatalogServiceDto[]; daLoc: boolean };
+  try { dv = await taiDichVu(danhMuc); } catch (err) { replaceChildren(khung, h("p", { class: "alert", role: "alert" }, lyDoLoi(err))); return; }
   if (dv.daLoc && dv.ds.length === 0) {
     replaceChildren(khung, h("p", { class: "muted" }, "Chưa có dịch vụ nào vừa bật «Có vé» vừa chọn «Vé Tour Đảo» ở ô «Vé do ai phát». Quản trị đặt hai ô này ở màn Dịch vụ & giá."));
     return;
@@ -61,7 +66,12 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
     return congTy;
   };
 
-  const chonDv = h("select", { class: "o", id: "vt-dich-vu", required: true }, h("option", { value: "" }, "Chọn dịch vụ…"), ...dv.ds.map((d) => h("option", { value: d.code }, d.name)));
+  let dichVu: CatalogServiceDto | null = null;
+  const khungDv = createCatalogPicker({ cheDo: "chon-mot", khongYeuCauGia: true, khoaNho: "ve-tao", idTien: "vt-catalog", onPick: (c) => { dichVu = c; }, onDoi: () => { dichVu = null; } });
+  khungDv.setGroups(danhMuc.groups.filter((g) => dv.ds.some((d) => d.groupCode === g.code))); // nhóm không còn dịch vụ vé Tour Đảo nào thì không hiện nút
+  khungDv.setItems(dv.ds);
+  khungDv.setTaiKhoan(o.staffId);
+  const chonDv = h("div", { id: "vt-dich-vu", class: "vk-dich-vu", role: "group", "aria-labelledby": "vt-dich-vu-nhan" }, khungDv.root);
   const chonNhom = h("select", { class: "o", id: "vt-nhom" }, ...(Object.entries(NHOM_KHACH_VE) as [NhomLo, { vi: string }][]).map(([ma, t]) => h("option", { value: ma }, t.vi)));
   const tuNgay = h("input", { type: "date", class: "o", id: "vt-tu-ngay", required: true });
   const denNgay = h("input", { type: "date", class: "o", id: "vt-den-ngay", required: true });
@@ -78,7 +88,7 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
 
   /** Kiểm ô trên máy trước khi gọi máy chủ; trả câu lỗi hoặc null. */
   const kiemO = (canSoLuong: boolean): string | null => {
-    if (!chonDv.value) return "Chọn dịch vụ cho cả lô.";
+    if (!dichVu) return "Chọn dịch vụ cho cả lô.";
     if (!tuNgay.value || !denNgay.value) return "Chọn ngày dùng từ và đến cho cả lô.";
     if (denNgay.value < tuNgay.value) return "Ngày dùng đến phải sau hoặc bằng ngày dùng từ.";
     if (!canSoLuong) return null;
@@ -89,7 +99,7 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
   };
   const noiDung = async (ma: string, soSeri: string) => {
     const ct = await layCongTy();
-    return { tenCongTy: ct.name, hotline: ct.hotline, tenDichVu: chonDv.selectedOptions[0]?.textContent ?? "", tenDichVuEn: tenEn.value.trim() || null, nhomKhach: chonNhom.value as NhomLo, denNgay: denNgay.value, ma, soSeri };
+    return { tenCongTy: ct.name, hotline: ct.hotline, tenDichVu: dichVu?.name ?? "", tenDichVuEn: tenEn.value.trim() || null, nhomKhach: chonNhom.value as NhomLo, denNgay: denNgay.value, ma, soSeri };
   };
 
   nutMau.addEventListener("click", async () => {
@@ -111,7 +121,7 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
 
   const form = h("form", { id: "vt-form" },
     dv.daLoc ? null : h("p", { class: "muted" }, "Danh sách gồm mọi dịch vụ vì tài khoản này không xem được ô «Vé do ai phát». Chọn đúng dịch vụ dùng vé Tour Đảo; chọn nhầm thì máy báo ngay sau khi tạo."),
-    truong("Dịch vụ", "vt-dich-vu", chonDv), truong("Loại khách", "vt-nhom", chonNhom),
+    h("div", { class: "lb-truong" }, h("span", { class: "nhan", id: "vt-dich-vu-nhan" }, "Dịch vụ"), chonDv), truong("Loại khách", "vt-nhom", chonNhom),
     truong("Dùng từ ngày (chung cho cả lô)", "vt-tu-ngay", tuNgay), truong("Dùng đến ngày, in trên vé là hạn cuối", "vt-den-ngay", denNgay),
     truong(`Số vé (mỗi lô tối đa ${o.tranLo()} vé)`, "vt-so-luong", soLuong),
     truong("Tên tiếng Anh của dịch vụ (không bắt buộc, chỉ in lên vé, không lưu)", "vt-ten-en", tenEn),
@@ -135,7 +145,7 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
     try {
       const mau = await noiDung(MA_MAU, SERI_MAU); // tải hồ sơ công ty TRƯỚC khi mở lô: thiếu thì dừng, không để lô rỗng
       trangThai.textContent = "Đang mở lô…";
-      const mo = await api<{ loId: string; soSeri: string[] }>("/api/ve/lo", { method: "POST", body: { catalogCode: chonDv.value, nhomKhach: chonNhom.value, tenSanPham: mau.tenDichVu, nguon: "TOUR_DAO", soVeDuKien: so } });
+      const mo = await api<{ loId: string; soSeri: string[] }>("/api/ve/lo", { method: "POST", body: { catalogCode: dichVu?.code ?? "", nhomKhach: chonNhom.value, tenSanPham: mau.tenDichVu, nguon: "TOUR_DAO", soVeDuKien: so } });
       loId = mo.loId;
       if (!Array.isArray(mo.soSeri) || mo.soSeri.length !== so) throw new Error("Máy chủ không cấp đủ số sê-ri cho lô.");
 
@@ -191,6 +201,8 @@ export async function dungKhoiTaoVe(khung: HTMLElement, o: { tranLo: () => numbe
       const canh = `${xn.canhBaoNguon ? " Lô chưa được cấp cho ai tới khi Quản trị đổi ô «Vé do ai phát»." : ""}${xn.dichVuKhongVe ? " Dịch vụ này cũng đang tắt ô «Có vé»: Quản trị cần bật ô này ở màn Dịch vụ & giá." : ""}`;
       o.hienOk(`Đã tạo ${them} vé vào kho.${xn.capBu > 0 ? ` Máy đã cấp bù vé cho ${xn.capBu} đơn đang thiếu.` : ""}${xn.conDonChuaXet ? " Còn đơn đang thiếu vé chưa được cấp bù trong lần này." : ""}${canh}`);
       form.reset();
+      khungDv.xoaChon();
+      dichVu = null;
       replaceChildren(khuMau);
       await o.sauKhiTao();
     } catch (err) {

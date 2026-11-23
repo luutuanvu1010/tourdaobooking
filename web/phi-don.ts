@@ -8,6 +8,7 @@ import {
 import { addDays, ngayDayDu, vnToday } from "../src/shared/vn-date";
 import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan } from "./bang-truot";
+import { khoiChuongTrinhPhiDon } from "./chuong-trinh-phi-don";
 import { byId, h, replaceChildren } from "./dom";
 import { initShell, showError } from "./shell";
 import { hienBaoNgan } from "./toast";
@@ -25,6 +26,7 @@ const mucEl = byId("pd-muc");
 let du: Api.PhiDonResponse | null = null;
 let canhBaoSauLuu: Api.CanhBaoPhiDonDto[] = [];
 let ketQuaThuTra: string[] | null = null;
+let dichVuChuaCoPhi: { code: string; name: string }[] = [];
 const homNay = (): string => vnToday(new Date());
 
 const STALE = "Mức phí vừa được người khác thay đổi nên bản đang xem đã cũ. Đã nạp bản mới, hãy kiểm tra rồi làm lại nếu vẫn cần.";
@@ -96,13 +98,16 @@ function veTrangThai(): void {
   const dong = ngay === null ? "Chưa áp phí đưa đón" : ngay > homNay() ? `Phí đưa đón sẽ áp từ ${ngayDayDu(ngay)}` : `Phí đưa đón đang áp từ ${ngayDayDu(ngay)}`;
   const nutDat = nutPhu("Đặt ngày bắt đầu áp", () => moForm({ loai: "ngayAp" }));
   const nutTat = ngay === null ? null : nutPhu("Tắt phí đưa đón", () => void tat(nutTat!));
-  replaceChildren(trangThaiEl, h("strong", null, dong), h("div", { class: "actions" }, nutDat, nutTat));
+  // ADR-0218 Đ1.8: nhắc (không chặn) các dịch vụ có đưa đón mà Sheet chưa có giá gốc phí đưa đón.
+  const nhac = dichVuChuaCoPhi.length === 0 ? null
+    : h("p", { class: "muted", id: "pd-chua-co-phi" }, `Các dịch vụ có đưa đón chưa có giá gốc phí đưa đón trên Sheet: ${dichVuChuaCoPhi.map((x) => x.name).join(", ")}.`);
+  replaceChildren(trangThaiEl, h("strong", null, dong), nhac, h("div", { class: "actions" }, nutDat, nutTat));
 }
 
 async function tat(nutBam: HTMLButtonElement): Promise<void> {
   const dongY = await hoiXacNhan({
     tieuDe: "Tắt phí đưa đón?",
-    hauQua: "Từ lúc tắt, đơn chưa xác nhận không còn ô «Phí đưa đón» và không tính phí đón. Đơn đã xác nhận giữ phí đã chọn. Bật lại bằng «Đặt ngày bắt đầu áp».",
+    hauQua: "Từ lúc tắt, đơn chưa xác nhận không còn dòng phí đưa đón và không tính phí đón. Đơn đã xác nhận giữ phí đã chụp. Bật lại bằng «Đặt ngày bắt đầu áp».",
     nhanNguyHiem: "Tắt phí đưa đón",
     opener: nutBam,
   });
@@ -225,7 +230,7 @@ function moForm(che: Che): void {
       });
       if (ok) hienBaoNgan("Đã đặt ngày bắt đầu áp phí đưa đón.");
     });
-    khung = khungNhap("Đặt ngày bắt đầu áp", h("p", { class: "muted" }, "Từ ngày này, mỗi lượt đón trên đơn có ô «Phí đưa đón» để văn phòng chọn; lượt chưa chọn phí thì đơn không xác nhận được. Không cần nhập bảng mức trước."), o("Ngày bắt đầu áp", ngay), nutHang);
+    khung = khungNhap("Đặt ngày bắt đầu áp", h("p", { class: "muted" }, "Từ ngày này, Nền tảng tự tính phí cho mỗi lượt đón trên đơn từ giá gốc trên Sheet; lượt chưa có giá gốc thì đơn không xác nhận được (văn phòng bấm «Đổi phí» để đặt số). Không cần nhập bảng mức."), o("Ngày bắt đầu áp", ngay), nutHang);
   } else if (che.loai === "ketThuc") {
     const m = che.m;
     // Mức chưa bắt đầu mà để «hôm nay» thì máy chủ luôn từ chối (ngày kết thúc trước ngày bắt đầu): mặc định lấy ngày lớn hơn.
@@ -320,6 +325,12 @@ else {
   themEl.addEventListener("click", () => moForm({ loai: "them" }));
   if (await nap()) {
     khungEl.hidden = false;
+    try {
+      dichVuChuaCoPhi = (await api<Api.DichVuChuaCoPhiResponse>("/api/pricing/phi-don/dich-vu-chua-co-phi")).dichVu;
+    } catch {
+      dichVuChuaCoPhi = []; // chỉ là lời nhắc: lỗi thì thôi, màn vẫn dùng được
+    }
     ve();
+    await khoiChuongTrinhPhiDon(byId("pd-chuong-trinh"), du!.dichVu); // ADR-0218 Đ2
   }
 }

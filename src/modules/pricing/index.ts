@@ -1,8 +1,8 @@
 // Module pricing — bảng mức hoa hồng, điều khoản người bán (ADR-0077, ADR-0078 B1; đặc tả 2026-10-08 sổ đại lý đợt 1). Route: /api/pricing/*.
 // Hàm công bố cho orders: docBangChoChup (đọc mọi thứ để chụp lúc Xác nhận / đổi bên đặt), laNguoiHuong (bên đặt tổ chức có được gắn vào đơn không).
 import { auditStatement } from "../audit";
-import { getEffectiveServices, tenCacNhom, tenDacDiemTheoMa } from "../catalog";
-import { datHoatDongLoaiDoiTacStatement, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, suaLoaiDoiTacStatement, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
+import { getEffectiveServices, giaGocPhiDon, tenCacNhom, tenDacDiemTheoMa } from "../catalog";
+import { datHoatDongLoaiDoiTacStatement, findPartiesByPhone, kiemTenLoaiDoiTac, loaiVaiChiTiet, maLoaiDoiTac, ownerCompany, suaLoaiDoiTacStatement, tenLoaiVai, themLoaiDoiTacStatement } from "../parties";
 import { khoaTen } from "../../shared/khoa-ten.ts";
 import { kiemThanGioiHan, mucVuotGiaBan, viPhamGioiHanNhap } from "../../shared/gioi-han-nhap-muc.ts";
 import { nhanDong, nhanTyLeBp } from "../../shared/so-dai-ly-nhan.ts";
@@ -12,11 +12,12 @@ import type { CapCuaToChucResponse, CapDaiLyResponse, CapHienHanhResponse, CapMa
   LuatBanDto, LuatBanListResponse, LuatBanResponse, NguoiHuongTimResponse, SuaGanLoaiResponse, SuaMucResponse, SuaXemTruocResponse, SupplyTermDto, SupplyTermListResponse, ThuTraResponse } from "../../shared/contracts";
 import { error, json, mauLikeChua, kemLocation, readJson } from "../../shared/http";
 import { coTheTimDoiTac } from "../../shared/hoa-hong-hien-thi";
+import { soTimDoiTac } from "../../shared/phan-doi-tac-hien-thi";
 import { can, holdsPartner } from "../../shared/permissions";
 import { route, type AppModule, type HoiDaChup } from "../../shared/router";
 import { CAU_X3_THUE_XE, NHAN_LY_DO_THIEU } from "../../shared/so-dai-ly-nhan";
 import { ngayDayDu, vnToday } from "../../shared/vn-date";
-import { cauApCsDangKy, cauThemCsDangKy, coCapRiengTuNgay, csDangKyCuaLoai, csDangKyHieuLuc, cauThemGioiHanNhap, gioiHanNhapMoiNhat, type GioiHanNhapRow, cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
+import { cauApCsDangKy, cauThemCsDangKy, coCapRiengTuNgay, csDangKyCuaLoai, csDangKyHieuLuc, cauThemGioiHanNhap, gioiHanNhapMoiNhat, type GioiHanNhapRow, cauDoiCapRieng, cauDoiChinhSach, cauSuaGanLoai, cauSuaGanRieng, cauSuaMuc, partyTiersCurrent, cauDoiMuc, allRules, allTerms, beneficiaryRoles, beneficiaryRolesAll, closeRoleTierStatement, closeRuleStatement, closeTermStatement, findBeneficiaries, findBeneficiariesAmong, groupsOf, huongCuaHoSo, insertBeneficiaryStatement,
   insertRateTierStatement, insertRoleTierStatement, insertRulePaxStatement, insertRuleStatement, insertTermStatement, isBeneficiary, hoSoCapDaiLy, openBeneficiaryRolesAll, openRolesOf, partyTiersHistory, partyTiersOf, partyTierById, insertPartyTierStatement, closePartyTierStatement, rateTierByCode, rateTiers, roleRulesForTierLink, roleTierById, roleTiersAll,
   roleTiersOn, ruleById, rulesOn, setBeneficiaryActiveStatement, setRateTierActiveStatement, soHoSoTheoVai, suaMucTaStatement, suppliers, tenNhanVienTheoId, termById, termsOn, type PartyTierRow, type RoleTierRow, type RuleRow, type TermRow, type TierRow, type XuLyDongCu , viecDoKhiThoiVai as viecDoKhiThoiVaiRepo } from "./repository";
 import { MA_RE, MUC_TA_RE, PARTY_RE, capHienHanhCuaHoSo, chonMuc, cungMuc, hieuLuc, tomTatHoaHongHoSo, kiemDoi, kiemNgayDong, kiemNgung, kiemSua, xemTruocSua, kiemThanDoiChinhSach, kiemThanDieuKhoan, kiemThanDoiMuc, kiemThanDongMucTa, kiemThanGan, kiemThanGanRieng, kiemThanMuc, kiemTenMucTa, laNgay, maMucTa, moTaMuc, nguoiHuongCua,
@@ -26,6 +27,32 @@ import { coCacGiaTri, coGiaTri, danhSachLuatBan, demLuatBanChuaHetHan, giaTriDac
 import { ketQuaCapChoNguoiXem, type LyDoKhongApCap } from "../../shared/cap-se-ap-hien-thi";
 import { chanBan, kiemThanLuatBan, ngayKetThucLuat, type PhamViLuatBan, type TrungLuat } from "./luat-ban-rules";
 import { phiDonRoutes } from "./phi-don-route";
+import { giamPhiDonRoutes } from "./giam-phi-don-route";
+import { chuongTrinhPhiDonRoutes } from "./chuong-trinh-phi-don-route";
+export { chuongTrinhPhiDonHieuLuc } from "./chuong-trinh-phi-don-repo";
+export { mucGiamPhiDonTheoNgay } from "./giam-phi-don-repo";
+import { mucGiamPhiDonTheoNgay as mucGiamTheoNgay } from "./giam-phi-don-repo";
+import { chuongTrinhPhiDonHieuLuc as chuongTrinhHieuLuc } from "./chuong-trinh-phi-don-repo";
+import { capCuaBenDatNgay } from "./phi-don-repo.ts";
+import { tinhPhiLuotDon, type DauVaoLuotDon, type KetQuaLuot } from "./phi-don-gia-goc-rules.ts";
+export { tinhPhiLuotDon, soLuongLuot, type DauVaoLuotDon, type KetQuaLuot } from "./phi-don-gia-goc-rules.ts";
+
+/**
+ * ĐƯỜNG TÍNH PHÍ ĐƯA ĐÓN DUY NHẤT (ADR-0218 Đ1; Hiến chương 5.4) cho lưu nháp, đọc nháp và xác nhận: đọc MỘT lần giá gốc (`catalog`), cấp bên đặt và mức giảm tại `ngayXacNhan`,
+ * chương trình còn hiệu lực tại `luc` (ISO UTC, mặc định bây giờ), rồi gọi hàm thuần `tinhPhiLuotDon`. Khoá kết quả = `luotKey`; lượt số lượng 0 không có khoá. KHÔNG kiểm quyền, KHÔNG ghi.
+ */
+export async function tinhPhiDonGiaGoc(db: D1Database, v: { bookerPartyId: string | null; ngayXacNhan: string; luc?: string; luot: readonly DauVaoLuotDon[] }): Promise<Map<string, KetQuaLuot>> {
+  const ra = new Map<string, KetQuaLuot>();
+  if (v.luot.length === 0) return ra;
+  const ma = [...new Set(v.luot.flatMap((l) => (l.catalogCode === null ? [] : [l.catalogCode])))];
+  const [giaGoc, cap, chuongTrinh] = await Promise.all([giaGocPhiDon(db, ma), capCuaBenDatNgay(db, { bookerPartyId: v.bookerPartyId, ngay: v.ngayXacNhan }), chuongTrinhHieuLuc(db, v.luc ?? new Date().toISOString())]);
+  const mucGiam = cap.loai === "CO_CAP" ? await mucGiamTheoNgay(db, cap.tierCode, v.ngayXacNhan) : null;
+  for (const l of v.luot) {
+    const k = tinhPhiLuotDon(l, { bookerPartyId: v.bookerPartyId, cap, mucGiam, giaGoc, chuongTrinh });
+    if (k) ra.set(l.luotKey, k);
+  }
+  return ra;
+}
 
 export { cauBiChan } from "./luat-ban-rules";
 // Phí đưa đón (ADR-0147 Đ2, ADR-0203): hàm công bố cho Đợt C — đọc bảng phí + cấp của bên đặt; luật thuần chọn mức và tính tiền một chặng. Chỉ đọc, KHÔNG tự kiểm quyền.
@@ -1219,13 +1246,19 @@ export const pricingModule: AppModule = {
       return json({ dong: dtoDk((await termById(env.DB, id))!, cty?.partyId ?? null, vnToday(new Date())) });
     }),
     // Tìm người hưởng theo tên cho form lập đơn (bên đặt là công ty lữ hành…) và trang Hoa hồng: người LẬP ĐƠN hoặc người ĐẶT MỨC (Kế toán), không phải tài khoản Đối tác (ADR-0141, cổng = `coTheTimDoiTac`). Chỉ id, tên, loại hồ sơ — không liên hệ.
+    // Việc 3 (21/11/2026): gõ đủ một số điện thoại ⇒ tìm theo số liên hệ đang mở — chỉ với người vốn tra được hồ sơ theo số (`soTimDoiTac` = cổng GET /api/parties/lookup); không thì theo tên.
     route("GET", "/api/pricing/nguoi-huong", "orders", async ({ env, url, staff }) => {
       // Hai vế cố ý trùng: `can(` trực tiếp để hàng rào route-write-guard (không thêm tên vào GUARDS) nhận ra cổng; `coTheTimDoiTac` để máy chủ và trang dùng chung một hàm (ADR-0141 Đ1).
       if (!(can(staff, "order.create") || can(staff, "partner.commission.write")) || !coTheTimDoiTac(staff)) return FORBIDDEN();
       const q = (url.searchParams.get("q") ?? "").trim().slice(0, 60);
+      const so = soTimDoiTac(staff, q);
       // Câu SQL tự bọc '%' || ?1 || '%': đưa vào phần giữa của mauLikeChua (≤ 48 byte) để cả mẫu ≤ 50 byte (D1 từ chối quá giới hạn).
-      const rows = await findBeneficiaries(env.DB, mauLikeChua(q).slice(1, -1));
+      const rows = so
+        ? await findBeneficiariesAmong(env.DB, (await findPartiesByPhone(env.DB, so, vnToday(new Date()))).map((p) => p.id))
+        : await findBeneficiaries(env.DB, mauLikeChua(q).slice(1, -1));
       return json({ ketQua: rows.map((r) => ({ partyId: r.id, ten: r.display_name, loai: r.party_kind })) } satisfies NguoiHuongTimResponse);
-    }),    ...phiDonRoutes, // ADR-0147 Đ2: bảng phí đưa đón (phi-don-route.ts; đã khai ở TEP_ROUTE_PHU của route-write-guard.test.ts)
+    }),    ...chuongTrinhPhiDonRoutes, // ADR-0218 Đ2: chương trình miễn phí đưa đón (chuong-trinh-phi-don-route.ts)
+    ...giamPhiDonRoutes, // ADR-0218 Đ1.4: mức giảm phí đưa đón theo cấp (giam-phi-don-route.ts; đã khai ở TEP_ROUTE_PHU của route-write-guard.test.ts)
+    ...phiDonRoutes, // ADR-0147 Đ2: bảng phí đưa đón (phi-don-route.ts; đã khai ở TEP_ROUTE_PHU của route-write-guard.test.ts)
   ],
 };

@@ -177,6 +177,14 @@ export const AUDIT_ACTIONS = {
   prc_transfer_fee_added: { label: "Thêm mức phí đưa đón", group: "ledger" },
   prc_transfer_fee_ended: { label: "Kết thúc mức phí đưa đón", group: "ledger" },
   prc_transfer_fee_start_set: { label: "Đặt ngày bắt đầu áp phí đưa đón", group: "ledger" },
+  // ADR-0218 Đ1.4: Kế toán / Quản trị / Toàn quyền đặt hoặc kết thúc MỨC GIẢM phí đưa đón theo cấp (route /api/pricing/giam-phi-don*) — `target_type = 'ledger'`.
+  // `detail` = «<tên cấp>: chưa đặt → 20.000đ từ 01/12/2026» / «<tên cấp> · kết thúc 30/11/2026». Chỉ tên cấp và số tiền; không tên người, SĐT, email, MST.
+  prc_transfer_fee_discount_set: { label: "Đặt mức giảm phí đưa đón", group: "ledger" },
+  prc_transfer_fee_discount_ended: { label: "Kết thúc mức giảm phí đưa đón", group: "ledger" },
+  // ADR-0218 Đ2: Quản trị / Toàn quyền tạo và kết thúc CHƯƠNG TRÌNH MIỄN PHÍ đưa đón (route /api/pricing/chuong-trinh-phi-don*) — `target_type = 'ledger'`. `detail` = «<tên chương trình> · ngày đi từ … đến … ·
+  // <phạm vi: tất cả dịch vụ / N dịch vụ / N đối tác> · gồm hoặc không gồm xe riêng» / «<tên> · kết thúc dd/mm/yyyy». Tên chương trình do người đặt, không tên khách, SĐT, email, MST.
+  prc_transfer_fee_program_created: { label: "Tạo chương trình miễn phí đưa đón", group: "ledger" },
+  prc_transfer_fee_program_ended: { label: "Kết thúc chương trình miễn phí đưa đón", group: "ledger" },
   // ADR-0168 Đ1: Toàn quyền đặt / ngừng hạn mức Trả sau của một đối tác (route /api/tra-sau/han-muc*) — `target_type = 'ledger'`, `target_id` = mã hồ sơ, không gắn đơn.
   // `detail` = «hạn mức 50.000.000 ₫ · 7 ngày» / «ngừng hạn mức» (số tiền và số ngày, KHÔNG tên, SĐT, email, MST, lý do tự do).
   credit_limit_set: { label: "Đặt hạn mức trả sau", group: "ledger" },
@@ -392,8 +400,12 @@ export const AUDIT_ACTIONS = {
   partner_customer_policy_changed: { label: "Đổi công tắc ẩn thông tin khách", group: "system" },
   // ADR-0193 mục 1: Toàn quyền bật / tắt «Bắt buộc giờ đón cho đơn đối tác» (POST /api/cai-dat/bat-buoc-gio-don) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
   pickup_time_policy_changed: { label: "Đổi công tắc bắt buộc giờ đón", group: "system" },
+  // ADR-0218 Đ3.4: Toàn quyền đổi «Hiện riêng phí đưa đón trên biên nhận khách lẻ» (POST /api/cai-dat/phi-don-bien-nhan) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
+  receipt_fee_display_changed: { label: "Đổi công tắc hiện riêng phí đưa đón trên biên nhận", group: "system" },
   // ADR-0221 Đ1: Toàn quyền bật / tắt «Đối tác không nhập nơi đón» (POST /api/cai-dat/noi-don-doi-tac) — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
   pickup_place_policy_changed: { label: "Đổi công tắc đối tác không nhập nơi đón", group: "system" },
+  // ADR-0227 Đ1: Toàn quyền bật / tắt «Chặn đơn chưa có giờ đón khi sát ngày đón» (POST /api/cai-dat/chan-chua-gio-sat-ngay) — không gắn đơn; detail «Bật …» / «Tắt …».
+  pickup_deadline_policy_changed: { label: "Đổi công tắc chặn đơn chưa có giờ đón", group: "system" },
   // ADR-0228 Đ1, Đ3: Toàn quyền bật / tắt «Đối tác không nhập danh sách hành khách» (POST /api/cai-dat/hanh-khach-doi-tac) và «Đơn đối tác không cần giờ đón» (POST /api/cai-dat/khong-can-gio-don)
   // — không gắn đơn; detail «Bật …» / «Tắt …», không dữ liệu khách.
   partner_passenger_policy_changed: { label: "Đổi công tắc đối tác không nhập danh sách hành khách", group: "system" },

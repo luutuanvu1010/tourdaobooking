@@ -1076,3 +1076,16 @@ export function ngayPhatSinh(input: { chon: unknown; homNay: string; laKeToan: b
   if (input.kyDaKhoa(input.chon)) return { ok: false, message: cauKyKhoa(kyCua(input.chon)), khoa: true };
   return { ok: true, value: input.chon };
 }
+
+/**
+ * ADR-0226 (Việc 6, chủ chọn 6D): «Tour Đảo đã thu hộ tiền mặt» của MỘT đơn đại lý = Σ khoản thu của khách bằng TIỀN MẶT còn hiệu lực, do người phía Tour Đảo thu (vai Công ty hoặc nhân viên,
+ * không phải bên đặt / quầy nhà cung cấp), không đang chờ Kế toán đối chiếu — tức phần tiền mặt nằm trong «Đã thu» của phiếu công nợ (nhân viên cầm hộ được tin như `soChuaVeCongTy`, ADR-0170 Đ2).
+ * Luật thuần; chỉ để HIỂN THỊ, không vào số nợ (số nợ vẫn là `tinhConLai`). Kẹp trên bằng `daThu` của phiếu (người kiểm độc lập 21/11, mục Vừa): khoản khai / cọc còn ở tay người thu đã bị
+ * trừ khỏi «Đã thu», nên thu hộ không bao giờ hiện lớn hơn số đã trừ vào nợ.
+ */
+export function thuHoTienMat(i: { receipts: readonly (ReceiptRow & { method: string })[]; bookerPartyId: string | null; choXacNhan: ReadonlySet<string>; daThu: number }): number {
+  return Math.min(i.daThu, hieuLuc(i.receipts)
+    .filter((r) => r.kind === "CUSTOMER_PAYMENT" && r.method === "CASH" && (r.collectorRole === "COMPANY" || r.collectorRole === "STAFF") && !i.choXacNhan.has(r.id)
+      && (r.collectorPartyId === null || r.collectorPartyId !== i.bookerPartyId))
+    .reduce((s, r) => s + r.amount, 0));
+}

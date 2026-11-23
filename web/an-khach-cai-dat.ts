@@ -30,7 +30,7 @@ export async function ganCaiDatAnKhach(el: HTMLElement): Promise<void> {
     });
     replaceChildren(
       el,
-      h("h2", { id: "an-khach-heading" }, "Đối tác không nhập tên, SĐT khách"),
+      h("h3", { id: "an-khach-heading" }, "Đối tác không nhập tên, SĐT khách"),
       h("p", { id: "an-khach-trang-thai" }, s.bat ? "Đang bật." : "Đang tắt."),
       h("p", { class: "muted" }, "Khi bật, đối tác lập đơn không nhập tên, số điện thoại khách: đơn ghi tên và số của chính đối tác. Danh sách hành khách có công tắc riêng ngay dưới."),
       loi,

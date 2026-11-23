@@ -560,11 +560,13 @@ test("khối Phí đưa đón: «Miễn phí» chỉ cho dòng đơn giá 0 đ�
     thieu: [],
     duKien,
   });
+  // ADR-0218 Đ3: khách lẻ mặc định gộp phí vào giá; khối «Phí đưa đón» chỉ còn khi công tắc «Hiện riêng» bật (hoặc mẫu đối tác) ⇒ dựng với công tắc bật.
+  const buildRieng = (o: DonMau): ConfirmationModel => buildConfirmation(dungBienNhan(o, COMPANY, { daTra: o.paid, conLai: o.remaining }, null, false, true), "Lê Minh Tuấn");
   const lay = (m: ConfirmationModel) => blocksOf(m, "service").find((b) => b.name.startsWith("Phí đưa đón"))!;
-  const nhap = lay(build(order({ phiDuaDon: phi(true) })));
+  const nhap = lay(buildRieng(order({ phiDuaDon: phi(true) })));
   assert.equal(nhap.name, "Phí đưa đón (dự kiến)");
   assert.deepEqual(nhap.lines.map((l) => [l.quantity, l.lineTotal]), [["2", "140.000 ₫"], ["2", "Miễn phí"], ["0", "0 ₫"]]);
-  const daChup = lay(build(order({ status: "confirmed", confirmedAt: "2026-09-21T01:00:00.000Z", phiDuaDon: phi(false) })));
+  const daChup = lay(buildRieng(order({ status: "confirmed", confirmedAt: "2026-09-21T01:00:00.000Z", phiDuaDon: phi(false) })));
   assert.equal(daChup.name, "Phí đưa đón");
   assert.deepEqual(daChup.lines.map((l) => l.lineTotal), ["140.000 ₫", "Miễn phí", "0 ₫"]);
 });

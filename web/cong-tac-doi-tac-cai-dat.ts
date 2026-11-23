@@ -56,7 +56,7 @@ export async function ganCongTacDoiTac(el: HTMLElement, loai: keyof typeof DS): 
         nut.disabled = false;
       }
     });
-    replaceChildren(el, h("h2", { id: `${c.khoa}-heading` }, c.ten), h("p", { id: `${c.khoa}-trang-thai` }, s.bat ? "Đang bật." : "Đang tắt."), h("p", { class: "muted" }, c.giaiThich), loi, nut);
+    replaceChildren(el, h("h3", { id: `${c.khoa}-heading` }, c.ten), h("p", { id: `${c.khoa}-trang-thai` }, s.bat ? "Đang bật." : "Đang tắt."), h("p", { class: "muted" }, c.giaiThich), loi, nut);
   };
   ve(s);
   el.hidden = false;

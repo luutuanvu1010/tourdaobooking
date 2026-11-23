@@ -18,7 +18,9 @@ import { ganCaiDatNhapTay } from "./nhap-tay-cai-dat";
 import { ganCaiDatAnKhach } from "./an-khach-cai-dat";
 import { ganCongTacDoiTac } from "./cong-tac-doi-tac-cai-dat";
 import { ganCaiDatGioDon } from "./gio-don-cai-dat";
+import { ganCaiDatPhiDonBienNhan } from "./phi-don-bien-nhan-cai-dat";
 import { ganCaiDatNoiDon } from "./noi-don-cai-dat";
+import { ganCaiDatChanChuaGio } from "./chan-chua-gio-cai-dat";
 import { ganNutThanhDuoi } from "./thanh-duoi-cai-dat";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { b64uSangBytes, thietBiTu } from "./push-ui";
@@ -874,8 +876,12 @@ if (can(staff, "settings.ops")) void ganCongTacDoiTac(byId("mien-du-ten-cai-dat"
 if (can(staff, "settings.ops")) void ganCaiDatGioDon(byId("gio-don-cai-dat"));
 // ADR-0228 Đ3: «Đơn đối tác không cần giờ đón» — ngay dưới «Bắt buộc giờ đón».
 if (can(staff, "settings.ops")) void ganCongTacDoiTac(byId("khong-can-gio-cai-dat"), "gioDon");
+// ADR-0218 Đ3.4: «Hiện riêng phí đưa đón trên biên nhận khách lẻ» — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại).
+if (can(staff, "settings.ops")) void ganCaiDatPhiDonBienNhan(byId("phi-don-bien-nhan-cai-dat"));
 // ADR-0221 Đ1: «Đối tác không nhập nơi đón» — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại), ngay dưới «Bắt buộc giờ đón».
 if (can(staff, "settings.ops")) void ganCaiDatNoiDon(byId("noi-don-cai-dat"));
+// ADR-0227 Đ1: «Chặn đơn chưa có giờ đón khi sát ngày đón» — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại), cuối nhóm «Cài đặt lập đơn».
+if (can(staff, "settings.ops")) void ganCaiDatChanChuaGio(byId("chan-chua-gio-cai-dat"));
 // ADR-0187 Đ2.3: mục «Nút thanh dưới» (chỉ điện thoại). Ai thấy: ô me.favorites.write và không đang xem như vai trò khác — hàm tự hỏi bảng quyền.
 ganNutThanhDuoi(byId("thanh-duoi"), staff);
 

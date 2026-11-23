@@ -44,7 +44,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
     noiDung: `### Các bước
 1. **Tải vé từ nhà cung cấp.** Mỗi lần chỉ tải đúng một sản phẩm, một loại khách, một khoảng ngày dùng. Giữ nguyên ảnh gốc, vì ảnh nén quá nhỏ có thể không đọc được QR.
 2. **Nhập vào kho.** Chọn dịch vụ và loại khách, gõ tên sản phẩm, chọn ngày dùng, chọn các ảnh vé rồi bấm [[Nhập lô vé]]. Giữ nguyên trang này cho tới khi gửi xong. Ảnh hỏng hoặc trùng bị loại kèm tên tệp, các ảnh còn lại vẫn vào kho.
-3. **Máy giữ vé cho đơn.** Máy tự giữ vé theo số khách khi đơn được xác nhận; em bé không có vé. Máy lấy lô đúng loại khách trước, rồi đến lô «Mọi loại khách»; trong mỗi nhóm, vé sắp hết hạn ra trước. Kho thiếu thì đơn báo còn thiếu vé: nhập thêm lô, mở đơn rồi bấm [[Cấp vé]]. Muốn biết sản phẩm nào sắp hết, xem khối **Số vé còn**: gõ tên vào ô «Tìm theo tên sản phẩm» hoặc bấm **Hết vé**, **Còn 1 đến 5**, **Còn trên 5**.
+3. **Máy giữ vé cho đơn.** Máy tự giữ vé theo số khách khi đơn được xác nhận; em bé không có vé. Máy lấy lô đúng loại khách trước, rồi đến lô «Mọi loại khách»; trong mỗi nhóm, vé sắp hết hạn ra trước. Kho thiếu thì đơn báo còn thiếu vé: nhập thêm lô, mở đơn rồi bấm [[Cấp vé]]. Muốn biết sản phẩm nào sắp hết, xem khối **Số vé còn** và bấm **Hết vé**, **Còn 1 đến 5**, **Còn trên 5**. Thanh **Lọc theo dịch vụ** ở đầu trang (chọn một nhóm dịch vụ, hoặc gõ tên, mã, tên in trên vé, không dấu cũng được) thu hẹp cùng lúc Số vé còn, Lô trong kho và Lô đã huỷ gần đây; lọc ra trống thì bấm [[Xoá lọc]].
 4. **Giao vé.** Vé chỉ mở khi đơn đã thu đủ; đơn trả sau thì vé mở trước, trừ khi đơn đã quá hạn còn nợ; với đơn do đối tác lập, chỉ tính tiền đã về công ty (đối tác tự ghi «Tôi thu» chưa đủ để mở). Bấm nút **Mở … vé để gửi khách** (có số vé của đơn; màn hình nhắc vé sẽ không về kho nữa), rồi bấm [[Gửi Zalo]] và tự chọn người nhận. Máy không có nút này thì bấm các nút **Tải vé** để lưu ảnh rồi tự gửi. Hoặc bấm [[Tạo đường dẫn cho khách]] để khách tự mở và lưu vé; đường dẫn chỉ hiện một lần, nên chép gửi ngay. Khi đơn tăng số khách, vé thêm chỉ hiện cho khách sau khi đơn thu đủ; vé khách đã mở rồi thì vẫn xem được.
 
 ### Điều dễ sai
@@ -204,7 +204,7 @@ export const BAI_VIEC: readonly BaiViec[] = [
 - Đổi số mới chỉ áp cho đơn xác nhận sau đó; đơn đã xác nhận giữ hạn trả cũ.
 - Quản trị chỉ đặt được hạn mức tới **Mức tối đa Quản trị được cấp** do Toàn quyền đặt ở khối **Hạn mức trả sau** cuối màn. Chưa có mức này thì Quản trị chưa cấp được cho ai.
 - Không ai tự cấp hạn mức trả sau cho hồ sơ của chính mình.
-- Đối tác không thấy con số hạn mức, chỉ thấy mình được trả sau và số giờ phải trả. Đơn mới đối tác lập được chọn sẵn «Trả sau»; đơn vượt hạn mức thì đối tác được báo chọn Thanh toán ngay hoặc liên hệ Tour Đảo.
+- Đối tác không thấy con số hạn mức, chỉ thấy mình được trả sau và số giờ phải trả. Đối tác đang được trả sau chỉ thấy lựa chọn «Trả sau», không tự chọn Thanh toán ngay được; muốn một đơn trả ngay thì văn phòng lập hộ. «Thanh toán ngay» chỉ hiện lại cho đối tác khi còn đơn quá hạn, hoặc khi đơn vượt hạn mức (đối tác được báo chọn Thanh toán ngay hoặc liên hệ Tour Đảo).
 - Bấm [[Đóng hạn mức]] (rồi xác nhận ở hộp hỏi) thì đối tác không đặt thêm đơn trả sau được, nhưng nợ cũ vẫn phải thu. Muốn giữ thì bấm «Giữ hạn mức». Đối tác còn nợ thì chưa ngừng tài khoản hay gỡ vai trò đối tác được.
 - Ngay dưới khối **Hạn mức trả sau** có thẻ **Khách của đối tác trả cho Công ty**: chỉ Toàn quyền bật, tắt. Tắt thì đơn đối tác lập từ lúc đó chỉ do chính đối tác ghi khoản thu và không có QR thanh toán; đơn đã lập giữ nguyên.
 
@@ -255,14 +255,17 @@ Khách xin thêm thời gian: mở đơn, ở khối Thanh toán bấm [[Ân h�
     o: ["admin.manage"],
     gioiHan: [],
     neo: ["web/phi-don.ts", "public/phi-don.html", "src/shared/phi-don-hien-thi.ts"],
-    moDau: "Từ ADR-0214 phí trên đơn do văn phòng chọn; bảng này không còn dùng cho đơn. Màn Phí đưa đón còn giữ ngày bắt đầu áp: từ ngày đó, mỗi lượt đón trên đơn có ô chọn phí, và lượt chưa chọn phí thì đơn không xác nhận được.",
+    moDau: "Từ ADR-0218 phí đưa đón do Nền tảng tự tính từ giá gốc trên Sheet dịch vụ, trừ mức giảm theo cấp độ đại lý. Màn Phí đưa đón giữ ngày bắt đầu áp, danh sách dịch vụ chưa có giá gốc và chương trình miễn phí; từ ngày bắt đầu áp, mỗi lượt đón trên đơn có một dòng phí.",
     noiDung: `### Các bước
-1. Mở **Phí đưa đón**, bấm [[Đặt ngày bắt đầu áp]] và chọn ngày. Không cần nhập bảng mức trước.
-2. Từ ngày đó, nhân viên văn phòng chọn phí cho từng lượt đón ngay trên đơn: Miễn phí, một mức có sẵn trong danh sách, hoặc Số khác (tự gõ số tiền, có mức tối đa). Đơn do Đối tác gửi thì người kiểm vé chọn phí lúc bấm [[Còn vé, xác nhận đơn]].
-3. Muốn dừng tính phí: bấm [[Tắt phí đưa đón]]. Đơn đã xác nhận giữ nguyên phí đã chụp.
+1. Mở **Phí đưa đón**, bấm [[Đặt ngày bắt đầu áp]] và chọn ngày. Không cần nhập bảng mức. Trước ngày đó đơn không có dòng phí.
+2. Xem phần nhắc «dịch vụ chưa có giá gốc phí đưa đón»: dịch vụ nào còn trống ô giá gốc trên Sheet thì đơn có lượt đón của dịch vụ đó không xác nhận được. Nhập giá gốc trên Sheet (ghi 0 nếu miễn phí), hoặc văn phòng bấm Đổi phí trên đơn để đặt số riêng kèm lý do.
+3. Muốn miễn phí đưa đón theo đợt: mở khối **Chương trình miễn phí đưa đón**, chọn khoảng ngày đi, và phạm vi (tất cả dịch vụ, một số dịch vụ hoặc một số đối tác). Đơn chưa xác nhận có ngày đón trong khoảng thì phí là 0 đồng; đơn đã xác nhận giữ phí đã chụp.
+4. Đơn do Đối tác gửi: nếu Nền tảng tính được phí thì đơn xác nhận luôn; không tính được thì người kiểm vé đặt số lúc bấm [[Còn vé, xác nhận đơn]].
+5. Muốn dừng tính phí: bấm [[Tắt phí đưa đón]]. Đơn đã xác nhận giữ nguyên phí đã chụp.
 
 ### Điều dễ sai
-- Bảng mức theo khu vực và khối **Thử tra** vẫn còn để tra cứu, nhưng không còn tính vào đơn.
-- Chưa chọn phí khác với Miễn phí: lượt chưa chọn thì đơn không xác nhận được; muốn không thu phí thì chọn Miễn phí.`,
+- Phí của đơn tính từ giá gốc trên Sheet, trừ mức giảm theo cấp (Kế toán đặt ở màn Cấp độ đại lý); đổi cấp độ cũng đổi phí của các đơn chưa xác nhận.
+- Ô giá gốc để trống khác số 0: trống là chưa có giá, đơn bị giữ; số 0 là miễn phí.
+- Bảng mức theo khu vực và khối **Thử tra** nay nằm trong khối gập «luật cũ, không dùng cho đơn»; vẫn còn để tra cứu, không tính vào đơn.`,
   },
 ];

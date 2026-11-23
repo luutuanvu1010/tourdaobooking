@@ -75,6 +75,8 @@ export function khoangNgayDon(departDate: string): { from: string; to: string } 
  */
 export interface ChangHopLe {
   id: string | null;
+  /** Số đổi phí đưa đón của văn phòng cho lượt này (ADR-0218): có ⇒ đặt; `null` ⇒ bỏ đổi; vắng ⇒ giữ số đã lưu. Không phải cột của chặng — chỉ đi trong thân lập / lưu nháp. */
+  doiPhi?: { donGia: number; lyDo: string } | null;
   direction: LegDirection;
   pickupDate: string | null;
   pickupTime: string | null;
