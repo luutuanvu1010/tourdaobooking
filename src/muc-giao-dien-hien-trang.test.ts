@@ -30,6 +30,8 @@
 // chụp cây làm việc. So bản cũ: «Dịch vụ & giá» thêm đúng 64 tập ở mỗi ô (đều giữ ACCOUNTING, không ADMIN/SUPER_ADMIN/SALES_MANAGER/PARTNER), không tập nào mất mục nào; thanh bên
 // ghim thêm các mục mới có từ trước (chỉ siết). Các ô khác giữ nguyên (`thanh-tab`, `trang-toi` còn lệch sẵn, không do việc này — không lấy).
 // Riêng `ngoaiTuyen.thanhTab` GIỮ NGUYÊN giá trị cũ: lệnh chụp, kể cả `--rev HEAD`, ra mảng rỗng ở ô này (lệch từ trước, không do ADR-0169), còn bài mất mạng dưới đây vẫn đọc bốn tab cơ bản từ bảng.
+// Sửa 2026-11-23 (việc 15, chủ chọn tên «Nhà cung cấp» thay «Người bán dịch vụ»): chỉ đổi đúng hai chuỗi nhãn «Người bán dịch vụ» → «Nhà cung cấp» (ô `thanh-ben` và `trang-toi`),
+// GIỮ NGUYÊN mặt nạ tập quyền — đổi chữ có chủ ý, không đổi ai thấy mục nào.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
