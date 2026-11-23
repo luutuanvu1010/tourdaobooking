@@ -705,11 +705,11 @@
       },
       {
         "ca": "H13",
-        "moTa": "Ví dụ của chủ dự án 23/11, trong mùa +15%: 1.050.000 × 115% = 1.207.500, làm tròn lên 1.208.000; hoa hồng vẫn 70.000 ⇒ công ty thu về 1.138.000",
+        "moTa": "Ví dụ của chủ dự án 23/11, trong mùa +10%: 1.050.000 × 110% = 1.155.000 (tròn nghìn, không cần làm tròn); hoa hồng vẫn 70.000 ⇒ công ty thu về 1.085.000",
         "dong": [
           {
-            "donGia": 1208000,
-            "soTang": 158000,
+            "donGia": 1155000,
+            "soTang": 105000,
             "soLuong": 1
           }
         ],
@@ -717,10 +717,10 @@
         "rateBp": null,
         "perPax": 70000,
         "soKhachTinh": 1,
-        "thanhTien": 1208000,
+        "thanhTien": 1155000,
         "coSoHoaHong": 1050000,
         "hoaHong": 70000,
-        "giaDaiLy": 1138000
+        "giaDaiLy": 1085000
       }
     ]
   },
