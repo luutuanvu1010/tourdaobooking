@@ -6,6 +6,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../tests/audit/harness.mjs";
+import { CAU_DOC_CHIA_PHAN } from "../scripts/cau-doc-chia-phan-nha-cung-cap.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const SA = "33333333-3333-4333-8333-333333333333";
@@ -100,4 +101,27 @@ test("việc 15 B1 + B2: sau khi đổi công ty chủ, dòng gieo cũ báo NGUN
   const lai = await w.call("POST", `/api/pricing/cung-ung/${dongMoi[0].id}/dong`, { as: KT, body: { denNgay: "2099-12-31" } });
   assert.equal(lai.status, 409, lai.text);
   assert.equal(lai.json.error.code, "moi_dich_vu_bat_buoc");
+});
+
+test("câu đọc cho chủ (scripts/cau-doc-chia-phan-nha-cung-cap.mjs): chưa đổi công ty chủ ⇒ ca_1 = ca_2 = 0 dù có đơn của nhà cung cấp; đổi công ty chủ ⇒ đếm đúng hai bản chụp lệch (ca_1)", async () => {
+  const w = dung();
+  w.sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-ncc', 'ORGANIZATION', 'i-resort', 1, ?, ?)").run(AT, AT);
+  w.sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-ncc', 'pty-ncc', 'SUPPLIER', '2026-01-01', ?, ?)").run(AT, AT);
+  w.sqlite.exec(`INSERT INTO catalog_item (code, name, unit, price_adult, price_child, price_senior, price_infant, sheet_row, in_sheet, first_seen_at, updated_at)
+    VALUES ('ZNC2', 'Vé nhà cung cấp', 'perPax', 500000, NULL, NULL, NULL, 2, 1, '${AT}', '${AT}')`);
+  assert.equal((await w.call("POST", "/api/pricing/cung-ung", { as: KT, body: { phamVi: "SERVICE", catalogCode: "ZNC2", nguoiBanPartyId: "pty-ncc", tyLeMuaBp: 8000, tuNgay: "2026-01-01" } })).status, 201);
+  const dem = () => Object.values(w.q(CAU_DOC_CHIA_PHAN)[0]).map(Number);
+  assert.deepEqual(dem(), [1, 1, 0, 0], "D1 mới: một dòng vai công ty chủ, không bản chụp");
+  const a = donNhap(w);
+  await xacNhan(w, a);
+  const b = donNhap(w);
+  w.sqlite.prepare("UPDATE order_service SET catalog_code = 'ZNC2', name = 'Vé nhà cung cấp' WHERE order_id = ?").run(b);
+  w.sqlite.prepare("UPDATE order_item SET catalog_code = 'ZNC2' WHERE order_id = ?").run(b);
+  await xacNhan(w, b);
+  assert.equal(String(w.q("SELECT supplier_party_id AS s FROM ord_service_terms t JOIN order_service x ON x.id = t.order_service_id WHERE x.order_id = ?", b)[0].s), "pty-ncc");
+  assert.deepEqual(dem(), [1, 1, 0, 0], "chưa đổi công ty chủ: đơn Tour Đảo và đơn nhà cung cấp đều không lệch");
+  const c = donNhap(w);
+  await doiCongTyChu(w);
+  await xacNhan(w, c);
+  assert.deepEqual(dem(), [2, 1, 2, 0], "đổi công ty chủ: bản chụp của đơn a (trước) và c (sau) lệch — luật cũ coi công ty cũ là quầy");
 });
