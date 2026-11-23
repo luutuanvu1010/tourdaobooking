@@ -3,12 +3,12 @@
 //   POST /api/ve/quet           { ma (mã QR hoặc SỐ SÊ-RI gõ tay, ADR-0217), xacNhan? } → { mau, ma, ghi, cau, dichVu, nhomKhach, ngayDi, soCuoi, maDon?, lanQuetId? }
 //   POST /api/ve/quet/:id/bo    { lyDo }         → { ok }
 // Mã vé chỉ nằm trong bộ nhớ trang và thân yêu cầu: không vào địa chỉ, nhật ký, câu báo hay bộ nhớ trình duyệt. Ẩn/hiện hỏi bảng quyền; máy chủ kiểm lại. Không innerHTML.
-import { ApiError, api } from "./api";
+import { ApiError, api, datKhiDaGhi } from "./api";
 import { can } from "../src/shared/permissions";
 import { chuanHoaSoSeri } from "../src/shared/so-seri-ve";
 import { byId, h, replaceChildren } from "./dom";
 import { CANH_ANH_QUET, docQrTuKhung, docQrTuTep } from "./qr-doc-ve";
-import { taoMayQuet, theoDoiCamera, type KetQuaQuet, type Mau } from "./quet-ve-may";
+import { DA_GHI_TRUOC_DO, taoMayQuet, theoDoiCamera, type DaGhiTruocDo, type KetQuaQuet, type Mau } from "./quet-ve-may";
 import { initShell, showError } from "./shell";
 
 interface LuotGanDay { id: string; luc: number; mau: Mau; cau: string; dichVu: string; soVe: string; daBo: boolean }
@@ -36,6 +36,9 @@ if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) {
   showError(errorEl, "Bạn không có quyền quét vé.");
 } else {
   noiDungEl.hidden = false;
+  // Chỉ đường lệnh quét: máy chủ phát lại «lần trước đã ghi» thì không tải lại trang (tải lại tắt camera trên iPhone — ADR-0175 dòng lịch sử 2026-11-23).
+  // «Bỏ lượt quét» và mọi lệnh khác của trang vẫn theo cách cũ của lớp chống ghi trùng.
+  datKhiDaGhi("/api/ve/quet", () => DA_GHI_TRUOC_DO);
   // Người chỉ xem (Tài xế công ty): nói rõ ngay từ đầu rằng quét không tính «đã dùng». Máy chủ vẫn quyết ở từng lượt quét.
   void api<{ tinh: boolean }>("/api/ve/quet/quyen").then((q) => { if (!q.tinh) baoTrangThai("Bạn chỉ xem vé có hợp lệ không; quét không tính đã dùng."); }, () => undefined);
   let luong: MediaStream | null = null;
@@ -92,7 +95,8 @@ if (!can(staff, "ve.quet.tinh") && !can(staff, "ve.quet.xem")) {
     trangThaiEl,
     nhacEl,
     // Hạn chờ ngắn (`henGioMs`) thay 45 giây mặc định: người quét đang đứng trước khách. Vòng đời vé chống ghi trùng (ADR-0094) không đổi.
-    goi: (ma, xn, henGioMs) => api<KetQuaQuet>("/api/ve/quet", { method: "POST", body: { ma, ...(Object.keys(xn).length ? { xacNhan: xn } : {}) }, henGioMs }),
+    // «Lần trước đã ghi» (phát lại): `api()` trả dấu DA_GHI_TRUOC_DO (đăng ký `datKhiDaGhi` ở đầu khối), máy trạng thái báo và cho quét tiếp — KHÔNG tải lại trang.
+    goi: (ma, xn, henGioMs) => api<KetQuaQuet | DaGhiTruocDo>("/api/ve/quet", { method: "POST", body: { ma, ...(Object.keys(xn).length ? { xacNhan: xn } : {}) }, henGioMs }),
     lyDoLoi,
     khiCoKetQua: ghiNho,
     dangDocCamera: () => luong !== null,

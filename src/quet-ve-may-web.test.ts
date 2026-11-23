@@ -19,7 +19,8 @@ const nut = (goc: NutGia, chu: string): NutGia | undefined => goc.querySelectorA
 
 type LoiGia = { status?: number; message?: string };
 /** Kịch bản máy chủ cho từng lần gửi: kết quả, lỗi, `"treo"` (ném khi hết `henGioMs`, như api()), `"treo-mai"` (không bao giờ trả lời — như vòng chờ 409 «đang xử lý» kéo dài), `{ muon, kq }` (trả kết quả sau `muon` ms, bỏ qua hẹn giờ). */
-type Lan = KetQua | LoiGia | "treo" | "treo-mai" | { muon: number; kq: KetQua };
+/** `"da-ghi"`: máy chủ phát lại «lần trước đã ghi» (ADR-0094) — trang bọc `api()` với `khiDaGhi` nên nhận dấu `DA_GHI_TRUOC_DO`, không có kết quả của lần đó. */
+type Lan = KetQua | LoiGia | "treo" | "treo-mai" | "da-ghi" | { muon: number; kq: KetQua | "da-ghi" };
 function dung(tl: Lan[], tuy: { ghiNhoNem?: boolean } = {}) {
   const ketQuaEl = doc.createElement("div");
   ketQuaEl.hidden = true;
@@ -37,7 +38,8 @@ function dung(tl: Lan[], tuy: { ghiNhoNem?: boolean } = {}) {
       const t = tl.shift() ?? "treo";
       if (t === "treo") return new Promise((_res, rej) => setTimeout(() => rej(new Error("The operation was aborted.")), hen)); // như api(): hết giờ thì ném lỗi không phải ApiError
       if (t === "treo-mai") return new Promise(() => undefined);
-      if ("muon" in t) return new Promise((res) => setTimeout(() => res(t.kq), t.muon));
+      if (t === "da-ghi") return Promise.resolve(M.DA_GHI_TRUOC_DO);
+      if ("muon" in t) return new Promise((res) => setTimeout(() => res(t.kq === "da-ghi" ? M.DA_GHI_TRUOC_DO : t.kq), t.muon));
       if ("mau" in t) return Promise.resolve(t);
       return Promise.reject(t.status === undefined ? new TypeError("Failed to fetch") : Object.assign(new Error(t.message ?? "x"), t));
     },
@@ -279,6 +281,68 @@ describe("web/quet-ve-may.ts", () => {
     assert.equal((tiep as unknown as { disabled?: boolean }).disabled, true);
   });
 
+  // Việc 9 phần (d), chủ duyệt 23/11 «Đồng ý khuyến nghị việc 9»: máy chủ phát lại «lần trước đã ghi» thì báo «Lần quét trước đã được ghi», cho quét tiếp
+  // ngay; không tải lại trang (tải lại tắt camera trên iPhone). Bản phát lại không mang kết quả của lần đó, nên màn không được mang màu phán quyết.
+  it("máy chủ phát lại «đã ghi»: màn trung tính «Lần quét trước đã được ghi» + «Quét tiếp», không ghi vào lượt gần đây", async () => {
+    const { may, ketQuaEl, ghiNho, trangThaiEl } = dung(["da-ghi"]);
+    may.nhanMa("TD1.A");
+    await xa();
+    assert.equal(ketQuaEl.hidden, false);
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "DA_GHI");
+    assert.ok(ketQuaEl.textContent.includes("Lần quét trước đã được ghi"));
+    assert.doesNotMatch(ketQuaEl.textContent, /Hợp lệ|Không dùng được|Cần xác nhận|Không gửi được/, "không phán quyết về vé");
+    assert.equal(ketQuaEl.querySelectorAll("button").length, 1);
+    assert.ok(nut(ketQuaEl, "Quét tiếp"));
+    assert.equal(ghiNho.length, 0, "không có lượt nào để ghi vào danh sách gần đây");
+    assert.equal(trangThaiEl.textContent, "Camera đang đọc.");
+    nut(ketQuaEl, "Quét tiếp")!.click();
+    assert.equal(may.dangBan(), false, "quét tiếp được ngay");
+  });
+
+  it("mất phản hồi lần đầu, lần tự gửi lại gặp «đã ghi»: màn hiện trong 3 giây; «Quét tiếp» rồi vé còn trước camera thì 3 giây sau ra kết quả thật", async () => {
+    const { may, ketQuaEl, goiLuc } = dung([{}, "da-ghi", DO_DA_DUNG]);
+    const batDau = Date.now();
+    may.nhanMa("TD1.A");
+    await xa();
+    let hienLuc = -1;
+    for (let t = 0; t < 5000 && hienLuc < 0; t += 250) {
+      mock.timers.tick(250);
+      await xa();
+      if (!ketQuaEl.hidden) hienLuc = Date.now() - batDau;
+    }
+    assert.ok(hienLuc > 0 && hienLuc <= 3000, `hiện sau ${hienLuc} ms`);
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "DA_GHI");
+    assert.equal(goiLuc.length, 2);
+    nut(ketQuaEl, "Quét tiếp")!.click();
+    await cameraThay(may, "TD1.A", CHONG_LAP_MS + 250);
+    assert.equal(goiLuc.length, 3, "vé còn trước camera được kiểm lại sau mốc 3 giây");
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "DO");
+  });
+
+  it("«đã ghi» tới muộn sau khi đã hiện «Không gửi được»: thay màn lỗi bằng màn «Lần quét trước đã được ghi», không ghi vào lượt gần đây", async () => {
+    const { may, ketQuaEl, ghiNho } = dung([{ muon: 20_000, kq: "da-ghi" }]);
+    may.nhanMa("TD1.A");
+    await xa();
+    for (let t = 0; t < 16_000; t += 250) { mock.timers.tick(250); await xa(); }
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "LOI");
+    for (let t = 0; t < 5000; t += 250) { mock.timers.tick(250); await xa(); }
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "DA_GHI");
+    assert.equal(ghiNho.length, 0);
+  });
+
+  it("«đã ghi» tới muộn khi người quét đã sang vé B: màn của B giữ nguyên, không ném", async () => {
+    const { may, ketQuaEl, ghiNho } = dung([{ muon: 20_000, kq: "da-ghi" }, DO_DA_DUNG]);
+    may.nhanMa("TD1.A");
+    await xa();
+    for (let t = 0; t < 16_000; t += 250) { mock.timers.tick(250); await xa(); }
+    nut(ketQuaEl, "Quét tiếp")!.click();
+    may.nhanMa("TD1.B");
+    await xa();
+    for (let t = 0; t < 5000; t += 250) { mock.timers.tick(250); await xa(); }
+    assert.equal(ketQuaEl.querySelector(".qv-ket-than")?.getAttribute("data-mau"), "DO");
+    assert.deepEqual(ghiNho.map((k) => k.mau), ["DO"]);
+  });
+
   it("theo dõi camera: luồng bị dừng (ended) hoặc tạm dừng (mute/unmute) thì báo", () => {
     const track = doc.createElement("track");
     const bao: string[] = [];
@@ -287,5 +351,29 @@ describe("web/quet-ve-may.ts", () => {
     track.dispatchEvent({ type: "unmute" });
     track.dispatchEvent({ type: "ended" });
     assert.deepEqual(bao, ["tam", "lai", "dung"]);
+  });
+});
+
+// Nối với lớp gửi lệnh chung (web/api.ts): chỉ đường lệnh quét của màn Quét vé tự xử lý «đã ghi trước đó»; mọi đường lệnh, mọi màn khác giữ cách cũ (báo rồi
+// tải lại / mở trang kết quả). Bài tĩnh vì web/api.ts import không đuôi `.ts` (node không nạp thẳng được); khuôn: src/lan-gui-giao-dien.test.ts.
+describe("Quét vé tự xử lý «đã ghi trước đó» (web/api.ts datKhiDaGhi)", async () => {
+  const { readFileSync, readdirSync } = await import("node:fs");
+  const { maskSource } = await import("../scripts/source-mask-lib.mjs");
+  const doc = (tep: string): string => maskSource(readFileSync(new URL(`../${tep}`, import.meta.url), "utf8"), { strings: false });
+
+  it("api() gọi baoDaGhi kèm đường lệnh; datKhiDaGhi chỉ thay cho đúng đường lệnh đã đăng ký, đường khác về hàm cũ (vẫn tải lại)", () => {
+    const t = doc("web/api.ts");
+    assert.match(t, /ket: \(\) => baoDaGhi\(data\.ket_qua, path\) as Promise<T>/);
+    assert.match(t, /baoDaGhi = \(ketQua, d\) => \(d === duong \? Promise\.resolve\(f\(\)\) : goc\(ketQua, d\)\);/);
+    assert.match(t, /location\.reload\(\)/, "cách cũ vẫn tải lại");
+  });
+
+  it("chỉ web/quet-ve.ts gọi datKhiDaGhi, đúng một lần, cho đúng POST /api/ve/quet với dấu DA_GHI_TRUOC_DO", () => {
+    const tep = readdirSync(new URL("../web/", import.meta.url), { recursive: true }).map(String).filter((f) => f.endsWith(".ts") && f !== "api.ts");
+    const dung = tep.filter((f) => /\bdatKhiDaGhi\(/.test(doc(`web/${f}`)));
+    assert.deepEqual(dung, ["quet-ve.ts"]);
+    const goc = readFileSync(new URL("../web/quet-ve.ts", import.meta.url), "utf8");
+    assert.equal(goc.match(/\bdatKhiDaGhi\(/g)?.length, 1);
+    assert.match(goc, /datKhiDaGhi\("\/api\/ve\/quet", \(\) => DA_GHI_TRUOC_DO\);/);
   });
 });

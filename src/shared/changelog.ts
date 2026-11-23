@@ -17,6 +17,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Quét vé không tự tải lại trang khi máy chủ phát lại «lần trước đã ghi» (kế hoạch 16 việc 21/11, Việc 9 phần d; chủ 23/11 «Đồng ý khuyến nghị việc 9»;
+    // ADR-0175 dòng lịch sử 2026-11-23). Không migration, không đổi máy chủ. Số 3.41 = số trống kế tiếp sau 3.40 trên main lúc báo sẵn sàng; bước A.0 đặt lại nếu việc khác nhập trước.
+    version: "3.41",
+    date: "2026-11-23",
+    items: [
+      { kind: "sua", text: "Quét vé: mạng chập chờn làm mất kết quả lần quét trước thì màn báo «Lần quét trước đã được ghi», cho quét tiếp ngay. Trang không tự tải lại, camera vẫn chạy." },
+    ],
+  },
+  {
     // Giá mùa vụ (kế hoạch 16 việc 21/11, Việc 10; ADR-0229 chủ duyệt 22/11). Nhánh claude/modest-goldstine-a52295. CÓ migration 0188, 0189.
     // Số 3.40 = số trống kế tiếp sau 3.39 (việc 1) trên main lúc gộp lần ba 23/11; bước A.0 đặt lại số và ngày nếu việc khác nhập trước. Xây trên HC-5.19: khoá xay_tren_cho_phep_adr_0229.
     version: "3.40",

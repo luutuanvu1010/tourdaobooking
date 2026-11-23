@@ -101,8 +101,10 @@ export function datNguoiDangNhap(id: string | null): void {
 const CHO_DANG_XU_LY_MS = 1500;
 const SO_LAN_CHO_DANG_XU_LY = 3;
 
-/** Máy chủ nói lần bấm trước (cùng vé) ĐÃ được ghi: báo, rồi mở trang kết quả (đường dẫn nội bộ) hoặc tải lại. Màn gọi không nhận thân này (lời gọi treo). */
-function baoDaGhi(ketQua: unknown): Promise<never> {
+/** Máy chủ nói lần bấm trước (cùng vé) ĐÃ được ghi: báo, rồi mở trang kết quả (đường dẫn nội bộ) hoặc tải lại. Màn gọi không nhận thân này (lời gọi treo).
+ *  `let` (không `function`): `datKhiDaGhi` thay được cho riêng một đường lệnh của một trang. Trang không gọi `datKhiDaGhi` thì hàm đăng ký bị bỏ khỏi gói lúc đóng gói,
+ *  nên gói các trang khác không to thêm (gói trang Đơn hàng có trần dung lượng — src/goi-trang-nhe.test.ts). */
+let baoDaGhi = (ketQua: unknown, _duong: string): Promise<unknown> => {
   try {
     hienBaoNgan("Lần bấm trước đã được ghi.");
   } catch {
@@ -111,6 +113,16 @@ function baoDaGhi(ketQua: unknown): Promise<never> {
   const dich = typeof ketQua === "string" ? safeNext(ketQua) : "/";
   setTimeout(() => (dich !== "/" ? location.replace(dich) : location.reload()), 1200);
   return new Promise<never>(() => undefined);
+};
+
+/**
+ * Riêng một đường lệnh ghi của trang đang mở: khi máy chủ phát lại «lần trước đã ghi» (ADR-0094), `api()` trả giá trị của `f` thay vì báo rồi tải lại trang.
+ * Chỉ màn Quét vé dùng, cho `POST /api/ve/quet` (ADR-0175 dòng lịch sử 2026-11-23: tải lại trang tắt camera trên iPhone); mọi đường lệnh khác của trang đó — và
+ * mọi trang khác — giữ cách cũ. Bài src/quet-ve-may-web.test.ts khoá danh sách nơi gọi. Vòng đời vé không đổi (máy chủ trả 2xx ⇒ vé đã đóng trước khi tới đây).
+ */
+export function datKhiDaGhi(duong: string, f: () => unknown): void {
+  const goc = baoDaGhi;
+  baoDaGhi = (ketQua, d) => (d === duong ? Promise.resolve(f()) : goc(ketQua, d));
 }
 
 /** `henGioMs`: hạn chờ riêng (vd 120 giây cho tin kèm tệp — ADR-0144 đ7); vắng ⇒ `REQUEST_TIMEOUT_MS`. Không đổi vòng đời vé. */
@@ -173,7 +185,7 @@ async function guiMotLan<T>(path: string, method: string, than: string | undefin
       const loi = new ApiError(409, "dang_xu_ly", "Đang xử lý lần bấm trước, chờ chút rồi bấm lại.", data.error);
       return { dangXuLy: true, ket: () => Promise.reject(loi) };
     }
-    if (res.ok && res.headers.get(HEADER_PHAT_LAI) === "true" && data?.da_ghi_truoc_do === true) return { dangXuLy: false, ket: () => baoDaGhi(data.ket_qua) };
+    if (res.ok && res.headers.get(HEADER_PHAT_LAI) === "true" && data?.da_ghi_truoc_do === true) return { dangXuLy: false, ket: () => baoDaGhi(data.ket_qua, path) as Promise<T> };
     if (!res.ok) {
       // Chế độ bảo trì: máy chủ chặn tài khoản này (kể cả phiên đang mở) → lớp phủ toàn trang có đồng hồ đếm ngược, không hiện lỗi thô. Riêng trang đăng nhập tự xử lý (chủ vẫn cần đăng nhập được).
       if (data?.error?.code === MAINTENANCE_CODE && !location.pathname.startsWith("/login")) {

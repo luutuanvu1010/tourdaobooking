@@ -3,6 +3,8 @@
 //   rảnh ──(mã mới, hoặc hết mốc 3 giây)──▶ đang gửi ──▶ đang hiện kết quả xanh / vàng / đỏ ──«Quét tiếp»──▶ rảnh (mốc 3 giây CỐ ĐỊNH cho mã vừa gửi)
 //                 │ cùng mã trong mốc: dòng nhắc + «Quét lại vé này»      │ lỗi mạng / 5xx: tự gửi lại có giãn cách, tối đa 3 lần trong ~14 giây
 //                 ▼                                                      ▼ hết lượt / quá hạn chót 15 giây, hoặc máy chủ từ chối rõ (4xx): «Không gửi được» + «Thử lại» / «Quét tiếp»
+//   máy chủ phát lại «lần trước đã ghi» (ADR-0094; mất phản hồi lần đầu rồi gửi lại cùng vé): màn trung tính «Lần quét trước đã được ghi» + «Quét tiếp» — KHÔNG tải lại trang
+//   (ADR-0175 dòng lịch sử 2026-11-23, chủ «Đồng ý khuyến nghị việc 9»). Bản phát lại không mang kết quả của lần đó, nên màn không có màu xanh / vàng / đỏ.
 // Mã vé chỉ nằm trong bộ nhớ trang và thân yêu cầu (không vào địa chỉ, nhật ký, câu báo). Không innerHTML.
 import { CHONG_LAP_MS, batDauDong, xetDocLap, type DauDocCuoi } from "../src/shared/chong-doc-lap.ts";
 import { h, replaceChildren } from "./dom.ts";
@@ -10,9 +12,14 @@ import { h, replaceChildren } from "./dom.ts";
 export type Mau = "XANH" | "VANG" | "DO";
 export interface KetQuaQuet { mau: Mau; ma: string; ghi: "DA_TINH" | "CHI_XEM" | "TU_CHOI" | null; cau: string; dichVu: string; nhomKhach: string; ngayDi: string | null; soCuoi: string; soSeri?: string; maDon?: string; lanQuetId?: string }
 export type XacNhanGui = { lechNgay?: boolean; chuaThu?: boolean; vuotKhach?: boolean; nhapTay?: boolean };
+/** Dấu «máy chủ phát lại: lần gửi trước (cùng vé chống ghi trùng) đã được ghi» — trang truyền `khiDaGhi: () => DA_GHI_TRUOC_DO` cho `api()`. Không có kết quả của lần đó
+ *  (máy chủ không lưu thân phản hồi — ADR-0094 đ6), nên không biết lần đó xanh, vàng hay đỏ. */
+export interface DaGhiTruocDo { daGhiTruocDo: true }
+export const DA_GHI_TRUOC_DO: DaGhiTruocDo = { daGhiTruocDo: true };
+const laDaGhi = (x: KetQuaQuet | DaGhiTruocDo): x is DaGhiTruocDo => "daGhiTruocDo" in x;
 
-/** Chữ lớn đi cùng màu: người mù màu vẫn đọc được kết quả. `LOI` = chưa kiểm được vé (không phải phán quyết về vé). */
-const CHU_LON: Record<Mau | "LOI", { dau: string; chu: string }> = { XANH: { dau: "✓", chu: "Hợp lệ" }, VANG: { dau: "!", chu: "Cần xác nhận" }, DO: { dau: "✕", chu: "Không dùng được" }, LOI: { dau: "↻", chu: "Không gửi được" } };
+/** Chữ lớn đi cùng màu: người mù màu vẫn đọc được kết quả. `LOI` = chưa kiểm được vé; `DA_GHI` = lần trước đã được ghi, không rõ kết quả (cả hai không phải phán quyết về vé). */
+const CHU_LON: Record<Mau | "LOI" | "DA_GHI", { dau: string; chu: string }> = { XANH: { dau: "✓", chu: "Hợp lệ" }, VANG: { dau: "!", chu: "Cần xác nhận" }, DO: { dau: "✕", chu: "Không dùng được" }, LOI: { dau: "↻", chu: "Không gửi được" }, DA_GHI: { dau: "i", chu: "Lần quét trước đã được ghi" } };
 /** Mã kết quả vàng → cờ xác nhận gửi lại (khớp `XacNhanQuet` của máy chủ). */
 const CO_XAC_NHAN: Record<string, "lechNgay" | "chuaThu" | "vuotKhach" | "nhapTay"> = { LECH_NGAY: "lechNgay", CHUA_THU_DU: "chuaThu", VUOT_KHACH: "vuotKhach", NHAP_TAY: "nhapTay" };
 
@@ -61,8 +68,8 @@ export function taoMayQuet(o: {
   ketQuaEl: HTMLElement;
   trangThaiEl: HTMLElement;
   nhacEl: HTMLElement;
-  /** Gửi một lượt quét (trang bọc `api("/api/ve/quet", …, henGioMs)`): trả kết quả, hoặc ném như `api()` (ApiError có `status`; mất mạng / hết giờ thì lỗi khác). */
-  goi: (ma: string, xn: XacNhanGui, henGioMs: number) => Promise<KetQuaQuet>;
+  /** Gửi một lượt quét (trang bọc `api("/api/ve/quet", …, henGioMs, khiDaGhi)`): trả kết quả hoặc dấu `DA_GHI_TRUOC_DO`, hoặc ném như `api()` (ApiError có `status`; mất mạng / hết giờ thì lỗi khác). */
+  goi: (ma: string, xn: XacNhanGui, henGioMs: number) => Promise<KetQuaQuet | DaGhiTruocDo>;
   lyDoLoi: (err: unknown) => string;
   khiCoKetQua: (kq: KetQuaQuet) => void;
   dangDocCamera: () => boolean;
@@ -110,7 +117,7 @@ export function taoMayQuet(o: {
     cuoi = batDauDong(cuoi, bay());
   }
 
-  function khung(mau: Mau | "LOI", tieuDe: string, dong: Array<string | null>, nut: HTMLElement[]): void {
+  function khung(mau: Mau | "LOI" | "DA_GHI", tieuDe: string, dong: Array<string | null>, nut: HTMLElement[]): void {
     manLoiCua = null;
     replaceChildren(o.ketQuaEl,
       h("div", { class: "qv-ket-than", "data-mau": mau },
@@ -150,8 +157,22 @@ export function taoMayQuet(o: {
     nutThu.focus();
   }
 
-  /** Máy chủ đã trả lời rõ: ghi vào lượt gần đây (lỗi ở đó không được che kết quả, cũng không phải lỗi mạng), rồi hiện kết quả. */
-  function nhanKetQua(kq: KetQuaQuet, ma: string, xn: XacNhanGui): void {
+  /** Lần gửi trước đã được ghi (phát lại): báo và cho quét tiếp ngay. Không tự gửi lại: «Quét tiếp» đặt mốc 3 giây, vé còn trước camera thì sau đó được kiểm lại
+   *  bằng vé chống ghi trùng MỚI (vé cũ đã đóng vì máy chủ trả 2xx) và hiện kết quả thật — đỏ «đã dùng» nếu lần trước đã tính, vàng lại nếu lần trước cần xác nhận. */
+  function hienDaGhi(): void {
+    const nutTiep = h("button", { type: "button", class: "nut", "data-cap": "chinh", "data-co": "lon" }, "Quét tiếp");
+    nutTiep.addEventListener("click", quetTiep);
+    khung("DA_GHI", CHU_LON.DA_GHI.chu, ["Kết quả của lần quét đó không về tới máy này vì mạng chập chờn.", "Máy chủ chỉ tính mỗi vé một lần.", o.dangDocCamera() ? "Bấm «Quét tiếp»: vé còn trước camera sẽ được kiểm lại sau 3 giây." : null], [nutTiep]);
+    nutTiep.focus();
+  }
+
+  /** Máy chủ đã trả lời rõ: ghi vào lượt gần đây (lỗi ở đó không được che kết quả, cũng không phải lỗi mạng), rồi hiện kết quả. Dấu «đã ghi» không vào lượt gần đây. */
+  function nhanKetQua(kq: KetQuaQuet | DaGhiTruocDo, ma: string, xn: XacNhanGui): void {
+    if (laDaGhi(kq)) {
+      hienDaGhi();
+      baoTrangThai(o.dangDocCamera() ? "Camera đang đọc." : "");
+      return;
+    }
     try {
       o.khiCoKetQua(kq);
     } catch {
@@ -162,9 +183,9 @@ export function taoMayQuet(o: {
   }
 
   /** Kết quả về sau hạn chót của lượt `luot`: lượt quét đã được máy chủ ghi, nên luôn ghi vào lượt gần đây; chỉ thay màn nếu người quét vẫn đứng ở màn lỗi của đúng lượt đó. */
-  function ketQuaMuon(luot: number, kq: KetQuaQuet, ma: string, xn: XacNhanGui): void {
+  function ketQuaMuon(luot: number, kq: KetQuaQuet | DaGhiTruocDo, ma: string, xn: XacNhanGui): void {
     if (manLoiCua === luot && !dangGui) nhanKetQua(kq, ma, xn);
-    else {
+    else if (!laDaGhi(kq)) {
       try { o.khiCoKetQua(kq); } catch { /* như trên */ }
     }
   }
@@ -178,7 +199,7 @@ export function taoMayQuet(o: {
     const luot = ++soLuot;
     baoTrangThai("Đang kiểm tra vé…");
     // Chỉ lời gọi máy chủ nằm trong khối bắt lỗi: lỗi khi hiện kết quả không bao giờ bị coi là lỗi mạng rồi gửi lại.
-    let kq: KetQuaQuet | null = null;
+    let kq: KetQuaQuet | DaGhiTruocDo | null = null;
     let loi: unknown = null;
     try {
       for (let soLanLoi = 0; ;) {

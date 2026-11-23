@@ -26,3 +26,7 @@ Máy tính không thử được camera thật của iPhone. Hai cách mở đ�
 | 8 | Đang quét thì có cuộc gọi tới, hoặc kéo Trung tâm điều khiển xuống | Wi-Fi tốt | Trang báo camera tạm dừng hoặc đã dừng. Bấm «Bật camera» là quét lại được. |
 
 Trường hợp còn biết trước (chưa sửa, chờ câu 2): mạng chập chờn đúng lúc máy chủ đã ghi mà phản hồi mất, thì trang báo «Lần bấm trước đã được ghi» rồi tự tải lại. Khi đó camera tắt, phải bấm «Bật camera» lại. Vé vẫn không bị tính hai lần.
+
+## Bổ sung 2026-11-23 — phần (d), không sửa các đoạn trên
+
+Chủ trả lời câu 2: «Đồng ý khuyến nghị việc 9» (ADR-0175, dòng lịch sử 2026-11-23). Màn Quét vé nay tự xử lý «lần trước đã ghi»: báo «Lần quét trước đã được ghi» (màn nền xám, không mang màu phán quyết), cho «Quét tiếp» ngay, trang không tải lại, camera giữ nguyên. Các màn khác vẫn báo rồi tải lại như ADR-0094. Bước 8 của kịch bản thành bước kiểm thật (≤ 3 giây hiện màn, sau 2,5 giây trang chưa tải lại, camera còn chạy), thêm bước 8b («Quét tiếp» ⇒ ≤ 4 giây ra đỏ «đã dùng»). Lần chạy 23/11 trên mã mới: 9/9 bước đạt, màn hiện sau ~1 giây. Phá cố ý 23/11 (P16): tạm bỏ dòng `datKhiDaGhi("/api/ve/quet", …)` ở `web/quet-ve.ts` ⇒ bước 8 đỏ («hết giờ chờ: kết quả DA_GHI») và 8b đỏ (trang đã tự tải lại); trả dòng về ⇒ xanh. Cách làm: lớp gửi lệnh chung có hàm đăng ký `datKhiDaGhi(đường lệnh, …)`, chỉ màn Quét vé gọi, cho đúng `POST /api/ve/quet`; «Bỏ lượt quét» vẫn theo cách cũ. Gói trang Đơn hàng không to thêm (hàm đăng ký bị bỏ khỏi gói khi trang không gọi). Đoạn «Trường hợp còn biết trước» ở trên không còn đúng từ bản có phần (d).
