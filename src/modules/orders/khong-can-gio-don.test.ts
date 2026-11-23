@@ -100,3 +100,16 @@ test("Bật: văn phòng (Bán hàng) không bị ảnh hưởng — luật thi�
   const r = await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } });
   assert.equal(r.status, 200, r.text);
 });
+
+test("ADR-0227 × ADR-0228: Bật «không cần giờ đón» + TẮT «Chặn đơn chưa có giờ đón khi sát ngày đón» ⇒ lượt chưa giờ đón HÔM NAY không còn bị chặn ⇒ nhánh B (xác nhận ngay); trang đơn nói cùng điều", async () => {
+  const w = setup();
+  await bat(w, true);
+  const r0 = await w.call("POST", "/api/cai-dat/chan-chua-gio-sat-ngay", { as: SUP, body: { bat: false } });
+  assert.equal(r0.status, 200, r0.text);
+  const o = await lap(w, PARTNER, [svc("ZB1", HOM_NAY(), [leg(HOM_NAY(), null)])]);
+  assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: PARTNER })).json.xacNhan.canXacNhan, false);
+  const r = await guiDon(w, o.id, PARTNER);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.nhanh, "B");
+  assert.equal(trangThai(w, o.id), "confirmed");
+});
