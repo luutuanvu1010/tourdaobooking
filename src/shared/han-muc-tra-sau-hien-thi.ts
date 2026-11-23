@@ -1,7 +1,7 @@
 // Chữ hiện của Trả sau (ADR-0168, ADR-0172, ADR-0173): màn «Hạn mức trả sau», ô «Trả sau» ở Cấp độ đại lý, khối Thanh toán và nút «Ân hạn» trên đơn, mục «Trả sau của tôi».
 // Thuần, không DOM. Mốc giờ là ISO UTC của máy chủ; MỌI chỗ hiện cho người dùng đi qua `vnDateTimeText` (giờ Việt Nam, ADR-0172 Đ3 mục 4) — không cắt chuỗi ngày.
 // Lý do khoá lấy từ `CAU_KHOA_QUA_HAN` — cùng ý với câu máy chủ (`lyDoKhongTraSau`).
-import { GIO_TOI_DA, NHAN_HINH_THUC, dongTien, type HinhThucThanhToan, type TrangThaiHan } from "./tra-sau.ts";
+import { CAU_VUOT_HAN_MUC_DOI_TAC, GIO_TOI_DA, NHAN_HINH_THUC, dongTien, type HinhThucThanhToan, type KetQuaKiemTraSau, type TrangThaiHan } from "./tra-sau.ts";
 import { msToVnLocal, vnDateTimeText, vnLocalToIso } from "./vn-date.ts";
 import { boDau } from "./so-cong-no-hien-thi.ts";
 
@@ -115,13 +115,48 @@ export function docHanMuc(raw: string): { ok: true; dong: number } | { ok: false
 }
 
 export const CAU_VE_TRA_TRUOC = "Bên đặt không còn hạn mức trả sau dùng được nên đơn này chuyển về Thanh toán ngay. Kiểm lại rồi lưu.";
+/** ADR-0224 Đ3 (chữ theo cột «Khuyến nghị»): nháp cũ «Thanh toán ngay» của đối tác mở lại lúc Trả sau dùng được ⇒ chuyển sang Trả sau, có báo. */
+export const CAU_CHUYEN_TRA_SAU = "Bạn đang được trả sau nên đơn này chuyển sang Trả sau. Kiểm lại rồi lưu.";
+/** ADR-0224 Đ2.1 (chữ theo cột «Khuyến nghị»): câu 409 khi đối tác dùng được Trả sau mà gửi «Thanh toán ngay» — không số tiền. */
+export const CAU_TRA_SAU_BAT_BUOC_DOI_TAC = "Bạn đang được trả sau nên đơn này lập theo Trả sau. Mở lại trang rồi lưu lại.";
+
+/** Trạng thái Trả sau của bên đặt cho MỘT đơn (ADR-0224): `vuot` = máy chủ vừa báo vượt mức; `chua_biet` = không đọc được hạn mức. */
+export type TrangThaiTraSau = "dung_duoc" | "qua_han" | "vuot" | "khong_co" | "chua_biet";
+
+/** Kết quả cổng hạn mức của billing (`kiemTraSau`) → trạng thái của luật `hinhThucDuocNhan`; `null` (không đọc được) ⇒ `chua_biet`. */
+export function trangThaiTuKetQua(kq: KetQuaKiemTraSau | null): TrangThaiTraSau {
+  if (kq === null) return "chua_biet";
+  if (kq.ok) return "dung_duoc";
+  return kq.ma === "co_don_qua_han" ? "qua_han" : kq.ma === "vuot_han_muc" ? "vuot" : "khong_co";
+}
+
+/**
+ * ADR-0224 Đ2.4: MỘT luật cho cả cổng lưu đơn (máy chủ) và màn Tạo đơn — hình thức nào được nhận, và câu lý do khi đối tác phải dùng «Thanh toán ngay».
+ * Đối tác (`laDoiTacTraSau` của người GỬI): dùng được ⇒ chỉ Trả sau; quá hạn ⇒ chỉ Thanh toán ngay + lý do; vượt mức ⇒ cả hai + lý do (giảm đơn thì Trả sau lại được);
+ * không hạn mức ⇒ Thanh toán ngay; không đọc được ⇒ cả hai (máy chủ cho Thanh toán ngay — phía an toàn về tiền, Đ2.2).
+ * Văn phòng: như trước ADR-0224 — có hạn mức dùng được thì hai lựa chọn; câu khoá của văn phòng vẫn do `cauChonTraSau` dựng.
+ */
+export function hinhThucDuocNhan(i: { laDoiTac: boolean; traSau: TrangThaiTraSau }): { chonDuoc: readonly HinhThucThanhToan[]; lyDo: string | null } {
+  const HAI: readonly HinhThucThanhToan[] = ["PREPAID", "CREDIT"];
+  if (i.traSau === "khong_co" || i.traSau === "qua_han") return { chonDuoc: ["PREPAID"], lyDo: i.laDoiTac && i.traSau === "qua_han" ? CAU_KHOA_QUA_HAN : null };
+  if (!i.laDoiTac) return { chonDuoc: HAI, lyDo: null };
+  if (i.traSau === "dung_duoc") return { chonDuoc: ["CREDIT"], lyDo: null };
+  return { chonDuoc: HAI, lyDo: i.traSau === "vuot" ? CAU_VUOT_HAN_MUC_DOI_TAC : null };
+}
 
 /**
  * Sau khi biết hạn mức của bên đặt, đơn đang chọn hình thức nào: dùng được thì giữ nguyên; không dùng được (không hạn mức, hoặc còn đơn quá hạn)
  * thì về Trả trước KÈM câu báo nếu đang là Trả sau — không bao giờ đổi âm thầm, và luôn có một hình thức rõ ràng để gửi lên máy chủ.
+ * ADR-0224 Đ3: `chonDuoc` (từ `hinhThucDuocNhan`) — lựa chọn không còn được nhận thì chuyển sang lựa chọn được nhận, KÈM câu báo nếu người dùng đã chọn.
  */
-export function quyetHinhThuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<typeof cauChonTraSau>; benDatChuaNap?: boolean; chonSan?: boolean }): { chon: HinhThucThanhToan; bao: string | null } {
+export function quyetHinhThuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<typeof cauChonTraSau>; benDatChuaNap?: boolean; chonSan?: boolean; chonDuoc?: readonly HinhThucThanhToan[] }): { chon: HinhThucThanhToan; bao: string | null } {
   if (i.benDatChuaNap) return { chon: i.dangChon, bao: null }; // bên đặt chưa nạp xong (đang mở nháp): chưa đủ căn cứ để đổi lựa chọn của người dùng
+  const q = quyetTheoHanMuc(i);
+  if (!i.chonDuoc || i.chonDuoc.length === 0 || i.chonDuoc.includes(q.chon)) return q;
+  const chon = i.chonDuoc[0]!;
+  return { chon, bao: i.chonSan ? null : chon === "CREDIT" ? CAU_CHUYEN_TRA_SAU : CAU_VE_TRA_TRUOC };
+}
+function quyetTheoHanMuc(i: { dangChon: HinhThucThanhToan; c: ReturnType<typeof cauChonTraSau>; chonSan?: boolean }): { chon: HinhThucThanhToan; bao: string | null } {
   // ADR-0198 Đ2: đơn mới của đối tác, người dùng chưa chọn gì ⇒ dùng được thì «Trả sau», không thì «Thanh toán ngay» — KHÔNG câu báo (người dùng chưa chọn gì để mà đổi).
   if (i.chonSan) return { chon: i.c.hien && i.c.khoa === null ? "CREDIT" : "PREPAID", bao: null };
   if (i.dangChon === "PREPAID") return { chon: i.dangChon, bao: null };

@@ -2,7 +2,24 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.22 ĐÃ LÊN PRODUCTION (ADR-0222 khung gốc giao diện: bốn màn mẫu Đơn hàng, Chi tiết đơn, Sửa xe, Địa điểm dựng lại theo một khung chung; bảng và khối đổi bố cục theo chỗ trống thật của vùng nội dung) — không migration — triển khai 2026-11-21 13:42 giờ Việt Nam
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.30 ĐÃ LÊN PRODUCTION (ADR-0225 việc 5: form Đối tác bỏ ô đặt cọc; đơn đối tác xác nhận từ bản này chỉ thu hộ tiền mặt, không QR) — migration `0178`, `0179`, `0184` — triển khai 2026-11-23 08:57 giờ Việt Nam
+
+Bản trước trên production là 3.26, nên lần này mang lên cùng lúc mọi thứ đã vào main sau 3.26: các mục nhật ký 3.27–3.29 (gồm việc 3 tìm đối tác theo số, việc 2 Trả sau ADR-0224) và phí đưa đón từ giá gốc Sheet (ADR-0218, migration 0178–0179). Đầu ra `npm run trien-khai` (chép nguyên):
+
+- Ngày giờ: 2026-11-23 08:57 (giờ Việt Nam)
+- Commit: 8257cad88 Gộp main (phí đón từ giá gốc Sheet, ADR-0218) vào nhánh việc 5
+- Kiểm đủ bộ (GitHub): XANH lúc 2026-11-23T00:18:47Z
+- Lượt kiểm: https://github.com/luutuanvu1010/tourdaobooking/actions/runs/45086820016
+- Tệp luật đã đổi — lý do chủ gõ: «ly do doi tep la gi» (docs/adr/ADR-0225-don-doi-tac-khong-thu-ho-chuyen-khoan.md; docs/adr/README.md) — chữ chủ gõ vào ô lý do, ghi nguyên văn; ADR-0225 chủ duyệt 22/11/2026
+- Migration đã áp: 0178_phi_don_gia_goc.sql, 0179_phi_don_nguon_tinh.sql, 0184_don_doi_tac_chi_tien_mat.sql
+- Điểm khôi phục Time Travel trước khi áp: 000031ae-00000000-0000512c-9a8b328ee2fcb876938851a5d4612a7e
+- Worker Version ID: ac26f7df-e97e-46b2-b92c-f7810b54db1f
+- Kiểm dữ liệu (audit-invariants --db remote): ĐẠT (3 cảnh báo)
+- Phiên bản: 3.30; cổng phiên bản trước và sau deploy: ĐẠT
+- Thời gian: day-len 12 phút 34 giây; trien-khai 0 phút 46 giây; TỔNG 13 phút 20 giây (vượt mục tiêu khoảng 10 phút của ADR-0179 Đ1.1, không chặn)
+- Chưa làm: chưa ai thử trên iPhone thật; công tắc «Khách của đối tác trả cho Công ty» để Bật, chưa kiểm trên bản chạy thật.
+
+## (Cũ) TRẠNG THÁI TRIỂN KHAI — Phiên bản 3.22 ĐÃ LÊN PRODUCTION (ADR-0222 khung gốc giao diện: bốn màn mẫu Đơn hàng, Chi tiết đơn, Sửa xe, Địa điểm dựng lại theo một khung chung; bảng và khối đổi bố cục theo chỗ trống thật của vùng nội dung) — không migration — triển khai 2026-11-21 13:42 giờ Việt Nam
 
 Ghi BÙ lúc khoảng 14:35 cùng ngày bởi phiên điều phối, KHÔNG phải từ đầu ra `npm run trien-khai`: phiên thi công khung gốc được lưu trữ ngay sau khi chủ triển khai, trước khi kịp ghi sổ. Các dòng dưới lấy từ nguồn đọc lại được (bản ghi lượt kiểm ở `.git/tourdao-kiem/`, `wrangler deployments list`, `git reflog main`, GET công khai); dòng nào không dựng lại được thì ghi rõ.
 
@@ -2110,6 +2127,7 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
 **(c) ADR-0005 mục Quyết định 2 lệch DDL đã duyệt — ghi errata.** ADR viết `stf_permission(staff_id, permission_type_code, created_at, created_by)`, khoá duy nhất `(staff_id, permission_type_code)`; DDL đã duyệt và `0012` thực tế có `id`, `valid_from_at`/`valid_to_at`, đủ bốn cột kiểm toán và chỉ mục duy nhất MỘT PHẦN `stf_permission_open_uq … WHERE valid_to_at IS NULL` (đóng/mở lại quyền giữ lịch sử, đúng "không xoá cứng" của ADR-0003 điều 8). Mã theo DDL; chỉ cần chủ dự án đồng ý ghi errata vào ADR-0005 (chi phí: chỉ tài liệu).
 
 ## Việc còn treo / nợ
+- **Nợ có hạn — đổi bên đặt trên NHÁP và phí đưa đón (ADR-0218 Đợt 2, `PUT /api/orders/:id/booker` → `changeBooker` ở `src/modules/orders/repository.ts`):** câu xoá–chèn dòng phí và câu tiền đứng TRƯỚC câu `UPDATE orders` và gác bằng mốc `expectedUpdatedAt` của câu đó (lô nào thắng mốc thì cả hai cùng chạy). Chỉ còn một lệch hẹp: câu `UPDATE` còn điều kiện `BOOKER_VALUE` (hồ sơ bên đặt còn hoạt động và còn vai được hưởng) mà câu phí không có — nếu hồ sơ bị ngưng ĐÚNG giữa lúc kiểm (`resolveBooker`) và lúc ghi thì phí đã tính theo bên đặt mới mà bên đặt chưa đổi (nháp, tự sửa ở lần lưu kế tiếp vì phí tính lại mỗi lần lưu / xác nhận; đơn đã xác nhận không đi đường này). Không phải phát hiện an ninh HIGH nên không vào `docs/quyen-hoan.json`. **Hạn xử lý: 2027-02-28** — thêm câu «chốt thua» (khuôn ADR-0094 / trigger `transfer_fee_confirm_lost` của `0169`) cho lô này, hoặc đưa điều kiện `BOOKER_VALUE` vào câu phí. Người nhận: chủ dự án quyết thời điểm. Kiểm độc lập Đợt 2 nêu ngày 18/11.
 - **Phí đưa đón do văn phòng chọn (ADR-0214, migration `0173`, nhánh `claude/heuristic-turing-a00d98`) — phí vẫn chưa chạy tới khi Quản trị đặt «ngày bắt đầu áp».** Sau khi nhánh lên, mỗi lượt đón chỉ có ô «Phí đưa đón» (biểu mẫu đơn, bảng Còn vé) từ ngày áp; trước đó Nền tảng chạy như hôm nay. Đặt ngày áp là việc của chủ / Quản trị, sau khi xem ảnh `docs/evidence/2026-11-phi-don/phi-don-chon-*.png`. Chờ chủ chọn chữ: «Chưa chọn» (dòng đầu ô) và nhóm câu báo ở Bảng tham chiếu (đang «chờ chọn»). Kịch bản Chrome: `phi-don-chon-smoke.mjs` (ô chọn phí) cùng hai kịch bản cũ đã sửa theo luật mới; nợ kỹ thuật ở nhật ký thi công `docs/superpowers/plans/2026-11-16-phi-don-van-phong-chon-thi-cong-nhat-ky.md`.
 - **Xem như vai trò khác (ADR-0180) chờ gộp và phát hành:** xem mục «ĐANG CHỜ PHÁT HÀNH: Toàn quyền xem như vai trò khác» ở đầu tệp; còn chờ chủ: dấu vai ở sổ riêng của module khác, và xem hình thật (Chrome, iPhone). Danh sách việc của chủ (trùng số ADR 0180, view `v_aut_*`, hiện dấu ở trang Nhật ký, Bảng tin, sổ riêng, số migration, chữ «vai trò»/«Thoát»): ở mục chờ phát hành đó.
 - **CHƯƠNG TRÌNH KHẮC PHỤC KIỂM TOÁN 1–2/10 (lập kế hoạch 2026-10-02, CHƯA thi công) — ưu tiên cao nhất, có hạn sổ dừng dây chuyền.**

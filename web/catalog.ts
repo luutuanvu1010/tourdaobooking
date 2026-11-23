@@ -128,7 +128,7 @@ function renderStatus(): void {
       ),
     h("p", { class: "muted" }, parts.join(" ")),
     sync.lastError && h("div", { class: "alert" }, `Lần đồng bộ gần nhất lỗi: ${sync.lastError} Hệ thống vẫn dùng bản đã lưu.`),
-    sync.problems.length > 0 && h("details", null, h("summary", { class: "muted" }, `${sync.problems.length} dòng trong Sheet bị bỏ qua ở lần đồng bộ cuối`), h("ul", { class: "history" }, ...sync.problems.map((p) => h("li", null, `Dòng ${p.row}: ${p.message}`)))),
+    sync.problems.length > 0 && h("details", null, h("summary", { class: "muted" }, `${sync.problems.length} dòng trong Sheet bị bỏ qua ở lần đồng bộ cuối`), h("ul", { class: "history" }, ...sync.problems.map((p) => h("li", null, p.row > 0 ? `Dòng ${p.row}: ${p.message}` : p.message)))),
   );
 }
 

@@ -21,7 +21,8 @@ test("H1: «Hình thức thanh toán» dời sang chỗ chứa ở cột phải,
 
 test("H1: ba câu giải thích về tiền GẬP (không xoá) sau nút «Giải thích giảm giá, đặt cọc»; tiêu đề «Thanh toán» chỉ ẩn với mắt", () => {
   assert.match(form, /bocGiaiThich\.append\(byId\("dat-coc-goi-y"\), byId\("dat-coc-tra-sau"\)\);/);
-  assert.match(form, /taoKhoiGap\(\{ ma: "thanh-toan-giai-thich", nhan: "Giải thích giảm giá, đặt cọc", than: bocGiaiThich \}\)/);
+  // Việc 5 (b1), 21/11: nhãn theo cờ ô đặt cọc (luật thuần nhanGapGiaiThichTien — bài src/an-o-coc-doi-tac.test.ts).
+  assert.match(form, /taoKhoiGap\(\{ ma: "thanh-toan-giai-thich", nhan: nhanGapGiaiThichTien\(coODatCoc\), than: bocGiaiThich \}\)/);
   assert.match(form, /if \(gapGiaiThich && !discountEl\.readOnly\) gapGiaiThich\.than\.prepend\(hint\);/, "ô giảm giá đang khoá thì lý do khoá hiện ngay dưới ô, không gập");
   assert.match(form, /byId\("pay-title"\)\.classList\.add\("visually-hidden"\);/);
   // Cả ba thay đổi nằm trong nhánh form gọn của Đối tác: form văn phòng không đổi.

@@ -2,9 +2,9 @@
 // Danh sách khu vực đón đến qua `ctx.vungDon()` (gốc lắp ráp tiêm; `pricing` không import `locations`). Mỗi lệnh ghi = MỘT `db.batch`, nhật ký đi cùng lô; nhật ký chỉ ghi mã vùng / nhóm / dịch vụ / cấp
 // và số tiền. Thiếu mức không bao giờ là 0 đồng: Thử tra dùng ĐÚNG `chonMucPhiDon` + `tinhPhiChang` của phi-don-rules.ts (không tính riêng). Số tiền, số khách kiểm là số nguyên an toàn ở máy chủ.
 import { auditStatement } from "../audit";
-import { getEffectiveServices, tenCacNhom } from "../catalog";
+import { dichVuDuaDonChuaCoGiaGoc, getEffectiveServices, tenCacNhom } from "../catalog";
 import { error, json, kemLocation, readJson } from "../../shared/http";
-import type { CanhBaoPhiDonDto, MucPhiDonDto, PhiDonBatDauApResponse, PhiDonGhiResponse, PhiDonResponse, ThuTraPhiDonResponse } from "../../shared/contracts";
+import type { DichVuChuaCoPhiResponse, CanhBaoPhiDonDto, MucPhiDonDto, PhiDonBatDauApResponse, PhiDonGhiResponse, PhiDonResponse, ThuTraPhiDonResponse } from "../../shared/contracts";
 import { can } from "../../shared/permissions";
 import { route, type Route } from "../../shared/router";
 import { addDays, ngayDayDu, vnToday } from "../../shared/vn-date";
@@ -190,6 +190,12 @@ export const phiDonRoutes: Route[] = [
     if (dongDaDong(res)) return DA_DOI();
     const moi = (await docMucPhiDonTu(env.DB, TAT_CA)).find((d) => d.muc.id === id)!;
     return json({ muc: dtoMuc(moi) } satisfies { muc: MucPhiDonDto });
+  }),
+
+  // ADR-0218 Đ1.8: dịch vụ có đưa đón mà chưa có giá gốc phí đưa đón trên Sheet — chỉ để NHẮC trước khi đặt ngày bắt đầu áp, không chặn. Ô 0 (miễn phí) không nằm trong danh sách.
+  route("GET", "/api/pricing/phi-don/dich-vu-chua-co-phi", "admin", async ({ env, staff }) => {
+    if (!can(staff, "admin.manage")) return FORBIDDEN();
+    return json({ dichVu: await dichVuDuaDonChuaCoGiaGoc(env.DB) } satisfies DichVuChuaCoPhiResponse);
   }),
 
   route("GET", "/api/pricing/phi-don/thu-tra", "admin", async ({ env, url, staff, vungDon }) => {

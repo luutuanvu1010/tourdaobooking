@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { CHECKS, demViPham } from "../../../scripts/audit-checks.mjs";
+import { donTruocNgayAp } from "../../../tests/audit/chi-tien-mat.mjs";
 import { svc, inDays } from "../../../tests/audit/xac-nhan-khung.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
@@ -233,6 +234,9 @@ test("QR thanh toán: đơn dấu Tắt ⇒ { coQr: false }; đơn dấu Bật v
   assert.deepEqual(r.json, { coQr: false });
   for (const dau of [1, null] as const) {
     const id = await don(w, { dau });
+    // ADR-0225 Đ2 (21/11): đơn đối tác xác nhận từ ngày áp mang dấu «chỉ thu hộ tiền mặt» ⇒ không QR (bài src/modules/billing/thu-ho-tien-mat.test.ts). Bài này đo RIÊNG
+    // luật dấu kênh thu nên đưa đơn về tình huống đơn xác nhận trước ngày áp.
+    donTruocNgayAp(w, id);
     // ADR-0182 Đ2 mục 3 (12/11): tài khoản Đối tác không còn QR giá bán lẻ ở MỌI dấu; luật dấu Bật / không dấu nay kiểm bằng văn phòng (Kế toán).
     assert.deepEqual((await w.call("GET", `/api/orders/${id}/qr-thanh-toan`, { as: PT })).json, { coQr: false });
     const q = await w.call("GET", `/api/orders/${id}/qr-thanh-toan`, { as: KT });

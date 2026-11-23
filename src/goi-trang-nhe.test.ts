@@ -120,7 +120,9 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // một path, viền chung của họ «vé» và họ «loại giấy tờ» viết một lần) và trường `bieuTuong` của 25 dòng trong muc-giao-dien.ts (viết qua `tl()` cho gọn).
 // Đã rút trước khi nới: hình chỉ dùng ở thẻ con của ba màn nằm riêng ở web/hinh-the-phu.ts (không vào gói này); khai dòng bằng `tl()` bớt ~630 byte.
 // Đo thật 118.543 byte; trần = đúng số đo. Chủ dự án duyệt 21/11/2026 (chat, nguyên văn: «Duyệt 2.125 byte»).
-const TRAN_ORDERS = 118_543;
+// Nới 118.543 → 118.690 (+147, Việc 6 — ADR-0226): thẻ đơn hiện số nợ đối tác của Kế toán thuần, nhãn do máy chủ gửi (bớt từ +715), nhãn nợ không ẩn trong bảng thẳng cột.
+// Chủ dự án duyệt 22/11/2026 qua phiên điều phối (câu 2, nguyên văn: «Duyệt đề xuất» — kèm nới trần gói trang Đơn hàng 147 byte cho việc 6).
+const TRAN_ORDERS = 118_690;
 
 function dung(trang: string) {
   const r = buildSync({

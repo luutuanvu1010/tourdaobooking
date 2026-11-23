@@ -177,3 +177,84 @@ test("đơn đã xác nhận: đổi fee_choice, fee_source (kể cả dòng cũ
   run(db, "UPDATE order_item SET description = 'Phí đưa đón (sửa chữ)' WHERE id = 'f1'");
   assert.equal(get(db, "SELECT fee_choice AS c FROM order_item WHERE id = 'f1'").c, "DANH_SACH");
 });
+
+// ---- Migration 0179 (ADR-0218 Đợt 2, Task 6): dòng phí nguồn mới do máy tính. Dòng CHON / BANG_PHI cũ vẫn qua y như trước (các bài ở trên). ----
+const FILE2 = files.find((f) => f.endsWith("_phi_don_nguon_tinh.sql"));
+const dongMay = (db: DatabaseSync, id: string, leg: string, over: Record<string, V>) =>
+  chen(db, { id, order_id: "o1", description: "Phí đưa đón", quantity: 2, line_kind: "TRANSFER_FEE", transfer_leg_id: leg, fee_kind: "PER_PAX", unit_price: 30000, line_total: 60000, ...over });
+let nLeg = 0;
+/** Chặng mới (mỗi chặng chỉ một dòng phí). */
+const chang = (db: DatabaseSync): string => {
+  const id = `o1-M${++nLeg}`;
+  run(db, `INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_place, created_at, updated_at) VALUES (?, 'o1', 'o1-s', 'OUT', '2026-12-10', 'Khách sạn A', ?, ?)`, id, AT, AT);
+  return id;
+};
+const GOC = { fee_calc_source: "GIA_GOC", fee_base_price: 50000, fee_tier_discount: 20000, fee_tier_code: "C3" };
+const throwsRe = (f: () => void, r: RegExp) => assert.throws(f, r);
+
+test("0179: tệp *_phi_don_nguon_tinh.sql sau 0178, không UPDATE/DELETE dữ liệu cũ", () => {
+  assert.ok(FILE2, "thiếu migrations/*_phi_don_nguon_tinh.sql");
+  assert.ok(FILE2! > "0178", FILE2);
+  assert.doesNotMatch(readFileSync(new URL(FILE2!, DIR), "utf8").replace(/^--.*$/gm, ""), /^\s*(UPDATE|DELETE)\b|DROP TABLE/im);
+});
+test("0179 GIA_GOC: đơn giá đúng công thức qua; sai đơn giá, thiếu giá gốc, lẫn cột cũ bị chặn; xe riêng = giá gốc; giảm quá giá gốc ⇒ 0", () => {
+  const db = moi(); don(db);
+  dongMay(db, "g1", chang(db), GOC);
+  dongMay(db, "g2", chang(db), { ...GOC, fee_tier_discount: 70000, unit_price: 0, line_total: 0 });
+  throwsRe(() => dongMay(db, "g3", "o1-L1", { ...GOC, unit_price: 40000 }), re);
+  throwsRe(() => dongMay(db, "g4", "o1-L1", { fee_calc_source: "GIA_GOC", unit_price: 30000 }), re);
+  throwsRe(() => dongMay(db, "g5", "o1-L1", { ...GOC, fee_source: "CHON", fee_choice: "SO_KHAC" }), re);
+  throwsRe(() => dongMay(db, "g6", "o1-L1", { ...GOC, fee_zone_code: "CR" }), re);
+  dongMay(db, "g7", chang(db), { fee_calc_source: "GIA_GOC", fee_kind: "PER_TRIP", fee_base_price: 300000, quantity: 1, unit_price: 300000, line_total: 300000 });
+  throwsRe(() => dongMay(db, "g8", "o1-L1", { fee_calc_source: "GIA_GOC", fee_kind: "PER_TRIP", fee_base_price: 300000, fee_tier_discount: 20000, quantity: 1, unit_price: 280000, line_total: 280000 }), re);
+});
+test("0179 DOI_TAY: cần lý do không rỗng ≤ 300 ký tự, người đổi, đơn giá 0–5.000.000 (0 được nhận)", () => {
+  const db = moi(); don(db);
+  const ok = { fee_calc_source: "DOI_TAY", fee_override_reason: "Khách ở xa", fee_override_by: "s1", unit_price: 80000, line_total: 160000 };
+  dongMay(db, "d1", chang(db), ok);
+  dongMay(db, "d2", chang(db), { ...ok, unit_price: 0, line_total: 0 });
+  dongMay(db, "d3", chang(db), { ...ok, unit_price: 5000000, line_total: 10000000 });
+  throwsRe(() => dongMay(db, "d4", "o1-L1", { ...ok, unit_price: 5000001 }), re);
+  throwsRe(() => dongMay(db, "d5", "o1-L1", { ...ok, unit_price: -1 }), re);
+  throwsRe(() => dongMay(db, "d6", "o1-L1", { ...ok, fee_override_reason: "  " }), re);
+  throwsRe(() => dongMay(db, "d7", "o1-L1", { ...ok, fee_override_reason: "x".repeat(301) }), re);
+  throwsRe(() => dongMay(db, "d8", "o1-L1", { ...ok, fee_override_by: null }), re);
+  dongMay(db, "d9", chang(db), { ...ok, fee_override_reason: "x".repeat(300) });
+});
+test("0179 CHUONG_TRINH: cần mã chương trình và đơn giá 0", () => {
+  const db = moi(); don(db);
+  dongMay(db, "c1", chang(db), { fee_calc_source: "CHUONG_TRINH", fee_program_id: "p1", fee_program_name: "Miễn phí", unit_price: 0, line_total: 0 });
+  throwsRe(() => dongMay(db, "c2", "o1-L1", { fee_calc_source: "CHUONG_TRINH", unit_price: 0, line_total: 0 }), re);
+  throwsRe(() => dongMay(db, "c3", "o1-L1", { fee_calc_source: "CHUONG_TRINH", fee_program_id: "p1", unit_price: 1000 }), re);
+});
+test("0179: cột chụp mới không lọt vào dòng cũ hay dòng dịch vụ; CHON cũ (danh sách và Số khác) vẫn chèn được", () => {
+  const db = moi(); don(db);
+  dongChon(db, "k1", chang(db)); dongChon(db, "k2", "o1-L2", { fee_choice: "SO_KHAC", unit_price: 12345, line_total: 24690 });
+  dongBang(db, "b1", chang(db));
+  throwsRe(() => dongChon(db, "k3", "o1-L1", { fee_base_price: 1 }), re);
+  throwsRe(() => dongBang(db, "b2", "o1-L2", { fee_program_id: "p" }), re);
+  throwsRe(() => chen(db, { id: "s9", order_id: "o1", service_id: "o1-s", description: "x", quantity: 1, unit_price: 1, line_total: 1, fee_override_by: "s1" }), re);
+});
+test("0179: đơn không còn nháp ⇒ không đổi được các cột chụp mới (order_fee_frozen)", () => {
+  const db = moi(); don(db);
+  dongMay(db, "d1", chang(db), { fee_calc_source: "DOI_TAY", fee_override_reason: "Khách ở xa", fee_override_by: "s1", unit_price: 80000, line_total: 160000 });
+  dongMay(db, "g1", chang(db), GOC);
+  run(db, "UPDATE order_item SET fee_override_reason = 'Lý do khác' WHERE id = 'd1'"); // còn nháp: sửa được
+  const tong = get(db, "SELECT sum(line_total) AS t FROM order_item WHERE order_id = 'o1'").t;
+  run(db, "UPDATE orders SET subtotal = ?, total = ?, remaining_amount = ? WHERE id = 'o1'", tong, tong, tong);
+  xacNhan(db);
+  const f = /order_fee_frozen/;
+  throwsRe(() => run(db, "UPDATE order_item SET fee_override_reason = 'Sửa sau xác nhận' WHERE id = 'd1'"), f);
+  throwsRe(() => run(db, "UPDATE order_item SET fee_base_price = 99000 WHERE id = 'g1'"), f);
+  throwsRe(() => run(db, "UPDATE order_item SET fee_tier_discount = 0 WHERE id = 'g1'"), f);
+  throwsRe(() => run(db, "UPDATE order_item SET fee_calc_source = 'DOI_TAY' WHERE id = 'g1'"), f);
+  throwsRe(() => run(db, "UPDATE order_item SET fee_program_name = 'x' WHERE id = 'g1'"), f);
+});
+
+test("0179: trần đổi tay 5.000.000 trong trigger KHỚP TRAN_MUC_PHI_DON (src/shared/phi-don-gia-goc.ts)", async () => {
+  const { TRAN_MUC_PHI_DON } = await import("./shared/phi-don-gia-goc.ts");
+  const sql = readFileSync(new URL(FILE2!, DIR), "utf8").replace(/^--.*$/gm, "");
+  const m = [...sql.matchAll(/NEW\.unit_price > (\d+)/g)].map((x) => Number(x[1]));
+  assert.ok(m.length >= 2);
+  for (const v of m) assert.equal(v, TRAN_MUC_PHI_DON);
+});
