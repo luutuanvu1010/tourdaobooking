@@ -12,7 +12,7 @@
 import { PAX_LABEL, thanhTienDong, type PaxCode } from "../src/shared/order-lines";
 import {
   addManualLine, cardCodes, chuDongTien, chuLuot, coDongThanhTien, draftIssues, soKhachNhap, draftSubtotal, groupInfo, guestDetail, isFrozenManual, isLocked, nhanSoLuongDong, previewLines,
-  removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel, chonDonSauDoiChang, datChonDon,
+  removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel, chonDonSauDoiChang, datChonDon, chuGiaMuaVu,
   type CatalogDraft, type ManualDraft, type ServiceDraft,
 } from "../src/shared/service-form";
 import { NHAN_LUA_CHON_DON, type KhungGio } from "../src/shared/khung-gio-don";
@@ -271,6 +271,8 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   let guestDetails = new Map<PaxCode, HTMLElement>(); // dòng phụ dưới nhãn bộ đếm — cập nhật tại chỗ (giá/ghi chú đổi khi thẻ bản chụp chuyển sang giá hiện tại)
   let lineRefs = new Map<PaxCode, LineRefs>();
   let groupHint: HTMLElement | null = null;
+  /** ADR-0229 Đ9: dòng nhỏ «Giá mùa vụ: +10 % +20.000 đ» — chỉ khi máy chủ gửi mức tăng (người dùng văn phòng, ngày đi trong mùa). */
+  let muaVuEl: HTMLElement | null = null;
   let emptyHint: HTMLElement | null = null;
   let guestCounter: Counter | null = null;
   let nameInput: HTMLInputElement | null = null;
@@ -320,6 +322,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       lockedNote = h("div", { class: "svc-locked" }, h("p", { class: "muted" }, d.repick ? "Dịch vụ này không còn trong danh mục và dòng đã lưu thiếu giá danh mục nên chưa lưu được. Chọn lại từ danh mục, hoặc xoá thẻ này." : "Dịch vụ này không còn trong danh mục nên không đổi được số khách. Vẫn sửa được đơn giá và thông tin chuyến."), repick);
     }
     emptyHint = h("p", { class: "svc-empty" }, "Nhập số khách để xem dòng tiền.");
+    muaVuEl = h("p", { class: "hint", "data-gia-mua-vu": "", hidden: true });
     // Dòng tiền: dòng CHỮ (canh phải) trong `xem`; dòng SỬA `.line` (ô đơn giá — aria-label như cũ, kịch bản và bài kiểm dùng) trong `sua` = khối gập "Sửa giá đơn này".
     const xem = h("div", { class: "svc-tien-xem" });
     const sua = h("div", { class: "svc-tien-sua" });
@@ -370,7 +373,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       group ? null : h("div", { class: "svc-sub" }, "Số khách"),
       h("div", { class: cells.length > 1 ? "svc-luoi-khach" : "svc-luoi-khach mot-o" }, ...cells),
       lockedNote,
-      h("div", { class: "svc-tien" }, emptyHint, xem, sua, sumRow, h("div", { class: "svc-sua-gia-hang" }, nut)),
+      h("div", { class: "svc-tien" }, muaVuEl, emptyHint, xem, sua, sumRow, h("div", { class: "svc-sua-gia-hang" }, nut)),
     );
   }
 
@@ -518,6 +521,11 @@ export function createServiceCard(o: CardOptions): ServiceCard {
       }
       if (emptyHint) emptyHint.hidden = visible > 0;
       if (groupHint) groupHint.textContent = chuLuot(g);
+      if (muaVuEl) {
+        const chu = chuGiaMuaVu(d.item, grouped);
+        muaVuEl.textContent = chu ?? "";
+        muaVuEl.hidden = chu === null;
+      }
       // "Sửa giá đơn này": không có cho Đối tác / Thực tập (giá luôn là giá danh mục) và khi chưa có dòng tiền. Dòng lệch giá CŨ của họ (đơn lập trước đây) thì khối tự mở:
       // ô đơn giá sửa được để đưa về đúng giá — như trước khi ô nằm sau "Sửa giá đơn này" (máy chủ từ chối mọi giá khác).
       if (nutSuaGia) nutSuaGia.hidden = Boolean(o.retailOnly) || visible === 0;

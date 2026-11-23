@@ -32,24 +32,35 @@ const giong = (a, b) => JSON.stringify(a) === JSON.stringify(b);
  * So cấu hình bản chính thức với Development. Trả mảng câu tiếng Việt; rỗng = đạt.
  * Tên so đúng (không so chuỗi con, vì tên Development chứa `tourdao-sales`); riêng mã D1 và miền chính thức quét cả văn bản tệp Development.
  */
-export function kiemCauHinhDev(prodText, devText) {
+export function kiemCauHinhDev(prodText, devText, o = {}) {
+  // `o` (ADR-0223, bản dùng thử dùng lại cùng bài): ten = tên bản trong câu báo; tep = tên tệp; moiTruong = giá trị MOI_TRUONG bắt buộc;
+  // d1Them = binding D1 CHỈ bản này có (D1 giữ khoá); varsRieng = biến CHỈ bản này có (BAN_DUNG_THU). Mặc định = bản Development như cũ.
+  const ten = o.ten ?? "bản Development";
+  const tep = o.tep ?? CAU_HINH_DEV;
+  const moi = o.moiTruong ?? "development";
+  const d1Them = o.d1Them ?? [];
+  const varsRieng = o.varsRieng ?? [];
+  const duongThem = o.duongWorkerTruocThem ?? []; // đường CHỈ bản này cho Worker trả lời trước (bản mẫu của bản dùng thử: 404 cho người ngoài)
   const p = docCauHinh(prodText);
   const d = docCauHinh(devText);
   const loi = [];
   if (!p) loi.push("Không đọc được cấu hình bản chính thức (JSON hỏng).");
-  if (!d) loi.push(`Không đọc được ${CAU_HINH_DEV} (JSON hỏng).`);
+  if (!d) loi.push(`Không đọc được ${tep} (JSON hỏng).`);
   if (!p || !d) return loi;
 
   const khacTen = (nhan, a, b) => {
-    if (typeof b !== "string" || b === "") loi.push(`${nhan} của bản Development đang trống.`);
-    else if (a === b) loi.push(`${nhan} của bản Development trùng bản chính thức ("${b}").`);
+    if (typeof b !== "string" || b === "") loi.push(`${nhan} của ${ten} đang trống.`);
+    else if (a === b) loi.push(`${nhan} của ${ten} trùng bản chính thức ("${b}").`);
   };
 
   // Tên Worker, D1, kho phải khác; bộ tài nguyên phải cùng số lượng và cùng tên binding.
   khacTen("Tên Worker", p.name, d.name);
 
   const pd1 = mang(p.d1_databases);
-  const dd1 = mang(d.d1_databases);
+  const dd1Du = mang(d.d1_databases);
+  const dd1 = dd1Du.filter((x) => !d1Them.includes(x?.binding));
+  for (const b of d1Them) if (!dd1Du.some((x) => x?.binding === b)) loi.push(`${ten} thiếu cơ sở dữ liệu D1 ${b}.`);
+  for (const x of dd1Du.filter((y) => d1Them.includes(y?.binding))) for (const z of pd1) if (z?.database_name === x?.database_name || z?.database_id === x?.database_id) loi.push(`D1 ${x?.binding} của ${ten} trùng một D1 của bản chính thức.`);
   if (!giong(pd1.map((x) => x?.binding), dd1.map((x) => x?.binding))) loi.push("Hai bản không có cùng bộ cơ sở dữ liệu D1 (khác binding hoặc khác số lượng).");
   pd1.forEach((x, i) => {
     const y = dd1[i];
@@ -78,26 +89,29 @@ export function kiemCauHinhDev(prodText, devText) {
   // Tài sản tĩnh: cùng cách chạy, khác thư mục; Development không có khối build.
   const pa = bang(p.assets);
   const da = bang(d.assets);
-  if (!giong(pa.run_worker_first, da.run_worker_first)) loi.push("Danh sách đường vào Worker trước (run_worker_first) lệch giữa hai bản.");
+  const daRwf = mang(da.run_worker_first);
+  for (const x of duongThem) if (!daRwf.includes(x)) loi.push(`${ten} thiếu đường ${x} trong run_worker_first.`);
+  if (!giong(pa.run_worker_first, daRwf.filter((x) => !duongThem.includes(x)))) loi.push("Danh sách đường vào Worker trước (run_worker_first) lệch giữa hai bản.");
   if (pa.not_found_handling !== da.not_found_handling) loi.push("Cách xử lý địa chỉ lạ (not_found_handling) lệch giữa hai bản.");
   if (pa.binding !== da.binding) loi.push("Tên binding của tài sản tĩnh lệch giữa hai bản.");
-  if (typeof da.directory !== "string" || da.directory === "" || da.directory === pa.directory) loi.push("Thư mục tài sản tĩnh của bản Development phải riêng, không trùng bản chính thức.");
-  if (d.build !== undefined) loi.push("Cấu hình Development không được có khối build.");
+  if (typeof da.directory !== "string" || da.directory === "" || da.directory === pa.directory) loi.push(`Thư mục tài sản tĩnh của ${ten} phải riêng, không trùng bản chính thức.`);
+  if (d.build !== undefined) loi.push(`Cấu hình ${ten} không được có khối build.`);
 
   // Miền.
   const pdom = mang(p.routes).map((x) => x?.pattern);
   const ddom = mang(d.routes).map((x) => x?.pattern);
-  if (ddom.length === 0) loi.push("Bản Development chưa khai miền (routes).");
-  if (ddom.some((x) => pdom.includes(x))) loi.push("Miền của bản Development trùng miền bản chính thức.");
+  if (ddom.length === 0) loi.push(`${ten} chưa khai miền (routes).`);
+  if (ddom.some((x) => pdom.includes(x))) loi.push(`Miền của ${ten} trùng miền bản chính thức.`);
 
   // Biến công khai.
   const pv = bang(p.vars);
   const dv = bang(d.vars);
   if ("MOI_TRUONG" in pv) loi.push("Cấu hình bản chính thức không được có biến MOI_TRUONG.");
-  if (dv.MOI_TRUONG !== "development") loi.push('Biến MOI_TRUONG của bản Development phải đúng "development".');
+  if (dv.MOI_TRUONG !== moi) loi.push(`Biến MOI_TRUONG của ${ten} phải đúng "${moi}".`);
+  for (const k of varsRieng) if (k in pv) loi.push(`Cấu hình bản chính thức không được có biến ${k}.`);
   const khoa = new Set([...Object.keys(pv), ...Object.keys(dv)]);
   for (const k of khoa) {
-    if (KHOA_VARS_LECH_DUOC.includes(k)) continue;
+    if (KHOA_VARS_LECH_DUOC.includes(k) || varsRieng.includes(k)) continue;
     if (!(k in pv) || !(k in dv)) {
       loi.push(`Biến ${k} chỉ có ở một trong hai bản.`);
       continue;
@@ -108,15 +122,15 @@ export function kiemCauHinhDev(prodText, devText) {
       khacTen(`Biến ${k}`, pv[k], dv[k]);
     }
   }
-  if (typeof dv.VAPID_SUB !== "string" || dv.VAPID_SUB === "") loi.push("Bản Development chưa khai biến VAPID_SUB.");
+  if (typeof dv.VAPID_SUB !== "string" || dv.VAPID_SUB === "") loi.push(`${ten} chưa khai biến VAPID_SUB.`);
   else if (pv.VAPID_SUB !== undefined) khacTen("Biến VAPID_SUB", pv.VAPID_SUB, dv.VAPID_SUB);
 
   // Quét cả văn bản tệp Development (kể cả chú thích): mã D1 và miền của bản chính thức không được xuất hiện.
   const text = String(devText);
   for (const x of pd1) {
-    if (typeof x?.database_id === "string" && x.database_id !== "" && text.includes(x.database_id)) loi.push(`Văn bản ${CAU_HINH_DEV} chứa mã D1 của bản chính thức.`);
+    if (typeof x?.database_id === "string" && x.database_id !== "" && text.includes(x.database_id)) loi.push(`Văn bản ${tep} chứa mã D1 của bản chính thức.`);
   }
-  if (text.includes(MIEN_CHINH_THUC)) loi.push(`Văn bản ${CAU_HINH_DEV} chứa miền của bản chính thức (${MIEN_CHINH_THUC}).`);
+  if (text.includes(MIEN_CHINH_THUC)) loi.push(`Văn bản ${tep} chứa miền của bản chính thức (${MIEN_CHINH_THUC}).`);
   return loi;
 }
 

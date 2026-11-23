@@ -27,6 +27,10 @@
       "Bash(npm run lam-moi-dev *)",
       "Bash(node scripts/lam-moi-dev.mjs)",
       "Bash(node scripts/lam-moi-dev.mjs *)",
+      "Bash(npm run len-demo)",
+      "Bash(npm run len-demo *)",
+      "Bash(node scripts/len-demo.mjs)",
+      "Bash(node scripts/len-demo.mjs *)",
       "mcp__terminal__run_in_terminal"
     ],
     "ask": [

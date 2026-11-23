@@ -821,3 +821,37 @@ Ghi 2026-10-29 khi đồng bộ bộ «Island Booking System — Design System v
 - **BL-VE-BAO-GUI-LAI** (`đợt kế tiếp`, chủ chọn 18/11 câu 2 «a») — khi vé đã gửi khách bị huỷ (huỷ vé lẻ hoặc huỷ lô đã cấp), gửi tin vào hộp thư người phụ trách đơn để gửi lại vé thay. Hôm nay chỉ người bấm huỷ thấy câu nhắc, dòng «huỷ vé» lại ẩn khỏi lịch sử đơn. Việc chạm `thongbao` (thêm loại tin, ca `locHopThongBao`, view `v_aud_ledger_event`) và tìm người phụ trách đơn từ module vé (module vé chưa có cạnh tới `dispatch`). Nợ A4 ở nhật ký thi công `docs/superpowers/plans/2026-11-17-so-seri-ve-thi-cong.md`.
 - **BL-VE-NHA-CUNG-CAP-QUET** (`để sau`, chủ nêu 18/11 câu 11) — chỉ nhà cung cấp vé mới quét được vé của mình: vé Vinpearl chỉ Vinpearl quét; vé, phiếu do Tour Đảo cấp chỉ Nền tảng Tour Đảo quét. Ví dụ phiếu tắm bùn i-resort do Tour Đảo cấp: nhân viên i-resort cũng phải dùng được bản điện thoại của Nền tảng để quét. Hôm nay quét vé chỉ cho tài khoản nội bộ (`ve.quet.tinh` / `ve.quet.xem`); cần một loại tài khoản cho nhân viên nơi cung cấp, chỉ quét được vé của dịch vụ nơi đó. Việc mới: đặc tả + ADR (chạm quyền, tài khoản bên ngoài).
 - **BL-VE-SMOKE-KE-TOAN** — bước 1 của kịch bản Chrome `docs/evidence/2026-11-02-ve-qr-tran-lo/kich-ban/ve-qr-smoke.mjs` còn đòi Kế toán không có lối vào Vé điện tử, trong khi từ ADR-0175 (9/11) Kế toán có lối vào vì giữ `ve.phat-hanh`. Sửa bước đó cho khớp.
+
+## 75. Phí đưa đón từ giá gốc Sheet — việc để sau (mã `BL-PD-…`, ADR-0218, 2026-11-22)
+
+- **BL-PD-HUY-MUC-CHUA-BAT-DAU** (`để sau`; điều phối tự quyết 22/11/2026 theo khuyến nghị, chủ bác được) — thêm nút «Huỷ mức chưa bắt đầu» cho mức giảm phí đưa đón theo cấp đại lý có ngày bắt đầu ở tương lai. Hôm nay mức như vậy chưa huỷ được, chỉ thay được bằng mức bắt đầu muộn hơn (CSDL cấm đóng sớm hơn ngày bắt đầu); màn Cấp độ đại lý giữ câu nhắc hiện có. Cần migration mới (số kế tiếp trong `migrations/`; 0180 và 0181 đã bị dùng), làm thành việc riêng. Không sai tiền, đảo ngược được. Nguồn: điều kiện V1 của người kiểm độc lập Đợt 1.
+- **BL-PD-NGAY-DI-CON-VE** (`chờ chủ phán`; nguồn: người kiểm độc lập lượt nhập ADR-0218, 23/11/2026) — khi văn phòng xác nhận đơn ở màn «Còn vé» và ĐỔI ngày đi, cổng ngừng bán và cổng đặt gấp dùng ngày mới nhưng phí đưa đón vẫn tính theo ngày đón đã lưu (`chuanBiPhiDonXacNhan` chép chặng từ đơn đã lưu). Chỉ lệch khi có chương trình miễn phí khớp theo khoảng ngày đi (không có chương trình thì số tiền không đổi). Cách sửa: đưa `ngayDi`/ngày chặng mới vào đầu vào tính phí. Chạm tiền ⇒ cần chủ quyết ý định (tính theo ngày đã lưu hay ngày mới).
+
+## 76. Kế toán xem đơn đối tác theo số nợ — phần để sau (ADR-0226, Việc 6, 2026-11-21)
+
+- **Ngày:** 2026-11-21 · **Chủ chọn** (qua phiên điều phối, câu 6B «như khuyến nghị»): đợt này chỉ danh sách Đơn hàng và Trang chủ · **Trạng thái:** `tạm gác`.
+- **Còn lại:** trang chi tiết một đơn đối tác vẫn hiện số bán lẻ (khối tiền, biên nhận, `GET /api/orders/:id/thuong-mai`) cho Kế toán thuần — giữ có chủ ý vì Kế toán đối chiếu khoản thu, biên nhận ở đó.
+- **Muốn làm:** ADR mới bổ sung ADR-0226 Đ7; cùng luật `keToanThuan` và `donDaiLyTrongTap`.
+
+## 77. Ảnh bàn giao — việc để sau (mã `BL-ABG-…`, ADR-0232, Việc 13, 2026-11-22)
+
+- **BL-ABG-PHIEU** — giao diện cho Toàn quyền đánh dấu ảnh vào phiếu xoá dữ liệu của người có tài khoản (biến thể 7B, lối 1). Đường máy chủ đã có và có bài kiểm (`POST /api/anh-ban-giao/anh/:id/xoa` với `nguon: "PHIEU"`, lô Thực hiện phiếu gỡ ảnh đã đánh dấu); bảng xem ảnh hôm nay chỉ có lối «Khách yêu cầu xoá». Nên đặt ở màn xử lý phiếu xoá (chọn ảnh của các đơn có người đó).
+- **BL-ABG-HANG-CHO** — màn hàng chờ cho Toàn quyền (ảnh tải dở dang, chờ xoá kho, quá hạn giữ) và nút «Chạy lại»: đường `GET /api/anh-ban-giao/cho-xoa`, `POST …/chay-lai` đã có; hôm nay chỉ thấy qua cảnh báo `R-ABG-1`, `R-ABG-2` của `audit-invariants`. Quá hạn giữ sớm nhất sau 5 năm, nên chưa gấp.
+- **BL-ABG-CUA-SO-TAI-XE** — tài xế còn dòng lái mở gửi được ảnh cho lượt đón của chuyến đã kết thúc bất kỳ lúc nào (ADR không nêu hạn). Cân nhắc cửa sổ vài ngày sau ngày chạy.
+- **BL-ABG-IPHONE** — chưa đo cỡ ảnh thật sau nén trên iPhone (trần 600 KB) và Safari có mở được HEIC để thu nhỏ không; nợ mang theo từ khuôn biên lai: `BL-TEP-THAN-HAI-LAN`, `BL-BL-THU-THAT`.
+
+## 78. Kịch bản Chrome đỏ sẵn trên bản chính — cần sửa kịch bản hoặc mã (mã `BL-CR-…`, ghi từ Việc 11, 2026-11-23)
+
+Đối chiếu ngày 23/11: chạy năm kịch bản trên bản chính cũ `54c39c20e` (chưa có Việc 11) và trên nhánh Việc 11 — đỏ y hệt, cùng bước, cùng lỗi. Không chặn việc nhập (điều phối dặn ghi vào đây).
+- **BL-CR-TRA-SAU** — `docs/evidence/2026-11-05-tra-sau/kich-ban/tra-sau-smoke.mjs` bước C1, H1, D1: kịch bản chờ số nợ theo giá bán lẻ (1.350.000 ₫), bản chính tính công nợ theo giá đại lý ADR-0182 (1.215.000 ₫). Sửa kỳ vọng của kịch bản.
+- **BL-CR-HDV** — `docs/evidence/2026-09-27-tu-choi-huy-hdv/kich-ban/hdv-viec-cua-toi-smoke.mjs`: bước gieo ghi thu cho đơn còn nháp nay bị 409 `order_draft_no_payment` (ADR-0135 Đ7). Xác nhận đơn trước khi ghi thu.
+- **BL-CR-QL-BAN-HANG** — `docs/evidence/2026-11-05-quan-ly-ban-hang/kich-ban/ql-ban-hang-smoke.mjs` bước 5[1040]: sau «Bật cả nhóm» ở màn kiểm vé, dòng vé TTB06 vẫn ghi «Đặt riêng cho vé này», kịch bản chờ «Theo nhóm». Cần xem dữ liệu gieo hay nhãn của màn kiểm vé.
+- **BL-CR-A2-ORDER** — `docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-order.mjs`: so sánh giá trị đầu kịch bản lệch (deepStrictEqual), đỏ từ trước.
+- **BL-CR-TO-CHUC-B1** — `docs/evidence/2026-11-16-dang-ky-to-chuc/kich-ban/to-chuc-b1-smoke.mjs` bước 390-3: axe báo `label-content-name-mismatch` (serious) ở `.bar-avatar` của khung chung (cùng lỗi T8 người chấm giao diện thấy ở mọi màn 390).
+- **BL-CR-GHIM-NGUON-VE** (giao diện, Việc 11, kiểm độc lập 23/11): dịch vụ đang «Theo nhóm – Vé hãng ngoài» thì nút «Vé hãng ngoài» đã sáng, bấm không làm gì (`web/catalog-co-ve.ts`, `if (v === dang) return;`), nên không ghim riêng được bằng một lần bấm; phải bấm sang «Vé Tour Đảo» rồi bấm lại. Máy chủ đã cho ghim (d927c3594). Thêm lối «Đặt riêng cho dịch vụ này» trên giao diện.
+
+## 79. Giá mùa vụ — việc để sau (ADR-0229, Việc 10, 2026-11-23)
+
+- **Ngày:** 2026-11-23 · **Nêu:** người đánh giá giao diện (lượt chấm lại sau sửa) · **Trạng thái:** `tạm gác` — chủ chưa quyết (phiên điều phối 23/11: «chủ chưa quyết, để vậy và ghi vào BACKLOG»).
+- **Hai nút Duyệt / Kết thúc trên điện thoại:** trong bảng trượt «Giá mùa vụ», khổ 390 hai nút dàn ra hai bên hàng, lệch với chữ dòng quy tắc canh trái; khổ 1280 canh trái. Hai khổ chưa cùng kiểu canh (`web/gia-mua-vu.ts`, hàm `dong`, hàng `.actions`). Không cản việc.
+- **Điểm nhỏ khác từ lượt chấm đầu (chưa sửa):** nhãn mùa vụ bị bóp nhiều dòng ở cột Dịch vụ của bảng khổ 1280; nút «Giá mùa vụ» rớt dòng ở màn hẹp khổ 390 khi dòng có nhãn; ô tìm ở màn hẹp ghi «Tìm vé» dù danh sách là dịch vụ (đổi tên qua bảng tham chiếu, chủ chọn); khối «Mức tăng tối đa» (cài đặt chung) nằm trong bảng của từng dịch vụ.

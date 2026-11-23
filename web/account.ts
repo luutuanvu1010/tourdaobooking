@@ -16,8 +16,11 @@ import { icon } from "./icons";
 import { dungSuaNoiDung } from "./maint-noi-dung";
 import { ganCaiDatNhapTay } from "./nhap-tay-cai-dat";
 import { ganCaiDatAnKhach } from "./an-khach-cai-dat";
+import { ganCongTacDoiTac } from "./cong-tac-doi-tac-cai-dat";
 import { ganCaiDatGioDon } from "./gio-don-cai-dat";
+import { ganCaiDatPhiDonBienNhan } from "./phi-don-bien-nhan-cai-dat";
 import { ganCaiDatNoiDon } from "./noi-don-cai-dat";
+import { ganCaiDatChanChuaGio } from "./chan-chua-gio-cai-dat";
 import { ganNutThanhDuoi } from "./thanh-duoi-cai-dat";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { b64uSangBytes, thietBiTu } from "./push-ui";
@@ -27,6 +30,7 @@ import { chipEl } from "./giay-to-ui";
 import { demSapHetHan } from "./vc-dem";
 import { initViecCuaToi } from "./viec-cua-toi";
 import { initHoSoCuaToi } from "./ho-so-cua-toi";
+import { ganKhoaDungThu } from "./dung-thu-vai";
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -859,16 +863,28 @@ async function initMaintenance(): Promise<void> {
   }
 }
 void initMaintenance();
+// ---- Bản dùng thử (ADR-0223 Đ5): khoá / mở đăng nhập dùng thử — chỉ hiện trên demo.tourdao.vn, ô settings.ops (máy chủ đòi quyền thật Toàn quyền) ----
+if (can(staff, "settings.ops")) void ganKhoaDungThu(maintenanceEl);
 
 // ---- Dịch vụ nhập tay (ADR-0061 điều 6): công tắc bật / tắt — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại) ----
 if (can(staff, "settings.ops")) void ganCaiDatNhapTay(byId("nhap-tay-cai-dat"));
 
 // ---- Ẩn thông tin khách khi đối tác đặt vé (ADR-0154 Đ2.1): công tắc bật / tắt — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại), cạnh «Dịch vụ nhập tay» ----
 if (can(staff, "settings.ops")) void ganCaiDatAnKhach(byId("an-khach-cai-dat"));
+// ADR-0228 Đ1: «Đối tác không nhập danh sách hành khách» — tách khỏi công tắc trên; ngay dưới nó.
+if (can(staff, "settings.ops")) void ganCongTacDoiTac(byId("hanh-khach-dt-cai-dat"), "hanhKhach");
+// ADR-0228 Đ2: «Đơn đối tác không cần đủ tên khách» — ngay dưới công tắc danh sách hành khách.
+if (can(staff, "settings.ops")) void ganCongTacDoiTac(byId("mien-du-ten-cai-dat"), "mienDuTen");
 // ADR-0193 mục 1: «Bắt buộc giờ đón cho đơn đối tác» — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại), ngay dưới «Ẩn thông tin khách».
 if (can(staff, "settings.ops")) void ganCaiDatGioDon(byId("gio-don-cai-dat"));
+// ADR-0228 Đ3: «Đơn đối tác không cần giờ đón» — ngay dưới «Bắt buộc giờ đón».
+if (can(staff, "settings.ops")) void ganCongTacDoiTac(byId("khong-can-gio-cai-dat"), "gioDon");
+// ADR-0218 Đ3.4: «Hiện riêng phí đưa đón trên biên nhận khách lẻ» — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại).
+if (can(staff, "settings.ops")) void ganCaiDatPhiDonBienNhan(byId("phi-don-bien-nhan-cai-dat"));
 // ADR-0221 Đ1: «Đối tác không nhập nơi đón» — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại), ngay dưới «Bắt buộc giờ đón».
 if (can(staff, "settings.ops")) void ganCaiDatNoiDon(byId("noi-don-cai-dat"));
+// ADR-0227 Đ1: «Chặn đơn chưa có giờ đón khi sát ngày đón» — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại), cuối nhóm «Cài đặt lập đơn».
+if (can(staff, "settings.ops")) void ganCaiDatChanChuaGio(byId("chan-chua-gio-cai-dat"));
 // ADR-0187 Đ2.3: mục «Nút thanh dưới» (chỉ điện thoại). Ai thấy: ô me.favorites.write và không đang xem như vai trò khác — hàm tự hỏi bảng quyền.
 ganNutThanhDuoi(byId("thanh-duoi"), staff);
 

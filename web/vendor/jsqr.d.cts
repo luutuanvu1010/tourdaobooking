@@ -2,5 +2,8 @@
 interface KetQuaQr {
   data: string;
 }
-declare function jsQR(data: Uint8ClampedArray, width: number, height: number): KetQuaQr | null;
+interface TuyChonQr {
+  inversionAttempts?: "dontInvert" | "onlyInvert" | "attemptBoth" | "invertFirst";
+}
+declare function jsQR(data: Uint8ClampedArray, width: number, height: number, tuyChon?: TuyChonQr): KetQuaQr | null;
 export = jsQR;

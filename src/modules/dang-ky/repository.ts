@@ -1,4 +1,5 @@
 // dang-ky/repository.ts — SQL của module dang-ky (ADR-0206). Câu TĨNH, qua defineSql. Chỉ đọc/ghi bảng dk_*.
+import { CACH_HIEN, type CachHien, type DongOTep } from "../../shared/dang-ky-o-tep.ts";
 import { defineSql } from "../../shared/sql-registry.ts";
 import type { PhanToChucMoi } from "../../shared/to-chuc.ts";
 
@@ -52,12 +53,12 @@ export const chinhSachHienHanh = (db: D1Database, at: string): Promise<ChinhSach
 const PHIEU_CUA_PHIEN = defineSql(
   "dang-ky",
   "registration_of_session",
-  `SELECT r.id, r.status FROM dk_registration r JOIN dk_identity i ON i.registration_id = r.id
+  `SELECT r.id, r.status, r.role_code, r.org_role_code FROM dk_registration r JOIN dk_identity i ON i.registration_id = r.id
    WHERE r.id = ?1 AND i.id = ?2 AND i.is_open = 1`,
 );
-/** Phiếu của phiên đăng ký (danh tính còn mở); không khớp ⇒ null. */
-export const phieuCuaPhien = (db: D1Database, registrationId: string, identityId: string): Promise<{ id: string; status: string } | null> =>
-  db.prepare(PHIEU_CUA_PHIEN).bind(registrationId, identityId).first<{ id: string; status: string }>();
+/** Phiếu của phiên đăng ký (danh tính còn mở); không khớp ⇒ null. Hai mã vai để chọn ô tệp theo vai (ADR-0233 Đ1). */
+export const phieuCuaPhien = (db: D1Database, registrationId: string, identityId: string): Promise<{ id: string; status: string; role_code: string; org_role_code: string | null } | null> =>
+  db.prepare(PHIEU_CUA_PHIEN).bind(registrationId, identityId).first<{ id: string; status: string; role_code: string; org_role_code: string | null }>();
 
 // Dòng lịch sử «thêm tệp» (chỉ mã, không tên ô hay khoá kho). PHẢI đứng NGAY SAU câu chèn tệp trong lô: `changes() > 0` đọc kết quả của câu liền trước — câu chèn bị trần phiếu từ chối
 // (0 dòng) thì không có dòng lịch sử. Trạng thái phiếu do trigger dk_event_tep_status canh (sai ⇒ cả lô hỏng).
@@ -428,11 +429,29 @@ export const phieuDeXem = (db: D1Database, registrationId: string, identityId: s
 
 // Phiên bản chính sách riêng tư ĐANG CÓ HIỆU LỰC để người đăng ký đồng ý lúc gửi: view công bố của parties (0171) — cùng nghĩa với GET cau-hinh và GET chinh-sach-rieng-tu (bản ngày hiệu lực ở tương lai không tính). Bản mới đăng giữa lúc đọc và lúc ghi
 // làm câu chèn bản khai (điều kiện id = id hiện hành) khớp 0 dòng.
-const CHINH_SACH_RIENG_TU = defineSql("dang-ky", "privacy_policy_current", "SELECT id, version, covers_org_data FROM v_pty_privacy_effective");
-/** `coToChuc` = bản này đã nêu việc thu thông tin tổ chức (ADR-0212 Đ7, cột `covers_org_data`). */
-export async function chinhSachRiengTuHienHanh(db: D1Database): Promise<{ id: string; version: number; coToChuc: boolean } | null> {
-  const r = await db.prepare(CHINH_SACH_RIENG_TU).first<{ id: string; version: number; covers_org_data: number }>();
-  return r ? { id: r.id, version: r.version, coToChuc: r.covers_org_data === 1 } : null;
+const CHINH_SACH_RIENG_TU = defineSql("dang-ky", "privacy_policy_current", "SELECT id, version, covers_org_data, covers_other_files FROM v_pty_privacy_effective");
+/** `coToChuc` = bản này đã nêu việc thu thông tin tổ chức (ADR-0212 Đ7, cột `covers_org_data`); `coTepKhac` = đã nêu việc thu «Tệp khác» (ADR-0233 Đ3, cột `covers_other_files`). */
+export async function chinhSachRiengTuHienHanh(db: D1Database): Promise<{ id: string; version: number; coToChuc: boolean; coTepKhac: boolean } | null> {
+  const r = await db.prepare(CHINH_SACH_RIENG_TU).first<{ id: string; version: number; covers_org_data: number; covers_other_files: number }>();
+  return r ? { id: r.id, version: r.version, coToChuc: r.covers_org_data === 1, coTepKhac: r.covers_other_files === 1 } : null;
+}
+
+// Ô tệp theo vai (ADR-0233 Đ1, migration 0191): dòng hiệu lực của mỗi khoá (phần, vai, ô) = dòng có mốc lớn nhất ≤ lúc xét. Luật chọn ô (dòng theo vai thắng dòng «mọi vai», ẩn, «Tệp khác»)
+// ở src/shared/dang-ky-o-tep.ts — câu này chỉ lấy dòng hiệu lực.
+const O_TEP_THEO_VAI = defineSql(
+  "dang-ky",
+  "role_slot_effective",
+  `SELECT r.part, r.role_code, r.slot, r.mode, r.sort_order FROM dk_role_slot r
+   WHERE r.valid_from_at <= ?1
+     AND NOT EXISTS (SELECT 1 FROM dk_role_slot n WHERE n.part = r.part AND n.role_code = r.role_code AND n.slot = r.slot AND n.valid_from_at <= ?1 AND n.valid_from_at > r.valid_from_at)
+   ORDER BY r.part, r.sort_order, r.slot, r.role_code`,
+);
+export async function dongOTepHieuLuc(db: D1Database, at: string): Promise<DongOTep[]> {
+  const { results } = await db.prepare(O_TEP_THEO_VAI).bind(at).all<{ part: string; role_code: string; slot: string; mode: string; sort_order: number }>();
+  return (results ?? []).flatMap((r) =>
+    (r.part === "CA_NHAN" || r.part === "TO_CHUC") && (CACH_HIEN as readonly string[]).includes(r.mode)
+      ? [{ phan: r.part, vai: r.role_code, o: r.slot, cach: r.mode as CachHien, thuTu: r.sort_order }]
+      : []);
 }
 /**
  * Phần tổ chức của biểu mẫu mở được về phía chính sách riêng tư không (ADR-0212 Đ7): bản ĐANG hiệu lực có dấu «Thu thông tin tổ chức». Bản hẹn giờ tương lai chưa tính.

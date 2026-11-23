@@ -9,7 +9,7 @@ import { thanhTienDong, type PaxCode } from "../../shared/order-lines.ts";
 import { effectiveService, phiHieuLuc, type SubtotalServiceInput } from "./money-adjustment.ts";
 import { getLatestAdjustments } from "./repository";
 import { banChupTuDb, chuaCoBanChup } from "./thuong-mai.ts";
-import { docGiaDaiLyNhieu } from "./thuong-mai-repo.ts";
+import { coDaiLyNhieuDon, docGiaDaiLyNhieu } from "./thuong-mai-repo.ts";
 import { quyenMoCuaNguoiLap } from "./xac-nhan-repo";
 import { tienChoHoaHong } from "./xac-nhan-chung";
 import { apCongTacAnKhach } from "../../shared/an-thong-tin-khach";
@@ -37,12 +37,14 @@ export function ghepGiaDaiLy(v: {
     if (o.status !== "confirmed") continue;
     const sau = new Map((v.dieuChinh.get(o.id)?.after ?? []).map((a) => [a.serviceId, a.pax]));
     const dong: DongGiaDaiLy[] = v.doc.dichVu.filter((s) => s.order_id === o.id).map((s) => {
-      const items = (dongTheoDv.get(s.id) ?? []).map((i) => ({ paxCode: i.pax_code as PaxCode | null, catalogPrice: i.catalog_price, unitPrice: i.unit_price, lineTotal: i.line_total, quantity: i.quantity }));
+      const items = (dongTheoDv.get(s.id) ?? []).map((i) => ({ paxCode: i.pax_code as PaxCode | null, catalogPrice: i.catalog_price, unitPrice: i.unit_price, lineTotal: i.line_total, quantity: i.quantity, seasonalIncrease: i.seasonal_increase }));
+      // ADR-0229 Đ10: số tăng mùa vụ mỗi đơn vị theo loại khách — dòng tính lại theo số khách mới (sửa số khách) giữ đúng số tăng của bản chụp.
+      const tangTheoLoai = new Map(items.flatMap((i) => (i.paxCode ? [[i.paxCode, i.seasonalIncrease] as const] : [])));
       const goc = { adult: s.pax_adult, child: s.pax_child, senior: s.pax_senior, infant: s.pax_infant };
       const vao: SubtotalServiceInput = { id: s.id, catalogCode: s.catalog_code, name: s.name, unit: s.unit, items };
       const eff = effectiveService(vao, sau.get(s.id) as Parameters<typeof effectiveService>[1]);
       const hienHanh = eff.recomputed
-        ? { unit: s.unit, pax: eff.recomputed.pax, items: eff.recomputed.lines.map((l) => ({ quantity: l.quantity, lineTotal: thanhTienDong(l) })) }
+        ? { unit: s.unit, pax: eff.recomputed.pax, items: eff.recomputed.lines.map((l) => ({ quantity: l.quantity, lineTotal: thanhTienDong(l), seasonalIncrease: tangTheoLoai.get(l.pax) ?? null })) }
         : { unit: s.unit, pax: goc, items };
       const tien = tienChoHoaHong(hienHanh);
       const t = tinhDongDoiTac(chupTheoDv.get(s.id) ?? chuaCoBanChup(s.id), tien);
@@ -66,6 +68,17 @@ export async function giaDaiLyNhieuDon(db: D1Database, orderIds: readonly string
   const nguoiLap = [...new Set(doc.don.filter((o) => o.la !== 1).map((o) => o.staff_id))];
   const thuan = await Promise.all(nguoiLap.map(async (id) => [id, await nguoiLapDoiTacThuan(db, id)] as const));
   return ghepGiaDaiLy({ doc, dieuChinh, doiTacThuan: new Set(thuan.filter(([, la]) => la).map(([id]) => id)) });
+}
+
+/**
+ * ADR-0226 (Việc 6): tập đơn ĐẠI LÝ trong `orderIds`, MỌI trạng thái (nháp đang chờ, đã xác nhận, đã huỷ) — CÙNG luật `laDonDaiLy` của `ghepGiaDaiLy` (bên đặt là đối tác HOẶC người lập là
+ * Đối tác thuần). Để route bỏ số bán lẻ của đơn đối tác khỏi phản hồi cho Kế toán thuần. HÀM CÔNG BỐ, không tự kiểm quyền; chỉ trả id.
+ */
+export async function donDaiLyTrongTap(db: D1Database, orderIds: readonly string[]): Promise<Set<string>> {
+  const don = await coDaiLyNhieuDon(db, orderIds);
+  const nguoiLap = [...new Set(don.filter((o) => o.la !== 1).map((o) => o.staff_id))];
+  const thuan = new Set((await Promise.all(nguoiLap.map(async (id) => [id, await nguoiLapDoiTacThuan(db, id)] as const))).filter(([, la]) => la).map(([id]) => id));
+  return new Set(don.filter((o) => o.la === 1 || thuan.has(o.staff_id)).map((o) => o.id));
 }
 
 /**

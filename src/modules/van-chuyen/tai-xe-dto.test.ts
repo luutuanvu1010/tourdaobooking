@@ -37,7 +37,8 @@ const ghim = (j: any, v: { lienHe: boolean; ten: boolean; chiDuong: boolean; tha
   // ADR-0139: `tenDichVu` của suất khách đi CÙNG điều kiện với `diaChiChiDuong` ở bài này (tài xế công ty, GET chi tiết, trong ngày chạy) — `sdtNguoiDiKem`
   // không xuất hiện vì các chuyến ở đây không có người đi kèm (bài riêng: sdt-nguoi-di-kem-tai-xe.test.ts).
   for (const s of j.suat) {
-    const them = [...(v.ten ? ["hoTen", "namSinh"] : []), ...(v.chiDuong && s.loai === "PASSENGER" ? ["tenDichVu"] : [])];
+    // ADR-0232 Đ4: `anhBanGiao` (mã đơn + mã lượt đón để gửi Ảnh bàn giao) đi CÙNG điều kiện với `tenDichVu`.
+    const them = [...(v.ten ? ["hoTen", "namSinh"] : []), ...(v.chiDuong && s.loai === "PASSENGER" ? ["tenDichVu", "anhBanGiao"] : [])];
     assert.deepEqual(Object.keys(s).sort(), [...KHOA_SUAT, ...them].sort());
   }
 };

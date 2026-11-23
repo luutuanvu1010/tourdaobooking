@@ -51,7 +51,7 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
       tieuDe: "Lập đơn cho khách",
       noiDung: `1. Bấm [[Tạo đơn]].
 2. Đầu trang: chọn **Ngày khởi hành** (dùng cho mọi dịch vụ trong đơn).
-   - Khi Công ty đang bật «Ẩn thông tin khách khi đối tác đặt vé», đầu trang chỉ có **Ngày khởi hành**: không có khối **Khách hàng** và **Hành khách**, bạn chuyển thẳng sang chọn dịch vụ.
+   - Không thấy khối **Khách hàng** hay **Hành khách** là Công ty đã tắt khối đó: bạn bỏ qua.
    - Khi công tắc tắt, ở phần **Khách hàng** gõ **Tên khách đi tour**, **Số điện thoại**. Muốn ghi Email hoặc **Ghi chú / yêu cầu đặc biệt** thì bấm [[Email, ghi chú]].
    - Khách liên hệ qua bạn: bấm [[Điền thông tin của tôi]] để tự điền tên và số của bạn.
    - Dòng **Bên đặt** (nếu có) ghi tên của bạn: Nền tảng tự điền, bạn không cần chọn.
@@ -60,7 +60,7 @@ Muốn đăng nhập nhanh bằng Face ID: vào [[Tôi]], phần **Đăng nhập
    - Dịch vụ vừa chạm hiện "✓ đã thêm" và thẻ dịch vụ hiện bên dưới. Mỗi lúc chỉ một thẻ mở; chạm dòng gập của thẻ để mở lại.
 4. Trong thẻ dịch vụ, nhập **Số khách**: **Người lớn**, **Trẻ em**… tuỳ dịch vụ. Dòng tiền tự hiện, ví dụ "2 người lớn × giá = thành tiền". Cả đơn cần ít nhất một người lớn đi cùng; trẻ em và em bé không đi một mình.
 5. Phần **Đưa đón** trên thẻ: chọn **Đón** hoặc **Không đón** (bắt buộc trước khi gửi đơn). Chọn **Đón** thì điền **Nơi đón** (văn phòng bật «Đối tác không nhập nơi đón» thì không có ô này). Giờ đón bạn không nhập: giờ, nơi khách muốn đón gõ vào dòng **Ghi chú** ngay dưới. Đơn có đón luôn chờ văn phòng chốt giờ và xác nhận.
-6. Hai ô tiền ở cuối: «Giảm giá cho khách» (nếu có) và **Khách đặt cọc cho đối tác**; luật của hai ô ở nút [[Giải thích giảm giá, đặt cọc]]. Được trả sau thì chọn **Hình thức thanh toán** ngay trên nút [[Gửi đơn]]. Khách đưa cọc cho bạn thì ghi số tiền vào ô đó, kể cả đơn trả sau. Đơn xác nhận thì số này thành khoản thu; bạn giữ tiền, nộp công ty sau, vé mở khi đã nộp; cọc không giảm nợ trả sau. Đừng ghi thêm khoản thu cho cùng số tiền. Đơn huỷ để lập lại thì đừng khai lại: nhờ Kế toán chuyển tiền sang đơn mới.
+6. Ô «Giảm giá cho khách» ở cuối (nếu có); luật của ô ở nút [[Giải thích giảm giá]]. Được trả sau thì chọn **Hình thức thanh toán** ngay trên nút [[Gửi đơn]]. Form của đối tác không có ô tiền đặt cọc.
 7. Xem tổng tiền ở thanh dưới cùng (chạm để xem chi tiết); trên máy tính là khối **Tóm tắt** bên phải.
 8. Bấm [[Gửi đơn]]. Thiếu gì thì khung đỏ hiện ngay trên nút. Đơn được lưu rồi gửi đi. Nếu chưa gửi được (ví dụ giá danh mục vừa đổi), đơn vẫn được lưu nháp, Nền tảng mở trang đơn nháp kèm lý do để bạn sửa rồi bấm [[Gửi đơn]] lại.
 
@@ -90,7 +90,7 @@ Nháp lập từ trước đã có giờ đón: lưu lại thì giờ của lư�
     {
       tieuDe: "Xác nhận đơn",
       noiDung: `1. Mở đơn nháp, kiểm lại ngày, số khách, nơi đón.
-2. Bấm [[Gửi đơn]]. Nền tảng báo một trong hai câu: **Đơn của bạn đã được gửi và chờ xác nhận** (nhân viên kiểm vé, bạn có thể [[Rút lại]]), hoặc **Đơn của bạn đã được chuyển đến chuyên viên phụ trách & chờ hướng dẫn viên** (đơn đã xác nhận, có ảnh biên nhận). Đơn có **Đón** luôn nhận câu thứ nhất: văn phòng chọn giờ đón khi xác nhận rồi báo giờ cho khách. Câu thứ hai chỉ gặp ở đơn không có đón.
+2. Bấm [[Gửi đơn]]. Nền tảng báo một trong hai câu: **Đơn của bạn đã được gửi và chờ xác nhận** (nhân viên kiểm vé, bạn có thể [[Rút lại]]), hoặc **Đơn của bạn đã được chuyển đến chuyên viên phụ trách & chờ hướng dẫn viên** (đơn đã xác nhận, có ảnh biên nhận). Đơn có **Đón** thường nhận câu thứ nhất: văn phòng chọn giờ đón rồi báo giờ cho khách.
 
 Sau khi xác nhận, dịch vụ, số khách và tiền **bị khoá**.
 

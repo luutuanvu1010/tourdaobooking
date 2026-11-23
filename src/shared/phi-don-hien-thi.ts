@@ -131,11 +131,14 @@ export function chuThanhTienPhi(d: { unitPrice: number; lineTotal: number }, tie
 export const tenKhoiPhiDon = (duKien: boolean): string => (duKien ? `${TEN_PHI_DUA_DON} (${CHU_DU_KIEN})` : TEN_PHI_DUA_DON);
 
 /**
- * Câu khi một lượt đón còn mở chưa được chọn phí (ADR-0214 Đ3, lý do `CHUA_CHON`) — MỘT nguồn cho câu 409 `transfer_fee_missing` lúc xác nhận (orders re-export) và băng báo trên
- * trang đơn nháp. Chiều viết thường theo nhãn sẵn có (`chieuChu`, cùng chữ với `CHIEU_LABEL`).
+ * Câu khi một lượt đón còn mở máy chưa tính được phí (ADR-0218 Đ1.2) — MỘT nguồn cho câu 409 `transfer_fee_missing` lúc xác nhận (orders re-export) và băng báo trên trang đơn nháp. Chiều viết
+ * thường theo nhãn sẵn có (`chieuChu`). `O_TRONG`: ô giá gốc trống (nhập trên Sheet) hoặc đặt số riêng bằng nút «Đổi phí»; `HAI_CAP`: đối tác hai cấp (Kế toán đặt cấp riêng) hoặc «Đổi phí».
  */
-export function cauThieuPhiDon(t: { direction: "OUT" | "RETURN"; tenDichVu: string }): string {
-  return `Chọn phí đưa đón cho lượt đón ${chieuChu(t.direction).toLowerCase()} của dịch vụ ${t.tenDichVu} trước khi xác nhận.`;
+export function cauThieuPhiDon(t: { direction: "OUT" | "RETURN"; tenDichVu: string; lyDo?: "O_TRONG" | "HAI_CAP" }): string {
+  const chieu = chieuChu(t.direction).toLowerCase();
+  return t.lyDo === "HAI_CAP"
+    ? `Đối tác của đơn đang có hai cấp độ đại lý nên chưa tính được phí đưa đón cho lượt đón ${chieu} của dịch vụ ${t.tenDichVu}. Nhờ Kế toán đặt cấp riêng cho đối tác, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận.`
+    : `Dịch vụ ${t.tenDichVu} chưa có giá gốc phí đưa đón cho lượt đón ${chieu}. Nhập giá gốc trên Sheet, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận.`;
 }
 
 export interface DongPhiTrang {
@@ -156,7 +159,7 @@ export function dongPhiTrenDon(p: PhiDuaDonCuaDonDto, tien: (n: number) => strin
   }));
   const thieu: string[] = [];
   for (const t of p.thieu) {
-    const cau = cauThieuPhiDon({ direction: t.direction, tenDichVu: t.serviceName });
+    const cau = cauThieuPhiDon({ direction: t.direction, tenDichVu: t.serviceName, lyDo: t.lyDo });
     if (!thieu.includes(cau)) thieu.push(cau);
   }
   return { tieuDe: tenKhoiPhiDon(p.duKien), dong, thieu };

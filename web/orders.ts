@@ -123,13 +123,14 @@ function row(o: OrderSummary, index: number): Row {
 /** "Còn thu" / "Đã trả" của các thẻ vừa dựng: MỘT lời gọi billing cho cả trang (sổ tiền lượt 1 — ADR-0026 đ9). Lỗi → chỗ tiền giữ ẩn, danh sách vẫn dùng được. */
 async function fillTien(rows: readonly Row[]): Promise<void> {
   if (rows.length === 0) return;
-  let balances: Api.LedgerBalancesResponse["balances"] = {};
+  let ra: Api.LedgerBalancesResponse;
   try {
-    balances = (await api<Api.LedgerBalancesResponse>("/api/ledger/balances", { method: "POST", body: { orderIds: rows.map((r) => r.id) } })).balances;
+    ra = await api<Api.LedgerBalancesResponse>("/api/ledger/balances", { method: "POST", body: { orderIds: rows.map((r) => r.id) } });
   } catch {
     return;
   }
-  for (const r of rows) dienTien(r.tien, balances[r.id]);
+  // ADR-0226: đơn đối tác của Kế toán thuần có số nợ (`noDoiTac`) thay cho số bán lẻ.
+  for (const r of rows) dienTien(r.tien, ra.balances[r.id], ra.noDoiTac?.[r.id]);
 }
 
 /**

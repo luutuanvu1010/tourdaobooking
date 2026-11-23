@@ -12,7 +12,7 @@ import { CAU_GIAM_GIA_VUOT_TIEN_DICH_VU, MAX_AMOUNT_VND as MAX_AMOUNT } from "..
 import { UUID_RE } from "../../shared/http.ts";
 import { ONE_DATE_MESSAGE, sameDepartDate } from "../../shared/trip-rules.ts";
 import { vnToday } from "../../shared/vn-date.ts";
-import { CAU_KHONG_HOP_LE_PHI_DON, CAU_VUOT_TRAN_PHI_DON, kiemMucChon, type MucChon } from "../../shared/phi-don-chon.ts";
+import { kiemDoiPhi, type DoiPhi } from "../../shared/phi-don-gia-goc.ts";
 import { int, text } from "./fields.ts";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES, validateService, type ServiceContext, type ServiceFailure, type ValidItem, type ValidService } from "./service-rules.ts";
 
@@ -37,6 +37,8 @@ export interface ValidOrder {
   declaredDeposit: number | null;
   /** ADR-0168: hình thức thanh toán. `null` = thân không có khoá này (máy còn bản giao diện cũ): lập đơn coi là Trả trước, lưu nháp giữ hình thức đang lưu. Cổng hạn mức ở route. */
   paymentTerm: HinhThucThanhToan | null;
+  /** ADR-0230 Đ2: «Trả lúc check-in». `null` = thân không có khoá này (máy còn bản giao diện cũ): lập đơn coi là không chọn, lưu nháp giữ lựa chọn đang lưu. Cổng ở route. */
+  traLucCheckin: boolean | null;
   /** Chỉ dùng cho PUT: `updated_at` mà client đã đọc (khoá lạc quan). */
   expectedUpdatedAt: string | null;
   /**
@@ -73,15 +75,15 @@ function withLegs(rawServices: readonly unknown[], services: ValidService[], ctx
       for (const [j, l] of raw.legs.entries()) {
         const k = kiemChang(l, { at: `${at}, lượt ${j + 1}`, departDate: sv.trip.departDate });
         if (!k.ok) return fail(k.message);
-        // ADR-0214: mức phí đưa đón văn phòng chọn — kiểm lại MỌI giá trị (câu dùng chung với giao diện, không tiền tố để giao diện so khớp được). Vắng khoá = giữ mức đã lưu.
-        const phi = docPhiDonChang(l);
+        // ADR-0218: số đổi phí đưa đón của văn phòng — kiểm lại MỌI giá trị (câu dùng chung với giao diện). Vắng khoá = giữ số đã lưu.
+        const phi = docDoiPhiChang(l);
         if (!phi.ok) return fail(phi.message);
         if (k.value.id !== null) {
           if (!stored?.legs.some((x) => x.id === k.value.id)) return fail(`${at}, lượt ${j + 1}: lượt đưa đón không thuộc dịch vụ này — hãy tải lại trang rồi thử lại.`);
           if (seen.has(k.value.id)) return fail(`${at}, lượt ${j + 1}: trùng một lượt đưa đón khác.`);
           seen.add(k.value.id);
         }
-        legs.push(phi.co ? { ...k.value, phiDon: phi.muc } : k.value);
+        legs.push(phi.co ? { ...k.value, doiPhi: phi.doiPhi } : k.value);
       }
       out.push({ ...sv, legs });
     } else {
@@ -93,27 +95,33 @@ function withLegs(rawServices: readonly unknown[], services: ValidService[], ctx
   return { ok: true, services: out, legsGiven };
 }
 
-/** Khoá `phiDon` của MỘT chặng trong thân lập / lưu nháp (ADR-0214): vắng ⇒ `co: false`; `null` ⇒ bỏ chọn; khác ⇒ `kiemMucChon` (sai ⇒ câu dùng chung của src/shared/phi-don-chon.ts). */
-function docPhiDonChang(l: unknown): { ok: true; co: false } | { ok: true; co: true; muc: MucChon | null } | Failure {
-  const v = (l as Record<string, unknown>).phiDon;
+/**
+ * Khoá `doiPhi` của MỘT chặng trong thân lập / lưu nháp (ADR-0218 Đ1.5): vắng ⇒ `co: false` (giữ số đổi đã lưu); `null` ⇒ bỏ đổi tay; khác ⇒ `kiemDoiPhi` (đơn giá số nguyên 0–5.000.000 — 0 được nhận —,
+ * lý do không rỗng ≤ 300 ký tự; sai ⇒ câu dùng chung của src/shared/phi-don-gia-goc.ts).
+ */
+function docDoiPhiChang(l: unknown): { ok: true; co: false } | { ok: true; co: true; doiPhi: DoiPhi | null } | Failure {
+  const v = (l as Record<string, unknown>).doiPhi;
   if (v === undefined) return { ok: true, co: false };
-  if (v === null) return { ok: true, co: true, muc: null };
-  const k = kiemMucChon(v);
-  if (!k.ok) return fail(k.loi === "VUOT_TRAN" ? CAU_VUOT_TRAN_PHI_DON : CAU_KHONG_HOP_LE_PHI_DON);
-  return { ok: true, co: true, muc: k.muc };
+  if (v === null) return { ok: true, co: true, doiPhi: null };
+  const k = kiemDoiPhi(v);
+  if (!k.ok) return fail(k.cau);
+  return { ok: true, co: true, doiPhi: k.doiPhi };
 }
 
 /**
- * Thân yêu cầu CÓ KHOÁ `phiDon` ở bất kỳ đâu, dưới bất kỳ giá trị nào — kể cả `null` (ADR-0214 Đ2, ruling P4 + P4b): tài khoản Đối tác gửi kèm ⇒ route trả 400 `transfer_fee_not_allowed`
- * — áp ở mọi đường ghi (lập, lưu nháp, sửa chặng, sửa chuyến, Gửi đơn, Còn vé), quét thân GỐC (trước khi «Ẩn thông tin khách» viết lại thân). P4b: `null` = «bỏ chọn» trên nháp, nên
- * nhận `null` từ Đối tác là để họ XOÁ mức văn phòng đã chọn. Giao diện của Đối tác không gửi khoá này. Giới hạn độ sâu.
+ * Thân yêu cầu CÓ KHOÁ `doiPhi` HOẶC `phiDon` ở bất kỳ đâu, dưới bất kỳ giá trị nào — kể cả `null` (ADR-0218 Đ1.5; ADR-0214 Đ2 ruling P4 + P4b): tài khoản Đối tác gửi kèm ⇒ route trả 400
+ * `transfer_fee_not_allowed` (ưu tiên hơn `client_outdated`) — áp ở mọi đường ghi (lập, lưu nháp, sửa chặng, sửa chuyến, Gửi đơn, Còn vé), quét thân GỐC (trước khi «Ẩn thông tin khách» viết lại thân).
+ * P4b: `null` = «bỏ đổi» trên nháp, nên nhận `null` từ Đối tác là để họ XOÁ số văn phòng đã đổi. Giao diện của Đối tác không gửi hai khoá này. Giới hạn độ sâu.
  */
-export function coPhiDonTrongThan(raw: unknown, sau = 0): boolean {
+export function coPhiDonTrongThan(raw: unknown, sau = 0): boolean { return coKhoaTrongThan(raw, ["doiPhi", "phiDon"], sau); }
+/** Thân CÓ KHOÁ `phiDon` (kiểu cũ: danh sách mức của ADR-0214) ⇒ trình duyệt còn bản cũ ⇒ 400 `client_outdated` (câu `CAU_BAN_CU`); không lặng lẽ bỏ qua. */
+export function coPhiDonKieuCu(raw: unknown, sau = 0): boolean { return coKhoaTrongThan(raw, ["phiDon"], sau); }
+function coKhoaTrongThan(raw: unknown, khoa: readonly string[], sau: number): boolean {
   if (sau > 6 || raw === null || typeof raw !== "object") return false;
-  if (Array.isArray(raw)) return raw.some((x) => coPhiDonTrongThan(x, sau + 1));
+  if (Array.isArray(raw)) return raw.some((x) => coKhoaTrongThan(x, khoa, sau + 1));
   for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
-    if (k === "phiDon") return true;
-    if (coPhiDonTrongThan(v, sau + 1)) return true;
+    if (khoa.includes(k)) return true;
+    if (coKhoaTrongThan(v, khoa, sau + 1)) return true;
   }
   return false;
 }
@@ -232,6 +240,7 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   const datCoc = docLoiKhai(b.declaredDeposit);
   if (!datCoc.ok) return fail(datCoc.message);
   if (b.paymentTerm !== undefined && b.paymentTerm !== null && b.paymentTerm !== "PREPAID" && b.paymentTerm !== "CREDIT") return fail("Hình thức thanh toán không hợp lệ.");
+  if (b.traLucCheckin !== undefined && b.traLucCheckin !== null && typeof b.traLucCheckin !== "boolean") return fail("Lựa chọn «Trả lúc check-in» không hợp lệ.");
 
   // Sổ tiền lượt 1 (ADR-0026 đ9): tiền trả trước KHÔNG còn nằm trong đơn — trình duyệt ghi KHOẢN THU ở bước hai (billing) sau khi đơn đã lưu. Trang lập
   // đơn CŨ (bộ nhớ đệm PWA chưa tải bản mới) còn gửi khoản trả trước trong thân đơn → từ chối rõ ràng thay vì lặng lẽ bỏ mất số tiền đó.
@@ -255,6 +264,7 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
       paymentNote: paymentNote.value,
       declaredDeposit: datCoc.value,
       paymentTerm: b.paymentTerm === "PREPAID" || b.paymentTerm === "CREDIT" ? b.paymentTerm : null,
+      traLucCheckin: typeof b.traLucCheckin === "boolean" ? b.traLucCheckin : null,
       expectedUpdatedAt: typeof b.expectedUpdatedAt === "string" && b.expectedUpdatedAt ? b.expectedUpdatedAt : null,
       passengers,
       legsGiven: withLegsResult.legsGiven,

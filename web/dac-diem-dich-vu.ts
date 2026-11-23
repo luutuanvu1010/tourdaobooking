@@ -11,6 +11,7 @@ import { homeRedirect } from "../src/shared/start-page";
 import { ApiError, api, type Api } from "./api";
 import { hoiXacNhan, moBangTruot } from "./bang-truot";
 import { byId, h, replaceChildren } from "./dom";
+import { datChuThe, ganHinhThe, type HinhThe } from "./hinh-the-phu";
 import { initShell, showError } from "./shell";
 import { hienBaoNgan } from "./toast";
 import { trangThaiToanTrang } from "./trang-thai-he-thong";
@@ -24,6 +25,9 @@ const laQuanTri = can(staff, "admin.manage");
 const THE: The[] = ["gan", "chua-khai", "moi", ...(laQuanTri ? (["nhom", "dinh-nghia"] as const) : [])];
 const tabEl = (t: The): HTMLElement => byId(`dd-tab-${t}`);
 const theEl = (t: The): HTMLElement => byId(`dd-the-${t}`);
+// Việc 16: hình trước chữ mỗi thẻ (web/hinh-the-phu.ts); «Gắn cho dịch vụ», «Định nghĩa» dùng đúng hình mục «Dịch vụ & giá», «Đặc điểm dịch vụ» của thanh bên.
+const HINH_THE: Readonly<Record<The, HinhThe>> = { gan: "services", "chua-khai": "alertCircle", moi: "sparkle", nhom: "folder", "dinh-nghia": "toggle" };
+for (const t of Object.keys(HINH_THE) as The[]) ganHinhThe(tabEl(t), HINH_THE[t]);
 const lyDo = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 
 let dm: Api.CatalogDacDiemResponse;
@@ -142,7 +146,7 @@ function veGan(): void {
 function veChuaKhai(): void {
   const ma = new Set(ddDung().flatMap((a) => a.chuaKhai));
   const ds = dm.dichVu.filter((d) => ma.has(d.code)).sort((x, y) => x.ten.localeCompare(y.ten, "vi"));
-  tabEl("chua-khai").textContent = `Chưa khai (${ds.length})`;
+  datChuThe(tabEl("chua-khai"), `Chưa khai (${ds.length})`);
   replaceChildren(
     theEl("chua-khai"),
     h("p", { class: "hint" }, "Dịch vụ đang bán chưa có giá trị (riêng hay theo nhóm) cho ít nhất một đặc điểm đang dùng. Dịch vụ chưa khai không bị luật bán theo đặc điểm chặn."),
@@ -152,7 +156,7 @@ function veChuaKhai(): void {
 function veMoi(): void {
   const ma = new Set(dm.moiTheoNhom.map((x) => x.catalogCode));
   const ds = dm.dichVu.filter((d) => ma.has(d.code)).sort((x, y) => x.ten.localeCompare(y.ten, "vi"));
-  tabEl("moi").textContent = `Mới, đang theo nhóm (${ds.length})`;
+  datChuThe(tabEl("moi"), `Mới, đang theo nhóm (${ds.length})`);
   replaceChildren(
     theEl("moi"),
     h("p", { class: "hint" }, "Dịch vụ mới trong 14 ngày đang lấy giá trị chung của nhóm — rà lại xem có đúng không."),

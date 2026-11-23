@@ -79,7 +79,8 @@ test("(6) ngoài parties, feedback, ve-dien-tu và ĐÚNG tệp billing/kho-bien
   // ADR-0153 Đ1 mục 7 (ĐỀ XUẤT, chờ chủ duyệt): kho thứ ba VE_DIEN_TU, hàng rào riêng ở src/kho-tep-ve-dien-tu.test.ts (đúng MỘT chỗ đặt kho).
   // ADR-0196 Đ4: kho thứ tư BIEN_LAI — miễn ĐÚNG MỘT tệp (không cả module billing), hàng rào riêng ở src/kho-tep-bien-lai.test.ts (đúng MỘT chỗ đặt kho).
   // ADR-0201 Đ3: kho thứ năm ANH_DICH_VU — miễn ĐÚNG MỘT tệp catalog/kho-anh.ts, hàng rào riêng ở src/kho-tep-anh-dich-vu.test.ts.
-  const ngoai = TEP.filter((f) => !f.p.startsWith("modules/parties/") && !f.p.startsWith("modules/feedback/") && !f.p.startsWith("modules/ve-dien-tu/") && f.p !== "modules/billing/kho-bien-lai.ts" && f.p !== "modules/catalog/kho-anh.ts")
+  // ADR-0232 Đ3: kho thứ sáu ANH_BAN_GIAO — miễn ĐÚNG MỘT tệp anh-ban-giao/kho-anh.ts, hàng rào riêng ở src/kho-tep-anh-ban-giao.test.ts.
+  const ngoai = TEP.filter((f) => !f.p.startsWith("modules/parties/") && !f.p.startsWith("modules/feedback/") && !f.p.startsWith("modules/ve-dien-tu/") && f.p !== "modules/billing/kho-bien-lai.ts" && f.p !== "modules/catalog/kho-anh.ts" && f.p !== "modules/anh-ban-giao/kho-anh.ts")
     .filter((f) => /\.put\(/.test(f.src.replaceAll("this.ctx.storage.put(", ""))).map((f) => f.p);
   assert.deepEqual(ngoai, [], "chỗ đặt vào kho ngoài hai module có kho");
   assert.ok(TEP.some((f) => f.src.includes("this.ctx.storage.put(")), "chống bài rỗng: ngoại lệ còn khớp mã thật (trạm Bảng tin)");

@@ -81,7 +81,7 @@ test("hướng dẫn viên: có Đơn hàng + chân menu, không có nhóm khác
 
 test("Kế toán: Hoa hồng đối tác, Cấp độ đại lý (đặc tả 2026-11-04-man-cap-dai-ly), Hạn mức trả sau (ADR-0168), Người bán dịch vụ (chủ duyệt 14/10), Chụp bù mức (sổ đại lý đợt 2) và Vé điện tử (ADR-0175 Đ1.4: tạo vé Tour Đảo) nằm trong Thiết lập", () => {
   const tl = thanhBen({ staff: holder(["ACCOUNTING"]) }, "/").find((x) => x.nhom === "THIẾT LẬP");
-  assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Cấp độ đại lý", "Hạn mức trả sau", "Người bán dịch vụ", "Chụp bù mức", "Vé điện tử", "Đối chiếu vé"]); // Đối chiếu vé: ADR-0175 §2.7
+  assert.deepEqual(tl?.muc.map((m) => m.nhan), ["Hoa hồng đối tác", "Cấp độ đại lý", "Hạn mức trả sau", "Người bán dịch vụ", "Chụp bù mức", "Vé điện tử", "Đối chiếu vé", "Dịch vụ & giá"]); // Đối chiếu vé: ADR-0175 §2.7; Dịch vụ & giá: ADR-0229 (màn hẹp, giá mùa vụ — chủ duyệt 23/11)
 });
 
 test("Quản trị chưa có Phiên đăng nhập, Nhật ký (chỉ Toàn quyền); có Chính sách điều phối để đặt mốc (ADR-0128 Q1)", () => {
@@ -107,9 +107,11 @@ test("nút Thiết lập chỉ đăng ký lời gọi lệch giá khi nhóm có 
   // Điều kiện đó đúng với bảng: chỉ người thấy dichVu mới có mục này trong Thiết lập.
   const co = (p: PermissionCode[]) => thanhBen({ staff: holder(p) }, "/").find((g) => g.nhom === "THIẾT LẬP")!.muc.some((m) => m.trang === "dichVu");
   assert.equal(co(["SALES"]), false);
-  assert.equal(co(["ACCOUNTING"]), false);
+  assert.equal(co(["ACCOUNTING"]), true); // ADR-0229 (chủ duyệt 23/11 «duyệt cả ba theo khuyến nghị»): Kế toán vào màn hẹp Dịch vụ & giá để đặt / duyệt giá mùa vụ
   assert.equal(co(["HR"]), false);
   assert.equal(co(["ADMIN"]), true);
+  // Người thấy mục mà KHÔNG giữ admin.manage (Kế toán — ADR-0229; Quản lý bán hàng — ADR-0169) không được gọi route đếm: sidebar() đặt sẵn lời hứa 0 trước khi dựng nhóm.
+  assert.match(nguon, /if \(staff && !can\(staff, "admin\.manage"\)\) xungDotHoi \?\?= Promise\.resolve\(0\);/, "thiếu chặn lời gọi đếm lệch giá cho người không giữ admin.manage");
 });
 
 test("Cấp độ đại lý (đặc tả 2026-11-04-man-cap-dai-ly): hiện cho Kế toán, Quản trị, Toàn quyền; không hiện cho Bán hàng, Hành chính nhân sự, Đối tác, Tài xế đối tác, tài khoản lai Kế toán + Đối tác", () => {

@@ -182,14 +182,14 @@ test("dongPhiTrenDon: mỗi chặng một dòng — chiều, khu vực, dòng ph
   assert.doesNotMatch(JSON.stringify(r), KHONG_MA_THO);
 });
 
-test("dongPhiTrenDon: đơn nháp ghi «dự kiến»; lượt đón chưa chọn ⇒ câu băng báo ĐÚNG câu 409 của lúc xác nhận (ADR-0214 Đ3, không trùng lặp), kể cả khi chưa có dòng nào", () => {
+test("dongPhiTrenDon: đơn nháp ghi «dự kiến»; lượt đón máy chưa tính được ⇒ câu băng báo ĐÚNG câu 409 của lúc xác nhận (ADR-0218 Đ1.2, không trùng lặp), kể cả khi chưa có dòng nào", () => {
   const p: PhiDuaDonCuaDonDto = {
     dong: [],
     thieu: [
-      { legId: "l1", serviceId: "s1", serviceName: "Tour lặn biển", direction: "OUT", lyDo: "CHUA_CHON" },
-      { legId: "l2", serviceId: "s1", serviceName: "Tour lặn biển", direction: "OUT", lyDo: "CHUA_CHON" },
-      { legId: "l3", serviceId: "s1", serviceName: "Tour lặn biển", direction: "RETURN", lyDo: "CHUA_CHON" },
-      { legId: "l4", serviceId: "s2", serviceName: "Tour Đảo Khỉ", direction: "OUT", lyDo: "CHUA_CHON" },
+      { legId: "l1", serviceId: "s1", serviceName: "Tour lặn biển", direction: "OUT", lyDo: "O_TRONG" },
+      { legId: "l2", serviceId: "s1", serviceName: "Tour lặn biển", direction: "OUT", lyDo: "O_TRONG" },
+      { legId: "l3", serviceId: "s1", serviceName: "Tour lặn biển", direction: "RETURN", lyDo: "O_TRONG" },
+      { legId: "l4", serviceId: "s2", serviceName: "Tour Đảo Khỉ", direction: "OUT", lyDo: "HAI_CAP" },
     ],
     duKien: true,
   };
@@ -197,11 +197,12 @@ test("dongPhiTrenDon: đơn nháp ghi «dự kiến»; lượt đón chưa chọ
   assert.equal(r.tieuDe, "Phí đưa đón (dự kiến)");
   assert.deepEqual(r.dong, []);
   assert.deepEqual(r.thieu, [
-    cauThieuPhiDon({ direction: "OUT", tenDichVu: "Tour lặn biển" }),
-    cauThieuPhiDon({ direction: "RETURN", tenDichVu: "Tour lặn biển" }),
-    "Chọn phí đưa đón cho lượt đón chiều đi của dịch vụ Tour Đảo Khỉ trước khi xác nhận.",
+    cauThieuPhiDon({ direction: "OUT", tenDichVu: "Tour lặn biển", lyDo: "O_TRONG" }),
+    cauThieuPhiDon({ direction: "RETURN", tenDichVu: "Tour lặn biển", lyDo: "O_TRONG" }),
+    cauThieuPhiDon({ direction: "OUT", tenDichVu: "Tour Đảo Khỉ", lyDo: "HAI_CAP" }),
   ]);
-  assert.equal(r.thieu[0], "Chọn phí đưa đón cho lượt đón chiều đi của dịch vụ Tour lặn biển trước khi xác nhận.");
+  assert.equal(r.thieu[0], "Dịch vụ Tour lặn biển chưa có giá gốc phí đưa đón cho lượt đón chiều đi. Nhập giá gốc trên Sheet, hoặc bấm «Đổi phí» để đặt số trước khi xác nhận.");
+  assert.match(r.thieu[2]!, /hai cấp độ đại lý/);
   assert.doesNotMatch(r.thieu.join(" "), KHONG_MA_THO);
 });
 

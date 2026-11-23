@@ -60,7 +60,7 @@ export async function trangThaiTepChoTheoO(db: D1Database, registrationId: strin
 export const cauGoTepCho = (db: D1Database, registrationId: string, lyDo: string, at: string): D1PreparedStatement[] => [goTepChoCuaPhieuStatement(db, { registrationId, at, lyDo })];
 
 /**
- * Lúc duyệt (ADR-0208 Đ5): mỗi tệp chờ ĐÃ LƯU (trừ ô của phần tổ chức GPKD, GIAY_PHEP_THEM — chúng chỉ về hồ sơ tổ chức, `cauChuyenTepChoToChuc`) thành một dòng `pty_attachment` của hồ sơ kết quả, dùng lại đúng mã và khoá kho, nối vào dòng giấy tờ `documentId`, người tạo là người duyệt;
+ * Lúc duyệt (ADR-0208 Đ5): mỗi tệp chờ ĐÃ LƯU (trừ ô của phần tổ chức `O_TEP_TO_CHUC` ở src/shared/dang-ky-o-tep.ts — chúng chỉ về hồ sơ tổ chức, `cauChuyenTepChoToChuc`) thành một dòng `pty_attachment` của hồ sơ kết quả, dùng lại đúng mã và khoá kho, nối vào dòng giấy tờ `documentId`, người tạo là người duyệt;
  * dòng chờ nhận mốc «đã chuyển» và băm về rỗng. Tệp còn lại (chưa lưu) nhận quyết gỡ. Mỗi ô chỉ còn một tệp sống (tệp bị thay đã gỡ từ lúc thay) nên `version` không lọc thêm — giữ để
  * chữ ký khớp lệnh duyệt. Dòng giấy tờ `documentId` phải được chèn TRƯỚC trong cùng lô.
  */
@@ -74,7 +74,7 @@ export function cauChuyenTepCho(
 }
 
 /**
- * Lúc duyệt phiếu có phần tổ chức (ADR-0212 Đ6; đợt 2 Task 7): tệp chờ ĐÃ LƯU ở ô GPKD (và GIAY_PHEP_THEM khi có dòng giấy phép thêm) thành tệp của hồ sơ TỔ CHỨC, dùng lại mã và khoá kho, nối
+ * Lúc duyệt phiếu có phần tổ chức (ADR-0212 Đ6; đợt 2 Task 7): tệp chờ ĐÃ LƯU ở ô GPKD, «Tệp khác của tổ chức» (nối dòng GPKD — ADR-0233 Đ2) và GIAY_PHEP_THEM (khi có dòng giấy phép thêm) thành tệp của hồ sơ TỔ CHỨC, dùng lại mã và khoá kho, nối
  * dòng giấy tờ tổ chức đúng loại (`ORG_DOCUMENT`), người tạo là người duyệt. KHÔNG kèm câu gỡ: gốc lắp ráp đặt các câu này TRƯỚC câu chuyển / gỡ của hồ sơ người (câu đó gỡ mọi tệp còn lại).
  * Dòng giấy tờ phải được chèn TRƯỚC trong cùng lô. Áp cho cả hồ sơ tổ chức mới lẫn có sẵn (dòng giấy tờ mới / dòng gia hạn là dòng hiện hành).
  */

@@ -114,7 +114,7 @@ const chupThieu = (serviceId: string, reason: "NO_RULE" | "RULE_CONFLICT" | "MAN
   serviceId, beneficiaryPartyId: reason === "NOT_CAPTURED" ? null : ben, hoaHong: { status: "MISSING", reason },
   cungUng: reason === "NOT_CAPTURED" || reason === "MANUAL_LINE" ? { status: "MISSING" } : { status: "SET", termId: "t", sellerPartyId: CT, supplierPartyId: null, costRateBp: null },
 });
-const dv = (id: string, name: string, thanhTien: number, soKhachTinh = 1) => ({ id, name, thanhTien, soKhachTinh });
+const dv = (id: string, name: string, thanhTien: number, soKhachTinh = 1) => ({ id, name, thanhTien, coSoHoaHong: thanhTien, soKhachTinh });
 
 test("sinhPhieuDaGiao C-1 (ADR-0079): tour 5.000.000, hoa hồng 500.000, giảm giá bên đặt chịu 250.000 ⇒ ĐÚNG hai dòng; cùng dòng giữ hộ 3.000.000 ⇒ đại lý nợ 2.750.000", () => {
   const dongC1 = dongThuongMaiTu({ chup: [chupSet("s1", DAI_LY, { rateBp: 1000 })], dichVu: [dv("s1", "Tour đảo", 5_000_000)] });
@@ -459,7 +459,7 @@ const chup = (serviceId: string, o: { huong?: string | null; lyDo?: "BOOKER_NOT_
   hoaHong: o.lyDo ? { status: "MISSING", reason: o.lyDo } : o.huong === null ? { status: "NONE" } : { status: "SET", kind: "RATE", rateBp: 1000, perPax: null, ruleId: "m1" },
   cungUng: o.ncc ? { status: "SET", termId: "t", sellerPartyId: o.ncc, supplierPartyId: o.ncc, costRateBp: 8000 } : { status: "MISSING" },
 } as BanChup);
-const phan = (cs: BanChup[], o: { duKien?: boolean; chuaChup?: boolean; giamGiaHieuLuc?: number } = {}) => ({ duKien: false, chuaChup: false, congTyChuId: CT, giamGiaHieuLuc: 0, ...o, chup: cs, dichVu: cs.map((c, i) => ({ id: c.serviceId, thanhTien: (i + 1) * 100_000 })) });
+const phan = (cs: BanChup[], o: { duKien?: boolean; chuaChup?: boolean; giamGiaHieuLuc?: number } = {}) => ({ duKien: false, chuaChup: false, congTyChuId: CT, giamGiaHieuLuc: 0, ...o, chup: cs, dichVu: cs.map((c, i) => ({ id: c.serviceId, thanhTien: (i + 1) * 100_000, coSoHoaHong: (i + 1) * 100_000 })) });
 
 test("benDatHuong / nhaCungCapCuaDon (đặc tả P4): đọc từ bản chụp; nháp, chưa chụp, khách lẻ, «không thuộc loại được hưởng», hai bên khác nhau ⇒ không có", () => {
   assert.equal(benDatHuong(phan([chup("a"), chup("b", { lyDo: "NO_RULE" })])), DAI_LY, "thiếu mức vẫn là bên đặt được hưởng");

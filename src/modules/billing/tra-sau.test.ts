@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
 import { addDays, vnToday } from "../../shared/vn-date.ts";
+import { donTruocNgayAp } from "../../../tests/audit/chi-tien-mat.mjs";
 import { cachBayGio, datMocTraSau } from "../../../tests/audit/tra-sau-moc.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
@@ -131,6 +132,7 @@ test("đối tác tự ghi «Tôi thu» không làm nợ trống ra; Kế toán 
   assert.equal((await dongCua(w, `pty-${PT}`))?.dangNo, 700_000);
   // khoản chuyển khoản do người không phải Kế toán khai «Công ty thu» = đang đối chiếu
   const b = await donTraSau(w, { tong: 500_000 });
+  donTruocNgayAp(w, b); // ADR-0225 Đ2: «Công ty thu, chuyển khoản» ở đơn qua đại lý chỉ còn ở đơn xác nhận trước ngày áp
   assert.equal((await thu(w, SALES, b, { soTien: 500_000, hinhThuc: "BANK_TRANSFER", nguoiThu: "cong_ty" })).status, 201);
   assert.equal(w.q("SELECT count(*) AS n FROM bil_receipt_recon WHERE kind_code = 'DECLARED'")[0].n, 1, "chống bài rỗng: khoản đang chờ đối chiếu");
   assert.equal((await dongCua(w, `pty-${PT}`))?.dangNo, 1_200_000, "đang đối chiếu chưa giảm nợ");
@@ -171,7 +173,9 @@ test("đường đọc hẹp con-duoc-dung: Đối tác luôn bị ép về hồ
   r = await cua(PT);
   assert.equal(r.status, 200, r.text);
   assert.deepEqual([r.json.coHanMuc, r.json.conDuocDung, r.json.coDonQuaHan], [true, 6_000_000, false], "vắng benDat: đọc số của chính mình");
-  assert.equal(Object.keys(r.json).sort().join(), "coDonQuaHan,coHanMuc,conDuocDung", "không lộ thêm trường nào");
+  assert.equal(Object.keys(r.json).sort().join(), "coDonQuaHan,coHanMuc,conDuocDung,congTyThu,traSauDichVu", "không lộ thêm trường nào (ADR-0230 Đ1 mục 5 thêm traSauDichVu: chỉ số giờ; Đ2 thêm congTyThu: công tắc kênh thu hiện hành)");
+  assert.equal(r.json.congTyThu, true, "Đối tác nhận công tắc hiện hành (mặc định Bật)");
+  assert.equal(r.json.traSauDichVu, null, "không gửi dịch vụ ⇒ null");
   assert.deepEqual([(await cua(PT, `?benDat=pty-${PT}`)).json.conDuocDung], [6_000_000], "gửi đúng tư cách của mình");
   r = await cua(PT2, `?benDat=pty-${PT}`);
   assert.equal(r.status, 403, "đối tác B không đọc được số của A");

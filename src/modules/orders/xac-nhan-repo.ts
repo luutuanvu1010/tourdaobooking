@@ -246,6 +246,28 @@ const GIO_DON_THEM = defineSql(
 );
 export const cauThemGioDon = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(GIO_DON_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
 
+// ---- Công tắc «Hiện riêng phí đưa đón trên biên nhận khách lẻ» (ADR-0218 Đ3.4, migration 0178) — khuôn công tắc giờ đón; mặc định TẮT (gộp phí vào giá) --------------------------
+const PHI_DON_BIEN_NHAN_HIEN_HANH = defineSql(
+  "orders",
+  "receipt_fee_display_current",
+  `SELECT show_separate FROM ord_receipt_fee_display_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+/**
+ * Công tắc đang hiệu lực lúc `luc`: dòng mới nhất có `valid_from_at <= luc`. KHÔNG có dòng nào (trước ngày gieo của 0178) ⇒ Tắt = GỘP phí vào giá. Chỉ đổi cách in nên áp cho mọi bản in
+ * sau lúc đổi, kể cả đơn đã xác nhận (ADR-0218 Đ3.4).
+ */
+export async function hienRiengPhiDonBienNhan(db: D1Database, luc: string): Promise<boolean> {
+  const r = await db.prepare(PHI_DON_BIEN_NHAN_HIEN_HANH).bind(luc).first<{ show_separate: number }>();
+  return r ? r.show_separate === 1 : false;
+}
+const PHI_DON_BIEN_NHAN_MOI_NHAT = defineSql("orders", "receipt_fee_display_latest", `SELECT max(valid_from_at) AS moi_nhat FROM ord_receipt_fee_display_policy`);
+export const phiDonBienNhanMoiNhat = async (db: D1Database): Promise<string | null> => (await db.prepare(PHI_DON_BIEN_NHAN_MOI_NHAT).first<{ moi_nhat: string | null }>())?.moi_nhat ?? null;
+const PHI_DON_BIEN_NHAN_THEM = defineSql(
+  "orders",
+  "receipt_fee_display_insert",
+  `INSERT INTO ord_receipt_fee_display_policy (id, show_separate, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export const cauThemPhiDonBienNhan = (db: D1Database, v: { id: string; hienRieng: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(PHI_DON_BIEN_NHAN_THEM).bind(v.id, v.hienRieng ? 1 : 0, v.at, v.by);
 // ---- Công tắc «Đối tác không nhập nơi đón» (ADR-0221 Đ1, migration 0181) — khuôn `ord_pickup_time_policy`; mặc định TẮT ------------------------------------------------
 const NOI_DON_HIEN_HANH = defineSql(
   "orders",
@@ -268,6 +290,89 @@ const NOI_DON_THEM = defineSql(
   `INSERT INTO ord_partner_pickup_place_policy (id, khong_nhap, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
 );
 export const cauThemNoiDon = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(NOI_DON_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
+
+// ---- Công tắc «Chặn đơn chưa có giờ đón khi sát ngày đón» (ADR-0227 Đ1, migration 0182) — khuôn `ord_pickup_time_policy`; mặc định BẬT ------------------------------------------
+const CHAN_CHUA_GIO_HIEN_HANH = defineSql(
+  "orders",
+  "pickup_deadline_policy_current",
+  `SELECT chan FROM ord_pickup_deadline_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+/**
+ * Công tắc đang hiệu lực lúc `luc`: dòng mới nhất có `valid_from_at <= luc`. KHÔNG có dòng nào ⇒ BẬT — đường an toàn là hành vi ADR-0193 câu (ii).
+ * Đọc MỘT lần mỗi request ở mỗi cửa xác nhận; CÙNG giá trị đi vào hàm thuần `chanChuaGioSatNgay`, vế ?8 của `ORDER_CONFIRM` và `chanDoanXacNhan` (ruling R6: không để hai lớp lệch nhau).
+ */
+export async function docChanChuaGioSatNgay(db: D1Database, luc: string): Promise<boolean> {
+  const r = await db.prepare(CHAN_CHUA_GIO_HIEN_HANH).bind(luc).first<{ chan: number }>();
+  return r ? r.chan === 1 : true;
+}
+const CHAN_CHUA_GIO_MOI_NHAT = defineSql("orders", "pickup_deadline_policy_latest", `SELECT max(valid_from_at) AS moi_nhat FROM ord_pickup_deadline_policy`);
+export const chanChuaGioMoiNhat = async (db: D1Database): Promise<string | null> => (await db.prepare(CHAN_CHUA_GIO_MOI_NHAT).first<{ moi_nhat: string | null }>())?.moi_nhat ?? null;
+const CHAN_CHUA_GIO_THEM = defineSql(
+  "orders",
+  "pickup_deadline_policy_insert",
+  `INSERT INTO ord_pickup_deadline_policy (id, chan, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export const cauThemChanChuaGio = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(CHAN_CHUA_GIO_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
+
+// ---- Công tắc «Đối tác không nhập danh sách hành khách» (ADR-0228 Đ1, migration 0183) — khuôn `ord_partner_pickup_place_policy`; gieo = công tắc ẩn khách cũ lúc áp ------------
+const HANH_KHACH_HIEN_HANH = defineSql(
+  "orders",
+  "partner_passenger_policy_current",
+  `SELECT khong_nhap FROM ord_partner_passenger_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+/** Công tắc đang hiệu lực lúc `luc`. KHÔNG có dòng nào ⇒ TẮT (đối tác nhập danh sách như văn phòng). Đọc MỘT lần mỗi request ở lập / lưu nháp, chỉ khi người gọi là Đối tác thuần. */
+export async function docKhongNhapHanhKhach(db: D1Database, luc: string): Promise<boolean> {
+  const r = await db.prepare(HANH_KHACH_HIEN_HANH).bind(luc).first<{ khong_nhap: number }>();
+  return r?.khong_nhap === 1;
+}
+const HANH_KHACH_MOI_NHAT = defineSql("orders", "partner_passenger_policy_latest", `SELECT max(valid_from_at) AS moi_nhat FROM ord_partner_passenger_policy`);
+export const hanhKhachMoiNhat = async (db: D1Database): Promise<string | null> => (await db.prepare(HANH_KHACH_MOI_NHAT).first<{ moi_nhat: string | null }>())?.moi_nhat ?? null;
+const HANH_KHACH_THEM = defineSql(
+  "orders",
+  "partner_passenger_policy_insert",
+  `INSERT INTO ord_partner_passenger_policy (id, khong_nhap, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export const cauThemHanhKhach = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(HANH_KHACH_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
+
+// ---- Công tắc «Đơn đối tác không cần giờ đón» (ADR-0228 Đ3, migration 0183) — cùng khuôn; gieo TẮT ----------------------------------------------------------------------------
+const KHONG_CAN_GIO_HIEN_HANH = defineSql(
+  "orders",
+  "partner_pickup_time_optional_current",
+  `SELECT khong_can FROM ord_partner_pickup_time_optional_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+/** Công tắc đang hiệu lực lúc `luc`. KHÔNG có dòng nào ⇒ TẮT (hành vi ADR-0154 Đ1.2 + ADR-0193). Đọc MỘT lần ở route Gửi đơn, chỉ khi đơn đi nhánh A vì thiếu giờ (chụp tại mốc). */
+export async function docKhongCanGioDon(db: D1Database, luc: string): Promise<boolean> {
+  const r = await db.prepare(KHONG_CAN_GIO_HIEN_HANH).bind(luc).first<{ khong_can: number }>();
+  return r?.khong_can === 1;
+}
+const KHONG_CAN_GIO_MOI_NHAT = defineSql("orders", "partner_pickup_time_optional_latest", `SELECT max(valid_from_at) AS moi_nhat FROM ord_partner_pickup_time_optional_policy`);
+export const khongCanGioMoiNhat = async (db: D1Database): Promise<string | null> => (await db.prepare(KHONG_CAN_GIO_MOI_NHAT).first<{ moi_nhat: string | null }>())?.moi_nhat ?? null;
+const KHONG_CAN_GIO_THEM = defineSql(
+  "orders",
+  "partner_pickup_time_optional_insert",
+  `INSERT INTO ord_partner_pickup_time_optional_policy (id, khong_can, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export const cauThemKhongCanGio = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(KHONG_CAN_GIO_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
+
+// ---- Công tắc «Đơn đối tác không cần đủ tên khách» (ADR-0228 Đ2, migration 0183) — cùng khuôn; gieo BẬT -------------------------------------------------------------------------
+const MIEN_DU_TEN_HIEN_HANH = defineSql(
+  "orders",
+  "partner_manifest_exempt_current",
+  `SELECT mien FROM ord_partner_manifest_exempt_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+/** Công tắc đang hiệu lực lúc `luc`. KHÔNG có dòng nào ⇒ TẮT (đường an toàn: đơn mới không mang dấu, xe chạy cần đủ tên). Đọc MỘT lần ở lập đơn, chỉ khi người gọi là Đối tác thuần. */
+export async function docMienDuTen(db: D1Database, luc: string): Promise<boolean> {
+  const r = await db.prepare(MIEN_DU_TEN_HIEN_HANH).bind(luc).first<{ mien: number }>();
+  return r?.mien === 1;
+}
+const MIEN_DU_TEN_MOI_NHAT = defineSql("orders", "partner_manifest_exempt_latest", `SELECT max(valid_from_at) AS moi_nhat FROM ord_partner_manifest_exempt_policy`);
+export const mienDuTenMoiNhat = async (db: D1Database): Promise<string | null> => (await db.prepare(MIEN_DU_TEN_MOI_NHAT).first<{ moi_nhat: string | null }>())?.moi_nhat ?? null;
+const MIEN_DU_TEN_THEM = defineSql(
+  "orders",
+  "partner_manifest_exempt_insert",
+  `INSERT INTO ord_partner_manifest_exempt_policy (id, mien, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)`,
+);
+export const cauThemMienDuTen = (db: D1Database, v: { id: string; bat: boolean; at: string; by: string }): D1PreparedStatement => db.prepare(MIEN_DU_TEN_THEM).bind(v.id, v.bat ? 1 : 0, v.at, v.by);
 
 /**
  * Bốn trường khách đang lưu của đơn (tên, SĐT, email, ghi chú khách) — để `PUT` nháp lúc công tắc BẬT giữ nguyên chúng (ADR-0154 Đ2.3). Dữ liệu cá nhân: chỉ trả cho

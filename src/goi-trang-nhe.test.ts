@@ -116,7 +116,19 @@ const CHO_PHEP_NHAT_KY = new Set(["web/help.ts"]);
 // Đã rút trước khi nới: phần tự soát khuôn bảng chỉ còn trong bài kiểm (`soatKhuonBang` không vào gói), hàng tiêu đề cột viết sẵn trong public/orders.html.
 // Đo thật 116.418 byte; trần = đúng số đo (người kiểm độc lập 21/11 nhắc: không để dư). Không nhật ký thay đổi, không mã nghiệp vụ mới. ADR-0222 mục «Hệ quả»
 // đã báo trước lần nới này; CHƯA có lời duyệt riêng của chủ dự án cho con số.
-const TRAN_ORDERS = 116_418;
+// Nới 116.418 → 118.543 (+2.125, Việc 16 kế hoạch 16 việc 21/11/2026): 25 mục THIẾT LẬP của thanh bên có biểu tượng — 19 hình mới trong web/icons.ts (mỗi hình
+// một path, viền chung của họ «vé» và họ «loại giấy tờ» viết một lần) và trường `bieuTuong` của 25 dòng trong muc-giao-dien.ts (viết qua `tl()` cho gọn).
+// Đã rút trước khi nới: hình chỉ dùng ở thẻ con của ba màn nằm riêng ở web/hinh-the-phu.ts (không vào gói này); khai dòng bằng `tl()` bớt ~630 byte.
+// Đo thật 118.543 byte; trần = đúng số đo. Chủ dự án duyệt 21/11/2026 (chat, nguyên văn: «Duyệt 2.125 byte»).
+// Nới 118.543 → 118.690 (+147, Việc 6 — ADR-0226): thẻ đơn hiện số nợ đối tác của Kế toán thuần, nhãn do máy chủ gửi (bớt từ +715), nhãn nợ không ẩn trong bảng thẳng cột.
+// Chủ dự án duyệt 22/11/2026 qua phiên điều phối (câu 2, nguyên văn: «Duyệt đề xuất» — kèm nới trần gói trang Đơn hàng 147 byte cho việc 6).
+// Nới 118.690 → 118.922 (+232, Việc 13 — ADR-0232 Ảnh bàn giao): bốn ô quyền mới `order.photo.upload` / `view` / `hide` / `purge` vào bản đồ quyền dùng chung và
+// bảy nhãn nhật ký `handover_photo_*` vào bảng nhãn dùng chung (gói Đơn hàng nhúng cả hai); không mã giao diện ảnh nào vào gói này (web/anh-ban-giao.ts chỉ ở trang chi tiết đơn).
+// Đo thật sau gộp main 23/11 (có Việc 14): 118.922 byte; trần = đúng số đo. Chủ dự án duyệt 23/11/2026 (chat ở phiên Việc 13, nguyên văn: «duyệt nới trần gói trang Đơn hàng 232 byte, tiếp»).
+// Nới 118.922 → 119.044 (+122, Việc 10 — ADR-0229 Giá mùa vụ), đo thật sau gộp main 23/11 (có Việc 13): +89 là ba ô quyền `catalog.seasonal.write/approve/cap` trong bảng quyền dùng chung
+// (chủ dự án duyệt 23/11/2026, chat, nguyên văn «duyệt cả ba theo khuyến nghị»), +33 là điều kiện mở màn hẹp Dịch vụ & giá cho người giữ ô giá mùa vụ trong `dungManHepDichVu`
+// (chủ dự án duyệt 23/11/2026, chat, nguyên văn «Duyệt 118.812» — số đo trên nền 118.690 trước khi gộp Việc 13). Trần = đúng số đo.
+const TRAN_ORDERS = 119_044;
 
 function dung(trang: string) {
   const r = buildSync({

@@ -1,4 +1,4 @@
-import { can, dungManHepDichVu } from "../src/shared/permissions";
+import { can, dungManHepDichVu, holdsPartner, isOffice, type PermissionHolder } from "../src/shared/permissions";
 import { ApiError, api, type CatalogAdminItem, type CatalogSyncState, type PaxCode, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { trangThaiHeThong } from "./trang-thai-he-thong";
@@ -20,7 +20,9 @@ import { nhanLoaiTep } from "../src/shared/tep-dinh-kem";
 import { maBase64 } from "../src/shared/tep-hien-thi";
 import { thuNhoAnh } from "./thu-nho-anh";
 import { taoCoVe, type CoVe } from "./catalog-co-ve";
+import { taoTraSauDichVu, type TraSauDichVu } from "./catalog-tra-sau-dich-vu";
 import { taoNgungBanNgay, type NgungBanNgay } from "./ngung-ban-ngay";
+import { taoGiaMuaVu, type GiaMuaVu, type QuyenGiaMuaVu } from "./gia-mua-vu";
 import { dongBoTuSheet, taoKiemVe, veManHep } from "./catalog-kiem-ve";
 import { initShell, showError } from "./shell";
 import { CHINH_SACH_DAY_DU, anPhanTu, taiChinhSach, type ChinhSachUi } from "./chinh-sach-giao-dien";
@@ -47,8 +49,17 @@ const kiemVe = taoKiemVe(errorEl, () => {
 });
 /** Công tắc «Có vé» (ADR-0174 Đ4): `coVe` gán sau khi có `staff`, vẽ chỉ sau lúc đó. */
 let coVe: CoVe;
+/** Dấu «Trả sau theo dịch vụ» (ADR-0230 Đ1): gán sau khi có `staff` như `coVe`. */
+let traSauDv: TraSauDichVu;
 /** «Ngừng bán theo ngày» (ADR-0220 Đ5): gán sau khi có `staff` như `coVe`. */
 let ngungNgay: NgungBanNgay;
+/** «Giá mùa vụ» (ADR-0229 Đ9): gán sau khi có `staff` như `ngungNgay`. */
+let giaMuaVu: GiaMuaVu;
+/** Ô quyền giá mùa vụ — hỏi bảng quyền (Hiến chương 5.28); dùng cho cả màn hẹp. */
+const quyenGiaMuaVu = (who: PermissionHolder): QuyenGiaMuaVu => {
+  const vanPhong = isOffice(who) && !holdsPartner(who);
+  return { dat: vanPhong && can(who, "catalog.seasonal.write"), duyet: vanPhong && can(who, "catalog.seasonal.approve"), tran: vanPhong && can(who, "catalog.seasonal.cap") };
+};
 /** Công tắc «Cần kiểm vé» của một dòng dịch vụ (ADR-0169 Đ4): vé đặt riêng hay đang theo nhóm thì câu phụ nói rõ. */
 const oKiemVe = (it: CatalogAdminItem): HTMLElement => {
   const kv = kiemVeCua(it.code, it.groupCode, kiemVe.dongCo());
@@ -125,7 +136,7 @@ function renderStatus(): void {
       ),
     h("p", { class: "muted" }, parts.join(" ")),
     sync.lastError && h("div", { class: "alert" }, `Lần đồng bộ gần nhất lỗi: ${sync.lastError} Hệ thống vẫn dùng bản đã lưu.`),
-    sync.problems.length > 0 && h("details", null, h("summary", { class: "muted" }, `${sync.problems.length} dòng trong Sheet bị bỏ qua ở lần đồng bộ cuối`), h("ul", { class: "history" }, ...sync.problems.map((p) => h("li", null, `Dòng ${p.row}: ${p.message}`)))),
+    sync.problems.length > 0 && h("details", null, h("summary", { class: "muted" }, `${sync.problems.length} dòng trong Sheet bị bỏ qua ở lần đồng bộ cuối`), h("ul", { class: "history" }, ...sync.problems.map((p) => h("li", null, p.row > 0 ? `Dòng ${p.row}: ${p.message}` : p.message)))),
   );
 }
 
@@ -137,7 +148,32 @@ function priceCell(it: CatalogAdminItem, code: PaxCode): HTMLElement {
   return h("td", { class: "price-cell" }, eff === null ? "—" : vnd(eff), over && h("span", { class: "mark", title: "Giá ghi đè bởi Admin" }, " ✎"), over && sheet !== eff && h("span", { class: "sheet" }, sheet === null ? "Sheet: —" : `Sheet: ${vnd(sheet)}`));
 }
 
-function row(it: CatalogAdminItem): HTMLElement {
+/**
+ * Dòng phụ dưới hàng dịch vụ ở bảng máy tính (người chấm giao diện, Việc 11): huy hiệu «Trả sau theo dịch vụ» và các ô vé («Cần kiểm vé», «Có vé»,
+ * «Vé do ai phát», «Hotline trên vé» của ADR-0231 khi là vé Tour Đảo) xếp NGANG trải từ cột Mã tới hết bảng, thay vì chồng trong cột «Dịch vụ» hẹp. Không có gì để hiện thì không có dòng.
+ */
+function dongPhu(it: CatalogAdminItem): HTMLElement | null {
+  const nhan = traSauDv.nhanDichVu(it.code, it.groupCode);
+  const ve = [oKiemVe(it), coVe.oDichVu(it.code, tenCua(it))].filter((x): x is HTMLElement => x !== null);
+  if (nhan.length === 0 && ve.length === 0) return null;
+  const soCot = 9 - (anCot("groupCode") ? 1 : 0) - (anCot("unit") ? 1 : 0);
+  return h(
+    "tr",
+    { class: it.hidden || !it.inSheet ? "dv-phu row-off" : "dv-phu", "data-code-phu": it.code },
+    h("td", { class: "chon-td" }),
+    h("td", { colspan: soCot }, h("div", { class: "kv-ngang" }, ...nhan, ...ve)),
+  );
+}
+
+function row(it: CatalogAdminItem): HTMLElement[] {
+  const phu = dongPhu(it);
+  const chinh = rowChinh(it);
+  if (!phu) return [chinh];
+  chinh.classList.add("co-dong-phu");
+  return [chinh, phu];
+}
+
+function rowChinh(it: CatalogAdminItem): HTMLElement {
   const btn = (label: string, onclick: (b: HTMLButtonElement) => void, cls = "btn btn-link") => {
     const b = h("button", { type: "button", class: cls }, label) as HTMLButtonElement;
     b.addEventListener("click", () => onclick(b));
@@ -156,7 +192,7 @@ function row(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "row-off" : "", "data-code": it.code },
     h("td", { class: "chon-td" }, oChon(it)),
     h("td", null, it.code),
-    h("td", null, tenCua(it), dongTenSheet(it), chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), ...ngungNgay.nhanDichVu(it.code, it.groupCode), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`), oKiemVe(it), coVe.oDichVu(it.code, tenCua(it))),
+    h("td", null, tenCua(it), dongTenSheet(it), chipDuaDon(it, "dd-chip-dong"), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, "Đã ngừng bán"), ...ngungNgay.nhanDichVu(it.code, it.groupCode), ...giaMuaVu.nhanDichVu(it.code, it.groupCode), !it.inSheet && h("span", { class: "badge badge-draft" }, "Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, `Đơn vị ${it.unit} chưa hỗ trợ`), it.conflicts.length > 0 && h("div", { class: "alert warn", style: "margin:6px 0 0" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`)),
     h("td", { class: "nhom-o", hidden: anCot("groupCode") }, tenNhomCua(it)),
     h("td", { class: "muted", hidden: anCot("unit") }, unitLabel(it.unit)),
     ...PAX_ORDER.map((c) => priceCell(it, c)),
@@ -170,6 +206,8 @@ function row(it: CatalogAdminItem): HTMLElement {
       it.overridden.length > 0 && btn("Bỏ ghi đè giá", async () => (await hoiXacNhan({ tieuDe: "Bỏ ghi đè giá", hauQua: CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden), nhanNguyHiem: "Bỏ ghi đè giá" })) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
       btn(it.hidden ? "Mở bán lại" : "Ngừng bán", (nut) => void doiBan(it, nut, update), it.hidden ? "btn btn-link" : "btn btn-link danger"),
       ngungNgay.nut("SERVICE", it.code, tenCua(it), "btn btn-link"),
+      traSauDv.nut("SERVICE", it.code, tenCua(it), "btn btn-link"),
+      giaMuaVu.nut("SERVICE", it.code, tenCua(it), "btn btn-link"),
     ),
   );
 }
@@ -199,7 +237,7 @@ function card(it: CatalogAdminItem): HTMLElement {
     "div",
     { class: it.hidden || !it.inSheet ? "card card-col row-off" : "card card-col", "data-code": it.code },
     h("div", { class: "the-dau" }, oChon(it), h("span", { class: "muted" }, it.code, ...(anCot("unit") ? [] : [" · ", unitLabel(it.unit)]))),
-    h("div", { class: "dd-ten-dong" }, h("strong", null, tenCua(it)), dongTenSheet(it), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ngừng bán"), ...ngungNgay.nhanDichVu(it.code, it.groupCode), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
+    h("div", { class: "dd-ten-dong" }, h("strong", null, tenCua(it)), dongTenSheet(it), chipDuaDon(it), chipQuyTac(it), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ngừng bán"), ...ngungNgay.nhanDichVu(it.code, it.groupCode), ...giaMuaVu.nhanDichVu(it.code, it.groupCode), ...traSauDv.nhanDichVu(it.code, it.groupCode), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", { class: "nhom-o muted", hidden: anCot("groupCode") }, `Nhóm: ${tenNhomCua(it)}`),
     h("div", { class: "kv-the" }, oKiemVe(it), coVe.oDichVu(it.code, tenCua(it))),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:var(--fw-bold)", title: "Có giá ghi đè" }, " ✎")),
@@ -214,6 +252,8 @@ function card(it: CatalogAdminItem): HTMLElement {
       it.overridden.length > 0 && btn("Bỏ ghi đè giá", async () => (await hoiXacNhan({ tieuDe: "Bỏ ghi đè giá", hauQua: CAU_HOI_BO_GHI_DE_GIA(it.code, it.hidden), nhanNguyHiem: "Bỏ ghi đè giá" })) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
       btn(it.hidden ? "Mở bán lại" : "Ngừng bán", (nut) => void doiBan(it, nut, update), !it.hidden),
       ngungNgay.nut("SERVICE", it.code, tenCua(it), "pill-btn"),
+      traSauDv.nut("SERVICE", it.code, tenCua(it), "pill-btn"),
+      giaMuaVu.nut("SERVICE", it.code, tenCua(it), "pill-btn"),
     ),
   );
 }
@@ -232,7 +272,7 @@ function render(): void {
     return true;
   });
   dangHien = shown;
-  replaceChildren(listEl, ...shown.map(row), shown.length === 0 && h("tr", null, h("td", { colspan: 10, class: "empty" }, "Không có dịch vụ nào khớp.")));
+  replaceChildren(listEl, ...shown.flatMap(row), shown.length === 0 && h("tr", null, h("td", { colspan: 10, class: "empty" }, "Không có dịch vụ nào khớp.")));
   replaceChildren(listCardsEl, ...shown.map(card), shown.length === 0 && h("p", { class: "empty" }, "Không có dịch vụ nào khớp."));
   renderChon();
 }
@@ -402,13 +442,18 @@ function dongNhom(g: Nhom, i: number): HTMLElement {
     h("span", { class: "nhom-so" }, `${g.soDichVu} dịch vụ`),
     !g.active && h("span", { class: "badge badge-cancelled" }, "Đã tắt"),
     ...ngungNgay.nhanNhom(g.code),
+    ...traSauDv.nhanNhom(g.code),
+    ...giaMuaVu.nhanNhom(g.code),
     congTacDuaDon(g),
     h("div", { class: "nhom-dua-don" }, h("span", { class: "nhom-so" }, "Cần kiểm vé"), kiemVe.congTacNhom(g.code, g.name, caNhomCanKiem(g.code, kiemVe.dongCo())), h("span", { class: "nhom-so", "aria-hidden": "true" }, caNhomCanKiem(g.code, kiemVe.dongCo()) ? "Bật" : "Tắt")),
     coVe.oNhom(g.code, g.name),
+    coVe.oNguonVeNhom(g.code, g.name),
     h(
       "div",
       { class: "nhom-nut" },
       ngungNgay.nut("GROUP", g.code, g.name, "btn btn-link"),
+      traSauDv.nut("GROUP", g.code, g.name, "btn btn-link"),
+      giaMuaVu.nut("GROUP", g.code, g.name, "btn btn-link"),
       nutNhom("Đổi tên", "doi-ten", doiTen, { aria: `Đổi tên nhóm ${g.name}` }),
       nutNhom("Lên", "len", () => truoc && void doiCho(g, truoc), { disabled: !truoc, aria: `Đưa nhóm ${g.name} lên` }),
       nutNhom("Xuống", "xuong", () => sau && void doiCho(g, sau), { disabled: !sau, aria: `Đưa nhóm ${g.name} xuống` }),
@@ -611,6 +656,7 @@ function moChiTiet(it: CatalogAdminItem, opener: HTMLElement): void {
         h("p", { class: "muted" }, `Tính bằng: ${unitLabel(it.unit)}. Đổi giá bằng nút «Ghi đè giá» ở dòng dịch vụ.`),
         giaDong.length ? h("ul", null, ...giaDong) : h("p", { class: "muted" }, "Chưa có giá."),
       ),
+      giaMuaVu.tomTat(it.code, it.groupCode), // ADR-0229 Đ9: chỗ «Giá theo mùa» (ADR-0201) — giá trên là giá gốc, chưa cộng mùa vụ
       h("section", { "data-khoi": "ct-ban" },
         h("h3", null, "Bán"),
         h("ul", null,
@@ -1020,8 +1066,11 @@ const staff = await initShell();
 if (!can(staff, "admin.manage")) {
   // ADR-0169 Đ4: Quản lý bán hàng dùng màn hẹp; còn lại máy chủ từ chối, trang báo lỗi.
   byId("man-du").hidden = true;
-  if (dungManHepDichVu(staff)) await veManHep(byId("man-hep"), errorEl, can(staff, "catalog.sync") ? noticeEl : null);
-  else showError(errorEl, "Tài khoản này không vào được trang này.");
+  if (dungManHepDichVu(staff)) {
+    await veManHep(byId("man-hep"), errorEl, can(staff, "catalog.sync") ? noticeEl : null, quyenGiaMuaVu(staff), {
+      ngungBan: can(staff, "catalog.hidden.write"), kiemVe: can(staff, "catalog.confirm_flag.write"),
+    });
+  } else showError(errorEl, "Tài khoản này không vào được trang này.");
 } else {
   pullBtn.hidden = !can(staff, "catalog.sync");
   // Bước 1 khung chung (N10): khối tự kiểm vé và khối nhóm dịch vụ về sau dữ liệu — giữ chỗ trước để danh sách bên dưới không bị đẩy.
@@ -1032,13 +1081,22 @@ if (!can(staff, "admin.manage")) {
     renderNhom();
     render();
   });
+  // Giao diện chỉ ẩn/hiện; máy chủ kiểm lại (route cũng chặn tài khoản giữ quyền Đối tác).
+  traSauDv = taoTraSauDichVu(errorEl, can(staff, "credit.service_rule.view") && !holdsPartner(staff), can(staff, "credit.service_rule.write") && !holdsPartner(staff), () => {
+    renderNhom();
+    render();
+  });
   ngungNgay = taoNgungBanNgay(can(staff, "catalog.hidden.write"), () => {
+    renderNhom();
+    render();
+  });
+  giaMuaVu = taoGiaMuaVu(quyenGiaMuaVu(staff), () => {
     renderNhom();
     render();
   });
   chinhSach = await taiChinhSach();
   for (const th of document.querySelectorAll<HTMLElement>("th[data-cot]")) anPhanTu(anCot(th.dataset.cot ?? ""), th);
-  await Promise.all([kiemVe.tai(), coVe.tai(), ngungNgay.tai()]).catch((err) => fail(err));
+  await Promise.all([kiemVe.tai(), coVe.tai(), ngungNgay.tai(), traSauDv.tai(), giaMuaVu.tai()]).catch((err) => fail(err));
   renderTuKiem();
   duocSuaDuaDon = can(staff, "admin.manage");
   tenNguoi = api<Api.StaffListResponse>("/api/staff")

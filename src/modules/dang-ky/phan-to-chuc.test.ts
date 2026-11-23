@@ -82,3 +82,22 @@ test("Công ty lữ hành cần ĐỦ HAI điều kiện: từ Task 13 biểu m�
   assert.equal((await lyDo()).TRAVEL_AGENCY, null, "đủ hai điều kiện ⇒ mở được");
   assert.equal((await cauHinh(w)).loaiMo.some((x: any) => x.ma === "TRAVEL_AGENCY"), false, "chưa có trong chính sách đăng ký ⇒ chưa mở cho người đăng ký");
 });
+
+// ---- Dấu «Thu tệp khác» (ADR-0233 Đ3) — cùng khuôn dấu tổ chức ----
+test("ADR-0233: đăng có / không tích «tệp khác» ⇒ covers_other_files 1 / 0; cau-hinh.tepKhacMo theo bản ĐANG hiệu lực; cau-hinh trả dòng ô tệp theo vai; điểm cuối công khai không lộ dấu", async () => {
+  const w = setup();
+  assert.equal((await cauHinh(w)).tepKhacMo, false, "chưa có chính sách ⇒ đóng");
+  assert.equal((await dang(w, { coTepKhac: true })).status, 201);
+  assert.equal((await dang(w, { coTepKhac: "co" })).status, 400);
+  assert.deepEqual(w.q("SELECT version, covers_other_files AS v FROM pty_privacy_policy ORDER BY version").map((x: any) => [x.version, x.v]), [[1, 1]]);
+  const ch = await cauHinh(w);
+  assert.equal(ch.tepKhacMo, true);
+  assert.deepEqual(ch.oTep.map((x: any) => `${x.phan}:${x.vai}:${x.o}:${x.cach}`).sort(), [
+    "CA_NHAN::CCCD_MAT_SAU:TUY_CHON", "CA_NHAN::CCCD_MAT_TRUOC:TUY_CHON", "CA_NHAN::TEP_KHAC:TUY_CHON",
+    "TO_CHUC::GIAY_PHEP_THEM:TUY_CHON", "TO_CHUC::GPKD:BAT_BUOC", "TO_CHUC::TEP_KHAC_TO_CHUC:TUY_CHON",
+  ], "gieo của migration 0191");
+  assert.equal((await dang(w, {})).status, 201);
+  assert.equal((await cauHinh(w)).tepKhacMo, false, "bản mới không tích thay bản cũ");
+  const r = await w.call("GET", "/api/chinh-sach-rieng-tu");
+  for (const cam of ["covers_other", "coTepKhac", "tepKhac"]) assert.equal(r.text.includes(cam), false, cam);
+});

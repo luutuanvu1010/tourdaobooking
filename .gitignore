@@ -12,6 +12,7 @@ public/sw.js
 .claude/scheduled_tasks.lock
 .DS_Store
 dist-dev/
+dist-demo/
 # Ảnh bằng chứng giao diện chỉ nằm trên máy, không vào kho (ADR-0215 Đ3, chủ dự án 16/11).
 docs/evidence/**/*.[Pp][Nn][Gg]
 docs/evidence/**/*.[Jj][Pp][Gg]

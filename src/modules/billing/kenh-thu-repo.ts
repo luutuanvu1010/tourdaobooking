@@ -41,10 +41,15 @@ export const kenhThuLichSu = async (db: D1Database): Promise<KenhThuLichSuRow[]>
 const KENH_THU_CUA_DON = defineSql(
   "billing",
   "partner_channel_of_order",
-  `SELECT k.company_collects_snapshot AS dau, s.party_id AS nguoi_lap FROM v_ord_kenh_thu k LEFT JOIN v_stf_staff_label s ON s.id = k.staff_id WHERE k.id = ?1`,
+  `SELECT k.company_collects_snapshot AS dau, s.party_id AS nguoi_lap, t.partner_cash_only AS chi_tien_mat, (c.order_id IS NOT NULL) AS tra_luc_checkin FROM v_ord_kenh_thu k
+   LEFT JOIN v_stf_staff_label s ON s.id = k.staff_id LEFT JOIN v_ord_thu_ho_tien_mat t ON t.id = k.id LEFT JOIN v_ord_tra_luc_checkin c ON c.order_id = k.id WHERE k.id = ?1`,
 );
-export const kenhThuCuaDon = async (db: D1Database, orderId: string): Promise<{ dau: 0 | 1 | null; nguoiLap: string | null } | undefined> => {
-  const r = await db.prepare(KENH_THU_CUA_DON).bind(orderId).first<{ dau: number | null; nguoi_lap: string | null }>();
+/**
+ * `chiTienMat` (ADR-0225 Đ2, migration 0184): đơn mang dấu «đơn đối tác chỉ thu hộ tiền mặt» = 1. `traLucCheckin` (ADR-0230 Đ2, migration 0187 phần B): đơn có dòng hiệu lực bật
+ * của «Trả lúc check-in» (view `v_ord_tra_luc_checkin`). Hai cờ, hai nghĩa — cổng xét riêng từng luật.
+ */
+export const kenhThuCuaDon = async (db: D1Database, orderId: string): Promise<{ dau: 0 | 1 | null; nguoiLap: string | null; chiTienMat: boolean; traLucCheckin: boolean } | undefined> => {
+  const r = await db.prepare(KENH_THU_CUA_DON).bind(orderId).first<{ dau: number | null; nguoi_lap: string | null; chi_tien_mat: number | null; tra_luc_checkin: number }>();
   if (!r) return undefined;
-  return { dau: r.dau === 0 ? 0 : r.dau === 1 ? 1 : null, nguoiLap: r.nguoi_lap ?? null };
+  return { dau: r.dau === 0 ? 0 : r.dau === 1 ? 1 : null, nguoiLap: r.nguoi_lap ?? null, chiTienMat: r.chi_tien_mat === 1, traLucCheckin: r.tra_luc_checkin === 1 };
 };

@@ -155,6 +155,13 @@ export const MATRIX = {
   // ADR-0196 Đ7, Đ2: GỠ ảnh biên lai gửi nhầm và xem / chạy lại hàng chờ dọn kho ảnh — chỉ Toàn quyền. Ô riêng (giả định của người thi công 6A, ghi ở nhật ký
   // thi công 2026-11-11-dot-6a): ADR chỉ nói «chỉ Toàn quyền», không có ô sẵn mang đúng nghĩa đó; ô này không nới ai.
   "payment.proof.purge": chiToanQuyen(),
+  // ADR-0232 Đ4 — «Ảnh bàn giao» (module anh-ban-giao, route /api/anh-ban-giao/*, NGOÀI cổng đơn). Bốn ô KHÔNG theo luật «⊆ order.view» (cột tài xế): FIELD assigned = người
+  // phụ trách đơn (ctx.isAssigned); DRIVER assigned = đang lái chuyến chở lượt đón của đơn (ctx.taiXeLaiChang, tính ở van-chuyen). view own = ảnh do chính mình tải.
+  // Cột SALES_MANAGER để mặc định none: Quản lý bán hàng luôn kèm SALES (ADR-0169 Đ1) nên đã có quyền qua cột SALES — cột này chỉ chứa phần THÊM (bài quan-ly-ban-hang.test.ts).
+  "order.photo.upload": row("any", "none", "any", "assigned", "none", "any", "none", "assigned", "none", "none"),
+  "order.photo.view": row("any", "any", "any", "own", "none", "any", "none", "own", "none", "none"),
+  "order.photo.hide": chiToanQuyen(),
+  "order.photo.purge": chiToanQuyen(),
   // ADR-0182 Đ3 (phần B, accepted 2026-11-13): khoản nộp của đại lý. Ghi + tải biên lai — Đối tác own (route còn đòi tài khoản Đối tác, hồ sơ phiên = bên đặt, ADR Đ2 mục 11);
   // xác nhận / từ chối — Kế toán, Toàn quyền (khuôn ADR-0090; Quản trị KHÔNG); xem khoản và biên lai — Kế toán, Quản trị, Toàn quyền, Đối tác own. Viết gọn (trần gói Đơn hàng).
   "dai-ly.nop.ghi": { ...chiToanQuyen(), PARTNER: "own" }, // Toàn quyền `any` theo luật ADR-0014 điều 2 (không ngoại lệ); route vẫn chỉ cho tài khoản Đối tác bên đặt (`coPhieuNopTien`)
@@ -209,7 +216,10 @@ export const MATRIX = {
   "credit.ceiling.write": chiToanQuyen(),
   // ADR-0178 Đ1 mục 1: công tắc «Khách của đối tác trả cho Công ty» — đổi chỉ Toàn quyền; xem: Kế toán, Quản trị, Toàn quyền (khuôn credit.limit.view). Route: /api/kenh-thu-doi-tac (module billing).
   "billing.partner_channel.write": chiToanQuyen(),
-  "billing.partner_channel.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
+  "billing.partner_channel.view": KE_TOAN_QUAN_TRI, // giá trị y như viết tay row("none", "any", "any", "none", "none", "any", …) — dùng hằng chung để gói Đơn hàng không lớn thêm (src/goi-trang-nhe.test.ts)
+  // ADR-0178 Đ3, ADR-0230 Đ1 mục 1: dấu «Trả sau theo dịch vụ» — đặt / gỡ chỉ Toàn quyền (KHÔNG Quản lý bán hàng); xem: Kế toán, Quản trị, Toàn quyền. Route: /api/tra-sau/dich-vu* (module billing).
+  "credit.service_rule.write": chiToanQuyen(),
+  "credit.service_rule.view": KE_TOAN_QUAN_TRI,
   // ADR-0173 Đ1 mục 3: lùi hạn trả của MỘT đơn Trả sau đã xác nhận (bắt buộc lý do) — Quản trị, Toàn quyền.
   "credit.due.extend": quanTri(),
   // ADR-0173 Đ3 mục 3: đại lý xem Trả sau của CHÍNH hồ sơ mình (hạn mức, đang nợ, còn được dùng, từng đơn nợ) — Đối tác phạm vi `own`; hồ sơ lấy từ phiên, không nhận từ trình duyệt.
@@ -228,6 +238,11 @@ export const MATRIX = {
   // ADR-0186 Đ2, Đ3 (chủ duyệt 2026-11-08): «Đồng bộ ngay từ Google Sheet» — Quản lý bán hàng, Quản trị, Toàn quyền (trước: admin.manage); tác nhân DONG_BO_DANH_MUC
   // (Cron 15 phút, đồng bộ lần đầu) giữ đúng ô này. Một hàm lệnh cho cả ba đường: syncCatalog (src/modules/catalog/service.ts) hỏi ô này trước khi ghi.
   "catalog.sync": quanLyBanHang(),
+  // ADR-0229 Đ8 (chủ duyệt 2026-11-22): «Giá mùa vụ» — «quyền tiền mềm», KHÔNG thuộc O_GHI_TIEN (ADR-0090). write = xem danh sách, đặt, kết thúc quy tắc; approve = duyệt
+  // quy tắc NGƯỜI KHÁC đặt (máy chủ + CHECK CSDL người duyệt ≠ người đặt); cap = đặt trần % (chỉ Toàn quyền). Route còn chặn tài khoản giữ Đối tác.
+  "catalog.seasonal.write": keToanQuanLy(),
+  "catalog.seasonal.approve": keToanQuanLy(),
+  "catalog.seasonal.cap": chiToanQuyen(),
   "supply.terms.view": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"), // Bán hàng KHÔNG xem tỷ lệ mua lại của nhà cung cấp
   "supply.terms.write": row("none", "any", "any", "none", "none", "any", "none", "none", "none", "none"),
   // Phần đối tác của đơn (đặc tả §6; Task 5): xem = bằng `order.view` ở MỌI cột (supply.terms.view ⊆ order.terms.view ⊆ money.view — bài khoá ở permissions.test.ts), nhưng tài khoản giữ
@@ -550,8 +565,12 @@ export const passesAdminGate = (who: PermissionHolder): boolean => holdsAny(who,
 export const passesAccountsGate = (who: PermissionHolder): boolean => holdsAny(who, ACCOUNTS_GATE);
 /** Qua cổng "office" (vào Hồ sơ…). KHÔNG dùng để hiện Trang chủ/Đơn hàng — dùng `seesAllOrders`. */
 export const isOffice = (who: PermissionHolder): boolean => holdsAny(who, OFFICE_GATE);
-/** ADR-0169 Đ4: dùng được màn hẹp Dịch vụ & giá. Cổng office vẫn là điều kiện: mã SALES_MANAGER KHÔNG vào cổng (cổng này còn mở Danh bạ, tin đơn), nên tài khoản bị bớt tay SALES không dùng được. */
-export const dungManHepDichVu = (who: PermissionHolder): boolean => can(who, "catalog.hidden.write") && isOffice(who) && !holdsPartner(who);
+/**
+ * ADR-0169 Đ4: dùng được màn hẹp Dịch vụ & giá. Cổng office vẫn là điều kiện: mã SALES_MANAGER KHÔNG vào cổng (cổng này còn mở Danh bạ, tin đơn), nên tài khoản bị bớt tay SALES không dùng được.
+ * ADR-0229 (chủ dự án 2026-11-23, nguyên văn «duyệt cả ba theo khuyến nghị» — câu 1: mở màn hẹp cho người giữ ô đặt giá mùa vụ): thêm người giữ `catalog.seasonal.write` (Kế toán) —
+ * họ chỉ thấy nút Giá mùa vụ; nút Ngừng bán / Cần kiểm vé trên màn vẫn theo ô riêng (`catalog.hidden.write`, `catalog.confirm_flag.write`), route của chúng vẫn tự hỏi ô.
+ */
+export const dungManHepDichVu = (who: PermissionHolder): boolean => (can(who, "catalog.hidden.write") || can(who, "catalog.seasonal.write")) && isOffice(who) && !holdsPartner(who);
 /** Qua cổng "orders". Mỗi route đơn vẫn tự gọi `can()` để kiểm phạm vi. */
 export const canAccessOrders = (who: PermissionHolder): boolean => holdsAny(who, ORDERS_GATE);
 /** Xem được MỌI đơn (không ngữ cảnh): hiện Trang chủ, mục "Đơn hàng", ô tìm đơn; `homeRedirect` giữ người này ở Trang chủ. Là câu hỏi của BẢNG, không phải cổng. */

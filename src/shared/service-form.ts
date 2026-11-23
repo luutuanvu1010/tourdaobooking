@@ -54,7 +54,7 @@ export interface CatalogDraft extends DraftBase {
    * Trạng thái ĐÃ LƯU của thẻ có bản chụp (đặt bởi `draftFromDto`); null = thẻ mới hoặc thẻ "live" không có bản chụp.
    * `setPax` dùng để QUAY LẠI bản chụp khi số khách cuối cùng y như đã lưu (đặc tả §5.1: chỉ chuyển giá khi ĐỔI số khách).
    */
-  saved: { pax: PaxCounts; item: CatalogService; unitPrices: Partial<Record<PaxCode, number>>; catalogStatus: CatalogStatus | null } | null;
+  saved: { pax: PaxCounts; /** Ngày đi đã lưu (ADR-0229 Đ6: máy chủ chỉ giữ bản chụp khi ngày đi KHÔNG đổi). */ ngay: string; item: CatalogService; unitPrices: Partial<Record<PaxCode, number>>; catalogStatus: CatalogStatus | null } | null;
 }
 
 export interface ManualDraft extends DraftBase {
@@ -151,7 +151,7 @@ export function snapshotItem(dto: Pick<OrderServiceDto, "catalogCode" | "name" |
 
 /**
  * Thẻ của dịch vụ đã lưu (sửa nháp). `live` = danh mục hiện tại theo mã (chỉ dịch vụ đang hiện và được hỗ trợ).
- * Có bản chụp → giữ giá đã lưu (nhãn theo `catalogStatus`); danh mục không còn → thẻ khoá (`isLocked`).
+ * Có bản chụp → giữ giá đã lưu (nhãn theo `catalogStatus`); danh mục không còn → thẻ khoá (`isLocked`). Dịch vụ danh mục có `giaTheoNgay` → giá theo ngày đi đã lưu.
  */
 export function draftFromDto(dto: OrderServiceDto, live: ReadonlyMap<string, CatalogService>, key: string): ServiceDraft {
   const base = { key, id: dto.id, trip: tripFromDto(dto), legs: dto.legs.map((l, i) => changTuDto(l, `${key}-l${i}`)), taoSan: null, pickupChoice: dto.pickupChoice ?? null };
@@ -161,7 +161,8 @@ export function draftFromDto(dto: OrderServiceDto, live: ReadonlyMap<string, Cat
       lines: dto.items.map((it) => ({ description: it.description, detail: it.detail ?? "", quantity: it.quantity, unitPrice: it.unitPrice })),
     };
   }
-  const liveItem = live.get(dto.catalogCode) ?? null;
+  const liveGoc = live.get(dto.catalogCode);
+  const liveItem = liveGoc ? apGiaTheoNgay(liveGoc, dto.departDate ?? null) : null; // ADR-0229 Đ7: giá danh mục của chính ngày đi đã lưu (map từ for-order có `giaTheoNgay`)
   const saved: Partial<Record<PaxCode, number>> = {};
   for (const it of dto.items) if (it.paxCode !== null) saved[it.paxCode] = it.unitPrice;
   const pax = { ...dto.pax };
@@ -169,7 +170,7 @@ export function draftFromDto(dto: OrderServiceDto, live: ReadonlyMap<string, Cat
   if (snap) {
     return {
       ...base, kind: "catalog", code: snap.code, name: snap.name, unit: snap.unit, source: "snapshot", item: snap, live: liveItem, pax, unitPrices: saved, catalogStatus: dto.catalogStatus, repick: false,
-      saved: { pax: { ...dto.pax }, item: snap, unitPrices: { ...saved }, catalogStatus: dto.catalogStatus },
+      saved: { pax: { ...dto.pax }, ngay: base.trip.departDate, item: snap, unitPrices: { ...saved }, catalogStatus: dto.catalogStatus },
     };
   }
   if (liveItem) {
@@ -182,7 +183,7 @@ export function draftFromDto(dto: OrderServiceDto, live: ReadonlyMap<string, Cat
   const item: CatalogService = { code: dto.catalogCode, name: dto.name, unit: dto.unit, prices, notes: { child: null, senior: null, infant: null } };
   return {
     ...base, kind: "catalog", code: item.code, name: item.name, unit: item.unit, source: "snapshot", item, live: null, pax, unitPrices: saved, catalogStatus: dto.catalogStatus, repick: true,
-    saved: { pax: { ...dto.pax }, item, unitPrices: { ...saved }, catalogStatus: dto.catalogStatus },
+    saved: { pax: { ...dto.pax }, ngay: base.trip.departDate, item, unitPrices: { ...saved }, catalogStatus: dto.catalogStatus },
   };
 }
 
@@ -205,10 +206,17 @@ export const isFrozenManual = (d: ServiceDraft, duocNhapTay = false): boolean =>
  */
 export function setPax(d: CatalogDraft, code: PaxCode, n: number): CatalogDraft {
   if (isLocked(d)) return d;
-  const pax = { ...d.pax, [code]: wholeCount(n) };
+  return theoBanChup({ ...d, pax: { ...d.pax, [code]: wholeCount(n) } });
+}
+
+/**
+ * Sau khi đổi số khách hoặc ngày đi: chọn bản chụp hay giá hiện tại ĐÚNG như máy chủ sẽ làm — nhánh `kept` của `catalogService` giữ bản chụp khi số khách VÀ ngày đi
+ * y như đã lưu (ADR-0229 Đ6 vá Q11), còn lại dựng lại từ danh mục (`d.live`, đã áp giá theo ngày đi).
+ */
+function theoBanChup(d: CatalogDraft): CatalogDraft {
   const s = d.saved;
-  if (s && PAX_ORDER.every((c) => pax[c] === s.pax[c])) {
-    if (d.source === "snapshot") return { ...d, pax }; // đang là bản chụp: giữ nguyên, kể cả đơn giá vừa sửa
+  if (s && d.trip.departDate === s.ngay && PAX_ORDER.every((c) => d.pax[c] === s.pax[c])) {
+    if (d.source === "snapshot") return d; // đang là bản chụp: giữ nguyên, kể cả đơn giá vừa sửa
     // Đang ở giá hiện tại ("live"): đơn giá người dùng VỪA GÕ (khác giá danh mục hiện tại — cùng heuristic với refreshFromCatalog) phải được GIỮ khi quay về bản chụp;
     // loại chưa gõ dùng đơn giá đã lưu. (Giá gõ ở chế độ bản chụp rồi đổi số khách thì mất theo thiết kế §5.1: khi đó thẻ đã chuyển sang giá hiện tại.)
     const unitPrices = { ...s.unitPrices };
@@ -217,14 +225,61 @@ export function setPax(d: CatalogDraft, code: PaxCode, n: number): CatalogDraft 
       const typed = d.unitPrices[c];
       if (typed !== undefined && typed !== current[c]) unitPrices[c] = typed;
     }
-    return { ...d, pax, source: "snapshot", item: s.item, name: s.item.name, unit: s.item.unit, unitPrices, catalogStatus: s.catalogStatus };
+    return { ...d, source: "snapshot", item: s.item, name: s.item.name, unit: s.item.unit, unitPrices, catalogStatus: s.catalogStatus };
   }
-  if (d.source === "snapshot" && d.live) return { ...d, pax, source: "live", item: d.live, name: d.live.name, unit: d.live.unit, unitPrices: defaultPrices(d.live), catalogStatus: null };
-  return { ...d, pax };
+  if (d.source === "snapshot" && d.live) return { ...d, source: "live", item: d.live, name: d.live.name, unit: d.live.unit, unitPrices: defaultPrices(d.live), catalogStatus: null };
+  return d;
+}
+
+/**
+ * ADR-0229 Đ6, Đ7: đổi ngày đi của thẻ danh mục. `liveTheoNgay` = dịch vụ của danh mục hiện tại ĐÃ áp giá ngày mới (`apGiaTheoNgay`); null = danh mục không còn dịch vụ.
+ * Đơn giá chưa thương lượng (bằng giá danh mục cũ) theo giá ngày mới, đơn giá đã thương lượng giữ (`refreshFromCatalog`) — kể cả thẻ bản chụp (nháp đã lưu): ngày khác ngày
+ * đã lưu ⇒ máy chủ dựng lại dòng từ danh mục nên thẻ chuyển sang giá danh mục của ngày mới (và gửi đúng `catalogPriceSeen`); quay về đúng ngày và số khách đã lưu ⇒ lại bản chụp.
+ * Thẻ khoá chỉ đổi ngày (máy chủ sẽ báo chọn lại).
+ */
+export function doiNgayThe(d: CatalogDraft, ngay: string, liveTheoNgay: CatalogService | null): CatalogDraft {
+  const moi: CatalogDraft = { ...d, trip: { ...d.trip, departDate: ngay } };
+  if (isLocked(moi) || !liveTheoNgay) return isLocked(moi) ? moi : theoBanChup(moi);
+  const s = moi.saved;
+  if (moi.source === "snapshot" && s && ngay === s.ngay) return { ...moi, live: liveTheoNgay }; // ngày chưa đổi so với đã lưu: giữ bản chụp
+  return theoBanChup(refreshFromCatalog({ ...moi, source: "live", catalogStatus: moi.source === "live" ? moi.catalogStatus : null }, liveTheoNgay));
 }
 
 export function setUnitPrice(d: CatalogDraft, code: PaxCode, n: number): CatalogDraft {
   return { ...d, unitPrices: { ...d.unitPrices, [code]: wholeMoney(n) } };
+}
+
+/** ADR-0229 Đ7: một dịch vụ danh mục như form nhận từ `GET /api/catalog/for-order` — kèm giá mùa vụ theo đoạn ngày đi. */
+export type CatalogTheoNgay = CatalogService & {
+  giaTheoNgay?: { tu: string; den: string; prices: Prices; mucTang?: { phanTram: number; soTien: number } }[];
+  /** Giá gốc (sau ghi đè, trước mùa vụ) — giữ lại khi `apGiaTheoNgay` thay `prices`, để đổi ngày lần nữa vẫn tính từ gốc. */
+  giaGoc?: Prices;
+  /** Mức tăng đang áp cho ngày đã chọn (chỉ văn phòng nhận); null = không mùa vụ. */
+  mucTang?: { phanTram: number; soTien: number } | null;
+};
+
+/**
+ * ADR-0229 Đ7: giá của dịch vụ cho NGÀY ĐI `ngay` — đoạn mùa vụ chứa ngày đó, không có thì giá gốc. Không có `giaTheoNgay` ⇒ trả nguyên `item` (bản chụp, `/api/catalog`).
+ * Máy chủ vẫn tính lại và so `catalogPriceSeen` (BK5); hàm này chỉ để form hiện và gửi đúng giá. Dùng kèm `refreshFromCatalog` khi đổi ngày (giữ đơn giá đã thương lượng).
+ */
+export function apGiaTheoNgay<T extends CatalogTheoNgay>(item: T, ngay: string | null): T {
+  if (!item.giaTheoNgay && !item.giaGoc) return item;
+  const goc = item.giaGoc ?? item.prices;
+  const doan = ngay ? item.giaTheoNgay?.find((x) => x.tu <= ngay && ngay <= x.den) : undefined;
+  return { ...item, giaGoc: goc, prices: doan ? doan.prices : goc, mucTang: doan?.mucTang ?? null };
+}
+
+/** «+10 % +20.000 ₫» — mức tăng (ký hiệu ₫ như tổng tiền cùng màn — người đánh giá giao diện 23/11, S6) giá mùa vụ (ADR-0229 Đ9); `formatMoney` là cách nhóm số của trang (vd `grouped`). */
+export const chuMucTang = (m: { phanTram: number; soTien: number }, formatMoney: (n: number) => string): string =>
+  [m.phanTram > 0 ? `+${m.phanTram} %` : "", m.soTien > 0 ? `+${formatMoney(m.soTien)} ₫` : ""].filter(Boolean).join(" ");
+
+/**
+ * ADR-0229 Đ9: dòng nhỏ «Giá mùa vụ: +10 % +20.000 đ» dưới dịch vụ — chỉ khi ngày đi trong mùa VÀ máy chủ gửi mức tăng (chỉ người dùng văn phòng nhận; Đối tác chỉ thấy giá cuối).
+ * Thẻ bản chụp (giá đã lưu) không có mức tăng ⇒ không dòng.
+ */
+export function chuGiaMuaVu(item: CatalogTheoNgay, formatMoney: (n: number) => string): string | null {
+  const chu = item.mucTang ? chuMucTang(item.mucTang, formatMoney) : "";
+  return chu ? `Giá mùa vụ: ${chu}` : null;
 }
 
 /**

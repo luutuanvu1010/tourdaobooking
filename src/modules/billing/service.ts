@@ -531,8 +531,14 @@ export async function tienCuaDon(db: D1Database, info: ThongTinGiaoDon, phan: Ph
     coc,
     benKia: quyen.laDoiTac || !quyen.coTheGhiThu || info.deliveredAt !== null ? null : await luaChonBenKia(db, phan),
     kenhThu: await kenhThuChoTrang(db, info.orderId, phan),
+    chiTienMat: await chiNhanTienMat(db, info.orderId), // ADR-0225 Đ2 + ADR-0230 Đ2 (đơn «Trả lúc check-in»): cùng một cờ cho giao diện — chỉ tiền mặt, không QR
   };
 }
+
+const chiNhanTienMat = async (db: D1Database, orderId: string): Promise<boolean> => {
+  const k = await kenhThuCuaDon(db, orderId);
+  return k?.chiTienMat === true || k?.traLucCheckin === true;
+};
 
 /**
  * ADR-0178 Đ1 mục 2 (Task A5): khối «người thu» của trang đơn mang dấu Tắt. Chỉ đơn dấu 0 có khối; dấu 1 / không dấu ⇒ null (giữ như cũ). Không gác theo quyền ghi: người chỉ
@@ -605,7 +611,7 @@ export async function ghiLanThu(
   const lt = await docLanThu(db, input.raw, input.ai, congTyId, { phan: input.phan, receipts: daCo, kemDaGiao: false });
   if (!lt.ok) return lt;
   // ADR-0178 Đ1 mục 2: đơn mang dấu Tắt chỉ nhận người thu = hồ sơ người lập — kiểm TRƯỚC khi dựng lô (trigger 0144 là lớp sau).
-  const kenh = await kiemNguoiThuKenh(db, input.orderId, lt.value.collectorPartyId);
+  const kenh = await kiemNguoiThuKenh(db, input.orderId, lt.value);
   if (kenh) return { ok: false, res: kenh };
   // ADR-0182 Đ2 mục 13 (chiều ngược): người đang có khoản nộp chờ của đơn không khai thêm «Công ty thu» (trigger `bil_payment_receipt_nop_cho_cong_ty` là lớp sau).
   if (lt.value.collectorRole === "COMPANY" && (await coNopChoCuaNguoi(db, input.orderId, input.ai.staffId))) return loi(409, "nop_dang_cho", CAU_CONG_TY_THU_TRUNG);
@@ -676,7 +682,7 @@ export async function daGiao(
     if (!doc.ok) return doc;
     lt = doc.value;
     // ADR-0178 Đ1 mục 2: khoản thu kèm «Khách đã trả đủ» của đơn mang dấu Tắt — kiểm TRƯỚC lô (đơn không sang «Khách đã trả đủ»).
-    const kenh = await kiemNguoiThuKenh(db, input.orderId, lt.collectorPartyId);
+    const kenh = await kiemNguoiThuKenh(db, input.orderId, lt);
     if (kenh) return { ok: false, res: kenh };
     // ADR-0182 Đ2 mục 13 (chiều ngược): cùng chốt với `ghiLanThu` — người có khoản nộp chờ của đơn không khai «Công ty thu» kèm «Khách đã trả đủ».
     if (lt.collectorRole === "COMPANY" && (await coNopChoCuaNguoi(db, input.orderId, ai.staffId))) return loi(409, "nop_dang_cho", CAU_CONG_TY_THU_TRUNG);

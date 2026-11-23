@@ -122,7 +122,7 @@ const CHUP_JSON = (t) => `json_object('id', ${t}.id, 'order_service_id', ${t}.or
  */
 const COT_DICH_VU = (s) => `${s}.id AS dv, ${s}.name AS ten, ${s}.unit AS unit, ${s}.catalog_code AS catalog_code,
        json_object('adult', ${s}.pax_adult, 'child', ${s}.pax_child, 'senior', ${s}.pax_senior, 'infant', ${s}.pax_infant) AS pax,
-       (SELECT json_group_array(json_object('paxCode', i.pax_code, 'catalogPrice', i.catalog_price, 'unitPrice', i.unit_price, 'lineTotal', i.line_total, 'quantity', i.quantity))
+       (SELECT json_group_array(json_object('paxCode', i.pax_code, 'catalogPrice', i.catalog_price, 'unitPrice', i.unit_price, 'lineTotal', i.line_total, 'quantity', i.quantity, 'seasonalIncrease', i.seasonal_increase))
           FROM order_item i WHERE i.service_id = ${s}.id) AS items,
        (SELECT a.after_json FROM order_money_adjustment a WHERE a.order_id = ${s}.order_id ORDER BY a.seq DESC LIMIT 1) AS after_json,
        (SELECT ${CHUP_JSON("t")} FROM ord_service_terms t WHERE t.order_service_id = ${s}.id AND ${CHUP_HIEN_HANH("t")}) AS chup`;
@@ -165,6 +165,11 @@ const GHI_SAU_KHOA = (bang) =>
  * N4 dò ở bài chạy cả ứng dụng (tests/audit/nhat-ky-hang.mjs).
  */
 export const COT_N3_NHAT_KY = {
+  "abg_photo.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0232: băm Ảnh bàn giao — nhật ký chỉ mang mã ảnh
+  "abg_photo.thumb_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 Ảnh bàn giao — không bao giờ vào nhật ký
+  "abg_photo.view_key": { kiem: "R-PD-1", chuanHoa: false },
+  "abg_photo.hidden_reason": { kiem: "R-PD-1", chuanHoa: false }, // lý do ẩn nằm ở dòng ảnh — nhật ký chỉ mang mã ảnh
+  "abg_photo.purge_note": { kiem: "R-PD-1", chuanHoa: false }, // lý do xoá (chữ) nằm ở dòng ảnh — nhật ký chỉ mang mã lý do
   "fbk_attachment.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0144: băm tệp kèm vé hỗ trợ — nhật ký chỉ mang mã tệp
   "bil_receipt_proof.content_hash": { kiem: "R-PD-1", chuanHoa: false }, // ADR-0196: băm ảnh biên lai — nhật ký chỉ mang mã ảnh
   "bil_receipt_proof.storage_key": { kiem: "R-PD-1", chuanHoa: false }, // khoá kho R2 biên lai — không bao giờ vào nhật ký
@@ -787,11 +792,14 @@ export const CHECKS = [
     // Phí đưa đón trên đơn (Đợt C, ADR-0147 / ADR-0203; migration 0169): mỗi dòng phí (`line_kind = 'TRANSFER_FEE'`) trỏ chặng CÙNG ĐƠN, mã mức còn tồn tại (cột `fee_rule_id` không có khoá ngoại — xem 0169), thành tiền = số lượng × đơn giá, và mức phí
     // «theo chuyến» luôn có số lượng 1. Lưới thứ hai của trigger 0007 (thành tiền) và 0169 (cột phí); chặng cùng đơn là luật chỉ máy chủ giữ nên kiểm ở đây. Chỉ đọc; R-ORD-15 giữ nguyên.
     code: "R-ORD-PD-1",
-    what: "dòng phí đưa đón trỏ chặng của đơn khác (hoặc chặng không còn), trỏ mức phí không còn, thành tiền khác số lượng × đơn giá, hoặc mức theo chuyến có số lượng khác 1",
+    what: "dòng phí đưa đón trỏ chặng của đơn khác (hoặc chặng không còn), dòng cũ trỏ mức phí không còn, dòng nguồn mới (0179) sai công thức giá gốc / thiếu mã chương trình / thiếu lý do đổi hoặc đơn giá đổi tay ngoài 0–5.000.000, thành tiền khác số lượng × đơn giá, hoặc mức theo chuyến có số lượng khác 1",
     sql: `SELECT count(*) FROM order_item i
        WHERE i.line_kind = 'TRANSFER_FEE'
          AND (NOT EXISTS (SELECT 1 FROM ord_transfer_leg l WHERE l.id = i.transfer_leg_id AND l.order_id = i.order_id)
-           OR (i.fee_source IS NOT 'CHON' AND NOT EXISTS (SELECT 1 FROM prc_transfer_fee_rule r WHERE r.id = i.fee_rule_id))
+           OR (i.fee_calc_source IS NULL AND i.fee_source IS NOT 'CHON' AND NOT EXISTS (SELECT 1 FROM prc_transfer_fee_rule r WHERE r.id = i.fee_rule_id))
+           OR (i.fee_calc_source = 'GIA_GOC' AND (i.fee_base_price IS NULL OR (i.fee_kind IS 'PER_TRIP' AND i.unit_price <> i.fee_base_price) OR (i.fee_kind IS NOT 'PER_TRIP' AND i.unit_price <> max(0, i.fee_base_price - COALESCE(i.fee_tier_discount, 0)))))
+           OR (i.fee_calc_source = 'CHUONG_TRINH' AND (i.fee_program_id IS NULL OR i.unit_price <> 0))
+           OR (i.fee_calc_source = 'DOI_TAY' AND (i.fee_override_reason IS NULL OR trim(i.fee_override_reason) = '' OR i.fee_override_by IS NULL OR i.unit_price < 0 OR i.unit_price > 5000000))
            OR i.line_total <> i.quantity * i.unit_price
            OR (i.fee_kind = 'PER_TRIP' AND i.quantity <> 1))`,
     level: "fail",
@@ -1115,6 +1123,30 @@ export const CHECKS = [
           + (SELECT count(*) FROM bil_remittance_proof WHERE (purged_at IS NOT NULL AND r2_deleted_at IS NULL)
             OR (purged_at IS NULL AND stored_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour')))`,
     level: "warn",
+  },
+  // R-ABG-1 (ADR-0232 Đ5, Đ7; Hiến chương 5.16): như R-BIL-BL1 cho Ảnh bàn giao (kho ANH_BAN_GIAO) — đã quyết gỡ mà kho chưa xoá, hoặc tải dở dang quá 1 giờ.
+  // Mức warn: chạy lại ở POST /api/anh-ban-giao/cho-xoa/chay-lai.
+  {
+    code: "R-ABG-1",
+    what: "ảnh bàn giao chờ xoá khỏi kho R2, hoặc tải lên dở dang quá 1 giờ (chạy lại ở POST /api/anh-ban-giao/cho-xoa/chay-lai)",
+    sql: `SELECT count(*) FROM abg_photo WHERE (purged_at IS NOT NULL AND r2_deleted_at IS NULL)
+            OR (purged_at IS NULL AND stored_at IS NULL AND created_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-1 hour'))`,
+    level: "warn",
+  },
+  // R-ABG-2 (ADR-0232 Đ7, Hiến chương 5.25): ảnh QUÁ hạn giữ mà chưa gỡ — máy không tự xoá; Toàn quyền xoá từng ảnh (lý do HET_HAN). Mức warn: nhắc, không chặn.
+  {
+    code: "R-ABG-2",
+    what: "ảnh bàn giao đã quá hạn giữ ghi trong chính sách riêng tư mà chưa xoá (Toàn quyền xoá ở hàng chờ GET /api/anh-ban-giao/cho-xoa)",
+    sql: "SELECT count(*) FROM abg_photo WHERE purged_at IS NULL AND retain_until <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now')",
+    level: "warn",
+  },
+  // R-ABG-3 (ADR-0232 Đ7, biến thể 7B): yêu cầu xoá nguồn PHIEU mà phiếu đã THỰC HIỆN nhưng còn ảnh đánh dấu chưa gỡ (lô của parties thiếu câu gỡ ảnh). fail.
+  {
+    code: "R-ABG-3",
+    what: "phiếu xoá dữ liệu đã thực hiện mà ảnh bàn giao đã đánh dấu vào phiếu vẫn chưa gỡ",
+    sql: `SELECT count(*) FROM abg_photo p JOIN abg_erasure_request r ON r.id = p.erasure_request_id
+          WHERE p.purged_at IS NULL AND r.source = 'PHIEU' AND EXISTS (SELECT 1 FROM pty_erasure_request e WHERE e.id = r.phieu_id AND e.status = 'DA_THUC_HIEN')`,
+    level: "fail",
   },
   // R-PTY-13 (ADR-0124 đ3, Hiến chương 5.21; lát H-3 Gói 2): phiếu tự khai ĐANG CHỜ mà quyết định đồng ý mới nhất của chủ phiếu với ĐÚNG phiên bản ghi trên phiếu không còn là
   // DONG_Y. Rút đồng ý phải rút phiếu cùng lô (route POST /api/parties/cua-toi/dong-y — ruling Q2). fail: người xác minh (lát H-4) không được xử lý phiếu như vậy.
@@ -2102,6 +2134,8 @@ export const CHECKS = [
   // ADR-0193 mục 6: chỉ đếm đơn xác nhận khi công tắc «Bắt buộc giờ đón cho đơn đối tác» BẬT — dòng `ord_pickup_time_policy` hiệu lực tại `o.confirmed_at`; không có dòng (xác nhận trước ngày gieo
   // của 0157) ⇒ coi là Bật, như `docBatBuocGioDon`. Biết trước: yêu cầu gửi lúc Tắt (cờ = 0) mà Còn vé bấm sau khi Bật lại vẫn bị đếm (đọc theo giờ xác nhận, đúng chữ ADR) — cảnh báo thừa, chấp nhận.
   // Bảng 0157: D1 chưa áp 0157 thì «no such table» ⇒ script thoát mã 2; `npm run trien-khai` chạy kiểm SAU khi áp migration.
+  // ADR-0228 Đ3 (việc 8): KHÔNG đếm đơn xác nhận lúc công tắc «Đơn đối tác không cần giờ đón» BẬT (dòng `ord_partner_pickup_time_optional_policy` hiệu lực tại `o.confirmed_at`; không có dòng ⇒ Tắt) —
+  // đơn đó cố ý xác nhận khi chưa giờ (văn phòng chốt giờ sau). Bảng 0183: cùng lưu ý «no such table» như 0157.
   {
     code: "R-ORD-17w",
     what: "đơn đã xác nhận (tạo từ mốc phát hành ADR-0154) của người lập từng giữ quyền Đối tác mà lượt đưa đón đầu của một dịch vụ chưa có giờ đón (ADR-0154 Đ1.7)",
@@ -2109,6 +2143,7 @@ export const CHECKS = [
       WHERE o.status = 'confirmed'
         AND o.created_at >= (SELECT MIN(created_at) FROM ord_partner_customer_policy)
         AND COALESCE((SELECT pt.required FROM ord_pickup_time_policy pt WHERE pt.valid_from_at <= o.confirmed_at ORDER BY pt.valid_from_at DESC LIMIT 1), 1) = 1
+        AND COALESCE((SELECT kc.khong_can FROM ord_partner_pickup_time_optional_policy kc WHERE kc.valid_from_at <= o.confirmed_at ORDER BY kc.valid_from_at DESC LIMIT 1), 0) = 0
         AND EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = o.staff_id AND p.permission_type_code = 'PARTNER')
         AND EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id
           AND EXISTS (SELECT 1 FROM ord_transfer_leg l1 WHERE l1.order_service_id = s.id AND l1.closed_at IS NULL)
@@ -2517,6 +2552,22 @@ export const CHECKS = [
     mode: "rows",
     level: "warn",
     note: "máy đã không cho dùng hạn mức này; đóng dòng hạn mức bằng route POST /api/tra-sau/han-muc/<hồ sơ>/ngung (giao diện không hiện hồ sơ hết vai trò) — chờ chủ quyết cách làm trên màn",
+  },
+  // R-CRD-6 (ADR-0230 Đ1 mục 3; migration 0187 phần A): loại Trả sau chụp CÙNG câu chụp hạn trả của lô xác nhận; đơn cũ đã qua nháp được điền 'LIMIT' lúc áp. Đơn Trả sau đã
+  // qua nháp (không huỷ) mà còn NULL = lô xác nhận bỏ sót loại (màn nợ không biết tách «theo hạn mức» / «theo dịch vụ»). Cột của 0187: chạy SAU khi áp migration (thiếu ⇒ thoát 2).
+  {
+    code: "R-CRD-6",
+    what: "đơn Trả sau đã xác nhận mà thiếu loại Trả sau (theo hạn mức / theo dịch vụ)",
+    sql: `SELECT count(*) FROM orders WHERE payment_term = 'CREDIT' AND status NOT IN ('draft', 'cancelled') AND credit_basis IS NULL`,
+    level: "fail",
+  },
+  // R-CRD-7 (ADR-0230 Đ2; migration 0187 phần B): «Trả lúc check-in» chỉ đi với Thanh toán ngay. Trigger chặn lúc chèn dòng bật và ở câu xác nhận; nháp đổi hình thức sau khi chọn
+  // (không qua máy chủ) là chỗ trigger không canh — lưới này bắt. Dòng hiệu lực = `valid_from_at` lớn nhất (view công bố `v_ord_tra_luc_checkin`).
+  {
+    code: "R-CRD-7",
+    what: "đơn mang hình thức «Trả lúc check-in» mà không phải Thanh toán ngay",
+    sql: `SELECT count(*) FROM orders o JOIN v_ord_tra_luc_checkin c ON c.order_id = o.id WHERE o.payment_term <> 'PREPAID'`,
+    level: "fail",
   },
   // R-KT-1 (ADR-0178 Đ1 mục 3; migration 0144): «khoản thu giùm = 0». Đơn mang dấu Tắt (company_collects_snapshot = 0) chỉ có khoản khách trả còn hiệu lực do hồ sơ người lập thu.
   // CÙNG định nghĩa với trigger `bil_receipt_partner_channel` (CUSTOMER_PAYMENT, không phải dòng đảo; so NULL-safe với hồ sơ của người lập qua `v_stf_staff_label`); «còn hiệu lực» =
